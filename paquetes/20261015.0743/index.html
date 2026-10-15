@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Cx Obra</title>
+<!-- CX OBRA: la app del móvil de la obra. Barra flotante abajo
+     (Commissioning · Incidencias · [+] · Compras · Más) y, dentro de cada
+     una, sus secciones arriba; la obra se elige una vez en la cabecera y vale
+     para todas (carcasa.js). Cada sección es un script que se activa con su
+     dirección: #commissioning, #partes, #ncr, #albaranes, #inventario, #bloc,
+     #personal, #estanqueidad y #cuenta.
+     La sirve la app del ordenador por la wifi (electron/movil/servidor.js), y
+     las direcciones son relativas porque todo cuelga de /m/<llave>/. acceso.js
+     va el primero: pide el correo y la contraseña y deja solo las secciones
+     del rol (el ordenador lo vuelve a comprobar en cada petición).
+     Instalable (PWA): Safari › Compartir › Añadir a pantalla de inicio. -->
+<link rel="apple-touch-icon" href="iconos/icono-180.png">
+<link rel="icon" type="image/png" href="iconos/icono-192.png">
+<meta name="theme-color" content="#F5F5F5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Cx Obra">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="movil.css">
+<style>.arranque-cx{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#F5F5F5;color:#767676;font:15px -apple-system,system-ui,sans-serif;z-index:9999;padding:24px;text-align:center;white-space:pre-wrap}.arranque-cx.roto{background:#fff;color:#9C2B2B;font:13px ui-monospace,monospace;align-items:flex-start;text-align:left}</style>
+</head>
+<body>
+  <header class="barra">
+    <div class="barra-fila">
+      <h1 id="titulo-seccion">Cx Obra</h1>
+      <div class="quien" id="quien"></div>
+    </div>
+    <label class="obra-movil" id="obra-movil-caja" hidden><span>Obra</span><select id="obra-movil" aria-label="Obra"></select></label>
+  </header>
+  <nav class="segmentos" id="segmentos" aria-label="Secciones" hidden></nav>
+  <main id="app" aria-live="polite"><p class="cargando">Cargando…</p></main>
+  <input type="file" id="camara" accept="image/*,application/pdf" capture="environment" hidden>
+  <input type="file" id="galeria" accept="image/*,application/pdf" hidden>
+  <input type="file" id="camara-qr" accept="image/*" capture="environment" hidden>
+  <input type="file" id="camara-parte" accept="image/*" capture="environment" hidden>
+  <input type="file" id="galeria-parte" accept="image/*" hidden>
+  <input type="file" id="camara-prueba" accept="image/*" capture="environment" hidden>
+  <input type="file" id="galeria-prueba" accept="image/*" hidden>
+  <nav class="barra-inferior" id="barra-inferior" aria-label="Pestañas"></nav>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="arranqueCx" class="arranque-cx">Abriendo Cx Obra…</div>
+  <script src="scripts-pantalla.js"></script>
+  <script src="motor-cxobra.js"></script>
+</body>
+</html>
