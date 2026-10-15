@@ -681,3 +681,36 @@ details.grupo-lista[open] > summary { margin-bottom: 6px; }
 .grupo-plegable > summary::-webkit-details-marker { display: none; }
 .grupo-plegable > summary::after { content: ' ›'; }
 .grupo-plegable[open] > summary::after { content: ' ⌄'; }
+
+/* ─── Ficha de balanceo: los datos del sistema (15-oct-2026) ───
+   Como su Excel: el TAG de cabecera, impulsión y retorno lado a lado, lo de
+   proyecto en lectura y lo que mide el técnico grande, con la unidad dentro. */
+.bal-datos { padding: 0; overflow: hidden; }
+.bal-tag { display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 14px 16px; background: var(--acento-fuerte); color: #fff; }
+.bal-tag span { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; opacity: .8; }
+.bal-tag strong { font-size: 20px; font-weight: 700; letter-spacing: -.2px; text-align: right; }
+.bal-zona { display: block; padding: 10px 16px 12px; border-bottom: 1px solid var(--rejillaSuave); }
+.bal-zona span, .bal-metodo > span { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--textoTenue); }
+.bal-zona input { margin-top: 4px; min-height: 44px; }
+.bal-tabla { padding: 4px 16px 12px; }
+.bal-cab, .bal-fila { display: grid; grid-template-columns: minmax(84px, .8fr) 1fr 1fr; gap: 8px; align-items: center; }
+.bal-cab { padding: 8px 0 4px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--acento-fuerte); }
+.bal-cab span { text-align: right; }
+.bal-fila { padding: 6px 0; }
+.bal-fila > span:first-child { font-size: 14px; font-weight: 500; color: var(--texto); line-height: 1.2; }
+.bal-fila.proyecto { margin: 0 -16px; padding: 8px 16px; background: var(--panel2); border-top: 1px solid var(--rejillaSuave); border-bottom: 1px solid var(--rejillaSuave); }
+.bal-fila.proyecto > span:first-child { color: var(--textoSuave); }
+.bal-leido { text-align: right; font-size: 17px; font-weight: 600; color: var(--textoSuave); font-variant-numeric: tabular-nums; }
+.bal-leido small { font-size: 12px; font-weight: 400; color: var(--textoTenue); }
+.bal-sub { padding: 10px 0 2px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--acento); }
+.con-unidad { position: relative; display: block; }
+.con-unidad input { margin: 0; min-height: 56px; padding: 8px 46px 8px 10px; text-align: right; font-size: 22px; font-weight: 600;
+  font-variant-numeric: tabular-nums; background: var(--panel); border-color: var(--acento); }
+.con-unidad i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--textoTenue); pointer-events: none; }
+.con-unidad.pequeno input { min-height: 40px; font-size: 16px; font-weight: 500; border-color: var(--borde); padding-right: 50px; }
+.bal-metodo { padding: 10px 16px 14px; border-top: 1px solid var(--rejillaSuave); }
+.respuestas.segmento { gap: 0; margin-top: 6px; border: 1.5px solid var(--acento); border-radius: 12px; overflow: hidden; }
+.respuestas.segmento button { border: 0; border-radius: 0; min-height: 48px; font-size: 14px; color: var(--acento-fuerte); }
+.respuestas.segmento button + button { border-left: 1.5px solid var(--acento); }
+.respuestas.segmento button.activa { background: var(--acento); color: #fff; }

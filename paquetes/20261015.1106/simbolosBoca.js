@@ -114,7 +114,50 @@ function svgBoca(tipo, { clase = '', titulo = '' } = {}) {
   return `<svg class="simbolo-boca ${esc(clase)}" data-familia="${familia}" viewBox="0 0 ${f.ancho} ${f.alto}" style="aspect-ratio:${f.ancho}/${f.alto}" aria-hidden="${titulo ? 'false' : 'true'}" focusable="false">${titulo ? `<title>${esc(titulo)}</title>` : ''}<g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">${trazosBoca(familia)}</g></svg>`;
 }
 
+/* Los colores del estado de una boca en papel (sin las variables de la pantalla). */
+const COLOR_ESTADO_BOCA = {
+  ok: '#1B7F3B', dentro: '#1B7F3B',
+  alto: '#C62828', bajo: '#C62828',
+  sinFactor: '#A15C00', sinProyecto: '#A15C00', sinTolerancia: '#A15C00', medido: '#A15C00',
+  sinMedir: '#5F6B73',
+};
+
+/**
+ * EL PLANO CON SUS BOCAS EN UN SOLO SVG, para el papel (la hoja de balanceo
+ * en PDF): la imagen del plano y encima cada boca con su símbolo, su nombre y
+ * su caudal medido, en el color de su estado. `puntos` = los del plano (x, y
+ * de 0 a 1, tipo, nombre); `estados` = { puntoId: { estado, caudal } }.
+ */
+function planoSvgBocas({ imagen = null, ancho = 1600, alto = 900, puntos = [], estados = {} } = {}) {
+  const W = Number(ancho) > 0 ? Number(ancho) : 1600;
+  const H = Number(alto) > 0 ? Number(alto) : 900;
+  const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const h = Math.max(W, H) * 0.024;
+  const fs = h * 0.62;
+  const marcas = puntos.map((p) => {
+    const familia = familiaBoca(p.tipo);
+    const f = FAMILIAS_BOCA[familia];
+    const e = estados[p.id] || {};
+    const color = COLOR_ESTADO_BOCA[e.estado] || COLOR_ESTADO_BOCA.sinMedir;
+    const k = h / 24;
+    const cx = Number(p.x) * W;
+    const cy = Number(p.y) * H;
+    const sx = cx - (f.ancho * k) / 2;
+    const sy = cy - (f.alto * k) / 2;
+    const texto = `${p.nombre || ''}${e.caudal !== null && e.caudal !== undefined ? ` ${Math.round(e.caudal)}` : ''}`;
+    const tw = texto.length * fs * 0.6 + fs * 0.6;
+    const tx = cx + (f.ancho * k) / 2 + fs * 0.25;
+    return `<g color="${color}"><g transform="translate(${sx.toFixed(1)} ${sy.toFixed(1)}) scale(${k.toFixed(3)})" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${trazosBoca(familia)}</g>`
+      + `<rect x="${tx.toFixed(1)}" y="${(cy - fs * 0.72).toFixed(1)}" width="${tw.toFixed(1)}" height="${(fs * 1.44).toFixed(1)}" rx="${(fs * 0.2).toFixed(1)}" fill="#fff" stroke="currentColor" stroke-width="${(fs * 0.09).toFixed(2)}"/>`
+      + `<text x="${(tx + fs * 0.3).toFixed(1)}" y="${(cy + fs * 0.36).toFixed(1)}" font-size="${fs.toFixed(1)}" font-family="Arial, Helvetica, sans-serif" font-weight="700" fill="currentColor">${esc(texto)}</text></g>`;
+  }).join('');
+  return `<svg class="planoBocasSvg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%">`
+    + '<style>.planoBocasSvg .cuerpo{fill:#fff;fill-opacity:.85}.planoBocasSvg .lleno{fill:currentColor}</style>'
+    + (imagen ? `<image href="${esc(imagen)}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="none"/>` : `<rect width="${W}" height="${H}" fill="#F4F6F5"/>`)
+    + marcas + '</svg>';
+}
+
 (function exportar(API) {
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
   if (typeof window !== 'undefined') window.SIMBOLOS_BOCA = API;
-})({ FAMILIAS: FAMILIAS_BOCA, familia: familiaBoca, svg: svgBoca });
+})({ FAMILIAS: FAMILIAS_BOCA, familia: familiaBoca, svg: svgBoca, planoSvg: planoSvgBocas, COLOR_ESTADO: COLOR_ESTADO_BOCA });

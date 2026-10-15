@@ -8573,7 +8573,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261015.1030" : "0";
+      var VERSION = true ? "20261015.1106" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -20561,11 +20561,42 @@ globalThis.CX_VARIANTE="cxobra";
           };
         });
       }
-      function evaluarMagnitudes(hoja, tol = SIN_TOLERANCIAS) {
+      function bocasDelPlano(filas, idCircuito, tolBoca = null) {
+        return filas.filter((f) => f && f.circuito === idCircuito).map((f, i) => {
+          const q = numBal(f.caudal);
+          const p = numBal(f.caudalDiseno);
+          const d = desviacion(q, p);
+          let estado;
+          if (q === null) estado = f.estado === "sinFactor" ? "sinFactor" : "sinMedir";
+          else if (d === null) estado = "sinProyecto";
+          else if (tolBoca === null) estado = "sinTolerancia";
+          else estado = Math.abs(d) <= tolBoca + 1e-9 ? "ok" : d > 0 ? "alto" : "bajo";
+          return {
+            indice: i + 1,
+            nombre: f.nombre || `${idCircuito === "impulsion" ? "I" : "R"}${i + 1}`,
+            tipo: f.tipo || null,
+            terminal: f.tipoNombre || "",
+            caudalProyecto: p,
+            origenProyecto: p === null ? null : "plano",
+            caudalMedido: q,
+            ancho: null,
+            alto: null,
+            velocidad: numBal(f.velocidad),
+            factor: numBal(f.factor),
+            modoFactor: f.modoFactor || null,
+            metodo: f.metodo || null,
+            lecturas: Array.isArray(f.lecturasLista) ? f.lecturasLista : [],
+            puntoId: f.id || null,
+            desviacion: d === null ? null : redBal(d, 4),
+            estado
+          };
+        });
+      }
+      function evaluarMagnitudes(hoja, tol = SIN_TOLERANCIAS, proyecto = hoja.proyecto) {
         const circuitos = TIPOS_EQUIPO[hoja.tipo].circuitos;
         return MAGNITUDES.filter((m) => !m.circuito || circuitos.includes(m.circuito)).map((m) => {
           const f = numBal(hoja.fabrica[m.id]);
-          const p = numBal(hoja.proyecto[m.id]);
+          const p = numBal(proyecto[m.id]);
           const x = numBal(hoja.medido[m.id]);
           let estado = null;
           let d = null;
@@ -20586,14 +20617,25 @@ globalThis.CX_VARIANTE="cxobra";
         const pctTol = (v) => `\xB1${cifraBal(v * 100)} %`;
         const tipo = TIPOS_EQUIPO[hoja.tipo];
         const avisos = [];
+        const plano = Array.isArray(opciones.plano) && opciones.plano.length ? opciones.plano : null;
+        const diseno = opciones.diseno || {};
+        const proyectoEf = { ...hoja.proyecto };
+        const origenProyecto = {};
+        for (const [id, magnitud] of [["impulsion", "caudalImpulsion"], ["retorno", "caudalRetorno"]]) {
+          if (numBal(proyectoEf[magnitud]) !== null) origenProyecto[id] = "hoja";
+          else if (numBal(diseno[id]) !== null) {
+            proyectoEf[magnitud] = numBal(diseno[id]);
+            origenProyecto[id] = "fuera";
+          }
+        }
         const circuitos = tipo.circuitos.map((id) => {
-          const bocas = evaluarBocas(hoja, id, tol.boca);
-          const perdida = perdidaCircuito(hoja, id);
+          const bocas = plano ? bocasDelPlano(plano, id, tol.boca) : evaluarBocas(hoja, id, tol.boca);
+          const perdida = plano ? { total: null, partidas: [], avisos: [], supuestos: [] } : perdidaCircuito(hoja, id);
           const magnitud = id === "impulsion" ? "caudalImpulsion" : "caudalRetorno";
           const medidas = bocas.filter((b) => b.caudalMedido !== null);
           const sumaMedido = medidas.length ? medidas.reduce((s, b) => s + b.caudalMedido, 0) : null;
           const sumaProyecto = bocas.reduce((s, b) => s + (b.caudalProyecto || 0), 0) || null;
-          const proyectoEquipo = numBal(hoja.proyecto[magnitud]);
+          const proyectoEquipo = numBal(proyectoEf[magnitud]);
           const medidoEquipo = numBal(hoja.medido[magnitud]);
           const fabricaEquipo = numBal(hoja.fabrica[magnitud]);
           const todasMedidas = bocas.length > 0 && medidas.length === bocas.length;
@@ -20604,8 +20646,14 @@ globalThis.CX_VARIANTE="cxobra";
           if (fabricaEquipo !== null && proyectoEquipo !== null && fabricaEquipo < proyectoEquipo * (1 - (tol.total ?? 0))) {
             avisos.push({ gravedad: "mal", texto: `${nombre}: la ficha t\xE9cnica da ${cifraBal(fabricaEquipo)} m\xB3/h y el proyecto pide ${cifraBal(proyectoEquipo)} m\xB3/h. Con este equipo no se llega por mucho que se regule.` });
           }
-          if (proyectoEquipo !== null && sumaProyecto !== null && bocas.every((b) => b.origenProyecto === "dado") && Math.abs(sumaProyecto - proyectoEquipo) / proyectoEquipo > (tol.total ?? 0) + 1e-9) {
+          if (plano && proyectoEquipo !== null && sumaProyecto !== null && bocas.every((b) => b.origenProyecto === "plano") && Math.abs(sumaProyecto - proyectoEquipo) / proyectoEquipo > (tol.total ?? 0) + 1e-9) {
+            avisos.push({ gravedad: "aviso", texto: `${nombre}: las bocas del plano suman ${cifraBal(sumaProyecto)} m\xB3/h de proyecto y el equipo ${cifraBal(proyectoEquipo)} m\xB3/h. O faltan bocas en el plano o uno de los dos n\xFAmeros est\xE1 mal.` });
+          } else if (!plano && proyectoEquipo !== null && sumaProyecto !== null && bocas.every((b) => b.origenProyecto === "dado") && Math.abs(sumaProyecto - proyectoEquipo) / proyectoEquipo > (tol.total ?? 0) + 1e-9) {
             avisos.push({ gravedad: "aviso", texto: `${nombre}: las bocas suman ${cifraBal(sumaProyecto)} m\xB3/h de proyecto y el equipo ${cifraBal(proyectoEquipo)} m\xB3/h. Uno de los dos n\xFAmeros del proyecto est\xE1 mal.` });
+          }
+          if (plano && bocas.some((b) => b.estado === "sinFactor")) {
+            const n = bocas.filter((b) => b.estado === "sinFactor").length;
+            avisos.push({ gravedad: "aviso", texto: `${nombre}: ${_textoBal.plural(n, "boca tiene", "bocas tienen")} la velocidad pero no el Ak de su modelo: sin \xE9l no sale el caudal.` });
           }
           if (bocas.some((b) => b.origenProyecto === "repartido")) {
             avisos.push({ gravedad: "info", texto: `${nombre}: las bocas sin caudal de proyecto llevan el del equipo repartido a partes iguales. Si el proyecto da el de cada una, ponlo.` });
@@ -20618,6 +20666,7 @@ globalThis.CX_VARIANTE="cxobra";
             id,
             nombre,
             terminales: CIRCUITOS[id].terminales,
+            origenProyectoEquipo: origenProyecto[id] || null,
             circuito: hoja.circuitos[id],
             bocas,
             perdida,
@@ -20673,7 +20722,8 @@ globalThis.CX_VARIANTE="cxobra";
           instrumentosMalos: revInst.malos,
           hoja,
           tipo: { id: hoja.tipo, ...tipo },
-          equipo: evaluarMagnitudes(hoja, tol),
+          equipo: evaluarMagnitudes(hoja, tol, proyectoEf),
+          conPlano: Boolean(plano),
           circuitos,
           avisos,
           estado,
@@ -21013,6 +21063,7 @@ globalThis.CX_VARIANTE="cxobra";
         perdidaTerminal,
         perdidaCircuito,
         evaluarBocas,
+        bocasDelPlano,
         evaluarMagnitudes,
         evaluar: evaluarHoja,
         leerNumeroFicha,
@@ -22656,7 +22707,7 @@ globalThis.CX_VARIANTE="cxobra";
             x.txt = rotulos[x.sub];
           });
         }
-        function insertarEsquema(m, svg) {
+        function insertarEsquema(m, svg, titulo = null) {
           const i = m.filas.findIndex((f) => f.celdas.some((x) => esBanda(m, x) && /^RESUMEN/.test(norm(x.txt))));
           if (i < 0) return;
           const banda = m.filas[i];
@@ -22668,7 +22719,7 @@ globalThis.CX_VARIANTE="cxobra";
           m.filas.splice(
             i,
             0,
-            { alto: banda.alto, celdas: [{ c: 0, cs: 8, rs: 1, st, txt: "ESQUEMA DEL SISTEMA \xB7 EQUIPO, DIFUSORES Y REJAS DE RETORNO" }] },
+            { alto: banda.alto, celdas: [{ c: 0, cs: 8, rs: 1, st, txt: titulo || "ESQUEMA DEL SISTEMA \xB7 EQUIPO, DIFUSORES Y REJAS DE RETORNO" }] },
             { alto, celdas: [{ c: 0, cs: 8, rs: 1, st: 0, txt: "", html: `<div class="esquemaBal" style="height:${Math.round(alto * PT) - 8}px">${svg}</div>`, clase: "xlEsquema" }] },
             { alto: sep ? sep.alto : 6, celdas: (sep ? sep.celdas : []).map((x) => ({ ...x })) }
           );
@@ -22854,7 +22905,7 @@ globalThis.CX_VARIANTE="cxobra";
           const enTabla = eq.balanceoEstado || "pendiente";
           const pasada = ev.estado !== "pendiente" && enTabla === ev.estado;
           const circ = (red) => (ev.circuitos || []).find((c) => c.id === red);
-          if (ctx.esquema) insertarEsquema(m, ctx.esquema);
+          if (ctx.esquema) insertarEsquema(m, ctx.esquema, ctx.tituloEsquema);
           const tol = (v) => v === null || v === void 0 ? "SIN FIJAR" : `\xB1${num(v * 100, 1)} %`;
           const resTotal = (c) => c.totalOk === true ? res("apto") : c.totalOk === false ? res("noApto") : null;
           const fuente = {
@@ -22892,7 +22943,7 @@ globalThis.CX_VARIANTE="cxobra";
                 medido: num(b.caudalMedido, 0),
                 seccion: b.ancho && b.alto ? `${num(b.ancho, 0)} \xD7 ${num(b.alto, 0)}` : "",
                 velocidad: b.velocidad ? num(b.velocidad, 1) : "",
-                compuerta: esc(b.compuerta || b.observaciones || (b.estado === "sinProyecto" ? "sin proyecto" : "")),
+                compuerta: esc(b.compuerta || b.observaciones || (b.estado === "sinProyecto" ? "sin proyecto" : b.estado === "sinFactor" ? "falta el Ak" : "")),
                 desv: pct(b.desviacion),
                 resultado: res(ESTADO_BOCA[b.estado])
               })) : null;
@@ -22915,9 +22966,6 @@ globalThis.CX_VARIANTE="cxobra";
               const magnitudes = (ev.equipo || []).filter((x) => x.fabrica !== null || x.proyecto !== null || x.medido !== null);
               if (magnitudes.length) {
                 partes.push(`Equipo (te\xF3rico fabr. / proyecto / medido): ${magnitudes.map((x) => `${esc(x.nombre)} ${[x.fabrica, x.proyecto, x.medido].map((v) => v === null || v === void 0 ? "\u2014" : num(v, 1)).join(" / ")} ${esc(x.unidad || "")}${x.desviacion === null || x.desviacion === void 0 ? "" : x.absoluta ? ` (${x.desviacion > 0 ? "+" : ""}${num(x.desviacion, 1)} ${esc(x.unidad || "")})` : ` (${pct(x.desviacion)})`}`).join(" \xB7 ")}.`);
-              }
-              for (const c of ev.circuitos || []) {
-                if (c.perdida && c.perdida.total !== null && c.perdida.total !== void 0) partes.push(`${esc(c.nombre)}: p\xE9rdida de carga te\xF3rica ${num(c.perdida.total, 0)} Pa (estimaci\xF3n de commissioning con valores de cat\xE1logo, no el c\xE1lculo del proyecto).`);
               }
               const f = h.fuentes || {};
               if (f.fabrica || f.proyecto) partes.push(`Fuentes: ${[f.fabrica ? `f\xE1brica: ${esc(f.fabrica)}` : "", f.proyecto ? `proyecto: ${esc(f.proyecto)}` : ""].filter(Boolean).join(" \xB7 ")}.`);
@@ -23156,7 +23204,7 @@ globalThis.CX_VARIANTE="cxobra";
           const tolFh = (v) => v === null || v === void 0 ? "SIN FIJAR" : `\xB1${numFh(v * 100, 1)} %`;
           const est = (e) => ESTADO_BAL_FH[e] ? `<span class="res ${ESTADO_BAL_FH[e][0]}">${ESTADO_BAL_FH[e][1]}</span>` : escFh(e || "");
           const magnitudes = (ev.equipo || []).filter((m) => m.fabrica !== null || m.proyecto !== null || m.medido !== null);
-          const circuitos = (ev.circuitos || []).map((c) => `<div class="subtitulo">${escFh(c.nombre.toUpperCase())} \xB7 ${escFh(c.terminales)}${c.perdida && c.perdida.total !== null && c.perdida.total !== void 0 ? ` \xB7 p\xE9rdida de carga te\xF3rica ${numFh(c.perdida.total, 0)} Pa` : ""}</div>
+          const circuitos = (ev.circuitos || []).map((c) => `<div class="subtitulo">${escFh(c.nombre.toUpperCase())} \xB7 ${escFh(c.terminales)}</div>
     <table class="bocas">
       <thead><tr><th>N\xBA</th><th>Boca</th><th>Terminal</th><th>Proyecto m\xB3/h</th><th>Secci\xF3n cm</th><th>v media m/s</th><th>Medido m\xB3/h</th><th>Desv. %</th><th>Resultado</th></tr></thead>
       <tbody>${c.bocas.map((b) => `<tr>
@@ -23189,15 +23237,15 @@ globalThis.CX_VARIANTE="cxobra";
           <td>${celdaBal(m.estado)}</td></tr>`).join("") || '<tr><td colspan="7" class="vacio">Sin datos del equipo</td></tr>'}</tbody>
       </table>
     </section>
-    ${ctx.esquema ? `<section class="sec"><h3>ESQUEMA</h3><div class="esquemaBal">${ctx.esquema}</div></section>` : ""}
-    <section class="sec"><h3>CAUDALES POR BOCA</h3>${circuitos}</section>
+    ${ctx.esquema ? `<section class="sec"><h3>${escFh(ctx.tituloEsquema || "ESQUEMA")}</h3><div class="esquemaBal">${ctx.esquema}</div></section>` : ""}
+    <section class="sec"><h3>BALANCEO DE CAUDALES</h3>${circuitos}</section>
     <section class="sec"><h3>OBSERVACIONES</h3>
       <div class="obs">${avisos.length ? `<ul class="avisos">${avisos.map((a) => `<li>${escFh(a.texto)}</li>`).join("")}</ul>` : ""}</div>
     </section>
     <div class="resultadoFicha">Resultado: ${est(ev.estado)} <span class="nota">${escFh(ev.porque || "")}</span></div>
     <p class="criterio">Tolerancias de la obra (fijadas por el jefe de obra): caudal total ${tolFh(ev.tolerancias && ev.tolerancias.total)}, por boca ${tolFh(ev.tolerancias && ev.tolerancias.boca)}.
       En la tabla de equipos: ${est(enTabla)}${pasada ? "" : " \u2014 el resultado de esta hoja a\xFAn no se ha pasado a la tabla."}</p>
-    <footer class="pie">Hoja de balanceo \xB7 la p\xE9rdida de carga es una estimaci\xF3n de commissioning con valores de cat\xE1logo, no el c\xE1lculo del proyecto</footer>
+    <footer class="pie">Hoja de balanceo de caudales</footer>
   </article>`;
         }
         const NOMBRE_ESTADO = { sinFicha: "Sin ficha", sinEmpezar: "Sin empezar", pendiente: "Pendiente", completa: "Completa", firmada: "Firmada" };
@@ -24398,6 +24446,1458 @@ globalThis.CX_VARIANTE="cxobra";
           if (typeof window !== "undefined") window.MODELOS_EN_BLANCO = A;
         })(API);
       })();
+    }
+  });
+
+  // shared/commissioning/difusores.js
+  var require_difusores = __commonJS({
+    "shared/commissioning/difusores.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var MODOS_DIF = {
+        ak: { id: "ak", nombre: "\xC1rea efectiva Ak", unidad: "m\xB2" },
+        k: { id: "k", nombre: "Factor k", unidad: "m\xB3/h por m/s" }
+      };
+      var NOTA_EJEMPLO_DIF = "Valores de ejemplo: comprobar con la ficha del fabricante.";
+      var TOLERANCIA_DEFECTO_DIF = 0.1;
+      var MARCA_EJEMPLO_DIF = "Gen\xE9rico (ejemplo, comprobar)";
+      var TIPOS_DIF = {
+        rotacional600: { marca: MARCA_EJEMPLO_DIF, modelo: "Rotacional", variante: "600\xD7600 (24 ranuras)", nombre: "Difusor rotacional 600\xD7600 (24 ranuras)", circuito: "impulsion", modo: "ak", ak: 0.03, k: null, ejemplo: true },
+        rotacional400: { marca: MARCA_EJEMPLO_DIF, modelo: "Rotacional", variante: "400\xD7400 (16 ranuras)", nombre: "Difusor rotacional 400\xD7400 (16 ranuras)", circuito: "impulsion", modo: "ak", ak: 0.012, k: null, ejemplo: true },
+        cuadrado600: { marca: MARCA_EJEMPLO_DIF, modelo: "Cuadrado multidireccional", variante: "600\xD7600", nombre: "Difusor cuadrado multidireccional 600\xD7600", circuito: "impulsion", modo: "ak", ak: 0.04, k: null, ejemplo: true },
+        circularConos: { marca: MARCA_EJEMPLO_DIF, modelo: "Circular de conos", variante: "\xD8250", nombre: "Difusor circular de conos \xD8250", circuito: "impulsion", modo: "ak", ak: 0.025, k: null, ejemplo: true },
+        lineal2: { marca: MARCA_EJEMPLO_DIF, modelo: "Lineal", variante: "2 ranuras (por metro)", nombre: "Difusor lineal 2 ranuras (por metro)", circuito: "impulsion", modo: "ak", ak: 0.016, k: null, ejemplo: true },
+        rejillaImp: { marca: MARCA_EJEMPLO_DIF, modelo: "Rejilla de impulsi\xF3n", variante: "400\xD7200 doble deflexi\xF3n", nombre: "Rejilla de impulsi\xF3n 400\xD7200 doble deflexi\xF3n", circuito: "impulsion", modo: "ak", ak: 0.056, k: null, ejemplo: true },
+        tobera: { marca: MARCA_EJEMPLO_DIF, modelo: "Tobera de largo alcance", variante: "\xD8160", nombre: "Tobera de largo alcance \xD8160", circuito: "impulsion", modo: "k", ak: null, k: 36, ejemplo: true },
+        rejillaRet: { marca: MARCA_EJEMPLO_DIF, modelo: "Rejilla de retorno", variante: "600\xD7300 lamas fijas", nombre: "Rejilla de retorno 600\xD7300 lamas fijas", circuito: "retorno", modo: "ak", ak: 0.126, k: null, ejemplo: true },
+        bocaExt: { marca: MARCA_EJEMPLO_DIF, modelo: "Boca de extracci\xF3n", variante: "\xD8125 (v\xE1lvula)", nombre: "Boca de extracci\xF3n \xD8125 (v\xE1lvula)", circuito: "retorno", modo: "k", ak: null, k: 25, ejemplo: true },
+        /* Los dos de la hoja «CONVERSION CAUDAL REJAS.xlsx» que decía «con / sin
+           regulador»: sus números son los de la XGM-H-MO de la tabla de selección
+           rápida, pero de IMPULSIÓN (el «con regulador») y de EXTRACCIÓN (el «sin
+           regulador»). Se quedan para los puntos ya puestos; no se ofrecen. */
+        troxXgmReg: { marca: "TROX", modelo: "XGM (hoja antigua)", variante: "H-MO impulsi\xF3n (antes \xABcon regulador\xBB)", nombre: "TROX XGM-H-MO impulsi\xF3n, tabla r\xE1pida (antes \xABcon regulador\xBB)", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "XGM_REG", oculto: true },
+        troxXgm: { marca: "TROX", modelo: "XGM (hoja antigua)", variante: "H-MO extracci\xF3n (antes \xABsin regulador\xBB)", nombre: "TROX XGM-H-MO extracci\xF3n, tabla r\xE1pida (antes \xABsin regulador\xBB)", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "XGM", oculto: true },
+        troxWg: { marca: "TROX", modelo: "WG", variante: "Rejilla", nombre: "TROX WG", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "WG" },
+        troxTr2: { marca: "TROX", modelo: "TR2", variante: "Sin regulador", nombre: "TROX TR2 sin regulador", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "TR2" },
+        propioImp: { marca: "Otro", modelo: "Factor a mano", variante: "Impulsi\xF3n", nombre: "Otro de impulsi\xF3n (factor a mano)", circuito: "impulsion", modo: "ak", ak: null, k: null, propio: true },
+        propioRet: { marca: "Otro", modelo: "Factor a mano", variante: "Retorno", nombre: "Otro de retorno (factor a mano)", circuito: "retorno", modo: "ak", ak: null, k: null, propio: true },
+        /* La reja rectangular de un punto único de medida (Pitch 01 y 02: «se mide
+           en un único punto, con una reja rectangular»). Sin tamaño conocido, el Ak
+           se pone a mano o se mide con balómetro: nada de un Ak de ejemplo. */
+        rejillaRectImp: { marca: "Otro", modelo: "Reja rectangular", variante: "Impulsi\xF3n \xB7 Ak a mano", nombre: "Reja rectangular de impulsi\xF3n (Ak a mano)", circuito: "impulsion", modo: "ak", ak: null, k: null, propio: true },
+        rejillaRectRet: { marca: "Otro", modelo: "Reja rectangular", variante: "Retorno \xB7 Ak a mano", nombre: "Reja rectangular de retorno (Ak a mano)", circuito: "retorno", modo: "ak", ak: null, k: null, propio: true }
+      };
+      var TIPO_DEFECTO_DIF = "rotacional600";
+      var CIRCUITOS_DIF = [["impulsion", "IMP", "impulsi\xF3n", "imp"], ["retorno", "EXT", "extracci\xF3n", "ext"]];
+      var VARIANTES_XGM_DIF = [
+        ["H-MO", "Lamas horizontales m\xF3viles (H-MO)"],
+        ["V-MO", "Lamas verticales m\xF3viles (V-MO)"],
+        ["H-F0", "Lamas horizontales fijas 0\xB0 (H-F0)"],
+        ["H-F15", "Lamas horizontales fijas 15\xB0 (H-F15)"],
+        ["H-P0", "Lamas horizontales fijas 0\xB0, paso 16,7 (H-P0)"],
+        ["H-P15", "Lamas horizontales fijas 15\xB0, paso 16,7 (H-P15)"],
+        ["V-F0", "Lamas verticales fijas 0\xB0 (V-F0)"],
+        ["V-F15", "Lamas verticales fijas 15\xB0 (V-F15)"],
+        ["V-P0", "Lamas verticales fijas 0\xB0, paso 16,7 (V-P0)"],
+        ["V-P15", "Lamas verticales fijas 15\xB0, paso 16,7 (V-P15)"],
+        ["H-F45", "Lamas horizontales fijas 45\xB0 (H-F45)"],
+        ["V-F45", "Lamas verticales fijas 45\xB0 (V-F45)"]
+      ];
+      var ADJUNTOS_DIF = "correo del 13-oct-2026";
+      var FICHA_XGM_DIF = "XGM_PD_2026_09_02_DE_es.pdf (TROX X-GRILLE modular, PD-07/2026)";
+      var RAPIDA_XGM_DIF = "TABLA SELECCION RAPIDA XGM.pdf (TROX)";
+      var FICHA_VDW_DIF = "PD_2019_01_VDW_DE_es.pdf (TROX VDW, PD 01/2019)";
+      var FICHA_PL35_DIF = "PURELINE35_PD_2026_06_29_DE_es.pdf (TROX PL35, PD-06/2026)";
+      var FICHA_PL50_DIF = "PURELINE50_PD_2026_06_29_DE_es.pdf (TROX PL50, PD-06/2026)";
+      var HOJA_OBRA_DIF = "CONVERSION CAUDAL REJAS.xlsx (Drive de la obra, feb. 2026)";
+      var FUENTE_TABLAS_DIF = `TROX: fichas de producto y tablas de selecci\xF3n r\xE1pida (${ADJUNTOS_DIF}); WG y TR2 de \xABCONVERSION CAUDAL REJAS.xlsx\xBB`;
+      var NOTA_PL_DIF = "Las fichas de TROX de la PureLine (PD y selecci\xF3n r\xE1pida) no dan \xE1rea efectiva ni geom\xE9trica: pon el Ak a mano (pedirlo a TROX).";
+      var LN_PL_DIF = [600, 750, 900, 1050, 1200, 1350, 1500, 1650, 1800, 1950];
+      var TAMANOS_VDW_DIF = ["300 \xD7 8", "400 \xD7 16", "500 \xD7 24", "600 \xD7 24", "600 \xD7 48", "625 \xD7 24", "625 \xD7 54", "825 \xD7 72"];
+      var TABLAS_DIF = {
+        WG: {
+          fuente: HOJA_OBRA_DIF,
+          pagina: null,
+          magnitud: "Aeff",
+          nota: "Sin ficha de TROX en los adjuntos: comprobar con la ficha del fabricante.",
+          largos: [200, 400, 600, 800, 1e3, 1200, 1400, 1600, 1800, 2e3, 2200],
+          altos: [165, 330, 495, 660, 825, 990, 1155, 1320, 1485, 1650, 1815, 1980, 2145],
+          filas: [
+            [84e-4, 0.0169, 0.0253, 0.0338, 0.0422, 0.0506, 0.0591, 0.0675, 0.076, 0.0844, 0.0929],
+            [0.0253, 0.0506, 0.076, 0.1013, 0.1266, 0.1519, 0.1773, 0.2026, 0.2279, 0.2532, 0.2786],
+            [0.0422, 0.0844, 0.1266, 0.1688, 0.211, 0.2532, 0.2955, 0.3377, 0.3799, 0.4221, 0.4643],
+            [0.0591, 0.1182, 0.1773, 0.2364, 0.2955, 0.3545, 0.4136, 0.4727, 0.5318, 0.5909, 0.65],
+            [0.076, 0.1519, 0.2279, 0.3039, 0.3799, 0.4558, 0.5318, 0.6078, 0.6838, 0.7597, 0.8357],
+            [0.0929, 0.1857, 0.2786, 0.3714, 0.4643, 0.5571, 0.65, 0.7429, 0.8357, 0.9286, 1.0214],
+            [0.1097, 0.2195, 0.3292, 0.439, 0.5487, 0.6584, 0.7682, 0.8779, 0.9877, 1.0974, 1.2072],
+            [0.1266, 0.2532, 0.3799, 0.5065, 0.6331, 0.7597, 0.8864, 1.013, 1.1396, 1.2662, 1.3929],
+            [0.1435, 0.287, 0.4305, 0.574, 0.7175, 0.861, 1.0046, 1.1481, 1.2916, 1.4351, 1.5786],
+            [0.1604, 0.3208, 0.4812, 0.6416, 0.802, 0.9623, 1.1227, 1.2831, 1.4435, 1.6039, 1.7643],
+            [0.1773, 0.3545, 0.5318, 0.7091, 0.8864, 1.0636, 1.2409, 1.4182, 1.5955, 1.7727, 1.95],
+            [0.1942, 0.3883, 0.5825, 0.7766, 0.9708, 1.1649, 1.3591, 1.5533, 1.7474, 1.9416, 2.0387],
+            [0.211, 0.4221, 0.6331, 0.8442, 1.0552, 1.2662, 1.4773, 1.6883, 1.8994, 2.0049, 2.2159]
+          ]
+        },
+        XGM_REG: {
+          fuente: RAPIDA_XGM_DIF,
+          pagina: 1,
+          magnitud: "Aeff",
+          nota: "XGM-H-MO, \xE1rea efectiva para IMPULSI\xD3N (la hoja de la obra la llamaba \xABcon regulador\xBB).",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.015, 0.022, 0.029, 0.036, 0.043, 0.057, 0.07, 0.084],
+            [0.019, 0.028, 0.037, 0.046, 0.055, 0.073, 0.092, 0.11],
+            [0.027, 0.04, 0.053, 0.066, 0.079, 0.105, 0.131, 0.157],
+            [null, 0.059, 0.078, 0.097, 0.116, 0.154, 0.192, 0.23],
+            [null, null, 0.103, 0.127, 0.152, 0.202, 0.252, 0.302],
+            [null, null, null, 0.158, 0.189, 0.25, 0.313, 0.375]
+          ]
+        },
+        XGM: {
+          fuente: RAPIDA_XGM_DIF,
+          pagina: 1,
+          magnitud: "Aeff",
+          nota: "XGM-H-MO, \xE1rea efectiva para EXTRACCI\xD3N (la hoja de la obra la llamaba \xABsin regulador\xBB).",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.019, 0.028, 0.037, 0.045, 0.054, 0.072, 0.089, 0.107],
+            [0.027, 0.04, 0.053, 0.065, 0.077, 0.103, 0.127, 0.153],
+            [0.035, 0.051, 0.068, 0.084, 0.1, 0.133, 0.165, 0.198],
+            [null, 0.075, 0.098, 0.122, 0.146, 0.194, 0.241, 0.289],
+            [null, null, 0.13, 0.16, 0.192, 0.254, 0.317, 0.38],
+            [null, null, null, 0.198, 0.237, 0.314, 0.393, 0.471]
+          ]
+        },
+        TR2: {
+          fuente: HOJA_OBRA_DIF,
+          pagina: null,
+          magnitud: "Aeff",
+          nota: "Sin ficha de TROX en los adjuntos: comprobar con la ficha del fabricante.",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 225, 325, 425, 525],
+          filas: [
+            [8e-3, 0.012, 0.016, 0.02, 0.024, 0.032, 0.04, 0.048, 0.056, 0.064, 0.072, 0.08],
+            [0.016, 0.024, 0.032, 0.04, 0.048, 0.064, 0.08, 0.096, 0.112, 0.128, 0.144, 0.16],
+            [0.032, 0.048, 0.064, 0.08, 0.096, 0.128, 0.16, 0.192, 0.224, 0.256, 0.288, 0.319],
+            [null, 0.072, 0.096, 0.12, 0.144, 0.192, 0.24, 0.288, 0.335, 0.383, 0.431, 0.479],
+            [null, null, null, null, null, 0.256, 0.319, 0.383, 0.447, 0.511, 0.575, 0.639],
+            [null, null, null, null, null, null, 0.399, 0.479, 0.559, 0.639, 0.719, 0.799]
+          ]
+        },
+        XGM_H_F0_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 10,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [8e-3, 0.011, 0.015, 0.019, 0.022, 0.029, 0.036, 0.043, 0.05, 0.058, 0.065, 0.072],
+            [0.014, 0.021, 0.027, 0.034, 0.04, 0.053, 0.066, 0.079, 0.093, 0.106, 0.119, 0.132],
+            [0.019, 0.028, 0.037, 0.046, 0.055, 0.072, 0.09, 0.108, 0.126, 0.144, 0.162, 0.18],
+            [0.026, 0.039, 0.051, 0.064, 0.076, 0.101, 0.126, 0.152, 0.177, 0.202, 0.227, 0.252],
+            [null, 0.057, 0.076, 0.094, 0.113, 0.15, 0.187, 0.224, 0.261, 0.298, 0.334, 0.371],
+            [null, null, 0.1, 0.124, 0.149, 0.198, 0.247, 0.296, 0.345, 0.393, 0.442, 0.491],
+            [null, null, null, 0.155, 0.185, 0.246, 0.307, 0.368, 0.429, 0.489, 0.55, 0.611]
+          ]
+        },
+        XGM_H_F15_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 10,
+          magnitud: "Aeff",
+          erratas: [{ alto: 165, largo: 625, impreso: 5e-3, porque: "menor que sus vecinos (0,042 y 0,067): errata del PDF; sin valor" }],
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [7e-3, 0.011, 0.014, 0.017, 0.021, 0.027, 0.034, 0.041, 0.047, 0.054, 0.06, 0.067],
+            [0.013, 0.019, 0.025, 0.031, 0.037, 0.049, 0.061, 0.073, 0.086, 0.098, 0.11, 0.122],
+            [0.017, 0.026, 0.034, 0.042, null, 0.067, 0.083, 0.1, 0.116, 0.133, 0.149, 0.166],
+            [0.024, 0.036, 0.047, 0.059, 0.07, 0.093, 0.116, 0.139, 0.162, 0.185, 0.208, 0.231],
+            [null, 0.052, 0.069, 0.086, 0.103, 0.137, 0.171, 0.205, 0.239, 0.273, 0.307, 0.341],
+            [null, null, 0.091, 0.114, 0.136, 0.181, 0.226, 0.271, 0.316, 0.361, 0.406, 0.45],
+            [null, null, null, 0.141, 0.169, 0.225, 0.281, 0.337, 0.393, 0.448, 0.504, 0.56]
+          ]
+        },
+        XGM_H_F0_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 10,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.011, 0.015, 0.02, 0.025, 0.03, 0.039, 0.049, 0.059, 0.068, 0.078, 0.087, 0.097],
+            [0.019, 0.027, 0.036, 0.045, 0.053, 0.07, 0.088, 0.105, 0.122, 0.139, 0.156, 0.174],
+            [0.027, 0.039, 0.052, 0.065, 0.077, 0.101, 0.127, 0.151, 0.176, 0.201, 0.226, 0.251],
+            [0.035, 0.051, 0.067, 0.084, 0.1, 0.132, 0.165, 0.197, 0.23, 0.262, 0.295, 0.327],
+            [null, 0.075, 0.099, 0.122, 0.146, 0.194, 0.242, 0.29, 0.337, 0.385, 0.433, 0.481],
+            [null, null, 0.13, 0.16, 0.193, 0.256, 0.319, 0.382, 0.445, 0.508, 0.571, 0.634],
+            [null, null, null, 0.198, 0.239, 0.317, 0.396, 0.474, 0.553, 0.631, 0.709, 0.788]
+          ]
+        },
+        XGM_H_F15_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 10,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.011, 0.016, 0.02, 0.025, 0.03, 0.04, 0.05, 0.059, 0.069, 0.079, 0.088, 0.098],
+            [0.019, 0.027, 0.036, 0.044, 0.053, 0.07, 0.087, 0.105, 0.122, 0.139, 0.156, 0.173],
+            [0.027, 0.039, 0.052, 0.064, 0.076, 0.101, 0.125, 0.15, 0.175, 0.2, 0.224, 0.249],
+            [0.034, 0.051, 0.067, 0.083, 0.099, 0.131, 0.163, 0.195, 0.228, 0.26, 0.292, 0.324],
+            [null, 0.074, 0.097, 0.121, 0.145, 0.192, 0.239, 0.286, 0.333, 0.38, 0.428, 0.475],
+            [null, null, 0.128, 0.158, 0.19, 0.252, 0.315, 0.377, 0.439, 0.501, 0.563, 0.625],
+            [null, null, null, 0.195, 0.235, 0.312, 0.39, 0.468, 0.545, 0.622, 0.699, 0.776]
+          ]
+        },
+        XGM_H_P0_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 11,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.01, 0.014, 0.018, 0.023, 0.027, 0.036, 0.044, 0.053, 0.062, 0.07, 0.079, 0.088],
+            [0.016, 0.023, 0.031, 0.038, 0.045, 0.06, 0.074, 0.089, 0.104, 0.118, 0.133, 0.148],
+            [0.021, 0.031, 0.04, 0.05, 0.06, 0.079, 0.099, 0.118, 0.138, 0.156, 0.176, 0.196],
+            [0.028, 0.042, 0.055, 0.068, 0.081, 0.108, 0.135, 0.161, 0.188, 0.214, 0.241, 0.267],
+            [null, 0.06, 0.079, 0.098, 0.118, 0.156, 0.195, 0.233, 0.272, 0.31, 0.349, 0.387],
+            [null, null, 0.103, 0.129, 0.154, 0.204, 0.255, 0.305, 0.356, 0.406, 0.456, 0.507],
+            [null, null, null, 0.159, 0.19, 0.253, 0.315, 0.377, 0.44, 0.502, 0.564, 0.627]
+          ]
+        },
+        XGM_H_P15_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 11,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.01, 0.014, 0.018, 0.022, 0.027, 0.035, 0.044, 0.052, 0.061, 0.07, 0.078, 0.087],
+            [0.015, 0.023, 0.03, 0.037, 0.044, 0.058, 0.072, 0.086, 0.101, 0.115, 0.129, 0.143],
+            [0.02, 0.029, 0.039, 0.048, 0.057, 0.076, 0.095, 0.113, 0.132, 0.151, 0.169, 0.188],
+            [0.027, 0.04, 0.053, 0.065, 0.078, 0.103, 0.129, 0.154, 0.18, 0.205, 0.231, 0.256],
+            [null, 0.057, 0.075, 0.094, 0.112, 0.149, 0.186, 0.222, 0.259, 0.296, 0.333, 0.369],
+            [null, null, 0.098, 0.122, 0.146, 0.194, 0.242, 0.29, 0.338, 0.386, 0.434, 0.482],
+            [null, null, null, 0.151, 0.18, 0.239, 0.299, 0.358, 0.418, 0.477, 0.536, 0.595]
+          ]
+        },
+        XGM_H_P0_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 11,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.012, 0.017, 0.023, 0.028, 0.033, 0.044, 0.054, 0.065, 0.076, 0.086, 0.097, 0.108],
+            [0.02, 0.029, 0.037, 0.046, 0.055, 0.073, 0.091, 0.109, 0.127, 0.145, 0.163, 0.181],
+            [0.028, 0.04, 0.052, 0.065, 0.078, 0.103, 0.128, 0.153, 0.178, 0.204, 0.229, 0.254],
+            [0.035, 0.051, 0.067, 0.084, 0.1, 0.132, 0.165, 0.197, 0.229, 0.262, 0.294, 0.327],
+            [null, 0.074, 0.097, 0.121, 0.144, 0.191, 0.238, 0.285, 0.332, 0.379, 0.426, 0.473],
+            [null, null, 0.126, 0.159, 0.189, 0.25, 0.312, 0.373, 0.434, 0.496, 0.557, 0.619],
+            [null, null, null, 0.196, 0.233, 0.31, 0.385, 0.461, 0.537, 0.613, 0.689, 0.765]
+          ]
+        },
+        XGM_H_P15_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 11,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.012, 0.018, 0.023, 0.028, 0.034, 0.045, 0.056, 0.066, 0.077, 0.088, 0.099, 0.11],
+            [0.02, 0.029, 0.038, 0.047, 0.056, 0.074, 0.092, 0.11, 0.128, 0.146, 0.164, 0.182],
+            [0.028, 0.04, 0.053, 0.065, 0.078, 0.103, 0.128, 0.154, 0.179, 0.204, 0.229, 0.254],
+            [0.035, 0.051, 0.067, 0.083, 0.1, 0.132, 0.164, 0.197, 0.229, 0.261, 0.294, 0.326],
+            [null, 0.073, 0.097, 0.12, 0.143, 0.19, 0.237, 0.283, 0.33, 0.377, 0.424, 0.47],
+            [null, null, 0.127, 0.156, 0.187, 0.248, 0.309, 0.37, 0.431, 0.492, 0.553, 0.614],
+            [null, null, null, 0.193, 0.231, 0.306, 0.382, 0.457, 0.532, 0.608, 0.683, 0.759]
+          ]
+        },
+        XGM_V_F0_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 12,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.014, 0.02, 0.027, 0.034, 0.04, 0.053, 0.066, 0.079],
+            [0.019, 0.028, 0.037, 0.046, 0.055, 0.072, 0.09, 0.108],
+            [null, 0.039, 0.051, 0.064, 0.076, 0.101, 0.126, 0.151],
+            [null, null, 0.076, 0.094, 0.113, 0.15, 0.187, 0.223],
+            [null, null, null, 0.124, 0.149, 0.198, 0.246, 0.295],
+            [null, null, null, null, 0.185, 0.246, 0.306, 0.368]
+          ]
+        },
+        XGM_V_F15_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 12,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.013, 0.019, 0.025, 0.031, 0.037, 0.049, 0.061, 0.073],
+            [0.017, 0.026, 0.034, 0.042, 0.05, 0.067, 0.083, 0.1],
+            [null, 0.036, 0.047, 0.059, 0.07, 0.093, 0.116, 0.139],
+            [null, null, 0.069, 0.086, 0.103, 0.137, 0.171, 0.205],
+            [null, null, null, 0.114, 0.136, 0.181, 0.226, 0.271],
+            [null, null, null, null, 0.169, 0.225, 0.28, 0.337]
+          ]
+        },
+        XGM_V_F0_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 12,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.019, 0.026, 0.036, 0.044, 0.053, 0.07, 0.088, 0.105],
+            [0.025, 0.036, 0.048, 0.06, 0.072, 0.095, 0.119, 0.141],
+            [null, 0.051, 0.067, 0.084, 0.1, 0.132, 0.166, 0.196],
+            [null, null, 0.098, 0.122, 0.145, 0.193, 0.241, 0.289],
+            [null, null, null, 0.16, 0.193, 0.255, 0.318, 0.381],
+            [null, null, null, null, 0.239, 0.317, 0.395, 0.474]
+          ]
+        },
+        XGM_V_F15_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 12,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.019, 0.027, 0.036, 0.044, 0.053, 0.07, 0.087, 0.106],
+            [0.026, 0.038, 0.051, 0.063, 0.075, 0.1, 0.125, 0.149],
+            [null, 0.05, 0.067, 0.082, 0.099, 0.131, 0.163, 0.195],
+            [null, null, 0.097, 0.121, 0.145, 0.192, 0.239, 0.286],
+            [null, null, null, 0.158, 0.19, 0.252, 0.315, 0.377],
+            [null, null, null, null, 0.235, 0.312, 0.389, 0.467]
+          ]
+        },
+        XGM_V_P0_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 13,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.016, 0.023, 0.03, 0.038, 0.045, 0.06, 0.074, 0.089],
+            [0.021, 0.03, 0.04, 0.05, 0.06, 0.079, 0.098, 0.118],
+            [null, 0.041, 0.055, 0.068, 0.081, 0.108, 0.134, 0.161],
+            [null, null, 0.079, 0.098, 0.118, 0.156, 0.194, 0.233],
+            [null, null, null, 0.129, 0.154, 0.204, 0.255, 0.305],
+            [null, null, null, null, 0.19, 0.252, 0.315, 0.377]
+          ]
+        },
+        XGM_V_P15_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 13,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.015, 0.022, 0.03, 0.037, 0.044, 0.058, 0.072, 0.086],
+            [0.02, 0.029, 0.039, 0.048, 0.057, 0.076, 0.095, 0.114],
+            [null, 0.04, 0.052, 0.065, 0.078, 0.103, 0.129, 0.154],
+            [null, null, 0.075, 0.094, 0.112, 0.149, 0.185, 0.222],
+            [null, null, null, 0.122, 0.146, 0.194, 0.242, 0.29],
+            [null, null, null, null, 0.18, 0.239, 0.299, 0.358]
+          ]
+        },
+        XGM_V_P0_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 13,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.02, 0.029, 0.036, 0.046, 0.055, 0.073, 0.091, 0.109],
+            [0.027, 0.04, 0.052, 0.065, 0.078, 0.103, 0.128, 0.153],
+            [null, 0.05, 0.067, 0.084, 0.1, 0.132, 0.164, 0.197],
+            [null, null, 0.097, 0.121, 0.144, 0.191, 0.237, 0.285],
+            [null, null, null, 0.159, 0.189, 0.25, 0.312, 0.373],
+            [null, null, null, null, 0.233, 0.31, 0.385, 0.461]
+          ]
+        },
+        XGM_V_P15_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 13,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.022, 0.032, 0.043, 0.052, 0.063, 0.083, 0.103, 0.124],
+            [0.03, 0.045, 0.059, 0.072, 0.087, 0.114, 0.142, 0.17],
+            [null, 0.056, 0.075, 0.092, 0.11, 0.145, 0.181, 0.216],
+            [null, null, 0.106, 0.132, 0.158, 0.208, 0.259, 0.31],
+            [null, null, null, 0.17, 0.204, 0.27, 0.337, 0.403],
+            [null, null, null, null, 0.25, 0.332, 0.414, 0.497]
+          ]
+        },
+        XGM_H_MO_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 14,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.015, 0.022, 0.029, 0.036, 0.043, 0.057, 0.07, 0.084],
+            [0.02, 0.029, 0.039, 0.048, 0.057, 0.076, 0.094, 0.113],
+            [0.027, 0.04, 0.053, 0.066, 0.079, 0.105, 0.131, 0.157],
+            [null, 0.059, 0.078, 0.097, 0.116, 0.154, 0.192, 0.23],
+            [null, null, 0.102, 0.127, 0.152, 0.202, 0.252, 0.302],
+            [null, null, null, 0.158, 0.189, 0.251, 0.313, 0.375]
+          ]
+        },
+        XGM_H_MO_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 14,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.019, 0.028, 0.037, 0.045, 0.054, 0.072, 0.089, 0.107],
+            [0.027, 0.04, 0.053, 0.065, 0.077, 0.103, 0.127, 0.153],
+            [0.035, 0.051, 0.068, 0.084, 0.1, 0.133, 0.165, 0.198],
+            [null, 0.075, 0.098, 0.122, 0.146, 0.194, 0.241, 0.289],
+            [null, null, 0.128, 0.16, 0.192, 0.254, 0.317, 0.38],
+            [null, null, null, 0.197, 0.237, 0.314, 0.393, 0.471]
+          ]
+        },
+        XGM_V_MO_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 15,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.01, 0.014, 0.019, 0.023, 0.027, 0.036, 0.045, 0.053, 0.062, 0.071, 0.08, 0.088],
+            [0.016, 0.024, 0.031, 0.038, 0.046, 0.061, 0.075, 0.09, 0.105, 0.12, 0.135, 0.149],
+            [0.023, 0.033, 0.044, 0.054, 0.065, 0.086, 0.106, 0.127, 0.148, 0.169, 0.19, 0.211],
+            [0.029, 0.042, 0.056, 0.069, 0.083, 0.11, 0.137, 0.164, 0.191, 0.218, 0.245, 0.272],
+            [null, null, 0.081, 0.1, 0.12, 0.159, 0.198, 0.237, 0.276, 0.315, 0.354, 0.394],
+            [null, null, null, 0.131, 0.157, 0.208, 0.259, 0.311, 0.362, 0.413, 0.464, 0.516],
+            [null, null, null, null, 0.194, 0.257, 0.321, 0.384, 0.447, 0.511, 0.574, 0.638]
+          ]
+        },
+        XGM_V_MO_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 15,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.012, 0.017, 0.022, 0.027, 0.032, 0.042, 0.053, 0.063, 0.073, 0.084, 0.094, 0.104],
+            [0.019, 0.028, 0.037, 0.045, 0.054, 0.071, 0.089, 0.106, 0.124, 0.141, 0.159, 0.176],
+            [0.027, 0.039, 0.052, 0.064, 0.076, 0.1, 0.125, 0.15, 0.174, 0.199, 0.224, 0.248],
+            [0.034, 0.05, 0.066, 0.082, 0.098, 0.129, 0.161, 0.193, 0.224, 0.256, 0.288, 0.32],
+            [null, null, 0.095, 0.118, 0.141, 0.187, 0.233, 0.279, 0.325, 0.371, 0.417, 0.463],
+            [null, null, null, 0.155, 0.185, 0.245, 0.305, 0.365, 0.426, 0.486, 0.546, 0.606],
+            [null, null, null, null, 0.228, 0.301, 0.377, 0.452, 0.526, 0.601, 0.675, 0.75]
+          ]
+        },
+        XGM_H_F45_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 16,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.014, 0.023, 0.031, 0.04, 0.048, 0.065, 0.081, 0.098],
+            [0.02, 0.031, 0.043, 0.055, 0.066, 0.089, 0.113, 0.136],
+            [0.028, 0.045, 0.061, 0.077, 0.094, 0.126, 0.159, 0.192],
+            [null, 0.066, 0.091, 0.115, 0.139, 0.188, 0.237, 0.286],
+            [null, null, 0.12, 0.152, 0.185, 0.25, 0.315, 0.379],
+            [null, null, null, 0.188, 0.229, 0.31, 0.392, 0.473]
+          ]
+        },
+        XGM_V_F45_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 16,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [9e-3, 0.015, 0.02, 0.025, 0.03, 0.041, 0.051, 0.06],
+            [0.014, 0.023, 0.031, 0.04, 0.048, 0.065, 0.081, 0.098],
+            [0.02, 0.031, 0.043, 0.055, 0.066, 0.089, 0.113, 0.136],
+            [0.028, 0.045, 0.061, 0.077, 0.094, 0.126, 0.159, 0.192],
+            [null, 0.066, 0.091, 0.115, 0.139, 0.188, 0.237, 0.286],
+            [null, null, 0.12, 0.152, 0.185, 0.25, 0.315, 0.379],
+            [null, null, null, 0.188, 0.229, 0.31, 0.392, 0.473]
+          ]
+        },
+        XGM_P_R_AGEO: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 17,
+          magnitud: "Ageo",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [9e-3, 0.014, 0.018, 0.023, 0.027, 0.036, 0.046, 0.055],
+            [0.013, 0.019, 0.025, 0.032, 0.038, 0.051, 0.064, 0.077],
+            [0.018, 0.027, 0.036, 0.046, 0.055, 0.073, 0.091, 0.11],
+            [null, 0.041, 0.055, 0.068, 0.082, 0.11, 0.137, 0.165],
+            [null, null, 0.073, 0.091, 0.11, 0.146, 0.183, 0.22],
+            [null, null, null, 0.114, 0.137, 0.183, 0.229, 0.275]
+          ]
+        },
+        XGM_P_EG_AGEO: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 17,
+          magnitud: "Ageo",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.018, 0.027, 0.035, 0.044, 0.053, 0.071, 0.089, 0.107],
+            [0.025, 0.037, 0.05, 0.062, 0.075, 0.1, 0.125, 0.15],
+            [0.035, 0.053, 0.071, 0.089, 0.107, 0.143, 0.179, 0.215],
+            [null, 0.08, 0.107, 0.134, 0.161, 0.215, 0.268, 0.322],
+            [null, null, 0.142, 0.178, 0.214, 0.286, 0.358, 0.43],
+            [null, null, null, 0.223, 0.268, 0.358, 0.448, 0.538]
+          ]
+        },
+        /* VDW: «Detalles de producto», Aeff por tamaño (diámetro × nº de ranuras). */
+        VDW_Q: {
+          forma: "lista",
+          fuente: FICHA_VDW_DIF,
+          pagina: 19,
+          magnitud: "Aeff",
+          nota: "La ficha da un \xFAnico Aeff por tama\xF1o, sin distinguir impulsi\xF3n y retorno.",
+          tamanos: TAMANOS_VDW_DIF,
+          valores: [7e-3, 0.014, 0.021, 0.0295, 0.039, 0.0295, 0.047, 0.073]
+        },
+        VDW_R: {
+          forma: "lista",
+          fuente: FICHA_VDW_DIF,
+          pagina: 19,
+          magnitud: "Aeff",
+          nota: "La ficha da un \xFAnico Aeff por tama\xF1o, sin distinguir impulsi\xF3n y retorno. En circular no hay 625 \xD7 54 ni 825 \xD7 72.",
+          tamanos: TAMANOS_VDW_DIF.slice(0, 6),
+          valores: [7e-3, 0.014, 0.021, 0.0295, 0.039, 0.0295]
+        },
+        PL35: {
+          forma: "lista",
+          fuente: FICHA_PL35_DIF,
+          pagina: 8,
+          magnitud: "Aeff",
+          sinAk: true,
+          nota: NOTA_PL_DIF,
+          tamanos: LN_PL_DIF.map(String),
+          valores: LN_PL_DIF.map(() => null)
+        },
+        PL50: {
+          forma: "lista",
+          fuente: FICHA_PL50_DIF,
+          pagina: 7,
+          magnitud: "Aeff",
+          sinAk: true,
+          nota: NOTA_PL_DIF,
+          tamanos: LN_PL_DIF.map(String),
+          valores: LN_PL_DIF.map(() => null)
+        }
+      };
+      (function tiposTroxDif() {
+        const poner = (id, x) => {
+          if (!TIPOS_DIF[id]) TIPOS_DIF[id] = { marca: "TROX", modo: "ak", ak: null, k: null, ...x };
+        };
+        for (const [codigo, texto] of VARIANTES_XGM_DIF) {
+          for (const [circuito, suf, nombreC, corto] of CIRCUITOS_DIF) {
+            const tabla = `XGM_${codigo.replace("-", "_")}_${suf}`;
+            if (!TABLAS_DIF[tabla]) continue;
+            poner(`trox-xgm-${codigo.toLowerCase()}-${corto}`, { modelo: "XGM (X-GRILLE)", variante: `${texto} \xB7 ${nombreC}`, nombre: `TROX XGM ${codigo} \xB7 ${nombreC}`, circuito, tabla });
+          }
+        }
+        for (const [codigo, texto] of [["P-R", "Frontal perforado circular (P-R)"], ["P-EG", "Frontal perforado celos\xEDa (P-EG)"]]) {
+          for (const [circuito, , nombreC, corto] of CIRCUITOS_DIF) {
+            poner(`trox-xgm-${codigo.toLowerCase()}-${corto}`, { modelo: "XGM (X-GRILLE)", variante: `${texto} \xB7 ${nombreC}`, nombre: `TROX XGM ${codigo} \xB7 ${nombreC}`, circuito, tabla: `XGM_${codigo.replace("-", "_")}_AGEO` });
+          }
+        }
+        for (const [forma, texto] of [["Q", "Cuadrado (VDW-Q)"], ["R", "Circular (VDW-R)"]]) {
+          for (const [circuito, , nombreC, corto] of CIRCUITOS_DIF) {
+            poner(`trox-vdw-${forma.toLowerCase()}-${corto}`, { modelo: "VDW (rotacional)", variante: `${texto} \xB7 ${nombreC}`, nombre: `TROX VDW-${forma} \xB7 ${nombreC}`, circuito, tabla: `VDW_${forma}` });
+          }
+        }
+        for (const modelo of ["PL35", "PL50"]) {
+          for (let n = 1; n <= 4; n++) {
+            for (const [circuito, , nombreC, corto] of CIRCUITOS_DIF) {
+              poner(`trox-${modelo.toLowerCase()}-${n}-${corto}`, { modelo: `${modelo} (PureLine, lineal)`, variante: `${n} ranura${n > 1 ? "s" : ""} \xB7 ${nombreC}`, nombre: `TROX ${modelo}-${n} \xB7 ${nombreC}`, circuito, tabla: modelo });
+            }
+          }
+        }
+      })();
+      function numDif(v) {
+        if (v === null || v === void 0 || v === "") return null;
+        if (typeof v === "number") return Number.isFinite(v) ? v : null;
+        let t = String(v).trim().replace(/\s/g, "");
+        if (t.includes(",") && t.includes(".")) t = t.replace(/\./g, "");
+        t = t.replace(",", ".");
+        if (!t) return null;
+        const n = Number(t);
+        return Number.isFinite(n) ? n : null;
+      }
+      var redDif = (v, d = 1) => v === null ? null : Math.round(v * 10 ** d) / 10 ** d;
+      var entre01Dif = (v) => {
+        const n = numDif(v);
+        return n === null ? 0.5 : Math.min(1, Math.max(0, n));
+      };
+      function leerVelocidadesDif(texto) {
+        if (texto === null || texto === void 0) return { lecturas: [], media: null };
+        if (typeof texto === "number") return Number.isFinite(texto) && texto >= 0 ? { lecturas: [texto], media: texto } : { lecturas: [], media: null };
+        const trozos = String(texto).split(/[;\s/]+|,(?=\s)|\s*\|\s*/).map((t) => t.trim()).filter(Boolean);
+        const lecturas = trozos.map(numDif).filter((n) => n !== null && n >= 0);
+        if (!lecturas.length) return { lecturas: [], media: null };
+        const media = lecturas.reduce((a, b) => a + b, 0) / lecturas.length;
+        return { lecturas, media: redDif(media, 3) };
+      }
+      function tipoDif(id) {
+        return TIPOS_DIF[id] ? { id, ...TIPOS_DIF[id] } : { id: TIPO_DEFECTO_DIF, ...TIPOS_DIF[TIPO_DEFECTO_DIF] };
+      }
+      function normalizarPuntoDif(p = {}, indice = 0) {
+        if (!p || typeof p !== "object") p = {};
+        const t = tipoDif(p.tipo);
+        const modo = MODOS_DIF[p.modo] ? p.modo : t.modo;
+        const ak = numDif(p.ak);
+        const k = numDif(p.k);
+        const v = numDif(p.velocidad);
+        const qd = numDif(p.caudalDiseno);
+        const qm = numDif(p.caudalMedido);
+        return {
+          id: String(p.id || `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`),
+          nombre: String(p.nombre || "").trim().slice(0, 40) || `D${indice + 1}`,
+          x: entre01Dif(p.x),
+          y: entre01Dif(p.y),
+          tipo: t.id,
+          modo,
+          ak: ak !== null && ak > 0 ? ak : null,
+          k: k !== null && k > 0 ? k : null,
+          largo: medidaDif(p.largo),
+          alto: medidaDif(p.alto),
+          tamano: p.tamano === null || p.tamano === void 0 ? null : String(p.tamano).trim().slice(0, 20) || null,
+          lecturas: p.lecturas === null || p.lecturas === void 0 ? "" : String(p.lecturas).slice(0, 120),
+          velocidad: v !== null && v >= 0 ? v : null,
+          /* Con balómetro se lee el caudal directamente (m³/h): manda sobre v × Ak. */
+          caudalMedido: qm !== null && qm >= 0 ? qm : null,
+          caudalDiseno: qd !== null && qd >= 0 ? qd : null,
+          nota: String(p.nota || "").slice(0, 300),
+          /* El modelo de proyecto de la obra del que sale (tipo, tamaño y caudal de proyecto). */
+          modeloId: p.modeloId ? String(p.modeloId).slice(0, 40) : null
+        };
+      }
+      function medidaDif(v) {
+        const n = numDif(v);
+        return n !== null && n > 0 ? Math.round(n) : null;
+      }
+      var claveTamanoDif = (v) => v === null || v === void 0 ? "" : String(v).toLowerCase().replace(/\s+/g, "").replace(/x/g, "\xD7");
+      function valorTablaDif(tabla, { largo = null, alto = null, tamano = null } = {}) {
+        const t = TABLAS_DIF[tabla];
+        if (!t) return null;
+        let v;
+        if (t.forma === "lista") {
+          const i = t.tamanos.findIndex((x) => claveTamanoDif(x) === claveTamanoDif(tamano));
+          if (i < 0) return null;
+          v = t.valores[i];
+        } else {
+          const c = t.largos.indexOf(medidaDif(largo));
+          const f = t.altos.indexOf(medidaDif(alto));
+          if (c < 0 || f < 0) return null;
+          v = t.filas[f][c];
+        }
+        return typeof v === "number" && v > 0 ? v : null;
+      }
+      function akTablaDif(tabla, largo, alto, tamano = null) {
+        const t = TABLAS_DIF[tabla];
+        if (!t || t.magnitud !== "Aeff") return null;
+        return valorTablaDif(tabla, { largo, alto, tamano });
+      }
+      function ageoTablaDif(tabla, largo, alto, tamano = null) {
+        const t = TABLAS_DIF[tabla];
+        if (!t || t.magnitud !== "Ageo") return null;
+        return valorTablaDif(tabla, { largo, alto, tamano });
+      }
+      function fuenteTablaDif(tabla) {
+        const t = TABLAS_DIF[tabla];
+        if (!t) return null;
+        return `${t.fuente}${t.pagina ? `, p. ${t.pagina}` : ""}`;
+      }
+      function factorDif(p) {
+        const t = tipoDif(p.tipo);
+        const modo = MODOS_DIF[p.modo] ? p.modo : t.modo;
+        if (modo === "k") {
+          const propio2 = numDif(p.k);
+          if (propio2 !== null && propio2 > 0) return { modo, valor: propio2, origen: "punto" };
+          return { modo, valor: t.modo === "k" ? t.k : null, origen: t.modo === "k" && t.k ? "catalogo" : null };
+        }
+        const propio = numDif(p.ak);
+        if (propio !== null && propio > 0) return { modo, valor: propio, origen: "punto" };
+        if (t.tabla) {
+          const v = akTablaDif(t.tabla, p.largo, p.alto, p.tamano);
+          return { modo, valor: v, origen: v ? "tabla" : null };
+        }
+        return { modo, valor: t.modo === "ak" ? t.ak : null, origen: t.modo === "ak" && t.ak ? "catalogo" : null };
+      }
+      var visiblesDif = () => Object.entries(TIPOS_DIF).filter(([, x]) => !x.oculto);
+      var unicosDif = (lista) => [...new Set(lista)];
+      function marcasDif() {
+        const m = unicosDif(visiblesDif().map(([, x]) => x.marca));
+        return m.sort((a, b) => a === "TROX" ? -1 : b === "TROX" ? 1 : 0);
+      }
+      function modelosDif(marca) {
+        return unicosDif(visiblesDif().filter(([, x]) => x.marca === marca).map(([, x]) => x.modelo));
+      }
+      function variantesDif(marca, modelo) {
+        return visiblesDif().filter(([, x]) => x.marca === marca && x.modelo === modelo).map(([id, x]) => ({ id, variante: x.variante, circuito: x.circuito }));
+      }
+      function tamanosDif(tipoId) {
+        const t = TIPOS_DIF[tipoId];
+        const tabla = t && t.tabla ? TABLAS_DIF[t.tabla] : null;
+        if (!tabla) return [];
+        if (tabla.forma === "lista") {
+          return tabla.tamanos.map((tam, i) => ({ clave: tam, texto: tabla.sinAk ? `LN ${tam}` : tam, tamano: tam, largo: null, alto: null, area: tabla.valores[i] })).filter((x) => tabla.sinAk || typeof x.area === "number" && x.area > 0);
+        }
+        const salida = [];
+        tabla.altos.forEach((h, f) => tabla.largos.forEach((l, c) => {
+          const v = tabla.filas[f][c];
+          if (typeof v === "number" && v > 0) salida.push({ clave: `${l}\xD7${h}`, texto: `${l} \xD7 ${h}`, tamano: null, largo: l, alto: h, area: v });
+        }));
+        return salida.sort((a, b) => a.largo - b.largo || a.alto - b.alto);
+      }
+      function claveTamanoPuntoDif(p) {
+        if (p && p.largo && p.alto) return `${p.largo}\xD7${p.alto}`;
+        return p && p.tamano ? p.tamano : "";
+      }
+      function caudalDif({ velocidad, modo = "ak", ak = null, k = null } = {}) {
+        const v = numDif(velocidad);
+        if (v === null || v < 0) return null;
+        if (modo === "k") {
+          const f = numDif(k);
+          return f === null || f <= 0 ? null : redDif(f * v, 1);
+        }
+        const a = numDif(ak);
+        return a === null || a <= 0 ? null : redDif(v * a * 3600, 1);
+      }
+      function desviacionDif(medido, diseno) {
+        const m = numDif(medido);
+        const d = numDif(diseno);
+        if (m === null || d === null || d === 0) return null;
+        return redDif((m - d) / d, 4);
+      }
+      function juicioDif(desv, tol) {
+        if (desv === null || tol === null || tol === void 0) return null;
+        if (Math.abs(desv) <= tol + 1e-9) return "dentro";
+        return desv > 0 ? "alto" : "bajo";
+      }
+      function toleranciasDif(t = {}) {
+        const una = (v) => {
+          const n = numDif(v);
+          return n !== null && n > 0 && n < 1 ? n : null;
+        };
+        const total = una(t && t.total);
+        const boca = una(t && t.boca);
+        return {
+          total: total === null ? TOLERANCIA_DEFECTO_DIF : total,
+          boca: boca === null ? TOLERANCIA_DEFECTO_DIF : boca,
+          totalPorDefecto: total === null,
+          bocaPorDefecto: boca === null
+        };
+      }
+      function evaluarPuntoDif(p, tolBoca = TOLERANCIA_DEFECTO_DIF) {
+        const t = tipoDif(p.tipo);
+        const f = factorDif(p);
+        const balometro = numDif(p.caudalMedido) !== null;
+        const caudal = balometro ? redDif(numDif(p.caudalMedido), 1) : f.valor === null ? null : caudalDif({ velocidad: p.velocidad, modo: f.modo, ak: f.modo === "ak" ? f.valor : null, k: f.modo === "k" ? f.valor : null });
+        const desv = desviacionDif(caudal, p.caudalDiseno);
+        let estado;
+        if (!balometro && numDif(p.velocidad) === null) estado = "sinMedir";
+        else if (!balometro && f.valor === null) estado = "sinFactor";
+        else if (numDif(p.caudalDiseno) === null) estado = "medido";
+        else estado = juicioDif(desv, tolBoca);
+        return {
+          ...p,
+          circuito: t.circuito,
+          tipoNombre: t.nombre,
+          factor: f.valor,
+          modoFactor: f.modo,
+          origenFactor: f.origen,
+          caudal,
+          /* Cómo se ha medido: 'balometro' (caudal leído), 'anemometro' (v × factor) o null. */
+          metodo: balometro ? "balometro" : numDif(p.velocidad) === null ? null : "anemometro",
+          lecturasLista: leerVelocidadesDif(p.lecturas).lecturas,
+          desviacion: desv,
+          estado
+        };
+      }
+      function resumenDif({ puntos = [], diseno = {}, tolerancias = {} } = {}) {
+        const tol = toleranciasDif(tolerancias);
+        const filas = puntos.map((p, i) => evaluarPuntoDif(normalizarPuntoDif(p, i), tol.boca));
+        const circuitos = {};
+        for (const id of ["impulsion", "retorno"]) {
+          const suyos = filas.filter((f) => f.circuito === id);
+          const conCaudal = suyos.filter((f) => f.caudal !== null);
+          const suma = conCaudal.length ? redDif(conCaudal.reduce((a, f) => a + f.caudal, 0), 1) : null;
+          const disenoPuntos = suyos.every((f) => numDif(f.caudalDiseno) !== null) && suyos.length ? redDif(suyos.reduce((a, f) => a + numDif(f.caudalDiseno), 0), 1) : null;
+          const disenoEquipo = numDif(diseno && diseno[id]);
+          const faltan = suyos.length - conCaudal.length;
+          const completo = suyos.length > 0 && faltan === 0;
+          const desv = completo ? desviacionDif(suma, disenoEquipo) : null;
+          let estado;
+          if (!suyos.length) estado = "sinPuntos";
+          else if (!completo) estado = "incompleto";
+          else if (disenoEquipo === null) estado = "sinDiseno";
+          else estado = juicioDif(desv, tol.total);
+          circuitos[id] = {
+            id,
+            puntos: suyos.length,
+            medidos: conCaudal.length,
+            faltan,
+            suma,
+            disenoEquipo,
+            disenoPuntos,
+            desviacion: desv,
+            estado,
+            dentro: suyos.filter((f) => f.estado === "dentro").length,
+            fuera: suyos.filter((f) => f.estado === "alto" || f.estado === "bajo").length
+          };
+        }
+        return { filas, circuitos, tolerancias: tol };
+      }
+      function siguienteNombreDif(puntos = [], circuito = "impulsion") {
+        const letra = circuito === "retorno" ? "R" : "D";
+        const re = new RegExp(`^${letra}(\\d+)$`);
+        const max = puntos.reduce((m, p) => {
+          const r = re.exec(String(p.nombre || ""));
+          return r ? Math.max(m, Number(r[1])) : m;
+        }, 0);
+        return `${letra}${max + 1}`;
+      }
+      function normalizarModeloProyectoDif(m = {}, indice = 0) {
+        if (!m || typeof m !== "object") m = {};
+        const t = tipoDif(m.tipo);
+        const qp = numDif(m.caudalProyecto);
+        return {
+          id: String(m.id || `m${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`).slice(0, 40),
+          ref: String(m.ref || "").trim().slice(0, 30) || `${t.circuito === "retorno" ? "R" : "D"}-${String(indice + 1).padStart(2, "0")}`,
+          tipo: t.id,
+          largo: medidaDif(m.largo),
+          alto: medidaDif(m.alto),
+          tamano: m.tamano === null || m.tamano === void 0 ? null : String(m.tamano).trim().slice(0, 20) || null,
+          /* Ak a mano: para las tablas que no lo dan (PureLine) o un modelo sin tabla. */
+          ak: numDif(m.ak) !== null && numDif(m.ak) > 0 ? numDif(m.ak) : null,
+          caudalProyecto: qp !== null && qp >= 0 ? qp : null,
+          nota: String(m.nota || "").slice(0, 200)
+        };
+      }
+      function normalizarModelosProyectoDif(lista) {
+        const vistos = /* @__PURE__ */ new Set();
+        const salida = [];
+        for (const m of Array.isArray(lista) ? lista.slice(0, 200) : []) {
+          if (!m || typeof m !== "object") continue;
+          const n = normalizarModeloProyectoDif(m, salida.length);
+          if (vistos.has(n.id)) continue;
+          vistos.add(n.id);
+          salida.push(n);
+        }
+        return salida;
+      }
+      function camposModeloDif(m) {
+        const t = tipoDif(m.tipo);
+        return {
+          tipo: m.tipo,
+          modo: t.modo === "k" ? "k" : "ak",
+          ak: m.ak,
+          k: null,
+          largo: m.largo,
+          alto: m.alto,
+          tamano: m.tamano,
+          caudalDiseno: m.caudalProyecto
+        };
+      }
+      function evaluarModeloDif(m) {
+        const t = tipoDif(m.tipo);
+        const f = factorDif({ ...normalizarPuntoDif(camposModeloDif(m)) });
+        return {
+          ...m,
+          circuito: t.circuito,
+          tipoNombre: t.nombre,
+          marca: t.marca,
+          modelo: t.modelo,
+          variante: t.variante,
+          factor: f.valor,
+          modoFactor: f.modo,
+          origenFactor: f.origen,
+          fuente: t.tabla ? fuenteTablaDif(t.tabla) : null,
+          ejemplo: Boolean(t.ejemplo)
+        };
+      }
+      function normalizarAsignacionDif(lista, modelos = null) {
+        const ids = modelos ? new Set(modelos.map((m) => m.id)) : null;
+        const vistos = /* @__PURE__ */ new Set();
+        const salida = [];
+        for (const a of Array.isArray(lista) ? lista : []) {
+          if (!a || typeof a !== "object" || !a.modeloId) continue;
+          const id = String(a.modeloId);
+          if (vistos.has(id) || ids && !ids.has(id)) continue;
+          const n = Math.round(numDif(a.cantidad) || 0);
+          if (n <= 0) continue;
+          vistos.add(id);
+          salida.push({ modeloId: id, cantidad: Math.min(200, n) });
+        }
+        return salida;
+      }
+      function aplicarModelosDif(puntos, modelos) {
+        const porId = new Map((modelos || []).map((m) => [m.id, m]));
+        return (puntos || []).map((p, i) => {
+          const m = p.modeloId ? porId.get(p.modeloId) : null;
+          return m ? normalizarPuntoDif({ ...p, ...camposModeloDif(m) }, i) : p;
+        });
+      }
+      function generarBocasDif(asignacion, modelos, existentes = []) {
+        const porId = new Map((modelos || []).map((m) => [m.id, m]));
+        const todas = [...existentes];
+        const nuevas = [];
+        const sobran = [];
+        for (const a of normalizarAsignacionDif(asignacion, modelos)) {
+          const m = porId.get(a.modeloId);
+          const tiene = existentes.filter((p) => p.modeloId === m.id).length;
+          if (tiene > a.cantidad) sobran.push({ modeloId: m.id, ref: m.ref, sobran: tiene - a.cantidad });
+          for (let i = tiene; i < a.cantidad; i++) {
+            const circuito = tipoDif(m.tipo).circuito;
+            const p = normalizarPuntoDif({ ...camposModeloDif(m), modeloId: m.id, nombre: siguienteNombreDif(todas, circuito) }, todas.length);
+            todas.push(p);
+            nuevas.push(p);
+          }
+        }
+        const asignados = new Set(normalizarAsignacionDif(asignacion, modelos).map((a) => a.modeloId));
+        for (const m of modelos || []) {
+          const tiene = existentes.filter((p) => p.modeloId === m.id).length;
+          if (tiene && !asignados.has(m.id)) sobran.push({ modeloId: m.id, ref: m.ref, sobran: tiene });
+        }
+        return { nuevas, sobran };
+      }
+      function colocarEnListaDif(puntos) {
+        return puntos.map((p, i) => ({ ...p, x: 0.05 + 0.1 * (i % 10), y: Math.min(0.95, 0.08 + 0.12 * Math.floor(i / 10)) }));
+      }
+      function normalizarPuntosDif(lista) {
+        const vistos = /* @__PURE__ */ new Set();
+        const salida = [];
+        for (const p of Array.isArray(lista) ? lista.slice(0, 400) : []) {
+          if (!p || typeof p !== "object") continue;
+          const n = normalizarPuntoDif(p, salida.length);
+          if (vistos.has(n.id)) continue;
+          vistos.add(n.id);
+          salida.push(n);
+        }
+        return salida;
+      }
+      var ETIQUETA_DIF = /^(DIF|DF|DL|DR|D|RJ|RE|RR|RT|RA|RI|RET|EXT|IMP|R)[-_. ]?(\d{1,3}[A-Z]?)$/i;
+      var RETORNO_DIF = /^(RJ|RE|RR|RT|RA|RI|RET|EXT|R)$/i;
+      var CAUDAL_DIF = /(\d{1,3}(?:\.\d{3})*(?:,\d+)?|\d+(?:[.,]\d+)?)\s*m\s*(?:3|³)\s*\/\s*h/i;
+      var CAUDAL_Q_DIF = /\bQ\s*[=:]\s*(\d+(?:[.,]\d+)?)/i;
+      var RADIO_DIF = 0.06;
+      function numeroCaudalDif(t) {
+        const m = CAUDAL_DIF.exec(t) || CAUDAL_Q_DIF.exec(t);
+        if (!m) return null;
+        const crudo = m[1].replace(/\s/g, "");
+        const n = /^\d{1,3}(\.\d{3})+$/.test(crudo) ? Number(crudo.replace(/\./g, "")) : Number(crudo.replace(",", "."));
+        return Number.isFinite(n) && n > 0 && n < 1e5 ? n : null;
+      }
+      function reconocerBocasDif(textos, { modelos = [], existentes = [] } = {}) {
+        const porRef = new Map((modelos || []).map((m) => [String(m.ref || "").replace(/[\s_.-]/g, "").toUpperCase(), m]));
+        const etiquetas = [];
+        const caudales = [];
+        for (const t of Array.isArray(textos) ? textos : []) {
+          const x = Number(t && t.x);
+          const y = Number(t && t.y);
+          if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 1 || y < 0 || y > 1) continue;
+          const texto = String(t.texto || "").trim();
+          if (!texto) continue;
+          const q = numeroCaudalDif(texto);
+          if (q !== null) caudales.push({ x, y, q, usado: false });
+          const trozos = texto.split(/[\s;,()[\]]+/).filter(Boolean);
+          for (let i = 0; i < trozos.length; i++) {
+            const hit = [trozos[i], trozos[i + 1] ? `${trozos[i]} ${trozos[i + 1]}` : null].filter(Boolean).map((limpio) => {
+              const modelo = porRef.get(limpio.replace(/[\s_.-]/g, "").toUpperCase()) || null;
+              const m = ETIQUETA_DIF.exec(limpio);
+              return modelo || m ? { limpio, modelo, m } : null;
+            }).find(Boolean);
+            if (!hit) continue;
+            const retorno = hit.modelo ? tipoDif(hit.modelo.tipo).circuito === "retorno" : RETORNO_DIF.test(hit.m[1]);
+            etiquetas.push({ x, y, ref: hit.limpio, modelo: hit.modelo, retorno, q });
+            break;
+          }
+        }
+        const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+        const pares = [];
+        etiquetas.forEach((e, i) => {
+          if (e.q === null) caudales.forEach((c, j) => {
+            const d = dist(e, c);
+            if (d <= RADIO_DIF) pares.push({ i, j, d });
+          });
+        });
+        pares.sort((a, b) => a.d - b.d);
+        const conCaudal = /* @__PURE__ */ new Set();
+        for (const p of pares) {
+          if (conCaudal.has(p.i) || caudales[p.j].usado) continue;
+          etiquetas[p.i].q = caudales[p.j].q;
+          caudales[p.j].usado = true;
+          conCaudal.add(p.i);
+          const e = etiquetas[p.i];
+          const c = caudales[p.j];
+          e.px = Math.min(1, Math.max(0, e.x + (e.x - c.x) * 0.8));
+          e.py = Math.min(1, Math.max(0, e.y + (e.y - c.y) * 0.8));
+        }
+        etiquetas.sort((a, b) => Math.abs(a.y - b.y) > 0.02 ? a.y - b.y : a.x - b.x);
+        const todas = [...existentes || []];
+        const bocas = [];
+        for (const e of etiquetas) {
+          const circuito = e.retorno ? "retorno" : "impulsion";
+          const base = e.modelo ? { ...camposModeloDif(e.modelo), modeloId: e.modelo.id } : { tipo: circuito === "retorno" ? "rejillaRet" : TIPO_DEFECTO_DIF };
+          const p = normalizarPuntoDif({
+            ...base,
+            nombre: siguienteNombreDif(todas, circuito),
+            x: e.px ?? e.x,
+            y: e.py ?? e.y,
+            caudalDiseno: e.q !== null ? e.q : e.modelo ? e.modelo.caudalProyecto : null,
+            nota: `Del plano: ${e.ref}`
+          }, todas.length);
+          todas.push(p);
+          bocas.push(p);
+        }
+        return { bocas, sinCaudal: bocas.filter((b) => b.caudalDiseno === null).length, leidos: (textos || []).length };
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.DIFUSORES = API;
+      })({
+        MODOS: MODOS_DIF,
+        TIPOS: TIPOS_DIF,
+        TIPO_DEFECTO: TIPO_DEFECTO_DIF,
+        NOTA_EJEMPLO: NOTA_EJEMPLO_DIF,
+        TOLERANCIA_DEFECTO: TOLERANCIA_DEFECTO_DIF,
+        num: numDif,
+        leerVelocidades: leerVelocidadesDif,
+        tipo: tipoDif,
+        normalizarPunto: normalizarPuntoDif,
+        normalizarPuntos: normalizarPuntosDif,
+        TABLAS: TABLAS_DIF,
+        FUENTE_TABLAS: FUENTE_TABLAS_DIF,
+        akTabla: akTablaDif,
+        ageoTabla: ageoTablaDif,
+        fuenteTabla: fuenteTablaDif,
+        valorTabla: valorTablaDif,
+        marcas: marcasDif,
+        modelos: modelosDif,
+        variantes: variantesDif,
+        tamanos: tamanosDif,
+        claveTamanoPunto: claveTamanoPuntoDif,
+        MARCA_EJEMPLO: MARCA_EJEMPLO_DIF,
+        factor: factorDif,
+        caudal: caudalDif,
+        desviacion: desviacionDif,
+        tolerancias: toleranciasDif,
+        evaluarPunto: evaluarPuntoDif,
+        resumen: resumenDif,
+        siguienteNombre: siguienteNombreDif,
+        normalizarModeloProyecto: normalizarModeloProyectoDif,
+        normalizarModelosProyecto: normalizarModelosProyectoDif,
+        evaluarModelo: evaluarModeloDif,
+        normalizarAsignacion: normalizarAsignacionDif,
+        aplicarModelos: aplicarModelosDif,
+        generarBocas: generarBocasDif,
+        colocarEnLista: colocarEnListaDif,
+        reconocerBocas: reconocerBocasDif,
+        caudalDeTexto: numeroCaudalDif
+      });
+    }
+  });
+
+  // electron/data/difusores.js
+  var require_difusores2 = __commonJS({
+    "electron/data/difusores.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var D = require_difusores();
+      var fichas = require_fichas();
+      var { puede } = require_roles();
+      var MAX_IMAGEN = 8 * 1024 * 1024;
+      var RE_IMAGEN = /^data:image\/(png|jpeg|jpg|webp|gif);base64,[A-Za-z0-9+/=]+$/;
+      var leerJsonDif = (t, porDefecto) => {
+        try {
+          return t ? JSON.parse(t) : porDefecto;
+        } catch {
+          return porDefecto;
+        }
+      };
+      function configObra(repo, sesion, obraId) {
+        return repo.listar("configCommissioning", sesion, { condicion: "obraId = ?", params: [obraId], limite: 1 })[0] || null;
+      }
+      function planosDe(repo, sesion, equipoId) {
+        return repo.listar("planosDifusores", sesion, { condicion: "equipoId = ?", params: [equipoId], orden: "orden, creadoEn" }).map((p) => ({
+          id: p.id,
+          nombre: p.nombre,
+          orden: p.orden,
+          imagenId: p.imagenId || null,
+          ancho: p.ancho,
+          alto: p.alto,
+          modificadoEn: p.modificadoEn,
+          puntos: D.normalizarPuntos(leerJsonDif(p.puntos, []))
+        }));
+      }
+      function disenoDe(repo, sesion, equipo) {
+        const hoja = repo.listar("hojasBalanceo", sesion, { condicion: "equipoId = ?", params: [equipo.id], limite: 1 })[0];
+        const proyecto = hoja && (leerJsonDif(hoja.datos, {}) || {}).proyecto || {};
+        let ficha = {};
+        try {
+          const f = repo.listar("fichasPM", sesion, { condicion: "equipoId = ? AND plantilla = ?", params: [equipo.id, "BALANCEO_CAUDALES"], limite: 1 })[0];
+          const v = f && (leerJsonDif(f.datos, {}) || {}).valores || {};
+          const de = (k) => v[k] && typeof v[k] === "object" ? v[k].v : v[k];
+          ficha = { impulsion: de("caudal_proyecto_impulsion"), retorno: de("caudal_proyecto_retorno") };
+        } catch {
+          ficha = {};
+        }
+        const una = (propio, deHoja, deFicha, nominal) => {
+          if (D.num(propio) !== null) return { valor: D.num(propio), origen: "equipo" };
+          if (D.num(deHoja) !== null) return { valor: D.num(deHoja), origen: "hojaBalanceo" };
+          if (D.num(deFicha) !== null) return { valor: D.num(deFicha), origen: "fichaBalanceo" };
+          if (D.num(nominal) !== null) return { valor: D.num(nominal), origen: "nominal" };
+          return { valor: null, origen: null };
+        };
+        return {
+          impulsion: una(equipo.caudalDisenoImp, proyecto.caudalImpulsion, ficha.impulsion, equipo.caudalNominal),
+          retorno: una(equipo.caudalDisenoRet, proyecto.caudalRetorno, ficha.retorno, null)
+        };
+      }
+      function difusoresEquipo(repo, sesion, equipoId) {
+        const equipo = repo.leer("equiposObra", sesion, equipoId);
+        if (!equipo) return null;
+        const planos = planosDe(repo, sesion, equipoId);
+        const t = fichas.tolerancias(configObra(repo, sesion, equipo.obraId) || {});
+        const tolerancias = { total: t.total, boca: t.boca };
+        const diseno = disenoDe(repo, sesion, equipo);
+        const puntos = planos.flatMap((p) => p.puntos);
+        const modelos = modelosObra(repo, sesion, equipo.obraId);
+        return {
+          equipo: {
+            id: equipo.id,
+            obraId: equipo.obraId,
+            tag: equipo.tag,
+            planta: equipo.planta,
+            marca: equipo.marca,
+            modelo: equipo.modelo,
+            grupo: equipo.grupo
+          },
+          planos,
+          modelos: modelos.map(D.evaluarModelo),
+          asignacion: D.normalizarAsignacion(leerJsonDif(equipo.modelosDif, []), modelos),
+          diseno,
+          tolerancias,
+          resumen: D.resumen({ puntos, diseno: { impulsion: diseno.impulsion.valor, retorno: diseno.retorno.valor }, tolerancias }),
+          puedeEditar: puede(sesion.rol, "commissioning", "editar"),
+          puedeCrear: puede(sesion.rol, "commissioning", "crear"),
+          puedeBorrar: puede(sesion.rol, "commissioning", "borrar")
+        };
+      }
+      function imagenPlano(repo, sesion, planoId) {
+        const plano = repo.leer("planosDifusores", sesion, planoId);
+        if (!plano || !plano.imagenId) return null;
+        const img = repo.leer("imagenesPlanoDif", sesion, plano.imagenId);
+        return img ? { id: img.id, imagen: img.imagen } : null;
+      }
+      function comprobarImagen(imagen) {
+        if (typeof imagen !== "string" || !imagen) return "Falta la imagen del plano.";
+        if (imagen.length > MAX_IMAGEN) return "La imagen es demasiado grande (m\xE1s de 8 MB): red\xFAcela o haz una captura del plano.";
+        if (!RE_IMAGEN.test(imagen)) return "Eso no es una imagen (PNG, JPEG, WebP o GIF).";
+        return null;
+      }
+      var dimension = (v) => {
+        const n = Math.round(Number(v));
+        return Number.isFinite(n) && n > 0 && n < 1e5 ? n : null;
+      };
+      function crearPlano(repo, sesion, equipoId, datos = {}) {
+        const equipo = repo.leer("equiposObra", sesion, equipoId);
+        if (!equipo) return { ok: false, error: "No se encuentra el equipo." };
+        if (!puede(sesion.rol, "commissioning", "crear")) {
+          return { ok: false, error: "Tu rol puede ver el commissioning de esta obra, pero no a\xF1adir planos." };
+        }
+        const error = comprobarImagen(datos.imagen);
+        if (error) return { ok: false, error };
+        const existentes = planosDe(repo, sesion, equipoId);
+        const nombre = String(datos.nombre || "").trim().slice(0, 80) || `Plano ${existentes.length + 1}`;
+        const imagenId = repo.crear("imagenesPlanoDif", sesion, { obraId: equipo.obraId, imagen: datos.imagen });
+        const id = repo.crear("planosDifusores", sesion, {
+          obraId: equipo.obraId,
+          equipoId,
+          nombre,
+          orden: existentes.length ? Math.max(...existentes.map((p) => p.orden || 0)) + 1 : 0,
+          imagenId,
+          ancho: dimension(datos.ancho),
+          alto: dimension(datos.alto),
+          puntos: JSON.stringify(D.normalizarPuntos(datos.puntos || []))
+        });
+        return { ok: true, id };
+      }
+      function guardarPlano(repo, sesion, planoId, datos = {}) {
+        const plano = repo.leer("planosDifusores", sesion, planoId);
+        if (!plano) return { ok: false, error: "No se encuentra el plano." };
+        if (!puede(sesion.rol, "commissioning", "editar")) {
+          return { ok: false, error: "Tu rol puede ver el commissioning de esta obra, pero no cambiarlo." };
+        }
+        const cambios = {};
+        if (datos.nombre !== void 0) cambios.nombre = String(datos.nombre || "").trim().slice(0, 80) || plano.nombre;
+        let puntos;
+        if (datos.puntos !== void 0) {
+          puntos = D.normalizarPuntos(datos.puntos);
+          const texto = JSON.stringify(puntos);
+          if (texto !== plano.puntos) cambios.puntos = texto;
+        }
+        if (Object.keys(cambios).length) repo.modificar("planosDifusores", sesion, planoId, cambios);
+        return { ok: true, puntos: puntos || D.normalizarPuntos(leerJsonDif(plano.puntos, [])) };
+      }
+      function soltarImagen(repo, sesion, imagenId) {
+        if (!imagenId || !repo.leer("imagenesPlanoDif", sesion, imagenId)) return;
+        const usada = repo.db.prepare("SELECT 1 FROM planosDifusores WHERE imagenId = ? LIMIT 1").get(imagenId);
+        if (!usada) repo.db.prepare("DELETE FROM imagenesPlanoDif WHERE id = ?").run(imagenId);
+      }
+      function cambiarImagen(repo, sesion, planoId, datos = {}) {
+        const plano = repo.leer("planosDifusores", sesion, planoId);
+        if (!plano) return { ok: false, error: "No se encuentra el plano." };
+        if (!puede(sesion.rol, "commissioning", "editar") || !puede(sesion.rol, "commissioning", "crear")) {
+          return { ok: false, error: "Tu rol puede ver el commissioning de esta obra, pero no cambiarlo." };
+        }
+        const error = comprobarImagen(datos.imagen);
+        if (error) return { ok: false, error };
+        const imagenId = repo.crear("imagenesPlanoDif", sesion, { obraId: plano.obraId, imagen: datos.imagen });
+        repo.modificar("planosDifusores", sesion, planoId, { imagenId, ancho: dimension(datos.ancho), alto: dimension(datos.alto) });
+        soltarImagen(repo, sesion, plano.imagenId);
+        return { ok: true, imagenId };
+      }
+      function borrarPlano(repo, sesion, planoId) {
+        if (!puede(sesion.rol, "commissioning", "borrar")) {
+          return { ok: false, error: "Tu rol no puede borrar planos. Puedes quitar sus puntos uno a uno." };
+        }
+        const plano = repo.leer("planosDifusores", sesion, planoId);
+        if (!plano) return { ok: false, error: "No se encuentra el plano." };
+        repo.borrar("planosDifusores", sesion, planoId);
+        soltarImagen(repo, sesion, plano.imagenId);
+        return { ok: true };
+      }
+      function guardarDiseno(repo, sesion, equipoId, datos = {}) {
+        const equipo = repo.leer("equiposObra", sesion, equipoId);
+        if (!equipo) return { ok: false, error: "No se encuentra el equipo." };
+        if (!puede(sesion.rol, "commissioning", "editar")) {
+          return { ok: false, error: "Tu rol puede ver el commissioning de esta obra, pero no cambiarlo." };
+        }
+        const cambios = {};
+        for (const [clave, columna] of [["impulsion", "caudalDisenoImp"], ["retorno", "caudalDisenoRet"]]) {
+          if (datos[clave] === void 0) continue;
+          const n = D.num(datos[clave]);
+          if (n !== null && n < 0) return { ok: false, error: "Un caudal de dise\xF1o no puede ser negativo." };
+          cambios[columna] = n;
+        }
+        if (Object.keys(cambios).length) repo.modificar("equiposObra", sesion, equipoId, cambios);
+        return { ok: true };
+      }
+      function modelosObra(repo, sesion, obraId) {
+        const cfg = configObra(repo, sesion, obraId);
+        return D.normalizarModelosProyecto(leerJsonDif(cfg && cfg.modelosDifusores, []));
+      }
+      var LISTA_DIF = "Bocas del proyecto";
+      function guardarModelos(repo, sesion, equipoId, datos = {}) {
+        const equipo = repo.leer("equiposObra", sesion, equipoId);
+        if (!equipo) return { ok: false, error: "No se encuentra el equipo." };
+        if (!puede(sesion.rol, "commissioning", "editar")) {
+          return { ok: false, error: "Tu rol puede ver el commissioning de esta obra, pero no cambiarlo." };
+        }
+        let modelos = modelosObra(repo, sesion, equipo.obraId);
+        if (datos.modelos !== void 0) {
+          modelos = D.normalizarModelosProyecto(datos.modelos);
+          const cfg = configObra(repo, sesion, equipo.obraId);
+          const texto = JSON.stringify(modelos);
+          if (cfg) repo.modificar("configCommissioning", sesion, cfg.id, { modelosDifusores: texto });
+          else repo.crear("configCommissioning", sesion, { obraId: equipo.obraId, modelosDifusores: texto });
+          const planos = repo.listar("planosDifusores", sesion, { condicion: "obraId = ?", params: [equipo.obraId] });
+          for (const pl of planos) {
+            const antes = D.normalizarPuntos(leerJsonDif(pl.puntos, []));
+            if (!antes.some((p) => p.modeloId)) continue;
+            const despues = JSON.stringify(D.aplicarModelos(antes, modelos));
+            if (despues !== JSON.stringify(antes)) repo.modificar("planosDifusores", sesion, pl.id, { puntos: despues });
+          }
+        }
+        let asignacion = D.normalizarAsignacion(leerJsonDif(equipo.modelosDif, []), modelos);
+        if (datos.asignacion !== void 0) {
+          asignacion = D.normalizarAsignacion(datos.asignacion, modelos);
+          repo.modificar("equiposObra", sesion, equipoId, { modelosDif: JSON.stringify(asignacion) });
+        }
+        let creadas = 0;
+        let sobran = [];
+        if (datos.crearBocas) {
+          if (!puede(sesion.rol, "commissioning", "crear")) {
+            return { ok: false, error: "Tu rol puede cambiar el commissioning, pero no crear bocas." };
+          }
+          const planos = planosDe(repo, sesion, equipoId);
+          const r = D.generarBocas(asignacion, modelos, planos.flatMap((p) => p.puntos));
+          sobran = r.sobran;
+          if (r.nuevas.length) {
+            let lista = planos.find((p) => p.nombre === LISTA_DIF && !p.imagenId);
+            if (!lista) {
+              const id = repo.crear("planosDifusores", sesion, {
+                obraId: equipo.obraId,
+                equipoId,
+                nombre: LISTA_DIF,
+                orden: planos.length ? Math.min(...planos.map((p) => p.orden || 0)) - 1 : 0,
+                imagenId: null,
+                ancho: null,
+                alto: null,
+                puntos: "[]"
+              });
+              lista = { id, puntos: [] };
+            }
+            const colocadas = D.colocarEnLista([...lista.puntos, ...r.nuevas]);
+            repo.modificar("planosDifusores", sesion, lista.id, { puntos: JSON.stringify(D.normalizarPuntos(colocadas)) });
+            creadas = r.nuevas.length;
+          }
+        }
+        return { ok: true, creadas, sobran };
+      }
+      module.exports = {
+        guardarModelos,
+        difusoresEquipo,
+        imagenPlano,
+        crearPlano,
+        guardarPlano,
+        cambiarImagen,
+        borrarPlano,
+        guardarDiseno,
+        MAX_IMAGEN
+      };
+    }
+  });
+
+  // shared/commissioning/simbolosBoca.js
+  var require_simbolosBoca = __commonJS({
+    "shared/commissioning/simbolosBoca.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var FAMILIAS_BOCA = {
+        rotacional: { nombre: "Difusor rotacional", ancho: 24, alto: 24 },
+        rotacionalR: { nombre: "Difusor rotacional redondo", ancho: 24, alto: 24 },
+        cuadrado: { nombre: "Difusor cuadrado", ancho: 24, alto: 24 },
+        conos: { nombre: "Difusor circular de conos", ancho: 24, alto: 24 },
+        lineal: { nombre: "Difusor lineal", ancho: 44, alto: 12 },
+        rejillaH: { nombre: "Rejilla de lamas horizontales", ancho: 32, alto: 18 },
+        rejillaV: { nombre: "Rejilla de lamas verticales", ancho: 32, alto: 18 },
+        rejillaP: { nombre: "Rejilla perforada", ancho: 28, alto: 20 },
+        tobera: { nombre: "Tobera", ancho: 24, alto: 24 },
+        extraccion: { nombre: "Boca de extracci\xF3n", ancho: 22, alto: 22 },
+        generico: { nombre: "Terminal de aire", ancho: 22, alto: 22 }
+      };
+      function familiaBoca(tipo) {
+        const t = String(tipo || "");
+        if (/^trox-vdw-r/.test(t)) return "rotacionalR";
+        if (/^trox-vdw|^rotacional/.test(t)) return "rotacional";
+        if (/^cuadrado/.test(t)) return "cuadrado";
+        if (/^circularConos/.test(t)) return "conos";
+        if (/^lineal|^trox-pl\d/.test(t)) return "lineal";
+        if (/^trox-xgm-v/.test(t)) return "rejillaV";
+        if (/^trox-xgm-p/.test(t)) return "rejillaP";
+        if (/^trox-xgm|^troxXgm|^troxWg|^troxTr2|^rejilla/.test(t)) return "rejillaH";
+        if (/^tobera/.test(t)) return "tobera";
+        if (/^bocaExt/.test(t)) return "extraccion";
+        return "generico";
+      }
+      function trazosBoca(familia) {
+        const lineas = (pares) => pares.map(([x1, y1, x2, y2]) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`).join("");
+        switch (familia) {
+          case "rotacional": {
+            const r = [];
+            for (let i = 0; i < 8; i += 1) {
+              const a = i * Math.PI / 4;
+              const p = (rad, ang) => [12 + rad * Math.cos(ang), 12 + rad * Math.sin(ang)].map((v) => v.toFixed(2));
+              const [x1, y1] = p(3.2, a);
+              const [x2, y2] = p(8.6, a + 0.55);
+              r.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`);
+            }
+            return `<rect class="cuerpo" x="1.5" y="1.5" width="21" height="21" rx="1.5"/>${r.join("")}<circle cx="12" cy="12" r="1.6"/>`;
+          }
+          case "rotacionalR": {
+            const r = [];
+            for (let i = 0; i < 8; i += 1) {
+              const a = i * Math.PI / 4;
+              const p = (rad, ang) => [12 + rad * Math.cos(ang), 12 + rad * Math.sin(ang)].map((v) => v.toFixed(2));
+              const [x1, y1] = p(3.2, a);
+              const [x2, y2] = p(8.4, a + 0.55);
+              r.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`);
+            }
+            return `<circle class="cuerpo" cx="12" cy="12" r="10.5"/>${r.join("")}<circle cx="12" cy="12" r="1.6"/>`;
+          }
+          case "cuadrado":
+            return `<rect class="cuerpo" x="1.5" y="1.5" width="21" height="21" rx="1"/><rect x="5.5" y="5.5" width="13" height="13"/><rect x="9" y="9" width="6" height="6"/>${lineas([[1.5, 1.5, 9, 9], [22.5, 1.5, 15, 9], [1.5, 22.5, 9, 15], [22.5, 22.5, 15, 15]])}`;
+          case "conos":
+            return '<circle class="cuerpo" cx="12" cy="12" r="10.5"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3.5"/>';
+          case "lineal":
+            return `<rect class="cuerpo" x="1" y="1" width="42" height="10" rx="1.5"/>${lineas([[4, 4, 40, 4], [4, 6, 40, 6], [4, 8, 40, 8]])}`;
+          case "rejillaH":
+            return `<rect class="cuerpo" x="1" y="1" width="30" height="16" rx="1"/>${lineas([[4, 4.5, 28, 4.5], [4, 7.5, 28, 7.5], [4, 10.5, 28, 10.5], [4, 13.5, 28, 13.5]])}`;
+          case "rejillaV":
+            return `<rect class="cuerpo" x="1" y="1" width="30" height="16" rx="1"/>${lineas([[6, 4, 6, 14], [11, 4, 11, 14], [16, 4, 16, 14], [21, 4, 21, 14], [26, 4, 26, 14]])}`;
+          case "rejillaP": {
+            const puntos = [];
+            for (let y = 5; y <= 15; y += 3.3) for (let x = 5; x <= 23; x += 3.6) puntos.push(`<circle class="lleno" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="0.9"/>`);
+            return `<rect class="cuerpo" x="1" y="1" width="26" height="18" rx="1"/>${puntos.join("")}`;
+          }
+          case "tobera":
+            return '<circle class="cuerpo" cx="12" cy="12" r="10.5"/><circle cx="12" cy="12" r="5.5"/><circle class="lleno" cx="12" cy="12" r="2.2"/>';
+          case "extraccion":
+            return '<circle class="cuerpo" cx="11" cy="11" r="9.5"/><circle class="lleno" cx="11" cy="11" r="4.2"/>';
+          default:
+            return `<rect class="cuerpo" x="1.5" y="1.5" width="19" height="19" rx="1.5"/>${lineas([[1.5, 1.5, 20.5, 20.5], [20.5, 1.5, 1.5, 20.5]])}`;
+        }
+      }
+      function svgBoca(tipo, { clase = "", titulo = "" } = {}) {
+        const familia = familiaBoca(tipo);
+        const f = FAMILIAS_BOCA[familia];
+        const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+        return `<svg class="simbolo-boca ${esc(clase)}" data-familia="${familia}" viewBox="0 0 ${f.ancho} ${f.alto}" style="aspect-ratio:${f.ancho}/${f.alto}" aria-hidden="${titulo ? "false" : "true"}" focusable="false">${titulo ? `<title>${esc(titulo)}</title>` : ""}<g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">${trazosBoca(familia)}</g></svg>`;
+      }
+      var COLOR_ESTADO_BOCA = {
+        ok: "#1B7F3B",
+        dentro: "#1B7F3B",
+        alto: "#C62828",
+        bajo: "#C62828",
+        sinFactor: "#A15C00",
+        sinProyecto: "#A15C00",
+        sinTolerancia: "#A15C00",
+        medido: "#A15C00",
+        sinMedir: "#5F6B73"
+      };
+      function planoSvgBocas({ imagen = null, ancho = 1600, alto = 900, puntos = [], estados = {} } = {}) {
+        const W = Number(ancho) > 0 ? Number(ancho) : 1600;
+        const H = Number(alto) > 0 ? Number(alto) : 900;
+        const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+        const h = Math.max(W, H) * 0.024;
+        const fs = h * 0.62;
+        const marcas = puntos.map((p) => {
+          const familia = familiaBoca(p.tipo);
+          const f = FAMILIAS_BOCA[familia];
+          const e = estados[p.id] || {};
+          const color = COLOR_ESTADO_BOCA[e.estado] || COLOR_ESTADO_BOCA.sinMedir;
+          const k = h / 24;
+          const cx = Number(p.x) * W;
+          const cy = Number(p.y) * H;
+          const sx = cx - f.ancho * k / 2;
+          const sy = cy - f.alto * k / 2;
+          const texto = `${p.nombre || ""}${e.caudal !== null && e.caudal !== void 0 ? ` ${Math.round(e.caudal)}` : ""}`;
+          const tw = texto.length * fs * 0.6 + fs * 0.6;
+          const tx = cx + f.ancho * k / 2 + fs * 0.25;
+          return `<g color="${color}"><g transform="translate(${sx.toFixed(1)} ${sy.toFixed(1)}) scale(${k.toFixed(3)})" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${trazosBoca(familia)}</g><rect x="${tx.toFixed(1)}" y="${(cy - fs * 0.72).toFixed(1)}" width="${tw.toFixed(1)}" height="${(fs * 1.44).toFixed(1)}" rx="${(fs * 0.2).toFixed(1)}" fill="#fff" stroke="currentColor" stroke-width="${(fs * 0.09).toFixed(2)}"/><text x="${(tx + fs * 0.3).toFixed(1)}" y="${(cy + fs * 0.36).toFixed(1)}" font-size="${fs.toFixed(1)}" font-family="Arial, Helvetica, sans-serif" font-weight="700" fill="currentColor">${esc(texto)}</text></g>`;
+        }).join("");
+        return `<svg class="planoBocasSvg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%"><style>.planoBocasSvg .cuerpo{fill:#fff;fill-opacity:.85}.planoBocasSvg .lleno{fill:currentColor}</style>` + (imagen ? `<image href="${esc(imagen)}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="none"/>` : `<rect width="${W}" height="${H}" fill="#F4F6F5"/>`) + marcas + "</svg>";
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.SIMBOLOS_BOCA = API;
+      })({ FAMILIAS: FAMILIAS_BOCA, familia: familiaBoca, svg: svgBoca, planoSvg: planoSvgBocas, COLOR_ESTADO: COLOR_ESTADO_BOCA });
     }
   });
 
@@ -26460,15 +27960,39 @@ globalThis.CX_VARIANTE="cxobra";
       var RESULTADO_ESTANQ = { correcta: "apto", noSuperada: "noApto", sinTerminar: "aRevisar" };
       function hojaBalanceoDe(repo, sesion, equipo) {
         const fila = repo.listar("hojasBalanceo", sesion, { condicion: "equipoId = ?", params: [equipo.id], limite: 1 })[0];
-        if (!fila) return null;
+        const DIF = require_difusores2();
+        let dif = null;
+        try {
+          dif = DIF.difusoresEquipo(repo, sesion, equipo.id);
+        } catch {
+          dif = null;
+        }
+        const filasPlano = dif && dif.resumen ? dif.resumen.filas : [];
+        if (!fila && !filasPlano.length) return null;
         const BAL = require_balanceo();
-        const ev = BAL.evaluar(leerJson(fila.datos, {}), equipo, {
+        const ev = BAL.evaluar(fila ? leerJson(fila.datos, {}) : {}, equipo, {
           tolerancias: F.tolerancias(configDe(repo, sesion, equipo.obraId) || {}),
-          instrumentos: repo.listar("instrumentosMedida", sesion, { orden: "nombre, numSerie" })
+          instrumentos: repo.listar("instrumentosMedida", sesion, { orden: "nombre, numSerie" }),
+          plano: filasPlano,
+          diseno: dif ? { impulsion: dif.diseno.impulsion.valor, retorno: dif.diseno.retorno.valor } : {}
         });
-        const esquema = require_balanceoDibujo().esquema(ev, { tag: equipo.tag });
+        let esquema;
+        let tituloEsquema = null;
+        if (filasPlano.length) {
+          const SB = require_simbolosBoca();
+          const estados = {};
+          for (const c of ev.circuitos) for (const b of c.bocas) if (b.puntoId) estados[b.puntoId] = { estado: b.estado, caudal: b.caudalMedido };
+          const planos = dif.planos.filter((p) => p.puntos.length);
+          esquema = planos.map((p) => {
+            const img = DIF.imagenPlano(repo, sesion, p.id);
+            return SB.planoSvg({ imagen: img ? img.imagen : null, ancho: p.ancho, alto: p.alto, puntos: p.puntos, estados });
+          })[0];
+          tituloEsquema = `PLANO DE BOCAS \xB7 ${planos[0].nombre || ""}`.toUpperCase();
+        } else {
+          esquema = require_balanceoDibujo().esquema(ev, { tag: equipo.tag });
+        }
         const cfg = configDe(repo, sesion, equipo.obraId);
-        const html = fichaHtml.hojaBalanceo(ev, { obra: repo.leer("obras", sesion, equipo.obraId), cabeceraObra: cabeceraDe(cfg), equipo, esquema });
+        const html = fichaHtml.hojaBalanceo(ev, { obra: repo.leer("obras", sesion, equipo.obraId), cabeceraObra: cabeceraDe(cfg), equipo, esquema, tituloEsquema });
         return { ev, html, pasada: ev.estado !== "pendiente" && (equipo.balanceoEstado || "pendiente") === ev.estado };
       }
       function pruebasEstanqueidadDe(repo, sesion, equipo) {
@@ -26484,7 +28008,7 @@ globalThis.CX_VARIANTE="cxobra";
         const equipo = repo.leer("equiposObra", sesion, equipoId);
         if (!equipo) return { ok: false, error: "No se encuentra el equipo." };
         const b = hojaBalanceoDe(repo, sesion, equipo);
-        if (!b) return { ok: false, error: "El equipo no tiene hoja de balanceo guardada." };
+        if (!b) return { ok: false, error: "El equipo no tiene hoja de balanceo ni bocas en el plano." };
         return { ok: true, html: b.html, nombre: nombreArchivo(equipo.sala, equipo.tag, "balanceo"), estado: b.ev.estado, anexos: [] };
       }
       function htmlDossier(repo, sesion, equipoId) {
@@ -27492,1316 +29016,6 @@ globalThis.CX_VARIANTE="cxobra";
         borrarRedAgua,
         enlazarDocumentacion,
         recorrerCarpeta
-      };
-    }
-  });
-
-  // shared/commissioning/difusores.js
-  var require_difusores = __commonJS({
-    "shared/commissioning/difusores.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var MODOS_DIF = {
-        ak: { id: "ak", nombre: "\xC1rea efectiva Ak", unidad: "m\xB2" },
-        k: { id: "k", nombre: "Factor k", unidad: "m\xB3/h por m/s" }
-      };
-      var NOTA_EJEMPLO_DIF = "Valores de ejemplo: comprobar con la ficha del fabricante.";
-      var TOLERANCIA_DEFECTO_DIF = 0.1;
-      var MARCA_EJEMPLO_DIF = "Gen\xE9rico (ejemplo, comprobar)";
-      var TIPOS_DIF = {
-        rotacional600: { marca: MARCA_EJEMPLO_DIF, modelo: "Rotacional", variante: "600\xD7600 (24 ranuras)", nombre: "Difusor rotacional 600\xD7600 (24 ranuras)", circuito: "impulsion", modo: "ak", ak: 0.03, k: null, ejemplo: true },
-        rotacional400: { marca: MARCA_EJEMPLO_DIF, modelo: "Rotacional", variante: "400\xD7400 (16 ranuras)", nombre: "Difusor rotacional 400\xD7400 (16 ranuras)", circuito: "impulsion", modo: "ak", ak: 0.012, k: null, ejemplo: true },
-        cuadrado600: { marca: MARCA_EJEMPLO_DIF, modelo: "Cuadrado multidireccional", variante: "600\xD7600", nombre: "Difusor cuadrado multidireccional 600\xD7600", circuito: "impulsion", modo: "ak", ak: 0.04, k: null, ejemplo: true },
-        circularConos: { marca: MARCA_EJEMPLO_DIF, modelo: "Circular de conos", variante: "\xD8250", nombre: "Difusor circular de conos \xD8250", circuito: "impulsion", modo: "ak", ak: 0.025, k: null, ejemplo: true },
-        lineal2: { marca: MARCA_EJEMPLO_DIF, modelo: "Lineal", variante: "2 ranuras (por metro)", nombre: "Difusor lineal 2 ranuras (por metro)", circuito: "impulsion", modo: "ak", ak: 0.016, k: null, ejemplo: true },
-        rejillaImp: { marca: MARCA_EJEMPLO_DIF, modelo: "Rejilla de impulsi\xF3n", variante: "400\xD7200 doble deflexi\xF3n", nombre: "Rejilla de impulsi\xF3n 400\xD7200 doble deflexi\xF3n", circuito: "impulsion", modo: "ak", ak: 0.056, k: null, ejemplo: true },
-        tobera: { marca: MARCA_EJEMPLO_DIF, modelo: "Tobera de largo alcance", variante: "\xD8160", nombre: "Tobera de largo alcance \xD8160", circuito: "impulsion", modo: "k", ak: null, k: 36, ejemplo: true },
-        rejillaRet: { marca: MARCA_EJEMPLO_DIF, modelo: "Rejilla de retorno", variante: "600\xD7300 lamas fijas", nombre: "Rejilla de retorno 600\xD7300 lamas fijas", circuito: "retorno", modo: "ak", ak: 0.126, k: null, ejemplo: true },
-        bocaExt: { marca: MARCA_EJEMPLO_DIF, modelo: "Boca de extracci\xF3n", variante: "\xD8125 (v\xE1lvula)", nombre: "Boca de extracci\xF3n \xD8125 (v\xE1lvula)", circuito: "retorno", modo: "k", ak: null, k: 25, ejemplo: true },
-        /* Los dos de la hoja «CONVERSION CAUDAL REJAS.xlsx» que decía «con / sin
-           regulador»: sus números son los de la XGM-H-MO de la tabla de selección
-           rápida, pero de IMPULSIÓN (el «con regulador») y de EXTRACCIÓN (el «sin
-           regulador»). Se quedan para los puntos ya puestos; no se ofrecen. */
-        troxXgmReg: { marca: "TROX", modelo: "XGM (hoja antigua)", variante: "H-MO impulsi\xF3n (antes \xABcon regulador\xBB)", nombre: "TROX XGM-H-MO impulsi\xF3n, tabla r\xE1pida (antes \xABcon regulador\xBB)", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "XGM_REG", oculto: true },
-        troxXgm: { marca: "TROX", modelo: "XGM (hoja antigua)", variante: "H-MO extracci\xF3n (antes \xABsin regulador\xBB)", nombre: "TROX XGM-H-MO extracci\xF3n, tabla r\xE1pida (antes \xABsin regulador\xBB)", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "XGM", oculto: true },
-        troxWg: { marca: "TROX", modelo: "WG", variante: "Rejilla", nombre: "TROX WG", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "WG" },
-        troxTr2: { marca: "TROX", modelo: "TR2", variante: "Sin regulador", nombre: "TROX TR2 sin regulador", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "TR2" },
-        propioImp: { marca: "Otro", modelo: "Factor a mano", variante: "Impulsi\xF3n", nombre: "Otro de impulsi\xF3n (factor a mano)", circuito: "impulsion", modo: "ak", ak: null, k: null, propio: true },
-        propioRet: { marca: "Otro", modelo: "Factor a mano", variante: "Retorno", nombre: "Otro de retorno (factor a mano)", circuito: "retorno", modo: "ak", ak: null, k: null, propio: true }
-      };
-      var TIPO_DEFECTO_DIF = "rotacional600";
-      var CIRCUITOS_DIF = [["impulsion", "IMP", "impulsi\xF3n", "imp"], ["retorno", "EXT", "extracci\xF3n", "ext"]];
-      var VARIANTES_XGM_DIF = [
-        ["H-MO", "Lamas horizontales m\xF3viles (H-MO)"],
-        ["V-MO", "Lamas verticales m\xF3viles (V-MO)"],
-        ["H-F0", "Lamas horizontales fijas 0\xB0 (H-F0)"],
-        ["H-F15", "Lamas horizontales fijas 15\xB0 (H-F15)"],
-        ["H-P0", "Lamas horizontales fijas 0\xB0, paso 16,7 (H-P0)"],
-        ["H-P15", "Lamas horizontales fijas 15\xB0, paso 16,7 (H-P15)"],
-        ["V-F0", "Lamas verticales fijas 0\xB0 (V-F0)"],
-        ["V-F15", "Lamas verticales fijas 15\xB0 (V-F15)"],
-        ["V-P0", "Lamas verticales fijas 0\xB0, paso 16,7 (V-P0)"],
-        ["V-P15", "Lamas verticales fijas 15\xB0, paso 16,7 (V-P15)"],
-        ["H-F45", "Lamas horizontales fijas 45\xB0 (H-F45)"],
-        ["V-F45", "Lamas verticales fijas 45\xB0 (V-F45)"]
-      ];
-      var ADJUNTOS_DIF = "correo del 13-oct-2026";
-      var FICHA_XGM_DIF = "XGM_PD_2026_09_02_DE_es.pdf (TROX X-GRILLE modular, PD-07/2026)";
-      var RAPIDA_XGM_DIF = "TABLA SELECCION RAPIDA XGM.pdf (TROX)";
-      var FICHA_VDW_DIF = "PD_2019_01_VDW_DE_es.pdf (TROX VDW, PD 01/2019)";
-      var FICHA_PL35_DIF = "PURELINE35_PD_2026_06_29_DE_es.pdf (TROX PL35, PD-06/2026)";
-      var FICHA_PL50_DIF = "PURELINE50_PD_2026_06_29_DE_es.pdf (TROX PL50, PD-06/2026)";
-      var HOJA_OBRA_DIF = "CONVERSION CAUDAL REJAS.xlsx (Drive de la obra, feb. 2026)";
-      var FUENTE_TABLAS_DIF = `TROX: fichas de producto y tablas de selecci\xF3n r\xE1pida (${ADJUNTOS_DIF}); WG y TR2 de \xABCONVERSION CAUDAL REJAS.xlsx\xBB`;
-      var NOTA_PL_DIF = "Las fichas de TROX de la PureLine (PD y selecci\xF3n r\xE1pida) no dan \xE1rea efectiva ni geom\xE9trica: pon el Ak a mano (pedirlo a TROX).";
-      var LN_PL_DIF = [600, 750, 900, 1050, 1200, 1350, 1500, 1650, 1800, 1950];
-      var TAMANOS_VDW_DIF = ["300 \xD7 8", "400 \xD7 16", "500 \xD7 24", "600 \xD7 24", "600 \xD7 48", "625 \xD7 24", "625 \xD7 54", "825 \xD7 72"];
-      var TABLAS_DIF = {
-        WG: {
-          fuente: HOJA_OBRA_DIF,
-          pagina: null,
-          magnitud: "Aeff",
-          nota: "Sin ficha de TROX en los adjuntos: comprobar con la ficha del fabricante.",
-          largos: [200, 400, 600, 800, 1e3, 1200, 1400, 1600, 1800, 2e3, 2200],
-          altos: [165, 330, 495, 660, 825, 990, 1155, 1320, 1485, 1650, 1815, 1980, 2145],
-          filas: [
-            [84e-4, 0.0169, 0.0253, 0.0338, 0.0422, 0.0506, 0.0591, 0.0675, 0.076, 0.0844, 0.0929],
-            [0.0253, 0.0506, 0.076, 0.1013, 0.1266, 0.1519, 0.1773, 0.2026, 0.2279, 0.2532, 0.2786],
-            [0.0422, 0.0844, 0.1266, 0.1688, 0.211, 0.2532, 0.2955, 0.3377, 0.3799, 0.4221, 0.4643],
-            [0.0591, 0.1182, 0.1773, 0.2364, 0.2955, 0.3545, 0.4136, 0.4727, 0.5318, 0.5909, 0.65],
-            [0.076, 0.1519, 0.2279, 0.3039, 0.3799, 0.4558, 0.5318, 0.6078, 0.6838, 0.7597, 0.8357],
-            [0.0929, 0.1857, 0.2786, 0.3714, 0.4643, 0.5571, 0.65, 0.7429, 0.8357, 0.9286, 1.0214],
-            [0.1097, 0.2195, 0.3292, 0.439, 0.5487, 0.6584, 0.7682, 0.8779, 0.9877, 1.0974, 1.2072],
-            [0.1266, 0.2532, 0.3799, 0.5065, 0.6331, 0.7597, 0.8864, 1.013, 1.1396, 1.2662, 1.3929],
-            [0.1435, 0.287, 0.4305, 0.574, 0.7175, 0.861, 1.0046, 1.1481, 1.2916, 1.4351, 1.5786],
-            [0.1604, 0.3208, 0.4812, 0.6416, 0.802, 0.9623, 1.1227, 1.2831, 1.4435, 1.6039, 1.7643],
-            [0.1773, 0.3545, 0.5318, 0.7091, 0.8864, 1.0636, 1.2409, 1.4182, 1.5955, 1.7727, 1.95],
-            [0.1942, 0.3883, 0.5825, 0.7766, 0.9708, 1.1649, 1.3591, 1.5533, 1.7474, 1.9416, 2.0387],
-            [0.211, 0.4221, 0.6331, 0.8442, 1.0552, 1.2662, 1.4773, 1.6883, 1.8994, 2.0049, 2.2159]
-          ]
-        },
-        XGM_REG: {
-          fuente: RAPIDA_XGM_DIF,
-          pagina: 1,
-          magnitud: "Aeff",
-          nota: "XGM-H-MO, \xE1rea efectiva para IMPULSI\xD3N (la hoja de la obra la llamaba \xABcon regulador\xBB).",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.015, 0.022, 0.029, 0.036, 0.043, 0.057, 0.07, 0.084],
-            [0.019, 0.028, 0.037, 0.046, 0.055, 0.073, 0.092, 0.11],
-            [0.027, 0.04, 0.053, 0.066, 0.079, 0.105, 0.131, 0.157],
-            [null, 0.059, 0.078, 0.097, 0.116, 0.154, 0.192, 0.23],
-            [null, null, 0.103, 0.127, 0.152, 0.202, 0.252, 0.302],
-            [null, null, null, 0.158, 0.189, 0.25, 0.313, 0.375]
-          ]
-        },
-        XGM: {
-          fuente: RAPIDA_XGM_DIF,
-          pagina: 1,
-          magnitud: "Aeff",
-          nota: "XGM-H-MO, \xE1rea efectiva para EXTRACCI\xD3N (la hoja de la obra la llamaba \xABsin regulador\xBB).",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.019, 0.028, 0.037, 0.045, 0.054, 0.072, 0.089, 0.107],
-            [0.027, 0.04, 0.053, 0.065, 0.077, 0.103, 0.127, 0.153],
-            [0.035, 0.051, 0.068, 0.084, 0.1, 0.133, 0.165, 0.198],
-            [null, 0.075, 0.098, 0.122, 0.146, 0.194, 0.241, 0.289],
-            [null, null, 0.13, 0.16, 0.192, 0.254, 0.317, 0.38],
-            [null, null, null, 0.198, 0.237, 0.314, 0.393, 0.471]
-          ]
-        },
-        TR2: {
-          fuente: HOJA_OBRA_DIF,
-          pagina: null,
-          magnitud: "Aeff",
-          nota: "Sin ficha de TROX en los adjuntos: comprobar con la ficha del fabricante.",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 225, 325, 425, 525],
-          filas: [
-            [8e-3, 0.012, 0.016, 0.02, 0.024, 0.032, 0.04, 0.048, 0.056, 0.064, 0.072, 0.08],
-            [0.016, 0.024, 0.032, 0.04, 0.048, 0.064, 0.08, 0.096, 0.112, 0.128, 0.144, 0.16],
-            [0.032, 0.048, 0.064, 0.08, 0.096, 0.128, 0.16, 0.192, 0.224, 0.256, 0.288, 0.319],
-            [null, 0.072, 0.096, 0.12, 0.144, 0.192, 0.24, 0.288, 0.335, 0.383, 0.431, 0.479],
-            [null, null, null, null, null, 0.256, 0.319, 0.383, 0.447, 0.511, 0.575, 0.639],
-            [null, null, null, null, null, null, 0.399, 0.479, 0.559, 0.639, 0.719, 0.799]
-          ]
-        },
-        XGM_H_F0_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 10,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [8e-3, 0.011, 0.015, 0.019, 0.022, 0.029, 0.036, 0.043, 0.05, 0.058, 0.065, 0.072],
-            [0.014, 0.021, 0.027, 0.034, 0.04, 0.053, 0.066, 0.079, 0.093, 0.106, 0.119, 0.132],
-            [0.019, 0.028, 0.037, 0.046, 0.055, 0.072, 0.09, 0.108, 0.126, 0.144, 0.162, 0.18],
-            [0.026, 0.039, 0.051, 0.064, 0.076, 0.101, 0.126, 0.152, 0.177, 0.202, 0.227, 0.252],
-            [null, 0.057, 0.076, 0.094, 0.113, 0.15, 0.187, 0.224, 0.261, 0.298, 0.334, 0.371],
-            [null, null, 0.1, 0.124, 0.149, 0.198, 0.247, 0.296, 0.345, 0.393, 0.442, 0.491],
-            [null, null, null, 0.155, 0.185, 0.246, 0.307, 0.368, 0.429, 0.489, 0.55, 0.611]
-          ]
-        },
-        XGM_H_F15_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 10,
-          magnitud: "Aeff",
-          erratas: [{ alto: 165, largo: 625, impreso: 5e-3, porque: "menor que sus vecinos (0,042 y 0,067): errata del PDF; sin valor" }],
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [7e-3, 0.011, 0.014, 0.017, 0.021, 0.027, 0.034, 0.041, 0.047, 0.054, 0.06, 0.067],
-            [0.013, 0.019, 0.025, 0.031, 0.037, 0.049, 0.061, 0.073, 0.086, 0.098, 0.11, 0.122],
-            [0.017, 0.026, 0.034, 0.042, null, 0.067, 0.083, 0.1, 0.116, 0.133, 0.149, 0.166],
-            [0.024, 0.036, 0.047, 0.059, 0.07, 0.093, 0.116, 0.139, 0.162, 0.185, 0.208, 0.231],
-            [null, 0.052, 0.069, 0.086, 0.103, 0.137, 0.171, 0.205, 0.239, 0.273, 0.307, 0.341],
-            [null, null, 0.091, 0.114, 0.136, 0.181, 0.226, 0.271, 0.316, 0.361, 0.406, 0.45],
-            [null, null, null, 0.141, 0.169, 0.225, 0.281, 0.337, 0.393, 0.448, 0.504, 0.56]
-          ]
-        },
-        XGM_H_F0_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 10,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.011, 0.015, 0.02, 0.025, 0.03, 0.039, 0.049, 0.059, 0.068, 0.078, 0.087, 0.097],
-            [0.019, 0.027, 0.036, 0.045, 0.053, 0.07, 0.088, 0.105, 0.122, 0.139, 0.156, 0.174],
-            [0.027, 0.039, 0.052, 0.065, 0.077, 0.101, 0.127, 0.151, 0.176, 0.201, 0.226, 0.251],
-            [0.035, 0.051, 0.067, 0.084, 0.1, 0.132, 0.165, 0.197, 0.23, 0.262, 0.295, 0.327],
-            [null, 0.075, 0.099, 0.122, 0.146, 0.194, 0.242, 0.29, 0.337, 0.385, 0.433, 0.481],
-            [null, null, 0.13, 0.16, 0.193, 0.256, 0.319, 0.382, 0.445, 0.508, 0.571, 0.634],
-            [null, null, null, 0.198, 0.239, 0.317, 0.396, 0.474, 0.553, 0.631, 0.709, 0.788]
-          ]
-        },
-        XGM_H_F15_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 10,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.011, 0.016, 0.02, 0.025, 0.03, 0.04, 0.05, 0.059, 0.069, 0.079, 0.088, 0.098],
-            [0.019, 0.027, 0.036, 0.044, 0.053, 0.07, 0.087, 0.105, 0.122, 0.139, 0.156, 0.173],
-            [0.027, 0.039, 0.052, 0.064, 0.076, 0.101, 0.125, 0.15, 0.175, 0.2, 0.224, 0.249],
-            [0.034, 0.051, 0.067, 0.083, 0.099, 0.131, 0.163, 0.195, 0.228, 0.26, 0.292, 0.324],
-            [null, 0.074, 0.097, 0.121, 0.145, 0.192, 0.239, 0.286, 0.333, 0.38, 0.428, 0.475],
-            [null, null, 0.128, 0.158, 0.19, 0.252, 0.315, 0.377, 0.439, 0.501, 0.563, 0.625],
-            [null, null, null, 0.195, 0.235, 0.312, 0.39, 0.468, 0.545, 0.622, 0.699, 0.776]
-          ]
-        },
-        XGM_H_P0_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 11,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.01, 0.014, 0.018, 0.023, 0.027, 0.036, 0.044, 0.053, 0.062, 0.07, 0.079, 0.088],
-            [0.016, 0.023, 0.031, 0.038, 0.045, 0.06, 0.074, 0.089, 0.104, 0.118, 0.133, 0.148],
-            [0.021, 0.031, 0.04, 0.05, 0.06, 0.079, 0.099, 0.118, 0.138, 0.156, 0.176, 0.196],
-            [0.028, 0.042, 0.055, 0.068, 0.081, 0.108, 0.135, 0.161, 0.188, 0.214, 0.241, 0.267],
-            [null, 0.06, 0.079, 0.098, 0.118, 0.156, 0.195, 0.233, 0.272, 0.31, 0.349, 0.387],
-            [null, null, 0.103, 0.129, 0.154, 0.204, 0.255, 0.305, 0.356, 0.406, 0.456, 0.507],
-            [null, null, null, 0.159, 0.19, 0.253, 0.315, 0.377, 0.44, 0.502, 0.564, 0.627]
-          ]
-        },
-        XGM_H_P15_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 11,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.01, 0.014, 0.018, 0.022, 0.027, 0.035, 0.044, 0.052, 0.061, 0.07, 0.078, 0.087],
-            [0.015, 0.023, 0.03, 0.037, 0.044, 0.058, 0.072, 0.086, 0.101, 0.115, 0.129, 0.143],
-            [0.02, 0.029, 0.039, 0.048, 0.057, 0.076, 0.095, 0.113, 0.132, 0.151, 0.169, 0.188],
-            [0.027, 0.04, 0.053, 0.065, 0.078, 0.103, 0.129, 0.154, 0.18, 0.205, 0.231, 0.256],
-            [null, 0.057, 0.075, 0.094, 0.112, 0.149, 0.186, 0.222, 0.259, 0.296, 0.333, 0.369],
-            [null, null, 0.098, 0.122, 0.146, 0.194, 0.242, 0.29, 0.338, 0.386, 0.434, 0.482],
-            [null, null, null, 0.151, 0.18, 0.239, 0.299, 0.358, 0.418, 0.477, 0.536, 0.595]
-          ]
-        },
-        XGM_H_P0_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 11,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.012, 0.017, 0.023, 0.028, 0.033, 0.044, 0.054, 0.065, 0.076, 0.086, 0.097, 0.108],
-            [0.02, 0.029, 0.037, 0.046, 0.055, 0.073, 0.091, 0.109, 0.127, 0.145, 0.163, 0.181],
-            [0.028, 0.04, 0.052, 0.065, 0.078, 0.103, 0.128, 0.153, 0.178, 0.204, 0.229, 0.254],
-            [0.035, 0.051, 0.067, 0.084, 0.1, 0.132, 0.165, 0.197, 0.229, 0.262, 0.294, 0.327],
-            [null, 0.074, 0.097, 0.121, 0.144, 0.191, 0.238, 0.285, 0.332, 0.379, 0.426, 0.473],
-            [null, null, 0.126, 0.159, 0.189, 0.25, 0.312, 0.373, 0.434, 0.496, 0.557, 0.619],
-            [null, null, null, 0.196, 0.233, 0.31, 0.385, 0.461, 0.537, 0.613, 0.689, 0.765]
-          ]
-        },
-        XGM_H_P15_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 11,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.012, 0.018, 0.023, 0.028, 0.034, 0.045, 0.056, 0.066, 0.077, 0.088, 0.099, 0.11],
-            [0.02, 0.029, 0.038, 0.047, 0.056, 0.074, 0.092, 0.11, 0.128, 0.146, 0.164, 0.182],
-            [0.028, 0.04, 0.053, 0.065, 0.078, 0.103, 0.128, 0.154, 0.179, 0.204, 0.229, 0.254],
-            [0.035, 0.051, 0.067, 0.083, 0.1, 0.132, 0.164, 0.197, 0.229, 0.261, 0.294, 0.326],
-            [null, 0.073, 0.097, 0.12, 0.143, 0.19, 0.237, 0.283, 0.33, 0.377, 0.424, 0.47],
-            [null, null, 0.127, 0.156, 0.187, 0.248, 0.309, 0.37, 0.431, 0.492, 0.553, 0.614],
-            [null, null, null, 0.193, 0.231, 0.306, 0.382, 0.457, 0.532, 0.608, 0.683, 0.759]
-          ]
-        },
-        XGM_V_F0_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 12,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.014, 0.02, 0.027, 0.034, 0.04, 0.053, 0.066, 0.079],
-            [0.019, 0.028, 0.037, 0.046, 0.055, 0.072, 0.09, 0.108],
-            [null, 0.039, 0.051, 0.064, 0.076, 0.101, 0.126, 0.151],
-            [null, null, 0.076, 0.094, 0.113, 0.15, 0.187, 0.223],
-            [null, null, null, 0.124, 0.149, 0.198, 0.246, 0.295],
-            [null, null, null, null, 0.185, 0.246, 0.306, 0.368]
-          ]
-        },
-        XGM_V_F15_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 12,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.013, 0.019, 0.025, 0.031, 0.037, 0.049, 0.061, 0.073],
-            [0.017, 0.026, 0.034, 0.042, 0.05, 0.067, 0.083, 0.1],
-            [null, 0.036, 0.047, 0.059, 0.07, 0.093, 0.116, 0.139],
-            [null, null, 0.069, 0.086, 0.103, 0.137, 0.171, 0.205],
-            [null, null, null, 0.114, 0.136, 0.181, 0.226, 0.271],
-            [null, null, null, null, 0.169, 0.225, 0.28, 0.337]
-          ]
-        },
-        XGM_V_F0_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 12,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.019, 0.026, 0.036, 0.044, 0.053, 0.07, 0.088, 0.105],
-            [0.025, 0.036, 0.048, 0.06, 0.072, 0.095, 0.119, 0.141],
-            [null, 0.051, 0.067, 0.084, 0.1, 0.132, 0.166, 0.196],
-            [null, null, 0.098, 0.122, 0.145, 0.193, 0.241, 0.289],
-            [null, null, null, 0.16, 0.193, 0.255, 0.318, 0.381],
-            [null, null, null, null, 0.239, 0.317, 0.395, 0.474]
-          ]
-        },
-        XGM_V_F15_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 12,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.019, 0.027, 0.036, 0.044, 0.053, 0.07, 0.087, 0.106],
-            [0.026, 0.038, 0.051, 0.063, 0.075, 0.1, 0.125, 0.149],
-            [null, 0.05, 0.067, 0.082, 0.099, 0.131, 0.163, 0.195],
-            [null, null, 0.097, 0.121, 0.145, 0.192, 0.239, 0.286],
-            [null, null, null, 0.158, 0.19, 0.252, 0.315, 0.377],
-            [null, null, null, null, 0.235, 0.312, 0.389, 0.467]
-          ]
-        },
-        XGM_V_P0_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 13,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.016, 0.023, 0.03, 0.038, 0.045, 0.06, 0.074, 0.089],
-            [0.021, 0.03, 0.04, 0.05, 0.06, 0.079, 0.098, 0.118],
-            [null, 0.041, 0.055, 0.068, 0.081, 0.108, 0.134, 0.161],
-            [null, null, 0.079, 0.098, 0.118, 0.156, 0.194, 0.233],
-            [null, null, null, 0.129, 0.154, 0.204, 0.255, 0.305],
-            [null, null, null, null, 0.19, 0.252, 0.315, 0.377]
-          ]
-        },
-        XGM_V_P15_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 13,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.015, 0.022, 0.03, 0.037, 0.044, 0.058, 0.072, 0.086],
-            [0.02, 0.029, 0.039, 0.048, 0.057, 0.076, 0.095, 0.114],
-            [null, 0.04, 0.052, 0.065, 0.078, 0.103, 0.129, 0.154],
-            [null, null, 0.075, 0.094, 0.112, 0.149, 0.185, 0.222],
-            [null, null, null, 0.122, 0.146, 0.194, 0.242, 0.29],
-            [null, null, null, null, 0.18, 0.239, 0.299, 0.358]
-          ]
-        },
-        XGM_V_P0_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 13,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.02, 0.029, 0.036, 0.046, 0.055, 0.073, 0.091, 0.109],
-            [0.027, 0.04, 0.052, 0.065, 0.078, 0.103, 0.128, 0.153],
-            [null, 0.05, 0.067, 0.084, 0.1, 0.132, 0.164, 0.197],
-            [null, null, 0.097, 0.121, 0.144, 0.191, 0.237, 0.285],
-            [null, null, null, 0.159, 0.189, 0.25, 0.312, 0.373],
-            [null, null, null, null, 0.233, 0.31, 0.385, 0.461]
-          ]
-        },
-        XGM_V_P15_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 13,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.022, 0.032, 0.043, 0.052, 0.063, 0.083, 0.103, 0.124],
-            [0.03, 0.045, 0.059, 0.072, 0.087, 0.114, 0.142, 0.17],
-            [null, 0.056, 0.075, 0.092, 0.11, 0.145, 0.181, 0.216],
-            [null, null, 0.106, 0.132, 0.158, 0.208, 0.259, 0.31],
-            [null, null, null, 0.17, 0.204, 0.27, 0.337, 0.403],
-            [null, null, null, null, 0.25, 0.332, 0.414, 0.497]
-          ]
-        },
-        XGM_H_MO_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 14,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.015, 0.022, 0.029, 0.036, 0.043, 0.057, 0.07, 0.084],
-            [0.02, 0.029, 0.039, 0.048, 0.057, 0.076, 0.094, 0.113],
-            [0.027, 0.04, 0.053, 0.066, 0.079, 0.105, 0.131, 0.157],
-            [null, 0.059, 0.078, 0.097, 0.116, 0.154, 0.192, 0.23],
-            [null, null, 0.102, 0.127, 0.152, 0.202, 0.252, 0.302],
-            [null, null, null, 0.158, 0.189, 0.251, 0.313, 0.375]
-          ]
-        },
-        XGM_H_MO_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 14,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.019, 0.028, 0.037, 0.045, 0.054, 0.072, 0.089, 0.107],
-            [0.027, 0.04, 0.053, 0.065, 0.077, 0.103, 0.127, 0.153],
-            [0.035, 0.051, 0.068, 0.084, 0.1, 0.133, 0.165, 0.198],
-            [null, 0.075, 0.098, 0.122, 0.146, 0.194, 0.241, 0.289],
-            [null, null, 0.128, 0.16, 0.192, 0.254, 0.317, 0.38],
-            [null, null, null, 0.197, 0.237, 0.314, 0.393, 0.471]
-          ]
-        },
-        XGM_V_MO_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 15,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.01, 0.014, 0.019, 0.023, 0.027, 0.036, 0.045, 0.053, 0.062, 0.071, 0.08, 0.088],
-            [0.016, 0.024, 0.031, 0.038, 0.046, 0.061, 0.075, 0.09, 0.105, 0.12, 0.135, 0.149],
-            [0.023, 0.033, 0.044, 0.054, 0.065, 0.086, 0.106, 0.127, 0.148, 0.169, 0.19, 0.211],
-            [0.029, 0.042, 0.056, 0.069, 0.083, 0.11, 0.137, 0.164, 0.191, 0.218, 0.245, 0.272],
-            [null, null, 0.081, 0.1, 0.12, 0.159, 0.198, 0.237, 0.276, 0.315, 0.354, 0.394],
-            [null, null, null, 0.131, 0.157, 0.208, 0.259, 0.311, 0.362, 0.413, 0.464, 0.516],
-            [null, null, null, null, 0.194, 0.257, 0.321, 0.384, 0.447, 0.511, 0.574, 0.638]
-          ]
-        },
-        XGM_V_MO_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 15,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.012, 0.017, 0.022, 0.027, 0.032, 0.042, 0.053, 0.063, 0.073, 0.084, 0.094, 0.104],
-            [0.019, 0.028, 0.037, 0.045, 0.054, 0.071, 0.089, 0.106, 0.124, 0.141, 0.159, 0.176],
-            [0.027, 0.039, 0.052, 0.064, 0.076, 0.1, 0.125, 0.15, 0.174, 0.199, 0.224, 0.248],
-            [0.034, 0.05, 0.066, 0.082, 0.098, 0.129, 0.161, 0.193, 0.224, 0.256, 0.288, 0.32],
-            [null, null, 0.095, 0.118, 0.141, 0.187, 0.233, 0.279, 0.325, 0.371, 0.417, 0.463],
-            [null, null, null, 0.155, 0.185, 0.245, 0.305, 0.365, 0.426, 0.486, 0.546, 0.606],
-            [null, null, null, null, 0.228, 0.301, 0.377, 0.452, 0.526, 0.601, 0.675, 0.75]
-          ]
-        },
-        XGM_H_F45_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 16,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.014, 0.023, 0.031, 0.04, 0.048, 0.065, 0.081, 0.098],
-            [0.02, 0.031, 0.043, 0.055, 0.066, 0.089, 0.113, 0.136],
-            [0.028, 0.045, 0.061, 0.077, 0.094, 0.126, 0.159, 0.192],
-            [null, 0.066, 0.091, 0.115, 0.139, 0.188, 0.237, 0.286],
-            [null, null, 0.12, 0.152, 0.185, 0.25, 0.315, 0.379],
-            [null, null, null, 0.188, 0.229, 0.31, 0.392, 0.473]
-          ]
-        },
-        XGM_V_F45_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 16,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [9e-3, 0.015, 0.02, 0.025, 0.03, 0.041, 0.051, 0.06],
-            [0.014, 0.023, 0.031, 0.04, 0.048, 0.065, 0.081, 0.098],
-            [0.02, 0.031, 0.043, 0.055, 0.066, 0.089, 0.113, 0.136],
-            [0.028, 0.045, 0.061, 0.077, 0.094, 0.126, 0.159, 0.192],
-            [null, 0.066, 0.091, 0.115, 0.139, 0.188, 0.237, 0.286],
-            [null, null, 0.12, 0.152, 0.185, 0.25, 0.315, 0.379],
-            [null, null, null, 0.188, 0.229, 0.31, 0.392, 0.473]
-          ]
-        },
-        XGM_P_R_AGEO: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 17,
-          magnitud: "Ageo",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [9e-3, 0.014, 0.018, 0.023, 0.027, 0.036, 0.046, 0.055],
-            [0.013, 0.019, 0.025, 0.032, 0.038, 0.051, 0.064, 0.077],
-            [0.018, 0.027, 0.036, 0.046, 0.055, 0.073, 0.091, 0.11],
-            [null, 0.041, 0.055, 0.068, 0.082, 0.11, 0.137, 0.165],
-            [null, null, 0.073, 0.091, 0.11, 0.146, 0.183, 0.22],
-            [null, null, null, 0.114, 0.137, 0.183, 0.229, 0.275]
-          ]
-        },
-        XGM_P_EG_AGEO: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 17,
-          magnitud: "Ageo",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.018, 0.027, 0.035, 0.044, 0.053, 0.071, 0.089, 0.107],
-            [0.025, 0.037, 0.05, 0.062, 0.075, 0.1, 0.125, 0.15],
-            [0.035, 0.053, 0.071, 0.089, 0.107, 0.143, 0.179, 0.215],
-            [null, 0.08, 0.107, 0.134, 0.161, 0.215, 0.268, 0.322],
-            [null, null, 0.142, 0.178, 0.214, 0.286, 0.358, 0.43],
-            [null, null, null, 0.223, 0.268, 0.358, 0.448, 0.538]
-          ]
-        },
-        /* VDW: «Detalles de producto», Aeff por tamaño (diámetro × nº de ranuras). */
-        VDW_Q: {
-          forma: "lista",
-          fuente: FICHA_VDW_DIF,
-          pagina: 19,
-          magnitud: "Aeff",
-          nota: "La ficha da un \xFAnico Aeff por tama\xF1o, sin distinguir impulsi\xF3n y retorno.",
-          tamanos: TAMANOS_VDW_DIF,
-          valores: [7e-3, 0.014, 0.021, 0.0295, 0.039, 0.0295, 0.047, 0.073]
-        },
-        VDW_R: {
-          forma: "lista",
-          fuente: FICHA_VDW_DIF,
-          pagina: 19,
-          magnitud: "Aeff",
-          nota: "La ficha da un \xFAnico Aeff por tama\xF1o, sin distinguir impulsi\xF3n y retorno. En circular no hay 625 \xD7 54 ni 825 \xD7 72.",
-          tamanos: TAMANOS_VDW_DIF.slice(0, 6),
-          valores: [7e-3, 0.014, 0.021, 0.0295, 0.039, 0.0295]
-        },
-        PL35: {
-          forma: "lista",
-          fuente: FICHA_PL35_DIF,
-          pagina: 8,
-          magnitud: "Aeff",
-          sinAk: true,
-          nota: NOTA_PL_DIF,
-          tamanos: LN_PL_DIF.map(String),
-          valores: LN_PL_DIF.map(() => null)
-        },
-        PL50: {
-          forma: "lista",
-          fuente: FICHA_PL50_DIF,
-          pagina: 7,
-          magnitud: "Aeff",
-          sinAk: true,
-          nota: NOTA_PL_DIF,
-          tamanos: LN_PL_DIF.map(String),
-          valores: LN_PL_DIF.map(() => null)
-        }
-      };
-      (function tiposTroxDif() {
-        const poner = (id, x) => {
-          if (!TIPOS_DIF[id]) TIPOS_DIF[id] = { marca: "TROX", modo: "ak", ak: null, k: null, ...x };
-        };
-        for (const [codigo, texto] of VARIANTES_XGM_DIF) {
-          for (const [circuito, suf, nombreC, corto] of CIRCUITOS_DIF) {
-            const tabla = `XGM_${codigo.replace("-", "_")}_${suf}`;
-            if (!TABLAS_DIF[tabla]) continue;
-            poner(`trox-xgm-${codigo.toLowerCase()}-${corto}`, { modelo: "XGM (X-GRILLE)", variante: `${texto} \xB7 ${nombreC}`, nombre: `TROX XGM ${codigo} \xB7 ${nombreC}`, circuito, tabla });
-          }
-        }
-        for (const [codigo, texto] of [["P-R", "Frontal perforado circular (P-R)"], ["P-EG", "Frontal perforado celos\xEDa (P-EG)"]]) {
-          for (const [circuito, , nombreC, corto] of CIRCUITOS_DIF) {
-            poner(`trox-xgm-${codigo.toLowerCase()}-${corto}`, { modelo: "XGM (X-GRILLE)", variante: `${texto} \xB7 ${nombreC}`, nombre: `TROX XGM ${codigo} \xB7 ${nombreC}`, circuito, tabla: `XGM_${codigo.replace("-", "_")}_AGEO` });
-          }
-        }
-        for (const [forma, texto] of [["Q", "Cuadrado (VDW-Q)"], ["R", "Circular (VDW-R)"]]) {
-          for (const [circuito, , nombreC, corto] of CIRCUITOS_DIF) {
-            poner(`trox-vdw-${forma.toLowerCase()}-${corto}`, { modelo: "VDW (rotacional)", variante: `${texto} \xB7 ${nombreC}`, nombre: `TROX VDW-${forma} \xB7 ${nombreC}`, circuito, tabla: `VDW_${forma}` });
-          }
-        }
-        for (const modelo of ["PL35", "PL50"]) {
-          for (let n = 1; n <= 4; n++) {
-            for (const [circuito, , nombreC, corto] of CIRCUITOS_DIF) {
-              poner(`trox-${modelo.toLowerCase()}-${n}-${corto}`, { modelo: `${modelo} (PureLine, lineal)`, variante: `${n} ranura${n > 1 ? "s" : ""} \xB7 ${nombreC}`, nombre: `TROX ${modelo}-${n} \xB7 ${nombreC}`, circuito, tabla: modelo });
-            }
-          }
-        }
-      })();
-      function numDif(v) {
-        if (v === null || v === void 0 || v === "") return null;
-        if (typeof v === "number") return Number.isFinite(v) ? v : null;
-        let t = String(v).trim().replace(/\s/g, "");
-        if (t.includes(",") && t.includes(".")) t = t.replace(/\./g, "");
-        t = t.replace(",", ".");
-        if (!t) return null;
-        const n = Number(t);
-        return Number.isFinite(n) ? n : null;
-      }
-      var redDif = (v, d = 1) => v === null ? null : Math.round(v * 10 ** d) / 10 ** d;
-      var entre01Dif = (v) => {
-        const n = numDif(v);
-        return n === null ? 0.5 : Math.min(1, Math.max(0, n));
-      };
-      function leerVelocidadesDif(texto) {
-        if (texto === null || texto === void 0) return { lecturas: [], media: null };
-        if (typeof texto === "number") return Number.isFinite(texto) && texto >= 0 ? { lecturas: [texto], media: texto } : { lecturas: [], media: null };
-        const trozos = String(texto).split(/[;\s/]+|,(?=\s)|\s*\|\s*/).map((t) => t.trim()).filter(Boolean);
-        const lecturas = trozos.map(numDif).filter((n) => n !== null && n >= 0);
-        if (!lecturas.length) return { lecturas: [], media: null };
-        const media = lecturas.reduce((a, b) => a + b, 0) / lecturas.length;
-        return { lecturas, media: redDif(media, 3) };
-      }
-      function tipoDif(id) {
-        return TIPOS_DIF[id] ? { id, ...TIPOS_DIF[id] } : { id: TIPO_DEFECTO_DIF, ...TIPOS_DIF[TIPO_DEFECTO_DIF] };
-      }
-      function normalizarPuntoDif(p = {}, indice = 0) {
-        if (!p || typeof p !== "object") p = {};
-        const t = tipoDif(p.tipo);
-        const modo = MODOS_DIF[p.modo] ? p.modo : t.modo;
-        const ak = numDif(p.ak);
-        const k = numDif(p.k);
-        const v = numDif(p.velocidad);
-        const qd = numDif(p.caudalDiseno);
-        const qm = numDif(p.caudalMedido);
-        return {
-          id: String(p.id || `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`),
-          nombre: String(p.nombre || "").trim().slice(0, 40) || `D${indice + 1}`,
-          x: entre01Dif(p.x),
-          y: entre01Dif(p.y),
-          tipo: t.id,
-          modo,
-          ak: ak !== null && ak > 0 ? ak : null,
-          k: k !== null && k > 0 ? k : null,
-          largo: medidaDif(p.largo),
-          alto: medidaDif(p.alto),
-          tamano: p.tamano === null || p.tamano === void 0 ? null : String(p.tamano).trim().slice(0, 20) || null,
-          lecturas: p.lecturas === null || p.lecturas === void 0 ? "" : String(p.lecturas).slice(0, 120),
-          velocidad: v !== null && v >= 0 ? v : null,
-          /* Con balómetro se lee el caudal directamente (m³/h): manda sobre v × Ak. */
-          caudalMedido: qm !== null && qm >= 0 ? qm : null,
-          caudalDiseno: qd !== null && qd >= 0 ? qd : null,
-          nota: String(p.nota || "").slice(0, 300),
-          /* El modelo de proyecto de la obra del que sale (tipo, tamaño y caudal de proyecto). */
-          modeloId: p.modeloId ? String(p.modeloId).slice(0, 40) : null
-        };
-      }
-      function medidaDif(v) {
-        const n = numDif(v);
-        return n !== null && n > 0 ? Math.round(n) : null;
-      }
-      var claveTamanoDif = (v) => v === null || v === void 0 ? "" : String(v).toLowerCase().replace(/\s+/g, "").replace(/x/g, "\xD7");
-      function valorTablaDif(tabla, { largo = null, alto = null, tamano = null } = {}) {
-        const t = TABLAS_DIF[tabla];
-        if (!t) return null;
-        let v;
-        if (t.forma === "lista") {
-          const i = t.tamanos.findIndex((x) => claveTamanoDif(x) === claveTamanoDif(tamano));
-          if (i < 0) return null;
-          v = t.valores[i];
-        } else {
-          const c = t.largos.indexOf(medidaDif(largo));
-          const f = t.altos.indexOf(medidaDif(alto));
-          if (c < 0 || f < 0) return null;
-          v = t.filas[f][c];
-        }
-        return typeof v === "number" && v > 0 ? v : null;
-      }
-      function akTablaDif(tabla, largo, alto, tamano = null) {
-        const t = TABLAS_DIF[tabla];
-        if (!t || t.magnitud !== "Aeff") return null;
-        return valorTablaDif(tabla, { largo, alto, tamano });
-      }
-      function ageoTablaDif(tabla, largo, alto, tamano = null) {
-        const t = TABLAS_DIF[tabla];
-        if (!t || t.magnitud !== "Ageo") return null;
-        return valorTablaDif(tabla, { largo, alto, tamano });
-      }
-      function fuenteTablaDif(tabla) {
-        const t = TABLAS_DIF[tabla];
-        if (!t) return null;
-        return `${t.fuente}${t.pagina ? `, p. ${t.pagina}` : ""}`;
-      }
-      function factorDif(p) {
-        const t = tipoDif(p.tipo);
-        const modo = MODOS_DIF[p.modo] ? p.modo : t.modo;
-        if (modo === "k") {
-          const propio2 = numDif(p.k);
-          if (propio2 !== null && propio2 > 0) return { modo, valor: propio2, origen: "punto" };
-          return { modo, valor: t.modo === "k" ? t.k : null, origen: t.modo === "k" && t.k ? "catalogo" : null };
-        }
-        const propio = numDif(p.ak);
-        if (propio !== null && propio > 0) return { modo, valor: propio, origen: "punto" };
-        if (t.tabla) {
-          const v = akTablaDif(t.tabla, p.largo, p.alto, p.tamano);
-          return { modo, valor: v, origen: v ? "tabla" : null };
-        }
-        return { modo, valor: t.modo === "ak" ? t.ak : null, origen: t.modo === "ak" && t.ak ? "catalogo" : null };
-      }
-      var visiblesDif = () => Object.entries(TIPOS_DIF).filter(([, x]) => !x.oculto);
-      var unicosDif = (lista) => [...new Set(lista)];
-      function marcasDif() {
-        const m = unicosDif(visiblesDif().map(([, x]) => x.marca));
-        return m.sort((a, b) => a === "TROX" ? -1 : b === "TROX" ? 1 : 0);
-      }
-      function modelosDif(marca) {
-        return unicosDif(visiblesDif().filter(([, x]) => x.marca === marca).map(([, x]) => x.modelo));
-      }
-      function variantesDif(marca, modelo) {
-        return visiblesDif().filter(([, x]) => x.marca === marca && x.modelo === modelo).map(([id, x]) => ({ id, variante: x.variante, circuito: x.circuito }));
-      }
-      function tamanosDif(tipoId) {
-        const t = TIPOS_DIF[tipoId];
-        const tabla = t && t.tabla ? TABLAS_DIF[t.tabla] : null;
-        if (!tabla) return [];
-        if (tabla.forma === "lista") {
-          return tabla.tamanos.map((tam, i) => ({ clave: tam, texto: tabla.sinAk ? `LN ${tam}` : tam, tamano: tam, largo: null, alto: null, area: tabla.valores[i] })).filter((x) => tabla.sinAk || typeof x.area === "number" && x.area > 0);
-        }
-        const salida = [];
-        tabla.altos.forEach((h, f) => tabla.largos.forEach((l, c) => {
-          const v = tabla.filas[f][c];
-          if (typeof v === "number" && v > 0) salida.push({ clave: `${l}\xD7${h}`, texto: `${l} \xD7 ${h}`, tamano: null, largo: l, alto: h, area: v });
-        }));
-        return salida.sort((a, b) => a.largo - b.largo || a.alto - b.alto);
-      }
-      function claveTamanoPuntoDif(p) {
-        if (p && p.largo && p.alto) return `${p.largo}\xD7${p.alto}`;
-        return p && p.tamano ? p.tamano : "";
-      }
-      function caudalDif({ velocidad, modo = "ak", ak = null, k = null } = {}) {
-        const v = numDif(velocidad);
-        if (v === null || v < 0) return null;
-        if (modo === "k") {
-          const f = numDif(k);
-          return f === null || f <= 0 ? null : redDif(f * v, 1);
-        }
-        const a = numDif(ak);
-        return a === null || a <= 0 ? null : redDif(v * a * 3600, 1);
-      }
-      function desviacionDif(medido, diseno) {
-        const m = numDif(medido);
-        const d = numDif(diseno);
-        if (m === null || d === null || d === 0) return null;
-        return redDif((m - d) / d, 4);
-      }
-      function juicioDif(desv, tol) {
-        if (desv === null || tol === null || tol === void 0) return null;
-        if (Math.abs(desv) <= tol + 1e-9) return "dentro";
-        return desv > 0 ? "alto" : "bajo";
-      }
-      function toleranciasDif(t = {}) {
-        const una = (v) => {
-          const n = numDif(v);
-          return n !== null && n > 0 && n < 1 ? n : null;
-        };
-        const total = una(t && t.total);
-        const boca = una(t && t.boca);
-        return {
-          total: total === null ? TOLERANCIA_DEFECTO_DIF : total,
-          boca: boca === null ? TOLERANCIA_DEFECTO_DIF : boca,
-          totalPorDefecto: total === null,
-          bocaPorDefecto: boca === null
-        };
-      }
-      function evaluarPuntoDif(p, tolBoca = TOLERANCIA_DEFECTO_DIF) {
-        const t = tipoDif(p.tipo);
-        const f = factorDif(p);
-        const balometro = numDif(p.caudalMedido) !== null;
-        const caudal = balometro ? redDif(numDif(p.caudalMedido), 1) : f.valor === null ? null : caudalDif({ velocidad: p.velocidad, modo: f.modo, ak: f.modo === "ak" ? f.valor : null, k: f.modo === "k" ? f.valor : null });
-        const desv = desviacionDif(caudal, p.caudalDiseno);
-        let estado;
-        if (!balometro && numDif(p.velocidad) === null) estado = "sinMedir";
-        else if (!balometro && f.valor === null) estado = "sinFactor";
-        else if (numDif(p.caudalDiseno) === null) estado = "medido";
-        else estado = juicioDif(desv, tolBoca);
-        return {
-          ...p,
-          circuito: t.circuito,
-          tipoNombre: t.nombre,
-          factor: f.valor,
-          modoFactor: f.modo,
-          origenFactor: f.origen,
-          caudal,
-          /* Cómo se ha medido: 'balometro' (caudal leído), 'anemometro' (v × factor) o null. */
-          metodo: balometro ? "balometro" : numDif(p.velocidad) === null ? null : "anemometro",
-          lecturasLista: leerVelocidadesDif(p.lecturas).lecturas,
-          desviacion: desv,
-          estado
-        };
-      }
-      function resumenDif({ puntos = [], diseno = {}, tolerancias = {} } = {}) {
-        const tol = toleranciasDif(tolerancias);
-        const filas = puntos.map((p, i) => evaluarPuntoDif(normalizarPuntoDif(p, i), tol.boca));
-        const circuitos = {};
-        for (const id of ["impulsion", "retorno"]) {
-          const suyos = filas.filter((f) => f.circuito === id);
-          const conCaudal = suyos.filter((f) => f.caudal !== null);
-          const suma = conCaudal.length ? redDif(conCaudal.reduce((a, f) => a + f.caudal, 0), 1) : null;
-          const disenoPuntos = suyos.every((f) => numDif(f.caudalDiseno) !== null) && suyos.length ? redDif(suyos.reduce((a, f) => a + numDif(f.caudalDiseno), 0), 1) : null;
-          const disenoEquipo = numDif(diseno && diseno[id]);
-          const faltan = suyos.length - conCaudal.length;
-          const completo = suyos.length > 0 && faltan === 0;
-          const desv = completo ? desviacionDif(suma, disenoEquipo) : null;
-          let estado;
-          if (!suyos.length) estado = "sinPuntos";
-          else if (!completo) estado = "incompleto";
-          else if (disenoEquipo === null) estado = "sinDiseno";
-          else estado = juicioDif(desv, tol.total);
-          circuitos[id] = {
-            id,
-            puntos: suyos.length,
-            medidos: conCaudal.length,
-            faltan,
-            suma,
-            disenoEquipo,
-            disenoPuntos,
-            desviacion: desv,
-            estado,
-            dentro: suyos.filter((f) => f.estado === "dentro").length,
-            fuera: suyos.filter((f) => f.estado === "alto" || f.estado === "bajo").length
-          };
-        }
-        return { filas, circuitos, tolerancias: tol };
-      }
-      function siguienteNombreDif(puntos = [], circuito = "impulsion") {
-        const letra = circuito === "retorno" ? "R" : "D";
-        const re = new RegExp(`^${letra}(\\d+)$`);
-        const max = puntos.reduce((m, p) => {
-          const r = re.exec(String(p.nombre || ""));
-          return r ? Math.max(m, Number(r[1])) : m;
-        }, 0);
-        return `${letra}${max + 1}`;
-      }
-      function normalizarModeloProyectoDif(m = {}, indice = 0) {
-        if (!m || typeof m !== "object") m = {};
-        const t = tipoDif(m.tipo);
-        const qp = numDif(m.caudalProyecto);
-        return {
-          id: String(m.id || `m${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`).slice(0, 40),
-          ref: String(m.ref || "").trim().slice(0, 30) || `${t.circuito === "retorno" ? "R" : "D"}-${String(indice + 1).padStart(2, "0")}`,
-          tipo: t.id,
-          largo: medidaDif(m.largo),
-          alto: medidaDif(m.alto),
-          tamano: m.tamano === null || m.tamano === void 0 ? null : String(m.tamano).trim().slice(0, 20) || null,
-          /* Ak a mano: para las tablas que no lo dan (PureLine) o un modelo sin tabla. */
-          ak: numDif(m.ak) !== null && numDif(m.ak) > 0 ? numDif(m.ak) : null,
-          caudalProyecto: qp !== null && qp >= 0 ? qp : null,
-          nota: String(m.nota || "").slice(0, 200)
-        };
-      }
-      function normalizarModelosProyectoDif(lista) {
-        const vistos = /* @__PURE__ */ new Set();
-        const salida = [];
-        for (const m of Array.isArray(lista) ? lista.slice(0, 200) : []) {
-          if (!m || typeof m !== "object") continue;
-          const n = normalizarModeloProyectoDif(m, salida.length);
-          if (vistos.has(n.id)) continue;
-          vistos.add(n.id);
-          salida.push(n);
-        }
-        return salida;
-      }
-      function camposModeloDif(m) {
-        const t = tipoDif(m.tipo);
-        return {
-          tipo: m.tipo,
-          modo: t.modo === "k" ? "k" : "ak",
-          ak: m.ak,
-          k: null,
-          largo: m.largo,
-          alto: m.alto,
-          tamano: m.tamano,
-          caudalDiseno: m.caudalProyecto
-        };
-      }
-      function evaluarModeloDif(m) {
-        const t = tipoDif(m.tipo);
-        const f = factorDif({ ...normalizarPuntoDif(camposModeloDif(m)) });
-        return {
-          ...m,
-          circuito: t.circuito,
-          tipoNombre: t.nombre,
-          marca: t.marca,
-          modelo: t.modelo,
-          variante: t.variante,
-          factor: f.valor,
-          modoFactor: f.modo,
-          origenFactor: f.origen,
-          fuente: t.tabla ? fuenteTablaDif(t.tabla) : null,
-          ejemplo: Boolean(t.ejemplo)
-        };
-      }
-      function normalizarAsignacionDif(lista, modelos = null) {
-        const ids = modelos ? new Set(modelos.map((m) => m.id)) : null;
-        const vistos = /* @__PURE__ */ new Set();
-        const salida = [];
-        for (const a of Array.isArray(lista) ? lista : []) {
-          if (!a || typeof a !== "object" || !a.modeloId) continue;
-          const id = String(a.modeloId);
-          if (vistos.has(id) || ids && !ids.has(id)) continue;
-          const n = Math.round(numDif(a.cantidad) || 0);
-          if (n <= 0) continue;
-          vistos.add(id);
-          salida.push({ modeloId: id, cantidad: Math.min(200, n) });
-        }
-        return salida;
-      }
-      function aplicarModelosDif(puntos, modelos) {
-        const porId = new Map((modelos || []).map((m) => [m.id, m]));
-        return (puntos || []).map((p, i) => {
-          const m = p.modeloId ? porId.get(p.modeloId) : null;
-          return m ? normalizarPuntoDif({ ...p, ...camposModeloDif(m) }, i) : p;
-        });
-      }
-      function generarBocasDif(asignacion, modelos, existentes = []) {
-        const porId = new Map((modelos || []).map((m) => [m.id, m]));
-        const todas = [...existentes];
-        const nuevas = [];
-        const sobran = [];
-        for (const a of normalizarAsignacionDif(asignacion, modelos)) {
-          const m = porId.get(a.modeloId);
-          const tiene = existentes.filter((p) => p.modeloId === m.id).length;
-          if (tiene > a.cantidad) sobran.push({ modeloId: m.id, ref: m.ref, sobran: tiene - a.cantidad });
-          for (let i = tiene; i < a.cantidad; i++) {
-            const circuito = tipoDif(m.tipo).circuito;
-            const p = normalizarPuntoDif({ ...camposModeloDif(m), modeloId: m.id, nombre: siguienteNombreDif(todas, circuito) }, todas.length);
-            todas.push(p);
-            nuevas.push(p);
-          }
-        }
-        const asignados = new Set(normalizarAsignacionDif(asignacion, modelos).map((a) => a.modeloId));
-        for (const m of modelos || []) {
-          const tiene = existentes.filter((p) => p.modeloId === m.id).length;
-          if (tiene && !asignados.has(m.id)) sobran.push({ modeloId: m.id, ref: m.ref, sobran: tiene });
-        }
-        return { nuevas, sobran };
-      }
-      function colocarEnListaDif(puntos) {
-        return puntos.map((p, i) => ({ ...p, x: 0.05 + 0.1 * (i % 10), y: Math.min(0.95, 0.08 + 0.12 * Math.floor(i / 10)) }));
-      }
-      function normalizarPuntosDif(lista) {
-        const vistos = /* @__PURE__ */ new Set();
-        const salida = [];
-        for (const p of Array.isArray(lista) ? lista.slice(0, 400) : []) {
-          if (!p || typeof p !== "object") continue;
-          const n = normalizarPuntoDif(p, salida.length);
-          if (vistos.has(n.id)) continue;
-          vistos.add(n.id);
-          salida.push(n);
-        }
-        return salida;
-      }
-      var ETIQUETA_DIF = /^(DIF|DF|DL|DR|D|RJ|RE|RR|RT|RA|RI|RET|EXT|IMP|R)[-_. ]?(\d{1,3}[A-Z]?)$/i;
-      var RETORNO_DIF = /^(RJ|RE|RR|RT|RA|RI|RET|EXT|R)$/i;
-      var CAUDAL_DIF = /(\d{1,3}(?:\.\d{3})*(?:,\d+)?|\d+(?:[.,]\d+)?)\s*m\s*(?:3|³)\s*\/\s*h/i;
-      var CAUDAL_Q_DIF = /\bQ\s*[=:]\s*(\d+(?:[.,]\d+)?)/i;
-      var RADIO_DIF = 0.06;
-      function numeroCaudalDif(t) {
-        const m = CAUDAL_DIF.exec(t) || CAUDAL_Q_DIF.exec(t);
-        if (!m) return null;
-        const crudo = m[1].replace(/\s/g, "");
-        const n = /^\d{1,3}(\.\d{3})+$/.test(crudo) ? Number(crudo.replace(/\./g, "")) : Number(crudo.replace(",", "."));
-        return Number.isFinite(n) && n > 0 && n < 1e5 ? n : null;
-      }
-      function reconocerBocasDif(textos, { modelos = [], existentes = [] } = {}) {
-        const porRef = new Map((modelos || []).map((m) => [String(m.ref || "").replace(/[\s_.-]/g, "").toUpperCase(), m]));
-        const etiquetas = [];
-        const caudales = [];
-        for (const t of Array.isArray(textos) ? textos : []) {
-          const x = Number(t && t.x);
-          const y = Number(t && t.y);
-          if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 1 || y < 0 || y > 1) continue;
-          const texto = String(t.texto || "").trim();
-          if (!texto) continue;
-          const q = numeroCaudalDif(texto);
-          if (q !== null) caudales.push({ x, y, q, usado: false });
-          const trozos = texto.split(/[\s;,()[\]]+/).filter(Boolean);
-          for (let i = 0; i < trozos.length; i++) {
-            const hit = [trozos[i], trozos[i + 1] ? `${trozos[i]} ${trozos[i + 1]}` : null].filter(Boolean).map((limpio) => {
-              const modelo = porRef.get(limpio.replace(/[\s_.-]/g, "").toUpperCase()) || null;
-              const m = ETIQUETA_DIF.exec(limpio);
-              return modelo || m ? { limpio, modelo, m } : null;
-            }).find(Boolean);
-            if (!hit) continue;
-            const retorno = hit.modelo ? tipoDif(hit.modelo.tipo).circuito === "retorno" : RETORNO_DIF.test(hit.m[1]);
-            etiquetas.push({ x, y, ref: hit.limpio, modelo: hit.modelo, retorno, q });
-            break;
-          }
-        }
-        const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-        const pares = [];
-        etiquetas.forEach((e, i) => {
-          if (e.q === null) caudales.forEach((c, j) => {
-            const d = dist(e, c);
-            if (d <= RADIO_DIF) pares.push({ i, j, d });
-          });
-        });
-        pares.sort((a, b) => a.d - b.d);
-        const conCaudal = /* @__PURE__ */ new Set();
-        for (const p of pares) {
-          if (conCaudal.has(p.i) || caudales[p.j].usado) continue;
-          etiquetas[p.i].q = caudales[p.j].q;
-          caudales[p.j].usado = true;
-          conCaudal.add(p.i);
-          const e = etiquetas[p.i];
-          const c = caudales[p.j];
-          e.px = Math.min(1, Math.max(0, e.x + (e.x - c.x) * 0.8));
-          e.py = Math.min(1, Math.max(0, e.y + (e.y - c.y) * 0.8));
-        }
-        etiquetas.sort((a, b) => Math.abs(a.y - b.y) > 0.02 ? a.y - b.y : a.x - b.x);
-        const todas = [...existentes || []];
-        const bocas = [];
-        for (const e of etiquetas) {
-          const circuito = e.retorno ? "retorno" : "impulsion";
-          const base = e.modelo ? { ...camposModeloDif(e.modelo), modeloId: e.modelo.id } : { tipo: circuito === "retorno" ? "rejillaRet" : TIPO_DEFECTO_DIF };
-          const p = normalizarPuntoDif({
-            ...base,
-            nombre: siguienteNombreDif(todas, circuito),
-            x: e.px ?? e.x,
-            y: e.py ?? e.y,
-            caudalDiseno: e.q !== null ? e.q : e.modelo ? e.modelo.caudalProyecto : null,
-            nota: `Del plano: ${e.ref}`
-          }, todas.length);
-          todas.push(p);
-          bocas.push(p);
-        }
-        return { bocas, sinCaudal: bocas.filter((b) => b.caudalDiseno === null).length, leidos: (textos || []).length };
-      }
-      (function exportar(API) {
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.DIFUSORES = API;
-      })({
-        MODOS: MODOS_DIF,
-        TIPOS: TIPOS_DIF,
-        TIPO_DEFECTO: TIPO_DEFECTO_DIF,
-        NOTA_EJEMPLO: NOTA_EJEMPLO_DIF,
-        TOLERANCIA_DEFECTO: TOLERANCIA_DEFECTO_DIF,
-        num: numDif,
-        leerVelocidades: leerVelocidadesDif,
-        tipo: tipoDif,
-        normalizarPunto: normalizarPuntoDif,
-        normalizarPuntos: normalizarPuntosDif,
-        TABLAS: TABLAS_DIF,
-        FUENTE_TABLAS: FUENTE_TABLAS_DIF,
-        akTabla: akTablaDif,
-        ageoTabla: ageoTablaDif,
-        fuenteTabla: fuenteTablaDif,
-        valorTabla: valorTablaDif,
-        marcas: marcasDif,
-        modelos: modelosDif,
-        variantes: variantesDif,
-        tamanos: tamanosDif,
-        claveTamanoPunto: claveTamanoPuntoDif,
-        MARCA_EJEMPLO: MARCA_EJEMPLO_DIF,
-        factor: factorDif,
-        caudal: caudalDif,
-        desviacion: desviacionDif,
-        tolerancias: toleranciasDif,
-        evaluarPunto: evaluarPuntoDif,
-        resumen: resumenDif,
-        siguienteNombre: siguienteNombreDif,
-        normalizarModeloProyecto: normalizarModeloProyectoDif,
-        normalizarModelosProyecto: normalizarModelosProyectoDif,
-        evaluarModelo: evaluarModeloDif,
-        normalizarAsignacion: normalizarAsignacionDif,
-        aplicarModelos: aplicarModelosDif,
-        generarBocas: generarBocasDif,
-        colocarEnLista: colocarEnListaDif,
-        reconocerBocas: reconocerBocasDif,
-        caudalDeTexto: numeroCaudalDif
-      });
-    }
-  });
-
-  // electron/data/difusores.js
-  var require_difusores2 = __commonJS({
-    "electron/data/difusores.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var D = require_difusores();
-      var fichas = require_fichas();
-      var { puede } = require_roles();
-      var MAX_IMAGEN = 8 * 1024 * 1024;
-      var RE_IMAGEN = /^data:image\/(png|jpeg|jpg|webp|gif);base64,[A-Za-z0-9+/=]+$/;
-      var leerJsonDif = (t, porDefecto) => {
-        try {
-          return t ? JSON.parse(t) : porDefecto;
-        } catch {
-          return porDefecto;
-        }
-      };
-      function configObra(repo, sesion, obraId) {
-        return repo.listar("configCommissioning", sesion, { condicion: "obraId = ?", params: [obraId], limite: 1 })[0] || null;
-      }
-      function planosDe(repo, sesion, equipoId) {
-        return repo.listar("planosDifusores", sesion, { condicion: "equipoId = ?", params: [equipoId], orden: "orden, creadoEn" }).map((p) => ({
-          id: p.id,
-          nombre: p.nombre,
-          orden: p.orden,
-          imagenId: p.imagenId || null,
-          ancho: p.ancho,
-          alto: p.alto,
-          modificadoEn: p.modificadoEn,
-          puntos: D.normalizarPuntos(leerJsonDif(p.puntos, []))
-        }));
-      }
-      function disenoDe(repo, sesion, equipo) {
-        const hoja = repo.listar("hojasBalanceo", sesion, { condicion: "equipoId = ?", params: [equipo.id], limite: 1 })[0];
-        const proyecto = hoja && (leerJsonDif(hoja.datos, {}) || {}).proyecto || {};
-        const una = (propio, deHoja, nominal) => {
-          if (D.num(propio) !== null) return { valor: D.num(propio), origen: "equipo" };
-          if (D.num(deHoja) !== null) return { valor: D.num(deHoja), origen: "hojaBalanceo" };
-          if (D.num(nominal) !== null) return { valor: D.num(nominal), origen: "nominal" };
-          return { valor: null, origen: null };
-        };
-        return {
-          impulsion: una(equipo.caudalDisenoImp, proyecto.caudalImpulsion, equipo.caudalNominal),
-          retorno: una(equipo.caudalDisenoRet, proyecto.caudalRetorno, null)
-        };
-      }
-      function difusoresEquipo(repo, sesion, equipoId) {
-        const equipo = repo.leer("equiposObra", sesion, equipoId);
-        if (!equipo) return null;
-        const planos = planosDe(repo, sesion, equipoId);
-        const t = fichas.tolerancias(configObra(repo, sesion, equipo.obraId) || {});
-        const tolerancias = { total: t.total, boca: t.boca };
-        const diseno = disenoDe(repo, sesion, equipo);
-        const puntos = planos.flatMap((p) => p.puntos);
-        const modelos = modelosObra(repo, sesion, equipo.obraId);
-        return {
-          equipo: {
-            id: equipo.id,
-            obraId: equipo.obraId,
-            tag: equipo.tag,
-            planta: equipo.planta,
-            marca: equipo.marca,
-            modelo: equipo.modelo,
-            grupo: equipo.grupo
-          },
-          planos,
-          modelos: modelos.map(D.evaluarModelo),
-          asignacion: D.normalizarAsignacion(leerJsonDif(equipo.modelosDif, []), modelos),
-          diseno,
-          tolerancias,
-          resumen: D.resumen({ puntos, diseno: { impulsion: diseno.impulsion.valor, retorno: diseno.retorno.valor }, tolerancias }),
-          puedeEditar: puede(sesion.rol, "commissioning", "editar"),
-          puedeCrear: puede(sesion.rol, "commissioning", "crear"),
-          puedeBorrar: puede(sesion.rol, "commissioning", "borrar")
-        };
-      }
-      function imagenPlano(repo, sesion, planoId) {
-        const plano = repo.leer("planosDifusores", sesion, planoId);
-        if (!plano || !plano.imagenId) return null;
-        const img = repo.leer("imagenesPlanoDif", sesion, plano.imagenId);
-        return img ? { id: img.id, imagen: img.imagen } : null;
-      }
-      function comprobarImagen(imagen) {
-        if (typeof imagen !== "string" || !imagen) return "Falta la imagen del plano.";
-        if (imagen.length > MAX_IMAGEN) return "La imagen es demasiado grande (m\xE1s de 8 MB): red\xFAcela o haz una captura del plano.";
-        if (!RE_IMAGEN.test(imagen)) return "Eso no es una imagen (PNG, JPEG, WebP o GIF).";
-        return null;
-      }
-      var dimension = (v) => {
-        const n = Math.round(Number(v));
-        return Number.isFinite(n) && n > 0 && n < 1e5 ? n : null;
-      };
-      function crearPlano(repo, sesion, equipoId, datos = {}) {
-        const equipo = repo.leer("equiposObra", sesion, equipoId);
-        if (!equipo) return { ok: false, error: "No se encuentra el equipo." };
-        if (!puede(sesion.rol, "commissioning", "crear")) {
-          return { ok: false, error: "Tu rol puede ver el commissioning de esta obra, pero no a\xF1adir planos." };
-        }
-        const error = comprobarImagen(datos.imagen);
-        if (error) return { ok: false, error };
-        const existentes = planosDe(repo, sesion, equipoId);
-        const nombre = String(datos.nombre || "").trim().slice(0, 80) || `Plano ${existentes.length + 1}`;
-        const imagenId = repo.crear("imagenesPlanoDif", sesion, { obraId: equipo.obraId, imagen: datos.imagen });
-        const id = repo.crear("planosDifusores", sesion, {
-          obraId: equipo.obraId,
-          equipoId,
-          nombre,
-          orden: existentes.length ? Math.max(...existentes.map((p) => p.orden || 0)) + 1 : 0,
-          imagenId,
-          ancho: dimension(datos.ancho),
-          alto: dimension(datos.alto),
-          puntos: JSON.stringify(D.normalizarPuntos(datos.puntos || []))
-        });
-        return { ok: true, id };
-      }
-      function guardarPlano(repo, sesion, planoId, datos = {}) {
-        const plano = repo.leer("planosDifusores", sesion, planoId);
-        if (!plano) return { ok: false, error: "No se encuentra el plano." };
-        if (!puede(sesion.rol, "commissioning", "editar")) {
-          return { ok: false, error: "Tu rol puede ver el commissioning de esta obra, pero no cambiarlo." };
-        }
-        const cambios = {};
-        if (datos.nombre !== void 0) cambios.nombre = String(datos.nombre || "").trim().slice(0, 80) || plano.nombre;
-        let puntos;
-        if (datos.puntos !== void 0) {
-          puntos = D.normalizarPuntos(datos.puntos);
-          const texto = JSON.stringify(puntos);
-          if (texto !== plano.puntos) cambios.puntos = texto;
-        }
-        if (Object.keys(cambios).length) repo.modificar("planosDifusores", sesion, planoId, cambios);
-        return { ok: true, puntos: puntos || D.normalizarPuntos(leerJsonDif(plano.puntos, [])) };
-      }
-      function soltarImagen(repo, sesion, imagenId) {
-        if (!imagenId || !repo.leer("imagenesPlanoDif", sesion, imagenId)) return;
-        const usada = repo.db.prepare("SELECT 1 FROM planosDifusores WHERE imagenId = ? LIMIT 1").get(imagenId);
-        if (!usada) repo.db.prepare("DELETE FROM imagenesPlanoDif WHERE id = ?").run(imagenId);
-      }
-      function cambiarImagen(repo, sesion, planoId, datos = {}) {
-        const plano = repo.leer("planosDifusores", sesion, planoId);
-        if (!plano) return { ok: false, error: "No se encuentra el plano." };
-        if (!puede(sesion.rol, "commissioning", "editar") || !puede(sesion.rol, "commissioning", "crear")) {
-          return { ok: false, error: "Tu rol puede ver el commissioning de esta obra, pero no cambiarlo." };
-        }
-        const error = comprobarImagen(datos.imagen);
-        if (error) return { ok: false, error };
-        const imagenId = repo.crear("imagenesPlanoDif", sesion, { obraId: plano.obraId, imagen: datos.imagen });
-        repo.modificar("planosDifusores", sesion, planoId, { imagenId, ancho: dimension(datos.ancho), alto: dimension(datos.alto) });
-        soltarImagen(repo, sesion, plano.imagenId);
-        return { ok: true, imagenId };
-      }
-      function borrarPlano(repo, sesion, planoId) {
-        if (!puede(sesion.rol, "commissioning", "borrar")) {
-          return { ok: false, error: "Tu rol no puede borrar planos. Puedes quitar sus puntos uno a uno." };
-        }
-        const plano = repo.leer("planosDifusores", sesion, planoId);
-        if (!plano) return { ok: false, error: "No se encuentra el plano." };
-        repo.borrar("planosDifusores", sesion, planoId);
-        soltarImagen(repo, sesion, plano.imagenId);
-        return { ok: true };
-      }
-      function guardarDiseno(repo, sesion, equipoId, datos = {}) {
-        const equipo = repo.leer("equiposObra", sesion, equipoId);
-        if (!equipo) return { ok: false, error: "No se encuentra el equipo." };
-        if (!puede(sesion.rol, "commissioning", "editar")) {
-          return { ok: false, error: "Tu rol puede ver el commissioning de esta obra, pero no cambiarlo." };
-        }
-        const cambios = {};
-        for (const [clave, columna] of [["impulsion", "caudalDisenoImp"], ["retorno", "caudalDisenoRet"]]) {
-          if (datos[clave] === void 0) continue;
-          const n = D.num(datos[clave]);
-          if (n !== null && n < 0) return { ok: false, error: "Un caudal de dise\xF1o no puede ser negativo." };
-          cambios[columna] = n;
-        }
-        if (Object.keys(cambios).length) repo.modificar("equiposObra", sesion, equipoId, cambios);
-        return { ok: true };
-      }
-      function modelosObra(repo, sesion, obraId) {
-        const cfg = configObra(repo, sesion, obraId);
-        return D.normalizarModelosProyecto(leerJsonDif(cfg && cfg.modelosDifusores, []));
-      }
-      var LISTA_DIF = "Bocas del proyecto";
-      function guardarModelos(repo, sesion, equipoId, datos = {}) {
-        const equipo = repo.leer("equiposObra", sesion, equipoId);
-        if (!equipo) return { ok: false, error: "No se encuentra el equipo." };
-        if (!puede(sesion.rol, "commissioning", "editar")) {
-          return { ok: false, error: "Tu rol puede ver el commissioning de esta obra, pero no cambiarlo." };
-        }
-        let modelos = modelosObra(repo, sesion, equipo.obraId);
-        if (datos.modelos !== void 0) {
-          modelos = D.normalizarModelosProyecto(datos.modelos);
-          const cfg = configObra(repo, sesion, equipo.obraId);
-          const texto = JSON.stringify(modelos);
-          if (cfg) repo.modificar("configCommissioning", sesion, cfg.id, { modelosDifusores: texto });
-          else repo.crear("configCommissioning", sesion, { obraId: equipo.obraId, modelosDifusores: texto });
-          const planos = repo.listar("planosDifusores", sesion, { condicion: "obraId = ?", params: [equipo.obraId] });
-          for (const pl of planos) {
-            const antes = D.normalizarPuntos(leerJsonDif(pl.puntos, []));
-            if (!antes.some((p) => p.modeloId)) continue;
-            const despues = JSON.stringify(D.aplicarModelos(antes, modelos));
-            if (despues !== JSON.stringify(antes)) repo.modificar("planosDifusores", sesion, pl.id, { puntos: despues });
-          }
-        }
-        let asignacion = D.normalizarAsignacion(leerJsonDif(equipo.modelosDif, []), modelos);
-        if (datos.asignacion !== void 0) {
-          asignacion = D.normalizarAsignacion(datos.asignacion, modelos);
-          repo.modificar("equiposObra", sesion, equipoId, { modelosDif: JSON.stringify(asignacion) });
-        }
-        let creadas = 0;
-        let sobran = [];
-        if (datos.crearBocas) {
-          if (!puede(sesion.rol, "commissioning", "crear")) {
-            return { ok: false, error: "Tu rol puede cambiar el commissioning, pero no crear bocas." };
-          }
-          const planos = planosDe(repo, sesion, equipoId);
-          const r = D.generarBocas(asignacion, modelos, planos.flatMap((p) => p.puntos));
-          sobran = r.sobran;
-          if (r.nuevas.length) {
-            let lista = planos.find((p) => p.nombre === LISTA_DIF && !p.imagenId);
-            if (!lista) {
-              const id = repo.crear("planosDifusores", sesion, {
-                obraId: equipo.obraId,
-                equipoId,
-                nombre: LISTA_DIF,
-                orden: planos.length ? Math.min(...planos.map((p) => p.orden || 0)) - 1 : 0,
-                imagenId: null,
-                ancho: null,
-                alto: null,
-                puntos: "[]"
-              });
-              lista = { id, puntos: [] };
-            }
-            const colocadas = D.colocarEnLista([...lista.puntos, ...r.nuevas]);
-            repo.modificar("planosDifusores", sesion, lista.id, { puntos: JSON.stringify(D.normalizarPuntos(colocadas)) });
-            creadas = r.nuevas.length;
-          }
-        }
-        return { ok: true, creadas, sobran };
-      }
-      module.exports = {
-        guardarModelos,
-        difusoresEquipo,
-        imagenPlano,
-        crearPlano,
-        guardarPlano,
-        cambiarImagen,
-        borrarPlano,
-        guardarDiseno,
-        MAX_IMAGEN
       };
     }
   });
