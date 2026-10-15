@@ -6584,7 +6584,7 @@ globalThis.CX_VARIANTE="cxobra";
             /* El embudo, el acierto y la cartera por cliente. */
             estadisticas: ["ver", "exportar"]
           },
-          /* Lo que cuesta y lo que se gana es de Estudios y de Dirección. */
+          /* Sin dinero (JC, 15-oct: «¿contract support y comercial deben ver dinero? No»). */
           camposVetados: [
             "precioCoste",
             "costeUnitario",
@@ -6598,7 +6598,13 @@ globalThis.CX_VARIANTE="cxobra";
             "precioProveedor",
             "baja",
             "costesIndirectos",
-            "costesFinancieros"
+            "costesFinancieros",
+            "tarifaOficial",
+            "tarifaOperario",
+            "precioCobroH",
+            "importeVenta",
+            "objetivoCompras",
+            "coeficienteCompras"
           ],
           home: [
             { bloque: "ofertasQueVencen", ancho: "mitad", titulo: "Ofertas que se pasan de fecha" },
@@ -6643,7 +6649,28 @@ globalThis.CX_VARIANTE="cxobra";
             proveedores: ["ver", "crear", "editar", "exportar"],
             clientes: SOLO_VER
           },
-          camposVetados: [],
+          /* Sin dinero (JC, 15-oct: «¿contract support y comercial deben ver dinero? No»). */
+          camposVetados: [
+            "precioCoste",
+            "costeUnitario",
+            "importeCoste",
+            "margen",
+            "margenPrevisto",
+            "margenDeseado",
+            "coefK",
+            "coeficienteK",
+            "beneficio",
+            "precioProveedor",
+            "baja",
+            "costesIndirectos",
+            "costesFinancieros",
+            "tarifaOficial",
+            "tarifaOperario",
+            "precioCobroH",
+            "importeVenta",
+            "objetivoCompras",
+            "coeficienteCompras"
+          ],
           home: [
             { bloque: "comprasPendientes", ancho: "completo", titulo: "Pedidos: sin confirmar, retrasados y por llegar" },
             { bloque: "certificacionesMes", ancho: "mitad", titulo: "Certificaci\xF3n del mes" },
@@ -8595,7 +8622,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261015.1518" : "0";
+      var VERSION = true ? "20261015.1554" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -9031,15 +9058,23 @@ globalThis.CX_VARIANTE="cxobra";
           }
           return ses;
         }
+        let renovando = null;
         async function token() {
           if (!ses) return null;
           if (ses.expires_at && ses.expires_at - 60 > Date.now() / 1e3) return ses.access_token;
-          const j = await pedir("/auth/v1/token?grant_type=refresh_token", { metodo: "POST", cuerpo: { refresh_token: ses.refresh_token }, autor: false }).catch((e) => {
-            if (!e.sinRed && e.codigo >= 400 && e.codigo < 500) ponerSesion(null);
-            throw e;
-          });
-          ponerSesion(j);
-          return ses.access_token;
+          if (!renovando) {
+            const gastado = ses.refresh_token;
+            renovando = pedir("/auth/v1/token?grant_type=refresh_token", { metodo: "POST", cuerpo: { refresh_token: gastado }, autor: false }).then((j) => {
+              ponerSesion(j);
+            }).catch((e) => {
+              if (!e.sinRed && e.codigo >= 400 && e.codigo < 500 && ses && ses.refresh_token === gastado) ponerSesion(null);
+              throw e;
+            }).finally(() => {
+              renovando = null;
+            });
+          }
+          await renovando;
+          return ses ? ses.access_token : null;
         }
         return {
           esSecreta,
@@ -9297,6 +9332,7 @@ globalThis.CX_VARIANTE="cxobra";
           return r ? String(r.m || "") : null;
         };
         let misObras = null;
+        let yaRebajado = false;
         const estado = {
           modo,
           estado: "parado",
@@ -9456,6 +9492,13 @@ globalThis.CX_VARIANTE="cxobra";
             }
           }
           let cursor = Number(leerEstado("cursor") || 0);
+          const conocidas = JSON.stringify([...tablasLocales].filter((t) => /^[A-Za-z]+$/.test(t)).sort());
+          const sinObras = !yaRebajado && tablasLocales.has("obras") && !db.prepare("SELECT COUNT(*) AS n FROM obras").get().n;
+          if (cursor && (leerEstado("tablasConocidas") !== conocidas || sinObras)) {
+            yaRebajado = true;
+            registro("Bajada desde el principio (tablas nuevas o tel\xE9fono sin obras).");
+            cursor = 0;
+          }
           let desdeSeq = Math.max(0, cursor - SOLAPE);
           const hacenFalta = [];
           const iguales = [];
@@ -9496,6 +9539,7 @@ globalThis.CX_VARIANTE="cxobra";
             for (const t of r.tablas) tocadas.add(t);
           }
           ponerEstado("cursor", cursor);
+          ponerEstado("tablasConocidas", conocidas);
           const sello = ahora().toISOString();
           ponerEstado("ultimaBajada", sello);
           if (entradas) {
@@ -10012,19 +10056,30 @@ globalThis.CX_VARIANTE="cxobra";
           if (document.visibilityState === "visible") s.despertar();
         });
         globalThis.addEventListener("online", () => s.despertar());
+        let fallo = null;
         return {
           ...s,
-          /** Entra sin preguntar con la huella de la ficha local. `null` si no puede. */
+          /**
+           * Entra sin preguntar con la huella de la ficha local. `null` si no puede;
+           * entonces `porQue()` dice si fue la red (se reintenta solo) o la clave
+           * (hay que pedirla una vez).
+           */
           async entrarSolo(persona) {
+            fallo = null;
             if (s.yo() && s.yo().personaId === persona.id) return s.yo();
-            if (!persona.hashClave || !persona.email || /@sin-correo\.cxobra$/.test(persona.email)) return null;
+            if (!persona.hashClave || !persona.email || /@sin-correo\.cxobra$/.test(persona.email)) {
+              fallo = "clave";
+              return null;
+            }
             try {
               return await s.entrarConHuella(persona.email, persona.hashClave);
             } catch (e) {
               console.log(`Nube: no se pudo entrar solo (${e.message}).`);
+              fallo = e.sinRed || !e.codigo || e.codigo >= 500 ? "red" : "clave";
               return null;
             }
           },
+          porQue: () => fallo,
           /** Correo y contraseña: entra y deja en la ficha local la huella nueva. */
           async entrarConClave(email, clave) {
             const r = await s.entrarConClave(email, clave);
@@ -66885,7 +66940,10 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           nombre: quien.nombre,
           comprobar: async (correo, clave) => {
             if (String(correo).trim().toLowerCase() !== String(quien.email).toLowerCase()) return "Ese correo no es el de estos datos.";
-            if (quien.hashClave && compararClave(clave, quien.hashClave)) return quien;
+            if (quien.hashClave && compararClave(clave, quien.hashClave)) {
+              if (!oficina().ejemplo) await syncCx.entrarConClave(correo, clave).catch((e) => console.log(`Nube: ${e.message}`));
+              return quien;
+            }
             const mal = await entrarEnLaNube(correo, clave);
             if (!mal) return base.prepare("SELECT id, nombre, rol, email, hashClave FROM personas WHERE id = ? AND activo = 1").get(quien.id) || quien;
             if (!quien.hashClave) return "A\xFAn tienes la contrase\xF1a provisional: entra una vez en el ordenador, pon la tuya y vuelve a traer los datos.";
@@ -66963,20 +67021,36 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
     };
     const conNube = !oficina().ejemplo;
     let arrancada = false;
-    const conectar = async () => {
-      if (!conNube || arrancada || soltada) return;
-      const ficha = base.prepare("SELECT id, email, hashClave FROM personas WHERE id = ?").get(persona.id);
-      if (!syncCx.yo() || syncCx.yo().personaId !== persona.id) {
-        if (syncCx.yo()) syncCx.salir();
-        if (!ficha || !await syncCx.entrarSolo(ficha)) {
-          window.dispatchEvent(new CustomEvent("cxobra:sync", { detail: syncCx.estado() }));
-          return;
+    let conectando = null;
+    let ultimoNoPorClave = 0;
+    const avisarSync = () => window.dispatchEvent(new CustomEvent("cxobra:sync", { detail: { ...syncCx.estado(), entrado: Boolean(syncCx.yo()) } }));
+    const conectar = ({ deFondo = false } = {}) => {
+      if (!conNube || soltada) return Promise.resolve();
+      if (arrancada && !syncCx.yo()) arrancada = false;
+      if (arrancada) return Promise.resolve();
+      if (deFondo && Date.now() - ultimoNoPorClave < 15 * 60 * 1e3) return Promise.resolve();
+      if (conectando) return conectando;
+      conectando = (async () => {
+        const ficha = base.prepare("SELECT id, email, hashClave FROM personas WHERE id = ?").get(persona.id);
+        if (!syncCx.yo() || syncCx.yo().personaId !== persona.id) {
+          if (syncCx.yo()) syncCx.salir();
+          if (!ficha || !await syncCx.entrarSolo(ficha)) {
+            if (!ficha || syncCx.porQue() === "clave") ultimoNoPorClave = Date.now();
+            avisarSync();
+            return;
+          }
         }
-      }
-      arrancada = true;
-      syncCx.arrancar().catch(() => {
+        arrancada = true;
+        syncCx.arrancar().catch(() => {
+        });
+      })().finally(() => {
+        conectando = null;
       });
+      return conectando;
     };
+    setInterval(() => {
+      conectar({ deFondo: true });
+    }, 6e4);
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") conectar();
     });
@@ -67060,25 +67134,6 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       ahora: async () => {
         await conectar();
         return arrancada ? syncCx.ciclo() : null;
-      },
-      /* La contraseña cambió en la oficina: se pide otra vez. */
-      entrar: async () => {
-        const ficha = base.prepare("SELECT id, nombre, email FROM personas WHERE id = ?").get(persona.id);
-        const correo = ficha && !/@sin-correo\.cxobra$/.test(ficha.email) ? ficha.email : "";
-        const r = await puerta.entrar({
-          correo,
-          nombre: ficha ? ficha.nombre : "",
-          cancelar: true,
-          comprobar: async (c, k) => {
-            const mal = await entrarEnLaNube(c, k);
-            return mal ? mal.error : true;
-          }
-        });
-        if (r) {
-          arrancada = false;
-          await conectar();
-        }
-        return Boolean(r);
       }
     };
     conectar();

@@ -615,8 +615,6 @@
       else aviso('Al día con la oficina.', 'bien');
       cuenta();
     };
-    const entrarNube = document.getElementById('cx-sync-entrar');
-    if (entrarNube) entrarNube.onclick = async () => { await sincro().entrar(); cuenta(); pastillaSync(); };
   }
 
   /* Cx Obra nativa: CON LA OFICINA, AL MOMENTO (cxobra/sync.js). Lo que se
@@ -633,7 +631,8 @@
   function textoSync(e) {
     const n = e.pendientes || 0;
     const pend = n ? ` · ${n} por enviar` : '';
-    if (!e.entrado || e.estado === 'sin-sesion') return ['sin-sesion', 'Entrar en la nube'];
+    /* Sin «Entrar en la nube» (15-oct-2026, JC: «siempre conectado»): entra solo. */
+    if (!e.entrado || e.estado === 'sin-sesion') return ['', 'Conectando'];
     if (e.estado === 'sin-red') return ['sin-red', `Sin red${pend}`];
     if (e.estado === 'error') return ['error', 'No sincroniza'];
     if (e.estado === 'al-dia') return ['al-dia', n ? `${n} por enviar` : 'Al día'];
@@ -704,7 +703,7 @@
     return `
       <h2 class="titulo-grupo">Con la oficina, al momento</h2>
       ${grupoSync()}
-      ${est.entrado ? '<button class="boton" id="cx-sync-ya">Sincronizar ahora</button>' : '<button class="boton" id="cx-sync-entrar">Entrar en la nube</button>'}
+      <button class="boton" id="cx-sync-ya">Sincronizar ahora</button>
       <p class="nota">Lo que guardas aquí llega al ordenador de la oficina al momento, y lo de la oficina llega solo. Sin cobertura se guarda en el teléfono y se envía al volver la red.</p>
       <details class="grupo-plegable"><summary>Sin red: por fichero (plan B)</summary>${fichero}</details>`;
   }
