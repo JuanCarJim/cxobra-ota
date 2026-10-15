@@ -118,6 +118,9 @@
   }
 
   function pintarLista() {
+    /* La ficha del equipo escondía el selector de arriba: vuelve. */
+    const seg = document.getElementById('segmentos');
+    if (seg) seg.hidden = seg.children.length < 2;
     const conj = porConjuntos();
     const t = conj ? { ...(lista.totales || {}), ...(lista.totalesConjuntos || {}) } : (lista.totales || {});
     const q = filtro.trim().toLowerCase();
@@ -157,6 +160,7 @@
     try {
       const r = await C.pedir(`api/equipo?id=${encodeURIComponent(id)}`);
       if (!r.ok) throw new Error(r.error);
+      if (!ficha || ficha.equipo.id !== r.equipo.id) pestanaEq = 'equipo';
       ficha = r;
       hoja = null;
       fichasEq = null;
@@ -173,8 +177,9 @@
       fichasEq = r;
     } catch (e) { fichasEq = { ok: false, error: e.message, fichas: [] }; }
     if (activa() && ficha && !hoja && ficha.equipo.id === id) {
-      const caja = document.getElementById('fichas-equipo');
-      if (caja) caja.outerHTML = htmlFichas();
+      const y = window.scrollY;
+      pintarFicha();
+      window.scrollTo(0, y);
     }
   }
 
@@ -212,27 +217,50 @@
       ${(k.incidencias || []).length ? `<p class="nota aviso">${esc(k.incidencias.map((i) => INCIDENCIA[i] || i).join(' · '))}</p>` : ''}`;
   }
 
+  /*
+   * LA FICHA DEL EQUIPO, sin pestañas (15-oct-2026, JC: «Estanqueidad y
+   * balanceo muévelas a fichas del equipo»). La estanqueidad es una ficha más
+   * de la lista; el balanceo, una fila de esa lista que abre las bocas y su
+   * hoja. Mientras se ve un equipo, el selector de arriba se esconde.
+   */
+  let pestanaEq = 'equipo';
+  const pestanaDeFicha = (x) => (x.clase === 'balanceo' ? 'balanceo' : 'equipo');
+  function tieneBalanceo(f) {
+    const fs = (fichasEq && fichasEq.fichas) || [];
+    const req = f.checklist ? f.checklist.ensayoRequerido : null;
+    return fs.some((x) => x.clase === 'balanceo') || f.planos.length > 0 || req === 'balanceo' || req === 'ambos';
+  }
+
   function pintarFicha() {
     const f = ficha;
     const e = f.equipo;
     const puede = f.puedeMedir;
-    $app.innerHTML = `
-      <button class="volver" data-cx="lista">‹ Equipos</button>
-      <section class="cabeza-ficha">
-        <h2 class="cifra">${esc(e.tag)}</h2>
-        <div class="sub">${esc([e.planta, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · '))}</div>
-      </section>
-      ${htmlConjunto(f.conjunto, e.id)}
-      ${htmlFotosEquipo(f, puede)}
+    if (pestanaEq === 'balanceo' && !tieneBalanceo(f)) pestanaEq = 'equipo';
+    const seg = document.getElementById('segmentos');
+    if (seg) seg.hidden = true;
+    const balanceo = () => `
       ${totalCircuito(f.circuitos && f.circuitos.impulsion, 'Impulsión')}
       ${totalCircuito(f.circuitos && f.circuitos.retorno, 'Retorno')}
       ${f.planos.length ? f.planos.map((p) => `
         <h2>${esc(p.nombre)} <span class="cuenta">${p.bocas.length} bocas</span></h2>
         <ul class="bocas">${p.bocas.map((b) => htmlBoca(p, b, puede, f.tolerancias)).join('')}</ul>`).join('') : '<p class="vacio">Este equipo no tiene plano de bocas: se dibuja en el ordenador (Commissioning › Balanceo).</p>'}
-      ${puede ? '' : '<p class="nota">Tu rol puede ver las medidas, pero no tomarlas.</p>'}
+      ${puede || !f.planos.length ? '' : '<p class="nota">Tu rol puede ver las medidas, pero no tomarlas.</p>'}
       ${f.planos.length ? '<button class="boton secundario" data-cx="pdf-balanceo"><i class="ic ic-doc"></i>Informe del balanceo (PDF)</button>' : ''}
-      ${htmlFichas()}
+      ${htmlFichas('balanceo', 'Hoja de balanceo')}`;
+    const cuerpo = pestanaEq === 'balanceo' ? balanceo()
+      : `${htmlConjunto(f.conjunto, e.id)}
+      ${htmlFotosEquipo(f, puede)}
+      ${htmlFichas('equipo', 'Fichas del equipo')}
       ${checklist(f.checklist)}`;
+    $app.innerHTML = `
+      ${pestanaEq === 'balanceo'
+        ? `<button class="volver" data-cx="ficha-equipo">‹ ${esc(e.tag)}</button>`
+        : '<button class="volver" data-cx="lista">‹ Equipos</button>'}
+      <section class="cabeza-ficha">
+        <h2 class="cifra">${esc(pestanaEq === 'balanceo' ? `Balanceo · ${e.tag}` : e.tag)}</h2>
+        <div class="sub">${esc([e.planta, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · '))}</div>
+      </section>
+      ${cuerpo}`;
     C.cargarImagenes($app);
   }
 
@@ -330,7 +358,10 @@
       else formula = `<div class="formula">v̄ ${comaD(b.velocidad)} m/s · Q = v̄ × Ak × 3600 = ${comaD(b.velocidad)} × ${comaD(b.factor, 4)} × 3600 = <b>${cifra(b.caudal)}</b> m³/h</div>`;
     }
     const fuera = (b.estado === 'alto' || b.estado === 'bajo') && porc !== null;
-    return `<li class="boca ${clase}" data-boca="${esc(clave)}">
+    /* Lo que necesita el cálculo en vivo (vivoBoca): mientras se teclea, la
+       boca ya dice si va dentro o fuera, sin esperar a guardarla. */
+    const vivo = `data-diseno="${b.caudalDiseno ?? ''}" data-factor="${b.factor ?? ''}" data-modo="${esc(b.modoFactor || '')}" data-tol="${tolB}"`;
+    return `<li class="boca ${clase}" data-boca="${esc(clave)}" ${vivo}>
       <div class="boca-cabeza"><strong>${esc(b.nombre)}</strong><span class="sub">${esc(b.circuito === 'retorno' ? 'Retorno' : 'Impulsión')} · ${esc(b.tipo || '')}</span>
         ${puede ? `<button class="interruptor${bal ? ' activo' : ''}" data-cx="balometro" ${datos} aria-pressed="${bal}">Balómetro</button>` : ''}</div>
       ${bal
@@ -340,15 +371,60 @@
         : `<div class="lecturas">${[0, 1, 2, 3].map((i) => `<label>M${i + 1}
             <input inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis} ${datos} data-m="${i}"
               value="${lect[i] === undefined ? '' : comaD(lect[i])}" aria-label="Lectura M${i + 1} en ${esc(b.nombre)}"></label>`).join('')}</div>`}
-      ${formula}
+      ${bal ? '' : `<div data-vivo="formula">${formula}</div>`}
       <div class="boca-cifras">
-        <div><span>Q medido</span><b>${cifra(b.caudal)}</b></div>
+        <div><span>Q medido</span><b data-vivo="q">${cifra(b.caudal)}</b></div>
         <div><span>Q proyecto</span><b>${cifra(b.caudalDiseno)}</b></div>
-        <div><span>Desviación</span><b>${b.desviacion === null || b.desviacion === undefined ? '—' : `${b.desviacion > 0 ? '+' : ''}${comaD(b.desviacion * 100, 1)} %`}</b></div>
-        <div class="porc"><span class="chip ${clase}">${porc === null ? esc(nombre) : `${porc} %`}</span></div>
+        <div><span>Desviación</span><b data-vivo="desv">${b.desviacion === null || b.desviacion === undefined ? '—' : `${b.desviacion > 0 ? '+' : ''}${comaD(b.desviacion * 100, 1)} %`}</b></div>
+        <div class="porc"><span class="chip ${clase}" data-vivo="chip">${porc === null ? esc(nombre) : `${porc} %`}</span></div>
       </div>
-      ${fuera ? `<p class="nota aviso">Fuera de ±${tolB} %: hay que regular esta boca.</p>` : ''}
+      <p class="nota aviso" data-vivo="aviso" ${fuera ? '' : 'hidden'}>${fuera ? textoFuera(b.desviacion, tolB) : ''}</p>
+      ${b.caudalDiseno ? '' : '<p class="nota">Esta boca no tiene caudal de proyecto: sin él no se puede saber si va bien. Se pone en el plano (ordenador › Commissioning › Balanceo).</p>'}
     </li>`;
+  }
+
+  function textoFuera(desv, tolB) {
+    const d = `${desv > 0 ? '+' : ''}${comaD(desv * 100, 1)} %`;
+    return `${desv > 0 ? 'Sopla de más' : 'Le falta caudal'} (${d}): fuera de ±${tolB} %, hay que regular esta boca.`;
+  }
+  const numVivo = (t) => { const n = Number(String(t).trim().replace(',', '.')); return String(t).trim() === '' || !Number.isFinite(n) ? null : n; };
+
+  /* Recalcula la boca con lo tecleado, sin guardar: Q, desviación, chip y aviso.
+     Es la misma cuenta que hace el motor al guardar (media de M1–M4 × Ak × 3600,
+     o × k; con balómetro, su caudal). */
+  function vivoBoca(li) {
+    const diseno = numVivo(li.dataset.diseno || '');
+    const factor = numVivo(li.dataset.factor || '');
+    const tolB = Number(li.dataset.tol) || 10;
+    const qIn = li.querySelector('input[data-q]');
+    let q = null;
+    if (qIn) q = numVivo(qIn.value);
+    else {
+      const v = [...li.querySelectorAll('input[data-m]')].map((x) => numVivo(x.value)).filter((n) => n !== null && n >= 0);
+      const media = v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+      if (media !== null && factor) q = li.dataset.modo === 'k' ? media * factor : media * factor * 3600;
+      /* La cuenta, también al momento: si no, enseña la de lo guardado. */
+      const fo = li.querySelector('[data-vivo="formula"]');
+      if (fo) {
+        const vm = comaD(Math.round(media * 100) / 100);
+        fo.innerHTML = media === null ? ''
+          : !factor ? '<div class="formula aviso">Falta el Ak de este difusor (ficha del fabricante): sin él no hay caudal.</div>'
+          : li.dataset.modo === 'k' ? `<div class="formula">v̄ ${vm} m/s · Q = v̄ × k = ${vm} × ${comaD(factor, 1)} = <b>${cifra(Math.round(q))}</b> m³/h</div>`
+          : `<div class="formula">v̄ ${vm} m/s · Q = v̄ × Ak × 3600 = ${vm} × ${comaD(factor, 4)} × 3600 = <b>${cifra(Math.round(q))}</b> m³/h</div>`;
+      }
+    }
+    const desv = q !== null && diseno ? q / diseno - 1 : null;
+    const fuera = desv !== null && Math.abs(desv) * 100 > tolB;
+    const clase = q === null ? 'neutra' : desv === null ? 'neutra' : fuera ? 'mal' : 'bien';
+    const pon = (k, t) => { const el = li.querySelector(`[data-vivo="${k}"]`); if (el) el.textContent = t; return el; };
+    pon('q', q === null ? '—' : cifra(Math.round(q)));
+    pon('desv', desv === null ? '—' : `${desv > 0 ? '+' : ''}${comaD(desv * 100, 1)} %`);
+    const chip = pon('chip', q === null ? 'Sin medir' : diseno ? `${Math.round((q / diseno) * 100)} %` : 'Sin Q proyecto');
+    if (chip) chip.className = `chip ${clase}`;
+    li.classList.remove('bien', 'mal', 'aviso', 'neutra');
+    li.classList.add(clase);
+    const av = li.querySelector('[data-vivo="aviso"]');
+    if (av) { av.hidden = !fuera; av.textContent = fuera ? textoFuera(desv, tolB) : ''; }
   }
 
   /* Las casillas de una boca, en orden. */
@@ -418,13 +494,19 @@
   };
   const CLASE_FICHA = { checklist: 'Checklist', fichaPM: 'Puesta en marcha', estanqAgua: 'Estanqueidad', estanqRefrigerante: 'Estanqueidad', balanceo: 'Balanceo' };
 
-  function htmlFichas() {
-    if (!fichasEq) return '<section id="fichas-equipo"><h2>Fichas del equipo</h2><p class="cargando">Cargando las fichas…</p></section>';
-    if (fichasEq.ok === false) return `<section id="fichas-equipo"><h2>Fichas del equipo</h2><p class="nota aviso">${esc(fichasEq.error)}</p></section>`;
-    const fs = fichasEq.fichas || [];
+  function htmlFichas(pestana = 'equipo', titulo = 'Fichas del equipo') {
+    if (!fichasEq) return `<section id="fichas-equipo"><h2>${esc(titulo)}</h2><p class="cargando">Cargando las fichas…</p></section>`;
+    if (fichasEq.ok === false) return `<section id="fichas-equipo"><h2>${esc(titulo)}</h2><p class="nota aviso">${esc(fichasEq.error)}</p></section>`;
+    /* Se conserva el índice de cada ficha en la lista completa: data-i lo usa abrirHoja. */
+    const fs = (fichasEq.fichas || []).map((x, i) => [x, i]).filter(([x]) => pestanaDeFicha(x) === pestana);
+    if (!fs.length && pestana === 'balanceo') return '';
+    /* El balanceo, una fila más: abre las bocas del plano y la hoja. */
+    const filaBal = pestana === 'equipo' && ficha && tieneBalanceo(ficha) ? htmlFilaBalanceo(ficha) : '';
+    const vacio = pestana === 'equipo' && !(fichasEq.fichas || []).length
+      ? 'Este equipo no tiene familia asignada: se le pone en el ordenador (Puesta en marcha).' : 'Sin fichas.';
     return `<section id="fichas-equipo">
-      <h2>Fichas del equipo <span class="cuenta">${fs.length}</span></h2>
-      ${fs.length ? `<ul class="lista-ios numerada">${fs.map((x, i) => (!x.plantilla ? `
+      <h2>${esc(titulo)} <span class="cuenta">${fs.length + (filaBal ? 1 : 0)}</span></h2>
+      ${fs.length || filaBal ? `<ul class="lista-ios numerada">${fs.map(([x, i]) => (!x.plantilla ? `
         <li><div class="fila-ios apagada">
           <div class="fila-principal"><strong>${esc(x.nombre)}</strong><span class="chip neutra">Sin plantilla</span></div>
           <div class="sub">${esc(x.motivo || 'Falta elegir la plantilla')} Se elige en el ordenador (Puesta en marcha).</div>
@@ -432,8 +514,24 @@
         <li><button class="fila-ios" data-cx="hoja" data-i="${i}">
           <div class="fila-principal"><strong>${esc(x.nombre)}</strong><span>${chipFicha(x.estado, x.resultado)}</span></div>
           <div class="sub">${esc([CLASE_FICHA[x.clase] || x.clase, x.motivo, x.medidos ? `${x.medidos.rellenos} de ${x.medidos.obligatorios} datos` : null, x.fotos ? `${x.fotos} foto${x.fotos === 1 ? '' : 's'}` : null].filter(Boolean).join(' · '))}</div>
-        </button></li>`)).join('')}</ul>` : '<p class="vacio">Este equipo no tiene familia asignada: se le pone en el ordenador (Puesta en marcha).</p>'}
+        </button></li>`)).join('')}${filaBal}</ul>` : `<p class="vacio">${esc(vacio)}</p>`}
     </section>`;
+  }
+
+  function htmlFilaBalanceo(f) {
+    const bocas = f.planos.flatMap((p) => p.bocas);
+    const medidas = bocas.filter((b) => b.caudal !== null && b.caudal !== undefined).length;
+    const fuera = bocas.filter((b) => b.estado === 'alto' || b.estado === 'bajo').length;
+    const hoja = ((fichasEq && fichasEq.fichas) || []).find((x) => x.clase === 'balanceo');
+    const chip = fuera ? `<span class="chip mal">${fuera} fuera</span>`
+      : hoja ? chipFicha(hoja.estado, hoja.resultado)
+      : bocas.length && medidas === bocas.length ? '<span class="chip bien">Medido</span>' : '';
+    const sub = bocas.length ? `${medidas} de ${bocas.length} bocas medidas` : 'Sin plano de bocas';
+    return `
+        <li><button class="fila-ios" data-cx="ver-balanceo">
+          <div class="fila-principal"><strong>BALANCEO DE CAUDALES</strong><span>${chip}</span></div>
+          <div class="sub">${esc(['Balanceo', sub].join(' · '))}</div>
+        </button></li>`;
   }
 
   const ahoraEs = () => { const d = new Date(); const d2 = (n) => String(n).padStart(2, '0'); return `${d2(d.getDate())}/${d2(d.getMonth() + 1)}/${d.getFullYear()} ${d2(d.getHours())}:${d2(d.getMinutes())}`; };
@@ -661,6 +759,8 @@
     const que = b.dataset.cx;
     if (que === 'lista') cargarLista();
     else if (que === 'equipo') abrir(b.dataset.id);
+    else if (que === 'ver-balanceo' && ficha) { pestanaEq = 'balanceo'; pintarFicha(); window.scrollTo(0, 0); }
+    else if (que === 'ficha-equipo' && ficha) { pestanaEq = 'equipo'; pintarFicha(); window.scrollTo(0, 0); }
     else if (que === 'hoja') abrirHoja(Number(b.dataset.i));
     else if (que === 'volver-equipo') salirHoja();
     else if (que === 'foto') fotoHoja(b.dataset.camara === '1');
@@ -690,6 +790,7 @@
   $app.addEventListener('change', (ev) => { if (activa() && hoja) anotar(ev.target); });
   $app.addEventListener('input', (ev) => {
     if (activa() && hoja) { anotar(ev.target); return; }
+    if (activa() && ev.target.dataset && ev.target.dataset.punto) { const li = ev.target.closest('li[data-boca]'); if (li) vivoBoca(li); return; }
     if (!activa() || !ev.target.hasAttribute('data-cx-buscar')) return;
     filtro = ev.target.value;
     const pos = ev.target.selectionStart;

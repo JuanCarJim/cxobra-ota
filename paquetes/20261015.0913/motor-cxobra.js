@@ -8563,7 +8563,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261015.0839" : "0";
+      var VERSION = true ? "20261015.0913" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -16815,9 +16815,8 @@ globalThis.CX_VARIANTE="cxobra";
             nombrePdf: "Trox UTA",
             plantillas: ["UTA", "CLIMATIZADOR_REC_ESTATICO", "CLIMATIZADOR_REC_ROTATIVO"],
             anexos: [
+              /* Conductos y difusores no: a la UTA solo su checklist (JC, 15-oct). */
               { plantilla: "CHECKLIST_UTA" },
-              { plantilla: "CHECKLIST_CONDUCTOS" },
-              { plantilla: "CHECKLIST_DIFUSORES" },
               { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" },
               { plantilla: "ESTANQ_AGUA", enlace: "circuito" }
             ],
@@ -21132,6 +21131,617 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
+  // shared/commissioning/fichaExcel.js
+  var require_fichaExcel = __commonJS({
+    "shared/commissioning/fichaExcel.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function iniciarFichaExcel() {
+        const cargar = (mod, global) => {
+          if (typeof __require !== "undefined") {
+            try {
+              return __require(mod);
+            } catch (e) {
+            }
+          }
+          return typeof window !== "undefined" ? window[global] : null;
+        };
+        const MAQ = () => cargar("./maquetasExcel", "MAQUETAS_EXCEL");
+        const REJ = () => cargar("./rejillaChecklist", "REJILLA_CHECKLIST");
+        const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+        function num(v, decimales = 2) {
+          if (v === null || v === void 0 || v === "") return "";
+          const n = Number(v);
+          if (!Number.isFinite(n)) return esc(v);
+          return new Intl.NumberFormat("es-ES", { maximumFractionDigits: decimales, useGrouping: true }).format(n);
+        }
+        const pct = (d) => d === null || d === void 0 || !Number.isFinite(Number(d)) ? "" : `${d > 0 ? "+" : d < 0 ? "\u2212" : ""}${num(Math.abs(d) * 100, 1)} %`;
+        const fecha = (iso) => {
+          const m = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}:\d{2}))?/.exec(String(iso || ""));
+          return m ? `${m[3]}/${m[2]}/${m[1]}${m[4] ? ` ${m[4]}` : ""}` : "";
+        };
+        const norm = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/\([^)]*\)/g, " ").replace(/[^A-Z0-9]+/g, " ").trim();
+        const RESULTADO = { apto: ["apto", "APTO", "#C6EFCE"], noApto: ["noApto", "NO APTO", "#FFC7CE"], aRevisar: ["aRevisar", "A REVISAR", "#FFEB9C"] };
+        const RESPUESTA = { si: "S\xED", no: "No", na: "NA", ok: "OK", noOk: "NO OK" };
+        const res = (r) => r && RESULTADO[r] ? { html: `<span class="res ${RESULTADO[r][0]}">${RESULTADO[r][1]}</span>`, bg: RESULTADO[r][2] } : null;
+        const BANDA = "#006A4D";
+        const SUBCAB = "#D9E2DD";
+        function modelo(nombre) {
+          const M = MAQ();
+          const h = M && M.hojas[nombre];
+          if (!h) return null;
+          return {
+            nombre,
+            estilos: M.estilos,
+            anchos: h.anchos.slice(),
+            imagenes: h.imagenes || [],
+            filas: h.filas.map(([alto, celdas], i) => ({
+              alto,
+              orig: i,
+              clase: "",
+              celdas: celdas.map(([c, cs, rs, st, txt, f]) => ({ c, cs, rs, st, txt: txt || "", f: Boolean(f) }))
+            }))
+          };
+        }
+        const estiloDe = (m, celda) => m.estilos[celda.st] || "";
+        const esBanda = (m, celda) => estiloDe(m, celda).includes(BANDA);
+        const esSubcab = (m, celda) => estiloDe(m, celda).includes(SUBCAB);
+        const celdaEn = (fila, c) => fila.celdas.find((x) => x.c === c);
+        const rotuloDe = (celda) => /:\s*$/.test(celda.txt) ? celda.txt.replace(/:\s*$/, "") : null;
+        function poner(celda, valor) {
+          if (!celda || !valor) return;
+          if (typeof valor === "string") {
+            if (valor) {
+              celda.html = valor;
+              celda.lleno = true;
+            }
+            return;
+          }
+          if (valor.html !== void 0 && valor.html !== "") {
+            celda.html = valor.html;
+            celda.lleno = true;
+          }
+          if (valor.bg) celda.bg = valor.bg;
+        }
+        const ANCHO_UTIL = (8.27 - 0.8) * 96 * 0.97;
+        const ALTO_UTIL = (11.69 - 0.8) * 96 * 0.97;
+        const PT = 4 / 3;
+        function pintar(m, { marca = "", blanco = false, partirE = null, clase = "" } = {}) {
+          let anchos = m.anchos;
+          const mapa = (c) => c;
+          let ini = mapa;
+          let fin = mapa;
+          if (partirE) {
+            const [a, b] = partirE.map((f) => Math.round(m.anchos[4] * f));
+            anchos = [...m.anchos.slice(0, 4), a, b, m.anchos[4] - a - b, ...m.anchos.slice(5)];
+            ini = (c, sub) => c < 4 ? c : c === 4 ? 4 + (sub || 0) : c + 2;
+            fin = (c, sub) => c < 4 ? c : c === 4 ? sub === void 0 ? 6 : 4 + sub : c + 2;
+          }
+          const nCol = anchos.length;
+          const anchoTotal = anchos.reduce((a, b) => a + b, 0);
+          const altoTotal = m.filas.reduce((a, f) => a + (f.altoReal || f.alto) * PT, 0);
+          const zoom = Math.max(0.55, Math.min(ANCHO_UTIL / anchoTotal, ALTO_UTIL / altoTotal));
+          const ocupada = m.filas.map(() => new Array(nCol).fill(false));
+          const porFila = {};
+          for (const im of m.imagenes) (porFila[im[3]] = porFila[im[3]] || []).push(im);
+          const filas = m.filas.map((f, r) => {
+            const celdas = f.celdas.map((x) => ({ ...x, a: ini(x.c, x.sub), b: fin(x.c + x.cs - 1, x.sub) })).sort((x, y) => x.a - y.a);
+            const tds = [];
+            let col = 0;
+            const imgs = (porFila[f.orig] && f.orig !== void 0 ? porFila[f.orig] : []).slice();
+            const ponerImagen = (desde, hasta) => {
+              const aqui = imgs.filter((im) => ini(im[1]) >= desde && ini(im[1]) <= hasta);
+              return aqui.map((im) => {
+                const dx = anchos.slice(desde, ini(im[1])).reduce((a, b) => a + b, 0) + im[2];
+                return `<img class="xlImg" src="fichasExcel/${im[0]}" alt="" style="left:${dx}px;top:${im[4]}px;width:${im[5]}px;height:${im[6]}px">`;
+              }).join("");
+            };
+            const hueco = (c) => {
+              const img = ponerImagen(c, c);
+              tds.push(`<td${img ? ' class="xlAncla"' : ""}>${img}</td>`);
+            };
+            for (const x of celdas) {
+              while (col < x.a) {
+                if (!ocupada[r][col]) hueco(col);
+                col++;
+              }
+              if (ocupada[r][x.a]) {
+                col = x.b + 1;
+                continue;
+              }
+              const cs = x.b - x.a + 1;
+              for (let i = 0; i < x.rs; i++) for (let k = x.a; k <= x.b; k++) if (ocupada[r + i]) ocupada[r + i][k] = true;
+              const img = ponerImagen(x.a, x.b);
+              const texto = x.html !== void 0 ? x.html : x.f || blanco && x.borrarEnBlanco ? "" : esc(x.txt);
+              const clases = [`x${x.st}`, x.lleno ? "xv" : "", img ? "xlAncla" : "", x.clase || ""].filter(Boolean).join(" ");
+              tds.push(`<td class="${clases}"${cs > 1 ? ` colspan="${cs}"` : ""}${x.rs > 1 ? ` rowspan="${x.rs}"` : ""}${x.bg ? ` style="background:${x.bg}"` : ""}>${img}${texto}</td>`);
+              col = x.b + 1;
+            }
+            while (col < nCol) {
+              if (!ocupada[r][col]) hueco(col);
+              col++;
+            }
+            return `<tr${f.clase ? ` class="${f.clase}"` : ""} style="height:${f.alto}pt">${tds.join("")}</tr>`;
+          });
+          const usados = new Set(m.filas.flatMap((f) => f.celdas.map((x) => x.st)));
+          const estilos = [...usados].map((s) => `.hojaXl .x${s}{${m.estilos[s] || ""}}`).join("");
+          return `<article class="hojaPM hojaXl${blanco ? " enBlanco" : ""}${clase ? ` ${clase}` : ""}">
+    ${marca ? `<div class="marcaAgua">${marca}</div>` : ""}
+    <style>${estilos}</style>
+    <div class="xlPagina" style="zoom:${zoom.toFixed(4)}">
+    <table class="xlRejilla" style="width:${anchoTotal}px"><colgroup>${anchos.map((a) => `<col style="width:${a}px">`).join("")}</colgroup>
+    <tbody>${filas.join("\n")}</tbody></table></div>
+  </article>`;
+        }
+        const CABECERA = {
+          EDIFICIO: "edificio",
+          DIRECCION: "direccion",
+          LOCALIDAD: "localidad",
+          "FECHA DE ENSAYO": "fecha",
+          "REFERENCIA TAG": "tag",
+          "REALIZADO POR": "realizadoPor",
+          RESPONSABLE: "responsable",
+          "PLANTA SALA": "planta",
+          "APARATOS UTILIZADOS": "aparatos",
+          "CONDICIONES DE ENSAYO": "condiciones",
+          "DENOMINACION DEL EQUIPO": "denominacion",
+          "ACTA FABRICANTE N FECHA": "acta",
+          "TECNICO FABRICANTE": "tecnico"
+        };
+        function rellenar(m, fuente) {
+          let izq = "";
+          let der = "";
+          let modoParam = false;
+          let enCabecera = true;
+          let resumen = false;
+          let fotosDesde = -1;
+          const red = (t) => /RETORNO|EXTRACCION/.test(t) ? "retorno" : "impulsion";
+          const regionesBocas = [];
+          for (let r = 0; r < m.filas.length; r++) {
+            const fila = m.filas[r];
+            const cs = fila.celdas.slice().sort((a, b) => a.c - b.c);
+            const banda = cs.find((x) => esBanda(m, x) && x.txt);
+            if (banda) {
+              enCabecera = false;
+              modoParam = false;
+              const t = norm(banda.txt.replace(/^\d+\s*·\s*/, ""));
+              izq = t;
+              der = t;
+              resumen = /^RESUMEN/.test(t);
+              if (/^FOTOGRAFIAS/.test(t)) fotosDesde = r + 1;
+              if (t === "OBSERVACIONES") {
+                const obs = m.filas[r + 1] && celdaEn(m.filas[r + 1], 0);
+                if (obs) {
+                  poner(obs, fuente.observaciones());
+                  obs.clase = "xlObs";
+                }
+              }
+              if (/UNIDADES TERMINALES/.test(t)) regionesBocas.push({ red: red(t), cab: r + 1 });
+              continue;
+            }
+            if (fotosDesde >= 0 && cs.some((x) => /^Criterio/.test(x.txt))) {
+              const desde = fotosDesde;
+              fotosDesde = -1;
+              const html = fuente.fotos();
+              if (html && r - 1 > desde) {
+                for (let k = desde; k < r - 1; k++) m.filas[k].celdas = [];
+                m.filas[desde].celdas = [{ c: 0, cs: 8, rs: r - 1 - desde, st: 0, txt: "", html, lleno: true, clase: "xlFotos" }];
+              }
+            }
+            const rotFirma = cs.filter((x) => x.txt === "CBRE" || norm(x.txt) === "DIRECCION FACULTATIVA");
+            if (rotFirma.length) {
+              for (const x of rotFirma) {
+                const caja = m.filas[r + 1] && celdaEn(m.filas[r + 1], x.c);
+                if (caja) {
+                  caja.html = fuente.firma(x.txt === "CBRE" ? "CBRE" : "DF");
+                  caja.clase = "xlFirma";
+                }
+              }
+              continue;
+            }
+            if (r === m.filas.length - 1 || /^Formato CBRE/.test((cs[0] || {}).txt || "")) {
+              let pie = cs.find((x) => x.c === 0 && (x.f || /^Formato/.test(x.txt)));
+              if (!pie && r === m.filas.length - 1 && !cs.length) {
+                const st = m.estilos.indexOf("font-weight:700;font-size:7pt;vertical-align:bottom");
+                pie = { c: 0, cs: 4, rs: 1, st: Math.max(st, 0), txt: "" };
+                fila.celdas.push(pie);
+              }
+              if (pie && fuente.formato) pie.html = esc(fuente.formato);
+              if (pie) continue;
+            }
+            const sub = cs.filter((x) => esSubcab(m, x) && x.txt && x.cs >= 4);
+            if (sub.length && !cs.some((x) => norm(x.txt) === "PARAMETRO")) {
+              for (const x of sub) {
+                if (x.c === 0) izq = norm(x.txt);
+                else der = norm(x.txt);
+              }
+              continue;
+            }
+            if (cs.some((x) => norm(x.txt) === "PARAMETRO")) {
+              modoParam = true;
+              continue;
+            }
+            const conCodigo = cs.find((x) => /^\d{2}\.\d{2}\s/.test(x.txt));
+            if (conCodigo) {
+              const v = fuente.check(conCodigo.txt.slice(0, 5));
+              const resp = cs.find((x) => x.c > conCodigo.c);
+              if (v) {
+                poner(resp, v);
+                if (v.copiada) fila.clase = "copiada";
+              }
+              continue;
+            }
+            if (resumen && cs[0] && cs[0].c === 0 && /^(IMPULSION|RETORNO)/.test(norm(cs[0].txt))) {
+              const v = fuente.resumen && fuente.resumen(red(norm(cs[0].txt)));
+              if (v) [1, 2, 3, 4, 5, 6].forEach((c, i) => poner(celdaEn(fila, c), v[i]));
+              continue;
+            }
+            if (resumen) continue;
+            if (modoParam && cs[0] && cs[0].c === 0 && cs[0].txt) {
+              const v = fuente.param(norm(cs[0].txt), izq, /^\s/.test(cs[0].txt));
+              if (v) [2, 3, 4, 5, 6].forEach((c, i) => poner(celdaEn(fila, c), v[i]));
+              continue;
+            }
+            if (modoParam) continue;
+            for (let i = 0; i < cs.length; i++) {
+              const rot = rotuloDe(cs[i]);
+              if (!rot || !cs[i + 1] || rotuloDe(cs[i + 1])) continue;
+              const clave = norm(rot);
+              const destino = cs[i + 1];
+              const unidad = cs[i + 2] && !rotuloDe(cs[i + 2]) && cs[i + 2].txt && cs[i + 2].c < (cs[i + 3] ? cs[i + 3].c : 99) ? cs[i + 2] : null;
+              let v = null;
+              if (enCabecera && CABECERA[clave]) v = fuente.cab(CABECERA[clave]);
+              else v = fuente.dato(clave, destino.c < 4 ? izq : der, Boolean(unidad));
+              if (v) poner(destino, v);
+              else if (!destino.f && /^-?\d+(\.\d+)?$/.test(destino.txt)) destino.html = num(destino.txt);
+            }
+          }
+          for (const reg of regionesBocas.reverse()) {
+            let total = reg.cab + 1;
+            while (total < m.filas.length && norm((celdaEn(m.filas[total], 0) || {}).txt) !== "TOTAL") total++;
+            if (total >= m.filas.length) continue;
+            const filas = fuente.bocas ? fuente.bocas(reg.red) : null;
+            if (fuente.partirE) partirCabecera(m.filas[reg.cab], fuente.partirE);
+            const huecos = total - reg.cab - 1;
+            if (filas && filas.length > huecos) {
+              const modeloFila = m.filas[total - 1];
+              const nuevas = Array.from({ length: filas.length - huecos }, () => ({ ...modeloFila, orig: void 0, celdas: modeloFila.celdas.map((x) => ({ ...x })) }));
+              m.filas.splice(total, 0, ...nuevas);
+              total += nuevas.length;
+            }
+            for (let k = reg.cab + 1; k < total; k++) {
+              const fila = m.filas[k];
+              if (fuente.partirE) partirFila(fila);
+              const b = filas && filas[k - reg.cab - 1];
+              if (!b) continue;
+              ["local", "terminal", "proyecto", "medido"].forEach((cl, i) => poner(celdaEn(fila, i), b[cl]));
+              if (fuente.partirE) {
+                poner(fila.celdas.find((x) => x.c === 4 && x.sub === 0), b.seccion);
+                poner(fila.celdas.find((x) => x.c === 4 && x.sub === 1), b.velocidad);
+                poner(fila.celdas.find((x) => x.c === 4 && x.sub === 2), b.compuerta);
+              } else poner(celdaEn(fila, 4), b.compuerta);
+              poner(celdaEn(fila, 5), b.desv);
+              poner(celdaEn(fila, 6), b.resultado);
+            }
+            const t = fuente.total ? fuente.total(reg.red) : null;
+            const filaTotal = m.filas[total];
+            if (fuente.partirE) partirFila(filaTotal);
+            if (t) {
+              poner(celdaEn(filaTotal, 2), t.proyecto);
+              poner(celdaEn(filaTotal, 3), t.medido);
+              poner(celdaEn(filaTotal, 5), t.desv);
+              poner(celdaEn(filaTotal, 6), t.resultado);
+              const nota = fuente.partirE ? filaTotal.celdas.find((x) => x.c === 4 && x.sub === 2) : celdaEn(filaTotal, 4);
+              poner(nota, t.nota && `<span class="nota">${t.nota}</span>`);
+            }
+          }
+        }
+        function partirFila(fila) {
+          const e = celdaEn(fila, 4);
+          if (!e || e.sub !== void 0) return;
+          fila.celdas = fila.celdas.filter((x) => x !== e);
+          fila.celdas.push({ ...e, sub: 0, txt: "" }, { ...e, sub: 1, txt: "" }, { ...e, sub: 2 });
+        }
+        function partirCabecera(fila, rotulos) {
+          partirFila(fila);
+          fila.celdas.filter((x) => x.c === 4 && x.sub !== void 0 && x.sub < 2).forEach((x) => {
+            x.txt = rotulos[x.sub];
+          });
+        }
+        function insertarEsquema(m, svg) {
+          const i = m.filas.findIndex((f) => f.celdas.some((x) => esBanda(m, x) && /^RESUMEN/.test(norm(x.txt))));
+          if (i < 0) return;
+          const banda = m.filas[i];
+          const st = banda.celdas.find((x) => esBanda(m, x)).st;
+          const sep = m.filas[i - 1];
+          const vb = /viewBox="0 0 ([\d.]+) ([\d.]+)"/.exec(svg);
+          const ancho = m.anchos.reduce((a, b) => a + b, 0);
+          const alto = vb ? Math.round(Math.min(260, Math.max(120, ancho * Number(vb[2]) / Number(vb[1]) * 0.75))) : 170;
+          m.filas.splice(
+            i,
+            0,
+            { alto: banda.alto, celdas: [{ c: 0, cs: 8, rs: 1, st, txt: "ESQUEMA DEL SISTEMA \xB7 EQUIPO, DIFUSORES Y REJAS DE RETORNO" }] },
+            { alto, celdas: [{ c: 0, cs: 8, rs: 1, st: 0, txt: "", html: `<div class="esquemaBal" style="height:${Math.round(alto * PT) - 8}px">${svg}</div>`, clase: "xlEsquema" }] },
+            { alto: sep ? sep.alto : 6, celdas: (sep ? sep.celdas : []).map((x) => ({ ...x })) }
+          );
+        }
+        function aparatosHtml(instrumentos, texto) {
+          const lista = (instrumentos || []).map((i) => {
+            const malo = i.estado === "caducado" || i.estado === "sinCertificado";
+            return `<span class="${malo ? "instMalo" : ""}">${esc(i.descripcion || "")}${i.estado === "caducado" ? " \u2014 <strong>CADUCADO</strong>" : ""}</span>`;
+          });
+          if (texto) lista.push(esc(texto));
+          return lista.join(" \xB7 ");
+        }
+        function cajaFirma(f) {
+          return f ? `<div class="firmante">${esc(f.nombre)}</div><div class="fechaFirma">Firmado el ${fecha(f.fecha)}</div>` : '<div class="hueco">Nombre, firma y fecha</div>';
+        }
+        const ALIAS = {
+          "PRESION MAX ADMISIBLE PS": "p_minima"
+        };
+        function valorPunto(p, conUnidad) {
+          const v = p.valor;
+          if (v === null || v === void 0 || v === "") return null;
+          if (RESPUESTA[v]) return { html: RESPUESTA[v], bg: v === "no" || v === "noOk" ? "#FFC7CE" : null };
+          if (p.tipo === "numero") return `${num(v)}${p.unidad && !conUnidad ? ` ${esc(p.unidad)}` : ""}`;
+          if (p.tipo === "fecha") return fecha(v);
+          return esc(v);
+        }
+        function hojaFicha(ev, plantilla, ctx = {}) {
+          const m = modelo(plantilla.nombre);
+          if (!m) return null;
+          const c = ev.datos.cabecera || {};
+          const ob = ctx.cabeceraObra || {};
+          const eq = ctx.equipo || {};
+          const blanco = Boolean(ctx.enBlanco);
+          const firmada = ev.estado === "firmada";
+          const marca = blanco ? "" : ev.datosPrueba ? "DATOS DE PRUEBA" : firmada ? "" : "BORRADOR";
+          const secciones = ev.secciones || [];
+          const puntos = [];
+          for (const s of secciones) for (const p of s.puntos || []) puntos.push({ s, p, sec: norm(s.titulo), rot: norm(p.etiqueta), usado: false });
+          const buscar = (rot, sec) => {
+            const alias = ALIAS[rot];
+            const lista = alias ? puntos.filter((x) => x.p.codigo === alias) : puntos.filter((x) => x.rot === rot && !x.usado);
+            let q = lista.find((x) => x.sec === sec) || lista.find((x) => sec && (sec.includes(x.sec) || x.sec.includes(sec))) || lista[0];
+            if (!q) q = puntos.find((x) => !x.usado && x.p.codigo === rot.toLowerCase().replace(/ /g, "_"));
+            if (q) q.usado = true;
+            return q;
+          };
+          const buscarParam = (rot, sec, hija) => {
+            let q = hija ? null : buscar(rot, sec);
+            if (!q) {
+              const libres = puntos.filter((x) => !x.usado && x.s.tipo === "parametros" && (x.sec === sec || !sec));
+              q = hija ? libres.find((x) => x.rot.endsWith(` ${rot}`)) : libres.find((x) => x.rot.startsWith(`${rot} `));
+              if (q) q.usado = true;
+            }
+            return q;
+          };
+          const prueba = (secciones.find((s) => s.prueba) || {}).prueba;
+          const RC = REJ();
+          const copias = RC && ev.datos && !blanco ? RC.copiasVigentes(ev.datos) : [];
+          const deCopia = {};
+          copias.forEach((cp, i) => cp.puntos.forEach((p) => {
+            deCopia[p] = i + 1;
+          }));
+          const fuente = {
+            formato: plantilla.formato,
+            cab: (k) => ({
+              edificio: esc(ob.edificio || ctx.obra && ctx.obra.nombre || ""),
+              direccion: esc(ob.direccion || ""),
+              localidad: esc(ob.localidad || ""),
+              fecha: fecha(c.fechaEnsayo),
+              tag: ctx.titulo || eq.tag ? `<strong>${esc(ctx.titulo || eq.tag)}</strong>` : "",
+              realizadoPor: esc(c.realizadoPor || ""),
+              responsable: esc(c.responsable || ""),
+              planta: esc([eq.planta, eq.sala].filter(Boolean).join(" / ")),
+              aparatos: blanco ? "" : aparatosHtml(ev.instrumentos, c.aparatos),
+              condiciones: blanco ? "" : esc(c.condiciones || ""),
+              denominacion: esc(eq.denominacion || ""),
+              acta: esc(c.actaFabricante || ""),
+              tecnico: esc(c.tecnicoFabricante || "")
+            })[k] || "",
+            dato: (rot, sec, conUnidad) => {
+              if (prueba && !blanco) {
+                if (rot === "PRESION MINIMA EXIGIDA") return num(prueba.ps);
+                if (rot === "PRESION FINAL CORREGIDA") return num(prueba.pfCorregida);
+                if (rot === "CAIDA DE PRESION CORREGIDA") return num(prueba.caida, 1);
+                if (rot === "RESULTADO" && /PRUEBA DE PRESION/.test(sec)) return res(prueba.resultado);
+              }
+              const q = buscar(rot, sec);
+              return q ? valorPunto(q.p, conUnidad) : null;
+            },
+            param: (rot, sec, hija) => {
+              const q = buscarParam(rot, sec, hija);
+              if (!q) return null;
+              const p = q.p;
+              return [
+                num(p.p),
+                num(p.f),
+                num(p.m),
+                p.resultado !== null && p.resultado !== void 0 || p.limite !== null && p.limite !== void 0 ? pct(p.desv) : "",
+                res(p.resultado)
+              ];
+            },
+            check: (cod) => {
+              const q = puntos.find((x) => x.p.codigo === cod);
+              if (!q) return null;
+              q.usado = true;
+              const v = valorPunto(q.p) || { html: "" };
+              const n = deCopia[cod];
+              if (!n) return v;
+              return { html: `${v.html || v}<sup>${copias.length > 1 ? n : "*"}</sup>`, bg: v.bg, copiada: true };
+            },
+            resumen: (red) => {
+              const s = secciones.find((x) => x.circuitos);
+              const e = s && s.circuitos[red];
+              if (!e) return null;
+              return [
+                e.bocas ? String(e.bocas) : "",
+                num(e.proyectoSistema, 0),
+                num(e.proyecto, 0),
+                num(e.medido, 0),
+                e.total ? pct(e.total.desv) : "",
+                e.total ? res(e.total.resultado) : null
+              ];
+            },
+            bocas: (red) => {
+              const s = secciones.find((x) => x.circuitos);
+              const e = s && s.circuitos[red];
+              return e ? e.filas.map((b) => ({ local: esc(b.local || ""), terminal: esc(b.terminal || ""), proyecto: num(b.p, 0), medido: num(b.m, 0), compuerta: esc(b.compuerta || ""), desv: pct(b.desv), resultado: res(b.resultado) })) : null;
+            },
+            total: (red) => {
+              const s = secciones.find((x) => x.circuitos);
+              const e = s && s.circuitos[red];
+              return e ? { proyecto: num(e.proyecto, 0), medido: num(e.medido, 0), desv: e.total ? pct(e.total.desv) : "", resultado: e.total ? res(e.total.resultado) : null, nota: e.sinMedir ? `${e.sinMedir} sin medir` : "" } : null;
+            },
+            partirE: plantilla.clase === "balanceo" ? ["SECCI\xD3N\ncm", "V MEDIA\nm/s"] : null,
+            fotos: () => blanco ? "" : fotosHtml(ev.datos.fotos || [], ctx.imagenes),
+            firma: (rol) => cajaFirma(!blanco && (ev.firmas || []).find((f) => f.rol === rol)),
+            observaciones: () => {
+              if (blanco) return "";
+              const partes = [];
+              if (ev.datos.observaciones) partes.push(esc(ev.datos.observaciones));
+              const sinCelda = puntos.filter((x) => !x.usado && x.p.valor !== null && x.p.valor !== void 0 && x.p.valor !== "" && x.s.tipo !== "checklist");
+              if (sinCelda.length) partes.push(`Otros datos: ${sinCelda.map((x) => `${esc(x.p.etiqueta)}: ${valorPunto(x.p) && (valorPunto(x.p).html || valorPunto(x.p))}`).join(" \xB7 ")}.`);
+              const sinCeldaParam = puntos.filter((x) => !x.usado && x.s.tipo === "parametros" && (x.p.m !== null && x.p.m !== void 0));
+              if (sinCeldaParam.length) partes.push(sinCeldaParam.map((x) => `${esc(x.p.etiqueta)}: proyecto ${num(x.p.p)} \xB7 te\xF3rico ${num(x.p.f)} \xB7 medido ${num(x.p.m)} ${esc(x.p.unidad || "")}`).join(" \xB7 "));
+              if (!ev.completa) {
+                const falta = [
+                  ev.medidos.obligatorios > ev.medidos.rellenos ? `faltan ${ev.medidos.obligatorios - ev.medidos.rellenos} de ${ev.medidos.obligatorios} valores` : "",
+                  ev.faltan.length ? `${esc(ev.faltan.slice(0, 6).join(" \xB7 "))}${ev.faltan.length > 6 ? "\u2026" : ""}` : ""
+                ].filter(Boolean).join(" \u2014 ");
+                partes.push(`<span class="pendiente">PENDIENTE: ${falta}</span>`);
+              }
+              for (const a of ev.avisos || []) partes.push(`<span class="aviso">${esc(a)}</span>`);
+              copias.forEach((cp, i) => partes.push(`<span class="copias">${copias.length > 1 ? `<sup>${i + 1}</sup> ` : "<sup>*</sup> "}Copiadas: ${esc(cp.texto)}</span>`));
+              if ((ev.datos.anexosPdf || []).length) partes.push(`Se adjunta al final: ${ev.datos.anexosPdf.map((a) => `PDF del fabricante \xAB${esc(a.nombre || a.ruta.split(/[\\/]/).pop())}\xBB`).join(", ")}.`);
+              if (plantilla.clase === "fichaPM" || plantilla.clase === "balanceo") {
+                const tol = (v) => v === null || v === void 0 ? "SIN FIJAR" : `\xB1${num(v * 100, 1)} %`;
+                partes.push(`Tolerancias de la obra: caudal total ${tol(ev.tolerancias && ev.tolerancias.total)}, por boca ${tol(ev.tolerancias && ev.tolerancias.boca)}.`);
+              }
+              if (ev.resultado && res(ev.resultado)) partes.push(`Resultado de la ficha: ${res(ev.resultado).html}`);
+              return partes.map((p) => `<div>${p}</div>`).join("");
+            }
+          };
+          rellenar(m, fuente);
+          if (blanco) return pintar(m, { blanco: true, partirE: fuente.partirE && [0.28, 0.24] });
+          return pintar(m, { marca, partirE: fuente.partirE && [0.28, 0.24] });
+        }
+        function fotosHtml(fotos, imagenes) {
+          if (!fotos.length) return "";
+          return `<div class="fotos">${fotos.map((f) => {
+            const src = imagenes && imagenes[f.ruta];
+            return `<figure>${src ? `<img src="${src}" alt="">` : '<div class="sinImagen">imagen no disponible</div>'}
+      <figcaption>${esc(f.nombre || String(f.ruta || "").split(/[\\/]/).pop())}</figcaption></figure>`;
+          }).join("")}</div>`;
+        }
+        const ESTADO_BOCA = { ok: "apto", alto: "noApto", bajo: "noApto" };
+        const ESTADO_BAL = { apto: "APTO", aptoSinBocas: "APTO SIN BOCAS", noApto: "NO APTO", pendiente: "PENDIENTE" };
+        function hojaBalanceo(ev, ctx = {}) {
+          const m = modelo("BALANCEO CAUDALES");
+          if (!m) return null;
+          const ob = ctx.cabeceraObra || {};
+          const eq = ctx.equipo || {};
+          const h = ev.hoja || {};
+          const enTabla = eq.balanceoEstado || "pendiente";
+          const pasada = ev.estado !== "pendiente" && enTabla === ev.estado;
+          const circ = (red) => (ev.circuitos || []).find((c) => c.id === red);
+          if (ctx.esquema) insertarEsquema(m, ctx.esquema);
+          const tol = (v) => v === null || v === void 0 ? "SIN FIJAR" : `\xB1${num(v * 100, 1)} %`;
+          const resTotal = (c) => c.totalOk === true ? res("apto") : c.totalOk === false ? res("noApto") : null;
+          const fuente = {
+            formato: "Formato CBRE - rev.2 - 06/10/2026",
+            cab: (k) => ({
+              edificio: esc(ob.edificio || ctx.obra && ctx.obra.nombre || ""),
+              direccion: esc(ob.direccion || ""),
+              localidad: esc(ob.localidad || ""),
+              fecha: fecha(h.fechaMedicion),
+              tag: eq.tag ? `<strong>${esc(eq.tag)}</strong>` : "",
+              planta: esc([eq.planta, eq.sala].filter(Boolean).join(" / ")),
+              aparatos: aparatosHtml(ev.instrumentos),
+              denominacion: esc([ev.tipo && ev.tipo.nombre, eq.denominacion, [eq.marca, eq.modelo].filter(Boolean).join(" / ")].filter(Boolean).join(" \xB7 "))
+            })[k] || "",
+            dato: (rot) => {
+              if (rot === "EQUIPO") return esc(eq.tag || "");
+              if (rot === "ZONA SERVIDA") return esc(eq.zonaServida || eq.zona || "");
+              if (rot === "CAUDAL PROYECTO IMPULSION") return circ("impulsion") ? num(circ("impulsion").proyectoEquipo, 0) : "";
+              if (rot === "CAUDAL PROYECTO RETORNO") return circ("retorno") ? num(circ("retorno").proyectoEquipo, 0) : "";
+              return null;
+            },
+            param: () => null,
+            check: () => null,
+            resumen: (red) => {
+              const c = circ(red);
+              if (!c) return null;
+              return [c.bocas.length ? String(c.bocas.length) : "", num(c.proyectoEquipo, 0), num(c.sumaProyecto, 0), num(c.sumaMedido, 0), pct(c.desviacionTotal), resTotal(c)];
+            },
+            bocas: (red) => {
+              const c = circ(red);
+              return c ? c.bocas.map((b) => ({
+                local: esc(b.nombre || ""),
+                terminal: esc(b.terminal || ""),
+                proyecto: `${num(b.caudalProyecto, 0)}${b.origenProyecto === "repartido" ? ' <span class="nota">(rep.)</span>' : ""}`,
+                medido: num(b.caudalMedido, 0),
+                seccion: b.ancho && b.alto ? `${num(b.ancho, 0)} \xD7 ${num(b.alto, 0)}` : "",
+                velocidad: b.velocidad ? num(b.velocidad, 1) : "",
+                compuerta: esc(b.compuerta || b.observaciones || (b.estado === "sinProyecto" ? "sin proyecto" : "")),
+                desv: pct(b.desviacion),
+                resultado: res(ESTADO_BOCA[b.estado])
+              })) : null;
+            },
+            total: (red) => {
+              const c = circ(red);
+              return c ? {
+                proyecto: num(c.sumaProyecto, 0),
+                medido: num(c.sumaMedido, 0),
+                desv: pct(c.desviacionTotal),
+                resultado: resTotal(c),
+                nota: c.medidoEquipo !== null && c.medidoEquipo !== void 0 ? `medido en equipo ${num(c.medidoEquipo, 0)}` : ""
+              } : null;
+            },
+            partirE: ["SECCI\xD3N\ncm", "V MEDIA\nm/s"],
+            fotos: () => "",
+            firma: () => cajaFirma(null),
+            observaciones: () => {
+              const partes = [];
+              const magnitudes = (ev.equipo || []).filter((x) => x.fabrica !== null || x.proyecto !== null || x.medido !== null);
+              if (magnitudes.length) {
+                partes.push(`Equipo (te\xF3rico fabr. / proyecto / medido): ${magnitudes.map((x) => `${esc(x.nombre)} ${[x.fabrica, x.proyecto, x.medido].map((v) => v === null || v === void 0 ? "\u2014" : num(v, 1)).join(" / ")} ${esc(x.unidad || "")}${x.desviacion === null || x.desviacion === void 0 ? "" : x.absoluta ? ` (${x.desviacion > 0 ? "+" : ""}${num(x.desviacion, 1)} ${esc(x.unidad || "")})` : ` (${pct(x.desviacion)})`}`).join(" \xB7 ")}.`);
+              }
+              for (const c of ev.circuitos || []) {
+                if (c.perdida && c.perdida.total !== null && c.perdida.total !== void 0) partes.push(`${esc(c.nombre)}: p\xE9rdida de carga te\xF3rica ${num(c.perdida.total, 0)} Pa (estimaci\xF3n de commissioning con valores de cat\xE1logo, no el c\xE1lculo del proyecto).`);
+              }
+              const f = h.fuentes || {};
+              if (f.fabrica || f.proyecto) partes.push(`Fuentes: ${[f.fabrica ? `f\xE1brica: ${esc(f.fabrica)}` : "", f.proyecto ? `proyecto: ${esc(f.proyecto)}` : ""].filter(Boolean).join(" \xB7 ")}.`);
+              for (const a of ev.avisos || []) partes.push(`<span class="aviso">${esc(a.texto)}</span>`);
+              partes.push(`Tolerancias de la obra: caudal total ${tol(ev.tolerancias && ev.tolerancias.total)}, por boca ${tol(ev.tolerancias && ev.tolerancias.boca)}.`);
+              const r = { apto: "apto", noApto: "noApto", aptoSinBocas: "aRevisar" }[ev.estado];
+              partes.push(`Resultado de la hoja: ${r ? `<span class="res ${r}">${ESTADO_BAL[ev.estado]}</span>` : esc(ESTADO_BAL[ev.estado] || ev.estado || "")}${ev.porque ? ` \u2014 ${esc(ev.porque)}` : ""}. En la tabla de equipos: ${esc(ESTADO_BAL[enTabla] || enTabla)}${pasada ? "." : " \u2014 el resultado de esta hoja a\xFAn no se ha pasado a la tabla."}`);
+              return partes.map((p) => `<div>${p}</div>`).join("");
+            }
+          };
+          rellenar(m, fuente);
+          return pintar(m, { marca: pasada ? "" : "BORRADOR", partirE: [0.28, 0.24], clase: "hojaBal" });
+        }
+        const AJUSTE_PAPEL = `(() => {
+  const util = ${ALTO_UTIL.toFixed(1)};
+  document.querySelectorAll('.hojaXl .xlPagina').forEach((p) => {
+    const alto = p.getBoundingClientRect().height;
+    const zoom = parseFloat(p.style.zoom || '1') * util / alto;
+    /* M\xE1s peque\xF1a ya no se lee: entonces, mejor dos hojas (un balanceo con muchas bocas). */
+    if (alto > util && zoom >= 0.5) p.style.zoom = String(zoom);
+  });
+  return true;
+})()`;
+        const tieneHoja = (nombre) => Boolean(MAQ() && MAQ().hojas[nombre]);
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.FICHA_EXCEL = API;
+        })({ hojaFicha, hojaBalanceo, tieneHoja, norm, AJUSTE_PAPEL });
+      })();
+    }
+  });
+
   // shared/commissioning/fichaHtml.js
   var require_fichaHtml = __commonJS({
     "shared/commissioning/fichaHtml.js"(exports, module) {
@@ -21260,7 +21870,13 @@ globalThis.CX_VARIANTE="cxobra";
           }).join("");
           return lista + (c.aparatos ? `<div>${escFh(c.aparatos)}</div>` : "");
         }
+        const excelFh = () => typeof __require !== "undefined" ? require_fichaExcel() : typeof window !== "undefined" ? window.FICHA_EXCEL : null;
         function hojaFicha(ev, plantilla, ctx = {}) {
+          const X = excelFh();
+          if (X && plantilla && X.tieneHoja(plantilla.nombre)) {
+            const html = X.hojaFicha(ev, plantilla, ctx);
+            if (html) return html;
+          }
           const c = ev.datos.cabecera || {};
           const ob = ctx.cabeceraObra || {};
           const eq = ctx.equipo || {};
@@ -21319,6 +21935,11 @@ globalThis.CX_VARIANTE="cxobra";
           return "";
         };
         function hojaBalanceo(ev, ctx = {}) {
+          const X = excelFh();
+          if (X && X.tieneHoja("BALANCEO CAUDALES")) {
+            const html = X.hojaBalanceo(ev, ctx);
+            if (html) return html;
+          }
           const ob = ctx.cabeceraObra || {};
           const eq = ctx.equipo || {};
           const h = ev.hoja || {};
