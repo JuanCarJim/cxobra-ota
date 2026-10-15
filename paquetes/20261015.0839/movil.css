@@ -446,6 +446,7 @@ button.fila-ios::after {
 .resumen-fila b { display: block; font-size: 24px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; }
 .resumen-fila span { font-size: 11.5px; color: var(--textoTenue); }
 .resumen-fila .aviso b { color: var(--aviso); }
+.fila-dato.aviso strong { color: var(--aviso); }
 .resumen-fila .bien b { color: var(--bien); }
 /* Inicio: las cifras y las filas llevan a su sección. */
 .resumen-fila button { padding: 12px 6px 10px; text-align: center; font: inherit; color: inherit; border: 0; cursor: pointer; }
