@@ -274,6 +274,7 @@
       ${totalCircuito(f.circuitos && f.circuitos.impulsion, 'Impulsión')}
       ${totalCircuito(f.circuitos && f.circuitos.retorno, med.retorno || 'Retorno')}
       ${med.velocidad ? `<p class="nota">Una medida por boca, con el equipo a velocidad ${esc(med.velocidad)}.</p>` : ''}
+      ${f.planos.some((p) => p.bocas.length) ? htmlEquipoMedida(f, puede) : ''}
       ${f.planos.length ? f.planos.map((p) => `
         <h2>${esc(p.nombre)} <span class="cuenta">${p.bocas.length} bocas</span></h2>
         ${htmlPlano(p)}
@@ -423,26 +424,65 @@
   }
 
   /*
-   * UNA BOCA. Con el anemómetro se teclean de 1 a 4 lecturas (M1–M4, m/s): la
-   * velocidad es su media y Q = v̄ × Ak × 3600. Con el balómetro se teclea el
-   * caudal directamente y manda sobre las lecturas.
+   * EL EQUIPO DE MEDIDA (15-oct-2026, JC: «estas mediciones no han sido con
+   * balómetro sino con anemómetro»). Se elige para todo el equipo de una vez,
+   * arriba, y cada boca puede cambiarlo.
+   *   · ANEMÓMETRO: de 1 a 4 lecturas (M1–M4, m/s); Q = v̄ × Ak × 3600. Si el
+   *     aparato da su propio caudal, se apunta en «Q del aparato» y manda ese.
+   *   · BALÓMETRO: se apunta el caudal, sin Ak.
    */
-  const conBalometro = new Set();
+  const EQUIPOS_MEDIDA = [['anemometro', 'Anemómetro'], ['balometro', 'Balómetro']];
   const claveBoca = (plano, punto) => `${plano}|${punto}`;
   const comaD = (v, d = 2) => (v === null || v === undefined || v === '' ? '' : String(Math.round(Number(v) * 10 ** d) / 10 ** d).replace('.', ','));
+  const equipoDeBoca = (b) => b.equipoMedida || 'anemometro';
+  /* Con el anemómetro, qué se apunta en M1–M4 (JC: «el anemómetro da todos los datos y yo meto el que quiero»). */
+  const LECTURAS = [['velocidad', 'Velocidad (m/s)'], ['caudal', 'Caudal (m³/h)']];
+  const lecturaDeBoca = (b) => b.lectura || 'velocidad';
+
+  function segmentoLectura(actual, puede, datos, aria) {
+    return `<div class="respuestas segmento equipo-medida lectura-anem" role="radiogroup" aria-label="${esc(aria)}">${LECTURAS.map(([id, nombre]) => `<button type="button"
+      role="radio" aria-checked="${actual === id}" class="${actual === id ? 'activa' : ''}" ${puede ? '' : 'disabled'} ${datos} data-lectura="${id}">${nombre}</button>`).join('')}</div>`;
+  }
+
+  function segmentoEquipo(actual, puede, datos, aria) {
+    return `<div class="respuestas segmento equipo-medida" role="radiogroup" aria-label="${esc(aria)}">${EQUIPOS_MEDIDA.map(([id, nombre]) => `<button type="button"
+      role="radio" aria-checked="${actual === id}" class="${actual === id ? 'activa' : ''}" ${puede ? '' : 'disabled'} ${datos} data-equipo="${id}">${nombre}</button>`).join('')}</div>`;
+  }
+
+  function htmlEquipoMedida(f, puede) {
+    const todas = f.planos.flatMap((p) => p.bocas);
+    const comun = f.equipoMedida || null;
+    const cuenta = (id) => todas.filter((b) => equipoDeBoca(b) === id).length;
+    return `<section class="grupo equipo-medida-todo">
+      <div class="em-cab"><span>Equipo de medida</span>${comun ? '' : `<span class="sub">Mezclado: ${cuenta('anemometro')} con anemómetro y ${cuenta('balometro')} con balómetro</span>`}</div>
+      ${segmentoEquipo(comun, puede, 'data-cx="equipo-medida-todo"', 'Equipo de medida de todas las bocas')}
+      ${comun === 'anemometro' ? `<div class="em-cab em-lectura"><span>Se apunta</span></div>
+      ${segmentoLectura(f.lectura || null, puede, 'data-cx="lectura-todo"', 'Qué se apunta del anemómetro en todas las bocas')}` : ''}
+      <p class="nota">${comun === 'balometro' ? 'Se apunta el caudal que lee el balómetro en cada boca (sin Ak).'
+        : comun === 'anemometro' && f.lectura === 'caudal' ? 'M1–M4 en m³/h: manda el caudal apuntado (su media) y no hace falta el Ak. Cada boca puede cambiarlo.'
+        : comun === 'anemometro' && f.lectura === 'velocidad' ? 'M1–M4 en m/s; el caudal sale de v̄ × Ak × 3600. Cada boca puede cambiarlo.'
+        : comun === 'anemometro' ? 'Cada boca apunta lo suyo (velocidad o caudal). Tocar uno lo pone en todas.'
+        : 'Tocar uno lo pone en todas las bocas; cada boca puede cambiarlo.'}</p>
+    </section>`;
+  }
 
   function htmlBoca(p, b, puede, tol) {
     const [clase, nombre] = ESTADO_BOCA[b.estado] || ['neutra', b.estado || ''];
     const porc = pct(b.caudal, b.caudalDiseno);
     const clave = claveBoca(p.id, b.id);
-    const bal = b.metodo === 'balometro' || conBalometro.has(clave);
+    const bal = equipoDeBoca(b) === 'balometro';
     const datos = `data-plano="${esc(p.id)}" data-punto="${esc(b.id)}"`;
     const dis = puede ? '' : 'disabled';
-    const lect = b.lecturas && b.lecturas.length ? b.lecturas : (b.velocidad === null || b.velocidad === undefined ? [] : [b.velocidad]);
+    const enQ = !bal && lecturaDeBoca(b) === 'caudal';
+    const lect = enQ ? (b.lecturasCaudal && b.lecturasCaudal.length ? b.lecturasCaudal : (b.caudalMedido === null || b.caudalMedido === undefined ? [] : [b.caudalMedido]))
+      : b.lecturas && b.lecturas.length ? b.lecturas : (b.velocidad === null || b.velocidad === undefined ? [] : [b.velocidad]);
+    const unidadM = enQ ? 'm³/h' : 'm/s';
     const tolB = tol && tol.boca ? Math.round(tol.boca * 100) : 10;
+    const qLeido = b.caudalMedido !== null && b.caudalMedido !== undefined;
     let formula = '';
     if (!bal) {
-      if (b.velocidad === null || b.velocidad === undefined) formula = '';
+      if (enQ) formula = qLeido ? `<div class="formula">Q̄ = media de lo apuntado = <b>${cifra(b.caudal)}</b> m³/h (sin Ak)</div>` : '';
+      else if (b.velocidad === null || b.velocidad === undefined) formula = '';
       else if (!b.factor) formula = '<div class="formula aviso">Falta el Ak de este difusor (ficha del fabricante): sin él no hay caudal.</div>';
       else if (b.modoFactor === 'k') formula = `<div class="formula">v̄ ${comaD(b.velocidad)} m/s · Q = v̄ × k = ${comaD(b.velocidad)} × ${comaD(b.factor, 1)} = <b>${cifra(b.caudal)}</b> m³/h</div>`;
       else formula = `<div class="formula">v̄ ${comaD(b.velocidad)} m/s · Q = v̄ × Ak × 3600 = ${comaD(b.velocidad)} × ${comaD(b.factor, 4)} × 3600 = <b>${cifra(b.caudal)}</b> m³/h</div>`;
@@ -450,17 +490,20 @@
     const fuera = (b.estado === 'alto' || b.estado === 'bajo') && porc !== null;
     /* Lo que necesita el cálculo en vivo (vivoBoca): mientras se teclea, la
        boca ya dice si va dentro o fuera, sin esperar a guardarla. */
-    const vivo = `data-diseno="${b.caudalDiseno ?? ''}" data-factor="${b.factor ?? ''}" data-modo="${esc(b.modoFactor || '')}" data-tol="${tolB}"`;
-    return `<li class="boca ${clase}" data-boca="${esc(clave)}" ${vivo}>
-      <div class="boca-cabeza"><strong>${esc(b.nombre)}</strong><span class="sub">${esc(b.circuito === 'retorno' ? 'Retorno' : 'Impulsión')} · ${esc(b.tipo || '')}</span>
-        ${puede ? `<button class="interruptor${bal ? ' activo' : ''}" data-cx="balometro" ${datos} aria-pressed="${bal}">Balómetro</button>` : ''}</div>
-      ${bal
-        ? `<label class="q-balometro">Q balómetro (m³/h)
+    const vivo = `data-diseno="${b.caudalDiseno ?? ''}" data-factor="${b.factor ?? ''}" data-modo="${esc(b.modoFactor || '')}" data-tol="${tolB}" data-lectura="${enQ ? 'caudal' : 'velocidad'}"`;
+    const casillaQ = (rotulo, clase2) => `<label class="q-balometro${clase2 ? ` ${clase2}` : ''}">${rotulo}
             <input inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis} ${datos} data-q="1"
-              value="${b.caudalMedido === null || b.caudalMedido === undefined ? '' : comaD(b.caudalMedido, 1)}" aria-label="Caudal del balómetro en ${esc(b.nombre)}"></label>`
-        : `<div class="lecturas">${[0, 1, 2, 3].map((i) => `<label>M${i + 1}
+              value="${qLeido ? comaD(b.caudalMedido, 1) : ''}" aria-label="${esc(rotulo)} en ${esc(b.nombre)}"></label>`;
+    return `<li class="boca ${clase}" data-boca="${esc(clave)}" ${vivo}>
+      <div class="boca-cabeza"><strong>${esc(b.nombre)}</strong><span class="sub">${esc(b.circuito === 'retorno' ? 'Retorno' : 'Impulsión')} · ${esc(b.tipo || '')}</span></div>
+      ${puede ? segmentoEquipo(equipoDeBoca(b), puede, `data-cx="equipo-medida" data-eplano="${esc(p.id)}" data-epunto="${esc(b.id)}"`, `Equipo de medida de ${b.nombre}`)
+        : `<div class="sub">Medido con ${bal ? 'balómetro' : `anemómetro · ${enQ ? 'caudal' : 'velocidad'}`}</div>`}
+      ${!bal && puede ? segmentoLectura(lecturaDeBoca(b), puede, `data-cx="lectura" data-eplano="${esc(p.id)}" data-epunto="${esc(b.id)}"`, `Qué se apunta del anemómetro en ${b.nombre}`) : ''}
+      ${bal
+        ? casillaQ('Q balómetro (m³/h)')
+        : `<div class="lecturas">${[0, 1, 2, 3].map((i) => `<label>M${i + 1} <small class="unidad-m">${unidadM}</small>
             <input inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis} ${datos} data-m="${i}"
-              value="${lect[i] === undefined ? '' : comaD(lect[i])}" aria-label="Lectura M${i + 1} en ${esc(b.nombre)}"></label>`).join('')}</div>`}
+              value="${lect[i] === undefined ? '' : comaD(lect[i], enQ ? 1 : 2)}" aria-label="Lectura M${i + 1} en ${unidadM} en ${esc(b.nombre)}"></label>`).join('')}</div>`}
       ${bal ? '' : `<div data-vivo="formula">${formula}</div>`}
       <div class="boca-cifras">
         <div><span>Q medido</span><b data-vivo="q">${cifra(b.caudal)}</b></div>
@@ -487,9 +530,14 @@
     const factor = numVivo(li.dataset.factor || '');
     const tolB = Number(li.dataset.tol) || 10;
     const qIn = li.querySelector('input[data-q]');
-    let q = null;
-    if (qIn) q = numVivo(qIn.value);
-    else {
+    const mIns = li.querySelectorAll('input[data-m]');
+    let q = qIn ? numVivo(qIn.value) : null;
+    if (q === null && mIns.length && li.dataset.lectura === 'caudal') {
+      const v = [...mIns].map((x) => numVivo(x.value)).filter((n) => n !== null && n >= 0);
+      q = v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+      const fo = li.querySelector('[data-vivo="formula"]');
+      if (fo) fo.innerHTML = q === null ? '' : `<div class="formula">Q̄ = media de lo apuntado = <b>${cifra(Math.round(q))}</b> m³/h (sin Ak)</div>`;
+    } else if (q === null && mIns.length) {
       const v = [...li.querySelectorAll('input[data-m]')].map((x) => numVivo(x.value)).filter((n) => n !== null && n >= 0);
       const media = v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
       if (media !== null && factor) q = li.dataset.modo === 'k' ? media * factor : media * factor * 3600;
@@ -497,7 +545,8 @@
       const fo = li.querySelector('[data-vivo="formula"]');
       if (fo) {
         const vm = comaD(Math.round(media * 100) / 100);
-        fo.innerHTML = media === null ? ''
+        fo.innerHTML = qIn && numVivo(qIn.value) !== null ? '<div class="formula">Manda el caudal que da el aparato.</div>'
+          : media === null ? ''
           : !factor ? '<div class="formula aviso">Falta el Ak de este difusor (ficha del fabricante): sin él no hay caudal.</div>'
           : li.dataset.modo === 'k' ? `<div class="formula">v̄ ${vm} m/s · Q = v̄ × k = ${vm} × ${comaD(factor, 1)} = <b>${cifra(Math.round(q))}</b> m³/h</div>`
           : `<div class="formula">v̄ ${vm} m/s · Q = v̄ × Ak × 3600 = ${vm} × ${comaD(factor, 4)} × 3600 = <b>${cifra(Math.round(q))}</b> m³/h</div>`;
@@ -524,14 +573,23 @@
   const casillas = (li) => [...li.querySelectorAll('input[data-punto]')];
   const cambiada = (li) => casillas(li).some((x) => x.value.trim() !== x.defaultValue.trim());
 
+  /* Lo tecleado en una boca: el caudal leído y/o las lecturas M1–M4. */
+  function cuerpoBoca(ins) {
+    const c = {};
+    const qIn = ins.find((x) => x.dataset.q);
+    const mIns = ins.filter((x) => x.dataset.m !== undefined);
+    if (qIn) c.caudalMedido = qIn.value.trim();
+    if (mIns.length) c.lecturas = mIns.map((x) => x.value.trim()).filter((v) => v !== '');
+    return c;
+  }
+
   /* Guardar la boca entera; luego el foco va a `destino` (otra casilla) o a la siguiente boca sin medir. */
   async function medir(li, destino) {
     const ins = casillas(li);
     if (!ins.length) return;
     const { plano, punto } = ins[0].dataset;
     const cuerpo = { planoId: plano, puntoId: punto };
-    if (ins[0].dataset.q) cuerpo.caudalMedido = ins[0].value.trim();
-    else cuerpo.lecturas = ins.map((x) => x.value.trim()).filter((v) => v !== '');
+    Object.assign(cuerpo, cuerpoBoca(ins));
     ins.forEach((x) => { x.disabled = true; });
     try {
       const r = await C.postJson('api/boca', cuerpo);
@@ -556,21 +614,27 @@
     }
   }
 
-  /* El interruptor: pasar a balómetro solo cambia la casilla; volver al anemómetro borra el caudal leído. */
-  async function cambiarMetodo(boton) {
-    const { plano, punto } = boton.dataset;
-    const clave = claveBoca(plano, punto);
-    const b = ficha.planos.flatMap((p) => p.bocas.map((x) => ({ ...x, plano: p.id }))).find((x) => x.plano === plano && x.id === punto);
-    if (!b) return;
-    const bal = b.metodo === 'balometro' || conBalometro.has(clave);
-    if (!bal) { conBalometro.add(clave); pintarFicha(); const q = $app.querySelector(`li[data-boca="${CSS.escape(clave)}"] input[data-q]`); if (q) q.focus(); return; }
-    conBalometro.delete(clave);
-    if (b.caudalMedido === null || b.caudalMedido === undefined) { pintarFicha(); return; }
+  /* El equipo de medida de una boca, o de todas: se guarda ya. Lo medido no
+     se borra (con el anemómetro, un caudal apuntado sale en «Q del aparato»). */
+  async function cambiarEquipo(boton, todas) {
+    if (!ficha || boton.classList.contains('activa')) return;
+    const elegido = boton.dataset.lectura ? { equipoMedida: 'anemometro', lectura: boton.dataset.lectura } : { equipoMedida: boton.dataset.equipo };
+    const cuerpo = todas ? { equipoId: ficha.equipo.id, ...elegido }
+      : { planoId: boton.dataset.eplano, puntoId: boton.dataset.epunto, ...elegido };
+    /* Lo tecleado y sin guardar de esa boca va en la misma petición: no se pierde al repintar. */
+    const li = todas ? null : boton.closest('li[data-boca]');
+    /* (al cambiar velocidad/caudal, M1–M4 cambian de unidad: lo tecleado no se manda) */
+    if (li && cambiada(li) && !boton.dataset.lectura) Object.assign(cuerpo, cuerpoBoca(casillas(li)));
+    boton.closest('.segmento').querySelectorAll('button').forEach((x) => { x.disabled = true; });
     try {
-      const r = await C.postJson('api/boca', { planoId: plano, puntoId: punto, caudalMedido: '' });
+      const r = await C.postJson(todas ? 'api/equipo/medida' : 'api/boca', cuerpo);
       if (!r.ok) throw new Error(r.error);
-      ficha = r; if (activa()) pintarFicha();
-    } catch (e) { C.aviso(e.message); }
+      ficha = r;
+      if (!activa()) return;
+      const y = window.scrollY;
+      pintarFicha();
+      window.scrollTo(0, y);
+    } catch (e) { C.aviso(e.message); if (activa()) pintarFicha(); }
   }
 
   /* ═══════════════════════════════════ 3. Las fichas del equipo */
@@ -586,6 +650,22 @@
     return `<span class="chip ${c}">${esc(n)}</span>${r ? ` <span class="chip ${r[0]}">${esc(r[1])}</span>` : ''}`;
   };
   const CLASE_FICHA = { checklist: 'Checklist', fichaPM: 'Puesta en marcha', estanqAgua: 'Estanqueidad', estanqRefrigerante: 'Estanqueidad', balanceo: 'Balanceo' };
+
+  /* Lo que falta de una ficha, dicho con nombre: en la de balanceo, qué filas
+     de caudal no tienen medido (y si son el total de la UTA por circuito,
+     que no son las bocas del plano); en las demás, la cuenta de datos. */
+  function textoMedidos(x) {
+    const sin = x.bocasSinMedir || [];
+    if (x.clase === 'balanceo' && sin.length) {
+      const nombre = (b) => `${b.circuito === 'retorno' ? 'retorno' : 'impulsión'}${b.terminal ? ` (${b.terminal})` : ''}`;
+      const totales = sin.every((b) => b.totalEquipo);
+      const lista = sin.map(nombre).join(' y ');
+      return totales
+        ? `Falta el caudal medido total de la UTA: ${lista}. Va aparte de las bocas del plano`
+        : `Falta el caudal medido de ${sin.length === 1 ? 'la fila' : `${sin.length} filas`}: ${lista}`;
+    }
+    return x.medidos ? `${x.medidos.rellenos} de ${x.medidos.obligatorios} datos` : null;
+  }
 
   function htmlFichas(pestana = 'equipo', titulo = 'Fichas del equipo') {
     if (!fichasEq) return `<section id="fichas-equipo"><h2>${esc(titulo)}</h2><p class="cargando">Cargando las fichas…</p></section>`;
@@ -609,7 +689,7 @@
         </div></li>` : `
         <li><button class="fila-ios" data-cx="hoja" data-i="${i}">
           <div class="fila-principal"><strong>${esc(x.nombre)}</strong><span>${chipFicha(x.estado, x.resultado)}</span></div>
-          <div class="sub">${esc([CLASE_FICHA[x.clase] || x.clase, x.motivo, x.medidos ? `${x.medidos.rellenos} de ${x.medidos.obligatorios} datos` : null, x.fotos ? `${x.fotos} foto${x.fotos === 1 ? '' : 's'}` : null].filter(Boolean).join(' · '))}</div>
+          <div class="sub">${esc([CLASE_FICHA[x.clase] || x.clase, x.motivo, textoMedidos(x), x.fotos ? `${x.fotos} foto${x.fotos === 1 ? '' : 's'}` : null].filter(Boolean).join(' · '))}</div>
         </button></li>`)).join('')}${filaBal}</ul>` : `<p class="vacio">${esc(vacio)}</p>`}
       ${notaMed}
     </section>`;
@@ -918,7 +998,10 @@
     else if (que === 'quitar-nueva' && hoja) { const [x] = hoja.nuevas.splice(Number(b.dataset.i), 1); if (x) URL.revokeObjectURL(x.url); pintarHoja(); }
     else if (que === 'guardar-hoja') guardarHoja(b);
     else if (que === 'pdf-hoja') pdfHoja(b);
-    else if (que === 'balometro' && ficha) cambiarMetodo(b);
+    else if (que === 'equipo-medida' && ficha) cambiarEquipo(b, false);
+    else if (que === 'equipo-medida-todo' && ficha) cambiarEquipo(b, true);
+    else if (que === 'lectura' && ficha) cambiarEquipo(b, false);
+    else if (que === 'lectura-todo' && ficha) cambiarEquipo(b, true);
     else if (que === 'ir-boca' && ficha) irABoca(b.dataset.boca);
     else if (que === 'plano-grande' && ficha) planoGrande(b);
     else if (que === 'foto-equipo') fotoEquipo(b);
@@ -958,7 +1041,8 @@
     if (!activa() || !ev.target.dataset || !ev.target.dataset.punto || ev.key !== 'Enter') return;
     ev.preventDefault();
     const li = ev.target.closest('li[data-boca]');
-    const ins = casillas(li);
+    /* «Q del aparato» es opcional: Intro desde M4 salta a la boca siguiente. */
+    const ins = casillas(li).filter((x) => x === ev.target || !x.closest('.q-aparato'));
     const i = ins.indexOf(ev.target);
     if (i < ins.length - 1) { ins[i + 1].focus(); return; }
     saltando = true;

@@ -508,8 +508,18 @@ a.fila-dato strong { color: var(--acento); font-weight: 600; }
 .boca-cabeza strong { font-size: 17px; font-weight: 700; }
 .boca-cabeza .sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .boca-cifras { display: grid; grid-template-columns: 1fr 1fr 1fr .9fr; gap: 8px; align-items: end; margin-top: 6px; }
-.boca-cabeza .interruptor { margin-left: auto; flex: none; font: inherit; font-size: 12.5px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--borde, #c9cfd4); background: transparent; color: var(--textoTenue); }
-.boca-cabeza .interruptor.activo { background: var(--acento, #003f2d); border-color: var(--acento, #003f2d); color: #fff; }
+/* El equipo de medida: dos opciones y la elegida bien a la vista (relleno de acento). */
+.equipo-medida.segmento { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-top: 8px; border: 1.5px solid var(--acento, #003f2d); border-radius: 10px; overflow: hidden; }
+.equipo-medida.segmento button { min-height: 40px; margin: 0; border: 0; border-radius: 0; background: transparent; color: var(--acento, #003f2d); font: inherit; font-size: 14.5px; font-weight: 600; }
+.equipo-medida.segmento button + button { border-left: 1.5px solid var(--acento, #003f2d); }
+.equipo-medida.segmento button.activa { background: var(--acento, #003f2d); color: #fff; }
+.equipo-medida.segmento button.activa::before { content: '✓ '; }
+.equipo-medida-todo { padding: 12px 14px; }
+.equipo-medida-todo .em-cab { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; font-weight: 600; }
+.equipo-medida-todo .equipo-medida.segmento button { min-height: 46px; font-size: 16px; }
+.equipo-medida-todo .nota { margin: 8px 0 0; }
+.q-aparato { margin-top: 6px; }
+.q-aparato input { font-size: 15px; padding: 6px; }
 .lecturas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
 .lecturas label, .q-balometro { display: block; font-size: 11.5px; color: var(--textoTenue); }
 .lecturas input, .q-balometro input { display: block; width: 100%; box-sizing: border-box; margin-top: 2px; font-size: 17px; padding: 8px 6px; text-align: center; font-variant-numeric: tabular-nums; }
@@ -714,3 +724,21 @@ details.grupo-lista[open] > summary { margin-bottom: 6px; }
 .respuestas.segmento button { border: 0; border-radius: 0; min-height: 48px; font-size: 14px; color: var(--acento-fuerte); }
 .respuestas.segmento button + button { border-left: 1.5px solid var(--acento); }
 .respuestas.segmento button.activa { background: var(--acento); color: #fff; }
+
+/* ═══════════════ La vista previa de un PDF (carcasa.js › vistaPdf): a pantalla completa, antes de compartir. */
+.vista-pdf {
+  position: fixed; inset: 0; z-index: 90;
+  display: flex; flex-direction: column;
+  background: #525659;
+}
+.vista-pdf-barra {
+  display: flex; align-items: center; gap: 10px;
+  padding: calc(10px + env(safe-area-inset-top)) 12px 10px;
+  background: var(--panel); box-shadow: 0 1px 0 rgba(0, 0, 0, .08);
+}
+.vista-pdf-nombre { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+.vista-pdf-hoja { flex: 1; width: 100%; border: 0; background: #FFFFFF; padding-bottom: env(safe-area-inset-bottom); }
+/* Anemómetro: qué se apunta (velocidad o caudal) y la unidad en cada casilla M1–M4. */
+.lectura-anem.segmento { margin-top: 6px; }
+.em-lectura { margin-top: 10px; }
+.lecturas .unidad-m { font-weight: 400; color: var(--gris, #6b6b6b); font-size: 11.5px; }
