@@ -8563,7 +8563,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261015.0815" : "0";
+      var VERSION = true ? "20261015.0832" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -15706,3418 +15706,6 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // shared/commissioning/control.js
-  var require_control = __commonJS({
-    "shared/commissioning/control.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var sistemasCx = typeof __require !== "undefined" ? require_sistemas() : window.SISTEMAS_CX;
-      var ESTADOS_MONTAJE = ["pendiente", "acopiado", "instalado", "enMarcha", "recepcionado"];
-      var ESTADOS_PM = ["pendiente", "programada", "enProceso", "enMarcha", "hecha", "conReservas"];
-      var ENSAYOS = ["ninguno", "balanceo", "estanqueidad", "ambos"];
-      var ESTADOS_BALANCEO = ["pendiente", "apto", "aptoSinBocas", "noApto", "noAplica"];
-      var ESTADOS_ESTANQUEIDAD = ["pendiente", "apta", "noApta", "noAplica"];
-      var ENVIO = {
-        enviada: { orden: 1, nombre: "Enviada" },
-        lista: { orden: 2, nombre: "Lista para enviar" },
-        faltaEnsayo: { orden: 3, nombre: "Falta ensayo" },
-        faltaDocumentacion: { orden: 4, nombre: "Falta documentaci\xF3n" }
-      };
-      var INCIDENCIAS = {
-        sinSerie: "Sin n\xBA de serie",
-        sinModelo: "Sin modelo",
-        modeloSinAlta: "Modelo sin dar de alta",
-        sinPlanta: "Sin planta",
-        tagDuplicado: "TAG repetido en la obra",
-        balanceoSinBocas: "Balanceo \xABapto\xBB sin bocas medidas",
-        /* Splits y VRF: la interior cuelga de su exterior (shared/commissioning/sistemas.js). */
-        sinUdExterior: "Interior sin unidad exterior",
-        udExteriorInexistente: "Su unidad exterior no est\xE1 en la obra",
-        asociadaNoEsExterior: "Asociada a otra interior",
-        exteriorSinInteriores: "Exterior sin interiores"
-      };
-      var llano = (v) => String(v ?? "").trim().toLowerCase();
-      function hayDoc(v) {
-        const t = llano(v);
-        return t !== "" && t !== "pendiente" && t !== "\u2014" && t !== "-";
-      }
-      var balanceoApto = (e) => e.balanceoEstado === "apto" || e.balanceoEstado === "aptoSinBocas";
-      var estanqueidadApta = (e) => e.estanqueidadEstado === "apta";
-      function ensayoPorDefecto(texto) {
-        const t = ` ${llano(texto)} `;
-        const aire = /\b(uta|climatizador|hru|recuperador|ventila|extrac|extractor|s&p|caja de ventilaci)/.test(t);
-        const agua = /\b(split|vrf|vrv|bomba|enfriadora|frigor|fancoil|fan coil|caldera|aerotermia)/.test(t);
-        if (aire && agua) return "ambos";
-        if (aire) return "balanceo";
-        if (agua) return "estanqueidad";
-        return "ninguno";
-      }
-      function ensayoSuperado(e) {
-        const req = e.ensayoRequerido || "ninguno";
-        if (req === "ninguno") return null;
-        if (req === "balanceo") return balanceoApto(e);
-        if (req === "estanqueidad") return estanqueidadApta(e);
-        return balanceoApto(e) && estanqueidadApta(e);
-      }
-      function indiceModelos(modelos) {
-        const porId = /* @__PURE__ */ new Map();
-        const porClave = /* @__PURE__ */ new Map();
-        const porModelo = /* @__PURE__ */ new Map();
-        for (const m of modelos || []) {
-          porId.set(m.id, m);
-          porClave.set(`${llano(m.marca)}|${llano(m.modelo)}`, m);
-          if (!porModelo.has(llano(m.modelo))) porModelo.set(llano(m.modelo), m);
-        }
-        return (e) => e.modeloId && porId.get(e.modeloId) || porClave.get(`${llano(e.marca)}|${llano(e.modelo)}`) || (llano(e.modelo) ? porModelo.get(llano(e.modelo)) : null) || null;
-      }
-      function evaluarEquipo(e, modelo, repetidos, unidad) {
-        const ft = hayDoc(e.docFichaTecnica) || hayDoc(modelo && modelo.docFichaTecnica);
-        const ce = hayDoc(e.docMarcadoCE) || hayDoc(modelo && modelo.docMarcadoCE);
-        const manual = hayDoc(e.docManual) || hayDoc(modelo && modelo.docManual);
-        const fichaPM = hayDoc(e.docFichaPM) || e.estadoPM === "hecha";
-        const ensayo = ensayoSuperado(e);
-        const docCompleta = ft && ce && manual && fichaPM;
-        let envio;
-        if (e.fechaEnvioDF) envio = "enviada";
-        else if (!docCompleta) envio = "faltaDocumentacion";
-        else if (ensayo === false) envio = "faltaEnsayo";
-        else envio = "lista";
-        const incidencias = [];
-        if (!llano(e.numSerie)) incidencias.push("sinSerie");
-        if (!llano(e.modelo)) incidencias.push("sinModelo");
-        else if (!modelo) incidencias.push("modeloSinAlta");
-        if (!llano(e.planta)) incidencias.push("sinPlanta");
-        if (llano(e.tag) && repetidos.has(sistemasCx.claveTag(e.tag))) incidencias.push("tagDuplicado");
-        if (unidad && unidad.problema) incidencias.push(unidad.problema);
-        if (e.balanceoEstado === "aptoSinBocas" && (e.ensayoRequerido === "balanceo" || e.ensayoRequerido === "ambos")) {
-          incidencias.push("balanceoSinBocas");
-        }
-        const falta = [];
-        if (!ft) falta.push("FT");
-        if (!ce) falta.push("CE");
-        if (!manual) falta.push("manual");
-        if (!fichaPM) falta.push("ficha PM");
-        if (ensayo === false) falta.push(e.ensayoRequerido === "estanqueidad" ? "estanqueidad" : e.ensayoRequerido === "balanceo" ? "balanceo" : "ensayos");
-        return {
-          ...e,
-          modeloId: modelo ? modelo.id : e.modeloId || null,
-          unidad: unidad || null,
-          ft,
-          ce,
-          manual,
-          fichaPM,
-          ensayo,
-          docCompleta,
-          completo: docCompleta && ensayo !== false,
-          envio,
-          incidencias,
-          falta
-        };
-      }
-      function rangoPlanta(v) {
-        const t = String(v || "").toUpperCase().trim();
-        if (!t || t === "SIN DEFINIR") return 9;
-        if (/^(S|SOT|-)/.test(t)) return 0;
-        if (/^(PB|BAJA|N00|P00)/.test(t)) return 1;
-        if (/^CUB/.test(t)) return 3;
-        return 2;
-      }
-      function ordenPlantas(a, b) {
-        return rangoPlanta(a) - rangoPlanta(b) || String(a).localeCompare(String(b), "es", { numeric: true });
-      }
-      function cuadroDeCorte(filas, campo) {
-        const grupos = /* @__PURE__ */ new Map();
-        for (const f of filas) {
-          const clave = String(f[campo] || "").trim() || "SIN DEFINIR";
-          if (!grupos.has(clave)) {
-            grupos.set(clave, {
-              concepto: clave,
-              total: 0,
-              fichaPM: 0,
-              ft: 0,
-              ce: 0,
-              manual: 0,
-              balanceo: 0,
-              estanqueidad: 0,
-              enMarcha: 0,
-              completos: 0,
-              enviadas: 0
-            });
-          }
-          const g = grupos.get(clave);
-          g.total += 1;
-          if (f.fichaPM) g.fichaPM += 1;
-          if (f.ft) g.ft += 1;
-          if (f.ce) g.ce += 1;
-          if (f.manual) g.manual += 1;
-          if (balanceoApto(f)) g.balanceo += 1;
-          if (estanqueidadApta(f)) g.estanqueidad += 1;
-          if (f.estadoPM === "enMarcha" || f.estadoPM === "hecha") g.enMarcha += 1;
-          if (f.completo) g.completos += 1;
-          if (f.envio === "enviada") g.enviadas += 1;
-        }
-        const orden = campo === "planta" ? (a, b) => ordenPlantas(a.concepto, b.concepto) : (a, b) => b.total - a.total || a.concepto.localeCompare(b.concepto, "es", { numeric: true });
-        return [...grupos.values()].map((g) => ({ ...g, pctCompletos: g.total ? g.completos / g.total : null })).sort(orden);
-      }
-      function aReclamar(filas, modeloDe) {
-        const uso = /* @__PURE__ */ new Map();
-        for (const f of filas) {
-          if (!llano(f.modelo)) continue;
-          const m = modeloDe(f);
-          const clave = m ? `id:${m.id}` : `${llano(f.marca)}|${llano(f.modelo)}`;
-          if (!uso.has(clave)) {
-            uso.set(clave, {
-              modeloId: m ? m.id : null,
-              marca: m && m.marca || f.marca || "",
-              modelo: m && m.modelo || f.modelo,
-              grupo: m && m.grupo || f.grupo || "",
-              equipos: 0,
-              /* Lo que falta mirando el EQUIPO, no solo el modelo: si cada unidad
-                 trae su CE por nº de serie, al modelo no hace falta pedírselo. */
-              sinFT: 0,
-              sinCE: 0,
-              sinManual: 0
-            });
-          }
-          const u = uso.get(clave);
-          u.equipos += 1;
-          if (!f.ft) u.sinFT += 1;
-          if (!f.ce) u.sinCE += 1;
-          if (!f.manual) u.sinManual += 1;
-        }
-        return [...uso.values()].map((u) => ({ ...u, faltaFT: u.sinFT > 0, faltaCE: u.sinCE > 0, faltaManual: u.sinManual > 0 })).filter((u) => u.faltaFT || u.faltaCE || u.faltaManual).sort((a, b) => b.equipos - a.equipos || a.modelo.localeCompare(b.modelo, "es"));
-      }
-      var RANGO_PM = { pendiente: 0, programada: 1, enProceso: 2, conReservas: 3, enMarcha: 4, hecha: 5 };
-      var esVrf = (f) => /VRF|VRV/i.test(`${f.plantillaPM || ""} ${f.grupo || ""} ${f.familia || ""}`);
-      function estadoPMConjunto(miembros) {
-        return miembros.map((m) => m.estadoPM || "pendiente").reduce((a, b) => (RANGO_PM[b] ?? 0) < (RANGO_PM[a] ?? 0) ? b : a);
-      }
-      function peorEnsayo(miembros, campo, orden) {
-        const conEl = miembros.map((m) => m[campo] || "pendiente");
-        return conEl.reduce((a, b) => orden.indexOf(b) > orden.indexOf(a) ? b : a, conEl[0]);
-      }
-      function lineaConjunto(clase, exterior, interiores) {
-        const miembros = [exterior, ...interiores].filter(Boolean);
-        if (clase === "suelto") {
-          const f = miembros[0];
-          return { ...f, clase, miembros, exterior: null, interiores: [], unidades: 1 };
-        }
-        const todos = (k) => miembros.every((m) => m[k]);
-        const ft = todos("ft");
-        const ce = todos("ce");
-        const manual = todos("manual");
-        const fichaPM = miembros.some((m) => hayDoc(m.docFichaPM)) || miembros.every((m) => m.estadoPM === "hecha");
-        const docCompleta = ft && ce && manual && fichaPM;
-        const conEnsayo = miembros.filter((m) => m.ensayo !== null);
-        const ensayo = conEnsayo.length ? conEnsayo.every((m) => m.ensayo) : null;
-        const requeridos = new Set(conEnsayo.map((m) => m.ensayoRequerido));
-        const ensayoRequerido = requeridos.has("ambos") || requeridos.has("balanceo") && requeridos.has("estanqueidad") ? "ambos" : [...requeridos][0] || "ninguno";
-        const pideBal = conEnsayo.filter((m) => m.ensayoRequerido === "balanceo" || m.ensayoRequerido === "ambos");
-        const pideEst = conEnsayo.filter((m) => m.ensayoRequerido === "estanqueidad" || m.ensayoRequerido === "ambos");
-        const balanceoEstado = pideBal.length ? peorEnsayo(pideBal, "balanceoEstado", ["apto", "noAplica", "aptoSinBocas", "pendiente", "noApto"]) : exterior.balanceoEstado;
-        const estanqueidadEstado = pideEst.length ? peorEnsayo(pideEst, "estanqueidadEstado", ["apta", "noAplica", "pendiente", "noApta"]) : exterior.estanqueidadEstado;
-        const fechas = miembros.map((m) => m.fechaEnvioDF).filter(Boolean);
-        const fechaEnvioDF = fechas.length === miembros.length ? fechas.sort().pop() : null;
-        let envio;
-        if (fechaEnvioDF) envio = "enviada";
-        else if (!docCompleta) envio = "faltaDocumentacion";
-        else if (ensayo === false) envio = "faltaEnsayo";
-        else envio = "lista";
-        const incidencias = [...new Set(miembros.flatMap((m) => m.incidencias))];
-        const falta = [...new Set(miembros.flatMap((m) => m.falta))];
-        const ui = interiores[0] || {};
-        const doble = (k) => (clase === "par" ? [exterior[k], ui[k]] : [exterior[k]]).filter(Boolean);
-        return {
-          ...exterior,
-          clase,
-          miembros,
-          exterior,
-          interiores,
-          unidades: miembros.length,
-          tag: clase === "par" ? `${exterior.tag} / ${ui.tag}` : exterior.tag,
-          tagExterior: exterior.tag,
-          tagInterior: clase === "par" ? ui.tag : null,
-          numSerie: doble("numSerie").join(" / "),
-          estadoPM: estadoPMConjunto(miembros),
-          ft,
-          ce,
-          manual,
-          fichaPM,
-          docCompleta,
-          ensayo,
-          ensayoRequerido,
-          balanceoEstado,
-          estanqueidadEstado,
-          completo: docCompleta && ensayo !== false,
-          fechaEnvioDF,
-          envio,
-          incidencias,
-          falta,
-          /* Qué unidad trae cada incidencia, para decirlo en la ficha. */
-          incidenciasPorUnidad: miembros.filter((m) => m.incidencias.length).map((m) => ({ tag: m.tag, incidencias: m.incidencias }))
-        };
-      }
-      function agruparConjuntos(filas, sis) {
-        const porId = new Map(filas.map((f) => [f.id, f]));
-        const conjuntoDe = /* @__PURE__ */ new Map();
-        for (const s of sis.sistemas) {
-          if (!s.interiores.length) continue;
-          conjuntoDe.set(s.exterior.id, s.interiores.map((e) => porId.get(e.id)).filter(Boolean));
-        }
-        const dentro = new Set([...conjuntoDe.values()].flat().map((f) => f.id));
-        const lineas = [];
-        for (const f of filas) {
-          if (dentro.has(f.id)) continue;
-          const ints = conjuntoDe.get(f.id);
-          if (!ints) {
-            lineas.push(lineaConjunto("suelto", f, []));
-            continue;
-          }
-          const clase = ints.length === 1 && !esVrf(f) ? "par" : "sistema";
-          lineas.push(lineaConjunto(clase, f, ints.slice().sort((a, b) => String(a.tag || "").localeCompare(String(b.tag || ""), "es", { numeric: true }))));
-        }
-        return lineas;
-      }
-      function totalesDe(lineas) {
-        const cuenta = (pred) => lineas.filter(pred).length;
-        return {
-          conjuntos: lineas.length,
-          unidades: lineas.reduce((a, l) => a + l.unidades, 0),
-          pares: cuenta((l) => l.clase === "par"),
-          sistemas: cuenta((l) => l.clase === "sistema"),
-          enMarcha: cuenta((l) => l.estadoPM === "enMarcha" || l.estadoPM === "hecha"),
-          docCompleta: cuenta((l) => l.docCompleta),
-          completos: cuenta((l) => l.completo),
-          enviadas: cuenta((l) => l.envio === "enviada"),
-          listas: cuenta((l) => l.envio === "lista"),
-          faltaEnsayo: cuenta((l) => l.envio === "faltaEnsayo"),
-          faltaDocumentacion: cuenta((l) => l.envio === "faltaDocumentacion"),
-          balanceosSinBocas: cuenta((l) => l.incidencias.includes("balanceoSinBocas")),
-          conIncidencias: cuenta((l) => l.incidencias.length > 0)
-        };
-      }
-      function conjuntoDeEquipo(lineas, id) {
-        return lineas.find((l) => l.miembros.some((m) => m.id === id)) || null;
-      }
-      function evaluar({ equipos = [], modelos = [] } = {}) {
-        const modeloDe = indiceModelos(modelos);
-        const sis = sistemasCx.analizar(equipos);
-        const filas = equipos.map((e) => evaluarEquipo(e, modeloDe(e), sis.repetidos, sis.porEquipo.get(e.id))).sort((a, b) => ordenPlantas(a.planta, b.planta) || String(a.tag || "").localeCompare(String(b.tag || ""), "es", { numeric: true }));
-        const cuenta = (pred) => filas.filter(pred).length;
-        const conjuntos = agruparConjuntos(filas, sis);
-        return {
-          filas,
-          /* Lo que se pone en marcha y se entrega: un split es UNA línea. */
-          conjuntos,
-          totalesConjuntos: totalesDe(conjuntos),
-          porPlantaConjuntos: cuadroDeCorte(conjuntos, "planta"),
-          porPlanta: cuadroDeCorte(filas, "planta"),
-          porMarca: cuadroDeCorte(filas, "marca"),
-          porGrupo: cuadroDeCorte(filas, "grupo"),
-          porInstalacion: cuadroDeCorte(filas, "instalacion"),
-          aReclamar: aReclamar(filas, modeloDe),
-          totales: {
-            equipos: filas.length,
-            modelos: modelos.length,
-            enMarcha: cuenta((f) => f.estadoPM === "enMarcha" || f.estadoPM === "hecha"),
-            docCompleta: cuenta((f) => f.docCompleta),
-            completos: cuenta((f) => f.completo),
-            enviadas: cuenta((f) => f.envio === "enviada"),
-            listas: cuenta((f) => f.envio === "lista"),
-            faltaEnsayo: cuenta((f) => f.envio === "faltaEnsayo"),
-            faltaDocumentacion: cuenta((f) => f.envio === "faltaDocumentacion"),
-            balanceos: cuenta(balanceoApto),
-            balanceosSinBocas: cuenta((f) => f.incidencias.includes("balanceoSinBocas")),
-            estanqueidades: cuenta(estanqueidadApta),
-            conIncidencias: cuenta((f) => f.incidencias.length > 0),
-            sistemas: sis.sistemas.length,
-            interioresAsociadas: sis.sistemas.reduce((a, x) => a + x.interiores.length, 0),
-            interioresSinSistema: cuenta((f) => f.unidad && f.unidad.tipo === "interior" && f.unidad.problema)
-          }
-        };
-      }
-      function modelosQueFaltan({ equipos = [], modelos = [] } = {}) {
-        const modeloDe = indiceModelos(modelos);
-        const vistos = /* @__PURE__ */ new Map();
-        for (const e of equipos) {
-          if (!llano(e.modelo) || modeloDe(e)) continue;
-          const clave = `${llano(e.marca)}|${llano(e.modelo)}`;
-          if (!vistos.has(clave)) {
-            vistos.set(clave, { marca: e.marca || "", modelo: String(e.modelo).trim(), grupo: e.grupo || "" });
-          }
-        }
-        return [...vistos.values()];
-      }
-      function puedeEnviarse(fila) {
-        return fila.envio === "lista";
-      }
-      (function exportar(API) {
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.CONTROL_CX = API;
-      })({
-        ESTADOS_MONTAJE,
-        ESTADOS_PM,
-        ENSAYOS,
-        ESTADOS_BALANCEO,
-        ESTADOS_ESTANQUEIDAD,
-        ENVIO,
-        INCIDENCIAS,
-        hayDoc,
-        ensayoPorDefecto,
-        ensayoSuperado,
-        indiceModelos,
-        rangoPlanta,
-        ordenPlantas,
-        evaluar,
-        cuadro: cuadroDeCorte,
-        modelosQueFaltan,
-        puedeEnviarse,
-        agruparConjuntos,
-        conjuntoDeEquipo,
-        estadoPMConjunto,
-        RANGO_PM
-      });
-    }
-  });
-
-  // shared/commissioning/documentos.js
-  var require_documentos = __commonJS({
-    "shared/commissioning/documentos.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var EXTENSIONES = [".pdf", ".tiff", ".tif", ".xlsm", ".xls", ".xlsx"];
-      var CARPETAS_PM_DEFECTO = [
-        "05 PUESTAS EN MARCHA EQUIPOS",
-        "02 FICHAS DE PUESTA EN MARCHA",
-        "01 FICHAS DE PRUEBAS"
-      ];
-      var CARPETAS_OFICIALES_DEFECTO = ["01 FICHAS TECNICAS", "03 COMISSIONING"];
-      var CARPETAS_IGNORADAS_DEFECTO = ["00 OLD", "13_LEED"];
-      var UMBRAL_EQUIPO = 9;
-      function norm(v) {
-        return String(v ?? "").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Z0-9]/g, "").replace(/O/g, "0");
-      }
-      var soloLetras = (t) => t.replace(/[0-9]/g, "");
-      function pad2(t) {
-        return String(t).replace(new RegExp("(?<![0-9])([0-9])(?![0-9])", "g"), "0$1");
-      }
-      function listaConfig(valor, defecto) {
-        const lista = String(valor || "").split(";").map((x) => x.trim()).filter(Boolean);
-        return lista.length ? lista : defecto;
-      }
-      function clasificar(ruta, config = {}) {
-        const U = String(ruta).toUpperCase().replace(/\\/g, "/");
-        const nombre = U.split("/").pop() || "";
-        if (nombre.startsWith("~$") || nombre.startsWith(".")) return null;
-        if (/\/FORMS\/|\/_|RECYCLE|PAPELERA|PRESERVATION/.test(U)) return null;
-        const ext = (nombre.match(/\.[^.]+$/) || [""])[0].toLowerCase();
-        if (!EXTENSIONES.includes(ext)) return null;
-        const T = (s) => U.includes(s);
-        const enAlguna = (carpetas) => carpetas.some((c) => U.includes(String(c).toUpperCase()));
-        if (enAlguna(config.carpetasIgnoradas || CARPETAS_IGNORADAS_DEFECTO)) return null;
-        const esPM = (enAlguna(config.carpetasPM || CARPETAS_PM_DEFECTO) || nombre.includes("PM_") || nombre.includes("PUESTA EN MARCHA") || nombre.includes("CHECKLIST")) && !T("PLANTILLA");
-        const esBal = (x) => x.includes("BAL_") || x.includes("BALANCEO") || x.includes("EQUILIBRADO");
-        const esEst = (x) => x.includes("ESTANQUEIDAD") || x.includes("ESTANQUIDAD") || x.includes("PE-0");
-        let balEst = null;
-        for (const trozo of U.split("/").reverse()) {
-          const b = esBal(trozo);
-          const e = esEst(trozo);
-          if (b && !e) {
-            balEst = "BAL";
-            break;
-          }
-          if (e && !b) {
-            balEst = "EST";
-            break;
-          }
-          if (b && e && !balEst) balEst = "BAL";
-        }
-        let tipo;
-        if (esPM) tipo = "PM";
-        else if (balEst) tipo = balEst;
-        else if (T("ESQUEMA") || T("ESQ ELECT") || T("DESPIECE") || T("SPL_") || T("TEST REPORT") || T("LEAK TEST") || T("ELECTRIC TEST") || T("LAYOUT") || T("SELECCION") || T("SELECCI\xD3N") || T("PLANO") || T("CURVAS") || T("ALBARAN") || T("ALBAR\xC1N") || T("BALANCING") || T("CERTIFICADO DE FABRICA") || T("PE_") || T("PLANTILLA") || T("PRESUPUESTO") || T("OFERTA") || T("FACTURA") || T("ACTA") || T("VISITA") || T("INFORME SEMANAL")) {
-          return null;
-        } else if (T("DECLARACION") || T("DECLARACI\xD3N") || T("DECL_") || T("DECLARATION") || T("CONFORMIT") || T("CONFORMIDAD") || T("MARCADO CE") || /* «CE_…» o «…/CE/…», pero no el «CE_» de «maintenance_manual». Y la
-           «DoC» (Declaration of Conformity) de Carrier y Panasonic. */
-        /(^|[^A-Z])CE_/.test(U) || T("/CE/") || /^DOC[_ -]/.test(nombre) || /,DOC\./.test(nombre) || T("/CERTIFICADOS/") || T("MANUFACTURER") || T("STATEMENT")) tipo = "CE";
-        else if (T("MANUAL") || T("INSTALACION") || T("INSTALACI\xD3N") || T("IOM") || T("INSTRUCCION") || T("OPERATING") || T("MAINTENANCE") || T("MANTENIMIENTO") || T("ASSEMBLY")) tipo = "MI";
-        else tipo = "FT";
-        const n = norm(nombre);
-        const tn = (s) => n.includes(s);
-        let cal = ext === ".pdf" ? 2 : 0;
-        if (tipo === "CE") {
-          if (tn("DECLARACI0NCE") || tn("DECLARACI0NDEC0NF0RMIDAD")) cal += 8;
-          else if (tn("DECLARACI0N") || n.startsWith("DC")) cal += 5;
-          if (tn("GBCE") || tn("EUR0VENT") || tn("HIGIENIC") || tn("LEED")) cal -= 6;
-        } else if (tipo === "MI") {
-          if (n.startsWith("MANUAL") || tn("MANUALDE") || tn("I0M")) cal += 6;
-          if (tn("PR0CEDIMIENT0") || tn("GUIA") || tn("RAPIDA")) cal -= 4;
-        } else if (tipo === "FT") {
-          if (tn("FICHATECNICA") || tn("FICHADEPR0DUCT0") || tn("DATASHEET")) cal += 6;
-          if (tn("FICHA") || n.startsWith("FT") || n.startsWith("EEU")) cal += 3;
-          if (tn("EUR0VENT") || tn("GBCE") || tn("GUIA") || tn("RAPIDA")) cal -= 6;
-        } else if (tipo === "PM") {
-          if (/^NO\s/.test(nombre)) cal -= 6;
-          if (T("GLOBAL")) cal += 2;
-        } else if (tipo === "BAL") {
-          if (ext === ".pdf") {
-            if (T("/REALIZADAS/") || T("/REALIZADOS/")) cal += 8;
-            else if (T("/IMAGES/")) cal += 6;
-            else if (T("BALANCEO DE CAUDALES")) cal += 4;
-          }
-        } else if (tipo === "EST") {
-          if (T("SIN FIRMAR")) cal -= 3;
-        }
-        if (/\sV([2-9])\.[A-Z]+$/.test(nombre)) cal += 1;
-        if (/\bCOPIA\b|\bCOPY\b/.test(nombre)) cal -= 2;
-        if (T("/OLD")) cal -= 3;
-        if (enAlguna(config.carpetasOficiales || CARPETAS_OFICIALES_DEFECTO)) cal += 1;
-        return { tipo, cal };
-      }
-      function prepararDoc(ruta, clase) {
-        const k = norm(ruta);
-        const partes = String(ruta).replace(/\\/g, "/").split("/");
-        const nombre = partes.pop();
-        return {
-          ruta,
-          nombre,
-          carpeta: partes.join("/"),
-          tipo: clase.tipo,
-          cal: clase.cal,
-          k,
-          kl: soloLetras(k),
-          kp: pad2(k),
-          /* Solo el nombre del archivo: lo que se busca por la «clave de nombre». */
-          kn: pad2(norm(nombre.replace(/\.[^.]+$/, ""))),
-          palabras: palabras(nombre.replace(/\.[^.]+$/, "")),
-          modelos: modelosEnNombre(nombre),
-          palabrasRuta: new Set(palabras(ruta))
-        };
-      }
-      function palabras(t) {
-        return String(t ?? "").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "").split(/[^A-Z0-9]+/).filter(Boolean);
-      }
-      function raizModelo(modelo) {
-        const U = String(modelo ?? "").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-        const m = U.match(/(?:^|[^A-Z0-9])([A-Z]{3,})/);
-        return m ? m[1] : "";
-      }
-      function prefijoDeModelo(doc, k) {
-        return doc.palabras.some((p) => {
-          const n = norm(p);
-          return n.length >= 5 && /[0-9]/.test(n) && /[A-Z]/.test(n) && k.startsWith(n) && n !== k;
-        });
-      }
-      function modelosEnNombre(nombre) {
-        const U = String(nombre ?? "").replace(/\.[^.]+$/, "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        const fichas = U.replace(/\b([A-Z]{1,2})-(?=\d)/g, "$1").split(/[^A-Z0-9]+/).filter(Boolean);
-        const fuera = /* @__PURE__ */ new Set();
-        let tanda = [];
-        const cerrar = () => {
-          if (!tanda.length) return;
-          const ult = tanda[tanda.length - 1];
-          const cola = (ult.match(/^[A-Z]{0,3}\d+([A-Z][A-Z0-9]*)$/) || [])[1] || "";
-          for (const t of tanda) {
-            fuera.add(t);
-            if (cola && t !== ult && /^[A-Z]{0,3}\d+$/.test(t)) fuera.add(t + cola);
-          }
-          tanda = [];
-        };
-        for (const f of fichas) {
-          if (/^[A-Z]{0,3}\d/.test(f) && /\d/.test(f)) tanda.push(f);
-          else if (f !== "Y" && f !== "AND") cerrar();
-        }
-        cerrar();
-        return [...fuera].map((x) => x.replace(/O/g, "0")).filter((x) => x.length >= 5 && /[A-Z]/.test(x) && /[0-9]/.test(x));
-      }
-      var NO_SERIE = /* @__PURE__ */ new Set(["DE", "EN", "ES", "SP", "CE", "FT", "MI", "PM", "UE", "UI", "NO", "OF", "DO", "DX", "V2", "V3"]);
-      function esSerieDe(palabra, k) {
-        const w = String(palabra).replace(/O/g, "0");
-        if (w.length < 2 || w.length > 4 || !/^[A-Z]{2}/.test(w) || NO_SERIE.has(palabra)) return false;
-        const i = k.indexOf(w);
-        if (i < 0) return false;
-        const tras = k.slice(i + w.length);
-        return i > 0 && /[0-9]/.test(k[i - 1]) || /^[A-Z]{1,2}$/.test(k.slice(0, i)) && /^[0-9]/.test(tras);
-      }
-      function indexar(rutas, config = {}) {
-        const docs = [];
-        for (const r of rutas || []) {
-          const clase = clasificar(r, config);
-          if (clase) docs.push(prepararDoc(r, clase));
-        }
-        return docs;
-      }
-      var mejor = (candidatos) => candidatos.sort((a, b) => b.p - a.p || a.doc.nombre.localeCompare(b.doc.nombre))[0] || null;
-      function enlazarModelo(modelo, docs, contexto = {}) {
-        const k = norm(modelo.modelo);
-        const fam = k.length >= 8 ? k.slice(-6) : "";
-        const letras = soloLetras(k);
-        const grup = norm(modelo.grupo);
-        const marc = norm(modelo.marca);
-        const raiz = raizModelo(modelo.modelo);
-        const buscar = (tipo) => {
-          const candidatos = [];
-          for (const doc of docs) {
-            if (doc.tipo !== tipo) continue;
-            let m = 0;
-            if (k && k.length >= 4 && doc.k.includes(k)) m += 10;
-            else if (k && prefijoDeModelo(doc, k)) m += 8;
-            else if (k && doc.modelos.some((x) => k.startsWith(x) || x.length >= 6 && k.includes(x))) m += 9;
-            else if (k && marc && doc.k.includes(marc) && doc.palabras.some((w) => esSerieDe(w, k))) m += 5;
-            if (tipo !== "FT" && fam && doc.k.includes(fam)) m += 6;
-            if (letras.length >= 5 && doc.kl.includes(letras)) m += 4;
-            if (raiz && doc.palabras.includes(raiz) && (m >= 4 || doc.cal >= 0)) m += 5;
-            if (m < 4) continue;
-            const p = m + (grup && doc.k.includes(grup) ? 3 : 0) + (marc && doc.k.includes(marc) ? 1 : 0) + doc.cal;
-            candidatos.push({ doc, p });
-          }
-          const nuevos = candidatos.filter((c) => !/\/OLD\b/i.test(c.doc.ruta));
-          return mejor(nuevos.length ? nuevos : candidatos);
-        };
-        const ft = buscar("FT");
-        const ce = buscar("CE");
-        let mi = buscar("MI");
-        if (!mi || mi.doc.cal < 0) mi = manualDeCarpeta([ft, ce], docs) || mi;
-        const deFamilia = (tipo, ya) => ya || papelDeFamilia(tipo, { ...contexto, k }, docs);
-        return { ft: deFamilia("FT", ft), ce: deFamilia("CE", ce), mi: deFamilia("MI", mi) };
-      }
-      var LADO_I = /* @__PURE__ */ new Set(["INTERIOR", "INTERIORES", "INDOOR"]);
-      var LADO_E = /* @__PURE__ */ new Set(["EXTERIOR", "EXTERIORES", "OUTDOOR"]);
-      var NO_FAMILIA = /* @__PURE__ */ new Set(["AHU", "UTA", "BRANCH", "BRANCHES", "LISTADO", "SEGUIMIENTO", "PLANO", "PLANOS", "ESQUEMA"]);
-      function papelDeFamilia(tipo, { familias = [], lado = null, k = "" } = {}, docs) {
-        if (!familias.length) return null;
-        const tiene = (ps) => ps.some((w) => familias.some((f) => w === f || w === `${f}S` || `${w}S` === f));
-        const candidatos = [];
-        for (const doc of docs) {
-          if (doc.tipo !== tipo || doc.modelos.length || !/\.pdf$/i.test(doc.nombre) || /\/OLD\//i.test(doc.ruta)) continue;
-          if (doc.palabras.some((w) => NO_FAMILIA.has(w))) continue;
-          if (k && doc.palabras.some((w) => /^[A-Z]{2}$/.test(w) && !NO_SERIE.has(w) && !esSerieDe(w, k))) continue;
-          const carpeta = palabras(doc.carpeta.split("/").pop());
-          if (!tiene(doc.palabras) && !tiene(carpeta)) continue;
-          const ladoDe = (ps) => ps.some((w) => LADO_I.has(w)) ? "I" : ps.some((w) => LADO_E.has(w)) ? "E" : null;
-          const dl = ladoDe(doc.palabras) || ladoDe(carpeta);
-          if (dl && dl !== lado) continue;
-          candidatos.push({ doc, p: doc.cal + (dl ? 5 : 0) + (tiene(doc.palabras) ? 1 : 0) });
-        }
-        return mejor(candidatos);
-      }
-      function contextoModelos(modelos, equipos) {
-        const l = (v) => String(v ?? "").trim();
-        const fuera = /* @__PURE__ */ new Map();
-        for (const m of modelos) fuera.set(m.id, { familias: /* @__PURE__ */ new Set(), lados: /* @__PURE__ */ new Set() });
-        const porNombre = new Map(modelos.map((m) => [`${l(m.marca)}|${l(m.modelo)}`, m.id]));
-        for (const e of equipos) {
-          const id = e.modeloId && fuera.has(e.modeloId) && e.modeloId || porNombre.get(`${l(e.marca)}|${l(e.modelo)}`);
-          if (!id) continue;
-          const c = fuera.get(id);
-          const marca = norm(e.marca);
-          for (const w of String(e.familia || "").toUpperCase().split(/[^A-Z]+/)) {
-            if (w.length >= 3 && norm(w) !== marca && !marca.startsWith(norm(w))) c.familias.add(w);
-          }
-          const t = String(e.tag || "").toUpperCase();
-          c.lados.add(/(^|[^A-Z])UI([^A-Z]|$)/.test(t) ? "I" : /(^|[^A-Z])UE([^A-Z]|$)/.test(t) ? "E" : "?");
-        }
-        const r = /* @__PURE__ */ new Map();
-        for (const [id, c] of fuera) {
-          const mod = String((modelos.find((m) => m.id === id) || {}).modelo || "").toUpperCase().trim();
-          const porModelo = /^C?S-[A-Z0-9]/.test(mod) ? "I" : /^C?U-[A-Z0-9]/.test(mod) ? "E" : null;
-          r.set(id, { familias: [...c.familias], lado: porModelo || (c.lados.size === 1 && !c.lados.has("?") ? [...c.lados][0] : null) });
-        }
-        return r;
-      }
-      function manualDeCarpeta(hallados, docs) {
-        const carpetas = new Set(hallados.filter(Boolean).map((h) => h.doc.carpeta));
-        if (!carpetas.size) return null;
-        const candidatos = [];
-        for (const doc of docs) {
-          if (doc.tipo !== "MI" || !carpetas.has(doc.carpeta)) continue;
-          if (!norm(doc.nombre).startsWith("MANUAL")) continue;
-          const originales = doc.nombre.replace(/\.[^.]+$/, "").split(/[^\p{L}0-9]+/u).filter(Boolean).slice(1);
-          if (originales.some((p) => /[0-9]/.test(p) || p === p.toUpperCase() && !PALABRAS_MANUAL.has(norm(p).replace(/0/g, "O")))) continue;
-          candidatos.push({ doc, p: 7 + doc.cal });
-        }
-        return mejor(candidatos);
-      }
-      var PALABRAS_MANUAL = /* @__PURE__ */ new Set(["DE", "E", "Y", "EL", "LA", "LOS", "DEL", "USO", "AND", "OF", "THE", "FOR", "SP", "ES", "EN"]);
-      function enlazarPorSerie(equipo, docs, claves) {
-        const s = norm(equipo.numSerie);
-        const porSerie = (tipo) => s.length < 5 ? null : mejor(
-          docs.filter((d) => d.tipo === tipo && d.k.includes(s)).map((doc) => ({ doc, p: doc.cal }))
-        );
-        const cn = claves && claves.get(equipo.tag);
-        const porNombre = (tipo) => {
-          if (!cn) return null;
-          const candidatos = [];
-          for (const doc of docs) {
-            if (doc.tipo !== tipo) continue;
-            const m = puntosClave(cn, doc);
-            if (m < UMBRAL_EQUIPO) continue;
-            candidatos.push({ doc, p: m + doc.cal });
-          }
-          return mejor(candidatos);
-        };
-        const buscar = (tipo) => porSerie(tipo) || porNombre(tipo);
-        return { ft: buscar("FT"), ce: buscar("CE"), mi: buscar("MI") };
-      }
-      function claveNombre(tag, plantas = []) {
-        const U = String(tag ?? "").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-        const pref = U.match(/^([A-Z]{2,})[-_ ]/);
-        let resto = pref ? U.slice(pref[0].length) : U;
-        const fuera = new Set(plantas.map((p) => String(p).toUpperCase().trim()));
-        resto = resto.split(/[-_ ]+/).filter((t) => t && !/^N[0-9]{2}$/.test(t) && !fuera.has(t)).join(" ");
-        const clave = pad2(norm(resto));
-        return { clave, prefijo: pref ? pref[1] : "" };
-      }
-      function clavesNombre(equipos, plantas = []) {
-        const todas = (equipos || []).map((e) => ({ tag: e.tag, ...claveNombre(e.tag, plantas) }));
-        const cuenta = /* @__PURE__ */ new Map();
-        for (const c of todas) cuenta.set(c.clave, (cuenta.get(c.clave) || 0) + 1);
-        const distintas = [...cuenta.keys()];
-        const mapa = /* @__PURE__ */ new Map();
-        for (const c of todas) {
-          const k = c.clave;
-          if (cuenta.get(k) !== 1) continue;
-          if (!/[A-Z].*[A-Z]/.test(k.replace(/0/g, "O")) || !/[0-9]/.test(k.replace(new RegExp("0(?=[A-Z])|(?<=[A-Z])0", "g"), ""))) continue;
-          if (k.length < 4) continue;
-          if (distintas.some((o) => o !== k && o.includes(k))) continue;
-          mapa.set(c.tag, c);
-        }
-        return mapa;
-      }
-      function puntosClave(cn, doc) {
-        if (!cn || !doc.kn.includes(cn.clave)) return 0;
-        return cn.prefijo.length >= 2 && doc.palabrasRuta.has(cn.prefijo) ? 9 : 0;
-      }
-      function sinPlanta(tag, plantas) {
-        let t = norm(tag);
-        for (const p of plantas) t = t.split(norm(p)).join("");
-        return pad2(t);
-      }
-      function baseTag(tag) {
-        let t = String(tag ?? "");
-        if (t.endsWith("-UI") || t.endsWith("-UE")) t = t.slice(0, -3);
-        if (t.length > 3 && t[t.length - 3] === "-" && /[0-9]/.test(t[t.length - 1])) t = t.slice(0, -3);
-        if (t.startsWith("UI-") || t.startsWith("UE-")) t = t.slice(3);
-        return t;
-      }
-      function unicasSinPlanta(equipos, plantas) {
-        const cuenta = /* @__PURE__ */ new Map();
-        for (const e of equipos || []) {
-          const sp = sinPlanta(e.tag, plantas);
-          cuenta.set(sp, (cuenta.get(sp) || 0) + 1);
-        }
-        return new Set([...cuenta].filter(([, n]) => n === 1).map(([sp]) => sp));
-      }
-      function enlazarPM(equipo, docs, unicas, plantas, claves) {
-        const ktag = norm(equipo.tag);
-        const kbase = norm(baseTag(equipo.tag));
-        const sp = sinPlanta(equipo.tag, plantas);
-        const ksp = unicas.has(sp) ? sp : "";
-        const kser = norm(equipo.numSerie);
-        const ksal = norm(equipo.codSala);
-        const cn = claves && claves.get(equipo.tag);
-        const kcir = norm(equipo.circuito);
-        const buscar = (tipo) => {
-          const candidatos = [];
-          for (const doc of docs) {
-            if (doc.tipo !== tipo) continue;
-            let p = ktag.length >= 5 && doc.k.includes(ktag) ? 10 : kbase.length >= 6 && doc.k.includes(kbase) ? 9 : ksp.length >= 6 && doc.kp.includes(ksp) ? 9 : 0;
-            if (!p) p = puntosClave(cn, doc);
-            if (!p && tipo === "EST" && kcir.length >= 10 && doc.k.includes(kcir)) p = 9;
-            if (kser.length >= 5 && doc.k.includes(kser)) p += 8;
-            if (ksal.length >= 6 && doc.k.includes(ksal)) p += 7;
-            if (p === 0) continue;
-            p += doc.cal;
-            if (p < UMBRAL_EQUIPO) continue;
-            candidatos.push({ doc, p });
-          }
-          return mejor(candidatos);
-        };
-        return { pm: buscar("PM"), bal: buscar("BAL"), est: buscar("EST") };
-      }
-      function vacio(v) {
-        const t = String(v ?? "").trim().toLowerCase();
-        return t === "" || t === "pendiente" || t === "\u2014" || t === "-";
-      }
-      var CAMPOS_MODELO = [
-        ["docFichaTecnica", "ft"],
-        ["docMarcadoCE", "ce"],
-        ["docManual", "mi"]
-      ];
-      var CAMPOS_EQUIPO_SERIE = CAMPOS_MODELO;
-      var CAMPOS_EQUIPO_PROPIOS = [
-        ["docFichaPM", "pm"],
-        ["docBalanceo", "bal"],
-        ["docEstanqueidad", "est"]
-      ];
-      var origenDe = (campo) => `origen${campo.slice(3)}`;
-      function cambiosDe(fila, encontrados, campos, aEnlace) {
-        const cambios = {};
-        let respetados = 0;
-        for (const [campo, clave] of campos) {
-          const hallado = encontrados[clave];
-          if (!hallado) continue;
-          const actual = fila[campo];
-          const deMotor = fila[origenDe(campo)] === "motor";
-          if (!vacio(actual) && !deMotor) {
-            respetados += 1;
-            continue;
-          }
-          const enlace = aEnlace(hallado.doc.ruta);
-          if (enlace === actual) continue;
-          cambios[campo] = enlace;
-          cambios[origenDe(campo)] = "motor";
-          cambios[`punt${campo.slice(3)}`] = hallado.p;
-        }
-        return { cambios, respetados };
-      }
-      function planEnlace({ rutas = [], equipos = [], modelos = [], config = {}, aEnlace = (r) => r }) {
-        const docs = indexar(rutas, config);
-        const porTipo = {};
-        for (const d of docs) porTipo[d.tipo] = (porTipo[d.tipo] || 0) + 1;
-        const plantas = [...new Set(equipos.map((e) => String(e.planta || "").trim()).filter(Boolean))];
-        const unicas = unicasSinPlanta(equipos, plantas);
-        const claves = clavesNombre(equipos, plantas);
-        let respetados = 0;
-        const modelosCambios = [];
-        const contextos = contextoModelos(modelos, equipos);
-        for (const m of modelos) {
-          const r = cambiosDe(m, enlazarModelo(m, docs, contextos.get(m.id)), CAMPOS_MODELO, aEnlace);
-          respetados += r.respetados;
-          if (Object.keys(r.cambios).length) modelosCambios.push({ id: m.id, cambios: r.cambios });
-        }
-        const equiposCambios = [];
-        for (const e of equipos) {
-          const a = cambiosDe(e, enlazarPorSerie(e, docs, claves), CAMPOS_EQUIPO_SERIE, aEnlace);
-          const b = cambiosDe(e, enlazarPM(e, docs, unicas, plantas, claves), CAMPOS_EQUIPO_PROPIOS, aEnlace);
-          respetados += a.respetados + b.respetados;
-          const cambios = { ...a.cambios, ...b.cambios };
-          if (Object.keys(cambios).length) equiposCambios.push({ id: e.id, cambios });
-        }
-        return {
-          archivos: rutas.length,
-          documentos: docs.length,
-          porTipo,
-          modelos: modelosCambios,
-          equipos: equiposCambios,
-          respetados
-        };
-      }
-      (function exportar(API) {
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.DOCUMENTOS_CX = API;
-      })({
-        EXTENSIONES,
-        CARPETAS_PM_DEFECTO,
-        CARPETAS_OFICIALES_DEFECTO,
-        CARPETAS_IGNORADAS_DEFECTO,
-        UMBRAL_EQUIPO,
-        norm,
-        pad2,
-        listaConfig,
-        clasificar,
-        prepararDoc,
-        indexar,
-        enlazarModelo,
-        enlazarPorSerie,
-        enlazarPM,
-        sinPlanta,
-        baseTag,
-        raizModelo,
-        modelosEnNombre,
-        esSerieDe,
-        contextoModelos,
-        claveNombre,
-        clavesNombre,
-        unicasSinPlanta,
-        vacio,
-        cambiosDe,
-        planEnlace
-      });
-    }
-  });
-
-  // shared/calculo/instalaciones.js
-  var require_instalaciones = __commonJS({
-    "shared/calculo/instalaciones.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var _textoCal = typeof __require !== "undefined" ? require_texto() : window.TEXTO;
-      var cifraCal = (v, d = 2) => _textoCal.numero(v, d);
-      var cifraJustaCal = (v) => cifraCal(v, Number(v) % 1 === 0 ? 0 : 2);
-      var redondeaCal = (v, d = 2) => {
-        const f = Math.pow(10, d);
-        return Math.round((Number(v) || 0) * f) / f;
-      };
-      var numCal = (v) => {
-        if (v === null || v === void 0) return null;
-        const texto = String(v).trim();
-        if (texto === "") return null;
-        const n = Number(texto.replace(",", "."));
-        return Number.isFinite(n) ? n : null;
-      };
-      function factorFriccionCal(reynolds, rugosidad, diametro) {
-        if (!(reynolds > 0)) return 0;
-        if (reynolds < 2300) return 64 / reynolds;
-        const a = (rugosidad / (3.7 * diametro)) ** 1.11;
-        const inv = -1.8 * Math.log10(a + 6.9 / reynolds);
-        return 1 / (inv * inv);
-      }
-      var VELOCIDAD_CONDUCTO = {
-        principal: { min: 5, max: 9, que: "Conducto principal, en falso techo de pasillo o patinillo." },
-        ramal: { min: 3, max: 5, que: "Ramal hacia las unidades terminales." },
-        difusion: { min: 1.5, max: 3, que: "Tramo final, ya cerca del difusor: aqu\xED el ruido se oye." }
-      };
-      var RUGOSIDAD_CHAPA = 9e-5;
-      var DENSIDAD_AIRE = 1.2;
-      var VISCOSIDAD_AIRE = 15e-6;
-      function conductoCal({ caudal, ancho, alto, diametro, tipo = "principal", largo = 1 }) {
-        const q = numCal(caudal);
-        if (!(q > 0)) return { error: "Hace falta el caudal en m\xB3/h." };
-        const qs = q / 3600;
-        const rango = VELOCIDAD_CONDUCTO[tipo] || VELOCIDAD_CONDUCTO.principal;
-        const supuestos = [];
-        let a = numCal(ancho);
-        let b = numCal(alto);
-        let d = numCal(diametro);
-        let propuesto = false;
-        if (!d && (!a || !b)) {
-          const vObjetivo = (rango.min + rango.max) / 2;
-          const seccion2 = qs / vObjetivo;
-          if (a) {
-            b = Math.ceil(seccion2 / (a / 1e3) * 1e3 / 50) * 50;
-          } else if (b) {
-            a = Math.ceil(seccion2 / (b / 1e3) * 1e3 / 50) * 50;
-          } else {
-            const lado = Math.sqrt(seccion2 / 2);
-            a = Math.ceil(lado * 2 * 1e3 / 50) * 50;
-            b = Math.ceil(lado * 1e3 / 50) * 50;
-          }
-          propuesto = true;
-          supuestos.push(`No se han dado medidas: se propone ${a} \xD7 ${b} mm para ir a ${cifraCal(vObjetivo, 1)} m/s.`);
-        }
-        let seccion;
-        let dEquivalente;
-        if (d) {
-          seccion = Math.PI * (d / 2e3) ** 2;
-          dEquivalente = d / 1e3;
-        } else {
-          const am = a / 1e3;
-          const bm = b / 1e3;
-          seccion = am * bm;
-          dEquivalente = 1.3 * Math.pow(am * bm, 0.625) / Math.pow(am + bm, 0.25);
-        }
-        const velocidad = qs / seccion;
-        const reynolds = velocidad * dEquivalente / VISCOSIDAD_AIRE;
-        const f = factorFriccionCal(reynolds, RUGOSIDAD_CHAPA, dEquivalente);
-        const perdidaPorMetro = f * (1 / dEquivalente) * (DENSIDAD_AIRE * velocidad * velocidad / 2);
-        const avisos = [];
-        if (velocidad > rango.max) {
-          avisos.push({
-            gravedad: "mal",
-            texto: `${cifraCal(velocidad, 2)} m/s es mucho para un ${tipo}: por encima de ${rango.max} m/s el conducto se oye, y el ruido no se arregla sin rehacerlo.`
-          });
-        } else if (velocidad < rango.min) {
-          avisos.push({
-            gravedad: "aviso",
-            texto: `${cifraCal(velocidad, 2)} m/s es poco: el conducto est\xE1 sobredimensionado y cuesta chapa de m\xE1s.`
-          });
-        }
-        if (a && b && Math.max(a, b) / Math.min(a, b) > 4) {
-          avisos.push({
-            gravedad: "aviso",
-            texto: "La proporci\xF3n pasa de 4:1. A partir de ah\xED se pierde mucha m\xE1s carga que la que dice este c\xE1lculo y cuesta m\xE1s chapa por m\xB2 \xFAtil."
-          });
-        }
-        return {
-          caudal: q,
-          ancho: a || null,
-          alto: b || null,
-          diametro: d || null,
-          propuesto,
-          seccion: redondeaCal(seccion, 4),
-          velocidad: redondeaCal(velocidad, 2),
-          diametroEquivalente: redondeaCal(dEquivalente * 1e3, 0),
-          reynolds: Math.round(reynolds),
-          perdidaPorMetro: redondeaCal(perdidaPorMetro, 2),
-          perdidaTotal: redondeaCal(perdidaPorMetro * (numCal(largo) || 1), 2),
-          rango,
-          supuestos: [
-            ...supuestos,
-            "Chapa galvanizada (rugosidad 0,09 mm), aire a 20 \xB0C.",
-            "La p\xE9rdida es solo por rozamiento: los codos, las tes y las compuertas van aparte."
-          ],
-          avisos
-        };
-      }
-      var RUGOSIDAD_TUBO = {
-        aceroNegro: { valor: 45e-6, etiqueta: "Acero negro" },
-        aceroGalv: { valor: 15e-5, etiqueta: "Acero galvanizado" },
-        cobre: { valor: 15e-7, etiqueta: "Cobre" },
-        ppr: { valor: 7e-6, etiqueta: "Polipropileno (PPR)" },
-        multicapa: { valor: 7e-6, etiqueta: "Multicapa" },
-        pead: { valor: 7e-6, etiqueta: "Polietileno" }
-      };
-      var DENSIDAD_AGUA = 988;
-      var VISCOSIDAD_AGUA = 55e-8;
-      var VELOCIDAD_TUBO = { min: 0.6, max: 2, recomendadaMax: 1.5 };
-      function tuberiaCal({ caudal, diametroInterior, material = "aceroNegro", largo = 1, unidadCaudal = "m3h" }) {
-        const q = numCal(caudal);
-        const d = numCal(diametroInterior);
-        if (!(q > 0)) return { error: "Hace falta el caudal." };
-        if (!(d > 0)) return { error: "Hace falta el di\xE1metro interior en mm." };
-        const qs = unidadCaudal === "ls" ? q / 1e3 : q / 3600;
-        const dm = d / 1e3;
-        const seccion = Math.PI * (dm / 2) ** 2;
-        const velocidad = qs / seccion;
-        const rug = RUGOSIDAD_TUBO[material] || RUGOSIDAD_TUBO.aceroNegro;
-        const reynolds = velocidad * dm / VISCOSIDAD_AGUA;
-        const f = factorFriccionCal(reynolds, rug.valor, dm);
-        const perdidaPorMetro = f * (1 / dm) * (DENSIDAD_AGUA * velocidad * velocidad / 2);
-        const avisos = [];
-        if (velocidad > VELOCIDAD_TUBO.max) {
-          avisos.push({
-            gravedad: "mal",
-            texto: `${cifraCal(velocidad, 2)} m/s pasa de 2 m/s: erosiona el tubo y se oye en las zonas ocupadas.`
-          });
-        } else if (velocidad > VELOCIDAD_TUBO.recomendadaMax) {
-          avisos.push({
-            gravedad: "aviso",
-            texto: `${cifraCal(velocidad, 2)} m/s: por encima de 1,5 m/s empieza a o\xEDrse en locales tranquilos.`
-          });
-        } else if (velocidad < VELOCIDAD_TUBO.min) {
-          avisos.push({
-            gravedad: "aviso",
-            texto: `${cifraCal(velocidad, 2)} m/s es poco: por debajo de 0,6 m/s el aire no arrastra y se queda en los puntos altos.`
-          });
-        }
-        if (perdidaPorMetro > 400) {
-          avisos.push({
-            gravedad: "aviso",
-            texto: `${cifraCal(perdidaPorMetro, 0)} Pa/m es alto. Lo habitual es dimensionar entre 100 y 300 Pa/m: m\xE1s all\xE1, la bomba se come el ahorro del tubo.`
-          });
-        }
-        return {
-          caudal: q,
-          diametroInterior: d,
-          material: rug.etiqueta,
-          velocidad: redondeaCal(velocidad, 2),
-          reynolds: Math.round(reynolds),
-          perdidaPorMetro: redondeaCal(perdidaPorMetro, 1),
-          perdidaTotal: redondeaCal(perdidaPorMetro * (numCal(largo) || 1), 1),
-          mcaPorMetro: redondeaCal(perdidaPorMetro / (DENSIDAD_AGUA * 9.81), 4),
-          supuestos: [
-            `Agua a 50 \xB0C en ${rug.etiqueta.toLowerCase()}.`,
-            "Es el di\xE1metro INTERIOR: en acero no es el DN, y confundirlos cambia el resultado un 10 %.",
-            "Solo rozamiento: codos, v\xE1lvulas y accesorios van aparte."
-          ],
-          avisos
-        };
-      }
-      var SECCIONES_CABLE = [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240, 300];
-      var CONDUCTIVIDAD = { cobre: 44, aluminio: 28 };
-      var METODOS_INSTALACION = {
-        B1: { etiqueta: "B1 \u2014 conductores en tubo empotrado en obra", que: "Lo habitual en instalaci\xF3n interior de edificio." },
-        B2: { etiqueta: "B2 \u2014 cable multiconductor en tubo", que: "Manguera dentro de tubo, empotrado o en superficie." },
-        E: { etiqueta: "E \u2014 cable multiconductor al aire o en bandeja perforada", que: "Bandeja de sala de m\xE1quinas y patinillos: el cable se refrigera mejor y admite m\xE1s." }
-      };
-      var ADMISIBLES = {
-        /* [método][aislamiento] alineado con las secciones normalizadas, en amperios. */
-        B1: {
-          pvc: [13.5, 18, 24, 31, 42, 56, 73, 89, 108, 136, 164, 188, 216, 248, 286, null],
-          xlpe: [17, 23, 31, 40, 54, 73, 95, 117, 141, 179, 216, 249, 285, 324, 380, null]
-        },
-        B2: {
-          pvc: [13, 17.5, 23, 29, 39, 52, 68, 83, 99, 125, 150, 172, 196, 223, 261, null],
-          xlpe: [16.5, 22, 30, 37, 52, 70, 88, 110, 133, 171, 207, 240, 278, 317, 374, null]
-        },
-        E: {
-          pvc: [15.5, 21, 28, 36, 50, 66, 84, 104, 125, 160, 194, 225, 260, 297, 350, null],
-          xlpe: [20, 27, 37, 48, 66, 88, 117, 144, 175, 222, 269, 312, 342, 384, 450, null]
-        }
-      };
-      var FACTOR_MONOFASICO = 1.1;
-      function seccionPorIntensidadCal(intensidad, { metodo = "B1", aislamiento = "xlpe", fases = 3, agrupados = 1 } = {}) {
-        const tabla = (ADMISIBLES[metodo] || ADMISIBLES.B1)[aislamiento] || ADMISIBLES.B1.xlpe;
-        const FACTOR_AGRUPAMIENTO = { 1: 1, 2: 0.8, 3: 0.7, 4: 0.65, 5: 0.6, 6: 0.57, 7: 0.54, 8: 0.52, 9: 0.5 };
-        const k = FACTOR_AGRUPAMIENTO[Math.min(Math.max(agrupados, 1), 9)] || 0.5;
-        const kFases = fases === 1 ? FACTOR_MONOFASICO : 1;
-        for (let i = 0; i < SECCIONES_CABLE.length; i += 1) {
-          const base = tabla[i];
-          if (base === null || base === void 0) continue;
-          const admisible = base * k * kFases;
-          if (admisible >= intensidad) {
-            return { seccion: SECCIONES_CABLE[i], admisible: Math.round(admisible * 10) / 10, factorAgrupamiento: k };
-          }
-        }
-        return { seccion: null, admisible: null, factorAgrupamiento: k };
-      }
-      function cableCal({
-        intensidad,
-        largo,
-        tension = 400,
-        caidaMax = 5,
-        fases = 3,
-        cosFi = 0.9,
-        conductor = "cobre",
-        metodo = "B1",
-        aislamiento = "xlpe",
-        agrupados = 1
-      }) {
-        const i = numCal(intensidad);
-        const l = numCal(largo);
-        const u = numCal(tension);
-        const dU = numCal(caidaMax);
-        if (!(i > 0)) return { error: "Hace falta la intensidad en amperios." };
-        if (!(l > 0)) return { error: "Hace falta la longitud de la l\xEDnea en metros." };
-        const gamma = CONDUCTIVIDAD[conductor] || CONDUCTIVIDAD.cobre;
-        const caidaVoltios = u * dU / 100;
-        const seccionExacta = fases === 1 ? 2 * l * i * cosFi / (gamma * caidaVoltios) : Math.sqrt(3) * l * i * cosFi / (gamma * caidaVoltios);
-        const porCaida = SECCIONES_CABLE.find((s) => s >= seccionExacta) || null;
-        const porTermica = seccionPorIntensidadCal(i, { metodo, aislamiento, fases, agrupados });
-        const porIntensidad = porTermica.seccion;
-        const seccion = porCaida && porIntensidad ? Math.max(porCaida, porIntensidad) : porCaida || porIntensidad;
-        const manda = !porCaida || !porIntensidad ? porCaida ? "caida" : "intensidad" : porIntensidad > porCaida ? "intensidad" : porCaida > porIntensidad ? "caida" : "ambas";
-        const caidaReal = seccion ? fases === 1 ? 2 * l * i * cosFi / (gamma * seccion) : Math.sqrt(3) * l * i * cosFi / (gamma * seccion) : null;
-        const avisos = [];
-        if (!seccion) {
-          avisos.push({
-            gravedad: "mal",
-            texto: `Salen ${cifraCal(seccionExacta, 1)} mm\xB2, que pasa de la mayor secci\xF3n normalizada. Hay que ir a varios conductores por fase o subir la tensi\xF3n.`
-          });
-        } else if (manda === "intensidad") {
-          avisos.push({
-            gravedad: "aviso",
-            texto: `Por ca\xEDda de tensi\xF3n bastar\xEDan ${porCaida} mm\xB2, pero el cable no aguantar\xEDa ${i} A: manda la intensidad admisible, ${porIntensidad} mm\xB2. Dimensionar solo por ca\xEDda quema el cable.`
-          });
-        } else if (manda === "caida") {
-          avisos.push({
-            gravedad: "aviso",
-            texto: `T\xE9rmicamente bastar\xEDan ${porIntensidad} mm\xB2, pero la l\xEDnea es larga y la ca\xEDda obliga a ${porCaida} mm\xB2.`
-          });
-        }
-        if (agrupados > 1) {
-          avisos.push({
-            gravedad: "aviso",
-            texto: `Con ${agrupados} circuitos juntos el cable admite un ${Math.round((1 - porTermica.factorAgrupamiento) * 100)} % menos: ya est\xE1 descontado.`
-          });
-        }
-        if (dU > 5) {
-          avisos.push({
-            gravedad: "aviso",
-            texto: "El REBT admite hasta un 3 % en alumbrado y un 5 % en fuerza para instalaciones interiores. Con m\xE1s, los motores arrancan mal."
-          });
-        }
-        return {
-          intensidad: i,
-          largo: l,
-          tension: u,
-          fases,
-          seccionExacta: redondeaCal(seccionExacta, 2),
-          seccionPorCaida: porCaida,
-          seccionPorIntensidad: porIntensidad,
-          intensidadAdmisible: porTermica.admisible,
-          manda,
-          seccion,
-          caidaVoltios: redondeaCal(caidaVoltios, 2),
-          caidaReal: caidaReal === null ? null : redondeaCal(caidaReal, 2),
-          caidaRealPorcentaje: caidaReal === null ? null : redondeaCal(caidaReal / u * 100, 2),
-          metodo: (METODOS_INSTALACION[metodo] || METODOS_INSTALACION.B1).etiqueta,
-          supuestos: [
-            `${conductor === "aluminio" ? "Aluminio" : "Cobre"} a temperatura de servicio (\u03B3 = ${gamma} m/\u03A9\xB7mm\xB2), aislamiento ${aislamiento === "pvc" ? "PVC" : "XLPE/EPR"}.`,
-            `Factor de potencia ${String(cosFi).replace(".", ",")}. Instalaci\xF3n ${metodo} a 40 \xB0C de ambiente.`,
-            "Se comprueban las DOS cosas: ca\xEDda de tensi\xF3n e intensidad admisible. Manda la mayor."
-          ],
-          avisos
-        };
-      }
-      function bombaCal({ caudal, perdidaCircuito, alturaGeometrica = 0, rendimiento = 0.7, unidadCaudal = "m3h" }) {
-        const q = numCal(caudal);
-        const hp = numCal(perdidaCircuito);
-        const hg = numCal(alturaGeometrica) || 0;
-        const eta = numCal(rendimiento) || 0.7;
-        if (!(q > 0)) return { error: "Hace falta el caudal." };
-        if (hp === null) return { error: "Hace falta la p\xE9rdida de carga del circuito, en metros de columna de agua." };
-        const qs = unidadCaudal === "ls" ? q / 1e3 : q / 3600;
-        const altura = hp + hg;
-        const potenciaHidraulica = DENSIDAD_AGUA * 9.81 * qs * altura;
-        const potenciaEje = potenciaHidraulica / eta;
-        const avisos = [];
-        if (hg > 0) {
-          avisos.push({
-            gravedad: "aviso",
-            texto: "En un circuito CERRADO la altura geom\xE9trica no cuenta: lo que sube por un lado baja por el otro. Solo se suma en circuitos abiertos, como el llenado o una torre."
-          });
-        }
-        if (eta > 0.85) {
-          avisos.push({ gravedad: "aviso", texto: "Un rendimiento por encima del 85 % es optimista para una bomba de edificio." });
-        }
-        return {
-          caudal: q,
-          altura: redondeaCal(altura, 2),
-          perdidaCircuito: hp,
-          alturaGeometrica: hg,
-          potenciaHidraulica: redondeaCal(potenciaHidraulica, 0),
-          potenciaEje: redondeaCal(potenciaEje, 0),
-          potenciaEjeKw: redondeaCal(potenciaEje / 1e3, 2),
-          supuestos: [
-            `Rendimiento del ${Math.round(eta * 100)} % (bomba y motor).`,
-            "Agua a 50 \xB0C.",
-            "La p\xE9rdida del circuito es la del camino M\xC1S DESFAVORABLE, ida y vuelta, con sus accesorios."
-          ],
-          avisos
-        };
-      }
-      var RATIOS_TERMICOS = {
-        oficinas: { frio: 110, calor: 70, que: "Oficinas di\xE1fanas con ocupaci\xF3n normal." },
-        comercial: { frio: 160, calor: 90, que: "Local comercial con iluminaci\xF3n de exposici\xF3n." },
-        hospital: { frio: 150, calor: 100, que: "Hospitalizaci\xF3n y consultas. Los quir\xF3fanos van aparte." },
-        quirofano: { frio: 350, calor: 200, que: "Quir\xF3fano: manda la renovaci\xF3n de aire, no la carga." },
-        hotel: { frio: 100, calor: 80, que: "Habitaciones de hotel." },
-        residencial: { frio: 90, calor: 70, que: "Vivienda." },
-        restaurante: { frio: 250, calor: 110, que: "Restaurante con cocina a la vista." },
-        cpd: { frio: 800, calor: 0, que: "Sala t\xE9cnica: manda la disipaci\xF3n de los equipos." },
-        nave: { frio: 70, calor: 90, que: "Nave log\xEDstica. En calor manda la envolvente." }
-      };
-      function cargasTermicasCal({ superficie, uso = "oficinas", simultaneidad = 0.85 }) {
-        const s = numCal(superficie);
-        if (!(s > 0)) return { error: "Hace falta la superficie en m\xB2." };
-        const r = RATIOS_TERMICOS[uso] || RATIOS_TERMICOS.oficinas;
-        const sim = numCal(simultaneidad) || 0.85;
-        const frio = s * r.frio * sim;
-        const calor = s * r.calor * sim;
-        return {
-          superficie: s,
-          uso,
-          ratioFrio: r.frio,
-          ratioCalor: r.calor,
-          simultaneidad: sim,
-          frioKw: redondeaCal(frio / 1e3, 1),
-          calorKw: redondeaCal(calor / 1e3, 1),
-          frigorias: redondeaCal(frio / 1e3 * 860, 0),
-          supuestos: [
-            r.que,
-            `Ratio de ${r.frio} W/m\xB2 en fr\xEDo y ${r.calor} W/m\xB2 en calor, con un ${Math.round(sim * 100)} % de simultaneidad.`
-          ],
-          avisos: [{
-            gravedad: "aviso",
-            texto: "Esto es una ESTIMACI\xD3N por ratio: sirve para saber si caben dos m\xE1quinas o tres y para presupuestar, no para elegir la m\xE1quina. Esa decisi\xF3n necesita el c\xE1lculo con la envolvente, la orientaci\xF3n y la ocupaci\xF3n reales."
-          }]
-        };
-      }
-      var RIESGO_PCI = {
-        ligero: {
-          densidad: 2.25,
-          area: 84,
-          etiqueta: "Riesgo ligero",
-          que: "Oficinas, colegios, hospitales: poca carga de fuego."
-        },
-        ordinario1: { densidad: 5, area: 72, etiqueta: "Ordinario grupo 1", que: "Talleres de metal, hormig\xF3n." },
-        ordinario2: { densidad: 5, area: 144, etiqueta: "Ordinario grupo 2", que: "Panader\xEDas, textil, aparcamientos." },
-        ordinario3: { densidad: 5, area: 216, etiqueta: "Ordinario grupo 3", que: "Almacenes de madera, papel, imprentas." },
-        ordinario4: { densidad: 5, area: 360, etiqueta: "Ordinario grupo 4", que: "Espuma, caucho, pl\xE1sticos en peque\xF1a cantidad." },
-        altoProceso: { densidad: 7.5, area: 260, etiqueta: "Riesgo alto de proceso", que: "Procesos con l\xEDquidos inflamables." }
-      };
-      function rociadoresCal({ riesgo = "ligero", areaProtegida, duracionMin = null, areaPorRociador = 12 }) {
-        const r = RIESGO_PCI[riesgo] || RIESGO_PCI.ligero;
-        const areaOp = r.area;
-        const caudalLitrosMin = r.densidad * areaOp;
-        const caudalM3h = caudalLitrosMin * 60 / 1e3;
-        const duracion = numCal(duracionMin) || (riesgo === "ligero" ? 30 : riesgo.startsWith("ordinario") ? 60 : 90);
-        const reservaM3 = redondeaCal(caudalLitrosMin * duracion / 1e3, 1);
-        const totalProtegida = numCal(areaProtegida);
-        const rociadoresTotales = totalProtegida ? Math.ceil(totalProtegida / (numCal(areaPorRociador) || 12)) : null;
-        const rociadoresEnOperacion = Math.ceil(areaOp / (numCal(areaPorRociador) || 12));
-        return {
-          riesgo: r.etiqueta,
-          densidad: r.densidad,
-          areaOperacion: areaOp,
-          caudalLitrosMin: redondeaCal(caudalLitrosMin, 0),
-          caudalM3h: redondeaCal(caudalM3h, 1),
-          duracionMin: duracion,
-          reservaM3,
-          rociadoresEnOperacion,
-          rociadoresTotales,
-          areaProtegida: totalProtegida,
-          supuestos: [
-            r.que,
-            `UNE-EN 12845: ${cifraJustaCal(r.densidad)} mm/min sobre ${areaOp} m\xB2 de \xE1rea de operaci\xF3n, ${duracion} min de autonom\xEDa.`,
-            `Un rociador cada ${cifraCal(numCal(areaPorRociador) || 12, 0)} m\xB2.`
-          ],
-          avisos: [{
-            gravedad: "aviso",
-            texto: "El caudal es el del \xC1REA DE OPERACI\xD3N, no el de toda la instalaci\xF3n: la norma supone que solo arde una parte. La presi\xF3n en el rociador m\xE1s desfavorable hay que comprobarla con el c\xE1lculo hidr\xE1ulico de la red."
-          }]
-        };
-      }
-      var CALCULOS_INSTALACION = [
-        {
-          id: "conducto",
-          etiqueta: "Conductos",
-          que: "P\xE9rdida de carga y dimensionado por velocidad.",
-          fn: conductoCal
-        },
-        {
-          id: "tuberia",
-          etiqueta: "Tuber\xEDa hidr\xE1ulica",
-          que: "Caudal, velocidad y p\xE9rdida por metro.",
-          fn: tuberiaCal
-        },
-        {
-          id: "cable",
-          etiqueta: "Cable el\xE9ctrico",
-          que: "Secci\xF3n por ca\xEDda de tensi\xF3n y por intensidad admisible.",
-          fn: cableCal
-        },
-        {
-          id: "bomba",
-          etiqueta: "Bomba",
-          que: "Punto de trabajo y potencia al eje.",
-          fn: bombaCal
-        },
-        {
-          id: "termicas",
-          etiqueta: "Cargas t\xE9rmicas",
-          que: "Estimaci\xF3n r\xE1pida por ratio y uso.",
-          fn: cargasTermicasCal
-        },
-        {
-          id: "rociadores",
-          etiqueta: "PCI: rociadores",
-          que: "Densidad, \xE1rea de operaci\xF3n y reserva de agua.",
-          fn: rociadoresCal
-        }
-      ];
-      (function exportar(API) {
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.CALCULO = API;
-      })({
-        CALCULOS: CALCULOS_INSTALACION,
-        VELOCIDAD_CONDUCTO,
-        VELOCIDAD_TUBO,
-        RUGOSIDAD_TUBO,
-        SECCIONES: SECCIONES_CABLE,
-        RATIOS_TERMICOS,
-        RIESGO_PCI,
-        CONDUCTIVIDAD,
-        METODOS_INSTALACION,
-        ADMISIBLES,
-        conducto: conductoCal,
-        tuberia: tuberiaCal,
-        cable: cableCal,
-        bomba: bombaCal,
-        cargasTermicas: cargasTermicasCal,
-        rociadores: rociadoresCal,
-        factorFriccion: factorFriccionCal,
-        seccionPorIntensidad: seccionPorIntensidadCal
-      });
-    }
-  });
-
-  // shared/commissioning/instrumentos.js
-  var require_instrumentos = __commonJS({
-    "shared/commissioning/instrumentos.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function iniciarInstrumentos() {
-        const DIAS_AVISO = 30;
-        const MAGNITUDES_INSTRUMENTO = {
-          caudal: "Caudal / velocidad de aire",
-          presion: "Presi\xF3n",
-          temperatura: "Temperatura",
-          electrica: "El\xE9ctrica",
-          humedad: "Humedad",
-          sonido: "Sonido",
-          otra: "Otra"
-        };
-        const ESTADOS_INSTRUMENTO = {
-          vigente: { nombre: "Vigente", clase: "bien" },
-          caducaPronto: { nombre: "Caduca pronto", clase: "aviso" },
-          caducado: { nombre: "CADUCADO", clase: "mal" },
-          sinCertificado: { nombre: "Sin certificado", clase: "mal" }
-        };
-        const llanoIn = (v) => String(v ?? "").trim();
-        const fechaIn = (v) => /^\d{4}-\d{2}-\d{2}/.test(llanoIn(v)) ? llanoIn(v).slice(0, 10) : null;
-        const hoyIn = () => ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
-        function diasEntreIn(a, b) {
-          return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 864e5);
-        }
-        function estadoInstrumento(inst = {}, fecha = null) {
-          const cad = fechaIn(inst.caducidad);
-          if (!cad) return "sinCertificado";
-          const dia = fechaIn(fecha) || hoyIn();
-          if (cad < dia) return "caducado";
-          if (!fechaIn(fecha) && diasEntreIn(dia, cad) <= DIAS_AVISO) return "caducaPronto";
-          return "vigente";
-        }
-        function normalizarInstrumento(e = {}) {
-          const d = {
-            nombre: llanoIn(e.nombre).slice(0, 120),
-            magnitud: MAGNITUDES_INSTRUMENTO[e.magnitud] ? e.magnitud : "otra",
-            marca: llanoIn(e.marca).slice(0, 80) || null,
-            modelo: llanoIn(e.modelo).slice(0, 80) || null,
-            numSerie: llanoIn(e.numSerie).slice(0, 80) || null,
-            certificado: llanoIn(e.certificado).slice(0, 120) || null,
-            entidad: llanoIn(e.entidad).slice(0, 120) || null,
-            fechaCalibracion: fechaIn(e.fechaCalibracion),
-            caducidad: fechaIn(e.caducidad),
-            archivoCertificado: llanoIn(e.archivoCertificado) || null,
-            notas: llanoIn(e.notas).slice(0, 1e3) || null
-          };
-          if (!d.nombre) return { ok: false, error: "El instrumento necesita un nombre (\xABAnem\xF3metro de hilo caliente\xBB)." };
-          if (!d.numSerie) return { ok: false, error: "Sin n\xBA de serie no se puede saber qu\xE9 aparato es." };
-          if (d.fechaCalibracion && d.caducidad && d.caducidad < d.fechaCalibracion) {
-            return { ok: false, error: "La caducidad es anterior a la calibraci\xF3n." };
-          }
-          return { ok: true, datos: d };
-        }
-        function descripcionInstrumento(inst = {}) {
-          const fecha = (f) => f ? `${f.slice(8, 10)}/${f.slice(5, 7)}/${f.slice(0, 4)}` : "";
-          return [
-            llanoIn(inst.nombre),
-            [inst.marca, inst.modelo].filter(Boolean).join(" "),
-            inst.numSerie ? `n\xBA ${inst.numSerie}` : "",
-            inst.certificado ? `cert. ${inst.certificado}` : "",
-            inst.caducidad ? `caduca ${fecha(inst.caducidad)}` : "sin certificado"
-          ].filter(Boolean).join(" \xB7 ");
-        }
-        function revisarInstrumentos(ids = [], catalogo = [], fechaEnsayo = null) {
-          const porId = catalogo instanceof Map ? catalogo : new Map((catalogo || []).map((i) => [i.id, i]));
-          const lista = [];
-          const avisos = [];
-          for (const id of [...new Set(ids || [])]) {
-            const inst = porId.get(id);
-            if (!inst) {
-              lista.push({ id, estado: "sinCertificado", descripcion: "Instrumento que ya no est\xE1 en la lista" });
-              avisos.push("Un instrumento citado ya no est\xE1 en la lista de instrumentos");
-              continue;
-            }
-            const estado = estadoInstrumento(inst, fechaEnsayo);
-            lista.push({ ...inst, estado, descripcion: descripcionInstrumento(inst) });
-            if (estado === "caducado") avisos.push(`${inst.nombre} n\xBA ${inst.numSerie}: calibraci\xF3n CADUCADA el d\xEDa del ensayo`);
-            if (estado === "sinCertificado") avisos.push(`${inst.nombre} n\xBA ${inst.numSerie}: sin certificado de calibraci\xF3n`);
-          }
-          return { lista, avisos, malos: lista.filter((x) => x.estado === "caducado" || x.estado === "sinCertificado").length };
-        }
-        (function exportar(API) {
-          if (typeof module !== "undefined" && module.exports) module.exports = API;
-          if (typeof window !== "undefined") window.INSTRUMENTOS_PM = API;
-        })({
-          DIAS_AVISO,
-          MAGNITUDES: MAGNITUDES_INSTRUMENTO,
-          ESTADOS: ESTADOS_INSTRUMENTO,
-          estado: estadoInstrumento,
-          normalizar: normalizarInstrumento,
-          descripcion: descripcionInstrumento,
-          revisar: revisarInstrumentos
-        });
-      })();
-    }
-  });
-
-  // shared/commissioning/balanceo.js
-  var require_balanceo = __commonJS({
-    "shared/commissioning/balanceo.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var _textoBal = typeof __require !== "undefined" ? require_texto() : window.TEXTO;
-      var _calculoBal = typeof __require !== "undefined" ? require_instalaciones() : window.CALCULO;
-      var _instrumentosBal = () => typeof __require !== "undefined" ? require_instrumentos() : typeof window !== "undefined" ? window.INSTRUMENTOS_PM : null;
-      var DENSIDAD_AIRE_BAL = 1.2;
-      var cifraBal = (v, d = 0) => _textoBal.numero(v, d);
-      var numBal = (v) => {
-        if (v === null || v === void 0) return null;
-        if (typeof v === "number") return Number.isFinite(v) ? v : null;
-        const t = String(v).trim();
-        if (!t) return null;
-        const n = Number(t.replace(/\s/g, "").replace(",", "."));
-        return Number.isFinite(n) ? n : null;
-      };
-      var redBal = (v, d = 1) => {
-        if (v === null || v === void 0 || !Number.isFinite(v)) return null;
-        const f = 10 ** d;
-        return Math.round(v * f) / f;
-      };
-      var dinamicaBal = (v) => DENSIDAD_AIRE_BAL * v * v / 2;
-      var TIPOS_EQUIPO = {
-        uta: { nombre: "Climatizadora (UTA)", circuitos: ["impulsion", "retorno"] },
-        recuperador: { nombre: "Recuperador de calor", circuitos: ["impulsion", "retorno"] },
-        rooftop: { nombre: "Rooftop / compacto", circuitos: ["impulsion", "retorno"] },
-        fancoil: { nombre: "Fancoil / unidad de conductos", circuitos: ["impulsion", "retorno"] },
-        impulsion: { nombre: "Ventilador de impulsi\xF3n", circuitos: ["impulsion"] },
-        extractor: { nombre: "Extractor", circuitos: ["retorno"] }
-      };
-      var CIRCUITOS = {
-        impulsion: { nombre: "Impulsi\xF3n", terminales: "difusores" },
-        retorno: { nombre: "Retorno / extracci\xF3n", terminales: "rejas" }
-      };
-      var TERMINALES = {
-        difusorRotacional: { nombre: "Difusor rotacional", circuito: "impulsion", qNom: 400, dpNom: 25, glifo: "rotacional" },
-        difusorCuadrado: { nombre: "Difusor cuadrado multidireccional", circuito: "impulsion", qNom: 350, dpNom: 20, glifo: "cuadrado" },
-        difusorCircular: { nombre: "Difusor circular de conos", circuito: "impulsion", qNom: 350, dpNom: 20, glifo: "conos" },
-        difusorLineal: { nombre: "Difusor lineal de ranuras", circuito: "impulsion", qNom: 200, dpNom: 20, glifo: "lineal" },
-        rejillaImpulsion: { nombre: "Rejilla de impulsi\xF3n doble deflexi\xF3n", circuito: "impulsion", qNom: 400, dpNom: 15, glifo: "rejilla" },
-        tobera: { nombre: "Tobera de largo alcance", circuito: "impulsion", qNom: 600, dpNom: 60, glifo: "tobera" },
-        rejillaRetorno: { nombre: "Rejilla de retorno de lamas fijas", circuito: "retorno", qNom: 400, dpNom: 10, glifo: "lamas" },
-        rejillaExtraccion: { nombre: "Rejilla de extracci\xF3n con regulaci\xF3n", circuito: "retorno", qNom: 300, dpNom: 15, glifo: "lamas" },
-        retornoLineal: { nombre: "Rejilla lineal de retorno", circuito: "retorno", qNom: 200, dpNom: 10, glifo: "lineal" },
-        bocaExtraccion: { nombre: "Boca de extracci\xF3n (v\xE1lvula)", circuito: "retorno", qNom: 60, dpNom: 50, glifo: "boca" }
-      };
-      var ELEMENTOS = {
-        compuertaRegulacion: { nombre: "Compuerta de regulaci\xF3n", zeta: 0.5, porBoca: true, glifo: "compuerta" },
-        compuertaCortafuegos: { nombre: "Compuerta cortafuegos", zeta: 0.5, glifo: "cortafuegos" },
-        vav: { nombre: "Caja VAV", dp: 60, porBoca: true, glifo: "vav" },
-        cav: { nombre: "Regulador de caudal constante", dp: 50, porBoca: true, glifo: "vav" },
-        silenciador: { nombre: "Silenciador", dp: 40, glifo: "silenciador" },
-        filtroConducto: { nombre: "Filtro en conducto", dp: 100, glifo: "filtro" },
-        bateriaConducto: { nombre: "Bater\xEDa en conducto", dp: 40, glifo: "bateria" },
-        codo: { nombre: "Codo 90\xB0 con directrices", zeta: 0.3, glifo: null },
-        derivacion: { nombre: "Derivaci\xF3n en T", zeta: 0.5, glifo: null },
-        plenum: { nombre: "Plenum de conexi\xF3n", zeta: 1, porBoca: true, glifo: null },
-        flexible: { nombre: "Conducto flexible (\u22481,5 m)", dp: 10, porBoca: true, glifo: null },
-        compuertaSobrepresion: { nombre: "Compuerta de sobrepresi\xF3n", dp: 20, glifo: "compuerta" },
-        tomaExterior: { nombre: "Rejilla de toma / expulsi\xF3n exterior", dp: 30, glifo: "lamas" }
-      };
-      var MAGNITUDES = [
-        { id: "caudalImpulsion", nombre: "Caudal de impulsi\xF3n", unidad: "m\xB3/h", circuito: "impulsion", tolerancia: "total" },
-        { id: "caudalRetorno", nombre: "Caudal de retorno / extracci\xF3n", unidad: "m\xB3/h", circuito: "retorno", tolerancia: "total" },
-        { id: "presionImpulsion", nombre: "Presi\xF3n disponible impulsi\xF3n", unidad: "Pa", circuito: "impulsion" },
-        { id: "presionRetorno", nombre: "Presi\xF3n disponible retorno", unidad: "Pa", circuito: "retorno" },
-        { id: "tempImpulsion", nombre: "Temperatura de impulsi\xF3n", unidad: "\xB0C", absoluta: 1 },
-        { id: "tempRetorno", nombre: "Temperatura de retorno", unidad: "\xB0C", absoluta: 1 },
-        { id: "tempExterior", nombre: "Temperatura exterior", unidad: "\xB0C" },
-        { id: "potenciaFrio", nombre: "Potencia frigor\xEDfica", unidad: "kW" },
-        { id: "potenciaCalor", nombre: "Potencia calor\xEDfica", unidad: "kW" },
-        { id: "potenciaVentilador", nombre: "Potencia de ventiladores", unidad: "kW" },
-        { id: "rpm", nombre: "Velocidad del ventilador", unidad: "rpm" }
-      ];
-      var MAGNITUD = Object.fromEntries(MAGNITUDES.map((m) => [m.id, m]));
-      var SIN_TOLERANCIAS = { boca: null, total: null };
-      var TOLERANCIA_FUGAS = 0.1;
-      function circuitoVacio(id) {
-        return {
-          terminal: id === "impulsion" ? "difusorRotacional" : "rejillaRetorno",
-          numero: 0,
-          /* Los del catálogo del fabricante del terminal, si se tienen. */
-          dpNom: null,
-          qNom: null,
-          conducto: { ancho: null, alto: null, diametro: null, largo: null },
-          elementos: [],
-          bocas: []
-        };
-      }
-      function hojaVacia(equipo = {}) {
-        const tipo = tipoDeEquipo(equipo);
-        return {
-          version: 1,
-          tipo,
-          fabrica: {},
-          proyecto: {},
-          medido: {},
-          fuentes: { fabrica: null, proyecto: null },
-          /* El día en que se midió y con qué (ids de la lista de instrumentos). */
-          fechaMedicion: null,
-          instrumentos: [],
-          circuitos: Object.fromEntries(Object.keys(CIRCUITOS).map((c) => [c, circuitoVacio(c)]))
-        };
-      }
-      function tipoDeEquipo(equipo = {}) {
-        const t = [equipo.grupo, equipo.tag, equipo.modelo].filter(Boolean).join(" ").toLowerCase();
-        if (/recup/.test(t)) return "recuperador";
-        if (/roof|compact/.test(t)) return "rooftop";
-        if (/fanc|fan-c|\bfc\b|conductos/.test(t)) return "fancoil";
-        if (/extrac|\bext\b|\bex-|extr|\bvex/.test(t)) return "extractor";
-        if (/impuls|\bvi-|ventil/.test(t)) return "impulsion";
-        return "uta";
-      }
-      function normalizarHoja(entrada, equipo = {}) {
-        const base = hojaVacia(equipo);
-        const h = entrada && typeof entrada === "object" ? entrada : {};
-        const valores = (o) => {
-          const r = {};
-          for (const m of MAGNITUDES) {
-            const n = numBal(o && o[m.id]);
-            if (n !== null) r[m.id] = n;
-          }
-          return r;
-        };
-        const circuito = (id, c) => {
-          const v = circuitoVacio(id);
-          if (!c || typeof c !== "object") return v;
-          if (TERMINALES[c.terminal]) v.terminal = c.terminal;
-          v.numero = Math.max(0, Math.min(200, Math.round(numBal(c.numero) || 0)));
-          v.dpNom = numBal(c.dpNom);
-          v.qNom = numBal(c.qNom);
-          const cd = c.conducto || {};
-          for (const k of ["ancho", "alto", "diametro", "largo"]) v.conducto[k] = numBal(cd[k]);
-          v.elementos = (Array.isArray(c.elementos) ? c.elementos : []).filter((e) => e && ELEMENTOS[e.tipo]).map((e) => ({
-            tipo: e.tipo,
-            cantidad: Math.max(1, Math.round(numBal(e.cantidad) || 1)),
-            ...numBal(e.enSerie) !== null ? { enSerie: Math.max(0, Math.round(numBal(e.enSerie))) } : {}
-          }));
-          const bocas = Array.isArray(c.bocas) ? c.bocas : [];
-          v.bocas = Array.from({ length: v.numero }, (_, i) => {
-            const b = bocas[i] || {};
-            const r = { caudalProyecto: numBal(b.caudalProyecto), caudalMedido: numBal(b.caudalMedido) };
-            if (b.nombre) r.nombre = String(b.nombre).slice(0, 40);
-            if (TERMINALES[b.tipo]) r.tipo = b.tipo;
-            return r;
-          });
-          return v;
-        };
-        return {
-          version: 1,
-          tipo: TIPOS_EQUIPO[h.tipo] ? h.tipo : base.tipo,
-          fabrica: valores(h.fabrica),
-          proyecto: valores(h.proyecto),
-          medido: valores(h.medido),
-          fuentes: {
-            fabrica: h.fuentes && h.fuentes.fabrica ? String(h.fuentes.fabrica).slice(0, 300) : null,
-            proyecto: h.fuentes && h.fuentes.proyecto ? String(h.fuentes.proyecto).slice(0, 300) : null
-          },
-          fechaMedicion: /^\d{4}-\d{2}-\d{2}$/.test(String(h.fechaMedicion || "")) ? h.fechaMedicion : null,
-          instrumentos: [...new Set((Array.isArray(h.instrumentos) ? h.instrumentos : []).filter((id) => typeof id === "string" && id.trim()).map((id) => id.trim().slice(0, 60)))].slice(0, 20),
-          circuitos: Object.fromEntries(Object.keys(CIRCUITOS).map((id) => [id, circuito(id, h.circuitos && h.circuitos[id])]))
-        };
-      }
-      function ajustarBocas(circuito, numero, { forzar = false } = {}) {
-        const n = Math.max(0, Math.min(200, Math.round(numBal(numero) || 0)));
-        const actuales = circuito.bocas || [];
-        const sobran = actuales.slice(n);
-        const conDatos = sobran.map((b, i) => ({ indice: n + i + 1, ...b })).filter((b) => b.caudalMedido !== null && b.caudalMedido !== void 0 || b.caudalProyecto !== null && b.caudalProyecto !== void 0);
-        if (conDatos.length && !forzar) {
-          return { ok: false, circuito, perderia: conDatos };
-        }
-        const bocas = Array.from({ length: n }, (_, i) => actuales[i] || { caudalProyecto: null, caudalMedido: null });
-        return { ok: true, circuito: { ...circuito, numero: n, bocas }, perderia: [] };
-      }
-      function caudalesProyecto(hoja, idCircuito) {
-        const c = hoja.circuitos[idCircuito];
-        const magnitud = idCircuito === "impulsion" ? "caudalImpulsion" : "caudalRetorno";
-        const totalEquipo = numBal(hoja.proyecto[magnitud]);
-        const dados = c.bocas.reduce((s, b) => s + (numBal(b.caudalProyecto) || 0), 0);
-        const sinDato = c.bocas.filter((b) => numBal(b.caudalProyecto) === null).length;
-        const resto = totalEquipo !== null && sinDato ? Math.max(0, totalEquipo - dados) / sinDato : null;
-        return c.bocas.map((b) => {
-          const q = numBal(b.caudalProyecto);
-          if (q !== null) return { valor: q, origen: "dado" };
-          if (resto !== null && resto > 0) return { valor: redBal(resto, 0), origen: "repartido" };
-          return { valor: null, origen: null };
-        });
-      }
-      function terminalDe(circuito, boca = {}) {
-        const id = boca.tipo || circuito.terminal;
-        const cat = TERMINALES[id] || TERMINALES.difusorRotacional;
-        const propio = !boca.tipo || boca.tipo === circuito.terminal;
-        return {
-          id,
-          ...cat,
-          qNom: propio && numBal(circuito.qNom) ? numBal(circuito.qNom) : cat.qNom,
-          dpNom: propio && numBal(circuito.dpNom) !== null ? numBal(circuito.dpNom) : cat.dpNom,
-          deCatalogo: !(propio && numBal(circuito.dpNom) !== null)
-        };
-      }
-      function perdidaTerminal(terminal, caudal) {
-        const q = numBal(caudal);
-        if (!(q > 0) || !(terminal.qNom > 0)) return null;
-        return terminal.dpNom * (q / terminal.qNom) ** 2;
-      }
-      function perdidaCircuito(hoja, idCircuito) {
-        const c = hoja.circuitos[idCircuito];
-        const magnitudQ = idCircuito === "impulsion" ? "caudalImpulsion" : "caudalRetorno";
-        const magnitudP = idCircuito === "impulsion" ? "presionImpulsion" : "presionRetorno";
-        const proyecto = caudalesProyecto(hoja, idCircuito);
-        const sumaBocas = proyecto.reduce((s, p) => s + (p.valor || 0), 0);
-        const caudal = numBal(hoja.proyecto[magnitudQ]) || sumaBocas || numBal(hoja.fabrica[magnitudQ]);
-        const partidas = [];
-        const supuestos = [];
-        const avisos = [];
-        if (!(caudal > 0)) {
-          return {
-            circuito: idCircuito,
-            caudal: null,
-            total: null,
-            partidas,
-            supuestos,
-            avisos: [{ gravedad: "info", texto: "Sin caudal de proyecto no se puede estimar la p\xE9rdida de carga." }]
-          };
-        }
-        const cd = c.conducto || {};
-        let velocidad = null;
-        const hayMedidas = numBal(cd.diametro) || numBal(cd.ancho) && numBal(cd.alto);
-        if (hayMedidas && _calculoBal && _calculoBal.conducto) {
-          const r = _calculoBal.conducto({ caudal, ancho: cd.ancho, alto: cd.alto, diametro: cd.diametro, largo: cd.largo || 1 });
-          if (!r.error) {
-            velocidad = r.velocidad;
-            const largo = numBal(cd.largo);
-            if (largo) {
-              partidas.push({
-                que: `Conducto ${cd.diametro ? `\xD8${cifraBal(cd.diametro)}` : `${cifraBal(cd.ancho)}\xD7${cifraBal(cd.alto)}`} \xB7 ${cifraBal(largo, largo % 1 ? 1 : 0)} m`,
-                dp: r.perdidaTotal,
-                detalle: `${cifraBal(r.velocidad, 1)} m/s, ${cifraBal(r.perdidaPorMetro, 2)} Pa/m`
-              });
-              supuestos.push("El conducto se calcula entero con el caudal total: del lado de la seguridad.");
-            } else {
-              supuestos.push("Sin longitud del conducto no se cuenta su rozamiento.");
-            }
-            for (const a of r.avisos || []) avisos.push(a);
-          }
-        } else {
-          supuestos.push("Sin medidas del conducto principal se supone 5 m/s para los elementos con \u03B6, y no se cuenta su rozamiento.");
-        }
-        const vRef = velocidad || 5;
-        const pd = dinamicaBal(vRef);
-        for (const e of c.elementos || []) {
-          const cat = ELEMENTOS[e.tipo];
-          if (!cat) continue;
-          const enSerie = e.enSerie !== void 0 ? e.enSerie : cat.porBoca ? Math.min(1, e.cantidad) : e.cantidad;
-          if (!enSerie) continue;
-          const unidad = cat.zeta !== void 0 ? cat.zeta * pd : cat.dp;
-          partidas.push({
-            que: `${cat.nombre}${enSerie > 1 ? ` \xD7 ${enSerie}` : ""}`,
-            dp: redBal(unidad * enSerie, 1),
-            detalle: cat.zeta !== void 0 ? `\u03B6 ${cifraBal(cat.zeta, 1)} a ${cifraBal(vRef, 1)} m/s` : "p\xE9rdida t\xEDpica"
-          });
-        }
-        if ((c.elementos || []).some((e) => ELEMENTOS[e.tipo] && ELEMENTOS[e.tipo].porBoca)) {
-          supuestos.push("De lo que va en cada ramal (VAV, compuertas, flexibles) el aire del camino m\xE1s desfavorable solo atraviesa uno.");
-        }
-        let peor = null;
-        const desproporcionadas = [];
-        c.bocas.forEach((b, i) => {
-          const t = terminalDe(c, b);
-          const dp = perdidaTerminal(t, proyecto[i].valor);
-          if (dp !== null && (!peor || dp > peor.dp)) peor = { indice: i + 1, dp, terminal: t, caudal: proyecto[i].valor };
-          if (proyecto[i].valor > 2 * t.qNom) desproporcionadas.push({ indice: i + 1, caudal: proyecto[i].valor, terminal: t });
-        });
-        if (desproporcionadas.length) {
-          const d = desproporcionadas[0];
-          avisos.push({ gravedad: "aviso", texto: `${desproporcionadas.length === 1 ? `La boca ${d.indice} lleva` : `${desproporcionadas.length} bocas llevan (la ${d.indice},`} ${cifraBal(d.caudal)} m\xB3/h${desproporcionadas.length === 1 ? "" : ")"} y un ${d.terminal.nombre.toLowerCase()} est\xE1 pensado para unos ${cifraBal(d.terminal.qNom)}: revisa el tipo de terminal o pon su \u0394P de cat\xE1logo a ese caudal. La p\xE9rdida de carga sale disparada.` });
-        }
-        if (peor) {
-          partidas.push({
-            que: `${peor.terminal.nombre} (boca ${peor.indice})`,
-            dp: redBal(peor.dp, 1),
-            detalle: `${cifraBal(peor.caudal)} m\xB3/h`
-          });
-          if (peor.terminal.deCatalogo) supuestos.push(`El terminal con los valores orientativos de cat\xE1logo (${cifraBal(peor.terminal.dpNom)} Pa a ${cifraBal(peor.terminal.qNom)} m\xB3/h).`);
-        } else if (c.numero) {
-          supuestos.push("Sin caudal por boca no se cuenta la p\xE9rdida del terminal.");
-        }
-        const total = redBal(partidas.reduce((s, p) => s + (p.dp || 0), 0), 0);
-        const fabricaP = numBal(hoja.fabrica[magnitudP]);
-        const proyectoP = numBal(hoja.proyecto[magnitudP]);
-        const disponible = fabricaP !== null ? fabricaP : proyectoP;
-        const deDonde = fabricaP !== null ? "de f\xE1brica" : proyectoP !== null ? "de proyecto" : null;
-        let margen = null;
-        if (disponible !== null) {
-          margen = disponible - total;
-          if (margen < 0) {
-            avisos.push({ gravedad: "mal", texto: `La red pierde ${cifraBal(total)} Pa y la presi\xF3n disponible ${deDonde} es ${cifraBal(disponible)} Pa: el ventilador no llega al caudal de proyecto. Revisarlo antes de ir a medir.` });
-          } else if (disponible > 0 && margen / disponible > 0.5) {
-            avisos.push({ gravedad: "aviso", texto: `Sobran ${cifraBal(margen)} Pa de presi\xF3n ${deDonde}: habr\xE1 que estrangular compuertas, y eso se oye. Mejor bajar la velocidad del ventilador.` });
-          }
-        }
-        return { circuito: idCircuito, caudal, velocidad: velocidad || null, total, disponible, deDonde, margen, partidas, supuestos, avisos };
-      }
-      var desviacion = (medido, referencia) => {
-        const m = numBal(medido);
-        const r = numBal(referencia);
-        if (m === null || r === null || r === 0) return null;
-        return (m - r) / r;
-      };
-      function toleranciasBal(t = {}) {
-        const una = (v) => {
-          const n = numBal(v);
-          return n !== null && n > 0 && n < 1 ? n : null;
-        };
-        return { boca: una(t && t.boca), total: una(t && t.total) };
-      }
-      function evaluarBocas(hoja, idCircuito, tolBoca = null) {
-        const c = hoja.circuitos[idCircuito];
-        const proyecto = caudalesProyecto(hoja, idCircuito);
-        return c.bocas.map((b, i) => {
-          const t = terminalDe(c, b);
-          const d = desviacion(b.caudalMedido, proyecto[i].valor);
-          return {
-            indice: i + 1,
-            nombre: b.nombre || `${idCircuito === "impulsion" ? "D" : "R"}${i + 1}`,
-            tipo: t.id,
-            terminal: t.nombre,
-            glifo: t.glifo,
-            caudalProyecto: proyecto[i].valor,
-            origenProyecto: proyecto[i].origen,
-            caudalMedido: numBal(b.caudalMedido),
-            desviacion: d === null ? null : redBal(d, 4),
-            estado: d === null ? numBal(b.caudalMedido) === null ? "sinMedir" : "sinProyecto" : tolBoca === null ? "sinTolerancia" : Math.abs(d) <= tolBoca + 1e-9 ? "ok" : d > 0 ? "alto" : "bajo"
-          };
-        });
-      }
-      function evaluarMagnitudes(hoja, tol = SIN_TOLERANCIAS) {
-        const circuitos = TIPOS_EQUIPO[hoja.tipo].circuitos;
-        return MAGNITUDES.filter((m) => !m.circuito || circuitos.includes(m.circuito)).map((m) => {
-          const f = numBal(hoja.fabrica[m.id]);
-          const p = numBal(hoja.proyecto[m.id]);
-          const x = numBal(hoja.medido[m.id]);
-          let estado = null;
-          let d = null;
-          if (m.absoluta && x !== null && p !== null) {
-            d = x - p;
-            estado = Math.abs(d) <= m.absoluta + 1e-9 ? "ok" : d > 0 ? "alto" : "bajo";
-          } else if (m.tolerancia && x !== null && p !== null) {
-            d = desviacion(x, p);
-            const limite = tol[m.tolerancia] ?? null;
-            estado = d === null || limite === null ? null : Math.abs(d) <= limite + 1e-9 ? "ok" : d > 0 ? "alto" : "bajo";
-          }
-          return { ...m, fabrica: f, proyecto: p, medido: x, desviacion: d === null ? null : redBal(d, 4), estado };
-        });
-      }
-      function evaluarHoja(entrada, equipo = {}, opciones = {}) {
-        const hoja = normalizarHoja(entrada, equipo);
-        const tol = toleranciasBal(opciones.tolerancias);
-        const pctTol = (v) => `\xB1${cifraBal(v * 100)} %`;
-        const tipo = TIPOS_EQUIPO[hoja.tipo];
-        const avisos = [];
-        const circuitos = tipo.circuitos.map((id) => {
-          const bocas = evaluarBocas(hoja, id, tol.boca);
-          const perdida = perdidaCircuito(hoja, id);
-          const magnitud = id === "impulsion" ? "caudalImpulsion" : "caudalRetorno";
-          const medidas = bocas.filter((b) => b.caudalMedido !== null);
-          const sumaMedido = medidas.length ? medidas.reduce((s, b) => s + b.caudalMedido, 0) : null;
-          const sumaProyecto = bocas.reduce((s, b) => s + (b.caudalProyecto || 0), 0) || null;
-          const proyectoEquipo = numBal(hoja.proyecto[magnitud]);
-          const medidoEquipo = numBal(hoja.medido[magnitud]);
-          const fabricaEquipo = numBal(hoja.fabrica[magnitud]);
-          const todasMedidas = bocas.length > 0 && medidas.length === bocas.length;
-          const referenciaTotal = proyectoEquipo !== null ? proyectoEquipo : sumaProyecto;
-          const totalMedido = medidoEquipo !== null ? medidoEquipo : todasMedidas ? sumaMedido : null;
-          const dTotal = desviacion(totalMedido, referenciaTotal);
-          const nombre = CIRCUITOS[id].nombre;
-          if (fabricaEquipo !== null && proyectoEquipo !== null && fabricaEquipo < proyectoEquipo * (1 - (tol.total ?? 0))) {
-            avisos.push({ gravedad: "mal", texto: `${nombre}: la ficha t\xE9cnica da ${cifraBal(fabricaEquipo)} m\xB3/h y el proyecto pide ${cifraBal(proyectoEquipo)} m\xB3/h. Con este equipo no se llega por mucho que se regule.` });
-          }
-          if (proyectoEquipo !== null && sumaProyecto !== null && bocas.every((b) => b.origenProyecto === "dado") && Math.abs(sumaProyecto - proyectoEquipo) / proyectoEquipo > (tol.total ?? 0) + 1e-9) {
-            avisos.push({ gravedad: "aviso", texto: `${nombre}: las bocas suman ${cifraBal(sumaProyecto)} m\xB3/h de proyecto y el equipo ${cifraBal(proyectoEquipo)} m\xB3/h. Uno de los dos n\xFAmeros del proyecto est\xE1 mal.` });
-          }
-          if (bocas.some((b) => b.origenProyecto === "repartido")) {
-            avisos.push({ gravedad: "info", texto: `${nombre}: las bocas sin caudal de proyecto llevan el del equipo repartido a partes iguales. Si el proyecto da el de cada una, ponlo.` });
-          }
-          if (medidoEquipo !== null && todasMedidas && sumaMedido < medidoEquipo * (1 - TOLERANCIA_FUGAS)) {
-            avisos.push({ gravedad: "aviso", texto: `${nombre}: el equipo mueve ${cifraBal(medidoEquipo)} m\xB3/h y a las bocas llegan ${cifraBal(sumaMedido)} m\xB3/h. Un ${cifraBal((medidoEquipo - sumaMedido) / medidoEquipo * 100)} % se pierde por el camino: buscar fugas o una boca sin contar.` });
-          }
-          for (const a of perdida.avisos) avisos.push({ ...a, texto: `${nombre}: ${a.texto}` });
-          return {
-            id,
-            nombre,
-            terminales: CIRCUITOS[id].terminales,
-            circuito: hoja.circuitos[id],
-            bocas,
-            perdida,
-            sumaProyecto,
-            sumaMedido,
-            proyectoEquipo,
-            medidoEquipo,
-            fabricaEquipo,
-            totalMedido,
-            referenciaTotal,
-            desviacionTotal: dTotal === null ? null : redBal(dTotal, 4),
-            totalOk: dTotal === null || tol.total === null ? null : Math.abs(dTotal) <= tol.total + 1e-9,
-            medidas: medidas.length,
-            fuera: bocas.filter((b) => b.estado === "alto" || b.estado === "bajo").length,
-            todasMedidas
-          };
-        });
-        const algoMedido = circuitos.some((c) => c.medidas || c.totalMedido !== null);
-        const algoFuera = circuitos.some((c) => c.fuera || c.totalOk === false);
-        const totalesOk = circuitos.every((c) => c.totalOk === true);
-        const bocasOk = circuitos.every((c) => c.bocas.length === 0 || c.todasMedidas && !c.fuera);
-        let estado = "pendiente";
-        let porque = "No hay nada medido todav\xEDa.";
-        const faltaTol = tol.total === null || tol.boca === null && circuitos.some((c) => c.bocas.length);
-        if (algoMedido && algoFuera) {
-          estado = "noApto";
-          const n = circuitos.reduce((s, c) => s + c.fuera, 0);
-          porque = n ? `${_textoBal.plural(n, "boca est\xE1", "bocas est\xE1n")} fuera del ${pctTol(tol.boca)}.` : `El caudal total est\xE1 fuera del ${pctTol(tol.total)}.`;
-        } else if (algoMedido && faltaTol) {
-          porque = "La obra no tiene sus tolerancias de caudal: sin ellas no se juzga. Las pone el jefe de obra en \xABPar\xE1metros de la obra\xBB de la puesta en marcha.";
-        } else if (totalesOk && bocasOk && circuitos.some((c) => c.bocas.length)) {
-          estado = "apto";
-          porque = `Todas las bocas dentro del ${pctTol(tol.boca)} y el total dentro del ${pctTol(tol.total)}.`;
-        } else if (totalesOk) {
-          estado = "aptoSinBocas";
-          porque = `El total est\xE1 dentro del ${pctTol(tol.total)}, pero no se han medido todas las bocas.`;
-        } else if (algoMedido) {
-          porque = "Falta medir: sin el total de cada circuito no se puede dar por bueno.";
-        }
-        const INS = _instrumentosBal();
-        const revInst = INS && opciones.instrumentos ? INS.revisar(hoja.instrumentos, opciones.instrumentos, hoja.fechaMedicion) : { lista: [], avisos: [], malos: 0 };
-        for (const a of revInst.avisos) {
-          avisos.push({ gravedad: "mal", texto: `${a.replace("el d\xEDa del ensayo", "el d\xEDa de la medici\xF3n")}. Las medidas de esta hoja quedan en entredicho.` });
-        }
-        if (INS && opciones.instrumentos && algoMedido && !hoja.instrumentos.length) {
-          avisos.push({ gravedad: "aviso", texto: "No consta con qu\xE9 instrumento se ha medido: m\xE1rcalo en \xABMedici\xF3n\xBB." });
-        }
-        if (revInst.lista.length && algoMedido && !hoja.fechaMedicion) {
-          avisos.push({ gravedad: "info", texto: "Sin fecha de medici\xF3n: los instrumentos se juzgan a hoy, no al d\xEDa en que se midi\xF3." });
-        }
-        return {
-          instrumentos: revInst.lista,
-          instrumentosMalos: revInst.malos,
-          hoja,
-          tipo: { id: hoja.tipo, ...tipo },
-          equipo: evaluarMagnitudes(hoja, tol),
-          circuitos,
-          avisos,
-          estado,
-          porque,
-          tolerancias: tol
-        };
-      }
-      function leerNumeroFicha(t) {
-        let s = String(t || "").trim().replace(/[\s  ](?=\d{3}\b)/g, "");
-        if (!/\d/.test(s)) return null;
-        const puntos = (s.match(/\./g) || []).length;
-        const comas = (s.match(/,/g) || []).length;
-        if (puntos && comas) {
-          const dec = s.lastIndexOf(",") > s.lastIndexOf(".") ? "," : ".";
-          s = s.split(dec === "," ? "." : ",").join("").replace(dec, ".");
-        } else if (puntos + comas === 1) {
-          const sep = puntos ? "." : ",";
-          const [e, d] = s.split(sep);
-          s = d.length === 3 && !/^-?0$/.test(e) ? s.replace(sep, "") : s.replace(sep, ".");
-        } else if (puntos + comas > 1) {
-          s = s.replace(/[.,]/g, "");
-        }
-        const n = Number(s);
-        return Number.isFinite(n) ? n : null;
-      }
-      var NUM = String.raw`(\d{1,3}(?:[.,\s]\d{3})+|\d+(?:[.,]\d+)?)`;
-      var RE_IMPULSION = /impuls|supply|\bsup\b|aire\s+(?:de\s+)?(?:impulsi|tratado)|zuluft/i;
-      var RE_RETORNO = /retorno|return|extrac|exhaust|extract|expulsi|abluft|fortluft/i;
-      var RE_AGUA = /\bagua\b|water|hidr[aá]ul|glicol|wasser/i;
-      function circuitoDeLinea(texto) {
-        const i = RE_IMPULSION.test(texto);
-        const r = RE_RETORNO.test(texto);
-        if (i && r) return "ambos";
-        return i ? "impulsion" : r ? "retorno" : null;
-      }
-      var UNIDADES_CAUDAL = [
-        { re: new RegExp(`${NUM}\\s*(?:m3|m\xB3|m\\^3|mc)\\s*/\\s*h\\b`, "gi"), factor: 1 },
-        { re: new RegExp(`${NUM}\\s*(?:m3|m\xB3|m\\^3)\\s*/\\s*s\\b`, "gi"), factor: 3600 },
-        { re: new RegExp(`${NUM}\\s*(?:l|L|dm3|dm\xB3)\\s*/\\s*s\\b`, "g"), factor: 3.6 },
-        { re: new RegExp(`${NUM}\\s*(?:cmh|CMH)\\b`, "g"), factor: 1 }
-      ];
-      function caudalesDeLinea(texto) {
-        const r = [];
-        for (const u of UNIDADES_CAUDAL) {
-          u.re.lastIndex = 0;
-          let m;
-          while (m = u.re.exec(texto)) {
-            const n = leerNumeroFicha(m[1]);
-            if (n !== null && n > 0) r.push({ pos: m.index, valor: redBal(n * u.factor, 0) });
-          }
-        }
-        return r.sort((a, b) => a.pos - b.pos);
-      }
-      function numerosDeLinea(texto) {
-        const re = new RegExp(NUM, "g");
-        const r = [];
-        let m;
-        while (m = re.exec(texto)) {
-          const n = leerNumeroFicha(m[1]);
-          if (n !== null) r.push(n);
-        }
-        return r;
-      }
-      function extraerDeTexto(texto, { cerca = null, ventana = 40 } = {}) {
-        let lineas = String(texto || "").split(/\r?\n/).map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean);
-        const avisos = [];
-        if (cerca) {
-          const claves = (Array.isArray(cerca) ? cerca : [cerca]).map((c) => String(c || "").trim()).filter((c) => c.length >= 3);
-          const norm = (s) => s.toLowerCase().replace(/[\s_\-.]+/g, "");
-          let donde = -1;
-          for (const c of claves) {
-            donde = lineas.findIndex((l) => norm(l).includes(norm(c)));
-            if (donde >= 0) {
-              avisos.push(`Le\xEDdo alrededor de \xAB${c}\xBB (l\xEDnea ${donde + 1}).`);
-              break;
-            }
-          }
-          if (donde >= 0) lineas = lineas.slice(donde, donde + ventana);
-          else if (claves.length) avisos.push(`No aparece ${claves.map((c) => `\xAB${c}\xBB`).join(" ni ")} en el PDF: se ha le\xEDdo entero y lo que salga puede ser de otro equipo.`);
-        }
-        const valores = {};
-        const poner = (id, valor, linea) => {
-          if (valor === null || valor === void 0 || valores[id]) return;
-          valores[id] = { valor, linea };
-        };
-        lineas.forEach((l, i) => {
-          const previa = i > 0 ? lineas[i - 1] : "";
-          const contexto = circuitoDeLinea(l) || circuitoDeLinea(previa);
-          const bajo = l.toLowerCase();
-          if (!RE_AGUA.test(l) && /caudal|flow|volum|aire|air|m3\/h|m³\/h|l\/s/i.test(l)) {
-            const qs = caudalesDeLinea(l);
-            if (qs.length) {
-              const c = circuitoDeLinea(l);
-              if (c === "ambos" && qs.length >= 2) {
-                const iPos = l.search(RE_IMPULSION);
-                const rPos = l.search(RE_RETORNO);
-                const [a, b] = iPos < rPos ? ["caudalImpulsion", "caudalRetorno"] : ["caudalRetorno", "caudalImpulsion"];
-                poner(a, qs[0].valor, l);
-                poner(b, qs[1].valor, l);
-              } else if (contexto === "retorno") {
-                poner("caudalRetorno", qs[0].valor, l);
-              } else {
-                poner("caudalImpulsion", qs[0].valor, l);
-                if (contexto !== "impulsion" && qs.length >= 2) poner("caudalRetorno", qs[1].valor, l);
-              }
-            } else if (/caudal|air\s*flow|airflow/i.test(l) && /m3\/h|m³\/h/i.test(previa + l)) {
-              const ns = numerosDeLinea(l.replace(/m3|m³/gi, ""));
-              if (ns.length) poner(contexto === "retorno" ? "caudalRetorno" : "caudalImpulsion", ns[0], l);
-            }
-          }
-          if (/disponible|externa|external|\besp\b|est[aá]tica|static|pres\.?\s*disp/i.test(l) && !RE_AGUA.test(l)) {
-            const re = new RegExp(`${NUM}\\s*Pa\\b`, "g");
-            const ps = [];
-            let m;
-            while (m = re.exec(l)) ps.push(leerNumeroFicha(m[1]));
-            if (ps.length) {
-              const c = circuitoDeLinea(l);
-              if (c === "ambos" && ps.length >= 2) {
-                const iPos = l.search(RE_IMPULSION);
-                const rPos = l.search(RE_RETORNO);
-                const [a, b] = iPos < rPos ? ["presionImpulsion", "presionRetorno"] : ["presionRetorno", "presionImpulsion"];
-                poner(a, ps[0], l);
-                poner(b, ps[1], l);
-              } else if (contexto === "retorno") poner("presionRetorno", ps[0], l);
-              else {
-                poner("presionImpulsion", ps[0], l);
-                if (contexto !== "impulsion" && ps.length >= 2) poner("presionRetorno", ps[1], l);
-              }
-            }
-          }
-          if (/°\s*c|ºc|º\s*c|\bdeg\s*c/i.test(l) && !RE_AGUA.test(l)) {
-            const re = new RegExp(`(-?${NUM})\\s*(?:\xB0|\xBA)\\s*C`, "gi");
-            const ts = [];
-            let m;
-            while (m = re.exec(l)) ts.push(leerNumeroFicha(m[1].replace(/^-/, "")) * (m[1].startsWith("-") ? -1 : 1));
-            if (ts.length) {
-              if (/exterior|outdoor|ambiente\s+ext|outside|aire\s+nuevo/i.test(bajo)) poner("tempExterior", ts[0], l);
-              else if (/impuls|supply|salida|leaving|off\s*coil/i.test(bajo)) poner("tempImpulsion", ts[0], l);
-              else if (/retorno|return|entrada|entering|interior|on\s*coil|local/i.test(bajo)) poner("tempRetorno", ts[0], l);
-            }
-          }
-          const kw = new RegExp(`${NUM}\\s*kW\\b`, "i").exec(l);
-          if (kw) {
-            const v = leerNumeroFicha(kw[1]);
-            if (/frigor|refriger|cooling|fr[ií]o|sensible|total\s+cool/i.test(bajo)) poner("potenciaFrio", v, l);
-            else if (/calor[ií]f|heating|calefac|calor\b/i.test(bajo)) poner("potenciaCalor", v, l);
-            else if (/ventilad|motor|fan|absorbida|el[eé]ctrica|power\s+input/i.test(bajo)) poner("potenciaVentilador", v, l);
-          }
-          const rpm = new RegExp(`${NUM}\\s*(?:rpm|r\\.p\\.m\\.|min-1|1/min)`, "i").exec(l);
-          if (rpm) poner("rpm", leerNumeroFicha(rpm[1]), l);
-        });
-        if (!Object.keys(valores).length) avisos.push("No se ha reconocido ning\xFAn dato: si es un escaneo no lleva texto dentro.");
-        return { valores, avisos };
-      }
-      function aplicarLeido(hojaEntrada, seccion, leido, { fuente = null, sobrescribir = [] } = {}) {
-        const hoja = normalizarHoja(hojaEntrada);
-        const destino = { ...hoja[seccion] };
-        const puestos = [];
-        const conflictos = [];
-        for (const [id, { valor, linea }] of Object.entries(leido && leido.valores || {})) {
-          if (!MAGNITUD[id]) continue;
-          const actual = numBal(destino[id]);
-          if (actual === null) {
-            destino[id] = valor;
-            puestos.push({ id, valor, linea });
-          } else if (Math.abs(actual - valor) > 1e-9) {
-            if (sobrescribir.includes(id)) {
-              destino[id] = valor;
-              puestos.push({ id, valor, linea, antes: actual });
-            } else conflictos.push({ id, actual, leido: valor, linea });
-          }
-        }
-        const fuentes = { ...hoja.fuentes };
-        if (fuente && puestos.length) fuentes[seccion] = fuente;
-        return { hoja: { ...hoja, [seccion]: destino, fuentes }, puestos, conflictos };
-      }
-      function aplicarDifusores(hojaEntrada, filas, { sobrescribir = [] } = {}) {
-        const hoja = normalizarHoja(hojaEntrada);
-        const puestos = [];
-        const conflictos = [];
-        const nuevas = [];
-        const natural = (a, b) => String(a.nombre).localeCompare(String(b.nombre), "es", { numeric: true });
-        const circuitos = { ...hoja.circuitos };
-        for (const id of Object.keys(CIRCUITOS)) {
-          const puntos = (Array.isArray(filas) ? filas : []).filter((f) => f && f.circuito === id && f.nombre && (numBal(f.caudal) !== null || numBal(f.caudalDiseno) !== null)).sort(natural);
-          if (!puntos.length) continue;
-          const bocas = circuitos[id].bocas.map((b) => ({ ...b }));
-          for (const pto of puntos) {
-            const nombre = String(pto.nombre).slice(0, 40);
-            let i = bocas.findIndex((b2) => b2.nombre === nombre);
-            if (i < 0) i = bocas.findIndex((b2) => !b2.nombre && numBal(b2.caudalMedido) === null);
-            if (i < 0) {
-              bocas.push({ caudalProyecto: null, caudalMedido: null });
-              i = bocas.length - 1;
-              nuevas.push({ circuito: id, nombre });
-            }
-            const b = bocas[i];
-            b.nombre = nombre;
-            const medido = numBal(pto.caudal);
-            const actual = numBal(b.caudalMedido);
-            if (medido !== null) {
-              if (actual === null) {
-                b.caudalMedido = medido;
-                puestos.push({ circuito: id, nombre, valor: medido });
-              } else if (Math.abs(actual - medido) > 0.05) {
-                if (sobrescribir.includes(`${id}:${nombre}`)) {
-                  b.caudalMedido = medido;
-                  puestos.push({ circuito: id, nombre, valor: medido, antes: actual });
-                } else conflictos.push({ circuito: id, nombre, actual, medido });
-              }
-            }
-            const diseno = numBal(pto.caudalDiseno);
-            if (diseno !== null && numBal(b.caudalProyecto) === null) b.caudalProyecto = diseno;
-          }
-          circuitos[id] = { ...circuitos[id], numero: Math.min(200, bocas.length), bocas };
-        }
-        return { hoja: normalizarHoja({ ...hoja, circuitos }), puestos, conflictos, nuevas };
-      }
-      var SECCION_RED = /(?:^|[^\d])(\d{2,4})\s*[x×X*]\s*(\d{2,4})(?!\d)/;
-      var DIAMETRO_RED = /[Ø∅ø]\s*(\d{2,4})(?!\d)/;
-      var CIRCUITO_RED = [[/\b(RET|RETORNO|EXT|EXTRACCION|EXPULSION)\b/i, "retorno"], [/\b(IMP|IMPULSION)\b/i, "impulsion"]];
-      var BOCA_RED = /\b(DIF|DIFUSOR|REJ|REJILLA|RJ|D|R)[-_. ]?\d{1,3}\b/i;
-      var MODULO_TECHO_RED = /* @__PURE__ */ new Set(["600x600", "625x625", "595x595", "300x300"]);
-      var ELEMENTOS_RED = [
-        [/\b(CCF|CORTAFUEGOS|CF)\b/i, "compuertaCortafuegos"],
-        [/\b(CR|CPR|COMPUERTA)\b/i, "compuertaRegulacion"],
-        [/\bVAV\b/i, "vav"],
-        [/\bCAV\b/i, "cav"],
-        [/\b(SIL|SILENCIADOR)\b/i, "silenciador"]
-      ];
-      function redDePlano(textos) {
-        const red = {
-          impulsion: { secciones: [], elementos: {} },
-          retorno: { secciones: [], elementos: {} },
-          supuestoImpulsion: false
-        };
-        for (const t of Array.isArray(textos) ? textos : []) {
-          const texto = String(t && t.texto || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-          if (!texto) continue;
-          const marca = CIRCUITO_RED.find(([re]) => re.test(texto));
-          const circuito = marca ? marca[1] : "impulsion";
-          const c = red[circuito];
-          const rect = SECCION_RED.exec(texto);
-          const diam = DIAMETRO_RED.exec(texto);
-          const esBoca = BOCA_RED.test(texto);
-          let es = false;
-          if (rect && !esBoca) {
-            const ancho = Number(rect[1]);
-            const alto = Number(rect[2]);
-            if (!MODULO_TECHO_RED.has(`${ancho}x${alto}`) && ancho >= 100 && alto >= 100) {
-              c.secciones.push({ ancho, alto, area: ancho * alto });
-              es = true;
-            }
-          } else if (diam && !esBoca) {
-            const d = Number(diam[1]);
-            if (d >= 80) {
-              c.secciones.push({ diametro: d, area: Math.PI * d * d / 4 });
-              es = true;
-            }
-          }
-          for (const [re, tipo] of ELEMENTOS_RED) {
-            if (re.test(texto)) {
-              c.elementos[tipo] = (c.elementos[tipo] || 0) + 1;
-              es = true;
-              break;
-            }
-          }
-          if (es && !marca) red.supuestoImpulsion = true;
-        }
-        for (const id of ["impulsion", "retorno"]) {
-          const c = red[id];
-          const mayor = c.secciones.reduce((a, b) => !a || b.area > a.area ? b : a, null);
-          c.principal = mayor ? mayor.diametro ? { diametro: mayor.diametro } : { ancho: mayor.ancho, alto: mayor.alto } : null;
-          c.tramos = c.secciones.length;
-        }
-        return red;
-      }
-      function aplicarRed(hojaEntrada, redEntrada) {
-        const hoja = normalizarHoja(hojaEntrada);
-        const circuitos = { ...hoja.circuitos };
-        const puestos = [];
-        const suyos = (TIPOS_EQUIPO[hoja.tipo] || TIPOS_EQUIPO.uta).circuitos;
-        let red = redEntrada;
-        const unico = suyos.length === 1 ? suyos[0] : null;
-        if (unico && redEntrada) {
-          const a = redEntrada.impulsion || { secciones: [], elementos: {} };
-          const b = redEntrada.retorno || { secciones: [], elementos: {} };
-          const secciones = [...a.secciones || [], ...b.secciones || []];
-          const mayor = secciones.reduce((x, y) => !x || y.area > x.area ? y : x, null);
-          const elementos = { ...a.elementos || {} };
-          for (const [k, n] of Object.entries(b.elementos || {})) elementos[k] = (elementos[k] || 0) + n;
-          const junta = {
-            secciones,
-            elementos,
-            tramos: secciones.length,
-            principal: mayor ? mayor.diametro ? { diametro: mayor.diametro } : { ancho: mayor.ancho, alto: mayor.alto } : null
-          };
-          red = { [unico]: junta };
-        }
-        for (const id of suyos) {
-          const r = red && red[id];
-          if (!r || !circuitos[id]) continue;
-          const c = { ...circuitos[id], conducto: { ...circuitos[id].conducto } };
-          const vacio = ["ancho", "alto", "diametro"].every((k) => c.conducto[k] === null);
-          if (r.principal && vacio) {
-            Object.assign(c.conducto, r.principal);
-            puestos.push({ circuito: id, que: "conducto", valor: r.principal.diametro ? `\xD8${r.principal.diametro}` : `${r.principal.ancho}\xD7${r.principal.alto}` });
-          }
-          const lista = Object.entries(r.elementos || {}).filter(([tipo, n]) => ELEMENTOS[tipo] && n > 0);
-          if (lista.length && !c.elementos.length) {
-            c.elementos = lista.map(([tipo, n]) => ({ tipo, cantidad: n, ...ELEMENTOS[tipo].porBoca ? {} : { enSerie: 1 } }));
-            for (const [tipo, n] of lista) puestos.push({ circuito: id, que: "elemento", valor: `${ELEMENTOS[tipo].nombre} \xD7 ${n}` });
-          }
-          circuitos[id] = c;
-        }
-        return { hoja: normalizarHoja({ ...hoja, circuitos }), puestos, unico };
-      }
-      (function exportar(API) {
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.BALANCEO = API;
-      })({
-        TIPOS_EQUIPO,
-        CIRCUITOS,
-        TERMINALES,
-        ELEMENTOS,
-        MAGNITUDES,
-        MAGNITUD,
-        SIN_TOLERANCIAS,
-        tolerancias: toleranciasBal,
-        hojaVacia,
-        tipoDeEquipo,
-        normalizar: normalizarHoja,
-        ajustarBocas,
-        caudalesProyecto,
-        terminalDe,
-        perdidaTerminal,
-        perdidaCircuito,
-        evaluarBocas,
-        evaluarMagnitudes,
-        evaluar: evaluarHoja,
-        leerNumeroFicha,
-        extraerDeTexto,
-        aplicarLeido,
-        aplicarDifusores,
-        redDePlano,
-        aplicarRed
-      });
-    }
-  });
-
-  // shared/commissioning/panelBalanceo.js
-  var require_panelBalanceo = __commonJS({
-    "shared/commissioning/panelBalanceo.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var _balPB = typeof __require !== "undefined" ? require_balanceo() : window.BALANCEO;
-      var _textoPB = typeof __require !== "undefined" ? require_texto() : window.TEXTO;
-      var SISTEMAS_AGUA = {
-        frio: { id: "frio", nombre: "Agua fr\xEDa" },
-        calor: { id: "calor", nombre: "Agua caliente" },
-        acs: { id: "acs", nombre: "ACS / retorno" },
-        condensacion: { id: "condensacion", nombre: "Condensaci\xF3n" },
-        geotermia: { id: "geotermia", nombre: "Geotermia" },
-        otro: { id: "otro", nombre: "Otra red" }
-      };
-      var TIPOS_VALVULA = {
-        equilibrado: "V\xE1lvula de equilibrado",
-        independiente: "Independiente de la presi\xF3n (PICV)",
-        orificio: "Orificio / venturi",
-        otro: "Otro"
-      };
-      var MAX_VALVULAS = 300;
-      var numPB = (v) => {
-        if (v === null || v === void 0 || v === "") return null;
-        const n = typeof v === "number" ? v : Number(String(v).replace(/\s/g, "").replace(",", "."));
-        return Number.isFinite(n) ? n : null;
-      };
-      var textoPB = (v, max = 120) => String(v === null || v === void 0 ? "" : v).trim().slice(0, max);
-      var redPB = (n, d = 4) => n === null ? null : Math.round(n * 10 ** d) / 10 ** d;
-      var fechaPB = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v || "")) ? String(v) : null;
-      function redAguaVacia() {
-        return {
-          version: 1,
-          nombre: "",
-          sistema: "frio",
-          fechaMedicion: null,
-          bombaProyecto: null,
-          bombaMedido: null,
-          valvulas: []
-        };
-      }
-      function normalizarRedAgua(entrada = {}) {
-        const e = entrada || {};
-        return {
-          version: 1,
-          nombre: textoPB(e.nombre),
-          sistema: SISTEMAS_AGUA[e.sistema] ? e.sistema : "otro",
-          fechaMedicion: fechaPB(e.fechaMedicion),
-          bombaProyecto: numPB(e.bombaProyecto),
-          bombaMedido: numPB(e.bombaMedido),
-          valvulas: (Array.isArray(e.valvulas) ? e.valvulas : []).slice(0, MAX_VALVULAS).map((v) => ({
-            nombre: textoPB(v && v.nombre, 60),
-            zona: textoPB(v && v.zona, 60),
-            tipo: TIPOS_VALVULA[v && v.tipo] ? v.tipo : "equilibrado",
-            caudalProyecto: numPB(v && v.caudalProyecto),
-            caudalMedido: numPB(v && v.caudalMedido)
-          }))
-        };
-      }
-      var desvPB = (medido, referencia) => medido === null || referencia === null || referencia === 0 ? null : (medido - referencia) / referencia;
-      function estadoTerminal(proyecto, medido, tol) {
-        const d = desvPB(medido, proyecto);
-        if (d === null) return medido === null ? "sinMedir" : "sinProyecto";
-        if (tol === null || tol === void 0) return "sinTolerancia";
-        return Math.abs(d) <= tol + 1e-9 ? "ok" : d > 0 ? "alto" : "bajo";
-      }
-      var pctTolPB = (v) => `\xB1${_textoPB.numero(v * 100, v * 100 % 1 ? 1 : 0)} %`;
-      function evaluarRedAgua(entrada, tolerancias = {}) {
-        const red = normalizarRedAgua(entrada);
-        const tol = { boca: numPB(tolerancias && tolerancias.boca), total: numPB(tolerancias && tolerancias.total) };
-        const valvulas = red.valvulas.map((v, i) => {
-          const d = desvPB(v.caudalMedido, v.caudalProyecto);
-          return {
-            indice: i + 1,
-            nombre: v.nombre || `V${i + 1}`,
-            zona: v.zona,
-            tipo: v.tipo,
-            caudalProyecto: v.caudalProyecto,
-            caudalMedido: v.caudalMedido,
-            desviacion: d === null ? null : redPB(d),
-            estado: estadoTerminal(v.caudalProyecto, v.caudalMedido, tol.boca)
-          };
-        });
-        const medidas = valvulas.filter((v) => v.caudalMedido !== null);
-        const todasMedidas = valvulas.length > 0 && medidas.length === valvulas.length;
-        const sumaProyecto = valvulas.reduce((s, v) => s + (v.caudalProyecto || 0), 0) || null;
-        const sumaMedido = medidas.length ? medidas.reduce((s, v) => s + v.caudalMedido, 0) : null;
-        const referenciaTotal = red.bombaProyecto !== null ? red.bombaProyecto : sumaProyecto;
-        const totalMedido = red.bombaMedido !== null ? red.bombaMedido : todasMedidas ? sumaMedido : null;
-        const dTotal = desvPB(totalMedido, referenciaTotal);
-        const totalOk = dTotal === null || tol.total === null ? null : Math.abs(dTotal) <= tol.total + 1e-9;
-        const fuera = valvulas.filter((v) => v.estado === "alto" || v.estado === "bajo").length;
-        const algoMedido = medidas.length > 0 || totalMedido !== null;
-        const faltaTol = tol.total === null || tol.boca === null && valvulas.length > 0;
-        let estado = "pendiente";
-        let porque = "No hay nada medido todav\xEDa.";
-        if (algoMedido && (fuera || totalOk === false)) {
-          estado = "noApto";
-          porque = fuera ? `${_textoPB.plural(fuera, "v\xE1lvula est\xE1", "v\xE1lvulas est\xE1n")} fuera del ${pctTolPB(tol.boca)}.` : `El caudal de la bomba est\xE1 fuera del ${pctTolPB(tol.total)}.`;
-        } else if (algoMedido && faltaTol) {
-          porque = "La obra no tiene sus tolerancias de caudal: sin ellas no se juzga.";
-        } else if (totalOk && todasMedidas && !fuera) {
-          estado = "apto";
-          porque = `Todas las v\xE1lvulas dentro del ${pctTolPB(tol.boca)} y la bomba dentro del ${pctTolPB(tol.total)}.`;
-        } else if (totalOk && valvulas.length === 0) {
-          estado = "aptoSinBocas";
-          porque = `La bomba est\xE1 dentro del ${pctTolPB(tol.total)}; no hay v\xE1lvulas apuntadas.`;
-        } else if (totalOk) {
-          estado = "aptoSinBocas";
-          porque = `La bomba est\xE1 dentro del ${pctTolPB(tol.total)}, pero no se han medido todas las v\xE1lvulas.`;
-        } else if (algoMedido) {
-          porque = "Falta medir el caudal total (bomba o todas las v\xE1lvulas).";
-        }
-        return {
-          red,
-          valvulas,
-          tolerancias: tol,
-          estado,
-          porque,
-          total: {
-            nombre: "Bomba",
-            proyecto: referenciaTotal,
-            medido: totalMedido,
-            desviacion: dTotal === null ? null : redPB(dTotal),
-            ok: totalOk
-          },
-          medidas: medidas.length,
-          fuera,
-          todasMedidas
-        };
-      }
-      var ESTADOS_SISTEMA = {
-        apto: { nombre: "Apto", clase: "bien" },
-        aptoSinBocas: { nombre: "Apto sin terminales", clase: "aviso" },
-        noApto: { nombre: "No apto", clase: "mal" },
-        pendiente: { nombre: "Pendiente", clase: "neutro" }
-      };
-      var ESTADOS_TERMINAL = {
-        ok: { nombre: "Dentro", clase: "bien" },
-        alto: { nombre: "Alto", clase: "mal" },
-        bajo: { nombre: "Bajo", clase: "mal" },
-        sinMedir: { nombre: "Sin medir", clase: "neutro" },
-        sinProyecto: { nombre: "Sin proyecto", clase: "aviso" },
-        sinTolerancia: { nombre: "Sin tolerancia", clase: "aviso" }
-      };
-      var TRAMOS = [
-        { desde: -Infinity, hasta: -0.2, nombre: "< \u221220" },
-        { desde: -0.2, hasta: -0.15, nombre: "\u221220 a \u221215" },
-        { desde: -0.15, hasta: -0.1, nombre: "\u221215 a \u221210" },
-        { desde: -0.1, hasta: -0.05, nombre: "\u221210 a \u22125" },
-        { desde: -0.05, hasta: 0, nombre: "\u22125 a 0" },
-        { desde: 0, hasta: 0.05, nombre: "0 a +5" },
-        { desde: 0.05, hasta: 0.1, nombre: "+5 a +10" },
-        { desde: 0.1, hasta: 0.15, nombre: "+10 a +15" },
-        { desde: 0.15, hasta: 0.2, nombre: "+15 a +20" },
-        { desde: 0.2, hasta: Infinity, nombre: "> +20" }
-      ];
-      function tramoDe(d) {
-        const e = 1e-9;
-        if (Math.abs(d) < e) return TRAMOS.findIndex((t) => t.desde === 0);
-        if (d < 0) return TRAMOS.findIndex((t) => t.hasta <= 0 && d >= t.desde - e && d < t.hasta - e);
-        return TRAMOS.findIndex((t) => t.desde >= 0 && d > t.desde + e && d <= t.hasta + e);
-      }
-      var tagEquipo = (e) => e.tag || e.descripcion || e.modelo || "Equipo";
-      function sistemaAire(equipo = {}, ev) {
-        const terminales = [];
-        const totales = [];
-        for (const c of ev && ev.circuitos || []) {
-          for (const b of c.bocas) {
-            terminales.push({
-              circuito: c.nombre,
-              nombre: b.nombre,
-              tipo: b.terminal || "",
-              proyecto: b.caudalProyecto,
-              medido: b.caudalMedido,
-              desviacion: b.desviacion,
-              estado: b.estado
-            });
-          }
-          totales.push({
-            nombre: c.nombre,
-            proyecto: c.referenciaTotal,
-            medido: c.totalMedido,
-            desviacion: c.desviacionTotal,
-            ok: c.totalOk
-          });
-        }
-        const tipo = ev && ev.tipo ? ev.tipo.nombre : "";
-        return {
-          id: `aire:${equipo.id || tagEquipo(equipo)}`,
-          clase: "aire",
-          equipoId: equipo.id || null,
-          redId: null,
-          nombre: tagEquipo(equipo),
-          tipo,
-          planta: equipo.planta || "",
-          unidad: "m\xB3/h",
-          estado: ev ? ev.estado : "pendiente",
-          porque: ev ? ev.porque : "Sin hoja de balanceo.",
-          fecha: ev && ev.hoja ? ev.hoja.fechaMedicion : null,
-          terminales,
-          totales
-        };
-      }
-      function sistemaAgua(id, ev) {
-        return {
-          id: `agua:${id}`,
-          clase: "agua",
-          equipoId: null,
-          redId: id,
-          nombre: ev.red.nombre || SISTEMAS_AGUA[ev.red.sistema].nombre,
-          tipo: `Red de ${SISTEMAS_AGUA[ev.red.sistema].nombre.toLowerCase()}`,
-          planta: "",
-          unidad: "l/h",
-          estado: ev.estado,
-          porque: ev.porque,
-          fecha: ev.red.fechaMedicion,
-          terminales: ev.valvulas.map((v) => ({
-            circuito: v.zona || "",
-            nombre: v.nombre,
-            tipo: TIPOS_VALVULA[v.tipo],
-            proyecto: v.caudalProyecto,
-            medido: v.caudalMedido,
-            desviacion: v.desviacion,
-            estado: v.estado
-          })),
-          totales: [ev.total]
-        };
-      }
-      function cuentaTerminales(terminales) {
-        const c = { total: terminales.length, dentro: 0, fuera: 0, sinMedir: 0, sinJuzgar: 0 };
-        for (const t of terminales) {
-          if (t.estado === "ok") c.dentro += 1;
-          else if (t.estado === "alto" || t.estado === "bajo") c.fuera += 1;
-          else if (t.estado === "sinMedir") c.sinMedir += 1;
-          else c.sinJuzgar += 1;
-        }
-        return c;
-      }
-      function panel({ equipos = [], redes = [], tolerancias = {} } = {}) {
-        const tol = { boca: numPB(tolerancias && tolerancias.boca), total: numPB(tolerancias && tolerancias.total) };
-        const sistemas = [
-          ...equipos.map(({ equipo, ev }) => sistemaAire(equipo, ev)),
-          ...redes.map(({ id, red }) => sistemaAgua(id, evaluarRedAgua(red, tol)))
-        ];
-        for (const s of sistemas) s.cuenta = cuentaTerminales(s.terminales);
-        const todos = sistemas.flatMap((s) => s.terminales.map((t) => ({ ...t, sistema: s.nombre, clase: s.clase, unidad: s.unidad })));
-        const c = cuentaTerminales(todos);
-        const juzgados = c.dentro + c.fuera;
-        const resumen = {
-          sistemas: sistemas.length,
-          aire: sistemas.filter((s) => s.clase === "aire").length,
-          agua: sistemas.filter((s) => s.clase === "agua").length,
-          terminales: c.total,
-          dentro: c.dentro,
-          fuera: c.fuera,
-          sinMedir: c.sinMedir,
-          sinJuzgar: c.sinJuzgar,
-          aptos: sistemas.filter((s) => s.estado === "apto" || s.estado === "aptoSinBocas").length,
-          noAptos: sistemas.filter((s) => s.estado === "noApto").length,
-          pendientes: sistemas.filter((s) => s.estado === "pendiente").length,
-          /* Sobre los JUZGADOS: un terminal sin medir no está ni dentro ni fuera. */
-          pctDentro: juzgados ? redPB(c.dentro / juzgados, 4) : null,
-          pctMedido: c.total ? redPB((c.total - c.sinMedir) / c.total, 4) : null
-        };
-        const conDesv = todos.filter((t) => t.desviacion !== null);
-        const histograma = TRAMOS.map((t) => ({
-          nombre: t.nombre,
-          desde: t.desde,
-          hasta: t.hasta,
-          n: 0,
-          /* Un tramo está «dentro» si cabe entero en ±tolerancia de terminal. */
-          dentro: tol.boca !== null && t.desde >= -tol.boca - 1e-9 && t.hasta <= tol.boca + 1e-9
-        }));
-        for (const t of conDesv) {
-          const i = tramoDe(t.desviacion);
-          if (i >= 0) histograma[i].n += 1;
-        }
-        const maximo = Math.max(0, ...histograma.map((h) => h.n));
-        const peores = conDesv.filter((t) => t.estado === "alto" || t.estado === "bajo" || tol.boca === null).sort((a, b) => Math.abs(b.desviacion) - Math.abs(a.desviacion)).slice(0, 10);
-        return { sistemas, resumen, histograma, maximo, peores, tolerancias: tol };
-      }
-      var escPB = (t) => String(t === null || t === void 0 ? "" : t).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]);
-      var cifraPB = (n) => n === null || n === void 0 ? "\u2014" : _textoPB.numero(n, 0);
-      var desvTxtPB = (d) => d === null || d === void 0 ? "\u2014" : `${d > 0 ? "+" : ""}${_textoPB.numero(d * 100, 1)} %`;
-      var fechaEsPB = (f) => f ? f.split("-").reverse().join("/") : "\u2014";
-      var tolTxtPB = (v) => v === null ? "sin fijar" : pctTolPB(v);
-      function barrasHtml(p) {
-        const max = p.maximo || 1;
-        return `<div class="baGrafico">${p.histograma.map((h) => `
-    <div class="baTramo ${h.dentro ? "dentro" : "fuera"}">
-      <span class="baN">${h.n || ""}</span>
-      <div class="baBarra" style="height:${Math.round(h.n / max * 75)}%"></div>
-      <span class="baEtq">${escPB(h.nombre)}</span>
-    </div>`).join("")}</div>`;
-      }
-      function informeHtml(p, { obra = {}, fecha = null, ejemplo = false } = {}) {
-        const r = p.resumen;
-        const hoy = fecha || ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
-        const sistemas = p.sistemas.map((s) => {
-          const est = ESTADOS_SISTEMA[s.estado] || ESTADOS_SISTEMA.pendiente;
-          const filas = s.terminales.map((t) => {
-            const et = ESTADOS_TERMINAL[t.estado] || ESTADOS_TERMINAL.sinMedir;
-            return `<tr><td>${escPB(t.circuito)}</td><td>${escPB(t.nombre)}</td><td>${escPB(t.tipo)}</td>
-        <td class="num">${cifraPB(t.proyecto)}</td><td class="num">${cifraPB(t.medido)}</td>
-        <td class="num ${et.clase}">${desvTxtPB(t.desviacion)}</td><td class="${et.clase}">${et.nombre}</td></tr>`;
-          }).join("");
-          const totales = s.totales.map((t) => `<tr class="total"><td colspan="3">Total ${escPB(t.nombre.toLowerCase())}</td>
-        <td class="num">${cifraPB(t.proyecto)}</td><td class="num">${cifraPB(t.medido)}</td>
-        <td class="num ${t.ok === false ? "mal" : t.ok ? "bien" : ""}">${desvTxtPB(t.desviacion)}</td>
-        <td>${t.ok === null || t.ok === void 0 ? "\u2014" : t.ok ? "Dentro" : "Fuera"}</td></tr>`).join("");
-          return `<section class="baSistema">
-      <h3><span>${escPB(s.nombre)}</span> <small>${escPB(s.tipo)}${s.planta ? ` \xB7 ${escPB(s.planta)}` : ""} \xB7 medido ${fechaEsPB(s.fecha)}</small>
-        <em class="${est.clase}">${est.nombre}</em></h3>
-      <p class="baPorque">${escPB(s.porque)}</p>
-      <table><thead><tr><th>Circuito / zona</th><th>Terminal</th><th>Tipo</th>
-        <th class="num">Proyecto ${escPB(s.unidad)}</th><th class="num">Medido ${escPB(s.unidad)}</th>
-        <th class="num">Desviaci\xF3n</th><th>Estado</th></tr></thead>
-      <tbody>${filas || '<tr><td colspan="7" class="neutro">Sin terminales apuntados.</td></tr>'}${totales}</tbody></table>
-    </section>`;
-        }).join("");
-        return `<div class="baInforme">
-    <header class="baCab">
-      <div><strong>Informe de balanceo de caudales</strong>
-        <span>${escPB(obra.codigo || "")} ${escPB(obra.nombre || "")}</span></div>
-      <div class="baCabDer">Fecha ${fechaEsPB(hoy)}<br>Tolerancia terminal ${tolTxtPB(p.tolerancias.boca)} \xB7 total ${tolTxtPB(p.tolerancias.total)}</div>
-    </header>
-    ${ejemplo ? '<p class="baEjemplo">DATOS DE EJEMPLO \u2014 esta obra todav\xEDa no tiene mediciones.</p>' : ""}
-    <table class="baResumen"><tr>
-      <td><b>${r.sistemas}</b>sistemas</td><td><b>${r.terminales}</b>terminales</td>
-      <td class="bien"><b>${r.dentro}</b>dentro</td><td class="mal"><b>${r.fuera}</b>fuera</td>
-      <td><b>${r.sinMedir}</b>sin medir</td>
-      <td><b>${r.pctDentro === null ? "\u2014" : _textoPB.porcentaje(r.pctDentro * 100, 0)}</b>dentro de lo juzgado</td>
-      <td class="bien"><b>${r.aptos}</b>sistemas aptos</td><td class="mal"><b>${r.noAptos}</b>no aptos</td>
-    </tr></table>
-    <h3 class="baTituloGrafico">Reparto de desviaciones (%)</h3>
-    ${barrasHtml(p)}
-    ${sistemas || "<p>Sin sistemas.</p>"}
-  </div>`;
-      }
-      (function exportar(API) {
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.PANEL_BALANCEO = API;
-      })({
-        SISTEMAS_AGUA,
-        TIPOS_VALVULA,
-        ESTADOS_SISTEMA,
-        ESTADOS_TERMINAL,
-        TRAMOS,
-        MAX_VALVULAS,
-        redAguaVacia,
-        normalizarRedAgua,
-        evaluarRedAgua,
-        estadoTerminal,
-        tramoDe,
-        sistemaAire,
-        sistemaAgua,
-        panel,
-        informeHtml,
-        barrasHtml,
-        /* Para la pantalla, que evalúa hojas de aire con el mismo motor. */
-        evaluarHoja: (hoja, equipo, opciones) => _balPB.evaluar(hoja, equipo, opciones)
-      });
-    }
-  });
-
-  // shared/mantenimiento/preventivo.js
-  var require_preventivo = __commonJS({
-    "shared/mantenimiento/preventivo.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var PERIODOS = {
-        m: { meses: 1, nombre: "Mensual" },
-        "3m": { meses: 3, nombre: "Trimestral" },
-        "2t": { meses: 6, nombre: "Semestral" },
-        t: { meses: 12, nombre: "Anual" },
-        "2a": { meses: 24, nombre: "Cada 2 a\xF1os" },
-        "4a": { meses: 48, nombre: "Cada 4 a\xF1os" },
-        "5a": { meses: 60, nombre: "Cada 5 a\xF1os" }
-      };
-      var NORMA_RITE = "RITE IT 3.3, tabla 3.1";
-      var PCI = "RD 513/2017, anexo II";
-      var LEGIONELA = "RD 487/2022";
-      var op = (texto, cada, norma = NORMA_RITE) => ({
-        texto,
-        cada: Array.isArray(cada) ? { hasta70: cada[0], mas70: cada[1] } : { hasta70: cada, mas70: cada },
-        norma
-      });
-      var FILTROS_AIRE = op("Revisi\xF3n y limpieza de filtros de aire", ["t", "m"]);
-      var CONTROL = op("Revisi\xF3n del sistema de control autom\xE1tico", ["t", "2t"]);
-      var BOMBAS_VENT = op("Revisi\xF3n de bombas y ventiladores", [null, "m"]);
-      var SEGURIDADES = op("Comprobaci\xF3n del tarado de elementos de seguridad", [null, "m"]);
-      var REFRIGERANTE = op("Comprobaci\xF3n de estanquidad y niveles de refrigerante y aceite", ["t", "m"]);
-      var TIPOS_MANT = [
-        {
-          id: "extintor",
-          nombre: "Extintor",
-          disciplina: "PCI",
-          patron: /\bextint/,
-          vidaUtil: 20,
-          vidaDesde: "fabricacion",
-          fuenteVida: `${PCI}: retimbrado cada 5 a\xF1os, tres como mucho (20 a\xF1os desde su fabricaci\xF3n)`,
-          operaciones: [
-            op("Comprobaci\xF3n de accesibilidad, se\xF1alizaci\xF3n, precinto y presi\xF3n (titular)", "3m", PCI),
-            op("Revisi\xF3n por empresa mantenedora", "t", PCI),
-            op("Retimbrado: prueba de nivel C", "5a", PCI)
-          ]
-        },
-        /* El pulsador antes que el detector: los dos van en la «detección», pero
-           la vida de 10 años del reglamento es la del detector. */
-        {
-          id: "pulsador",
-          nombre: "Pulsador de alarma",
-          disciplina: "PCI",
-          patron: /\bpulsador/,
-          vidaUtil: 20,
-          vidaDesde: "servicio",
-          fuenteVida: "Referencia (el RD 513/2017 no le fija vida)",
-          operaciones: [
-            op("Comprobaci\xF3n de pulsadores y avisadores (titular)", "3m", PCI),
-            op("Prueba de pulsadores por empresa mantenedora", "t", PCI)
-          ]
-        },
-        {
-          id: "detector",
-          nombre: "Detector de incendio",
-          disciplina: "PCI",
-          patron: /\bdetector|\bdetecci[oó]n (de )?(humo|incend)/,
-          vidaUtil: 10,
-          vidaDesde: "fabricacion",
-          fuenteVida: `${PCI}: la del fabricante o 10 a\xF1os; despu\xE9s, prueba de una muestra cada 5 a\xF1os`,
-          operaciones: [
-            op("Comprobaci\xF3n de funcionamiento (titular)", "3m", PCI),
-            op("Verificaci\xF3n por empresa mantenedora", "t", PCI)
-          ]
-        },
-        {
-          id: "bie",
-          nombre: "Boca de incendio equipada",
-          disciplina: "PCI",
-          patron: /\bbie\b|boca de incendio/,
-          vidaUtil: 20,
-          vidaDesde: "servicio",
-          fuenteVida: `${PCI}: la manguera se sustituye a los 20 a\xF1os de la puesta en marcha, salvo certificado del fabricante`,
-          operaciones: [
-            op("Comprobaci\xF3n de accesibilidad, se\xF1alizaci\xF3n y presi\xF3n (titular)", "3m", PCI),
-            op("Revisi\xF3n por empresa mantenedora", "t", PCI),
-            op("Prueba de la manguera a presi\xF3n", "5a", PCI)
-          ]
-        },
-        {
-          id: "centralIncendios",
-          nombre: "Central de detecci\xF3n de incendios",
-          disciplina: "PCI",
-          patron: /central (de )?(detecci|incend|alarma)|\bcdi\b/,
-          vidaUtil: 15,
-          vidaDesde: "servicio",
-          fuenteVida: "Referencia (bater\xEDas: cada 4\u20135 a\xF1os en la revisi\xF3n)",
-          operaciones: [
-            op("Comprobaci\xF3n de funcionamiento, bater\xEDas y avisos (titular)", "3m", PCI),
-            op("Verificaci\xF3n por empresa mantenedora", "t", PCI)
-          ]
-        },
-        /* El grupo contra incendios antes que la bomba: es una bomba, pero su plan
-           es el del reglamento de incendios, no el del RITE. */
-        {
-          id: "grupoPci",
-          nombre: "Grupo de bombeo contra incendios",
-          disciplina: "PCI",
-          patron: /grupo (de )?(presi[oó]n |bombeo )?(de |contra )?(incendio|pci)|\bjockey|abastecimiento de agua|bombas? (de |contra )?(incendio|pci)/,
-          vidaUtil: 20,
-          vidaDesde: "servicio",
-          fuenteVida: "Referencia (bombas de bancada, ASHRAE: 20)",
-          operaciones: [
-            op("Verificaci\xF3n de elementos, arranque autom\xE1tico y manual, niveles y bater\xEDas", "3m", PCI),
-            op("Accionamiento y engrase de v\xE1lvulas; alimentaci\xF3n el\xE9ctrica y protecciones", "2t", PCI),
-            op("Revisi\xF3n anual (UNE 23500): reserva de agua, filtros y curvas de abastecimiento", "t", PCI)
-          ]
-        },
-        {
-          id: "extincionFija",
-          nombre: "Extinci\xF3n autom\xE1tica (rociadores, gas, agua nebulizada)",
-          disciplina: "PCI",
-          patron: /rociador|sprinkler|extinci[oó]n (autom|fija|por gas)|agente gaseoso|agua nebulizada|\bfm.?200\b|\bnovec\b/,
-          vidaUtil: 25,
-          vidaDesde: "servicio",
-          fuenteVida: "UNE-EN 12845: los rociadores se ensayan por muestra a los 25 a\xF1os",
-          operaciones: [
-            op("Comprobaci\xF3n de man\xF3metros, v\xE1lvulas abiertas, boquillas y alimentaci\xF3n (titular)", "3m", PCI),
-            op("Prueba de activaci\xF3n manual y autom\xE1tica por empresa mantenedora", "t", PCI)
-          ]
-        },
-        /* La compuerta cortafuegos antes que la compuerta de aire: va en PCI. */
-        {
-          id: "compuertaCortafuegos",
-          nombre: "Compuerta o puerta cortafuegos",
-          disciplina: "PCI",
-          patron: /corta.?fuegos?|compuerta (de )?humos?/,
-          vidaUtil: 20,
-          vidaDesde: "servicio",
-          fuenteVida: "Referencia",
-          operaciones: [
-            op("Prueba de cierre, fusible o actuador y rearme", "t", "UNE-EN 15650 y fabricante")
-          ]
-        },
-        {
-          id: "enfriadora",
-          nombre: "Enfriadora",
-          disciplina: "Clima",
-          patron: /enfriadora|\bchiller|planta (de )?(fr[ií]o|enfriamiento)/,
-          vidaUtil: 20,
-          vidaDesde: "servicio",
-          fuenteVida: "ASHRAE: 20\u201323 (las de condensaci\xF3n por aire con scroll, 15\u201320 en obra)",
-          operaciones: [
-            op("Limpieza de evaporadores", "t"),
-            op("Limpieza de condensadores", "t"),
-            REFRIGERANTE,
-            SEGURIDADES,
-            CONTROL
-          ]
-        },
-        {
-          id: "bombaCalor",
-          nombre: "Bomba de calor aire-agua / aerotermia",
-          disciplina: "Clima",
-          patron: /bomba de calor|aerotermi|aerot[eé]rmic/,
-          vidaUtil: 15,
-          vidaDesde: "servicio",
-          fuenteVida: "ASHRAE: bombas de calor, 15",
-          operaciones: [
-            op("Limpieza de evaporadores", "t"),
-            op("Limpieza de condensadores", "t"),
-            REFRIGERANTE,
-            SEGURIDADES,
-            CONTROL
-          ]
-        },
-        {
-          id: "caldera",
-          nombre: "Caldera",
-          disciplina: "Clima",
-          patron: /caldera|generador de calor/,
-          vidaUtil: 20,
-          vidaDesde: "servicio",
-          fuenteVida: "ASHRAE: 24\u201335 en acero o fundici\xF3n; las de condensaci\xF3n, 15\u201320 en obra",
-          operaciones: [
-            op("Comprobaci\xF3n y limpieza del circuito de humos de la caldera", ["t", "2t"]),
-            op("Comprobaci\xF3n y limpieza de conductos de humos y chimenea", ["t", "2t"]),
-            op("Limpieza del quemador", ["t", "m"]),
-            op("Comprobaci\xF3n de estanquidad del cierre entre quemador y caldera", ["t", "m"]),
-            op("Revisi\xF3n general de la caldera", "t"),
-            op("Revisi\xF3n del vaso de expansi\xF3n", ["t", "m"]),
-            op("Comprobaci\xF3n de niveles de agua en circuitos", ["t", "m"]),
-            SEGURIDADES
-          ]
-        },
-        {
-          id: "torre",
-          nombre: "Torre de refrigeraci\xF3n / condensador evaporativo",
-          disciplina: "Clima",
-          patron: /torre (de )?refrig|condensador evaporativo|\btorre\b/,
-          vidaUtil: 20,
-          vidaDesde: "servicio",
-          fuenteVida: "ASHRAE: 20 (chapa galvanizada)",
-          operaciones: [
-            op("Drenaje, limpieza y tratamiento del circuito", "t"),
-            op("Revisi\xF3n de aparatos de humectaci\xF3n y enfriamiento evaporativo", ["t", "m"]),
-            op("Limpieza y desinfecci\xF3n (legionela)", "2t", LEGIONELA),
-            op("An\xE1lisis de Legionella", "m", LEGIONELA)
-          ]
-        },
-        {
-          id: "recuperador",
-          nombre: "Recuperador de calor",
-          disciplina: "Clima",
-          patron: /recuperador|\bhru\b|\berv\b/,
-          vidaUtil: 20,
-          vidaDesde: "servicio",
-          fuenteVida: "Referencia",
-          operaciones: [
-            op("Revisi\xF3n y limpieza de los aparatos de recuperaci\xF3n de calor", ["t", "2t"]),
-            FILTROS_AIRE,
-            BOMBAS_VENT
-          ]
-        },
-        {
-          id: "uta",
-          nombre: "Unidad de tratamiento de aire",
-          disciplina: "Clima",
-          patron: /\buta\b|climatizador|tratamiento de aire|\bahu\b/,
-          vidaUtil: 20,
-          vidaDesde: "servicio",
-          fuenteVida: "ASHRAE (mediana), redondeada",
-          operaciones: [
-            FILTROS_AIRE,
-            op("Revisi\xF3n de bater\xEDas de intercambio t\xE9rmico", [null, "t"]),
-            op("Revisi\xF3n de aparatos de humectaci\xF3n y enfriamiento evaporativo", ["t", "m"]),
-            op("Revisi\xF3n y limpieza de unidades de impulsi\xF3n y retorno de aire", "t"),
-            BOMBAS_VENT,
-            op("Revisi\xF3n de la red de conductos (UNE 100012)", "t"),
-            op("Revisi\xF3n de la calidad ambiental (UNE 171330)", "t")
-          ]
-        },
-        {
-          id: "autonomo",
-          nombre: "Equipo aut\xF3nomo / split / VRF",
-          disciplina: "Clima",
-          patron: /\bsplit|\bvrf\b|\bvrv\b|autónomo|autonomo|cassette|conductos? .*interior|unidad (interior|exterior)|roof.?top/,
-          vidaUtil: 15,
-          vidaDesde: "servicio",
-          fuenteVida: "ASHRAE (mediana), redondeada",
-          operaciones: [
-            op("Revisi\xF3n de equipos aut\xF3nomos", ["t", "2t"]),
-            REFRIGERANTE,
-            FILTROS_AIRE
-          ]
-        },
-        {
-          id: "fancoil",
-          nombre: "Fancoil / unidad terminal agua-aire",
-          disciplina: "Clima",
-          patron: /fan.?coil|inductor|viga fr[ií]a|unidad terminal/,
-          vidaUtil: 20,
-          vidaDesde: "servicio",
-          fuenteVida: "ASHRAE (mediana), redondeada",
-          operaciones: [
-            op("Revisi\xF3n de unidades terminales agua-aire", ["t", "2t"]),
-            FILTROS_AIRE
-          ]
-        },
-        {
-          id: "terminalAire",
-          nombre: "Caja VAV / compuerta / difusi\xF3n",
-          disciplina: "Clima",
-          patron: /\bvav\b|\bcav\b|compuerta|difusor|rejilla/,
-          vidaUtil: 20,
-          vidaDesde: "servicio",
-          fuenteVida: "ASHRAE (mediana), redondeada",
-          operaciones: [
-            op("Revisi\xF3n de unidades terminales de distribuci\xF3n de aire", ["t", "2t"])
-          ]
-        },
-        /* El circulador antes que la bomba, y la bomba antes que el ACS: una
-           «bomba de ACS» es una bomba. */
-        {
-          id: "circulador",
-          nombre: "Circulador / bomba en l\xEDnea",
-          disciplina: "Clima",
-          patron: /circulador|bombas? en l[ií]nea|in.?line/,
-          vidaUtil: 10,
-          vidaDesde: "servicio",
-          fuenteVida: "ASHRAE: bombas en l\xEDnea, 10",
-          operaciones: [BOMBAS_VENT]
-        },
-        {
-          id: "bomba",
-          nombre: "Bomba",
-          disciplina: "Clima",
-          patron: /\bbomba|\bgrupo de presi/,
-          vidaUtil: 15,
-          vidaDesde: "servicio",
-          fuenteVida: "ASHRAE: 20 en bancada, 10 en l\xEDnea (si es en l\xEDnea, elige \xABCirculador\xBB)",
-          operaciones: [BOMBAS_VENT]
-        },
-        /* El termo eléctrico antes que el resto del ACS: dura la mitad. */
-        {
-          id: "termo",
-          nombre: "Termo el\xE9ctrico",
-          disciplina: "Fontaner\xEDa",
-          patron: /\btermo\b|termo ?el[eé]ctrico|calentador el[eé]ctrico/,
-          vidaUtil: 10,
-          vidaDesde: "servicio",
-          fuenteVida: "Referencia de fabricantes: 10 (el \xE1nodo de magnesio, en la revisi\xF3n anual)",
-          operaciones: [
-            op("Revisi\xF3n del sistema de preparaci\xF3n de ACS", ["t", "m"]),
-            op("Revisi\xF3n, limpieza y desinfecci\xF3n del acumulador (legionela)", "t", LEGIONELA)
-          ]
-        },
-        {
-          id: "acs",
-          nombre: "Producci\xF3n y acumulaci\xF3n de ACS",
-          disciplina: "Fontaner\xEDa",
-          patron: /\bacs\b|agua caliente|acumulador|interacumulador|calentador/,
-          vidaUtil: 15,
-          vidaDesde: "servicio",
-          fuenteVida: "Referencia (interacumuladores de inoxidable o vitrificados)",
-          operaciones: [
-            op("Revisi\xF3n del sistema de preparaci\xF3n de ACS", ["t", "m"]),
-            op("Revisi\xF3n del estado de los acumuladores y temperaturas (legionela)", "3m", LEGIONELA),
-            op("Revisi\xF3n, limpieza y desinfecci\xF3n del acumulador (legionela)", "t", LEGIONELA),
-            op("An\xE1lisis de Legionella", "t", LEGIONELA)
-          ]
-        },
-        {
-          id: "ventilador",
-          nombre: "Ventilador / extractor",
-          disciplina: "Clima",
-          patron: /ventila|extract|\bextr\b|caja de ventilaci|\bs&p\b/,
-          vidaUtil: 20,
-          vidaDesde: "servicio",
-          fuenteVida: "ASHRAE (mediana), redondeada",
-          operaciones: [
-            BOMBAS_VENT,
-            op("Revisi\xF3n y limpieza de unidades de impulsi\xF3n y retorno de aire", "t")
-          ]
-        },
-        {
-          id: "intercambiador",
-          nombre: "Intercambiador de placas",
-          disciplina: "Clima",
-          patron: /intercambiador/,
-          vidaUtil: 20,
-          vidaDesde: "servicio",
-          fuenteVida: "ASHRAE (mediana), redondeada",
-          operaciones: [op("Revisi\xF3n de bater\xEDas e intercambiadores", [null, "t"])]
-        },
-        {
-          id: "tratamientoAgua",
-          nombre: "Tratamiento de agua",
-          disciplina: "Clima",
-          patron: /descalcific|dosificador|tratamiento de agua|osmosis|ósmosis/,
-          vidaUtil: 15,
-          vidaDesde: "servicio",
-          fuenteVida: "Referencia (resinas y membranas, en la revisi\xF3n)",
-          operaciones: [op("Revisi\xF3n de los sistemas de tratamiento de agua", ["t", "m"])]
-        },
-        {
-          id: "grupoElectrogeno",
-          nombre: "Grupo electr\xF3geno",
-          disciplina: "Electricidad",
-          patron: /grupo electr[oó]geno|generador di[eé]sel|\bgenset/,
-          vidaUtil: 25,
-          vidaDesde: "servicio",
-          fuenteVida: "Referencia (con las pocas horas de un grupo de emergencia)",
-          operaciones: [
-            op("Arranque y prueba en vac\xEDo; niveles, bater\xEDas y precalentamiento", "m", "Fabricante"),
-            op("Prueba en carga y revisi\xF3n anual (aceite, filtros y refrigerante)", "t", "Fabricante")
-          ]
-        },
-        {
-          id: "control",
-          nombre: "Control / BMS",
-          disciplina: "Control",
-          patron: /\bbms\b|\bscada|controlador|regulador|centralita|\bddc\b|control/,
-          vidaUtil: 15,
-          vidaDesde: "servicio",
-          fuenteVida: "ASHRAE: 15 (electr\xF3nico); el fabricante suele dejar de dar repuestos antes",
-          operaciones: [CONTROL]
-        },
-        {
-          id: "emergencia",
-          nombre: "Alumbrado de emergencia",
-          disciplina: "Electricidad",
-          patron: /emergencia|\bbaes\b/,
-          vidaUtil: 10,
-          vidaDesde: "servicio",
-          fuenteVida: "Luminaria: 10 (referencia); la bater\xEDa se cambia cada 4 a\xF1os como operaci\xF3n",
-          operaciones: [
-            op("Prueba de funcionamiento", "m", "UNE-EN 50172"),
-            op("Prueba de autonom\xEDa", "t", "UNE-EN 50172"),
-            op("Sustituci\xF3n de bater\xEDas", "4a", "Fabricante")
-          ]
-        },
-        {
-          id: "sai",
-          nombre: "SAI",
-          disciplina: "Electricidad",
-          patron: /\bsai\b|\bups\b/,
-          vidaUtil: 10,
-          vidaDesde: "servicio",
-          fuenteVida: "Equipo: 10 (referencia de fabricantes); las bater\xEDas se cambian cada 5 a\xF1os como operaci\xF3n",
-          operaciones: [
-            op("Revisi\xF3n y prueba de bater\xEDas", "t", "Fabricante"),
-            op("Sustituci\xF3n de bater\xEDas", "5a", "Fabricante")
-          ]
-        }
-      ];
-      var TIPO_MANT_POR_ID = new Map(TIPOS_MANT.map((t) => [t.id, t]));
-      var INCIDENCIAS_MANT = {
-        sinFechas: "Sin fecha de instalaci\xF3n ni de puesta en marcha",
-        sinTipo: "No se sabe qu\xE9 es: elige el tipo de mantenimiento",
-        marchaAntesQueMontaje: "La puesta en marcha es anterior a la instalaci\xF3n",
-        fechaMal: "Hay una fecha que no se entiende"
-      };
-      var SUSTITUCION = {
-        caducado: { orden: 1, nombre: "Fuera de vida \xFAtil" },
-        avisar: { orden: 2, nombre: "Sustituir en menos de un a\xF1o" },
-        vigente: { orden: 3, nombre: "En vida \xFAtil" },
-        sinFecha: { orden: 4, nombre: "Sin fecha" },
-        sinTipo: { orden: 5, nombre: "Sin vida \xFAtil" }
-      };
-      var AVISO_MESES = 12;
-      var AVISO_DIAS_MANT = 30;
-      var ESTADO_OP_MANT = {
-        vencida: { orden: 1, nombre: "Vencida" },
-        pronto: { orden: 2, nombre: `Toca en ${AVISO_DIAS_MANT} d\xEDas` },
-        alDia: { orden: 3, nombre: "Al d\xEDa" }
-      };
-      var UMBRAL_KW = 70;
-      var llanoMant = (v) => String(v ?? "").trim().toLowerCase();
-      function fecha(v) {
-        if (!v) return null;
-        const t = String(v).trim();
-        let a;
-        let me;
-        let d;
-        const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(t);
-        const es = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/.exec(t);
-        if (iso) [a, me, d] = [Number(iso[1]), Number(iso[2]), Number(iso[3])];
-        else if (es) [d, me, a] = [Number(es[1]), Number(es[2]), Number(es[3])];
-        else return null;
-        const f = new Date(Date.UTC(a, me - 1, d));
-        if (f.getUTCFullYear() !== a || f.getUTCMonth() !== me - 1 || f.getUTCDate() !== d) return null;
-        return f.toISOString().slice(0, 10);
-      }
-      function sumarMesesIso(dia, meses) {
-        const [a, m, d] = dia.split("-").map(Number);
-        const total = a * 12 + (m - 1) + meses;
-        const a\u00F1o = Math.floor(total / 12);
-        const mes = total - a\u00F1o * 12;
-        const ultimo = new Date(Date.UTC(a\u00F1o, mes + 1, 0)).getUTCDate();
-        const f = new Date(Date.UTC(a\u00F1o, mes, Math.min(d, ultimo)));
-        return f.toISOString().slice(0, 10);
-      }
-      function sumarDiasIso(dia, dias) {
-        const [a, m, d] = dia.split("-").map(Number);
-        return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
-      }
-      function diasEntreMant(desde, hasta) {
-        const ms = (x) => {
-          const [a, m, d] = x.split("-").map(Number);
-          return Date.UTC(a, m - 1, d);
-        };
-        return Math.round((ms(hasta) - ms(desde)) / 864e5);
-      }
-      var hoyIso = () => ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
-      var ORDEN_TAG_MANT = new Intl.Collator("es", { numeric: true });
-      var textoEquipo = (e) => ` ${llanoMant([e.grupo, e.tag, e.instalacion, e.marca, e.modelo].filter(Boolean).join(" "))} `;
-      function tipoDe(e) {
-        if (e.tipoMantenimiento && TIPO_MANT_POR_ID.has(e.tipoMantenimiento)) {
-          return { tipo: TIPO_MANT_POR_ID.get(e.tipoMantenimiento), manual: true };
-        }
-        const t = textoEquipo(e);
-        const tipo = TIPOS_MANT.find((x) => x.patron.test(t)) || null;
-        return { tipo, manual: false };
-      }
-      function columnaPotencia(kw) {
-        const n = Number(kw);
-        if (kw === null || kw === void 0 || kw === "" || !Number.isFinite(n) || n <= 0) {
-          return { columna: "mas70", supuesta: true };
-        }
-        return { columna: n > UMBRAL_KW ? "mas70" : "hasta70", supuesta: false };
-      }
-      function baseVida(e, tipo, f) {
-        const orden = tipo && tipo.vidaDesde === "fabricacion" ? [["fabricacion", f.fabricacion], ["instalacion", f.instalacion], ["puestaMarcha", f.puestaMarcha]] : [["puestaMarcha", f.puestaMarcha], ["instalacion", f.instalacion], ["fabricacion", f.fabricacion]];
-        const encontrada = orden.find(([, v]) => v);
-        if (!encontrada) return null;
-        return { desde: encontrada[0], fecha: encontrada[1], supuesta: encontrada[0] !== orden[0][0] };
-      }
-      function vencimientos(servicio, meses, desde, hasta, maximo = 400) {
-        const fechas = [];
-        const [a0, m0] = servicio.split("-").map(Number);
-        const [a1, m1] = desde.split("-").map(Number);
-        const transcurridos = a1 * 12 + m1 - (a0 * 12 + m0);
-        let k = Math.max(1, Math.floor(transcurridos / meses) - 1);
-        for (let i = 0; i < maximo; i += 1, k += 1) {
-          const f = sumarMesesIso(servicio, k * meses);
-          if (f >= hasta) break;
-          if (f >= desde) fechas.push(f);
-        }
-        return fechas;
-      }
-      function estadoOperacionMant({ servicio, meses, hechas, hoy, finVentana }) {
-        const ultima = hechas[0] || null;
-        if (!servicio && !ultima) return { ultima: null, proxima: null, estado: null, dias: null, nunca: true, enElA\u00F1o: [] };
-        const proxima = sumarMesesIso(ultima ? ultima.fecha : servicio, meses);
-        const dias = diasEntreMant(hoy, proxima);
-        const estado = dias < 0 ? "vencida" : dias <= AVISO_DIAS_MANT ? "pronto" : "alDia";
-        const enElA\u00F1o = [];
-        const desde = estado === "vencida" ? hoy : proxima;
-        for (let k = 0; k < 400; k += 1) {
-          const v = sumarMesesIso(desde, k * meses);
-          if (v >= finVentana) break;
-          enElA\u00F1o.push(v);
-        }
-        return { ultima, proxima, estado, dias, nunca: !ultima, enElA\u00F1o };
-      }
-      var ordenarHechasMant = (lista) => [...lista].sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)) || String(b.creadoEn || "").localeCompare(String(a.creadoEn || "")));
-      function evaluarEquipoMant(e, { hoy, columna, registros = [] }) {
-        const f = {
-          fabricacion: fecha(e.fechaFabricacion),
-          instalacion: fecha(e.fechaInstalacion),
-          puestaMarcha: fecha(e.fechaPuestaMarcha)
-        };
-        const { tipo, manual } = tipoDe(e);
-        const incidencias = [];
-        const fechaMal = ["fechaFabricacion", "fechaInstalacion", "fechaPuestaMarcha"].some((c) => e[c] && !fecha(e[c]));
-        if (fechaMal) incidencias.push("fechaMal");
-        if (!f.instalacion && !f.puestaMarcha) incidencias.push("sinFechas");
-        if (!tipo) incidencias.push("sinTipo");
-        if (f.instalacion && f.puestaMarcha && f.puestaMarcha < f.instalacion) incidencias.push("marchaAntesQueMontaje");
-        const servicio = f.puestaMarcha || f.instalacion || null;
-        const finVentana = sumarMesesIso(hoy, 12);
-        const hechos = ordenarHechasMant(registros.filter((r) => fecha(r.fecha)));
-        const operaciones = (tipo ? tipo.operaciones : []).map((o) => {
-          const codigo = o.cada[columna];
-          if (!codigo) return null;
-          const meses = PERIODOS[codigo].meses;
-          const hechas = hechos.filter((r) => r.operacion === o.texto);
-          return {
-            texto: o.texto,
-            norma: o.norma,
-            periodo: codigo,
-            periodoNombre: PERIODOS[codigo].nombre,
-            meses,
-            ...estadoOperacionMant({ servicio, meses, hechas, hoy, finVentana })
-          };
-        }).filter(Boolean);
-        const vidaPropia = Number(e.vidaUtilAnios);
-        const vida = Number.isFinite(vidaPropia) && vidaPropia > 0 ? vidaPropia : tipo ? tipo.vidaUtil : null;
-        const base = baseVida(e, tipo, f);
-        let sustitucion = { estado: vida ? "sinFecha" : "sinTipo", vida, propia: vida === vidaPropia };
-        if (vida && base) {
-          const fin = sumarMesesIso(base.fecha, Math.round(vida * 12));
-          const aviso = sumarMesesIso(fin, -AVISO_MESES);
-          const estado = hoy >= fin ? "caducado" : hoy >= aviso ? "avisar" : "vigente";
-          sustitucion = {
-            estado,
-            vida,
-            propia: vida === vidaPropia,
-            fin,
-            aviso,
-            desde: base.desde,
-            desdeFecha: base.fecha,
-            desdeSupuesta: base.supuesta,
-            fuente: vida === vidaPropia ? "La del equipo" : tipo.fuenteVida
-          };
-        }
-        const proxima = operaciones.map((o) => o.proxima).filter(Boolean).sort()[0] || null;
-        const vencidas = operaciones.filter((o) => o.estado === "vencida").length;
-        const pronto = operaciones.filter((o) => o.estado === "pronto").length;
-        return {
-          id: e.id,
-          tag: e.tag,
-          planta: e.planta || "",
-          grupo: e.grupo || "",
-          marca: e.marca || "",
-          modelo: e.modelo || "",
-          numSerie: e.numSerie || "",
-          fechaFabricacion: f.fabricacion,
-          fechaInstalacion: f.instalacion,
-          fechaPuestaMarcha: f.puestaMarcha,
-          servicio,
-          tipo: tipo ? tipo.id : null,
-          tipoNombre: tipo ? tipo.nombre : null,
-          disciplina: tipo ? tipo.disciplina : null,
-          tipoManual: manual,
-          operaciones,
-          proxima,
-          vencidas,
-          pronto,
-          registros: hechos,
-          sustitucion,
-          incidencias
-        };
-      }
-      function evaluarMantenimiento({ equipos = [], potenciaKw = null, registros = [], hoy = hoyIso() } = {}) {
-        const dia = fecha(hoy) || hoyIso();
-        const { columna, supuesta } = columnaPotencia(potenciaKw);
-        const deEquipo = /* @__PURE__ */ new Map();
-        for (const r of registros) {
-          if (!deEquipo.has(r.equipoId)) deEquipo.set(r.equipoId, []);
-          deEquipo.get(r.equipoId).push(r);
-        }
-        const filas = equipos.map((e) => evaluarEquipoMant(e, { hoy: dia, columna, registros: deEquipo.get(e.id) || [] }));
-        const pendientes = filas.flatMap((f) => f.operaciones.filter((o) => o.estado === "vencida" || o.estado === "pronto").map((o) => ({
-          equipoId: f.id,
-          tag: f.tag,
-          planta: f.planta,
-          tipoNombre: f.tipoNombre,
-          operacion: o.texto,
-          periodoNombre: o.periodoNombre,
-          norma: o.norma,
-          proxima: o.proxima,
-          dias: o.dias,
-          estado: o.estado,
-          nunca: o.nunca,
-          ultima: o.ultima ? { fecha: o.ultima.fecha, realizadoPor: o.ultima.realizadoPor || "" } : null
-        }))).sort((a, b) => (a.proxima < b.proxima ? -1 : a.proxima > b.proxima ? 1 : 0) || ORDEN_TAG_MANT.compare(String(a.tag), String(b.tag)));
-        const meses = [];
-        for (let i = 0; i < 12; i += 1) {
-          const inicio = sumarMesesIso(`${dia.slice(0, 7)}-01`, i);
-          meses.push({ mes: inicio.slice(0, 7), operaciones: 0, equipos: /* @__PURE__ */ new Set(), sustituciones: 0 });
-        }
-        const porMes = new Map(meses.map((m) => [m.mes, m]));
-        for (const f of filas) {
-          for (const o of f.operaciones) {
-            for (const v of o.enElA\u00F1o) {
-              const m = porMes.get(v.slice(0, 7));
-              if (m) {
-                m.operaciones += 1;
-                m.equipos.add(f.id);
-              }
-            }
-          }
-          const fin = f.sustitucion.fin;
-          if (fin && porMes.has(fin.slice(0, 7))) porMes.get(fin.slice(0, 7)).sustituciones += 1;
-        }
-        const sustituciones = filas.filter((f) => f.sustitucion.estado === "caducado" || f.sustitucion.estado === "avisar").sort((a, b) => a.sustitucion.fin.localeCompare(b.sustitucion.fin) || String(a.tag).localeCompare(String(b.tag), "es", { numeric: true }));
-        const tipos = /* @__PURE__ */ new Map();
-        for (const f of filas) {
-          const clave = f.tipo || "";
-          if (!tipos.has(clave)) {
-            const t = TIPO_MANT_POR_ID.get(clave);
-            tipos.set(clave, {
-              tipo: clave || null,
-              nombre: t ? t.nombre : "Sin tipo",
-              disciplina: t ? t.disciplina : "",
-              equipos: 0,
-              vidaUtil: t ? t.vidaUtil : null,
-              fuenteVida: t ? t.fuenteVida : "",
-              operaciones: f.operaciones.map(({ texto, norma, periodo, periodoNombre }) => ({ texto, norma, periodo, periodoNombre }))
-            });
-          }
-          tipos.get(clave).equipos += 1;
-        }
-        const cuenta = (pred) => filas.filter(pred).length;
-        const mesActual = dia.slice(0, 7);
-        return {
-          hoy: dia,
-          columna,
-          potenciaSupuesta: supuesta,
-          filas,
-          sustituciones,
-          pendientes,
-          registros: ordenarHechasMant(registros),
-          porTipo: [...tipos.values()].sort((a, b) => (a.tipo ? 0 : 1) - (b.tipo ? 0 : 1) || b.equipos - a.equipos),
-          calendario: meses.map((m) => ({ ...m, equipos: m.equipos.size })),
-          totales: {
-            equipos: filas.length,
-            conPlan: cuenta((f) => f.servicio && f.operaciones.length),
-            sinFechas: cuenta((f) => f.incidencias.includes("sinFechas")),
-            sinTipo: cuenta((f) => f.incidencias.includes("sinTipo")),
-            conIncidencias: cuenta((f) => f.incidencias.length > 0),
-            caducados: cuenta((f) => f.sustitucion.estado === "caducado"),
-            aSustituir: cuenta((f) => f.sustitucion.estado === "avisar"),
-            operacionesEsteMes: meses[0] && meses[0].mes === mesActual ? meses[0].operaciones : 0,
-            vencidas: pendientes.filter((p) => p.estado === "vencida").length,
-            pronto: pendientes.filter((p) => p.estado === "pronto").length,
-            nuncaHechas: pendientes.filter((p) => p.estado === "vencida" && p.nunca).length,
-            equiposConVencidas: cuenta((f) => f.vencidas > 0),
-            registradas: registros.length
-          }
-        };
-      }
-      function avisosInicioMant(lista, { maximo = 8 } = {}) {
-        const obras = [];
-        const todos = [];
-        for (const { obra, resultado: r } of lista) {
-          if (!r || !r.totales) continue;
-          const t = r.totales;
-          if (!t.vencidas && !t.pronto && !t.caducados) continue;
-          obras.push({
-            obraId: obra.id,
-            codigo: obra.codigo,
-            nombre: obra.nombre,
-            vencidas: t.vencidas,
-            pronto: t.pronto,
-            nuncaHechas: t.nuncaHechas,
-            caducados: t.caducados
-          });
-          for (const p of r.pendientes) todos.push({ obraId: obra.id, obra: obra.codigo, ...p });
-        }
-        todos.sort((a, b) => ESTADO_OP_MANT[a.estado].orden - ESTADO_OP_MANT[b.estado].orden || (a.proxima < b.proxima ? -1 : a.proxima > b.proxima ? 1 : 0) || ORDEN_TAG_MANT.compare(String(a.obra), String(b.obra)));
-        obras.sort((a, b) => b.vencidas - a.vencidas || b.pronto - a.pronto || ORDEN_TAG_MANT.compare(String(a.codigo), String(b.codigo)));
-        const suma = (k) => obras.reduce((s, o) => s + o[k], 0);
-        return {
-          obras,
-          urgentes: todos.slice(0, maximo),
-          totales: { vencidas: suma("vencidas"), pronto: suma("pronto"), nuncaHechas: suma("nuncaHechas"), caducados: suma("caducados"), obras: obras.length }
-        };
-      }
-      function correoAvisosMant(avisos, { hoy = hoyIso(), maximo = 40 } = {}) {
-        const t = avisos.totales;
-        const asunto = `Mantenimiento: ${t.vencidas} vencidas y ${t.pronto} en los pr\xF3ximos ${AVISO_DIAS_MANT} d\xEDas`;
-        const lineas = [`Mantenimiento preventivo a ${hoy.split("-").reverse().join("/")}.`, ""];
-        for (const o of avisos.obras) {
-          lineas.push(`${o.codigo} ${o.nombre}: ${o.vencidas} vencidas${o.nuncaHechas ? ` (${o.nuncaHechas} sin ning\xFAn registro)` : ""}, ${o.pronto} en ${AVISO_DIAS_MANT} d\xEDas${o.caducados ? `, ${o.caducados} equipos fuera de vida \xFAtil` : ""}.`);
-        }
-        if (avisos.urgentes.length) {
-          lineas.push("", "Lo m\xE1s urgente:");
-          for (const u of avisos.urgentes.slice(0, maximo)) {
-            const cuando = u.estado === "vencida" ? `vencida desde el ${u.proxima.split("-").reverse().join("/")}` : `toca el ${u.proxima.split("-").reverse().join("/")}`;
-            lineas.push(`- ${u.obra} \xB7 ${u.tag}: ${u.operacion} (${cuando}${u.nunca ? ", nunca registrada" : ""})`);
-          }
-        }
-        const insp = avisos.inspecciones;
-        if (insp && insp.filas.length) {
-          lineas.push("", "Inspecciones reglamentarias (OCA):");
-          for (const x of insp.filas.slice(0, maximo)) lineas.push(`- ${x.obra} \xB7 ${x.nombre}: ${x.cuando} (${x.quien})`);
-        }
-        return { asunto, cuerpo: lineas.join("\n") };
-      }
-      var CADA_AVISO_MANT = {
-        semana: { nombre: "Cada lunes" },
-        dia: { nombre: "Cada d\xEDa laborable" },
-        nunca: { nombre: "No mandarlo" }
-      };
-      function lunesMant(dia) {
-        const [a, m, d] = dia.split("-").map(Number);
-        const dow = new Date(Date.UTC(a, m - 1, d)).getUTCDay();
-        return sumarDiasIso(dia, -((dow + 6) % 7));
-      }
-      function tocaAvisoMant({ cada, ultimo, hoy }) {
-        if (!CADA_AVISO_MANT[cada] || cada === "nunca") return false;
-        const ultimoDia = fecha(ultimo);
-        if (cada === "dia") {
-          const [a, m, d] = hoy.split("-").map(Number);
-          const dow = new Date(Date.UTC(a, m - 1, d)).getUTCDay();
-          if (dow === 0 || dow === 6) return false;
-          return !ultimoDia || ultimoDia < hoy;
-        }
-        return !ultimoDia || ultimoDia < lunesMant(hoy);
-      }
-      var hayQueAvisarMant = (avisos) => Boolean(avisos && avisos.totales && (avisos.totales.vencidas || avisos.totales.pronto || avisos.totales.caducados || avisos.inspecciones && avisos.inspecciones.filas.length));
-      function direccionesMant(texto) {
-        const todas = String(texto ?? "").split(/[\s,;]+/).map((x) => x.trim()).filter(Boolean);
-        const buenas = todas.filter((x) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x));
-        return { buenas: [...new Set(buenas)], malas: todas.filter((x) => !buenas.includes(x)) };
-      }
-      function notificacionMant(avisos) {
-        const t = avisos.totales;
-        const partes = [];
-        if (t.vencidas) partes.push(`${t.vencidas} ${t.vencidas === 1 ? "operaci\xF3n vencida" : "operaciones vencidas"}`);
-        if (t.pronto) partes.push(`${t.pronto} en los pr\xF3ximos ${AVISO_DIAS_MANT} d\xEDas`);
-        if (t.caducados) partes.push(`${t.caducados} ${t.caducados === 1 ? "equipo" : "equipos"} fuera de vida \xFAtil`);
-        const insp = avisos.inspecciones;
-        if (insp && insp.filas.length) partes.push(`${insp.filas.length} ${insp.filas.length === 1 ? "inspecci\xF3n reglamentaria por pedir" : "inspecciones reglamentarias por pedir"}`);
-        const obras = t.obras === 1 && avisos.obras[0] ? `${avisos.obras[0].codigo}: ` : t.obras > 1 ? `${t.obras} obras: ` : "";
-        return { titulo: "Mantenimiento", cuerpo: `${obras}${partes.join(", ")}.` };
-      }
-      function planEnTabla(resultado) {
-        const cab = [
-          "TAG",
-          "Planta",
-          "Tipo",
-          "Marca",
-          "Modelo",
-          "N\xBA serie",
-          "Puesta en marcha",
-          "Operaci\xF3n",
-          "Periodicidad",
-          "Norma",
-          "Pr\xF3xima",
-          "Fin de vida \xFAtil"
-        ];
-        const filas = [cab];
-        for (const f of resultado.filas) {
-          const base = [f.tag, f.planta, f.tipoNombre || "", f.marca, f.modelo, f.numSerie, f.servicio || ""];
-          if (!f.operaciones.length) {
-            filas.push([...base, "", "", "", "", f.sustitucion.fin || ""]);
-            continue;
-          }
-          for (const o of f.operaciones) {
-            filas.push([...base, o.texto, o.periodoNombre, o.norma, o.proxima || "", f.sustitucion.fin || ""]);
-          }
-        }
-        return filas.map((r) => r.map((c) => String(c ?? "").replace(/[\t\r\n]+/g, " ")).join("	")).join("\n");
-      }
-      (function exportar(API) {
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.MANTENIMIENTO = API;
-      })({
-        PERIODOS,
-        TIPOS: TIPOS_MANT,
-        INCIDENCIAS: INCIDENCIAS_MANT,
-        SUSTITUCION,
-        AVISO_MESES,
-        UMBRAL_KW,
-        AVISO_DIAS: AVISO_DIAS_MANT,
-        ESTADO_OP: ESTADO_OP_MANT,
-        fecha,
-        sumarMeses: sumarMesesIso,
-        sumarDias: sumarDiasIso,
-        diasEntre: diasEntreMant,
-        tipoDe,
-        columnaPotencia,
-        vencimientos,
-        evaluarEquipo: evaluarEquipoMant,
-        evaluar: evaluarMantenimiento,
-        planEnTabla,
-        avisosInicio: avisosInicioMant,
-        correoAvisos: correoAvisosMant,
-        CADA_AVISO: CADA_AVISO_MANT,
-        tocaAviso: tocaAvisoMant,
-        hayQueAvisar: hayQueAvisarMant,
-        direcciones: direccionesMant,
-        notificacion: notificacionMant
-      });
-    }
-  });
-
   // shared/commissioning/plantillasCbre.js
   var require_plantillasCbre = __commonJS({
     "shared/commissioning/plantillasCbre.js"(exports, module) {
@@ -20337,6 +16925,3454 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
+  // shared/commissioning/control.js
+  var require_control = __commonJS({
+    "shared/commissioning/control.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var sistemasCx = typeof __require !== "undefined" ? require_sistemas() : window.SISTEMAS_CX;
+      var ESTADOS_MONTAJE = ["pendiente", "acopiado", "instalado", "enMarcha", "recepcionado"];
+      var ESTADOS_PM = ["pendiente", "programada", "enProceso", "enMarcha", "hecha", "conReservas"];
+      var ENSAYOS = ["ninguno", "balanceo", "estanqueidad", "ambos"];
+      var ESTADOS_BALANCEO = ["pendiente", "apto", "aptoSinBocas", "noApto", "noAplica"];
+      var ESTADOS_ESTANQUEIDAD = ["pendiente", "apta", "noApta", "noAplica"];
+      var ENVIO = {
+        enviada: { orden: 1, nombre: "Enviada" },
+        lista: { orden: 2, nombre: "Lista para enviar" },
+        faltaEnsayo: { orden: 3, nombre: "Falta ensayo" },
+        faltaDocumentacion: { orden: 4, nombre: "Falta documentaci\xF3n" }
+      };
+      var INCIDENCIAS = {
+        sinSerie: "Sin n\xBA de serie",
+        sinModelo: "Sin modelo",
+        modeloSinAlta: "Modelo sin dar de alta",
+        sinPlanta: "Sin planta",
+        tagDuplicado: "TAG repetido en la obra",
+        balanceoSinBocas: "Balanceo \xABapto\xBB sin bocas medidas",
+        /* Splits y VRF: la interior cuelga de su exterior (shared/commissioning/sistemas.js). */
+        sinUdExterior: "Interior sin unidad exterior",
+        udExteriorInexistente: "Su unidad exterior no est\xE1 en la obra",
+        asociadaNoEsExterior: "Asociada a otra interior",
+        exteriorSinInteriores: "Exterior sin interiores"
+      };
+      var llano = (v) => String(v ?? "").trim().toLowerCase();
+      function hayDoc(v) {
+        const t = llano(v);
+        return t !== "" && t !== "pendiente" && t !== "\u2014" && t !== "-";
+      }
+      var balanceoApto = (e) => e.balanceoEstado === "apto" || e.balanceoEstado === "aptoSinBocas";
+      var estanqueidadApta = (e) => e.estanqueidadEstado === "apta";
+      var familiasCx = null;
+      function familiaPideEstanqueidad(codigo) {
+        if (!codigo) return false;
+        if (!familiasCx) {
+          const P = typeof __require !== "undefined" ? require_plantillasCbre() : window.PLANTILLAS_CBRE;
+          familiasCx = new Map((P && P.FAMILIAS || []).map((f2) => [f2.codigo, f2]));
+        }
+        const f = familiasCx.get(codigo);
+        return Boolean(f && f.estanqueidad && f.estanqueidad !== "no");
+      }
+      var unidadPideEstanqueidad = (e) => e.ensayoRequerido === "estanqueidad" || e.ensayoRequerido === "ambos" || familiaPideEstanqueidad(e.familia);
+      var pideEstanqueidad = (e) => Array.isArray(e.miembros) ? e.miembros.some(unidadPideEstanqueidad) : unidadPideEstanqueidad(e);
+      var faltaEstanqueidad = (e) => pideEstanqueidad(e) && e.estanqueidadEstado !== "apta" && e.estanqueidadEstado !== "noAplica";
+      function ensayoPorDefecto(texto) {
+        const t = ` ${llano(texto)} `;
+        const aire = /\b(uta|climatizador|hru|recuperador|ventila|extrac|extractor|s&p|caja de ventilaci)/.test(t);
+        const agua = /\b(split|vrf|vrv|bomba|enfriadora|frigor|fancoil|fan coil|caldera|aerotermia)/.test(t);
+        if (aire && agua) return "ambos";
+        if (aire) return "balanceo";
+        if (agua) return "estanqueidad";
+        return "ninguno";
+      }
+      function ensayoSuperado(e) {
+        const req = e.ensayoRequerido || "ninguno";
+        if (req === "ninguno") return null;
+        if (req === "balanceo") return balanceoApto(e);
+        if (req === "estanqueidad") return estanqueidadApta(e);
+        return balanceoApto(e) && estanqueidadApta(e);
+      }
+      function indiceModelos(modelos) {
+        const porId = /* @__PURE__ */ new Map();
+        const porClave = /* @__PURE__ */ new Map();
+        const porModelo = /* @__PURE__ */ new Map();
+        for (const m of modelos || []) {
+          porId.set(m.id, m);
+          porClave.set(`${llano(m.marca)}|${llano(m.modelo)}`, m);
+          if (!porModelo.has(llano(m.modelo))) porModelo.set(llano(m.modelo), m);
+        }
+        return (e) => e.modeloId && porId.get(e.modeloId) || porClave.get(`${llano(e.marca)}|${llano(e.modelo)}`) || (llano(e.modelo) ? porModelo.get(llano(e.modelo)) : null) || null;
+      }
+      function evaluarEquipo(e, modelo, repetidos, unidad) {
+        const ft = hayDoc(e.docFichaTecnica) || hayDoc(modelo && modelo.docFichaTecnica);
+        const ce = hayDoc(e.docMarcadoCE) || hayDoc(modelo && modelo.docMarcadoCE);
+        const manual = hayDoc(e.docManual) || hayDoc(modelo && modelo.docManual);
+        const fichaPM = hayDoc(e.docFichaPM) || e.estadoPM === "hecha";
+        const ensayo = ensayoSuperado(e);
+        const docCompleta = ft && ce && manual && fichaPM;
+        let envio;
+        if (e.fechaEnvioDF) envio = "enviada";
+        else if (!docCompleta) envio = "faltaDocumentacion";
+        else if (ensayo === false) envio = "faltaEnsayo";
+        else envio = "lista";
+        const incidencias = [];
+        if (!llano(e.numSerie)) incidencias.push("sinSerie");
+        if (!llano(e.modelo)) incidencias.push("sinModelo");
+        else if (!modelo) incidencias.push("modeloSinAlta");
+        if (!llano(e.planta)) incidencias.push("sinPlanta");
+        if (llano(e.tag) && repetidos.has(sistemasCx.claveTag(e.tag))) incidencias.push("tagDuplicado");
+        if (unidad && unidad.problema) incidencias.push(unidad.problema);
+        if (e.balanceoEstado === "aptoSinBocas" && (e.ensayoRequerido === "balanceo" || e.ensayoRequerido === "ambos")) {
+          incidencias.push("balanceoSinBocas");
+        }
+        const falta = [];
+        if (!ft) falta.push("FT");
+        if (!ce) falta.push("CE");
+        if (!manual) falta.push("manual");
+        if (!fichaPM) falta.push("ficha PM");
+        if (ensayo === false) falta.push(e.ensayoRequerido === "estanqueidad" ? "estanqueidad" : e.ensayoRequerido === "balanceo" ? "balanceo" : "ensayos");
+        return {
+          ...e,
+          modeloId: modelo ? modelo.id : e.modeloId || null,
+          unidad: unidad || null,
+          ft,
+          ce,
+          manual,
+          fichaPM,
+          ensayo,
+          docCompleta,
+          completo: docCompleta && ensayo !== false,
+          envio,
+          incidencias,
+          falta
+        };
+      }
+      function rangoPlanta(v) {
+        const t = String(v || "").toUpperCase().trim();
+        if (!t || t === "SIN DEFINIR") return 9;
+        if (/^(S|SOT|-)/.test(t)) return 0;
+        if (/^(PB|BAJA|N00|P00)/.test(t)) return 1;
+        if (/^CUB/.test(t)) return 3;
+        return 2;
+      }
+      function ordenPlantas(a, b) {
+        return rangoPlanta(a) - rangoPlanta(b) || String(a).localeCompare(String(b), "es", { numeric: true });
+      }
+      function cuadroDeCorte(filas, campo) {
+        const grupos = /* @__PURE__ */ new Map();
+        for (const f of filas) {
+          const clave = String(f[campo] || "").trim() || "SIN DEFINIR";
+          if (!grupos.has(clave)) {
+            grupos.set(clave, {
+              concepto: clave,
+              total: 0,
+              fichaPM: 0,
+              ft: 0,
+              ce: 0,
+              manual: 0,
+              balanceo: 0,
+              estanqueidad: 0,
+              enMarcha: 0,
+              completos: 0,
+              enviadas: 0
+            });
+          }
+          const g = grupos.get(clave);
+          g.total += 1;
+          if (f.fichaPM) g.fichaPM += 1;
+          if (f.ft) g.ft += 1;
+          if (f.ce) g.ce += 1;
+          if (f.manual) g.manual += 1;
+          if (balanceoApto(f)) g.balanceo += 1;
+          if (estanqueidadApta(f)) g.estanqueidad += 1;
+          if (f.estadoPM === "enMarcha" || f.estadoPM === "hecha") g.enMarcha += 1;
+          if (f.completo) g.completos += 1;
+          if (f.envio === "enviada") g.enviadas += 1;
+        }
+        const orden = campo === "planta" ? (a, b) => ordenPlantas(a.concepto, b.concepto) : (a, b) => b.total - a.total || a.concepto.localeCompare(b.concepto, "es", { numeric: true });
+        return [...grupos.values()].map((g) => ({ ...g, pctCompletos: g.total ? g.completos / g.total : null })).sort(orden);
+      }
+      function aReclamar(filas, modeloDe) {
+        const uso = /* @__PURE__ */ new Map();
+        for (const f of filas) {
+          if (!llano(f.modelo)) continue;
+          const m = modeloDe(f);
+          const clave = m ? `id:${m.id}` : `${llano(f.marca)}|${llano(f.modelo)}`;
+          if (!uso.has(clave)) {
+            uso.set(clave, {
+              modeloId: m ? m.id : null,
+              marca: m && m.marca || f.marca || "",
+              modelo: m && m.modelo || f.modelo,
+              grupo: m && m.grupo || f.grupo || "",
+              equipos: 0,
+              /* Lo que falta mirando el EQUIPO, no solo el modelo: si cada unidad
+                 trae su CE por nº de serie, al modelo no hace falta pedírselo. */
+              sinFT: 0,
+              sinCE: 0,
+              sinManual: 0
+            });
+          }
+          const u = uso.get(clave);
+          u.equipos += 1;
+          if (!f.ft) u.sinFT += 1;
+          if (!f.ce) u.sinCE += 1;
+          if (!f.manual) u.sinManual += 1;
+        }
+        return [...uso.values()].map((u) => ({ ...u, faltaFT: u.sinFT > 0, faltaCE: u.sinCE > 0, faltaManual: u.sinManual > 0 })).filter((u) => u.faltaFT || u.faltaCE || u.faltaManual).sort((a, b) => b.equipos - a.equipos || a.modelo.localeCompare(b.modelo, "es"));
+      }
+      var RANGO_PM = { pendiente: 0, programada: 1, enProceso: 2, conReservas: 3, enMarcha: 4, hecha: 5 };
+      var esVrf = (f) => /VRF|VRV/i.test(`${f.plantillaPM || ""} ${f.grupo || ""} ${f.familia || ""}`);
+      function estadoPMConjunto(miembros) {
+        return miembros.map((m) => m.estadoPM || "pendiente").reduce((a, b) => (RANGO_PM[b] ?? 0) < (RANGO_PM[a] ?? 0) ? b : a);
+      }
+      function peorEnsayo(miembros, campo, orden) {
+        const conEl = miembros.map((m) => m[campo] || "pendiente");
+        return conEl.reduce((a, b) => orden.indexOf(b) > orden.indexOf(a) ? b : a, conEl[0]);
+      }
+      function lineaConjunto(clase, exterior, interiores) {
+        const miembros = [exterior, ...interiores].filter(Boolean);
+        if (clase === "suelto") {
+          const f = miembros[0];
+          return { ...f, clase, miembros, exterior: null, interiores: [], unidades: 1 };
+        }
+        const todos = (k) => miembros.every((m) => m[k]);
+        const ft = todos("ft");
+        const ce = todos("ce");
+        const manual = todos("manual");
+        const fichaPM = miembros.some((m) => hayDoc(m.docFichaPM)) || miembros.every((m) => m.estadoPM === "hecha");
+        const docCompleta = ft && ce && manual && fichaPM;
+        const conEnsayo = miembros.filter((m) => m.ensayo !== null);
+        const ensayo = conEnsayo.length ? conEnsayo.every((m) => m.ensayo) : null;
+        const requeridos = new Set(conEnsayo.map((m) => m.ensayoRequerido));
+        const ensayoRequerido = requeridos.has("ambos") || requeridos.has("balanceo") && requeridos.has("estanqueidad") ? "ambos" : [...requeridos][0] || "ninguno";
+        const pideBal = conEnsayo.filter((m) => m.ensayoRequerido === "balanceo" || m.ensayoRequerido === "ambos");
+        const pideEst = conEnsayo.filter((m) => m.ensayoRequerido === "estanqueidad" || m.ensayoRequerido === "ambos");
+        const balanceoEstado = pideBal.length ? peorEnsayo(pideBal, "balanceoEstado", ["apto", "noAplica", "aptoSinBocas", "pendiente", "noApto"]) : exterior.balanceoEstado;
+        const estanqueidadEstado = pideEst.length ? peorEnsayo(pideEst, "estanqueidadEstado", ["apta", "noAplica", "pendiente", "noApta"]) : exterior.estanqueidadEstado;
+        const fechas = miembros.map((m) => m.fechaEnvioDF).filter(Boolean);
+        const fechaEnvioDF = fechas.length === miembros.length ? fechas.sort().pop() : null;
+        let envio;
+        if (fechaEnvioDF) envio = "enviada";
+        else if (!docCompleta) envio = "faltaDocumentacion";
+        else if (ensayo === false) envio = "faltaEnsayo";
+        else envio = "lista";
+        const incidencias = [...new Set(miembros.flatMap((m) => m.incidencias))];
+        const falta = [...new Set(miembros.flatMap((m) => m.falta))];
+        const ui = interiores[0] || {};
+        const doble = (k) => (clase === "par" ? [exterior[k], ui[k]] : [exterior[k]]).filter(Boolean);
+        return {
+          ...exterior,
+          clase,
+          miembros,
+          exterior,
+          interiores,
+          unidades: miembros.length,
+          tag: clase === "par" ? `${exterior.tag} / ${ui.tag}` : exterior.tag,
+          tagExterior: exterior.tag,
+          tagInterior: clase === "par" ? ui.tag : null,
+          numSerie: doble("numSerie").join(" / "),
+          estadoPM: estadoPMConjunto(miembros),
+          ft,
+          ce,
+          manual,
+          fichaPM,
+          docCompleta,
+          ensayo,
+          ensayoRequerido,
+          balanceoEstado,
+          estanqueidadEstado,
+          completo: docCompleta && ensayo !== false,
+          fechaEnvioDF,
+          envio,
+          incidencias,
+          falta,
+          /* Qué unidad trae cada incidencia, para decirlo en la ficha. */
+          incidenciasPorUnidad: miembros.filter((m) => m.incidencias.length).map((m) => ({ tag: m.tag, incidencias: m.incidencias }))
+        };
+      }
+      function agruparConjuntos(filas, sis) {
+        const porId = new Map(filas.map((f) => [f.id, f]));
+        const conjuntoDe = /* @__PURE__ */ new Map();
+        for (const s of sis.sistemas) {
+          if (!s.interiores.length) continue;
+          conjuntoDe.set(s.exterior.id, s.interiores.map((e) => porId.get(e.id)).filter(Boolean));
+        }
+        const dentro = new Set([...conjuntoDe.values()].flat().map((f) => f.id));
+        const lineas = [];
+        for (const f of filas) {
+          if (dentro.has(f.id)) continue;
+          const ints = conjuntoDe.get(f.id);
+          if (!ints) {
+            lineas.push(lineaConjunto("suelto", f, []));
+            continue;
+          }
+          const clase = ints.length === 1 && !esVrf(f) ? "par" : "sistema";
+          lineas.push(lineaConjunto(clase, f, ints.slice().sort((a, b) => String(a.tag || "").localeCompare(String(b.tag || ""), "es", { numeric: true }))));
+        }
+        return lineas;
+      }
+      function totalesDe(lineas) {
+        const cuenta = (pred) => lineas.filter(pred).length;
+        return {
+          conjuntos: lineas.length,
+          unidades: lineas.reduce((a, l) => a + l.unidades, 0),
+          pares: cuenta((l) => l.clase === "par"),
+          sistemas: cuenta((l) => l.clase === "sistema"),
+          enMarcha: cuenta((l) => l.estadoPM === "enMarcha" || l.estadoPM === "hecha"),
+          docCompleta: cuenta((l) => l.docCompleta),
+          completos: cuenta((l) => l.completo),
+          enviadas: cuenta((l) => l.envio === "enviada"),
+          listas: cuenta((l) => l.envio === "lista"),
+          faltaEnsayo: cuenta((l) => l.envio === "faltaEnsayo"),
+          faltaDocumentacion: cuenta((l) => l.envio === "faltaDocumentacion"),
+          balanceosSinBocas: cuenta((l) => l.incidencias.includes("balanceoSinBocas")),
+          pideEstanqueidad: cuenta(pideEstanqueidad),
+          faltaEstanqueidad: cuenta(faltaEstanqueidad),
+          conIncidencias: cuenta((l) => l.incidencias.length > 0)
+        };
+      }
+      function conjuntoDeEquipo(lineas, id) {
+        return lineas.find((l) => l.miembros.some((m) => m.id === id)) || null;
+      }
+      function evaluar({ equipos = [], modelos = [] } = {}) {
+        const modeloDe = indiceModelos(modelos);
+        const sis = sistemasCx.analizar(equipos);
+        const filas = equipos.map((e) => evaluarEquipo(e, modeloDe(e), sis.repetidos, sis.porEquipo.get(e.id))).sort((a, b) => ordenPlantas(a.planta, b.planta) || String(a.tag || "").localeCompare(String(b.tag || ""), "es", { numeric: true }));
+        const cuenta = (pred) => filas.filter(pred).length;
+        const conjuntos = agruparConjuntos(filas, sis);
+        return {
+          filas,
+          /* Lo que se pone en marcha y se entrega: un split es UNA línea. */
+          conjuntos,
+          totalesConjuntos: totalesDe(conjuntos),
+          porPlantaConjuntos: cuadroDeCorte(conjuntos, "planta"),
+          porPlanta: cuadroDeCorte(filas, "planta"),
+          porMarca: cuadroDeCorte(filas, "marca"),
+          porGrupo: cuadroDeCorte(filas, "grupo"),
+          porInstalacion: cuadroDeCorte(filas, "instalacion"),
+          aReclamar: aReclamar(filas, modeloDe),
+          totales: {
+            equipos: filas.length,
+            modelos: modelos.length,
+            enMarcha: cuenta((f) => f.estadoPM === "enMarcha" || f.estadoPM === "hecha"),
+            docCompleta: cuenta((f) => f.docCompleta),
+            completos: cuenta((f) => f.completo),
+            enviadas: cuenta((f) => f.envio === "enviada"),
+            listas: cuenta((f) => f.envio === "lista"),
+            faltaEnsayo: cuenta((f) => f.envio === "faltaEnsayo"),
+            faltaDocumentacion: cuenta((f) => f.envio === "faltaDocumentacion"),
+            balanceos: cuenta(balanceoApto),
+            balanceosSinBocas: cuenta((f) => f.incidencias.includes("balanceoSinBocas")),
+            estanqueidades: cuenta(estanqueidadApta),
+            pideEstanqueidad: cuenta(pideEstanqueidad),
+            faltaEstanqueidad: cuenta(faltaEstanqueidad),
+            conIncidencias: cuenta((f) => f.incidencias.length > 0),
+            sistemas: sis.sistemas.length,
+            interioresAsociadas: sis.sistemas.reduce((a, x) => a + x.interiores.length, 0),
+            interioresSinSistema: cuenta((f) => f.unidad && f.unidad.tipo === "interior" && f.unidad.problema)
+          }
+        };
+      }
+      function modelosQueFaltan({ equipos = [], modelos = [] } = {}) {
+        const modeloDe = indiceModelos(modelos);
+        const vistos = /* @__PURE__ */ new Map();
+        for (const e of equipos) {
+          if (!llano(e.modelo) || modeloDe(e)) continue;
+          const clave = `${llano(e.marca)}|${llano(e.modelo)}`;
+          if (!vistos.has(clave)) {
+            vistos.set(clave, { marca: e.marca || "", modelo: String(e.modelo).trim(), grupo: e.grupo || "" });
+          }
+        }
+        return [...vistos.values()];
+      }
+      function puedeEnviarse(fila) {
+        return fila.envio === "lista";
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.CONTROL_CX = API;
+      })({
+        ESTADOS_MONTAJE,
+        ESTADOS_PM,
+        ENSAYOS,
+        ESTADOS_BALANCEO,
+        ESTADOS_ESTANQUEIDAD,
+        ENVIO,
+        INCIDENCIAS,
+        hayDoc,
+        ensayoPorDefecto,
+        ensayoSuperado,
+        indiceModelos,
+        rangoPlanta,
+        ordenPlantas,
+        evaluar,
+        cuadro: cuadroDeCorte,
+        modelosQueFaltan,
+        puedeEnviarse,
+        agruparConjuntos,
+        conjuntoDeEquipo,
+        estadoPMConjunto,
+        RANGO_PM
+      });
+    }
+  });
+
+  // shared/commissioning/documentos.js
+  var require_documentos = __commonJS({
+    "shared/commissioning/documentos.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var EXTENSIONES = [".pdf", ".tiff", ".tif", ".xlsm", ".xls", ".xlsx"];
+      var CARPETAS_PM_DEFECTO = [
+        "05 PUESTAS EN MARCHA EQUIPOS",
+        "02 FICHAS DE PUESTA EN MARCHA",
+        "01 FICHAS DE PRUEBAS"
+      ];
+      var CARPETAS_OFICIALES_DEFECTO = ["01 FICHAS TECNICAS", "03 COMISSIONING"];
+      var CARPETAS_IGNORADAS_DEFECTO = ["00 OLD", "13_LEED"];
+      var UMBRAL_EQUIPO = 9;
+      function norm(v) {
+        return String(v ?? "").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Z0-9]/g, "").replace(/O/g, "0");
+      }
+      var soloLetras = (t) => t.replace(/[0-9]/g, "");
+      function pad2(t) {
+        return String(t).replace(new RegExp("(?<![0-9])([0-9])(?![0-9])", "g"), "0$1");
+      }
+      function listaConfig(valor, defecto) {
+        const lista = String(valor || "").split(";").map((x) => x.trim()).filter(Boolean);
+        return lista.length ? lista : defecto;
+      }
+      function clasificar(ruta, config = {}) {
+        const U = String(ruta).toUpperCase().replace(/\\/g, "/");
+        const nombre = U.split("/").pop() || "";
+        if (nombre.startsWith("~$") || nombre.startsWith(".")) return null;
+        if (/\/FORMS\/|\/_|RECYCLE|PAPELERA|PRESERVATION/.test(U)) return null;
+        const ext = (nombre.match(/\.[^.]+$/) || [""])[0].toLowerCase();
+        if (!EXTENSIONES.includes(ext)) return null;
+        const T = (s) => U.includes(s);
+        const enAlguna = (carpetas) => carpetas.some((c) => U.includes(String(c).toUpperCase()));
+        if (enAlguna(config.carpetasIgnoradas || CARPETAS_IGNORADAS_DEFECTO)) return null;
+        const esPM = (enAlguna(config.carpetasPM || CARPETAS_PM_DEFECTO) || nombre.includes("PM_") || nombre.includes("PUESTA EN MARCHA") || nombre.includes("CHECKLIST")) && !T("PLANTILLA");
+        const esBal = (x) => x.includes("BAL_") || x.includes("BALANCEO") || x.includes("EQUILIBRADO");
+        const esEst = (x) => x.includes("ESTANQUEIDAD") || x.includes("ESTANQUIDAD") || x.includes("PE-0");
+        let balEst = null;
+        for (const trozo of U.split("/").reverse()) {
+          const b = esBal(trozo);
+          const e = esEst(trozo);
+          if (b && !e) {
+            balEst = "BAL";
+            break;
+          }
+          if (e && !b) {
+            balEst = "EST";
+            break;
+          }
+          if (b && e && !balEst) balEst = "BAL";
+        }
+        let tipo;
+        if (esPM) tipo = "PM";
+        else if (balEst) tipo = balEst;
+        else if (T("ESQUEMA") || T("ESQ ELECT") || T("DESPIECE") || T("SPL_") || T("TEST REPORT") || T("LEAK TEST") || T("ELECTRIC TEST") || T("LAYOUT") || T("SELECCION") || T("SELECCI\xD3N") || T("PLANO") || T("CURVAS") || T("ALBARAN") || T("ALBAR\xC1N") || T("BALANCING") || T("CERTIFICADO DE FABRICA") || T("PE_") || T("PLANTILLA") || T("PRESUPUESTO") || T("OFERTA") || T("FACTURA") || T("ACTA") || T("VISITA") || T("INFORME SEMANAL")) {
+          return null;
+        } else if (T("DECLARACION") || T("DECLARACI\xD3N") || T("DECL_") || T("DECLARATION") || T("CONFORMIT") || T("CONFORMIDAD") || T("MARCADO CE") || /* «CE_…» o «…/CE/…», pero no el «CE_» de «maintenance_manual». Y la
+           «DoC» (Declaration of Conformity) de Carrier y Panasonic. */
+        /(^|[^A-Z])CE_/.test(U) || T("/CE/") || /^DOC[_ -]/.test(nombre) || /,DOC\./.test(nombre) || T("/CERTIFICADOS/") || T("MANUFACTURER") || T("STATEMENT")) tipo = "CE";
+        else if (T("MANUAL") || T("INSTALACION") || T("INSTALACI\xD3N") || T("IOM") || T("INSTRUCCION") || T("OPERATING") || T("MAINTENANCE") || T("MANTENIMIENTO") || T("ASSEMBLY")) tipo = "MI";
+        else tipo = "FT";
+        const n = norm(nombre);
+        const tn = (s) => n.includes(s);
+        let cal = ext === ".pdf" ? 2 : 0;
+        if (tipo === "CE") {
+          if (tn("DECLARACI0NCE") || tn("DECLARACI0NDEC0NF0RMIDAD")) cal += 8;
+          else if (tn("DECLARACI0N") || n.startsWith("DC")) cal += 5;
+          if (tn("GBCE") || tn("EUR0VENT") || tn("HIGIENIC") || tn("LEED")) cal -= 6;
+        } else if (tipo === "MI") {
+          if (n.startsWith("MANUAL") || tn("MANUALDE") || tn("I0M")) cal += 6;
+          if (tn("PR0CEDIMIENT0") || tn("GUIA") || tn("RAPIDA")) cal -= 4;
+        } else if (tipo === "FT") {
+          if (tn("FICHATECNICA") || tn("FICHADEPR0DUCT0") || tn("DATASHEET")) cal += 6;
+          if (tn("FICHA") || n.startsWith("FT") || n.startsWith("EEU")) cal += 3;
+          if (tn("EUR0VENT") || tn("GBCE") || tn("GUIA") || tn("RAPIDA")) cal -= 6;
+        } else if (tipo === "PM") {
+          if (/^NO\s/.test(nombre)) cal -= 6;
+          if (T("GLOBAL")) cal += 2;
+        } else if (tipo === "BAL") {
+          if (ext === ".pdf") {
+            if (T("/REALIZADAS/") || T("/REALIZADOS/")) cal += 8;
+            else if (T("/IMAGES/")) cal += 6;
+            else if (T("BALANCEO DE CAUDALES")) cal += 4;
+          }
+        } else if (tipo === "EST") {
+          if (T("SIN FIRMAR")) cal -= 3;
+        }
+        if (/\sV([2-9])\.[A-Z]+$/.test(nombre)) cal += 1;
+        if (/\bCOPIA\b|\bCOPY\b/.test(nombre)) cal -= 2;
+        if (T("/OLD")) cal -= 3;
+        if (enAlguna(config.carpetasOficiales || CARPETAS_OFICIALES_DEFECTO)) cal += 1;
+        return { tipo, cal };
+      }
+      function prepararDoc(ruta, clase) {
+        const k = norm(ruta);
+        const partes = String(ruta).replace(/\\/g, "/").split("/");
+        const nombre = partes.pop();
+        return {
+          ruta,
+          nombre,
+          carpeta: partes.join("/"),
+          tipo: clase.tipo,
+          cal: clase.cal,
+          k,
+          kl: soloLetras(k),
+          kp: pad2(k),
+          /* Solo el nombre del archivo: lo que se busca por la «clave de nombre». */
+          kn: pad2(norm(nombre.replace(/\.[^.]+$/, ""))),
+          palabras: palabras(nombre.replace(/\.[^.]+$/, "")),
+          modelos: modelosEnNombre(nombre),
+          palabrasRuta: new Set(palabras(ruta))
+        };
+      }
+      function palabras(t) {
+        return String(t ?? "").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "").split(/[^A-Z0-9]+/).filter(Boolean);
+      }
+      function raizModelo(modelo) {
+        const U = String(modelo ?? "").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+        const m = U.match(/(?:^|[^A-Z0-9])([A-Z]{3,})/);
+        return m ? m[1] : "";
+      }
+      function prefijoDeModelo(doc, k) {
+        return doc.palabras.some((p) => {
+          const n = norm(p);
+          return n.length >= 5 && /[0-9]/.test(n) && /[A-Z]/.test(n) && k.startsWith(n) && n !== k;
+        });
+      }
+      function modelosEnNombre(nombre) {
+        const U = String(nombre ?? "").replace(/\.[^.]+$/, "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const fichas = U.replace(/\b([A-Z]{1,2})-(?=\d)/g, "$1").split(/[^A-Z0-9]+/).filter(Boolean);
+        const fuera = /* @__PURE__ */ new Set();
+        let tanda = [];
+        const cerrar = () => {
+          if (!tanda.length) return;
+          const ult = tanda[tanda.length - 1];
+          const cola = (ult.match(/^[A-Z]{0,3}\d+([A-Z][A-Z0-9]*)$/) || [])[1] || "";
+          for (const t of tanda) {
+            fuera.add(t);
+            if (cola && t !== ult && /^[A-Z]{0,3}\d+$/.test(t)) fuera.add(t + cola);
+          }
+          tanda = [];
+        };
+        for (const f of fichas) {
+          if (/^[A-Z]{0,3}\d/.test(f) && /\d/.test(f)) tanda.push(f);
+          else if (f !== "Y" && f !== "AND") cerrar();
+        }
+        cerrar();
+        return [...fuera].map((x) => x.replace(/O/g, "0")).filter((x) => x.length >= 5 && /[A-Z]/.test(x) && /[0-9]/.test(x));
+      }
+      var NO_SERIE = /* @__PURE__ */ new Set(["DE", "EN", "ES", "SP", "CE", "FT", "MI", "PM", "UE", "UI", "NO", "OF", "DO", "DX", "V2", "V3"]);
+      function esSerieDe(palabra, k) {
+        const w = String(palabra).replace(/O/g, "0");
+        if (w.length < 2 || w.length > 4 || !/^[A-Z]{2}/.test(w) || NO_SERIE.has(palabra)) return false;
+        const i = k.indexOf(w);
+        if (i < 0) return false;
+        const tras = k.slice(i + w.length);
+        return i > 0 && /[0-9]/.test(k[i - 1]) || /^[A-Z]{1,2}$/.test(k.slice(0, i)) && /^[0-9]/.test(tras);
+      }
+      function indexar(rutas, config = {}) {
+        const docs = [];
+        for (const r of rutas || []) {
+          const clase = clasificar(r, config);
+          if (clase) docs.push(prepararDoc(r, clase));
+        }
+        return docs;
+      }
+      var mejor = (candidatos) => candidatos.sort((a, b) => b.p - a.p || a.doc.nombre.localeCompare(b.doc.nombre))[0] || null;
+      function enlazarModelo(modelo, docs, contexto = {}) {
+        const k = norm(modelo.modelo);
+        const fam = k.length >= 8 ? k.slice(-6) : "";
+        const letras = soloLetras(k);
+        const grup = norm(modelo.grupo);
+        const marc = norm(modelo.marca);
+        const raiz = raizModelo(modelo.modelo);
+        const buscar = (tipo) => {
+          const candidatos = [];
+          for (const doc of docs) {
+            if (doc.tipo !== tipo) continue;
+            let m = 0;
+            if (k && k.length >= 4 && doc.k.includes(k)) m += 10;
+            else if (k && prefijoDeModelo(doc, k)) m += 8;
+            else if (k && doc.modelos.some((x) => k.startsWith(x) || x.length >= 6 && k.includes(x))) m += 9;
+            else if (k && marc && doc.k.includes(marc) && doc.palabras.some((w) => esSerieDe(w, k))) m += 5;
+            if (tipo !== "FT" && fam && doc.k.includes(fam)) m += 6;
+            if (letras.length >= 5 && doc.kl.includes(letras)) m += 4;
+            if (raiz && doc.palabras.includes(raiz) && (m >= 4 || doc.cal >= 0)) m += 5;
+            if (m < 4) continue;
+            const p = m + (grup && doc.k.includes(grup) ? 3 : 0) + (marc && doc.k.includes(marc) ? 1 : 0) + doc.cal;
+            candidatos.push({ doc, p });
+          }
+          const nuevos = candidatos.filter((c) => !/\/OLD\b/i.test(c.doc.ruta));
+          return mejor(nuevos.length ? nuevos : candidatos);
+        };
+        const ft = buscar("FT");
+        const ce = buscar("CE");
+        let mi = buscar("MI");
+        if (!mi || mi.doc.cal < 0) mi = manualDeCarpeta([ft, ce], docs) || mi;
+        const deFamilia = (tipo, ya) => ya || papelDeFamilia(tipo, { ...contexto, k }, docs);
+        return { ft: deFamilia("FT", ft), ce: deFamilia("CE", ce), mi: deFamilia("MI", mi) };
+      }
+      var LADO_I = /* @__PURE__ */ new Set(["INTERIOR", "INTERIORES", "INDOOR"]);
+      var LADO_E = /* @__PURE__ */ new Set(["EXTERIOR", "EXTERIORES", "OUTDOOR"]);
+      var NO_FAMILIA = /* @__PURE__ */ new Set(["AHU", "UTA", "BRANCH", "BRANCHES", "LISTADO", "SEGUIMIENTO", "PLANO", "PLANOS", "ESQUEMA"]);
+      function papelDeFamilia(tipo, { familias = [], lado = null, k = "" } = {}, docs) {
+        if (!familias.length) return null;
+        const tiene = (ps) => ps.some((w) => familias.some((f) => w === f || w === `${f}S` || `${w}S` === f));
+        const candidatos = [];
+        for (const doc of docs) {
+          if (doc.tipo !== tipo || doc.modelos.length || !/\.pdf$/i.test(doc.nombre) || /\/OLD\//i.test(doc.ruta)) continue;
+          if (doc.palabras.some((w) => NO_FAMILIA.has(w))) continue;
+          if (k && doc.palabras.some((w) => /^[A-Z]{2}$/.test(w) && !NO_SERIE.has(w) && !esSerieDe(w, k))) continue;
+          const carpeta = palabras(doc.carpeta.split("/").pop());
+          if (!tiene(doc.palabras) && !tiene(carpeta)) continue;
+          const ladoDe = (ps) => ps.some((w) => LADO_I.has(w)) ? "I" : ps.some((w) => LADO_E.has(w)) ? "E" : null;
+          const dl = ladoDe(doc.palabras) || ladoDe(carpeta);
+          if (dl && dl !== lado) continue;
+          candidatos.push({ doc, p: doc.cal + (dl ? 5 : 0) + (tiene(doc.palabras) ? 1 : 0) });
+        }
+        return mejor(candidatos);
+      }
+      function contextoModelos(modelos, equipos) {
+        const l = (v) => String(v ?? "").trim();
+        const fuera = /* @__PURE__ */ new Map();
+        for (const m of modelos) fuera.set(m.id, { familias: /* @__PURE__ */ new Set(), lados: /* @__PURE__ */ new Set() });
+        const porNombre = new Map(modelos.map((m) => [`${l(m.marca)}|${l(m.modelo)}`, m.id]));
+        for (const e of equipos) {
+          const id = e.modeloId && fuera.has(e.modeloId) && e.modeloId || porNombre.get(`${l(e.marca)}|${l(e.modelo)}`);
+          if (!id) continue;
+          const c = fuera.get(id);
+          const marca = norm(e.marca);
+          for (const w of String(e.familia || "").toUpperCase().split(/[^A-Z]+/)) {
+            if (w.length >= 3 && norm(w) !== marca && !marca.startsWith(norm(w))) c.familias.add(w);
+          }
+          const t = String(e.tag || "").toUpperCase();
+          c.lados.add(/(^|[^A-Z])UI([^A-Z]|$)/.test(t) ? "I" : /(^|[^A-Z])UE([^A-Z]|$)/.test(t) ? "E" : "?");
+        }
+        const r = /* @__PURE__ */ new Map();
+        for (const [id, c] of fuera) {
+          const mod = String((modelos.find((m) => m.id === id) || {}).modelo || "").toUpperCase().trim();
+          const porModelo = /^C?S-[A-Z0-9]/.test(mod) ? "I" : /^C?U-[A-Z0-9]/.test(mod) ? "E" : null;
+          r.set(id, { familias: [...c.familias], lado: porModelo || (c.lados.size === 1 && !c.lados.has("?") ? [...c.lados][0] : null) });
+        }
+        return r;
+      }
+      function manualDeCarpeta(hallados, docs) {
+        const carpetas = new Set(hallados.filter(Boolean).map((h) => h.doc.carpeta));
+        if (!carpetas.size) return null;
+        const candidatos = [];
+        for (const doc of docs) {
+          if (doc.tipo !== "MI" || !carpetas.has(doc.carpeta)) continue;
+          if (!norm(doc.nombre).startsWith("MANUAL")) continue;
+          const originales = doc.nombre.replace(/\.[^.]+$/, "").split(/[^\p{L}0-9]+/u).filter(Boolean).slice(1);
+          if (originales.some((p) => /[0-9]/.test(p) || p === p.toUpperCase() && !PALABRAS_MANUAL.has(norm(p).replace(/0/g, "O")))) continue;
+          candidatos.push({ doc, p: 7 + doc.cal });
+        }
+        return mejor(candidatos);
+      }
+      var PALABRAS_MANUAL = /* @__PURE__ */ new Set(["DE", "E", "Y", "EL", "LA", "LOS", "DEL", "USO", "AND", "OF", "THE", "FOR", "SP", "ES", "EN"]);
+      function enlazarPorSerie(equipo, docs, claves) {
+        const s = norm(equipo.numSerie);
+        const porSerie = (tipo) => s.length < 5 ? null : mejor(
+          docs.filter((d) => d.tipo === tipo && d.k.includes(s)).map((doc) => ({ doc, p: doc.cal }))
+        );
+        const cn = claves && claves.get(equipo.tag);
+        const porNombre = (tipo) => {
+          if (!cn) return null;
+          const candidatos = [];
+          for (const doc of docs) {
+            if (doc.tipo !== tipo) continue;
+            const m = puntosClave(cn, doc);
+            if (m < UMBRAL_EQUIPO) continue;
+            candidatos.push({ doc, p: m + doc.cal });
+          }
+          return mejor(candidatos);
+        };
+        const buscar = (tipo) => porSerie(tipo) || porNombre(tipo);
+        return { ft: buscar("FT"), ce: buscar("CE"), mi: buscar("MI") };
+      }
+      function claveNombre(tag, plantas = []) {
+        const U = String(tag ?? "").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+        const pref = U.match(/^([A-Z]{2,})[-_ ]/);
+        let resto = pref ? U.slice(pref[0].length) : U;
+        const fuera = new Set(plantas.map((p) => String(p).toUpperCase().trim()));
+        resto = resto.split(/[-_ ]+/).filter((t) => t && !/^N[0-9]{2}$/.test(t) && !fuera.has(t)).join(" ");
+        const clave = pad2(norm(resto));
+        return { clave, prefijo: pref ? pref[1] : "" };
+      }
+      function clavesNombre(equipos, plantas = []) {
+        const todas = (equipos || []).map((e) => ({ tag: e.tag, ...claveNombre(e.tag, plantas) }));
+        const cuenta = /* @__PURE__ */ new Map();
+        for (const c of todas) cuenta.set(c.clave, (cuenta.get(c.clave) || 0) + 1);
+        const distintas = [...cuenta.keys()];
+        const mapa = /* @__PURE__ */ new Map();
+        for (const c of todas) {
+          const k = c.clave;
+          if (cuenta.get(k) !== 1) continue;
+          if (!/[A-Z].*[A-Z]/.test(k.replace(/0/g, "O")) || !/[0-9]/.test(k.replace(new RegExp("0(?=[A-Z])|(?<=[A-Z])0", "g"), ""))) continue;
+          if (k.length < 4) continue;
+          if (distintas.some((o) => o !== k && o.includes(k))) continue;
+          mapa.set(c.tag, c);
+        }
+        return mapa;
+      }
+      function puntosClave(cn, doc) {
+        if (!cn || !doc.kn.includes(cn.clave)) return 0;
+        return cn.prefijo.length >= 2 && doc.palabrasRuta.has(cn.prefijo) ? 9 : 0;
+      }
+      function sinPlanta(tag, plantas) {
+        let t = norm(tag);
+        for (const p of plantas) t = t.split(norm(p)).join("");
+        return pad2(t);
+      }
+      function baseTag(tag) {
+        let t = String(tag ?? "");
+        if (t.endsWith("-UI") || t.endsWith("-UE")) t = t.slice(0, -3);
+        if (t.length > 3 && t[t.length - 3] === "-" && /[0-9]/.test(t[t.length - 1])) t = t.slice(0, -3);
+        if (t.startsWith("UI-") || t.startsWith("UE-")) t = t.slice(3);
+        return t;
+      }
+      function unicasSinPlanta(equipos, plantas) {
+        const cuenta = /* @__PURE__ */ new Map();
+        for (const e of equipos || []) {
+          const sp = sinPlanta(e.tag, plantas);
+          cuenta.set(sp, (cuenta.get(sp) || 0) + 1);
+        }
+        return new Set([...cuenta].filter(([, n]) => n === 1).map(([sp]) => sp));
+      }
+      function enlazarPM(equipo, docs, unicas, plantas, claves) {
+        const ktag = norm(equipo.tag);
+        const kbase = norm(baseTag(equipo.tag));
+        const sp = sinPlanta(equipo.tag, plantas);
+        const ksp = unicas.has(sp) ? sp : "";
+        const kser = norm(equipo.numSerie);
+        const ksal = norm(equipo.codSala);
+        const cn = claves && claves.get(equipo.tag);
+        const kcir = norm(equipo.circuito);
+        const buscar = (tipo) => {
+          const candidatos = [];
+          for (const doc of docs) {
+            if (doc.tipo !== tipo) continue;
+            let p = ktag.length >= 5 && doc.k.includes(ktag) ? 10 : kbase.length >= 6 && doc.k.includes(kbase) ? 9 : ksp.length >= 6 && doc.kp.includes(ksp) ? 9 : 0;
+            if (!p) p = puntosClave(cn, doc);
+            if (!p && tipo === "EST" && kcir.length >= 10 && doc.k.includes(kcir)) p = 9;
+            if (kser.length >= 5 && doc.k.includes(kser)) p += 8;
+            if (ksal.length >= 6 && doc.k.includes(ksal)) p += 7;
+            if (p === 0) continue;
+            p += doc.cal;
+            if (p < UMBRAL_EQUIPO) continue;
+            candidatos.push({ doc, p });
+          }
+          return mejor(candidatos);
+        };
+        return { pm: buscar("PM"), bal: buscar("BAL"), est: buscar("EST") };
+      }
+      function vacio(v) {
+        const t = String(v ?? "").trim().toLowerCase();
+        return t === "" || t === "pendiente" || t === "\u2014" || t === "-";
+      }
+      var CAMPOS_MODELO = [
+        ["docFichaTecnica", "ft"],
+        ["docMarcadoCE", "ce"],
+        ["docManual", "mi"]
+      ];
+      var CAMPOS_EQUIPO_SERIE = CAMPOS_MODELO;
+      var CAMPOS_EQUIPO_PROPIOS = [
+        ["docFichaPM", "pm"],
+        ["docBalanceo", "bal"],
+        ["docEstanqueidad", "est"]
+      ];
+      var origenDe = (campo) => `origen${campo.slice(3)}`;
+      function cambiosDe(fila, encontrados, campos, aEnlace) {
+        const cambios = {};
+        let respetados = 0;
+        for (const [campo, clave] of campos) {
+          const hallado = encontrados[clave];
+          if (!hallado) continue;
+          const actual = fila[campo];
+          const deMotor = fila[origenDe(campo)] === "motor";
+          if (!vacio(actual) && !deMotor) {
+            respetados += 1;
+            continue;
+          }
+          const enlace = aEnlace(hallado.doc.ruta);
+          if (enlace === actual) continue;
+          cambios[campo] = enlace;
+          cambios[origenDe(campo)] = "motor";
+          cambios[`punt${campo.slice(3)}`] = hallado.p;
+        }
+        return { cambios, respetados };
+      }
+      function planEnlace({ rutas = [], equipos = [], modelos = [], config = {}, aEnlace = (r) => r }) {
+        const docs = indexar(rutas, config);
+        const porTipo = {};
+        for (const d of docs) porTipo[d.tipo] = (porTipo[d.tipo] || 0) + 1;
+        const plantas = [...new Set(equipos.map((e) => String(e.planta || "").trim()).filter(Boolean))];
+        const unicas = unicasSinPlanta(equipos, plantas);
+        const claves = clavesNombre(equipos, plantas);
+        let respetados = 0;
+        const modelosCambios = [];
+        const contextos = contextoModelos(modelos, equipos);
+        for (const m of modelos) {
+          const r = cambiosDe(m, enlazarModelo(m, docs, contextos.get(m.id)), CAMPOS_MODELO, aEnlace);
+          respetados += r.respetados;
+          if (Object.keys(r.cambios).length) modelosCambios.push({ id: m.id, cambios: r.cambios });
+        }
+        const equiposCambios = [];
+        for (const e of equipos) {
+          const a = cambiosDe(e, enlazarPorSerie(e, docs, claves), CAMPOS_EQUIPO_SERIE, aEnlace);
+          const b = cambiosDe(e, enlazarPM(e, docs, unicas, plantas, claves), CAMPOS_EQUIPO_PROPIOS, aEnlace);
+          respetados += a.respetados + b.respetados;
+          const cambios = { ...a.cambios, ...b.cambios };
+          if (Object.keys(cambios).length) equiposCambios.push({ id: e.id, cambios });
+        }
+        return {
+          archivos: rutas.length,
+          documentos: docs.length,
+          porTipo,
+          modelos: modelosCambios,
+          equipos: equiposCambios,
+          respetados
+        };
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.DOCUMENTOS_CX = API;
+      })({
+        EXTENSIONES,
+        CARPETAS_PM_DEFECTO,
+        CARPETAS_OFICIALES_DEFECTO,
+        CARPETAS_IGNORADAS_DEFECTO,
+        UMBRAL_EQUIPO,
+        norm,
+        pad2,
+        listaConfig,
+        clasificar,
+        prepararDoc,
+        indexar,
+        enlazarModelo,
+        enlazarPorSerie,
+        enlazarPM,
+        sinPlanta,
+        baseTag,
+        raizModelo,
+        modelosEnNombre,
+        esSerieDe,
+        contextoModelos,
+        claveNombre,
+        clavesNombre,
+        unicasSinPlanta,
+        vacio,
+        cambiosDe,
+        planEnlace
+      });
+    }
+  });
+
+  // shared/calculo/instalaciones.js
+  var require_instalaciones = __commonJS({
+    "shared/calculo/instalaciones.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var _textoCal = typeof __require !== "undefined" ? require_texto() : window.TEXTO;
+      var cifraCal = (v, d = 2) => _textoCal.numero(v, d);
+      var cifraJustaCal = (v) => cifraCal(v, Number(v) % 1 === 0 ? 0 : 2);
+      var redondeaCal = (v, d = 2) => {
+        const f = Math.pow(10, d);
+        return Math.round((Number(v) || 0) * f) / f;
+      };
+      var numCal = (v) => {
+        if (v === null || v === void 0) return null;
+        const texto = String(v).trim();
+        if (texto === "") return null;
+        const n = Number(texto.replace(",", "."));
+        return Number.isFinite(n) ? n : null;
+      };
+      function factorFriccionCal(reynolds, rugosidad, diametro) {
+        if (!(reynolds > 0)) return 0;
+        if (reynolds < 2300) return 64 / reynolds;
+        const a = (rugosidad / (3.7 * diametro)) ** 1.11;
+        const inv = -1.8 * Math.log10(a + 6.9 / reynolds);
+        return 1 / (inv * inv);
+      }
+      var VELOCIDAD_CONDUCTO = {
+        principal: { min: 5, max: 9, que: "Conducto principal, en falso techo de pasillo o patinillo." },
+        ramal: { min: 3, max: 5, que: "Ramal hacia las unidades terminales." },
+        difusion: { min: 1.5, max: 3, que: "Tramo final, ya cerca del difusor: aqu\xED el ruido se oye." }
+      };
+      var RUGOSIDAD_CHAPA = 9e-5;
+      var DENSIDAD_AIRE = 1.2;
+      var VISCOSIDAD_AIRE = 15e-6;
+      function conductoCal({ caudal, ancho, alto, diametro, tipo = "principal", largo = 1 }) {
+        const q = numCal(caudal);
+        if (!(q > 0)) return { error: "Hace falta el caudal en m\xB3/h." };
+        const qs = q / 3600;
+        const rango = VELOCIDAD_CONDUCTO[tipo] || VELOCIDAD_CONDUCTO.principal;
+        const supuestos = [];
+        let a = numCal(ancho);
+        let b = numCal(alto);
+        let d = numCal(diametro);
+        let propuesto = false;
+        if (!d && (!a || !b)) {
+          const vObjetivo = (rango.min + rango.max) / 2;
+          const seccion2 = qs / vObjetivo;
+          if (a) {
+            b = Math.ceil(seccion2 / (a / 1e3) * 1e3 / 50) * 50;
+          } else if (b) {
+            a = Math.ceil(seccion2 / (b / 1e3) * 1e3 / 50) * 50;
+          } else {
+            const lado = Math.sqrt(seccion2 / 2);
+            a = Math.ceil(lado * 2 * 1e3 / 50) * 50;
+            b = Math.ceil(lado * 1e3 / 50) * 50;
+          }
+          propuesto = true;
+          supuestos.push(`No se han dado medidas: se propone ${a} \xD7 ${b} mm para ir a ${cifraCal(vObjetivo, 1)} m/s.`);
+        }
+        let seccion;
+        let dEquivalente;
+        if (d) {
+          seccion = Math.PI * (d / 2e3) ** 2;
+          dEquivalente = d / 1e3;
+        } else {
+          const am = a / 1e3;
+          const bm = b / 1e3;
+          seccion = am * bm;
+          dEquivalente = 1.3 * Math.pow(am * bm, 0.625) / Math.pow(am + bm, 0.25);
+        }
+        const velocidad = qs / seccion;
+        const reynolds = velocidad * dEquivalente / VISCOSIDAD_AIRE;
+        const f = factorFriccionCal(reynolds, RUGOSIDAD_CHAPA, dEquivalente);
+        const perdidaPorMetro = f * (1 / dEquivalente) * (DENSIDAD_AIRE * velocidad * velocidad / 2);
+        const avisos = [];
+        if (velocidad > rango.max) {
+          avisos.push({
+            gravedad: "mal",
+            texto: `${cifraCal(velocidad, 2)} m/s es mucho para un ${tipo}: por encima de ${rango.max} m/s el conducto se oye, y el ruido no se arregla sin rehacerlo.`
+          });
+        } else if (velocidad < rango.min) {
+          avisos.push({
+            gravedad: "aviso",
+            texto: `${cifraCal(velocidad, 2)} m/s es poco: el conducto est\xE1 sobredimensionado y cuesta chapa de m\xE1s.`
+          });
+        }
+        if (a && b && Math.max(a, b) / Math.min(a, b) > 4) {
+          avisos.push({
+            gravedad: "aviso",
+            texto: "La proporci\xF3n pasa de 4:1. A partir de ah\xED se pierde mucha m\xE1s carga que la que dice este c\xE1lculo y cuesta m\xE1s chapa por m\xB2 \xFAtil."
+          });
+        }
+        return {
+          caudal: q,
+          ancho: a || null,
+          alto: b || null,
+          diametro: d || null,
+          propuesto,
+          seccion: redondeaCal(seccion, 4),
+          velocidad: redondeaCal(velocidad, 2),
+          diametroEquivalente: redondeaCal(dEquivalente * 1e3, 0),
+          reynolds: Math.round(reynolds),
+          perdidaPorMetro: redondeaCal(perdidaPorMetro, 2),
+          perdidaTotal: redondeaCal(perdidaPorMetro * (numCal(largo) || 1), 2),
+          rango,
+          supuestos: [
+            ...supuestos,
+            "Chapa galvanizada (rugosidad 0,09 mm), aire a 20 \xB0C.",
+            "La p\xE9rdida es solo por rozamiento: los codos, las tes y las compuertas van aparte."
+          ],
+          avisos
+        };
+      }
+      var RUGOSIDAD_TUBO = {
+        aceroNegro: { valor: 45e-6, etiqueta: "Acero negro" },
+        aceroGalv: { valor: 15e-5, etiqueta: "Acero galvanizado" },
+        cobre: { valor: 15e-7, etiqueta: "Cobre" },
+        ppr: { valor: 7e-6, etiqueta: "Polipropileno (PPR)" },
+        multicapa: { valor: 7e-6, etiqueta: "Multicapa" },
+        pead: { valor: 7e-6, etiqueta: "Polietileno" }
+      };
+      var DENSIDAD_AGUA = 988;
+      var VISCOSIDAD_AGUA = 55e-8;
+      var VELOCIDAD_TUBO = { min: 0.6, max: 2, recomendadaMax: 1.5 };
+      function tuberiaCal({ caudal, diametroInterior, material = "aceroNegro", largo = 1, unidadCaudal = "m3h" }) {
+        const q = numCal(caudal);
+        const d = numCal(diametroInterior);
+        if (!(q > 0)) return { error: "Hace falta el caudal." };
+        if (!(d > 0)) return { error: "Hace falta el di\xE1metro interior en mm." };
+        const qs = unidadCaudal === "ls" ? q / 1e3 : q / 3600;
+        const dm = d / 1e3;
+        const seccion = Math.PI * (dm / 2) ** 2;
+        const velocidad = qs / seccion;
+        const rug = RUGOSIDAD_TUBO[material] || RUGOSIDAD_TUBO.aceroNegro;
+        const reynolds = velocidad * dm / VISCOSIDAD_AGUA;
+        const f = factorFriccionCal(reynolds, rug.valor, dm);
+        const perdidaPorMetro = f * (1 / dm) * (DENSIDAD_AGUA * velocidad * velocidad / 2);
+        const avisos = [];
+        if (velocidad > VELOCIDAD_TUBO.max) {
+          avisos.push({
+            gravedad: "mal",
+            texto: `${cifraCal(velocidad, 2)} m/s pasa de 2 m/s: erosiona el tubo y se oye en las zonas ocupadas.`
+          });
+        } else if (velocidad > VELOCIDAD_TUBO.recomendadaMax) {
+          avisos.push({
+            gravedad: "aviso",
+            texto: `${cifraCal(velocidad, 2)} m/s: por encima de 1,5 m/s empieza a o\xEDrse en locales tranquilos.`
+          });
+        } else if (velocidad < VELOCIDAD_TUBO.min) {
+          avisos.push({
+            gravedad: "aviso",
+            texto: `${cifraCal(velocidad, 2)} m/s es poco: por debajo de 0,6 m/s el aire no arrastra y se queda en los puntos altos.`
+          });
+        }
+        if (perdidaPorMetro > 400) {
+          avisos.push({
+            gravedad: "aviso",
+            texto: `${cifraCal(perdidaPorMetro, 0)} Pa/m es alto. Lo habitual es dimensionar entre 100 y 300 Pa/m: m\xE1s all\xE1, la bomba se come el ahorro del tubo.`
+          });
+        }
+        return {
+          caudal: q,
+          diametroInterior: d,
+          material: rug.etiqueta,
+          velocidad: redondeaCal(velocidad, 2),
+          reynolds: Math.round(reynolds),
+          perdidaPorMetro: redondeaCal(perdidaPorMetro, 1),
+          perdidaTotal: redondeaCal(perdidaPorMetro * (numCal(largo) || 1), 1),
+          mcaPorMetro: redondeaCal(perdidaPorMetro / (DENSIDAD_AGUA * 9.81), 4),
+          supuestos: [
+            `Agua a 50 \xB0C en ${rug.etiqueta.toLowerCase()}.`,
+            "Es el di\xE1metro INTERIOR: en acero no es el DN, y confundirlos cambia el resultado un 10 %.",
+            "Solo rozamiento: codos, v\xE1lvulas y accesorios van aparte."
+          ],
+          avisos
+        };
+      }
+      var SECCIONES_CABLE = [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240, 300];
+      var CONDUCTIVIDAD = { cobre: 44, aluminio: 28 };
+      var METODOS_INSTALACION = {
+        B1: { etiqueta: "B1 \u2014 conductores en tubo empotrado en obra", que: "Lo habitual en instalaci\xF3n interior de edificio." },
+        B2: { etiqueta: "B2 \u2014 cable multiconductor en tubo", que: "Manguera dentro de tubo, empotrado o en superficie." },
+        E: { etiqueta: "E \u2014 cable multiconductor al aire o en bandeja perforada", que: "Bandeja de sala de m\xE1quinas y patinillos: el cable se refrigera mejor y admite m\xE1s." }
+      };
+      var ADMISIBLES = {
+        /* [método][aislamiento] alineado con las secciones normalizadas, en amperios. */
+        B1: {
+          pvc: [13.5, 18, 24, 31, 42, 56, 73, 89, 108, 136, 164, 188, 216, 248, 286, null],
+          xlpe: [17, 23, 31, 40, 54, 73, 95, 117, 141, 179, 216, 249, 285, 324, 380, null]
+        },
+        B2: {
+          pvc: [13, 17.5, 23, 29, 39, 52, 68, 83, 99, 125, 150, 172, 196, 223, 261, null],
+          xlpe: [16.5, 22, 30, 37, 52, 70, 88, 110, 133, 171, 207, 240, 278, 317, 374, null]
+        },
+        E: {
+          pvc: [15.5, 21, 28, 36, 50, 66, 84, 104, 125, 160, 194, 225, 260, 297, 350, null],
+          xlpe: [20, 27, 37, 48, 66, 88, 117, 144, 175, 222, 269, 312, 342, 384, 450, null]
+        }
+      };
+      var FACTOR_MONOFASICO = 1.1;
+      function seccionPorIntensidadCal(intensidad, { metodo = "B1", aislamiento = "xlpe", fases = 3, agrupados = 1 } = {}) {
+        const tabla = (ADMISIBLES[metodo] || ADMISIBLES.B1)[aislamiento] || ADMISIBLES.B1.xlpe;
+        const FACTOR_AGRUPAMIENTO = { 1: 1, 2: 0.8, 3: 0.7, 4: 0.65, 5: 0.6, 6: 0.57, 7: 0.54, 8: 0.52, 9: 0.5 };
+        const k = FACTOR_AGRUPAMIENTO[Math.min(Math.max(agrupados, 1), 9)] || 0.5;
+        const kFases = fases === 1 ? FACTOR_MONOFASICO : 1;
+        for (let i = 0; i < SECCIONES_CABLE.length; i += 1) {
+          const base = tabla[i];
+          if (base === null || base === void 0) continue;
+          const admisible = base * k * kFases;
+          if (admisible >= intensidad) {
+            return { seccion: SECCIONES_CABLE[i], admisible: Math.round(admisible * 10) / 10, factorAgrupamiento: k };
+          }
+        }
+        return { seccion: null, admisible: null, factorAgrupamiento: k };
+      }
+      function cableCal({
+        intensidad,
+        largo,
+        tension = 400,
+        caidaMax = 5,
+        fases = 3,
+        cosFi = 0.9,
+        conductor = "cobre",
+        metodo = "B1",
+        aislamiento = "xlpe",
+        agrupados = 1
+      }) {
+        const i = numCal(intensidad);
+        const l = numCal(largo);
+        const u = numCal(tension);
+        const dU = numCal(caidaMax);
+        if (!(i > 0)) return { error: "Hace falta la intensidad en amperios." };
+        if (!(l > 0)) return { error: "Hace falta la longitud de la l\xEDnea en metros." };
+        const gamma = CONDUCTIVIDAD[conductor] || CONDUCTIVIDAD.cobre;
+        const caidaVoltios = u * dU / 100;
+        const seccionExacta = fases === 1 ? 2 * l * i * cosFi / (gamma * caidaVoltios) : Math.sqrt(3) * l * i * cosFi / (gamma * caidaVoltios);
+        const porCaida = SECCIONES_CABLE.find((s) => s >= seccionExacta) || null;
+        const porTermica = seccionPorIntensidadCal(i, { metodo, aislamiento, fases, agrupados });
+        const porIntensidad = porTermica.seccion;
+        const seccion = porCaida && porIntensidad ? Math.max(porCaida, porIntensidad) : porCaida || porIntensidad;
+        const manda = !porCaida || !porIntensidad ? porCaida ? "caida" : "intensidad" : porIntensidad > porCaida ? "intensidad" : porCaida > porIntensidad ? "caida" : "ambas";
+        const caidaReal = seccion ? fases === 1 ? 2 * l * i * cosFi / (gamma * seccion) : Math.sqrt(3) * l * i * cosFi / (gamma * seccion) : null;
+        const avisos = [];
+        if (!seccion) {
+          avisos.push({
+            gravedad: "mal",
+            texto: `Salen ${cifraCal(seccionExacta, 1)} mm\xB2, que pasa de la mayor secci\xF3n normalizada. Hay que ir a varios conductores por fase o subir la tensi\xF3n.`
+          });
+        } else if (manda === "intensidad") {
+          avisos.push({
+            gravedad: "aviso",
+            texto: `Por ca\xEDda de tensi\xF3n bastar\xEDan ${porCaida} mm\xB2, pero el cable no aguantar\xEDa ${i} A: manda la intensidad admisible, ${porIntensidad} mm\xB2. Dimensionar solo por ca\xEDda quema el cable.`
+          });
+        } else if (manda === "caida") {
+          avisos.push({
+            gravedad: "aviso",
+            texto: `T\xE9rmicamente bastar\xEDan ${porIntensidad} mm\xB2, pero la l\xEDnea es larga y la ca\xEDda obliga a ${porCaida} mm\xB2.`
+          });
+        }
+        if (agrupados > 1) {
+          avisos.push({
+            gravedad: "aviso",
+            texto: `Con ${agrupados} circuitos juntos el cable admite un ${Math.round((1 - porTermica.factorAgrupamiento) * 100)} % menos: ya est\xE1 descontado.`
+          });
+        }
+        if (dU > 5) {
+          avisos.push({
+            gravedad: "aviso",
+            texto: "El REBT admite hasta un 3 % en alumbrado y un 5 % en fuerza para instalaciones interiores. Con m\xE1s, los motores arrancan mal."
+          });
+        }
+        return {
+          intensidad: i,
+          largo: l,
+          tension: u,
+          fases,
+          seccionExacta: redondeaCal(seccionExacta, 2),
+          seccionPorCaida: porCaida,
+          seccionPorIntensidad: porIntensidad,
+          intensidadAdmisible: porTermica.admisible,
+          manda,
+          seccion,
+          caidaVoltios: redondeaCal(caidaVoltios, 2),
+          caidaReal: caidaReal === null ? null : redondeaCal(caidaReal, 2),
+          caidaRealPorcentaje: caidaReal === null ? null : redondeaCal(caidaReal / u * 100, 2),
+          metodo: (METODOS_INSTALACION[metodo] || METODOS_INSTALACION.B1).etiqueta,
+          supuestos: [
+            `${conductor === "aluminio" ? "Aluminio" : "Cobre"} a temperatura de servicio (\u03B3 = ${gamma} m/\u03A9\xB7mm\xB2), aislamiento ${aislamiento === "pvc" ? "PVC" : "XLPE/EPR"}.`,
+            `Factor de potencia ${String(cosFi).replace(".", ",")}. Instalaci\xF3n ${metodo} a 40 \xB0C de ambiente.`,
+            "Se comprueban las DOS cosas: ca\xEDda de tensi\xF3n e intensidad admisible. Manda la mayor."
+          ],
+          avisos
+        };
+      }
+      function bombaCal({ caudal, perdidaCircuito, alturaGeometrica = 0, rendimiento = 0.7, unidadCaudal = "m3h" }) {
+        const q = numCal(caudal);
+        const hp = numCal(perdidaCircuito);
+        const hg = numCal(alturaGeometrica) || 0;
+        const eta = numCal(rendimiento) || 0.7;
+        if (!(q > 0)) return { error: "Hace falta el caudal." };
+        if (hp === null) return { error: "Hace falta la p\xE9rdida de carga del circuito, en metros de columna de agua." };
+        const qs = unidadCaudal === "ls" ? q / 1e3 : q / 3600;
+        const altura = hp + hg;
+        const potenciaHidraulica = DENSIDAD_AGUA * 9.81 * qs * altura;
+        const potenciaEje = potenciaHidraulica / eta;
+        const avisos = [];
+        if (hg > 0) {
+          avisos.push({
+            gravedad: "aviso",
+            texto: "En un circuito CERRADO la altura geom\xE9trica no cuenta: lo que sube por un lado baja por el otro. Solo se suma en circuitos abiertos, como el llenado o una torre."
+          });
+        }
+        if (eta > 0.85) {
+          avisos.push({ gravedad: "aviso", texto: "Un rendimiento por encima del 85 % es optimista para una bomba de edificio." });
+        }
+        return {
+          caudal: q,
+          altura: redondeaCal(altura, 2),
+          perdidaCircuito: hp,
+          alturaGeometrica: hg,
+          potenciaHidraulica: redondeaCal(potenciaHidraulica, 0),
+          potenciaEje: redondeaCal(potenciaEje, 0),
+          potenciaEjeKw: redondeaCal(potenciaEje / 1e3, 2),
+          supuestos: [
+            `Rendimiento del ${Math.round(eta * 100)} % (bomba y motor).`,
+            "Agua a 50 \xB0C.",
+            "La p\xE9rdida del circuito es la del camino M\xC1S DESFAVORABLE, ida y vuelta, con sus accesorios."
+          ],
+          avisos
+        };
+      }
+      var RATIOS_TERMICOS = {
+        oficinas: { frio: 110, calor: 70, que: "Oficinas di\xE1fanas con ocupaci\xF3n normal." },
+        comercial: { frio: 160, calor: 90, que: "Local comercial con iluminaci\xF3n de exposici\xF3n." },
+        hospital: { frio: 150, calor: 100, que: "Hospitalizaci\xF3n y consultas. Los quir\xF3fanos van aparte." },
+        quirofano: { frio: 350, calor: 200, que: "Quir\xF3fano: manda la renovaci\xF3n de aire, no la carga." },
+        hotel: { frio: 100, calor: 80, que: "Habitaciones de hotel." },
+        residencial: { frio: 90, calor: 70, que: "Vivienda." },
+        restaurante: { frio: 250, calor: 110, que: "Restaurante con cocina a la vista." },
+        cpd: { frio: 800, calor: 0, que: "Sala t\xE9cnica: manda la disipaci\xF3n de los equipos." },
+        nave: { frio: 70, calor: 90, que: "Nave log\xEDstica. En calor manda la envolvente." }
+      };
+      function cargasTermicasCal({ superficie, uso = "oficinas", simultaneidad = 0.85 }) {
+        const s = numCal(superficie);
+        if (!(s > 0)) return { error: "Hace falta la superficie en m\xB2." };
+        const r = RATIOS_TERMICOS[uso] || RATIOS_TERMICOS.oficinas;
+        const sim = numCal(simultaneidad) || 0.85;
+        const frio = s * r.frio * sim;
+        const calor = s * r.calor * sim;
+        return {
+          superficie: s,
+          uso,
+          ratioFrio: r.frio,
+          ratioCalor: r.calor,
+          simultaneidad: sim,
+          frioKw: redondeaCal(frio / 1e3, 1),
+          calorKw: redondeaCal(calor / 1e3, 1),
+          frigorias: redondeaCal(frio / 1e3 * 860, 0),
+          supuestos: [
+            r.que,
+            `Ratio de ${r.frio} W/m\xB2 en fr\xEDo y ${r.calor} W/m\xB2 en calor, con un ${Math.round(sim * 100)} % de simultaneidad.`
+          ],
+          avisos: [{
+            gravedad: "aviso",
+            texto: "Esto es una ESTIMACI\xD3N por ratio: sirve para saber si caben dos m\xE1quinas o tres y para presupuestar, no para elegir la m\xE1quina. Esa decisi\xF3n necesita el c\xE1lculo con la envolvente, la orientaci\xF3n y la ocupaci\xF3n reales."
+          }]
+        };
+      }
+      var RIESGO_PCI = {
+        ligero: {
+          densidad: 2.25,
+          area: 84,
+          etiqueta: "Riesgo ligero",
+          que: "Oficinas, colegios, hospitales: poca carga de fuego."
+        },
+        ordinario1: { densidad: 5, area: 72, etiqueta: "Ordinario grupo 1", que: "Talleres de metal, hormig\xF3n." },
+        ordinario2: { densidad: 5, area: 144, etiqueta: "Ordinario grupo 2", que: "Panader\xEDas, textil, aparcamientos." },
+        ordinario3: { densidad: 5, area: 216, etiqueta: "Ordinario grupo 3", que: "Almacenes de madera, papel, imprentas." },
+        ordinario4: { densidad: 5, area: 360, etiqueta: "Ordinario grupo 4", que: "Espuma, caucho, pl\xE1sticos en peque\xF1a cantidad." },
+        altoProceso: { densidad: 7.5, area: 260, etiqueta: "Riesgo alto de proceso", que: "Procesos con l\xEDquidos inflamables." }
+      };
+      function rociadoresCal({ riesgo = "ligero", areaProtegida, duracionMin = null, areaPorRociador = 12 }) {
+        const r = RIESGO_PCI[riesgo] || RIESGO_PCI.ligero;
+        const areaOp = r.area;
+        const caudalLitrosMin = r.densidad * areaOp;
+        const caudalM3h = caudalLitrosMin * 60 / 1e3;
+        const duracion = numCal(duracionMin) || (riesgo === "ligero" ? 30 : riesgo.startsWith("ordinario") ? 60 : 90);
+        const reservaM3 = redondeaCal(caudalLitrosMin * duracion / 1e3, 1);
+        const totalProtegida = numCal(areaProtegida);
+        const rociadoresTotales = totalProtegida ? Math.ceil(totalProtegida / (numCal(areaPorRociador) || 12)) : null;
+        const rociadoresEnOperacion = Math.ceil(areaOp / (numCal(areaPorRociador) || 12));
+        return {
+          riesgo: r.etiqueta,
+          densidad: r.densidad,
+          areaOperacion: areaOp,
+          caudalLitrosMin: redondeaCal(caudalLitrosMin, 0),
+          caudalM3h: redondeaCal(caudalM3h, 1),
+          duracionMin: duracion,
+          reservaM3,
+          rociadoresEnOperacion,
+          rociadoresTotales,
+          areaProtegida: totalProtegida,
+          supuestos: [
+            r.que,
+            `UNE-EN 12845: ${cifraJustaCal(r.densidad)} mm/min sobre ${areaOp} m\xB2 de \xE1rea de operaci\xF3n, ${duracion} min de autonom\xEDa.`,
+            `Un rociador cada ${cifraCal(numCal(areaPorRociador) || 12, 0)} m\xB2.`
+          ],
+          avisos: [{
+            gravedad: "aviso",
+            texto: "El caudal es el del \xC1REA DE OPERACI\xD3N, no el de toda la instalaci\xF3n: la norma supone que solo arde una parte. La presi\xF3n en el rociador m\xE1s desfavorable hay que comprobarla con el c\xE1lculo hidr\xE1ulico de la red."
+          }]
+        };
+      }
+      var CALCULOS_INSTALACION = [
+        {
+          id: "conducto",
+          etiqueta: "Conductos",
+          que: "P\xE9rdida de carga y dimensionado por velocidad.",
+          fn: conductoCal
+        },
+        {
+          id: "tuberia",
+          etiqueta: "Tuber\xEDa hidr\xE1ulica",
+          que: "Caudal, velocidad y p\xE9rdida por metro.",
+          fn: tuberiaCal
+        },
+        {
+          id: "cable",
+          etiqueta: "Cable el\xE9ctrico",
+          que: "Secci\xF3n por ca\xEDda de tensi\xF3n y por intensidad admisible.",
+          fn: cableCal
+        },
+        {
+          id: "bomba",
+          etiqueta: "Bomba",
+          que: "Punto de trabajo y potencia al eje.",
+          fn: bombaCal
+        },
+        {
+          id: "termicas",
+          etiqueta: "Cargas t\xE9rmicas",
+          que: "Estimaci\xF3n r\xE1pida por ratio y uso.",
+          fn: cargasTermicasCal
+        },
+        {
+          id: "rociadores",
+          etiqueta: "PCI: rociadores",
+          que: "Densidad, \xE1rea de operaci\xF3n y reserva de agua.",
+          fn: rociadoresCal
+        }
+      ];
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.CALCULO = API;
+      })({
+        CALCULOS: CALCULOS_INSTALACION,
+        VELOCIDAD_CONDUCTO,
+        VELOCIDAD_TUBO,
+        RUGOSIDAD_TUBO,
+        SECCIONES: SECCIONES_CABLE,
+        RATIOS_TERMICOS,
+        RIESGO_PCI,
+        CONDUCTIVIDAD,
+        METODOS_INSTALACION,
+        ADMISIBLES,
+        conducto: conductoCal,
+        tuberia: tuberiaCal,
+        cable: cableCal,
+        bomba: bombaCal,
+        cargasTermicas: cargasTermicasCal,
+        rociadores: rociadoresCal,
+        factorFriccion: factorFriccionCal,
+        seccionPorIntensidad: seccionPorIntensidadCal
+      });
+    }
+  });
+
+  // shared/commissioning/instrumentos.js
+  var require_instrumentos = __commonJS({
+    "shared/commissioning/instrumentos.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function iniciarInstrumentos() {
+        const DIAS_AVISO = 30;
+        const MAGNITUDES_INSTRUMENTO = {
+          caudal: "Caudal / velocidad de aire",
+          presion: "Presi\xF3n",
+          temperatura: "Temperatura",
+          electrica: "El\xE9ctrica",
+          humedad: "Humedad",
+          sonido: "Sonido",
+          otra: "Otra"
+        };
+        const ESTADOS_INSTRUMENTO = {
+          vigente: { nombre: "Vigente", clase: "bien" },
+          caducaPronto: { nombre: "Caduca pronto", clase: "aviso" },
+          caducado: { nombre: "CADUCADO", clase: "mal" },
+          sinCertificado: { nombre: "Sin certificado", clase: "mal" }
+        };
+        const llanoIn = (v) => String(v ?? "").trim();
+        const fechaIn = (v) => /^\d{4}-\d{2}-\d{2}/.test(llanoIn(v)) ? llanoIn(v).slice(0, 10) : null;
+        const hoyIn = () => ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
+        function diasEntreIn(a, b) {
+          return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 864e5);
+        }
+        function estadoInstrumento(inst = {}, fecha = null) {
+          const cad = fechaIn(inst.caducidad);
+          if (!cad) return "sinCertificado";
+          const dia = fechaIn(fecha) || hoyIn();
+          if (cad < dia) return "caducado";
+          if (!fechaIn(fecha) && diasEntreIn(dia, cad) <= DIAS_AVISO) return "caducaPronto";
+          return "vigente";
+        }
+        function normalizarInstrumento(e = {}) {
+          const d = {
+            nombre: llanoIn(e.nombre).slice(0, 120),
+            magnitud: MAGNITUDES_INSTRUMENTO[e.magnitud] ? e.magnitud : "otra",
+            marca: llanoIn(e.marca).slice(0, 80) || null,
+            modelo: llanoIn(e.modelo).slice(0, 80) || null,
+            numSerie: llanoIn(e.numSerie).slice(0, 80) || null,
+            certificado: llanoIn(e.certificado).slice(0, 120) || null,
+            entidad: llanoIn(e.entidad).slice(0, 120) || null,
+            fechaCalibracion: fechaIn(e.fechaCalibracion),
+            caducidad: fechaIn(e.caducidad),
+            archivoCertificado: llanoIn(e.archivoCertificado) || null,
+            notas: llanoIn(e.notas).slice(0, 1e3) || null
+          };
+          if (!d.nombre) return { ok: false, error: "El instrumento necesita un nombre (\xABAnem\xF3metro de hilo caliente\xBB)." };
+          if (!d.numSerie) return { ok: false, error: "Sin n\xBA de serie no se puede saber qu\xE9 aparato es." };
+          if (d.fechaCalibracion && d.caducidad && d.caducidad < d.fechaCalibracion) {
+            return { ok: false, error: "La caducidad es anterior a la calibraci\xF3n." };
+          }
+          return { ok: true, datos: d };
+        }
+        function descripcionInstrumento(inst = {}) {
+          const fecha = (f) => f ? `${f.slice(8, 10)}/${f.slice(5, 7)}/${f.slice(0, 4)}` : "";
+          return [
+            llanoIn(inst.nombre),
+            [inst.marca, inst.modelo].filter(Boolean).join(" "),
+            inst.numSerie ? `n\xBA ${inst.numSerie}` : "",
+            inst.certificado ? `cert. ${inst.certificado}` : "",
+            inst.caducidad ? `caduca ${fecha(inst.caducidad)}` : "sin certificado"
+          ].filter(Boolean).join(" \xB7 ");
+        }
+        function revisarInstrumentos(ids = [], catalogo = [], fechaEnsayo = null) {
+          const porId = catalogo instanceof Map ? catalogo : new Map((catalogo || []).map((i) => [i.id, i]));
+          const lista = [];
+          const avisos = [];
+          for (const id of [...new Set(ids || [])]) {
+            const inst = porId.get(id);
+            if (!inst) {
+              lista.push({ id, estado: "sinCertificado", descripcion: "Instrumento que ya no est\xE1 en la lista" });
+              avisos.push("Un instrumento citado ya no est\xE1 en la lista de instrumentos");
+              continue;
+            }
+            const estado = estadoInstrumento(inst, fechaEnsayo);
+            lista.push({ ...inst, estado, descripcion: descripcionInstrumento(inst) });
+            if (estado === "caducado") avisos.push(`${inst.nombre} n\xBA ${inst.numSerie}: calibraci\xF3n CADUCADA el d\xEDa del ensayo`);
+            if (estado === "sinCertificado") avisos.push(`${inst.nombre} n\xBA ${inst.numSerie}: sin certificado de calibraci\xF3n`);
+          }
+          return { lista, avisos, malos: lista.filter((x) => x.estado === "caducado" || x.estado === "sinCertificado").length };
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.INSTRUMENTOS_PM = API;
+        })({
+          DIAS_AVISO,
+          MAGNITUDES: MAGNITUDES_INSTRUMENTO,
+          ESTADOS: ESTADOS_INSTRUMENTO,
+          estado: estadoInstrumento,
+          normalizar: normalizarInstrumento,
+          descripcion: descripcionInstrumento,
+          revisar: revisarInstrumentos
+        });
+      })();
+    }
+  });
+
+  // shared/commissioning/balanceo.js
+  var require_balanceo = __commonJS({
+    "shared/commissioning/balanceo.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var _textoBal = typeof __require !== "undefined" ? require_texto() : window.TEXTO;
+      var _calculoBal = typeof __require !== "undefined" ? require_instalaciones() : window.CALCULO;
+      var _instrumentosBal = () => typeof __require !== "undefined" ? require_instrumentos() : typeof window !== "undefined" ? window.INSTRUMENTOS_PM : null;
+      var DENSIDAD_AIRE_BAL = 1.2;
+      var cifraBal = (v, d = 0) => _textoBal.numero(v, d);
+      var numBal = (v) => {
+        if (v === null || v === void 0) return null;
+        if (typeof v === "number") return Number.isFinite(v) ? v : null;
+        const t = String(v).trim();
+        if (!t) return null;
+        const n = Number(t.replace(/\s/g, "").replace(",", "."));
+        return Number.isFinite(n) ? n : null;
+      };
+      var redBal = (v, d = 1) => {
+        if (v === null || v === void 0 || !Number.isFinite(v)) return null;
+        const f = 10 ** d;
+        return Math.round(v * f) / f;
+      };
+      var dinamicaBal = (v) => DENSIDAD_AIRE_BAL * v * v / 2;
+      function caudalDeSeccion(boca = {}) {
+        const a = numBal(boca.ancho);
+        const h = numBal(boca.alto);
+        const v = numBal(boca.velocidad);
+        if (!(a > 0 && h > 0 && v > 0)) return null;
+        return Math.round(a / 100 * (h / 100) * v * 3600);
+      }
+      var TIPOS_EQUIPO = {
+        uta: { nombre: "Climatizadora (UTA)", circuitos: ["impulsion", "retorno"] },
+        recuperador: { nombre: "Recuperador de calor", circuitos: ["impulsion", "retorno"] },
+        rooftop: { nombre: "Rooftop / compacto", circuitos: ["impulsion", "retorno"] },
+        fancoil: { nombre: "Fancoil / unidad de conductos", circuitos: ["impulsion", "retorno"] },
+        impulsion: { nombre: "Ventilador de impulsi\xF3n", circuitos: ["impulsion"] },
+        extractor: { nombre: "Extractor", circuitos: ["retorno"] }
+      };
+      var CIRCUITOS = {
+        impulsion: { nombre: "Impulsi\xF3n", terminales: "difusores" },
+        retorno: { nombre: "Retorno / extracci\xF3n", terminales: "rejas" }
+      };
+      var TERMINALES = {
+        difusorRotacional: { nombre: "Difusor rotacional", circuito: "impulsion", qNom: 400, dpNom: 25, glifo: "rotacional" },
+        difusorCuadrado: { nombre: "Difusor cuadrado multidireccional", circuito: "impulsion", qNom: 350, dpNom: 20, glifo: "cuadrado" },
+        difusorCircular: { nombre: "Difusor circular de conos", circuito: "impulsion", qNom: 350, dpNom: 20, glifo: "conos" },
+        difusorLineal: { nombre: "Difusor lineal de ranuras", circuito: "impulsion", qNom: 200, dpNom: 20, glifo: "lineal" },
+        rejillaImpulsion: { nombre: "Rejilla de impulsi\xF3n doble deflexi\xF3n", circuito: "impulsion", qNom: 400, dpNom: 15, glifo: "rejilla" },
+        tobera: { nombre: "Tobera de largo alcance", circuito: "impulsion", qNom: 600, dpNom: 60, glifo: "tobera" },
+        rejillaRetorno: { nombre: "Rejilla de retorno de lamas fijas", circuito: "retorno", qNom: 400, dpNom: 10, glifo: "lamas" },
+        rejillaExtraccion: { nombre: "Rejilla de extracci\xF3n con regulaci\xF3n", circuito: "retorno", qNom: 300, dpNom: 15, glifo: "lamas" },
+        retornoLineal: { nombre: "Rejilla lineal de retorno", circuito: "retorno", qNom: 200, dpNom: 10, glifo: "lineal" },
+        bocaExtraccion: { nombre: "Boca de extracci\xF3n (v\xE1lvula)", circuito: "retorno", qNom: 60, dpNom: 50, glifo: "boca" }
+      };
+      var ELEMENTOS = {
+        compuertaRegulacion: { nombre: "Compuerta de regulaci\xF3n", zeta: 0.5, porBoca: true, glifo: "compuerta" },
+        compuertaCortafuegos: { nombre: "Compuerta cortafuegos", zeta: 0.5, glifo: "cortafuegos" },
+        vav: { nombre: "Caja VAV", dp: 60, porBoca: true, glifo: "vav" },
+        cav: { nombre: "Regulador de caudal constante", dp: 50, porBoca: true, glifo: "vav" },
+        silenciador: { nombre: "Silenciador", dp: 40, glifo: "silenciador" },
+        filtroConducto: { nombre: "Filtro en conducto", dp: 100, glifo: "filtro" },
+        bateriaConducto: { nombre: "Bater\xEDa en conducto", dp: 40, glifo: "bateria" },
+        codo: { nombre: "Codo 90\xB0 con directrices", zeta: 0.3, glifo: null },
+        derivacion: { nombre: "Derivaci\xF3n en T", zeta: 0.5, glifo: null },
+        plenum: { nombre: "Plenum de conexi\xF3n", zeta: 1, porBoca: true, glifo: null },
+        flexible: { nombre: "Conducto flexible (\u22481,5 m)", dp: 10, porBoca: true, glifo: null },
+        compuertaSobrepresion: { nombre: "Compuerta de sobrepresi\xF3n", dp: 20, glifo: "compuerta" },
+        tomaExterior: { nombre: "Rejilla de toma / expulsi\xF3n exterior", dp: 30, glifo: "lamas" }
+      };
+      var MAGNITUDES = [
+        { id: "caudalImpulsion", nombre: "Caudal de impulsi\xF3n", unidad: "m\xB3/h", circuito: "impulsion", tolerancia: "total" },
+        { id: "caudalRetorno", nombre: "Caudal de retorno / extracci\xF3n", unidad: "m\xB3/h", circuito: "retorno", tolerancia: "total" },
+        { id: "presionImpulsion", nombre: "Presi\xF3n disponible impulsi\xF3n", unidad: "Pa", circuito: "impulsion" },
+        { id: "presionRetorno", nombre: "Presi\xF3n disponible retorno", unidad: "Pa", circuito: "retorno" },
+        { id: "tempImpulsion", nombre: "Temperatura de impulsi\xF3n", unidad: "\xB0C", absoluta: 1 },
+        { id: "tempRetorno", nombre: "Temperatura de retorno", unidad: "\xB0C", absoluta: 1 },
+        { id: "tempExterior", nombre: "Temperatura exterior", unidad: "\xB0C" },
+        { id: "tempAguaEntrada", nombre: "Temperatura de entrada de agua fr\xEDa", unidad: "\xB0C" },
+        { id: "tempAguaSalida", nombre: "Temperatura de salida de agua fr\xEDa", unidad: "\xB0C" },
+        { id: "potenciaFrio", nombre: "Potencia frigor\xEDfica", unidad: "kW" },
+        { id: "potenciaCalor", nombre: "Potencia calor\xEDfica", unidad: "kW" },
+        { id: "potenciaVentilador", nombre: "Potencia de ventiladores", unidad: "kW" },
+        { id: "rpm", nombre: "Velocidad del ventilador", unidad: "rpm" }
+      ];
+      var MAGNITUD = Object.fromEntries(MAGNITUDES.map((m) => [m.id, m]));
+      var SIN_TOLERANCIAS = { boca: null, total: null };
+      var TOLERANCIA_FUGAS = 0.1;
+      function circuitoVacio(id) {
+        return {
+          terminal: id === "impulsion" ? "difusorRotacional" : "rejillaRetorno",
+          numero: 0,
+          /* Los del catálogo del fabricante del terminal, si se tienen. */
+          dpNom: null,
+          qNom: null,
+          conducto: { ancho: null, alto: null, diametro: null, largo: null },
+          elementos: [],
+          bocas: []
+        };
+      }
+      function hojaVacia(equipo = {}) {
+        const tipo = tipoDeEquipo(equipo);
+        return {
+          version: 1,
+          tipo,
+          fabrica: {},
+          proyecto: {},
+          medido: {},
+          fuentes: { fabrica: null, proyecto: null },
+          /* El día en que se midió y con qué (ids de la lista de instrumentos). */
+          fechaMedicion: null,
+          instrumentos: [],
+          circuitos: Object.fromEntries(Object.keys(CIRCUITOS).map((c) => [c, circuitoVacio(c)]))
+        };
+      }
+      function tipoDeEquipo(equipo = {}) {
+        const t = [equipo.grupo, equipo.tag, equipo.modelo].filter(Boolean).join(" ").toLowerCase();
+        if (/recup/.test(t)) return "recuperador";
+        if (/roof|compact/.test(t)) return "rooftop";
+        if (/fanc|fan-c|\bfc\b|conductos/.test(t)) return "fancoil";
+        if (/extrac|\bext\b|\bex-|extr|\bvex/.test(t)) return "extractor";
+        if (/impuls|\bvi-|ventil/.test(t)) return "impulsion";
+        return "uta";
+      }
+      function normalizarHoja(entrada, equipo = {}) {
+        const base = hojaVacia(equipo);
+        const h = entrada && typeof entrada === "object" ? entrada : {};
+        const valores = (o) => {
+          const r = {};
+          for (const m of MAGNITUDES) {
+            const n = numBal(o && o[m.id]);
+            if (n !== null) r[m.id] = n;
+          }
+          return r;
+        };
+        const circuito = (id, c) => {
+          const v = circuitoVacio(id);
+          if (!c || typeof c !== "object") return v;
+          if (TERMINALES[c.terminal]) v.terminal = c.terminal;
+          v.numero = Math.max(0, Math.min(200, Math.round(numBal(c.numero) || 0)));
+          v.dpNom = numBal(c.dpNom);
+          v.qNom = numBal(c.qNom);
+          const cd = c.conducto || {};
+          for (const k of ["ancho", "alto", "diametro", "largo"]) v.conducto[k] = numBal(cd[k]);
+          v.elementos = (Array.isArray(c.elementos) ? c.elementos : []).filter((e) => e && ELEMENTOS[e.tipo]).map((e) => ({
+            tipo: e.tipo,
+            cantidad: Math.max(1, Math.round(numBal(e.cantidad) || 1)),
+            ...numBal(e.enSerie) !== null ? { enSerie: Math.max(0, Math.round(numBal(e.enSerie))) } : {}
+          }));
+          const bocas = Array.isArray(c.bocas) ? c.bocas : [];
+          v.bocas = Array.from({ length: v.numero }, (_, i) => {
+            const b = bocas[i] || {};
+            const r = { caudalProyecto: numBal(b.caudalProyecto), caudalMedido: numBal(b.caudalMedido) };
+            for (const k of ["ancho", "alto", "velocidad"]) {
+              const n = numBal(b[k]);
+              if (n !== null && n > 0) r[k] = n;
+            }
+            const porSeccion = caudalDeSeccion(r);
+            if (porSeccion !== null && r.caudalMedido === null) r.caudalMedido = porSeccion;
+            if (b.nombre) r.nombre = String(b.nombre).slice(0, 40);
+            if (TERMINALES[b.tipo]) r.tipo = b.tipo;
+            return r;
+          });
+          return v;
+        };
+        return {
+          version: 1,
+          tipo: TIPOS_EQUIPO[h.tipo] ? h.tipo : base.tipo,
+          fabrica: valores(h.fabrica),
+          proyecto: valores(h.proyecto),
+          medido: valores(h.medido),
+          fuentes: {
+            fabrica: h.fuentes && h.fuentes.fabrica ? String(h.fuentes.fabrica).slice(0, 300) : null,
+            proyecto: h.fuentes && h.fuentes.proyecto ? String(h.fuentes.proyecto).slice(0, 300) : null
+          },
+          fechaMedicion: /^\d{4}-\d{2}-\d{2}$/.test(String(h.fechaMedicion || "")) ? h.fechaMedicion : null,
+          instrumentos: [...new Set((Array.isArray(h.instrumentos) ? h.instrumentos : []).filter((id) => typeof id === "string" && id.trim()).map((id) => id.trim().slice(0, 60)))].slice(0, 20),
+          circuitos: Object.fromEntries(Object.keys(CIRCUITOS).map((id) => [id, circuito(id, h.circuitos && h.circuitos[id])]))
+        };
+      }
+      function ajustarBocas(circuito, numero, { forzar = false } = {}) {
+        const n = Math.max(0, Math.min(200, Math.round(numBal(numero) || 0)));
+        const actuales = circuito.bocas || [];
+        const sobran = actuales.slice(n);
+        const conDatos = sobran.map((b, i) => ({ indice: n + i + 1, ...b })).filter((b) => b.caudalMedido !== null && b.caudalMedido !== void 0 || b.caudalProyecto !== null && b.caudalProyecto !== void 0);
+        if (conDatos.length && !forzar) {
+          return { ok: false, circuito, perderia: conDatos };
+        }
+        const bocas = Array.from({ length: n }, (_, i) => actuales[i] || { caudalProyecto: null, caudalMedido: null });
+        return { ok: true, circuito: { ...circuito, numero: n, bocas }, perderia: [] };
+      }
+      function caudalesProyecto(hoja, idCircuito) {
+        const c = hoja.circuitos[idCircuito];
+        const magnitud = idCircuito === "impulsion" ? "caudalImpulsion" : "caudalRetorno";
+        const totalEquipo = numBal(hoja.proyecto[magnitud]);
+        const dados = c.bocas.reduce((s, b) => s + (numBal(b.caudalProyecto) || 0), 0);
+        const sinDato = c.bocas.filter((b) => numBal(b.caudalProyecto) === null).length;
+        const resto = totalEquipo !== null && sinDato ? Math.max(0, totalEquipo - dados) / sinDato : null;
+        return c.bocas.map((b) => {
+          const q = numBal(b.caudalProyecto);
+          if (q !== null) return { valor: q, origen: "dado" };
+          if (resto !== null && resto > 0) return { valor: redBal(resto, 0), origen: "repartido" };
+          return { valor: null, origen: null };
+        });
+      }
+      function terminalDe(circuito, boca = {}) {
+        const id = boca.tipo || circuito.terminal;
+        const cat = TERMINALES[id] || TERMINALES.difusorRotacional;
+        const propio = !boca.tipo || boca.tipo === circuito.terminal;
+        return {
+          id,
+          ...cat,
+          qNom: propio && numBal(circuito.qNom) ? numBal(circuito.qNom) : cat.qNom,
+          dpNom: propio && numBal(circuito.dpNom) !== null ? numBal(circuito.dpNom) : cat.dpNom,
+          deCatalogo: !(propio && numBal(circuito.dpNom) !== null)
+        };
+      }
+      function perdidaTerminal(terminal, caudal) {
+        const q = numBal(caudal);
+        if (!(q > 0) || !(terminal.qNom > 0)) return null;
+        return terminal.dpNom * (q / terminal.qNom) ** 2;
+      }
+      function perdidaCircuito(hoja, idCircuito) {
+        const c = hoja.circuitos[idCircuito];
+        const magnitudQ = idCircuito === "impulsion" ? "caudalImpulsion" : "caudalRetorno";
+        const magnitudP = idCircuito === "impulsion" ? "presionImpulsion" : "presionRetorno";
+        const proyecto = caudalesProyecto(hoja, idCircuito);
+        const sumaBocas = proyecto.reduce((s, p) => s + (p.valor || 0), 0);
+        const caudal = numBal(hoja.proyecto[magnitudQ]) || sumaBocas || numBal(hoja.fabrica[magnitudQ]);
+        const partidas = [];
+        const supuestos = [];
+        const avisos = [];
+        if (!(caudal > 0)) {
+          return {
+            circuito: idCircuito,
+            caudal: null,
+            total: null,
+            partidas,
+            supuestos,
+            avisos: [{ gravedad: "info", texto: "Sin caudal de proyecto no se puede estimar la p\xE9rdida de carga." }]
+          };
+        }
+        const cd = c.conducto || {};
+        let velocidad = null;
+        const hayMedidas = numBal(cd.diametro) || numBal(cd.ancho) && numBal(cd.alto);
+        if (hayMedidas && _calculoBal && _calculoBal.conducto) {
+          const r = _calculoBal.conducto({ caudal, ancho: cd.ancho, alto: cd.alto, diametro: cd.diametro, largo: cd.largo || 1 });
+          if (!r.error) {
+            velocidad = r.velocidad;
+            const largo = numBal(cd.largo);
+            if (largo) {
+              partidas.push({
+                que: `Conducto ${cd.diametro ? `\xD8${cifraBal(cd.diametro)}` : `${cifraBal(cd.ancho)}\xD7${cifraBal(cd.alto)}`} \xB7 ${cifraBal(largo, largo % 1 ? 1 : 0)} m`,
+                dp: r.perdidaTotal,
+                detalle: `${cifraBal(r.velocidad, 1)} m/s, ${cifraBal(r.perdidaPorMetro, 2)} Pa/m`
+              });
+              supuestos.push("El conducto se calcula entero con el caudal total: del lado de la seguridad.");
+            } else {
+              supuestos.push("Sin longitud del conducto no se cuenta su rozamiento.");
+            }
+            for (const a of r.avisos || []) avisos.push(a);
+          }
+        } else {
+          supuestos.push("Sin medidas del conducto principal se supone 5 m/s para los elementos con \u03B6, y no se cuenta su rozamiento.");
+        }
+        const vRef = velocidad || 5;
+        const pd = dinamicaBal(vRef);
+        for (const e of c.elementos || []) {
+          const cat = ELEMENTOS[e.tipo];
+          if (!cat) continue;
+          const enSerie = e.enSerie !== void 0 ? e.enSerie : cat.porBoca ? Math.min(1, e.cantidad) : e.cantidad;
+          if (!enSerie) continue;
+          const unidad = cat.zeta !== void 0 ? cat.zeta * pd : cat.dp;
+          partidas.push({
+            que: `${cat.nombre}${enSerie > 1 ? ` \xD7 ${enSerie}` : ""}`,
+            dp: redBal(unidad * enSerie, 1),
+            detalle: cat.zeta !== void 0 ? `\u03B6 ${cifraBal(cat.zeta, 1)} a ${cifraBal(vRef, 1)} m/s` : "p\xE9rdida t\xEDpica"
+          });
+        }
+        if ((c.elementos || []).some((e) => ELEMENTOS[e.tipo] && ELEMENTOS[e.tipo].porBoca)) {
+          supuestos.push("De lo que va en cada ramal (VAV, compuertas, flexibles) el aire del camino m\xE1s desfavorable solo atraviesa uno.");
+        }
+        let peor = null;
+        const desproporcionadas = [];
+        c.bocas.forEach((b, i) => {
+          const t = terminalDe(c, b);
+          const dp = perdidaTerminal(t, proyecto[i].valor);
+          if (dp !== null && (!peor || dp > peor.dp)) peor = { indice: i + 1, dp, terminal: t, caudal: proyecto[i].valor };
+          if (proyecto[i].valor > 2 * t.qNom) desproporcionadas.push({ indice: i + 1, caudal: proyecto[i].valor, terminal: t });
+        });
+        if (desproporcionadas.length) {
+          const d = desproporcionadas[0];
+          avisos.push({ gravedad: "aviso", texto: `${desproporcionadas.length === 1 ? `La boca ${d.indice} lleva` : `${desproporcionadas.length} bocas llevan (la ${d.indice},`} ${cifraBal(d.caudal)} m\xB3/h${desproporcionadas.length === 1 ? "" : ")"} y un ${d.terminal.nombre.toLowerCase()} est\xE1 pensado para unos ${cifraBal(d.terminal.qNom)}: revisa el tipo de terminal o pon su \u0394P de cat\xE1logo a ese caudal. La p\xE9rdida de carga sale disparada.` });
+        }
+        if (peor) {
+          partidas.push({
+            que: `${peor.terminal.nombre} (boca ${peor.indice})`,
+            dp: redBal(peor.dp, 1),
+            detalle: `${cifraBal(peor.caudal)} m\xB3/h`
+          });
+          if (peor.terminal.deCatalogo) supuestos.push(`El terminal con los valores orientativos de cat\xE1logo (${cifraBal(peor.terminal.dpNom)} Pa a ${cifraBal(peor.terminal.qNom)} m\xB3/h).`);
+        } else if (c.numero) {
+          supuestos.push("Sin caudal por boca no se cuenta la p\xE9rdida del terminal.");
+        }
+        const total = redBal(partidas.reduce((s, p) => s + (p.dp || 0), 0), 0);
+        const fabricaP = numBal(hoja.fabrica[magnitudP]);
+        const proyectoP = numBal(hoja.proyecto[magnitudP]);
+        const disponible = fabricaP !== null ? fabricaP : proyectoP;
+        const deDonde = fabricaP !== null ? "de f\xE1brica" : proyectoP !== null ? "de proyecto" : null;
+        let margen = null;
+        if (disponible !== null) {
+          margen = disponible - total;
+          if (margen < 0) {
+            avisos.push({ gravedad: "mal", texto: `La red pierde ${cifraBal(total)} Pa y la presi\xF3n disponible ${deDonde} es ${cifraBal(disponible)} Pa: el ventilador no llega al caudal de proyecto. Revisarlo antes de ir a medir.` });
+          } else if (disponible > 0 && margen / disponible > 0.5) {
+            avisos.push({ gravedad: "aviso", texto: `Sobran ${cifraBal(margen)} Pa de presi\xF3n ${deDonde}: habr\xE1 que estrangular compuertas, y eso se oye. Mejor bajar la velocidad del ventilador.` });
+          }
+        }
+        return { circuito: idCircuito, caudal, velocidad: velocidad || null, total, disponible, deDonde, margen, partidas, supuestos, avisos };
+      }
+      var desviacion = (medido, referencia) => {
+        const m = numBal(medido);
+        const r = numBal(referencia);
+        if (m === null || r === null || r === 0) return null;
+        return (m - r) / r;
+      };
+      function toleranciasBal(t = {}) {
+        const una = (v) => {
+          const n = numBal(v);
+          return n !== null && n > 0 && n < 1 ? n : null;
+        };
+        return { boca: una(t && t.boca), total: una(t && t.total) };
+      }
+      function evaluarBocas(hoja, idCircuito, tolBoca = null) {
+        const c = hoja.circuitos[idCircuito];
+        const proyecto = caudalesProyecto(hoja, idCircuito);
+        return c.bocas.map((b, i) => {
+          const t = terminalDe(c, b);
+          const d = desviacion(b.caudalMedido, proyecto[i].valor);
+          return {
+            indice: i + 1,
+            nombre: b.nombre || `${idCircuito === "impulsion" ? "D" : "R"}${i + 1}`,
+            tipo: t.id,
+            terminal: t.nombre,
+            glifo: t.glifo,
+            caudalProyecto: proyecto[i].valor,
+            origenProyecto: proyecto[i].origen,
+            caudalMedido: numBal(b.caudalMedido),
+            ancho: numBal(b.ancho),
+            alto: numBal(b.alto),
+            velocidad: numBal(b.velocidad),
+            desviacion: d === null ? null : redBal(d, 4),
+            estado: d === null ? numBal(b.caudalMedido) === null ? "sinMedir" : "sinProyecto" : tolBoca === null ? "sinTolerancia" : Math.abs(d) <= tolBoca + 1e-9 ? "ok" : d > 0 ? "alto" : "bajo"
+          };
+        });
+      }
+      function evaluarMagnitudes(hoja, tol = SIN_TOLERANCIAS) {
+        const circuitos = TIPOS_EQUIPO[hoja.tipo].circuitos;
+        return MAGNITUDES.filter((m) => !m.circuito || circuitos.includes(m.circuito)).map((m) => {
+          const f = numBal(hoja.fabrica[m.id]);
+          const p = numBal(hoja.proyecto[m.id]);
+          const x = numBal(hoja.medido[m.id]);
+          let estado = null;
+          let d = null;
+          if (m.absoluta && x !== null && p !== null) {
+            d = x - p;
+            estado = Math.abs(d) <= m.absoluta + 1e-9 ? "ok" : d > 0 ? "alto" : "bajo";
+          } else if (m.tolerancia && x !== null && p !== null) {
+            d = desviacion(x, p);
+            const limite = tol[m.tolerancia] ?? null;
+            estado = d === null || limite === null ? null : Math.abs(d) <= limite + 1e-9 ? "ok" : d > 0 ? "alto" : "bajo";
+          }
+          return { ...m, fabrica: f, proyecto: p, medido: x, desviacion: d === null ? null : redBal(d, 4), estado };
+        });
+      }
+      function evaluarHoja(entrada, equipo = {}, opciones = {}) {
+        const hoja = normalizarHoja(entrada, equipo);
+        const tol = toleranciasBal(opciones.tolerancias);
+        const pctTol = (v) => `\xB1${cifraBal(v * 100)} %`;
+        const tipo = TIPOS_EQUIPO[hoja.tipo];
+        const avisos = [];
+        const circuitos = tipo.circuitos.map((id) => {
+          const bocas = evaluarBocas(hoja, id, tol.boca);
+          const perdida = perdidaCircuito(hoja, id);
+          const magnitud = id === "impulsion" ? "caudalImpulsion" : "caudalRetorno";
+          const medidas = bocas.filter((b) => b.caudalMedido !== null);
+          const sumaMedido = medidas.length ? medidas.reduce((s, b) => s + b.caudalMedido, 0) : null;
+          const sumaProyecto = bocas.reduce((s, b) => s + (b.caudalProyecto || 0), 0) || null;
+          const proyectoEquipo = numBal(hoja.proyecto[magnitud]);
+          const medidoEquipo = numBal(hoja.medido[magnitud]);
+          const fabricaEquipo = numBal(hoja.fabrica[magnitud]);
+          const todasMedidas = bocas.length > 0 && medidas.length === bocas.length;
+          const referenciaTotal = proyectoEquipo !== null ? proyectoEquipo : sumaProyecto;
+          const totalMedido = medidoEquipo !== null ? medidoEquipo : todasMedidas ? sumaMedido : null;
+          const dTotal = desviacion(totalMedido, referenciaTotal);
+          const nombre = CIRCUITOS[id].nombre;
+          if (fabricaEquipo !== null && proyectoEquipo !== null && fabricaEquipo < proyectoEquipo * (1 - (tol.total ?? 0))) {
+            avisos.push({ gravedad: "mal", texto: `${nombre}: la ficha t\xE9cnica da ${cifraBal(fabricaEquipo)} m\xB3/h y el proyecto pide ${cifraBal(proyectoEquipo)} m\xB3/h. Con este equipo no se llega por mucho que se regule.` });
+          }
+          if (proyectoEquipo !== null && sumaProyecto !== null && bocas.every((b) => b.origenProyecto === "dado") && Math.abs(sumaProyecto - proyectoEquipo) / proyectoEquipo > (tol.total ?? 0) + 1e-9) {
+            avisos.push({ gravedad: "aviso", texto: `${nombre}: las bocas suman ${cifraBal(sumaProyecto)} m\xB3/h de proyecto y el equipo ${cifraBal(proyectoEquipo)} m\xB3/h. Uno de los dos n\xFAmeros del proyecto est\xE1 mal.` });
+          }
+          if (bocas.some((b) => b.origenProyecto === "repartido")) {
+            avisos.push({ gravedad: "info", texto: `${nombre}: las bocas sin caudal de proyecto llevan el del equipo repartido a partes iguales. Si el proyecto da el de cada una, ponlo.` });
+          }
+          if (medidoEquipo !== null && todasMedidas && sumaMedido < medidoEquipo * (1 - TOLERANCIA_FUGAS)) {
+            avisos.push({ gravedad: "aviso", texto: `${nombre}: el equipo mueve ${cifraBal(medidoEquipo)} m\xB3/h y a las bocas llegan ${cifraBal(sumaMedido)} m\xB3/h. Un ${cifraBal((medidoEquipo - sumaMedido) / medidoEquipo * 100)} % se pierde por el camino: buscar fugas o una boca sin contar.` });
+          }
+          for (const a of perdida.avisos) avisos.push({ ...a, texto: `${nombre}: ${a.texto}` });
+          return {
+            id,
+            nombre,
+            terminales: CIRCUITOS[id].terminales,
+            circuito: hoja.circuitos[id],
+            bocas,
+            perdida,
+            sumaProyecto,
+            sumaMedido,
+            proyectoEquipo,
+            medidoEquipo,
+            fabricaEquipo,
+            totalMedido,
+            referenciaTotal,
+            desviacionTotal: dTotal === null ? null : redBal(dTotal, 4),
+            totalOk: dTotal === null || tol.total === null ? null : Math.abs(dTotal) <= tol.total + 1e-9,
+            medidas: medidas.length,
+            fuera: bocas.filter((b) => b.estado === "alto" || b.estado === "bajo").length,
+            todasMedidas
+          };
+        });
+        const algoMedido = circuitos.some((c) => c.medidas || c.totalMedido !== null);
+        const algoFuera = circuitos.some((c) => c.fuera || c.totalOk === false);
+        const totalesOk = circuitos.every((c) => c.totalOk === true);
+        const bocasOk = circuitos.every((c) => c.bocas.length === 0 || c.todasMedidas && !c.fuera);
+        let estado = "pendiente";
+        let porque = "No hay nada medido todav\xEDa.";
+        const faltaTol = tol.total === null || tol.boca === null && circuitos.some((c) => c.bocas.length);
+        if (algoMedido && algoFuera) {
+          estado = "noApto";
+          const n = circuitos.reduce((s, c) => s + c.fuera, 0);
+          porque = n ? `${_textoBal.plural(n, "boca est\xE1", "bocas est\xE1n")} fuera del ${pctTol(tol.boca)}.` : `El caudal total est\xE1 fuera del ${pctTol(tol.total)}.`;
+        } else if (algoMedido && faltaTol) {
+          porque = "La obra no tiene sus tolerancias de caudal: sin ellas no se juzga. Las pone el jefe de obra en \xABPar\xE1metros de la obra\xBB de la puesta en marcha.";
+        } else if (totalesOk && bocasOk && circuitos.some((c) => c.bocas.length)) {
+          estado = "apto";
+          porque = `Todas las bocas dentro del ${pctTol(tol.boca)} y el total dentro del ${pctTol(tol.total)}.`;
+        } else if (totalesOk) {
+          estado = "aptoSinBocas";
+          porque = `El total est\xE1 dentro del ${pctTol(tol.total)}, pero no se han medido todas las bocas.`;
+        } else if (algoMedido) {
+          porque = "Falta medir: sin el total de cada circuito no se puede dar por bueno.";
+        }
+        const INS = _instrumentosBal();
+        const revInst = INS && opciones.instrumentos ? INS.revisar(hoja.instrumentos, opciones.instrumentos, hoja.fechaMedicion) : { lista: [], avisos: [], malos: 0 };
+        for (const a of revInst.avisos) {
+          avisos.push({ gravedad: "mal", texto: `${a.replace("el d\xEDa del ensayo", "el d\xEDa de la medici\xF3n")}. Las medidas de esta hoja quedan en entredicho.` });
+        }
+        if (INS && opciones.instrumentos && algoMedido && !hoja.instrumentos.length) {
+          avisos.push({ gravedad: "aviso", texto: "No consta con qu\xE9 instrumento se ha medido: m\xE1rcalo en \xABMedici\xF3n\xBB." });
+        }
+        if (revInst.lista.length && algoMedido && !hoja.fechaMedicion) {
+          avisos.push({ gravedad: "info", texto: "Sin fecha de medici\xF3n: los instrumentos se juzgan a hoy, no al d\xEDa en que se midi\xF3." });
+        }
+        return {
+          instrumentos: revInst.lista,
+          instrumentosMalos: revInst.malos,
+          hoja,
+          tipo: { id: hoja.tipo, ...tipo },
+          equipo: evaluarMagnitudes(hoja, tol),
+          circuitos,
+          avisos,
+          estado,
+          porque,
+          tolerancias: tol
+        };
+      }
+      function leerNumeroFicha(t) {
+        let s = String(t || "").trim().replace(/[\s  ](?=\d{3}\b)/g, "");
+        if (!/\d/.test(s)) return null;
+        const puntos = (s.match(/\./g) || []).length;
+        const comas = (s.match(/,/g) || []).length;
+        if (puntos && comas) {
+          const dec = s.lastIndexOf(",") > s.lastIndexOf(".") ? "," : ".";
+          s = s.split(dec === "," ? "." : ",").join("").replace(dec, ".");
+        } else if (puntos + comas === 1) {
+          const sep = puntos ? "." : ",";
+          const [e, d] = s.split(sep);
+          s = d.length === 3 && !/^-?0$/.test(e) ? s.replace(sep, "") : s.replace(sep, ".");
+        } else if (puntos + comas > 1) {
+          s = s.replace(/[.,]/g, "");
+        }
+        const n = Number(s);
+        return Number.isFinite(n) ? n : null;
+      }
+      var NUM = String.raw`(\d{1,3}(?:[.,\s]\d{3})+|\d+(?:[.,]\d+)?)`;
+      var RE_IMPULSION = /impuls|supply|\bsup\b|aire\s+(?:de\s+)?(?:impulsi|tratado)|zuluft/i;
+      var RE_RETORNO = /retorno|return|extrac|exhaust|extract|expulsi|abluft|fortluft/i;
+      var RE_AGUA = /\bagua\b|water|hidr[aá]ul|glicol|wasser/i;
+      function circuitoDeLinea(texto) {
+        const i = RE_IMPULSION.test(texto);
+        const r = RE_RETORNO.test(texto);
+        if (i && r) return "ambos";
+        return i ? "impulsion" : r ? "retorno" : null;
+      }
+      var UNIDADES_CAUDAL = [
+        { re: new RegExp(`${NUM}\\s*(?:m3|m\xB3|m\\^3|mc)\\s*/\\s*h\\b`, "gi"), factor: 1 },
+        { re: new RegExp(`${NUM}\\s*(?:m3|m\xB3|m\\^3)\\s*/\\s*s\\b`, "gi"), factor: 3600 },
+        { re: new RegExp(`${NUM}\\s*(?:l|L|dm3|dm\xB3)\\s*/\\s*s\\b`, "g"), factor: 3.6 },
+        { re: new RegExp(`${NUM}\\s*(?:cmh|CMH)\\b`, "g"), factor: 1 }
+      ];
+      function caudalesDeLinea(texto) {
+        const r = [];
+        for (const u of UNIDADES_CAUDAL) {
+          u.re.lastIndex = 0;
+          let m;
+          while (m = u.re.exec(texto)) {
+            const n = leerNumeroFicha(m[1]);
+            if (n !== null && n > 0) r.push({ pos: m.index, valor: redBal(n * u.factor, 0) });
+          }
+        }
+        return r.sort((a, b) => a.pos - b.pos);
+      }
+      function numerosDeLinea(texto) {
+        const re = new RegExp(NUM, "g");
+        const r = [];
+        let m;
+        while (m = re.exec(texto)) {
+          const n = leerNumeroFicha(m[1]);
+          if (n !== null) r.push(n);
+        }
+        return r;
+      }
+      function extraerDeTexto(texto, { cerca = null, ventana = 40 } = {}) {
+        let lineas = String(texto || "").split(/\r?\n/).map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean);
+        const avisos = [];
+        if (cerca) {
+          const claves = (Array.isArray(cerca) ? cerca : [cerca]).map((c) => String(c || "").trim()).filter((c) => c.length >= 3);
+          const norm = (s) => s.toLowerCase().replace(/[\s_\-.]+/g, "");
+          let donde = -1;
+          for (const c of claves) {
+            donde = lineas.findIndex((l) => norm(l).includes(norm(c)));
+            if (donde >= 0) {
+              avisos.push(`Le\xEDdo alrededor de \xAB${c}\xBB (l\xEDnea ${donde + 1}).`);
+              break;
+            }
+          }
+          if (donde >= 0) lineas = lineas.slice(donde, donde + ventana);
+          else if (claves.length) avisos.push(`No aparece ${claves.map((c) => `\xAB${c}\xBB`).join(" ni ")} en el PDF: se ha le\xEDdo entero y lo que salga puede ser de otro equipo.`);
+        }
+        const valores = {};
+        const poner = (id, valor, linea) => {
+          if (valor === null || valor === void 0 || valores[id]) return;
+          valores[id] = { valor, linea };
+        };
+        lineas.forEach((l, i) => {
+          const previa = i > 0 ? lineas[i - 1] : "";
+          const contexto = circuitoDeLinea(l) || circuitoDeLinea(previa);
+          const bajo = l.toLowerCase();
+          if (!RE_AGUA.test(l) && /caudal|flow|volum|aire|air|m3\/h|m³\/h|l\/s/i.test(l)) {
+            const qs = caudalesDeLinea(l);
+            if (qs.length) {
+              const c = circuitoDeLinea(l);
+              if (c === "ambos" && qs.length >= 2) {
+                const iPos = l.search(RE_IMPULSION);
+                const rPos = l.search(RE_RETORNO);
+                const [a, b] = iPos < rPos ? ["caudalImpulsion", "caudalRetorno"] : ["caudalRetorno", "caudalImpulsion"];
+                poner(a, qs[0].valor, l);
+                poner(b, qs[1].valor, l);
+              } else if (contexto === "retorno") {
+                poner("caudalRetorno", qs[0].valor, l);
+              } else {
+                poner("caudalImpulsion", qs[0].valor, l);
+                if (contexto !== "impulsion" && qs.length >= 2) poner("caudalRetorno", qs[1].valor, l);
+              }
+            } else if (/caudal|air\s*flow|airflow/i.test(l) && /m3\/h|m³\/h/i.test(previa + l)) {
+              const ns = numerosDeLinea(l.replace(/m3|m³/gi, ""));
+              if (ns.length) poner(contexto === "retorno" ? "caudalRetorno" : "caudalImpulsion", ns[0], l);
+            }
+          }
+          if (/disponible|externa|external|\besp\b|est[aá]tica|static|pres\.?\s*disp/i.test(l) && !RE_AGUA.test(l)) {
+            const re = new RegExp(`${NUM}\\s*Pa\\b`, "g");
+            const ps = [];
+            let m;
+            while (m = re.exec(l)) ps.push(leerNumeroFicha(m[1]));
+            if (ps.length) {
+              const c = circuitoDeLinea(l);
+              if (c === "ambos" && ps.length >= 2) {
+                const iPos = l.search(RE_IMPULSION);
+                const rPos = l.search(RE_RETORNO);
+                const [a, b] = iPos < rPos ? ["presionImpulsion", "presionRetorno"] : ["presionRetorno", "presionImpulsion"];
+                poner(a, ps[0], l);
+                poner(b, ps[1], l);
+              } else if (contexto === "retorno") poner("presionRetorno", ps[0], l);
+              else {
+                poner("presionImpulsion", ps[0], l);
+                if (contexto !== "impulsion" && ps.length >= 2) poner("presionRetorno", ps[1], l);
+              }
+            }
+          }
+          if (/°\s*c|ºc|º\s*c|\bdeg\s*c/i.test(l) && !RE_AGUA.test(l)) {
+            const re = new RegExp(`(-?${NUM})\\s*(?:\xB0|\xBA)\\s*C`, "gi");
+            const ts = [];
+            let m;
+            while (m = re.exec(l)) ts.push(leerNumeroFicha(m[1].replace(/^-/, "")) * (m[1].startsWith("-") ? -1 : 1));
+            if (ts.length) {
+              if (/exterior|outdoor|ambiente\s+ext|outside|aire\s+nuevo/i.test(bajo)) poner("tempExterior", ts[0], l);
+              else if (/impuls|supply|salida|leaving|off\s*coil/i.test(bajo)) poner("tempImpulsion", ts[0], l);
+              else if (/retorno|return|entrada|entering|interior|on\s*coil|local/i.test(bajo)) poner("tempRetorno", ts[0], l);
+            }
+          }
+          const kw = new RegExp(`${NUM}\\s*kW\\b`, "i").exec(l);
+          if (kw) {
+            const v = leerNumeroFicha(kw[1]);
+            if (/frigor|refriger|cooling|fr[ií]o|sensible|total\s+cool/i.test(bajo)) poner("potenciaFrio", v, l);
+            else if (/calor[ií]f|heating|calefac|calor\b/i.test(bajo)) poner("potenciaCalor", v, l);
+            else if (/ventilad|motor|fan|absorbida|el[eé]ctrica|power\s+input/i.test(bajo)) poner("potenciaVentilador", v, l);
+          }
+          const rpm = new RegExp(`${NUM}\\s*(?:rpm|r\\.p\\.m\\.|min-1|1/min)`, "i").exec(l);
+          if (rpm) poner("rpm", leerNumeroFicha(rpm[1]), l);
+        });
+        if (!Object.keys(valores).length) avisos.push("No se ha reconocido ning\xFAn dato: si es un escaneo no lleva texto dentro.");
+        return { valores, avisos };
+      }
+      function aplicarLeido(hojaEntrada, seccion, leido, { fuente = null, sobrescribir = [] } = {}) {
+        const hoja = normalizarHoja(hojaEntrada);
+        const destino = { ...hoja[seccion] };
+        const puestos = [];
+        const conflictos = [];
+        for (const [id, { valor, linea }] of Object.entries(leido && leido.valores || {})) {
+          if (!MAGNITUD[id]) continue;
+          const actual = numBal(destino[id]);
+          if (actual === null) {
+            destino[id] = valor;
+            puestos.push({ id, valor, linea });
+          } else if (Math.abs(actual - valor) > 1e-9) {
+            if (sobrescribir.includes(id)) {
+              destino[id] = valor;
+              puestos.push({ id, valor, linea, antes: actual });
+            } else conflictos.push({ id, actual, leido: valor, linea });
+          }
+        }
+        const fuentes = { ...hoja.fuentes };
+        if (fuente && puestos.length) fuentes[seccion] = fuente;
+        return { hoja: { ...hoja, [seccion]: destino, fuentes }, puestos, conflictos };
+      }
+      function aplicarDifusores(hojaEntrada, filas, { sobrescribir = [] } = {}) {
+        const hoja = normalizarHoja(hojaEntrada);
+        const puestos = [];
+        const conflictos = [];
+        const nuevas = [];
+        const natural = (a, b) => String(a.nombre).localeCompare(String(b.nombre), "es", { numeric: true });
+        const circuitos = { ...hoja.circuitos };
+        for (const id of Object.keys(CIRCUITOS)) {
+          const puntos = (Array.isArray(filas) ? filas : []).filter((f) => f && f.circuito === id && f.nombre && (numBal(f.caudal) !== null || numBal(f.caudalDiseno) !== null)).sort(natural);
+          if (!puntos.length) continue;
+          const bocas = circuitos[id].bocas.map((b) => ({ ...b }));
+          for (const pto of puntos) {
+            const nombre = String(pto.nombre).slice(0, 40);
+            let i = bocas.findIndex((b2) => b2.nombre === nombre);
+            if (i < 0) i = bocas.findIndex((b2) => !b2.nombre && numBal(b2.caudalMedido) === null);
+            if (i < 0) {
+              bocas.push({ caudalProyecto: null, caudalMedido: null });
+              i = bocas.length - 1;
+              nuevas.push({ circuito: id, nombre });
+            }
+            const b = bocas[i];
+            b.nombre = nombre;
+            const medido = numBal(pto.caudal);
+            const actual = numBal(b.caudalMedido);
+            if (medido !== null) {
+              if (actual === null) {
+                b.caudalMedido = medido;
+                puestos.push({ circuito: id, nombre, valor: medido });
+              } else if (Math.abs(actual - medido) > 0.05) {
+                if (sobrescribir.includes(`${id}:${nombre}`)) {
+                  b.caudalMedido = medido;
+                  puestos.push({ circuito: id, nombre, valor: medido, antes: actual });
+                } else conflictos.push({ circuito: id, nombre, actual, medido });
+              }
+            }
+            const diseno = numBal(pto.caudalDiseno);
+            if (diseno !== null && numBal(b.caudalProyecto) === null) b.caudalProyecto = diseno;
+          }
+          circuitos[id] = { ...circuitos[id], numero: Math.min(200, bocas.length), bocas };
+        }
+        return { hoja: normalizarHoja({ ...hoja, circuitos }), puestos, conflictos, nuevas };
+      }
+      var SECCION_RED = /(?:^|[^\d])(\d{2,4})\s*[x×X*]\s*(\d{2,4})(?!\d)/;
+      var DIAMETRO_RED = /[Ø∅ø]\s*(\d{2,4})(?!\d)/;
+      var CIRCUITO_RED = [[/\b(RET|RETORNO|EXT|EXTRACCION|EXPULSION)\b/i, "retorno"], [/\b(IMP|IMPULSION)\b/i, "impulsion"]];
+      var BOCA_RED = /\b(DIF|DIFUSOR|REJ|REJILLA|RJ|D|R)[-_. ]?\d{1,3}\b/i;
+      var MODULO_TECHO_RED = /* @__PURE__ */ new Set(["600x600", "625x625", "595x595", "300x300"]);
+      var ELEMENTOS_RED = [
+        [/\b(CCF|CORTAFUEGOS|CF)\b/i, "compuertaCortafuegos"],
+        [/\b(CR|CPR|COMPUERTA)\b/i, "compuertaRegulacion"],
+        [/\bVAV\b/i, "vav"],
+        [/\bCAV\b/i, "cav"],
+        [/\b(SIL|SILENCIADOR)\b/i, "silenciador"]
+      ];
+      function redDePlano(textos) {
+        const red = {
+          impulsion: { secciones: [], elementos: {} },
+          retorno: { secciones: [], elementos: {} },
+          supuestoImpulsion: false
+        };
+        for (const t of Array.isArray(textos) ? textos : []) {
+          const texto = String(t && t.texto || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+          if (!texto) continue;
+          const marca = CIRCUITO_RED.find(([re]) => re.test(texto));
+          const circuito = marca ? marca[1] : "impulsion";
+          const c = red[circuito];
+          const rect = SECCION_RED.exec(texto);
+          const diam = DIAMETRO_RED.exec(texto);
+          const esBoca = BOCA_RED.test(texto);
+          let es = false;
+          if (rect && !esBoca) {
+            const ancho = Number(rect[1]);
+            const alto = Number(rect[2]);
+            if (!MODULO_TECHO_RED.has(`${ancho}x${alto}`) && ancho >= 100 && alto >= 100) {
+              c.secciones.push({ ancho, alto, area: ancho * alto });
+              es = true;
+            }
+          } else if (diam && !esBoca) {
+            const d = Number(diam[1]);
+            if (d >= 80) {
+              c.secciones.push({ diametro: d, area: Math.PI * d * d / 4 });
+              es = true;
+            }
+          }
+          for (const [re, tipo] of ELEMENTOS_RED) {
+            if (re.test(texto)) {
+              c.elementos[tipo] = (c.elementos[tipo] || 0) + 1;
+              es = true;
+              break;
+            }
+          }
+          if (es && !marca) red.supuestoImpulsion = true;
+        }
+        for (const id of ["impulsion", "retorno"]) {
+          const c = red[id];
+          const mayor = c.secciones.reduce((a, b) => !a || b.area > a.area ? b : a, null);
+          c.principal = mayor ? mayor.diametro ? { diametro: mayor.diametro } : { ancho: mayor.ancho, alto: mayor.alto } : null;
+          c.tramos = c.secciones.length;
+        }
+        return red;
+      }
+      function aplicarRed(hojaEntrada, redEntrada) {
+        const hoja = normalizarHoja(hojaEntrada);
+        const circuitos = { ...hoja.circuitos };
+        const puestos = [];
+        const suyos = (TIPOS_EQUIPO[hoja.tipo] || TIPOS_EQUIPO.uta).circuitos;
+        let red = redEntrada;
+        const unico = suyos.length === 1 ? suyos[0] : null;
+        if (unico && redEntrada) {
+          const a = redEntrada.impulsion || { secciones: [], elementos: {} };
+          const b = redEntrada.retorno || { secciones: [], elementos: {} };
+          const secciones = [...a.secciones || [], ...b.secciones || []];
+          const mayor = secciones.reduce((x, y) => !x || y.area > x.area ? y : x, null);
+          const elementos = { ...a.elementos || {} };
+          for (const [k, n] of Object.entries(b.elementos || {})) elementos[k] = (elementos[k] || 0) + n;
+          const junta = {
+            secciones,
+            elementos,
+            tramos: secciones.length,
+            principal: mayor ? mayor.diametro ? { diametro: mayor.diametro } : { ancho: mayor.ancho, alto: mayor.alto } : null
+          };
+          red = { [unico]: junta };
+        }
+        for (const id of suyos) {
+          const r = red && red[id];
+          if (!r || !circuitos[id]) continue;
+          const c = { ...circuitos[id], conducto: { ...circuitos[id].conducto } };
+          const vacio = ["ancho", "alto", "diametro"].every((k) => c.conducto[k] === null);
+          if (r.principal && vacio) {
+            Object.assign(c.conducto, r.principal);
+            puestos.push({ circuito: id, que: "conducto", valor: r.principal.diametro ? `\xD8${r.principal.diametro}` : `${r.principal.ancho}\xD7${r.principal.alto}` });
+          }
+          const lista = Object.entries(r.elementos || {}).filter(([tipo, n]) => ELEMENTOS[tipo] && n > 0);
+          if (lista.length && !c.elementos.length) {
+            c.elementos = lista.map(([tipo, n]) => ({ tipo, cantidad: n, ...ELEMENTOS[tipo].porBoca ? {} : { enSerie: 1 } }));
+            for (const [tipo, n] of lista) puestos.push({ circuito: id, que: "elemento", valor: `${ELEMENTOS[tipo].nombre} \xD7 ${n}` });
+          }
+          circuitos[id] = c;
+        }
+        return { hoja: normalizarHoja({ ...hoja, circuitos }), puestos, unico };
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.BALANCEO = API;
+      })({
+        TIPOS_EQUIPO,
+        CIRCUITOS,
+        TERMINALES,
+        ELEMENTOS,
+        MAGNITUDES,
+        MAGNITUD,
+        SIN_TOLERANCIAS,
+        tolerancias: toleranciasBal,
+        hojaVacia,
+        tipoDeEquipo,
+        normalizar: normalizarHoja,
+        ajustarBocas,
+        caudalesProyecto,
+        caudalDeSeccion,
+        terminalDe,
+        perdidaTerminal,
+        perdidaCircuito,
+        evaluarBocas,
+        evaluarMagnitudes,
+        evaluar: evaluarHoja,
+        leerNumeroFicha,
+        extraerDeTexto,
+        aplicarLeido,
+        aplicarDifusores,
+        redDePlano,
+        aplicarRed
+      });
+    }
+  });
+
+  // shared/commissioning/panelBalanceo.js
+  var require_panelBalanceo = __commonJS({
+    "shared/commissioning/panelBalanceo.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var _balPB = typeof __require !== "undefined" ? require_balanceo() : window.BALANCEO;
+      var _textoPB = typeof __require !== "undefined" ? require_texto() : window.TEXTO;
+      var SISTEMAS_AGUA = {
+        frio: { id: "frio", nombre: "Agua fr\xEDa" },
+        calor: { id: "calor", nombre: "Agua caliente" },
+        acs: { id: "acs", nombre: "ACS / retorno" },
+        condensacion: { id: "condensacion", nombre: "Condensaci\xF3n" },
+        geotermia: { id: "geotermia", nombre: "Geotermia" },
+        otro: { id: "otro", nombre: "Otra red" }
+      };
+      var TIPOS_VALVULA = {
+        equilibrado: "V\xE1lvula de equilibrado",
+        independiente: "Independiente de la presi\xF3n (PICV)",
+        orificio: "Orificio / venturi",
+        otro: "Otro"
+      };
+      var MAX_VALVULAS = 300;
+      var numPB = (v) => {
+        if (v === null || v === void 0 || v === "") return null;
+        const n = typeof v === "number" ? v : Number(String(v).replace(/\s/g, "").replace(",", "."));
+        return Number.isFinite(n) ? n : null;
+      };
+      var textoPB = (v, max = 120) => String(v === null || v === void 0 ? "" : v).trim().slice(0, max);
+      var redPB = (n, d = 4) => n === null ? null : Math.round(n * 10 ** d) / 10 ** d;
+      var fechaPB = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v || "")) ? String(v) : null;
+      function redAguaVacia() {
+        return {
+          version: 1,
+          nombre: "",
+          sistema: "frio",
+          fechaMedicion: null,
+          bombaProyecto: null,
+          bombaMedido: null,
+          valvulas: []
+        };
+      }
+      function normalizarRedAgua(entrada = {}) {
+        const e = entrada || {};
+        return {
+          version: 1,
+          nombre: textoPB(e.nombre),
+          sistema: SISTEMAS_AGUA[e.sistema] ? e.sistema : "otro",
+          fechaMedicion: fechaPB(e.fechaMedicion),
+          bombaProyecto: numPB(e.bombaProyecto),
+          bombaMedido: numPB(e.bombaMedido),
+          valvulas: (Array.isArray(e.valvulas) ? e.valvulas : []).slice(0, MAX_VALVULAS).map((v) => ({
+            nombre: textoPB(v && v.nombre, 60),
+            zona: textoPB(v && v.zona, 60),
+            tipo: TIPOS_VALVULA[v && v.tipo] ? v.tipo : "equilibrado",
+            caudalProyecto: numPB(v && v.caudalProyecto),
+            caudalMedido: numPB(v && v.caudalMedido)
+          }))
+        };
+      }
+      var desvPB = (medido, referencia) => medido === null || referencia === null || referencia === 0 ? null : (medido - referencia) / referencia;
+      function estadoTerminal(proyecto, medido, tol) {
+        const d = desvPB(medido, proyecto);
+        if (d === null) return medido === null ? "sinMedir" : "sinProyecto";
+        if (tol === null || tol === void 0) return "sinTolerancia";
+        return Math.abs(d) <= tol + 1e-9 ? "ok" : d > 0 ? "alto" : "bajo";
+      }
+      var pctTolPB = (v) => `\xB1${_textoPB.numero(v * 100, v * 100 % 1 ? 1 : 0)} %`;
+      function evaluarRedAgua(entrada, tolerancias = {}) {
+        const red = normalizarRedAgua(entrada);
+        const tol = { boca: numPB(tolerancias && tolerancias.boca), total: numPB(tolerancias && tolerancias.total) };
+        const valvulas = red.valvulas.map((v, i) => {
+          const d = desvPB(v.caudalMedido, v.caudalProyecto);
+          return {
+            indice: i + 1,
+            nombre: v.nombre || `V${i + 1}`,
+            zona: v.zona,
+            tipo: v.tipo,
+            caudalProyecto: v.caudalProyecto,
+            caudalMedido: v.caudalMedido,
+            desviacion: d === null ? null : redPB(d),
+            estado: estadoTerminal(v.caudalProyecto, v.caudalMedido, tol.boca)
+          };
+        });
+        const medidas = valvulas.filter((v) => v.caudalMedido !== null);
+        const todasMedidas = valvulas.length > 0 && medidas.length === valvulas.length;
+        const sumaProyecto = valvulas.reduce((s, v) => s + (v.caudalProyecto || 0), 0) || null;
+        const sumaMedido = medidas.length ? medidas.reduce((s, v) => s + v.caudalMedido, 0) : null;
+        const referenciaTotal = red.bombaProyecto !== null ? red.bombaProyecto : sumaProyecto;
+        const totalMedido = red.bombaMedido !== null ? red.bombaMedido : todasMedidas ? sumaMedido : null;
+        const dTotal = desvPB(totalMedido, referenciaTotal);
+        const totalOk = dTotal === null || tol.total === null ? null : Math.abs(dTotal) <= tol.total + 1e-9;
+        const fuera = valvulas.filter((v) => v.estado === "alto" || v.estado === "bajo").length;
+        const algoMedido = medidas.length > 0 || totalMedido !== null;
+        const faltaTol = tol.total === null || tol.boca === null && valvulas.length > 0;
+        let estado = "pendiente";
+        let porque = "No hay nada medido todav\xEDa.";
+        if (algoMedido && (fuera || totalOk === false)) {
+          estado = "noApto";
+          porque = fuera ? `${_textoPB.plural(fuera, "v\xE1lvula est\xE1", "v\xE1lvulas est\xE1n")} fuera del ${pctTolPB(tol.boca)}.` : `El caudal de la bomba est\xE1 fuera del ${pctTolPB(tol.total)}.`;
+        } else if (algoMedido && faltaTol) {
+          porque = "La obra no tiene sus tolerancias de caudal: sin ellas no se juzga.";
+        } else if (totalOk && todasMedidas && !fuera) {
+          estado = "apto";
+          porque = `Todas las v\xE1lvulas dentro del ${pctTolPB(tol.boca)} y la bomba dentro del ${pctTolPB(tol.total)}.`;
+        } else if (totalOk && valvulas.length === 0) {
+          estado = "aptoSinBocas";
+          porque = `La bomba est\xE1 dentro del ${pctTolPB(tol.total)}; no hay v\xE1lvulas apuntadas.`;
+        } else if (totalOk) {
+          estado = "aptoSinBocas";
+          porque = `La bomba est\xE1 dentro del ${pctTolPB(tol.total)}, pero no se han medido todas las v\xE1lvulas.`;
+        } else if (algoMedido) {
+          porque = "Falta medir el caudal total (bomba o todas las v\xE1lvulas).";
+        }
+        return {
+          red,
+          valvulas,
+          tolerancias: tol,
+          estado,
+          porque,
+          total: {
+            nombre: "Bomba",
+            proyecto: referenciaTotal,
+            medido: totalMedido,
+            desviacion: dTotal === null ? null : redPB(dTotal),
+            ok: totalOk
+          },
+          medidas: medidas.length,
+          fuera,
+          todasMedidas
+        };
+      }
+      var ESTADOS_SISTEMA = {
+        apto: { nombre: "Apto", clase: "bien" },
+        aptoSinBocas: { nombre: "Apto sin terminales", clase: "aviso" },
+        noApto: { nombre: "No apto", clase: "mal" },
+        pendiente: { nombre: "Pendiente", clase: "neutro" }
+      };
+      var ESTADOS_TERMINAL = {
+        ok: { nombre: "Dentro", clase: "bien" },
+        alto: { nombre: "Alto", clase: "mal" },
+        bajo: { nombre: "Bajo", clase: "mal" },
+        sinMedir: { nombre: "Sin medir", clase: "neutro" },
+        sinProyecto: { nombre: "Sin proyecto", clase: "aviso" },
+        sinTolerancia: { nombre: "Sin tolerancia", clase: "aviso" }
+      };
+      var TRAMOS = [
+        { desde: -Infinity, hasta: -0.2, nombre: "< \u221220" },
+        { desde: -0.2, hasta: -0.15, nombre: "\u221220 a \u221215" },
+        { desde: -0.15, hasta: -0.1, nombre: "\u221215 a \u221210" },
+        { desde: -0.1, hasta: -0.05, nombre: "\u221210 a \u22125" },
+        { desde: -0.05, hasta: 0, nombre: "\u22125 a 0" },
+        { desde: 0, hasta: 0.05, nombre: "0 a +5" },
+        { desde: 0.05, hasta: 0.1, nombre: "+5 a +10" },
+        { desde: 0.1, hasta: 0.15, nombre: "+10 a +15" },
+        { desde: 0.15, hasta: 0.2, nombre: "+15 a +20" },
+        { desde: 0.2, hasta: Infinity, nombre: "> +20" }
+      ];
+      function tramoDe(d) {
+        const e = 1e-9;
+        if (Math.abs(d) < e) return TRAMOS.findIndex((t) => t.desde === 0);
+        if (d < 0) return TRAMOS.findIndex((t) => t.hasta <= 0 && d >= t.desde - e && d < t.hasta - e);
+        return TRAMOS.findIndex((t) => t.desde >= 0 && d > t.desde + e && d <= t.hasta + e);
+      }
+      var tagEquipo = (e) => e.tag || e.descripcion || e.modelo || "Equipo";
+      function sistemaAire(equipo = {}, ev) {
+        const terminales = [];
+        const totales = [];
+        for (const c of ev && ev.circuitos || []) {
+          for (const b of c.bocas) {
+            terminales.push({
+              circuito: c.nombre,
+              nombre: b.nombre,
+              tipo: b.terminal || "",
+              proyecto: b.caudalProyecto,
+              medido: b.caudalMedido,
+              desviacion: b.desviacion,
+              estado: b.estado
+            });
+          }
+          totales.push({
+            nombre: c.nombre,
+            proyecto: c.referenciaTotal,
+            medido: c.totalMedido,
+            desviacion: c.desviacionTotal,
+            ok: c.totalOk
+          });
+        }
+        const tipo = ev && ev.tipo ? ev.tipo.nombre : "";
+        return {
+          id: `aire:${equipo.id || tagEquipo(equipo)}`,
+          clase: "aire",
+          equipoId: equipo.id || null,
+          redId: null,
+          nombre: tagEquipo(equipo),
+          tipo,
+          planta: equipo.planta || "",
+          unidad: "m\xB3/h",
+          estado: ev ? ev.estado : "pendiente",
+          porque: ev ? ev.porque : "Sin hoja de balanceo.",
+          fecha: ev && ev.hoja ? ev.hoja.fechaMedicion : null,
+          terminales,
+          totales
+        };
+      }
+      function sistemaAgua(id, ev) {
+        return {
+          id: `agua:${id}`,
+          clase: "agua",
+          equipoId: null,
+          redId: id,
+          nombre: ev.red.nombre || SISTEMAS_AGUA[ev.red.sistema].nombre,
+          tipo: `Red de ${SISTEMAS_AGUA[ev.red.sistema].nombre.toLowerCase()}`,
+          planta: "",
+          unidad: "l/h",
+          estado: ev.estado,
+          porque: ev.porque,
+          fecha: ev.red.fechaMedicion,
+          terminales: ev.valvulas.map((v) => ({
+            circuito: v.zona || "",
+            nombre: v.nombre,
+            tipo: TIPOS_VALVULA[v.tipo],
+            proyecto: v.caudalProyecto,
+            medido: v.caudalMedido,
+            desviacion: v.desviacion,
+            estado: v.estado
+          })),
+          totales: [ev.total]
+        };
+      }
+      function cuentaTerminales(terminales) {
+        const c = { total: terminales.length, dentro: 0, fuera: 0, sinMedir: 0, sinJuzgar: 0 };
+        for (const t of terminales) {
+          if (t.estado === "ok") c.dentro += 1;
+          else if (t.estado === "alto" || t.estado === "bajo") c.fuera += 1;
+          else if (t.estado === "sinMedir") c.sinMedir += 1;
+          else c.sinJuzgar += 1;
+        }
+        return c;
+      }
+      function panel({ equipos = [], redes = [], tolerancias = {} } = {}) {
+        const tol = { boca: numPB(tolerancias && tolerancias.boca), total: numPB(tolerancias && tolerancias.total) };
+        const sistemas = [
+          ...equipos.map(({ equipo, ev }) => sistemaAire(equipo, ev)),
+          ...redes.map(({ id, red }) => sistemaAgua(id, evaluarRedAgua(red, tol)))
+        ];
+        for (const s of sistemas) s.cuenta = cuentaTerminales(s.terminales);
+        const todos = sistemas.flatMap((s) => s.terminales.map((t) => ({ ...t, sistema: s.nombre, clase: s.clase, unidad: s.unidad })));
+        const c = cuentaTerminales(todos);
+        const juzgados = c.dentro + c.fuera;
+        const resumen = {
+          sistemas: sistemas.length,
+          aire: sistemas.filter((s) => s.clase === "aire").length,
+          agua: sistemas.filter((s) => s.clase === "agua").length,
+          terminales: c.total,
+          dentro: c.dentro,
+          fuera: c.fuera,
+          sinMedir: c.sinMedir,
+          sinJuzgar: c.sinJuzgar,
+          aptos: sistemas.filter((s) => s.estado === "apto" || s.estado === "aptoSinBocas").length,
+          noAptos: sistemas.filter((s) => s.estado === "noApto").length,
+          pendientes: sistemas.filter((s) => s.estado === "pendiente").length,
+          /* Sobre los JUZGADOS: un terminal sin medir no está ni dentro ni fuera. */
+          pctDentro: juzgados ? redPB(c.dentro / juzgados, 4) : null,
+          pctMedido: c.total ? redPB((c.total - c.sinMedir) / c.total, 4) : null
+        };
+        const conDesv = todos.filter((t) => t.desviacion !== null);
+        const histograma = TRAMOS.map((t) => ({
+          nombre: t.nombre,
+          desde: t.desde,
+          hasta: t.hasta,
+          n: 0,
+          /* Un tramo está «dentro» si cabe entero en ±tolerancia de terminal. */
+          dentro: tol.boca !== null && t.desde >= -tol.boca - 1e-9 && t.hasta <= tol.boca + 1e-9
+        }));
+        for (const t of conDesv) {
+          const i = tramoDe(t.desviacion);
+          if (i >= 0) histograma[i].n += 1;
+        }
+        const maximo = Math.max(0, ...histograma.map((h) => h.n));
+        const peores = conDesv.filter((t) => t.estado === "alto" || t.estado === "bajo" || tol.boca === null).sort((a, b) => Math.abs(b.desviacion) - Math.abs(a.desviacion)).slice(0, 10);
+        return { sistemas, resumen, histograma, maximo, peores, tolerancias: tol };
+      }
+      var escPB = (t) => String(t === null || t === void 0 ? "" : t).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]);
+      var cifraPB = (n) => n === null || n === void 0 ? "\u2014" : _textoPB.numero(n, 0);
+      var desvTxtPB = (d) => d === null || d === void 0 ? "\u2014" : `${d > 0 ? "+" : ""}${_textoPB.numero(d * 100, 1)} %`;
+      var fechaEsPB = (f) => f ? f.split("-").reverse().join("/") : "\u2014";
+      var tolTxtPB = (v) => v === null ? "sin fijar" : pctTolPB(v);
+      function barrasHtml(p) {
+        const max = p.maximo || 1;
+        return `<div class="baGrafico">${p.histograma.map((h) => `
+    <div class="baTramo ${h.dentro ? "dentro" : "fuera"}">
+      <span class="baN">${h.n || ""}</span>
+      <div class="baBarra" style="height:${Math.round(h.n / max * 75)}%"></div>
+      <span class="baEtq">${escPB(h.nombre)}</span>
+    </div>`).join("")}</div>`;
+      }
+      function informeHtml(p, { obra = {}, fecha = null, ejemplo = false } = {}) {
+        const r = p.resumen;
+        const hoy = fecha || ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
+        const sistemas = p.sistemas.map((s) => {
+          const est = ESTADOS_SISTEMA[s.estado] || ESTADOS_SISTEMA.pendiente;
+          const filas = s.terminales.map((t) => {
+            const et = ESTADOS_TERMINAL[t.estado] || ESTADOS_TERMINAL.sinMedir;
+            return `<tr><td>${escPB(t.circuito)}</td><td>${escPB(t.nombre)}</td><td>${escPB(t.tipo)}</td>
+        <td class="num">${cifraPB(t.proyecto)}</td><td class="num">${cifraPB(t.medido)}</td>
+        <td class="num ${et.clase}">${desvTxtPB(t.desviacion)}</td><td class="${et.clase}">${et.nombre}</td></tr>`;
+          }).join("");
+          const totales = s.totales.map((t) => `<tr class="total"><td colspan="3">Total ${escPB(t.nombre.toLowerCase())}</td>
+        <td class="num">${cifraPB(t.proyecto)}</td><td class="num">${cifraPB(t.medido)}</td>
+        <td class="num ${t.ok === false ? "mal" : t.ok ? "bien" : ""}">${desvTxtPB(t.desviacion)}</td>
+        <td>${t.ok === null || t.ok === void 0 ? "\u2014" : t.ok ? "Dentro" : "Fuera"}</td></tr>`).join("");
+          return `<section class="baSistema">
+      <h3><span>${escPB(s.nombre)}</span> <small>${escPB(s.tipo)}${s.planta ? ` \xB7 ${escPB(s.planta)}` : ""} \xB7 medido ${fechaEsPB(s.fecha)}</small>
+        <em class="${est.clase}">${est.nombre}</em></h3>
+      <p class="baPorque">${escPB(s.porque)}</p>
+      <table><thead><tr><th>Circuito / zona</th><th>Terminal</th><th>Tipo</th>
+        <th class="num">Proyecto ${escPB(s.unidad)}</th><th class="num">Medido ${escPB(s.unidad)}</th>
+        <th class="num">Desviaci\xF3n</th><th>Estado</th></tr></thead>
+      <tbody>${filas || '<tr><td colspan="7" class="neutro">Sin terminales apuntados.</td></tr>'}${totales}</tbody></table>
+    </section>`;
+        }).join("");
+        return `<div class="baInforme">
+    <header class="baCab">
+      <div><strong>Informe de balanceo de caudales</strong>
+        <span>${escPB(obra.codigo || "")} ${escPB(obra.nombre || "")}</span></div>
+      <div class="baCabDer">Fecha ${fechaEsPB(hoy)}<br>Tolerancia terminal ${tolTxtPB(p.tolerancias.boca)} \xB7 total ${tolTxtPB(p.tolerancias.total)}</div>
+    </header>
+    ${ejemplo ? '<p class="baEjemplo">DATOS DE EJEMPLO \u2014 esta obra todav\xEDa no tiene mediciones.</p>' : ""}
+    <table class="baResumen"><tr>
+      <td><b>${r.sistemas}</b>sistemas</td><td><b>${r.terminales}</b>terminales</td>
+      <td class="bien"><b>${r.dentro}</b>dentro</td><td class="mal"><b>${r.fuera}</b>fuera</td>
+      <td><b>${r.sinMedir}</b>sin medir</td>
+      <td><b>${r.pctDentro === null ? "\u2014" : _textoPB.porcentaje(r.pctDentro * 100, 0)}</b>dentro de lo juzgado</td>
+      <td class="bien"><b>${r.aptos}</b>sistemas aptos</td><td class="mal"><b>${r.noAptos}</b>no aptos</td>
+    </tr></table>
+    <h3 class="baTituloGrafico">Reparto de desviaciones (%)</h3>
+    ${barrasHtml(p)}
+    ${sistemas || "<p>Sin sistemas.</p>"}
+  </div>`;
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.PANEL_BALANCEO = API;
+      })({
+        SISTEMAS_AGUA,
+        TIPOS_VALVULA,
+        ESTADOS_SISTEMA,
+        ESTADOS_TERMINAL,
+        TRAMOS,
+        MAX_VALVULAS,
+        redAguaVacia,
+        normalizarRedAgua,
+        evaluarRedAgua,
+        estadoTerminal,
+        tramoDe,
+        sistemaAire,
+        sistemaAgua,
+        panel,
+        informeHtml,
+        barrasHtml,
+        /* Para la pantalla, que evalúa hojas de aire con el mismo motor. */
+        evaluarHoja: (hoja, equipo, opciones) => _balPB.evaluar(hoja, equipo, opciones)
+      });
+    }
+  });
+
+  // shared/mantenimiento/preventivo.js
+  var require_preventivo = __commonJS({
+    "shared/mantenimiento/preventivo.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var PERIODOS = {
+        m: { meses: 1, nombre: "Mensual" },
+        "3m": { meses: 3, nombre: "Trimestral" },
+        "2t": { meses: 6, nombre: "Semestral" },
+        t: { meses: 12, nombre: "Anual" },
+        "2a": { meses: 24, nombre: "Cada 2 a\xF1os" },
+        "4a": { meses: 48, nombre: "Cada 4 a\xF1os" },
+        "5a": { meses: 60, nombre: "Cada 5 a\xF1os" }
+      };
+      var NORMA_RITE = "RITE IT 3.3, tabla 3.1";
+      var PCI = "RD 513/2017, anexo II";
+      var LEGIONELA = "RD 487/2022";
+      var op = (texto, cada, norma = NORMA_RITE) => ({
+        texto,
+        cada: Array.isArray(cada) ? { hasta70: cada[0], mas70: cada[1] } : { hasta70: cada, mas70: cada },
+        norma
+      });
+      var FILTROS_AIRE = op("Revisi\xF3n y limpieza de filtros de aire", ["t", "m"]);
+      var CONTROL = op("Revisi\xF3n del sistema de control autom\xE1tico", ["t", "2t"]);
+      var BOMBAS_VENT = op("Revisi\xF3n de bombas y ventiladores", [null, "m"]);
+      var SEGURIDADES = op("Comprobaci\xF3n del tarado de elementos de seguridad", [null, "m"]);
+      var REFRIGERANTE = op("Comprobaci\xF3n de estanquidad y niveles de refrigerante y aceite", ["t", "m"]);
+      var TIPOS_MANT = [
+        {
+          id: "extintor",
+          nombre: "Extintor",
+          disciplina: "PCI",
+          patron: /\bextint/,
+          vidaUtil: 20,
+          vidaDesde: "fabricacion",
+          fuenteVida: `${PCI}: retimbrado cada 5 a\xF1os, tres como mucho (20 a\xF1os desde su fabricaci\xF3n)`,
+          operaciones: [
+            op("Comprobaci\xF3n de accesibilidad, se\xF1alizaci\xF3n, precinto y presi\xF3n (titular)", "3m", PCI),
+            op("Revisi\xF3n por empresa mantenedora", "t", PCI),
+            op("Retimbrado: prueba de nivel C", "5a", PCI)
+          ]
+        },
+        /* El pulsador antes que el detector: los dos van en la «detección», pero
+           la vida de 10 años del reglamento es la del detector. */
+        {
+          id: "pulsador",
+          nombre: "Pulsador de alarma",
+          disciplina: "PCI",
+          patron: /\bpulsador/,
+          vidaUtil: 20,
+          vidaDesde: "servicio",
+          fuenteVida: "Referencia (el RD 513/2017 no le fija vida)",
+          operaciones: [
+            op("Comprobaci\xF3n de pulsadores y avisadores (titular)", "3m", PCI),
+            op("Prueba de pulsadores por empresa mantenedora", "t", PCI)
+          ]
+        },
+        {
+          id: "detector",
+          nombre: "Detector de incendio",
+          disciplina: "PCI",
+          patron: /\bdetector|\bdetecci[oó]n (de )?(humo|incend)/,
+          vidaUtil: 10,
+          vidaDesde: "fabricacion",
+          fuenteVida: `${PCI}: la del fabricante o 10 a\xF1os; despu\xE9s, prueba de una muestra cada 5 a\xF1os`,
+          operaciones: [
+            op("Comprobaci\xF3n de funcionamiento (titular)", "3m", PCI),
+            op("Verificaci\xF3n por empresa mantenedora", "t", PCI)
+          ]
+        },
+        {
+          id: "bie",
+          nombre: "Boca de incendio equipada",
+          disciplina: "PCI",
+          patron: /\bbie\b|boca de incendio/,
+          vidaUtil: 20,
+          vidaDesde: "servicio",
+          fuenteVida: `${PCI}: la manguera se sustituye a los 20 a\xF1os de la puesta en marcha, salvo certificado del fabricante`,
+          operaciones: [
+            op("Comprobaci\xF3n de accesibilidad, se\xF1alizaci\xF3n y presi\xF3n (titular)", "3m", PCI),
+            op("Revisi\xF3n por empresa mantenedora", "t", PCI),
+            op("Prueba de la manguera a presi\xF3n", "5a", PCI)
+          ]
+        },
+        {
+          id: "centralIncendios",
+          nombre: "Central de detecci\xF3n de incendios",
+          disciplina: "PCI",
+          patron: /central (de )?(detecci|incend|alarma)|\bcdi\b/,
+          vidaUtil: 15,
+          vidaDesde: "servicio",
+          fuenteVida: "Referencia (bater\xEDas: cada 4\u20135 a\xF1os en la revisi\xF3n)",
+          operaciones: [
+            op("Comprobaci\xF3n de funcionamiento, bater\xEDas y avisos (titular)", "3m", PCI),
+            op("Verificaci\xF3n por empresa mantenedora", "t", PCI)
+          ]
+        },
+        /* El grupo contra incendios antes que la bomba: es una bomba, pero su plan
+           es el del reglamento de incendios, no el del RITE. */
+        {
+          id: "grupoPci",
+          nombre: "Grupo de bombeo contra incendios",
+          disciplina: "PCI",
+          patron: /grupo (de )?(presi[oó]n |bombeo )?(de |contra )?(incendio|pci)|\bjockey|abastecimiento de agua|bombas? (de |contra )?(incendio|pci)/,
+          vidaUtil: 20,
+          vidaDesde: "servicio",
+          fuenteVida: "Referencia (bombas de bancada, ASHRAE: 20)",
+          operaciones: [
+            op("Verificaci\xF3n de elementos, arranque autom\xE1tico y manual, niveles y bater\xEDas", "3m", PCI),
+            op("Accionamiento y engrase de v\xE1lvulas; alimentaci\xF3n el\xE9ctrica y protecciones", "2t", PCI),
+            op("Revisi\xF3n anual (UNE 23500): reserva de agua, filtros y curvas de abastecimiento", "t", PCI)
+          ]
+        },
+        {
+          id: "extincionFija",
+          nombre: "Extinci\xF3n autom\xE1tica (rociadores, gas, agua nebulizada)",
+          disciplina: "PCI",
+          patron: /rociador|sprinkler|extinci[oó]n (autom|fija|por gas)|agente gaseoso|agua nebulizada|\bfm.?200\b|\bnovec\b/,
+          vidaUtil: 25,
+          vidaDesde: "servicio",
+          fuenteVida: "UNE-EN 12845: los rociadores se ensayan por muestra a los 25 a\xF1os",
+          operaciones: [
+            op("Comprobaci\xF3n de man\xF3metros, v\xE1lvulas abiertas, boquillas y alimentaci\xF3n (titular)", "3m", PCI),
+            op("Prueba de activaci\xF3n manual y autom\xE1tica por empresa mantenedora", "t", PCI)
+          ]
+        },
+        /* La compuerta cortafuegos antes que la compuerta de aire: va en PCI. */
+        {
+          id: "compuertaCortafuegos",
+          nombre: "Compuerta o puerta cortafuegos",
+          disciplina: "PCI",
+          patron: /corta.?fuegos?|compuerta (de )?humos?/,
+          vidaUtil: 20,
+          vidaDesde: "servicio",
+          fuenteVida: "Referencia",
+          operaciones: [
+            op("Prueba de cierre, fusible o actuador y rearme", "t", "UNE-EN 15650 y fabricante")
+          ]
+        },
+        {
+          id: "enfriadora",
+          nombre: "Enfriadora",
+          disciplina: "Clima",
+          patron: /enfriadora|\bchiller|planta (de )?(fr[ií]o|enfriamiento)/,
+          vidaUtil: 20,
+          vidaDesde: "servicio",
+          fuenteVida: "ASHRAE: 20\u201323 (las de condensaci\xF3n por aire con scroll, 15\u201320 en obra)",
+          operaciones: [
+            op("Limpieza de evaporadores", "t"),
+            op("Limpieza de condensadores", "t"),
+            REFRIGERANTE,
+            SEGURIDADES,
+            CONTROL
+          ]
+        },
+        {
+          id: "bombaCalor",
+          nombre: "Bomba de calor aire-agua / aerotermia",
+          disciplina: "Clima",
+          patron: /bomba de calor|aerotermi|aerot[eé]rmic/,
+          vidaUtil: 15,
+          vidaDesde: "servicio",
+          fuenteVida: "ASHRAE: bombas de calor, 15",
+          operaciones: [
+            op("Limpieza de evaporadores", "t"),
+            op("Limpieza de condensadores", "t"),
+            REFRIGERANTE,
+            SEGURIDADES,
+            CONTROL
+          ]
+        },
+        {
+          id: "caldera",
+          nombre: "Caldera",
+          disciplina: "Clima",
+          patron: /caldera|generador de calor/,
+          vidaUtil: 20,
+          vidaDesde: "servicio",
+          fuenteVida: "ASHRAE: 24\u201335 en acero o fundici\xF3n; las de condensaci\xF3n, 15\u201320 en obra",
+          operaciones: [
+            op("Comprobaci\xF3n y limpieza del circuito de humos de la caldera", ["t", "2t"]),
+            op("Comprobaci\xF3n y limpieza de conductos de humos y chimenea", ["t", "2t"]),
+            op("Limpieza del quemador", ["t", "m"]),
+            op("Comprobaci\xF3n de estanquidad del cierre entre quemador y caldera", ["t", "m"]),
+            op("Revisi\xF3n general de la caldera", "t"),
+            op("Revisi\xF3n del vaso de expansi\xF3n", ["t", "m"]),
+            op("Comprobaci\xF3n de niveles de agua en circuitos", ["t", "m"]),
+            SEGURIDADES
+          ]
+        },
+        {
+          id: "torre",
+          nombre: "Torre de refrigeraci\xF3n / condensador evaporativo",
+          disciplina: "Clima",
+          patron: /torre (de )?refrig|condensador evaporativo|\btorre\b/,
+          vidaUtil: 20,
+          vidaDesde: "servicio",
+          fuenteVida: "ASHRAE: 20 (chapa galvanizada)",
+          operaciones: [
+            op("Drenaje, limpieza y tratamiento del circuito", "t"),
+            op("Revisi\xF3n de aparatos de humectaci\xF3n y enfriamiento evaporativo", ["t", "m"]),
+            op("Limpieza y desinfecci\xF3n (legionela)", "2t", LEGIONELA),
+            op("An\xE1lisis de Legionella", "m", LEGIONELA)
+          ]
+        },
+        {
+          id: "recuperador",
+          nombre: "Recuperador de calor",
+          disciplina: "Clima",
+          patron: /recuperador|\bhru\b|\berv\b/,
+          vidaUtil: 20,
+          vidaDesde: "servicio",
+          fuenteVida: "Referencia",
+          operaciones: [
+            op("Revisi\xF3n y limpieza de los aparatos de recuperaci\xF3n de calor", ["t", "2t"]),
+            FILTROS_AIRE,
+            BOMBAS_VENT
+          ]
+        },
+        {
+          id: "uta",
+          nombre: "Unidad de tratamiento de aire",
+          disciplina: "Clima",
+          patron: /\buta\b|climatizador|tratamiento de aire|\bahu\b/,
+          vidaUtil: 20,
+          vidaDesde: "servicio",
+          fuenteVida: "ASHRAE (mediana), redondeada",
+          operaciones: [
+            FILTROS_AIRE,
+            op("Revisi\xF3n de bater\xEDas de intercambio t\xE9rmico", [null, "t"]),
+            op("Revisi\xF3n de aparatos de humectaci\xF3n y enfriamiento evaporativo", ["t", "m"]),
+            op("Revisi\xF3n y limpieza de unidades de impulsi\xF3n y retorno de aire", "t"),
+            BOMBAS_VENT,
+            op("Revisi\xF3n de la red de conductos (UNE 100012)", "t"),
+            op("Revisi\xF3n de la calidad ambiental (UNE 171330)", "t")
+          ]
+        },
+        {
+          id: "autonomo",
+          nombre: "Equipo aut\xF3nomo / split / VRF",
+          disciplina: "Clima",
+          patron: /\bsplit|\bvrf\b|\bvrv\b|autónomo|autonomo|cassette|conductos? .*interior|unidad (interior|exterior)|roof.?top/,
+          vidaUtil: 15,
+          vidaDesde: "servicio",
+          fuenteVida: "ASHRAE (mediana), redondeada",
+          operaciones: [
+            op("Revisi\xF3n de equipos aut\xF3nomos", ["t", "2t"]),
+            REFRIGERANTE,
+            FILTROS_AIRE
+          ]
+        },
+        {
+          id: "fancoil",
+          nombre: "Fancoil / unidad terminal agua-aire",
+          disciplina: "Clima",
+          patron: /fan.?coil|inductor|viga fr[ií]a|unidad terminal/,
+          vidaUtil: 20,
+          vidaDesde: "servicio",
+          fuenteVida: "ASHRAE (mediana), redondeada",
+          operaciones: [
+            op("Revisi\xF3n de unidades terminales agua-aire", ["t", "2t"]),
+            FILTROS_AIRE
+          ]
+        },
+        {
+          id: "terminalAire",
+          nombre: "Caja VAV / compuerta / difusi\xF3n",
+          disciplina: "Clima",
+          patron: /\bvav\b|\bcav\b|compuerta|difusor|rejilla/,
+          vidaUtil: 20,
+          vidaDesde: "servicio",
+          fuenteVida: "ASHRAE (mediana), redondeada",
+          operaciones: [
+            op("Revisi\xF3n de unidades terminales de distribuci\xF3n de aire", ["t", "2t"])
+          ]
+        },
+        /* El circulador antes que la bomba, y la bomba antes que el ACS: una
+           «bomba de ACS» es una bomba. */
+        {
+          id: "circulador",
+          nombre: "Circulador / bomba en l\xEDnea",
+          disciplina: "Clima",
+          patron: /circulador|bombas? en l[ií]nea|in.?line/,
+          vidaUtil: 10,
+          vidaDesde: "servicio",
+          fuenteVida: "ASHRAE: bombas en l\xEDnea, 10",
+          operaciones: [BOMBAS_VENT]
+        },
+        {
+          id: "bomba",
+          nombre: "Bomba",
+          disciplina: "Clima",
+          patron: /\bbomba|\bgrupo de presi/,
+          vidaUtil: 15,
+          vidaDesde: "servicio",
+          fuenteVida: "ASHRAE: 20 en bancada, 10 en l\xEDnea (si es en l\xEDnea, elige \xABCirculador\xBB)",
+          operaciones: [BOMBAS_VENT]
+        },
+        /* El termo eléctrico antes que el resto del ACS: dura la mitad. */
+        {
+          id: "termo",
+          nombre: "Termo el\xE9ctrico",
+          disciplina: "Fontaner\xEDa",
+          patron: /\btermo\b|termo ?el[eé]ctrico|calentador el[eé]ctrico/,
+          vidaUtil: 10,
+          vidaDesde: "servicio",
+          fuenteVida: "Referencia de fabricantes: 10 (el \xE1nodo de magnesio, en la revisi\xF3n anual)",
+          operaciones: [
+            op("Revisi\xF3n del sistema de preparaci\xF3n de ACS", ["t", "m"]),
+            op("Revisi\xF3n, limpieza y desinfecci\xF3n del acumulador (legionela)", "t", LEGIONELA)
+          ]
+        },
+        {
+          id: "acs",
+          nombre: "Producci\xF3n y acumulaci\xF3n de ACS",
+          disciplina: "Fontaner\xEDa",
+          patron: /\bacs\b|agua caliente|acumulador|interacumulador|calentador/,
+          vidaUtil: 15,
+          vidaDesde: "servicio",
+          fuenteVida: "Referencia (interacumuladores de inoxidable o vitrificados)",
+          operaciones: [
+            op("Revisi\xF3n del sistema de preparaci\xF3n de ACS", ["t", "m"]),
+            op("Revisi\xF3n del estado de los acumuladores y temperaturas (legionela)", "3m", LEGIONELA),
+            op("Revisi\xF3n, limpieza y desinfecci\xF3n del acumulador (legionela)", "t", LEGIONELA),
+            op("An\xE1lisis de Legionella", "t", LEGIONELA)
+          ]
+        },
+        {
+          id: "ventilador",
+          nombre: "Ventilador / extractor",
+          disciplina: "Clima",
+          patron: /ventila|extract|\bextr\b|caja de ventilaci|\bs&p\b/,
+          vidaUtil: 20,
+          vidaDesde: "servicio",
+          fuenteVida: "ASHRAE (mediana), redondeada",
+          operaciones: [
+            BOMBAS_VENT,
+            op("Revisi\xF3n y limpieza de unidades de impulsi\xF3n y retorno de aire", "t")
+          ]
+        },
+        {
+          id: "intercambiador",
+          nombre: "Intercambiador de placas",
+          disciplina: "Clima",
+          patron: /intercambiador/,
+          vidaUtil: 20,
+          vidaDesde: "servicio",
+          fuenteVida: "ASHRAE (mediana), redondeada",
+          operaciones: [op("Revisi\xF3n de bater\xEDas e intercambiadores", [null, "t"])]
+        },
+        {
+          id: "tratamientoAgua",
+          nombre: "Tratamiento de agua",
+          disciplina: "Clima",
+          patron: /descalcific|dosificador|tratamiento de agua|osmosis|ósmosis/,
+          vidaUtil: 15,
+          vidaDesde: "servicio",
+          fuenteVida: "Referencia (resinas y membranas, en la revisi\xF3n)",
+          operaciones: [op("Revisi\xF3n de los sistemas de tratamiento de agua", ["t", "m"])]
+        },
+        {
+          id: "grupoElectrogeno",
+          nombre: "Grupo electr\xF3geno",
+          disciplina: "Electricidad",
+          patron: /grupo electr[oó]geno|generador di[eé]sel|\bgenset/,
+          vidaUtil: 25,
+          vidaDesde: "servicio",
+          fuenteVida: "Referencia (con las pocas horas de un grupo de emergencia)",
+          operaciones: [
+            op("Arranque y prueba en vac\xEDo; niveles, bater\xEDas y precalentamiento", "m", "Fabricante"),
+            op("Prueba en carga y revisi\xF3n anual (aceite, filtros y refrigerante)", "t", "Fabricante")
+          ]
+        },
+        {
+          id: "control",
+          nombre: "Control / BMS",
+          disciplina: "Control",
+          patron: /\bbms\b|\bscada|controlador|regulador|centralita|\bddc\b|control/,
+          vidaUtil: 15,
+          vidaDesde: "servicio",
+          fuenteVida: "ASHRAE: 15 (electr\xF3nico); el fabricante suele dejar de dar repuestos antes",
+          operaciones: [CONTROL]
+        },
+        {
+          id: "emergencia",
+          nombre: "Alumbrado de emergencia",
+          disciplina: "Electricidad",
+          patron: /emergencia|\bbaes\b/,
+          vidaUtil: 10,
+          vidaDesde: "servicio",
+          fuenteVida: "Luminaria: 10 (referencia); la bater\xEDa se cambia cada 4 a\xF1os como operaci\xF3n",
+          operaciones: [
+            op("Prueba de funcionamiento", "m", "UNE-EN 50172"),
+            op("Prueba de autonom\xEDa", "t", "UNE-EN 50172"),
+            op("Sustituci\xF3n de bater\xEDas", "4a", "Fabricante")
+          ]
+        },
+        {
+          id: "sai",
+          nombre: "SAI",
+          disciplina: "Electricidad",
+          patron: /\bsai\b|\bups\b/,
+          vidaUtil: 10,
+          vidaDesde: "servicio",
+          fuenteVida: "Equipo: 10 (referencia de fabricantes); las bater\xEDas se cambian cada 5 a\xF1os como operaci\xF3n",
+          operaciones: [
+            op("Revisi\xF3n y prueba de bater\xEDas", "t", "Fabricante"),
+            op("Sustituci\xF3n de bater\xEDas", "5a", "Fabricante")
+          ]
+        }
+      ];
+      var TIPO_MANT_POR_ID = new Map(TIPOS_MANT.map((t) => [t.id, t]));
+      var INCIDENCIAS_MANT = {
+        sinFechas: "Sin fecha de instalaci\xF3n ni de puesta en marcha",
+        sinTipo: "No se sabe qu\xE9 es: elige el tipo de mantenimiento",
+        marchaAntesQueMontaje: "La puesta en marcha es anterior a la instalaci\xF3n",
+        fechaMal: "Hay una fecha que no se entiende"
+      };
+      var SUSTITUCION = {
+        caducado: { orden: 1, nombre: "Fuera de vida \xFAtil" },
+        avisar: { orden: 2, nombre: "Sustituir en menos de un a\xF1o" },
+        vigente: { orden: 3, nombre: "En vida \xFAtil" },
+        sinFecha: { orden: 4, nombre: "Sin fecha" },
+        sinTipo: { orden: 5, nombre: "Sin vida \xFAtil" }
+      };
+      var AVISO_MESES = 12;
+      var AVISO_DIAS_MANT = 30;
+      var ESTADO_OP_MANT = {
+        vencida: { orden: 1, nombre: "Vencida" },
+        pronto: { orden: 2, nombre: `Toca en ${AVISO_DIAS_MANT} d\xEDas` },
+        alDia: { orden: 3, nombre: "Al d\xEDa" }
+      };
+      var UMBRAL_KW = 70;
+      var llanoMant = (v) => String(v ?? "").trim().toLowerCase();
+      function fecha(v) {
+        if (!v) return null;
+        const t = String(v).trim();
+        let a;
+        let me;
+        let d;
+        const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(t);
+        const es = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/.exec(t);
+        if (iso) [a, me, d] = [Number(iso[1]), Number(iso[2]), Number(iso[3])];
+        else if (es) [d, me, a] = [Number(es[1]), Number(es[2]), Number(es[3])];
+        else return null;
+        const f = new Date(Date.UTC(a, me - 1, d));
+        if (f.getUTCFullYear() !== a || f.getUTCMonth() !== me - 1 || f.getUTCDate() !== d) return null;
+        return f.toISOString().slice(0, 10);
+      }
+      function sumarMesesIso(dia, meses) {
+        const [a, m, d] = dia.split("-").map(Number);
+        const total = a * 12 + (m - 1) + meses;
+        const a\u00F1o = Math.floor(total / 12);
+        const mes = total - a\u00F1o * 12;
+        const ultimo = new Date(Date.UTC(a\u00F1o, mes + 1, 0)).getUTCDate();
+        const f = new Date(Date.UTC(a\u00F1o, mes, Math.min(d, ultimo)));
+        return f.toISOString().slice(0, 10);
+      }
+      function sumarDiasIso(dia, dias) {
+        const [a, m, d] = dia.split("-").map(Number);
+        return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
+      }
+      function diasEntreMant(desde, hasta) {
+        const ms = (x) => {
+          const [a, m, d] = x.split("-").map(Number);
+          return Date.UTC(a, m - 1, d);
+        };
+        return Math.round((ms(hasta) - ms(desde)) / 864e5);
+      }
+      var hoyIso = () => ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
+      var ORDEN_TAG_MANT = new Intl.Collator("es", { numeric: true });
+      var textoEquipo = (e) => ` ${llanoMant([e.grupo, e.tag, e.instalacion, e.marca, e.modelo].filter(Boolean).join(" "))} `;
+      function tipoDe(e) {
+        if (e.tipoMantenimiento && TIPO_MANT_POR_ID.has(e.tipoMantenimiento)) {
+          return { tipo: TIPO_MANT_POR_ID.get(e.tipoMantenimiento), manual: true };
+        }
+        const t = textoEquipo(e);
+        const tipo = TIPOS_MANT.find((x) => x.patron.test(t)) || null;
+        return { tipo, manual: false };
+      }
+      function columnaPotencia(kw) {
+        const n = Number(kw);
+        if (kw === null || kw === void 0 || kw === "" || !Number.isFinite(n) || n <= 0) {
+          return { columna: "mas70", supuesta: true };
+        }
+        return { columna: n > UMBRAL_KW ? "mas70" : "hasta70", supuesta: false };
+      }
+      function baseVida(e, tipo, f) {
+        const orden = tipo && tipo.vidaDesde === "fabricacion" ? [["fabricacion", f.fabricacion], ["instalacion", f.instalacion], ["puestaMarcha", f.puestaMarcha]] : [["puestaMarcha", f.puestaMarcha], ["instalacion", f.instalacion], ["fabricacion", f.fabricacion]];
+        const encontrada = orden.find(([, v]) => v);
+        if (!encontrada) return null;
+        return { desde: encontrada[0], fecha: encontrada[1], supuesta: encontrada[0] !== orden[0][0] };
+      }
+      function vencimientos(servicio, meses, desde, hasta, maximo = 400) {
+        const fechas = [];
+        const [a0, m0] = servicio.split("-").map(Number);
+        const [a1, m1] = desde.split("-").map(Number);
+        const transcurridos = a1 * 12 + m1 - (a0 * 12 + m0);
+        let k = Math.max(1, Math.floor(transcurridos / meses) - 1);
+        for (let i = 0; i < maximo; i += 1, k += 1) {
+          const f = sumarMesesIso(servicio, k * meses);
+          if (f >= hasta) break;
+          if (f >= desde) fechas.push(f);
+        }
+        return fechas;
+      }
+      function estadoOperacionMant({ servicio, meses, hechas, hoy, finVentana }) {
+        const ultima = hechas[0] || null;
+        if (!servicio && !ultima) return { ultima: null, proxima: null, estado: null, dias: null, nunca: true, enElA\u00F1o: [] };
+        const proxima = sumarMesesIso(ultima ? ultima.fecha : servicio, meses);
+        const dias = diasEntreMant(hoy, proxima);
+        const estado = dias < 0 ? "vencida" : dias <= AVISO_DIAS_MANT ? "pronto" : "alDia";
+        const enElA\u00F1o = [];
+        const desde = estado === "vencida" ? hoy : proxima;
+        for (let k = 0; k < 400; k += 1) {
+          const v = sumarMesesIso(desde, k * meses);
+          if (v >= finVentana) break;
+          enElA\u00F1o.push(v);
+        }
+        return { ultima, proxima, estado, dias, nunca: !ultima, enElA\u00F1o };
+      }
+      var ordenarHechasMant = (lista) => [...lista].sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)) || String(b.creadoEn || "").localeCompare(String(a.creadoEn || "")));
+      function evaluarEquipoMant(e, { hoy, columna, registros = [] }) {
+        const f = {
+          fabricacion: fecha(e.fechaFabricacion),
+          instalacion: fecha(e.fechaInstalacion),
+          puestaMarcha: fecha(e.fechaPuestaMarcha)
+        };
+        const { tipo, manual } = tipoDe(e);
+        const incidencias = [];
+        const fechaMal = ["fechaFabricacion", "fechaInstalacion", "fechaPuestaMarcha"].some((c) => e[c] && !fecha(e[c]));
+        if (fechaMal) incidencias.push("fechaMal");
+        if (!f.instalacion && !f.puestaMarcha) incidencias.push("sinFechas");
+        if (!tipo) incidencias.push("sinTipo");
+        if (f.instalacion && f.puestaMarcha && f.puestaMarcha < f.instalacion) incidencias.push("marchaAntesQueMontaje");
+        const servicio = f.puestaMarcha || f.instalacion || null;
+        const finVentana = sumarMesesIso(hoy, 12);
+        const hechos = ordenarHechasMant(registros.filter((r) => fecha(r.fecha)));
+        const operaciones = (tipo ? tipo.operaciones : []).map((o) => {
+          const codigo = o.cada[columna];
+          if (!codigo) return null;
+          const meses = PERIODOS[codigo].meses;
+          const hechas = hechos.filter((r) => r.operacion === o.texto);
+          return {
+            texto: o.texto,
+            norma: o.norma,
+            periodo: codigo,
+            periodoNombre: PERIODOS[codigo].nombre,
+            meses,
+            ...estadoOperacionMant({ servicio, meses, hechas, hoy, finVentana })
+          };
+        }).filter(Boolean);
+        const vidaPropia = Number(e.vidaUtilAnios);
+        const vida = Number.isFinite(vidaPropia) && vidaPropia > 0 ? vidaPropia : tipo ? tipo.vidaUtil : null;
+        const base = baseVida(e, tipo, f);
+        let sustitucion = { estado: vida ? "sinFecha" : "sinTipo", vida, propia: vida === vidaPropia };
+        if (vida && base) {
+          const fin = sumarMesesIso(base.fecha, Math.round(vida * 12));
+          const aviso = sumarMesesIso(fin, -AVISO_MESES);
+          const estado = hoy >= fin ? "caducado" : hoy >= aviso ? "avisar" : "vigente";
+          sustitucion = {
+            estado,
+            vida,
+            propia: vida === vidaPropia,
+            fin,
+            aviso,
+            desde: base.desde,
+            desdeFecha: base.fecha,
+            desdeSupuesta: base.supuesta,
+            fuente: vida === vidaPropia ? "La del equipo" : tipo.fuenteVida
+          };
+        }
+        const proxima = operaciones.map((o) => o.proxima).filter(Boolean).sort()[0] || null;
+        const vencidas = operaciones.filter((o) => o.estado === "vencida").length;
+        const pronto = operaciones.filter((o) => o.estado === "pronto").length;
+        return {
+          id: e.id,
+          tag: e.tag,
+          planta: e.planta || "",
+          grupo: e.grupo || "",
+          marca: e.marca || "",
+          modelo: e.modelo || "",
+          numSerie: e.numSerie || "",
+          fechaFabricacion: f.fabricacion,
+          fechaInstalacion: f.instalacion,
+          fechaPuestaMarcha: f.puestaMarcha,
+          servicio,
+          tipo: tipo ? tipo.id : null,
+          tipoNombre: tipo ? tipo.nombre : null,
+          disciplina: tipo ? tipo.disciplina : null,
+          tipoManual: manual,
+          operaciones,
+          proxima,
+          vencidas,
+          pronto,
+          registros: hechos,
+          sustitucion,
+          incidencias
+        };
+      }
+      function evaluarMantenimiento({ equipos = [], potenciaKw = null, registros = [], hoy = hoyIso() } = {}) {
+        const dia = fecha(hoy) || hoyIso();
+        const { columna, supuesta } = columnaPotencia(potenciaKw);
+        const deEquipo = /* @__PURE__ */ new Map();
+        for (const r of registros) {
+          if (!deEquipo.has(r.equipoId)) deEquipo.set(r.equipoId, []);
+          deEquipo.get(r.equipoId).push(r);
+        }
+        const filas = equipos.map((e) => evaluarEquipoMant(e, { hoy: dia, columna, registros: deEquipo.get(e.id) || [] }));
+        const pendientes = filas.flatMap((f) => f.operaciones.filter((o) => o.estado === "vencida" || o.estado === "pronto").map((o) => ({
+          equipoId: f.id,
+          tag: f.tag,
+          planta: f.planta,
+          tipoNombre: f.tipoNombre,
+          operacion: o.texto,
+          periodoNombre: o.periodoNombre,
+          norma: o.norma,
+          proxima: o.proxima,
+          dias: o.dias,
+          estado: o.estado,
+          nunca: o.nunca,
+          ultima: o.ultima ? { fecha: o.ultima.fecha, realizadoPor: o.ultima.realizadoPor || "" } : null
+        }))).sort((a, b) => (a.proxima < b.proxima ? -1 : a.proxima > b.proxima ? 1 : 0) || ORDEN_TAG_MANT.compare(String(a.tag), String(b.tag)));
+        const meses = [];
+        for (let i = 0; i < 12; i += 1) {
+          const inicio = sumarMesesIso(`${dia.slice(0, 7)}-01`, i);
+          meses.push({ mes: inicio.slice(0, 7), operaciones: 0, equipos: /* @__PURE__ */ new Set(), sustituciones: 0 });
+        }
+        const porMes = new Map(meses.map((m) => [m.mes, m]));
+        for (const f of filas) {
+          for (const o of f.operaciones) {
+            for (const v of o.enElA\u00F1o) {
+              const m = porMes.get(v.slice(0, 7));
+              if (m) {
+                m.operaciones += 1;
+                m.equipos.add(f.id);
+              }
+            }
+          }
+          const fin = f.sustitucion.fin;
+          if (fin && porMes.has(fin.slice(0, 7))) porMes.get(fin.slice(0, 7)).sustituciones += 1;
+        }
+        const sustituciones = filas.filter((f) => f.sustitucion.estado === "caducado" || f.sustitucion.estado === "avisar").sort((a, b) => a.sustitucion.fin.localeCompare(b.sustitucion.fin) || String(a.tag).localeCompare(String(b.tag), "es", { numeric: true }));
+        const tipos = /* @__PURE__ */ new Map();
+        for (const f of filas) {
+          const clave = f.tipo || "";
+          if (!tipos.has(clave)) {
+            const t = TIPO_MANT_POR_ID.get(clave);
+            tipos.set(clave, {
+              tipo: clave || null,
+              nombre: t ? t.nombre : "Sin tipo",
+              disciplina: t ? t.disciplina : "",
+              equipos: 0,
+              vidaUtil: t ? t.vidaUtil : null,
+              fuenteVida: t ? t.fuenteVida : "",
+              operaciones: f.operaciones.map(({ texto, norma, periodo, periodoNombre }) => ({ texto, norma, periodo, periodoNombre }))
+            });
+          }
+          tipos.get(clave).equipos += 1;
+        }
+        const cuenta = (pred) => filas.filter(pred).length;
+        const mesActual = dia.slice(0, 7);
+        return {
+          hoy: dia,
+          columna,
+          potenciaSupuesta: supuesta,
+          filas,
+          sustituciones,
+          pendientes,
+          registros: ordenarHechasMant(registros),
+          porTipo: [...tipos.values()].sort((a, b) => (a.tipo ? 0 : 1) - (b.tipo ? 0 : 1) || b.equipos - a.equipos),
+          calendario: meses.map((m) => ({ ...m, equipos: m.equipos.size })),
+          totales: {
+            equipos: filas.length,
+            conPlan: cuenta((f) => f.servicio && f.operaciones.length),
+            sinFechas: cuenta((f) => f.incidencias.includes("sinFechas")),
+            sinTipo: cuenta((f) => f.incidencias.includes("sinTipo")),
+            conIncidencias: cuenta((f) => f.incidencias.length > 0),
+            caducados: cuenta((f) => f.sustitucion.estado === "caducado"),
+            aSustituir: cuenta((f) => f.sustitucion.estado === "avisar"),
+            operacionesEsteMes: meses[0] && meses[0].mes === mesActual ? meses[0].operaciones : 0,
+            vencidas: pendientes.filter((p) => p.estado === "vencida").length,
+            pronto: pendientes.filter((p) => p.estado === "pronto").length,
+            nuncaHechas: pendientes.filter((p) => p.estado === "vencida" && p.nunca).length,
+            equiposConVencidas: cuenta((f) => f.vencidas > 0),
+            registradas: registros.length
+          }
+        };
+      }
+      function avisosInicioMant(lista, { maximo = 8 } = {}) {
+        const obras = [];
+        const todos = [];
+        for (const { obra, resultado: r } of lista) {
+          if (!r || !r.totales) continue;
+          const t = r.totales;
+          if (!t.vencidas && !t.pronto && !t.caducados) continue;
+          obras.push({
+            obraId: obra.id,
+            codigo: obra.codigo,
+            nombre: obra.nombre,
+            vencidas: t.vencidas,
+            pronto: t.pronto,
+            nuncaHechas: t.nuncaHechas,
+            caducados: t.caducados
+          });
+          for (const p of r.pendientes) todos.push({ obraId: obra.id, obra: obra.codigo, ...p });
+        }
+        todos.sort((a, b) => ESTADO_OP_MANT[a.estado].orden - ESTADO_OP_MANT[b.estado].orden || (a.proxima < b.proxima ? -1 : a.proxima > b.proxima ? 1 : 0) || ORDEN_TAG_MANT.compare(String(a.obra), String(b.obra)));
+        obras.sort((a, b) => b.vencidas - a.vencidas || b.pronto - a.pronto || ORDEN_TAG_MANT.compare(String(a.codigo), String(b.codigo)));
+        const suma = (k) => obras.reduce((s, o) => s + o[k], 0);
+        return {
+          obras,
+          urgentes: todos.slice(0, maximo),
+          totales: { vencidas: suma("vencidas"), pronto: suma("pronto"), nuncaHechas: suma("nuncaHechas"), caducados: suma("caducados"), obras: obras.length }
+        };
+      }
+      function correoAvisosMant(avisos, { hoy = hoyIso(), maximo = 40 } = {}) {
+        const t = avisos.totales;
+        const asunto = `Mantenimiento: ${t.vencidas} vencidas y ${t.pronto} en los pr\xF3ximos ${AVISO_DIAS_MANT} d\xEDas`;
+        const lineas = [`Mantenimiento preventivo a ${hoy.split("-").reverse().join("/")}.`, ""];
+        for (const o of avisos.obras) {
+          lineas.push(`${o.codigo} ${o.nombre}: ${o.vencidas} vencidas${o.nuncaHechas ? ` (${o.nuncaHechas} sin ning\xFAn registro)` : ""}, ${o.pronto} en ${AVISO_DIAS_MANT} d\xEDas${o.caducados ? `, ${o.caducados} equipos fuera de vida \xFAtil` : ""}.`);
+        }
+        if (avisos.urgentes.length) {
+          lineas.push("", "Lo m\xE1s urgente:");
+          for (const u of avisos.urgentes.slice(0, maximo)) {
+            const cuando = u.estado === "vencida" ? `vencida desde el ${u.proxima.split("-").reverse().join("/")}` : `toca el ${u.proxima.split("-").reverse().join("/")}`;
+            lineas.push(`- ${u.obra} \xB7 ${u.tag}: ${u.operacion} (${cuando}${u.nunca ? ", nunca registrada" : ""})`);
+          }
+        }
+        const insp = avisos.inspecciones;
+        if (insp && insp.filas.length) {
+          lineas.push("", "Inspecciones reglamentarias (OCA):");
+          for (const x of insp.filas.slice(0, maximo)) lineas.push(`- ${x.obra} \xB7 ${x.nombre}: ${x.cuando} (${x.quien})`);
+        }
+        return { asunto, cuerpo: lineas.join("\n") };
+      }
+      var CADA_AVISO_MANT = {
+        semana: { nombre: "Cada lunes" },
+        dia: { nombre: "Cada d\xEDa laborable" },
+        nunca: { nombre: "No mandarlo" }
+      };
+      function lunesMant(dia) {
+        const [a, m, d] = dia.split("-").map(Number);
+        const dow = new Date(Date.UTC(a, m - 1, d)).getUTCDay();
+        return sumarDiasIso(dia, -((dow + 6) % 7));
+      }
+      function tocaAvisoMant({ cada, ultimo, hoy }) {
+        if (!CADA_AVISO_MANT[cada] || cada === "nunca") return false;
+        const ultimoDia = fecha(ultimo);
+        if (cada === "dia") {
+          const [a, m, d] = hoy.split("-").map(Number);
+          const dow = new Date(Date.UTC(a, m - 1, d)).getUTCDay();
+          if (dow === 0 || dow === 6) return false;
+          return !ultimoDia || ultimoDia < hoy;
+        }
+        return !ultimoDia || ultimoDia < lunesMant(hoy);
+      }
+      var hayQueAvisarMant = (avisos) => Boolean(avisos && avisos.totales && (avisos.totales.vencidas || avisos.totales.pronto || avisos.totales.caducados || avisos.inspecciones && avisos.inspecciones.filas.length));
+      function direccionesMant(texto) {
+        const todas = String(texto ?? "").split(/[\s,;]+/).map((x) => x.trim()).filter(Boolean);
+        const buenas = todas.filter((x) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x));
+        return { buenas: [...new Set(buenas)], malas: todas.filter((x) => !buenas.includes(x)) };
+      }
+      function notificacionMant(avisos) {
+        const t = avisos.totales;
+        const partes = [];
+        if (t.vencidas) partes.push(`${t.vencidas} ${t.vencidas === 1 ? "operaci\xF3n vencida" : "operaciones vencidas"}`);
+        if (t.pronto) partes.push(`${t.pronto} en los pr\xF3ximos ${AVISO_DIAS_MANT} d\xEDas`);
+        if (t.caducados) partes.push(`${t.caducados} ${t.caducados === 1 ? "equipo" : "equipos"} fuera de vida \xFAtil`);
+        const insp = avisos.inspecciones;
+        if (insp && insp.filas.length) partes.push(`${insp.filas.length} ${insp.filas.length === 1 ? "inspecci\xF3n reglamentaria por pedir" : "inspecciones reglamentarias por pedir"}`);
+        const obras = t.obras === 1 && avisos.obras[0] ? `${avisos.obras[0].codigo}: ` : t.obras > 1 ? `${t.obras} obras: ` : "";
+        return { titulo: "Mantenimiento", cuerpo: `${obras}${partes.join(", ")}.` };
+      }
+      function planEnTabla(resultado) {
+        const cab = [
+          "TAG",
+          "Planta",
+          "Tipo",
+          "Marca",
+          "Modelo",
+          "N\xBA serie",
+          "Puesta en marcha",
+          "Operaci\xF3n",
+          "Periodicidad",
+          "Norma",
+          "Pr\xF3xima",
+          "Fin de vida \xFAtil"
+        ];
+        const filas = [cab];
+        for (const f of resultado.filas) {
+          const base = [f.tag, f.planta, f.tipoNombre || "", f.marca, f.modelo, f.numSerie, f.servicio || ""];
+          if (!f.operaciones.length) {
+            filas.push([...base, "", "", "", "", f.sustitucion.fin || ""]);
+            continue;
+          }
+          for (const o of f.operaciones) {
+            filas.push([...base, o.texto, o.periodoNombre, o.norma, o.proxima || "", f.sustitucion.fin || ""]);
+          }
+        }
+        return filas.map((r) => r.map((c) => String(c ?? "").replace(/[\t\r\n]+/g, " ")).join("	")).join("\n");
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.MANTENIMIENTO = API;
+      })({
+        PERIODOS,
+        TIPOS: TIPOS_MANT,
+        INCIDENCIAS: INCIDENCIAS_MANT,
+        SUSTITUCION,
+        AVISO_MESES,
+        UMBRAL_KW,
+        AVISO_DIAS: AVISO_DIAS_MANT,
+        ESTADO_OP: ESTADO_OP_MANT,
+        fecha,
+        sumarMeses: sumarMesesIso,
+        sumarDias: sumarDiasIso,
+        diasEntre: diasEntreMant,
+        tipoDe,
+        columnaPotencia,
+        vencimientos,
+        evaluarEquipo: evaluarEquipoMant,
+        evaluar: evaluarMantenimiento,
+        planEnTabla,
+        avisosInicio: avisosInicioMant,
+        correoAvisos: correoAvisosMant,
+        CADA_AVISO: CADA_AVISO_MANT,
+        tocaAviso: tocaAvisoMant,
+        hayQueAvisar: hayQueAvisarMant,
+        direcciones: direccionesMant,
+        notificacion: notificacionMant
+      });
+    }
+  });
+
   // shared/commissioning/fichas.js
   var require_fichas = __commonJS({
     "shared/commissioning/fichas.js"(exports, module) {
@@ -21293,14 +21329,15 @@ globalThis.CX_VARIANTE="cxobra";
           const magnitudes = (ev.equipo || []).filter((m) => m.fabrica !== null || m.proyecto !== null || m.medido !== null);
           const circuitos = (ev.circuitos || []).map((c) => `<div class="subtitulo">${escFh(c.nombre.toUpperCase())} \xB7 ${escFh(c.terminales)}${c.perdida && c.perdida.total !== null && c.perdida.total !== void 0 ? ` \xB7 p\xE9rdida de carga te\xF3rica ${numFh(c.perdida.total, 0)} Pa` : ""}</div>
     <table class="bocas">
-      <thead><tr><th>N\xBA</th><th>Boca</th><th>Terminal</th><th>Proyecto m\xB3/h</th><th>Medido m\xB3/h</th><th>Desv. %</th><th>Resultado</th></tr></thead>
+      <thead><tr><th>N\xBA</th><th>Boca</th><th>Terminal</th><th>Proyecto m\xB3/h</th><th>Secci\xF3n cm</th><th>v media m/s</th><th>Medido m\xB3/h</th><th>Desv. %</th><th>Resultado</th></tr></thead>
       <tbody>${c.bocas.map((b) => `<tr>
         <td class="cod">${b.indice}</td><td>${escFh(b.nombre)}</td><td>${escFh(b.terminal || "")}</td>
         <td class="num proy">${numFh(b.caudalProyecto, 0)}${b.origenProyecto === "repartido" ? '<span class="nota"> (rep.)</span>' : ""}</td>
+        <td class="num">${b.ancho && b.alto ? `${numFh(b.ancho, 0)} \xD7 ${numFh(b.alto, 0)}` : ""}</td><td class="num">${b.velocidad ? numFh(b.velocidad, 1) : ""}</td>
         <td class="num med">${numFh(b.caudalMedido, 0)}</td><td class="num">${pctFh(b.desviacion)}</td><td>${celdaBal(b.estado)}</td>
-      </tr>`).join("") || '<tr><td colspan="7" class="vacio">Sin bocas</td></tr>'}</tbody>
+      </tr>`).join("") || '<tr><td colspan="9" class="vacio">Sin bocas</td></tr>'}</tbody>
       <tfoot><tr><th colspan="3">TOTAL ${c.medidoEquipo !== null ? "(medido en el equipo)" : "(suma de bocas)"}</th>
-        <th class="num">${numFh(c.referenciaTotal, 0)}</th><th class="num">${numFh(c.totalMedido, 0)}</th>
+        <th class="num">${numFh(c.referenciaTotal, 0)}</th><th></th><th></th><th class="num">${numFh(c.totalMedido, 0)}</th>
         <th class="num">${pctFh(c.desviacionTotal)}</th><th>${c.totalOk === true ? celdaBal("ok") : c.totalOk === false ? '<span class="res noApto">\u2715 FUERA</span>' : ""}</th></tr></tfoot>
     </table>`).join("");
           const avisos = ev.avisos || [];
@@ -59966,8 +60003,8 @@ ${linea}` : linea;
             ok: true,
             equipos: t.filas.map(unidad),
             conjuntos,
-            totales: { equipos: t.totales.equipos, completos: t.totales.completos, listas: t.totales.listas, enviadas: t.totales.enviadas, faltaDocumentacion: t.totales.faltaDocumentacion, faltaEnsayo: t.totales.faltaEnsayo },
-            totalesConjuntos: { conjuntos: tc.conjuntos, unidades: tc.unidades, pares: tc.pares, sistemas: tc.sistemas, completos: tc.completos, listas: tc.listas, enviadas: tc.enviadas, faltaDocumentacion: tc.faltaDocumentacion, faltaEnsayo: tc.faltaEnsayo }
+            totales: { equipos: t.totales.equipos, completos: t.totales.completos, listas: t.totales.listas, enviadas: t.totales.enviadas, faltaDocumentacion: t.totales.faltaDocumentacion, faltaEnsayo: t.totales.faltaEnsayo, pideEstanqueidad: t.totales.pideEstanqueidad, faltaEstanqueidad: t.totales.faltaEstanqueidad },
+            totalesConjuntos: { conjuntos: tc.conjuntos, unidades: tc.unidades, pares: tc.pares, sistemas: tc.sistemas, completos: tc.completos, listas: tc.listas, enviadas: tc.enviadas, faltaDocumentacion: tc.faltaDocumentacion, faltaEnsayo: tc.faltaEnsayo, pideEstanqueidad: tc.pideEstanqueidad, faltaEstanqueidad: tc.faltaEstanqueidad }
           };
         }
         function equipo({ ses, query }) {
