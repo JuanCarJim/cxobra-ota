@@ -43,7 +43,8 @@
   function aplicarRol() {
     const permitidas = sesion.secciones || [];
     const h = location.hash.slice(1);
-    if (permitidas.length && !permitidas.includes(h) && h !== 'cuenta') history.replaceState(null, '', `#${permitidas[0]}`);
+    /* Al abrir la app, siempre el Inicio (la primera pantalla). */
+    if (permitidas.length && h !== 'inicio') history.replaceState(null, '', '#inicio');
     if (!permitidas.length) {
       const vacia = () => { document.getElementById('app').innerHTML = '<div class="vacio"><p>Tu rol no tiene nada que hacer en el móvil: trabaja desde el ordenador.</p></div>'; };
       if (document.getElementById('app')) vacia(); else document.addEventListener('DOMContentLoaded', vacia);

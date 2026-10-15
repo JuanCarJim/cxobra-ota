@@ -8563,7 +8563,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261015.0725" : "0";
+      var VERSION = true ? "20261015.0753" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -19017,7 +19017,11 @@ globalThis.CX_VARIANTE="cxobra";
             formato: FORMATO,
             criterio: CRITERIO_CHECKLIST,
             norma: null,
-            secciones
+            /* En pantalla y en el PDF se numera desde 1 (1, 1.1, 1.2…); el código del Excel queda como clave. */
+            secciones: (() => {
+              let k = 0;
+              return secciones.map((s) => s.tipo !== "checklist" ? s : (k += 1, { ...s, numero: String(k), puntos: s.puntos.map((pt, j) => ({ ...pt, numero: `${k}.${j + 1}` })) }));
+            })()
           };
         }
         function seccionesUTA() {
@@ -19146,6 +19150,13 @@ globalThis.CX_VARIANTE="cxobra";
             { titulo: "TEMPERATURAS AIRE", tipo: "parametros", puntos: temperaturasAireInterior() }
           ];
         }
+        function caudalesTresVelocidades() {
+          return { titulo: "CAUDALES AIRE", tipo: "parametros", puntos: [
+            param("caudal_aire_vel_max", "Caudal aire \xB7 velocidad alta", "m\xB3/h", OBL, true),
+            param("caudal_aire_vel_media", "Caudal aire \xB7 velocidad media", "m\xB3/h", OPC, true),
+            param("caudal_aire_vel_baja", "Caudal aire \xB7 velocidad baja", "m\xB3/h", OPC, true)
+          ] };
+        }
         const P_ELECTRICO = [
           ["06.01", "Desconexi\xF3n local instalada en un lugar accesible"],
           ["06.02", "Rotaci\xF3n del motor del ventilador en la direcci\xF3n correcta"],
@@ -19169,15 +19180,13 @@ globalThis.CX_VARIANTE="cxobra";
             ...seccionesUTA(),
             { titulo: "RECUPERADOR ROTATIVO", tipo: "parametros", puntos: temperaturasRecuperador(), calculados: [EFICIENCIA_TERMICA] }
           ]),
-          ficha("FAN_COIL_AGUA", "FAN-COIL AGUA", "FAN-COIL (AGUA)", [
+          { ...ficha("FAN_COIL_AGUA", "FAN-COIL AGUA", "FAN-COIL (AGUA)", [
             datosFisicosFancoil(),
-            { titulo: "CAUDALES AIRE", tipo: "parametros", puntos: [
-              param("caudal_aire_vel_max", "Caudal aire (vel. m\xE1xima)", "m\xB3/h", OBL, true)
-            ] },
+            caudalesTresVelocidades(),
             { titulo: "TEMPERATURAS AIRE", tipo: "parametros", puntos: temperaturasAireInterior() },
             { titulo: "TEMPERATURAS AGUA", tipo: "parametros", puntos: temperaturasAgua() }
-          ]),
-          ficha("CASSETTE_AGUA", "CASSETTE AGUA", "CASSETTE (AGUA)", [
+          ]), version: 2 },
+          { ...ficha("CASSETTE_AGUA", "CASSETTE AGUA", "CASSETTE (AGUA)", [
             datosFisicosFancoil(),
             { titulo: "CARACTER\xCDSTICAS MOTOR", tipo: "datos", puntos: [
               texto("motor_marca", "Marca"),
@@ -19189,12 +19198,10 @@ globalThis.CX_VARIANTE="cxobra";
               numPunto("motor_amp_real", "Amp real", "A")
             ] },
             proteccionesElectricas(),
-            { titulo: "CAUDALES AIRE", tipo: "parametros", puntos: [
-              param("caudal_aire_vel_max", "Caudal aire (vel. m\xE1xima)", "m\xB3/h", OBL, true)
-            ] },
+            caudalesTresVelocidades(),
             { titulo: "TEMPERATURAS AIRE", tipo: "parametros", puntos: temperaturasAireInterior() },
             { titulo: "TEMPERATURAS AGUA", tipo: "parametros", puntos: temperaturasAgua() }
-          ]),
+          ]), version: 2 },
           ficha("RECUPERADOR_PLACAS", "RECUPERADOR PLACAS", "RECUPERADOR DE PLACAS", [
             { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
               ...identificacion(),
@@ -20213,11 +20220,21 @@ globalThis.CX_VARIANTE="cxobra";
           if (caida !== null && caida >= 0) t.caidaAdmisible = caida;
           return t;
         }
+        function numerarChecklist(plantilla) {
+          if (!plantilla || !(plantilla.secciones || []).some((s) => s.tipo === "checklist")) return plantilla;
+          let k = 0;
+          const secciones = plantilla.secciones.map((s) => {
+            if (s.tipo !== "checklist") return s;
+            k += 1;
+            return { ...s, numero: String(k), puntos: (s.puntos || []).map((p, j) => ({ ...p, numero: `${k}.${j + 1}` })) };
+          });
+          return { ...plantilla, secciones };
+        }
         function indicePlantillas(lista) {
           const m = /* @__PURE__ */ new Map();
           for (const p of lista || catalogoFx && catalogoFx.PLANTILLAS || []) {
             const previa = m.get(p.codigo);
-            if (!previa || (p.version || 1) > (previa.version || 1)) m.set(p.codigo, p);
+            if (!previa || (p.version || 1) > (previa.version || 1)) m.set(p.codigo, numerarChecklist(p));
           }
           return m;
         }
@@ -20491,11 +20508,11 @@ globalThis.CX_VARIANTE="cxobra";
                 if (ob) {
                   obligatorios += 1;
                   if (val !== null && val !== void 0) rellenos += 1;
-                  else faltan.push(s.tipo === "checklist" ? `Respuesta ${punto.codigo}` : punto.etiqueta);
+                  else faltan.push(s.tipo === "checklist" ? `Respuesta ${punto.numero || punto.codigo}` : punto.etiqueta);
                 }
                 if (val === "no" && s.tipo === "checklist") {
                   resultado = peorFx(resultado, "noApto");
-                  if (!d.observaciones) faltan.push(`Explicar en observaciones el \xABNo\xBB de ${punto.codigo}`);
+                  if (!d.observaciones) faltan.push(`Explicar en observaciones el \xABNo\xBB de ${punto.numero || punto.codigo}`);
                 }
                 if (val === "noOk") resultado = peorFx(resultado, "noApto");
                 if (val === "si" && punto.tipo === "siNo" && /fuga/i.test(punto.codigo)) resultado = peorFx(resultado, "noApto");
@@ -20754,6 +20771,7 @@ globalThis.CX_VARIANTE="cxobra";
           tolerancias,
           quitarPrueba,
           indicePlantillas,
+          numerarChecklist,
           puntosDe: puntosDePlantilla,
           esObligatorio,
           evaluarParametro,
@@ -20783,7 +20801,7 @@ globalThis.CX_VARIANTE="cxobra";
         const llanoRc = (v) => String(v ?? "").trim();
         const hayRc = (v) => v !== null && v !== void 0 && llanoRc(v) !== "";
         function puntosChecklist(plantilla) {
-          return (plantilla && plantilla.secciones || []).filter((s) => s.tipo === "checklist").flatMap((s) => (s.puntos || []).map((p) => ({ codigo: p.codigo, etiqueta: p.etiqueta, tipo: p.tipo, seccion: s.titulo })));
+          return (plantilla && plantilla.secciones || []).filter((s) => s.tipo === "checklist").flatMap((s) => (s.puntos || []).map((p) => ({ codigo: p.codigo, numero: p.numero, etiqueta: p.etiqueta, tipo: p.tipo, seccion: s.titulo })));
         }
         function copiarRespuestas(plantilla, origen = {}, destino = {}, { pisar = false } = {}) {
           const valoresO = origen.valores || {};
@@ -20953,7 +20971,7 @@ globalThis.CX_VARIANTE="cxobra";
           return `<table class="check">
     <thead><tr><th>N\xBA</th><th>Punto de control</th><th>Respuesta</th></tr></thead>
     <tbody>${(s.puntos || []).map((p) => `<tr${deCopia[p.codigo] ? ' class="copiada"' : ""}>
-      <td class="cod">${escFh(p.codigo)}</td><td>${escFh(p.etiqueta)}</td><td class="resp">${valorFh(p, blanco)}${deCopia[p.codigo] ? `<div class="nota">copiada${llamada(p.codigo)}</div>` : ""}</td>
+      <td class="cod">${escFh(p.numero || p.codigo)}</td><td>${escFh(p.etiqueta)}</td><td class="resp">${valorFh(p, blanco)}${deCopia[p.codigo] ? `<div class="nota">copiada${llamada(p.codigo)}</div>` : ""}</td>
     </tr>`).join("")}</tbody>
   </table>${copias.length ? `<ul class="copias">${copias.map((c, i) => `<li>${copias.length > 1 ? `<sup>${i + 1}</sup> ` : ""}Copiadas: ${escFh(c.texto)}</li>`).join("")}</ul>` : ""}`;
         }
@@ -21005,7 +21023,7 @@ globalThis.CX_VARIANTE="cxobra";
           else if (s.tipo === "pruebaPresion") cuerpo = seccionPrueba(s, blanco);
           else if (s.tipo === "fotos") cuerpo = seccionFotos(ev.datos.fotos || [], imagenes, blanco, s.maximo);
           else cuerpo = seccionDatos(s, blanco);
-          return `<section class="sec"><h3>${s.codigo ? `${escFh(s.codigo)} \xB7 ` : ""}${escFh(s.titulo)}</h3>${cuerpo}</section>`;
+          return `<section class="sec"><h3>${s.numero || s.codigo ? `${escFh(s.numero || s.codigo)} \xB7 ` : ""}${escFh(s.titulo)}</h3>${cuerpo}</section>`;
         }
         function aparatosFh(ev, c) {
           const lista = (ev.instrumentos || []).map((i) => {
@@ -22282,14 +22300,14 @@ globalThis.CX_VARIANTE="cxobra";
           if (p.norma) filas.push(["Norma", p.norma]);
           for (const s of p.secciones || []) {
             vacia();
-            filas.push([`${s.codigo ? `${s.codigo} \xB7 ` : ""}${s.titulo || ""}`.toUpperCase()]);
+            filas.push([`${s.numero || s.codigo ? `${s.numero || s.codigo} \xB7 ` : ""}${s.titulo || ""}`.toUpperCase()]);
             const puntos = s.puntos || [];
             if (s.tipo === "parametros") {
               filas.push(["Par\xE1metro", "Ud.", "Proyecto", "Te\xF3rico (fabr.)", "Medido", "Desv. %", "Resultado"]);
               for (const x of puntos) filas.push([`${x.etiqueta}${x.medido === "obligatorio" ? "" : " (opcional)"}`, x.unidad || ""]);
             } else if (s.tipo === "checklist") {
               filas.push(["N\xBA", "Punto de control", "Respuesta", "Observaciones"]);
-              for (const x of puntos) filas.push([x.codigo || "", x.etiqueta, huecoMB(x)]);
+              for (const x of puntos) filas.push([x.numero || x.codigo || "", x.etiqueta, huecoMB(x)]);
             } else if (s.tipo === "bocas") {
               const rot = s.rotulos || {};
               for (const [c, n] of Object.entries(s.bocas || { impulsion: 10 })) {
@@ -22861,7 +22879,13 @@ globalThis.CX_VARIANTE="cxobra";
           ["ESTANQ_AGUA", "FLUIDO Y TEMPERATURA", "fluido"],
           ["ESTANQ_AGUA", "MATERIAL DIAMETROS", "material"],
           ["ESTANQ_AGUA", "PRUEBA PRELIMINAR DE ESTANQUEIDAD DURACION", "duracion_h"],
-          ["ESTANQ_AGUA", "RESULTADO OK NO OK", "resultado"]
+          ["ESTANQ_AGUA", "RESULTADO OK NO OK", "resultado"],
+          /* Fan coils: la «vel. máxima» del libro es la velocidad alta de la plantilla v2. */
+          ["*", "CAUDAL AIRE VEL MAXIMA", "caudal_aire_vel_max"],
+          ["*", "CAUDALES AIRE CAUDAL AIRE VEL MAXIMA", "caudal_aire_vel_max"],
+          ["*", "CAUDAL AIRE VEL MAXIMA VEL ALTA", "caudal_aire_vel_max"],
+          ["*", "CAUDAL AIRE VEL MAXIMA VEL MEDIA", "caudal_aire_vel_media"],
+          ["*", "CAUDAL AIRE VEL MAXIMA VEL BAJA", "caudal_aire_vel_baja"]
         ];
         function papelDe(cabecera) {
           const m = /^(.*?)\s*[·.\-]\s*(PROY|FAB|MED)\s*$/i.exec(llanoLb(cabecera));
@@ -23925,7 +23949,7 @@ globalThis.CX_VARIANTE="cxobra";
           } catch {
             continue;
           }
-          const p = { ...def, codigo: f.codigo, version: f.version, nombre: f.nombre, clase: f.clase, id: f.id, origen: f.origen, notas: f.notas };
+          const p = F.numerarChecklist({ ...def, codigo: f.codigo, version: f.version, nombre: f.nombre, clase: f.clase, id: f.id, origen: f.origen, notas: f.notas });
           porVersion.set(`${f.codigo}@${f.version}`, p);
           lista.push(p);
         }
@@ -59243,6 +59267,7 @@ ${linea}` : linea;
               tipo: s.tipo,
               puntos: (s.puntos || []).map((p) => ({
                 codigo: p.codigo,
+                numero: p.numero || null,
                 etiqueta: p.etiqueta,
                 tipo: p.tipo || null,
                 unidad: p.unidad || null,
@@ -59645,6 +59670,7 @@ ${linea}` : linea;
               marca: f.marca,
               modelo: f.modelo,
               grupo: f.grupo,
+              familia: f.familia || null,
               envio: f.envio,
               falta: f.falta,
               completo: f.completo,
@@ -63158,6 +63184,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
     const { sembrarSiVacia } = require_siembra();
     prepararEsquema(base);
     const repo = crearRepositorio(base);
+    let soltada = false;
     const traer = async (paquete, correo, clave) => {
       const mal = PQ.revisar(paquete, "ida");
       if (mal) return mal;
@@ -63173,7 +63200,8 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         const limpia = await abrirBaseWasm({ datos: null, localizarWasm: (f) => f });
         prepararEsquema(limpia);
         PQ.aplicar(limpia, paquete);
-        await almacen.guardarBase(limpia.serializar());
+        soltada = true;
+        await almacen.guardarYa(() => limpia.serializar());
       } else {
         PQ.aplicar(base, paquete);
         await almacen.guardarYa(() => base.serializar());
@@ -63239,6 +63267,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
     });
     let cambiosVistos = base.cambiosTotales();
     const tras = () => {
+      if (soltada) return;
       const ahora = base.cambiosTotales();
       if (ahora !== cambiosVistos) {
         cambiosVistos = ahora;
@@ -63247,6 +63276,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       almacen.sincronizarArchivos(archivos, `${CARPETA}/`).catch((e) => console.error("No se pudieron guardar las fotos:", e));
     };
     const guardar = () => {
+      if (soltada) return;
       almacen.guardarYa(() => base.serializar()).catch(() => {
       });
       almacen.sincronizarArchivos(archivos, `${CARPETA}/`).catch(() => {
@@ -63308,6 +63338,22 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         } catch {
         }
         return { recibido: o.recibido || null, enviado: o.enviado || null, ejemplo: Boolean(o.ejemplo), pendientes };
+      },
+      /* SALIR: con el ejemplo, se borra y se vuelve a la bienvenida; con
+         los datos de la oficina, se quedan y se vuelve a pedir la contraseña. */
+      salir: async () => {
+        if (oficina().ejemplo) {
+          const limpia = await abrirBaseWasm({ datos: null, localizarWasm: (f) => f });
+          prepararEsquema(limpia);
+          soltada = true;
+          await almacen.guardarYa(() => limpia.serializar());
+          ponerLS(CLAVE_OFICINA, "{}");
+        } else {
+          guardar();
+        }
+        ponerLS(CLAVE_PERSONA, "");
+        ponerLS(CLAVE_SESION, "");
+        location.reload();
       },
       traerDatos: async () => {
         const f = await puerta.elegirFichero();
