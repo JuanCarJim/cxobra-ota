@@ -8573,7 +8573,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261015.1043" : "0";
+      var VERSION = true ? "20261015.1114" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -20585,12 +20585,19 @@ globalThis.CX_VARIANTE="cxobra";
             factor: numBal(f.factor),
             modoFactor: f.modoFactor || null,
             metodo: f.metodo || null,
+            equipoMedida: f.equipoMedida || null,
             lecturas: Array.isArray(f.lecturasLista) ? f.lecturasLista : [],
             puntoId: f.id || null,
             desviacion: d === null ? null : redBal(d, 4),
             estado
           };
         });
+      }
+      var NOMBRE_EQUIPO_MEDIDA = { anemometro: "Anem\xF3metro", balometro: "Bal\xF3metro" };
+      function textoEquipoMedida(bocas = []) {
+        const usados = Object.keys(NOMBRE_EQUIPO_MEDIDA).filter((k) => bocas.some((b) => b && b.equipoMedida === k));
+        if (!usados.length) return null;
+        return usados.map((k, i) => i ? NOMBRE_EQUIPO_MEDIDA[k].toLowerCase() : NOMBRE_EQUIPO_MEDIDA[k]).join(" y ");
       }
       function evaluarMagnitudes(hoja, tol = SIN_TOLERANCIAS, proyecto = hoja.proyecto) {
         const circuitos = TIPOS_EQUIPO[hoja.tipo].circuitos;
@@ -20725,6 +20732,8 @@ globalThis.CX_VARIANTE="cxobra";
           equipo: evaluarMagnitudes(hoja, tol, proyectoEf),
           conPlano: Boolean(plano),
           circuitos,
+          /* «Anemómetro», «Balómetro», los dos o null: con qué se midieron las bocas. */
+          equipoMedida: textoEquipoMedida(circuitos.flatMap((c) => c.bocas)),
           avisos,
           estado,
           porque,
@@ -21064,6 +21073,7 @@ globalThis.CX_VARIANTE="cxobra";
         perdidaCircuito,
         evaluarBocas,
         bocasDelPlano,
+        textoEquipoMedida,
         evaluarMagnitudes,
         evaluar: evaluarHoja,
         leerNumeroFicha,
@@ -22917,7 +22927,7 @@ globalThis.CX_VARIANTE="cxobra";
               fecha: fecha(h.fechaMedicion),
               tag: eq.tag ? `<strong>${esc(eq.tag)}</strong>` : "",
               planta: esc([eq.planta, eq.sala].filter(Boolean).join(" / ")),
-              aparatos: aparatosHtml(ev.instrumentos),
+              aparatos: [ev.equipoMedida ? `Equipo de medida: <strong>${esc(ev.equipoMedida)}</strong>` : "", aparatosHtml(ev.instrumentos)].filter(Boolean).join(" \xB7 "),
               denominacion: esc([ev.tipo && ev.tipo.nombre, eq.denominacion, [eq.marca, eq.modelo].filter(Boolean).join(" / ")].filter(Boolean).join(" \xB7 "))
             })[k] || "",
             dato: (rot) => {
@@ -23225,7 +23235,7 @@ globalThis.CX_VARIANTE="cxobra";
       <tr><th>Edificio</th><td>${escFh(ob.edificio || ctx.obra && ctx.obra.nombre || "")}</td><th>Referencia / TAG</th><td><strong>${escFh(eq.tag || "")}</strong></td></tr>
       <tr><th>Equipo</th><td>${escFh([ev.tipo && ev.tipo.nombre, eq.denominacion].filter(Boolean).join(" \xB7 "))}</td><th>Planta / sala</th><td>${escFh([eq.planta, eq.sala].filter(Boolean).join(" / "))}</td></tr>
       <tr><th>Marca / modelo</th><td>${escFh([eq.marca, eq.modelo].filter(Boolean).join(" / "))}</td><th>Fecha de medici\xF3n</th><td>${fechaFh(h.fechaMedicion)}</td></tr>
-      <tr><th>Aparatos utilizados</th><td>${(ev.instrumentos || []).length ? aparatosFh(ev, {}) : '<span class="vacio">no consta</span>'}</td>
+      <tr><th>Aparatos utilizados</th><td>${ev.equipoMedida ? `Equipo de medida: <strong>${escFh(ev.equipoMedida)}</strong>${(ev.instrumentos || []).length ? " \xB7 " : ""}` : ""}${(ev.instrumentos || []).length ? aparatosFh(ev, {}) : ev.equipoMedida ? "" : '<span class="vacio">no consta</span>'}</td>
         <th>Fuentes</th><td>${escFh([h.fuentes && h.fuentes.fabrica ? `f\xE1brica: ${h.fuentes.fabrica}` : "", h.fuentes && h.fuentes.proyecto ? `proyecto: ${h.fuentes.proyecto}` : ""].filter(Boolean).join(" \xB7 "))}</td></tr>
     </table>
     <section class="sec"><h3>EQUIPO \xB7 FICHA T\xC9CNICA / PROYECTO / MEDIDO</h3>
@@ -24480,7 +24490,12 @@ globalThis.CX_VARIANTE="cxobra";
         troxWg: { marca: "TROX", modelo: "WG", variante: "Rejilla", nombre: "TROX WG", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "WG" },
         troxTr2: { marca: "TROX", modelo: "TR2", variante: "Sin regulador", nombre: "TROX TR2 sin regulador", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "TR2" },
         propioImp: { marca: "Otro", modelo: "Factor a mano", variante: "Impulsi\xF3n", nombre: "Otro de impulsi\xF3n (factor a mano)", circuito: "impulsion", modo: "ak", ak: null, k: null, propio: true },
-        propioRet: { marca: "Otro", modelo: "Factor a mano", variante: "Retorno", nombre: "Otro de retorno (factor a mano)", circuito: "retorno", modo: "ak", ak: null, k: null, propio: true }
+        propioRet: { marca: "Otro", modelo: "Factor a mano", variante: "Retorno", nombre: "Otro de retorno (factor a mano)", circuito: "retorno", modo: "ak", ak: null, k: null, propio: true },
+        /* La reja rectangular de un punto único de medida (Pitch 01 y 02: «se mide
+           en un único punto, con una reja rectangular»). Sin tamaño conocido, el Ak
+           se pone a mano o se mide con balómetro: nada de un Ak de ejemplo. */
+        rejillaRectImp: { marca: "Otro", modelo: "Reja rectangular", variante: "Impulsi\xF3n \xB7 Ak a mano", nombre: "Reja rectangular de impulsi\xF3n (Ak a mano)", circuito: "impulsion", modo: "ak", ak: null, k: null, propio: true },
+        rejillaRectRet: { marca: "Otro", modelo: "Reja rectangular", variante: "Retorno \xB7 Ak a mano", nombre: "Reja rectangular de retorno (Ak a mano)", circuito: "retorno", modo: "ak", ak: null, k: null, propio: true }
       };
       var TIPO_DEFECTO_DIF = "rotacional600";
       var CIRCUITOS_DIF = [["impulsion", "IMP", "impulsi\xF3n", "imp"], ["retorno", "EXT", "extracci\xF3n", "ext"]];
@@ -25049,6 +25064,12 @@ globalThis.CX_VARIANTE="cxobra";
       function tipoDif(id) {
         return TIPOS_DIF[id] ? { id, ...TIPOS_DIF[id] } : { id: TIPO_DEFECTO_DIF, ...TIPOS_DIF[TIPO_DEFECTO_DIF] };
       }
+      var EQUIPOS_MEDIDA_DIF = { anemometro: "Anem\xF3metro", balometro: "Bal\xF3metro" };
+      function equipoMedidaDif(p = {}) {
+        if (EQUIPOS_MEDIDA_DIF[p.equipoMedida]) return p.equipoMedida;
+        if (numDif(p.caudalMedido) !== null) return "balometro";
+        return numDif(p.velocidad) !== null ? "anemometro" : null;
+      }
       function normalizarPuntoDif(p = {}, indice = 0) {
         if (!p || typeof p !== "object") p = {};
         const t = tipoDif(p.tipo);
@@ -25074,6 +25095,9 @@ globalThis.CX_VARIANTE="cxobra";
           velocidad: v !== null && v >= 0 ? v : null,
           /* Con balómetro se lee el caudal directamente (m³/h): manda sobre v × Ak. */
           caudalMedido: qm !== null && qm >= 0 ? qm : null,
+          /* Con qué se ha medido: 'anemometro' (M1–M4 × Ak) o 'balometro' (caudal
+             leído, sin Ak). null = sin decir: se deduce (con caudal leído, balómetro). */
+          equipoMedida: EQUIPOS_MEDIDA_DIF[p.equipoMedida] ? p.equipoMedida : null,
           caudalDiseno: qd !== null && qd >= 0 ? qd : null,
           nota: String(p.nota || "").slice(0, 300),
           /* El modelo de proyecto de la obra del que sale (tipo, tamaño y caudal de proyecto). */
@@ -25200,12 +25224,14 @@ globalThis.CX_VARIANTE="cxobra";
       function evaluarPuntoDif(p, tolBoca = TOLERANCIA_DEFECTO_DIF) {
         const t = tipoDif(p.tipo);
         const f = factorDif(p);
-        const balometro = numDif(p.caudalMedido) !== null;
-        const caudal = balometro ? redDif(numDif(p.caudalMedido), 1) : f.valor === null ? null : caudalDif({ velocidad: p.velocidad, modo: f.modo, ak: f.modo === "ak" ? f.valor : null, k: f.modo === "k" ? f.valor : null });
+        const equipo = equipoMedidaDif(p);
+        const qLeido = numDif(p.caudalMedido) !== null;
+        const directo = equipo === "balometro" || qLeido;
+        const caudal = directo ? qLeido ? redDif(numDif(p.caudalMedido), 1) : null : f.valor === null ? null : caudalDif({ velocidad: p.velocidad, modo: f.modo, ak: f.modo === "ak" ? f.valor : null, k: f.modo === "k" ? f.valor : null });
         const desv = desviacionDif(caudal, p.caudalDiseno);
         let estado;
-        if (!balometro && numDif(p.velocidad) === null) estado = "sinMedir";
-        else if (!balometro && f.valor === null) estado = "sinFactor";
+        if (directo ? !qLeido : numDif(p.velocidad) === null) estado = "sinMedir";
+        else if (!directo && f.valor === null) estado = "sinFactor";
         else if (numDif(p.caudalDiseno) === null) estado = "medido";
         else estado = juicioDif(desv, tolBoca);
         return {
@@ -25216,8 +25242,10 @@ globalThis.CX_VARIANTE="cxobra";
           modoFactor: f.modo,
           origenFactor: f.origen,
           caudal,
-          /* Cómo se ha medido: 'balometro' (caudal leído), 'anemometro' (v × factor) o null. */
-          metodo: balometro ? "balometro" : numDif(p.velocidad) === null ? null : "anemometro",
+          /* El equipo con que se mide (el elegido o el deducido). */
+          equipoMedida: equipo,
+          /* Cómo sale el caudal: 'balometro' / 'directo' (caudal leído), 'anemometro' (v × factor) o null. */
+          metodo: estado === "sinMedir" ? null : equipo === "balometro" ? "balometro" : qLeido ? "directo" : "anemometro",
           lecturasLista: leerVelocidadesDif(p.lecturas).lecturas,
           desviacion: desv,
           estado
@@ -25491,6 +25519,8 @@ globalThis.CX_VARIANTE="cxobra";
         caudal: caudalDif,
         desviacion: desviacionDif,
         tolerancias: toleranciasDif,
+        EQUIPOS_MEDIDA: EQUIPOS_MEDIDA_DIF,
+        equipoMedida: equipoMedidaDif,
         evaluarPunto: evaluarPuntoDif,
         resumen: resumenDif,
         siguienteNombre: siguienteNombreDif,
@@ -61871,6 +61901,7 @@ ${linea}` : linea;
                 ["Obra", [obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ")],
                 ["Equipo", [e.tag, [e.marca, e.modelo].filter(Boolean).join(" ")].filter(Boolean).join(" \xB7 ")],
                 ["Planta / sala", [e.planta, e.sala].filter(Boolean).join(" \xB7 ")],
+                ["Equipo de medida", require_balanceo().textoEquipoMedida([...ev.values()]) || "Sin medir"],
                 ["Tolerancia por boca", d.tolerancias && d.tolerancias.boca !== null && d.tolerancias.boca !== void 0 ? `\xB1 ${cifra(d.tolerancias.boca * 100, 0)} %` : "Sin poner"]
               ],
               bloques: [
@@ -61893,7 +61924,7 @@ ${linea}` : linea;
                       NOMBRE[f.estado] || f.estado || ""
                     ], { clase: CLASE[f.estado] || null });
                   }),
-                  nota: "Q = v \xB7 Ak (el \xE1rea efectiva de la boca seg\xFAn su tipo y tama\xF1o)."
+                  nota: p.puntos.some((x) => (ev.get(x.id) || {}).equipoMedida === "balometro") ? "Anem\xF3metro: Q = v \xB7 Ak (el \xE1rea efectiva de la boca seg\xFAn su tipo y tama\xF1o). Bal\xF3metro: el caudal le\xEDdo en el aparato." : "Q = v \xB7 Ak (el \xE1rea efectiva de la boca seg\xFAn su tipo y tama\xF1o)."
                 }))
               ],
               firmas: ["Medido por", "El jefe de obra"]
@@ -61952,6 +61983,7 @@ ${linea}` : linea;
         "GET api/commissioning": [["commissioning", "ver"]],
         "GET api/equipo": [["commissioning", "ver"]],
         "POST api/boca": [["commissioning", "editar"]],
+        "POST api/equipo/medida": [["commissioning", "editar"]],
         "POST api/equipo/fotos": [["commissioning", "editar"]],
         "POST api/equipo/fotos/quitar": [["commissioning", "editar"]],
         "GET api/equipo/foto": [["commissioning", "ver"]],
@@ -62105,6 +62137,8 @@ ${linea}` : linea;
                   lecturas: e.lecturasLista || [],
                   caudalMedido: x.caudalMedido ?? null,
                   metodo: e.metodo || null,
+                  equipoMedida: e.equipoMedida || null,
+                  equipoElegido: x.equipoMedida || null,
                   modoFactor: e.modoFactor || null,
                   origenFactor: e.origenFactor || null,
                   factor: e.factor,
@@ -62116,6 +62150,12 @@ ${linea}` : linea;
               })
             })),
             fotos: fotosDe(ses, d.equipo.id),
+            /* El equipo de medida de todo el equipo: el de todas sus bocas si es el
+               mismo; null si cada una va con el suyo (o no hay ninguna medida). */
+            equipoMedida: (() => {
+              const usados = new Set(d.resumen.filas.map((f) => f.equipoMedida || "anemometro"));
+              return usados.size === 1 ? [...usados][0] : null;
+            })(),
             diseno: d.diseno,
             tolerancias: d.tolerancias,
             circuitos: d.resumen.circuitos,
@@ -62148,6 +62188,11 @@ ${linea}` : linea;
             cambio.lecturas = buenas.map((v) => String(v).replace(".", ",")).join(" ");
             cambio.velocidad = buenas.length ? Math.round(buenas.reduce((a, b) => a + b, 0) / buenas.length * 1e3) / 1e3 : null;
           }
+          if (e.equipoMedida !== void 0) {
+            const em = llano(e.equipoMedida);
+            if (em && !MDIF.EQUIPOS_MEDIDA[em]) return { ok: false, error: "El equipo de medida es anem\xF3metro o bal\xF3metro." };
+            cambio.equipoMedida = em || null;
+          }
           if (e.caudalMedido !== void 0) {
             const q = cifra(e.caudalMedido);
             if (q !== null && (!Number.isFinite(q) || q < 0 || q > 1e5)) return { ok: false, error: "El caudal del bal\xF3metro tiene que estar entre 0 y 100.000 m\xB3/h." };
@@ -62157,6 +62202,26 @@ ${linea}` : linea;
           const r = DIF.guardarPlano(repo, ses, planoId, { puntos });
           if (!r.ok) return r;
           return { ok: true, ...equipo({ ses, query: { id: plano.equipoId } }) };
+        }
+        function equipoMedida({ ses, json }) {
+          const e = json();
+          const em = llano(e.equipoMedida);
+          if (!MDIF.EQUIPOS_MEDIDA[em]) return { ok: false, error: "El equipo de medida es anem\xF3metro o bal\xF3metro." };
+          const d = DIF.difusoresEquipo(repo, ses, llano(e.equipoId));
+          if (!d) return { ok: false, error: "No se encuentra el equipo." };
+          for (const p of d.planos) {
+            const plano = repo.leer("planosDifusores", ses, p.id);
+            if (!plano) continue;
+            let puntos = [];
+            try {
+              puntos = JSON.parse(plano.puntos || "[]");
+            } catch {
+            }
+            if (!puntos.length || puntos.every((x) => x && x.equipoMedida === em)) continue;
+            const r = DIF.guardarPlano(repo, ses, p.id, { puntos: puntos.map((x) => x && typeof x === "object" ? { ...x, equipoMedida: em } : x) });
+            if (!r.ok) return r;
+          }
+          return { ok: true, ...equipo({ ses, query: { id: d.equipo.id } }) };
         }
         const MAX_FOTOS_EQUIPO = 30;
         const carpetaEquipos = (obraId) => path.join(carpeta, "commissioning", String(obraId).replace(/[^A-Za-z0-9_-]/g, "_"), "equipos");
@@ -62431,6 +62496,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           "GET api/commissioning": commissioning,
           "GET api/equipo": equipo,
           "POST api/boca": boca,
+          "POST api/equipo/medida": equipoMedida,
           "POST api/equipo/fotos": equipoFotos,
           "POST api/equipo/fotos/quitar": equipoFotoQuitar,
           "GET api/equipo/foto": equipoFoto,
