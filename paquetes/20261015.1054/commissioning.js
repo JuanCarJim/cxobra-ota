@@ -309,6 +309,9 @@
    * se teclea. Tocar una lleva a su boca y pone el foco en M1. «Ampliar» lo
    * abre a pantalla completa, con zoom de dos dedos.
    */
+  /* La forma de su tipo de difusor o reja (shared/commissioning/simbolosBoca.js). */
+  const simbolo = (b) => (window.SIMBOLOS_BOCA ? window.SIMBOLOS_BOCA.svg(b.tipoId, { titulo: b.tipo || '' }) : '');
+
   function htmlPlano(p) {
     const conSitio = p.bocas.filter((b) => b.x !== null && b.x !== undefined && b.y !== null && b.y !== undefined);
     if (!p.imagen || !conSitio.length) return '';
@@ -316,7 +319,7 @@
       <div class="plano-marco"><div class="plano-lienzo">
         <img data-src="api/equipo/plano?id=${encodeURIComponent(p.id)}" alt="Plano ${esc(p.nombre)}">
         ${conSitio.map((b) => `<button class="marca-boca ${claseMarca(b.estado)}${b.circuito === 'retorno' ? ' ret' : ''}" style="left:${(b.x * 100).toFixed(2)}%;top:${(b.y * 100).toFixed(2)}%"
-          data-cx="ir-boca" data-boca="${esc(claveBoca(p.id, b.id))}" aria-label="Ir a la boca ${esc(b.nombre)}">${esc(b.nombre)}</button>`).join('')}
+          data-cx="ir-boca" data-boca="${esc(claveBoca(p.id, b.id))}" aria-label="Ir a la boca ${esc(b.nombre)}">${simbolo(b)}<span class="rotulo-boca">${esc(b.nombre)}</span></button>`).join('')}
       </div></div>
       <figcaption><span class="leyenda"><i class="neutra"></i>Sin medir <i class="bien"></i>Dentro <i class="mal"></i>Fuera</span>
         <button class="enlace" data-cx="plano-grande">Ampliar</button></figcaption>
@@ -697,6 +700,56 @@
     return `<label class="punto-dato">${esc(p.etiqueta)}${ob}${p.unidad ? ` <span class="tenue">(${esc(p.unidad)})</span>` : ''}${input}</label>`;
   }
 
+  /*
+   * LOS DATOS DEL SISTEMA DE LA FICHA DE BALANCEO, a la manera de su Excel
+   * (15-oct-2026, JC: «muy feo este formulario»): el TAG de cabecera, lo de
+   * proyecto en lectura, impulsión y retorno lado a lado, la unidad dentro
+   * del campo, el método de medida con un toque y lo que mide el técnico
+   * grande, abajo, a mano del pulgar.
+   */
+  const METODOS_BAL = ['Anemómetro', 'Balómetro', 'Tubo de Pitot'];
+  function htmlDatosBalanceo(s, ed) {
+    const dis = ed ? '' : 'disabled';
+    const pt = (c) => s.puntos.find((p) => p.codigo === c) || null;
+    const usados = new Set(['equipo', 'zona_servida', 'caudal_proyecto_impulsion', 'caudal_proyecto_retorno', 'metodo_medida',
+      'frecuencia_final_impulsion', 'frecuencia_final_retorno', 'presion_estatica_impulsion', 'presion_estatica_retorno']);
+    const tag = (pt('equipo') && valorDe(pt('equipo'))) || (ficha && ficha.equipo.tag) || '';
+    const proyecto = (c) => {
+      const p = pt(c);
+      if (!p) return '<span class="tenue">—</span>';
+      const v = valorDe(p);
+      if (v !== null && v !== undefined && v !== '' && !(hoja.valores[c] && 'v' in hoja.valores[c])) return `<span class="bal-leido cifra">${cifra(v, 0)} <small>m³/h</small></span>`;
+      return ed ? `<span class="con-unidad pequeno"><input inputmode="decimal" autocomplete="off" value="${esc(coma(v))}" data-h-punto="${esc(c)}" data-h-k="v" data-h-num placeholder="—"><i>m³/h</i></span>`
+        : '<span class="tenue">—</span>';
+    };
+    const medida = (c, unidad) => {
+      const p = pt(c);
+      if (!p) return '<span></span>';
+      return `<span class="con-unidad"><input inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis} value="${esc(coma(valorDe(p)))}"
+        data-h-punto="${esc(c)}" data-h-k="v" data-h-num aria-label="${esc(p.etiqueta)}"><i>${esc(p.unidad || unidad)}</i></span>`;
+    };
+    const metodo = pt('metodo_medida');
+    const vm = metodo ? valorDe(metodo) : null;
+    const otros = s.puntos.filter((p) => !usados.has(p.codigo));
+    return `<h2>Datos del sistema</h2>
+      <section class="grupo bal-datos">
+        <div class="bal-tag"><span>Equipo (TAG)</span><strong class="cifra">${esc(tag || '—')}</strong></div>
+        ${pt('zona_servida') ? `<label class="bal-zona"><span>Zona servida</span><input autocomplete="off" ${dis} value="${esc(valorDe(pt('zona_servida')) ?? '')}"
+          data-h-punto="zona_servida" data-h-k="v" placeholder="p. ej. Vestuarios N10"></label>` : ''}
+        <div class="bal-tabla">
+          <div class="bal-cab"><span></span><span>Impulsión</span><span>Retorno</span></div>
+          <div class="bal-fila proyecto"><span>Caudal proyecto</span>${proyecto('caudal_proyecto_impulsion')}${proyecto('caudal_proyecto_retorno')}</div>
+          <div class="bal-sub">Lo mides tú</div>
+          <div class="bal-fila"><span>Frecuencia final</span>${medida('frecuencia_final_impulsion', 'Hz')}${medida('frecuencia_final_retorno', 'Hz')}</div>
+          <div class="bal-fila"><span>Presión estática</span>${medida('presion_estatica_impulsion', 'Pa')}${medida('presion_estatica_retorno', 'Pa')}</div>
+        </div>
+        ${metodo ? `<div class="bal-metodo"><span>Método de medida</span>
+          <div class="respuestas segmento">${METODOS_BAL.map((m) => `<button type="button" ${dis} class="${vm === m ? 'activa' : ''}" data-h-resp="${esc(m)}" data-h-punto="metodo_medida">${esc(m)}</button>`).join('')}</div>
+          ${vm && !METODOS_BAL.includes(vm) ? `<div class="sub">Apuntado: ${esc(vm)}</div>` : ''}</div>` : ''}
+        ${otros.map((p) => campoPunto(s, p, ed)).join('')}
+      </section>`;
+  }
+
   function pintarHoja() {
     const h = hoja;
     const f = h.f;
@@ -722,6 +775,7 @@
           return `<h2>${esc(s.titulo)}</h2><p class="nota">Las bocas se miden en la ficha del equipo (boca a boca sobre su plano) y salen en el informe del balanceo.</p>`;
         }
         if (!s.puntos.length) return '';
+        if (s.tipo === 'datos' && f.plantilla.codigo === 'BALANCEO_CAUDALES') return htmlDatosBalanceo(s, ed);
         return `<h2>${esc(s.titulo)}</h2><section class="grupo hoja-campos">${s.puntos.map((p) => campoPunto(s, p, ed)).join('')}</section>`;
       }).join('')}
       <h2>Observaciones</h2>
@@ -884,7 +938,7 @@
     const nuevo = actual === b.dataset.hResp ? null : b.dataset.hResp;
     hoja.valores[p] = { v: nuevo };
     for (const x of b.parentElement.children) x.className = '';
-    if (nuevo) b.className = `activa ${nuevo === 'no' || nuevo === 'noOk' ? 'mal' : nuevo === 'na' ? 'neutra' : 'bien'}`;
+    if (nuevo) b.className = b.parentElement.classList.contains('segmento') ? 'activa' : `activa ${nuevo === 'no' || nuevo === 'noOk' ? 'mal' : nuevo === 'na' ? 'neutra' : 'bien'}`;
     if (!hoja.cambiada) { hoja.cambiada = true; const g = $app.querySelector('[data-cx="guardar-hoja"]'); if (g) g.disabled = false; }
   });
   $app.addEventListener('change', (ev) => { if (activa() && hoja) anotar(ev.target); });

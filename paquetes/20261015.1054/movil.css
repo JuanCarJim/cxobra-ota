@@ -527,15 +527,25 @@ a.fila-dato strong { color: var(--acento); font-weight: 600; }
 .plano-marco { overflow: auto; -webkit-overflow-scrolling: touch; }
 .plano-lienzo { position: relative; width: 100%; }
 .plano-lienzo img { display: block; width: 100%; height: auto; min-height: 60px; background: #F4F4F4; }
-.marca-boca { position: absolute; transform: translate(-50%, -50%); min-width: 21px; height: 17px; padding: 0 3px;
-  border-radius: 9px; border: 1.2px solid #fff; font: 700 9px/14.5px system-ui, sans-serif; color: #fff;
-  background: #8A8F94; box-shadow: 0 1px 3px rgba(0,0,0,.35); font-variant-numeric: tabular-nums; }
-.marca-boca.ret { border-radius: 4px; }
-.marca-boca.bien { background: var(--bien); }
-.marca-boca.mal { background: var(--mal); }
-.marca-boca::after { content: ''; position: absolute; inset: -8px; } /* dedo: 44 px de blanco */
+.marca-boca { position: absolute; transform: translate(-50%, -50%); display: block; padding: 0; margin: 0; border: 0;
+  background: none; box-shadow: none; color: #6B7075; min-height: 0; width: auto; }
+/* El símbolo de su tipo (difusor, reja…), en el color de su estado; el relleno claro para que se lea sobre el plano. */
+.marca-boca .simbolo-boca { display: block; height: 15px; width: auto; filter: drop-shadow(0 0 1.2px #fff) drop-shadow(0 0 1px #fff); }
+.marca-boca .simbolo-boca .cuerpo { fill: rgba(255,255,255,.85); }
+.marca-boca .simbolo-boca .lleno { fill: currentColor; }
+.marca-boca.bien { color: var(--bien); }
+.marca-boca.mal { color: var(--mal); }
+.marca-boca.bien .simbolo-boca .cuerpo { fill: color-mix(in srgb, var(--bien) 22%, #fff); }
+.marca-boca.mal .simbolo-boca .cuerpo { fill: color-mix(in srgb, var(--mal) 22%, #fff); }
+/* La etiqueta al lado, sin tapar el plano. */
+.marca-boca .rotulo-boca { position: absolute; left: calc(100% + 2px); top: 50%; transform: translateY(-50%); padding: 0 3px; border-radius: 3px;
+  font: 700 9px/12px system-ui, sans-serif; color: #fff; background: currentColor; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.marca-boca .rotulo-boca { background: #6B7075; }
+.marca-boca.bien .rotulo-boca { background: var(--bien); }
+.marca-boca.mal .rotulo-boca { background: var(--mal); }
+.marca-boca::after { content: ''; position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; transform: translate(-50%, -50%); } /* dedo: 44 px */
 .plano-bocas figcaption { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; font-size: 12.5px; color: var(--textoTenue); }
-.plano-bocas .leyenda i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0 4px 0 8px; vertical-align: -1px; background: #8A8F94; }
+.plano-bocas .leyenda i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 4px 0 8px; vertical-align: -1px; background: #8A8F94; }
 .plano-bocas .leyenda i:first-child { margin-left: 0; }
 .plano-bocas .leyenda i.bien { background: var(--bien); }
 .plano-bocas .leyenda i.mal { background: var(--mal); }
@@ -544,7 +554,8 @@ a.fila-dato strong { color: var(--acento); font-weight: 600; }
   padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
 .plano-bocas.grande .plano-marco { flex: 1; display: flex; align-items: center; background: #F4F4F4; }
 .plano-bocas.grande .plano-lienzo { width: 250%; flex: none; }
-.plano-bocas.grande .marca-boca { font-size: 13px; height: 28px; line-height: 25px; min-width: 32px; border-radius: 14px; border-width: 1.5px; }
+.plano-bocas.grande .marca-boca .simbolo-boca { height: 30px; }
+.plano-bocas.grande .marca-boca .rotulo-boca { font-size: 13px; line-height: 17px; padding: 0 5px; }
 body.sin-scroll { overflow: hidden; }
 .boca.resaltada { outline: 2.5px solid var(--acento); outline-offset: 2px; transition: outline-color .4s; }
 .velocidad { font-size: 11.5px; }
@@ -670,3 +681,36 @@ details.grupo-lista[open] > summary { margin-bottom: 6px; }
 .grupo-plegable > summary::-webkit-details-marker { display: none; }
 .grupo-plegable > summary::after { content: ' ›'; }
 .grupo-plegable[open] > summary::after { content: ' ⌄'; }
+
+/* ─── Ficha de balanceo: los datos del sistema (15-oct-2026) ───
+   Como su Excel: el TAG de cabecera, impulsión y retorno lado a lado, lo de
+   proyecto en lectura y lo que mide el técnico grande, con la unidad dentro. */
+.bal-datos { padding: 0; overflow: hidden; }
+.bal-tag { display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 14px 16px; background: var(--acento-fuerte); color: #fff; }
+.bal-tag span { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; opacity: .8; }
+.bal-tag strong { font-size: 20px; font-weight: 700; letter-spacing: -.2px; text-align: right; }
+.bal-zona { display: block; padding: 10px 16px 12px; border-bottom: 1px solid var(--rejillaSuave); }
+.bal-zona span, .bal-metodo > span { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--textoTenue); }
+.bal-zona input { margin-top: 4px; min-height: 44px; }
+.bal-tabla { padding: 4px 16px 12px; }
+.bal-cab, .bal-fila { display: grid; grid-template-columns: minmax(84px, .8fr) 1fr 1fr; gap: 8px; align-items: center; }
+.bal-cab { padding: 8px 0 4px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--acento-fuerte); }
+.bal-cab span { text-align: right; }
+.bal-fila { padding: 6px 0; }
+.bal-fila > span:first-child { font-size: 14px; font-weight: 500; color: var(--texto); line-height: 1.2; }
+.bal-fila.proyecto { margin: 0 -16px; padding: 8px 16px; background: var(--panel2); border-top: 1px solid var(--rejillaSuave); border-bottom: 1px solid var(--rejillaSuave); }
+.bal-fila.proyecto > span:first-child { color: var(--textoSuave); }
+.bal-leido { text-align: right; font-size: 17px; font-weight: 600; color: var(--textoSuave); font-variant-numeric: tabular-nums; }
+.bal-leido small { font-size: 12px; font-weight: 400; color: var(--textoTenue); }
+.bal-sub { padding: 10px 0 2px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--acento); }
+.con-unidad { position: relative; display: block; }
+.con-unidad input { margin: 0; min-height: 56px; padding: 8px 46px 8px 10px; text-align: right; font-size: 22px; font-weight: 600;
+  font-variant-numeric: tabular-nums; background: var(--panel); border-color: var(--acento); }
+.con-unidad i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--textoTenue); pointer-events: none; }
+.con-unidad.pequeno input { min-height: 40px; font-size: 16px; font-weight: 500; border-color: var(--borde); padding-right: 50px; }
+.bal-metodo { padding: 10px 16px 14px; border-top: 1px solid var(--rejillaSuave); }
+.respuestas.segmento { gap: 0; margin-top: 6px; border: 1.5px solid var(--acento); border-radius: 12px; overflow: hidden; }
+.respuestas.segmento button { border: 0; border-radius: 0; min-height: 48px; font-size: 14px; color: var(--acento-fuerte); }
+.respuestas.segmento button + button { border-left: 1.5px solid var(--acento); }
+.respuestas.segmento button.activa { background: var(--acento); color: #fff; }
