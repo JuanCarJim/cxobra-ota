@@ -1,0 +1,130 @@
+/* ═══════════════════════════════════════════════════════════════════
+   GENERADO POR scripts/generarTokens.js — NO EDITAR A MANO.
+   Los colores viven en marca/colores.js. Cambia allí y vuelve a generar:
+       node scripts/generarTokens.js
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* El alto de la pila de avisos flotantes: lo pone avisos.js. */
+  --altoAvisos: 0px;
+  /* ── Marca CBRE ───────────────────────────────────────────────── */
+  --cbre-verde: #003F2D;
+  --cbre-acento: #17E88F;
+  --cbre-verde-oscuro: #012A2D;
+  --cbre-gris-oscuro: #435254;
+  --cbre-gris-claro: #CAD1D3;
+  /* Un blanco que NO cambia con el tema: el texto sobre el verde CBRE y sobre
+     el pie de las tablas es blanco en claro y en oscuro. La variable --panel
+     no sirve ahi: en tema oscuro vale #012A2D. */
+  --blanco: #FFFFFF;
+  --cbre-celadon: #80BBAD;
+  --cbre-celadon-tinte: #C0D4CB;
+  --cbre-wheat: #DBD99A;
+  --cbre-wheat-tinte: #EFECD2;
+  --cbre-cement: #7F8480;
+  --cbre-cement-tinte: #CBCDCB;
+  --cbre-sage: #538184;
+  --cbre-sage-tinte: #96B3B6;
+  --cbre-midnight: #032842;
+  --cbre-midnight-tinte: #778F9C;
+
+  /* ── Interfaz (tema claro) ────────────────────────────────────── */
+  --papel: #F4F6F5;
+  --panel: #FFFFFF;
+  --panel2: #EEF2F0;
+  --panel3: #E3EAE7;
+  --rejilla: #CAD1D3;
+  --rejillaSuave: #E1E6E7;
+  --borde: #7F8480;
+  --texto: #1A1A1A;
+  --textoSuave: #435254;
+  --textoTenue: #63706D;
+  --seleccion: #DFF0E8;
+  --bandaCapitulo: #C0D4CB;
+  --bandaCapitulo2: #E3EAE7;
+  --destacado: #EDF5F1;
+  --destacadoCabeza: #D6E9E1;
+  --destacadoBorde: #A9CFC2;
+  --foco: #003F2D;
+  --sobreVerdeTexto: #D2E0DB;
+  --sobreVerdeLinea: #1A5443;
+  --sobreVerdeHover: #0A4B36;
+  --menuActivo: #04533A;
+
+  /* ── Estado ───────────────────────────────────────────────────── */
+  --bien: #003F2D;
+  --bien-fondo: #DFF0E8;
+  --aviso: #7A5B00;
+  --aviso-fondo: #F7EFCF;
+  --mal: #9C2B2B;
+  --mal-fondo: #F7DEDE;
+  --info: #0B4A63;
+  --info-fondo: #DCEAF1;
+
+  /* ── Disciplinas ──────────────────────────────────────────────── */
+  --disciplina-electricidad: #003F2D;
+  --disciplina-climatizacion: #538184;
+  --disciplina-fontaneria: #80BBAD;
+  --disciplina-pci: #9C2B2B;
+  --disciplina-control: #032842;
+  --disciplina-gases: #DBD99A;
+  --disciplina-ventilacion: #96B3B6;
+  --disciplina-otros: #7F8480;
+
+  /* ── Tipografía ───────────────────────────────────────────────── */
+  --fuente-titular: 'Financier Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --fuente-texto: 'Calibre', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --fuente-cifra: 'SF Mono', 'Segoe UI Mono', 'Roboto Mono', ui-monospace, monospace;
+
+  /* ── Escala tipográfica ───────────────────────────────────────────
+     Seis tamaños, no diez. Ver marca/colores.js.                     */
+  --letra-micro: 10.5px;
+  --letra-menor: 11.5px;
+  --letra-base: 12.5px;
+  --letra-medio: 14px;
+  --letra-mayor: 18px;
+  --letra-cifra: 24px;
+
+  /* ── Forma y ritmo ────────────────────────────────────────────────
+     Esquinas casi rectas y alturas cortas: esto es una hoja de trabajo,
+     no un panel de marketing. 27 px de fila es lo que permite ver
+     unas 30 partidas sin desplazarse en un portátil.                   */
+  --radio: 7px;
+  --radio-s: 4px;
+  /* 10-oct (Juan Carlos: «moderna, minimalista, tarjetas redondeadas, con franjas»):
+     los bloques del inicio y las cifras son tarjetas redondeadas; las celdas siguen rectas. */
+  --radio-tarjeta: 14px;
+  --alto-fila: 27px;
+  --alto-cabecera: 30px;
+  --barra-lateral: 236px;
+
+  /* Casi sin sombra: lo que separa es la línea. */
+  --sombra: 0 1px 2px rgba(0, 63, 45, 0.05), 0 6px 18px rgba(0, 63, 45, 0.06);
+  --sombra-alta: 0 12px 30px rgba(1, 42, 45, 0.16);
+}
+
+:root[data-tema='oscuro'] {
+  --papel: #001E19;
+  --panel: #012A2D;
+  --panel2: #043534;
+  --panel3: #0A413E;
+  --rejilla: #1C4A45;
+  --rejillaSuave: #143B37;
+  --borde: #628680;
+  --texto: #EAF1EE;
+  --textoSuave: #A9BDB7;
+  --textoTenue: #7E918C;
+  --seleccion: #0C4A38;
+  --bandaCapitulo: #124C42;
+  --bandaCapitulo2: #0A413E;
+  --destacado: #012A2D;
+  --destacadoCabeza: #0D4A47;
+  --destacadoBorde: #2A6A62;
+  --foco: #17E88F;
+  --sobreVerdeTexto: #D2E0DB;
+  --sobreVerdeLinea: #1A5443;
+  --sobreVerdeHover: #0A4B36;
+  --menuActivo: #04533A;
+  --sombra: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --sombra-alta: 0 14px 34px rgba(0, 0, 0, 0.6);
+}
