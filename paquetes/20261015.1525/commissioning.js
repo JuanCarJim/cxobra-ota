@@ -813,10 +813,15 @@
     return `<input autocomplete="off" enterkeyhint="next" ${dis} ${a} value="${esc(v ?? '')}" data-h-punto="${esc(p.codigo)}" data-h-k="v">`;
   }
 
+  /* Checklists numerados como el PDF del libro (JC, 15-oct): secciones «01 ·»
+     y puntos «01.01», desde el 01. Solo se ve así: el código guardado no cambia. */
+  const numCheck = (n) => String(n || '').split('.').map((x) => (/^\d+$/.test(x) ? x.padStart(2, '0') : x)).join('.');
+  const tituloSeccion = (s) => (s.tipo === 'checklist' && s.numero ? `${numCheck(s.numero)} · ${s.titulo}` : s.titulo);
+
   /* Una fila: etiqueta a la izquierda, campo (o Sí/No/N/A) a la derecha. */
   function campoPunto(s, p, ed) {
     if (s.tipo === 'parametros') return filaParametro(p, ed);
-    const num = s.tipo === 'checklist' ? `<span class="num">${esc(p.numero || p.codigo)}</span>` : '';
+    const num = s.tipo === 'checklist' ? `<span class="num">${esc(numCheck(p.numero || p.codigo))}</span>` : '';
     const clase = BOTONES_RESP[p.tipo] ? 'fd resp' : `fd${p.tipo === 'numero' ? ' n' : ''}`;
     return `<div class="${clase}"><span class="et">${num}${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}</span>${inputPunto(p, ed)}</div>`;
   }
@@ -840,7 +845,7 @@
         </section>`;
     }
     const resp = s.puntos.every((p) => BOTONES_RESP[p.tipo]);
-    return `<h3 class="banda">${esc(s.titulo)}</h3>
+    return `<h3 class="banda">${esc(tituloSeccion(s))}</h3>
       <section class="hoja-tabla ${resp ? 'lista-resp' : 'rejilla-datos'}">${s.puntos.map((p) => campoPunto(s, p, ed)).join('')}</section>`;
   }
 

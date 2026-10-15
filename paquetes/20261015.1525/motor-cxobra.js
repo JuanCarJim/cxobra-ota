@@ -6340,7 +6340,8 @@ globalThis.CX_VARIANTE="cxobra";
             obras: ["ver"],
             informeSemanal: ["ver", "exportar"],
             commissioning: TODO,
-            mantenimiento: TODO,
+            /* Lo ve y lo exporta; editarlo es de mantenimiento (JC, 15-oct). */
+            mantenimiento: ["ver", "exportar"],
             ncr: TODO,
             ppi: TODO,
             incidencias: ["ver", "crear", "editar", "exportar"],
@@ -6387,11 +6388,29 @@ globalThis.CX_VARIANTE="cxobra";
             partesIncidencia: ["ver", "exportar"],
             correos: ["ver", "crear", "editar", "borrar"],
             normativa: ["ver", "exportar"],
-            proveedores: SOLO_VER,
+            /* Proveedores (tarifas y adjudicaciones) no: es dinero (JC, 15-oct). */
             estadisticas: ["ver"],
             trazabilidad: ["ver", "exportar"]
           },
-          camposVetados: [],
+          /* Ni tarifas ni importes de obra (JC, 15-oct: «mantenimiento no»). */
+          camposVetados: [
+            "precioCoste",
+            "costeUnitario",
+            "importeCoste",
+            "margen",
+            "margenPrevisto",
+            "coefK",
+            "beneficio",
+            "precioProveedor",
+            "baja",
+            "costesIndirectos",
+            "tarifaOficial",
+            "tarifaOperario",
+            "precioCobroH",
+            "importeVenta",
+            "objetivoCompras",
+            "coeficienteCompras"
+          ],
           home: [
             { bloque: "avisosMantenimiento", ancho: "completo", titulo: "Mantenimiento: vencido y pr\xF3ximos 30 d\xEDas" },
             { bloque: "avisosNcr", ancho: "completo", titulo: "No conformidades: vencidas y equipos bloqueados" },
@@ -6426,7 +6445,8 @@ globalThis.CX_VARIANTE="cxobra";
             commissioning: ["ver", "crear", "editar"],
             /* Las fechas las sabe él, que estaba allí el día que se montó; y
                apunta lo que hace el mantenedor, que lo ve hacer. */
-            mantenimiento: ["ver", "crear", "editar", "borrar"],
+            /* Lo ve, pero no lo edita (JC, 15-oct). */
+            mantenimiento: ["ver"],
             /* Las ve, las da de alta y las pone al día en el recorrido; el dinero
                (tarifas, coste, cobro) no le llega: lo recorta la capa de datos. */
             ncr: ["ver", "crear", "editar"],
@@ -6713,7 +6733,7 @@ globalThis.CX_VARIANTE="cxobra";
         encargadoObra: { trabajo: ["tareas", "pedidos", "partes", "partesIncidencia", "ppi", "ncr", "pruebasEstanqueidad"], consulta: ["obras", "commissioning", "vacaciones"] },
         jefeCommissioning: { trabajo: ["commissioning", "balanceo", "pruebasEstanqueidad", "ncr", "ppi"], consulta: ["calculo", "obras", "tareas", "vacaciones", "informeSemanal", "mantenimiento"] },
         contractSupport: { trabajo: ["certificaciones", "compras", "pedidos", "conflictos", "ncr"], consulta: ["tareas", "clientes", "proveedores", "trazabilidad", "vacaciones"] },
-        jefeMantenimiento: { trabajo: ["mantenimiento", "incidencias"], consulta: ["commissioning", "obras", "ncr", "proveedores", "vacaciones"] },
+        jefeMantenimiento: { trabajo: ["mantenimiento", "incidencias"], consulta: ["commissioning", "obras", "ncr", "vacaciones"] },
         operario: { trabajo: ["partes", "partesIncidencia", "pruebasEstanqueidad", "balanceo"], consulta: [] },
         administrador: { empresa: true, accesos: true, trabajo: [], consulta: [] }
       };
@@ -8575,7 +8595,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261015.1512" : "0";
+      var VERSION = true ? "20261015.1525" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -22938,6 +22958,19 @@ globalThis.CX_VARIANTE="cxobra";
           "ACTA FABRICANTE N FECHA": "acta",
           "TECNICO FABRICANTE": "tecnico"
         };
+        function renumerar(m) {
+          const nums = [];
+          for (const f of m.filas) for (const x of f.celdas) {
+            const k = /^(\d{2}) · /.exec(x.txt);
+            if (k) nums.push(Number(k[1]));
+          }
+          const d = nums.length ? Math.min(...nums) - 1 : 0;
+          if (d <= 0) return;
+          const dos = (n) => String(n - d).padStart(2, "0");
+          for (const f of m.filas) for (const x of f.celdas) {
+            x.txt = x.txt.replace(/^(\d{2})( · |\.(?=\d{2}\s))/, (_, n, sep) => dos(Number(n)) + sep);
+          }
+        }
         function rellenar(m, fuente) {
           let izq = "";
           let der = "";
@@ -23326,6 +23359,7 @@ globalThis.CX_VARIANTE="cxobra";
             }
           };
           rellenar(m, fuente);
+          renumerar(m);
           if (sinMedidos) {
             for (const f of m.filas) for (const x of f.celdas) if (/^Criterio:/.test(x.txt)) {
               x.txt = "";
@@ -23464,6 +23498,7 @@ globalThis.CX_VARIANTE="cxobra";
             }
           };
           rellenar(m, fuente);
+          renumerar(m);
           return { m, opciones: { marca: "", clase: "hojaBal" } };
         }
         const AJUSTE_PAPEL = `(() => {
