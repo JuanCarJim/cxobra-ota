@@ -276,8 +276,9 @@
     const s = window.cxObra && window.cxObra.sync && window.cxObra.sync.activa ? window.cxObra.sync : null;
     const e = s ? s.estado() : null;
     if (e && (!e.entrado || e.estado === 'sin-sesion')) {
-      return `<p class="nota aviso">El plano de bocas se dibuja en el ordenador y te llega solo en cuanto entres en la nube de la oficina.</p>
-        <button class="boton" data-cx="nube-entrar">Entrar en la nube y traer el plano</button>`;
+      /* Sin botón de entrar (15-oct-2026, JC: «siempre conectado»): el teléfono entra solo. */
+      return `<p class="cargando">Conectando con la oficina para traer el plano…</p>
+        <button class="boton secundario" data-cx="nube-ahora">Volver a intentarlo</button>`;
     }
     if (e && (e.estado === 'sin-red' || e.estado === 'error')) {
       return `<p class="nota aviso">${e.estado === 'sin-red' ? 'Sin conexión con la oficina' : 'No se ha podido hablar con la oficina'}: si el plano ya está dibujado en el ordenador, llegará en cuanto vuelva la red.</p>
@@ -300,7 +301,6 @@
       ${totalCircuito(f.circuitos && f.circuitos.impulsion, 'Impulsión')}
       ${totalCircuito(f.circuitos && f.circuitos.retorno, med.retorno || 'Retorno')}
       ${med.velocidad ? `<p class="nota">Una medida por boca, con el equipo a velocidad ${esc(med.velocidad)}.</p>` : ''}
-      ${f.planos.some((p) => p.bocas.length) ? htmlEquipoMedida(f, puede) : ''}
       ${f.planos.length ? f.planos.map((p) => `
         <h2>${esc(p.nombre)} <span class="cuenta">${p.bocas.length} bocas</span></h2>
         ${htmlPlano(p)}
@@ -454,23 +454,11 @@
    *     aparato da su propio caudal, se apunta en «Q del aparato» y manda ese.
    *   · BALÓMETRO: se apunta el caudal, sin Ak.
    */
-  const EQUIPOS_MEDIDA = [['anemometro', 'Anemómetro'], ['balometro', 'Balómetro']];
   const claveBoca = (plano, punto) => `${plano}|${punto}`;
   const comaD = (v, d = 2) => (v === null || v === undefined || v === '' ? '' : String(Math.round(Number(v) * 10 ** d) / 10 ** d).replace('.', ','));
   const equipoDeBoca = (b) => b.equipoMedida || 'anemometro';
   /* Con el anemómetro, qué se apunta en M1–M4 (JC: «el anemómetro da todos los datos y yo meto el que quiero»). */
-  const LECTURAS = [['velocidad', 'Velocidad (m/s)'], ['caudal', 'Caudal (m³/h)']];
   const lecturaDeBoca = (b) => b.lectura || 'velocidad';
-
-  function segmentoLectura(actual, puede, datos, aria) {
-    return `<div class="respuestas segmento equipo-medida lectura-anem" role="radiogroup" aria-label="${esc(aria)}">${LECTURAS.map(([id, nombre]) => `<button type="button"
-      role="radio" aria-checked="${actual === id}" class="${actual === id ? 'activa' : ''}" ${puede ? '' : 'disabled'} ${datos} data-lectura="${id}">${nombre}</button>`).join('')}</div>`;
-  }
-
-  function segmentoEquipo(actual, puede, datos, aria) {
-    return `<div class="respuestas segmento equipo-medida" role="radiogroup" aria-label="${esc(aria)}">${EQUIPOS_MEDIDA.map(([id, nombre]) => `<button type="button"
-      role="radio" aria-checked="${actual === id}" class="${actual === id ? 'activa' : ''}" ${puede ? '' : 'disabled'} ${datos} data-equipo="${id}">${nombre}</button>`).join('')}</div>`;
-  }
 
   /*
    * CON QUÉ SE COGIERON LOS DATOS DE UNA BOCA (15-oct, JC: «quiero un botón
@@ -489,23 +477,6 @@
     return `<details class="instr-boca"><summary aria-label="Con qué se midió ${esc(b.nombre)}: ${esc(corto)}. Cambiar">${esc(corto)} ▾</summary>
       <div class="instr-menu segmento" role="radiogroup" aria-label="Con qué se midió ${esc(b.nombre)}">${INSTRUMENTOS.map(([id, , largo, datos]) => `<button type="button"
         role="radio" aria-checked="${actual === id}" class="${actual === id ? 'activa' : ''}" ${datos} data-eplano="${esc(p.id)}" data-epunto="${esc(b.id)}">${esc(largo)}</button>`).join('')}</div></details>`;
-  }
-
-  function htmlEquipoMedida(f, puede) {
-    const todas = f.planos.flatMap((p) => p.bocas);
-    const comun = f.equipoMedida || null;
-    const cuenta = (id) => todas.filter((b) => equipoDeBoca(b) === id).length;
-    return `<section class="grupo equipo-medida-todo">
-      <div class="em-cab"><span>Equipo de medida</span>${comun ? '' : `<span class="sub">Mezclado: ${cuenta('anemometro')} con anemómetro y ${cuenta('balometro')} con balómetro</span>`}</div>
-      ${segmentoEquipo(comun, puede, 'data-cx="equipo-medida-todo"', 'Equipo de medida de todas las bocas')}
-      ${comun === 'anemometro' ? `<div class="em-cab em-lectura"><span>Se apunta</span></div>
-      ${segmentoLectura(f.lectura || null, puede, 'data-cx="lectura-todo"', 'Qué se apunta del anemómetro en todas las bocas')}` : ''}
-      <p class="nota">${comun === 'balometro' ? 'Se apunta el caudal que lee el balómetro en cada boca (sin Ak).'
-        : comun === 'anemometro' && f.lectura === 'caudal' ? 'M1–M4 en m³/h: manda el caudal apuntado (su media) y no hace falta el Ak. Cada boca puede cambiarlo.'
-        : comun === 'anemometro' && f.lectura === 'velocidad' ? 'M1–M4 en m/s; el caudal sale de v̄ × Ak × 3600. Cada boca puede cambiarlo.'
-        : comun === 'anemometro' ? 'Cada boca apunta lo suyo (velocidad o caudal). Tocar uno lo pone en todas.'
-        : 'Tocar uno lo pone en todas las bocas; cada boca puede cambiarlo.'}</p>
-    </section>`;
   }
 
   function htmlBoca(p, b, puede, tol) {
@@ -1112,7 +1083,6 @@
     else if (que === 'plano-grande' && ficha) planoGrande(b);
     else if (que === 'foto-equipo') fotoEquipo(b);
     else if (que === 'quitar-foto-equipo') quitarFotoEquipo(b);
-    else if (que === 'nube-entrar' && window.cxObra && window.cxObra.sync) window.cxObra.sync.entrar().then((ok) => { if (ok && ficha) abrir(ficha.equipo.id, { quieto: true }); });
     else if (que === 'nube-ahora' && window.cxObra && window.cxObra.sync) { b.disabled = true; window.cxObra.sync.ahora().finally(() => { if (ficha) abrir(ficha.equipo.id, { quieto: true }); }); }
     else if (que === 'pdf-balanceo' && ficha) compartirPdf(`api/informe?tipo=balanceo&equipo=${encodeURIComponent(ficha.equipo.id)}`, `${ficha.equipo.tag} - balanceo.pdf`, b);
   });
