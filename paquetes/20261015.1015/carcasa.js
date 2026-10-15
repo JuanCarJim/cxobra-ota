@@ -326,6 +326,7 @@
     if (actual) { try { localStorage.setItem(`movil.pestana.${actual.id}`, s); } catch { /* nada */ } }
     if (s === 'cuenta') cuenta();
     if (s === 'inicio') inicio();
+    pastillaSync();
   }
 
   /* ═══════════════════════════════════ El «+»: la hoja de Añadir */
@@ -499,22 +500,107 @@
     if (traer) traer.onclick = () => window.cxObra.traerDatos().then((r) => { if (r && r.ok) location.reload(); else if (r && r.error) aviso(r.error); });
     const enviar = document.getElementById('cx-enviar');
     if (enviar) enviar.onclick = () => window.cxObra.enviarOficina().then((r) => { if (r && r.error) aviso(r.error); else if (r && r.ok) { aviso(r.texto, 'bien'); cuenta(); } });
+    const ya = document.getElementById('cx-sync-ya');
+    if (ya) ya.onclick = async () => {
+      ya.disabled = true;
+      const r = await sincro().ahora();
+      ya.disabled = false;
+      if (r && r.error) aviso(r.error.sinRed ? 'Sin conexión: se enviará al volver la red.' : r.error.message);
+      else aviso('Al día con la oficina.', 'bien');
+      cuenta();
+    };
+    const entrarNube = document.getElementById('cx-sync-entrar');
+    if (entrarNube) entrarNube.onclick = async () => { await sincro().entrar(); cuenta(); pastillaSync(); };
   }
 
-  /* Cx Obra nativa: los datos llegan de la oficina en un fichero y lo hecho
-     en obra vuelve igual (cxobra/puerta.js, shared/movil/paquete.js). */
+  /* Cx Obra nativa: CON LA OFICINA, AL MOMENTO (cxobra/sync.js). Lo que se
+     guarda aquí sube enseguida y lo de la oficina baja solo; sin red, se
+     queda en el teléfono y sube al volver. El fichero .cxobra sigue como
+     plan B. */
+  const sincro = () => (window.cxObra && window.cxObra.sync && window.cxObra.sync.activa ? window.cxObra.sync : null);
+  const hora = (iso) => {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    const hoy = new Date().toDateString() === d.toDateString();
+    return `${hoy ? 'hoy' : fechaEs(iso)} a las ${d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
+  };
+  function textoSync(e) {
+    const n = e.pendientes || 0;
+    const pend = n ? ` · ${n} por enviar` : '';
+    if (!e.entrado || e.estado === 'sin-sesion') return ['sin-sesion', 'Entrar en la nube'];
+    if (e.estado === 'sin-red') return ['sin-red', `Sin red${pend}`];
+    if (e.estado === 'error') return ['error', 'No sincroniza'];
+    if (e.estado === 'al-dia') return ['al-dia', n ? `${n} por enviar` : 'Al día'];
+    return ['', 'Conectando'];
+  }
+  let ultimaClase = null;
+  function pastillaSync() {
+    const s = sincro();
+    const fila = document.querySelector('.barra-fila');
+    if (!s || !fila || !sesion()) return;
+    let b = document.getElementById('cx-sync');
+    if (!b) {
+      b = document.createElement('button');
+      b.type = 'button';
+      b.id = 'cx-sync';
+      b.className = 'sync-pastilla';
+      b.onclick = () => { if (location.hash !== '#cuenta') location.hash = 'cuenta'; else cuenta(); };
+      fila.insertBefore(b, document.getElementById('quien'));
+    }
+    const e = s.estado();
+    /* Mientras da la vuelta se queda lo que había (sin parpadear cada 30 s). */
+    if (e.estado === 'sincronizando' && ultimaClase !== null) { b.classList.add('girando'); return; }
+    const [clase, texto] = textoSync(e);
+    ultimaClase = clase;
+    b.className = `sync-pastilla ${clase}`;
+    b.textContent = texto;
+    b.setAttribute('aria-label', `Sincronización con la oficina: ${texto}`);
+  }
+  window.addEventListener('cxobra:sync', () => {
+    pastillaSync();
+    if (seccion() === 'cuenta' && !document.querySelector('#app input:focus')) {
+      const g = document.getElementById('cx-sync-grupo');
+      if (g) g.outerHTML = grupoSync();
+    }
+  });
+
+  function grupoSync() {
+    const s = sincro();
+    if (!s) return '';
+    const e = s.estado();
+    const [, texto] = textoSync(e);
+    return `
+      <section class="grupo" id="cx-sync-grupo">
+        <div class="fila-dato"><span>Con la oficina</span><strong>${esc(e.estado === 'al-dia' && !e.pendientes ? 'Al día' : texto)}</strong></div>
+        <div class="fila-dato"><span>Último dato recibido</span><strong>${esc(hora(e.ultimoRecibido))}</strong></div>
+        <div class="fila-dato"><span>Última comprobación</span><strong>${esc(hora(e.ultimaBajada))}</strong></div>
+        <div class="fila-dato"><span>Pendiente de enviar</span><strong>${e.pendientes || 0} cambio${e.pendientes === 1 ? '' : 's'}</strong></div>
+        <div class="fila-dato"><span>Aviso al momento</span><strong>${e.tiempoReal ? 'Conectado' : 'Cada 30 segundos'}</strong></div>
+        ${e.error && e.estado === 'error' ? `<div class="fila-dato"><span>Error</span><strong>${esc(e.error)}</strong></div>` : ''}
+      </section>`;
+  }
+
   function conLaOficina() {
     const e = window.cxObra.estado();
     const dia = (iso) => (iso ? fechaEs(iso) : '—');
-    return `
+    const s = sincro();
+    const fichero = `
       <section class="grupo">
         <div class="fila-dato"><span>Datos de la oficina</span><strong>${e.ejemplo ? 'De ejemplo' : dia(e.recibido)}</strong></div>
         <div class="fila-dato"><span>Enviado a la oficina</span><strong>${dia(e.enviado)}</strong></div>
-        <div class="fila-dato"><span>Pendiente de enviar</span><strong>${e.pendientes} cambio${e.pendientes === 1 ? '' : 's'}</strong></div>
+        ${s ? '' : `<div class="fila-dato"><span>Pendiente de enviar</span><strong>${e.pendientes} cambio${e.pendientes === 1 ? '' : 's'}</strong></div>`}
       </section>
-      <button class="boton" id="cx-enviar"${e.ejemplo ? ' disabled' : ''}>Enviar a la oficina</button>
-      <button class="boton secundario" id="cx-traer">Traer mis datos de la oficina</button>
-      <p class="nota">«Enviar» prepara un fichero con lo que has hecho (NCR, notas, albaranes, mediciones, partes, fichajes) para mandarlo por AirDrop o correo; en el ordenador se abre en Personas › La app del móvil. Las fotos van dentro.</p>`;
+      <button class="boton${s ? ' secundario' : ''}" id="cx-enviar"${e.ejemplo ? ' disabled' : ''}>Enviar a la oficina en un fichero</button>
+      <button class="boton secundario" id="cx-traer">Traer mis datos de un fichero</button>
+      <p class="nota">El fichero prepara lo que has hecho (NCR, notas, albaranes, mediciones, partes, fichajes) para mandarlo por AirDrop o correo; en el ordenador se abre en Personas › La app del móvil. Las fotos van dentro.</p>`;
+    if (!s) return fichero;
+    const est = s.estado();
+    return `
+      <h2 class="titulo-grupo">Con la oficina, al momento</h2>
+      ${grupoSync()}
+      ${est.entrado ? '<button class="boton" id="cx-sync-ya">Sincronizar ahora</button>' : '<button class="boton" id="cx-sync-entrar">Entrar en la nube</button>'}
+      <p class="nota">Lo que guardas aquí llega al ordenador de la oficina al momento, y lo de la oficina llega solo. Sin cobertura se guarda en el teléfono y se envía al volver la red.</p>
+      <details class="grupo-plegable"><summary>Sin red: por fichero (plan B)</summary>${fichero}</details>`;
   }
 
   /* ═══════════════════════════════════ Arranque */

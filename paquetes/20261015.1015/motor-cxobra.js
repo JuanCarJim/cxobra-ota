@@ -8225,6 +8225,7 @@ globalThis.CX_VARIANTE="cxobra";
           "hojasBalanceo",
           "redesAgua",
           "planosDifusores",
+          "imagenesPlanoDif",
           "fotosEquipo",
           "registrosMant",
           "fichasPM",
@@ -8345,6 +8346,11 @@ globalThis.CX_VARIANTE="cxobra";
               if (tablas[t] && !tablas[t].length) delete tablas[t];
             }
           }
+        }
+        if (tablas.imagenesPlanoDif) {
+          const usadas = new Set((tablas.planosDifusores || []).map((p) => p.imagenId).filter(Boolean));
+          tablas.imagenesPlanoDif = tablas.imagenesPlanoDif.filter((i) => usadas.has(i.id));
+          if (!tablas.imagenesPlanoDif.length) delete tablas.imagenesPlanoDif;
         }
         for (const t of alcance.catalogos) if (existe(db, t)) poner(t, db.prepare(`SELECT * FROM "${t}"`).all());
         if (alcance.bloc) poner("notas", db.prepare("SELECT * FROM notas WHERE personaId = ?").all(personaId));
@@ -8534,6 +8540,10 @@ globalThis.CX_VARIANTE="cxobra";
         TABLAS_SECCION,
         CATALOGOS_SECCION,
         TABLAS_VUELTA,
+        FUERA,
+        COLUMNAS_PERSONA,
+        limpia,
+        pedidoAbierto,
         tablasDeRol,
         armarIda,
         armarVuelta,
@@ -8563,7 +8573,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261015.0913" : "0";
+      var VERSION = true ? "20261015.1015" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -8778,7 +8788,7 @@ globalThis.CX_VARIANTE="cxobra";
           return null;
         }
       }
-      function bienvenida({ traer, ejemplo }) {
+      function bienvenida({ traer, ejemplo, nube = null }) {
         return new Promise((listo) => {
           const c = capa(`
       <div class="marca" aria-hidden="true">Cx</div>
@@ -8787,20 +8797,24 @@ globalThis.CX_VARIANTE="cxobra";
       <form id="pc-form" style="display:flex;flex-direction:column;gap:14px">
         <label>Correo<input id="pc-correo" type="email" autocomplete="username" autocapitalize="none" required></label>
         <label>Contrase\xF1a<input id="pc-clave" type="password" autocomplete="current-password" required></label>
-        <button type="submit">Entrar</button>
+        <button type="submit" id="pc-entrar">Entrar</button>
       </form>
       <p class="error" id="pc-error"></p>
-      <p class="pie">La primera vez te pedir\xE1 el fichero con tus obras que te prepara la oficina (Personas \u203A La app del m\xF3vil).</p>
+      <button class="secundario" id="pc-fichero" ${nube ? "hidden" : ""}>Elegir el fichero de la oficina</button>
+      <p class="pie">${nube ? "Tus obras llegan solas de la oficina y lo que hagas aqu\xED les llega al momento. Sin red, se guarda en el tel\xE9fono y se env\xEDa al volver." : "La primera vez te pedir\xE1 el fichero con tus obras que te prepara la oficina (Personas \u203A La app del m\xF3vil)."}</p>
       <button class="secundario" id="pc-ejemplo">Ver un ejemplo sin cuenta</button>
-      <p class="pie">Todo se guarda en este tel\xE9fono y funciona sin red.<br>Versi\xF3n ${require_ota2().VERSION}</p>`);
+      <p class="pie">Versi\xF3n ${require_ota2().VERSION}</p>`);
           const error = (t) => {
             c.querySelector("#pc-error").textContent = t || "";
           };
-          c.querySelector("#pc-form").onsubmit = async (ev) => {
-            ev.preventDefault();
+          const datos = () => [c.querySelector("#pc-correo").value, c.querySelector("#pc-clave").value];
+          const porFichero = async () => {
             error("");
-            const correo = c.querySelector("#pc-correo").value;
-            const clave = c.querySelector("#pc-clave").value;
+            const [correo, clave] = datos();
+            if (!correo || !clave) {
+              error("Escribe tu correo y tu contrase\xF1a, y elige el fichero.");
+              return;
+            }
             const f = await elegirFichero();
             if (!f) {
               error("Elige el fichero de tus datos para entrar.");
@@ -8814,6 +8828,29 @@ globalThis.CX_VARIANTE="cxobra";
               listo("paquete");
             }
           };
+          c.querySelector("#pc-fichero").onclick = porFichero;
+          c.querySelector("#pc-form").onsubmit = async (ev) => {
+            ev.preventDefault();
+            if (!nube) {
+              porFichero();
+              return;
+            }
+            error("");
+            const boton = c.querySelector("#pc-entrar");
+            boton.disabled = true;
+            boton.textContent = "Trayendo tus obras\u2026";
+            const [correo, clave] = datos();
+            const mal = await nube(correo, clave);
+            boton.disabled = false;
+            boton.textContent = "Entrar";
+            if (!mal) {
+              quitar();
+              listo("nube");
+              return;
+            }
+            error(mal.error);
+            if (mal.fichero) c.querySelector("#pc-fichero").hidden = false;
+          };
           c.querySelector("#pc-ejemplo").onclick = async () => {
             await ejemplo();
             quitar();
@@ -8821,7 +8858,7 @@ globalThis.CX_VARIANTE="cxobra";
           };
         });
       }
-      function entrar({ correo = "", nombre = "", comprobar }) {
+      function entrar({ correo = "", nombre = "", comprobar, cancelar = false }) {
         return new Promise((listo) => {
           const c = capa(`
       <div class="marca" aria-hidden="true">Cx</div>
@@ -8832,7 +8869,8 @@ globalThis.CX_VARIANTE="cxobra";
         <label>Contrase\xF1a<input id="pc-clave" type="password" autocomplete="current-password"></label>
         <button type="submit">Entrar</button>
       </form>
-      <p class="error" id="pc-error"></p>`);
+      <p class="error" id="pc-error"></p>
+      ${cancelar ? '<button class="secundario" id="pc-cancelar">Ahora no</button>' : ""}`);
           c.querySelector("#pc-form").onsubmit = async (ev) => {
             ev.preventDefault();
             const r = await comprobar(c.querySelector("#pc-correo").value, c.querySelector("#pc-clave").value);
@@ -8842,6 +8880,10 @@ globalThis.CX_VARIANTE="cxobra";
             }
             quitar();
             listo(r);
+          };
+          if (cancelar) c.querySelector("#pc-cancelar").onclick = () => {
+            quitar();
+            listo(null);
           };
           (correo ? c.querySelector("#pc-clave") : c.querySelector("#pc-correo")).focus();
         });
@@ -8868,6 +8910,1112 @@ globalThis.CX_VARIANTE="cxobra";
         return { ok: true, compartido: false };
       }
       module.exports = { bienvenida, entrar, elegirFichero, leerPaquete, compartir };
+    }
+  });
+
+  // ipad/shims/crypto.js
+  var require_crypto = __commonJS({
+    "ipad/shims/crypto.js"(exports, module) {
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      module.exports = require_nodeFalso().crypto;
+    }
+  });
+
+  // shared/sync/nube.js
+  var require_nube = __commonJS({
+    "shared/sync/nube.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var ErrorNube = class extends Error {
+        constructor(mensaje, { codigo = 0, sinRed = false, cuerpo = null } = {}) {
+          super(mensaje);
+          this.name = "ErrorNube";
+          this.codigo = codigo;
+          this.sinRed = sinRed;
+          this.cuerpo = cuerpo;
+        }
+      };
+      var b64url = (buf) => Buffer.from(buf).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+      function claveNube(hashClave) {
+        const t = String(hashClave || "").split("$");
+        if (t.length !== 6 || t[0] !== "scrypt" || !t[5]) return null;
+        return `cx1.${b64url(Buffer.from(t[5], "base64").subarray(0, 32))}`;
+      }
+      function huellaConSal(clave, sal, { crypto: crypto2 = require_crypto(), largo = 64 } = {}) {
+        const t = String(sal || "").split("$");
+        if (t.length < 5 || t[0] !== "scrypt") throw new Error("Sal mal formada.");
+        const [, n, r, p, s] = t;
+        const h = crypto2.scryptSync(String(clave), Buffer.from(s, "base64"), largo, { N: Number(n), r: Number(r), p: Number(p), maxmem: 64 * 1024 * 1024 });
+        return `scrypt$${n}$${r}$${p}$${s}$${Buffer.from(h).toString("base64")}`;
+      }
+      function leerJwt(token) {
+        try {
+          const p = String(token).split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+          return JSON.parse(Buffer.from(p, "base64").toString("utf8"));
+        } catch {
+          return null;
+        }
+      }
+      function crearNube({ url, clave, fetch: f = globalThis.fetch, sesion = null, alCambiarSesion = () => {
+      }, espera = 2e4 }) {
+        if (!url || !clave) throw new Error("Faltan la direcci\xF3n o la clave de la nube.");
+        const base = String(url).replace(/\/+$/, "");
+        let ses = sesion;
+        const esSecreta = /^sb_secret_/.test(clave);
+        async function pedir(ruta, { metodo = "GET", cuerpo, cabeceras = {}, autor = true } = {}) {
+          const h = { apikey: clave, ...cabeceras };
+          if (cuerpo !== void 0 && !h["Content-Type"]) h["Content-Type"] = "application/json";
+          if (autor) {
+            if (esSecreta) h.Authorization = `Bearer ${clave}`;
+            else if (ses && ses.access_token) h.Authorization = `Bearer ${await token()}`;
+          }
+          let r;
+          const ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
+          const reloj = ctl ? setTimeout(() => ctl.abort(), espera) : null;
+          try {
+            r = await f(`${base}${ruta}`, {
+              method: metodo,
+              headers: h,
+              body: cuerpo === void 0 ? void 0 : typeof cuerpo === "string" || cuerpo instanceof Uint8Array ? cuerpo : JSON.stringify(cuerpo),
+              ...ctl ? { signal: ctl.signal } : {}
+            });
+          } catch (e) {
+            throw new ErrorNube(`Sin conexi\xF3n con la nube (${e && e.message || e}).`, { sinRed: true });
+          } finally {
+            if (reloj) clearTimeout(reloj);
+          }
+          const texto = await r.text();
+          let json = null;
+          try {
+            json = texto ? JSON.parse(texto) : null;
+          } catch {
+            json = texto;
+          }
+          if (!r.ok) {
+            const m = json && (json.message || json.msg || json.error_description || json.error) || `HTTP ${r.status}`;
+            throw new ErrorNube(String(m), { codigo: r.status, cuerpo: json });
+          }
+          return json;
+        }
+        function ponerSesion(j) {
+          ses = j ? {
+            access_token: j.access_token,
+            refresh_token: j.refresh_token,
+            expires_at: j.expires_at || Math.floor(Date.now() / 1e3) + Number(j.expires_in || 3600)
+          } : null;
+          try {
+            alCambiarSesion(ses);
+          } catch {
+          }
+          return ses;
+        }
+        async function token() {
+          if (!ses) return null;
+          if (ses.expires_at && ses.expires_at - 60 > Date.now() / 1e3) return ses.access_token;
+          const j = await pedir("/auth/v1/token?grant_type=refresh_token", { metodo: "POST", cuerpo: { refresh_token: ses.refresh_token }, autor: false }).catch((e) => {
+            if (!e.sinRed && e.codigo >= 400 && e.codigo < 500) ponerSesion(null);
+            throw e;
+          });
+          ponerSesion(j);
+          return ses.access_token;
+        }
+        return {
+          esSecreta,
+          sesion: () => ses,
+          /** Quién soy según la sesión: { personaId, espacio }. */
+          yo: () => {
+            const j = ses && leerJwt(ses.access_token);
+            const m = j && j.app_metadata || {};
+            return m.persona_id ? { personaId: m.persona_id, espacio: m.espacio || "principal" } : null;
+          },
+          entrar: async (email, contrasena) => ponerSesion(await pedir("/auth/v1/token?grant_type=password", {
+            metodo: "POST",
+            cuerpo: { email: String(email).trim().toLowerCase(), password: contrasena },
+            autor: false
+          })),
+          salir: () => ponerSesion(null),
+          sal: (email) => pedir("/rest/v1/rpc/cx_sal", { metodo: "POST", cuerpo: { p_email: String(email || "") } }),
+          /** Filas de cx_filas: `consulta` en el formato de PostgREST. */
+          leer: (tabla, consulta) => pedir(`/rest/v1/${tabla}?${consulta}`),
+          /** Mete o cambia filas (por su clave primaria). */
+          guardar: (tabla, filas, { conflicto = null, devolver = false } = {}) => pedir(
+            `/rest/v1/${tabla}${conflicto ? `?on_conflict=${conflicto}` : ""}`,
+            {
+              metodo: "POST",
+              cuerpo: filas,
+              cabeceras: { Prefer: `resolution=merge-duplicates,return=${devolver ? "representation" : "minimal"}` }
+            }
+          ),
+          borrar: (tabla, consulta) => pedir(`/rest/v1/${tabla}?${consulta}`, { metodo: "DELETE", cabeceras: { Prefer: "return=minimal" } }),
+          /* Solo con la clave secreta: los usuarios de Auth. */
+          usuarios: async () => {
+            const todos = [];
+            for (let pagina = 1; pagina < 50; pagina++) {
+              const j = await pedir(`/auth/v1/admin/users?page=${pagina}&per_page=200`);
+              const u = j && j.users || [];
+              todos.push(...u);
+              if (u.length < 200) break;
+            }
+            return todos;
+          },
+          crearUsuario: (datos) => pedir("/auth/v1/admin/users", { metodo: "POST", cuerpo: datos }),
+          cambiarUsuario: (id, datos) => pedir(`/auth/v1/admin/users/${id}`, { metodo: "PUT", cuerpo: datos }),
+          borrarUsuario: (id) => pedir(`/auth/v1/admin/users/${id}`, { metodo: "DELETE" }),
+          /* Storage: las fotos. */
+          subirArchivo: (cubo, ruta, bytes, tipo = "application/octet-stream") => pedir(`/storage/v1/object/${cubo}/${ruta.split("/").map(encodeURIComponent).join("/")}`, {
+            metodo: "POST",
+            cuerpo: bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes),
+            cabeceras: { "Content-Type": tipo, "x-upsert": "true" }
+          }),
+          bajarArchivo: async (cubo, ruta) => {
+            const h = { apikey: clave };
+            if (esSecreta) h.Authorization = `Bearer ${clave}`;
+            else if (ses) h.Authorization = `Bearer ${await token()}`;
+            let r;
+            try {
+              r = await f(`${base}/storage/v1/object/authenticated/${cubo}/${ruta.split("/").map(encodeURIComponent).join("/")}`, { headers: h });
+            } catch (e) {
+              throw new ErrorNube("Sin conexi\xF3n con la nube.", { sinRed: true });
+            }
+            if (!r.ok) throw new ErrorNube(`No se pudo bajar ${ruta} (HTTP ${r.status}).`, { codigo: r.status });
+            return new Uint8Array(await r.arrayBuffer());
+          },
+          tokenParaTiempoReal: async () => esSecreta ? null : token(),
+          url: base,
+          clave
+        };
+      }
+      module.exports = { crearNube, claveNube, huellaConSal, leerJwt, ErrorNube };
+    }
+  });
+
+  // shared/sync/frontera.js
+  var require_frontera = __commonJS({
+    "shared/sync/frontera.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var PQ2 = require_paquete();
+      var ROLES = require_roles();
+      var ABIERTA = (o) => o.estado !== "cerrada" && o.estado !== "anulada";
+      var clave = (tabla, id) => `${tabla}\0${id}`;
+      var existe = (db, t) => Boolean(db.prepare("SELECT 1 AS x FROM sqlite_master WHERE type = 'table' AND name = ?").get(t));
+      var columnas = (db, t) => db.prepare(`PRAGMA table_info("${t}")`).all().map((c) => c.name);
+      var enLista = (n) => Array.from({ length: n }, () => "?").join(",");
+      var POR_OBRA = [...new Set(Object.values(PQ2.TABLAS_SECCION).flat())];
+      var CATALOGOS = [...new Set(Object.values(PQ2.CATALOGOS_SECCION).flat())];
+      var TABLAS_IDA = ["personas", "proyectos", "obras", "proveedores", "notas", ...POR_OBRA, ...CATALOGOS];
+      var COLUMNAS_PROYECTO = ["id", "codigo", "nombre", "estado", "fechaSolicitud", "creadoEn", "modificadoEn"];
+      var correoTapado = (id) => `${id}@sin-correo.cxobra`;
+      function permisosDeRol(rol) {
+        const a = PQ2.tablasDeRol(rol);
+        if (!a.secciones.length) return [];
+        const t = /* @__PURE__ */ new Set(["personas", "proyectos", "obras", "proveedores", ...a.porObra, ...a.catalogos]);
+        if (a.bloc) t.add("notas");
+        return [...t].map((tabla) => ({ tabla, escribe: PQ2.TABLAS_VUELTA.includes(tabla) }));
+      }
+      function indiceEscritorio(db) {
+        const idx = /* @__PURE__ */ new Map();
+        const poner = (tabla, id, mod, obras, personaId = null) => idx.set(clave(tabla, id), { tabla, id, mod: String(mod || ""), obras, personaId });
+        const abiertas = db.prepare("SELECT id, proyectoId, estado, modificadoEn FROM obras").all().filter(ABIERTA);
+        const ids = abiertas.map((o) => o.id);
+        for (const o of abiertas) poner("obras", o.id, o.modificadoEn, [o.id]);
+        const proyectoObras = /* @__PURE__ */ new Map();
+        for (const o of abiertas) if (o.proyectoId) proyectoObras.set(o.proyectoId, [...proyectoObras.get(o.proyectoId) || [], o.id]);
+        if (proyectoObras.size) {
+          for (const p of db.prepare(`SELECT id, modificadoEn FROM proyectos WHERE id IN (${enLista(proyectoObras.size)})`).all(...proyectoObras.keys())) {
+            poner("proyectos", p.id, p.modificadoEn, proyectoObras.get(p.id));
+          }
+        }
+        const proveedorObras = /* @__PURE__ */ new Map();
+        if (ids.length) {
+          let abiertos = null;
+          if (existe(db, "pedidosCompra")) {
+            const docs = existe(db, "pedidoDocumentos") ? db.prepare(`SELECT * FROM pedidoDocumentos WHERE obraId IN (${enLista(ids.length)})`).all(...ids) : [];
+            abiertos = new Set(db.prepare(`SELECT * FROM pedidosCompra WHERE obraId IN (${enLista(ids.length)})`).all(...ids).filter((p) => PQ2.pedidoAbierto(p, docs.filter((d) => d.pedidoId === p.id))).map((p) => p.id));
+          }
+          const usadas = existe(db, "planosDifusores") ? new Set(db.prepare(`SELECT imagenId FROM planosDifusores WHERE obraId IN (${enLista(ids.length)})`).all(...ids).map((p) => p.imagenId).filter(Boolean)) : /* @__PURE__ */ new Set();
+          for (const t of POR_OBRA) {
+            if (!existe(db, t)) continue;
+            const cols = columnas(db, t);
+            if (!cols.includes("obraId") || !cols.includes("modificadoEn")) continue;
+            const extra = ["pedidoId", "proveedorId"].filter((c) => cols.includes(c));
+            const filas = db.prepare(`SELECT id, modificadoEn, obraId${extra.map((c) => `, "${c}"`).join("")} FROM "${t}" WHERE obraId IN (${enLista(ids.length)})`).all(...ids);
+            for (const f of filas) {
+              if (t === "pedidosCompra" && abiertos && !abiertos.has(f.id)) continue;
+              if (["pedidoDocumentos", "albaranes", "albaranLineas"].includes(t) && f.pedidoId && abiertos && !abiertos.has(f.pedidoId)) continue;
+              if (t === "imagenesPlanoDif" && !usadas.has(f.id)) continue;
+              poner(t, f.id, f.modificadoEn, [f.obraId]);
+              if (f.proveedorId) {
+                const s = proveedorObras.get(f.proveedorId) || /* @__PURE__ */ new Set();
+                s.add(f.obraId);
+                proveedorObras.set(f.proveedorId, s);
+              }
+            }
+          }
+        }
+        if (proveedorObras.size && existe(db, "proveedores")) {
+          for (const p of db.prepare(`SELECT id, modificadoEn FROM proveedores WHERE id IN (${enLista(proveedorObras.size)})`).all(...proveedorObras.keys())) {
+            poner("proveedores", p.id, p.modificadoEn, [...proveedorObras.get(p.id)].sort());
+          }
+        }
+        for (const t of CATALOGOS) {
+          if (!existe(db, t)) continue;
+          for (const f of db.prepare(`SELECT id, modificadoEn FROM "${t}"`).all()) poner(t, f.id, f.modificadoEn, null);
+        }
+        for (const p of db.prepare("SELECT id, modificadoEn FROM personas WHERE activo = 1").all()) poner("personas", p.id, p.modificadoEn, null);
+        if (existe(db, "notas")) {
+          for (const n of db.prepare("SELECT id, modificadoEn, personaId FROM notas").all()) poner("notas", n.id, n.modificadoEn, null, n.personaId);
+        }
+        return idx;
+      }
+      function indiceMovil(db, { personaId, obras = null }) {
+        const idx = /* @__PURE__ */ new Map();
+        const mias = obras ? new Set(obras) : null;
+        for (const t of PQ2.TABLAS_VUELTA) {
+          if (!existe(db, t)) continue;
+          const cols = columnas(db, t);
+          if (!cols.includes("modificadoEn")) continue;
+          if (t === "notas") {
+            for (const n of db.prepare("SELECT id, modificadoEn FROM notas WHERE personaId = ?").all(personaId)) {
+              idx.set(clave(t, n.id), { tabla: t, id: n.id, mod: String(n.modificadoEn || ""), obras: null, personaId });
+            }
+            continue;
+          }
+          if (!cols.includes("obraId")) continue;
+          for (const f of db.prepare(`SELECT id, modificadoEn, obraId FROM "${t}"`).all()) {
+            if (!f.obraId || mias && !mias.has(f.obraId)) continue;
+            idx.set(clave(t, f.id), { tabla: t, id: f.id, mod: String(f.modificadoEn || ""), obras: [f.obraId], personaId: null });
+          }
+        }
+        return idx;
+      }
+      function datosFila(db, tabla, id) {
+        if (tabla === "personas") {
+          const p = db.prepare(`SELECT ${PQ2.COLUMNAS_PERSONA.join(", ")} FROM personas WHERE id = ?`).get(id);
+          return p ? { ...p, email: correoTapado(p.id) } : null;
+        }
+        if (tabla === "proyectos") {
+          const cols = columnas(db, "proyectos").filter((c) => COLUMNAS_PROYECTO.includes(c));
+          const p = db.prepare(`SELECT ${cols.map((c) => `"${c}"`).join(", ")} FROM proyectos WHERE id = ?`).get(id);
+          return p ? { ...p } : null;
+        }
+        const f = db.prepare(`SELECT * FROM "${tabla}" WHERE id = ?`).get(id);
+        return f ? PQ2.limpia({ ...f }) : null;
+      }
+      module.exports = {
+        TABLAS_IDA,
+        POR_OBRA,
+        CATALOGOS,
+        permisosDeRol,
+        indiceEscritorio,
+        indiceMovil,
+        datosFila,
+        clave,
+        correoTapado,
+        ABIERTA,
+        existe,
+        columnas
+      };
+    }
+  });
+
+  // shared/sync/motor.js
+  var require_motor2 = __commonJS({
+    "shared/sync/motor.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var PQ2 = require_paquete();
+      var F = require_frontera();
+      var SOLAPE = 50;
+      var MAX_LOTE = 15e5;
+      var POR_PAGINA = 1e3;
+      function crearMotor({
+        db,
+        nube,
+        modo,
+        espacio = "principal",
+        dispositivo,
+        personaId = null,
+        /* teléfono: quién lo lleva */
+        desde = () => "",
+        /* teléfono: lo anterior a esto vino del paquete y no se sube */
+        obrasDeAutor = () => [],
+        /* escritorio: las obras en las que puede escribir cada persona */
+        archivos: archivos2 = null,
+        /* fotos: { alSubir(fila), alBajar(fila) } (archivos.js) */
+        alCambiar = () => {
+        },
+        /* (tablas) cuando entra algo de fuera */
+        alEstado = () => {
+        },
+        registro = () => {
+        },
+        ahora = () => /* @__PURE__ */ new Date()
+      }) {
+        if (modo !== "escritorio" && modo !== "movil") throw new Error("Modo de sincronizaci\xF3n desconocido.");
+        if (modo === "movil" && !personaId) throw new Error("Falta qui\xE9n lleva el tel\xE9fono.");
+        db.exec(`CREATE TABLE IF NOT EXISTS _syncVisto (tabla TEXT NOT NULL, id TEXT NOT NULL, modificadoEn TEXT NOT NULL, PRIMARY KEY (tabla, id))`);
+        db.exec("CREATE TABLE IF NOT EXISTS _syncEstado (clave TEXT PRIMARY KEY, valor TEXT)");
+        const leerEstado = (k) => {
+          const r = db.prepare("SELECT valor FROM _syncEstado WHERE clave = ?").get(k);
+          return r ? r.valor : null;
+        };
+        const ponerEstado = (k, v) => db.prepare("INSERT INTO _syncEstado (clave, valor) VALUES (?, ?) ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor").run(k, v == null ? null : String(v));
+        const apuntar = db.prepare("INSERT INTO _syncVisto (tabla, id, modificadoEn) VALUES (?, ?, ?) ON CONFLICT(tabla, id) DO UPDATE SET modificadoEn = excluded.modificadoEn");
+        const olvidar = db.prepare("DELETE FROM _syncVisto WHERE tabla = ? AND id = ?");
+        const vistos = () => {
+          const m = /* @__PURE__ */ new Map();
+          for (const v of db.prepare("SELECT tabla, id, modificadoEn FROM _syncVisto").all()) m.set(F.clave(v.tabla, v.id), v.modificadoEn);
+          return m;
+        };
+        const tablasLocales = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all().map((t) => t.name));
+        const modLocal = (tabla, id) => {
+          if (!tablasLocales.has(tabla) || !/^[A-Za-z]+$/.test(tabla)) return void 0;
+          const r = db.prepare(`SELECT modificadoEn AS m FROM "${tabla}" WHERE id = ?`).get(id);
+          return r ? String(r.m || "") : null;
+        };
+        let misObras = null;
+        const estado = {
+          modo,
+          estado: "parado",
+          pendientes: 0,
+          ultimaBajada: leerEstado("ultimaBajada"),
+          ultimaSubida: leerEstado("ultimaSubida"),
+          ultimoRecibido: leerEstado("ultimoRecibido"),
+          error: null,
+          rechazadas: Number(leerEstado("rechazadas") || 0),
+          tiempoReal: false
+        };
+        const cambiarEstado = (c) => {
+          Object.assign(estado, c);
+          try {
+            alEstado({ ...estado });
+          } catch {
+          }
+        };
+        function indice() {
+          return modo === "escritorio" ? F.indiceEscritorio(db) : F.indiceMovil(db, { personaId, obras: misObras });
+        }
+        function pendientes() {
+          const idx = indice();
+          const visto = vistos();
+          const base = modo === "movil" ? String(desde() || "") : "";
+          const suben = [];
+          for (const [k, e] of idx) {
+            const v = visto.get(k);
+            if (v === void 0) {
+              if (!base || e.mod > base) suben.push(e);
+            } else if (e.mod > v) suben.push(e);
+          }
+          const lapidas = [];
+          const tablasMias = new Set(modo === "escritorio" ? F.TABLAS_IDA : PQ2.TABLAS_VUELTA);
+          for (const [k] of visto) {
+            if (idx.has(k)) continue;
+            const [tabla, id] = k.split("\0");
+            if (!tablasMias.has(tabla)) continue;
+            if (modo === "movil" && modLocal(tabla, id) !== null) continue;
+            lapidas.push({ tabla, id });
+          }
+          return { suben, lapidas };
+        }
+        async function subir() {
+          const { suben, lapidas } = pendientes();
+          if (!suben.length && !lapidas.length) return { subidas: 0, lapidas: 0 };
+          const sello = ahora().toISOString();
+          const filas = [];
+          for (const e of suben) {
+            const datos = F.datosFila(db, e.tabla, e.id);
+            if (!datos) continue;
+            for (const k of Object.keys(datos)) if (datos[k] !== null && typeof datos[k] === "object") delete datos[k];
+            const fila = {
+              espacio,
+              tabla: e.tabla,
+              id: String(e.id),
+              obras: e.obras,
+              persona_id: e.personaId,
+              datos,
+              modificado_en: e.mod,
+              borrado: false,
+              dispositivo
+            };
+            if (archivos2) await archivos2.alSubir(fila);
+            filas.push({ fila, mod: e.mod });
+          }
+          for (const l of lapidas) {
+            filas.push({ fila: { espacio, tabla: l.tabla, id: String(l.id), obras: null, persona_id: modo === "movil" && l.tabla === "notas" ? personaId : null, datos: {}, modificado_en: sello, borrado: true, dispositivo }, lapida: true });
+          }
+          if (modo === "movil") {
+            const sinObra = filas.filter((x) => x.lapida && x.fila.tabla !== "notas");
+            if (sinObra.length) {
+              const ant = await traerFilas(sinObra.map((x) => [x.fila.tabla, x.fila.id]));
+              for (const x of sinObra) {
+                const a = ant.get(F.clave(x.fila.tabla, x.fila.id));
+                if (a && a.obras && a.obras.length === 1) {
+                  x.fila.obras = a.obras;
+                  x.fila.datos = { obraId: a.obras[0] };
+                } else x.descartar = true;
+              }
+            }
+          }
+          let subidas = 0;
+          let rechazadas = 0;
+          const listas = filas.filter((x) => !x.descartar);
+          for (const x of filas.filter((y) => y.descartar)) olvidar.run(x.fila.tabla, x.fila.id);
+          const hecho = (x) => {
+            if (x.lapida) olvidar.run(x.fila.tabla, x.fila.id);
+            else apuntar.run(x.fila.tabla, x.fila.id, x.mod);
+            subidas++;
+          };
+          for (const lote of lotes(listas)) {
+            try {
+              await nube.guardar("cx_filas", lote.map((x) => x.fila), { conflicto: "espacio,tabla,id" });
+              for (const x of lote) hecho(x);
+            } catch (e) {
+              if (e.sinRed) throw e;
+              for (const x of lote) {
+                try {
+                  await nube.guardar("cx_filas", [x.fila], { conflicto: "espacio,tabla,id" });
+                  hecho(x);
+                } catch (e2) {
+                  if (e2.sinRed) throw e2;
+                  rechazadas++;
+                  registro(`La nube no acepta ${x.fila.tabla}/${x.fila.id}: ${e2.message}`);
+                  if (!x.lapida) apuntar.run(x.fila.tabla, x.fila.id, x.mod);
+                  else olvidar.run(x.fila.tabla, x.fila.id);
+                }
+              }
+            }
+          }
+          if (rechazadas) {
+            estado.rechazadas += rechazadas;
+            ponerEstado("rechazadas", estado.rechazadas);
+          }
+          ponerEstado("ultimaSubida", sello);
+          cambiarEstado({ ultimaSubida: sello });
+          return { subidas, lapidas: lapidas.length, rechazadas };
+        }
+        function lotes(lista) {
+          const out = [];
+          let actual = [];
+          let tam = 0;
+          for (const x of lista) {
+            const t = JSON.stringify(x.fila).length;
+            if (actual.length && (tam + t > MAX_LOTE || actual.length >= 300)) {
+              out.push(actual);
+              actual = [];
+              tam = 0;
+            }
+            actual.push(x);
+            tam += t;
+          }
+          if (actual.length) out.push(actual);
+          return out;
+        }
+        async function traerFilas(pares) {
+          const m = /* @__PURE__ */ new Map();
+          const porTabla = /* @__PURE__ */ new Map();
+          for (const [t, id] of pares) porTabla.set(t, [...porTabla.get(t) || [], id]);
+          for (const [t, ids] of porTabla) {
+            for (let i = 0; i < ids.length; i += 60) {
+              const trozo = ids.slice(i, i + 60).map((x) => `"${String(x).replace(/"/g, "")}"`).join(",");
+              const r = await nube.leer("cx_filas", `select=tabla,id,obras&espacio=eq.${encodeURIComponent(espacio)}&tabla=eq.${encodeURIComponent(t)}&id=in.(${encodeURIComponent(trozo)})`);
+              for (const f of r || []) m.set(F.clave(f.tabla, f.id), f);
+            }
+          }
+          return m;
+        }
+        async function bajar() {
+          if (modo === "movil") {
+            try {
+              const a = await nube.leer("cx_accesos", `select=obra_id&espacio=eq.${encodeURIComponent(espacio)}`);
+              misObras = (a || []).map((x) => x.obra_id);
+            } catch (e) {
+              if (e.sinRed) throw e;
+            }
+          }
+          let cursor = Number(leerEstado("cursor") || 0);
+          let desdeSeq = Math.max(0, cursor - SOLAPE);
+          const hacenFalta = [];
+          const iguales = [];
+          for (; ; ) {
+            const lista = await nube.leer(
+              "cx_filas",
+              `select=tabla,id,modificado_en,borrado,seq,autor,dispositivo&espacio=eq.${encodeURIComponent(espacio)}&seq=gt.${desdeSeq}&order=seq.asc&limit=${POR_PAGINA}`
+            );
+            for (const r of lista || []) {
+              cursor = Math.max(cursor, Number(r.seq));
+              if (r.dispositivo && r.dispositivo === dispositivo) continue;
+              if (modo === "escritorio" && (r.autor === "escritorio" || !r.autor)) continue;
+              const local = modLocal(r.tabla, r.id);
+              if (local === void 0) continue;
+              const remoto = String(r.modificado_en || "");
+              if (r.borrado) {
+                if (local !== null && local <= remoto) hacenFalta.push(r);
+                else if (local === null) olvidar.run(r.tabla, r.id);
+                continue;
+              }
+              if (local === null || local < remoto) hacenFalta.push(r);
+              else if (local === remoto) iguales.push(r);
+            }
+            if (!lista || lista.length < POR_PAGINA) break;
+            desdeSeq = Number(lista[lista.length - 1].seq);
+          }
+          for (const r of iguales) apuntar.run(r.tabla, r.id, String(r.modificado_en || ""));
+          let entradas = 0;
+          const tocadas = /* @__PURE__ */ new Set();
+          for (let i = 0; i < hacenFalta.length; i += 40) {
+            const seqs = hacenFalta.slice(i, i + 40).map((r2) => r2.seq).join(",");
+            const filas = await nube.leer("cx_filas", `select=tabla,id,obras,persona_id,datos,modificado_en,borrado,seq,autor&espacio=eq.${encodeURIComponent(espacio)}&seq=in.(${seqs})`);
+            if (archivos2) {
+              for (const f of filas || []) if (!f.borrado) await archivos2.alBajar(f);
+            }
+            const r = aplicarFilas(filas || []);
+            entradas += r.entradas;
+            for (const t of r.tablas) tocadas.add(t);
+          }
+          ponerEstado("cursor", cursor);
+          const sello = ahora().toISOString();
+          ponerEstado("ultimaBajada", sello);
+          if (entradas) {
+            ponerEstado("ultimoRecibido", sello);
+            cambiarEstado({ ultimoRecibido: sello });
+          }
+          cambiarEstado({ ultimaBajada: sello });
+          if (tocadas.size) {
+            try {
+              alCambiar([...tocadas]);
+            } catch (e) {
+              registro(`alCambiar: ${e.message}`);
+            }
+          }
+          return { entradas, tablas: [...tocadas] };
+        }
+        function aplicarFilas(filas) {
+          const tablas = /* @__PURE__ */ new Set();
+          let entradas = 0;
+          const vivas = filas.filter((f) => !f.borrado);
+          const muertas = filas.filter((f) => f.borrado);
+          const grupos = /* @__PURE__ */ new Map();
+          for (const f of vivas) {
+            const k = modo === "escritorio" ? f.autor : "*";
+            grupos.set(k, [...grupos.get(k) || [], f]);
+          }
+          for (const [autor, lista] of grupos) {
+            let opciones = { tocarPersonas: true };
+            let obrasOk = null;
+            if (modo === "escritorio") {
+              obrasOk = obrasDeAutor(autor) || [];
+              opciones = { tablasPermitidas: PQ2.TABLAS_VUELTA, obrasPermitidas: obrasOk, tocarPersonas: false };
+            }
+            const paquete = { formato: PQ2.FORMATO, version: PQ2.VERSION, sentido: "nube", persona: { id: autor || "nube" }, tablas: {} };
+            for (const f of lista) {
+              let datos = { ...f.datos || {}, id: f.id };
+              if (modo === "escritorio") {
+                datos = PQ2.limpia(datos);
+                if (f.tabla === "notas" && datos.personaId !== autor) continue;
+              }
+              if (modo === "movil" && f.tabla === "personas" && modLocal("personas", f.id) !== null) {
+                delete datos.email;
+                delete datos.hashClave;
+              }
+              (paquete.tablas[f.tabla] = paquete.tablas[f.tabla] || []).push(datos);
+            }
+            if (!Object.keys(paquete.tablas).length) continue;
+            try {
+              PQ2.aplicar(db, paquete, opciones);
+            } catch (e) {
+              registro(`No se pudo meter lo de la nube: ${e.message}`);
+              continue;
+            }
+            for (const f of lista) {
+              const local = modLocal(f.tabla, f.id);
+              const remoto = String(f.modificado_en || "");
+              if (local === remoto) {
+                apuntar.run(f.tabla, f.id, remoto);
+                tablas.add(f.tabla);
+                entradas++;
+              }
+            }
+          }
+          if (muertas.length) {
+            db.exec("PRAGMA foreign_keys = OFF");
+            try {
+              for (const f of muertas) {
+                if (!tablasLocales.has(f.tabla) || !/^[A-Za-z]+$/.test(f.tabla)) continue;
+                if (modo === "escritorio") {
+                  if (!PQ2.TABLAS_VUELTA.includes(f.tabla)) continue;
+                  const fila = db.prepare(`SELECT * FROM "${f.tabla}" WHERE id = ?`).get(f.id);
+                  if (!fila) {
+                    olvidar.run(f.tabla, f.id);
+                    continue;
+                  }
+                  if (f.tabla === "notas" ? fila.personaId !== f.autor : !(obrasDeAutor(f.autor) || []).includes(fila.obraId)) continue;
+                }
+                const local = modLocal(f.tabla, f.id);
+                if (local === null) {
+                  olvidar.run(f.tabla, f.id);
+                  continue;
+                }
+                if (local > String(f.modificado_en || "")) continue;
+                db.prepare(`DELETE FROM "${f.tabla}" WHERE id = ?`).run(f.id);
+                olvidar.run(f.tabla, f.id);
+                tablas.add(f.tabla);
+                entradas++;
+              }
+            } finally {
+              db.exec("PRAGMA foreign_keys = ON");
+            }
+          }
+          return { entradas, tablas };
+        }
+        let enMarcha = null;
+        let otraVez = false;
+        async function ciclo() {
+          if (enMarcha) {
+            otraVez = true;
+            return enMarcha;
+          }
+          enMarcha = (async () => {
+            const res = { bajada: null, subida: null, error: null };
+            try {
+              cambiarEstado({ estado: "sincronizando" });
+              res.bajada = await bajar();
+              res.subida = await subir();
+              let n = 0;
+              try {
+                const p = pendientes();
+                n = p.suben.length + p.lapidas.length;
+              } catch {
+              }
+              cambiarEstado({ estado: "al-dia", error: null, pendientes: n });
+            } catch (e) {
+              res.error = e;
+              let n = estado.pendientes;
+              try {
+                const p = pendientes();
+                n = p.suben.length + p.lapidas.length;
+              } catch {
+              }
+              if (e.sinRed) cambiarEstado({ estado: "sin-red", error: null, pendientes: n });
+              else if (e.codigo === 401 || e.codigo === 403 && /JWT|token/i.test(e.message)) cambiarEstado({ estado: "sin-sesion", error: e.message, pendientes: n });
+              else {
+                cambiarEstado({ estado: "error", error: e.message, pendientes: n });
+                registro(`Sincronizaci\xF3n: ${e.message}`);
+              }
+            }
+            return res;
+          })();
+          try {
+            return await enMarcha;
+          } finally {
+            enMarcha = null;
+            if (otraVez) {
+              otraVez = false;
+              setTimeout(() => {
+                ciclo();
+              }, 0);
+            }
+          }
+        }
+        let reloj = null;
+        let aviso = null;
+        return {
+          ciclo,
+          subir,
+          bajar,
+          pendientes,
+          aplicarFilas,
+          estado: () => ({ ...estado }),
+          /** Tras guardar algo aquí: una vuelta enseguida (agrupando ráfagas). */
+          avisar(ms = 400) {
+            clearTimeout(aviso);
+            aviso = setTimeout(() => {
+              ciclo();
+            }, ms);
+          },
+          arrancar({ cada = 3e4 } = {}) {
+            clearInterval(reloj);
+            reloj = setInterval(() => {
+              ciclo();
+            }, cada);
+            return ciclo();
+          },
+          parar() {
+            clearInterval(reloj);
+            clearTimeout(aviso);
+            reloj = null;
+          },
+          obras: () => misObras,
+          marcarTiempoReal: (v) => cambiarEstado({ tiempoReal: Boolean(v) })
+        };
+      }
+      module.exports = { crearMotor };
+    }
+  });
+
+  // shared/sync/tiempoReal.js
+  var require_tiempoReal = __commonJS({
+    "shared/sync/tiempoReal.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      function crearTimbre({ url, clave, token = async () => null, alSonar, WebSocket: WS = globalThis.WebSocket, registro = () => {
+      } }) {
+        if (!WS) return { arrancar() {
+        }, parar() {
+        }, conectado: () => false };
+        const dir = `${String(url).replace(/^http/, "ws").replace(/\/+$/, "")}/realtime/v1/websocket?apikey=${encodeURIComponent(clave)}&vsn=1.0.0`;
+        const TEMA = "realtime:cx-filas";
+        let ws = null;
+        let ref = 0;
+        let latido = null;
+        let reintento = null;
+        let parado = true;
+        let unido = false;
+        let espera = 1e3;
+        const enviar = (m) => {
+          try {
+            if (ws && ws.readyState === 1) ws.send(JSON.stringify({ ...m, ref: String(++ref) }));
+          } catch {
+          }
+        };
+        async function abrir() {
+          if (parado) return;
+          let t = null;
+          try {
+            t = await token();
+          } catch {
+            t = null;
+          }
+          try {
+            ws = new WS(dir);
+          } catch (e) {
+            registro(`Timbre: ${e.message}`);
+            return volver();
+          }
+          ws.onopen = () => {
+            espera = 1e3;
+            enviar({
+              topic: TEMA,
+              event: "phx_join",
+              payload: {
+                config: { broadcast: { self: false }, presence: { key: "" }, postgres_changes: [{ event: "*", schema: "public", table: "cx_filas" }] },
+                ...t ? { access_token: t } : {}
+              }
+            });
+            clearInterval(latido);
+            latido = setInterval(async () => {
+              enviar({ topic: "phoenix", event: "heartbeat", payload: {} });
+              if (unido) {
+                try {
+                  const n = await token();
+                  if (n && n !== t) {
+                    t = n;
+                    enviar({ topic: TEMA, event: "access_token", payload: { access_token: n } });
+                  }
+                } catch {
+                }
+              }
+            }, 25e3);
+          };
+          ws.onmessage = (ev) => {
+            let m;
+            try {
+              m = JSON.parse(typeof ev.data === "string" ? ev.data : String(ev.data));
+            } catch {
+              return;
+            }
+            if (m.topic !== TEMA) return;
+            if (m.event === "phx_reply" && m.payload && m.payload.status === "ok" && !unido) unido = true;
+            else if (m.event === "system" && m.payload && m.payload.status === "ok" && m.payload.extension === "postgres_changes") {
+              registro("Timbre conectado.");
+              alSonar("conectado");
+            } else if (m.event === "phx_reply" && m.payload && m.payload.status === "error") registro(`Timbre: ${JSON.stringify(m.payload.response)}`);
+            else if (m.event === "postgres_changes") alSonar("cambio");
+            else if (m.event === "system" && m.payload && m.payload.status === "error") registro(`Timbre: ${m.payload.message}`);
+          };
+          ws.onclose = () => {
+            unido = false;
+            clearInterval(latido);
+            volver();
+          };
+          ws.onerror = () => {
+          };
+        }
+        function volver() {
+          if (parado) return;
+          clearTimeout(reintento);
+          reintento = setTimeout(abrir, espera);
+          espera = Math.min(espera * 2, 6e4);
+        }
+        return {
+          arrancar() {
+            if (!parado) return;
+            parado = false;
+            abrir();
+          },
+          parar() {
+            parado = true;
+            unido = false;
+            clearInterval(latido);
+            clearTimeout(reintento);
+            try {
+              if (ws) ws.close();
+            } catch {
+            }
+            ws = null;
+          },
+          /** Tras volver la red o entrar de nuevo: reconectar ya. */
+          reconectar() {
+            if (parado) return;
+            try {
+              if (ws) ws.close();
+            } catch {
+            }
+            espera = 500;
+          },
+          conectado: () => unido
+        };
+      }
+      module.exports = { crearTimbre };
+    }
+  });
+
+  // shared/sync/telefono.js
+  var require_telefono = __commonJS({
+    "shared/sync/telefono.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var { crearNube, claveNube, huellaConSal } = require_nube();
+      var { crearMotor } = require_motor2();
+      var { crearTimbre } = require_tiempoReal();
+      async function entrarConHuella(nube, email, hashClave) {
+        const clave = claveNube(hashClave);
+        if (!clave || !email) throw new Error("Sin huella para entrar en la nube.");
+        await nube.entrar(email, clave);
+        return nube.yo();
+      }
+      async function entrarConClave(nube, email, clave, { crypto: crypto2 } = {}) {
+        const sal = await nube.sal(email);
+        const huella = huellaConSal(clave, sal, crypto2 ? { crypto: crypto2 } : {});
+        try {
+          await nube.entrar(email, claveNube(huella));
+        } catch (e) {
+          if (e.codigo === 400 || e.codigo === 401) throw Object.assign(new Error("Correo o contrase\xF1a incorrectos."), { malaClave: true });
+          throw e;
+        }
+        return { yo: nube.yo(), huella };
+      }
+      function ponerMiFicha2(db, personaId, email, huella) {
+        const r = db.prepare("SELECT id FROM personas WHERE id = ?").get(personaId);
+        if (!r) return false;
+        db.prepare("UPDATE personas SET email = ?, hashClave = ? WHERE id = ?").run(String(email).trim().toLowerCase(), huella, personaId);
+        return true;
+      }
+      function crearSyncTelefono({
+        db,
+        config,
+        sesion = null,
+        alCambiarSesion = () => {
+        },
+        dispositivo,
+        desde = () => "",
+        fetch: f = globalThis.fetch,
+        WebSocket: WS = globalThis.WebSocket,
+        alCambiar = () => {
+        },
+        alEstado = () => {
+        },
+        registro = () => {
+        },
+        cada = 3e4,
+        conTimbre = true
+      }) {
+        const nube = crearNube({ url: config.url, clave: config.publishableKey, fetch: f, sesion, alCambiarSesion });
+        let motor = null;
+        let timbre = null;
+        let reloj = null;
+        function montar() {
+          const yo = nube.yo();
+          if (!yo) return null;
+          if (motor) return motor;
+          motor = crearMotor({
+            db,
+            nube,
+            modo: "movil",
+            espacio: yo.espacio,
+            dispositivo,
+            personaId: yo.personaId,
+            desde,
+            alCambiar,
+            alEstado,
+            registro
+          });
+          if (conTimbre) {
+            timbre = crearTimbre({
+              url: config.url,
+              clave: config.publishableKey,
+              token: () => nube.tokenParaTiempoReal(),
+              WebSocket: WS,
+              registro,
+              alSonar: (que) => {
+                if (que === "conectado") motor.marcarTiempoReal(true);
+                motor.avisar(150);
+              }
+            });
+          }
+          return motor;
+        }
+        return {
+          nube,
+          yo: () => nube.yo(),
+          entrarConHuella: async (email, hashClave) => {
+            const y = await entrarConHuella(nube, email, hashClave);
+            montar();
+            return y;
+          },
+          entrarConClave: async (email, clave, o) => {
+            const r = await entrarConClave(nube, email, clave, o);
+            montar();
+            return r;
+          },
+          montar,
+          motor: () => motor,
+          arrancar() {
+            if (!montar()) return Promise.resolve(null);
+            if (timbre) timbre.arrancar();
+            clearInterval(reloj);
+            reloj = setInterval(() => {
+              motor.ciclo();
+            }, cada);
+            return motor.ciclo();
+          },
+          ciclo: () => montar() ? motor.ciclo() : Promise.resolve(null),
+          avisar: (ms) => {
+            if (motor) motor.avisar(ms);
+          },
+          /** Al volver la red o la app al frente: una vuelta ya. */
+          despertar() {
+            if (!motor) return;
+            if (timbre && !timbre.conectado()) timbre.reconectar();
+            motor.avisar(50);
+          },
+          parar() {
+            clearInterval(reloj);
+            if (motor) motor.parar();
+            if (timbre) timbre.parar();
+          },
+          salir() {
+            this.parar();
+            nube.salir();
+            motor = null;
+            timbre = null;
+          },
+          estado: () => motor ? { ...motor.estado(), tiempoReal: Boolean(timbre && timbre.conectado()), conectado: true } : { estado: nube.yo() ? "parado" : "sin-sesion", conectado: false }
+        };
+      }
+      module.exports = { crearSyncTelefono, entrarConHuella, entrarConClave, ponerMiFicha: ponerMiFicha2 };
+    }
+  });
+
+  // cxobra/sync-publico.json
+  var require_sync_publico = __commonJS({
+    "cxobra/sync-publico.json"(exports, module) {
+      module.exports = {
+        url: "https://dgwqczsbzwblbhbhqkjd.supabase.co",
+        publishableKey: "sb_publishable_yi72T-CIiextCBGIEynNlQ_ChIlMNXB"
+      };
+    }
+  });
+
+  // cxobra/sync.js
+  var require_sync = __commonJS({
+    "cxobra/sync.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var { crearSyncTelefono, ponerMiFicha: ponerMiFicha2 } = require_telefono();
+      var PUBLICO = require_sync_publico();
+      var CLAVE_NUBE = "cxobra.nube";
+      var CLAVE_APARATO = "cxobra.aparato";
+      var leerLS2 = (k) => {
+        try {
+          return localStorage.getItem(k);
+        } catch {
+          return null;
+        }
+      };
+      var ponerLS2 = (k, v) => {
+        try {
+          if (v == null) localStorage.removeItem(k);
+          else localStorage.setItem(k, v);
+        } catch {
+        }
+      };
+      function aparato() {
+        let a = leerLS2(CLAVE_APARATO);
+        if (!a) {
+          a = `tel-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+          ponerLS2(CLAVE_APARATO, a);
+        }
+        return a;
+      }
+      function crearSyncCx2({ base, desde = () => "", alGuardar = () => {
+      } }) {
+        let sesion = null;
+        try {
+          sesion = JSON.parse(leerLS2(CLAVE_NUBE)) || null;
+        } catch {
+          sesion = null;
+        }
+        const avisar = (nombre, detalle) => {
+          try {
+            window.dispatchEvent(new CustomEvent(nombre, { detail: detalle }));
+          } catch {
+          }
+        };
+        const s = crearSyncTelefono({
+          db: base,
+          config: PUBLICO,
+          sesion,
+          alCambiarSesion: (x) => ponerLS2(CLAVE_NUBE, x ? JSON.stringify(x) : null),
+          dispositivo: aparato(),
+          desde,
+          alCambiar: (tablas) => {
+            alGuardar();
+            avisar("cxobra:datos", tablas);
+          },
+          alEstado: (e) => avisar("cxobra:sync", e),
+          registro: (t) => console.log(`Nube: ${t}`)
+        });
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "visible") s.despertar();
+        });
+        globalThis.addEventListener("online", () => s.despertar());
+        return {
+          ...s,
+          /** Entra sin preguntar con la huella de la ficha local. `null` si no puede. */
+          async entrarSolo(persona) {
+            if (s.yo() && s.yo().personaId === persona.id) return s.yo();
+            if (!persona.hashClave || !persona.email || /@sin-correo\.cxobra$/.test(persona.email)) return null;
+            try {
+              return await s.entrarConHuella(persona.email, persona.hashClave);
+            } catch (e) {
+              console.log(`Nube: no se pudo entrar solo (${e.message}).`);
+              return null;
+            }
+          },
+          /** Correo y contraseña: entra y deja en la ficha local la huella nueva. */
+          async entrarConClave(email, clave) {
+            const r = await s.entrarConClave(email, clave);
+            if (r.yo) ponerMiFicha2(base, r.yo.personaId, email, r.huella);
+            return r;
+          },
+          salir() {
+            s.salir();
+            ponerLS2(CLAVE_NUBE, null);
+          }
+        };
+      }
+      module.exports = { crearSyncCx: crearSyncCx2, ponerMiFicha: ponerMiFicha2 };
     }
   });
 
@@ -16790,6 +17938,13 @@ globalThis.CX_VARIANTE="cxobra";
             }
           ])
         ];
+        const MEDICIONES = {
+          bocas: { titulo: "Balanceo de caudales", plano: true, texto: "Bocas de impulsi\xF3n y retorno sobre el plano", retorno: "Retorno" },
+          extraccion: { titulo: "Caudales de extracci\xF3n", plano: true, texto: "Rejas de extracci\xF3n sobre el plano", retorno: "Extracci\xF3n" },
+          unidad: { titulo: "Caudal de la unidad", plano: false, texto: "El equipo es la boca: alta, media y baja en su ficha de puesta en marcha" },
+          temperatura: { titulo: "Temperatura de impulsi\xF3n", plano: false, texto: "Solo la T\xAA de impulsi\xF3n, en su ficha de puesta en marcha" },
+          ninguna: { titulo: null, plano: false, texto: "No lleva medici\xF3n de aire" }
+        };
         const FAMILIAS = [
           {
             codigo: "CARRIER_CHILLERS",
@@ -16798,7 +17953,8 @@ globalThis.CX_VARIANTE="cxobra";
             plantillas: ["BOMBA_DE_CALOR"],
             anexos: [{ plantilla: "CHECKLIST_ENFRIADORA" }, { plantilla: "ESTANQ_AGUA", enlace: "circuito" }],
             balanceo: false,
-            estanqueidad: "agua"
+            estanqueidad: "agua",
+            medicion: "ninguna"
           },
           {
             codigo: "CARRIER_ROOFTOPS",
@@ -16807,7 +17963,8 @@ globalThis.CX_VARIANTE="cxobra";
             plantillas: ["ROOFTOP"],
             anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR" }, { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" }],
             balanceo: true,
-            estanqueidad: "no"
+            estanqueidad: "no",
+            medicion: "bocas"
           },
           {
             codigo: "TROX_UTA",
@@ -16821,7 +17978,8 @@ globalThis.CX_VARIANTE="cxobra";
               { plantilla: "ESTANQ_AGUA", enlace: "circuito" }
             ],
             balanceo: true,
-            estanqueidad: "agua"
+            estanqueidad: "agua",
+            medicion: "bocas"
           },
           {
             codigo: "AIRLAN_FANCOIL",
@@ -16830,7 +17988,12 @@ globalThis.CX_VARIANTE="cxobra";
             plantillas: ["FAN_COIL_AGUA", "CASSETTE_AGUA"],
             anexos: [{ plantilla: "CHECKLIST_FANCOIL" }, { plantilla: "ESTANQ_AGUA", enlace: "circuito" }],
             balanceo: false,
-            estanqueidad: "agua"
+            estanqueidad: "agua",
+            /* El de conductos lleva difusores: una medida por boca, a velocidad alta.
+               El cassette es él mismo la boca (sus 3 velocidades, en su ficha PM). */
+            medicion: "bocas",
+            velocidadBocas: "alta",
+            medicionPlantilla: { CASSETTE_AGUA: "unidad" }
           },
           {
             codigo: "AIRLAN_HRU",
@@ -16839,7 +18002,8 @@ globalThis.CX_VARIANTE="cxobra";
             plantillas: ["RECUPERADOR_PLACAS", "RECUPERADOR_ROTATIVO"],
             anexos: [{ plantilla: "CHECKLIST_RECUPERADOR" }, { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" }],
             balanceo: true,
-            estanqueidad: "no"
+            estanqueidad: "no",
+            medicion: "bocas"
           },
           {
             codigo: "PANASONIC_VRF",
@@ -16848,7 +18012,12 @@ globalThis.CX_VARIANTE="cxobra";
             plantillas: ["VRF_UD_EXTERIOR", "VRF_UI_CONDUCTOS", "VRF_UI_CASSETTE"],
             anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR" }, { plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
             balanceo: false,
-            estanqueidad: "refrigerante"
+            estanqueidad: "refrigerante",
+            /* La exterior no se mide; la interior de conductos, por bocas a velocidad
+               alta; la de cassette, en su ficha PM. Sin plantilla, nada. */
+            medicion: "ninguna",
+            velocidadBocas: "alta",
+            medicionPlantilla: { VRF_UI_CONDUCTOS: "bocas", VRF_UI_CASSETTE: "unidad" }
           },
           {
             codigo: "PANASONIC_SPLIT",
@@ -16857,7 +18026,9 @@ globalThis.CX_VARIANTE="cxobra";
             plantillas: ["SPLIT_UD_INTERIOR", "SPLIT_UD_EXTERIOR"],
             anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR" }, { plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
             balanceo: false,
-            estanqueidad: "refrigerante"
+            estanqueidad: "refrigerante",
+            medicion: "temperatura",
+            medicionPlantilla: { SPLIT_UD_EXTERIOR: "ninguna" }
           },
           {
             codigo: "PANASONIC_CRACS",
@@ -16866,7 +18037,8 @@ globalThis.CX_VARIANTE="cxobra";
             plantillas: ["CRAC_UD_INTERIOR", "CRAC_UD_EXTERIOR"],
             anexos: [{ plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
             balanceo: false,
-            estanqueidad: "refrigerante"
+            estanqueidad: "refrigerante",
+            medicion: "ninguna"
           },
           {
             codigo: "WILO_GP",
@@ -16875,7 +18047,8 @@ globalThis.CX_VARIANTE="cxobra";
             plantillas: ["GRUPO_DE_BOMBEO"],
             anexos: [],
             balanceo: false,
-            estanqueidad: "no"
+            estanqueidad: "no",
+            medicion: "ninguna"
           },
           {
             codigo: "WILO_PUMPS",
@@ -16884,7 +18057,8 @@ globalThis.CX_VARIANTE="cxobra";
             plantillas: ["GRUPO_DE_BOMBEO"],
             anexos: [],
             balanceo: false,
-            estanqueidad: "no"
+            estanqueidad: "no",
+            medicion: "ninguna"
           },
           {
             codigo: "SP_PARKING",
@@ -16893,7 +18067,8 @@ globalThis.CX_VARIANTE="cxobra";
             plantillas: ["VENTILADOR_AXIAL", "VENTILADOR_EXTRACTOR", "VENT_COMPLETO"],
             anexos: [{ plantilla: "CHECKLIST_VENTILADOR" }],
             balanceo: false,
-            estanqueidad: "no"
+            estanqueidad: "no",
+            medicion: "extraccion"
           },
           {
             codigo: "SP_VENTILACION",
@@ -16902,7 +18077,8 @@ globalThis.CX_VARIANTE="cxobra";
             plantillas: ["VENTILADOR_EXTRACTOR", "VENT_COMPLETO", "VENTILADOR_AXIAL"],
             anexos: [{ plantilla: "CHECKLIST_VENTILADOR" }],
             balanceo: false,
-            estanqueidad: "no"
+            estanqueidad: "no",
+            medicion: "extraccion"
           },
           {
             codigo: "SP_PRESURIZACION",
@@ -16913,13 +18089,783 @@ globalThis.CX_VARIANTE="cxobra";
             plantillas: ["VENTILADOR_AXIAL", "VENTILADOR_EXTRACTOR", "VENT_COMPLETO"],
             anexos: [{ plantilla: "CHECKLIST_VENTILADOR" }],
             balanceo: false,
-            estanqueidad: "no"
+            estanqueidad: "no",
+            /* Mete aire en la escalera: caudal por reja, como la extracción, con su nombre. */
+            medicion: "extraccion",
+            tituloMedicion: "Caudales de presurizaci\xF3n"
           }
         ];
         (function exportar(API) {
           if (typeof module !== "undefined" && module.exports) module.exports = API;
           if (typeof window !== "undefined") window.PLANTILLAS_CBRE = API;
-        })({ PLANTILLAS, FAMILIAS });
+        })({ PLANTILLAS, FAMILIAS, MEDICIONES });
+      })();
+    }
+  });
+
+  // shared/commissioning/instrumentos.js
+  var require_instrumentos = __commonJS({
+    "shared/commissioning/instrumentos.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function iniciarInstrumentos() {
+        const DIAS_AVISO = 30;
+        const MAGNITUDES_INSTRUMENTO = {
+          caudal: "Caudal / velocidad de aire",
+          presion: "Presi\xF3n",
+          temperatura: "Temperatura",
+          electrica: "El\xE9ctrica",
+          humedad: "Humedad",
+          sonido: "Sonido",
+          otra: "Otra"
+        };
+        const ESTADOS_INSTRUMENTO = {
+          vigente: { nombre: "Vigente", clase: "bien" },
+          caducaPronto: { nombre: "Caduca pronto", clase: "aviso" },
+          caducado: { nombre: "CADUCADO", clase: "mal" },
+          sinCertificado: { nombre: "Sin certificado", clase: "mal" }
+        };
+        const llanoIn = (v) => String(v ?? "").trim();
+        const fechaIn = (v) => /^\d{4}-\d{2}-\d{2}/.test(llanoIn(v)) ? llanoIn(v).slice(0, 10) : null;
+        const hoyIn = () => ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
+        function diasEntreIn(a, b) {
+          return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 864e5);
+        }
+        function estadoInstrumento(inst = {}, fecha = null) {
+          const cad = fechaIn(inst.caducidad);
+          if (!cad) return "sinCertificado";
+          const dia = fechaIn(fecha) || hoyIn();
+          if (cad < dia) return "caducado";
+          if (!fechaIn(fecha) && diasEntreIn(dia, cad) <= DIAS_AVISO) return "caducaPronto";
+          return "vigente";
+        }
+        function normalizarInstrumento(e = {}) {
+          const d = {
+            nombre: llanoIn(e.nombre).slice(0, 120),
+            magnitud: MAGNITUDES_INSTRUMENTO[e.magnitud] ? e.magnitud : "otra",
+            marca: llanoIn(e.marca).slice(0, 80) || null,
+            modelo: llanoIn(e.modelo).slice(0, 80) || null,
+            numSerie: llanoIn(e.numSerie).slice(0, 80) || null,
+            certificado: llanoIn(e.certificado).slice(0, 120) || null,
+            entidad: llanoIn(e.entidad).slice(0, 120) || null,
+            fechaCalibracion: fechaIn(e.fechaCalibracion),
+            caducidad: fechaIn(e.caducidad),
+            archivoCertificado: llanoIn(e.archivoCertificado) || null,
+            notas: llanoIn(e.notas).slice(0, 1e3) || null
+          };
+          if (!d.nombre) return { ok: false, error: "El instrumento necesita un nombre (\xABAnem\xF3metro de hilo caliente\xBB)." };
+          if (!d.numSerie) return { ok: false, error: "Sin n\xBA de serie no se puede saber qu\xE9 aparato es." };
+          if (d.fechaCalibracion && d.caducidad && d.caducidad < d.fechaCalibracion) {
+            return { ok: false, error: "La caducidad es anterior a la calibraci\xF3n." };
+          }
+          return { ok: true, datos: d };
+        }
+        function descripcionInstrumento(inst = {}) {
+          const fecha = (f) => f ? `${f.slice(8, 10)}/${f.slice(5, 7)}/${f.slice(0, 4)}` : "";
+          return [
+            llanoIn(inst.nombre),
+            [inst.marca, inst.modelo].filter(Boolean).join(" "),
+            inst.numSerie ? `n\xBA ${inst.numSerie}` : "",
+            inst.certificado ? `cert. ${inst.certificado}` : "",
+            inst.caducidad ? `caduca ${fecha(inst.caducidad)}` : "sin certificado"
+          ].filter(Boolean).join(" \xB7 ");
+        }
+        function revisarInstrumentos(ids = [], catalogo = [], fechaEnsayo = null) {
+          const porId = catalogo instanceof Map ? catalogo : new Map((catalogo || []).map((i) => [i.id, i]));
+          const lista = [];
+          const avisos = [];
+          for (const id of [...new Set(ids || [])]) {
+            const inst = porId.get(id);
+            if (!inst) {
+              lista.push({ id, estado: "sinCertificado", descripcion: "Instrumento que ya no est\xE1 en la lista" });
+              avisos.push("Un instrumento citado ya no est\xE1 en la lista de instrumentos");
+              continue;
+            }
+            const estado = estadoInstrumento(inst, fechaEnsayo);
+            lista.push({ ...inst, estado, descripcion: descripcionInstrumento(inst) });
+            if (estado === "caducado") avisos.push(`${inst.nombre} n\xBA ${inst.numSerie}: calibraci\xF3n CADUCADA el d\xEDa del ensayo`);
+            if (estado === "sinCertificado") avisos.push(`${inst.nombre} n\xBA ${inst.numSerie}: sin certificado de calibraci\xF3n`);
+          }
+          return { lista, avisos, malos: lista.filter((x) => x.estado === "caducado" || x.estado === "sinCertificado").length };
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.INSTRUMENTOS_PM = API;
+        })({
+          DIAS_AVISO,
+          MAGNITUDES: MAGNITUDES_INSTRUMENTO,
+          ESTADOS: ESTADOS_INSTRUMENTO,
+          estado: estadoInstrumento,
+          normalizar: normalizarInstrumento,
+          descripcion: descripcionInstrumento,
+          revisar: revisarInstrumentos
+        });
+      })();
+    }
+  });
+
+  // shared/commissioning/fichas.js
+  var require_fichas = __commonJS({
+    "shared/commissioning/fichas.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function iniciarFichasPM() {
+        const catalogoFx = typeof __require !== "undefined" ? require_plantillasCbre() : window.PLANTILLAS_CBRE;
+        const instrumentosFx = typeof __require !== "undefined" ? require_instrumentos() : window.INSTRUMENTOS_PM;
+        const TOLERANCIAS_DEFECTO = { total: null, boca: null, psRefrigerante: null, caidaAdmisible: null };
+        const NOMBRE_TOLERANCIA = {
+          total: "tolerancia de caudal total",
+          boca: "tolerancia por boca",
+          psRefrigerante: "presi\xF3n m\xEDnima de prueba del refrigerante",
+          caidaAdmisible: "ca\xEDda de presi\xF3n admisible"
+        };
+        const PATM = 1.013;
+        const RESULTADOS = {
+          apto: { nombre: "APTO", orden: 1 },
+          aRevisar: { nombre: "A REVISAR", orden: 2 },
+          noApto: { nombre: "NO APTO", orden: 3 }
+        };
+        const ESTADOS_FICHA = {
+          sinFicha: { nombre: "Sin ficha", orden: 0 },
+          sinEmpezar: { nombre: "Sin empezar", orden: 1 },
+          pendiente: { nombre: "Pendiente", orden: 2 },
+          completa: { nombre: "Completa", orden: 3 },
+          firmada: { nombre: "Firmada", orden: 4 }
+        };
+        const CLASES_FICHA = {
+          checklist: { nombre: "Checklist", orden: 1 },
+          fichaPM: { nombre: "Ficha de puesta en marcha", orden: 2 },
+          balanceo: { nombre: "Balanceo de caudales", orden: 3 },
+          estanqAgua: { nombre: "Estanqueidad \xB7 agua", orden: 4 },
+          estanqRefrigerante: { nombre: "Estanqueidad \xB7 refrigerante", orden: 5 }
+        };
+        const ORIGENES = {
+          manual: "Tecleado",
+          equipo: "De la tabla de equipos",
+          plantilla: "Valor por defecto de la plantilla",
+          importacion: "Importado",
+          copia: "Copiado de otro equipo",
+          prueba: "DATO DE PRUEBA"
+        };
+        const ROLES_FIRMA = {
+          CBRE: "Jefe de obra (CBRE)"
+        };
+        const llanoFx = (v) => String(v ?? "").trim();
+        function numFx(v) {
+          if (v === null || v === void 0) return null;
+          if (typeof v === "number") return Number.isFinite(v) ? v : null;
+          const t = String(v).trim();
+          if (!t) return null;
+          const n = Number(t.replace(/\s/g, "").replace(",", "."));
+          return Number.isFinite(n) ? n : null;
+        }
+        const redFx = (v, d = 4) => {
+          if (v === null || !Number.isFinite(v)) return null;
+          const f = 10 ** d;
+          return Math.round(v * f) / f;
+        };
+        const igualesFx = (a, b) => a !== null && b !== null && Math.abs(a - b) < 1e-9;
+        const hayValorFx = (v) => v !== null && v !== void 0 && llanoFx(v) !== "";
+        function tolerancias(config = {}) {
+          const t = { ...TOLERANCIAS_DEFECTO };
+          const c = config || {};
+          const tot = numFx(c.tolTotal);
+          const boca = numFx(c.tolBoca);
+          const ps = numFx(c.psRefrigerante);
+          const caida = numFx(c.caidaAdmisible);
+          if (tot !== null && tot > 0 && tot < 1) t.total = tot;
+          if (boca !== null && boca > 0 && boca < 1) t.boca = boca;
+          if (ps !== null && ps > 0) t.psRefrigerante = ps;
+          if (caida !== null && caida >= 0) t.caidaAdmisible = caida;
+          return t;
+        }
+        function numerarChecklist(plantilla) {
+          if (!plantilla || !(plantilla.secciones || []).some((s) => s.tipo === "checklist")) return plantilla;
+          let k = 0;
+          const secciones = plantilla.secciones.map((s) => {
+            if (s.tipo !== "checklist") return s;
+            k += 1;
+            return { ...s, numero: String(k), puntos: (s.puntos || []).map((p, j) => ({ ...p, numero: `${k}.${j + 1}` })) };
+          });
+          return { ...plantilla, secciones };
+        }
+        function indicePlantillas(lista) {
+          const m = /* @__PURE__ */ new Map();
+          for (const p of lista || catalogoFx && catalogoFx.PLANTILLAS || []) {
+            const previa = m.get(p.codigo);
+            if (!previa || (p.version || 1) > (previa.version || 1)) m.set(p.codigo, numerarChecklist(p));
+          }
+          return m;
+        }
+        function puntosDePlantilla(plantilla) {
+          const fuera = [];
+          for (const s of plantilla && plantilla.secciones || []) {
+            for (const p of s.puntos || []) fuera.push({ ...p, seccion: s });
+          }
+          return fuera;
+        }
+        function esObligatorio(punto) {
+          const tipoSec = punto.seccion ? punto.seccion.tipo : null;
+          if (punto.obligatorio === true) return true;
+          if (punto.obligatorio === false) return false;
+          if (tipoSec === "parametros") return punto.medido === "obligatorio";
+          if (tipoSec === "checklist") return true;
+          if (tipoSec === "pruebaPresion") return ["numero", "fecha", "okNoOk", "siNo"].includes(punto.tipo);
+          return false;
+        }
+        function evaluarParametro(punto, valor = {}, tol = TOLERANCIAS_DEFECTO) {
+          const p = numFx(valor.p);
+          const f = numFx(valor.f);
+          const m = numFx(valor.m);
+          const ref = p !== null ? p : f;
+          const fuente = p !== null ? "proyecto" : f !== null ? "fabricante" : null;
+          let desv = null;
+          if (m !== null && ref !== null && ref !== 0) desv = (m - ref) / ref;
+          const cualTol = punto.tolerancia === "boca" ? "boca" : "total";
+          const limite = tol[cualTol] ?? null;
+          let resultado = null;
+          let copiado = false;
+          let sinTolerancia = null;
+          if (m !== null && ref !== null && igualesFx(m, ref)) {
+            copiado = true;
+            resultado = valor.revisado ? punto.resultado ? "apto" : null : "aRevisar";
+          } else if (punto.resultado && desv !== null) {
+            if (limite === null) sinTolerancia = cualTol;
+            else resultado = Math.abs(desv) <= limite + 1e-12 ? "apto" : "noApto";
+          }
+          return {
+            p,
+            f,
+            m,
+            ref,
+            fuente,
+            desv: redFx(desv),
+            limite: punto.resultado ? limite : null,
+            resultado,
+            copiado,
+            revisado: Boolean(valor.revisado),
+            sinTolerancia
+          };
+        }
+        function respuesta(v) {
+          const t = llanoFx(v).toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+          if (!t) return null;
+          if (t === "SI" || t === "S") return "si";
+          if (t === "NO" || t === "N") return "no";
+          if (t === "NA" || t === "N/A" || t === "NO APLICA") return "na";
+          if (t === "OK") return "ok";
+          if (t === "NO OK" || t === "NOOK" || t === "NO_OK") return "noOk";
+          return null;
+        }
+        function evaluarBocasFicha(filas = [], tol = TOLERANCIAS_DEFECTO, proyectoSistema = null) {
+          const puntoBoca = { resultado: true, tolerancia: "boca" };
+          const evaluadas = (filas || []).map((b) => ({
+            ...b,
+            ...evaluarParametro(puntoBoca, { p: b.p, m: b.m, revisado: b.revisado }, tol)
+          }));
+          const conProyecto = evaluadas.filter((b) => b.p !== null);
+          const medidas = conProyecto.filter((b) => b.m !== null);
+          const sumP = conProyecto.reduce((s, b) => s + b.p, 0);
+          const sumM = medidas.reduce((s, b) => s + b.m, 0);
+          const refTotal = numFx(proyectoSistema) ?? sumP;
+          let total = null;
+          if (conProyecto.length && medidas.length === conProyecto.length) {
+            total = evaluarParametro({ resultado: true, tolerancia: "total" }, { p: refTotal, m: sumM }, tol);
+            if (total.copiado && !medidas.every((b) => b.copiado)) {
+              total = { ...total, copiado: false, resultado: "apto" };
+            }
+          }
+          return {
+            filas: evaluadas,
+            bocas: conProyecto.length,
+            medidas: medidas.length,
+            sinMedir: conProyecto.length - medidas.length,
+            proyecto: conProyecto.length ? sumP : null,
+            proyectoSistema: numFx(proyectoSistema),
+            medido: medidas.length ? sumM : null,
+            total
+          };
+        }
+        function pruebaRefrigerante(v = {}, tol = TOLERANCIAS_DEFECTO) {
+          const pi = numFx(v.p_inicial);
+          const pf = numFx(v.p_final);
+          const ti = numFx(v.t_inicial);
+          const tf = numFx(v.t_final);
+          const ps = numFx(v.p_minima) ?? tol.psRefrigerante ?? null;
+          const adm = numFx(v.caida_admisible) ?? tol.caidaAdmisible ?? null;
+          if ([pi, pf, ti, tf].some((x) => x === null)) {
+            return { pi, pf, ti, tf, ps, admisible: adm, pfCorregida: null, caida: null, resultado: null, sinTolerancia: null };
+          }
+          const pfCorregida = (pf + PATM) * (ti + 273.15) / (tf + 273.15) - PATM;
+          const caida = Math.round((pi - pfCorregida) * 10) / 10;
+          const sinTolerancia = ps === null ? "psRefrigerante" : adm === null ? "caidaAdmisible" : null;
+          const resultado = sinTolerancia ? null : pi >= ps - 1e-9 && caida <= adm + 1e-9 ? "apto" : "noApto";
+          return { pi, pf, ti, tf, ps, admisible: adm, pfCorregida: redFx(pfCorregida, 2), caida, resultado, sinTolerancia };
+        }
+        const peorFx = (a, b) => {
+          if (!a) return b || null;
+          if (!b) return a;
+          return RESULTADOS[a].orden >= RESULTADOS[b].orden ? a : b;
+        };
+        function fichaVacia(cabecera = {}) {
+          return {
+            cabecera: {
+              fechaEnsayo: null,
+              realizadoPor: cabecera.realizadoPor || null,
+              responsable: cabecera.responsable || null,
+              condiciones: cabecera.condiciones || "NOMINALES",
+              aparatos: cabecera.aparatos || null,
+              /* Los instrumentos de medida usados (ids de la lista de instrumentos). */
+              instrumentos: Array.isArray(cabecera.instrumentos) ? [...cabecera.instrumentos] : [],
+              actaFabricante: null,
+              tecnicoFabricante: null
+            },
+            valores: {},
+            bocas: { impulsion: [], retorno: [] },
+            fotos: [],
+            anexosPdf: [],
+            observaciones: "",
+            /* Las respuestas copiadas de otro equipo en la rejilla: de cuál, quién y cuándo. */
+            copias: []
+          };
+        }
+        function normalizarFicha(plantilla, entrada = {}, opciones = {}) {
+          if (opciones.descartarPrueba) return quitarPrueba(normalizarFicha(plantilla, entrada)).ficha;
+          const base = fichaVacia();
+          const e = entrada || {};
+          const cab = e.cabecera || {};
+          for (const k of Object.keys(base.cabecera)) {
+            if (k === "instrumentos") continue;
+            if (cab[k] !== void 0) base.cabecera[k] = hayValorFx(cab[k]) ? llanoFx(cab[k]) : null;
+          }
+          base.cabecera.instrumentos = [...new Set((Array.isArray(cab.instrumentos) ? cab.instrumentos : []).map(llanoFx).filter(Boolean))].slice(0, 20);
+          if (base.cabecera.fechaEnsayo && !/^\d{4}-\d{2}-\d{2}$/.test(base.cabecera.fechaEnsayo)) {
+            base.cabecera.fechaEnsayo = null;
+          }
+          const origen = (o) => o && ORIGENES[o] ? o : "manual";
+          const valores = e.valores || {};
+          for (const punto of puntosDePlantilla(plantilla)) {
+            const v = valores[punto.codigo];
+            if (!v || typeof v !== "object") continue;
+            if (punto.seccion.tipo === "parametros") {
+              const fila = {};
+              for (const k of ["p", "f", "m"]) {
+                const n = numFx(v[k]);
+                if (n !== null) fila[k] = n;
+              }
+              const mp = numFx(v.mp);
+              if (mp !== null && fila.m === void 0) {
+                fila.mp = mp;
+                if (v.mpEntero) fila.mpEntero = true;
+              }
+              if (!Object.keys(fila).length) continue;
+              fila.o = origen(v.o);
+              if (v.revisado && fila.m !== void 0) fila.revisado = v.revisado;
+              if (v.pv && fila.m !== void 0) fila.pv = llanoFx(v.pv);
+              base.valores[punto.codigo] = fila;
+            } else {
+              let val = v.v;
+              if (punto.tipo === "numero") val = numFx(val);
+              else if (["siNoNa", "okNoOk", "siNo"].includes(punto.tipo)) val = respuesta(val);
+              else if (punto.tipo === "fecha") val = /^\d{4}-\d{2}-\d{2}/.test(llanoFx(val)) ? llanoFx(val).slice(0, 16) : null;
+              else val = hayValorFx(val) ? llanoFx(val) : null;
+              if (val === null) continue;
+              base.valores[punto.codigo] = { v: val, o: origen(v.o) };
+            }
+          }
+          for (const circuito of ["impulsion", "retorno"]) {
+            const filas = e.bocas && Array.isArray(e.bocas[circuito]) ? e.bocas[circuito] : [];
+            base.bocas[circuito] = filas.slice(0, 200).map((b) => ({
+              local: hayValorFx(b && b.local) ? llanoFx(b.local) : null,
+              terminal: hayValorFx(b && b.terminal) ? llanoFx(b.terminal) : null,
+              p: numFx(b && b.p),
+              m: numFx(b && b.m),
+              compuerta: hayValorFx(b && b.compuerta) ? llanoFx(b.compuerta) : null,
+              o: origen(b && b.o),
+              ...b && b.revisado && numFx(b.m) !== null ? { revisado: b.revisado } : {},
+              ...b && b.pv && numFx(b.m) !== null ? { pv: llanoFx(b.pv) } : {},
+              ...b && numFx(b.mp) !== null && numFx(b.m) === null ? { mp: numFx(b.mp), ...b.mpEntero ? { mpEntero: true } : {} } : {}
+            }));
+          }
+          base.fotos = (Array.isArray(e.fotos) ? e.fotos : []).filter((f) => f && hayValorFx(f.ruta)).slice(0, 8).map((f) => ({ ruta: llanoFx(f.ruta), nombre: llanoFx(f.nombre) || null }));
+          base.anexosPdf = (Array.isArray(e.anexosPdf) ? e.anexosPdf : []).filter((f) => f && hayValorFx(f.ruta) && /\.pdf$/i.test(llanoFx(f.ruta))).slice(0, 6).map((f) => ({ ruta: llanoFx(f.ruta), nombre: llanoFx(f.nombre) || null }));
+          base.observaciones = llanoFx(e.observaciones).slice(0, 4e3);
+          base.copias = (Array.isArray(e.copias) ? e.copias : []).filter((c) => c && typeof c === "object" && Array.isArray(c.puntos)).slice(-30).map((c) => ({
+            de: hayValorFx(c.de) ? llanoFx(c.de) : null,
+            clave: hayValorFx(c.clave) ? llanoFx(c.clave) : null,
+            puntos: c.puntos.map(llanoFx).filter(Boolean).slice(0, 300),
+            pisadas: Number.isInteger(c.pisadas) && c.pisadas > 0 ? c.pisadas : 0,
+            por: hayValorFx(c.por) ? llanoFx(c.por) : null,
+            personaId: hayValorFx(c.personaId) ? llanoFx(c.personaId) : null,
+            en: hayValorFx(c.en) ? llanoFx(c.en) : null
+          }));
+          return base;
+        }
+        function quitarPrueba(ficha) {
+          let descartados = 0;
+          const valores = {};
+          for (const [k, v] of Object.entries(ficha.valores || {})) {
+            if (v && v.o === "prueba") {
+              descartados += 1;
+              continue;
+            }
+            valores[k] = v;
+          }
+          const bocas = {};
+          for (const [c, filas] of Object.entries(ficha.bocas || {})) {
+            bocas[c] = (filas || []).filter((b) => {
+              if (b && b.o === "prueba") {
+                descartados += 1;
+                return false;
+              }
+              return true;
+            });
+          }
+          return { ficha: { ...ficha, valores, bocas }, descartados };
+        }
+        function evaluarFicha(plantilla, datos, opciones = {}) {
+          const tol = tolerancias(opciones.config);
+          const d = normalizarFicha(plantilla, datos);
+          const firmas = Array.isArray(opciones.firmas) ? opciones.firmas : [];
+          const faltan = [];
+          const avisos = [];
+          let obligatorios = 0;
+          let rellenos = 0;
+          let resultado = null;
+          let algoEscrito = false;
+          let datosPrueba = false;
+          let sinConfirmar = 0;
+          const sinTol = /* @__PURE__ */ new Set();
+          const secciones = [];
+          for (const s of plantilla.secciones || []) {
+            const sec = { ...s, puntos: [] };
+            for (const punto of s.puntos || []) {
+              const p = { ...punto, seccion: s };
+              const v = d.valores[punto.codigo] || null;
+              if (v && v.o !== "equipo" && v.o !== "plantilla") algoEscrito = true;
+              if (v && v.o === "prueba") datosPrueba = true;
+              const ob = esObligatorio(p);
+              const fila = { ...punto, obligatorio: ob, origen: v ? v.o : null };
+              if (s.tipo === "parametros") {
+                const ev = evaluarParametro(punto, v || {}, tol);
+                Object.assign(fila, ev);
+                if (ev.sinTolerancia) sinTol.add(ev.sinTolerancia);
+                if (ob) {
+                  obligatorios += 1;
+                  if (ev.m !== null) rellenos += 1;
+                  else faltan.push(`Medido: ${punto.etiqueta}`);
+                  if (ev.m !== null && ev.ref === null) faltan.push(`Proyecto o fabricante: ${punto.etiqueta}`);
+                }
+                if (ev.resultado === "aRevisar") {
+                  sinConfirmar += 1;
+                  avisos.push(`${punto.etiqueta}: medido id\xE9ntico al de ${ev.fuente} (\xBFcopiado?)`);
+                }
+                resultado = peorFx(resultado, ev.resultado);
+              } else {
+                const val = v ? v.v : null;
+                fila.valor = val;
+                if (ob) {
+                  obligatorios += 1;
+                  if (val !== null && val !== void 0) rellenos += 1;
+                  else faltan.push(s.tipo === "checklist" ? `Respuesta ${punto.numero || punto.codigo}` : punto.etiqueta);
+                }
+                if (val === "no" && s.tipo === "checklist") {
+                  resultado = peorFx(resultado, "noApto");
+                  if (!d.observaciones) faltan.push(`Explicar en observaciones el \xABNo\xBB de ${punto.numero || punto.codigo}`);
+                }
+                if (val === "noOk") resultado = peorFx(resultado, "noApto");
+                if (val === "si" && punto.tipo === "siNo" && /fuga/i.test(punto.codigo)) resultado = peorFx(resultado, "noApto");
+              }
+              sec.puntos.push(fila);
+            }
+            if (s.tipo === "bocas") {
+              sec.circuitos = {};
+              const limites = s.bocas || {};
+              for (const c of ["impulsion", "retorno"]) {
+                if (!limites[c]) continue;
+                const sistema = d.valores[`caudal_proyecto_${c}`];
+                const ev = evaluarBocasFicha(d.bocas[c], tol, sistema ? sistema.v : null);
+                sec.circuitos[c] = ev;
+                if (d.bocas[c].length) algoEscrito = true;
+                if (d.bocas[c].some((b) => b.o === "prueba")) datosPrueba = true;
+                obligatorios += ev.bocas;
+                rellenos += ev.medidas;
+                if (ev.sinMedir) faltan.push(`${ev.sinMedir} boca(s) de ${c === "impulsion" ? "impulsi\xF3n" : "retorno"} sin medir`);
+                for (const b of ev.filas) {
+                  if (b.resultado === "aRevisar") sinConfirmar += 1;
+                  if (b.sinTolerancia) sinTol.add(b.sinTolerancia);
+                  resultado = peorFx(resultado, b.resultado);
+                }
+                if (ev.total) {
+                  if (ev.total.sinTolerancia) sinTol.add(ev.total.sinTolerancia);
+                  resultado = peorFx(resultado, ev.total.resultado);
+                }
+              }
+              const total = Object.values(sec.circuitos).reduce((n, c) => n + c.bocas, 0);
+              if (plantilla.clase === "balanceo" && total === 0) {
+                faltan.push("No hay ninguna boca con caudal de proyecto");
+              }
+              if (Object.values(sec.circuitos).some((c) => c.filas.some((b) => b.resultado === "aRevisar"))) {
+                avisos.push("Hay bocas con el medido id\xE9ntico al de proyecto (\xBFcopiado?)");
+              }
+            }
+            if (s.tipo === "pruebaPresion" && plantilla.clase === "estanqRefrigerante") {
+              const plano = Object.fromEntries(Object.entries(d.valores).map(([k, v]) => [k, v.v]));
+              sec.prueba = pruebaRefrigerante(plano, tol);
+              if (sec.prueba.sinTolerancia) sinTol.add(sec.prueba.sinTolerancia);
+              resultado = peorFx(resultado, sec.prueba.resultado);
+            }
+            if (s.tipo === "fotos" && /^estanq/.test(plantilla.clase) && !d.fotos.length && algoEscrito) {
+              avisos.push("Sin fotograf\xEDas de los man\xF3metros");
+            }
+            secciones.push(sec);
+          }
+          const revInst = instrumentosFx ? instrumentosFx.revisar(d.cabecera.instrumentos, opciones.instrumentos || [], d.cabecera.fechaEnsayo) : { lista: [], avisos: [], malos: 0 };
+          avisos.push(...revInst.avisos);
+          const mide = secciones.some((s) => ["parametros", "bocas", "pruebaPresion"].includes(s.tipo));
+          if (mide && algoEscrito && !d.cabecera.instrumentos.length && !d.cabecera.aparatos) {
+            avisos.push("No consta con qu\xE9 instrumentos se ha medido");
+          }
+          if (!d.cabecera.fechaEnsayo) faltan.push("Fecha de ensayo");
+          if (!d.cabecera.realizadoPor) faltan.push("Realizado por");
+          for (const t of sinTol) faltan.push(`La ${NOMBRE_TOLERANCIA[t]} de la obra (la pone el jefe de obra)`);
+          if (datosPrueba) avisos.unshift("Lleva DATOS DE PRUEBA: no se puede firmar");
+          let medidosPrueba = 0;
+          for (const v of Object.values(d.valores)) if (v && v.mp !== void 0) medidosPrueba += 1;
+          for (const c of Object.values(d.bocas)) for (const b of c || []) if (b && b.mp !== void 0) medidosPrueba += 1;
+          const completa = obligatorios > 0 ? faltan.length === 0 : algoEscrito && faltan.length === 0;
+          const firmada = firmas.some((f) => f && f.rol === "CBRE");
+          let estado;
+          if (firmada) estado = "firmada";
+          else if (!algoEscrito && !d.cabecera.fechaEnsayo) estado = "sinEmpezar";
+          else if (completa) estado = "completa";
+          else estado = "pendiente";
+          if (completa && !resultado) resultado = "apto";
+          if (!completa && resultado === "apto") resultado = null;
+          let motivoNoFirmable = null;
+          if (datosPrueba) motivoNoFirmable = "Lleva datos de prueba.";
+          else if (!completa) motivoNoFirmable = `Falta: ${faltan.slice(0, 3).join(", ")}${faltan.length > 3 ? "\u2026" : ""}.`;
+          else if (sinConfirmar) motivoNoFirmable = `Hay ${sinConfirmar} medido(s) \xABA REVISAR\xBB sin confirmar.`;
+          else if (opciones.bloquearInstrumentos && revInst.malos) motivoNoFirmable = "Hay instrumentos caducados o sin certificado.";
+          return {
+            plantilla: { codigo: plantilla.codigo, version: plantilla.version || 1, clase: plantilla.clase, titulo: plantilla.titulo },
+            datos: d,
+            secciones,
+            medidos: { obligatorios, rellenos },
+            faltan,
+            avisos,
+            resultado,
+            datosPrueba,
+            medidosPrueba,
+            sinConfirmar,
+            completa,
+            estado,
+            firmas,
+            firmable: !firmada && !motivoNoFirmable,
+            motivoNoFirmable,
+            tolerancias: tol,
+            sinTolerancia: [...sinTol],
+            instrumentos: revInst.lista
+          };
+        }
+        const sinAcentosFx = (v) => llanoFx(v).toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+        function familiaDe(equipo = {}, familias) {
+          const lista = familias || catalogoFx && catalogoFx.FAMILIAS || [];
+          if (equipo.familia) {
+            const f = lista.find((x) => x.codigo === equipo.familia);
+            if (f) return f;
+          }
+          const grupo = sinAcentosFx(equipo.grupo).replace(/[^A-Z0-9& ]/g, " ").replace(/\s+/g, " ");
+          if (!grupo) return null;
+          let mejor = null;
+          let largo = 0;
+          for (const f of lista) {
+            for (const nombre of [f.nombre, ...f.alias || []]) {
+              const n = sinAcentosFx(nombre).replace(/[^A-Z0-9& ]/g, " ").replace(/\s+/g, " ");
+              if (grupo.includes(n) && n.length > largo) {
+                mejor = f;
+                largo = n.length;
+              }
+            }
+          }
+          return mejor;
+        }
+        const PISTAS_PLANTILLA = [
+          [/\bUE\b|EXTERIOR|CONDENSADORA/, "EXTERIOR"],
+          [/\bUI\b|INTERIOR|EVAPORADORA/, "INTERIOR"],
+          [/CASSETTE/, "CASSETTE"],
+          [/CONDUCT/, "CONDUCTOS"],
+          [/ROTATIV/, "ROTATIVO"],
+          [/ESTATIC|PLACAS/, "ESTATICO|PLACAS"],
+          [/AXIAL/, "AXIAL"],
+          [/PARKING|EXTRACTOR/, "EXTRACTOR"]
+        ];
+        function plantillaPorDefecto(equipo = {}, familia, plantillas) {
+          if (!familia || !familia.plantillas || !familia.plantillas.length) return null;
+          if (familia.plantillas.length === 1) return familia.plantillas[0];
+          const texto = sinAcentosFx([equipo.denominacion, equipo.tag, equipo.instalacion, equipo.modelo].filter(Boolean).join(" "));
+          const indice = plantillas instanceof Map ? plantillas : indicePlantillas(plantillas);
+          let mejor = null;
+          let puntos = 0;
+          for (const codigo of familia.plantillas) {
+            const nombre = sinAcentosFx((indice.get(codigo) || {}).nombre || codigo);
+            let n = 0;
+            for (const [pista, palabra] of PISTAS_PLANTILLA) {
+              if (pista.test(texto) && new RegExp(palabra).test(nombre)) n += 1;
+            }
+            if (n > puntos) {
+              puntos = n;
+              mejor = codigo;
+            }
+          }
+          return mejor;
+        }
+        function requeridas(equipo = {}, familia, plantillas) {
+          if (!familia) return [];
+          const indice = plantillas instanceof Map ? plantillas : indicePlantillas(plantillas);
+          const pm = equipo.plantillaPM || plantillaPorDefecto(equipo, familia, indice);
+          const nombrePM = sinAcentosFx((indice.get(pm) || {}).nombre || pm || "");
+          const exterior = /EXTERIOR/.test(nombrePM);
+          const fuera = [];
+          const anexo = (a) => {
+            const pl = indice.get(a.plantilla);
+            if (!pl) return null;
+            if (a.soloSi && !nombrePM.includes(sinAcentosFx(a.soloSi))) return null;
+            const enlace = a.enlace || "equipo";
+            let clave = `equipo:${equipo.id}`;
+            let motivo = null;
+            if (enlace === "circuito") {
+              const c = llanoFx(equipo.circuito);
+              clave = c ? `circuito:${sinAcentosFx(c)}` : null;
+              if (!c) motivo = "El equipo no tiene circuito asignado.";
+            } else if (enlace === "refrigerante") {
+              const tagUE = exterior ? llanoFx(equipo.tag) : llanoFx(equipo.equipoAsociado);
+              clave = tagUE ? `refrigerante:${sinAcentosFx(tagUE)}` : null;
+              if (!tagUE) motivo = "Unidad interior sin exterior asociada.";
+            }
+            return { plantilla: pl.codigo, clase: pl.clase, nombre: pl.nombre, enlace, clave, motivo };
+          };
+          const anexos = (familia.anexos || []).map(anexo).filter(Boolean);
+          fuera.push(...anexos.filter((a) => a.clase === "checklist"));
+          if (pm && indice.get(pm)) {
+            fuera.push({ plantilla: pm, clase: "fichaPM", nombre: indice.get(pm).nombre, enlace: "equipo", clave: `equipo:${equipo.id}`, motivo: null });
+          } else {
+            fuera.push({ plantilla: null, clase: "fichaPM", nombre: "Ficha de puesta en marcha", enlace: "equipo", clave: null, motivo: "Falta elegir la plantilla de la ficha." });
+          }
+          fuera.push(...anexos.filter((a) => a.clase !== "checklist"));
+          return fuera;
+        }
+        function estadoEquipo(equipo, familia, plantillas, buscar) {
+          const lista = requeridas(equipo, familia, plantillas).map((r) => {
+            const ficha = r.clave && r.plantilla ? buscar(r.clave, r.plantilla) : null;
+            return {
+              ...r,
+              fichaId: ficha ? ficha.id : null,
+              estado: ficha ? ficha.estado : "sinFicha",
+              resultado: ficha ? ficha.resultado : null,
+              medidos: ficha ? ficha.medidos : null,
+              datosPrueba: ficha ? Boolean(ficha.datosPrueba) : false,
+              medidosPrueba: ficha ? ficha.medidosPrueba || 0 : 0
+            };
+          });
+          const n = lista.length;
+          const firmadas = lista.filter((x) => x.estado === "firmada").length;
+          const completas = lista.filter((x) => x.estado === "completa" || x.estado === "firmada").length;
+          let resultado = null;
+          for (const x of lista) resultado = peorFx(resultado, x.resultado === "apto" ? null : x.resultado);
+          if (!resultado && n && completas === n) resultado = "apto";
+          let estado = "sinEmpezar";
+          if (n && firmadas === n) estado = "firmada";
+          else if (n && completas === n) estado = "completa";
+          else if (lista.some((x) => x.estado !== "sinFicha" && x.estado !== "sinEmpezar")) estado = "pendiente";
+          return { fichas: lista, total: n, completas, firmadas, estado, resultado };
+        }
+        function avancePorGrupo(filas = [], campo = "familia") {
+          const grupos = /* @__PURE__ */ new Map();
+          for (const f of filas) {
+            const clave = llanoFx(f[campo]) || "SIN DEFINIR";
+            if (!grupos.has(clave)) {
+              grupos.set(clave, { concepto: clave, equipos: 0, fichas: 0, completas: 0, firmadas: 0, noApto: 0, aRevisar: 0, equiposFirmados: 0 });
+            }
+            const g = grupos.get(clave);
+            const pm = f.pm || { total: 0, completas: 0, firmadas: 0, fichas: [] };
+            g.equipos += 1;
+            g.fichas += pm.total;
+            g.completas += pm.completas;
+            g.firmadas += pm.firmadas;
+            if (pm.resultado === "noApto") g.noApto += 1;
+            if (pm.resultado === "aRevisar") g.aRevisar += 1;
+            if (pm.estado === "firmada") g.equiposFirmados += 1;
+          }
+          return [...grupos.values()].map((g) => ({ ...g, pctCompletas: g.fichas ? g.completas / g.fichas : null, pctFirmadas: g.fichas ? g.firmadas / g.fichas : null })).sort((a, b) => b.equipos - a.equipos || a.concepto.localeCompare(b.concepto, "es", { numeric: true }));
+        }
+        function rellenarDesdeEquipo(plantilla, datos, equipo = {}) {
+          const d = normalizarFicha(plantilla, datos);
+          for (const punto of puntosDePlantilla(plantilla)) {
+            if (d.valores[punto.codigo] || punto.seccion.tipo === "parametros") continue;
+            if (!punto.origen) {
+              if (hayValorFx(punto.valorPorDefecto)) d.valores[punto.codigo] = { v: punto.valorPorDefecto, o: "plantilla" };
+              continue;
+            }
+            const v = equipo[punto.origen];
+            if (!hayValorFx(v)) continue;
+            const val = punto.tipo === "numero" ? numFx(v) : llanoFx(v);
+            if (val === null) continue;
+            d.valores[punto.codigo] = { v: val, o: "equipo" };
+          }
+          return d;
+        }
+        function medicionDe(equipo = {}, familias, plantillas) {
+          const cat = catalogoFx || {};
+          const fam = familiaDe(equipo, familias || cat.FAMILIAS);
+          if (!fam || !fam.medicion) return null;
+          const pl = equipo.plantillaPM || plantillaPorDefecto(equipo, fam, plantillas || cat.PLANTILLAS || []);
+          const clave = pl && fam.medicionPlantilla && fam.medicionPlantilla[pl] || fam.medicion;
+          const def = (cat.MEDICIONES || {})[clave] || {};
+          return {
+            clave,
+            titulo: def.plano && fam.tituloMedicion || def.titulo || null,
+            plano: Boolean(def.plano),
+            texto: def.texto || "",
+            retorno: def.retorno || "Retorno",
+            velocidad: def.plano && fam.velocidadBocas ? fam.velocidadBocas : null,
+            familia: fam.codigo,
+            plantilla: pl || null
+          };
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.FICHAS_PM = API;
+        })({
+          TOLERANCIAS_DEFECTO,
+          NOMBRE_TOLERANCIA,
+          RESULTADOS,
+          ESTADOS: ESTADOS_FICHA,
+          CLASES: CLASES_FICHA,
+          ORIGENES,
+          ROLES_FIRMA,
+          numero: numFx,
+          tolerancias,
+          quitarPrueba,
+          indicePlantillas,
+          numerarChecklist,
+          puntosDe: puntosDePlantilla,
+          esObligatorio,
+          evaluarParametro,
+          respuesta,
+          evaluarBocas: evaluarBocasFicha,
+          pruebaRefrigerante,
+          fichaVacia,
+          normalizar: normalizarFicha,
+          evaluar: evaluarFicha,
+          rellenarDesdeEquipo,
+          familiaDe,
+          plantillaPorDefecto,
+          medicionDe,
+          requeridas,
+          estadoEquipo,
+          avance: avancePorGrupo
+        });
       })();
     }
   });
@@ -16970,6 +18916,15 @@ globalThis.CX_VARIANTE="cxobra";
         }
         const f = familiasCx.get(codigo);
         return Boolean(f && f.estanqueidad && f.estanqueidad !== "no");
+      }
+      var fichasCx = null;
+      function medicionCx(e) {
+        if (!fichasCx) fichasCx = typeof __require !== "undefined" ? require_fichas() : typeof window !== "undefined" ? window.FICHAS_PM : null;
+        try {
+          return fichasCx && fichasCx.medicionDe ? fichasCx.medicionDe(e) : null;
+        } catch {
+          return null;
+        }
       }
       var unidadPideEstanqueidad = (e) => e.ensayoRequerido === "estanqueidad" || e.ensayoRequerido === "ambos" || familiaPideEstanqueidad(e.familia);
       var pideEstanqueidad = (e) => Array.isArray(e.miembros) ? e.miembros.some(unidadPideEstanqueidad) : unidadPideEstanqueidad(e);
@@ -17042,7 +18997,8 @@ globalThis.CX_VARIANTE="cxobra";
           completo: docCompleta && ensayo !== false,
           envio,
           incidencias,
-          falta
+          falta,
+          medicion: medicionCx(e)
         };
       }
       function rangoPlanta(v) {
@@ -18246,107 +20202,6 @@ globalThis.CX_VARIANTE="cxobra";
         factorFriccion: factorFriccionCal,
         seccionPorIntensidad: seccionPorIntensidadCal
       });
-    }
-  });
-
-  // shared/commissioning/instrumentos.js
-  var require_instrumentos = __commonJS({
-    "shared/commissioning/instrumentos.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function iniciarInstrumentos() {
-        const DIAS_AVISO = 30;
-        const MAGNITUDES_INSTRUMENTO = {
-          caudal: "Caudal / velocidad de aire",
-          presion: "Presi\xF3n",
-          temperatura: "Temperatura",
-          electrica: "El\xE9ctrica",
-          humedad: "Humedad",
-          sonido: "Sonido",
-          otra: "Otra"
-        };
-        const ESTADOS_INSTRUMENTO = {
-          vigente: { nombre: "Vigente", clase: "bien" },
-          caducaPronto: { nombre: "Caduca pronto", clase: "aviso" },
-          caducado: { nombre: "CADUCADO", clase: "mal" },
-          sinCertificado: { nombre: "Sin certificado", clase: "mal" }
-        };
-        const llanoIn = (v) => String(v ?? "").trim();
-        const fechaIn = (v) => /^\d{4}-\d{2}-\d{2}/.test(llanoIn(v)) ? llanoIn(v).slice(0, 10) : null;
-        const hoyIn = () => ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
-        function diasEntreIn(a, b) {
-          return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 864e5);
-        }
-        function estadoInstrumento(inst = {}, fecha = null) {
-          const cad = fechaIn(inst.caducidad);
-          if (!cad) return "sinCertificado";
-          const dia = fechaIn(fecha) || hoyIn();
-          if (cad < dia) return "caducado";
-          if (!fechaIn(fecha) && diasEntreIn(dia, cad) <= DIAS_AVISO) return "caducaPronto";
-          return "vigente";
-        }
-        function normalizarInstrumento(e = {}) {
-          const d = {
-            nombre: llanoIn(e.nombre).slice(0, 120),
-            magnitud: MAGNITUDES_INSTRUMENTO[e.magnitud] ? e.magnitud : "otra",
-            marca: llanoIn(e.marca).slice(0, 80) || null,
-            modelo: llanoIn(e.modelo).slice(0, 80) || null,
-            numSerie: llanoIn(e.numSerie).slice(0, 80) || null,
-            certificado: llanoIn(e.certificado).slice(0, 120) || null,
-            entidad: llanoIn(e.entidad).slice(0, 120) || null,
-            fechaCalibracion: fechaIn(e.fechaCalibracion),
-            caducidad: fechaIn(e.caducidad),
-            archivoCertificado: llanoIn(e.archivoCertificado) || null,
-            notas: llanoIn(e.notas).slice(0, 1e3) || null
-          };
-          if (!d.nombre) return { ok: false, error: "El instrumento necesita un nombre (\xABAnem\xF3metro de hilo caliente\xBB)." };
-          if (!d.numSerie) return { ok: false, error: "Sin n\xBA de serie no se puede saber qu\xE9 aparato es." };
-          if (d.fechaCalibracion && d.caducidad && d.caducidad < d.fechaCalibracion) {
-            return { ok: false, error: "La caducidad es anterior a la calibraci\xF3n." };
-          }
-          return { ok: true, datos: d };
-        }
-        function descripcionInstrumento(inst = {}) {
-          const fecha = (f) => f ? `${f.slice(8, 10)}/${f.slice(5, 7)}/${f.slice(0, 4)}` : "";
-          return [
-            llanoIn(inst.nombre),
-            [inst.marca, inst.modelo].filter(Boolean).join(" "),
-            inst.numSerie ? `n\xBA ${inst.numSerie}` : "",
-            inst.certificado ? `cert. ${inst.certificado}` : "",
-            inst.caducidad ? `caduca ${fecha(inst.caducidad)}` : "sin certificado"
-          ].filter(Boolean).join(" \xB7 ");
-        }
-        function revisarInstrumentos(ids = [], catalogo = [], fechaEnsayo = null) {
-          const porId = catalogo instanceof Map ? catalogo : new Map((catalogo || []).map((i) => [i.id, i]));
-          const lista = [];
-          const avisos = [];
-          for (const id of [...new Set(ids || [])]) {
-            const inst = porId.get(id);
-            if (!inst) {
-              lista.push({ id, estado: "sinCertificado", descripcion: "Instrumento que ya no est\xE1 en la lista" });
-              avisos.push("Un instrumento citado ya no est\xE1 en la lista de instrumentos");
-              continue;
-            }
-            const estado = estadoInstrumento(inst, fechaEnsayo);
-            lista.push({ ...inst, estado, descripcion: descripcionInstrumento(inst) });
-            if (estado === "caducado") avisos.push(`${inst.nombre} n\xBA ${inst.numSerie}: calibraci\xF3n CADUCADA el d\xEDa del ensayo`);
-            if (estado === "sinCertificado") avisos.push(`${inst.nombre} n\xBA ${inst.numSerie}: sin certificado de calibraci\xF3n`);
-          }
-          return { lista, avisos, malos: lista.filter((x) => x.estado === "caducado" || x.estado === "sinCertificado").length };
-        }
-        (function exportar(API) {
-          if (typeof module !== "undefined" && module.exports) module.exports = API;
-          if (typeof window !== "undefined") window.INSTRUMENTOS_PM = API;
-        })({
-          DIAS_AVISO,
-          MAGNITUDES: MAGNITUDES_INSTRUMENTO,
-          ESTADOS: ESTADOS_INSTRUMENTO,
-          estado: estadoInstrumento,
-          normalizar: normalizarInstrumento,
-          descripcion: descripcionInstrumento,
-          revisar: revisarInstrumentos
-        });
-      })();
     }
   });
 
@@ -20369,653 +22224,6 @@ globalThis.CX_VARIANTE="cxobra";
         direcciones: direccionesMant,
         notificacion: notificacionMant
       });
-    }
-  });
-
-  // shared/commissioning/fichas.js
-  var require_fichas = __commonJS({
-    "shared/commissioning/fichas.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function iniciarFichasPM() {
-        const catalogoFx = typeof __require !== "undefined" ? require_plantillasCbre() : window.PLANTILLAS_CBRE;
-        const instrumentosFx = typeof __require !== "undefined" ? require_instrumentos() : window.INSTRUMENTOS_PM;
-        const TOLERANCIAS_DEFECTO = { total: null, boca: null, psRefrigerante: null, caidaAdmisible: null };
-        const NOMBRE_TOLERANCIA = {
-          total: "tolerancia de caudal total",
-          boca: "tolerancia por boca",
-          psRefrigerante: "presi\xF3n m\xEDnima de prueba del refrigerante",
-          caidaAdmisible: "ca\xEDda de presi\xF3n admisible"
-        };
-        const PATM = 1.013;
-        const RESULTADOS = {
-          apto: { nombre: "APTO", orden: 1 },
-          aRevisar: { nombre: "A REVISAR", orden: 2 },
-          noApto: { nombre: "NO APTO", orden: 3 }
-        };
-        const ESTADOS_FICHA = {
-          sinFicha: { nombre: "Sin ficha", orden: 0 },
-          sinEmpezar: { nombre: "Sin empezar", orden: 1 },
-          pendiente: { nombre: "Pendiente", orden: 2 },
-          completa: { nombre: "Completa", orden: 3 },
-          firmada: { nombre: "Firmada", orden: 4 }
-        };
-        const CLASES_FICHA = {
-          checklist: { nombre: "Checklist", orden: 1 },
-          fichaPM: { nombre: "Ficha de puesta en marcha", orden: 2 },
-          balanceo: { nombre: "Balanceo de caudales", orden: 3 },
-          estanqAgua: { nombre: "Estanqueidad \xB7 agua", orden: 4 },
-          estanqRefrigerante: { nombre: "Estanqueidad \xB7 refrigerante", orden: 5 }
-        };
-        const ORIGENES = {
-          manual: "Tecleado",
-          equipo: "De la tabla de equipos",
-          plantilla: "Valor por defecto de la plantilla",
-          importacion: "Importado",
-          copia: "Copiado de otro equipo",
-          prueba: "DATO DE PRUEBA"
-        };
-        const ROLES_FIRMA = {
-          CBRE: "Jefe de obra (CBRE)"
-        };
-        const llanoFx = (v) => String(v ?? "").trim();
-        function numFx(v) {
-          if (v === null || v === void 0) return null;
-          if (typeof v === "number") return Number.isFinite(v) ? v : null;
-          const t = String(v).trim();
-          if (!t) return null;
-          const n = Number(t.replace(/\s/g, "").replace(",", "."));
-          return Number.isFinite(n) ? n : null;
-        }
-        const redFx = (v, d = 4) => {
-          if (v === null || !Number.isFinite(v)) return null;
-          const f = 10 ** d;
-          return Math.round(v * f) / f;
-        };
-        const igualesFx = (a, b) => a !== null && b !== null && Math.abs(a - b) < 1e-9;
-        const hayValorFx = (v) => v !== null && v !== void 0 && llanoFx(v) !== "";
-        function tolerancias(config = {}) {
-          const t = { ...TOLERANCIAS_DEFECTO };
-          const c = config || {};
-          const tot = numFx(c.tolTotal);
-          const boca = numFx(c.tolBoca);
-          const ps = numFx(c.psRefrigerante);
-          const caida = numFx(c.caidaAdmisible);
-          if (tot !== null && tot > 0 && tot < 1) t.total = tot;
-          if (boca !== null && boca > 0 && boca < 1) t.boca = boca;
-          if (ps !== null && ps > 0) t.psRefrigerante = ps;
-          if (caida !== null && caida >= 0) t.caidaAdmisible = caida;
-          return t;
-        }
-        function numerarChecklist(plantilla) {
-          if (!plantilla || !(plantilla.secciones || []).some((s) => s.tipo === "checklist")) return plantilla;
-          let k = 0;
-          const secciones = plantilla.secciones.map((s) => {
-            if (s.tipo !== "checklist") return s;
-            k += 1;
-            return { ...s, numero: String(k), puntos: (s.puntos || []).map((p, j) => ({ ...p, numero: `${k}.${j + 1}` })) };
-          });
-          return { ...plantilla, secciones };
-        }
-        function indicePlantillas(lista) {
-          const m = /* @__PURE__ */ new Map();
-          for (const p of lista || catalogoFx && catalogoFx.PLANTILLAS || []) {
-            const previa = m.get(p.codigo);
-            if (!previa || (p.version || 1) > (previa.version || 1)) m.set(p.codigo, numerarChecklist(p));
-          }
-          return m;
-        }
-        function puntosDePlantilla(plantilla) {
-          const fuera = [];
-          for (const s of plantilla && plantilla.secciones || []) {
-            for (const p of s.puntos || []) fuera.push({ ...p, seccion: s });
-          }
-          return fuera;
-        }
-        function esObligatorio(punto) {
-          const tipoSec = punto.seccion ? punto.seccion.tipo : null;
-          if (punto.obligatorio === true) return true;
-          if (punto.obligatorio === false) return false;
-          if (tipoSec === "parametros") return punto.medido === "obligatorio";
-          if (tipoSec === "checklist") return true;
-          if (tipoSec === "pruebaPresion") return ["numero", "fecha", "okNoOk", "siNo"].includes(punto.tipo);
-          return false;
-        }
-        function evaluarParametro(punto, valor = {}, tol = TOLERANCIAS_DEFECTO) {
-          const p = numFx(valor.p);
-          const f = numFx(valor.f);
-          const m = numFx(valor.m);
-          const ref = p !== null ? p : f;
-          const fuente = p !== null ? "proyecto" : f !== null ? "fabricante" : null;
-          let desv = null;
-          if (m !== null && ref !== null && ref !== 0) desv = (m - ref) / ref;
-          const cualTol = punto.tolerancia === "boca" ? "boca" : "total";
-          const limite = tol[cualTol] ?? null;
-          let resultado = null;
-          let copiado = false;
-          let sinTolerancia = null;
-          if (m !== null && ref !== null && igualesFx(m, ref)) {
-            copiado = true;
-            resultado = valor.revisado ? punto.resultado ? "apto" : null : "aRevisar";
-          } else if (punto.resultado && desv !== null) {
-            if (limite === null) sinTolerancia = cualTol;
-            else resultado = Math.abs(desv) <= limite + 1e-12 ? "apto" : "noApto";
-          }
-          return {
-            p,
-            f,
-            m,
-            ref,
-            fuente,
-            desv: redFx(desv),
-            limite: punto.resultado ? limite : null,
-            resultado,
-            copiado,
-            revisado: Boolean(valor.revisado),
-            sinTolerancia
-          };
-        }
-        function respuesta(v) {
-          const t = llanoFx(v).toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-          if (!t) return null;
-          if (t === "SI" || t === "S") return "si";
-          if (t === "NO" || t === "N") return "no";
-          if (t === "NA" || t === "N/A" || t === "NO APLICA") return "na";
-          if (t === "OK") return "ok";
-          if (t === "NO OK" || t === "NOOK" || t === "NO_OK") return "noOk";
-          return null;
-        }
-        function evaluarBocasFicha(filas = [], tol = TOLERANCIAS_DEFECTO, proyectoSistema = null) {
-          const puntoBoca = { resultado: true, tolerancia: "boca" };
-          const evaluadas = (filas || []).map((b) => ({
-            ...b,
-            ...evaluarParametro(puntoBoca, { p: b.p, m: b.m, revisado: b.revisado }, tol)
-          }));
-          const conProyecto = evaluadas.filter((b) => b.p !== null);
-          const medidas = conProyecto.filter((b) => b.m !== null);
-          const sumP = conProyecto.reduce((s, b) => s + b.p, 0);
-          const sumM = medidas.reduce((s, b) => s + b.m, 0);
-          const refTotal = numFx(proyectoSistema) ?? sumP;
-          let total = null;
-          if (conProyecto.length && medidas.length === conProyecto.length) {
-            total = evaluarParametro({ resultado: true, tolerancia: "total" }, { p: refTotal, m: sumM }, tol);
-            if (total.copiado && !medidas.every((b) => b.copiado)) {
-              total = { ...total, copiado: false, resultado: "apto" };
-            }
-          }
-          return {
-            filas: evaluadas,
-            bocas: conProyecto.length,
-            medidas: medidas.length,
-            sinMedir: conProyecto.length - medidas.length,
-            proyecto: conProyecto.length ? sumP : null,
-            proyectoSistema: numFx(proyectoSistema),
-            medido: medidas.length ? sumM : null,
-            total
-          };
-        }
-        function pruebaRefrigerante(v = {}, tol = TOLERANCIAS_DEFECTO) {
-          const pi = numFx(v.p_inicial);
-          const pf = numFx(v.p_final);
-          const ti = numFx(v.t_inicial);
-          const tf = numFx(v.t_final);
-          const ps = numFx(v.p_minima) ?? tol.psRefrigerante ?? null;
-          const adm = numFx(v.caida_admisible) ?? tol.caidaAdmisible ?? null;
-          if ([pi, pf, ti, tf].some((x) => x === null)) {
-            return { pi, pf, ti, tf, ps, admisible: adm, pfCorregida: null, caida: null, resultado: null, sinTolerancia: null };
-          }
-          const pfCorregida = (pf + PATM) * (ti + 273.15) / (tf + 273.15) - PATM;
-          const caida = Math.round((pi - pfCorregida) * 10) / 10;
-          const sinTolerancia = ps === null ? "psRefrigerante" : adm === null ? "caidaAdmisible" : null;
-          const resultado = sinTolerancia ? null : pi >= ps - 1e-9 && caida <= adm + 1e-9 ? "apto" : "noApto";
-          return { pi, pf, ti, tf, ps, admisible: adm, pfCorregida: redFx(pfCorregida, 2), caida, resultado, sinTolerancia };
-        }
-        const peorFx = (a, b) => {
-          if (!a) return b || null;
-          if (!b) return a;
-          return RESULTADOS[a].orden >= RESULTADOS[b].orden ? a : b;
-        };
-        function fichaVacia(cabecera = {}) {
-          return {
-            cabecera: {
-              fechaEnsayo: null,
-              realizadoPor: cabecera.realizadoPor || null,
-              responsable: cabecera.responsable || null,
-              condiciones: cabecera.condiciones || "NOMINALES",
-              aparatos: cabecera.aparatos || null,
-              /* Los instrumentos de medida usados (ids de la lista de instrumentos). */
-              instrumentos: Array.isArray(cabecera.instrumentos) ? [...cabecera.instrumentos] : [],
-              actaFabricante: null,
-              tecnicoFabricante: null
-            },
-            valores: {},
-            bocas: { impulsion: [], retorno: [] },
-            fotos: [],
-            anexosPdf: [],
-            observaciones: "",
-            /* Las respuestas copiadas de otro equipo en la rejilla: de cuál, quién y cuándo. */
-            copias: []
-          };
-        }
-        function normalizarFicha(plantilla, entrada = {}, opciones = {}) {
-          if (opciones.descartarPrueba) return quitarPrueba(normalizarFicha(plantilla, entrada)).ficha;
-          const base = fichaVacia();
-          const e = entrada || {};
-          const cab = e.cabecera || {};
-          for (const k of Object.keys(base.cabecera)) {
-            if (k === "instrumentos") continue;
-            if (cab[k] !== void 0) base.cabecera[k] = hayValorFx(cab[k]) ? llanoFx(cab[k]) : null;
-          }
-          base.cabecera.instrumentos = [...new Set((Array.isArray(cab.instrumentos) ? cab.instrumentos : []).map(llanoFx).filter(Boolean))].slice(0, 20);
-          if (base.cabecera.fechaEnsayo && !/^\d{4}-\d{2}-\d{2}$/.test(base.cabecera.fechaEnsayo)) {
-            base.cabecera.fechaEnsayo = null;
-          }
-          const origen = (o) => o && ORIGENES[o] ? o : "manual";
-          const valores = e.valores || {};
-          for (const punto of puntosDePlantilla(plantilla)) {
-            const v = valores[punto.codigo];
-            if (!v || typeof v !== "object") continue;
-            if (punto.seccion.tipo === "parametros") {
-              const fila = {};
-              for (const k of ["p", "f", "m"]) {
-                const n = numFx(v[k]);
-                if (n !== null) fila[k] = n;
-              }
-              const mp = numFx(v.mp);
-              if (mp !== null && fila.m === void 0) {
-                fila.mp = mp;
-                if (v.mpEntero) fila.mpEntero = true;
-              }
-              if (!Object.keys(fila).length) continue;
-              fila.o = origen(v.o);
-              if (v.revisado && fila.m !== void 0) fila.revisado = v.revisado;
-              if (v.pv && fila.m !== void 0) fila.pv = llanoFx(v.pv);
-              base.valores[punto.codigo] = fila;
-            } else {
-              let val = v.v;
-              if (punto.tipo === "numero") val = numFx(val);
-              else if (["siNoNa", "okNoOk", "siNo"].includes(punto.tipo)) val = respuesta(val);
-              else if (punto.tipo === "fecha") val = /^\d{4}-\d{2}-\d{2}/.test(llanoFx(val)) ? llanoFx(val).slice(0, 16) : null;
-              else val = hayValorFx(val) ? llanoFx(val) : null;
-              if (val === null) continue;
-              base.valores[punto.codigo] = { v: val, o: origen(v.o) };
-            }
-          }
-          for (const circuito of ["impulsion", "retorno"]) {
-            const filas = e.bocas && Array.isArray(e.bocas[circuito]) ? e.bocas[circuito] : [];
-            base.bocas[circuito] = filas.slice(0, 200).map((b) => ({
-              local: hayValorFx(b && b.local) ? llanoFx(b.local) : null,
-              terminal: hayValorFx(b && b.terminal) ? llanoFx(b.terminal) : null,
-              p: numFx(b && b.p),
-              m: numFx(b && b.m),
-              compuerta: hayValorFx(b && b.compuerta) ? llanoFx(b.compuerta) : null,
-              o: origen(b && b.o),
-              ...b && b.revisado && numFx(b.m) !== null ? { revisado: b.revisado } : {},
-              ...b && b.pv && numFx(b.m) !== null ? { pv: llanoFx(b.pv) } : {},
-              ...b && numFx(b.mp) !== null && numFx(b.m) === null ? { mp: numFx(b.mp), ...b.mpEntero ? { mpEntero: true } : {} } : {}
-            }));
-          }
-          base.fotos = (Array.isArray(e.fotos) ? e.fotos : []).filter((f) => f && hayValorFx(f.ruta)).slice(0, 8).map((f) => ({ ruta: llanoFx(f.ruta), nombre: llanoFx(f.nombre) || null }));
-          base.anexosPdf = (Array.isArray(e.anexosPdf) ? e.anexosPdf : []).filter((f) => f && hayValorFx(f.ruta) && /\.pdf$/i.test(llanoFx(f.ruta))).slice(0, 6).map((f) => ({ ruta: llanoFx(f.ruta), nombre: llanoFx(f.nombre) || null }));
-          base.observaciones = llanoFx(e.observaciones).slice(0, 4e3);
-          base.copias = (Array.isArray(e.copias) ? e.copias : []).filter((c) => c && typeof c === "object" && Array.isArray(c.puntos)).slice(-30).map((c) => ({
-            de: hayValorFx(c.de) ? llanoFx(c.de) : null,
-            clave: hayValorFx(c.clave) ? llanoFx(c.clave) : null,
-            puntos: c.puntos.map(llanoFx).filter(Boolean).slice(0, 300),
-            pisadas: Number.isInteger(c.pisadas) && c.pisadas > 0 ? c.pisadas : 0,
-            por: hayValorFx(c.por) ? llanoFx(c.por) : null,
-            personaId: hayValorFx(c.personaId) ? llanoFx(c.personaId) : null,
-            en: hayValorFx(c.en) ? llanoFx(c.en) : null
-          }));
-          return base;
-        }
-        function quitarPrueba(ficha) {
-          let descartados = 0;
-          const valores = {};
-          for (const [k, v] of Object.entries(ficha.valores || {})) {
-            if (v && v.o === "prueba") {
-              descartados += 1;
-              continue;
-            }
-            valores[k] = v;
-          }
-          const bocas = {};
-          for (const [c, filas] of Object.entries(ficha.bocas || {})) {
-            bocas[c] = (filas || []).filter((b) => {
-              if (b && b.o === "prueba") {
-                descartados += 1;
-                return false;
-              }
-              return true;
-            });
-          }
-          return { ficha: { ...ficha, valores, bocas }, descartados };
-        }
-        function evaluarFicha(plantilla, datos, opciones = {}) {
-          const tol = tolerancias(opciones.config);
-          const d = normalizarFicha(plantilla, datos);
-          const firmas = Array.isArray(opciones.firmas) ? opciones.firmas : [];
-          const faltan = [];
-          const avisos = [];
-          let obligatorios = 0;
-          let rellenos = 0;
-          let resultado = null;
-          let algoEscrito = false;
-          let datosPrueba = false;
-          let sinConfirmar = 0;
-          const sinTol = /* @__PURE__ */ new Set();
-          const secciones = [];
-          for (const s of plantilla.secciones || []) {
-            const sec = { ...s, puntos: [] };
-            for (const punto of s.puntos || []) {
-              const p = { ...punto, seccion: s };
-              const v = d.valores[punto.codigo] || null;
-              if (v && v.o !== "equipo" && v.o !== "plantilla") algoEscrito = true;
-              if (v && v.o === "prueba") datosPrueba = true;
-              const ob = esObligatorio(p);
-              const fila = { ...punto, obligatorio: ob, origen: v ? v.o : null };
-              if (s.tipo === "parametros") {
-                const ev = evaluarParametro(punto, v || {}, tol);
-                Object.assign(fila, ev);
-                if (ev.sinTolerancia) sinTol.add(ev.sinTolerancia);
-                if (ob) {
-                  obligatorios += 1;
-                  if (ev.m !== null) rellenos += 1;
-                  else faltan.push(`Medido: ${punto.etiqueta}`);
-                  if (ev.m !== null && ev.ref === null) faltan.push(`Proyecto o fabricante: ${punto.etiqueta}`);
-                }
-                if (ev.resultado === "aRevisar") {
-                  sinConfirmar += 1;
-                  avisos.push(`${punto.etiqueta}: medido id\xE9ntico al de ${ev.fuente} (\xBFcopiado?)`);
-                }
-                resultado = peorFx(resultado, ev.resultado);
-              } else {
-                const val = v ? v.v : null;
-                fila.valor = val;
-                if (ob) {
-                  obligatorios += 1;
-                  if (val !== null && val !== void 0) rellenos += 1;
-                  else faltan.push(s.tipo === "checklist" ? `Respuesta ${punto.numero || punto.codigo}` : punto.etiqueta);
-                }
-                if (val === "no" && s.tipo === "checklist") {
-                  resultado = peorFx(resultado, "noApto");
-                  if (!d.observaciones) faltan.push(`Explicar en observaciones el \xABNo\xBB de ${punto.numero || punto.codigo}`);
-                }
-                if (val === "noOk") resultado = peorFx(resultado, "noApto");
-                if (val === "si" && punto.tipo === "siNo" && /fuga/i.test(punto.codigo)) resultado = peorFx(resultado, "noApto");
-              }
-              sec.puntos.push(fila);
-            }
-            if (s.tipo === "bocas") {
-              sec.circuitos = {};
-              const limites = s.bocas || {};
-              for (const c of ["impulsion", "retorno"]) {
-                if (!limites[c]) continue;
-                const sistema = d.valores[`caudal_proyecto_${c}`];
-                const ev = evaluarBocasFicha(d.bocas[c], tol, sistema ? sistema.v : null);
-                sec.circuitos[c] = ev;
-                if (d.bocas[c].length) algoEscrito = true;
-                if (d.bocas[c].some((b) => b.o === "prueba")) datosPrueba = true;
-                obligatorios += ev.bocas;
-                rellenos += ev.medidas;
-                if (ev.sinMedir) faltan.push(`${ev.sinMedir} boca(s) de ${c === "impulsion" ? "impulsi\xF3n" : "retorno"} sin medir`);
-                for (const b of ev.filas) {
-                  if (b.resultado === "aRevisar") sinConfirmar += 1;
-                  if (b.sinTolerancia) sinTol.add(b.sinTolerancia);
-                  resultado = peorFx(resultado, b.resultado);
-                }
-                if (ev.total) {
-                  if (ev.total.sinTolerancia) sinTol.add(ev.total.sinTolerancia);
-                  resultado = peorFx(resultado, ev.total.resultado);
-                }
-              }
-              const total = Object.values(sec.circuitos).reduce((n, c) => n + c.bocas, 0);
-              if (plantilla.clase === "balanceo" && total === 0) {
-                faltan.push("No hay ninguna boca con caudal de proyecto");
-              }
-              if (Object.values(sec.circuitos).some((c) => c.filas.some((b) => b.resultado === "aRevisar"))) {
-                avisos.push("Hay bocas con el medido id\xE9ntico al de proyecto (\xBFcopiado?)");
-              }
-            }
-            if (s.tipo === "pruebaPresion" && plantilla.clase === "estanqRefrigerante") {
-              const plano = Object.fromEntries(Object.entries(d.valores).map(([k, v]) => [k, v.v]));
-              sec.prueba = pruebaRefrigerante(plano, tol);
-              if (sec.prueba.sinTolerancia) sinTol.add(sec.prueba.sinTolerancia);
-              resultado = peorFx(resultado, sec.prueba.resultado);
-            }
-            if (s.tipo === "fotos" && /^estanq/.test(plantilla.clase) && !d.fotos.length && algoEscrito) {
-              avisos.push("Sin fotograf\xEDas de los man\xF3metros");
-            }
-            secciones.push(sec);
-          }
-          const revInst = instrumentosFx ? instrumentosFx.revisar(d.cabecera.instrumentos, opciones.instrumentos || [], d.cabecera.fechaEnsayo) : { lista: [], avisos: [], malos: 0 };
-          avisos.push(...revInst.avisos);
-          const mide = secciones.some((s) => ["parametros", "bocas", "pruebaPresion"].includes(s.tipo));
-          if (mide && algoEscrito && !d.cabecera.instrumentos.length && !d.cabecera.aparatos) {
-            avisos.push("No consta con qu\xE9 instrumentos se ha medido");
-          }
-          if (!d.cabecera.fechaEnsayo) faltan.push("Fecha de ensayo");
-          if (!d.cabecera.realizadoPor) faltan.push("Realizado por");
-          for (const t of sinTol) faltan.push(`La ${NOMBRE_TOLERANCIA[t]} de la obra (la pone el jefe de obra)`);
-          if (datosPrueba) avisos.unshift("Lleva DATOS DE PRUEBA: no se puede firmar");
-          let medidosPrueba = 0;
-          for (const v of Object.values(d.valores)) if (v && v.mp !== void 0) medidosPrueba += 1;
-          for (const c of Object.values(d.bocas)) for (const b of c || []) if (b && b.mp !== void 0) medidosPrueba += 1;
-          const completa = obligatorios > 0 ? faltan.length === 0 : algoEscrito && faltan.length === 0;
-          const firmada = firmas.some((f) => f && f.rol === "CBRE");
-          let estado;
-          if (firmada) estado = "firmada";
-          else if (!algoEscrito && !d.cabecera.fechaEnsayo) estado = "sinEmpezar";
-          else if (completa) estado = "completa";
-          else estado = "pendiente";
-          if (completa && !resultado) resultado = "apto";
-          if (!completa && resultado === "apto") resultado = null;
-          let motivoNoFirmable = null;
-          if (datosPrueba) motivoNoFirmable = "Lleva datos de prueba.";
-          else if (!completa) motivoNoFirmable = `Falta: ${faltan.slice(0, 3).join(", ")}${faltan.length > 3 ? "\u2026" : ""}.`;
-          else if (sinConfirmar) motivoNoFirmable = `Hay ${sinConfirmar} medido(s) \xABA REVISAR\xBB sin confirmar.`;
-          else if (opciones.bloquearInstrumentos && revInst.malos) motivoNoFirmable = "Hay instrumentos caducados o sin certificado.";
-          return {
-            plantilla: { codigo: plantilla.codigo, version: plantilla.version || 1, clase: plantilla.clase, titulo: plantilla.titulo },
-            datos: d,
-            secciones,
-            medidos: { obligatorios, rellenos },
-            faltan,
-            avisos,
-            resultado,
-            datosPrueba,
-            medidosPrueba,
-            sinConfirmar,
-            completa,
-            estado,
-            firmas,
-            firmable: !firmada && !motivoNoFirmable,
-            motivoNoFirmable,
-            tolerancias: tol,
-            sinTolerancia: [...sinTol],
-            instrumentos: revInst.lista
-          };
-        }
-        const sinAcentosFx = (v) => llanoFx(v).toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-        function familiaDe(equipo = {}, familias) {
-          const lista = familias || catalogoFx && catalogoFx.FAMILIAS || [];
-          if (equipo.familia) {
-            const f = lista.find((x) => x.codigo === equipo.familia);
-            if (f) return f;
-          }
-          const grupo = sinAcentosFx(equipo.grupo).replace(/[^A-Z0-9& ]/g, " ").replace(/\s+/g, " ");
-          if (!grupo) return null;
-          let mejor = null;
-          let largo = 0;
-          for (const f of lista) {
-            for (const nombre of [f.nombre, ...f.alias || []]) {
-              const n = sinAcentosFx(nombre).replace(/[^A-Z0-9& ]/g, " ").replace(/\s+/g, " ");
-              if (grupo.includes(n) && n.length > largo) {
-                mejor = f;
-                largo = n.length;
-              }
-            }
-          }
-          return mejor;
-        }
-        const PISTAS_PLANTILLA = [
-          [/\bUE\b|EXTERIOR|CONDENSADORA/, "EXTERIOR"],
-          [/\bUI\b|INTERIOR|EVAPORADORA/, "INTERIOR"],
-          [/CASSETTE/, "CASSETTE"],
-          [/CONDUCT/, "CONDUCTOS"],
-          [/ROTATIV/, "ROTATIVO"],
-          [/ESTATIC|PLACAS/, "ESTATICO|PLACAS"],
-          [/AXIAL/, "AXIAL"],
-          [/PARKING|EXTRACTOR/, "EXTRACTOR"]
-        ];
-        function plantillaPorDefecto(equipo = {}, familia, plantillas) {
-          if (!familia || !familia.plantillas || !familia.plantillas.length) return null;
-          if (familia.plantillas.length === 1) return familia.plantillas[0];
-          const texto = sinAcentosFx([equipo.denominacion, equipo.tag, equipo.instalacion, equipo.modelo].filter(Boolean).join(" "));
-          const indice = plantillas instanceof Map ? plantillas : indicePlantillas(plantillas);
-          let mejor = null;
-          let puntos = 0;
-          for (const codigo of familia.plantillas) {
-            const nombre = sinAcentosFx((indice.get(codigo) || {}).nombre || codigo);
-            let n = 0;
-            for (const [pista, palabra] of PISTAS_PLANTILLA) {
-              if (pista.test(texto) && new RegExp(palabra).test(nombre)) n += 1;
-            }
-            if (n > puntos) {
-              puntos = n;
-              mejor = codigo;
-            }
-          }
-          return mejor;
-        }
-        function requeridas(equipo = {}, familia, plantillas) {
-          if (!familia) return [];
-          const indice = plantillas instanceof Map ? plantillas : indicePlantillas(plantillas);
-          const pm = equipo.plantillaPM || plantillaPorDefecto(equipo, familia, indice);
-          const nombrePM = sinAcentosFx((indice.get(pm) || {}).nombre || pm || "");
-          const exterior = /EXTERIOR/.test(nombrePM);
-          const fuera = [];
-          const anexo = (a) => {
-            const pl = indice.get(a.plantilla);
-            if (!pl) return null;
-            if (a.soloSi && !nombrePM.includes(sinAcentosFx(a.soloSi))) return null;
-            const enlace = a.enlace || "equipo";
-            let clave = `equipo:${equipo.id}`;
-            let motivo = null;
-            if (enlace === "circuito") {
-              const c = llanoFx(equipo.circuito);
-              clave = c ? `circuito:${sinAcentosFx(c)}` : null;
-              if (!c) motivo = "El equipo no tiene circuito asignado.";
-            } else if (enlace === "refrigerante") {
-              const tagUE = exterior ? llanoFx(equipo.tag) : llanoFx(equipo.equipoAsociado);
-              clave = tagUE ? `refrigerante:${sinAcentosFx(tagUE)}` : null;
-              if (!tagUE) motivo = "Unidad interior sin exterior asociada.";
-            }
-            return { plantilla: pl.codigo, clase: pl.clase, nombre: pl.nombre, enlace, clave, motivo };
-          };
-          const anexos = (familia.anexos || []).map(anexo).filter(Boolean);
-          fuera.push(...anexos.filter((a) => a.clase === "checklist"));
-          if (pm && indice.get(pm)) {
-            fuera.push({ plantilla: pm, clase: "fichaPM", nombre: indice.get(pm).nombre, enlace: "equipo", clave: `equipo:${equipo.id}`, motivo: null });
-          } else {
-            fuera.push({ plantilla: null, clase: "fichaPM", nombre: "Ficha de puesta en marcha", enlace: "equipo", clave: null, motivo: "Falta elegir la plantilla de la ficha." });
-          }
-          fuera.push(...anexos.filter((a) => a.clase !== "checklist"));
-          return fuera;
-        }
-        function estadoEquipo(equipo, familia, plantillas, buscar) {
-          const lista = requeridas(equipo, familia, plantillas).map((r) => {
-            const ficha = r.clave && r.plantilla ? buscar(r.clave, r.plantilla) : null;
-            return {
-              ...r,
-              fichaId: ficha ? ficha.id : null,
-              estado: ficha ? ficha.estado : "sinFicha",
-              resultado: ficha ? ficha.resultado : null,
-              medidos: ficha ? ficha.medidos : null,
-              datosPrueba: ficha ? Boolean(ficha.datosPrueba) : false,
-              medidosPrueba: ficha ? ficha.medidosPrueba || 0 : 0
-            };
-          });
-          const n = lista.length;
-          const firmadas = lista.filter((x) => x.estado === "firmada").length;
-          const completas = lista.filter((x) => x.estado === "completa" || x.estado === "firmada").length;
-          let resultado = null;
-          for (const x of lista) resultado = peorFx(resultado, x.resultado === "apto" ? null : x.resultado);
-          if (!resultado && n && completas === n) resultado = "apto";
-          let estado = "sinEmpezar";
-          if (n && firmadas === n) estado = "firmada";
-          else if (n && completas === n) estado = "completa";
-          else if (lista.some((x) => x.estado !== "sinFicha" && x.estado !== "sinEmpezar")) estado = "pendiente";
-          return { fichas: lista, total: n, completas, firmadas, estado, resultado };
-        }
-        function avancePorGrupo(filas = [], campo = "familia") {
-          const grupos = /* @__PURE__ */ new Map();
-          for (const f of filas) {
-            const clave = llanoFx(f[campo]) || "SIN DEFINIR";
-            if (!grupos.has(clave)) {
-              grupos.set(clave, { concepto: clave, equipos: 0, fichas: 0, completas: 0, firmadas: 0, noApto: 0, aRevisar: 0, equiposFirmados: 0 });
-            }
-            const g = grupos.get(clave);
-            const pm = f.pm || { total: 0, completas: 0, firmadas: 0, fichas: [] };
-            g.equipos += 1;
-            g.fichas += pm.total;
-            g.completas += pm.completas;
-            g.firmadas += pm.firmadas;
-            if (pm.resultado === "noApto") g.noApto += 1;
-            if (pm.resultado === "aRevisar") g.aRevisar += 1;
-            if (pm.estado === "firmada") g.equiposFirmados += 1;
-          }
-          return [...grupos.values()].map((g) => ({ ...g, pctCompletas: g.fichas ? g.completas / g.fichas : null, pctFirmadas: g.fichas ? g.firmadas / g.fichas : null })).sort((a, b) => b.equipos - a.equipos || a.concepto.localeCompare(b.concepto, "es", { numeric: true }));
-        }
-        function rellenarDesdeEquipo(plantilla, datos, equipo = {}) {
-          const d = normalizarFicha(plantilla, datos);
-          for (const punto of puntosDePlantilla(plantilla)) {
-            if (d.valores[punto.codigo] || punto.seccion.tipo === "parametros") continue;
-            if (!punto.origen) {
-              if (hayValorFx(punto.valorPorDefecto)) d.valores[punto.codigo] = { v: punto.valorPorDefecto, o: "plantilla" };
-              continue;
-            }
-            const v = equipo[punto.origen];
-            if (!hayValorFx(v)) continue;
-            const val = punto.tipo === "numero" ? numFx(v) : llanoFx(v);
-            if (val === null) continue;
-            d.valores[punto.codigo] = { v: val, o: "equipo" };
-          }
-          return d;
-        }
-        (function exportar(API) {
-          if (typeof module !== "undefined" && module.exports) module.exports = API;
-          if (typeof window !== "undefined") window.FICHAS_PM = API;
-        })({
-          TOLERANCIAS_DEFECTO,
-          NOMBRE_TOLERANCIA,
-          RESULTADOS,
-          ESTADOS: ESTADOS_FICHA,
-          CLASES: CLASES_FICHA,
-          ORIGENES,
-          ROLES_FIRMA,
-          numero: numFx,
-          tolerancias,
-          quitarPrueba,
-          indicePlantillas,
-          numerarChecklist,
-          puntosDe: puntosDePlantilla,
-          esObligatorio,
-          evaluarParametro,
-          respuesta,
-          evaluarBocas: evaluarBocasFicha,
-          pruebaRefrigerante,
-          fichaVacia,
-          normalizar: normalizarFicha,
-          evaluar: evaluarFicha,
-          rellenarDesdeEquipo,
-          familiaDe,
-          plantillaPorDefecto,
-          requeridas,
-          estadoEquipo,
-          avance: avancePorGrupo
-        });
-      })();
     }
   });
 
@@ -27959,14 +29167,6 @@ globalThis.CX_VARIANTE="cxobra";
         return { completado: true, obras: db.prepare("SELECT COUNT(*) AS n FROM obras").get().n, flujoDeshecho: aMedias.length, ...r };
       }
       module.exports = { sembrarSiVacia, completarEjemplos, presupuestoDeEjemplo };
-    }
-  });
-
-  // ipad/shims/crypto.js
-  var require_crypto = __commonJS({
-    "ipad/shims/crypto.js"(exports, module) {
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      module.exports = require_nodeFalso().crypto;
     }
   });
 
@@ -60546,6 +61746,7 @@ ${linea}` : linea;
         "POST api/equipo/fotos": [["commissioning", "editar"]],
         "POST api/equipo/fotos/quitar": [["commissioning", "editar"]],
         "GET api/equipo/foto": [["commissioning", "ver"]],
+        "GET api/equipo/plano": [["commissioning", "ver"]],
         "GET api/ncr": [["ncr", "ver"]],
         "GET api/ncr/ficha": [["ncr", "ver"]],
         "POST api/ncr": [["ncr", "crear"]],
@@ -60671,15 +61872,24 @@ ${linea}` : linea;
               falta: fila.falta,
               incidencias: fila.incidencias
             } : null,
+            /* Qué se mide de este equipo (plantillasCbre.js › MEDICIONES): decide
+               si sale la fila del balanceo y con qué nombre. */
+            medicion: fila ? fila.medicion || null : null,
             planos: d.planos.map((p) => ({
               id: p.id,
               nombre: p.nombre,
+              /* El plano con sus bocas encima: la imagen va por api/equipo/plano. */
+              imagen: Boolean(p.imagenId),
+              ancho: p.ancho || null,
+              alto: p.alto || null,
               bocas: p.puntos.map((x) => {
                 const e = evaluada.get(x.id) || {};
                 return {
                   id: x.id,
                   nombre: x.nombre,
                   circuito: e.circuito,
+                  x: MDIF.num(x.x),
+                  y: MDIF.num(x.y),
                   tipo: e.tipoNombre,
                   velocidad: x.velocidad,
                   lecturas: e.lecturasLista || [],
@@ -60803,6 +62013,13 @@ ${linea}` : linea;
           } catch {
             return [404, { ok: false, error: "La foto ya no est\xE1 en su carpeta." }];
           }
+        }
+        function equipoPlano({ ses, query }) {
+          const img = DIF.imagenPlano(repo, ses, llano(query.id));
+          if (!img) return [404, { ok: false, error: "Este plano no tiene imagen." }];
+          const m = /^data:(image\/[a-z+]+);base64,(.*)$/s.exec(String(img.imagen || ""));
+          if (!m) return [415, { ok: false, error: "La imagen del plano no se puede ense\xF1ar." }];
+          return { bytes: Buffer.from(m[2], "base64"), tipo: m[1] === "image/jpg" ? "image/jpeg" : m[1] };
         }
         function ncrLista({ ses, query }) {
           const d = NCR.obra(repo, ses, String(query.obra || ""));
@@ -61007,6 +62224,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           "POST api/equipo/fotos": equipoFotos,
           "POST api/equipo/fotos/quitar": equipoFotoQuitar,
           "GET api/equipo/foto": equipoFoto,
+          "GET api/equipo/plano": equipoPlano,
           "GET api/ncr": ncrLista,
           "GET api/ncr/ficha": ncrFicha,
           "POST api/ncr": ncrCrear,
@@ -64082,6 +65300,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
   var PQ = require_paquete();
   var puerta = require_puerta();
   var ota = require_ota2();
+  var { crearSyncCx, ponerMiFicha } = require_sync();
   var incrustados = require_incrustados();
   var CARPETA = "/cxobra";
   var CLAVE_SESION = "cxobra.sesion";
@@ -64160,6 +65379,32 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
     prepararEsquema(base);
     const repo = crearRepositorio(base);
     let soltada = false;
+    const syncCx = crearSyncCx({
+      base,
+      /* Lo que llegó en el último paquete ya lo tiene la oficina. */
+      desde: () => oficina().recibido || "",
+      alGuardar: () => {
+        if (!soltada) almacen.pedirGuardado(() => base.serializar());
+      }
+    });
+    const entrarEnLaNube = async (correo, clave) => {
+      let r;
+      try {
+        r = await syncCx.entrarConClave(correo, clave);
+      } catch (e) {
+        if (e.malaClave) return { error: "Correo o contrase\xF1a incorrectos (o tu cuenta a\xFAn no est\xE1 en la nube).", fichero: true };
+        if (e.sinRed) return { error: "Sin conexi\xF3n: no se puede llegar a la oficina.", fichero: true };
+        return { error: e.message, fichero: true };
+      }
+      if (!r.yo) return { error: "La nube no sabe qui\xE9n eres: pide a la oficina que revise tu ficha.", fichero: true };
+      const c = await syncCx.ciclo();
+      if (c && c.error) return { error: c.error.sinRed ? "Sin conexi\xF3n: no se pudieron traer los datos." : c.error.message, fichero: true };
+      if (!ponerMiFicha(base, r.yo.personaId, correo, r.huella)) return { error: "Tus datos no han llegado de la nube: pide a la oficina que revise tu acceso.", fichero: true };
+      apuntarOficina({ ...oficina().recibido ? {} : { recibido: (/* @__PURE__ */ new Date()).toISOString() }, personaId: r.yo.personaId, obras: syncCx.motor() && syncCx.motor().obras() || null, ejemplo: false, nube: true });
+      ponerLS(CLAVE_PERSONA, r.yo.personaId);
+      await almacen.guardarYa(() => base.serializar());
+      return null;
+    };
     const traer = async (paquete, correo, clave) => {
       const mal = PQ.revisar(paquete, "ida");
       if (mal) return mal;
@@ -64192,6 +65437,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       ota.arrancoBien();
       const como = await puerta.bienvenida({
         traer,
+        nube: entrarEnLaNube,
         ejemplo: async () => {
           sembrarSiVacia(base);
           apuntarOficina({ ejemplo: true });
@@ -64218,8 +65464,11 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           nombre: quien.nombre,
           comprobar: async (correo, clave) => {
             if (String(correo).trim().toLowerCase() !== String(quien.email).toLowerCase()) return "Ese correo no es el de estos datos.";
+            if (quien.hashClave && compararClave(clave, quien.hashClave)) return quien;
+            const mal = await entrarEnLaNube(correo, clave);
+            if (!mal) return base.prepare("SELECT id, nombre, rol, email, hashClave FROM personas WHERE id = ? AND activo = 1").get(quien.id) || quien;
             if (!quien.hashClave) return "A\xFAn tienes la contrase\xF1a provisional: entra una vez en el ordenador, pon la tuya y vuelve a traer los datos.";
-            return compararClave(clave, quien.hashClave) ? quien : "Contrase\xF1a incorrecta.";
+            return "Contrase\xF1a incorrecta.";
           }
         });
       }
@@ -64247,6 +65496,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       if (ahora !== cambiosVistos) {
         cambiosVistos = ahora;
         almacen.pedirGuardado(() => base.serializar());
+        if (conNube) syncCx.avisar();
       }
       almacen.sincronizarArchivos(archivos, `${CARPETA}/`).catch((e) => console.error("No se pudieron guardar las fotos:", e));
     };
@@ -64290,6 +65540,34 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       if (r.bytes) return new Response(r.bytes, { status: r.codigo, headers: { "Content-Type": r.tipo || "application/octet-stream" } });
       return new Response(JSON.stringify(r.json), { status: r.codigo, headers: { "Content-Type": "application/json; charset=utf-8" } });
     };
+    const conNube = !oficina().ejemplo;
+    let arrancada = false;
+    const conectar = async () => {
+      if (!conNube || arrancada || soltada) return;
+      const ficha = base.prepare("SELECT id, email, hashClave FROM personas WHERE id = ?").get(persona.id);
+      if (!syncCx.yo() || syncCx.yo().personaId !== persona.id) {
+        if (syncCx.yo()) syncCx.salir();
+        if (!ficha || !await syncCx.entrarSolo(ficha)) {
+          window.dispatchEvent(new CustomEvent("cxobra:sync", { detail: syncCx.estado() }));
+          return;
+        }
+      }
+      arrancada = true;
+      syncCx.arrancar().catch(() => {
+      });
+    };
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") conectar();
+    });
+    globalThis.addEventListener("online", () => conectar());
+    window.addEventListener("cxobra:datos", () => {
+      const a = document.activeElement;
+      const escribiendo = a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName);
+      if (escribiendo || document.querySelector("dialog[open], .hoja.abierta")) return;
+      const ev = new HashChangeEvent("hashchange");
+      ev.cxDatos = true;
+      window.dispatchEvent(ev);
+    });
     const yo = await (await globalThis.fetch("api/entrar", { method: "POST", body: "{}" })).json();
     ponerLS(CLAVE_SESION, JSON.stringify({ token: "local", nombre: yo.nombre, rol: yo.rol, rolNombre: yo.rolNombre, secciones: yo.secciones, local: true }));
     const vuelta = () => {
@@ -64317,6 +65595,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       /* SALIR: con el ejemplo, se borra y se vuelve a la bienvenida; con
          los datos de la oficina, se quedan y se vuelve a pedir la contraseña. */
       salir: async () => {
+        syncCx.salir();
         if (oficina().ejemplo) {
           const limpia = await abrirBaseWasm({ datos: null, localizarWasm: (f) => f });
           prepararEsquema(limpia);
@@ -64354,6 +65633,34 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
     if (aviso) aviso.remove();
     ota.arrancoBien();
     globalThis.cxObra.ota = { info: ota.info, buscar: ota.buscar };
+    globalThis.cxObra.sync = {
+      activa: conNube,
+      estado: () => ({ ...syncCx.estado(), entrado: Boolean(syncCx.yo()) }),
+      ahora: async () => {
+        await conectar();
+        return arrancada ? syncCx.ciclo() : null;
+      },
+      /* La contraseña cambió en la oficina: se pide otra vez. */
+      entrar: async () => {
+        const ficha = base.prepare("SELECT id, nombre, email FROM personas WHERE id = ?").get(persona.id);
+        const correo = ficha && !/@sin-correo\.cxobra$/.test(ficha.email) ? ficha.email : "";
+        const r = await puerta.entrar({
+          correo,
+          nombre: ficha ? ficha.nombre : "",
+          cancelar: true,
+          comprobar: async (c, k) => {
+            const mal = await entrarEnLaNube(c, k);
+            return mal ? mal.error : true;
+          }
+        });
+        if (r) {
+          arrancada = false;
+          await conectar();
+        }
+        return Boolean(r);
+      }
+    };
+    conectar();
     for (const src of globalThis.SCRIPTS_PANTALLA || []) {
       await new Promise((ok, mal) => {
         const s = document.createElement("script");
