@@ -311,12 +311,88 @@
     obrasListas: () => obrasListas,
     activa: (s) => seccion() === s,
     abrirAnadir: () => abrirHoja(),
+    cabeza, menu,
   };
+
+  /*
+   * LA CABECERA DE TRABAJO (15-oct-2026, JC: «quita el título gigante»).
+   * Con una ficha o un equipo abiertos, arriba va lo que se está midiendo:
+   * el TAG, la sala y el progreso, en una barra fina que no se va al bajar;
+   * la pastilla de sync se queda a la derecha. cabeza(null) vuelve a la normal.
+   */
+  let seccionTrabajo = null;
+  function cabeza(info) {
+    const t = document.getElementById('titulo-seccion');
+    const barra = document.querySelector('.barra');
+    if (!t || !barra) return;
+    let sub = document.getElementById('cabeza-sub');
+    if (!info) {
+      document.body.classList.remove('modo-trabajo');
+      if (sub) sub.remove();
+      pintar();
+      return;
+    }
+    document.body.classList.add('modo-trabajo');
+    seccionTrabajo = seccion();
+    t.textContent = info.titulo || '';
+    if (!sub) {
+      sub = document.createElement('div');
+      sub.id = 'cabeza-sub';
+      sub.className = 'cabeza-sub-trabajo';
+      barra.append(sub);
+    }
+    sub.innerHTML = `<span class="donde">${esc(info.sub || '')}</span>${info.progreso ? `<span class="progreso-cab"><i style="width:${Math.max(0, Math.min(100, info.pct || 0))}%"></i></span><b class="cifra">${esc(info.progreso)}</b>` : ''}`;
+  }
+
+  /*
+   * UN MENÚ PEQUEÑO desde abajo (la hoja de «Añadir», en chico): devuelve el
+   * id de la opción elegida, o null si se cierra sin elegir.
+   *   menu({ titulo, sub, opciones: [{ id, nombre, ayuda, activa }] })
+   */
+  function menu({ titulo, sub = '', opciones = [] }) {
+    return new Promise((listo) => {
+      const fondo = document.createElement('div');
+      fondo.className = 'hoja-fondo';
+      const h = document.createElement('div');
+      h.className = 'hoja hoja-menu';
+      h.setAttribute('role', 'dialog');
+      h.setAttribute('aria-label', titulo);
+      h.innerHTML = `<div class="asa"></div><h3>${esc(titulo)}</h3>${sub ? `<p class="sub">${esc(sub)}</p>` : ''}
+        <ul>${opciones.map((o, i) => `<li><button type="button" class="opcion-menu${o.activa ? ' activa' : ''}" data-op="${i}" ${o.activa ? 'aria-current="true"' : ''}>
+          <span><b>${esc(o.nombre)}</b>${o.ayuda ? `<small>${esc(o.ayuda)}</small>` : ''}</span>${o.activa ? '<i aria-hidden="true">✓</i>' : ''}</button></li>`).join('')}</ul>
+        <button type="button" class="boton secundario cancelar" data-op="cerrar">Cancelar</button>`;
+      document.body.append(fondo, h);
+      let hecho = false;
+      const cerrar = (v) => {
+        if (hecho) return;
+        hecho = true;
+        h.classList.remove('abierta'); fondo.classList.remove('abierta');
+        document.removeEventListener('keydown', esc_);
+        setTimeout(() => { h.remove(); fondo.remove(); }, 240);
+        listo(v);
+      };
+      const esc_ = (ev) => { if (ev.key === 'Escape') cerrar(null); };
+      document.addEventListener('keydown', esc_);
+      fondo.onclick = () => cerrar(null);
+      h.onclick = (ev) => {
+        const b = ev.target.closest('[data-op]');
+        if (!b) return;
+        cerrar(b.dataset.op === 'cerrar' ? null : opciones[Number(b.dataset.op)].id);
+      };
+      requestAnimationFrame(() => { fondo.classList.add('abierta'); h.classList.add('abierta'); });
+    });
+  }
 
   /* ═══════════════════════════════════ Las pestañas */
 
   function pintar() {
     const s = seccion();
+    /* La cabecera de trabajo es de su sección: al irse a otra, la normal. */
+    if (document.body.classList.contains('modo-trabajo') && s !== seccionTrabajo) {
+      document.body.classList.remove('modo-trabajo');
+      const cs = document.getElementById('cabeza-sub');
+      if (cs) cs.remove();
+    }
     const ok = new Set(permitidas());
     const actual = pestanaDe(s);
     const abajo = document.getElementById('barra-inferior');
@@ -347,7 +423,7 @@
     const t = document.getElementById('titulo-seccion');
     /* En Inicio, el saludo hace de título (15-oct-2026, JC). */
     const nombrePila = sesion() && sesion().nombre ? String(sesion().nombre).trim().split(/\s+/).slice(0, 2).join(' ') : '';
-    if (t) t.textContent = s === 'inicio' && nombrePila ? `Hola, ${nombrePila}` : (TITULO[s] || 'Cx Obra');
+    if (t && !document.body.classList.contains('modo-trabajo')) t.textContent = s === 'inicio' && nombrePila ? `Hola, ${nombrePila}` : (TITULO[s] || 'Cx Obra');
     document.title = `${TITULO[s] || 'Inicio'} · Cx Obra`;
     const caja = document.getElementById('obra-movil-caja');
     /* En Inicio la obra se elige en su tarjeta: arriba sobraría. */
@@ -482,6 +558,7 @@
       <section class="grupo inicio-avance">
         <div class="fila-dato"><span>Equipos completos</span><strong>${cifra(hechos)} de ${cifra(t.equipos)} · ${pct} %</strong></div>
         <div class="progreso" aria-label="${pct} % completo"><i style="width:${pct}%"></i></div>
+        ${t.soloDoc ? `<a class="fila-dato" href="#commissioning" data-ir-seg="soloDoc"><span>Doc. completa, faltan fichas o ensayo</span><strong>${cifra(t.soloDoc)} ›</strong></a>` : ''}
       </section>
       <div class="resumen-fila">
         ${dato('commissioning', t.equipos, 'equipos')}
