@@ -276,8 +276,9 @@
     const s = window.cxObra && window.cxObra.sync && window.cxObra.sync.activa ? window.cxObra.sync : null;
     const e = s ? s.estado() : null;
     if (e && (!e.entrado || e.estado === 'sin-sesion')) {
-      return `<p class="nota aviso">El plano de bocas se dibuja en el ordenador y te llega solo en cuanto entres en la nube de la oficina.</p>
-        <button class="boton" data-cx="nube-entrar">Entrar en la nube y traer el plano</button>`;
+      /* Sin botón de entrar (15-oct-2026, JC: «siempre conectado»): el teléfono entra solo. */
+      return `<p class="cargando">Conectando con la oficina para traer el plano…</p>
+        <button class="boton secundario" data-cx="nube-ahora">Volver a intentarlo</button>`;
     }
     if (e && (e.estado === 'sin-red' || e.estado === 'error')) {
       return `<p class="nota aviso">${e.estado === 'sin-red' ? 'Sin conexión con la oficina' : 'No se ha podido hablar con la oficina'}: si el plano ya está dibujado en el ordenador, llegará en cuanto vuelva la red.</p>
@@ -1112,7 +1113,6 @@
     else if (que === 'plano-grande' && ficha) planoGrande(b);
     else if (que === 'foto-equipo') fotoEquipo(b);
     else if (que === 'quitar-foto-equipo') quitarFotoEquipo(b);
-    else if (que === 'nube-entrar' && window.cxObra && window.cxObra.sync) window.cxObra.sync.entrar().then((ok) => { if (ok && ficha) abrir(ficha.equipo.id, { quieto: true }); });
     else if (que === 'nube-ahora' && window.cxObra && window.cxObra.sync) { b.disabled = true; window.cxObra.sync.ahora().finally(() => { if (ficha) abrir(ficha.equipo.id, { quieto: true }); }); }
     else if (que === 'pdf-balanceo' && ficha) compartirPdf(`api/informe?tipo=balanceo&equipo=${encodeURIComponent(ficha.equipo.id)}`, `${ficha.equipo.tag} - balanceo.pdf`, b);
   });
