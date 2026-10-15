@@ -42,6 +42,24 @@
   --seleccion: #DFF0E8;
   --bandaCapitulo: #C0D4CB;
   --bandaCapitulo2: #E3EAE7;
+  /* Capítulos de las hojas (15-oct, JC: «un fondo mucho más oscuro y
+     diferenciado»). El de primer nivel, verde CBRE con letra blanca; el
+     subcapítulo, en el tono intermedio de antes. */
+  --capOscuro: #003F2D;
+  --capOscuroTexto: #FFFFFF;
+  --capMedio: #C0D4CB;
+  --capMedioTexto: #003F2D;
+  /* Bloques del libro DTM.CERT. */
+  --dtmContrato: var(--panel);
+  --dtmContratoTexto: var(--cbre-verde);
+  --dtmActual: var(--panel);
+  --dtmActualTexto: var(--cbre-verde);
+  --dtmAnterior: var(--panel);
+  --dtmAnteriorTexto: var(--cbre-verde);
+  --dtmOrigen: var(--panel);
+  --dtmOrigenTexto: var(--cbre-verde);
+  --dtmResumen: var(--capOscuro);
+  --dtmResumenTexto: var(--capOscuroTexto);
   --destacado: #EDF5F1;
   --destacadoCabeza: #D6E9E1;
   --destacadoBorde: #A9CFC2;
@@ -117,6 +135,20 @@
   --seleccion: #0C4A38;
   --bandaCapitulo: #124C42;
   --bandaCapitulo2: #0A413E;
+  --capOscuro: #2A6A62;
+  --capOscuroTexto: #FFFFFF;
+  --capMedio: #124C42;
+  --capMedioTexto: #EAF1EE;
+  --dtmContrato: var(--panel);
+  --dtmContratoTexto: var(--texto);
+  --dtmActual: var(--panel);
+  --dtmActualTexto: var(--texto);
+  --dtmAnterior: var(--panel);
+  --dtmAnteriorTexto: var(--texto);
+  --dtmOrigen: var(--panel);
+  --dtmOrigenTexto: var(--texto);
+  --dtmResumen: var(--capOscuro);
+  --dtmResumenTexto: var(--capOscuroTexto);
   --destacado: #012A2D;
   --destacadoCabeza: #0D4A47;
   --destacadoBorde: #2A6A62;

@@ -472,6 +472,25 @@
       role="radio" aria-checked="${actual === id}" class="${actual === id ? 'activa' : ''}" ${puede ? '' : 'disabled'} ${datos} data-equipo="${id}">${nombre}</button>`).join('')}</div>`;
   }
 
+  /*
+   * CON QUÉ SE COGIERON LOS DATOS DE UNA BOCA (15-oct, JC: «quiero un botón
+   * chiquitito en la esquina derecha de la tarjeta y si lo pulso escojo con lo
+   * que cogí los datos»). Un desplegable nativo (<details>) con tres opciones;
+   * cada una guarda como los segmentados de antes (cambiarEquipo).
+   */
+  const INSTRUMENTOS = [
+    ['anemV', 'Anem. m/s', 'Anemómetro (m/s)', 'data-cx="lectura" data-lectura="velocidad"'],
+    ['anemQ', 'Anem. m³/h', 'Anemómetro (m³/h)', 'data-cx="lectura" data-lectura="caudal"'],
+    ['balometro', 'Balóm. m³/h', 'Balómetro (m³/h)', 'data-cx="equipo-medida" data-equipo="balometro"'],
+  ];
+  function botonInstrumento(p, b, actual, puede) {
+    const [, corto] = INSTRUMENTOS.find(([id]) => id === actual) || INSTRUMENTOS[0];
+    if (!puede) return `<span class="instr-boca solo">${esc(corto)}</span>`;
+    return `<details class="instr-boca"><summary aria-label="Con qué se midió ${esc(b.nombre)}: ${esc(corto)}. Cambiar">${esc(corto)} ▾</summary>
+      <div class="instr-menu segmento" role="radiogroup" aria-label="Con qué se midió ${esc(b.nombre)}">${INSTRUMENTOS.map(([id, , largo, datos]) => `<button type="button"
+        role="radio" aria-checked="${actual === id}" class="${actual === id ? 'activa' : ''}" ${datos} data-eplano="${esc(p.id)}" data-epunto="${esc(b.id)}">${esc(largo)}</button>`).join('')}</div></details>`;
+  }
+
   function htmlEquipoMedida(f, puede) {
     const todas = f.planos.flatMap((p) => p.bocas);
     const comun = f.equipoMedida || null;
@@ -518,10 +537,7 @@
             <input inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis} ${datos} data-q="1"
               value="${qLeido ? comaD(b.caudalMedido, 1) : ''}" aria-label="${esc(rotulo)} en ${esc(b.nombre)}"></label>`;
     return `<li class="boca ${clase}" data-boca="${esc(clave)}" ${vivo}>
-      <div class="boca-cabeza"><strong>${esc(b.nombre)}</strong><span class="sub">${esc(b.circuito === 'retorno' ? 'Retorno' : 'Impulsión')} · ${esc(b.tipo || '')}</span></div>
-      ${puede ? segmentoEquipo(equipoDeBoca(b), puede, `data-cx="equipo-medida" data-eplano="${esc(p.id)}" data-epunto="${esc(b.id)}"`, `Equipo de medida de ${b.nombre}`)
-        : `<div class="sub">Medido con ${bal ? 'balómetro' : `anemómetro · ${enQ ? 'caudal' : 'velocidad'}`}</div>`}
-      ${!bal && puede ? segmentoLectura(lecturaDeBoca(b), puede, `data-cx="lectura" data-eplano="${esc(p.id)}" data-epunto="${esc(b.id)}"`, `Qué se apunta del anemómetro en ${b.nombre}`) : ''}
+      <div class="boca-cabeza"><strong>${esc(b.nombre)}</strong><span class="sub">${esc(b.circuito === 'retorno' ? 'Retorno' : 'Impulsión')} · ${esc(b.tipo || '')}</span>${botonInstrumento(p, b, bal ? 'balometro' : enQ ? 'anemQ' : 'anemV', puede)}</div>
       ${bal
         ? casillaQ('Q balómetro (m³/h)')
         : `<div class="lecturas">${[0, 1, 2, 3].map((i) => `<label>M${i + 1} <small class="unidad-m">${unidadM}</small>
@@ -797,10 +813,15 @@
     return `<input autocomplete="off" enterkeyhint="next" ${dis} ${a} value="${esc(v ?? '')}" data-h-punto="${esc(p.codigo)}" data-h-k="v">`;
   }
 
+  /* Checklists numerados como el PDF del libro (JC, 15-oct): secciones «01 ·»
+     y puntos «01.01», desde el 01. Solo se ve así: el código guardado no cambia. */
+  const numCheck = (n) => String(n || '').split('.').map((x) => (/^\d+$/.test(x) ? x.padStart(2, '0') : x)).join('.');
+  const tituloSeccion = (s) => (s.tipo === 'checklist' && s.numero ? `${numCheck(s.numero)} · ${s.titulo}` : s.titulo);
+
   /* Una fila: etiqueta a la izquierda, campo (o Sí/No/N/A) a la derecha. */
   function campoPunto(s, p, ed) {
     if (s.tipo === 'parametros') return filaParametro(p, ed);
-    const num = s.tipo === 'checklist' ? `<span class="num">${esc(p.numero || p.codigo)}</span>` : '';
+    const num = s.tipo === 'checklist' ? `<span class="num">${esc(numCheck(p.numero || p.codigo))}</span>` : '';
     const clase = BOTONES_RESP[p.tipo] ? 'fd resp' : `fd${p.tipo === 'numero' ? ' n' : ''}`;
     return `<div class="${clase}"><span class="et">${num}${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}</span>${inputPunto(p, ed)}</div>`;
   }
@@ -824,7 +845,7 @@
         </section>`;
     }
     const resp = s.puntos.every((p) => BOTONES_RESP[p.tipo]);
-    return `<h3 class="banda">${esc(s.titulo)}</h3>
+    return `<h3 class="banda">${esc(tituloSeccion(s))}</h3>
       <section class="hoja-tabla ${resp ? 'lista-resp' : 'rejilla-datos'}">${s.puntos.map((p) => campoPunto(s, p, ed)).join('')}</section>`;
   }
 

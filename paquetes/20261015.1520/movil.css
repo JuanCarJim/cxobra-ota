@@ -513,6 +513,20 @@ a.fila-dato strong { color: var(--acento); font-weight: 600; }
 .boca-cabeza strong { font-size: 17px; font-weight: 700; }
 .boca-cabeza .sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .boca-cifras { display: grid; grid-template-columns: 1fr 1fr 1fr .9fr; gap: 8px; align-items: end; margin-top: 6px; }
+/* Con qué se midió la boca: botón chiquito arriba a la derecha y su menú. */
+.boca-cabeza .sub { flex: 1 1 auto; min-width: 0; }
+.instr-boca { position: relative; flex: none; margin-left: auto; align-self: center; }
+.instr-boca > summary, .instr-boca.solo { list-style: none; display: inline-block; padding: 2px 7px; border: 1px solid var(--borde, #cad1d3); border-radius: 6px;
+  font-size: 11.5px; font-weight: 600; line-height: 1.5; color: var(--acento, #003f2d); white-space: nowrap; cursor: pointer; user-select: none; }
+.instr-boca.solo { color: var(--textoTenue); cursor: default; }
+.instr-boca > summary::-webkit-details-marker { display: none; }
+.instr-boca[open] > summary { background: var(--acento, #003f2d); border-color: var(--acento, #003f2d); color: #fff; }
+.instr-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; display: flex; flex-direction: column; min-width: 172px;
+  background: var(--panel, #fff); border: 1px solid var(--borde, #cad1d3); border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.18); overflow: hidden; }
+.instr-menu button { margin: 0; border: 0; border-radius: 0; background: transparent; color: var(--texto, #1a1a1a); font: inherit; font-size: 14px; text-align: left; padding: 10px 12px; min-height: 40px; white-space: nowrap; }
+.instr-menu button + button { border-top: 1px solid var(--borde, #e6e8e9); }
+.instr-menu button.activa { color: var(--acento, #003f2d); font-weight: 700; }
+.instr-menu button.activa::before { content: '✓ '; }
 /* El equipo de medida: dos opciones y la elegida bien a la vista (relleno de acento). */
 .equipo-medida.segmento { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-top: 8px; border: 1.5px solid var(--acento, #003f2d); border-radius: 10px; overflow: hidden; }
 .equipo-medida.segmento button { min-height: 40px; margin: 0; border: 0; border-radius: 0; background: transparent; color: var(--acento, #003f2d); font: inherit; font-size: 14.5px; font-weight: 600; }
@@ -901,3 +915,148 @@ body:has(.tag-fijo) .obra-movil { display: none; }
 .densa .barra-hoja .boton, .densa .boton { border-radius: 6px; }
 .densa .fotos-rapidas .boton { border-radius: 0; }
 .tag-fijo .chip { border-radius: 6px; }
+
+/* ═══════════════ TODA LA APP, DENSA (15-oct-2026, JC: «aplica el mismo
+   estilo que acabamos de definir en la última OTA para todas las pantallas
+   de la app y tarjetas»). El <main> lleva .densa siempre, así que las reglas
+   de la hoja (bandas, filas finas, esquinas de 10/6 px) valen en todas las
+   secciones. Aquí, lo que solo existía fuera de la hoja: cifras de arriba,
+   tarjetas, formularios, botones, balanceo, personal… en bandas finas con
+   un borde de 1 px, sin sombras y sin campos grandes. */
+#app.densa { --radio-tarjeta: 10px; --radio: 6px; --sombra: none; padding-top: 8px; padding-bottom: 40px; }
+
+/* La cabecera: título corto en vez del titular de 30 px. */
+.barra { padding: calc(8px + env(safe-area-inset-top)) 16px 6px; }
+.barra h1 { font-size: 22px; letter-spacing: -.015em; }
+.obra-movil { margin-top: 2px; }
+.obra-movil select { min-height: 30px; font-size: 14px; }
+.segmentos { margin: 4px 16px 0; padding: 2px; border-radius: 8px; }
+.segmentado { padding: 2px; border-radius: 8px; margin: 8px 0; }
+.segmentos a, .segmentado button { padding: 5px 6px; border-radius: 6px; font-size: 13.5px; }
+@media (max-width: 699px) {
+  #app.densa { padding-left: 12px; padding-right: 12px; }
+  .barra { padding-left: 12px; padding-right: 12px; }
+  .segmentos { margin: 4px 12px 0; }
+  .tag-fijo { margin-left: -12px; margin-right: -12px; padding-left: 12px; padding-right: 12px; }
+}
+
+/* Tarjetas: blancas, borde fino, sin sombra. */
+#app .tarjeta, #app .pedido-elegido, #app .linea, #app .grupo, #app .boca, #app .total-circuito, #app .tabla-inv,
+#app .tipo-parte, #app .resumen-fila div, #app .resumen-fila a, #app .resumen-fila button,
+#app .recientes, #app .tabla-resultado, #app .hoy, #app .plano-bocas, #app .resumen, #app .editor-nota, #app .fotos-ficha li {
+  border: 1px solid var(--rejilla); box-shadow: none; border-radius: 10px;
+}
+#app .tarjeta, #app .pedido-elegido { padding: 8px 12px; margin: 6px 0; }
+#app .linea { padding: 8px 12px; margin: 6px 0; }
+#app .titulo { font-size: 14.5px; margin: 2px 0 0; }
+#app .cabeza { font-size: 12px; }
+#app .recientes li { padding: 7px 12px; font-size: 14px; }
+#app .lista-ios > li { border: 0; box-shadow: none; }
+#app .lista-ios:not(h2 + .lista-ios):not(h3 + .lista-ios) { border-top: 1px solid var(--rejilla); }
+#app .texto-2 { font-size: 13.5px; margin: 1px 0; }
+
+/* Las cifras de arriba: una banda de casillas finas, no tarjetas KPI. */
+#app .resumen-fila { gap: 0; margin: 4px 0 8px; border: 1px solid var(--rejilla); border-radius: 10px; overflow: hidden; background: var(--panel); }
+#app .resumen-fila > * { border: 0; border-radius: 0; padding: 5px 2px 4px; }
+#app .resumen-fila > * + * { border-left: 1px solid var(--rejillaSuave); }
+#app .resumen-fila b, #app .resumen-fila button b, #app .resumen-fila a b, #app .resumen-fila.cinco button b { font-size: 17px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+#app .resumen-fila span, #app .resumen-fila button span, #app .resumen-fila a span { font-size: 10.5px; line-height: 1.15; display: block; }
+#app .resumen-fila button.activa { box-shadow: none; background: var(--acento-suave); }
+#app .resumen-fila button.activa b, #app .resumen-fila button.activa span { color: var(--acento-fuerte); }
+
+/* Filas de dato (inicio, cuenta, fichas de NCR y partes). */
+#app .fila-dato { min-height: 38px; padding: 5px 12px; font-size: 14px; }
+#app .fila-dato .ok, #app .fila-dato .no { font-size: 15px; }
+#app .titulo-grupo { margin: 10px 0 0; padding: 4px 10px; font-size: 12px; font-weight: 700; letter-spacing: .05em; line-height: 1.4;
+  color: var(--acento-fuerte); background: var(--acento-suave); border: 1px solid var(--rejilla); border-bottom: 0; border-radius: 10px 10px 0 0; }
+#app .titulo-grupo + * { margin-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+#app .inicio-avance .progreso { margin: 0 12px 8px; height: 4px; }
+#app .cabeza-ficha h2 { margin: 4px 0 2px; padding: 0; font-size: 19px; text-transform: none; letter-spacing: -.01em; color: var(--texto); background: none; border: 0; border-radius: 0; }
+#app h2 .cuenta { font-family: var(--fuente-texto); }
+
+/* Formularios: etiqueta encima y campo de 36 px, borde fino. */
+#app label { font-size: 12.5px; }
+#app input:not([type=checkbox]):not([type=radio]), #app select, #app textarea {
+  min-height: 36px; margin-top: 3px; padding: 5px 10px; font-size: 15px; border-radius: 6px;
+  background-color: var(--panel); border: 1px solid var(--borde);
+}
+#app input:focus, #app select:focus, #app textarea:focus { box-shadow: 0 0 0 2px var(--acento-suave); }
+#app select { padding-right: 28px; background-position: right 8px center; background-size: 14px; }
+#app .campos { gap: 8px; margin-top: 8px; }
+#app .buscador input, #app input[type=search] { min-height: 34px; }
+#app label.marca { margin: 8px 0 2px; font-size: 14px; }
+
+/* Botones: 40 px y esquinas de 6; el «grande» ya no es una losa. */
+#app .boton { min-height: 40px; padding: 6px 14px; margin: 8px 0; font-size: 15px; border-radius: 6px; }
+#app .boton.grande { min-height: 42px; font-size: 15px; }
+#app .boton.pequeno { min-height: 32px; padding: 4px 12px; font-size: 13px; border-radius: 6px; }
+#app .fila-botones { gap: 6px; }
+#app .chip { border-radius: 6px; padding: 2px 8px; font-size: 11.5px; }
+
+/* Vacío y resultados: menos aire. */
+#app .vacio { padding: 14px 16px; font-size: 14px; }
+#app .vacio::before { width: 40px; height: 40px; margin-bottom: 8px; background-size: 20px; }
+#app .resultado { padding: 14px 12px 12px; border-radius: 10px; }
+#app .resultado .icono { width: 40px; height: 40px; line-height: 40px; font-size: 20px; }
+#app .resultado h1 { font-size: 20px; margin: 8px 0 2px; }
+#app .tabla-resultado th, #app .tabla-resultado td { padding: 5px 10px; }
+#app .resumen { margin: 10px 0 4px; padding: 8px 12px; }
+#app .nota.aviso { padding: 6px 10px; }
+
+/* Personal. */
+#app .hoy { padding: 8px 12px; }
+#app .cifra-grande b { font-size: 28px; }
+#app .cifra-grande span { font-size: 15px; }
+#app .operarios li { min-height: 36px; padding: 2px 0; }
+
+/* Fotos: miniaturas de 64 px. */
+#app .fotos img, #app .fotos .sin-vista, #app .anadir-foto { width: 64px; height: 64px; border-radius: 6px; }
+
+/* Balanceo: el total y cada boca, en bandas finas; M1–M4 en casillas bajas. */
+#app .total-circuito { padding: 6px 12px; margin: 6px 0; }
+#app .cifras-total { margin-top: 2px; gap: 6px; }
+#app .cifras-total b { font-size: 17px; }
+#app .equipo-medida-todo { padding: 6px 12px; }
+#app .equipo-medida.segmento { margin-top: 4px; border-width: 1px; border-radius: 6px; }
+#app .equipo-medida.segmento button + button { border-left-width: 1px; }
+#app .equipo-medida.segmento button, #app .equipo-medida-todo .equipo-medida.segmento button { min-height: 32px; font-size: 13.5px; }
+#app .equipo-medida-todo .nota { margin: 4px 0 0; font-size: 12.5px; }
+#app .bocas { border: 0; }
+#app .boca { padding: 6px 10px; margin: 0; border-radius: 0; }
+#app .bocas > .boca + .boca { border-top: 0; }
+#app .bocas > .boca:first-child { border-radius: 10px 10px 0 0; }
+#app .bocas > .boca:last-child { border-radius: 0 0 10px 10px; }
+#app .bocas > .boca:only-child { border-radius: 10px; }
+#app .boca.mal { box-shadow: inset 3px 0 0 var(--mal); }
+#app .boca.bien { box-shadow: inset 3px 0 0 var(--bien); }
+#app .boca-cabeza strong { font-size: 14.5px; }
+#app .boca-cifras { margin-top: 2px; gap: 6px; }
+#app .boca-cifras b { font-size: 14.5px; }
+#app .lecturas { gap: 4px; margin-top: 4px; }
+#app .lecturas input, #app .q-balometro input { min-height: 30px; padding: 2px 4px; font-size: 15px; }
+#app .q-aparato input { min-height: 30px; padding: 2px 6px; font-size: 14px; }
+#app .formula { margin-top: 2px; font-size: 12px; }
+#app .grupo-titulo { font-size: 15px; margin: 12px 0 4px; }
+#app .grupo-plegable { margin-top: 10px; }
+#app .grupo-plegable > summary { padding: 6px 2px; font-size: 14px; }
+#app .resumen-fila > div, #app .resumen-fila > a, #app .resumen-fila > button { border: 0; border-radius: 0; padding: 5px 2px 4px; }
+#app .resumen-fila > * + * { border-left: 1px solid var(--rejillaSuave); }
+#app .buscar { margin: 6px 0; min-height: 34px; padding-left: 34px; background-position: 10px center; background-size: 16px; }
+#app .agrupar { margin: 0 0 6px; gap: 4px; }
+#app .agrupar button { padding: 3px 10px; font-size: 12.5px; border-radius: 6px; }
+#app .em-cab { font-size: 13.5px; }
+#app .em-lectura { margin-top: 6px; }
+
+/* Grupos plegados (planta, tipo, marca): la banda de la hoja; abierto, su lista pegada debajo. */
+#app details.grupo-lista { margin: 6px 0; }
+#app details.grupo-lista > summary { padding: 5px 10px; min-height: 34px; font-size: 13.5px; border-radius: 10px;
+  background: var(--acento-suave); color: var(--acento-fuerte); border: 1px solid var(--rejilla); }
+#app details.grupo-lista[open] > summary { margin-bottom: 0; border-radius: 10px 10px 0 0; }
+#app details.grupo-lista[open] > summary + * { margin-top: 0; border-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+#app details.grupo-lista > summary .contador { color: var(--acento-fuerte); }
+#app .ver-mas { padding: 6px; margin: 4px 0; }
+#app input[type=search].buscar { padding-left: 34px; }
+.hoja-tabla .num { min-width: 38px; }
+#app .boca .lecturas input, #app .boca .q-balometro input { min-height: 30px; height: 30px; padding: 2px 4px; margin-top: 1px; font-size: 15px; }
+#app .boca .q-aparato input { min-height: 30px; padding: 2px 6px; font-size: 14px; }
+#app .boca .chip { padding: 1px 6px; }
