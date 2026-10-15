@@ -6667,10 +6667,12 @@ globalThis.CX_VARIANTE="cxobra";
         if (!r) return false;
         return (r.permisos[modulo] || []).includes(verbo);
       }
+      var PANTALLA_NECESITA = { proyectos: "presupuestos", estadisticas: "presupuestos" };
       function modulosVisibles(idRol) {
         const r = porId.get(idRol);
         if (!r) return [];
-        return Object.keys(MODULOS).filter((m) => !SIN_PANTALLA.has(m)).filter((m) => (r.permisos[m] || []).includes("ver"));
+        const ve = (m) => (r.permisos[m] || []).includes("ver");
+        return Object.keys(MODULOS).filter((m) => !SIN_PANTALLA.has(m)).filter((m) => ve(m) && (!PANTALLA_NECESITA[m] || ve(PANTALLA_NECESITA[m])));
       }
       function campoVetado(idRol, campo) {
         const r = porId.get(idRol);
@@ -8573,7 +8575,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261015.1423" : "0";
+      var VERSION = true ? "20261015.1512" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -12710,6 +12712,12 @@ globalThis.CX_VARIANTE="cxobra";
         /* La cuenta con que salió la cantidad del mes («3/4*M»), como en Excel (15-oct). */
         ["lineasCertificacion", "formula", "TEXT"],
         ["correccionesCertificacion", "formulaNueva", "TEXT"],
+        /* Cómo se certifica (15-oct, JC): «medicion» (se teclea la cantidad) o
+           «avance» (se teclea el % de avance y la cantidad sale sola). La obra
+           lleva el de por defecto; cada certificación, el suyo. Lo guardado es
+           siempre la cantidad del mes: cambiar de modo no pierde nada. */
+        ["obras", "modoCertificacion", "TEXT"],
+        ["certificaciones", "modo", "TEXT"],
         /* Archivos y fotos de las notas del bloc (electron/data/notasAdjuntos.js), en JSON. */
         ["notas", "adjuntos", "TEXT"],
         /* Los partes de incidencia se asignan a quien los lleva, con su fecha límite. */
@@ -18123,7 +18131,7 @@ globalThis.CX_VARIANTE="cxobra";
             nombre: "CARRIER ROOFTOPS",
             nombrePdf: "Carrier Rooftop",
             plantillas: ["ROOFTOP"],
-            anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR" }, { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" }],
+            anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR", nombre: "CHECKLIST ROOFTOP" }, { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" }],
             balanceo: true,
             estanqueidad: "no",
             medicion: "bocas"
@@ -18172,7 +18180,7 @@ globalThis.CX_VARIANTE="cxobra";
             nombre: "PANASONIC VRF",
             nombrePdf: "Panasonic VRF",
             plantillas: ["VRF_UD_EXTERIOR", "VRF_UI_CONDUCTOS", "VRF_UI_CASSETTE"],
-            anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR" }, { plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
+            anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR", nombre: "CHECKLIST VRF" }, { plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
             balanceo: false,
             estanqueidad: "refrigerante",
             /* La exterior no se mide; la interior de conductos, por bocas a velocidad
@@ -18186,7 +18194,7 @@ globalThis.CX_VARIANTE="cxobra";
             nombre: "PANASONIC SPLIT",
             nombrePdf: "Panasonic Split",
             plantillas: ["SPLIT_UD_INTERIOR", "SPLIT_UD_EXTERIOR"],
-            anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR" }, { plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
+            anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR", nombre: "CHECKLIST SPLIT" }, { plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
             balanceo: false,
             estanqueidad: "refrigerante",
             medicion: "temperatura",
@@ -19010,7 +19018,7 @@ globalThis.CX_VARIANTE="cxobra";
               clave = tagUE ? `refrigerante:${sinAcentosFx(tagUE)}` : null;
               if (!tagUE) motivo = "Unidad interior sin exterior asociada.";
             }
-            return { plantilla: pl.codigo, clase: pl.clase, nombre: pl.nombre, enlace, clave, motivo };
+            return { plantilla: pl.codigo, clase: pl.clase, nombre: a.nombre || pl.nombre, enlace, clave, motivo };
           };
           const anexos = (familia.anexos || []).map(anexo).filter(Boolean);
           fuera.push(...anexos.filter((a) => a.clase === "checklist"));
@@ -30012,7 +30020,8 @@ globalThis.CX_VARIANTE="cxobra";
             { tag: "UTA-P1-01", planta: "P1", sala: "Cubierta", grupo: "TROX UTA", marca: "Trox", modelo: "X-CUBE 25", numSerie: "TX-25-0117", caudalDisenoImp: 1200, caudalDisenoRet: 1e3 },
             { tag: "FC-P1-01", planta: "P1", sala: "Habitaci\xF3n 101", grupo: "AIRLAN FANCOIL", marca: "Airlan", modelo: "FCX 32", circuito: "HVAC FC P1" },
             { tag: "FC-P1-02", planta: "P1", sala: "Habitaci\xF3n 102", grupo: "AIRLAN FANCOIL", marca: "Airlan", modelo: "FCX 32", circuito: "HVAC FC P1" },
-            { tag: "B-PB-01", planta: "PB", sala: "Sala de bombas", grupo: "WILO PUMPS", marca: "Wilo", modelo: "Stratos 40/1-12", numSerie: "W-88231" }
+            { tag: "B-PB-01", planta: "PB", sala: "Sala de bombas", grupo: "WILO PUMPS", marca: "Wilo", modelo: "Stratos 40/1-12", numSerie: "W-88231" },
+            { tag: "UI-PB-01", planta: "PB", sala: "Recepci\xF3n", grupo: "PANASONIC SPLIT", marca: "Panasonic", modelo: "CS-Z35XKEW", equipoAsociado: "UE-PB-01" }
           ]);
           C.configurar(repo, luis, "OB-3", { tolTotal: "10", tolBoca: "15", psRefrigerante: "41,5", caidaAdmisible: "0" });
           const idDe = (tag) => (db.prepare("SELECT id FROM equiposObra WHERE obraId = 'OB-3' AND tag = ?").get(tag) || {}).id;
@@ -39081,6 +39090,14 @@ ${linea}` : linea;
         emitida: { etiqueta: "Emitida", que: "Enviada al cliente. Ya no se toca: lo que haya que corregir va en la siguiente." },
         aprobada: { etiqueta: "Aprobada", que: "El cliente la ha dado por buena. Se puede facturar." }
       };
+      var MODOS_CERT = {
+        medicion: { etiqueta: "Por medici\xF3n", corto: "medici\xF3n", que: "Se teclea la cantidad del mes (admite cuentas); el % de avance sale solo." },
+        avance: { etiqueta: "Por % de avance", corto: "% de avance", que: "Se teclea el % de avance del mes sobre la medici\xF3n; la cantidad sale sola." }
+      };
+      function modoCertificacion(certificacion = {}, obra = {}) {
+        const m = certificacion && certificacion.modo || obra && obra.modoCertificacion;
+        return MODOS_CERT[m] ? m : "medicion";
+      }
       var esNumeroCert = (v) => v !== null && v !== void 0 && v !== "" && Number.isFinite(Number(v));
       function partidasCertificables(arbolCalculado, { tipoContrato = null } = {}) {
         return _modeloCert.partidas(arbolCalculado || []).map((p) => {
@@ -39347,7 +39364,7 @@ ${linea}` : linea;
       (function exportar(API) {
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.CERTIFICACION = API;
-      })({ calcular: calcularCertificacion, partidasCertificables, cantidadDesdePorcentaje, comprobarCierre: comprobarCierreObra, comprobarFinal, ivaDeLaObra, leerAnterior: leerAnteriorCert, GRAVEDAD: GRAVEDAD_CERT, ESTADOS: ESTADOS_CERT });
+      })({ calcular: calcularCertificacion, partidasCertificables, cantidadDesdePorcentaje, comprobarCierre: comprobarCierreObra, comprobarFinal, ivaDeLaObra, leerAnterior: leerAnteriorCert, GRAVEDAD: GRAVEDAD_CERT, ESTADOS: ESTADOS_CERT, MODOS: MODOS_CERT, modoCertificacion });
     }
   });
 
@@ -62360,7 +62377,7 @@ ${linea}` : linea;
         }
         return fuera;
       }
-      async function hojaExcelPdf({ hojas = [], imagen = null, anexoPdf = null, titulo = "Hoja" } = {}) {
+      async function hojaExcelPdf({ hojas = [], imagen = null, anexoPdf = null, titulo = "Hoja", sinPie = false } = {}) {
         const pdf = await PDFDocument.create();
         pdf.setTitle(String(titulo));
         pdf.setProducer("Cx Obra");
@@ -62490,7 +62507,7 @@ ${linea}` : linea;
             });
           }
         }
-        propias.forEach((p, i) => {
+        if (!sinPie) propias.forEach((p, i) => {
           const t = `P\xE1gina ${i + 1} de ${propias.length}`;
           p.drawText(limpio(t), { x: A4[0] - MARGEN - F.n.widthOfTextAtSize(t, 7), y: MARGEN / 2, size: 7, font: F.n, color: rgb(0.45, 0.45, 0.45) });
         });

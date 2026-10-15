@@ -1,15 +1,15 @@
 {
-  "version": "20261015.1433",
+  "version": "20261015.1512",
   "runtime": "1",
   "canal": "produccion",
-  "publicada": "2026-10-15T14:33:20.822Z",
-  "base": "https://raw.githubusercontent.com/JuanCarJim/cxobra-ota/main/paquetes/20261015.1433/",
+  "publicada": "2026-10-15T15:12:31.782Z",
+  "base": "https://raw.githubusercontent.com/JuanCarJim/cxobra-ota/main/paquetes/20261015.1512/",
   "archivos": {
     "acceso.js": "27c87fafbffa5d12e35ad96c38f8dd6405da50ad4468969febd9cbe77a896de2",
     "albaranes.js": "4a7891d1de95dd97796993d8a0bc91729e6f740094350021ef6722b2531e8d52",
     "bloc.js": "4931a576319e902842185286d9f8e52120276e598b6d3f4970b648da9522fdf9",
     "carcasa.js": "a4cf0d98ff4c7278948d35786fb6cd19cbb9e4587cdec463f562400b92665f93",
-    "commissioning.js": "354de3d647ff37c1959d64512364a5b093260e609b48ca17b9a52424c64713f5",
+    "commissioning.js": "10bbe122841a2fcbc08ade90b2d69b851564307f22c13f7c1e5e6900db5ccedb",
     "estanqueidad.js": "75d68ab85d82a5b6a9b1b3a46376ca65059530b8e889a55d510aa7a036b0a554",
     "fichasExcel/image1.png": "1ca565d04191bfa2d8471ad861a936b8ca2127acc03569cd32bbecac33826248",
     "fichasExcel/image10.png": "fe817c49a071d0d05646cc8fa029de9b773e771fcd874d98554ec452d76b150a",
@@ -36,11 +36,11 @@
     "index.html": "9349ef6f3cc61a220b7137e489e2ae6c9b321ecb7116af1c0ec205b2848924de",
     "inventario.js": "294140cb324ae6b72ca8cf0c703be23f7244d4a8d759dbb434712a465c70f768",
     "manifest.webmanifest": "58f00c448057e50bfe8ffb27557f457d7f1d8e0074b05d743e6f2036fdad88d2",
-    "motor-cxobra.js": "7ea0b826efe20da258c56d4c322f8045641e5eb2e4b22dac37e1c697451f8bdf",
-    "movil.css": "8e8b62c8a4fa6bfde9ddb2fe5f72d92375dde2dccf870a805ccd0bc372a3cb36",
+    "motor-cxobra.js": "188d8c9fb3cb901803509245bc566492bb43ab00be2208ad96677cc4532cc4d6",
+    "movil.css": "dc079cfd0619ae800e6e21a9f4fd9e8f28821eea18edcabff0558957f7f9acfc",
     "movil.js": "97fc5d32cf6eb92076fe05308f05e76c7744a581f5ee42d9607a0498ed262751",
     "ncr.js": "e0be15724271a46727feed339e0e9e86f135b7b60930835366dbdd91f7343f3d",
-    "ota-version.json": "d1e8bcd5f873224ea1275bc61765ab415a8718077345f1c5b5f68eab2eecf761",
+    "ota-version.json": "73ee4b2aa3524d2b02b46bb7266e108e5eac0340f5fc57f022ddb2e2f3b4d738",
     "partes.js": "8393ee0e422ee287e96a48431b147b1484adbdfda9568306845ef58dd7ddf6c3",
     "partesIncidencia.js": "a57144c1f575124292991bd105bbddc4e4479dbfeb47857cd522f6ba36140032",
     "personal.js": "fb646c8d1b12ec6455b188f7bbf87ebc048831672c11eab00c3ad9e9206984e7",
@@ -49,6 +49,6 @@
     "simbolosBoca.js": "893f025dd9a8be1a7540042b4d76d1aa9cbeb7c38ae688f3a8b277323ba7976f",
     "sql-wasm-browser.wasm": "38c14f6e379210bc942bdc4ebca44e7bfdb4318ecc1c72ca666a28fdce96670a",
     "sql-wasm.wasm": "38c14f6e379210bc942bdc4ebca44e7bfdb4318ecc1c72ca666a28fdce96670a",
-    "tokens.css": "87ac5cf23e34a0f6f474967c8acb3d6ee52195b1123dacf28f3dbc8e354343c9"
+    "tokens.css": "be605b9c48c3510120b1c414b53346bdf349c0d589a0c41586ea8e0bb4b015b6"
   }
 }
