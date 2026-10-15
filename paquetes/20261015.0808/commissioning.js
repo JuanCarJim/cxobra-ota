@@ -380,7 +380,7 @@
     const fs = fichasEq.fichas || [];
     return `<section id="fichas-equipo">
       <h2>Fichas del equipo <span class="cuenta">${fs.length}</span></h2>
-      ${fs.length ? `<ul class="lista-ios">${fs.map((x, i) => (!x.plantilla ? `
+      ${fs.length ? `<ul class="lista-ios numerada">${fs.map((x, i) => (!x.plantilla ? `
         <li><div class="fila-ios apagada">
           <div class="fila-principal"><strong>${esc(x.nombre)}</strong><span class="chip neutra">Sin plantilla</span></div>
           <div class="sub">${esc(x.motivo || 'Falta elegir la plantilla')} Se elige en el ordenador (Puesta en marcha).</div>
