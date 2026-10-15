@@ -8563,7 +8563,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261015.0743" : "0";
+      var VERSION = true ? "20261015.0758" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -59670,6 +59670,7 @@ ${linea}` : linea;
               marca: f.marca,
               modelo: f.modelo,
               grupo: f.grupo,
+              familia: f.familia || null,
               envio: f.envio,
               falta: f.falta,
               completo: f.completo,
@@ -63172,6 +63173,13 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       ota.buscar().then((r) => console.log("OTA:", JSON.stringify(r))).catch(() => {
       });
     }, 4e3);
+    let ultimaBusqueda = Date.now();
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "visible" || Date.now() - ultimaBusqueda < 10 * 60 * 1e3) return;
+      ultimaBusqueda = Date.now();
+      ota.buscar().then((r) => console.log("OTA:", JSON.stringify(r))).catch(() => {
+      });
+    });
     for (const [ruta, texto] of Object.entries(incrustados)) meterArchivo(ruta, texto);
     decir("Abriendo los datos\u2026");
     const base = await abrirBaseWasm({ datos: await almacen.cargarBase(), localizarWasm: (f) => f });

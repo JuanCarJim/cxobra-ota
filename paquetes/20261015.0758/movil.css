@@ -229,7 +229,7 @@ small, .sub { color: var(--textoTenue); font-size: 13px; }
 .chip.info { background: var(--acento-suave); color: var(--acento-fuerte); }
 
 /* La tarjeta: blanca, sin borde, radio 16 y una sombra que apenas se ve. */
-.tarjeta, .pedido-elegido, .linea, .grupo, .lista-ios, .boca, .total-circuito, .tabla-inv, .tipo-parte, .resumen-fila div {
+.tarjeta, .pedido-elegido, .linea, .grupo, .lista-ios, .boca, .total-circuito, .tabla-inv, .tipo-parte, .resumen-fila div, .resumen-fila a, .resumen-fila button {
   background: var(--panel); border: 0; border-radius: var(--radio-tarjeta); box-shadow: var(--sombra);
 }
 .tarjeta, .pedido-elegido { padding: 16px 18px; margin: 10px 0; }
@@ -434,6 +434,20 @@ main > label { margin-top: 14px; }
 .resumen-fila span { font-size: 11.5px; color: var(--textoTenue); }
 .resumen-fila .aviso b { color: var(--aviso); }
 .resumen-fila .bien b { color: var(--bien); }
+/* Inicio: las cifras y las filas llevan a su sección. */
+.resumen-fila button { padding: 12px 6px 10px; text-align: center; font: inherit; color: inherit; border: 0; cursor: pointer; }
+.resumen-fila button b { display: block; font-size: 24px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; }
+.resumen-fila button span { font-size: 11.5px; color: var(--textoTenue); }
+.resumen-fila button.aviso b { color: var(--aviso); }
+.resumen-fila button.activa { box-shadow: inset 0 0 0 2px var(--acento); }
+.resumen-fila a { padding: 12px 6px 10px; text-align: center; color: inherit; text-decoration: none; }
+.resumen-fila a b { display: block; font-size: 24px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; }
+.resumen-fila a span { font-size: 11.5px; color: var(--textoTenue); }
+.resumen-fila a.aviso b { color: var(--aviso); }
+a.fila-dato { text-decoration: none; }
+a.fila-dato strong { color: var(--acento); font-weight: 600; }
+.titulo-grupo { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--textoTenue); margin: 22px 4px 6px; }
+.inicio-avance .progreso { margin: 0 18px 14px; height: 6px; }
 
 /* Grupos de datos (ficha, cuenta, checklist). */
 .grupo { margin: 10px 0; overflow: hidden; }
@@ -563,3 +577,16 @@ details.grupo-lista[open] > summary { margin-bottom: 6px; }
 .fotos-equipo .pie { display: flex; flex-direction: column; gap: 2px; font-size: 11.5px; color: var(--textoTenue); margin-top: 3px; }
 .fotos-rapidas { flex-wrap: wrap; }
 .fotos-rapidas .boton { flex: 1 1 45%; }
+
+/* Agrupar la lista de equipos: planta, tipo o marca. */
+.agrupar { display: flex; align-items: center; gap: 6px; margin: -4px 0 12px; font-size: 13px; color: var(--textoTenue); }
+.agrupar span { margin-right: 2px; }
+.agrupar button { font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--borde, #ddd); background: transparent; color: var(--texto); cursor: pointer; }
+.agrupar button.activa { background: var(--acento); border-color: var(--acento); color: #fff; font-weight: 600; }
+
+/* iPad: la misma app, con más ancho para las listas. */
+@media (min-width: 900px) {
+  main { max-width: 880px; }
+  .barra { padding-left: calc((100% - 880px) / 2 + 20px); padding-right: calc((100% - 880px) / 2 + 20px); }
+  .segmentos { max-width: 840px; margin-left: auto; margin-right: auto; }
+}

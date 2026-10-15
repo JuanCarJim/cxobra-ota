@@ -3,13 +3,17 @@
  * LA CARCASA DE CX OBRA: la barra de pestañas de abajo, las secciones de cada
  * pestaña arriba, la obra elegida y la pantalla de la cuenta.
  *
- *   · ABAJO, la barra flotante de Finanzas Pro: Commissioning · Incidencias
- *     · [ + ] · Compras · Más. El «+» no es una pestaña: abre la hoja de
- *     Añadir (Nueva NCR, Nota rápida, Escanear albarán, Medir equipo, Parte,
- *     según el rol). Una pestaña sin ninguna sección para el rol no sale.
+ *   · ABAJO, la barra flotante de Finanzas Pro: Inicio · Commissioning
+ *     · [ + ] · Incidencias · Más. El «+» no es una pestaña: abre la hoja de
+ *     Añadir (Nueva NCR, Nota rápida, Escanear albarán, Medir equipo, Prueba
+ *     de estanqueidad, Parte, según el rol). Una pestaña sin ninguna sección
+ *     para el rol no sale.
+ *   · INICIO es la primera pantalla al entrar: la obra, cómo va el
+ *     commissioning y lo que espera (partes, NCR, pruebas), con atajos.
  *   · ARRIBA, si la pestaña tiene más de una sección, un selector segmentado:
- *     Incidencias = Partes | NCR; Compras = Albaranes | Inventario;
- *     Más = Notas (el bloc) | Personal | Pruebas | Cuenta.
+ *     Commissioning = Equipos | Estanqueidad (la prueba es parte del
+ *     commissioning); Incidencias = Partes | NCR; Más = Notas (el bloc) |
+ *     Albaranes | Inventario | Personal | Cuenta.
  *   · LA OBRA se elige una vez en la cabecera y vale para todas las secciones
  *     (se guarda en el teléfono). Al cambiarla se avisa con «movil:obra».
  *
@@ -27,23 +31,23 @@
 
   /* Cuatro pestañas, dos a cada lado del botón de añadir: [0][1] [ + ] [2][3]. */
   const PESTANAS = [
+    { id: 'inicio', nombre: 'Inicio',
+      icono: icono('<path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/>',
+        '<path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z" fill="currentColor"/>'),
+      secciones: [['inicio', 'Inicio']] },
     { id: 'commissioning', nombre: 'Commissioning',
       icono: icono('<path d="M4 15a8 8 0 1 1 16 0"/><path d="M12 15l4.5-4.5"/><circle cx="12" cy="15" r="1.4"/><path d="M4 19h16"/>',
         `<path d="M4 15a8 8 0 1 1 16 0z" fill="currentColor"/><path d="M12 15l4.5-4.5" ${HUECO}/><path d="M4 19h16"/>`),
-      secciones: [['commissioning', 'Equipos']] },
+      secciones: [['commissioning', 'Equipos'], ['estanqueidad', 'Estanqueidad']] },
     { id: 'incidencias', nombre: 'Incidencias',
       icono: icono('<path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.5"/><circle cx="12" cy="17" r=".6" fill="currentColor"/>',
         `<path d="M12 3.5 2.8 19.5h18.4z" fill="currentColor"/><path d="M12 10v4" ${HUECO} stroke-width="2.2"/><path d="M12 16.9v.1" ${HUECO} stroke-width="2.4"/>`),
       secciones: [['partes', 'Partes'], ['ncr', 'NCR']] },
-    { id: 'compras', nombre: 'Compras',
-      icono: icono('<path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5"/><path d="M12 12v9"/>',
-        `<path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z" fill="currentColor"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9" ${HUECO}/>`),
-      secciones: [['albaranes', 'Albaranes'], ['inventario', 'Inventario']] },
-    /* El Bloc vive en «Más», el primero. */
+    /* El Bloc vive en «Más», el primero; las compras, detrás. */
     { id: 'mas', nombre: 'Más',
       icono: icono('<rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/>',
         '<g fill="currentColor"><rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/></g>'),
-      secciones: [['bloc', 'Notas'], ['personal', 'Personal'], ['estanqueidad', 'Pruebas'], ['cuenta', 'Cuenta']] },
+      secciones: [['bloc', 'Notas'], ['albaranes', 'Albaranes'], ['inventario', 'Inventario'], ['personal', 'Personal'], ['cuenta', 'Cuenta']] },
   ];
   const MAS = svg('<path d="M12 5v14M5 12h14" stroke-width="2.6"/>');
 
@@ -62,20 +66,22 @@
       icono: svg('<path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><path d="M8 9h8M8 12h8M8 15h5"/>') },
     { seccion: 'commissioning', nombre: 'Medir equipo', ayuda: 'Busca el equipo y mide boca a boca', obra: true, pasos: ['[data-cx-buscar]'],
       icono: svg('<path d="M4 15a8 8 0 1 1 16 0"/><path d="M12 15l4.5-4.5"/><circle cx="12" cy="15" r="1.4"/><path d="M4 19h16"/>') },
+    { seccion: 'estanqueidad', nombre: 'Prueba de estanqueidad', ayuda: 'Con la foto del manómetro', obra: true, pasos: ['[data-pe="nuevo"]'],
+      icono: svg('<path d="M12 3.5c3 4 5.5 7 5.5 10a5.5 5.5 0 0 1-11 0c0-3 2.5-6 5.5-10z"/>') },
     { seccion: 'partes', nombre: 'Parte', ayuda: 'Parte de incidencia al jefe de obra', obra: true, pasos: ['[data-pi="nuevo"]'],
       icono: svg('<path d="M14 3.5H6.5A1.5 1.5 0 0 0 5 5v14a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19V8.5z"/><path d="M14 3.5v5h5"/><path d="M12 11v4M12 17.5v.1"/>') },
   ];
 
   /* El título de cada sección, arriba. */
   const TITULO = {
-    commissioning: 'Commissioning', partes: 'Partes de incidencia', ncr: 'No conformidades', albaranes: 'Albaranes',
+    inicio: 'Inicio', commissioning: 'Commissioning', partes: 'Partes de incidencia', ncr: 'No conformidades', albaranes: 'Albaranes',
     inventario: 'Inventario', bloc: 'Bloc de notas', personal: 'Personal', estanqueidad: 'Pruebas de estanqueidad', cuenta: 'Cuenta',
   };
   /* Las que no dependen de la obra elegida no enseñan el selector. */
   const SIN_OBRA = new Set(['cuenta', 'albaranes']);
 
   const sesion = () => (window.ACCESO_MOVIL && window.ACCESO_MOVIL.sesion()) || null;
-  const permitidas = () => { const s = sesion(); return s ? [...(s.secciones || []), 'cuenta'] : []; };
+  const permitidas = () => { const s = sesion(); return s ? ['inicio', ...(s.secciones || []), 'cuenta'] : []; };
   const seccion = () => location.hash.slice(1);
   const pestanaDe = (s) => PESTANAS.find((p) => p.secciones.some(([id]) => id === s)) || null;
 
@@ -316,6 +322,7 @@
     if (caja) caja.hidden = !sesion() || SIN_OBRA.has(s) || !obras.length;
     if (actual) { try { localStorage.setItem(`movil.pestana.${actual.id}`, s); } catch { /* nada */ } }
     if (s === 'cuenta') cuenta();
+    if (s === 'inicio') inicio();
   }
 
   /* ═══════════════════════════════════ El «+»: la hoja de Añadir */
@@ -386,6 +393,67 @@
       if (el.matches('input, textarea, select')) { el.focus(); el.scrollIntoView({ block: 'center' }); } else el.click();
     }
   }
+
+  /* ═══════════════════════════════════ Inicio
+     La primera pantalla: la obra elegida, cómo va su commissioning y lo
+     que espera, todo a la vista y cada cifra lleva a lo suyo. Lo que el
+     rol no puede ver no se pide ni se enseña. */
+
+  async function inicio() {
+    const yo = sesion();
+    const app = document.getElementById('app');
+    if (!yo || !app) return;
+    await obrasListas;
+    if (seccion() !== 'inicio') return;
+    const o = window.CX.obra();
+    const ok = new Set(permitidas());
+    if (!o) { app.innerHTML = '<p class="vacio">No tienes ninguna obra abierta.</p>'; return; }
+    app.innerHTML = '<p class="cargando">Cargando…</p>';
+    const q = encodeURIComponent(o.id);
+    const traer = (sec, ruta) => (ok.has(sec) ? pedir(ruta).catch(() => null) : Promise.resolve(null));
+    const [cx, pe, pi, ncr] = await Promise.all([
+      traer('commissioning', `api/commissioning?obra=${q}`), traer('estanqueidad', 'api/estanqueidad'),
+      traer('partes', 'api/partes'), traer('ncr', `api/ncr?obra=${q}`),
+    ]);
+    if (seccion() !== 'inicio' || window.CX.obraId() !== o.id) return;
+    const t = (cx && cx.ok && cx.totales) || null;
+    const hechos = t ? (t.completos || 0) : 0;
+    const pct = t && t.equipos ? Math.round((hechos / t.equipos) * 100) : 0;
+    const bocas = cx && cx.equipos ? cx.equipos.reduce((a, e) => [a[0] + (e.medidas || 0), a[1] + (e.bocas || 0)], [0, 0]) : [0, 0];
+    const pruebas = pe && pe.recientes ? pe.recientes.filter((p) => p.obraId === o.id) : null;
+    const partes = pi && pi.recientes ? pi.recientes.filter((p) => p.obraId === o.id && p.estado !== 'cerrado') : null;
+    const ncrAbiertas = ncr && ncr.ok ? ncr.filas.filter((f) => f.activa) : null;
+    const dato = (href, valor, texto, aviso, seg = 'todos') => `<a class="${aviso ? 'aviso' : ''}" href="#${href}" data-ir-seg="${seg}"><b>${cifra(valor)}</b><span>${esc(texto)}</span></a>`;
+    const fila = (href, nombre, valor) => `<a class="fila-dato" href="#${href}"><span>${esc(nombre)}</span><strong>${valor} ›</strong></a>`;
+    app.innerHTML = `
+      <section class="grupo inicio-obra">
+        <div class="fila-dato"><span>Obra</span><strong>${esc(o.codigo)} · ${esc(o.nombre)}</strong></div>
+        <div class="fila-dato"><span>Hola</span><strong>${esc(yo.nombre)} · ${esc(yo.rolNombre || yo.rol || '')}</strong></div>
+      </section>
+      ${t ? `
+      <h2 class="titulo-grupo">Commissioning</h2>
+      <section class="grupo inicio-avance">
+        <div class="fila-dato"><span>Equipos completos</span><strong>${cifra(hechos)} de ${cifra(t.equipos)} · ${pct} %</strong></div>
+        <div class="progreso" aria-label="${pct} % completo"><i style="width:${pct}%"></i></div>
+      </section>
+      <div class="resumen-fila">
+        ${dato('commissioning', t.equipos, 'equipos')}
+        ${dato('commissioning', t.faltaDocumentacion, 'falta doc.', t.faltaDocumentacion, 'faltaDoc')}
+        ${dato('commissioning', t.faltaEnsayo, 'falta ensayo', t.faltaEnsayo, 'faltaEnsayo')}
+        ${dato('commissioning', bocas[1] - bocas[0], 'bocas por medir', bocas[1] - bocas[0])}
+      </div>` : ''}
+      <h2 class="titulo-grupo">Pendiente</h2>
+      <section class="grupo">
+        ${pruebas ? fila('estanqueidad', 'Pruebas de estanqueidad', pruebas.length ? `${cifra(pruebas.filter((p) => p.resultado !== 'correcta').length)} sin superar · ${cifra(pruebas.length)} hechas` : 'Ninguna') : ''}
+        ${partes ? fila('partes', 'Partes abiertos', cifra(partes.length)) : ''}
+        ${ncrAbiertas ? fila('ncr', 'No conformidades abiertas', cifra(ncrAbiertas.length)) : ''}
+      </section>
+      ${accionesDisponibles().length ? `<button class="boton" id="inicio-anadir">Añadir…</button>` : ''}`;
+    const b = document.getElementById('inicio-anadir');
+    if (b) b.onclick = abrirHoja;
+    for (const a of app.querySelectorAll('[data-ir-seg]')) a.onclick = () => { try { sessionStorage.setItem('cx.segmento', a.dataset.irSeg); } catch { /* nada */ } };
+  }
+  window.addEventListener('movil:obra', () => { if (seccion() === 'inicio') inicio(); });
 
   /* ═══════════════════════════════════ La cuenta */
 
