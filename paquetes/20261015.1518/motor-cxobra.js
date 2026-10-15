@@ -6340,7 +6340,8 @@ globalThis.CX_VARIANTE="cxobra";
             obras: ["ver"],
             informeSemanal: ["ver", "exportar"],
             commissioning: TODO,
-            mantenimiento: TODO,
+            /* Lo ve y lo exporta; editarlo es de mantenimiento (JC, 15-oct). */
+            mantenimiento: ["ver", "exportar"],
             ncr: TODO,
             ppi: TODO,
             incidencias: ["ver", "crear", "editar", "exportar"],
@@ -6387,11 +6388,29 @@ globalThis.CX_VARIANTE="cxobra";
             partesIncidencia: ["ver", "exportar"],
             correos: ["ver", "crear", "editar", "borrar"],
             normativa: ["ver", "exportar"],
-            proveedores: SOLO_VER,
+            /* Proveedores (tarifas y adjudicaciones) no: es dinero (JC, 15-oct). */
             estadisticas: ["ver"],
             trazabilidad: ["ver", "exportar"]
           },
-          camposVetados: [],
+          /* Ni tarifas ni importes de obra (JC, 15-oct: «mantenimiento no»). */
+          camposVetados: [
+            "precioCoste",
+            "costeUnitario",
+            "importeCoste",
+            "margen",
+            "margenPrevisto",
+            "coefK",
+            "beneficio",
+            "precioProveedor",
+            "baja",
+            "costesIndirectos",
+            "tarifaOficial",
+            "tarifaOperario",
+            "precioCobroH",
+            "importeVenta",
+            "objetivoCompras",
+            "coeficienteCompras"
+          ],
           home: [
             { bloque: "avisosMantenimiento", ancho: "completo", titulo: "Mantenimiento: vencido y pr\xF3ximos 30 d\xEDas" },
             { bloque: "avisosNcr", ancho: "completo", titulo: "No conformidades: vencidas y equipos bloqueados" },
@@ -6426,7 +6445,8 @@ globalThis.CX_VARIANTE="cxobra";
             commissioning: ["ver", "crear", "editar"],
             /* Las fechas las sabe él, que estaba allí el día que se montó; y
                apunta lo que hace el mantenedor, que lo ve hacer. */
-            mantenimiento: ["ver", "crear", "editar", "borrar"],
+            /* Lo ve, pero no lo edita (JC, 15-oct). */
+            mantenimiento: ["ver"],
             /* Las ve, las da de alta y las pone al día en el recorrido; el dinero
                (tarifas, coste, cobro) no le llega: lo recorta la capa de datos. */
             ncr: ["ver", "crear", "editar"],
@@ -6667,10 +6687,12 @@ globalThis.CX_VARIANTE="cxobra";
         if (!r) return false;
         return (r.permisos[modulo] || []).includes(verbo);
       }
+      var PANTALLA_NECESITA = { proyectos: "presupuestos", estadisticas: "presupuestos" };
       function modulosVisibles(idRol) {
         const r = porId.get(idRol);
         if (!r) return [];
-        return Object.keys(MODULOS).filter((m) => !SIN_PANTALLA.has(m)).filter((m) => (r.permisos[m] || []).includes("ver"));
+        const ve = (m) => (r.permisos[m] || []).includes("ver");
+        return Object.keys(MODULOS).filter((m) => !SIN_PANTALLA.has(m)).filter((m) => ve(m) && (!PANTALLA_NECESITA[m] || ve(PANTALLA_NECESITA[m])));
       }
       function campoVetado(idRol, campo) {
         const r = porId.get(idRol);
@@ -6711,7 +6733,7 @@ globalThis.CX_VARIANTE="cxobra";
         encargadoObra: { trabajo: ["tareas", "pedidos", "partes", "partesIncidencia", "ppi", "ncr", "pruebasEstanqueidad"], consulta: ["obras", "commissioning", "vacaciones"] },
         jefeCommissioning: { trabajo: ["commissioning", "balanceo", "pruebasEstanqueidad", "ncr", "ppi"], consulta: ["calculo", "obras", "tareas", "vacaciones", "informeSemanal", "mantenimiento"] },
         contractSupport: { trabajo: ["certificaciones", "compras", "pedidos", "conflictos", "ncr"], consulta: ["tareas", "clientes", "proveedores", "trazabilidad", "vacaciones"] },
-        jefeMantenimiento: { trabajo: ["mantenimiento", "incidencias"], consulta: ["commissioning", "obras", "ncr", "proveedores", "vacaciones"] },
+        jefeMantenimiento: { trabajo: ["mantenimiento", "incidencias"], consulta: ["commissioning", "obras", "ncr", "vacaciones"] },
         operario: { trabajo: ["partes", "partesIncidencia", "pruebasEstanqueidad", "balanceo"], consulta: [] },
         administrador: { empresa: true, accesos: true, trabajo: [], consulta: [] }
       };
@@ -8573,7 +8595,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261015.1428" : "0";
+      var VERSION = true ? "20261015.1518" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -12710,6 +12732,12 @@ globalThis.CX_VARIANTE="cxobra";
         /* La cuenta con que salió la cantidad del mes («3/4*M»), como en Excel (15-oct). */
         ["lineasCertificacion", "formula", "TEXT"],
         ["correccionesCertificacion", "formulaNueva", "TEXT"],
+        /* Cómo se certifica (15-oct, JC): «medicion» (se teclea la cantidad) o
+           «avance» (se teclea el % de avance y la cantidad sale sola). La obra
+           lleva el de por defecto; cada certificación, el suyo. Lo guardado es
+           siempre la cantidad del mes: cambiar de modo no pierde nada. */
+        ["obras", "modoCertificacion", "TEXT"],
+        ["certificaciones", "modo", "TEXT"],
         /* Archivos y fotos de las notas del bloc (electron/data/notasAdjuntos.js), en JSON. */
         ["notas", "adjuntos", "TEXT"],
         /* Los partes de incidencia se asignan a quien los lleva, con su fecha límite. */
@@ -22930,6 +22958,19 @@ globalThis.CX_VARIANTE="cxobra";
           "ACTA FABRICANTE N FECHA": "acta",
           "TECNICO FABRICANTE": "tecnico"
         };
+        function renumerar(m) {
+          const nums = [];
+          for (const f of m.filas) for (const x of f.celdas) {
+            const k = /^(\d{2}) · /.exec(x.txt);
+            if (k) nums.push(Number(k[1]));
+          }
+          const d = nums.length ? Math.min(...nums) - 1 : 0;
+          if (d <= 0) return;
+          const dos = (n) => String(n - d).padStart(2, "0");
+          for (const f of m.filas) for (const x of f.celdas) {
+            x.txt = x.txt.replace(/^(\d{2})( · |\.(?=\d{2}\s))/, (_, n, sep) => dos(Number(n)) + sep);
+          }
+        }
         function rellenar(m, fuente) {
           let izq = "";
           let der = "";
@@ -23318,6 +23359,7 @@ globalThis.CX_VARIANTE="cxobra";
             }
           };
           rellenar(m, fuente);
+          renumerar(m);
           if (sinMedidos) {
             for (const f of m.filas) for (const x of f.celdas) if (/^Criterio:/.test(x.txt)) {
               x.txt = "";
@@ -23456,6 +23498,7 @@ globalThis.CX_VARIANTE="cxobra";
             }
           };
           rellenar(m, fuente);
+          renumerar(m);
           return { m, opciones: { marca: "", clase: "hojaBal" } };
         }
         const AJUSTE_PAPEL = `(() => {
@@ -39082,6 +39125,14 @@ ${linea}` : linea;
         emitida: { etiqueta: "Emitida", que: "Enviada al cliente. Ya no se toca: lo que haya que corregir va en la siguiente." },
         aprobada: { etiqueta: "Aprobada", que: "El cliente la ha dado por buena. Se puede facturar." }
       };
+      var MODOS_CERT = {
+        medicion: { etiqueta: "Por medici\xF3n", corto: "medici\xF3n", que: "Se teclea la cantidad del mes (admite cuentas); el % de avance sale solo." },
+        avance: { etiqueta: "Por % de avance", corto: "% de avance", que: "Se teclea el % de avance del mes sobre la medici\xF3n; la cantidad sale sola." }
+      };
+      function modoCertificacion(certificacion = {}, obra = {}) {
+        const m = certificacion && certificacion.modo || obra && obra.modoCertificacion;
+        return MODOS_CERT[m] ? m : "medicion";
+      }
       var esNumeroCert = (v) => v !== null && v !== void 0 && v !== "" && Number.isFinite(Number(v));
       function partidasCertificables(arbolCalculado, { tipoContrato = null } = {}) {
         return _modeloCert.partidas(arbolCalculado || []).map((p) => {
@@ -39348,7 +39399,7 @@ ${linea}` : linea;
       (function exportar(API) {
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.CERTIFICACION = API;
-      })({ calcular: calcularCertificacion, partidasCertificables, cantidadDesdePorcentaje, comprobarCierre: comprobarCierreObra, comprobarFinal, ivaDeLaObra, leerAnterior: leerAnteriorCert, GRAVEDAD: GRAVEDAD_CERT, ESTADOS: ESTADOS_CERT });
+      })({ calcular: calcularCertificacion, partidasCertificables, cantidadDesdePorcentaje, comprobarCierre: comprobarCierreObra, comprobarFinal, ivaDeLaObra, leerAnterior: leerAnteriorCert, GRAVEDAD: GRAVEDAD_CERT, ESTADOS: ESTADOS_CERT, MODOS: MODOS_CERT, modoCertificacion });
     }
   });
 
@@ -62361,7 +62412,7 @@ ${linea}` : linea;
         }
         return fuera;
       }
-      async function hojaExcelPdf({ hojas = [], imagen = null, anexoPdf = null, titulo = "Hoja" } = {}) {
+      async function hojaExcelPdf({ hojas = [], imagen = null, anexoPdf = null, titulo = "Hoja", sinPie = false } = {}) {
         const pdf = await PDFDocument.create();
         pdf.setTitle(String(titulo));
         pdf.setProducer("Cx Obra");
@@ -62491,7 +62542,7 @@ ${linea}` : linea;
             });
           }
         }
-        propias.forEach((p, i) => {
+        if (!sinPie) propias.forEach((p, i) => {
           const t = `P\xE1gina ${i + 1} de ${propias.length}`;
           p.drawText(limpio(t), { x: A4[0] - MARGEN - F.n.widthOfTextAtSize(t, 7), y: MARGEN / 2, size: 7, font: F.n, color: rgb(0.45, 0.45, 0.45) });
         });

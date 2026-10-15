@@ -513,6 +513,20 @@ a.fila-dato strong { color: var(--acento); font-weight: 600; }
 .boca-cabeza strong { font-size: 17px; font-weight: 700; }
 .boca-cabeza .sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .boca-cifras { display: grid; grid-template-columns: 1fr 1fr 1fr .9fr; gap: 8px; align-items: end; margin-top: 6px; }
+/* Con qué se midió la boca: botón chiquito arriba a la derecha y su menú. */
+.boca-cabeza .sub { flex: 1 1 auto; min-width: 0; }
+.instr-boca { position: relative; flex: none; margin-left: auto; align-self: center; }
+.instr-boca > summary, .instr-boca.solo { list-style: none; display: inline-block; padding: 2px 7px; border: 1px solid var(--borde, #cad1d3); border-radius: 6px;
+  font-size: 11.5px; font-weight: 600; line-height: 1.5; color: var(--acento, #003f2d); white-space: nowrap; cursor: pointer; user-select: none; }
+.instr-boca.solo { color: var(--textoTenue); cursor: default; }
+.instr-boca > summary::-webkit-details-marker { display: none; }
+.instr-boca[open] > summary { background: var(--acento, #003f2d); border-color: var(--acento, #003f2d); color: #fff; }
+.instr-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; display: flex; flex-direction: column; min-width: 172px;
+  background: var(--panel, #fff); border: 1px solid var(--borde, #cad1d3); border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.18); overflow: hidden; }
+.instr-menu button { margin: 0; border: 0; border-radius: 0; background: transparent; color: var(--texto, #1a1a1a); font: inherit; font-size: 14px; text-align: left; padding: 10px 12px; min-height: 40px; white-space: nowrap; }
+.instr-menu button + button { border-top: 1px solid var(--borde, #e6e8e9); }
+.instr-menu button.activa { color: var(--acento, #003f2d); font-weight: 700; }
+.instr-menu button.activa::before { content: '✓ '; }
 /* El equipo de medida: dos opciones y la elegida bien a la vista (relleno de acento). */
 .equipo-medida.segmento { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-top: 8px; border: 1.5px solid var(--acento, #003f2d); border-radius: 10px; overflow: hidden; }
 .equipo-medida.segmento button { min-height: 40px; margin: 0; border: 0; border-radius: 0; background: transparent; color: var(--acento, #003f2d); font: inherit; font-size: 14.5px; font-weight: 600; }
@@ -885,3 +899,19 @@ body:has(.tag-fijo) .obra-movil { display: none; }
   .densa .obs { min-height: 52px; }
   .tag-fijo { min-height: 36px; padding-top: 2px; padding-bottom: 2px; margin-bottom: 4px; }
 }
+
+/* Esquinas suaves (15-oct-2026, JC: «redondeadas suaves»). La banda redondea
+   arriba y su tabla abajo, de modo que el bloque es una sola pieza; los campos
+   y botones, 6 px. Sin márgenes, sombras ni altura nuevos. */
+.densa h2, .densa h3.banda { border-radius: 10px 10px 0 0; }
+.densa h3.banda + *, .densa h2 + .lista-ios, .densa h2 + .hoja-tabla { border-radius: 0 0 10px 10px; }
+.densa .hoja-tabla { border-radius: 0 0 10px 10px; }
+.densa > .hoja-tabla:first-child, .densa .lista-ios:not(h2 + .lista-ios):not(h3 + .lista-ios) { border-radius: 10px; }
+.densa .lista-ios { overflow: hidden; }
+.densa .grupo, .densa .total-circuito, .densa .boca { border-radius: 10px; }
+.densa .fotos-rapidas { border-radius: 0 0 10px 10px; overflow: hidden; }
+.hoja-tabla input, .hoja-tabla select, .densa .obs { border-radius: 6px; }
+.respuestas.mini { border-radius: 6px; }
+.densa .barra-hoja .boton, .densa .boton { border-radius: 6px; }
+.densa .fotos-rapidas .boton { border-radius: 0; }
+.tag-fijo .chip { border-radius: 6px; }
