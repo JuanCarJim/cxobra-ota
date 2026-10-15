@@ -423,8 +423,8 @@
     const t = document.getElementById('titulo-seccion');
     /* En Inicio, el saludo hace de título (15-oct-2026, JC). */
     const nombrePila = sesion() && sesion().nombre ? String(sesion().nombre).trim().split(/\s+/).slice(0, 2).join(' ') : '';
-    if (t && !document.body.classList.contains('modo-trabajo')) t.textContent = s === 'inicio' && nombrePila ? `Hola, ${nombrePila}` : (TITULO[s] || 'Cx Obra');
-    document.title = `${TITULO[s] || 'Inicio'} · Cx Obra`;
+    if (t && !document.body.classList.contains('modo-trabajo')) t.textContent = s === 'inicio' && nombrePila ? `Hola, ${nombrePila}` : (TITULO[s] || 'Vidaire Cx');
+    document.title = `${TITULO[s] || 'Inicio'} · Vidaire Cx`;
     const caja = document.getElementById('obra-movil-caja');
     /* En Inicio la obra se elige en su tarjeta: arriba sobraría. */
     if (caja) caja.hidden = !sesion() || SIN_OBRA.has(s) || s === 'inicio' || !obras.length;
@@ -595,7 +595,7 @@
         : 'Los datos están en el ordenador de la oficina y se llega a él por la wifi: con el ordenador apagado o fuera de su red, la app no puede traer ni guardar nada.'}</p>
       ${yo.local && window.cxObra && window.cxObra.traerDatos ? conLaOficina() : ''}
       ${yo.local && !(window.cxObra && window.cxObra.salir) ? '' : '<button class="boton secundario" id="cx-salir">Salir</button>'}
-      <p class="nota pie">Cx Obra${window.cxObra && window.cxObra.ota ? ` · versión ${esc(window.cxObra.ota.info().version)}${window.cxObra.ota.info().lista ? ` (la ${esc(window.cxObra.ota.info().lista)} entra al volver a abrir)` : ''}` : ''}</p>`;
+      <p class="nota pie">Vidaire Cx${window.cxObra && window.cxObra.ota ? ` · versión ${esc(window.cxObra.ota.info().version)}${window.cxObra.ota.info().lista ? ` (la ${esc(window.cxObra.ota.info().lista)} entra al volver a abrir)` : ''}` : ''}</p>`;
     const b = document.getElementById('cx-salir');
     if (b) b.onclick = () => {
       if (!yo.local) { window.ACCESO_MOVIL.salir(); return; }
@@ -617,7 +617,7 @@
     };
   }
 
-  /* Cx Obra nativa: CON LA OFICINA, AL MOMENTO (cxobra/sync.js). Lo que se
+  /* Vidaire Cx nativa: CON LA OFICINA, AL MOMENTO (cxobra/sync.js). Lo que se
      guarda aquí sube enseguida y lo de la oficina baja solo; sin red, se
      queda en el teléfono y sube al volver. El fichero .cxobra sigue como
      plan B. */

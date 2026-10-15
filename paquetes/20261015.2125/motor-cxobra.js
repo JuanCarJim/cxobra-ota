@@ -5837,7 +5837,7 @@ globalThis.CX_VARIANTE="cxobra";
          * reunión y, al cerrarla, lo acordado actúa (una orden aprobada se imputa
          * en el presupuesto; un encargo, tarea). Aprobar pide `aprobar`.
          */
-        actas: "Actas y \xF3rdenes de cambio",
+        actas: "Actas de obra",
         /*
          * LAS HORAS DEDICADAS, también sin pantalla propia.
          *
@@ -8518,7 +8518,7 @@ globalThis.CX_VARIANTE="cxobra";
         };
       }
       function revisar(p, sentido = null) {
-        if (!p || typeof p !== "object" || p.formato !== FORMATO) return "Este fichero no es un paquete de Cx Obra.";
+        if (!p || typeof p !== "object" || p.formato !== FORMATO) return "Este fichero no es un paquete de Vidaire Cx.";
         if (Number(p.version) > VERSION) return "El paquete es de una versi\xF3n m\xE1s nueva: actualiza la app.";
         if (sentido && p.sentido !== sentido) {
           return sentido === "ida" ? "Este paquete es de vuelta (del tel\xE9fono a la oficina): \xE1brelo en el ordenador." : "Este paquete es de ida (de la oficina al tel\xE9fono): \xE1brelo en el tel\xE9fono.";
@@ -8622,7 +8622,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261015.1910" : "0";
+      var VERSION = true ? "20261015.2125" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -8779,8 +8779,8 @@ globalThis.CX_VARIANTE="cxobra";
 .puerta-cx{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:center;gap:14px;
   padding:max(28px,env(safe-area-inset-top)) 24px max(28px,env(safe-area-inset-bottom));
   background:#F5F5F5;color:#1A1A1A;font:16px -apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-.puerta-cx .marca{width:64px;height:64px;margin:0 0 12px;border-radius:20px;display:grid;place-items:center;
-  background:#178276;color:#fff;font-size:27px;font-weight:700;letter-spacing:-1px;box-shadow:0 6px 14px rgba(23,130,118,.3)}
+.puerta-cx .marca{width:64px;height:64px;margin:0 0 12px;border-radius:20px;
+  display:block;object-fit:cover;box-shadow:0 6px 14px rgba(0,0,0,.14)}
 .puerta-cx h1{margin:0;font-size:34px;font-weight:700;letter-spacing:-.8px}
 .puerta-cx p{margin:0 0 10px;line-height:1.5;color:#555}
 .puerta-cx label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:500;color:#555}
@@ -8840,8 +8840,8 @@ globalThis.CX_VARIANTE="cxobra";
       function bienvenida({ traer, ejemplo, nube = null }) {
         return new Promise((listo) => {
           const c = capa(`
-      <div class="marca" aria-hidden="true">Cx</div>
-      <h1>Cx Obra</h1>
+      <img class="marca" src="iconos/icono-180.png" alt="" aria-hidden="true">
+      <h1>Vidaire Cx</h1>
       <p>Entra con tu correo y tu contrase\xF1a de la oficina.</p>
       <form id="pc-form" style="display:flex;flex-direction:column;gap:14px">
         <label>Correo<input id="pc-correo" type="email" autocomplete="username" autocapitalize="none" required></label>
@@ -8912,7 +8912,7 @@ globalThis.CX_VARIANTE="cxobra";
       function entrar({ correo = "", nombre = "", comprobar, cancelar = false }) {
         return new Promise((listo) => {
           const c = capa(`
-      <div class="marca" aria-hidden="true">Cx</div>
+      <img class="marca" src="iconos/icono-180.png" alt="" aria-hidden="true">
       <h1>Hola${nombre ? `, ${esc(nombre.split(" ")[0])}` : ""}</h1>
       <p>Entra con tu correo y tu contrase\xF1a de la oficina.</p>
       <form id="pc-form" style="display:flex;flex-direction:column;gap:14px">
@@ -14792,7 +14792,7 @@ globalThis.CX_VARIANTE="cxobra";
         }
         runInContext(c) {
           const fn = EJEMPLOS[this.fichero];
-          if (!fn) throw new Error(`En Cx Obra no est\xE1 empaquetado ${this.fichero}`);
+          if (!fn) throw new Error(`En Vidaire Cx no est\xE1 empaquetado ${this.fichero}`);
           return fn(c.window, c.console, c.Intl, c.Date, c.Math, c.JSON, c.RegExp || RegExp);
         }
       };
@@ -23313,6 +23313,7 @@ globalThis.CX_VARIANTE="cxobra";
         function valorPunto(p, conUnidad) {
           const v = p.valor;
           if (v === null || v === void 0 || v === "") return null;
+          if (RESPUESTA[v] && p.codigo === "fugas") return { html: RESPUESTA[v], bg: v === "si" ? "#FFC7CE" : null };
           if (RESPUESTA[v]) return { html: RESPUESTA[v], bg: v === "no" || v === "noOk" ? "#FFC7CE" : null };
           if (p.tipo === "numero") return `${num(v)}${p.unidad && !conUnidad ? ` ${esc(p.unidad)}` : ""}`;
           if (p.tipo === "fecha") return fecha(v);
@@ -32954,7 +32955,7 @@ globalThis.CX_VARIANTE="cxobra";
     <div class="tarjetaOperario">
       <div class="qr">${QR.svg(o.qr)}</div>
       <div class="datos">
-        <div class="marca">${globalThis.CX_VARIANTE === "cxobra" ? "Cx Obra" : "CBRE"} \xB7 Personal en obra</div>
+        <div class="marca">${globalThis.CX_VARIANTE === "cxobra" ? "Vidaire Cx" : "CBRE"} \xB7 Personal en obra</div>
         <div class="nombre">${escHtml(o.nombre)}</div>
         <div class="empresa">${escHtml(o.proveedor || "")}</div>
         ${o.oficio ? `<div class="oficio">${escHtml(o.oficio)}</div>` : ""}
@@ -33264,7 +33265,7 @@ globalThis.CX_VARIANTE="cxobra";
     ${c.repercusion === "si" ? '<p class="nota">Repercusi\xF3n total: la venta de lo valorado m\xE1s el coste extra.</p>' : ""}
   </section>`;
         }
-        const marcaDocumento = () => globalThis.CX_VARIANTE === "cxobra" ? "Cx Obra" : "CBRE \xB7 Project Management";
+        const marcaDocumento = () => globalThis.CX_VARIANTE === "cxobra" ? "Vidaire Cx" : "CBRE \xB7 Project Management";
         function html({ parte = {}, lineas = [], obra = {}, emisor = {}, proveedor = null, fotos = [], conDinero = false, hoy } = {}) {
           const t = TIPOS[parte.tipo] || { nombre: parte.tipo };
           const dato = (que, valor) => llano(valor) ? `<div><dt>${esc(que)}</dt><dd>${esc(valor)}</dd></div>` : "";
@@ -38505,7 +38506,7 @@ ${linea}` : linea;
           const ins = (INSTALACIONES[prueba.instalacion] || {}).nombre || "Instalaci\xF3n";
           return `${obra.codigo || "Obra"} ${prueba.codigo} Prueba de estanqueidad ${ins.replace(/\s*\(.*\)$/, "")} ${prueba.tramo || ""}`.replace(/[\\/:*?"<>|]/g, "-").replace(/\s+/g, " ").trim().slice(0, 150) + ".pdf";
         }
-        const marcaDocumento = () => globalThis.CX_VARIANTE === "cxobra" ? "Cx Obra" : "CBRE \xB7 Project Management";
+        const marcaDocumento = () => globalThis.CX_VARIANTE === "cxobra" ? "Vidaire Cx" : "CBRE \xB7 Project Management";
         function html({ prueba = {}, obra = {}, emisor = {}, empresa = null, fotos = [], hoy } = {}) {
           const ins = INSTALACIONES[prueba.instalacion] || { nombre: prueba.instalacion };
           const u = prueba.unidad || "bar";
@@ -38661,6 +38662,81 @@ ${linea}` : linea;
     }
   });
 
+  // shared/obra/estanqueidadLibro.js
+  var require_estanqueidadLibro = __commonJS({
+    "shared/obra/estanqueidadLibro.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var P = require_plantillasCbre();
+      var ME = require_pruebasEstanqueidad();
+      var HOJA = { fontaneria: "ESTANQ_AGUA", acs: "ESTANQ_AGUA", clima: "ESTANQ_AGUA", frigorifica: "ESTANQ_REFRIGERANTE" };
+      var hay = (v) => v !== null && v !== void 0 && String(v).trim() !== "";
+      var num = (v) => hay(v) && Number.isFinite(Number(v)) ? Number(v) : null;
+      function horas(p) {
+        if (!/^\d{4}-\d{2}-\d{2}/.test(String(p.fecha || ""))) return {};
+        const hora = /^\d{1,2}:\d{2}/.test(String(p.horaInicio || "")) ? String(p.horaInicio).padStart(5, "0").slice(0, 5) : null;
+        if (!hora) return { inicio: String(p.fecha).slice(0, 10) };
+        const inicio = `${String(p.fecha).slice(0, 10)}T${hora}`;
+        const min = num(p.duracionMin);
+        if (min === null) return { inicio };
+        const d = /* @__PURE__ */ new Date(`${inicio}:00Z`);
+        d.setUTCMinutes(d.getUTCMinutes() + min);
+        return { inicio, fin: d.toISOString().slice(0, 16) };
+      }
+      function tieneHoja(prueba) {
+        return Boolean(prueba && HOJA[prueba.instalacion] && (prueba.unidad || "bar") === "bar");
+      }
+      function fichaDePrueba(p, { empresa = null, realizadoPor = null } = {}) {
+        if (!tieneHoja(p)) return null;
+        const plantilla = P.PLANTILLAS.find((x) => x.codigo === HOJA[p.instalacion]);
+        if (!plantilla) return null;
+        const v = {};
+        const poner = (k, val) => {
+          if (hay(val)) v[k] = { v: val, o: "manual" };
+        };
+        const terminada = p.resultado === "correcta" || p.resultado === "noSuperada";
+        const h = horas(p);
+        const duracion = num(p.duracionMin) === null ? null : Math.round(Number(p.duracionMin) / 60 * 100) / 100;
+        const emp = empresa || p.empresa;
+        if (plantilla.codigo === "ESTANQ_AGUA") {
+          poner("circuito", p.tramo);
+          poner("zona_planta", p.tramo);
+          poner("fluido", ME.FLUIDOS[p.fluido] || p.fluido);
+          poner("p_max_trabajo", num(p.presionTrabajo));
+          poner("p_prueba", num(p.presionPrueba));
+          poner("duracion_h", duracion);
+          if (terminada) poner("fugas", p.fugas ? "SI" : "NO");
+          if (terminada) poner("resultado", p.resultado === "correcta" ? "OK" : "NO OK");
+          poner("p_inicial", num(p.presionInicial));
+          poner("p_final", num(p.presionFinal));
+        } else {
+          poner("sistema", p.tramo);
+          poner("tramo", p.tramo);
+          poner("empresa_frigorista", emp);
+          poner("gas_prueba", p.fluido === "nitrogeno" ? "Nitr\xF3geno seco" : ME.FLUIDOS[p.fluido] || p.fluido);
+          poner("manometro", p.manometro);
+          poner("p_minima", num(p.presionPrueba));
+          poner("duracion_h", duracion);
+          poner("inicio", h.inicio);
+          if (terminada) poner("fin", h.fin);
+          poner("p_inicial", num(p.presionInicial));
+          poner("p_final", num(p.presionFinal));
+          poner("caida_admisible", num(p.caidaAdmisible));
+          if (terminada) poner("fugas_uniones", p.fugas ? "NO OK" : "OK");
+        }
+        const veredicto = (ME.RESULTADOS[p.resultado] || {}).nombre;
+        const obs = [veredicto ? `Resultado de la prueba: ${veredicto}.` : null, p.observaciones, p.notasJefe ? `Notas del jefe de obra: ${p.notasJefe}` : null].filter(hay).join("\n");
+        const datos = {
+          cabecera: { fechaEnsayo: hay(p.fecha) ? String(p.fecha).slice(0, 10) : null, realizadoPor: realizadoPor || null, aparatos: p.manometro || null },
+          valores: v,
+          observaciones: obs
+        };
+        return { plantilla, datos, equipo: { tag: p.tramo || p.codigo, sala: p.tramo || null }, titulo: `${p.codigo || ""} \xB7 ${p.tramo || ""}`.replace(/^ · | · $/g, "") };
+      }
+      module.exports = { fichaDePrueba, tieneHoja, HOJA };
+    }
+  });
+
   // electron/data/pruebasEstanqueidad.js
   var require_pruebasEstanqueidad2 = __commonJS({
     "electron/data/pruebasEstanqueidad.js"(exports, module) {
@@ -38780,6 +38856,18 @@ ${linea}` : linea;
         const p = repo.leer("pruebasEstanqueidad", sesion, id);
         return p ? fotoDe(p, i) : null;
       }
+      function hojaDelLibro(p, { obra, empresa, persona, fotos }) {
+        const L = require_estanqueidadLibro();
+        const f = L.fichaDePrueba(p, { empresa, realizadoPor: persona && persona.nombre });
+        if (!f) return null;
+        const F = require_fichas();
+        const X = require_fichaExcel();
+        const hoja = X.hojaFicha(F.evaluar(f.plantilla, f.datos), f.plantilla, { equipo: f.equipo, titulo: f.titulo, obra: obra || {} });
+        if (!hoja) return null;
+        const e = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+        const anexo = fotos.length ? `<section style="break-before:page;font:10pt Arial,sans-serif"><h3 style="margin:0 0 8px">Anexo \xB7 Fotos del man\xF3metro \xB7 ${e(p.codigo)}</h3>${fotos.map((x) => `<figure style="margin:0 0 10px;break-inside:avoid"><img src="${x.src}" style="max-width:100%;max-height:120mm"><figcaption>${e(M.MOMENTOS_FOTO[x.momento] || "Foto")}</figcaption></figure>`).join("")}</section>` : "";
+        return hoja + anexo;
+      }
       function documento(repo, sesion, id) {
         const p = repo.leer("pruebasEstanqueidad", sesion, id);
         if (!p) return { error: "No se encuentra la prueba." };
@@ -38787,6 +38875,8 @@ ${linea}` : linea;
         const persona = p.creadoPor ? repo.db.prepare("SELECT nombre, rol FROM personas WHERE id = ?").get(p.creadoPor) : null;
         const empresa = p.proveedorId ? (P.proveedoresPorId(repo).get(p.proveedorId) || {}).nombre || null : null;
         const fotos = fotosDe(p).map((_, i) => fotoDe(p, i)).filter((f) => f && f.src);
+        const hoja = hojaDelLibro(p, { obra, empresa, persona, fotos });
+        if (hoja) return { html: hoja, nombreArchivo: M.nombreInforme(p, obra), obra, estilos: "fichaPM.css", clase: "documentoFichaPM", margenes: { top: 0.4, bottom: 0.4, left: 0.4, right: 0.4 } };
         const html = M.html({
           prueba: p,
           obra,
@@ -62253,8 +62343,8 @@ ${linea}` : linea;
       async function informePdf(doc = {}) {
         const pdf = await PDFDocument.create();
         pdf.setTitle(String(doc.titulo || "Informe"));
-        pdf.setProducer("Cx Obra");
-        pdf.setCreator("Cx Obra");
+        pdf.setProducer("Vidaire Cx");
+        pdf.setCreator("Vidaire Cx");
         const normal = await pdf.embedFont(StandardFonts.Helvetica);
         const negrita = await pdf.embedFont(StandardFonts.HelveticaBold);
         const limpio = crearLimpiador(normal);
@@ -62280,7 +62370,7 @@ ${linea}` : linea;
           pagina.drawText(limpio(t), { x, y: y - tam, size: tam, font: fuente, color });
         };
         nueva();
-        texto("Cx Obra", { tam: 9, fuente: negrita, color: VERDE });
+        texto("Vidaire Cx", { tam: 9, fuente: negrita, color: VERDE });
         if (doc.fecha) {
           const f = limpio(doc.fecha);
           pagina.drawText(f, { x: A4[0] - MARGEN - normal.widthOfTextAtSize(f, 9), y: y - 9, size: 9, font: normal, color: GRIS });
@@ -62499,7 +62589,7 @@ ${linea}` : linea;
           y -= 70;
         }
         if ((doc.anexos || []).some(Boolean)) await bloques(doc.anexos);
-        const pie = limpio(doc.pie || "Hecho con Cx Obra en el tel\xE9fono");
+        const pie = limpio(doc.pie || "Hecho con Vidaire Cx en el tel\xE9fono");
         paginas.forEach((p, i) => {
           p.drawText(pie, { x: MARGEN, y: MARGEN - 14, size: 7.5, font: normal, color: GRIS });
           const n = `${i + 1} / ${paginas.length}`;
@@ -62572,8 +62662,8 @@ ${linea}` : linea;
       async function hojaExcelPdf({ hojas = [], imagen = null, anexoPdf = null, titulo = "Hoja", sinPie = false } = {}) {
         const pdf = await PDFDocument.create();
         pdf.setTitle(String(titulo));
-        pdf.setProducer("Cx Obra");
-        pdf.setCreator("Cx Obra");
+        pdf.setProducer("Vidaire Cx");
+        pdf.setCreator("Vidaire Cx");
         const F = {
           n: await pdf.embedFont(StandardFonts.Helvetica),
           b: await pdf.embedFont(StandardFonts.HelveticaBold),
@@ -63197,6 +63287,25 @@ ${linea}` : linea;
           const bytes = await hojaExcelPdf({ hojas: [{ disp: X.disposicion(r.m, r.opciones), marca: r.opciones.marca }], imagen: imagenLibro, anexoPdf, titulo: `BALANCEO - ${eq.tag || ""}` });
           return { bytes, nombre: `${nombreSeguro(`BALANCEO - ${eq.tag || eq.id}`)}.pdf` };
         }
+        async function pdfEstanqueidadHoja(ses, id) {
+          const p = repo.leer("pruebasEstanqueidad", ses, id);
+          if (!p) return null;
+          const quien = p.creadoPor ? repo.db.prepare("SELECT nombre FROM personas WHERE id = ?").get(p.creadoPor) : null;
+          const f = require_estanqueidadLibro().fichaDePrueba(p, { realizadoPor: quien && quien.nombre });
+          if (!f) return null;
+          const obra = obraDe(ses, p.obraId);
+          const r = X.rejillaFicha(F.evaluar(f.plantilla, f.datos), f.plantilla, { obra, equipo: f.equipo, titulo: f.titulo });
+          if (!r) return null;
+          let fotos = [];
+          try {
+            fotos = JSON.parse(p.fotos || "[]");
+          } catch {
+          }
+          fotos = fotos.map((x) => ({ bytes: bytesDe(x.ruta), pie: ME.MOMENTOS_FOTO[x.momento] || x.nombre || "Foto" })).filter((x) => x.bytes);
+          const anexoPdf = fotos.length ? await informePdf({ titulo: `Anexo \xB7 Fotos del man\xF3metro \xB7 ${p.codigo || ""}`, fecha: ahoraEs(), fotos, pie: `Anexo de la prueba ${p.codigo || ""}` }) : null;
+          const bytes = await hojaExcelPdf({ hojas: [{ disp: X.disposicion(r.m, r.opciones), marca: r.opciones.marca }], imagen: imagenLibro, anexoPdf, titulo: f.plantilla.nombre });
+          return { bytes, nombre: ME.nombreInforme(p, obra) };
+        }
         async function informe({ ses, query }) {
           const tipo = llano(query.tipo);
           let r;
@@ -63218,6 +63327,8 @@ ${linea}` : linea;
             r = docBalanceo(ses, llano(query.equipo));
           } else if (tipo === "estanqueidad") {
             if (!puede(ses.rol, "pruebasEstanqueidad", "ver")) return [403, { ok: false, error: "Tu rol no ve las pruebas de estanqueidad." }];
+            const h = await pdfEstanqueidadHoja(ses, llano(query.id));
+            if (h) return enHoja(h);
             r = docEstanqueidad(ses, llano(query.id));
           } else return [400, { ok: false, error: "Ese informe no existe." }];
           if (r.error) return [404, { ok: false, error: r.error }];
