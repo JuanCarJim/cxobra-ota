@@ -69,8 +69,8 @@
     const pintar = (error) => {
       capa.innerHTML = `
         <form novalidate>
-          <div class="marca-cx" aria-hidden="true">Cx</div>
-          <h1>Cx Obra</h1>
+          <img class="marca-cx" src="iconos/icono-180.png" alt="" aria-hidden="true">
+          <h1>Vidaire Cx</h1>
           <p class="nota">${esc(provisional ? 'Tu contraseña es provisional: elige la tuya (al menos 8 caracteres).' : motivo || 'Entra con tu correo y tu contraseña.')}</p>
           <label for="em-correo">Correo</label>
           <input id="em-correo" type="email" autocomplete="username" autocapitalize="none" spellcheck="false" value="${esc(capa.dataset.correo || '')}">

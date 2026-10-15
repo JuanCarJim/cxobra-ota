@@ -1,4 +1,4 @@
-/* Cx Obra, la app del móvil de la obra. Pensada para el pulgar: botones
+/* Vidaire Cx, la app del móvil de la obra. Pensada para el pulgar: botones
    altos, una columna, letra más grande que en el escritorio.
 
    EL ESTILO (15-oct-2026): el de CoachIn, moderno y sobrio. Fondo gris muy
@@ -7,7 +7,7 @@
    color de acento (verde azulado). El rojo, el ámbar y el verde de estado se
    quedan para lo que avisa, nunca para adornar.
 
-   Este fichero solo lo carga el móvil (renderer/movil/index.html y la Cx Obra
+   Este fichero solo lo carga el móvil (renderer/movil/index.html y la Vidaire Cx
    nativa): por eso aquí se redefinen los tokens del escritorio sin tocarlo,
    que allí sigue la densidad Excel. */
 
@@ -393,7 +393,7 @@ main > label { margin-top: 14px; }
 }
 .marca-cx {
   width: 60px; height: 60px; margin: 0 0 20px; border-radius: 18px; display: grid; place-items: center;
-  background: var(--acento); color: #FFFFFF; font-family: var(--fuente-titular); font-size: 26px; font-weight: 700; letter-spacing: -.04em;
+  display: block; object-fit: cover; box-shadow: 0 4px 14px rgba(0,0,0,.12);
 }
 .entrar-movil h1 { font-size: 26px; font-weight: 700; letter-spacing: -.02em; margin: 0 0 4px; color: var(--texto); }
 .entrar-movil label { font-size: 13px; font-weight: 500; margin: 14px 0 0; }
@@ -401,7 +401,7 @@ main > label { margin-top: 14px; }
 .entrar-movil .error { color: var(--mal); font-size: 14px; margin: 12px 0 0; }
 .entrar-movil .boton { margin-top: 20px; }
 
-/* ═══════════════ Lo común de las secciones de Cx Obra */
+/* ═══════════════ Lo común de las secciones de Vidaire Cx */
 /* La obra se elige arriba: el selector propio de cada sección sobra. */
 .elegir-obra { display: none; }
 .cifra { font-variant-numeric: tabular-nums; }
@@ -691,7 +691,7 @@ details.grupo-lista[open] > summary { margin-bottom: 6px; }
 }
 .selector-obra select:focus { outline: 0; }
 
-/* ═══════════════ Con la oficina, al momento (Cx Obra nativa): la pastilla de la cabecera */
+/* ═══════════════ Con la oficina, al momento (Vidaire Cx nativa): la pastilla de la cabecera */
 .sync-pastilla {
   flex: none; align-self: center; display: inline-flex; align-items: center; gap: 6px;
   margin: 0 0 0 auto; padding: 4px 10px; min-height: 28px; border: 0; border-radius: 999px;
@@ -773,6 +773,7 @@ main:has(.densa) { max-width: 1040px; padding-top: 0; }
   margin: 0 -20px 6px; padding: 4px 20px;
   background: var(--acento-fuerte); color: #FFFFFF;
 }
+.tag-fijo { cursor: pointer; }
 .tag-fijo .volver { color: #FFFFFF; font-size: 24px; line-height: 1; padding: 2px 8px 4px 0; }
 .tag-fijo strong { font-size: 17px; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; }
 .tag-fijo .que { flex: 1; min-width: 0; font-size: 13px; opacity: .85; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

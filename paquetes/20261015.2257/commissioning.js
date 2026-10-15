@@ -29,6 +29,8 @@
 
   let lista = null;
   let ficha = null;
+  let pilaEquipos = []; /* las unidades por las que se ha pasado, para volver */
+  let yLista = 0;       /* dónde estaba la lista al abrir un equipo */
   let fichasEq = null; /* las fichas que necesita el equipo abierto */
   let hoja = null;     /* la ficha que se está rellenando */
   let filtro = '';
@@ -50,7 +52,7 @@
   /* ═══════════════════════════════════ 1. La lista */
 
   async function cargarLista() {
-    ficha = null; hoja = null;
+    ficha = null; hoja = null; pilaEquipos = [];
     /* Desde una cifra del Inicio: la lista llega ya filtrada. */
     try { const v = sessionStorage.getItem('cx.segmento'); if (v) { segmento = v; sessionStorage.removeItem('cx.segmento'); AGRUPAR.forEach(([id]) => C.reiniciarLista(`cx-equipos-${id}`)); } } catch { /* nada */ }
     await C.obrasListas();
@@ -209,12 +211,13 @@
   /*
    * EL TAG SIEMPRE A LA VISTA (15-oct-2026): una franja fina pegada debajo
    * de la cabecera con volver, el TAG y lo que se está viendo; se queda
-   * arriba al bajar por la hoja.
+   * arriba al bajar por la hoja. Toda la franja vuelve atrás, no solo la
+   * flecha (JC, 16-oct): se pulsa el TAG y se sale a la pantalla anterior.
    */
   function tagFijo(tag, que, volver, extra = '') {
     requestAnimationFrame(altoBarra);
-    return `<div class="tag-fijo">
-      <button class="volver" data-cx="${esc(volver)}" aria-label="Volver">‹</button>
+    return `<div class="tag-fijo" data-cx="${esc(volver)}" role="button" aria-label="Volver">
+      <span class="volver" aria-hidden="true">‹</span>
       <strong class="cifra">${esc(tag)}</strong>
       <span class="que">${esc(que || '')}</span>
       ${extra ? `<span class="extra">${extra}</span>` : ''}
@@ -317,7 +320,7 @@
     $app.innerHTML = `
       ${pestanaEq === 'balanceo'
         ? tagFijo(e.tag, tituloMedicion(f), 'ficha-equipo')
-        : tagFijo(e.tag, sub, 'lista')}
+        : tagFijo(e.tag, sub, 'atras')}
       <div class="densa">${cuerpo}</div>`;
     C.cargarImagenes($app);
   }
@@ -1064,7 +1067,10 @@
     if (!b) return;
     const que = b.dataset.cx;
     if (que === 'lista') cargarLista();
-    else if (que === 'equipo') abrir(b.dataset.id);
+    /* 16-oct (JC): la franja del TAG vuelve SIEMPRE a la pantalla anterior:
+       si se llegó desde otra unidad del conjunto (UI → UE-DAS), a esa unidad. */
+    else if (que === 'atras') { const prev = pilaEquipos.pop(); if (prev) abrir(prev, { atras: true }); else { const y = yLista; cargarLista().then(() => window.scrollTo(0, y)); } }
+    else if (que === 'equipo') { if (!ficha) yLista = window.scrollY; if (ficha && ficha.equipo.id !== b.dataset.id) pilaEquipos.push(ficha.equipo.id); abrir(b.dataset.id); }
     else if (que === 'ver-balanceo' && ficha) { pestanaEq = 'balanceo'; pintarFicha(); window.scrollTo(0, 0); }
     else if (que === 'ficha-equipo' && ficha) { document.body.classList.remove('sin-scroll'); pestanaEq = 'equipo'; pintarFicha(); window.scrollTo(0, 0); }
     else if (que === 'hoja') abrirHoja(Number(b.dataset.i));

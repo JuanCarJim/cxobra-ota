@@ -6764,6 +6764,22 @@ globalThis.CX_VARIANTE="cxobra";
         operario: { trabajo: ["partes", "partesIncidencia", "pruebasEstanqueidad", "balanceo"], consulta: [] },
         administrador: { empresa: true, accesos: true, trabajo: [], consulta: [] }
       };
+      var SECCIONES_OBRA = {
+        jefeObra: [
+          { nombre: "Documentaci\xF3n", modulos: ["alcance", "analisisProyecto", "nube", "actas", "informeSemanal", "calculo"] },
+          { nombre: "Econ\xF3mico", modulos: ["presupuestoObra", "costsPlan", "variantes", "certificaciones", "conflictos"] },
+          { nombre: "Planificaci\xF3n", modulos: ["obras", "tareas", "partes", "vacaciones"] },
+          { nombre: "Compras", modulos: ["compras", "pedidos", "proveedores"] },
+          { nombre: "Commissioning", modulos: ["commissioning", "balanceo", "pruebasEstanqueidad"] },
+          { nombre: "Calidad", modulos: ["ppi", "ncr", "partesIncidencia"] }
+        ]
+      };
+      var HERRAMIENTAS_EN_SECCION = ["nube"];
+      var ATAJOS_OBRA = {
+        presupuestoObra: { modulo: "presupuestos", etiqueta: "Presupuesto de obra" },
+        variantes: { modulo: "costsPlan", etiqueta: "Variantes y OC" },
+        analisisProyecto: { modulo: "costsPlan", etiqueta: "An\xE1lisis del proyecto" }
+      };
       var DEPARTAMENTOS_EN_BARRA = {
         estudios: ["proyectos", "presupuestos", "calculo", "biblioteca", "reparto"],
         delineacion: ["reparto", "proyectos"],
@@ -6795,6 +6811,13 @@ globalThis.CX_VARIANTE="cxobra";
         const b = BARRAS_POR_ROL[idRol] || { trabajo: [], consulta: "*" };
         const trabajo = b.trabajo.filter((m) => visibles.includes(m));
         const consulta = b.consulta === "*" ? null : b.consulta.filter((m) => visibles.includes(m) && !trabajo.includes(m));
+        if (SECCIONES_OBRA[idRol]) {
+          const secciones = SECCIONES_OBRA[idRol].map((s) => ({
+            nombre: s.nombre,
+            modulos: s.modulos.filter((m) => HERRAMIENTAS_EN_SECCION.includes(m) || visibles.includes(ATAJOS_OBRA[m] ? ATAJOS_OBRA[m].modulo : m))
+          })).filter((s) => s.modulos.length);
+          return { trabajo, consulta, secciones };
+        }
         if (!b.empresa) return { trabajo, consulta };
         const departamentos = Object.entries(DEPARTAMENTOS_EN_BARRA).map(([id, mods]) => ({
           id,
@@ -6822,6 +6845,8 @@ globalThis.CX_VARIANTE="cxobra";
         entraEnEscritorio,
         gestionaAccesos,
         BARRAS_POR_ROL,
+        SECCIONES_OBRA,
+        ATAJOS_OBRA,
         barraDeRol
       });
     }
@@ -8518,7 +8543,7 @@ globalThis.CX_VARIANTE="cxobra";
         };
       }
       function revisar(p, sentido = null) {
-        if (!p || typeof p !== "object" || p.formato !== FORMATO) return "Este fichero no es un paquete de Cx Obra.";
+        if (!p || typeof p !== "object" || p.formato !== FORMATO) return "Este fichero no es un paquete de Vidaire Cx.";
         if (Number(p.version) > VERSION) return "El paquete es de una versi\xF3n m\xE1s nueva: actualiza la app.";
         if (sentido && p.sentido !== sentido) {
           return sentido === "ida" ? "Este paquete es de vuelta (del tel\xE9fono a la oficina): \xE1brelo en el ordenador." : "Este paquete es de ida (de la oficina al tel\xE9fono): \xE1brelo en el tel\xE9fono.";
@@ -8622,7 +8647,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261015.1954" : "0";
+      var VERSION = true ? "20261015.2257" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -8779,8 +8804,8 @@ globalThis.CX_VARIANTE="cxobra";
 .puerta-cx{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:center;gap:14px;
   padding:max(28px,env(safe-area-inset-top)) 24px max(28px,env(safe-area-inset-bottom));
   background:#F5F5F5;color:#1A1A1A;font:16px -apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-.puerta-cx .marca{width:64px;height:64px;margin:0 0 12px;border-radius:20px;display:grid;place-items:center;
-  background:#178276;color:#fff;font-size:27px;font-weight:700;letter-spacing:-1px;box-shadow:0 6px 14px rgba(23,130,118,.3)}
+.puerta-cx .marca{width:64px;height:64px;margin:0 0 12px;border-radius:20px;
+  display:block;object-fit:cover;box-shadow:0 6px 14px rgba(0,0,0,.14)}
 .puerta-cx h1{margin:0;font-size:34px;font-weight:700;letter-spacing:-.8px}
 .puerta-cx p{margin:0 0 10px;line-height:1.5;color:#555}
 .puerta-cx label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:500;color:#555}
@@ -8840,8 +8865,8 @@ globalThis.CX_VARIANTE="cxobra";
       function bienvenida({ traer, ejemplo, nube = null }) {
         return new Promise((listo) => {
           const c = capa(`
-      <div class="marca" aria-hidden="true">Cx</div>
-      <h1>Cx Obra</h1>
+      <img class="marca" src="iconos/icono-180.png" alt="" aria-hidden="true">
+      <h1>Vidaire Cx</h1>
       <p>Entra con tu correo y tu contrase\xF1a de la oficina.</p>
       <form id="pc-form" style="display:flex;flex-direction:column;gap:14px">
         <label>Correo<input id="pc-correo" type="email" autocomplete="username" autocapitalize="none" required></label>
@@ -8912,7 +8937,7 @@ globalThis.CX_VARIANTE="cxobra";
       function entrar({ correo = "", nombre = "", comprobar, cancelar = false }) {
         return new Promise((listo) => {
           const c = capa(`
-      <div class="marca" aria-hidden="true">Cx</div>
+      <img class="marca" src="iconos/icono-180.png" alt="" aria-hidden="true">
       <h1>Hola${nombre ? `, ${esc(nombre.split(" ")[0])}` : ""}</h1>
       <p>Entra con tu correo y tu contrase\xF1a de la oficina.</p>
       <form id="pc-form" style="display:flex;flex-direction:column;gap:14px">
@@ -14792,7 +14817,7 @@ globalThis.CX_VARIANTE="cxobra";
         }
         runInContext(c) {
           const fn = EJEMPLOS[this.fichero];
-          if (!fn) throw new Error(`En Cx Obra no est\xE1 empaquetado ${this.fichero}`);
+          if (!fn) throw new Error(`En Vidaire Cx no est\xE1 empaquetado ${this.fichero}`);
           return fn(c.window, c.console, c.Intl, c.Date, c.Math, c.JSON, c.RegExp || RegExp);
         }
       };
@@ -32955,7 +32980,7 @@ globalThis.CX_VARIANTE="cxobra";
     <div class="tarjetaOperario">
       <div class="qr">${QR.svg(o.qr)}</div>
       <div class="datos">
-        <div class="marca">${globalThis.CX_VARIANTE === "cxobra" ? "Cx Obra" : "CBRE"} \xB7 Personal en obra</div>
+        <div class="marca">${globalThis.CX_VARIANTE === "cxobra" ? "Vidaire Cx" : "CBRE"} \xB7 Personal en obra</div>
         <div class="nombre">${escHtml(o.nombre)}</div>
         <div class="empresa">${escHtml(o.proveedor || "")}</div>
         ${o.oficio ? `<div class="oficio">${escHtml(o.oficio)}</div>` : ""}
@@ -33265,7 +33290,7 @@ globalThis.CX_VARIANTE="cxobra";
     ${c.repercusion === "si" ? '<p class="nota">Repercusi\xF3n total: la venta de lo valorado m\xE1s el coste extra.</p>' : ""}
   </section>`;
         }
-        const marcaDocumento = () => globalThis.CX_VARIANTE === "cxobra" ? "Cx Obra" : "CBRE \xB7 Project Management";
+        const marcaDocumento = () => globalThis.CX_VARIANTE === "cxobra" ? "Vidaire Cx" : "CBRE \xB7 Project Management";
         function html({ parte = {}, lineas = [], obra = {}, emisor = {}, proveedor = null, fotos = [], conDinero = false, hoy } = {}) {
           const t = TIPOS[parte.tipo] || { nombre: parte.tipo };
           const dato = (que, valor) => llano(valor) ? `<div><dt>${esc(que)}</dt><dd>${esc(valor)}</dd></div>` : "";
@@ -38506,7 +38531,7 @@ ${linea}` : linea;
           const ins = (INSTALACIONES[prueba.instalacion] || {}).nombre || "Instalaci\xF3n";
           return `${obra.codigo || "Obra"} ${prueba.codigo} Prueba de estanqueidad ${ins.replace(/\s*\(.*\)$/, "")} ${prueba.tramo || ""}`.replace(/[\\/:*?"<>|]/g, "-").replace(/\s+/g, " ").trim().slice(0, 150) + ".pdf";
         }
-        const marcaDocumento = () => globalThis.CX_VARIANTE === "cxobra" ? "Cx Obra" : "CBRE \xB7 Project Management";
+        const marcaDocumento = () => globalThis.CX_VARIANTE === "cxobra" ? "Vidaire Cx" : "CBRE \xB7 Project Management";
         function html({ prueba = {}, obra = {}, emisor = {}, empresa = null, fotos = [], hoy } = {}) {
           const ins = INSTALACIONES[prueba.instalacion] || { nombre: prueba.instalacion };
           const u = prueba.unidad || "bar";
@@ -62343,8 +62368,8 @@ ${linea}` : linea;
       async function informePdf(doc = {}) {
         const pdf = await PDFDocument.create();
         pdf.setTitle(String(doc.titulo || "Informe"));
-        pdf.setProducer("Cx Obra");
-        pdf.setCreator("Cx Obra");
+        pdf.setProducer("Vidaire Cx");
+        pdf.setCreator("Vidaire Cx");
         const normal = await pdf.embedFont(StandardFonts.Helvetica);
         const negrita = await pdf.embedFont(StandardFonts.HelveticaBold);
         const limpio = crearLimpiador(normal);
@@ -62370,7 +62395,7 @@ ${linea}` : linea;
           pagina.drawText(limpio(t), { x, y: y - tam, size: tam, font: fuente, color });
         };
         nueva();
-        texto("Cx Obra", { tam: 9, fuente: negrita, color: VERDE });
+        texto("Vidaire Cx", { tam: 9, fuente: negrita, color: VERDE });
         if (doc.fecha) {
           const f = limpio(doc.fecha);
           pagina.drawText(f, { x: A4[0] - MARGEN - normal.widthOfTextAtSize(f, 9), y: y - 9, size: 9, font: normal, color: GRIS });
@@ -62589,7 +62614,7 @@ ${linea}` : linea;
           y -= 70;
         }
         if ((doc.anexos || []).some(Boolean)) await bloques(doc.anexos);
-        const pie = limpio(doc.pie || "Hecho con Cx Obra en el tel\xE9fono");
+        const pie = limpio(doc.pie || "Hecho con Vidaire Cx en el tel\xE9fono");
         paginas.forEach((p, i) => {
           p.drawText(pie, { x: MARGEN, y: MARGEN - 14, size: 7.5, font: normal, color: GRIS });
           const n = `${i + 1} / ${paginas.length}`;
@@ -62662,8 +62687,8 @@ ${linea}` : linea;
       async function hojaExcelPdf({ hojas = [], imagen = null, anexoPdf = null, titulo = "Hoja", sinPie = false } = {}) {
         const pdf = await PDFDocument.create();
         pdf.setTitle(String(titulo));
-        pdf.setProducer("Cx Obra");
-        pdf.setCreator("Cx Obra");
+        pdf.setProducer("Vidaire Cx");
+        pdf.setCreator("Vidaire Cx");
         const F = {
           n: await pdf.embedFont(StandardFonts.Helvetica),
           b: await pdf.embedFont(StandardFonts.HelveticaBold),
