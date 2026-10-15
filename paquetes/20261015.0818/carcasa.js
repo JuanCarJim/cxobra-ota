@@ -419,7 +419,9 @@
       traer('partes', 'api/partes'), traer('ncr', `api/ncr?obra=${q}`),
     ]);
     if (seccion() !== 'inicio' || window.CX.obraId() !== o.id) return;
-    const t = (cx && cx.ok && cx.totales) || null;
+    // Como la lista de Commissioning: si hay conjuntos (split = UE + UI), se cuenta por conjunto.
+    const tc = cx && cx.ok && cx.totalesConjuntos && cx.totalesConjuntos.conjuntos ? cx.totalesConjuntos : null;
+    const t = cx && cx.ok && cx.totales ? (tc ? { ...cx.totales, ...tc, equipos: tc.conjuntos } : cx.totales) : null;
     const hechos = t ? (t.completos || 0) : 0;
     const pct = t && t.equipos ? Math.round((hechos / t.equipos) * 100) : 0;
     const bocas = cx && cx.equipos ? cx.equipos.reduce((a, e) => [a[0] + (e.medidas || 0), a[1] + (e.bocas || 0)], [0, 0]) : [0, 0];
