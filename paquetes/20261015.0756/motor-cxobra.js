@@ -8563,7 +8563,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261015.0736" : "0";
+      var VERSION = true ? "20261015.0756" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -59670,6 +59670,7 @@ ${linea}` : linea;
               marca: f.marca,
               modelo: f.modelo,
               grupo: f.grupo,
+              familia: f.familia || null,
               envio: f.envio,
               falta: f.falta,
               completo: f.completo,
@@ -63183,6 +63184,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
     const { sembrarSiVacia } = require_siembra();
     prepararEsquema(base);
     const repo = crearRepositorio(base);
+    let soltada = false;
     const traer = async (paquete, correo, clave) => {
       const mal = PQ.revisar(paquete, "ida");
       if (mal) return mal;
@@ -63198,7 +63200,8 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         const limpia = await abrirBaseWasm({ datos: null, localizarWasm: (f) => f });
         prepararEsquema(limpia);
         PQ.aplicar(limpia, paquete);
-        await almacen.guardarBase(limpia.serializar());
+        soltada = true;
+        await almacen.guardarYa(() => limpia.serializar());
       } else {
         PQ.aplicar(base, paquete);
         await almacen.guardarYa(() => base.serializar());
@@ -63264,6 +63267,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
     });
     let cambiosVistos = base.cambiosTotales();
     const tras = () => {
+      if (soltada) return;
       const ahora = base.cambiosTotales();
       if (ahora !== cambiosVistos) {
         cambiosVistos = ahora;
@@ -63272,6 +63276,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       almacen.sincronizarArchivos(archivos, `${CARPETA}/`).catch((e) => console.error("No se pudieron guardar las fotos:", e));
     };
     const guardar = () => {
+      if (soltada) return;
       almacen.guardarYa(() => base.serializar()).catch(() => {
       });
       almacen.sincronizarArchivos(archivos, `${CARPETA}/`).catch(() => {
@@ -63333,6 +63338,22 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         } catch {
         }
         return { recibido: o.recibido || null, enviado: o.enviado || null, ejemplo: Boolean(o.ejemplo), pendientes };
+      },
+      /* SALIR: con el ejemplo, se borra y se vuelve a la bienvenida; con
+         los datos de la oficina, se quedan y se vuelve a pedir la contraseña. */
+      salir: async () => {
+        if (oficina().ejemplo) {
+          const limpia = await abrirBaseWasm({ datos: null, localizarWasm: (f) => f });
+          prepararEsquema(limpia);
+          soltada = true;
+          await almacen.guardarYa(() => limpia.serializar());
+          ponerLS(CLAVE_OFICINA, "{}");
+        } else {
+          guardar();
+        }
+        ponerLS(CLAVE_PERSONA, "");
+        ponerLS(CLAVE_SESION, "");
+        location.reload();
       },
       traerDatos: async () => {
         const f = await puerta.elegirFichero();

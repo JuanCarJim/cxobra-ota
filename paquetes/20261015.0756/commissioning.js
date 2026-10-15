@@ -49,6 +49,8 @@
 
   async function cargarLista() {
     ficha = null; hoja = null;
+    /* Desde una cifra del Inicio: la lista llega ya filtrada. */
+    try { const v = sessionStorage.getItem('cx.segmento'); if (v) { segmento = v; sessionStorage.removeItem('cx.segmento'); AGRUPAR.forEach(([id]) => C.reiniciarLista(`cx-equipos-${id}`)); } } catch { /* nada */ }
     await C.obrasListas();
     if (!activa()) return;
     if (!C.obraId()) { $app.innerHTML = '<p class="vacio">No tienes ninguna obra abierta.</p>'; return; }
@@ -63,7 +65,7 @@
     if (activa() && !ficha) pintarLista();
   }
 
-  /* Segmentos por estado: lo que resume (las cifras) arriba y siempre a la vista. */
+  /* Segmentos por estado: son las cifras de arriba, siempre a la vista; cada una filtra la lista. */
   const SEGMENTOS = [
     ['todos', 'Todos', () => true],
     ['faltaDoc', 'Falta doc.', (e) => !e.completo && e.envio === 'faltaDocumentacion'],
@@ -73,24 +75,49 @@
   let segmento = 'todos';
   const porPlanta = (a, b) => (a === 'Sin planta') - (b === 'Sin planta') || a.localeCompare(b, 'es', { numeric: true });
 
+  /* AGRUPAR por planta, por tipo de equipo o por marca (15-oct-2026, JC). El
+     tipo sale de la familia de plantillas (PANASONIC_SPLIT → Split): la marca
+     va delante y se quita. */
+  const TIPOS = {
+    SPLIT: 'Split', VRF: 'VRF', CRACS: 'CRAC', FANCOIL: 'Fan coil', UTA: 'UTA', HRU: 'Recuperador (HRU)',
+    ROOFTOPS: 'Rooftop', CHILLERS: 'Enfriadora', PUMPS: 'Bomba', GP: 'Grupo de presión',
+    VENTILACION: 'Ventilación', PARKING: 'Ventilación parking', PRESURIZACION: 'Presurización',
+  };
+  const tipoDe = (e) => {
+    const f = String(e.familia || '').toUpperCase();
+    const resto = f.includes('_') ? f.slice(f.indexOf('_') + 1) : f;
+    if (TIPOS[resto]) return TIPOS[resto];
+    if (resto) return resto.charAt(0) + resto.slice(1).toLowerCase().replace(/_/g, ' ');
+    /* Sin familia: el grupo del equipo o, si no, el prefijo del TAG (UTA-N10-03 → UTA). */
+    const pre = (/^([A-Za-z]{2,5})-/.exec(String(e.tag || '')) || [])[1];
+    return e.grupo || (pre ? pre.toUpperCase() : 'Sin tipo');
+  };
+  const AGRUPAR = [
+    ['planta', 'Planta', (e) => e.planta || 'Sin planta'],
+    ['tipo', 'Tipo', tipoDe],
+    ['marca', 'Marca', (e) => e.marca || 'Sin marca'],
+  ];
+  let agrupar = 'planta';
+  try { agrupar = sessionStorage.getItem('cx.agrupar') || 'planta'; } catch { /* sin almacén */ }
+
   function pintarLista() {
     const t = lista.totales || {};
     const q = filtro.trim().toLowerCase();
     const todos = lista.equipos || [];
     const [, , pasa] = SEGMENTOS.find(([id]) => id === segmento) || SEGMENTOS[0];
-    const equipos = todos.filter(pasa).filter((e) => !q || `${e.tag} ${e.planta || ''} ${e.marca || ''} ${e.modelo || ''}`.toLowerCase().includes(q));
-    const plantas = [...new Set(equipos.map((e) => e.planta || 'Sin planta'))].sort(porPlanta);
+    const equipos = todos.filter(pasa).filter((e) => !q || `${e.tag} ${e.planta || ''} ${e.marca || ''} ${e.modelo || ''} ${tipoDe(e)}`.toLowerCase().includes(q));
+    const [, , grupoDe] = AGRUPAR.find(([id]) => id === agrupar) || AGRUPAR[0];
+    const sin = (g) => g.startsWith('Sin ');
+    const grupos = [...new Set(equipos.map(grupoDe))].sort(agrupar === 'planta' ? porPlanta
+      : (a, b) => sin(a) - sin(b) || a.localeCompare(b, 'es', { numeric: true }));
     $app.innerHTML = `
-      <div class="resumen-fila">
-        <div><b>${cifra(t.equipos)}</b><span>equipos</span></div>
-        <div><b>${cifra(t.completos)}</b><span>completos</span></div>
-        <div class="${t.faltaDocumentacion ? 'aviso' : ''}"><b>${cifra(t.faltaDocumentacion)}</b><span>falta doc.</span></div>
-        <div class="${t.faltaEnsayo ? 'aviso' : ''}"><b>${cifra(t.faltaEnsayo)}</b><span>falta ensayo</span></div>
-      </div>
-      <div class="segmentado" role="tablist">${SEGMENTOS.map(([id, n, f]) => `<button role="tab" data-cx-seg="${id}" class="${segmento === id ? 'activa' : ''}" aria-selected="${segmento === id}">${esc(n)} <small>${cifra(todos.filter(f).length)}</small></button>`).join('')}</div>
-      <input type="search" class="buscar" placeholder="Buscar TAG, planta o modelo" value="${esc(filtro)}" data-cx-buscar>
-      ${equipos.length ? C.listaAgrupada('cx-equipos', equipos, {
-        grupo: (e) => e.planta || 'Sin planta', orden: plantas, buscando: !!q, repintar: pintarLista,
+      <div class="resumen-fila" role="tablist">${[['todos', t.equipos, 'equipos'], ['completos', t.completos, 'completos'], ['faltaDoc', t.faltaDocumentacion, 'falta doc.'], ['faltaEnsayo', t.faltaEnsayo, 'falta ensayo']]
+        .map(([id, n, texto]) => `<button role="tab" data-cx-seg="${id}" aria-selected="${segmento === id}" class="${segmento === id ? 'activa' : ''} ${id.startsWith('falta') && n ? 'aviso' : ''}"><b>${cifra(n)}</b><span>${esc(texto)}</span></button>`).join('')}</div>
+      <input type="search" class="buscar" placeholder="Buscar TAG, planta, tipo o marca" value="${esc(filtro)}" data-cx-buscar>
+      <div class="agrupar" role="group" aria-label="Agrupar por"><span>Agrupar por</span>${AGRUPAR
+        .map(([id, texto]) => `<button data-cx-agrupar="${id}" aria-pressed="${agrupar === id}" class="${agrupar === id ? 'activa' : ''}">${texto}</button>`).join('')}</div>
+      ${equipos.length ? C.listaAgrupada(`cx-equipos-${agrupar}`, equipos, {
+        grupo: grupoDe, orden: grupos, buscando: !!q, repintar: pintarLista,
         fila: (e) => `
         <li><button class="fila-ios" data-cx="equipo" data-id="${esc(e.id)}">
           <div class="fila-principal">
@@ -577,7 +604,14 @@
   $app.addEventListener('click', (ev) => {
     if (!activa()) return;
     const sg = ev.target.closest('[data-cx-seg]');
-    if (sg) { segmento = sg.dataset.cxSeg; C.reiniciarLista('cx-equipos'); pintarLista(); return; }
+    /* Las cifras de arriba filtran; pulsar la que ya está elegida vuelve a todos. */
+    if (sg) { segmento = sg.dataset.cxSeg === segmento ? 'todos' : sg.dataset.cxSeg; AGRUPAR.forEach(([id]) => C.reiniciarLista(`cx-equipos-${id}`)); pintarLista(); return; }
+    const ag = ev.target.closest('[data-cx-agrupar]');
+    if (ag) {
+      agrupar = ag.dataset.cxAgrupar;
+      try { sessionStorage.setItem('cx.agrupar', agrupar); } catch { /* sin almacén */ }
+      pintarLista(); return;
+    }
     const b = ev.target.closest('[data-cx]');
     if (!b) return;
     const que = b.dataset.cx;
