@@ -112,7 +112,44 @@
     return r.fotoId;
   }
 
-  /* El PDF, por la hoja de compartir del teléfono (correo, AirDrop, Archivos); si no hay, se descarga. */
+  /* Sacar un fichero: la hoja de compartir del teléfono (correo, AirDrop,
+     Archivos); si no hay, se descarga. Va en el toque de un botón: iOS no
+     abre la hoja si antes se ha esperado a la red. */
+  async function sacarFichero(f, nombre) {
+    if (navigator.canShare && navigator.canShare({ files: [f] })) {
+      try { await navigator.share({ files: [f], title: nombre }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(f);
+    a.download = f.name;
+    document.body.append(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+  }
+
+  /* LA VISTA PREVIA del PDF, dentro de la app y a pantalla completa: se lee
+     antes de mandarlo. «Compartir» abre la hoja del teléfono; «Cerrar» vuelve. */
+  function vistaPdf(f, nombre) {
+    const url = URL.createObjectURL(f);
+    const capa = document.createElement('div');
+    capa.className = 'vista-pdf';
+    capa.setAttribute('role', 'dialog');
+    capa.setAttribute('aria-label', `Vista previa: ${nombre}`);
+    capa.innerHTML = `
+      <div class="vista-pdf-barra">
+        <button type="button" class="boton secundario pequeno" data-vp="cerrar">Cerrar</button>
+        <span class="vista-pdf-nombre">${esc(nombre)}</span>
+        <button type="button" class="boton pequeno" data-vp="compartir">Compartir</button>
+      </div>
+      <iframe class="vista-pdf-hoja" title="${esc(nombre)}" src="${url}#view=FitH"></iframe>`;
+    const cerrar = () => { capa.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); };
+    capa.querySelector('[data-vp="cerrar"]').onclick = cerrar;
+    capa.querySelector('[data-vp="compartir"]').onclick = () => sacarFichero(f, nombre);
+    document.body.append(capa);
+    return capa;
+  }
+
+  /* El PDF: primero la vista previa en la app; desde ella, a compartir. */
   async function compartirPdf(ruta, nombre, boton) {
     if (boton) boton.disabled = true;
     try {
@@ -123,15 +160,7 @@
         throw new Error(msg);
       }
       const f = new File([await r.blob()], nombre.replace(/[\\/:*?"<>|]+/g, '_'), { type: 'application/pdf' });
-      if (navigator.canShare && navigator.canShare({ files: [f] })) {
-        try { await navigator.share({ files: [f], title: nombre }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
-      }
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(f);
-      a.download = f.name;
-      document.body.append(a);
-      a.click();
-      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+      vistaPdf(f, nombre);
     } catch (e) { aviso(e.message); } finally { if (boton) boton.disabled = false; }
   }
 
