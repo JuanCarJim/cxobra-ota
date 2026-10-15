@@ -155,8 +155,10 @@
 
   /* ═══════════════════════════════════ 2. La ficha */
 
-  async function abrir(id) {
-    $app.innerHTML = '<p class="cargando">Cargando el equipo…</p>';
+  async function abrir(id, { quieto = false } = {}) {
+    /* quieto: se repinta el mismo equipo (llegó algo de la oficina) sin moverse de donde estaba. */
+    const y = window.scrollY;
+    if (!quieto) $app.innerHTML = '<p class="cargando">Cargando el equipo…</p>';
     try {
       const r = await C.pedir(`api/equipo?id=${encodeURIComponent(id)}`);
       if (!r.ok) throw new Error(r.error);
@@ -165,7 +167,7 @@
       hoja = null;
       fichasEq = null;
       pintarFicha();
-      window.scrollTo(0, 0);
+      window.scrollTo(0, quieto ? y : 0);
       cargarFichas(id);
     } catch (e) { C.aviso(e.message); cargarLista(); }
   }
@@ -238,6 +240,28 @@
     return fs.some((x) => x.clase === 'balanceo') || f.planos.length > 0 || req === 'balanceo' || req === 'ambos';
   }
 
+  /*
+   * SIN PLANO EN EL TELÉFONO (15-oct-2026, JC: «Sí que hay plano de bocas»).
+   * El plano se dibuja en el ordenador y llega por la nube: si este teléfono
+   * aún no ha entrado o no tiene red, no se dice «no tiene plano», se dice
+   * qué falta para que llegue.
+   */
+  function sinPlano() {
+    const s = window.cxObra && window.cxObra.sync && window.cxObra.sync.activa ? window.cxObra.sync : null;
+    const e = s ? s.estado() : null;
+    if (e && (!e.entrado || e.estado === 'sin-sesion')) {
+      return `<p class="nota aviso">El plano de bocas se dibuja en el ordenador y te llega solo en cuanto entres en la nube de la oficina.</p>
+        <button class="boton" data-cx="nube-entrar">Entrar en la nube y traer el plano</button>`;
+    }
+    if (e && (e.estado === 'sin-red' || e.estado === 'error')) {
+      return `<p class="nota aviso">${e.estado === 'sin-red' ? 'Sin conexión con la oficina' : 'No se ha podido hablar con la oficina'}: si el plano ya está dibujado en el ordenador, llegará en cuanto vuelva la red.</p>
+        <button class="boton secundario" data-cx="nube-ahora">Volver a intentarlo</button>`;
+    }
+    if (e && e.estado === 'sincronizando') return '<p class="cargando">Trayendo los datos de la oficina…</p>';
+    return `<p class="vacio">Este equipo todavía no tiene plano de bocas en la oficina: se dibuja en el ordenador (Commissioning › Balanceo) y aparece aquí solo.</p>
+      ${s ? '<button class="boton secundario" data-cx="nube-ahora">Comprobar ahora</button>' : ''}`;
+  }
+
   function pintarFicha() {
     const f = ficha;
     const e = f.equipo;
@@ -253,7 +277,7 @@
       ${f.planos.length ? f.planos.map((p) => `
         <h2>${esc(p.nombre)} <span class="cuenta">${p.bocas.length} bocas</span></h2>
         ${htmlPlano(p)}
-        <ul class="bocas">${p.bocas.map((b) => htmlBoca(p, b, puede, f.tolerancias)).join('')}</ul>`).join('') : '<p class="vacio">Este equipo no tiene plano de bocas: se dibuja en el ordenador (Commissioning › Balanceo).</p>'}
+        <ul class="bocas">${p.bocas.map((b) => htmlBoca(p, b, puede, f.tolerancias)).join('')}</ul>`).join('') : sinPlano()}
       ${puede || !f.planos.length ? '' : '<p class="nota">Tu rol puede ver las medidas, pero no tomarlas.</p>'}
       ${f.planos.length ? '<button class="boton secundario" data-cx="pdf-balanceo"><i class="ic ic-doc"></i>Informe del balanceo (PDF)</button>' : ''}
       ${htmlFichas('balanceo', 'Hoja de balanceo')}`;
@@ -285,6 +309,9 @@
    * se teclea. Tocar una lleva a su boca y pone el foco en M1. «Ampliar» lo
    * abre a pantalla completa, con zoom de dos dedos.
    */
+  /* La forma de su tipo de difusor o reja (shared/commissioning/simbolosBoca.js). */
+  const simbolo = (b) => (window.SIMBOLOS_BOCA ? window.SIMBOLOS_BOCA.svg(b.tipoId, { titulo: b.tipo || '' }) : '');
+
   function htmlPlano(p) {
     const conSitio = p.bocas.filter((b) => b.x !== null && b.x !== undefined && b.y !== null && b.y !== undefined);
     if (!p.imagen || !conSitio.length) return '';
@@ -292,7 +319,7 @@
       <div class="plano-marco"><div class="plano-lienzo">
         <img data-src="api/equipo/plano?id=${encodeURIComponent(p.id)}" alt="Plano ${esc(p.nombre)}">
         ${conSitio.map((b) => `<button class="marca-boca ${claseMarca(b.estado)}${b.circuito === 'retorno' ? ' ret' : ''}" style="left:${(b.x * 100).toFixed(2)}%;top:${(b.y * 100).toFixed(2)}%"
-          data-cx="ir-boca" data-boca="${esc(claveBoca(p.id, b.id))}" aria-label="Ir a la boca ${esc(b.nombre)}">${esc(b.nombre)}</button>`).join('')}
+          data-cx="ir-boca" data-boca="${esc(claveBoca(p.id, b.id))}" aria-label="Ir a la boca ${esc(b.nombre)}">${simbolo(b)}<span class="rotulo-boca">${esc(b.nombre)}</span></button>`).join('')}
       </div></div>
       <figcaption><span class="leyenda"><i class="neutra"></i>Sin medir <i class="bien"></i>Dentro <i class="mal"></i>Fuera</span>
         <button class="enlace" data-cx="plano-grande">Ampliar</button></figcaption>
@@ -845,6 +872,8 @@
     else if (que === 'plano-grande' && ficha) planoGrande(b);
     else if (que === 'foto-equipo') fotoEquipo(b);
     else if (que === 'quitar-foto-equipo') quitarFotoEquipo(b);
+    else if (que === 'nube-entrar' && window.cxObra && window.cxObra.sync) window.cxObra.sync.entrar().then((ok) => { if (ok && ficha) abrir(ficha.equipo.id, { quieto: true }); });
+    else if (que === 'nube-ahora' && window.cxObra && window.cxObra.sync) { b.disabled = true; window.cxObra.sync.ahora().finally(() => { if (ficha) abrir(ficha.equipo.id, { quieto: true }); }); }
     else if (que === 'pdf-balanceo' && ficha) compartirPdf(`api/informe?tipo=balanceo&equipo=${encodeURIComponent(ficha.equipo.id)}`, `${ficha.equipo.tag} - balanceo.pdf`, b);
   });
   /* Sí / No / N/A: un toque marca, otro toque en la misma desmarca. */
@@ -901,6 +930,11 @@
   });
 
   window.addEventListener('movil:obra', () => { if (activa()) cargarLista(); });
-  window.addEventListener('hashchange', () => { if (activa()) cargarLista(); });
+  window.addEventListener('hashchange', (ev) => {
+    if (!activa()) return;
+    /* Ha llegado algo de la oficina con un equipo abierto: se repinta ese equipo, no la lista. */
+    if (ev.cxDatos && ficha) { if (!hoja) abrir(ficha.equipo.id, { quieto: true }); return; }
+    cargarLista();
+  });
   if (activa()) cargarLista();
 })();
