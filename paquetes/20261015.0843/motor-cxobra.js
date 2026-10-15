@@ -8563,7 +8563,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261015.0830" : "0";
+      var VERSION = true ? "20261015.0843" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -18509,7 +18509,7 @@ globalThis.CX_VARIANTE="cxobra";
               if (n !== null && n > 0) r[k] = n;
             }
             const porSeccion = caudalDeSeccion(r);
-            if (porSeccion !== null) r.caudalMedido = porSeccion;
+            if (porSeccion !== null && r.caudalMedido === null) r.caudalMedido = porSeccion;
             if (b.nombre) r.nombre = String(b.nombre).slice(0, 40);
             if (TERMINALES[b.tipo]) r.tipo = b.tipo;
             return r;
