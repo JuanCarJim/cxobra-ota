@@ -8573,7 +8573,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261015.1246" : "0";
+      var VERSION = true ? "20261015.1433" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -10799,8 +10799,9 @@ globalThis.CX_VARIANTE="cxobra";
         /*
          * LAS CERTIFICACIONES: lo que se le cobra al cliente cada mes.
          *
-         * Se guarda la cantidad A ORIGEN de cada partida; lo del mes se calcula
-         * restando la anterior (shared/obra/certificacion.js). Al emitir se
+         * Se guarda la cantidad DEL MES de cada partida (`cantidad`, desde el
+         * 15-oct-2026); ANTERIOR es la suma de las de antes y A ORIGEN, anterior
+         * más actual (shared/obra/certificacion.js). `aOrigen` queda como foto. Al emitir se
          * congelan el precio de cada línea y el resumen, para que lo que se envió
          * siga diciendo lo mismo aunque el Costs Plan cambie después.
          *
@@ -10839,6 +10840,24 @@ globalThis.CX_VARIANTE="cxobra";
      creadoEn         TEXT NOT NULL,
      modificadoEn     TEXT NOT NULL,
      UNIQUE (certificacionId, lineaId)
+   )`,
+        /*
+         * LAS CORRECCIONES DE UNA CERTIFICACIÓN: cada vez que se cambia un ACTUAL
+         * que ya estaba puesto, con el valor de antes, el nuevo y el motivo. Un
+         * ACTUAL negativo —corregir un mes que se pasó— siempre lleva motivo.
+         */
+        `CREATE TABLE IF NOT EXISTS correccionesCertificacion (
+     id               TEXT PRIMARY KEY,
+     certificacionId  TEXT NOT NULL REFERENCES certificaciones(id) ON DELETE CASCADE,
+     obraId           TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     lineaId          TEXT NOT NULL,
+     codigo           TEXT,
+     valorAnterior    REAL,
+     valorNuevo       REAL,
+     motivo           TEXT,
+     personaId        TEXT REFERENCES personas(id),
+     creadoEn         TEXT NOT NULL,
+     modificadoEn     TEXT
    )`,
         /*
          * LAS EXCLUSIONES PACTADAS.
@@ -11180,6 +11199,98 @@ globalThis.CX_VARIANTE="cxobra";
          * Se anotan por CAPÍTULO y no por partida a propósito: una nota por partida
          * son cuatrocientas notas que nadie escribe y que nadie lee.
          */
+        /*
+         * EL CONTRATO, SUS ADENDAS Y SUS FASES (15-oct-2026, JC).
+         *
+         * Lo firmado no es el presupuesto: es el subcontrato con su importe, su fin,
+         * sus retenciones y penalizaciones, y lo que las adendas le han ido sumando.
+         * El importe y el fin vigentes NO se guardan: salen de lo original más las
+         * adendas FIRMADAS (shared/contrato.js), para que nadie tenga que acordarse
+         * de actualizarlos.
+         *
+         * Todo cuelga del proyecto (proyectoId en cada tabla): quien ve el proyecto
+         * ve su contrato, con la misma regla de alcance que la hoja de alcance.
+         */
+        `CREATE TABLE IF NOT EXISTS contratos (
+     id                    TEXT PRIMARY KEY,
+     proyectoId            TEXT NOT NULL REFERENCES proyectos(id) ON DELETE CASCADE,
+     codigo                TEXT,
+     titulo                TEXT,
+     contraparte           TEXT,
+     fechaFirma            TEXT,
+     fechaInicio           TEXT,
+     importeOriginal       REAL,
+     fechaFinOriginal      TEXT,
+     retencionPct          REAL,
+     avalPct               REAL,
+     penalizacionDiariaPct REAL,
+     penalizacionTopePct   REAL,
+     plazoCobroDias        INTEGER,
+     documento             TEXT,
+     notas                 TEXT,
+     creadoEn              TEXT NOT NULL,
+     modificadoEn          TEXT NOT NULL
+   )`,
+        `CREATE TABLE IF NOT EXISTS fasesContrato (
+     id                    TEXT PRIMARY KEY,
+     proyectoId            TEXT NOT NULL REFERENCES proyectos(id) ON DELETE CASCADE,
+     contratoId            TEXT NOT NULL REFERENCES contratos(id) ON DELETE CASCADE,
+     orden                 INTEGER NOT NULL DEFAULT 0,
+     nombre                TEXT NOT NULL,
+     ambito                TEXT,
+     importeBoq            REAL,
+     fechaFinPrevista      TEXT,
+     /* Time for Completion y fin total pueden no coincidir (Fase II de NCN). */
+     fechaFinTotal         TEXT,
+     recepcionProvisional  TEXT,
+     retencionPct          REAL,
+     notasLiberacion       TEXT,
+     creadoEn              TEXT NOT NULL,
+     modificadoEn          TEXT NOT NULL
+   )`,
+        /* Tipo: diseño | precios | reclamación | alcance | plazo.
+           Estado: borrador | enviada | firmada | rechazada. Solo cuenta la firmada. */
+        `CREATE TABLE IF NOT EXISTS adendas (
+     id                TEXT PRIMARY KEY,
+     proyectoId        TEXT NOT NULL REFERENCES proyectos(id) ON DELETE CASCADE,
+     contratoId        TEXT NOT NULL REFERENCES contratos(id) ON DELETE CASCADE,
+     numero            TEXT NOT NULL,
+     concepto          TEXT,
+     tipo              TEXT,
+     importe           REAL,
+     diasAmpliacion    INTEGER,
+     nuevaFechaFin     TEXT,
+     fecha             TEXT,
+     fechaFirma        TEXT,
+     estado            TEXT NOT NULL DEFAULT 'borrador',
+     faseId            TEXT REFERENCES fasesContrato(id) ON DELETE SET NULL,
+     documento         TEXT,
+     notas             TEXT,
+     creadoEn          TEXT NOT NULL,
+     modificadoEn      TEXT NOT NULL,
+     UNIQUE (contratoId, numero)
+   )`,
+        /*
+         * EL PRECIO DE CADA PARTIDA, CON SU HISTORIA. La primera fila es la del BOQ
+         * (sin adenda); cada cambio de precio lleva la adenda que lo trajo, la fase a
+         * la que se aplica y desde cuándo. La certificación usa el precio vigente en
+         * su fase y su fecha, nunca «el último» a secas.
+         * `partidaId` es la línea del presupuesto; sin clave foránea, como en la
+         * certificación: si la línea se borra, su historia de precios no se pierde.
+         */
+        `CREATE TABLE IF NOT EXISTS preciosPartida (
+     id              TEXT PRIMARY KEY,
+     proyectoId      TEXT NOT NULL REFERENCES proyectos(id) ON DELETE CASCADE,
+     partidaId       TEXT NOT NULL,
+     adendaId        TEXT REFERENCES adendas(id) ON DELETE SET NULL,
+     faseId          TEXT REFERENCES fasesContrato(id) ON DELETE SET NULL,
+     precioUnitario  REAL NOT NULL,
+     vigenteDesde    TEXT,
+     motivo          TEXT,
+     documento       TEXT,
+     creadoEn        TEXT NOT NULL,
+     modificadoEn    TEXT NOT NULL
+   )`,
         `CREATE TABLE IF NOT EXISTS notasTraspaso (
      id            TEXT PRIMARY KEY,
      proyectoId    TEXT NOT NULL REFERENCES proyectos(id) ON DELETE CASCADE,
@@ -12505,6 +12616,11 @@ globalThis.CX_VARIANTE="cxobra";
         `CREATE INDEX IF NOT EXISTS idx_lineas_disciplina  ON lineas (presupuestoId, disciplina)`,
         `CREATE INDEX IF NOT EXISTS idx_versiones_presu    ON versionesPresupuesto (presupuestoId, numero)`,
         `CREATE INDEX IF NOT EXISTS idx_alcance_proyecto   ON hojaAlcance (proyectoId)`,
+        `CREATE INDEX IF NOT EXISTS idx_contratos_proyecto ON contratos (proyectoId)`,
+        `CREATE INDEX IF NOT EXISTS idx_adendas_contrato   ON adendas (contratoId, numero)`,
+        `CREATE INDEX IF NOT EXISTS idx_fases_contrato     ON fasesContrato (contratoId, orden)`,
+        `CREATE INDEX IF NOT EXISTS idx_precios_partida    ON preciosPartida (partidaId, vigenteDesde)`,
+        `CREATE INDEX IF NOT EXISTS idx_precios_proyecto   ON preciosPartida (proyectoId)`,
         `CREATE INDEX IF NOT EXISTS idx_obras_proyecto     ON obras (proyectoId)`,
         `CREATE INDEX IF NOT EXISTS idx_obras_jefe         ON obras (jefeObraId, estado)`,
         `CREATE INDEX IF NOT EXISTS idx_notas_proyecto     ON notasTraspaso (proyectoId, codigo)`,
@@ -12538,6 +12654,7 @@ globalThis.CX_VARIANTE="cxobra";
         `CREATE INDEX IF NOT EXISTS idx_seglineas_equipo   ON segLineas (equipoId)`,
         `CREATE INDEX IF NOT EXISTS idx_seghitos_linea     ON segHitos (lineaId)`,
         `CREATE INDEX IF NOT EXISTS idx_lineascert_cert    ON lineasCertificacion (certificacionId)`,
+        `CREATE INDEX IF NOT EXISTS idx_correccert_cert    ON correccionesCertificacion (certificacionId, lineaId)`,
         `CREATE INDEX IF NOT EXISTS idx_incid_obra         ON incidencias (obraId, estado)`,
         `CREATE INDEX IF NOT EXISTS idx_incid_encargado    ON incidencias (encargadoId, estado)`,
         `CREATE INDEX IF NOT EXISTS idx_incidhoras_incid   ON incidenciaHoras (incidenciaId, fecha)`,
@@ -12580,6 +12697,19 @@ globalThis.CX_VARIANTE="cxobra";
         `CREATE INDEX IF NOT EXISTS idx_tareapedidos_ped   ON tareaPedidos (pedidoId)`
       ];
       var COLUMNAS_A\u00D1ADIDAS = [
+        /* La fase del contrato que certifica (para el precio vigente de esa fase). */
+        ["certificaciones", "faseId", "TEXT"],
+        /* La certificación final: emitirla cierra la obra (15-oct-2026). */
+        ["certificaciones", "final", "INTEGER"],
+        /* Lo del MES de cada partida, su importe a su precio, lo de origen y quién lo midió. */
+        ["lineasCertificacion", "cantidad", "REAL"],
+        ["lineasCertificacion", "importe", "REAL"],
+        ["lineasCertificacion", "importeOrigen", "REAL"],
+        ["lineasCertificacion", "medidoPor", "TEXT"],
+        ["lineasCertificacion", "medidoEn", "TEXT"],
+        /* La cuenta con que salió la cantidad del mes («3/4*M»), como en Excel (15-oct). */
+        ["lineasCertificacion", "formula", "TEXT"],
+        ["correccionesCertificacion", "formulaNueva", "TEXT"],
         /* Archivos y fotos de las notas del bloc (electron/data/notasAdjuntos.js), en JSON. */
         ["notas", "adjuntos", "TEXT"],
         /* Los partes de incidencia se asignan a quien los lleva, con su fecha límite. */
@@ -12855,6 +12985,24 @@ globalThis.CX_VARIANTE="cxobra";
           }
         }
       }
+      function rellenarCantidadDelMes(db) {
+        const sin = db.prepare(`SELECT l.id, l.lineaId, l.aOrigen, l.precio, c.obraId, c.numero
+    FROM lineasCertificacion l JOIN certificaciones c ON c.id = l.certificacionId
+    WHERE l.cantidad IS NULL ORDER BY c.obraId, c.numero`).all();
+        if (!sin.length) return;
+        const previa = db.prepare(`SELECT l.aOrigen, l.precio FROM lineasCertificacion l
+    WHERE l.lineaId = ? AND l.certificacionId = (SELECT id FROM certificaciones WHERE obraId = ? AND numero < ? ORDER BY numero DESC LIMIT 1)`);
+        const poner = db.prepare("UPDATE lineasCertificacion SET cantidad = ?, importe = ?, importeOrigen = ? WHERE id = ?");
+        const r2 = (v) => Math.round(v * 100) / 100;
+        const r3 = (v) => Math.round(v * 1e3) / 1e3;
+        for (const l of sin) {
+          const p = previa.get(l.lineaId, l.obraId, l.numero);
+          const antes = p ? Number(p.aOrigen) || 0 : 0;
+          const origen = l.precio === null || l.precio === void 0 ? null : r2((Number(l.aOrigen) || 0) * Number(l.precio));
+          const origenAntes = p && p.precio !== null && p.precio !== void 0 ? r2(antes * Number(p.precio)) : 0;
+          poner.run(r3((Number(l.aOrigen) || 0) - antes), origen === null ? null : r2(origen - origenAntes), origen, l.id);
+        }
+      }
       function prepararEsquema(db) {
         try {
           db.exec("PRAGMA journal_mode = WAL");
@@ -12868,6 +13016,7 @@ globalThis.CX_VARIANTE="cxobra";
         proponerFamiliasAProveedores(db);
         rellenarRepercusionDeIncidencias(db);
         rehacerHojaAlcanceAntigua(db);
+        rellenarCantidadDelMes(db);
         quitarColumnasObligatoriasViejas(db);
         for (const sql of INDICES) db.prepare(sql).run();
         return db;
@@ -12897,6 +13046,11 @@ globalThis.CX_VARIANTE="cxobra";
         },
         presupuestos: { porProyecto: "proyectoId" },
         hojaAlcance: { porProyecto: "proyectoId" },
+        /* El contrato, sus fases, sus adendas y los precios: del proyecto. */
+        contratos: { porProyecto: "proyectoId" },
+        fasesContrato: { porProyecto: "proyectoId" },
+        adendas: { porProyecto: "proyectoId" },
+        preciosPartida: { porProyecto: "proyectoId" },
         versionesPresupuesto: { porPresupuesto: "presupuestoId" },
         /*
          * UNA OBRA TIENE VARIOS DUEÑOS, y todos a la vez: el jefe de Proyectos que
@@ -12984,6 +13138,7 @@ globalThis.CX_VARIANTE="cxobra";
            líneas llevan también la obra para no tener que heredar en dos saltos. */
         certificaciones: { porObra: "obraId" },
         lineasCertificacion: { porObra: "obraId" },
+        correccionesCertificacion: { porObra: "obraId" },
         notasTraspaso: { porProyecto: "proyectoId" },
         /* Los cálculos de instalaciones: quien ve el proyecto ve sus cálculos. */
         calculos: { porProyecto: "proyectoId" },
@@ -13202,6 +13357,11 @@ globalThis.CX_VARIANTE="cxobra";
         notasTraspaso: "notasTraspaso",
         mensajes: "presupuestos",
         hojaAlcance: "presupuestos",
+        /* Lo firmado con el cliente: lo lleva quien lleva el presupuesto. */
+        contratos: "presupuestos",
+        fasesContrato: "presupuestos",
+        adendas: "presupuestos",
+        preciosPartida: "presupuestos",
         versionesPresupuesto: "presupuestos",
         presupuestos: "presupuestos",
         lineas: "presupuestos",
@@ -13252,6 +13412,7 @@ globalThis.CX_VARIANTE="cxobra";
         incidenciaComentarios: "incidencias",
         certificaciones: "certificaciones",
         lineasCertificacion: "certificaciones",
+        correccionesCertificacion: "certificaciones",
         /* Las cuatro tablas de compras van al módulo 'compras', no a
            'presupuestos': pedir ofertas y presupuestar son dos trabajos y dos
            permisos, y hay roles que tienen uno y no el otro. */
@@ -14869,6 +15030,7 @@ globalThis.CX_VARIANTE="cxobra";
           incidenciaComentarios: "Comentario de incidencia",
           certificaciones: "Certificaci\xF3n",
           lineasCertificacion: "L\xEDnea de certificaci\xF3n",
+          correccionesCertificacion: "Correcci\xF3n de certificaci\xF3n",
           peticionesOferta: "Petici\xF3n de oferta",
           ofertasProveedor: "Oferta de proveedor",
           lineasOfertaProveedor: "L\xEDnea de oferta",
@@ -17961,7 +18123,7 @@ globalThis.CX_VARIANTE="cxobra";
             nombre: "CARRIER ROOFTOPS",
             nombrePdf: "Carrier Rooftop",
             plantillas: ["ROOFTOP"],
-            anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR" }, { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" }],
+            anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR", nombre: "CHECKLIST ROOFTOP" }, { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" }],
             balanceo: true,
             estanqueidad: "no",
             medicion: "bocas"
@@ -18010,7 +18172,7 @@ globalThis.CX_VARIANTE="cxobra";
             nombre: "PANASONIC VRF",
             nombrePdf: "Panasonic VRF",
             plantillas: ["VRF_UD_EXTERIOR", "VRF_UI_CONDUCTOS", "VRF_UI_CASSETTE"],
-            anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR" }, { plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
+            anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR", nombre: "CHECKLIST VRF" }, { plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
             balanceo: false,
             estanqueidad: "refrigerante",
             /* La exterior no se mide; la interior de conductos, por bocas a velocidad
@@ -18024,7 +18186,7 @@ globalThis.CX_VARIANTE="cxobra";
             nombre: "PANASONIC SPLIT",
             nombrePdf: "Panasonic Split",
             plantillas: ["SPLIT_UD_INTERIOR", "SPLIT_UD_EXTERIOR"],
-            anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR" }, { plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
+            anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR", nombre: "CHECKLIST SPLIT" }, { plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
             balanceo: false,
             estanqueidad: "refrigerante",
             medicion: "temperatura",
@@ -18848,7 +19010,7 @@ globalThis.CX_VARIANTE="cxobra";
               clave = tagUE ? `refrigerante:${sinAcentosFx(tagUE)}` : null;
               if (!tagUE) motivo = "Unidad interior sin exterior asociada.";
             }
-            return { plantilla: pl.codigo, clase: pl.clase, nombre: pl.nombre, enlace, clave, motivo };
+            return { plantilla: pl.codigo, clase: pl.clase, nombre: a.nombre || pl.nombre, enlace, clave, motivo };
           };
           const anexos = (familia.anexos || []).map(anexo).filter(Boolean);
           fuera.push(...anexos.filter((a) => a.clase === "checklist"));
@@ -29850,7 +30012,8 @@ globalThis.CX_VARIANTE="cxobra";
             { tag: "UTA-P1-01", planta: "P1", sala: "Cubierta", grupo: "TROX UTA", marca: "Trox", modelo: "X-CUBE 25", numSerie: "TX-25-0117", caudalDisenoImp: 1200, caudalDisenoRet: 1e3 },
             { tag: "FC-P1-01", planta: "P1", sala: "Habitaci\xF3n 101", grupo: "AIRLAN FANCOIL", marca: "Airlan", modelo: "FCX 32", circuito: "HVAC FC P1" },
             { tag: "FC-P1-02", planta: "P1", sala: "Habitaci\xF3n 102", grupo: "AIRLAN FANCOIL", marca: "Airlan", modelo: "FCX 32", circuito: "HVAC FC P1" },
-            { tag: "B-PB-01", planta: "PB", sala: "Sala de bombas", grupo: "WILO PUMPS", marca: "Wilo", modelo: "Stratos 40/1-12", numSerie: "W-88231" }
+            { tag: "B-PB-01", planta: "PB", sala: "Sala de bombas", grupo: "WILO PUMPS", marca: "Wilo", modelo: "Stratos 40/1-12", numSerie: "W-88231" },
+            { tag: "UI-PB-01", planta: "PB", sala: "Recepci\xF3n", grupo: "PANASONIC SPLIT", marca: "Panasonic", modelo: "CS-Z35XKEW", equipoAsociado: "UE-PB-01" }
           ]);
           C.configurar(repo, luis, "OB-3", { tolTotal: "10", tolBoca: "15", psRefrigerante: "41,5", caidaAdmisible: "0" });
           const idDe = (tag) => (db.prepare("SELECT id FROM equiposObra WHERE obraId = 'OB-3' AND tag = ?").get(tag) || {}).id;
@@ -38929,6 +39092,9 @@ ${linea}` : linea;
             resumen: p.resumen || "",
             unidad: p.unidad || "",
             capitulo: (p.camino || []).map((c) => c.codigo).filter(Boolean).join(" \u203A "),
+            /* El capítulo inmediato, para agrupar la hoja: código y nombre del último del camino. */
+            capituloCodigo: ((p.camino || [])[(p.camino || []).length - 1] || {}).codigo || "",
+            capituloResumen: ((p.camino || [])[(p.camino || []).length - 1] || {}).resumen || "",
             cantidad: _modeloCert.medida(p.cantidad),
             cantidadObra: esNumeroCert(p.cantidadObra) ? _modeloCert.medida(p.cantidadObra) : null,
             precio: _modeloCert.precio(p.precio),
@@ -38942,6 +39108,16 @@ ${linea}` : linea;
         if (!esNumeroCert(porcentaje)) return null;
         return _modeloCert.medida((Number(cantidad) || 0) * (Number(porcentaje) / 100));
       }
+      function leerAnteriorCert(v) {
+        if (v && typeof v === "object") {
+          return {
+            cantidad: esNumeroCert(v.cantidad) ? _modeloCert.medida(v.cantidad) : 0,
+            importe: esNumeroCert(v.importe) ? _modeloCert.euros(v.importe) : null
+          };
+        }
+        return { cantidad: esNumeroCert(v) ? _modeloCert.medida(v) : 0, importe: null };
+      }
+      var pctDeCert = (parte, total) => total > 0 ? _modeloCert.redondear(parte / total * 100, 1) : null;
       function calcularCertificacion({
         arbol,
         anterior = {},
@@ -38956,26 +39132,35 @@ ${linea}` : linea;
         const avisar = (a) => avisos.push(a);
         const filas = lista.map((p) => {
           const precio = precios && esNumeroCert(precios[p.lineaId]) ? _modeloCert.precio(precios[p.lineaId]) : p.precio;
-          const ant = esNumeroCert(anterior[p.lineaId]) ? _modeloCert.medida(anterior[p.lineaId]) : 0;
+          const ant = leerAnteriorCert(anterior[p.lineaId]);
           const tecleado = esNumeroCert(actual[p.lineaId]);
-          return { ...p, precio, anterior: ant, tecleado, aOrigen: tecleado ? _modeloCert.medida(actual[p.lineaId]) : ant };
+          return {
+            ...p,
+            precio,
+            anterior: ant.cantidad,
+            importeAnterior: ant.importe !== null ? ant.importe : _modeloCert.euros(ant.cantidad * precio),
+            tecleado,
+            periodo: tecleado ? _modeloCert.medida(actual[p.lineaId]) : 0
+          };
         });
         const directas = filas.filter((f) => !f.coste);
         const contratoDirecto = _modeloCert.euros(directas.reduce((a, f) => a + f.importeContrato, 0));
-        const origenDirecto = _modeloCert.euros(directas.reduce((a, f) => a + _modeloCert.euros(f.aOrigen * f.precio), 0));
+        const origenDirecto = _modeloCert.euros(directas.reduce((a, f) => a + f.importeAnterior + _modeloCert.euros(f.periodo * f.precio), 0));
         const avance = contratoDirecto > 0 ? Math.min(1, origenDirecto / contratoDirecto) : 0;
         for (const f of filas) {
           if (!f.coste || f.tecleado) continue;
           const proporcional = _modeloCert.medida(f.cantidad * avance);
-          f.aOrigen = Math.max(f.anterior, proporcional);
+          f.periodo = Math.max(0, _modeloCert.medida(proporcional - f.anterior));
           f.automatica = true;
         }
         for (const f of filas) {
-          f.importeOrigen = _modeloCert.euros(f.aOrigen * f.precio);
-          f.importeAnterior = _modeloCert.euros(f.anterior * f.precio);
-          f.periodo = _modeloCert.medida(f.aOrigen - f.anterior);
-          f.importePeriodo = _modeloCert.euros(f.importeOrigen - f.importeAnterior);
-          f.porcentaje = f.cantidad > 0 ? _modeloCert.redondear(f.aOrigen / f.cantidad * 100, 1) : null;
+          f.importePeriodo = _modeloCert.euros(f.periodo * f.precio);
+          f.aOrigen = _modeloCert.medida(f.anterior + f.periodo);
+          f.importeOrigen = _modeloCert.euros(f.importeAnterior + f.importePeriodo);
+          f.porcentaje = pctDeCert(f.aOrigen, f.cantidad);
+          f.pctAnterior = pctDeCert(f.anterior, f.cantidad);
+          f.pctPeriodo = pctDeCert(f.periodo, f.cantidad);
+          f.excede = f.cantidad > 0 && f.aOrigen > f.cantidad + 5e-3;
           const donde = [f.capitulo, f.codigo].filter(Boolean).join(" \u203A ");
           if (f.aOrigen < 0) {
             avisar({
@@ -38984,22 +39169,22 @@ ${linea}` : linea;
               lineaId: f.lineaId,
               donde,
               titulo: "Cantidad a origen negativa",
-              detalle: `\xAB${f.resumen}\xBB tiene ${_modeloCert.textoEuros(f.aOrigen)} ${f.unidad} a origen.`,
+              detalle: `\xAB${f.resumen}\xBB queda en ${_modeloCert.textoEuros(f.aOrigen)} ${f.unidad} a origen.`,
               porque: "A origen es todo lo hecho desde el primer d\xEDa: no puede ser menos que nada."
             });
           }
-          if (f.aOrigen < f.anterior) {
+          if (f.periodo < 0) {
             avisar({
               id: `cert:${f.lineaId}:baja`,
               gravedad: GRAVEDAD_CERT.AVISO,
               lineaId: f.lineaId,
               donde,
-              titulo: "Se certifica menos que el mes pasado",
-              detalle: `\xAB${f.resumen}\xBB baja de ${_modeloCert.textoEuros(f.anterior)} a ${_modeloCert.textoEuros(f.aOrigen)} ${f.unidad} a origen: este mes resta ${_modeloCert.textoEuros(-f.importePeriodo)} \u20AC.`,
-              porque: "Es la forma correcta de corregir un mes que se pas\xF3, pero el cliente va a preguntar. Que sea a prop\xF3sito."
+              titulo: "Este mes resta: corrige lo de un mes anterior",
+              detalle: `\xAB${f.resumen}\xBB: ${_modeloCert.textoEuros(f.periodo)} ${f.unidad} este mes (${_modeloCert.textoEuros(f.importePeriodo)} \u20AC).`,
+              porque: "Es la forma correcta de corregir un mes que se pas\xF3, pero el cliente va a preguntar. Que sea a prop\xF3sito, con su motivo."
             });
           }
-          if (f.cantidad > 0 && f.aOrigen > f.cantidad + 5e-3) {
+          if (f.excede) {
             const exceso = _modeloCert.medida(f.aOrigen - f.cantidad);
             avisar(f.seCobraMedicion ? {
               id: `cert:${f.lineaId}:exceso`,
@@ -39032,7 +39217,7 @@ ${linea}` : linea;
           }
         }
         const vivas = new Set(lista.map((p) => p.lineaId));
-        const huerfanas = Object.keys(anterior || {}).filter((id) => !vivas.has(id) && Number(anterior[id]) !== 0);
+        const huerfanas = Object.keys(anterior || {}).filter((id) => !vivas.has(id) && leerAnteriorCert(anterior[id]).cantidad !== 0);
         if (huerfanas.length) {
           avisar({
             id: "cert:huerfanas",
@@ -39136,10 +39321,34 @@ ${linea}` : linea;
           necesitaMotivo: avisos.some((a) => a.gravedad === GRAVEDAD_CERT.AVISO)
         };
       }
+      function comprobarFinal({ anteriores = [], calculada = null, commissioning = null } = {}) {
+        const emitidas = anteriores.filter((c) => c.estado !== "borrador");
+        const r = comprobarCierreObra({ certificaciones: emitidas, ultima: calculada, commissioning });
+        const avisos = r.avisos.filter((a) => a.id !== "cierre:borrador" && a.id !== "cierre:sinCertificar");
+        return {
+          avisos,
+          cerrable: !avisos.some((a) => a.gravedad === GRAVEDAD_CERT.BLOQUEANTE),
+          necesitaMotivo: avisos.some((a) => a.gravedad === GRAVEDAD_CERT.AVISO)
+        };
+      }
+      function ivaDeLaObra({ ivaFactura = null, formaPago = null, ivaPresupuesto = 21 } = {}) {
+        const f = String(ivaFactura ?? "").trim();
+        const inversion = { iva: 0, inversion: true, texto: "Sin IVA: inversi\xF3n del sujeto pasivo (art. 84.1.2.f LIVA)" };
+        if (f) {
+          if (/sujeto pasivo|sin iva|inversi/i.test(f)) return inversion;
+          if (/exent/i.test(f)) return { iva: 0, inversion: false, texto: "Exenta de IVA" };
+          const n2 = Number(f.replace("%", "").replace(",", ".").trim());
+          if (Number.isFinite(n2)) return { iva: n2, inversion: false, texto: `IVA (${String(n2).replace(".", ",")} %)` };
+        }
+        if (/inversi[oó]n del sujeto pasivo|sin iva/i.test(String(formaPago || ""))) return inversion;
+        const n = Number(ivaPresupuesto);
+        const iva = Number.isFinite(n) ? n : 21;
+        return { iva, inversion: false, texto: `IVA (${String(iva).replace(".", ",")} %)` };
+      }
       (function exportar(API) {
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.CERTIFICACION = API;
-      })({ calcular: calcularCertificacion, partidasCertificables, cantidadDesdePorcentaje, comprobarCierre: comprobarCierreObra, GRAVEDAD: GRAVEDAD_CERT, ESTADOS: ESTADOS_CERT });
+      })({ calcular: calcularCertificacion, partidasCertificables, cantidadDesdePorcentaje, comprobarCierre: comprobarCierreObra, comprobarFinal, ivaDeLaObra, leerAnterior: leerAnteriorCert, GRAVEDAD: GRAVEDAD_CERT, ESTADOS: ESTADOS_CERT });
     }
   });
 
