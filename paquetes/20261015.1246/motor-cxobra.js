@@ -8573,7 +8573,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261015.1149" : "0";
+      var VERSION = true ? "20261015.1246" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -18204,6 +18204,94 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
+  // shared/commissioning/reglasCx.js
+  var require_reglasCx = __commonJS({
+    "shared/commissioning/reglasCx.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function iniciarReglasCx() {
+        const NORMA_BALANCEO = "UNE-EN 12599 / RITE IT 2.3.3";
+        const CRITERIO_JC = Object.freeze({ total: 0.1, boca: 0.15 });
+        const numR = (v) => {
+          if (v === null || v === void 0 || v === "") return null;
+          const n = typeof v === "number" ? v : Number(String(v).replace(",", "."));
+          return Number.isFinite(n) ? n : null;
+        };
+        const iguales = (a, b) => a !== null && b !== null && Math.abs(a - b) < 1e-9;
+        function desviacion(medido, referencia) {
+          const m = numR(medido);
+          const r = numR(referencia);
+          if (m === null || r === null || r === 0) return null;
+          return (m - r) / r;
+        }
+        function dentro(desv, limite) {
+          if (desv === null || desv === void 0 || limite === null || limite === void 0) return null;
+          return Math.abs(desv) <= limite + 1e-9;
+        }
+        const esDescope = (texto) => /SIN\s+BALANCEO|DESCOPE/i.test(String(texto || ""));
+        function veredicto({ medido, referencia, limite, revisado = false, descope = false } = {}) {
+          if (descope) return "aRevisar";
+          const m = numR(medido);
+          const r = numR(referencia);
+          if (m === null || r === null) return null;
+          if (iguales(m, r) && !revisado) return "aRevisar";
+          const ok = dentro(desviacion(m, r), limite);
+          return ok === null ? null : ok ? "apto" : "noApto";
+        }
+        function toleranciasAplicadas(t = {}) {
+          const una = (v) => {
+            const n = numR(v);
+            return n !== null && n > 0 && n < 1 ? n : null;
+          };
+          const r = { ...t || {} };
+          for (const k of Object.keys(CRITERIO_JC)) {
+            const n = una(t && t[k]);
+            if (n === null) {
+              r[k] = CRITERIO_JC[k];
+              r[`${k}PorDefecto`] = true;
+            } else r[k] = n;
+          }
+          return r;
+        }
+        const pctTol = (v) => v === null || v === void 0 ? "SIN FIJAR" : `\xB1${String(Math.round(v * 1e3) / 10).replace(".", ",")} %`;
+        function textoNormaTolerancia(t = {}) {
+          const deDefecto = t.totalPorDefecto || t.bocaPorDefecto;
+          return `Norma aplicada: ${NORMA_BALANCEO}. Tolerancia adoptada: caudal total ${pctTol(t.total)}, por boca ${pctTol(t.boca)}${deDefecto ? " (criterio por defecto: la obra no tiene las suyas)" : " (las de la obra)"}.`;
+        }
+        function sumaBocas(bocas, campo = "caudalMedido") {
+          const v = (bocas || []).map((b) => numR(b && b[campo])).filter((n) => n !== null);
+          return v.length ? v.reduce((s, n) => s + n, 0) : null;
+        }
+        function textoPendiente(rellenos, total) {
+          return total > rellenos ? `PENDIENTE: faltan ${total - rellenos} de ${total} valores.` : null;
+        }
+        const FAMILIAS_CON_VELOCIDADES = Object.freeze(["AIRLAN_FANCOIL"]);
+        function llevaVelocidades(familia, hoja) {
+          if (familia) return FAMILIAS_CON_VELOCIDADES.includes(String(familia).toUpperCase());
+          return /FAN.?COIL|CASSETTE/i.test(String(hoja || ""));
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.REGLAS_CX = API;
+        })({
+          NORMA_BALANCEO,
+          CRITERIO_JC,
+          desviacion,
+          dentro,
+          esDescope,
+          veredicto,
+          toleranciasAplicadas,
+          textoNormaTolerancia,
+          pctTol,
+          sumaBocas,
+          textoPendiente,
+          FAMILIAS_CON_VELOCIDADES,
+          llevaVelocidades
+        });
+      })();
+    }
+  });
+
   // shared/commissioning/fichas.js
   var require_fichas = __commonJS({
     "shared/commissioning/fichas.js"(exports, module) {
@@ -18212,6 +18300,7 @@ globalThis.CX_VARIANTE="cxobra";
       (function iniciarFichasPM() {
         const catalogoFx = typeof __require !== "undefined" ? require_plantillasCbre() : window.PLANTILLAS_CBRE;
         const instrumentosFx = typeof __require !== "undefined" ? require_instrumentos() : window.INSTRUMENTOS_PM;
+        const reglasFx = typeof __require !== "undefined" ? require_reglasCx() : window.REGLAS_CX;
         const TOLERANCIAS_DEFECTO = { total: null, boca: null, psRefrigerante: null, caidaAdmisible: null };
         const NOMBRE_TOLERANCIA = {
           total: "tolerancia de caudal total",
@@ -18245,7 +18334,9 @@ globalThis.CX_VARIANTE="cxobra";
           plantilla: "Valor por defecto de la plantilla",
           importacion: "Importado",
           copia: "Copiado de otro equipo",
-          prueba: "DATO DE PRUEBA"
+          prueba: "DATO DE PRUEBA",
+          balanceo: "Suma de las bocas de la hoja de balanceo",
+          fichaTecnica: "Ficha t\xE9cnica del fabricante"
         };
         const ROLES_FIRMA = {
           CBRE: "Jefe de obra (CBRE)"
@@ -18278,6 +18369,10 @@ globalThis.CX_VARIANTE="cxobra";
           if (ps !== null && ps > 0) t.psRefrigerante = ps;
           if (caida !== null && caida >= 0) t.caidaAdmisible = caida;
           return t;
+        }
+        const CRITERIO_JC = reglasFx.CRITERIO_JC;
+        function toleranciasAplicadas(config = {}) {
+          return reglasFx.toleranciasAplicadas(tolerancias(config));
         }
         function numerarChecklist(plantilla) {
           if (!plantilla || !(plantilla.secciones || []).some((s) => s.tipo === "checklist")) return plantilla;
@@ -18313,14 +18408,14 @@ globalThis.CX_VARIANTE="cxobra";
           if (tipoSec === "pruebaPresion") return ["numero", "fecha", "okNoOk", "siNo"].includes(punto.tipo);
           return false;
         }
-        function evaluarParametro(punto, valor = {}, tol = TOLERANCIAS_DEFECTO) {
+        function evaluarParametro(puntoDef, valor = {}, tol = TOLERANCIAS_DEFECTO) {
+          const punto = { ...puntoDef, resultado: true };
           const p = numFx(valor.p);
           const f = numFx(valor.f);
           const m = numFx(valor.m);
           const ref = p !== null ? p : f;
           const fuente = p !== null ? "proyecto" : f !== null ? "fabricante" : null;
-          let desv = null;
-          if (m !== null && ref !== null && ref !== 0) desv = (m - ref) / ref;
+          const desv = reglasFx.desviacion(m, ref);
           const cualTol = punto.tolerancia === "boca" ? "boca" : "total";
           const limite = tol[cualTol] ?? null;
           let resultado = null;
@@ -18328,10 +18423,10 @@ globalThis.CX_VARIANTE="cxobra";
           let sinTolerancia = null;
           if (m !== null && ref !== null && igualesFx(m, ref)) {
             copiado = true;
-            resultado = valor.revisado ? punto.resultado ? "apto" : null : "aRevisar";
-          } else if (punto.resultado && desv !== null) {
+            resultado = valor.revisado ? "apto" : "aRevisar";
+          } else if (desv !== null) {
             if (limite === null) sinTolerancia = cualTol;
-            else resultado = Math.abs(desv) <= limite + 1e-12 ? "apto" : "noApto";
+            else resultado = reglasFx.veredicto({ medido: m, referencia: ref, limite });
           }
           return {
             p,
@@ -18462,6 +18557,11 @@ globalThis.CX_VARIANTE="cxobra";
               fila.o = origen(v.o);
               if (v.revisado && fila.m !== void 0) fila.revisado = v.revisado;
               if (v.pv && fila.m !== void 0) fila.pv = llanoFx(v.pv);
+              if (v.op === "fichaTecnica" && fila.p !== void 0) fila.op = "fichaTecnica";
+              if (v.om === "balanceo" && fila.m !== void 0) {
+                fila.om = "balanceo";
+                if (v.nBocas) fila.nBocas = Number(v.nBocas) || null;
+              }
               base.valores[punto.codigo] = fila;
             } else {
               let val = v.v;
@@ -18524,7 +18624,7 @@ globalThis.CX_VARIANTE="cxobra";
           return { ficha: { ...ficha, valores, bocas }, descartados };
         }
         function evaluarFicha(plantilla, datos, opciones = {}) {
-          const tol = tolerancias(opciones.config);
+          const tol = toleranciasAplicadas(opciones.config);
           const d = normalizarFicha(plantilla, datos);
           const firmas = Array.isArray(opciones.firmas) ? opciones.firmas : [];
           const faltan = [];
@@ -18549,6 +18649,11 @@ globalThis.CX_VARIANTE="cxobra";
               if (s.tipo === "parametros") {
                 const ev = evaluarParametro(punto, v || {}, tol);
                 Object.assign(fila, ev);
+                if (v && v.op === "fichaTecnica") fila.origenProyecto = "fichaTecnica";
+                if (v && v.om === "balanceo") {
+                  fila.origenMedido = "balanceo";
+                  avisos.push(`${punto.etiqueta}: el medido (${ev.m} ${punto.unidad || ""}) es la suma de las ${v.nBocas || ""} bocas de la hoja de balanceo; en la ficha no hay medido propio.`.replace(/\s+/g, " "));
+                }
                 if (ev.sinTolerancia) sinTol.add(ev.sinTolerancia);
                 if (ob) {
                   obligatorios += 1;
@@ -18846,6 +18951,8 @@ globalThis.CX_VARIANTE="cxobra";
           ROLES_FIRMA,
           numero: numFx,
           tolerancias,
+          toleranciasAplicadas,
+          CRITERIO_JC,
           quitarPrueba,
           indicePlantillas,
           numerarChecklist,
@@ -18885,6 +18992,8 @@ globalThis.CX_VARIANTE="cxobra";
         enviada: { orden: 1, nombre: "Enviada" },
         lista: { orden: 2, nombre: "Lista para enviar" },
         faltaEnsayo: { orden: 3, nombre: "Falta ensayo" },
+        /* Papeles completos, fichas (checklist, PM, estanqueidad) por hacer. */
+        faltaFichas: { orden: 3.5, nombre: "Doc. completa \xB7 faltan fichas" },
         faltaDocumentacion: { orden: 4, nombre: "Falta documentaci\xF3n" }
       };
       var INCIDENCIAS = {
@@ -18956,6 +19065,12 @@ globalThis.CX_VARIANTE="cxobra";
         }
         return (e) => e.modeloId && porId.get(e.modeloId) || porClave.get(`${llano(e.marca)}|${llano(e.modelo)}`) || (llano(e.modelo) ? porModelo.get(llano(e.modelo)) : null) || null;
       }
+      function fichasCompletas(e) {
+        const p = e && e.pmFichas;
+        if (!p || !p.total) return null;
+        return p.completas >= p.total;
+      }
+      var esCompleto = (docCompleta, fichas, ensayo) => Boolean(docCompleta) && fichas !== false && ensayo !== false;
       function evaluarEquipo(e, modelo, repetidos, unidad) {
         const ft = hayDoc(e.docFichaTecnica) || hayDoc(modelo && modelo.docFichaTecnica);
         const ce = hayDoc(e.docMarcadoCE) || hayDoc(modelo && modelo.docMarcadoCE);
@@ -18963,9 +19078,12 @@ globalThis.CX_VARIANTE="cxobra";
         const fichaPM = hayDoc(e.docFichaPM) || e.estadoPM === "hecha";
         const ensayo = ensayoSuperado(e);
         const docCompleta = ft && ce && manual && fichaPM;
+        const fichas = fichasCompletas(e);
+        const fichasFaltan = e.pmFichas && Array.isArray(e.pmFichas.faltan) ? e.pmFichas.faltan.map((x) => x.nombre) : [];
         let envio;
         if (e.fechaEnvioDF) envio = "enviada";
         else if (!docCompleta) envio = "faltaDocumentacion";
+        else if (fichas === false) envio = "faltaFichas";
         else if (ensayo === false) envio = "faltaEnsayo";
         else envio = "lista";
         const incidencias = [];
@@ -18983,6 +19101,7 @@ globalThis.CX_VARIANTE="cxobra";
         if (!ce) falta.push("CE");
         if (!manual) falta.push("manual");
         if (!fichaPM) falta.push("ficha PM");
+        for (const n of fichasFaltan) if (!falta.includes(n)) falta.push(n);
         if (ensayo === false) falta.push(e.ensayoRequerido === "estanqueidad" ? "estanqueidad" : e.ensayoRequerido === "balanceo" ? "balanceo" : "ensayos");
         return {
           ...e,
@@ -18994,7 +19113,9 @@ globalThis.CX_VARIANTE="cxobra";
           fichaPM,
           ensayo,
           docCompleta,
-          completo: docCompleta && ensayo !== false,
+          fichas,
+          fichasFaltan,
+          completo: esCompleto(docCompleta, fichas, ensayo),
           envio,
           incidencias,
           falta,
@@ -19095,6 +19216,8 @@ globalThis.CX_VARIANTE="cxobra";
         const manual = todos("manual");
         const fichaPM = miembros.some((m) => hayDoc(m.docFichaPM)) || miembros.every((m) => m.estadoPM === "hecha");
         const docCompleta = ft && ce && manual && fichaPM;
+        const conFichas = miembros.filter((m) => m.fichas !== null && m.fichas !== void 0);
+        const fichas = conFichas.length ? conFichas.every((m) => m.fichas) : null;
         const conEnsayo = miembros.filter((m) => m.ensayo !== null);
         const ensayo = conEnsayo.length ? conEnsayo.every((m) => m.ensayo) : null;
         const requeridos = new Set(conEnsayo.map((m) => m.ensayoRequerido));
@@ -19108,6 +19231,7 @@ globalThis.CX_VARIANTE="cxobra";
         let envio;
         if (fechaEnvioDF) envio = "enviada";
         else if (!docCompleta) envio = "faltaDocumentacion";
+        else if (fichas === false) envio = "faltaFichas";
         else if (ensayo === false) envio = "faltaEnsayo";
         else envio = "lista";
         const incidencias = [...new Set(miembros.flatMap((m) => m.incidencias))];
@@ -19131,11 +19255,12 @@ globalThis.CX_VARIANTE="cxobra";
           manual,
           fichaPM,
           docCompleta,
+          fichas,
           ensayo,
           ensayoRequerido,
           balanceoEstado,
           estanqueidadEstado,
-          completo: docCompleta && ensayo !== false,
+          completo: esCompleto(docCompleta, fichas, ensayo),
           fechaEnvioDF,
           envio,
           incidencias,
@@ -19175,6 +19300,9 @@ globalThis.CX_VARIANTE="cxobra";
           enMarcha: cuenta((l) => l.estadoPM === "enMarcha" || l.estadoPM === "hecha"),
           docCompleta: cuenta((l) => l.docCompleta),
           completos: cuenta((l) => l.completo),
+          /* Papeles completos pero con fichas o ensayo por hacer. */
+          soloDoc: cuenta((l) => l.docCompleta && !l.completo),
+          faltaFichas: cuenta((l) => l.envio === "faltaFichas"),
           enviadas: cuenta((l) => l.envio === "enviada"),
           listas: cuenta((l) => l.envio === "lista"),
           faltaEnsayo: cuenta((l) => l.envio === "faltaEnsayo"),
@@ -19211,6 +19339,8 @@ globalThis.CX_VARIANTE="cxobra";
             enMarcha: cuenta((f) => f.estadoPM === "enMarcha" || f.estadoPM === "hecha"),
             docCompleta: cuenta((f) => f.docCompleta),
             completos: cuenta((f) => f.completo),
+            soloDoc: cuenta((f) => f.docCompleta && !f.completo),
+            faltaFichas: cuenta((f) => f.envio === "faltaFichas"),
             enviadas: cuenta((f) => f.envio === "enviada"),
             listas: cuenta((f) => f.envio === "lista"),
             faltaEnsayo: cuenta((f) => f.envio === "faltaEnsayo"),
@@ -19253,6 +19383,8 @@ globalThis.CX_VARIANTE="cxobra";
         ESTADOS_ESTANQUEIDAD,
         ENVIO,
         INCIDENCIAS,
+        fichasCompletas,
+        esCompleto,
         hayDoc,
         ensayoPorDefecto,
         ensayoSuperado,
@@ -20525,12 +20657,14 @@ globalThis.CX_VARIANTE="cxobra";
         }
         return { circuito: idCircuito, caudal, velocidad: velocidad || null, total, disponible, deDonde, margen, partidas, supuestos, avisos };
       }
-      var desviacion = (medido, referencia) => {
-        const m = numBal(medido);
-        const r = numBal(referencia);
-        if (m === null || r === null || r === 0) return null;
-        return (m - r) / r;
-      };
+      var _reglasBal = typeof __require !== "undefined" ? require_reglasCx() : window.REGLAS_CX;
+      var desviacion = _reglasBal.desviacion;
+      function estadoBocaBal(medido, proyecto, d, tolBoca, revisado = false) {
+        if (tolBoca === null || tolBoca === void 0) return "sinTolerancia";
+        const v = _reglasBal.veredicto({ medido, referencia: proyecto, limite: tolBoca, revisado: Boolean(revisado) });
+        if (v === "aRevisar") return "aRevisar";
+        return _reglasBal.dentro(d, tolBoca) ? "ok" : d > 0 ? "alto" : "bajo";
+      }
       function toleranciasBal(t = {}) {
         const una = (v) => {
           const n = numBal(v);
@@ -20560,7 +20694,7 @@ globalThis.CX_VARIANTE="cxobra";
             alto: numBal(b.alto),
             velocidad: numBal(b.velocidad),
             desviacion: d === null ? null : redBal(d, 4),
-            estado: d === null ? numBal(b.caudalMedido) === null ? "sinMedir" : "sinProyecto" : tolBoca === null ? "sinTolerancia" : Math.abs(d) <= tolBoca + 1e-9 ? "ok" : d > 0 ? "alto" : "bajo"
+            estado: d === null ? numBal(b.caudalMedido) === null ? "sinMedir" : "sinProyecto" : estadoBocaBal(b.caudalMedido, proyecto[i].valor, d, tolBoca, b.revisado)
           };
         });
       }
@@ -20572,8 +20706,7 @@ globalThis.CX_VARIANTE="cxobra";
           let estado;
           if (q === null) estado = f.estado === "sinFactor" ? "sinFactor" : "sinMedir";
           else if (d === null) estado = "sinProyecto";
-          else if (tolBoca === null) estado = "sinTolerancia";
-          else estado = Math.abs(d) <= tolBoca + 1e-9 ? "ok" : d > 0 ? "alto" : "bajo";
+          else estado = estadoBocaBal(q, p, d, tolBoca, f.revisado || f.metodo === "anemometro");
           return {
             indice: i + 1,
             nombre: f.nombre || `${idCircuito === "impulsion" ? "I" : "R"}${i + 1}`,
@@ -20618,7 +20751,7 @@ globalThis.CX_VARIANTE="cxobra";
           } else if (m.tolerancia && x !== null && p !== null) {
             d = desviacion(x, p);
             const limite = tol[m.tolerancia] ?? null;
-            estado = d === null || limite === null ? null : Math.abs(d) <= limite + 1e-9 ? "ok" : d > 0 ? "alto" : "bajo";
+            estado = d === null || limite === null ? null : _reglasBal.dentro(d, limite) ? "ok" : d > 0 ? "alto" : "bajo";
           }
           return { ...m, fabrica: f, proyecto: p, medido: x, desviacion: d === null ? null : redBal(d, 4), estado };
         });
@@ -20690,16 +20823,25 @@ globalThis.CX_VARIANTE="cxobra";
             totalMedido,
             referenciaTotal,
             desviacionTotal: dTotal === null ? null : redBal(dTotal, 4),
-            totalOk: dTotal === null || tol.total === null ? null : Math.abs(dTotal) <= tol.total + 1e-9,
+            totalOk: _reglasBal.dentro(dTotal, tol.total),
+            /* La fila TOTAL de la tabla de bocas: lo suyo contra lo suyo (suma del
+               medido contra suma del proyecto de las bocas), no contra el equipo. */
+            desviacionBocas: (() => {
+              const d = desviacion(sumaMedido, sumaProyecto);
+              return d === null ? null : redBal(d, 4);
+            })(),
+            veredictoBocas: todasMedidas ? _reglasBal.veredicto({ medido: sumaMedido, referencia: sumaProyecto, limite: tol.total }) : medidas.length ? "pendiente" : null,
             medidas: medidas.length,
             fuera: bocas.filter((b) => b.estado === "alto" || b.estado === "bajo").length,
+            aRevisar: bocas.filter((b) => b.estado === "aRevisar").length,
             todasMedidas
           };
         });
         const algoMedido = circuitos.some((c) => c.medidas || c.totalMedido !== null);
         const algoFuera = circuitos.some((c) => c.fuera || c.totalOk === false);
         const totalesOk = circuitos.every((c) => c.totalOk === true);
-        const bocasOk = circuitos.every((c) => c.bocas.length === 0 || c.todasMedidas && !c.fuera);
+        const bocasOk = circuitos.every((c) => c.bocas.length === 0 || c.todasMedidas && !c.fuera && !c.aRevisar);
+        const nARevisar = circuitos.reduce((s, c) => s + (c.aRevisar || 0), 0);
         let estado = "pendiente";
         let porque = "No hay nada medido todav\xEDa.";
         const faltaTol = tol.total === null || tol.boca === null && circuitos.some((c) => c.bocas.length);
@@ -20707,6 +20849,8 @@ globalThis.CX_VARIANTE="cxobra";
           estado = "noApto";
           const n = circuitos.reduce((s, c) => s + c.fuera, 0);
           porque = n ? `${_textoBal.plural(n, "boca est\xE1", "bocas est\xE1n")} fuera del ${pctTol(tol.boca)}.` : `El caudal total est\xE1 fuera del ${pctTol(tol.total)}.`;
+        } else if (algoMedido && nARevisar) {
+          porque = `${_textoBal.plural(nARevisar, "boca tiene", "bocas tienen")} el medido id\xE9ntico al proyecto (A REVISAR, posible valor copiado): hay que confirmarlas antes de darlo por bueno.`;
         } else if (algoMedido && faltaTol) {
           porque = "La obra no tiene sus tolerancias de caudal: sin ellas no se juzga. Las pone el jefe de obra en \xABPar\xE1metros de la obra\xBB de la puesta en marcha.";
         } else if (totalesOk && bocasOk && circuitos.some((c) => c.bocas.length)) {
@@ -22422,6 +22566,20 @@ globalThis.CX_VARIANTE="cxobra";
         };
         const MAQ = () => cargar("./maquetasExcel", "MAQUETAS_EXCEL");
         const REJ = () => cargar("./rejillaChecklist", "REJILLA_CHECKLIST");
+        const RG = () => cargar("./reglasCx", "REGLAS_CX");
+        const ABREV_CIRC = { impulsion: "imp.", retorno: "ret.", extraccion: "ext.", admision: "adm.", expulsion: "exp.", "aire exterior": "AE" };
+        function terminalCorto(t) {
+          const partes = String(t || "").split(/\s*·\s*/).filter(Boolean);
+          if (!partes.length) return "";
+          let modelo2 = partes[0].trim();
+          const pal = modelo2.split(/\s+/);
+          if (pal.length > 1 && /^[A-ZÁÉÍÓÚÑ]{2,}$/.test(pal[0]) && /\d|-/.test(pal.slice(1).join(" "))) modelo2 = pal.slice(1).join(" ");
+          const resto = partes.slice(1).map((x) => {
+            const k = x.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            return ABREV_CIRC[k] || x.trim();
+          });
+          return [modelo2, ...resto].join(" ");
+        }
         const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
         function num(v, decimales = 2) {
           if (v === null || v === void 0 || v === "") return "";
@@ -22440,8 +22598,15 @@ globalThis.CX_VARIANTE="cxobra";
         const res = (r) => r && RESULTADO[r] ? { html: `<span class="res ${RESULTADO[r][0]}">${RESULTADO[r][1]}</span>`, bg: RESULTADO[r][2] } : null;
         const BANDA = "#006A4D";
         const SUBCAB = "#D9E2DD";
-        function modelo(nombre) {
+        const HOJA_ALIAS = { UTA: "CLIMATIZADOR REC. ROTATIVO" };
+        const nombreHoja = (nombre) => {
           const M = MAQ();
+          if (M && M.hojas[nombre]) return nombre;
+          return HOJA_ALIAS[nombre] && M && M.hojas[HOJA_ALIAS[nombre]] ? HOJA_ALIAS[nombre] : nombre;
+        };
+        function modelo(nombreDado) {
+          const M = MAQ();
+          const nombre = nombreHoja(nombreDado);
           const h = M && M.hojas[nombre];
           if (!h) return null;
           return {
@@ -22612,6 +22777,8 @@ globalThis.CX_VARIANTE="cxobra";
           let fotosDesde = -1;
           const red = (t) => /RETORNO|EXTRACCION/.test(t) ? "retorno" : "impulsion";
           const regionesBocas = [];
+          const centrada = (x) => x && estiloDe(m, x).includes("text-align:center");
+          const estParam = {};
           for (let r = 0; r < m.filas.length; r++) {
             const fila = m.filas[r];
             const cs = fila.celdas.slice().sort((a, b) => a.c - b.c);
@@ -22693,6 +22860,16 @@ globalThis.CX_VARIANTE="cxobra";
             }
             if (resumen) continue;
             if (modoParam && cs[0] && cs[0].c === 0 && cs[0].txt) {
+              const d = celdaEn(fila, 5);
+              const rs = celdaEn(fila, 6);
+              if (d && rs) {
+                if (estParam.desv === void 0 && centrada(d) && centrada(rs)) {
+                  estParam.desv = d.st;
+                  estParam.res = rs.st;
+                }
+                if (estParam.desv !== void 0 && !centrada(d)) d.st = estParam.desv;
+                if (estParam.res !== void 0 && !centrada(rs)) rs.st = estParam.res;
+              }
               const v = fuente.param(norm(cs[0].txt), izq, /^\s/.test(cs[0].txt));
               if (v) [2, 3, 4, 5, 6].forEach((c, i) => poner(celdaEn(fila, c), v[i]));
               continue;
@@ -22806,15 +22983,48 @@ globalThis.CX_VARIANTE="cxobra";
           const r = rejillaFicha(ev, plantilla, ctx);
           return r ? pintar(r.m, r.opciones) : null;
         }
-        function rejillaFicha(ev, plantilla, ctx = {}) {
+        function soloProyecto(ev) {
+          const secciones = (ev.secciones || []).map((s) => ({
+            ...s,
+            prueba: void 0,
+            circuitos: void 0,
+            puntos: (s.puntos || []).map((p) => s.tipo === "parametros" ? { ...p, m: null, om: void 0, desv: null, resultado: null, limite: null } : s.tipo === "datos" ? p : { ...p, valor: null, resultado: null })
+          }));
+          const c = ev.datos && ev.datos.cabecera || {};
+          return {
+            ...ev,
+            secciones,
+            estado: "borrador",
+            datosPrueba: false,
+            completa: true,
+            resultado: null,
+            avisos: [],
+            faltan: [],
+            firmas: [],
+            instrumentos: [],
+            datos: {
+              ...ev.datos || {},
+              observaciones: "",
+              fotos: [],
+              anexosPdf: [],
+              cabecera: { ...c, aparatos: null, condiciones: null }
+            }
+          };
+        }
+        function rejillaFicha(evOriginal, plantilla, ctx = {}) {
           const m = modelo(plantilla.nombre);
           if (!m) return null;
+          const sinMedidos = Boolean(ctx.sinMedidos) && !ctx.enBlanco;
+          if (!RG().llevaVelocidades((ctx.equipo || {}).familia, m.nombre)) {
+            m.filas = m.filas.filter((f) => !f.celdas.some((x) => x.c === 0 && /^\s*·\s*VELOCIDAD\s+(BAJA|MEDIA|ALTA)\b/i.test(x.txt)));
+          }
+          const ev = sinMedidos ? soloProyecto(evOriginal) : evOriginal;
           const c = ev.datos.cabecera || {};
           const ob = ctx.cabeceraObra || {};
           const eq = ctx.equipo || {};
           const blanco = Boolean(ctx.enBlanco);
           const firmada = ev.estado === "firmada";
-          const marca = blanco ? "" : ev.datosPrueba ? "DATOS DE PRUEBA" : firmada ? "" : "BORRADOR";
+          const marca = "";
           const secciones = ev.secciones || [];
           const puntos = [];
           for (const s of secciones) for (const p of s.puntos || []) puntos.push({ s, p, sec: norm(s.titulo), rot: norm(p.etiqueta), usado: false });
@@ -22837,7 +23047,7 @@ globalThis.CX_VARIANTE="cxobra";
           };
           const prueba = (secciones.find((s) => s.prueba) || {}).prueba;
           const RC = REJ();
-          const copias = RC && ev.datos && !blanco ? RC.copiasVigentes(ev.datos) : [];
+          const copias = RC && ev.datos && !blanco && !sinMedidos ? RC.copiasVigentes(ev.datos) : [];
           const deCopia = {};
           copias.forEach((cp, i) => cp.puntos.forEach((p) => {
             deCopia[p] = i + 1;
@@ -22848,7 +23058,8 @@ globalThis.CX_VARIANTE="cxobra";
               edificio: esc(ob.edificio || ctx.obra && ctx.obra.nombre || ""),
               direccion: esc(ob.direccion || ""),
               localidad: esc(ob.localidad || ""),
-              fecha: fecha(c.fechaEnsayo),
+              /* La hoja para obra lleva fecha aunque no haya medidos: la del ensayo o, sin ella, la de hoy. */
+              fecha: fecha(ctx.fechaEnsayo || c.fechaEnsayo || (sinMedidos ? (/* @__PURE__ */ new Date()).toISOString().slice(0, 10) : null)),
               tag: ctx.titulo || eq.tag ? `<strong>${esc(ctx.titulo || eq.tag)}</strong>` : "",
               realizadoPor: esc(c.realizadoPor || ""),
               responsable: esc(c.responsable || ""),
@@ -22917,7 +23128,7 @@ globalThis.CX_VARIANTE="cxobra";
             fotos: () => blanco ? "" : fotosHtml(ev.datos.fotos || [], ctx.imagenes),
             firma: (rol) => cajaFirma(!blanco && (ev.firmas || []).find((f) => f.rol === rol)),
             observaciones: () => {
-              if (blanco) return "";
+              if (blanco || sinMedidos) return "";
               const partes = [];
               if (ev.datos.observaciones) partes.push(esc(ev.datos.observaciones));
               const sinCelda = puntos.filter((x) => !x.usado && x.p.valor !== null && x.p.valor !== void 0 && x.p.valor !== "" && x.s.tipo !== "checklist");
@@ -22935,14 +23146,22 @@ globalThis.CX_VARIANTE="cxobra";
               copias.forEach((cp, i) => partes.push(`<span class="copias">${copias.length > 1 ? `<sup>${i + 1}</sup> ` : "<sup>*</sup> "}Copiadas: ${esc(cp.texto)}</span>`));
               if ((ev.datos.anexosPdf || []).length) partes.push(`Se adjunta al final: ${ev.datos.anexosPdf.map((a) => `PDF del fabricante \xAB${esc(a.nombre || a.ruta.split(/[\\/]/).pop())}\xBB`).join(", ")}.`);
               if (plantilla.clase === "fichaPM" || plantilla.clase === "balanceo") {
-                const tol = (v) => v === null || v === void 0 ? "SIN FIJAR" : `\xB1${num(v * 100, 1)} %`;
-                partes.push(`Tolerancias de la obra: caudal total ${tol(ev.tolerancias && ev.tolerancias.total)}, por boca ${tol(ev.tolerancias && ev.tolerancias.boca)}.`);
+                partes.push(esc(RG().textoNormaTolerancia(ev.tolerancias || {})));
+                const deFT = puntos.filter((x) => x.p.origenProyecto === "fichaTecnica").length;
+                if (deFT) partes.push(`Valores de PROYECTO: ficha t\xE9cnica del fabricante${eq && eq.marca ? ` (${esc(eq.marca)})` : ""} \u2014 ${deFT} ${deFT === 1 ? "valor" : "valores"}.`);
               }
-              if (ev.resultado && res(ev.resultado)) partes.push(`Resultado de la ficha: ${res(ev.resultado).html}`);
+              if (ev.datosPrueba) partes.push("<strong>DATOS DE PRUEBA: esta ficha no vale como documento.</strong>");
+              if (ev.resultado && res(ev.resultado)) partes.push(`Resultado de la ficha: ${res(ev.resultado).html}${firmada ? "" : " (sin firmar)"}`);
               return partes.map((p) => `<div>${p}</div>`).join("");
             }
           };
           rellenar(m, fuente);
+          if (sinMedidos) {
+            for (const f of m.filas) for (const x of f.celdas) if (/^Criterio:/.test(x.txt)) {
+              x.txt = "";
+              x.html = "";
+            }
+          }
           if (blanco) return { m, opciones: { blanco: true, partirE: fuente.partirE && [0.28, 0.24] } };
           return { m, opciones: { marca, partirE: fuente.partirE && [0.28, 0.24] } };
         }
@@ -22954,7 +23173,7 @@ globalThis.CX_VARIANTE="cxobra";
       <figcaption>${esc(f.nombre || String(f.ruta || "").split(/[\\/]/).pop())}</figcaption></figure>`;
           }).join("")}</div>`;
         }
-        const ESTADO_BOCA = { ok: "apto", alto: "noApto", bajo: "noApto" };
+        const ESTADO_BOCA = { ok: "apto", alto: "noApto", bajo: "noApto", aRevisar: "aRevisar" };
         const ESTADO_BAL = { apto: "APTO", aptoSinBocas: "APTO SIN BOCAS", noApto: "NO APTO", pendiente: "PENDIENTE" };
         function hojaBalanceo(ev, ctx = {}) {
           const r = rejillaBalanceo(ev, ctx);
@@ -22975,13 +23194,17 @@ globalThis.CX_VARIANTE="cxobra";
           const enTabla = eq.balanceoEstado || "pendiente";
           const pasada = ev.estado !== "pendiente" && enTabla === ev.estado;
           const circ = (red) => (ev.circuitos || []).find((c) => c.id === red);
-          const tol = (v) => v === null || v === void 0 ? "SIN FIJAR" : `\xB1${num(v * 100, 1)} %`;
-          const descope = /SIN\s+BALANCEO|DESCOPE/i.test([h.observaciones, ...(ev.circuitos || []).flatMap((c) => (c.bocas || []).map((b) => b.observaciones))].filter(Boolean).join(" "));
+          const descope = RG().esDescope([h.observaciones, ...(ev.circuitos || []).flatMap((c) => (c.bocas || []).map((b) => b.observaciones))].filter(Boolean).join(" "));
           const resTotal = (c) => {
             if (descope) return res("aRevisar");
             const ref = c.proyectoEquipo !== null && c.proyectoEquipo !== void 0 ? c.proyectoEquipo : c.sumaProyecto;
             if (c.desviacionTotal !== null && c.desviacionTotal !== void 0 && c.sumaMedido === ref) return res("aRevisar");
             return c.totalOk === true ? res("apto") : c.totalOk === false ? res("noApto") : null;
+          };
+          const resTotalBocas = (c) => {
+            if (descope) return res("aRevisar");
+            if (c.veredictoBocas === "pendiente") return "PENDIENTE";
+            return c.veredictoBocas ? res(c.veredictoBocas) : null;
           };
           const resBoca = (b) => b.caudalMedido !== null && b.caudalMedido !== void 0 && b.caudalMedido === b.caudalProyecto ? res("aRevisar") : res(ESTADO_BOCA[b.estado]);
           const observBoca = (b) => {
@@ -23007,7 +23230,7 @@ globalThis.CX_VARIANTE="cxobra";
               edificio: esc(ob.edificio || ctx.obra && ctx.obra.nombre || ""),
               direccion: esc(ob.direccion || ""),
               localidad: esc(ob.localidad || ""),
-              fecha: fecha(h.fechaMedicion),
+              fecha: fecha(h.fechaMedicion || ctx.fechaEnsayo),
               tag: eq.tag ? `<strong>${esc(eq.tag)}</strong>` : "",
               planta: esc([eq.planta, eq.sala].filter(Boolean).join(" / ")),
               aparatos: [ev.equipoMedida ? `Equipo de medida: <strong>${esc(ev.equipoMedida)}</strong>` : "", aparatosHtml(ev.instrumentos)].filter(Boolean).join(" \xB7 "),
@@ -23032,7 +23255,7 @@ globalThis.CX_VARIANTE="cxobra";
               const c = circ(red);
               return c ? c.bocas.map((b) => ({
                 local: esc(b.nombre || ""),
-                terminal: esc(b.terminal || ""),
+                terminal: esc(terminalCorto(b.terminal)),
                 proyecto: `${num(b.caudalProyecto, 0)}${b.origenProyecto === "repartido" ? ' <span class="nota">(rep.)</span>' : ""}`,
                 medido: num(b.caudalMedido, 0),
                 compuerta: observBoca(b),
@@ -23045,8 +23268,8 @@ globalThis.CX_VARIANTE="cxobra";
               return c ? {
                 proyecto: num(c.sumaProyecto, 0),
                 medido: num(c.sumaMedido, 0),
-                desv: pct(c.desviacionTotal),
-                resultado: resTotal(c),
+                desv: pct(c.desviacionBocas),
+                resultado: resTotalBocas(c),
                 nota: c.medidoEquipo !== null && c.medidoEquipo !== void 0 ? `medido en equipo ${num(c.medidoEquipo, 0)}` : ""
               } : null;
             },
@@ -23063,8 +23286,7 @@ globalThis.CX_VARIANTE="cxobra";
               if (f.fabrica || f.proyecto) partes.push(`Fuentes: ${[f.fabrica ? `f\xE1brica: ${esc(f.fabrica)}` : "", f.proyecto ? `proyecto: ${esc(f.proyecto)}` : ""].filter(Boolean).join(" \xB7 ")}.`);
               for (const a of ev.avisos || []) partes.push(`<span class="aviso">${esc(a.texto)}</span>`);
               const t = ev.tolerancias || {};
-              const deDefecto = t.totalPorDefecto || t.bocaPorDefecto;
-              partes.push(`Norma aplicada: UNE-EN 12599 / RITE IT 2.3.3. Tolerancia adoptada: caudal total ${tol(t.total)}, por boca ${tol(t.boca)}${deDefecto ? " (criterio por defecto: la obra no tiene las suyas)" : " (las de la obra)"}.`);
+              partes.push(esc(RG().textoNormaTolerancia(t)));
               if (descope) partes.push("<strong>A REVISAR: la hoja dice SIN BALANCEO / DESCOPE; sin medici\xF3n en las unidades terminales no acredita el balanceo (UNE-EN 12599).</strong>");
               const r = { apto: "apto", noApto: "noApto", aptoSinBocas: "aRevisar" }[ev.estado];
               partes.push(`Resultado de la hoja: ${r ? `<span class="res ${r}">${ESTADO_BAL[ev.estado]}</span>` : esc(ESTADO_BAL[ev.estado] || ev.estado || "")}${ev.porque ? ` \u2014 ${esc(ev.porque)}` : ""}. En la tabla de equipos: ${esc(ESTADO_BAL[enTabla] || enTabla)}${pasada ? "." : " \u2014 el resultado de esta hoja a\xFAn no se ha pasado a la tabla."}`);
@@ -23072,7 +23294,7 @@ globalThis.CX_VARIANTE="cxobra";
             }
           };
           rellenar(m, fuente);
-          return { m, opciones: { marca: pasada ? "" : "BORRADOR", clase: "hojaBal" } };
+          return { m, opciones: { marca: "", clase: "hojaBal" } };
         }
         const AJUSTE_PAPEL = `(() => {
   const util = ${ALTO_UTIL.toFixed(1)};
@@ -23084,11 +23306,11 @@ globalThis.CX_VARIANTE="cxobra";
   });
   return true;
 })()`;
-        const tieneHoja = (nombre) => Boolean(MAQ() && MAQ().hojas[nombre]);
+        const tieneHoja = (nombre) => Boolean(MAQ() && MAQ().hojas[nombreHoja(nombre)]);
         (function exportar(API) {
           if (typeof module !== "undefined" && module.exports) module.exports = API;
           if (typeof window !== "undefined") window.FICHA_EXCEL = API;
-        })({ hojaFicha, hojaBalanceo, rejillaFicha, rejillaBalanceo, disposicion, tieneHoja, norm, AJUSTE_PAPEL });
+        })({ hojaFicha, hojaBalanceo, rejillaFicha, rejillaBalanceo, disposicion, tieneHoja, norm, AJUSTE_PAPEL, terminalCorto, soloProyecto });
       })();
     }
   });
@@ -23228,13 +23450,14 @@ globalThis.CX_VARIANTE="cxobra";
             const html = X.hojaFicha(ev, plantilla, ctx);
             if (html) return html;
           }
+          if (ctx.sinMedidos && !ctx.enBlanco && X && X.soloProyecto) ev = X.soloProyecto(ev);
           const c = ev.datos.cabecera || {};
           const ob = ctx.cabeceraObra || {};
           const eq = ctx.equipo || {};
           const firmada = ev.estado === "firmada";
           const tolFh = (v) => v === null || v === void 0 ? "SIN FIJAR" : `\xB1${numFh(v * 100, 1)} %`;
           const blanco = Boolean(ctx.enBlanco);
-          const marca = blanco ? "" : ev.datosPrueba ? "DATOS DE PRUEBA" : firmada ? "" : "BORRADOR";
+          const marca = "";
           const firma = (rol) => (ev.firmas || []).find((f) => f.rol === rol);
           const cuadroFirma = (rol, rotulo) => {
             const f = firma(rol);
@@ -23244,7 +23467,7 @@ globalThis.CX_VARIANTE="cxobra";
             ev.medidos.obligatorios > ev.medidos.rellenos ? `faltan ${ev.medidos.obligatorios - ev.medidos.rellenos} de ${ev.medidos.obligatorios} valores` : "",
             ev.faltan.length ? `${escFh(ev.faltan.slice(0, 6).join(" \xB7 "))}${ev.faltan.length > 6 ? "\u2026" : ""}` : ""
           ].filter(Boolean).join(" \u2014 ")}</p>` : "";
-          const resultado = ev.resultado ? `<div class="resultadoFicha">Resultado: ${celdaResultado(ev.resultado)}</div>` : "";
+          const resultado = `${!blanco && ev.datosPrueba ? '<p class="pendiente">DATOS DE PRUEBA: esta ficha no vale como documento.</p>' : ""}${ev.resultado ? `<div class="resultadoFicha">Resultado: ${celdaResultado(ev.resultado)}${firmada ? "" : " (sin firmar)"}</div>` : ""}`;
           return `<article class="hojaPM${blanco ? " enBlanco" : ""}">
     ${marca ? `<div class="marcaAgua">${marca}</div>` : ""}
     <header class="cab">
@@ -23314,12 +23537,11 @@ globalThis.CX_VARIANTE="cxobra";
     </table>`).join("");
           const avisos = ev.avisos || [];
           return `<article class="hojaPM hojaBal">
-    ${pasada ? "" : '<div class="marcaAgua">BORRADOR</div>'}
     <header class="cab"><div class="logo">CBRE</div><h1>HOJA DE BALANCEO DE CAUDALES</h1></header>
     <table class="datos cabecera">
       <tr><th>Edificio</th><td>${escFh(ob.edificio || ctx.obra && ctx.obra.nombre || "")}</td><th>Referencia / TAG</th><td><strong>${escFh(eq.tag || "")}</strong></td></tr>
       <tr><th>Equipo</th><td>${escFh([ev.tipo && ev.tipo.nombre, eq.denominacion].filter(Boolean).join(" \xB7 "))}</td><th>Planta / sala</th><td>${escFh([eq.planta, eq.sala].filter(Boolean).join(" / "))}</td></tr>
-      <tr><th>Marca / modelo</th><td>${escFh([eq.marca, eq.modelo].filter(Boolean).join(" / "))}</td><th>Fecha de medici\xF3n</th><td>${fechaFh(h.fechaMedicion)}</td></tr>
+      <tr><th>Marca / modelo</th><td>${escFh([eq.marca, eq.modelo].filter(Boolean).join(" / "))}</td><th>Fecha de medici\xF3n</th><td>${fechaFh(h.fechaMedicion || ctx.fechaEnsayo)}</td></tr>
       <tr><th>Aparatos utilizados</th><td>${ev.equipoMedida ? `Equipo de medida: <strong>${escFh(ev.equipoMedida)}</strong>${(ev.instrumentos || []).length ? " \xB7 " : ""}` : ""}${(ev.instrumentos || []).length ? aparatosFh(ev, {}) : ev.equipoMedida ? "" : '<span class="vacio">no consta</span>'}</td>
         <th>Fuentes</th><td>${escFh([h.fuentes && h.fuentes.fabrica ? `f\xE1brica: ${h.fuentes.fabrica}` : "", h.fuentes && h.fuentes.proyecto ? `proyecto: ${h.fuentes.proyecto}` : ""].filter(Boolean).join(" \xB7 "))}</td></tr>
     </table>
@@ -23364,7 +23586,6 @@ globalThis.CX_VARIANTE="cxobra";
       <td colspan="2">${a.motivo ? `<strong>${escFh(a.motivo)}</strong>` : "al final del dossier"}</td></tr>`).join("");
           const todasFirmadas = partes.length && partes.every((p) => p.evaluacion && p.evaluacion.estado === "firmada" || !p.evaluacion && p.cubierta && p.cubiertaCerrada);
           const portada = `<article class="hojaPM portada">
-    ${todasFirmadas ? "" : '<div class="marcaAgua">BORRADOR</div>'}
     <header class="cab"><div class="logo">CBRE</div><h1>DOSSIER DE PUESTA EN MARCHA</h1></header>
     <table class="datos cabecera">
       <tr><th>Edificio</th><td>${escFh(ctx.cabeceraObra && ctx.cabeceraObra.edificio || ctx.obra && ctx.obra.nombre || "")}</td><th>TAG</th><td><strong>${escFh(equipo.tag)}</strong></td></tr>
@@ -23375,7 +23596,7 @@ globalThis.CX_VARIANTE="cxobra";
     <section class="sec"><h3>CONTENIDO</h3>
       <table class="check"><thead><tr><th>N\xBA</th><th>Documento</th><th>Estado</th><th>Resultado</th></tr></thead><tbody>${indice}</tbody></table>
     </section>
-    ${todasFirmadas ? "" : '<p class="pendiente">El dossier no est\xE1 completo: lleva la marca BORRADOR hasta que todas sus fichas est\xE9n firmadas.</p>'}
+    ${todasFirmadas ? "" : '<p class="pendiente">El dossier no est\xE1 completo: faltan fichas por firmar.</p>'}
   </article>`;
           const hojas = partes.filter((p) => p.evaluacion && p.plantillaDef).map((p) => hojaFicha(p.evaluacion, p.plantillaDef, { ...ctx, equipo, titulo: p.titulo || equipo.tag }));
           return [portada, ...hojas, ...extras.map((x) => x.html || "")].join("");
@@ -24554,8 +24775,9 @@ globalThis.CX_VARIANTE="cxobra";
         k: { id: "k", nombre: "Factor k", unidad: "m\xB3/h por m/s" }
       };
       var NOTA_EJEMPLO_DIF = "Valores de ejemplo: comprobar con la ficha del fabricante.";
-      var TOLERANCIA_DEFECTO_DIF = 0.1;
-      var TOLERANCIA_BOCA_DEFECTO_DIF = 0.15;
+      var REGLAS_DIF = typeof __require !== "undefined" ? require_reglasCx() : window.REGLAS_CX;
+      var TOLERANCIA_DEFECTO_DIF = REGLAS_DIF.CRITERIO_JC.total;
+      var TOLERANCIA_BOCA_DEFECTO_DIF = REGLAS_DIF.CRITERIO_JC.boca;
       var MARCA_EJEMPLO_DIF = "Gen\xE9rico (ejemplo, comprobar)";
       var TIPOS_DIF = {
         rotacional600: { marca: MARCA_EJEMPLO_DIF, modelo: "Rotacional", variante: "600\xD7600 (24 ranuras)", nombre: "Difusor rotacional 600\xD7600 (24 ranuras)", circuito: "impulsion", modo: "ak", ak: 0.03, k: null, ejemplo: true },
@@ -25292,29 +25514,17 @@ globalThis.CX_VARIANTE="cxobra";
         return a === null || a <= 0 ? null : redDif(v * a * 3600, 1);
       }
       function desviacionDif(medido, diseno) {
-        const m = numDif(medido);
-        const d = numDif(diseno);
-        if (m === null || d === null || d === 0) return null;
-        return redDif((m - d) / d, 4);
+        const d = REGLAS_DIF.desviacion(numDif(medido), numDif(diseno));
+        return d === null ? null : redDif(d, 4);
       }
       function juicioDif(desv, tol) {
-        if (desv === null || tol === null || tol === void 0) return null;
-        if (Math.abs(desv) <= tol + 1e-9) return "dentro";
-        return desv > 0 ? "alto" : "bajo";
+        const ok = REGLAS_DIF.dentro(desv, tol);
+        if (ok === null) return null;
+        return ok ? "dentro" : desv > 0 ? "alto" : "bajo";
       }
       function toleranciasDif(t = {}) {
-        const una = (v) => {
-          const n = numDif(v);
-          return n !== null && n > 0 && n < 1 ? n : null;
-        };
-        const total = una(t && t.total);
-        const boca = una(t && t.boca);
-        return {
-          total: total === null ? TOLERANCIA_DEFECTO_DIF : total,
-          boca: boca === null ? TOLERANCIA_BOCA_DEFECTO_DIF : boca,
-          totalPorDefecto: total === null,
-          bocaPorDefecto: boca === null
-        };
+        const r = REGLAS_DIF.toleranciasAplicadas(t || {});
+        return { total: r.total, boca: r.boca, totalPorDefecto: Boolean(r.totalPorDefecto), bocaPorDefecto: Boolean(r.bocaPorDefecto) };
       }
       function evaluarPuntoDif(p, tolBoca = TOLERANCIA_BOCA_DEFECTO_DIF) {
         const t = tipoDif(p.tipo);
@@ -25329,6 +25539,7 @@ globalThis.CX_VARIANTE="cxobra";
         if (directo ? !qLeido : numDif(p.velocidad) === null) estado = "sinMedir";
         else if (!directo && f.valor === null) estado = "sinFactor";
         else if (numDif(p.caudalDiseno) === null) estado = "medido";
+        else if (directo && REGLAS_DIF.veredicto({ medido: caudal, referencia: p.caudalDiseno, limite: tolBoca, revisado: Boolean(p.revisado) }) === "aRevisar") estado = "aRevisar";
         else estado = juicioDif(desv, tolBoca);
         return {
           ...p,
@@ -25362,11 +25573,12 @@ globalThis.CX_VARIANTE="cxobra";
           const disenoEquipo = numDif(diseno && diseno[id]);
           const faltan = suyos.length - conCaudal.length;
           const completo = suyos.length > 0 && faltan === 0;
-          const desv = completo ? desviacionDif(suma, disenoEquipo) : null;
+          const disenoReferencia = disenoPuntos !== null ? disenoPuntos : disenoEquipo;
+          const desv = completo ? desviacionDif(suma, disenoReferencia) : null;
           let estado;
           if (!suyos.length) estado = "sinPuntos";
           else if (!completo) estado = "incompleto";
-          else if (disenoEquipo === null) estado = "sinDiseno";
+          else if (disenoReferencia === null) estado = "sinDiseno";
           else estado = juicioDif(desv, tol.total);
           circuitos[id] = {
             id,
@@ -25376,7 +25588,12 @@ globalThis.CX_VARIANTE="cxobra";
             suma,
             disenoEquipo,
             disenoPuntos,
+            /* Contra qué se juzga el total: 'bocas' (lo normal) o 'equipo'. */
+            disenoReferencia,
+            referencia: disenoReferencia === null ? null : disenoPuntos !== null ? "bocas" : "equipo",
             desviacion: desv,
+            /* El caudal del equipo, solo de referencia. */
+            desviacionEquipo: completo ? desviacionDif(suma, disenoEquipo) : null,
             estado,
             dentro: suyos.filter((f) => f.estado === "dentro").length,
             fuera: suyos.filter((f) => f.estado === "alto" || f.estado === "bajo").length
@@ -25994,6 +26211,7 @@ globalThis.CX_VARIANTE="cxobra";
         bajo: "#C62828",
         sinFactor: "#A15C00",
         sinProyecto: "#A15C00",
+        aRevisar: "#A15C00",
         sinTolerancia: "#A15C00",
         medido: "#A15C00",
         sinMedir: "#5F6B73"
@@ -27363,8 +27581,13 @@ globalThis.CX_VARIANTE="cxobra";
           pon(`vent_${lado}_potencia`, x.potencia_kW);
           pon(`vent_${lado}_voltaje`, x.voltaje_V);
         }
-        (f.filtros_imp || []).slice(0, 3).forEach((x, i) => pon(`filtro_imp_etapa${i + 1}`, x));
-        (f.filtros_ret || []).slice(0, 3).forEach((x, i) => pon(`filtro_ret_etapa${i + 1}`, x));
+        const rango = (x) => {
+          const m = /^([GMFEHU])\s*(\d+)/i.exec(llano(x));
+          return m ? "GMFEHU".indexOf(m[1].toUpperCase()) * 100 + Number(m[2]) : 999;
+        };
+        const etapas = (l) => [...l || []].sort((a, b) => rango(a) - rango(b));
+        etapas(f.filtros_imp).slice(0, 3).forEach((x, i) => pon(`filtro_imp_etapa${i + 1}`, x));
+        etapas(f.filtros_ret).slice(0, 3).forEach((x, i) => pon(`filtro_ret_etapa${i + 1}`, x));
         return v;
       }
       var CAMPOS_REF = ["tag", "nombre", "carpeta", "equipo", "codigo"];
@@ -27472,8 +27695,10 @@ globalThis.CX_VARIANTE="cxobra";
         };
       }
       var difiere = (a, b) => Math.abs(a - b) > Math.max(0.02 * Math.abs(b), 0.011);
-      function planFabricante({ entradas = [], equipos = [], fichas = [], definicion }) {
+      function planFabricante({ entradas = [], equipos = [], fichas = [], definicion, columna = "fabricante" }) {
         const casar = casador(equipos);
+        const aProyecto = columna === "proyecto";
+        const gemelas = (e) => equipos.filter((x) => x.id !== e.id && D.norm(llano(x.tag).replace(/\s*\(\d+\)\s*$/, "")) === D.norm(e.tag) && /\(\d+\)\s*$/.test(llano(x.tag)));
         const fichasDe = /* @__PURE__ */ new Map();
         for (const f of fichas) {
           const m = /^equipo:(.+)$/.exec(f.clave || "");
@@ -27496,6 +27721,16 @@ globalThis.CX_VARIANTE="cxobra";
           }
           vistos.add(e.id);
           r.casadas.push(`${e.tag} \u2190 ${nombreRef}`);
+          for (const g of gemelas(e)) {
+            if (vistos.has(g.id)) continue;
+            vistos.add(g.id);
+            r.casadas.push(`${g.tag} \u2190 ${nombreRef} (misma ficha que ${e.tag})`);
+            aplicar(g, ent);
+          }
+          aplicar(e, ent);
+        }
+        return r;
+        function aplicar(e, ent) {
           const suyas = fichasDe.get(e.id) || [];
           let alguna = false;
           for (const f of suyas) {
@@ -27531,6 +27766,15 @@ globalThis.CX_VARIANTE="cxobra";
                 const num = numero(val);
                 if (num === null) continue;
                 const a = V[c] || { o: "importacion" };
+                if (aProyecto) {
+                  const antes2 = numero(a.p);
+                  const conF = numero(a.f) === null ? { f: num } : {};
+                  if (antes2 !== null && !difiere(antes2, num) && a.op === "fichaTecnica" && !Object.keys(conF).length) continue;
+                  if (antes2 !== null && difiere(antes2, num)) r.diferencias.push(`${e.tag} \xB7 ${etiqueta}: el proyecto que hab\xEDa (${antes2}) pasa a ser el de la ficha t\xE9cnica (${num}).`);
+                  V[c] = { ...a, p: num, op: "fichaTecnica", ...conF };
+                  n += 1;
+                  continue;
+                }
                 const antes = numero(a.f);
                 if (antes !== null && !difiere(antes, num)) continue;
                 if (antes !== null) r.diferencias.push(`${e.tag} \xB7 ${etiqueta}: el fabricante que hab\xEDa (${antes}) no es el de la ficha (${num}); se pone el de la ficha.`);
@@ -27551,7 +27795,7 @@ globalThis.CX_VARIANTE="cxobra";
                     continue;
                   }
                 }
-                V[c] = { v: nuevo, o: a && a.o || "importacion" };
+                V[c] = { v: nuevo, o: a && a.o || (aProyecto ? "fichaTecnica" : "importacion") };
                 n += 1;
               }
             }
@@ -27559,7 +27803,6 @@ globalThis.CX_VARIANTE="cxobra";
           }
           if (!alguna) r.sinFicha.push(e.tag);
         }
-        return r;
       }
       function lineasFabricante(plan, max = 40) {
         const l = [];
@@ -27724,11 +27967,106 @@ globalThis.CX_VARIANTE="cxobra";
           return defecto;
         }
       };
-      function evaluarFila(fila, cat, cfg) {
+      function evaluarFila(fila, cat, cfg, acceso = null) {
         const def = cat.porVersion.get(`${fila.plantilla}@${fila.version}`) || cat.vigentes.get(fila.plantilla);
         if (!def) return null;
         const firmas = leerJson(fila.firmas, []);
-        return { def, firmas, ev: F.evaluar(def, leerJson(fila.datos, {}), { config: cfg, firmas, instrumentos: cat.instrumentos }) };
+        let datos = leerJson(fila.datos, {});
+        if (acceso) datos = datosConBalanceo(acceso.repo, acceso.sesion, def, datos, fila.clave);
+        return { def, firmas, ev: F.evaluar(def, datos, { config: cfg, firmas, instrumentos: cat.instrumentos }) };
+      }
+      function sinMedidoDelBalanceo(datos) {
+        if (datos && datos.cabecera && Array.isArray(datos.cabecera.deBalanceo)) {
+          const cabecera = { ...datos.cabecera };
+          for (const k of cabecera.deBalanceo) cabecera[k] = k === "instrumentos" ? [] : null;
+          delete cabecera.deBalanceo;
+          datos = { ...datos, cabecera };
+        }
+        const valores = { ...datos && datos.valores || {} };
+        for (const [cod, v] of Object.entries(valores)) {
+          if (v && v.om === "balanceo") {
+            const { m, om, nBocas, ...resto } = v;
+            valores[cod] = resto;
+          }
+        }
+        return { ...datos, valores };
+      }
+      function datosConBalanceo(repo, sesion, def, datos, clave) {
+        const m = /^equipo:(.+)$/.exec(String(clave || ""));
+        if (!m || !def) return datos;
+        const faltan = Object.keys(CAUDAL_DEL_BALANCEO).some((cod) => {
+          if (!F.puntosDe(def).some((x) => x.codigo === cod)) return false;
+          const v = (datos.valores || {})[cod];
+          return !v || F.numero(v.m) === null;
+        });
+        const cab = datos.cabecera || {};
+        const faltaCab = !cab.aparatos && !(cab.instrumentos || []).length || !cab.fechaEnsayo;
+        if (!faltan && !(faltaCab && (hayMedidos(datos) || esDeBocas(def)))) return datos;
+        const equipo = repo.leer("equiposObra", sesion, m[1]);
+        if (!equipo) return datos;
+        let bal = null;
+        try {
+          bal = balanceoEvaluado(repo, sesion, equipo);
+        } catch {
+          bal = null;
+        }
+        return conCabeceraDelBalanceo(conCaudalesDelBalanceo(def, datos, bal), bal, esDeBocas(def));
+      }
+      var hayMedidos = (datos) => Object.values(datos && datos.valores || {}).some((v) => v && F.numero(v.m) !== null);
+      var esDeBocas = (def) => F.puntosDe(def).some((x) => x.seccion && x.seccion.tipo === "bocas") || (def && def.secciones || []).some((x) => x && x.tipo === "bocas");
+      function conCabeceraDelBalanceo(datos, bal, deBocas = false) {
+        if (!bal || !bal.ev || !(deBocas || hayMedidos(datos))) return datos;
+        const cab = { ...datos.cabecera || {} };
+        const tomado = [];
+        const hoja = bal.ev.hoja || {};
+        if (!cab.aparatos && !(cab.instrumentos || []).length) {
+          const ids = (bal.ev.instrumentos || []).map((i) => i && i.id).filter(Boolean);
+          if (ids.length) {
+            cab.instrumentos = ids;
+            tomado.push("instrumentos");
+          }
+          if (bal.ev.equipoMedida) {
+            cab.aparatos = `Equipo de medida: ${bal.ev.equipoMedida}`;
+            tomado.push("aparatos");
+          }
+        }
+        if (!cab.fechaEnsayo && /^\d{4}-\d{2}-\d{2}$/.test(hoja.fechaMedicion || "")) {
+          cab.fechaEnsayo = hoja.fechaMedicion;
+          tomado.push("fechaEnsayo");
+        }
+        if (!tomado.length) return datos;
+        cab.deBalanceo = tomado;
+        return { ...datos, cabecera: cab };
+      }
+      function fechaEnsayoEquipo(repo, sesion, equipo) {
+        const filas = repo.listar("fichasPM", sesion, { condicion: "obraId = ? AND clave = ?", params: [equipo.obraId, `equipo:${equipo.id}`] });
+        filas.sort((a, b) => (b.plantilla === "BALANCEO_CAUDALES") - (a.plantilla === "BALANCEO_CAUDALES"));
+        for (const f of filas) {
+          const c = leerJson(f.datos, {}).cabecera || {};
+          if (/^\d{4}-\d{2}-\d{2}$/.test(c.fechaEnsayo || "")) return c.fechaEnsayo;
+        }
+        return null;
+      }
+      function fichasPorEquipo(repo, sesion, obraId, equipos) {
+        const cat = catalogoDe(repo, sesion);
+        const cfg = configDe(repo, sesion, obraId);
+        const fichas = /* @__PURE__ */ new Map();
+        for (const fila of filasFichas(repo, sesion, obraId)) {
+          const r = evaluarFila(fila, cat, cfg, { repo, sesion });
+          if (r) fichas.set(`${fila.clave}|${fila.plantilla}`, { id: fila.id, estado: r.ev.estado, resultado: r.ev.resultado });
+        }
+        const buscar = (clave, plantilla) => fichas.get(`${clave}|${plantilla}`) || null;
+        const lista = equipos || repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
+        const out = /* @__PURE__ */ new Map();
+        for (const e of lista) {
+          const pm = F.estadoEquipo(e, F.familiaDe(e, catalogo.FAMILIAS), cat.vigentes, buscar);
+          out.set(e.id, {
+            total: pm.total,
+            completas: pm.completas,
+            faltan: pm.fichas.filter((x) => x.estado !== "completa" && x.estado !== "firmada").map((x) => ({ nombre: x.nombre, clase: x.clase, estado: x.estado }))
+          });
+        }
+        return out;
       }
       function puestaEnMarcha(repo, sesion, obraId) {
         const obra = obraVisible(repo, sesion, obraId);
@@ -27741,7 +28079,7 @@ globalThis.CX_VARIANTE="cxobra";
         let aRevisar = 0;
         let medidosPrueba = 0;
         for (const fila of filasFichas(repo, sesion, obraId)) {
-          const r = evaluarFila(fila, cat, cfg);
+          const r = evaluarFila(fila, cat, cfg, { repo, sesion });
           if (!r) continue;
           if (r.ev.datosPrueba) conPrueba += 1;
           if (r.ev.sinConfirmar) aRevisar += 1;
@@ -27858,7 +28196,7 @@ globalThis.CX_VARIANTE="cxobra";
         let firmas = [];
         if (fila) {
           def = cat.porVersion.get(`${fila.plantilla}@${fila.version}`) || cat.vigentes.get(plantilla);
-          datos = leerJson(fila.datos, {});
+          datos = datosConBalanceo(repo, sesion, def, leerJson(fila.datos, {}), clave);
           firmas = leerJson(fila.firmas, []);
         } else {
           def = cat.vigentes.get(plantilla);
@@ -27917,12 +28255,12 @@ globalThis.CX_VARIANTE="cxobra";
         const def = fila ? cat.porVersion.get(`${fila.plantilla}@${fila.version}`) || cat.vigentes.get(plantilla) : cat.vigentes.get(plantilla);
         if (!def) return { ok: false, error: `No existe la plantilla ${plantilla}.` };
         const { ficha: limpio, descartados } = F.quitarPrueba(
-          F.normalizar(def, sellarRevisados(datos || {}, sesion, nombreDe(repo, sesion)))
+          F.normalizar(def, sellarRevisados(sinMedidoDelBalanceo(datos || {}), sesion, nombreDe(repo, sesion)))
         );
         limpio.copias = F.normalizar(def, {
           copias: Array.isArray(interno.copias) ? interno.copias : fila ? leerJson(fila.datos, {}).copias : []
         }).copias;
-        const ev = F.evaluar(def, limpio, { config: cfg, instrumentos: cat.instrumentos });
+        const ev = F.evaluar(def, datosConBalanceo(repo, sesion, def, limpio, clave), { config: cfg, instrumentos: cat.instrumentos });
         const cambios = {
           datos: JSON.stringify(limpio),
           estado: ev.estado,
@@ -27986,7 +28324,7 @@ globalThis.CX_VARIANTE="cxobra";
         if (!esJefeDeObra(repo, sesion, fila.obraId)) return { ok: false, error: SOLO_JEFE_OBRA };
         const cat = catalogoDe(repo, sesion);
         const cfg = configDe(repo, sesion, fila.obraId);
-        const r = evaluarFila(fila, cat, cfg);
+        const r = evaluarFila(fila, cat, cfg, { repo, sesion });
         if (!r) return { ok: false, error: "La plantilla de la ficha ya no existe." };
         const firmas = r.firmas;
         if (firmas.some((f) => f.rol === rol)) return { ok: false, error: `Ya tiene la firma de ${F.ROLES_FIRMA[rol]}.` };
@@ -28020,7 +28358,7 @@ globalThis.CX_VARIANTE="cxobra";
         if (!esJefeDeObra(repo, sesion, fila.obraId)) return { ok: false, error: "Solo el jefe de obra de esta obra retira firmas." };
         const resto = firmas.filter((x) => x.rol !== rol);
         const cat = catalogoDe(repo, sesion);
-        const r = evaluarFila({ ...fila, firmas: JSON.stringify(resto) }, cat, configDe(repo, sesion, fila.obraId));
+        const r = evaluarFila({ ...fila, firmas: JSON.stringify(resto) }, cat, configDe(repo, sesion, fila.obraId), { repo, sesion });
         repo.modificar("fichasPM", sesion, fichaId, { firmas: JSON.stringify(resto), estado: r ? r.ev.estado : "pendiente" });
         return { ok: true };
       }
@@ -28033,7 +28371,7 @@ globalThis.CX_VARIANTE="cxobra";
         const fam = F.familiaDe(equipo, catalogo.FAMILIAS);
         const partes = F.requeridas(equipo, fam, cat.vigentes).map((req) => {
           const fila = req.clave && req.plantilla ? filaFicha(repo, sesion, equipo.obraId, req.clave, req.plantilla) : null;
-          const r = fila ? evaluarFila(fila, cat, cfg) : null;
+          const r = fila ? evaluarFila(fila, cat, cfg, { repo, sesion }) : null;
           return { ...req, plantillaDef: r ? r.def : req.plantilla ? cat.vigentes.get(req.plantilla) : null, evaluacion: r ? r.ev : null, fichaId: fila ? fila.id : null };
         });
         return { equipo, obra, familia: fam, partes, cabeceraObra: cabeceraDe(cfg), tolerancias: F.tolerancias(cfg || {}) };
@@ -28054,7 +28392,8 @@ globalThis.CX_VARIANTE="cxobra";
         return fuera;
       }
       var nombreArchivo = (...partes) => partes.filter((p) => llano(p)).join(" - ").replace(/[\\/:*?"<>|]+/g, "_").slice(0, 150) || "ficha";
-      function htmlFicha(repo, sesion, obraId, ref = {}) {
+      function htmlFicha(repo, sesion, obraId, ref = {}, opciones = {}) {
+        const sinMedidos = Boolean(opciones && opciones.sinMedidos);
         const f = ficha(repo, sesion, obraId, ref);
         if (!f || f.ok === false) return f || { ok: false, error: "No se encuentra la obra." };
         const obra = repo.leer("obras", sesion, obraId);
@@ -28064,7 +28403,8 @@ globalThis.CX_VARIANTE="cxobra";
           cabeceraObra: f.cabeceraObra,
           equipo: eq,
           titulo: f.titulo,
-          imagenes: imagenesDe(f.evaluacion.datos.fotos)
+          imagenes: sinMedidos ? {} : imagenesDe(f.evaluacion.datos.fotos),
+          sinMedidos
         });
         return {
           ok: true,
@@ -28072,7 +28412,7 @@ globalThis.CX_VARIANTE="cxobra";
           nombre: nombreArchivo(eq.sala, f.titulo, f.plantilla.nombre),
           estado: f.evaluacion.estado,
           /* Los PDF del fabricante, que se pegan detrás al imprimir (electron/data/unirPdf.js). */
-          anexos: f.evaluacion.datos.anexosPdf || []
+          anexos: sinMedidos ? [] : f.evaluacion.datos.anexosPdf || []
         };
       }
       function htmlPlantilla(repo, sesion, codigo) {
@@ -28085,16 +28425,7 @@ globalThis.CX_VARIANTE="cxobra";
       var NOMBRE_BAL = { apto: "Medida", aptoSinBocas: "Medida (sin todas las bocas)", noApto: "Medida", pendiente: "Sin medir" };
       var RESULTADO_BAL = { apto: "apto", aptoSinBocas: "aRevisar", noApto: "noApto" };
       var RESULTADO_ESTANQ = { correcta: "apto", noSuperada: "noApto", sinTerminar: "aRevisar" };
-      function tolBalanceo(t) {
-        return {
-          ...t,
-          total: t.total ?? 0.1,
-          boca: t.boca ?? 0.15,
-          totalPorDefecto: t.total === null || t.total === void 0,
-          bocaPorDefecto: t.boca === null || t.boca === void 0
-        };
-      }
-      function hojaBalanceoDe(repo, sesion, equipo) {
+      function balanceoEvaluado(repo, sesion, equipo) {
         const fila = repo.listar("hojasBalanceo", sesion, { condicion: "equipoId = ?", params: [equipo.id], limite: 1 })[0];
         const DIF = require_difusores2();
         let dif = null;
@@ -28107,11 +28438,33 @@ globalThis.CX_VARIANTE="cxobra";
         if (!fila && !filasPlano.length) return null;
         const BAL = require_balanceo();
         const ev = BAL.evaluar(fila ? leerJson(fila.datos, {}) : {}, equipo, {
-          tolerancias: tolBalanceo(F.tolerancias(configDe(repo, sesion, equipo.obraId) || {})),
+          tolerancias: F.toleranciasAplicadas(configDe(repo, sesion, equipo.obraId) || {}),
           instrumentos: repo.listar("instrumentosMedida", sesion, { orden: "nombre, numSerie" }),
           plano: filasPlano,
           diseno: dif ? { impulsion: dif.diseno.impulsion.valor, retorno: dif.diseno.retorno.valor } : {}
         });
+        return { ev, dif, filasPlano, DIF };
+      }
+      var CAUDAL_DEL_BALANCEO = { caudal_aire_impulsion: "impulsion", caudal_aire_retorno: "retorno" };
+      function conCaudalesDelBalanceo(def, datos, bal) {
+        if (!bal || !def) return datos;
+        const codigos = new Set(F.puntosDe(def).filter((x) => x.seccion.tipo === "parametros").map((x) => x.codigo));
+        let out = datos;
+        for (const [cod, red] of Object.entries(CAUDAL_DEL_BALANCEO)) {
+          if (!codigos.has(cod)) continue;
+          const v = (datos.valores || {})[cod] || {};
+          if (F.numero(v.m) !== null) continue;
+          const c = (bal.ev.circuitos || []).find((x) => x.id === red);
+          if (!c || !c.todasMedidas || c.sumaMedido === null) continue;
+          if (out === datos) out = { ...datos, valores: { ...datos.valores || {} } };
+          out.valores[cod] = { ...v, m: Math.round(c.sumaMedido), om: "balanceo", nBocas: c.bocas.length };
+        }
+        return out;
+      }
+      function hojaBalanceoDe(repo, sesion, equipo) {
+        const be = balanceoEvaluado(repo, sesion, equipo);
+        if (!be) return null;
+        const { ev, dif, filasPlano, DIF } = be;
         let esquema;
         let tituloEsquema = null;
         if (filasPlano.length) {
@@ -28128,7 +28481,14 @@ globalThis.CX_VARIANTE="cxobra";
           esquema = require_balanceoDibujo().esquema(ev, { tag: equipo.tag });
         }
         const cfg = configDe(repo, sesion, equipo.obraId);
-        const ctx = { obra: repo.leer("obras", sesion, equipo.obraId), cabeceraObra: cabeceraDe(cfg), equipo, esquema, tituloEsquema };
+        const ctx = {
+          obra: repo.leer("obras", sesion, equipo.obraId),
+          cabeceraObra: cabeceraDe(cfg),
+          equipo,
+          esquema,
+          tituloEsquema,
+          fechaEnsayo: ev.hoja && ev.hoja.fechaMedicion || fechaEnsayoEquipo(repo, sesion, equipo)
+        };
         const html = fichaHtml.hojaBalanceo(ev, ctx);
         return { ev, html, ctx, pasada: ev.estado !== "pendiente" && (equipo.balanceoEstado || "pendiente") === ev.estado };
       }
@@ -28468,7 +28828,7 @@ globalThis.CX_VARIANTE="cxobra";
         }
         return { ok: true, equipos: eq, fichas: r, tolerancias, casados: lectura.casados || [] };
       }
-      function importarFabricante(repo, sesion, obraId, { texto, nombre } = {}, { simular = false } = {}) {
+      function importarFabricante(repo, sesion, obraId, { texto, nombre } = {}, { simular = false, columna = "fabricante" } = {}) {
         if (!obraVisible(repo, sesion, obraId)) return { ok: false, error: "No se encuentra la obra." };
         if (!puede(sesion.rol, "commissioning", "editar")) return { ok: false, error: NO_EDITA };
         const FAB = require_fabricantePM();
@@ -28488,6 +28848,7 @@ globalThis.CX_VARIANTE="cxobra";
           entradas: lectura.entradas,
           equipos,
           fichas,
+          columna: columna === "proyecto" ? "proyecto" : "fabricante",
           definicion: (f) => cat.porVersion.get(`${f.plantilla}@${f.version}`) || cat.vigentes.get(f.plantilla)
         });
         const r = {
@@ -28577,6 +28938,7 @@ globalThis.CX_VARIANTE="cxobra";
         plantillas,
         nuevaVersionPlantilla,
         puestaEnMarcha,
+        fichasPorEquipo,
         ficha,
         guardarFicha,
         actualizarVersion,
@@ -28599,7 +28961,9 @@ globalThis.CX_VARIANTE="cxobra";
         importarFabricante,
         rejillaChecklist,
         guardarRejillaChecklist,
-        copiarRespuestasChecklist
+        copiarRespuestasChecklist,
+        conCabeceraDelBalanceo,
+        sinMedidoDelBalanceo
       };
     }
   });
@@ -28635,8 +28999,14 @@ globalThis.CX_VARIANTE="cxobra";
           ultimoEnlace = cfg && cfg.ultimoEnlace ? JSON.parse(cfg.ultimoEnlace) : null;
         } catch {
         }
+        let fichas = null;
+        try {
+          fichas = require_fichasPM().fichasPorEquipo(repo, sesion, obraId, equipos);
+        } catch {
+        }
+        const conFichas = fichas ? equipos.map((e) => fichas.has(e.id) ? { ...e, pmFichas: fichas.get(e.id) } : e) : equipos;
         return {
-          ...control.evaluar({ equipos, modelos }),
+          ...control.evaluar({ equipos: conFichas, modelos }),
           modelos,
           config: cfg ? { ...cfg, ultimoEnlace } : null
         };
@@ -62275,17 +62645,15 @@ ${linea}` : linea;
           const obra = obraDe(ses, e.obraId);
           const ev = new Map(d.resumen.filas.map((f) => [f.id, f]));
           const filas = [...ev.values()];
-          const NOMBRE = { dentro: "Dentro", ok: "Dentro", alto: "ALTO", bajo: "BAJO", sinMedir: "Sin medir", sinFactor: "Sin Ak", medido: "Sin Q proyecto", sinProyecto: "Sin Q proyecto", incompleto: "A medias", sinDiseno: "Sin Q proyecto" };
+          const NOMBRE = { aRevisar: "A REVISAR", dentro: "Dentro", ok: "Dentro", alto: "ALTO", bajo: "BAJO", sinMedir: "Sin medir", sinFactor: "Sin Ak", medido: "Sin Q proyecto", sinProyecto: "Sin Q proyecto", incompleto: "A medias", sinDiseno: "Sin Q proyecto" };
           const CLASE = { dentro: "ok", ok: "ok", alto: "mal", bajo: "mal" };
           const tol = d.resumen.tolerancias || {};
           const textoTol = (v, defecto) => v === null || v === void 0 ? "Sin poner" : `\xB1 ${cifra(v * 100, 0)} %${defecto ? " (por defecto: la obra no tiene la suya)" : ""}`;
           const circuitos = d.resumen.circuitos || {};
           const lineaTotal = (c, nombre) => {
             if (!c || c.estado === "sinPuntos") return null;
-            const completo = c.puntos > 0 && c.medidos === c.puntos;
-            const desv = completo && c.disenoPuntos ? c.suma / c.disenoPuntos - 1 : null;
-            const estado = !completo ? "incompleto" : desv === null ? "sinDiseno" : Math.abs(desv) <= (tol.total ?? 0.1) + 1e-9 ? "dentro" : desv > 0 ? "alto" : "bajo";
-            return Object.assign([nombre, cifra(c.disenoPuntos, 0), cifra(c.suma, 0), desv === null ? "" : `${cifra(desv * 100, 1)} %`, `${cifra(c.medidos, 0)}/${cifra(c.puntos, 0)}`, NOMBRE[estado] || estado], { clase: CLASE[estado] || null });
+            const desv = c.desviacion;
+            return Object.assign([nombre, cifra(c.disenoReferencia, 0), cifra(c.suma, 0), desv === null || desv === void 0 ? "" : `${cifra(desv * 100, 1)} %`, `${cifra(c.medidos, 0)}/${cifra(c.puntos, 0)}`, NOMBRE[c.estado] || c.estado], { clase: CLASE[c.estado] || null });
           };
           const totales = [lineaTotal(circuitos.impulsion, "Impulsi\xF3n"), lineaTotal(circuitos.retorno, "Retorno")].filter(Boolean);
           const uta = [["Impulsi\xF3n", d.diseno && d.diseno.impulsion && d.diseno.impulsion.valor], ["Retorno", d.diseno && d.diseno.retorno && d.diseno.retorno.valor]].filter(([, v]) => v !== null && v !== void 0).map(([n, v]) => `${n} ${cifra(v, 0)}`).join(" \xB7 ");
@@ -62380,13 +62748,21 @@ ${linea}` : linea;
           }
           return null;
         }
-        async function pdfFichaHoja(ses, obraId, ref) {
+        async function pdfFichaHoja(ses, obraId, ref, opciones = {}) {
+          const sinMedidos = Boolean(opciones.sinMedidos);
           const f = FPM.ficha(repo, ses, obraId, ref);
           if (!f || f.ok === false || !X.tieneHoja(f.plantilla.nombre)) return null;
           const eq = f.equipo || {};
-          const r = X.rejillaFicha(f.evaluacion, f.plantilla, { obra: obraDe(ses, obraId), cabeceraObra: f.cabeceraObra, equipo: eq, titulo: f.titulo });
+          const r = X.rejillaFicha(f.evaluacion, f.plantilla, {
+            obra: obraDe(ses, obraId),
+            cabeceraObra: f.cabeceraObra,
+            equipo: eq,
+            titulo: f.titulo,
+            sinMedidos,
+            fechaEnsayo: /^\d{4}-\d{2}-\d{2}/.test(opciones.fechaEnsayo || "") ? opciones.fechaEnsayo : null
+          });
           if (!r) return null;
-          const fotos = (f.evaluacion.datos.fotos || []).map((x) => ({ bytes: bytesDe(x.ruta), pie: x.nombre || path.basename(x.ruta) }));
+          const fotos = sinMedidos ? [] : (f.evaluacion.datos.fotos || []).map((x) => ({ bytes: bytesDe(x.ruta), pie: x.nombre || path.basename(x.ruta) }));
           const anexoPdf = fotos.length ? await informePdf({ titulo: `Anexo \xB7 Fotos \xB7 ${f.titulo || ""}`, fecha: ahoraEs(), fotos, pie: `Anexo de ${f.plantilla.nombre} \xB7 ${f.titulo || ""}` }) : null;
           const bytes = await hojaExcelPdf({ hojas: [{ disp: X.disposicion(r.m, r.opciones), marca: r.opciones.marca }], imagen: imagenLibro, anexoPdf, titulo: f.plantilla.nombre });
           return { bytes, nombre: `${nombreSeguro([eq.sala, f.titulo, f.plantilla.nombre].filter(Boolean).join(" - "))}.pdf` };
@@ -62410,7 +62786,12 @@ ${linea}` : linea;
           const enHoja = (h) => ({ bytes: Buffer.from(h.bytes), tipo: "application/pdf", nombre: h.nombre });
           if (tipo === "ficha") {
             if (!puede(ses.rol, "commissioning", "ver")) return [403, { ok: false, error: "Tu rol no ve el commissioning." }];
-            const h = await pdfFichaHoja(ses, llano(query.obra), { clave: llano(query.clave), plantilla: llano(query.plantilla) });
+            const h = await pdfFichaHoja(
+              ses,
+              llano(query.obra),
+              { clave: llano(query.clave), plantilla: llano(query.plantilla) },
+              { sinMedidos: ["1", "si", "true"].includes(llano(query.sinMedidos)), fechaEnsayo: llano(query.fecha) }
+            );
             if (h) return enHoja(h);
             r = docFicha(ses, llano(query.obra), { clave: llano(query.clave), plantilla: llano(query.plantilla) });
           } else if (tipo === "balanceo") {
@@ -62518,6 +62899,7 @@ ${linea}` : linea;
             envio: f.envio,
             falta: f.falta,
             completo: f.completo,
+            docCompleta: Boolean(f.docCompleta),
             estadoPM: f.estadoPM || null,
             ...bocas.get(f.id) || { bocas: 0, medidas: 0 }
           });
@@ -62535,6 +62917,7 @@ ${linea}` : linea;
               envio: l.envio,
               falta: l.falta,
               completo: l.completo,
+              docCompleta: Boolean(l.docCompleta),
               estadoPM: l.estadoPM || null,
               unidades: l.miembros.map((m) => ({ id: m.id, tag: m.tag, papel: m.id === ext.id && l.clase !== "suelto" ? "UE" : "UI", modelo: m.modelo || null, planta: m.planta || null }))
             };
@@ -62544,8 +62927,8 @@ ${linea}` : linea;
             ok: true,
             equipos: t.filas.map(unidad),
             conjuntos,
-            totales: { equipos: t.totales.equipos, completos: t.totales.completos, listas: t.totales.listas, enviadas: t.totales.enviadas, faltaDocumentacion: t.totales.faltaDocumentacion, faltaEnsayo: t.totales.faltaEnsayo, pideEstanqueidad: t.totales.pideEstanqueidad, faltaEstanqueidad: t.totales.faltaEstanqueidad },
-            totalesConjuntos: { conjuntos: tc.conjuntos, unidades: tc.unidades, pares: tc.pares, sistemas: tc.sistemas, completos: tc.completos, listas: tc.listas, enviadas: tc.enviadas, faltaDocumentacion: tc.faltaDocumentacion, faltaEnsayo: tc.faltaEnsayo, pideEstanqueidad: tc.pideEstanqueidad, faltaEstanqueidad: tc.faltaEstanqueidad }
+            totales: { equipos: t.totales.equipos, completos: t.totales.completos, docCompleta: t.totales.docCompleta, soloDoc: t.totales.soloDoc, faltaFichas: t.totales.faltaFichas, listas: t.totales.listas, enviadas: t.totales.enviadas, faltaDocumentacion: t.totales.faltaDocumentacion, faltaEnsayo: t.totales.faltaEnsayo, pideEstanqueidad: t.totales.pideEstanqueidad, faltaEstanqueidad: t.totales.faltaEstanqueidad },
+            totalesConjuntos: { conjuntos: tc.conjuntos, unidades: tc.unidades, pares: tc.pares, sistemas: tc.sistemas, completos: tc.completos, docCompleta: tc.docCompleta, soloDoc: tc.soloDoc, faltaFichas: tc.faltaFichas, listas: tc.listas, enviadas: tc.enviadas, faltaDocumentacion: tc.faltaDocumentacion, faltaEnsayo: tc.faltaEnsayo, pideEstanqueidad: tc.pideEstanqueidad, faltaEstanqueidad: tc.faltaEstanqueidad }
           };
         }
         function equipo({ ses, query }) {

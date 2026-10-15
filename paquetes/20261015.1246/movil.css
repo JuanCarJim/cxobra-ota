@@ -452,6 +452,11 @@ button.fila-ios::after {
 .resumen-fila button { padding: 12px 6px 10px; text-align: center; font: inherit; color: inherit; border: 0; cursor: pointer; }
 .resumen-fila button b { display: block; font-size: 24px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; }
 .resumen-fila button span { font-size: 11.5px; color: var(--textoTenue); }
+/* Cinco cifras (completos y «doc. completa» van aparte): más prietas. */
+.resumen-fila.cinco { grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.resumen-fila.cinco button { padding: 10px 2px 8px; }
+.resumen-fila.cinco button b { font-size: 20px; }
+.resumen-fila.cinco button span { font-size: 10.5px; line-height: 1.2; display: block; }
 .resumen-fila button.aviso b { color: var(--aviso); }
 .resumen-fila button.activa { box-shadow: inset 0 0 0 2px var(--acento); }
 .resumen-fila a { padding: 12px 6px 10px; text-align: center; color: inherit; text-decoration: none; }

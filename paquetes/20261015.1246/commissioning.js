@@ -36,12 +36,14 @@
   const ENVIO = {
     completo: ['bien', 'Completo'], enviada: ['bien', 'Enviada'], lista: ['bien', 'Lista para enviar'],
     faltaDocumentacion: ['aviso', 'Falta documentación'], faltaEnsayo: ['aviso', 'Falta ensayo'],
+    /* Papeles completos y fichas por hacer: no es «completo» (15-oct-2026, JC). */
+    faltaFichas: ['info', 'Doc. completa'],
   };
   const chipEnvio = (e, completo) => {
     const [clase, nombre] = completo ? ENVIO.completo : (ENVIO[e] || ['neutra', e || 'Pendiente']);
     return `<span class="chip ${clase}">${esc(nombre)}</span>`;
   };
-  const ESTADO_BOCA = { dentro: ['bien', 'OK'], ok: ['bien', 'OK'], sinFactor: ['aviso', 'Falta el Ak'], medido: ['neutra', 'Medida'], alto: ['mal', 'Alto'], bajo: ['mal', 'Bajo'], sinMedir: ['neutra', 'Sin medir'], sinProyecto: ['neutra', 'Sin Q proyecto'], sinTolerancia: ['neutra', 'Medida'] };
+  const ESTADO_BOCA = { aRevisar: ['aviso', 'A REVISAR'], dentro: ['bien', 'OK'], ok: ['bien', 'OK'], sinFactor: ['aviso', 'Falta el Ak'], medido: ['neutra', 'Medida'], alto: ['mal', 'Alto'], bajo: ['mal', 'Bajo'], sinMedir: ['neutra', 'Sin medir'], sinProyecto: ['neutra', 'Sin Q proyecto'], sinTolerancia: ['neutra', 'Medida'] };
   const INCIDENCIA = { sinSerie: 'Sin nº de serie', modeloSinAlta: 'Modelo sin dar de alta' };
   const pct = (q, d) => (q === null || q === undefined || !d ? null : Math.round((q / d) * 100));
 
@@ -70,7 +72,9 @@
     ['todos', 'Todos', () => true],
     ['faltaDoc', 'Falta doc.', (e) => !e.completo && e.envio === 'faltaDocumentacion'],
     ['faltaEnsayo', 'Falta ensayo', (e) => !e.completo && e.envio === 'faltaEnsayo'],
-    ['completos', 'Completos', (e) => e.completo || e.envio === 'lista' || e.envio === 'enviada'],
+    /* Una sola regla: la de shared/commissioning/control.js (papeles + fichas + ensayo). */
+    ['completos', 'Completos', (e) => e.completo],
+    ['soloDoc', 'Doc. completa', (e) => e.docCompleta && !e.completo],
   ];
   let segmento = 'todos';
   const porPlanta = (a, b) => (a === 'Sin planta') - (b === 'Sin planta') || a.localeCompare(b, 'es', { numeric: true });
@@ -132,7 +136,7 @@
     const grupos = [...new Set(equipos.map(grupoDe))].sort(agrupar === 'planta' ? porPlanta
       : (a, b) => sin(a) - sin(b) || a.localeCompare(b, 'es', { numeric: true }));
     $app.innerHTML = `
-      <div class="resumen-fila" role="tablist">${[['todos', conj ? t.conjuntos : t.equipos, conj ? 'conjuntos' : 'equipos'], ['completos', t.completos, 'completos'], ['faltaDoc', t.faltaDocumentacion, 'falta doc.'], ['faltaEnsayo', t.faltaEnsayo, 'falta ensayo']]
+      <div class="resumen-fila cinco" role="tablist">${[['todos', conj ? t.conjuntos : t.equipos, conj ? 'conjuntos' : 'equipos'], ['completos', t.completos, 'completos'], ['soloDoc', t.soloDoc || 0, 'doc. completa'], ['faltaDoc', t.faltaDocumentacion, 'falta doc.'], ['faltaEnsayo', t.faltaEnsayo, 'falta ensayo']]
         .map(([id, n, texto]) => `<button role="tab" data-cx-seg="${id}" aria-selected="${segmento === id}" class="${segmento === id ? 'activa' : ''} ${id.startsWith('falta') && n ? 'aviso' : ''}"><b>${cifra(n)}</b><span>${esc(texto)}</span></button>`).join('')}</div>
       ${conj && t.unidades !== t.conjuntos ? `<p class="nota tenue cuenta-conjuntos">${cifra(t.conjuntos)} conjuntos con ${cifra(t.unidades)} unidades: ${cifra(t.pares)} splits y ${cifra(t.sistemas)} VRF van en una línea con su exterior.</p>` : ''}
       <input type="search" class="buscar" placeholder="Buscar TAG, planta, tipo o marca" value="${esc(filtro)}" data-cx-buscar>
@@ -187,9 +191,10 @@
 
   function totalCircuito(c, nombre) {
     if (!c || c.estado === 'sinPuntos') return '';
-    const diseno = c.disenoEquipo || c.disenoPuntos || null;
-    const p = pct(c.suma, diseno);
-    const clase = c.estado === 'ok' ? 'bien' : (c.estado === 'alto' || c.estado === 'bajo') ? 'mal' : 'neutra';
+    /* El total contra lo mismo que la hoja de balanceo (el resumen lo dice). */
+    const diseno = c.disenoReferencia ?? c.disenoPuntos ?? c.disenoEquipo ?? null;
+    const p = c.desviacion === null || c.desviacion === undefined ? null : pct(c.suma, diseno);
+    const clase = (c.estado === 'ok' || c.estado === 'dentro') ? 'bien' : (c.estado === 'alto' || c.estado === 'bajo') ? 'mal' : 'neutra';
     return `<div class="total-circuito">
       <div class="fila-principal"><strong>${esc(nombre)}</strong><span class="chip ${clase}">${p === null ? `${c.medidos}/${c.puntos} medidas` : `${p} %`}</span></div>
       <div class="cifras-total">
@@ -876,6 +881,7 @@
       <div class="barra-hoja">
         ${ed ? `<button class="boton grande" data-cx="guardar-hoja" ${h.cambiada ? '' : 'disabled'}>Guardar</button>` : ''}
         <button class="boton grande secundario" data-cx="pdf-hoja"><i class="ic ic-doc"></i>Informe PDF</button>
+        <button class="boton grande secundario" data-cx="pdf-hoja-obra"><i class="ic ic-doc"></i>PDF sin medidos (para obra)</button>
       </div>`;
     C.cargarImagenes($app);
   }
@@ -957,10 +963,12 @@
 
   const compartirPdf = (...a) => C.compartirPdf(...a);
 
-  async function pdfHoja(boton) {
+  /* sinMedidos: la hoja para rellenar a mano en obra (proyecto sí, medidos no). */
+  async function pdfHoja(boton, sinMedidos = false) {
     if (hoja.cambiada && hoja.f.editable && !(await guardarHoja())) return;
     const tag = ficha ? ficha.equipo.tag : hoja.f.titulo;
-    await compartirPdf(`api/informe?${new URLSearchParams({ tipo: 'ficha', ...hoja.ref })}`, `${tag} - ${hoja.f.plantilla.nombre}.pdf`, boton);
+    const q = new URLSearchParams({ tipo: 'ficha', ...hoja.ref, ...(sinMedidos ? { sinMedidos: '1' } : {}) });
+    await compartirPdf(`api/informe?${q}`, `${tag} - ${hoja.f.plantilla.nombre}${sinMedidos ? ' - sin medidos' : ''}.pdf`, boton);
   }
 
   function salirHoja() {
@@ -998,6 +1006,7 @@
     else if (que === 'quitar-nueva' && hoja) { const [x] = hoja.nuevas.splice(Number(b.dataset.i), 1); if (x) URL.revokeObjectURL(x.url); pintarHoja(); }
     else if (que === 'guardar-hoja') guardarHoja(b);
     else if (que === 'pdf-hoja') pdfHoja(b);
+    else if (que === 'pdf-hoja-obra') pdfHoja(b, true);
     else if (que === 'equipo-medida' && ficha) cambiarEquipo(b, false);
     else if (que === 'equipo-medida-todo' && ficha) cambiarEquipo(b, true);
     else if (que === 'lectura' && ficha) cambiarEquipo(b, false);
