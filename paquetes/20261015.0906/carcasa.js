@@ -464,10 +464,8 @@
         ${pruebas || (t && t.pideEstanqueidad) ? fila('estanqueidad', 'Pruebas de estanqueidad', textoEstanqueidad(t, pruebas), (t && t.faltaEstanqueidad) || (pruebas && pruebas.some((p) => p.resultado !== 'correcta'))) : ''}
         ${partes ? fila('partes', 'Partes abiertos', cifra(partes.length)) : ''}
         ${ncrAbiertas ? fila('ncr', 'No conformidades abiertas', cifra(ncrAbiertas.length)) : ''}
-      </section>
-      ${accionesDisponibles().length ? `<button class="boton" id="inicio-anadir">Añadir…</button>` : ''}`;
-    const b = document.getElementById('inicio-anadir');
-    if (b) b.onclick = abrirHoja;
+      </section>`;
+    /* Sin botón «Añadir…»: ya está el + de la barra (15-oct, JC). */
     for (const a of app.querySelectorAll('[data-ir-seg]')) a.onclick = () => { try { sessionStorage.setItem('cx.segmento', a.dataset.irSeg); } catch { /* nada */ } };
   }
   window.addEventListener('movil:obra', () => { if (seccion() === 'inicio') inicio(); });

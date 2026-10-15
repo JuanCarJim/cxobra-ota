@@ -118,6 +118,9 @@
   }
 
   function pintarLista() {
+    /* La ficha del equipo escondía el selector de arriba: vuelve. */
+    const seg = document.getElementById('segmentos');
+    if (seg) seg.hidden = seg.children.length < 2;
     const conj = porConjuntos();
     const t = conj ? { ...(lista.totales || {}), ...(lista.totalesConjuntos || {}) } : (lista.totales || {});
     const q = filtro.trim().toLowerCase();
@@ -157,6 +160,7 @@
     try {
       const r = await C.pedir(`api/equipo?id=${encodeURIComponent(id)}`);
       if (!r.ok) throw new Error(r.error);
+      if (!ficha || ficha.equipo.id !== r.equipo.id) pestanaEq = 'equipo';
       ficha = r;
       hoja = null;
       fichasEq = null;
@@ -173,8 +177,9 @@
       fichasEq = r;
     } catch (e) { fichasEq = { ok: false, error: e.message, fichas: [] }; }
     if (activa() && ficha && !hoja && ficha.equipo.id === id) {
-      const caja = document.getElementById('fichas-equipo');
-      if (caja) caja.outerHTML = htmlFichas();
+      const y = window.scrollY;
+      pintarFicha();
+      window.scrollTo(0, y);
     }
   }
 
@@ -212,27 +217,55 @@
       ${(k.incidencias || []).length ? `<p class="nota aviso">${esc(k.incidencias.map((i) => INCIDENCIA[i] || i).join(' · '))}</p>` : ''}`;
   }
 
+  /*
+   * LA FICHA DEL EQUIPO, en tres pestañas (15-oct-2026, JC): «Equipo» (fotos,
+   * conjunto, checklist y puesta en marcha), «Estanqueidad» (sus certificados)
+   * y «Balanceo», esta solo si al equipo le toca. Mientras se ve un equipo, el
+   * selector de arriba (Equipos | Estanqueidad) se esconde: manda el del equipo.
+   */
+  let pestanaEq = 'equipo';
+  const CLASES_PESTANA = { estanqAgua: 'estanqueidad', estanqRefrigerante: 'estanqueidad', balanceo: 'balanceo' };
+  const pestanaDeFicha = (x) => CLASES_PESTANA[x.clase] || 'equipo';
+  function pestanasEquipo(f) {
+    const fs = (fichasEq && fichasEq.fichas) || [];
+    const req = f.checklist ? f.checklist.ensayoRequerido : null;
+    const lista = [['equipo', 'Equipo']];
+    if (fs.some((x) => pestanaDeFicha(x) === 'estanqueidad') || req === 'estanqueidad' || req === 'ambos') lista.push(['estanqueidad', 'Estanqueidad']);
+    if (fs.some((x) => pestanaDeFicha(x) === 'balanceo') || f.planos.length || req === 'balanceo' || req === 'ambos') lista.push(['balanceo', 'Balanceo']);
+    return lista;
+  }
+
   function pintarFicha() {
     const f = ficha;
     const e = f.equipo;
     const puede = f.puedeMedir;
+    const pestanas = pestanasEquipo(f);
+    if (!pestanas.some(([id]) => id === pestanaEq)) pestanaEq = 'equipo';
+    const seg = document.getElementById('segmentos');
+    if (seg) seg.hidden = true;
+    const balanceo = () => `
+      ${totalCircuito(f.circuitos && f.circuitos.impulsion, 'Impulsión')}
+      ${totalCircuito(f.circuitos && f.circuitos.retorno, 'Retorno')}
+      ${f.planos.length ? f.planos.map((p) => `
+        <h2>${esc(p.nombre)} <span class="cuenta">${p.bocas.length} bocas</span></h2>
+        <ul class="bocas">${p.bocas.map((b) => htmlBoca(p, b, puede, f.tolerancias)).join('')}</ul>`).join('') : '<p class="vacio">Este equipo no tiene plano de bocas: se dibuja en el ordenador (Commissioning › Balanceo).</p>'}
+      ${puede || !f.planos.length ? '' : '<p class="nota">Tu rol puede ver las medidas, pero no tomarlas.</p>'}
+      ${f.planos.length ? '<button class="boton secundario" data-cx="pdf-balanceo"><i class="ic ic-doc"></i>Informe del balanceo (PDF)</button>' : ''}
+      ${htmlFichas('balanceo', 'Hoja de balanceo')}`;
+    const cuerpo = pestanaEq === 'balanceo' ? balanceo()
+      : pestanaEq === 'estanqueidad' ? htmlFichas('estanqueidad', 'Certificados de estanqueidad')
+      : `${htmlConjunto(f.conjunto, e.id)}
+      ${htmlFotosEquipo(f, puede)}
+      ${htmlFichas('equipo', 'Fichas del equipo')}
+      ${checklist(f.checklist)}`;
     $app.innerHTML = `
       <button class="volver" data-cx="lista">‹ Equipos</button>
       <section class="cabeza-ficha">
         <h2 class="cifra">${esc(e.tag)}</h2>
         <div class="sub">${esc([e.planta, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · '))}</div>
       </section>
-      ${htmlConjunto(f.conjunto, e.id)}
-      ${htmlFotosEquipo(f, puede)}
-      ${totalCircuito(f.circuitos && f.circuitos.impulsion, 'Impulsión')}
-      ${totalCircuito(f.circuitos && f.circuitos.retorno, 'Retorno')}
-      ${f.planos.length ? f.planos.map((p) => `
-        <h2>${esc(p.nombre)} <span class="cuenta">${p.bocas.length} bocas</span></h2>
-        <ul class="bocas">${p.bocas.map((b) => htmlBoca(p, b, puede, f.tolerancias)).join('')}</ul>`).join('') : '<p class="vacio">Este equipo no tiene plano de bocas: se dibuja en el ordenador (Commissioning › Balanceo).</p>'}
-      ${puede ? '' : '<p class="nota">Tu rol puede ver las medidas, pero no tomarlas.</p>'}
-      ${f.planos.length ? '<button class="boton secundario" data-cx="pdf-balanceo"><i class="ic ic-doc"></i>Informe del balanceo (PDF)</button>' : ''}
-      ${htmlFichas()}
-      ${checklist(f.checklist)}`;
+      ${pestanas.length > 1 ? `<div class="segmentado" role="tablist">${pestanas.map(([id, nombre]) => `<button role="tab" data-cx-pestana="${id}" aria-selected="${pestanaEq === id}" class="${pestanaEq === id ? 'activa' : ''}">${esc(nombre)}</button>`).join('')}</div>` : ''}
+      ${cuerpo}`;
     C.cargarImagenes($app);
   }
 
@@ -418,13 +451,18 @@
   };
   const CLASE_FICHA = { checklist: 'Checklist', fichaPM: 'Puesta en marcha', estanqAgua: 'Estanqueidad', estanqRefrigerante: 'Estanqueidad', balanceo: 'Balanceo' };
 
-  function htmlFichas() {
-    if (!fichasEq) return '<section id="fichas-equipo"><h2>Fichas del equipo</h2><p class="cargando">Cargando las fichas…</p></section>';
-    if (fichasEq.ok === false) return `<section id="fichas-equipo"><h2>Fichas del equipo</h2><p class="nota aviso">${esc(fichasEq.error)}</p></section>`;
-    const fs = fichasEq.fichas || [];
+  function htmlFichas(pestana = 'equipo', titulo = 'Fichas del equipo') {
+    if (!fichasEq) return `<section id="fichas-equipo"><h2>${esc(titulo)}</h2><p class="cargando">Cargando las fichas…</p></section>`;
+    if (fichasEq.ok === false) return `<section id="fichas-equipo"><h2>${esc(titulo)}</h2><p class="nota aviso">${esc(fichasEq.error)}</p></section>`;
+    /* Se conserva el índice de cada ficha en la lista completa: data-i lo usa abrirHoja. */
+    const fs = (fichasEq.fichas || []).map((x, i) => [x, i]).filter(([x]) => pestanaDeFicha(x) === pestana);
+    if (!fs.length && pestana === 'balanceo') return '';
+    const vacio = pestana === 'equipo' && !(fichasEq.fichas || []).length
+      ? 'Este equipo no tiene familia asignada: se le pone en el ordenador (Puesta en marcha).'
+      : pestana === 'estanqueidad' ? 'Este equipo no tiene certificado de estanqueidad en su familia.' : 'Sin fichas.';
     return `<section id="fichas-equipo">
-      <h2>Fichas del equipo <span class="cuenta">${fs.length}</span></h2>
-      ${fs.length ? `<ul class="lista-ios numerada">${fs.map((x, i) => (!x.plantilla ? `
+      <h2>${esc(titulo)} <span class="cuenta">${fs.length}</span></h2>
+      ${fs.length ? `<ul class="lista-ios numerada">${fs.map(([x, i]) => (!x.plantilla ? `
         <li><div class="fila-ios apagada">
           <div class="fila-principal"><strong>${esc(x.nombre)}</strong><span class="chip neutra">Sin plantilla</span></div>
           <div class="sub">${esc(x.motivo || 'Falta elegir la plantilla')} Se elige en el ordenador (Puesta en marcha).</div>
@@ -432,7 +470,7 @@
         <li><button class="fila-ios" data-cx="hoja" data-i="${i}">
           <div class="fila-principal"><strong>${esc(x.nombre)}</strong><span>${chipFicha(x.estado, x.resultado)}</span></div>
           <div class="sub">${esc([CLASE_FICHA[x.clase] || x.clase, x.motivo, x.medidos ? `${x.medidos.rellenos} de ${x.medidos.obligatorios} datos` : null, x.fotos ? `${x.fotos} foto${x.fotos === 1 ? '' : 's'}` : null].filter(Boolean).join(' · '))}</div>
-        </button></li>`)).join('')}</ul>` : '<p class="vacio">Este equipo no tiene familia asignada: se le pone en el ordenador (Puesta en marcha).</p>'}
+        </button></li>`)).join('')}</ul>` : `<p class="vacio">${esc(vacio)}</p>`}
     </section>`;
   }
 
@@ -650,6 +688,8 @@
     const sg = ev.target.closest('[data-cx-seg]');
     /* Las cifras de arriba filtran; pulsar la que ya está elegida vuelve a todos. */
     if (sg) { segmento = sg.dataset.cxSeg === segmento ? 'todos' : sg.dataset.cxSeg; AGRUPAR.forEach(([id]) => C.reiniciarLista(`cx-equipos-${id}`)); pintarLista(); return; }
+    const pe = ev.target.closest('[data-cx-pestana]');
+    if (pe && ficha) { pestanaEq = pe.dataset.cxPestana; pintarFicha(); return; }
     const ag = ev.target.closest('[data-cx-agrupar]');
     if (ag) {
       agrupar = ag.dataset.cxAgrupar;
