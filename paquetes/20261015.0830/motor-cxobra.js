@@ -8563,7 +8563,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261015.0808" : "0";
+      var VERSION = true ? "20261015.0830" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -15637,9 +15637,1290 @@ globalThis.CX_VARIANTE="cxobra";
           }
           return { tag: llano(destino.tag) };
         }
-        const API = { claveTag, tipoUnidad, analizar, resolverAsociado };
+        function emparejarPorTag(equipos = []) {
+          const a = analizar(equipos);
+          const exteriores = a.sistemas.map((s) => s.exterior);
+          const porClave = /* @__PURE__ */ new Map();
+          for (const e of exteriores) {
+            const k = claveTag(e.tag);
+            porClave.set(k, porClave.has(k) ? null : e);
+          }
+          const ocupadas = new Map(a.sistemas.map((s) => [s.exterior.id, s.interiores.length]));
+          const vrf = (e) => /VRF|VRV/i.test(`${e.plantillaPM || ""} ${e.grupo || ""}`);
+          const pares = [];
+          const dudosos = [];
+          for (const e of equipos) {
+            const u = a.porEquipo.get(e.id);
+            if (!u || u.tipo !== "interior" || !u.problema) continue;
+            const k = claveTag(e.tag);
+            let ext = null;
+            let motivo = "";
+            const gemela = k.replace(/^U\.?I(?![A-Z])/, "UE");
+            if (gemela !== k && porClave.has(gemela)) {
+              ext = porClave.get(gemela);
+              motivo = "mismo TAG, UI \u2192 UE";
+            } else {
+              const candidatas = exteriores.filter((x) => {
+                const kx = claveTag(x.tag);
+                return kx && k.length > kx.length && k.startsWith(kx) && /^[-.·/ (]/.test(k.slice(kx.length));
+              }).sort((x, y) => claveTag(y.tag).length - claveTag(x.tag).length);
+              if (candidatas.length) {
+                ext = candidatas[0];
+                motivo = "el TAG de la interior empieza por el de la exterior";
+              }
+            }
+            if (!ext) {
+              dudosos.push({ equipo: e, motivo: "Ninguna exterior con un TAG que encaje" });
+              continue;
+            }
+            if (!vrf(ext) && (ocupadas.get(ext.id) || 0) > 0) {
+              dudosos.push({ equipo: e, motivo: `\xAB${llano(ext.tag)}\xBB ya tiene su interior` });
+              continue;
+            }
+            ocupadas.set(ext.id, (ocupadas.get(ext.id) || 0) + 1);
+            pares.push({ interior: e, exterior: ext, motivo });
+          }
+          for (const s of a.sistemas) {
+            if (s.interiores.length || pares.some((p) => p.exterior === s.exterior)) continue;
+            dudosos.push({ equipo: s.exterior, motivo: "Exterior sin ninguna interior" });
+          }
+          return { pares, dudosos };
+        }
+        function candidatasPareja(equipo, equipos = []) {
+          const tipo = tipoUnidad(equipo);
+          if (!tipo) return [];
+          const a = analizar(equipos);
+          const orden = (x, y) => String(x.tag || "").localeCompare(String(y.tag || ""), "es", { numeric: true });
+          if (tipo === "interior") return equipos.filter((e) => e.id !== equipo.id && tipoUnidad(e) === "exterior").sort(orden);
+          const kPropia = claveTag(equipo.tag);
+          return equipos.filter((e) => {
+            if (e.id === equipo.id || tipoUnidad(e) !== "interior") return false;
+            const u = a.porEquipo.get(e.id);
+            return !u || u.problema || claveTag(u.exterior) === kPropia;
+          }).sort(orden);
+        }
+        const API = { claveTag, tipoUnidad, analizar, resolverAsociado, emparejarPorTag, candidatasPareja };
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.SISTEMAS_CX = API;
+      })();
+    }
+  });
+
+  // shared/commissioning/plantillasCbre.js
+  var require_plantillasCbre = __commonJS({
+    "shared/commissioning/plantillasCbre.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function iniciarPlantillasCbre() {
+        const FORMATO = "Formato CBRE - rev.2 - 06/10/2026";
+        const CRITERIO_PM = "Criterio: desviaci\xF3n sobre proyecto (o te\xF3rico si no hay proyecto) dentro de la tolerancia de la obra (la fija el jefe de obra) \u2192 APTO. Medido id\xE9ntico al valor de referencia \u2192 A REVISAR (posible valor copiado).";
+        const CRITERIO_CHECKLIST = "S\xED = conforme \xB7 No = no conforme (detallar en observaciones) \xB7 NA = no aplica.";
+        const OBL = "obligatorio";
+        const OPC = "opcional";
+        function texto(codigo, etiqueta, extra) {
+          return Object.assign({ codigo, etiqueta, tipo: "texto" }, extra || {});
+        }
+        function numPunto(codigo, etiqueta, unidad, extra) {
+          const p = { codigo, etiqueta, tipo: "numero" };
+          if (unidad) p.unidad = unidad;
+          return Object.assign(p, extra || {});
+        }
+        function okNoOk(codigo, etiqueta, extra) {
+          return Object.assign({ codigo, etiqueta, tipo: "okNoOk" }, extra || {});
+        }
+        function siNo(codigo, etiqueta, extra) {
+          return Object.assign({ codigo, etiqueta, tipo: "siNo" }, extra || {});
+        }
+        function fechaPunto(codigo, etiqueta, extra) {
+          return Object.assign({ codigo, etiqueta, tipo: "fecha" }, extra || {});
+        }
+        function lista(codigo, etiqueta, opciones, extra) {
+          return Object.assign({ codigo, etiqueta, tipo: "lista", opciones }, extra || {});
+        }
+        function param(codigo, etiqueta, unidad, medido, conResultado) {
+          const p = { codigo, etiqueta, unidad, proyecto: true, fabricante: true, medido, resultado: Boolean(conResultado) };
+          if (conResultado) p.tolerancia = "total";
+          return p;
+        }
+        function bloque(codigo, titulo, puntos) {
+          return {
+            codigo,
+            titulo,
+            tipo: "checklist",
+            puntos: puntos.map(([c, t]) => ({ codigo: c, etiqueta: t, tipo: "siNoNa" }))
+          };
+        }
+        function identificacion() {
+          return [
+            texto("denominacion", "Denominaci\xF3n", { origen: "denominacion" }),
+            texto("marca", "Marca", { origen: "marca" }),
+            texto("modelo", "Modelo", { origen: "modelo" }),
+            texto("num_serie", "N\xBA serie", { origen: "numSerie" })
+          ];
+        }
+        const EFICIENCIA_TERMICA = {
+          codigo: "eficiencia_termica",
+          etiqueta: "Eficiencia t\xE9rmica",
+          unidad: "%",
+          formula: "(T\xAA impulsi\xF3n tras recup. \u2212 T\xAA aire exterior) / (T\xAA retorno (extracci\xF3n) \u2212 T\xAA aire exterior), en proyecto, te\xF3rico y medido",
+          criterio: "APTO si la medida es igual o mayor que la de proyecto (o la te\xF3rica si no hay proyecto)"
+        };
+        function ficha(codigo, nombre, subtitulo, secciones) {
+          return {
+            codigo,
+            nombre,
+            titulo: `FICHA DE PUESTA EN MARCHA \xB7 ${subtitulo}`,
+            clase: "fichaPM",
+            version: 1,
+            formato: FORMATO,
+            criterio: CRITERIO_PM,
+            norma: null,
+            secciones
+          };
+        }
+        function checklist(codigo, nombre, subtitulo, secciones) {
+          return {
+            codigo,
+            nombre,
+            titulo: `LISTADO DE CHEQUEO \xB7 ${subtitulo}`,
+            clase: "checklist",
+            version: 1,
+            formato: FORMATO,
+            criterio: CRITERIO_CHECKLIST,
+            norma: null,
+            /* En pantalla y en el PDF se numera desde 1 (1, 1.1, 1.2…); el código del Excel queda como clave. */
+            secciones: (() => {
+              let k = 0;
+              return secciones.map((s) => s.tipo !== "checklist" ? s : (k += 1, { ...s, numero: String(k), puntos: s.puntos.map((pt, j) => ({ ...pt, numero: `${k}.${j + 1}` })) }));
+            })()
+          };
+        }
+        function seccionesUTA() {
+          return [
+            { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
+              ...identificacion(),
+              numPunto("potencia_frio", "Potencia fr\xEDo", "kW"),
+              numPunto("potencia_calor", "Potencia calor", "kW")
+            ] },
+            { titulo: "VENTILADOR DE IMPULSI\xD3N", tipo: "datos", puntos: [
+              texto("vent_imp_marca", "Marca"),
+              texto("vent_imp_modelo", "Modelo"),
+              numPunto("vent_imp_num", "N\xBA ventiladores"),
+              numPunto("vent_imp_potencia", "Potencia", "kW"),
+              numPunto("vent_imp_voltaje", "Voltaje", "V"),
+              numPunto("vent_imp_consumo_placa", "Consumo placa", "A")
+            ] },
+            { titulo: "VENTILADOR DE RETORNO", tipo: "datos", puntos: [
+              texto("vent_ret_marca", "Marca"),
+              texto("vent_ret_modelo", "Modelo"),
+              numPunto("vent_ret_num", "N\xBA ventiladores"),
+              numPunto("vent_ret_potencia", "Potencia", "kW"),
+              numPunto("vent_ret_voltaje", "Voltaje", "V"),
+              numPunto("vent_ret_consumo_placa", "Consumo placa", "A")
+            ] },
+            { titulo: "FILTROS IMPULSI\xD3N", tipo: "datos", puntos: [
+              texto("filtro_imp_etapa1", "Etapa 1 (clase)"),
+              texto("filtro_imp_etapa2", "Etapa 2 (clase)"),
+              texto("filtro_imp_etapa3", "Etapa 3 (clase)")
+            ] },
+            { titulo: "FILTROS RETORNO", tipo: "datos", puntos: [
+              texto("filtro_ret_etapa1", "Etapa 1 (clase)"),
+              texto("filtro_ret_etapa2", "Etapa 2 (clase)"),
+              texto("filtro_ret_etapa3", "Etapa 3 (clase)")
+            ] },
+            { titulo: "COMPROBACIONES EN LA INSTALACI\xD3N", tipo: "comprobaciones", puntos: [
+              okNoOk("enclavamiento_incendios", "Enclavamiento incendios"),
+              okNoOk("senal_bms", "Se\xF1al a BMS")
+            ] },
+            { titulo: "CAUDALES EN LA INSTALACI\xD3N", tipo: "parametros", puntos: [
+              param("caudal_aire_impulsion", "Caudal aire impulsi\xF3n", "m\xB3/h", OBL, true),
+              param("caudal_aire_retorno", "Caudal aire retorno", "m\xB3/h", OBL, true),
+              param("caudal_agua_bateria_frio", "Caudal agua bater\xEDa fr\xEDo", "l/s", OBL, true),
+              param("caudal_agua_bateria_calor", "Caudal agua bater\xEDa calor", "l/s", OPC, true)
+            ] },
+            { titulo: "TEMPERATURAS EN LA INSTALACI\xD3N", tipo: "parametros", puntos: [
+              param("t_impulsion_sala_frio", "T\xAA impulsi\xF3n en sala \xB7 fr\xEDo", "\xB0C", OBL),
+              param("t_retorno_sala_frio", "T\xAA retorno en sala \xB7 fr\xEDo", "\xB0C", OBL),
+              param("t_impulsion_sala_calor", "T\xAA impulsi\xF3n en sala \xB7 calor", "\xB0C", OPC),
+              param("t_retorno_sala_calor", "T\xAA retorno en sala \xB7 calor", "\xB0C", OPC),
+              param("t_entrada_agua_frio", "T\xAA entrada agua fr\xEDo", "\xB0C", OBL),
+              param("t_salida_agua_frio", "T\xAA salida agua fr\xEDo", "\xB0C", OBL),
+              param("t_entrada_agua_calor", "T\xAA entrada agua calor", "\xB0C", OPC),
+              param("t_salida_agua_calor", "T\xAA salida agua calor", "\xB0C", OPC)
+            ] }
+          ];
+        }
+        function temperaturasRecuperador() {
+          return [
+            param("t_aire_exterior", "T\xAA aire exterior", "\xB0C", OBL),
+            param("t_impulsion_tras_recup", "T\xAA impulsi\xF3n tras recup.", "\xB0C", OBL),
+            param("t_retorno_extraccion", "T\xAA retorno (extracci\xF3n)", "\xB0C", OBL),
+            param("t_expulsion", "T\xAA expulsi\xF3n", "\xB0C", OBL)
+          ];
+        }
+        function temperaturasAireInterior() {
+          return [
+            param("t_entrada_frio", "T\xAA entrada fr\xEDo", "\xB0C", OBL),
+            param("t_salida_frio", "T\xAA salida fr\xEDo", "\xB0C", OBL),
+            param("t_entrada_calor", "T\xAA entrada calor", "\xB0C", OPC),
+            param("t_salida_calor", "T\xAA salida calor", "\xB0C", OPC)
+          ];
+        }
+        function temperaturasAgua() {
+          return [
+            param("t_entrada_agua_frio", "T\xAA entrada agua fr\xEDo", "\xB0C", OBL),
+            param("t_salida_agua_frio", "T\xAA salida agua fr\xEDo", "\xB0C", OBL),
+            param("t_entrada_agua_calor", "T\xAA entrada agua calor", "\xB0C", OPC),
+            param("t_salida_agua_calor", "T\xAA salida agua calor", "\xB0C", OPC)
+          ];
+        }
+        function datosFisicosFancoil() {
+          return { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
+            ...identificacion(),
+            numPunto("caudal", "Caudal", "m\xB3/h", { origen: "caudalNominal" }),
+            numPunto("potencia_frio", "Potencia fr\xEDo", "kW"),
+            numPunto("potencia_calor", "Potencia calor", "kW")
+          ] };
+        }
+        function datosFisicosVentilador() {
+          return { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
+            ...identificacion(),
+            numPunto("caudal_nominal", "Caudal nominal", "m\xB3/h", { origen: "caudalNominal" }),
+            okNoOk("activacion_pci", "Activaci\xF3n central PCI")
+          ] };
+        }
+        function proteccionesElectricas() {
+          return { titulo: "PROTECCIONES EL\xC9CTRICAS", tipo: "datos", puntos: [
+            numPunto("margen_regulacion", "Margen regulaci\xF3n", "A"),
+            texto("tipo_arranque", "Tipo de arranque"),
+            texto("marca_arrancador", "Marca arrancador"),
+            texto("modelo_arrancador", "Modelo arrancador")
+          ] };
+        }
+        function seccionesVrfInterior() {
+          return [
+            { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
+              ...identificacion(),
+              texto("ud_exterior_asociada", "Ud. exterior asociada", { origen: "equipoAsociado" }),
+              numPunto("caudal", "Caudal", "m\xB3/h", { origen: "caudalNominal" }),
+              numPunto("potencia_frio", "Potencia fr\xEDo", "kW"),
+              numPunto("potencia_calor", "Potencia calor", "kW")
+            ] },
+            { titulo: "DATOS EL\xC9CTRICOS", tipo: "datos", puntos: [
+              numPunto("voltaje", "Voltaje", "V"),
+              numPunto("consumo", "Consumo", "A")
+            ] },
+            { titulo: "COMPROBACIONES", tipo: "comprobaciones", puntos: [
+              okNoOk("mando_termostato", "Mando / termostato"),
+              okNoOk("comunicacion_ue", "Comunicaci\xF3n con UE"),
+              okNoOk("filtros_lamas", "Filtros y lamas")
+            ] },
+            { titulo: "CAUDALES AIRE", tipo: "parametros", puntos: [
+              param("caudal_aire_vel_max", "Caudal aire (vel. m\xE1xima)", "m\xB3/h", OBL, true)
+            ] },
+            { titulo: "TEMPERATURAS AIRE", tipo: "parametros", puntos: temperaturasAireInterior() }
+          ];
+        }
+        function caudalesTresVelocidades() {
+          return { titulo: "CAUDALES AIRE", tipo: "parametros", puntos: [
+            param("caudal_aire_vel_max", "Caudal aire \xB7 velocidad alta", "m\xB3/h", OBL, true),
+            param("caudal_aire_vel_media", "Caudal aire \xB7 velocidad media", "m\xB3/h", OPC, true),
+            param("caudal_aire_vel_baja", "Caudal aire \xB7 velocidad baja", "m\xB3/h", OPC, true)
+          ] };
+        }
+        const P_ELECTRICO = [
+          ["06.01", "Desconexi\xF3n local instalada en un lugar accesible"],
+          ["06.02", "Rotaci\xF3n del motor del ventilador en la direcci\xF3n correcta"],
+          ["06.03", "Todas las conexiones el\xE9ctricas bien fijadas"],
+          ["06.04", "Todas las conexiones el\xE9ctricas est\xE1n conectadas a tierra"]
+        ];
+        const P_MANTENIMIENTO_LARGO = [
+          ["09.01", "Espacio libre adecuado alrededor de la unidad para su servicio"],
+          ["09.02", "Todos los componentes son accesibles para mantenimiento"],
+          ["09.03", "Las tuber\xEDas est\xE1n dispuestas para la retirada f\xE1cil de la unidad"],
+          ["09.04", "Existen los dispositivos adecuados para el mantenimiento y son accesibles (v\xE1lvulas de corte, vaciados, purgas, desag\xFCes)"]
+        ];
+        const PLANTILLAS = [
+          /* ─────────────────────────── Fichas de puesta en marcha (20) */
+          ficha("UTA", "UTA", "UNIDAD DE TRATAMIENTO DE AIRE", seccionesUTA()),
+          ficha("CLIMATIZADOR_REC_ESTATICO", "CLIMATIZADOR REC. ESTATICO", "CLIMATIZADOR CON RECUPERADOR EST\xC1TICO", [
+            ...seccionesUTA(),
+            { titulo: "RECUPERADOR EST\xC1TICO", tipo: "parametros", puntos: temperaturasRecuperador(), calculados: [EFICIENCIA_TERMICA] }
+          ]),
+          ficha("CLIMATIZADOR_REC_ROTATIVO", "CLIMATIZADOR REC. ROTATIVO", "CLIMATIZADOR CON RECUPERADOR ROTATIVO", [
+            ...seccionesUTA(),
+            { titulo: "RECUPERADOR ROTATIVO", tipo: "parametros", puntos: temperaturasRecuperador(), calculados: [EFICIENCIA_TERMICA] }
+          ]),
+          { ...ficha("FAN_COIL_AGUA", "FAN-COIL AGUA", "FAN-COIL (AGUA)", [
+            datosFisicosFancoil(),
+            caudalesTresVelocidades(),
+            { titulo: "TEMPERATURAS AIRE", tipo: "parametros", puntos: temperaturasAireInterior() },
+            { titulo: "TEMPERATURAS AGUA", tipo: "parametros", puntos: temperaturasAgua() }
+          ]), version: 2 },
+          { ...ficha("CASSETTE_AGUA", "CASSETTE AGUA", "CASSETTE (AGUA)", [
+            datosFisicosFancoil(),
+            { titulo: "CARACTER\xCDSTICAS MOTOR", tipo: "datos", puntos: [
+              texto("motor_marca", "Marca"),
+              texto("motor_modelo", "Modelo"),
+              numPunto("motor_potencia", "Potencia", "kW"),
+              numPunto("motor_voltaje", "Voltaje", "V"),
+              numPunto("motor_cos_phi", "Coseno \u03C6"),
+              numPunto("motor_amp_placa", "Amp placa", "A"),
+              numPunto("motor_amp_real", "Amp real", "A")
+            ] },
+            proteccionesElectricas(),
+            caudalesTresVelocidades(),
+            { titulo: "TEMPERATURAS AIRE", tipo: "parametros", puntos: temperaturasAireInterior() },
+            { titulo: "TEMPERATURAS AGUA", tipo: "parametros", puntos: temperaturasAgua() }
+          ]), version: 2 },
+          ficha("RECUPERADOR_PLACAS", "RECUPERADOR PLACAS", "RECUPERADOR DE PLACAS", [
+            { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
+              ...identificacion(),
+              numPunto("caudal_aportacion", "Caudal aportaci\xF3n", "m\xB3/h"),
+              numPunto("caudal_extraccion", "Caudal extracci\xF3n", "m\xB3/h")
+            ] },
+            { titulo: "CAUDALES AIRE", tipo: "parametros", puntos: [
+              param("aportacion", "Aportaci\xF3n", "m\xB3/h", OBL, true),
+              param("extraccion", "Extracci\xF3n", "m\xB3/h", OBL, true)
+            ] },
+            { titulo: "TEMPERATURAS Y EFICIENCIA", tipo: "parametros", puntos: temperaturasRecuperador(), calculados: [EFICIENCIA_TERMICA] }
+          ]),
+          ficha("RECUPERADOR_ROTATIVO", "RECUPERADOR ROTATIVO", "RECUPERADOR ROTATIVO", [
+            { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
+              ...identificacion(),
+              numPunto("caudal_aportacion", "Caudal aportaci\xF3n", "m\xB3/h"),
+              numPunto("caudal_extraccion", "Caudal extracci\xF3n", "m\xB3/h")
+            ] },
+            { titulo: "ROTOR", tipo: "datos", puntos: [
+              lista("rotor_tipo", "Tipo (sensible/ent\xE1lpico)", ["Sensible", "Ent\xE1lpico"]),
+              numPunto("rotor_diametro", "Di\xE1metro", "mm"),
+              numPunto("rotor_velocidad_nominal", "Velocidad nominal", "rpm"),
+              numPunto("rotor_velocidad_medida", "Velocidad medida", "rpm"),
+              siNo("sector_purga", "Sector de purga (s\xED/no)"),
+              texto("estado_juntas_correa", "Estado juntas / correa")
+            ] },
+            { titulo: "MOTOR ROTOR", tipo: "datos", puntos: [
+              texto("motor_marca", "Marca"),
+              numPunto("motor_potencia", "Potencia", "kW"),
+              numPunto("motor_voltaje", "Voltaje", "V"),
+              numPunto("motor_consumo_placa", "Consumo placa", "A"),
+              numPunto("motor_consumo_real", "Consumo real", "A"),
+              texto("variador_senal", "Variador / se\xF1al")
+            ] },
+            { titulo: "CAUDALES AIRE", tipo: "parametros", puntos: [
+              param("aportacion", "Aportaci\xF3n", "m\xB3/h", OBL, true),
+              param("extraccion", "Extracci\xF3n", "m\xB3/h", OBL, true),
+              param("dp_rotor_aportacion", "\u0394P rotor aportaci\xF3n", "Pa", OBL),
+              param("dp_rotor_extraccion", "\u0394P rotor extracci\xF3n", "Pa", OBL)
+            ] },
+            { titulo: "TEMPERATURAS Y EFICIENCIA", tipo: "parametros", puntos: temperaturasRecuperador(), calculados: [EFICIENCIA_TERMICA] }
+          ]),
+          ficha("VENTILADOR_EXTRACTOR", "VENTILADOR-EXTRACTOR", "VENTILADOR - EXTRACTOR", [
+            datosFisicosVentilador(),
+            { titulo: "CAUDALES AIRE", tipo: "parametros", puntos: [
+              param("caudal_aire_nominal", "Caudal nominal", "m\xB3/h", OBL, true)
+            ] }
+          ]),
+          ficha("VENTILADOR_AXIAL", "VENTILADOR AXIAL", "VENTILADOR - EXTRACTOR (AXIAL)", [
+            datosFisicosVentilador(),
+            { titulo: "CAUDALES AIRE", tipo: "parametros", puntos: [
+              param("caudal_aire_nominal", "Caudal nominal", "m\xB3/h", OBL, true)
+            ] }
+          ]),
+          ficha("VENT_COMPLETO", "VENT. COMPLETO", "VENTILADOR-EXTRACTOR", [
+            datosFisicosVentilador(),
+            { titulo: "DATOS EL\xC9CTRICOS", tipo: "datos", puntos: [
+              numPunto("potencia", "Potencia", "W"),
+              numPunto("voltaje", "Voltaje", "V"),
+              numPunto("consumo_placa", "Consumo placa", "A"),
+              numPunto("consumo_real", "Consumo real", "A")
+            ] },
+            proteccionesElectricas(),
+            { titulo: "OPERACIONES", tipo: "parametros", puntos: [
+              param("caudal_aire", "Caudal aire", "m\xB3/h", OBL, true),
+              param("presion_estatica", "Presi\xF3n est\xE1tica", "mm c.a.", OBL, true)
+            ] }
+          ]),
+          ficha("VRF_UD_EXTERIOR", "VRF UD. EXTERIOR", "VRF - UNIDAD EXTERIOR", [
+            { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
+              ...identificacion(),
+              numPunto("potencia_frio", "Potencia fr\xEDo", "kW"),
+              numPunto("potencia_calor", "Potencia calor", "kW"),
+              texto("refrigerante", "Refrigerante")
+            ] },
+            { titulo: "CIRCUITO FRIGOR\xCDFICO", tipo: "datos", puntos: [
+              numPunto("num_uds_interiores", "N\xBA uds. interiores"),
+              numPunto("longitud_tuberia", "Longitud tuber\xEDa", "m"),
+              numPunto("carga_fabrica", "Carga de f\xE1brica", "kg"),
+              numPunto("carga_adicional", "Carga adicional", "kg"),
+              numPunto("presion_prueba_estanq", "Presi\xF3n prueba estanq.", "bar"),
+              numPunto("duracion_prueba", "Duraci\xF3n prueba", "h"),
+              numPunto("vacio_alcanzado", "Vac\xEDo alcanzado", "mbar")
+            ] },
+            { titulo: "DATOS EL\xC9CTRICOS", tipo: "datos", puntos: [
+              numPunto("voltaje", "Voltaje", "V"),
+              numPunto("consumo_placa", "Consumo placa", "A")
+            ] },
+            { titulo: "FUNCIONAMIENTO EN FR\xCDO", tipo: "parametros", puntos: [
+              param("p_alta_frio", "Presi\xF3n alta", "bar", OBL),
+              param("p_baja_frio", "Presi\xF3n baja", "bar", OBL),
+              param("t_descarga_frio", "T\xAA descarga", "\xB0C", OBL),
+              param("recalentamiento", "Recalentamiento", "K", OBL),
+              param("subenfriamiento", "Subenfriamiento", "K", OBL),
+              param("t_aire_exterior_frio", "T\xAA aire exterior", "\xB0C", OBL)
+            ] },
+            { titulo: "FUNCIONAMIENTO EN CALOR", tipo: "parametros", puntos: [
+              param("p_alta_calor", "Presi\xF3n alta", "bar", OPC),
+              param("p_baja_calor", "Presi\xF3n baja", "bar", OPC),
+              param("t_descarga_calor", "T\xAA descarga", "\xB0C", OPC),
+              param("t_aire_exterior_calor", "T\xAA aire exterior", "\xB0C", OPC)
+            ] }
+          ]),
+          ficha("VRF_UI_CONDUCTOS", "VRF UI CONDUCTOS", "VRF - UNIDAD INTERIOR (CONDUCTOS)", seccionesVrfInterior()),
+          ficha("VRF_UI_CASSETTE", "VRF UI CASSETTE", "VRF - UNIDAD INTERIOR (CASSETTE)", seccionesVrfInterior()),
+          { ...ficha("SPLIT_UD_INTERIOR", "SPLIT UD. INTERIOR", "SPLIT - UNIDAD INTERIOR", [
+            { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
+              ...identificacion(),
+              texto("ud_exterior_asociada", "Ud. exterior asociada", { origen: "equipoAsociado" }),
+              numPunto("caudal", "Caudal", "m\xB3/h", { origen: "caudalNominal" }),
+              numPunto("potencia_frio", "Potencia fr\xEDo", "kW"),
+              numPunto("potencia_calor", "Potencia calor", "kW")
+            ] },
+            /* v2 (15-oct): en un split solo se mide la Tª de impulsión. Se queda el
+               código t_salida_frio para no perder lo ya medido. */
+            { titulo: "TEMPERATURAS AIRE", tipo: "parametros", puntos: [
+              param("t_entrada_frio", "T\xAA entrada fr\xEDo", "\xB0C", OPC),
+              param("t_salida_frio", "T\xAA impulsi\xF3n (salida fr\xEDo)", "\xB0C", OBL),
+              param("t_entrada_calor", "T\xAA entrada calor", "\xB0C", OPC),
+              param("t_salida_calor", "T\xAA salida calor", "\xB0C", OPC)
+            ] }
+          ]), version: 2 },
+          { ...ficha("SPLIT_UD_EXTERIOR", "SPLIT UD. EXTERIOR", "SPLIT - UNIDAD EXTERIOR", [
+            { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
+              ...identificacion(),
+              texto("ud_interior_asociada", "Ud. interior asociada", { origen: "equipoAsociado" }),
+              numPunto("potencia_frio", "Potencia fr\xEDo", "kW"),
+              numPunto("potencia_calor", "Potencia calor", "kW"),
+              texto("refrigerante", "Refrigerante")
+            ] },
+            { titulo: "CIRCUITO FRIGOR\xCDFICO", tipo: "datos", puntos: [
+              numPunto("longitud_tuberia", "Longitud tuber\xEDa", "m"),
+              numPunto("carga_fabrica", "Carga de f\xE1brica", "kg"),
+              numPunto("carga_adicional", "Carga adicional", "kg")
+            ] },
+            { titulo: "DATOS EL\xC9CTRICOS", tipo: "datos", puntos: [
+              numPunto("voltaje", "Voltaje", "V"),
+              numPunto("consumo_placa", "Consumo placa", "A"),
+              numPunto("consumo", "Consumo", "A")
+            ] },
+            /* v2: el commissioning del split es conjunto y lo que se mide es la
+               impulsión en la interior; aquí las temperaturas quedan opcionales. */
+            { titulo: "TEMPERATURAS AIRE", tipo: "parametros", puntos: [
+              param("t_aire_exterior_entrada", "T\xAA aire exterior (entrada)", "\xB0C", OPC),
+              param("t_salida_aire_frio", "T\xAA salida aire en fr\xEDo", "\xB0C", OPC),
+              param("t_salida_aire_calor", "T\xAA salida aire en calor", "\xB0C", OPC)
+            ] }
+          ]), version: 2 },
+          ficha("CRAC_UD_INTERIOR", "CRAC UD. INTERIOR", "CRAC - UNIDAD INTERIOR", [
+            { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
+              ...identificacion(),
+              texto("ud_exterior_asociada", "Ud. exterior asociada", { origen: "equipoAsociado" }),
+              numPunto("potencia_frigorifica", "Potencia frigor\xEDfica", "kW"),
+              numPunto("caudal", "Caudal", "m\xB3/h", { origen: "caudalNominal" }),
+              numPunto("voltaje", "Voltaje", "V"),
+              numPunto("consumo_placa", "Consumo placa", "A")
+            ] },
+            { titulo: "CONSIGNAS", tipo: "datos", puntos: [
+              numPunto("consigna_temperatura", "Consigna temperatura", "\xB0C"),
+              numPunto("consigna_humedad", "Consigna humedad", "%HR"),
+              texto("rotacion_reserva", "Rotaci\xF3n / reserva (N+1)"),
+              texto("filtros_clase", "Filtros (clase)")
+            ] },
+            { titulo: "COMPROBACIONES", tipo: "comprobaciones", puntos: [
+              okNoOk("desague_condensados", "Desag\xFCe condensados"),
+              okNoOk("deteccion_fuga_agua", "Detecci\xF3n de fuga de agua"),
+              okNoOk("alarmas_bms", "Alarmas a BMS"),
+              okNoOk("arranque_tras_corte", "Arranque tras corte tensi\xF3n")
+            ] },
+            { titulo: "MEDICIONES EN LA INSTALACI\xD3N", tipo: "parametros", puntos: [
+              param("caudal_aire_impulsion", "Caudal aire impulsi\xF3n", "m\xB3/h", OBL, true),
+              param("t_retorno_sala", "T\xAA retorno (sala)", "\xB0C", OBL),
+              param("t_impulsion", "T\xAA impulsi\xF3n", "\xB0C", OBL),
+              param("hr_sala", "Humedad relativa sala", "%HR", OBL),
+              param("consumo", "Consumo", "A", OBL)
+            ] }
+          ]),
+          ficha("CRAC_UD_EXTERIOR", "CRAC UD. EXTERIOR", "CRAC - UNIDAD EXTERIOR (CONDENSADORA)", [
+            { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
+              ...identificacion(),
+              texto("ud_interior_asociada", "Ud. interior asociada", { origen: "equipoAsociado" }),
+              numPunto("num_condensadoras", "N\xBA condensadoras"),
+              numPunto("caudal_aire", "Caudal aire", "m\xB3/h", { origen: "caudalNominal" }),
+              texto("refrigerante", "Refrigerante")
+            ] },
+            { titulo: "CIRCUITO FRIGOR\xCDFICO", tipo: "datos", puntos: [
+              numPunto("longitud_tuberia", "Longitud tuber\xEDa", "m"),
+              texto("diametro_liq_gas", "Di\xE1metro l\xEDq. / gas"),
+              numPunto("carga_fabrica", "Carga de f\xE1brica", "kg"),
+              numPunto("carga_adicional", "Carga adicional", "kg")
+            ] },
+            { titulo: "DATOS EL\xC9CTRICOS", tipo: "datos", puntos: [
+              numPunto("voltaje", "Voltaje", "V"),
+              numPunto("consumo_placa", "Consumo placa", "A"),
+              numPunto("consumo", "Consumo", "A")
+            ] },
+            { titulo: "MEDICIONES EN LA INSTALACI\xD3N", tipo: "parametros", puntos: [
+              param("t_aire_exterior_entrada", "T\xAA aire exterior (entrada)", "\xB0C", OBL),
+              param("t_salida_aire_condensadora", "T\xAA salida aire condensadora", "\xB0C", OBL)
+            ] }
+          ]),
+          ficha("BOMBA_DE_CALOR", "BOMBA DE CALOR", "BOMBA DE CALOR", [
+            { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
+              ...identificacion(),
+              numPunto("potencia_frio", "Potencia fr\xEDo", "kW"),
+              numPunto("potencia_calor", "Potencia calor", "kW"),
+              texto("refrigerante_carga", "Refrigerante / carga", { unidad: "kg" }),
+              texto("num_compresores_etapas", "N\xBA compresores / etapas"),
+              numPunto("voltaje", "Voltaje", "V"),
+              numPunto("consumo_nominal", "Consumo nominal", "A")
+            ] },
+            { titulo: "MEDICIONES EN LA INSTALACI\xD3N", tipo: "parametros", puntos: [
+              param("t_ida_colector_frio", "T\xAA ida colector \xB7 fr\xEDo", "\xB0C", OBL),
+              param("t_retorno_colector_frio", "T\xAA retorno colector \xB7 fr\xEDo", "\xB0C", OBL),
+              param("t_ida_colector_calor", "T\xAA ida colector \xB7 calor", "\xB0C", OPC),
+              param("t_retorno_colector_calor", "T\xAA retorno colector \xB7 calor", "\xB0C", OPC),
+              param("t_aire_exterior", "T\xAA aire exterior", "\xB0C", OBL),
+              param("caudal_circuito", "Caudal del circuito", "l/s", OBL, true)
+            ] }
+          ]),
+          ficha("ROOFTOP", "ROOFTOP", "ROOFTOP", [
+            { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
+              ...identificacion(),
+              numPunto("potencia_frio", "Potencia fr\xEDo", "kW"),
+              numPunto("potencia_calor", "Potencia calor", "kW"),
+              texto("refrigerante_carga", "Refrigerante / carga", { unidad: "kg" }),
+              numPunto("voltaje", "Voltaje", "V"),
+              numPunto("consumo_nominal", "Consumo nominal", "A")
+            ] },
+            { titulo: "VENTILADOR DE IMPULSI\xD3N", tipo: "datos", puntos: [
+              texto("vent_imp_marca", "Marca"),
+              texto("vent_imp_modelo", "Modelo"),
+              numPunto("vent_imp_potencia", "Potencia", "kW"),
+              numPunto("vent_imp_voltaje", "Voltaje", "V"),
+              numPunto("vent_imp_consumo_placa", "Consumo placa", "A")
+            ] },
+            { titulo: "VENTILADOR DE RETORNO", tipo: "datos", puntos: [
+              texto("vent_ret_marca", "Marca"),
+              texto("vent_ret_modelo", "Modelo"),
+              numPunto("vent_ret_potencia", "Potencia", "kW"),
+              numPunto("vent_ret_voltaje", "Voltaje", "V"),
+              numPunto("vent_ret_consumo_placa", "Consumo placa", "A")
+            ] },
+            { titulo: "FILTROS IMPULSI\xD3N", tipo: "datos", puntos: [
+              texto("filtro_imp_etapa1", "Etapa 1 (clase)"),
+              texto("filtro_imp_etapa2", "Etapa 2 (clase)")
+            ] },
+            { titulo: "FILTROS RETORNO", tipo: "datos", puntos: [
+              texto("filtro_ret_etapa1", "Etapa 1 (clase)"),
+              texto("filtro_ret_etapa2", "Etapa 2 (clase)")
+            ] },
+            { titulo: "CAUDALES EN LA INSTALACI\xD3N", tipo: "parametros", puntos: [
+              param("caudal_aire_impulsion", "Caudal aire impulsi\xF3n", "m\xB3/h", OBL, true),
+              param("caudal_aire_retorno", "Caudal aire retorno", "m\xB3/h", OBL, true),
+              param("caudal_aire_exterior", "Caudal aire exterior", "m\xB3/h", OBL, true)
+            ] },
+            { titulo: "TEMPERATURAS AIRE", tipo: "parametros", puntos: [
+              param("t_aire_exterior", "T\xAA aire exterior", "\xB0C", OBL),
+              param("t_retorno", "T\xAA retorno", "\xB0C", OBL),
+              param("t_impulsion_frio", "T\xAA impulsi\xF3n fr\xEDo", "\xB0C", OBL),
+              param("t_impulsion_calor", "T\xAA impulsi\xF3n calor", "\xB0C", OPC)
+            ] }
+          ]),
+          ficha("GRUPO_DE_BOMBEO", "GRUPO DE BOMBEO", "GRUPO DE BOMBEO", [
+            { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
+              ...identificacion(),
+              texto("circuito", "Circuito", { origen: "circuito" }),
+              numPunto("num_bombas", "N\xBA bombas del grupo"),
+              numPunto("caudal", "Caudal", "m\xB3/h", { origen: "caudalNominal" }),
+              numPunto("altura", "Altura", "m c.a."),
+              numPunto("consigna", "Consigna", "m c.a."),
+              texto("modo_regulacion", "Modo de regulaci\xF3n")
+            ] },
+            { titulo: "DATOS EL\xC9CTRICOS", tipo: "datos", puntos: [
+              numPunto("potencia", "Potencia", "kW"),
+              numPunto("voltaje", "Voltaje", "V"),
+              numPunto("consumo_placa", "Consumo placa", "A"),
+              numPunto("consumo_real", "Consumo real", "A"),
+              numPunto("velocidad_giro_placa", "Velocidad de giro placa", "rpm"),
+              numPunto("velocidad_giro_real", "Velocidad de giro real", "rpm"),
+              okNoOk("sentido_giro", "Sentido de giro (OK/NO)"),
+              numPunto("consigna_variador", "Consigna variador", "Hz")
+            ] },
+            { titulo: "MEDICIONES EN LA INSTALACI\xD3N", tipo: "parametros", puntos: [
+              param("caudal_circuito", "Caudal del circuito", "m\xB3/h", OBL, true),
+              param("presion_aspiracion", "Presi\xF3n aspiraci\xF3n", "bar", OBL),
+              param("presion_impulsion", "Presi\xF3n impulsi\xF3n", "bar", OBL),
+              param("presion_diferencial", "Presi\xF3n diferencial circuito", "m c.a.", OBL, true)
+            ] }
+          ]),
+          /* ─────────────────────────── Balanceo (1) */
+          {
+            codigo: "BALANCEO_CAUDALES",
+            nombre: "BALANCEO CAUDALES",
+            titulo: "FICHA DE BALANCEO DE CAUDALES DE AIRE",
+            clase: "balanceo",
+            version: 1,
+            formato: FORMATO,
+            criterio: "Criterio: total del sistema dentro de la tolerancia de caudales y cada boca dentro de la tolerancia por boca (hoja DATOS) \u2192 APTO. Medido id\xE9ntico a proyecto \u2192 A REVISAR (posible valor copiado).",
+            norma: "UNE-EN 12599 / RITE IT 2.3",
+            secciones: [
+              { titulo: "DATOS DEL SISTEMA", tipo: "datos", puntos: [
+                texto("equipo", "Equipo (TAG)", { origen: "tag" }),
+                texto("zona_servida", "Zona servida"),
+                numPunto("caudal_proyecto_impulsion", "Caudal proyecto impulsi\xF3n", "m\xB3/h"),
+                numPunto("caudal_proyecto_retorno", "Caudal proyecto retorno", "m\xB3/h"),
+                texto("metodo_medida", "M\xE9todo de medida"),
+                /* Estos cuatro no tienen rótulo en la hoja; vienen de la hoja MAPA
+                   (columnas de la tabla BALANCEO SISTEMAS). */
+                numPunto("frecuencia_final_impulsion", "Frecuencia final impulsi\xF3n", "Hz"),
+                numPunto("frecuencia_final_retorno", "Frecuencia final retorno", "Hz"),
+                numPunto("presion_estatica_impulsion", "Presi\xF3n est\xE1tica impulsi\xF3n"),
+                numPunto("presion_estatica_retorno", "Presi\xF3n est\xE1tica retorno")
+              ] },
+              {
+                titulo: "BOCAS",
+                tipo: "bocas",
+                bocas: { impulsion: 20, retorno: 12 },
+                columnas: ["local", "terminal", "proyecto", "medido", "compuerta"],
+                rotulos: {
+                  impulsion: "IMPULSI\xD3N - UNIDADES TERMINALES",
+                  retorno: "RETORNO / EXTRACCI\xD3N - UNIDADES TERMINALES",
+                  local: "Local / sala",
+                  terminal: "Terminal",
+                  proyecto: "Proyecto",
+                  medido: "Medido",
+                  compuerta: "Posici\xF3n compuerta / observ."
+                },
+                unidad: "m\xB3/h",
+                tolerancia: "boca",
+                calculados: [
+                  { codigo: "desv_boca", etiqueta: "Desv. % y resultado por boca", criterio: "tolerancia por boca; medido = proyecto \u2192 A REVISAR" },
+                  { codigo: "total", etiqueta: "Total de impulsi\xF3n y de retorno", criterio: "suma de bocas contra la tolerancia de caudales (total)" },
+                  { codigo: "resumen", etiqueta: "Resumen del balanceo del sistema", criterio: "por red: n\xBA de bocas, proyecto del sistema, suma de proyecto de bocas, caudal medido (suma de bocas), desv. % y resultado contra la tolerancia de caudales" }
+                ]
+              }
+            ]
+          },
+          /* ─────────────────────────── Certificados de estanqueidad (2) */
+          {
+            codigo: "ESTANQ_REFRIGERANTE",
+            nombre: "ESTANQ. REFRIGERANTE",
+            titulo: "CERTIFICADO DE PRUEBA DE ESTANQUEIDAD \xB7 TUBER\xCDAS DE GAS REFRIGERANTE",
+            clase: "estanqRefrigerante",
+            version: 1,
+            formato: FORMATO,
+            criterio: "Criterio: presi\xF3n inicial no inferior a la m\xEDnima exigida y ca\xEDda de presi\xF3n no superior a la admisible. En refrigerante, la presi\xF3n final se corrige por temperatura ambiente y la m\xEDnima exigida es PS (41,5 bar por defecto, R32/R410A: confirmar con el fabricante).",
+            norma: "RD 552/2019 (RSIF) / UNE-EN 378-2",
+            secciones: [
+              { titulo: "DATOS DEL CIRCUITO", tipo: "datos", puntos: [
+                texto("sistema", "Sistema / equipo (TAG)", { origen: "tag" }),
+                texto("refrigerante", "Refrigerante"),
+                texto("tramo", "Tramo / zona"),
+                /* La «Presión máx. admisible PS» de la hoja es la presión mínima
+                   exigida de la prueba: un solo dato, `p_minima`, en la sección de
+                   abajo. */
+                numPunto("longitud_tuberia", "Longitud de tuber\xEDa", "m"),
+                texto("diametros", "Di\xE1metros l\xEDq. / gas"),
+                texto("material_union", "Material / tipo de uni\xF3n"),
+                numPunto("carga_adicional", "Carga adicional", "kg"),
+                texto("empresa_frigorista", "Empresa frigorista")
+              ] },
+              {
+                titulo: "PRUEBA DE PRESI\xD3N",
+                tipo: "pruebaPresion",
+                puntos: [
+                  texto("gas_prueba", "Gas de prueba", { valorPorDefecto: "Nitr\xF3geno seco" }),
+                  texto("manometro", "Man\xF3metro n\xBA / calibr."),
+                  numPunto("p_minima", "Presi\xF3n m\xEDnima exigida (PS)", "bar", { valorPorDefecto: 41.5, obligatorio: false }),
+                  numPunto("duracion_h", "Duraci\xF3n", "h"),
+                  fechaPunto("inicio", "Fecha y hora de inicio"),
+                  fechaPunto("fin", "Fecha y hora de fin"),
+                  numPunto("p_inicial", "Presi\xF3n inicial", "bar"),
+                  numPunto("p_final", "Presi\xF3n final", "bar"),
+                  numPunto("t_inicial", "T\xAA ambiente inicial", "\xB0C"),
+                  numPunto("t_final", "T\xAA ambiente final", "\xB0C"),
+                  numPunto("caida_admisible", "Ca\xEDda admisible", "bar", { valorPorDefecto: 0, obligatorio: false })
+                ],
+                calculados: [
+                  { codigo: "p_final_corregida", etiqueta: "Presi\xF3n final corregida", unidad: "bar", formula: "(Pf + 1,013) \xB7 (Ti + 273,15) / (Tf + 273,15) \u2212 1,013" },
+                  { codigo: "caida_corregida", etiqueta: "Ca\xEDda de presi\xF3n corregida", unidad: "bar", formula: "redondeo a 0,1 de (Pi \u2212 Pf corregida)" },
+                  { codigo: "resultado", etiqueta: "Resultado", criterio: "APTO si Pi \u2265 PS y ca\xEDda corregida \u2264 ca\xEDda admisible; si no, NO APTO" }
+                ]
+              },
+              { titulo: "PRUEBA DE VAC\xCDO", tipo: "datos", puntos: [
+                numPunto("vacio_mbar", "Vac\xEDo alcanzado", "mbar"),
+                numPunto("tiempo_vacio_h", "Tiempo de mantenimiento", "h"),
+                texto("vacuometro", "Vacu\xF3metro n\xBA / calibr."),
+                okNoOk("resultado_vacio", "Resultado")
+              ] },
+              { titulo: "COMPROBACIONES", tipo: "comprobaciones", puntos: [
+                okNoOk("fugas_uniones", "Revisi\xF3n fugas en uniones"),
+                okNoOk("soldadura_nitrogeno", "Soldadura con nitr\xF3geno"),
+                okNoOk("aislamiento_termico", "Aislamiento t\xE9rmico"),
+                okNoOk("identificacion_circuitos", "Identificaci\xF3n de circuitos")
+              ] },
+              { titulo: "FOTOGRAF\xCDAS DE LOS MAN\xD3METROS", tipo: "fotos", maximo: 4 }
+            ]
+          },
+          {
+            codigo: "ESTANQ_AGUA",
+            nombre: "ESTANQ. AGUA",
+            titulo: "CERTIFICADO DE PRUEBA DE ESTANQUEIDAD \xB7 TUBER\xCDAS DE AGUA",
+            clase: "estanqAgua",
+            version: 1,
+            formato: FORMATO,
+            criterio: "Criterio: la red mantiene la presi\xF3n de prueba durante el tiempo indicado, sin fugas en uniones ni ca\xEDda de presi\xF3n.",
+            norma: "RITE IT 2.2.2 / UNE 100151",
+            secciones: [
+              { titulo: "DATOS DEL CIRCUITO", tipo: "datos", puntos: [
+                texto("circuito", "Circuito / tramo", { origen: "circuito" }),
+                texto("zona_planta", "Zona / planta"),
+                texto("fluido", "Fluido"),
+                numPunto("temperatura", "Temperatura", "\xB0C"),
+                texto("material", "Material"),
+                numPunto("p_max_trabajo", "Presi\xF3n m\xE1x. de trabajo", "bar"),
+                /* Sin rótulo en la hoja; vienen de la hoja MAPA. */
+                lista("tipo_circuito", "Tipo (cerrado / ACS)", ["Cerrado", "ACS"]),
+                texto("empresa_instaladora", "Empresa instaladora")
+              ] },
+              {
+                titulo: "PRUEBA DE ESTANQUEIDAD",
+                tipo: "pruebaPresion",
+                puntos: [
+                  numPunto("p_prueba", "Presi\xF3n", "bar"),
+                  numPunto("duracion_h", "Duraci\xF3n", "h"),
+                  siNo("fugas", "Fugas detectadas (s\xED / no)"),
+                  okNoOk("resultado", "Resultado"),
+                  /* La hoja MAPA prevé además la prueba de resistencia mecánica con
+                     lecturas de manómetro; la plantilla no las imprime, así que no
+                     cuentan para dar la ficha por completa. */
+                  texto("manometro", "Man\xF3metro n\xBA / calibr.", { obligatorio: false }),
+                  fechaPunto("inicio", "Fecha y hora de inicio", { obligatorio: false }),
+                  fechaPunto("fin", "Fecha y hora de fin", { obligatorio: false }),
+                  numPunto("p_inicial", "Presi\xF3n inicial", "bar", { obligatorio: false }),
+                  numPunto("p_final", "Presi\xF3n final", "bar", { obligatorio: false }),
+                  numPunto("duracion_resistencia_h", "Prueba de resistencia mec\xE1nica \xB7 duraci\xF3n", "h", { obligatorio: false }),
+                  numPunto("caida_admisible", "Ca\xEDda admisible", "bar", { obligatorio: false })
+                ]
+              },
+              { titulo: "COMPROBACIONES", tipo: "comprobaciones", puntos: [
+                okNoOk("llenado_purga", "Llenado y purga de aire"),
+                okNoOk("equipos_sensibles_aislados", "Equipos sensibles aislados"),
+                okNoOk("limpieza_previa", "Limpieza previa de la red"),
+                okNoOk("reposicion_presion_servicio", "Reposici\xF3n presi\xF3n servicio")
+              ] },
+              { titulo: "FOTOGRAF\xCDAS DE LOS MAN\xD3METROS", tipo: "fotos", maximo: 4 }
+            ]
+          },
+          /* ─────────────────────────── Listados de chequeo (8) */
+          checklist("CHECKLIST_UTA", "CHECKLIST UTA", "RECEPCI\xD3N Y PUESTA EN OBRA \xB7 UTA", [
+            bloque("02", "VERIFICACIONES F\xCDSICAS", [
+              ["02.01", "La unidad est\xE1 libre de da\xF1os"],
+              ["02.02", "Todos los componentes presentes y en orden"],
+              ["02.03", "Las aperturas de la l\xEDnea de agua est\xE1n selladas"],
+              ["02.04", "Manual de instalaci\xF3n y encendido provisto"],
+              ["02.05", "Placa de caracter\xEDsticas correctamente colocada"]
+            ]),
+            bloque("03", "AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA", [
+              ["03.01", "Los equipos instalados se corresponden con el Proyecto o Memoria T\xE9cnica"],
+              ["03.02", "La ubicaci\xF3n de las unidades instaladas se corresponde con el Proyecto o Memoria"]
+            ]),
+            bloque("04", "INSTALACI\xD3N DEL EQUIPO", [
+              ["04.01", "Unidad perfectamente apoyada usando el tama\xF1o adecuado de anclajes de montaje"],
+              ["04.02", "Antivibratorios correctamente instalados y unidad convenientemente nivelada"],
+              ["04.03", "Se cumplen las distancias m\xEDnimas recomendadas por el fabricante"],
+              ["04.04", "La aspiraci\xF3n y descarga de aire es adecuada y no afecta a otros"],
+              ["04.05", "Unidad etiquetada y f\xE1cil de identificar"],
+              ["04.06", "La unidad se puede retirar del edificio"],
+              ["04.07", "El equipo est\xE1 convenientemente conectado a la red de conductos"]
+            ]),
+            bloque("05", "TUBER\xCDAS Y V\xC1LVULAS", [
+              ["05.01", "Todos los componentes de las tuber\xEDas han sido instalados"],
+              ["05.02", "Los soportes de las tuber\xEDas est\xE1n como se requieren en las especificaciones"],
+              ["05.03", "Las tuber\xEDas est\xE1n convenientemente conectadas a m\xE1quina con elementos antivibratorios"],
+              ["05.04", "Tuber\xEDas limpias y libres de suciedad"],
+              ["05.05", "El aislamiento de tuber\xEDas est\xE1 completo e instalado seg\xFAn las especificaciones"],
+              ["05.06", "Existen llaves de corte para la independencia hidr\xE1ulica"],
+              ["05.07", "Etiquetas de v\xE1lvulas fijadas"],
+              ["05.08", "Se ha comprobado que el desag\xFCe funciona (altura, sifones, bomba)"],
+              ["05.09", "Se dispone de tomas para la medida de presi\xF3n y temperatura a la entrada y salida de m\xE1quina"]
+            ]),
+            bloque("06", "EL\xC9CTRICO", P_ELECTRICO),
+            bloque("07", "CONTROLES - INSTALACI\xD3N", [
+              ["07.01", "Termostatos / presostatos instalados y verificada su calibraci\xF3n"],
+              ["07.02", "Cableado de control para la unidad exterior (compresor)"],
+              ["07.03", "Comunicaci\xF3n con la unidad exterior verificada"]
+            ]),
+            bloque("08", "CONTROLES - PUESTA EN MARCHA", [
+              ["08.01", "Tensi\xF3n de alimentaci\xF3n (RSTN) y sentido de rotaci\xF3n correctos"],
+              ["08.02", "Secuencia de control de opci\xF3n fr\xEDo verificada"],
+              ["08.03", "Secuencia de control de opci\xF3n calor verificada"],
+              ["08.04", "El sistema se enciende sin ning\xFAn ruido o vibraci\xF3n anormal"],
+              ["08.05", "Se adjunta informe de puesta en marcha del fabricante con detalle"]
+            ]),
+            bloque("09", "MANTENIMIENTO", [
+              ["09.01", "Espacio libre adecuado alrededor de la unidad para su servicio"],
+              ["09.02", "Todos los componentes son accesibles para mantenimiento"],
+              ["09.03", "Las tuber\xEDas est\xE1n dispuestas para la retirada f\xE1cil de la unidad"],
+              ["09.04", "Existen los dispositivos adecuados para el mantenimiento y son accesibles"]
+            ])
+          ]),
+          checklist("CHECKLIST_ENFRIADORA", "CHECKLIST ENFRIADORA", "RECEPCI\xD3N Y PUESTA EN OBRA \xB7 ENFRIADORA AIRE-AGUA", [
+            bloque("02", "VERIFICACIONES F\xCDSICAS", [
+              ["02.01", "La unidad est\xE1 libre de da\xF1os"],
+              ["02.02", "Todos los componentes presentes y en orden"],
+              ["02.03", "Las aperturas de la l\xEDnea de agua est\xE1n selladas"],
+              ["02.04", "Manual de instalaci\xF3n y encendido provisto"],
+              ["02.05", "Placa de caracter\xEDsticas correctamente colocada"]
+            ]),
+            bloque("03", "AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA", [
+              ["03.01", "Los equipos instalados se corresponden con el Proyecto o Memoria T\xE9cnica"]
+            ]),
+            bloque("04", "INSTALACI\xD3N DEL EQUIPO", [
+              ["04.01", "Unidad perfectamente apoyada usando el tama\xF1o adecuado de anclajes de montaje"],
+              ["04.02", "Antivibratorios correctamente instalados y unidad convenientemente nivelada"],
+              ["04.03", "Se cumplen las distancias m\xEDnimas recomendadas por el fabricante"],
+              ["04.04", "La aspiraci\xF3n y descarga de aire es adecuada y no afecta a otros aparatos"],
+              ["04.05", "Unidad etiquetada y f\xE1cil de identificar"],
+              ["04.06", "La unidad se puede retirar del edificio"],
+              ["04.07", "Existen tomas para la lectura de la presi\xF3n de alta y baja"]
+            ]),
+            bloque("05", "CONEXI\xD3N HIDR\xC1ULICA", [
+              ["05.01", "Todos los componentes de las tuber\xEDas han sido instalados"],
+              ["05.02", "Los soportes de las tuber\xEDas est\xE1n como se requieren en las especificaciones"],
+              ["05.03", "Las tuber\xEDas est\xE1n convenientemente conectadas a m\xE1quina con elementos antivibratorios"],
+              ["05.04", "Tuber\xEDas limpias y libres de suciedad"],
+              ["05.05", "El aislamiento de tuber\xEDas est\xE1 completo e instalado seg\xFAn las especificaciones de Proyecto"],
+              ["05.06", "Existen llaves de corte para la independencia hidr\xE1ulica"],
+              ["05.07", "Etiquetas de v\xE1lvulas fijadas"],
+              ["05.08", "Se ha comprobado que el desag\xFCe funciona (altura, sifones, bomba de condensados)"],
+              ["05.09", "Se dispone de tomas para la medida de presi\xF3n (man\xF3metros) y temperatura a la entrada y salida de m\xE1quina"]
+            ]),
+            bloque("06", "EL\xC9CTRICO", [
+              ...P_ELECTRICO,
+              ["06.05", "El magnetot\xE9rmico se corresponde con la intensidad de consumo m\xE1s 25%"],
+              ["06.06", "El diferencial se corresponde con la intensidad de consumo m\xE1s 40%"]
+            ]),
+            bloque("07", "CONTROLES - INSTALACI\xD3N", [
+              ["07.01", "El interruptor de flujo est\xE1 instalado, conectado y funciona"],
+              ["07.02", "La sonda de temperatura est\xE1 instalada, conectada y funciona"],
+              ["07.03", "El cableado de control para la unidad est\xE1 correctamente conectado"]
+            ]),
+            bloque("08", "CONTROLES - PUESTA EN MARCHA", [
+              ["08.01", "Tensi\xF3n de alimentaci\xF3n (RSTN) y sentido de rotaci\xF3n correctos"],
+              ["08.02", "Secuencia de control de opci\xF3n fr\xEDo verificada"],
+              ["08.03", "Secuencia de control de opci\xF3n calor verificada"],
+              ["08.04", "El sistema se enciende sin ning\xFAn ruido o vibraci\xF3n anormal"],
+              ["08.05", "Se adjunta informe de puesta en marcha del fabricante con detalle de las pruebas, medidas y ajustes"]
+            ]),
+            /* La hoja salta del 09.01 al 09.03: no hay 09.02. */
+            bloque("09", "MANTENIMIENTO", [
+              ["09.01", "Espacio libre adecuado alrededor de la unidad para su servicio"],
+              ["09.03", "Las tuber\xEDas est\xE1n dispuestas para la retirada f\xE1cil de la unidad"],
+              ["09.04", "Existen los dispositivos adecuados para el mantenimiento y son accesibles (v\xE1lvulas de corte, vaciados, purgas, desag\xFCes, dispositivos de lectura)"]
+            ])
+          ]),
+          checklist("CHECKLIST_FANCOIL", "CHECKLIST FANCOIL", "RECEPCI\xD3N Y PUESTA EN OBRA \xB7 FANCOIL", [
+            { titulo: "DATOS DE LA INSTALACI\xD3N", tipo: "datos", puntos: [
+              siNo("asociado_red_conductos", "Asociado a red de conductos")
+            ] },
+            bloque("02", "VERIFICACIONES F\xCDSICAS", [
+              ["02.01", "La unidad est\xE1 libre de da\xF1os"],
+              ["02.02", "Todos los componentes presentes y en orden"],
+              ["02.03", "Las aperturas de la l\xEDnea de agua est\xE1n selladas"],
+              ["02.04", "Manual de instalaci\xF3n y encendido provisto"],
+              ["02.05", "Placa de caracter\xEDsticas correctamente colocada"]
+            ]),
+            bloque("03", "AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA", [
+              ["03.01", "Los fancoils instalados se corresponden con el Proyecto o Memoria T\xE9cnica"],
+              ["03.02", "La ubicaci\xF3n de las unidades instaladas se corresponde con el Proyecto o Memoria T\xE9cnica"]
+            ]),
+            bloque("04", "INSTALACI\xD3N DEL EQUIPO", [
+              ["04.01", "Unidad perfectamente apoyada usando el tama\xF1o adecuado de anclajes de montaje"],
+              ["04.02", "Antivibratorios correctamente instalados y unidad convenientemente nivelada"],
+              ["04.03", "El fancoil est\xE1 convenientemente conectado a la red de conductos"],
+              ["04.04", "La unidad se puede retirar del edificio"],
+              ["04.05", "Unidad etiquetada y f\xE1cil de identificar"]
+            ]),
+            bloque("05", "TUBER\xCDAS Y V\xC1LVULAS", [
+              ["05.01", "Todos los componentes de las tuber\xEDas han sido instalados"],
+              ["05.02", "Los soportes de las tuber\xEDas est\xE1n como se requieren en las especificaciones"],
+              ["05.03", "Las tuber\xEDas est\xE1n convenientemente conectadas a m\xE1quina con elementos antivibratorios"],
+              ["05.04", "Tuber\xEDas limpias y libres de suciedad"],
+              ["05.05", "El aislamiento de tuber\xEDas est\xE1 completo e instalado seg\xFAn las especificaciones"],
+              ["05.06", "Existen llaves de corte para la independencia hidr\xE1ulica de cada fancoil"],
+              ["05.07", "Etiquetas de v\xE1lvulas fijadas"],
+              ["05.08", "Se ha comprobado que el desag\xFCe funciona (altura, sifones, bomba de condensados)"]
+            ]),
+            bloque("06", "EL\xC9CTRICO", P_ELECTRICO),
+            bloque("07", "CONTROLES - INSTALACI\xD3N", [
+              ["07.01", "Termostato del local instalado y verificada su calibraci\xF3n"],
+              ["07.02", "Cableado de control para la unidad exterior (compresor)"],
+              ["07.03", "Comunicaci\xF3n con la unidad exterior verificada"]
+            ]),
+            bloque("08", "CONTROLES - PUESTA EN MARCHA", [
+              ["08.01", "Tensi\xF3n de alimentaci\xF3n (RSTN) y sentido de rotaci\xF3n correctos"],
+              ["08.02", "Secuencia de control de opci\xF3n fr\xEDo verificada"],
+              ["08.03", "Secuencia de control de opci\xF3n calor verificada"],
+              ["08.04", "El sistema se enciende sin ning\xFAn ruido o vibraci\xF3n anormal"],
+              ["08.05", "Se adjunta informe de puesta en marcha del fabricante con detalle de las pruebas, medidas y ajustes"]
+            ]),
+            bloque("09", "MANTENIMIENTO", P_MANTENIMIENTO_LARGO)
+          ]),
+          checklist("CHECKLIST_BOMBA_CALOR", "CHECKLIST BOMBA CALOR", "RECEPCI\xD3N Y PUESTA EN OBRA \xB7 BOMBA DE CALOR", [
+            { titulo: "DATOS DE LA INSTALACI\xD3N", tipo: "datos", puntos: [
+              siNo("asociado_red_conductos", "Asociado a red de conductos")
+            ] },
+            bloque("02", "VERIFICACIONES F\xCDSICAS", [
+              ["02.01", "La unidad est\xE1 libre de da\xF1os"],
+              ["02.02", "Todos los componentes presentes y en orden"],
+              ["02.03", "Las aperturas de la l\xEDnea de agua est\xE1n selladas"],
+              ["02.04", "Manual de instalaci\xF3n y encendido provisto"],
+              ["02.05", "Placa de caracter\xEDsticas correctamente colocada"]
+            ]),
+            bloque("03", "AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA", [
+              ["03.01", "Los equipos instalados se corresponden con el Proyecto o Memoria T\xE9cnica"],
+              ["03.02", "La ubicaci\xF3n de los equipos instalados se corresponde con el Proyecto o Memoria T\xE9cnica"]
+            ]),
+            bloque("04", "INSTALACI\xD3N DEL EQUIPO", [
+              ["04.01", "Unidad perfectamente apoyada usando el tama\xF1o adecuado de anclajes de montaje"],
+              ["04.02", "Antivibratorios correctamente instalados y unidad convenientemente nivelada"],
+              ["04.03", "El equipo est\xE1 convenientemente conectado a la red de conductos"],
+              ["04.04", "La unidad se puede retirar del edificio"],
+              ["04.05", "Unidad etiquetada y f\xE1cil de identificar"]
+            ]),
+            bloque("05", "TUBER\xCDAS Y V\xC1LVULAS", [
+              ["05.01", "Todos los componentes de las tuber\xEDas han sido instalados"],
+              ["05.02", "Los soportes de las tuber\xEDas est\xE1n como se requieren en las especificaciones"],
+              ["05.03", "Las tuber\xEDas est\xE1n convenientemente conectadas a m\xE1quina con elementos antivibratorios"],
+              ["05.04", "Tuber\xEDas limpias y libres de suciedad"],
+              ["05.05", "El aislamiento de tuber\xEDas est\xE1 completo e instalado seg\xFAn las especificaciones"],
+              ["05.06", "Existen llaves de corte para la independencia hidr\xE1ulica"],
+              ["05.07", "Etiquetas de v\xE1lvulas fijadas"],
+              ["05.08", "Se ha comprobado que el desag\xFCe funciona (altura, sifones, bomba de condensados)"]
+            ]),
+            bloque("06", "EL\xC9CTRICO", P_ELECTRICO),
+            bloque("07", "CONTROLES - INSTALACI\xD3N", [
+              ["07.01", "Termostato del local instalado y verificada su calibraci\xF3n"],
+              ["07.02", "Cableado de control para la unidad exterior (compresor)"],
+              ["07.03", "Comunicaci\xF3n con la unidad exterior verificada"]
+            ]),
+            bloque("08", "CONTROLES - PUESTA EN MARCHA", [
+              ["08.01", "Tensi\xF3n de alimentaci\xF3n (RSTN) y sentido de rotaci\xF3n correctos"],
+              ["08.02", "Secuencia de control de opci\xF3n fr\xEDo verificada"],
+              ["08.03", "Secuencia de control de opci\xF3n calor verificada"],
+              ["08.04", "El sistema se enciende sin ning\xFAn ruido o vibraci\xF3n anormal"],
+              ["08.05", "Se adjunta informe de puesta en marcha del fabricante con detalle de las pruebas, medidas y ajustes"]
+            ]),
+            bloque("09", "MANTENIMIENTO", P_MANTENIMIENTO_LARGO)
+          ]),
+          checklist("CHECKLIST_RECUPERADOR", "CHECKLIST RECUPERADOR", "RECEPCI\xD3N Y PUESTA EN OBRA \xB7 RECUPERADOR DE CALOR", [
+            bloque("02", "VERIFICACIONES F\xCDSICAS", [
+              ["02.01", "La unidad est\xE1 libre de da\xF1os"],
+              ["02.02", "Todos los componentes presentes y en orden"],
+              ["02.03", "Los filtros est\xE1n bien instalados y limpios"],
+              ["02.04", "Manual de instalaci\xF3n y encendido provisto"],
+              ["02.05", "Placa de caracter\xEDsticas correctamente colocada"]
+            ]),
+            bloque("03", "AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA", [
+              ["03.01", "Los equipos instalados se corresponden con el Proyecto o Memoria T\xE9cnica"],
+              ["03.02", "La ubicaci\xF3n de los equipos instalados se corresponde con el Proyecto o Memoria T\xE9cnica"]
+            ]),
+            bloque("04", "INSTALACI\xD3N DEL EQUIPO", [
+              ["04.01", "Unidad perfectamente apoyada usando el tama\xF1o adecuado de anclajes de montaje"],
+              ["04.02", "Antivibratorios correctamente instalados y unidad convenientemente nivelada"],
+              ["04.03", "La aspiraci\xF3n del aire exterior es adecuada y no toma aire de salidas"],
+              ["04.04", "El equipo est\xE1 convenientemente conectado a la red de conductos"],
+              ["04.05", "La unidad se puede retirar del edificio"],
+              ["04.06", "Unidad etiquetada y f\xE1cil de identificar"]
+            ]),
+            bloque("05", "EL\xC9CTRICO", [
+              ["05.01", "Desconexi\xF3n local instalada en un lugar accesible"],
+              ["05.02", "Rotaci\xF3n del motor del ventilador en la direcci\xF3n correcta"],
+              ["05.03", "Todas las conexiones el\xE9ctricas bien fijadas"],
+              ["05.04", "Todas las conexiones el\xE9ctricas est\xE1n conectadas a tierra"]
+            ]),
+            bloque("06", "SISTEMA MEC\xC1NICO", [
+              ["06.01", "El sistema est\xE1 limpio"],
+              ["06.02", "Rueda lubricada y alineada"],
+              ["06.03", "Las correas de la rueda est\xE1n en buenas condiciones"]
+            ]),
+            bloque("07", "CONTROLES - INSTALACI\xD3N", [
+              ["07.01", "Termostato del local instalado y verificada su calibraci\xF3n"],
+              ["07.02", "Cableado de control para la unidad exterior (compresor)"],
+              ["07.03", "Conexi\xF3n de cableado de control adecuado"]
+            ]),
+            bloque("08", "CONTROLES - PUESTA EN MARCHA", [
+              ["08.01", "Tensi\xF3n de alimentaci\xF3n (RSTN) y sentido de rotaci\xF3n correctos"],
+              ["08.02", "Secuencia de control de opci\xF3n fr\xEDo verificada"],
+              ["08.03", "Secuencia de control de opci\xF3n calor verificada"],
+              ["08.04", "El sistema se enciende sin ning\xFAn ruido o vibraci\xF3n anormal"],
+              ["08.05", "La p\xE9rdida de presi\xF3n de los filtros es la esperada"],
+              ["08.06", "Los ventiladores giran correctamente y su velocidad se corresponde con el Proyecto"],
+              ["08.07", "Se adjunta informe de puesta en marcha del fabricante con detalle de las pruebas, medidas y ajustes"]
+            ]),
+            bloque("09", "MANTENIMIENTO", P_MANTENIMIENTO_LARGO)
+          ]),
+          checklist("CHECKLIST_VENTILADOR", "CHECKLIST VENTILADOR", "RECEPCI\xD3N Y PUESTA EN OBRA \xB7 VENTILADOR", [
+            bloque("02", "VERIFICACIONES F\xCDSICAS", [
+              ["02.01", "La unidad est\xE1 libre de da\xF1os"],
+              ["02.02", "Todos los componentes presentes y en orden"],
+              ["02.03", "Los filtros est\xE1n bien instalados y limpios"],
+              ["02.04", "Manual de instalaci\xF3n y encendido provisto"],
+              ["02.05", "Placa de caracter\xEDsticas correctamente colocada"]
+            ]),
+            bloque("03", "AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA", [
+              ["03.01", "Los equipos instalados se corresponden con el Proyecto o Memoria T\xE9cnica"],
+              ["03.02", "La ubicaci\xF3n de los equipos instalados se corresponde con el Proyecto o Memoria T\xE9cnica"]
+            ]),
+            bloque("04", "INSTALACI\xD3N DEL EQUIPO", [
+              ["04.01", "Unidad perfectamente apoyada usando el tama\xF1o adecuado de anclajes de montaje"],
+              ["04.02", "Antivibratorios correctamente instalados y unidad convenientemente nivelada"],
+              ["04.03", "La aspiraci\xF3n del aire exterior es adecuada y no toma aire de salidas"],
+              ["04.04", "El equipo est\xE1 convenientemente conectado a la red de conductos"],
+              ["04.05", "La unidad se puede retirar del edificio"],
+              ["04.06", "Unidad etiquetada y f\xE1cil de identificar"]
+            ]),
+            bloque("05", "EL\xC9CTRICO", [
+              ["05.01", "Desconexi\xF3n local instalada en un lugar accesible"],
+              ["05.02", "Rotaci\xF3n del motor del ventilador en la direcci\xF3n correcta"],
+              ["05.03", "Todas las conexiones el\xE9ctricas bien fijadas"],
+              ["05.04", "Todas las conexiones el\xE9ctricas est\xE1n conectadas a tierra"]
+            ]),
+            bloque("06", "SISTEMA MEC\xC1NICO", [
+              ["06.01", "El sistema est\xE1 limpio"],
+              ["06.02", "Rueda lubricada y alineada"],
+              ["06.03", "Las correas de la rueda est\xE1n en buenas condiciones"]
+            ]),
+            bloque("07", "CONTROLES - INSTALACI\xD3N", [
+              ["07.01", "Existen sensores o dispositivos para el arranque y parada del motor"],
+              ["07.02", "Conexi\xF3n de cableado de control adecuado"]
+            ]),
+            /* La hoja salta del 08.01 al 08.04: no hay 08.02 ni 08.03. */
+            bloque("08", "CONTROLES - PUESTA EN MARCHA", [
+              ["08.01", "Tensi\xF3n de alimentaci\xF3n (RSTN) y sentido de rotaci\xF3n correctos"],
+              ["08.04", "El sistema se enciende sin ning\xFAn ruido o vibraci\xF3n anormal"],
+              ["08.05", "Verificaci\xF3n del arranque y paro por sistema de control"],
+              ["08.06", "Los ventiladores giran correctamente y su velocidad se corresponde con el Proyecto"],
+              ["08.07", "Se adjunta informe de puesta en marcha del fabricante con detalle de las pruebas, medidas y ajustes"]
+            ]),
+            bloque("09", "MANTENIMIENTO", P_MANTENIMIENTO_LARGO)
+          ]),
+          checklist("CHECKLIST_CONDUCTOS", "CHECKLIST CONDUCTOS", "CHEQUEO DE RED DE CONDUCTOS", [
+            { titulo: "DATOS DE LA INSTALACI\xD3N", tipo: "datos", puntos: [
+              lista("red", "Red (impulsi\xF3n / retorno)", ["Impulsi\xF3n", "Retorno"]),
+              texto("asociado_a", "Asociado a", { origen: "equipoAsociado" })
+            ] },
+            bloque("02", "VERIFICACIONES F\xCDSICAS", [
+              ["02.01", "El material est\xE1 libre de da\xF1os"],
+              ["02.02", "Todos los componentes presentes y en orden"]
+            ]),
+            bloque("03", "AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA", [
+              ["03.01", "El trazado se corresponde con los planos del Proyecto o Memoria T\xE9cnica"],
+              ["03.02", "Las dimensiones de conductos se corresponden con los planos del Proyecto o Memoria T\xE9cnica"],
+              ["03.03", "Los espesores de los aislamientos se corresponden con los planos del Proyecto o Memoria T\xE9cnica"],
+              ["03.04", "La red dispone de los accesorios exigidos en el Proyecto o Memoria T\xE9cnica (compuertas, sensores, registros\u2026)"]
+            ]),
+            bloque("04", "INSTALACI\xD3N DE LA RED DE CONDUCTOS", [
+              ["04.01", "Conductos limpios y libres de suciedad"],
+              ["04.02", "Soportes de sujeci\xF3n adecuados y fijaciones correctas"],
+              ["04.03", "Distancia entre soportes adecuada para evitar deformaciones"],
+              ["04.04", "Uniones entre conductos adecuadas"],
+              ["04.05", "La conexi\xF3n de conductos a plenums, difusores y equipos es adecuada"],
+              ["04.06", "Existen los registros necesarios para la limpieza interior"],
+              ["04.07", "Existe identificaci\xF3n de la red"]
+            ]),
+            bloque("05", "AISLAMIENTOS Y RECUBRIMIENTOS", [
+              ["05.01", "El aislamiento de conductos est\xE1 completo e instalado seg\xFAn las especificaciones"],
+              ["05.02", "La uni\xF3n del aislamiento con el conducto es adecuada"],
+              ["05.03", "Las uniones entre paneles o coquillas de aislamiento est\xE1n correctamente selladas"],
+              ["05.04", "Los accesorios intercalados en el conducto est\xE1n correctamente aislados"],
+              ["05.05", "Los tramos de la red expuestos al exterior disponen de recubrimiento adecuado para soportar la radiaci\xF3n solar y la lluvia"],
+              ["05.06", "El recubrimiento de tuber\xEDas exteriores est\xE1 completo e instalado seg\xFAn las especificaciones"]
+            ])
+          ]),
+          checklist("CHECKLIST_DIFUSORES", "CHECKLIST DIFUSORES", "CHEQUEO DE DIFUSORES Y REJILLAS", [
+            { titulo: "DATOS DE LA INSTALACI\xD3N", tipo: "datos", puntos: [
+              texto("asociado_a", "Asociado a", { origen: "equipoAsociado" })
+            ] },
+            bloque("02", "VERIFICACIONES F\xCDSICAS", [
+              ["02.01", "El material est\xE1 libre de da\xF1os"],
+              ["02.02", "Todos los componentes presentes y en orden"]
+            ]),
+            bloque("03", "AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA", [
+              ["03.01", "Las dimensiones de los difusores o rejillas se corresponden con el Proyecto o Memoria T\xE9cnica"],
+              ["03.02", "La ubicaci\xF3n de los difusores / rejillas se corresponde con el Proyecto o Memoria T\xE9cnica"]
+            ]),
+            bloque("04", "INSTALACI\xD3N DE DIFUSORES Y REJILLAS", [
+              ["04.01", "Soportes de sujeci\xF3n adecuados y fijaciones correctas"],
+              ["04.02", "La conexi\xF3n del difusor / rejilla / plenum a conducto es adecuada"],
+              ["04.03", "El difusor / rejilla es f\xE1cilmente desmontable"],
+              ["04.04", "Existen compuertas para el equilibrado de los caudales"],
+              ["04.05", "Inexistencia de ruidos por exceso de velocidad de aire en los difusores / rejillas"]
+            ]),
+            {
+              codigo: "05",
+              titulo: "EQUILIBRADO DE DIFUSORES Y REJILLAS",
+              tipo: "bocas",
+              bocas: { impulsion: 20, retorno: 10 },
+              columnas: ["local", "terminal", "proyecto", "medido", "observaciones", "ruido_db", "compuerta"],
+              rotulos: {
+                impulsion: "IMPULSI\xD3N \xB7 05 EQUILIBRADO DE DIFUSORES Y REJILLAS",
+                retorno: "RETORNO \xB7 05 EQUILIBRADO DE DIFUSORES Y REJILLAS",
+                local: "Local / sala",
+                terminal: "Difusor / rejilla",
+                proyecto: "Caudal proyecto",
+                medido: "Caudal medido",
+                observaciones: "Observaciones",
+                ruido_db: "dB",
+                compuerta: "Tarado compuerta"
+              },
+              unidad: "m\xB3/h",
+              tolerancia: "boca"
+            }
+          ])
+        ];
+        const FAMILIAS = [
+          {
+            codigo: "CARRIER_CHILLERS",
+            nombre: "CARRIER CHILLERS",
+            nombrePdf: "Carrier Bomba de Calor",
+            plantillas: ["BOMBA_DE_CALOR"],
+            anexos: [{ plantilla: "CHECKLIST_ENFRIADORA" }, { plantilla: "ESTANQ_AGUA", enlace: "circuito" }],
+            balanceo: false,
+            estanqueidad: "agua"
+          },
+          {
+            codigo: "CARRIER_ROOFTOPS",
+            nombre: "CARRIER ROOFTOPS",
+            nombrePdf: "Carrier Rooftop",
+            plantillas: ["ROOFTOP"],
+            anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR" }, { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" }],
+            balanceo: true,
+            estanqueidad: "no"
+          },
+          {
+            codigo: "TROX_UTA",
+            nombre: "TROX UTA",
+            nombrePdf: "Trox UTA",
+            plantillas: ["UTA", "CLIMATIZADOR_REC_ESTATICO", "CLIMATIZADOR_REC_ROTATIVO"],
+            anexos: [
+              { plantilla: "CHECKLIST_UTA" },
+              { plantilla: "CHECKLIST_CONDUCTOS" },
+              { plantilla: "CHECKLIST_DIFUSORES" },
+              { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" },
+              { plantilla: "ESTANQ_AGUA", enlace: "circuito" }
+            ],
+            balanceo: true,
+            estanqueidad: "agua"
+          },
+          {
+            codigo: "AIRLAN_FANCOIL",
+            nombre: "AIRLAN FANCOIL",
+            nombrePdf: "Airlan Fan Coil",
+            plantillas: ["FAN_COIL_AGUA", "CASSETTE_AGUA"],
+            anexos: [{ plantilla: "CHECKLIST_FANCOIL" }, { plantilla: "ESTANQ_AGUA", enlace: "circuito" }],
+            balanceo: false,
+            estanqueidad: "agua"
+          },
+          {
+            codigo: "AIRLAN_HRU",
+            nombre: "AIRLAN HRU",
+            nombrePdf: "Airlan Recuperador",
+            plantillas: ["RECUPERADOR_PLACAS", "RECUPERADOR_ROTATIVO"],
+            anexos: [{ plantilla: "CHECKLIST_RECUPERADOR" }, { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" }],
+            balanceo: true,
+            estanqueidad: "no"
+          },
+          {
+            codigo: "PANASONIC_VRF",
+            nombre: "PANASONIC VRF",
+            nombrePdf: "Panasonic VRF",
+            plantillas: ["VRF_UD_EXTERIOR", "VRF_UI_CONDUCTOS", "VRF_UI_CASSETTE"],
+            anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR" }, { plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
+            balanceo: false,
+            estanqueidad: "refrigerante"
+          },
+          {
+            codigo: "PANASONIC_SPLIT",
+            nombre: "PANASONIC SPLIT",
+            nombrePdf: "Panasonic Split",
+            plantillas: ["SPLIT_UD_INTERIOR", "SPLIT_UD_EXTERIOR"],
+            anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR" }, { plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
+            balanceo: false,
+            estanqueidad: "refrigerante"
+          },
+          {
+            codigo: "PANASONIC_CRACS",
+            nombre: "PANASONIC CRACS",
+            nombrePdf: "Panasonic CRAC",
+            plantillas: ["CRAC_UD_INTERIOR", "CRAC_UD_EXTERIOR"],
+            anexos: [{ plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
+            balanceo: false,
+            estanqueidad: "refrigerante"
+          },
+          {
+            codigo: "WILO_GP",
+            nombre: "WILO GP",
+            nombrePdf: "Wilo Grupo de Presion",
+            plantillas: ["GRUPO_DE_BOMBEO"],
+            anexos: [],
+            balanceo: false,
+            estanqueidad: "no"
+          },
+          {
+            codigo: "WILO_PUMPS",
+            nombre: "WILO PUMPS",
+            nombrePdf: "Wilo Bomba",
+            plantillas: ["GRUPO_DE_BOMBEO"],
+            anexos: [],
+            balanceo: false,
+            estanqueidad: "no"
+          },
+          {
+            codigo: "SP_PARKING",
+            nombre: "S&P PARKING",
+            nombrePdf: "S&P Ventilador Parking",
+            plantillas: ["VENTILADOR_AXIAL", "VENTILADOR_EXTRACTOR", "VENT_COMPLETO"],
+            anexos: [{ plantilla: "CHECKLIST_VENTILADOR" }],
+            balanceo: false,
+            estanqueidad: "no"
+          },
+          {
+            codigo: "SP_VENTILACION",
+            nombre: "S&P VENTILACION",
+            nombrePdf: "S&P Ventilador",
+            plantillas: ["VENTILADOR_EXTRACTOR", "VENT_COMPLETO", "VENTILADOR_AXIAL"],
+            anexos: [{ plantilla: "CHECKLIST_VENTILADOR" }],
+            balanceo: false,
+            estanqueidad: "no"
+          },
+          {
+            codigo: "SP_PRESURIZACION",
+            nombre: "S&P PRESURIZACION",
+            nombrePdf: "S&P Presurizacion Escalera",
+            /* Así se llamaba el grupo en la tabla de equipos. */
+            alias: ["S&P STAIR PRESSURIZATION", "S&P PRESSURIZATION"],
+            plantillas: ["VENTILADOR_AXIAL", "VENTILADOR_EXTRACTOR", "VENT_COMPLETO"],
+            anexos: [{ plantilla: "CHECKLIST_VENTILADOR" }],
+            balanceo: false,
+            estanqueidad: "no"
+          }
+        ];
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.PLANTILLAS_CBRE = API;
+        })({ PLANTILLAS, FAMILIAS });
       })();
     }
   });
@@ -15681,6 +16962,19 @@ globalThis.CX_VARIANTE="cxobra";
       }
       var balanceoApto = (e) => e.balanceoEstado === "apto" || e.balanceoEstado === "aptoSinBocas";
       var estanqueidadApta = (e) => e.estanqueidadEstado === "apta";
+      var familiasCx = null;
+      function familiaPideEstanqueidad(codigo) {
+        if (!codigo) return false;
+        if (!familiasCx) {
+          const P = typeof __require !== "undefined" ? require_plantillasCbre() : window.PLANTILLAS_CBRE;
+          familiasCx = new Map((P && P.FAMILIAS || []).map((f2) => [f2.codigo, f2]));
+        }
+        const f = familiasCx.get(codigo);
+        return Boolean(f && f.estanqueidad && f.estanqueidad !== "no");
+      }
+      var unidadPideEstanqueidad = (e) => e.ensayoRequerido === "estanqueidad" || e.ensayoRequerido === "ambos" || familiaPideEstanqueidad(e.familia);
+      var pideEstanqueidad = (e) => Array.isArray(e.miembros) ? e.miembros.some(unidadPideEstanqueidad) : unidadPideEstanqueidad(e);
+      var faltaEstanqueidad = (e) => pideEstanqueidad(e) && e.estanqueidadEstado !== "apta" && e.estanqueidadEstado !== "noAplica";
       function ensayoPorDefecto(texto) {
         const t = ` ${llano(texto)} `;
         const aire = /\b(uta|climatizador|hru|recuperador|ventila|extrac|extractor|s&p|caja de ventilaci)/.test(t);
@@ -15825,13 +17119,132 @@ globalThis.CX_VARIANTE="cxobra";
         }
         return [...uso.values()].map((u) => ({ ...u, faltaFT: u.sinFT > 0, faltaCE: u.sinCE > 0, faltaManual: u.sinManual > 0 })).filter((u) => u.faltaFT || u.faltaCE || u.faltaManual).sort((a, b) => b.equipos - a.equipos || a.modelo.localeCompare(b.modelo, "es"));
       }
+      var RANGO_PM = { pendiente: 0, programada: 1, enProceso: 2, conReservas: 3, enMarcha: 4, hecha: 5 };
+      var esVrf = (f) => /VRF|VRV/i.test(`${f.plantillaPM || ""} ${f.grupo || ""} ${f.familia || ""}`);
+      function estadoPMConjunto(miembros) {
+        return miembros.map((m) => m.estadoPM || "pendiente").reduce((a, b) => (RANGO_PM[b] ?? 0) < (RANGO_PM[a] ?? 0) ? b : a);
+      }
+      function peorEnsayo(miembros, campo, orden) {
+        const conEl = miembros.map((m) => m[campo] || "pendiente");
+        return conEl.reduce((a, b) => orden.indexOf(b) > orden.indexOf(a) ? b : a, conEl[0]);
+      }
+      function lineaConjunto(clase, exterior, interiores) {
+        const miembros = [exterior, ...interiores].filter(Boolean);
+        if (clase === "suelto") {
+          const f = miembros[0];
+          return { ...f, clase, miembros, exterior: null, interiores: [], unidades: 1 };
+        }
+        const todos = (k) => miembros.every((m) => m[k]);
+        const ft = todos("ft");
+        const ce = todos("ce");
+        const manual = todos("manual");
+        const fichaPM = miembros.some((m) => hayDoc(m.docFichaPM)) || miembros.every((m) => m.estadoPM === "hecha");
+        const docCompleta = ft && ce && manual && fichaPM;
+        const conEnsayo = miembros.filter((m) => m.ensayo !== null);
+        const ensayo = conEnsayo.length ? conEnsayo.every((m) => m.ensayo) : null;
+        const requeridos = new Set(conEnsayo.map((m) => m.ensayoRequerido));
+        const ensayoRequerido = requeridos.has("ambos") || requeridos.has("balanceo") && requeridos.has("estanqueidad") ? "ambos" : [...requeridos][0] || "ninguno";
+        const pideBal = conEnsayo.filter((m) => m.ensayoRequerido === "balanceo" || m.ensayoRequerido === "ambos");
+        const pideEst = conEnsayo.filter((m) => m.ensayoRequerido === "estanqueidad" || m.ensayoRequerido === "ambos");
+        const balanceoEstado = pideBal.length ? peorEnsayo(pideBal, "balanceoEstado", ["apto", "noAplica", "aptoSinBocas", "pendiente", "noApto"]) : exterior.balanceoEstado;
+        const estanqueidadEstado = pideEst.length ? peorEnsayo(pideEst, "estanqueidadEstado", ["apta", "noAplica", "pendiente", "noApta"]) : exterior.estanqueidadEstado;
+        const fechas = miembros.map((m) => m.fechaEnvioDF).filter(Boolean);
+        const fechaEnvioDF = fechas.length === miembros.length ? fechas.sort().pop() : null;
+        let envio;
+        if (fechaEnvioDF) envio = "enviada";
+        else if (!docCompleta) envio = "faltaDocumentacion";
+        else if (ensayo === false) envio = "faltaEnsayo";
+        else envio = "lista";
+        const incidencias = [...new Set(miembros.flatMap((m) => m.incidencias))];
+        const falta = [...new Set(miembros.flatMap((m) => m.falta))];
+        const ui = interiores[0] || {};
+        const doble = (k) => (clase === "par" ? [exterior[k], ui[k]] : [exterior[k]]).filter(Boolean);
+        return {
+          ...exterior,
+          clase,
+          miembros,
+          exterior,
+          interiores,
+          unidades: miembros.length,
+          tag: clase === "par" ? `${exterior.tag} / ${ui.tag}` : exterior.tag,
+          tagExterior: exterior.tag,
+          tagInterior: clase === "par" ? ui.tag : null,
+          numSerie: doble("numSerie").join(" / "),
+          estadoPM: estadoPMConjunto(miembros),
+          ft,
+          ce,
+          manual,
+          fichaPM,
+          docCompleta,
+          ensayo,
+          ensayoRequerido,
+          balanceoEstado,
+          estanqueidadEstado,
+          completo: docCompleta && ensayo !== false,
+          fechaEnvioDF,
+          envio,
+          incidencias,
+          falta,
+          /* Qué unidad trae cada incidencia, para decirlo en la ficha. */
+          incidenciasPorUnidad: miembros.filter((m) => m.incidencias.length).map((m) => ({ tag: m.tag, incidencias: m.incidencias }))
+        };
+      }
+      function agruparConjuntos(filas, sis) {
+        const porId = new Map(filas.map((f) => [f.id, f]));
+        const conjuntoDe = /* @__PURE__ */ new Map();
+        for (const s of sis.sistemas) {
+          if (!s.interiores.length) continue;
+          conjuntoDe.set(s.exterior.id, s.interiores.map((e) => porId.get(e.id)).filter(Boolean));
+        }
+        const dentro = new Set([...conjuntoDe.values()].flat().map((f) => f.id));
+        const lineas = [];
+        for (const f of filas) {
+          if (dentro.has(f.id)) continue;
+          const ints = conjuntoDe.get(f.id);
+          if (!ints) {
+            lineas.push(lineaConjunto("suelto", f, []));
+            continue;
+          }
+          const clase = ints.length === 1 && !esVrf(f) ? "par" : "sistema";
+          lineas.push(lineaConjunto(clase, f, ints.slice().sort((a, b) => String(a.tag || "").localeCompare(String(b.tag || ""), "es", { numeric: true }))));
+        }
+        return lineas;
+      }
+      function totalesDe(lineas) {
+        const cuenta = (pred) => lineas.filter(pred).length;
+        return {
+          conjuntos: lineas.length,
+          unidades: lineas.reduce((a, l) => a + l.unidades, 0),
+          pares: cuenta((l) => l.clase === "par"),
+          sistemas: cuenta((l) => l.clase === "sistema"),
+          enMarcha: cuenta((l) => l.estadoPM === "enMarcha" || l.estadoPM === "hecha"),
+          docCompleta: cuenta((l) => l.docCompleta),
+          completos: cuenta((l) => l.completo),
+          enviadas: cuenta((l) => l.envio === "enviada"),
+          listas: cuenta((l) => l.envio === "lista"),
+          faltaEnsayo: cuenta((l) => l.envio === "faltaEnsayo"),
+          faltaDocumentacion: cuenta((l) => l.envio === "faltaDocumentacion"),
+          balanceosSinBocas: cuenta((l) => l.incidencias.includes("balanceoSinBocas")),
+          pideEstanqueidad: cuenta(pideEstanqueidad),
+          faltaEstanqueidad: cuenta(faltaEstanqueidad),
+          conIncidencias: cuenta((l) => l.incidencias.length > 0)
+        };
+      }
+      function conjuntoDeEquipo(lineas, id) {
+        return lineas.find((l) => l.miembros.some((m) => m.id === id)) || null;
+      }
       function evaluar({ equipos = [], modelos = [] } = {}) {
         const modeloDe = indiceModelos(modelos);
         const sis = sistemasCx.analizar(equipos);
         const filas = equipos.map((e) => evaluarEquipo(e, modeloDe(e), sis.repetidos, sis.porEquipo.get(e.id))).sort((a, b) => ordenPlantas(a.planta, b.planta) || String(a.tag || "").localeCompare(String(b.tag || ""), "es", { numeric: true }));
         const cuenta = (pred) => filas.filter(pred).length;
+        const conjuntos = agruparConjuntos(filas, sis);
         return {
           filas,
+          /* Lo que se pone en marcha y se entrega: un split es UNA línea. */
+          conjuntos,
+          totalesConjuntos: totalesDe(conjuntos),
+          porPlantaConjuntos: cuadroDeCorte(conjuntos, "planta"),
           porPlanta: cuadroDeCorte(filas, "planta"),
           porMarca: cuadroDeCorte(filas, "marca"),
           porGrupo: cuadroDeCorte(filas, "grupo"),
@@ -15850,6 +17263,8 @@ globalThis.CX_VARIANTE="cxobra";
             balanceos: cuenta(balanceoApto),
             balanceosSinBocas: cuenta((f) => f.incidencias.includes("balanceoSinBocas")),
             estanqueidades: cuenta(estanqueidadApta),
+            pideEstanqueidad: cuenta(pideEstanqueidad),
+            faltaEstanqueidad: cuenta(faltaEstanqueidad),
             conIncidencias: cuenta((f) => f.incidencias.length > 0),
             sistemas: sis.sistemas.length,
             interioresAsociadas: sis.sistemas.reduce((a, x) => a + x.interiores.length, 0),
@@ -15892,7 +17307,11 @@ globalThis.CX_VARIANTE="cxobra";
         evaluar,
         cuadro: cuadroDeCorte,
         modelosQueFaltan,
-        puedeEnviarse
+        puedeEnviarse,
+        agruparConjuntos,
+        conjuntoDeEquipo,
+        estadoPMConjunto,
+        RANGO_PM
       });
     }
   });
@@ -16956,6 +18375,13 @@ globalThis.CX_VARIANTE="cxobra";
         return Math.round(v * f) / f;
       };
       var dinamicaBal = (v) => DENSIDAD_AIRE_BAL * v * v / 2;
+      function caudalDeSeccion(boca = {}) {
+        const a = numBal(boca.ancho);
+        const h = numBal(boca.alto);
+        const v = numBal(boca.velocidad);
+        if (!(a > 0 && h > 0 && v > 0)) return null;
+        return Math.round(a / 100 * (h / 100) * v * 3600);
+      }
       var TIPOS_EQUIPO = {
         uta: { nombre: "Climatizadora (UTA)", circuitos: ["impulsion", "retorno"] },
         recuperador: { nombre: "Recuperador de calor", circuitos: ["impulsion", "retorno"] },
@@ -17003,6 +18429,8 @@ globalThis.CX_VARIANTE="cxobra";
         { id: "tempImpulsion", nombre: "Temperatura de impulsi\xF3n", unidad: "\xB0C", absoluta: 1 },
         { id: "tempRetorno", nombre: "Temperatura de retorno", unidad: "\xB0C", absoluta: 1 },
         { id: "tempExterior", nombre: "Temperatura exterior", unidad: "\xB0C" },
+        { id: "tempAguaEntrada", nombre: "Temperatura de entrada de agua fr\xEDa", unidad: "\xB0C" },
+        { id: "tempAguaSalida", nombre: "Temperatura de salida de agua fr\xEDa", unidad: "\xB0C" },
         { id: "potenciaFrio", nombre: "Potencia frigor\xEDfica", unidad: "kW" },
         { id: "potenciaCalor", nombre: "Potencia calor\xEDfica", unidad: "kW" },
         { id: "potenciaVentilador", nombre: "Potencia de ventiladores", unidad: "kW" },
@@ -17076,6 +18504,12 @@ globalThis.CX_VARIANTE="cxobra";
           v.bocas = Array.from({ length: v.numero }, (_, i) => {
             const b = bocas[i] || {};
             const r = { caudalProyecto: numBal(b.caudalProyecto), caudalMedido: numBal(b.caudalMedido) };
+            for (const k of ["ancho", "alto", "velocidad"]) {
+              const n = numBal(b[k]);
+              if (n !== null && n > 0) r[k] = n;
+            }
+            const porSeccion = caudalDeSeccion(r);
+            if (porSeccion !== null) r.caudalMedido = porSeccion;
             if (b.nombre) r.nombre = String(b.nombre).slice(0, 40);
             if (TERMINALES[b.tipo]) r.tipo = b.tipo;
             return r;
@@ -17265,6 +18699,9 @@ globalThis.CX_VARIANTE="cxobra";
             caudalProyecto: proyecto[i].valor,
             origenProyecto: proyecto[i].origen,
             caudalMedido: numBal(b.caudalMedido),
+            ancho: numBal(b.ancho),
+            alto: numBal(b.alto),
+            velocidad: numBal(b.velocidad),
             desviacion: d === null ? null : redBal(d, 4),
             estado: d === null ? numBal(b.caudalMedido) === null ? "sinMedir" : "sinProyecto" : tolBoca === null ? "sinTolerancia" : Math.abs(d) <= tolBoca + 1e-9 ? "ok" : d > 0 ? "alto" : "bajo"
           };
@@ -17717,6 +19154,7 @@ globalThis.CX_VARIANTE="cxobra";
         normalizar: normalizarHoja,
         ajustarBocas,
         caudalesProyecto,
+        caudalDeSeccion,
         terminalDe,
         perdidaTerminal,
         perdidaCircuito,
@@ -18935,1216 +20373,6 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // shared/commissioning/plantillasCbre.js
-  var require_plantillasCbre = __commonJS({
-    "shared/commissioning/plantillasCbre.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function iniciarPlantillasCbre() {
-        const FORMATO = "Formato CBRE - rev.2 - 06/10/2026";
-        const CRITERIO_PM = "Criterio: desviaci\xF3n sobre proyecto (o te\xF3rico si no hay proyecto) dentro de la tolerancia de la obra (la fija el jefe de obra) \u2192 APTO. Medido id\xE9ntico al valor de referencia \u2192 A REVISAR (posible valor copiado).";
-        const CRITERIO_CHECKLIST = "S\xED = conforme \xB7 No = no conforme (detallar en observaciones) \xB7 NA = no aplica.";
-        const OBL = "obligatorio";
-        const OPC = "opcional";
-        function texto(codigo, etiqueta, extra) {
-          return Object.assign({ codigo, etiqueta, tipo: "texto" }, extra || {});
-        }
-        function numPunto(codigo, etiqueta, unidad, extra) {
-          const p = { codigo, etiqueta, tipo: "numero" };
-          if (unidad) p.unidad = unidad;
-          return Object.assign(p, extra || {});
-        }
-        function okNoOk(codigo, etiqueta, extra) {
-          return Object.assign({ codigo, etiqueta, tipo: "okNoOk" }, extra || {});
-        }
-        function siNo(codigo, etiqueta, extra) {
-          return Object.assign({ codigo, etiqueta, tipo: "siNo" }, extra || {});
-        }
-        function fechaPunto(codigo, etiqueta, extra) {
-          return Object.assign({ codigo, etiqueta, tipo: "fecha" }, extra || {});
-        }
-        function lista(codigo, etiqueta, opciones, extra) {
-          return Object.assign({ codigo, etiqueta, tipo: "lista", opciones }, extra || {});
-        }
-        function param(codigo, etiqueta, unidad, medido, conResultado) {
-          const p = { codigo, etiqueta, unidad, proyecto: true, fabricante: true, medido, resultado: Boolean(conResultado) };
-          if (conResultado) p.tolerancia = "total";
-          return p;
-        }
-        function bloque(codigo, titulo, puntos) {
-          return {
-            codigo,
-            titulo,
-            tipo: "checklist",
-            puntos: puntos.map(([c, t]) => ({ codigo: c, etiqueta: t, tipo: "siNoNa" }))
-          };
-        }
-        function identificacion() {
-          return [
-            texto("denominacion", "Denominaci\xF3n", { origen: "denominacion" }),
-            texto("marca", "Marca", { origen: "marca" }),
-            texto("modelo", "Modelo", { origen: "modelo" }),
-            texto("num_serie", "N\xBA serie", { origen: "numSerie" })
-          ];
-        }
-        const EFICIENCIA_TERMICA = {
-          codigo: "eficiencia_termica",
-          etiqueta: "Eficiencia t\xE9rmica",
-          unidad: "%",
-          formula: "(T\xAA impulsi\xF3n tras recup. \u2212 T\xAA aire exterior) / (T\xAA retorno (extracci\xF3n) \u2212 T\xAA aire exterior), en proyecto, te\xF3rico y medido",
-          criterio: "APTO si la medida es igual o mayor que la de proyecto (o la te\xF3rica si no hay proyecto)"
-        };
-        function ficha(codigo, nombre, subtitulo, secciones) {
-          return {
-            codigo,
-            nombre,
-            titulo: `FICHA DE PUESTA EN MARCHA \xB7 ${subtitulo}`,
-            clase: "fichaPM",
-            version: 1,
-            formato: FORMATO,
-            criterio: CRITERIO_PM,
-            norma: null,
-            secciones
-          };
-        }
-        function checklist(codigo, nombre, subtitulo, secciones) {
-          return {
-            codigo,
-            nombre,
-            titulo: `LISTADO DE CHEQUEO \xB7 ${subtitulo}`,
-            clase: "checklist",
-            version: 1,
-            formato: FORMATO,
-            criterio: CRITERIO_CHECKLIST,
-            norma: null,
-            /* En pantalla y en el PDF se numera desde 1 (1, 1.1, 1.2…); el código del Excel queda como clave. */
-            secciones: (() => {
-              let k = 0;
-              return secciones.map((s) => s.tipo !== "checklist" ? s : (k += 1, { ...s, numero: String(k), puntos: s.puntos.map((pt, j) => ({ ...pt, numero: `${k}.${j + 1}` })) }));
-            })()
-          };
-        }
-        function seccionesUTA() {
-          return [
-            { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
-              ...identificacion(),
-              numPunto("potencia_frio", "Potencia fr\xEDo", "kW"),
-              numPunto("potencia_calor", "Potencia calor", "kW")
-            ] },
-            { titulo: "VENTILADOR DE IMPULSI\xD3N", tipo: "datos", puntos: [
-              texto("vent_imp_marca", "Marca"),
-              texto("vent_imp_modelo", "Modelo"),
-              numPunto("vent_imp_num", "N\xBA ventiladores"),
-              numPunto("vent_imp_potencia", "Potencia", "kW"),
-              numPunto("vent_imp_voltaje", "Voltaje", "V"),
-              numPunto("vent_imp_consumo_placa", "Consumo placa", "A")
-            ] },
-            { titulo: "VENTILADOR DE RETORNO", tipo: "datos", puntos: [
-              texto("vent_ret_marca", "Marca"),
-              texto("vent_ret_modelo", "Modelo"),
-              numPunto("vent_ret_num", "N\xBA ventiladores"),
-              numPunto("vent_ret_potencia", "Potencia", "kW"),
-              numPunto("vent_ret_voltaje", "Voltaje", "V"),
-              numPunto("vent_ret_consumo_placa", "Consumo placa", "A")
-            ] },
-            { titulo: "FILTROS IMPULSI\xD3N", tipo: "datos", puntos: [
-              texto("filtro_imp_etapa1", "Etapa 1 (clase)"),
-              texto("filtro_imp_etapa2", "Etapa 2 (clase)"),
-              texto("filtro_imp_etapa3", "Etapa 3 (clase)")
-            ] },
-            { titulo: "FILTROS RETORNO", tipo: "datos", puntos: [
-              texto("filtro_ret_etapa1", "Etapa 1 (clase)"),
-              texto("filtro_ret_etapa2", "Etapa 2 (clase)"),
-              texto("filtro_ret_etapa3", "Etapa 3 (clase)")
-            ] },
-            { titulo: "COMPROBACIONES EN LA INSTALACI\xD3N", tipo: "comprobaciones", puntos: [
-              okNoOk("enclavamiento_incendios", "Enclavamiento incendios"),
-              okNoOk("senal_bms", "Se\xF1al a BMS")
-            ] },
-            { titulo: "CAUDALES EN LA INSTALACI\xD3N", tipo: "parametros", puntos: [
-              param("caudal_aire_impulsion", "Caudal aire impulsi\xF3n", "m\xB3/h", OBL, true),
-              param("caudal_aire_retorno", "Caudal aire retorno", "m\xB3/h", OBL, true),
-              param("caudal_agua_bateria_frio", "Caudal agua bater\xEDa fr\xEDo", "l/s", OBL, true),
-              param("caudal_agua_bateria_calor", "Caudal agua bater\xEDa calor", "l/s", OPC, true)
-            ] },
-            { titulo: "TEMPERATURAS EN LA INSTALACI\xD3N", tipo: "parametros", puntos: [
-              param("t_impulsion_sala_frio", "T\xAA impulsi\xF3n en sala \xB7 fr\xEDo", "\xB0C", OBL),
-              param("t_retorno_sala_frio", "T\xAA retorno en sala \xB7 fr\xEDo", "\xB0C", OBL),
-              param("t_impulsion_sala_calor", "T\xAA impulsi\xF3n en sala \xB7 calor", "\xB0C", OPC),
-              param("t_retorno_sala_calor", "T\xAA retorno en sala \xB7 calor", "\xB0C", OPC),
-              param("t_entrada_agua_frio", "T\xAA entrada agua fr\xEDo", "\xB0C", OBL),
-              param("t_salida_agua_frio", "T\xAA salida agua fr\xEDo", "\xB0C", OBL),
-              param("t_entrada_agua_calor", "T\xAA entrada agua calor", "\xB0C", OPC),
-              param("t_salida_agua_calor", "T\xAA salida agua calor", "\xB0C", OPC)
-            ] }
-          ];
-        }
-        function temperaturasRecuperador() {
-          return [
-            param("t_aire_exterior", "T\xAA aire exterior", "\xB0C", OBL),
-            param("t_impulsion_tras_recup", "T\xAA impulsi\xF3n tras recup.", "\xB0C", OBL),
-            param("t_retorno_extraccion", "T\xAA retorno (extracci\xF3n)", "\xB0C", OBL),
-            param("t_expulsion", "T\xAA expulsi\xF3n", "\xB0C", OBL)
-          ];
-        }
-        function temperaturasAireInterior() {
-          return [
-            param("t_entrada_frio", "T\xAA entrada fr\xEDo", "\xB0C", OBL),
-            param("t_salida_frio", "T\xAA salida fr\xEDo", "\xB0C", OBL),
-            param("t_entrada_calor", "T\xAA entrada calor", "\xB0C", OPC),
-            param("t_salida_calor", "T\xAA salida calor", "\xB0C", OPC)
-          ];
-        }
-        function temperaturasAgua() {
-          return [
-            param("t_entrada_agua_frio", "T\xAA entrada agua fr\xEDo", "\xB0C", OBL),
-            param("t_salida_agua_frio", "T\xAA salida agua fr\xEDo", "\xB0C", OBL),
-            param("t_entrada_agua_calor", "T\xAA entrada agua calor", "\xB0C", OPC),
-            param("t_salida_agua_calor", "T\xAA salida agua calor", "\xB0C", OPC)
-          ];
-        }
-        function datosFisicosFancoil() {
-          return { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
-            ...identificacion(),
-            numPunto("caudal", "Caudal", "m\xB3/h", { origen: "caudalNominal" }),
-            numPunto("potencia_frio", "Potencia fr\xEDo", "kW"),
-            numPunto("potencia_calor", "Potencia calor", "kW")
-          ] };
-        }
-        function datosFisicosVentilador() {
-          return { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
-            ...identificacion(),
-            numPunto("caudal_nominal", "Caudal nominal", "m\xB3/h", { origen: "caudalNominal" }),
-            okNoOk("activacion_pci", "Activaci\xF3n central PCI")
-          ] };
-        }
-        function proteccionesElectricas() {
-          return { titulo: "PROTECCIONES EL\xC9CTRICAS", tipo: "datos", puntos: [
-            numPunto("margen_regulacion", "Margen regulaci\xF3n", "A"),
-            texto("tipo_arranque", "Tipo de arranque"),
-            texto("marca_arrancador", "Marca arrancador"),
-            texto("modelo_arrancador", "Modelo arrancador")
-          ] };
-        }
-        function seccionesVrfInterior() {
-          return [
-            { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
-              ...identificacion(),
-              texto("ud_exterior_asociada", "Ud. exterior asociada", { origen: "equipoAsociado" }),
-              numPunto("caudal", "Caudal", "m\xB3/h", { origen: "caudalNominal" }),
-              numPunto("potencia_frio", "Potencia fr\xEDo", "kW"),
-              numPunto("potencia_calor", "Potencia calor", "kW")
-            ] },
-            { titulo: "DATOS EL\xC9CTRICOS", tipo: "datos", puntos: [
-              numPunto("voltaje", "Voltaje", "V"),
-              numPunto("consumo", "Consumo", "A")
-            ] },
-            { titulo: "COMPROBACIONES", tipo: "comprobaciones", puntos: [
-              okNoOk("mando_termostato", "Mando / termostato"),
-              okNoOk("comunicacion_ue", "Comunicaci\xF3n con UE"),
-              okNoOk("filtros_lamas", "Filtros y lamas")
-            ] },
-            { titulo: "CAUDALES AIRE", tipo: "parametros", puntos: [
-              param("caudal_aire_vel_max", "Caudal aire (vel. m\xE1xima)", "m\xB3/h", OBL, true)
-            ] },
-            { titulo: "TEMPERATURAS AIRE", tipo: "parametros", puntos: temperaturasAireInterior() }
-          ];
-        }
-        function caudalesTresVelocidades() {
-          return { titulo: "CAUDALES AIRE", tipo: "parametros", puntos: [
-            param("caudal_aire_vel_max", "Caudal aire \xB7 velocidad alta", "m\xB3/h", OBL, true),
-            param("caudal_aire_vel_media", "Caudal aire \xB7 velocidad media", "m\xB3/h", OPC, true),
-            param("caudal_aire_vel_baja", "Caudal aire \xB7 velocidad baja", "m\xB3/h", OPC, true)
-          ] };
-        }
-        const P_ELECTRICO = [
-          ["06.01", "Desconexi\xF3n local instalada en un lugar accesible"],
-          ["06.02", "Rotaci\xF3n del motor del ventilador en la direcci\xF3n correcta"],
-          ["06.03", "Todas las conexiones el\xE9ctricas bien fijadas"],
-          ["06.04", "Todas las conexiones el\xE9ctricas est\xE1n conectadas a tierra"]
-        ];
-        const P_MANTENIMIENTO_LARGO = [
-          ["09.01", "Espacio libre adecuado alrededor de la unidad para su servicio"],
-          ["09.02", "Todos los componentes son accesibles para mantenimiento"],
-          ["09.03", "Las tuber\xEDas est\xE1n dispuestas para la retirada f\xE1cil de la unidad"],
-          ["09.04", "Existen los dispositivos adecuados para el mantenimiento y son accesibles (v\xE1lvulas de corte, vaciados, purgas, desag\xFCes)"]
-        ];
-        const PLANTILLAS = [
-          /* ─────────────────────────── Fichas de puesta en marcha (20) */
-          ficha("UTA", "UTA", "UNIDAD DE TRATAMIENTO DE AIRE", seccionesUTA()),
-          ficha("CLIMATIZADOR_REC_ESTATICO", "CLIMATIZADOR REC. ESTATICO", "CLIMATIZADOR CON RECUPERADOR EST\xC1TICO", [
-            ...seccionesUTA(),
-            { titulo: "RECUPERADOR EST\xC1TICO", tipo: "parametros", puntos: temperaturasRecuperador(), calculados: [EFICIENCIA_TERMICA] }
-          ]),
-          ficha("CLIMATIZADOR_REC_ROTATIVO", "CLIMATIZADOR REC. ROTATIVO", "CLIMATIZADOR CON RECUPERADOR ROTATIVO", [
-            ...seccionesUTA(),
-            { titulo: "RECUPERADOR ROTATIVO", tipo: "parametros", puntos: temperaturasRecuperador(), calculados: [EFICIENCIA_TERMICA] }
-          ]),
-          { ...ficha("FAN_COIL_AGUA", "FAN-COIL AGUA", "FAN-COIL (AGUA)", [
-            datosFisicosFancoil(),
-            caudalesTresVelocidades(),
-            { titulo: "TEMPERATURAS AIRE", tipo: "parametros", puntos: temperaturasAireInterior() },
-            { titulo: "TEMPERATURAS AGUA", tipo: "parametros", puntos: temperaturasAgua() }
-          ]), version: 2 },
-          { ...ficha("CASSETTE_AGUA", "CASSETTE AGUA", "CASSETTE (AGUA)", [
-            datosFisicosFancoil(),
-            { titulo: "CARACTER\xCDSTICAS MOTOR", tipo: "datos", puntos: [
-              texto("motor_marca", "Marca"),
-              texto("motor_modelo", "Modelo"),
-              numPunto("motor_potencia", "Potencia", "kW"),
-              numPunto("motor_voltaje", "Voltaje", "V"),
-              numPunto("motor_cos_phi", "Coseno \u03C6"),
-              numPunto("motor_amp_placa", "Amp placa", "A"),
-              numPunto("motor_amp_real", "Amp real", "A")
-            ] },
-            proteccionesElectricas(),
-            caudalesTresVelocidades(),
-            { titulo: "TEMPERATURAS AIRE", tipo: "parametros", puntos: temperaturasAireInterior() },
-            { titulo: "TEMPERATURAS AGUA", tipo: "parametros", puntos: temperaturasAgua() }
-          ]), version: 2 },
-          ficha("RECUPERADOR_PLACAS", "RECUPERADOR PLACAS", "RECUPERADOR DE PLACAS", [
-            { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
-              ...identificacion(),
-              numPunto("caudal_aportacion", "Caudal aportaci\xF3n", "m\xB3/h"),
-              numPunto("caudal_extraccion", "Caudal extracci\xF3n", "m\xB3/h")
-            ] },
-            { titulo: "CAUDALES AIRE", tipo: "parametros", puntos: [
-              param("aportacion", "Aportaci\xF3n", "m\xB3/h", OBL, true),
-              param("extraccion", "Extracci\xF3n", "m\xB3/h", OBL, true)
-            ] },
-            { titulo: "TEMPERATURAS Y EFICIENCIA", tipo: "parametros", puntos: temperaturasRecuperador(), calculados: [EFICIENCIA_TERMICA] }
-          ]),
-          ficha("RECUPERADOR_ROTATIVO", "RECUPERADOR ROTATIVO", "RECUPERADOR ROTATIVO", [
-            { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
-              ...identificacion(),
-              numPunto("caudal_aportacion", "Caudal aportaci\xF3n", "m\xB3/h"),
-              numPunto("caudal_extraccion", "Caudal extracci\xF3n", "m\xB3/h")
-            ] },
-            { titulo: "ROTOR", tipo: "datos", puntos: [
-              lista("rotor_tipo", "Tipo (sensible/ent\xE1lpico)", ["Sensible", "Ent\xE1lpico"]),
-              numPunto("rotor_diametro", "Di\xE1metro", "mm"),
-              numPunto("rotor_velocidad_nominal", "Velocidad nominal", "rpm"),
-              numPunto("rotor_velocidad_medida", "Velocidad medida", "rpm"),
-              siNo("sector_purga", "Sector de purga (s\xED/no)"),
-              texto("estado_juntas_correa", "Estado juntas / correa")
-            ] },
-            { titulo: "MOTOR ROTOR", tipo: "datos", puntos: [
-              texto("motor_marca", "Marca"),
-              numPunto("motor_potencia", "Potencia", "kW"),
-              numPunto("motor_voltaje", "Voltaje", "V"),
-              numPunto("motor_consumo_placa", "Consumo placa", "A"),
-              numPunto("motor_consumo_real", "Consumo real", "A"),
-              texto("variador_senal", "Variador / se\xF1al")
-            ] },
-            { titulo: "CAUDALES AIRE", tipo: "parametros", puntos: [
-              param("aportacion", "Aportaci\xF3n", "m\xB3/h", OBL, true),
-              param("extraccion", "Extracci\xF3n", "m\xB3/h", OBL, true),
-              param("dp_rotor_aportacion", "\u0394P rotor aportaci\xF3n", "Pa", OBL),
-              param("dp_rotor_extraccion", "\u0394P rotor extracci\xF3n", "Pa", OBL)
-            ] },
-            { titulo: "TEMPERATURAS Y EFICIENCIA", tipo: "parametros", puntos: temperaturasRecuperador(), calculados: [EFICIENCIA_TERMICA] }
-          ]),
-          ficha("VENTILADOR_EXTRACTOR", "VENTILADOR-EXTRACTOR", "VENTILADOR - EXTRACTOR", [
-            datosFisicosVentilador(),
-            { titulo: "CAUDALES AIRE", tipo: "parametros", puntos: [
-              param("caudal_aire_nominal", "Caudal nominal", "m\xB3/h", OBL, true)
-            ] }
-          ]),
-          ficha("VENTILADOR_AXIAL", "VENTILADOR AXIAL", "VENTILADOR - EXTRACTOR (AXIAL)", [
-            datosFisicosVentilador(),
-            { titulo: "CAUDALES AIRE", tipo: "parametros", puntos: [
-              param("caudal_aire_nominal", "Caudal nominal", "m\xB3/h", OBL, true)
-            ] }
-          ]),
-          ficha("VENT_COMPLETO", "VENT. COMPLETO", "VENTILADOR-EXTRACTOR", [
-            datosFisicosVentilador(),
-            { titulo: "DATOS EL\xC9CTRICOS", tipo: "datos", puntos: [
-              numPunto("potencia", "Potencia", "W"),
-              numPunto("voltaje", "Voltaje", "V"),
-              numPunto("consumo_placa", "Consumo placa", "A"),
-              numPunto("consumo_real", "Consumo real", "A")
-            ] },
-            proteccionesElectricas(),
-            { titulo: "OPERACIONES", tipo: "parametros", puntos: [
-              param("caudal_aire", "Caudal aire", "m\xB3/h", OBL, true),
-              param("presion_estatica", "Presi\xF3n est\xE1tica", "mm c.a.", OBL, true)
-            ] }
-          ]),
-          ficha("VRF_UD_EXTERIOR", "VRF UD. EXTERIOR", "VRF - UNIDAD EXTERIOR", [
-            { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
-              ...identificacion(),
-              numPunto("potencia_frio", "Potencia fr\xEDo", "kW"),
-              numPunto("potencia_calor", "Potencia calor", "kW"),
-              texto("refrigerante", "Refrigerante")
-            ] },
-            { titulo: "CIRCUITO FRIGOR\xCDFICO", tipo: "datos", puntos: [
-              numPunto("num_uds_interiores", "N\xBA uds. interiores"),
-              numPunto("longitud_tuberia", "Longitud tuber\xEDa", "m"),
-              numPunto("carga_fabrica", "Carga de f\xE1brica", "kg"),
-              numPunto("carga_adicional", "Carga adicional", "kg"),
-              numPunto("presion_prueba_estanq", "Presi\xF3n prueba estanq.", "bar"),
-              numPunto("duracion_prueba", "Duraci\xF3n prueba", "h"),
-              numPunto("vacio_alcanzado", "Vac\xEDo alcanzado", "mbar")
-            ] },
-            { titulo: "DATOS EL\xC9CTRICOS", tipo: "datos", puntos: [
-              numPunto("voltaje", "Voltaje", "V"),
-              numPunto("consumo_placa", "Consumo placa", "A")
-            ] },
-            { titulo: "FUNCIONAMIENTO EN FR\xCDO", tipo: "parametros", puntos: [
-              param("p_alta_frio", "Presi\xF3n alta", "bar", OBL),
-              param("p_baja_frio", "Presi\xF3n baja", "bar", OBL),
-              param("t_descarga_frio", "T\xAA descarga", "\xB0C", OBL),
-              param("recalentamiento", "Recalentamiento", "K", OBL),
-              param("subenfriamiento", "Subenfriamiento", "K", OBL),
-              param("t_aire_exterior_frio", "T\xAA aire exterior", "\xB0C", OBL)
-            ] },
-            { titulo: "FUNCIONAMIENTO EN CALOR", tipo: "parametros", puntos: [
-              param("p_alta_calor", "Presi\xF3n alta", "bar", OPC),
-              param("p_baja_calor", "Presi\xF3n baja", "bar", OPC),
-              param("t_descarga_calor", "T\xAA descarga", "\xB0C", OPC),
-              param("t_aire_exterior_calor", "T\xAA aire exterior", "\xB0C", OPC)
-            ] }
-          ]),
-          ficha("VRF_UI_CONDUCTOS", "VRF UI CONDUCTOS", "VRF - UNIDAD INTERIOR (CONDUCTOS)", seccionesVrfInterior()),
-          ficha("VRF_UI_CASSETTE", "VRF UI CASSETTE", "VRF - UNIDAD INTERIOR (CASSETTE)", seccionesVrfInterior()),
-          ficha("SPLIT_UD_INTERIOR", "SPLIT UD. INTERIOR", "SPLIT - UNIDAD INTERIOR", [
-            { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
-              ...identificacion(),
-              texto("ud_exterior_asociada", "Ud. exterior asociada", { origen: "equipoAsociado" }),
-              numPunto("caudal", "Caudal", "m\xB3/h", { origen: "caudalNominal" }),
-              numPunto("potencia_frio", "Potencia fr\xEDo", "kW"),
-              numPunto("potencia_calor", "Potencia calor", "kW")
-            ] },
-            { titulo: "TEMPERATURAS AIRE", tipo: "parametros", puntos: temperaturasAireInterior() }
-          ]),
-          ficha("SPLIT_UD_EXTERIOR", "SPLIT UD. EXTERIOR", "SPLIT - UNIDAD EXTERIOR", [
-            { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
-              ...identificacion(),
-              texto("ud_interior_asociada", "Ud. interior asociada", { origen: "equipoAsociado" }),
-              numPunto("potencia_frio", "Potencia fr\xEDo", "kW"),
-              numPunto("potencia_calor", "Potencia calor", "kW"),
-              texto("refrigerante", "Refrigerante")
-            ] },
-            { titulo: "CIRCUITO FRIGOR\xCDFICO", tipo: "datos", puntos: [
-              numPunto("longitud_tuberia", "Longitud tuber\xEDa", "m"),
-              numPunto("carga_fabrica", "Carga de f\xE1brica", "kg"),
-              numPunto("carga_adicional", "Carga adicional", "kg")
-            ] },
-            { titulo: "DATOS EL\xC9CTRICOS", tipo: "datos", puntos: [
-              numPunto("voltaje", "Voltaje", "V"),
-              numPunto("consumo_placa", "Consumo placa", "A"),
-              numPunto("consumo", "Consumo", "A")
-            ] },
-            { titulo: "TEMPERATURAS AIRE", tipo: "parametros", puntos: [
-              param("t_aire_exterior_entrada", "T\xAA aire exterior (entrada)", "\xB0C", OBL),
-              param("t_salida_aire_frio", "T\xAA salida aire en fr\xEDo", "\xB0C", OBL),
-              param("t_salida_aire_calor", "T\xAA salida aire en calor", "\xB0C", OPC)
-            ] }
-          ]),
-          ficha("CRAC_UD_INTERIOR", "CRAC UD. INTERIOR", "CRAC - UNIDAD INTERIOR", [
-            { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
-              ...identificacion(),
-              texto("ud_exterior_asociada", "Ud. exterior asociada", { origen: "equipoAsociado" }),
-              numPunto("potencia_frigorifica", "Potencia frigor\xEDfica", "kW"),
-              numPunto("caudal", "Caudal", "m\xB3/h", { origen: "caudalNominal" }),
-              numPunto("voltaje", "Voltaje", "V"),
-              numPunto("consumo_placa", "Consumo placa", "A")
-            ] },
-            { titulo: "CONSIGNAS", tipo: "datos", puntos: [
-              numPunto("consigna_temperatura", "Consigna temperatura", "\xB0C"),
-              numPunto("consigna_humedad", "Consigna humedad", "%HR"),
-              texto("rotacion_reserva", "Rotaci\xF3n / reserva (N+1)"),
-              texto("filtros_clase", "Filtros (clase)")
-            ] },
-            { titulo: "COMPROBACIONES", tipo: "comprobaciones", puntos: [
-              okNoOk("desague_condensados", "Desag\xFCe condensados"),
-              okNoOk("deteccion_fuga_agua", "Detecci\xF3n de fuga de agua"),
-              okNoOk("alarmas_bms", "Alarmas a BMS"),
-              okNoOk("arranque_tras_corte", "Arranque tras corte tensi\xF3n")
-            ] },
-            { titulo: "MEDICIONES EN LA INSTALACI\xD3N", tipo: "parametros", puntos: [
-              param("caudal_aire_impulsion", "Caudal aire impulsi\xF3n", "m\xB3/h", OBL, true),
-              param("t_retorno_sala", "T\xAA retorno (sala)", "\xB0C", OBL),
-              param("t_impulsion", "T\xAA impulsi\xF3n", "\xB0C", OBL),
-              param("hr_sala", "Humedad relativa sala", "%HR", OBL),
-              param("consumo", "Consumo", "A", OBL)
-            ] }
-          ]),
-          ficha("CRAC_UD_EXTERIOR", "CRAC UD. EXTERIOR", "CRAC - UNIDAD EXTERIOR (CONDENSADORA)", [
-            { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
-              ...identificacion(),
-              texto("ud_interior_asociada", "Ud. interior asociada", { origen: "equipoAsociado" }),
-              numPunto("num_condensadoras", "N\xBA condensadoras"),
-              numPunto("caudal_aire", "Caudal aire", "m\xB3/h", { origen: "caudalNominal" }),
-              texto("refrigerante", "Refrigerante")
-            ] },
-            { titulo: "CIRCUITO FRIGOR\xCDFICO", tipo: "datos", puntos: [
-              numPunto("longitud_tuberia", "Longitud tuber\xEDa", "m"),
-              texto("diametro_liq_gas", "Di\xE1metro l\xEDq. / gas"),
-              numPunto("carga_fabrica", "Carga de f\xE1brica", "kg"),
-              numPunto("carga_adicional", "Carga adicional", "kg")
-            ] },
-            { titulo: "DATOS EL\xC9CTRICOS", tipo: "datos", puntos: [
-              numPunto("voltaje", "Voltaje", "V"),
-              numPunto("consumo_placa", "Consumo placa", "A"),
-              numPunto("consumo", "Consumo", "A")
-            ] },
-            { titulo: "MEDICIONES EN LA INSTALACI\xD3N", tipo: "parametros", puntos: [
-              param("t_aire_exterior_entrada", "T\xAA aire exterior (entrada)", "\xB0C", OBL),
-              param("t_salida_aire_condensadora", "T\xAA salida aire condensadora", "\xB0C", OBL)
-            ] }
-          ]),
-          ficha("BOMBA_DE_CALOR", "BOMBA DE CALOR", "BOMBA DE CALOR", [
-            { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
-              ...identificacion(),
-              numPunto("potencia_frio", "Potencia fr\xEDo", "kW"),
-              numPunto("potencia_calor", "Potencia calor", "kW"),
-              texto("refrigerante_carga", "Refrigerante / carga", { unidad: "kg" }),
-              texto("num_compresores_etapas", "N\xBA compresores / etapas"),
-              numPunto("voltaje", "Voltaje", "V"),
-              numPunto("consumo_nominal", "Consumo nominal", "A")
-            ] },
-            { titulo: "MEDICIONES EN LA INSTALACI\xD3N", tipo: "parametros", puntos: [
-              param("t_ida_colector_frio", "T\xAA ida colector \xB7 fr\xEDo", "\xB0C", OBL),
-              param("t_retorno_colector_frio", "T\xAA retorno colector \xB7 fr\xEDo", "\xB0C", OBL),
-              param("t_ida_colector_calor", "T\xAA ida colector \xB7 calor", "\xB0C", OPC),
-              param("t_retorno_colector_calor", "T\xAA retorno colector \xB7 calor", "\xB0C", OPC),
-              param("t_aire_exterior", "T\xAA aire exterior", "\xB0C", OBL),
-              param("caudal_circuito", "Caudal del circuito", "l/s", OBL, true)
-            ] }
-          ]),
-          ficha("ROOFTOP", "ROOFTOP", "ROOFTOP", [
-            { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
-              ...identificacion(),
-              numPunto("potencia_frio", "Potencia fr\xEDo", "kW"),
-              numPunto("potencia_calor", "Potencia calor", "kW"),
-              texto("refrigerante_carga", "Refrigerante / carga", { unidad: "kg" }),
-              numPunto("voltaje", "Voltaje", "V"),
-              numPunto("consumo_nominal", "Consumo nominal", "A")
-            ] },
-            { titulo: "VENTILADOR DE IMPULSI\xD3N", tipo: "datos", puntos: [
-              texto("vent_imp_marca", "Marca"),
-              texto("vent_imp_modelo", "Modelo"),
-              numPunto("vent_imp_potencia", "Potencia", "kW"),
-              numPunto("vent_imp_voltaje", "Voltaje", "V"),
-              numPunto("vent_imp_consumo_placa", "Consumo placa", "A")
-            ] },
-            { titulo: "VENTILADOR DE RETORNO", tipo: "datos", puntos: [
-              texto("vent_ret_marca", "Marca"),
-              texto("vent_ret_modelo", "Modelo"),
-              numPunto("vent_ret_potencia", "Potencia", "kW"),
-              numPunto("vent_ret_voltaje", "Voltaje", "V"),
-              numPunto("vent_ret_consumo_placa", "Consumo placa", "A")
-            ] },
-            { titulo: "FILTROS IMPULSI\xD3N", tipo: "datos", puntos: [
-              texto("filtro_imp_etapa1", "Etapa 1 (clase)"),
-              texto("filtro_imp_etapa2", "Etapa 2 (clase)")
-            ] },
-            { titulo: "FILTROS RETORNO", tipo: "datos", puntos: [
-              texto("filtro_ret_etapa1", "Etapa 1 (clase)"),
-              texto("filtro_ret_etapa2", "Etapa 2 (clase)")
-            ] },
-            { titulo: "CAUDALES EN LA INSTALACI\xD3N", tipo: "parametros", puntos: [
-              param("caudal_aire_impulsion", "Caudal aire impulsi\xF3n", "m\xB3/h", OBL, true),
-              param("caudal_aire_retorno", "Caudal aire retorno", "m\xB3/h", OBL, true),
-              param("caudal_aire_exterior", "Caudal aire exterior", "m\xB3/h", OBL, true)
-            ] },
-            { titulo: "TEMPERATURAS AIRE", tipo: "parametros", puntos: [
-              param("t_aire_exterior", "T\xAA aire exterior", "\xB0C", OBL),
-              param("t_retorno", "T\xAA retorno", "\xB0C", OBL),
-              param("t_impulsion_frio", "T\xAA impulsi\xF3n fr\xEDo", "\xB0C", OBL),
-              param("t_impulsion_calor", "T\xAA impulsi\xF3n calor", "\xB0C", OPC)
-            ] }
-          ]),
-          ficha("GRUPO_DE_BOMBEO", "GRUPO DE BOMBEO", "GRUPO DE BOMBEO", [
-            { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
-              ...identificacion(),
-              texto("circuito", "Circuito", { origen: "circuito" }),
-              numPunto("num_bombas", "N\xBA bombas del grupo"),
-              numPunto("caudal", "Caudal", "m\xB3/h", { origen: "caudalNominal" }),
-              numPunto("altura", "Altura", "m c.a."),
-              numPunto("consigna", "Consigna", "m c.a."),
-              texto("modo_regulacion", "Modo de regulaci\xF3n")
-            ] },
-            { titulo: "DATOS EL\xC9CTRICOS", tipo: "datos", puntos: [
-              numPunto("potencia", "Potencia", "kW"),
-              numPunto("voltaje", "Voltaje", "V"),
-              numPunto("consumo_placa", "Consumo placa", "A"),
-              numPunto("consumo_real", "Consumo real", "A"),
-              numPunto("velocidad_giro_placa", "Velocidad de giro placa", "rpm"),
-              numPunto("velocidad_giro_real", "Velocidad de giro real", "rpm"),
-              okNoOk("sentido_giro", "Sentido de giro (OK/NO)"),
-              numPunto("consigna_variador", "Consigna variador", "Hz")
-            ] },
-            { titulo: "MEDICIONES EN LA INSTALACI\xD3N", tipo: "parametros", puntos: [
-              param("caudal_circuito", "Caudal del circuito", "m\xB3/h", OBL, true),
-              param("presion_aspiracion", "Presi\xF3n aspiraci\xF3n", "bar", OBL),
-              param("presion_impulsion", "Presi\xF3n impulsi\xF3n", "bar", OBL),
-              param("presion_diferencial", "Presi\xF3n diferencial circuito", "m c.a.", OBL, true)
-            ] }
-          ]),
-          /* ─────────────────────────── Balanceo (1) */
-          {
-            codigo: "BALANCEO_CAUDALES",
-            nombre: "BALANCEO CAUDALES",
-            titulo: "FICHA DE BALANCEO DE CAUDALES DE AIRE",
-            clase: "balanceo",
-            version: 1,
-            formato: FORMATO,
-            criterio: "Criterio: total del sistema dentro de la tolerancia de caudales y cada boca dentro de la tolerancia por boca (hoja DATOS) \u2192 APTO. Medido id\xE9ntico a proyecto \u2192 A REVISAR (posible valor copiado).",
-            norma: "UNE-EN 12599 / RITE IT 2.3",
-            secciones: [
-              { titulo: "DATOS DEL SISTEMA", tipo: "datos", puntos: [
-                texto("equipo", "Equipo (TAG)", { origen: "tag" }),
-                texto("zona_servida", "Zona servida"),
-                numPunto("caudal_proyecto_impulsion", "Caudal proyecto impulsi\xF3n", "m\xB3/h"),
-                numPunto("caudal_proyecto_retorno", "Caudal proyecto retorno", "m\xB3/h"),
-                texto("metodo_medida", "M\xE9todo de medida"),
-                /* Estos cuatro no tienen rótulo en la hoja; vienen de la hoja MAPA
-                   (columnas de la tabla BALANCEO SISTEMAS). */
-                numPunto("frecuencia_final_impulsion", "Frecuencia final impulsi\xF3n", "Hz"),
-                numPunto("frecuencia_final_retorno", "Frecuencia final retorno", "Hz"),
-                numPunto("presion_estatica_impulsion", "Presi\xF3n est\xE1tica impulsi\xF3n"),
-                numPunto("presion_estatica_retorno", "Presi\xF3n est\xE1tica retorno")
-              ] },
-              {
-                titulo: "BOCAS",
-                tipo: "bocas",
-                bocas: { impulsion: 20, retorno: 12 },
-                columnas: ["local", "terminal", "proyecto", "medido", "compuerta"],
-                rotulos: {
-                  impulsion: "IMPULSI\xD3N - UNIDADES TERMINALES",
-                  retorno: "RETORNO / EXTRACCI\xD3N - UNIDADES TERMINALES",
-                  local: "Local / sala",
-                  terminal: "Terminal",
-                  proyecto: "Proyecto",
-                  medido: "Medido",
-                  compuerta: "Posici\xF3n compuerta / observ."
-                },
-                unidad: "m\xB3/h",
-                tolerancia: "boca",
-                calculados: [
-                  { codigo: "desv_boca", etiqueta: "Desv. % y resultado por boca", criterio: "tolerancia por boca; medido = proyecto \u2192 A REVISAR" },
-                  { codigo: "total", etiqueta: "Total de impulsi\xF3n y de retorno", criterio: "suma de bocas contra la tolerancia de caudales (total)" },
-                  { codigo: "resumen", etiqueta: "Resumen del balanceo del sistema", criterio: "por red: n\xBA de bocas, proyecto del sistema, suma de proyecto de bocas, caudal medido (suma de bocas), desv. % y resultado contra la tolerancia de caudales" }
-                ]
-              }
-            ]
-          },
-          /* ─────────────────────────── Certificados de estanqueidad (2) */
-          {
-            codigo: "ESTANQ_REFRIGERANTE",
-            nombre: "ESTANQ. REFRIGERANTE",
-            titulo: "CERTIFICADO DE PRUEBA DE ESTANQUEIDAD \xB7 TUBER\xCDAS DE GAS REFRIGERANTE",
-            clase: "estanqRefrigerante",
-            version: 1,
-            formato: FORMATO,
-            criterio: "Criterio: presi\xF3n inicial no inferior a la m\xEDnima exigida y ca\xEDda de presi\xF3n no superior a la admisible. En refrigerante, la presi\xF3n final se corrige por temperatura ambiente y la m\xEDnima exigida es PS (41,5 bar por defecto, R32/R410A: confirmar con el fabricante).",
-            norma: "RD 552/2019 (RSIF) / UNE-EN 378-2",
-            secciones: [
-              { titulo: "DATOS DEL CIRCUITO", tipo: "datos", puntos: [
-                texto("sistema", "Sistema / equipo (TAG)", { origen: "tag" }),
-                texto("refrigerante", "Refrigerante"),
-                texto("tramo", "Tramo / zona"),
-                /* La «Presión máx. admisible PS» de la hoja es la presión mínima
-                   exigida de la prueba: un solo dato, `p_minima`, en la sección de
-                   abajo. */
-                numPunto("longitud_tuberia", "Longitud de tuber\xEDa", "m"),
-                texto("diametros", "Di\xE1metros l\xEDq. / gas"),
-                texto("material_union", "Material / tipo de uni\xF3n"),
-                numPunto("carga_adicional", "Carga adicional", "kg"),
-                texto("empresa_frigorista", "Empresa frigorista")
-              ] },
-              {
-                titulo: "PRUEBA DE PRESI\xD3N",
-                tipo: "pruebaPresion",
-                puntos: [
-                  texto("gas_prueba", "Gas de prueba", { valorPorDefecto: "Nitr\xF3geno seco" }),
-                  texto("manometro", "Man\xF3metro n\xBA / calibr."),
-                  numPunto("p_minima", "Presi\xF3n m\xEDnima exigida (PS)", "bar", { valorPorDefecto: 41.5, obligatorio: false }),
-                  numPunto("duracion_h", "Duraci\xF3n", "h"),
-                  fechaPunto("inicio", "Fecha y hora de inicio"),
-                  fechaPunto("fin", "Fecha y hora de fin"),
-                  numPunto("p_inicial", "Presi\xF3n inicial", "bar"),
-                  numPunto("p_final", "Presi\xF3n final", "bar"),
-                  numPunto("t_inicial", "T\xAA ambiente inicial", "\xB0C"),
-                  numPunto("t_final", "T\xAA ambiente final", "\xB0C"),
-                  numPunto("caida_admisible", "Ca\xEDda admisible", "bar", { valorPorDefecto: 0, obligatorio: false })
-                ],
-                calculados: [
-                  { codigo: "p_final_corregida", etiqueta: "Presi\xF3n final corregida", unidad: "bar", formula: "(Pf + 1,013) \xB7 (Ti + 273,15) / (Tf + 273,15) \u2212 1,013" },
-                  { codigo: "caida_corregida", etiqueta: "Ca\xEDda de presi\xF3n corregida", unidad: "bar", formula: "redondeo a 0,1 de (Pi \u2212 Pf corregida)" },
-                  { codigo: "resultado", etiqueta: "Resultado", criterio: "APTO si Pi \u2265 PS y ca\xEDda corregida \u2264 ca\xEDda admisible; si no, NO APTO" }
-                ]
-              },
-              { titulo: "PRUEBA DE VAC\xCDO", tipo: "datos", puntos: [
-                numPunto("vacio_mbar", "Vac\xEDo alcanzado", "mbar"),
-                numPunto("tiempo_vacio_h", "Tiempo de mantenimiento", "h"),
-                texto("vacuometro", "Vacu\xF3metro n\xBA / calibr."),
-                okNoOk("resultado_vacio", "Resultado")
-              ] },
-              { titulo: "COMPROBACIONES", tipo: "comprobaciones", puntos: [
-                okNoOk("fugas_uniones", "Revisi\xF3n fugas en uniones"),
-                okNoOk("soldadura_nitrogeno", "Soldadura con nitr\xF3geno"),
-                okNoOk("aislamiento_termico", "Aislamiento t\xE9rmico"),
-                okNoOk("identificacion_circuitos", "Identificaci\xF3n de circuitos")
-              ] },
-              { titulo: "FOTOGRAF\xCDAS DE LOS MAN\xD3METROS", tipo: "fotos", maximo: 4 }
-            ]
-          },
-          {
-            codigo: "ESTANQ_AGUA",
-            nombre: "ESTANQ. AGUA",
-            titulo: "CERTIFICADO DE PRUEBA DE ESTANQUEIDAD \xB7 TUBER\xCDAS DE AGUA",
-            clase: "estanqAgua",
-            version: 1,
-            formato: FORMATO,
-            criterio: "Criterio: la red mantiene la presi\xF3n de prueba durante el tiempo indicado, sin fugas en uniones ni ca\xEDda de presi\xF3n.",
-            norma: "RITE IT 2.2.2 / UNE 100151",
-            secciones: [
-              { titulo: "DATOS DEL CIRCUITO", tipo: "datos", puntos: [
-                texto("circuito", "Circuito / tramo", { origen: "circuito" }),
-                texto("zona_planta", "Zona / planta"),
-                texto("fluido", "Fluido"),
-                numPunto("temperatura", "Temperatura", "\xB0C"),
-                texto("material", "Material"),
-                numPunto("p_max_trabajo", "Presi\xF3n m\xE1x. de trabajo", "bar"),
-                /* Sin rótulo en la hoja; vienen de la hoja MAPA. */
-                lista("tipo_circuito", "Tipo (cerrado / ACS)", ["Cerrado", "ACS"]),
-                texto("empresa_instaladora", "Empresa instaladora")
-              ] },
-              {
-                titulo: "PRUEBA DE ESTANQUEIDAD",
-                tipo: "pruebaPresion",
-                puntos: [
-                  numPunto("p_prueba", "Presi\xF3n", "bar"),
-                  numPunto("duracion_h", "Duraci\xF3n", "h"),
-                  siNo("fugas", "Fugas detectadas (s\xED / no)"),
-                  okNoOk("resultado", "Resultado"),
-                  /* La hoja MAPA prevé además la prueba de resistencia mecánica con
-                     lecturas de manómetro; la plantilla no las imprime, así que no
-                     cuentan para dar la ficha por completa. */
-                  texto("manometro", "Man\xF3metro n\xBA / calibr.", { obligatorio: false }),
-                  fechaPunto("inicio", "Fecha y hora de inicio", { obligatorio: false }),
-                  fechaPunto("fin", "Fecha y hora de fin", { obligatorio: false }),
-                  numPunto("p_inicial", "Presi\xF3n inicial", "bar", { obligatorio: false }),
-                  numPunto("p_final", "Presi\xF3n final", "bar", { obligatorio: false }),
-                  numPunto("duracion_resistencia_h", "Prueba de resistencia mec\xE1nica \xB7 duraci\xF3n", "h", { obligatorio: false }),
-                  numPunto("caida_admisible", "Ca\xEDda admisible", "bar", { obligatorio: false })
-                ]
-              },
-              { titulo: "COMPROBACIONES", tipo: "comprobaciones", puntos: [
-                okNoOk("llenado_purga", "Llenado y purga de aire"),
-                okNoOk("equipos_sensibles_aislados", "Equipos sensibles aislados"),
-                okNoOk("limpieza_previa", "Limpieza previa de la red"),
-                okNoOk("reposicion_presion_servicio", "Reposici\xF3n presi\xF3n servicio")
-              ] },
-              { titulo: "FOTOGRAF\xCDAS DE LOS MAN\xD3METROS", tipo: "fotos", maximo: 4 }
-            ]
-          },
-          /* ─────────────────────────── Listados de chequeo (8) */
-          checklist("CHECKLIST_UTA", "CHECKLIST UTA", "RECEPCI\xD3N Y PUESTA EN OBRA \xB7 UTA", [
-            bloque("02", "VERIFICACIONES F\xCDSICAS", [
-              ["02.01", "La unidad est\xE1 libre de da\xF1os"],
-              ["02.02", "Todos los componentes presentes y en orden"],
-              ["02.03", "Las aperturas de la l\xEDnea de agua est\xE1n selladas"],
-              ["02.04", "Manual de instalaci\xF3n y encendido provisto"],
-              ["02.05", "Placa de caracter\xEDsticas correctamente colocada"]
-            ]),
-            bloque("03", "AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA", [
-              ["03.01", "Los equipos instalados se corresponden con el Proyecto o Memoria T\xE9cnica"],
-              ["03.02", "La ubicaci\xF3n de las unidades instaladas se corresponde con el Proyecto o Memoria"]
-            ]),
-            bloque("04", "INSTALACI\xD3N DEL EQUIPO", [
-              ["04.01", "Unidad perfectamente apoyada usando el tama\xF1o adecuado de anclajes de montaje"],
-              ["04.02", "Antivibratorios correctamente instalados y unidad convenientemente nivelada"],
-              ["04.03", "Se cumplen las distancias m\xEDnimas recomendadas por el fabricante"],
-              ["04.04", "La aspiraci\xF3n y descarga de aire es adecuada y no afecta a otros"],
-              ["04.05", "Unidad etiquetada y f\xE1cil de identificar"],
-              ["04.06", "La unidad se puede retirar del edificio"],
-              ["04.07", "El equipo est\xE1 convenientemente conectado a la red de conductos"]
-            ]),
-            bloque("05", "TUBER\xCDAS Y V\xC1LVULAS", [
-              ["05.01", "Todos los componentes de las tuber\xEDas han sido instalados"],
-              ["05.02", "Los soportes de las tuber\xEDas est\xE1n como se requieren en las especificaciones"],
-              ["05.03", "Las tuber\xEDas est\xE1n convenientemente conectadas a m\xE1quina con elementos antivibratorios"],
-              ["05.04", "Tuber\xEDas limpias y libres de suciedad"],
-              ["05.05", "El aislamiento de tuber\xEDas est\xE1 completo e instalado seg\xFAn las especificaciones"],
-              ["05.06", "Existen llaves de corte para la independencia hidr\xE1ulica"],
-              ["05.07", "Etiquetas de v\xE1lvulas fijadas"],
-              ["05.08", "Se ha comprobado que el desag\xFCe funciona (altura, sifones, bomba)"],
-              ["05.09", "Se dispone de tomas para la medida de presi\xF3n y temperatura a la entrada y salida de m\xE1quina"]
-            ]),
-            bloque("06", "EL\xC9CTRICO", P_ELECTRICO),
-            bloque("07", "CONTROLES - INSTALACI\xD3N", [
-              ["07.01", "Termostatos / presostatos instalados y verificada su calibraci\xF3n"],
-              ["07.02", "Cableado de control para la unidad exterior (compresor)"],
-              ["07.03", "Comunicaci\xF3n con la unidad exterior verificada"]
-            ]),
-            bloque("08", "CONTROLES - PUESTA EN MARCHA", [
-              ["08.01", "Tensi\xF3n de alimentaci\xF3n (RSTN) y sentido de rotaci\xF3n correctos"],
-              ["08.02", "Secuencia de control de opci\xF3n fr\xEDo verificada"],
-              ["08.03", "Secuencia de control de opci\xF3n calor verificada"],
-              ["08.04", "El sistema se enciende sin ning\xFAn ruido o vibraci\xF3n anormal"],
-              ["08.05", "Se adjunta informe de puesta en marcha del fabricante con detalle"]
-            ]),
-            bloque("09", "MANTENIMIENTO", [
-              ["09.01", "Espacio libre adecuado alrededor de la unidad para su servicio"],
-              ["09.02", "Todos los componentes son accesibles para mantenimiento"],
-              ["09.03", "Las tuber\xEDas est\xE1n dispuestas para la retirada f\xE1cil de la unidad"],
-              ["09.04", "Existen los dispositivos adecuados para el mantenimiento y son accesibles"]
-            ])
-          ]),
-          checklist("CHECKLIST_ENFRIADORA", "CHECKLIST ENFRIADORA", "RECEPCI\xD3N Y PUESTA EN OBRA \xB7 ENFRIADORA AIRE-AGUA", [
-            bloque("02", "VERIFICACIONES F\xCDSICAS", [
-              ["02.01", "La unidad est\xE1 libre de da\xF1os"],
-              ["02.02", "Todos los componentes presentes y en orden"],
-              ["02.03", "Las aperturas de la l\xEDnea de agua est\xE1n selladas"],
-              ["02.04", "Manual de instalaci\xF3n y encendido provisto"],
-              ["02.05", "Placa de caracter\xEDsticas correctamente colocada"]
-            ]),
-            bloque("03", "AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA", [
-              ["03.01", "Los equipos instalados se corresponden con el Proyecto o Memoria T\xE9cnica"]
-            ]),
-            bloque("04", "INSTALACI\xD3N DEL EQUIPO", [
-              ["04.01", "Unidad perfectamente apoyada usando el tama\xF1o adecuado de anclajes de montaje"],
-              ["04.02", "Antivibratorios correctamente instalados y unidad convenientemente nivelada"],
-              ["04.03", "Se cumplen las distancias m\xEDnimas recomendadas por el fabricante"],
-              ["04.04", "La aspiraci\xF3n y descarga de aire es adecuada y no afecta a otros aparatos"],
-              ["04.05", "Unidad etiquetada y f\xE1cil de identificar"],
-              ["04.06", "La unidad se puede retirar del edificio"],
-              ["04.07", "Existen tomas para la lectura de la presi\xF3n de alta y baja"]
-            ]),
-            bloque("05", "CONEXI\xD3N HIDR\xC1ULICA", [
-              ["05.01", "Todos los componentes de las tuber\xEDas han sido instalados"],
-              ["05.02", "Los soportes de las tuber\xEDas est\xE1n como se requieren en las especificaciones"],
-              ["05.03", "Las tuber\xEDas est\xE1n convenientemente conectadas a m\xE1quina con elementos antivibratorios"],
-              ["05.04", "Tuber\xEDas limpias y libres de suciedad"],
-              ["05.05", "El aislamiento de tuber\xEDas est\xE1 completo e instalado seg\xFAn las especificaciones de Proyecto"],
-              ["05.06", "Existen llaves de corte para la independencia hidr\xE1ulica"],
-              ["05.07", "Etiquetas de v\xE1lvulas fijadas"],
-              ["05.08", "Se ha comprobado que el desag\xFCe funciona (altura, sifones, bomba de condensados)"],
-              ["05.09", "Se dispone de tomas para la medida de presi\xF3n (man\xF3metros) y temperatura a la entrada y salida de m\xE1quina"]
-            ]),
-            bloque("06", "EL\xC9CTRICO", [
-              ...P_ELECTRICO,
-              ["06.05", "El magnetot\xE9rmico se corresponde con la intensidad de consumo m\xE1s 25%"],
-              ["06.06", "El diferencial se corresponde con la intensidad de consumo m\xE1s 40%"]
-            ]),
-            bloque("07", "CONTROLES - INSTALACI\xD3N", [
-              ["07.01", "El interruptor de flujo est\xE1 instalado, conectado y funciona"],
-              ["07.02", "La sonda de temperatura est\xE1 instalada, conectada y funciona"],
-              ["07.03", "El cableado de control para la unidad est\xE1 correctamente conectado"]
-            ]),
-            bloque("08", "CONTROLES - PUESTA EN MARCHA", [
-              ["08.01", "Tensi\xF3n de alimentaci\xF3n (RSTN) y sentido de rotaci\xF3n correctos"],
-              ["08.02", "Secuencia de control de opci\xF3n fr\xEDo verificada"],
-              ["08.03", "Secuencia de control de opci\xF3n calor verificada"],
-              ["08.04", "El sistema se enciende sin ning\xFAn ruido o vibraci\xF3n anormal"],
-              ["08.05", "Se adjunta informe de puesta en marcha del fabricante con detalle de las pruebas, medidas y ajustes"]
-            ]),
-            /* La hoja salta del 09.01 al 09.03: no hay 09.02. */
-            bloque("09", "MANTENIMIENTO", [
-              ["09.01", "Espacio libre adecuado alrededor de la unidad para su servicio"],
-              ["09.03", "Las tuber\xEDas est\xE1n dispuestas para la retirada f\xE1cil de la unidad"],
-              ["09.04", "Existen los dispositivos adecuados para el mantenimiento y son accesibles (v\xE1lvulas de corte, vaciados, purgas, desag\xFCes, dispositivos de lectura)"]
-            ])
-          ]),
-          checklist("CHECKLIST_FANCOIL", "CHECKLIST FANCOIL", "RECEPCI\xD3N Y PUESTA EN OBRA \xB7 FANCOIL", [
-            { titulo: "DATOS DE LA INSTALACI\xD3N", tipo: "datos", puntos: [
-              siNo("asociado_red_conductos", "Asociado a red de conductos")
-            ] },
-            bloque("02", "VERIFICACIONES F\xCDSICAS", [
-              ["02.01", "La unidad est\xE1 libre de da\xF1os"],
-              ["02.02", "Todos los componentes presentes y en orden"],
-              ["02.03", "Las aperturas de la l\xEDnea de agua est\xE1n selladas"],
-              ["02.04", "Manual de instalaci\xF3n y encendido provisto"],
-              ["02.05", "Placa de caracter\xEDsticas correctamente colocada"]
-            ]),
-            bloque("03", "AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA", [
-              ["03.01", "Los fancoils instalados se corresponden con el Proyecto o Memoria T\xE9cnica"],
-              ["03.02", "La ubicaci\xF3n de las unidades instaladas se corresponde con el Proyecto o Memoria T\xE9cnica"]
-            ]),
-            bloque("04", "INSTALACI\xD3N DEL EQUIPO", [
-              ["04.01", "Unidad perfectamente apoyada usando el tama\xF1o adecuado de anclajes de montaje"],
-              ["04.02", "Antivibratorios correctamente instalados y unidad convenientemente nivelada"],
-              ["04.03", "El fancoil est\xE1 convenientemente conectado a la red de conductos"],
-              ["04.04", "La unidad se puede retirar del edificio"],
-              ["04.05", "Unidad etiquetada y f\xE1cil de identificar"]
-            ]),
-            bloque("05", "TUBER\xCDAS Y V\xC1LVULAS", [
-              ["05.01", "Todos los componentes de las tuber\xEDas han sido instalados"],
-              ["05.02", "Los soportes de las tuber\xEDas est\xE1n como se requieren en las especificaciones"],
-              ["05.03", "Las tuber\xEDas est\xE1n convenientemente conectadas a m\xE1quina con elementos antivibratorios"],
-              ["05.04", "Tuber\xEDas limpias y libres de suciedad"],
-              ["05.05", "El aislamiento de tuber\xEDas est\xE1 completo e instalado seg\xFAn las especificaciones"],
-              ["05.06", "Existen llaves de corte para la independencia hidr\xE1ulica de cada fancoil"],
-              ["05.07", "Etiquetas de v\xE1lvulas fijadas"],
-              ["05.08", "Se ha comprobado que el desag\xFCe funciona (altura, sifones, bomba de condensados)"]
-            ]),
-            bloque("06", "EL\xC9CTRICO", P_ELECTRICO),
-            bloque("07", "CONTROLES - INSTALACI\xD3N", [
-              ["07.01", "Termostato del local instalado y verificada su calibraci\xF3n"],
-              ["07.02", "Cableado de control para la unidad exterior (compresor)"],
-              ["07.03", "Comunicaci\xF3n con la unidad exterior verificada"]
-            ]),
-            bloque("08", "CONTROLES - PUESTA EN MARCHA", [
-              ["08.01", "Tensi\xF3n de alimentaci\xF3n (RSTN) y sentido de rotaci\xF3n correctos"],
-              ["08.02", "Secuencia de control de opci\xF3n fr\xEDo verificada"],
-              ["08.03", "Secuencia de control de opci\xF3n calor verificada"],
-              ["08.04", "El sistema se enciende sin ning\xFAn ruido o vibraci\xF3n anormal"],
-              ["08.05", "Se adjunta informe de puesta en marcha del fabricante con detalle de las pruebas, medidas y ajustes"]
-            ]),
-            bloque("09", "MANTENIMIENTO", P_MANTENIMIENTO_LARGO)
-          ]),
-          checklist("CHECKLIST_BOMBA_CALOR", "CHECKLIST BOMBA CALOR", "RECEPCI\xD3N Y PUESTA EN OBRA \xB7 BOMBA DE CALOR", [
-            { titulo: "DATOS DE LA INSTALACI\xD3N", tipo: "datos", puntos: [
-              siNo("asociado_red_conductos", "Asociado a red de conductos")
-            ] },
-            bloque("02", "VERIFICACIONES F\xCDSICAS", [
-              ["02.01", "La unidad est\xE1 libre de da\xF1os"],
-              ["02.02", "Todos los componentes presentes y en orden"],
-              ["02.03", "Las aperturas de la l\xEDnea de agua est\xE1n selladas"],
-              ["02.04", "Manual de instalaci\xF3n y encendido provisto"],
-              ["02.05", "Placa de caracter\xEDsticas correctamente colocada"]
-            ]),
-            bloque("03", "AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA", [
-              ["03.01", "Los equipos instalados se corresponden con el Proyecto o Memoria T\xE9cnica"],
-              ["03.02", "La ubicaci\xF3n de los equipos instalados se corresponde con el Proyecto o Memoria T\xE9cnica"]
-            ]),
-            bloque("04", "INSTALACI\xD3N DEL EQUIPO", [
-              ["04.01", "Unidad perfectamente apoyada usando el tama\xF1o adecuado de anclajes de montaje"],
-              ["04.02", "Antivibratorios correctamente instalados y unidad convenientemente nivelada"],
-              ["04.03", "El equipo est\xE1 convenientemente conectado a la red de conductos"],
-              ["04.04", "La unidad se puede retirar del edificio"],
-              ["04.05", "Unidad etiquetada y f\xE1cil de identificar"]
-            ]),
-            bloque("05", "TUBER\xCDAS Y V\xC1LVULAS", [
-              ["05.01", "Todos los componentes de las tuber\xEDas han sido instalados"],
-              ["05.02", "Los soportes de las tuber\xEDas est\xE1n como se requieren en las especificaciones"],
-              ["05.03", "Las tuber\xEDas est\xE1n convenientemente conectadas a m\xE1quina con elementos antivibratorios"],
-              ["05.04", "Tuber\xEDas limpias y libres de suciedad"],
-              ["05.05", "El aislamiento de tuber\xEDas est\xE1 completo e instalado seg\xFAn las especificaciones"],
-              ["05.06", "Existen llaves de corte para la independencia hidr\xE1ulica"],
-              ["05.07", "Etiquetas de v\xE1lvulas fijadas"],
-              ["05.08", "Se ha comprobado que el desag\xFCe funciona (altura, sifones, bomba de condensados)"]
-            ]),
-            bloque("06", "EL\xC9CTRICO", P_ELECTRICO),
-            bloque("07", "CONTROLES - INSTALACI\xD3N", [
-              ["07.01", "Termostato del local instalado y verificada su calibraci\xF3n"],
-              ["07.02", "Cableado de control para la unidad exterior (compresor)"],
-              ["07.03", "Comunicaci\xF3n con la unidad exterior verificada"]
-            ]),
-            bloque("08", "CONTROLES - PUESTA EN MARCHA", [
-              ["08.01", "Tensi\xF3n de alimentaci\xF3n (RSTN) y sentido de rotaci\xF3n correctos"],
-              ["08.02", "Secuencia de control de opci\xF3n fr\xEDo verificada"],
-              ["08.03", "Secuencia de control de opci\xF3n calor verificada"],
-              ["08.04", "El sistema se enciende sin ning\xFAn ruido o vibraci\xF3n anormal"],
-              ["08.05", "Se adjunta informe de puesta en marcha del fabricante con detalle de las pruebas, medidas y ajustes"]
-            ]),
-            bloque("09", "MANTENIMIENTO", P_MANTENIMIENTO_LARGO)
-          ]),
-          checklist("CHECKLIST_RECUPERADOR", "CHECKLIST RECUPERADOR", "RECEPCI\xD3N Y PUESTA EN OBRA \xB7 RECUPERADOR DE CALOR", [
-            bloque("02", "VERIFICACIONES F\xCDSICAS", [
-              ["02.01", "La unidad est\xE1 libre de da\xF1os"],
-              ["02.02", "Todos los componentes presentes y en orden"],
-              ["02.03", "Los filtros est\xE1n bien instalados y limpios"],
-              ["02.04", "Manual de instalaci\xF3n y encendido provisto"],
-              ["02.05", "Placa de caracter\xEDsticas correctamente colocada"]
-            ]),
-            bloque("03", "AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA", [
-              ["03.01", "Los equipos instalados se corresponden con el Proyecto o Memoria T\xE9cnica"],
-              ["03.02", "La ubicaci\xF3n de los equipos instalados se corresponde con el Proyecto o Memoria T\xE9cnica"]
-            ]),
-            bloque("04", "INSTALACI\xD3N DEL EQUIPO", [
-              ["04.01", "Unidad perfectamente apoyada usando el tama\xF1o adecuado de anclajes de montaje"],
-              ["04.02", "Antivibratorios correctamente instalados y unidad convenientemente nivelada"],
-              ["04.03", "La aspiraci\xF3n del aire exterior es adecuada y no toma aire de salidas"],
-              ["04.04", "El equipo est\xE1 convenientemente conectado a la red de conductos"],
-              ["04.05", "La unidad se puede retirar del edificio"],
-              ["04.06", "Unidad etiquetada y f\xE1cil de identificar"]
-            ]),
-            bloque("05", "EL\xC9CTRICO", [
-              ["05.01", "Desconexi\xF3n local instalada en un lugar accesible"],
-              ["05.02", "Rotaci\xF3n del motor del ventilador en la direcci\xF3n correcta"],
-              ["05.03", "Todas las conexiones el\xE9ctricas bien fijadas"],
-              ["05.04", "Todas las conexiones el\xE9ctricas est\xE1n conectadas a tierra"]
-            ]),
-            bloque("06", "SISTEMA MEC\xC1NICO", [
-              ["06.01", "El sistema est\xE1 limpio"],
-              ["06.02", "Rueda lubricada y alineada"],
-              ["06.03", "Las correas de la rueda est\xE1n en buenas condiciones"]
-            ]),
-            bloque("07", "CONTROLES - INSTALACI\xD3N", [
-              ["07.01", "Termostato del local instalado y verificada su calibraci\xF3n"],
-              ["07.02", "Cableado de control para la unidad exterior (compresor)"],
-              ["07.03", "Conexi\xF3n de cableado de control adecuado"]
-            ]),
-            bloque("08", "CONTROLES - PUESTA EN MARCHA", [
-              ["08.01", "Tensi\xF3n de alimentaci\xF3n (RSTN) y sentido de rotaci\xF3n correctos"],
-              ["08.02", "Secuencia de control de opci\xF3n fr\xEDo verificada"],
-              ["08.03", "Secuencia de control de opci\xF3n calor verificada"],
-              ["08.04", "El sistema se enciende sin ning\xFAn ruido o vibraci\xF3n anormal"],
-              ["08.05", "La p\xE9rdida de presi\xF3n de los filtros es la esperada"],
-              ["08.06", "Los ventiladores giran correctamente y su velocidad se corresponde con el Proyecto"],
-              ["08.07", "Se adjunta informe de puesta en marcha del fabricante con detalle de las pruebas, medidas y ajustes"]
-            ]),
-            bloque("09", "MANTENIMIENTO", P_MANTENIMIENTO_LARGO)
-          ]),
-          checklist("CHECKLIST_VENTILADOR", "CHECKLIST VENTILADOR", "RECEPCI\xD3N Y PUESTA EN OBRA \xB7 VENTILADOR", [
-            bloque("02", "VERIFICACIONES F\xCDSICAS", [
-              ["02.01", "La unidad est\xE1 libre de da\xF1os"],
-              ["02.02", "Todos los componentes presentes y en orden"],
-              ["02.03", "Los filtros est\xE1n bien instalados y limpios"],
-              ["02.04", "Manual de instalaci\xF3n y encendido provisto"],
-              ["02.05", "Placa de caracter\xEDsticas correctamente colocada"]
-            ]),
-            bloque("03", "AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA", [
-              ["03.01", "Los equipos instalados se corresponden con el Proyecto o Memoria T\xE9cnica"],
-              ["03.02", "La ubicaci\xF3n de los equipos instalados se corresponde con el Proyecto o Memoria T\xE9cnica"]
-            ]),
-            bloque("04", "INSTALACI\xD3N DEL EQUIPO", [
-              ["04.01", "Unidad perfectamente apoyada usando el tama\xF1o adecuado de anclajes de montaje"],
-              ["04.02", "Antivibratorios correctamente instalados y unidad convenientemente nivelada"],
-              ["04.03", "La aspiraci\xF3n del aire exterior es adecuada y no toma aire de salidas"],
-              ["04.04", "El equipo est\xE1 convenientemente conectado a la red de conductos"],
-              ["04.05", "La unidad se puede retirar del edificio"],
-              ["04.06", "Unidad etiquetada y f\xE1cil de identificar"]
-            ]),
-            bloque("05", "EL\xC9CTRICO", [
-              ["05.01", "Desconexi\xF3n local instalada en un lugar accesible"],
-              ["05.02", "Rotaci\xF3n del motor del ventilador en la direcci\xF3n correcta"],
-              ["05.03", "Todas las conexiones el\xE9ctricas bien fijadas"],
-              ["05.04", "Todas las conexiones el\xE9ctricas est\xE1n conectadas a tierra"]
-            ]),
-            bloque("06", "SISTEMA MEC\xC1NICO", [
-              ["06.01", "El sistema est\xE1 limpio"],
-              ["06.02", "Rueda lubricada y alineada"],
-              ["06.03", "Las correas de la rueda est\xE1n en buenas condiciones"]
-            ]),
-            bloque("07", "CONTROLES - INSTALACI\xD3N", [
-              ["07.01", "Existen sensores o dispositivos para el arranque y parada del motor"],
-              ["07.02", "Conexi\xF3n de cableado de control adecuado"]
-            ]),
-            /* La hoja salta del 08.01 al 08.04: no hay 08.02 ni 08.03. */
-            bloque("08", "CONTROLES - PUESTA EN MARCHA", [
-              ["08.01", "Tensi\xF3n de alimentaci\xF3n (RSTN) y sentido de rotaci\xF3n correctos"],
-              ["08.04", "El sistema se enciende sin ning\xFAn ruido o vibraci\xF3n anormal"],
-              ["08.05", "Verificaci\xF3n del arranque y paro por sistema de control"],
-              ["08.06", "Los ventiladores giran correctamente y su velocidad se corresponde con el Proyecto"],
-              ["08.07", "Se adjunta informe de puesta en marcha del fabricante con detalle de las pruebas, medidas y ajustes"]
-            ]),
-            bloque("09", "MANTENIMIENTO", P_MANTENIMIENTO_LARGO)
-          ]),
-          checklist("CHECKLIST_CONDUCTOS", "CHECKLIST CONDUCTOS", "CHEQUEO DE RED DE CONDUCTOS", [
-            { titulo: "DATOS DE LA INSTALACI\xD3N", tipo: "datos", puntos: [
-              lista("red", "Red (impulsi\xF3n / retorno)", ["Impulsi\xF3n", "Retorno"]),
-              texto("asociado_a", "Asociado a", { origen: "equipoAsociado" })
-            ] },
-            bloque("02", "VERIFICACIONES F\xCDSICAS", [
-              ["02.01", "El material est\xE1 libre de da\xF1os"],
-              ["02.02", "Todos los componentes presentes y en orden"]
-            ]),
-            bloque("03", "AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA", [
-              ["03.01", "El trazado se corresponde con los planos del Proyecto o Memoria T\xE9cnica"],
-              ["03.02", "Las dimensiones de conductos se corresponden con los planos del Proyecto o Memoria T\xE9cnica"],
-              ["03.03", "Los espesores de los aislamientos se corresponden con los planos del Proyecto o Memoria T\xE9cnica"],
-              ["03.04", "La red dispone de los accesorios exigidos en el Proyecto o Memoria T\xE9cnica (compuertas, sensores, registros\u2026)"]
-            ]),
-            bloque("04", "INSTALACI\xD3N DE LA RED DE CONDUCTOS", [
-              ["04.01", "Conductos limpios y libres de suciedad"],
-              ["04.02", "Soportes de sujeci\xF3n adecuados y fijaciones correctas"],
-              ["04.03", "Distancia entre soportes adecuada para evitar deformaciones"],
-              ["04.04", "Uniones entre conductos adecuadas"],
-              ["04.05", "La conexi\xF3n de conductos a plenums, difusores y equipos es adecuada"],
-              ["04.06", "Existen los registros necesarios para la limpieza interior"],
-              ["04.07", "Existe identificaci\xF3n de la red"]
-            ]),
-            bloque("05", "AISLAMIENTOS Y RECUBRIMIENTOS", [
-              ["05.01", "El aislamiento de conductos est\xE1 completo e instalado seg\xFAn las especificaciones"],
-              ["05.02", "La uni\xF3n del aislamiento con el conducto es adecuada"],
-              ["05.03", "Las uniones entre paneles o coquillas de aislamiento est\xE1n correctamente selladas"],
-              ["05.04", "Los accesorios intercalados en el conducto est\xE1n correctamente aislados"],
-              ["05.05", "Los tramos de la red expuestos al exterior disponen de recubrimiento adecuado para soportar la radiaci\xF3n solar y la lluvia"],
-              ["05.06", "El recubrimiento de tuber\xEDas exteriores est\xE1 completo e instalado seg\xFAn las especificaciones"]
-            ])
-          ]),
-          checklist("CHECKLIST_DIFUSORES", "CHECKLIST DIFUSORES", "CHEQUEO DE DIFUSORES Y REJILLAS", [
-            { titulo: "DATOS DE LA INSTALACI\xD3N", tipo: "datos", puntos: [
-              texto("asociado_a", "Asociado a", { origen: "equipoAsociado" })
-            ] },
-            bloque("02", "VERIFICACIONES F\xCDSICAS", [
-              ["02.01", "El material est\xE1 libre de da\xF1os"],
-              ["02.02", "Todos los componentes presentes y en orden"]
-            ]),
-            bloque("03", "AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA", [
-              ["03.01", "Las dimensiones de los difusores o rejillas se corresponden con el Proyecto o Memoria T\xE9cnica"],
-              ["03.02", "La ubicaci\xF3n de los difusores / rejillas se corresponde con el Proyecto o Memoria T\xE9cnica"]
-            ]),
-            bloque("04", "INSTALACI\xD3N DE DIFUSORES Y REJILLAS", [
-              ["04.01", "Soportes de sujeci\xF3n adecuados y fijaciones correctas"],
-              ["04.02", "La conexi\xF3n del difusor / rejilla / plenum a conducto es adecuada"],
-              ["04.03", "El difusor / rejilla es f\xE1cilmente desmontable"],
-              ["04.04", "Existen compuertas para el equilibrado de los caudales"],
-              ["04.05", "Inexistencia de ruidos por exceso de velocidad de aire en los difusores / rejillas"]
-            ]),
-            {
-              codigo: "05",
-              titulo: "EQUILIBRADO DE DIFUSORES Y REJILLAS",
-              tipo: "bocas",
-              bocas: { impulsion: 20, retorno: 10 },
-              columnas: ["local", "terminal", "proyecto", "medido", "observaciones", "ruido_db", "compuerta"],
-              rotulos: {
-                impulsion: "IMPULSI\xD3N \xB7 05 EQUILIBRADO DE DIFUSORES Y REJILLAS",
-                retorno: "RETORNO \xB7 05 EQUILIBRADO DE DIFUSORES Y REJILLAS",
-                local: "Local / sala",
-                terminal: "Difusor / rejilla",
-                proyecto: "Caudal proyecto",
-                medido: "Caudal medido",
-                observaciones: "Observaciones",
-                ruido_db: "dB",
-                compuerta: "Tarado compuerta"
-              },
-              unidad: "m\xB3/h",
-              tolerancia: "boca"
-            }
-          ])
-        ];
-        const FAMILIAS = [
-          {
-            codigo: "CARRIER_CHILLERS",
-            nombre: "CARRIER CHILLERS",
-            nombrePdf: "Carrier Bomba de Calor",
-            plantillas: ["BOMBA_DE_CALOR"],
-            anexos: [{ plantilla: "CHECKLIST_ENFRIADORA" }, { plantilla: "ESTANQ_AGUA", enlace: "circuito" }],
-            balanceo: false,
-            estanqueidad: "agua"
-          },
-          {
-            codigo: "CARRIER_ROOFTOPS",
-            nombre: "CARRIER ROOFTOPS",
-            nombrePdf: "Carrier Rooftop",
-            plantillas: ["ROOFTOP"],
-            anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR" }, { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" }],
-            balanceo: true,
-            estanqueidad: "no"
-          },
-          {
-            codigo: "TROX_UTA",
-            nombre: "TROX UTA",
-            nombrePdf: "Trox UTA",
-            plantillas: ["UTA", "CLIMATIZADOR_REC_ESTATICO", "CLIMATIZADOR_REC_ROTATIVO"],
-            anexos: [
-              { plantilla: "CHECKLIST_UTA" },
-              { plantilla: "CHECKLIST_CONDUCTOS" },
-              { plantilla: "CHECKLIST_DIFUSORES" },
-              { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" },
-              { plantilla: "ESTANQ_AGUA", enlace: "circuito" }
-            ],
-            balanceo: true,
-            estanqueidad: "agua"
-          },
-          {
-            codigo: "AIRLAN_FANCOIL",
-            nombre: "AIRLAN FANCOIL",
-            nombrePdf: "Airlan Fan Coil",
-            plantillas: ["FAN_COIL_AGUA", "CASSETTE_AGUA"],
-            anexos: [{ plantilla: "CHECKLIST_FANCOIL" }, { plantilla: "ESTANQ_AGUA", enlace: "circuito" }],
-            balanceo: false,
-            estanqueidad: "agua"
-          },
-          {
-            codigo: "AIRLAN_HRU",
-            nombre: "AIRLAN HRU",
-            nombrePdf: "Airlan Recuperador",
-            plantillas: ["RECUPERADOR_PLACAS", "RECUPERADOR_ROTATIVO"],
-            anexos: [{ plantilla: "CHECKLIST_RECUPERADOR" }, { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" }],
-            balanceo: true,
-            estanqueidad: "no"
-          },
-          {
-            codigo: "PANASONIC_VRF",
-            nombre: "PANASONIC VRF",
-            nombrePdf: "Panasonic VRF",
-            plantillas: ["VRF_UD_EXTERIOR", "VRF_UI_CONDUCTOS", "VRF_UI_CASSETTE"],
-            anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR" }, { plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
-            balanceo: false,
-            estanqueidad: "refrigerante"
-          },
-          {
-            codigo: "PANASONIC_SPLIT",
-            nombre: "PANASONIC SPLIT",
-            nombrePdf: "Panasonic Split",
-            plantillas: ["SPLIT_UD_INTERIOR", "SPLIT_UD_EXTERIOR"],
-            anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR" }, { plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
-            balanceo: false,
-            estanqueidad: "refrigerante"
-          },
-          {
-            codigo: "PANASONIC_CRACS",
-            nombre: "PANASONIC CRACS",
-            nombrePdf: "Panasonic CRAC",
-            plantillas: ["CRAC_UD_INTERIOR", "CRAC_UD_EXTERIOR"],
-            anexos: [{ plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
-            balanceo: false,
-            estanqueidad: "refrigerante"
-          },
-          {
-            codigo: "WILO_GP",
-            nombre: "WILO GP",
-            nombrePdf: "Wilo Grupo de Presion",
-            plantillas: ["GRUPO_DE_BOMBEO"],
-            anexos: [],
-            balanceo: false,
-            estanqueidad: "no"
-          },
-          {
-            codigo: "WILO_PUMPS",
-            nombre: "WILO PUMPS",
-            nombrePdf: "Wilo Bomba",
-            plantillas: ["GRUPO_DE_BOMBEO"],
-            anexos: [],
-            balanceo: false,
-            estanqueidad: "no"
-          },
-          {
-            codigo: "SP_PARKING",
-            nombre: "S&P PARKING",
-            nombrePdf: "S&P Ventilador Parking",
-            plantillas: ["VENTILADOR_AXIAL", "VENTILADOR_EXTRACTOR", "VENT_COMPLETO"],
-            anexos: [{ plantilla: "CHECKLIST_VENTILADOR" }],
-            balanceo: false,
-            estanqueidad: "no"
-          },
-          {
-            codigo: "SP_VENTILACION",
-            nombre: "S&P VENTILACION",
-            nombrePdf: "S&P Ventilador",
-            plantillas: ["VENTILADOR_EXTRACTOR", "VENT_COMPLETO", "VENTILADOR_AXIAL"],
-            anexos: [{ plantilla: "CHECKLIST_VENTILADOR" }],
-            balanceo: false,
-            estanqueidad: "no"
-          },
-          {
-            codigo: "SP_PRESURIZACION",
-            nombre: "S&P PRESURIZACION",
-            nombrePdf: "S&P Presurizacion Escalera",
-            /* Así se llamaba el grupo en la tabla de equipos. */
-            alias: ["S&P STAIR PRESSURIZATION", "S&P PRESSURIZATION"],
-            plantillas: ["VENTILADOR_AXIAL", "VENTILADOR_EXTRACTOR", "VENT_COMPLETO"],
-            anexos: [{ plantilla: "CHECKLIST_VENTILADOR" }],
-            balanceo: false,
-            estanqueidad: "no"
-          }
-        ];
-        (function exportar(API) {
-          if (typeof module !== "undefined" && module.exports) module.exports = API;
-          if (typeof window !== "undefined") window.PLANTILLAS_CBRE = API;
-        })({ PLANTILLAS, FAMILIAS });
-      })();
-    }
-  });
-
   // shared/commissioning/fichas.js
   var require_fichas = __commonJS({
     "shared/commissioning/fichas.js"(exports, module) {
@@ -21101,14 +21329,15 @@ globalThis.CX_VARIANTE="cxobra";
           const magnitudes = (ev.equipo || []).filter((m) => m.fabrica !== null || m.proyecto !== null || m.medido !== null);
           const circuitos = (ev.circuitos || []).map((c) => `<div class="subtitulo">${escFh(c.nombre.toUpperCase())} \xB7 ${escFh(c.terminales)}${c.perdida && c.perdida.total !== null && c.perdida.total !== void 0 ? ` \xB7 p\xE9rdida de carga te\xF3rica ${numFh(c.perdida.total, 0)} Pa` : ""}</div>
     <table class="bocas">
-      <thead><tr><th>N\xBA</th><th>Boca</th><th>Terminal</th><th>Proyecto m\xB3/h</th><th>Medido m\xB3/h</th><th>Desv. %</th><th>Resultado</th></tr></thead>
+      <thead><tr><th>N\xBA</th><th>Boca</th><th>Terminal</th><th>Proyecto m\xB3/h</th><th>Secci\xF3n cm</th><th>v media m/s</th><th>Medido m\xB3/h</th><th>Desv. %</th><th>Resultado</th></tr></thead>
       <tbody>${c.bocas.map((b) => `<tr>
         <td class="cod">${b.indice}</td><td>${escFh(b.nombre)}</td><td>${escFh(b.terminal || "")}</td>
         <td class="num proy">${numFh(b.caudalProyecto, 0)}${b.origenProyecto === "repartido" ? '<span class="nota"> (rep.)</span>' : ""}</td>
+        <td class="num">${b.ancho && b.alto ? `${numFh(b.ancho, 0)} \xD7 ${numFh(b.alto, 0)}` : ""}</td><td class="num">${b.velocidad ? numFh(b.velocidad, 1) : ""}</td>
         <td class="num med">${numFh(b.caudalMedido, 0)}</td><td class="num">${pctFh(b.desviacion)}</td><td>${celdaBal(b.estado)}</td>
-      </tr>`).join("") || '<tr><td colspan="7" class="vacio">Sin bocas</td></tr>'}</tbody>
+      </tr>`).join("") || '<tr><td colspan="9" class="vacio">Sin bocas</td></tr>'}</tbody>
       <tfoot><tr><th colspan="3">TOTAL ${c.medidoEquipo !== null ? "(medido en el equipo)" : "(suma de bocas)"}</th>
-        <th class="num">${numFh(c.referenciaTotal, 0)}</th><th class="num">${numFh(c.totalMedido, 0)}</th>
+        <th class="num">${numFh(c.referenciaTotal, 0)}</th><th></th><th></th><th class="num">${numFh(c.totalMedido, 0)}</th>
         <th class="num">${pctFh(c.desviacionTotal)}</th><th>${c.totalOk === true ? celdaBal("ok") : c.totalOk === false ? '<span class="res noApto">\u2715 FUERA</span>' : ""}</th></tr></tfoot>
     </table>`).join("");
           const avisos = ev.avisos || [];
@@ -25103,7 +25332,77 @@ globalThis.CX_VARIANTE="cxobra";
             }
           }
         }
-        return { ok: true, interioresMovidas };
+        const conjunto = {};
+        for (const c of CAMPOS_CONJUNTO) if (c in cambios) conjunto[c] = cambios[c];
+        let conjuntoActualizado = 0;
+        if (Object.keys(conjunto).length) {
+          for (const otro of companerasDe(equiposDe(repo, sesion, actual.obraId), id)) {
+            repo.modificar("equiposObra", sesion, otro.id, conjunto);
+            conjuntoActualizado += 1;
+          }
+        }
+        return { ok: true, interioresMovidas, conjuntoActualizado };
+      }
+      var CAMPOS_CONJUNTO = ["estadoPM", "estanqueidadEstado"];
+      var esVrf = (e) => /VRF|VRV/i.test(`${e.plantillaPM || ""} ${e.grupo || ""}`);
+      function companerasDe(equipos, id) {
+        const a = sistemas.analizar(equipos);
+        const s = a.sistemas.find((x) => x.interiores.length && (x.exterior.id === id || x.interiores.some((i) => i.id === id)));
+        return s ? [s.exterior, ...s.interiores].filter((e) => e.id !== id) : [];
+      }
+      function emparejarEquipo(repo, sesion, id, otroId = null) {
+        if (!puede(sesion.rol, "commissioning", "editar")) return { ok: false, error: "Tu rol no puede emparejar equipos." };
+        const yo = repo.leer("equiposObra", sesion, id);
+        if (!yo) return { ok: false, error: "No se encuentra el equipo." };
+        const equipos = equiposDe(repo, sesion, yo.obraId);
+        const tipo = sistemas.tipoUnidad(yo);
+        if (!tipo) return { ok: false, error: `\xAB${yo.tag}\xBB no es una unidad exterior ni interior.` };
+        const a = sistemas.analizar(equipos);
+        const sistemaDe = (ext) => a.sistemas.find((s) => s.exterior.id === ext.id);
+        const poner = (e, valor) => {
+          if ((e.equipoAsociado || null) !== (valor || null)) repo.modificar("equiposObra", sesion, e.id, { equipoAsociado: valor || null });
+        };
+        const soltarInterior = (ui) => {
+          const k = sistemas.claveTag(ui.equipoAsociado);
+          const ext = k && equipos.find((e) => sistemas.claveTag(e.tag) === k);
+          if (ext && sistemas.claveTag(ext.equipoAsociado) === sistemas.claveTag(ui.tag)) poner(ext, null);
+          poner(ui, null);
+        };
+        const casar = (ext, ui) => {
+          if (!esVrf(ext)) {
+            const s = sistemaDe(ext);
+            for (const vieja of s ? s.interiores : []) if (vieja.id !== ui.id) poner(vieja, null);
+          }
+          soltarInterior(ui);
+          poner(ui, ext.tag);
+          if (!esVrf(ext)) poner(ext, ui.tag);
+        };
+        if (!otroId) {
+          if (tipo === "interior") soltarInterior(yo);
+          else {
+            if (esVrf(yo)) return { ok: false, error: "Un VRF tiene varias interiores: su\xE9ltalas una a una desde su ficha." };
+            const s = sistemaDe(yo);
+            for (const ui of s ? s.interiores : []) poner(ui, null);
+            poner(yo, null);
+          }
+          return { ok: true };
+        }
+        const otro = equipos.find((e) => e.id === otroId);
+        if (!otro) return { ok: false, error: "No se encuentra la otra unidad en esta obra." };
+        const tipoOtro = sistemas.tipoUnidad(otro);
+        if (tipo === "exterior" && tipoOtro !== "interior") return { ok: false, error: `\xAB${otro.tag}\xBB no es una unidad interior.` };
+        if (tipo === "interior" && tipoOtro !== "exterior") return { ok: false, error: `\xAB${otro.tag}\xBB no es una unidad exterior.` };
+        if (tipo === "exterior") casar(yo, otro);
+        else casar(otro, yo);
+        return { ok: true };
+      }
+      function emparejarObra(repo, sesion, obraId, { escribir = true } = {}) {
+        const r = sistemas.emparejarPorTag(equiposDe(repo, sesion, obraId));
+        if (escribir) for (const p of r.pares) emparejarEquipo(repo, sesion, p.interior.id, p.exterior.id);
+        return {
+          emparejados: r.pares.map((p) => ({ interior: p.interior.tag, exterior: p.exterior.tag, motivo: p.motivo })),
+          dudosos: r.dudosos.map((d) => ({ id: d.equipo.id, tag: d.equipo.tag, motivo: d.motivo }))
+        };
       }
       function importarEquipos(repo, sesion, obraId, filas = [], { completar = false } = {}) {
         if (!obraVisible(repo, sesion, obraId)) return { ok: false, error: "No se encuentra la obra." };
@@ -25149,22 +25448,25 @@ globalThis.CX_VARIANTE="cxobra";
             existentes.set(sistemas.claveTag(tag), { id: r.id, tag });
           } else errores.push(`${tag || "(sin TAG)"}: ${r.error}`);
         }
-        return { ok: true, creados, completados, saltados, errores };
+        const pares = emparejarObra(repo, sesion, obraId);
+        return { ok: true, creados, completados, saltados, errores, ...pares };
       }
       function marcarEnviado(repo, sesion, id, fecha = null) {
         const actual = repo.leer("equiposObra", sesion, id);
         if (!actual) return { ok: false, error: "No se encuentra el equipo." };
         if (fecha === null) {
-          if (actual.fechaEnvioDF) repo.modificar("equiposObra", sesion, id, { fechaEnvioDF: null });
+          const todas = [actual, ...companerasDe(equiposDe(repo, sesion, actual.obraId), id)];
+          for (const e of todas) if (e.fechaEnvioDF) repo.modificar("equiposObra", sesion, e.id, { fechaEnvioDF: null });
           return { ok: true };
         }
         const t = tabla(repo, sesion, actual.obraId);
-        const fila = t.filas.find((f) => f.id === id);
-        if (!control.puedeEnviarse(fila)) {
-          return { ok: false, error: `No est\xE1 listo para enviar: falta ${fila.falta.join(", ")}.` };
+        const linea = control.conjuntoDeEquipo(t.conjuntos, id) || t.filas.find((f) => f.id === id);
+        if (!control.puedeEnviarse(linea)) {
+          return { ok: false, error: `No est\xE1 listo para enviar: falta ${linea.falta.join(", ")}.` };
         }
-        repo.modificar("equiposObra", sesion, id, { fechaEnvioDF: fecha || require_fecha().hoyLocal() });
-        return { ok: true };
+        const dia = fecha || require_fecha().hoyLocal();
+        for (const m of linea.miembros || [actual]) repo.modificar("equiposObra", sesion, m.id, { fechaEnvioDF: dia });
+        return { ok: true, unidades: (linea.miembros || [actual]).length };
       }
       function guardarModelo(repo, sesion, id, entrada = {}) {
         const actual = repo.leer("modelosEquipo", sesion, id);
@@ -25349,6 +25651,9 @@ globalThis.CX_VARIANTE="cxobra";
         guardarEquipo,
         importarEquipos,
         marcarEnviado,
+        emparejarEquipo,
+        emparejarObra,
+        companerasDe,
         guardarModelo,
         crearModelosQueFaltan,
         hojaBalanceo,
@@ -59661,23 +59966,45 @@ ${linea}` : linea;
             b.medidas += puntos.filter((x) => MDIF.num(x.velocidad) !== null || MDIF.num(x.caudalMedido) !== null).length;
             bocas.set(p.equipoId, b);
           }
+          const unidad = (f) => ({
+            id: f.id,
+            tag: f.tag,
+            planta: f.planta,
+            marca: f.marca,
+            modelo: f.modelo,
+            grupo: f.grupo,
+            familia: f.familia || null,
+            envio: f.envio,
+            falta: f.falta,
+            completo: f.completo,
+            estadoPM: f.estadoPM || null,
+            ...bocas.get(f.id) || { bocas: 0, medidas: 0 }
+          });
+          const conjuntos = (t.conjuntos || []).map((l) => {
+            const ext = l.exterior || l.miembros[0];
+            const b = l.miembros.reduce((a, m) => {
+              const x = bocas.get(m.id);
+              return x ? { bocas: a.bocas + x.bocas, medidas: a.medidas + x.medidas } : a;
+            }, { bocas: 0, medidas: 0 });
+            return {
+              ...unidad(ext),
+              ...b,
+              tag: l.clase === "par" ? l.tag : ext.tag,
+              clase: l.clase,
+              envio: l.envio,
+              falta: l.falta,
+              completo: l.completo,
+              estadoPM: l.estadoPM || null,
+              unidades: l.miembros.map((m) => ({ id: m.id, tag: m.tag, papel: m.id === ext.id && l.clase !== "suelto" ? "UE" : "UI", modelo: m.modelo || null, planta: m.planta || null }))
+            };
+          });
+          const tc = t.totalesConjuntos || {};
           return {
             ok: true,
-            equipos: t.filas.map((f) => ({
-              id: f.id,
-              tag: f.tag,
-              planta: f.planta,
-              marca: f.marca,
-              modelo: f.modelo,
-              grupo: f.grupo,
-              familia: f.familia || null,
-              envio: f.envio,
-              falta: f.falta,
-              completo: f.completo,
-              estadoPM: f.estadoPM || null,
-              ...bocas.get(f.id) || { bocas: 0, medidas: 0 }
-            })),
-            totales: { equipos: t.totales.equipos, completos: t.totales.completos, listas: t.totales.listas, enviadas: t.totales.enviadas, faltaDocumentacion: t.totales.faltaDocumentacion, faltaEnsayo: t.totales.faltaEnsayo }
+            equipos: t.filas.map(unidad),
+            conjuntos,
+            totales: { equipos: t.totales.equipos, completos: t.totales.completos, listas: t.totales.listas, enviadas: t.totales.enviadas, faltaDocumentacion: t.totales.faltaDocumentacion, faltaEnsayo: t.totales.faltaEnsayo, pideEstanqueidad: t.totales.pideEstanqueidad, faltaEstanqueidad: t.totales.faltaEstanqueidad },
+            totalesConjuntos: { conjuntos: tc.conjuntos, unidades: tc.unidades, pares: tc.pares, sistemas: tc.sistemas, completos: tc.completos, listas: tc.listas, enviadas: tc.enviadas, faltaDocumentacion: tc.faltaDocumentacion, faltaEnsayo: tc.faltaEnsayo, pideEstanqueidad: tc.pideEstanqueidad, faltaEstanqueidad: tc.faltaEstanqueidad }
           };
         }
         function equipo({ ses, query }) {
@@ -59686,9 +60013,29 @@ ${linea}` : linea;
           const t = CX.tabla(repo, ses, d.equipo.obraId);
           const fila = t ? t.filas.find((f) => f.id === d.equipo.id) : null;
           const evaluada = new Map(d.resumen.filas.map((f) => [f.id, f]));
+          const linea = t && t.conjuntos ? t.conjuntos.find((l) => l.miembros.some((m) => m.id === d.equipo.id)) : null;
           return {
             ok: true,
             equipo: d.equipo,
+            conjunto: linea && linea.clase !== "suelto" ? {
+              clase: linea.clase,
+              envio: linea.envio,
+              completo: linea.completo,
+              estadoPM: linea.estadoPM || null,
+              falta: linea.falta,
+              unidades: linea.miembros.map((m) => ({
+                id: m.id,
+                tag: m.tag,
+                papel: m.id === linea.exterior.id ? "UE" : "UI",
+                marca: m.marca || null,
+                modelo: m.modelo || null,
+                numSerie: m.numSerie || null,
+                planta: m.planta || null,
+                sala: m.sala || null,
+                estadoPM: m.estadoPM || null,
+                falta: m.falta || []
+              }))
+            } : null,
             checklist: fila ? {
               ft: fila.ft,
               ce: fila.ce,

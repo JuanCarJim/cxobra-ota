@@ -100,19 +100,38 @@
   let agrupar = 'planta';
   try { agrupar = sessionStorage.getItem('cx.agrupar') || 'planta'; } catch { /* sin almacén */ }
 
+  /* Un split (UE + UI) o un VRF (UE + sus UI) es UNA línea: su commissioning
+     es conjunto (15-oct-2026, JC). Sin conjuntos (un servidor viejo), por unidades. */
+  const porConjuntos = () => Array.isArray(lista.conjuntos);
+  const NOMBRE_CLASE = { par: 'Split', sistema: 'VRF' };
+  const textoDe = (e) => `${(e.unidades || []).map((u) => u.tag).join(' ') || e.tag} ${e.planta || ''} ${e.marca || ''} ${e.modelo || ''} ${tipoDe(e)}`;
+  function tagsFila(e) {
+    const us = e.unidades || [];
+    if (e.clase === 'par') {
+      return `<div class="tags-par">${us.map((u) => `<strong class="cifra"><em>${esc(u.papel)}</em>${esc(u.tag)}</strong>`).join('')}</div>`;
+    }
+    if (e.clase === 'sistema') {
+      const n = us.length - 1;
+      return `<div class="tags-par"><strong class="cifra"><em>UE</em>${esc(us[0] ? us[0].tag : e.tag)}</strong><span class="sub">+ ${n} interior${n === 1 ? '' : 'es'}</span></div>`;
+    }
+    return `<strong class="cifra">${esc(e.tag)}</strong>`;
+  }
+
   function pintarLista() {
-    const t = lista.totales || {};
+    const conj = porConjuntos();
+    const t = conj ? { ...(lista.totales || {}), ...(lista.totalesConjuntos || {}) } : (lista.totales || {});
     const q = filtro.trim().toLowerCase();
-    const todos = lista.equipos || [];
+    const todos = (conj ? lista.conjuntos : lista.equipos) || [];
     const [, , pasa] = SEGMENTOS.find(([id]) => id === segmento) || SEGMENTOS[0];
-    const equipos = todos.filter(pasa).filter((e) => !q || `${e.tag} ${e.planta || ''} ${e.marca || ''} ${e.modelo || ''} ${tipoDe(e)}`.toLowerCase().includes(q));
+    const equipos = todos.filter(pasa).filter((e) => !q || textoDe(e).toLowerCase().includes(q));
     const [, , grupoDe] = AGRUPAR.find(([id]) => id === agrupar) || AGRUPAR[0];
     const sin = (g) => g.startsWith('Sin ');
     const grupos = [...new Set(equipos.map(grupoDe))].sort(agrupar === 'planta' ? porPlanta
       : (a, b) => sin(a) - sin(b) || a.localeCompare(b, 'es', { numeric: true }));
     $app.innerHTML = `
-      <div class="resumen-fila" role="tablist">${[['todos', t.equipos, 'equipos'], ['completos', t.completos, 'completos'], ['faltaDoc', t.faltaDocumentacion, 'falta doc.'], ['faltaEnsayo', t.faltaEnsayo, 'falta ensayo']]
+      <div class="resumen-fila" role="tablist">${[['todos', conj ? t.conjuntos : t.equipos, conj ? 'conjuntos' : 'equipos'], ['completos', t.completos, 'completos'], ['faltaDoc', t.faltaDocumentacion, 'falta doc.'], ['faltaEnsayo', t.faltaEnsayo, 'falta ensayo']]
         .map(([id, n, texto]) => `<button role="tab" data-cx-seg="${id}" aria-selected="${segmento === id}" class="${segmento === id ? 'activa' : ''} ${id.startsWith('falta') && n ? 'aviso' : ''}"><b>${cifra(n)}</b><span>${esc(texto)}</span></button>`).join('')}</div>
+      ${conj && t.unidades !== t.conjuntos ? `<p class="nota tenue cuenta-conjuntos">${cifra(t.conjuntos)} conjuntos con ${cifra(t.unidades)} unidades: ${cifra(t.pares)} splits y ${cifra(t.sistemas)} VRF van en una línea con su exterior.</p>` : ''}
       <input type="search" class="buscar" placeholder="Buscar TAG, planta, tipo o marca" value="${esc(filtro)}" data-cx-buscar>
       <div class="agrupar" role="group" aria-label="Agrupar por"><span>Agrupar por</span>${AGRUPAR
         .map(([id, texto]) => `<button data-cx-agrupar="${id}" aria-pressed="${agrupar === id}" class="${agrupar === id ? 'activa' : ''}">${texto}</button>`).join('')}</div>
@@ -121,10 +140,10 @@
         fila: (e) => `
         <li><button class="fila-ios" data-cx="equipo" data-id="${esc(e.id)}">
           <div class="fila-principal">
-            <strong class="cifra">${esc(e.tag)}</strong>
+            ${tagsFila(e)}
             ${chipEnvio(e.envio, e.completo)}
           </div>
-          <div class="sub">${esc([e.planta, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · ') || 'Sin datos')}</div>
+          <div class="sub">${esc([NOMBRE_CLASE[e.clase], e.planta, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · ') || 'Sin datos')}</div>
           ${e.bocas ? `<div class="progreso" aria-label="${e.medidas} de ${e.bocas} bocas medidas"><i style="width:${Math.round((e.medidas / e.bocas) * 100)}%"></i></div>
           <div class="sub">${cifra(e.medidas)} de ${cifra(e.bocas)} bocas medidas</div>` : '<div class="sub">Sin plano de bocas</div>'}
           ${e.falta && e.falta.length && !e.completo ? `<div class="sub aviso">Falta: ${esc(e.falta.join(', '))}</div>` : ''}
@@ -203,6 +222,7 @@
         <h2 class="cifra">${esc(e.tag)}</h2>
         <div class="sub">${esc([e.planta, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · '))}</div>
       </section>
+      ${htmlConjunto(f.conjunto, e.id)}
       ${htmlFotosEquipo(f, puede)}
       ${totalCircuito(f.circuitos && f.circuitos.impulsion, 'Impulsión')}
       ${totalCircuito(f.circuitos && f.circuitos.retorno, 'Retorno')}
@@ -214,6 +234,30 @@
       ${htmlFichas()}
       ${checklist(f.checklist)}`;
     C.cargarImagenes($app);
+  }
+
+  /*
+   * EL CONJUNTO: en un split la exterior y la interior se ponen en marcha y
+   * se entregan juntas; aquí salen las dos, con su modelo y nº de serie, y un
+   * toque abre la otra. En un VRF, la exterior y sus interiores.
+   */
+  function htmlConjunto(cj, actual) {
+    if (!cj || !cj.unidades || cj.unidades.length < 2) return '';
+    const titulo = cj.clase === 'par' ? 'Split: UE + UI' : `VRF: UE + ${cj.unidades.length - 1} UI`;
+    return `<h2>${esc(titulo)} <span class="cuenta">un solo commissioning</span></h2>
+      <section class="grupo conjunto-cx">
+        ${cj.unidades.map((u) => {
+          const datos = `<span class="papel">${esc(u.papel)}</span>
+            <span class="que"><strong class="cifra">${esc(u.tag)}</strong>
+              <span class="sub">${esc([u.modelo, u.numSerie ? `nº ${u.numSerie}` : 'sin nº de serie', u.planta].filter(Boolean).join(' · '))}</span></span>
+            <span class="tenue">${esc(u.estadoPM || '')}</span>`;
+          return u.id === actual
+            ? `<div class="fila-dato actual">${datos}</div>`
+            : `<button class="fila-dato" data-cx="equipo" data-id="${esc(u.id)}">${datos}<span class="flecha">›</span></button>`;
+        }).join('')}
+        <div class="fila-dato"><span>Estado del conjunto</span>${chipEnvio(cj.envio, cj.completo)}</div>
+      </section>
+      ${cj.falta && cj.falta.length && !cj.completo ? `<p class="nota aviso">Falta en el conjunto: ${esc(cj.falta.join(', '))}</p>` : ''}`;
   }
 
   /*

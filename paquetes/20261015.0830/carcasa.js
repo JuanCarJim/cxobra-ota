@@ -419,7 +419,9 @@
       traer('partes', 'api/partes'), traer('ncr', `api/ncr?obra=${q}`),
     ]);
     if (seccion() !== 'inicio' || window.CX.obraId() !== o.id) return;
-    const t = (cx && cx.ok && cx.totales) || null;
+    // Como la lista de Commissioning: si hay conjuntos (split = UE + UI), se cuenta por conjunto.
+    const tc = cx && cx.ok && cx.totalesConjuntos && cx.totalesConjuntos.conjuntos ? cx.totalesConjuntos : null;
+    const t = cx && cx.ok && cx.totales ? (tc ? { ...cx.totales, ...tc, equipos: tc.conjuntos } : cx.totales) : null;
     const hechos = t ? (t.completos || 0) : 0;
     const pct = t && t.equipos ? Math.round((hechos / t.equipos) * 100) : 0;
     const bocas = cx && cx.equipos ? cx.equipos.reduce((a, e) => [a[0] + (e.medidas || 0), a[1] + (e.bocas || 0)], [0, 0]) : [0, 0];
@@ -427,7 +429,18 @@
     const partes = pi && pi.recientes ? pi.recientes.filter((p) => p.obraId === o.id && p.estado !== 'cerrado') : null;
     const ncrAbiertas = ncr && ncr.ok ? ncr.filas.filter((f) => f.activa) : null;
     const dato = (href, valor, texto, aviso, seg = 'todos') => `<a class="${aviso ? 'aviso' : ''}" href="#${href}" data-ir-seg="${seg}"><b>${cifra(valor)}</b><span>${esc(texto)}</span></a>`;
-    const fila = (href, nombre, valor) => `<a class="fila-dato" href="#${href}"><span>${esc(nombre)}</span><strong>${valor} ›</strong></a>`;
+    /* Lo pendiente son los equipos que piden estanqueidad y no la tienen, no las
+       pruebas apuntadas: sin ninguna hecha, faltan todas (15-oct, JC). */
+    const textoEstanqueidad = (tt, ps) => {
+      const falta = tt && tt.pideEstanqueidad ? tt.faltaEstanqueidad || 0 : null;
+      const mal = ps ? ps.filter((p) => p.resultado !== 'correcta').length : 0;
+      const partes = [];
+      if (falta !== null) partes.push(falta ? `faltan ${cifra(falta)} de ${cifra(tt.pideEstanqueidad)}` : 'todas hechas');
+      if (mal) partes.push(`${cifra(mal)} sin superar`);
+      if (!partes.length) partes.push(ps && ps.length ? `${cifra(ps.length)} hechas` : 'Ninguna hecha');
+      return partes.join(' · ');
+    };
+    const fila = (href, nombre, valor, aviso) => `<a class="fila-dato${aviso ? ' aviso' : ''}" href="#${href}"><span>${esc(nombre)}</span><strong>${valor} ›</strong></a>`;
     app.innerHTML = `
       <section class="grupo inicio-obra">
         <label class="fila-dato selector-obra"><span>Obra</span>
@@ -448,7 +461,7 @@
       </div>` : ''}
       <h2 class="titulo-grupo">Pendiente</h2>
       <section class="grupo">
-        ${pruebas ? fila('estanqueidad', 'Pruebas de estanqueidad', pruebas.length ? `${cifra(pruebas.filter((p) => p.resultado !== 'correcta').length)} sin superar · ${cifra(pruebas.length)} hechas` : 'Ninguna') : ''}
+        ${pruebas || (t && t.pideEstanqueidad) ? fila('estanqueidad', 'Pruebas de estanqueidad', textoEstanqueidad(t, pruebas), (t && t.faltaEstanqueidad) || (pruebas && pruebas.some((p) => p.resultado !== 'correcta'))) : ''}
         ${partes ? fila('partes', 'Partes abiertos', cifra(partes.length)) : ''}
         ${ncrAbiertas ? fila('ncr', 'No conformidades abiertas', cifra(ncrAbiertas.length)) : ''}
       </section>
