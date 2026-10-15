@@ -452,6 +452,11 @@ button.fila-ios::after {
 .resumen-fila button { padding: 12px 6px 10px; text-align: center; font: inherit; color: inherit; border: 0; cursor: pointer; }
 .resumen-fila button b { display: block; font-size: 24px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; }
 .resumen-fila button span { font-size: 11.5px; color: var(--textoTenue); }
+/* Cinco cifras (completos y «doc. completa» van aparte): más prietas. */
+.resumen-fila.cinco { grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.resumen-fila.cinco button { padding: 10px 2px 8px; }
+.resumen-fila.cinco button b { font-size: 20px; }
+.resumen-fila.cinco button span { font-size: 10.5px; line-height: 1.2; display: block; }
 .resumen-fila button.aviso b { color: var(--aviso); }
 .resumen-fila button.activa { box-shadow: inset 0 0 0 2px var(--acento); }
 .resumen-fila a { padding: 12px 6px 10px; text-align: center; color: inherit; text-decoration: none; }
@@ -742,3 +747,141 @@ details.grupo-lista[open] > summary { margin-bottom: 6px; }
 .lectura-anem.segmento { margin-top: 6px; }
 .em-lectura { margin-top: 10px; }
 .lecturas .unidad-m { font-weight: 400; color: var(--gris, #6b6b6b); font-size: 11.5px; }
+
+/* ═══════════════ LA HOJA DENSA (15-oct-2026, JC: «nada de campos grandes para
+   datos de 3 caracteres»). Ficha del equipo y fichas de commissioning como la
+   hoja del PDF: bandas finas en vez de tarjetas, etiqueta y campo en la misma
+   fila, parámetros en tabla y Sí/No/N/A pequeños dentro de la fila. */
+main:has(.densa) { max-width: 1040px; padding-top: 0; }
+.tag-fijo {
+  position: sticky; top: var(--alto-barra, 0px); z-index: 4;
+  display: flex; align-items: center; gap: 8px; min-height: 40px;
+  margin: 0 -20px 6px; padding: 4px 20px;
+  background: var(--acento-fuerte); color: #FFFFFF;
+}
+.tag-fijo .volver { color: #FFFFFF; font-size: 24px; line-height: 1; padding: 2px 8px 4px 0; }
+.tag-fijo strong { font-size: 17px; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; }
+.tag-fijo .que { flex: 1; min-width: 0; font-size: 13px; opacity: .85; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tag-fijo .extra { display: flex; gap: 4px; flex: none; }
+.tag-fijo .chip { padding: 2px 8px; font-size: 11px; }
+
+.densa h2, .densa h3.banda {
+  margin: 12px 0 0; padding: 4px 10px; font-family: var(--fuente-texto); font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .05em; line-height: 1.4;
+  color: var(--acento-fuerte); background: var(--acento-suave); border-bottom: 1px solid var(--rejilla);
+}
+.densa h2 .cuenta, .densa h3.banda .tenue { font-size: 11px; font-weight: 600; color: var(--textoTenue); text-transform: none; letter-spacing: 0; margin-left: 4px; }
+.densa .nota { font-size: 13px; margin: 6px 2px; }
+
+/* Las tablas de la hoja: blanco, filas de 36 px y una línea entre ellas. */
+.hoja-tabla { background: var(--panel); border: 1px solid var(--rejilla); border-top: 0; }
+.hoja-tabla input, .hoja-tabla select, .densa .obs {
+  margin: 0; min-height: 32px; padding: 4px 8px; font-size: 15px; border-radius: 6px;
+  border: 1px solid var(--borde); background: var(--panel); box-shadow: none;
+}
+.hoja-tabla input:focus, .hoja-tabla select:focus { box-shadow: 0 0 0 2px var(--acento-suave); }
+.hoja-tabla select { padding-right: 26px; background-position: right 6px center; background-size: 14px; }
+.hoja-tabla input.cifra { text-align: right; font-variant-numeric: tabular-nums; }
+.hoja-tabla .et { font-size: 13.5px; line-height: 1.25; color: var(--texto); min-width: 0; }
+.hoja-tabla .et .tenue { color: var(--textoTenue); font-size: 12px; }
+.hoja-tabla .num { display: inline-block; min-width: 22px; color: var(--textoTenue); font-size: 12px; font-variant-numeric: tabular-nums; }
+.hoja-tabla .obligatorio { font-size: 12px; }
+input.mal { box-shadow: 0 0 0 2px var(--mal-fondo) !important; }
+
+/* Datos: etiqueta | campo; el número, corto y a la derecha. En el iPad, dos columnas. */
+.rejilla-datos { display: grid; grid-template-columns: 1fr; }
+.fd { display: grid; grid-template-columns: minmax(0, 1fr) minmax(96px, 52%); align-items: center; gap: 8px;
+  min-height: 38px; padding: 3px 10px; border-top: 1px solid var(--rejillaSuave); font-weight: 400; }
+.fd.n { grid-template-columns: minmax(0, 1fr) 96px; }
+.fd.resp { grid-template-columns: minmax(0, 1fr) auto; }
+.fd > strong, .fd > .tenue, .fd > .ok, .fd > .no { text-align: right; font-size: 14px; }
+.fd .ok { color: var(--bien); font-weight: 700; }
+.fd .no { color: var(--mal); font-weight: 700; }
+.rejilla-datos > .fd:first-child { border-top: 0; }
+
+/* Sí / No / N/A pequeños, pegados a la derecha de la fila. */
+.respuestas.mini { display: inline-flex; gap: 0; margin: 0; border: 1px solid var(--borde); border-radius: 7px; overflow: hidden; justify-self: end; }
+.respuestas.mini button { flex: none; min-width: 42px; min-height: 32px; padding: 0 8px; border: 0; border-radius: 0; font-size: 13px; font-weight: 600; background: var(--panel); }
+.respuestas.mini button + button { border-left: 1px solid var(--borde); }
+.lista-resp .fd:first-child { border-top: 0; }
+
+/* Parámetros: Proyecto | Fabricante | Medido una vez arriba, una fila por punto. */
+.pp { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, 68px); gap: 6px; align-items: center; padding: 3px 10px; min-height: 40px; border-top: 1px solid var(--rejillaSuave); }
+.pp.cab { min-height: 0; padding: 4px 10px; border-top: 0; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--textoTenue); background: var(--panel2); }
+.pp.cab span { text-align: right; }
+.pp .et { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 4px; }
+.pp input { padding: 4px 6px; }
+.pp input.medido { border-color: var(--acento); border-width: 1.5px; }
+.pp .desv { flex-basis: 100%; font-size: 11.5px; font-weight: 600; color: var(--textoTenue); }
+.pp .desv.bien { color: var(--bien); } .pp .desv.mal { color: var(--mal); } .pp .desv.aviso { color: var(--aviso); }
+
+/* Impulsión y retorno lado a lado (filtros: 3 etapas × 2). */
+.ir { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1.2fr); gap: 6px; align-items: center; padding: 3px 10px; min-height: 38px; border-top: 1px solid var(--rejillaSuave); }
+.ir.cab { min-height: 0; padding: 4px 10px; border-top: 0; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--textoTenue); background: var(--panel2); }
+.ir .respuestas.mini button { min-width: 34px; padding: 0 4px; }
+
+/* La lista de fichas y el resto de la ficha del equipo, en filas finas. */
+.densa .lista-ios { gap: 0; margin: 0; background: var(--panel); border: 1px solid var(--rejilla); border-top: 0; border-radius: 0; }
+.densa .lista-ios > li { border: 0; border-radius: 0; box-shadow: none; }
+.densa .lista-ios > li + li { border-top: 1px solid var(--rejillaSuave); }
+.densa .fila-ios { min-height: 44px; padding: 6px 30px 6px 10px; }
+.densa .lista-ios.numerada .fila-ios { padding-left: 40px; }
+.densa .lista-ios.numerada .fila-ios::before { left: 10px; width: 22px; height: 22px; font-size: 12px; }
+.densa button.fila-ios::after { right: 10px; font-size: 18px; }
+.densa .fila-principal strong { font-size: 14.5px; }
+.densa .fila-ios .sub { font-size: 12px; }
+.densa .grupo, .densa .total-circuito, .densa .boca { border-radius: 0; box-shadow: none; border: 1px solid var(--rejilla); }
+.densa .obs { width: 100%; min-height: 64px; display: block; }
+.densa .barra-hoja { margin-top: 12px; }
+.densa .barra-hoja .boton.grande { min-height: 44px; font-size: 15px; }
+/* Nada tapado por la barra de abajo. */
+.densa { padding-bottom: 24px; }
+
+@media (min-width: 700px) {
+  .rejilla-datos { grid-template-columns: 1fr 1fr; column-gap: 0; }
+  .rejilla-datos > .fd:nth-child(2) { border-top: 0; }
+  .rejilla-datos > .fd:nth-child(odd) { border-right: 1px solid var(--rejillaSuave); }
+  .estado-eq { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .estado-eq > .fd:nth-child(-n+4) { border-top: 0; }
+  .estado-eq > .fd { grid-template-columns: minmax(0, 1fr) auto; border-right: 1px solid var(--rejillaSuave); }
+  .lista-resp { display: grid; grid-template-columns: 1fr 1fr; }
+  .lista-resp > .fd:nth-child(2) { border-top: 0; }
+  .lista-resp > .fd:nth-child(odd) { border-right: 1px solid var(--rejillaSuave); }
+  .pp { grid-template-columns: minmax(0, 1fr) repeat(3, 110px); }
+  .densa .barra-hoja { grid-template-columns: repeat(3, 1fr); }
+  .tag-fijo strong { font-size: 19px; }
+}
+/* Las fotos del equipo: cuatro botones finos en una fila; el estado, a dos columnas. */
+.densa .fotos-rapidas { grid-template-columns: repeat(4, 1fr); gap: 0; background: var(--panel); border: 1px solid var(--rejilla); border-top: 0; }
+.densa .fotos-rapidas .boton { min-height: 40px; padding: 4px 2px; font-size: 13px; border-radius: 0; background: var(--panel); color: var(--acento-fuerte); }
+.densa .fotos-rapidas .boton + .boton { border-left: 1px solid var(--rejillaSuave); }
+.densa .fotos-rapidas .ic { width: 15px; height: 15px; margin-right: 3px; }
+.densa .fotos-equipo { margin: 6px 0; grid-template-columns: repeat(4, 1fr); }
+.estado-eq { grid-template-columns: 1fr 1fr; }
+.estado-eq > .fd { grid-template-columns: minmax(0, 1fr) auto; }
+.estado-eq > .fd:nth-child(2) { border-top: 0; }
+.estado-eq > .fd:nth-child(odd) { border-right: 1px solid var(--rejillaSuave); }
+/* Dentro de un equipo, la cabecera de la app se encoge: manda el TAG. */
+body:has(.tag-fijo) .barra { padding-top: calc(6px + env(safe-area-inset-top)); padding-bottom: 6px; }
+body:has(.tag-fijo) .barra h1 { font-size: 17px; }
+body:has(.tag-fijo) .obra-movil { display: none; }
+@media (min-width: 700px) { .ir { grid-template-columns: minmax(0, 1fr) 240px 240px; } }
+
+/* iPhone, más apretado (15-oct-2026, JC: los campos «me lo parecen» altos).
+   Solo filas y campos: la letra no cambia y Sí/No/N/A guardan sus 32 px de
+   toque. La tablet se queda como está. */
+@media (max-width: 699px) {
+  .hoja-tabla input, .hoja-tabla select { min-height: 28px; padding: 2px 6px; line-height: 1.2; }
+  .hoja-tabla select { padding-right: 24px; }
+  .hoja-tabla .et { line-height: 1.15; }
+  .fd { min-height: 30px; padding: 1px 10px; gap: 6px; }
+  .fd.resp { padding: 1px 4px 1px 10px; }
+  .pp { min-height: 32px; padding: 1px 10px; gap: 4px; }
+  .pp.cab, .ir.cab { padding: 3px 10px; }
+  .ir { min-height: 30px; padding: 1px 10px; gap: 4px; }
+  .densa h2, .densa h3.banda { margin-top: 8px; padding: 3px 10px; }
+  .densa .fila-ios { min-height: 38px; padding-top: 4px; padding-bottom: 4px; }
+  .densa .fotos-rapidas .boton { min-height: 34px; }
+  .densa .obs { min-height: 52px; }
+  .tag-fijo { min-height: 36px; padding-top: 2px; padding-bottom: 2px; margin-bottom: 4px; }
+}

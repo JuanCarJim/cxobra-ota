@@ -36,12 +36,14 @@
   const ENVIO = {
     completo: ['bien', 'Completo'], enviada: ['bien', 'Enviada'], lista: ['bien', 'Lista para enviar'],
     faltaDocumentacion: ['aviso', 'Falta documentación'], faltaEnsayo: ['aviso', 'Falta ensayo'],
+    /* Papeles completos y fichas por hacer: no es «completo» (15-oct-2026, JC). */
+    faltaFichas: ['info', 'Doc. completa'],
   };
   const chipEnvio = (e, completo) => {
     const [clase, nombre] = completo ? ENVIO.completo : (ENVIO[e] || ['neutra', e || 'Pendiente']);
     return `<span class="chip ${clase}">${esc(nombre)}</span>`;
   };
-  const ESTADO_BOCA = { dentro: ['bien', 'OK'], ok: ['bien', 'OK'], sinFactor: ['aviso', 'Falta el Ak'], medido: ['neutra', 'Medida'], alto: ['mal', 'Alto'], bajo: ['mal', 'Bajo'], sinMedir: ['neutra', 'Sin medir'], sinProyecto: ['neutra', 'Sin Q proyecto'], sinTolerancia: ['neutra', 'Medida'] };
+  const ESTADO_BOCA = { aRevisar: ['aviso', 'A REVISAR'], dentro: ['bien', 'OK'], ok: ['bien', 'OK'], sinFactor: ['aviso', 'Falta el Ak'], medido: ['neutra', 'Medida'], alto: ['mal', 'Alto'], bajo: ['mal', 'Bajo'], sinMedir: ['neutra', 'Sin medir'], sinProyecto: ['neutra', 'Sin Q proyecto'], sinTolerancia: ['neutra', 'Medida'] };
   const INCIDENCIA = { sinSerie: 'Sin nº de serie', modeloSinAlta: 'Modelo sin dar de alta' };
   const pct = (q, d) => (q === null || q === undefined || !d ? null : Math.round((q / d) * 100));
 
@@ -70,7 +72,9 @@
     ['todos', 'Todos', () => true],
     ['faltaDoc', 'Falta doc.', (e) => !e.completo && e.envio === 'faltaDocumentacion'],
     ['faltaEnsayo', 'Falta ensayo', (e) => !e.completo && e.envio === 'faltaEnsayo'],
-    ['completos', 'Completos', (e) => e.completo || e.envio === 'lista' || e.envio === 'enviada'],
+    /* Una sola regla: la de shared/commissioning/control.js (papeles + fichas + ensayo). */
+    ['completos', 'Completos', (e) => e.completo],
+    ['soloDoc', 'Doc. completa', (e) => e.docCompleta && !e.completo],
   ];
   let segmento = 'todos';
   const porPlanta = (a, b) => (a === 'Sin planta') - (b === 'Sin planta') || a.localeCompare(b, 'es', { numeric: true });
@@ -132,7 +136,7 @@
     const grupos = [...new Set(equipos.map(grupoDe))].sort(agrupar === 'planta' ? porPlanta
       : (a, b) => sin(a) - sin(b) || a.localeCompare(b, 'es', { numeric: true }));
     $app.innerHTML = `
-      <div class="resumen-fila" role="tablist">${[['todos', conj ? t.conjuntos : t.equipos, conj ? 'conjuntos' : 'equipos'], ['completos', t.completos, 'completos'], ['faltaDoc', t.faltaDocumentacion, 'falta doc.'], ['faltaEnsayo', t.faltaEnsayo, 'falta ensayo']]
+      <div class="resumen-fila cinco" role="tablist">${[['todos', conj ? t.conjuntos : t.equipos, conj ? 'conjuntos' : 'equipos'], ['completos', t.completos, 'completos'], ['soloDoc', t.soloDoc || 0, 'doc. completa'], ['faltaDoc', t.faltaDocumentacion, 'falta doc.'], ['faltaEnsayo', t.faltaEnsayo, 'falta ensayo']]
         .map(([id, n, texto]) => `<button role="tab" data-cx-seg="${id}" aria-selected="${segmento === id}" class="${segmento === id ? 'activa' : ''} ${id.startsWith('falta') && n ? 'aviso' : ''}"><b>${cifra(n)}</b><span>${esc(texto)}</span></button>`).join('')}</div>
       ${conj && t.unidades !== t.conjuntos ? `<p class="nota tenue cuenta-conjuntos">${cifra(t.conjuntos)} conjuntos con ${cifra(t.unidades)} unidades: ${cifra(t.pares)} splits y ${cifra(t.sistemas)} VRF van en una línea con su exterior.</p>` : ''}
       <input type="search" class="buscar" placeholder="Buscar TAG, planta, tipo o marca" value="${esc(filtro)}" data-cx-buscar>
@@ -187,9 +191,10 @@
 
   function totalCircuito(c, nombre) {
     if (!c || c.estado === 'sinPuntos') return '';
-    const diseno = c.disenoEquipo || c.disenoPuntos || null;
-    const p = pct(c.suma, diseno);
-    const clase = c.estado === 'ok' ? 'bien' : (c.estado === 'alto' || c.estado === 'bajo') ? 'mal' : 'neutra';
+    /* El total contra lo mismo que la hoja de balanceo (el resumen lo dice). */
+    const diseno = c.disenoReferencia ?? c.disenoPuntos ?? c.disenoEquipo ?? null;
+    const p = c.desviacion === null || c.desviacion === undefined ? null : pct(c.suma, diseno);
+    const clase = (c.estado === 'ok' || c.estado === 'dentro') ? 'bien' : (c.estado === 'alto' || c.estado === 'bajo') ? 'mal' : 'neutra';
     return `<div class="total-circuito">
       <div class="fila-principal"><strong>${esc(nombre)}</strong><span class="chip ${clase}">${p === null ? `${c.medidos}/${c.puntos} medidas` : `${p} %`}</span></div>
       <div class="cifras-total">
@@ -201,22 +206,43 @@
     </div>`;
   }
 
+  /*
+   * EL TAG SIEMPRE A LA VISTA (15-oct-2026): una franja fina pegada debajo
+   * de la cabecera con volver, el TAG y lo que se está viendo; se queda
+   * arriba al bajar por la hoja.
+   */
+  function tagFijo(tag, que, volver, extra = '') {
+    requestAnimationFrame(altoBarra);
+    return `<div class="tag-fijo">
+      <button class="volver" data-cx="${esc(volver)}" aria-label="Volver">‹</button>
+      <strong class="cifra">${esc(tag)}</strong>
+      <span class="que">${esc(que || '')}</span>
+      ${extra ? `<span class="extra">${extra}</span>` : ''}
+    </div>`;
+  }
+  /* La franja se pega justo debajo de la cabecera de la app, mida lo que mida. */
+  function altoBarra() {
+    const b = document.querySelector('header.barra');
+    if (b) document.documentElement.style.setProperty('--alto-barra', `${b.offsetHeight}px`);
+  }
+
   function checklist(k, med) {
     if (!k) return '';
     /* Un split o una enfriadora no llevan balanceo de bocas: no se les pide. */
     const sinBal = med && !med.plano && (!k.balanceoEstado || k.balanceoEstado === 'pendiente');
     const si = (v) => (v ? '<span class="ok">✓</span>' : '<span class="no">✗</span>');
     const ensayo = k.ensayoRequerido === 'ninguno' || !k.ensayoRequerido ? '<span class="tenue">No hace falta</span>' : si(k.ensayo);
-    return `<h2>Checklist</h2>
-      <section class="grupo">
-        <div class="fila-dato"><span>Ficha técnica</span>${si(k.ft)}</div>
-        <div class="fila-dato"><span>Certificado CE</span>${si(k.ce)}</div>
-        <div class="fila-dato"><span>Manual</span>${si(k.manual)}</div>
-        <div class="fila-dato"><span>Ficha PM</span>${si(k.fichaPM)}</div>
-        <div class="fila-dato"><span>Ensayo</span>${ensayo}</div>
-        <div class="fila-dato"><span>Balanceo</span>${sinBal ? '<span class="tenue">No hace falta</span>' : `<strong>${esc(k.balanceoEstado || '—')}</strong>`}</div>
-        ${k.estanqueidad ? `<div class="fila-dato"><span>Estanqueidad</span><strong>${esc(typeof k.estanqueidad === 'object' ? (k.estanqueidad.resultado || k.estanqueidad.estado || '✓') : k.estanqueidad)}</strong></div>` : ''}
-        <div class="fila-dato"><span>Puesta en marcha</span><strong>${esc(k.estadoPM || '—')}</strong></div>
+    const fila = (n, v) => `<div class="fd"><span class="et">${n}</span>${v}</div>`;
+    return `<h3 class="banda">Documentación y estado</h3>
+      <section class="hoja-tabla rejilla-datos estado-eq">
+        ${fila('Ficha técnica', si(k.ft))}
+        ${fila('Certificado CE', si(k.ce))}
+        ${fila('Manual', si(k.manual))}
+        ${fila('Ficha PM', si(k.fichaPM))}
+        ${fila('Ensayo', ensayo)}
+        ${fila('Balanceo', sinBal ? '<span class="tenue">No hace falta</span>' : `<strong>${esc(k.balanceoEstado || '—')}</strong>`)}
+        ${k.estanqueidad ? fila('Estanqueidad', `<strong>${esc(typeof k.estanqueidad === 'object' ? (k.estanqueidad.resultado || k.estanqueidad.estado || '✓') : k.estanqueidad)}</strong>`) : ''}
+        ${fila('Puesta en marcha', `<strong>${esc(k.estadoPM || '—')}</strong>`)}
       </section>
       ${(k.incidencias || []).length ? `<p class="nota aviso">${esc(k.incidencias.map((i) => INCIDENCIA[i] || i).join(' · '))}</p>` : ''}`;
   }
@@ -284,18 +310,15 @@
       ${htmlFichas('balanceo', 'Hoja de balanceo')}`;
     const cuerpo = pestanaEq === 'balanceo' ? balanceo()
       : `${htmlConjunto(f.conjunto, e.id)}
-      ${htmlFotosEquipo(f, puede)}
       ${htmlFichas('equipo', 'Fichas del equipo')}
+      ${htmlFotosEquipo(f, puede)}
       ${checklist(f.checklist, f.medicion)}`;
+    const sub = [e.planta, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
     $app.innerHTML = `
       ${pestanaEq === 'balanceo'
-        ? `<button class="volver" data-cx="ficha-equipo">‹ ${esc(e.tag)}</button>`
-        : '<button class="volver" data-cx="lista">‹ Equipos</button>'}
-      <section class="cabeza-ficha">
-        <h2 class="cifra">${esc(pestanaEq === 'balanceo' ? `${tituloMedicion(f)} · ${e.tag}` : e.tag)}</h2>
-        <div class="sub">${esc([e.planta, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · '))}</div>
-      </section>
-      ${cuerpo}`;
+        ? tagFijo(e.tag, tituloMedicion(f), 'ficha-equipo')
+        : tagFijo(e.tag, sub, 'lista')}
+      <div class="densa">${cuerpo}</div>`;
     C.cargarImagenes($app);
   }
 
@@ -726,7 +749,7 @@
       const ref = { obra: fichasEq.equipo.obraId, clave: x.clave, plantilla: x.plantilla };
       const r = await C.pedir(`api/ficha?${new URLSearchParams(ref)}`);
       if (!r.ok) throw new Error(r.error);
-      hoja = { ref, f: r, valores: {}, cabecera: {}, observaciones: undefined, nuevas: [], quitar: new Set(), cambiada: false };
+      hoja = { ref, nombre: x.nombre, f: r, valores: {}, cabecera: {}, observaciones: undefined, nuevas: [], quitar: new Set(), cambiada: false };
       /* Hoy y quien lleva el teléfono, de entrada (se pueden cambiar). */
       if (r.editable && !r.cabecera.fechaEnsayo) hoja.cabecera.fechaEnsayo = hoyIso();
       if (r.editable && !r.cabecera.realizadoPor) {
@@ -750,34 +773,89 @@
   const BOTONES_RESP = { siNoNa: [['si', 'Sí'], ['no', 'No'], ['na', 'N/A']], siNo: [['si', 'Sí'], ['no', 'No']], okNoOk: [['ok', 'OK'], ['noOk', 'NO OK']] };
   const claseResp = (k) => `activa ${k === 'no' || k === 'noOk' ? 'mal' : k === 'na' ? 'neutra' : 'bien'}`;
 
-  function campoPunto(s, p, ed) {
+  /*
+   * LA HOJA DENSA, como la hoja del PDF (15-oct-2026, JC: «no me gustan nada
+   * esos listados tan largos con campos tan grandes para datos tan
+   * pequeños»): etiqueta y campo en la misma fila, los parámetros en tabla
+   * con Proyecto | Fabricante | Medido una sola vez arriba, Sí/No/N/A
+   * pequeños dentro de la fila e impulsión y retorno lado a lado.
+   */
+  const obligatorioDe = (p) => (p.obligatorio ? ' <b class="obligatorio" aria-label="obligatorio">*</b>' : '');
+  const unidadDe = (p) => (p.unidad ? ` <span class="tenue">${esc(p.unidad)}</span>` : '');
+
+  /* Solo el campo, sin etiqueta: para las filas y las rejillas. */
+  function inputPunto(p, ed, aria) {
     const dis = ed ? '' : 'disabled';
-    const ob = p.obligatorio ? ' <b class="obligatorio" aria-label="obligatorio">*</b>' : '';
-    if (s.tipo === 'parametros') {
-      const [cr, nr] = p.resultado && RESULTADO[p.resultado] ? RESULTADO[p.resultado] : ['neutra', ''];
-      return `<div class="punto-param">
-        <div class="punto-titulo">${esc(p.etiqueta)}${ob}${p.unidad ? ` <span class="tenue">${esc(p.unidad)}</span>` : ''}${nr ? ` <span class="chip ${cr}">${esc(nr)}</span>` : ''}</div>
-        <div class="tres-cifras">
-          <label>Proyecto<input inputmode="decimal" autocomplete="off" ${dis} value="${esc(coma(valorDe(p, 'p')))}" data-h-punto="${esc(p.codigo)}" data-h-k="p"></label>
-          <label>Fabricante<input inputmode="decimal" autocomplete="off" ${dis} value="${esc(coma(valorDe(p, 'f')))}" data-h-punto="${esc(p.codigo)}" data-h-k="f"></label>
-          <label class="medido">Medido<input inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis} value="${esc(coma(valorDe(p, 'm')))}" data-h-punto="${esc(p.codigo)}" data-h-k="m"></label>
-        </div>
-        ${p.desv !== null && p.desv !== undefined ? `<div class="sub">Desviación ${cifra(p.desv * 100, 1)} %</div>` : ''}
-      </div>`;
-    }
     const v = valorDe(p);
+    const a = `aria-label="${esc(aria || p.etiqueta)}"`;
     if (BOTONES_RESP[p.tipo]) {
-      return `<div class="punto-resp">
-        <div class="punto-titulo">${s.tipo === 'checklist' ? `<span class="tenue">${esc(p.numero || p.codigo)}</span> ` : ''}${esc(p.etiqueta)}${ob}</div>
-        <div class="respuestas">${BOTONES_RESP[p.tipo].map(([k, n]) => `<button type="button" ${dis} class="${v === k ? claseResp(k) : ''}" data-h-resp="${k}" data-h-punto="${esc(p.codigo)}">${n}</button>`).join('')}</div>
-      </div>`;
+      return `<div class="respuestas mini">${BOTONES_RESP[p.tipo].map(([k, n]) => `<button type="button" ${dis} class="${v === k ? claseResp(k) : ''}" data-h-resp="${k}" data-h-punto="${esc(p.codigo)}">${n}</button>`).join('')}</div>`;
     }
-    let input;
-    if (p.tipo === 'numero') input = `<input inputmode="decimal" autocomplete="off" ${dis} value="${esc(coma(v))}" data-h-punto="${esc(p.codigo)}" data-h-k="v" data-h-num>`;
-    else if (p.tipo === 'fecha') input = `<input type="date" ${dis} value="${esc(String(v || '').slice(0, 10))}" data-h-punto="${esc(p.codigo)}" data-h-k="v">`;
-    else if (p.tipo === 'lista') input = `<select ${dis} data-h-punto="${esc(p.codigo)}" data-h-k="v"><option value="">—</option>${(p.opciones || []).map((o) => `<option ${o === v ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
-    else input = `<input autocomplete="off" ${dis} value="${esc(v ?? '')}" data-h-punto="${esc(p.codigo)}" data-h-k="v">`;
-    return `<label class="punto-dato">${esc(p.etiqueta)}${ob}${p.unidad ? ` <span class="tenue">(${esc(p.unidad)})</span>` : ''}${input}</label>`;
+    if (p.tipo === 'numero') return `<input class="cifra corto" inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis} ${a} value="${esc(coma(v))}" data-h-punto="${esc(p.codigo)}" data-h-k="v" data-h-num>`;
+    if (p.tipo === 'fecha') return `<input type="date" ${dis} ${a} value="${esc(String(v || '').slice(0, 10))}" data-h-punto="${esc(p.codigo)}" data-h-k="v">`;
+    if (p.tipo === 'lista') return `<select ${dis} ${a} data-h-punto="${esc(p.codigo)}" data-h-k="v"><option value="">—</option>${(p.opciones || []).map((o) => `<option ${o === v ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
+    return `<input autocomplete="off" enterkeyhint="next" ${dis} ${a} value="${esc(v ?? '')}" data-h-punto="${esc(p.codigo)}" data-h-k="v">`;
+  }
+
+  /* Una fila: etiqueta a la izquierda, campo (o Sí/No/N/A) a la derecha. */
+  function campoPunto(s, p, ed) {
+    if (s.tipo === 'parametros') return filaParametro(p, ed);
+    const num = s.tipo === 'checklist' ? `<span class="num">${esc(p.numero || p.codigo)}</span>` : '';
+    const clase = BOTONES_RESP[p.tipo] ? 'fd resp' : `fd${p.tipo === 'numero' ? ' n' : ''}`;
+    return `<div class="${clase}"><span class="et">${num}${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}</span>${inputPunto(p, ed)}</div>`;
+  }
+
+  function filaParametro(p, ed) {
+    const dis = ed ? '' : 'disabled';
+    const [cr, nr] = p.resultado && RESULTADO[p.resultado] ? RESULTADO[p.resultado] : ['neutra', ''];
+    const casilla = (k, n) => `<input class="cifra${k === 'm' ? ' medido' : ''}" inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis}
+      aria-label="${esc(`${p.etiqueta} · ${n}`)}" value="${esc(coma(valorDe(p, k)))}" data-h-punto="${esc(p.codigo)}" data-h-k="${k}">`;
+    const desv = p.desv !== null && p.desv !== undefined ? `<span class="desv ${cr}">${cifra(p.desv * 100, 1)} %${nr ? ` · ${esc(nr)}` : ''}</span>` : (nr ? `<span class="desv ${cr}">${esc(nr)}</span>` : '');
+    return `<div class="pp"><span class="et">${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}${desv}</span>${casilla('p', 'Proyecto')}${casilla('f', 'Fabricante')}${casilla('m', 'Medido')}</div>`;
+  }
+
+  /* Una sección: banda fina con su título y las filas debajo. */
+  function htmlSeccion(s, ed) {
+    if (s.tipo === 'parametros') {
+      return `<h3 class="banda">${esc(s.titulo)}</h3>
+        <section class="hoja-tabla param">
+          <div class="pp cab"><span></span><span>Proyecto</span><span>Fabric.</span><span>Medido</span></div>
+          ${s.puntos.map((p) => filaParametro(p, ed)).join('')}
+        </section>`;
+    }
+    const resp = s.puntos.every((p) => BOTONES_RESP[p.tipo]);
+    return `<h3 class="banda">${esc(s.titulo)}</h3>
+      <section class="hoja-tabla ${resp ? 'lista-resp' : 'rejilla-datos'}">${s.puntos.map((p) => campoPunto(s, p, ed)).join('')}</section>`;
+  }
+
+  /* «FILTROS IMPULSIÓN» + «FILTROS RETORNO» (o «VENTILADOR DE …»), con los
+     mismos datos: una tabla con Impulsión | Retorno en columnas. */
+  const LADO_RE = /^(.*?)\s+(?:DE\s+)?(IMPULSI[ÓO]N|RETORNO)$/i;
+  function parejaDe(a, b) {
+    if (!a || !b || a.tipo !== 'datos' || b.tipo !== 'datos') return false;
+    const ma = LADO_RE.exec(a.titulo || '');
+    const mb = LADO_RE.exec(b.titulo || '');
+    if (!ma || !mb || ma[1].toUpperCase() !== mb[1].toUpperCase()) return false;
+    if (!/^IMPULSI/i.test(ma[2]) || !/^RETORNO/i.test(mb[2])) return false;
+    return a.puntos.length === b.puntos.length && a.puntos.every((p, i) => p.etiqueta === b.puntos[i].etiqueta && p.tipo === b.puntos[i].tipo);
+  }
+  function htmlPareja(a, b, ed) {
+    const base = LADO_RE.exec(a.titulo)[1];
+    return `<h3 class="banda">${esc(base)} · impulsión y retorno</h3>
+      <section class="hoja-tabla pareja">
+        <div class="ir cab"><span></span><span>Impulsión</span><span>Retorno</span></div>
+        ${a.puntos.map((p, i) => `<div class="ir"><span class="et">${esc(p.etiqueta.replace(/\s*\(clase\)$/i, ''))}${obligatorioDe(p)}${unidadDe(p)}</span>${inputPunto(p, ed, `${p.etiqueta} · impulsión`)}${inputPunto(b.puntos[i], ed, `${p.etiqueta} · retorno`)}</div>`).join('')}
+      </section>`;
+  }
+  /* Las secciones de la hoja, juntando las parejas de impulsión y retorno. */
+  function htmlSecciones(secciones, ed) {
+    const out = [];
+    for (let i = 0; i < secciones.length; i += 1) {
+      const s = secciones[i];
+      if (parejaDe(s, secciones[i + 1])) { out.push(htmlPareja(s, secciones[i + 1], ed)); i += 1; continue; }
+      out.push(htmlSeccion(s, ed));
+    }
+    return out.join('');
   }
 
   /*
@@ -838,29 +916,31 @@
     const total = fotosGuardadas.length + h.nuevas.length;
     const q = new URLSearchParams(h.ref);
     $app.innerHTML = `
-      <button class="volver" data-cx="volver-equipo">‹ ${esc(ficha ? ficha.equipo.tag : 'Equipo')}</button>
-      <section class="cabeza-ficha">
-        <h2>${esc(f.plantilla.nombre)}</h2>
-        <div class="sub">${esc([f.titulo, `Plantilla ${f.plantilla.codigo} v${f.plantilla.version || 1}`].join(' · '))}</div>
-        <div class="chips">${chipFicha(f.estado, f.resultado)}${f.medidos ? ` <span class="chip neutra">${f.medidos.rellenos}/${f.medidos.obligatorios} datos</span>` : ''}</div>
-      </section>
+      ${tagFijo(ficha ? ficha.equipo.tag : (f.titulo || 'Equipo'), h.nombre || f.plantilla.nombre, 'volver-equipo',
+        `${chipFicha(f.estado, f.resultado)}${f.medidos ? ` <span class="chip neutra">${f.medidos.rellenos}/${f.medidos.obligatorios}</span>` : ''}`)}
+      <div class="densa">
       ${ed ? '' : `<p class="nota aviso">${f.firmada ? 'La ficha está firmada: ya no se cambia.' : 'Tu rol puede ver la ficha, pero no rellenarla.'}</p>`}
-      <h2>El ensayo</h2>
-      <section class="grupo hoja-campos">
-        <label class="punto-dato">Fecha del ensayo<input type="date" ${ed ? '' : 'disabled'} value="${esc(cabDe('fechaEnsayo') || '')}" data-h-cab="fechaEnsayo"></label>
-        <label class="punto-dato">Realizado por<input autocomplete="name" ${ed ? '' : 'disabled'} value="${esc(cabDe('realizadoPor') || '')}" data-h-cab="realizadoPor"></label>
+      <h3 class="banda">El ensayo <span class="tenue">${esc(`${f.plantilla.codigo} v${f.plantilla.version || 1}`)}</span></h3>
+      <section class="hoja-tabla rejilla-datos">
+        <label class="fd"><span class="et">Fecha</span><input type="date" ${ed ? '' : 'disabled'} value="${esc(cabDe('fechaEnsayo') || '')}" data-h-cab="fechaEnsayo"></label>
+        <label class="fd"><span class="et">Realizado por</span><input autocomplete="name" ${ed ? '' : 'disabled'} value="${esc(cabDe('realizadoPor') || '')}" data-h-cab="realizadoPor"></label>
       </section>
-      ${f.secciones.filter((s) => s.tipo !== 'fotos').map((s) => {
-        if (s.tipo === 'bocas') {
-          return `<h2>${esc(s.titulo)}</h2><p class="nota">Las bocas se miden en la ficha del equipo (boca a boca sobre su plano) y salen en el informe del balanceo.</p>`;
+      ${(() => {
+        const secs = f.secciones.filter((s) => s.tipo !== 'fotos' && (s.tipo === 'bocas' || s.puntos.length));
+        const out = [];
+        let tramo = [];
+        const vaciar = () => { if (tramo.length) out.push(htmlSecciones(tramo, ed)); tramo = []; };
+        for (const s of secs) {
+          if (s.tipo === 'bocas') { vaciar(); out.push(`<h3 class="banda">${esc(s.titulo)}</h3><p class="nota">Las bocas se miden en la ficha del equipo (boca a boca sobre su plano) y salen en el informe del balanceo.</p>`); }
+          else if (s.tipo === 'datos' && f.plantilla.codigo === 'BALANCEO_CAUDALES') { vaciar(); out.push(htmlDatosBalanceo(s, ed)); }
+          else tramo.push(s);
         }
-        if (!s.puntos.length) return '';
-        if (s.tipo === 'datos' && f.plantilla.codigo === 'BALANCEO_CAUDALES') return htmlDatosBalanceo(s, ed);
-        return `<h2>${esc(s.titulo)}</h2><section class="grupo hoja-campos">${s.puntos.map((p) => campoPunto(s, p, ed)).join('')}</section>`;
-      }).join('')}
-      <h2>Observaciones</h2>
-      <textarea rows="4" ${ed ? '' : 'disabled'} data-h-obs placeholder="Lo que haya que contar (obligatorio si algo sale «No»)">${esc(h.observaciones !== undefined ? h.observaciones : f.observaciones || '')}</textarea>
-      <h2>Fotos <span class="cuenta">${total}/8</span></h2>
+        vaciar();
+        return out.join('');
+      })()}
+      <h3 class="banda">Observaciones</h3>
+      <textarea class="obs" rows="3" ${ed ? '' : 'disabled'} data-h-obs placeholder="Lo que haya que contar (obligatorio si algo sale «No»)">${esc(h.observaciones !== undefined ? h.observaciones : f.observaciones || '')}</textarea>
+      <h3 class="banda">Fotos <span class="tenue">${total}/8</span></h3>
       ${total ? `<ul class="fotos-ficha">
         ${fotosGuardadas.map((x) => `<li><img data-src="api/ficha/foto?${q}&i=${x.i}" alt="${esc(x.nombre)}"><div class="pie"><span>${esc(x.nombre)}</span>${ed ? `<button class="enlace mal" data-cx="quitar-foto" data-i="${x.i}">Quitar</button>` : ''}</div></li>`).join('')}
         ${h.nuevas.map((x, i) => `<li class="nueva"><img src="${esc(x.url)}" alt="Foto nueva">
@@ -871,12 +951,13 @@
         <button class="boton secundario" data-cx="foto" data-camara="1"><i class="ic ic-camara"></i>Hacer foto</button>
         <button class="boton secundario" data-cx="foto" data-camara="0">De la galería</button>
       </div>` : ''}
-      ${f.faltan.length ? `<h2>Lo que falta <span class="cuenta">${f.faltan.length}</span></h2><ul class="faltan-hoja">${f.faltan.slice(0, 30).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+      ${f.faltan.length ? `<h3 class="banda">Lo que falta <span class="tenue">${f.faltan.length}</span></h3><ul class="faltan-hoja">${f.faltan.slice(0, 30).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
       ${f.avisos.length ? `<p class="nota aviso">${esc(f.avisos.join(' · '))}</p>` : ''}
       <div class="barra-hoja">
         ${ed ? `<button class="boton grande" data-cx="guardar-hoja" ${h.cambiada ? '' : 'disabled'}>Guardar</button>` : ''}
         <button class="boton grande secundario" data-cx="pdf-hoja"><i class="ic ic-doc"></i>Informe PDF</button>
         <button class="boton grande secundario" data-cx="pdf-hoja-obra"><i class="ic ic-doc"></i>PDF sin medidos (para obra)</button>
+      </div>
       </div>`;
     C.cargarImagenes($app);
   }
@@ -963,7 +1044,7 @@
     if (hoja.cambiada && hoja.f.editable && !(await guardarHoja())) return;
     const tag = ficha ? ficha.equipo.tag : hoja.f.titulo;
     const q = new URLSearchParams({ tipo: 'ficha', ...hoja.ref, ...(sinMedidos ? { sinMedidos: '1' } : {}) });
-    await compartirPdf(`api/informe?${q}`, `${tag} - ${hoja.f.plantilla.nombre}${sinMedidos ? ' - sin medidos' : ''}.pdf`, boton);
+    await compartirPdf(`api/informe?${q}`, `${tag} - ${hoja.nombre || hoja.f.plantilla.nombre}${sinMedidos ? ' - sin medidos' : ''}.pdf`, boton);
   }
 
   function salirHoja() {

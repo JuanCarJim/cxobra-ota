@@ -118,7 +118,7 @@ function svgBoca(tipo, { clase = '', titulo = '' } = {}) {
 const COLOR_ESTADO_BOCA = {
   ok: '#1B7F3B', dentro: '#1B7F3B',
   alto: '#C62828', bajo: '#C62828',
-  sinFactor: '#A15C00', sinProyecto: '#A15C00', sinTolerancia: '#A15C00', medido: '#A15C00',
+  sinFactor: '#A15C00', sinProyecto: '#A15C00', aRevisar: '#A15C00', sinTolerancia: '#A15C00', medido: '#A15C00',
   sinMedir: '#5F6B73',
 };
 

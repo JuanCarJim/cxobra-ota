@@ -8573,7 +8573,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261015.1222" : "0";
+      var VERSION = true ? "20261015.1428" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -10799,8 +10799,9 @@ globalThis.CX_VARIANTE="cxobra";
         /*
          * LAS CERTIFICACIONES: lo que se le cobra al cliente cada mes.
          *
-         * Se guarda la cantidad A ORIGEN de cada partida; lo del mes se calcula
-         * restando la anterior (shared/obra/certificacion.js). Al emitir se
+         * Se guarda la cantidad DEL MES de cada partida (`cantidad`, desde el
+         * 15-oct-2026); ANTERIOR es la suma de las de antes y A ORIGEN, anterior
+         * más actual (shared/obra/certificacion.js). `aOrigen` queda como foto. Al emitir se
          * congelan el precio de cada línea y el resumen, para que lo que se envió
          * siga diciendo lo mismo aunque el Costs Plan cambie después.
          *
@@ -10839,6 +10840,24 @@ globalThis.CX_VARIANTE="cxobra";
      creadoEn         TEXT NOT NULL,
      modificadoEn     TEXT NOT NULL,
      UNIQUE (certificacionId, lineaId)
+   )`,
+        /*
+         * LAS CORRECCIONES DE UNA CERTIFICACIÓN: cada vez que se cambia un ACTUAL
+         * que ya estaba puesto, con el valor de antes, el nuevo y el motivo. Un
+         * ACTUAL negativo —corregir un mes que se pasó— siempre lleva motivo.
+         */
+        `CREATE TABLE IF NOT EXISTS correccionesCertificacion (
+     id               TEXT PRIMARY KEY,
+     certificacionId  TEXT NOT NULL REFERENCES certificaciones(id) ON DELETE CASCADE,
+     obraId           TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     lineaId          TEXT NOT NULL,
+     codigo           TEXT,
+     valorAnterior    REAL,
+     valorNuevo       REAL,
+     motivo           TEXT,
+     personaId        TEXT REFERENCES personas(id),
+     creadoEn         TEXT NOT NULL,
+     modificadoEn     TEXT
    )`,
         /*
          * LAS EXCLUSIONES PACTADAS.
@@ -11180,6 +11199,98 @@ globalThis.CX_VARIANTE="cxobra";
          * Se anotan por CAPÍTULO y no por partida a propósito: una nota por partida
          * son cuatrocientas notas que nadie escribe y que nadie lee.
          */
+        /*
+         * EL CONTRATO, SUS ADENDAS Y SUS FASES (15-oct-2026, JC).
+         *
+         * Lo firmado no es el presupuesto: es el subcontrato con su importe, su fin,
+         * sus retenciones y penalizaciones, y lo que las adendas le han ido sumando.
+         * El importe y el fin vigentes NO se guardan: salen de lo original más las
+         * adendas FIRMADAS (shared/contrato.js), para que nadie tenga que acordarse
+         * de actualizarlos.
+         *
+         * Todo cuelga del proyecto (proyectoId en cada tabla): quien ve el proyecto
+         * ve su contrato, con la misma regla de alcance que la hoja de alcance.
+         */
+        `CREATE TABLE IF NOT EXISTS contratos (
+     id                    TEXT PRIMARY KEY,
+     proyectoId            TEXT NOT NULL REFERENCES proyectos(id) ON DELETE CASCADE,
+     codigo                TEXT,
+     titulo                TEXT,
+     contraparte           TEXT,
+     fechaFirma            TEXT,
+     fechaInicio           TEXT,
+     importeOriginal       REAL,
+     fechaFinOriginal      TEXT,
+     retencionPct          REAL,
+     avalPct               REAL,
+     penalizacionDiariaPct REAL,
+     penalizacionTopePct   REAL,
+     plazoCobroDias        INTEGER,
+     documento             TEXT,
+     notas                 TEXT,
+     creadoEn              TEXT NOT NULL,
+     modificadoEn          TEXT NOT NULL
+   )`,
+        `CREATE TABLE IF NOT EXISTS fasesContrato (
+     id                    TEXT PRIMARY KEY,
+     proyectoId            TEXT NOT NULL REFERENCES proyectos(id) ON DELETE CASCADE,
+     contratoId            TEXT NOT NULL REFERENCES contratos(id) ON DELETE CASCADE,
+     orden                 INTEGER NOT NULL DEFAULT 0,
+     nombre                TEXT NOT NULL,
+     ambito                TEXT,
+     importeBoq            REAL,
+     fechaFinPrevista      TEXT,
+     /* Time for Completion y fin total pueden no coincidir (Fase II de NCN). */
+     fechaFinTotal         TEXT,
+     recepcionProvisional  TEXT,
+     retencionPct          REAL,
+     notasLiberacion       TEXT,
+     creadoEn              TEXT NOT NULL,
+     modificadoEn          TEXT NOT NULL
+   )`,
+        /* Tipo: diseño | precios | reclamación | alcance | plazo.
+           Estado: borrador | enviada | firmada | rechazada. Solo cuenta la firmada. */
+        `CREATE TABLE IF NOT EXISTS adendas (
+     id                TEXT PRIMARY KEY,
+     proyectoId        TEXT NOT NULL REFERENCES proyectos(id) ON DELETE CASCADE,
+     contratoId        TEXT NOT NULL REFERENCES contratos(id) ON DELETE CASCADE,
+     numero            TEXT NOT NULL,
+     concepto          TEXT,
+     tipo              TEXT,
+     importe           REAL,
+     diasAmpliacion    INTEGER,
+     nuevaFechaFin     TEXT,
+     fecha             TEXT,
+     fechaFirma        TEXT,
+     estado            TEXT NOT NULL DEFAULT 'borrador',
+     faseId            TEXT REFERENCES fasesContrato(id) ON DELETE SET NULL,
+     documento         TEXT,
+     notas             TEXT,
+     creadoEn          TEXT NOT NULL,
+     modificadoEn      TEXT NOT NULL,
+     UNIQUE (contratoId, numero)
+   )`,
+        /*
+         * EL PRECIO DE CADA PARTIDA, CON SU HISTORIA. La primera fila es la del BOQ
+         * (sin adenda); cada cambio de precio lleva la adenda que lo trajo, la fase a
+         * la que se aplica y desde cuándo. La certificación usa el precio vigente en
+         * su fase y su fecha, nunca «el último» a secas.
+         * `partidaId` es la línea del presupuesto; sin clave foránea, como en la
+         * certificación: si la línea se borra, su historia de precios no se pierde.
+         */
+        `CREATE TABLE IF NOT EXISTS preciosPartida (
+     id              TEXT PRIMARY KEY,
+     proyectoId      TEXT NOT NULL REFERENCES proyectos(id) ON DELETE CASCADE,
+     partidaId       TEXT NOT NULL,
+     adendaId        TEXT REFERENCES adendas(id) ON DELETE SET NULL,
+     faseId          TEXT REFERENCES fasesContrato(id) ON DELETE SET NULL,
+     precioUnitario  REAL NOT NULL,
+     vigenteDesde    TEXT,
+     motivo          TEXT,
+     documento       TEXT,
+     creadoEn        TEXT NOT NULL,
+     modificadoEn    TEXT NOT NULL
+   )`,
         `CREATE TABLE IF NOT EXISTS notasTraspaso (
      id            TEXT PRIMARY KEY,
      proyectoId    TEXT NOT NULL REFERENCES proyectos(id) ON DELETE CASCADE,
@@ -12505,6 +12616,11 @@ globalThis.CX_VARIANTE="cxobra";
         `CREATE INDEX IF NOT EXISTS idx_lineas_disciplina  ON lineas (presupuestoId, disciplina)`,
         `CREATE INDEX IF NOT EXISTS idx_versiones_presu    ON versionesPresupuesto (presupuestoId, numero)`,
         `CREATE INDEX IF NOT EXISTS idx_alcance_proyecto   ON hojaAlcance (proyectoId)`,
+        `CREATE INDEX IF NOT EXISTS idx_contratos_proyecto ON contratos (proyectoId)`,
+        `CREATE INDEX IF NOT EXISTS idx_adendas_contrato   ON adendas (contratoId, numero)`,
+        `CREATE INDEX IF NOT EXISTS idx_fases_contrato     ON fasesContrato (contratoId, orden)`,
+        `CREATE INDEX IF NOT EXISTS idx_precios_partida    ON preciosPartida (partidaId, vigenteDesde)`,
+        `CREATE INDEX IF NOT EXISTS idx_precios_proyecto   ON preciosPartida (proyectoId)`,
         `CREATE INDEX IF NOT EXISTS idx_obras_proyecto     ON obras (proyectoId)`,
         `CREATE INDEX IF NOT EXISTS idx_obras_jefe         ON obras (jefeObraId, estado)`,
         `CREATE INDEX IF NOT EXISTS idx_notas_proyecto     ON notasTraspaso (proyectoId, codigo)`,
@@ -12538,6 +12654,7 @@ globalThis.CX_VARIANTE="cxobra";
         `CREATE INDEX IF NOT EXISTS idx_seglineas_equipo   ON segLineas (equipoId)`,
         `CREATE INDEX IF NOT EXISTS idx_seghitos_linea     ON segHitos (lineaId)`,
         `CREATE INDEX IF NOT EXISTS idx_lineascert_cert    ON lineasCertificacion (certificacionId)`,
+        `CREATE INDEX IF NOT EXISTS idx_correccert_cert    ON correccionesCertificacion (certificacionId, lineaId)`,
         `CREATE INDEX IF NOT EXISTS idx_incid_obra         ON incidencias (obraId, estado)`,
         `CREATE INDEX IF NOT EXISTS idx_incid_encargado    ON incidencias (encargadoId, estado)`,
         `CREATE INDEX IF NOT EXISTS idx_incidhoras_incid   ON incidenciaHoras (incidenciaId, fecha)`,
@@ -12580,6 +12697,19 @@ globalThis.CX_VARIANTE="cxobra";
         `CREATE INDEX IF NOT EXISTS idx_tareapedidos_ped   ON tareaPedidos (pedidoId)`
       ];
       var COLUMNAS_A\u00D1ADIDAS = [
+        /* La fase del contrato que certifica (para el precio vigente de esa fase). */
+        ["certificaciones", "faseId", "TEXT"],
+        /* La certificación final: emitirla cierra la obra (15-oct-2026). */
+        ["certificaciones", "final", "INTEGER"],
+        /* Lo del MES de cada partida, su importe a su precio, lo de origen y quién lo midió. */
+        ["lineasCertificacion", "cantidad", "REAL"],
+        ["lineasCertificacion", "importe", "REAL"],
+        ["lineasCertificacion", "importeOrigen", "REAL"],
+        ["lineasCertificacion", "medidoPor", "TEXT"],
+        ["lineasCertificacion", "medidoEn", "TEXT"],
+        /* La cuenta con que salió la cantidad del mes («3/4*M»), como en Excel (15-oct). */
+        ["lineasCertificacion", "formula", "TEXT"],
+        ["correccionesCertificacion", "formulaNueva", "TEXT"],
         /* Archivos y fotos de las notas del bloc (electron/data/notasAdjuntos.js), en JSON. */
         ["notas", "adjuntos", "TEXT"],
         /* Los partes de incidencia se asignan a quien los lleva, con su fecha límite. */
@@ -12855,6 +12985,24 @@ globalThis.CX_VARIANTE="cxobra";
           }
         }
       }
+      function rellenarCantidadDelMes(db) {
+        const sin = db.prepare(`SELECT l.id, l.lineaId, l.aOrigen, l.precio, c.obraId, c.numero
+    FROM lineasCertificacion l JOIN certificaciones c ON c.id = l.certificacionId
+    WHERE l.cantidad IS NULL ORDER BY c.obraId, c.numero`).all();
+        if (!sin.length) return;
+        const previa = db.prepare(`SELECT l.aOrigen, l.precio FROM lineasCertificacion l
+    WHERE l.lineaId = ? AND l.certificacionId = (SELECT id FROM certificaciones WHERE obraId = ? AND numero < ? ORDER BY numero DESC LIMIT 1)`);
+        const poner = db.prepare("UPDATE lineasCertificacion SET cantidad = ?, importe = ?, importeOrigen = ? WHERE id = ?");
+        const r2 = (v) => Math.round(v * 100) / 100;
+        const r3 = (v) => Math.round(v * 1e3) / 1e3;
+        for (const l of sin) {
+          const p = previa.get(l.lineaId, l.obraId, l.numero);
+          const antes = p ? Number(p.aOrigen) || 0 : 0;
+          const origen = l.precio === null || l.precio === void 0 ? null : r2((Number(l.aOrigen) || 0) * Number(l.precio));
+          const origenAntes = p && p.precio !== null && p.precio !== void 0 ? r2(antes * Number(p.precio)) : 0;
+          poner.run(r3((Number(l.aOrigen) || 0) - antes), origen === null ? null : r2(origen - origenAntes), origen, l.id);
+        }
+      }
       function prepararEsquema(db) {
         try {
           db.exec("PRAGMA journal_mode = WAL");
@@ -12868,6 +13016,7 @@ globalThis.CX_VARIANTE="cxobra";
         proponerFamiliasAProveedores(db);
         rellenarRepercusionDeIncidencias(db);
         rehacerHojaAlcanceAntigua(db);
+        rellenarCantidadDelMes(db);
         quitarColumnasObligatoriasViejas(db);
         for (const sql of INDICES) db.prepare(sql).run();
         return db;
@@ -12897,6 +13046,11 @@ globalThis.CX_VARIANTE="cxobra";
         },
         presupuestos: { porProyecto: "proyectoId" },
         hojaAlcance: { porProyecto: "proyectoId" },
+        /* El contrato, sus fases, sus adendas y los precios: del proyecto. */
+        contratos: { porProyecto: "proyectoId" },
+        fasesContrato: { porProyecto: "proyectoId" },
+        adendas: { porProyecto: "proyectoId" },
+        preciosPartida: { porProyecto: "proyectoId" },
         versionesPresupuesto: { porPresupuesto: "presupuestoId" },
         /*
          * UNA OBRA TIENE VARIOS DUEÑOS, y todos a la vez: el jefe de Proyectos que
@@ -12984,6 +13138,7 @@ globalThis.CX_VARIANTE="cxobra";
            líneas llevan también la obra para no tener que heredar en dos saltos. */
         certificaciones: { porObra: "obraId" },
         lineasCertificacion: { porObra: "obraId" },
+        correccionesCertificacion: { porObra: "obraId" },
         notasTraspaso: { porProyecto: "proyectoId" },
         /* Los cálculos de instalaciones: quien ve el proyecto ve sus cálculos. */
         calculos: { porProyecto: "proyectoId" },
@@ -13202,6 +13357,11 @@ globalThis.CX_VARIANTE="cxobra";
         notasTraspaso: "notasTraspaso",
         mensajes: "presupuestos",
         hojaAlcance: "presupuestos",
+        /* Lo firmado con el cliente: lo lleva quien lleva el presupuesto. */
+        contratos: "presupuestos",
+        fasesContrato: "presupuestos",
+        adendas: "presupuestos",
+        preciosPartida: "presupuestos",
         versionesPresupuesto: "presupuestos",
         presupuestos: "presupuestos",
         lineas: "presupuestos",
@@ -13252,6 +13412,7 @@ globalThis.CX_VARIANTE="cxobra";
         incidenciaComentarios: "incidencias",
         certificaciones: "certificaciones",
         lineasCertificacion: "certificaciones",
+        correccionesCertificacion: "certificaciones",
         /* Las cuatro tablas de compras van al módulo 'compras', no a
            'presupuestos': pedir ofertas y presupuestar son dos trabajos y dos
            permisos, y hay roles que tienen uno y no el otro. */
@@ -14869,6 +15030,7 @@ globalThis.CX_VARIANTE="cxobra";
           incidenciaComentarios: "Comentario de incidencia",
           certificaciones: "Certificaci\xF3n",
           lineasCertificacion: "L\xEDnea de certificaci\xF3n",
+          correccionesCertificacion: "Correcci\xF3n de certificaci\xF3n",
           peticionesOferta: "Petici\xF3n de oferta",
           ofertasProveedor: "Oferta de proveedor",
           lineasOfertaProveedor: "L\xEDnea de oferta",
@@ -17961,7 +18123,7 @@ globalThis.CX_VARIANTE="cxobra";
             nombre: "CARRIER ROOFTOPS",
             nombrePdf: "Carrier Rooftop",
             plantillas: ["ROOFTOP"],
-            anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR" }, { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" }],
+            anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR", nombre: "CHECKLIST ROOFTOP" }, { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" }],
             balanceo: true,
             estanqueidad: "no",
             medicion: "bocas"
@@ -18010,7 +18172,7 @@ globalThis.CX_VARIANTE="cxobra";
             nombre: "PANASONIC VRF",
             nombrePdf: "Panasonic VRF",
             plantillas: ["VRF_UD_EXTERIOR", "VRF_UI_CONDUCTOS", "VRF_UI_CASSETTE"],
-            anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR" }, { plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
+            anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR", nombre: "CHECKLIST VRF" }, { plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
             balanceo: false,
             estanqueidad: "refrigerante",
             /* La exterior no se mide; la interior de conductos, por bocas a velocidad
@@ -18024,7 +18186,7 @@ globalThis.CX_VARIANTE="cxobra";
             nombre: "PANASONIC SPLIT",
             nombrePdf: "Panasonic Split",
             plantillas: ["SPLIT_UD_INTERIOR", "SPLIT_UD_EXTERIOR"],
-            anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR" }, { plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
+            anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR", nombre: "CHECKLIST SPLIT" }, { plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
             balanceo: false,
             estanqueidad: "refrigerante",
             medicion: "temperatura",
@@ -18848,7 +19010,7 @@ globalThis.CX_VARIANTE="cxobra";
               clave = tagUE ? `refrigerante:${sinAcentosFx(tagUE)}` : null;
               if (!tagUE) motivo = "Unidad interior sin exterior asociada.";
             }
-            return { plantilla: pl.codigo, clase: pl.clase, nombre: pl.nombre, enlace, clave, motivo };
+            return { plantilla: pl.codigo, clase: pl.clase, nombre: a.nombre || pl.nombre, enlace, clave, motivo };
           };
           const anexos = (familia.anexos || []).map(anexo).filter(Boolean);
           fuera.push(...anexos.filter((a) => a.clase === "checklist"));
@@ -18992,6 +19154,8 @@ globalThis.CX_VARIANTE="cxobra";
         enviada: { orden: 1, nombre: "Enviada" },
         lista: { orden: 2, nombre: "Lista para enviar" },
         faltaEnsayo: { orden: 3, nombre: "Falta ensayo" },
+        /* Papeles completos, fichas (checklist, PM, estanqueidad) por hacer. */
+        faltaFichas: { orden: 3.5, nombre: "Doc. completa \xB7 faltan fichas" },
         faltaDocumentacion: { orden: 4, nombre: "Falta documentaci\xF3n" }
       };
       var INCIDENCIAS = {
@@ -19063,6 +19227,12 @@ globalThis.CX_VARIANTE="cxobra";
         }
         return (e) => e.modeloId && porId.get(e.modeloId) || porClave.get(`${llano(e.marca)}|${llano(e.modelo)}`) || (llano(e.modelo) ? porModelo.get(llano(e.modelo)) : null) || null;
       }
+      function fichasCompletas(e) {
+        const p = e && e.pmFichas;
+        if (!p || !p.total) return null;
+        return p.completas >= p.total;
+      }
+      var esCompleto = (docCompleta, fichas, ensayo) => Boolean(docCompleta) && fichas !== false && ensayo !== false;
       function evaluarEquipo(e, modelo, repetidos, unidad) {
         const ft = hayDoc(e.docFichaTecnica) || hayDoc(modelo && modelo.docFichaTecnica);
         const ce = hayDoc(e.docMarcadoCE) || hayDoc(modelo && modelo.docMarcadoCE);
@@ -19070,9 +19240,12 @@ globalThis.CX_VARIANTE="cxobra";
         const fichaPM = hayDoc(e.docFichaPM) || e.estadoPM === "hecha";
         const ensayo = ensayoSuperado(e);
         const docCompleta = ft && ce && manual && fichaPM;
+        const fichas = fichasCompletas(e);
+        const fichasFaltan = e.pmFichas && Array.isArray(e.pmFichas.faltan) ? e.pmFichas.faltan.map((x) => x.nombre) : [];
         let envio;
         if (e.fechaEnvioDF) envio = "enviada";
         else if (!docCompleta) envio = "faltaDocumentacion";
+        else if (fichas === false) envio = "faltaFichas";
         else if (ensayo === false) envio = "faltaEnsayo";
         else envio = "lista";
         const incidencias = [];
@@ -19090,6 +19263,7 @@ globalThis.CX_VARIANTE="cxobra";
         if (!ce) falta.push("CE");
         if (!manual) falta.push("manual");
         if (!fichaPM) falta.push("ficha PM");
+        for (const n of fichasFaltan) if (!falta.includes(n)) falta.push(n);
         if (ensayo === false) falta.push(e.ensayoRequerido === "estanqueidad" ? "estanqueidad" : e.ensayoRequerido === "balanceo" ? "balanceo" : "ensayos");
         return {
           ...e,
@@ -19101,7 +19275,9 @@ globalThis.CX_VARIANTE="cxobra";
           fichaPM,
           ensayo,
           docCompleta,
-          completo: docCompleta && ensayo !== false,
+          fichas,
+          fichasFaltan,
+          completo: esCompleto(docCompleta, fichas, ensayo),
           envio,
           incidencias,
           falta,
@@ -19202,6 +19378,8 @@ globalThis.CX_VARIANTE="cxobra";
         const manual = todos("manual");
         const fichaPM = miembros.some((m) => hayDoc(m.docFichaPM)) || miembros.every((m) => m.estadoPM === "hecha");
         const docCompleta = ft && ce && manual && fichaPM;
+        const conFichas = miembros.filter((m) => m.fichas !== null && m.fichas !== void 0);
+        const fichas = conFichas.length ? conFichas.every((m) => m.fichas) : null;
         const conEnsayo = miembros.filter((m) => m.ensayo !== null);
         const ensayo = conEnsayo.length ? conEnsayo.every((m) => m.ensayo) : null;
         const requeridos = new Set(conEnsayo.map((m) => m.ensayoRequerido));
@@ -19215,6 +19393,7 @@ globalThis.CX_VARIANTE="cxobra";
         let envio;
         if (fechaEnvioDF) envio = "enviada";
         else if (!docCompleta) envio = "faltaDocumentacion";
+        else if (fichas === false) envio = "faltaFichas";
         else if (ensayo === false) envio = "faltaEnsayo";
         else envio = "lista";
         const incidencias = [...new Set(miembros.flatMap((m) => m.incidencias))];
@@ -19238,11 +19417,12 @@ globalThis.CX_VARIANTE="cxobra";
           manual,
           fichaPM,
           docCompleta,
+          fichas,
           ensayo,
           ensayoRequerido,
           balanceoEstado,
           estanqueidadEstado,
-          completo: docCompleta && ensayo !== false,
+          completo: esCompleto(docCompleta, fichas, ensayo),
           fechaEnvioDF,
           envio,
           incidencias,
@@ -19282,6 +19462,9 @@ globalThis.CX_VARIANTE="cxobra";
           enMarcha: cuenta((l) => l.estadoPM === "enMarcha" || l.estadoPM === "hecha"),
           docCompleta: cuenta((l) => l.docCompleta),
           completos: cuenta((l) => l.completo),
+          /* Papeles completos pero con fichas o ensayo por hacer. */
+          soloDoc: cuenta((l) => l.docCompleta && !l.completo),
+          faltaFichas: cuenta((l) => l.envio === "faltaFichas"),
           enviadas: cuenta((l) => l.envio === "enviada"),
           listas: cuenta((l) => l.envio === "lista"),
           faltaEnsayo: cuenta((l) => l.envio === "faltaEnsayo"),
@@ -19318,6 +19501,8 @@ globalThis.CX_VARIANTE="cxobra";
             enMarcha: cuenta((f) => f.estadoPM === "enMarcha" || f.estadoPM === "hecha"),
             docCompleta: cuenta((f) => f.docCompleta),
             completos: cuenta((f) => f.completo),
+            soloDoc: cuenta((f) => f.docCompleta && !f.completo),
+            faltaFichas: cuenta((f) => f.envio === "faltaFichas"),
             enviadas: cuenta((f) => f.envio === "enviada"),
             listas: cuenta((f) => f.envio === "lista"),
             faltaEnsayo: cuenta((f) => f.envio === "faltaEnsayo"),
@@ -19360,6 +19545,8 @@ globalThis.CX_VARIANTE="cxobra";
         ESTADOS_ESTANQUEIDAD,
         ENVIO,
         INCIDENCIAS,
+        fichasCompletas,
+        esCompleto,
         hayDoc,
         ensayoPorDefecto,
         ensayoSuperado,
@@ -20634,6 +20821,12 @@ globalThis.CX_VARIANTE="cxobra";
       }
       var _reglasBal = typeof __require !== "undefined" ? require_reglasCx() : window.REGLAS_CX;
       var desviacion = _reglasBal.desviacion;
+      function estadoBocaBal(medido, proyecto, d, tolBoca, revisado = false) {
+        if (tolBoca === null || tolBoca === void 0) return "sinTolerancia";
+        const v = _reglasBal.veredicto({ medido, referencia: proyecto, limite: tolBoca, revisado: Boolean(revisado) });
+        if (v === "aRevisar") return "aRevisar";
+        return _reglasBal.dentro(d, tolBoca) ? "ok" : d > 0 ? "alto" : "bajo";
+      }
       function toleranciasBal(t = {}) {
         const una = (v) => {
           const n = numBal(v);
@@ -20663,7 +20856,7 @@ globalThis.CX_VARIANTE="cxobra";
             alto: numBal(b.alto),
             velocidad: numBal(b.velocidad),
             desviacion: d === null ? null : redBal(d, 4),
-            estado: d === null ? numBal(b.caudalMedido) === null ? "sinMedir" : "sinProyecto" : tolBoca === null ? "sinTolerancia" : _reglasBal.dentro(d, tolBoca) ? "ok" : d > 0 ? "alto" : "bajo"
+            estado: d === null ? numBal(b.caudalMedido) === null ? "sinMedir" : "sinProyecto" : estadoBocaBal(b.caudalMedido, proyecto[i].valor, d, tolBoca, b.revisado)
           };
         });
       }
@@ -20675,8 +20868,7 @@ globalThis.CX_VARIANTE="cxobra";
           let estado;
           if (q === null) estado = f.estado === "sinFactor" ? "sinFactor" : "sinMedir";
           else if (d === null) estado = "sinProyecto";
-          else if (tolBoca === null) estado = "sinTolerancia";
-          else estado = _reglasBal.dentro(d, tolBoca) ? "ok" : d > 0 ? "alto" : "bajo";
+          else estado = estadoBocaBal(q, p, d, tolBoca, f.revisado || f.metodo === "anemometro");
           return {
             indice: i + 1,
             nombre: f.nombre || `${idCircuito === "impulsion" ? "I" : "R"}${i + 1}`,
@@ -20803,13 +20995,15 @@ globalThis.CX_VARIANTE="cxobra";
             veredictoBocas: todasMedidas ? _reglasBal.veredicto({ medido: sumaMedido, referencia: sumaProyecto, limite: tol.total }) : medidas.length ? "pendiente" : null,
             medidas: medidas.length,
             fuera: bocas.filter((b) => b.estado === "alto" || b.estado === "bajo").length,
+            aRevisar: bocas.filter((b) => b.estado === "aRevisar").length,
             todasMedidas
           };
         });
         const algoMedido = circuitos.some((c) => c.medidas || c.totalMedido !== null);
         const algoFuera = circuitos.some((c) => c.fuera || c.totalOk === false);
         const totalesOk = circuitos.every((c) => c.totalOk === true);
-        const bocasOk = circuitos.every((c) => c.bocas.length === 0 || c.todasMedidas && !c.fuera);
+        const bocasOk = circuitos.every((c) => c.bocas.length === 0 || c.todasMedidas && !c.fuera && !c.aRevisar);
+        const nARevisar = circuitos.reduce((s, c) => s + (c.aRevisar || 0), 0);
         let estado = "pendiente";
         let porque = "No hay nada medido todav\xEDa.";
         const faltaTol = tol.total === null || tol.boca === null && circuitos.some((c) => c.bocas.length);
@@ -20817,6 +21011,8 @@ globalThis.CX_VARIANTE="cxobra";
           estado = "noApto";
           const n = circuitos.reduce((s, c) => s + c.fuera, 0);
           porque = n ? `${_textoBal.plural(n, "boca est\xE1", "bocas est\xE1n")} fuera del ${pctTol(tol.boca)}.` : `El caudal total est\xE1 fuera del ${pctTol(tol.total)}.`;
+        } else if (algoMedido && nARevisar) {
+          porque = `${_textoBal.plural(nARevisar, "boca tiene", "bocas tienen")} el medido id\xE9ntico al proyecto (A REVISAR, posible valor copiado): hay que confirmarlas antes de darlo por bueno.`;
         } else if (algoMedido && faltaTol) {
           porque = "La obra no tiene sus tolerancias de caudal: sin ellas no se juzga. Las pone el jefe de obra en \xABPar\xE1metros de la obra\xBB de la puesta en marcha.";
         } else if (totalesOk && bocasOk && circuitos.some((c) => c.bocas.length)) {
@@ -23139,7 +23335,7 @@ globalThis.CX_VARIANTE="cxobra";
       <figcaption>${esc(f.nombre || String(f.ruta || "").split(/[\\/]/).pop())}</figcaption></figure>`;
           }).join("")}</div>`;
         }
-        const ESTADO_BOCA = { ok: "apto", alto: "noApto", bajo: "noApto" };
+        const ESTADO_BOCA = { ok: "apto", alto: "noApto", bajo: "noApto", aRevisar: "aRevisar" };
         const ESTADO_BAL = { apto: "APTO", aptoSinBocas: "APTO SIN BOCAS", noApto: "NO APTO", pendiente: "PENDIENTE" };
         function hojaBalanceo(ev, ctx = {}) {
           const r = rejillaBalanceo(ev, ctx);
@@ -23196,7 +23392,7 @@ globalThis.CX_VARIANTE="cxobra";
               edificio: esc(ob.edificio || ctx.obra && ctx.obra.nombre || ""),
               direccion: esc(ob.direccion || ""),
               localidad: esc(ob.localidad || ""),
-              fecha: fecha(h.fechaMedicion),
+              fecha: fecha(h.fechaMedicion || ctx.fechaEnsayo),
               tag: eq.tag ? `<strong>${esc(eq.tag)}</strong>` : "",
               planta: esc([eq.planta, eq.sala].filter(Boolean).join(" / ")),
               aparatos: [ev.equipoMedida ? `Equipo de medida: <strong>${esc(ev.equipoMedida)}</strong>` : "", aparatosHtml(ev.instrumentos)].filter(Boolean).join(" \xB7 "),
@@ -23507,7 +23703,7 @@ globalThis.CX_VARIANTE="cxobra";
     <table class="datos cabecera">
       <tr><th>Edificio</th><td>${escFh(ob.edificio || ctx.obra && ctx.obra.nombre || "")}</td><th>Referencia / TAG</th><td><strong>${escFh(eq.tag || "")}</strong></td></tr>
       <tr><th>Equipo</th><td>${escFh([ev.tipo && ev.tipo.nombre, eq.denominacion].filter(Boolean).join(" \xB7 "))}</td><th>Planta / sala</th><td>${escFh([eq.planta, eq.sala].filter(Boolean).join(" / "))}</td></tr>
-      <tr><th>Marca / modelo</th><td>${escFh([eq.marca, eq.modelo].filter(Boolean).join(" / "))}</td><th>Fecha de medici\xF3n</th><td>${fechaFh(h.fechaMedicion)}</td></tr>
+      <tr><th>Marca / modelo</th><td>${escFh([eq.marca, eq.modelo].filter(Boolean).join(" / "))}</td><th>Fecha de medici\xF3n</th><td>${fechaFh(h.fechaMedicion || ctx.fechaEnsayo)}</td></tr>
       <tr><th>Aparatos utilizados</th><td>${ev.equipoMedida ? `Equipo de medida: <strong>${escFh(ev.equipoMedida)}</strong>${(ev.instrumentos || []).length ? " \xB7 " : ""}` : ""}${(ev.instrumentos || []).length ? aparatosFh(ev, {}) : ev.equipoMedida ? "" : '<span class="vacio">no consta</span>'}</td>
         <th>Fuentes</th><td>${escFh([h.fuentes && h.fuentes.fabrica ? `f\xE1brica: ${h.fuentes.fabrica}` : "", h.fuentes && h.fuentes.proyecto ? `proyecto: ${h.fuentes.proyecto}` : ""].filter(Boolean).join(" \xB7 "))}</td></tr>
     </table>
@@ -24741,8 +24937,9 @@ globalThis.CX_VARIANTE="cxobra";
         k: { id: "k", nombre: "Factor k", unidad: "m\xB3/h por m/s" }
       };
       var NOTA_EJEMPLO_DIF = "Valores de ejemplo: comprobar con la ficha del fabricante.";
-      var TOLERANCIA_DEFECTO_DIF = 0.1;
-      var TOLERANCIA_BOCA_DEFECTO_DIF = 0.15;
+      var REGLAS_DIF = typeof __require !== "undefined" ? require_reglasCx() : window.REGLAS_CX;
+      var TOLERANCIA_DEFECTO_DIF = REGLAS_DIF.CRITERIO_JC.total;
+      var TOLERANCIA_BOCA_DEFECTO_DIF = REGLAS_DIF.CRITERIO_JC.boca;
       var MARCA_EJEMPLO_DIF = "Gen\xE9rico (ejemplo, comprobar)";
       var TIPOS_DIF = {
         rotacional600: { marca: MARCA_EJEMPLO_DIF, modelo: "Rotacional", variante: "600\xD7600 (24 ranuras)", nombre: "Difusor rotacional 600\xD7600 (24 ranuras)", circuito: "impulsion", modo: "ak", ak: 0.03, k: null, ejemplo: true },
@@ -25479,29 +25676,17 @@ globalThis.CX_VARIANTE="cxobra";
         return a === null || a <= 0 ? null : redDif(v * a * 3600, 1);
       }
       function desviacionDif(medido, diseno) {
-        const m = numDif(medido);
-        const d = numDif(diseno);
-        if (m === null || d === null || d === 0) return null;
-        return redDif((m - d) / d, 4);
+        const d = REGLAS_DIF.desviacion(numDif(medido), numDif(diseno));
+        return d === null ? null : redDif(d, 4);
       }
       function juicioDif(desv, tol) {
-        if (desv === null || tol === null || tol === void 0) return null;
-        if (Math.abs(desv) <= tol + 1e-9) return "dentro";
-        return desv > 0 ? "alto" : "bajo";
+        const ok = REGLAS_DIF.dentro(desv, tol);
+        if (ok === null) return null;
+        return ok ? "dentro" : desv > 0 ? "alto" : "bajo";
       }
       function toleranciasDif(t = {}) {
-        const una = (v) => {
-          const n = numDif(v);
-          return n !== null && n > 0 && n < 1 ? n : null;
-        };
-        const total = una(t && t.total);
-        const boca = una(t && t.boca);
-        return {
-          total: total === null ? TOLERANCIA_DEFECTO_DIF : total,
-          boca: boca === null ? TOLERANCIA_BOCA_DEFECTO_DIF : boca,
-          totalPorDefecto: total === null,
-          bocaPorDefecto: boca === null
-        };
+        const r = REGLAS_DIF.toleranciasAplicadas(t || {});
+        return { total: r.total, boca: r.boca, totalPorDefecto: Boolean(r.totalPorDefecto), bocaPorDefecto: Boolean(r.bocaPorDefecto) };
       }
       function evaluarPuntoDif(p, tolBoca = TOLERANCIA_BOCA_DEFECTO_DIF) {
         const t = tipoDif(p.tipo);
@@ -25516,6 +25701,7 @@ globalThis.CX_VARIANTE="cxobra";
         if (directo ? !qLeido : numDif(p.velocidad) === null) estado = "sinMedir";
         else if (!directo && f.valor === null) estado = "sinFactor";
         else if (numDif(p.caudalDiseno) === null) estado = "medido";
+        else if (directo && REGLAS_DIF.veredicto({ medido: caudal, referencia: p.caudalDiseno, limite: tolBoca, revisado: Boolean(p.revisado) }) === "aRevisar") estado = "aRevisar";
         else estado = juicioDif(desv, tolBoca);
         return {
           ...p,
@@ -25549,11 +25735,12 @@ globalThis.CX_VARIANTE="cxobra";
           const disenoEquipo = numDif(diseno && diseno[id]);
           const faltan = suyos.length - conCaudal.length;
           const completo = suyos.length > 0 && faltan === 0;
-          const desv = completo ? desviacionDif(suma, disenoEquipo) : null;
+          const disenoReferencia = disenoPuntos !== null ? disenoPuntos : disenoEquipo;
+          const desv = completo ? desviacionDif(suma, disenoReferencia) : null;
           let estado;
           if (!suyos.length) estado = "sinPuntos";
           else if (!completo) estado = "incompleto";
-          else if (disenoEquipo === null) estado = "sinDiseno";
+          else if (disenoReferencia === null) estado = "sinDiseno";
           else estado = juicioDif(desv, tol.total);
           circuitos[id] = {
             id,
@@ -25563,7 +25750,12 @@ globalThis.CX_VARIANTE="cxobra";
             suma,
             disenoEquipo,
             disenoPuntos,
+            /* Contra qué se juzga el total: 'bocas' (lo normal) o 'equipo'. */
+            disenoReferencia,
+            referencia: disenoReferencia === null ? null : disenoPuntos !== null ? "bocas" : "equipo",
             desviacion: desv,
+            /* El caudal del equipo, solo de referencia. */
+            desviacionEquipo: completo ? desviacionDif(suma, disenoEquipo) : null,
             estado,
             dentro: suyos.filter((f) => f.estado === "dentro").length,
             fuera: suyos.filter((f) => f.estado === "alto" || f.estado === "bajo").length
@@ -26181,6 +26373,7 @@ globalThis.CX_VARIANTE="cxobra";
         bajo: "#C62828",
         sinFactor: "#A15C00",
         sinProyecto: "#A15C00",
+        aRevisar: "#A15C00",
         sinTolerancia: "#A15C00",
         medido: "#A15C00",
         sinMedir: "#5F6B73"
@@ -27945,6 +28138,12 @@ globalThis.CX_VARIANTE="cxobra";
         return { def, firmas, ev: F.evaluar(def, datos, { config: cfg, firmas, instrumentos: cat.instrumentos }) };
       }
       function sinMedidoDelBalanceo(datos) {
+        if (datos && datos.cabecera && Array.isArray(datos.cabecera.deBalanceo)) {
+          const cabecera = { ...datos.cabecera };
+          for (const k of cabecera.deBalanceo) cabecera[k] = k === "instrumentos" ? [] : null;
+          delete cabecera.deBalanceo;
+          datos = { ...datos, cabecera };
+        }
         const valores = { ...datos && datos.valores || {} };
         for (const [cod, v] of Object.entries(valores)) {
           if (v && v.om === "balanceo") {
@@ -27962,7 +28161,9 @@ globalThis.CX_VARIANTE="cxobra";
           const v = (datos.valores || {})[cod];
           return !v || F.numero(v.m) === null;
         });
-        if (!faltan) return datos;
+        const cab = datos.cabecera || {};
+        const faltaCab = !cab.aparatos && !(cab.instrumentos || []).length || !cab.fechaEnsayo;
+        if (!faltan && !(faltaCab && (hayMedidos(datos) || esDeBocas(def)))) return datos;
         const equipo = repo.leer("equiposObra", sesion, m[1]);
         if (!equipo) return datos;
         let bal = null;
@@ -27971,7 +28172,63 @@ globalThis.CX_VARIANTE="cxobra";
         } catch {
           bal = null;
         }
-        return conCaudalesDelBalanceo(def, datos, bal);
+        return conCabeceraDelBalanceo(conCaudalesDelBalanceo(def, datos, bal), bal, esDeBocas(def));
+      }
+      var hayMedidos = (datos) => Object.values(datos && datos.valores || {}).some((v) => v && F.numero(v.m) !== null);
+      var esDeBocas = (def) => F.puntosDe(def).some((x) => x.seccion && x.seccion.tipo === "bocas") || (def && def.secciones || []).some((x) => x && x.tipo === "bocas");
+      function conCabeceraDelBalanceo(datos, bal, deBocas = false) {
+        if (!bal || !bal.ev || !(deBocas || hayMedidos(datos))) return datos;
+        const cab = { ...datos.cabecera || {} };
+        const tomado = [];
+        const hoja = bal.ev.hoja || {};
+        if (!cab.aparatos && !(cab.instrumentos || []).length) {
+          const ids = (bal.ev.instrumentos || []).map((i) => i && i.id).filter(Boolean);
+          if (ids.length) {
+            cab.instrumentos = ids;
+            tomado.push("instrumentos");
+          }
+          if (bal.ev.equipoMedida) {
+            cab.aparatos = `Equipo de medida: ${bal.ev.equipoMedida}`;
+            tomado.push("aparatos");
+          }
+        }
+        if (!cab.fechaEnsayo && /^\d{4}-\d{2}-\d{2}$/.test(hoja.fechaMedicion || "")) {
+          cab.fechaEnsayo = hoja.fechaMedicion;
+          tomado.push("fechaEnsayo");
+        }
+        if (!tomado.length) return datos;
+        cab.deBalanceo = tomado;
+        return { ...datos, cabecera: cab };
+      }
+      function fechaEnsayoEquipo(repo, sesion, equipo) {
+        const filas = repo.listar("fichasPM", sesion, { condicion: "obraId = ? AND clave = ?", params: [equipo.obraId, `equipo:${equipo.id}`] });
+        filas.sort((a, b) => (b.plantilla === "BALANCEO_CAUDALES") - (a.plantilla === "BALANCEO_CAUDALES"));
+        for (const f of filas) {
+          const c = leerJson(f.datos, {}).cabecera || {};
+          if (/^\d{4}-\d{2}-\d{2}$/.test(c.fechaEnsayo || "")) return c.fechaEnsayo;
+        }
+        return null;
+      }
+      function fichasPorEquipo(repo, sesion, obraId, equipos) {
+        const cat = catalogoDe(repo, sesion);
+        const cfg = configDe(repo, sesion, obraId);
+        const fichas = /* @__PURE__ */ new Map();
+        for (const fila of filasFichas(repo, sesion, obraId)) {
+          const r = evaluarFila(fila, cat, cfg, { repo, sesion });
+          if (r) fichas.set(`${fila.clave}|${fila.plantilla}`, { id: fila.id, estado: r.ev.estado, resultado: r.ev.resultado });
+        }
+        const buscar = (clave, plantilla) => fichas.get(`${clave}|${plantilla}`) || null;
+        const lista = equipos || repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
+        const out = /* @__PURE__ */ new Map();
+        for (const e of lista) {
+          const pm = F.estadoEquipo(e, F.familiaDe(e, catalogo.FAMILIAS), cat.vigentes, buscar);
+          out.set(e.id, {
+            total: pm.total,
+            completas: pm.completas,
+            faltan: pm.fichas.filter((x) => x.estado !== "completa" && x.estado !== "firmada").map((x) => ({ nombre: x.nombre, clase: x.clase, estado: x.estado }))
+          });
+        }
+        return out;
       }
       function puestaEnMarcha(repo, sesion, obraId) {
         const obra = obraVisible(repo, sesion, obraId);
@@ -28386,7 +28643,14 @@ globalThis.CX_VARIANTE="cxobra";
           esquema = require_balanceoDibujo().esquema(ev, { tag: equipo.tag });
         }
         const cfg = configDe(repo, sesion, equipo.obraId);
-        const ctx = { obra: repo.leer("obras", sesion, equipo.obraId), cabeceraObra: cabeceraDe(cfg), equipo, esquema, tituloEsquema };
+        const ctx = {
+          obra: repo.leer("obras", sesion, equipo.obraId),
+          cabeceraObra: cabeceraDe(cfg),
+          equipo,
+          esquema,
+          tituloEsquema,
+          fechaEnsayo: ev.hoja && ev.hoja.fechaMedicion || fechaEnsayoEquipo(repo, sesion, equipo)
+        };
         const html = fichaHtml.hojaBalanceo(ev, ctx);
         return { ev, html, ctx, pasada: ev.estado !== "pendiente" && (equipo.balanceoEstado || "pendiente") === ev.estado };
       }
@@ -28836,6 +29100,7 @@ globalThis.CX_VARIANTE="cxobra";
         plantillas,
         nuevaVersionPlantilla,
         puestaEnMarcha,
+        fichasPorEquipo,
         ficha,
         guardarFicha,
         actualizarVersion,
@@ -28858,7 +29123,9 @@ globalThis.CX_VARIANTE="cxobra";
         importarFabricante,
         rejillaChecklist,
         guardarRejillaChecklist,
-        copiarRespuestasChecklist
+        copiarRespuestasChecklist,
+        conCabeceraDelBalanceo,
+        sinMedidoDelBalanceo
       };
     }
   });
@@ -28894,8 +29161,14 @@ globalThis.CX_VARIANTE="cxobra";
           ultimoEnlace = cfg && cfg.ultimoEnlace ? JSON.parse(cfg.ultimoEnlace) : null;
         } catch {
         }
+        let fichas = null;
+        try {
+          fichas = require_fichasPM().fichasPorEquipo(repo, sesion, obraId, equipos);
+        } catch {
+        }
+        const conFichas = fichas ? equipos.map((e) => fichas.has(e.id) ? { ...e, pmFichas: fichas.get(e.id) } : e) : equipos;
         return {
-          ...control.evaluar({ equipos, modelos }),
+          ...control.evaluar({ equipos: conFichas, modelos }),
           modelos,
           config: cfg ? { ...cfg, ultimoEnlace } : null
         };
@@ -29739,7 +30012,8 @@ globalThis.CX_VARIANTE="cxobra";
             { tag: "UTA-P1-01", planta: "P1", sala: "Cubierta", grupo: "TROX UTA", marca: "Trox", modelo: "X-CUBE 25", numSerie: "TX-25-0117", caudalDisenoImp: 1200, caudalDisenoRet: 1e3 },
             { tag: "FC-P1-01", planta: "P1", sala: "Habitaci\xF3n 101", grupo: "AIRLAN FANCOIL", marca: "Airlan", modelo: "FCX 32", circuito: "HVAC FC P1" },
             { tag: "FC-P1-02", planta: "P1", sala: "Habitaci\xF3n 102", grupo: "AIRLAN FANCOIL", marca: "Airlan", modelo: "FCX 32", circuito: "HVAC FC P1" },
-            { tag: "B-PB-01", planta: "PB", sala: "Sala de bombas", grupo: "WILO PUMPS", marca: "Wilo", modelo: "Stratos 40/1-12", numSerie: "W-88231" }
+            { tag: "B-PB-01", planta: "PB", sala: "Sala de bombas", grupo: "WILO PUMPS", marca: "Wilo", modelo: "Stratos 40/1-12", numSerie: "W-88231" },
+            { tag: "UI-PB-01", planta: "PB", sala: "Recepci\xF3n", grupo: "PANASONIC SPLIT", marca: "Panasonic", modelo: "CS-Z35XKEW", equipoAsociado: "UE-PB-01" }
           ]);
           C.configurar(repo, luis, "OB-3", { tolTotal: "10", tolBoca: "15", psRefrigerante: "41,5", caidaAdmisible: "0" });
           const idDe = (tag) => (db.prepare("SELECT id FROM equiposObra WHERE obraId = 'OB-3' AND tag = ?").get(tag) || {}).id;
@@ -38818,6 +39092,9 @@ ${linea}` : linea;
             resumen: p.resumen || "",
             unidad: p.unidad || "",
             capitulo: (p.camino || []).map((c) => c.codigo).filter(Boolean).join(" \u203A "),
+            /* El capítulo inmediato, para agrupar la hoja: código y nombre del último del camino. */
+            capituloCodigo: ((p.camino || [])[(p.camino || []).length - 1] || {}).codigo || "",
+            capituloResumen: ((p.camino || [])[(p.camino || []).length - 1] || {}).resumen || "",
             cantidad: _modeloCert.medida(p.cantidad),
             cantidadObra: esNumeroCert(p.cantidadObra) ? _modeloCert.medida(p.cantidadObra) : null,
             precio: _modeloCert.precio(p.precio),
@@ -38831,6 +39108,16 @@ ${linea}` : linea;
         if (!esNumeroCert(porcentaje)) return null;
         return _modeloCert.medida((Number(cantidad) || 0) * (Number(porcentaje) / 100));
       }
+      function leerAnteriorCert(v) {
+        if (v && typeof v === "object") {
+          return {
+            cantidad: esNumeroCert(v.cantidad) ? _modeloCert.medida(v.cantidad) : 0,
+            importe: esNumeroCert(v.importe) ? _modeloCert.euros(v.importe) : null
+          };
+        }
+        return { cantidad: esNumeroCert(v) ? _modeloCert.medida(v) : 0, importe: null };
+      }
+      var pctDeCert = (parte, total) => total > 0 ? _modeloCert.redondear(parte / total * 100, 1) : null;
       function calcularCertificacion({
         arbol,
         anterior = {},
@@ -38845,26 +39132,35 @@ ${linea}` : linea;
         const avisar = (a) => avisos.push(a);
         const filas = lista.map((p) => {
           const precio = precios && esNumeroCert(precios[p.lineaId]) ? _modeloCert.precio(precios[p.lineaId]) : p.precio;
-          const ant = esNumeroCert(anterior[p.lineaId]) ? _modeloCert.medida(anterior[p.lineaId]) : 0;
+          const ant = leerAnteriorCert(anterior[p.lineaId]);
           const tecleado = esNumeroCert(actual[p.lineaId]);
-          return { ...p, precio, anterior: ant, tecleado, aOrigen: tecleado ? _modeloCert.medida(actual[p.lineaId]) : ant };
+          return {
+            ...p,
+            precio,
+            anterior: ant.cantidad,
+            importeAnterior: ant.importe !== null ? ant.importe : _modeloCert.euros(ant.cantidad * precio),
+            tecleado,
+            periodo: tecleado ? _modeloCert.medida(actual[p.lineaId]) : 0
+          };
         });
         const directas = filas.filter((f) => !f.coste);
         const contratoDirecto = _modeloCert.euros(directas.reduce((a, f) => a + f.importeContrato, 0));
-        const origenDirecto = _modeloCert.euros(directas.reduce((a, f) => a + _modeloCert.euros(f.aOrigen * f.precio), 0));
+        const origenDirecto = _modeloCert.euros(directas.reduce((a, f) => a + f.importeAnterior + _modeloCert.euros(f.periodo * f.precio), 0));
         const avance = contratoDirecto > 0 ? Math.min(1, origenDirecto / contratoDirecto) : 0;
         for (const f of filas) {
           if (!f.coste || f.tecleado) continue;
           const proporcional = _modeloCert.medida(f.cantidad * avance);
-          f.aOrigen = Math.max(f.anterior, proporcional);
+          f.periodo = Math.max(0, _modeloCert.medida(proporcional - f.anterior));
           f.automatica = true;
         }
         for (const f of filas) {
-          f.importeOrigen = _modeloCert.euros(f.aOrigen * f.precio);
-          f.importeAnterior = _modeloCert.euros(f.anterior * f.precio);
-          f.periodo = _modeloCert.medida(f.aOrigen - f.anterior);
-          f.importePeriodo = _modeloCert.euros(f.importeOrigen - f.importeAnterior);
-          f.porcentaje = f.cantidad > 0 ? _modeloCert.redondear(f.aOrigen / f.cantidad * 100, 1) : null;
+          f.importePeriodo = _modeloCert.euros(f.periodo * f.precio);
+          f.aOrigen = _modeloCert.medida(f.anterior + f.periodo);
+          f.importeOrigen = _modeloCert.euros(f.importeAnterior + f.importePeriodo);
+          f.porcentaje = pctDeCert(f.aOrigen, f.cantidad);
+          f.pctAnterior = pctDeCert(f.anterior, f.cantidad);
+          f.pctPeriodo = pctDeCert(f.periodo, f.cantidad);
+          f.excede = f.cantidad > 0 && f.aOrigen > f.cantidad + 5e-3;
           const donde = [f.capitulo, f.codigo].filter(Boolean).join(" \u203A ");
           if (f.aOrigen < 0) {
             avisar({
@@ -38873,22 +39169,22 @@ ${linea}` : linea;
               lineaId: f.lineaId,
               donde,
               titulo: "Cantidad a origen negativa",
-              detalle: `\xAB${f.resumen}\xBB tiene ${_modeloCert.textoEuros(f.aOrigen)} ${f.unidad} a origen.`,
+              detalle: `\xAB${f.resumen}\xBB queda en ${_modeloCert.textoEuros(f.aOrigen)} ${f.unidad} a origen.`,
               porque: "A origen es todo lo hecho desde el primer d\xEDa: no puede ser menos que nada."
             });
           }
-          if (f.aOrigen < f.anterior) {
+          if (f.periodo < 0) {
             avisar({
               id: `cert:${f.lineaId}:baja`,
               gravedad: GRAVEDAD_CERT.AVISO,
               lineaId: f.lineaId,
               donde,
-              titulo: "Se certifica menos que el mes pasado",
-              detalle: `\xAB${f.resumen}\xBB baja de ${_modeloCert.textoEuros(f.anterior)} a ${_modeloCert.textoEuros(f.aOrigen)} ${f.unidad} a origen: este mes resta ${_modeloCert.textoEuros(-f.importePeriodo)} \u20AC.`,
-              porque: "Es la forma correcta de corregir un mes que se pas\xF3, pero el cliente va a preguntar. Que sea a prop\xF3sito."
+              titulo: "Este mes resta: corrige lo de un mes anterior",
+              detalle: `\xAB${f.resumen}\xBB: ${_modeloCert.textoEuros(f.periodo)} ${f.unidad} este mes (${_modeloCert.textoEuros(f.importePeriodo)} \u20AC).`,
+              porque: "Es la forma correcta de corregir un mes que se pas\xF3, pero el cliente va a preguntar. Que sea a prop\xF3sito, con su motivo."
             });
           }
-          if (f.cantidad > 0 && f.aOrigen > f.cantidad + 5e-3) {
+          if (f.excede) {
             const exceso = _modeloCert.medida(f.aOrigen - f.cantidad);
             avisar(f.seCobraMedicion ? {
               id: `cert:${f.lineaId}:exceso`,
@@ -38921,7 +39217,7 @@ ${linea}` : linea;
           }
         }
         const vivas = new Set(lista.map((p) => p.lineaId));
-        const huerfanas = Object.keys(anterior || {}).filter((id) => !vivas.has(id) && Number(anterior[id]) !== 0);
+        const huerfanas = Object.keys(anterior || {}).filter((id) => !vivas.has(id) && leerAnteriorCert(anterior[id]).cantidad !== 0);
         if (huerfanas.length) {
           avisar({
             id: "cert:huerfanas",
@@ -39025,10 +39321,34 @@ ${linea}` : linea;
           necesitaMotivo: avisos.some((a) => a.gravedad === GRAVEDAD_CERT.AVISO)
         };
       }
+      function comprobarFinal({ anteriores = [], calculada = null, commissioning = null } = {}) {
+        const emitidas = anteriores.filter((c) => c.estado !== "borrador");
+        const r = comprobarCierreObra({ certificaciones: emitidas, ultima: calculada, commissioning });
+        const avisos = r.avisos.filter((a) => a.id !== "cierre:borrador" && a.id !== "cierre:sinCertificar");
+        return {
+          avisos,
+          cerrable: !avisos.some((a) => a.gravedad === GRAVEDAD_CERT.BLOQUEANTE),
+          necesitaMotivo: avisos.some((a) => a.gravedad === GRAVEDAD_CERT.AVISO)
+        };
+      }
+      function ivaDeLaObra({ ivaFactura = null, formaPago = null, ivaPresupuesto = 21 } = {}) {
+        const f = String(ivaFactura ?? "").trim();
+        const inversion = { iva: 0, inversion: true, texto: "Sin IVA: inversi\xF3n del sujeto pasivo (art. 84.1.2.f LIVA)" };
+        if (f) {
+          if (/sujeto pasivo|sin iva|inversi/i.test(f)) return inversion;
+          if (/exent/i.test(f)) return { iva: 0, inversion: false, texto: "Exenta de IVA" };
+          const n2 = Number(f.replace("%", "").replace(",", ".").trim());
+          if (Number.isFinite(n2)) return { iva: n2, inversion: false, texto: `IVA (${String(n2).replace(".", ",")} %)` };
+        }
+        if (/inversi[oó]n del sujeto pasivo|sin iva/i.test(String(formaPago || ""))) return inversion;
+        const n = Number(ivaPresupuesto);
+        const iva = Number.isFinite(n) ? n : 21;
+        return { iva, inversion: false, texto: `IVA (${String(iva).replace(".", ",")} %)` };
+      }
       (function exportar(API) {
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.CERTIFICACION = API;
-      })({ calcular: calcularCertificacion, partidasCertificables, cantidadDesdePorcentaje, comprobarCierre: comprobarCierreObra, GRAVEDAD: GRAVEDAD_CERT, ESTADOS: ESTADOS_CERT });
+      })({ calcular: calcularCertificacion, partidasCertificables, cantidadDesdePorcentaje, comprobarCierre: comprobarCierreObra, comprobarFinal, ivaDeLaObra, leerAnterior: leerAnteriorCert, GRAVEDAD: GRAVEDAD_CERT, ESTADOS: ESTADOS_CERT });
     }
   });
 
@@ -62534,17 +62854,15 @@ ${linea}` : linea;
           const obra = obraDe(ses, e.obraId);
           const ev = new Map(d.resumen.filas.map((f) => [f.id, f]));
           const filas = [...ev.values()];
-          const NOMBRE = { dentro: "Dentro", ok: "Dentro", alto: "ALTO", bajo: "BAJO", sinMedir: "Sin medir", sinFactor: "Sin Ak", medido: "Sin Q proyecto", sinProyecto: "Sin Q proyecto", incompleto: "A medias", sinDiseno: "Sin Q proyecto" };
+          const NOMBRE = { aRevisar: "A REVISAR", dentro: "Dentro", ok: "Dentro", alto: "ALTO", bajo: "BAJO", sinMedir: "Sin medir", sinFactor: "Sin Ak", medido: "Sin Q proyecto", sinProyecto: "Sin Q proyecto", incompleto: "A medias", sinDiseno: "Sin Q proyecto" };
           const CLASE = { dentro: "ok", ok: "ok", alto: "mal", bajo: "mal" };
           const tol = d.resumen.tolerancias || {};
           const textoTol = (v, defecto) => v === null || v === void 0 ? "Sin poner" : `\xB1 ${cifra(v * 100, 0)} %${defecto ? " (por defecto: la obra no tiene la suya)" : ""}`;
           const circuitos = d.resumen.circuitos || {};
           const lineaTotal = (c, nombre) => {
             if (!c || c.estado === "sinPuntos") return null;
-            const completo = c.puntos > 0 && c.medidos === c.puntos;
-            const desv = completo && c.disenoPuntos ? c.suma / c.disenoPuntos - 1 : null;
-            const estado = !completo ? "incompleto" : desv === null ? "sinDiseno" : Math.abs(desv) <= (tol.total ?? 0.1) + 1e-9 ? "dentro" : desv > 0 ? "alto" : "bajo";
-            return Object.assign([nombre, cifra(c.disenoPuntos, 0), cifra(c.suma, 0), desv === null ? "" : `${cifra(desv * 100, 1)} %`, `${cifra(c.medidos, 0)}/${cifra(c.puntos, 0)}`, NOMBRE[estado] || estado], { clase: CLASE[estado] || null });
+            const desv = c.desviacion;
+            return Object.assign([nombre, cifra(c.disenoReferencia, 0), cifra(c.suma, 0), desv === null || desv === void 0 ? "" : `${cifra(desv * 100, 1)} %`, `${cifra(c.medidos, 0)}/${cifra(c.puntos, 0)}`, NOMBRE[c.estado] || c.estado], { clase: CLASE[c.estado] || null });
           };
           const totales = [lineaTotal(circuitos.impulsion, "Impulsi\xF3n"), lineaTotal(circuitos.retorno, "Retorno")].filter(Boolean);
           const uta = [["Impulsi\xF3n", d.diseno && d.diseno.impulsion && d.diseno.impulsion.valor], ["Retorno", d.diseno && d.diseno.retorno && d.diseno.retorno.valor]].filter(([, v]) => v !== null && v !== void 0).map(([n, v]) => `${n} ${cifra(v, 0)}`).join(" \xB7 ");
@@ -62790,6 +63108,7 @@ ${linea}` : linea;
             envio: f.envio,
             falta: f.falta,
             completo: f.completo,
+            docCompleta: Boolean(f.docCompleta),
             estadoPM: f.estadoPM || null,
             ...bocas.get(f.id) || { bocas: 0, medidas: 0 }
           });
@@ -62807,6 +63126,7 @@ ${linea}` : linea;
               envio: l.envio,
               falta: l.falta,
               completo: l.completo,
+              docCompleta: Boolean(l.docCompleta),
               estadoPM: l.estadoPM || null,
               unidades: l.miembros.map((m) => ({ id: m.id, tag: m.tag, papel: m.id === ext.id && l.clase !== "suelto" ? "UE" : "UI", modelo: m.modelo || null, planta: m.planta || null }))
             };
@@ -62816,8 +63136,8 @@ ${linea}` : linea;
             ok: true,
             equipos: t.filas.map(unidad),
             conjuntos,
-            totales: { equipos: t.totales.equipos, completos: t.totales.completos, listas: t.totales.listas, enviadas: t.totales.enviadas, faltaDocumentacion: t.totales.faltaDocumentacion, faltaEnsayo: t.totales.faltaEnsayo, pideEstanqueidad: t.totales.pideEstanqueidad, faltaEstanqueidad: t.totales.faltaEstanqueidad },
-            totalesConjuntos: { conjuntos: tc.conjuntos, unidades: tc.unidades, pares: tc.pares, sistemas: tc.sistemas, completos: tc.completos, listas: tc.listas, enviadas: tc.enviadas, faltaDocumentacion: tc.faltaDocumentacion, faltaEnsayo: tc.faltaEnsayo, pideEstanqueidad: tc.pideEstanqueidad, faltaEstanqueidad: tc.faltaEstanqueidad }
+            totales: { equipos: t.totales.equipos, completos: t.totales.completos, docCompleta: t.totales.docCompleta, soloDoc: t.totales.soloDoc, faltaFichas: t.totales.faltaFichas, listas: t.totales.listas, enviadas: t.totales.enviadas, faltaDocumentacion: t.totales.faltaDocumentacion, faltaEnsayo: t.totales.faltaEnsayo, pideEstanqueidad: t.totales.pideEstanqueidad, faltaEstanqueidad: t.totales.faltaEstanqueidad },
+            totalesConjuntos: { conjuntos: tc.conjuntos, unidades: tc.unidades, pares: tc.pares, sistemas: tc.sistemas, completos: tc.completos, docCompleta: tc.docCompleta, soloDoc: tc.soloDoc, faltaFichas: tc.faltaFichas, listas: tc.listas, enviadas: tc.enviadas, faltaDocumentacion: tc.faltaDocumentacion, faltaEnsayo: tc.faltaEnsayo, pideEstanqueidad: tc.pideEstanqueidad, faltaEstanqueidad: tc.faltaEstanqueidad }
           };
         }
         function equipo({ ses, query }) {
