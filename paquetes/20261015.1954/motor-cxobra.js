@@ -5837,7 +5837,7 @@ globalThis.CX_VARIANTE="cxobra";
          * reunión y, al cerrarla, lo acordado actúa (una orden aprobada se imputa
          * en el presupuesto; un encargo, tarea). Aprobar pide `aprobar`.
          */
-        actas: "Actas y \xF3rdenes de cambio",
+        actas: "Actas de obra",
         /*
          * LAS HORAS DEDICADAS, también sin pantalla propia.
          *
@@ -8622,7 +8622,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261015.1649" : "0";
+      var VERSION = true ? "20261015.1954" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -12108,6 +12108,34 @@ globalThis.CX_VARIANTE="cxobra";
      modificadoEn      TEXT NOT NULL
    )`,
         /*
+         * LAS CERTIFICACIONES A LOS INDUSTRIALES, POR PEDIDO Y MES
+         * (shared/obra/certIndustriales.js). Una fila por pedido y mes: `origen` es
+         * la cantidad A ORIGEN de cada línea del pedido ({ "L1": 3, … }) y
+         * `precios` el precio puesto aquí a las líneas que el pedido no lo trae. Lo
+         * ANTERIOR es el origen de la última emitida de ese mismo pedido. Al emitir
+         * firma el jefe de obra (`firmadaPor`, `firmadaEn`) y ya no se toca.
+         */
+        `CREATE TABLE IF NOT EXISTS certIndustriales (
+     id            TEXT PRIMARY KEY,
+     obraId        TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     pedidoId      TEXT NOT NULL REFERENCES pedidosCompra(id) ON DELETE CASCADE,
+     proveedorId   TEXT REFERENCES proveedores(id),
+     periodo       TEXT NOT NULL,
+     numero        INTEGER NOT NULL,
+     estado        TEXT NOT NULL DEFAULT 'borrador' CHECK (estado IN ('borrador','emitida')),
+     origen        TEXT,
+     precios       TEXT,
+     retencion     REAL NOT NULL DEFAULT 0,
+     iva           TEXT NOT NULL DEFAULT 'isp',
+     notas         TEXT,
+     firmadaPor    TEXT REFERENCES personas(id),
+     firmadaEn     TEXT,
+     creadoPor     TEXT REFERENCES personas(id),
+     creadoEn      TEXT NOT NULL,
+     modificadoEn  TEXT NOT NULL,
+     UNIQUE (pedidoId, periodo)
+   )`,
+        /*
          * EL PERSONAL EN OBRA (shared/obra/personal.js). Cada operario de una
          * subcontrata lleva una tarjeta con un QR (`codigo`, aleatorio y único); el
          * encargado la fotografía con el móvil al llegar y queda fichado ese día.
@@ -12495,6 +12523,46 @@ globalThis.CX_VARIANTE="cxobra";
      UNIQUE (obraId, capituloId)
    )`,
         /*
+         * EL COSTS PLAN 2.09a (shared/obra/costPlan209a.js). `costPlanCierres` es la
+         * foto del FCAC de cada fila al cerrar el mes (da el Previous FCAC del
+         * siguiente); `costPlanVariaciones`, lo que le cuesta cada adenda firmada
+         * en cada fila (capítulo o prelim); `costPlanDatos`, lo que no está en la
+         * base y se teclea: lo cobrado, la contingencia y lo devengado.
+         */
+        `CREATE TABLE IF NOT EXISTS costPlanCierres (
+     id              TEXT PRIMARY KEY,
+     obraId          TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     periodo         TEXT NOT NULL,
+     filas           TEXT NOT NULL,
+     staff           REAL,
+     cerradoPor      TEXT REFERENCES personas(id),
+     creadoEn        TEXT NOT NULL,
+     modificadoEn    TEXT NOT NULL,
+     UNIQUE (obraId, periodo)
+   )`,
+        `CREATE TABLE IF NOT EXISTS costPlanVariaciones (
+     id              TEXT PRIMARY KEY,
+     obraId          TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     adendaId        TEXT NOT NULL,
+     clave           TEXT NOT NULL,
+     importe         REAL,
+     creadoPor       TEXT REFERENCES personas(id),
+     creadoEn        TEXT NOT NULL,
+     modificadoEn    TEXT NOT NULL,
+     UNIQUE (obraId, adendaId, clave)
+   )`,
+        `CREATE TABLE IF NOT EXISTS costPlanDatos (
+     id               TEXT PRIMARY KEY,
+     obraId           TEXT NOT NULL UNIQUE REFERENCES obras(id) ON DELETE CASCADE,
+     cobrado          REAL,
+     contingencia     REAL,
+     ingresoDevengado REAL,
+     costeDevengado   REAL,
+     creadoPor        TEXT REFERENCES personas(id),
+     creadoEn         TEXT NOT NULL,
+     modificadoEn     TEXT NOT NULL
+   )`,
+        /*
          * LOS ACCESOS: cada vez que alguien entra (o lo intenta) en el ordenador o
          * en el móvil. Sin la contraseña, claro: quién, desde dónde, si entró y por
          * qué no. Lo lee el inicio del administrador (electron/data/acceso.js).
@@ -12701,6 +12769,7 @@ globalThis.CX_VARIANTE="cxobra";
         `CREATE INDEX IF NOT EXISTS idx_precios_partida    ON preciosPartida (partidaId, vigenteDesde)`,
         `CREATE INDEX IF NOT EXISTS idx_precios_proyecto   ON preciosPartida (proyectoId)`,
         `CREATE INDEX IF NOT EXISTS idx_obras_proyecto     ON obras (proyectoId)`,
+        `CREATE INDEX IF NOT EXISTS idx_certind_obra     ON certIndustriales (obraId, periodo)`,
         `CREATE INDEX IF NOT EXISTS idx_obras_jefe         ON obras (jefeObraId, estado)`,
         `CREATE INDEX IF NOT EXISTS idx_notas_proyecto     ON notasTraspaso (proyectoId, codigo)`,
         `CREATE INDEX IF NOT EXISTS idx_mensajes_proyecto  ON mensajes (proyectoId, creadoEn)`,
@@ -13213,6 +13282,9 @@ globalThis.CX_VARIANTE="cxobra";
         facturasProveedor: { porObra: "obraId" },
         costeImputaciones: { porObra: "obraId" },
         costePrevision: { porObra: "obraId" },
+        costPlanCierres: { porObra: "obraId" },
+        costPlanVariaciones: { porObra: "obraId" },
+        costPlanDatos: { porObra: "obraId" },
         /* Las horas de obra, como las de estudio: quien ve la obra ve lo que costó. */
         horasObra: { porObra: "obraId" },
         /* Las plantillas de puesta en marcha son de la casa, como la biblioteca. */
@@ -13224,6 +13296,7 @@ globalThis.CX_VARIANTE="cxobra";
         certificaciones: { porObra: "obraId" },
         lineasCertificacion: { porObra: "obraId" },
         correccionesCertificacion: { porObra: "obraId" },
+        certIndustriales: { porObra: "obraId" },
         notasTraspaso: { porProyecto: "proyectoId" },
         /* Los cálculos de instalaciones: quien ve el proyecto ve sus cálculos. */
         calculos: { porProyecto: "proyectoId" },
@@ -13498,6 +13571,8 @@ globalThis.CX_VARIANTE="cxobra";
         certificaciones: "certificaciones",
         lineasCertificacion: "certificaciones",
         correccionesCertificacion: "certificaciones",
+        /* Lo que se le certifica a cada industrial, por pedido y mes. */
+        certIndustriales: "certificaciones",
         /* Las cuatro tablas de compras van al módulo 'compras', no a
            'presupuestos': pedir ofertas y presupuestar son dos trabajos y dos
            permisos, y hay roles que tienen uno y no el otro. */
@@ -13540,6 +13615,9 @@ globalThis.CX_VARIANTE="cxobra";
         facturasProveedor: "costsPlan",
         costeImputaciones: "costsPlan",
         costePrevision: "costsPlan",
+        costPlanCierres: "costsPlan",
+        costPlanVariaciones: "costsPlan",
+        costPlanDatos: "costsPlan",
         horasObra: "horasObra",
         clientes: "clientes",
         departamentosCliente: "clientes",
@@ -15116,6 +15194,7 @@ globalThis.CX_VARIANTE="cxobra";
           certificaciones: "Certificaci\xF3n",
           lineasCertificacion: "L\xEDnea de certificaci\xF3n",
           correccionesCertificacion: "Correcci\xF3n de certificaci\xF3n",
+          certIndustriales: "Certificaci\xF3n de industrial",
           peticionesOferta: "Petici\xF3n de oferta",
           ofertasProveedor: "Oferta de proveedor",
           lineasOfertaProveedor: "L\xEDnea de oferta",
@@ -23234,6 +23313,7 @@ globalThis.CX_VARIANTE="cxobra";
         function valorPunto(p, conUnidad) {
           const v = p.valor;
           if (v === null || v === void 0 || v === "") return null;
+          if (RESPUESTA[v] && p.codigo === "fugas") return { html: RESPUESTA[v], bg: v === "si" ? "#FFC7CE" : null };
           if (RESPUESTA[v]) return { html: RESPUESTA[v], bg: v === "no" || v === "noOk" ? "#FFC7CE" : null };
           if (p.tipo === "numero") return `${num(v)}${p.unidad && !conUnidad ? ` ${esc(p.unidad)}` : ""}`;
           if (p.tipo === "fecha") return fecha(v);
@@ -25643,7 +25723,7 @@ globalThis.CX_VARIANTE="cxobra";
       var LECTURAS_DIF = { velocidad: "Velocidad (m/s)", caudal: "Caudal (m\xB3/h)" };
       function lecturaDif(p = {}) {
         if (LECTURAS_DIF[p.lectura]) return p.lectura;
-        return numDif(p.caudalMedido) !== null && numDif(p.velocidad) === null ? "caudal" : "velocidad";
+        return numDif(p.caudalMedido) !== null ? "caudal" : "velocidad";
       }
       function normalizarPuntoDif(p = {}, indice = 0) {
         if (!p || typeof p !== "object") p = {};
@@ -29621,14 +29701,14 @@ globalThis.CX_VARIANTE="cxobra";
         } catch {
         }
         const hoja = balanceo.normalizar(datos || balanceo.hojaVacia(equipo), equipo);
-        const t = require_fichas().tolerancias(configDe(repo, sesion, equipo.obraId) || {});
+        const t = require_fichas().toleranciasAplicadas(configDe(repo, sesion, equipo.obraId) || {});
         const instrumentos = repo.listar("instrumentosMedida", sesion, { orden: "activo DESC, nombre, numSerie" });
         return {
           equipo,
           hoja,
           guardada: Boolean(fila),
           modificadoEn: fila ? fila.modificadoEn : null,
-          tolerancias: { boca: t.boca, total: t.total },
+          tolerancias: { boca: t.boca, total: t.total, bocaPorDefecto: Boolean(t.bocaPorDefecto), totalPorDefecto: Boolean(t.totalPorDefecto) },
           /* Solo él las cambia, y desde aquí escribe en el mismo sitio que «Parámetros de la obra». */
           esJefeDeObra: require_fichasPM().esJefeDeObra(repo, sesion, equipo.obraId),
           instrumentos
@@ -29657,8 +29737,8 @@ globalThis.CX_VARIANTE="cxobra";
       function panelBalanceo(repo, sesion, obraId) {
         const obra = obraVisible(repo, sesion, obraId);
         if (!obra) return null;
-        const t = require_fichas().tolerancias(configDe(repo, sesion, obraId) || {});
-        const tolerancias = { boca: t.boca, total: t.total };
+        const t = require_fichas().toleranciasAplicadas(configDe(repo, sesion, obraId) || {});
+        const tolerancias = { boca: t.boca, total: t.total, bocaPorDefecto: Boolean(t.bocaPorDefecto), totalPorDefecto: Boolean(t.totalPorDefecto) };
         const equipos = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
         const hojas = new Map(repo.listar("hojasBalanceo", sesion, { condicion: "obraId = ?", params: [obraId] }).map((h) => [h.equipoId, h]));
         const conBalanceo = equipos.filter((e) => hojas.has(e.id) || e.ensayoRequerido === "balanceo" || e.ensayoRequerido === "ambos").sort((a, b) => String(a.tag || "").localeCompare(String(b.tag || ""), "es", { numeric: true }));
@@ -31981,10 +32061,30 @@ globalThis.CX_VARIANTE="cxobra";
         });
         return { dias: ds, hoy, filas, totales: { celdas, ...tot, cumplimiento: cumplimiento(tot.realHastaHoy, tot.previstoHastaHoy) } };
       }
+      function semana(h) {
+        const t = h && h.totales || {};
+        const filas = h && h.filas || [];
+        const celdaHoy = (t.celdas || []).find((c) => c.fecha === (h && h.hoy));
+        const dif = (f) => (f.realHastaHoy || 0) - (f.previstoHastaHoy || 0);
+        const fichados = t.realHastaHoy || 0;
+        const qrHastaHoy = (t.celdas || []).filter((c) => c.fecha <= h.hoy).reduce((a, c) => a + (c.qr || 0), 0);
+        return {
+          previsto: t.previsto || 0,
+          previstoHastaHoy: t.previstoHastaHoy || 0,
+          fichados,
+          diferencia: fichados - (t.previstoHastaHoy || 0),
+          cumplimiento: t.cumplimiento ?? null,
+          hoy: celdaHoy ? { previsto: celdaHoy.previsto || 0, fichados: celdaHoy.real || 0 } : null,
+          porTarjeta: fichados ? Math.round(qrHastaHoy / fichados * 1e3) / 1e3 : null,
+          aMano: fichados - qrHastaHoy,
+          faltan: filas.filter((f) => dif(f) < 0).map((f) => ({ proveedorId: f.proveedorId, nombre: f.nombre, faltan: -dif(f) })).sort((a, b) => b.faltan - a.faltan || a.nombre.localeCompare(b.nombre, "es")),
+          sinPrever: filas.filter((f) => dif(f) > 0).map((f) => ({ proveedorId: f.proveedorId, nombre: f.nombre, demas: dif(f) })).sort((a, b) => b.demas - a.demas || a.nombre.localeCompare(b.nombre, "es"))
+        };
+      }
       function diasDePrevision(desde, hasta, { soloLaborables = true } = {}) {
         return dias(desde, hasta || desde).filter((d) => !soloLaborables || esLaborable(d));
       }
-      module.exports = { PREFIJO_QR, PREFIJOS_QR, prefijoQr, textoQr, codigoDeQr, hoyLocal, dias, sumarDias, esLaborable, lunesDe, estadoDia, hoja, diasDePrevision, cumplimiento };
+      module.exports = { PREFIJO_QR, PREFIJOS_QR, prefijoQr, textoQr, codigoDeQr, hoyLocal, dias, sumarDias, esLaborable, lunesDe, estadoDia, hoja, semana, diasDePrevision, cumplimiento };
     }
   });
 
@@ -32741,6 +32841,7 @@ globalThis.CX_VARIANTE="cxobra";
           obras: lista,
           obra: { id: obra.id, codigo: obra.codigo, nombre: obra.nombre },
           ...h,
+          semana: M.semana(h),
           fichajes,
           operarios: todos,
           documentacion: documentacionObra(repo, sesion, obra.id, todos, hoy),
@@ -38561,6 +38662,81 @@ ${linea}` : linea;
     }
   });
 
+  // shared/obra/estanqueidadLibro.js
+  var require_estanqueidadLibro = __commonJS({
+    "shared/obra/estanqueidadLibro.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var P = require_plantillasCbre();
+      var ME = require_pruebasEstanqueidad();
+      var HOJA = { fontaneria: "ESTANQ_AGUA", acs: "ESTANQ_AGUA", clima: "ESTANQ_AGUA", frigorifica: "ESTANQ_REFRIGERANTE" };
+      var hay = (v) => v !== null && v !== void 0 && String(v).trim() !== "";
+      var num = (v) => hay(v) && Number.isFinite(Number(v)) ? Number(v) : null;
+      function horas(p) {
+        if (!/^\d{4}-\d{2}-\d{2}/.test(String(p.fecha || ""))) return {};
+        const hora = /^\d{1,2}:\d{2}/.test(String(p.horaInicio || "")) ? String(p.horaInicio).padStart(5, "0").slice(0, 5) : null;
+        if (!hora) return { inicio: String(p.fecha).slice(0, 10) };
+        const inicio = `${String(p.fecha).slice(0, 10)}T${hora}`;
+        const min = num(p.duracionMin);
+        if (min === null) return { inicio };
+        const d = /* @__PURE__ */ new Date(`${inicio}:00Z`);
+        d.setUTCMinutes(d.getUTCMinutes() + min);
+        return { inicio, fin: d.toISOString().slice(0, 16) };
+      }
+      function tieneHoja(prueba) {
+        return Boolean(prueba && HOJA[prueba.instalacion] && (prueba.unidad || "bar") === "bar");
+      }
+      function fichaDePrueba(p, { empresa = null, realizadoPor = null } = {}) {
+        if (!tieneHoja(p)) return null;
+        const plantilla = P.PLANTILLAS.find((x) => x.codigo === HOJA[p.instalacion]);
+        if (!plantilla) return null;
+        const v = {};
+        const poner = (k, val) => {
+          if (hay(val)) v[k] = { v: val, o: "manual" };
+        };
+        const terminada = p.resultado === "correcta" || p.resultado === "noSuperada";
+        const h = horas(p);
+        const duracion = num(p.duracionMin) === null ? null : Math.round(Number(p.duracionMin) / 60 * 100) / 100;
+        const emp = empresa || p.empresa;
+        if (plantilla.codigo === "ESTANQ_AGUA") {
+          poner("circuito", p.tramo);
+          poner("zona_planta", p.tramo);
+          poner("fluido", ME.FLUIDOS[p.fluido] || p.fluido);
+          poner("p_max_trabajo", num(p.presionTrabajo));
+          poner("p_prueba", num(p.presionPrueba));
+          poner("duracion_h", duracion);
+          if (terminada) poner("fugas", p.fugas ? "SI" : "NO");
+          if (terminada) poner("resultado", p.resultado === "correcta" ? "OK" : "NO OK");
+          poner("p_inicial", num(p.presionInicial));
+          poner("p_final", num(p.presionFinal));
+        } else {
+          poner("sistema", p.tramo);
+          poner("tramo", p.tramo);
+          poner("empresa_frigorista", emp);
+          poner("gas_prueba", p.fluido === "nitrogeno" ? "Nitr\xF3geno seco" : ME.FLUIDOS[p.fluido] || p.fluido);
+          poner("manometro", p.manometro);
+          poner("p_minima", num(p.presionPrueba));
+          poner("duracion_h", duracion);
+          poner("inicio", h.inicio);
+          if (terminada) poner("fin", h.fin);
+          poner("p_inicial", num(p.presionInicial));
+          poner("p_final", num(p.presionFinal));
+          poner("caida_admisible", num(p.caidaAdmisible));
+          if (terminada) poner("fugas_uniones", p.fugas ? "NO OK" : "OK");
+        }
+        const veredicto = (ME.RESULTADOS[p.resultado] || {}).nombre;
+        const obs = [veredicto ? `Resultado de la prueba: ${veredicto}.` : null, p.observaciones, p.notasJefe ? `Notas del jefe de obra: ${p.notasJefe}` : null].filter(hay).join("\n");
+        const datos = {
+          cabecera: { fechaEnsayo: hay(p.fecha) ? String(p.fecha).slice(0, 10) : null, realizadoPor: realizadoPor || null, aparatos: p.manometro || null },
+          valores: v,
+          observaciones: obs
+        };
+        return { plantilla, datos, equipo: { tag: p.tramo || p.codigo, sala: p.tramo || null }, titulo: `${p.codigo || ""} \xB7 ${p.tramo || ""}`.replace(/^ · | · $/g, "") };
+      }
+      module.exports = { fichaDePrueba, tieneHoja, HOJA };
+    }
+  });
+
   // electron/data/pruebasEstanqueidad.js
   var require_pruebasEstanqueidad2 = __commonJS({
     "electron/data/pruebasEstanqueidad.js"(exports, module) {
@@ -38680,6 +38856,18 @@ ${linea}` : linea;
         const p = repo.leer("pruebasEstanqueidad", sesion, id);
         return p ? fotoDe(p, i) : null;
       }
+      function hojaDelLibro(p, { obra, empresa, persona, fotos }) {
+        const L = require_estanqueidadLibro();
+        const f = L.fichaDePrueba(p, { empresa, realizadoPor: persona && persona.nombre });
+        if (!f) return null;
+        const F = require_fichas();
+        const X = require_fichaExcel();
+        const hoja = X.hojaFicha(F.evaluar(f.plantilla, f.datos), f.plantilla, { equipo: f.equipo, titulo: f.titulo, obra: obra || {} });
+        if (!hoja) return null;
+        const e = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+        const anexo = fotos.length ? `<section style="break-before:page;font:10pt Arial,sans-serif"><h3 style="margin:0 0 8px">Anexo \xB7 Fotos del man\xF3metro \xB7 ${e(p.codigo)}</h3>${fotos.map((x) => `<figure style="margin:0 0 10px;break-inside:avoid"><img src="${x.src}" style="max-width:100%;max-height:120mm"><figcaption>${e(M.MOMENTOS_FOTO[x.momento] || "Foto")}</figcaption></figure>`).join("")}</section>` : "";
+        return hoja + anexo;
+      }
       function documento(repo, sesion, id) {
         const p = repo.leer("pruebasEstanqueidad", sesion, id);
         if (!p) return { error: "No se encuentra la prueba." };
@@ -38687,6 +38875,8 @@ ${linea}` : linea;
         const persona = p.creadoPor ? repo.db.prepare("SELECT nombre, rol FROM personas WHERE id = ?").get(p.creadoPor) : null;
         const empresa = p.proveedorId ? (P.proveedoresPorId(repo).get(p.proveedorId) || {}).nombre || null : null;
         const fotos = fotosDe(p).map((_, i) => fotoDe(p, i)).filter((f) => f && f.src);
+        const hoja = hojaDelLibro(p, { obra, empresa, persona, fotos });
+        if (hoja) return { html: hoja, nombreArchivo: M.nombreInforme(p, obra), obra, estilos: "fichaPM.css", clase: "documentoFichaPM", margenes: { top: 0.4, bottom: 0.4, left: 0.4, right: 0.4 } };
         const html = M.html({
           prueba: p,
           obra,
@@ -63097,6 +63287,25 @@ ${linea}` : linea;
           const bytes = await hojaExcelPdf({ hojas: [{ disp: X.disposicion(r.m, r.opciones), marca: r.opciones.marca }], imagen: imagenLibro, anexoPdf, titulo: `BALANCEO - ${eq.tag || ""}` });
           return { bytes, nombre: `${nombreSeguro(`BALANCEO - ${eq.tag || eq.id}`)}.pdf` };
         }
+        async function pdfEstanqueidadHoja(ses, id) {
+          const p = repo.leer("pruebasEstanqueidad", ses, id);
+          if (!p) return null;
+          const quien = p.creadoPor ? repo.db.prepare("SELECT nombre FROM personas WHERE id = ?").get(p.creadoPor) : null;
+          const f = require_estanqueidadLibro().fichaDePrueba(p, { realizadoPor: quien && quien.nombre });
+          if (!f) return null;
+          const obra = obraDe(ses, p.obraId);
+          const r = X.rejillaFicha(F.evaluar(f.plantilla, f.datos), f.plantilla, { obra, equipo: f.equipo, titulo: f.titulo });
+          if (!r) return null;
+          let fotos = [];
+          try {
+            fotos = JSON.parse(p.fotos || "[]");
+          } catch {
+          }
+          fotos = fotos.map((x) => ({ bytes: bytesDe(x.ruta), pie: ME.MOMENTOS_FOTO[x.momento] || x.nombre || "Foto" })).filter((x) => x.bytes);
+          const anexoPdf = fotos.length ? await informePdf({ titulo: `Anexo \xB7 Fotos del man\xF3metro \xB7 ${p.codigo || ""}`, fecha: ahoraEs(), fotos, pie: `Anexo de la prueba ${p.codigo || ""}` }) : null;
+          const bytes = await hojaExcelPdf({ hojas: [{ disp: X.disposicion(r.m, r.opciones), marca: r.opciones.marca }], imagen: imagenLibro, anexoPdf, titulo: f.plantilla.nombre });
+          return { bytes, nombre: ME.nombreInforme(p, obra) };
+        }
         async function informe({ ses, query }) {
           const tipo = llano(query.tipo);
           let r;
@@ -63118,6 +63327,8 @@ ${linea}` : linea;
             r = docBalanceo(ses, llano(query.equipo));
           } else if (tipo === "estanqueidad") {
             if (!puede(ses.rol, "pruebasEstanqueidad", "ver")) return [403, { ok: false, error: "Tu rol no ve las pruebas de estanqueidad." }];
+            const h = await pdfEstanqueidadHoja(ses, llano(query.id));
+            if (h) return enHoja(h);
             r = docEstanqueidad(ses, llano(query.id));
           } else return [400, { ok: false, error: "Ese informe no existe." }];
           if (r.error) return [404, { ok: false, error: r.error }];
