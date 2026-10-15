@@ -209,12 +209,13 @@
   /*
    * EL TAG SIEMPRE A LA VISTA (15-oct-2026): una franja fina pegada debajo
    * de la cabecera con volver, el TAG y lo que se está viendo; se queda
-   * arriba al bajar por la hoja.
+   * arriba al bajar por la hoja. Toda la franja vuelve atrás, no solo la
+   * flecha (JC, 16-oct): se pulsa el TAG y se sale a la pantalla anterior.
    */
   function tagFijo(tag, que, volver, extra = '') {
     requestAnimationFrame(altoBarra);
-    return `<div class="tag-fijo">
-      <button class="volver" data-cx="${esc(volver)}" aria-label="Volver">‹</button>
+    return `<div class="tag-fijo" data-cx="${esc(volver)}" role="button" aria-label="Volver">
+      <span class="volver" aria-hidden="true">‹</span>
       <strong class="cifra">${esc(tag)}</strong>
       <span class="que">${esc(que || '')}</span>
       ${extra ? `<span class="extra">${extra}</span>` : ''}

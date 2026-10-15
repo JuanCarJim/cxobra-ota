@@ -192,10 +192,10 @@ function nombreInforme(prueba = {}, obra = {}) {
 
 /*
  * La firma de arriba del documento. En el escritorio (CBRE Project 360) es la
- * de CBRE; en Cx Obra, la app del teléfono que va a la App Store sin marca
- * ajena, la suya. Cx Obra lo dice al arrancar con globalThis.CX_VARIANTE.
+ * de CBRE; en Vidaire Cx, la app del teléfono que va a la App Store sin marca
+ * ajena, la suya. Vidaire Cx lo dice al arrancar con globalThis.CX_VARIANTE.
  */
-const marcaDocumento = () => (globalThis.CX_VARIANTE === 'cxobra' ? 'Cx Obra' : 'CBRE · Project Management');
+const marcaDocumento = () => (globalThis.CX_VARIANTE === 'cxobra' ? 'Vidaire Cx' : 'CBRE · Project Management');
 
 /** EL INFORME EN PAPEL (para el PDF). `fotos` son `{ src, momento }`. */
 function html({ prueba = {}, obra = {}, emisor = {}, empresa = null, fotos = [], hoy } = {}) {
