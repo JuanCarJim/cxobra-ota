@@ -8563,7 +8563,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261015.0758" : "0";
+      var VERSION = true ? "20261015.0815" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -15637,7 +15637,69 @@ globalThis.CX_VARIANTE="cxobra";
           }
           return { tag: llano(destino.tag) };
         }
-        const API = { claveTag, tipoUnidad, analizar, resolverAsociado };
+        function emparejarPorTag(equipos = []) {
+          const a = analizar(equipos);
+          const exteriores = a.sistemas.map((s) => s.exterior);
+          const porClave = /* @__PURE__ */ new Map();
+          for (const e of exteriores) {
+            const k = claveTag(e.tag);
+            porClave.set(k, porClave.has(k) ? null : e);
+          }
+          const ocupadas = new Map(a.sistemas.map((s) => [s.exterior.id, s.interiores.length]));
+          const vrf = (e) => /VRF|VRV/i.test(`${e.plantillaPM || ""} ${e.grupo || ""}`);
+          const pares = [];
+          const dudosos = [];
+          for (const e of equipos) {
+            const u = a.porEquipo.get(e.id);
+            if (!u || u.tipo !== "interior" || !u.problema) continue;
+            const k = claveTag(e.tag);
+            let ext = null;
+            let motivo = "";
+            const gemela = k.replace(/^U\.?I(?![A-Z])/, "UE");
+            if (gemela !== k && porClave.has(gemela)) {
+              ext = porClave.get(gemela);
+              motivo = "mismo TAG, UI \u2192 UE";
+            } else {
+              const candidatas = exteriores.filter((x) => {
+                const kx = claveTag(x.tag);
+                return kx && k.length > kx.length && k.startsWith(kx) && /^[-.·/ (]/.test(k.slice(kx.length));
+              }).sort((x, y) => claveTag(y.tag).length - claveTag(x.tag).length);
+              if (candidatas.length) {
+                ext = candidatas[0];
+                motivo = "el TAG de la interior empieza por el de la exterior";
+              }
+            }
+            if (!ext) {
+              dudosos.push({ equipo: e, motivo: "Ninguna exterior con un TAG que encaje" });
+              continue;
+            }
+            if (!vrf(ext) && (ocupadas.get(ext.id) || 0) > 0) {
+              dudosos.push({ equipo: e, motivo: `\xAB${llano(ext.tag)}\xBB ya tiene su interior` });
+              continue;
+            }
+            ocupadas.set(ext.id, (ocupadas.get(ext.id) || 0) + 1);
+            pares.push({ interior: e, exterior: ext, motivo });
+          }
+          for (const s of a.sistemas) {
+            if (s.interiores.length || pares.some((p) => p.exterior === s.exterior)) continue;
+            dudosos.push({ equipo: s.exterior, motivo: "Exterior sin ninguna interior" });
+          }
+          return { pares, dudosos };
+        }
+        function candidatasPareja(equipo, equipos = []) {
+          const tipo = tipoUnidad(equipo);
+          if (!tipo) return [];
+          const a = analizar(equipos);
+          const orden = (x, y) => String(x.tag || "").localeCompare(String(y.tag || ""), "es", { numeric: true });
+          if (tipo === "interior") return equipos.filter((e) => e.id !== equipo.id && tipoUnidad(e) === "exterior").sort(orden);
+          const kPropia = claveTag(equipo.tag);
+          return equipos.filter((e) => {
+            if (e.id === equipo.id || tipoUnidad(e) !== "interior") return false;
+            const u = a.porEquipo.get(e.id);
+            return !u || u.problema || claveTag(u.exterior) === kPropia;
+          }).sort(orden);
+        }
+        const API = { claveTag, tipoUnidad, analizar, resolverAsociado, emparejarPorTag, candidatasPareja };
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.SISTEMAS_CX = API;
       })();
@@ -15825,13 +15887,130 @@ globalThis.CX_VARIANTE="cxobra";
         }
         return [...uso.values()].map((u) => ({ ...u, faltaFT: u.sinFT > 0, faltaCE: u.sinCE > 0, faltaManual: u.sinManual > 0 })).filter((u) => u.faltaFT || u.faltaCE || u.faltaManual).sort((a, b) => b.equipos - a.equipos || a.modelo.localeCompare(b.modelo, "es"));
       }
+      var RANGO_PM = { pendiente: 0, programada: 1, enProceso: 2, conReservas: 3, enMarcha: 4, hecha: 5 };
+      var esVrf = (f) => /VRF|VRV/i.test(`${f.plantillaPM || ""} ${f.grupo || ""} ${f.familia || ""}`);
+      function estadoPMConjunto(miembros) {
+        return miembros.map((m) => m.estadoPM || "pendiente").reduce((a, b) => (RANGO_PM[b] ?? 0) < (RANGO_PM[a] ?? 0) ? b : a);
+      }
+      function peorEnsayo(miembros, campo, orden) {
+        const conEl = miembros.map((m) => m[campo] || "pendiente");
+        return conEl.reduce((a, b) => orden.indexOf(b) > orden.indexOf(a) ? b : a, conEl[0]);
+      }
+      function lineaConjunto(clase, exterior, interiores) {
+        const miembros = [exterior, ...interiores].filter(Boolean);
+        if (clase === "suelto") {
+          const f = miembros[0];
+          return { ...f, clase, miembros, exterior: null, interiores: [], unidades: 1 };
+        }
+        const todos = (k) => miembros.every((m) => m[k]);
+        const ft = todos("ft");
+        const ce = todos("ce");
+        const manual = todos("manual");
+        const fichaPM = miembros.some((m) => hayDoc(m.docFichaPM)) || miembros.every((m) => m.estadoPM === "hecha");
+        const docCompleta = ft && ce && manual && fichaPM;
+        const conEnsayo = miembros.filter((m) => m.ensayo !== null);
+        const ensayo = conEnsayo.length ? conEnsayo.every((m) => m.ensayo) : null;
+        const requeridos = new Set(conEnsayo.map((m) => m.ensayoRequerido));
+        const ensayoRequerido = requeridos.has("ambos") || requeridos.has("balanceo") && requeridos.has("estanqueidad") ? "ambos" : [...requeridos][0] || "ninguno";
+        const pideBal = conEnsayo.filter((m) => m.ensayoRequerido === "balanceo" || m.ensayoRequerido === "ambos");
+        const pideEst = conEnsayo.filter((m) => m.ensayoRequerido === "estanqueidad" || m.ensayoRequerido === "ambos");
+        const balanceoEstado = pideBal.length ? peorEnsayo(pideBal, "balanceoEstado", ["apto", "noAplica", "aptoSinBocas", "pendiente", "noApto"]) : exterior.balanceoEstado;
+        const estanqueidadEstado = pideEst.length ? peorEnsayo(pideEst, "estanqueidadEstado", ["apta", "noAplica", "pendiente", "noApta"]) : exterior.estanqueidadEstado;
+        const fechas = miembros.map((m) => m.fechaEnvioDF).filter(Boolean);
+        const fechaEnvioDF = fechas.length === miembros.length ? fechas.sort().pop() : null;
+        let envio;
+        if (fechaEnvioDF) envio = "enviada";
+        else if (!docCompleta) envio = "faltaDocumentacion";
+        else if (ensayo === false) envio = "faltaEnsayo";
+        else envio = "lista";
+        const incidencias = [...new Set(miembros.flatMap((m) => m.incidencias))];
+        const falta = [...new Set(miembros.flatMap((m) => m.falta))];
+        const ui = interiores[0] || {};
+        const doble = (k) => (clase === "par" ? [exterior[k], ui[k]] : [exterior[k]]).filter(Boolean);
+        return {
+          ...exterior,
+          clase,
+          miembros,
+          exterior,
+          interiores,
+          unidades: miembros.length,
+          tag: clase === "par" ? `${exterior.tag} / ${ui.tag}` : exterior.tag,
+          tagExterior: exterior.tag,
+          tagInterior: clase === "par" ? ui.tag : null,
+          numSerie: doble("numSerie").join(" / "),
+          estadoPM: estadoPMConjunto(miembros),
+          ft,
+          ce,
+          manual,
+          fichaPM,
+          docCompleta,
+          ensayo,
+          ensayoRequerido,
+          balanceoEstado,
+          estanqueidadEstado,
+          completo: docCompleta && ensayo !== false,
+          fechaEnvioDF,
+          envio,
+          incidencias,
+          falta,
+          /* Qué unidad trae cada incidencia, para decirlo en la ficha. */
+          incidenciasPorUnidad: miembros.filter((m) => m.incidencias.length).map((m) => ({ tag: m.tag, incidencias: m.incidencias }))
+        };
+      }
+      function agruparConjuntos(filas, sis) {
+        const porId = new Map(filas.map((f) => [f.id, f]));
+        const conjuntoDe = /* @__PURE__ */ new Map();
+        for (const s of sis.sistemas) {
+          if (!s.interiores.length) continue;
+          conjuntoDe.set(s.exterior.id, s.interiores.map((e) => porId.get(e.id)).filter(Boolean));
+        }
+        const dentro = new Set([...conjuntoDe.values()].flat().map((f) => f.id));
+        const lineas = [];
+        for (const f of filas) {
+          if (dentro.has(f.id)) continue;
+          const ints = conjuntoDe.get(f.id);
+          if (!ints) {
+            lineas.push(lineaConjunto("suelto", f, []));
+            continue;
+          }
+          const clase = ints.length === 1 && !esVrf(f) ? "par" : "sistema";
+          lineas.push(lineaConjunto(clase, f, ints.slice().sort((a, b) => String(a.tag || "").localeCompare(String(b.tag || ""), "es", { numeric: true }))));
+        }
+        return lineas;
+      }
+      function totalesDe(lineas) {
+        const cuenta = (pred) => lineas.filter(pred).length;
+        return {
+          conjuntos: lineas.length,
+          unidades: lineas.reduce((a, l) => a + l.unidades, 0),
+          pares: cuenta((l) => l.clase === "par"),
+          sistemas: cuenta((l) => l.clase === "sistema"),
+          enMarcha: cuenta((l) => l.estadoPM === "enMarcha" || l.estadoPM === "hecha"),
+          docCompleta: cuenta((l) => l.docCompleta),
+          completos: cuenta((l) => l.completo),
+          enviadas: cuenta((l) => l.envio === "enviada"),
+          listas: cuenta((l) => l.envio === "lista"),
+          faltaEnsayo: cuenta((l) => l.envio === "faltaEnsayo"),
+          faltaDocumentacion: cuenta((l) => l.envio === "faltaDocumentacion"),
+          balanceosSinBocas: cuenta((l) => l.incidencias.includes("balanceoSinBocas")),
+          conIncidencias: cuenta((l) => l.incidencias.length > 0)
+        };
+      }
+      function conjuntoDeEquipo(lineas, id) {
+        return lineas.find((l) => l.miembros.some((m) => m.id === id)) || null;
+      }
       function evaluar({ equipos = [], modelos = [] } = {}) {
         const modeloDe = indiceModelos(modelos);
         const sis = sistemasCx.analizar(equipos);
         const filas = equipos.map((e) => evaluarEquipo(e, modeloDe(e), sis.repetidos, sis.porEquipo.get(e.id))).sort((a, b) => ordenPlantas(a.planta, b.planta) || String(a.tag || "").localeCompare(String(b.tag || ""), "es", { numeric: true }));
         const cuenta = (pred) => filas.filter(pred).length;
+        const conjuntos = agruparConjuntos(filas, sis);
         return {
           filas,
+          /* Lo que se pone en marcha y se entrega: un split es UNA línea. */
+          conjuntos,
+          totalesConjuntos: totalesDe(conjuntos),
+          porPlantaConjuntos: cuadroDeCorte(conjuntos, "planta"),
           porPlanta: cuadroDeCorte(filas, "planta"),
           porMarca: cuadroDeCorte(filas, "marca"),
           porGrupo: cuadroDeCorte(filas, "grupo"),
@@ -15892,7 +16071,11 @@ globalThis.CX_VARIANTE="cxobra";
         evaluar,
         cuadro: cuadroDeCorte,
         modelosQueFaltan,
-        puedeEnviarse
+        puedeEnviarse,
+        agruparConjuntos,
+        conjuntoDeEquipo,
+        estadoPMConjunto,
+        RANGO_PM
       });
     }
   });
@@ -19307,7 +19490,7 @@ globalThis.CX_VARIANTE="cxobra";
           ]),
           ficha("VRF_UI_CONDUCTOS", "VRF UI CONDUCTOS", "VRF - UNIDAD INTERIOR (CONDUCTOS)", seccionesVrfInterior()),
           ficha("VRF_UI_CASSETTE", "VRF UI CASSETTE", "VRF - UNIDAD INTERIOR (CASSETTE)", seccionesVrfInterior()),
-          ficha("SPLIT_UD_INTERIOR", "SPLIT UD. INTERIOR", "SPLIT - UNIDAD INTERIOR", [
+          { ...ficha("SPLIT_UD_INTERIOR", "SPLIT UD. INTERIOR", "SPLIT - UNIDAD INTERIOR", [
             { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
               ...identificacion(),
               texto("ud_exterior_asociada", "Ud. exterior asociada", { origen: "equipoAsociado" }),
@@ -19315,9 +19498,16 @@ globalThis.CX_VARIANTE="cxobra";
               numPunto("potencia_frio", "Potencia fr\xEDo", "kW"),
               numPunto("potencia_calor", "Potencia calor", "kW")
             ] },
-            { titulo: "TEMPERATURAS AIRE", tipo: "parametros", puntos: temperaturasAireInterior() }
-          ]),
-          ficha("SPLIT_UD_EXTERIOR", "SPLIT UD. EXTERIOR", "SPLIT - UNIDAD EXTERIOR", [
+            /* v2 (15-oct): en un split solo se mide la Tª de impulsión. Se queda el
+               código t_salida_frio para no perder lo ya medido. */
+            { titulo: "TEMPERATURAS AIRE", tipo: "parametros", puntos: [
+              param("t_entrada_frio", "T\xAA entrada fr\xEDo", "\xB0C", OPC),
+              param("t_salida_frio", "T\xAA impulsi\xF3n (salida fr\xEDo)", "\xB0C", OBL),
+              param("t_entrada_calor", "T\xAA entrada calor", "\xB0C", OPC),
+              param("t_salida_calor", "T\xAA salida calor", "\xB0C", OPC)
+            ] }
+          ]), version: 2 },
+          { ...ficha("SPLIT_UD_EXTERIOR", "SPLIT UD. EXTERIOR", "SPLIT - UNIDAD EXTERIOR", [
             { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
               ...identificacion(),
               texto("ud_interior_asociada", "Ud. interior asociada", { origen: "equipoAsociado" }),
@@ -19335,12 +19525,14 @@ globalThis.CX_VARIANTE="cxobra";
               numPunto("consumo_placa", "Consumo placa", "A"),
               numPunto("consumo", "Consumo", "A")
             ] },
+            /* v2: el commissioning del split es conjunto y lo que se mide es la
+               impulsión en la interior; aquí las temperaturas quedan opcionales. */
             { titulo: "TEMPERATURAS AIRE", tipo: "parametros", puntos: [
-              param("t_aire_exterior_entrada", "T\xAA aire exterior (entrada)", "\xB0C", OBL),
-              param("t_salida_aire_frio", "T\xAA salida aire en fr\xEDo", "\xB0C", OBL),
+              param("t_aire_exterior_entrada", "T\xAA aire exterior (entrada)", "\xB0C", OPC),
+              param("t_salida_aire_frio", "T\xAA salida aire en fr\xEDo", "\xB0C", OPC),
               param("t_salida_aire_calor", "T\xAA salida aire en calor", "\xB0C", OPC)
             ] }
-          ]),
+          ]), version: 2 },
           ficha("CRAC_UD_INTERIOR", "CRAC UD. INTERIOR", "CRAC - UNIDAD INTERIOR", [
             { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
               ...identificacion(),
@@ -25103,7 +25295,77 @@ globalThis.CX_VARIANTE="cxobra";
             }
           }
         }
-        return { ok: true, interioresMovidas };
+        const conjunto = {};
+        for (const c of CAMPOS_CONJUNTO) if (c in cambios) conjunto[c] = cambios[c];
+        let conjuntoActualizado = 0;
+        if (Object.keys(conjunto).length) {
+          for (const otro of companerasDe(equiposDe(repo, sesion, actual.obraId), id)) {
+            repo.modificar("equiposObra", sesion, otro.id, conjunto);
+            conjuntoActualizado += 1;
+          }
+        }
+        return { ok: true, interioresMovidas, conjuntoActualizado };
+      }
+      var CAMPOS_CONJUNTO = ["estadoPM", "estanqueidadEstado"];
+      var esVrf = (e) => /VRF|VRV/i.test(`${e.plantillaPM || ""} ${e.grupo || ""}`);
+      function companerasDe(equipos, id) {
+        const a = sistemas.analizar(equipos);
+        const s = a.sistemas.find((x) => x.interiores.length && (x.exterior.id === id || x.interiores.some((i) => i.id === id)));
+        return s ? [s.exterior, ...s.interiores].filter((e) => e.id !== id) : [];
+      }
+      function emparejarEquipo(repo, sesion, id, otroId = null) {
+        if (!puede(sesion.rol, "commissioning", "editar")) return { ok: false, error: "Tu rol no puede emparejar equipos." };
+        const yo = repo.leer("equiposObra", sesion, id);
+        if (!yo) return { ok: false, error: "No se encuentra el equipo." };
+        const equipos = equiposDe(repo, sesion, yo.obraId);
+        const tipo = sistemas.tipoUnidad(yo);
+        if (!tipo) return { ok: false, error: `\xAB${yo.tag}\xBB no es una unidad exterior ni interior.` };
+        const a = sistemas.analizar(equipos);
+        const sistemaDe = (ext) => a.sistemas.find((s) => s.exterior.id === ext.id);
+        const poner = (e, valor) => {
+          if ((e.equipoAsociado || null) !== (valor || null)) repo.modificar("equiposObra", sesion, e.id, { equipoAsociado: valor || null });
+        };
+        const soltarInterior = (ui) => {
+          const k = sistemas.claveTag(ui.equipoAsociado);
+          const ext = k && equipos.find((e) => sistemas.claveTag(e.tag) === k);
+          if (ext && sistemas.claveTag(ext.equipoAsociado) === sistemas.claveTag(ui.tag)) poner(ext, null);
+          poner(ui, null);
+        };
+        const casar = (ext, ui) => {
+          if (!esVrf(ext)) {
+            const s = sistemaDe(ext);
+            for (const vieja of s ? s.interiores : []) if (vieja.id !== ui.id) poner(vieja, null);
+          }
+          soltarInterior(ui);
+          poner(ui, ext.tag);
+          if (!esVrf(ext)) poner(ext, ui.tag);
+        };
+        if (!otroId) {
+          if (tipo === "interior") soltarInterior(yo);
+          else {
+            if (esVrf(yo)) return { ok: false, error: "Un VRF tiene varias interiores: su\xE9ltalas una a una desde su ficha." };
+            const s = sistemaDe(yo);
+            for (const ui of s ? s.interiores : []) poner(ui, null);
+            poner(yo, null);
+          }
+          return { ok: true };
+        }
+        const otro = equipos.find((e) => e.id === otroId);
+        if (!otro) return { ok: false, error: "No se encuentra la otra unidad en esta obra." };
+        const tipoOtro = sistemas.tipoUnidad(otro);
+        if (tipo === "exterior" && tipoOtro !== "interior") return { ok: false, error: `\xAB${otro.tag}\xBB no es una unidad interior.` };
+        if (tipo === "interior" && tipoOtro !== "exterior") return { ok: false, error: `\xAB${otro.tag}\xBB no es una unidad exterior.` };
+        if (tipo === "exterior") casar(yo, otro);
+        else casar(otro, yo);
+        return { ok: true };
+      }
+      function emparejarObra(repo, sesion, obraId, { escribir = true } = {}) {
+        const r = sistemas.emparejarPorTag(equiposDe(repo, sesion, obraId));
+        if (escribir) for (const p of r.pares) emparejarEquipo(repo, sesion, p.interior.id, p.exterior.id);
+        return {
+          emparejados: r.pares.map((p) => ({ interior: p.interior.tag, exterior: p.exterior.tag, motivo: p.motivo })),
+          dudosos: r.dudosos.map((d) => ({ id: d.equipo.id, tag: d.equipo.tag, motivo: d.motivo }))
+        };
       }
       function importarEquipos(repo, sesion, obraId, filas = [], { completar = false } = {}) {
         if (!obraVisible(repo, sesion, obraId)) return { ok: false, error: "No se encuentra la obra." };
@@ -25149,22 +25411,25 @@ globalThis.CX_VARIANTE="cxobra";
             existentes.set(sistemas.claveTag(tag), { id: r.id, tag });
           } else errores.push(`${tag || "(sin TAG)"}: ${r.error}`);
         }
-        return { ok: true, creados, completados, saltados, errores };
+        const pares = emparejarObra(repo, sesion, obraId);
+        return { ok: true, creados, completados, saltados, errores, ...pares };
       }
       function marcarEnviado(repo, sesion, id, fecha = null) {
         const actual = repo.leer("equiposObra", sesion, id);
         if (!actual) return { ok: false, error: "No se encuentra el equipo." };
         if (fecha === null) {
-          if (actual.fechaEnvioDF) repo.modificar("equiposObra", sesion, id, { fechaEnvioDF: null });
+          const todas = [actual, ...companerasDe(equiposDe(repo, sesion, actual.obraId), id)];
+          for (const e of todas) if (e.fechaEnvioDF) repo.modificar("equiposObra", sesion, e.id, { fechaEnvioDF: null });
           return { ok: true };
         }
         const t = tabla(repo, sesion, actual.obraId);
-        const fila = t.filas.find((f) => f.id === id);
-        if (!control.puedeEnviarse(fila)) {
-          return { ok: false, error: `No est\xE1 listo para enviar: falta ${fila.falta.join(", ")}.` };
+        const linea = control.conjuntoDeEquipo(t.conjuntos, id) || t.filas.find((f) => f.id === id);
+        if (!control.puedeEnviarse(linea)) {
+          return { ok: false, error: `No est\xE1 listo para enviar: falta ${linea.falta.join(", ")}.` };
         }
-        repo.modificar("equiposObra", sesion, id, { fechaEnvioDF: fecha || require_fecha().hoyLocal() });
-        return { ok: true };
+        const dia = fecha || require_fecha().hoyLocal();
+        for (const m of linea.miembros || [actual]) repo.modificar("equiposObra", sesion, m.id, { fechaEnvioDF: dia });
+        return { ok: true, unidades: (linea.miembros || [actual]).length };
       }
       function guardarModelo(repo, sesion, id, entrada = {}) {
         const actual = repo.leer("modelosEquipo", sesion, id);
@@ -25349,6 +25614,9 @@ globalThis.CX_VARIANTE="cxobra";
         guardarEquipo,
         importarEquipos,
         marcarEnviado,
+        emparejarEquipo,
+        emparejarObra,
+        companerasDe,
         guardarModelo,
         crearModelosQueFaltan,
         hojaBalanceo,
@@ -59661,23 +59929,45 @@ ${linea}` : linea;
             b.medidas += puntos.filter((x) => MDIF.num(x.velocidad) !== null || MDIF.num(x.caudalMedido) !== null).length;
             bocas.set(p.equipoId, b);
           }
+          const unidad = (f) => ({
+            id: f.id,
+            tag: f.tag,
+            planta: f.planta,
+            marca: f.marca,
+            modelo: f.modelo,
+            grupo: f.grupo,
+            familia: f.familia || null,
+            envio: f.envio,
+            falta: f.falta,
+            completo: f.completo,
+            estadoPM: f.estadoPM || null,
+            ...bocas.get(f.id) || { bocas: 0, medidas: 0 }
+          });
+          const conjuntos = (t.conjuntos || []).map((l) => {
+            const ext = l.exterior || l.miembros[0];
+            const b = l.miembros.reduce((a, m) => {
+              const x = bocas.get(m.id);
+              return x ? { bocas: a.bocas + x.bocas, medidas: a.medidas + x.medidas } : a;
+            }, { bocas: 0, medidas: 0 });
+            return {
+              ...unidad(ext),
+              ...b,
+              tag: l.clase === "par" ? l.tag : ext.tag,
+              clase: l.clase,
+              envio: l.envio,
+              falta: l.falta,
+              completo: l.completo,
+              estadoPM: l.estadoPM || null,
+              unidades: l.miembros.map((m) => ({ id: m.id, tag: m.tag, papel: m.id === ext.id && l.clase !== "suelto" ? "UE" : "UI", modelo: m.modelo || null, planta: m.planta || null }))
+            };
+          });
+          const tc = t.totalesConjuntos || {};
           return {
             ok: true,
-            equipos: t.filas.map((f) => ({
-              id: f.id,
-              tag: f.tag,
-              planta: f.planta,
-              marca: f.marca,
-              modelo: f.modelo,
-              grupo: f.grupo,
-              familia: f.familia || null,
-              envio: f.envio,
-              falta: f.falta,
-              completo: f.completo,
-              estadoPM: f.estadoPM || null,
-              ...bocas.get(f.id) || { bocas: 0, medidas: 0 }
-            })),
-            totales: { equipos: t.totales.equipos, completos: t.totales.completos, listas: t.totales.listas, enviadas: t.totales.enviadas, faltaDocumentacion: t.totales.faltaDocumentacion, faltaEnsayo: t.totales.faltaEnsayo }
+            equipos: t.filas.map(unidad),
+            conjuntos,
+            totales: { equipos: t.totales.equipos, completos: t.totales.completos, listas: t.totales.listas, enviadas: t.totales.enviadas, faltaDocumentacion: t.totales.faltaDocumentacion, faltaEnsayo: t.totales.faltaEnsayo },
+            totalesConjuntos: { conjuntos: tc.conjuntos, unidades: tc.unidades, pares: tc.pares, sistemas: tc.sistemas, completos: tc.completos, listas: tc.listas, enviadas: tc.enviadas, faltaDocumentacion: tc.faltaDocumentacion, faltaEnsayo: tc.faltaEnsayo }
           };
         }
         function equipo({ ses, query }) {
@@ -59686,9 +59976,29 @@ ${linea}` : linea;
           const t = CX.tabla(repo, ses, d.equipo.obraId);
           const fila = t ? t.filas.find((f) => f.id === d.equipo.id) : null;
           const evaluada = new Map(d.resumen.filas.map((f) => [f.id, f]));
+          const linea = t && t.conjuntos ? t.conjuntos.find((l) => l.miembros.some((m) => m.id === d.equipo.id)) : null;
           return {
             ok: true,
             equipo: d.equipo,
+            conjunto: linea && linea.clase !== "suelto" ? {
+              clase: linea.clase,
+              envio: linea.envio,
+              completo: linea.completo,
+              estadoPM: linea.estadoPM || null,
+              falta: linea.falta,
+              unidades: linea.miembros.map((m) => ({
+                id: m.id,
+                tag: m.tag,
+                papel: m.id === linea.exterior.id ? "UE" : "UI",
+                marca: m.marca || null,
+                modelo: m.modelo || null,
+                numSerie: m.numSerie || null,
+                planta: m.planta || null,
+                sala: m.sala || null,
+                estadoPM: m.estadoPM || null,
+                falta: m.falta || []
+              }))
+            } : null,
             checklist: fila ? {
               ft: fila.ft,
               ce: fila.ce,

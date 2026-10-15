@@ -316,10 +316,13 @@
       seg.innerHTML = visibles.map(([id, nombre]) => `<a href="#${id}" class="${id === s ? 'activa' : ''}" ${id === s ? 'aria-current="page"' : ''}>${esc(nombre)}</a>`).join('');
     }
     const t = document.getElementById('titulo-seccion');
-    if (t) t.textContent = TITULO[s] || 'Cx Obra';
+    /* En Inicio, el saludo hace de título (15-oct-2026, JC). */
+    const nombrePila = sesion() && sesion().nombre ? String(sesion().nombre).trim().split(/\s+/).slice(0, 2).join(' ') : '';
+    if (t) t.textContent = s === 'inicio' && nombrePila ? `Hola, ${nombrePila}` : (TITULO[s] || 'Cx Obra');
     document.title = `${TITULO[s] || 'Inicio'} · Cx Obra`;
     const caja = document.getElementById('obra-movil-caja');
-    if (caja) caja.hidden = !sesion() || SIN_OBRA.has(s) || !obras.length;
+    /* En Inicio la obra se elige en su tarjeta: arriba sobraría. */
+    if (caja) caja.hidden = !sesion() || SIN_OBRA.has(s) || s === 'inicio' || !obras.length;
     if (actual) { try { localStorage.setItem(`movil.pestana.${actual.id}`, s); } catch { /* nada */ } }
     if (s === 'cuenta') cuenta();
     if (s === 'inicio') inicio();
@@ -427,8 +430,9 @@
     const fila = (href, nombre, valor) => `<a class="fila-dato" href="#${href}"><span>${esc(nombre)}</span><strong>${valor} ›</strong></a>`;
     app.innerHTML = `
       <section class="grupo inicio-obra">
-        <div class="fila-dato"><span>Obra</span><strong>${esc(o.codigo)} · ${esc(o.nombre)}</strong></div>
-        <div class="fila-dato"><span>Hola</span><strong>${esc(yo.nombre)} · ${esc(yo.rolNombre || yo.rol || '')}</strong></div>
+        <label class="fila-dato selector-obra"><span>Obra</span>
+          <select data-inicio-obra aria-label="Obra">${obras.map((x) => `<option value="${esc(x.id)}" ${x.id === o.id ? 'selected' : ''}>${esc(x.codigo)} · ${esc(x.nombre)}</option>`).join('')}</select>
+        </label>
       </section>
       ${t ? `
       <h2 class="titulo-grupo">Commissioning</h2>
@@ -505,6 +509,7 @@
   /* ═══════════════════════════════════ Arranque */
 
   document.getElementById('obra-movil').addEventListener('change', (ev) => ponerObra(ev.target.value));
+  document.addEventListener('change', (ev) => { if (ev.target.matches('[data-inicio-obra]')) ponerObra(ev.target.value); });
   window.addEventListener('hashchange', pintar);
   pintar();
 })();
