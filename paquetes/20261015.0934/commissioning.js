@@ -199,8 +199,10 @@
     </div>`;
   }
 
-  function checklist(k) {
+  function checklist(k, med) {
     if (!k) return '';
+    /* Un split o una enfriadora no llevan balanceo de bocas: no se les pide. */
+    const sinBal = med && !med.plano && (!k.balanceoEstado || k.balanceoEstado === 'pendiente');
     const si = (v) => (v ? '<span class="ok">✓</span>' : '<span class="no">✗</span>');
     const ensayo = k.ensayoRequerido === 'ninguno' || !k.ensayoRequerido ? '<span class="tenue">No hace falta</span>' : si(k.ensayo);
     return `<h2>Checklist</h2>
@@ -210,7 +212,7 @@
         <div class="fila-dato"><span>Manual</span>${si(k.manual)}</div>
         <div class="fila-dato"><span>Ficha PM</span>${si(k.fichaPM)}</div>
         <div class="fila-dato"><span>Ensayo</span>${ensayo}</div>
-        <div class="fila-dato"><span>Balanceo</span><strong>${esc(k.balanceoEstado || '—')}</strong></div>
+        <div class="fila-dato"><span>Balanceo</span>${sinBal ? '<span class="tenue">No hace falta</span>' : `<strong>${esc(k.balanceoEstado || '—')}</strong>`}</div>
         ${k.estanqueidad ? `<div class="fila-dato"><span>Estanqueidad</span><strong>${esc(typeof k.estanqueidad === 'object' ? (k.estanqueidad.resultado || k.estanqueidad.estado || '✓') : k.estanqueidad)}</strong></div>` : ''}
         <div class="fila-dato"><span>Puesta en marcha</span><strong>${esc(k.estadoPM || '—')}</strong></div>
       </section>
@@ -218,55 +220,111 @@
   }
 
   /*
-   * LA FICHA DEL EQUIPO, en tres pestañas (15-oct-2026, JC): «Equipo» (fotos,
-   * conjunto, checklist y puesta en marcha), «Estanqueidad» (sus certificados)
-   * y «Balanceo», esta solo si al equipo le toca. Mientras se ve un equipo, el
-   * selector de arriba (Equipos | Estanqueidad) se esconde: manda el del equipo.
+   * LA FICHA DEL EQUIPO, sin pestañas (15-oct-2026, JC: «Estanqueidad y
+   * balanceo muévelas a fichas del equipo»). La estanqueidad es una ficha más
+   * de la lista; el balanceo, una fila de esa lista que abre las bocas y su
+   * hoja. Mientras se ve un equipo, el selector de arriba se esconde.
    */
   let pestanaEq = 'equipo';
-  const CLASES_PESTANA = { estanqAgua: 'estanqueidad', estanqRefrigerante: 'estanqueidad', balanceo: 'balanceo' };
-  const pestanaDeFicha = (x) => CLASES_PESTANA[x.clase] || 'equipo';
-  function pestanasEquipo(f) {
+  const pestanaDeFicha = (x) => (x.clase === 'balanceo' ? 'balanceo' : 'equipo');
+  function tieneBalanceo(f) {
+    /* Lo que se mide de su familia manda (15-oct-2026): un split no enseña un
+       balanceo vacío y un fan coil de conductos sí lo enseña. Un plano que ya
+       tenga bocas se enseña siempre. */
+    if (f.planos.length) return true;
+    if (f.medicion) return Boolean(f.medicion.plano);
     const fs = (fichasEq && fichasEq.fichas) || [];
     const req = f.checklist ? f.checklist.ensayoRequerido : null;
-    const lista = [['equipo', 'Equipo']];
-    if (fs.some((x) => pestanaDeFicha(x) === 'estanqueidad') || req === 'estanqueidad' || req === 'ambos') lista.push(['estanqueidad', 'Estanqueidad']);
-    if (fs.some((x) => pestanaDeFicha(x) === 'balanceo') || f.planos.length || req === 'balanceo' || req === 'ambos') lista.push(['balanceo', 'Balanceo']);
-    return lista;
+    return fs.some((x) => x.clase === 'balanceo') || f.planos.length > 0 || req === 'balanceo' || req === 'ambos';
   }
 
   function pintarFicha() {
     const f = ficha;
     const e = f.equipo;
     const puede = f.puedeMedir;
-    const pestanas = pestanasEquipo(f);
-    if (!pestanas.some(([id]) => id === pestanaEq)) pestanaEq = 'equipo';
+    if (pestanaEq === 'balanceo' && !tieneBalanceo(f)) pestanaEq = 'equipo';
     const seg = document.getElementById('segmentos');
     if (seg) seg.hidden = true;
+    const med = f.medicion || {};
     const balanceo = () => `
       ${totalCircuito(f.circuitos && f.circuitos.impulsion, 'Impulsión')}
-      ${totalCircuito(f.circuitos && f.circuitos.retorno, 'Retorno')}
+      ${totalCircuito(f.circuitos && f.circuitos.retorno, med.retorno || 'Retorno')}
+      ${med.velocidad ? `<p class="nota">Una medida por boca, con el equipo a velocidad ${esc(med.velocidad)}.</p>` : ''}
       ${f.planos.length ? f.planos.map((p) => `
         <h2>${esc(p.nombre)} <span class="cuenta">${p.bocas.length} bocas</span></h2>
+        ${htmlPlano(p)}
         <ul class="bocas">${p.bocas.map((b) => htmlBoca(p, b, puede, f.tolerancias)).join('')}</ul>`).join('') : '<p class="vacio">Este equipo no tiene plano de bocas: se dibuja en el ordenador (Commissioning › Balanceo).</p>'}
       ${puede || !f.planos.length ? '' : '<p class="nota">Tu rol puede ver las medidas, pero no tomarlas.</p>'}
       ${f.planos.length ? '<button class="boton secundario" data-cx="pdf-balanceo"><i class="ic ic-doc"></i>Informe del balanceo (PDF)</button>' : ''}
       ${htmlFichas('balanceo', 'Hoja de balanceo')}`;
     const cuerpo = pestanaEq === 'balanceo' ? balanceo()
-      : pestanaEq === 'estanqueidad' ? htmlFichas('estanqueidad', 'Certificados de estanqueidad')
       : `${htmlConjunto(f.conjunto, e.id)}
       ${htmlFotosEquipo(f, puede)}
       ${htmlFichas('equipo', 'Fichas del equipo')}
-      ${checklist(f.checklist)}`;
+      ${checklist(f.checklist, f.medicion)}`;
     $app.innerHTML = `
-      <button class="volver" data-cx="lista">‹ Equipos</button>
+      ${pestanaEq === 'balanceo'
+        ? `<button class="volver" data-cx="ficha-equipo">‹ ${esc(e.tag)}</button>`
+        : '<button class="volver" data-cx="lista">‹ Equipos</button>'}
       <section class="cabeza-ficha">
-        <h2 class="cifra">${esc(e.tag)}</h2>
+        <h2 class="cifra">${esc(pestanaEq === 'balanceo' ? `${tituloMedicion(f)} · ${e.tag}` : e.tag)}</h2>
         <div class="sub">${esc([e.planta, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · '))}</div>
       </section>
-      ${pestanas.length > 1 ? `<div class="segmentado" role="tablist">${pestanas.map(([id, nombre]) => `<button role="tab" data-cx-pestana="${id}" aria-selected="${pestanaEq === id}" class="${pestanaEq === id ? 'activa' : ''}">${esc(nombre)}</button>`).join('')}</div>` : ''}
       ${cuerpo}`;
     C.cargarImagenes($app);
+  }
+
+  /* «Balanceo de caudales», «Caudales de extracción»… según lo que se mide. */
+  const tituloMedicion = (f) => (f.medicion && f.medicion.titulo) || 'Balanceo de caudales';
+  const claseMarca = (estado) => (estado === 'dentro' || estado === 'ok' ? 'bien' : estado === 'alto' || estado === 'bajo' ? 'mal' : 'neutra');
+
+  /*
+   * EL PLANO CON SUS BOCAS (15-oct-2026, JC: «la imagen del plano con las
+   * bocas»): encima de la lista, una marca por boca donde está de verdad,
+   * gris sin medir, verde dentro de tolerancia y roja fuera; cambia mientras
+   * se teclea. Tocar una lleva a su boca y pone el foco en M1. «Ampliar» lo
+   * abre a pantalla completa, con zoom de dos dedos.
+   */
+  function htmlPlano(p) {
+    const conSitio = p.bocas.filter((b) => b.x !== null && b.x !== undefined && b.y !== null && b.y !== undefined);
+    if (!p.imagen || !conSitio.length) return '';
+    return `<figure class="plano-bocas" data-plano-fig="${esc(p.id)}">
+      <div class="plano-marco"><div class="plano-lienzo">
+        <img data-src="api/equipo/plano?id=${encodeURIComponent(p.id)}" alt="Plano ${esc(p.nombre)}">
+        ${conSitio.map((b) => `<button class="marca-boca ${claseMarca(b.estado)}${b.circuito === 'retorno' ? ' ret' : ''}" style="left:${(b.x * 100).toFixed(2)}%;top:${(b.y * 100).toFixed(2)}%"
+          data-cx="ir-boca" data-boca="${esc(claveBoca(p.id, b.id))}" aria-label="Ir a la boca ${esc(b.nombre)}">${esc(b.nombre)}</button>`).join('')}
+      </div></div>
+      <figcaption><span class="leyenda"><i class="neutra"></i>Sin medir <i class="bien"></i>Dentro <i class="mal"></i>Fuera</span>
+        <button class="enlace" data-cx="plano-grande">Ampliar</button></figcaption>
+    </figure>`;
+  }
+
+  function irABoca(clave) {
+    const fig = $app.querySelector('.plano-bocas.grande');
+    if (fig) cerrarPlanoGrande(fig);
+    const li = $app.querySelector(`li[data-boca="${CSS.escape(clave)}"]`);
+    if (!li) return;
+    for (const x of $app.querySelectorAll('li.boca.resaltada')) x.classList.remove('resaltada');
+    li.classList.add('resaltada');
+    li.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    const primera = casillas(li).find((x) => !x.disabled);
+    if (primera) primera.focus({ preventScroll: true });
+    setTimeout(() => li.classList.remove('resaltada'), 2500);
+  }
+
+  function planoGrande(boton) {
+    const fig = boton.closest('.plano-bocas');
+    if (!fig) return;
+    if (fig.classList.contains('grande')) { cerrarPlanoGrande(fig); return; }
+    fig.classList.add('grande');
+    boton.textContent = 'Cerrar';
+    document.body.classList.add('sin-scroll');
+  }
+  function cerrarPlanoGrande(fig) {
+    fig.classList.remove('grande');
+    const b = fig.querySelector('[data-cx="plano-grande"]');
+    if (b) b.textContent = 'Ampliar';
+    document.body.classList.remove('sin-scroll');
   }
 
   /*
@@ -363,7 +421,10 @@
       else formula = `<div class="formula">v̄ ${comaD(b.velocidad)} m/s · Q = v̄ × Ak × 3600 = ${comaD(b.velocidad)} × ${comaD(b.factor, 4)} × 3600 = <b>${cifra(b.caudal)}</b> m³/h</div>`;
     }
     const fuera = (b.estado === 'alto' || b.estado === 'bajo') && porc !== null;
-    return `<li class="boca ${clase}" data-boca="${esc(clave)}">
+    /* Lo que necesita el cálculo en vivo (vivoBoca): mientras se teclea, la
+       boca ya dice si va dentro o fuera, sin esperar a guardarla. */
+    const vivo = `data-diseno="${b.caudalDiseno ?? ''}" data-factor="${b.factor ?? ''}" data-modo="${esc(b.modoFactor || '')}" data-tol="${tolB}"`;
+    return `<li class="boca ${clase}" data-boca="${esc(clave)}" ${vivo}>
       <div class="boca-cabeza"><strong>${esc(b.nombre)}</strong><span class="sub">${esc(b.circuito === 'retorno' ? 'Retorno' : 'Impulsión')} · ${esc(b.tipo || '')}</span>
         ${puede ? `<button class="interruptor${bal ? ' activo' : ''}" data-cx="balometro" ${datos} aria-pressed="${bal}">Balómetro</button>` : ''}</div>
       ${bal
@@ -373,15 +434,63 @@
         : `<div class="lecturas">${[0, 1, 2, 3].map((i) => `<label>M${i + 1}
             <input inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis} ${datos} data-m="${i}"
               value="${lect[i] === undefined ? '' : comaD(lect[i])}" aria-label="Lectura M${i + 1} en ${esc(b.nombre)}"></label>`).join('')}</div>`}
-      ${formula}
+      ${bal ? '' : `<div data-vivo="formula">${formula}</div>`}
       <div class="boca-cifras">
-        <div><span>Q medido</span><b>${cifra(b.caudal)}</b></div>
+        <div><span>Q medido</span><b data-vivo="q">${cifra(b.caudal)}</b></div>
         <div><span>Q proyecto</span><b>${cifra(b.caudalDiseno)}</b></div>
-        <div><span>Desviación</span><b>${b.desviacion === null || b.desviacion === undefined ? '—' : `${b.desviacion > 0 ? '+' : ''}${comaD(b.desviacion * 100, 1)} %`}</b></div>
-        <div class="porc"><span class="chip ${clase}">${porc === null ? esc(nombre) : `${porc} %`}</span></div>
+        <div><span>Desviación</span><b data-vivo="desv">${b.desviacion === null || b.desviacion === undefined ? '—' : `${b.desviacion > 0 ? '+' : ''}${comaD(b.desviacion * 100, 1)} %`}</b></div>
+        <div class="porc"><span class="chip ${clase}" data-vivo="chip">${porc === null ? esc(nombre) : `${porc} %`}</span></div>
       </div>
-      ${fuera ? `<p class="nota aviso">Fuera de ±${tolB} %: hay que regular esta boca.</p>` : ''}
+      <p class="nota aviso" data-vivo="aviso" ${fuera ? '' : 'hidden'}>${fuera ? textoFuera(b.desviacion, tolB) : ''}</p>
+      ${b.caudalDiseno ? '' : '<p class="nota">Esta boca no tiene caudal de proyecto: sin él no se puede saber si va bien. Se pone en el plano (ordenador › Commissioning › Balanceo).</p>'}
     </li>`;
+  }
+
+  function textoFuera(desv, tolB) {
+    const d = `${desv > 0 ? '+' : ''}${comaD(desv * 100, 1)} %`;
+    return `${desv > 0 ? 'Sopla de más' : 'Le falta caudal'} (${d}): fuera de ±${tolB} %, hay que regular esta boca.`;
+  }
+  const numVivo = (t) => { const n = Number(String(t).trim().replace(',', '.')); return String(t).trim() === '' || !Number.isFinite(n) ? null : n; };
+
+  /* Recalcula la boca con lo tecleado, sin guardar: Q, desviación, chip y aviso.
+     Es la misma cuenta que hace el motor al guardar (media de M1–M4 × Ak × 3600,
+     o × k; con balómetro, su caudal). */
+  function vivoBoca(li) {
+    const diseno = numVivo(li.dataset.diseno || '');
+    const factor = numVivo(li.dataset.factor || '');
+    const tolB = Number(li.dataset.tol) || 10;
+    const qIn = li.querySelector('input[data-q]');
+    let q = null;
+    if (qIn) q = numVivo(qIn.value);
+    else {
+      const v = [...li.querySelectorAll('input[data-m]')].map((x) => numVivo(x.value)).filter((n) => n !== null && n >= 0);
+      const media = v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+      if (media !== null && factor) q = li.dataset.modo === 'k' ? media * factor : media * factor * 3600;
+      /* La cuenta, también al momento: si no, enseña la de lo guardado. */
+      const fo = li.querySelector('[data-vivo="formula"]');
+      if (fo) {
+        const vm = comaD(Math.round(media * 100) / 100);
+        fo.innerHTML = media === null ? ''
+          : !factor ? '<div class="formula aviso">Falta el Ak de este difusor (ficha del fabricante): sin él no hay caudal.</div>'
+          : li.dataset.modo === 'k' ? `<div class="formula">v̄ ${vm} m/s · Q = v̄ × k = ${vm} × ${comaD(factor, 1)} = <b>${cifra(Math.round(q))}</b> m³/h</div>`
+          : `<div class="formula">v̄ ${vm} m/s · Q = v̄ × Ak × 3600 = ${vm} × ${comaD(factor, 4)} × 3600 = <b>${cifra(Math.round(q))}</b> m³/h</div>`;
+      }
+    }
+    const desv = q !== null && diseno ? q / diseno - 1 : null;
+    const fuera = desv !== null && Math.abs(desv) * 100 > tolB;
+    const clase = q === null ? 'neutra' : desv === null ? 'neutra' : fuera ? 'mal' : 'bien';
+    const pon = (k, t) => { const el = li.querySelector(`[data-vivo="${k}"]`); if (el) el.textContent = t; return el; };
+    pon('q', q === null ? '—' : cifra(Math.round(q)));
+    pon('desv', desv === null ? '—' : `${desv > 0 ? '+' : ''}${comaD(desv * 100, 1)} %`);
+    const chip = pon('chip', q === null ? 'Sin medir' : diseno ? `${Math.round((q / diseno) * 100)} %` : 'Sin Q proyecto');
+    if (chip) chip.className = `chip ${clase}`;
+    li.classList.remove('bien', 'mal', 'aviso', 'neutra');
+    li.classList.add(clase);
+    /* Su marca en el plano, del mismo color. */
+    const marca = $app.querySelector(`.marca-boca[data-boca="${CSS.escape(li.dataset.boca)}"]`);
+    if (marca) { marca.classList.remove('bien', 'mal', 'neutra'); marca.classList.add(clase); }
+    const av = li.querySelector('[data-vivo="aviso"]');
+    if (av) { av.hidden = !fuera; av.textContent = fuera ? textoFuera(desv, tolB) : ''; }
   }
 
   /* Las casillas de una boca, en orden. */
@@ -457,12 +566,16 @@
     /* Se conserva el índice de cada ficha en la lista completa: data-i lo usa abrirHoja. */
     const fs = (fichasEq.fichas || []).map((x, i) => [x, i]).filter(([x]) => pestanaDeFicha(x) === pestana);
     if (!fs.length && pestana === 'balanceo') return '';
+    /* El balanceo, una fila más: abre las bocas del plano y la hoja. */
+    const filaBal = pestana === 'equipo' && ficha && tieneBalanceo(ficha) ? htmlFilaBalanceo(ficha) : '';
+    /* Sin plano: qué se mide y dónde (un cassette, sus 3 velocidades; un split, la Tª de impulsión). */
+    const med = pestana === 'equipo' && ficha && !filaBal && ficha.medicion && ficha.medicion.titulo ? ficha.medicion : null;
+    const notaMed = med ? `<p class="nota">Medición de aire: ${esc(med.texto.charAt(0).toLowerCase() + med.texto.slice(1))}.</p>` : '';
     const vacio = pestana === 'equipo' && !(fichasEq.fichas || []).length
-      ? 'Este equipo no tiene familia asignada: se le pone en el ordenador (Puesta en marcha).'
-      : pestana === 'estanqueidad' ? 'Este equipo no tiene certificado de estanqueidad en su familia.' : 'Sin fichas.';
+      ? 'Este equipo no tiene familia asignada: se le pone en el ordenador (Puesta en marcha).' : 'Sin fichas.';
     return `<section id="fichas-equipo">
-      <h2>${esc(titulo)} <span class="cuenta">${fs.length}</span></h2>
-      ${fs.length ? `<ul class="lista-ios numerada">${fs.map(([x, i]) => (!x.plantilla ? `
+      <h2>${esc(titulo)} <span class="cuenta">${fs.length + (filaBal ? 1 : 0)}</span></h2>
+      ${fs.length || filaBal ? `<ul class="lista-ios numerada">${fs.map(([x, i]) => (!x.plantilla ? `
         <li><div class="fila-ios apagada">
           <div class="fila-principal"><strong>${esc(x.nombre)}</strong><span class="chip neutra">Sin plantilla</span></div>
           <div class="sub">${esc(x.motivo || 'Falta elegir la plantilla')} Se elige en el ordenador (Puesta en marcha).</div>
@@ -470,8 +583,27 @@
         <li><button class="fila-ios" data-cx="hoja" data-i="${i}">
           <div class="fila-principal"><strong>${esc(x.nombre)}</strong><span>${chipFicha(x.estado, x.resultado)}</span></div>
           <div class="sub">${esc([CLASE_FICHA[x.clase] || x.clase, x.motivo, x.medidos ? `${x.medidos.rellenos} de ${x.medidos.obligatorios} datos` : null, x.fotos ? `${x.fotos} foto${x.fotos === 1 ? '' : 's'}` : null].filter(Boolean).join(' · '))}</div>
-        </button></li>`)).join('')}</ul>` : `<p class="vacio">${esc(vacio)}</p>`}
+        </button></li>`)).join('')}${filaBal}</ul>` : `<p class="vacio">${esc(vacio)}</p>`}
+      ${notaMed}
     </section>`;
+  }
+
+  function htmlFilaBalanceo(f) {
+    const bocas = f.planos.flatMap((p) => p.bocas);
+    const medidas = bocas.filter((b) => b.caudal !== null && b.caudal !== undefined).length;
+    const fuera = bocas.filter((b) => b.estado === 'alto' || b.estado === 'bajo').length;
+    const hoja = ((fichasEq && fichasEq.fichas) || []).find((x) => x.clase === 'balanceo');
+    const chip = fuera ? `<span class="chip mal">${fuera} fuera</span>`
+      : hoja ? chipFicha(hoja.estado, hoja.resultado)
+      : bocas.length && medidas === bocas.length ? '<span class="chip bien">Medido</span>' : '';
+    const sub = bocas.length ? `${medidas} de ${bocas.length} bocas medidas` : 'Sin plano de bocas';
+    const med = f.medicion || {};
+    const extra = med.velocidad ? `a velocidad ${med.velocidad}` : (bocas.length ? null : (med.texto || null));
+    return `
+        <li><button class="fila-ios" data-cx="ver-balanceo">
+          <div class="fila-principal"><strong>${esc(tituloMedicion(f).toUpperCase())}</strong><span>${chip}</span></div>
+          <div class="sub">${esc([sub, extra].filter(Boolean).join(' · '))}</div>
+        </button></li>`;
   }
 
   const ahoraEs = () => { const d = new Date(); const d2 = (n) => String(n).padStart(2, '0'); return `${d2(d.getDate())}/${d2(d.getMonth() + 1)}/${d.getFullYear()} ${d2(d.getHours())}:${d2(d.getMinutes())}`; };
@@ -688,8 +820,6 @@
     const sg = ev.target.closest('[data-cx-seg]');
     /* Las cifras de arriba filtran; pulsar la que ya está elegida vuelve a todos. */
     if (sg) { segmento = sg.dataset.cxSeg === segmento ? 'todos' : sg.dataset.cxSeg; AGRUPAR.forEach(([id]) => C.reiniciarLista(`cx-equipos-${id}`)); pintarLista(); return; }
-    const pe = ev.target.closest('[data-cx-pestana]');
-    if (pe && ficha) { pestanaEq = pe.dataset.cxPestana; pintarFicha(); return; }
     const ag = ev.target.closest('[data-cx-agrupar]');
     if (ag) {
       agrupar = ag.dataset.cxAgrupar;
@@ -701,6 +831,8 @@
     const que = b.dataset.cx;
     if (que === 'lista') cargarLista();
     else if (que === 'equipo') abrir(b.dataset.id);
+    else if (que === 'ver-balanceo' && ficha) { pestanaEq = 'balanceo'; pintarFicha(); window.scrollTo(0, 0); }
+    else if (que === 'ficha-equipo' && ficha) { document.body.classList.remove('sin-scroll'); pestanaEq = 'equipo'; pintarFicha(); window.scrollTo(0, 0); }
     else if (que === 'hoja') abrirHoja(Number(b.dataset.i));
     else if (que === 'volver-equipo') salirHoja();
     else if (que === 'foto') fotoHoja(b.dataset.camara === '1');
@@ -709,6 +841,8 @@
     else if (que === 'guardar-hoja') guardarHoja(b);
     else if (que === 'pdf-hoja') pdfHoja(b);
     else if (que === 'balometro' && ficha) cambiarMetodo(b);
+    else if (que === 'ir-boca' && ficha) irABoca(b.dataset.boca);
+    else if (que === 'plano-grande' && ficha) planoGrande(b);
     else if (que === 'foto-equipo') fotoEquipo(b);
     else if (que === 'quitar-foto-equipo') quitarFotoEquipo(b);
     else if (que === 'pdf-balanceo' && ficha) compartirPdf(`api/informe?tipo=balanceo&equipo=${encodeURIComponent(ficha.equipo.id)}`, `${ficha.equipo.tag} - balanceo.pdf`, b);
@@ -730,6 +864,7 @@
   $app.addEventListener('change', (ev) => { if (activa() && hoja) anotar(ev.target); });
   $app.addEventListener('input', (ev) => {
     if (activa() && hoja) { anotar(ev.target); return; }
+    if (activa() && ev.target.dataset && ev.target.dataset.punto) { const li = ev.target.closest('li[data-boca]'); if (li) vivoBoca(li); return; }
     if (!activa() || !ev.target.hasAttribute('data-cx-buscar')) return;
     filtro = ev.target.value;
     const pos = ev.target.selectionStart;

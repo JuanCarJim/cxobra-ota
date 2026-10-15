@@ -8225,6 +8225,7 @@ globalThis.CX_VARIANTE="cxobra";
           "hojasBalanceo",
           "redesAgua",
           "planosDifusores",
+          "imagenesPlanoDif",
           "fotosEquipo",
           "registrosMant",
           "fichasPM",
@@ -8345,6 +8346,11 @@ globalThis.CX_VARIANTE="cxobra";
               if (tablas[t] && !tablas[t].length) delete tablas[t];
             }
           }
+        }
+        if (tablas.imagenesPlanoDif) {
+          const usadas = new Set((tablas.planosDifusores || []).map((p) => p.imagenId).filter(Boolean));
+          tablas.imagenesPlanoDif = tablas.imagenesPlanoDif.filter((i) => usadas.has(i.id));
+          if (!tablas.imagenesPlanoDif.length) delete tablas.imagenesPlanoDif;
         }
         for (const t of alcance.catalogos) if (existe(db, t)) poner(t, db.prepare(`SELECT * FROM "${t}"`).all());
         if (alcance.bloc) poner("notas", db.prepare("SELECT * FROM notas WHERE personaId = ?").all(personaId));
@@ -8563,7 +8569,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261015.0843" : "0";
+      var VERSION = true ? "20261015.0934" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -16790,6 +16796,13 @@ globalThis.CX_VARIANTE="cxobra";
             }
           ])
         ];
+        const MEDICIONES = {
+          bocas: { titulo: "Balanceo de caudales", plano: true, texto: "Bocas de impulsi\xF3n y retorno sobre el plano", retorno: "Retorno" },
+          extraccion: { titulo: "Caudales de extracci\xF3n", plano: true, texto: "Rejas de extracci\xF3n sobre el plano", retorno: "Extracci\xF3n" },
+          unidad: { titulo: "Caudal de la unidad", plano: false, texto: "El equipo es la boca: alta, media y baja en su ficha de puesta en marcha" },
+          temperatura: { titulo: "Temperatura de impulsi\xF3n", plano: false, texto: "Solo la T\xAA de impulsi\xF3n, en su ficha de puesta en marcha" },
+          ninguna: { titulo: null, plano: false, texto: "No lleva medici\xF3n de aire" }
+        };
         const FAMILIAS = [
           {
             codigo: "CARRIER_CHILLERS",
@@ -16798,7 +16811,8 @@ globalThis.CX_VARIANTE="cxobra";
             plantillas: ["BOMBA_DE_CALOR"],
             anexos: [{ plantilla: "CHECKLIST_ENFRIADORA" }, { plantilla: "ESTANQ_AGUA", enlace: "circuito" }],
             balanceo: false,
-            estanqueidad: "agua"
+            estanqueidad: "agua",
+            medicion: "ninguna"
           },
           {
             codigo: "CARRIER_ROOFTOPS",
@@ -16807,7 +16821,8 @@ globalThis.CX_VARIANTE="cxobra";
             plantillas: ["ROOFTOP"],
             anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR" }, { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" }],
             balanceo: true,
-            estanqueidad: "no"
+            estanqueidad: "no",
+            medicion: "bocas"
           },
           {
             codigo: "TROX_UTA",
@@ -16815,14 +16830,14 @@ globalThis.CX_VARIANTE="cxobra";
             nombrePdf: "Trox UTA",
             plantillas: ["UTA", "CLIMATIZADOR_REC_ESTATICO", "CLIMATIZADOR_REC_ROTATIVO"],
             anexos: [
+              /* Conductos y difusores no: a la UTA solo su checklist (JC, 15-oct). */
               { plantilla: "CHECKLIST_UTA" },
-              { plantilla: "CHECKLIST_CONDUCTOS" },
-              { plantilla: "CHECKLIST_DIFUSORES" },
               { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" },
               { plantilla: "ESTANQ_AGUA", enlace: "circuito" }
             ],
             balanceo: true,
-            estanqueidad: "agua"
+            estanqueidad: "agua",
+            medicion: "bocas"
           },
           {
             codigo: "AIRLAN_FANCOIL",
@@ -16831,7 +16846,12 @@ globalThis.CX_VARIANTE="cxobra";
             plantillas: ["FAN_COIL_AGUA", "CASSETTE_AGUA"],
             anexos: [{ plantilla: "CHECKLIST_FANCOIL" }, { plantilla: "ESTANQ_AGUA", enlace: "circuito" }],
             balanceo: false,
-            estanqueidad: "agua"
+            estanqueidad: "agua",
+            /* El de conductos lleva difusores: una medida por boca, a velocidad alta.
+               El cassette es él mismo la boca (sus 3 velocidades, en su ficha PM). */
+            medicion: "bocas",
+            velocidadBocas: "alta",
+            medicionPlantilla: { CASSETTE_AGUA: "unidad" }
           },
           {
             codigo: "AIRLAN_HRU",
@@ -16840,7 +16860,8 @@ globalThis.CX_VARIANTE="cxobra";
             plantillas: ["RECUPERADOR_PLACAS", "RECUPERADOR_ROTATIVO"],
             anexos: [{ plantilla: "CHECKLIST_RECUPERADOR" }, { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" }],
             balanceo: true,
-            estanqueidad: "no"
+            estanqueidad: "no",
+            medicion: "bocas"
           },
           {
             codigo: "PANASONIC_VRF",
@@ -16849,7 +16870,12 @@ globalThis.CX_VARIANTE="cxobra";
             plantillas: ["VRF_UD_EXTERIOR", "VRF_UI_CONDUCTOS", "VRF_UI_CASSETTE"],
             anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR" }, { plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
             balanceo: false,
-            estanqueidad: "refrigerante"
+            estanqueidad: "refrigerante",
+            /* La exterior no se mide; la interior de conductos, por bocas a velocidad
+               alta; la de cassette, en su ficha PM. Sin plantilla, nada. */
+            medicion: "ninguna",
+            velocidadBocas: "alta",
+            medicionPlantilla: { VRF_UI_CONDUCTOS: "bocas", VRF_UI_CASSETTE: "unidad" }
           },
           {
             codigo: "PANASONIC_SPLIT",
@@ -16858,7 +16884,9 @@ globalThis.CX_VARIANTE="cxobra";
             plantillas: ["SPLIT_UD_INTERIOR", "SPLIT_UD_EXTERIOR"],
             anexos: [{ plantilla: "CHECKLIST_BOMBA_CALOR" }, { plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
             balanceo: false,
-            estanqueidad: "refrigerante"
+            estanqueidad: "refrigerante",
+            medicion: "temperatura",
+            medicionPlantilla: { SPLIT_UD_EXTERIOR: "ninguna" }
           },
           {
             codigo: "PANASONIC_CRACS",
@@ -16867,7 +16895,8 @@ globalThis.CX_VARIANTE="cxobra";
             plantillas: ["CRAC_UD_INTERIOR", "CRAC_UD_EXTERIOR"],
             anexos: [{ plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
             balanceo: false,
-            estanqueidad: "refrigerante"
+            estanqueidad: "refrigerante",
+            medicion: "ninguna"
           },
           {
             codigo: "WILO_GP",
@@ -16876,7 +16905,8 @@ globalThis.CX_VARIANTE="cxobra";
             plantillas: ["GRUPO_DE_BOMBEO"],
             anexos: [],
             balanceo: false,
-            estanqueidad: "no"
+            estanqueidad: "no",
+            medicion: "ninguna"
           },
           {
             codigo: "WILO_PUMPS",
@@ -16885,7 +16915,8 @@ globalThis.CX_VARIANTE="cxobra";
             plantillas: ["GRUPO_DE_BOMBEO"],
             anexos: [],
             balanceo: false,
-            estanqueidad: "no"
+            estanqueidad: "no",
+            medicion: "ninguna"
           },
           {
             codigo: "SP_PARKING",
@@ -16894,7 +16925,8 @@ globalThis.CX_VARIANTE="cxobra";
             plantillas: ["VENTILADOR_AXIAL", "VENTILADOR_EXTRACTOR", "VENT_COMPLETO"],
             anexos: [{ plantilla: "CHECKLIST_VENTILADOR" }],
             balanceo: false,
-            estanqueidad: "no"
+            estanqueidad: "no",
+            medicion: "extraccion"
           },
           {
             codigo: "SP_VENTILACION",
@@ -16903,7 +16935,8 @@ globalThis.CX_VARIANTE="cxobra";
             plantillas: ["VENTILADOR_EXTRACTOR", "VENT_COMPLETO", "VENTILADOR_AXIAL"],
             anexos: [{ plantilla: "CHECKLIST_VENTILADOR" }],
             balanceo: false,
-            estanqueidad: "no"
+            estanqueidad: "no",
+            medicion: "extraccion"
           },
           {
             codigo: "SP_PRESURIZACION",
@@ -16914,13 +16947,783 @@ globalThis.CX_VARIANTE="cxobra";
             plantillas: ["VENTILADOR_AXIAL", "VENTILADOR_EXTRACTOR", "VENT_COMPLETO"],
             anexos: [{ plantilla: "CHECKLIST_VENTILADOR" }],
             balanceo: false,
-            estanqueidad: "no"
+            estanqueidad: "no",
+            /* Mete aire en la escalera: caudal por reja, como la extracción, con su nombre. */
+            medicion: "extraccion",
+            tituloMedicion: "Caudales de presurizaci\xF3n"
           }
         ];
         (function exportar(API) {
           if (typeof module !== "undefined" && module.exports) module.exports = API;
           if (typeof window !== "undefined") window.PLANTILLAS_CBRE = API;
-        })({ PLANTILLAS, FAMILIAS });
+        })({ PLANTILLAS, FAMILIAS, MEDICIONES });
+      })();
+    }
+  });
+
+  // shared/commissioning/instrumentos.js
+  var require_instrumentos = __commonJS({
+    "shared/commissioning/instrumentos.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function iniciarInstrumentos() {
+        const DIAS_AVISO = 30;
+        const MAGNITUDES_INSTRUMENTO = {
+          caudal: "Caudal / velocidad de aire",
+          presion: "Presi\xF3n",
+          temperatura: "Temperatura",
+          electrica: "El\xE9ctrica",
+          humedad: "Humedad",
+          sonido: "Sonido",
+          otra: "Otra"
+        };
+        const ESTADOS_INSTRUMENTO = {
+          vigente: { nombre: "Vigente", clase: "bien" },
+          caducaPronto: { nombre: "Caduca pronto", clase: "aviso" },
+          caducado: { nombre: "CADUCADO", clase: "mal" },
+          sinCertificado: { nombre: "Sin certificado", clase: "mal" }
+        };
+        const llanoIn = (v) => String(v ?? "").trim();
+        const fechaIn = (v) => /^\d{4}-\d{2}-\d{2}/.test(llanoIn(v)) ? llanoIn(v).slice(0, 10) : null;
+        const hoyIn = () => ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
+        function diasEntreIn(a, b) {
+          return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 864e5);
+        }
+        function estadoInstrumento(inst = {}, fecha = null) {
+          const cad = fechaIn(inst.caducidad);
+          if (!cad) return "sinCertificado";
+          const dia = fechaIn(fecha) || hoyIn();
+          if (cad < dia) return "caducado";
+          if (!fechaIn(fecha) && diasEntreIn(dia, cad) <= DIAS_AVISO) return "caducaPronto";
+          return "vigente";
+        }
+        function normalizarInstrumento(e = {}) {
+          const d = {
+            nombre: llanoIn(e.nombre).slice(0, 120),
+            magnitud: MAGNITUDES_INSTRUMENTO[e.magnitud] ? e.magnitud : "otra",
+            marca: llanoIn(e.marca).slice(0, 80) || null,
+            modelo: llanoIn(e.modelo).slice(0, 80) || null,
+            numSerie: llanoIn(e.numSerie).slice(0, 80) || null,
+            certificado: llanoIn(e.certificado).slice(0, 120) || null,
+            entidad: llanoIn(e.entidad).slice(0, 120) || null,
+            fechaCalibracion: fechaIn(e.fechaCalibracion),
+            caducidad: fechaIn(e.caducidad),
+            archivoCertificado: llanoIn(e.archivoCertificado) || null,
+            notas: llanoIn(e.notas).slice(0, 1e3) || null
+          };
+          if (!d.nombre) return { ok: false, error: "El instrumento necesita un nombre (\xABAnem\xF3metro de hilo caliente\xBB)." };
+          if (!d.numSerie) return { ok: false, error: "Sin n\xBA de serie no se puede saber qu\xE9 aparato es." };
+          if (d.fechaCalibracion && d.caducidad && d.caducidad < d.fechaCalibracion) {
+            return { ok: false, error: "La caducidad es anterior a la calibraci\xF3n." };
+          }
+          return { ok: true, datos: d };
+        }
+        function descripcionInstrumento(inst = {}) {
+          const fecha = (f) => f ? `${f.slice(8, 10)}/${f.slice(5, 7)}/${f.slice(0, 4)}` : "";
+          return [
+            llanoIn(inst.nombre),
+            [inst.marca, inst.modelo].filter(Boolean).join(" "),
+            inst.numSerie ? `n\xBA ${inst.numSerie}` : "",
+            inst.certificado ? `cert. ${inst.certificado}` : "",
+            inst.caducidad ? `caduca ${fecha(inst.caducidad)}` : "sin certificado"
+          ].filter(Boolean).join(" \xB7 ");
+        }
+        function revisarInstrumentos(ids = [], catalogo = [], fechaEnsayo = null) {
+          const porId = catalogo instanceof Map ? catalogo : new Map((catalogo || []).map((i) => [i.id, i]));
+          const lista = [];
+          const avisos = [];
+          for (const id of [...new Set(ids || [])]) {
+            const inst = porId.get(id);
+            if (!inst) {
+              lista.push({ id, estado: "sinCertificado", descripcion: "Instrumento que ya no est\xE1 en la lista" });
+              avisos.push("Un instrumento citado ya no est\xE1 en la lista de instrumentos");
+              continue;
+            }
+            const estado = estadoInstrumento(inst, fechaEnsayo);
+            lista.push({ ...inst, estado, descripcion: descripcionInstrumento(inst) });
+            if (estado === "caducado") avisos.push(`${inst.nombre} n\xBA ${inst.numSerie}: calibraci\xF3n CADUCADA el d\xEDa del ensayo`);
+            if (estado === "sinCertificado") avisos.push(`${inst.nombre} n\xBA ${inst.numSerie}: sin certificado de calibraci\xF3n`);
+          }
+          return { lista, avisos, malos: lista.filter((x) => x.estado === "caducado" || x.estado === "sinCertificado").length };
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.INSTRUMENTOS_PM = API;
+        })({
+          DIAS_AVISO,
+          MAGNITUDES: MAGNITUDES_INSTRUMENTO,
+          ESTADOS: ESTADOS_INSTRUMENTO,
+          estado: estadoInstrumento,
+          normalizar: normalizarInstrumento,
+          descripcion: descripcionInstrumento,
+          revisar: revisarInstrumentos
+        });
+      })();
+    }
+  });
+
+  // shared/commissioning/fichas.js
+  var require_fichas = __commonJS({
+    "shared/commissioning/fichas.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function iniciarFichasPM() {
+        const catalogoFx = typeof __require !== "undefined" ? require_plantillasCbre() : window.PLANTILLAS_CBRE;
+        const instrumentosFx = typeof __require !== "undefined" ? require_instrumentos() : window.INSTRUMENTOS_PM;
+        const TOLERANCIAS_DEFECTO = { total: null, boca: null, psRefrigerante: null, caidaAdmisible: null };
+        const NOMBRE_TOLERANCIA = {
+          total: "tolerancia de caudal total",
+          boca: "tolerancia por boca",
+          psRefrigerante: "presi\xF3n m\xEDnima de prueba del refrigerante",
+          caidaAdmisible: "ca\xEDda de presi\xF3n admisible"
+        };
+        const PATM = 1.013;
+        const RESULTADOS = {
+          apto: { nombre: "APTO", orden: 1 },
+          aRevisar: { nombre: "A REVISAR", orden: 2 },
+          noApto: { nombre: "NO APTO", orden: 3 }
+        };
+        const ESTADOS_FICHA = {
+          sinFicha: { nombre: "Sin ficha", orden: 0 },
+          sinEmpezar: { nombre: "Sin empezar", orden: 1 },
+          pendiente: { nombre: "Pendiente", orden: 2 },
+          completa: { nombre: "Completa", orden: 3 },
+          firmada: { nombre: "Firmada", orden: 4 }
+        };
+        const CLASES_FICHA = {
+          checklist: { nombre: "Checklist", orden: 1 },
+          fichaPM: { nombre: "Ficha de puesta en marcha", orden: 2 },
+          balanceo: { nombre: "Balanceo de caudales", orden: 3 },
+          estanqAgua: { nombre: "Estanqueidad \xB7 agua", orden: 4 },
+          estanqRefrigerante: { nombre: "Estanqueidad \xB7 refrigerante", orden: 5 }
+        };
+        const ORIGENES = {
+          manual: "Tecleado",
+          equipo: "De la tabla de equipos",
+          plantilla: "Valor por defecto de la plantilla",
+          importacion: "Importado",
+          copia: "Copiado de otro equipo",
+          prueba: "DATO DE PRUEBA"
+        };
+        const ROLES_FIRMA = {
+          CBRE: "Jefe de obra (CBRE)"
+        };
+        const llanoFx = (v) => String(v ?? "").trim();
+        function numFx(v) {
+          if (v === null || v === void 0) return null;
+          if (typeof v === "number") return Number.isFinite(v) ? v : null;
+          const t = String(v).trim();
+          if (!t) return null;
+          const n = Number(t.replace(/\s/g, "").replace(",", "."));
+          return Number.isFinite(n) ? n : null;
+        }
+        const redFx = (v, d = 4) => {
+          if (v === null || !Number.isFinite(v)) return null;
+          const f = 10 ** d;
+          return Math.round(v * f) / f;
+        };
+        const igualesFx = (a, b) => a !== null && b !== null && Math.abs(a - b) < 1e-9;
+        const hayValorFx = (v) => v !== null && v !== void 0 && llanoFx(v) !== "";
+        function tolerancias(config = {}) {
+          const t = { ...TOLERANCIAS_DEFECTO };
+          const c = config || {};
+          const tot = numFx(c.tolTotal);
+          const boca = numFx(c.tolBoca);
+          const ps = numFx(c.psRefrigerante);
+          const caida = numFx(c.caidaAdmisible);
+          if (tot !== null && tot > 0 && tot < 1) t.total = tot;
+          if (boca !== null && boca > 0 && boca < 1) t.boca = boca;
+          if (ps !== null && ps > 0) t.psRefrigerante = ps;
+          if (caida !== null && caida >= 0) t.caidaAdmisible = caida;
+          return t;
+        }
+        function numerarChecklist(plantilla) {
+          if (!plantilla || !(plantilla.secciones || []).some((s) => s.tipo === "checklist")) return plantilla;
+          let k = 0;
+          const secciones = plantilla.secciones.map((s) => {
+            if (s.tipo !== "checklist") return s;
+            k += 1;
+            return { ...s, numero: String(k), puntos: (s.puntos || []).map((p, j) => ({ ...p, numero: `${k}.${j + 1}` })) };
+          });
+          return { ...plantilla, secciones };
+        }
+        function indicePlantillas(lista) {
+          const m = /* @__PURE__ */ new Map();
+          for (const p of lista || catalogoFx && catalogoFx.PLANTILLAS || []) {
+            const previa = m.get(p.codigo);
+            if (!previa || (p.version || 1) > (previa.version || 1)) m.set(p.codigo, numerarChecklist(p));
+          }
+          return m;
+        }
+        function puntosDePlantilla(plantilla) {
+          const fuera = [];
+          for (const s of plantilla && plantilla.secciones || []) {
+            for (const p of s.puntos || []) fuera.push({ ...p, seccion: s });
+          }
+          return fuera;
+        }
+        function esObligatorio(punto) {
+          const tipoSec = punto.seccion ? punto.seccion.tipo : null;
+          if (punto.obligatorio === true) return true;
+          if (punto.obligatorio === false) return false;
+          if (tipoSec === "parametros") return punto.medido === "obligatorio";
+          if (tipoSec === "checklist") return true;
+          if (tipoSec === "pruebaPresion") return ["numero", "fecha", "okNoOk", "siNo"].includes(punto.tipo);
+          return false;
+        }
+        function evaluarParametro(punto, valor = {}, tol = TOLERANCIAS_DEFECTO) {
+          const p = numFx(valor.p);
+          const f = numFx(valor.f);
+          const m = numFx(valor.m);
+          const ref = p !== null ? p : f;
+          const fuente = p !== null ? "proyecto" : f !== null ? "fabricante" : null;
+          let desv = null;
+          if (m !== null && ref !== null && ref !== 0) desv = (m - ref) / ref;
+          const cualTol = punto.tolerancia === "boca" ? "boca" : "total";
+          const limite = tol[cualTol] ?? null;
+          let resultado = null;
+          let copiado = false;
+          let sinTolerancia = null;
+          if (m !== null && ref !== null && igualesFx(m, ref)) {
+            copiado = true;
+            resultado = valor.revisado ? punto.resultado ? "apto" : null : "aRevisar";
+          } else if (punto.resultado && desv !== null) {
+            if (limite === null) sinTolerancia = cualTol;
+            else resultado = Math.abs(desv) <= limite + 1e-12 ? "apto" : "noApto";
+          }
+          return {
+            p,
+            f,
+            m,
+            ref,
+            fuente,
+            desv: redFx(desv),
+            limite: punto.resultado ? limite : null,
+            resultado,
+            copiado,
+            revisado: Boolean(valor.revisado),
+            sinTolerancia
+          };
+        }
+        function respuesta(v) {
+          const t = llanoFx(v).toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+          if (!t) return null;
+          if (t === "SI" || t === "S") return "si";
+          if (t === "NO" || t === "N") return "no";
+          if (t === "NA" || t === "N/A" || t === "NO APLICA") return "na";
+          if (t === "OK") return "ok";
+          if (t === "NO OK" || t === "NOOK" || t === "NO_OK") return "noOk";
+          return null;
+        }
+        function evaluarBocasFicha(filas = [], tol = TOLERANCIAS_DEFECTO, proyectoSistema = null) {
+          const puntoBoca = { resultado: true, tolerancia: "boca" };
+          const evaluadas = (filas || []).map((b) => ({
+            ...b,
+            ...evaluarParametro(puntoBoca, { p: b.p, m: b.m, revisado: b.revisado }, tol)
+          }));
+          const conProyecto = evaluadas.filter((b) => b.p !== null);
+          const medidas = conProyecto.filter((b) => b.m !== null);
+          const sumP = conProyecto.reduce((s, b) => s + b.p, 0);
+          const sumM = medidas.reduce((s, b) => s + b.m, 0);
+          const refTotal = numFx(proyectoSistema) ?? sumP;
+          let total = null;
+          if (conProyecto.length && medidas.length === conProyecto.length) {
+            total = evaluarParametro({ resultado: true, tolerancia: "total" }, { p: refTotal, m: sumM }, tol);
+            if (total.copiado && !medidas.every((b) => b.copiado)) {
+              total = { ...total, copiado: false, resultado: "apto" };
+            }
+          }
+          return {
+            filas: evaluadas,
+            bocas: conProyecto.length,
+            medidas: medidas.length,
+            sinMedir: conProyecto.length - medidas.length,
+            proyecto: conProyecto.length ? sumP : null,
+            proyectoSistema: numFx(proyectoSistema),
+            medido: medidas.length ? sumM : null,
+            total
+          };
+        }
+        function pruebaRefrigerante(v = {}, tol = TOLERANCIAS_DEFECTO) {
+          const pi = numFx(v.p_inicial);
+          const pf = numFx(v.p_final);
+          const ti = numFx(v.t_inicial);
+          const tf = numFx(v.t_final);
+          const ps = numFx(v.p_minima) ?? tol.psRefrigerante ?? null;
+          const adm = numFx(v.caida_admisible) ?? tol.caidaAdmisible ?? null;
+          if ([pi, pf, ti, tf].some((x) => x === null)) {
+            return { pi, pf, ti, tf, ps, admisible: adm, pfCorregida: null, caida: null, resultado: null, sinTolerancia: null };
+          }
+          const pfCorregida = (pf + PATM) * (ti + 273.15) / (tf + 273.15) - PATM;
+          const caida = Math.round((pi - pfCorregida) * 10) / 10;
+          const sinTolerancia = ps === null ? "psRefrigerante" : adm === null ? "caidaAdmisible" : null;
+          const resultado = sinTolerancia ? null : pi >= ps - 1e-9 && caida <= adm + 1e-9 ? "apto" : "noApto";
+          return { pi, pf, ti, tf, ps, admisible: adm, pfCorregida: redFx(pfCorregida, 2), caida, resultado, sinTolerancia };
+        }
+        const peorFx = (a, b) => {
+          if (!a) return b || null;
+          if (!b) return a;
+          return RESULTADOS[a].orden >= RESULTADOS[b].orden ? a : b;
+        };
+        function fichaVacia(cabecera = {}) {
+          return {
+            cabecera: {
+              fechaEnsayo: null,
+              realizadoPor: cabecera.realizadoPor || null,
+              responsable: cabecera.responsable || null,
+              condiciones: cabecera.condiciones || "NOMINALES",
+              aparatos: cabecera.aparatos || null,
+              /* Los instrumentos de medida usados (ids de la lista de instrumentos). */
+              instrumentos: Array.isArray(cabecera.instrumentos) ? [...cabecera.instrumentos] : [],
+              actaFabricante: null,
+              tecnicoFabricante: null
+            },
+            valores: {},
+            bocas: { impulsion: [], retorno: [] },
+            fotos: [],
+            anexosPdf: [],
+            observaciones: "",
+            /* Las respuestas copiadas de otro equipo en la rejilla: de cuál, quién y cuándo. */
+            copias: []
+          };
+        }
+        function normalizarFicha(plantilla, entrada = {}, opciones = {}) {
+          if (opciones.descartarPrueba) return quitarPrueba(normalizarFicha(plantilla, entrada)).ficha;
+          const base = fichaVacia();
+          const e = entrada || {};
+          const cab = e.cabecera || {};
+          for (const k of Object.keys(base.cabecera)) {
+            if (k === "instrumentos") continue;
+            if (cab[k] !== void 0) base.cabecera[k] = hayValorFx(cab[k]) ? llanoFx(cab[k]) : null;
+          }
+          base.cabecera.instrumentos = [...new Set((Array.isArray(cab.instrumentos) ? cab.instrumentos : []).map(llanoFx).filter(Boolean))].slice(0, 20);
+          if (base.cabecera.fechaEnsayo && !/^\d{4}-\d{2}-\d{2}$/.test(base.cabecera.fechaEnsayo)) {
+            base.cabecera.fechaEnsayo = null;
+          }
+          const origen = (o) => o && ORIGENES[o] ? o : "manual";
+          const valores = e.valores || {};
+          for (const punto of puntosDePlantilla(plantilla)) {
+            const v = valores[punto.codigo];
+            if (!v || typeof v !== "object") continue;
+            if (punto.seccion.tipo === "parametros") {
+              const fila = {};
+              for (const k of ["p", "f", "m"]) {
+                const n = numFx(v[k]);
+                if (n !== null) fila[k] = n;
+              }
+              const mp = numFx(v.mp);
+              if (mp !== null && fila.m === void 0) {
+                fila.mp = mp;
+                if (v.mpEntero) fila.mpEntero = true;
+              }
+              if (!Object.keys(fila).length) continue;
+              fila.o = origen(v.o);
+              if (v.revisado && fila.m !== void 0) fila.revisado = v.revisado;
+              if (v.pv && fila.m !== void 0) fila.pv = llanoFx(v.pv);
+              base.valores[punto.codigo] = fila;
+            } else {
+              let val = v.v;
+              if (punto.tipo === "numero") val = numFx(val);
+              else if (["siNoNa", "okNoOk", "siNo"].includes(punto.tipo)) val = respuesta(val);
+              else if (punto.tipo === "fecha") val = /^\d{4}-\d{2}-\d{2}/.test(llanoFx(val)) ? llanoFx(val).slice(0, 16) : null;
+              else val = hayValorFx(val) ? llanoFx(val) : null;
+              if (val === null) continue;
+              base.valores[punto.codigo] = { v: val, o: origen(v.o) };
+            }
+          }
+          for (const circuito of ["impulsion", "retorno"]) {
+            const filas = e.bocas && Array.isArray(e.bocas[circuito]) ? e.bocas[circuito] : [];
+            base.bocas[circuito] = filas.slice(0, 200).map((b) => ({
+              local: hayValorFx(b && b.local) ? llanoFx(b.local) : null,
+              terminal: hayValorFx(b && b.terminal) ? llanoFx(b.terminal) : null,
+              p: numFx(b && b.p),
+              m: numFx(b && b.m),
+              compuerta: hayValorFx(b && b.compuerta) ? llanoFx(b.compuerta) : null,
+              o: origen(b && b.o),
+              ...b && b.revisado && numFx(b.m) !== null ? { revisado: b.revisado } : {},
+              ...b && b.pv && numFx(b.m) !== null ? { pv: llanoFx(b.pv) } : {},
+              ...b && numFx(b.mp) !== null && numFx(b.m) === null ? { mp: numFx(b.mp), ...b.mpEntero ? { mpEntero: true } : {} } : {}
+            }));
+          }
+          base.fotos = (Array.isArray(e.fotos) ? e.fotos : []).filter((f) => f && hayValorFx(f.ruta)).slice(0, 8).map((f) => ({ ruta: llanoFx(f.ruta), nombre: llanoFx(f.nombre) || null }));
+          base.anexosPdf = (Array.isArray(e.anexosPdf) ? e.anexosPdf : []).filter((f) => f && hayValorFx(f.ruta) && /\.pdf$/i.test(llanoFx(f.ruta))).slice(0, 6).map((f) => ({ ruta: llanoFx(f.ruta), nombre: llanoFx(f.nombre) || null }));
+          base.observaciones = llanoFx(e.observaciones).slice(0, 4e3);
+          base.copias = (Array.isArray(e.copias) ? e.copias : []).filter((c) => c && typeof c === "object" && Array.isArray(c.puntos)).slice(-30).map((c) => ({
+            de: hayValorFx(c.de) ? llanoFx(c.de) : null,
+            clave: hayValorFx(c.clave) ? llanoFx(c.clave) : null,
+            puntos: c.puntos.map(llanoFx).filter(Boolean).slice(0, 300),
+            pisadas: Number.isInteger(c.pisadas) && c.pisadas > 0 ? c.pisadas : 0,
+            por: hayValorFx(c.por) ? llanoFx(c.por) : null,
+            personaId: hayValorFx(c.personaId) ? llanoFx(c.personaId) : null,
+            en: hayValorFx(c.en) ? llanoFx(c.en) : null
+          }));
+          return base;
+        }
+        function quitarPrueba(ficha) {
+          let descartados = 0;
+          const valores = {};
+          for (const [k, v] of Object.entries(ficha.valores || {})) {
+            if (v && v.o === "prueba") {
+              descartados += 1;
+              continue;
+            }
+            valores[k] = v;
+          }
+          const bocas = {};
+          for (const [c, filas] of Object.entries(ficha.bocas || {})) {
+            bocas[c] = (filas || []).filter((b) => {
+              if (b && b.o === "prueba") {
+                descartados += 1;
+                return false;
+              }
+              return true;
+            });
+          }
+          return { ficha: { ...ficha, valores, bocas }, descartados };
+        }
+        function evaluarFicha(plantilla, datos, opciones = {}) {
+          const tol = tolerancias(opciones.config);
+          const d = normalizarFicha(plantilla, datos);
+          const firmas = Array.isArray(opciones.firmas) ? opciones.firmas : [];
+          const faltan = [];
+          const avisos = [];
+          let obligatorios = 0;
+          let rellenos = 0;
+          let resultado = null;
+          let algoEscrito = false;
+          let datosPrueba = false;
+          let sinConfirmar = 0;
+          const sinTol = /* @__PURE__ */ new Set();
+          const secciones = [];
+          for (const s of plantilla.secciones || []) {
+            const sec = { ...s, puntos: [] };
+            for (const punto of s.puntos || []) {
+              const p = { ...punto, seccion: s };
+              const v = d.valores[punto.codigo] || null;
+              if (v && v.o !== "equipo" && v.o !== "plantilla") algoEscrito = true;
+              if (v && v.o === "prueba") datosPrueba = true;
+              const ob = esObligatorio(p);
+              const fila = { ...punto, obligatorio: ob, origen: v ? v.o : null };
+              if (s.tipo === "parametros") {
+                const ev = evaluarParametro(punto, v || {}, tol);
+                Object.assign(fila, ev);
+                if (ev.sinTolerancia) sinTol.add(ev.sinTolerancia);
+                if (ob) {
+                  obligatorios += 1;
+                  if (ev.m !== null) rellenos += 1;
+                  else faltan.push(`Medido: ${punto.etiqueta}`);
+                  if (ev.m !== null && ev.ref === null) faltan.push(`Proyecto o fabricante: ${punto.etiqueta}`);
+                }
+                if (ev.resultado === "aRevisar") {
+                  sinConfirmar += 1;
+                  avisos.push(`${punto.etiqueta}: medido id\xE9ntico al de ${ev.fuente} (\xBFcopiado?)`);
+                }
+                resultado = peorFx(resultado, ev.resultado);
+              } else {
+                const val = v ? v.v : null;
+                fila.valor = val;
+                if (ob) {
+                  obligatorios += 1;
+                  if (val !== null && val !== void 0) rellenos += 1;
+                  else faltan.push(s.tipo === "checklist" ? `Respuesta ${punto.numero || punto.codigo}` : punto.etiqueta);
+                }
+                if (val === "no" && s.tipo === "checklist") {
+                  resultado = peorFx(resultado, "noApto");
+                  if (!d.observaciones) faltan.push(`Explicar en observaciones el \xABNo\xBB de ${punto.numero || punto.codigo}`);
+                }
+                if (val === "noOk") resultado = peorFx(resultado, "noApto");
+                if (val === "si" && punto.tipo === "siNo" && /fuga/i.test(punto.codigo)) resultado = peorFx(resultado, "noApto");
+              }
+              sec.puntos.push(fila);
+            }
+            if (s.tipo === "bocas") {
+              sec.circuitos = {};
+              const limites = s.bocas || {};
+              for (const c of ["impulsion", "retorno"]) {
+                if (!limites[c]) continue;
+                const sistema = d.valores[`caudal_proyecto_${c}`];
+                const ev = evaluarBocasFicha(d.bocas[c], tol, sistema ? sistema.v : null);
+                sec.circuitos[c] = ev;
+                if (d.bocas[c].length) algoEscrito = true;
+                if (d.bocas[c].some((b) => b.o === "prueba")) datosPrueba = true;
+                obligatorios += ev.bocas;
+                rellenos += ev.medidas;
+                if (ev.sinMedir) faltan.push(`${ev.sinMedir} boca(s) de ${c === "impulsion" ? "impulsi\xF3n" : "retorno"} sin medir`);
+                for (const b of ev.filas) {
+                  if (b.resultado === "aRevisar") sinConfirmar += 1;
+                  if (b.sinTolerancia) sinTol.add(b.sinTolerancia);
+                  resultado = peorFx(resultado, b.resultado);
+                }
+                if (ev.total) {
+                  if (ev.total.sinTolerancia) sinTol.add(ev.total.sinTolerancia);
+                  resultado = peorFx(resultado, ev.total.resultado);
+                }
+              }
+              const total = Object.values(sec.circuitos).reduce((n, c) => n + c.bocas, 0);
+              if (plantilla.clase === "balanceo" && total === 0) {
+                faltan.push("No hay ninguna boca con caudal de proyecto");
+              }
+              if (Object.values(sec.circuitos).some((c) => c.filas.some((b) => b.resultado === "aRevisar"))) {
+                avisos.push("Hay bocas con el medido id\xE9ntico al de proyecto (\xBFcopiado?)");
+              }
+            }
+            if (s.tipo === "pruebaPresion" && plantilla.clase === "estanqRefrigerante") {
+              const plano = Object.fromEntries(Object.entries(d.valores).map(([k, v]) => [k, v.v]));
+              sec.prueba = pruebaRefrigerante(plano, tol);
+              if (sec.prueba.sinTolerancia) sinTol.add(sec.prueba.sinTolerancia);
+              resultado = peorFx(resultado, sec.prueba.resultado);
+            }
+            if (s.tipo === "fotos" && /^estanq/.test(plantilla.clase) && !d.fotos.length && algoEscrito) {
+              avisos.push("Sin fotograf\xEDas de los man\xF3metros");
+            }
+            secciones.push(sec);
+          }
+          const revInst = instrumentosFx ? instrumentosFx.revisar(d.cabecera.instrumentos, opciones.instrumentos || [], d.cabecera.fechaEnsayo) : { lista: [], avisos: [], malos: 0 };
+          avisos.push(...revInst.avisos);
+          const mide = secciones.some((s) => ["parametros", "bocas", "pruebaPresion"].includes(s.tipo));
+          if (mide && algoEscrito && !d.cabecera.instrumentos.length && !d.cabecera.aparatos) {
+            avisos.push("No consta con qu\xE9 instrumentos se ha medido");
+          }
+          if (!d.cabecera.fechaEnsayo) faltan.push("Fecha de ensayo");
+          if (!d.cabecera.realizadoPor) faltan.push("Realizado por");
+          for (const t of sinTol) faltan.push(`La ${NOMBRE_TOLERANCIA[t]} de la obra (la pone el jefe de obra)`);
+          if (datosPrueba) avisos.unshift("Lleva DATOS DE PRUEBA: no se puede firmar");
+          let medidosPrueba = 0;
+          for (const v of Object.values(d.valores)) if (v && v.mp !== void 0) medidosPrueba += 1;
+          for (const c of Object.values(d.bocas)) for (const b of c || []) if (b && b.mp !== void 0) medidosPrueba += 1;
+          const completa = obligatorios > 0 ? faltan.length === 0 : algoEscrito && faltan.length === 0;
+          const firmada = firmas.some((f) => f && f.rol === "CBRE");
+          let estado;
+          if (firmada) estado = "firmada";
+          else if (!algoEscrito && !d.cabecera.fechaEnsayo) estado = "sinEmpezar";
+          else if (completa) estado = "completa";
+          else estado = "pendiente";
+          if (completa && !resultado) resultado = "apto";
+          if (!completa && resultado === "apto") resultado = null;
+          let motivoNoFirmable = null;
+          if (datosPrueba) motivoNoFirmable = "Lleva datos de prueba.";
+          else if (!completa) motivoNoFirmable = `Falta: ${faltan.slice(0, 3).join(", ")}${faltan.length > 3 ? "\u2026" : ""}.`;
+          else if (sinConfirmar) motivoNoFirmable = `Hay ${sinConfirmar} medido(s) \xABA REVISAR\xBB sin confirmar.`;
+          else if (opciones.bloquearInstrumentos && revInst.malos) motivoNoFirmable = "Hay instrumentos caducados o sin certificado.";
+          return {
+            plantilla: { codigo: plantilla.codigo, version: plantilla.version || 1, clase: plantilla.clase, titulo: plantilla.titulo },
+            datos: d,
+            secciones,
+            medidos: { obligatorios, rellenos },
+            faltan,
+            avisos,
+            resultado,
+            datosPrueba,
+            medidosPrueba,
+            sinConfirmar,
+            completa,
+            estado,
+            firmas,
+            firmable: !firmada && !motivoNoFirmable,
+            motivoNoFirmable,
+            tolerancias: tol,
+            sinTolerancia: [...sinTol],
+            instrumentos: revInst.lista
+          };
+        }
+        const sinAcentosFx = (v) => llanoFx(v).toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+        function familiaDe(equipo = {}, familias) {
+          const lista = familias || catalogoFx && catalogoFx.FAMILIAS || [];
+          if (equipo.familia) {
+            const f = lista.find((x) => x.codigo === equipo.familia);
+            if (f) return f;
+          }
+          const grupo = sinAcentosFx(equipo.grupo).replace(/[^A-Z0-9& ]/g, " ").replace(/\s+/g, " ");
+          if (!grupo) return null;
+          let mejor = null;
+          let largo = 0;
+          for (const f of lista) {
+            for (const nombre of [f.nombre, ...f.alias || []]) {
+              const n = sinAcentosFx(nombre).replace(/[^A-Z0-9& ]/g, " ").replace(/\s+/g, " ");
+              if (grupo.includes(n) && n.length > largo) {
+                mejor = f;
+                largo = n.length;
+              }
+            }
+          }
+          return mejor;
+        }
+        const PISTAS_PLANTILLA = [
+          [/\bUE\b|EXTERIOR|CONDENSADORA/, "EXTERIOR"],
+          [/\bUI\b|INTERIOR|EVAPORADORA/, "INTERIOR"],
+          [/CASSETTE/, "CASSETTE"],
+          [/CONDUCT/, "CONDUCTOS"],
+          [/ROTATIV/, "ROTATIVO"],
+          [/ESTATIC|PLACAS/, "ESTATICO|PLACAS"],
+          [/AXIAL/, "AXIAL"],
+          [/PARKING|EXTRACTOR/, "EXTRACTOR"]
+        ];
+        function plantillaPorDefecto(equipo = {}, familia, plantillas) {
+          if (!familia || !familia.plantillas || !familia.plantillas.length) return null;
+          if (familia.plantillas.length === 1) return familia.plantillas[0];
+          const texto = sinAcentosFx([equipo.denominacion, equipo.tag, equipo.instalacion, equipo.modelo].filter(Boolean).join(" "));
+          const indice = plantillas instanceof Map ? plantillas : indicePlantillas(plantillas);
+          let mejor = null;
+          let puntos = 0;
+          for (const codigo of familia.plantillas) {
+            const nombre = sinAcentosFx((indice.get(codigo) || {}).nombre || codigo);
+            let n = 0;
+            for (const [pista, palabra] of PISTAS_PLANTILLA) {
+              if (pista.test(texto) && new RegExp(palabra).test(nombre)) n += 1;
+            }
+            if (n > puntos) {
+              puntos = n;
+              mejor = codigo;
+            }
+          }
+          return mejor;
+        }
+        function requeridas(equipo = {}, familia, plantillas) {
+          if (!familia) return [];
+          const indice = plantillas instanceof Map ? plantillas : indicePlantillas(plantillas);
+          const pm = equipo.plantillaPM || plantillaPorDefecto(equipo, familia, indice);
+          const nombrePM = sinAcentosFx((indice.get(pm) || {}).nombre || pm || "");
+          const exterior = /EXTERIOR/.test(nombrePM);
+          const fuera = [];
+          const anexo = (a) => {
+            const pl = indice.get(a.plantilla);
+            if (!pl) return null;
+            if (a.soloSi && !nombrePM.includes(sinAcentosFx(a.soloSi))) return null;
+            const enlace = a.enlace || "equipo";
+            let clave = `equipo:${equipo.id}`;
+            let motivo = null;
+            if (enlace === "circuito") {
+              const c = llanoFx(equipo.circuito);
+              clave = c ? `circuito:${sinAcentosFx(c)}` : null;
+              if (!c) motivo = "El equipo no tiene circuito asignado.";
+            } else if (enlace === "refrigerante") {
+              const tagUE = exterior ? llanoFx(equipo.tag) : llanoFx(equipo.equipoAsociado);
+              clave = tagUE ? `refrigerante:${sinAcentosFx(tagUE)}` : null;
+              if (!tagUE) motivo = "Unidad interior sin exterior asociada.";
+            }
+            return { plantilla: pl.codigo, clase: pl.clase, nombre: pl.nombre, enlace, clave, motivo };
+          };
+          const anexos = (familia.anexos || []).map(anexo).filter(Boolean);
+          fuera.push(...anexos.filter((a) => a.clase === "checklist"));
+          if (pm && indice.get(pm)) {
+            fuera.push({ plantilla: pm, clase: "fichaPM", nombre: indice.get(pm).nombre, enlace: "equipo", clave: `equipo:${equipo.id}`, motivo: null });
+          } else {
+            fuera.push({ plantilla: null, clase: "fichaPM", nombre: "Ficha de puesta en marcha", enlace: "equipo", clave: null, motivo: "Falta elegir la plantilla de la ficha." });
+          }
+          fuera.push(...anexos.filter((a) => a.clase !== "checklist"));
+          return fuera;
+        }
+        function estadoEquipo(equipo, familia, plantillas, buscar) {
+          const lista = requeridas(equipo, familia, plantillas).map((r) => {
+            const ficha = r.clave && r.plantilla ? buscar(r.clave, r.plantilla) : null;
+            return {
+              ...r,
+              fichaId: ficha ? ficha.id : null,
+              estado: ficha ? ficha.estado : "sinFicha",
+              resultado: ficha ? ficha.resultado : null,
+              medidos: ficha ? ficha.medidos : null,
+              datosPrueba: ficha ? Boolean(ficha.datosPrueba) : false,
+              medidosPrueba: ficha ? ficha.medidosPrueba || 0 : 0
+            };
+          });
+          const n = lista.length;
+          const firmadas = lista.filter((x) => x.estado === "firmada").length;
+          const completas = lista.filter((x) => x.estado === "completa" || x.estado === "firmada").length;
+          let resultado = null;
+          for (const x of lista) resultado = peorFx(resultado, x.resultado === "apto" ? null : x.resultado);
+          if (!resultado && n && completas === n) resultado = "apto";
+          let estado = "sinEmpezar";
+          if (n && firmadas === n) estado = "firmada";
+          else if (n && completas === n) estado = "completa";
+          else if (lista.some((x) => x.estado !== "sinFicha" && x.estado !== "sinEmpezar")) estado = "pendiente";
+          return { fichas: lista, total: n, completas, firmadas, estado, resultado };
+        }
+        function avancePorGrupo(filas = [], campo = "familia") {
+          const grupos = /* @__PURE__ */ new Map();
+          for (const f of filas) {
+            const clave = llanoFx(f[campo]) || "SIN DEFINIR";
+            if (!grupos.has(clave)) {
+              grupos.set(clave, { concepto: clave, equipos: 0, fichas: 0, completas: 0, firmadas: 0, noApto: 0, aRevisar: 0, equiposFirmados: 0 });
+            }
+            const g = grupos.get(clave);
+            const pm = f.pm || { total: 0, completas: 0, firmadas: 0, fichas: [] };
+            g.equipos += 1;
+            g.fichas += pm.total;
+            g.completas += pm.completas;
+            g.firmadas += pm.firmadas;
+            if (pm.resultado === "noApto") g.noApto += 1;
+            if (pm.resultado === "aRevisar") g.aRevisar += 1;
+            if (pm.estado === "firmada") g.equiposFirmados += 1;
+          }
+          return [...grupos.values()].map((g) => ({ ...g, pctCompletas: g.fichas ? g.completas / g.fichas : null, pctFirmadas: g.fichas ? g.firmadas / g.fichas : null })).sort((a, b) => b.equipos - a.equipos || a.concepto.localeCompare(b.concepto, "es", { numeric: true }));
+        }
+        function rellenarDesdeEquipo(plantilla, datos, equipo = {}) {
+          const d = normalizarFicha(plantilla, datos);
+          for (const punto of puntosDePlantilla(plantilla)) {
+            if (d.valores[punto.codigo] || punto.seccion.tipo === "parametros") continue;
+            if (!punto.origen) {
+              if (hayValorFx(punto.valorPorDefecto)) d.valores[punto.codigo] = { v: punto.valorPorDefecto, o: "plantilla" };
+              continue;
+            }
+            const v = equipo[punto.origen];
+            if (!hayValorFx(v)) continue;
+            const val = punto.tipo === "numero" ? numFx(v) : llanoFx(v);
+            if (val === null) continue;
+            d.valores[punto.codigo] = { v: val, o: "equipo" };
+          }
+          return d;
+        }
+        function medicionDe(equipo = {}, familias, plantillas) {
+          const cat = catalogoFx || {};
+          const fam = familiaDe(equipo, familias || cat.FAMILIAS);
+          if (!fam || !fam.medicion) return null;
+          const pl = equipo.plantillaPM || plantillaPorDefecto(equipo, fam, plantillas || cat.PLANTILLAS || []);
+          const clave = pl && fam.medicionPlantilla && fam.medicionPlantilla[pl] || fam.medicion;
+          const def = (cat.MEDICIONES || {})[clave] || {};
+          return {
+            clave,
+            titulo: def.plano && fam.tituloMedicion || def.titulo || null,
+            plano: Boolean(def.plano),
+            texto: def.texto || "",
+            retorno: def.retorno || "Retorno",
+            velocidad: def.plano && fam.velocidadBocas ? fam.velocidadBocas : null,
+            familia: fam.codigo,
+            plantilla: pl || null
+          };
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.FICHAS_PM = API;
+        })({
+          TOLERANCIAS_DEFECTO,
+          NOMBRE_TOLERANCIA,
+          RESULTADOS,
+          ESTADOS: ESTADOS_FICHA,
+          CLASES: CLASES_FICHA,
+          ORIGENES,
+          ROLES_FIRMA,
+          numero: numFx,
+          tolerancias,
+          quitarPrueba,
+          indicePlantillas,
+          numerarChecklist,
+          puntosDe: puntosDePlantilla,
+          esObligatorio,
+          evaluarParametro,
+          respuesta,
+          evaluarBocas: evaluarBocasFicha,
+          pruebaRefrigerante,
+          fichaVacia,
+          normalizar: normalizarFicha,
+          evaluar: evaluarFicha,
+          rellenarDesdeEquipo,
+          familiaDe,
+          plantillaPorDefecto,
+          medicionDe,
+          requeridas,
+          estadoEquipo,
+          avance: avancePorGrupo
+        });
       })();
     }
   });
@@ -16971,6 +17774,15 @@ globalThis.CX_VARIANTE="cxobra";
         }
         const f = familiasCx.get(codigo);
         return Boolean(f && f.estanqueidad && f.estanqueidad !== "no");
+      }
+      var fichasCx = null;
+      function medicionCx(e) {
+        if (!fichasCx) fichasCx = typeof __require !== "undefined" ? require_fichas() : typeof window !== "undefined" ? window.FICHAS_PM : null;
+        try {
+          return fichasCx && fichasCx.medicionDe ? fichasCx.medicionDe(e) : null;
+        } catch {
+          return null;
+        }
       }
       var unidadPideEstanqueidad = (e) => e.ensayoRequerido === "estanqueidad" || e.ensayoRequerido === "ambos" || familiaPideEstanqueidad(e.familia);
       var pideEstanqueidad = (e) => Array.isArray(e.miembros) ? e.miembros.some(unidadPideEstanqueidad) : unidadPideEstanqueidad(e);
@@ -17043,7 +17855,8 @@ globalThis.CX_VARIANTE="cxobra";
           completo: docCompleta && ensayo !== false,
           envio,
           incidencias,
-          falta
+          falta,
+          medicion: medicionCx(e)
         };
       }
       function rangoPlanta(v) {
@@ -18247,107 +19060,6 @@ globalThis.CX_VARIANTE="cxobra";
         factorFriccion: factorFriccionCal,
         seccionPorIntensidad: seccionPorIntensidadCal
       });
-    }
-  });
-
-  // shared/commissioning/instrumentos.js
-  var require_instrumentos = __commonJS({
-    "shared/commissioning/instrumentos.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function iniciarInstrumentos() {
-        const DIAS_AVISO = 30;
-        const MAGNITUDES_INSTRUMENTO = {
-          caudal: "Caudal / velocidad de aire",
-          presion: "Presi\xF3n",
-          temperatura: "Temperatura",
-          electrica: "El\xE9ctrica",
-          humedad: "Humedad",
-          sonido: "Sonido",
-          otra: "Otra"
-        };
-        const ESTADOS_INSTRUMENTO = {
-          vigente: { nombre: "Vigente", clase: "bien" },
-          caducaPronto: { nombre: "Caduca pronto", clase: "aviso" },
-          caducado: { nombre: "CADUCADO", clase: "mal" },
-          sinCertificado: { nombre: "Sin certificado", clase: "mal" }
-        };
-        const llanoIn = (v) => String(v ?? "").trim();
-        const fechaIn = (v) => /^\d{4}-\d{2}-\d{2}/.test(llanoIn(v)) ? llanoIn(v).slice(0, 10) : null;
-        const hoyIn = () => ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
-        function diasEntreIn(a, b) {
-          return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 864e5);
-        }
-        function estadoInstrumento(inst = {}, fecha = null) {
-          const cad = fechaIn(inst.caducidad);
-          if (!cad) return "sinCertificado";
-          const dia = fechaIn(fecha) || hoyIn();
-          if (cad < dia) return "caducado";
-          if (!fechaIn(fecha) && diasEntreIn(dia, cad) <= DIAS_AVISO) return "caducaPronto";
-          return "vigente";
-        }
-        function normalizarInstrumento(e = {}) {
-          const d = {
-            nombre: llanoIn(e.nombre).slice(0, 120),
-            magnitud: MAGNITUDES_INSTRUMENTO[e.magnitud] ? e.magnitud : "otra",
-            marca: llanoIn(e.marca).slice(0, 80) || null,
-            modelo: llanoIn(e.modelo).slice(0, 80) || null,
-            numSerie: llanoIn(e.numSerie).slice(0, 80) || null,
-            certificado: llanoIn(e.certificado).slice(0, 120) || null,
-            entidad: llanoIn(e.entidad).slice(0, 120) || null,
-            fechaCalibracion: fechaIn(e.fechaCalibracion),
-            caducidad: fechaIn(e.caducidad),
-            archivoCertificado: llanoIn(e.archivoCertificado) || null,
-            notas: llanoIn(e.notas).slice(0, 1e3) || null
-          };
-          if (!d.nombre) return { ok: false, error: "El instrumento necesita un nombre (\xABAnem\xF3metro de hilo caliente\xBB)." };
-          if (!d.numSerie) return { ok: false, error: "Sin n\xBA de serie no se puede saber qu\xE9 aparato es." };
-          if (d.fechaCalibracion && d.caducidad && d.caducidad < d.fechaCalibracion) {
-            return { ok: false, error: "La caducidad es anterior a la calibraci\xF3n." };
-          }
-          return { ok: true, datos: d };
-        }
-        function descripcionInstrumento(inst = {}) {
-          const fecha = (f) => f ? `${f.slice(8, 10)}/${f.slice(5, 7)}/${f.slice(0, 4)}` : "";
-          return [
-            llanoIn(inst.nombre),
-            [inst.marca, inst.modelo].filter(Boolean).join(" "),
-            inst.numSerie ? `n\xBA ${inst.numSerie}` : "",
-            inst.certificado ? `cert. ${inst.certificado}` : "",
-            inst.caducidad ? `caduca ${fecha(inst.caducidad)}` : "sin certificado"
-          ].filter(Boolean).join(" \xB7 ");
-        }
-        function revisarInstrumentos(ids = [], catalogo = [], fechaEnsayo = null) {
-          const porId = catalogo instanceof Map ? catalogo : new Map((catalogo || []).map((i) => [i.id, i]));
-          const lista = [];
-          const avisos = [];
-          for (const id of [...new Set(ids || [])]) {
-            const inst = porId.get(id);
-            if (!inst) {
-              lista.push({ id, estado: "sinCertificado", descripcion: "Instrumento que ya no est\xE1 en la lista" });
-              avisos.push("Un instrumento citado ya no est\xE1 en la lista de instrumentos");
-              continue;
-            }
-            const estado = estadoInstrumento(inst, fechaEnsayo);
-            lista.push({ ...inst, estado, descripcion: descripcionInstrumento(inst) });
-            if (estado === "caducado") avisos.push(`${inst.nombre} n\xBA ${inst.numSerie}: calibraci\xF3n CADUCADA el d\xEDa del ensayo`);
-            if (estado === "sinCertificado") avisos.push(`${inst.nombre} n\xBA ${inst.numSerie}: sin certificado de calibraci\xF3n`);
-          }
-          return { lista, avisos, malos: lista.filter((x) => x.estado === "caducado" || x.estado === "sinCertificado").length };
-        }
-        (function exportar(API) {
-          if (typeof module !== "undefined" && module.exports) module.exports = API;
-          if (typeof window !== "undefined") window.INSTRUMENTOS_PM = API;
-        })({
-          DIAS_AVISO,
-          MAGNITUDES: MAGNITUDES_INSTRUMENTO,
-          ESTADOS: ESTADOS_INSTRUMENTO,
-          estado: estadoInstrumento,
-          normalizar: normalizarInstrumento,
-          descripcion: descripcionInstrumento,
-          revisar: revisarInstrumentos
-        });
-      })();
     }
   });
 
@@ -20373,653 +21085,6 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // shared/commissioning/fichas.js
-  var require_fichas = __commonJS({
-    "shared/commissioning/fichas.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function iniciarFichasPM() {
-        const catalogoFx = typeof __require !== "undefined" ? require_plantillasCbre() : window.PLANTILLAS_CBRE;
-        const instrumentosFx = typeof __require !== "undefined" ? require_instrumentos() : window.INSTRUMENTOS_PM;
-        const TOLERANCIAS_DEFECTO = { total: null, boca: null, psRefrigerante: null, caidaAdmisible: null };
-        const NOMBRE_TOLERANCIA = {
-          total: "tolerancia de caudal total",
-          boca: "tolerancia por boca",
-          psRefrigerante: "presi\xF3n m\xEDnima de prueba del refrigerante",
-          caidaAdmisible: "ca\xEDda de presi\xF3n admisible"
-        };
-        const PATM = 1.013;
-        const RESULTADOS = {
-          apto: { nombre: "APTO", orden: 1 },
-          aRevisar: { nombre: "A REVISAR", orden: 2 },
-          noApto: { nombre: "NO APTO", orden: 3 }
-        };
-        const ESTADOS_FICHA = {
-          sinFicha: { nombre: "Sin ficha", orden: 0 },
-          sinEmpezar: { nombre: "Sin empezar", orden: 1 },
-          pendiente: { nombre: "Pendiente", orden: 2 },
-          completa: { nombre: "Completa", orden: 3 },
-          firmada: { nombre: "Firmada", orden: 4 }
-        };
-        const CLASES_FICHA = {
-          checklist: { nombre: "Checklist", orden: 1 },
-          fichaPM: { nombre: "Ficha de puesta en marcha", orden: 2 },
-          balanceo: { nombre: "Balanceo de caudales", orden: 3 },
-          estanqAgua: { nombre: "Estanqueidad \xB7 agua", orden: 4 },
-          estanqRefrigerante: { nombre: "Estanqueidad \xB7 refrigerante", orden: 5 }
-        };
-        const ORIGENES = {
-          manual: "Tecleado",
-          equipo: "De la tabla de equipos",
-          plantilla: "Valor por defecto de la plantilla",
-          importacion: "Importado",
-          copia: "Copiado de otro equipo",
-          prueba: "DATO DE PRUEBA"
-        };
-        const ROLES_FIRMA = {
-          CBRE: "Jefe de obra (CBRE)"
-        };
-        const llanoFx = (v) => String(v ?? "").trim();
-        function numFx(v) {
-          if (v === null || v === void 0) return null;
-          if (typeof v === "number") return Number.isFinite(v) ? v : null;
-          const t = String(v).trim();
-          if (!t) return null;
-          const n = Number(t.replace(/\s/g, "").replace(",", "."));
-          return Number.isFinite(n) ? n : null;
-        }
-        const redFx = (v, d = 4) => {
-          if (v === null || !Number.isFinite(v)) return null;
-          const f = 10 ** d;
-          return Math.round(v * f) / f;
-        };
-        const igualesFx = (a, b) => a !== null && b !== null && Math.abs(a - b) < 1e-9;
-        const hayValorFx = (v) => v !== null && v !== void 0 && llanoFx(v) !== "";
-        function tolerancias(config = {}) {
-          const t = { ...TOLERANCIAS_DEFECTO };
-          const c = config || {};
-          const tot = numFx(c.tolTotal);
-          const boca = numFx(c.tolBoca);
-          const ps = numFx(c.psRefrigerante);
-          const caida = numFx(c.caidaAdmisible);
-          if (tot !== null && tot > 0 && tot < 1) t.total = tot;
-          if (boca !== null && boca > 0 && boca < 1) t.boca = boca;
-          if (ps !== null && ps > 0) t.psRefrigerante = ps;
-          if (caida !== null && caida >= 0) t.caidaAdmisible = caida;
-          return t;
-        }
-        function numerarChecklist(plantilla) {
-          if (!plantilla || !(plantilla.secciones || []).some((s) => s.tipo === "checklist")) return plantilla;
-          let k = 0;
-          const secciones = plantilla.secciones.map((s) => {
-            if (s.tipo !== "checklist") return s;
-            k += 1;
-            return { ...s, numero: String(k), puntos: (s.puntos || []).map((p, j) => ({ ...p, numero: `${k}.${j + 1}` })) };
-          });
-          return { ...plantilla, secciones };
-        }
-        function indicePlantillas(lista) {
-          const m = /* @__PURE__ */ new Map();
-          for (const p of lista || catalogoFx && catalogoFx.PLANTILLAS || []) {
-            const previa = m.get(p.codigo);
-            if (!previa || (p.version || 1) > (previa.version || 1)) m.set(p.codigo, numerarChecklist(p));
-          }
-          return m;
-        }
-        function puntosDePlantilla(plantilla) {
-          const fuera = [];
-          for (const s of plantilla && plantilla.secciones || []) {
-            for (const p of s.puntos || []) fuera.push({ ...p, seccion: s });
-          }
-          return fuera;
-        }
-        function esObligatorio(punto) {
-          const tipoSec = punto.seccion ? punto.seccion.tipo : null;
-          if (punto.obligatorio === true) return true;
-          if (punto.obligatorio === false) return false;
-          if (tipoSec === "parametros") return punto.medido === "obligatorio";
-          if (tipoSec === "checklist") return true;
-          if (tipoSec === "pruebaPresion") return ["numero", "fecha", "okNoOk", "siNo"].includes(punto.tipo);
-          return false;
-        }
-        function evaluarParametro(punto, valor = {}, tol = TOLERANCIAS_DEFECTO) {
-          const p = numFx(valor.p);
-          const f = numFx(valor.f);
-          const m = numFx(valor.m);
-          const ref = p !== null ? p : f;
-          const fuente = p !== null ? "proyecto" : f !== null ? "fabricante" : null;
-          let desv = null;
-          if (m !== null && ref !== null && ref !== 0) desv = (m - ref) / ref;
-          const cualTol = punto.tolerancia === "boca" ? "boca" : "total";
-          const limite = tol[cualTol] ?? null;
-          let resultado = null;
-          let copiado = false;
-          let sinTolerancia = null;
-          if (m !== null && ref !== null && igualesFx(m, ref)) {
-            copiado = true;
-            resultado = valor.revisado ? punto.resultado ? "apto" : null : "aRevisar";
-          } else if (punto.resultado && desv !== null) {
-            if (limite === null) sinTolerancia = cualTol;
-            else resultado = Math.abs(desv) <= limite + 1e-12 ? "apto" : "noApto";
-          }
-          return {
-            p,
-            f,
-            m,
-            ref,
-            fuente,
-            desv: redFx(desv),
-            limite: punto.resultado ? limite : null,
-            resultado,
-            copiado,
-            revisado: Boolean(valor.revisado),
-            sinTolerancia
-          };
-        }
-        function respuesta(v) {
-          const t = llanoFx(v).toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-          if (!t) return null;
-          if (t === "SI" || t === "S") return "si";
-          if (t === "NO" || t === "N") return "no";
-          if (t === "NA" || t === "N/A" || t === "NO APLICA") return "na";
-          if (t === "OK") return "ok";
-          if (t === "NO OK" || t === "NOOK" || t === "NO_OK") return "noOk";
-          return null;
-        }
-        function evaluarBocasFicha(filas = [], tol = TOLERANCIAS_DEFECTO, proyectoSistema = null) {
-          const puntoBoca = { resultado: true, tolerancia: "boca" };
-          const evaluadas = (filas || []).map((b) => ({
-            ...b,
-            ...evaluarParametro(puntoBoca, { p: b.p, m: b.m, revisado: b.revisado }, tol)
-          }));
-          const conProyecto = evaluadas.filter((b) => b.p !== null);
-          const medidas = conProyecto.filter((b) => b.m !== null);
-          const sumP = conProyecto.reduce((s, b) => s + b.p, 0);
-          const sumM = medidas.reduce((s, b) => s + b.m, 0);
-          const refTotal = numFx(proyectoSistema) ?? sumP;
-          let total = null;
-          if (conProyecto.length && medidas.length === conProyecto.length) {
-            total = evaluarParametro({ resultado: true, tolerancia: "total" }, { p: refTotal, m: sumM }, tol);
-            if (total.copiado && !medidas.every((b) => b.copiado)) {
-              total = { ...total, copiado: false, resultado: "apto" };
-            }
-          }
-          return {
-            filas: evaluadas,
-            bocas: conProyecto.length,
-            medidas: medidas.length,
-            sinMedir: conProyecto.length - medidas.length,
-            proyecto: conProyecto.length ? sumP : null,
-            proyectoSistema: numFx(proyectoSistema),
-            medido: medidas.length ? sumM : null,
-            total
-          };
-        }
-        function pruebaRefrigerante(v = {}, tol = TOLERANCIAS_DEFECTO) {
-          const pi = numFx(v.p_inicial);
-          const pf = numFx(v.p_final);
-          const ti = numFx(v.t_inicial);
-          const tf = numFx(v.t_final);
-          const ps = numFx(v.p_minima) ?? tol.psRefrigerante ?? null;
-          const adm = numFx(v.caida_admisible) ?? tol.caidaAdmisible ?? null;
-          if ([pi, pf, ti, tf].some((x) => x === null)) {
-            return { pi, pf, ti, tf, ps, admisible: adm, pfCorregida: null, caida: null, resultado: null, sinTolerancia: null };
-          }
-          const pfCorregida = (pf + PATM) * (ti + 273.15) / (tf + 273.15) - PATM;
-          const caida = Math.round((pi - pfCorregida) * 10) / 10;
-          const sinTolerancia = ps === null ? "psRefrigerante" : adm === null ? "caidaAdmisible" : null;
-          const resultado = sinTolerancia ? null : pi >= ps - 1e-9 && caida <= adm + 1e-9 ? "apto" : "noApto";
-          return { pi, pf, ti, tf, ps, admisible: adm, pfCorregida: redFx(pfCorregida, 2), caida, resultado, sinTolerancia };
-        }
-        const peorFx = (a, b) => {
-          if (!a) return b || null;
-          if (!b) return a;
-          return RESULTADOS[a].orden >= RESULTADOS[b].orden ? a : b;
-        };
-        function fichaVacia(cabecera = {}) {
-          return {
-            cabecera: {
-              fechaEnsayo: null,
-              realizadoPor: cabecera.realizadoPor || null,
-              responsable: cabecera.responsable || null,
-              condiciones: cabecera.condiciones || "NOMINALES",
-              aparatos: cabecera.aparatos || null,
-              /* Los instrumentos de medida usados (ids de la lista de instrumentos). */
-              instrumentos: Array.isArray(cabecera.instrumentos) ? [...cabecera.instrumentos] : [],
-              actaFabricante: null,
-              tecnicoFabricante: null
-            },
-            valores: {},
-            bocas: { impulsion: [], retorno: [] },
-            fotos: [],
-            anexosPdf: [],
-            observaciones: "",
-            /* Las respuestas copiadas de otro equipo en la rejilla: de cuál, quién y cuándo. */
-            copias: []
-          };
-        }
-        function normalizarFicha(plantilla, entrada = {}, opciones = {}) {
-          if (opciones.descartarPrueba) return quitarPrueba(normalizarFicha(plantilla, entrada)).ficha;
-          const base = fichaVacia();
-          const e = entrada || {};
-          const cab = e.cabecera || {};
-          for (const k of Object.keys(base.cabecera)) {
-            if (k === "instrumentos") continue;
-            if (cab[k] !== void 0) base.cabecera[k] = hayValorFx(cab[k]) ? llanoFx(cab[k]) : null;
-          }
-          base.cabecera.instrumentos = [...new Set((Array.isArray(cab.instrumentos) ? cab.instrumentos : []).map(llanoFx).filter(Boolean))].slice(0, 20);
-          if (base.cabecera.fechaEnsayo && !/^\d{4}-\d{2}-\d{2}$/.test(base.cabecera.fechaEnsayo)) {
-            base.cabecera.fechaEnsayo = null;
-          }
-          const origen = (o) => o && ORIGENES[o] ? o : "manual";
-          const valores = e.valores || {};
-          for (const punto of puntosDePlantilla(plantilla)) {
-            const v = valores[punto.codigo];
-            if (!v || typeof v !== "object") continue;
-            if (punto.seccion.tipo === "parametros") {
-              const fila = {};
-              for (const k of ["p", "f", "m"]) {
-                const n = numFx(v[k]);
-                if (n !== null) fila[k] = n;
-              }
-              const mp = numFx(v.mp);
-              if (mp !== null && fila.m === void 0) {
-                fila.mp = mp;
-                if (v.mpEntero) fila.mpEntero = true;
-              }
-              if (!Object.keys(fila).length) continue;
-              fila.o = origen(v.o);
-              if (v.revisado && fila.m !== void 0) fila.revisado = v.revisado;
-              if (v.pv && fila.m !== void 0) fila.pv = llanoFx(v.pv);
-              base.valores[punto.codigo] = fila;
-            } else {
-              let val = v.v;
-              if (punto.tipo === "numero") val = numFx(val);
-              else if (["siNoNa", "okNoOk", "siNo"].includes(punto.tipo)) val = respuesta(val);
-              else if (punto.tipo === "fecha") val = /^\d{4}-\d{2}-\d{2}/.test(llanoFx(val)) ? llanoFx(val).slice(0, 16) : null;
-              else val = hayValorFx(val) ? llanoFx(val) : null;
-              if (val === null) continue;
-              base.valores[punto.codigo] = { v: val, o: origen(v.o) };
-            }
-          }
-          for (const circuito of ["impulsion", "retorno"]) {
-            const filas = e.bocas && Array.isArray(e.bocas[circuito]) ? e.bocas[circuito] : [];
-            base.bocas[circuito] = filas.slice(0, 200).map((b) => ({
-              local: hayValorFx(b && b.local) ? llanoFx(b.local) : null,
-              terminal: hayValorFx(b && b.terminal) ? llanoFx(b.terminal) : null,
-              p: numFx(b && b.p),
-              m: numFx(b && b.m),
-              compuerta: hayValorFx(b && b.compuerta) ? llanoFx(b.compuerta) : null,
-              o: origen(b && b.o),
-              ...b && b.revisado && numFx(b.m) !== null ? { revisado: b.revisado } : {},
-              ...b && b.pv && numFx(b.m) !== null ? { pv: llanoFx(b.pv) } : {},
-              ...b && numFx(b.mp) !== null && numFx(b.m) === null ? { mp: numFx(b.mp), ...b.mpEntero ? { mpEntero: true } : {} } : {}
-            }));
-          }
-          base.fotos = (Array.isArray(e.fotos) ? e.fotos : []).filter((f) => f && hayValorFx(f.ruta)).slice(0, 8).map((f) => ({ ruta: llanoFx(f.ruta), nombre: llanoFx(f.nombre) || null }));
-          base.anexosPdf = (Array.isArray(e.anexosPdf) ? e.anexosPdf : []).filter((f) => f && hayValorFx(f.ruta) && /\.pdf$/i.test(llanoFx(f.ruta))).slice(0, 6).map((f) => ({ ruta: llanoFx(f.ruta), nombre: llanoFx(f.nombre) || null }));
-          base.observaciones = llanoFx(e.observaciones).slice(0, 4e3);
-          base.copias = (Array.isArray(e.copias) ? e.copias : []).filter((c) => c && typeof c === "object" && Array.isArray(c.puntos)).slice(-30).map((c) => ({
-            de: hayValorFx(c.de) ? llanoFx(c.de) : null,
-            clave: hayValorFx(c.clave) ? llanoFx(c.clave) : null,
-            puntos: c.puntos.map(llanoFx).filter(Boolean).slice(0, 300),
-            pisadas: Number.isInteger(c.pisadas) && c.pisadas > 0 ? c.pisadas : 0,
-            por: hayValorFx(c.por) ? llanoFx(c.por) : null,
-            personaId: hayValorFx(c.personaId) ? llanoFx(c.personaId) : null,
-            en: hayValorFx(c.en) ? llanoFx(c.en) : null
-          }));
-          return base;
-        }
-        function quitarPrueba(ficha) {
-          let descartados = 0;
-          const valores = {};
-          for (const [k, v] of Object.entries(ficha.valores || {})) {
-            if (v && v.o === "prueba") {
-              descartados += 1;
-              continue;
-            }
-            valores[k] = v;
-          }
-          const bocas = {};
-          for (const [c, filas] of Object.entries(ficha.bocas || {})) {
-            bocas[c] = (filas || []).filter((b) => {
-              if (b && b.o === "prueba") {
-                descartados += 1;
-                return false;
-              }
-              return true;
-            });
-          }
-          return { ficha: { ...ficha, valores, bocas }, descartados };
-        }
-        function evaluarFicha(plantilla, datos, opciones = {}) {
-          const tol = tolerancias(opciones.config);
-          const d = normalizarFicha(plantilla, datos);
-          const firmas = Array.isArray(opciones.firmas) ? opciones.firmas : [];
-          const faltan = [];
-          const avisos = [];
-          let obligatorios = 0;
-          let rellenos = 0;
-          let resultado = null;
-          let algoEscrito = false;
-          let datosPrueba = false;
-          let sinConfirmar = 0;
-          const sinTol = /* @__PURE__ */ new Set();
-          const secciones = [];
-          for (const s of plantilla.secciones || []) {
-            const sec = { ...s, puntos: [] };
-            for (const punto of s.puntos || []) {
-              const p = { ...punto, seccion: s };
-              const v = d.valores[punto.codigo] || null;
-              if (v && v.o !== "equipo" && v.o !== "plantilla") algoEscrito = true;
-              if (v && v.o === "prueba") datosPrueba = true;
-              const ob = esObligatorio(p);
-              const fila = { ...punto, obligatorio: ob, origen: v ? v.o : null };
-              if (s.tipo === "parametros") {
-                const ev = evaluarParametro(punto, v || {}, tol);
-                Object.assign(fila, ev);
-                if (ev.sinTolerancia) sinTol.add(ev.sinTolerancia);
-                if (ob) {
-                  obligatorios += 1;
-                  if (ev.m !== null) rellenos += 1;
-                  else faltan.push(`Medido: ${punto.etiqueta}`);
-                  if (ev.m !== null && ev.ref === null) faltan.push(`Proyecto o fabricante: ${punto.etiqueta}`);
-                }
-                if (ev.resultado === "aRevisar") {
-                  sinConfirmar += 1;
-                  avisos.push(`${punto.etiqueta}: medido id\xE9ntico al de ${ev.fuente} (\xBFcopiado?)`);
-                }
-                resultado = peorFx(resultado, ev.resultado);
-              } else {
-                const val = v ? v.v : null;
-                fila.valor = val;
-                if (ob) {
-                  obligatorios += 1;
-                  if (val !== null && val !== void 0) rellenos += 1;
-                  else faltan.push(s.tipo === "checklist" ? `Respuesta ${punto.numero || punto.codigo}` : punto.etiqueta);
-                }
-                if (val === "no" && s.tipo === "checklist") {
-                  resultado = peorFx(resultado, "noApto");
-                  if (!d.observaciones) faltan.push(`Explicar en observaciones el \xABNo\xBB de ${punto.numero || punto.codigo}`);
-                }
-                if (val === "noOk") resultado = peorFx(resultado, "noApto");
-                if (val === "si" && punto.tipo === "siNo" && /fuga/i.test(punto.codigo)) resultado = peorFx(resultado, "noApto");
-              }
-              sec.puntos.push(fila);
-            }
-            if (s.tipo === "bocas") {
-              sec.circuitos = {};
-              const limites = s.bocas || {};
-              for (const c of ["impulsion", "retorno"]) {
-                if (!limites[c]) continue;
-                const sistema = d.valores[`caudal_proyecto_${c}`];
-                const ev = evaluarBocasFicha(d.bocas[c], tol, sistema ? sistema.v : null);
-                sec.circuitos[c] = ev;
-                if (d.bocas[c].length) algoEscrito = true;
-                if (d.bocas[c].some((b) => b.o === "prueba")) datosPrueba = true;
-                obligatorios += ev.bocas;
-                rellenos += ev.medidas;
-                if (ev.sinMedir) faltan.push(`${ev.sinMedir} boca(s) de ${c === "impulsion" ? "impulsi\xF3n" : "retorno"} sin medir`);
-                for (const b of ev.filas) {
-                  if (b.resultado === "aRevisar") sinConfirmar += 1;
-                  if (b.sinTolerancia) sinTol.add(b.sinTolerancia);
-                  resultado = peorFx(resultado, b.resultado);
-                }
-                if (ev.total) {
-                  if (ev.total.sinTolerancia) sinTol.add(ev.total.sinTolerancia);
-                  resultado = peorFx(resultado, ev.total.resultado);
-                }
-              }
-              const total = Object.values(sec.circuitos).reduce((n, c) => n + c.bocas, 0);
-              if (plantilla.clase === "balanceo" && total === 0) {
-                faltan.push("No hay ninguna boca con caudal de proyecto");
-              }
-              if (Object.values(sec.circuitos).some((c) => c.filas.some((b) => b.resultado === "aRevisar"))) {
-                avisos.push("Hay bocas con el medido id\xE9ntico al de proyecto (\xBFcopiado?)");
-              }
-            }
-            if (s.tipo === "pruebaPresion" && plantilla.clase === "estanqRefrigerante") {
-              const plano = Object.fromEntries(Object.entries(d.valores).map(([k, v]) => [k, v.v]));
-              sec.prueba = pruebaRefrigerante(plano, tol);
-              if (sec.prueba.sinTolerancia) sinTol.add(sec.prueba.sinTolerancia);
-              resultado = peorFx(resultado, sec.prueba.resultado);
-            }
-            if (s.tipo === "fotos" && /^estanq/.test(plantilla.clase) && !d.fotos.length && algoEscrito) {
-              avisos.push("Sin fotograf\xEDas de los man\xF3metros");
-            }
-            secciones.push(sec);
-          }
-          const revInst = instrumentosFx ? instrumentosFx.revisar(d.cabecera.instrumentos, opciones.instrumentos || [], d.cabecera.fechaEnsayo) : { lista: [], avisos: [], malos: 0 };
-          avisos.push(...revInst.avisos);
-          const mide = secciones.some((s) => ["parametros", "bocas", "pruebaPresion"].includes(s.tipo));
-          if (mide && algoEscrito && !d.cabecera.instrumentos.length && !d.cabecera.aparatos) {
-            avisos.push("No consta con qu\xE9 instrumentos se ha medido");
-          }
-          if (!d.cabecera.fechaEnsayo) faltan.push("Fecha de ensayo");
-          if (!d.cabecera.realizadoPor) faltan.push("Realizado por");
-          for (const t of sinTol) faltan.push(`La ${NOMBRE_TOLERANCIA[t]} de la obra (la pone el jefe de obra)`);
-          if (datosPrueba) avisos.unshift("Lleva DATOS DE PRUEBA: no se puede firmar");
-          let medidosPrueba = 0;
-          for (const v of Object.values(d.valores)) if (v && v.mp !== void 0) medidosPrueba += 1;
-          for (const c of Object.values(d.bocas)) for (const b of c || []) if (b && b.mp !== void 0) medidosPrueba += 1;
-          const completa = obligatorios > 0 ? faltan.length === 0 : algoEscrito && faltan.length === 0;
-          const firmada = firmas.some((f) => f && f.rol === "CBRE");
-          let estado;
-          if (firmada) estado = "firmada";
-          else if (!algoEscrito && !d.cabecera.fechaEnsayo) estado = "sinEmpezar";
-          else if (completa) estado = "completa";
-          else estado = "pendiente";
-          if (completa && !resultado) resultado = "apto";
-          if (!completa && resultado === "apto") resultado = null;
-          let motivoNoFirmable = null;
-          if (datosPrueba) motivoNoFirmable = "Lleva datos de prueba.";
-          else if (!completa) motivoNoFirmable = `Falta: ${faltan.slice(0, 3).join(", ")}${faltan.length > 3 ? "\u2026" : ""}.`;
-          else if (sinConfirmar) motivoNoFirmable = `Hay ${sinConfirmar} medido(s) \xABA REVISAR\xBB sin confirmar.`;
-          else if (opciones.bloquearInstrumentos && revInst.malos) motivoNoFirmable = "Hay instrumentos caducados o sin certificado.";
-          return {
-            plantilla: { codigo: plantilla.codigo, version: plantilla.version || 1, clase: plantilla.clase, titulo: plantilla.titulo },
-            datos: d,
-            secciones,
-            medidos: { obligatorios, rellenos },
-            faltan,
-            avisos,
-            resultado,
-            datosPrueba,
-            medidosPrueba,
-            sinConfirmar,
-            completa,
-            estado,
-            firmas,
-            firmable: !firmada && !motivoNoFirmable,
-            motivoNoFirmable,
-            tolerancias: tol,
-            sinTolerancia: [...sinTol],
-            instrumentos: revInst.lista
-          };
-        }
-        const sinAcentosFx = (v) => llanoFx(v).toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-        function familiaDe(equipo = {}, familias) {
-          const lista = familias || catalogoFx && catalogoFx.FAMILIAS || [];
-          if (equipo.familia) {
-            const f = lista.find((x) => x.codigo === equipo.familia);
-            if (f) return f;
-          }
-          const grupo = sinAcentosFx(equipo.grupo).replace(/[^A-Z0-9& ]/g, " ").replace(/\s+/g, " ");
-          if (!grupo) return null;
-          let mejor = null;
-          let largo = 0;
-          for (const f of lista) {
-            for (const nombre of [f.nombre, ...f.alias || []]) {
-              const n = sinAcentosFx(nombre).replace(/[^A-Z0-9& ]/g, " ").replace(/\s+/g, " ");
-              if (grupo.includes(n) && n.length > largo) {
-                mejor = f;
-                largo = n.length;
-              }
-            }
-          }
-          return mejor;
-        }
-        const PISTAS_PLANTILLA = [
-          [/\bUE\b|EXTERIOR|CONDENSADORA/, "EXTERIOR"],
-          [/\bUI\b|INTERIOR|EVAPORADORA/, "INTERIOR"],
-          [/CASSETTE/, "CASSETTE"],
-          [/CONDUCT/, "CONDUCTOS"],
-          [/ROTATIV/, "ROTATIVO"],
-          [/ESTATIC|PLACAS/, "ESTATICO|PLACAS"],
-          [/AXIAL/, "AXIAL"],
-          [/PARKING|EXTRACTOR/, "EXTRACTOR"]
-        ];
-        function plantillaPorDefecto(equipo = {}, familia, plantillas) {
-          if (!familia || !familia.plantillas || !familia.plantillas.length) return null;
-          if (familia.plantillas.length === 1) return familia.plantillas[0];
-          const texto = sinAcentosFx([equipo.denominacion, equipo.tag, equipo.instalacion, equipo.modelo].filter(Boolean).join(" "));
-          const indice = plantillas instanceof Map ? plantillas : indicePlantillas(plantillas);
-          let mejor = null;
-          let puntos = 0;
-          for (const codigo of familia.plantillas) {
-            const nombre = sinAcentosFx((indice.get(codigo) || {}).nombre || codigo);
-            let n = 0;
-            for (const [pista, palabra] of PISTAS_PLANTILLA) {
-              if (pista.test(texto) && new RegExp(palabra).test(nombre)) n += 1;
-            }
-            if (n > puntos) {
-              puntos = n;
-              mejor = codigo;
-            }
-          }
-          return mejor;
-        }
-        function requeridas(equipo = {}, familia, plantillas) {
-          if (!familia) return [];
-          const indice = plantillas instanceof Map ? plantillas : indicePlantillas(plantillas);
-          const pm = equipo.plantillaPM || plantillaPorDefecto(equipo, familia, indice);
-          const nombrePM = sinAcentosFx((indice.get(pm) || {}).nombre || pm || "");
-          const exterior = /EXTERIOR/.test(nombrePM);
-          const fuera = [];
-          const anexo = (a) => {
-            const pl = indice.get(a.plantilla);
-            if (!pl) return null;
-            if (a.soloSi && !nombrePM.includes(sinAcentosFx(a.soloSi))) return null;
-            const enlace = a.enlace || "equipo";
-            let clave = `equipo:${equipo.id}`;
-            let motivo = null;
-            if (enlace === "circuito") {
-              const c = llanoFx(equipo.circuito);
-              clave = c ? `circuito:${sinAcentosFx(c)}` : null;
-              if (!c) motivo = "El equipo no tiene circuito asignado.";
-            } else if (enlace === "refrigerante") {
-              const tagUE = exterior ? llanoFx(equipo.tag) : llanoFx(equipo.equipoAsociado);
-              clave = tagUE ? `refrigerante:${sinAcentosFx(tagUE)}` : null;
-              if (!tagUE) motivo = "Unidad interior sin exterior asociada.";
-            }
-            return { plantilla: pl.codigo, clase: pl.clase, nombre: pl.nombre, enlace, clave, motivo };
-          };
-          const anexos = (familia.anexos || []).map(anexo).filter(Boolean);
-          fuera.push(...anexos.filter((a) => a.clase === "checklist"));
-          if (pm && indice.get(pm)) {
-            fuera.push({ plantilla: pm, clase: "fichaPM", nombre: indice.get(pm).nombre, enlace: "equipo", clave: `equipo:${equipo.id}`, motivo: null });
-          } else {
-            fuera.push({ plantilla: null, clase: "fichaPM", nombre: "Ficha de puesta en marcha", enlace: "equipo", clave: null, motivo: "Falta elegir la plantilla de la ficha." });
-          }
-          fuera.push(...anexos.filter((a) => a.clase !== "checklist"));
-          return fuera;
-        }
-        function estadoEquipo(equipo, familia, plantillas, buscar) {
-          const lista = requeridas(equipo, familia, plantillas).map((r) => {
-            const ficha = r.clave && r.plantilla ? buscar(r.clave, r.plantilla) : null;
-            return {
-              ...r,
-              fichaId: ficha ? ficha.id : null,
-              estado: ficha ? ficha.estado : "sinFicha",
-              resultado: ficha ? ficha.resultado : null,
-              medidos: ficha ? ficha.medidos : null,
-              datosPrueba: ficha ? Boolean(ficha.datosPrueba) : false,
-              medidosPrueba: ficha ? ficha.medidosPrueba || 0 : 0
-            };
-          });
-          const n = lista.length;
-          const firmadas = lista.filter((x) => x.estado === "firmada").length;
-          const completas = lista.filter((x) => x.estado === "completa" || x.estado === "firmada").length;
-          let resultado = null;
-          for (const x of lista) resultado = peorFx(resultado, x.resultado === "apto" ? null : x.resultado);
-          if (!resultado && n && completas === n) resultado = "apto";
-          let estado = "sinEmpezar";
-          if (n && firmadas === n) estado = "firmada";
-          else if (n && completas === n) estado = "completa";
-          else if (lista.some((x) => x.estado !== "sinFicha" && x.estado !== "sinEmpezar")) estado = "pendiente";
-          return { fichas: lista, total: n, completas, firmadas, estado, resultado };
-        }
-        function avancePorGrupo(filas = [], campo = "familia") {
-          const grupos = /* @__PURE__ */ new Map();
-          for (const f of filas) {
-            const clave = llanoFx(f[campo]) || "SIN DEFINIR";
-            if (!grupos.has(clave)) {
-              grupos.set(clave, { concepto: clave, equipos: 0, fichas: 0, completas: 0, firmadas: 0, noApto: 0, aRevisar: 0, equiposFirmados: 0 });
-            }
-            const g = grupos.get(clave);
-            const pm = f.pm || { total: 0, completas: 0, firmadas: 0, fichas: [] };
-            g.equipos += 1;
-            g.fichas += pm.total;
-            g.completas += pm.completas;
-            g.firmadas += pm.firmadas;
-            if (pm.resultado === "noApto") g.noApto += 1;
-            if (pm.resultado === "aRevisar") g.aRevisar += 1;
-            if (pm.estado === "firmada") g.equiposFirmados += 1;
-          }
-          return [...grupos.values()].map((g) => ({ ...g, pctCompletas: g.fichas ? g.completas / g.fichas : null, pctFirmadas: g.fichas ? g.firmadas / g.fichas : null })).sort((a, b) => b.equipos - a.equipos || a.concepto.localeCompare(b.concepto, "es", { numeric: true }));
-        }
-        function rellenarDesdeEquipo(plantilla, datos, equipo = {}) {
-          const d = normalizarFicha(plantilla, datos);
-          for (const punto of puntosDePlantilla(plantilla)) {
-            if (d.valores[punto.codigo] || punto.seccion.tipo === "parametros") continue;
-            if (!punto.origen) {
-              if (hayValorFx(punto.valorPorDefecto)) d.valores[punto.codigo] = { v: punto.valorPorDefecto, o: "plantilla" };
-              continue;
-            }
-            const v = equipo[punto.origen];
-            if (!hayValorFx(v)) continue;
-            const val = punto.tipo === "numero" ? numFx(v) : llanoFx(v);
-            if (val === null) continue;
-            d.valores[punto.codigo] = { v: val, o: "equipo" };
-          }
-          return d;
-        }
-        (function exportar(API) {
-          if (typeof module !== "undefined" && module.exports) module.exports = API;
-          if (typeof window !== "undefined") window.FICHAS_PM = API;
-        })({
-          TOLERANCIAS_DEFECTO,
-          NOMBRE_TOLERANCIA,
-          RESULTADOS,
-          ESTADOS: ESTADOS_FICHA,
-          CLASES: CLASES_FICHA,
-          ORIGENES,
-          ROLES_FIRMA,
-          numero: numFx,
-          tolerancias,
-          quitarPrueba,
-          indicePlantillas,
-          numerarChecklist,
-          puntosDe: puntosDePlantilla,
-          esObligatorio,
-          evaluarParametro,
-          respuesta,
-          evaluarBocas: evaluarBocasFicha,
-          pruebaRefrigerante,
-          fichaVacia,
-          normalizar: normalizarFicha,
-          evaluar: evaluarFicha,
-          rellenarDesdeEquipo,
-          familiaDe,
-          plantillaPorDefecto,
-          requeridas,
-          estadoEquipo,
-          avance: avancePorGrupo
-        });
-      })();
-    }
-  });
-
   // shared/commissioning/rejillaChecklist.js
   var require_rejillaChecklist = __commonJS({
     "shared/commissioning/rejillaChecklist.js"(exports, module) {
@@ -21128,6 +21193,617 @@ globalThis.CX_VARIANTE="cxobra";
           if (typeof module !== "undefined" && module.exports) module.exports = API;
           if (typeof window !== "undefined") window.REJILLA_CHECKLIST = API;
         })({ puntosChecklist, copiarRespuestas, selloCopia, copiaDePunto, textoCopia, fechaCorta: fechaCortaRc, copiasVigentes });
+      })();
+    }
+  });
+
+  // shared/commissioning/fichaExcel.js
+  var require_fichaExcel = __commonJS({
+    "shared/commissioning/fichaExcel.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function iniciarFichaExcel() {
+        const cargar = (mod, global) => {
+          if (typeof __require !== "undefined") {
+            try {
+              return __require(mod);
+            } catch (e) {
+            }
+          }
+          return typeof window !== "undefined" ? window[global] : null;
+        };
+        const MAQ = () => cargar("./maquetasExcel", "MAQUETAS_EXCEL");
+        const REJ = () => cargar("./rejillaChecklist", "REJILLA_CHECKLIST");
+        const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+        function num(v, decimales = 2) {
+          if (v === null || v === void 0 || v === "") return "";
+          const n = Number(v);
+          if (!Number.isFinite(n)) return esc(v);
+          return new Intl.NumberFormat("es-ES", { maximumFractionDigits: decimales, useGrouping: true }).format(n);
+        }
+        const pct = (d) => d === null || d === void 0 || !Number.isFinite(Number(d)) ? "" : `${d > 0 ? "+" : d < 0 ? "\u2212" : ""}${num(Math.abs(d) * 100, 1)} %`;
+        const fecha = (iso) => {
+          const m = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}:\d{2}))?/.exec(String(iso || ""));
+          return m ? `${m[3]}/${m[2]}/${m[1]}${m[4] ? ` ${m[4]}` : ""}` : "";
+        };
+        const norm = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/\([^)]*\)/g, " ").replace(/[^A-Z0-9]+/g, " ").trim();
+        const RESULTADO = { apto: ["apto", "APTO", "#C6EFCE"], noApto: ["noApto", "NO APTO", "#FFC7CE"], aRevisar: ["aRevisar", "A REVISAR", "#FFEB9C"] };
+        const RESPUESTA = { si: "S\xED", no: "No", na: "NA", ok: "OK", noOk: "NO OK" };
+        const res = (r) => r && RESULTADO[r] ? { html: `<span class="res ${RESULTADO[r][0]}">${RESULTADO[r][1]}</span>`, bg: RESULTADO[r][2] } : null;
+        const BANDA = "#006A4D";
+        const SUBCAB = "#D9E2DD";
+        function modelo(nombre) {
+          const M = MAQ();
+          const h = M && M.hojas[nombre];
+          if (!h) return null;
+          return {
+            nombre,
+            estilos: M.estilos,
+            anchos: h.anchos.slice(),
+            imagenes: h.imagenes || [],
+            filas: h.filas.map(([alto, celdas], i) => ({
+              alto,
+              orig: i,
+              clase: "",
+              celdas: celdas.map(([c, cs, rs, st, txt, f]) => ({ c, cs, rs, st, txt: txt || "", f: Boolean(f) }))
+            }))
+          };
+        }
+        const estiloDe = (m, celda) => m.estilos[celda.st] || "";
+        const esBanda = (m, celda) => estiloDe(m, celda).includes(BANDA);
+        const esSubcab = (m, celda) => estiloDe(m, celda).includes(SUBCAB);
+        const celdaEn = (fila, c) => fila.celdas.find((x) => x.c === c);
+        const rotuloDe = (celda) => /:\s*$/.test(celda.txt) ? celda.txt.replace(/:\s*$/, "") : null;
+        function poner(celda, valor) {
+          if (!celda || !valor) return;
+          if (typeof valor === "string") {
+            if (valor) {
+              celda.html = valor;
+              celda.lleno = true;
+            }
+            return;
+          }
+          if (valor.html !== void 0 && valor.html !== "") {
+            celda.html = valor.html;
+            celda.lleno = true;
+          }
+          if (valor.bg) celda.bg = valor.bg;
+        }
+        const ANCHO_UTIL = (8.27 - 0.8) * 96 * 0.97;
+        const ALTO_UTIL = (11.69 - 0.8) * 96 * 0.97;
+        const PT = 4 / 3;
+        function pintar(m, { marca = "", blanco = false, partirE = null, clase = "" } = {}) {
+          let anchos = m.anchos;
+          const mapa = (c) => c;
+          let ini = mapa;
+          let fin = mapa;
+          if (partirE) {
+            const [a, b] = partirE.map((f) => Math.round(m.anchos[4] * f));
+            anchos = [...m.anchos.slice(0, 4), a, b, m.anchos[4] - a - b, ...m.anchos.slice(5)];
+            ini = (c, sub) => c < 4 ? c : c === 4 ? 4 + (sub || 0) : c + 2;
+            fin = (c, sub) => c < 4 ? c : c === 4 ? sub === void 0 ? 6 : 4 + sub : c + 2;
+          }
+          const nCol = anchos.length;
+          const anchoTotal = anchos.reduce((a, b) => a + b, 0);
+          const altoTotal = m.filas.reduce((a, f) => a + (f.altoReal || f.alto) * PT, 0);
+          const zoom = Math.max(0.55, Math.min(ANCHO_UTIL / anchoTotal, ALTO_UTIL / altoTotal));
+          const ocupada = m.filas.map(() => new Array(nCol).fill(false));
+          const porFila = {};
+          for (const im of m.imagenes) (porFila[im[3]] = porFila[im[3]] || []).push(im);
+          const filas = m.filas.map((f, r) => {
+            const celdas = f.celdas.map((x) => ({ ...x, a: ini(x.c, x.sub), b: fin(x.c + x.cs - 1, x.sub) })).sort((x, y) => x.a - y.a);
+            const tds = [];
+            let col = 0;
+            const imgs = (porFila[f.orig] && f.orig !== void 0 ? porFila[f.orig] : []).slice();
+            const ponerImagen = (desde, hasta) => {
+              const aqui = imgs.filter((im) => ini(im[1]) >= desde && ini(im[1]) <= hasta);
+              return aqui.map((im) => {
+                const dx = anchos.slice(desde, ini(im[1])).reduce((a, b) => a + b, 0) + im[2];
+                return `<img class="xlImg" src="fichasExcel/${im[0]}" alt="" style="left:${dx}px;top:${im[4]}px;width:${im[5]}px;height:${im[6]}px">`;
+              }).join("");
+            };
+            const hueco = (c) => {
+              const img = ponerImagen(c, c);
+              tds.push(`<td${img ? ' class="xlAncla"' : ""}>${img}</td>`);
+            };
+            for (const x of celdas) {
+              while (col < x.a) {
+                if (!ocupada[r][col]) hueco(col);
+                col++;
+              }
+              if (ocupada[r][x.a]) {
+                col = x.b + 1;
+                continue;
+              }
+              const cs = x.b - x.a + 1;
+              for (let i = 0; i < x.rs; i++) for (let k = x.a; k <= x.b; k++) if (ocupada[r + i]) ocupada[r + i][k] = true;
+              const img = ponerImagen(x.a, x.b);
+              const texto = x.html !== void 0 ? x.html : x.f || blanco && x.borrarEnBlanco ? "" : esc(x.txt);
+              const clases = [`x${x.st}`, x.lleno ? "xv" : "", img ? "xlAncla" : "", x.clase || ""].filter(Boolean).join(" ");
+              tds.push(`<td class="${clases}"${cs > 1 ? ` colspan="${cs}"` : ""}${x.rs > 1 ? ` rowspan="${x.rs}"` : ""}${x.bg ? ` style="background:${x.bg}"` : ""}>${img}${texto}</td>`);
+              col = x.b + 1;
+            }
+            while (col < nCol) {
+              if (!ocupada[r][col]) hueco(col);
+              col++;
+            }
+            return `<tr${f.clase ? ` class="${f.clase}"` : ""} style="height:${f.alto}pt">${tds.join("")}</tr>`;
+          });
+          const usados = new Set(m.filas.flatMap((f) => f.celdas.map((x) => x.st)));
+          const estilos = [...usados].map((s) => `.hojaXl .x${s}{${m.estilos[s] || ""}}`).join("");
+          return `<article class="hojaPM hojaXl${blanco ? " enBlanco" : ""}${clase ? ` ${clase}` : ""}">
+    ${marca ? `<div class="marcaAgua">${marca}</div>` : ""}
+    <style>${estilos}</style>
+    <div class="xlPagina" style="zoom:${zoom.toFixed(4)}">
+    <table class="xlRejilla" style="width:${anchoTotal}px"><colgroup>${anchos.map((a) => `<col style="width:${a}px">`).join("")}</colgroup>
+    <tbody>${filas.join("\n")}</tbody></table></div>
+  </article>`;
+        }
+        const CABECERA = {
+          EDIFICIO: "edificio",
+          DIRECCION: "direccion",
+          LOCALIDAD: "localidad",
+          "FECHA DE ENSAYO": "fecha",
+          "REFERENCIA TAG": "tag",
+          "REALIZADO POR": "realizadoPor",
+          RESPONSABLE: "responsable",
+          "PLANTA SALA": "planta",
+          "APARATOS UTILIZADOS": "aparatos",
+          "CONDICIONES DE ENSAYO": "condiciones",
+          "DENOMINACION DEL EQUIPO": "denominacion",
+          "ACTA FABRICANTE N FECHA": "acta",
+          "TECNICO FABRICANTE": "tecnico"
+        };
+        function rellenar(m, fuente) {
+          let izq = "";
+          let der = "";
+          let modoParam = false;
+          let enCabecera = true;
+          let resumen = false;
+          let fotosDesde = -1;
+          const red = (t) => /RETORNO|EXTRACCION/.test(t) ? "retorno" : "impulsion";
+          const regionesBocas = [];
+          for (let r = 0; r < m.filas.length; r++) {
+            const fila = m.filas[r];
+            const cs = fila.celdas.slice().sort((a, b) => a.c - b.c);
+            const banda = cs.find((x) => esBanda(m, x) && x.txt);
+            if (banda) {
+              enCabecera = false;
+              modoParam = false;
+              const t = norm(banda.txt.replace(/^\d+\s*·\s*/, ""));
+              izq = t;
+              der = t;
+              resumen = /^RESUMEN/.test(t);
+              if (/^FOTOGRAFIAS/.test(t)) fotosDesde = r + 1;
+              if (t === "OBSERVACIONES") {
+                const obs = m.filas[r + 1] && celdaEn(m.filas[r + 1], 0);
+                if (obs) {
+                  poner(obs, fuente.observaciones());
+                  obs.clase = "xlObs";
+                }
+              }
+              if (/UNIDADES TERMINALES/.test(t)) regionesBocas.push({ red: red(t), cab: r + 1 });
+              continue;
+            }
+            if (fotosDesde >= 0 && cs.some((x) => /^Criterio/.test(x.txt))) {
+              const desde = fotosDesde;
+              fotosDesde = -1;
+              const html = fuente.fotos();
+              if (html && r - 1 > desde) {
+                for (let k = desde; k < r - 1; k++) m.filas[k].celdas = [];
+                m.filas[desde].celdas = [{ c: 0, cs: 8, rs: r - 1 - desde, st: 0, txt: "", html, lleno: true, clase: "xlFotos" }];
+              }
+            }
+            const rotFirma = cs.filter((x) => x.txt === "CBRE" || norm(x.txt) === "DIRECCION FACULTATIVA");
+            if (rotFirma.length) {
+              for (const x of rotFirma) {
+                const caja = m.filas[r + 1] && celdaEn(m.filas[r + 1], x.c);
+                if (caja) {
+                  caja.html = fuente.firma(x.txt === "CBRE" ? "CBRE" : "DF");
+                  caja.clase = "xlFirma";
+                }
+              }
+              continue;
+            }
+            if (r === m.filas.length - 1 || /^Formato CBRE/.test((cs[0] || {}).txt || "")) {
+              let pie = cs.find((x) => x.c === 0 && (x.f || /^Formato/.test(x.txt)));
+              if (!pie && r === m.filas.length - 1 && !cs.length) {
+                const st = m.estilos.indexOf("font-weight:700;font-size:7pt;vertical-align:bottom");
+                pie = { c: 0, cs: 4, rs: 1, st: Math.max(st, 0), txt: "" };
+                fila.celdas.push(pie);
+              }
+              if (pie && fuente.formato) pie.html = esc(fuente.formato);
+              if (pie) continue;
+            }
+            const sub = cs.filter((x) => esSubcab(m, x) && x.txt && x.cs >= 4);
+            if (sub.length && !cs.some((x) => norm(x.txt) === "PARAMETRO")) {
+              for (const x of sub) {
+                if (x.c === 0) izq = norm(x.txt);
+                else der = norm(x.txt);
+              }
+              continue;
+            }
+            if (cs.some((x) => norm(x.txt) === "PARAMETRO")) {
+              modoParam = true;
+              continue;
+            }
+            const conCodigo = cs.find((x) => /^\d{2}\.\d{2}\s/.test(x.txt));
+            if (conCodigo) {
+              const v = fuente.check(conCodigo.txt.slice(0, 5));
+              const resp = cs.find((x) => x.c > conCodigo.c);
+              if (v) {
+                poner(resp, v);
+                if (v.copiada) fila.clase = "copiada";
+              }
+              continue;
+            }
+            if (resumen && cs[0] && cs[0].c === 0 && /^(IMPULSION|RETORNO)/.test(norm(cs[0].txt))) {
+              const v = fuente.resumen && fuente.resumen(red(norm(cs[0].txt)));
+              if (v) [1, 2, 3, 4, 5, 6].forEach((c, i) => poner(celdaEn(fila, c), v[i]));
+              continue;
+            }
+            if (resumen) continue;
+            if (modoParam && cs[0] && cs[0].c === 0 && cs[0].txt) {
+              const v = fuente.param(norm(cs[0].txt), izq, /^\s/.test(cs[0].txt));
+              if (v) [2, 3, 4, 5, 6].forEach((c, i) => poner(celdaEn(fila, c), v[i]));
+              continue;
+            }
+            if (modoParam) continue;
+            for (let i = 0; i < cs.length; i++) {
+              const rot = rotuloDe(cs[i]);
+              if (!rot || !cs[i + 1] || rotuloDe(cs[i + 1])) continue;
+              const clave = norm(rot);
+              const destino = cs[i + 1];
+              const unidad = cs[i + 2] && !rotuloDe(cs[i + 2]) && cs[i + 2].txt && cs[i + 2].c < (cs[i + 3] ? cs[i + 3].c : 99) ? cs[i + 2] : null;
+              let v = null;
+              if (enCabecera && CABECERA[clave]) v = fuente.cab(CABECERA[clave]);
+              else v = fuente.dato(clave, destino.c < 4 ? izq : der, Boolean(unidad));
+              if (v) poner(destino, v);
+              else if (!destino.f && /^-?\d+(\.\d+)?$/.test(destino.txt)) destino.html = num(destino.txt);
+            }
+          }
+          for (const reg of regionesBocas.reverse()) {
+            let total = reg.cab + 1;
+            while (total < m.filas.length && norm((celdaEn(m.filas[total], 0) || {}).txt) !== "TOTAL") total++;
+            if (total >= m.filas.length) continue;
+            const filas = fuente.bocas ? fuente.bocas(reg.red) : null;
+            if (fuente.partirE) partirCabecera(m.filas[reg.cab], fuente.partirE);
+            const huecos = total - reg.cab - 1;
+            if (filas && filas.length > huecos) {
+              const modeloFila = m.filas[total - 1];
+              const nuevas = Array.from({ length: filas.length - huecos }, () => ({ ...modeloFila, orig: void 0, celdas: modeloFila.celdas.map((x) => ({ ...x })) }));
+              m.filas.splice(total, 0, ...nuevas);
+              total += nuevas.length;
+            }
+            for (let k = reg.cab + 1; k < total; k++) {
+              const fila = m.filas[k];
+              if (fuente.partirE) partirFila(fila);
+              const b = filas && filas[k - reg.cab - 1];
+              if (!b) continue;
+              ["local", "terminal", "proyecto", "medido"].forEach((cl, i) => poner(celdaEn(fila, i), b[cl]));
+              if (fuente.partirE) {
+                poner(fila.celdas.find((x) => x.c === 4 && x.sub === 0), b.seccion);
+                poner(fila.celdas.find((x) => x.c === 4 && x.sub === 1), b.velocidad);
+                poner(fila.celdas.find((x) => x.c === 4 && x.sub === 2), b.compuerta);
+              } else poner(celdaEn(fila, 4), b.compuerta);
+              poner(celdaEn(fila, 5), b.desv);
+              poner(celdaEn(fila, 6), b.resultado);
+            }
+            const t = fuente.total ? fuente.total(reg.red) : null;
+            const filaTotal = m.filas[total];
+            if (fuente.partirE) partirFila(filaTotal);
+            if (t) {
+              poner(celdaEn(filaTotal, 2), t.proyecto);
+              poner(celdaEn(filaTotal, 3), t.medido);
+              poner(celdaEn(filaTotal, 5), t.desv);
+              poner(celdaEn(filaTotal, 6), t.resultado);
+              const nota = fuente.partirE ? filaTotal.celdas.find((x) => x.c === 4 && x.sub === 2) : celdaEn(filaTotal, 4);
+              poner(nota, t.nota && `<span class="nota">${t.nota}</span>`);
+            }
+          }
+        }
+        function partirFila(fila) {
+          const e = celdaEn(fila, 4);
+          if (!e || e.sub !== void 0) return;
+          fila.celdas = fila.celdas.filter((x) => x !== e);
+          fila.celdas.push({ ...e, sub: 0, txt: "" }, { ...e, sub: 1, txt: "" }, { ...e, sub: 2 });
+        }
+        function partirCabecera(fila, rotulos) {
+          partirFila(fila);
+          fila.celdas.filter((x) => x.c === 4 && x.sub !== void 0 && x.sub < 2).forEach((x) => {
+            x.txt = rotulos[x.sub];
+          });
+        }
+        function insertarEsquema(m, svg) {
+          const i = m.filas.findIndex((f) => f.celdas.some((x) => esBanda(m, x) && /^RESUMEN/.test(norm(x.txt))));
+          if (i < 0) return;
+          const banda = m.filas[i];
+          const st = banda.celdas.find((x) => esBanda(m, x)).st;
+          const sep = m.filas[i - 1];
+          const vb = /viewBox="0 0 ([\d.]+) ([\d.]+)"/.exec(svg);
+          const ancho = m.anchos.reduce((a, b) => a + b, 0);
+          const alto = vb ? Math.round(Math.min(260, Math.max(120, ancho * Number(vb[2]) / Number(vb[1]) * 0.75))) : 170;
+          m.filas.splice(
+            i,
+            0,
+            { alto: banda.alto, celdas: [{ c: 0, cs: 8, rs: 1, st, txt: "ESQUEMA DEL SISTEMA \xB7 EQUIPO, DIFUSORES Y REJAS DE RETORNO" }] },
+            { alto, celdas: [{ c: 0, cs: 8, rs: 1, st: 0, txt: "", html: `<div class="esquemaBal" style="height:${Math.round(alto * PT) - 8}px">${svg}</div>`, clase: "xlEsquema" }] },
+            { alto: sep ? sep.alto : 6, celdas: (sep ? sep.celdas : []).map((x) => ({ ...x })) }
+          );
+        }
+        function aparatosHtml(instrumentos, texto) {
+          const lista = (instrumentos || []).map((i) => {
+            const malo = i.estado === "caducado" || i.estado === "sinCertificado";
+            return `<span class="${malo ? "instMalo" : ""}">${esc(i.descripcion || "")}${i.estado === "caducado" ? " \u2014 <strong>CADUCADO</strong>" : ""}</span>`;
+          });
+          if (texto) lista.push(esc(texto));
+          return lista.join(" \xB7 ");
+        }
+        function cajaFirma(f) {
+          return f ? `<div class="firmante">${esc(f.nombre)}</div><div class="fechaFirma">Firmado el ${fecha(f.fecha)}</div>` : '<div class="hueco">Nombre, firma y fecha</div>';
+        }
+        const ALIAS = {
+          "PRESION MAX ADMISIBLE PS": "p_minima"
+        };
+        function valorPunto(p, conUnidad) {
+          const v = p.valor;
+          if (v === null || v === void 0 || v === "") return null;
+          if (RESPUESTA[v]) return { html: RESPUESTA[v], bg: v === "no" || v === "noOk" ? "#FFC7CE" : null };
+          if (p.tipo === "numero") return `${num(v)}${p.unidad && !conUnidad ? ` ${esc(p.unidad)}` : ""}`;
+          if (p.tipo === "fecha") return fecha(v);
+          return esc(v);
+        }
+        function hojaFicha(ev, plantilla, ctx = {}) {
+          const m = modelo(plantilla.nombre);
+          if (!m) return null;
+          const c = ev.datos.cabecera || {};
+          const ob = ctx.cabeceraObra || {};
+          const eq = ctx.equipo || {};
+          const blanco = Boolean(ctx.enBlanco);
+          const firmada = ev.estado === "firmada";
+          const marca = blanco ? "" : ev.datosPrueba ? "DATOS DE PRUEBA" : firmada ? "" : "BORRADOR";
+          const secciones = ev.secciones || [];
+          const puntos = [];
+          for (const s of secciones) for (const p of s.puntos || []) puntos.push({ s, p, sec: norm(s.titulo), rot: norm(p.etiqueta), usado: false });
+          const buscar = (rot, sec) => {
+            const alias = ALIAS[rot];
+            const lista = alias ? puntos.filter((x) => x.p.codigo === alias) : puntos.filter((x) => x.rot === rot && !x.usado);
+            let q = lista.find((x) => x.sec === sec) || lista.find((x) => sec && (sec.includes(x.sec) || x.sec.includes(sec))) || lista[0];
+            if (!q) q = puntos.find((x) => !x.usado && x.p.codigo === rot.toLowerCase().replace(/ /g, "_"));
+            if (q) q.usado = true;
+            return q;
+          };
+          const buscarParam = (rot, sec, hija) => {
+            let q = hija ? null : buscar(rot, sec);
+            if (!q) {
+              const libres = puntos.filter((x) => !x.usado && x.s.tipo === "parametros" && (x.sec === sec || !sec));
+              q = hija ? libres.find((x) => x.rot.endsWith(` ${rot}`)) : libres.find((x) => x.rot.startsWith(`${rot} `));
+              if (q) q.usado = true;
+            }
+            return q;
+          };
+          const prueba = (secciones.find((s) => s.prueba) || {}).prueba;
+          const RC = REJ();
+          const copias = RC && ev.datos && !blanco ? RC.copiasVigentes(ev.datos) : [];
+          const deCopia = {};
+          copias.forEach((cp, i) => cp.puntos.forEach((p) => {
+            deCopia[p] = i + 1;
+          }));
+          const fuente = {
+            formato: plantilla.formato,
+            cab: (k) => ({
+              edificio: esc(ob.edificio || ctx.obra && ctx.obra.nombre || ""),
+              direccion: esc(ob.direccion || ""),
+              localidad: esc(ob.localidad || ""),
+              fecha: fecha(c.fechaEnsayo),
+              tag: ctx.titulo || eq.tag ? `<strong>${esc(ctx.titulo || eq.tag)}</strong>` : "",
+              realizadoPor: esc(c.realizadoPor || ""),
+              responsable: esc(c.responsable || ""),
+              planta: esc([eq.planta, eq.sala].filter(Boolean).join(" / ")),
+              aparatos: blanco ? "" : aparatosHtml(ev.instrumentos, c.aparatos),
+              condiciones: blanco ? "" : esc(c.condiciones || ""),
+              denominacion: esc(eq.denominacion || ""),
+              acta: esc(c.actaFabricante || ""),
+              tecnico: esc(c.tecnicoFabricante || "")
+            })[k] || "",
+            dato: (rot, sec, conUnidad) => {
+              if (prueba && !blanco) {
+                if (rot === "PRESION MINIMA EXIGIDA") return num(prueba.ps);
+                if (rot === "PRESION FINAL CORREGIDA") return num(prueba.pfCorregida);
+                if (rot === "CAIDA DE PRESION CORREGIDA") return num(prueba.caida, 1);
+                if (rot === "RESULTADO" && /PRUEBA DE PRESION/.test(sec)) return res(prueba.resultado);
+              }
+              const q = buscar(rot, sec);
+              return q ? valorPunto(q.p, conUnidad) : null;
+            },
+            param: (rot, sec, hija) => {
+              const q = buscarParam(rot, sec, hija);
+              if (!q) return null;
+              const p = q.p;
+              return [
+                num(p.p),
+                num(p.f),
+                num(p.m),
+                p.resultado !== null && p.resultado !== void 0 || p.limite !== null && p.limite !== void 0 ? pct(p.desv) : "",
+                res(p.resultado)
+              ];
+            },
+            check: (cod) => {
+              const q = puntos.find((x) => x.p.codigo === cod);
+              if (!q) return null;
+              q.usado = true;
+              const v = valorPunto(q.p) || { html: "" };
+              const n = deCopia[cod];
+              if (!n) return v;
+              return { html: `${v.html || v}<sup>${copias.length > 1 ? n : "*"}</sup>`, bg: v.bg, copiada: true };
+            },
+            resumen: (red) => {
+              const s = secciones.find((x) => x.circuitos);
+              const e = s && s.circuitos[red];
+              if (!e) return null;
+              return [
+                e.bocas ? String(e.bocas) : "",
+                num(e.proyectoSistema, 0),
+                num(e.proyecto, 0),
+                num(e.medido, 0),
+                e.total ? pct(e.total.desv) : "",
+                e.total ? res(e.total.resultado) : null
+              ];
+            },
+            bocas: (red) => {
+              const s = secciones.find((x) => x.circuitos);
+              const e = s && s.circuitos[red];
+              return e ? e.filas.map((b) => ({ local: esc(b.local || ""), terminal: esc(b.terminal || ""), proyecto: num(b.p, 0), medido: num(b.m, 0), compuerta: esc(b.compuerta || ""), desv: pct(b.desv), resultado: res(b.resultado) })) : null;
+            },
+            total: (red) => {
+              const s = secciones.find((x) => x.circuitos);
+              const e = s && s.circuitos[red];
+              return e ? { proyecto: num(e.proyecto, 0), medido: num(e.medido, 0), desv: e.total ? pct(e.total.desv) : "", resultado: e.total ? res(e.total.resultado) : null, nota: e.sinMedir ? `${e.sinMedir} sin medir` : "" } : null;
+            },
+            partirE: plantilla.clase === "balanceo" ? ["SECCI\xD3N\ncm", "V MEDIA\nm/s"] : null,
+            fotos: () => blanco ? "" : fotosHtml(ev.datos.fotos || [], ctx.imagenes),
+            firma: (rol) => cajaFirma(!blanco && (ev.firmas || []).find((f) => f.rol === rol)),
+            observaciones: () => {
+              if (blanco) return "";
+              const partes = [];
+              if (ev.datos.observaciones) partes.push(esc(ev.datos.observaciones));
+              const sinCelda = puntos.filter((x) => !x.usado && x.p.valor !== null && x.p.valor !== void 0 && x.p.valor !== "" && x.s.tipo !== "checklist");
+              if (sinCelda.length) partes.push(`Otros datos: ${sinCelda.map((x) => `${esc(x.p.etiqueta)}: ${valorPunto(x.p) && (valorPunto(x.p).html || valorPunto(x.p))}`).join(" \xB7 ")}.`);
+              const sinCeldaParam = puntos.filter((x) => !x.usado && x.s.tipo === "parametros" && (x.p.m !== null && x.p.m !== void 0));
+              if (sinCeldaParam.length) partes.push(sinCeldaParam.map((x) => `${esc(x.p.etiqueta)}: proyecto ${num(x.p.p)} \xB7 te\xF3rico ${num(x.p.f)} \xB7 medido ${num(x.p.m)} ${esc(x.p.unidad || "")}`).join(" \xB7 "));
+              if (!ev.completa) {
+                const falta = [
+                  ev.medidos.obligatorios > ev.medidos.rellenos ? `faltan ${ev.medidos.obligatorios - ev.medidos.rellenos} de ${ev.medidos.obligatorios} valores` : "",
+                  ev.faltan.length ? `${esc(ev.faltan.slice(0, 6).join(" \xB7 "))}${ev.faltan.length > 6 ? "\u2026" : ""}` : ""
+                ].filter(Boolean).join(" \u2014 ");
+                partes.push(`<span class="pendiente">PENDIENTE: ${falta}</span>`);
+              }
+              for (const a of ev.avisos || []) partes.push(`<span class="aviso">${esc(a)}</span>`);
+              copias.forEach((cp, i) => partes.push(`<span class="copias">${copias.length > 1 ? `<sup>${i + 1}</sup> ` : "<sup>*</sup> "}Copiadas: ${esc(cp.texto)}</span>`));
+              if ((ev.datos.anexosPdf || []).length) partes.push(`Se adjunta al final: ${ev.datos.anexosPdf.map((a) => `PDF del fabricante \xAB${esc(a.nombre || a.ruta.split(/[\\/]/).pop())}\xBB`).join(", ")}.`);
+              if (plantilla.clase === "fichaPM" || plantilla.clase === "balanceo") {
+                const tol = (v) => v === null || v === void 0 ? "SIN FIJAR" : `\xB1${num(v * 100, 1)} %`;
+                partes.push(`Tolerancias de la obra: caudal total ${tol(ev.tolerancias && ev.tolerancias.total)}, por boca ${tol(ev.tolerancias && ev.tolerancias.boca)}.`);
+              }
+              if (ev.resultado && res(ev.resultado)) partes.push(`Resultado de la ficha: ${res(ev.resultado).html}`);
+              return partes.map((p) => `<div>${p}</div>`).join("");
+            }
+          };
+          rellenar(m, fuente);
+          if (blanco) return pintar(m, { blanco: true, partirE: fuente.partirE && [0.28, 0.24] });
+          return pintar(m, { marca, partirE: fuente.partirE && [0.28, 0.24] });
+        }
+        function fotosHtml(fotos, imagenes) {
+          if (!fotos.length) return "";
+          return `<div class="fotos">${fotos.map((f) => {
+            const src = imagenes && imagenes[f.ruta];
+            return `<figure>${src ? `<img src="${src}" alt="">` : '<div class="sinImagen">imagen no disponible</div>'}
+      <figcaption>${esc(f.nombre || String(f.ruta || "").split(/[\\/]/).pop())}</figcaption></figure>`;
+          }).join("")}</div>`;
+        }
+        const ESTADO_BOCA = { ok: "apto", alto: "noApto", bajo: "noApto" };
+        const ESTADO_BAL = { apto: "APTO", aptoSinBocas: "APTO SIN BOCAS", noApto: "NO APTO", pendiente: "PENDIENTE" };
+        function hojaBalanceo(ev, ctx = {}) {
+          const m = modelo("BALANCEO CAUDALES");
+          if (!m) return null;
+          const ob = ctx.cabeceraObra || {};
+          const eq = ctx.equipo || {};
+          const h = ev.hoja || {};
+          const enTabla = eq.balanceoEstado || "pendiente";
+          const pasada = ev.estado !== "pendiente" && enTabla === ev.estado;
+          const circ = (red) => (ev.circuitos || []).find((c) => c.id === red);
+          if (ctx.esquema) insertarEsquema(m, ctx.esquema);
+          const tol = (v) => v === null || v === void 0 ? "SIN FIJAR" : `\xB1${num(v * 100, 1)} %`;
+          const resTotal = (c) => c.totalOk === true ? res("apto") : c.totalOk === false ? res("noApto") : null;
+          const fuente = {
+            formato: "Formato CBRE - rev.2 - 06/10/2026",
+            cab: (k) => ({
+              edificio: esc(ob.edificio || ctx.obra && ctx.obra.nombre || ""),
+              direccion: esc(ob.direccion || ""),
+              localidad: esc(ob.localidad || ""),
+              fecha: fecha(h.fechaMedicion),
+              tag: eq.tag ? `<strong>${esc(eq.tag)}</strong>` : "",
+              planta: esc([eq.planta, eq.sala].filter(Boolean).join(" / ")),
+              aparatos: aparatosHtml(ev.instrumentos),
+              denominacion: esc([ev.tipo && ev.tipo.nombre, eq.denominacion, [eq.marca, eq.modelo].filter(Boolean).join(" / ")].filter(Boolean).join(" \xB7 "))
+            })[k] || "",
+            dato: (rot) => {
+              if (rot === "EQUIPO") return esc(eq.tag || "");
+              if (rot === "ZONA SERVIDA") return esc(eq.zonaServida || eq.zona || "");
+              if (rot === "CAUDAL PROYECTO IMPULSION") return circ("impulsion") ? num(circ("impulsion").proyectoEquipo, 0) : "";
+              if (rot === "CAUDAL PROYECTO RETORNO") return circ("retorno") ? num(circ("retorno").proyectoEquipo, 0) : "";
+              return null;
+            },
+            param: () => null,
+            check: () => null,
+            resumen: (red) => {
+              const c = circ(red);
+              if (!c) return null;
+              return [c.bocas.length ? String(c.bocas.length) : "", num(c.proyectoEquipo, 0), num(c.sumaProyecto, 0), num(c.sumaMedido, 0), pct(c.desviacionTotal), resTotal(c)];
+            },
+            bocas: (red) => {
+              const c = circ(red);
+              return c ? c.bocas.map((b) => ({
+                local: esc(b.nombre || ""),
+                terminal: esc(b.terminal || ""),
+                proyecto: `${num(b.caudalProyecto, 0)}${b.origenProyecto === "repartido" ? ' <span class="nota">(rep.)</span>' : ""}`,
+                medido: num(b.caudalMedido, 0),
+                seccion: b.ancho && b.alto ? `${num(b.ancho, 0)} \xD7 ${num(b.alto, 0)}` : "",
+                velocidad: b.velocidad ? num(b.velocidad, 1) : "",
+                compuerta: esc(b.compuerta || b.observaciones || (b.estado === "sinProyecto" ? "sin proyecto" : "")),
+                desv: pct(b.desviacion),
+                resultado: res(ESTADO_BOCA[b.estado])
+              })) : null;
+            },
+            total: (red) => {
+              const c = circ(red);
+              return c ? {
+                proyecto: num(c.sumaProyecto, 0),
+                medido: num(c.sumaMedido, 0),
+                desv: pct(c.desviacionTotal),
+                resultado: resTotal(c),
+                nota: c.medidoEquipo !== null && c.medidoEquipo !== void 0 ? `medido en equipo ${num(c.medidoEquipo, 0)}` : ""
+              } : null;
+            },
+            partirE: ["SECCI\xD3N\ncm", "V MEDIA\nm/s"],
+            fotos: () => "",
+            firma: () => cajaFirma(null),
+            observaciones: () => {
+              const partes = [];
+              const magnitudes = (ev.equipo || []).filter((x) => x.fabrica !== null || x.proyecto !== null || x.medido !== null);
+              if (magnitudes.length) {
+                partes.push(`Equipo (te\xF3rico fabr. / proyecto / medido): ${magnitudes.map((x) => `${esc(x.nombre)} ${[x.fabrica, x.proyecto, x.medido].map((v) => v === null || v === void 0 ? "\u2014" : num(v, 1)).join(" / ")} ${esc(x.unidad || "")}${x.desviacion === null || x.desviacion === void 0 ? "" : x.absoluta ? ` (${x.desviacion > 0 ? "+" : ""}${num(x.desviacion, 1)} ${esc(x.unidad || "")})` : ` (${pct(x.desviacion)})`}`).join(" \xB7 ")}.`);
+              }
+              for (const c of ev.circuitos || []) {
+                if (c.perdida && c.perdida.total !== null && c.perdida.total !== void 0) partes.push(`${esc(c.nombre)}: p\xE9rdida de carga te\xF3rica ${num(c.perdida.total, 0)} Pa (estimaci\xF3n de commissioning con valores de cat\xE1logo, no el c\xE1lculo del proyecto).`);
+              }
+              const f = h.fuentes || {};
+              if (f.fabrica || f.proyecto) partes.push(`Fuentes: ${[f.fabrica ? `f\xE1brica: ${esc(f.fabrica)}` : "", f.proyecto ? `proyecto: ${esc(f.proyecto)}` : ""].filter(Boolean).join(" \xB7 ")}.`);
+              for (const a of ev.avisos || []) partes.push(`<span class="aviso">${esc(a.texto)}</span>`);
+              partes.push(`Tolerancias de la obra: caudal total ${tol(ev.tolerancias && ev.tolerancias.total)}, por boca ${tol(ev.tolerancias && ev.tolerancias.boca)}.`);
+              const r = { apto: "apto", noApto: "noApto", aptoSinBocas: "aRevisar" }[ev.estado];
+              partes.push(`Resultado de la hoja: ${r ? `<span class="res ${r}">${ESTADO_BAL[ev.estado]}</span>` : esc(ESTADO_BAL[ev.estado] || ev.estado || "")}${ev.porque ? ` \u2014 ${esc(ev.porque)}` : ""}. En la tabla de equipos: ${esc(ESTADO_BAL[enTabla] || enTabla)}${pasada ? "." : " \u2014 el resultado de esta hoja a\xFAn no se ha pasado a la tabla."}`);
+              return partes.map((p) => `<div>${p}</div>`).join("");
+            }
+          };
+          rellenar(m, fuente);
+          return pintar(m, { marca: pasada ? "" : "BORRADOR", partirE: [0.28, 0.24], clase: "hojaBal" });
+        }
+        const AJUSTE_PAPEL = `(() => {
+  const util = ${ALTO_UTIL.toFixed(1)};
+  document.querySelectorAll('.hojaXl .xlPagina').forEach((p) => {
+    const alto = p.getBoundingClientRect().height;
+    const zoom = parseFloat(p.style.zoom || '1') * util / alto;
+    /* M\xE1s peque\xF1a ya no se lee: entonces, mejor dos hojas (un balanceo con muchas bocas). */
+    if (alto > util && zoom >= 0.5) p.style.zoom = String(zoom);
+  });
+  return true;
+})()`;
+        const tieneHoja = (nombre) => Boolean(MAQ() && MAQ().hojas[nombre]);
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.FICHA_EXCEL = API;
+        })({ hojaFicha, hojaBalanceo, tieneHoja, norm, AJUSTE_PAPEL });
       })();
     }
   });
@@ -21260,7 +21936,13 @@ globalThis.CX_VARIANTE="cxobra";
           }).join("");
           return lista + (c.aparatos ? `<div>${escFh(c.aparatos)}</div>` : "");
         }
+        const excelFh = () => typeof __require !== "undefined" ? require_fichaExcel() : typeof window !== "undefined" ? window.FICHA_EXCEL : null;
         function hojaFicha(ev, plantilla, ctx = {}) {
+          const X = excelFh();
+          if (X && plantilla && X.tieneHoja(plantilla.nombre)) {
+            const html = X.hojaFicha(ev, plantilla, ctx);
+            if (html) return html;
+          }
           const c = ev.datos.cabecera || {};
           const ob = ctx.cabeceraObra || {};
           const eq = ctx.equipo || {};
@@ -21319,6 +22001,11 @@ globalThis.CX_VARIANTE="cxobra";
           return "";
         };
         function hojaBalanceo(ev, ctx = {}) {
+          const X = excelFh();
+          if (X && X.tieneHoja("BALANCEO CAUDALES")) {
+            const html = X.hojaBalanceo(ev, ctx);
+            if (html) return html;
+          }
           const ob = ctx.cabeceraObra || {};
           const eq = ctx.equipo || {};
           const h = ev.hoja || {};
@@ -59925,6 +60612,7 @@ ${linea}` : linea;
         "POST api/equipo/fotos": [["commissioning", "editar"]],
         "POST api/equipo/fotos/quitar": [["commissioning", "editar"]],
         "GET api/equipo/foto": [["commissioning", "ver"]],
+        "GET api/equipo/plano": [["commissioning", "ver"]],
         "GET api/ncr": [["ncr", "ver"]],
         "GET api/ncr/ficha": [["ncr", "ver"]],
         "POST api/ncr": [["ncr", "crear"]],
@@ -60050,15 +60738,24 @@ ${linea}` : linea;
               falta: fila.falta,
               incidencias: fila.incidencias
             } : null,
+            /* Qué se mide de este equipo (plantillasCbre.js › MEDICIONES): decide
+               si sale la fila del balanceo y con qué nombre. */
+            medicion: fila ? fila.medicion || null : null,
             planos: d.planos.map((p) => ({
               id: p.id,
               nombre: p.nombre,
+              /* El plano con sus bocas encima: la imagen va por api/equipo/plano. */
+              imagen: Boolean(p.imagenId),
+              ancho: p.ancho || null,
+              alto: p.alto || null,
               bocas: p.puntos.map((x) => {
                 const e = evaluada.get(x.id) || {};
                 return {
                   id: x.id,
                   nombre: x.nombre,
                   circuito: e.circuito,
+                  x: MDIF.num(x.x),
+                  y: MDIF.num(x.y),
                   tipo: e.tipoNombre,
                   velocidad: x.velocidad,
                   lecturas: e.lecturasLista || [],
@@ -60182,6 +60879,13 @@ ${linea}` : linea;
           } catch {
             return [404, { ok: false, error: "La foto ya no est\xE1 en su carpeta." }];
           }
+        }
+        function equipoPlano({ ses, query }) {
+          const img = DIF.imagenPlano(repo, ses, llano(query.id));
+          if (!img) return [404, { ok: false, error: "Este plano no tiene imagen." }];
+          const m = /^data:(image\/[a-z+]+);base64,(.*)$/s.exec(String(img.imagen || ""));
+          if (!m) return [415, { ok: false, error: "La imagen del plano no se puede ense\xF1ar." }];
+          return { bytes: Buffer.from(m[2], "base64"), tipo: m[1] === "image/jpg" ? "image/jpeg" : m[1] };
         }
         function ncrLista({ ses, query }) {
           const d = NCR.obra(repo, ses, String(query.obra || ""));
@@ -60386,6 +61090,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           "POST api/equipo/fotos": equipoFotos,
           "POST api/equipo/fotos/quitar": equipoFotoQuitar,
           "GET api/equipo/foto": equipoFoto,
+          "GET api/equipo/plano": equipoPlano,
           "GET api/ncr": ncrLista,
           "GET api/ncr/ficha": ncrFicha,
           "POST api/ncr": ncrCrear,
