@@ -6135,7 +6135,8 @@ globalThis.CX_VARIANTE="cxobra";
             tareas: [...TODO, "aprobar"],
             horasObra: SOLO_VER,
             proyectos: ["ver", "editar", "exportar", "traspasar"],
-            alcance: ["ver", "editar", "exportar", "traspasar"],
+            /* 16-oct (JC): el jefe del departamento rellena y corrige el alcance y el contrato. */
+            alcance: ["ver", "crear", "editar", "borrar", "exportar", "traspasar"],
             calculo: TODO,
             presupuestos: ["ver", "exportar"],
             dedicaciones: SOLO_VER,
@@ -6206,7 +6207,8 @@ globalThis.CX_VARIANTE="cxobra";
             tareas: [...TODO, "aprobar"],
             horasObra: HORAS,
             proyectos: ["ver"],
-            alcance: ["ver"],
+            /* 16-oct (JC): «Alcance y contrato» lo edita también el jefe de obra y el de grupo. */
+            alcance: ["ver", "crear", "editar", "borrar"],
             calculo: ["ver", "exportar"],
             presupuestos: ["ver", "exportar"],
             columnas: SOLO_VER,
@@ -6262,7 +6264,8 @@ globalThis.CX_VARIANTE="cxobra";
             tareas: [...TODO, "aprobar"],
             horasObra: HORAS,
             proyectos: ["ver"],
-            alcance: ["ver"],
+            /* 16-oct (JC): «Alcance y contrato» lo edita también el jefe de obra y el de grupo. */
+            alcance: ["ver", "crear", "editar", "borrar"],
             calculo: TODO,
             presupuestos: ["ver"],
             columnas: SOLO_VER,
@@ -6711,7 +6714,13 @@ globalThis.CX_VARIANTE="cxobra";
           ]
         }
       ];
-      var RESTRICCIONES_JEFE_PRODUCCION = [];
+      var RESTRICCIONES_JEFE_PRODUCCION = [
+        /* 16-oct (JC): editan el alcance y el contrato el jefe de obra, el de grupo y
+           el jefe del departamento. El de producción lo consulta. */
+        ["alcance", "crear"],
+        ["alcance", "editar"],
+        ["alcance", "borrar"]
+      ];
       (function anadirJefeProduccion() {
         const i = ROLES.findIndex((r) => r.id === "jefeObra");
         const jo = ROLES[i];
@@ -6789,13 +6798,13 @@ globalThis.CX_VARIANTE="cxobra";
       var BARRAS_POR_ROL = {
         /* Gerencia y administración: «Empresa» y un apartado por departamento (DEPARTAMENTOS_EN_BARRA). */
         gerente: { empresa: true, trabajo: [], consulta: [] },
-        jefeEstudios: { trabajo: ["presupuestos", "proyectos", "calculo", "biblioteca", "reparto"], consulta: ["clientes", "proveedores", "estadisticas", "trazabilidad", "vacaciones"] },
-        tecnicoEstudios: { trabajo: ["presupuestos", "proyectos", "calculo", "biblioteca"], consulta: ["clientes", "proveedores", "vacaciones"] },
+        jefeEstudios: { trabajo: ["presupuestos", "alcance", "proyectos", "calculo", "biblioteca", "reparto"], consulta: ["clientes", "proveedores", "estadisticas", "trazabilidad", "vacaciones"] },
+        tecnicoEstudios: { trabajo: ["presupuestos", "alcance", "proyectos", "calculo", "biblioteca"], consulta: ["clientes", "proveedores", "vacaciones"] },
         jefeDelineacion: { trabajo: ["reparto", "proyectos", "calculo"], consulta: ["presupuestos", "personas", "trazabilidad", "vacaciones"] },
         delineante: { trabajo: ["proyectos", "calculo"], consulta: ["presupuestos", "vacaciones"] },
         comercial: { trabajo: ["clientes", "presupuestos"], consulta: ["proyectos", "estadisticas", "vacaciones"] },
-        jefeProyectos: { trabajo: ["obras", "tareas", "actas", "compras", "costsPlan", "certificaciones", "informeSemanal", "presupuestos", "proyectos"], consulta: ["estadisticas", "ncr", "ppi", "conflictos", "clientes", "proveedores", "personas", "vacaciones"] },
-        jefeGrupo: { trabajo: ["obras", "tareas", "actas", "informeSemanal", "costsPlan", "certificaciones", "compras"], consulta: ["pedidos", "commissioning", "ncr", "ppi", "conflictos", "estadisticas", "vacaciones"] },
+        jefeProyectos: { trabajo: ["obras", "alcance", "tareas", "actas", "compras", "costsPlan", "certificaciones", "informeSemanal", "presupuestos", "proyectos"], consulta: ["estadisticas", "ncr", "ppi", "conflictos", "clientes", "proveedores", "personas", "vacaciones"] },
+        jefeGrupo: { trabajo: ["obras", "alcance", "tareas", "actas", "informeSemanal", "costsPlan", "certificaciones", "compras"], consulta: ["pedidos", "commissioning", "ncr", "ppi", "conflictos", "estadisticas", "vacaciones"] },
         jefeObra: { trabajo: ["obras", "tareas", "actas", "costsPlan", "compras", "pedidos", "certificaciones", "commissioning", "ppi", "ncr", "partesIncidencia"], consulta: ["calculo", "pruebasEstanqueidad", "balanceo", "proveedores", "vacaciones"] },
         /* De momento, la misma que el jefe de obra (ver RESTRICCIONES_JEFE_PRODUCCION). */
         jefeProduccion: { trabajo: ["obras", "tareas", "actas", "costsPlan", "compras", "pedidos", "certificaciones", "commissioning", "ppi", "ncr", "partesIncidencia"], consulta: ["calculo", "pruebasEstanqueidad", "balanceo", "proveedores", "vacaciones"] },
@@ -6809,7 +6818,7 @@ globalThis.CX_VARIANTE="cxobra";
       };
       var SECCIONES_OBRA = {
         jefeObra: [
-          { nombre: "Documentaci\xF3n", modulos: ["alcance", "analisisProyecto", "nube", "actas", "informeSemanal", "puntosControl", "calculo"] },
+          { nombre: "Documentaci\xF3n", modulos: ["alcance", "analisisProyecto", "nube", "actas", "informeSemanal", "informeReparaciones", "puntosControl", "calculo"] },
           { nombre: "Econ\xF3mico", modulos: ["presupuestoObra", "costsPlan", "variantes", "certificaciones", "conflictos"] },
           { nombre: "Planificaci\xF3n", modulos: ["gantt", "planEconomica", "obras", "tareas", "partes", "vacaciones"] },
           { nombre: "Compras", modulos: ["planCompras", "comparativos", "pedidos", "proveedores"] },
@@ -6824,6 +6833,7 @@ globalThis.CX_VARIANTE="cxobra";
         variantes: { modulo: "costsPlan", etiqueta: "Variantes y OC" },
         analisisProyecto: { modulo: "costsPlan", etiqueta: "An\xE1lisis del proyecto" },
         puntosControl: { modulo: "commissioning", etiqueta: "Puntos de control" },
+        informeReparaciones: { modulo: "incidencias", etiqueta: "Informe de reparaciones" },
         planCompras: { modulo: "compras", etiqueta: "Plan de compras" },
         comparativos: { modulo: "compras", etiqueta: "Comparativos" },
         gantt: { modulo: "costsPlan", etiqueta: "Diagrama de Gantt" },
@@ -8704,7 +8714,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261016.0819" : "0";
+      var VERSION = true ? "20261016.0844" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -13903,11 +13913,13 @@ globalThis.CX_VARIANTE="cxobra";
            El ALCANCE lo sigue heredando del proyecto. */
         notasTraspaso: "notasTraspaso",
         mensajes: "presupuestos",
-        hojaAlcance: "presupuestos",
-        /* Lo firmado con el cliente: lo lleva quien lleva el presupuesto. */
-        contratos: "presupuestos",
-        fasesContrato: "presupuestos",
-        adendas: "presupuestos",
+        /* ALCANCE Y CONTRATO (16-oct, JC): lo edita quien tiene «alcance» —estudios,
+           y también el jefe de obra, el de grupo y el jefe del departamento—, no
+           solo quien lleva el presupuesto. Quien edita presupuestos edita alcance. */
+        hojaAlcance: "alcance",
+        contratos: "alcance",
+        fasesContrato: "alcance",
+        adendas: "alcance",
         preciosPartida: "presupuestos",
         versionesPresupuesto: "presupuestos",
         presupuestos: "presupuestos",
@@ -65241,6 +65253,117 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
     }
   });
 
+  // shared/incidencias/informeReparaciones.js
+  var require_informeReparaciones = __commonJS({
+    "shared/incidencias/informeReparaciones.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const llano = (v) => String(v ?? "").trim();
+        const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+        const fechaEs = (d) => d ? String(d).slice(0, 10).split("-").reverse().join("/") : "";
+        const horas = (n) => `${Number(n || 0).toLocaleString("es-ES", { maximumFractionDigits: 2 })} h`;
+        const ESTADO_TEXTO = { abierta: "Abierta", enCurso: "En curso", terminada: "Terminada", cerrada: "Cerrada", anulada: "Anulada" };
+        const TIPOS_OBSERVACION = /* @__PURE__ */ new Set(["feedback", "comentario"]);
+        function visitasDe(r) {
+          const porDia = /* @__PURE__ */ new Map();
+          for (const l of ((r.recuento || {}).lineas || []).filter((x) => x.cuenta !== false)) {
+            const dia = String(l.fecha || "").slice(0, 10);
+            if (!porDia.has(dia)) porDia.set(dia, { fecha: dia, tecnicos: /* @__PURE__ */ new Set(), empresas: /* @__PURE__ */ new Set(), horas: 0 });
+            const v = porDia.get(dia);
+            if (llano(l.operario)) v.tecnicos.add(llano(l.operario));
+            if (llano(l.empresa)) v.empresas.add(llano(l.empresa));
+            v.horas += Number(l.horas) || 0;
+          }
+          return [...porDia.values()].sort((a, b) => a.fecha.localeCompare(b.fecha)).map((v) => ({ ...v, tecnicos: [...v.tecnicos], empresas: [...v.empresas] }));
+        }
+        const observacionesDe = (r) => (r.comentarios || []).filter((c) => TIPOS_OBSERVACION.has(c.tipo) && llano(c.texto));
+        function fechaHecha(r) {
+          if (r.fechaCierre) return r.fechaCierre;
+          const v = visitasDe(r);
+          return v.length ? v[v.length - 1].fecha : "";
+        }
+        const equipoTexto = (e) => e ? [e.tag, e.denominacion || [e.marca, e.modelo].filter(Boolean).join(" ")].filter(Boolean).join(" \xB7 ") : "";
+        function portada({ obra, periodo, hoy, logo, n }) {
+          return `<section class="hojaInforme portadaInforme">
+    <div class="marcaInforme">${logo || "<strong>CBRE</strong>"}<span>Project 360</span></div>
+    <div class="tituloInforme">
+      <p class="antetitulo">Informe de reparaciones</p>
+      <h1>${esc([obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 "))}</h1>
+      <p class="periodo">${esc(periodo)}</p>
+    </div>
+    <dl class="datosPortada">
+      <div><dt>Reparaciones</dt><dd>${n}</dd></div>
+      <div><dt>Fecha del informe</dt><dd>${esc(fechaEs(hoy))}</dd></div>
+    </dl>
+  </section>`;
+        }
+        function resumen(reps) {
+          return `<section class="resumenInforme">
+    <h2>Resumen</h2>
+    <table class="tablaParte">
+      <thead><tr><th>C\xF3digo</th><th>Equipo</th><th>Planta</th><th>Qu\xE9 le pasaba</th><th>Visitas</th><th class="num">Horas</th><th>Hecha el</th><th>Estado</th></tr></thead>
+      <tbody>${reps.map((r) => `<tr>
+        <td>${esc(r.codigo)}</td><td>${esc(r.equipo ? r.equipo.tag : "")}</td><td>${esc(r.equipo ? r.equipo.planta || "" : "")}</td>
+        <td>${esc(r.titulo)}</td><td class="num">${visitasDe(r).length}</td><td class="num">${horas((r.recuento || {}).total)}</td>
+        <td>${esc(fechaEs(fechaHecha(r)))}</td><td>${esc(ESTADO_TEXTO[r.estado] || r.estado)}</td></tr>`).join("")}</tbody>
+      <tfoot><tr><td colspan="5">Total \xB7 ${reps.length} reparaciones</td><td class="num">${horas(reps.reduce((a, r) => a + (Number((r.recuento || {}).total) || 0), 0))}</td><td colspan="2"></td></tr></tfoot>
+    </table>
+  </section>`;
+        }
+        function fotosDe(r, momento) {
+          return (r.fotos || []).filter((f) => momento === "despues" ? f.momento === "despues" : f.momento !== "despues");
+        }
+        function hojaReparacion(r) {
+          const dato = (que, valor) => llano(valor) ? `<div><dt>${esc(que)}</dt><dd>${esc(valor)}</dd></div>` : "";
+          const visitas = visitasDe(r);
+          const obs = observacionesDe(r);
+          const antes = fotosDe(r, "antes");
+          const despues = fotosDe(r, "despues");
+          const columna = (titulo, fotos) => `<div class="columnaFotos"><h3>${titulo}</h3>${fotos.length ? fotos.map((f) => `<figure><img src="${esc(f.src)}" alt="${esc(f.nombre || "")}"></figure>`).join("") : '<p class="nota">Sin fotos.</p>'}</div>`;
+          return `<section class="hojaInforme reparacionInforme">
+    <header class="cabeceraParte">
+      <div><p class="marca">CBRE \xB7 Reparaci\xF3n de equipo</p><h1>${esc(r.codigo)} \u2014 ${esc(r.titulo)}</h1></div>
+      <p class="fecha">${esc(ESTADO_TEXTO[r.estado] || r.estado)}</p>
+    </header>
+    <dl class="datosParte">
+      ${dato("Equipo", equipoTexto(r.equipo))}
+      ${dato("Planta", r.equipo && r.equipo.planta)}
+      ${dato("Ubicaci\xF3n", r.ubicacion)}
+      ${dato("Abierta el", fechaEs(r.fechaApertura))}
+      ${dato("Hecha el", fechaEs(fechaHecha(r)))}
+      ${dato("Prioridad", llano(r.prioridad).charAt(0).toUpperCase() + llano(r.prioridad).slice(1))}
+    </dl>
+    ${llano(r.descripcion) ? `<section class="relato"><h2>Qu\xE9 le pasaba</h2><p>${esc(r.descripcion).replace(/\n/g, "<br>")}</p></section>` : ""}
+    ${visitas.length ? `<section><h2>Visitas</h2>
+      <table class="tablaParte">
+        <thead><tr><th>Fecha</th><th>T\xE9cnicos</th><th>Empresa</th><th class="num">Horas</th></tr></thead>
+        <tbody>${visitas.map((v) => `<tr><td>${esc(fechaEs(v.fecha))}</td><td>${esc(v.tecnicos.join(", "))}</td><td>${esc(v.empresas.join(", "))}</td><td class="num">${horas(v.horas)}</td></tr>`).join("")}</tbody>
+      </table></section>` : ""}
+    ${obs.length ? `<section class="relato"><h2>Observaciones</h2><ul class="observaciones">${obs.map((c) => `<li><span class="cuando">${esc(fechaEs(c.creadoEn || c.cuando))}${c.persona ? ` \xB7 ${esc(c.persona)}` : ""}</span> ${esc(c.texto).replace(/\n/g, "<br>")}</li>`).join("")}</ul></section>` : ""}
+    <section class="fotosInforme"><h2>Fotos</h2><div class="antesDespues">${columna("Antes", antes)}${columna("Despu\xE9s", despues)}</div></section>
+  </section>`;
+        }
+        function html({ obra = {}, reparaciones = [], periodo = "", hoy = "", logo = "" } = {}) {
+          return `<article class="documentoParte informeReparaciones">
+    ${portada({ obra, periodo, hoy, logo, n: reparaciones.length })}
+    ${reparaciones.length ? resumen(reparaciones) + reparaciones.map(hojaReparacion).join("") : '<p class="nota">No hay reparaciones hechas en ese periodo.</p>'}
+  </article>`;
+        }
+        function elegir(filas, { desde = "", hasta = "", estados = ["terminada", "cerrada"], ids = null } = {}) {
+          return filas.filter((r) => r.equipoId && estados.includes(r.estado) && (!ids || ids.includes(r.id))).filter((r) => {
+            const f = String(fechaHecha(r)).slice(0, 10);
+            return (!desde || f >= desde) && (!hasta || f <= hasta);
+          }).sort((a, b) => String(fechaHecha(a)).localeCompare(String(fechaHecha(b))) || String(a.codigo).localeCompare(String(b.codigo), "es", { numeric: true }));
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.INFORME_REPARACIONES = API;
+        })({ html, elegir, visitasDe, observacionesDe, fechaHecha });
+      })();
+    }
+  });
+
   // electron/data/incidencias.js
   var require_incidencias = __commonJS({
     "electron/data/incidencias.js"(exports, module) {
@@ -65250,6 +65373,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       var path = require_path();
       var M = require_motor3();
       var DOC = require_documento();
+      var INF = require_informeReparaciones();
       var N = require_motor();
       var { limpiarCoste } = require_partesIncidencia2();
       var { puede, campoVetado } = require_roles();
@@ -65730,6 +65854,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         return p ? { ruta: p.ruta, nombre: p.nombre } : null;
       }
       var MAX_FOTOS = 30;
+      var MOMENTOS_FOTO = { antes: "Antes", despues: "Despu\xE9s" };
       function anadirFotos(repo, sesion, id, fotos = []) {
         const { i, error } = tocable(repo, sesion, id);
         if (error) return { ok: false, error };
@@ -65739,7 +65864,14 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           if (!f || typeof f.ruta !== "string" || !f.ruta.trim() || ya.has(f.ruta)) return false;
           ya.add(f.ruta);
           return true;
-        }).map((f) => ({ ruta: f.ruta, nombre: llano(f.nombre) || f.ruta.split(/[\\/]/).pop(), fecha: hoy(), personaId: sesion.personaId }));
+        }).map((f) => ({
+          ruta: f.ruta,
+          nombre: llano(f.nombre) || f.ruta.split(/[\\/]/).pop(),
+          fecha: hoy(),
+          personaId: sesion.personaId,
+          /* 16-oct-2026, JC: «fotos del antes y del después» de la reparación. */
+          ...MOMENTOS_FOTO[f.momento] ? { momento: f.momento } : {}
+        }));
         const todas = [...actuales, ...nuevas];
         if (todas.length > MAX_FOTOS) return { ok: false, error: `Como mucho ${MAX_FOTOS} fotos por incidencia.` };
         repo.db.exec("BEGIN");
@@ -65776,7 +65908,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         try {
           const mime = MIME_FOTO[path.extname(f.ruta || "").toLowerCase()];
           if (!mime || !fs.existsSync(f.ruta)) return null;
-          return { nombre: f.nombre, src: `data:${mime};base64,${fs.readFileSync(f.ruta).toString("base64")}` };
+          return { nombre: MOMENTOS_FOTO[f.momento] ? `${MOMENTOS_FOTO[f.momento]} \xB7 ${f.nombre}` : f.nombre, src: `data:${mime};base64,${fs.readFileSync(f.ruta).toString("base64")}` };
         } catch {
           return null;
         }
@@ -65789,6 +65921,30 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         const html = DOC.html({ incidencia: i, obra: f.obra, fotos, conDinero: f.verDinero, hoy: hoy() });
         const nombreArchivo = `${f.obra.codigo} ${i.codigo} incidencia${f.verDinero ? " (valorada)" : ""}.pdf`.replace(/[\\/:*?"<>|]/g, "-");
         return { html, nombreArchivo, fotosOmitidas: (i.fotos || []).length - fotos.length };
+      }
+      function informeReparaciones(repo, sesion, obraId, { desde = "", hasta = "", ids = null } = {}) {
+        if (!puede(sesion.rol, "incidencias", "exportar")) return { error: "Tu rol no puede sacar el informe." };
+        const d = obra(repo, sesion, obraId);
+        if (!d) return { error: "No se encuentra la obra." };
+        const nombre = nombres(repo);
+        const elegidas = INF.elegir(d.filas, { desde, hasta, ids: Array.isArray(ids) && ids.length ? ids : null });
+        const reparaciones = elegidas.map((r) => ({
+          ...r,
+          comentarios: repo.listar("incidenciaComentarios", sesion, { condicion: "incidenciaId = ?", params: [r.id], orden: "creadoEn" }).map((c) => ({ ...c, persona: nombre.get(c.personaId) || null })),
+          fotos: (r.fotos || []).map((f) => {
+            const e = fotoEmbebida(f);
+            return e ? { ...e, momento: f.momento || null } : null;
+          }).filter(Boolean)
+        }));
+        let logo = "";
+        try {
+          logo = fs.readFileSync(path.join("/app/electron/data", "..", "..", "marca", "cbre-logo.svg"), "utf8").replace(/<\?xml[^>]*>/, "");
+        } catch {
+        }
+        const periodo = desde || hasta ? `Reparaciones hechas ${desde ? `del ${desde.split("-").reverse().join("/")} ` : ""}${hasta ? `al ${hasta.split("-").reverse().join("/")}` : "hasta hoy"}` : "Todas las reparaciones hechas";
+        const html = INF.html({ obra: d.obra, reparaciones, periodo, hoy: hoy(), logo });
+        const nombreArchivo = `${d.obra.codigo} informe de reparaciones ${hoy()}.pdf`.replace(/[\\/:*?"<>|]/g, "-");
+        return { html, nombreArchivo, n: reparaciones.length };
       }
       function costes(repo, sesion, obraId) {
         const d = obra(repo, sesion, obraId);
@@ -65871,7 +66027,8 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         costes,
         costesReparaciones,
         avisos,
-        documento
+        documento,
+        informeReparaciones
       };
     }
   });
@@ -65961,7 +66118,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
               ubicacion: i.ubicacion || "",
               horasOficial: i.calc.horasOficial,
               horasOperario: i.calc.horasOperario,
-              fotos: (i.fotos || []).map((f, n) => ({ indice: n, nombre: f.nombre, fecha: f.fecha })),
+              fotos: (i.fotos || []).map((f, n) => ({ indice: n, nombre: f.nombre, fecha: f.fecha, momento: f.momento || null })),
               avisos: i.calc.avisos.filter((a) => a.codigo !== "sinTarifa").map((a) => a.texto)
             },
             horas: i.recuento.lineas.map((l) => ({
@@ -66039,7 +66196,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           const rutas = p.fotos.map((f) => {
             const destino = path.join(carpetaRep(), `${String(i.codigo).replace(/[^A-Za-z0-9_-]/g, "_")}-${crypto2.randomBytes(6).toString("hex")}${EXT_DE_TIPO[f.tipo] || ".jpg"}`);
             fs.writeFileSync(destino, fs.readFileSync(f.ruta));
-            return { ruta: destino, nombre: path.basename(destino), id: f.id };
+            return { ruta: destino, nombre: path.basename(destino), id: f.id, momento: e.momento === "despues" ? "despues" : "antes" };
           });
           const a = INC.anadirFotos(repo, ses, i.id, rutas);
           if (a.ok) for (const f of rutas) soltar(f.id);
