@@ -5717,6 +5717,12 @@ globalThis.CX_VARIANTE="cxobra";
         informeSemanal: "Informe semanal",
         costsPlan: "Costs Plan",
         certificaciones: "Certificaciones",
+        /*
+         * EL AVANCE DE OBRA (16-oct, JC: «esto sí que es la clave de todo»): el
+         * encargado marca en la tablet lo ejecutado de cada partida, sin precios;
+         * al jefe de obra le llega y lo trae a la certificación (aprobar).
+         */
+        avanceObra: "Avance de obra",
         compras: "Compras y pedidos",
         /*
          * LOS PEDIDOS A PROVEEDOR, ya en obra: la solicitud de precio en PDF, la
@@ -5908,6 +5914,7 @@ globalThis.CX_VARIANTE="cxobra";
             costsPlan: ["ver", "exportar"],
             informeSemanal: ["ver", "exportar"],
             certificaciones: SOLO_VER,
+            avanceObra: ["ver", "exportar"],
             compras: SOLO_VER,
             pedidos: ["ver", "exportar"],
             commissioning: SOLO_VER,
@@ -6139,6 +6146,7 @@ globalThis.CX_VARIANTE="cxobra";
             costsPlan: [...TODO, "aprobar"],
             informeSemanal: ["ver", "exportar"],
             certificaciones: [...TODO, "aprobar"],
+            avanceObra: ["ver", "exportar"],
             /* Con `aprobar`: es el único puesto del organigrama que compromete una
                compra. Estudios llega hasta el comparativo y para ahí. */
             compras: [...TODO, "aprobar"],
@@ -6210,6 +6218,7 @@ globalThis.CX_VARIANTE="cxobra";
             costsPlan: ["ver", "exportar"],
             informeSemanal: ["ver", "exportar"],
             certificaciones: ["ver", "aprobar", "exportar"],
+            avanceObra: ["ver", "exportar"],
             compras: ["ver", "aprobar"],
             pedidos: ["ver", "exportar"],
             commissioning: ["ver", "exportar"],
@@ -6263,6 +6272,8 @@ globalThis.CX_VARIANTE="cxobra";
             costsPlan: ["ver", "crear", "editar", "exportar"],
             informeSemanal: ["ver", "exportar"],
             certificaciones: ["ver", "crear", "editar", "exportar"],
+            /* Le llega lo que marca el encargado y lo trae a la certificación. */
+            avanceObra: [...TODO, "aprobar"],
             compras: ["ver", "crear", "editar"],
             /* Lanza los pedidos de su obra, mete la confirmación y sigue la entrega.
                `borrar` es quitar un documento mal adjuntado o un borrador que no
@@ -6460,6 +6471,8 @@ globalThis.CX_VARIANTE="cxobra";
                los correos y las notas de lo que le dicen. Ni los importes ni nuestra
                postura le llegan, y el estado lo lleva el jefe de obra. */
             conflictos: ["ver", "crear"],
+            /* Marca en la tablet lo ejecutado de cada partida, sin precios. */
+            avanceObra: ["ver", "crear", "editar"],
             /* Las certificaciones son del jefe de obra: es lo que se le cobra a la
                propiedad, y eso es dinero que el encargado no ve. */
             /* No compra: pide lo que necesita (aquí abajo) y la compra la hace el
@@ -6755,6 +6768,8 @@ globalThis.CX_VARIANTE="cxobra";
         { id: "ncr", nombre: "NCR", modulo: "ncr", soloVer: true },
         /* Las reparaciones de equipos: las abre el jefe de obra, las hace el encargado. */
         { id: "reparaciones", nombre: "Reparaciones", modulo: "incidencias", soloVer: true },
+        /* El avance de obra: lo marca el encargado, partida a partida. */
+        { id: "avance", nombre: "Avance", modulo: "avanceObra" },
         { id: "albaranes", nombre: "Albaranes", modulo: "pedidos" },
         { id: "inventario", nombre: "Inventario", modulo: "pedidos", soloVer: true },
         { id: "bloc", nombre: "Bloc", modulo: "notas" },
@@ -8367,7 +8382,9 @@ globalThis.CX_VARIANTE="cxobra";
         albaranes: ["pedidosCompra", "pedidoDocumentos", "albaranes", "albaranLineas", "pedidosConfig"],
         inventario: ["pedidosCompra", "pedidoDocumentos", "albaranes", "albaranLineas"],
         personal: ["operariosObra", "personalPrevisto", "fichajes", "documentosPersonal", "festivos"],
-        estanqueidad: ["pruebasEstanqueidad"]
+        estanqueidad: ["pruebasEstanqueidad"],
+        /* Los planos y las partidas los pone el ordenador; las marcas, el encargado. */
+        avance: ["planosAvance", "avancePartidas", "avanceMarcas", "avanceMateriales"]
       };
       var CATALOGOS_SECCION = {
         commissioning: ["plantillasPM", "instrumentosMedida", "ppiPlantillas"],
@@ -8399,7 +8416,9 @@ globalThis.CX_VARIANTE="cxobra";
         "personalPrevisto",
         "documentosPersonal",
         "inspeccionesHechas",
-        "ppiLineas"
+        "ppiLineas",
+        "avanceMarcas",
+        "avanceMateriales"
       ];
       var FUERA = /^(importe|precio|coste|iban|cuenta|banco|hashClave)/i;
       var COLUMNAS_PERSONA = ["id", "nombre", "email", "rol", "departamento", "jefeId", "activo", "creadoEn", "modificadoEn"];
@@ -8685,7 +8704,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261016.0722" : "0";
+      var VERSION = true ? "20261016.0827" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -12067,6 +12086,125 @@ globalThis.CX_VARIANTE="cxobra";
      creadoEn         TEXT NOT NULL,
      modificadoEn     TEXT NOT NULL
    )`,
+        /*
+         * EL AVANCE DE OBRA (16-oct-2026, JC: «que el encargado marque en el plano
+         * lo ejecutado por fecha y que esa info le llegue al jefe de obra»).
+         *
+         * `planosAvance`: los planos de la obra sobre los que se marca (la imagen
+         * va dentro, como dataURL; se sube en el ordenador, también desde PDF).
+         * Cada plano tiene sus CAPAS (JC: «una capa que sea de la tubería para
+         * marcar solo la tubería, otra para equipos, otra para conductos…; en
+         * electricidad, bandejas, cable, puntos de luz»): `capas` es un JSON
+         * [{ id, nombre, tipo: trazo|zona|punto, color, lineaIds: [partidas] }].
+         * `escala`: los metros que mide el ancho del plano, para que un trazo dé
+         * sus metros solo. `avanceMarcas`: cada
+         * cosa que el encargado marca en un plano: un TRAZO (tubería, conducto,
+         * bandeja), una ZONA (falso techo, una sala) o un PUNTO (un equipo), con
+         * el día en que se ejecutó, su nota y sus fotos; `puntos` en coordenadas
+         * relativas (0..1) a la imagen. Puede decir de qué partida es y cuánto
+         * (`lineaId`, `cantidad` ejecutada ESE día): con eso, al final, la
+         * certificación. Estado: pendiente (le llega al jefe de obra), vista (la
+         * ha revisado), certificada (ya está en una certificación) o descartada.
+         *
+         * `avancePartidas`: las partidas del Costs Plan tal como las ve el
+         * encargado (sin precio), para elegir a qué partida va una marca. La
+         * rellena el ordenador para que viaje al teléfono, que no tiene el
+         * presupuesto. `activa` 0 si la partida ya no está.
+         */
+        `CREATE TABLE IF NOT EXISTS planosAvance (
+     id               TEXT PRIMARY KEY,
+     obraId           TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     nombre           TEXT NOT NULL,
+     planta           TEXT,
+     disciplina       TEXT,
+     orden            INTEGER NOT NULL DEFAULT 0,
+     imagen           TEXT NOT NULL,
+     ancho            INTEGER,
+     alto             INTEGER,
+     escala           REAL,
+     capas            TEXT NOT NULL DEFAULT '[]',
+     activo           INTEGER NOT NULL DEFAULT 1,
+     creadoEn         TEXT NOT NULL,
+     modificadoEn     TEXT NOT NULL
+   )`,
+        `CREATE TABLE IF NOT EXISTS avanceMarcas (
+     id               TEXT PRIMARY KEY,
+     obraId           TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     planoId          TEXT NOT NULL,
+     capa             TEXT,
+     fecha            TEXT NOT NULL,
+     tipo             TEXT NOT NULL CHECK (tipo IN ('trazo','zona','punto')),
+     puntos           TEXT NOT NULL DEFAULT '[]',
+     titulo           TEXT,
+     lineaId          TEXT,
+     codigo           TEXT,
+     resumen          TEXT,
+     unidad           TEXT,
+     cantidad         REAL,
+     extra            REAL,
+     extraNota        TEXT,
+     paralelos        INTEGER,
+     seccion          TEXT,
+     nota             TEXT,
+     fotos            TEXT,
+     personaId        TEXT,
+     estado           TEXT NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente','vista','certificada','descartada')),
+     vistaPor         TEXT,
+     vistaEn          TEXT,
+     certificacionId  TEXT,
+     creadoEn         TEXT NOT NULL,
+     modificadoEn     TEXT NOT NULL
+   )`,
+        /*
+         * MATERIAL FUERA DE PRESUPUESTO (JC, 16-oct: «si ha tenido que poner algún
+         * material no contemplado en ppto, lo pondrá en la sección
+         * correspondiente y esto pasará al ppto tras aceptarlo el jefe de obra y
+         * contará como coste y como posible orden de cambio»). Lo apunta el
+         * encargado (qué, cuánto, dónde, foto); el jefe de obra le pone el coste
+         * y lo acepta (entra en el Costs Plan como coste y queda como orden de
+         * cambio propuesta, con venta 0 hasta que se cobre) o lo rechaza.
+         */
+        `CREATE TABLE IF NOT EXISTS avanceMateriales (
+     id               TEXT PRIMARY KEY,
+     obraId           TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     fecha            TEXT NOT NULL,
+     planoId          TEXT,
+     marcaId          TEXT,
+     capa             TEXT,
+     descripcion      TEXT NOT NULL,
+     cantidad         REAL NOT NULL DEFAULT 1,
+     unidad           TEXT,
+     nota             TEXT,
+     fotos            TEXT,
+     personaId        TEXT,
+     estado           TEXT NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente','aceptado','rechazado')),
+     costeUnitario    REAL,
+     importeVenta     REAL,
+     ordenCambioId    TEXT,
+     lineaPresupuestoId TEXT,
+     revisadoPor      TEXT,
+     revisadoEn       TEXT,
+     motivo           TEXT,
+     creadoEn         TEXT NOT NULL,
+     modificadoEn     TEXT NOT NULL
+   )`,
+        `CREATE TABLE IF NOT EXISTS avancePartidas (
+     id               TEXT PRIMARY KEY,
+     obraId           TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     lineaId          TEXT NOT NULL,
+     codigo           TEXT,
+     resumen          TEXT,
+     unidad           TEXT,
+     capituloCodigo   TEXT,
+     capituloResumen  TEXT,
+     disciplina       TEXT,
+     orden            INTEGER NOT NULL DEFAULT 0,
+     medicion         REAL NOT NULL DEFAULT 0,
+     certificado      REAL NOT NULL DEFAULT 0,
+     activa           INTEGER NOT NULL DEFAULT 1,
+     creadoEn         TEXT NOT NULL,
+     modificadoEn     TEXT NOT NULL
+   )`,
         /* Los partes de horas escaneados: el archivo, de qué día y empresa, cuántas
            horas dice en total y si viene firmado. */
         `CREATE TABLE IF NOT EXISTS incidenciaPartes (
@@ -13016,6 +13154,8 @@ globalThis.CX_VARIANTE="cxobra";
         `CREATE INDEX IF NOT EXISTS idx_incid_obra         ON incidencias (obraId, estado)`,
         `CREATE INDEX IF NOT EXISTS idx_incid_encargado    ON incidencias (encargadoId, estado)`,
         `CREATE INDEX IF NOT EXISTS idx_incidhoras_incid   ON incidenciaHoras (incidenciaId, fecha)`,
+        `CREATE INDEX IF NOT EXISTS idx_avancepart_obra   ON avancePartidas (obraId, orden)`,
+        `CREATE INDEX IF NOT EXISTS idx_avancemarcas_obra ON avanceMarcas (obraId, planoId, fecha)`,
         `CREATE INDEX IF NOT EXISTS idx_incidpartes_incid  ON incidenciaPartes (incidenciaId)`,
         `CREATE INDEX IF NOT EXISTS idx_incidcoment_incid  ON incidenciaComentarios (incidenciaId, creadoEn)`,
         `CREATE INDEX IF NOT EXISTS idx_pedidos_obra       ON pedidosCompra (obraId, numero)`,
@@ -13084,6 +13224,17 @@ globalThis.CX_VARIANTE="cxobra";
         /* Lo que cuesta una incidencia además de las horas, y cuánto se le pasa al
            cliente: «si», «no» o «parcial» con su importe. `repercutir` (0/1) se
            queda por las bases de antes y se rellena desde aquí. */
+        ["planosAvance", "escala", "REAL"],
+        ["planosAvance", "capas", "TEXT"],
+        ["avanceMarcas", "capa", "TEXT"],
+        ["avanceMarcas", "extra", "REAL"],
+        ["avanceMarcas", "extraNota", "TEXT"],
+        /* Para certificar tuberías y conductos (16-oct-2026): cuántos tubos o
+           circuitos van en paralelo y la sección del conducto (JSON, en mm), y la
+           disciplina de cada partida para ofrecer en la tablet las de su plano. */
+        ["avanceMarcas", "paralelos", "INTEGER"],
+        ["avanceMarcas", "seccion", "TEXT"],
+        ["avancePartidas", "disciplina", "TEXT"],
         ["incidencias", "costeExtra", "REAL"],
         ["incidencias", "costeExtraConcepto", "TEXT"],
         ["incidencias", "repercusion", "TEXT"],
@@ -13466,6 +13617,10 @@ globalThis.CX_VARIANTE="cxobra";
            las obras en las que está, y la pantalla le pone delante las suyas. */
         incidencias: { porObra: "obraId" },
         incidenciaHoras: { porObra: "obraId" },
+        avancePartidas: { porObra: "obraId" },
+        avanceMarcas: { porObra: "obraId" },
+        avanceMateriales: { porObra: "obraId" },
+        planosAvance: { porObra: "obraId" },
         incidenciaPartes: { porObra: "obraId" },
         incidenciaComentarios: { porObra: "obraId" },
         /* Los pedidos de compra y sus papeles, de la obra que los pide. */
@@ -13800,6 +13955,10 @@ globalThis.CX_VARIANTE="cxobra";
         ncrImportaciones: "ncr",
         incidencias: "incidencias",
         incidenciaHoras: "incidencias",
+        avancePartidas: "avanceObra",
+        avanceMarcas: "avanceObra",
+        avanceMateriales: "avanceObra",
+        planosAvance: "avanceObra",
         incidenciaPartes: "incidencias",
         incidenciaComentarios: "incidencias",
         certificaciones: "certificaciones",
@@ -15432,6 +15591,9 @@ globalThis.CX_VARIANTE="cxobra";
           ncrAplazamientos: "Aplazamiento de NCR",
           incidencias: "Incidencia",
           incidenciaHoras: "Horas de incidencia",
+          avanceMarcas: "Avance de obra (marcas en plano)",
+          planosAvance: "Planos de avance",
+          avanceMateriales: "Material fuera de presupuesto",
           incidenciaPartes: "Parte de incidencia (equipo)",
           incidenciaComentarios: "Comentario de incidencia",
           certificaciones: "Certificaci\xF3n",
@@ -65568,6 +65730,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         return p ? { ruta: p.ruta, nombre: p.nombre } : null;
       }
       var MAX_FOTOS = 30;
+      var MOMENTOS_FOTO = { antes: "Antes", despues: "Despu\xE9s" };
       function anadirFotos(repo, sesion, id, fotos = []) {
         const { i, error } = tocable(repo, sesion, id);
         if (error) return { ok: false, error };
@@ -65577,7 +65740,14 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           if (!f || typeof f.ruta !== "string" || !f.ruta.trim() || ya.has(f.ruta)) return false;
           ya.add(f.ruta);
           return true;
-        }).map((f) => ({ ruta: f.ruta, nombre: llano(f.nombre) || f.ruta.split(/[\\/]/).pop(), fecha: hoy(), personaId: sesion.personaId }));
+        }).map((f) => ({
+          ruta: f.ruta,
+          nombre: llano(f.nombre) || f.ruta.split(/[\\/]/).pop(),
+          fecha: hoy(),
+          personaId: sesion.personaId,
+          /* 16-oct-2026, JC: «fotos del antes y del después» de la reparación. */
+          ...MOMENTOS_FOTO[f.momento] ? { momento: f.momento } : {}
+        }));
         const todas = [...actuales, ...nuevas];
         if (todas.length > MAX_FOTOS) return { ok: false, error: `Como mucho ${MAX_FOTOS} fotos por incidencia.` };
         repo.db.exec("BEGIN");
@@ -65614,7 +65784,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         try {
           const mime = MIME_FOTO[path.extname(f.ruta || "").toLowerCase()];
           if (!mime || !fs.existsSync(f.ruta)) return null;
-          return { nombre: f.nombre, src: `data:${mime};base64,${fs.readFileSync(f.ruta).toString("base64")}` };
+          return { nombre: MOMENTOS_FOTO[f.momento] ? `${MOMENTOS_FOTO[f.momento]} \xB7 ${f.nombre}` : f.nombre, src: `data:${mime};base64,${fs.readFileSync(f.ruta).toString("base64")}` };
         } catch {
           return null;
         }
@@ -65799,7 +65969,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
               ubicacion: i.ubicacion || "",
               horasOficial: i.calc.horasOficial,
               horasOperario: i.calc.horasOperario,
-              fotos: (i.fotos || []).map((f, n) => ({ indice: n, nombre: f.nombre, fecha: f.fecha })),
+              fotos: (i.fotos || []).map((f, n) => ({ indice: n, nombre: f.nombre, fecha: f.fecha, momento: f.momento || null })),
               avisos: i.calc.avisos.filter((a) => a.codigo !== "sinTarifa").map((a) => a.texto)
             },
             horas: i.recuento.lineas.map((l) => ({
@@ -65877,7 +66047,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           const rutas = p.fotos.map((f) => {
             const destino = path.join(carpetaRep(), `${String(i.codigo).replace(/[^A-Za-z0-9_-]/g, "_")}-${crypto2.randomBytes(6).toString("hex")}${EXT_DE_TIPO[f.tipo] || ".jpg"}`);
             fs.writeFileSync(destino, fs.readFileSync(f.ruta));
-            return { ruta: destino, nombre: path.basename(destino), id: f.id };
+            return { ruta: destino, nombre: path.basename(destino), id: f.id, momento: e.momento === "despues" ? "despues" : "antes" };
           });
           const a = INC.anadirFotos(repo, ses, i.id, rutas);
           if (a.ok) for (const f of rutas) soltar(f.id);
@@ -65915,6 +66085,1898 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
     }
   });
 
+  // shared/obra/avanceMedir.js
+  var require_avanceMedir = __commonJS({
+    "shared/obra/avanceMedir.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var UNIDAD_TIPO = { trazo: "m", zona: "m2", punto: "ud" };
+      var red2 = (n) => Math.round(n * 100) / 100;
+      function leerPuntos(puntos) {
+        let p = puntos;
+        if (typeof p === "string") {
+          try {
+            p = JSON.parse(p);
+          } catch {
+            p = [];
+          }
+        }
+        return (Array.isArray(p) ? p : []).map((q) => Array.isArray(q) ? { x: Number(q[0]), y: Number(q[1]) } : { x: Number(q && q.x), y: Number(q && q.y) }).filter((q) => Number.isFinite(q.x) && Number.isFinite(q.y));
+      }
+      function medirMarca(marca, plano = {}) {
+        const tipo = marca && marca.tipo;
+        const unidad = UNIDAD_TIPO[tipo] || null;
+        if (tipo === "punto") return { cantidad: 1, unidad };
+        const ancho = Number(plano.ancho) || 0;
+        const alto = Number(plano.alto) || 0;
+        const escala = Number(plano.escala) || 0;
+        if (!unidad || !(ancho > 0 && alto > 0 && escala > 0)) return { cantidad: null, unidad };
+        const m = escala / ancho;
+        const pts = leerPuntos(marca.puntos).map((q) => ({ x: q.x * ancho * m, y: q.y * alto * m }));
+        if (tipo === "trazo") {
+          let l = 0;
+          for (let i = 1; i < pts.length; i += 1) l += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+          return { cantidad: pts.length > 1 ? red2(l) : null, unidad };
+        }
+        if (pts.length < 3) return { cantidad: null, unidad };
+        let a = 0;
+        for (let i = 0; i < pts.length; i += 1) {
+          const p = pts[i];
+          const q = pts[(i + 1) % pts.length];
+          a += p.x * q.y - q.x * p.y;
+        }
+        return { cantidad: red2(Math.abs(a) / 2), unidad };
+      }
+      function cantidadMarca(marca, plano) {
+        const t = marca && marca.cantidad;
+        if (t !== null && t !== void 0 && t !== "" && Number.isFinite(Number(t))) return Number(t);
+        const medido = medirMarca(marca, plano).cantidad;
+        const extra = Number(marca && marca.extra);
+        if (Number.isFinite(extra) && extra > 0 && marca.tipo === "trazo") return red2((medido || 0) + extra);
+        return medido;
+      }
+      function unidadMedNormal(u) {
+        const t = String(u ?? "").trim().toLowerCase().replace(/\.$/, "").replace("\xB2", "2").replace("\xB3", "3").replace(/\s+/g, "");
+        if (!t) return null;
+        if (["m", "ml", "m.l", "mts", "metro", "metros", "mlineal"].includes(t)) return "m";
+        if (["m2", "m^2", "metro2"].includes(t)) return "m2";
+        if (["m3", "m^3"].includes(t)) return "m3";
+        if (["ud", "u", "un", "uds", "und", "unidad", "unidades", "pza", "pz"].includes(t)) return "ud";
+        if (["kg", "kgs", "kilo", "kilos"].includes(t)) return "kg";
+        return t;
+      }
+      function paralelosDe(v) {
+        const n = Math.round(Number(v));
+        return Number.isFinite(n) && n >= 1 ? Math.min(n, 50) : 1;
+      }
+      var mm = (v) => {
+        const n = Number(String(v ?? "").replace(",", "."));
+        return Number.isFinite(n) && n > 0 && n < 1e4 ? Math.round(n * 10) / 10 : null;
+      };
+      function leerSeccion(s) {
+        let x = s;
+        if (x === null || x === void 0 || x === "") return null;
+        if (typeof x === "string") {
+          const t = x.trim();
+          if (t.startsWith("{")) {
+            try {
+              x = JSON.parse(t);
+            } catch {
+              return null;
+            }
+          } else {
+            const r2 = /^(\d+(?:[.,]\d+)?)\s*[x×*]\s*(\d+(?:[.,]\d+)?)$/i.exec(t);
+            if (r2) return mm(r2[1]) && mm(r2[2]) ? { forma: "rect", ancho: mm(r2[1]), alto: mm(r2[2]) } : null;
+            const c = /^(?:Ø|ø|di[aá]m(?:etro)?\.?|d)?\s*(\d+(?:[.,]\d+)?)\s*(?:mm)?$/i.exec(t);
+            return c && mm(c[1]) ? { forma: "circ", diametro: mm(c[1]) } : null;
+          }
+        }
+        if (!x || typeof x !== "object") return null;
+        const kgm = Number(x.kgm) > 0 && Number(x.kgm) < 1e4 ? Number(x.kgm) : null;
+        let r = null;
+        if (x.forma === "circ" && mm(x.diametro)) r = { forma: "circ", diametro: mm(x.diametro) };
+        else if (x.forma === "rect" && mm(x.ancho) && mm(x.alto)) r = { forma: "rect", ancho: mm(x.ancho), alto: mm(x.alto) };
+        if (kgm) r = { ...r || {}, kgm };
+        return r;
+      }
+      function perimetro(sec) {
+        const s = leerSeccion(sec);
+        if (!s) return null;
+        if (s.forma === "rect") return 2 * (s.ancho + s.alto) / 1e3;
+        if (s.forma === "circ") return Math.PI * s.diametro / 1e3;
+        return null;
+      }
+      function textoSeccion(sec) {
+        const s = leerSeccion(sec);
+        if (!s) return "";
+        if (s.forma === "rect") return `${s.ancho}\xD7${s.alto}`;
+        if (s.forma === "circ") return `\xD8${s.diametro}`;
+        return "";
+      }
+      function cantidadPartida(marca, plano, unidadPartida) {
+        const tipo = marca && marca.tipo;
+        const natural = UNIDAD_TIPO[tipo] || null;
+        const unidad = unidadMedNormal(unidadPartida) || natural;
+        const n = tipo === "trazo" ? paralelosDe(marca.paralelos) : 1;
+        const base = cantidadMarca(marca, plano);
+        const res = (cantidad, falta = null) => ({ cantidad, unidad, recorrido: base, paralelos: n, falta });
+        if (base === null || base === void 0 || !Number.isFinite(Number(base))) return res(null, "escala");
+        if (tipo === "punto") return unidad === "ud" ? res(red2(base)) : res(null, "unidad");
+        if (tipo === "zona") return unidad === "m2" ? res(red2(base)) : res(null, "unidad");
+        if (tipo !== "trazo") return res(null, "unidad");
+        if (unidad === "m") return res(red2(base * n));
+        if (unidad === "m2") {
+          const p = perimetro(marca.seccion);
+          return p ? res(red2(base * n * p)) : res(null, "seccion");
+        }
+        if (unidad === "kg") {
+          const s = leerSeccion(marca.seccion);
+          return s && s.kgm ? res(red2(base * n * s.kgm)) : res(null, "peso");
+        }
+        return res(null, "unidad");
+      }
+      var FALTA = {
+        escala: "el plano no tiene escala: no mide",
+        seccion: "la partida va en m\xB2 y falta la secci\xF3n del conducto",
+        peso: "la partida va en kg y falta el peso por metro",
+        unidad: "lo marcado no se mide en la unidad de esa partida"
+      };
+      var UD_TEXTO = { m2: "m\xB2", m3: "m\xB3" };
+      function explicarCuenta(marca, plano, unidadPartida) {
+        const r = cantidadPartida(marca, plano, unidadPartida);
+        if (r.falta) return FALTA[r.falta];
+        const f = (x) => String(red2(x)).replace(".", ",");
+        const u = UD_TEXTO[r.unidad] || r.unidad;
+        if (marca.tipo !== "trazo") return `${f(r.cantidad)} ${u}`;
+        const partes = [`${f(r.recorrido)} m`];
+        if (r.paralelos > 1) partes.push(`${r.paralelos}`);
+        if (r.unidad === "m2") partes.push(`${f(perimetro(marca.seccion))} m de per\xEDmetro (${textoSeccion(marca.seccion)})`);
+        if (r.unidad === "kg") partes.push(`${f(leerSeccion(marca.seccion).kgm)} kg/m`);
+        return partes.length > 1 ? `${partes.join(" \xD7 ")} = ${f(r.cantidad)} ${u}` : `${f(r.cantidad)} ${u}`;
+      }
+      function medidaDeTexto(texto) {
+        const t = String(texto || "");
+        let r = /\bDN\s*(\d{1,4})\b/i.exec(t);
+        if (r) return `DN${r[1]}`;
+        r = /(?:Ø|ø|\bdi[aá]m(?:etro)?\.?\s*)\s*(\d{1,4}(?:[.,]\d+)?)/i.exec(t);
+        if (r) return `\xD8${r[1]}`;
+        r = /\b(\d{1,2})\s*G\s*(\d{1,3}(?:[.,]\d+)?)\b/.exec(t);
+        if (r) return `${r[1]}G${r[2]}`;
+        r = /\b(\d{2,4})\s*[x×]\s*(\d{2,4})\b/.exec(t);
+        if (r) return `${r[1]}\xD7${r[2]}`;
+        r = /\b(\d{1,2})\s*[x×]\s*(\d{1,3}(?:[.,]\d+)?)\s*mm2?\b/i.exec(t);
+        if (r) return `${r[1]}\xD7${r[2]}`;
+        r = /(\d+(?:\s+\d\/\d)?|\d\/\d)\s*(?:"|''|”|pulg)/i.exec(t);
+        if (r) return `${r[1].replace(/\s+/, " ")}"`;
+        r = /\b(\d{2,3})\s*mm\b/i.exec(t);
+        if (r) return `${r[1]} mm`;
+        return "";
+      }
+      function seccionDeTexto(texto) {
+        const t = String(texto || "");
+        const c = /(?:Ø|ø|\bdi[aá]m(?:etro)?\.?\s*)\s*(\d{2,4})/i.exec(t);
+        if (c) return { forma: "circ", diametro: Number(c[1]) };
+        const r = /\b(\d{2,4})\s*[x×]\s*(\d{2,4})\b/.exec(t);
+        if (r) return { forma: "rect", ancho: Number(r[1]), alto: Number(r[2]) };
+        return null;
+      }
+      function unidadCasa(tipo, unidad) {
+        const u = unidadMedNormal(unidad);
+        if (tipo === "trazo") return ["m", "m2", "kg"].includes(u);
+        if (tipo === "zona") return u === "m2";
+        if (tipo === "punto") return u === "ud";
+        return false;
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.AVANCE_MEDIR = API;
+      })({
+        medirMarca,
+        cantidadMarca,
+        leerPuntos,
+        UNIDAD_TIPO,
+        unidadNormal: unidadMedNormal,
+        paralelosDe,
+        leerSeccion,
+        perimetro,
+        textoSeccion,
+        cantidadPartida,
+        explicar: explicarCuenta,
+        FALTA,
+        medidaDeTexto,
+        seccionDeTexto,
+        unidadCasa
+      });
+    }
+  });
+
+  // shared/obra/avancePlano.js
+  var require_avancePlano = __commonJS({
+    "shared/obra/avancePlano.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var TIPOS_CAPA = { trazo: "Trazo (metros)", zona: "Zona (m\xB2)", punto: "Punto (unidades)" };
+      var DISCIPLINAS = {
+        clima: { nombre: "Climatizaci\xF3n", capas: [
+          ["tuberia", "Tuber\xEDa de agua", "trazo", "#1f6fd1", 2],
+          // ida y retorno: 2 tubos
+          ["conductos", "Conductos", "trazo", "#0a8f6b"],
+          ["equipos", "Equipos", "punto", "#c2410c"],
+          ["difusion", "Rejillas y difusores", "punto", "#7c3aed"]
+        ] },
+        electricidad: { nombre: "Electricidad", capas: [
+          ["bandejas", "Bandejas", "trazo", "#b45309"],
+          ["cable", "Cable", "trazo", "#be123c"],
+          ["luz", "Puntos de luz", "punto", "#ca8a04"],
+          ["tomas", "Tomas de corriente", "punto", "#2563eb"],
+          ["cuadros", "Cuadros", "punto", "#475569"]
+        ] },
+        fontaneria: { nombre: "Fontaner\xEDa y saneamiento", capas: [
+          ["agua", "Tuber\xEDa de agua", "trazo", "#1f6fd1"],
+          ["saneamiento", "Saneamiento", "trazo", "#78350f"],
+          ["aparatos", "Aparatos sanitarios", "punto", "#0f766e"]
+        ] },
+        pci: { nombre: "Protecci\xF3n contra incendios", capas: [
+          ["tuberiaPci", "Tuber\xEDa PCI", "trazo", "#dc2626"],
+          ["rociadores", "Rociadores", "punto", "#ea580c"],
+          ["detectores", "Detectores", "punto", "#9333ea"]
+        ] },
+        otra: { nombre: "Otra", capas: [
+          ["lineal", "Lineal", "trazo", "#1f6fd1"],
+          ["superficie", "Superficie", "zona", "#0a8f6b"],
+          ["unidades", "Unidades", "punto", "#c2410c"]
+        ] }
+      };
+      var capasDe = (disciplina) => (DISCIPLINAS[disciplina] || DISCIPLINAS.otra).capas.map(([id, nombre, tipo, color, paralelos]) => ({ id, nombre, tipo, color, lineaIds: [], paralelos: paralelos || 1 }));
+      var PARALELOS_DE_PARTIDA = Object.fromEntries(Object.values(DISCIPLINAS).flatMap((d) => d.capas).filter((c) => c[4]).map((c) => [c[0], c[4]]));
+      var COLOR = /^#[0-9a-f]{6}$/i;
+      function paralelosCapa(v, id) {
+        if (v === void 0 || v === null || v === "") return PARALELOS_DE_PARTIDA[id] || 1;
+        const n = Math.round(Number(v));
+        return Number.isFinite(n) && n >= 1 ? Math.min(n, 50) : 1;
+      }
+      function normalizarCapas(capas) {
+        let c = capas;
+        if (typeof c === "string") {
+          try {
+            c = JSON.parse(c);
+          } catch {
+            c = [];
+          }
+        }
+        const vistos = /* @__PURE__ */ new Set();
+        return (Array.isArray(c) ? c : []).map((x, i) => {
+          let id = String(x && x.id || `capa${i + 1}`).replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40) || `capa${i + 1}`;
+          while (vistos.has(id)) id += "_";
+          vistos.add(id);
+          const tipo = TIPOS_CAPA[x && x.tipo] ? x.tipo : "trazo";
+          return {
+            id,
+            nombre: String(x && x.nombre || `Capa ${i + 1}`).trim().slice(0, 60),
+            tipo,
+            color: COLOR.test(x && x.color || "") ? x.color : "#1f6fd1",
+            lineaIds: [...new Set((Array.isArray(x && x.lineaIds) ? x.lineaIds : []).map(String).filter(Boolean))],
+            paralelos: tipo === "trazo" ? paralelosCapa(x && x.paralelos, id) : 1
+          };
+        });
+      }
+      var COLORES_DIA = ["#d93025", "#1a73e8", "#188038", "#e37400", "#9334e6", "#00838f", "#c2185b", "#5f6368"];
+      function coloresPorDia(fechas) {
+        const dias = [...new Set((fechas || []).map((f) => String(f || "").slice(0, 10)).filter(Boolean))].sort().reverse();
+        return Object.fromEntries(dias.map((d, i) => [d, COLORES_DIA[Math.min(i, COLORES_DIA.length - 1)]]));
+      }
+      var ESTADOS_MARCA = {
+        pendiente: { nombre: "Pendiente de revisar", tono: "aviso" },
+        vista: { nombre: "Vista", tono: "bien" },
+        certificada: { nombre: "Certificada", tono: "neutra" },
+        descartada: { nombre: "Descartada", tono: "mal" }
+      };
+      var DISCIPLINAS_PRESUPUESTO = {
+        clima: ["climatizacion", "ventilacion"],
+        electricidad: ["electricidad", "control"],
+        fontaneria: ["fontaneria"],
+        pci: ["pci"]
+      };
+      var TUBO = { si: /tuber|tubo|\bDN\s?\d|cobre|acero|multicapa|polipropileno|\bPPR?\b|\bPEX?\b|\bPVC\b|\d\s*(\/\d)?\s*"/i, no: /conduct|chapa|helicoidal|climaver|bandeja/i };
+      var PALABRAS_CAPA = {
+        tuberia: TUBO,
+        agua: TUBO,
+        tuberiaPci: TUBO,
+        conductos: { si: /conduct|chapa|helicoidal|climaver|lana mineral|fibra|Ø\s?\d/i, no: /tuber|tubo|\bDN\s?\d|cobre|cable/i },
+        saneamiento: { si: /saneam|bajante|colector|desag|\bPVC\b|tuber|tubo/i },
+        bandejas: { si: /bandeja|canal|tubo corrugado|rejiban/i },
+        cable: { si: /cable|conductor|\d+\s?G\s?\d|mm²|mm2|RZ1|H07/i, no: /bandeja/i }
+      };
+      var medir = () => typeof window !== "undefined" && window.AVANCE_MEDIR || require_avanceMedir();
+      function partidasDeCapa(capa, partidas, disciplinaPlano) {
+        const todas = (partidas || []).filter((p) => p && p.lineaId && p.activa !== 0);
+        if (!capa) return [];
+        if (capa.lineaIds && capa.lineaIds.length) {
+          const orden = new Map(capa.lineaIds.map((id, i) => [id, i]));
+          return todas.filter((p) => orden.has(p.lineaId)).sort((a, b) => orden.get(a.lineaId) - orden.get(b.lineaId));
+        }
+        let casan = todas.filter((p) => medir().unidadCasa(capa.tipo, p.unidad));
+        const de = DISCIPLINAS_PRESUPUESTO[disciplinaPlano];
+        if (de) {
+          const suyas = casan.filter((p) => !p.disciplina || de.includes(p.disciplina));
+          if (suyas.length) casan = suyas;
+        }
+        const de_capa = PALABRAS_CAPA[capa.id];
+        if (!de_capa) return casan;
+        const deCapa = casan.filter((p) => de_capa.si.test(p.resumen || "") && !(de_capa.no && de_capa.no.test(p.resumen || "")));
+        return deCapa.length ? deCapa : casan;
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.AVANCE_PLANO = API;
+      })({ TIPOS_CAPA, DISCIPLINAS, capasDe, normalizarCapas, coloresPorDia, COLORES_DIA, ESTADOS_MARCA, DISCIPLINAS_PRESUPUESTO, partidasDeCapa });
+    }
+  });
+
+  // shared/obra/actas.js
+  var require_actas = __commonJS({
+    "shared/obra/actas.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const MODELOS = [
+          {
+            id: "obraSemanal",
+            nombre: "Reuni\xF3n de obra semanal",
+            puntos: ["Seguimiento de la planificaci\xF3n", "Seguridad y salud", "Calidad: NCR abiertas", "\xD3rdenes de cambio pendientes", "Suministros y pedidos", "Ruegos y preguntas"]
+          },
+          {
+            id: "coordinacion",
+            nombre: "Coordinaci\xF3n de instalaciones",
+            puntos: ["Interferencias entre instalaciones", "Replanteos pendientes", "Pasos de forjado y huecos", "Pruebas y puestas en marcha previstas"]
+          },
+          {
+            id: "direccionFacultativa",
+            nombre: "Reuni\xF3n con la DF y la propiedad",
+            puntos: ["Estado de la obra", "Cambios de proyecto propuestos", "Certificaci\xF3n del mes", "Documentaci\xF3n pendiente"]
+          },
+          {
+            id: "arranque",
+            nombre: "Arranque de obra",
+            puntos: ["Presentaci\xF3n del equipo", "Planificaci\xF3n general e hitos", "Implantaci\xF3n y accesos", "Plan de seguridad", "Canales de comunicaci\xF3n"]
+          },
+          {
+            id: "commissioning",
+            nombre: "Reuni\xF3n de commissioning",
+            puntos: ["Equipos listos para ensayo", "Documentaci\xF3n a reclamar", "Balanceos y pruebas", "Entregas a la DF"]
+          },
+          { id: "libre", nombre: "Acta en blanco", puntos: [] }
+        ];
+        const sinTildes = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+        const RECHAZO = /\b(no se aprueba|no (la |lo )?aprueban?|no se acepta|se rechaza|rechazad[oa]s?|queda denegad|se deniega|no procede|desestim)/;
+        const APROBACION = /\b(se aprueba|aprueban?|aprobad[oa]s?|se acepta|aceptad[oa]s?|conforme la propiedad|da el visto bueno|visto bueno|se autoriza|autorizad[oa])/;
+        const CAMBIO = /\b(orden(es)? de cambio|oc[- ]?\d+|cambio de proyecto|modificad[oa] de proyecto|variacion|partida nueva|precio contradictorio)/;
+        const TAREA = /\b(se encarga|encargad[oa] de|responsable:?|queda pendiente|pendiente de|debe|deberan?|tiene que|enviara|enviar|revisara|revisar|preparara|preparar|antes del?|para el (dia )?\d)/;
+        function numerosDeOrden(texto) {
+          const t = sinTildes(texto);
+          const out = /* @__PURE__ */ new Set();
+          for (const m of t.matchAll(/\boc[- ]?0*(\d{1,4})\b/g)) out.add(`OC-${m[1].padStart(3, "0")}`);
+          for (const m of t.matchAll(/orden(?:es)? de cambio (?:n[ºo.]*\s*)?0*(\d{1,4})\b/g)) out.add(`OC-${m[1].padStart(3, "0")}`);
+          return [...out];
+        }
+        const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+        function fechaDe(texto, hoy = /* @__PURE__ */ new Date()) {
+          const t = sinTildes(texto);
+          let d;
+          let m;
+          let a;
+          const num = t.match(/\b(\d{1,2})[/.-](\d{1,2})(?:[/.-](\d{2,4}))?\b/);
+          if (num) {
+            [d, m, a] = [Number(num[1]), Number(num[2]), num[3] ? Number(num[3]) : null];
+          } else {
+            const txt = t.match(new RegExp(`\\b(\\d{1,2}) de (${MESES.join("|")})(?: de (\\d{4}))?`));
+            if (!txt) return null;
+            [d, m, a] = [Number(txt[1]), MESES.indexOf(txt[2]) + 1, txt[3] ? Number(txt[3]) : null];
+          }
+          if (!(d >= 1 && d <= 31 && m >= 1 && m <= 12)) return null;
+          if (a === null) a = hoy.getFullYear();
+          else if (a < 100) a += 2e3;
+          return `${a}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+        }
+        function responsableDe(texto, personas = []) {
+          const t = sinTildes(texto);
+          let mejor = null;
+          for (const p of personas) {
+            const partes = sinTildes(p.nombre).split(/\s+/).filter(Boolean);
+            if (!partes.length) continue;
+            const completo = partes.slice(0, 2).join(" ");
+            if (t.includes(completo)) return p;
+            if (!mejor && new RegExp(`\\b${partes[0]}\\b`).test(t)) mejor = p;
+          }
+          return mejor;
+        }
+        function reconocer(texto, { ordenes = [], personas = [], hoy = /* @__PURE__ */ new Date() } = {}) {
+          const t = sinTildes(texto);
+          if (!t.trim()) return { accion: "nada" };
+          const nums = numerosDeOrden(texto);
+          const orden = ordenes.find((o) => nums.includes(o.numero)) || (nums.length ? null : ordenes.find((o) => o.titulo && o.titulo.length >= 6 && t.includes(sinTildes(o.titulo))));
+          const rechazo = RECHAZO.test(t);
+          const aprobacion = !rechazo && APROBACION.test(t);
+          if (orden && (rechazo || aprobacion)) {
+            return { accion: rechazo ? "rechazarOrden" : "aprobarOrden", ordenId: orden.id, numero: orden.numero };
+          }
+          if (!orden && CAMBIO.test(t) && (aprobacion || /\b(se propone|propuesta|se solicita|solicita)/.test(t))) {
+            return { accion: "ordenNueva", aprobada: aprobacion, numeros: nums };
+          }
+          if (TAREA.test(t)) {
+            const r = responsableDe(texto, personas);
+            return { accion: "tarea", responsableId: r ? r.id : null, fecha: fechaDe(texto, hoy) };
+          }
+          return { accion: "nada" };
+        }
+        const r2 = (x) => Math.round((Number(x) || 0) * 100) / 100;
+        function importeOrden(o) {
+          const lineas = Array.isArray(o && o.lineas) ? o.lineas : [];
+          return {
+            venta: r2(lineas.reduce((s, l) => s + r2((Number(l.cantidad) || 0) * (Number(l.precio) || 0)), 0)),
+            coste: r2(lineas.reduce((s, l) => s + r2((Number(l.cantidad) || 0) * (Number(l.precioCoste) || 0)), 0))
+          };
+        }
+        const siguienteNumero = (prefijo, existentes) => {
+          const n = (existentes || []).reduce((m, x) => Math.max(m, Number(String(x || "").replace(/\D/g, "")) || 0), 0) + 1;
+          return `${prefijo}-${String(n).padStart(3, "0")}`;
+        };
+        const TEXTO_ACCION = {
+          aprobarOrden: (a) => `Aprueba ${a.numero}: se imputa en el presupuesto`,
+          rechazarOrden: (a) => `Rechaza ${a.numero}`,
+          ordenNueva: (a) => a.aprobada ? "Cambio aprobado sin orden: crear la orden de cambio" : "Cambio propuesto: crear la orden de cambio",
+          tarea: () => "Crea una tarea de obra",
+          nada: () => "Informativo"
+        };
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.ACTAS_MOTOR = API;
+        })({ MODELOS, reconocer, numerosDeOrden, fechaDe, responsableDe, importeOrden, siguienteNumero, TEXTO_ACCION, sinTildes });
+      })();
+    }
+  });
+
+  // shared/obra/tareas.js
+  var require_tareas = __commonJS({
+    "shared/obra/tareas.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function iniciarMotorTareas() {
+        const PREFIJO = "TAR";
+        const ESTADOS = {
+          pendiente: { id: "pendiente", nombre: "Pendiente", clase: "aviso", abierta: true },
+          enCurso: { id: "enCurso", nombre: "En curso", clase: "info", abierta: true },
+          hecha: { id: "hecha", nombre: "Hecha", clase: "bien", abierta: false },
+          anulada: { id: "anulada", nombre: "Anulada", clase: "neutra", abierta: false }
+        };
+        const PRIORIDADES = {
+          alta: { id: "alta", nombre: "Alta", clase: "mal", orden: 0 },
+          media: { id: "media", nombre: "Media", clase: "aviso", orden: 1 },
+          baja: { id: "baja", nombre: "Baja", clase: "neutra", orden: 2 }
+        };
+        const TIPOS_COMENTARIO = {
+          comentario: "Comentario",
+          feedback: "Feedback",
+          estado: "Cambio de estado",
+          pedido: "Pedido"
+        };
+        const DIAS_VENCE_PRONTO = 2;
+        const ISO = /^\d{4}-\d{2}-\d{2}$/;
+        const esFecha = (f) => ISO.test(String(f || "")) && !Number.isNaN(Date.parse(`${f}T00:00:00Z`));
+        const dias = (desde, hasta) => Math.round((Date.parse(`${hasta}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`)) / 864e5);
+        const hoyIso = () => ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
+        function siguienteCodigo(codigos = []) {
+          let max = 0;
+          const re = new RegExp(`^${PREFIJO}-(\\d+)$`);
+          for (const c of codigos) {
+            const m = re.exec(String(c || ""));
+            if (m) max = Math.max(max, Number(m[1]));
+          }
+          const numero = max + 1;
+          return { numero, codigo: `${PREFIJO}-${String(numero).padStart(4, "0")}` };
+        }
+        function calcular(t, hoy = hoyIso()) {
+          const est = ESTADOS[t.estado] || ESTADOS.pendiente;
+          const abierta = est.abierta;
+          const quedan = abierta && esFecha(t.fechaLimite) ? dias(hoy, t.fechaLimite) : null;
+          const vencida = quedan !== null && quedan < 0;
+          const vencePronto = quedan !== null && quedan >= 0 && quedan <= DIAS_VENCE_PRONTO;
+          return {
+            abierta,
+            vencida,
+            vencePronto,
+            quedan,
+            estadoNombre: est.nombre,
+            estadoClase: est.clase,
+            prioridadNombre: (PRIORIDADES[t.prioridad] || PRIORIDADES.media).nombre,
+            prioridadClase: (PRIORIDADES[t.prioridad] || PRIORIDADES.media).clase,
+            lineasMaterial: materialALineas(t.material).length
+          };
+        }
+        function ordenar(tareas, hoy = hoyIso()) {
+          const peso = (t) => {
+            const c = t.calc || calcular(t, hoy);
+            return [c.abierta ? 0 : 1, c.vencida ? 0 : 1, (PRIORIDADES[t.prioridad] || PRIORIDADES.media).orden, t.fechaLimite || "9999", t.numero || 0];
+          };
+          return [...tareas].sort((a, b) => {
+            const pa = peso(a);
+            const pb = peso(b);
+            for (let i = 0; i < pa.length; i += 1) {
+              if (pa[i] < pb[i]) return -1;
+              if (pa[i] > pb[i]) return 1;
+            }
+            return 0;
+          });
+        }
+        function resumen(tareas, hoy = hoyIso()) {
+          const r = { total: tareas.length, abiertas: 0, vencidas: 0, vencenPronto: 0, sinResponsable: 0, hechas: 0, conMaterial: 0 };
+          for (const t of tareas) {
+            const c = t.calc || calcular(t, hoy);
+            if (c.abierta) {
+              r.abiertas += 1;
+              if (c.vencida) r.vencidas += 1;
+              if (c.vencePronto) r.vencenPronto += 1;
+              if (!t.responsableId) r.sinResponsable += 1;
+              if (c.lineasMaterial) r.conMaterial += 1;
+            }
+            if (t.estado === "hecha") r.hechas += 1;
+          }
+          return r;
+        }
+        const UNIDADES = ["ud", "uds", "u", "m", "ml", "m2", "m\xB2", "m3", "m\xB3", "kg", "g", "l", "h", "rollo", "rollos", "caja", "cajas", "saco", "sacos", "pza", "pzas", "jgo", "pa"];
+        function materialALineas(texto) {
+          return String(texto || "").split(/\r?\n/).map((l) => l.trim().replace(/^[-•*]\s*/, "")).filter(Boolean).map((l) => {
+            let resto = l;
+            let referencia = "";
+            const ref = /\s*\[([^\]]+)\]\s*$/.exec(resto);
+            if (ref) {
+              referencia = ref[1].trim();
+              resto = resto.slice(0, ref.index).trim();
+            }
+            let cantidad = "1";
+            let unidad = "ud";
+            const m = /^(\d+(?:[.,]\d+)?)\s*(?:x\s*)?(\S+)?\s*(.*)$/i.exec(resto);
+            if (m) {
+              cantidad = m[1];
+              const u = String(m[2] || "").toLowerCase().replace(/\.$/, "");
+              if (UNIDADES.includes(u)) {
+                unidad = u === "uds" || u === "u" ? "ud" : u;
+                resto = m[3];
+              } else {
+                resto = `${m[2] || ""} ${m[3] || ""}`.trim();
+              }
+            }
+            return { descripcion: resto.slice(0, 300), referencia, unidad, cantidad };
+          }).filter((x) => x.descripcion);
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.TAREAS_MOTOR = API;
+        })({
+          PREFIJO,
+          ESTADOS,
+          PRIORIDADES,
+          TIPOS_COMENTARIO,
+          DIAS_VENCE_PRONTO,
+          esFecha,
+          siguienteCodigo,
+          calcular,
+          ordenar,
+          resumen,
+          materialALineas
+        });
+      })();
+    }
+  });
+
+  // electron/data/tareas.js
+  var require_tareas2 = __commonJS({
+    "electron/data/tareas.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var T = require_tareas();
+      var P = require_pedidos2();
+      var ROLES = require_roles();
+      var { puede } = ROLES;
+      var llano = (v) => String(v ?? "").trim();
+      var hoyIso = () => require_fecha().hoyLocal();
+      var lista = (csv) => String(csv || "").split(",").map((x) => x.trim()).filter(Boolean);
+      var SIN_CREAR = "Tu rol puede ver las tareas de la obra, pero no encargarlas.";
+      var CERRADA = "La tarea est\xE1 anulada: no se toca.";
+      var PIDE_PEDIDO = "Tu rol no lanza pedidos: el material queda apuntado en la tarea; pide al jefe de obra que lance el pedido.";
+      var esJefe = (sesion) => puede(sesion.rol, "tareas", "aprobar");
+      var puedeComentar = (sesion) => puede(sesion.rol, "tareas", "crear") || puede(sesion.rol, "tareas", "editar");
+      var verboEscritura = (sesion) => puede(sesion.rol, "tareas", "crear") ? "crear" : "editar";
+      var editaEncargo = (sesion, t) => puede(sesion.rol, "tareas", "editar") && (esJefe(sesion) || t.creadoPor === sesion.personaId);
+      var mueveEstado = (sesion, t) => puede(sesion.rol, "tareas", "editar") && (esJefe(sesion) || t.creadoPor === sesion.personaId || t.responsableId === sesion.personaId);
+      function permisosDe(sesion, t) {
+        const abierta = t ? t.estado !== "anulada" : true;
+        return {
+          crear: puede(sesion.rol, "tareas", "crear"),
+          editar: Boolean(t && abierta && editaEncargo(sesion, t)),
+          estado: Boolean(t && abierta && mueveEstado(sesion, t)),
+          material: Boolean(t && abierta && (editaEncargo(sesion, t) || mueveEstado(sesion, t))),
+          comentar: Boolean(t && abierta && puedeComentar(sesion)),
+          anular: Boolean(t && t.estado !== "anulada" && t.estado !== "hecha" && editaEncargo(sesion, t)),
+          pedido: Boolean(t && abierta && P.gestiona(sesion)),
+          verPedidos: puede(sesion.rol, "pedidos", "ver")
+        };
+      }
+      var ORDEN_ROL_EQUIPO = ["jefeProduccion", "encargadoObra", "operario"];
+      function equipo(db, o) {
+        const de = new Set([o.jefeProduccionId, o.jefeObraId, o.jefeGrupoId, ...lista(o.encargadosIds), ...lista(o.tecnicosIds)].filter(Boolean));
+        const peso = (p) => {
+          const i = ORDEN_ROL_EQUIPO.indexOf(p.rol);
+          return i === -1 ? ORDEN_ROL_EQUIPO.length : i;
+        };
+        return db.prepare("SELECT id, nombre, rol FROM personas WHERE activo = 1").all().map((p) => {
+          const r = ROLES.rol(p.rol);
+          return { ...p, rolNombre: r ? r.nombre : "", deLaObra: de.has(p.id) };
+        }).sort((a, b) => b.deLaObra - a.deLaObra || (a.deLaObra ? peso(a) - peso(b) : 0) || a.nombre.localeCompare(b.nombre, "es"));
+      }
+      var nombres = (db) => new Map(db.prepare("SELECT id, nombre FROM personas").all().map((p) => [p.id, p.nombre]));
+      function obra(repo, sesion, obraId, { hoy = hoyIso() } = {}) {
+        if (!puede(sesion.rol, "tareas", "ver")) return null;
+        const o = obraId ? repo.leer("obras", sesion, obraId) : null;
+        if (!o) return null;
+        const db = repo.db;
+        const nom = nombres(db);
+        const nComent = new Map(db.prepare("SELECT tareaId, COUNT(*) n FROM tareaComentarios WHERE obraId = ? AND tipo IN ('comentario','feedback') GROUP BY tareaId").all(obraId).map((x) => [x.tareaId, x.n]));
+        const nPed = new Map(db.prepare("SELECT tareaId, COUNT(*) n FROM tareaPedidos WHERE obraId = ? GROUP BY tareaId").all(obraId).map((x) => [x.tareaId, x.n]));
+        const tareas = T.ordenar(repo.listar("tareasObra", sesion, { condicion: "obraId = ?", params: [obraId] }).map((t) => ({
+          ...t,
+          calc: T.calcular(t, hoy),
+          responsable: t.responsableId ? nom.get(t.responsableId) || "\u2014" : null,
+          creador: t.creadoPor ? nom.get(t.creadoPor) || "\u2014" : null,
+          comentarios: nComent.get(t.id) || 0,
+          pedidos: nPed.get(t.id) || 0,
+          mia: t.responsableId === sesion.personaId
+        })), hoy);
+        return {
+          obra: { id: o.id, codigo: o.codigo, nombre: o.nombre },
+          tareas,
+          resumen: T.resumen(tareas, hoy),
+          personas: equipo(db, o),
+          permisos: permisosDe(sesion, null),
+          yo: sesion.personaId,
+          hoy
+        };
+      }
+      function ficha(repo, sesion, id, { hoy = hoyIso() } = {}) {
+        if (!puede(sesion.rol, "tareas", "ver")) return null;
+        const t = repo.leer("tareasObra", sesion, id);
+        if (!t) return null;
+        const db = repo.db;
+        const nom = nombres(db);
+        const comentarios = repo.listar("tareaComentarios", sesion, { condicion: "tareaId = ?", params: [id], orden: "creadoEn" }).map((c) => ({ ...c, autor: c.personaId ? nom.get(c.personaId) || "\u2014" : "\u2014" }));
+        const enlaces = repo.listar("tareaPedidos", sesion, { condicion: "tareaId = ?", params: [id], orden: "creadoEn" });
+        let pedidos = [];
+        let pedidosObra = [];
+        let proveedores = [];
+        if (puede(sesion.rol, "pedidos", "ver")) {
+          const datos = P.obra(repo, sesion, t.obraId);
+          const filas = datos ? datos.filas : [];
+          proveedores = datos ? datos.proveedores : [];
+          const porId = new Map(filas.map((f) => [f.id, f]));
+          pedidos = enlaces.map((e) => {
+            const f = porId.get(e.pedidoId);
+            return f ? { id: f.id, codigo: f.codigo, titulo: f.titulo, proveedor: f.proveedor || f.proveedorNombre || "", estado: f.calc ? f.calc.estado : null } : { id: e.pedidoId, codigo: "\u2014", titulo: "" };
+          });
+          const ya = new Set(enlaces.map((e) => e.pedidoId));
+          pedidosObra = filas.filter((f) => !ya.has(f.id)).map((f) => ({ id: f.id, codigo: f.codigo, titulo: f.titulo, estado: f.calc ? f.calc.estado : null }));
+        } else {
+          const q = db.prepare("SELECT id, codigo, titulo FROM pedidosCompra WHERE id = ?");
+          pedidos = enlaces.map((e) => q.get(e.pedidoId)).filter(Boolean).map((p) => ({ ...p, estado: null }));
+        }
+        return {
+          tarea: {
+            ...t,
+            calc: T.calcular(t, hoy),
+            responsable: t.responsableId ? nom.get(t.responsableId) || "\u2014" : null,
+            creador: t.creadoPor ? nom.get(t.creadoPor) || "\u2014" : null,
+            hechaPorNombre: t.hechaPor ? nom.get(t.hechaPor) || "\u2014" : null
+          },
+          comentarios,
+          pedidos,
+          pedidosObra,
+          proveedores,
+          lineasMaterial: T.materialALineas(t.material),
+          permisos: permisosDe(sesion, t)
+        };
+      }
+      function limpiar(repo, entrada, actual = {}) {
+        const c = {};
+        if (entrada.titulo !== void 0) {
+          c.titulo = llano(entrada.titulo).slice(0, 200);
+          if (!c.titulo) return { error: "La tarea necesita un t\xEDtulo (qu\xE9 hay que hacer)." };
+        }
+        if (entrada.descripcion !== void 0) c.descripcion = llano(entrada.descripcion).slice(0, 4e3) || null;
+        if (entrada.material !== void 0) c.material = String(entrada.material ?? "").trim().slice(0, 4e3) || null;
+        if (entrada.prioridad !== void 0) {
+          if (!T.PRIORIDADES[entrada.prioridad]) return { error: "Prioridad no v\xE1lida." };
+          c.prioridad = entrada.prioridad;
+        }
+        if (entrada.fechaLimite !== void 0) {
+          const f = llano(entrada.fechaLimite);
+          if (f && !T.esFecha(f)) return { error: "La fecha l\xEDmite no es una fecha." };
+          c.fechaLimite = f || null;
+        }
+        if (entrada.responsableId !== void 0) {
+          const r = llano(entrada.responsableId);
+          if (r && !repo.db.prepare("SELECT id FROM personas WHERE id = ? AND activo = 1").get(r)) return { error: "No se encuentra a esa persona." };
+          c.responsableId = r || null;
+        }
+        for (const k of Object.keys(c)) if ((actual[k] ?? null) === c[k]) delete c[k];
+        return { cambios: c };
+      }
+      function anotar(repo, sesion, t, tipo, texto) {
+        return repo.crear("tareaComentarios", sesion, {
+          obraId: t.obraId,
+          tareaId: t.id,
+          personaId: sesion.personaId,
+          tipo,
+          texto: String(texto).slice(0, 4e3)
+        }, { verbo: verboEscritura(sesion) });
+      }
+      function enTransaccion(repo, fn) {
+        if (repo.db.isTransaction) return fn();
+        repo.db.exec("BEGIN");
+        try {
+          const r = fn();
+          repo.db.exec(r && r.ok === false ? "ROLLBACK" : "COMMIT");
+          return r;
+        } catch (e) {
+          repo.db.exec("ROLLBACK");
+          throw e;
+        }
+      }
+      function crear(repo, sesion, obraId, entrada = {}) {
+        if (!puede(sesion.rol, "tareas", "crear")) return { ok: false, error: SIN_CREAR };
+        const o = obraId ? repo.leer("obras", sesion, obraId) : null;
+        if (!o) return { ok: false, error: "No se encuentra la obra." };
+        if (!llano(entrada.titulo)) return { ok: false, error: "La tarea necesita un t\xEDtulo (qu\xE9 hay que hacer)." };
+        const { cambios, error } = limpiar(repo, { prioridad: "media", ...entrada });
+        if (error) return { ok: false, error };
+        return enTransaccion(repo, () => {
+          const codigos = repo.db.prepare("SELECT codigo FROM tareasObra WHERE obraId = ?").all(obraId).map((x) => x.codigo);
+          const { numero, codigo } = T.siguienteCodigo(codigos);
+          const id = repo.crear("tareasObra", sesion, { obraId, codigo, numero, estado: "pendiente", ...cambios, creadoPor: sesion.personaId });
+          return { ok: true, id, codigo };
+        });
+      }
+      function tocable(repo, sesion, id) {
+        const t = repo.leer("tareasObra", sesion, id);
+        if (!t) return { error: "No se encuentra la tarea." };
+        if (t.estado === "anulada") return { error: CERRADA };
+        return { t };
+      }
+      function guardar(repo, sesion, id, entrada = {}) {
+        const { t, error } = tocable(repo, sesion, id);
+        if (error) return { ok: false, error };
+        const encargo = editaEncargo(sesion, t);
+        if (!encargo) {
+          if (!mueveEstado(sesion, t)) return { ok: false, error: "Esta tarea la cambia quien la encarg\xF3 o un jefe." };
+          const otros = Object.keys(entrada).filter((k) => k !== "material" && entrada[k] !== void 0);
+          if (otros.length) return { ok: false, error: "Como responsable puedes cambiar el material y el estado; el encargo lo cambia quien lo hizo." };
+        }
+        const r = limpiar(repo, entrada, t);
+        if (r.error) return { ok: false, error: r.error };
+        if (Object.keys(r.cambios).length) repo.modificar("tareasObra", sesion, id, r.cambios);
+        return { ok: true };
+      }
+      function cambiarEstado(repo, sesion, id, estado, texto = "") {
+        if (!["pendiente", "enCurso", "hecha"].includes(estado)) return { ok: false, error: "Estado no v\xE1lido." };
+        const { t, error } = tocable(repo, sesion, id);
+        if (error) return { ok: false, error };
+        if (!mueveEstado(sesion, t)) return { ok: false, error: "El estado lo cambia el responsable, quien la encarg\xF3 o un jefe." };
+        if (t.estado === estado) return { ok: true };
+        return enTransaccion(repo, () => {
+          const cambios = { estado };
+          if (estado === "hecha") {
+            cambios.fechaHecha = hoyIso();
+            cambios.hechaPor = sesion.personaId;
+          } else {
+            cambios.fechaHecha = null;
+            cambios.hechaPor = null;
+          }
+          repo.modificar("tareasObra", sesion, id, cambios);
+          anotar(repo, sesion, t, "estado", `${T.ESTADOS[t.estado].nombre} \u2192 ${T.ESTADOS[estado].nombre}`);
+          if (llano(texto)) anotar(repo, sesion, t, "feedback", llano(texto));
+          return { ok: true };
+        });
+      }
+      function comentar(repo, sesion, id, texto, tipo = "comentario") {
+        if (!puedeComentar(sesion)) return { ok: false, error: "Tu rol no puede comentar tareas." };
+        const { t, error } = tocable(repo, sesion, id);
+        if (error) return { ok: false, error };
+        const limpio = llano(texto);
+        if (!limpio) return { ok: false, error: "Escribe algo antes de enviarlo." };
+        const comentarioId = anotar(repo, sesion, t, tipo === "feedback" ? "feedback" : "comentario", limpio);
+        return { ok: true, id: comentarioId };
+      }
+      function anular(repo, sesion, id, motivo) {
+        const { t, error } = tocable(repo, sesion, id);
+        if (error) return { ok: false, error };
+        if (!editaEncargo(sesion, t)) return { ok: false, error: "La anula quien la encarg\xF3 o un jefe." };
+        if (t.estado === "hecha") return { ok: false, error: "Est\xE1 hecha: no se anula. Si hay que volver a ella, re\xE1brela." };
+        const m = llano(motivo);
+        if (!m) return { ok: false, error: "Di por qu\xE9 se anula." };
+        return enTransaccion(repo, () => {
+          repo.modificar("tareasObra", sesion, id, { estado: "anulada", motivoAnulacion: m.slice(0, 500) });
+          anotar(repo, sesion, t, "estado", `Anulada: ${m}`);
+          return { ok: true };
+        });
+      }
+      function enlazarPedido(repo, sesion, id, pedidoId) {
+        const { t, error } = tocable(repo, sesion, id);
+        if (error) return { ok: false, error };
+        if (!editaEncargo(sesion, t) && !mueveEstado(sesion, t)) return { ok: false, error: "Esta tarea la cambia quien la encarg\xF3, su responsable o un jefe." };
+        if (!puede(sesion.rol, "pedidos", "ver")) return { ok: false, error: "Tu rol no ve los pedidos." };
+        const p = repo.leer("pedidosCompra", sesion, pedidoId);
+        if (!p || p.obraId !== t.obraId) return { ok: false, error: "Ese pedido no es de esta obra." };
+        if (repo.db.prepare("SELECT id FROM tareaPedidos WHERE tareaId = ? AND pedidoId = ?").get(id, pedidoId)) return { ok: true };
+        return enTransaccion(repo, () => {
+          repo.crear("tareaPedidos", sesion, { obraId: t.obraId, tareaId: id, pedidoId, creadoPor: sesion.personaId }, { verbo: "editar" });
+          anotar(repo, sesion, t, "pedido", `Pedido ${p.codigo} enlazado`);
+          return { ok: true };
+        });
+      }
+      function desenlazarPedido(repo, sesion, id, pedidoId) {
+        const { t, error } = tocable(repo, sesion, id);
+        if (error) return { ok: false, error };
+        if (!editaEncargo(sesion, t) && !mueveEstado(sesion, t)) return { ok: false, error: "Esta tarea la cambia quien la encarg\xF3, su responsable o un jefe." };
+        const e = repo.db.prepare("SELECT id FROM tareaPedidos WHERE tareaId = ? AND pedidoId = ?").get(id, pedidoId);
+        if (!e) return { ok: true };
+        const p = repo.db.prepare("SELECT codigo FROM pedidosCompra WHERE id = ?").get(pedidoId);
+        return enTransaccion(repo, () => {
+          repo.db.prepare("DELETE FROM tareaPedidos WHERE id = ?").run(e.id);
+          anotar(repo, sesion, t, "pedido", `Pedido ${p ? p.codigo : ""} desenlazado`.replace("  ", " "));
+          return { ok: true };
+        });
+      }
+      function generarPedido(repo, sesion, id, entrada = {}) {
+        const { t, error } = tocable(repo, sesion, id);
+        if (error) return { ok: false, error };
+        if (!P.gestiona(sesion)) return { ok: false, error: PIDE_PEDIDO };
+        const lineas = T.materialALineas(entrada.material !== void 0 ? entrada.material : t.material);
+        if (!lineas.length) return { ok: false, error: 'Apunta primero el material de la tarea (una l\xEDnea por cosa: \xAB2 ud V\xE1lvula de esfera 1"\xBB).' };
+        if (entrada.material !== void 0 && llano(entrada.material) !== llano(t.material)) {
+          repo.modificar("tareasObra", sesion, id, { material: llano(entrada.material).slice(0, 4e3) || null });
+        }
+        const r = P.crear(repo, sesion, t.obraId, {
+          titulo: llano(entrada.titulo) || `${t.codigo} \xB7 ${t.titulo}`.slice(0, 200),
+          proveedorId: entrada.proveedorId || void 0,
+          proveedorNombre: entrada.proveedorId ? void 0 : llano(entrada.proveedorNombre) || void 0,
+          lineas,
+          observaciones: `Material de la tarea ${t.codigo}: ${t.titulo}`.slice(0, 500)
+        });
+        if (!r.ok) return r;
+        repo.crear("tareaPedidos", sesion, { obraId: t.obraId, tareaId: id, pedidoId: r.id, creadoPor: sesion.personaId }, { verbo: verboEscritura(sesion) });
+        anotar(repo, sesion, t, "pedido", `Pedido ${r.codigo} lanzado con ${lineas.length} ${lineas.length === 1 ? "l\xEDnea" : "l\xEDneas"}`);
+        return { ok: true, pedidoId: r.id, codigo: r.codigo };
+      }
+      function mias(repo, sesion, { hoy = hoyIso() } = {}) {
+        if (!puede(sesion.rol, "tareas", "ver")) return null;
+        const obras = new Map(repo.listar("obras", sesion).map((o) => [o.id, o]));
+        return T.ordenar(repo.listar("tareasObra", sesion, { condicion: "responsableId = ? AND estado IN ('pendiente','enCurso')", params: [sesion.personaId] }).filter((t) => obras.has(t.obraId)).map((t) => ({ ...t, calc: T.calcular(t, hoy), obraCodigo: obras.get(t.obraId).codigo, obraNombre: obras.get(t.obraId).nombre })), hoy);
+      }
+      module.exports = {
+        equipo,
+        obra,
+        ficha,
+        crear,
+        guardar,
+        cambiarEstado,
+        comentar,
+        anular,
+        enlazarPedido,
+        desenlazarPedido,
+        generarPedido,
+        mias,
+        permisosDe,
+        PIDE_PEDIDO
+      };
+    }
+  });
+
+  // electron/data/actas.js
+  var require_actas2 = __commonJS({
+    "electron/data/actas.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var M = require_actas();
+      var { puede, campoVetado } = require_roles();
+      var SIN_PERMISO = "Tu perfil no puede escribir actas.";
+      var SIN_APROBAR = "Aprobar o rechazar una orden de cambio es de los jefes (jefe de obra, de grupo o de proyectos).";
+      var llano = (v) => String(v ?? "").trim();
+      var hoyIso = () => require_fecha().hoyLocal();
+      var json = (t, def) => {
+        try {
+          const v = JSON.parse(t || "");
+          return v ?? def;
+        } catch {
+          return def;
+        }
+      };
+      var deActa = (f) => f && { ...f, asistentes: json(f.asistentes, []), puntos: json(f.puntos, []), resultado: json(f.resultado, []) };
+      var deOrden = (f) => f && { ...f, lineas: json(f.lineas, []) };
+      var sinDinero = (rol) => campoVetado(rol, "importeVenta");
+      function recortarOrden(o, rol) {
+        if (!o || !sinDinero(rol)) return o;
+        const { venta, coste, ...resto } = o;
+        return { ...resto, lineas: (o.lineas || []).map(({ precio, precioCoste, ...l }) => l) };
+      }
+      function conPreciosDeAntes(nuevas, viejas) {
+        const porResumen = new Map(viejas.map((v) => [v.resumen, v]));
+        return nuevas.map((l, i) => {
+          const v = (nuevas.length === viejas.length ? viejas[i] : porResumen.get(l.resumen)) || {};
+          return { ...l, precio: Number(v.precio) || 0, precioCoste: v.precioCoste ?? null };
+        });
+      }
+      function enTransaccion(repo, fn) {
+        if (repo.db.isTransaction) return fn();
+        repo.db.exec("BEGIN");
+        try {
+          const r = fn();
+          repo.db.exec(r && r.ok === false ? "ROLLBACK" : "COMMIT");
+          return r;
+        } catch (e) {
+          repo.db.exec("ROLLBACK");
+          throw e;
+        }
+      }
+      function personasDe(repo) {
+        return repo.db.prepare("SELECT id, nombre FROM personas WHERE activo = 1 ORDER BY nombre").all().map((p) => ({ ...p }));
+      }
+      function obra(repo, sesion, obraId) {
+        const o = obraId ? repo.leer("obras", sesion, obraId) : null;
+        if (!o) return { ok: false, error: "No se encuentra la obra." };
+        const filtro = { condicion: "obraId = ?", params: [obraId] };
+        const actas = repo.listar("actasObra", sesion, { ...filtro, orden: "fecha DESC, numero DESC" }).map(deActa);
+        const ordenes = repo.listar("ordenesCambio", sesion, { ...filtro, orden: "numero" }).map(deOrden).map((x) => recortarOrden(x, sesion.rol));
+        return {
+          ok: true,
+          obra: { id: o.id, codigo: o.codigo, nombre: o.nombre },
+          actas,
+          ordenes,
+          personas: personasDe(repo),
+          modelos: M.MODELOS,
+          puedeEscribir: puede(sesion.rol, "actas", "crear"),
+          puedeAprobar: puede(sesion.rol, "actas", "aprobar"),
+          veDinero: !sinDinero(sesion.rol),
+          presupuestoId: presupuestoDe(repo.db, o)
+        };
+      }
+      function presupuestoDe(db, o) {
+        if (o.presupuestoId) return o.presupuestoId;
+        const p = db.prepare("SELECT id FROM presupuestos WHERE obraIdVinculada = ? ORDER BY fase = 'obra' DESC, creadoEn LIMIT 1").get(o.id);
+        return p ? p.id : null;
+      }
+      function limpiarPuntos(repo, obraId, puntos, sesion) {
+        const ordenes = repo.listar("ordenesCambio", sesion, { condicion: "obraId = ?", params: [obraId] });
+        const personas = personasDe(repo);
+        return (Array.isArray(puntos) ? puntos : []).slice(0, 200).map((p) => {
+          const texto = llano(p && p.texto).slice(0, 4e3);
+          const auto = M.reconocer(texto, { ordenes, personas });
+          const accion = p && p.accion && p.manual ? p.accion : auto;
+          return { texto, accion, manual: !!(p && p.manual), hecho: !!(p && p.hecho) };
+        }).filter((p) => p.texto);
+      }
+      function crearActa(repo, sesion, obraId, { modelo = "obraSemanal", fecha, titulo, lugar } = {}) {
+        if (!puede(sesion.rol, "actas", "crear")) return { ok: false, error: SIN_PERMISO };
+        const o = obraId ? repo.leer("obras", sesion, obraId) : null;
+        if (!o) return { ok: false, error: "No se encuentra la obra." };
+        const m = M.MODELOS.find((x) => x.id === modelo) || M.MODELOS[M.MODELOS.length - 1];
+        return enTransaccion(repo, () => {
+          const nums = repo.db.prepare("SELECT numero FROM actasObra WHERE obraId = ?").all(obraId).map((x) => x.numero);
+          const numero = M.siguienteNumero("ACTA", nums);
+          const id = repo.crear("actasObra", sesion, {
+            obraId,
+            numero,
+            modelo: m.id,
+            titulo: llano(titulo) || m.nombre,
+            fecha: llano(fecha) || hoyIso(),
+            lugar: llano(lugar) || null,
+            asistentes: "[]",
+            puntos: JSON.stringify(m.puntos.map((t) => ({ texto: `${t}: `, accion: { accion: "nada" }, plantilla: true }))),
+            estado: "borrador",
+            creadoPor: sesion.personaId
+          });
+          return { ok: true, id, numero };
+        });
+      }
+      function actaAbierta(repo, sesion, id) {
+        const a = deActa(repo.leer("actasObra", sesion, id));
+        if (!a) return { error: "No se encuentra el acta." };
+        if (a.estado === "cerrada") return { error: "El acta est\xE1 cerrada: lo acordado ya se ejecut\xF3 y no se toca." };
+        return { a };
+      }
+      function guardarActa(repo, sesion, id, cambios = {}) {
+        if (!puede(sesion.rol, "actas", "editar")) return { ok: false, error: SIN_PERMISO };
+        const { a, error } = actaAbierta(repo, sesion, id);
+        if (error) return { ok: false, error };
+        const c = {};
+        for (const k of ["titulo", "fecha", "lugar"]) if (cambios[k] !== void 0) c[k] = llano(cambios[k]) || (k === "lugar" ? null : a[k]);
+        if (cambios.asistentes !== void 0) {
+          c.asistentes = JSON.stringify((Array.isArray(cambios.asistentes) ? cambios.asistentes : []).map((x) => ({ personaId: x.personaId || null, nombre: llano(x.nombre).slice(0, 120), empresa: llano(x.empresa).slice(0, 120) || null })).filter((x) => x.nombre || x.personaId));
+        }
+        if (cambios.puntos !== void 0) c.puntos = JSON.stringify(limpiarPuntos(repo, a.obraId, cambios.puntos, sesion));
+        if (Object.keys(c).length) repo.modificar("actasObra", sesion, id, c);
+        return { ok: true, acta: deActa(repo.leer("actasObra", sesion, id)) };
+      }
+      function previsualizar(repo, sesion, id) {
+        const a = deActa(repo.leer("actasObra", sesion, id));
+        if (!a) return { ok: false, error: "No se encuentra el acta." };
+        return { ok: true, acciones: a.puntos.filter((p) => p.accion && p.accion.accion !== "nada" && !esPlantillaVacia(p)) };
+      }
+      var esPlantillaVacia = (p) => /:\s*$/.test(p.texto);
+      function imputar(repo, sesion, orden) {
+        const { guardarLinea } = require_presupuestos();
+        if (orden.capituloId) return { ok: true, yaEstaba: true, capituloId: orden.capituloId };
+        if (!orden.lineas.length) return { ok: true, sinLineas: true };
+        const o = repo.leer("obras", sesion, orden.obraId);
+        const presupuestoId = o && presupuestoDe(repo.db, o);
+        if (!presupuestoId) return { ok: false, error: `La obra no tiene presupuesto donde imputar ${orden.numero}.` };
+        const db = repo.db;
+        let raiz = db.prepare("SELECT id FROM lineas WHERE presupuestoId = ? AND padreId IS NULL AND tipo = 'capitulo' AND codigo = 'OC'").get(presupuestoId);
+        if (!raiz) {
+          const orden0 = (db.prepare("SELECT MAX(orden) m FROM lineas WHERE presupuestoId = ? AND padreId IS NULL").get(presupuestoId).m ?? -1) + 1;
+          raiz = { id: guardarLinea(db, presupuestoId, { tipo: "capitulo", codigo: "OC", resumen: "\xD3rdenes de cambio", orden: orden0 }, sesion) };
+        }
+        const n = db.prepare("SELECT COUNT(*) n FROM lineas WHERE padreId = ?").get(raiz.id).n;
+        const capituloId = guardarLinea(db, presupuestoId, {
+          tipo: "capitulo",
+          padreId: raiz.id,
+          orden: n,
+          codigo: orden.numero,
+          resumen: orden.titulo,
+          descripcion: orden.descripcion || null
+        }, sesion);
+        orden.lineas.forEach((l, i) => {
+          guardarLinea(db, presupuestoId, {
+            tipo: "partida",
+            padreId: capituloId,
+            orden: i,
+            codigo: `${orden.numero}.${String(i + 1).padStart(2, "0")}`,
+            resumen: llano(l.resumen) || `Partida ${i + 1}`,
+            unidad: llano(l.unidad) || "ud",
+            cantidad: Number(l.cantidad) || 0,
+            precio: Number(l.precio) || 0,
+            precioCoste: l.precioCoste === "" || l.precioCoste === null || l.precioCoste === void 0 ? null : Number(l.precioCoste)
+          }, sesion);
+        });
+        repo.modificar("ordenesCambio", sesion, orden.id, { capituloId }, { verbo: "aprobar" });
+        return { ok: true, capituloId, presupuestoId };
+      }
+      function decidir(repo, sesion, ordenId, estado, actaId = null) {
+        if (!puede(sesion.rol, "actas", "aprobar")) return { ok: false, error: SIN_APROBAR };
+        const o = deOrden(repo.leer("ordenesCambio", sesion, ordenId));
+        if (!o) return { ok: false, error: "No se encuentra la orden de cambio." };
+        if (o.estado === estado) return { ok: true, igual: true, orden: o };
+        if (o.estado !== "propuesta") return { ok: false, error: `${o.numero} ya est\xE1 ${o.estado}.` };
+        repo.modificar("ordenesCambio", sesion, ordenId, {
+          estado,
+          decididaEn: (/* @__PURE__ */ new Date()).toISOString(),
+          decididaPor: sesion.personaId,
+          actaId: actaId || o.actaId || null
+        }, { verbo: "aprobar" });
+        if (estado !== "aprobada") return { ok: true, orden: { ...o, estado } };
+        const imp = imputar(repo, sesion, { ...o, estado });
+        if (!imp.ok) return imp;
+        return { ok: true, orden: { ...o, estado, capituloId: imp.capituloId || o.capituloId }, imputada: imp };
+      }
+      function cerrarActa(repo, sesion, id) {
+        if (!puede(sesion.rol, "actas", "editar")) return { ok: false, error: SIN_PERMISO };
+        const { a, error } = actaAbierta(repo, sesion, id);
+        if (error) return { ok: false, error };
+        const tareas = require_tareas2();
+        return enTransaccion(repo, () => {
+          const resultado = [];
+          for (const [i, p] of a.puntos.entries()) {
+            const ac = p.accion || { accion: "nada" };
+            if (ac.accion === "nada" || esPlantillaVacia(p)) continue;
+            let r;
+            if (ac.accion === "aprobarOrden" || ac.accion === "rechazarOrden") {
+              r = decidir(repo, sesion, ac.ordenId, ac.accion === "aprobarOrden" ? "aprobada" : "rechazada", id);
+              if (r.ok) r.texto = `${ac.numero} ${ac.accion === "aprobarOrden" ? "aprobada" : "rechazada"}${r.imputada && r.imputada.capituloId && !r.imputada.yaEstaba ? " e imputada en el presupuesto" : ""}`;
+            } else if (ac.accion === "ordenNueva") {
+              r = crearOrden(repo, sesion, a.obraId, { titulo: p.texto.slice(0, 160), descripcion: p.texto, origen: `${a.numero} \xB7 punto ${i + 1}`, actaId: id }, { dentro: true });
+              if (r.ok && ac.aprobada) {
+                const d = decidir(repo, sesion, r.id, "aprobada", id);
+                if (!d.ok) r = d;
+              }
+              if (r.ok) r.texto = `${r.numero} creada${ac.aprobada ? " y aprobada (sin l\xEDneas: se imputa cuando las tenga)" : " como propuesta"}`;
+            } else if (ac.accion === "tarea") {
+              r = tareas.crear(repo, sesion, a.obraId, {
+                titulo: p.texto.slice(0, 200),
+                descripcion: `Del ${a.numero} (${a.titulo}, ${a.fecha}).`,
+                responsableId: ac.responsableId || null,
+                fechaLimite: ac.fecha || null
+              });
+              if (r.ok) r.texto = `Tarea ${r.codigo} creada`;
+            }
+            if (!r || !r.ok) return { ok: false, error: `Punto ${i + 1}: ${r && r.error || "no se pudo ejecutar."}` };
+            resultado.push({ punto: i, texto: r.texto });
+          }
+          repo.modificar("actasObra", sesion, id, {
+            estado: "cerrada",
+            cerradaEn: (/* @__PURE__ */ new Date()).toISOString(),
+            cerradaPor: sesion.personaId,
+            resultado: JSON.stringify(resultado)
+          });
+          return { ok: true, resultado };
+        });
+      }
+      function limpiarLineas(lineas) {
+        return (Array.isArray(lineas) ? lineas : []).slice(0, 300).map((l) => ({
+          resumen: llano(l.resumen).slice(0, 300),
+          unidad: llano(l.unidad).slice(0, 12) || "ud",
+          cantidad: Number(String(l.cantidad ?? "").replace(",", ".")) || 0,
+          precio: Number(String(l.precio ?? "").replace(",", ".")) || 0,
+          precioCoste: l.precioCoste === "" || l.precioCoste === null || l.precioCoste === void 0 ? null : Number(String(l.precioCoste).replace(",", ".")) || 0
+        })).filter((l) => l.resumen || l.cantidad || l.precio);
+      }
+      function crearOrden(repo, sesion, obraId, entrada = {}, { dentro = false } = {}) {
+        if (!puede(sesion.rol, "actas", "crear")) return { ok: false, error: SIN_PERMISO };
+        const o = obraId ? repo.leer("obras", sesion, obraId) : null;
+        if (!o) return { ok: false, error: "No se encuentra la obra." };
+        if (!llano(entrada.titulo)) return { ok: false, error: "La orden de cambio necesita un t\xEDtulo." };
+        const hacer = () => {
+          const nums = repo.db.prepare("SELECT numero FROM ordenesCambio WHERE obraId = ?").all(obraId).map((x) => x.numero);
+          const numero = M.siguienteNumero("OC", nums);
+          const lineas = sinDinero(sesion.rol) ? conPreciosDeAntes(limpiarLineas(entrada.lineas), []) : limpiarLineas(entrada.lineas);
+          const { venta, coste } = M.importeOrden({ lineas });
+          const id = repo.crear("ordenesCambio", sesion, {
+            obraId,
+            numero,
+            titulo: llano(entrada.titulo).slice(0, 200),
+            descripcion: llano(entrada.descripcion) || null,
+            origen: llano(entrada.origen) || null,
+            lineas: JSON.stringify(lineas),
+            venta,
+            coste,
+            estado: "propuesta",
+            actaId: entrada.actaId || null,
+            creadoPor: sesion.personaId
+          });
+          return { ok: true, id, numero };
+        };
+        return dentro ? hacer() : enTransaccion(repo, hacer);
+      }
+      function guardarOrden(repo, sesion, id, cambios = {}) {
+        if (!puede(sesion.rol, "actas", "editar")) return { ok: false, error: SIN_PERMISO };
+        const o = deOrden(repo.leer("ordenesCambio", sesion, id));
+        if (!o) return { ok: false, error: "No se encuentra la orden de cambio." };
+        if (o.capituloId) return { ok: false, error: `${o.numero} ya est\xE1 imputada en el presupuesto: los cambios se hacen all\xED.` };
+        if (o.estado === "rechazada") return { ok: false, error: `${o.numero} est\xE1 rechazada.` };
+        const c = {};
+        if (cambios.titulo !== void 0) c.titulo = llano(cambios.titulo) || o.titulo;
+        if (cambios.descripcion !== void 0) c.descripcion = llano(cambios.descripcion) || null;
+        if (cambios.lineas !== void 0) {
+          const limpias = limpiarLineas(cambios.lineas);
+          const lineas = sinDinero(sesion.rol) ? conPreciosDeAntes(limpias, o.lineas) : limpias;
+          Object.assign(c, { lineas: JSON.stringify(lineas) }, M.importeOrden({ lineas }));
+        }
+        return enTransaccion(repo, () => {
+          if (Object.keys(c).length) repo.modificar("ordenesCambio", sesion, id, c);
+          const nueva = deOrden(repo.leer("ordenesCambio", sesion, id));
+          if (nueva.estado === "aprobada" && nueva.lineas.length && puede(sesion.rol, "actas", "aprobar")) {
+            const imp = imputar(repo, sesion, nueva);
+            if (!imp.ok) return imp;
+          }
+          return { ok: true, orden: recortarOrden(deOrden(repo.leer("ordenesCambio", sesion, id)), sesion.rol) };
+        });
+      }
+      var aprobarOrden = (repo, sesion, id) => enTransaccion(repo, () => decidir(repo, sesion, id, "aprobada"));
+      var rechazarOrden = (repo, sesion, id) => enTransaccion(repo, () => decidir(repo, sesion, id, "rechazada"));
+      async function pdfActa(repo, sesion, id) {
+        const a = deActa(repo.leer("actasObra", sesion, id));
+        if (!a) return { ok: false, error: "No se encuentra el acta." };
+        const o = repo.leer("obras", sesion, a.obraId) || {};
+        const { informePdf } = require_informePdf();
+        const resultado = new Map(a.resultado.map((r) => [r.punto, r.texto]));
+        const puntos = a.puntos.filter((p) => !esPlantillaVacia(p));
+        const bytes = await informePdf({
+          titulo: `${a.numero} \xB7 ${a.titulo}`,
+          referencia: `${o.codigo || ""} ${o.nombre || ""}`.trim(),
+          fecha: a.fecha,
+          veredicto: a.estado === "cerrada" ? { texto: "CERRADA", clase: "ok" } : { texto: "BORRADOR", clase: "mal" },
+          datos: [["Obra", `${o.codigo || ""} \xB7 ${o.nombre || ""}`], ["Fecha", a.fecha], ["Lugar", a.lugar || "\u2014"]],
+          bloques: [
+            { titulo: "Asistentes", columnas: ["Nombre", "Empresa"], filas: a.asistentes.map((x) => [x.nombre, x.empresa || "CBRE"]) },
+            {
+              titulo: "Puntos tratados",
+              columnas: ["#", "Punto", "Acuerdo"],
+              filas: puntos.map((p) => [
+                String(a.puntos.indexOf(p) + 1),
+                p.texto,
+                resultado.get(a.puntos.indexOf(p)) || (p.accion ? M.TEXTO_ACCION[p.accion.accion](p.accion) : "")
+              ])
+            }
+          ],
+          firmas: ["Por CBRE", "Por la propiedad / DF"]
+        });
+        return { ok: true, bytes, nombre: `${a.numero}-${o.codigo || "obra"}.pdf` };
+      }
+      module.exports = {
+        obra,
+        crearActa,
+        guardarActa,
+        previsualizar,
+        cerrarActa,
+        crearOrden,
+        guardarOrden,
+        aprobarOrden,
+        rechazarOrden,
+        imputar,
+        pdfActa
+      };
+    }
+  });
+
+  // electron/data/planosAvance.js
+  var require_planosAvance = __commonJS({
+    "electron/data/planosAvance.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var P = require_avancePlano();
+      var MED = require_avanceMedir();
+      var { puede } = require_roles();
+      var MAX_IMAGEN = 12 * 1024 * 1024;
+      var RE_IMAGEN = /^data:image\/(png|jpeg|jpg|webp);base64,[A-Za-z0-9+/=]+$/;
+      var llano = (v) => String(v ?? "").trim();
+      var dimension = (v) => {
+        const n = Math.round(Number(v));
+        return Number.isFinite(n) && n > 0 && n < 1e5 ? n : null;
+      };
+      var positivo = (v) => {
+        const n = Number(v);
+        return Number.isFinite(n) && n > 0 ? n : null;
+      };
+      var FECHA = /^\d{4}-\d{2}-\d{2}$/;
+      var leerJson = (t, d) => {
+        try {
+          return t ? JSON.parse(t) : d;
+        } catch {
+          return d;
+        }
+      };
+      var obraVisible = (repo, ses, obraId) => obraId ? repo.leer("obras", ses, obraId) : null;
+      function planoLigero(p) {
+        return {
+          id: p.id,
+          obraId: p.obraId,
+          nombre: p.nombre,
+          planta: p.planta || "",
+          disciplina: p.disciplina || "otra",
+          orden: p.orden || 0,
+          ancho: p.ancho,
+          alto: p.alto,
+          escala: p.escala || null,
+          capas: P.normalizarCapas(p.capas),
+          activo: p.activo !== 0,
+          modificadoEn: p.modificadoEn
+        };
+      }
+      function valeParaPartida(m, plano) {
+        if (!m.lineaId) return { valePartida: null, unidadPartida: null, cuenta: "", falta: "partida" };
+        const r = MED.cantidadPartida(m, plano || {}, m.unidad);
+        return { valePartida: r.cantidad, unidadPartida: r.unidad, cuenta: MED.explicar(m, plano || {}, m.unidad), falta: r.falta };
+      }
+      function datosPartida(repo, obraId, lineaId) {
+        if (!lineaId) return null;
+        try {
+          return repo.db.prepare("SELECT lineaId, codigo, resumen, unidad FROM avancePartidas WHERE obraId = ? AND lineaId = ?").get(obraId, lineaId) || null;
+        } catch {
+          return null;
+        }
+      }
+      function paralelosYSeccion(d, tipo, partida) {
+        const c = {};
+        if (tipo !== "trazo") return c;
+        if (d.paralelos !== void 0 && d.paralelos !== null && d.paralelos !== "") c.paralelos = MED.paralelosDe(d.paralelos);
+        if (d.seccion !== void 0) {
+          const s = MED.leerSeccion(d.seccion);
+          if (d.seccion !== null && d.seccion !== "" && !s) return { error: `\xAB${typeof d.seccion === "string" ? d.seccion : "la secci\xF3n"}\xBB no es una secci\xF3n: pon 400x300 o \xD8250.` };
+          c.seccion = s ? JSON.stringify(s) : null;
+        }
+        if (!c.seccion && partida && MED.unidadNormal(partida.unidad) === "m2") {
+          const s = MED.seccionDeTexto(partida.resumen);
+          if (s) c.seccion = JSON.stringify(s);
+        }
+        return c;
+      }
+      function marcaLista(m, plano, nombres = {}) {
+        const capa = plano ? P.normalizarCapas(plano.capas).find((c) => c.id === m.capa) : null;
+        const medida = MED.medirMarca(m, plano || {});
+        return {
+          id: m.id,
+          planoId: m.planoId,
+          capa: m.capa || null,
+          capaNombre: capa ? capa.nombre : "",
+          color: capa ? capa.color : "#1f6fd1",
+          fecha: m.fecha,
+          tipo: m.tipo,
+          puntos: MED.leerPuntos(m.puntos),
+          titulo: m.titulo || "",
+          nota: m.nota || "",
+          lineaId: m.lineaId || null,
+          codigo: m.codigo || "",
+          resumen: m.resumen || "",
+          cantidad: m.cantidad ?? null,
+          extra: m.extra ?? null,
+          extraNota: m.extraNota || "",
+          medido: medida.cantidad,
+          unidad: m.unidad || medida.unidad,
+          vale: MED.cantidadMarca(m, plano || {}),
+          /* Lo que vale para su partida (16-oct): × nº de tubos, m² con la sección… */
+          paralelos: m.tipo === "trazo" ? MED.paralelosDe(m.paralelos) : 1,
+          seccion: MED.leerSeccion(m.seccion),
+          seccionTexto: MED.textoSeccion(m.seccion),
+          medida: MED.medidaDeTexto(m.resumen),
+          ...valeParaPartida(m, plano),
+          fotos: leerJson(m.fotos, []).length,
+          personaId: m.personaId || null,
+          persona: nombres[m.personaId] || "",
+          estado: m.estado,
+          vistaPor: nombres[m.vistaPor] || "",
+          vistaEn: m.vistaEn || null,
+          creadoEn: m.creadoEn
+        };
+      }
+      function nombresPersonas(repo) {
+        try {
+          return Object.fromEntries(repo.db.prepare("SELECT id, nombre FROM personas").all().map((p) => [p.id, p.nombre]));
+        } catch {
+          return {};
+        }
+      }
+      function planos(repo, ses, obraId, { todos = false } = {}) {
+        if (!obraVisible(repo, ses, obraId)) return null;
+        return repo.listar("planosAvance", ses, { condicion: todos ? "obraId = ?" : "obraId = ? AND activo = 1", params: [obraId], orden: "orden, nombre" }).map(planoLigero);
+      }
+      function imagen(repo, ses, planoId) {
+        const p = repo.leer("planosAvance", ses, llano(planoId));
+        return p ? { id: p.id, imagen: p.imagen, ancho: p.ancho, alto: p.alto } : null;
+      }
+      function comprobarImagen(img) {
+        if (typeof img !== "string" || !img) return "Falta la imagen del plano.";
+        if (img.length > MAX_IMAGEN) return "El plano es demasiado grande (m\xE1s de 12 MB): rec\xF3rtalo a la zona que interesa.";
+        if (!RE_IMAGEN.test(img)) return "Eso no es una imagen (PNG, JPEG o WebP).";
+        return null;
+      }
+      function crearPlano(repo, ses, obraId, d = {}) {
+        if (!obraVisible(repo, ses, obraId)) return { ok: false, error: "No se encuentra la obra." };
+        if (!puede(ses.rol, "avanceObra", "aprobar")) return { ok: false, error: "Los planos del avance los sube el jefe de obra." };
+        const error = comprobarImagen(d.imagen);
+        if (error) return { ok: false, error };
+        const disciplina = P.DISCIPLINAS[d.disciplina] ? d.disciplina : "otra";
+        const existentes = planos(repo, ses, obraId, { todos: true }) || [];
+        const id = repo.crear("planosAvance", ses, {
+          obraId,
+          nombre: llano(d.nombre).slice(0, 80) || `Plano ${existentes.length + 1}`,
+          planta: llano(d.planta).slice(0, 40) || null,
+          disciplina,
+          orden: existentes.length ? Math.max(...existentes.map((p) => p.orden || 0)) + 1 : 0,
+          imagen: d.imagen,
+          ancho: dimension(d.ancho),
+          alto: dimension(d.alto),
+          escala: positivo(d.escala),
+          capas: JSON.stringify(d.capas ? P.normalizarCapas(d.capas) : P.capasDe(disciplina))
+        });
+        return { ok: true, id };
+      }
+      function guardarPlano(repo, ses, planoId, d = {}) {
+        const p = repo.leer("planosAvance", ses, llano(planoId));
+        if (!p) return { ok: false, error: "No se encuentra el plano." };
+        if (!puede(ses.rol, "avanceObra", "aprobar")) return { ok: false, error: "Los planos del avance los prepara el jefe de obra." };
+        const c = {};
+        if (d.nombre !== void 0) c.nombre = llano(d.nombre).slice(0, 80) || p.nombre;
+        if (d.planta !== void 0) c.planta = llano(d.planta).slice(0, 40) || null;
+        if (d.escala !== void 0) c.escala = positivo(d.escala);
+        if (d.capas !== void 0) c.capas = JSON.stringify(P.normalizarCapas(d.capas));
+        if (d.activo !== void 0) c.activo = d.activo ? 1 : 0;
+        if (d.imagen !== void 0) {
+          const error = comprobarImagen(d.imagen);
+          if (error) return { ok: false, error };
+          Object.assign(c, { imagen: d.imagen, ancho: dimension(d.ancho), alto: dimension(d.alto) });
+        }
+        if (Object.keys(c).length) repo.modificar("planosAvance", ses, p.id, c);
+        return { ok: true };
+      }
+      function marcas(repo, ses, obraId, { planoId = null, desde = null, hasta = null, estado = null } = {}) {
+        if (!obraVisible(repo, ses, obraId)) return null;
+        const cond = ["obraId = ?"];
+        const params = [obraId];
+        if (planoId) {
+          cond.push("planoId = ?");
+          params.push(planoId);
+        }
+        if (desde && FECHA.test(desde)) {
+          cond.push("fecha >= ?");
+          params.push(desde);
+        }
+        if (hasta && FECHA.test(hasta)) {
+          cond.push("fecha <= ?");
+          params.push(hasta);
+        }
+        if (estado && P.ESTADOS_MARCA[estado]) {
+          cond.push("estado = ?");
+          params.push(estado);
+        }
+        const filas = repo.listar("avanceMarcas", ses, { condicion: cond.join(" AND "), params, orden: "fecha DESC, creadoEn DESC" });
+        const porId = new Map(repo.listar("planosAvance", ses, { condicion: "obraId = ?", params: [obraId] }).map((p) => [p.id, p]));
+        const nombres = nombresPersonas(repo);
+        return filas.map((m) => ({ ...marcaLista(m, porId.get(m.planoId), nombres), plano: (porId.get(m.planoId) || {}).nombre || "" }));
+      }
+      function resumen(repo, ses, obraId, { hoy = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10) } = {}) {
+        const todas = marcas(repo, ses, obraId);
+        if (!todas) return null;
+        const semana = /* @__PURE__ */ new Date(`${hoy}T12:00:00Z`);
+        semana.setUTCDate(semana.getUTCDate() - 6);
+        const desdeSemana = semana.toISOString().slice(0, 10);
+        const vivas = todas.filter((m) => m.estado !== "descartada");
+        const sumar = (lista) => {
+          const u = {};
+          for (const m of lista) {
+            const sinPartida = m.tipo === "trazo" && m.vale !== null && m.vale !== void 0 ? m.vale * MED.paralelosDe(m.paralelos) : m.vale;
+            const [v, ud] = m.valePartida !== null && m.valePartida !== void 0 ? [m.valePartida, m.unidadPartida] : [sinPartida, MED.UNIDAD_TIPO[m.tipo]];
+            if (v !== null && v !== void 0) u[ud] = Math.round(((u[ud] || 0) + v) * 100) / 100;
+          }
+          return u;
+        };
+        return {
+          pendientes: todas.filter((m) => m.estado === "pendiente").length,
+          hoy: vivas.filter((m) => m.fecha === hoy).length,
+          semana: vivas.filter((m) => m.fecha >= desdeSemana && m.fecha <= hoy).length,
+          total: vivas.length,
+          medidoSemana: sumar(vivas.filter((m) => m.fecha >= desdeSemana && m.fecha <= hoy)),
+          ultima: vivas.length ? vivas[0].fecha : null
+        };
+      }
+      function limpiarPuntos(tipo, puntos) {
+        const pts = MED.leerPuntos(puntos).map((q) => ({ x: Math.min(1, Math.max(0, Math.round(q.x * 1e4) / 1e4)), y: Math.min(1, Math.max(0, Math.round(q.y * 1e4) / 1e4)) })).slice(0, 400);
+        if (tipo === "punto") return pts.slice(0, 1);
+        return pts;
+      }
+      function crearMarca(repo, ses, d = {}) {
+        const p = repo.leer("planosAvance", ses, llano(d.planoId));
+        if (!p) return { ok: false, error: "No se encuentra el plano." };
+        const capa = P.normalizarCapas(p.capas).find((c) => c.id === llano(d.capa));
+        if (!capa) return { ok: false, error: "Elige la capa en la que marcas (tuber\xEDa, conductos, equipos\u2026)." };
+        const fecha = FECHA.test(llano(d.fecha)) ? llano(d.fecha) : (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+        const tipo = capa.tipo;
+        const puntos = limpiarPuntos(tipo, d.puntos);
+        const minimo = tipo === "punto" ? 1 : tipo === "trazo" ? 2 : 3;
+        if (puntos.length < minimo) {
+          return { ok: false, error: tipo === "punto" ? "Toca en el plano d\xF3nde est\xE1." : tipo === "trazo" ? "Dibuja el tramo en el plano (al menos dos puntos)." : "Dibuja la zona (al menos tres puntos)." };
+        }
+        const cantidad = d.cantidad === "" || d.cantidad === null || d.cantidad === void 0 ? null : Number(d.cantidad);
+        if (cantidad !== null && !(Number.isFinite(cantidad) && cantidad >= 0)) return { ok: false, error: "La cantidad tiene que ser un n\xFAmero." };
+        const extra = d.extra === "" || d.extra === null || d.extra === void 0 ? null : Number(d.extra);
+        if (extra !== null && !(Number.isFinite(extra) && extra >= 0)) return { ok: false, error: "Los metros de subidas y bajadas tienen que ser un n\xFAmero." };
+        const lineaId = llano(d.lineaId) || (capa.lineaIds.length === 1 ? capa.lineaIds[0] : null);
+        const partida = datosPartida(repo, p.obraId, lineaId);
+        const ps = paralelosYSeccion(d, tipo, partida);
+        if (ps.error) return { ok: false, error: ps.error };
+        const id = repo.crear("avanceMarcas", ses, {
+          paralelos: tipo === "trazo" ? ps.paralelos || capa.paralelos || 1 : null,
+          seccion: ps.seccion || null,
+          obraId: p.obraId,
+          planoId: p.id,
+          capa: capa.id,
+          fecha,
+          tipo,
+          puntos: JSON.stringify(puntos),
+          titulo: llano(d.titulo).slice(0, 120) || null,
+          nota: llano(d.nota).slice(0, 2e3) || null,
+          lineaId: lineaId || null,
+          codigo: partida ? partida.codigo : null,
+          resumen: partida ? partida.resumen : null,
+          unidad: partida && partida.unidad || MED.UNIDAD_TIPO[tipo],
+          cantidad,
+          extra: tipo === "trazo" ? extra : null,
+          extraNota: tipo === "trazo" ? llano(d.extraNota).slice(0, 200) || null : null,
+          fotos: Array.isArray(d.fotos) && d.fotos.length ? JSON.stringify(d.fotos.slice(0, 10)) : null,
+          personaId: ses.personaId || null,
+          estado: "pendiente"
+        });
+        return { ok: true, id, medido: MED.medirMarca({ tipo, puntos }, p).cantidad };
+      }
+      function editarMarca(repo, ses, id, d = {}) {
+        const m = repo.leer("avanceMarcas", ses, llano(id));
+        if (!m) return { ok: false, error: "No se encuentra la marca." };
+        const jefe = puede(ses.rol, "avanceObra", "aprobar");
+        if (!jefe && (m.personaId !== ses.personaId || m.estado !== "pendiente")) {
+          return { ok: false, error: "Solo puedes corregir tus marcas mientras el jefe de obra no las ha revisado." };
+        }
+        if (m.estado === "certificada") return { ok: false, error: "Esa marca ya est\xE1 certificada." };
+        const c = {};
+        if (d.fecha !== void 0 && FECHA.test(llano(d.fecha))) c.fecha = llano(d.fecha);
+        if (d.nota !== void 0) c.nota = llano(d.nota).slice(0, 2e3) || null;
+        if (d.titulo !== void 0) c.titulo = llano(d.titulo).slice(0, 120) || null;
+        if (d.cantidad !== void 0) {
+          const n = d.cantidad === "" || d.cantidad === null ? null : Number(d.cantidad);
+          if (n !== null && !(Number.isFinite(n) && n >= 0)) return { ok: false, error: "La cantidad tiene que ser un n\xFAmero." };
+          c.cantidad = n;
+        }
+        if (d.extra !== void 0 && m.tipo === "trazo") {
+          const n = d.extra === "" || d.extra === null ? null : Number(d.extra);
+          if (n !== null && !(Number.isFinite(n) && n >= 0)) return { ok: false, error: "Los metros de subidas y bajadas tienen que ser un n\xFAmero." };
+          c.extra = n;
+        }
+        if (d.extraNota !== void 0) c.extraNota = llano(d.extraNota).slice(0, 200) || null;
+        if (d.lineaId !== void 0) {
+          const lineaId = llano(d.lineaId) || null;
+          const partida = datosPartida(repo, m.obraId, lineaId);
+          Object.assign(c, {
+            lineaId,
+            codigo: partida ? partida.codigo : null,
+            resumen: partida ? partida.resumen : null,
+            unidad: partida && partida.unidad || MED.UNIDAD_TIPO[m.tipo]
+          });
+        }
+        {
+          const partida = c.lineaId !== void 0 ? datosPartida(repo, m.obraId, c.lineaId) : null;
+          const ps = paralelosYSeccion({ paralelos: d.paralelos, seccion: d.seccion }, m.tipo, d.seccion === void 0 && !m.seccion ? partida : null);
+          if (ps.error) return { ok: false, error: ps.error };
+          Object.assign(c, ps);
+        }
+        if (d.puntos !== void 0) {
+          const pts = limpiarPuntos(m.tipo, d.puntos);
+          if (pts.length) c.puntos = JSON.stringify(pts);
+        }
+        if (Object.keys(c).length) repo.modificar("avanceMarcas", ses, m.id, c);
+        return { ok: true };
+      }
+      function revisar(repo, ses, ids, estado) {
+        if (!puede(ses.rol, "avanceObra", "aprobar")) return { ok: false, error: "Revisar el avance es del jefe de obra." };
+        if (!["vista", "descartada", "pendiente"].includes(estado)) return { ok: false, error: "Estado no v\xE1lido." };
+        let n = 0;
+        const ahora = (/* @__PURE__ */ new Date()).toISOString();
+        for (const id of [].concat(ids || []).map(llano).filter(Boolean)) {
+          const m = repo.leer("avanceMarcas", ses, id);
+          if (!m || m.estado === "certificada" || m.estado === estado) continue;
+          repo.modificar("avanceMarcas", ses, m.id, estado === "pendiente" ? { estado, vistaPor: null, vistaEn: null } : { estado, vistaPor: ses.personaId || null, vistaEn: ahora });
+          n += 1;
+        }
+        return { ok: true, revisadas: n };
+      }
+      function anadirFotos(repo, ses, id, rutas) {
+        const m = repo.leer("avanceMarcas", ses, llano(id));
+        if (!m) return { ok: false, error: "No se encuentra la marca." };
+        const fotos = leerJson(m.fotos, []).concat((rutas || []).map((r) => ({ ruta: r.ruta, nombre: r.nombre, fecha: (/* @__PURE__ */ new Date()).toISOString() })));
+        repo.modificar("avanceMarcas", ses, m.id, { fotos: JSON.stringify(fotos.slice(0, 20)) });
+        return { ok: true, fotos: fotos.length };
+      }
+      function foto(repo, ses, id, i) {
+        const m = repo.leer("avanceMarcas", ses, llano(id));
+        if (!m) return null;
+        return leerJson(m.fotos, [])[Number(i)] || null;
+      }
+      function asignarPartida(repo, ses, ids, lineaId, { seccion, paralelos } = {}) {
+        if (!puede(ses.rol, "avanceObra", "aprobar")) return { ok: false, error: "Poner la partida a lo marcado es del jefe de obra." };
+        const lista = [].concat(ids || []).map(llano).filter(Boolean);
+        if (!lista.length) return { ok: false, error: "No hay ninguna marca." };
+        if (!llano(lineaId)) return { ok: false, error: "Elige la partida." };
+        let n = 0;
+        const errores = [];
+        for (const id of lista) {
+          const m = repo.leer("avanceMarcas", ses, id);
+          if (!m || m.estado === "certificada" || m.estado === "descartada") continue;
+          const partida = datosPartida(repo, m.obraId, llano(lineaId));
+          if (!partida) {
+            errores.push("Esa partida no es de la obra de la marca.");
+            continue;
+          }
+          if (!MED.unidadCasa(m.tipo, partida.unidad)) {
+            errores.push(`La partida ${partida.codigo || ""} va en ${partida.unidad || "\u2014"} y lo marcado no se mide as\xED.`);
+            continue;
+          }
+          const r = editarMarca(repo, ses, m.id, { lineaId: partida.lineaId, seccion, paralelos });
+          if (!r.ok) {
+            errores.push(r.error);
+            continue;
+          }
+          n += 1;
+        }
+        if (!n && errores.length) return { ok: false, error: errores[0] };
+        return { ok: true, asignadas: n, errores };
+      }
+      function partidas(repo, ses, obraId) {
+        if (!obraVisible(repo, ses, obraId)) return null;
+        try {
+          return repo.db.prepare("SELECT lineaId, codigo, resumen, unidad, capituloCodigo, capituloResumen, disciplina, medicion FROM avancePartidas WHERE obraId = ? AND activa = 1 ORDER BY orden").all(obraId);
+        } catch {
+          return [];
+        }
+      }
+      var ESTADOS_MATERIAL = { pendiente: "Pendiente de aceptar", aceptado: "Aceptado", rechazado: "Rechazado" };
+      function materiales(repo, ses, obraId) {
+        if (!obraVisible(repo, ses, obraId)) return null;
+        const nombres = nombresPersonas(repo);
+        return repo.listar("avanceMateriales", ses, { condicion: "obraId = ?", params: [obraId], orden: "fecha DESC, creadoEn DESC" }).map((m) => ({
+          ...m,
+          fotos: leerJson(m.fotos, []).length,
+          persona: nombres[m.personaId] || "",
+          revisor: nombres[m.revisadoPor] || "",
+          estadoNombre: ESTADOS_MATERIAL[m.estado] || m.estado
+        }));
+      }
+      function crearMaterial(repo, ses, obraId, d = {}) {
+        if (!obraVisible(repo, ses, obraId)) return { ok: false, error: "No se encuentra la obra." };
+        const descripcion = llano(d.descripcion).slice(0, 300);
+        if (!descripcion) return { ok: false, error: "Di qu\xE9 material has puesto." };
+        const cantidad = Number(String(d.cantidad ?? "1").replace(",", "."));
+        if (!(Number.isFinite(cantidad) && cantidad > 0)) return { ok: false, error: "La cantidad tiene que ser un n\xFAmero mayor que cero." };
+        const id = repo.crear("avanceMateriales", ses, {
+          obraId,
+          fecha: FECHA.test(llano(d.fecha)) ? llano(d.fecha) : (/* @__PURE__ */ new Date()).toISOString().slice(0, 10),
+          planoId: llano(d.planoId) || null,
+          marcaId: llano(d.marcaId) || null,
+          capa: llano(d.capa) || null,
+          descripcion,
+          cantidad,
+          unidad: llano(d.unidad).slice(0, 12) || "ud",
+          nota: llano(d.nota).slice(0, 2e3) || null,
+          fotos: Array.isArray(d.fotos) && d.fotos.length ? JSON.stringify(d.fotos.slice(0, 10)) : null,
+          personaId: ses.personaId || null,
+          estado: "pendiente"
+        });
+        return { ok: true, id };
+      }
+      function aceptarMaterial(repo, ses, id, d = {}) {
+        if (!puede(ses.rol, "avanceObra", "aprobar")) return { ok: false, error: "Aceptar material fuera de presupuesto es del jefe de obra." };
+        const m = repo.leer("avanceMateriales", ses, llano(id));
+        if (!m) return { ok: false, error: "No se encuentra ese material." };
+        if (m.estado !== "pendiente") return { ok: false, error: `Ya est\xE1 ${ESTADOS_MATERIAL[m.estado].toLowerCase()}.` };
+        const num = (v) => Number(String(v ?? "").replace(",", "."));
+        const coste = num(d.costeUnitario);
+        if (!(Number.isFinite(coste) && coste >= 0) || d.costeUnitario === "" || d.costeUnitario === void 0) return { ok: false, error: "Pon el coste por unidad." };
+        const venta = d.precioVenta === "" || d.precioVenta === void 0 || d.precioVenta === null ? 0 : num(d.precioVenta);
+        if (!(Number.isFinite(venta) && venta >= 0)) return { ok: false, error: "La venta tiene que ser un n\xFAmero (0 si no se cobra)." };
+        const ACT = require_actas2();
+        const cantidad = Number(m.cantidad) || 1;
+        const enTx = (fn) => {
+          repo.db.exec("SAVEPOINT material_aceptar");
+          try {
+            const r = fn();
+            if (r && r.ok === false) repo.db.exec("ROLLBACK TO material_aceptar");
+            repo.db.exec("RELEASE material_aceptar");
+            return r;
+          } catch (e) {
+            repo.db.exec("ROLLBACK TO material_aceptar");
+            repo.db.exec("RELEASE material_aceptar");
+            throw e;
+          }
+        };
+        return enTx(() => {
+          const oc = ACT.crearOrden(repo, ses, m.obraId, {
+            titulo: `Material fuera de presupuesto: ${m.descripcion}`.slice(0, 200),
+            descripcion: [m.nota, `Puesto en obra el ${m.fecha.split("-").reverse().join("/")}.`].filter(Boolean).join(" "),
+            origen: "Avance de obra \xB7 material fuera de presupuesto",
+            lineas: [{ resumen: m.descripcion, unidad: m.unidad || "ud", cantidad, precio: venta, precioCoste: coste }]
+          }, { dentro: true });
+          if (!oc.ok) return oc;
+          const ap = ACT.aprobarOrden(repo, ses, oc.id);
+          if (!ap.ok) return ap;
+          repo.modificar("avanceMateriales", ses, m.id, {
+            estado: "aceptado",
+            costeUnitario: coste,
+            importeVenta: Math.round(venta * cantidad * 100) / 100,
+            ordenCambioId: oc.id,
+            revisadoPor: ses.personaId || null,
+            revisadoEn: (/* @__PURE__ */ new Date()).toISOString()
+          }, { verbo: "aprobar" });
+          return { ok: true, ordenCambio: oc.numero };
+        });
+      }
+      function rechazarMaterial(repo, ses, id, motivo = "") {
+        if (!puede(ses.rol, "avanceObra", "aprobar")) return { ok: false, error: "Rechazarlo es del jefe de obra." };
+        const m = repo.leer("avanceMateriales", ses, llano(id));
+        if (!m) return { ok: false, error: "No se encuentra ese material." };
+        if (m.estado !== "pendiente") return { ok: false, error: `Ya est\xE1 ${ESTADOS_MATERIAL[m.estado].toLowerCase()}.` };
+        repo.modificar("avanceMateriales", ses, m.id, {
+          estado: "rechazado",
+          motivo: llano(motivo).slice(0, 500) || null,
+          revisadoPor: ses.personaId || null,
+          revisadoEn: (/* @__PURE__ */ new Date()).toISOString()
+        }, { verbo: "aprobar" });
+        return { ok: true };
+      }
+      function anadirFotosMaterial(repo, ses, id, rutas) {
+        const m = repo.leer("avanceMateriales", ses, llano(id));
+        if (!m) return { ok: false, error: "No se encuentra ese material." };
+        const fotos = leerJson(m.fotos, []).concat((rutas || []).map((r) => ({ ruta: r.ruta, nombre: r.nombre, fecha: (/* @__PURE__ */ new Date()).toISOString() })));
+        repo.modificar("avanceMateriales", ses, m.id, { fotos: JSON.stringify(fotos.slice(0, 20)) });
+        return { ok: true };
+      }
+      module.exports = {
+        planos,
+        imagen,
+        crearPlano,
+        guardarPlano,
+        marcas,
+        resumen,
+        crearMarca,
+        editarMarca,
+        revisar,
+        anadirFotos,
+        foto,
+        partidas,
+        asignarPartida,
+        planoLigero,
+        marcaLista,
+        materiales,
+        crearMaterial,
+        aceptarMaterial,
+        rechazarMaterial,
+        anadirFotosMaterial,
+        ESTADOS_MATERIAL
+      };
+    }
+  });
+
+  // electron/movil/rutasAvance.js
+  var require_rutasAvance = __commonJS({
+    "electron/movil/rutasAvance.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var fs = require_fs();
+      var path = require_path();
+      var crypto2 = require_crypto();
+      var A = require_planosAvance();
+      var { puede } = require_roles();
+      var PERMISOS_AVANCE = {
+        "GET api/avance": [["avanceObra", "ver"]],
+        "GET api/avance/plano": [["avanceObra", "ver"]],
+        "GET api/avance/marcas": [["avanceObra", "ver"]],
+        "POST api/avance/marca": [["avanceObra", "crear"]],
+        "POST api/avance/marca/editar": [["avanceObra", "editar"]],
+        "POST api/avance/revisar": [["avanceObra", "aprobar"]],
+        "POST api/avance/foto": [["avanceObra", "editar"]],
+        "GET api/avance/foto": [["avanceObra", "ver"]],
+        "GET api/avance/materiales": [["avanceObra", "ver"]],
+        "POST api/avance/material": [["avanceObra", "crear"]],
+        "POST api/avance/material/foto": [["avanceObra", "editar"]]
+      };
+      var llano = (v) => String(v ?? "").trim();
+      var TIPO_DE_EXT = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".heic": "image/heic", ".heif": "image/heif", ".webp": "image/webp" };
+      var EXT_DE_TIPO = { "image/jpeg": ".jpg", "image/png": ".png", "image/heic": ".heic", "image/heif": ".heif", "image/webp": ".webp" };
+      var DATA_URL = /^data:(image\/(?:png|jpeg|webp));base64,(.+)$/;
+      var materialMovil = (m) => ({
+        id: m.id,
+        fecha: m.fecha,
+        descripcion: m.descripcion,
+        cantidad: m.cantidad,
+        unidad: m.unidad,
+        nota: m.nota || "",
+        planoId: m.planoId || null,
+        capa: m.capa || null,
+        fotos: m.fotos,
+        persona: m.persona,
+        estado: m.estado,
+        estadoNombre: m.estadoNombre,
+        motivo: m.motivo || ""
+      });
+      function crearRutasAvance({ repo, carpeta, fotosPedidas, soltar }) {
+        const carpetaAvance = () => path.join(carpeta, "avance");
+        function inicio({ ses, query }) {
+          const obraId = llano(query.obra);
+          const planos = A.planos(repo, ses, obraId);
+          if (!planos) return { ok: false, error: "No se encuentra la obra." };
+          return {
+            ok: true,
+            planos,
+            resumen: A.resumen(repo, ses, obraId),
+            partidas: (A.partidas(repo, ses, obraId) || []).map((p) => ({
+              lineaId: p.lineaId,
+              codigo: p.codigo,
+              resumen: p.resumen,
+              unidad: p.unidad,
+              capituloResumen: p.capituloResumen || "",
+              disciplina: p.disciplina || null,
+              medicion: p.medicion
+            })),
+            yo: ses.personaId,
+            puede: { crear: puede(ses.rol, "avanceObra", "crear"), aprobar: puede(ses.rol, "avanceObra", "aprobar") }
+          };
+        }
+        function plano({ ses, query }) {
+          const p = A.imagen(repo, ses, llano(query.id));
+          const m = p && DATA_URL.exec(p.imagen || "");
+          if (!m) return [404, { ok: false, error: "No est\xE1 la imagen de ese plano." }];
+          return { bytes: Buffer.from(m[2], "base64"), tipo: m[1] };
+        }
+        function marcas({ ses, query }) {
+          const filas = A.marcas(repo, ses, llano(query.obra), {
+            planoId: llano(query.plano) || null,
+            desde: llano(query.desde) || null,
+            hasta: llano(query.hasta) || null,
+            estado: llano(query.estado) || null
+          });
+          if (!filas) return { ok: false, error: "No se encuentra la obra." };
+          return { ok: true, marcas: filas };
+        }
+        const marca = ({ ses, json }) => A.crearMarca(repo, ses, json());
+        const editar = ({ ses, json }) => {
+          const e = json();
+          return A.editarMarca(repo, ses, e.id, e);
+        };
+        const revisar = ({ ses, json }) => {
+          const e = json();
+          return A.revisar(repo, ses, e.ids, llano(e.estado));
+        };
+        function guardarFotos(ses, e, prefijo, anadir) {
+          const p = fotosPedidas(Array.isArray(e.fotos) ? e.fotos.slice(0, 10).map(String) : [], { sinPdf: true });
+          if (p.error) return { ok: false, error: p.error };
+          fs.mkdirSync(carpetaAvance(), { recursive: true });
+          const rutas = p.fotos.map((f) => {
+            const destino = path.join(carpetaAvance(), `${prefijo}-${crypto2.randomBytes(6).toString("hex")}${EXT_DE_TIPO[f.tipo] || ".jpg"}`);
+            fs.writeFileSync(destino, fs.readFileSync(f.ruta));
+            return { ruta: destino, nombre: path.basename(destino), id: f.id };
+          });
+          const a = anadir(rutas);
+          if (a.ok) for (const f of rutas) soltar(f.id);
+          else for (const f of rutas) {
+            try {
+              fs.unlinkSync(f.ruta);
+            } catch {
+            }
+          }
+          return a;
+        }
+        function fotoNueva({ ses, json }) {
+          const e = json();
+          const m = repo.leer("avanceMarcas", ses, llano(e.id));
+          if (!m) return { ok: false, error: "No se encuentra la marca." };
+          if (m.personaId !== ses.personaId && !puede(ses.rol, "avanceObra", "aprobar")) return { ok: false, error: "Solo puedes poner fotos en tus marcas." };
+          return guardarFotos(ses, e, `marca-${m.fecha}`, (rutas) => A.anadirFotos(repo, ses, m.id, rutas));
+        }
+        function foto({ ses, query }) {
+          const f = A.foto(repo, ses, llano(query.id), Number(query.i));
+          if (!f || !f.ruta) return [404, { ok: false, error: "No est\xE1 esa foto." }];
+          const tipo = TIPO_DE_EXT[path.extname(f.ruta).toLowerCase()];
+          if (!tipo) return [415, { ok: false, error: "Esa foto no se puede ense\xF1ar en el m\xF3vil." }];
+          try {
+            return { bytes: fs.readFileSync(f.ruta), tipo };
+          } catch {
+            return [404, { ok: false, error: "La foto ya no est\xE1 en su carpeta." }];
+          }
+        }
+        function materiales({ ses, query }) {
+          const filas = A.materiales(repo, ses, llano(query.obra));
+          if (!filas) return { ok: false, error: "No se encuentra la obra." };
+          return { ok: true, materiales: filas.map(materialMovil) };
+        }
+        const material = ({ ses, json }) => {
+          const e = json();
+          return A.crearMaterial(repo, ses, llano(e.obraId), e);
+        };
+        function fotoMaterial({ ses, json }) {
+          const e = json();
+          const m = repo.leer("avanceMateriales", ses, llano(e.id));
+          if (!m) return { ok: false, error: "No se encuentra ese material." };
+          return guardarFotos(ses, e, `material-${m.fecha}`, (rutas) => A.anadirFotosMaterial(repo, ses, m.id, rutas));
+        }
+        return {
+          "GET api/avance": inicio,
+          "GET api/avance/plano": plano,
+          "GET api/avance/marcas": marcas,
+          "POST api/avance/marca": marca,
+          "POST api/avance/marca/editar": editar,
+          "POST api/avance/revisar": revisar,
+          "POST api/avance/foto": fotoNueva,
+          "GET api/avance/foto": foto,
+          "GET api/avance/materiales": materiales,
+          "POST api/avance/material": material,
+          "POST api/avance/material/foto": fotoMaterial
+        };
+      }
+      module.exports = { crearRutasAvance, PERMISOS_AVANCE };
+    }
+  });
+
   // electron/movil/manejador.js
   var require_manejador = __commonJS({
     "electron/movil/manejador.js"(exports, module) {
@@ -65932,6 +67994,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       var ROLES = require_roles();
       var { crearRutasObra, PERMISOS_OBRA } = require_rutasObra();
       var { crearRutasReparaciones, PERMISOS_REPARACIONES } = require_rutasReparaciones();
+      var { crearRutasAvance, PERMISOS_AVANCE } = require_rutasAvance();
       var PERMISOS = {
         "GET api/albaranes": [["pedidos", "ver"]],
         "POST api/formulario": [["pedidos", "ver"]],
@@ -65950,7 +68013,9 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         /* Commissioning, NCR, inventario y bloc (electron/movil/rutasObra.js). */
         ...PERMISOS_OBRA,
         /* Las reparaciones de equipos (electron/movil/rutasReparaciones.js). */
-        ...PERMISOS_REPARACIONES
+        ...PERMISOS_REPARACIONES,
+        /* El avance de obra sobre planos (electron/movil/rutasAvance.js). */
+        ...PERMISOS_AVANCE
       };
       var RUTAS_BINARIAS = /* @__PURE__ */ new Set(["api/foto", "api/qr"]);
       function permitida(rol, metodo, ruta) {
@@ -66143,7 +68208,8 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
             return r;
           },
           ...rutasObra,
-          ...crearRutasReparaciones({ repo, carpeta: carpetaDocumentos || carpeta, fotosPedidas, soltar })
+          ...crearRutasReparaciones({ repo, carpeta: carpetaDocumentos || carpeta, fotosPedidas, soltar }),
+          ...crearRutasAvance({ repo, carpeta: carpetaDocumentos || carpeta, fotosPedidas, soltar })
         };
         async function atender({ metodo, ruta, query = {}, cabeceras = {}, cuerpo = Buffer.alloc(0) }) {
           const res = (codigo, json2) => ({ codigo, json: json2 });

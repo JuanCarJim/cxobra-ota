@@ -43,6 +43,11 @@
       icono: icono('<path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.5"/><circle cx="12" cy="17" r=".6" fill="currentColor"/>',
         `<path d="M12 3.5 2.8 19.5h18.4z" fill="currentColor"/><path d="M12 10v4" ${HUECO} stroke-width="2.2"/><path d="M12 16.9v.1" ${HUECO} stroke-width="2.4"/>`),
       secciones: [['partes', 'Partes'], ['ncr', 'NCR'], ['reparaciones', 'Reparaciones']] },
+    /* El avance de obra sobre planos (16-oct): el encargado marca lo hecho. */
+    { id: 'avance', nombre: 'Avance',
+      icono: icono('<rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M7 15.5l3.5-4 3 2.5L17 8.5"/>',
+        `<rect x="3.5" y="4" width="17" height="16" rx="2" fill="currentColor"/><path d="M7 15.5l3.5-4 3 2.5L17 8.5" ${HUECO} stroke-width="2"/>`),
+      secciones: [['avance', 'Avance']] },
     /* El Bloc vive en «Más», el primero; las compras, detrás. */
     { id: 'mas', nombre: 'Más',
       icono: icono('<rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/>',
@@ -62,6 +67,8 @@
       icono: svg('<path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.5"/><circle cx="12" cy="17" r=".6" fill="currentColor"/>') },
     { seccion: 'reparaciones', nombre: 'Reparación', ayuda: 'Un equipo que hay que reparar', obra: true, pasos: ['[data-rp="nueva"]'],
       icono: svg('<path d="M14.5 6.5a3.5 3.5 0 0 0-4.6 4.6L4.5 16.5a1.4 1.4 0 0 0 2 2l5.4-5.4a3.5 3.5 0 0 0 4.6-4.6l-2.2 2.2-2-.4-.4-2z"/>') },
+    { seccion: 'avance', nombre: 'Marcar avance', ayuda: 'Lo hecho hoy, sobre el plano', obra: true, pasos: ['[data-av="plano"]'],
+      icono: svg('<rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M7 15.5l3.5-4 3 2.5L17 8.5"/>') },
     { seccion: 'bloc', nombre: 'Nota rápida', ayuda: 'Con foto, en tu bloc', obra: false, pasos: ['[data-bl="nueva"]', '[data-bl="camara"]'],
       icono: svg('<rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4"/>') },
     { seccion: 'albaranes', nombre: 'Escanear albarán', ayuda: 'Foto del albarán; casa con su pedido', obra: false, pasos: ['[data-accion="foto"]'],
@@ -76,7 +83,7 @@
 
   /* El título de cada sección, arriba. */
   const TITULO = {
-    inicio: 'Inicio', commissioning: 'Commissioning', partes: 'Partes de incidencia', ncr: 'No conformidades', reparaciones: 'Reparaciones de equipos', albaranes: 'Albaranes',
+    inicio: 'Inicio', commissioning: 'Commissioning', partes: 'Partes de incidencia', ncr: 'No conformidades', reparaciones: 'Reparaciones de equipos', avance: 'Avance de obra', albaranes: 'Albaranes',
     inventario: 'Inventario', bloc: 'Bloc de notas', personal: 'Personal', estanqueidad: 'Pruebas de estanqueidad', cuenta: 'Cuenta',
   };
   /* Las que no dependen de la obra elegida no enseñan el selector. */
