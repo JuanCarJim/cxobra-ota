@@ -806,7 +806,10 @@
     const casilla = (k, n) => `<input class="cifra${k === 'm' ? ' medido' : ''}" inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis}
       aria-label="${esc(`${p.etiqueta} · ${n}`)}" value="${esc(coma(valorDe(p, k)))}" data-h-punto="${esc(p.codigo)}" data-h-k="${k}">`;
     const desv = p.desv !== null && p.desv !== undefined ? `<span class="desv ${cr}">${cifra(p.desv * 100, 1)} %${nr ? ` · ${esc(nr)}` : ''}</span>` : (nr ? `<span class="desv ${cr}">${esc(nr)}</span>` : '');
-    return `<div class="pp"><span class="et">${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}${desv}</span>${casilla('p', 'Proyecto')}${casilla('f', 'Fabricante')}${casilla('m', 'Medido')}</div>`;
+    /* Caudal de aire: de dónde sale el medido (lo tecleado ahora es del equipo). */
+    const tecleado = hoja.valores[p.codigo] && hoja.valores[p.codigo].m !== undefined;
+    const origen = p.origen ? ` <span class="tenue">· ${esc(tecleado ? 'medido en equipo' : p.origen)}</span>` : '';
+    return `<div class="pp"><span class="et">${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}${origen}${desv}</span>${casilla('p', 'Proyecto')}${casilla('f', 'Fabricante')}${casilla('m', 'Medido')}</div>`;
   }
 
   /* Una sección: banda fina con su título y las filas debajo. */
@@ -865,7 +868,8 @@
     const dis = ed ? '' : 'disabled';
     const pt = (c) => s.puntos.find((p) => p.codigo === c) || null;
     const usados = new Set(['equipo', 'zona_servida', 'caudal_proyecto_impulsion', 'caudal_proyecto_retorno', 'metodo_medida',
-      'frecuencia_final_impulsion', 'frecuencia_final_retorno', 'presion_estatica_impulsion', 'presion_estatica_retorno']);
+      'frecuencia_final_impulsion', 'frecuencia_final_retorno', 'presion_estatica_impulsion', 'presion_estatica_retorno',
+      'caudal_medido_impulsion', 'caudal_medido_retorno']);
     const tag = (pt('equipo') && valorDe(pt('equipo'))) || (ficha && ficha.equipo.tag) || '';
     const proyecto = (c) => {
       const p = pt(c);
@@ -895,6 +899,7 @@
           <div class="bal-sub">Lo mides tú</div>
           <div class="bal-fila"><span>Frecuencia final</span>${medida('frecuencia_final_impulsion', 'Hz')}${medida('frecuencia_final_retorno', 'Hz')}</div>
           <div class="bal-fila"><span>Presión estática</span>${medida('presion_estatica_impulsion', 'Pa')}${medida('presion_estatica_retorno', 'Pa')}</div>
+          ${pt('caudal_medido_impulsion') ? `<div class="bal-fila"><span>Caudal total <small class="tenue">si procede</small></span>${medida('caudal_medido_impulsion', 'm³/h')}${medida('caudal_medido_retorno', 'm³/h')}</div>` : ''}
         </div>
         ${metodo ? `<div class="bal-metodo"><span>Método de medida</span>
           <div class="respuestas segmento">${METODOS_BAL.map((m) => `<button type="button" ${dis} class="${vm === m ? 'activa' : ''}" data-h-resp="${esc(m)}" data-h-punto="metodo_medida">${esc(m)}</button>`).join('')}</div>
