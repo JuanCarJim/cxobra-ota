@@ -868,7 +868,8 @@
     const dis = ed ? '' : 'disabled';
     const pt = (c) => s.puntos.find((p) => p.codigo === c) || null;
     const usados = new Set(['equipo', 'zona_servida', 'caudal_proyecto_impulsion', 'caudal_proyecto_retorno', 'metodo_medida',
-      'frecuencia_final_impulsion', 'frecuencia_final_retorno', 'presion_estatica_impulsion', 'presion_estatica_retorno']);
+      'frecuencia_final_impulsion', 'frecuencia_final_retorno', 'presion_estatica_impulsion', 'presion_estatica_retorno',
+      'caudal_medido_impulsion', 'caudal_medido_retorno']);
     const tag = (pt('equipo') && valorDe(pt('equipo'))) || (ficha && ficha.equipo.tag) || '';
     const proyecto = (c) => {
       const p = pt(c);
@@ -898,6 +899,7 @@
           <div class="bal-sub">Lo mides tú</div>
           <div class="bal-fila"><span>Frecuencia final</span>${medida('frecuencia_final_impulsion', 'Hz')}${medida('frecuencia_final_retorno', 'Hz')}</div>
           <div class="bal-fila"><span>Presión estática</span>${medida('presion_estatica_impulsion', 'Pa')}${medida('presion_estatica_retorno', 'Pa')}</div>
+          ${pt('caudal_medido_impulsion') ? `<div class="bal-fila"><span>Caudal total <small class="tenue">si procede</small></span>${medida('caudal_medido_impulsion', 'm³/h')}${medida('caudal_medido_retorno', 'm³/h')}</div>` : ''}
         </div>
         ${metodo ? `<div class="bal-metodo"><span>Método de medida</span>
           <div class="respuestas segmento">${METODOS_BAL.map((m) => `<button type="button" ${dis} class="${vm === m ? 'activa' : ''}" data-h-resp="${esc(m)}" data-h-punto="metodo_medida">${esc(m)}</button>`).join('')}</div>
