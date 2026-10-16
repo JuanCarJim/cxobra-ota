@@ -29,6 +29,8 @@
 
   let lista = null;
   let ficha = null;
+  let pilaEquipos = []; /* las unidades por las que se ha pasado, para volver */
+  let yLista = 0;       /* dónde estaba la lista al abrir un equipo */
   let fichasEq = null; /* las fichas que necesita el equipo abierto */
   let hoja = null;     /* la ficha que se está rellenando */
   let filtro = '';
@@ -50,7 +52,7 @@
   /* ═══════════════════════════════════ 1. La lista */
 
   async function cargarLista() {
-    ficha = null; hoja = null;
+    ficha = null; hoja = null; pilaEquipos = [];
     /* Desde una cifra del Inicio: la lista llega ya filtrada. */
     try { const v = sessionStorage.getItem('cx.segmento'); if (v) { segmento = v; sessionStorage.removeItem('cx.segmento'); AGRUPAR.forEach(([id]) => C.reiniciarLista(`cx-equipos-${id}`)); } } catch { /* nada */ }
     await C.obrasListas();
@@ -318,7 +320,7 @@
     $app.innerHTML = `
       ${pestanaEq === 'balanceo'
         ? tagFijo(e.tag, tituloMedicion(f), 'ficha-equipo')
-        : tagFijo(e.tag, sub, 'lista')}
+        : tagFijo(e.tag, sub, 'atras')}
       <div class="densa">${cuerpo}</div>`;
     C.cargarImagenes($app);
   }
@@ -804,7 +806,10 @@
     const casilla = (k, n) => `<input class="cifra${k === 'm' ? ' medido' : ''}" inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis}
       aria-label="${esc(`${p.etiqueta} · ${n}`)}" value="${esc(coma(valorDe(p, k)))}" data-h-punto="${esc(p.codigo)}" data-h-k="${k}">`;
     const desv = p.desv !== null && p.desv !== undefined ? `<span class="desv ${cr}">${cifra(p.desv * 100, 1)} %${nr ? ` · ${esc(nr)}` : ''}</span>` : (nr ? `<span class="desv ${cr}">${esc(nr)}</span>` : '');
-    return `<div class="pp"><span class="et">${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}${desv}</span>${casilla('p', 'Proyecto')}${casilla('f', 'Fabricante')}${casilla('m', 'Medido')}</div>`;
+    /* Caudal de aire: de dónde sale el medido (lo tecleado ahora es del equipo). */
+    const tecleado = hoja.valores[p.codigo] && hoja.valores[p.codigo].m !== undefined;
+    const origen = p.origen ? ` <span class="tenue">· ${esc(tecleado ? 'medido en equipo' : p.origen)}</span>` : '';
+    return `<div class="pp"><span class="et">${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}${origen}${desv}</span>${casilla('p', 'Proyecto')}${casilla('f', 'Fabricante')}${casilla('m', 'Medido')}</div>`;
   }
 
   /* Una sección: banda fina con su título y las filas debajo. */
@@ -1065,7 +1070,10 @@
     if (!b) return;
     const que = b.dataset.cx;
     if (que === 'lista') cargarLista();
-    else if (que === 'equipo') abrir(b.dataset.id);
+    /* 16-oct (JC): la franja del TAG vuelve SIEMPRE a la pantalla anterior:
+       si se llegó desde otra unidad del conjunto (UI → UE-DAS), a esa unidad. */
+    else if (que === 'atras') { const prev = pilaEquipos.pop(); if (prev) abrir(prev, { atras: true }); else { const y = yLista; cargarLista().then(() => window.scrollTo(0, y)); } }
+    else if (que === 'equipo') { if (!ficha) yLista = window.scrollY; if (ficha && ficha.equipo.id !== b.dataset.id) pilaEquipos.push(ficha.equipo.id); abrir(b.dataset.id); }
     else if (que === 'ver-balanceo' && ficha) { pestanaEq = 'balanceo'; pintarFicha(); window.scrollTo(0, 0); }
     else if (que === 'ficha-equipo' && ficha) { document.body.classList.remove('sin-scroll'); pestanaEq = 'equipo'; pintarFicha(); window.scrollTo(0, 0); }
     else if (que === 'hoja') abrirHoja(Number(b.dataset.i));
