@@ -53,6 +53,8 @@
 
   async function cargarLista() {
     ficha = null; hoja = null; pilaEquipos = [];
+    bocaAbierta = null; grandeId = null;
+    document.body.classList.remove('con-hoja-boca', 'sin-scroll');
     /* Desde una cifra del Inicio: la lista llega ya filtrada. */
     try { const v = sessionStorage.getItem('cx.segmento'); if (v) { segmento = v; sessionStorage.removeItem('cx.segmento'); AGRUPAR.forEach(([id]) => C.reiniciarLista(`cx-equipos-${id}`)); } } catch { /* nada */ }
     await C.obrasListas();
@@ -168,7 +170,7 @@
     try {
       const r = await C.pedir(`api/equipo?id=${encodeURIComponent(id)}`);
       if (!r.ok) throw new Error(r.error);
-      if (!ficha || ficha.equipo.id !== r.equipo.id) pestanaEq = 'equipo';
+      if (!ficha || ficha.equipo.id !== r.equipo.id) { pestanaEq = 'equipo'; circuitoBal = 'impulsion'; }
       ficha = r;
       hoja = null;
       fichasEq = null;
@@ -257,6 +259,8 @@
    * hoja. Mientras se ve un equipo, el selector de arriba se esconde.
    */
   let pestanaEq = 'equipo';
+  let circuitoBal = 'impulsion'; /* en el balanceo: 'impulsion' | 'retorno' */
+  const esRetorno = (b) => b.circuito === 'retorno';
   const pestanaDeFicha = (x) => (x.clase === 'balanceo' ? 'balanceo' : 'equipo');
   function tieneBalanceo(f) {
     /* Lo que se mide de su familia manda (15-oct-2026): un split no enseña un
@@ -300,12 +304,25 @@
     const seg = document.getElementById('segmentos');
     if (seg) seg.hidden = true;
     const med = f.medicion || {};
+    /* Impulsión | Retorno (16-oct-2026, JC): dos botones arriba y la lista
+       de bocas, y las marcas del plano, solo del circuito elegido. Si el
+       equipo solo tiene un circuito, no hay botones y sale todo. */
+    const todas = f.planos.flatMap((p) => p.bocas);
+    const nRet = todas.filter(esRetorno).length;
+    const hayDos = nRet > 0 && nRet < todas.length;
+    const circ = hayDos ? circuitoBal : null;
+    const delCircuito = (b) => !circ || (circ === 'retorno') === esRetorno(b);
+    const nombreRet = med.retorno || 'Retorno';
+    const cuenta = (ret) => { const bs = todas.filter((b) => esRetorno(b) === ret); return `${bs.filter((b) => b.caudal !== null && b.caudal !== undefined).length}/${bs.length}`; };
+    const planosVistos = f.planos.map((p) => ({ ...p, bocas: p.bocas.filter(delCircuito) })).filter((p) => p.bocas.length);
     const balanceo = () => `
-      ${totalCircuito(f.circuitos && f.circuitos.impulsion, 'Impulsión')}
-      ${totalCircuito(f.circuitos && f.circuitos.retorno, med.retorno || 'Retorno')}
+      ${hayDos ? `<div class="segmentado circuito-bal" role="tablist" aria-label="Circuito">${[['impulsion', 'Impulsión', cuenta(false)], ['retorno', nombreRet, cuenta(true)]]
+        .map(([id, n, c]) => `<button role="tab" data-cx="circuito-bal" data-circuito="${id}" aria-selected="${circ === id}" class="${circ === id ? 'activa' : ''}">${esc(n)} <small>${c}</small></button>`).join('')}</div>` : ''}
+      ${circ !== 'retorno' ? totalCircuito(f.circuitos && f.circuitos.impulsion, 'Impulsión') : ''}
+      ${circ !== 'impulsion' ? totalCircuito(f.circuitos && f.circuitos.retorno, nombreRet) : ''}
       ${med.velocidad ? `<p class="nota">Una medida por boca, con el equipo a velocidad ${esc(med.velocidad)}.</p>` : ''}
-      ${f.planos.length ? f.planos.map((p) => `
-        <h2>${esc(p.nombre)} <span class="cuenta">${p.bocas.length} bocas</span></h2>
+      ${f.planos.length ? planosVistos.map((p) => `
+        <h2>${esc(p.nombre)} <span class="cuenta">${p.bocas.length} boca${p.bocas.length === 1 ? '' : 's'}${circ ? ` de ${circ === 'retorno' ? esc(nombreRet.toLowerCase()) : 'impulsión'}` : ''}</span></h2>
         ${htmlPlano(p)}
         <ul class="bocas">${p.bocas.map((b) => htmlBoca(p, b, puede, f.tolerancias)).join('')}</ul>`).join('') : sinPlano()}
       ${puede || !f.planos.length ? '' : '<p class="nota">Tu rol puede ver las medidas, pero no tomarlas.</p>'}
@@ -323,6 +340,8 @@
         : tagFijo(e.tag, sub, 'atras')}
       <div class="densa">${cuerpo}</div>`;
     C.cargarImagenes($app);
+    if (pestanaEq === 'balanceo') restaurarPlano();
+    else { bocaAbierta = null; grandeId = null; document.body.classList.remove('con-hoja-boca', 'sin-scroll'); }
   }
 
   /* «Balanceo de caudales», «Caudales de extracción»… según lo que se mide. */
@@ -349,21 +368,216 @@
           data-cx="ir-boca" data-boca="${esc(claveBoca(p.id, b.id))}" aria-label="Ir a la boca ${esc(b.nombre)}">${simbolo(b)}<span class="rotulo-boca">${esc(b.nombre)}</span></button>`).join('')}
       </div></div>
       <figcaption><span class="leyenda"><i class="neutra"></i>Sin medir <i class="bien"></i>Dentro <i class="mal"></i>Fuera</span>
-        <button class="enlace" data-cx="plano-grande">Ampliar</button></figcaption>
+        <span class="zoom-botones"><button class="enlace" data-cx="zoom-menos" aria-label="Alejar">−</button><button class="enlace" data-cx="zoom-mas" aria-label="Acercar">+</button>
+        <button class="enlace" data-cx="plano-grande">Ampliar</button></span></figcaption>
     </figure>`;
   }
 
+  /*
+   * ZOOM DE PELLIZCO EN EL PLANO (16-oct-2026, JC: «el plano con zoom de
+   * pellizco»). Dos dedos acercan y alejan sobre el punto que se pellizca; con
+   * zoom, un dedo arrastra el plano (sin zoom, un dedo sigue moviendo la
+   * página). Las marcas no crecen: se separan, y así se leen los rótulos que
+   * antes se pisaban. El zoom de cada plano se conserva al guardar una boca.
+   */
+  const vistas = new Map();   /* planoId → { s, x, y } */
+  let grandeId = null;        /* el plano abierto a pantalla completa */
+  let bocaAbierta = null;     /* la boca cuya tarjeta está abierta abajo */
+  const ZOOM_MAX = 8;
+
+  function limitarVista(fig, v) {
+    const marco = fig.querySelector('.plano-marco');
+    const lz = fig.querySelector('.plano-lienzo');
+    if (!marco || !lz) return v;
+    const grande = fig.classList.contains('grande');
+    v.s = Math.min(ZOOM_MAX, Math.max(1, v.s));
+    const mw = marco.clientWidth, mh = marco.clientHeight;
+    const w = lz.offsetWidth * v.s, h = lz.offsetHeight * v.s;
+    v.x = w > mw ? Math.min(0, Math.max(mw - w, v.x)) : (mw - w) / 2;
+    v.y = h > mh ? Math.min(0, Math.max(mh - h, v.y)) : grande ? (mh - h) / 2 : 0;
+    return v;
+  }
+  function aplicarVista(fig) {
+    const id = fig.dataset.planoFig;
+    const v = limitarVista(fig, vistas.get(id) || { s: 1, x: 0, y: 0 });
+    vistas.set(id, v);
+    const lz = fig.querySelector('.plano-lienzo');
+    lz.style.transform = `translate(${v.x}px, ${v.y}px) scale(${v.s})`;
+    lz.style.setProperty('--esc', String(v.s));
+    fig.querySelector('.plano-marco').classList.toggle('con-zoom', v.s > 1.001);
+  }
+  /* Zoom a escala s, quieto el punto (cx, cy) del marco. */
+  function zoomEn(fig, s, cx, cy) {
+    const id = fig.dataset.planoFig;
+    const v = vistas.get(id) || { s: 1, x: 0, y: 0 };
+    const s2 = Math.min(ZOOM_MAX, Math.max(1, s));
+    const px = (cx - v.x) / v.s, py = (cy - v.y) / v.s;
+    vistas.set(id, { s: s2, x: cx - px * s2, y: cy - py * s2 });
+    aplicarVista(fig);
+  }
+  function zoomBoton(boton, factor) {
+    const fig = boton.closest('.plano-bocas');
+    if (!fig) return;
+    const m = fig.querySelector('.plano-marco');
+    const v = vistas.get(fig.dataset.planoFig) || { s: 1 };
+    zoomEn(fig, v.s * factor, m.clientWidth / 2, m.clientHeight / 2);
+  }
+
+  /* Los gestos: con eventos táctiles (en el iPhone, los de puntero los corta
+     la página en cuanto empieza a desplazarse) y, en el ordenador, rueda y ratón. */
+  let gesto = null;
+  let movido = false;
+  const relativo = (marco, x, y) => { const r = marco.getBoundingClientRect(); return { x: x - r.left, y: y - r.top }; };
+  const dist = (a, b) => Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+  function empezarGesto(marco, toques) {
+    const fig = marco.closest('.plano-bocas');
+    const v = { ...(vistas.get(fig.dataset.planoFig) || { s: 1, x: 0, y: 0 }) };
+    if (toques.length >= 2) {
+      const [a, b] = toques;
+      gesto = { fig, marco, tipo: 'pellizco', d0: dist(a, b) || 1, v0: v,
+        c0: relativo(marco, (a.clientX + b.clientX) / 2, (a.clientY + b.clientY) / 2) };
+    } else {
+      gesto = { fig, marco, tipo: 'arrastre', x0: toques[0].clientX, y0: toques[0].clientY, v0: v };
+    }
+  }
+  function moverGesto(toques) {
+    const g = gesto;
+    if (g.tipo === 'pellizco' && toques.length >= 2) {
+      const [a, b] = toques;
+      const s2 = Math.min(ZOOM_MAX, Math.max(1, g.v0.s * (dist(a, b) / g.d0)));
+      const c = relativo(g.marco, (a.clientX + b.clientX) / 2, (a.clientY + b.clientY) / 2);
+      const px = (g.c0.x - g.v0.x) / g.v0.s, py = (g.c0.y - g.v0.y) / g.v0.s;
+      vistas.set(g.fig.dataset.planoFig, { s: s2, x: c.x - px * s2, y: c.y - py * s2 });
+      movido = true;
+      aplicarVista(g.fig);
+      return true;
+    }
+    if (g.tipo === 'arrastre') {
+      const dx = toques[0].clientX - g.x0, dy = toques[0].clientY - g.y0;
+      if (Math.abs(dx) + Math.abs(dy) > 6) movido = true;
+      if (g.v0.s <= 1.001 && !g.fig.classList.contains('grande')) return false; /* sin zoom: se mueve la página */
+      vistas.set(g.fig.dataset.planoFig, { s: g.v0.s, x: g.v0.x + dx, y: g.v0.y + dy });
+      aplicarVista(g.fig);
+      return true;
+    }
+    return false;
+  }
+  $app.addEventListener('touchstart', (ev) => {
+    const marco = activa() && ev.target.closest && ev.target.closest('.plano-marco');
+    if (!marco) return;
+    if (ev.touches.length === 1) movido = false;
+    empezarGesto(marco, [...ev.touches]);
+  }, { passive: true });
+  $app.addEventListener('touchmove', (ev) => {
+    if (!gesto) return;
+    if (moverGesto([...ev.touches]) && ev.cancelable) ev.preventDefault();
+  }, { passive: false });
+  const finToque = (ev) => {
+    if (!gesto) return;
+    if (ev.touches.length) empezarGesto(gesto.marco, [...ev.touches]); else { gesto = null; soltarGesto(); }
+  };
+  /* El clic que llega justo al soltar un gesto se ignora; el siguiente toque ya vale. */
+  let ignorarClicHasta = 0;
+  function soltarGesto() { if (movido) ignorarClicHasta = Date.now() + 350; movido = false; }
+  $app.addEventListener('touchend', finToque);
+  $app.addEventListener('touchcancel', finToque);
+  $app.addEventListener('mousedown', (ev) => {
+    const marco = activa() && ev.button === 0 && ev.target.closest('.plano-marco');
+    if (!marco) return;
+    movido = false;
+    empezarGesto(marco, [ev]);
+    const mover = (e) => { if (gesto) moverGesto([e]); };
+    const soltar = () => { gesto = null; soltarGesto(); window.removeEventListener('mousemove', mover); window.removeEventListener('mouseup', soltar); };
+    window.addEventListener('mousemove', mover);
+    window.addEventListener('mouseup', soltar);
+  });
+  $app.addEventListener('wheel', (ev) => {
+    const marco = activa() && ev.target.closest('.plano-marco');
+    if (!marco) return;
+    const fig = marco.closest('.plano-bocas');
+    const v = vistas.get(fig.dataset.planoFig) || { s: 1 };
+    if (!ev.ctrlKey && v.s <= 1.001 && !fig.classList.contains('grande')) return;
+    ev.preventDefault();
+    const c = relativo(marco, ev.clientX, ev.clientY);
+    zoomEn(fig, v.s * Math.exp(-ev.deltaY * (ev.ctrlKey ? 0.01 : 0.002)), c.x, c.y);
+  }, { passive: false });
+  /* Tras arrastrar o pellizcar, soltar encima de una marca no la abre. */
+  $app.addEventListener('click', (ev) => {
+    if (Date.now() < ignorarClicHasta && ev.target.closest && ev.target.closest('.plano-marco')) { ev.stopPropagation(); ev.preventDefault(); }
+    ignorarClicHasta = 0;
+  }, true);
+
+  /*
+   * LA TARJETA DE UNA BOCA, ABAJO (16-oct-2026, JC: «al pulsar un difusor,
+   * que salga su tarjeta para meter la medición»). Es la misma boca de la
+   * lista, llevada a una hoja que sube desde abajo (y devuelta a su sitio al
+   * cerrarla): se guarda igual, al salir de ella o con Intro, y el plano
+   * sigue a la vista por encima.
+   */
+  function abrirHojaBoca(clave) {
+    cerrarHojaBoca({ seguir: true });
+    const li = $app.querySelector(`.densa li[data-boca="${CSS.escape(clave)}"]`);
+    if (!li) { bocaAbierta = null; return; }
+    bocaAbierta = clave;
+    const hueco = document.createElement('li');
+    hueco.className = 'hueco-boca';
+    hueco.hidden = true;
+    hueco.dataset.hueco = clave;
+    li.replaceWith(hueco);
+    const hojaB = document.createElement('div');
+    hojaB.className = 'hoja-boca';
+    hojaB.setAttribute('role', 'dialog');
+    hojaB.setAttribute('aria-label', 'Medición de la boca');
+    hojaB.innerHTML = `<div class="hoja-boca-cab"><span class="asa"></span>
+      <button class="enlace" data-cx="boca-anterior" aria-label="Boca anterior">‹ Anterior</button>
+      <button class="enlace" data-cx="boca-siguiente" aria-label="Boca siguiente">Siguiente ›</button>
+      <button class="enlace" data-cx="cerrar-boca">Listo</button></div><ul class="bocas"></ul>`;
+    hojaB.querySelector('ul').appendChild(li);
+    $app.appendChild(hojaB);
+    document.body.classList.add('con-hoja-boca');
+    for (const m of $app.querySelectorAll('.marca-boca.elegida')) m.classList.remove('elegida');
+    const marca = $app.querySelector(`.marca-boca[data-boca="${CSS.escape(clave)}"]`);
+    if (marca) marca.classList.add('elegida');
+  }
+  function cerrarHojaBoca({ seguir = false } = {}) {
+    const hojaB = $app.querySelector('.hoja-boca');
+    if (!seguir) bocaAbierta = null;
+    if (!hojaB) return;
+    const li = hojaB.querySelector('li[data-boca]');
+    /* Lo tecleado se guarda al salir: quitar el foco dispara el guardado. */
+    if (li && li.contains(document.activeElement)) document.activeElement.blur();
+    const hueco = $app.querySelector('li.hueco-boca');
+    if (li && hueco) hueco.replaceWith(li); else if (hueco) hueco.remove();
+    hojaB.remove();
+    document.body.classList.remove('con-hoja-boca');
+    for (const m of $app.querySelectorAll('.marca-boca.elegida')) m.classList.remove('elegida');
+  }
+  /* La boca de al lado, en el orden de la lista. */
+  function bocaVecina(paso) {
+    const claves = [...$app.querySelectorAll('.densa li[data-boca], .densa li.hueco-boca')].map((x) => x.dataset.boca || x.dataset.hueco);
+    const sig = claves[claves.indexOf(bocaAbierta) + paso];
+    if (sig) abrirHojaBoca(sig);
+  }
+
   function irABoca(clave) {
-    const fig = $app.querySelector('.plano-bocas.grande');
-    if (fig) cerrarPlanoGrande(fig);
-    const li = $app.querySelector(`li[data-boca="${CSS.escape(clave)}"]`);
-    if (!li) return;
-    for (const x of $app.querySelectorAll('li.boca.resaltada')) x.classList.remove('resaltada');
-    li.classList.add('resaltada');
-    li.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    const primera = casillas(li).find((x) => !x.disabled);
-    if (primera) primera.focus({ preventScroll: true });
-    setTimeout(() => li.classList.remove('resaltada'), 2500);
+    abrirHojaBoca(clave);
+  }
+
+  /* Tras repintar la ficha: el zoom de cada plano, la pantalla completa y la tarjeta abierta, como estaban. */
+  function restaurarPlano() {
+    for (const fig of $app.querySelectorAll('.plano-bocas[data-plano-fig]')) {
+      if (fig.dataset.planoFig === grandeId) {
+        fig.classList.add('grande');
+        const b = fig.querySelector('[data-cx="plano-grande"]');
+        if (b) b.textContent = 'Cerrar';
+      }
+      aplicarVista(fig);
+      /* La imagen llega después: con su alto ya puesto, se vuelve a encajar. */
+      const img = fig.querySelector('img');
+      if (img) img.addEventListener('load', () => aplicarVista(fig), { once: true });
+    }
+    if (!grandeId) document.body.classList.remove('sin-scroll');
+    if (bocaAbierta) abrirHojaBoca(bocaAbierta); else document.body.classList.remove('con-hoja-boca');
   }
 
   function planoGrande(boton) {
@@ -371,14 +585,23 @@
     if (!fig) return;
     if (fig.classList.contains('grande')) { cerrarPlanoGrande(fig); return; }
     fig.classList.add('grande');
+    grandeId = fig.dataset.planoFig;
     boton.textContent = 'Cerrar';
     document.body.classList.add('sin-scroll');
+    /* Se abre ya acercado (al 250 %, como antes), sobre el centro. */
+    const m = fig.querySelector('.plano-marco');
+    vistas.set(grandeId, { s: 1, x: 0, y: 0 });
+    aplicarVista(fig);
+    zoomEn(fig, 2.5, m.clientWidth / 2, m.clientHeight / 2);
   }
   function cerrarPlanoGrande(fig) {
     fig.classList.remove('grande');
+    grandeId = null;
     const b = fig.querySelector('[data-cx="plano-grande"]');
     if (b) b.textContent = 'Ampliar';
     document.body.classList.remove('sin-scroll');
+    vistas.set(fig.dataset.planoFig, { s: 1, x: 0, y: 0 });
+    aplicarVista(fig);
   }
 
   /*
@@ -612,7 +835,12 @@
       const y = window.scrollY;
       pintarFicha();
       window.scrollTo(0, y);
-      if (destino === 'siguiente') {
+      if (destino === 'siguiente' && bocaAbierta) {
+        /* Con la tarjeta abierta desde el plano, Intro pasa a la boca siguiente en la misma tarjeta. */
+        bocaVecina(1);
+        const li2 = $app.querySelector('.hoja-boca li[data-boca]');
+        if (li2 && casillas(li2)[0]) casillas(li2)[0].focus();
+      } else if (destino === 'siguiente') {
         const bocas = [...$app.querySelectorAll('li[data-boca]')];
         const i = bocas.findIndex((x) => x.dataset.boca === claveBoca(plano, punto));
         const sig = bocas.slice(i + 1).find((x) => casillas(x).every((c) => c.value === '')) || bocas[i + 1];
@@ -1092,6 +1320,18 @@
     else if (que === 'lectura-todo' && ficha) cambiarEquipo(b, true);
     else if (que === 'ir-boca' && ficha) irABoca(b.dataset.boca);
     else if (que === 'plano-grande' && ficha) planoGrande(b);
+    else if (que === 'circuito-bal' && ficha) {
+      if (circuitoBal === b.dataset.circuito) return;
+      cerrarHojaBoca();
+      circuitoBal = b.dataset.circuito;
+      pintarFicha();
+      window.scrollTo(0, 0);
+    }
+    else if (que === 'zoom-mas' && ficha) zoomBoton(b, 1.6);
+    else if (que === 'zoom-menos' && ficha) zoomBoton(b, 1 / 1.6);
+    else if (que === 'cerrar-boca' && ficha) cerrarHojaBoca();
+    else if (que === 'boca-siguiente' && ficha) bocaVecina(1);
+    else if (que === 'boca-anterior' && ficha) bocaVecina(-1);
     else if (que === 'foto-equipo') fotoEquipo(b);
     else if (que === 'quitar-foto-equipo') quitarFotoEquipo(b);
     else if (que === 'nube-ahora' && window.cxObra && window.cxObra.sync) { b.disabled = true; window.cxObra.sync.ahora().finally(() => { if (ficha) abrir(ficha.equipo.id, { quieto: true }); }); }
@@ -1134,7 +1374,11 @@
     if (i < ins.length - 1) { ins[i + 1].focus(); return; }
     saltando = true;
     if (cambiada(li)) medir(li, 'siguiente');
-    else {
+    else if (bocaAbierta) {
+      bocaVecina(1);
+      const li2 = $app.querySelector('.hoja-boca li[data-boca]');
+      if (li2 && casillas(li2)[0]) casillas(li2)[0].focus();
+    } else {
       const bocas = [...$app.querySelectorAll('li[data-boca]')];
       const sig = bocas[bocas.indexOf(li) + 1];
       if (sig && casillas(sig)[0]) casillas(sig)[0].focus(); else ev.target.blur();

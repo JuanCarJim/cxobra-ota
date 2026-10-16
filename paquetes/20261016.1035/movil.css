@@ -1137,3 +1137,57 @@ body:has(.tag-fijo) .obra-movil { display: none; }
 .av-tabla td i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
 .av-tabla tr.sin td { color: var(--textoSuave); background: var(--aviso-fondo, #fff7ed); }
 .av-tabla .sub { font-size: 11px; color: var(--textoTenue); }
+
+/* Listas como tarjetitas separadas (16-oct-2026, JC: en Commissioning «se
+   mezclan» los equipos). Cada fila, su tarjeta con borde y esquinas; entre
+   una y otra, aire. La lista numerada de fichas, pegada a su banda, se queda. */
+main#app.densa ul.lista-ios:not(.numerada):not(.sin-tarjetas) {
+  gap: 6px; margin: 6px 0; background: none; border: 0; border-radius: 0; overflow: visible;
+}
+main#app.densa ul.lista-ios:not(.numerada):not(.sin-tarjetas) > li {
+  background: var(--panel); border: 1px solid var(--rejilla); border-radius: 10px; overflow: hidden;
+}
+main#app.densa details.grupo-lista[open] > summary { border-radius: 10px; }
+main#app.densa details.grupo-lista[open] > summary + ul.lista-ios:not(.numerada) { margin-top: 6px; }
+/* El título de la fila no se monta sobre el estado: el TAG parte línea y la
+   etiqueta conserva su ancho. */
+.fila-principal { align-items: flex-start; }
+.fila-principal > :first-child { min-width: 0; overflow-wrap: anywhere; }
+.fila-principal > .chip, .fila-principal > .chips { flex-shrink: 0; }
+
+/* El plano del balanceo con zoom de pellizco (16-oct-2026, JC). El lienzo se
+   escala y se mueve con transform; las marcas se desescalan (--esc) para
+   quedarse del mismo tamaño en pantalla y separarse al acercar. */
+.plano-marco { overflow: hidden; touch-action: pan-y; position: relative; }
+.plano-marco.con-zoom, .plano-bocas.grande .plano-marco { touch-action: none; cursor: grab; }
+.plano-lienzo { transform-origin: 0 0; will-change: transform; }
+.plano-lienzo .marca-boca { transform: translate(-50%, -50%) scale(calc(1 / var(--esc, 1))); }
+.plano-bocas.grande .plano-marco { display: block; }
+.plano-bocas.grande .plano-lienzo { width: 100%; }
+/* A pantalla completa, los mandos arriba: abajo los taparía la tarjeta de la boca. */
+.plano-bocas.grande figcaption { order: -1; border-bottom: 1px solid var(--rejilla); }
+.plano-bocas .zoom-botones { display: inline-flex; align-items: center; gap: 4px; }
+.plano-bocas .zoom-botones [data-cx^="zoom-"] { min-width: 32px; min-height: 30px; font-size: 18px; font-weight: 700; line-height: 1;
+  border: 1px solid var(--rejilla); border-radius: 6px; background: var(--panel); }
+.marca-boca.elegida .simbolo-boca { filter: drop-shadow(0 0 3px var(--acento)); }
+.marca-boca.elegida .rotulo-boca { background: var(--acento); outline: 2px solid #fff; }
+
+/* Impulsión | Retorno arriba del balanceo, con lo medido de cada uno. */
+main#app .circuito-bal { margin: 8px 0 6px; }
+main#app .circuito-bal button { min-height: 36px; font-size: 14.5px; }
+.circuito-bal small { margin-left: 4px; font-size: 12px; font-weight: 500; color: var(--textoTenue); font-variant-numeric: tabular-nums; }
+
+/* La tarjeta de la boca pulsada en el plano: sube desde abajo, por encima
+   de la barra y del plano a pantalla completa. */
+.hoja-boca { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; max-width: 640px; margin: 0 auto;
+  max-height: 62vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 6px 10px calc(10px + env(safe-area-inset-bottom)); background: var(--panel);
+  border-radius: 14px 14px 0 0; box-shadow: 0 -8px 24px rgba(15, 23, 42, .18); border-top: 1px solid var(--rejilla); }
+.hoja-boca-cab { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; }
+.hoja-boca-cab .asa { flex: 1; }
+.hoja-boca-cab .asa::before { content: ''; display: block; width: 36px; height: 5px; border-radius: 3px; background: var(--rejilla); }
+.hoja-boca-cab .enlace { min-height: 32px; padding: 2px 8px; font-size: 14px; }
+.hoja-boca .bocas { margin: 0; padding: 0; list-style: none; }
+main#app .hoja-boca .boca { border-radius: 10px; }
+body.con-hoja-boca .barra-inferior { display: none; }
+body.con-hoja-boca main#app .densa { padding-bottom: 62vh; }
