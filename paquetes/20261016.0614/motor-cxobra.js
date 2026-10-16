@@ -6698,6 +6698,29 @@ globalThis.CX_VARIANTE="cxobra";
           ]
         }
       ];
+      var RESTRICCIONES_JEFE_PRODUCCION = [];
+      (function anadirJefeProduccion() {
+        const i = ROLES.findIndex((r) => r.id === "jefeObra");
+        const jo = ROLES[i];
+        const permisos = Object.fromEntries(Object.entries(jo.permisos).map(([m, v]) => [m, [...v]]));
+        for (const [m, v] of RESTRICCIONES_JEFE_PRODUCCION) {
+          if (permisos[m]) permisos[m] = permisos[m].filter((x) => x !== v);
+        }
+        ROLES.splice(i + 1, 0, {
+          ...jo,
+          id: "jefeProduccion",
+          nombre: "Jefe de Producci\xF3n",
+          descripcion: "Las obras en las que el jefe de obra le nombra. Ve lo mismo que \xE9l; lo que no podr\xE1 editar est\xE1 por definir.",
+          permisos,
+          camposVetados: [...jo.camposVetados],
+          home: jo.home.map((b) => ({ ...b }))
+        });
+      })();
+      ROLES.find((r) => r.id === "operario").soloLoSuyo = {
+        tareasObra: { columna: "responsableId" },
+        tareaComentarios: { porTarea: "tareaId" },
+        tareaPedidos: { porTarea: "tareaId" }
+      };
       for (const r of ROLES) {
         if (!r.permisos.balanceo && r.permisos.commissioning) r.permisos.balanceo = r.permisos.commissioning;
       }
@@ -6757,13 +6780,39 @@ globalThis.CX_VARIANTE="cxobra";
         jefeProyectos: { trabajo: ["obras", "tareas", "actas", "compras", "costsPlan", "certificaciones", "informeSemanal", "presupuestos", "proyectos"], consulta: ["estadisticas", "ncr", "ppi", "conflictos", "clientes", "proveedores", "personas", "vacaciones"] },
         jefeGrupo: { trabajo: ["obras", "tareas", "actas", "informeSemanal", "costsPlan", "certificaciones", "compras"], consulta: ["pedidos", "commissioning", "ncr", "ppi", "conflictos", "estadisticas", "vacaciones"] },
         jefeObra: { trabajo: ["obras", "tareas", "actas", "costsPlan", "compras", "pedidos", "certificaciones", "commissioning", "ppi", "ncr", "partesIncidencia"], consulta: ["calculo", "pruebasEstanqueidad", "balanceo", "proveedores", "vacaciones"] },
+        /* De momento, la misma que el jefe de obra (ver RESTRICCIONES_JEFE_PRODUCCION). */
+        jefeProduccion: { trabajo: ["obras", "tareas", "actas", "costsPlan", "compras", "pedidos", "certificaciones", "commissioning", "ppi", "ncr", "partesIncidencia"], consulta: ["calculo", "pruebasEstanqueidad", "balanceo", "proveedores", "vacaciones"] },
         encargadoObra: { trabajo: ["tareas", "pedidos", "partes", "partesIncidencia", "ppi", "ncr", "pruebasEstanqueidad"], consulta: ["obras", "commissioning", "vacaciones"] },
         jefeCommissioning: { trabajo: ["commissioning", "balanceo", "pruebasEstanqueidad", "ncr", "ppi"], consulta: ["calculo", "obras", "tareas", "vacaciones", "informeSemanal", "mantenimiento"] },
         contractSupport: { trabajo: ["certificaciones", "compras", "pedidos", "conflictos", "ncr"], consulta: ["tareas", "clientes", "proveedores", "trazabilidad", "vacaciones"] },
         jefeMantenimiento: { trabajo: ["mantenimiento", "incidencias"], consulta: ["commissioning", "obras", "ncr", "vacaciones"] },
-        operario: { trabajo: ["partes", "partesIncidencia", "pruebasEstanqueidad", "balanceo"], consulta: [] },
+        /* 16-oct: 'tareas', para que vea las que le encargan (solo las suyas). */
+        operario: { trabajo: ["tareas", "partes", "partesIncidencia", "pruebasEstanqueidad", "balanceo"], consulta: [] },
         administrador: { empresa: true, accesos: true, trabajo: [], consulta: [] }
       };
+      var SECCIONES_OBRA = {
+        jefeObra: [
+          { nombre: "Documentaci\xF3n", modulos: ["alcance", "analisisProyecto", "nube", "actas", "informeSemanal", "puntosControl", "calculo"] },
+          { nombre: "Econ\xF3mico", modulos: ["presupuestoObra", "costsPlan", "variantes", "certificaciones", "conflictos"] },
+          { nombre: "Planificaci\xF3n", modulos: ["gantt", "planEconomica", "obras", "tareas", "partes", "vacaciones"] },
+          { nombre: "Compras", modulos: ["planCompras", "comparativos", "pedidos", "proveedores"] },
+          { nombre: "Commissioning", modulos: ["commissioning", "balanceo", "pruebasEstanqueidad"] },
+          { nombre: "Calidad", modulos: ["ppi", "ncr", "partesIncidencia"] }
+        ]
+      };
+      SECCIONES_OBRA.jefeProduccion = SECCIONES_OBRA.jefeObra;
+      var HERRAMIENTAS_EN_SECCION = ["nube"];
+      var ATAJOS_OBRA = {
+        presupuestoObra: { modulo: "presupuestos", etiqueta: "Presupuesto de obra" },
+        variantes: { modulo: "costsPlan", etiqueta: "Variantes y OC" },
+        analisisProyecto: { modulo: "costsPlan", etiqueta: "An\xE1lisis del proyecto" },
+        puntosControl: { modulo: "commissioning", etiqueta: "Puntos de control" },
+        planCompras: { modulo: "compras", etiqueta: "Plan de compras" },
+        comparativos: { modulo: "compras", etiqueta: "Comparativos" },
+        gantt: { modulo: "costsPlan", etiqueta: "Diagrama de Gantt" },
+        planEconomica: { modulo: "costsPlan", etiqueta: "Planificaci\xF3n econ\xF3mica" }
+      };
+      var AYUDA_EN_BARRA = [{ id: "queHaceLaApp", etiqueta: "Qu\xE9 hace la app", icono: "?" }];
       var DEPARTAMENTOS_EN_BARRA = {
         estudios: ["proyectos", "presupuestos", "calculo", "biblioteca", "reparto"],
         delineacion: ["reparto", "proyectos"],
@@ -6795,6 +6844,13 @@ globalThis.CX_VARIANTE="cxobra";
         const b = BARRAS_POR_ROL[idRol] || { trabajo: [], consulta: "*" };
         const trabajo = b.trabajo.filter((m) => visibles.includes(m));
         const consulta = b.consulta === "*" ? null : b.consulta.filter((m) => visibles.includes(m) && !trabajo.includes(m));
+        if (SECCIONES_OBRA[idRol]) {
+          const secciones = SECCIONES_OBRA[idRol].map((s) => ({
+            nombre: s.nombre,
+            modulos: s.modulos.filter((m) => HERRAMIENTAS_EN_SECCION.includes(m) || visibles.includes(ATAJOS_OBRA[m] ? ATAJOS_OBRA[m].modulo : m))
+          })).filter((s) => s.modulos.length);
+          return { trabajo, consulta, secciones };
+        }
         if (!b.empresa) return { trabajo, consulta };
         const departamentos = Object.entries(DEPARTAMENTOS_EN_BARRA).map(([id, mods]) => ({
           id,
@@ -6817,11 +6873,15 @@ globalThis.CX_VARIANTE="cxobra";
         puede,
         modulosVisibles,
         campoVetado,
+        RESTRICCIONES_JEFE_PRODUCCION,
         SECCIONES_MOVIL,
         seccionesMovil,
         entraEnEscritorio,
         gestionaAccesos,
         BARRAS_POR_ROL,
+        SECCIONES_OBRA,
+        ATAJOS_OBRA,
+        AYUDA_EN_BARRA,
         barraDeRol
       });
     }
@@ -8622,7 +8682,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261015.2125" : "0";
+      var VERSION = true ? "20261016.0614" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -9727,12 +9787,12 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function crearTimbre({ url, clave, token = async () => null, alSonar, WebSocket: WS = globalThis.WebSocket, registro = () => {
-      } }) {
+      }, tabla = "cx_filas" }) {
         if (!WS) return { arrancar() {
         }, parar() {
         }, conectado: () => false };
         const dir = `${String(url).replace(/^http/, "ws").replace(/\/+$/, "")}/realtime/v1/websocket?apikey=${encodeURIComponent(clave)}&vsn=1.0.0`;
-        const TEMA = "realtime:cx-filas";
+        const TEMA = `realtime:${tabla.replace(/_/g, "-")}`;
         let ws = null;
         let ref = 0;
         let latido = null;
@@ -9766,7 +9826,7 @@ globalThis.CX_VARIANTE="cxobra";
               topic: TEMA,
               event: "phx_join",
               payload: {
-                config: { broadcast: { self: false }, presence: { key: "" }, postgres_changes: [{ event: "*", schema: "public", table: "cx_filas" }] },
+                config: { broadcast: { self: false }, presence: { key: "" }, postgres_changes: [{ event: "*", schema: "public", table: tabla }] },
                 ...t ? { access_token: t } : {}
               }
             });
@@ -10846,6 +10906,9 @@ globalThis.CX_VARIANTE="cxobra";
      recibidaPor       TEXT REFERENCES personas(id),
      jefeGrupoId       TEXT REFERENCES personas(id),
      jefeObraId        TEXT REFERENCES personas(id),
+     /* El jefe de producci\xF3n, si la obra lo tiene (16-oct): lo nombra el
+        jefe de obra y ve la obra como \xE9l. */
+     jefeProduccionId  TEXT REFERENCES personas(id),
      encargadosIds     TEXT,
      tecnicosIds       TEXT,
      estado            TEXT NOT NULL DEFAULT 'sinAsignar',
@@ -11652,6 +11715,37 @@ globalThis.CX_VARIANTE="cxobra";
      adjuntos      TEXT,
      creadoEn      TEXT NOT NULL,
      modificadoEn  TEXT NOT NULL
+   )`,
+        /*
+         * LA AGENDA DEL BLOC: tareas que se repiten (shared/agenda.js). Privadas
+         * como las notas. `regla` diaria / semanal (`dias` '1,3,5', 1 = lunes) /
+         * mensual (`diaMes`). `obraId` opcional, con su resumen por si se cierra.
+         * Lo hecho se apunta por día en `tareasRepetitivasHechas`: una fila = ese
+         * día está hecho; desmarcar la borra.
+         */
+        `CREATE TABLE IF NOT EXISTS tareasRepetitivas (
+     id            TEXT PRIMARY KEY,
+     personaId     TEXT NOT NULL REFERENCES personas(id) ON DELETE CASCADE,
+     texto         TEXT NOT NULL,
+     regla         TEXT NOT NULL CHECK (regla IN ('diaria','semanal','mensual')),
+     dias          TEXT,
+     diaMes        INTEGER,
+     desde         TEXT NOT NULL,
+     hasta         TEXT,
+     obraId        TEXT REFERENCES obras(id) ON DELETE SET NULL,
+     obraResumen   TEXT,
+     activa        INTEGER NOT NULL DEFAULT 1,
+     creadoEn      TEXT NOT NULL,
+     modificadoEn  TEXT NOT NULL
+   )`,
+        `CREATE TABLE IF NOT EXISTS tareasRepetitivasHechas (
+     id            TEXT PRIMARY KEY,
+     personaId     TEXT NOT NULL REFERENCES personas(id) ON DELETE CASCADE,
+     repetitivaId  TEXT NOT NULL REFERENCES tareasRepetitivas(id) ON DELETE CASCADE,
+     fecha         TEXT NOT NULL,
+     creadoEn      TEXT NOT NULL,
+     modificadoEn  TEXT NOT NULL,
+     UNIQUE (repetitivaId, fecha)
    )`,
         /*
          * LAS NO CONFORMIDADES (NCR) de una obra: el libro «NCR_CampNou.xlsm».
@@ -12523,6 +12617,104 @@ globalThis.CX_VARIANTE="cxobra";
      UNIQUE (obraId, capituloId)
    )`,
         /*
+         * EL GANTT DE LA OBRA (shared/obra/planificacion.js): el inicio, el fin y el
+         * avance de cada capítulo del Costs Plan. `inicioBase`/`finBase` son las
+         * primeras fechas que se le dieron (la línea base): no cambian al mover la
+         * barra, para ver si la obra va por delante o por detrás de lo planificado.
+         * `capituloId` '_obra' es la obra entera cuando no tiene Costs Plan.
+         */
+        /*
+         * EL GANTT DE ESTUDIOS (JC, 16-oct: «debemos tener el Gantt que se haga en
+         * estudios y luego el que se retoque en obra»): el plazo de cada capítulo
+         * del presupuesto mientras se oferta. Al ir a obra, un paquete sin fechas
+         * propias en ganttCapitulos toma estas como plan y como línea base.
+         */
+        `CREATE TABLE IF NOT EXISTS ganttEstudio (
+     id              TEXT PRIMARY KEY,
+     presupuestoId   TEXT NOT NULL REFERENCES presupuestos(id) ON DELETE CASCADE,
+     capituloId      TEXT NOT NULL,
+     inicio          TEXT,
+     fin             TEXT,
+     creadoPor       TEXT REFERENCES personas(id),
+     creadoEn        TEXT NOT NULL,
+     modificadoEn    TEXT NOT NULL,
+     UNIQUE (presupuestoId, capituloId)
+   )`,
+        `CREATE TABLE IF NOT EXISTS ganttCapitulos (
+     id              TEXT PRIMARY KEY,
+     obraId          TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     capituloId      TEXT NOT NULL,
+     inicio          TEXT,
+     fin             TEXT,
+     avance          REAL,
+     inicioBase      TEXT,
+     finBase         TEXT,
+     creadoPor       TEXT REFERENCES personas(id),
+     creadoEn        TEXT NOT NULL,
+     modificadoEn    TEXT NOT NULL,
+     UNIQUE (obraId, capituloId)
+   )`,
+        /*
+         * QUIÉN HACE CADA PAQUETE DEL GANTT y con cuánta gente: una fila por empresa
+         * y paquete (un paquete puede llevar varias). `personas` es la media al día
+         * laborable entre el inicio y el fin del paquete. De aquí sale la previsión
+         * de «Personal en obra» (electron/data/personal.js) y la carga de cada
+         * industrial en Compras: no se copia a ningún sitio, se calcula al leer.
+         */
+        `CREATE TABLE IF NOT EXISTS ganttRecursos (
+     id              TEXT PRIMARY KEY,
+     obraId          TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     capituloId      TEXT NOT NULL,
+     proveedorId     TEXT NOT NULL REFERENCES proveedores(id),
+     personas        INTEGER,
+     notas           TEXT,
+     creadoPor       TEXT REFERENCES personas(id),
+     creadoEn        TEXT NOT NULL,
+     modificadoEn    TEXT NOT NULL,
+     UNIQUE (obraId, capituloId, proveedorId)
+   )`,
+        /*
+         * LO QUE EL JEFE DE OBRA AÑADE AL GANTT y no está en el Costs Plan: hitos
+         * (`tipo` 'hito', un día: inicio = fin) como «Fin de falso techo», y
+         * actividades con su plazo. `padreId` es el capítulo bajo el que se pinta
+         * (vacío: arriba, con los hitos de la obra). `origen` 'sugerencia' si lo
+         * propuso la app (shared/obra/ganttRed.js).
+         */
+        `CREATE TABLE IF NOT EXISTS ganttElementos (
+     id              TEXT PRIMARY KEY,
+     obraId          TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     tipo            TEXT NOT NULL DEFAULT 'hito' CHECK (tipo IN ('hito','actividad')),
+     nombre          TEXT NOT NULL,
+     descripcion     TEXT,
+     inicio          TEXT,
+     fin             TEXT,
+     avance          REAL,
+     padreId         TEXT,
+     origen          TEXT,
+     creadoPor       TEXT REFERENCES personas(id),
+     creadoEn        TEXT NOT NULL,
+     modificadoEn    TEXT NOT NULL
+   )`,
+        /*
+         * QUÉ VA DETRÁS DE QUÉ: `aId` no empieza hasta que acaba `deId` (+ holgura
+         * en días). Los ids son de paquete (capítulo), de ganttElementos o
+         * 'pedido:<id>' (la entrega de una compra). `tipo` 'descartado' guarda una
+         * propuesta que el jefe de obra no quiso (deId 'sug:<regla>' o el pedido),
+         * para no volver a sacarla.
+         */
+        `CREATE TABLE IF NOT EXISTS ganttEnlaces (
+     id              TEXT PRIMARY KEY,
+     obraId          TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     deId            TEXT NOT NULL,
+     aId             TEXT NOT NULL,
+     tipo            TEXT NOT NULL DEFAULT 'fs' CHECK (tipo IN ('fs','descartado')),
+     holgura         INTEGER NOT NULL DEFAULT 0,
+     creadoPor       TEXT REFERENCES personas(id),
+     creadoEn        TEXT NOT NULL,
+     modificadoEn    TEXT NOT NULL,
+     UNIQUE (obraId, deId, aId)
+   )`,
+        /*
          * EL COSTS PLAN 2.09a (shared/obra/costPlan209a.js). `costPlanCierres` es la
          * foto del FCAC de cada fila al cerrar el mes (da el Previous FCAC del
          * siguiente); `costPlanVariaciones`, lo que le cuesta cada adenda firmada
@@ -12758,6 +12950,9 @@ globalThis.CX_VARIANTE="cxobra";
         `CREATE INDEX IF NOT EXISTS idx_notas_persona     ON notas (personaId, modificadoEn)`,
         `CREATE INDEX IF NOT EXISTS idx_descconcepto      ON descripcionesConcepto (firma)`,
         `CREATE INDEX IF NOT EXISTS idx_notas_ancla       ON notas (anclaTipo, anclaId)`,
+        `CREATE INDEX IF NOT EXISTS idx_notas_fecha       ON notas (personaId, fecha)`,
+        `CREATE INDEX IF NOT EXISTS idx_repetitivas_persona ON tareasRepetitivas (personaId)`,
+        `CREATE INDEX IF NOT EXISTS idx_repetitivas_hechas ON tareasRepetitivasHechas (personaId, fecha)`,
         `CREATE INDEX IF NOT EXISTS idx_lineas_grupo       ON lineas (presupuestoId, grupo)`,
         /* «Cuánta mano de obra llevamos» y «cuánto material» por disciplina. */
         `CREATE INDEX IF NOT EXISTS idx_lineas_disciplina  ON lineas (presupuestoId, disciplina)`,
@@ -12866,6 +13061,8 @@ globalThis.CX_VARIANTE="cxobra";
         ["certificaciones", "modo", "TEXT"],
         /* Archivos y fotos de las notas del bloc (electron/data/notasAdjuntos.js), en JSON. */
         ["notas", "adjuntos", "TEXT"],
+        /* El día de la nota en la agenda del bloc (AAAA-MM-DD), opcional. */
+        ["notas", "fecha", "TEXT"],
         /* Los partes de incidencia se asignan a quien los lleva, con su fecha límite. */
         ["partesIncidencia", "responsableId", "TEXT"],
         ["partesIncidencia", "fechaLimite", "TEXT"],
@@ -12925,6 +13122,8 @@ globalThis.CX_VARIANTE="cxobra";
          */
         ["obras", "recibidaPor", "TEXT"],
         ["obras", "jefeGrupoId", "TEXT"],
+        /* El jefe de producción de la obra, si lo hay (16-oct). */
+        ["obras", "jefeProduccionId", "TEXT"],
         ["obras", "encargadosIds", "TEXT"],
         ["exclusionesObra", "modificadoEn", "TEXT"],
         ["avisosDescartados", "modificadoEn", "TEXT"],
@@ -13208,12 +13407,13 @@ globalThis.CX_VARIANTE="cxobra";
         versionesPresupuesto: { porPresupuesto: "presupuestoId" },
         /*
          * UNA OBRA TIENE VARIOS DUEÑOS, y todos a la vez: el jefe de Proyectos que
-         * la recibió, el jefe de grupo si lo hay y el jefe de obra. Los encargados y
+         * la recibió, el jefe de grupo si lo hay, el jefe de obra y el jefe de
+         * producción si lo hay (16-oct). Los encargados y
          * los técnicos colaboran. Con un solo dueño, a quien no fuera «el» jefe de
          * obra la obra no le existía, aunque se la acabaran de asignar.
          */
         obras: {
-          propietario: ["jefeObraId", "jefeGrupoId", "recibidaPor"],
+          propietario: ["jefeObraId", "jefeGrupoId", "jefeProduccionId", "recibidaPor"],
           colaboradores: ["tecnicosIds", "encargadosIds"],
           departamento: "proyectos"
         },
@@ -13285,6 +13485,12 @@ globalThis.CX_VARIANTE="cxobra";
         costPlanCierres: { porObra: "obraId" },
         costPlanVariaciones: { porObra: "obraId" },
         costPlanDatos: { porObra: "obraId" },
+        ganttCapitulos: { porObra: "obraId" },
+        ganttRecursos: { porObra: "obraId" },
+        /* El Gantt que se hace en Estudios cuelga del presupuesto, no de la obra. */
+        ganttEstudio: { porPresupuesto: "presupuestoId" },
+        ganttElementos: { porObra: "obraId" },
+        ganttEnlaces: { porObra: "obraId" },
         /* Las horas de obra, como las de estudio: quien ve la obra ve lo que costó. */
         horasObra: { porObra: "obraId" },
         /* Las plantillas de puesta en marcha son de la casa, como la biblioteca. */
@@ -13326,6 +13532,9 @@ globalThis.CX_VARIANTE="cxobra";
          * pasa a la conversación del proyecto y entonces se ve que es un mensaje.
          */
         notas: { privadoDe: "personaId" },
+        /* Las tareas repetitivas de la agenda del bloc, y lo hecho: igual de privadas. */
+        tareasRepetitivas: { privadoDe: "personaId" },
+        tareasRepetitivasHechas: { privadoDe: "personaId" },
         /* La biblioteca es de la casa: la ve cualquiera que pueda presupuestar. */
         descripcionesConcepto: { publico: true },
         /*
@@ -13377,7 +13586,7 @@ globalThis.CX_VARIANTE="cxobra";
         if (!regla) throw new AlcanceNoDeclarado(entidad);
         const r = rol(sesion && sesion.rol);
         if (!r) return { where: "(1 = 0)", params: [] };
-        const base = filtroBase(entidad, regla, r, sesion, opciones);
+        const base = soloLoSuyo(entidad, r, sesion, opciones, filtroBase(entidad, regla, r, sesion, opciones));
         if (!regla.tambienPorSuObra) return base;
         if (base.where === "(1 = 1)") return base;
         const porObra = filtro("obras", sesion, opciones);
@@ -13387,6 +13596,15 @@ globalThis.CX_VARIANTE="cxobra";
           where: `(${base.where} OR ${tp}id IN (SELECT proyectoId FROM obras WHERE ${porObra.where}))`,
           params: [...base.params, ...porObra.params]
         };
+      }
+      function soloLoSuyo(entidad, r, sesion, opciones, base) {
+        const regla = r.soloLoSuyo && r.soloLoSuyo[entidad];
+        if (!regla) return base;
+        const quien = sesion && sesion.personaId;
+        if (!quien) return { where: "(1 = 0)", params: [] };
+        const t = opciones.alias ? `${opciones.alias}.` : "";
+        const suyo = regla.columna ? `${t}${regla.columna} = ?` : `${t}${regla.porTarea} IN (SELECT id FROM tareasObra WHERE ${r.soloLoSuyo.tareasObra.columna} = ?)`;
+        return { where: `(${base.where} AND ${suyo})`, params: [...base.params, quien] };
       }
       function filtroBase(entidad, regla, r, sesion, opciones) {
         const t = opciones.alias ? `${opciones.alias}.` : "";
@@ -13508,6 +13726,7 @@ globalThis.CX_VARIANTE="cxobra";
           this.verbo = verbo;
         }
       };
+      var BORRA_QUIEN_EDITA = /* @__PURE__ */ new Set(["ganttRecursos", "ganttElementos", "ganttEnlaces"]);
       var MODULO_DE = {
         proyectos: "presupuestos",
         /* Módulo propio: corregir una nota tuya no es borrar un presupuesto.
@@ -13618,6 +13837,12 @@ globalThis.CX_VARIANTE="cxobra";
         costPlanCierres: "costsPlan",
         costPlanVariaciones: "costsPlan",
         costPlanDatos: "costsPlan",
+        /* El Gantt de la obra: fechas y avance de cada capítulo. */
+        ganttCapitulos: "costsPlan",
+        ganttRecursos: "costsPlan",
+        ganttEstudio: "presupuestos",
+        ganttElementos: "costsPlan",
+        ganttEnlaces: "costsPlan",
         horasObra: "horasObra",
         clientes: "clientes",
         departamentosCliente: "clientes",
@@ -13626,6 +13851,8 @@ globalThis.CX_VARIANTE="cxobra";
         familiasCompra: "proveedores",
         personas: "personas",
         notas: "notas",
+        tareasRepetitivas: "notas",
+        tareasRepetitivasHechas: "notas",
         descripcionesConcepto: "biblioteca",
         ausencias: "vacaciones",
         festivos: "vacaciones",
@@ -13646,7 +13873,8 @@ globalThis.CX_VARIANTE="cxobra";
         function exigir(entidad, sesion, verbo) {
           const modulo = MODULO_DE[entidad];
           if (!modulo) throw new alcance.AlcanceNoDeclarado(entidad);
-          if (!puede(sesion.rol, modulo, verbo)) throw new SinPermiso(modulo, verbo, sesion.rol);
+          const v = verbo === "borrar" && BORRA_QUIEN_EDITA.has(entidad) ? "editar" : verbo;
+          if (!puede(sesion.rol, modulo, v)) throw new SinPermiso(modulo, verbo, sesion.rol);
         }
         function listar(entidad, sesion, { condicion = null, params = [], orden = null, limite = null } = {}) {
           exigir(entidad, sesion, "ver");
@@ -16946,6 +17174,7 @@ globalThis.CX_VARIANTE="cxobra";
           recibidaPor: "pablo",
           jefeGrupoId: "gonzalo",
           jefeObraId: "marta",
+          jefeProduccionId: "jorge",
           encargadosIds: ",diego,",
           importeVenta: 1105e3,
           objetivoCompras: 812e3,
@@ -18596,6 +18825,16 @@ globalThis.CX_VARIANTE="cxobra";
           if (familia) return FAMILIAS_CON_VELOCIDADES.includes(String(familia).toUpperCase());
           return /FAN.?COIL|CASSETTE/i.test(String(hoja || ""));
         }
+        const RED_DE_CAUDAL = Object.freeze({ caudal_aire_impulsion: "impulsion", caudal_aire_retorno: "retorno" });
+        const RED_RECUPERADOR = Object.freeze({ aportacion: "impulsion", extraccion: "retorno" });
+        function redDeBocas(plantilla, punto) {
+          if (RED_DE_CAUDAL[punto]) return RED_DE_CAUDAL[punto];
+          if (/^RECUPERADOR_/i.test(String(plantilla || ""))) return RED_RECUPERADOR[punto] || null;
+          return null;
+        }
+        function origenCaudal(om, nBocas) {
+          return om === "balanceo" ? `suma de ${nBocas ? `${nBocas} ` : ""}bocas` : "medido en equipo";
+        }
         (function exportar(API) {
           if (typeof module !== "undefined" && module.exports) module.exports = API;
           if (typeof window !== "undefined") window.REGLAS_CX = API;
@@ -18612,7 +18851,9 @@ globalThis.CX_VARIANTE="cxobra";
           sumaBocas,
           textoPendiente,
           FAMILIAS_CON_VELOCIDADES,
-          llevaVelocidades
+          llevaVelocidades,
+          redDeBocas,
+          origenCaudal
         });
       })();
     }
@@ -18978,6 +19219,7 @@ globalThis.CX_VARIANTE="cxobra";
                 if (v && v.op === "fichaTecnica") fila.origenProyecto = "fichaTecnica";
                 if (v && v.om === "balanceo") {
                   fila.origenMedido = "balanceo";
+                  fila.nBocas = Number(v.nBocas) || null;
                   avisos.push(`${punto.etiqueta}: el medido (${ev.m} ${punto.unidad || ""}) es la suma de las ${v.nBocas || ""} bocas de la hoja de balanceo; en la ficha no hay medido propio.`.replace(/\s+/g, " "));
                 }
                 if (ev.sinTolerancia) sinTol.add(ev.sinTolerancia);
@@ -23424,10 +23666,12 @@ globalThis.CX_VARIANTE="cxobra";
               const q = buscarParam(rot, sec, hija);
               if (!q) return null;
               const p = q.p;
+              const origen = !blanco && p.m !== null && p.m !== void 0 && RG().redDeBocas(plantilla.codigo, p.codigo) ? RG().origenCaudal(p.origenMedido, p.nBocas) : null;
+              const medido = origen ? { html: `${num(p.m)} <span class="xlNota">\xB7 ${esc(origen)}</span>` } : num(p.m);
               return [
                 num(p.p),
                 num(p.f),
-                num(p.m),
+                medido,
                 p.resultado !== null && p.resultado !== void 0 || p.limite !== null && p.limite !== void 0 ? pct(p.desv) : "",
                 res(p.resultado)
               ];
@@ -28336,8 +28580,7 @@ globalThis.CX_VARIANTE="cxobra";
       function datosConBalanceo(repo, sesion, def, datos, clave) {
         const m = /^equipo:(.+)$/.exec(String(clave || ""));
         if (!m || !def) return datos;
-        const faltan = Object.keys(CAUDAL_DEL_BALANCEO).some((cod) => {
-          if (!F.puntosDe(def).some((x) => x.codigo === cod)) return false;
+        const faltan = caudalesDeBocas(def).some(([cod]) => {
           const v = (datos.valores || {})[cod];
           return !v || F.numero(v.m) === null;
         });
@@ -28787,13 +29030,14 @@ globalThis.CX_VARIANTE="cxobra";
         });
         return { ev, dif, filasPlano, DIF };
       }
-      var CAUDAL_DEL_BALANCEO = { caudal_aire_impulsion: "impulsion", caudal_aire_retorno: "retorno" };
+      function caudalesDeBocas(def) {
+        const RG = require_reglasCx();
+        return F.puntosDe(def).filter((x) => x.seccion.tipo === "parametros").map((x) => [x.codigo, RG.redDeBocas(def.codigo, x.codigo)]).filter(([, red]) => red);
+      }
       function conCaudalesDelBalanceo(def, datos, bal) {
         if (!bal || !def) return datos;
-        const codigos = new Set(F.puntosDe(def).filter((x) => x.seccion.tipo === "parametros").map((x) => x.codigo));
         let out = datos;
-        for (const [cod, red] of Object.entries(CAUDAL_DEL_BALANCEO)) {
-          if (!codigos.has(cod)) continue;
+        for (const [cod, red] of caudalesDeBocas(def)) {
           const v = (datos.valores || {})[cod] || {};
           if (F.numero(v.m) !== null) continue;
           const c = (bal.ev.circuitos || []).find((x) => x.id === red);
@@ -29305,7 +29549,8 @@ globalThis.CX_VARIANTE="cxobra";
         guardarRejillaChecklist,
         copiarRespuestasChecklist,
         conCabeceraDelBalanceo,
-        sinMedidoDelBalanceo
+        sinMedidoDelBalanceo,
+        conCaudalesDelBalanceo
       };
     }
   });
@@ -31431,7 +31676,9 @@ globalThis.CX_VARIANTE="cxobra";
           if (Object.keys(r.cambios).length) repo.modificar("pedidosCompra", sesion, id, r.cambios);
           if (a) crearDocumento(repo, sesion, p, "confirmacion", a, { fecha: N.dia(entrada.fechaConfirmacion) || hoy() });
           repo.db.exec("COMMIT");
-          return { ok: true };
+          const nuevo = repo.db.prepare("SELECT * FROM pedidosCompra WHERE id = ?").get(id);
+          const fecha = (M.calcular(nuevo, { documentos: [], diferencias: [], hoy: hoy() }) || {}).fechaPrevista || null;
+          return { ok: true, hitoGantt: fecha ? { fecha, codigo: nuevo.codigo, titulo: nuevo.titulo } : null };
         } catch (e) {
           repo.db.exec("ROLLBACK");
           throw e;
@@ -32002,7 +32249,12 @@ globalThis.CX_VARIANTE="cxobra";
         const prev = /* @__PURE__ */ new Map();
         const qr = /* @__PURE__ */ new Map();
         const mano = /* @__PURE__ */ new Map();
-        for (const p of previstos) if (enRango.has(p.fecha) && p.personas !== null && p.personas !== void 0) prev.set(clave(p.proveedorId, p.fecha), Math.max(0, Math.round(Number(p.personas) || 0)));
+        const delGantt = /* @__PURE__ */ new Set();
+        for (const p of previstos) {
+          if (!enRango.has(p.fecha) || p.personas === null || p.personas === void 0) continue;
+          prev.set(clave(p.proveedorId, p.fecha), Math.max(0, Math.round(Number(p.personas) || 0)));
+          if (p.origen === "gantt") delGantt.add(clave(p.proveedorId, p.fecha));
+        }
         for (const f of fichajes) {
           if (!enRango.has(f.fecha)) continue;
           const m = f.origen === "mano" ? mano : qr;
@@ -32033,7 +32285,7 @@ globalThis.CX_VARIANTE="cxobra";
               t.previstoHastaHoy += previsto || 0;
               t.realHastaHoy += real;
             }
-            return { fecha, previsto, real, qr: q, mano: m, desvio: fecha > hoy ? null : real - (previsto || 0), estado: estadoDia(previsto, real, fecha, hoy) };
+            return { fecha, previsto, delGantt: delGantt.has(k), real, qr: q, mano: m, desvio: fecha > hoy ? null : real - (previsto || 0), estado: estadoDia(previsto, real, fecha, hoy) };
           });
           return { proveedorId: id, nombre: nombre.get(id) || "Empresa sin nombre", celdas: celdas2, ...t, cumplimiento: cumplimiento(t.realHastaHoy, t.previstoHastaHoy) };
         });
@@ -32084,7 +32336,29 @@ globalThis.CX_VARIANTE="cxobra";
       function diasDePrevision(desde, hasta, { soloLaborables = true } = {}) {
         return dias(desde, hasta || desde).filter((d) => !soloLaborables || esLaborable(d));
       }
-      module.exports = { PREFIJO_QR, PREFIJOS_QR, prefijoQr, textoQr, codigoDeQr, hoyLocal, dias, sumarDias, esLaborable, lunesDe, estadoDia, hoja, semana, diasDePrevision, cumplimiento };
+      function previstoDelGantt(tramos = [], desde, hasta) {
+        const suma = /* @__PURE__ */ new Map();
+        for (const t of tramos) {
+          const n = Math.round(Number(t.personas) || 0);
+          if (!t.proveedorId || !t.inicio || !t.fin || n <= 0) continue;
+          const a = t.inicio > desde ? t.inicio : desde;
+          const b = t.fin < hasta ? t.fin : hasta;
+          if (a > b) continue;
+          for (const fecha of diasDePrevision(a, b)) {
+            const k = `${t.proveedorId}|${fecha}`;
+            suma.set(k, (suma.get(k) || 0) + n);
+          }
+        }
+        return [...suma].map(([k, personas]) => {
+          const [proveedorId, fecha] = k.split("|");
+          return { proveedorId, fecha, personas, origen: "gantt" };
+        });
+      }
+      function mezclarPrevistos(manuales = [], delGantt = []) {
+        const ya = new Set(manuales.map((p) => `${p.proveedorId}|${p.fecha}`));
+        return [...manuales, ...delGantt.filter((p) => !ya.has(`${p.proveedorId}|${p.fecha}`))];
+      }
+      module.exports = { previstoDelGantt, mezclarPrevistos, PREFIJO_QR, PREFIJOS_QR, prefijoQr, textoQr, codigoDeQr, hoyLocal, dias, sumarDias, esLaborable, lunesDe, estadoDia, hoja, semana, diasDePrevision, cumplimiento };
     }
   });
 
@@ -32575,11 +32849,21 @@ globalThis.CX_VARIANTE="cxobra";
       }
       var obrasVisibles = (repo, sesion) => repo.listar("obras", sesion, { orden: "codigo" });
       var obraVisible = (repo, sesion, id) => id ? repo.leer("obras", sesion, id) : null;
+      function tramosGantt(repo, obraId) {
+        return repo.db.prepare(`SELECT r.proveedorId, r.personas, g.inicio, g.fin FROM ganttRecursos r
+    JOIN ganttCapitulos g ON g.obraId = r.obraId AND g.capituloId = r.capituloId
+    WHERE r.obraId = ? AND g.inicio IS NOT NULL AND g.fin IS NOT NULL`).all(obraId);
+      }
+      function previstosObra(repo, sesion, obraId, desde, hasta) {
+        const manuales = repo.listar("personalPrevisto", sesion, { condicion: "obraId = ? AND fecha BETWEEN ? AND ?", params: [obraId, desde, hasta] });
+        return M.mezclarPrevistos(manuales, M.previstoDelGantt(tramosGantt(repo, obraId), desde, hasta));
+      }
       function subcontratasDe(repo, obraId) {
         const ids = /* @__PURE__ */ new Set([
           ...repo.db.prepare("SELECT DISTINCT proveedorId p FROM actividades WHERE obraId = ? AND proveedorId IS NOT NULL").all(obraId).map((r) => r.p),
           ...repo.db.prepare("SELECT DISTINCT proveedorId p FROM operariosObra WHERE obraId = ? AND activo = 1").all(obraId).map((r) => r.p),
-          ...repo.db.prepare("SELECT DISTINCT proveedorId p FROM personalPrevisto WHERE obraId = ?").all(obraId).map((r) => r.p)
+          ...repo.db.prepare("SELECT DISTINCT proveedorId p FROM personalPrevisto WHERE obraId = ?").all(obraId).map((r) => r.p),
+          ...repo.db.prepare("SELECT DISTINCT proveedorId p FROM ganttRecursos WHERE obraId = ?").all(obraId).map((r) => r.p)
         ]);
         const prov = P.proveedoresPorId(repo);
         return [...ids].filter((id) => prov.has(id)).map((id) => ({ id, nombre: prov.get(id).nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
@@ -32816,7 +33100,7 @@ globalThis.CX_VARIANTE="cxobra";
         const cond = { condicion: "obraId = ? AND fecha BETWEEN ? AND ?", params: [obra.id, ini, fin] };
         const h = M.hoja({
           subcontratas: subcontratasDe(repo, obra.id),
-          previstos: repo.listar("personalPrevisto", sesion, cond),
+          previstos: previstosObra(repo, sesion, obra.id, ini, fin),
           fichajes: repo.listar("fichajes", sesion, cond),
           desde: ini,
           hasta: fin,
@@ -32896,7 +33180,7 @@ globalThis.CX_VARIANTE="cxobra";
         const fuera = obras.map((o) => {
           const h = M.hoja({
             subcontratas: subcontratasDe(repo, o.id),
-            previstos: repo.listar("personalPrevisto", sesion, { condicion: "obraId = ? AND fecha = ?", params: [o.id, hoy] }),
+            previstos: previstosObra(repo, sesion, o.id, hoy, hoy),
             fichajes: repo.listar("fichajes", sesion, { condicion: "obraId = ? AND fecha = ?", params: [o.id, hoy] }),
             desde: hoy,
             hasta: hoy,
@@ -33564,9 +33848,39 @@ globalThis.CX_VARIANTE="cxobra";
           ],
           ejemplos: ["Unidad exterior VRV 22 kW", "UNIDAD CONDENSADORA 14 KW"]
         },
+        /* Las de Nou Camp Nou, que vienen con el modelo del fabricante y sin la
+           palabra que las delata: ROOFTOP_50FC…, CRAC UNIT TECNAIR…, S&P TD-800… */
+        rooftop: {
+          etiqueta: "Rooftop / aut\xF3nomo de cubierta",
+          patron: pat("rooftop|roof-top|autonomo de cubierta"),
+          exige: [
+            "montaje",
+            "conductoConexion",
+            "conexionDesague",
+            "conexionElectrico",
+            "conexionControl",
+            "integracionControl",
+            "antivibratorios",
+            "transporteGrua"
+          ],
+          ejemplos: ["ROOFTOP_50FCDXN45-UEFA-50FC100BL SOLO INSTALACI\xD3N", "Aut\xF3nomo de cubierta 60 kW"]
+        },
+        crac: {
+          etiqueta: "Climatizador de precisi\xF3n (CRAC)",
+          patron: pat("\\bcrac\\b|close control|climatizador de precision|armario de precision"),
+          exige: [
+            "montaje",
+            "conexionFrigorifico",
+            "conexionDesague",
+            "conexionElectrico",
+            "conexionControl",
+            "integracionControl"
+          ],
+          ejemplos: ["CRAC UNIT TECNAIR UPA 662 + TMC 55", "Climatizador de precisi\xF3n para CPD 40 kW"]
+        },
         climatizadora: {
           etiqueta: "Climatizadora / UTA",
-          patron: pat("climatizadora|\\buta\\b|unidad de tratamiento de aire|recuperador"),
+          patron: pat("climatizadora|\\buta\\b|unidad de tratamiento de aire|recuperador|\\bhra ?\\d"),
           exige: [
             "montaje",
             "conexionHidraulico",
@@ -33596,7 +33910,7 @@ globalThis.CX_VARIANTE="cxobra";
         },
         ventilador: {
           etiqueta: "Ventilador / extractor",
-          patron: pat("ventilador|extractor|caja de ventilaci|impulsor"),
+          patron: pat("ventilador|extractor|caja de ventilaci|impulsor|\\bs&p (cab|cvab|td|thgt|chgt|hxm)"),
           exige: ["montaje", "conductoConexion", "conexionElectrico", "conexionControl", "antivibratorios"],
           ejemplos: ["Ventilador de impulsi\xF3n 3.000 m3/h", "Caja de ventilaci\xF3n en l\xEDnea"]
         },
@@ -33873,6 +34187,43 @@ globalThis.CX_VARIANTE="cxobra";
             }
           });
         }
+        const sinPuesta = [];
+        lista.forEach((p, i) => {
+          const clase = claseDe(p);
+          if (!clase) return;
+          if (_modeloPresupuesto.esCoste(p) || (p.camino || []).some(_modeloPresupuesto.esCoste)) return;
+          const padre = (p.camino || []).map((c) => c.codigo).join(">");
+          for (let j = i + 1; j < lista.length; j += 1) {
+            const q = lista[j];
+            if ((q.camino || []).map((c) => c.codigo).join(">") !== padre || claseDe(q)) break;
+            if (ES_PUESTA_MARCHA.test(norm(q.resumen)) && /^h/.test(norm(q.unidad))) return;
+          }
+          const horas = (HORAS_PUESTA_MARCHA[clase] || 4) * (Number(p.cantidad) > 0 ? Number(p.cantidad) : 1);
+          sinPuesta.push({ ...p, horas });
+        });
+        if (sinPuesta.length) {
+          const muestra = sinPuesta.slice(0, 3).map((e) => `\xAB${e.resumen}\xBB`).join(", ");
+          const resto = sinPuesta.length > 3 ? ` y ${sinPuesta.length - 3} m\xE1s` : "";
+          const horas = sinPuesta.reduce((a, e) => a + e.horas, 0);
+          anotar({
+            id: "hueco:puestaEnMarcha",
+            gravedad: GRAVEDAD.AVISO,
+            familia: "mecanica",
+            titulo: sinPuesta.length === 1 ? "Falta la puesta en marcha de un equipo" : `Falta la puesta en marcha de ${sinPuesta.length} equipos`,
+            donde: sinPuesta.length === 1 ? [...(sinPuesta[0].camino || []).map((c) => c.codigo), sinPuesta[0].codigo].filter(Boolean).join(" \u203A ") : `${sinPuesta.length} equipos`,
+            detalle: `${muestra}${resto} no tienen debajo su partida de puesta en marcha en horas. Estimado: ${horas} h de operario.`,
+            porque: "Arrancar, ajustar y probar cada equipo son horas de operario. Si no est\xE1n en su partida, no se cobran y en el Gantt no ocupan tiempo.",
+            accion: "crearPartida",
+            afectadas: sinPuesta.map((e) => e.codigo),
+            propuesta: {
+              resumen: "Puesta en marcha",
+              unidad: "h",
+              cantidad: horas,
+              /* Una por equipo, justo debajo de él. */
+              junto: sinPuesta.map((e) => ({ junto: e.codigo, resumen: `Puesta en marcha de ${e.resumen}`, unidad: "h", cantidad: e.horas }))
+            }
+          });
+        }
         for (const regla of IMPRESCINDIBLES) {
           if (!regla.cuando(hay)) continue;
           if (existeAlgo(lista, regla.patron)) continue;
@@ -34028,6 +34379,30 @@ globalThis.CX_VARIANTE="cxobra";
       var ES_ACCESORIO = pat(
         "^(montaje|coloca|instalacion mecanica|izado|bancada|antivibrat|amortiguador|silentblock|conexion|conexionado|acometida|interconexion|latiguillo|manguito|transporte|gr[u\xFA]a|camion|medios de elevacion|descarga|aislamiento|coquilla|soportacion|soporte|desmontaje|desmontar|retirada|demolicion|achatarramiento|puesta en marcha|programacion|integracion|legalizacion|tramitacion|proyecto|direccion|mantenimiento|prueba|ensayo|equilibrado|limpieza|ayuda|roza|pasamuro|sellado|remate|alquiler|amortizacion|cableado|linea|circuito|manguera|bandeja|tubo|tuberia|canalizacion|conducto|desague|purga|drenaje|vaciado|llenado|sifon|valvula|valvuleria|llave|filtro|colador|manometr|termometr|contador|sonda|sensor|termostato|presostato|transmisor|detector|pulsador|compuerta|rejilla|difusor|variador|regulador|extintor|\\bbie\\b|rociador|hidrante|se[\xF1n]alizacion)\\b"
       );
+      var HORAS_PUESTA_MARCHA = {
+        enfriadora: 16,
+        climatizadoraPiscina: 12,
+        rooftop: 8,
+        crac: 6,
+        torreRefrigeracion: 8,
+        caldera: 8,
+        grupoElectrogeno: 8,
+        climatizadora: 8,
+        unidadExterior: 6,
+        grupoPCI: 4,
+        centralDeteccion: 4,
+        bomba: 2,
+        cuadroElectrico: 2,
+        fancoil: 1,
+        ventilador: 1
+      };
+      var ES_PUESTA_MARCHA = /puesta en marcha|arranque/;
+      function claseDe(partida) {
+        const texto = norm(partida && partida.resumen || "");
+        if (ES_ACCESORIO.test(texto)) return null;
+        const entrada = Object.entries(CLASES_EQUIPO).find(([, c]) => c.patron.test(texto));
+        return entrada ? entrada[0] : null;
+      }
       function cortejoDe(partida, lista = []) {
         const texto = norm(partida && partida.resumen || "");
         if (ES_ACCESORIO.test(texto)) return null;
@@ -34087,6 +34462,8 @@ globalThis.CX_VARIANTE="cxobra";
         FAMILIAS_CONEXION,
         OFICIOS_MECANICOS,
         ES_ACCESORIO,
+        HORAS_PUESTA_MARCHA,
+        claseDe,
         cortejoDe,
         cortejo
       });
@@ -39947,6 +40324,196 @@ ${linea}` : linea;
     }
   });
 
+  // shared/agenda.js
+  var require_agenda = __commonJS({
+    "shared/agenda.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function iniciarAgenda() {
+        const RE_DIA = /^\d{4}-\d{2}-\d{2}$/;
+        const REGLAS = {
+          diaria: "Cada d\xEDa",
+          semanal: "D\xEDas de la semana",
+          mensual: "Un d\xEDa al mes"
+        };
+        const DIAS_CORTOS = ["L", "M", "X", "J", "V", "S", "D"];
+        const MESES = [
+          "enero",
+          "febrero",
+          "marzo",
+          "abril",
+          "mayo",
+          "junio",
+          "julio",
+          "agosto",
+          "septiembre",
+          "octubre",
+          "noviembre",
+          "diciembre"
+        ];
+        const TIPOS = {
+          nota: { orden: 1, etiqueta: "Nota", obra: false },
+          repetitiva: { orden: 2, etiqueta: "Tarea repetitiva", obra: false },
+          hito: { orden: 3, etiqueta: "Hito", obra: true },
+          tarea: { orden: 4, etiqueta: "Tarea de obra", obra: true },
+          entregaPrevista: { orden: 5, etiqueta: "Entrega prevista", obra: true },
+          entrega: { orden: 6, etiqueta: "Entregado", obra: true },
+          pedido: { orden: 7, etiqueta: "Pedido", obra: true },
+          actividad: { orden: 8, etiqueta: "Actividad", obra: true }
+        };
+        const esDia = (t) => {
+          if (!RE_DIA.test(String(t || ""))) return false;
+          const d = /* @__PURE__ */ new Date(`${t}T00:00:00Z`);
+          return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === t;
+        };
+        function dia(v) {
+          const t = String(v ?? "").trim().slice(0, 10);
+          return esDia(t) ? t : null;
+        }
+        const aFecha = (d) => /* @__PURE__ */ new Date(`${d}T00:00:00Z`);
+        const aTexto = (f) => f.toISOString().slice(0, 10);
+        function sumarDias(d, n) {
+          const f = aFecha(d);
+          f.setUTCDate(f.getUTCDate() + n);
+          return aTexto(f);
+        }
+        function diaSemana(d) {
+          const w = aFecha(d).getUTCDay();
+          return w === 0 ? 7 : w;
+        }
+        const diasDelMes = (a\u00F1o, mes) => new Date(Date.UTC(a\u00F1o, mes, 0)).getUTCDate();
+        const lunesDe = (d) => sumarDias(d, 1 - diaSemana(d));
+        function rejillaMes(a\u00F1o, mes) {
+          const primero = `${a\u00F1o}-${String(mes).padStart(2, "0")}-01`;
+          const ultimo = sumarDias(primero, diasDelMes(a\u00F1o, mes) - 1);
+          const semanas = [];
+          for (let l = lunesDe(primero); l <= ultimo; l = sumarDias(l, 7)) {
+            semanas.push(Array.from({ length: 7 }, (_, i) => {
+              const d = sumarDias(l, i);
+              return { dia: d, delMes: d.slice(0, 7) === primero.slice(0, 7) };
+            }));
+          }
+          return semanas;
+        }
+        const semanaDe = (d) => Array.from({ length: 7 }, (_, i) => sumarDias(lunesDe(d), i));
+        const nombreMes = (a\u00F1o, mes) => `${MESES[mes - 1]} ${a\u00F1o}`;
+        function diaCorto(d) {
+          const n = ["lun", "mar", "mi\xE9", "jue", "vie", "s\xE1b", "dom"][diaSemana(d) - 1];
+          return `${n} ${d.slice(8, 10)}/${d.slice(5, 7)}`;
+        }
+        const diasDeTexto = (v) => [...new Set(String(Array.isArray(v) ? v.join(",") : v ?? "").split(",").map((x) => Number(String(x).trim())).filter((n) => Number.isInteger(n) && n >= 1 && n <= 7))].sort();
+        function validarRepetitiva(e = {}) {
+          const texto = String(e.texto ?? "").trim();
+          if (!texto) return { error: "Escribe qu\xE9 hay que hacer." };
+          if (texto.length > 300) return { error: "Como mucho 300 letras." };
+          const regla = String(e.regla || "");
+          if (!REGLAS[regla]) return { error: "Elige cada cu\xE1nto: cada d\xEDa, d\xEDas de la semana o un d\xEDa al mes." };
+          const desde = dia(e.desde);
+          if (!desde) return { error: "Falta el d\xEDa en que empieza." };
+          const hasta = e.hasta ? dia(e.hasta) : null;
+          if (e.hasta && !hasta) return { error: "El d\xEDa en que acaba no se entiende." };
+          if (hasta && hasta < desde) return { error: "Acaba antes de empezar." };
+          const v = { texto, regla, desde, hasta, dias: null, diaMes: null };
+          if (regla === "semanal") {
+            const d = diasDeTexto(e.dias);
+            if (!d.length) return { error: "Marca al menos un d\xEDa de la semana." };
+            v.dias = d.join(",");
+          }
+          if (regla === "mensual") {
+            const n = Number(e.diaMes);
+            if (!Number.isInteger(n) || n < 1 || n > 31) return { error: "El d\xEDa del mes va del 1 al 31." };
+            v.diaMes = n;
+          }
+          return { valores: v };
+        }
+        function tocaEl(r, d) {
+          if (!r || !esDia(d)) return false;
+          if (r.activa === 0 || r.activa === false) return false;
+          if (d < r.desde) return false;
+          if (r.hasta && d > r.hasta) return false;
+          if (r.regla === "diaria") return true;
+          if (r.regla === "semanal") return diasDeTexto(r.dias).includes(diaSemana(d));
+          if (r.regla === "mensual") {
+            const n = Number(r.diaMes);
+            const fin = diasDelMes(Number(d.slice(0, 4)), Number(d.slice(5, 7)));
+            return Number(d.slice(8, 10)) === Math.min(n, fin);
+          }
+          return false;
+        }
+        function expandir(reps = [], desde, hasta, hechas = /* @__PURE__ */ new Set()) {
+          const fuera = [];
+          if (!esDia(desde) || !esDia(hasta) || hasta < desde) return fuera;
+          for (const r of reps) {
+            const ini = r.desde > desde ? r.desde : desde;
+            const fin = r.hasta && r.hasta < hasta ? r.hasta : hasta;
+            for (let d = ini; d <= fin; d = sumarDias(d, 1)) {
+              if (!tocaEl(r, d)) continue;
+              fuera.push({
+                tipo: "repetitiva",
+                fecha: d,
+                id: `${r.id}|${d}`,
+                repetitivaId: r.id,
+                texto: r.texto,
+                detalle: describirRegla(r),
+                obraId: r.obraId || null,
+                obra: r.obraResumen || null,
+                hecha: hechas.has(`${r.id}|${d}`)
+              });
+            }
+          }
+          return fuera;
+        }
+        function describirRegla(r) {
+          if (!r) return "";
+          if (r.regla === "diaria") return "Cada d\xEDa";
+          if (r.regla === "semanal") {
+            const d = diasDeTexto(r.dias);
+            if (d.join(",") === "1,2,3,4,5") return "De lunes a viernes";
+            return d.map((n) => DIAS_CORTOS[n - 1]).join(", ");
+          }
+          if (r.regla === "mensual") return `D\xEDa ${r.diaMes} de cada mes`;
+          return "";
+        }
+        function ordenarEventos(lista = []) {
+          return [...lista].sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)) || (TIPOS[a.tipo] || { orden: 99 }).orden - (TIPOS[b.tipo] || { orden: 99 }).orden || String(a.texto || "").localeCompare(String(b.texto || ""), "es"));
+        }
+        function porDia(lista = []) {
+          const m = /* @__PURE__ */ new Map();
+          for (const e of ordenarEventos(lista)) {
+            if (!m.has(e.fecha)) m.set(e.fecha, []);
+            m.get(e.fecha).push(e);
+          }
+          return m;
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.AGENDA = API;
+        })({
+          REGLAS,
+          TIPOS,
+          DIAS_CORTOS,
+          MESES,
+          esDia,
+          dia,
+          sumarDias,
+          diaSemana,
+          diasDelMes,
+          lunesDe,
+          rejillaMes,
+          semanaDe,
+          nombreMes,
+          diaCorto,
+          validarRepetitiva,
+          tocaEl,
+          expandir,
+          describirRegla,
+          ordenarEventos,
+          porDia
+        });
+      })();
+    }
+  });
+
   // electron/data/notasAdjuntos.js
   var require_notasAdjuntos = __commonJS({
     "electron/data/notasAdjuntos.js"(exports, module) {
@@ -40066,6 +40633,7 @@ ${linea}` : linea;
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var notas = require_notas();
+      var { dia } = require_agenda();
       function deFila(f) {
         if (!f) return null;
         return {
@@ -40074,6 +40642,8 @@ ${linea}` : linea;
           texto: f.texto || "",
           ancla: f.anclaTipo && f.anclaId ? { tipo: f.anclaTipo, id: f.anclaId, resumen: f.anclaResumen || null } : null,
           fijada: Boolean(f.fijada),
+          /* El día en la agenda del bloc, si se le ha puesto. */
+          fecha: dia(f.fecha),
           adjuntos: require_notasAdjuntos().lista(f),
           creadoEn: f.creadoEn,
           modificadoEn: f.modificadoEn
@@ -40085,16 +40655,18 @@ ${linea}` : linea;
           anclaTipo: n.ancla ? n.ancla.tipo : null,
           anclaId: n.ancla ? n.ancla.id : null,
           anclaResumen: n.ancla ? n.ancla.resumen : null,
-          fijada: n.fijada ? 1 : 0
+          fijada: n.fijada ? 1 : 0,
+          fecha: dia(n.fecha)
         };
       }
       function listar(repo, sesion) {
         const filas = repo.listar("notas", sesion, { orden: "modificadoEn DESC" });
         return notas.ordenar(filas.map(deFila));
       }
-      function crear(repo, sesion, { texto = "", ancla = null, fijada = false } = {}) {
+      function crear(repo, sesion, { texto = "", ancla = null, fijada = false, fecha = null } = {}) {
         const n = notas.nuevaNota({ personaId: sesion.personaId, texto, ancla, fijada });
         if (!n) return null;
+        n.fecha = dia(fecha);
         const id = repo.crear("notas", sesion, {
           /*
            * El dueño lo pone el proceso principal desde la sesión, NUNCA lo que
@@ -40113,7 +40685,9 @@ ${linea}` : linea;
           ...actual,
           ...cambios.texto !== void 0 ? { texto: String(cambios.texto) } : {},
           ...cambios.ancla !== void 0 ? { ancla: cambios.ancla } : {},
-          ...cambios.fijada !== void 0 ? { fijada: Boolean(cambios.fijada) } : {}
+          ...cambios.fijada !== void 0 ? { fijada: Boolean(cambios.fijada) } : {},
+          /* null o '' quita la fecha; algo que no es un día, también. */
+          ...cambios.fecha !== void 0 ? { fecha: dia(cambios.fecha) } : {}
         };
         repo.modificar("notas", sesion, id, aFila(siguiente));
         return deFila(repo.leer("notas", sesion, id));
@@ -62814,6 +63388,7 @@ ${linea}` : linea;
       var crypto2 = require_crypto();
       var FPM = require_fichasPM();
       var F = require_fichas();
+      var RG = require_reglasCx();
       var DIF = require_difusores2();
       var PE = require_pruebasEstanqueidad2();
       var ME = require_pruebasEstanqueidad();
@@ -62916,7 +63491,9 @@ ${linea}` : linea;
                 proyecto: Boolean(p.proyecto),
                 fabricante: Boolean(p.fabricante),
                 resultado: p.resultado || null,
-                desv: p.desv ?? null
+                desv: p.desv ?? null,
+                /* Caudales de aire: «medido en equipo» o «suma de N bocas» (JC, 16-oct). */
+                origen: RG.redDeBocas(f.plantilla.codigo, p.codigo) && p.m !== null && p.m !== void 0 ? RG.origenCaudal(p.origenMedido, p.nBocas) : null
               })),
               circuitos: s.circuitos ? Object.fromEntries(Object.entries(s.circuitos).map(([c, v]) => [c, { bocas: v.bocas, medidas: v.medidas }])) : void 0
             })),
@@ -62947,7 +63524,13 @@ ${linea}` : linea;
               delete valores[codigo];
               continue;
             }
-            if (v && typeof v === "object") valores[codigo] = { ...valores[codigo] || {}, ...v, o: "manual" };
+            if (v && typeof v === "object") {
+              valores[codigo] = { ...valores[codigo] || {}, ...v, o: "manual" };
+              if ("m" in v) {
+                delete valores[codigo].om;
+                delete valores[codigo].nBocas;
+              }
+            }
           }
           const cabecera = { ...datos.cabecera, ...e.cabecera && typeof e.cabecera === "object" ? e.cabecera : {} };
           const quitar = new Set((Array.isArray(e.quitarFotos) ? e.quitarFotos : []).map(Number));
