@@ -1,0 +1,1 @@
+globalThis.SCRIPTS_PANTALLA = ["acceso.js","carcasa.js","albaranes.js","partesIncidencia.js","movil.js","personal.js","partes.js","pruebasEstanqueidad.js","estanqueidad.js","simbolosBoca.js","commissioning.js","ncr.js","reparaciones.js","inventario.js","bloc.js"];
