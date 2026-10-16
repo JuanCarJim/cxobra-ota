@@ -37,12 +37,16 @@
 
   const ENVIO = {
     completo: ['bien', 'Completo'], enviada: ['bien', 'Enviada'], lista: ['bien', 'Lista para enviar'],
-    faltaDocumentacion: ['aviso', 'Falta documentación'], faltaEnsayo: ['aviso', 'Falta ensayo'],
+    faltaDocumentacion: ['aviso', 'Falta documentación'], faltaEnsayo: ['aviso', 'Falta balanceo o estanqueidad'],
     /* Papeles completos y fichas por hacer: no es «completo» (15-oct-2026, JC). */
     faltaFichas: ['info', 'Doc. completa'],
   };
-  const chipEnvio = (e, completo) => {
-    const [clase, nombre] = completo ? ENVIO.completo : (ENVIO[e] || ['neutra', e || 'Pendiente']);
+  /* «Falta ensayo» dicho por su nombre (16-oct): ensayoFalta = ['balanceo', 'estanqueidad']. */
+  const nombreEnsayoFalta = (f) => (!f || !f.length ? null : f.length === 2 ? 'Falta balanceo y estanqueidad'
+    : f[0] === 'estanqueidad' ? 'Falta estanqueidad' : 'Falta balanceo');
+  const chipEnvio = (e, completo, ensayoFalta) => {
+    let [clase, nombre] = completo ? ENVIO.completo : (ENVIO[e] || ['neutra', e || 'Pendiente']);
+    if (!completo && e === 'faltaEnsayo') nombre = nombreEnsayoFalta(ensayoFalta) || nombre;
     return `<span class="chip ${clase}">${esc(nombre)}</span>`;
   };
   const ESTADO_BOCA = { aRevisar: ['aviso', 'A REVISAR'], dentro: ['bien', 'OK'], ok: ['bien', 'OK'], sinFactor: ['aviso', 'Falta el Ak'], medido: ['neutra', 'Medida'], alto: ['mal', 'Alto'], bajo: ['mal', 'Bajo'], sinMedir: ['neutra', 'Sin medir'], sinProyecto: ['neutra', 'Sin Q proyecto'], sinTolerancia: ['neutra', 'Medida'] };
@@ -68,14 +72,20 @@
       if (activa()) $app.innerHTML = `<div class="vacio mal"><p>${esc(e.message)}</p><button class="boton" data-cx="lista">Reintentar</button></div>`;
       return;
     }
-    if (activa() && !ficha) pintarLista();
+    if (!activa() || ficha) return;
+    /* Desde «Lo que me toca» del Inicio: se abre directamente ese equipo. */
+    let ir = null;
+    try { ir = sessionStorage.getItem('cx.abrir'); sessionStorage.removeItem('cx.abrir'); } catch { /* nada */ }
+    pintarLista();
+    if (ir) abrir(ir);
   }
 
   /* Segmentos por estado: son las cifras de arriba, siempre a la vista; cada una filtra la lista. */
   const SEGMENTOS = [
     ['todos', 'Todos', () => true],
     ['faltaDoc', 'Falta doc.', (e) => !e.completo && e.envio === 'faltaDocumentacion'],
-    ['faltaEnsayo', 'Falta ensayo', (e) => !e.completo && e.envio === 'faltaEnsayo'],
+    ['faltaBalanceo', 'Falta balanceo', (e) => !e.completo && e.envio === 'faltaEnsayo' && (!e.ensayoFalta || e.ensayoFalta.includes('balanceo'))],
+    ['faltaEstanqueidad', 'Falta estanqueidad', (e) => !e.completo && e.envio === 'faltaEnsayo' && (e.ensayoFalta || []).includes('estanqueidad')],
     /* Una sola regla: la de shared/commissioning/control.js (papeles + fichas + ensayo). */
     ['completos', 'Completos', (e) => e.completo],
     ['soloDoc', 'Doc. completa', (e) => e.docCompleta && !e.completo],
@@ -140,7 +150,7 @@
     const grupos = [...new Set(equipos.map(grupoDe))].sort(agrupar === 'planta' ? porPlanta
       : (a, b) => sin(a) - sin(b) || a.localeCompare(b, 'es', { numeric: true }));
     $app.innerHTML = `
-      <div class="resumen-fila cinco" role="tablist">${[['todos', conj ? t.conjuntos : t.equipos, conj ? 'conjuntos' : 'equipos'], ['completos', t.completos, 'completos'], ['soloDoc', t.soloDoc || 0, 'doc. completa'], ['faltaDoc', t.faltaDocumentacion, 'falta doc.'], ['faltaEnsayo', t.faltaEnsayo, 'falta ensayo']]
+      <div class="resumen-fila cinco" role="tablist">${[['todos', conj ? t.conjuntos : t.equipos, conj ? 'conjuntos' : 'equipos'], ['completos', t.completos, 'completos'], ['soloDoc', t.soloDoc || 0, 'doc. completa'], ['faltaDoc', t.faltaDocumentacion, 'falta doc.'], ['faltaBalanceo', t.faltaBalanceo || 0, 'falta balanceo'], ['faltaEstanqueidad', t.faltaEstanqueidadEnvio || 0, 'falta estanq.']]
         .map(([id, n, texto]) => `<button role="tab" data-cx-seg="${id}" aria-selected="${segmento === id}" class="${segmento === id ? 'activa' : ''} ${id.startsWith('falta') && n ? 'aviso' : ''}"><b>${cifra(n)}</b><span>${esc(texto)}</span></button>`).join('')}</div>
       ${conj && t.unidades !== t.conjuntos ? `<p class="nota tenue cuenta-conjuntos">${cifra(t.conjuntos)} conjuntos con ${cifra(t.unidades)} unidades: ${cifra(t.pares)} splits y ${cifra(t.sistemas)} VRF van en una línea con su exterior.</p>` : ''}
       <input type="search" class="buscar" placeholder="Buscar TAG, planta, tipo o marca" value="${esc(filtro)}" data-cx-buscar>
@@ -152,7 +162,7 @@
         <li><button class="fila-ios" data-cx="equipo" data-id="${esc(e.id)}">
           <div class="fila-principal">
             ${tagsFila(e)}
-            ${chipEnvio(e.envio, e.completo)}
+            ${chipEnvio(e.envio, e.completo, e.ensayoFalta)}
           </div>
           <div class="sub">${esc([NOMBRE_CLASE[e.clase], e.planta, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · ') || 'Sin datos')}</div>
           ${e.bocas ? `<div class="progreso" aria-label="${e.medidas} de ${e.bocas} bocas medidas"><i style="width:${Math.round((e.medidas / e.bocas) * 100)}%"></i></div>
@@ -233,10 +243,16 @@
 
   function checklist(k, med) {
     if (!k) return '';
-    /* Un split o una enfriadora no llevan balanceo de bocas: no se les pide. */
+    /* Sin fila «Ensayo» (16-oct, JC): el balanceo y la estanqueidad salen solo
+       si el equipo los lleva. Un split o una enfriadora no llevan balanceo de bocas. */
+    const req = k.ensayoRequerido || 'ninguno';
     const sinBal = med && !med.plano && (!k.balanceoEstado || k.balanceoEstado === 'pendiente');
+    const pideBal = (req === 'balanceo' || req === 'ambos') && !sinBal;
+    const pideEst = req === 'estanqueidad' || req === 'ambos' || Boolean(k.estanqueidad);
     const si = (v) => (v ? '<span class="ok">✓</span>' : '<span class="no">✗</span>');
-    const ensayo = k.ensayoRequerido === 'ninguno' || !k.ensayoRequerido ? '<span class="tenue">No hace falta</span>' : si(k.ensayo);
+    const est = k.estanqueidad
+      ? (typeof k.estanqueidad === 'object' ? (k.estanqueidad.resultado || k.estanqueidad.estado || '✓') : k.estanqueidad)
+      : (k.estanqueidadEstado || 'pendiente');
     const fila = (n, v) => `<div class="fd"><span class="et">${n}</span>${v}</div>`;
     return `<h3 class="banda">Documentación y estado</h3>
       <section class="hoja-tabla rejilla-datos estado-eq">
@@ -244,9 +260,8 @@
         ${fila('Certificado CE', si(k.ce))}
         ${fila('Manual', si(k.manual))}
         ${fila('Ficha PM', si(k.fichaPM))}
-        ${fila('Ensayo', ensayo)}
-        ${fila('Balanceo', sinBal ? '<span class="tenue">No hace falta</span>' : `<strong>${esc(k.balanceoEstado || '—')}</strong>`)}
-        ${k.estanqueidad ? fila('Estanqueidad', `<strong>${esc(typeof k.estanqueidad === 'object' ? (k.estanqueidad.resultado || k.estanqueidad.estado || '✓') : k.estanqueidad)}</strong>`) : ''}
+        ${pideBal ? fila('Balanceo', `<strong>${esc(k.balanceoEstado || 'pendiente')}</strong>`) : ''}
+        ${pideEst ? fila('Estanqueidad', `<strong>${esc(est)}</strong>`) : ''}
         ${fila('Puesta en marcha', `<strong>${esc(k.estadoPM || '—')}</strong>`)}
       </section>
       ${(k.incidencias || []).length ? `<p class="nota aviso">${esc(k.incidencias.map((i) => INCIDENCIA[i] || i).join(' · '))}</p>` : ''}`;
@@ -623,7 +638,7 @@
             ? `<div class="fila-dato actual">${datos}</div>`
             : `<button class="fila-dato" data-cx="equipo" data-id="${esc(u.id)}">${datos}<span class="flecha">›</span></button>`;
         }).join('')}
-        <div class="fila-dato"><span>Estado del conjunto</span>${chipEnvio(cj.envio, cj.completo)}</div>
+        <div class="fila-dato"><span>Estado del conjunto</span>${chipEnvio(cj.envio, cj.completo, cj.ensayoFalta)}</div>
       </section>
       ${cj.falta && cj.falta.length && !cj.completo ? `<p class="nota aviso">Falta en el conjunto: ${esc(cj.falta.join(', '))}</p>` : ''}`;
   }
