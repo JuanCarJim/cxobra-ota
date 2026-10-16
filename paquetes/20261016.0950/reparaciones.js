@@ -75,7 +75,7 @@
       <div class="segmentado" role="tablist">
         ${[['pendientes', 'Pendientes'], ['terminadas', 'Terminadas'], ['cerradas', 'Cerradas']].map(([id, nombre]) => `<button role="tab" data-rp-filtro="${id}" class="${filtro === id ? 'activa' : ''}" aria-selected="${filtro === id}">${esc(nombre)} ${cuenta(id)}</button>`).join('')}
       </div>
-      ${datos.mias || datos.filas.some((f) => f.encargadoId === datos.yo) ? `<label class="interruptor"><input type="checkbox" data-rp-mias ${soloMias ? 'checked' : ''}> Solo las mías</label>` : ''}
+      ${datos.mias || datos.filas.some((f) => f.encargadoId === datos.yo) ? `<label class="fila-dato interruptor"><span>Solo las mías</span><input type="checkbox" data-rp-mias ${soloMias ? 'checked' : ''}></label>` : ''}
       <input type="search" class="buscar" placeholder="Buscar TAG, código o encargado" value="${esc(texto)}" data-rp-buscar>
       ${vistas.length ? C.listaAgrupada(`rp-${filtro}`, vistas, {
         grupo: planta, buscando: !!q, repintar: pintarLista,
