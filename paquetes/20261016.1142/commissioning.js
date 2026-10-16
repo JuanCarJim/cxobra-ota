@@ -68,7 +68,12 @@
       if (activa()) $app.innerHTML = `<div class="vacio mal"><p>${esc(e.message)}</p><button class="boton" data-cx="lista">Reintentar</button></div>`;
       return;
     }
-    if (activa() && !ficha) pintarLista();
+    if (!activa() || ficha) return;
+    /* Desde «Lo que me toca» del Inicio: se abre directamente ese equipo. */
+    let ir = null;
+    try { ir = sessionStorage.getItem('cx.abrir'); sessionStorage.removeItem('cx.abrir'); } catch { /* nada */ }
+    pintarLista();
+    if (ir) abrir(ir);
   }
 
   /* Segmentos por estado: son las cifras de arriba, siempre a la vista; cada una filtra la lista. */

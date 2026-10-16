@@ -1191,3 +1191,71 @@ main#app .circuito-bal button { min-height: 36px; font-size: 14.5px; }
 main#app .hoja-boca .boca { border-radius: 10px; }
 body.con-hoja-boca .barra-inferior { display: none; }
 body.con-hoja-boca main#app .densa { padding-bottom: 62vh; }
+
+/* ═══════════════ 16-oct: nada más ancho que el iPhone (390 pt)
+   En el teléfono la cabecera lleva además la pastilla de sincronización; el h1
+   («Commissioning», «Reparaciones») no encogía (min-width:auto de flex) y la
+   fila ensanchaba la página: todo salía cortado por la derecha. */
+html, body { max-width: 100%; overflow-x: clip; }
+.barra-fila { min-width: 0; }
+.barra h1 { min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.barra-fila .sync-pastilla { flex: none; white-space: nowrap; }
+.barra-fila .quien { flex: 0 1 auto; min-width: 0; }
+@media (max-width: 420px) { .barra h1 { font-size: 26px; } }
+main, #app { min-width: 0; max-width: 100%; }
+#app img, #app video, #app canvas, #app table { max-width: 100%; }
+#app .texto-ficha, #app .titulo, #app .fila-dato, #app .historial li { overflow-wrap: anywhere; }
+#app .fila-dato > * { min-width: 0; }
+#app input, #app select, #app textarea, #app .campos > *, #app .fila-botones > * { min-width: 0; max-width: 100%; }
+
+/* ═══════════════ Reparaciones: filtros, sala y la barra «Guardar» */
+.filtros-rp { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
+.chip-filtro {
+  min-height: 32px; padding: 4px 12px; border-radius: 16px; border: 1px solid var(--rejilla);
+  background: var(--panel); color: var(--textoSuave); font: inherit; font-size: 13.5px; cursor: pointer;
+}
+.chip-filtro small { margin-left: 4px; font-weight: 700; }
+.chip-filtro.activa { background: var(--acento-suave); border-color: var(--acento); color: var(--acento-fuerte); font-weight: 600; }
+.sala-rp { margin: 1px 0 0; font-size: 12.5px; color: var(--textoTenue); overflow-wrap: anywhere; }
+.foto-nueva { position: relative; padding: 0; border: 2px dashed var(--aviso); border-radius: 8px; background: none; cursor: pointer; line-height: 0; }
+.foto-nueva img { display: block; }
+.foto-nueva span {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 2px 0; line-height: 1.3;
+  font-size: 10px; font-weight: 700; color: #fff; background: rgba(0, 0, 0, .55); border-radius: 0 0 6px 6px;
+}
+#app .fotos .foto-nueva img { width: 60px; height: 60px; border-radius: 6px; }
+.pasos-rp button[aria-pressed=true] { background: var(--acento-suave); color: var(--acento-fuerte); }
+.barra-guardar {
+  position: fixed; left: 12px; right: 12px; z-index: 9;
+  bottom: calc(var(--hueco-barra) - 8px + env(safe-area-inset-bottom));
+  max-width: 560px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 6px 6px 6px 14px; border-radius: 14px;
+  background: var(--barra-solida); border: 1px solid var(--rejilla);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, .14);
+}
+.barra-guardar .estado-guardar { font-size: 13.5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.barra-guardar .estado-guardar.pendiente { color: var(--aviso); font-weight: 600; }
+.barra-guardar .estado-guardar.al-dia { color: var(--bien); }
+.barra-guardar .estado-guardar { flex: 1 1 auto; }
+#app .barra-guardar .boton { margin: 0; flex: none; width: auto; min-height: 38px; padding: 4px 22px; }
+#app .barra-guardar .boton:disabled { opacity: .45; }
+/* Que lo último de la ficha no quede debajo de la barra. */
+#app:has(.barra-guardar) { padding-bottom: 80px; }
+
+/* «Lo que me toca» en el Inicio (16-oct): la planificación del jefe de obra, por día. */
+.plan-cabeza { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 8px 14px; background: var(--acento-suave); color: var(--acento-fuerte); font-size: 14px; }
+.plan-cabeza span { font-size: 12.5px; font-weight: 600; color: var(--aviso); }
+.plan-sesion { padding: 8px 0 4px; }
+.plan-sesion + .plan-sesion { border-top: 1px solid var(--rejilla); }
+.plan-titulo { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 0 14px; font-size: 14.5px; color: var(--texto); }
+.plan-titulo span { font-size: 12.5px; color: var(--textoTenue); white-space: nowrap; }
+.plan-detalle { margin: 1px 14px 4px; font-size: 12.5px; color: var(--textoTenue); overflow-wrap: anywhere; }
+.plan-linea { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 14px; color: var(--texto); text-decoration: none; border-top: 1px solid var(--rejillaSuave); }
+.plan-linea i { margin-left: auto; font-style: normal; color: var(--textoTenue); font-size: 18px; }
+.plan-texto { min-width: 0; display: flex; flex-direction: column; font-size: 14px; }
+.plan-texto b { font-weight: 600; overflow-wrap: anywhere; }
+.plan-texto small { font-size: 12px; color: var(--textoTenue); overflow-wrap: anywhere; }
+.plan-marca { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--rejilla); display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+.plan-marca.hecha { background: var(--bien); border-color: var(--bien); color: #fff; }
+.plan-linea.hecha .plan-texto b { color: var(--textoTenue); text-decoration: line-through; }
