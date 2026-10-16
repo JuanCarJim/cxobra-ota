@@ -8704,7 +8704,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261016.0751" : "0";
+      var VERSION = true ? "20261016.0834" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -12143,6 +12143,8 @@ globalThis.CX_VARIANTE="cxobra";
      cantidad         REAL,
      extra            REAL,
      extraNota        TEXT,
+     paralelos        INTEGER,
+     seccion          TEXT,
      nota             TEXT,
      fotos            TEXT,
      personaId        TEXT,
@@ -12195,6 +12197,7 @@ globalThis.CX_VARIANTE="cxobra";
      unidad           TEXT,
      capituloCodigo   TEXT,
      capituloResumen  TEXT,
+     disciplina       TEXT,
      orden            INTEGER NOT NULL DEFAULT 0,
      medicion         REAL NOT NULL DEFAULT 0,
      certificado      REAL NOT NULL DEFAULT 0,
@@ -13226,6 +13229,12 @@ globalThis.CX_VARIANTE="cxobra";
         ["avanceMarcas", "capa", "TEXT"],
         ["avanceMarcas", "extra", "REAL"],
         ["avanceMarcas", "extraNota", "TEXT"],
+        /* Para certificar tuberías y conductos (16-oct-2026): cuántos tubos o
+           circuitos van en paralelo y la sección del conducto (JSON, en mm), y la
+           disciplina de cada partida para ofrecer en la tablet las de su plano. */
+        ["avanceMarcas", "paralelos", "INTEGER"],
+        ["avanceMarcas", "seccion", "TEXT"],
+        ["avancePartidas", "disciplina", "TEXT"],
         ["incidencias", "costeExtra", "REAL"],
         ["incidencias", "costeExtraConcepto", "TEXT"],
         ["incidencias", "repercusion", "TEXT"],
@@ -65721,6 +65730,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         return p ? { ruta: p.ruta, nombre: p.nombre } : null;
       }
       var MAX_FOTOS = 30;
+      var MOMENTOS_FOTO = { antes: "Antes", despues: "Despu\xE9s" };
       function anadirFotos(repo, sesion, id, fotos = []) {
         const { i, error } = tocable(repo, sesion, id);
         if (error) return { ok: false, error };
@@ -65730,7 +65740,14 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           if (!f || typeof f.ruta !== "string" || !f.ruta.trim() || ya.has(f.ruta)) return false;
           ya.add(f.ruta);
           return true;
-        }).map((f) => ({ ruta: f.ruta, nombre: llano(f.nombre) || f.ruta.split(/[\\/]/).pop(), fecha: hoy(), personaId: sesion.personaId }));
+        }).map((f) => ({
+          ruta: f.ruta,
+          nombre: llano(f.nombre) || f.ruta.split(/[\\/]/).pop(),
+          fecha: hoy(),
+          personaId: sesion.personaId,
+          /* 16-oct-2026, JC: «fotos del antes y del después» de la reparación. */
+          ...MOMENTOS_FOTO[f.momento] ? { momento: f.momento } : {}
+        }));
         const todas = [...actuales, ...nuevas];
         if (todas.length > MAX_FOTOS) return { ok: false, error: `Como mucho ${MAX_FOTOS} fotos por incidencia.` };
         repo.db.exec("BEGIN");
@@ -65767,7 +65784,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         try {
           const mime = MIME_FOTO[path.extname(f.ruta || "").toLowerCase()];
           if (!mime || !fs.existsSync(f.ruta)) return null;
-          return { nombre: f.nombre, src: `data:${mime};base64,${fs.readFileSync(f.ruta).toString("base64")}` };
+          return { nombre: MOMENTOS_FOTO[f.momento] ? `${MOMENTOS_FOTO[f.momento]} \xB7 ${f.nombre}` : f.nombre, src: `data:${mime};base64,${fs.readFileSync(f.ruta).toString("base64")}` };
         } catch {
           return null;
         }
@@ -65952,7 +65969,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
               ubicacion: i.ubicacion || "",
               horasOficial: i.calc.horasOficial,
               horasOperario: i.calc.horasOperario,
-              fotos: (i.fotos || []).map((f, n) => ({ indice: n, nombre: f.nombre, fecha: f.fecha })),
+              fotos: (i.fotos || []).map((f, n) => ({ indice: n, nombre: f.nombre, fecha: f.fecha, momento: f.momento || null })),
               avisos: i.calc.avisos.filter((a) => a.codigo !== "sinTarifa").map((a) => a.texto)
             },
             horas: i.recuento.lineas.map((l) => ({
@@ -66030,7 +66047,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           const rutas = p.fotos.map((f) => {
             const destino = path.join(carpetaRep(), `${String(i.codigo).replace(/[^A-Za-z0-9_-]/g, "_")}-${crypto2.randomBytes(6).toString("hex")}${EXT_DE_TIPO[f.tipo] || ".jpg"}`);
             fs.writeFileSync(destino, fs.readFileSync(f.ruta));
-            return { ruta: destino, nombre: path.basename(destino), id: f.id };
+            return { ruta: destino, nombre: path.basename(destino), id: f.id, momento: e.momento === "despues" ? "despues" : "antes" };
           });
           const a = INC.anadirFotos(repo, ses, i.id, rutas);
           if (a.ok) for (const f of rutas) soltar(f.id);
@@ -66065,85 +66082,6 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         };
       }
       module.exports = { crearRutasReparaciones, PERMISOS_REPARACIONES, RESULTADOS };
-    }
-  });
-
-  // shared/obra/avancePlano.js
-  var require_avancePlano = __commonJS({
-    "shared/obra/avancePlano.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var TIPOS_CAPA = { trazo: "Trazo (metros)", zona: "Zona (m\xB2)", punto: "Punto (unidades)" };
-      var DISCIPLINAS = {
-        clima: { nombre: "Climatizaci\xF3n", capas: [
-          ["tuberia", "Tuber\xEDa de agua", "trazo", "#1f6fd1"],
-          ["conductos", "Conductos", "trazo", "#0a8f6b"],
-          ["equipos", "Equipos", "punto", "#c2410c"],
-          ["difusion", "Rejillas y difusores", "punto", "#7c3aed"]
-        ] },
-        electricidad: { nombre: "Electricidad", capas: [
-          ["bandejas", "Bandejas", "trazo", "#b45309"],
-          ["cable", "Cable", "trazo", "#be123c"],
-          ["luz", "Puntos de luz", "punto", "#ca8a04"],
-          ["tomas", "Tomas de corriente", "punto", "#2563eb"],
-          ["cuadros", "Cuadros", "punto", "#475569"]
-        ] },
-        fontaneria: { nombre: "Fontaner\xEDa y saneamiento", capas: [
-          ["agua", "Tuber\xEDa de agua", "trazo", "#1f6fd1"],
-          ["saneamiento", "Saneamiento", "trazo", "#78350f"],
-          ["aparatos", "Aparatos sanitarios", "punto", "#0f766e"]
-        ] },
-        pci: { nombre: "Protecci\xF3n contra incendios", capas: [
-          ["tuberiaPci", "Tuber\xEDa PCI", "trazo", "#dc2626"],
-          ["rociadores", "Rociadores", "punto", "#ea580c"],
-          ["detectores", "Detectores", "punto", "#9333ea"]
-        ] },
-        otra: { nombre: "Otra", capas: [
-          ["lineal", "Lineal", "trazo", "#1f6fd1"],
-          ["superficie", "Superficie", "zona", "#0a8f6b"],
-          ["unidades", "Unidades", "punto", "#c2410c"]
-        ] }
-      };
-      var capasDe = (disciplina) => (DISCIPLINAS[disciplina] || DISCIPLINAS.otra).capas.map(([id, nombre, tipo, color]) => ({ id, nombre, tipo, color, lineaIds: [] }));
-      var COLOR = /^#[0-9a-f]{6}$/i;
-      function normalizarCapas(capas) {
-        let c = capas;
-        if (typeof c === "string") {
-          try {
-            c = JSON.parse(c);
-          } catch {
-            c = [];
-          }
-        }
-        const vistos = /* @__PURE__ */ new Set();
-        return (Array.isArray(c) ? c : []).map((x, i) => {
-          let id = String(x && x.id || `capa${i + 1}`).replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40) || `capa${i + 1}`;
-          while (vistos.has(id)) id += "_";
-          vistos.add(id);
-          return {
-            id,
-            nombre: String(x && x.nombre || `Capa ${i + 1}`).trim().slice(0, 60),
-            tipo: TIPOS_CAPA[x && x.tipo] ? x.tipo : "trazo",
-            color: COLOR.test(x && x.color || "") ? x.color : "#1f6fd1",
-            lineaIds: [...new Set((Array.isArray(x && x.lineaIds) ? x.lineaIds : []).map(String).filter(Boolean))]
-          };
-        });
-      }
-      var COLORES_DIA = ["#d93025", "#1a73e8", "#188038", "#e37400", "#9334e6", "#00838f", "#c2185b", "#5f6368"];
-      function coloresPorDia(fechas) {
-        const dias = [...new Set((fechas || []).map((f) => String(f || "").slice(0, 10)).filter(Boolean))].sort().reverse();
-        return Object.fromEntries(dias.map((d, i) => [d, COLORES_DIA[Math.min(i, COLORES_DIA.length - 1)]]));
-      }
-      var ESTADOS_MARCA = {
-        pendiente: { nombre: "Pendiente de revisar", tono: "aviso" },
-        vista: { nombre: "Vista", tono: "bien" },
-        certificada: { nombre: "Certificada", tono: "neutra" },
-        descartada: { nombre: "Descartada", tono: "mal" }
-      };
-      (function exportar(API) {
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.AVANCE_PLANO = API;
-      })({ TIPOS_CAPA, DISCIPLINAS, capasDe, normalizarCapas, coloresPorDia, COLORES_DIA, ESTADOS_MARCA });
     }
   });
 
@@ -66197,10 +66135,281 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         if (Number.isFinite(extra) && extra > 0 && marca.tipo === "trazo") return red2((medido || 0) + extra);
         return medido;
       }
+      function unidadMedNormal(u) {
+        const t = String(u ?? "").trim().toLowerCase().replace(/\.$/, "").replace("\xB2", "2").replace("\xB3", "3").replace(/\s+/g, "");
+        if (!t) return null;
+        if (["m", "ml", "m.l", "mts", "metro", "metros", "mlineal"].includes(t)) return "m";
+        if (["m2", "m^2", "metro2"].includes(t)) return "m2";
+        if (["m3", "m^3"].includes(t)) return "m3";
+        if (["ud", "u", "un", "uds", "und", "unidad", "unidades", "pza", "pz"].includes(t)) return "ud";
+        if (["kg", "kgs", "kilo", "kilos"].includes(t)) return "kg";
+        return t;
+      }
+      function paralelosDe(v) {
+        const n = Math.round(Number(v));
+        return Number.isFinite(n) && n >= 1 ? Math.min(n, 50) : 1;
+      }
+      var mm = (v) => {
+        const n = Number(String(v ?? "").replace(",", "."));
+        return Number.isFinite(n) && n > 0 && n < 1e4 ? Math.round(n * 10) / 10 : null;
+      };
+      function leerSeccion(s) {
+        let x = s;
+        if (x === null || x === void 0 || x === "") return null;
+        if (typeof x === "string") {
+          const t = x.trim();
+          if (t.startsWith("{")) {
+            try {
+              x = JSON.parse(t);
+            } catch {
+              return null;
+            }
+          } else {
+            const r2 = /^(\d+(?:[.,]\d+)?)\s*[x×*]\s*(\d+(?:[.,]\d+)?)$/i.exec(t);
+            if (r2) return mm(r2[1]) && mm(r2[2]) ? { forma: "rect", ancho: mm(r2[1]), alto: mm(r2[2]) } : null;
+            const c = /^(?:Ø|ø|di[aá]m(?:etro)?\.?|d)?\s*(\d+(?:[.,]\d+)?)\s*(?:mm)?$/i.exec(t);
+            return c && mm(c[1]) ? { forma: "circ", diametro: mm(c[1]) } : null;
+          }
+        }
+        if (!x || typeof x !== "object") return null;
+        const kgm = Number(x.kgm) > 0 && Number(x.kgm) < 1e4 ? Number(x.kgm) : null;
+        let r = null;
+        if (x.forma === "circ" && mm(x.diametro)) r = { forma: "circ", diametro: mm(x.diametro) };
+        else if (x.forma === "rect" && mm(x.ancho) && mm(x.alto)) r = { forma: "rect", ancho: mm(x.ancho), alto: mm(x.alto) };
+        if (kgm) r = { ...r || {}, kgm };
+        return r;
+      }
+      function perimetro(sec) {
+        const s = leerSeccion(sec);
+        if (!s) return null;
+        if (s.forma === "rect") return 2 * (s.ancho + s.alto) / 1e3;
+        if (s.forma === "circ") return Math.PI * s.diametro / 1e3;
+        return null;
+      }
+      function textoSeccion(sec) {
+        const s = leerSeccion(sec);
+        if (!s) return "";
+        if (s.forma === "rect") return `${s.ancho}\xD7${s.alto}`;
+        if (s.forma === "circ") return `\xD8${s.diametro}`;
+        return "";
+      }
+      function cantidadPartida(marca, plano, unidadPartida) {
+        const tipo = marca && marca.tipo;
+        const natural = UNIDAD_TIPO[tipo] || null;
+        const unidad = unidadMedNormal(unidadPartida) || natural;
+        const n = tipo === "trazo" ? paralelosDe(marca.paralelos) : 1;
+        const base = cantidadMarca(marca, plano);
+        const res = (cantidad, falta = null) => ({ cantidad, unidad, recorrido: base, paralelos: n, falta });
+        if (base === null || base === void 0 || !Number.isFinite(Number(base))) return res(null, "escala");
+        if (tipo === "punto") return unidad === "ud" ? res(red2(base)) : res(null, "unidad");
+        if (tipo === "zona") return unidad === "m2" ? res(red2(base)) : res(null, "unidad");
+        if (tipo !== "trazo") return res(null, "unidad");
+        if (unidad === "m") return res(red2(base * n));
+        if (unidad === "m2") {
+          const p = perimetro(marca.seccion);
+          return p ? res(red2(base * n * p)) : res(null, "seccion");
+        }
+        if (unidad === "kg") {
+          const s = leerSeccion(marca.seccion);
+          return s && s.kgm ? res(red2(base * n * s.kgm)) : res(null, "peso");
+        }
+        return res(null, "unidad");
+      }
+      var FALTA = {
+        escala: "el plano no tiene escala: no mide",
+        seccion: "la partida va en m\xB2 y falta la secci\xF3n del conducto",
+        peso: "la partida va en kg y falta el peso por metro",
+        unidad: "lo marcado no se mide en la unidad de esa partida"
+      };
+      var UD_TEXTO = { m2: "m\xB2", m3: "m\xB3" };
+      function explicarCuenta(marca, plano, unidadPartida) {
+        const r = cantidadPartida(marca, plano, unidadPartida);
+        if (r.falta) return FALTA[r.falta];
+        const f = (x) => String(red2(x)).replace(".", ",");
+        const u = UD_TEXTO[r.unidad] || r.unidad;
+        if (marca.tipo !== "trazo") return `${f(r.cantidad)} ${u}`;
+        const partes = [`${f(r.recorrido)} m`];
+        if (r.paralelos > 1) partes.push(`${r.paralelos}`);
+        if (r.unidad === "m2") partes.push(`${f(perimetro(marca.seccion))} m de per\xEDmetro (${textoSeccion(marca.seccion)})`);
+        if (r.unidad === "kg") partes.push(`${f(leerSeccion(marca.seccion).kgm)} kg/m`);
+        return partes.length > 1 ? `${partes.join(" \xD7 ")} = ${f(r.cantidad)} ${u}` : `${f(r.cantidad)} ${u}`;
+      }
+      function medidaDeTexto(texto) {
+        const t = String(texto || "");
+        let r = /\bDN\s*(\d{1,4})\b/i.exec(t);
+        if (r) return `DN${r[1]}`;
+        r = /(?:Ø|ø|\bdi[aá]m(?:etro)?\.?\s*)\s*(\d{1,4}(?:[.,]\d+)?)/i.exec(t);
+        if (r) return `\xD8${r[1]}`;
+        r = /\b(\d{1,2})\s*G\s*(\d{1,3}(?:[.,]\d+)?)\b/.exec(t);
+        if (r) return `${r[1]}G${r[2]}`;
+        r = /\b(\d{2,4})\s*[x×]\s*(\d{2,4})\b/.exec(t);
+        if (r) return `${r[1]}\xD7${r[2]}`;
+        r = /\b(\d{1,2})\s*[x×]\s*(\d{1,3}(?:[.,]\d+)?)\s*mm2?\b/i.exec(t);
+        if (r) return `${r[1]}\xD7${r[2]}`;
+        r = /(\d+(?:\s+\d\/\d)?|\d\/\d)\s*(?:"|''|”|pulg)/i.exec(t);
+        if (r) return `${r[1].replace(/\s+/, " ")}"`;
+        r = /\b(\d{2,3})\s*mm\b/i.exec(t);
+        if (r) return `${r[1]} mm`;
+        return "";
+      }
+      function seccionDeTexto(texto) {
+        const t = String(texto || "");
+        const c = /(?:Ø|ø|\bdi[aá]m(?:etro)?\.?\s*)\s*(\d{2,4})/i.exec(t);
+        if (c) return { forma: "circ", diametro: Number(c[1]) };
+        const r = /\b(\d{2,4})\s*[x×]\s*(\d{2,4})\b/.exec(t);
+        if (r) return { forma: "rect", ancho: Number(r[1]), alto: Number(r[2]) };
+        return null;
+      }
+      function unidadCasa(tipo, unidad) {
+        const u = unidadMedNormal(unidad);
+        if (tipo === "trazo") return ["m", "m2", "kg"].includes(u);
+        if (tipo === "zona") return u === "m2";
+        if (tipo === "punto") return u === "ud";
+        return false;
+      }
       (function exportar(API) {
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.AVANCE_MEDIR = API;
-      })({ medirMarca, cantidadMarca, leerPuntos, UNIDAD_TIPO });
+      })({
+        medirMarca,
+        cantidadMarca,
+        leerPuntos,
+        UNIDAD_TIPO,
+        unidadNormal: unidadMedNormal,
+        paralelosDe,
+        leerSeccion,
+        perimetro,
+        textoSeccion,
+        cantidadPartida,
+        explicar: explicarCuenta,
+        FALTA,
+        medidaDeTexto,
+        seccionDeTexto,
+        unidadCasa
+      });
+    }
+  });
+
+  // shared/obra/avancePlano.js
+  var require_avancePlano = __commonJS({
+    "shared/obra/avancePlano.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var TIPOS_CAPA = { trazo: "Trazo (metros)", zona: "Zona (m\xB2)", punto: "Punto (unidades)" };
+      var DISCIPLINAS = {
+        clima: { nombre: "Climatizaci\xF3n", capas: [
+          ["tuberia", "Tuber\xEDa de agua", "trazo", "#1f6fd1", 2],
+          // ida y retorno: 2 tubos
+          ["conductos", "Conductos", "trazo", "#0a8f6b"],
+          ["equipos", "Equipos", "punto", "#c2410c"],
+          ["difusion", "Rejillas y difusores", "punto", "#7c3aed"]
+        ] },
+        electricidad: { nombre: "Electricidad", capas: [
+          ["bandejas", "Bandejas", "trazo", "#b45309"],
+          ["cable", "Cable", "trazo", "#be123c"],
+          ["luz", "Puntos de luz", "punto", "#ca8a04"],
+          ["tomas", "Tomas de corriente", "punto", "#2563eb"],
+          ["cuadros", "Cuadros", "punto", "#475569"]
+        ] },
+        fontaneria: { nombre: "Fontaner\xEDa y saneamiento", capas: [
+          ["agua", "Tuber\xEDa de agua", "trazo", "#1f6fd1"],
+          ["saneamiento", "Saneamiento", "trazo", "#78350f"],
+          ["aparatos", "Aparatos sanitarios", "punto", "#0f766e"]
+        ] },
+        pci: { nombre: "Protecci\xF3n contra incendios", capas: [
+          ["tuberiaPci", "Tuber\xEDa PCI", "trazo", "#dc2626"],
+          ["rociadores", "Rociadores", "punto", "#ea580c"],
+          ["detectores", "Detectores", "punto", "#9333ea"]
+        ] },
+        otra: { nombre: "Otra", capas: [
+          ["lineal", "Lineal", "trazo", "#1f6fd1"],
+          ["superficie", "Superficie", "zona", "#0a8f6b"],
+          ["unidades", "Unidades", "punto", "#c2410c"]
+        ] }
+      };
+      var capasDe = (disciplina) => (DISCIPLINAS[disciplina] || DISCIPLINAS.otra).capas.map(([id, nombre, tipo, color, paralelos]) => ({ id, nombre, tipo, color, lineaIds: [], paralelos: paralelos || 1 }));
+      var PARALELOS_DE_PARTIDA = Object.fromEntries(Object.values(DISCIPLINAS).flatMap((d) => d.capas).filter((c) => c[4]).map((c) => [c[0], c[4]]));
+      var COLOR = /^#[0-9a-f]{6}$/i;
+      function paralelosCapa(v, id) {
+        if (v === void 0 || v === null || v === "") return PARALELOS_DE_PARTIDA[id] || 1;
+        const n = Math.round(Number(v));
+        return Number.isFinite(n) && n >= 1 ? Math.min(n, 50) : 1;
+      }
+      function normalizarCapas(capas) {
+        let c = capas;
+        if (typeof c === "string") {
+          try {
+            c = JSON.parse(c);
+          } catch {
+            c = [];
+          }
+        }
+        const vistos = /* @__PURE__ */ new Set();
+        return (Array.isArray(c) ? c : []).map((x, i) => {
+          let id = String(x && x.id || `capa${i + 1}`).replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40) || `capa${i + 1}`;
+          while (vistos.has(id)) id += "_";
+          vistos.add(id);
+          const tipo = TIPOS_CAPA[x && x.tipo] ? x.tipo : "trazo";
+          return {
+            id,
+            nombre: String(x && x.nombre || `Capa ${i + 1}`).trim().slice(0, 60),
+            tipo,
+            color: COLOR.test(x && x.color || "") ? x.color : "#1f6fd1",
+            lineaIds: [...new Set((Array.isArray(x && x.lineaIds) ? x.lineaIds : []).map(String).filter(Boolean))],
+            paralelos: tipo === "trazo" ? paralelosCapa(x && x.paralelos, id) : 1
+          };
+        });
+      }
+      var COLORES_DIA = ["#d93025", "#1a73e8", "#188038", "#e37400", "#9334e6", "#00838f", "#c2185b", "#5f6368"];
+      function coloresPorDia(fechas) {
+        const dias = [...new Set((fechas || []).map((f) => String(f || "").slice(0, 10)).filter(Boolean))].sort().reverse();
+        return Object.fromEntries(dias.map((d, i) => [d, COLORES_DIA[Math.min(i, COLORES_DIA.length - 1)]]));
+      }
+      var ESTADOS_MARCA = {
+        pendiente: { nombre: "Pendiente de revisar", tono: "aviso" },
+        vista: { nombre: "Vista", tono: "bien" },
+        certificada: { nombre: "Certificada", tono: "neutra" },
+        descartada: { nombre: "Descartada", tono: "mal" }
+      };
+      var DISCIPLINAS_PRESUPUESTO = {
+        clima: ["climatizacion", "ventilacion"],
+        electricidad: ["electricidad", "control"],
+        fontaneria: ["fontaneria"],
+        pci: ["pci"]
+      };
+      var TUBO = { si: /tuber|tubo|\bDN\s?\d|cobre|acero|multicapa|polipropileno|\bPPR?\b|\bPEX?\b|\bPVC\b|\d\s*(\/\d)?\s*"/i, no: /conduct|chapa|helicoidal|climaver|bandeja/i };
+      var PALABRAS_CAPA = {
+        tuberia: TUBO,
+        agua: TUBO,
+        tuberiaPci: TUBO,
+        conductos: { si: /conduct|chapa|helicoidal|climaver|lana mineral|fibra|Ø\s?\d/i, no: /tuber|tubo|\bDN\s?\d|cobre|cable/i },
+        saneamiento: { si: /saneam|bajante|colector|desag|\bPVC\b|tuber|tubo/i },
+        bandejas: { si: /bandeja|canal|tubo corrugado|rejiban/i },
+        cable: { si: /cable|conductor|\d+\s?G\s?\d|mm²|mm2|RZ1|H07/i, no: /bandeja/i }
+      };
+      var medir = () => typeof window !== "undefined" && window.AVANCE_MEDIR || require_avanceMedir();
+      function partidasDeCapa(capa, partidas, disciplinaPlano) {
+        const todas = (partidas || []).filter((p) => p && p.lineaId && p.activa !== 0);
+        if (!capa) return [];
+        if (capa.lineaIds && capa.lineaIds.length) {
+          const orden = new Map(capa.lineaIds.map((id, i) => [id, i]));
+          return todas.filter((p) => orden.has(p.lineaId)).sort((a, b) => orden.get(a.lineaId) - orden.get(b.lineaId));
+        }
+        let casan = todas.filter((p) => medir().unidadCasa(capa.tipo, p.unidad));
+        const de = DISCIPLINAS_PRESUPUESTO[disciplinaPlano];
+        if (de) {
+          const suyas = casan.filter((p) => !p.disciplina || de.includes(p.disciplina));
+          if (suyas.length) casan = suyas;
+        }
+        const de_capa = PALABRAS_CAPA[capa.id];
+        if (!de_capa) return casan;
+        const deCapa = casan.filter((p) => de_capa.si.test(p.resumen || "") && !(de_capa.no && de_capa.no.test(p.resumen || "")));
+        return deCapa.length ? deCapa : casan;
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.AVANCE_PLANO = API;
+      })({ TIPOS_CAPA, DISCIPLINAS, capasDe, normalizarCapas, coloresPorDia, COLORES_DIA, ESTADOS_MARCA, DISCIPLINAS_PRESUPUESTO, partidasDeCapa });
     }
   });
 
@@ -67149,6 +67358,34 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           modificadoEn: p.modificadoEn
         };
       }
+      function valeParaPartida(m, plano) {
+        if (!m.lineaId) return { valePartida: null, unidadPartida: null, cuenta: "", falta: "partida" };
+        const r = MED.cantidadPartida(m, plano || {}, m.unidad);
+        return { valePartida: r.cantidad, unidadPartida: r.unidad, cuenta: MED.explicar(m, plano || {}, m.unidad), falta: r.falta };
+      }
+      function datosPartida(repo, obraId, lineaId) {
+        if (!lineaId) return null;
+        try {
+          return repo.db.prepare("SELECT lineaId, codigo, resumen, unidad FROM avancePartidas WHERE obraId = ? AND lineaId = ?").get(obraId, lineaId) || null;
+        } catch {
+          return null;
+        }
+      }
+      function paralelosYSeccion(d, tipo, partida) {
+        const c = {};
+        if (tipo !== "trazo") return c;
+        if (d.paralelos !== void 0 && d.paralelos !== null && d.paralelos !== "") c.paralelos = MED.paralelosDe(d.paralelos);
+        if (d.seccion !== void 0) {
+          const s = MED.leerSeccion(d.seccion);
+          if (d.seccion !== null && d.seccion !== "" && !s) return { error: `\xAB${typeof d.seccion === "string" ? d.seccion : "la secci\xF3n"}\xBB no es una secci\xF3n: pon 400x300 o \xD8250.` };
+          c.seccion = s ? JSON.stringify(s) : null;
+        }
+        if (!c.seccion && partida && MED.unidadNormal(partida.unidad) === "m2") {
+          const s = MED.seccionDeTexto(partida.resumen);
+          if (s) c.seccion = JSON.stringify(s);
+        }
+        return c;
+      }
       function marcaLista(m, plano, nombres = {}) {
         const capa = plano ? P.normalizarCapas(plano.capas).find((c) => c.id === m.capa) : null;
         const medida = MED.medirMarca(m, plano || {});
@@ -67172,6 +67409,12 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           medido: medida.cantidad,
           unidad: m.unidad || medida.unidad,
           vale: MED.cantidadMarca(m, plano || {}),
+          /* Lo que vale para su partida (16-oct): × nº de tubos, m² con la sección… */
+          paralelos: m.tipo === "trazo" ? MED.paralelosDe(m.paralelos) : 1,
+          seccion: MED.leerSeccion(m.seccion),
+          seccionTexto: MED.textoSeccion(m.seccion),
+          medida: MED.medidaDeTexto(m.resumen),
+          ...valeParaPartida(m, plano),
           fotos: leerJson(m.fotos, []).length,
           personaId: m.personaId || null,
           persona: nombres[m.personaId] || "",
@@ -67275,7 +67518,11 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         const vivas = todas.filter((m) => m.estado !== "descartada");
         const sumar = (lista) => {
           const u = {};
-          for (const m of lista) if (m.vale !== null && m.vale !== void 0) u[m.unidad] = Math.round(((u[m.unidad] || 0) + m.vale) * 100) / 100;
+          for (const m of lista) {
+            const sinPartida = m.tipo === "trazo" && m.vale !== null && m.vale !== void 0 ? m.vale * MED.paralelosDe(m.paralelos) : m.vale;
+            const [v, ud] = m.valePartida !== null && m.valePartida !== void 0 ? [m.valePartida, m.unidadPartida] : [sinPartida, MED.UNIDAD_TIPO[m.tipo]];
+            if (v !== null && v !== void 0) u[ud] = Math.round(((u[ud] || 0) + v) * 100) / 100;
+          }
           return u;
         };
         return {
@@ -67308,17 +67555,13 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         if (cantidad !== null && !(Number.isFinite(cantidad) && cantidad >= 0)) return { ok: false, error: "La cantidad tiene que ser un n\xFAmero." };
         const extra = d.extra === "" || d.extra === null || d.extra === void 0 ? null : Number(d.extra);
         if (extra !== null && !(Number.isFinite(extra) && extra >= 0)) return { ok: false, error: "Los metros de subidas y bajadas tienen que ser un n\xFAmero." };
-        let lineaId = llano(d.lineaId) || (capa.lineaIds.length === 1 ? capa.lineaIds[0] : null);
-        let partida = null;
-        if (lineaId) {
-          try {
-            partida = repo.db.prepare("SELECT codigo, resumen, unidad FROM avancePartidas WHERE obraId = ? AND lineaId = ?").get(p.obraId, lineaId) || null;
-          } catch {
-            partida = null;
-          }
-          if (!partida && llano(d.lineaId)) lineaId = llano(d.lineaId);
-        }
+        const lineaId = llano(d.lineaId) || (capa.lineaIds.length === 1 ? capa.lineaIds[0] : null);
+        const partida = datosPartida(repo, p.obraId, lineaId);
+        const ps = paralelosYSeccion(d, tipo, partida);
+        if (ps.error) return { ok: false, error: ps.error };
         const id = repo.crear("avanceMarcas", ses, {
+          paralelos: tipo === "trazo" ? ps.paralelos || capa.paralelos || 1 : null,
+          seccion: ps.seccion || null,
           obraId: p.obraId,
           planoId: p.id,
           capa: capa.id,
@@ -67363,6 +67606,22 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           c.extra = n;
         }
         if (d.extraNota !== void 0) c.extraNota = llano(d.extraNota).slice(0, 200) || null;
+        if (d.lineaId !== void 0) {
+          const lineaId = llano(d.lineaId) || null;
+          const partida = datosPartida(repo, m.obraId, lineaId);
+          Object.assign(c, {
+            lineaId,
+            codigo: partida ? partida.codigo : null,
+            resumen: partida ? partida.resumen : null,
+            unidad: partida && partida.unidad || MED.UNIDAD_TIPO[m.tipo]
+          });
+        }
+        {
+          const partida = c.lineaId !== void 0 ? datosPartida(repo, m.obraId, c.lineaId) : null;
+          const ps = paralelosYSeccion({ paralelos: d.paralelos, seccion: d.seccion }, m.tipo, d.seccion === void 0 && !m.seccion ? partida : null);
+          if (ps.error) return { ok: false, error: ps.error };
+          Object.assign(c, ps);
+        }
         if (d.puntos !== void 0) {
           const pts = limpiarPuntos(m.tipo, d.puntos);
           if (pts.length) c.puntos = JSON.stringify(pts);
@@ -67395,10 +67654,39 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         if (!m) return null;
         return leerJson(m.fotos, [])[Number(i)] || null;
       }
+      function asignarPartida(repo, ses, ids, lineaId, { seccion, paralelos } = {}) {
+        if (!puede(ses.rol, "avanceObra", "aprobar")) return { ok: false, error: "Poner la partida a lo marcado es del jefe de obra." };
+        const lista = [].concat(ids || []).map(llano).filter(Boolean);
+        if (!lista.length) return { ok: false, error: "No hay ninguna marca." };
+        if (!llano(lineaId)) return { ok: false, error: "Elige la partida." };
+        let n = 0;
+        const errores = [];
+        for (const id of lista) {
+          const m = repo.leer("avanceMarcas", ses, id);
+          if (!m || m.estado === "certificada" || m.estado === "descartada") continue;
+          const partida = datosPartida(repo, m.obraId, llano(lineaId));
+          if (!partida) {
+            errores.push("Esa partida no es de la obra de la marca.");
+            continue;
+          }
+          if (!MED.unidadCasa(m.tipo, partida.unidad)) {
+            errores.push(`La partida ${partida.codigo || ""} va en ${partida.unidad || "\u2014"} y lo marcado no se mide as\xED.`);
+            continue;
+          }
+          const r = editarMarca(repo, ses, m.id, { lineaId: partida.lineaId, seccion, paralelos });
+          if (!r.ok) {
+            errores.push(r.error);
+            continue;
+          }
+          n += 1;
+        }
+        if (!n && errores.length) return { ok: false, error: errores[0] };
+        return { ok: true, asignadas: n, errores };
+      }
       function partidas(repo, ses, obraId) {
         if (!obraVisible(repo, ses, obraId)) return null;
         try {
-          return repo.db.prepare("SELECT lineaId, codigo, resumen, unidad, capituloCodigo, capituloResumen, medicion FROM avancePartidas WHERE obraId = ? AND activa = 1 ORDER BY orden").all(obraId);
+          return repo.db.prepare("SELECT lineaId, codigo, resumen, unidad, capituloCodigo, capituloResumen, disciplina, medicion FROM avancePartidas WHERE obraId = ? AND activa = 1 ORDER BY orden").all(obraId);
         } catch {
           return [];
         }
@@ -67516,6 +67804,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         anadirFotos,
         foto,
         partidas,
+        asignarPartida,
         planoLigero,
         marcaLista,
         materiales,
@@ -67580,7 +67869,15 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
             ok: true,
             planos,
             resumen: A.resumen(repo, ses, obraId),
-            partidas: (A.partidas(repo, ses, obraId) || []).map((p) => ({ lineaId: p.lineaId, codigo: p.codigo, resumen: p.resumen, unidad: p.unidad })),
+            partidas: (A.partidas(repo, ses, obraId) || []).map((p) => ({
+              lineaId: p.lineaId,
+              codigo: p.codigo,
+              resumen: p.resumen,
+              unidad: p.unidad,
+              capituloResumen: p.capituloResumen || "",
+              disciplina: p.disciplina || null,
+              medicion: p.medicion
+            })),
             yo: ses.personaId,
             puede: { crear: puede(ses.rol, "avanceObra", "crear"), aprobar: puede(ses.rol, "avanceObra", "aprobar") }
           };

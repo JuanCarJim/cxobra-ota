@@ -529,9 +529,9 @@
     app.innerHTML = '<p class="cargando">Cargando…</p>';
     const q = encodeURIComponent(o.id);
     const traer = (sec, ruta) => (ok.has(sec) ? pedir(ruta).catch(() => null) : Promise.resolve(null));
-    const [cx, pe, pi, ncr] = await Promise.all([
+    const [cx, pe, pi, ncr, rp] = await Promise.all([
       traer('commissioning', `api/commissioning?obra=${q}`), traer('estanqueidad', 'api/estanqueidad'),
-      traer('partes', 'api/partes'), traer('ncr', `api/ncr?obra=${q}`),
+      traer('partes', 'api/partes'), traer('ncr', `api/ncr?obra=${q}`), traer('reparaciones', `api/reparaciones?obra=${q}`),
     ]);
     if (seccion() !== 'inicio' || window.CX.obraId() !== o.id) return;
     // Como la lista de Commissioning: si hay conjuntos (split = UE + UI), se cuenta por conjunto.
@@ -543,6 +543,7 @@
     const pruebas = pe && pe.recientes ? pe.recientes.filter((p) => p.obraId === o.id) : null;
     const partes = pi && pi.recientes ? pi.recientes.filter((p) => p.obraId === o.id && p.estado !== 'cerrado') : null;
     const ncrAbiertas = ncr && ncr.ok ? ncr.filas.filter((f) => f.activa) : null;
+    const repPendientes = rp && rp.filas ? rp.filas.filter((f) => f.activa && f.estado !== 'terminada') : null;
     const dato = (href, valor, texto, aviso, seg = 'todos') => `<a class="${aviso ? 'aviso' : ''}" href="#${href}" data-ir-seg="${seg}"><b>${cifra(valor)}</b><span>${esc(texto)}</span></a>`;
     /* Lo pendiente son los equipos que piden estanqueidad y no la tienen, no las
        pruebas apuntadas: sin ninguna hecha, faltan todas (15-oct, JC). */
@@ -579,6 +580,7 @@
       <section class="grupo">
         ${pruebas || (t && t.pideEstanqueidad) ? fila('estanqueidad', 'Pruebas de estanqueidad', textoEstanqueidad(t, pruebas), (t && t.faltaEstanqueidad) || (pruebas && pruebas.some((p) => p.resultado !== 'correcta'))) : ''}
         ${partes ? fila('partes', 'Partes abiertos', cifra(partes.length)) : ''}
+        ${repPendientes ? fila('reparaciones', 'Reparaciones pendientes', cifra(repPendientes.length), repPendientes.some((f) => f.vencida)) : ''}
         ${ncrAbiertas ? fila('ncr', 'No conformidades abiertas', cifra(ncrAbiertas.length)) : ''}
       </section>`;
     /* Sin botón «Añadir…»: ya está el + de la barra (15-oct, JC). */

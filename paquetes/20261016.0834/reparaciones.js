@@ -75,7 +75,7 @@
       <div class="segmentado" role="tablist">
         ${[['pendientes', 'Pendientes'], ['terminadas', 'Terminadas'], ['cerradas', 'Cerradas']].map(([id, nombre]) => `<button role="tab" data-rp-filtro="${id}" class="${filtro === id ? 'activa' : ''}" aria-selected="${filtro === id}">${esc(nombre)} ${cuenta(id)}</button>`).join('')}
       </div>
-      ${datos.mias || datos.filas.some((f) => f.encargadoId === datos.yo) ? `<label class="interruptor"><input type="checkbox" data-rp-mias ${soloMias ? 'checked' : ''}> Solo las mías</label>` : ''}
+      ${datos.mias || datos.filas.some((f) => f.encargadoId === datos.yo) ? `<label class="fila-dato interruptor"><span>Solo las mías</span><input type="checkbox" data-rp-mias ${soloMias ? 'checked' : ''}></label>` : ''}
       <input type="search" class="buscar" placeholder="Buscar TAG, código o encargado" value="${esc(texto)}" data-rp-buscar>
       ${vistas.length ? C.listaAgrupada(`rp-${filtro}`, vistas, {
         grupo: planta, buscando: !!q, repintar: pintarLista,
@@ -92,7 +92,7 @@
   /* ═══════════════════════════════════ 2. Nueva */
 
   function nueva() {
-    form = { tag: '', descripcion: '', prioridad: 'media', encargadoId: '', fechaLimite: '' };
+    form = { tag: '', descripcion: '', prioridad: 'media', encargadoId: '', fechaLimite: '', fotos: [] };
     pintarForm();
   }
 
@@ -111,7 +111,21 @@
         <label>Encargado<select data-rp-campo="encargadoId"><option value="">—</option>${(datos.encargados || []).map((p) => `<option value="${esc(p.id)}" ${p.id === f.encargadoId ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select></label>
         <label>Para el<input type="date" data-rp-campo="fechaLimite" value="${esc(f.fechaLimite)}" min="${hoy()}"></label>
       </div>
+      <label>Fotos del antes${f.fotos.length ? ` · ${f.fotos.length}` : ''}</label>
+      ${f.fotos.length ? `<div class="fotos">${f.fotos.map((a, i) => `<img src="${URL.createObjectURL(a)}" alt="" data-rp="quitar-foto" data-i="${i}">`).join('')}</div><p class="nota">Toca una foto para quitarla.</p>` : ''}
+      <div class="fila-botones">
+        <button class="boton secundario" data-rp="alta-camara"><i class="ic ic-camara"></i>Hacer foto</button>
+        <button class="boton secundario" data-rp="alta-galeria">De la galería</button>
+      </div>
       <button class="boton grande" data-rp="enviar">Dar de alta</button>`;
+  }
+
+  /* Las fotos del alta se guardan aquí y se suben al darla de alta. */
+  async function fotoAlta(camara) {
+    const archivo = await C.elegirFoto(camara);
+    if (!archivo || !form) return;
+    form.fotos.push(archivo);
+    pintarForm();
   }
 
   async function enviar(boton) {
@@ -127,8 +141,15 @@
         prioridad: form.prioridad, encargadoId: form.encargadoId || undefined, fechaLimite: form.fechaLimite || null,
       });
       if (!r.ok) throw new Error(r.error);
+      let sinFoto = 0;
+      for (const archivo of form.fotos) {
+        try {
+          const f = await C.postJson('api/reparacion/foto', { id: r.id, fotos: [await C.subirFoto(archivo)], momento: 'antes' });
+          if (!f.ok) sinFoto++;
+        } catch { sinFoto++; }
+      }
       form = null;
-      C.aviso(`${r.codigo || 'Reparación'} dada de alta.`, 'bien');
+      C.aviso(`${r.codigo || 'Reparación'} dada de alta${sinFoto ? `, pero ${sinFoto} foto(s) no se subieron: añádelas desde la ficha` : ''}.`, sinFoto ? 'aviso' : 'bien');
       await lista();
     } catch (e) { C.aviso(e.message); boton.disabled = false; }
   }
@@ -166,8 +187,17 @@
       ${r.descripcion ? `<h2>Qué le pasa</h2><p class="texto-ficha">${esc(r.descripcion)}</p>` : ''}
       ${r.instrucciones ? `<h2>Instrucciones</h2><p class="texto-ficha">${esc(r.instrucciones)}</p>` : ''}
       ${porOperario.length ? `<h2>Horas por técnico</h2><section class="grupo">${porOperario.map((o) => dato(`${o.operario} · ${o.empresa}`, horasTxt(o.horas))).join('')}</section>` : ''}
-      ${r.fotos.length ? `<h2>Fotos</h2><div class="fotos">${r.fotos.map((f) => `<img data-src="api/reparacion/foto?id=${encodeURIComponent(r.id)}&i=${f.indice}" alt="">`).join('')}</div>` : ''}
-      ${puede.foto ? '<button class="boton secundario" data-rp="camara"><i class="ic ic-camara"></i>Añadir foto</button>' : ''}
+      ${[['antes', 'Fotos del antes'], ['despues', 'Fotos del después']].map(([m, titulo]) => {
+        /* Las de antes de existir el campo cuentan como del antes. */
+        const suyas = r.fotos.filter((f) => (f.momento || 'antes') === m);
+        if (!suyas.length && !puede.foto) return '';
+        return `<h2>${titulo}${suyas.length ? ` · ${suyas.length}` : ''}</h2>
+          ${suyas.length ? `<div class="fotos">${suyas.map((f) => `<img data-src="api/reparacion/foto?id=${encodeURIComponent(r.id)}&i=${f.indice}" alt="">`).join('')}</div>` : ''}
+          ${puede.foto ? `<div class="fila-botones">
+            <button class="boton secundario" data-rp="camara" data-momento="${m}"><i class="ic ic-camara"></i>Hacer foto</button>
+            <button class="boton secundario" data-rp="galeria" data-momento="${m}">De la galería</button>
+          </div>` : ''}`;
+      }).join('')}
       ${pasos.length ? `<h2>Estado</h2>${pasos.map((p) => `<button class="boton ${p.id === 'cerrada' ? 'grande' : 'secundario'}" data-rp="paso" data-estado="${esc(p.id)}">${p.id === 'cerrada' ? 'Cerrar reparación' : esc(p.nombre === 'TERMINADA' ? 'Darla por terminada' : p.nombre === 'EN CURSO' ? 'Empezar' : p.nombre)}</button>`).join('')}` : ''}
       <h2>Lo que se ha hecho</h2>
       <div class="campos"><input data-rp-comentario placeholder="Añadir una nota" autocomplete="off"><button class="boton secundario" data-rp="comentar">Añadir</button></div>
@@ -175,12 +205,13 @@
     C.cargarImagenes($app);
   }
 
-  async function foto() {
-    const archivo = await C.elegirFoto(true);
+  /* La foto, hecha en el momento o de la galería del teléfono. */
+  async function foto(camara = true, momento = 'antes') {
+    const archivo = await C.elegirFoto(camara);
     if (!archivo) return;
     try {
       const id = await C.subirFoto(archivo);
-      const r = await C.postJson('api/reparacion/foto', { id: abierta.reparacion.id, fotos: [id] });
+      const r = await C.postJson('api/reparacion/foto', { id: abierta.reparacion.id, fotos: [id], momento });
       if (!r.ok) throw new Error(r.error);
       C.aviso('Foto añadida.', 'bien');
       abrir(abierta.reparacion.id);
@@ -279,7 +310,11 @@
     else if (a === 'nueva') nueva();
     else if (a === 'enviar') enviar(b);
     else if (a === 'ficha') abrir(b.dataset.id);
-    else if (a === 'camara') foto();
+    else if (a === 'camara') foto(true, b.dataset.momento);
+    else if (a === 'galeria') foto(false, b.dataset.momento);
+    else if (a === 'alta-camara') fotoAlta(true);
+    else if (a === 'alta-galeria') fotoAlta(false);
+    else if (a === 'quitar-foto') { form.fotos.splice(Number(b.dataset.i), 1); pintarForm(); }
     else if (a === 'paso') cambiar(b.dataset.estado, b);
     else if (a === 'comentar') comentar(b);
     else if (a === 'visita') nuevaVisita();

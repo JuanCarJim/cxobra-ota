@@ -51,11 +51,13 @@
   let dibujo = [];           // puntos {x,y} relativos
   let hoja = null;           // { ... } la hoja de guardar o la de una marca
 
-  const UNIDAD = { m: 'm', m2: 'm²', ud: 'ud' };
+  const UNIDAD = { m: 'm', m2: 'm²', m3: 'm³', ud: 'ud', kg: 'kg' };
   const cant = (n, u) => (n === null || n === undefined ? '—' : `${C.cifra(n, Number.isInteger(Number(n)) ? 0 : 2)} ${UNIDAD[u] || u || ''}`.trim());
   const TONO_MARCA = { pendiente: 'aviso', vista: 'bien', certificada: 'neutra', descartada: 'mal' };
   const chipMarca = (m) => `<span class="chip ${TONO_MARCA[m.estado] || 'neutra'}">${esc((PL.ESTADOS_MARCA[m.estado] || {}).nombre || m.estado)}</span>`;
   const TONO_MAT = { pendiente: 'aviso', aceptado: 'bien', rechazado: 'mal' };
+  /* Lo que vale una marca: en la unidad de su partida si se puede contar; si no, lo medido. */
+  const valeTexto = (m) => (m.valePartida !== null && m.valePartida !== undefined ? cant(m.valePartida, m.unidadPartida) : cant(m.vale, MED.UNIDAD_TIPO[m.tipo]));
 
   /* ═══════════════════════════════════ 1. La lista */
 
@@ -121,7 +123,7 @@
         ? `<button class="boton secundario" data-av="todas-vistas">Dar todas por vistas</button>
           <ul class="lista-ios">${pendientes.map((m) => `
           <li><div class="fila-ios">
-            <div class="fila-principal"><strong><span class="av-punto" style="background:${esc(m.color)}"></span>${esc(m.capaNombre)} · ${cant(m.vale, m.unidad)}</strong><span class="sub">${fechaEs(m.fecha)}</span></div>
+            <div class="fila-principal"><strong><span class="av-punto" style="background:${esc(m.color)}"></span>${esc(m.capaNombre)}${m.medida ? ` · ${esc(etiquetaTramo(m))}` : ''} · ${valeTexto(m)}</strong><span class="sub">${fechaEs(m.fecha)}</span></div>
             <div class="sub">${esc(m.plano)}${m.persona ? ` · ${esc(m.persona)}` : ''}${m.extra ? ` · +${C.cifra(m.extra, 1)} m de subidas` : ''}${m.fotos ? ` · ${m.fotos} foto${m.fotos === 1 ? '' : 's'}` : ''}</div>
             ${m.nota ? `<div class="texto-2">${esc(m.nota)}</div>` : ''}
             <div class="campos"><button class="boton secundario" data-av="ver-en-plano" data-plano="${esc(m.planoId)}" data-id="${esc(m.id)}">En el plano</button>
@@ -268,8 +270,61 @@
         </div>
       </div>
       <p class="sub">${visibles().length} marca${visibles().length === 1 ? '' : 's'} a la vista${modo === 'mover' ? ' · toca una para verla' : ''}</p>
+      ${tablaPartidas()}
       ${hoja ? pintarHoja() : ''}`;
     dibujarSvg();
+  }
+
+  /* El punto a mitad de recorrido de un trazo (puntos relativos 0..1). */
+  function puntoMedio(puntos) {
+    if (!puntos || puntos.length < 2) return puntos && puntos[0];
+    const W = plano.ancho || 1000; const H = plano.alto || 1000;
+    const tramos = [];
+    let total = 0;
+    for (let i = 1; i < puntos.length; i += 1) {
+      const l = Math.hypot((puntos[i].x - puntos[i - 1].x) * W, (puntos[i].y - puntos[i - 1].y) * H);
+      tramos.push(l); total += l;
+    }
+    let falta = total / 2;
+    for (let i = 0; i < tramos.length; i += 1) {
+      if (falta <= tramos[i] || i === tramos.length - 1) {
+        const f = tramos[i] ? Math.min(1, falta / tramos[i]) : 0;
+        return { x: puntos[i].x + (puntos[i + 1].x - puntos[i].x) * f, y: puntos[i].y + (puntos[i + 1].y - puntos[i].y) * f };
+      }
+      falta -= tramos[i];
+    }
+    return puntos[0];
+  }
+
+  /* «2×DN50», «Ø250», «400×300»; sin partida, «?» (y el nº si hay más de uno). */
+  function etiquetaTramo(m) {
+    const n = m.paralelos > 1 ? `${m.paralelos}×` : '';
+    if (!m.lineaId) return `${n}?`;
+    return `${n}${m.medida || m.seccionTexto || m.codigo || ''}`;
+  }
+
+  /* La tabla de lo marcado a la vista, por partida: tramos, recorrido y lo que vale. */
+  function tablaPartidas() {
+    const grupos = new Map();
+    for (const m of visibles()) {
+      const k = m.lineaId || '';
+      const g = grupos.get(k) || { m, marcas: 0, recorrido: 0, vale: 0, unidad: m.unidadPartida || MED.UNIDAD_TIPO[m.tipo], faltan: 0, color: m.color };
+      g.marcas += 1;
+      g.recorrido += Number(m.vale) || 0;
+      if (m.valePartida === null || m.valePartida === undefined) g.faltan += 1; else g.vale += Number(m.valePartida) || 0;
+      grupos.set(k, g);
+    }
+    if (!grupos.size) return '';
+    const filas = [...grupos.entries()].sort(([a], [b]) => (a === '') - (b === '') || String(grupos.get(a).m.codigo).localeCompare(String(grupos.get(b).m.codigo)));
+    return `<table class="av-tabla">
+      <thead><tr><th>Partida</th><th class="num">Tramos</th><th class="num">Recorrido</th><th class="num">Cuenta</th></tr></thead>
+      <tbody>${filas.map(([k, g]) => `<tr class="${k ? '' : 'sin'}">
+        <td><i style="background:${esc(k ? g.color : "#9aa0a6")}"></i>${k ? `<strong>${esc(g.m.medida || g.m.codigo)}</strong> <span class="sub">${g.m.medida ? esc(g.m.codigo) : ""} ${esc(String(g.m.resumen || '').slice(0, 40))}</span>` : '<strong>Sin partida</strong> <span class="sub">la pone el jefe de obra</span>'}</td>
+        <td class="num">${g.marcas}</td>
+        <td class="num">${g.m.tipo === 'trazo' ? cant(Math.round(g.recorrido * 100) / 100, 'm') : ''}</td>
+        <td class="num">${k ? `${cant(Math.round(g.vale * 100) / 100, g.unidad)}${g.faltan ? ` <span class="mal" title="Sin contar: falta la sección, el peso o la escala">+${g.faltan}?</span>` : ''}` : '—'}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
   }
 
   function dibujarSvg() {
@@ -280,6 +335,7 @@
     const color = colores();
     const pts = (lista) => lista.map((q) => `${(q.x * W).toFixed(1)},${(q.y * H).toFixed(1)}`).join(' ');
     let html = '';
+    const etiquetas = [];
     for (const m of visibles()) {
       const col = color(m);
       const atenuada = m.estado === 'certificada' ? ' opacity=".45"' : '';
@@ -288,8 +344,20 @@
       } else if (m.tipo === 'zona') {
         html += `<polygon data-av-marca="${esc(m.id)}" points="${pts(m.puntos)}" fill="${col}" fill-opacity=".28" stroke="${col}" stroke-width="${grosor}"${atenuada}/>`;
       } else {
-        html += `<polyline data-av-marca="${esc(m.id)}" points="${pts(m.puntos)}" fill="none" stroke="${col}" stroke-width="${grosor * 1.6}" stroke-linecap="round" stroke-linejoin="round"${atenuada}/>`;
+        /* Sin partida, en discontinuo: aún no cuenta para certificar. */
+        const sin = m.lineaId ? '' : ` stroke-dasharray="${(grosor * 3).toFixed(1)} ${(grosor * 2).toFixed(1)}"`;
+        html += `<polyline data-av-marca="${esc(m.id)}" points="${pts(m.puntos)}" fill="none" stroke="${col}" stroke-width="${grosor * 1.6}" stroke-linecap="round" stroke-linejoin="round"${sin}${atenuada}/>`;
+        etiquetas.push(m);
       }
+    }
+    /* La etiqueta de cada tramo («2×DN50», «Ø250») en su punto medio, con halo blanco. */
+    for (const m of etiquetas) {
+      const q = puntoMedio(m.puntos);
+      const texto = etiquetaTramo(m);
+      if (!q || !texto) continue;
+      html += `<text x="${(q.x * W).toFixed(1)}" y="${(q.y * H - grosor * 2).toFixed(1)}" text-anchor="middle" font-size="${(grosor * 6).toFixed(1)}" font-weight="700"
+        font-family="-apple-system, system-ui, sans-serif" fill="${m.lineaId ? color(m) : '#5f6368'}" stroke="#fff" stroke-width="${(grosor * 1.6).toFixed(1)}" paint-order="stroke"
+        stroke-linejoin="round" pointer-events="none">${esc(texto)}</text>`;
     }
     const c = capa(capaActiva);
     if (dibujo.length && c) {
@@ -321,27 +389,95 @@
 
   /* ═══════════════════════════════════ 3. La hoja */
 
+  /*
+   * LA PARTIDA DE CADA TRAMO (16-oct-2026, JC: «las tuberías, el número, los
+   * diámetros distintos, tipo de conducto»). Al guardar, el encargado toca la
+   * partida en botones grandes (la medida bien visible: DN50, Ø250, 400×300),
+   * cuántos tubos van por ese recorrido (ida y retorno, 2) y, si la partida
+   * va en m² de chapa, la sección. La última partida de cada capa se
+   * recuerda en esta tablet. «Guardar y seguir con otro diámetro» guarda el
+   * tramo y empieza otro desde su último punto, en la misma capa: así un
+   * recorrido que cambia de DN80 a DN50 queda en dos tramos, cada uno con
+   * su partida.
+   */
+  const claveUltima = (capaId) => `cxobra.avance.ultima.${C.obraId()}.${capaId}`;
+  const leerUltima = (capaId) => { try { return localStorage.getItem(claveUltima(capaId)) || ''; } catch { return ''; } };
+  const guardarUltima = (capaId, lineaId) => { try { if (lineaId) localStorage.setItem(claveUltima(capaId), lineaId); } catch { /* sin almacenamiento */ } };
+  const partidasCapa = (c) => PL.partidasDeCapa(c, datos.partidas || [], plano.disciplina);
+  const partidaDe = (lineaId) => (datos.partidas || []).find((p) => p.lineaId === lineaId) || null;
+  const medidaPartida = (p) => (p ? MED.medidaDeTexto(p.resumen) : '');
+  let siguiente = null;      // { paralelos } al «seguir con otro diámetro»
+
+  /* La sección de la hoja, desde lo que trae la partida si no se ha tocado. */
+  function rellenarSeccion(h) {
+    const p = partidaDe(h.lineaId);
+    if (!p || h.secTocada) return;
+    const s = MED.seccionDeTexto(p.resumen);
+    Object.assign(h, s && s.forma === 'circ' ? { secForma: 'circ', secDiam: String(s.diametro), secAncho: '', secAlto: '' }
+      : s ? { secForma: 'rect', secAncho: String(s.ancho), secAlto: String(s.alto), secDiam: '' }
+        : { secAncho: '', secAlto: '', secDiam: '' });
+  }
+
+  function seccionHoja(h) {
+    const s = h.secForma === 'circ' ? { forma: 'circ', diametro: h.secDiam } : { forma: 'rect', ancho: h.secAncho, alto: h.secAlto };
+    if (h.kgm) s.kgm = String(h.kgm).replace(',', '.');
+    return MED.leerSeccion(s);
+  }
+
+  /* La marca tal como quedaría, para la cuenta. */
+  const marcaHoja = (c, h) => ({ tipo: c.tipo, puntos: dibujo, cantidad: h.cantidad === '' ? null : h.cantidad, extra: h.extra, paralelos: h.paralelos, seccion: seccionHoja(h) });
+  function cuentaHoja() {
+    const c = capa(capaActiva); const h = hoja;
+    if (!c || !h || h.tipo !== 'guardar') return '';
+    const p = partidaDe(h.lineaId);
+    if (!p) return 'Sin partida: la pone el jefe de obra en el ordenador.';
+    return `${MED.explicar(marcaHoja(c, h), plano, p.unidad)} · ${p.codigo || ''}`;
+  }
+
   function abrirHojaGuardar() {
     const c = capa(capaActiva);
     const minimo = c.tipo === 'punto' ? 1 : c.tipo === 'trazo' ? 2 : 3;
     if (dibujo.length < minimo) { C.aviso(c.tipo === 'trazo' ? 'Toca al menos dos puntos.' : 'Toca al menos tres esquinas.', 'aviso'); return; }
-    hoja = { tipo: 'guardar', nota: '', extra: '', extraNota: '', cantidad: '', lineaId: c.lineaIds.length === 1 ? c.lineaIds[0] : '', foto: false };
+    const lista = partidasCapa(c);
+    const ultima = leerUltima(c.id);
+    const lineaId = lista.length === 1 ? lista[0].lineaId : (lista.some((p) => p.lineaId === ultima) ? ultima : '');
+    hoja = {
+      tipo: 'guardar', nota: '', extra: '', extraNota: '', cantidad: '', lineaId, foto: false,
+      paralelos: (siguiente && siguiente.paralelos) || c.paralelos || 1,
+      secForma: 'rect', secAncho: '', secAlto: '', secDiam: '', kgm: '', secTocada: false,
+    };
+    rellenarSeccion(hoja);
     pintarPlano();
+  }
+
+  /* Repinta solo la hoja (sin volver a pintar el plano), sin perder el desplazamiento. */
+  function repintarHoja() {
+    const vieja = $app.querySelector('.hoja');
+    const arriba = vieja ? vieja.scrollTop : 0;
+    $app.querySelectorAll('.hoja-fondo, .hoja').forEach((e) => e.remove());
+    if (!hoja) return;
+    $app.insertAdjacentHTML('beforeend', pintarHoja());
+    const nueva = $app.querySelector('.hoja');
+    if (nueva) nueva.scrollTop = arriba;
   }
 
   function pintarHoja() {
     if (hoja.tipo === 'ver') {
       const m = hoja.marca;
       const mia = m.personaId === datos.yo;
-      return `<div class="hoja-fondo abierta" data-av="cerrar-hoja"></div><div class="hoja abierta" role="dialog">
+      const natural = MED.UNIDAD_TIPO[m.tipo];
+      return `<div class="hoja-fondo abierta" data-av="cerrar-hoja"></div><div class="hoja abierta av-hoja" role="dialog">
         <div class="asa"></div>
-        <h3><span class="av-punto" style="background:${esc(m.color)}"></span>${esc(m.capaNombre)} · ${cant(m.vale, m.unidad)}</h3>
+        <h3><span class="av-punto" style="background:${esc(m.color)}"></span>${esc(m.capaNombre)}${m.medida ? ` · ${esc(m.paralelos > 1 ? `${m.paralelos}×` : '')}${esc(m.medida)}` : ''} · ${m.valePartida !== null && m.valePartida !== undefined ? cant(m.valePartida, m.unidadPartida) : cant(m.vale, natural)}</h3>
         <p class="sub">${fechaEs(m.fecha)}${m.persona ? ` · ${esc(m.persona)}` : ''} · ${chipMarca(m)}</p>
         <section class="grupo">
-          ${m.medido !== null && m.tipo !== 'punto' ? `<div class="fila-dato"><span>Medido en el plano</span><strong>${cant(m.medido, m.unidad)}</strong></div>` : ''}
+          ${m.medido !== null && m.tipo !== 'punto' ? `<div class="fila-dato"><span>Medido en el plano</span><strong>${cant(m.medido, natural)}</strong></div>` : ''}
           ${m.extra ? `<div class="fila-dato"><span>Subidas y bajadas${m.extraNota ? ` (${esc(m.extraNota)})` : ''}</span><strong>+${cant(m.extra, 'm')}</strong></div>` : ''}
-          ${m.cantidad !== null ? `<div class="fila-dato"><span>Puesto a mano</span><strong>${cant(m.cantidad, m.unidad)}</strong></div>` : ''}
-          ${m.codigo ? `<div class="fila-dato"><span>Partida</span><strong>${esc(m.codigo)} ${esc(m.resumen)}</strong></div>` : ''}
+          ${m.cantidad !== null ? `<div class="fila-dato"><span>Puesto a mano</span><strong>${cant(m.cantidad, natural)}</strong></div>` : ''}
+          ${m.tipo === 'trazo' ? `<div class="fila-dato"><span>Tubos o circuitos</span><strong>${m.paralelos || 1}</strong></div>` : ''}
+          ${m.seccionTexto ? `<div class="fila-dato"><span>Sección</span><strong>${esc(m.seccionTexto)}${m.seccion && m.seccion.kgm ? ` · ${C.cifra(m.seccion.kgm, 2)} kg/m` : ''}</strong></div>` : ''}
+          ${m.codigo ? `<div class="fila-dato"><span>Partida</span><strong>${esc(m.codigo)} ${esc(m.resumen)}</strong></div>` : '<div class="fila-dato"><span>Partida</span><strong class="aviso">Sin partida: la pone el jefe de obra</strong></div>'}
+          ${m.cuenta ? `<div class="fila-dato"><span>Cuenta</span><strong class="${m.falta ? 'mal' : ''}">${esc(m.cuenta)}</strong></div>` : ''}
           ${m.vistaPor ? `<div class="fila-dato"><span>Revisada por</span><strong>${esc(m.vistaPor)}</strong></div>` : ''}
         </section>
         ${m.nota ? `<p class="texto-ficha">${esc(m.nota)}</p>` : ''}
@@ -356,37 +492,78 @@
     }
     const c = capa(capaActiva);
     const medido = MED.medirMarca({ tipo: c.tipo, puntos: dibujo }, plano);
-    const partidas = (datos.partidas || []).filter((p) => !c.lineaIds.length || c.lineaIds.includes(p.lineaId));
-    return `<div class="hoja-fondo abierta" data-av="cerrar-hoja"></div><div class="hoja abierta" role="dialog">
+    const partidas = partidasCapa(c);
+    const p = partidaDe(hoja.lineaId);
+    const ud = p ? MED.unidadNormal(p.unidad) : null;
+    const trazo = c.tipo === 'trazo';
+    const n = MED.paralelosDe(hoja.paralelos);
+    const boton = (x) => {
+      const medida = medidaPartida(x);
+      return `<button class="av-partida ${x.lineaId === hoja.lineaId ? 'activa' : ''}" data-av-partida="${esc(x.lineaId)}" style="--c:${esc(c.color)}"
+        title="${esc(`${x.codigo} ${x.resumen}`)}">
+        <strong>${esc(medida || x.codigo || '—')}</strong>
+        <span>${esc(medida ? x.codigo : '')}${medida ? ' · ' : ''}${esc(UNIDAD[MED.unidadNormal(x.unidad)] || x.unidad || '')}</span>
+        <small>${esc(String(x.resumen || '').slice(0, 54))}</small>
+      </button>`;
+    };
+    return `<div class="hoja-fondo abierta" data-av="cerrar-hoja"></div><div class="hoja abierta av-hoja" role="dialog">
       <div class="asa"></div>
-      <h3>${esc(c.nombre)}${c.tipo === 'punto' ? '' : ` · ${cant(medido.cantidad, medido.unidad)}`}</h3>
+      <h3>${esc(c.nombre)}${c.tipo === 'punto' ? '' : ` · ${cant(medido.cantidad, medido.unidad)} en el plano`}</h3>
       <p class="sub">${fechaEs(fecha)} · ${esc(plano.nombre)}</p>
-      ${c.tipo === 'trazo' ? `<div class="campos">
+      <div class="av-tit">Partida</div>
+      ${partidas.length ? `<div class="av-partidas">${partidas.map(boton).join('')}
+        <button class="av-partida sin ${hoja.lineaId ? '' : 'activa'}" data-av-partida=""><strong>Sin partida</strong><small>La pone el jefe de obra</small></button></div>`
+        : '<p class="nota aviso">No hay partidas para esta capa: se guarda sin partida y el jefe de obra se la pone en el ordenador.</p>'}
+      ${trazo ? `<div class="av-tit">Tubos o circuitos por este recorrido</div>
+        <div class="av-num">${[1, 2, 3, 4].map((k) => `<button data-av-n="${k}" class="${n === k ? 'activa' : ''}">${k}</button>`).join('')}
+          <button data-av-n="${Math.max(1, n - 1)}" aria-label="Uno menos">−</button><strong class="cifra">${n}</strong><button data-av-n="${Math.min(50, n + 1)}" aria-label="Uno más">＋</button>
+          <span class="sub">${c.paralelos > 1 ? `ida y retorno: ${c.paralelos}` : ''}</span></div>` : ''}
+      ${trazo && ud === 'm2' ? `<div class="av-tit">Sección del conducto (mm)</div>
+        <div class="av-seccion">
+          <div class="segmentado mini">${[['rect', 'Rectangular'], ['circ', 'Circular']].map(([id, t]) => `<button data-av-forma="${id}" class="${hoja.secForma === id ? 'activa' : ''}">${t}</button>`).join('')}</div>
+          ${hoja.secForma === 'circ'
+            ? `<label class="mini">Ø<input type="number" inputmode="numeric" min="0" data-av-h="secDiam" data-av-sec value="${esc(hoja.secDiam)}" placeholder="250"></label>`
+            : `<label class="mini">Ancho<input type="number" inputmode="numeric" min="0" data-av-h="secAncho" data-av-sec value="${esc(hoja.secAncho)}" placeholder="400"></label>
+               <label class="mini">Alto<input type="number" inputmode="numeric" min="0" data-av-h="secAlto" data-av-sec value="${esc(hoja.secAlto)}" placeholder="300"></label>`}
+        </div>` : ''}
+      ${trazo && ud === 'kg' ? `<label>Peso por metro (kg/m)<input type="number" inputmode="decimal" step="any" min="0" data-av-h="kgm" data-av-sec value="${esc(hoja.kgm)}" placeholder="Si no lo sabes, déjalo: lo pone el jefe"></label>` : ''}
+      ${trazo ? `<div class="campos">
         <label>Subidas y bajadas (m)<input type="number" inputmode="decimal" step="any" min="0" data-av-h="extra" value="${esc(hoja.extra)}" placeholder="0"></label>
         <label>Dónde<input data-av-h="extraNota" value="${esc(hoja.extraNota)}" placeholder="Bajantes a equipos…"></label>
       </div>` : ''}
-      <label>${c.tipo === 'punto' ? 'Cuántas unidades (si es más de una)' : 'O la cantidad a mano, si la sabes'}<input type="number" inputmode="decimal" step="any" min="0" data-av-h="cantidad" value="${esc(hoja.cantidad)}" placeholder="${c.tipo === 'punto' ? '1' : 'Lo medido'}"></label>
-      ${partidas.length > 1 || (!c.lineaIds.length && partidas.length) ? `<label>Partida<select data-av-h="lineaId"><option value="">—</option>${partidas.map((p) => `<option value="${esc(p.lineaId)}" ${p.lineaId === hoja.lineaId ? 'selected' : ''}>${esc(p.codigo)} ${esc(p.resumen)}</option>`).join('')}</select></label>` : ''}
+      <label>${c.tipo === 'punto' ? 'Cuántas unidades (si es más de una)' : trazo ? 'O el recorrido a mano (m), si lo sabes' : 'O la cantidad a mano, si la sabes'}<input type="number" inputmode="decimal" step="any" min="0" data-av-h="cantidad" value="${esc(hoja.cantidad)}" placeholder="${c.tipo === 'punto' ? '1' : 'Lo medido'}"></label>
+      <p class="av-cuenta" data-av-cuenta>${esc(cuentaHoja())}</p>
       <label>Nota<textarea rows="2" data-av-h="nota" placeholder="Tramo, local, lo que haga falta">${esc(hoja.nota)}</textarea></label>
       <label class="interruptor"><input type="checkbox" data-av-h-foto ${hoja.foto ? 'checked' : ''}> Añadir una foto al guardar</label>
       <button class="boton grande" data-av="guardar-marca">Guardar</button>
+      ${trazo ? `<button class="boton secundario grande" data-av="guardar-seguir">Guardar y seguir con otro diámetro</button>
+        <p class="nota">Guarda este tramo y empieza otro desde su último punto, en la misma capa: para cuando el recorrido cambia de diámetro o de sección.</p>` : ''}
       <button class="boton cancelar" data-av="cerrar-hoja">Cancelar</button>
     </div>`;
   }
 
-  async function guardarMarca(boton) {
+  async function guardarMarca(boton, seguir = false) {
     boton.disabled = true;
     const h = hoja;
+    const c = capa(capaActiva);
+    const p = partidaDe(h.lineaId);
+    const ud = p ? MED.unidadNormal(p.unidad) : null;
     try {
       const r = await C.postJson('api/avance/marca', {
         planoId: plano.id, capa: capaActiva, fecha, puntos: dibujo, nota: h.nota, extra: h.extra, extraNota: h.extraNota,
         cantidad: h.cantidad, lineaId: h.lineaId || undefined,
+        paralelos: c.tipo === 'trazo' ? MED.paralelosDe(h.paralelos) : undefined,
+        seccion: c.tipo === 'trazo' && (ud === 'm2' || ud === 'kg') ? (seccionHoja(h) || undefined) : undefined,
       });
       if (!r.ok) throw new Error(r.error);
+      guardarUltima(c.id, h.lineaId);
       if (h.foto) { try { await fotoA('api/avance/foto', r.id); } catch (e) { C.aviso(e.message); } }
-      dibujo = []; hoja = null;
+      const ultimo = dibujo[dibujo.length - 1];
+      dibujo = seguir && ultimo ? [ultimo] : [];
+      siguiente = seguir ? { paralelos: MED.paralelosDe(h.paralelos) } : null;
+      hoja = null;
       await cargarMarcas();
-      C.aviso('Marcado: le llega al jefe de obra.', 'bien');
+      C.aviso(seguir ? 'Guardado. Sigue el recorrido desde el último punto y elige el otro diámetro al terminar.' : 'Marcado: le llega al jefe de obra.', 'bien');
       pintarPlano();
     } catch (e) { C.aviso(e.message); boton.disabled = false; }
   }
@@ -401,7 +578,7 @@
     const ojo = t.closest('[data-av-ojo]');
     if (ojo) { const id = ojo.dataset.avOjo; if (ocultas.has(id)) ocultas.delete(id); else ocultas.add(id); pintarPlano(); return; }
     const ca = t.closest('[data-av-capa]');
-    if (ca) { capaActiva = ca.dataset.avCapa; ocultas.delete(capaActiva); dibujo = []; pintarPlano(); return; }
+    if (ca) { capaActiva = ca.dataset.avCapa; ocultas.delete(capaActiva); dibujo = []; siguiente = null; pintarPlano(); return; }
     const mo = t.closest('[data-av-modo]');
     if (mo) { modo = mo.dataset.avModo; dibujo = []; pintarPlano(); return; }
     const pr = t.closest('[data-av-periodo]');
@@ -410,6 +587,12 @@
     if (co) { colorPor = co.dataset.avColor; pintarPlano(); return; }
     const zo = t.closest('[data-av-zoom]');
     if (zo) { zoom = Math.min(4, Math.max(1, zoom + Number(zo.dataset.avZoom) * 0.5)); pintarPlano(); return; }
+    const pa = t.closest('[data-av-partida]');
+    if (pa && hoja && hoja.tipo === 'guardar') { hoja.lineaId = pa.dataset.avPartida; rellenarSeccion(hoja); repintarHoja(); return; }
+    const nn = t.closest('[data-av-n]');
+    if (nn && hoja && hoja.tipo === 'guardar') { hoja.paralelos = MED.paralelosDe(nn.dataset.avN); repintarHoja(); return; }
+    const fo = t.closest('[data-av-forma]');
+    if (fo && hoja && hoja.tipo === 'guardar') { hoja.secForma = fo.dataset.avForma; hoja.secTocada = true; repintarHoja(); return; }
     if (plano && !hoja && t.closest('[data-av-svg]')) { tocarPlano(ev); return; }
     const b = t.closest('[data-av]');
     if (!b) return;
@@ -427,6 +610,7 @@
     else if (a === 'terminar') abrirHojaGuardar();
     else if (a === 'cerrar-hoja') { if (hoja && hoja.tipo === 'guardar' && capa(capaActiva).tipo === 'punto') dibujo = []; hoja = null; pintarPlano(); }
     else if (a === 'guardar-marca') guardarMarca(b);
+    else if (a === 'guardar-seguir') guardarMarca(b, true);
     else if (a === 'foto-marca') {
       try { await fotoA('api/avance/foto', hoja.marca.id); await cargarMarcas(); hoja = { tipo: 'ver', marca: marcas.find((m) => m.id === hoja.marca.id) }; C.aviso('Foto añadida.', 'bien'); pintarPlano(); } catch (e) { C.aviso(e.message); }
     }
@@ -438,6 +622,8 @@
     if (formMaterial && t.dataset.avMat) formMaterial[t.dataset.avMat] = t.value;
     if (formMaterial && t.hasAttribute('data-av-mat-foto')) formMaterial.foto = t.checked;
     if (hoja && t.dataset.avH) hoja[t.dataset.avH] = t.value;
+    if (hoja && t.hasAttribute('data-av-sec')) hoja.secTocada = true;
+    if (hoja && hoja.tipo === 'guardar' && t.dataset.avH) { const k = $app.querySelector('[data-av-cuenta]'); if (k) k.textContent = cuentaHoja(); }
     if (hoja && t.hasAttribute('data-av-h-foto')) hoja.foto = t.checked;
     if (ev.type === 'change' && t.hasAttribute('data-av-fecha') && t.value) { fecha = t.value; pintarPlano(); }
   };
