@@ -60,7 +60,12 @@
       return;
     }
     if (soloMias === null) soloMias = Boolean(datos.mias);
-    if (activa() && !form && !abierta && !visita) pintarLista();
+    if (!activa() || form || abierta || visita) return;
+    /* Desde «Lo que me toca» del Inicio: se abre directamente esa reparación. */
+    let ir = null;
+    try { ir = sessionStorage.getItem('cx.abrir'); sessionStorage.removeItem('cx.abrir'); } catch { /* nada */ }
+    pintarLista();
+    if (ir) abrir(ir);
   }
 
   /* 16-oct: Abiertas | Cerradas, como en el escritorio (020e0c6). «Terminada»

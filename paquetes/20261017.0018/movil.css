@@ -1242,3 +1242,20 @@ main, #app { min-width: 0; max-width: 100%; }
 #app .barra-guardar .boton:disabled { opacity: .45; }
 /* Que lo último de la ficha no quede debajo de la barra. */
 #app:has(.barra-guardar) { padding-bottom: 80px; }
+
+/* «Lo que me toca» en el Inicio (16-oct): la planificación del jefe de obra, por día. */
+.plan-cabeza { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 8px 14px; background: var(--acento-suave); color: var(--acento-fuerte); font-size: 14px; }
+.plan-cabeza span { font-size: 12.5px; font-weight: 600; color: var(--aviso); }
+.plan-sesion { padding: 8px 0 4px; }
+.plan-sesion + .plan-sesion { border-top: 1px solid var(--rejilla); }
+.plan-titulo { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 0 14px; font-size: 14.5px; color: var(--texto); }
+.plan-titulo span { font-size: 12.5px; color: var(--textoTenue); white-space: nowrap; }
+.plan-detalle { margin: 1px 14px 4px; font-size: 12.5px; color: var(--textoTenue); overflow-wrap: anywhere; }
+.plan-linea { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 14px; color: var(--texto); text-decoration: none; border-top: 1px solid var(--rejillaSuave); }
+.plan-linea i { margin-left: auto; font-style: normal; color: var(--textoTenue); font-size: 18px; }
+.plan-texto { min-width: 0; display: flex; flex-direction: column; font-size: 14px; }
+.plan-texto b { font-weight: 600; overflow-wrap: anywhere; }
+.plan-texto small { font-size: 12px; color: var(--textoTenue); overflow-wrap: anywhere; }
+.plan-marca { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--rejilla); display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+.plan-marca.hecha { background: var(--bien); border-color: var(--bien); color: #fff; }
+.plan-linea.hecha .plan-texto b { color: var(--textoTenue); text-decoration: line-through; }

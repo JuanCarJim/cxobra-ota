@@ -50,9 +50,9 @@ globalThis.CX_VARIANTE="cxobra";
   ));
   var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-  // ../../../node_modules/base64-js/index.js
+  // ../CBRE_Project_360/node_modules/base64-js/index.js
   var require_base64_js = __commonJS({
-    "../../../node_modules/base64-js/index.js"(exports) {
+    "../CBRE_Project_360/node_modules/base64-js/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       exports.byteLength = byteLength;
@@ -152,9 +152,9 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // ../../../node_modules/ieee754/index.js
+  // ../CBRE_Project_360/node_modules/ieee754/index.js
   var require_ieee754 = __commonJS({
-    "../../../node_modules/ieee754/index.js"(exports) {
+    "../CBRE_Project_360/node_modules/ieee754/index.js"(exports) {
       var import_buffer_global10 = __toESM(require_buffer_global());
       exports.read = function(buffer, offset, isLE2, mLen, nBytes) {
         var e, m;
@@ -236,9 +236,9 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // ../../../node_modules/buffer/index.js
+  // ../CBRE_Project_360/node_modules/buffer/index.js
   var require_buffer = __commonJS({
-    "../../../node_modules/buffer/index.js"(exports) {
+    "../CBRE_Project_360/node_modules/buffer/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var base64 = require_base64_js();
@@ -1839,9 +1839,9 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // ../../../node_modules/sql.js/dist/sql-wasm-browser.js
+  // ../CBRE_Project_360/node_modules/sql.js/dist/sql-wasm-browser.js
   var require_sql_wasm_browser = __commonJS({
-    "../../../node_modules/sql.js/dist/sql-wasm-browser.js"(exports, module) {
+    "../CBRE_Project_360/node_modules/sql.js/dist/sql-wasm-browser.js"(exports, module) {
       var import_buffer_global10 = __toESM(require_buffer_global());
       var initSqlJsPromise = void 0;
       var initSqlJs = function(moduleConfig) {
@@ -4183,7 +4183,7 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // ../../../node_modules/@noble/hashes/utils.js
+  // ../CBRE_Project_360/node_modules/@noble/hashes/utils.js
   function isBytes(a) {
     return a instanceof Uint8Array || ArrayBuffer.isView(a) && a.constructor.name === "Uint8Array" && "BYTES_PER_ELEMENT" in a && a.BYTES_PER_ELEMENT === 1;
   }
@@ -4316,7 +4316,7 @@ globalThis.CX_VARIANTE="cxobra";
   }
   var import_buffer_global, atitle, aobject, aopts, isLE, swap32IfBE, oidNist;
   var init_utils = __esm({
-    "../../../node_modules/@noble/hashes/utils.js"() {
+    "../CBRE_Project_360/node_modules/@noble/hashes/utils.js"() {
       import_buffer_global = __toESM(require_buffer_global(), 1);
       atitle = (title) => title ? `"${title}" ` : "";
       aobject = (value, label) => {
@@ -4341,10 +4341,10 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // ../../../node_modules/@noble/hashes/hmac.js
+  // ../CBRE_Project_360/node_modules/@noble/hashes/hmac.js
   var import_buffer_global2, _HMAC, hmac;
   var init_hmac = __esm({
-    "../../../node_modules/@noble/hashes/hmac.js"() {
+    "../CBRE_Project_360/node_modules/@noble/hashes/hmac.js"() {
       import_buffer_global2 = __toESM(require_buffer_global(), 1);
       init_utils();
       _HMAC = class {
@@ -4425,7 +4425,7 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // ../../../node_modules/@noble/hashes/pbkdf2.js
+  // ../CBRE_Project_360/node_modules/@noble/hashes/pbkdf2.js
   function pbkdf2Init(hash, _password, _salt, _opts) {
     ahash(hash);
     const opts = checkOpts({ dkLen: 32, asyncTick: 10 }, _opts);
@@ -4501,14 +4501,14 @@ globalThis.CX_VARIANTE="cxobra";
   }
   var import_buffer_global3;
   var init_pbkdf2 = __esm({
-    "../../../node_modules/@noble/hashes/pbkdf2.js"() {
+    "../CBRE_Project_360/node_modules/@noble/hashes/pbkdf2.js"() {
       import_buffer_global3 = __toESM(require_buffer_global(), 1);
       init_hmac();
       init_utils();
     }
   });
 
-  // ../../../node_modules/@noble/hashes/_u64.js
+  // ../CBRE_Project_360/node_modules/@noble/hashes/_u64.js
   function fromBig(n, le = false) {
     if (le)
       return { h: Number(n & U32_MASK64), l: Number(n >> _32n & U32_MASK64) };
@@ -4536,7 +4536,7 @@ globalThis.CX_VARIANTE="cxobra";
   }
   var import_buffer_global4, U32_MASK64, _32n, fromNumH, fromNumL, shrSH, shrSL, rotrSH, rotrSL, rotrBH, rotrBL, add3L, add3H, add4L, add4H, add5L, add5H;
   var init_u64 = __esm({
-    "../../../node_modules/@noble/hashes/_u64.js"() {
+    "../CBRE_Project_360/node_modules/@noble/hashes/_u64.js"() {
       import_buffer_global4 = __toESM(require_buffer_global(), 1);
       U32_MASK64 = /* @__PURE__ */ (() => BigInt(2 ** 32 - 1))();
       _32n = /* @__PURE__ */ BigInt(32);
@@ -4557,7 +4557,7 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // ../../../node_modules/@noble/hashes/_md.js
+  // ../CBRE_Project_360/node_modules/@noble/hashes/_md.js
   function Chi(a, b, c) {
     return a & b ^ ~a & c;
   }
@@ -4566,7 +4566,7 @@ globalThis.CX_VARIANTE="cxobra";
   }
   var import_buffer_global5, HashMD, SHA256_IV, SHA224_IV, SHA384_IV, SHA512_IV;
   var init_md = __esm({
-    "../../../node_modules/@noble/hashes/_md.js"() {
+    "../CBRE_Project_360/node_modules/@noble/hashes/_md.js"() {
       import_buffer_global5 = __toESM(require_buffer_global(), 1);
       init_u64();
       init_utils();
@@ -4724,7 +4724,7 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // ../../../node_modules/@noble/hashes/sha2.js
+  // ../CBRE_Project_360/node_modules/@noble/hashes/sha2.js
   var sha2_exports = {};
   __export(sha2_exports, {
     _SHA224: () => _SHA224,
@@ -4742,7 +4742,7 @@ globalThis.CX_VARIANTE="cxobra";
   });
   var import_buffer_global6, SHA256_K, SHA256_W, SHA2_32B, _SHA256, _SHA224, K512, SHA512_Kh, SHA512_Kl, SHA512_W_H, SHA512_W_L, SHA2_64B, _SHA512, _SHA384, T224_IV, T256_IV, _SHA512_224, _SHA512_256, sha256, sha224, sha512, sha384, sha512_256, sha512_224;
   var init_sha2 = __esm({
-    "../../../node_modules/@noble/hashes/sha2.js"() {
+    "../CBRE_Project_360/node_modules/@noble/hashes/sha2.js"() {
       import_buffer_global6 = __toESM(require_buffer_global(), 1);
       init_md();
       init_u64();
@@ -5217,7 +5217,7 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // ../../../node_modules/@noble/hashes/scrypt.js
+  // ../CBRE_Project_360/node_modules/@noble/hashes/scrypt.js
   var scrypt_exports = {};
   __export(scrypt_exports, {
     scrypt: () => scrypt,
@@ -5406,7 +5406,7 @@ globalThis.CX_VARIANTE="cxobra";
   }
   var import_buffer_global7, SCRYPT_DEFAULT_MAXMEM;
   var init_scrypt = __esm({
-    "../../../node_modules/@noble/hashes/scrypt.js"() {
+    "../CBRE_Project_360/node_modules/@noble/hashes/scrypt.js"() {
       import_buffer_global7 = __toESM(require_buffer_global(), 1);
       init_pbkdf2();
       init_sha2();
@@ -6752,7 +6752,8 @@ globalThis.CX_VARIANTE="cxobra";
           "comprasPendientes",
           "alertasDesviacion",
           "avisosCalidad",
-          "avisosNormativa"
+          "avisosNormativa",
+          "certificacionesMes"
         ]);
         const DE_OBRA = [
           "jefeProyectos",
@@ -8429,7 +8430,9 @@ globalThis.CX_VARIANTE="cxobra";
           "conflictos",
           "conflictoPruebas",
           "ppiRevisiones",
-          "ppiLineas"
+          "ppiLineas",
+          /* 16-oct: la planificación del jefe de obra, para «Lo que me toca» (solo ida). */
+          "sesionesPlanCx"
         ],
         ncr: [
           "ncr",
@@ -8441,9 +8444,10 @@ globalThis.CX_VARIANTE="cxobra";
           "incidencias",
           "incidenciaComentarios",
           "incidenciaPartes",
-          "incidenciaHoras"
+          "incidenciaHoras",
+          "sesionesPlanInc"
         ],
-        reparaciones: ["incidencias", "incidenciaComentarios", "incidenciaPartes", "incidenciaHoras", "equiposObra", "ncrEmpresas", "ncrConfig"],
+        reparaciones: ["incidencias", "incidenciaComentarios", "incidenciaPartes", "incidenciaHoras", "equiposObra", "ncrEmpresas", "ncrConfig", "sesionesPlanInc"],
         partes: ["partesIncidencia", "parteIncidenciaLineas"],
         albaranes: ["pedidosCompra", "pedidoDocumentos", "albaranes", "albaranLineas", "pedidosConfig"],
         inventario: ["pedidosCompra", "pedidoDocumentos", "albaranes", "albaranLineas"],
@@ -8484,7 +8488,12 @@ globalThis.CX_VARIANTE="cxobra";
         "inspeccionesHechas",
         "ppiLineas",
         "avanceMarcas",
-        "avanceMateriales"
+        "avanceMateriales",
+        /* 16-oct: la empresa que el encargado escribe en una visita y aún no
+           existía (electron/data/incidencias.js la da de alta). Vuelve sin tarifas
+           (FUERA) y aplicar() solo pone las columnas que trae: las tarifas que el
+           ordenador ya tenga no se tocan. */
+        "ncrEmpresas"
       ];
       var FUERA = /^(importe|precio|coste|tarifaOficial|tarifaOperario|iban|cuenta|banco|hashClave)/i;
       var COLUMNAS_PERSONA = ["id", "nombre", "email", "rol", "departamento", "jefeId", "activo", "creadoEn", "modificadoEn"];
@@ -8770,7 +8779,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261016.1132" : "0";
+      var VERSION = true ? "20261017.0018" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -13344,6 +13353,23 @@ globalThis.CX_VARIANTE="cxobra";
      modificadoEn     TEXT NOT NULL,
      UNIQUE (obraId, bloque, clave)
    )`,
+        /* LA PRUEBA PUNTO A PUNTO DEL BMS (17-oct): lo probado de cada punto de
+           control, colgado del TAG de su equipo y de la clave del punto en la lista
+           de la obra (shared/commissioning/puntosBms.js). Ni el TAG ni la clave son
+           ids de la base: sobreviven a recalcular la lista y a reimportar equipos.
+           `datos` = pasos (si/no/na), patrón y lectura de las analógicas, unidades
+           y nota, en JSON. */
+        `CREATE TABLE IF NOT EXISTS pruebasPuntosBms (
+     id               TEXT PRIMARY KEY,
+     obraId           TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     tag              TEXT NOT NULL,
+     clave            TEXT NOT NULL,
+     datos            TEXT NOT NULL DEFAULT '{}',
+     modificadoPor    TEXT REFERENCES personas(id),
+     creadoEn         TEXT NOT NULL,
+     modificadoEn     TEXT NOT NULL,
+     UNIQUE (obraId, tag, clave)
+   )`,
         /*
          * LOS DOCUMENTOS PROPIOS DEL PROYECTO (Documentación › Documentos, 16-oct):
          * los que sube la obra junto a los modelos de CBRE (una ficha del
@@ -13478,6 +13504,7 @@ globalThis.CX_VARIANTE="cxobra";
         `CREATE INDEX IF NOT EXISTS idx_tareapedidos_tarea ON tareaPedidos (tareaId)`,
         `CREATE INDEX IF NOT EXISTS idx_tareapedidos_ped   ON tareaPedidos (pedidoId)`,
         `CREATE INDEX IF NOT EXISTS idx_puntosajustes_obra ON puntosControlAjustes (obraId)`,
+        `CREATE INDEX IF NOT EXISTS idx_pruebasbms_obra    ON pruebasPuntosBms (obraId, tag)`,
         `CREATE INDEX IF NOT EXISTS idx_docsproyecto_obra  ON documentosProyecto (obraId, seccion)`
       ];
       var COLUMNAS_A\u00D1ADIDAS = [
@@ -13915,6 +13942,7 @@ globalThis.CX_VARIANTE="cxobra";
         /* La planificación semanal, de la obra. */
         sesionesPlanCx: { porObra: "obraId" },
         puntosControlAjustes: { porObra: "obraId" },
+        pruebasPuntosBms: { porObra: "obraId" },
         documentosProyecto: { porObra: "obraId" },
         sesionesPlanInc: { porObra: "obraId" },
         incidenciaHoras: { porObra: "obraId" },
@@ -14208,6 +14236,8 @@ globalThis.CX_VARIANTE="cxobra";
         "sesionesPlanInc",
         /* «Volver al valor calculado» de un punto de control es borrar su ajuste. */
         "puntosControlAjustes",
+        /* Deshacer lo probado de un punto del BMS es borrar su fila. */
+        "pruebasPuntosBms",
         /* Quitar de la lista un documento que subiste tú (la copia se queda). */
         "documentosProyecto"
       ]);
@@ -14272,6 +14302,7 @@ globalThis.CX_VARIANTE="cxobra";
         incidencias: "incidencias",
         sesionesPlanCx: "commissioning",
         puntosControlAjustes: "commissioning",
+        pruebasPuntosBms: "commissioning",
         documentosProyecto: "commissioning",
         sesionesPlanInc: "incidencias",
         incidenciaHoras: "incidencias",
@@ -18086,7 +18117,9 @@ globalThis.CX_VARIANTE="cxobra";
             ...identificacion(),
             numPunto("caudal", "Caudal", "m\xB3/h", { origen: "caudalNominal" }),
             numPunto("potencia_frio", "Potencia fr\xEDo", "kW"),
-            numPunto("potencia_calor", "Potencia calor", "kW")
+            numPunto("potencia_calor", "Potencia calor", "kW"),
+            numPunto("t_sala_verano", "T\xAA sala verano", "\xB0C"),
+            numPunto("t_sala_invierno", "T\xAA sala invierno", "\xB0C")
           ] };
         }
         function datosFisicosVentilador() {
@@ -18146,6 +18179,1981 @@ globalThis.CX_VARIANTE="cxobra";
           ["09.02", "Todos los componentes son accesibles para mantenimiento"],
           ["09.03", "Las tuber\xEDas est\xE1n dispuestas para la retirada f\xE1cil de la unidad"],
           ["09.04", "Existen los dispositivos adecuados para el mantenimiento y son accesibles (v\xE1lvulas de corte, vaciados, purgas, desag\xFCes)"]
+        ];
+        const CRITERIO_NORMA = "Criterio: cada prueba contra su referencia. Las que la norma fija, contra la norma: m\xEDnimo (\u2265), m\xE1ximo (\u2264) o su tolerancia; el proyecto solo puede apretarla. Las dem\xE1s, desviaci\xF3n sobre proyecto (o placa) dentro de la tolerancia de la obra. Medido id\xE9ntico al de proyecto o placa \u2192 A REVISAR (posible valor copiado).";
+        function prueba(codigo, etiqueta, unidad, medido, opciones = {}) {
+          const p = { codigo, etiqueta, unidad, proyecto: true, fabricante: true, medido, resultado: true };
+          if (opciones.criterio) p.criterio = opciones.criterio;
+          if (opciones.valorNorma !== void 0) p.valorNorma = opciones.valorNorma;
+          p.tolerancia = opciones.tolerancia !== void 0 ? opciones.tolerancia : "total";
+          if (opciones.norma) p.norma = opciones.norma;
+          return p;
+        }
+        const minimo = (valorNorma, norma) => ({ criterio: "minimo", valorNorma, norma });
+        const maximo = (valorNorma, norma) => ({ criterio: "maximo", valorNorma, norma });
+        const conTol = (tolerancia, norma) => ({ tolerancia, norma });
+        const segun = (norma) => ({ norma });
+        function fichaNorma(codigo, nombre, subtitulo, disciplina, norma, secciones) {
+          return Object.assign(ficha(codigo, nombre, subtitulo, secciones), { norma, disciplina, criterio: CRITERIO_NORMA, libro: false });
+        }
+        function checklistNorma(codigo, nombre, subtitulo, disciplina, norma, secciones) {
+          return Object.assign(checklist(codigo, nombre, subtitulo, secciones), { norma, disciplina, libro: false, hojaBase: "CHECKLIST VENTILADOR" });
+        }
+        const P_RECEPCION_ELEC = (que) => [
+          ["01.01", `${que} libre de da\xF1os, golpes y humedad`],
+          ["01.02", "Placa de caracter\xEDsticas y marcado CE colocados y legibles"],
+          ["01.03", "Declaraci\xF3n de conformidad, manual y protocolo de ensayos del fabricante entregados"]
+        ];
+        const P_DOC_ELEC = [
+          ["09.01", "Esquemas y planos actualizados \xABas built\xBB entregados"],
+          ["09.02", "Certificado de instalaci\xF3n (CIE) firmado por instalador habilitado (ITC-BT-04)"],
+          ["09.03", "Manual de uso y mantenimiento y lista de repuestos entregados"]
+        ];
+        const AISLAMIENTO_BT = "UNE-HD 60364-6 tabla 6.1: \u2265 1 M\u03A9 a 500 V cc (ITC-BT-19 \xA72.9 pide \u2265 0,5 M\u03A9)";
+        const DISPARO_DIF = "UNE-EN 61008-1 / 61009-1: a I\u0394n, \u2264 300 ms (\u2264 500 ms el selectivo, tipo S)";
+        const DISPARO_DIF_5 = "UNE-EN 61008-1 / 61009-1: a 5 I\u0394n, \u2264 40 ms";
+        const TENSION_RED = "RD 1955/2000 art. 104: \xB17 % de la tensi\xF3n nominal";
+        const REACTIVA = "Circular 3/2020 de la CNMC: la reactiva se paga por debajo de cos \u03C6 0,95";
+        const ELECTRICIDAD = [
+          /* ─────────────────────────── Cuadros de baja tensión */
+          fichaNorma(
+            "CUADRO_BT",
+            "CUADRO BT",
+            "CUADRO EL\xC9CTRICO DE BAJA TENSI\xD3N (CGBT Y SECUNDARIOS)",
+            "Electricidad",
+            "REBT (RD 842/2002): ITC-BT-17, ITC-BT-19, ITC-BT-24 \xB7 UNE-HD 60364-6 (verificaci\xF3n inicial) \xB7 UNE-EN 61439-1/-2 (conjuntos de aparamenta)",
+            [
+              { titulo: "DATOS DEL CUADRO", tipo: "datos", puntos: [
+                ...identificacion(),
+                lista("tipo_cuadro", "Tipo de cuadro", ["CGBT", "Secundario", "Subcuadro"]),
+                texto("alimentado_desde", "Alimentado desde"),
+                lista("esquema_tierra", "Esquema de conexi\xF3n a tierra", ["TT", "TN-S", "TN-C-S", "IT"]),
+                numPunto("in_general", "Intensidad del interruptor general", "A"),
+                numPunto("poder_corte", "Poder de corte del general", "kA"),
+                numPunto("icc_cuadro", "Icc prevista en el cuadro", "kA"),
+                numPunto("num_circuitos", "N\xBA de circuitos de salida")
+              ] },
+              { titulo: "COMPROBACIONES", tipo: "comprobaciones", puntos: [
+                okNoOk("inspeccion_visual", "Inspecci\xF3n visual previa a la tensi\xF3n (UNE-HD 60364-6 \xA76.4.2)"),
+                okNoOk("aparamenta_unifilar", "Aparamenta seg\xFAn el unifilar: calibres, curvas y sensibilidades"),
+                okNoOk("contactos_directos", "Protecci\xF3n contra contactos directos: envolvente IPXXB / IP2X (ITC-BT-24)"),
+                okNoOk("apriete_bornas", "Apriete de bornas al par del fabricante y marcado"),
+                okNoOk("secuencia_fases", "Secuencia de fases L1-L2-L3 correcta"),
+                okNoOk("pulsador_diferenciales", "Todos los diferenciales disparan con su pulsador de prueba"),
+                okNoOk("disparos_externos", "Bobinas de disparo (paro de emergencia, PCI) act\xFAan"),
+                okNoOk("senales_bms", "Se\xF1ales de estado y disparo llegan al sistema de gesti\xF3n")
+              ] },
+              { titulo: "AISLAMIENTO Y CONTINUIDAD", tipo: "parametros", puntos: [
+                prueba("aislamiento_fase_pe", "Resistencia de aislamiento fases-PE", "M\u03A9", OBL, minimo(1, AISLAMIENTO_BT)),
+                prueba("aislamiento_fase_neutro", "Resistencia de aislamiento fases-neutro", "M\u03A9", OBL, minimo(1, AISLAMIENTO_BT)),
+                prueba("continuidad_pe", "Continuidad del conductor de protecci\xF3n (peor circuito)", "\u03A9", OBL, maximo(void 0, "UNE-HD 60364-6 \xA76.4.3.2: contra el valor de proyecto")),
+                prueba("resistencia_tierra", "Resistencia de la puesta a tierra (en el CGBT)", "\u03A9", OPC, maximo(void 0, "ITC-BT-18 e ITC-BT-24: Ra \xD7 I\u0394n \u2264 50 V (24 V en locales h\xFAmedos)")),
+                prueba("impedancia_bucle", "Impedancia de bucle de defecto (peor circuito)", "\u03A9", OPC, maximo(void 0, "UNE-HD 60364-6 \xA76.4.3.6 y ITC-BT-24 (esquema TN)"))
+              ] },
+              { titulo: "DIFERENCIALES (EL M\xC1S DESFAVORABLE)", tipo: "parametros", puntos: [
+                prueba("disparo_dif_tiempo", "Tiempo de disparo a I\u0394n", "ms", OBL, maximo(300, DISPARO_DIF)),
+                prueba("disparo_dif_5in", "Tiempo de disparo a 5 I\u0394n", "ms", OPC, maximo(40, DISPARO_DIF_5)),
+                prueba("disparo_dif_corriente", "Corriente de disparo (\u2264 I\u0394n)", "mA", OBL, maximo(void 0, "UNE-EN 61008-1: dispara entre 0,5 y 1 I\u0394n"))
+              ] },
+              { titulo: "TERMOGRAF\xCDA (EN CARGA)", tipo: "parametros", puntos: [
+                prueba("calentamiento_bornas", "Calentamiento m\xE1ximo en bornas sobre el ambiente", "K", OBL, maximo(70, "UNE-EN 61439-1 tabla 6: bornas para conductores externos, 70 K")),
+                prueba("diferencia_fases", "Diferencia de temperatura entre fases del mismo circuito", "K", OPC, maximo(void 0, "Termograf\xEDa seg\xFAn UNE-EN 61439-1: contra el criterio de proyecto"))
+              ] },
+              { titulo: "MEDIDAS EN CARGA (ANALIZADOR DE REDES)", tipo: "parametros", puntos: [
+                prueba("tension", "Tensi\xF3n entre fases", "V", OBL, conTol(0.07, TENSION_RED)),
+                prueba("intensidad", "Intensidad de la fase m\xE1s cargada", "A", OBL, maximo(void 0, "ITC-BT-19 \xA72.2.3: no supera la de c\xE1lculo ni la admisible de la l\xEDnea")),
+                prueba("desequilibrio_fases", "Desequilibrio de corrientes entre fases", "%", OPC, maximo(10, "Reparto de cargas entre fases (ITC-BT-19); el 10 % es criterio de obra, no de norma")),
+                prueba("potencia_activa", "Potencia activa", "kW", OBL, maximo(void 0, "Contra la potencia del c\xE1lculo el\xE9ctrico (previsi\xF3n de cargas, ITC-BT-10)")),
+                prueba("cos_phi", "Factor de potencia (cos \u03C6)", "", OPC, minimo(0.95, REACTIVA)),
+                prueba("thd_tension", "Distorsi\xF3n arm\xF3nica de tensi\xF3n (THDu)", "%", OPC, maximo(8, "UNE-EN 50160: THDu \u2264 8 %"))
+              ] }
+            ]
+          ),
+          checklistNorma(
+            "CHECKLIST_CUADRO_BT",
+            "CHECKLIST CUADRO BT",
+            "INSTALACI\xD3N Y PRECOMISIONADO \xB7 CUADRO EL\xC9CTRICO BT",
+            "Electricidad",
+            "REBT ITC-BT-17, ITC-BT-19 \xB7 UNE-EN 61439-1/-2 \xB7 UNE-HD 60364-6",
+            [
+              bloque("01", "RECEPCI\xD3N (UNE-EN 61439-1 \xA711: verificaci\xF3n individual del fabricante)", [
+                ...P_RECEPCION_ELEC("El cuadro"),
+                ["01.04", "Protocolo de verificaci\xF3n individual del fabricante del cuadro (UNE-EN 61439-1 \xA711) entregado"]
+              ]),
+              bloque("02", "AJUSTE AL PROYECTO", [
+                ["02.01", "La aparamenta se corresponde con el unifilar de proyecto (calibres, curvas, sensibilidades, n\xBA de polos)"],
+                ["02.02", "El poder de corte de cada interruptor es mayor que la Icc prevista en el cuadro"],
+                ["02.03", "Grado de protecci\xF3n IP e IK de la envolvente seg\xFAn el local (ITC-BT-30 si es h\xFAmedo o mojado)"],
+                ["02.04", "Reserva de espacio libre en el cuadro seg\xFAn proyecto"]
+              ]),
+              bloque("03", "INSTALACI\xD3N", [
+                ["03.01", "Cuadro fijado, nivelado y con espacio libre de maniobra delante"],
+                ["03.02", "Local o armario con acceso restringido y cerradura; puerta conectada a tierra"],
+                ["03.03", "Ventilaci\xF3n suficiente para la disipaci\xF3n de la aparamenta"],
+                ["03.04", "El CGBT est\xE1 junto a la entrada de la derivaci\xF3n individual (ITC-BT-17 \xA71)"]
+              ]),
+              bloque("04", "CABLEADO (ITC-BT-19)", [
+                ["04.01", "Secciones de las l\xEDneas seg\xFAn el unifilar"],
+                ["04.02", "Colores normalizados: azul neutro, verde-amarillo protecci\xF3n, marr\xF3n, negro o gris fases (ITC-BT-19 \xA72.2.4)"],
+                ["04.03", "Terminales o punteras en todos los conductores; ning\xFAn borne con m\xE1s conductores de los que admite"],
+                ["04.04", "Prensaestopas o pasacables en todas las entradas; potencia separada del control"]
+              ]),
+              bloque("05", "PUESTA A TIERRA (ITC-BT-18)", [
+                ["05.01", "Barra de tierra conectada al conductor de tierra del edificio"],
+                ["05.02", "Cada circuito de salida lleva su conductor de protecci\xF3n a la barra"],
+                ["05.03", "Masas met\xE1licas de la envolvente y la puerta conectadas a tierra"]
+              ]),
+              bloque("06", "IDENTIFICACI\xD3N", [
+                ["06.01", "Cada circuito rotulado con su destino, como en el unifilar"],
+                ["06.02", "Se\xF1al de riesgo el\xE9ctrico en la puerta"],
+                ["06.03", "Unifilar actualizado y protegido dentro del cuadro"]
+              ]),
+              bloque("07", "PRECOMISIONADO (UNE-HD 60364-6 \xA76.4.3)", [
+                ["07.01", "Apriete de bornas al par del fabricante y marcado con pintura"],
+                ["07.02", "Aislamiento medido antes de dar tensi\xF3n (\u2265 1 M\u03A9 a 500 V)"],
+                ["07.03", "Continuidad de los conductores de protecci\xF3n comprobada"],
+                ["07.04", "Disparo de diferenciales ensayado con comprobador"],
+                ["07.05", "Termograf\xEDa en carga programada (con al menos el 40 % de la carga)"]
+              ]),
+              bloque("08", "PUESTA EN SERVICIO", [
+                ["08.01", "Tensi\xF3n y secuencia de fases correctas en la acometida"],
+                ["08.02", "Enclavamientos y conmutaciones (red-grupo, red-SAI) funcionan"],
+                ["08.03", "Se\xF1ales al sistema de gesti\xF3n (estado, disparo, medida) comprobadas"]
+              ]),
+              bloque("09", "DOCUMENTACI\xD3N", P_DOC_ELEC)
+            ]
+          ),
+          /* ─────────────────────────── Transformadores */
+          fichaNorma(
+            "TRANSFORMADOR",
+            "TRANSFORMADOR",
+            "TRANSFORMADOR DE POTENCIA (CENTRO DE TRANSFORMACI\xD3N)",
+            "Electricidad",
+            "RD 337/2014 (RAT): ITC-RAT 13 (tierras), ITC-RAT 14 (instalaciones de interior), ITC-RAT 23 (verificaciones e inspecciones) \xB7 UNE-EN 60076-1 (transformadores de potencia)",
+            [
+              { titulo: "DATOS DEL TRANSFORMADOR", tipo: "datos", puntos: [
+                ...identificacion(),
+                lista("tipo_trafo", "Tipo", ["Aceite", "Seco (resina)"]),
+                numPunto("potencia_kva", "Potencia", "kVA"),
+                numPunto("tension_primaria", "Tensi\xF3n primaria", "kV"),
+                numPunto("tension_secundaria", "Tensi\xF3n secundaria en vac\xEDo", "V"),
+                texto("grupo_conexion", "Grupo de conexi\xF3n"),
+                numPunto("ucc", "Tensi\xF3n de cortocircuito", "%"),
+                texto("toma_regulador", "Toma del regulador de proyecto")
+              ] },
+              { titulo: "COMPROBACIONES", tipo: "comprobaciones", puntos: [
+                okNoOk("sin_fugas", "Sin fugas de aceite y nivel correcto (si es de aceite)"),
+                okNoOk("foso_recogida", "Foso de recogida de aceite con cortafuegos (ITC-RAT 14 \xA75.1)"),
+                okNoOk("proteccion_termica", "Protecci\xF3n t\xE9rmica probada: term\xF3metro o rel\xE9 DGPT2 / sondas PT100 y centralita"),
+                okNoOk("disparo_celda", "El disparo de la protecci\xF3n abre la celda de protecci\xF3n del transformador"),
+                okNoOk("toma_regulador_ok", "Regulador en la toma de proyecto"),
+                okNoOk("enclavamientos", "Enclavamientos celda-transformador y acceso con tensi\xF3n"),
+                okNoOk("distancias_pantalla", "Pantalla de protecci\xF3n y distancias de seguridad (ITC-RAT 14)"),
+                okNoOk("senalizacion", "Se\xF1alizaci\xF3n de riesgo el\xE9ctrico y primeros auxilios")
+              ] },
+              { titulo: "ENSAYOS EN VAC\xCDO", tipo: "parametros", puntos: [
+                prueba("relacion_transformacion", "Relaci\xF3n de transformaci\xF3n (toma de proyecto)", "", OBL, conTol(5e-3, "UNE-EN 60076-1 tabla 1: \xB10,5 % de la relaci\xF3n declarada")),
+                prueba("aislamiento_at_masa", "Aislamiento AT-masa (5 kV cc)", "M\u03A9", OBL, minimo(void 0, "ITC-RAT 23 y UNE-EN 60076-1: no inferior al del protocolo del fabricante")),
+                prueba("aislamiento_bt_masa", "Aislamiento BT-masa (1 kV cc)", "M\u03A9", OBL, minimo(void 0, "ITC-RAT 23 y UNE-EN 60076-1: no inferior al del protocolo del fabricante")),
+                prueba("aislamiento_at_bt", "Aislamiento AT-BT (5 kV cc)", "M\u03A9", OBL, minimo(void 0, "ITC-RAT 23 y UNE-EN 60076-1: no inferior al del protocolo del fabricante")),
+                prueba("resistencia_devanados", "Resistencia de devanados (diferencia entre fases)", "%", OPC, maximo(2, "UNE-EN 60076-1 \xA711.2: diferencia entre fases \u2264 2 %")),
+                prueba("tension_secundario_vacio", "Tensi\xF3n en el secundario en vac\xEDo", "V", OBL, conTol(0.025, "UNE-EN 60076-1: tensi\xF3n de la toma, \xB12,5 % (un escal\xF3n del regulador)"))
+              ] },
+              { titulo: "PUESTA A TIERRA (ITC-RAT 13)", tipo: "parametros", puntos: [
+                prueba("tierra_proteccion", "Resistencia de la tierra de protecci\xF3n (herrajes)", "\u03A9", OBL, maximo(void 0, "ITC-RAT 13 \xA72: contra la de proyecto")),
+                prueba("tierra_servicio", "Resistencia de la tierra de servicio (neutro)", "\u03A9", OBL, maximo(void 0, "ITC-RAT 13: contra la de proyecto (tierras separadas o unidas seg\xFAn el c\xE1lculo)")),
+                prueba("tension_contacto", "Tensi\xF3n de contacto aplicada", "V", OPC, maximo(void 0, "ITC-RAT 13 \xA71.1: la admisible para el tiempo de despeje del defecto")),
+                prueba("tension_paso", "Tensi\xF3n de paso aplicada", "V", OPC, maximo(void 0, "ITC-RAT 13 \xA71.1: la admisible para el tiempo de despeje del defecto"))
+              ] },
+              { titulo: "EN CARGA", tipo: "parametros", puntos: [
+                prueba("temperatura_carga", "Temperatura (aceite o devanados) en carga", "\xB0C", OBL, maximo(void 0, "UNE-EN 60076-2 / -11: contra el l\xEDmite de alarma del fabricante")),
+                prueba("intensidad", "Intensidad en el secundario (fase m\xE1s cargada)", "A", OPC, maximo(void 0, "No supera la nominal del transformador"))
+              ] }
+            ]
+          ),
+          checklistNorma(
+            "CHECKLIST_TRANSFORMADOR",
+            "CHECKLIST TRANSFORMADOR",
+            "INSTALACI\xD3N Y PRECOMISIONADO \xB7 TRANSFORMADOR",
+            "Electricidad",
+            "RD 337/2014 (RAT) ITC-RAT 13, 14 y 23 \xB7 UNE-EN 60076-1",
+            [
+              bloque("01", "RECEPCI\xD3N", [
+                ...P_RECEPCION_ELEC("El transformador"),
+                ["01.04", "Protocolo de ensayos de rutina del fabricante (UNE-EN 60076-1 \xA711.1) entregado"]
+              ]),
+              bloque("02", "AJUSTE AL PROYECTO", [
+                ["02.01", "Potencia, tensiones, grupo de conexi\xF3n y Ucc seg\xFAn proyecto"],
+                ["02.02", "Tipo (aceite o seco) y clase t\xE9rmica seg\xFAn proyecto"]
+              ]),
+              bloque("03", "INSTALACI\xD3N (ITC-RAT 14)", [
+                ["03.01", "Transformador sobre su bancada, con ruedas bloqueadas y antivibratorios"],
+                ["03.02", "Ventilaci\xF3n de la celda seg\xFAn c\xE1lculo (entrada baja, salida alta)"],
+                ["03.03", "Foso de recogida de aceite y cortafuegos (si es de aceite)"],
+                ["03.04", "Pasillos de maniobra y distancias de seguridad respetados"]
+              ]),
+              bloque("04", "CONEXIONES", [
+                ["04.01", "Terminales de AT y puentes de BT conectados y apretados al par del fabricante"],
+                ["04.02", "Radios de curvatura de los cables de AT respetados"],
+                ["04.03", "Neutro de BT conectado a la tierra de servicio"]
+              ]),
+              bloque("05", "PUESTA A TIERRA (ITC-RAT 13)", [
+                ["05.01", "Tierras de protecci\xF3n y de servicio separadas seg\xFAn proyecto"],
+                ["05.02", "Cuba, herrajes y pantallas conectados a la tierra de protecci\xF3n"]
+              ]),
+              bloque("06", "PROTECCIONES", [
+                ["06.01", "Term\xF3metro o rel\xE9 DGPT2 (aceite) o sondas y centralita (seco) instalados y cableados al disparo"],
+                ["06.02", "Ajustes de alarma y disparo seg\xFAn fabricante"],
+                ["06.03", "Protecci\xF3n de la celda (fusibles o interruptor con rel\xE9) dimensionada para la potencia"]
+              ]),
+              bloque("07", "PRECOMISIONADO (ITC-RAT 23)", [
+                ["07.01", "Relaci\xF3n de transformaci\xF3n medida en todas las tomas"],
+                ["07.02", "Aislamientos AT-masa, BT-masa y AT-BT medidos"],
+                ["07.03", "Resistencias de tierra medidas antes de dar tensi\xF3n"],
+                ["07.04", "Regulador en la toma de proyecto"]
+              ]),
+              bloque("08", "PUESTA EN SERVICIO", [
+                ["08.01", "Energizaci\xF3n en vac\xEDo sin ruidos anormales"],
+                ["08.02", "Tensi\xF3n y secuencia de fases correctas en el secundario"],
+                ["08.03", "Lectura de temperatura en carga dentro de lo esperado"]
+              ]),
+              bloque("09", "DOCUMENTACI\xD3N", [
+                ["09.01", "Certificado de la instalaci\xF3n de AT y acta de puesta en servicio (RD 337/2014)"],
+                ["09.02", "Contrato de mantenimiento con empresa habilitada en AT"],
+                ["09.03", "Esquemas y planos actualizados entregados"]
+              ])
+            ]
+          ),
+          /* ─────────────────────────── Grupos electrógenos */
+          fichaNorma(
+            "GRUPO_ELECTROGENO",
+            "GRUPO ELECTR\xD3GENO",
+            "GRUPO ELECTR\xD3GENO",
+            "Electricidad",
+            "UNE-EN ISO 8528-1, -5 y -6 (grupos electr\xF3genos y sus ensayos) \xB7 REBT ITC-BT-28 (alimentaci\xF3n de seguridad y de reserva) e ITC-BT-40 (instalaciones generadoras) \xB7 UNE-HD 60364-5-56",
+            [
+              { titulo: "DATOS DEL GRUPO", tipo: "datos", puntos: [
+                ...identificacion(),
+                numPunto("potencia_kva", "Potencia (PRP)", "kVA"),
+                numPunto("potencia_esp", "Potencia de emergencia (ESP)", "kVA"),
+                numPunto("tension_nominal", "Tensi\xF3n nominal", "V"),
+                lista("clase_prestacion", "Clase de prestaci\xF3n (ISO 8528-1)", ["G1", "G2", "G3", "G4"]),
+                lista("uso", "Uso", ["Seguridad", "Reserva", "Seguridad y reserva"]),
+                numPunto("deposito", "Capacidad del dep\xF3sito", "l"),
+                texto("motor", "Motor (marca y modelo)"),
+                texto("alternador", "Alternador (marca y modelo)")
+              ] },
+              { titulo: "COMPROBACIONES", tipo: "comprobaciones", puntos: [
+                okNoOk("niveles", "Niveles de aceite, refrigerante y combustible"),
+                okNoOk("precalentamiento", "Resistencia de precalentamiento conectada"),
+                okNoOk("baterias_arranque", "Bater\xEDas de arranque cargadas y cargador funcionando"),
+                okNoOk("escape", "Escape aislado, sin fugas y con salida a zona segura"),
+                okNoOk("alarmas_motor", "Paradas por baja presi\xF3n de aceite, alta temperatura y sobrevelocidad probadas"),
+                okNoOk("paro_emergencia", "Paro de emergencia local y remoto"),
+                okNoOk("conmutacion_retorno", "Retorno a red autom\xE1tico tras su reposici\xF3n, con temporizaci\xF3n"),
+                okNoOk("sin_paralelo", "El conmutador no permite el paralelo red-grupo (ITC-BT-40, salvo proyecto)"),
+                okNoOk("senales_bms", "Se\xF1ales de marcha, aver\xEDa y nivel al sistema de gesti\xF3n")
+              ] },
+              { titulo: "ARRANQUE Y CONMUTACI\xD3N", tipo: "parametros", puntos: [
+                prueba("tiempo_arranque", "Tiempo desde el fallo de red hasta tensi\xF3n en bornas", "s", OBL, maximo(15, "ITC-BT-28 \xA72.3 y UNE-HD 60364-5-56: corte de duraci\xF3n media, \u2264 15 s")),
+                prueba("tiempo_transferencia", "Tiempo hasta que la carga queda en grupo (conmutaci\xF3n red-grupo)", "s", OBL, maximo(15, "ITC-BT-28 \xA72.3: \u2264 15 s para alimentaci\xF3n de seguridad"))
+              ] },
+              { titulo: "ENSAYO EN VAC\xCDO", tipo: "parametros", puntos: [
+                prueba("tension_vacio", "Tensi\xF3n en vac\xEDo", "V", OBL, conTol(0.025, "UNE-EN ISO 8528-5 tabla 4: clase G2, \xB12,5 %")),
+                prueba("frecuencia_vacio", "Frecuencia en vac\xEDo", "Hz", OBL, conTol(0.015, "UNE-EN ISO 8528-5 tabla 4: clase G2, banda \xB11,5 %"))
+              ] },
+              { titulo: "ENSAYO CON CARGA (BANCO O CARGA REAL)", tipo: "parametros", puntos: [
+                prueba("potencia_ensayo", "Potencia del ensayo", "kW", OBL, minimo(void 0, "UNE-EN ISO 8528-6: la de proyecto, sostenida el tiempo del ensayo")),
+                prueba("duracion_ensayo", "Duraci\xF3n del ensayo con carga", "h", OBL, minimo(void 0, "UNE-EN ISO 8528-6: la que fije el proyecto")),
+                prueba("tension_carga", "Tensi\xF3n con carga", "V", OBL, conTol(0.025, "UNE-EN ISO 8528-5 tabla 4: clase G2, \xB12,5 %")),
+                prueba("frecuencia_carga", "Frecuencia con carga", "Hz", OBL, conTol(0.015, "UNE-EN ISO 8528-5 tabla 4: clase G2, banda \xB11,5 %")),
+                prueba("caida_transitoria", "Ca\xEDda transitoria de tensi\xF3n al aplicar la carga", "%", OPC, maximo(20, "UNE-EN ISO 8528-5 tabla 4: clase G2, \u221220 %")),
+                prueba("recuperacion_tension", "Tiempo de recuperaci\xF3n de la tensi\xF3n", "s", OPC, maximo(6, "UNE-EN ISO 8528-5 tabla 4: clase G2, \u2264 6 s")),
+                prueba("temperatura_refrigerante", "Temperatura del refrigerante a plena carga", "\xB0C", OBL, maximo(void 0, "Contra la de alarma del fabricante")),
+                prueba("presion_aceite", "Presi\xF3n de aceite a plena carga", "bar", OBL, minimo(void 0, "Contra la m\xEDnima del fabricante")),
+                prueba("consumo", "Consumo de combustible", "l/h", OPC, segun("UNE-EN ISO 8528-6: contra el del fabricante a esa carga")),
+                prueba("autonomia", "Autonom\xEDa con el dep\xF3sito lleno", "h", OBL, minimo(void 0, "ITC-BT-28 y proyecto (la que pida el uso: PCI, CPD\u2026)"))
+              ] }
+            ]
+          ),
+          checklistNorma(
+            "CHECKLIST_GRUPO_ELECTROGENO",
+            "CHECKLIST GRUPO ELECTR\xD3GENO",
+            "INSTALACI\xD3N Y PRECOMISIONADO \xB7 GRUPO ELECTR\xD3GENO",
+            "Electricidad",
+            "UNE-EN ISO 8528 \xB7 REBT ITC-BT-28 e ITC-BT-40 \xB7 RIPCI (RD 513/2017) si alimenta bombas PCI",
+            [
+              bloque("01", "RECEPCI\xD3N", [
+                ...P_RECEPCION_ELEC("El grupo"),
+                ["01.04", "Protocolo de ensayos en f\xE1brica (UNE-EN ISO 8528-6) entregado"]
+              ]),
+              bloque("02", "AJUSTE AL PROYECTO", [
+                ["02.01", "Potencia PRP / ESP, tensi\xF3n y clase de prestaci\xF3n seg\xFAn proyecto"],
+                ["02.02", "Capacidad del dep\xF3sito seg\xFAn la autonom\xEDa de proyecto"],
+                ["02.03", "Cargas que alimenta (seguridad y reserva) seg\xFAn proyecto"]
+              ]),
+              bloque("03", "SALA E INSTALACI\xD3N", [
+                ["03.01", "Bancada, antivibratorios y anclajes seg\xFAn fabricante"],
+                ["03.02", "Entrada y salida de aire con la secci\xF3n del fabricante; rejillas y persianas"],
+                ["03.03", "Escape con silencioso, aislado, soportado y con salida a zona segura"],
+                ["03.04", "Dep\xF3sito con cubeto, ventilaci\xF3n y aforador; cumple la ITC MI-IP03 (RD 1523/1999)"],
+                ["03.05", "Sala con sectorizaci\xF3n y PCI seg\xFAn proyecto"]
+              ]),
+              bloque("04", "EL\xC9CTRICO (ITC-BT-40)", [
+                ["04.01", "Cuadro de conmutaci\xF3n red-grupo con enclavamiento mec\xE1nico y el\xE9ctrico"],
+                ["04.02", "Neutro del grupo y puesta a tierra seg\xFAn el esquema de proyecto"],
+                ["04.03", "Protecciones del alternador y de la l\xEDnea de salida dimensionadas"],
+                ["04.04", "Bater\xEDas de arranque y cargador instalados"]
+              ]),
+              bloque("05", "COMBUSTIBLE Y FLUIDOS", [
+                ["05.01", "Tuber\xEDas de combustible estancas, con v\xE1lvula de corte r\xE1pido"],
+                ["05.02", "Llenado de aceite y refrigerante con anticongelante"],
+                ["05.03", "Resistencia de precalentamiento conectada"]
+              ]),
+              bloque("06", "CONTROL", [
+                ["06.01", "Centralita configurada: arranque por fallo de red, temporizaciones y retorno"],
+                ["06.02", "Alarmas y paradas del motor configuradas"],
+                ["06.03", "Se\xF1ales al sistema de gesti\xF3n cableadas"]
+              ]),
+              bloque("07", "PRECOMISIONADO", [
+                ["07.01", "Arranque manual en vac\xEDo: tensi\xF3n, frecuencia y secuencia de fases"],
+                ["07.02", "Simulaci\xF3n de fallo de red con conmutaci\xF3n y retorno"],
+                ["07.03", "Ensayo con banco de carga o carga real programado"]
+              ]),
+              bloque("08", "MANTENIMIENTO", [
+                ["08.01", "Accesos libres para el mantenimiento y la retirada del grupo"],
+                ["08.02", "Programa de arranques peri\xF3dicos configurado"]
+              ]),
+              bloque("09", "DOCUMENTACI\xD3N", P_DOC_ELEC)
+            ]
+          ),
+          /* ─────────────────────────── SAI y baterías */
+          fichaNorma(
+            "SAI",
+            "SAI",
+            "SISTEMA DE ALIMENTACI\xD3N ININTERRUMPIDA Y BATER\xCDAS",
+            "Electricidad",
+            "UNE-EN 62040-1 (seguridad) \xB7 UNE-EN 62040-3 (prestaciones y m\xE9todos de ensayo) \xB7 UNE-EN IEC 62485-2 (bater\xEDas estacionarias: ventilaci\xF3n de la sala)",
+            [
+              { titulo: "DATOS DEL SAI", tipo: "datos", puntos: [
+                ...identificacion(),
+                numPunto("potencia_kva", "Potencia", "kVA"),
+                numPunto("potencia_kw", "Potencia activa", "kW"),
+                texto("clasificacion", "Clasificaci\xF3n (UNE-EN 62040-3, p. ej. VFI-SS-111)"),
+                lista("tipo_bateria", "Tipo de bater\xEDa", ["Plomo VRLA", "Plomo abierto", "Litio-ion"]),
+                numPunto("num_baterias", "N\xBA de bater\xEDas (o bloques)"),
+                numPunto("capacidad_bateria", "Capacidad", "Ah")
+              ] },
+              { titulo: "COMPROBACIONES", tipo: "comprobaciones", puntos: [
+                okNoOk("paso_bateria", "Paso a bater\xEDas sin corte al quitar la red (VFI)"),
+                okNoOk("bypass_estatico", "Bypass est\xE1tico: transferencia y retorno"),
+                okNoOk("bypass_manual", "Bypass manual de mantenimiento sin corte"),
+                okNoOk("epo", "Paro de emergencia (EPO) probado"),
+                okNoOk("alarmas", "Alarmas locales y remotas"),
+                okNoOk("comunicacion", "Comunicaci\xF3n con el sistema de gesti\xF3n (SNMP / Modbus)"),
+                okNoOk("ventilacion_sala", "Ventilaci\xF3n de la sala de bater\xEDas (UNE-EN IEC 62485-2 \xA77)")
+              ] },
+              { titulo: "SALIDA", tipo: "parametros", puntos: [
+                prueba("tension_salida", "Tensi\xF3n de salida", "V", OBL, conTol(0.01, "UNE-EN 62040-3: la que declara el fabricante (\xB11 % en un VFI)")),
+                prueba("frecuencia_salida", "Frecuencia de salida", "Hz", OBL, conTol(0.01, "UNE-EN 62040-3: la que declara el fabricante")),
+                prueba("thd_salida", "Distorsi\xF3n de la tensi\xF3n de salida (THDu)", "%", OPC, maximo(void 0, "UNE-EN 62040-3 \xA75.3: la del fabricante con carga lineal")),
+                prueba("carga_sai", "Carga del SAI en servicio", "%", OPC, maximo(80, "Criterio de proyecto: margen para ampliaciones (no es de norma)"))
+              ] },
+              { titulo: "BATER\xCDAS", tipo: "parametros", puntos: [
+                prueba("tension_flotacion", "Tensi\xF3n de flotaci\xF3n del bus de bater\xEDas", "V", OBL, conTol(0.02, "UNE-EN 62040-3 y fabricante de la bater\xEDa")),
+                prueba("autonomia", "Autonom\xEDa medida (descarga con carga real o banco)", "min", OBL, minimo(void 0, "UNE-EN 62040-3 \xA76.4: la de proyecto con su carga")),
+                prueba("temperatura_baterias", "Temperatura de la sala de bater\xEDas", "\xB0C", OPC, maximo(25, "UNE-EN IEC 62485-2: vida nominal a 20-25 \xB0C"))
+              ] }
+            ]
+          ),
+          checklistNorma(
+            "CHECKLIST_SAI",
+            "CHECKLIST SAI",
+            "INSTALACI\xD3N Y PRECOMISIONADO \xB7 SAI Y BATER\xCDAS",
+            "Electricidad",
+            "UNE-EN 62040-1 y -3 \xB7 UNE-EN IEC 62485-2",
+            [
+              bloque("01", "RECEPCI\xD3N", [
+                ...P_RECEPCION_ELEC("El SAI y las bater\xEDas"),
+                ["01.04", "Bater\xEDas con fecha de fabricaci\xF3n reciente (recarga de mantenimiento si llevan meses almacenadas)"]
+              ]),
+              bloque("02", "AJUSTE AL PROYECTO", [
+                ["02.01", "Potencia, clasificaci\xF3n y autonom\xEDa seg\xFAn proyecto"],
+                ["02.02", "Cargas conectadas al SAI seg\xFAn el unifilar"]
+              ]),
+              bloque("03", "SALA E INSTALACI\xD3N (UNE-EN IEC 62485-2)", [
+                ["03.01", "Ventilaci\xF3n de la sala de bater\xEDas seg\xFAn el c\xE1lculo de la norma"],
+                ["03.02", "Climatizaci\xF3n de la sala para mantener 20-25 \xB0C"],
+                ["03.03", "Bancadas o armarios de bater\xEDas con resistencia al peso y anti\xE1cido"],
+                ["03.04", "Se\xF1alizaci\xF3n: riesgo el\xE9ctrico, prohibido fumar y llama desnuda"]
+              ]),
+              bloque("04", "EL\xC9CTRICO", [
+                ["04.01", "Entrada, bypass y salida cableadas seg\xFAn el unifilar del fabricante"],
+                ["04.02", "Protecciones de entrada, salida y bater\xEDas dimensionadas"],
+                ["04.03", "Conexiones entre bater\xEDas apretadas al par del fabricante"],
+                ["04.04", "Puesta a tierra del SAI y de los armarios de bater\xEDas"]
+              ]),
+              bloque("05", "CONTROL", [
+                ["05.01", "Paro de emergencia (EPO) cableado"],
+                ["05.02", "Comunicaci\xF3n con el sistema de gesti\xF3n configurada"]
+              ]),
+              bloque("06", "PRECOMISIONADO", [
+                ["06.01", "Puesta en marcha por el servicio t\xE9cnico del fabricante"],
+                ["06.02", "Bater\xEDas cargadas 24 h antes del ensayo de autonom\xEDa"],
+                ["06.03", "Transferencias a bater\xEDa, bypass est\xE1tico y bypass manual ensayadas"]
+              ]),
+              bloque("07", "DOCUMENTACI\xD3N", [
+                ["07.01", "Informe de puesta en marcha del fabricante con el ensayo de autonom\xEDa"],
+                ["07.02", "Manual de uso y plan de mantenimiento de las bater\xEDas"]
+              ])
+            ]
+          ),
+          /* ─────────────────────────── Baterías de condensadores */
+          fichaNorma(
+            "BATERIA_CONDENSADORES",
+            "BATER\xCDA CONDENSADORES",
+            "BATER\xCDA DE CONDENSADORES (COMPENSACI\xD3N DE REACTIVA)",
+            "Electricidad",
+            "REBT ITC-BT-48 (condensadores) \xB7 UNE-EN 61921 (bater\xEDas de correcci\xF3n del factor de potencia) \xB7 UNE-EN 60831-1 (condensadores de BT)",
+            [
+              { titulo: "DATOS DE LA BATER\xCDA", tipo: "datos", puntos: [
+                ...identificacion(),
+                numPunto("potencia_kvar", "Potencia reactiva", "kvar"),
+                texto("escalones", "Escalones (p. ej. 1:2:2:4)"),
+                numPunto("tension_nominal", "Tensi\xF3n nominal", "V"),
+                lista("filtro", "Filtro de rechazo", ["No", "S\xED, 7 %", "S\xED, 14 %"]),
+                texto("regulador", "Regulador (marca y modelo)")
+              ] },
+              { titulo: "COMPROBACIONES", tipo: "comprobaciones", puntos: [
+                okNoOk("ti_ubicacion", "Transformador de intensidad aguas arriba de la bater\xEDa y de todas las cargas, en la fase correcta"),
+                okNoOk("regulador_config", "Regulador configurado: C/K, cos \u03C6 objetivo y temporizaciones"),
+                okNoOk("escalones_secuencia", "Los escalones entran y salen en secuencia, sin oscilar"),
+                okNoOk("resistencias_descarga", "Resistencias de descarga: < 75 V en 3 min tras la desconexi\xF3n (UNE-EN 60831-1)"),
+                okNoOk("ventilacion", "Ventilaci\xF3n del armario funciona")
+              ] },
+              { titulo: "MEDIDAS", tipo: "parametros", puntos: [
+                prueba("cos_phi", "Factor de potencia de la instalaci\xF3n con la bater\xEDa", "", OBL, minimo(0.95, REACTIVA)),
+                prueba("potencia_escalon", "Potencia del escal\xF3n mayor", "kvar", OBL, conTol(0.1, "UNE-EN 60831-1: capacidad de \u22125 % a +10 % de la nominal")),
+                prueba("intensidad", "Intensidad con todos los escalones", "A", OBL, maximo(void 0, "UNE-EN 61921: \u2264 1,3 In de la bater\xEDa")),
+                prueba("thd_corriente", "Distorsi\xF3n arm\xF3nica de corriente (THDi)", "%", OPC, maximo(void 0, "Contra la de proyecto (decide si hace falta filtro)")),
+                prueba("temperatura_armario", "Temperatura dentro del armario", "\xB0C", OPC, maximo(void 0, "UNE-EN 60831-1: la de la categor\xEDa de temperatura del fabricante"))
+              ] }
+            ]
+          ),
+          checklistNorma(
+            "CHECKLIST_BATERIA_CONDENSADORES",
+            "CHECKLIST BATER\xCDA CONDENSADORES",
+            "INSTALACI\xD3N Y PRECOMISIONADO \xB7 BATER\xCDA DE CONDENSADORES",
+            "Electricidad",
+            "REBT ITC-BT-48 \xB7 UNE-EN 61921 \xB7 UNE-EN 60831-1",
+            [
+              bloque("01", "RECEPCI\xD3N", P_RECEPCION_ELEC("La bater\xEDa")),
+              bloque("02", "AJUSTE AL PROYECTO", [
+                ["02.01", "Potencia, escalones y filtro de rechazo seg\xFAn proyecto"],
+                ["02.02", "Tensi\xF3n nominal adecuada a la red (y a los arm\xF3nicos si lleva filtro)"]
+              ]),
+              bloque("03", "INSTALACI\xD3N", [
+                ["03.01", "Armario ventilado, lejos de fuentes de calor"],
+                ["03.02", "L\xEDnea de alimentaci\xF3n y protecci\xF3n dimensionadas para la sobrecorriente de los condensadores (ITC-BT-48)"],
+                ["03.03", "Transformador de intensidad en el lugar correcto (aguas arriba de todo)"],
+                ["03.04", "Puesta a tierra del armario"]
+              ]),
+              bloque("04", "PRECOMISIONADO", [
+                ["04.01", "Regulador configurado y probado en manual escal\xF3n a escal\xF3n"],
+                ["04.02", "Medida de corriente de cada escal\xF3n"],
+                ["04.03", "Funcionamiento en autom\xE1tico con la carga real"]
+              ]),
+              bloque("05", "DOCUMENTACI\xD3N", [
+                ["05.01", "Protocolo de ensayos del fabricante y manual del regulador"]
+              ])
+            ]
+          ),
+          /* ─────────────────────────── Alumbrado de emergencia */
+          fichaNorma(
+            "ALUMBRADO_EMERGENCIA",
+            "ALUMBRADO EMERGENCIA",
+            "ALUMBRADO DE EMERGENCIA (POR ZONA)",
+            "Electricidad",
+            "REBT ITC-BT-28 \xA73.4 \xB7 CTE DB SUA-4 \xA72 \xB7 UNE-EN 1838 (iluminaci\xF3n de emergencia) \xB7 UNE-EN 50172 (sistemas de alumbrado de emergencia de seguridad)",
+            [
+              { titulo: "DATOS DE LA ZONA", tipo: "datos", puntos: [
+                texto("denominacion", "Zona / planta", { origen: "denominacion" }),
+                lista("tipo_sistema", "Sistema", ["Luminarias aut\xF3nomas", "Fuente central"]),
+                numPunto("num_luminarias", "N\xBA de luminarias"),
+                numPunto("autonomia_nominal", "Autonom\xEDa nominal de las luminarias", "h"),
+                texto("marca", "Marca", { origen: "marca" }),
+                texto("modelo", "Modelo", { origen: "modelo" })
+              ] },
+              { titulo: "COMPROBACIONES (UNE-EN 50172 \xA77)", tipo: "comprobaciones", puntos: [
+                okNoOk("encienden_todas", "Todas las luminarias encienden al cortar la alimentaci\xF3n normal"),
+                okNoOk("pilotos_carga", "Piloto de carga encendido en todas"),
+                okNoOk("cobertura", "Cubren recorridos de evacuaci\xF3n, salidas, escaleras, cambios de direcci\xF3n y equipos PCI (CTE DB SUA-4 \xA72.1)"),
+                okNoOk("altura", "Instaladas a 2 m o m\xE1s del suelo (CTE DB SUA-4 \xA72.2)"),
+                okNoOk("senalizacion_legible", "Se\xF1alizaci\xF3n de evacuaci\xF3n legible y fotoluminiscente o iluminada"),
+                okNoOk("telemando", "Telemando de puesta en reposo y autotest (si los hay)"),
+                okNoOk("libro_registro", "Libro de registro de ensayos abierto (UNE-EN 50172 \xA76)")
+              ] },
+              { titulo: "ENSAYO CON CORTE DE RED", tipo: "parametros", puntos: [
+                prueba("autonomia", "Autonom\xEDa", "h", OBL, minimo(1, "CTE DB SUA-4 \xA72.3 e ITC-BT-28 \xA73.4: \u2265 1 h")),
+                prueba("iluminancia_recorridos", "Iluminancia en el eje de los recorridos de evacuaci\xF3n (a nivel del suelo)", "lx", OBL, minimo(1, "CTE DB SUA-4 \xA72.3: \u2265 1 lx")),
+                prueba("iluminancia_equipos_pci", "Iluminancia en equipos PCI y cuadros de alumbrado", "lx", OBL, minimo(5, "CTE DB SUA-4 \xA72.3: \u2265 5 lx")),
+                prueba("uniformidad", "Relaci\xF3n entre iluminancia m\xE1xima y m\xEDnima", "", OBL, maximo(40, "CTE DB SUA-4 \xA72.3: \u2264 40:1")),
+                prueba("tiempo_50", "Tiempo hasta el 50 % de la iluminancia", "s", OBL, maximo(5, "CTE DB SUA-4 \xA72.3: 50 % en 5 s")),
+                prueba("tiempo_100", "Tiempo hasta el 100 % de la iluminancia", "s", OPC, maximo(60, "CTE DB SUA-4 \xA72.3: 100 % en 60 s")),
+                prueba("iluminancia_antipanico", "Iluminancia antip\xE1nico (zonas abiertas)", "lx", OPC, minimo(0.5, "UNE-EN 1838: \u2265 0,5 lx")),
+                prueba("iluminancia_alto_riesgo", "Iluminancia en zonas de alto riesgo", "lx", OPC, minimo(15, "UNE-EN 1838: \u2265 10 % del normal y \u2265 15 lx"))
+              ] }
+            ]
+          ),
+          checklistNorma(
+            "CHECKLIST_ALUMBRADO_EMERGENCIA",
+            "CHECKLIST ALUMBRADO EMERGENCIA",
+            "INSTALACI\xD3N Y PRECOMISIONADO \xB7 ALUMBRADO DE EMERGENCIA",
+            "Electricidad",
+            "REBT ITC-BT-28 \xB7 CTE DB SUA-4 \xB7 UNE-EN 1838 \xB7 UNE-EN 50172 \xB7 UNE-EN 60598-2-22",
+            [
+              bloque("01", "RECEPCI\xD3N", [
+                ...P_RECEPCION_ELEC("Las luminarias"),
+                ["01.04", "Luminarias conformes a UNE-EN 60598-2-22"]
+              ]),
+              bloque("02", "AJUSTE AL PROYECTO", [
+                ["02.01", "N\xFAmero, situaci\xF3n y modelo de luminarias seg\xFAn el plano de emergencia"],
+                ["02.02", "Flujo y autonom\xEDa de cada luminaria seg\xFAn proyecto"]
+              ]),
+              bloque("03", "INSTALACI\xD3N (CTE DB SUA-4 \xA72)", [
+                ["03.01", "En cada puerta de salida, escalera, cambio de nivel y de direcci\xF3n, y en cada equipo PCI y cuadro"],
+                ["03.02", "A 2 m o m\xE1s del suelo"],
+                ["03.03", "Alimentadas desde el mismo circuito que el alumbrado normal de la zona (detectan su fallo)"],
+                ["03.04", "L\xEDneas con su protecci\xF3n propia, de forma que un fallo no deje sin alumbrado una zona entera (ITC-BT-28)"]
+              ]),
+              bloque("04", "SE\xD1ALIZACI\xD3N", [
+                ["04.01", "Se\xF1ales de evacuaci\xF3n seg\xFAn el plan de autoprotecci\xF3n y la norma UNE 23034"],
+                ["04.02", "Se\xF1ales visibles con el alumbrado normal apagado"]
+              ]),
+              bloque("05", "PRECOMISIONADO (UNE-EN 50172 \xA77)", [
+                ["05.01", "Bater\xEDas cargadas 24 h antes del ensayo de autonom\xEDa"],
+                ["05.02", "Ensayo funcional de todas las luminarias"],
+                ["05.03", "Ensayo de autonom\xEDa de 1 h con medida de iluminancias"]
+              ]),
+              bloque("06", "DOCUMENTACI\xD3N", [
+                ["06.01", "Plano de emergencia \xABas built\xBB con cada luminaria"],
+                ["06.02", "Libro de registro de ensayos abierto (UNE-EN 50172 \xA76)"]
+              ])
+            ]
+          ),
+          /* ─────────────────────────── Puntos de recarga de vehículo eléctrico */
+          fichaNorma(
+            "RECARGA_VE",
+            "RECARGA VE",
+            "INSTALACI\xD3N DE RECARGA DE VEH\xCDCULO EL\xC9CTRICO",
+            "Electricidad",
+            "REBT ITC-BT-52 (infraestructura para la recarga de veh\xEDculos el\xE9ctricos) \xB7 UNE-EN IEC 61851-1 (sistema conductivo de carga) \xB7 UNE-HD 60364-7-722",
+            [
+              { titulo: "DATOS DE LA INSTALACI\xD3N", tipo: "datos", puntos: [
+                ...identificacion(),
+                numPunto("num_puntos", "N\xBA de puntos de recarga"),
+                numPunto("potencia_punto", "Potencia por punto", "kW"),
+                lista("esquema_itc52", "Esquema de instalaci\xF3n (ITC-BT-52)", ["1a", "1b", "2", "3a", "3b", "4a", "4b"]),
+                lista("modo_carga", "Modo de carga", ["Modo 3", "Modo 4"]),
+                lista("spl", "Sistema de protecci\xF3n de la l\xEDnea general (SPL)", ["S\xED", "No"])
+              ] },
+              { titulo: "COMPROBACIONES", tipo: "comprobaciones", puntos: [
+                okNoOk("diferencial_punto", "Diferencial de 30 mA por punto, clase A con detecci\xF3n de 6 mA en continua o clase B (ITC-BT-52)"),
+                okNoOk("sobretensiones", "Protecci\xF3n contra sobretensiones transitorias y permanentes (ITC-BT-52)"),
+                okNoOk("spl_regula", "El SPL reduce la potencia de recarga al acercarse al l\xEDmite de la LGA"),
+                okNoOk("comunicacion", "Comunicaci\xF3n con el sistema de gesti\xF3n (OCPP)"),
+                okNoOk("carga_vehiculo", "Carga real de un veh\xEDculo o simulador en cada punto"),
+                okNoOk("senalizacion", "Plazas se\xF1alizadas y puntos identificados")
+              ] },
+              { titulo: "AISLAMIENTO Y DIFERENCIALES", tipo: "parametros", puntos: [
+                prueba("aislamiento_fase_pe", "Resistencia de aislamiento fases-PE", "M\u03A9", OBL, minimo(1, AISLAMIENTO_BT)),
+                prueba("continuidad_pe", "Continuidad del conductor de protecci\xF3n (peor punto)", "\u03A9", OBL, maximo(void 0, "UNE-HD 60364-6 \xA76.4.3.2: contra el valor de proyecto")),
+                prueba("disparo_dif_tiempo", "Tiempo de disparo a I\u0394n (peor punto)", "ms", OBL, maximo(300, DISPARO_DIF)),
+                prueba("disparo_dc", "Disparo por corriente continua de defecto", "mA", OBL, maximo(6, "UNE-EN IEC 62955 (RDC-DD): \u2264 6 mA en continua"))
+              ] },
+              { titulo: "EN CARGA", tipo: "parametros", puntos: [
+                prueba("tension", "Tensi\xF3n en el cuadro de recarga", "V", OBL, conTol(0.07, TENSION_RED)),
+                prueba("intensidad", "Intensidad con todos los puntos cargando", "A", OBL, maximo(void 0, "ITC-BT-52: no supera la del c\xE1lculo (o la que limita el SPL)")),
+                prueba("potencia_activa", "Potencia simult\xE1nea de recarga", "kW", OBL, maximo(void 0, "ITC-BT-52: contra la potencia del c\xE1lculo de recarga")),
+                prueba("potencia_punto_medida", "Potencia de un punto cargando solo", "kW", OPC, segun("UNE-EN IEC 61851-1: la del punto"))
+              ] }
+            ]
+          ),
+          checklistNorma(
+            "CHECKLIST_RECARGA_VE",
+            "CHECKLIST RECARGA VE",
+            "INSTALACI\xD3N Y PRECOMISIONADO \xB7 RECARGA DE VEH\xCDCULO EL\xC9CTRICO",
+            "Electricidad",
+            "REBT ITC-BT-52 \xB7 UNE-EN IEC 61851-1 \xB7 UNE-HD 60364-7-722",
+            [
+              bloque("01", "RECEPCI\xD3N", [
+                ...P_RECEPCION_ELEC("Los puntos de recarga"),
+                ["01.04", "Puntos conformes a UNE-EN IEC 61851-1, con conector tipo 2 (o el de proyecto)"]
+              ]),
+              bloque("02", "AJUSTE AL PROYECTO", [
+                ["02.01", "Esquema de instalaci\xF3n de la ITC-BT-52 seg\xFAn proyecto"],
+                ["02.02", "N\xFAmero de puntos, potencias y plazas seg\xFAn proyecto"],
+                ["02.03", "Previsi\xF3n de carga de la recarga en la LGA (ITC-BT-10 e ITC-BT-52)"]
+              ]),
+              bloque("03", "INSTALACI\xD3N (ITC-BT-52)", [
+                ["03.01", "Un circuito por punto, con su protecci\xF3n de sobreintensidad"],
+                ["03.02", "Diferencial de 30 mA por punto, con detecci\xF3n de continua"],
+                ["03.03", "Protecci\xF3n contra sobretensiones en el cuadro de recarga"],
+                ["03.04", "Puntos accesibles y a la altura que pide la ITC-BT-52"],
+                ["03.05", "Canalizaciones protegidas frente a golpes de veh\xEDculos"]
+              ]),
+              bloque("04", "CONTROL", [
+                ["04.01", "SPL o gestor de carga instalado y configurado al l\xEDmite de la LGA"],
+                ["04.02", "Comunicaci\xF3n OCPP y control de acceso configurados"]
+              ]),
+              bloque("05", "PRECOMISIONADO", [
+                ["05.01", "Aislamiento, continuidad y diferenciales medidos punto a punto"],
+                ["05.02", "Carga de prueba en cada punto con veh\xEDculo o simulador"],
+                ["05.03", "Prueba de simultaneidad con regulaci\xF3n del SPL"]
+              ]),
+              bloque("06", "DOCUMENTACI\xD3N", [
+                ["06.01", "Certificado de instalaci\xF3n (CIE) con la ITC-BT-52"],
+                ["06.02", "Manual y configuraci\xF3n del gestor de carga"]
+              ])
+            ]
+          ),
+          /* ─────────────────────────── Fotovoltaica */
+          fichaNorma(
+            "FOTOVOLTAICA",
+            "FOTOVOLTAICA",
+            "INSTALACI\xD3N SOLAR FOTOVOLTAICA (POR INVERSOR)",
+            "Electricidad",
+            "UNE-EN 62446-1 (sistemas FV conectados a red: ensayos, documentaci\xF3n y mantenimiento) \xB7 REBT ITC-BT-40 \xB7 RD 244/2019 (autoconsumo)",
+            [
+              { titulo: "DATOS DEL INVERSOR Y EL GENERADOR", tipo: "datos", puntos: [
+                ...identificacion(),
+                numPunto("potencia_pico", "Potencia pico del generador", "kWp"),
+                numPunto("potencia_inversor", "Potencia nominal del inversor", "kW"),
+                numPunto("num_strings", "N\xBA de strings"),
+                numPunto("modulos_string", "M\xF3dulos por string"),
+                lista("modalidad", "Modalidad (RD 244/2019)", ["Sin excedentes", "Con excedentes acogida a compensaci\xF3n", "Con excedentes no acogida"])
+              ] },
+              { titulo: "CONDICIONES DEL ENSAYO", tipo: "datos", puntos: [
+                numPunto("irradiancia", "Irradiancia en el plano de los m\xF3dulos", "W/m\xB2"),
+                numPunto("temperatura_modulo", "Temperatura de los m\xF3dulos", "\xB0C")
+              ] },
+              { titulo: "COMPROBACIONES (UNE-EN 62446-1 \xA75 y \xA76)", tipo: "comprobaciones", puntos: [
+                okNoOk("polaridad", "Polaridad de todos los strings antes de cerrar el seccionador CC"),
+                okNoOk("continuidad_pe", "Continuidad de la puesta a tierra de estructuras y marcos"),
+                okNoOk("antivertido", "El antivertido corta la inyecci\xF3n (si es sin excedentes; RD 244/2019 e ITC-BT-40 anexo I)"),
+                okNoOk("anti_isla", "El inversor se desconecta al quitar la red (anti-isla)"),
+                okNoOk("sobretensiones", "Protecciones contra sobretensiones en CC y CA"),
+                okNoOk("etiquetado", "Etiquetas de doble alimentaci\xF3n y de tensi\xF3n en CC tras la desconexi\xF3n"),
+                okNoOk("monitorizacion", "Monitorizaci\xF3n del inversor comunicando")
+              ] },
+              { titulo: "CORRIENTE CONTINUA (STRINGS)", tipo: "parametros", puntos: [
+                prueba("tension_voc", "Tensi\xF3n en circuito abierto (Voc) del string", "V", OBL, conTol(0.05, "UNE-EN 62446-1 \xA76.4: \xB15 % del valor esperado y entre strings iguales")),
+                prueba("tension_mpp", "Tensi\xF3n del string en MPP", "V", OPC, conTol(0.05, "UNE-EN 62446-1 \xA76.6 (ensayo funcional)")),
+                prueba("isc_total", "Isc del generador (suma de strings, corregida a STC)", "A", OBL, conTol(0.05, "UNE-EN 62446-1 \xA76.5: \xB15 % del valor esperado")),
+                prueba("corriente_cc", "Corriente CC en funcionamiento (Impp)", "A", OPC, segun("UNE-EN 62446-1 \xA76.6: coherente con la irradiancia")),
+                prueba("aislamiento_cc", "Resistencia de aislamiento del generador", "M\u03A9", OBL, minimo(1, "UNE-EN 62446-1 (ensayo de aislamiento del generador): \u2265 1 M\u03A9"))
+              ] },
+              { titulo: "CORRIENTE ALTERNA", tipo: "parametros", puntos: [
+                prueba("tension", "Tensi\xF3n en bornas del inversor", "V", OBL, conTol(0.07, TENSION_RED)),
+                prueba("potencia_ca", "Potencia CA inyectada en el ensayo", "kW", OPC, segun("Contra la esperada con la irradiancia del ensayo"))
+              ] }
+            ]
+          ),
+          checklistNorma(
+            "CHECKLIST_FOTOVOLTAICA",
+            "CHECKLIST FOTOVOLTAICA",
+            "INSTALACI\xD3N Y PRECOMISIONADO \xB7 SOLAR FOTOVOLTAICA",
+            "Electricidad",
+            "UNE-EN 62446-1 \xB7 REBT ITC-BT-40 \xB7 RD 244/2019 \xB7 UNE-HD 60364-7-712",
+            [
+              bloque("01", "RECEPCI\xD3N", [
+                ...P_RECEPCION_ELEC("Los m\xF3dulos y el inversor"),
+                ["01.04", "M\xF3dulos conformes a UNE-EN IEC 61215 y 61730; inversor certificado para la conexi\xF3n a red"]
+              ]),
+              bloque("02", "AJUSTE AL PROYECTO", [
+                ["02.01", "N\xFAmero, modelo y orientaci\xF3n de m\xF3dulos seg\xFAn proyecto"],
+                ["02.02", "Configuraci\xF3n de strings y entradas MPPT seg\xFAn proyecto"],
+                ["02.03", "Modalidad de autoconsumo y antivertido seg\xFAn proyecto (RD 244/2019)"]
+              ]),
+              bloque("03", "ESTRUCTURA Y M\xD3DULOS", [
+                ["03.01", "Estructura anclada seg\xFAn c\xE1lculo, sin da\xF1ar la impermeabilizaci\xF3n"],
+                ["03.02", "M\xF3dulos fijados con la grapa y el par del fabricante; sin sombras no previstas"],
+                ["03.03", "Estructura y marcos conectados a tierra"]
+              ]),
+              bloque("04", "CORRIENTE CONTINUA (UNE-HD 60364-7-712)", [
+                ["04.01", "Cable solar (UNE-EN 50618) y conectores del mismo fabricante y modelo"],
+                ["04.02", "Seccionador CC y protecciones de string (si hacen falta) instalados"],
+                ["04.03", "Cableado CC sujeto, sin bucles y protegido de la radiaci\xF3n"]
+              ]),
+              bloque("05", "CORRIENTE ALTERNA (ITC-BT-40)", [
+                ["05.01", "Protecciones de interconexi\xF3n del inversor y diferencial seg\xFAn el inversor"],
+                ["05.02", "Antivertido con su medidor en el punto de frontera (si es sin excedentes)"],
+                ["05.03", "Contador bidireccional o de generaci\xF3n seg\xFAn la modalidad"]
+              ]),
+              bloque("06", "PRECOMISIONADO (UNE-EN 62446-1 \xA76)", [
+                ["06.01", "Polaridad, Voc e Isc de cada string medidos antes de conectar el inversor"],
+                ["06.02", "Aislamiento del generador medido"],
+                ["06.03", "Ensayo funcional con el inversor en marcha"]
+              ]),
+              bloque("07", "DOCUMENTACI\xD3N", [
+                ["07.01", "Dossier de UNE-EN 62446-1 \xA74: esquemas, fichas de m\xF3dulos e inversor, resultados de ensayos"],
+                ["07.02", "Certificado de instalaci\xF3n y registro de autoconsumo (RD 244/2019)"]
+              ])
+            ]
+          )
+        ];
+        const NORMA_BMS = "UNE-EN ISO 16484-2 y -3 (equipos y funciones) \xB7 UNE-EN ISO 16484-5 y -6 (BACnet y su conformidad) \xB7 UNE-EN ISO 52120-1 (clases de control) \xB7 RITE IT 1.2.4.3 (control) \xB7 RIPCI (RD 513/2017) y CTE DB SI en los enclavamientos";
+        const TODOS_LOS_PUNTOS = "UNE-EN ISO 16484-3 \xA76: se comprueban todos los puntos del listado de proyecto, uno a uno";
+        const SONDA_TEMP = "Criterio de obra: \xB10,5 K (Pt1000 clase B, UNE-EN 60751, m\xE1s el error del lazo); ninguna norma de BMS lo fija";
+        const CONTROL = [
+          fichaNorma("BMS", "BMS", "SISTEMA DE GESTI\xD3N T\xC9CNICA DEL EDIFICIO (BMS / SCADA)", "Control", NORMA_BMS, [
+            { titulo: "DATOS DEL SISTEMA", tipo: "datos", puntos: [
+              ...identificacion(),
+              texto("scada", "Software SCADA y versi\xF3n"),
+              lista("protocolo", "Protocolo principal", ["BACnet/IP", "BACnet MS/TP", "Modbus TCP", "Modbus RTU", "KNX", "LonWorks", "Propietario"]),
+              lista("clase_bacs", "Clase de control (UNE-EN ISO 52120-1)", ["A", "B", "C", "D"]),
+              numPunto("num_controladores", "N\xBA de controladores"),
+              numPunto("puntos_proyecto", "Puntos del listado de proyecto")
+            ] },
+            { titulo: "LISTADO DE PUNTOS", tipo: "comprobaciones", puntos: [
+              okNoOk("listado_aprobado", "Listado de puntos de proyecto aprobado y el de obra cuadra con \xE9l"),
+              okNoOk("punto_a_punto", "Prueba punto a punto hecha en todos los equipos (entradas y salidas, digitales y anal\xF3gicas)"),
+              okNoOk("sentido_ordenes", "Sentido de las \xF3rdenes y retornos de estado correctos"),
+              okNoOk("sondas_calibradas", "Sondas contrastadas contra patr\xF3n calibrado")
+            ] },
+            { titulo: "SECUENCIAS", tipo: "comprobaciones", puntos: [
+              okNoOk("arranque_paro", "Arranque y paro de cada equipo en su orden (bombas antes que la enfriadora\u2026)"),
+              okNoOk("horarios", "Horarios y calendario de festivos"),
+              okNoOk("free_cooling", "Free-cooling: entra y sale con las condiciones de proyecto"),
+              okNoOk("cambio_estacion", "Cambio de estaci\xF3n (verano / invierno)"),
+              okNoOk("rotacion", "Rotaci\xF3n de equipos y entrada de la reserva por fallo"),
+              okNoOk("vuelta_red", "Vuelta tras un corte de red: rearranque escalonado")
+            ] },
+            { titulo: "ALARMAS", tipo: "comprobaciones", puntos: [
+              okNoOk("alarmas_prioridad", "Alarmas con su prioridad y su texto en el SCADA"),
+              okNoOk("alarmas_envio", "Env\xEDo de alarmas (correo, SMS o aviso) a quien toca"),
+              okNoOk("alarmas_reconocer", "Reconocimiento y registro de alarmas")
+            ] },
+            { titulo: "ENCLAVAMIENTOS CON PCI", tipo: "comprobaciones", puntos: [
+              okNoOk("pci_paro_utas", "Alarma de incendio: paran las UTAs del sector"),
+              okNoOk("pci_compuertas", "Alarma de incendio: cierran las compuertas cortafuegos y llega su final de carrera"),
+              okNoOk("pci_humos", "Control de humos: arrancan los ventiladores y abren las compuertas de humos (si hay)"),
+              okNoOk("pci_rearme", "Rearme: nada vuelve a arrancar solo sin rearmar la central de incendios")
+            ] },
+            { titulo: "INTEGRACIONES (BACNET / MODBUS)", tipo: "comprobaciones", puntos: [
+              okNoOk("int_enfriadoras", "Enfriadoras y bombas de calor: lectura y escritura"),
+              okNoOk("int_variadores", "Variadores de frecuencia"),
+              okNoOk("int_contadores", "Contadores de energ\xEDa, agua y electricidad"),
+              okNoOk("int_vrf", "Pasarelas de VRF y otros sistemas propios"),
+              okNoOk("int_perdida", "P\xE9rdida de comunicaci\xF3n: salta alarma y el equipo queda en modo seguro")
+            ] },
+            { titulo: "SCADA", tipo: "comprobaciones", puntos: [
+              okNoOk("graficos", "Gr\xE1ficos de cada instalaci\xF3n con sus valores en vivo"),
+              okNoOk("historicos", "Hist\xF3ricos y tendencias guard\xE1ndose (intervalo y duraci\xF3n de proyecto)"),
+              okNoOk("usuarios", "Usuarios y niveles de acceso; sin contrase\xF1as por defecto"),
+              okNoOk("copias", "Copia de seguridad de programas y base de datos, y su restauraci\xF3n probada"),
+              okNoOk("hora", "Hora sincronizada en todos los controladores")
+            ] },
+            { titulo: "PUNTO A PUNTO (DE LA PRUEBA POR EQUIPO)", tipo: "parametros", puntos: [
+              prueba("puntos_comprobados", "Puntos comprobados y conformes", "%", OBL, minimo(100, TODOS_LOS_PUNTOS)),
+              prueba("puntos_con_fallo", "Puntos con fallo pendientes", "ud", OBL, maximo(0, TODOS_LOS_PUNTOS)),
+              prueba("sondas_conformes", "Sondas dentro de tolerancia", "%", OBL, minimo(100, "UNE-EN ISO 16484-3: lectura contrastada contra patr\xF3n"))
+            ] },
+            { titulo: "CALIBRACI\xD3N DE SONDAS (LA M\xC1S DESFAVORABLE)", tipo: "parametros", puntos: [
+              prueba("error_sonda_temp", "Error de temperatura sobre el patr\xF3n", "K", OBL, maximo(0.5, SONDA_TEMP)),
+              prueba("error_sonda_hr", "Error de humedad relativa sobre el patr\xF3n", "%HR", OPC, maximo(5, "Criterio de obra: \xB15 %HR (exactitud habitual de la sonda capacitiva)")),
+              prueba("error_sonda_co2", "Error de CO\u2082 sobre el patr\xF3n", "ppm", OPC, maximo(100, "Criterio de obra: \xB1(50 ppm + 3 %) de la sonda NDIR, redondeado a 100 ppm")),
+              prueba("error_sonda_presion", "Error de presi\xF3n o caudal sobre el patr\xF3n", "%", OPC, maximo(5, "Criterio de obra: \xB15 % del valor le\xEDdo"))
+            ] },
+            { titulo: "LAZOS DE CONTROL (EL M\xC1S DESFAVORABLE)", tipo: "parametros", puntos: [
+              prueba("error_consigna_temp", "Error de temperatura en r\xE9gimen sobre la consigna", "K", OBL, maximo(1, "Criterio de obra: \xB11 K estable (RITE IT 1.2.4.3 pide control, no cifra; eu.bac/UNE-EN 15500-1 da la exactitud del controlador)")),
+              prueba("error_consigna_presion", "Error de presi\xF3n o caudal en r\xE9gimen sobre la consigna", "%", OPC, maximo(5, "Criterio de obra: \xB15 %")),
+              prueba("tiempo_estabilizacion", "Tiempo de estabilizaci\xF3n tras un salto de consigna", "min", OBL, maximo(void 0, "Contra el proyecto (UNE-EN ISO 16484-3: respuesta del lazo)")),
+              prueba("sobreoscilacion", "Sobreoscilaci\xF3n tras el salto", "%", OPC, maximo(10, "Criterio de obra: \u2264 10 % del salto, sin oscilar"))
+            ] },
+            { titulo: "TIEMPOS", tipo: "parametros", puntos: [
+              prueba("tiempo_alarma", "De la alarma en campo al aviso recibido", "s", OBL, maximo(60, "Criterio de obra: \u2264 60 s (UNE-EN ISO 16484-3 lo deja al proyecto)")),
+              prueba("tiempo_paro_pci", "De la alarma de incendio al paro de las UTAs", "s", OBL, maximo(void 0, "RIPCI (RD 513/2017) y CTE DB SI: contra el proyecto de PCI")),
+              prueba("tiempo_cierre_compuerta", "Cierre de la compuerta cortafuegos m\xE1s lenta", "s", OPC, maximo(void 0, "UNE-EN 15650: el tiempo de cierre que declara el fabricante"))
+            ] }
+          ]),
+          checklistNorma(
+            "CHECKLIST_BMS",
+            "CHECKLIST BMS",
+            "INSTALACI\xD3N Y PRECOMISIONADO \xB7 SISTEMA DE GESTI\xD3N (BMS)",
+            "Control",
+            "UNE-EN ISO 16484-2 y -3 \xB7 UNE-EN ISO 52120-1 \xB7 RITE IT 1.2.4.3",
+            [
+              bloque("01", "RECEPCI\xD3N", [
+                ["01.01", "Controladores, pasarelas, sondas y actuadores libres de da\xF1os y con su marcado CE"],
+                ["01.02", "Fichas t\xE9cnicas y declaraci\xF3n de conformidad BACnet (PICS, UNE-EN ISO 16484-6) entregadas"],
+                ["01.03", "Licencias del SCADA y de los controladores entregadas a nombre de la propiedad"]
+              ]),
+              bloque("02", "AJUSTE AL PROYECTO", [
+                ["02.01", "Listado de puntos de proyecto aprobado por la DF"],
+                ["02.02", "Arquitectura de red, protocolos y clase de control (UNE-EN ISO 52120-1) seg\xFAn proyecto"],
+                ["02.03", "Descripciones de funcionamiento (secuencias) aprobadas"]
+              ]),
+              bloque("03", "CUADROS DE CONTROL", [
+                ["03.01", "Cuadros montados, con alimentaci\xF3n protegida y, si lo pide el proyecto, por SAI"],
+                ["03.02", "Borneros y cables identificados con el TAG del punto"],
+                ["03.03", "Potencia y se\xF1al separadas dentro del cuadro"]
+              ]),
+              bloque("04", "CABLEADO Y RED", [
+                ["04.01", "Cable de se\xF1al apantallado, con la pantalla a tierra en un solo extremo"],
+                ["04.02", "Buses de campo con resistencias de final de l\xEDnea y sin derivaciones en estrella"],
+                ["04.03", "Direcciones e IP sin duplicar, seg\xFAn el plan de direccionamiento"],
+                ["04.04", "Red del BMS separada (VLAN o f\xEDsica) de la red de oficina"]
+              ]),
+              bloque("05", "ELEMENTOS DE CAMPO", [
+                ["05.01", "Sondas en su sitio: lejos del sol, de focos de calor y de zonas muertas del conducto"],
+                ["05.02", "Actuadores de v\xE1lvulas y compuertas con su recorrido completo"],
+                ["05.03", "Cada elemento de campo etiquetado con el TAG de su equipo y el punto"]
+              ]),
+              bloque("06", "PROGRAMACI\xD3N", [
+                ["06.01", "Programas cargados en todos los controladores"],
+                ["06.02", "Consignas, horarios y l\xEDmites seg\xFAn las descripciones de funcionamiento"],
+                ["06.03", "Alarmas parametrizadas con prioridad y destinatario"]
+              ]),
+              bloque("07", "PRECOMISIONADO", [
+                ["07.01", "Todos los controladores comunican con el SCADA"],
+                ["07.02", "Integraciones BACnet / Modbus leyendo valores reales"],
+                ["07.03", "Prueba punto a punto en fr\xEDo hecha y sin fallos abiertos"]
+              ]),
+              bloque("08", "MANTENIMIENTO", [
+                ["08.01", "Formaci\xF3n al personal de mantenimiento impartida"],
+                ["08.02", "Usuarios y contrase\xF1as entregados a la propiedad"],
+                ["08.03", "Copia de seguridad de programas y base de datos entregada"]
+              ]),
+              bloque("09", "DOCUMENTACI\xD3N", [
+                ["09.01", "Listado de puntos final \xABas built\xBB entregado"],
+                ["09.02", "Esquemas de cuadros de control y planos de red entregados"],
+                ["09.03", "Programas fuente y manuales de uso entregados"]
+              ])
+            ]
+          )
+        ];
+        const RIPCI = "RIPCI (RD 513/2017)";
+        const P_RECEPCION_PCI = (que, une) => [
+          ["01.01", `${que} libre de da\xF1os y con su marcado CE (${une})`],
+          ["01.02", "Declaraci\xF3n de prestaciones, manual y certificado del fabricante entregados"],
+          ["01.03", `Empresa instaladora habilitada en PCI (${RIPCI}, art. 6 y 20)`]
+        ];
+        const P_DOC_PCI = (codigo) => [
+          [`${codigo}.01`, `Certificado de la empresa instaladora (${RIPCI}, art. 20) firmado`],
+          [`${codigo}.02`, "Planos \xABas built\xBB y memoria de la instalaci\xF3n entregados"],
+          [`${codigo}.03`, `Programa de mantenimiento del Anexo II del ${RIPCI} entregado a la propiedad`]
+        ];
+        const PCI = [
+          /* ─────────────────────────── Detección y alarma */
+          fichaNorma(
+            "DETECCION_INCENDIOS",
+            "CENTRAL DE INCENDIOS",
+            "SISTEMA DE DETECCI\xD3N Y ALARMA DE INCENDIOS (CENTRAL, LAZOS Y ELEMENTOS)",
+            "PCI",
+            `${RIPCI} Anexo I secci\xF3n 1 tablas 1 y 2 \xB7 UNE 23007-14 (dise\xF1o, instalaci\xF3n y puesta en servicio) \xB7 UNE-EN 54-2, -3, -4, -7, -11 y -13`,
+            [
+              { titulo: "DATOS DEL SISTEMA", tipo: "datos", puntos: [
+                ...identificacion(),
+                lista("tipo_central", "Tipo de central", ["Anal\xF3gica", "Convencional", "Algor\xEDtmica"]),
+                numPunto("num_lazos", "N\xBA de lazos"),
+                numPunto("num_detectores", "N\xBA de detectores"),
+                numPunto("num_pulsadores", "N\xBA de pulsadores"),
+                numPunto("num_sirenas", "N\xBA de sirenas y avisadores")
+              ] },
+              { titulo: "COMPROBACIONES", tipo: "comprobaciones", puntos: [
+                okNoOk("detectores_todos", "Todos los detectores probados con su agente (humo, calor o CO) y dan alarma en la central (UNE 23007-14)"),
+                okNoOk("pulsadores_todos", "Todos los pulsadores probados con su llave y dan alarma en la central"),
+                okNoOk("identificacion_zona", "Cada alarma sale en la central con su zona y su texto, como en el plano"),
+                okNoOk("averias", "Aver\xEDa de lazo abierto, cortocircuito y retirada de un detector se se\xF1alan (UNE-EN 54-2)"),
+                okNoOk("aisladores", "Un cortocircuito en el lazo solo deja fuera el tramo entre aisladores"),
+                okNoOk("fallo_red", "Fallo de red: pasa a bater\xEDas sin perder alarmas y da aver\xEDa"),
+                okNoOk("sirenas_todas", "Todas las sirenas y avisadores \xF3pticos suenan y destellan en la alarma general"),
+                okNoOk("fases_alarma", "Alarma restringida y general seg\xFAn el plan de autoprotecci\xF3n (retardos y reconocimiento)"),
+                okNoOk("maniobras", "Maniobras: paro de clima, cierre de compuertas y puertas, ascensores a planta de salida y apertura de evacuaci\xF3n"),
+                okNoOk("transmision", "Transmisi\xF3n de la alarma a la central receptora o al centro de control"),
+                okNoOk("integracion_bms", "Estado y alarmas llegan al BMS (solo lectura: el BMS no rearma la central)")
+              ] },
+              { titulo: "ALIMENTACI\xD3N Y CONSUMOS", tipo: "parametros", puntos: [
+                prueba("consumo_reposo", "Consumo de la central en reposo (todos los lazos)", "mA", OBL, maximo(void 0, "UNE 23007-14 y UNE-EN 54-4: contra el c\xE1lculo de bater\xEDas del proyecto")),
+                prueba("consumo_alarma", "Consumo de la central en alarma general", "mA", OBL, maximo(void 0, "UNE 23007-14 y UNE-EN 54-4: contra el c\xE1lculo de bater\xEDas del proyecto")),
+                prueba("autonomia_reposo", "Autonom\xEDa de bater\xEDas en reposo", "h", OBL, minimo(72, "UNE 23007-14: 72 h en reposo y despu\xE9s 30 min en alarma (24 h si hay mantenimiento permanente)")),
+                prueba("autonomia_alarma", "Autonom\xEDa en alarma despu\xE9s del reposo", "min", OBL, minimo(30, "UNE 23007-14: 30 min en alarma general")),
+                prueba("tension_lazo", "Tensi\xF3n en el elemento m\xE1s lejano del lazo", "V", OPC, minimo(void 0, "La m\xEDnima del fabricante del elemento (c\xE1lculo del lazo)"))
+              ] },
+              { titulo: "AVISADORES (EL PUNTO M\xC1S DESFAVORABLE)", tipo: "parametros", puntos: [
+                prueba("nivel_sonoro", "Nivel sonoro de las sirenas", "dB(A)", OBL, minimo(65, "UNE 23007-14: \u2265 65 dB(A) y \u2265 5 dB sobre el ruido de fondo; \u2265 75 dB(A) en la cabecera de la cama en zonas de dormir")),
+                prueba("margen_ruido", "Margen sobre el ruido de fondo", "dB", OBL, minimo(5, "UNE 23007-14: \u2265 5 dB sobre el ruido ambiente")),
+                prueba("tiempo_alarma", "Del detector a la alarma en la central", "s", OPC, maximo(void 0, "UNE-EN 54-2 \xA77: indicaci\xF3n en \u2264 10 s; contra el retardo del plan de autoprotecci\xF3n"))
+              ] },
+              { titulo: "PULSADORES", tipo: "parametros", puntos: [
+                prueba("altura_pulsador", "Altura del pulsador m\xE1s alto", "m", OBL, maximo(1.2, `${RIPCI} Anexo I secci\xF3n 1 tabla 1: entre 0,8 y 1,2 m`)),
+                prueba("distancia_pulsador", "Recorrido m\xE1ximo hasta un pulsador", "m", OBL, maximo(25, `${RIPCI} Anexo I secci\xF3n 1 tabla 1: \u2264 25 m desde cualquier punto`))
+              ] }
+            ]
+          ),
+          checklistNorma(
+            "CHECKLIST_DETECCION_INCENDIOS",
+            "CHECKLIST CENTRAL DE INCENDIOS",
+            "INSTALACI\xD3N Y PRECOMISIONADO \xB7 DETECCI\xD3N Y ALARMA DE INCENDIOS",
+            "PCI",
+            `${RIPCI} Anexo I secci\xF3n 1 \xB7 UNE 23007-14 \xB7 UNE-EN 54`,
+            [
+              bloque("01", "RECEPCI\xD3N", P_RECEPCION_PCI("La central, los detectores, pulsadores y sirenas", "UNE-EN 54")),
+              bloque("02", "AJUSTE AL PROYECTO", [
+                ["02.01", "Tipo de detector de cada zona seg\xFAn el riesgo (humo, calor, CO, aspiraci\xF3n, lineal)"],
+                ["02.02", "Zonificaci\xF3n de la central igual a la del plano y a la del plan de autoprotecci\xF3n"],
+                ["02.03", "Matriz causa-efecto (qu\xE9 hace cada alarma) aprobada por la DF"]
+              ]),
+              bloque("03", "CENTRAL", [
+                ["03.01", "Central en lugar vigilado o con repetidor en conserjer\xEDa / control"],
+                ["03.02", "Alimentaci\xF3n por circuito exclusivo, protegido y rotulado"],
+                ["03.03", "Bater\xEDas dimensionadas seg\xFAn el c\xE1lculo, fechadas y conectadas"]
+              ]),
+              bloque("04", "CABLEADO", [
+                ["04.01", "Cable seg\xFAn proyecto: apantallado y, en los lazos que deben seguir funcionando con fuego, resistente al fuego"],
+                ["04.02", "Lazos cerrados (vuelven a la central) y con aisladores seg\xFAn el fabricante"],
+                ["04.03", "Canalizaci\xF3n exclusiva o separada de potencia; cajas identificadas en rojo"]
+              ]),
+              bloque("05", "ELEMENTOS DE CAMPO (UNE 23007-14)", [
+                ["05.01", "Detectores a la distancia de paredes, vigas y difusores que pide la norma"],
+                ["05.02", "Cobertura de cada detector seg\xFAn la altura y la forma del techo"],
+                ["05.03", "Pulsadores junto a cada salida de planta y de recinto, entre 0,8 y 1,2 m"],
+                ["05.04", "Sirenas y avisadores \xF3pticos donde se oigan y se vean (aseos y zonas ruidosas, \xF3pticos)"],
+                ["05.05", "Detectores en falsos techos y suelos t\xE9cnicos con indicador de acci\xF3n visible"]
+              ]),
+              bloque("06", "PROGRAMACI\xD3N", [
+                ["06.01", "Textos de zona y de elemento cargados y legibles"],
+                ["06.02", "Retardos, fases de alarma y modo d\xEDa / noche seg\xFAn el plan de autoprotecci\xF3n"],
+                ["06.03", "Maniobras programadas seg\xFAn la matriz causa-efecto"]
+              ]),
+              bloque("07", "PRECOMISIONADO", [
+                ["07.01", "Todos los detectores y pulsadores probados uno a uno y registrados"],
+                ["07.02", "Prueba de maniobras con los instaladores de clima, ascensores, puertas y BMS presentes"],
+                ["07.03", "Prueba de autonom\xEDa de bater\xEDas hecha"]
+              ]),
+              bloque("08", "MANTENIMIENTO", [
+                ["08.01", "Libro de registro de la central entregado"],
+                ["08.02", "Formaci\xF3n al personal de seguridad: reconocer, silenciar y rearmar"],
+                ["08.03", "Contrato de mantenimiento con empresa habilitada (Anexo II: trimestral, semestral y anual)"]
+              ]),
+              bloque("09", "DOCUMENTACI\xD3N", P_DOC_PCI("09"))
+            ]
+          ),
+          /* ─────────────────────────── Grupo de bombeo PCI */
+          fichaNorma(
+            "GRUPO_PCI",
+            "GRUPO DE BOMBEO PCI",
+            "GRUPO DE BOMBEO CONTRA INCENDIOS Y ABASTECIMIENTO DE AGUA",
+            "PCI",
+            `${RIPCI} Anexo I secci\xF3n 1 (abastecimiento de agua) \xB7 UNE 23500 (sistemas de abastecimiento de agua contra incendios) \xB7 UNE-EN 12845 (bombas, si alimenta rociadores)`,
+            [
+              { titulo: "DATOS DEL GRUPO", tipo: "datos", puntos: [
+                ...identificacion(),
+                lista("composicion", "Composici\xF3n", ["El\xE9ctrica + jockey", "El\xE9ctrica + di\xE9sel + jockey", "Di\xE9sel + jockey", "2 el\xE9ctricas + jockey"]),
+                lista("categoria", "Categor\xEDa del abastecimiento (UNE 23500)", ["I", "II", "III"]),
+                numPunto("volumen_reserva", "Volumen de la reserva de agua", "m\xB3"),
+                texto("sistemas_que_alimenta", "Sistemas que alimenta (BIE, hidrantes, rociadores\u2026)")
+              ] },
+              { titulo: "COMPROBACIONES", tipo: "comprobaciones", puntos: [
+                okNoOk("arranque_auto_principal", "La bomba principal arranca sola al bajar la presi\xF3n (presostato)"),
+                okNoOk("arranque_auto_diesel", "La di\xE9sel arranca sola si falla la principal o falta la red"),
+                okNoOk("paro_manual", "Una vez en marcha solo se paran a mano, desde su cuadro (UNE 23500)"),
+                okNoOk("jockey", "La jockey mantiene la presi\xF3n y no hace arrancar la principal por peque\xF1as fugas"),
+                okNoOk("intentos_diesel", "El di\xE9sel hace sus ciclos de arranque con las dos bater\xEDas (UNE-EN 12845 \xA710.9.7)"),
+                okNoOk("alarmas_cuadro", "Alarmas del cuadro (bomba en marcha, fallo de arranque, nivel bajo) llegan a la central y al BMS"),
+                okNoOk("valvulas_abiertas", "V\xE1lvulas de corte bloqueadas abiertas y con indicador de posici\xF3n"),
+                okNoOk("colector_pruebas", "Colector de pruebas con caudal\xEDmetro y retorno al dep\xF3sito"),
+                okNoOk("llenado_auto", "Llenado autom\xE1tico de la reserva con su v\xE1lvula de flotador")
+              ] },
+              { titulo: "CURVA DE LA BOMBA (COLECTOR DE PRUEBAS)", tipo: "parametros", puntos: [
+                prueba("caudal_nominal_pci", "Caudal nominal", "m\xB3/h", OBL, minimo(void 0, "UNE 23500: el caudal de dise\xF1o de los sistemas que alimenta, a su presi\xF3n")),
+                prueba("presion_nominal_pci", "Presi\xF3n al caudal nominal", "bar", OBL, minimo(void 0, "UNE 23500: la presi\xF3n de dise\xF1o a la salida del grupo")),
+                prueba("presion_140", "Presi\xF3n al 140 % del caudal nominal, sobre la nominal", "%", OBL, minimo(70, "UNE-EN 12845 \xA710.2 y UNE 23500: \u2265 70 % de la presi\xF3n nominal")),
+                prueba("presion_cierre", "Presi\xF3n a caudal cero (v\xE1lvula cerrada)", "bar", OPC, maximo(void 0, "Contra la curva del fabricante y la presi\xF3n m\xE1xima de la red"))
+              ] },
+              { titulo: "ARRANQUES", tipo: "parametros", puntos: [
+                prueba("presion_arranque_jockey", "Presi\xF3n de arranque de la jockey", "bar", OBL, conTol(0.05, "UNE 23500: tarado de presostatos seg\xFAn proyecto")),
+                prueba("presion_arranque_principal", "Presi\xF3n de arranque de la principal", "bar", OBL, conTol(0.05, "UNE 23500: tarado de presostatos seg\xFAn proyecto")),
+                prueba("presion_arranque_diesel", "Presi\xF3n de arranque de la di\xE9sel", "bar", OPC, conTol(0.05, "UNE 23500: tarado de presostatos seg\xFAn proyecto")),
+                prueba("autonomia_gasoil", "Autonom\xEDa del dep\xF3sito de gasoil", "h", OPC, minimo(void 0, "UNE-EN 12845 \xA710.9.6: 3 h (riesgo ligero u ordinario) o 6 h (riesgo extra)"))
+              ] }
+            ]
+          ),
+          checklistNorma(
+            "CHECKLIST_GRUPO_PCI",
+            "CHECKLIST GRUPO DE BOMBEO PCI",
+            "INSTALACI\xD3N Y PRECOMISIONADO \xB7 GRUPO DE BOMBEO CONTRA INCENDIOS",
+            "PCI",
+            `${RIPCI} \xB7 UNE 23500 \xB7 UNE-EN 12845`,
+            [
+              bloque("01", "RECEPCI\xD3N", P_RECEPCION_PCI("El grupo, el cuadro y el dep\xF3sito", "UNE 23500")),
+              bloque("02", "AJUSTE AL PROYECTO", [
+                ["02.01", "Caudal, presi\xF3n y categor\xEDa del abastecimiento seg\xFAn el c\xE1lculo hidr\xE1ulico"],
+                ["02.02", "Volumen de la reserva seg\xFAn los sistemas y su tiempo de funcionamiento"],
+                ["02.03", "Curvas de las bombas certificadas por el fabricante"]
+              ]),
+              bloque("03", "SALA DE BOMBAS (UNE 23500)", [
+                ["03.01", "Sala sectorizada, con acceso desde el exterior o desde zona protegida"],
+                ["03.02", "Temperatura m\xEDnima de la sala garantizada (calefacci\xF3n si hace falta)"],
+                ["03.03", "Ventilaci\xF3n de la sala y salida de humos del di\xE9sel al exterior"],
+                ["03.04", "Desag\xFCe capaz del caudal de prueba"]
+              ]),
+              bloque("04", "HIDR\xC1ULICA", [
+                ["04.01", "Bombas en carga (aspiraci\xF3n por debajo del nivel del agua) o con cebado seg\xFAn la norma"],
+                ["04.02", "V\xE1lvulas de corte, de retenci\xF3n y man\xF3metros en cada bomba"],
+                ["04.03", "Colector de pruebas con caudal\xEDmetro y v\xE1lvula de regulaci\xF3n"],
+                ["04.04", "Prueba de presi\xF3n de la red hecha (estanqueidad sin fugas)"]
+              ]),
+              bloque("05", "EL\xC9CTRICA", [
+                ["05.01", "Alimentaci\xF3n de la bomba el\xE9ctrica desde antes del general del edificio o por l\xEDnea exclusiva protegida"],
+                ["05.02", "Cable de alimentaci\xF3n resistente al fuego"],
+                ["05.03", "Protecciones del cuadro sin disparo por sobrecarga (solo cortocircuito), seg\xFAn UNE 23500"],
+                ["05.04", "Dos bater\xEDas de arranque del di\xE9sel con su cargador"]
+              ]),
+              bloque("06", "CONTROL", [
+                ["06.01", "Presostatos tarados y escalonados: jockey, principal, di\xE9sel"],
+                ["06.02", "Se\xF1ales al cuadro de alarmas y a la central de incendios"],
+                ["06.03", "Arranque manual de emergencia accesible"]
+              ]),
+              bloque("07", "PRECOMISIONADO", [
+                ["07.01", "Curva de cada bomba levantada en el colector de pruebas"],
+                ["07.02", "Arranque autom\xE1tico de cada bomba por ca\xEDda de presi\xF3n"],
+                ["07.03", "Prueba de funcionamiento continuo de la di\xE9sel"]
+              ]),
+              bloque("08", "MANTENIMIENTO", [
+                ["08.01", "Prueba semanal de arranque programada (Anexo II)"],
+                ["08.02", "Formaci\xF3n al personal de mantenimiento"],
+                ["08.03", "Repuestos y herramientas del fabricante entregados"]
+              ]),
+              bloque("09", "DOCUMENTACI\xD3N", P_DOC_PCI("09"))
+            ]
+          ),
+          /* ─────────────────────────── BIE e hidrantes */
+          fichaNorma(
+            "BIE_HIDRANTES",
+            "BIE E HIDRANTES",
+            "RED DE BOCAS DE INCENDIO EQUIPADAS (BIE) E HIDRANTES",
+            "PCI",
+            `${RIPCI} Anexo I secci\xF3n 1 \xB7 UNE-EN 671-1 y -2 (BIE 25 y 45) \xB7 UNE-EN 671-3 \xB7 UNE 23500 \xB7 UNE-EN 14384 y UNE 23405/23406 (hidrantes)`,
+            [
+              { titulo: "DATOS DE LA RED", tipo: "datos", puntos: [
+                ...identificacion(),
+                lista("tipo_bie", "Tipo de BIE", ["BIE 25", "BIE 45", "BIE 25 y 45", "Sin BIE"]),
+                numPunto("num_bie", "N\xBA de BIE"),
+                numPunto("num_hidrantes", "N\xBA de hidrantes")
+              ] },
+              { titulo: "COMPROBACIONES", tipo: "comprobaciones", puntos: [
+                okNoOk("bie_accesibles", "BIE accesibles, sin obst\xE1culos y se\xF1alizadas"),
+                okNoOk("bie_salidas", "Una BIE a \u2264 5 m de cada salida de sector y todo punto a \u2264 25 m (m\xE1s 5 m de chorro) de una BIE"),
+                okNoOk("bie_manguera", "Manguera desenrollada entera, sin pliegues ni fugas, y lanza con chorro y niebla"),
+                okNoOk("bie_manometro", "Man\xF3metro en cada BIE con la presi\xF3n de la red"),
+                okNoOk("hidrantes_acceso", "Hidrantes accesibles a los bomberos y se\xF1alizados"),
+                okNoOk("hidrantes_drenaje", "Hidrantes de columna seca: vac\xEDan al cerrarse (sin riesgo de helada)")
+              ] },
+              { titulo: "PRUEBA DE LA RED", tipo: "parametros", puntos: [
+                prueba("prueba_presion_red", "Presi\xF3n de prueba de la red de BIE", "bar", OBL, minimo(10, `${RIPCI} Anexo I: la m\xE1xima de servicio y como m\xEDnimo 10 bar (980 kPa)`)),
+                prueba("duracion_prueba_red", "Duraci\xF3n de la prueba sin fugas", "h", OBL, minimo(2, `${RIPCI} Anexo I: 2 h sin fugas`))
+              ] },
+              { titulo: "BIE M\xC1S DESFAVORABLES (2 SIMULT\xC1NEAS)", tipo: "parametros", puntos: [
+                prueba("presion_bie", "Presi\xF3n din\xE1mica en la BIE m\xE1s desfavorable", "bar", OBL, minimo(2, `${RIPCI} Anexo I y UNE-EN 671: \u2265 2 bar en la boquilla con las 2 m\xE1s desfavorables abiertas`)),
+                prueba("presion_bie_max", "Presi\xF3n din\xE1mica en la BIE m\xE1s favorable", "bar", OPC, maximo(5, `${RIPCI} Anexo I: \u2264 5 bar en la boquilla (manejable)`)),
+                prueba("caudal_bie", "Caudal en la BIE m\xE1s desfavorable", "l/min", OBL, minimo(void 0, "UNE-EN 671: el del fabricante de la boquilla a esa presi\xF3n (BIE 25 \u2248 100 l/min, BIE 45 \u2248 200 l/min)")),
+                prueba("autonomia_bie", "Tiempo que se mantiene", "min", OBL, minimo(60, `${RIPCI} Anexo I: 60 min con las 2 BIE m\xE1s desfavorables`))
+              ] },
+              { titulo: "HIDRANTES (EL M\xC1S DESFAVORABLE)", tipo: "parametros", puntos: [
+                prueba("caudal_hidrante", "Caudal del hidrante", "l/min", OPC, minimo(500, "CTE DB SI 5 y UNE 23500: 500 l/min (DN 80) o 1000 l/min (DN 100), seg\xFAn el riesgo")),
+                prueba("presion_hidrante", "Presi\xF3n din\xE1mica en el hidrante", "bar", OPC, minimo(1, `${RIPCI} Anexo I y UNE 23500: \u2265 1 bar con el caudal de dise\xF1o`))
+              ] }
+            ]
+          ),
+          checklistNorma(
+            "CHECKLIST_BIE_HIDRANTES",
+            "CHECKLIST BIE E HIDRANTES",
+            "INSTALACI\xD3N Y PRECOMISIONADO \xB7 BIE E HIDRANTES",
+            "PCI",
+            `${RIPCI} \xB7 UNE-EN 671 \xB7 UNE 23500`,
+            [
+              bloque("01", "RECEPCI\xD3N", P_RECEPCION_PCI("Las BIE, mangueras e hidrantes", "UNE-EN 671 / UNE-EN 14384")),
+              bloque("02", "AJUSTE AL PROYECTO", [
+                ["02.01", "Tipo y n\xFAmero de BIE e hidrantes seg\xFAn el CTE DB SI 4 y el proyecto"],
+                ["02.02", "Di\xE1metros de la red seg\xFAn el c\xE1lculo hidr\xE1ulico"]
+              ]),
+              bloque("03", "INSTALACI\xD3N DE LAS BIE", [
+                ["03.01", "Centro de la boquilla o la v\xE1lvula a \u2264 1,5 m del suelo"],
+                ["03.02", "Una BIE a \u2264 5 m de cada salida de sector"],
+                ["03.03", "Separaci\xF3n entre BIE \u2264 50 m y cobertura de todo el sector"],
+                ["03.04", "Armario con cristal o tapa de f\xE1cil apertura y se\xF1al de BIE"]
+              ]),
+              bloque("04", "RED DE TUBER\xCDAS", [
+                ["04.01", "Tuber\xEDa de acero o material admitido, pintada en rojo o identificada"],
+                ["04.02", "Soportes y dilatadores seg\xFAn el fabricante; pasos de sector sellados"],
+                ["04.03", "V\xE1lvulas de corte por zonas y de vaciado en los puntos bajos"]
+              ]),
+              bloque("05", "HIDRANTES", [
+                ["05.01", "Hidrantes a \u2264 100 m de las fachadas que protegen, en v\xEDa accesible a bomberos"],
+                ["05.02", "Racores normalizados (UNE 23400) y tapas puestas"]
+              ]),
+              bloque("06", "PRUEBAS DE OBRA", [
+                ["06.01", "Prueba de estanqueidad a 10 bar (o la m\xE1xima de servicio) durante 2 h, sin fugas"],
+                ["06.02", "Red limpia (barrido) antes de conectar las BIE"]
+              ]),
+              bloque("07", "PRECOMISIONADO", [
+                ["07.01", "Presi\xF3n din\xE1mica medida en las 2 BIE m\xE1s desfavorables a la vez"],
+                ["07.02", "Manguera de cada BIE desenrollada y probada"],
+                ["07.03", "Hidrantes abiertos y cerrados, con su caudal medido"]
+              ]),
+              bloque("08", "MANTENIMIENTO", [
+                ["08.01", "Prueba de presi\xF3n de mangueras cada 5 a\xF1os programada (UNE-EN 671-3)"],
+                ["08.02", "Etiqueta de revisi\xF3n en cada BIE"]
+              ]),
+              bloque("09", "DOCUMENTACI\xD3N", P_DOC_PCI("09"))
+            ]
+          ),
+          /* ─────────────────────────── Rociadores */
+          fichaNorma(
+            "ROCIADORES",
+            "ROCIADORES",
+            "SISTEMA DE ROCIADORES AUTOM\xC1TICOS (PUESTO DE CONTROL Y RED)",
+            "PCI",
+            `${RIPCI} Anexo I secci\xF3n 1 \xB7 UNE-EN 12845 (dise\xF1o, instalaci\xF3n y mantenimiento) \xB7 UNE-EN 12259 (componentes)`,
+            [
+              { titulo: "DATOS DEL SISTEMA", tipo: "datos", puntos: [
+                ...identificacion(),
+                lista("tipo_rociadores", "Tipo de sistema", ["Tuber\xEDa mojada", "Tuber\xEDa seca", "Acci\xF3n previa", "Diluvio"]),
+                lista("riesgo_rociadores", "Clase de riesgo (UNE-EN 12845)", ["Ligero (RL)", "Ordinario (RO1-RO4)", "Extra (REP/REA)"]),
+                numPunto("num_rociadores", "N\xBA de rociadores del puesto"),
+                numPunto("densidad_diseno", "Densidad de dise\xF1o", "mm/min"),
+                numPunto("area_operacion", "\xC1rea de operaci\xF3n", "m\xB2")
+              ] },
+              { titulo: "COMPROBACIONES", tipo: "comprobaciones", puntos: [
+                okNoOk("alarma_hidraulica", "La v\xE1lvula de prueba y alarma hace sonar la campana hidr\xE1ulica"),
+                okNoOk("flujostatos", "Cada flujostato de zona da alarma en la central de incendios con su zona"),
+                okNoOk("valvulas_supervisadas", "V\xE1lvulas de corte supervisadas: si se cierran, aver\xEDa en la central"),
+                okNoOk("rociadores_libres", "Rociadores sin pintar, sin tapar y con la distancia libre debajo (UNE-EN 12845)"),
+                okNoOk("repuesto", "Armario de rociadores de repuesto con su llave"),
+                okNoOk("arranque_bombas", "Al abrir la prueba arranca el grupo de bombeo")
+              ] },
+              { titulo: "PRUEBA DE LA RED (UNE-EN 12845 \xA719.1)", tipo: "parametros", puntos: [
+                prueba("prueba_presion_rociadores", "Presi\xF3n de prueba hidrost\xE1tica", "bar", OBL, minimo(15, "UNE-EN 12845 \xA719.1.1: \u2265 15 bar, o 1,5 veces la m\xE1xima de servicio si es mayor")),
+                prueba("duracion_prueba_rociadores", "Duraci\xF3n de la prueba sin fugas", "h", OBL, minimo(2, "UNE-EN 12845 \xA719.1.1: 2 h"))
+              ] },
+              { titulo: "PUESTO DE CONTROL", tipo: "parametros", puntos: [
+                prueba("presion_puesto", "Presi\xF3n en el puesto de control con el caudal de dise\xF1o", "bar", OBL, minimo(void 0, "UNE-EN 12845: la del c\xE1lculo hidr\xE1ulico en el puesto")),
+                prueba("caudal_puesto", "Caudal de dise\xF1o medido", "l/min", OBL, minimo(void 0, "UNE-EN 12845: densidad \xD7 \xE1rea de operaci\xF3n, del c\xE1lculo")),
+                prueba("tiempo_agua_seca", "Tiempo hasta que llega el agua al rociador de prueba (tuber\xEDa seca)", "s", OPC, maximo(60, "UNE-EN 12845 \xA711.2: \u2264 60 s (seg\xFAn el riesgo)"))
+              ] }
+            ]
+          ),
+          checklistNorma(
+            "CHECKLIST_ROCIADORES",
+            "CHECKLIST ROCIADORES",
+            "INSTALACI\xD3N Y PRECOMISIONADO \xB7 ROCIADORES AUTOM\xC1TICOS",
+            "PCI",
+            `${RIPCI} \xB7 UNE-EN 12845 \xB7 UNE-EN 12259`,
+            [
+              bloque("01", "RECEPCI\xD3N", P_RECEPCION_PCI("Los rociadores, v\xE1lvulas y puestos de control", "UNE-EN 12259")),
+              bloque("02", "AJUSTE AL PROYECTO", [
+                ["02.01", "Clase de riesgo, densidad y \xE1rea de operaci\xF3n seg\xFAn el c\xE1lculo hidr\xE1ulico"],
+                ["02.02", "Tipo de rociador (respuesta, temperatura y factor K) seg\xFAn la zona"],
+                ["02.03", "C\xE1lculo hidr\xE1ulico firmado y aprobado por la DF"]
+              ]),
+              bloque("03", "PUESTO DE CONTROL", [
+                ["03.01", "Puesto accesible, se\xF1alizado y con su placa de zona"],
+                ["03.02", "Man\xF3metros aguas arriba y abajo de la v\xE1lvula de alarma"],
+                ["03.03", "V\xE1lvula de prueba y drenaje con desag\xFCe capaz"]
+              ]),
+              bloque("04", "RED Y ROCIADORES", [
+                ["04.01", "Separaci\xF3n entre rociadores y a paredes seg\xFAn la UNE-EN 12845"],
+                ["04.02", "Deflector a la distancia del techo que pide la norma; sin obst\xE1culos"],
+                ["04.03", "Soportes seg\xFAn la norma y pasos de sector sellados"],
+                ["04.04", "Rociadores protegidos con jaula donde puedan recibir golpes"]
+              ]),
+              bloque("05", "ALARMAS", [
+                ["05.01", "Campana hidr\xE1ulica en el exterior o en zona vigilada"],
+                ["05.02", "Flujostatos y finales de carrera de v\xE1lvulas cableados a la central"]
+              ]),
+              bloque("06", "PRUEBAS DE OBRA", [
+                ["06.01", "Prueba hidrost\xE1tica a 15 bar (o 1,5 veces la de servicio) durante 2 h"],
+                ["06.02", "Red barrida antes de montar los rociadores"]
+              ]),
+              bloque("07", "PRECOMISIONADO", [
+                ["07.01", "Prueba de alarma de cada puesto y de cada flujostato"],
+                ["07.02", "Caudal y presi\xF3n de dise\xF1o comprobados en el puesto"]
+              ]),
+              bloque("08", "MANTENIMIENTO", [
+                ["08.01", "Prueba semanal de alarma y de arranque programada (Anexo II y UNE-EN 12845 \xA720)"],
+                ["08.02", "Rociadores de repuesto seg\xFAn la norma"]
+              ]),
+              bloque("09", "DOCUMENTACI\xD3N", P_DOC_PCI("09"))
+            ]
+          ),
+          /* ─────────────────────────── Extinción por gas */
+          fichaNorma(
+            "EXTINCION_GAS",
+            "EXTINCI\xD3N POR GAS",
+            "SISTEMA DE EXTINCI\xD3N AUTOM\xC1TICA POR AGENTE GASEOSO",
+            "PCI",
+            `${RIPCI} Anexo I secci\xF3n 1 \xB7 UNE-EN 15004-1 (dise\xF1o, instalaci\xF3n y mantenimiento) y la parte del agente \xB7 UNE-EN 12094 (componentes)`,
+            [
+              { titulo: "DATOS DEL SISTEMA", tipo: "datos", puntos: [
+                ...identificacion(),
+                lista("agente", "Agente", ["HFC-227ea (FM-200)", "FK-5-1-12 (Novec 1230)", "IG-541", "IG-55", "IG-01", "IG-100", "CO\u2082"]),
+                texto("recinto", "Recinto protegido"),
+                numPunto("volumen_recinto", "Volumen del recinto", "m\xB3"),
+                numPunto("concentracion_diseno", "Concentraci\xF3n de dise\xF1o", "%"),
+                numPunto("num_botellas", "N\xBA de botellas")
+              ] },
+              { titulo: "COMPROBACIONES", tipo: "comprobaciones", puntos: [
+                okNoOk("doble_deteccion", "Disparo por doble detecci\xF3n (dos detectores de zonas cruzadas)"),
+                okNoOk("pulsador_disparo", "Pulsador de disparo manual, junto a la salida, dispara (con la botella desconectada)"),
+                okNoOk("pulsador_paro", "Pulsador de paro (abort) detiene la cuenta atr\xE1s"),
+                okNoOk("prealarma", "Prealarma ac\xFAstica y \xF3ptica dentro del recinto durante la cuenta atr\xE1s"),
+                okNoOk("cartel_disparado", "Cartel \xABGas disparado, no entrar\xBB en cada puerta y se enciende"),
+                okNoOk("enclavamientos_gas", "Para la ventilaci\xF3n y la clima, cierra compuertas y puertas del recinto"),
+                okNoOk("bloqueo_manual", "Bloqueo autom\xE1tico / manual para entrar a mantenimiento se\xF1alizado"),
+                okNoOk("sobrepresion", "Compuerta de alivio de sobrepresi\xF3n instalada y libre (gases inertes y HFC)"),
+                okNoOk("a_la_central", "Estados (prealarma, disparo, bloqueo, aver\xEDa) llegan a la central de incendios")
+              ] },
+              { titulo: "ESTANQUEIDAD DEL RECINTO (UNE-EN 15004-1 ANEXO E)", tipo: "parametros", puntos: [
+                prueba("tiempo_retencion", "Tiempo de retenci\xF3n (prueba de la puerta ventilador)", "min", OBL, minimo(10, "UNE-EN 15004-1 anexo E: \u2265 10 min a la altura del riesgo m\xE1s alto")),
+                prueba("area_fugas", "\xC1rea equivalente de fugas", "cm\xB2", OPC, maximo(void 0, "UNE-EN 15004-1 anexo E: la que deja cumplir el tiempo de retenci\xF3n"))
+              ] },
+              { titulo: "BOTELLAS Y DESCARGA", tipo: "parametros", puntos: [
+                prueba("presion_botellas", "Presi\xF3n de las botellas (la m\xE1s baja), sobre la nominal", "%", OBL, minimo(90, "UNE-EN 15004-1 \xA79: p\xE9rdida de presi\xF3n \u2264 10 % (corregida por temperatura)")),
+                prueba("peso_agente", "Peso del agente (la botella m\xE1s baja), sobre el nominal", "%", OPC, minimo(95, "UNE-EN 15004-1 \xA79: p\xE9rdida de agente \u2264 5 %")),
+                prueba("retardo_descarga", "Retardo de la prealarma a la descarga", "s", OBL, conTol(0.1, "UNE-EN 15004-1: el del proyecto, que deja evacuar el recinto")),
+                prueba("tiempo_descarga", "Tiempo de descarga de dise\xF1o", "s", OPC, maximo(void 0, "UNE-EN 15004-1: \u2264 10 s halocarbonados; \u2264 60 s inertes (\u2264 120 s en riesgos de superficie)"))
+              ] }
+            ]
+          ),
+          checklistNorma(
+            "CHECKLIST_EXTINCION_GAS",
+            "CHECKLIST EXTINCI\xD3N POR GAS",
+            "INSTALACI\xD3N Y PRECOMISIONADO \xB7 EXTINCI\xD3N POR AGENTE GASEOSO",
+            "PCI",
+            `${RIPCI} \xB7 UNE-EN 15004-1 \xB7 UNE-EN 12094`,
+            [
+              bloque("01", "RECEPCI\xD3N", P_RECEPCION_PCI("Las botellas, v\xE1lvulas, difusores y la central de extinci\xF3n", "UNE-EN 12094")),
+              bloque("02", "AJUSTE AL PROYECTO", [
+                ["02.01", "C\xE1lculo de agente seg\xFAn el volumen real del recinto, su temperatura y la concentraci\xF3n de dise\xF1o"],
+                ["02.02", "C\xE1lculo hidr\xE1ulico de la red de difusores del fabricante"],
+                ["02.03", "Concentraci\xF3n m\xE1xima por debajo de la NOAEL si el recinto est\xE1 ocupado"]
+              ]),
+              bloque("03", "RECINTO", [
+                ["03.01", "Pasos de cables y tuber\xEDas sellados; falsos suelos y techos incluidos"],
+                ["03.02", "Puertas con cierrapuertas y burletes"],
+                ["03.03", "Compuerta de alivio de sobrepresi\xF3n dimensionada por el fabricante"]
+              ]),
+              bloque("04", "BOTELLAS Y RED", [
+                ["04.01", "Botellas sujetas, con man\xF3metro o pesaje y etiqueta de carga"],
+                ["04.02", "Tuber\xEDas y difusores seg\xFAn el c\xE1lculo, sujetos contra la reacci\xF3n de la descarga"],
+                ["04.03", "Red soplada con nitr\xF3geno o aire antes de conectar las botellas"]
+              ]),
+              bloque("05", "DETECCI\xD3N Y MANDO", [
+                ["05.01", "Detectores en dos zonas cruzadas (doble detecci\xF3n)"],
+                ["05.02", "Pulsadores de disparo y de paro junto a la salida, diferenciados por color"],
+                ["05.03", "Se\xF1ales \xF3pticas y ac\xFAsticas dentro y carteles fuera"]
+              ]),
+              bloque("06", "PRUEBAS DE OBRA", [
+                ["06.01", "Prueba de estanqueidad del recinto (puerta ventilador) con informe"],
+                ["06.02", "Prueba de presi\xF3n de la red de difusores"]
+              ]),
+              bloque("07", "PRECOMISIONADO", [
+                ["07.01", "Prueba de disparo con los actuadores desconectados de las botellas"],
+                ["07.02", "Enclavamientos con clima, compuertas y puertas comprobados"]
+              ]),
+              bloque("08", "MANTENIMIENTO", [
+                ["08.01", "Comprobaci\xF3n de peso y presi\xF3n de las botellas cada 6 meses (Anexo II)"],
+                ["08.02", "Formaci\xF3n al personal: bloqueo antes de entrar y qu\xE9 hacer tras un disparo"]
+              ]),
+              bloque("09", "DOCUMENTACI\xD3N", P_DOC_PCI("09"))
+            ]
+          ),
+          /* ─────────────────────────── Extintores y señalización */
+          fichaNorma(
+            "EXTINTORES_SENALIZACION",
+            "EXTINTORES Y SE\xD1ALIZACI\xD3N",
+            "EXTINTORES PORT\xC1TILES Y SE\xD1ALIZACI\xD3N DE MEDIOS Y EVACUACI\xD3N",
+            "PCI",
+            `${RIPCI} Anexo I secciones 1 y 2 \xB7 UNE-EN 3-7 (extintores) \xB7 CTE DB SI 4 \xB7 UNE 23033-1 y UNE 23035-4 (se\xF1alizaci\xF3n fotoluminiscente)`,
+            [
+              { titulo: "DATOS", tipo: "datos", puntos: [
+                texto("zona", "Zona o planta revisada"),
+                numPunto("num_extintores", "N\xBA de extintores"),
+                numPunto("num_senales", "N\xBA de se\xF1ales")
+              ] },
+              { titulo: "EXTINTORES", tipo: "comprobaciones", puntos: [
+                okNoOk("eficacia", "Eficacia m\xEDnima 21A-113B en los de polvo o agua; CO\u2082 junto a cuadros el\xE9ctricos (CTE DB SI 4)"),
+                okNoOk("timbrado", "Placa de dise\xF1o (timbre), fecha de fabricaci\xF3n y etiqueta del fabricante en todos"),
+                okNoOk("manometro_verde", "Man\xF3metro en la zona verde y precinto puesto"),
+                okNoOk("accesibles", "Visibles, accesibles y junto a las salidas")
+              ] },
+              { titulo: "SE\xD1ALIZACI\xD3N", tipo: "comprobaciones", puntos: [
+                okNoOk("senal_medios", "Cada extintor, BIE, pulsador e hidrante con su se\xF1al (UNE 23033-1)"),
+                okNoOk("senal_evacuacion", "Recorridos de evacuaci\xF3n y salidas se\xF1alizados (CTE DB SI 3 \xA77)"),
+                okNoOk("fotoluminiscente", "Se\xF1ales fotoluminiscentes de la clase que pide la UNE 23035-4, visibles con la luz apagada"),
+                okNoOk("tamano_distancia", "Tama\xF1o de se\xF1al seg\xFAn la distancia de observaci\xF3n (UNE 23033-1 / UNE-EN ISO 7010)")
+              ] },
+              { titulo: "MEDIDAS (EL M\xC1S DESFAVORABLE)", tipo: "parametros", puntos: [
+                prueba("recorrido_extintor", "Recorrido m\xE1ximo hasta un extintor", "m", OBL, maximo(15, "CTE DB SI 4 tabla 1.1: \u2264 15 m desde todo origen de evacuaci\xF3n")),
+                prueba("altura_extintor", "Altura de la parte superior del extintor", "m", OBL, maximo(1.2, `${RIPCI} Anexo I secci\xF3n 1: \u2264 1,20 m`))
+              ] }
+            ]
+          ),
+          checklistNorma(
+            "CHECKLIST_EXTINTORES_SENALIZACION",
+            "CHECKLIST EXTINTORES Y SE\xD1ALIZACI\xD3N",
+            "INSTALACI\xD3N \xB7 EXTINTORES Y SE\xD1ALIZACI\xD3N",
+            "PCI",
+            `${RIPCI} \xB7 CTE DB SI 3 y 4 \xB7 UNE 23033-1 \xB7 UNE 23035-4`,
+            [
+              bloque("01", "RECEPCI\xD3N", P_RECEPCION_PCI("Los extintores y las se\xF1ales", "UNE-EN 3-7")),
+              bloque("02", "AJUSTE AL PROYECTO", [
+                ["02.01", "N\xFAmero, tipo y eficacia de extintores seg\xFAn el plano de PCI"],
+                ["02.02", "Plano de se\xF1alizaci\xF3n aprobado"]
+              ]),
+              bloque("03", "EXTINTORES", [
+                ["03.01", "Fijados a la pared o en armario, con la parte superior a \u2264 1,20 m"],
+                ["03.02", "Junto a las salidas de cada planta y de los locales de riesgo especial"],
+                ["03.03", "Recorrido \u2264 15 m hasta un extintor desde cualquier origen de evacuaci\xF3n"]
+              ]),
+              bloque("04", "SE\xD1ALES", [
+                ["04.01", "Se\xF1ales de medios manuales sobre cada extintor, BIE y pulsador"],
+                ["04.02", "Se\xF1ales de evacuaci\xF3n en cada cambio de direcci\xF3n y en las salidas"],
+                ["04.03", "Se\xF1ales fotoluminiscentes donde falle el alumbrado normal"]
+              ]),
+              bloque("05", "PRECOMISIONADO", [
+                ["05.01", "Recorrido con la luz apagada: las se\xF1ales se ven"],
+                ["05.02", "Comprobaci\xF3n de que ning\xFAn extintor ni se\xF1al queda tapado por mobiliario o puertas"]
+              ]),
+              bloque("06", "MANTENIMIENTO", [
+                ["06.01", "Etiqueta de revisi\xF3n en cada extintor"],
+                ["06.02", "Revisi\xF3n trimestral por el titular y anual por empresa habilitada (Anexo II)"]
+              ]),
+              bloque("07", "DOCUMENTACI\xD3N", P_DOC_PCI("07"))
+            ]
+          )
+        ];
+        const ISO_7396 = "UNE-EN ISO 7396-1 (gases comprimidos y vac\xEDo) y -2 (evacuaci\xF3n de gases anest\xE9sicos)";
+        const P_DOC_HOSP = (codigo, que) => [
+          [`${codigo}.01`, `${que} firmado por el instalador y aceptado por la DF`],
+          [`${codigo}.02`, "Planos \xABas built\xBB, esquemas y memoria entregados"],
+          [`${codigo}.03`, "Manual de uso y mantenimiento y formaci\xF3n al personal del hospital"]
+        ];
+        const HOSPITAL = [
+          /* ─────────────────────────── Gases medicinales */
+          fichaNorma(
+            "GASES_MEDICINALES",
+            "GASES MEDICINALES",
+            "CENTRAL Y RED DE GASES MEDICINALES Y VAC\xCDO",
+            "Hospital",
+            `${ISO_7396} \xB7 UNE-EN ISO 9170-1 (tomas) \xB7 Farmacopea Europea (ox\xEDgeno y aire medicinal) \xB7 RD 1591/2009 (productos sanitarios)`,
+            [
+              { titulo: "DATOS DE LA INSTALACI\xD3N", tipo: "datos", puntos: [
+                ...identificacion(),
+                lista("gas", "Gas", ["Ox\xEDgeno", "Aire medicinal (4,5 bar)", "Aire de motores (8 bar)", "Prot\xF3xido de nitr\xF3geno", "CO\u2082", "Vac\xEDo", "Evacuaci\xF3n de anest\xE9sicos (EGA)"]),
+                lista("suministro", "Suministro", ["Tanque criog\xE9nico", "Botellas (rampa)", "Concentrador (PSA)", "Compresores", "Bombas de vac\xEDo"]),
+                numPunto("num_tomas", "N\xBA de tomas servidas"),
+                texto("zonas", "Zonas (quir\xF3fanos, UCI, plantas\u2026)")
+              ] },
+              { titulo: "COMPROBACIONES (UNE-EN ISO 7396-1 \xA712)", tipo: "comprobaciones", puntos: [
+                okNoOk("cruce_gases", "Prueba de no cruce: con un solo gas en la red, ninguna otra toma da caudal"),
+                okNoOk("identidad_tomas", "Identidad del gas en cada toma comprobada con analizador y encaje espec\xEDfico del gas"),
+                okNoOk("particulas", "Prueba de part\xEDculas en cada toma (filtro limpio tras el soplado)"),
+                okNoOk("valvulas_zona", "Cada v\xE1lvula de zona corta solo sus tomas, como en el plano, y est\xE1 rotulada"),
+                okNoOk("alarmas_tecnicas", "Alarmas t\xE9cnicas de la central (reserva, fallo de compresor o bomba, punto de roc\xEDo) en mantenimiento"),
+                okNoOk("alarmas_clinicas", "Alarmas cl\xEDnicas de zona (presi\xF3n alta y baja) en el control de enfermer\xEDa"),
+                okNoOk("cambio_reserva", "Cambio autom\xE1tico a la reserva sin corte de suministro, y alarma"),
+                okNoOk("reserva_emergencia", "Fuente de emergencia (tercera fuente o botellas) entra y alarma"),
+                okNoOk("ega", "Evacuaci\xF3n de anest\xE9sicos: aspira en cada toma y no transmite el vac\xEDo al paciente (ISO 7396-2)"),
+                okNoOk("identificacion_tuberia", "Tuber\xEDas identificadas con el nombre y el color del gas cada 10 m y en cada paso")
+              ] },
+              { titulo: "ESTANQUEIDAD Y PUREZA", tipo: "parametros", puntos: [
+                prueba("fuga_red", "Fuga de la red a presi\xF3n nominal", "ml/min", OBL, maximo(void 0, "UNE-EN ISO 7396-1 \xA712.6: la fuga admitida seg\xFAn el n\xBA de tomas; contra el protocolo")),
+                prueba("pureza_o2", "Concentraci\xF3n de ox\xEDgeno en la toma m\xE1s lejana", "%", OPC, minimo(99.5, "Farmacopea Europea: \u2265 99,5 % (\u2265 90 % si es ox\xEDgeno 93 de concentrador)")),
+                prueba("humedad_aire", "Agua en el aire medicinal", "ppm", OPC, maximo(67, "Farmacopea Europea: \u2264 67 ppm (v/v)")),
+                prueba("co_aire", "CO en el aire medicinal", "ppm", OPC, maximo(5, "Farmacopea Europea: \u2264 5 ppm")),
+                prueba("co2_aire", "CO\u2082 en el aire medicinal", "ppm", OPC, maximo(500, "Farmacopea Europea: \u2264 500 ppm")),
+                prueba("aceite_aire", "Aceite en el aire medicinal", "mg/m\xB3", OPC, maximo(0.1, "Farmacopea Europea: \u2264 0,1 mg/m\xB3"))
+              ] },
+              { titulo: "CAUDAL Y PRESI\xD3N EN LAS TOMAS (LA M\xC1S DESFAVORABLE)", tipo: "parametros", puntos: [
+                prueba("caudal_central_gas", "Caudal de dise\xF1o de la central", "l/min", OBL, minimo(void 0, "UNE-EN ISO 7396-1: el caudal simult\xE1neo del c\xE1lculo")),
+                prueba("presion_toma", "Presi\xF3n en la toma con el caudal de prueba", "kPa", OBL, conTol(0.1, "UNE-EN ISO 7396-1: 400 kPa nominal (800 kPa aire de motores), \xB110 %")),
+                prueba("caudal_toma", "Caudal en la toma", "l/min", OBL, minimo(40, "UNE-EN ISO 9170-1: 40 l/min en O\u2082 y aire (vac\xEDo: 25 l/min)")),
+                prueba("vacio_toma", "Vac\xEDo en la toma con caudal (solo vac\xEDo)", "kPa", OPC, minimo(60, "UNE-EN ISO 7396-1: \u2265 60 kPa por debajo de la atmosf\xE9rica")),
+                prueba("caudal_ega", "Caudal de la toma de EGA (solo EGA)", "l/min", OPC, minimo(50, "UNE-EN ISO 7396-2: \u2265 50 l/min en la toma de alto caudal"))
+              ] }
+            ]
+          ),
+          checklistNorma(
+            "CHECKLIST_GASES_MEDICINALES",
+            "CHECKLIST GASES MEDICINALES",
+            "INSTALACI\xD3N Y PRECOMISIONADO \xB7 GASES MEDICINALES Y VAC\xCDO",
+            "Hospital",
+            `${ISO_7396} \xB7 UNE-EN ISO 9170-1 \xB7 UNE-EN 13348`,
+            [
+              bloque("01", "RECEPCI\xD3N", [
+                ["01.01", "Tuber\xEDa de cobre desengrasado para uso m\xE9dico (UNE-EN 13348), con tapones"],
+                ["01.02", "Tomas, v\xE1lvulas de zona y paneles de alarma con marcado CE de producto sanitario"],
+                ["01.03", "Instalador con experiencia acreditada en gases medicinales"]
+              ]),
+              bloque("02", "AJUSTE AL PROYECTO", [
+                ["02.01", "N\xFAmero y tipo de tomas por local seg\xFAn el programa funcional del hospital"],
+                ["02.02", "Di\xE1metros seg\xFAn el c\xE1lculo de caudal simult\xE1neo"],
+                ["02.03", "Centrales con dos fuentes y fuente de emergencia (tres fuentes)"]
+              ]),
+              bloque("03", "CENTRALES", [
+                ["03.01", "Tanque criog\xE9nico con distancias de seguridad y suelo no combustible"],
+                ["03.02", "Compresores de aire con secado, filtros y analizador de punto de roc\xEDo"],
+                ["03.03", "Bombas de vac\xEDo con filtros bacteriol\xF3gicos y descarga al exterior"]
+              ]),
+              bloque("04", "RED", [
+                ["04.01", "Uniones con soldadura fuerte bajo atm\xF3sfera de nitr\xF3geno (sin \xF3xido interior)"],
+                ["04.02", "Separaci\xF3n de otras instalaciones y protecci\xF3n mec\xE1nica"],
+                ["04.03", "Tuber\xEDas identificadas por gas, con su color y sentido de flujo"]
+              ]),
+              bloque("05", "TOMAS Y V\xC1LVULAS DE ZONA", [
+                ["05.01", "Tomas espec\xEDficas por gas (no intercambiables) y rotuladas"],
+                ["05.02", "Cajas de v\xE1lvulas de zona a la salida de cada zona, accesibles y rotuladas"],
+                ["05.03", "Paneles de alarma cl\xEDnica en el control de enfermer\xEDa de cada zona"]
+              ]),
+              bloque("06", "PRUEBAS DE OBRA (UNE-EN ISO 7396-1 \xA712)", [
+                ["06.01", "Prueba de resistencia mec\xE1nica y de estanqueidad de cada red"],
+                ["06.02", "Prueba de no cruce y de identidad del gas en todas las tomas"],
+                ["06.03", "Soplado y prueba de part\xEDculas en todas las tomas"],
+                ["06.04", "Purga con el gas de servicio y an\xE1lisis de calidad en la toma m\xE1s lejana"]
+              ]),
+              bloque("07", "PRECOMISIONADO", [
+                ["07.01", "Prueba de alarmas t\xE9cnicas y cl\xEDnicas una a una"],
+                ["07.02", "Prueba de cambio a reserva y a la fuente de emergencia"],
+                ["07.03", "Caudal y presi\xF3n en las tomas m\xE1s desfavorables"]
+              ]),
+              bloque("08", "MANTENIMIENTO", [
+                ["08.01", "Procedimiento de corte por zonas entregado al servicio de mantenimiento"],
+                ["08.02", "Plan de an\xE1lisis peri\xF3dicos de calidad del aire medicinal"]
+              ]),
+              bloque("09", "DOCUMENTACI\xD3N", P_DOC_HOSP("09", "Certificado de pruebas de la UNE-EN ISO 7396-1"))
+            ]
+          ),
+          /* ─────────────────────────── Transporte neumático */
+          fichaNorma(
+            "TRANSPORTE_NEUMATICO",
+            "TRANSPORTE NEUM\xC1TICO",
+            "SISTEMA DE TRANSPORTE NEUM\xC1TICO DE MUESTRAS",
+            "Hospital",
+            "Sin norma espa\xF1ola de transporte neum\xE1tico: criterio del fabricante y del proyecto \xB7 REBT (cuadros y soplantes)",
+            [
+              { titulo: "DATOS DEL SISTEMA", tipo: "datos", puntos: [
+                ...identificacion(),
+                numPunto("num_estaciones", "N\xBA de estaciones"),
+                numPunto("num_soplantes", "N\xBA de soplantes"),
+                numPunto("num_desviadores", "N\xBA de desviadores"),
+                lista("diametro_tubo", "Di\xE1metro del tubo", ["110 mm", "160 mm", "Otro"])
+              ] },
+              { titulo: "COMPROBACIONES", tipo: "comprobaciones", puntos: [
+                okNoOk("soplantes", "Soplantes en impulsi\xF3n y aspiraci\xF3n, con su sentido y sin vibraciones"),
+                okNoOk("desviadores", "Cada desviador cambia de posici\xF3n y da su final de carrera"),
+                okNoOk("estaciones", "Cada estaci\xF3n env\xEDa y recibe; la direcci\xF3n de destino se marca bien"),
+                okNoOk("trayectos", "Todos los trayectos del plano probados ida y vuelta"),
+                okNoOk("prueba_carga", "Prueba con carga: portador con muestras simuladas sin roturas ni derrames"),
+                okNoOk("prioridades", "Env\xEDos urgentes con prioridad sobre los normales"),
+                okNoOk("alarmas_tn", "Alarmas (portador atascado, estaci\xF3n llena, fallo de soplante) en el control"),
+                okNoOk("control_tn", "Software de control: trazabilidad de env\xEDos y usuarios"),
+                okNoOk("frenado", "Llegada con frenado neum\xE1tico (sin golpe) en estaciones de laboratorio")
+              ] },
+              { titulo: "SOPLANTE", tipo: "parametros", puntos: [
+                prueba("caudal_soplante", "Caudal de aire de la soplante", "m\xB3/h", OBL, conTol(0.1, "Contra el c\xE1lculo del proyecto, \xB110 % (criterio de obra)")),
+                prueba("presion_soplante", "Presi\xF3n disponible de la soplante", "Pa", OPC, minimo(void 0, "La del c\xE1lculo del recorrido m\xE1s desfavorable"))
+              ] },
+              { titulo: "TRAYECTO M\xC1S LARGO", tipo: "parametros", puntos: [
+                prueba("velocidad_portador", "Velocidad media del portador", "m/s", OBL, maximo(8, "Criterio del fabricante: 5\u20138 m/s con muestras de laboratorio (no hay norma)")),
+                prueba("tiempo_trayecto", "Tiempo del trayecto", "s", OBL, maximo(void 0, "Contra el tiempo del proyecto o del pliego")),
+                prueba("envios_ok", "Env\xEDos de prueba llegados bien", "%", OBL, minimo(100, "Criterio de obra: todos los env\xEDos de prueba llegan a su destino"))
+              ] }
+            ]
+          ),
+          checklistNorma(
+            "CHECKLIST_TRANSPORTE_NEUMATICO",
+            "CHECKLIST TRANSPORTE NEUM\xC1TICO",
+            "INSTALACI\xD3N Y PRECOMISIONADO \xB7 TRANSPORTE NEUM\xC1TICO",
+            "Hospital",
+            "Criterio del fabricante y del proyecto \xB7 REBT",
+            [
+              bloque("01", "RECEPCI\xD3N", [
+                ["01.01", "Tubos, curvas, estaciones y soplantes sin golpes ni deformaciones"],
+                ["01.02", "Marcado CE y declaraci\xF3n de conformidad de estaciones y soplantes"]
+              ]),
+              bloque("02", "AJUSTE AL PROYECTO", [
+                ["02.01", "Estaciones, zonas y trayectos seg\xFAn el plano aprobado por el hospital"],
+                ["02.02", "Radio de curvas y di\xE1metro seg\xFAn el portador del fabricante"]
+              ]),
+              bloque("03", "TUBER\xCDA", [
+                ["03.01", "Uniones sin escal\xF3n interior (manguitos a tope)"],
+                ["03.02", "Curvas del radio del fabricante, sin ovalar"],
+                ["03.03", "Soportes cada la distancia del fabricante y pasos de sector sellados"],
+                ["03.04", "Prueba de estanqueidad del tubo hecha"]
+              ]),
+              bloque("04", "ESTACIONES Y DESVIADORES", [
+                ["04.01", "Estaciones a la altura de uso y accesibles"],
+                ["04.02", "Desviadores accesibles para mantenimiento, con registro"]
+              ]),
+              bloque("05", "EL\xC9CTRICA Y CONTROL", [
+                ["05.01", "Soplantes con su protecci\xF3n y alimentaci\xF3n del cuadro previsto"],
+                ["05.02", "Bus de control cableado a todas las estaciones y desviadores"],
+                ["05.03", "Alimentaci\xF3n de emergencia si el pliego lo pide"]
+              ]),
+              bloque("06", "PRECOMISIONADO", [
+                ["06.01", "Todos los trayectos probados en vac\xEDo y con carga"],
+                ["06.02", "Tiempos de trayecto medidos y registrados"]
+              ]),
+              bloque("07", "MANTENIMIENTO", [
+                ["07.01", "Portadores de repuesto y juntas entregados"],
+                ["07.02", "Formaci\xF3n a usuarios y a mantenimiento"]
+              ]),
+              bloque("08", "DOCUMENTACI\xD3N", P_DOC_HOSP("08", "Protocolo de pruebas del fabricante"))
+            ]
+          ),
+          /* ─────────────────────────── Quirófanos y salas blancas */
+          fichaNorma(
+            "QUIROFANO_SALA_LIMPIA",
+            "QUIR\xD3FANO / SALA LIMPIA",
+            "VALIDACI\xD3N DEL AMBIENTE DE QUIR\xD3FANOS Y SALAS LIMPIAS",
+            "Hospital",
+            "UNE 100713 (acondicionamiento de aire en hospitales) \xB7 UNE 171340 (validaci\xF3n de salas de ambiente controlado en hospitales) \xB7 UNE-EN ISO 14644-1 y -3",
+            [
+              { titulo: "DATOS DE LA SALA", tipo: "datos", puntos: [
+                texto("sala", "Sala"),
+                lista("clase_local", "Clase de local (UNE 100713)", ["I (quir\xF3fano tipo A)", "I (quir\xF3fano tipo B)", "I (quir\xF3fano tipo C)", "II", "Sala limpia (ISO 14644)"]),
+                lista("clase_iso", "Clase ISO de dise\xF1o", ["ISO 5", "ISO 6", "ISO 7", "ISO 8"]),
+                lista("estado_ensayo", "Estado de ocupaci\xF3n del ensayo", ["En reposo", "En operaci\xF3n"]),
+                numPunto("volumen_sala", "Volumen de la sala", "m\xB3")
+              ] },
+              { titulo: "COMPROBACIONES", tipo: "comprobaciones", puntos: [
+                okNoOk("cascada", "Cascada de presiones: el aire va de lo limpio a lo sucio en todas las puertas"),
+                okNoOk("humo_flujo", "Prueba de humo: flujo unidireccional sobre la mesa y sin zonas muertas"),
+                okNoOk("indicador_presion", "Man\xF3metro o indicador de presi\xF3n en la entrada, con alarma"),
+                okNoOk("filtros_terminales", "Filtros HEPA en el plenum de impulsi\xF3n, con su toma de prueba"),
+                okNoOk("estanqueidad_sala", "Sala estanca: techos, luminarias y pasos sellados")
+              ] },
+              { titulo: "AIRE (UNE 100713)", tipo: "parametros", puntos: [
+                prueba("caudal_aire_impulsion", "Caudal de aire impulsado", "m\xB3/h", OBL, minimo(2400, "UNE 100713: \u2265 2.400 m\xB3/h en quir\xF3fano (el proyecto aprieta)")),
+                prueba("renovaciones", "Renovaciones por hora", "1/h", OBL, minimo(20, "UNE 100713: \u2265 20 renovaciones/h en quir\xF3fano")),
+                prueba("presion_diferencial_sala", "Sobrepresi\xF3n respecto a las zonas contiguas", "Pa", OBL, minimo(5, "UNE 100713 / UNE 171340: positiva respecto a lo contiguo; \u2265 5 Pa (el proyecto suele pedir 10\u201315 Pa)")),
+                prueba("t_sala", "Temperatura de la sala", "\xB0C", OBL, conTol(0.05, "UNE 100713: entre 22 y 26 \xB0C; contra la consigna del proyecto")),
+                prueba("hr_sala", "Humedad relativa", "%HR", OBL, conTol(0.1, "UNE 100713: entre 45 y 55 %"))
+              ] },
+              { titulo: "LIMPIEZA (UNE-EN ISO 14644)", tipo: "parametros", puntos: [
+                prueba("particulas_05", "Part\xEDculas \u2265 0,5 \xB5m (m\xE1xima del punto peor)", "part/m\xB3", OBL, maximo(352e3, "UNE-EN ISO 14644-1 tabla 1: ISO 7 \u2264 352.000 (ISO 5 \u2264 3.520); el proyecto aprieta")),
+                prueba("integridad_hepa", "Penetraci\xF3n en la prueba de integridad del HEPA", "%", OBL, maximo(0.01, "UNE-EN ISO 14644-3 y UNE-EN 1822: \u2264 0,01 % en el escaneo")),
+                prueba("tiempo_recuperacion", "Tiempo de recuperaci\xF3n (100:1)", "min", OPC, maximo(20, "UNE 171340 / UNE-EN ISO 14644-3: \u2264 20 min")),
+                prueba("ruido_sala", "Nivel sonoro", "dB(A)", OPC, maximo(void 0, "UNE 100713: el del proyecto (del orden de 40\u201348 dB(A))"))
+              ] }
+            ]
+          ),
+          checklistNorma(
+            "CHECKLIST_QUIROFANO_SALA_LIMPIA",
+            "CHECKLIST QUIR\xD3FANO / SALA LIMPIA",
+            "INSTALACI\xD3N Y PRECOMISIONADO \xB7 QUIR\xD3FANOS Y SALAS LIMPIAS",
+            "Hospital",
+            "UNE 100713 \xB7 UNE 171340 \xB7 UNE-EN ISO 14644",
+            [
+              bloque("01", "RECEPCI\xD3N", [
+                ["01.01", "Filtros HEPA con su certificado de ensayo individual (UNE-EN 1822)"],
+                ["01.02", "Plenum o techo de flujo laminar sin da\xF1os y con marcado CE"]
+              ]),
+              bloque("02", "AJUSTE AL PROYECTO", [
+                ["02.01", "Clase de local y clase ISO de cada sala seg\xFAn el programa funcional"],
+                ["02.02", "Cascada de presiones aprobada por la DF y por medicina preventiva"]
+              ]),
+              bloque("03", "CERRAMIENTOS", [
+                ["03.01", "Paredes, techos y suelos lisos, lavables y sin juntas abiertas"],
+                ["03.02", "Pasos de instalaciones sellados; luminarias estancas"],
+                ["03.03", "Puertas con cierre autom\xE1tico y burletes"]
+              ]),
+              bloque("04", "CLIMATIZACI\xD3N", [
+                ["04.01", "UTA exclusiva o por zona seg\xFAn UNE 100713, con tres etapas de filtraci\xF3n"],
+                ["04.02", "Rejillas de retorno a nivel bajo seg\xFAn la norma"],
+                ["04.03", "Compuertas de regulaci\xF3n de presi\xF3n ajustadas y bloqueadas"]
+              ]),
+              bloque("05", "CONTROL", [
+                ["05.01", "Sondas de presi\xF3n, temperatura y humedad de la sala al BMS"],
+                ["05.02", "Panel de quir\xF3fano con lectura y consigna para el personal"]
+              ]),
+              bloque("06", "LIMPIEZA DE OBRA", [
+                ["06.01", "Limpieza final de obra antes de montar los HEPA"],
+                ["06.02", "Conductos limpios (inspecci\xF3n o certificado)"]
+              ]),
+              bloque("07", "PRECOMISIONADO", [
+                ["07.01", "Balanceo de caudales y presiones hecho"],
+                ["07.02", "Prueba de integridad de los HEPA y conteo de part\xEDculas por empresa acreditada"],
+                ["07.03", "Prueba de humo y de recuperaci\xF3n"]
+              ]),
+              bloque("08", "MANTENIMIENTO", [
+                ["08.01", "Plan de validaci\xF3n peri\xF3dica (UNE 171340) entregado"],
+                ["08.02", "Repuestos de filtros entregados"]
+              ]),
+              bloque("09", "DOCUMENTACI\xD3N", P_DOC_HOSP("09", "Informe de validaci\xF3n (UNE 171340)"))
+            ]
+          ),
+          /* ─────────────────────────── IT médico de quirófanos */
+          fichaNorma(
+            "IT_QUIROFANO",
+            "IT M\xC9DICO DE QUIR\xD3FANO",
+            "RED IT CON TRANSFORMADOR DE AISLAMIENTO Y VIGILANTE (LOCALES DE GRUPO 2)",
+            "Hospital",
+            "REBT ITC-BT-38 \xA72.1 \xB7 UNE-HD 60364-7-710 \xB7 UNE-EN 61558-2-15 (transformador) \xB7 UNE-EN 61557-8 (vigilante)",
+            [
+              { titulo: "DATOS DEL CUADRO", tipo: "datos", puntos: [
+                ...identificacion(),
+                texto("local", "Local servido (quir\xF3fano, UCI\u2026)"),
+                numPunto("potencia_trafo_aisl", "Potencia del transformador de aislamiento", "kVA")
+              ] },
+              { titulo: "COMPROBACIONES", tipo: "comprobaciones", puntos: [
+                okNoOk("vigilante_alarma", "El vigilante da alarma \xF3ptica y ac\xFAstica al bajar el aislamiento (prueba con resistencia)"),
+                okNoOk("repetidor", "Repetidor de alarma dentro del quir\xF3fano, visible y con silencio"),
+                okNoOk("sobrecarga_trafo", "Alarma de sobrecarga y de temperatura del transformador"),
+                okNoOk("equipotencial", "Embarrado de equipotencialidad con todas las masas y partes met\xE1licas conectadas"),
+                okNoOk("suministro_complementario", "L\xE1mpara de quir\xF3fano y equipos vitales en el suministro complementario"),
+                okNoOk("tomas_identificadas", "Tomas de la red IT identificadas y distintas de las de red normal")
+              ] },
+              { titulo: "VIGILANTE Y TRANSFORMADOR", tipo: "parametros", puntos: [
+                prueba("umbral_vigilante", "Umbral de alarma del vigilante", "k\u03A9", OBL, minimo(50, "ITC-BT-38 \xA72.1.3: alarma cuando el aislamiento baja de 50 k\u03A9")),
+                prueba("tension_vigilante", "Tensi\xF3n de medida del vigilante", "V", OPC, maximo(25, "ITC-BT-38 \xA72.1.3: \u2264 25 V cc")),
+                prueba("corriente_vigilante", "Corriente de medida en defecto franco", "mA", OPC, maximo(1, "ITC-BT-38 \xA72.1.3: \u2264 1 mA")),
+                prueba("aislamiento_red_it", "Aislamiento de la red IT", "M\u03A9", OBL, minimo(1, "UNE-HD 60364-6: \u2265 1 M\u03A9 a 500 V")),
+                prueba("potencia_trafo_med", "Carga del transformador", "kVA", OPC, maximo(10, "ITC-BT-38 \xA72.1.3: transformador de 0,5 a 10 kVA"))
+              ] },
+              { titulo: "EQUIPOTENCIALIDAD Y CONMUTACI\xD3N", tipo: "parametros", puntos: [
+                prueba("resistencia_equipotencial", "Resistencia entre el embarrado y cada masa", "\u03A9", OBL, maximo(0.1, "ITC-BT-38 \xA72.1.1: \u2264 0,1 \u03A9")),
+                prueba("tension_masas", "Diferencia de potencial entre masas", "mV", OBL, maximo(10, "ITC-BT-38 \xA72.1.1: \u2264 10 mV eficaces en condiciones normales")),
+                prueba("conmutacion_lampara", "Conmutaci\xF3n de la l\xE1mpara de quir\xF3fano al complementario", "s", OBL, maximo(0.5, "ITC-BT-38 \xA72.1.4 y ITC-BT-28: \u2264 0,5 s"))
+              ] }
+            ]
+          ),
+          checklistNorma(
+            "CHECKLIST_IT_QUIROFANO",
+            "CHECKLIST IT M\xC9DICO DE QUIR\xD3FANO",
+            "INSTALACI\xD3N Y PRECOMISIONADO \xB7 RED IT DE QUIR\xD3FANOS",
+            "Hospital",
+            "REBT ITC-BT-38 \xB7 UNE-HD 60364-7-710",
+            [
+              bloque("01", "RECEPCI\xD3N", P_RECEPCION_ELEC("El cuadro de quir\xF3fano, el transformador y el vigilante")),
+              bloque("02", "AJUSTE AL PROYECTO", [
+                ["02.01", "Un transformador de aislamiento por quir\xF3fano o sala de intervenci\xF3n (ITC-BT-38)"],
+                ["02.02", "Reparto de tomas IT y de red normal seg\xFAn el proyecto"]
+              ]),
+              bloque("03", "CUADRO", [
+                ["03.01", "Cuadro junto al quir\xF3fano, fuera de la zona de riesgo, y accesible"],
+                ["03.02", "Protecci\xF3n del primario y del secundario seg\xFAn la ITC-BT-38"],
+                ["03.03", "Alimentado desde el suministro complementario (grupo y SAI)"]
+              ]),
+              bloque("04", "EQUIPOTENCIALIDAD", [
+                ["04.01", "Embarrado de equipotencialidad en el quir\xF3fano"],
+                ["04.02", "Conductores de equipotencialidad de 4 mm\xB2 m\xEDnimo, identificados"],
+                ["04.03", "Suelo antiest\xE1tico conectado si el proyecto lo lleva"]
+              ]),
+              bloque("05", "TOMAS Y CANALIZACIONES", [
+                ["05.01", "Tomas IT identificadas, con su n\xFAmero de circuito"],
+                ["05.02", "Canalizaciones de la red IT separadas de la red normal"]
+              ]),
+              bloque("06", "PRUEBAS DE OBRA", [
+                ["06.01", "Continuidad de equipotencialidad medida en todas las masas"],
+                ["06.02", "Aislamiento de la red IT medido"]
+              ]),
+              bloque("07", "PRECOMISIONADO", [
+                ["07.01", "Prueba del vigilante con resistencia de prueba"],
+                ["07.02", "Prueba de conmutaci\xF3n al complementario con corte de red real"]
+              ]),
+              bloque("08", "MANTENIMIENTO", [
+                ["08.01", "Revisi\xF3n peri\xF3dica del vigilante y de la equipotencialidad programada"],
+                ["08.02", "Formaci\xF3n al personal de quir\xF3fano: qu\xE9 hacer ante la alarma"]
+              ]),
+              bloque("09", "DOCUMENTACI\xD3N", P_DOC_ELEC)
+            ]
+          ),
+          /* ─────────────────────────── Llamada de enfermería */
+          fichaNorma(
+            "LLAMADA_ENFERMERIA",
+            "LLAMADA DE ENFERMER\xCDA",
+            "SISTEMA DE LLAMADA PACIENTE-ENFERMERA",
+            "Hospital",
+            "Sin UNE espa\xF1ola propia: DIN VDE 0834-1 y -2 (llamada en hospitales) como referencia del pliego \xB7 CTE DB SUA 9 (aseos accesibles)",
+            [
+              { titulo: "DATOS DEL SISTEMA", tipo: "datos", puntos: [
+                ...identificacion(),
+                texto("unidad", "Unidad de hospitalizaci\xF3n"),
+                numPunto("num_camas", "N\xBA de camas"),
+                numPunto("num_aseos", "N\xBA de aseos"),
+                lista("tipo_llamada", "Tipo", ["\xD3ptico-ac\xFAstico", "Con voz", "Integrado con DECT / m\xF3viles"])
+              ] },
+              { titulo: "COMPROBACIONES (CADA CAMA Y CADA ASEO)", tipo: "comprobaciones", puntos: [
+                okNoOk("pulsador_cama", "Pulsador de cama (pera) llama y se ve en el control y en el pasillo"),
+                okNoOk("tirador_aseo", "Tirador de aseo llama con prioridad y se puede alcanzar desde el suelo"),
+                okNoOk("presencia", "Pulsador de presencia anula la llamada solo dentro de la habitaci\xF3n"),
+                okNoOk("luz_pasillo", "Piloto de pasillo con el color de cada tipo de llamada"),
+                okNoOk("voz", "Comunicaci\xF3n de voz con la habitaci\xF3n desde el control (si aplica)"),
+                okNoOk("desvio", "Desv\xEDo de llamadas a otro control y a terminales m\xF3viles"),
+                okNoOk("averia", "Aver\xEDa (pera desconectada, l\xEDnea cortada) se se\xF1ala en el control"),
+                okNoOk("registro", "Registro de llamadas y tiempos de respuesta en el software")
+              ] },
+              { titulo: "TIEMPOS Y NIVELES (CRITERIO DEL PLIEGO)", tipo: "parametros", puntos: [
+                prueba("tiempo_llamada", "De pulsar a verse en el control", "s", OBL, maximo(2, "Criterio de obra (DIN VDE 0834): \u2264 2 s")),
+                prueba("nivel_zumbador", "Nivel sonoro del aviso en el control", "dB(A)", OPC, minimo(void 0, "El del pliego: que se oiga sobre el ruido del control")),
+                prueba("llamadas_ok", "Puntos de llamada probados que funcionan", "%", OBL, minimo(100, "Criterio de obra: todos"))
+              ] }
+            ]
+          ),
+          checklistNorma(
+            "CHECKLIST_LLAMADA_ENFERMERIA",
+            "CHECKLIST LLAMADA DE ENFERMER\xCDA",
+            "INSTALACI\xD3N Y PRECOMISIONADO \xB7 LLAMADA DE ENFERMER\xCDA",
+            "Hospital",
+            "DIN VDE 0834 (referencia) \xB7 REBT \xB7 CTE DB SUA 9",
+            [
+              bloque("01", "RECEPCI\xD3N", [
+                ["01.01", "Equipos de habitaci\xF3n, pasillo y control sin da\xF1os, con marcado CE"],
+                ["01.02", "Declaraci\xF3n de conformidad y manual del fabricante"]
+              ]),
+              bloque("02", "AJUSTE AL PROYECTO", [
+                ["02.01", "Puntos de llamada por cama, aseo y sala seg\xFAn el plano"],
+                ["02.02", "Controles de enfermer\xEDa y desv\xEDos seg\xFAn la organizaci\xF3n del hospital"]
+              ]),
+              bloque("03", "HABITACIONES Y ASEOS", [
+                ["03.01", "Toma de pera junto a cada cama, a la altura del cabecero"],
+                ["03.02", "Tirador en cada aseo junto al inodoro y la ducha, alcanzable desde el suelo"],
+                ["03.03", "Pulsador de presencia junto a la puerta"]
+              ]),
+              bloque("04", "PASILLOS Y CONTROL", [
+                ["04.01", "Piloto sobre cada puerta, visible desde el pasillo"],
+                ["04.02", "Terminal del control con la lista de llamadas y su prioridad"]
+              ]),
+              bloque("05", "CABLEADO Y ALIMENTACI\xD3N", [
+                ["05.01", "Cable del fabricante, separado de potencia"],
+                ["05.02", "Alimentaci\xF3n desde el suministro complementario o con SAI"]
+              ]),
+              bloque("06", "PRECOMISIONADO", [
+                ["06.01", "Todas las llamadas probadas una a una y registradas"],
+                ["06.02", "Desv\xEDos y terminales m\xF3viles probados"]
+              ]),
+              bloque("07", "MANTENIMIENTO", [
+                ["07.01", "Peras de repuesto entregadas"],
+                ["07.02", "Formaci\xF3n al personal de enfermer\xEDa"]
+              ]),
+              bloque("08", "DOCUMENTACI\xD3N", P_DOC_HOSP("08", "Protocolo de pruebas punto a punto"))
+            ]
+          )
+        ];
+        const ICT_NORMA = "RD 346/2011 (Reglamento ICT) \xB7 Orden ITC/1644/2011 \xB7 RD 391/2019 (TDT hasta 694 MHz) \xB7 Ley 11/2022 General de Telecomunicaciones";
+        const LEGIONELA = "RD 487/2022 (prevenci\xF3n de la legionelosis) \xB7 UNE 100030:2017 \xB7 CTE DB HS 4 \xB7 RITE IT 1.1.4.3";
+        const GAS_NORMA = "RD 919/2006 (ITC-ICG 07) \xB7 UNE 60670 (instalaciones receptoras \u2264 5 bar) \xB7 UNE 60601 (salas de calderas) \xB7 UNE-EN 437 (gases de ensayo)";
+        const OTRAS = [
+          /* ─────────────────────────── Telecomunicaciones (ICT) */
+          fichaNorma("ICT", "TELECOMUNICACIONES (ICT)", "INFRAESTRUCTURA COM\xDAN DE TELECOMUNICACIONES", "Telecomunicaciones", ICT_NORMA, [
+            { titulo: "DATOS DE LA INSTALACI\xD3N", tipo: "datos", puntos: [
+              ...identificacion(),
+              numPunto("num_tomas", "N\xBA de tomas de televisi\xF3n"),
+              numPunto("num_pau", "N\xBA de PAU (viviendas o locales)"),
+              lista("cabecera_tipo", "Cabecera", ["Monocanal", "Programable", "\xD3ptica"]),
+              lista("red_acceso", "Red de acceso", ["Fibra \xF3ptica", "Par trenzado", "Coaxial", "Mixta"])
+            ] },
+            { titulo: "COMPROBACIONES", tipo: "comprobaciones", puntos: [
+              okNoOk("recintos", "RITI y RITS con sus dimensiones, ventilaci\xF3n, alumbrado y cuadro el\xE9ctrico propio"),
+              okNoOk("canalizaciones", "Canalizaci\xF3n principal, secundaria e interior con sus tubos y gu\xEDas, y registros accesibles"),
+              okNoOk("antenas", "M\xE1stil y antenas fijados, puestos a tierra y orientados al repetidor"),
+              okNoOk("fibra_identificada", "Fibras y pares identificados en el registro principal y en cada PAU"),
+              okNoOk("par_certificado", "Red de par trenzado certificada toma a toma (categor\xEDa 6 o superior)"),
+              okNoOk("tomas_identificadas", "Todas las tomas montadas, rotuladas y con su se\xF1al"),
+              okNoOk("tierra_ict", "Anillo de tierra de los recintos conectado a la tierra del edificio")
+            ] },
+            { titulo: "NIVELES EN LAS TOMAS (RD 346/2011, ANEXO I \xA74.5)", tipo: "parametros", puntos: [
+              prueba("nivel_cabecera", "Nivel de salida de la cabecera", "dB\xB5V", OPC, segun("El del proyecto: el que se ajusta en el amplificador")),
+              prueba("nivel_toma_tdt_min", "TDT: nivel en la toma m\xE1s desfavorable", "dB\xB5V", OBL, minimo(47, "RD 346/2011 anexo I \xA74.5: TDT entre 47 y 70 dB\xB5V")),
+              prueba("nivel_toma_tdt_max", "TDT: nivel en la toma m\xE1s favorable", "dB\xB5V", OBL, maximo(70, "RD 346/2011 anexo I \xA74.5: \u2264 70 dB\xB5V (m\xE1s satura el receptor)")),
+              prueba("nivel_toma_sat_min", "Sat\xE9lite: nivel en la toma m\xE1s desfavorable", "dB\xB5V", OPC, minimo(47, "RD 346/2011 anexo I \xA74.5: sat\xE9lite entre 47 y 77 dB\xB5V")),
+              prueba("nivel_toma_sat_max", "Sat\xE9lite: nivel en la toma m\xE1s favorable", "dB\xB5V", OPC, maximo(77, "RD 346/2011 anexo I \xA74.5: \u2264 77 dB\xB5V")),
+              prueba("nivel_toma_fm", "FM: nivel en la toma m\xE1s desfavorable", "dB\xB5V", OPC, minimo(40, "RD 346/2011 anexo I \xA74.5: FM entre 40 y 70 dB\xB5V")),
+              prueba("mer_tdt", "TDT: MER en la toma m\xE1s desfavorable", "dB", OPC, minimo(21, "Criterio de obra (de memoria): MER \u2265 21 dB en 64-QAM; contra el protocolo"))
+            ] },
+            { titulo: "RED DE ACCESO", tipo: "parametros", puntos: [
+              prueba("atenuacion_fibra", "Fibra: atenuaci\xF3n \xF3ptica hasta la toma m\xE1s lejana", "dB", OPC, maximo(void 0, "Contra el c\xE1lculo del proyecto (Orden ITC/1644/2011)"))
+            ] }
+          ]),
+          checklistNorma("CHECKLIST_ICT", "CHECKLIST TELECOMUNICACIONES (ICT)", "INSTALACI\xD3N Y PRECOMISIONADO \xB7 INFRAESTRUCTURA COM\xDAN DE TELECOMUNICACIONES", "Telecomunicaciones", ICT_NORMA, [
+            bloque("01", "RECEPCI\xD3N", [
+              ["01.01", "Proyecto t\xE9cnico de ICT firmado y visado, con su acta de replanteo"],
+              ["01.02", "Cables, tomas y equipos de cabecera con marcado CE y seg\xFAn proyecto"],
+              ["01.03", "Instalador inscrito en el Registro de Empresas Instaladoras de Telecomunicaci\xF3n"]
+            ]),
+            bloque("02", "RECINTOS (RITI, RITS, RITU)", [
+              ["02.01", "Dimensiones, puerta con cerradura y ubicaci\xF3n seg\xFAn proyecto"],
+              ["02.02", "Ventilaci\xF3n, alumbrado (normal y de emergencia) y cuadro el\xE9ctrico propio"],
+              ["02.03", "Anillo de tierra conectado y medido"]
+            ]),
+            bloque("03", "CANALIZACIONES", [
+              ["03.01", "Arqueta de entrada y canalizaci\xF3n externa hasta el registro de enlace"],
+              ["03.02", "Canalizaci\xF3n principal con sus tubos de reserva y gu\xEDas"],
+              ["03.03", "Registros secundarios y de terminaci\xF3n de red accesibles y cerrados"]
+            ]),
+            bloque("04", "CAPTACI\xD3N Y CABECERA", [
+              ["04.01", "M\xE1stil arriostrado, puesto a tierra y a distancia de l\xEDneas el\xE9ctricas"],
+              ["04.02", "Antenas orientadas y amplificadores ajustados canal a canal"]
+            ]),
+            bloque("05", "REDES", [
+              ["05.01", "Red de televisi\xF3n: derivadores y repartidores seg\xFAn el esquema, sin conectores sueltos"],
+              ["05.02", "Fibra \xF3ptica: empalmes, conectores y etiquetado en registro principal y PAU"],
+              ["05.03", "Par trenzado: conectores, etiquetado y certificaci\xF3n toma a toma"],
+              ["05.04", "Coaxial de acceso (si lo hay): derivadores y PAU"]
+            ]),
+            bloque("06", "MEDIDAS", [
+              ["06.01", "Niveles de TDT, sat\xE9lite y FM en la toma mejor y en la peor de cada ramal"],
+              ["06.02", "Calidad de la se\xF1al (MER / BER) en la toma m\xE1s desfavorable"],
+              ["06.03", "Atenuaci\xF3n \xF3ptica de las fibras y certificado del par trenzado"]
+            ]),
+            bloque("07", "DOCUMENTACI\xD3N", [
+              ["07.01", "Bolet\xEDn de instalaci\xF3n y protocolo de pruebas firmados por el instalador"],
+              ["07.02", "Certificado de fin de obra del director de obra de la ICT"],
+              ["07.03", "Planos \xABas built\xBB y presentaci\xF3n ante la Jefatura Provincial de Inspecci\xF3n de Telecomunicaciones"]
+            ])
+          ]),
+          /* ─────────────────────────── ACS y legionela */
+          fichaNorma("ACS_LEGIONELA", "ACS (LEGIONELA)", "PRODUCCI\xD3N Y DISTRIBUCI\xD3N DE AGUA CALIENTE SANITARIA", "Fontaner\xEDa", LEGIONELA, [
+            { titulo: "DATOS DE LA INSTALACI\xD3N", tipo: "datos", puntos: [
+              ...identificacion(),
+              lista("produccion", "Producci\xF3n", ["Acumulador", "Interacumulador", "Instant\xE1nea", "Bomba de calor", "Solar con apoyo"]),
+              numPunto("volumen_acumulacion", "Volumen de acumulaci\xF3n", "l"),
+              lista("recirculacion", "Recirculaci\xF3n", ["S\xED", "No"])
+            ] },
+            { titulo: "COMPROBACIONES (RD 487/2022)", tipo: "comprobaciones", puntos: [
+              okNoOk("limpieza_inicial", "Limpieza y desinfecci\xF3n antes de la puesta en marcha, con su certificado"),
+              okNoOk("choque_termico", "El sistema puede subir todo el circuito a 70 \xB0C (choque t\xE9rmico) y se ha probado"),
+              okNoOk("purgas", "Purgas en los puntos bajos del acumulador y de la red"),
+              okNoOk("tomas_muestras", "Tomas de muestras en la salida del acumulador y en el retorno"),
+              okNoOk("retorno_equilibrado", "Retorno equilibrado: llega caliente de todos los ramales"),
+              okNoOk("aislamiento_acs", "Tuber\xEDas de ACS y retorno aisladas; las de agua fr\xEDa, separadas o aisladas del calor"),
+              okNoOk("sin_tramos_muertos", "Sin tramos ciegos ni ramales sin uso"),
+              okNoOk("termostaticas", "Mezcladoras termost\xE1ticas solo en el punto de uso"),
+              okNoOk("ppcl", "Plan de prevenci\xF3n y control de legionela (PPCL) entregado al titular")
+            ] },
+            { titulo: "TEMPERATURAS (RD 487/2022)", tipo: "parametros", puntos: [
+              prueba("t_acumulador", "T\xAA del agua a la salida del acumulador", "\xB0C", OBL, minimo(60, "RD 487/2022: \u2265 60 \xB0C en el acumulador final")),
+              prueba("t_retorno_acs", "T\xAA del retorno al acumulador", "\xB0C", OBL, minimo(50, "RD 487/2022: \u2265 50 \xB0C en el retorno")),
+              prueba("t_punto_lejano", "T\xAA en el punto m\xE1s alejado, tras un minuto", "\xB0C", OBL, minimo(50, "RD 487/2022: \u2265 50 \xB0C en el grifo m\xE1s alejado tras 1 min")),
+              prueba("t_agua_fria", "T\xAA del agua fr\xEDa de consumo", "\xB0C", OPC, maximo(20, "RD 487/2022: por debajo de 20 \xB0C siempre que se pueda (de memoria)")),
+              prueba("t_choque", "T\xAA alcanzada en el choque t\xE9rmico", "\xB0C", OPC, minimo(70, "RD 487/2022: 70 \xB0C en todo el circuito para la desinfecci\xF3n t\xE9rmica"))
+            ] },
+            { titulo: "CAUDAL Y AN\xC1LISIS", tipo: "parametros", puntos: [
+              prueba("caudal_acs", "Caudal simult\xE1neo de ACS", "m\xB3/h", OPC, conTol(0.1, "CTE DB HS 4: contra el c\xE1lculo, \xB110 % (criterio de obra)")),
+              prueba("legionella", "Legionella en la toma de muestras", "UFC/l", OPC, maximo(100, "RD 487/2022: < 100 UFC/l; por encima, acciones correctoras (de memoria)"))
+            ] }
+          ]),
+          checklistNorma("CHECKLIST_ACS_LEGIONELA", "CHECKLIST ACS (LEGIONELA)", "INSTALACI\xD3N Y PRECOMISIONADO \xB7 AGUA CALIENTE SANITARIA", "Fontaner\xEDa", LEGIONELA, [
+            bloque("01", "RECEPCI\xD3N", [
+              ["01.01", "Acumuladores, intercambiadores y bombas seg\xFAn proyecto, con marcado CE"],
+              ["01.02", "Materiales aptos para agua de consumo y resistentes a 70 \xB0C y al cloro"],
+              ["01.03", "Instalador habilitado (RITE)"]
+            ]),
+            bloque("02", "PRODUCCI\xD3N", [
+              ["02.01", "Acumulador con boca de registro para limpieza, purga y term\xF3metro"],
+              ["02.02", "V\xE1lvula de seguridad conducida a desag\xFCe visible"],
+              ["02.03", "Consigna de producci\xF3n a 60 \xB0C o m\xE1s y programaci\xF3n del choque t\xE9rmico"]
+            ]),
+            bloque("03", "RED Y RETORNO", [
+              ["03.01", "Retorno hasta el \xFAltimo punto de cada ramal, con v\xE1lvulas de equilibrado"],
+              ["03.02", "Sin tramos ciegos; ramales de uso espor\xE1dico con purga"],
+              ["03.03", "Tuber\xEDas de agua fr\xEDa separadas de las calientes o aisladas"],
+              ["03.04", "Aislamiento seg\xFAn RITE IT 1.2.4.2.1"]
+            ]),
+            bloque("04", "PUNTOS DE USO", [
+              ["04.01", "Mezcladoras termost\xE1ticas en el punto de uso, accesibles para su limpieza"],
+              ["04.02", "Duchas y grifos desmontables para limpieza y desinfecci\xF3n"]
+            ]),
+            bloque("05", "PRUEBAS", [
+              ["05.01", "Prueba de estanqueidad de la red (CTE DB HS 4 \xA75.2)"],
+              ["05.02", "Limpieza y desinfecci\xF3n inicial con cloro y certificado del tratamiento"],
+              ["05.03", "Temperaturas de acumulador, retorno y punto m\xE1s alejado medidas"],
+              ["05.04", "Choque t\xE9rmico a 70 \xB0C probado en todo el circuito"]
+            ]),
+            bloque("06", "MANTENIMIENTO", [
+              ["06.01", "Programa de mantenimiento con purgas, revisiones y an\xE1lisis peri\xF3dicos"],
+              ["06.02", "Libro de registro de mantenimiento abierto"]
+            ]),
+            bloque("07", "DOCUMENTACI\xD3N", [
+              ["07.01", "Plan de prevenci\xF3n y control de legionela (PPCL) entregado"],
+              ["07.02", "Certificados de limpieza y desinfecci\xF3n y primer an\xE1lisis"],
+              ["07.03", "Planos \xABas built\xBB y manual de uso y mantenimiento"]
+            ])
+          ]),
+          /* ─────────────────────────── Gas */
+          fichaNorma("GAS_RECEPTORA", "INSTALACI\xD3N DE GAS", "INSTALACI\xD3N RECEPTORA DE GAS", "Gas", GAS_NORMA, [
+            { titulo: "DATOS DE LA INSTALACI\xD3N", tipo: "datos", puntos: [
+              ...identificacion(),
+              lista("gas_tipo", "Gas", ["Gas natural", "Propano", "Butano"]),
+              lista("mop", "Presi\xF3n de la instalaci\xF3n (MOP)", ["\u2264 0,05 bar", "0,05\u20130,4 bar", "0,4\u20135 bar"]),
+              numPunto("num_aparatos", "N\xBA de aparatos"),
+              texto("local", "Local de los aparatos (sala de calderas, cocina\u2026)")
+            ] },
+            { titulo: "COMPROBACIONES", tipo: "comprobaciones", puntos: [
+              okNoOk("llaves", "Llaves de acometida, de edificio y de aparato accesibles y rotuladas"),
+              okNoOk("regulador", "Regulador y v\xE1lvula de seguridad por m\xE1xima presi\xF3n (VIS) seg\xFAn proyecto"),
+              okNoOk("tuberia", "Tuber\xEDa vista o en vaina, identificada en amarillo y con pasamuros en cada muro"),
+              okNoOk("ventilacion_local", "Ventilaci\xF3n del local (entrada y salida de aire) seg\xFAn UNE 60670-6"),
+              okNoOk("evacuacion_humos", "Evacuaci\xF3n de los productos de la combusti\xF3n estanca y a cubierta"),
+              okNoOk("deteccion_gas", "Detecci\xF3n de gas con corte por electrov\xE1lvula probada (sala de calderas, UNE 60601)"),
+              okNoOk("corte_exterior", "Corte de gas desde el exterior de la sala de calderas"),
+              okNoOk("puesta_servicio", "Puesta en servicio por la distribuidora y aparatos puestos en marcha por su servicio t\xE9cnico")
+            ] },
+            { titulo: "ESTANQUEIDAD (UNE 60670-8)", tipo: "parametros", puntos: [
+              prueba("presion_prueba_gas", "Presi\xF3n de la prueba", "mbar", OBL, minimo(void 0, "UNE 60670-8: la de su tabla seg\xFAn la MOP del tramo; contra el protocolo")),
+              prueba("duracion_prueba_gas", "Duraci\xF3n de la prueba", "min", OPC, minimo(10, "UNE 60670-8: \u2265 10 min en tramos cortos (de memoria; los largos piden m\xE1s)")),
+              prueba("caida_presion_gas", "Ca\xEDda de presi\xF3n durante la prueba", "mbar", OBL, maximo(0, "UNE 60670-8: ninguna ca\xEDda de presi\xF3n durante la prueba"))
+            ] },
+            { titulo: "SUMINISTRO Y COMBUSTI\xD3N", tipo: "parametros", puntos: [
+              prueba("potencia_instalada_gas", "Potencia instalada (suma de aparatos)", "kW", OPC, segun("La del proyecto: la suma de las placas")),
+              prueba("caudal_combustible", "Caudal de gas con todos los aparatos en marcha", "m\xB3/h", OPC, conTol(0.1, "Contra el c\xE1lculo, \xB110 % (criterio de obra)")),
+              prueba("presion_suministro_gas", "Presi\xF3n tras el regulador", "mbar", OPC, conTol(0.1, "Contra la del proyecto, \xB110 % (criterio de obra)")),
+              prueba("presion_aparato", "Presi\xF3n a la entrada del aparato m\xE1s desfavorable, en marcha", "mbar", OBL, minimo(void 0, "UNE-EN 437: gas natural 20 mbar (m\xEDn. 17); propano 37 (m\xEDn. 25); contra el proyecto")),
+              prueba("co_humos", "CO en los productos de la combusti\xF3n (sin aire)", "ppm", OPC, maximo(1e3, "Criterio de revisi\xF3n (de memoria): \u2264 1000 ppm corregido"))
+            ] }
+          ]),
+          checklistNorma("CHECKLIST_GAS_RECEPTORA", "CHECKLIST INSTALACI\xD3N DE GAS", "INSTALACI\xD3N Y PRECOMISIONADO \xB7 INSTALACI\xD3N RECEPTORA DE GAS", "Gas", GAS_NORMA, [
+            bloque("01", "RECEPCI\xD3N", [
+              ["01.01", "Tuber\xEDa, accesorios, reguladores y llaves seg\xFAn proyecto y con marcado CE"],
+              ["01.02", "Aparatos de gas con marcado CE para el gas y la presi\xF3n de la instalaci\xF3n"],
+              ["01.03", "Empresa instaladora de gas habilitada (categor\xEDa seg\xFAn la MOP)"]
+            ]),
+            bloque("02", "TRAZADO", [
+              ["02.01", "Trazado por zonas comunes y ventiladas; nunca por huecos de ascensor ni conductos de aire"],
+              ["02.02", "Distancias a otras instalaciones (el\xE9ctricas, agua caliente) respetadas"],
+              ["02.03", "Vainas en muros y forjados, selladas por un extremo y ventiladas por el otro"],
+              ["02.04", "Tuber\xEDa sujeta, protegida contra la corrosi\xF3n e identificada en amarillo"]
+            ]),
+            bloque("03", "REGULACI\xD3N Y CORTE", [
+              ["03.01", "Llave de acometida y llave de edificio accesibles desde el exterior"],
+              ["03.02", "Regulador y VIS seg\xFAn proyecto, con tomas de presi\xF3n"],
+              ["03.03", "Llave de corte en cada aparato"]
+            ]),
+            bloque("04", "LOCAL DE LOS APARATOS", [
+              ["04.01", "Ventilaci\xF3n inferior y superior con las secciones del proyecto (UNE 60670-6)"],
+              ["04.02", "Sala de calderas: puerta, detecci\xF3n de gas y electrov\xE1lvula de corte (UNE 60601)"],
+              ["04.03", "Evacuaci\xF3n de humos estanca, con sus pendientes y a cubierta"]
+            ]),
+            bloque("05", "PRUEBAS (UNE 60670-8)", [
+              ["05.01", "Prueba de estanqueidad de cada tramo a la presi\xF3n y el tiempo de la norma"],
+              ["05.02", "Verificaci\xF3n de estanqueidad de las uniones con detector o agua jabonosa"],
+              ["05.03", "Presi\xF3n en el aparato m\xE1s desfavorable con todos en marcha"]
+            ]),
+            bloque("06", "PUESTA EN SERVICIO", [
+              ["06.01", "Purga de aire de la instalaci\xF3n y encendido de cada aparato"],
+              ["06.02", "An\xE1lisis de combusti\xF3n de cada aparato por su servicio t\xE9cnico"],
+              ["06.03", "Detecci\xF3n de gas y corte de la electrov\xE1lvula probados"]
+            ]),
+            bloque("07", "DOCUMENTACI\xD3N", [
+              ["07.01", "Certificado de instalaci\xF3n de gas firmado por la empresa instaladora (ITC-ICG 07)"],
+              ["07.02", "Acta de puesta en servicio de la distribuidora"],
+              ["07.03", "Planos \xABas built\xBB, instrucciones de uso y contrato de mantenimiento"]
+            ])
+          ])
         ];
         const PLANTILLAS = [
           /* ─────────────────────────── Fichas de puesta en marcha (20) */
@@ -18291,7 +20299,10 @@ globalThis.CX_VARIANTE="cxobra";
               texto("ud_exterior_asociada", "Ud. exterior asociada", { origen: "equipoAsociado" }),
               numPunto("caudal", "Caudal", "m\xB3/h", { origen: "caudalNominal" }),
               numPunto("potencia_frio", "Potencia fr\xEDo", "kW"),
-              numPunto("potencia_calor", "Potencia calor", "kW")
+              numPunto("potencia_calor", "Potencia calor", "kW"),
+              /* Tª de la sala según proyecto (JC, 16-oct); fila añadida en fichaExcel. */
+              numPunto("t_sala_verano", "T\xAA sala verano", "\xB0C"),
+              numPunto("t_sala_invierno", "T\xAA sala invierno", "\xB0C")
             ] },
             /* v2 (15-oct): en un split solo se mide la Tª de impulsión. Se queda el
                código t_salida_frio para no perder lo ya medido. */
@@ -19000,7 +21011,74 @@ globalThis.CX_VARIANTE="cxobra";
               unidad: "m\xB3/h",
               tolerancia: "boca"
             }
-          ])
+          ]),
+          /*
+           * Bombas y grupos de presión (16-oct-2026, JC: «no existe»): el libro no
+           * trae hoja; se imprime con la del checklist de ventilador (cabecera,
+           * observaciones, firmas y pie) y estos bloques, como los demás: numerado
+           * desde el 01 y sin observaciones en el dossier de entrega.
+           */
+          Object.assign(checklist("CHECKLIST_BOMBAS", "CHECKLIST BOMBAS", "RECEPCI\xD3N Y PUESTA EN OBRA \xB7 BOMBAS Y GRUPOS DE PRESI\xD3N", [
+            bloque("02", "VERIFICACIONES F\xCDSICAS", [
+              ["02.01", "La unidad est\xE1 libre de da\xF1os"],
+              ["02.02", "Todos los componentes presentes y en orden (bombas, cuadro, calder\xEDn, presostatos, man\xF3metros)"],
+              ["02.03", "Las aperturas de la l\xEDnea de agua est\xE1n selladas hasta su conexi\xF3n"],
+              ["02.04", "Manual de instalaci\xF3n y encendido provisto"],
+              ["02.05", "Placa de caracter\xEDsticas correctamente colocada"]
+            ]),
+            bloque("03", "AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA", [
+              ["03.01", "Los equipos instalados se corresponden con el Proyecto o Memoria T\xE9cnica (caudal, altura, n\xBA de bombas)"],
+              ["03.02", "La ubicaci\xF3n de los equipos instalados se corresponde con el Proyecto o Memoria T\xE9cnica"]
+            ]),
+            bloque("04", "INSTALACI\xD3N DEL EQUIPO", [
+              ["04.01", "Unidad perfectamente apoyada sobre bancada usando el tama\xF1o adecuado de anclajes de montaje"],
+              ["04.02", "Antivibratorios correctamente instalados y unidad convenientemente nivelada"],
+              ["04.03", "Bomba y motor alineados (en bombas con acoplamiento)"],
+              ["04.04", "Unidad etiquetada y f\xE1cil de identificar, con el circuito al que sirve"],
+              ["04.05", "La unidad se puede retirar del edificio"]
+            ]),
+            bloque("05", "CONEXI\xD3N HIDR\xC1ULICA", [
+              ["05.01", "Todos los componentes de las tuber\xEDas han sido instalados"],
+              ["05.02", "Los soportes de las tuber\xEDas est\xE1n como se requieren y no cargan peso sobre la bomba"],
+              ["05.03", "Las tuber\xEDas est\xE1n conectadas a la bomba con manguitos antivibratorios"],
+              ["05.04", "Existen v\xE1lvulas de corte en aspiraci\xF3n e impulsi\xF3n para la independencia de cada bomba"],
+              ["05.05", "Existe v\xE1lvula de retenci\xF3n en la impulsi\xF3n de cada bomba"],
+              ["05.06", "Filtro en la aspiraci\xF3n instalado y limpio"],
+              ["05.07", "Existen man\xF3metros o tomas de presi\xF3n en aspiraci\xF3n e impulsi\xF3n"],
+              ["05.08", "Tuber\xEDas limpias, sin fugas y aisladas seg\xFAn las especificaciones de Proyecto"],
+              ["05.09", "Vaso de expansi\xF3n o calder\xEDn instalado y precargado a la presi\xF3n de Proyecto"],
+              ["05.10", "Instalaci\xF3n llena y purgada; la bomba no trabaja en seco"],
+              ["05.11", "Etiquetas de v\xE1lvulas y sentido del flujo fijadas"]
+            ]),
+            bloque("06", "EL\xC9CTRICO", [
+              ["06.01", "Desconexi\xF3n local instalada en un lugar accesible"],
+              ["06.02", "Rotaci\xF3n del motor de la bomba en la direcci\xF3n correcta"],
+              ["06.03", "Todas las conexiones el\xE9ctricas bien fijadas"],
+              ["06.04", "Todas las conexiones el\xE9ctricas est\xE1n conectadas a tierra"],
+              ["06.05", "Las protecciones del cuadro se corresponden con la intensidad de consumo"]
+            ]),
+            bloque("07", "CONTROLES - INSTALACI\xD3N", [
+              ["07.01", "Variador de frecuencia instalado, conectado y configurado (si lo hay)"],
+              ["07.02", "Transductor o presostato de presi\xF3n instalado, conectado y funciona"],
+              ["07.03", "Protecci\xF3n contra marcha en seco (presostato de m\xEDnima, nivel o interruptor de flujo) instalada y funciona"],
+              ["07.04", "El cableado de control y la se\xF1al al sistema de gesti\xF3n (marcha, aver\xEDa, alarma) est\xE1n conectados"]
+            ]),
+            bloque("08", "CONTROLES - PUESTA EN MARCHA", [
+              ["08.01", "Tensi\xF3n de alimentaci\xF3n (RSTN) y sentido de rotaci\xF3n correctos"],
+              ["08.02", "Presi\xF3n de consigna, de arranque y de paro ajustadas seg\xFAn el Proyecto"],
+              ["08.03", "Alternancia de bombas y entrada de la reserva verificadas"],
+              ["08.04", "El sistema se enciende sin ning\xFAn ruido, vibraci\xF3n ni cavitaci\xF3n anormal"],
+              ["08.05", "Verificaci\xF3n del arranque y paro por sistema de control"],
+              ["08.06", "Se adjunta informe de puesta en marcha del fabricante con detalle de las pruebas, medidas y ajustes"]
+            ]),
+            bloque("09", "MANTENIMIENTO", P_MANTENIMIENTO_LARGO)
+          ]), { hojaBase: "CHECKLIST VENTILADOR" }),
+          /* ─────────────────────────── Las de norma, fuera del libro */
+          ...ELECTRICIDAD,
+          ...CONTROL,
+          ...PCI,
+          ...HOSPITAL,
+          ...OTRAS
         ];
         const MEDICIONES = {
           bocas: { titulo: "Balanceo de caudales", plano: true, texto: "Bocas de impulsi\xF3n y retorno sobre el plano", retorno: "Retorno" },
@@ -19109,7 +21187,7 @@ globalThis.CX_VARIANTE="cxobra";
             nombre: "WILO GP",
             nombrePdf: "Wilo Grupo de Presion",
             plantillas: ["GRUPO_DE_BOMBEO"],
-            anexos: [],
+            anexos: [{ plantilla: "CHECKLIST_BOMBAS" }],
             balanceo: false,
             estanqueidad: "no",
             medicion: "ninguna"
@@ -19119,7 +21197,7 @@ globalThis.CX_VARIANTE="cxobra";
             nombre: "WILO PUMPS",
             nombrePdf: "Wilo Bomba",
             plantillas: ["GRUPO_DE_BOMBEO"],
-            anexos: [],
+            anexos: [{ plantilla: "CHECKLIST_BOMBAS" }],
             balanceo: false,
             estanqueidad: "no",
             medicion: "ninguna"
@@ -19157,6 +21235,347 @@ globalThis.CX_VARIANTE="cxobra";
             /* Mete aire en la escalera: caudal por reja, como la extracción, con su nombre. */
             medicion: "extraccion",
             tituloMedicion: "Caudales de presurizaci\xF3n"
+          },
+          /*
+           * ELECTRICIDAD (17-oct-2026). No son de un fabricante: son de un tipo de
+           * equipo. Un cuadro o un grupo electrógeno rara vez trae «grupo» en la tabla
+           * de equipos, así que, si ni la familia ni el grupo casan, se reconocen por
+           * el TAG o el nombre (`pistas`, el texto de una expresión regular, para que pase por JSON). `prioridadPista`: cuando dos casan (CS-VE
+           * es un cuadro y es de recarga), gana la menor. Las siglas que en clima
+           * son otra cosa no se usan: TR es torre de refrigeración, BC bomba de calor
+           * y VE ventilador (shared/control/puntosObra.js); ahí manda el nombre.
+           */
+          {
+            codigo: "ELEC_CUADROS",
+            nombre: "CUADROS EL\xC9CTRICOS BT",
+            nombrePdf: "Cuadro electrico BT",
+            disciplina: "Electricidad",
+            alias: ["CUADROS ELECTRICOS", "CUADRO ELECTRICO", "CUADROS BT", "CGBT"],
+            pistas: /\bCGBT\b|\bCGD\b|\bCGP\b|\bCS[A-Z]?[-_ .]?\d|\bCS[-_ ]|\bCBT\b|\bCUADRO|SUBCUADRO/.source,
+            prioridadPista: 9,
+            plantillas: ["CUADRO_BT"],
+            anexos: [{ plantilla: "CHECKLIST_CUADRO_BT" }],
+            balanceo: false,
+            estanqueidad: "no",
+            medicion: "ninguna"
+          },
+          {
+            codigo: "ELEC_TRAFO",
+            nombre: "TRANSFORMADORES",
+            nombrePdf: "Transformador",
+            disciplina: "Electricidad",
+            alias: ["TRANSFORMADOR", "CENTRO DE TRANSFORMACION"],
+            pistas: /\bTRAFO|\bTRF[-_ .]?\d|TRANSFORMADOR/.source,
+            prioridadPista: 3,
+            plantillas: ["TRANSFORMADOR"],
+            anexos: [{ plantilla: "CHECKLIST_TRANSFORMADOR" }],
+            balanceo: false,
+            estanqueidad: "no",
+            medicion: "ninguna"
+          },
+          {
+            codigo: "ELEC_GRUPO",
+            nombre: "GRUPOS ELECTR\xD3GENOS",
+            nombrePdf: "Grupo electrogeno",
+            disciplina: "Electricidad",
+            alias: ["GRUPO ELECTROGENO", "GENERADOR DIESEL"],
+            pistas: /\bGE[-_ .]?\d|ELECTROGENO|\bGEN[-_ .]?\d/.source,
+            prioridadPista: 2,
+            plantillas: ["GRUPO_ELECTROGENO"],
+            anexos: [{ plantilla: "CHECKLIST_GRUPO_ELECTROGENO" }],
+            balanceo: false,
+            estanqueidad: "no",
+            medicion: "ninguna"
+          },
+          {
+            codigo: "ELEC_SAI",
+            nombre: "SAI Y BATER\xCDAS",
+            nombrePdf: "SAI",
+            disciplina: "Electricidad",
+            alias: ["SAI", "UPS", "ALIMENTACION ININTERRUMPIDA"],
+            pistas: /\bSAI\b|\bUPS\b|ININTERRUMP/.source,
+            prioridadPista: 2,
+            plantillas: ["SAI"],
+            anexos: [{ plantilla: "CHECKLIST_SAI" }],
+            balanceo: false,
+            estanqueidad: "no",
+            medicion: "ninguna"
+          },
+          {
+            codigo: "ELEC_CONDENSADORES",
+            nombre: "BATER\xCDAS DE CONDENSADORES",
+            nombrePdf: "Bateria de condensadores",
+            disciplina: "Electricidad",
+            alias: ["BATERIA DE CONDENSADORES", "COMPENSACION DE REACTIVA"],
+            pistas: /CONDENSADORES|\bREACTIVA\b|COMPENSACION DE ENERGIA/.source,
+            prioridadPista: 2,
+            plantillas: ["BATERIA_CONDENSADORES"],
+            anexos: [{ plantilla: "CHECKLIST_BATERIA_CONDENSADORES" }],
+            balanceo: false,
+            estanqueidad: "no",
+            medicion: "ninguna"
+          },
+          {
+            codigo: "ELEC_EMERGENCIA",
+            nombre: "ALUMBRADO DE EMERGENCIA",
+            nombrePdf: "Alumbrado de emergencia",
+            disciplina: "Electricidad",
+            alias: ["ALUMBRADO EMERGENCIA", "LUMINARIAS DE EMERGENCIA"],
+            pistas: /ALUMBRADO DE EMERGENCIA|ALUMBRADO EMERGENCIA|\bEMERG|\bAE[-_ .]?\d/.source,
+            prioridadPista: 2,
+            plantillas: ["ALUMBRADO_EMERGENCIA"],
+            anexos: [{ plantilla: "CHECKLIST_ALUMBRADO_EMERGENCIA" }],
+            balanceo: false,
+            estanqueidad: "no",
+            medicion: "ninguna"
+          },
+          {
+            codigo: "ELEC_RECARGA",
+            nombre: "RECARGA VEH\xCDCULO EL\xC9CTRICO",
+            nombrePdf: "Recarga VE",
+            disciplina: "Electricidad",
+            alias: ["RECARGA VEHICULO ELECTRICO", "PUNTOS DE RECARGA", "RECARGA VE", "CARGADORES VE"],
+            pistas: /RECARGA|\bRVE\b|[-_ ]VE\b|\bPRVE?[-_ .]?\d|CARGADOR(ES)? (DE )?VE|PUNTOS? DE CARGA|WALLBOX/.source,
+            prioridadPista: 1,
+            plantillas: ["RECARGA_VE"],
+            anexos: [{ plantilla: "CHECKLIST_RECARGA_VE" }],
+            balanceo: false,
+            estanqueidad: "no",
+            medicion: "ninguna"
+          },
+          {
+            codigo: "ELEC_FV",
+            nombre: "FOTOVOLTAICA",
+            nombrePdf: "Fotovoltaica",
+            disciplina: "Electricidad",
+            alias: ["SOLAR FOTOVOLTAICA", "PLACAS SOLARES"],
+            pistas: /FOTOVOLT|\bFV\b|\bPV\b|INVERSOR|\bINV[-_ .]?\d/.source,
+            prioridadPista: 1,
+            plantillas: ["FOTOVOLTAICA"],
+            anexos: [{ plantilla: "CHECKLIST_FOTOVOLTAICA" }],
+            balanceo: false,
+            estanqueidad: "no",
+            medicion: "ninguna"
+          },
+          /* El BMS de la obra: una ficha para el sistema entero. Los puntos de cada
+             equipo se prueban colgados de su TAG (shared/commissioning/puntosBms.js). */
+          {
+            codigo: "CONTROL_BMS",
+            nombre: "SISTEMA DE GESTI\xD3N (BMS)",
+            nombrePdf: "BMS",
+            disciplina: "Control",
+            alias: ["BMS", "SCADA", "GESTION TECNICA", "SISTEMA DE CONTROL", "GTC"],
+            pistas: /\bBMS\b|\bSCADA\b|\bGTC\b|\bDDC\b|\bPLC\b|GESTION TECNICA|GESTION CENTRALIZADA/.source,
+            prioridadPista: 2,
+            plantillas: ["BMS"],
+            anexos: [{ plantilla: "CHECKLIST_BMS" }],
+            balanceo: false,
+            estanqueidad: "no",
+            medicion: "ninguna"
+          },
+          /* PCI (RIPCI): seis equipos. Las pistas son de PCI y no tocan el clima: un
+             «grupo de presión» de fontanería no es el de incendios. */
+          {
+            codigo: "PCI_DETECCION",
+            nombre: "DETECCI\xD3N Y ALARMA DE INCENDIOS",
+            nombrePdf: "Deteccion de incendios",
+            disciplina: "PCI",
+            alias: ["CENTRAL DE INCENDIOS", "CENTRALITA DE INCENDIOS", "DETECCION DE INCENDIOS", "CENTRAL DE DETECCION"],
+            pistas: /CENTRAL(ITA)? (DE )?(DETECCION|INCENDIOS|ALARMA)|\bCDI\b|DETECCION (DE )?INCENDIOS|DETECCION Y ALARMA/.source,
+            prioridadPista: 1,
+            plantillas: ["DETECCION_INCENDIOS"],
+            anexos: [{ plantilla: "CHECKLIST_DETECCION_INCENDIOS" }],
+            balanceo: false,
+            estanqueidad: "no",
+            medicion: "ninguna"
+          },
+          {
+            codigo: "PCI_BOMBEO",
+            nombre: "GRUPO DE BOMBEO PCI",
+            nombrePdf: "Grupo de bombeo PCI",
+            disciplina: "PCI",
+            alias: ["GRUPO CONTRA INCENDIOS", "GRUPO DE PRESION PCI", "GRUPO PCI", "BOMBAS PCI"],
+            pistas: /GRUPO (DE )?(BOMBEO|PRESION).*(PCI|CONTRA ?INCENDIOS)|BOMBAS? (DE )?(PCI|INCENDIOS)|\bGB[-_ ]?PCI|\bGPCI\b|JOCKEY/.source,
+            prioridadPista: 1,
+            plantillas: ["GRUPO_PCI"],
+            anexos: [{ plantilla: "CHECKLIST_GRUPO_PCI" }],
+            balanceo: false,
+            estanqueidad: "no",
+            medicion: "ninguna"
+          },
+          {
+            codigo: "PCI_BIE",
+            nombre: "BIE E HIDRANTES",
+            nombrePdf: "BIE e hidrantes",
+            disciplina: "PCI",
+            alias: ["BIE", "BOCAS DE INCENDIO", "HIDRANTES", "RED DE BIE"],
+            pistas: /\bBIES?\b|HIDRANTE|BOCAS? DE INCENDIO|COLUMNA SECA/.source,
+            prioridadPista: 1,
+            plantillas: ["BIE_HIDRANTES"],
+            anexos: [{ plantilla: "CHECKLIST_BIE_HIDRANTES" }],
+            balanceo: false,
+            estanqueidad: "no",
+            medicion: "ninguna"
+          },
+          {
+            codigo: "PCI_ROCIADORES",
+            nombre: "ROCIADORES",
+            nombrePdf: "Rociadores",
+            disciplina: "PCI",
+            alias: ["ROCIADORES AUTOMATICOS", "SPRINKLERS", "PUESTO DE CONTROL DE ROCIADORES"],
+            pistas: /ROCIADOR|SPRINKLER|PUESTO DE CONTROL/.source,
+            prioridadPista: 1,
+            plantillas: ["ROCIADORES"],
+            anexos: [{ plantilla: "CHECKLIST_ROCIADORES" }],
+            balanceo: false,
+            estanqueidad: "no",
+            medicion: "ninguna"
+          },
+          {
+            codigo: "PCI_GAS",
+            nombre: "EXTINCI\xD3N POR GAS",
+            nombrePdf: "Extincion por gas",
+            disciplina: "PCI",
+            alias: ["EXTINCION AUTOMATICA", "EXTINCION POR GAS", "EXTINCION POR AGENTE GASEOSO"],
+            pistas: /EXTINCION (POR |AUTOMATICA )?(GAS|AGENTE)|EXTINCION AUTOMATICA|FM-?200|NOVEC|INERGEN|\bIG-?(541|55|01|100)\b/.source,
+            prioridadPista: 1,
+            plantillas: ["EXTINCION_GAS"],
+            anexos: [{ plantilla: "CHECKLIST_EXTINCION_GAS" }],
+            balanceo: false,
+            estanqueidad: "no",
+            medicion: "ninguna"
+          },
+          {
+            codigo: "PCI_EXTINTORES",
+            nombre: "EXTINTORES Y SE\xD1ALIZACI\xD3N",
+            nombrePdf: "Extintores y senalizacion",
+            disciplina: "PCI",
+            alias: ["EXTINTORES", "SENALIZACION", "SE\xD1ALIZACION PCI"],
+            pistas: /EXTINTOR|SENALIZACION (PCI|DE EVACUACION|DE MEDIOS|FOTOLUMINISCENTE)|FOTOLUMINISCENTE/.source,
+            prioridadPista: 2,
+            plantillas: ["EXTINTORES_SENALIZACION"],
+            anexos: [{ plantilla: "CHECKLIST_EXTINTORES_SENALIZACION" }],
+            balanceo: false,
+            estanqueidad: "no",
+            medicion: "ninguna"
+          },
+          /* Hospital: cinco sistemas. El quirófano es la SALA: la UTA que la sirve
+             sigue siendo un climatizador. */
+          {
+            codigo: "HOSP_GASES",
+            nombre: "GASES MEDICINALES",
+            nombrePdf: "Gases medicinales",
+            disciplina: "Hospital",
+            alias: ["GASES MEDICINALES", "CENTRAL DE OXIGENO", "VACIO MEDICINAL", "AIRE MEDICINAL"],
+            pistas: /GASES MEDICINALES|OXIGENO|AIRE MEDICINAL|VACIO MEDICINAL|PROTOXIDO|ANESTESIC|\bEGA\b|\bO2\b|TOMAS? DE GASES/.source,
+            prioridadPista: 1,
+            plantillas: ["GASES_MEDICINALES"],
+            anexos: [{ plantilla: "CHECKLIST_GASES_MEDICINALES" }],
+            balanceo: false,
+            estanqueidad: "no",
+            medicion: "ninguna"
+          },
+          {
+            codigo: "HOSP_NEUMATICO",
+            nombre: "TRANSPORTE NEUM\xC1TICO",
+            nombrePdf: "Transporte neumatico",
+            disciplina: "Hospital",
+            alias: ["TRANSPORTE NEUMATICO", "TUBO NEUMATICO"],
+            pistas: /TRANSPORTE NEUMATICO|TUBO NEUMATICO|CORREO NEUMATICO|\bTN[-_ ]?\d/.source,
+            prioridadPista: 1,
+            plantillas: ["TRANSPORTE_NEUMATICO"],
+            anexos: [{ plantilla: "CHECKLIST_TRANSPORTE_NEUMATICO" }],
+            balanceo: false,
+            estanqueidad: "no",
+            medicion: "ninguna"
+          },
+          {
+            codigo: "HOSP_QUIROFANO",
+            nombre: "QUIR\xD3FANOS Y SALAS LIMPIAS",
+            nombrePdf: "Quirofano sala limpia",
+            disciplina: "Hospital",
+            alias: ["SALAS LIMPIAS", "SALAS BLANCAS", "SALAS DE AMBIENTE CONTROLADO"],
+            pistas: /^(?!.*(\bUTA|CLIMATIZADOR|FAN ?COIL|EXTRACTOR|VENTILADOR|\bCUADRO|\bCQ[-_ ]?\d|TRANSFORMADOR|VIGILANTE)).*(QUIROFANO|SALA BLANCA|SALA LIMPIA|AMBIENTE CONTROLADO)/.source,
+            prioridadPista: 3,
+            plantillas: ["QUIROFANO_SALA_LIMPIA"],
+            anexos: [{ plantilla: "CHECKLIST_QUIROFANO_SALA_LIMPIA" }],
+            balanceo: false,
+            estanqueidad: "no",
+            medicion: "ninguna"
+          },
+          {
+            codigo: "HOSP_IT",
+            nombre: "IT M\xC9DICO DE QUIR\xD3FANO",
+            nombrePdf: "IT medico",
+            disciplina: "Hospital",
+            alias: ["CUADRO DE QUIROFANO", "RED IT", "TRANSFORMADOR DE AISLAMIENTO"],
+            pistas: /VIGILANTE DE AISLAMIENTO|TRANSFORMADOR DE AISLAMIENTO|\bIT MEDICO|\bRED IT\b|CUADRO (DE )?QUIROFANO|\bCQ[-_ ]?\d/.source,
+            prioridadPista: 0,
+            plantillas: ["IT_QUIROFANO"],
+            anexos: [{ plantilla: "CHECKLIST_IT_QUIROFANO" }],
+            balanceo: false,
+            estanqueidad: "no",
+            medicion: "ninguna"
+          },
+          {
+            codigo: "HOSP_LLAMADA",
+            nombre: "LLAMADA DE ENFERMER\xCDA",
+            nombrePdf: "Llamada de enfermeria",
+            disciplina: "Hospital",
+            alias: ["LLAMADA DE ENFERMERIA", "LLAMADA PACIENTE ENFERMERA", "NURSE CALL"],
+            pistas: /LLAMADA (DE |A )?(ENFERMER|PACIENTE)|NURSE ?CALL|PACIENTE[- ]ENFERMER/.source,
+            prioridadPista: 1,
+            plantillas: ["LLAMADA_ENFERMERIA"],
+            anexos: [{ plantilla: "CHECKLIST_LLAMADA_ENFERMERIA" }],
+            balanceo: false,
+            estanqueidad: "no",
+            medicion: "ninguna"
+          },
+          /* Telecomunicaciones, ACS y gas. Las pistas no tocan lo que ya es de otro:
+             una bomba de ACS sigue siendo bomba y el gas refrigerante o medicinal no es
+             la instalación de gas. Sin alias cortos («GAS», «ACS»): el grupo se compara
+             por subcadena y se llevarían los de otros. */
+          {
+            codigo: "TELE_ICT",
+            nombre: "TELECOMUNICACIONES (ICT)",
+            nombrePdf: "ICT",
+            disciplina: "Telecomunicaciones",
+            alias: ["TELECOMUNICACIONES", "INFRAESTRUCTURA COMUN DE TELECOMUNICACIONES", "RITI", "RITS"],
+            pistas: /\bICT\b|TELECOMUNICACION|\bRIT[ISUM]\b|CABECERA (DE )?(TV|TDT|TELEVISION)|ANTENA COLECTIVA/.source,
+            prioridadPista: 1,
+            plantillas: ["ICT"],
+            anexos: [{ plantilla: "CHECKLIST_ICT" }],
+            balanceo: false,
+            estanqueidad: "no",
+            medicion: "ninguna"
+          },
+          {
+            codigo: "FONT_ACS",
+            nombre: "ACS (LEGIONELA)",
+            nombrePdf: "ACS legionela",
+            disciplina: "Fontaner\xEDa",
+            alias: ["AGUA CALIENTE SANITARIA", "PRODUCCION DE ACS", "ACUMULADORES DE ACS"],
+            pistas: /^(?!.*(BOMBA|\bB[A-Z]*[-_ ]?ACS|ENFRIADORA|INERCIA)).*(ACUMULADOR (DE )?ACS|INTERACUMULADOR|DEPOSITO (DE )?ACS|PRODUCCION (DE )?ACS|AGUA CALIENTE SANITARIA|LEGIONEL|^ACS[-_ ]?\d)/.source,
+            prioridadPista: 2,
+            plantillas: ["ACS_LEGIONELA"],
+            anexos: [{ plantilla: "CHECKLIST_ACS_LEGIONELA" }],
+            balanceo: false,
+            estanqueidad: "no",
+            medicion: "ninguna"
+          },
+          {
+            codigo: "GAS_RED",
+            nombre: "INSTALACI\xD3N DE GAS",
+            nombrePdf: "Instalacion de gas",
+            disciplina: "Gas",
+            alias: ["GAS NATURAL", "INSTALACION DE GAS", "INSTALACION RECEPTORA DE GAS"],
+            pistas: /^(?!.*(REFRIGERANTE|MEDICINAL|EXTINCION|CALDERA)).*(INSTALACION (RECEPTORA )?DE GAS|GAS NATURAL|PROPANO|BUTANO|\bGLP\b|CONTADOR DE GAS|ACOMETIDA DE GAS|RED DE GAS|REGULADOR DE GAS|\bERM\b)/.source,
+            prioridadPista: 2,
+            plantillas: ["GAS_RECEPTORA"],
+            anexos: [{ plantilla: "CHECKLIST_GAS_RECEPTORA" }],
+            balanceo: false,
+            estanqueidad: "no",
+            medicion: "ninguna"
           }
         ];
         (function exportar(API) {
@@ -19343,6 +21762,7 @@ globalThis.CX_VARIANTE="cxobra";
         }
         function origenCaudal(om, nBocas) {
           if (om === "totalBalanceo") return "medido total en balanceo";
+          if (om === "puntosBms") return "de la prueba punto a punto";
           return om === "balanceo" ? `suma de ${nBocas ? `${nBocas} ` : ""}bocas` : "medido en equipo";
         }
         (function exportar(API) {
@@ -19490,17 +21910,26 @@ globalThis.CX_VARIANTE="cxobra";
           const p = numFx(valor.p);
           const f = numFx(valor.f);
           const m = numFx(valor.m);
-          const ref = p !== null ? p : f;
-          const fuente = p !== null ? "proyecto" : f !== null ? "fabricante" : null;
+          const criterio = puntoDef.criterio === "minimo" || puntoDef.criterio === "maximo" ? puntoDef.criterio : null;
+          const vNorma = criterio ? numFx(puntoDef.valorNorma) : null;
+          let ref = p !== null ? p : f;
+          let fuente = p !== null ? "proyecto" : f !== null ? "fabricante" : null;
+          if (vNorma !== null && (ref === null || (criterio === "minimo" ? vNorma > ref : vNorma < ref))) {
+            ref = vNorma;
+            fuente = "norma";
+          }
           const desv = reglasFx.desviacion(m, ref);
+          const tolPropia = typeof punto.tolerancia === "number" && punto.tolerancia >= 0 ? punto.tolerancia : null;
           const cualTol = punto.tolerancia === "boca" ? "boca" : "total";
-          const limite = tol[cualTol] ?? null;
+          const limite = criterio ? null : tolPropia !== null ? tolPropia : tol[cualTol] ?? null;
           let resultado = null;
           let copiado = false;
           let sinTolerancia = null;
-          if (m !== null && ref !== null && igualesFx(m, ref)) {
+          if (m !== null && ref !== null && igualesFx(m, ref) && fuente !== "norma") {
             copiado = true;
             resultado = valor.revisado ? "apto" : "aRevisar";
+          } else if (criterio && m !== null && ref !== null) {
+            resultado = (criterio === "minimo" ? m >= ref - 1e-9 : m <= ref + 1e-9) ? "apto" : "noApto";
           } else if (desv !== null) {
             if (limite === null) sinTolerancia = cualTol;
             else resultado = reglasFx.veredicto({ medido: m, referencia: ref, limite });
@@ -19511,6 +21940,7 @@ globalThis.CX_VARIANTE="cxobra";
             m,
             ref,
             fuente,
+            criterio,
             desv: redFx(desv),
             limite: punto.resultado ? limite : null,
             resultado,
@@ -19635,11 +22065,14 @@ globalThis.CX_VARIANTE="cxobra";
               if (v.revisado && fila.m !== void 0) fila.revisado = v.revisado;
               if (v.pv && fila.m !== void 0) fila.pv = llanoFx(v.pv);
               if (v.op === "fichaTecnica" && fila.p !== void 0) fila.op = "fichaTecnica";
+              if (v.op === "documento" && fila.p !== void 0) fila.op = "documento";
+              if (hayValorFx(v.fp) && fila.p !== void 0) fila.fp = llanoFx(v.fp).slice(0, 300);
               if (v.om === "totalBalanceo" && fila.m !== void 0) fila.om = "totalBalanceo";
               if (v.om === "balanceo" && fila.m !== void 0) {
                 fila.om = "balanceo";
                 if (v.nBocas) fila.nBocas = Number(v.nBocas) || null;
               }
+              if (v.om === "puntosBms" && fila.m !== void 0) fila.om = "puntosBms";
               base.valores[punto.codigo] = fila;
             } else {
               let val = v.v;
@@ -19729,7 +22162,8 @@ globalThis.CX_VARIANTE="cxobra";
               if (s.tipo === "parametros") {
                 const ev = evaluarParametro(punto, v || {}, tol);
                 Object.assign(fila, ev);
-                if (v && v.op === "fichaTecnica") fila.origenProyecto = "fichaTecnica";
+                if (v && (v.op === "fichaTecnica" || v.op === "documento")) fila.origenProyecto = v.op;
+                if (v && v.fp) fila.fuenteProyecto = v.fp;
                 if (v && v.om === "balanceo") {
                   fila.origenMedido = "balanceo";
                   fila.nBocas = Number(v.nBocas) || null;
@@ -19738,6 +22172,10 @@ globalThis.CX_VARIANTE="cxobra";
                 if (v && v.om === "totalBalanceo") {
                   fila.origenMedido = "totalBalanceo";
                   avisos.push(`${punto.etiqueta}: el medido (${ev.m} ${punto.unidad || ""}) es el caudal total apuntado en la hoja de balanceo; en la ficha no hay medido propio.`.replace(/\s+/g, " "));
+                }
+                if (v && v.om === "puntosBms") {
+                  fila.origenMedido = "puntosBms";
+                  avisos.push(`${punto.etiqueta}: el medido (${ev.m} ${punto.unidad || ""}) sale de la prueba punto a punto de los equipos.`.replace(/\s+/g, " "));
                 }
                 if (ev.sinTolerancia) sinTol.add(ev.sinTolerancia);
                 if (ev.m !== null) hayMedidoParam = true;
@@ -19872,17 +22310,44 @@ globalThis.CX_VARIANTE="cxobra";
             if (f) return f;
           }
           const grupo = sinAcentosFx(equipo.grupo).replace(/[^A-Z0-9& ]/g, " ").replace(/\s+/g, " ");
-          if (!grupo) return null;
           let mejor = null;
           let largo = 0;
-          for (const f of lista) {
-            for (const nombre of [f.nombre, ...f.alias || []]) {
-              const n = sinAcentosFx(nombre).replace(/[^A-Z0-9& ]/g, " ").replace(/\s+/g, " ");
-              if (grupo.includes(n) && n.length > largo) {
-                mejor = f;
-                largo = n.length;
+          if (grupo) {
+            for (const f of lista) {
+              for (const nombre of [f.nombre, ...f.alias || []]) {
+                const n = sinAcentosFx(nombre).replace(/[^A-Z0-9& ]/g, " ").replace(/\s+/g, " ");
+                if (grupo.includes(n) && n.length > largo) {
+                  mejor = f;
+                  largo = n.length;
+                }
               }
             }
+          }
+          return mejor || familiaPorPistas(equipo, lista);
+        }
+        const PISTAS_CACHE = /* @__PURE__ */ new Map();
+        function expresionPistas(pistas) {
+          if (pistas instanceof RegExp) return pistas;
+          if (typeof pistas !== "string" || !pistas) return null;
+          if (!PISTAS_CACHE.has(pistas)) {
+            let re = null;
+            try {
+              re = new RegExp(pistas);
+            } catch (_) {
+              re = null;
+            }
+            PISTAS_CACHE.set(pistas, re);
+          }
+          return PISTAS_CACHE.get(pistas);
+        }
+        function familiaPorPistas(equipo, lista) {
+          const texto = sinAcentosFx([equipo.tag, equipo.denominacion, equipo.instalacion, equipo.grupo].filter(Boolean).join(" \xB7 "));
+          if (!texto) return null;
+          let mejor = null;
+          for (const f of lista) {
+            const re = expresionPistas(f.pistas);
+            if (!re || !re.test(texto)) continue;
+            if (!mejor || (f.prioridadPista ?? 9) < (mejor.prioridadPista ?? 9)) mejor = f;
           }
           return mejor;
         }
@@ -20082,7 +22547,7 @@ globalThis.CX_VARIANTE="cxobra";
       var ENVIO = {
         enviada: { orden: 1, nombre: "Enviada" },
         lista: { orden: 2, nombre: "Lista para enviar" },
-        faltaEnsayo: { orden: 3, nombre: "Falta ensayo" },
+        faltaEnsayo: { orden: 3, nombre: "Falta balanceo o estanqueidad" },
         /* Papeles completos, fichas (checklist, PM, estanqueidad) por hacer. */
         faltaFichas: { orden: 3.5, nombre: "Doc. completa \xB7 faltan fichas" },
         faltaDocumentacion: { orden: 4, nombre: "Falta documentaci\xF3n" }
@@ -20137,6 +22602,24 @@ globalThis.CX_VARIANTE="cxobra";
         if (aire) return "balanceo";
         if (agua) return "estanqueidad";
         return "ninguno";
+      }
+      function ensayosQueFaltan(e) {
+        if (!e || e.ensayo !== false) return [];
+        const req = e.ensayoRequerido || "ninguno";
+        const r = [];
+        if ((req === "balanceo" || req === "ambos") && !balanceoApto(e)) r.push("balanceo");
+        if ((req === "estanqueidad" || req === "ambos") && !estanqueidadApta(e)) r.push("estanqueidad");
+        return r.length ? r : req === "estanqueidad" ? ["estanqueidad"] : ["balanceo"];
+      }
+      function nombreFaltaEnsayo(e) {
+        const f = Array.isArray(e) ? e : Array.isArray(e.ensayoFalta) && e.ensayoFalta.length ? e.ensayoFalta : ensayosQueFaltan(e);
+        if (f.length === 2) return "Falta balanceo y estanqueidad";
+        return f[0] === "estanqueidad" ? "Falta estanqueidad" : "Falta balanceo";
+      }
+      function nombreEnvio(e) {
+        if (!e) return "";
+        if (e.envio === "faltaEnsayo") return nombreFaltaEnsayo(e);
+        return (ENVIO[e.envio] || {}).nombre || e.envio || "";
       }
       function ensayoSuperado(e) {
         const req = e.ensayoRequerido || "ninguno";
@@ -20193,7 +22676,9 @@ globalThis.CX_VARIANTE="cxobra";
         if (!manual) falta.push("manual");
         if (!fichaPM) falta.push("ficha PM");
         for (const n of fichasFaltan) if (!falta.includes(n)) falta.push(n);
-        if (ensayo === false) falta.push(e.ensayoRequerido === "estanqueidad" ? "estanqueidad" : e.ensayoRequerido === "balanceo" ? "balanceo" : "ensayos");
+        if (ensayo === false) {
+          for (const n of ensayosQueFaltan({ ...e, ensayo })) if (!falta.includes(n)) falta.push(n);
+        }
         return {
           ...e,
           modeloId: modelo ? modelo.id : e.modeloId || null,
@@ -20208,6 +22693,7 @@ globalThis.CX_VARIANTE="cxobra";
           fichasFaltan,
           completo: esCompleto(docCompleta, fichas, ensayo),
           envio,
+          ensayoFalta: ensayosQueFaltan({ ...e, ensayo }),
           incidencias,
           falta,
           medicion: medicionCx(e)
@@ -20356,6 +22842,7 @@ globalThis.CX_VARIANTE="cxobra";
           envio,
           incidencias,
           falta,
+          ensayoFalta: ensayosQueFaltan({ ensayo, ensayoRequerido, balanceoEstado, estanqueidadEstado }),
           /* Qué unidad trae cada incidencia, para decirlo en la ficha. */
           incidenciasPorUnidad: miembros.map((m) => ({ tag: m.tag, incidencias: extras.includes(m) ? m.incidencias.filter((c) => c !== "exteriorSinInteriores") : m.incidencias })).filter((m) => m.incidencias.length)
         };
@@ -20423,6 +22910,9 @@ globalThis.CX_VARIANTE="cxobra";
           enviadas: cuenta((l) => l.envio === "enviada"),
           listas: cuenta((l) => l.envio === "lista"),
           faltaEnsayo: cuenta((l) => l.envio === "faltaEnsayo"),
+          /* «Falta ensayo», partido por su nombre: un conjunto puede estar en las dos. */
+          faltaBalanceo: cuenta((l) => l.envio === "faltaEnsayo" && l.ensayoFalta.includes("balanceo")),
+          faltaEstanqueidadEnvio: cuenta((l) => l.envio === "faltaEnsayo" && l.ensayoFalta.includes("estanqueidad")),
           faltaDocumentacion: cuenta((l) => l.envio === "faltaDocumentacion"),
           balanceosSinBocas: cuenta((l) => l.incidencias.includes("balanceoSinBocas")),
           pideEstanqueidad: cuenta(pideEstanqueidad),
@@ -20461,6 +22951,8 @@ globalThis.CX_VARIANTE="cxobra";
             enviadas: cuenta((f) => f.envio === "enviada"),
             listas: cuenta((f) => f.envio === "lista"),
             faltaEnsayo: cuenta((f) => f.envio === "faltaEnsayo"),
+            faltaBalanceo: cuenta((f) => f.envio === "faltaEnsayo" && f.ensayoFalta.includes("balanceo")),
+            faltaEstanqueidadEnvio: cuenta((f) => f.envio === "faltaEnsayo" && f.ensayoFalta.includes("estanqueidad")),
             faltaDocumentacion: cuenta((f) => f.envio === "faltaDocumentacion"),
             balanceos: cuenta(balanceoApto),
             balanceosSinBocas: cuenta((f) => f.incidencias.includes("balanceoSinBocas")),
@@ -20505,6 +22997,9 @@ globalThis.CX_VARIANTE="cxobra";
         hayDoc,
         ensayoPorDefecto,
         ensayoSuperado,
+        ensayosQueFaltan,
+        nombreFaltaEnsayo,
+        nombreEnvio,
         indiceModelos,
         rangoPlanta,
         ordenPlantas,
@@ -23828,10 +26323,47 @@ globalThis.CX_VARIANTE="cxobra";
           if (M && M.hojas[nombre]) return nombre;
           return HOJA_ALIAS[nombre] && M && M.hojas[HOJA_ALIAS[nombre]] ? HOJA_ALIAS[nombre] : nombre;
         };
-        function modelo(nombreDado) {
+        const PLANT = () => cargar("./plantillasCbre", "PLANTILLAS_CBRE");
+        const DERIVADAS = /* @__PURE__ */ new Map();
+        function hojaDerivada(nombre, plantilla) {
+          const propia = Boolean(plantilla && plantilla.hojaBase);
+          if (!propia && DERIVADAS.has(nombre)) return DERIVADAS.get(nombre);
+          const P = PLANT();
+          const pl = propia ? plantilla : P && (P.PLANTILLAS || []).find((x) => x.nombre === nombre && x.hojaBase);
+          const M = MAQ();
+          const base = pl && pl.clase === "checklist" && M && M.hojas[pl.hojaBase];
+          if (!base) return null;
+          const conBanda = (f) => f[1].some((c) => /^\d{2} · /.test(c[4] || ""));
+          const conPunto = (f) => f[1].some((c) => /^\d{2}\.\d{2}\s/.test(c[4] || ""));
+          const i0 = base.filas.findIndex(conBanda);
+          if (i0 < 0 || !conPunto(base.filas[i0 + 1] || [0, []])) return null;
+          let i1 = i0;
+          while (i1 < base.filas.length && (conBanda(base.filas[i1]) || conPunto(base.filas[i1]))) i1++;
+          const [altoB, celdasB] = base.filas[i0];
+          const [altoP, celdasP] = base.filas[i0 + 1];
+          const conTexto = (celdas, txt) => celdas.map((c, k) => k === 0 ? [c[0], c[1], c[2], c[3], txt, c[5]] : c.slice());
+          const cuerpo = [];
+          for (const s of pl.secciones || []) {
+            if (s.tipo !== "checklist") continue;
+            cuerpo.push([altoB, conTexto(celdasB, `${s.codigo} \xB7 ${s.titulo}`)]);
+            for (const p of s.puntos || []) cuerpo.push([altoP, conTexto(celdasP, `${p.codigo} ${p.etiqueta}`)]);
+          }
+          const subtitulo = String(pl.titulo || "").replace(/^LISTADO DE CHEQUEO · /, "");
+          const cabecera = base.filas.slice(0, i0).map(([alto, celdas]) => [alto, celdas.map((c) => /^LISTADO DE CHEQUEO\n/.test(c[4] || "") ? [c[0], c[1], c[2], c[3], `LISTADO DE CHEQUEO
+${subtitulo}`, c[5]] : c.slice())]);
+          const pie = base.filas.slice(i1).map(([alto, celdas]) => [alto, celdas.map((c) => pl.norma && /conforme/i.test(c[4] || "") ? [c[0], c[1], c[2], c[3], `${c[4]}  Norma: ${pl.norma}.`, c[5]] : c.slice())]);
+          const h = { anchos: base.anchos, imagenes: base.imagenes, filas: [...cabecera, ...cuerpo, ...pie] };
+          if (!propia) DERIVADAS.set(nombre, h);
+          return h;
+        }
+        const hojaDe = (nombre, plantilla) => {
+          const M = MAQ();
+          return M && M.hojas[nombreHoja(nombre)] || hojaDerivada(nombre, plantilla);
+        };
+        function modelo(nombreDado, plantilla) {
           const M = MAQ();
           const nombre = nombreHoja(nombreDado);
-          const h = M && M.hojas[nombre];
+          const h = hojaDe(nombreDado, plantilla);
           if (!h) return null;
           return {
             nombre,
@@ -24250,11 +26782,20 @@ globalThis.CX_VARIANTE="cxobra";
           };
         }
         function rejillaFicha(evOriginal, plantilla, ctx = {}) {
-          const m = modelo(plantilla.nombre);
+          const m = modelo(plantilla.nombre, plantilla);
           if (!m) return null;
           const sinMedidos = Boolean(ctx.sinMedidos) && !ctx.enBlanco;
           if (!RG().llevaVelocidades((ctx.equipo || {}).familia, m.nombre)) {
             m.filas = m.filas.filter((f) => !f.celdas.some((x) => x.c === 0 && /^\s*·\s*VELOCIDAD\s+(BAJA|MEDIA|ALTA)\b/i.test(x.txt)));
+          }
+          const tiene = (cod) => (plantilla.secciones || []).some((s) => (s.puntos || []).some((p) => p.codigo === cod));
+          const i = m.filas.findIndex((f) => f.celdas.some((x) => x.txt === "POTENCIA CALOR:"));
+          if (i >= 0 && tiene("t_sala_verano") && !m.filas.some((f) => f.celdas.some((x) => /SALA VERANO/.test(x.txt)))) {
+            const fila = (rot) => ({ ...m.filas[i], orig: void 0, celdas: m.filas[i].celdas.map((x) => ({
+              ...x,
+              txt: x.txt === "POTENCIA CALOR:" ? rot : x.txt === "kW" ? "\xB0C" : x.txt
+            })) });
+            m.filas.splice(i + 1, 0, fila("T\xAA SALA VERANO (PROYECTO):"), fila("T\xAA SALA INVIERNO (PROYECTO):"));
           }
           const ev = sinMedidos ? soloProyecto(evOriginal) : evOriginal;
           const c = ev.datos.cabecera || {};
@@ -24287,8 +26828,8 @@ globalThis.CX_VARIANTE="cxobra";
           const RC = REJ();
           const copias = RC && ev.datos && !blanco && !sinMedidos ? RC.copiasVigentes(ev.datos) : [];
           const deCopia = {};
-          copias.forEach((cp, i) => cp.puntos.forEach((p) => {
-            deCopia[p] = i + 1;
+          copias.forEach((cp, i2) => cp.puntos.forEach((p) => {
+            deCopia[p] = i2 + 1;
           }));
           const fuente = {
             formato: plantilla.formato,
@@ -24383,12 +26924,14 @@ globalThis.CX_VARIANTE="cxobra";
                 partes.push(`<span class="pendiente">PENDIENTE: ${falta}</span>`);
               }
               for (const a of ev.avisos || []) partes.push(`<span class="aviso">${esc(a)}</span>`);
-              copias.forEach((cp, i) => partes.push(`<span class="copias">${copias.length > 1 ? `<sup>${i + 1}</sup> ` : "<sup>*</sup> "}Copiadas: ${esc(cp.texto)}</span>`));
+              copias.forEach((cp, i2) => partes.push(`<span class="copias">${copias.length > 1 ? `<sup>${i2 + 1}</sup> ` : "<sup>*</sup> "}Copiadas: ${esc(cp.texto)}</span>`));
               if ((ev.datos.anexosPdf || []).length) partes.push(`Se adjunta al final: ${ev.datos.anexosPdf.map((a) => `PDF del fabricante \xAB${esc(a.nombre || a.ruta.split(/[\\/]/).pop())}\xBB`).join(", ")}.`);
               if (plantilla.clase === "fichaPM" || plantilla.clase === "balanceo") {
                 partes.push(esc(RG().textoNormaTolerancia(ev.tolerancias || {})));
                 const deFT = puntos.filter((x) => x.p.origenProyecto === "fichaTecnica").length;
                 if (deFT) partes.push(`Valores de PROYECTO: ficha t\xE9cnica del fabricante${eq && eq.marca ? ` (${esc(eq.marca)})` : ""} \u2014 ${deFT} ${deFT === 1 ? "valor" : "valores"}.`);
+                const deDoc = [...new Set(puntos.filter((x) => x.p.origenProyecto === "documento" && x.p.fuenteProyecto).map((x) => String(x.p.fuenteProyecto).replace(/ · p\. .*$/, "")))];
+                if (deDoc.length) partes.push(`Valores de PROYECTO de la documentaci\xF3n de la obra: ${esc(deDoc.slice(0, 4).join("; "))}.`);
               }
               if (ev.datosPrueba) partes.push("<strong>DATOS DE PRUEBA: esta ficha no vale como documento.</strong>");
               if (ev.resultado && res(ev.resultado)) partes.push(`Resultado de la ficha: ${res(ev.resultado).html}${firmada ? "" : " (sin firmar)"}`);
@@ -24549,11 +27092,11 @@ globalThis.CX_VARIANTE="cxobra";
   });
   return true;
 })()`;
-        const tieneHoja = (nombre) => Boolean(MAQ() && MAQ().hojas[nombreHoja(nombre)]);
+        const tieneHoja = (nombre) => Boolean(hojaDe(nombre));
         (function exportar(API) {
           if (typeof module !== "undefined" && module.exports) module.exports = API;
           if (typeof window !== "undefined") window.FICHA_EXCEL = API;
-        })({ hojaFicha, hojaBalanceo, rejillaFicha, rejillaBalanceo, disposicion, tieneHoja, norm, AJUSTE_PAPEL, terminalCorto, soloProyecto });
+        })({ hojaFicha, hojaBalanceo, rejillaFicha, rejillaBalanceo, disposicion, tieneHoja, hoja: hojaDe, norm, AJUSTE_PAPEL, terminalCorto, soloProyecto });
       })();
     }
   });
@@ -24599,16 +27142,25 @@ globalThis.CX_VARIANTE="cxobra";
           }
           return `<table class="datos">${filas.join("")}</table>`;
         }
+        function limiteNormaFh(p) {
+          const ud = p.unidad ? ` ${p.unidad}` : "";
+          let lim = "";
+          if (p.criterio === "minimo" && p.valorNorma != null) lim = `\u2265 ${numFh(p.valorNorma)}${ud}`;
+          else if (p.criterio === "maximo" && p.valorNorma != null) lim = `\u2264 ${numFh(p.valorNorma)}${ud}`;
+          else if (typeof p.tolerancia === "number") lim = `\xB1 ${numFh(Math.round(p.tolerancia * 1e4) / 100)} %`;
+          const partes = [lim, p.norma || ""].filter(Boolean);
+          return partes.length ? `<div class="nota normaPrueba">${escFh(partes.join(" \xB7 "))}</div>` : "";
+        }
         function seccionParametros(s) {
           return `<table class="param">
     <thead><tr><th>Par\xE1metro</th><th>Ud.</th><th>Proyecto</th><th>Te\xF3rico (fabr.)</th><th>Medido</th><th>Desv. %</th><th>Resultado</th></tr></thead>
     <tbody>${(s.puntos || []).map((p) => `<tr>
-      <td>${escFh(p.etiqueta)}${p.medido === "obligatorio" ? "" : ' <span class="opc">(opcional)</span>'}</td>
+      <td>${escFh(p.etiqueta)}${p.medido === "obligatorio" ? "" : ' <span class="opc">(opcional)</span>'}${limiteNormaFh(p)}</td>
       <td>${escFh(p.unidad || "")}</td>
       <td class="num proy">${numFh(p.p)}</td>
       <td class="num fab">${numFh(p.f)}</td>
       <td class="num med">${numFh(p.m)}</td>
-      <td class="num">${p.resultado !== null || p.limite !== null ? pctFh(p.desv) : ""}</td>
+      <td class="num">${p.fuente !== "norma" && (p.resultado !== null || p.limite !== null) ? pctFh(p.desv) : ""}</td>
       <td>${celdaResultado(p.resultado)}${p.copiado && p.revisado ? '<div class="nota">confirmado</div>' : ""}</td>
     </tr>`).join("")}</tbody>
   </table>`;
@@ -25906,6 +28458,1880 @@ globalThis.CX_VARIANTE="cxobra";
         htmlFicha,
         htmlInforme
       };
+    }
+  });
+
+  // shared/commissioning/puntosBms.js
+  var require_puntosBms = __commonJS({
+    "shared/commissioning/puntosBms.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const PASOS = {
+          DI: [
+            ["campo", "Forzado en campo: cambia el estado en el SCADA", "Campo"],
+            ["texto", "Texto, estado y alarma seg\xFAn el listado", "Texto"]
+          ],
+          DO: [
+            ["orden", "Orden desde el SCADA: act\xFAa en campo", "Orden"],
+            ["sentido", "Sentido correcto (marcha = marcha, abre = abre)", "Sentido"],
+            ["retorno", "Vuelve el retorno de estado", "Retorno"]
+          ],
+          AI: [
+            ["escala", "Rango y unidades seg\xFAn el listado", "Escala"]
+          ],
+          AO: [
+            ["p0", "0 %: posici\xF3n real en campo", "0 %"],
+            ["p50", "50 %: posici\xF3n real en campo", "50 %"],
+            ["p100", "100 %: posici\xF3n real en campo", "100 %"],
+            ["sentido", "Sentido correcto (0 % = cerrada / parada)", "Sentido"]
+          ],
+          BUS: [
+            ["lectura", "Lectura igual a la del display del equipo", "Lectura"],
+            ["escritura", "Escritura (marcha, consigna) aceptada, si aplica", "Escritura"]
+          ]
+        };
+        const TIPOS = Object.keys(PASOS);
+        const RESPUESTAS = ["si", "no", "na"];
+        const TOLERANCIAS = [
+          { re: /temperatura|tª/i, abs: 0.5, unidad: "K", texto: "\xB10,5 K" },
+          { re: /humedad|\bhr\b/i, abs: 5, unidad: "%HR", texto: "\xB15 %HR" },
+          { re: /co2|co₂|calidad del aire/i, abs: 100, unidad: "ppm", texto: "\xB1100 ppm" }
+        ];
+        const TOL_OTRA = { rel: 0.05, texto: "\xB15 % del patr\xF3n" };
+        function toleranciaDe(punto = {}) {
+          const t = `${punto.etiqueta || ""} ${punto.id || ""} ${punto.senal || ""}`;
+          if (/^t[A-Z]/.test(String(punto.id || ""))) return TOLERANCIAS[0];
+          return TOLERANCIAS.find((x) => x.re.test(t)) || TOL_OTRA;
+        }
+        const num = (v) => {
+          if (v === null || v === void 0 || v === "") return null;
+          const n = typeof v === "number" ? v : Number(String(v).trim().replace(/\s/g, "").replace(",", "."));
+          return Number.isFinite(n) ? n : null;
+        };
+        const tipoDe = (p) => TIPOS.includes(String(p && p.tipo).toUpperCase()) ? String(p.tipo).toUpperCase() : "BUS";
+        function limpiar(tipo, datos = {}) {
+          const t = TIPOS.includes(tipo) ? tipo : "BUS";
+          const pasos = {};
+          for (const [c] of PASOS[t]) {
+            const v = datos.pasos && datos.pasos[c];
+            if (RESPUESTAS.includes(v)) pasos[c] = v;
+          }
+          const out = { pasos };
+          if (t === "AI") {
+            const pa = num(datos.patron);
+            const le = num(datos.lectura);
+            if (pa !== null) out.patron = pa;
+            if (le !== null) out.lectura = le;
+          }
+          const u = num(datos.unidades);
+          if (u !== null && u >= 0) out.unidades = Math.round(u);
+          if (datos.nota) out.nota = String(datos.nota).slice(0, 500);
+          if (datos.fecha && /^\d{4}-\d{2}-\d{2}/.test(String(datos.fecha))) out.fecha = String(datos.fecha).slice(0, 10);
+          return out;
+        }
+        function evaluarPunto(punto, datos) {
+          const tipo = tipoDe(punto);
+          const d = limpiar(tipo, datos || {});
+          const pasos = PASOS[tipo].map(([codigo, etiqueta, corta]) => ({ codigo, etiqueta, corta: corta || etiqueta, valor: d.pasos[codigo] || null }));
+          let error = null;
+          let fuera = false;
+          const tol = tipo === "AI" ? toleranciaDe(punto) : null;
+          if (tipo === "AI" && d.patron !== void 0 && d.lectura !== void 0) {
+            error = Math.round(Math.abs(d.lectura - d.patron) * 1e3) / 1e3;
+            const limite = tol.abs !== void 0 ? tol.abs : Math.abs(d.patron) * tol.rel;
+            fuera = error > limite + 1e-9;
+          }
+          const hayNo = pasos.some((p) => p.valor === "no");
+          const faltaPaso = pasos.some((p) => !p.valor);
+          const faltaLectura = tipo === "AI" && error === null;
+          const cantidad = Math.max(1, Number(punto.cantidad) || 1);
+          const faltanUnidades = cantidad > 1 && (d.unidades === void 0 || d.unidades < cantidad);
+          let resultado = "pendiente";
+          if (hayNo || fuera) resultado = "noApto";
+          else if (!faltaPaso && !faltaLectura && !faltanUnidades) resultado = "apto";
+          const empezado = Object.keys(d.pasos).length > 0 || d.patron !== void 0 || d.lectura !== void 0;
+          return { tipo, pasos, datos: d, error, tolerancia: tol ? tol.texto : null, fuera, cantidad, resultado, empezado };
+        }
+        function contar(evaluados) {
+          const r = { total: 0, aptos: 0, noAptos: 0, pendientes: 0, sondas: 0, sondasAptas: 0 };
+          for (const e of evaluados) {
+            r.total += 1;
+            if (e.resultado === "apto") r.aptos += 1;
+            else if (e.resultado === "noApto") r.noAptos += 1;
+            else r.pendientes += 1;
+            if (e.tipo === "AI") {
+              r.sondas += 1;
+              if (e.error !== null && !e.fuera) r.sondasAptas += 1;
+            }
+          }
+          r.pct = r.total ? Math.round(r.aptos / r.total * 1e3) / 10 : null;
+          r.pctSondas = r.sondas ? Math.round(r.sondasAptas / r.sondas * 1e3) / 10 : null;
+          return r;
+        }
+        const tagDeBloque = (b) => b.claveAjuste === "general" ? "GENERAL" : String(b.claveAjuste || "").replace(/^eq:/, "") || String(b.codigo || "").toUpperCase();
+        function pruebaObra(bloques = [], pruebas = []) {
+          const guardadas = new Map(pruebas.map((p) => [`${String(p.tag).toUpperCase()}|${p.clave}`, p]));
+          const usadas = /* @__PURE__ */ new Set();
+          const equipos = [];
+          for (const b of bloques) {
+            const tag = tagDeBloque(b);
+            const puntos = (b.incluidos || []).map((pt) => {
+              const k = `${tag}|${pt.clave}`;
+              const g = guardadas.get(k);
+              if (g) usadas.add(k);
+              return { ...pt, tagEquipo: tag, prueba: evaluarPunto(pt, g ? g.datos : null), id: g ? g.id : null, modificadoEn: g ? g.modificadoEn : null };
+            });
+            if (!puntos.length) continue;
+            equipos.push({
+              tag,
+              tags: b.tags || [tag],
+              codigo: b.codigo,
+              etiquetaClase: b.etiquetaClase,
+              clase: b.clase,
+              resumen: b.resumen,
+              puntos,
+              cuenta: contar(puntos.map((p) => p.prueba))
+            });
+          }
+          const huerfanas = pruebas.filter((p) => !usadas.has(`${String(p.tag).toUpperCase()}|${p.clave}`));
+          return { equipos, cuenta: contar(equipos.flatMap((e) => e.puntos.map((p) => p.prueba))), huerfanas };
+        }
+        function deEquipo(prueba, tag) {
+          const t = String(tag || "").trim().toUpperCase();
+          return (prueba.equipos || []).find((e) => e.tag === t || (e.tags || []).some((x) => String(x).toUpperCase() === t)) || null;
+        }
+        function medidosFicha(cuenta) {
+          if (!cuenta || !cuenta.total) return {};
+          if (!cuenta.aptos && !cuenta.noAptos) return {};
+          const m = { puntos_comprobados: cuenta.pct, puntos_con_fallo: cuenta.noAptos };
+          if (cuenta.sondas && cuenta.pctSondas !== null && (cuenta.sondasAptas || cuenta.noAptos)) m.sondas_conformes = cuenta.pctSondas;
+          return m;
+        }
+        const API = { PASOS, TIPOS, TOLERANCIAS, toleranciaDe, limpiar, evaluarPunto, contar, pruebaObra, deEquipo, medidosFicha, tagDeBloque };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.PUNTOS_BMS = API;
+      })();
+    }
+  });
+
+  // shared/presupuesto/auditor.js
+  var require_auditor = __commonJS({
+    "shared/presupuesto/auditor.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var _modeloPresupuesto = typeof __require !== "undefined" ? require_modelo() : window.MODELO;
+      var _capitulosCoste = typeof __require !== "undefined" ? require_capitulosCoste() : window.CAPITULOS_COSTE;
+      var GRAVEDAD = { BLOQUEANTE: "bloqueante", AVISO: "aviso", SUGERENCIA: "sugerencia" };
+      var norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+      var pat = (fuente) => new RegExp(norm(fuente));
+      var FAMILIAS_CONEXION = [
+        { id: "mecanica", etiqueta: "Mec\xE1nicas", que: "Todo lo que se atornilla, se suelda o se embrida al equipo." },
+        { id: "electrica", etiqueta: "El\xE9ctricas", que: "La alimentaci\xF3n de fuerza y la protecci\xF3n del equipo." },
+        { id: "control", etiqueta: "Control", que: "Lo que hace que el equipo obedezca a alguien." },
+        { id: "otros", etiqueta: "Otros", que: "Lo que el equipo necesita para llegar y quedarse quieto." }
+      ];
+      var OFICIOS_MECANICOS = [
+        { id: "hidraulica", etiqueta: "Hidr\xE1ulica" },
+        { id: "incendios", etiqueta: "Incendios" },
+        { id: "conductos", etiqueta: "Conductos" },
+        { id: "gas", etiqueta: "Gas y combustible" },
+        { id: "frigorifico", etiqueta: "Frigor\xEDfica" },
+        { id: "desague", etiqueta: "Desag\xFCes y humos" },
+        { id: "soporte", etiqueta: "Soporte y anclaje" }
+      ];
+      var FAMILIA_POR_ID = Object.fromEntries(FAMILIAS_CONEXION.map((f) => [f.id, f]));
+      var OFICIO_POR_ID = Object.fromEntries(OFICIOS_MECANICOS.map((o) => [o.id, o]));
+      var ACOMPANA = {
+        /* ── Mecánicas ─────────────────────────────────────────────────── */
+        montaje: { familia: "mecanica", oficio: "soporte", etiqueta: "Montaje y puesta en posici\xF3n", unidad: "ud", patron: pat("montaje|coloca|instalaci[o\xF3]n mec[a\xE1]nica|izado") },
+        conexionHidraulico: { familia: "mecanica", oficio: "hidraulica", etiqueta: "Conexionado hidr\xE1ulico", unidad: "ud", patron: pat("conexi[o\xF3]n(ado)? hidr|acometida hidr|latiguillo|manguito antivibr") },
+        conexionPCI: { familia: "mecanica", oficio: "incendios", etiqueta: "Conexionado a la red de incendios", unidad: "ud", patron: pat("conexi[o\xF3]n(ado)? (a la red )?(de )?(incendios|pci|rociadores|bie)|acometida (de )?(pci|incendios)|colector de pruebas") },
+        conductoConexion: { familia: "mecanica", oficio: "conductos", etiqueta: "Conexi\xF3n a la red de conductos", unidad: "ud", patron: pat("lona|junta elastica|conexion elastica|conexion flexible|embocadura|plenum de conexion") },
+        conexionGas: { familia: "mecanica", oficio: "gas", etiqueta: "Conexionado de gas", unidad: "ud", patron: pat("conexi[o\xF3]n(ado)? (de )?gas|acometida (de )?gas|rampa de gas|llave de gas|tuber[i\xED]a de gas") },
+        conexionCombustible: { familia: "mecanica", oficio: "gas", etiqueta: "Conexionado de combustible (gas\xF3leo)", unidad: "ud", patron: pat("gas[o\xF3]leo|gasoil|dep[o\xF3]sito de combustible|linea de combustible") },
+        conexionFrigorifico: { familia: "mecanica", oficio: "frigorifico", etiqueta: "Conexionado frigor\xEDfico (l\xEDneas de gas)", unidad: "ud", patron: pat("l[i\xED]nea frigor|gas refrigerante|tuber[i\xED]a frigor|interconexi[o\xF3]n frigor") },
+        conexionDesague: { familia: "mecanica", oficio: "desague", etiqueta: "Desag\xFCe de condensados", unidad: "ud", patron: pat("desag[\xFCu]e|condensad|sif[o\xF3]n") },
+        conexionHumos: { familia: "mecanica", oficio: "desague", etiqueta: "Evacuaci\xF3n de humos / chimenea", unidad: "ud", patron: pat("chimenea|evacuaci[o\xF3]n de (humos|productos)|conducto de humos|salida de humos") },
+        antivibratorios: { familia: "mecanica", oficio: "soporte", etiqueta: "Bancada y antivibratorios", unidad: "ud", patron: pat("antivibrat|bancada|silentblock|amortiguador") },
+        valvuleriaCorte: { familia: "mecanica", oficio: "hidraulica", etiqueta: "Valvuler\xEDa de corte y regulaci\xF3n", unidad: "ud", patron: pat("v[a\xE1]lvula|llave de corte|compuerta de corte") },
+        filtro: { familia: "mecanica", oficio: "hidraulica", etiqueta: "Filtro y accesorios de protecci\xF3n", unidad: "ud", patron: pat("filtro|colador") },
+        manometria: { familia: "mecanica", oficio: "hidraulica", etiqueta: "Manometr\xEDa y termometr\xEDa", unidad: "ud", patron: pat("manometr|termometr|instrumentacion|termometria|manometria") },
+        /* ── Eléctricas ────────────────────────────────────────────────── */
+        conexionElectrico: { familia: "electrica", etiqueta: "Conexionado el\xE9ctrico de fuerza", unidad: "ud", patron: pat("conexi[o\xF3]n(ado)? el[e\xE9]ctr|acometida el[e\xE9]ctr|alimentaci[o\xF3]n el[e\xE9]ctr") },
+        puestaTierra: { familia: "electrica", etiqueta: "Puesta a tierra del equipo", unidad: "ud", patron: pat("tierra|equipotencial") },
+        /* ── Control ───────────────────────────────────────────────────── */
+        conexionControl: { familia: "control", etiqueta: "Conexionado de control y regulaci\xF3n", unidad: "ud", patron: pat("conexi[o\xF3]n(ado)? (de )?control|cableado de control|bus de control") },
+        sondasControl: { familia: "control", etiqueta: "Sondas y elementos de campo", unidad: "ud", patron: pat("sonda|sensor|term[o\xF3]stato|presostato|transmisor de presi") },
+        /*
+         * La integración es la partida que más se olvida y la que más se cobra
+         * después. El equipo puede estar cableado y funcionando en local y aun así
+         * no verse desde el SCADA: eso es otro trabajo, lo hace el integrador y se
+         * factura aparte siempre.
+         */
+        integracionControl: { familia: "control", etiqueta: "Integraci\xF3n en el sistema de control (SCADA)", unidad: "ud", patron: pat("integraci[o\xF3]n|scada|programaci[o\xF3]n (de|del) (sistema|control)|puesta en marcha del sistema de control|pantalla de supervisi") },
+        /* ── Otros ─────────────────────────────────────────────────────── */
+        transporteGrua: { familia: "otros", etiqueta: "Transporte y medios de elevaci\xF3n", unidad: "ud", patron: pat("gr[u\xFA]a|cami[o\xF3]n pluma|transporte especial|medios de elevaci") }
+      };
+      var CLASES_EQUIPO = {
+        /* ── Las específicas, primero ──────────────────────────────────── */
+        grupoPCI: {
+          /*
+           * El grupo contra incendios NO se conecta a la red hidráulica de
+           * climatización: va al aljibe y a la red de incendios, con otro material,
+           * otra presión, otro instalador y otra legalización. Por eso lleva
+           * `conexionPCI` y no `conexionHidraulico`.
+           */
+          etiqueta: "Grupo de presi\xF3n contra incendios",
+          patron: pat("grupo (de presi[o\xF3]n )?contra ?incendios|grupo pci|bomba jockey|grupo de presi[o\xF3]n de incendios"),
+          exige: [
+            "montaje",
+            "conexionPCI",
+            "conexionElectrico",
+            "conexionControl",
+            "integracionControl",
+            "antivibratorios",
+            "valvuleriaCorte",
+            "manometria"
+          ],
+          ejemplos: ["Grupo de presi\xF3n contra incendios 45 m3/h", "GRUPO PCI SEGUN UNE 23500", "Bomba jockey de 3 kW"]
+        },
+        centralDeteccion: {
+          etiqueta: "Central de detecci\xF3n",
+          patron: pat("central de detecci|central de incendios|central analg|central anal[o\xF3]gica"),
+          exige: ["montaje", "conexionElectrico", "conexionControl", "integracionControl"],
+          ejemplos: ["Central de detecci\xF3n anal\xF3gica de 4 lazos"]
+        },
+        grupoElectrogeno: {
+          etiqueta: "Grupo electr\xF3geno / SAI",
+          patron: pat("grupo electr[o\xF3]geno|\\bsai\\b|\\bups\\b"),
+          exige: [
+            "montaje",
+            "conexionCombustible",
+            "conexionHumos",
+            "conexionElectrico",
+            "conexionControl",
+            "integracionControl",
+            "antivibratorios",
+            "puestaTierra",
+            "transporteGrua"
+          ],
+          ejemplos: ["Grupo electr\xF3geno 400 kVA insonorizado", "SAI de 60 kVA con autonom\xEDa de 15 minutos"]
+        },
+        torreRefrigeracion: {
+          etiqueta: "Torre de refrigeraci\xF3n",
+          patron: pat("torre de refrigeraci|condensador evaporativo"),
+          exige: [
+            "montaje",
+            "conexionHidraulico",
+            "conexionDesague",
+            "conexionElectrico",
+            "conexionControl",
+            "integracionControl",
+            "antivibratorios",
+            "transporteGrua"
+          ],
+          ejemplos: ["Torre de refrigeraci\xF3n de circuito abierto 900 kW"]
+        },
+        climatizadoraPiscina: {
+          etiqueta: "Deshumectadora / climatizadora de piscina",
+          patron: pat("deshumect|deshumidific|climatizadora de piscina"),
+          exige: [
+            "montaje",
+            "conexionHidraulico",
+            "conductoConexion",
+            "conexionDesague",
+            "conexionElectrico",
+            "conexionControl",
+            "integracionControl",
+            "antivibratorios"
+          ],
+          ejemplos: ["Deshumectadora de piscina 4.000 m3/h"]
+        },
+        caldera: {
+          /*
+           * Una caldera arrastra más oficios que ningún otro equipo: agua, gas y
+           * humos, cada uno con su instalador habilitado y su certificado. La
+           * chimenea es la que más se queda fuera, y es la que impide legalizar.
+           */
+          etiqueta: "Caldera",
+          patron: pat("caldera|generador de calor"),
+          exige: [
+            "montaje",
+            "conexionHidraulico",
+            "conexionGas",
+            "conexionHumos",
+            "conexionDesague",
+            "conexionElectrico",
+            "conexionControl",
+            "integracionControl",
+            "valvuleriaCorte",
+            "manometria"
+          ],
+          ejemplos: ["Caldera de condensaci\xF3n a gas 400 kW", "CALDERA MURAL ESTANCA 35 KW"]
+        },
+        /* ── Climatización, de lo concreto a lo general ────────────────── */
+        enfriadora: {
+          /* Va ANTES que `bomba`: «bomba de calor» lleva la palabra bomba dentro. */
+          etiqueta: "Enfriadora / bomba de calor",
+          patron: pat("enfriadora|planta enfriadora|chiller|bomba de calor|aerotermia"),
+          exige: [
+            "montaje",
+            "conexionHidraulico",
+            "conexionElectrico",
+            "conexionControl",
+            "integracionControl",
+            "antivibratorios",
+            "valvuleriaCorte",
+            "transporteGrua"
+          ],
+          ejemplos: ["Enfriadora aire-agua 300 kW frigor\xEDficos", "Bomba de calor aire-agua 90 kW", "Chiller condensado por agua"]
+        },
+        unidadExterior: {
+          etiqueta: "Unidad exterior VRV / VRF",
+          patron: pat("unidad exterior|\\bvrv\\b|\\bvrf\\b|condensadora"),
+          exige: [
+            "montaje",
+            "conexionFrigorifico",
+            "conexionElectrico",
+            "conexionControl",
+            "integracionControl",
+            "antivibratorios",
+            "transporteGrua"
+          ],
+          ejemplos: ["Unidad exterior VRV 22 kW", "UNIDAD CONDENSADORA 14 KW"]
+        },
+        /* Las de Nou Camp Nou, que vienen con el modelo del fabricante y sin la
+           palabra que las delata: ROOFTOP_50FC…, CRAC UNIT TECNAIR…, S&P TD-800… */
+        rooftop: {
+          etiqueta: "Rooftop / aut\xF3nomo de cubierta",
+          patron: pat("rooftop|roof-top|autonomo de cubierta"),
+          exige: [
+            "montaje",
+            "conductoConexion",
+            "conexionDesague",
+            "conexionElectrico",
+            "conexionControl",
+            "integracionControl",
+            "antivibratorios",
+            "transporteGrua"
+          ],
+          ejemplos: ["ROOFTOP_50FCDXN45-UEFA-50FC100BL SOLO INSTALACI\xD3N", "Aut\xF3nomo de cubierta 60 kW"]
+        },
+        crac: {
+          etiqueta: "Climatizador de precisi\xF3n (CRAC)",
+          patron: pat("\\bcrac\\b|close control|climatizador de precision|armario de precision"),
+          exige: [
+            "montaje",
+            "conexionFrigorifico",
+            "conexionDesague",
+            "conexionElectrico",
+            "conexionControl",
+            "integracionControl"
+          ],
+          ejemplos: ["CRAC UNIT TECNAIR UPA 662 + TMC 55", "Climatizador de precisi\xF3n para CPD 40 kW"]
+        },
+        climatizadora: {
+          etiqueta: "Climatizadora / UTA",
+          patron: pat("climatizadora|\\buta\\b|unidad de tratamiento de aire|recuperador|\\bhra ?\\d"),
+          exige: [
+            "montaje",
+            "conexionHidraulico",
+            "conductoConexion",
+            "conexionDesague",
+            "conexionElectrico",
+            "conexionControl",
+            "sondasControl",
+            "integracionControl",
+            "antivibratorios",
+            "transporteGrua"
+          ],
+          ejemplos: ["Climatizadora UTA-01 de 12.000 m3/h", "Recuperador ent\xE1lpico de 2.000 m3/h"]
+        },
+        fancoil: {
+          etiqueta: "Fancoil / unidad interior",
+          patron: pat("fancoil|fan-coil|unidad interior|cassette|split|conductos tipo"),
+          exige: [
+            "montaje",
+            "conexionHidraulico",
+            "conexionDesague",
+            "conexionElectrico",
+            "conexionControl",
+            "sondasControl"
+          ],
+          ejemplos: ["Fancoil de conductos 3 tubos", "Unidad interior tipo cassette 4 v\xEDas 5 kW"]
+        },
+        ventilador: {
+          etiqueta: "Ventilador / extractor",
+          patron: pat("ventilador|extractor|caja de ventilaci|impulsor|\\bs&p (cab|cvab|td|thgt|chgt|hxm)"),
+          exige: ["montaje", "conductoConexion", "conexionElectrico", "conexionControl", "antivibratorios"],
+          ejemplos: ["Ventilador de impulsi\xF3n 3.000 m3/h", "Caja de ventilaci\xF3n en l\xEDnea"]
+        },
+        /* ── Y lo genérico, al final ───────────────────────────────────── */
+        bomba: {
+          etiqueta: "Bomba / grupo de bombeo",
+          patron: pat("\\bbomba\\b|circulador|grupo de presi[o\xF3]n|electrobomba"),
+          exige: [
+            "montaje",
+            "conexionHidraulico",
+            "conexionElectrico",
+            "conexionControl",
+            "integracionControl",
+            "antivibratorios",
+            "valvuleriaCorte",
+            "filtro",
+            "manometria"
+          ],
+          ejemplos: ["Bomba circuladora doble DN65 con variador", "Grupo de presi\xF3n de agua fr\xEDa 3 bombas"]
+        },
+        cuadroElectrico: {
+          etiqueta: "Cuadro el\xE9ctrico",
+          patron: pat("cuadro el[e\xE9]ctr|\\bcgbt\\b|cuadro secundario|cuadro general|armario el[e\xE9]ctr"),
+          exige: ["montaje", "conexionElectrico", "puestaTierra"],
+          ejemplos: ["Cuadro el\xE9ctrico secundario de planta", "CGBT de 630 A"]
+        }
+      };
+      var IMPRESCINDIBLES = [
+        {
+          id: "ayudasAlbanileria",
+          etiqueta: "Ayudas de alba\xF1iler\xEDa (rozas, pasamuros, sellados, remates)",
+          patron: pat("ayuda[s]? (de )?alba\xF1il|roza|pasamuro|sellado de paso|remate de obra civil"),
+          cuando: () => true,
+          gravedad: GRAVEDAD.AVISO,
+          porque: "Todo montaje toca la obra civil. Sin esta partida, cada taladro es una discusi\xF3n."
+        },
+        {
+          id: "pruebasPuestaMarcha",
+          etiqueta: "Pruebas, puesta en marcha y equilibrado",
+          patron: pat("prueba[s]?|puesta en marcha|equilibrad|regulaci[o\xF3]n de caudales|comisionado|commissioning"),
+          cuando: (d) => d.climatizacion || d.ventilacion || d.fontaneria || d.pci,
+          gravedad: GRAVEDAD.AVISO,
+          porque: "Una instalaci\xF3n sin equilibrar no se recibe. Son d\xEDas de t\xE9cnico que alguien paga."
+        },
+        {
+          id: "legalizacion",
+          etiqueta: "Legalizaci\xF3n, boletines y certificados de OCA",
+          patron: pat("legaliza|bolet[i\xED]n|\\boca\\b|certificado de instalaci|visado|tramitaci[o\xF3]n ante industria"),
+          cuando: () => true,
+          gravedad: GRAVEDAD.AVISO,
+          porque: "Sin bolet\xEDn no hay suministro. Es dinero y son semanas de plazo."
+        },
+        {
+          id: "documentacionFinal",
+          etiqueta: "Documentaci\xF3n final de obra y planos as-built",
+          patron: pat("as-?built|documentaci[o\xF3]n final|planos finales|dossier de calidad|manual de uso"),
+          cuando: () => true,
+          gravedad: GRAVEDAD.SUGERENCIA,
+          porque: "La DF no firma la recepci\xF3n sin el dossier. Se hace igual: mejor cobrarlo."
+        },
+        {
+          id: "formacion",
+          etiqueta: "Formaci\xF3n al personal de mantenimiento",
+          patron: pat("formaci[o\xF3]n|adiestramiento|capacitaci[o\xF3]n del usuario"),
+          cuando: (d) => d.climatizacion || d.control || d.pci,
+          gravedad: GRAVEDAD.SUGERENCIA,
+          porque: "Va en casi todos los pliegos y casi nunca en el presupuesto."
+        },
+        {
+          id: "gestionResiduos",
+          etiqueta: "Gesti\xF3n de residuos de construcci\xF3n",
+          patron: pat("residuo|\\brcd\\b|gestor autorizado|escombr"),
+          cuando: () => true,
+          gravedad: GRAVEDAD.SUGERENCIA,
+          porque: "Obligatorio por normativa y con coste real de contenedor y gestor."
+        },
+        {
+          id: "seguridadSalud",
+          etiqueta: "Seguridad y salud",
+          patron: pat("seguridad y salud|\\bepi\\b|protecci[o\xF3]n colectiva|plan de seguridad"),
+          cuando: () => true,
+          gravedad: GRAVEDAD.AVISO,
+          porque: "Es un cap\xEDtulo obligatorio y suele ser entre el 1 % y el 2 % del PEM."
+        },
+        {
+          id: "aislamiento",
+          etiqueta: "Aislamiento t\xE9rmico de tuber\xEDas y conductos",
+          patron: pat("aislamiento|coquilla|calorifugad|manta de lana"),
+          cuando: (d) => d.climatizacion || d.ventilacion,
+          gravedad: GRAVEDAD.AVISO,
+          porque: "El RITE lo exige (IT 1.2.4.2). Si no est\xE1, o se regala o se reclama."
+        },
+        {
+          id: "soportacion",
+          etiqueta: "Soportaci\xF3n de tuber\xEDas, conductos y bandejas",
+          patron: pat("soporte|soportaci[o\xF3]n|abrazadera|carril|varilla roscada"),
+          cuando: (d) => d.climatizacion || d.ventilacion || d.fontaneria || d.pci || d.electricidad,
+          gravedad: GRAVEDAD.AVISO,
+          porque: "Es material y horas de verdad; escondido en la p.p. se queda corto siempre."
+        },
+        {
+          id: "compuertasCortafuego",
+          etiqueta: "Compuertas cortafuego en paso de sectores",
+          patron: pat("cortafuego|compuerta cf|\\bcf-?\\d|sectorizaci[o\xF3]n"),
+          cuando: (d) => d.climatizacion || d.ventilacion,
+          gravedad: GRAVEDAD.AVISO,
+          porque: "Todo conducto que cruza un sector lleva una. Se olvidan y son caras."
+        },
+        {
+          id: "identificacion",
+          etiqueta: "Identificaci\xF3n y se\xF1alizaci\xF3n de instalaciones",
+          patron: pat("identificaci[o\xF3]n|rotulaci[o\xF3]n|se[\xF1n]alizaci[o\xF3]n|etiquetado|c[o\xF3]digo de colores"),
+          cuando: () => true,
+          gravedad: GRAVEDAD.SUGERENCIA,
+          porque: "Lo pide la DF en la recepci\xF3n. Es barato y siempre falta."
+        }
+      ];
+      function existeAlgo(lista, patron) {
+        return lista.some((p) => patron.test(norm(p.resumen)));
+      }
+      function auditar(arbol, opciones = {}) {
+        const descartados = new Set(opciones.descartados || []);
+        const lista = _modeloPresupuesto.partidas(arbol);
+        const { porDisciplina } = _modeloPresupuesto.pesoPorDisciplina(arbol);
+        const hay = Object.fromEntries(
+          Object.entries(porDisciplina).map(([d, v]) => [d, v > 0])
+        );
+        const hallazgos = [];
+        const anotar = (h) => {
+          if (descartados.has(h.id)) return;
+          hallazgos.push(h);
+        };
+        const costesSinValorar = [];
+        for (const p of lista) {
+          const donde = [...(p.camino || []).map((c) => c.codigo), p.codigo].filter(Boolean).join(" \u203A ");
+          const esDeCoste = _modeloPresupuesto.esCoste(p) || (p.camino || []).some(_modeloPresupuesto.esCoste);
+          if (esDeCoste && !(Number(p.cantidad) > 0) && !(Number(p.precio) > 0)) {
+            costesSinValorar.push(p);
+            continue;
+          }
+          if (!p.unidad) {
+            anotar({
+              id: `partida:${p.codigo}:unidad`,
+              gravedad: GRAVEDAD.BLOQUEANTE,
+              titulo: "Partida sin unidad de medida",
+              donde,
+              codigo: p.codigo,
+              detalle: `\xAB${p.resumen || "sin resumen"}\xBB no dice si se mide en m, m\xB2, ud o kg.`,
+              porque: "Un cliente no puede contrastar un precio sin saber por qu\xE9 se paga."
+            });
+          }
+          if (!(Number(p.precio) > 0)) {
+            anotar({
+              id: `partida:${p.codigo}:precio`,
+              gravedad: GRAVEDAD.BLOQUEANTE,
+              titulo: "Partida a precio cero",
+              donde,
+              codigo: p.codigo,
+              detalle: `\xAB${p.resumen || "sin resumen"}\xBB sale a 0,00 \u20AC.`,
+              porque: "O est\xE1 sin valorar, o se regala sin decirlo. Las dos cosas hay que escribirlas."
+            });
+          }
+          if (!(Number(p.cantidad) > 0)) {
+            anotar({
+              id: `partida:${p.codigo}:cantidad`,
+              gravedad: GRAVEDAD.AVISO,
+              titulo: "Partida sin medici\xF3n",
+              donde,
+              codigo: p.codigo,
+              detalle: `\xAB${p.resumen || "sin resumen"}\xBB tiene cantidad 0.`,
+              porque: "Una partida con cantidad cero no suma: si est\xE1, es que falta medirla."
+            });
+          }
+          if (!p.descripcion || String(p.descripcion).trim().length < 40) {
+            anotar({
+              id: `partida:${p.codigo}:descripcion`,
+              gravedad: GRAVEDAD.AVISO,
+              titulo: "Partida sin descripci\xF3n suficiente",
+              donde,
+              codigo: p.codigo,
+              detalle: `\xAB${p.resumen || "sin resumen"}\xBB no tiene un texto que delimite su alcance.`,
+              porque: "Lo que no est\xE1 escrito en la partida es lo que en obra se discute como extra.",
+              accion: "proponerDescripcion"
+            });
+          }
+          if (p.descripcionProvisional) {
+            anotar({
+              id: `partida:${p.codigo}:provisional`,
+              gravedad: GRAVEDAD.AVISO,
+              titulo: "Descripci\xF3n generada, sin revisar",
+              donde,
+              codigo: p.codigo,
+              detalle: `La descripci\xF3n de \xAB${p.resumen}\xBB la escribi\xF3 la aplicaci\xF3n y nadie la ha validado.`,
+              porque: "Una descripci\xF3n autom\xE1tica puede decir algo que no es de esta obra."
+            });
+          }
+          if (!p.disciplina) {
+            anotar({
+              id: `partida:${p.codigo}:disciplina`,
+              gravedad: GRAVEDAD.AVISO,
+              titulo: "Partida sin disciplina asignada",
+              donde,
+              codigo: p.codigo,
+              detalle: `\xAB${p.resumen || "sin resumen"}\xBB no cuenta en el reparto por disciplina.`,
+              porque: "Sin esto, las estad\xEDsticas del departamento mienten sin avisar."
+            });
+          }
+        }
+        if (costesSinValorar.length) {
+          anotar({
+            id: "coste:sinValorar",
+            gravedad: GRAVEDAD.SUGERENCIA,
+            titulo: `${costesSinValorar.length} conceptos de coste sin valorar`,
+            donde: "Cap\xEDtulos de coste",
+            detalle: `Est\xE1n puestos como recordatorio pero sin importe: ${costesSinValorar.slice(0, 3).map((p) => p.resumen).join(", ")}${costesSinValorar.length > 3 ? ` y ${costesSinValorar.length - 3} m\xE1s` : ""}.`,
+            porque: "No estorban ni suman, pero conviene repasarlos antes de cerrar: cada uno es dinero que alguien paga.",
+            accion: "limpiarCostesVacios",
+            afectadas: costesSinValorar.map((p) => p.codigo)
+          });
+        }
+        (function recorrer(nodos, camino) {
+          for (const n of nodos || []) {
+            if (n.tipo !== _modeloPresupuesto.TIPOS.CAPITULO) continue;
+            const ruta = [...camino, n.codigo].filter(Boolean).join(" \u203A ");
+            if (!(n.hijos || []).length) {
+              anotar({
+                id: `capitulo:${n.codigo}:vacio`,
+                gravedad: GRAVEDAD.BLOQUEANTE,
+                titulo: "Cap\xEDtulo vac\xEDo",
+                donde: ruta,
+                codigo: n.codigo,
+                detalle: `\xAB${n.resumen}\xBB no tiene ninguna partida.`,
+                porque: "Un cap\xEDtulo vac\xEDo en una oferta es una pregunta del cliente asegurada."
+              });
+            }
+            recorrer(n.hijos, [...camino, n.codigo]);
+          }
+        })(arbol, []);
+        const huecos = /* @__PURE__ */ new Map();
+        for (const p of lista) {
+          const texto = norm(p.resumen);
+          for (const [, clase] of Object.entries(CLASES_EQUIPO)) {
+            if (!clase.patron.test(texto)) continue;
+            for (const req of clase.exige) {
+              const acc = ACOMPANA[req];
+              if (!acc || existeAlgo(lista, acc.patron)) continue;
+              if (!huecos.has(req)) huecos.set(req, { acc, equipos: [] });
+              huecos.get(req).equipos.push({ ...p, clase: clase.etiqueta });
+            }
+            break;
+          }
+        }
+        for (const [req, { acc, equipos }] of huecos) {
+          const muestra = equipos.slice(0, 3).map((e) => `\xAB${e.resumen}\xBB`).join(", ");
+          const resto = equipos.length > 3 ? ` y ${equipos.length - 3} m\xE1s` : "";
+          const familia = FAMILIA_POR_ID[acc.familia];
+          const oficio = acc.oficio ? OFICIO_POR_ID[acc.oficio] : null;
+          anotar({
+            id: `hueco:${req}`,
+            gravedad: GRAVEDAD.AVISO,
+            familia: acc.familia,
+            oficio: acc.oficio || null,
+            /* El oficio va en el título: es lo que dice a qué comparativo se va. */
+            titulo: `Falta ${acc.etiqueta.toLowerCase()}`,
+            donde: equipos.length === 1 ? [...(equipos[0].camino || []).map((c) => c.codigo), equipos[0].codigo].filter(Boolean).join(" \u203A ") : `${equipos.length} equipos lo necesitan`,
+            detalle: `${muestra}${resto} lo necesitan, y en todo el presupuesto no hay ninguna partida de ${acc.etiqueta.toLowerCase()}.`,
+            porque: oficio ? `Esto es ${familia.etiqueta.toLowerCase()} de ${oficio.etiqueta.toLowerCase()}, y lo ejecuta un industrial distinto del que pone el equipo: si no es una partida aparte, no se puede pedir precio ni certificar.` : `Esto es ${familia.etiqueta.toLowerCase()} y lo ejecuta un industrial distinto del que pone el equipo: si no es una partida aparte, no se puede pedir precio ni certificar.`,
+            accion: "crearPartida",
+            afectadas: equipos.map((e) => e.codigo),
+            propuesta: {
+              resumen: acc.etiqueta,
+              unidad: acc.unidad,
+              cantidad: equipos.reduce((a, e) => a + (Number(e.cantidad) || 1), 0)
+            }
+          });
+        }
+        const sinPuesta = [];
+        lista.forEach((p, i) => {
+          const clase = claseDe(p);
+          if (!clase) return;
+          if (_modeloPresupuesto.esCoste(p) || (p.camino || []).some(_modeloPresupuesto.esCoste)) return;
+          const padre = (p.camino || []).map((c) => c.codigo).join(">");
+          for (let j = i + 1; j < lista.length; j += 1) {
+            const q = lista[j];
+            if ((q.camino || []).map((c) => c.codigo).join(">") !== padre || claseDe(q)) break;
+            if (ES_PUESTA_MARCHA.test(norm(q.resumen)) && /^h/.test(norm(q.unidad))) return;
+          }
+          const horas = (HORAS_PUESTA_MARCHA[clase] || 4) * (Number(p.cantidad) > 0 ? Number(p.cantidad) : 1);
+          sinPuesta.push({ ...p, horas });
+        });
+        if (sinPuesta.length) {
+          const muestra = sinPuesta.slice(0, 3).map((e) => `\xAB${e.resumen}\xBB`).join(", ");
+          const resto = sinPuesta.length > 3 ? ` y ${sinPuesta.length - 3} m\xE1s` : "";
+          const horas = sinPuesta.reduce((a, e) => a + e.horas, 0);
+          anotar({
+            id: "hueco:puestaEnMarcha",
+            gravedad: GRAVEDAD.AVISO,
+            familia: "mecanica",
+            titulo: sinPuesta.length === 1 ? "Falta la puesta en marcha de un equipo" : `Falta la puesta en marcha de ${sinPuesta.length} equipos`,
+            donde: sinPuesta.length === 1 ? [...(sinPuesta[0].camino || []).map((c) => c.codigo), sinPuesta[0].codigo].filter(Boolean).join(" \u203A ") : `${sinPuesta.length} equipos`,
+            detalle: `${muestra}${resto} no tienen debajo su partida de puesta en marcha en horas. Estimado: ${horas} h de operario.`,
+            porque: "Arrancar, ajustar y probar cada equipo son horas de operario. Si no est\xE1n en su partida, no se cobran y en el Gantt no ocupan tiempo.",
+            accion: "crearPartida",
+            afectadas: sinPuesta.map((e) => e.codigo),
+            propuesta: {
+              resumen: "Puesta en marcha",
+              unidad: "h",
+              cantidad: horas,
+              /* Una por equipo, justo debajo de él. */
+              junto: sinPuesta.map((e) => ({ junto: e.codigo, resumen: `Puesta en marcha de ${e.resumen}`, unidad: "h", cantidad: e.horas }))
+            }
+          });
+        }
+        for (const regla of IMPRESCINDIBLES) {
+          if (!regla.cuando(hay)) continue;
+          if (existeAlgo(lista, regla.patron)) continue;
+          anotar({
+            id: `global:${regla.id}`,
+            gravedad: regla.gravedad,
+            titulo: `No hay partida de ${regla.etiqueta.toLowerCase()}`,
+            donde: "Presupuesto completo",
+            detalle: regla.etiqueta,
+            porque: regla.porque,
+            accion: "crearPartida",
+            propuesta: { resumen: regla.etiqueta, unidad: "ud", cantidad: 1 }
+          });
+        }
+        const porUnidad = /* @__PURE__ */ new Map();
+        for (const p of lista) {
+          if (!p.unidad || !(Number(p.precio) > 0)) continue;
+          const clave = `${norm(p.unidad)}|${norm(p.resumen).split(/\s+/).slice(0, 2).join(" ")}`;
+          if (!porUnidad.has(clave)) porUnidad.set(clave, []);
+          porUnidad.get(clave).push(p);
+        }
+        for (const [, grupo] of porUnidad) {
+          if (grupo.length < 3) continue;
+          const precios = grupo.map((p) => Number(p.precio)).sort((a, b) => a - b);
+          const mediana = precios[Math.floor(precios.length / 2)];
+          for (const p of grupo) {
+            const veces = Number(p.precio) / mediana;
+            if (veces > 10 || veces < 0.1) {
+              anotar({
+                id: `precio:${p.codigo}:atipico`,
+                gravedad: GRAVEDAD.AVISO,
+                titulo: "Precio muy fuera de lo normal",
+                donde: [...(p.camino || []).map((c) => c.codigo), p.codigo].filter(Boolean).join(" \u203A "),
+                codigo: p.codigo,
+                detalle: `\xAB${p.resumen}\xBB a ${_modeloPresupuesto.textoEuros(p.precio)} \u20AC/${p.unidad}, cuando partidas parecidas rondan ${_modeloPresupuesto.textoEuros(mediana)} \u20AC/${p.unidad}.`,
+                porque: "Casi siempre es una coma mal puesta. Cuesta un segundo mirarlo y una obra entera no mirarlo."
+              });
+            }
+          }
+        }
+        const UNIDADES_COMPARABLES = /* @__PURE__ */ new Set(["m", "ml", "m2", "m\xB2", "m3", "m\xB3", "kg", "t", "l"]);
+        const porUnidadSola = /* @__PURE__ */ new Map();
+        for (const p of lista) {
+          if (!p.unidad || !(Number(p.precio) > 0)) continue;
+          const u = norm(p.unidad);
+          if (!UNIDADES_COMPARABLES.has(u)) continue;
+          if (!porUnidadSola.has(u)) porUnidadSola.set(u, []);
+          porUnidadSola.get(u).push(p);
+        }
+        for (const [unidad, grupo] of porUnidadSola) {
+          if (grupo.length < 5) continue;
+          const precios = grupo.map((p) => Number(p.precio)).sort((a, b) => a - b);
+          const mediana = precios[Math.floor(precios.length / 2)];
+          if (!(mediana > 0)) continue;
+          for (const p of grupo) {
+            const veces = Number(p.precio) / mediana;
+            if (veces < 25 && veces > 1 / 25) continue;
+            anotar({
+              id: `precio:${p.codigo}:unidad`,
+              gravedad: GRAVEDAD.AVISO,
+              titulo: veces >= 25 ? "Precio disparatado para su unidad" : "Precio sospechosamente bajo para su unidad",
+              donde: [...(p.camino || []).map((c) => c.codigo), p.codigo].filter(Boolean).join(" \u203A "),
+              codigo: p.codigo,
+              detalle: `\xAB${p.resumen}\xBB a ${_modeloPresupuesto.textoEuros(p.precio)} \u20AC/${p.unidad}. Las ${grupo.length} partidas medidas en ${unidad} de este presupuesto rondan ${_modeloPresupuesto.textoEuros(mediana)} \u20AC/${unidad}: es ${veces >= 25 ? Math.round(veces) + " veces m\xE1s" : Math.round(1 / veces) + " veces menos"}.`,
+              porque: "Una coma mal puesta se lee igual que un precio bueno, y se va con la oferta."
+            });
+          }
+        }
+        const pemTotal = lista.reduce((a, p) => a + (p.importe || 0), 0);
+        const conImporte = lista.filter((p) => (p.importe || 0) > 0);
+        if (pemTotal > 0 && conImporte.length >= 20) {
+          for (const p of lista) {
+            const peso = (p.importe || 0) / pemTotal;
+            if (peso < 0.3) continue;
+            anotar({
+              id: `peso:${p.codigo}`,
+              gravedad: GRAVEDAD.AVISO,
+              titulo: "Una sola partida se lleva casi todo el presupuesto",
+              donde: [...(p.camino || []).map((c) => c.codigo), p.codigo].filter(Boolean).join(" \u203A "),
+              codigo: p.codigo,
+              detalle: `\xAB${p.resumen}\xBB supone el ${Math.round(peso * 100)} % del importe total.`,
+              porque: "En instalaciones eso casi siempre es un error de precio o de medici\xF3n, no un equipo car\xEDsimo."
+            });
+          }
+        }
+        const resumenesDelArbol = [];
+        (function recorrerTodo(nodos) {
+          for (const n of nodos || []) {
+            resumenesDelArbol.push(norm(n.resumen));
+            if (n.hijos) recorrerTodo(n.hijos);
+          }
+        })(arbol);
+        for (const cap of _capitulosCoste ? _capitulosCoste.CAPITULOS_COSTE : []) {
+          const patron = pat(cap.patron);
+          if (resumenesDelArbol.some((r) => patron.test(r))) continue;
+          anotar({
+            id: `coste:${cap.id}`,
+            gravedad: GRAVEDAD.AVISO,
+            titulo: `No hay cap\xEDtulo de ${cap.resumen.toLowerCase()}`,
+            donde: "Estructura del presupuesto",
+            detalle: `Faltan ${_capitulosCoste.cuentaPartidas(cap.id)} conceptos repartidos en ${cap.subcapitulos.length} subcap\xEDtulos.`,
+            porque: cap.porque,
+            accion: "insertarCapituloCoste",
+            costeId: cap.id
+          });
+        }
+        const vistas = /* @__PURE__ */ new Map();
+        for (const p of lista) {
+          const clave = `${norm(p.resumen)}|${norm(p.unidad)}`;
+          if (!norm(p.resumen)) continue;
+          if (vistas.has(clave)) {
+            anotar({
+              id: `duplicada:${p.codigo}`,
+              gravedad: GRAVEDAD.AVISO,
+              titulo: "Partida repetida",
+              donde: [...(p.camino || []).map((c) => c.codigo), p.codigo].filter(Boolean).join(" \u203A "),
+              codigo: p.codigo,
+              detalle: `\xAB${p.resumen}\xBB aparece tambi\xE9n en ${vistas.get(clave)}.`,
+              porque: "O es una doble medici\xF3n \u2014se cobra dos veces y se pierde la oferta\u2014, o hay que distinguirlas en el texto."
+            });
+          } else {
+            vistas.set(clave, [...(p.camino || []).map((c) => c.codigo), p.codigo].filter(Boolean).join(" \u203A "));
+          }
+        }
+        const cuenta = (g) => hallazgos.filter((h) => h.gravedad === g).length;
+        for (const revisor of opciones.revisores || []) {
+          try {
+            for (const h of revisor(arbol, opciones) || []) anotar(h);
+          } catch (e) {
+            anotar({
+              id: "revisor:error",
+              gravedad: GRAVEDAD.SUGERENCIA,
+              titulo: "Una revisi\xF3n no ha podido ejecutarse",
+              donde: "Presupuesto completo",
+              detalle: String(e && e.message || e),
+              porque: "Lo que no se ha revisado no est\xE1 bien: est\xE1 sin mirar."
+            });
+          }
+        }
+        return {
+          hallazgos,
+          resumen: {
+            bloqueantes: cuenta(GRAVEDAD.BLOQUEANTE),
+            avisos: cuenta(GRAVEDAD.AVISO),
+            sugerencias: cuenta(GRAVEDAD.SUGERENCIA),
+            total: hallazgos.length,
+            partidasRevisadas: lista.length,
+            /* La oferta no sale a PDF con un bloqueante vivo. */
+            exportable: cuenta(GRAVEDAD.BLOQUEANTE) === 0
+          }
+        };
+      }
+      var ES_ACCESORIO = pat(
+        "^(montaje|coloca|instalacion mecanica|izado|bancada|antivibrat|amortiguador|silentblock|conexion|conexionado|acometida|interconexion|latiguillo|manguito|transporte|gr[u\xFA]a|camion|medios de elevacion|descarga|aislamiento|coquilla|soportacion|soporte|desmontaje|desmontar|retirada|demolicion|achatarramiento|puesta en marcha|programacion|integracion|legalizacion|tramitacion|proyecto|direccion|mantenimiento|prueba|ensayo|equilibrado|limpieza|ayuda|roza|pasamuro|sellado|remate|alquiler|amortizacion|cableado|linea|circuito|manguera|bandeja|tubo|tuberia|canalizacion|conducto|desague|purga|drenaje|vaciado|llenado|sifon|valvula|valvuleria|llave|filtro|colador|manometr|termometr|contador|sonda|sensor|termostato|presostato|transmisor|detector|pulsador|compuerta|rejilla|difusor|variador|regulador|extintor|\\bbie\\b|rociador|hidrante|se[\xF1n]alizacion)\\b"
+      );
+      var HORAS_PUESTA_MARCHA = {
+        enfriadora: 16,
+        climatizadoraPiscina: 12,
+        rooftop: 8,
+        crac: 6,
+        torreRefrigeracion: 8,
+        caldera: 8,
+        grupoElectrogeno: 8,
+        climatizadora: 8,
+        unidadExterior: 6,
+        grupoPCI: 4,
+        centralDeteccion: 4,
+        bomba: 2,
+        cuadroElectrico: 2,
+        fancoil: 1,
+        ventilador: 1
+      };
+      var ES_PUESTA_MARCHA = /puesta en marcha|arranque/;
+      function claseDe(partida) {
+        const texto = norm(partida && partida.resumen || "");
+        if (ES_ACCESORIO.test(texto)) return null;
+        const entrada = Object.entries(CLASES_EQUIPO).find(([, c]) => c.patron.test(texto));
+        return entrada ? entrada[0] : null;
+      }
+      function cortejoDe(partida, lista = []) {
+        const texto = norm(partida && partida.resumen || "");
+        if (ES_ACCESORIO.test(texto)) return null;
+        const entrada = Object.entries(CLASES_EQUIPO).find(([, c]) => c.patron.test(texto));
+        if (!entrada) return null;
+        const [claseId, clase] = entrada;
+        const piezas = clase.exige.map((req) => {
+          const acc = ACOMPANA[req];
+          if (!acc) return null;
+          const donde = lista.find((p) => p.codigo !== partida.codigo && acc.patron.test(norm(p.resumen)));
+          return {
+            id: req,
+            etiqueta: acc.etiqueta,
+            unidad: acc.unidad,
+            familia: acc.familia,
+            oficio: acc.oficio || null,
+            esta: Boolean(donde),
+            donde: donde ? { codigo: donde.codigo, resumen: donde.resumen } : null
+          };
+        }).filter(Boolean);
+        const familias = FAMILIAS_CONEXION.map((f) => {
+          const suyas = piezas.filter((p) => p.familia === f.id);
+          if (!suyas.length) return null;
+          const ordenadas = f.id === "mecanica" ? [...suyas].sort((a, b) => OFICIOS_MECANICOS.findIndex((o) => o.id === a.oficio) - OFICIOS_MECANICOS.findIndex((o) => o.id === b.oficio)) : suyas;
+          return {
+            ...f,
+            piezas: ordenadas,
+            faltan: ordenadas.filter((p) => !p.esta).length,
+            oficios: f.id !== "mecanica" ? [] : OFICIOS_MECANICOS.map((o) => ({ ...o, piezas: ordenadas.filter((p) => p.oficio === o.id) })).filter((o) => o.piezas.length)
+          };
+        }).filter(Boolean);
+        return {
+          clase: claseId,
+          etiquetaClase: clase.etiqueta,
+          familias,
+          piezas,
+          faltan: piezas.filter((p) => !p.esta).length,
+          total: piezas.length
+        };
+      }
+      function cortejo(arbol) {
+        const lista = _modeloPresupuesto.partidas(arbol || []);
+        return lista.map((p) => {
+          const c = cortejoDe(p, lista);
+          return c ? { codigo: p.codigo, resumen: p.resumen, cantidad: p.cantidad, ...c } : null;
+        }).filter(Boolean);
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.AUDITOR = API;
+      })({
+        auditar,
+        GRAVEDAD,
+        CLASES_EQUIPO,
+        ACOMPANA,
+        IMPRESCINDIBLES,
+        FAMILIAS_CONEXION,
+        OFICIOS_MECANICOS,
+        ES_ACCESORIO,
+        HORAS_PUESTA_MARCHA,
+        claseDe,
+        cortejoDe,
+        cortejo
+      });
+    }
+  });
+
+  // shared/control/puntos.js
+  var require_puntos = __commonJS({
+    "shared/control/puntos.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var _auditorPuntos = typeof __require !== "undefined" ? require_auditor() : window.AUDITOR;
+      var _modeloPuntos = typeof __require !== "undefined" ? require_modelo() : window.MODELO;
+      var TIPOS_PUNTO = [
+        {
+          id: "AI",
+          etiqueta: "Entrada anal\xF3gica",
+          corto: "AI",
+          que: "Una medida que entra: temperatura, humedad, presi\xF3n, caudal.",
+          verificacion: "Lectura contrastada contra instrumento patr\xF3n en dos puntos de la escala."
+        },
+        {
+          id: "AO",
+          etiqueta: "Salida anal\xF3gica",
+          corto: "AO",
+          que: "Una orden graduada que sale: apertura de v\xE1lvula, velocidad de un variador.",
+          verificacion: "Recorrido completo 0\u2013100 % comprobando la posici\xF3n real del elemento en campo."
+        },
+        {
+          id: "DI",
+          etiqueta: "Entrada digital",
+          corto: "DI",
+          que: "Un s\xED o un no que entra: estado de marcha, alarma, posici\xF3n de un contacto.",
+          verificacion: "Forzado del contacto en campo y comprobaci\xF3n del cambio de estado en el SCADA."
+        },
+        {
+          id: "DO",
+          etiqueta: "Salida digital",
+          corto: "DO",
+          que: "Un s\xED o un no que sale: orden de marcha, paro, cambio de r\xE9gimen.",
+          verificacion: "Orden desde el SCADA y comprobaci\xF3n de que el equipo arranca de verdad."
+        },
+        {
+          id: "BUS",
+          etiqueta: "Variable por bus",
+          corto: "BUS",
+          que: "Un dato que llega por comunicaci\xF3n, sin cable propio: Modbus, BACnet, KNX.",
+          verificacion: "Mapa de variables contrastado con el fabricante, y lectura y escritura probadas una a una."
+        }
+      ];
+      var TIPO_PUNTO_POR_ID = Object.fromEntries(TIPOS_PUNTO.map((t) => [t.id, t]));
+      var DUENOS_CAMPO = {
+        control: { etiqueta: "control", que: "Lo trae el integrador, en su cap\xEDtulo." },
+        mecanico: { etiqueta: "mec\xE1nico", que: "Suele ir ya en el cap\xEDtulo de climatizaci\xF3n o fontaner\xEDa." },
+        electrico: { etiqueta: "el\xE9ctrico", que: "Va dentro del cuadro de fuerza, y es lo que m\xE1s veces no pone nadie." }
+      };
+      var ELEMENTOS_CAMPO = {
+        sondaConducto: { etiqueta: "Sonda de temperatura de conducto", de: "control", unidad: "ud" },
+        sondaInmersion: { etiqueta: "Sonda de temperatura de inmersi\xF3n con vaina", de: "control", unidad: "ud" },
+        sondaAmbiente: { etiqueta: "Sonda de temperatura ambiente", de: "control", unidad: "ud" },
+        sondaExterior: { etiqueta: "Sonda de temperatura exterior", de: "control", unidad: "ud" },
+        sondaHumedad: { etiqueta: "Sonda de humedad relativa", de: "control", unidad: "ud" },
+        sondaCO2: { etiqueta: "Sonda de calidad de aire (CO\u2082)", de: "control", unidad: "ud" },
+        presostatoDif: { etiqueta: "Presostato diferencial de aire", de: "control", unidad: "ud" },
+        transmisorPresion: { etiqueta: "Transmisor de presi\xF3n", de: "control", unidad: "ud" },
+        termostatoAntihielo: { etiqueta: "Termostato antihielo de bater\xEDa", de: "control", unidad: "ud" },
+        servoCompuerta: { etiqueta: "Servomotor de compuerta", de: "control", unidad: "ud" },
+        valvulaControl: { etiqueta: "V\xE1lvula de control motorizada", de: "mecanico", unidad: "ud" },
+        contadorEnergia: { etiqueta: "Contador de energ\xEDa t\xE9rmica", de: "mecanico", unidad: "ud" },
+        analizadorRedes: { etiqueta: "Analizador de redes", de: "electrico", unidad: "ud" },
+        pasarela: { etiqueta: "Pasarela de comunicaciones", de: "control", unidad: "ud" },
+        /*
+         * El contacto auxiliar y el juego de bornes en el cuadro de fuerza es el
+         * elemento que más veces se queda sin presupuestar de todo el sistema: no lo
+         * pone el de control, porque está dentro del cuadro; no lo pone el
+         * electricista, porque no se lo han pedido.
+         */
+        contactoAuxiliar: { etiqueta: "Contacto auxiliar y bornes en cuadro de fuerza", de: "electrico", unidad: "ud" },
+        deteccionInundacion: { etiqueta: "Detector de inundaci\xF3n de sala t\xE9cnica", de: "control", unidad: "ud" }
+      };
+      var p = (tipo, id, etiqueta, { senal, campo = null, cantidad = 1, obligatorio = true, porque = "" } = {}) => ({ tipo, id, etiqueta, senal: senal || null, campo, cantidad, obligatorio, porque });
+      var PUNTOS_POR_CLASE = {
+        climatizadora: {
+          etiqueta: "Climatizadora / UTA",
+          fisico: [
+            p("AI", "tImpulsion", "Temperatura de impulsi\xF3n", { senal: "Ni1000 / Pt1000", campo: "sondaConducto", porque: "Es la variable que se regula: sin ella no hay lazo." }),
+            p("AI", "tRetorno", "Temperatura de retorno", { senal: "Ni1000 / Pt1000", campo: "sondaConducto" }),
+            p("AI", "hImpulsion", "Humedad de impulsi\xF3n", { senal: "0-10 V", campo: "sondaHumedad", obligatorio: false, porque: "Solo si la UTA trata humedad." }),
+            p("AI", "co2", "Calidad de aire (CO\u2082) en retorno", { senal: "0-10 V", campo: "sondaCO2", obligatorio: false, porque: "Obligatoria con ventilaci\xF3n por demanda (IDA), y es lo que ahorra energ\xEDa de verdad." }),
+            p("AI", "presionImpulsion", "Presi\xF3n en conducto de impulsi\xF3n", { senal: "0-10 V", campo: "transmisorPresion", obligatorio: false, porque: "Necesaria si el ventilador es de caudal variable." }),
+            p("AO", "compuertaExterior", "Compuerta de aire exterior", { senal: "0-10 V", campo: "servoCompuerta" }),
+            p("AO", "compuertaRecirculacion", "Compuerta de recirculaci\xF3n", { senal: "0-10 V", campo: "servoCompuerta", obligatorio: false }),
+            p("AO", "valvulaFrio", "V\xE1lvula de bater\xEDa de fr\xEDo", { senal: "0-10 V", campo: "valvulaControl" }),
+            p("AO", "valvulaCalor", "V\xE1lvula de bater\xEDa de calor", { senal: "0-10 V", campo: "valvulaControl" }),
+            p("AO", "variadorImpulsion", "Variador del ventilador de impulsi\xF3n", { senal: "0-10 V" }),
+            p("AO", "variadorRetorno", "Variador del ventilador de retorno", { senal: "0-10 V", obligatorio: false }),
+            p("DI", "estadoImpulsion", "Estado del ventilador de impulsi\xF3n", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DI", "estadoRetorno", "Estado del ventilador de retorno", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar", obligatorio: false }),
+            p("DI", "alarmaImpulsion", "Alarma t\xE9rmico de impulsi\xF3n", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DI", "filtroImpulsion", "Filtro sucio de impulsi\xF3n", { senal: "contacto libre de tensi\xF3n", campo: "presostatoDif" }),
+            p("DI", "filtroRetorno", "Filtro sucio de retorno", { senal: "contacto libre de tensi\xF3n", campo: "presostatoDif", obligatorio: false }),
+            p("DI", "antihielo", "Termostato antihielo", { senal: "contacto libre de tensi\xF3n", campo: "termostatoAntihielo", porque: "Es una seguridad: si falta, una helada revienta la bater\xEDa." }),
+            p("DO", "marchaImpulsion", "Marcha / paro del ventilador de impulsi\xF3n", { senal: "rel\xE9 libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DO", "marchaRetorno", "Marcha / paro del ventilador de retorno", { senal: "rel\xE9 libre de tensi\xF3n", campo: "contactoAuxiliar", obligatorio: false })
+          ],
+          bus: [
+            p("BUS", "integracion", "Integraci\xF3n de la climatizadora por bus", { senal: "Modbus RTU / BACnet MS-TP", campo: "pasarela", porque: "Sustituye a las se\xF1ales del propio equipo, no a las de campo." }),
+            p("DI", "antihielo", "Termostato antihielo", { senal: "contacto libre de tensi\xF3n", campo: "termostatoAntihielo", porque: "Una seguridad NO se deja depender de un bus: va cableada aunque todo lo dem\xE1s se comunique." }),
+            p("AO", "valvulaFrio", "V\xE1lvula de bater\xEDa de fr\xEDo", { senal: "0-10 V", campo: "valvulaControl" }),
+            p("AO", "valvulaCalor", "V\xE1lvula de bater\xEDa de calor", { senal: "0-10 V", campo: "valvulaControl" }),
+            p("AI", "tImpulsion", "Temperatura de impulsi\xF3n", { senal: "Ni1000 / Pt1000", campo: "sondaConducto" })
+          ]
+        },
+        enfriadora: {
+          etiqueta: "Enfriadora / bomba de calor",
+          fisico: [
+            p("AI", "tImpulsionAgua", "Temperatura de impulsi\xF3n de agua", { senal: "Ni1000 / Pt1000", campo: "sondaInmersion" }),
+            p("AI", "tRetornoAgua", "Temperatura de retorno de agua", { senal: "Ni1000 / Pt1000", campo: "sondaInmersion" }),
+            p("AO", "consigna", "Consigna de temperatura al equipo", { senal: "0-10 V", obligatorio: false }),
+            p("DI", "estado", "Estado de marcha", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DI", "alarma", "Alarma general", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DO", "marcha", "Orden de marcha / paro", { senal: "rel\xE9 libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DO", "veranoInvierno", "Cambio verano / invierno", { senal: "rel\xE9 libre de tensi\xF3n", obligatorio: false, porque: "Solo en bomba de calor reversible." })
+          ],
+          bus: [
+            p("BUS", "integracion", "Integraci\xF3n de la enfriadora por bus", { senal: "Modbus RTU / BACnet", campo: "pasarela", porque: "Da consignas, estados, alarmas y consumos: mucho m\xE1s de lo que se cablear\xEDa nunca." }),
+            p("DI", "alarma", "Alarma general cableada", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar", porque: "La alarma se cablea aparte: si se cae el bus, hay que enterarse igual." }),
+            p("DO", "marcha", "Orden de marcha / paro cableada", { senal: "rel\xE9 libre de tensi\xF3n", campo: "contactoAuxiliar", obligatorio: false })
+          ]
+        },
+        bomba: {
+          etiqueta: "Bomba / grupo de bombeo",
+          fisico: [
+            p("DI", "estado", "Estado de marcha", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DI", "alarma", "Alarma de t\xE9rmico o de variador", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DO", "marcha", "Orden de marcha / paro", { senal: "rel\xE9 libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("AO", "variador", "Consigna al variador", { senal: "0-10 V", obligatorio: false, porque: "Solo si la bomba es de velocidad variable." }),
+            p("AI", "presionDif", "Presi\xF3n diferencial del circuito", { senal: "0-10 V", campo: "transmisorPresion", obligatorio: false, porque: "La que hace falta para regular la bomba por presi\xF3n constante." })
+          ],
+          bus: [
+            p("BUS", "integracion", "Integraci\xF3n del variador por bus", { senal: "Modbus RTU", campo: "pasarela" }),
+            p("DI", "alarma", "Alarma cableada", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar" })
+          ]
+        },
+        fancoil: {
+          etiqueta: "Fancoil / unidad interior",
+          fisico: [
+            p("AI", "tAmbiente", "Temperatura ambiente", { senal: "Ni1000 / Pt1000", campo: "sondaAmbiente" }),
+            p("AO", "valvula", "V\xE1lvula de la bater\xEDa", { senal: "0-10 V / todo-nada", campo: "valvulaControl" }),
+            p("DO", "velocidades", "Selecci\xF3n de velocidad del ventilador", { senal: "rel\xE9", cantidad: 3, porque: "Tres velocidades son tres salidas, salvo que el fancoil lleve variador." }),
+            p("DI", "estado", "Estado del ventilador", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar", obligatorio: false })
+          ],
+          bus: [
+            p("BUS", "integracion", "Termostato de bus en la unidad", { senal: "KNX / Modbus", porque: "Un fancoil por bus es un punto de bus y un termostato; por cable son cinco puntos y una sonda." })
+          ]
+        },
+        unidadExterior: {
+          etiqueta: "Unidad exterior VRV / VRF",
+          fisico: [
+            p("DI", "estado", "Estado de marcha", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DI", "alarma", "Alarma general", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DO", "marcha", "Orden de marcha / paro", { senal: "rel\xE9 libre de tensi\xF3n", campo: "contactoAuxiliar" })
+          ],
+          bus: [
+            p("BUS", "integracion", "Interfaz del fabricante al sistema de control", { senal: "BACnet / KNX / Modbus", campo: "pasarela", porque: "Un VRF se integra SIEMPRE por interfaz: cablear unidad por unidad no lo hace nadie." })
+          ]
+        },
+        caldera: {
+          etiqueta: "Caldera",
+          fisico: [
+            p("AI", "tImpulsion", "Temperatura de impulsi\xF3n", { senal: "Ni1000 / Pt1000", campo: "sondaInmersion" }),
+            p("AI", "tRetorno", "Temperatura de retorno", { senal: "Ni1000 / Pt1000", campo: "sondaInmersion" }),
+            p("AO", "consigna", "Consigna de temperatura", { senal: "0-10 V", obligatorio: false }),
+            p("DI", "estado", "Estado de marcha", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DI", "alarma", "Bloqueo de quemador", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DI", "deteccionGas", "Detecci\xF3n de gas en sala", { senal: "contacto libre de tensi\xF3n", porque: "Va por normativa en sala de calderas de gas, y corta la electrov\xE1lvula." }),
+            p("DO", "marcha", "Orden de marcha / paro", { senal: "rel\xE9 libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DO", "corteGas", "Corte de la electrov\xE1lvula de gas", { senal: "rel\xE9 libre de tensi\xF3n", porque: "Es la seguridad que dispara la detecci\xF3n de gas." })
+          ],
+          bus: [
+            p("BUS", "integracion", "Integraci\xF3n de la caldera por bus", { senal: "Modbus / OpenTherm", campo: "pasarela" }),
+            p("DI", "deteccionGas", "Detecci\xF3n de gas en sala", { senal: "contacto libre de tensi\xF3n" }),
+            p("DO", "corteGas", "Corte de la electrov\xE1lvula de gas", { senal: "rel\xE9 libre de tensi\xF3n" })
+          ]
+        },
+        ventilador: {
+          etiqueta: "Ventilador / extractor",
+          fisico: [
+            p("DI", "estado", "Estado de marcha", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DI", "alarma", "Alarma de t\xE9rmico", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DO", "marcha", "Orden de marcha / paro", { senal: "rel\xE9 libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("AO", "variador", "Consigna al variador", { senal: "0-10 V", obligatorio: false })
+          ]
+        },
+        torreRefrigeracion: {
+          etiqueta: "Torre de refrigeraci\xF3n",
+          fisico: [
+            p("AI", "tAgua", "Temperatura de agua de torre", { senal: "Ni1000 / Pt1000", campo: "sondaInmersion" }),
+            p("AO", "variadorVentilador", "Consigna al variador del ventilador", { senal: "0-10 V" }),
+            p("DI", "estado", "Estado de marcha", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DI", "alarma", "Alarma general", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DI", "nivel", "Nivel de balsa", { senal: "contacto libre de tensi\xF3n" }),
+            p("DO", "marcha", "Orden de marcha / paro", { senal: "rel\xE9 libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DO", "purga", "Orden de purga", { senal: "rel\xE9 libre de tensi\xF3n", obligatorio: false, porque: "Va ligada al plan de prevenci\xF3n de legionela." })
+          ]
+        },
+        climatizadoraPiscina: {
+          etiqueta: "Deshumectadora / climatizadora de piscina",
+          fisico: [
+            p("AI", "tAmbiente", "Temperatura ambiente de vaso", { senal: "Ni1000 / Pt1000", campo: "sondaAmbiente" }),
+            p("AI", "humedad", "Humedad relativa de sala", { senal: "0-10 V", campo: "sondaHumedad", porque: "Es la variable que se regula aqu\xED; sin ella no hay deshumectaci\xF3n." }),
+            p("AI", "tAgua", "Temperatura del agua del vaso", { senal: "Ni1000 / Pt1000", campo: "sondaInmersion" }),
+            p("AO", "compuertaExterior", "Compuerta de aire exterior", { senal: "0-10 V", campo: "servoCompuerta" }),
+            p("AO", "valvulaCalor", "V\xE1lvula de bater\xEDa de calor", { senal: "0-10 V", campo: "valvulaControl" }),
+            p("DI", "estado", "Estado de marcha", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DI", "alarma", "Alarma general", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DO", "marcha", "Orden de marcha / paro", { senal: "rel\xE9 libre de tensi\xF3n", campo: "contactoAuxiliar" })
+          ]
+        },
+        cuadroElectrico: {
+          etiqueta: "Cuadro el\xE9ctrico",
+          fisico: [
+            p("DI", "estadoGeneral", "Estado del interruptor general", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DI", "disparoDiferencial", "Disparo de diferencial", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar", porque: "Un diferencial disparado de madrugada, sin se\xF1al, se descubre por la ma\xF1ana." }),
+            p("AI", "consumo", "Medida de consumo", { senal: "Modbus", campo: "analizadorRedes", obligatorio: false })
+          ],
+          bus: [
+            p("BUS", "analizador", "Analizador de redes por Modbus", { senal: "Modbus RTU", campo: "analizadorRedes" }),
+            p("DI", "disparoDiferencial", "Disparo de diferencial", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar" })
+          ]
+        },
+        grupoElectrogeno: {
+          etiqueta: "Grupo electr\xF3geno / SAI",
+          fisico: [
+            p("DI", "estado", "Grupo en marcha", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DI", "alarma", "Aver\xEDa del grupo", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DI", "modoAutomatico", "Grupo en autom\xE1tico", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar", porque: "Un grupo en manual no arranca solo, y eso hay que verlo desde el SCADA." }),
+            p("AI", "nivelCombustible", "Nivel de combustible", { senal: "4-20 mA", obligatorio: false })
+          ],
+          bus: [
+            p("BUS", "integracion", "Integraci\xF3n de la central del grupo", { senal: "Modbus RTU", campo: "pasarela" }),
+            p("DI", "alarma", "Aver\xEDa cableada", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar" })
+          ]
+        },
+        grupoPCI: {
+          etiqueta: "Grupo de presi\xF3n contra incendios",
+          fisico: [
+            p("DI", "bombaPrincipal", "Bomba principal en marcha", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DI", "bombaJockey", "Bomba jockey en marcha", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DI", "alarma", "Aver\xEDa del grupo", { senal: "contacto libre de tensi\xF3n", campo: "contactoAuxiliar" }),
+            p("DI", "nivelAljibe", "Nivel bajo de aljibe", { senal: "contacto libre de tensi\xF3n", porque: "Un aljibe vac\xEDo no se ve hasta que hace falta." }),
+            p("AI", "presionRed", "Presi\xF3n de la red de incendios", { senal: "4-20 mA", campo: "transmisorPresion", obligatorio: false })
+          ]
+        },
+        centralDeteccion: {
+          etiqueta: "Central de detecci\xF3n",
+          fisico: [
+            p("DI", "alarmaIncendio", "Alarma de incendio", { senal: "contacto libre de tensi\xF3n", porque: "Es la que para la climatizaci\xF3n y cierra las compuertas cortafuego." }),
+            p("DI", "averia", "Aver\xEDa de la central", { senal: "contacto libre de tensi\xF3n" })
+          ],
+          bus: [
+            p("BUS", "integracion", "Integraci\xF3n de la central de incendios", { senal: "BACnet / Modbus", campo: "pasarela", porque: "Da la zona en alarma, no solo que hay alarma." }),
+            p("DI", "alarmaIncendio", "Alarma de incendio cableada", { senal: "contacto libre de tensi\xF3n", porque: "La parada de climatizaci\xF3n por incendio NO se deja a un bus." })
+          ]
+        }
+      };
+      var PUNTOS_GENERALES = [
+        p("AI", "tExterior", "Temperatura exterior", { senal: "Ni1000 / Pt1000", campo: "sondaExterior", porque: "Una sola para todo el edificio, y sin ella no hay curva de compensaci\xF3n." }),
+        p("AI", "hExterior", "Humedad exterior", { senal: "0-10 V", campo: "sondaHumedad", obligatorio: false }),
+        p("DI", "inundacionSala", "Detecci\xF3n de inundaci\xF3n en sala t\xE9cnica", { senal: "contacto libre de tensi\xF3n", campo: "deteccionInundacion", porque: "Una fuga de noche en la sala de m\xE1quinas se lleva por delante los cuadros." })
+      ];
+      function puntosDe(partida, { variante = "fisico", variantePorClase = {}, seleccion = null, personalizados = [] } = {}) {
+        const c = _auditorPuntos.cortejoDe(partida);
+        if (!c) return null;
+        const def = PUNTOS_POR_CLASE[c.clase];
+        if (!def) return null;
+        const pedida = variantePorClase[c.clase] || variante;
+        const usada = pedida === "bus" && def.bus ? "bus" : "fisico";
+        const lista = def[usada] || def.fisico || [];
+        const equipos = Math.max(1, Number(partida && partida.cantidad) || 1);
+        const codigo = partida && partida.codigo || "";
+        const mios = (personalizados || []).filter(
+          (x) => x.codigoEquipo === codigo || x.clase && x.clase === c.clase && !x.codigoEquipo
+        );
+        const montar = (x, propio) => {
+          const clave = clavePunto(codigo, x.id);
+          const porDefecto = propio ? true : Boolean(x.obligatorio);
+          const incluido = seleccion && Object.prototype.hasOwnProperty.call(seleccion, clave) ? Boolean(seleccion[clave]) : porDefecto;
+          return {
+            ...x,
+            clave,
+            propio,
+            incluido,
+            porEquipo: x.cantidad,
+            cantidad: x.cantidad * equipos,
+            elemento: x.campo ? { id: x.campo, ...ELEMENTOS_CAMPO[x.campo] } : null,
+            verificacion: TIPO_PUNTO_POR_ID[x.tipo] ? TIPO_PUNTO_POR_ID[x.tipo].verificacion : null
+          };
+        };
+        const puntos = [
+          ...lista.map((x) => montar(x, false)),
+          ...mios.map((x) => montar({ cantidad: 1, obligatorio: true, ...x }, true))
+        ];
+        const dentro = puntos.filter((x) => x.incluido);
+        return {
+          clase: c.clase,
+          etiquetaClase: def.etiqueta,
+          variante: usada,
+          varianteDisponible: Boolean(def.bus),
+          variantePedida: pedida,
+          equipos,
+          puntos,
+          incluidos: dentro,
+          porTipo: contarPorTipo(dentro),
+          /* `total` es lo que cuenta: lo seleccionado. Lo demás es el catálogo. */
+          total: dentro.reduce((s, x) => s + x.cantidad, 0),
+          disponibles: puntos.reduce((s, x) => s + x.cantidad, 0)
+        };
+      }
+      function clavePunto(codigoEquipo, puntoId) {
+        return `${codigoEquipo || "?"}::${puntoId}`;
+      }
+      function contarPorTipo(puntos) {
+        const cuenta = Object.fromEntries(TIPOS_PUNTO.map((t) => [t.id, 0]));
+        for (const x of puntos || []) cuenta[x.tipo] = (cuenta[x.tipo] || 0) + x.cantidad;
+        return cuenta;
+      }
+      function listaDePuntos(arbol, opciones = {}) {
+        const {
+          variante = "fisico",
+          variantePorClase = {},
+          seleccion = null,
+          personalizados = [],
+          generales = true
+        } = opciones;
+        const partidas = _modeloPuntos.partidas(arbol || []);
+        const equipos = [];
+        for (const partida of partidas) {
+          if (_modeloPuntos.esCoste(partida) || (partida.camino || []).some(_modeloPuntos.esCoste)) continue;
+          const r = puntosDe(partida, { variante, variantePorClase, seleccion, personalizados });
+          if (!r || !r.puntos.length) continue;
+          equipos.push({ codigo: partida.codigo, resumen: partida.resumen, cantidad: partida.cantidad, ...r });
+        }
+        const propiosGenerales = (personalizados || []).filter((x) => x.codigoEquipo === "GENERAL");
+        const bloqueGeneral = generales ? {
+          codigo: "GENERAL",
+          resumen: "Puntos generales del edificio",
+          cantidad: 1,
+          clase: null,
+          etiquetaClase: "No cuelgan de ning\xFAn equipo",
+          variante: "fisico",
+          varianteDisponible: false,
+          equipos: 1,
+          puntos: [...PUNTOS_GENERALES.map((x) => [x, false]), ...propiosGenerales.map((x) => [{ cantidad: 1, obligatorio: true, ...x }, true])].map(([x, propio]) => {
+            const clave = clavePunto("GENERAL", x.id);
+            const incluido = seleccion && Object.prototype.hasOwnProperty.call(seleccion, clave) ? Boolean(seleccion[clave]) : propio || Boolean(x.obligatorio);
+            return {
+              ...x,
+              clave,
+              propio,
+              incluido,
+              porEquipo: x.cantidad,
+              cantidad: x.cantidad,
+              elemento: x.campo ? { id: x.campo, ...ELEMENTOS_CAMPO[x.campo] } : null,
+              verificacion: TIPO_PUNTO_POR_ID[x.tipo] ? TIPO_PUNTO_POR_ID[x.tipo].verificacion : null
+            };
+          })
+        } : null;
+        if (bloqueGeneral) {
+          bloqueGeneral.incluidos = bloqueGeneral.puntos.filter((x) => x.incluido);
+          bloqueGeneral.porTipo = contarPorTipo(bloqueGeneral.incluidos);
+          bloqueGeneral.total = bloqueGeneral.incluidos.reduce((s, x) => s + x.cantidad, 0);
+          bloqueGeneral.disponibles = bloqueGeneral.puntos.reduce((s, x) => s + x.cantidad, 0);
+        }
+        const bloques = bloqueGeneral && bloqueGeneral.puntos.length ? [...equipos, bloqueGeneral] : equipos;
+        const dentro = bloques.flatMap((e) => e.incluidos);
+        return {
+          equipos,
+          general: bloqueGeneral,
+          bloques,
+          porTipo: contarPorTipo(dentro),
+          total: dentro.reduce((s, x) => s + x.cantidad, 0),
+          disponibles: bloques.reduce((s, e) => s + e.disponibles, 0),
+          obligatorios: dentro.filter((x) => x.obligatorio).reduce((s, x) => s + x.cantidad, 0),
+          elementos: elementosDeCampo(dentro),
+          /* Cuántos equipos van por bus: el cable de bus se cuenta por ahí. */
+          equiposEnBus: equipos.filter((e) => e.variante === "bus").reduce((s, e) => s + e.equipos, 0),
+          variante,
+          variantePorClase
+        };
+      }
+      function elementosDeCampo(puntos) {
+        const porId = /* @__PURE__ */ new Map();
+        for (const x of puntos || []) {
+          if (!x.campo) continue;
+          const def = ELEMENTOS_CAMPO[x.campo];
+          if (!def) continue;
+          if (!porId.has(x.campo)) porId.set(x.campo, { id: x.campo, ...def, cantidad: 0, puntos: [] });
+          const e = porId.get(x.campo);
+          e.cantidad += x.cantidad;
+          e.puntos.push(x.id);
+        }
+        return [...porId.values()].sort((a, b) => b.cantidad - a.cantidad);
+      }
+      var CONTROLADORES = [
+        { id: "c16", etiqueta: "Controlador libremente programable 16 puntos", puntos: 16 },
+        { id: "c32", etiqueta: "Controlador libremente programable 32 puntos", puntos: 32 },
+        { id: "c64", etiqueta: "Controlador libremente programable 64 puntos", puntos: 64 }
+      ];
+      function dimensionarControl(porTipo, { reserva = 0.2, tamano = null } = {}) {
+        const fisicos = ["AI", "AO", "DI", "DO"].reduce((s, t) => s + (porTipo[t] || 0), 0);
+        const deBus = porTipo.BUS || 0;
+        if (!fisicos && !deBus) return null;
+        const conReserva = Math.ceil(fisicos * (1 + reserva));
+        const elegido = tamano ? CONTROLADORES.find((c) => c.id === tamano) || CONTROLADORES[1] : CONTROLADORES.reduce((mejor, c) => {
+          const uC = Math.max(1, Math.ceil(conReserva / c.puntos));
+          const uM = Math.max(1, Math.ceil(conReserva / mejor.puntos));
+          if (uC !== uM) return uC < uM ? c : mejor;
+          return uC * c.puntos - conReserva < uM * mejor.puntos - conReserva ? c : mejor;
+        });
+        const unidades = Math.max(1, Math.ceil(conReserva / elegido.puntos));
+        return {
+          puntosFisicos: fisicos,
+          puntosBus: deBus,
+          reserva,
+          puntosConReserva: conReserva,
+          controlador: elegido,
+          unidades,
+          capacidad: unidades * elegido.puntos,
+          libres: unidades * elegido.puntos - fisicos,
+          porque: `${fisicos} puntos cableados m\xE1s un ${Math.round(reserva * 100)} % de reserva son ${conReserva}: ${unidades} \xD7 ${elegido.puntos} puntos.` + (deBus ? ` Las ${deBus} variables por bus no ocupan borne, pero s\xED horas de integraci\xF3n.` : ""),
+          /*
+           * Y se dice que es una cuenta, no un reparto. En la obra los controladores
+           * se ponen por sala y por planta —no se lleva un cable de sesenta metros
+           * para ahorrar un borne—, así que el número real suele ser algo mayor.
+           */
+          aviso: "Es la cuenta de puntos. El reparto real depende de d\xF3nde est\xE9n los equipos: los controladores se colocan por sala y por planta, y eso casi siempre suma alguno m\xE1s."
+        };
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.PUNTOS_CONTROL = API;
+      })({
+        TIPOS_PUNTO,
+        TIPO_POR_ID: TIPO_PUNTO_POR_ID,
+        ELEMENTOS_CAMPO,
+        DUENOS_CAMPO,
+        PUNTOS_POR_CLASE,
+        PUNTOS_GENERALES,
+        CONTROLADORES,
+        puntosDe,
+        listaDePuntos,
+        elementosDeCampo,
+        dimensionarControl,
+        contarPorTipo,
+        claveDe: clavePunto
+      });
+    }
+  });
+
+  // shared/control/ajustesPuntos.js
+  var require_ajustesPuntos = __commonJS({
+    "shared/control/ajustesPuntos.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function iniciarAjustesPuntos() {
+        const TIPOS = ["DI", "DO", "AI", "AO", "BUS"];
+        const CAMPOS_TEXTO = { descripcion: 200, senal: 120, etiqueta: 80, unidad: 30, rango: 60, observaciones: 400 };
+        const CAMPOS_SI_NO = ["alarma", "historico"];
+        function limpiarDatos(entrada = {}, { anadido = false } = {}) {
+          const d = {};
+          for (const [c, max] of Object.entries(CAMPOS_TEXTO)) {
+            if (entrada[c] === void 0) continue;
+            const v = String(entrada[c] ?? "").trim();
+            if (v.length > max) return { ok: false, error: `\xAB${c}\xBB es demasiado largo (m\xE1x. ${max}).` };
+            d[c] = v;
+          }
+          for (const c of CAMPOS_SI_NO) {
+            if (entrada[c] === void 0) continue;
+            d[c] = entrada[c] === true || entrada[c] === "si" || entrada[c] === "S\xED" || entrada[c] === 1 ? "S\xED" : entrada[c] === false || entrada[c] === "no" || entrada[c] === "No" || entrada[c] === 0 ? "No" : "";
+          }
+          if (entrada.tipo !== void 0) {
+            if (!TIPOS.includes(entrada.tipo)) return { ok: false, error: "El tipo tiene que ser ED, SD, EA, SA o Com." };
+            d.tipo = entrada.tipo;
+          }
+          if (entrada.cantidad !== void 0) {
+            const n = Number(entrada.cantidad);
+            if (!Number.isInteger(n) || n < 1 || n > 9999) return { ok: false, error: "La cantidad es un n\xFAmero entero de 1 a 9999." };
+            d.cantidad = n;
+          }
+          if (entrada.incluido !== void 0) d.incluido = Boolean(entrada.incluido);
+          if (anadido) {
+            if (!d.descripcion) return { ok: false, error: "Un punto nuevo necesita descripci\xF3n." };
+            if (!d.tipo) return { ok: false, error: "Un punto nuevo necesita tipo (ED, SD, EA, SA o Com.)." };
+            if (!d.cantidad) d.cantidad = 1;
+          }
+          return { ok: true, datos: d };
+        }
+        const leerDatos = (a) => {
+          if (a && a.datos && typeof a.datos === "object") return a.datos;
+          try {
+            return JSON.parse(a && a.datos || "{}") || {};
+          } catch {
+            return {};
+          }
+        };
+        const original = (pt) => ({
+          descripcion: pt.etiqueta || "",
+          tipo: pt.tipo,
+          senal: pt.senal || "",
+          etiqueta: pt.etiquetaIntegrador || "",
+          unidad: pt.unidad || "",
+          rango: pt.rango || "",
+          alarma: pt.alarma || "",
+          historico: pt.historico || "",
+          observaciones: pt.observaciones || "",
+          cantidad: pt.cantidad,
+          incluido: Boolean(pt.incluido)
+        });
+        function encima(pt, d) {
+          const r = { ...pt };
+          if (d.descripcion !== void 0) r.etiqueta = d.descripcion;
+          if (d.tipo !== void 0) r.tipo = d.tipo;
+          if (d.senal !== void 0) r.senal = d.senal;
+          if (d.etiqueta !== void 0) r.etiquetaIntegrador = d.etiqueta;
+          for (const c of ["unidad", "rango", "alarma", "historico", "observaciones", "cantidad"]) if (d[c] !== void 0) r[c] = d[c];
+          if (d.incluido !== void 0) r.incluido = d.incluido;
+          return r;
+        }
+        function aplicar(bloques = [], ajustes = []) {
+          if (!ajustes || !ajustes.length) return bloques;
+          const porBloque = /* @__PURE__ */ new Map();
+          for (const a of ajustes) {
+            if (!porBloque.has(a.bloque)) porBloque.set(a.bloque, []);
+            porBloque.get(a.bloque).push(a);
+          }
+          for (const b of bloques) {
+            const mios = b.claveAjuste ? porBloque.get(b.claveAjuste) : null;
+            if (!mios) continue;
+            const porClave = new Map(mios.filter((a) => !a.anadido).map((a) => [a.clave, a]));
+            const puntos = (b.puntos || []).map((pt) => {
+              const a = porClave.get(pt.clave);
+              if (!a) return pt;
+              const calculado = original(pt);
+              if (a.quitado) return { ...pt, incluido: false, ajuste: "quitado", ajusteId: a.id, calculado };
+              return { ...encima(pt, leerDatos(a)), ajuste: "editado", ajusteId: a.id, calculado };
+            });
+            for (const a of mios.filter((x) => x.anadido)) {
+              const d = leerDatos(a);
+              puntos.push(encima({
+                id: a.clave,
+                clave: a.clave,
+                propio: true,
+                obligatorio: true,
+                incluido: true,
+                etiqueta: "",
+                tipo: "DI",
+                senal: "",
+                cantidad: 1
+              }, d));
+              Object.assign(puntos[puntos.length - 1], { ajuste: "a\xF1adido", ajusteId: a.id, incluido: d.incluido !== false });
+            }
+            b.puntos = puntos;
+            b.incluidos = puntos.filter((pt) => pt.incluido);
+            b.porTipo = b.incluidos.reduce((acc, pt) => {
+              acc[pt.tipo] = (acc[pt.tipo] || 0) + pt.cantidad;
+              return acc;
+            }, {});
+            b.total = b.incluidos.reduce((s, pt) => s + pt.cantidad, 0);
+            b.disponibles = puntos.reduce((s, pt) => s + pt.cantidad, 0);
+            b.ajustes = mios.length;
+          }
+          return bloques;
+        }
+        const API = { TIPOS, limpiarDatos, aplicar, leerDatos, original };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.AJUSTES_PUNTOS = API;
+      })();
+    }
+  });
+
+  // shared/control/puntosObra.js
+  var require_puntosObra = __commonJS({
+    "shared/control/puntosObra.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const _puntos = typeof __require !== "undefined" ? require_puntos() : window.PUNTOS_CONTROL;
+        const _cx = () => typeof __require !== "undefined" ? require_control() : window.CONTROL_CX;
+        const _aj = () => typeof __require !== "undefined" ? require_ajustesPuntos() : window.AJUSTES_PUNTOS;
+        const RESUMEN_CLASE = {
+          climatizadora: "Climatizadora UTA",
+          fancoil: "Fancoil unidad interior",
+          unidadExterior: "Unidad exterior VRF",
+          enfriadora: "Enfriadora",
+          bomba: "Bomba circuladora",
+          ventilador: "Ventilador",
+          caldera: "Caldera",
+          torreRefrigeracion: "Torre de refrigeraci\xF3n",
+          cuadroElectrico: "Cuadro el\xE9ctrico"
+        };
+        const SIGLAS = {
+          UTA: "climatizadora",
+          AHU: "climatizadora",
+          CLI: "climatizadora",
+          CL: "climatizadora",
+          HRU: "climatizadora",
+          REC: "climatizadora",
+          RT: "climatizadora",
+          ROOFTOP: "climatizadora",
+          UI: "fancoil",
+          FCB: "fancoil",
+          CRAC: "fancoil",
+          FC: "fancoil",
+          FCU: "fancoil",
+          SPLIT: "fancoil",
+          CASS: "fancoil",
+          UE: "unidadExterior",
+          UC: "unidadExterior",
+          VRF: "unidadExterior",
+          VRV: "unidadExterior",
+          ENF: "enfriadora",
+          CH: "enfriadora",
+          BDC: "enfriadora",
+          BC: "enfriadora",
+          BDCGT: "enfriadora",
+          BDCACS: "enfriadora",
+          BDCCESPED: "enfriadora",
+          VE: "ventilador",
+          VI: "ventilador",
+          VP: "ventilador",
+          VEX: "ventilador",
+          EX: "ventilador",
+          EXT: "ventilador",
+          CVE: "ventilador",
+          B: "bomba",
+          BR: "bomba",
+          BSCMP: "bomba",
+          GP: "bomba",
+          BACS: "bomba",
+          BSC: "bomba",
+          BSF: "bomba",
+          BGT: "bomba",
+          BOM: "bomba",
+          CAL: "caldera",
+          TR: "torreRefrigeracion",
+          CE: "cuadroElectrico",
+          CS: "cuadroElectrico"
+        };
+        const POR_TEXTO = [
+          /* Por modelo: los fan coils Airlan/Aermec (FCZ, FPM), los rooftops
+             Carrier 50FC/50FG y las bombas electrónicas Wilo/Grundfos. */
+          [/\bfcz|\bfpm|\bfcl\b|\bomnia/, "fancoil"],
+          [/\b50f[cgj]|\b48f|rooftop/, "climatizadora"],
+          [/stratos|maxo|magna|\btp ?\d/, "bomba"],
+          [/bomba de calor|enfriad|chiller|aerotermia/, "enfriadora"],
+          [/climatizad|\buta\b|recuperador|rooftop/, "climatizadora"],
+          [/unidad exterior|condensad|\bvr[fv]\b/, "unidadExterior"],
+          [/fan ?-?coil|split|cassette|unidad interior/, "fancoil"],
+          [/ventilad|extract/, "ventilador"],
+          [/caldera/, "caldera"],
+          [/\bbomba|circulad/, "bomba"]
+        ];
+        const ES_DE_BUS = /\bvr[fv]\b|split|panasonic|daikin|mitsubishi|toshiba|lg\b|samsung|fujitsu|hitachi/;
+        const norm = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+        const siglasDe = (tag) => String(tag || "").toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean).map((s) => s.replace(/\d+$/, "")).filter(Boolean);
+        function claseDe(e) {
+          const siglas = siglasDe(e && e.tag);
+          const propia = siglas.find((s, i) => i === 0 && SIGLAS[s]) || siglas.find((s) => SIGLAS[s]);
+          if (propia) return { clase: SIGLAS[propia], familia: propia };
+          const texto = norm([e && e.grupo, e && e.instalacion, e && e.modelo].filter(Boolean).join(" "));
+          if (!texto) return null;
+          const t = POR_TEXTO.find(([re]) => re.test(texto));
+          if (t) return { clase: t[1], familia: String(e && e.grupo || FAMILIA_TEXTO[t[1]] || t[1]).trim() };
+          return null;
+        }
+        const FAMILIA_TEXTO = { fancoil: "Fan coil", climatizadora: "Rooftop", bomba: "Bomba" };
+        function varianteDe(e, clase, variante) {
+          const texto = norm([e && e.grupo, e && e.marca, e && e.instalacion].filter(Boolean).join(" "));
+          if ((clase === "fancoil" || clase === "unidadExterior") && ES_DE_BUS.test(texto)) return "bus";
+          return variante;
+        }
+        const lista = (tags, max = 8) => tags.length <= max ? tags.join(", ") : `${tags.slice(0, max).join(", ")} y ${tags.length - max} m\xE1s`;
+        const ETIQUETA_CONJUNTO = { par: "Exterior + interior", sistema: "VRF: exterior + interiores" };
+        function puntosDeUnidades(clase, variante, cantidad, codigo) {
+          return _puntos.puntosDe({ codigo, resumen: RESUMEN_CLASE[clase] || clase, cantidad }, { variante });
+        }
+        function listaObra({ equipos = [], variante = "fisico", porEquipo = false, generales = true, ajustes = [] } = {}) {
+          const ordenados = [...equipos].sort((a, b) => String(a.tag || "").localeCompare(String(b.tag || ""), "es", { numeric: true }));
+          const sinClase = [];
+          const grupos = /* @__PURE__ */ new Map();
+          let conjuntos = 0;
+          let unidades = 0;
+          for (const cj of _cx().gruposDeConjunto(ordenados)) {
+            const piezas = [];
+            for (const e of cj.miembros) {
+              const c = claseDe(e);
+              if (!c) {
+                sinClase.push(e.tag || "(sin TAG)");
+                continue;
+              }
+              piezas.push({ e, ...c, variante: varianteDe(e, c.clase, variante) });
+            }
+            if (!piezas.length) continue;
+            const ext = piezas[0];
+            const enConjunto = cj.clase !== "suelto" && piezas.length > 1;
+            const tipo = enConjunto ? cj.clase : "suelto";
+            const clave = porEquipo ? String(cj.exterior.id || cj.exterior.tag) : enConjunto ? `${tipo}|${ext.familia}|${ext.variante}` : `${ext.familia}|${ext.clase}|${ext.variante}`;
+            if (!grupos.has(clave)) {
+              grupos.set(clave, {
+                tipo,
+                familia: ext.familia,
+                clase: enConjunto ? tipo : ext.clase,
+                variante: ext.variante,
+                conjuntos: [],
+                piezas: []
+              });
+            }
+            const g = grupos.get(clave);
+            g.conjuntos.push({ cj, piezas });
+            g.piezas.push(...piezas);
+            conjuntos += 1;
+            unidades += piezas.length;
+          }
+          const bloques = [];
+          for (const g of grupos.values()) {
+            const porClase = /* @__PURE__ */ new Map();
+            for (const p of g.piezas) {
+              const k = `${p.clase}|${p.variante}`;
+              if (!porClase.has(k)) porClase.set(k, { clase: p.clase, variante: p.variante, tags: [] });
+              porClase.get(k).tags.push(p.e.tag || "");
+            }
+            const n = g.conjuntos.length;
+            const primero = g.conjuntos[0];
+            const tagConjunto = ({ cj, piezas }) => cj.clase === "par" && piezas.length > 1 ? piezas.map((p) => p.e.tag).join(" / ") : cj.clase === "sistema" && piezas.length > 1 ? `${piezas[0].e.tag} (+${piezas.length - 1})` : piezas[0].e.tag;
+            const codigo = porEquipo ? tagConjunto(primero) : g.familia;
+            const partes = [...porClase.values()].map((pc) => ({ pc, r: puntosDeUnidades(pc.clase, pc.variante, pc.tags.length, codigo) }));
+            const malas = partes.filter((x) => !x.r);
+            if (malas.length) {
+              sinClase.push(...malas.flatMap((x) => x.pc.tags));
+              if (malas.length === partes.length) {
+                conjuntos -= n;
+                unidades -= g.piezas.length;
+                continue;
+              }
+            }
+            const buenas = partes.filter((x) => x.r);
+            const varias = buenas.length > 1;
+            const puntos = buenas.flatMap(({ r }) => r.puntos.map((pt) => varias ? { ...pt, clave: `${r.clase}::${pt.clave}`, etiqueta: `${r.etiquetaClase} \xB7 ${pt.etiqueta}` } : pt));
+            const incluidos = puntos.filter((pt) => pt.incluido);
+            const r0 = buenas[0].r;
+            const nUnidades = buenas.reduce((a, x) => a + x.pc.tags.length, 0);
+            const e0 = primero.piezas[0].e;
+            const donde = porEquipo ? [e0.planta, e0.sala].filter(Boolean).join(" \xB7 ") : "";
+            const etiquetaClase = g.tipo !== "suelto" ? ETIQUETA_CONJUNTO[g.tipo] : r0.etiquetaClase;
+            const tags = g.conjuntos.map(tagConjunto);
+            const nombreN = g.tipo === "par" ? ["pareja", "parejas"] : g.tipo === "sistema" ? ["sistema", "sistemas"] : ["equipo", "equipos"];
+            bloques.push({
+              ...r0,
+              clase: g.clase,
+              etiquetaClase,
+              variante: g.variante,
+              puntos,
+              incluidos,
+              porTipo: incluidos.reduce((acc, pt) => {
+                acc[pt.tipo] = (acc[pt.tipo] || 0) + pt.cantidad;
+                return acc;
+              }, {}),
+              total: incluidos.reduce((a, pt) => a + pt.cantidad, 0),
+              disponibles: puntos.reduce((a, pt) => a + pt.cantidad, 0),
+              equipos: n,
+              unidades: nUnidades,
+              codigo,
+              resumen: porEquipo ? [g.tipo !== "suelto" ? `${nUnidades} unidades` : "", e0.marca, e0.modelo && e0.modelo !== "\u2014" ? e0.modelo : "", donde].filter(Boolean).join(" \xB7 ") || etiquetaClase : `${n} ${n === 1 ? nombreN[0] : nombreN[1]}${nUnidades !== n ? ` (${nUnidades} unidades)` : ""}: ${lista(tags)}`,
+              tags: g.piezas.map((p) => p.e.tag || ""),
+              /* A qué se atan los cambios a mano (ajustesPuntos.js): no a ids de
+                 la base, para que sobrevivan a volver a importar los equipos. */
+              claveAjuste: porEquipo ? `eq:${String(primero.cj.exterior.tag || "").trim().toUpperCase()}` : `fam:${g.tipo === "suelto" ? `${g.familia}|${g.clase}` : `${g.tipo}|${g.familia}`}`
+            });
+          }
+          bloques.sort((a, b) => ORDEN.indexOf(a.clase) - ORDEN.indexOf(b.clase) || String(a.codigo).localeCompare(String(b.codigo), "es", { numeric: true }));
+          if (generales && bloques.length) {
+            const g = _puntos.listaDePuntos([], { generales: true }).general;
+            if (g && g.puntos.length) bloques.push({ ...g, claveAjuste: "general" });
+          }
+          if (ajustes && ajustes.length) _aj().aplicar(bloques, ajustes);
+          const dentro = bloques.flatMap((b) => b.incluidos || []);
+          const porTipo = {};
+          for (const p of dentro) porTipo[p.tipo] = (porTipo[p.tipo] || 0) + p.cantidad;
+          const familias = [];
+          for (const b of bloques) {
+            if (!b.clase) continue;
+            const f = familias.find((x) => x.clase === b.clase);
+            if (f) {
+              f.equipos += b.equipos;
+              f.unidades += b.unidades || b.equipos;
+            } else familias.push({ clase: b.clase, etiqueta: b.etiquetaClase, equipos: b.equipos, unidades: b.unidades || b.equipos });
+          }
+          return {
+            bloques,
+            sinClase,
+            equipos: conjuntos,
+            unidades,
+            porTipo,
+            total: dentro.reduce((s, p) => s + p.cantidad, 0),
+            familias,
+            enBus: bloques.filter((b) => b.variante === "bus").reduce((s, b) => s + (b.equipos || 0), 0)
+          };
+        }
+        const ORDEN = ["enfriadora", "caldera", "torreRefrigeracion", "climatizadora", "sistema", "par", "unidadExterior", "fancoil", "ventilador", "bomba", "cuadroElectrico"];
+        const API = { claseDe, listaObra, SIGLAS };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.PUNTOS_OBRA = API;
+      })();
+    }
+  });
+
+  // electron/data/pruebasBms.js
+  var require_pruebasBms = __commonJS({
+    "electron/data/pruebasBms.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var B = require_puntosBms();
+      var PO = require_puntosObra();
+      var AJ = require_ajustesPuntos();
+      var { puede } = require_roles();
+      var obraVisible = (repo, sesion, obraId) => obraId ? repo.leer("obras", sesion, obraId) : null;
+      var puedeEditar = (sesion) => puede(sesion.rol, "commissioning", "editar");
+      var leer = (t) => {
+        try {
+          return JSON.parse(t || "{}") || {};
+        } catch {
+          return {};
+        }
+      };
+      var filasDe = (repo, sesion, obraId) => repo.listar("pruebasPuntosBms", sesion, { condicion: "obraId = ?", params: [obraId], orden: "tag" }).map((f) => ({ id: f.id, tag: f.tag, clave: f.clave, datos: leer(f.datos), modificadoEn: f.modificadoEn }));
+      function listaDe(repo, sesion, obraId, variante, pruebas) {
+        const equipos = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
+        const ajustes = repo.listar("puntosControlAjustes", sesion, { condicion: "obraId = ?", params: [obraId], orden: "creadoEn" }).map((f) => ({ id: f.id, bloque: f.bloque, clave: f.clave, anadido: Boolean(f.anadido), quitado: Boolean(f.quitado), datos: AJ.leerDatos(f) }));
+        const con = (v) => PO.listaObra({ equipos, variante: v, porEquipo: true, ajustes });
+        if (variante === "fisico" || variante === "bus") return { variante, lista: con(variante) };
+        const fis = con("fisico");
+        if (!pruebas.length) return { variante: "fisico", lista: fis };
+        const bus = con("bus");
+        const casan = (l) => B.pruebaObra(l.bloques, pruebas).huerfanas.length;
+        return casan(bus) < casan(fis) ? { variante: "bus", lista: bus } : { variante: "fisico", lista: fis };
+      }
+      function prueba(repo, sesion, obraId, opciones = {}) {
+        if (!obraVisible(repo, sesion, obraId)) return null;
+        const pruebas = filasDe(repo, sesion, obraId);
+        const { variante, lista } = listaDe(repo, sesion, obraId, opciones.variante, pruebas);
+        const r = B.pruebaObra(lista.bloques, pruebas);
+        const equipos = opciones.tag ? [B.deEquipo(r, opciones.tag)].filter(Boolean) : r.equipos;
+        return { variante, equipos, cuenta: r.cuenta, huerfanas: r.huerfanas, sinClase: lista.sinClase, puede: { editar: puedeEditar(sesion) } };
+      }
+      function medidosFicha(repo, sesion, obraId) {
+        try {
+          const r = prueba(repo, sesion, obraId);
+          return r ? B.medidosFicha(r.cuenta) : {};
+        } catch {
+          return {};
+        }
+      }
+      function guardar(repo, sesion, obraId, { tag, clave, tipo, datos } = {}) {
+        if (!puedeEditar(sesion)) return { ok: false, error: "Tu rol puede ver la prueba, pero no apuntarla." };
+        if (!obraVisible(repo, sesion, obraId)) return { ok: false, error: "No se encuentra la obra." };
+        const t = String(tag || "").trim().toUpperCase();
+        if (!t || t.length > 120 || !clave || String(clave).length > 300) return { ok: false, error: "Punto sin identificar." };
+        const ya = repo.listar("pruebasPuntosBms", sesion, {
+          condicion: "obraId = ? AND tag = ? AND clave = ?",
+          params: [obraId, t, String(clave)],
+          limite: 1
+        })[0];
+        const antes = ya ? leer(ya.datos) : {};
+        const nuevo = datos || {};
+        const juntos = { ...antes, ...nuevo, pasos: { ...antes.pasos || {}, ...nuevo.pasos || {} } };
+        for (const [k, v] of Object.entries(nuevo.pasos || {})) if (!v) delete juntos.pasos[k];
+        for (const k of ["patron", "lectura", "unidades", "nota"]) if (k in nuevo && (nuevo[k] === null || nuevo[k] === "")) delete juntos[k];
+        const limpio = B.limpiar(String(tipo || "").toUpperCase(), juntos);
+        if (!limpio.fecha) limpio.fecha = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+        const vacio = !Object.keys(limpio.pasos).length && limpio.patron === void 0 && limpio.lectura === void 0 && limpio.unidades === void 0 && !limpio.nota;
+        if (vacio) {
+          if (ya) repo.borrar("pruebasPuntosBms", sesion, ya.id);
+          return { ok: true, id: null };
+        }
+        if (ya) {
+          repo.modificar("pruebasPuntosBms", sesion, ya.id, { datos: JSON.stringify(limpio), modificadoPor: sesion.personaId || null });
+          return { ok: true, id: ya.id };
+        }
+        const id = repo.crear("pruebasPuntosBms", sesion, {
+          obraId,
+          tag: t,
+          clave: String(clave),
+          datos: JSON.stringify(limpio),
+          modificadoPor: sesion.personaId || null
+        });
+        return { ok: true, id };
+      }
+      function todoBien(repo, sesion, obraId, tag, opciones = {}) {
+        if (!puedeEditar(sesion)) return { ok: false, error: "Tu rol puede ver la prueba, pero no apuntarla." };
+        const r = prueba(repo, sesion, obraId, { ...opciones, tag });
+        if (!r) return { ok: false, error: "No se encuentra la obra." };
+        const eq = r.equipos[0];
+        if (!eq) return { ok: false, error: "Ese equipo no tiene puntos en la lista." };
+        let n = 0;
+        for (const p of eq.puntos) {
+          const pasos = {};
+          for (const x of p.prueba.pasos) if (!x.valor) pasos[x.codigo] = "si";
+          if (!Object.keys(pasos).length) continue;
+          guardar(repo, sesion, obraId, { tag: eq.tag, clave: p.clave, tipo: p.prueba.tipo, datos: { pasos } });
+          n += 1;
+        }
+        return { ok: true, puntos: n };
+      }
+      module.exports = { prueba, medidosFicha, guardar, todoBien };
     }
   });
 
@@ -29170,7 +33596,7 @@ globalThis.CX_VARIANTE="cxobra";
       (function exportar(API) {
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.FABRICANTE_PM = API;
-      })({ numero, desdeFichaSeleccion, leerFabricante, planFabricante, lineasFabricante });
+      })({ numero, desdeFichaSeleccion, leerFabricante, planFabricante, lineasFabricante, casador });
     }
   });
 
@@ -29337,7 +33763,7 @@ globalThis.CX_VARIANTE="cxobra";
         }
         const valores = { ...datos && datos.valores || {} };
         for (const [cod, v] of Object.entries(valores)) {
-          if (v && (v.om === "balanceo" || v.om === "totalBalanceo")) {
+          if (v && (v.om === "balanceo" || v.om === "totalBalanceo" || v.om === "puntosBms")) {
             const { m, om, nBocas, ...resto } = v;
             valores[cod] = resto;
           }
@@ -29347,6 +33773,10 @@ globalThis.CX_VARIANTE="cxobra";
       function datosConBalanceo(repo, sesion, def, datos, clave) {
         const m = /^equipo:(.+)$/.exec(String(clave || ""));
         if (!m || !def) return datos;
+        if (def.codigo === "BMS") {
+          const eq = repo.leer("equiposObra", sesion, m[1]);
+          return eq ? conPuntosBms(repo, sesion, def, datos, eq.obraId) : datos;
+        }
         const faltan = caudalesDeBocas(def).some(([cod]) => {
           const v = (datos.valores || {})[cod];
           return !v || F.numero(v.m) === null;
@@ -29363,6 +33793,18 @@ globalThis.CX_VARIANTE="cxobra";
           bal = null;
         }
         return conCabeceraDelBalanceo(conCaudalesDelBalanceo(def, datos, bal, totalesDelBalanceo(repo, sesion, def, equipo)), bal, esDeBocas(def));
+      }
+      function conPuntosBms(repo, sesion, def, datos, obraId) {
+        if (!def || def.codigo !== "BMS" || !obraId) return datos;
+        const med = require_pruebasBms().medidosFicha(repo, sesion, obraId);
+        if (!Object.keys(med).length) return datos;
+        const valores = { ...datos && datos.valores || {} };
+        for (const [cod, m] of Object.entries(med)) {
+          const v = valores[cod] || {};
+          if (F.numero(v.m) !== null && v.om !== "puntosBms") continue;
+          valores[cod] = { ...v, m, om: "puntosBms" };
+        }
+        return { ...datos, valores };
       }
       function totalesDelBalanceo(repo, sesion, def, equipo) {
         if (!def || def.codigo === "BALANCEO_CAUDALES") return null;
@@ -29571,6 +34013,7 @@ globalThis.CX_VARIANTE="cxobra";
           def = cat.vigentes.get(plantilla);
           if (!def) return { ok: false, error: `No existe la plantilla ${plantilla}.` };
           datos = F.rellenarDesdeEquipo(def, F.fichaVacia(cabeceraDe(cfg)), r.dueno || (r.circuito ? { circuito: r.circuito } : {}));
+          datos = conPuntosBms(repo, sesion, def, datos, obraId);
         }
         const ev = F.evaluar(def, datos, { config: cfg, firmas, instrumentos: cat.instrumentos });
         const vigente = cat.vigentes.get(def.codigo);
@@ -30391,7 +34834,8 @@ globalThis.CX_VARIANTE="cxobra";
         copiarRespuestasChecklist,
         conCabeceraDelBalanceo,
         sinMedidoDelBalanceo,
-        conCaudalesDelBalanceo
+        conCaudalesDelBalanceo,
+        catalogoDe
       };
     }
   });
@@ -34531,814 +38975,6 @@ globalThis.CX_VARIANTE="cxobra";
           cuentasParte
         });
       })();
-    }
-  });
-
-  // shared/presupuesto/auditor.js
-  var require_auditor = __commonJS({
-    "shared/presupuesto/auditor.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var _modeloPresupuesto = typeof __require !== "undefined" ? require_modelo() : window.MODELO;
-      var _capitulosCoste = typeof __require !== "undefined" ? require_capitulosCoste() : window.CAPITULOS_COSTE;
-      var GRAVEDAD = { BLOQUEANTE: "bloqueante", AVISO: "aviso", SUGERENCIA: "sugerencia" };
-      var norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-      var pat = (fuente) => new RegExp(norm(fuente));
-      var FAMILIAS_CONEXION = [
-        { id: "mecanica", etiqueta: "Mec\xE1nicas", que: "Todo lo que se atornilla, se suelda o se embrida al equipo." },
-        { id: "electrica", etiqueta: "El\xE9ctricas", que: "La alimentaci\xF3n de fuerza y la protecci\xF3n del equipo." },
-        { id: "control", etiqueta: "Control", que: "Lo que hace que el equipo obedezca a alguien." },
-        { id: "otros", etiqueta: "Otros", que: "Lo que el equipo necesita para llegar y quedarse quieto." }
-      ];
-      var OFICIOS_MECANICOS = [
-        { id: "hidraulica", etiqueta: "Hidr\xE1ulica" },
-        { id: "incendios", etiqueta: "Incendios" },
-        { id: "conductos", etiqueta: "Conductos" },
-        { id: "gas", etiqueta: "Gas y combustible" },
-        { id: "frigorifico", etiqueta: "Frigor\xEDfica" },
-        { id: "desague", etiqueta: "Desag\xFCes y humos" },
-        { id: "soporte", etiqueta: "Soporte y anclaje" }
-      ];
-      var FAMILIA_POR_ID = Object.fromEntries(FAMILIAS_CONEXION.map((f) => [f.id, f]));
-      var OFICIO_POR_ID = Object.fromEntries(OFICIOS_MECANICOS.map((o) => [o.id, o]));
-      var ACOMPANA = {
-        /* ── Mecánicas ─────────────────────────────────────────────────── */
-        montaje: { familia: "mecanica", oficio: "soporte", etiqueta: "Montaje y puesta en posici\xF3n", unidad: "ud", patron: pat("montaje|coloca|instalaci[o\xF3]n mec[a\xE1]nica|izado") },
-        conexionHidraulico: { familia: "mecanica", oficio: "hidraulica", etiqueta: "Conexionado hidr\xE1ulico", unidad: "ud", patron: pat("conexi[o\xF3]n(ado)? hidr|acometida hidr|latiguillo|manguito antivibr") },
-        conexionPCI: { familia: "mecanica", oficio: "incendios", etiqueta: "Conexionado a la red de incendios", unidad: "ud", patron: pat("conexi[o\xF3]n(ado)? (a la red )?(de )?(incendios|pci|rociadores|bie)|acometida (de )?(pci|incendios)|colector de pruebas") },
-        conductoConexion: { familia: "mecanica", oficio: "conductos", etiqueta: "Conexi\xF3n a la red de conductos", unidad: "ud", patron: pat("lona|junta elastica|conexion elastica|conexion flexible|embocadura|plenum de conexion") },
-        conexionGas: { familia: "mecanica", oficio: "gas", etiqueta: "Conexionado de gas", unidad: "ud", patron: pat("conexi[o\xF3]n(ado)? (de )?gas|acometida (de )?gas|rampa de gas|llave de gas|tuber[i\xED]a de gas") },
-        conexionCombustible: { familia: "mecanica", oficio: "gas", etiqueta: "Conexionado de combustible (gas\xF3leo)", unidad: "ud", patron: pat("gas[o\xF3]leo|gasoil|dep[o\xF3]sito de combustible|linea de combustible") },
-        conexionFrigorifico: { familia: "mecanica", oficio: "frigorifico", etiqueta: "Conexionado frigor\xEDfico (l\xEDneas de gas)", unidad: "ud", patron: pat("l[i\xED]nea frigor|gas refrigerante|tuber[i\xED]a frigor|interconexi[o\xF3]n frigor") },
-        conexionDesague: { familia: "mecanica", oficio: "desague", etiqueta: "Desag\xFCe de condensados", unidad: "ud", patron: pat("desag[\xFCu]e|condensad|sif[o\xF3]n") },
-        conexionHumos: { familia: "mecanica", oficio: "desague", etiqueta: "Evacuaci\xF3n de humos / chimenea", unidad: "ud", patron: pat("chimenea|evacuaci[o\xF3]n de (humos|productos)|conducto de humos|salida de humos") },
-        antivibratorios: { familia: "mecanica", oficio: "soporte", etiqueta: "Bancada y antivibratorios", unidad: "ud", patron: pat("antivibrat|bancada|silentblock|amortiguador") },
-        valvuleriaCorte: { familia: "mecanica", oficio: "hidraulica", etiqueta: "Valvuler\xEDa de corte y regulaci\xF3n", unidad: "ud", patron: pat("v[a\xE1]lvula|llave de corte|compuerta de corte") },
-        filtro: { familia: "mecanica", oficio: "hidraulica", etiqueta: "Filtro y accesorios de protecci\xF3n", unidad: "ud", patron: pat("filtro|colador") },
-        manometria: { familia: "mecanica", oficio: "hidraulica", etiqueta: "Manometr\xEDa y termometr\xEDa", unidad: "ud", patron: pat("manometr|termometr|instrumentacion|termometria|manometria") },
-        /* ── Eléctricas ────────────────────────────────────────────────── */
-        conexionElectrico: { familia: "electrica", etiqueta: "Conexionado el\xE9ctrico de fuerza", unidad: "ud", patron: pat("conexi[o\xF3]n(ado)? el[e\xE9]ctr|acometida el[e\xE9]ctr|alimentaci[o\xF3]n el[e\xE9]ctr") },
-        puestaTierra: { familia: "electrica", etiqueta: "Puesta a tierra del equipo", unidad: "ud", patron: pat("tierra|equipotencial") },
-        /* ── Control ───────────────────────────────────────────────────── */
-        conexionControl: { familia: "control", etiqueta: "Conexionado de control y regulaci\xF3n", unidad: "ud", patron: pat("conexi[o\xF3]n(ado)? (de )?control|cableado de control|bus de control") },
-        sondasControl: { familia: "control", etiqueta: "Sondas y elementos de campo", unidad: "ud", patron: pat("sonda|sensor|term[o\xF3]stato|presostato|transmisor de presi") },
-        /*
-         * La integración es la partida que más se olvida y la que más se cobra
-         * después. El equipo puede estar cableado y funcionando en local y aun así
-         * no verse desde el SCADA: eso es otro trabajo, lo hace el integrador y se
-         * factura aparte siempre.
-         */
-        integracionControl: { familia: "control", etiqueta: "Integraci\xF3n en el sistema de control (SCADA)", unidad: "ud", patron: pat("integraci[o\xF3]n|scada|programaci[o\xF3]n (de|del) (sistema|control)|puesta en marcha del sistema de control|pantalla de supervisi") },
-        /* ── Otros ─────────────────────────────────────────────────────── */
-        transporteGrua: { familia: "otros", etiqueta: "Transporte y medios de elevaci\xF3n", unidad: "ud", patron: pat("gr[u\xFA]a|cami[o\xF3]n pluma|transporte especial|medios de elevaci") }
-      };
-      var CLASES_EQUIPO = {
-        /* ── Las específicas, primero ──────────────────────────────────── */
-        grupoPCI: {
-          /*
-           * El grupo contra incendios NO se conecta a la red hidráulica de
-           * climatización: va al aljibe y a la red de incendios, con otro material,
-           * otra presión, otro instalador y otra legalización. Por eso lleva
-           * `conexionPCI` y no `conexionHidraulico`.
-           */
-          etiqueta: "Grupo de presi\xF3n contra incendios",
-          patron: pat("grupo (de presi[o\xF3]n )?contra ?incendios|grupo pci|bomba jockey|grupo de presi[o\xF3]n de incendios"),
-          exige: [
-            "montaje",
-            "conexionPCI",
-            "conexionElectrico",
-            "conexionControl",
-            "integracionControl",
-            "antivibratorios",
-            "valvuleriaCorte",
-            "manometria"
-          ],
-          ejemplos: ["Grupo de presi\xF3n contra incendios 45 m3/h", "GRUPO PCI SEGUN UNE 23500", "Bomba jockey de 3 kW"]
-        },
-        centralDeteccion: {
-          etiqueta: "Central de detecci\xF3n",
-          patron: pat("central de detecci|central de incendios|central analg|central anal[o\xF3]gica"),
-          exige: ["montaje", "conexionElectrico", "conexionControl", "integracionControl"],
-          ejemplos: ["Central de detecci\xF3n anal\xF3gica de 4 lazos"]
-        },
-        grupoElectrogeno: {
-          etiqueta: "Grupo electr\xF3geno / SAI",
-          patron: pat("grupo electr[o\xF3]geno|\\bsai\\b|\\bups\\b"),
-          exige: [
-            "montaje",
-            "conexionCombustible",
-            "conexionHumos",
-            "conexionElectrico",
-            "conexionControl",
-            "integracionControl",
-            "antivibratorios",
-            "puestaTierra",
-            "transporteGrua"
-          ],
-          ejemplos: ["Grupo electr\xF3geno 400 kVA insonorizado", "SAI de 60 kVA con autonom\xEDa de 15 minutos"]
-        },
-        torreRefrigeracion: {
-          etiqueta: "Torre de refrigeraci\xF3n",
-          patron: pat("torre de refrigeraci|condensador evaporativo"),
-          exige: [
-            "montaje",
-            "conexionHidraulico",
-            "conexionDesague",
-            "conexionElectrico",
-            "conexionControl",
-            "integracionControl",
-            "antivibratorios",
-            "transporteGrua"
-          ],
-          ejemplos: ["Torre de refrigeraci\xF3n de circuito abierto 900 kW"]
-        },
-        climatizadoraPiscina: {
-          etiqueta: "Deshumectadora / climatizadora de piscina",
-          patron: pat("deshumect|deshumidific|climatizadora de piscina"),
-          exige: [
-            "montaje",
-            "conexionHidraulico",
-            "conductoConexion",
-            "conexionDesague",
-            "conexionElectrico",
-            "conexionControl",
-            "integracionControl",
-            "antivibratorios"
-          ],
-          ejemplos: ["Deshumectadora de piscina 4.000 m3/h"]
-        },
-        caldera: {
-          /*
-           * Una caldera arrastra más oficios que ningún otro equipo: agua, gas y
-           * humos, cada uno con su instalador habilitado y su certificado. La
-           * chimenea es la que más se queda fuera, y es la que impide legalizar.
-           */
-          etiqueta: "Caldera",
-          patron: pat("caldera|generador de calor"),
-          exige: [
-            "montaje",
-            "conexionHidraulico",
-            "conexionGas",
-            "conexionHumos",
-            "conexionDesague",
-            "conexionElectrico",
-            "conexionControl",
-            "integracionControl",
-            "valvuleriaCorte",
-            "manometria"
-          ],
-          ejemplos: ["Caldera de condensaci\xF3n a gas 400 kW", "CALDERA MURAL ESTANCA 35 KW"]
-        },
-        /* ── Climatización, de lo concreto a lo general ────────────────── */
-        enfriadora: {
-          /* Va ANTES que `bomba`: «bomba de calor» lleva la palabra bomba dentro. */
-          etiqueta: "Enfriadora / bomba de calor",
-          patron: pat("enfriadora|planta enfriadora|chiller|bomba de calor|aerotermia"),
-          exige: [
-            "montaje",
-            "conexionHidraulico",
-            "conexionElectrico",
-            "conexionControl",
-            "integracionControl",
-            "antivibratorios",
-            "valvuleriaCorte",
-            "transporteGrua"
-          ],
-          ejemplos: ["Enfriadora aire-agua 300 kW frigor\xEDficos", "Bomba de calor aire-agua 90 kW", "Chiller condensado por agua"]
-        },
-        unidadExterior: {
-          etiqueta: "Unidad exterior VRV / VRF",
-          patron: pat("unidad exterior|\\bvrv\\b|\\bvrf\\b|condensadora"),
-          exige: [
-            "montaje",
-            "conexionFrigorifico",
-            "conexionElectrico",
-            "conexionControl",
-            "integracionControl",
-            "antivibratorios",
-            "transporteGrua"
-          ],
-          ejemplos: ["Unidad exterior VRV 22 kW", "UNIDAD CONDENSADORA 14 KW"]
-        },
-        /* Las de Nou Camp Nou, que vienen con el modelo del fabricante y sin la
-           palabra que las delata: ROOFTOP_50FC…, CRAC UNIT TECNAIR…, S&P TD-800… */
-        rooftop: {
-          etiqueta: "Rooftop / aut\xF3nomo de cubierta",
-          patron: pat("rooftop|roof-top|autonomo de cubierta"),
-          exige: [
-            "montaje",
-            "conductoConexion",
-            "conexionDesague",
-            "conexionElectrico",
-            "conexionControl",
-            "integracionControl",
-            "antivibratorios",
-            "transporteGrua"
-          ],
-          ejemplos: ["ROOFTOP_50FCDXN45-UEFA-50FC100BL SOLO INSTALACI\xD3N", "Aut\xF3nomo de cubierta 60 kW"]
-        },
-        crac: {
-          etiqueta: "Climatizador de precisi\xF3n (CRAC)",
-          patron: pat("\\bcrac\\b|close control|climatizador de precision|armario de precision"),
-          exige: [
-            "montaje",
-            "conexionFrigorifico",
-            "conexionDesague",
-            "conexionElectrico",
-            "conexionControl",
-            "integracionControl"
-          ],
-          ejemplos: ["CRAC UNIT TECNAIR UPA 662 + TMC 55", "Climatizador de precisi\xF3n para CPD 40 kW"]
-        },
-        climatizadora: {
-          etiqueta: "Climatizadora / UTA",
-          patron: pat("climatizadora|\\buta\\b|unidad de tratamiento de aire|recuperador|\\bhra ?\\d"),
-          exige: [
-            "montaje",
-            "conexionHidraulico",
-            "conductoConexion",
-            "conexionDesague",
-            "conexionElectrico",
-            "conexionControl",
-            "sondasControl",
-            "integracionControl",
-            "antivibratorios",
-            "transporteGrua"
-          ],
-          ejemplos: ["Climatizadora UTA-01 de 12.000 m3/h", "Recuperador ent\xE1lpico de 2.000 m3/h"]
-        },
-        fancoil: {
-          etiqueta: "Fancoil / unidad interior",
-          patron: pat("fancoil|fan-coil|unidad interior|cassette|split|conductos tipo"),
-          exige: [
-            "montaje",
-            "conexionHidraulico",
-            "conexionDesague",
-            "conexionElectrico",
-            "conexionControl",
-            "sondasControl"
-          ],
-          ejemplos: ["Fancoil de conductos 3 tubos", "Unidad interior tipo cassette 4 v\xEDas 5 kW"]
-        },
-        ventilador: {
-          etiqueta: "Ventilador / extractor",
-          patron: pat("ventilador|extractor|caja de ventilaci|impulsor|\\bs&p (cab|cvab|td|thgt|chgt|hxm)"),
-          exige: ["montaje", "conductoConexion", "conexionElectrico", "conexionControl", "antivibratorios"],
-          ejemplos: ["Ventilador de impulsi\xF3n 3.000 m3/h", "Caja de ventilaci\xF3n en l\xEDnea"]
-        },
-        /* ── Y lo genérico, al final ───────────────────────────────────── */
-        bomba: {
-          etiqueta: "Bomba / grupo de bombeo",
-          patron: pat("\\bbomba\\b|circulador|grupo de presi[o\xF3]n|electrobomba"),
-          exige: [
-            "montaje",
-            "conexionHidraulico",
-            "conexionElectrico",
-            "conexionControl",
-            "integracionControl",
-            "antivibratorios",
-            "valvuleriaCorte",
-            "filtro",
-            "manometria"
-          ],
-          ejemplos: ["Bomba circuladora doble DN65 con variador", "Grupo de presi\xF3n de agua fr\xEDa 3 bombas"]
-        },
-        cuadroElectrico: {
-          etiqueta: "Cuadro el\xE9ctrico",
-          patron: pat("cuadro el[e\xE9]ctr|\\bcgbt\\b|cuadro secundario|cuadro general|armario el[e\xE9]ctr"),
-          exige: ["montaje", "conexionElectrico", "puestaTierra"],
-          ejemplos: ["Cuadro el\xE9ctrico secundario de planta", "CGBT de 630 A"]
-        }
-      };
-      var IMPRESCINDIBLES = [
-        {
-          id: "ayudasAlbanileria",
-          etiqueta: "Ayudas de alba\xF1iler\xEDa (rozas, pasamuros, sellados, remates)",
-          patron: pat("ayuda[s]? (de )?alba\xF1il|roza|pasamuro|sellado de paso|remate de obra civil"),
-          cuando: () => true,
-          gravedad: GRAVEDAD.AVISO,
-          porque: "Todo montaje toca la obra civil. Sin esta partida, cada taladro es una discusi\xF3n."
-        },
-        {
-          id: "pruebasPuestaMarcha",
-          etiqueta: "Pruebas, puesta en marcha y equilibrado",
-          patron: pat("prueba[s]?|puesta en marcha|equilibrad|regulaci[o\xF3]n de caudales|comisionado|commissioning"),
-          cuando: (d) => d.climatizacion || d.ventilacion || d.fontaneria || d.pci,
-          gravedad: GRAVEDAD.AVISO,
-          porque: "Una instalaci\xF3n sin equilibrar no se recibe. Son d\xEDas de t\xE9cnico que alguien paga."
-        },
-        {
-          id: "legalizacion",
-          etiqueta: "Legalizaci\xF3n, boletines y certificados de OCA",
-          patron: pat("legaliza|bolet[i\xED]n|\\boca\\b|certificado de instalaci|visado|tramitaci[o\xF3]n ante industria"),
-          cuando: () => true,
-          gravedad: GRAVEDAD.AVISO,
-          porque: "Sin bolet\xEDn no hay suministro. Es dinero y son semanas de plazo."
-        },
-        {
-          id: "documentacionFinal",
-          etiqueta: "Documentaci\xF3n final de obra y planos as-built",
-          patron: pat("as-?built|documentaci[o\xF3]n final|planos finales|dossier de calidad|manual de uso"),
-          cuando: () => true,
-          gravedad: GRAVEDAD.SUGERENCIA,
-          porque: "La DF no firma la recepci\xF3n sin el dossier. Se hace igual: mejor cobrarlo."
-        },
-        {
-          id: "formacion",
-          etiqueta: "Formaci\xF3n al personal de mantenimiento",
-          patron: pat("formaci[o\xF3]n|adiestramiento|capacitaci[o\xF3]n del usuario"),
-          cuando: (d) => d.climatizacion || d.control || d.pci,
-          gravedad: GRAVEDAD.SUGERENCIA,
-          porque: "Va en casi todos los pliegos y casi nunca en el presupuesto."
-        },
-        {
-          id: "gestionResiduos",
-          etiqueta: "Gesti\xF3n de residuos de construcci\xF3n",
-          patron: pat("residuo|\\brcd\\b|gestor autorizado|escombr"),
-          cuando: () => true,
-          gravedad: GRAVEDAD.SUGERENCIA,
-          porque: "Obligatorio por normativa y con coste real de contenedor y gestor."
-        },
-        {
-          id: "seguridadSalud",
-          etiqueta: "Seguridad y salud",
-          patron: pat("seguridad y salud|\\bepi\\b|protecci[o\xF3]n colectiva|plan de seguridad"),
-          cuando: () => true,
-          gravedad: GRAVEDAD.AVISO,
-          porque: "Es un cap\xEDtulo obligatorio y suele ser entre el 1 % y el 2 % del PEM."
-        },
-        {
-          id: "aislamiento",
-          etiqueta: "Aislamiento t\xE9rmico de tuber\xEDas y conductos",
-          patron: pat("aislamiento|coquilla|calorifugad|manta de lana"),
-          cuando: (d) => d.climatizacion || d.ventilacion,
-          gravedad: GRAVEDAD.AVISO,
-          porque: "El RITE lo exige (IT 1.2.4.2). Si no est\xE1, o se regala o se reclama."
-        },
-        {
-          id: "soportacion",
-          etiqueta: "Soportaci\xF3n de tuber\xEDas, conductos y bandejas",
-          patron: pat("soporte|soportaci[o\xF3]n|abrazadera|carril|varilla roscada"),
-          cuando: (d) => d.climatizacion || d.ventilacion || d.fontaneria || d.pci || d.electricidad,
-          gravedad: GRAVEDAD.AVISO,
-          porque: "Es material y horas de verdad; escondido en la p.p. se queda corto siempre."
-        },
-        {
-          id: "compuertasCortafuego",
-          etiqueta: "Compuertas cortafuego en paso de sectores",
-          patron: pat("cortafuego|compuerta cf|\\bcf-?\\d|sectorizaci[o\xF3]n"),
-          cuando: (d) => d.climatizacion || d.ventilacion,
-          gravedad: GRAVEDAD.AVISO,
-          porque: "Todo conducto que cruza un sector lleva una. Se olvidan y son caras."
-        },
-        {
-          id: "identificacion",
-          etiqueta: "Identificaci\xF3n y se\xF1alizaci\xF3n de instalaciones",
-          patron: pat("identificaci[o\xF3]n|rotulaci[o\xF3]n|se[\xF1n]alizaci[o\xF3]n|etiquetado|c[o\xF3]digo de colores"),
-          cuando: () => true,
-          gravedad: GRAVEDAD.SUGERENCIA,
-          porque: "Lo pide la DF en la recepci\xF3n. Es barato y siempre falta."
-        }
-      ];
-      function existeAlgo(lista, patron) {
-        return lista.some((p) => patron.test(norm(p.resumen)));
-      }
-      function auditar(arbol, opciones = {}) {
-        const descartados = new Set(opciones.descartados || []);
-        const lista = _modeloPresupuesto.partidas(arbol);
-        const { porDisciplina } = _modeloPresupuesto.pesoPorDisciplina(arbol);
-        const hay = Object.fromEntries(
-          Object.entries(porDisciplina).map(([d, v]) => [d, v > 0])
-        );
-        const hallazgos = [];
-        const anotar = (h) => {
-          if (descartados.has(h.id)) return;
-          hallazgos.push(h);
-        };
-        const costesSinValorar = [];
-        for (const p of lista) {
-          const donde = [...(p.camino || []).map((c) => c.codigo), p.codigo].filter(Boolean).join(" \u203A ");
-          const esDeCoste = _modeloPresupuesto.esCoste(p) || (p.camino || []).some(_modeloPresupuesto.esCoste);
-          if (esDeCoste && !(Number(p.cantidad) > 0) && !(Number(p.precio) > 0)) {
-            costesSinValorar.push(p);
-            continue;
-          }
-          if (!p.unidad) {
-            anotar({
-              id: `partida:${p.codigo}:unidad`,
-              gravedad: GRAVEDAD.BLOQUEANTE,
-              titulo: "Partida sin unidad de medida",
-              donde,
-              codigo: p.codigo,
-              detalle: `\xAB${p.resumen || "sin resumen"}\xBB no dice si se mide en m, m\xB2, ud o kg.`,
-              porque: "Un cliente no puede contrastar un precio sin saber por qu\xE9 se paga."
-            });
-          }
-          if (!(Number(p.precio) > 0)) {
-            anotar({
-              id: `partida:${p.codigo}:precio`,
-              gravedad: GRAVEDAD.BLOQUEANTE,
-              titulo: "Partida a precio cero",
-              donde,
-              codigo: p.codigo,
-              detalle: `\xAB${p.resumen || "sin resumen"}\xBB sale a 0,00 \u20AC.`,
-              porque: "O est\xE1 sin valorar, o se regala sin decirlo. Las dos cosas hay que escribirlas."
-            });
-          }
-          if (!(Number(p.cantidad) > 0)) {
-            anotar({
-              id: `partida:${p.codigo}:cantidad`,
-              gravedad: GRAVEDAD.AVISO,
-              titulo: "Partida sin medici\xF3n",
-              donde,
-              codigo: p.codigo,
-              detalle: `\xAB${p.resumen || "sin resumen"}\xBB tiene cantidad 0.`,
-              porque: "Una partida con cantidad cero no suma: si est\xE1, es que falta medirla."
-            });
-          }
-          if (!p.descripcion || String(p.descripcion).trim().length < 40) {
-            anotar({
-              id: `partida:${p.codigo}:descripcion`,
-              gravedad: GRAVEDAD.AVISO,
-              titulo: "Partida sin descripci\xF3n suficiente",
-              donde,
-              codigo: p.codigo,
-              detalle: `\xAB${p.resumen || "sin resumen"}\xBB no tiene un texto que delimite su alcance.`,
-              porque: "Lo que no est\xE1 escrito en la partida es lo que en obra se discute como extra.",
-              accion: "proponerDescripcion"
-            });
-          }
-          if (p.descripcionProvisional) {
-            anotar({
-              id: `partida:${p.codigo}:provisional`,
-              gravedad: GRAVEDAD.AVISO,
-              titulo: "Descripci\xF3n generada, sin revisar",
-              donde,
-              codigo: p.codigo,
-              detalle: `La descripci\xF3n de \xAB${p.resumen}\xBB la escribi\xF3 la aplicaci\xF3n y nadie la ha validado.`,
-              porque: "Una descripci\xF3n autom\xE1tica puede decir algo que no es de esta obra."
-            });
-          }
-          if (!p.disciplina) {
-            anotar({
-              id: `partida:${p.codigo}:disciplina`,
-              gravedad: GRAVEDAD.AVISO,
-              titulo: "Partida sin disciplina asignada",
-              donde,
-              codigo: p.codigo,
-              detalle: `\xAB${p.resumen || "sin resumen"}\xBB no cuenta en el reparto por disciplina.`,
-              porque: "Sin esto, las estad\xEDsticas del departamento mienten sin avisar."
-            });
-          }
-        }
-        if (costesSinValorar.length) {
-          anotar({
-            id: "coste:sinValorar",
-            gravedad: GRAVEDAD.SUGERENCIA,
-            titulo: `${costesSinValorar.length} conceptos de coste sin valorar`,
-            donde: "Cap\xEDtulos de coste",
-            detalle: `Est\xE1n puestos como recordatorio pero sin importe: ${costesSinValorar.slice(0, 3).map((p) => p.resumen).join(", ")}${costesSinValorar.length > 3 ? ` y ${costesSinValorar.length - 3} m\xE1s` : ""}.`,
-            porque: "No estorban ni suman, pero conviene repasarlos antes de cerrar: cada uno es dinero que alguien paga.",
-            accion: "limpiarCostesVacios",
-            afectadas: costesSinValorar.map((p) => p.codigo)
-          });
-        }
-        (function recorrer(nodos, camino) {
-          for (const n of nodos || []) {
-            if (n.tipo !== _modeloPresupuesto.TIPOS.CAPITULO) continue;
-            const ruta = [...camino, n.codigo].filter(Boolean).join(" \u203A ");
-            if (!(n.hijos || []).length) {
-              anotar({
-                id: `capitulo:${n.codigo}:vacio`,
-                gravedad: GRAVEDAD.BLOQUEANTE,
-                titulo: "Cap\xEDtulo vac\xEDo",
-                donde: ruta,
-                codigo: n.codigo,
-                detalle: `\xAB${n.resumen}\xBB no tiene ninguna partida.`,
-                porque: "Un cap\xEDtulo vac\xEDo en una oferta es una pregunta del cliente asegurada."
-              });
-            }
-            recorrer(n.hijos, [...camino, n.codigo]);
-          }
-        })(arbol, []);
-        const huecos = /* @__PURE__ */ new Map();
-        for (const p of lista) {
-          const texto = norm(p.resumen);
-          for (const [, clase] of Object.entries(CLASES_EQUIPO)) {
-            if (!clase.patron.test(texto)) continue;
-            for (const req of clase.exige) {
-              const acc = ACOMPANA[req];
-              if (!acc || existeAlgo(lista, acc.patron)) continue;
-              if (!huecos.has(req)) huecos.set(req, { acc, equipos: [] });
-              huecos.get(req).equipos.push({ ...p, clase: clase.etiqueta });
-            }
-            break;
-          }
-        }
-        for (const [req, { acc, equipos }] of huecos) {
-          const muestra = equipos.slice(0, 3).map((e) => `\xAB${e.resumen}\xBB`).join(", ");
-          const resto = equipos.length > 3 ? ` y ${equipos.length - 3} m\xE1s` : "";
-          const familia = FAMILIA_POR_ID[acc.familia];
-          const oficio = acc.oficio ? OFICIO_POR_ID[acc.oficio] : null;
-          anotar({
-            id: `hueco:${req}`,
-            gravedad: GRAVEDAD.AVISO,
-            familia: acc.familia,
-            oficio: acc.oficio || null,
-            /* El oficio va en el título: es lo que dice a qué comparativo se va. */
-            titulo: `Falta ${acc.etiqueta.toLowerCase()}`,
-            donde: equipos.length === 1 ? [...(equipos[0].camino || []).map((c) => c.codigo), equipos[0].codigo].filter(Boolean).join(" \u203A ") : `${equipos.length} equipos lo necesitan`,
-            detalle: `${muestra}${resto} lo necesitan, y en todo el presupuesto no hay ninguna partida de ${acc.etiqueta.toLowerCase()}.`,
-            porque: oficio ? `Esto es ${familia.etiqueta.toLowerCase()} de ${oficio.etiqueta.toLowerCase()}, y lo ejecuta un industrial distinto del que pone el equipo: si no es una partida aparte, no se puede pedir precio ni certificar.` : `Esto es ${familia.etiqueta.toLowerCase()} y lo ejecuta un industrial distinto del que pone el equipo: si no es una partida aparte, no se puede pedir precio ni certificar.`,
-            accion: "crearPartida",
-            afectadas: equipos.map((e) => e.codigo),
-            propuesta: {
-              resumen: acc.etiqueta,
-              unidad: acc.unidad,
-              cantidad: equipos.reduce((a, e) => a + (Number(e.cantidad) || 1), 0)
-            }
-          });
-        }
-        const sinPuesta = [];
-        lista.forEach((p, i) => {
-          const clase = claseDe(p);
-          if (!clase) return;
-          if (_modeloPresupuesto.esCoste(p) || (p.camino || []).some(_modeloPresupuesto.esCoste)) return;
-          const padre = (p.camino || []).map((c) => c.codigo).join(">");
-          for (let j = i + 1; j < lista.length; j += 1) {
-            const q = lista[j];
-            if ((q.camino || []).map((c) => c.codigo).join(">") !== padre || claseDe(q)) break;
-            if (ES_PUESTA_MARCHA.test(norm(q.resumen)) && /^h/.test(norm(q.unidad))) return;
-          }
-          const horas = (HORAS_PUESTA_MARCHA[clase] || 4) * (Number(p.cantidad) > 0 ? Number(p.cantidad) : 1);
-          sinPuesta.push({ ...p, horas });
-        });
-        if (sinPuesta.length) {
-          const muestra = sinPuesta.slice(0, 3).map((e) => `\xAB${e.resumen}\xBB`).join(", ");
-          const resto = sinPuesta.length > 3 ? ` y ${sinPuesta.length - 3} m\xE1s` : "";
-          const horas = sinPuesta.reduce((a, e) => a + e.horas, 0);
-          anotar({
-            id: "hueco:puestaEnMarcha",
-            gravedad: GRAVEDAD.AVISO,
-            familia: "mecanica",
-            titulo: sinPuesta.length === 1 ? "Falta la puesta en marcha de un equipo" : `Falta la puesta en marcha de ${sinPuesta.length} equipos`,
-            donde: sinPuesta.length === 1 ? [...(sinPuesta[0].camino || []).map((c) => c.codigo), sinPuesta[0].codigo].filter(Boolean).join(" \u203A ") : `${sinPuesta.length} equipos`,
-            detalle: `${muestra}${resto} no tienen debajo su partida de puesta en marcha en horas. Estimado: ${horas} h de operario.`,
-            porque: "Arrancar, ajustar y probar cada equipo son horas de operario. Si no est\xE1n en su partida, no se cobran y en el Gantt no ocupan tiempo.",
-            accion: "crearPartida",
-            afectadas: sinPuesta.map((e) => e.codigo),
-            propuesta: {
-              resumen: "Puesta en marcha",
-              unidad: "h",
-              cantidad: horas,
-              /* Una por equipo, justo debajo de él. */
-              junto: sinPuesta.map((e) => ({ junto: e.codigo, resumen: `Puesta en marcha de ${e.resumen}`, unidad: "h", cantidad: e.horas }))
-            }
-          });
-        }
-        for (const regla of IMPRESCINDIBLES) {
-          if (!regla.cuando(hay)) continue;
-          if (existeAlgo(lista, regla.patron)) continue;
-          anotar({
-            id: `global:${regla.id}`,
-            gravedad: regla.gravedad,
-            titulo: `No hay partida de ${regla.etiqueta.toLowerCase()}`,
-            donde: "Presupuesto completo",
-            detalle: regla.etiqueta,
-            porque: regla.porque,
-            accion: "crearPartida",
-            propuesta: { resumen: regla.etiqueta, unidad: "ud", cantidad: 1 }
-          });
-        }
-        const porUnidad = /* @__PURE__ */ new Map();
-        for (const p of lista) {
-          if (!p.unidad || !(Number(p.precio) > 0)) continue;
-          const clave = `${norm(p.unidad)}|${norm(p.resumen).split(/\s+/).slice(0, 2).join(" ")}`;
-          if (!porUnidad.has(clave)) porUnidad.set(clave, []);
-          porUnidad.get(clave).push(p);
-        }
-        for (const [, grupo] of porUnidad) {
-          if (grupo.length < 3) continue;
-          const precios = grupo.map((p) => Number(p.precio)).sort((a, b) => a - b);
-          const mediana = precios[Math.floor(precios.length / 2)];
-          for (const p of grupo) {
-            const veces = Number(p.precio) / mediana;
-            if (veces > 10 || veces < 0.1) {
-              anotar({
-                id: `precio:${p.codigo}:atipico`,
-                gravedad: GRAVEDAD.AVISO,
-                titulo: "Precio muy fuera de lo normal",
-                donde: [...(p.camino || []).map((c) => c.codigo), p.codigo].filter(Boolean).join(" \u203A "),
-                codigo: p.codigo,
-                detalle: `\xAB${p.resumen}\xBB a ${_modeloPresupuesto.textoEuros(p.precio)} \u20AC/${p.unidad}, cuando partidas parecidas rondan ${_modeloPresupuesto.textoEuros(mediana)} \u20AC/${p.unidad}.`,
-                porque: "Casi siempre es una coma mal puesta. Cuesta un segundo mirarlo y una obra entera no mirarlo."
-              });
-            }
-          }
-        }
-        const UNIDADES_COMPARABLES = /* @__PURE__ */ new Set(["m", "ml", "m2", "m\xB2", "m3", "m\xB3", "kg", "t", "l"]);
-        const porUnidadSola = /* @__PURE__ */ new Map();
-        for (const p of lista) {
-          if (!p.unidad || !(Number(p.precio) > 0)) continue;
-          const u = norm(p.unidad);
-          if (!UNIDADES_COMPARABLES.has(u)) continue;
-          if (!porUnidadSola.has(u)) porUnidadSola.set(u, []);
-          porUnidadSola.get(u).push(p);
-        }
-        for (const [unidad, grupo] of porUnidadSola) {
-          if (grupo.length < 5) continue;
-          const precios = grupo.map((p) => Number(p.precio)).sort((a, b) => a - b);
-          const mediana = precios[Math.floor(precios.length / 2)];
-          if (!(mediana > 0)) continue;
-          for (const p of grupo) {
-            const veces = Number(p.precio) / mediana;
-            if (veces < 25 && veces > 1 / 25) continue;
-            anotar({
-              id: `precio:${p.codigo}:unidad`,
-              gravedad: GRAVEDAD.AVISO,
-              titulo: veces >= 25 ? "Precio disparatado para su unidad" : "Precio sospechosamente bajo para su unidad",
-              donde: [...(p.camino || []).map((c) => c.codigo), p.codigo].filter(Boolean).join(" \u203A "),
-              codigo: p.codigo,
-              detalle: `\xAB${p.resumen}\xBB a ${_modeloPresupuesto.textoEuros(p.precio)} \u20AC/${p.unidad}. Las ${grupo.length} partidas medidas en ${unidad} de este presupuesto rondan ${_modeloPresupuesto.textoEuros(mediana)} \u20AC/${unidad}: es ${veces >= 25 ? Math.round(veces) + " veces m\xE1s" : Math.round(1 / veces) + " veces menos"}.`,
-              porque: "Una coma mal puesta se lee igual que un precio bueno, y se va con la oferta."
-            });
-          }
-        }
-        const pemTotal = lista.reduce((a, p) => a + (p.importe || 0), 0);
-        const conImporte = lista.filter((p) => (p.importe || 0) > 0);
-        if (pemTotal > 0 && conImporte.length >= 20) {
-          for (const p of lista) {
-            const peso = (p.importe || 0) / pemTotal;
-            if (peso < 0.3) continue;
-            anotar({
-              id: `peso:${p.codigo}`,
-              gravedad: GRAVEDAD.AVISO,
-              titulo: "Una sola partida se lleva casi todo el presupuesto",
-              donde: [...(p.camino || []).map((c) => c.codigo), p.codigo].filter(Boolean).join(" \u203A "),
-              codigo: p.codigo,
-              detalle: `\xAB${p.resumen}\xBB supone el ${Math.round(peso * 100)} % del importe total.`,
-              porque: "En instalaciones eso casi siempre es un error de precio o de medici\xF3n, no un equipo car\xEDsimo."
-            });
-          }
-        }
-        const resumenesDelArbol = [];
-        (function recorrerTodo(nodos) {
-          for (const n of nodos || []) {
-            resumenesDelArbol.push(norm(n.resumen));
-            if (n.hijos) recorrerTodo(n.hijos);
-          }
-        })(arbol);
-        for (const cap of _capitulosCoste ? _capitulosCoste.CAPITULOS_COSTE : []) {
-          const patron = pat(cap.patron);
-          if (resumenesDelArbol.some((r) => patron.test(r))) continue;
-          anotar({
-            id: `coste:${cap.id}`,
-            gravedad: GRAVEDAD.AVISO,
-            titulo: `No hay cap\xEDtulo de ${cap.resumen.toLowerCase()}`,
-            donde: "Estructura del presupuesto",
-            detalle: `Faltan ${_capitulosCoste.cuentaPartidas(cap.id)} conceptos repartidos en ${cap.subcapitulos.length} subcap\xEDtulos.`,
-            porque: cap.porque,
-            accion: "insertarCapituloCoste",
-            costeId: cap.id
-          });
-        }
-        const vistas = /* @__PURE__ */ new Map();
-        for (const p of lista) {
-          const clave = `${norm(p.resumen)}|${norm(p.unidad)}`;
-          if (!norm(p.resumen)) continue;
-          if (vistas.has(clave)) {
-            anotar({
-              id: `duplicada:${p.codigo}`,
-              gravedad: GRAVEDAD.AVISO,
-              titulo: "Partida repetida",
-              donde: [...(p.camino || []).map((c) => c.codigo), p.codigo].filter(Boolean).join(" \u203A "),
-              codigo: p.codigo,
-              detalle: `\xAB${p.resumen}\xBB aparece tambi\xE9n en ${vistas.get(clave)}.`,
-              porque: "O es una doble medici\xF3n \u2014se cobra dos veces y se pierde la oferta\u2014, o hay que distinguirlas en el texto."
-            });
-          } else {
-            vistas.set(clave, [...(p.camino || []).map((c) => c.codigo), p.codigo].filter(Boolean).join(" \u203A "));
-          }
-        }
-        const cuenta = (g) => hallazgos.filter((h) => h.gravedad === g).length;
-        for (const revisor of opciones.revisores || []) {
-          try {
-            for (const h of revisor(arbol, opciones) || []) anotar(h);
-          } catch (e) {
-            anotar({
-              id: "revisor:error",
-              gravedad: GRAVEDAD.SUGERENCIA,
-              titulo: "Una revisi\xF3n no ha podido ejecutarse",
-              donde: "Presupuesto completo",
-              detalle: String(e && e.message || e),
-              porque: "Lo que no se ha revisado no est\xE1 bien: est\xE1 sin mirar."
-            });
-          }
-        }
-        return {
-          hallazgos,
-          resumen: {
-            bloqueantes: cuenta(GRAVEDAD.BLOQUEANTE),
-            avisos: cuenta(GRAVEDAD.AVISO),
-            sugerencias: cuenta(GRAVEDAD.SUGERENCIA),
-            total: hallazgos.length,
-            partidasRevisadas: lista.length,
-            /* La oferta no sale a PDF con un bloqueante vivo. */
-            exportable: cuenta(GRAVEDAD.BLOQUEANTE) === 0
-          }
-        };
-      }
-      var ES_ACCESORIO = pat(
-        "^(montaje|coloca|instalacion mecanica|izado|bancada|antivibrat|amortiguador|silentblock|conexion|conexionado|acometida|interconexion|latiguillo|manguito|transporte|gr[u\xFA]a|camion|medios de elevacion|descarga|aislamiento|coquilla|soportacion|soporte|desmontaje|desmontar|retirada|demolicion|achatarramiento|puesta en marcha|programacion|integracion|legalizacion|tramitacion|proyecto|direccion|mantenimiento|prueba|ensayo|equilibrado|limpieza|ayuda|roza|pasamuro|sellado|remate|alquiler|amortizacion|cableado|linea|circuito|manguera|bandeja|tubo|tuberia|canalizacion|conducto|desague|purga|drenaje|vaciado|llenado|sifon|valvula|valvuleria|llave|filtro|colador|manometr|termometr|contador|sonda|sensor|termostato|presostato|transmisor|detector|pulsador|compuerta|rejilla|difusor|variador|regulador|extintor|\\bbie\\b|rociador|hidrante|se[\xF1n]alizacion)\\b"
-      );
-      var HORAS_PUESTA_MARCHA = {
-        enfriadora: 16,
-        climatizadoraPiscina: 12,
-        rooftop: 8,
-        crac: 6,
-        torreRefrigeracion: 8,
-        caldera: 8,
-        grupoElectrogeno: 8,
-        climatizadora: 8,
-        unidadExterior: 6,
-        grupoPCI: 4,
-        centralDeteccion: 4,
-        bomba: 2,
-        cuadroElectrico: 2,
-        fancoil: 1,
-        ventilador: 1
-      };
-      var ES_PUESTA_MARCHA = /puesta en marcha|arranque/;
-      function claseDe(partida) {
-        const texto = norm(partida && partida.resumen || "");
-        if (ES_ACCESORIO.test(texto)) return null;
-        const entrada = Object.entries(CLASES_EQUIPO).find(([, c]) => c.patron.test(texto));
-        return entrada ? entrada[0] : null;
-      }
-      function cortejoDe(partida, lista = []) {
-        const texto = norm(partida && partida.resumen || "");
-        if (ES_ACCESORIO.test(texto)) return null;
-        const entrada = Object.entries(CLASES_EQUIPO).find(([, c]) => c.patron.test(texto));
-        if (!entrada) return null;
-        const [claseId, clase] = entrada;
-        const piezas = clase.exige.map((req) => {
-          const acc = ACOMPANA[req];
-          if (!acc) return null;
-          const donde = lista.find((p) => p.codigo !== partida.codigo && acc.patron.test(norm(p.resumen)));
-          return {
-            id: req,
-            etiqueta: acc.etiqueta,
-            unidad: acc.unidad,
-            familia: acc.familia,
-            oficio: acc.oficio || null,
-            esta: Boolean(donde),
-            donde: donde ? { codigo: donde.codigo, resumen: donde.resumen } : null
-          };
-        }).filter(Boolean);
-        const familias = FAMILIAS_CONEXION.map((f) => {
-          const suyas = piezas.filter((p) => p.familia === f.id);
-          if (!suyas.length) return null;
-          const ordenadas = f.id === "mecanica" ? [...suyas].sort((a, b) => OFICIOS_MECANICOS.findIndex((o) => o.id === a.oficio) - OFICIOS_MECANICOS.findIndex((o) => o.id === b.oficio)) : suyas;
-          return {
-            ...f,
-            piezas: ordenadas,
-            faltan: ordenadas.filter((p) => !p.esta).length,
-            oficios: f.id !== "mecanica" ? [] : OFICIOS_MECANICOS.map((o) => ({ ...o, piezas: ordenadas.filter((p) => p.oficio === o.id) })).filter((o) => o.piezas.length)
-          };
-        }).filter(Boolean);
-        return {
-          clase: claseId,
-          etiquetaClase: clase.etiqueta,
-          familias,
-          piezas,
-          faltan: piezas.filter((p) => !p.esta).length,
-          total: piezas.length
-        };
-      }
-      function cortejo(arbol) {
-        const lista = _modeloPresupuesto.partidas(arbol || []);
-        return lista.map((p) => {
-          const c = cortejoDe(p, lista);
-          return c ? { codigo: p.codigo, resumen: p.resumen, cantidad: p.cantidad, ...c } : null;
-        }).filter(Boolean);
-      }
-      (function exportar(API) {
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.AUDITOR = API;
-      })({
-        auditar,
-        GRAVEDAD,
-        CLASES_EQUIPO,
-        ACOMPANA,
-        IMPRESCINDIBLES,
-        FAMILIAS_CONEXION,
-        OFICIOS_MECANICOS,
-        ES_ACCESORIO,
-        HORAS_PUESTA_MARCHA,
-        claseDe,
-        cortejoDe,
-        cortejo
-      });
     }
   });
 
@@ -41583,7 +45219,7 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/tslib/tslib.es6.js
+  // ../CBRE_Project_360/node_modules/tslib/tslib.es6.js
   var tslib_es6_exports = {};
   __export(tslib_es6_exports, {
     __assign: () => __assign,
@@ -41888,7 +45524,7 @@ ${linea}` : linea;
   }
   var import_buffer_global8, extendStatics, __assign;
   var init_tslib_es6 = __esm({
-    "../../../node_modules/tslib/tslib.es6.js"() {
+    "../CBRE_Project_360/node_modules/tslib/tslib.es6.js"() {
       import_buffer_global8 = __toESM(require_buffer_global());
       extendStatics = function(d, b) {
         extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
@@ -41911,9 +45547,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/utils/base64.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/base64.js
   var require_base64 = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/utils/base64.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/base64.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -41981,9 +45617,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/utils/strings.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/strings.js
   var require_strings = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/utils/strings.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/strings.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -42134,9 +45770,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/utils/arrays.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/arrays.js
   var require_arrays = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/utils/arrays.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/arrays.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -42265,9 +45901,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/utils/async.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/async.js
   var require_async = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/utils/async.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/async.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -42282,9 +45918,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/utils/unicode.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/unicode.js
   var require_unicode = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/utils/unicode.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/unicode.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -42425,9 +46061,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/utils/numbers.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/numbers.js
   var require_numbers = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/utils/numbers.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/numbers.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -42468,9 +46104,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/utils/errors.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/errors.js
   var require_errors = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/utils/errors.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/errors.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -42481,9 +46117,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pako/lib/utils/common.js
+  // ../CBRE_Project_360/node_modules/pako/lib/utils/common.js
   var require_common = __commonJS({
-    "../../../node_modules/pako/lib/utils/common.js"(exports) {
+    "../CBRE_Project_360/node_modules/pako/lib/utils/common.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var TYPED_OK = typeof Uint8Array !== "undefined" && typeof Uint16Array !== "undefined" && typeof Int32Array !== "undefined";
@@ -42573,9 +46209,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pako/lib/zlib/trees.js
+  // ../CBRE_Project_360/node_modules/pako/lib/zlib/trees.js
   var require_trees = __commonJS({
-    "../../../node_modules/pako/lib/zlib/trees.js"(exports) {
+    "../CBRE_Project_360/node_modules/pako/lib/zlib/trees.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var utils = require_common();
@@ -43216,9 +46852,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pako/lib/zlib/adler32.js
+  // ../CBRE_Project_360/node_modules/pako/lib/zlib/adler32.js
   var require_adler32 = __commonJS({
-    "../../../node_modules/pako/lib/zlib/adler32.js"(exports, module) {
+    "../CBRE_Project_360/node_modules/pako/lib/zlib/adler32.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function adler32(adler, buf, len, pos) {
@@ -43239,9 +46875,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pako/lib/zlib/crc32.js
+  // ../CBRE_Project_360/node_modules/pako/lib/zlib/crc32.js
   var require_crc32 = __commonJS({
-    "../../../node_modules/pako/lib/zlib/crc32.js"(exports, module) {
+    "../CBRE_Project_360/node_modules/pako/lib/zlib/crc32.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function makeTable() {
@@ -43268,9 +46904,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pako/lib/zlib/messages.js
+  // ../CBRE_Project_360/node_modules/pako/lib/zlib/messages.js
   var require_messages = __commonJS({
-    "../../../node_modules/pako/lib/zlib/messages.js"(exports, module) {
+    "../CBRE_Project_360/node_modules/pako/lib/zlib/messages.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       module.exports = {
@@ -43296,9 +46932,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pako/lib/zlib/deflate.js
+  // ../CBRE_Project_360/node_modules/pako/lib/zlib/deflate.js
   var require_deflate = __commonJS({
-    "../../../node_modules/pako/lib/zlib/deflate.js"(exports) {
+    "../CBRE_Project_360/node_modules/pako/lib/zlib/deflate.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var utils = require_common();
@@ -44346,9 +47982,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pako/lib/utils/strings.js
+  // ../CBRE_Project_360/node_modules/pako/lib/utils/strings.js
   var require_strings2 = __commonJS({
-    "../../../node_modules/pako/lib/utils/strings.js"(exports) {
+    "../CBRE_Project_360/node_modules/pako/lib/utils/strings.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var utils = require_common();
@@ -44489,9 +48125,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pako/lib/zlib/zstream.js
+  // ../CBRE_Project_360/node_modules/pako/lib/zlib/zstream.js
   var require_zstream = __commonJS({
-    "../../../node_modules/pako/lib/zlib/zstream.js"(exports, module) {
+    "../CBRE_Project_360/node_modules/pako/lib/zlib/zstream.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function ZStream() {
@@ -44512,9 +48148,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pako/lib/deflate.js
+  // ../CBRE_Project_360/node_modules/pako/lib/deflate.js
   var require_deflate2 = __commonJS({
-    "../../../node_modules/pako/lib/deflate.js"(exports) {
+    "../CBRE_Project_360/node_modules/pako/lib/deflate.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var zlib_deflate = require_deflate();
@@ -44674,9 +48310,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pako/lib/zlib/inffast.js
+  // ../CBRE_Project_360/node_modules/pako/lib/zlib/inffast.js
   var require_inffast = __commonJS({
-    "../../../node_modules/pako/lib/zlib/inffast.js"(exports, module) {
+    "../CBRE_Project_360/node_modules/pako/lib/zlib/inffast.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var BAD = 30;
@@ -44904,9 +48540,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pako/lib/zlib/inftrees.js
+  // ../CBRE_Project_360/node_modules/pako/lib/zlib/inftrees.js
   var require_inftrees = __commonJS({
-    "../../../node_modules/pako/lib/zlib/inftrees.js"(exports, module) {
+    "../CBRE_Project_360/node_modules/pako/lib/zlib/inftrees.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var utils = require_common();
@@ -45221,9 +48857,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pako/lib/zlib/inflate.js
+  // ../CBRE_Project_360/node_modules/pako/lib/zlib/inflate.js
   var require_inflate = __commonJS({
-    "../../../node_modules/pako/lib/zlib/inflate.js"(exports) {
+    "../CBRE_Project_360/node_modules/pako/lib/zlib/inflate.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var utils = require_common();
@@ -46461,9 +50097,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pako/lib/zlib/constants.js
+  // ../CBRE_Project_360/node_modules/pako/lib/zlib/constants.js
   var require_constants = __commonJS({
-    "../../../node_modules/pako/lib/zlib/constants.js"(exports, module) {
+    "../CBRE_Project_360/node_modules/pako/lib/zlib/constants.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       module.exports = {
@@ -46509,9 +50145,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pako/lib/zlib/gzheader.js
+  // ../CBRE_Project_360/node_modules/pako/lib/zlib/gzheader.js
   var require_gzheader = __commonJS({
-    "../../../node_modules/pako/lib/zlib/gzheader.js"(exports, module) {
+    "../CBRE_Project_360/node_modules/pako/lib/zlib/gzheader.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function GZheader() {
@@ -46530,9 +50166,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pako/lib/inflate.js
+  // ../CBRE_Project_360/node_modules/pako/lib/inflate.js
   var require_inflate2 = __commonJS({
-    "../../../node_modules/pako/lib/inflate.js"(exports) {
+    "../CBRE_Project_360/node_modules/pako/lib/inflate.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var zlib_inflate = require_inflate();
@@ -46705,9 +50341,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pako/index.js
+  // ../CBRE_Project_360/node_modules/pako/index.js
   var require_pako = __commonJS({
-    "../../../node_modules/pako/index.js"(exports, module) {
+    "../CBRE_Project_360/node_modules/pako/index.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var assign = require_common().assign;
@@ -46720,9 +50356,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/@pdf-lib/standard-fonts/lib/utils.js
+  // ../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/utils.js
   var require_utils = __commonJS({
-    "../../../node_modules/@pdf-lib/standard-fonts/lib/utils.js"(exports) {
+    "../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/utils.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -46783,107 +50419,107 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/@pdf-lib/standard-fonts/lib/Courier-Bold.compressed.json
+  // ../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Courier-Bold.compressed.json
   var require_Courier_Bold_compressed = __commonJS({
-    "../../../node_modules/@pdf-lib/standard-fonts/lib/Courier-Bold.compressed.json"(exports, module) {
+    "../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Courier-Bold.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../../../node_modules/@pdf-lib/standard-fonts/lib/Courier-BoldOblique.compressed.json
+  // ../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Courier-BoldOblique.compressed.json
   var require_Courier_BoldOblique_compressed = __commonJS({
-    "../../../node_modules/@pdf-lib/standard-fonts/lib/Courier-BoldOblique.compressed.json"(exports, module) {
+    "../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Courier-BoldOblique.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../../../node_modules/@pdf-lib/standard-fonts/lib/Courier-Oblique.compressed.json
+  // ../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Courier-Oblique.compressed.json
   var require_Courier_Oblique_compressed = __commonJS({
-    "../../../node_modules/@pdf-lib/standard-fonts/lib/Courier-Oblique.compressed.json"(exports, module) {
+    "../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Courier-Oblique.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../../../node_modules/@pdf-lib/standard-fonts/lib/Courier.compressed.json
+  // ../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Courier.compressed.json
   var require_Courier_compressed = __commonJS({
-    "../../../node_modules/@pdf-lib/standard-fonts/lib/Courier.compressed.json"(exports, module) {
+    "../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Courier.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../../../node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Bold.compressed.json
+  // ../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Bold.compressed.json
   var require_Helvetica_Bold_compressed = __commonJS({
-    "../../../node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Bold.compressed.json"(exports, module) {
+    "../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Bold.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../../../node_modules/@pdf-lib/standard-fonts/lib/Helvetica-BoldOblique.compressed.json
+  // ../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-BoldOblique.compressed.json
   var require_Helvetica_BoldOblique_compressed = __commonJS({
-    "../../../node_modules/@pdf-lib/standard-fonts/lib/Helvetica-BoldOblique.compressed.json"(exports, module) {
+    "../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-BoldOblique.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../../../node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Oblique.compressed.json
+  // ../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Oblique.compressed.json
   var require_Helvetica_Oblique_compressed = __commonJS({
-    "../../../node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Oblique.compressed.json"(exports, module) {
+    "../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Oblique.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../../../node_modules/@pdf-lib/standard-fonts/lib/Helvetica.compressed.json
+  // ../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Helvetica.compressed.json
   var require_Helvetica_compressed = __commonJS({
-    "../../../node_modules/@pdf-lib/standard-fonts/lib/Helvetica.compressed.json"(exports, module) {
+    "../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Helvetica.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../../../node_modules/@pdf-lib/standard-fonts/lib/Times-Bold.compressed.json
+  // ../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Times-Bold.compressed.json
   var require_Times_Bold_compressed = __commonJS({
-    "../../../node_modules/@pdf-lib/standard-fonts/lib/Times-Bold.compressed.json"(exports, module) {
+    "../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Times-Bold.compressed.json"(exports, module) {
       module.exports = "eJyFnVtzG0eShf8KA0+7EfKseJXkN9nj0Vj0yNaNEHZiHkCySWEJsmmAIA1PzH/fRqMr8+TJU9CLQv2dYqMrK/NU9Q349+jH9va2uXsYfT86+8dqOb1u9o72Tw5P9o4PTk72R89Gf2vvHt5Nb5uuwafZbbP87od2frnhq/kc+V7h09vZfI1KB8fN7Prr5jOGRj8/TOezi9d31/Ou1fNue/m32R/N5W+zh4uvo+8fFqvm2ejHr9PF9OKhWXxsNn/50x8Pzd1lc/mhvZ3eDcf1ww/tH6Pv//nd/snLZ98d7L98tv/8+fNnrw6P//Vs9LlrvJjP7prf2uXsYdbejb7/rpNB+PR1dnFz1yyXo++PO37WLJZ9s9Hz5wd/6XbUfci79mF2senIj+39erHpw95/Xfz33v6rl8fPNv++6P99tfn31fP+38P+3xd7ry/b82bv43r50Nwu936+u2gX9+1i+tBc/mVv7/V8vvdhs7fl3odm2SweO7oN4my5N917WEwvm9vp4mavvdr7ZXbXPqzvm+/+3nR/9frN3vTu8n/axd6s++Pl6nw5u5xNF7Nm+ZfucH/qPuZydnf98eJr08e/P4qPD92fTBeXRe0a/ji9//swJCcvTp6NvpSto5P9Z6PXy4tNqBed+PLw2eivjW13QX7xbPTx4fLv467tUf/fs+6/+4evtgP2j+ZhMbvoIvrPf4/GX0bfH2wi+647kuX9tAvkf55t8eHh4RY3f1zMp7fGj4+Pt/z3VduF6nzuyvNhR3er2/PNSF3fZe2ync+nC+N9NvTCfbO42CR5UV6Wz5/edtKyi08+tP4Q+jHP2v100dzNm6uaFP/Mjm+63OxxeePKi3KA89XSqAXtoqvNaf6Ir+v7r81dbt51ZdZ6Tw5evBxiP58uv+aj+bNZtJm2d02GD0+i5cPXRSPaXrWrhaCzR9F2OftDwOaxEYPb6Jjeze5EXl208/Yu42VzO4uSjcB8YwSJNr+vpvOMrxdNV8qim7+vmmVvNkV5dVjG3o/9xcHBlr02dHLyYot+yK1+zOiv+Q9/crS/v0V/8z8sqfAmo797mDon69HPuWNv8x+e5oP4xfu9cYcN+kc++nd5X7/mo/8tt3qf9/UBvONkiz7m4/qU//BzRmfCOca52ZeMJvkj/zdn33k3n900D8E3rEjPOy0WKv8dmcrL/WIqF7PZxWxxsbrNw7ba+Paym3xEjfQGFw7GjSpH9dzQURnai9zqMrcSn3yVP/E67+trDtIs7+v/8h/e5D/0Gjbrv81/KFynza3uM/o9d9vNwcpqmY/+Ie9rlQ/iMWfcU24lrHSdj+tPP4hXR55fMREODp6XrFxU2lM2HjyHbHyYzS+rk/1l+yTiHKZnnwoe+qWaJ8d+Ka+rzdoQjdb7rCaPq3m7mAm+bCp7uVgtunn8Yp1TqS+b5axfuwr/365bdFldr2adcts+6KXDRu53/A2ZQl8S52ommFhBdWs5uR64nF5fqzlty3ExRiuOzdg1i8Zr//io6N0S/noxvQdTK3963p0/NKKXHt7z6XJHhHerlQWYDUDU3e67NfbsfjlbCqnr68PXdhUWi2neD8ntI7eYPop6mF6sHtTapffyq3nzR9YqlXU7vVio9c75olEffNk+TC9Cxbk060YSA2DKAuvQD7a57EKqFqmru+vpYnU7n67Ex7TX3TrzRuxuiv2AcbkNOevCa1/3HJpnLy6vuoVeWBn6EiVOsr4Cidw/4Vf4hEP/hNvO6VZz/Ajz5qkzc43LTdEvl7OszCvL85YOtOy9hbQvZd7VZ3dW3OU9jJst5tKQ+tQcM9Cn/5g3PjXJQfXdxdHz1VE6AltIX84eZ5cihJN4ZL5iFsXhh135o8+7/mhNVWiTdX/yRWUCXc279M8LpeI4h8GOnOrB/4ZGyEaC/sBPA9KH+ElD5xFwFhLPMqmjL45eFHG48CE+ilzH14UxD7yXOi7v1AF4edRyNJqqL/Vld+xcqra3aKwQzmyVniGhm8DJE335Gj/9qCyo5u2fzd21yNwPVFF2Gqc66cmxs0h2Ze7r2pAu4oHAUFNf/fwnR85O7T59bReiV7/Sp3sYKlXwMfKTF0P7y4oRfaYP8IjFyS1c4Viu+lXOQhxvTEGPYo2TrRYTvF3NH2b387U4LuqgJ3kcjpJI3XrrYTadX86uxCnWum4N7+LneMKKZPHa2JlmO2adunRRGei7mg3WMuZdpTZ/ph3h9bduxYAX4ewUaNHeNHd4ImTmuGiuZ8u49PUSpbWXT8e5LuxsZNVVdTgf8WDHnPLCrBhaS5Hxuqyk1P+SaR+9KmvX/lJXvBBmcf7pQaxQfqwa4FxOqvvDaD5UTKapzo414XVt+bAjKysB/rNWGvzZ5gq1EalNPbx4t3mk9sm5ju2zdy5LaMbcL+uCZv4gLvg8BJN2T3xqdzhiXuKU3d2uRE/iEXmo5DrTa4FC71ef4grnxTH6eJfAiy6RxaF9TCcxNjFX5t9Tlcd+ihEHzk8l7MaOMsX6QuNnOn80XqvxX+iwSxy6qH2dzmFqKEW+OTWhS902FsrlzZfjsslT7RsDSOsgCwLPz3beHs0UOzQMqxrVqZzrP8oFomWwPsWxayGdTaibHm1lyv+xchAryvwyEF2CzC6U0f614o2Lncvdd3F8/HAr4/Zhd17v/KzXlX2+rpp0PB2wEYj7cSMWE6cvRSrTfc0pbuQC2hZkYSXge9tZCnQIdsVm5yfN2+vNeN+14mJVWzfTVZZKBnW7qlTytTwSu8ICM7nHvJK+d2pXfv3lLi+a3fNrNf7TanM78l/PRqfN4u636WyxuYv8z9Hrze3q0bPvjo//9WzY2rpHQNvjjGgwdYRv4tbWVQLCjqHwa7d15FvlEABBcgRuQxXotv4DCs4TlCFkgW2vDgW0LRxE78PWp27rlW+VmCEKvXfh8yYWz23LBsBR6D1w6D3Q0ntA1HtQrPfAhroOrLcTJGfd1r53f7zZPDR1stl87pulU8jg6AHfd5sHtlt4TuDZdy+OCl6FQ1nlkK0qIVvJkK1yyFbVkK1EyFYiZKsUssfY06dNFtjWOnRwXboECA59oEMjLGFDVMfGqZidc0UX5Y1AVNvGZYEXFarcEJW6cVXvJuaiN4kq37guf5PZA0wgIzBOblD4+4zAFwyROThXDlFUsAlDlPjGVfabmEvAJKoD47oYTOaKMIHLwoRYGwWjpxSGxlIYuosxthgThM8UDcymIOU4RVvlQ2bvMb5rCIQLmVQZgoofmVwbguRMJugheBRRAqMqaJ2Dw5ZlPPvWYB/oW4bIt4yTbzln3yrKG4HIt4xL3yoq+JYh8i3jyrdMzL5lEvmWce1bJrNvmUC+ZZx8q/D3GYFvGSLfcq58q6jgW4aoaIyrojExF41JVDTGddGYzEVjAheNCbFoCkbfKgx9qzD0LWPsWyYI3yoa+FZByreKtsqHzL5lfNcQCN8yqTIEFd8yuTYEybdM0EPwKKIEvlXQOgeHfct49i2MDZpX5ORgUSQbI5G9LMhvapxcLYrS2kIT8LfIyeSiqJwutsh2F3XyvChq44tt2P2iShYYRfLBIL6vcHDEyMkWSVTeGJqAQUZOJRpFVaexRS7WqFPFRlGXbWzDtRtVLuCoxioOGrppENBSg4C+GgU216gKhw0NwGYDV14bGqwqXWPXjeI3h1T4b9R3DWnFiWObnUOaPDmqO4b0sRZhsOjA15XAsllHMTu2E/RrpOTWKJFXB4mdGsQ3mpJLoyQ9GhqAQyMlf0ZJuTPq2ZtRJWdGSfsytmBXRo08GSVyZJDeSwpujJS8OEjKiaEB+DBSKlmUVMGinssVVSpWlHSpYgsuVNS4TFGLRQoKui5g9FzA6LiI2W9RE24LMngtUOW0IK9kV9hlUfrGkAmHRbU+ZBV3xRY7hiw5K2rVIXvUkQRPBbqWAWQ/RSm76dB9tFJD5KPGyUSds4MW5Y1A5J3GpXEWFVzTEFmmceWXJmazNImc0ri2SZPZI00ggzRO7lj4+4zAFw2RKTpXjlhUsENDVFjGVVWZmEvKJKon47qYTOZKMoHLyIRYQwWj5xWGhlcYup0xtjoThM8VDUyuIOVwRVvlQ2ZvM75rCISrmVQZgoqfmVwbguRkJugheBRRAgMraJ2Dw9ZlPPtWOVg0LmfkXC6QdYHA3mXSG8XIvVyQ9mUy+JczMjAXlIO5mi3MNfIwF7SJuc4u5grZmAvkYya8FwyczBlZGQjKy0wGM3NGpeSCqiVXczG5RtXkgi4n17meXOGCciVWlHF0NYNoawbR1xyysbkinM1EsDZjyttMXIlDZ3dzYeeQCH9zrTYkFYdzvTokyeNcqQzJo4oY2JyxtQgUG50L2enKkaHTOSOnc4GcDgR2OpPeKEZO54J0OpPB6ZyR07mgnM7V7HSukdO5oJ3OdXY6V8jpXCCnM+G9YOB0zsjpQFBOZzI4nTMqKxdUWbmay8o1KisXdFm5zmXlCpeVK7GsjKPTGUSnM4hO55CdzhXhdCaC0xlTTmfiShw6O50LO4dEOJ1rtSGpOJ3r1SFJTudKZUgeVcTA6YxtnO6QAmVOlwTo9qAthi9bcTsphFyuYPI4w+xwg/AmE3K3gqW3DSI4WyHkawUrVyta9rSikKMVrP2sqOxmhZOXFUxONuD3iYCLFUIeZlg52CCCfxVCpVKwKpSi5TIpChVJwbpEisoFUjiXR+GxOAaKbjUg9KoBoVMVxD5VuHCpQQKPGohyqEFapUNldyp4R8iFMxVFh7ziSkWthDw5UuEy5I85MuBFA1mngPCKq+C83hpqA23IEPmQcTIi5+xERXkjEHmRcWlGRQU3MkR2ZFz5kYnZkEwiRzKuLclk9iQTyJSMkysV/j4j8CVDZEzOlTMVFazJEBWKcVUpJuZSMYlqxbguFpO5WkzgcjEh1kvB6FGFoUkVhi5ljG3KBOFTRQOjKkg5VdFW+ZDZq4zvGgLhViZVhqDiVybXhiA5lgl6CB5FlMC0Clrn4LBtGU++9UNHX2/WUs9ty5ZejorHAAoxBY7rM6clkoAsSsAsQMCG2AApBe/ocx8p2/L0MxQOF3hISKPlcAHRmINiHQFmHQE2dGRL/lrifmxbFndHFndHMe7OMe5OLe6OPO7OPO7OStydWNwNbUziyPozDluTuGWziyOcO4wO367XecEWDf6MwTJEETNOYTOuYmdiDqBJFEXjHEoTOJ4mxKAapsgWDuEtaJzRRCCKtvEc8iKluPfveMa4F8RxL5zjXriMexFF3IvEcS88xb0IKe5FoLgXzHEfOMZ9QOOMJgJx3AsXcR8kivvfhpC/8q2yT0Al0IBCjIHDJwMtkQVkQQVm8QQ2hBJIiaKjqc3l/VbpAaDSA0ChB8ChB0BLDwBZD4BZD4ANPQBSeuBo+52gXZ8OCol6k/vUlKUkIt2nRvYJXk4OOHe1EV1tRFfbuJWPua0cYCsPsM1H0tK8CIo4xras4QHl2FtJ7G/nyrdhjfI2r1He5jXK28oa5a1co7zNa5S3Yo3yVqxR3qY1ytu8Rnk71MT+sW3ZGsVR6QGguGxxjssWp7ZsceSLE2e+OHFWFidOSg8c0VbugVUAIt2DRvYgVADg3LFGdKwRHWvjVj7mtnKArTzANh8JVwAo4hitAgDlSNOksEGr0GCVO7KqdGQlO7LKHeHTGlBER1Yi2KuQRaej7XWGbQn0W7FseyRqtOepRnsaa7RHdNSgUPX2rIQfUCzV02D1p9nqT7PVn1as/lRa/am2+tNs9afC6k+F1Z8Gqz/NVn9asfpTafWn2epPq1Z/Kqz+NFv9abb605DVpzmrTytZfSqz+jRn9Wk1q09FVp+KrD6VWb054z7yrXjhrEfpslj4KpNQFyRQiZCqqoWa5MKhBlRDpOpyokZcWSRTkZFK9RZVSA8SKKNJpYJkVaQ+NclVwA1yxVILKhlSuUZI5pKOclsVdoZF1jw1+VbH2QlI1aZAjXb3na2CVHKNqIKBkEBeQqqyFWqSHYYakNmQqn2HGrEFkcxuRHI0piiCR5FAdkVqcq5fRsOF8wPbsmvmgOLlchPOwtY4bE3ilp3nOsKTV6Pxy4fLGsmUgoeTh1+GWBxbZywAgPAi8JaGt/YPIqL+197aj+pZRuOMJgJRYNTr7CRVQiTfbC9xwhe6KQYcMfVC9yDFbILgkUAhZFUFMrY5qwnjmjCpChRgUnOYY4NKsEUjDnmuWBlFDn+9YocGg59i+A1R4J2rkBf1LKNxRhOBKLTGc1CLVAlnkDmQRVznGHDwjKewvRttLzNsP7DfssnVkV24chQnWec4szq16dSRT4/OfD3grFy4cmJz4xaVwnwtEPXFOHXIuOqViblrJlH/jHMnTeCemhC7a5j6jDcIGFGf0w0C5qrP6gYBS9TnfIOABe4z3yBgzH0ODvC6KnD/o8pRiKqMRWwiIhIbcFyimqIT5RSjKFOkokjxKvc/XwtEMTJO0TGu4mJijohJFAvjHAUTuP8mxJ4bjn3+dejukW/FmxO/YicBxcc9nKdbGL9irwD5AxzOrC/Ahm4AsSc5DH2KW2XyQhTmLRc2U9axbY3D1pfQchI0m7EApUcEfkWjPSJEYU5Gy1wFXBktSxT6bLQs8CCw0TKm4cAVMSMamMqKmNSzHM9xRl/yH05yKx42tUgepPCmOAxg5DSKUaShjKIaz9giD2rUaWSjyMMbVR7jqMaBjhqNdvrCC8lp3Hd94YVqclYZlXGFf6nsZ1Jpz1lR/dKHQYeXXiExkFJaoERJgZJKCdRzQqBK6YASJwNqnAqoxURAhdKA3rMXlFKg/p59bnAmIz+W9Ivcw0S25WGvvHs+qOV1QRhxQzTcxmmsjauBNjGPskk0xMZ5fE3gwTUhjqxhGlZ8R5gRDWjlHWFSz3I8xxl9yX84ya14+NT7tIMUL7LhELJCI8kyDSjLaly5TR5ebkGjzDIPNus85qzHoWeVMoDkT3WF8iHJKi2o0Vl1xMZV5Ut1b5Pq33DmsJwTyF6hg9RxRknjAqWLCypRXM0p4holhwucFq5wQrgSU8E5JUF4wzYxGvjaG7Ysn4nojgX7Iv52ItrxoMq3UAetXN2B0TREg2mcxtK4GkoT80iaRANpnMfRBB5GE+IoGqZBxKt9jGgIK1f7SD3L8Rxn9CX/4SS34sFTFwAHCU/SjwjR2KWTdOZq7NRJOks0dvkknQUeOz5JZ0xjh28mMKKxq7yZQOpZjuc4oy/5Dye5FY+deop/K/02DNv2mfLfcMQAlcECFMYJeHpO/TccHUA2MMBsTIANwwGkjISj/gkt648/oeXIntByJB4s73l6sLyn8cHyHtHj4z2jx8d7Fh4f74k9N2QoPrW4IX5BqN+KF7t6ZHfOAeVLXD1PV7e2FG+MO47Xu3pEl7p6Rle5NqyNW/mY28oBtvIA23wk6a61K+IY/f60o3ixbYP4qcX3I3wvod+KGdUjkT49T+nT05g+PZLvJfQKJVbPKLF6FhLr/Sg9ffZhhM+r9FvxIZUeiSdTep4eR+lpfAalR/LBk16hp016Fh8x6VF8ruRDcNUP2VA/1Lz0wzBwvp/Pub+fK/39LPv7OfeXBw4U0d/P9NTpBxg4J735H5etje8f2tYkbsVH+D+Qqw+0XESD0TdEITGu4mJiDo5JFCHjOkwmc6xMoAQxTlmSL2o6onzZeVHT1M9535w+xnfFSiSSSZVYVVLK5FqsUnKZEDMsXLeNGTLOSTMRiLJOXaQdpHLnC1LPEIXTuAqniTmcJlE4jetwmszhNIFSzzilXuGQeoYo9Zyr1Cvq57xvTj3ju2IlUs+kSqwqqWdyLVYp9UyIqYdvRB3HDBnnpJkIRKmn3ogqUuVJTRY4tN98UpObiDDvelKT1UrIdz6pyTKn6q4nNUnFtNXP9lRUmcKhzefaZ6Z0juq3Y65SOzbYGfNamsdGu2OeUz7KlPjpoadjlaXjWvpOqgIXRPWhp22DbrjhxbR+y57tcRRfTOuReDGt5+nFtJ7GF9N6RC+m9YxeTOtZeDGtJ/HFtE9DNe+/tC1bkDuKC3LnuCB3agtyR7wgd8UX5M7sdRBHdlpnyE/p+q34TFWP7EsgHMWX3p3jybtTe9Xdkb/G7szj7qzE3Unpgf/hRTuHs/Qt2Z6qOoldanIv7VQVUcgu57KX4VQVGufON6Lzjej81/X91yYe0iwM3Syn2MxPwoy1YRdt7ntb6Sie8gK1MnJEeQmKF5izkpeArJoM2YmiF9giDOkiXgXqURlERGFKcGHZ3M5y5qzCMaxyrFaVWK1krFY5VvzsNigiViuRF6tUFE+hD/6dV/2WebGj9D1XZVpFF04PujEnP9YPurGYnTk96MacPTo/6MZCdOv0oBtx8O10GsBcObg6DWCJvLx2GsAyu3o6DWBO/l44mLwhym3jZPfGleebmC3RJDJA4+yCJnDKmxDz3jDNCIVTcTsOc0PBIhI8SxinqcK5sAYT6xFSM4dpleilOcSEWvR4Nil8lrOF5xXjPLkUoc275WnG+K4giQnHJHJS49pOTWZPNYEmIeM0ExXO01Hhi5xKPDEZp9nJuZqiiirmqSKt8mHyjGV8V9jF3GVSJeyVWczkWtjTfGaCLu6n3GuY3gzRHGdcTHTp6eYyoPrpZq3y1Lfj6WbdREyD+ulmraYpsfJ0s5ZpetRPN0sVp0p9wUKrctqsXrDQDXgK3XnBQjdK06m+YKFVnlqDihNsFLggo8qTbVTllBubiGklNuAJJKppGolyqtYoU81GkafloLKjkRin6Pgya+0D03QdVZ60SVX2GJt8K9JyGo8tdo5FntKjvHss0vQe1Fktb9NUH9U04Qe5rX1cmvyj+u1gq4VAbMDzUlQrs1NslOaoKPMCIaq8TAhqWiwEdVFL7bRwiCovH0iVi4jQRi0lQoNVrUNpWRHVbw+oWmLEBjsHtLbciI12D2heekR5l5k91SKGi5Eo8JIkqmlh8nlYjZw8t62yB0BlugAUYg8cPgFoiTIgixowCxWwIT5ASg04Ks59bMRKYUD4cssJIepwermFueq6ermFJQpCfrmFBQ4Hv9zCmAJTOEWnYA5ReofkRHEKln6HRIoqbNV3SKROAay8QyJVDqV8h0RqFNQgUmSDxuGl9zBOMqXQqvcwhKTCWnkPQ6gUUvkehtA4nOI9DKFQKEGiQILCYcQ3G04IUQDTmw3MVejUmw0sUdDymw0scLj4zQbGFKjCKUoFc4jECwQnWqGA1V4gqMgqfDteIKi0oGBWXyCo6BzaygsEFZUCTTLFm1QOe3js/oQZhTo/dp8EFV752H3SKKTisfukcBjTY/eJU+hMoKAZ53DZz19AuJxRuFygcLmgwuVqDpdrFC4XOFyucLhcieFyTuEygcLlv8NC4Rq+pR+CVQiFqmAKVMEqTEXLQSoKhahgDlDhHJ7CY3AKpdAMmAJTfvohhuVsCMn+9ob+GcYDmT3kDCxeHAIBLwkBtgtBwPzKDkA/ewVYnkgFZFd2nG1+DOHQema/gwAonm+54L9+0G/ZywWOxG8e9Dx9O1JP4y8d9Ej+yEGv0O8b9Cz+tEGP4q8abJBfv+q34ulej+ySpyNx2tfzdK7X03iC1yM6YesZnaX1LJya9SSefp+N/IoSkm3i7h+8Kqgf5ec2Vv41o8DKaXZg8UlqF8Kj1IDxq0aB+zPWzuBRaofwLLVBu8SzPRPdoM11ncMXtmXnnI7iY0vO8QTUqT2g5MgfOHLmTxkZa+OxtiKybS2KrY5iK6KVvhAVJBVI/0pUYP5ugzF/wN5rAi+XeFat4lauFHU1pOeyLFa5LPTFjl4RBcOXNXoWCmZcvHn7yP04eDMw82ZgcchAwCEDbEMGzMcFoCc4wOLNgGysnPU3IXwrvvgwTg4LPL34MEaHBSRffBgHhwXmOWYovj4zHhz25Ni2bLHgyBYKjuIiwTkuEJza4sCRLwyc+aLAWVkQOLHFgKFSC8dA8JWg8WCw/hdN7qXZKyLdy0b2Mngr4Nz5RnS+EZ03X9262XiE18vHo3SRfDzKV8bHgwW+sL2aAwKKb6Q5xzfSnNobaY4oL0Hxd9WclbwEZC+mGfJr1TaIaHw+2P6jOGM0PkDip3DGZHxA4w/gjIXxgUI/ezMOxgcs/NjNhmwu0J74Vlyj9ygttifFL/d90zIAmPklsOg8IKD1ADbvAeYWA9DzDWDxS0BmPM76p8yPbSs+mztJfgk8Pag7Qb8ExI8uu0I/pzFBvwQUfyxjMvjlS98qRw2oxB9Q6Ahw6AjQ0hFAdrjALPTAhsgDKT1wFNcOk+SXk8Ev9/f3bdPzzJktSJHFPHMBrQQorkehtVmMIzcSZ5B8BumG42SEq9HJKK1GJ6O8cJwMrgm7bUUE2lpvw8IRsFeVM57SQYKCc2iTOjAvLmNkn5ORWjdORrhunIzSunGS7BN4WjdORmndOBH2CQqtGyejvG6cjHjdOLH7GeAn6WZNEtgW9e2apAqDTDdskpCsMt+ySQqZZrppwwLYZ35BkbgyUvmCIklkqdUXFElmc80vKBInmy0cvNYQGa5xcl3jynpNzP5rEpmwcXZiE9iOTYiebJiM2W/GhQrle3SEseqNsVWZwI7tgjIyU7N3uyQM3ERyceNs5SYkPy8Km3rh4OyGyN6Ns8cXoRWfl9zehJ2RUr5vGpu/CZUZwPQ0DZjCc4EJPCGkW7oURzE1FGklEE0SxtVMYWKeLkyiOcO4njhM5tnDBJ5CTIjzCN1xLQarbrkqjSeU6k1X1UBMK+q2q9LS5CJvvCqRphh161VoMNEgpbkGJTXdoJ5nHFRp0kFJzzvYgqce1Gj2QYkmIJBgDkJK0xBKNBOhpCYj1PN8hCpNSSjxrIQaT0yoxbkJFZqewr34YBTiLn1W0IwQs8+ixrNV0JQNY4M8ZwVVTFuo08yFEk9eqKX5C0SewkCCWQwpTWQo8VwGWqs/Ps1oqH0rmmpeQ5mnNtQqsxs2SRMcijzHocbTnHosJIdbTHagrjSlKQ8lNeuhnic+VGnuQ0lPf9iCZ0DUeBJELcyDXcX2P7u8/a2Z4myIBkdDFB5lAg6fArQ8iQLI7vsDs5vbwOC37AeCPxW9Refd1vmoXNU+x+E/MrQZ2APfKgMKSHzD0jkNIND4DUvnYsBAoW9YOg8DBCx8zfn50Mntb90M5pp+K+Ioq0XaXiTtwtA/KLrdzeXF8COsjprwOQ0mwIDKiyuIOAEGTglQqBsuYsyLAYW8GFjIiy27gunGSfcx82a5nNlMfjXY64FttXHL0sCR+P2oKzJBoPGXoq6E5YFCvwl1hQYHKP760xXms/eV8mB7afmKUmCbAdd5D9elpplXnhjfquX3RmDL5hVHOFv0dFaGrj/GWUiwLcrZtOWcTVsa0maLYtpsWUybnt2UtYhvxft0N2HlASjfuruhdQbScJ/dcLyjdxOWE8DoC8tuyqx+bFsx6Dd5DneeBuMmzNiO5G933cT52Vn8Sc+bMBsbWsetfNQ5VW7yWzVDFCpv1WiVRnDXWzW6SR7XHW/V6BY02rW3arTMOZDfcJHx4szY9YaLbvKtEeHU2f2Gi27ECVV5w0WrlGb5vQct7AxMzsNiJdv1wx1a1oBwTiwo7BQEXLJsURtsqS3z8XYrG6QhaFXxzMihvfRSpNA2O6whaEUPvD5WFfgbYdTOoF350tzHjKAVBpaQtyqTWFo6bWfHKEet/MW8uSqPSm/3yUK0I1bjd6iyKuyImyQ74gbRbFgls2GZzIbl8GWZLMYnSnpVB2tHpHaE6Vsx2h2gHdHZFZpdcakH5dsRgf9/d3Jo6pByI//60YiHFbvSQsqKXS70ny3i2U/UytwptfB0qWjhD+5FHC9mRK18oNS6mXg+n9bU+LCraHE/vegv5Bwl6dE60AVpdLEZsJe2FZ+s6ZEtKQDZwQEM18AWZQ1jepN33eRd0xLFOeY5UFyMOI6vpi/issMZPTO0YZ7a/VYszB7F0LtATy1tkM/0/VaciXtkAQAU9+9CnP8XZTVkh97mALeVaLYymm0OW1rWuCIC2sYX9hdh1WLoPoTNT7SeG/s9tPcprlQvJq0h6r1xyjHnnMP6jqNhsW9O6Xy/kbkYDnW3MUk5zdPNRuY8PuJmYxSuc5w5/43LIkg3LYdKKBwS3RDVhHEqDOeqOkylEgl3OmNnuVgq9zlJrA8R1071JifJtVHiUsp3OCO/z8OQKqsIv+c/hxqz72XyVoYoaMYp351zjfGXPg01hl/6RC25xtKXPiUuBlB96VOSco2lL31izqOXv/SJhOscZ64x47LG0rdHDTVWONSMIaox41RjzlWNmUo1hl85RZ3lGtNfOcVifYi4xmpfOcVybZS4xtJXThG/z8OQaqwIv+c/xxqLX68CbaPAAYwqVwCpqfbkd7qUCsxXn9RfpWqsXH3Sqhr2+tUn3UBUaeXqk1RTLtSuPin5ujaCqYajqitZf11MqeegYpVGgWs7qlzhpMo6j2242vPVOBWoVPm7rsbJJt9KhOQFu6/GyUa7cyG5Q+VqnFLva8Oc/SLIv9d26N4xnNj1Fxm2l2qMlKATtq+0iji+HBA1fEEgKvaSQMT+OkDk/kpA5OW1gEjtG6oC/jQqr3MasRNnwuIV0CJuvk37KOx3nNpM0mdPdEwnKUDdAMFPCvVb8XpPj6JN9Ehc3+l5uq7T03g9p0d0HadndP2mZ+G6TU/i9ZpHmBS8T1Fvcp/ojsNjNnrnsk/ihsJj8HFHoqt8v+Cx2JJv5WPmFx+NywNs85Hktx5NEcfYxvfRHoN9GDJreNGjpzQcT6FrT7lrT5WuPcmuPeWuPVW79iS69pS79pS79pS7tk5dW4dMW+dMW+dMW1cybS0zba0zbZ0zbS0ybS0ybT3Ce+prHA5A4p76moYDaLynvhbDAQrdU1/jcACK99TXYjj4wscwJuHCR2zJo5MvfDAX4yQvfLCURyxf+CDOYycufEQBRjFdHmCuxlNdHmCJRrZ2eYBlHuN0eYA5jXa6FjAMuXh2cRh1fnYxteexl08uCklkQOW5RaXmPFCPLQqJs0E/tpg0yAn1MKGQVGZUHiUUKuXHjgcJRQvOEvUYoZAoV9RDhF26/Os//w8s8zdF";
     }
   });
 
-  // ../../../node_modules/@pdf-lib/standard-fonts/lib/Times-BoldItalic.compressed.json
+  // ../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Times-BoldItalic.compressed.json
   var require_Times_BoldItalic_compressed = __commonJS({
-    "../../../node_modules/@pdf-lib/standard-fonts/lib/Times-BoldItalic.compressed.json"(exports, module) {
+    "../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Times-BoldItalic.compressed.json"(exports, module) {
       module.exports = "eJyFnV9TG0myxb8K0U/3RjC7NgZj5o0ZZnYGz5pZGyH3bsyDEA3oImhWfxCajf3ut1Xqyjx5Mkt+cbh/p9RdlZV1qrrVJf5T/dg+PjZPi+r76urvy/nortk7PPpwfLh39P7DyUm1X/3cPi0+jR6brsDl5LGZf/dDO735dTGaTsYbdTmdorq3UfdUHj1Opmss0MFhM7m731xwU7Y73pY+fbqbdqW+e3vUkfnPk9fm5vfJYnxffb+YLZv96sf70Ww0XjSzL83msz+9Lpqnm+bmc/s4euqr+cMP7Wv1/b++O3jzZv+7g7cf9k9O3u+fHLz9Y78adGVn08lT83s7nywm7dPmSl0xFS7vJ+OHp2Y+r74/6vhVM5unYtWbNwd/efPmTXeNT+1iMt605Mf2eT3bNGLvf8b/u/f25MPR/ubf4/Tvyebfkzfp33fp3+O905v2utn7sp4vmsf53q9P43b23M5Gi+bmL3t7p9Pp3ufN2eZ7n5t5M3vp6DaYk/neaG8xG900j6PZw157u/fb5KldrJ+b735puk+d/m1v9HTz13a2N+k+PF9ezyc3k9Fs0sz/0lX3p+4yN5Onuy/j+yZ1QKrFl0X3kdHsJqtdwR9Hz7/0ffL+/cl+9TUfHb4/2K9O5+NNpGed+OHdfnXWyHEX4+P96svi5pdhV/Yg/feq++/bg7fb/vp7s5hNxl1E//Wfavi1+v5gE9lPXU3mz6MukP/d3+J3XcwSbl7H09Gj8KOjoy3/97LtQnU9VeVNf6Kn5eP1pqfunrx2006no5nwD+/ebflzMxtvMj4Lx8cftsLosZPmXXi0ZvkzqQapy732PJo1T9PmtiTZj0n1RvPNGecPqhz3yvN0ORcqMRt3A3XkL3G/fr5vnnzxrimTVltykBs5n47m9742fzaz1tP2qfFwsQpKLu5nTVD2tl3OAjp5CcrOJ68BbF6aoG+bOKZPE6iwhGjcTtsnj+fN48RK0gPTjQ842vx7OZp6fDdrupEcNPPfy2aevEZT8KDve637+/fHW3bq0Q8e/ahpe9Cf7MyX+smjn/0H/+aHwC9+UP7qG3buT/9R0du3W/Sbtjuf6+++Ep88uvDn+t2X+oevxGewjvdb9MWf69Kfa+DPdeVrP/SlvvrT1x790yffdTeZPTQLYxsyRq87zY5T/hx5yrF4yngyGU9m4+Wj77XlxrXn3dQTDJHkb6Yy6lMeXQs6PDzsx1jgv75UcOVb/8E73433PkgTj/7Pn+vBl9IhLGn/6K8YmE5ge8/BqPdDaObR3Ndr4Sux9CF88Um48pV49R9c+0r8qejwg+aXTYSDg9zrMJna8ruycTGZ3hSn+pt2FcTZzM46EyzSQk2T421u/+1mYYg+K59ZR3PH7bSdTQI+bwpnGS9n3TQ+XvsuS8NmPklL18D+t6uWeFjdLSed8tgu4pXDRk4n/oZMoc+JczsJWLB+6lZy4XLgZnR3F01pW45LMVpwbPqumTU3/qPdWmh0Nxs9g6nlj153dxFN0EoN7/VoviPCu9XC+ks6wOrdXUGOzXQ6eZ5P5oHUtXVx3y7NWtFN+ya5tedmo5fABkfj5SJauiQvv502r16jkZXx42g8i5Y717MmuvBNuxiNzYhTadL1JAZAlBmOQ61sc9OFNFqjLp/uRrPl43S0DC7T3nXLzIfgdCNsB/TLo8nZk2xwp7rqOXjf53w7u7ntlnlmXagLFDvH6vrDcrnAhV7gncwJs5vHzueWU7yCnGmkTDzjZjPk5/Ng+poW1uZtoZ5tkPTd6OxuiLush16TlZzrUJ2Ybf7p5G+zRiemsEv1dLbvdG3kaiCTxc3kZXITdFJta6bL5WBoaLXth3SdF3xIJ0gagzJVpzsvGiTQVH9KvZ4ZKIp9GKTmNBr0M9RD0hP0Ab0HcBfRO4bOIeAWxN5iUkOPD4+z2D/0CC5FnqOrQpsH2so4Lp+iCujwKOWotVRd50dn0xup0tmsrUI4vVFqhphmAidH1MWrvfrhSR+waftn83QXXP6zvYTew0WN1OTYOUgCUYcXTyOylrUVga6mturdj4+c9tF9OwtadUFX1zAURsEXcok32WwLYRvQBTRidmozjzfmy7TGmQX1pRSUKJY42Wo2wcfldDF5nq6DelEDNcltd+RE6lZbi8loejO5vfV9tS5bwyd7HU3YXcny08402zHrlKVxoaOfSjZIHQqeEo/NX+lE+PCtWzDgEzi5AZq1D80T3gaJOc6au8ncLnx1iNLKS6djPy7kXmTZjWpzN6LBphWkDMyCobU8lmRcFlLqn2Tahyd55Zqec9mnYNLKnxb3vq4/Fg1wGvnWu7xsWxRMpinOjqVZ8LS0fNiRlYUA/1kaGqVKXZR6pDT1lDx3XrpyeRxf7FyW8IyZ1wXNdBE87lkYk1ZPXLU7HDFY6b3PJhe0xNZIQxWuM3UsUOj1PtWucI6P0Me7BJ51iQxVk2nE3cJ8OMj5OgonpI/hIkPuMGzH6T2MfKkTmWJ5ofFrITV/LY3x32j+y3HoonY/msKztzzIN7cm9Jxb+iJyefFlu2zSVPtGB9I6SILA87Pc31gzxQb13Rr16iic67+E613J4PgWRzKss4noG4+2MOX/WKjEkjL/UOz8ZjKOjPasMKHNdrbmk+0frW5huft5d17vXFqfFs55WjTp+HbgovDs8M9g4tSlSGG6LznFQ9iUN9mrzEpAz7ZzKNgq6PPdnVeatneb/n5qg0dVrTdTSR8v5QzqTlUYyXfhTYM8X4GZXGNeSN+ncB6H7w/dFKGeXxrjPy0330X+sV99bGZPv48ms803yP+qTjdfVVf7370/+mO/P9q6h0HbelrUmzrCv22O3sjR1lUMwoahcNEdHelRrgIgSA7DpasM3Y5/g4zzGKUPmWHbp0MGbQcOon9sjqT1l/YoxwyRab0KA3PWgW/9oND6Qdj6gW/9oNj6QdD6vPAzLNkJkqvu6ETaMOyOuqk4H9bd4bEe5SYBgqorhVcCOnyY8bI7eieFlvlsgEyAgMNVgOYAAaIAgSIBAiYBAtYHSMmLacPKHK3tkcRHEcZnS/tCOF4F0aAVTiNXOQ/frMAYFkQDWXg4mrMKQ1oQZbbwKL1F9DkuEiW68DjbReaUF4FGvXAa+pnD+M/oMkDkBMojO8jqwF+OjUH4rvAFFiFSIXwFsxC5FD5nGyJY78gYDCQjdJHMwEoEkZ8I96aSpchZsgb2Iog8RnhkNCJ6txGJLEd47Dsis/mIwA4kgrWhjF98q1cerQNE1iTc+1NvE+hPgsifhJM/KWd/ygr4kyDyJ+GhP2UV/EkQDTDh0QAT0Q8wkWiACY8HmMg8wEQgfxJO/pQ5+FNGlwEif1Ie+VNWB/5y7E/Cd4Uv8CeRCuEr+JPIpfA5fxLB+lPG4E8ZoT9lBv4kiPxJuPenLEX+lDXwJ0HkT8IjfxLR+5NI5E/CY38Smf1JBPYnEaw/ZfziW73yaB0g8ifh3p8wNGhSlpNTWZHsikT2LCODcVlO7mXF0MJMEfAxy2k0WjEakraEH5dWp8FpxXiE2jI8TK1KVmdF8jsjgukZflniZH8kRh5oigwK9WA3tOI34x/4otV3xb/gkLbMzvg7r7SqNUyjgWsajtZpBPBPy8lEreid1OiRnZoC4KmWk7FaMXJXW8JbrNXJZ60Ym60tw45rVbZdq1rvNdpLIU6rAl+XOPmxFb0pK0FLRkqGjBLZsZHYjEEEK0ZKRoxSaMNQAEwYKVkASpEBoO6HP6o0+FGKhz6W4IGPGtkuSmS6IIHlAr2MKdmtkSKzhQKD8OpstCh9I8qByaJajnLBYLHEjig7c0XNWisoYKxA0VYBg6kiJUtFyRsqqJGdggxmipSsFKXISFH3NooqmShKsYViCTZQ1Ng+UbPmCcpLGJNVSNcxJdNEyVtm33r0S0FklsLJKZWzTWYFPFIQGaTw0B2zCtYoiEas8Gi4iujHqkg0UIXHo1RkHqIikAsKJwvMHPwvo8sAkfMpj2wvqwN/OTY84bvCF1idSIXwFUxO5FL4nL2JYL0tYzC2jNDVMgNLE0R+JtybWZYiJ8sa2Jgg8jDhkYGJ6N1LJLIu4bFvicymJQI7lgjWrjJ+8a1eebQOEFmUcO9Pua5oUMrIoVQgiwKBPUokMCll5FIqhDYlMviUMhppKkRDTVU/1lSjwaZCPNpU5+GmCtmVCuRXIoBhCbuMGFkWCJFniTwIrsmupcLOWAa+pVoplgXnUr0YS+ddqljzEg7uJQztSyD4lzIyMBW8g4kWWZiI4GHKyMRUiFxMVW9jqpGPqRAbmersZKqwlalivUz4S9D+VcDWESM/U8EbWq4YGpoyMjQVyNBAYEMTCQxNGRmaCqGhiQyGpowGoQrRIFTVD0LVaBCqEA9C1XkQqkKGpgIZmghgaMIuI0aGBkJkaCIPgmuyoamwM5aBoalWimXB0FQvxtIZmirW0ISDoQlDQxMIhqaMDE0Fb2iiRYYmIhiaMjI0FSJDU9UbmmpkaCrEhqY6G5oqbGiqWEMT/hK0fxWwjaG9YyYxYQFbvdVm/W+UqANlQmaWMVmZYDayXgAby4RMLOPQwnoRDCwTGnIZRwMua364ZYUGW8bxUMsqD7TMybIyJsPqMdhVTy49IasSHBlVLw7cldikMt4RscCgshJHrGBOWS1EzBlT5taWegqm1BO0pB6BIWVCdpSxN6Neiayol8CIMiEbyjgyoax5C8oKGVDGsf1klc0nc7aezK3x9PTFtXXlyNoTWkFl7NdP/SBAvxFEhiOcHEc5W05WwHMEkekID10nq2A7gmgUCY+GkYh+HIlEA0l4PJJE5qEkArmPcLKfzMF/MroMEDmQ8siCsjrwl2MTEr4rfIENiVQIX8GIRC6Fz1mRCNaLMgYzygjdKDOwI0HkR8K9IWUpcqSsgSUJIk8SHpmSiN6VRCJbEh77kshsTCKwM4lgrSnjF9/qlUfrAJE9CXf+9ENHT7ujgyM5yp8FlL0EkAkpcLgC0BxIQBIkYBIfYH1ogOSBrWiQMlCOcgsAmeoCh+oCzdUFRF0OijQEmDQEWN+QLTkzcT/zcT/zcT8rxP0sjPuZj/tZEPezIO5nLu5nPu5nvRkcSXs2PnAoR7XRamuDZzTue9qbLkZGEIVHOMVIeBQoEX20RKKQCee4icDBE8FGUDCFMfMrHwYIaEa1L8WhFR7EN21itPHNiOObOcc38zC+WQzimyWOb+Yuvllw8c0CxTdjjm/Pr3wYML49qn0pF9/MXXx/7kPbT4Y/Y1iR5ZAiI4NSwTiUYrUoZeBECsGKFIoXKcphAzaSuT4d5aYAyi0BZBoCHNoBNDcDkLQCmDQCWN8GILkJira/cdk16uAkI2pjE3RQkxd/hhU6qIk7CHbdWh50XBN1XBN13EQyNh3lugMy1QQOtQSaKwNI6gJMqqKsldVaOrJru4RMTYC75V6iuSaAaMoFReoILN8GAMr5oKj/EVOTEDMzfmd2tCck9wKA7G1AEs6Ns557Uz33fnpesNLz0EXPvYGeB955HtjmuXPMc2+W5/2gP5T2jGyKneOgBxRk3TkNeqA2687NoAdGWXcOgx5IboEiGfRCrN74NsmIRxS3qQnbZIY7YN/UJmhqEzS1tUe+zm2hgm1YwdbXhAcYKEEdZYAB8rHXASZoaQosfUOWhYYsw4YsfUP4fgyUoCHLINhLk1cfq+2TkHd6ZO8sEwpuKhN395OJ2lvJhMK7yKTQDWRiOfyAcvgV6VD+iIkOKCc6Im8/HynRkUKiA7au9NEkOjBypY99osORr3NbqGAbVrD1NeFEByWooyQ6IGuTH/usPpC4S1YDsrVWjrVWKrVWxLVWRWutTCOrLPu9kLU98rVe+9qZqQ7HBQk0REiNRgsV8QOHCtAYIjUeTlSIRxbJNMhIpfFmVUgPEiijSaUByWqQ+lTEjwIu4EcslaAhQyqPEZJ5SFu5LQo7wxKOeSryrYazE5AamwIV2t12tgpSyTWsuiyNMPYSUiNboSLfGsNsNqTGvkOF2IJIZjci2RqTFddFYWdgvHP9Vm0f7b/9IEdyYwfIrORV2DwveHecj4bmqLZH4nyK0MuEmsfZ268OfusbrIXW/mxrfzbcc9/X2e25dzxqKW5Ip3MPPaoDRPWN9qOTFMUBt2FTcY5ItA27l2xKQHBIoBCxGgXKlrkqXXNYEuqiQM0j9VuNjILpB1T4UQ5seUD1BXq7w8AKopAqj4KZ1St/7qFHdYCo6sLLlY4ClbW1L87BEe6u8Kna3vdvlwXpyK6FEsp3zYCCNVHibiGUqF39JESrmcToO6bEzNdLidilzKc8pE4DRG0RTg0SHrVKRN80kah9wrmRInBLRbDNFUxtxi8bGFGb3ZcNzKM2R182sERt9l82sMBt5i8bGHObzQg/LQrcfqtyFKwaxsIWCSJiC3BcrOqiY2UXIytTpKxI8cpfnJ4GiGIknKIjPIqLiD4iIlEshHMUROD2i2BbLti2+aJv7qEe2Uc2F9hIQMFTnAtqGlD7FOfCNAgYPau5gGYAsc+hLvoZCo7s470LPy+poN8TXfSzkR59NSVro9HXRBdV9A3RBRrtISEKszNa5lHAI6NliULvjZYF7gQ2WsbUHbhWZUQdU1irknrl4zn06Kv/YO1LcbdFy9deMtu5oQMtp160InWlFaP+tCV8p1qdetaK3L1W5T62qu1oq1Fvux+eCDn1+64fnoiKXBV6ZVjgXwvnqQvlOSuKv7/Q67BpFRIDKaUFSpQUKEUpgbpPCFQpHVDiZECNUwE1mwioUBrQZviAUgqUN8P7Aldh5Ich/RqeoQ7LcrcX9oj3at4GCD0uiLpbOPW18KijRfS9LBJ1sXDuXxG4c0WwPSuYuhX3+DKiDi3s8SX1ysdz6NFX/8Hal+Lui7bE9pJ9xoVdyAr1JMvUoSxH/cplfPdyCepllrmzWec+Z912PauUASRflhXKBydHaUGFroo9NiwqX4tnq4uf4cxh2SeQ7JmD1FFGSaMCpYsKUaKo6lNENUoOFTgtVOGEUMWmgnJKArNz1jHq+NLOWZavgugOA/Y1+GwdlONODTeY9lp+ugO9KYg6Uzj1pfCoK0X0PSkSdaRw7kcRuBtFsL0omDoRn+Yxoi4sPM0j9crHc+jRV//B2pfizose8PUS3qQfEqK+czfpzKO+i27SWaK+8zfpLHDf8U06Y+o73LrAiPqusHWB1Csfz6FHX/0Ha1+K+y56038r/d5324cjOcqfBZQ7C5DpJ+BwBaC5dwBJxwCTPgHWdweQ3BOK9JWpdGRzLiGbbgkFmZa4S7JEbX4lRKmVGGVVYiahErG5tEH0nuQGNaaTGtulCdnX4rbIb2pJPOx488U0YLvDJSHavZIYbVzZsM2XzUfSLfINMyBbQeVYQaVSE0W8zUYVraMy2ZukSLYlCeKXEv9R4Y6GdGR3NCQU7GhI3O1oSNTuaEgo3NGQFNrRkBjtaEjM7Gj4XG1fDjnUIzsQEgqyPnGX9YnarE8ofNUrKTQeErPvrCVkk/9z76Hv9CinNSLjnCoMzHkGvr2DQnsHYXsHvr3cS6AE7R3Q+P8MvaRkY/Xb7+E+9y6vR7U9krxThPm1pfmRGfS+IAqJ8CguIvrgiEQREh6HSWSOlQiUIMIpS/AR5jtClC+FR5ikDvy5OX2E74pVkEgiFWJVSCmRS7FyySWCzTB8SksZMvSoDhBlXfRItpfy91yQeoIonMKjcIrowykShVN4HE6ROZwiUOoJp9TLHFJPEKWe8ij1sjrw5+bUE74rVkHqiVSIVSH1RC7FyqWeCDb1cC8VZcjQozpAlHrRXqosudcicyXi1yJjNQxw8bXIuAAHe+drkXEhF/j4tchY5YR17+C8CwVO3l3v4IRlBqVrunS26rdjHqW2LbAz5qU0t4V2x9ynvJUp8d3LSWGWDktCXRR4QBRfTtoW6Lo73dBtV7fpyK7CE8q3Q4CChXnibmGeqF2YJ0TL78T0FkFZ3tauxK7IL/vRrO25sDG4dOMWeBgQGaGAePWtiq6+leUBCEj26wlK2/UO5CjXGpBs11Nkt+spx+16SmW7niLdrqdMt+spy9v1lMh2PUHjdrrd1nWoZHtjqmXsJxrfSrkvRRS30tyXAoX7UigsSadIk05Z0Pj79fN9Y6u02cm3fX0sHdmXzRLS1ziEbe5vTyRL5f4WULD7MnG3+zJRu/syIcpLUGhfZmI5LwHZTZgbJPe32vqZadbMt1723CGyU4II8+Zx4jNnacos/SXoVyGUuxf8EpXXcBTxjgNV9N0cZUF/yu8+CFmZo7U98m3wLyPmaRVd2L3Wxpz8OH6tjUXvzO61Nubs0f61NhasW7vX2oiDb7vbAOaRg0e3ASyRl5duA1hmV3e3AczJ3zMHMxREHiic7F545IYieuMXidxfOE8BIrAVimAnA8E0I2ROg1uxmRsyDk7As4RwmiqU74hQMGmo5GcO0Wj6EM5ziAil6PFskjlMKYLIMoSzGWUBZhhBNM0Ij+YaEf2EIxLNOsLjqUdknn9EoElIOM1EmfN0lPnMR4MnJuE0OymPpqisBvNUlpa+NM9YwqNpS8TyfMATmPB4FhOZpzIRSilEk1rGK4/WASq0Opro3LvMeTaI32WOVZ76drzLHBcJpsH4XeZYdVNi4V3mWKbpMX6XOVRxqowfWMRqOG0WH1jEBXgK3fnAIi7kptP4gUWs8tRqVJxRrMCTiFV5srVqOKHYIsHEawvw9GtVNwlb2U0mVqYJ2Yo8LRuVHY1EO0XbnaNFYWek3aRN6jcjHU3gVCCYxm0Jnsyt6qZ0K+/uCze9GxUneSuwc1rVubXdqgrTpBV48rdquASwRYKFgC3AywGrFhYFtpBbGliZFwhW5WWCUd1iwaizUjzdwsGqvHwgNVxEmDLRUsIUWJY+6ZYVVg0XF7bIt2Zit9CwamG5YQu5RYeVdyczL0CMuCoJ66KwM2J+YTLoVyOHR3Ikz6MVyRshiuxzaeX4MFqpPIFWpE+UleljZGX52bESeYS/RWaXCiFqi9+lQjxqVbhLhSRqX7BLhQRuqdulQpja7Hd3RJxaX9jdEYlRHMq7OyKdIlLa3RGpHJt4d0ekUZR4o4OnFKFwo4OXouiUNjp4lSITb3TwGkcl2ujgFYqI2QVAiGLhdwEQj6IQ7gIgidof7AIggVvudgEQpjZHb8/HCkWg+PZ8LEfx2PX2fFyColN+ez7WOValt+djlSJnXxtnRtEKXhtnIYpQ/No4axSV6LVxVjgS/rVx5tR6+bsMpxGj1qtArVchar2qvvWqUetV4Narwq1XxbZeObW+/5H4U0+o5RlTuzOOWp013+asUIsz5vZmzq3N3LY1U9vSq76VH/TIvtV7ha0DFLzVe0WtAmrf6r0yrQFGb/VeQSuA2Ld6N2jzo/rbVxvTkf5oqyC7UFdBfyMrHdmN4gkFe8ETd9vAE7U7wBMKf+wqKbQtPDH7s1YJ2U3fG5Te/337Vg7lORAwCQIw+0QIBHwOBFie/gDTxzkA9ZVTgPmdU0DyOEeZvTfaEvOG8wbRZ5qgwfpLsMgKDcbnCsdA8YdgobT84qki/V1TZVEU5BHBsfTe5rnAkeTuxD70TIgeJW5Ya0/bBhFoS61t4+5tg+7lm3iUop6XG3ZkQS/zi9Mb5u+MN3Rpmr300VkGT3oTd493E7XPdBMKXwxPCj3iTSzojKV5mDvsPXTbhiF6KKA8HgHZn91VjsmpVJJQkSahMqkusL66QOT3dgWlp8zSHn20rMiml3LMLqWSXIo4t1TR1FImmaVIEkvQSOaBIRohIDt3DZ0NAndz1xBNEBDNXUNjgcDM3DVEA1SUR8ARkK3/ad+kZ15v5Ege9CmSB62AzAM/5W6Dx5CtDwrbDR5D43zA9DGpMDE+LaYPRIeVewo6rPyjz2FvfB/kFOJ7gGx3KsfuVCrdqYjyEhTtaGU5LwFJrwoSv9NORLvTzl7aI2t3w4LdDUO7G3q7GxbtbhjY3TCwu2Fod2t75Gu9drWrjUvW3iVr75J1wSXr0CVr75J14JJ14JK1c8nau2Tdu+SBtEdcElDwa5g1uSRQ+7uXdeCSoNAvXNbokoDsb1nWFX5RVlfu27G6cl+J1c4lgbsvv+rKfeNVV/5rrrry323VFX+hVVfuW6waXBIJfl9VV2aRWFd+kVhXfpFYO6M8Vu7WiDUbJZ7FrhHryq8R6ypYI9aV+xqprnCNWFdujVhXfo1YV2aNWFd+jVg7s0TBrxHryq8R68AvUeI1Yl35NWJd+TVi7T2zJs/U4CztkU/nZSF3l2HuLn3usmeCEmT1Msjqpc1qfEzfN889pmdOXhg/pmfRu6J7TM+c/dE/pmfBOqV7TE8cPNNtNmMeuWe02Ywl8tHSZjOW2VHdZjPm5K2Zj3xPs8sKJ6sVHuWsiD5xRaLsFc6JKgJnqwhxyrIbZ07jUrHx5YxxrAtjgxKBbVqFwKtF9IatUuDaIpJ1C2f/FsGZeFbYyTMHOxdEni6cjT0LbXA9Z/EihD4vamD2orHji1CwfdGd94vCE4AIPAtkgaeCzIP5IEvLABWGYDg9iFgeajxRCI9nC5FLI9HNGyLYkUjf5PUxib7JCySaRYrf5AW6n0uib/ICiWeU8Ju8QLPzSvRNnpdgdkFKEwxK0RyDup9mUKWZBqV4ssESPN+gRlMOSjTrgDQKs4TnHpRo+kEpGhao+5GBKg0OlHgAoMZjALXiMOA5CSSyB6OYmQkUtCDE7K6o8RRltGCWQt1PVEYN5irUabpCiWcs1NykBSLPWyDB1IWUZi+UeAIDrY0v76Yx1MKZDAsEkxnKPJ+hVpjSsIib1VDkiQ01nttA4+kNpGCGA3UZ0/JwD6c61HeOaZ7wUIrnPCyxY9S7mQ81M+qvO3Jd5a/srjF4h4L0D3RcYzgABX+K45qaD9T+0Y3roLmg0J/XuDbNA2b+kMZ4M+ikWZujB3sUfWE5lmWmRw8BCs8hW1M8eghQfI78183NWQQ+hDA809aStz/4f3M9zb/5v33B06hWakxaZKNGlFuACF+XAg7Jh1RtGHF+0QaQvEQBTF4tUHZb8R+825DuMtNmPk/PxgU2pgj84UtB9m9WCqbf/tmw2yq/Pn+bHVi01p+Z/Fa5/V2i28g+VRFjVKR/tTQj+gt0t9TV2+njoQ/HNjgPGA5A9hcKHtwkDNx9cf/A8QRsv89/MHMsMPod9wcT6Acf6IdCoB94PlNqw/9QDP+DnbSU2S558F1iRygGvfDOf6xSV+x65z8u4jtoxzv/cQnqttI7/7HMnenfvw/jxV286/37uIjv+ML797Eap0Pp/ftYpiQpvH+/VTeO9yLz8FP2YEDZgxGZM4KQf3lQUdsfbb/t3Rxt3gg/kCMN5OZobY9sZyTkwttilfurZASXyujVf3AdILqycH95Mx9BHQyHihj+WjjPusSpXlb0lYNJEaoGFCoG9DU8wzqmVCWUfIXyxAu1yQiqktGr/+A6QFQD4f7y9LYo1IIUqAwpr8WzrcsK1ZBlX1FZjUAVhUHlhL0Gn11HjKqigq9E/g1YqENGUIWMXv0H1wGi60d/5qmX0Ez6y2cEl8/o1X9wHSC6vHB3+byuKSxrrWy1hKbN7SLL2//3N4r4gepG2mbxePtH7yPNXDA45Sz+mGyRijR5DhJpdsnvS8zjeszt80yr5QuGWr7diFVTnajE82hcuKxugLI42gFmSmgKdtGV9f97IbII7hF/j0KYi/MvLBB2xcM9n6FIH+1js/37SseG2Bd5BMtfV7I42LcmGi79rGJ3qgmm3WfC6UUi4Wa/mVB5w9bgzW9zbd/azGToSO2J5K7F+MwvKS/QAdsLv/Sr7m26vOBSG5AdcC9uUQ3cvZn3wstnwPaFvRezUAamd5jCWnvk69wWKtiGFWx9TdzaVpWgjq19dfDFLF0FSX5vg9/NC5Xemacja/gJ2VfLEwoW9om7aSFRu4RPiJbkidF9fGLmN3wTsevxlUuoVYWPElaVe5SwMgkFKG5TE7YpeBaxMgmlKGgqP7JYmYRa+YRaFRJqFSbUyifUqphQqyChVj6hVj6hVj6hXk3wX33wX33wXwvBfw2D/xoH/9UH/zUI/msQ/LVLobVv2JqnKMJcPPgKxiv4oT/++/9jjgIE";
     }
   });
 
-  // ../../../node_modules/@pdf-lib/standard-fonts/lib/Times-Italic.compressed.json
+  // ../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Times-Italic.compressed.json
   var require_Times_Italic_compressed = __commonJS({
-    "../../../node_modules/@pdf-lib/standard-fonts/lib/Times-Italic.compressed.json"(exports, module) {
+    "../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Times-Italic.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../../../node_modules/@pdf-lib/standard-fonts/lib/Times-Roman.compressed.json
+  // ../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Times-Roman.compressed.json
   var require_Times_Roman_compressed = __commonJS({
-    "../../../node_modules/@pdf-lib/standard-fonts/lib/Times-Roman.compressed.json"(exports, module) {
+    "../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Times-Roman.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../../../node_modules/@pdf-lib/standard-fonts/lib/Symbol.compressed.json
+  // ../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Symbol.compressed.json
   var require_Symbol_compressed = __commonJS({
-    "../../../node_modules/@pdf-lib/standard-fonts/lib/Symbol.compressed.json"(exports, module) {
+    "../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Symbol.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../../../node_modules/@pdf-lib/standard-fonts/lib/ZapfDingbats.compressed.json
+  // ../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/ZapfDingbats.compressed.json
   var require_ZapfDingbats_compressed = __commonJS({
-    "../../../node_modules/@pdf-lib/standard-fonts/lib/ZapfDingbats.compressed.json"(exports, module) {
+    "../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/ZapfDingbats.compressed.json"(exports, module) {
       module.exports = "eJxtmNtu20YQhl+F4FULyMGeD7pz3AY1ChtG7NpFA18w1NomIlECSRcxgrx7SVk7+wOdG8H5OJydf2Z2d5gf9cV+t0v9VK/r+6vXsXlOlbHe28paq229qj/t++m62aXZ4J/m8PRb1z9/baZxefK63Z6eXN5dVMvTCh83u277xr/6kLrnl2XNq7TpXnczuZyabdee98/b2VzM/x4/dd/T5qab2pd6PQ2vaVVfvDRD005puE3Lu7eH1HbN9hTjx4/77/X6y5lcnUmjVzHIVVDicVX/1W/SsO36dLMfu6nb9/X6TAoBD+5euvZbn8axXtuZ36dhPJrVQqgPQoh5hev91LWLkIv94W1Ygq9+aX+tZAx2tfz64284/sblN/rqfLP/mqrbt3FKu7G67Nv9cNgPzZQ2H6rz7bb6vLgZq89pTMO/M/xfEqturJpqSM/d7GJIm2oamk3aNcO3av80O5xh3yyKmm1193ZIT02bqovTKjP+MAf++7zsZvZ3276kYyWWXB0z99S18/PbafPHQ71W4fjn/fxnFO+ZvkrT0LVzTr78qB/+nk38bHM9exgP8zr1z9U7jt6840YW5uSJKcZOCaBBnKgm5mU8MVNYyMwWFvO7Ukagkmgg6sDWQ5yFFqjzUrLEaQ3BEmiwNsMSaZS0vgWfOkPHWQowNeTUc0kumnxZvsgPxlGai6VTGUqAVCTQ6QkWnc77DKEiLktSUBJKqHIQZ86d8gCpHYoiEzMsb1ubYy8vW50DChB5ZhGqrijD0EqUIeiaEHIfCg5Kpuu0ApiToaGPSY0uaQsyr65L2oKi1yFt1PLaQ3lzfXTgXodGoJYzglndSLDMPg1sTPJpQJHJigw0QrGERqD9YhyTOgONQDUyuF1zaxuokc/BW2ztXCMrGZ9WMW1oQZHIXWNBkSCfRZEL5BMUiZw6CzVSFCfUSGZFNjIldoKDkonTKQiJIGzWmFd3BizJJ9SINoLDriOfUCOZS+zg+KGD1qGiLNMLxtJD1/ns00ON6EzyUCM6vbxhoBKaqbG3DFQCNiL1iHccBPV0DHhQH/JW8EW90dkyFKGywCJU0WkVSvSGeiSUODWFFD0HYdPQVoiRgfPMA+/nnRgiAyNYSjpWNQcNSMrtFCUH4ZIRpSCWocFCSuhCEY6hoUClc0WC52BJlCYYLQdhN+hygRRRlo5BKRRLS6oihSqh+ZzzRGG1Mo4Iz1LoP0qsxDGFzk0JE42ji0jCPejomJKCuwil4m5CiRMEUMVSzVLDUstSx1Juc0oVWMpqY295qVltmtWmWW2a1aZZbZrVplltmtWmWW2G1WZYbYbVZlhthtVmWG2G1WZYbYbVZlhtltVmWW2W1WZZbZbVZlltltVmWW2W1QYjQCh7E2aAQHeGhCFgPoNoy8KNb2wxBhmGKBxoUZXlLGsLI6AsftEDHV0wIURVbANLcTKlGGBIKPOAxCmhePCKUwFzAmpDFRQvjA9R06Hq8TONvshgKDCuRAZTXigUxjxNFfKRo3CLhnIJBMFRvMZpqpNBMlQJzGT5WFQMVQI/AikPMIhEU1aDjqJvQwmjSHB05cC9jbYwc5UtAHNLhDw41ha+lEqF4JaH3gmB61SYcqInxTDmQK8v08vjqv4zDf1N0w3Lf4A8/vwPpfK11w==";
     }
   });
 
-  // ../../../node_modules/@pdf-lib/standard-fonts/lib/Font.js
+  // ../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Font.js
   var require_Font = __commonJS({
-    "../../../node_modules/@pdf-lib/standard-fonts/lib/Font.js"(exports) {
+    "../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Font.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -46978,16 +50614,16 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/@pdf-lib/standard-fonts/lib/all-encodings.compressed.json
+  // ../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/all-encodings.compressed.json
   var require_all_encodings_compressed = __commonJS({
-    "../../../node_modules/@pdf-lib/standard-fonts/lib/all-encodings.compressed.json"(exports, module) {
+    "../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/all-encodings.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../../../node_modules/@pdf-lib/standard-fonts/lib/Encoding.js
+  // ../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Encoding.js
   var require_Encoding = __commonJS({
-    "../../../node_modules/@pdf-lib/standard-fonts/lib/Encoding.js"(exports) {
+    "../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/Encoding.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -47033,9 +50669,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/@pdf-lib/standard-fonts/lib/index.js
+  // ../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/index.js
   var require_lib = __commonJS({
-    "../../../node_modules/@pdf-lib/standard-fonts/lib/index.js"(exports) {
+    "../CBRE_Project_360/node_modules/@pdf-lib/standard-fonts/lib/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function __export2(m) {
@@ -47047,9 +50683,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/utils/objects.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/objects.js
   var require_objects = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/utils/objects.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/objects.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -47070,9 +50706,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/utils/validators.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/validators.js
   var require_validators = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/utils/validators.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/validators.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -47256,9 +50892,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/utils/pdfDocEncoding.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/pdfDocEncoding.js
   var require_pdfDocEncoding = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/utils/pdfDocEncoding.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/pdfDocEncoding.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -47323,9 +50959,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/utils/Cache.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/Cache.js
   var require_Cache = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/utils/Cache.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/Cache.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -47357,9 +50993,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/utils/index.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/index.js
   var require_utils2 = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/utils/index.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -47381,9 +51017,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/errors.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/errors.js
   var require_errors2 = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/errors.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/errors.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -47792,9 +51428,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/syntax/CharCodes.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/syntax/CharCodes.js
   var require_CharCodes = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/syntax/CharCodes.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/syntax/CharCodes.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -47863,9 +51499,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/document/PDFHeader.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/document/PDFHeader.js
   var require_PDFHeader = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/document/PDFHeader.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/document/PDFHeader.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -47914,9 +51550,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/objects/PDFObject.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFObject.js
   var require_PDFObject = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/objects/PDFObject.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFObject.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -47945,9 +51581,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/objects/PDFNumber.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFNumber.js
   var require_PDFNumber = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/objects/PDFNumber.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFNumber.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -47993,9 +51629,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/objects/PDFArray.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFArray.js
   var require_PDFArray = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/objects/PDFArray.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFArray.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -48121,9 +51757,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/objects/PDFBool.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFBool.js
   var require_PDFBool = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/objects/PDFBool.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFBool.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -48181,9 +51817,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/syntax/Delimiters.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/syntax/Delimiters.js
   var require_Delimiters = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/syntax/Delimiters.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/syntax/Delimiters.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -48204,9 +51840,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/syntax/Whitespace.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/syntax/Whitespace.js
   var require_Whitespace = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/syntax/Whitespace.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/syntax/Whitespace.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -48223,9 +51859,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/syntax/Irregular.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/syntax/Irregular.js
   var require_Irregular = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/syntax/Irregular.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/syntax/Irregular.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -48244,9 +51880,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/objects/PDFName.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFName.js
   var require_PDFName = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/objects/PDFName.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFName.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -48380,9 +52016,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/objects/PDFNull.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFNull.js
   var require_PDFNull = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/objects/PDFNull.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFNull.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -48422,9 +52058,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/objects/PDFDict.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFDict.js
   var require_PDFDict = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/objects/PDFDict.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFDict.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -48567,9 +52203,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/objects/PDFStream.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFStream.js
   var require_PDFStream = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/objects/PDFStream.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -48651,9 +52287,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/objects/PDFRawStream.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFRawStream.js
   var require_PDFRawStream = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/objects/PDFRawStream.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFRawStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -48694,9 +52330,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/objects/PDFRef.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFRef.js
   var require_PDFRef = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/objects/PDFRef.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFRef.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -48752,9 +52388,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/operators/PDFOperator.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/operators/PDFOperator.js
   var require_PDFOperator = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/operators/PDFOperator.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/operators/PDFOperator.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -48818,9 +52454,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/operators/PDFOperatorNames.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/operators/PDFOperatorNames.js
   var require_PDFOperatorNames = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/operators/PDFOperatorNames.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/operators/PDFOperatorNames.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -48904,9 +52540,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/structures/PDFFlateStream.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/structures/PDFFlateStream.js
   var require_PDFFlateStream = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/structures/PDFFlateStream.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/structures/PDFFlateStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -48948,9 +52584,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/structures/PDFContentStream.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/structures/PDFContentStream.js
   var require_PDFContentStream = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/structures/PDFContentStream.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/structures/PDFContentStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -49021,9 +52657,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/utils/rng.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/rng.js
   var require_rng = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/utils/rng.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/rng.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -49048,9 +52684,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/PDFContext.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/PDFContext.js
   var require_PDFContext = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/PDFContext.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/PDFContext.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -49248,9 +52884,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/structures/PDFPageLeaf.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/structures/PDFPageLeaf.js
   var require_PDFPageLeaf = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/structures/PDFPageLeaf.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/structures/PDFPageLeaf.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -49463,9 +53099,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/PDFObjectCopier.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/PDFObjectCopier.js
   var require_PDFObjectCopier = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/PDFObjectCopier.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/PDFObjectCopier.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -49561,9 +53197,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/document/PDFCrossRefSection.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/document/PDFCrossRefSection.js
   var require_PDFCrossRefSection = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/document/PDFCrossRefSection.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/document/PDFCrossRefSection.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -49691,9 +53327,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/document/PDFTrailer.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/document/PDFTrailer.js
   var require_PDFTrailer = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/document/PDFTrailer.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/document/PDFTrailer.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -49743,9 +53379,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/document/PDFTrailerDict.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/document/PDFTrailerDict.js
   var require_PDFTrailerDict = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/document/PDFTrailerDict.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/document/PDFTrailerDict.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -49786,9 +53422,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/structures/PDFObjectStream.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/structures/PDFObjectStream.js
   var require_PDFObjectStream = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/structures/PDFObjectStream.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/structures/PDFObjectStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -49873,9 +53509,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/writers/PDFWriter.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/writers/PDFWriter.js
   var require_PDFWriter = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/writers/PDFWriter.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/writers/PDFWriter.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -50027,9 +53663,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/objects/PDFInvalidObject.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFInvalidObject.js
   var require_PDFInvalidObject = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/objects/PDFInvalidObject.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFInvalidObject.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -50070,9 +53706,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/structures/PDFCrossRefStream.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/structures/PDFCrossRefStream.js
   var require_PDFCrossRefStream = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/structures/PDFCrossRefStream.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/structures/PDFCrossRefStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -50263,9 +53899,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/writers/PDFStreamWriter.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/writers/PDFStreamWriter.js
   var require_PDFStreamWriter = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/writers/PDFStreamWriter.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/writers/PDFStreamWriter.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -50387,9 +54023,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/objects/PDFHexString.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFHexString.js
   var require_PDFHexString = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/objects/PDFHexString.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFHexString.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -50470,9 +54106,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/embedders/StandardFontEmbedder.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/embedders/StandardFontEmbedder.js
   var require_StandardFontEmbedder = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/embedders/StandardFontEmbedder.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/embedders/StandardFontEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -50564,9 +54200,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/embedders/CMap.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/embedders/CMap.js
   var require_CMap = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/embedders/CMap.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/embedders/CMap.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -50614,9 +54250,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/embedders/FontFlags.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/embedders/FontFlags.js
   var require_FontFlags = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/embedders/FontFlags.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/embedders/FontFlags.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -50660,9 +54296,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/objects/PDFString.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFString.js
   var require_PDFString = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/objects/PDFString.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/objects/PDFString.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -50782,9 +54418,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/embedders/CustomFontEmbedder.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/embedders/CustomFontEmbedder.js
   var require_CustomFontEmbedder = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/embedders/CustomFontEmbedder.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/embedders/CustomFontEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -51026,9 +54662,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/embedders/CustomFontSubsetEmbedder.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/embedders/CustomFontSubsetEmbedder.js
   var require_CustomFontSubsetEmbedder = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/embedders/CustomFontSubsetEmbedder.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/embedders/CustomFontSubsetEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -51103,9 +54739,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/embedders/FileEmbedder.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/embedders/FileEmbedder.js
   var require_FileEmbedder = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/embedders/FileEmbedder.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/embedders/FileEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -51184,9 +54820,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/embedders/JpegEmbedder.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/embedders/JpegEmbedder.js
   var require_JpegEmbedder = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/embedders/JpegEmbedder.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/embedders/JpegEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -51304,9 +54940,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/@pdf-lib/upng/cjs/UPNG.js
+  // ../CBRE_Project_360/node_modules/@pdf-lib/upng/cjs/UPNG.js
   var require_UPNG = __commonJS({
-    "../../../node_modules/@pdf-lib/upng/cjs/UPNG.js"(exports) {
+    "../CBRE_Project_360/node_modules/@pdf-lib/upng/cjs/UPNG.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", {
@@ -52775,9 +56411,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/utils/png.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/png.js
   var require_png = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/utils/png.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/utils/png.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -52851,9 +56487,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/embedders/PngEmbedder.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/embedders/PngEmbedder.js
   var require_PngEmbedder = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/embedders/PngEmbedder.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/embedders/PngEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -52926,9 +56562,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/streams/Stream.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/streams/Stream.js
   var require_Stream = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/streams/Stream.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/streams/Stream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -53034,9 +56670,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/streams/DecodeStream.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/streams/DecodeStream.js
   var require_DecodeStream = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/streams/DecodeStream.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/streams/DecodeStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -53182,9 +56818,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/streams/Ascii85Stream.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/streams/Ascii85Stream.js
   var require_Ascii85Stream = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/streams/Ascii85Stream.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/streams/Ascii85Stream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -53266,9 +56902,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/streams/AsciiHexStream.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/streams/AsciiHexStream.js
   var require_AsciiHexStream = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/streams/AsciiHexStream.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/streams/AsciiHexStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -53332,9 +56968,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/streams/FlateStream.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/streams/FlateStream.js
   var require_FlateStream = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/streams/FlateStream.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/streams/FlateStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -54220,9 +57856,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/streams/LZWStream.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/streams/LZWStream.js
   var require_LZWStream = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/streams/LZWStream.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/streams/LZWStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -54352,9 +57988,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/streams/RunLengthStream.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/streams/RunLengthStream.js
   var require_RunLengthStream = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/streams/RunLengthStream.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/streams/RunLengthStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -54403,9 +58039,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/streams/decode.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/streams/decode.js
   var require_decode = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/streams/decode.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/streams/decode.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -54466,9 +58102,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/embedders/PDFPageEmbedder.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/embedders/PDFPageEmbedder.js
   var require_PDFPageEmbedder = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/embedders/PDFPageEmbedder.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/embedders/PDFPageEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -54562,9 +58198,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/interactive/ViewerPreferences.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/interactive/ViewerPreferences.js
   var require_ViewerPreferences = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/interactive/ViewerPreferences.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/interactive/ViewerPreferences.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -54810,9 +58446,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroField.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroField.js
   var require_PDFAcroField = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroField.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroField.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -54958,9 +58594,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/annotation/BorderStyle.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/annotation/BorderStyle.js
   var require_BorderStyle = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/annotation/BorderStyle.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/annotation/BorderStyle.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -54997,9 +58633,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/annotation/PDFAnnotation.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/annotation/PDFAnnotation.js
   var require_PDFAnnotation = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/annotation/PDFAnnotation.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/annotation/PDFAnnotation.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55127,9 +58763,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/annotation/AppearanceCharacteristics.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/annotation/AppearanceCharacteristics.js
   var require_AppearanceCharacteristics = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/annotation/AppearanceCharacteristics.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/annotation/AppearanceCharacteristics.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55257,9 +58893,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/annotation/PDFWidgetAnnotation.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/annotation/PDFWidgetAnnotation.js
   var require_PDFWidgetAnnotation = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/annotation/PDFWidgetAnnotation.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/annotation/PDFWidgetAnnotation.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55376,9 +59012,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroTerminal.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroTerminal.js
   var require_PDFAcroTerminal = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroTerminal.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroTerminal.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55445,9 +59081,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroButton.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroButton.js
   var require_PDFAcroButton = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroButton.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroButton.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55544,9 +59180,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroCheckBox.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroCheckBox.js
   var require_PDFAcroCheckBox = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroCheckBox.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroCheckBox.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55603,9 +59239,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/acroform/flags.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/flags.js
   var require_flags = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/acroform/flags.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/flags.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55648,9 +59284,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroChoice.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroChoice.js
   var require_PDFAcroChoice = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroChoice.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroChoice.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55780,9 +59416,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroComboBox.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroComboBox.js
   var require_PDFAcroComboBox = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroComboBox.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroComboBox.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55815,9 +59451,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroNonTerminal.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroNonTerminal.js
   var require_PDFAcroNonTerminal = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroNonTerminal.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroNonTerminal.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55858,9 +59494,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroSignature.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroSignature.js
   var require_PDFAcroSignature = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroSignature.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroSignature.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55883,9 +59519,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroText.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroText.js
   var require_PDFAcroText = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroText.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroText.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55961,9 +59597,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroPushButton.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroPushButton.js
   var require_PDFAcroPushButton = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroPushButton.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroPushButton.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55996,9 +59632,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroRadioButton.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroRadioButton.js
   var require_PDFAcroRadioButton = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroRadioButton.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroRadioButton.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -56062,9 +59698,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroListBox.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroListBox.js
   var require_PDFAcroListBox = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroListBox.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroListBox.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -56095,9 +59731,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/acroform/utils.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/utils.js
   var require_utils3 = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/acroform/utils.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/utils.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -56206,9 +59842,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroForm.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroForm.js
   var require_PDFAcroForm = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/acroform/PDFAcroForm.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/PDFAcroForm.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -56295,9 +59931,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/acroform/index.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/index.js
   var require_acroform = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/acroform/index.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/acroform/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -56359,9 +59995,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/structures/PDFCatalog.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/structures/PDFCatalog.js
   var require_PDFCatalog = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/structures/PDFCatalog.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/structures/PDFCatalog.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -56440,9 +60076,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/structures/PDFPageTree.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/structures/PDFPageTree.js
   var require_PDFPageTree = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/structures/PDFPageTree.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/structures/PDFPageTree.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -56596,9 +60232,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/syntax/Numeric.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/syntax/Numeric.js
   var require_Numeric = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/syntax/Numeric.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/syntax/Numeric.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -56629,9 +60265,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/parser/BaseParser.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/parser/BaseParser.js
   var require_BaseParser = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/parser/BaseParser.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/parser/BaseParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -56745,9 +60381,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/parser/ByteStream.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/parser/ByteStream.js
   var require_ByteStream = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/parser/ByteStream.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/parser/ByteStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -56818,9 +60454,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/syntax/Keywords.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/syntax/Keywords.js
   var require_Keywords = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/syntax/Keywords.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/syntax/Keywords.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -56910,9 +60546,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/parser/PDFObjectParser.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/parser/PDFObjectParser.js
   var require_PDFObjectParser = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/parser/PDFObjectParser.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/parser/PDFObjectParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -57131,9 +60767,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/parser/PDFObjectStreamParser.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/parser/PDFObjectStreamParser.js
   var require_PDFObjectStreamParser = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/parser/PDFObjectStreamParser.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/parser/PDFObjectStreamParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -57218,9 +60854,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/parser/PDFXRefStreamParser.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/parser/PDFXRefStreamParser.js
   var require_PDFXRefStreamParser = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/parser/PDFXRefStreamParser.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/parser/PDFXRefStreamParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -57313,9 +60949,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/parser/PDFParser.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/parser/PDFParser.js
   var require_PDFParser = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/parser/PDFParser.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/parser/PDFParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -57655,9 +61291,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/annotation/flags.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/annotation/flags.js
   var require_flags2 = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/annotation/flags.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/annotation/flags.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -57681,9 +61317,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/annotation/index.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/annotation/index.js
   var require_annotation = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/annotation/index.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/annotation/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -57704,9 +61340,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/index.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/index.js
   var require_core = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/index.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -57908,9 +61544,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/objects.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/objects.js
   var require_objects2 = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/objects.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/objects.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -57928,9 +61564,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/rotations.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/rotations.js
   var require_rotations = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/rotations.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/rotations.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -58009,9 +61645,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/operators.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/operators.js
   var require_operators = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/operators.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/operators.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -58256,9 +61892,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/colors.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/colors.js
   var require_colors = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/colors.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/colors.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -58309,9 +61945,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/svgPath.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/svgPath.js
   var require_svgPath = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/svgPath.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/svgPath.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -58672,9 +62308,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/operations.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/operations.js
   var require_operations = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/operations.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/operations.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -59125,9 +62761,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/errors.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/errors.js
   var require_errors3 = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/errors.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/errors.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -59335,9 +62971,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/text/alignment.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/text/alignment.js
   var require_alignment = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/text/alignment.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/text/alignment.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -59351,9 +62987,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/text/layout.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/text/layout.js
   var require_layout = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/text/layout.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/text/layout.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -59555,9 +63191,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/form/appearances.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/form/appearances.js
   var require_appearances = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/form/appearances.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/form/appearances.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -59956,9 +63592,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/PDFEmbeddedPage.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/PDFEmbeddedPage.js
   var require_PDFEmbeddedPage = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/PDFEmbeddedPage.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/PDFEmbeddedPage.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -60017,9 +63653,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/PDFFont.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/PDFFont.js
   var require_PDFFont = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/PDFFont.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/PDFFont.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -60102,9 +63738,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/PDFImage.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/PDFImage.js
   var require_PDFImage = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/PDFImage.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/PDFImage.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -60180,9 +63816,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/image/alignment.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/image/alignment.js
   var require_alignment2 = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/image/alignment.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/image/alignment.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -60196,9 +63832,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/image/index.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/image/index.js
   var require_image = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/image/index.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/image/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -60207,9 +63843,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/form/PDFField.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/form/PDFField.js
   var require_PDFField = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/form/PDFField.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/form/PDFField.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -60436,9 +64072,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/form/PDFCheckBox.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/form/PDFCheckBox.js
   var require_PDFCheckBox = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/form/PDFCheckBox.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/form/PDFCheckBox.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -60554,9 +64190,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/form/PDFDropdown.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/form/PDFDropdown.js
   var require_PDFDropdown = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/form/PDFDropdown.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/form/PDFDropdown.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -60773,9 +64409,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/form/PDFOptionList.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/form/PDFOptionList.js
   var require_PDFOptionList = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/form/PDFOptionList.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/form/PDFOptionList.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -60970,9 +64606,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/form/PDFRadioGroup.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/form/PDFRadioGroup.js
   var require_PDFRadioGroup = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/form/PDFRadioGroup.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/form/PDFRadioGroup.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -61136,9 +64772,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/form/PDFSignature.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/form/PDFSignature.js
   var require_PDFSignature = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/form/PDFSignature.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/form/PDFSignature.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -61171,9 +64807,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/form/PDFTextField.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/form/PDFTextField.js
   var require_PDFTextField = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/form/PDFTextField.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/form/PDFTextField.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -61414,9 +65050,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/StandardFonts.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/StandardFonts.js
   var require_StandardFonts = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/StandardFonts.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/StandardFonts.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -61441,9 +65077,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/form/PDFForm.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/form/PDFForm.js
   var require_PDFForm = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/form/PDFForm.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/form/PDFForm.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -61821,9 +65457,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/sizes.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/sizes.js
   var require_sizes = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/sizes.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/sizes.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -61883,9 +65519,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/PDFDocumentOptions.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/PDFDocumentOptions.js
   var require_PDFDocumentOptions = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/PDFDocumentOptions.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/PDFDocumentOptions.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -61900,9 +65536,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/PDFEmbeddedFile.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/PDFEmbeddedFile.js
   var require_PDFEmbeddedFile = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/PDFEmbeddedFile.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/PDFEmbeddedFile.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -61967,9 +65603,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/PDFJavaScript.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/PDFJavaScript.js
   var require_PDFJavaScript = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/PDFJavaScript.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/PDFJavaScript.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -62030,9 +65666,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/core/embedders/JavaScriptEmbedder.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/core/embedders/JavaScriptEmbedder.js
   var require_JavaScriptEmbedder = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/core/embedders/JavaScriptEmbedder.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/core/embedders/JavaScriptEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -62077,9 +65713,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/PDFDocument.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/PDFDocument.js
   var require_PDFDocument = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/PDFDocument.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/PDFDocument.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -62785,9 +66421,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/PDFPageOptions.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/PDFPageOptions.js
   var require_PDFPageOptions = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/PDFPageOptions.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/PDFPageOptions.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -62810,9 +66446,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/PDFPage.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/PDFPage.js
   var require_PDFPage = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/PDFPage.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/PDFPage.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -63482,9 +67118,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/form/PDFButton.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/form/PDFButton.js
   var require_PDFButton = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/form/PDFButton.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/form/PDFButton.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -63593,9 +67229,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/form/index.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/form/index.js
   var require_form = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/form/index.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/form/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -63640,9 +67276,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/text/index.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/text/index.js
   var require_text = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/text/index.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/text/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -63652,9 +67288,9 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/api/index.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/api/index.js
   var require_api = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/api/index.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/api/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -63699,18 +67335,18 @@ ${linea}` : linea;
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/types/index.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/types/index.js
   var require_types = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/types/index.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/types/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
     }
   });
 
-  // ../../../node_modules/pdf-lib/cjs/index.js
+  // ../CBRE_Project_360/node_modules/pdf-lib/cjs/index.js
   var require_cjs = __commonJS({
-    "../../../node_modules/pdf-lib/cjs/index.js"(exports) {
+    "../CBRE_Project_360/node_modules/pdf-lib/cjs/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -64887,6 +68523,7 @@ ${linea}` : linea;
             grupo: f.grupo,
             familia: f.familia || null,
             envio: f.envio,
+            ensayoFalta: f.ensayoFalta || [],
             falta: f.falta,
             completo: f.completo,
             docCompleta: Boolean(f.docCompleta),
@@ -64905,6 +68542,7 @@ ${linea}` : linea;
               tag: l.clase === "par" ? l.tag : ext.tag,
               clase: l.clase,
               envio: l.envio,
+              ensayoFalta: l.ensayoFalta || [],
               falta: l.falta,
               completo: l.completo,
               docCompleta: Boolean(l.docCompleta),
@@ -64917,8 +68555,8 @@ ${linea}` : linea;
             ok: true,
             equipos: t.filas.map(unidad),
             conjuntos,
-            totales: { equipos: t.totales.equipos, completos: t.totales.completos, docCompleta: t.totales.docCompleta, soloDoc: t.totales.soloDoc, faltaFichas: t.totales.faltaFichas, listas: t.totales.listas, enviadas: t.totales.enviadas, faltaDocumentacion: t.totales.faltaDocumentacion, faltaEnsayo: t.totales.faltaEnsayo, pideEstanqueidad: t.totales.pideEstanqueidad, faltaEstanqueidad: t.totales.faltaEstanqueidad },
-            totalesConjuntos: { conjuntos: tc.conjuntos, unidades: tc.unidades, pares: tc.pares, sistemas: tc.sistemas, completos: tc.completos, docCompleta: tc.docCompleta, soloDoc: tc.soloDoc, faltaFichas: tc.faltaFichas, listas: tc.listas, enviadas: tc.enviadas, faltaDocumentacion: tc.faltaDocumentacion, faltaEnsayo: tc.faltaEnsayo, pideEstanqueidad: tc.pideEstanqueidad, faltaEstanqueidad: tc.faltaEstanqueidad }
+            totales: { equipos: t.totales.equipos, completos: t.totales.completos, docCompleta: t.totales.docCompleta, soloDoc: t.totales.soloDoc, faltaFichas: t.totales.faltaFichas, listas: t.totales.listas, enviadas: t.totales.enviadas, faltaDocumentacion: t.totales.faltaDocumentacion, faltaEnsayo: t.totales.faltaEnsayo, faltaBalanceo: t.totales.faltaBalanceo, faltaEstanqueidadEnvio: t.totales.faltaEstanqueidadEnvio, pideEstanqueidad: t.totales.pideEstanqueidad, faltaEstanqueidad: t.totales.faltaEstanqueidad },
+            totalesConjuntos: { conjuntos: tc.conjuntos, unidades: tc.unidades, pares: tc.pares, sistemas: tc.sistemas, completos: tc.completos, docCompleta: tc.docCompleta, soloDoc: tc.soloDoc, faltaFichas: tc.faltaFichas, listas: tc.listas, enviadas: tc.enviadas, faltaDocumentacion: tc.faltaDocumentacion, faltaEnsayo: tc.faltaEnsayo, faltaBalanceo: tc.faltaBalanceo, faltaEstanqueidadEnvio: tc.faltaEstanqueidadEnvio, pideEstanqueidad: tc.pideEstanqueidad, faltaEstanqueidad: tc.faltaEstanqueidad }
           };
         }
         function equipo({ ses, query }) {
@@ -64934,6 +68572,7 @@ ${linea}` : linea;
             conjunto: linea && linea.clase !== "suelto" ? {
               clase: linea.clase,
               envio: linea.envio,
+              ensayoFalta: linea.ensayoFalta || [],
               completo: linea.completo,
               estadoPM: linea.estadoPM || null,
               falta: linea.falta,
@@ -64958,6 +68597,7 @@ ${linea}` : linea;
               ensayo: fila.ensayo,
               ensayoRequerido: fila.ensayoRequerido || null,
               balanceoEstado: fila.balanceoEstado || null,
+              estanqueidadEstado: fila.estanqueidadEstado || null,
               estanqueidad: fila.estanqueidad || null,
               estadoPM: fila.estadoPM || null,
               envio: fila.envio,
@@ -65733,6 +69373,14 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         const horas = (n) => `${Number(n || 0).toLocaleString("es-ES", { maximumFractionDigits: 2 })} h`;
         const REPERCUSION_TEXTO = { si: "S\xED, todo", no: "No", parcial: "Parcial" };
         const ESTADO_TEXTO = { abierta: "Abierta", enCurso: "En curso", terminada: "Terminada", cerrada: "Cerrada", anulada: "Anulada" };
+        function bloquesFotos(fotos = []) {
+          const grupos = [
+            ["Antes", fotos.filter((f) => f.momento === "antes")],
+            ["Despu\xE9s", fotos.filter((f) => f.momento === "despues")],
+            [fotos.some((f) => f.momento) ? "Otras fotos" : "Fotos", fotos.filter((f) => f.momento !== "antes" && f.momento !== "despues")]
+          ].filter(([, l]) => l.length);
+          return grupos.map(([titulo, lista]) => `<section class="fotosParte"><h2>${esc(titulo)}</h2><div class="rejilla">${lista.map((f) => `<figure><img src="${esc(f.src)}" alt="${esc(f.nombre || "")}"></figure>`).join("")}</div></section>`).join("");
+        }
         function html({ incidencia: i = {}, obra = {}, fotos = [], conDinero = false, hoy = "" } = {}) {
           const dato = (que, valor) => llano(valor) ? `<div><dt>${esc(que)}</dt><dd>${esc(valor)}</dd></div>` : "";
           const rec = i.recuento || { lineas: [], total: 0 };
@@ -65789,13 +69437,13 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
     </table>
   </section>` : ""}
 
-  ${fotos.length ? `<section class="fotosParte"><h2>Fotos</h2><div class="rejilla">${fotos.map((f) => `<figure><img src="${esc(f.src)}" alt="${esc(f.nombre || "")}"></figure>`).join("")}</div></section>` : ""}
+  ${bloquesFotos(fotos)}
 </article>`;
         }
         (function exportar(API) {
           if (typeof module !== "undefined" && module.exports) module.exports = API;
           if (typeof window !== "undefined") window.INCIDENCIAS_DOCUMENTO = API;
-        })({ html, REPERCUSION_TEXTO });
+        })({ html, bloquesFotos, REPERCUSION_TEXTO });
       })();
     }
   });
@@ -66435,8 +70083,15 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       }
       var MAX_FOTOS = 30;
       var MOMENTOS_FOTO = { antes: "Antes", despues: "Despu\xE9s" };
+      function fotosTocable(repo, sesion, id) {
+        if (!puede(sesion.rol, "incidencias", "editar")) return { error: SIN_EDITAR };
+        const i = repo.leer("incidencias", sesion, id);
+        if (!i) return { error: "No se encuentra la incidencia." };
+        if (i.estado === "anulada") return { error: "La incidencia est\xE1 anulada." };
+        return { i };
+      }
       function anadirFotos(repo, sesion, id, fotos = []) {
-        const { i, error } = tocable(repo, sesion, id);
+        const { i, error } = fotosTocable(repo, sesion, id);
         if (error) return { ok: false, error };
         const actuales = fotosDe(i);
         const ya = new Set(actuales.map((f) => f.ruta));
@@ -66450,7 +70105,10 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           fecha: hoy(),
           personaId: sesion.personaId,
           /* 16-oct-2026, JC: «fotos del antes y del después» de la reparación. */
-          ...MOMENTOS_FOTO[f.momento] ? { momento: f.momento } : {}
+          ...MOMENTOS_FOTO[f.momento] ? { momento: f.momento } : {},
+          /* La copia en la nube (shared/sync/fotosNube.js) y la ruta del equipo que la puso. */
+          ...typeof f.nube === "string" && f.nube ? { nube: f.nube } : {},
+          ...typeof f.origen === "string" && f.origen ? { origen: f.origen } : {}
         }));
         const todas = [...actuales, ...nuevas];
         if (todas.length > MAX_FOTOS) return { ok: false, error: `Como mucho ${MAX_FOTOS} fotos por incidencia.` };
@@ -66466,7 +70124,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         return { ok: true, fotos: todas.length, nuevas: nuevas.length };
       }
       function quitarFoto(repo, sesion, id, indice) {
-        const { i, error } = tocable(repo, sesion, id);
+        const { i, error } = fotosTocable(repo, sesion, id);
         if (error) return { ok: false, error };
         const fotos = fotosDe(i);
         const f = fotos[Number(indice)];
@@ -66478,31 +70136,46 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         repo.modificar("incidencias", sesion, id, { fotos: JSON.stringify(fotos) });
         return { ok: true };
       }
+      function fotosParaDocumento(repo, sesion, { id = null, obraId = null } = {}) {
+        if (!puede(sesion.rol, "incidencias", "ver")) return [];
+        if (id) {
+          const i = repo.leer("incidencias", sesion, id);
+          return i ? fotosDe(i) : [];
+        }
+        const d = obraId ? obra(repo, sesion, obraId) : null;
+        return d ? d.filas.flatMap((r) => r.fotos || []) : [];
+      }
       function foto(repo, sesion, id, indice) {
         if (!puede(sesion.rol, "incidencias", "ver")) return null;
         const i = repo.leer("incidencias", sesion, id);
         return i ? fotosDe(i)[Number(indice)] || null : null;
       }
       var MIME_FOTO = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".gif": "image/gif", ".webp": "image/webp" };
-      function fotoEmbebida(f) {
+      function fotoEmbebida(f, rutas = null) {
         try {
-          const mime = MIME_FOTO[path.extname(f.ruta || "").toLowerCase()];
-          if (!mime || !fs.existsSync(f.ruta)) return null;
-          return { nombre: MOMENTOS_FOTO[f.momento] ? `${MOMENTOS_FOTO[f.momento]} \xB7 ${f.nombre}` : f.nombre, src: `data:${mime};base64,${fs.readFileSync(f.ruta).toString("base64")}` };
+          const ruta = rutas && rutas.get(claveFoto(f)) || f.ruta;
+          const mime = MIME_FOTO[path.extname(ruta || "").toLowerCase()];
+          if (!mime || !ruta || !fs.existsSync(ruta)) return null;
+          return {
+            nombre: MOMENTOS_FOTO[f.momento] ? `${MOMENTOS_FOTO[f.momento]} \xB7 ${f.nombre}` : f.nombre,
+            momento: MOMENTOS_FOTO[f.momento] ? f.momento : null,
+            src: `data:${mime};base64,${fs.readFileSync(ruta).toString("base64")}`
+          };
         } catch {
           return null;
         }
       }
-      function documento(repo, sesion, id) {
+      var claveFoto = (f) => f && (f.nube || f.ruta) || "";
+      function documento(repo, sesion, id, { rutas = null } = {}) {
         const f = ficha(repo, sesion, id);
         if (!f) return { error: "No se encuentra la incidencia." };
         const i = f.incidencia;
-        const fotos = (i.fotos || []).map(fotoEmbebida).filter(Boolean);
+        const fotos = (i.fotos || []).map((x) => fotoEmbebida(x, rutas)).filter(Boolean);
         const html = DOC.html({ incidencia: i, obra: f.obra, fotos, conDinero: f.verDinero, hoy: hoy() });
         const nombreArchivo = `${f.obra.codigo} ${i.codigo} incidencia${f.verDinero ? " (valorada)" : ""}.pdf`.replace(/[\\/:*?"<>|]/g, "-");
         return { html, nombreArchivo, fotosOmitidas: (i.fotos || []).length - fotos.length };
       }
-      function informeReparaciones(repo, sesion, obraId, { desde = "", hasta = "", ids = null } = {}) {
+      function informeReparaciones(repo, sesion, obraId, { desde = "", hasta = "", ids = null, rutas = null } = {}) {
         if (!puede(sesion.rol, "incidencias", "exportar")) return { error: "Tu rol no puede sacar el informe." };
         const d = obra(repo, sesion, obraId);
         if (!d) return { error: "No se encuentra la obra." };
@@ -66512,7 +70185,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           ...r,
           comentarios: repo.listar("incidenciaComentarios", sesion, { condicion: "incidenciaId = ?", params: [r.id], orden: "creadoEn" }).map((c) => ({ ...c, persona: nombre.get(c.personaId) || null })),
           fotos: (r.fotos || []).map((f) => {
-            const e = fotoEmbebida(f);
+            const e = fotoEmbebida(f, rutas);
             return e ? { ...e, momento: f.momento || null } : null;
           }).filter(Boolean)
         }));
@@ -66604,6 +70277,9 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         anadirFotos,
         quitarFoto,
         foto,
+        fotosTocable,
+        fotosParaDocumento,
+        claveFoto,
         costes,
         costesReparaciones,
         avisos,
@@ -67026,7 +70702,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var TIPOS_CAPA = { trazo: "Trazo (metros)", zona: "Zona (m\xB2)", punto: "Punto (unidades)" };
-      var DISCIPLINAS = {
+      var DISCIPLINAS_PLANO = {
         clima: { nombre: "Climatizaci\xF3n", capas: [
           ["tuberia", "Tuber\xEDa de agua", "trazo", "#1f6fd1", 2],
           // ida y retorno: 2 tubos
@@ -67057,8 +70733,8 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           ["unidades", "Unidades", "punto", "#c2410c"]
         ] }
       };
-      var capasDe = (disciplina) => (DISCIPLINAS[disciplina] || DISCIPLINAS.otra).capas.map(([id, nombre, tipo, color, paralelos]) => ({ id, nombre, tipo, color, lineaIds: [], paralelos: paralelos || 1 }));
-      var PARALELOS_DE_PARTIDA = Object.fromEntries(Object.values(DISCIPLINAS).flatMap((d) => d.capas).filter((c) => c[4]).map((c) => [c[0], c[4]]));
+      var capasDe = (disciplina) => (DISCIPLINAS_PLANO[disciplina] || DISCIPLINAS_PLANO.otra).capas.map(([id, nombre, tipo, color, paralelos]) => ({ id, nombre, tipo, color, lineaIds: [], paralelos: paralelos || 1 }));
+      var PARALELOS_DE_PARTIDA = Object.fromEntries(Object.values(DISCIPLINAS_PLANO).flatMap((d) => d.capas).filter((c) => c[4]).map((c) => [c[0], c[4]]));
       var COLOR = /^#[0-9a-f]{6}$/i;
       function paralelosCapa(v, id) {
         if (v === void 0 || v === null || v === "") return PARALELOS_DE_PARTIDA[id] || 1;
@@ -67139,7 +70815,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       (function exportar(API) {
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.AVANCE_PLANO = API;
-      })({ TIPOS_CAPA, DISCIPLINAS, capasDe, normalizarCapas, coloresPorDia, COLORES_DIA, ESTADOS_MARCA, DISCIPLINAS_PRESUPUESTO, partidasDeCapa });
+      })({ TIPOS_CAPA, DISCIPLINAS: DISCIPLINAS_PLANO, capasDe, normalizarCapas, coloresPorDia, COLORES_DIA, ESTADOS_MARCA, DISCIPLINAS_PRESUPUESTO, partidasDeCapa });
     }
   });
 
@@ -67904,6 +71580,9 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
             listas: cx ? cx.listas : 0,
             faltaDocumentacion: cx ? cx.faltaDocumentacion : 0,
             faltaEnsayo: cx ? cx.faltaEnsayo : 0,
+            /* «Falta ensayo» dicho por su nombre (16-oct). */
+            faltaBalanceo: cx ? cx.faltaBalanceo || 0 : 0,
+            faltaEstanqueidad: cx ? cx.faltaEstanqueidadEnvio || 0 : 0,
             aReclamar: cx ? cx.aReclamar || 0 : 0,
             semaforoCx: semaforoCx(cx, plazo)
           };
@@ -67935,6 +71614,8 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
             enviadas: filas.reduce((a, f) => a + f.enviadas, 0),
             faltaDocumentacion: filas.reduce((a, f) => a + f.faltaDocumentacion, 0),
             faltaEnsayo: filas.reduce((a, f) => a + f.faltaEnsayo, 0),
+            faltaBalanceo: filas.reduce((a, f) => a + (f.faltaBalanceo || 0), 0),
+            faltaEstanqueidad: filas.reduce((a, f) => a + (f.faltaEstanqueidad || 0), 0),
             aReclamar: filas.reduce((a, f) => a + f.aReclamar, 0),
             rojas: filas.filter((f) => f.semaforo === "rojo").length,
             ambar: filas.filter((f) => f.semaforo === "ambar").length
@@ -67974,7 +71655,8 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
             "Unidades",
             "Entregados DF",
             "Falta doc.",
-            "Falta ensayo",
+            "Falta balanceo",
+            "Falta estanqueidad",
             "A reclamar"
           ];
           const filas = q.filas.map((f) => [
@@ -67998,7 +71680,8 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
             f.unidades,
             f.enviadas,
             f.faltaDocumentacion,
-            f.faltaEnsayo,
+            f.faltaBalanceo,
+            f.faltaEstanqueidad,
             f.aReclamar
           ]);
           const t = q.totales;
@@ -68023,7 +71706,8 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
             t.unidades,
             t.enviadas,
             t.faltaDocumentacion,
-            t.faltaEnsayo,
+            t.faltaBalanceo,
+            t.faltaEstanqueidad,
             t.aReclamar
           ]);
           return [cab, ...filas].map((f) => f.join("	")).join("\n");
@@ -70740,6 +74424,52 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         historial.anotar(repo.db, sesion, "obras", obra.id, "editar", "modoCertificacion", antes, modo);
         return { ok: true };
       }
+      var DIA_DESDE = 20;
+      var DIA_HASTA = 24;
+      function faseDelMes(dia) {
+        if (dia < DIA_DESDE) return "antes";
+        if (dia <= DIA_HASTA) return "ventana";
+        return "tarde";
+      }
+      function avisoMes(repo, sesion, hoy = /* @__PURE__ */ new Date()) {
+        if (!puede(sesion.rol, "certificaciones", "ver")) return null;
+        const f = hoy instanceof Date ? hoy : new Date(hoy);
+        const periodo = `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, "0")}`;
+        const dia = f.getDate();
+        const obras = [];
+        for (const o of repo.listar("obras", sesion)) {
+          if (!o.presupuestoId || o.estado === "cerrada" || o.estado === "anulada") continue;
+          const todas = deLaObra(repo, sesion, o.id);
+          const delMes = todas.filter((c2) => c2.periodo === periodo).pop() || null;
+          const borrador = todas.find((c2) => c2.estado === "borrador") || null;
+          let estado = "sinEmpezar";
+          if (delMes && delMes.estado !== "borrador") estado = "hecha";
+          else if (delMes || borrador) estado = "borrador";
+          const c = delMes || borrador;
+          obras.push({
+            obraId: o.id,
+            codigo: o.codigo,
+            nombre: o.nombre,
+            estado,
+            certificacionId: c ? c.id : null,
+            numero: c ? c.numero : null,
+            estadoCert: c ? c.estado : null,
+            periodoCert: c ? c.periodo : null
+          });
+        }
+        const orden = { sinEmpezar: 0, borrador: 1, hecha: 2 };
+        obras.sort((a, b) => orden[a.estado] - orden[b.estado] || String(a.codigo || "").localeCompare(String(b.codigo || ""), "es"));
+        return {
+          periodo,
+          dia,
+          desde: DIA_DESDE,
+          hasta: DIA_HASTA,
+          fase: faseDelMes(dia),
+          puedeCrear: puede(sesion.rol, "certificaciones", "editar"),
+          porHacer: obras.filter((x) => x.estado !== "hecha").length,
+          obras
+        };
+      }
       module.exports = {
         reabrirObra,
         modoObra,
@@ -70758,7 +74488,9 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         historico,
         documento,
         anteriorDe,
-        contexto
+        contexto,
+        avisoMes,
+        faseDelMes
       };
     }
   });
@@ -74302,6 +78034,334 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
     }
   });
 
+  // electron/data/planificacion.js
+  var require_planificacion2 = __commonJS({
+    "electron/data/planificacion.js"(exports, module) {
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var { puede, planifica } = require_roles();
+      var FPM = require_fichasPM();
+      var INC = require_incidencias();
+      var TABLA = { commissioning: "sesionesPlanCx", incidencias: "sesionesPlanInc" };
+      var TAREAS = {
+        commissioning: ["Puesta en marcha", "Medici\xF3n de caudales", "Balanceo"],
+        incidencias: ["Reparaci\xF3n", "Revisi\xF3n", "Prueba"]
+      };
+      var FRANJAS = ["Ma\xF1ana", "Tarde", "Todo el d\xEDa"];
+      var ORDEN_FAMILIA = [
+        ["UTAs", ["TROX_UTA"]],
+        ["Ventiladores", ["SP_VENTILACION", "SP_PARKING", "SP_PRESURIZACION"]],
+        ["Fan coils", ["AIRLAN_FANCOIL"]],
+        ["Splits", ["PANASONIC_SPLIT", "PANASONIC_CRACS", "PANASONIC_VRF"]],
+        ["Recuperadores", ["AIRLAN_HRU"]],
+        ["Bombas", ["WILO_PUMPS", "WILO_GP"]],
+        ["Otros", ["CARRIER_CHILLERS", "CARRIER_ROOFTOPS"]]
+      ];
+      function ordenDe(familia) {
+        let n = 0;
+        for (const [grupo, tipos] of ORDEN_FAMILIA) {
+          const i = tipos.indexOf(familia);
+          if (i >= 0) return { orden: n + i, grupo };
+          n += 10;
+        }
+        return { orden: 999, grupo: "Otros" };
+      }
+      var lista = (v) => {
+        if (Array.isArray(v)) return v;
+        try {
+          const x = JSON.parse(v || "[]");
+          return Array.isArray(x) ? x : [];
+        } catch {
+          return String(v).split(",").map((s) => s.trim()).filter(Boolean);
+        }
+      };
+      var ambitoValido = (a) => TABLA[a] ? a : null;
+      var asistentes = (s, obra) => {
+        const l = lista(s.asisten);
+        return l.length || s.asisten ? l : [obra && obra.jefeObraId].filter(Boolean);
+      };
+      var partes = (u) => String(u || "").split("\xB7").map((x) => x.trim()).filter(Boolean);
+      function equipoDe(repo, obra) {
+        const ids = [...new Set([obra.jefeObraId, obra.jefeProduccionId, obra.jefeGrupoId, ...lista(obra.encargadosIds), ...lista(obra.tecnicosIds)].filter(Boolean))];
+        const pers = new Map(repo.db.prepare("SELECT id, nombre, rol FROM personas").all().map((p) => [p.id, p]));
+        return ids.map((id) => ({ id, nombre: (pers.get(id) || {}).nombre || id, rol: (pers.get(id) || {}).rol || null }));
+      }
+      function encargadosDe(repo, obra) {
+        const ids = [...new Set([...lista(obra.encargadosIds), obra.jefeObraId].filter(Boolean))];
+        const pers = new Map(repo.db.prepare("SELECT id, nombre, rol FROM personas").all().map((p) => [p.id, p]));
+        return ids.map((id) => ({ id, nombre: (pers.get(id) || {}).nombre || id, rol: (pers.get(id) || {}).rol })).sort((a, b) => (a.rol === "encargadoObra" ? 0 : 1) - (b.rol === "encargadoObra" ? 0 : 1) || a.nombre.localeCompare(b.nombre, "es"));
+      }
+      function pendientesCx(repo, sesion, obraId) {
+        const pm = FPM.puestaEnMarcha(repo, sesion, obraId);
+        if (!pm) return [];
+        return pm.lineas.filter((l) => !l.pm || l.pm.estado !== "firmada").map((l) => {
+          const us = l.unidades || [l];
+          const primero = (c) => l[c] || (us.find((u) => u[c]) || {})[c] || null;
+          const { orden, grupo } = ordenDe(l.familia);
+          return {
+            id: l.id,
+            tipo: l.familiaNombre || l.familia || "Sin tipo",
+            familia: grupo,
+            orden,
+            planta: primero("planta"),
+            zona: primero("zona"),
+            sala: primero("sala") || primero("codSala"),
+            equipo: l.tag,
+            denominacion: l.denominacion || "",
+            asociadas: us.filter((u) => u.id !== l.id).map((u) => u.tag),
+            uds: us.length,
+            estado: l.pm ? l.pm.estado : "pendiente"
+          };
+        }).sort((a, b) => a.orden - b.orden || String(a.planta || "~").localeCompare(String(b.planta || "~"), "es", { numeric: true }) || String(a.zona || "~").localeCompare(String(b.zona || "~"), "es") || String(a.equipo).localeCompare(String(b.equipo), "es", { numeric: true }));
+      }
+      function pendientesInc(repo, sesion, obraId) {
+        const d = INC.obra(repo, sesion, obraId);
+        if (!d) return [];
+        return d.filas.filter((i) => i.estado === "abierta" || i.estado === "enCurso").map((i) => ({
+          id: i.id,
+          tipo: i.prioridad === "alta" ? "Prioridad alta" : i.prioridad === "baja" ? "Prioridad baja" : "Prioridad media",
+          familia: "Incidencias",
+          orden: i.prioridad === "alta" ? 0 : i.prioridad === "media" ? 1 : 2,
+          /* La ubicación viene como «N10 · Gol Norte · Sala IT …»: planta, zona y sala. */
+          planta: i.equipo && i.equipo.planta || partes(i.ubicacion)[0] || null,
+          zona: partes(i.ubicacion).length > 2 ? partes(i.ubicacion)[1] : null,
+          sala: partes(i.ubicacion).length > 2 ? partes(i.ubicacion).slice(2).join(" \xB7 ") : i.ubicacion || null,
+          equipo: `${i.codigo} \xB7 ${i.titulo}`,
+          denominacion: i.equipo ? i.equipo.tag : "",
+          asociadas: [],
+          uds: 1,
+          estado: i.estado,
+          empresa: i.empresa || null
+        })).sort((a, b) => a.orden - b.orden);
+      }
+      function datos(repo, sesion, ambito, obraId) {
+        const a = ambitoValido(ambito);
+        if (!a || !puede(sesion.rol, a, "ver")) return null;
+        const obra = repo.leer("obras", sesion, obraId);
+        if (!obra) return null;
+        const sesiones = repo.listar(TABLA[a], sesion, { condicion: "obraId = ?", params: [obraId], orden: "fecha, franja" }).map((s) => ({ ...s, items: lista(s.items), asisten: asistentes(s, obra), operarios: s.operarios || "" }));
+        const pendientes = a === "commissioning" ? pendientesCx(repo, sesion, obraId) : pendientesInc(repo, sesion, obraId);
+        const planificados = new Set(sesiones.flatMap((s) => s.items));
+        return {
+          ambito: a,
+          obra: { id: obra.id, codigo: obra.codigo, nombre: obra.nombre, jefeObraId: obra.jefeObraId || null },
+          pendientes: pendientes.map((p) => ({ ...p, planificado: planificados.has(p.id) })),
+          sesiones,
+          encargados: encargadosDe(repo, obra),
+          personas: equipoDe(repo, obra),
+          tareas: TAREAS[a],
+          franjas: FRANJAS,
+          puede: { editar: planifica(sesion.rol, a) }
+        };
+      }
+      var CAMPOS = [
+        "fecha",
+        "franja",
+        "tarea",
+        "encargadoId",
+        "operarios",
+        "empresa",
+        "socotec",
+        "socotecProcede",
+        "descontratada",
+        "descontratadaConvocada",
+        "notas"
+      ];
+      function guardarSesion(repo, sesion, ambito, obraId, s) {
+        const a = ambitoValido(ambito);
+        if (!a) return { ok: false, error: "Planificaci\xF3n desconocida." };
+        if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(String(s.fecha || ""))) return { ok: false, error: "Falta la fecha." };
+        const fila = {};
+        for (const c of CAMPOS) if (c in s) fila[c] = s[c] === "" ? null : s[c];
+        for (const c of ["socotec", "socotecProcede", "descontratadaConvocada"]) if (c in fila) fila[c] = fila[c] ? 1 : 0;
+        fila.items = JSON.stringify(Array.isArray(s.items) ? s.items.map(String) : []);
+        if (Array.isArray(s.asisten)) fila.asisten = JSON.stringify([...new Set(s.asisten.map(String).filter(Boolean))]);
+        try {
+          if (s.id) {
+            repo.modificar(TABLA[a], sesion, s.id, fila);
+            return { ok: true, id: s.id };
+          }
+          if (!fila.asisten) {
+            const o = repo.leer("obras", sesion, obraId);
+            fila.asisten = JSON.stringify([o && o.jefeObraId].filter(Boolean));
+          }
+          const id = repo.crear(TABLA[a], sesion, { ...fila, obraId });
+          return { ok: true, id };
+        } catch (e) {
+          return { ok: false, error: e.message };
+        }
+      }
+      function borrarSesion(repo, sesion, ambito, id) {
+        const a = ambitoValido(ambito);
+        if (!a) return { ok: false, error: "Planificaci\xF3n desconocida." };
+        try {
+          repo.borrar(TABLA[a], sesion, id);
+          return { ok: true };
+        } catch (e) {
+          return { ok: false, error: e.message };
+        }
+      }
+      var AMBITO_NOMBRE = { commissioning: "Commissioning", incidencias: "Incidencias" };
+      function sesionesDe(repo, sesion, { desde, hasta, personaId = sesion.personaId } = {}) {
+        if (!personaId) return [];
+        const fuera = [];
+        const obras = /* @__PURE__ */ new Map();
+        const obraDe = (id) => {
+          if (!obras.has(id)) obras.set(id, repo.db.prepare("SELECT id, codigo, nombre, jefeObraId FROM obras WHERE id = ?").get(id) || null);
+          return obras.get(id);
+        };
+        const quien = new Map(repo.db.prepare("SELECT id, nombre FROM personas").all().map((p) => [p.id, p.nombre]));
+        for (const a of Object.keys(TABLA)) {
+          if (!puede(sesion.rol, a, "ver")) continue;
+          let filas;
+          try {
+            filas = repo.listar(TABLA[a], sesion, {
+              condicion: `fecha BETWEEN ? AND ? AND (encargadoId = ? OR asisten LIKE ?
+          OR ((asisten IS NULL OR asisten = '') AND obraId IN (SELECT id FROM obras WHERE jefeObraId = ?)))`,
+              params: [desde, hasta, personaId, `%"${personaId}"%`, personaId],
+              orden: "fecha, franja"
+            });
+          } catch (e) {
+            if (e && e.name === "SinPermiso") continue;
+            throw e;
+          }
+          for (const s of filas) {
+            const o = obraDe(s.obraId);
+            const items = lista(s.items);
+            const unidad = a === "commissioning" ? items.length === 1 ? "equipo" : "equipos" : items.length === 1 ? "incidencia" : "incidencias";
+            fuera.push({
+              tipo: "sesion",
+              ambito: a,
+              fecha: s.fecha,
+              id: `s:${a}:${s.id}`,
+              sesionId: s.id,
+              texto: `${s.tarea || AMBITO_NOMBRE[a]} \xB7 ${items.length} ${unidad}`,
+              detalle: [
+                s.franja,
+                AMBITO_NOMBRE[a],
+                s.encargadoId === personaId ? "eres el encargado" : s.encargadoId ? `encargado ${quien.get(s.encargadoId) || ""}`.trim() : null,
+                s.empresa,
+                s.socotec ? "Socotec" : null
+              ].filter(Boolean).join(" \xB7 "),
+              franja: s.franja || null,
+              obraId: s.obraId,
+              obra: o ? o.codigo || o.nombre : null,
+              ir: { destino: a, obraId: s.obraId, plan: { ambito: a, id: s.id, fecha: s.fecha } }
+            });
+          }
+        }
+        return fuera;
+      }
+      module.exports = { datos, guardarSesion, borrarSesion, sesionesDe, ordenDe, ORDEN_FAMILIA, TABLA };
+    }
+  });
+
+  // electron/movil/rutasPlanificacion.js
+  var require_rutasPlanificacion = __commonJS({
+    "electron/movil/rutasPlanificacion.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var PLAN = require_planificacion2();
+      var FPM = require_fichasPM();
+      var INC = require_incidencias();
+      var PERMISOS_PLANIFICACION = {
+        "GET api/mi-planificacion": [["commissioning", "ver"], ["incidencias", "ver"]]
+      };
+      var llano = (v) => String(v ?? "").trim();
+      var dia = (d) => d.toISOString().slice(0, 10);
+      var ORDEN_FRANJA = { "Ma\xF1ana": 0, "Todo el d\xEDa": 1, "Tarde": 2 };
+      var lista = (v) => {
+        try {
+          const a = JSON.parse(v || "[]");
+          return Array.isArray(a) ? a.map(String) : [];
+        } catch {
+          return [];
+        }
+      };
+      function lineasCx(repo, ses, obraId) {
+        try {
+          const pm = FPM.puestaEnMarcha(repo, ses, obraId);
+          return pm ? new Map(pm.lineas.map((l) => [l.id, l])) : null;
+        } catch {
+          return null;
+        }
+      }
+      function incidenciasDe(repo, ses, obraId) {
+        try {
+          const d = INC.obra(repo, ses, obraId);
+          return d ? new Map(d.filas.map((f) => [f.id, f])) : null;
+        } catch {
+          return null;
+        }
+      }
+      function miPlanificacion(repo, ses, obraId, { hoy = /* @__PURE__ */ new Date(), atras = 7, adelante = 14 } = {}) {
+        const desde = dia(new Date(hoy.getTime() - atras * 864e5));
+        const hasta = dia(new Date(hoy.getTime() + adelante * 864e5));
+        const hoyD = dia(hoy);
+        const mias = PLAN.sesionesDe(repo, ses, { desde, hasta }).filter((s) => s.obraId === obraId);
+        let cx = null;
+        let inc = null;
+        const sesiones = [];
+        for (const s of mias) {
+          const fila = repo.db.prepare(`SELECT * FROM ${PLAN.TABLA[s.ambito]} WHERE id = ?`).get(s.sesionId);
+          if (!fila) continue;
+          const items = lista(fila.items).map((id) => {
+            if (s.ambito === "commissioning") {
+              if (!cx) cx = lineasCx(repo, ses, obraId) || /* @__PURE__ */ new Map();
+              const l = cx.get(id);
+              if (!l) return { id, texto: "Equipo que ya no est\xE1", hecho: false, abrir: null };
+              const us = l.unidades || [l];
+              const dato = (c) => l[c] || (us.find((u) => u[c]) || {})[c] || "";
+              return {
+                id,
+                abrir: { seccion: "commissioning", id: l.id },
+                texto: l.tag + (us.length > 1 ? ` + ${us.length - 1}` : ""),
+                sub: [l.familiaNombre, dato("planta"), dato("sala") || dato("codSala")].filter(Boolean).join(" \xB7 "),
+                hecho: Boolean(l.pm && l.pm.estado === "firmada"),
+                estado: l.pm ? l.pm.estado : "pendiente"
+              };
+            }
+            if (!inc) inc = incidenciasDe(repo, ses, obraId) || /* @__PURE__ */ new Map();
+            const f = inc.get(id);
+            if (!f) return { id, texto: "Incidencia que ya no est\xE1", hecho: false, abrir: null };
+            return {
+              id,
+              abrir: f.equipoId ? { seccion: "reparaciones", id: f.id } : null,
+              texto: `${f.codigo} \xB7 ${f.titulo || ""}`.trim(),
+              sub: [f.equipo && f.equipo.tag, f.ubicacion].filter(Boolean).join(" \xB7 "),
+              hecho: ["terminada", "cerrada", "anulada"].includes(f.estado),
+              estado: f.estado
+            };
+          });
+          const hechos = items.filter((i) => i.hecho).length;
+          if (s.fecha < hoyD && items.length && hechos === items.length) continue;
+          sesiones.push({
+            id: s.id,
+            ambito: s.ambito,
+            fecha: s.fecha,
+            franja: fila.franja || "",
+            tarea: fila.tarea || "",
+            encargado: fila.encargadoId === ses.personaId,
+            detalle: s.detalle,
+            notas: fila.notas || "",
+            empresa: fila.empresa || "",
+            operarios: fila.operarios || "",
+            socotec: Boolean(fila.socotec),
+            items,
+            hechos
+          });
+        }
+        sesiones.sort((a, b) => a.fecha.localeCompare(b.fecha) || (ORDEN_FRANJA[a.franja] ?? 3) - (ORDEN_FRANJA[b.franja] ?? 3));
+        return { ok: true, hoy: hoyD, desde, hasta, sesiones };
+      }
+      function crearRutasPlanificacion({ repo }) {
+        return {
+          "GET api/mi-planificacion": ({ ses, query }) => miPlanificacion(repo, ses, llano(query.obra))
+        };
+      }
+      module.exports = { crearRutasPlanificacion, PERMISOS_PLANIFICACION, miPlanificacion };
+    }
+  });
+
   // electron/movil/manejador.js
   var require_manejador = __commonJS({
     "electron/movil/manejador.js"(exports, module) {
@@ -74320,6 +78380,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       var { crearRutasObra, PERMISOS_OBRA } = require_rutasObra();
       var { crearRutasReparaciones, PERMISOS_REPARACIONES } = require_rutasReparaciones();
       var { crearRutasAvance, PERMISOS_AVANCE } = require_rutasAvance();
+      var { crearRutasPlanificacion, PERMISOS_PLANIFICACION } = require_rutasPlanificacion();
       var PERMISOS = {
         "GET api/albaranes": [["pedidos", "ver"]],
         "POST api/formulario": [["pedidos", "ver"]],
@@ -74340,7 +78401,9 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         /* Las reparaciones de equipos (electron/movil/rutasReparaciones.js). */
         ...PERMISOS_REPARACIONES,
         /* El avance de obra sobre planos (electron/movil/rutasAvance.js). */
-        ...PERMISOS_AVANCE
+        ...PERMISOS_AVANCE,
+        /* «Lo que me toca» del Inicio (electron/movil/rutasPlanificacion.js). */
+        ...PERMISOS_PLANIFICACION
       };
       var RUTAS_BINARIAS = /* @__PURE__ */ new Set(["api/foto", "api/qr"]);
       function permitida(rol, metodo, ruta) {
@@ -74534,7 +78597,8 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           },
           ...rutasObra,
           ...crearRutasReparaciones({ repo, carpeta: carpetaDocumentos || carpeta, fotosPedidas, soltar }),
-          ...crearRutasAvance({ repo, carpeta: carpetaDocumentos || carpeta, fotosPedidas, soltar })
+          ...crearRutasAvance({ repo, carpeta: carpetaDocumentos || carpeta, fotosPedidas, soltar }),
+          ...crearRutasPlanificacion({ repo })
         };
         async function atender({ metodo, ruta, query = {}, cabeceras = {}, cuerpo = Buffer.alloc(0) }) {
           const res = (codigo, json2) => ({ codigo, json: json2 });
@@ -74578,9 +78642,9 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
     }
   });
 
-  // ../../../node_modules/fflate/lib/browser.cjs
+  // ../CBRE_Project_360/node_modules/fflate/lib/browser.cjs
   var require_browser = __commonJS({
-    "../../../node_modules/fflate/lib/browser.cjs"(exports) {
+    "../CBRE_Project_360/node_modules/fflate/lib/browser.cjs"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       exports.deflate = deflate;

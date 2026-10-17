@@ -517,6 +517,47 @@
      que espera, todo a la vista y cada cifra lleva a lo suyo. Lo que el
      rol no puede ver no se pide ni se enseña. */
 
+  /*
+   * LO QUE ME TOCA (16-oct, JC): las sesiones de la planificación del jefe de
+   * obra en las que estoy, por día, con cada equipo o incidencia. Lo firmado
+   * (o la incidencia terminada) sale hecho. Sin sesiones, no se pinta nada.
+   */
+  const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  function nombreDia(fecha, hoy) {
+    const d = new Date(`${fecha}T12:00:00`);
+    const n = Math.round((d - new Date(`${hoy}T12:00:00`)) / 86400000);
+    const corta = `${d.getDate()}/${d.getMonth() + 1}`;
+    if (n === 0) return `Hoy · ${corta}`;
+    if (n === 1) return `Mañana · ${corta}`;
+    if (n === -1) return `Ayer · ${corta}`;
+    return `${DIAS_SEMANA[d.getDay()]} · ${corta}`;
+  }
+  function loQueMeToca(plan) {
+    if (!plan || !plan.ok || !plan.sesiones || !plan.sesiones.length) return '';
+    const porDia = new Map();
+    for (const s of plan.sesiones) { if (!porDia.has(s.fecha)) porDia.set(s.fecha, []); porDia.get(s.fecha).push(s); }
+    const linea = (i) => {
+      const dentro = `<span class="plan-marca${i.hecho ? ' hecha' : ''}" aria-label="${i.hecho ? 'Hecho' : 'Pendiente'}">${i.hecho ? '✓' : ''}</span>
+        <span class="plan-texto"><b>${esc(i.texto)}</b>${i.sub ? `<small>${esc(i.sub)}</small>` : ''}</span>`;
+      return i.abrir
+        ? `<a class="plan-linea${i.hecho ? ' hecha' : ''}" href="#${esc(i.abrir.seccion)}" data-ir-abrir="${esc(i.abrir.id)}">${dentro}<i>›</i></a>`
+        : `<div class="plan-linea${i.hecho ? ' hecha' : ''}">${dentro}</div>`;
+    };
+    const sesionHtml = (s) => `
+      <div class="plan-sesion">
+        <div class="plan-titulo"><b>${esc([s.franja, s.tarea || (s.ambito === 'commissioning' ? 'Commissioning' : 'Incidencias')].filter(Boolean).join(' · '))}</b>
+          <span>${cifra(s.hechos)} de ${cifra(s.items.length)} hechos</span></div>
+        <p class="plan-detalle">${esc([s.encargado ? 'Eres el encargado' : null, s.empresa, s.operarios, s.socotec ? 'Con Socotec' : null].filter(Boolean).join(' · '))}</p>
+        ${s.notas ? `<p class="plan-detalle">${esc(s.notas)}</p>` : ''}
+        ${s.items.map(linea).join('')}
+      </div>`;
+    return `<h2 class="titulo-grupo">Lo que me toca</h2>${[...porDia].map(([fecha, ss]) => `
+      <section class="grupo plan-dia">
+        <div class="plan-cabeza"><b>${esc(nombreDia(fecha, plan.hoy))}</b>${fecha < plan.hoy ? '<span>sin terminar</span>' : ''}</div>
+        ${ss.map(sesionHtml).join('')}
+      </section>`).join('')}`;
+  }
+
   async function inicio() {
     const yo = sesion();
     const app = document.getElementById('app');
@@ -529,9 +570,11 @@
     app.innerHTML = '<p class="cargando">Cargando…</p>';
     const q = encodeURIComponent(o.id);
     const traer = (sec, ruta) => (ok.has(sec) ? pedir(ruta).catch(() => null) : Promise.resolve(null));
-    const [cx, pe, pi, ncr, rp] = await Promise.all([
+    const tocaPlan = ok.has('commissioning') || ok.has('reparaciones') || ok.has('ncr');
+    const [cx, pe, pi, ncr, rp, plan] = await Promise.all([
       traer('commissioning', `api/commissioning?obra=${q}`), traer('estanqueidad', 'api/estanqueidad'),
       traer('partes', 'api/partes'), traer('ncr', `api/ncr?obra=${q}`), traer('reparaciones', `api/reparaciones?obra=${q}`),
+      tocaPlan ? pedir(`api/mi-planificacion?obra=${q}`).catch(() => null) : null,
     ]);
     if (seccion() !== 'inicio' || window.CX.obraId() !== o.id) return;
     // Como la lista de Commissioning: si hay conjuntos (split = UE + UI), se cuenta por conjunto.
@@ -563,17 +606,19 @@
           <select data-inicio-obra aria-label="Obra">${obras.map((x) => `<option value="${esc(x.id)}" ${x.id === o.id ? 'selected' : ''}>${esc(x.codigo)} · ${esc(x.nombre)}</option>`).join('')}</select>
         </label>
       </section>
+      ${loQueMeToca(plan)}
       ${t ? `
       <h2 class="titulo-grupo">Commissioning</h2>
       <section class="grupo inicio-avance">
         <div class="fila-dato"><span>Equipos completos</span><strong>${cifra(hechos)} de ${cifra(t.equipos)} · ${pct} %</strong></div>
         <div class="progreso" aria-label="${pct} % completo"><i style="width:${pct}%"></i></div>
-        ${t.soloDoc ? `<a class="fila-dato" href="#commissioning" data-ir-seg="soloDoc"><span>Doc. completa, faltan fichas o ensayo</span><strong>${cifra(t.soloDoc)} ›</strong></a>` : ''}
+        ${t.soloDoc ? `<a class="fila-dato" href="#commissioning" data-ir-seg="soloDoc"><span>Doc. completa, faltan fichas, balanceo o estanqueidad</span><strong>${cifra(t.soloDoc)} ›</strong></a>` : ''}
       </section>
       <div class="resumen-fila">
         ${dato('commissioning', t.equipos, 'equipos')}
         ${dato('commissioning', t.faltaDocumentacion, 'falta doc.', t.faltaDocumentacion, 'faltaDoc')}
-        ${dato('commissioning', t.faltaEnsayo, 'falta ensayo', t.faltaEnsayo, 'faltaEnsayo')}
+        ${dato('commissioning', t.faltaBalanceo || 0, 'falta balanceo', t.faltaBalanceo, 'faltaBalanceo')}
+        ${dato('commissioning', t.faltaEstanqueidadEnvio || 0, 'falta estanqueidad', t.faltaEstanqueidadEnvio, 'faltaEstanqueidad')}
         ${dato('commissioning', bocas[1] - bocas[0], 'bocas por medir', bocas[1] - bocas[0])}
       </div>` : ''}
       <h2 class="titulo-grupo">Pendiente</h2>
@@ -584,6 +629,8 @@
         ${ncrAbiertas ? fila('ncr', 'No conformidades abiertas', cifra(ncrAbiertas.length)) : ''}
       </section>`;
     /* Sin botón «Añadir…»: ya está el + de la barra (15-oct, JC). */
+    /* Una línea de «Lo que me toca» abre su ficha: el módulo lo recoge al cargar. */
+    for (const a of app.querySelectorAll('[data-ir-abrir]')) a.onclick = () => { try { sessionStorage.setItem('cx.abrir', a.dataset.irAbrir); } catch { /* nada */ } };
     for (const a of app.querySelectorAll('[data-ir-seg]')) a.onclick = () => { try { sessionStorage.setItem('cx.segmento', a.dataset.irSeg); } catch { /* nada */ } };
   }
   window.addEventListener('movil:obra', () => { if (seccion() === 'inicio') inicio(); });
