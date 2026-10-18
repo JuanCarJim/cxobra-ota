@@ -79,7 +79,7 @@
     const previsto = o.previsto;
     const estado = previsto === null ? (o.real ? 'aviso' : 'neutra') : o.real >= previsto ? 'bien' : o.real / previsto >= 0.8 ? 'aviso' : 'mal';
     $app.innerHTML = `
-      ${obras.length > 1 ? `<label class="elegir-obra">Obra<select data-per-cambio="obra">${obras.map((x) => `<option value="${esc(x.id)}" ${x.id === o.id ? 'selected' : ''}>${esc(x.codigo)} · ${esc(x.nombre)}</option>`).join('')}</select></label>` : `<p class="nota">${esc(o.codigo)} · ${esc(o.nombre)}</p>`}
+      ${window.CX && window.CX.obras().length ? '' : obras.length > 1 ? `<label class="elegir-obra">Obra<select data-per-cambio="obra">${obras.map((x) => `<option value="${esc(x.id)}" ${x.id === o.id ? 'selected' : ''}>${esc(x.codigo)} · ${esc(x.nombre)}</option>`).join('')}</select></label>` : `<p class="nota">${esc(o.codigo)} · ${esc(o.nombre)}</p>`}
       <section class="hoy ${estado}">
         <div class="cifra-grande"><b>${o.real}</b>${previsto !== null ? `<span> de ${previsto}</span>` : ''}</div>
         <div>${previsto !== null ? 'han venido de los previstos' : o.real === 1 ? 'ha venido (sin previsión para hoy)' : 'han venido (sin previsión para hoy)'}</div>

@@ -19,7 +19,9 @@
 const TIPOS_CAPA = { trazo: 'Trazo (metros)', zona: 'Zona (m²)', punto: 'Punto (unidades)' };
 
 /* Las capas de partida de cada disciplina. */
-const DISCIPLINAS = {
+/* DISCIPLINAS_PLANO (se exporta como DISCIPLINAS): en el escritorio comparte
+   ámbito con shared/presupuesto/modelo.js, que ya declara DISCIPLINAS. */
+const DISCIPLINAS_PLANO = {
   clima: { nombre: 'Climatización', capas: [
     ['tuberia', 'Tubería de agua', 'trazo', '#1f6fd1', 2], // ida y retorno: 2 tubos
     ['conductos', 'Conductos', 'trazo', '#0a8f6b'],
@@ -56,11 +58,11 @@ const DISCIPLINAS = {
  * tubos, 4; varios cables por la misma bandeja, los que sean. Es lo que sale
  * por defecto al marcar en esa capa; el encargado lo cambia en cada marca.
  */
-const capasDe = (disciplina) => (DISCIPLINAS[disciplina] || DISCIPLINAS.otra).capas
+const capasDe = (disciplina) => (DISCIPLINAS_PLANO[disciplina] || DISCIPLINAS_PLANO.otra).capas
   .map(([id, nombre, tipo, color, paralelos]) => ({ id, nombre, tipo, color, lineaIds: [], paralelos: paralelos || 1 }));
 
 /* El nº por defecto de una capa de partida que se guardó antes de existir el campo. */
-const PARALELOS_DE_PARTIDA = Object.fromEntries(Object.values(DISCIPLINAS)
+const PARALELOS_DE_PARTIDA = Object.fromEntries(Object.values(DISCIPLINAS_PLANO)
   .flatMap((d) => d.capas).filter((c) => c[4]).map((c) => [c[0], c[4]]));
 
 const COLOR = /^#[0-9a-f]{6}$/i;
@@ -159,4 +161,4 @@ function partidasDeCapa(capa, partidas, disciplinaPlano) {
 (function exportar(API) {
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
   if (typeof window !== 'undefined') window.AVANCE_PLANO = API;
-})({ TIPOS_CAPA, DISCIPLINAS, capasDe, normalizarCapas, coloresPorDia, COLORES_DIA, ESTADOS_MARCA, DISCIPLINAS_PRESUPUESTO, partidasDeCapa });
+})({ TIPOS_CAPA, DISCIPLINAS: DISCIPLINAS_PLANO, capasDe, normalizarCapas, coloresPorDia, COLORES_DIA, ESTADOS_MARCA, DISCIPLINAS_PRESUPUESTO, partidasDeCapa });
