@@ -90,7 +90,7 @@
     const puede = datos.puede && datos.puede.crear;
     const mios = (datos.recientes || []).filter((p) => p.obraId === o.id);
     $app.innerHTML = `
-      ${obras().length > 1 ? `<label class="elegir-obra">Obra<select data-pi-cambio="obra">${obras().map((x) => `<option value="${esc(x.id)}" ${x.id === o.id ? 'selected' : ''}>${esc(x.codigo)} · ${esc(x.nombre)}</option>`).join('')}</select></label>` : `<p class="nota">${esc(o.codigo)} · ${esc(o.nombre)}</p>`}
+      ${window.CX && window.CX.obras().length ? '' : obras().length > 1 ? `<label class="elegir-obra">Obra<select data-pi-cambio="obra">${obras().map((x) => `<option value="${esc(x.id)}" ${x.id === o.id ? 'selected' : ''}>${esc(x.codigo)} · ${esc(x.nombre)}</option>`).join('')}</select></label>` : `<p class="nota">${esc(o.codigo)} · ${esc(o.nombre)}</p>`}
       ${puede ? `<section class="acciones">
         <button class="boton grande" data-pi="nuevo"><i class="ic ic-aviso"></i>Nuevo parte de incidencia</button>
         <p class="nota centrada">Robos, problemas de avance, daños, seguridad… Le llega al jefe de obra.</p>

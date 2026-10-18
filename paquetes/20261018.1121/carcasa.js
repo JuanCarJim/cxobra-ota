@@ -62,7 +62,12 @@
    * el permiso lo sigue decidiendo la sección y el ordenador. Solo salen los
    * de las secciones del rol; los que van a una obra dicen cuál.
    */
+  /* Lo de commissioning, lo primero: es lo que más se hace en obra (18-oct). */
   const ACCIONES = [
+    { seccion: 'commissioning', nombre: 'Medir equipo', ayuda: 'Busca el equipo y mide boca a boca', obra: true, pasos: ['[data-cx-buscar]'],
+      icono: svg('<path d="M4 15a8 8 0 1 1 16 0"/><path d="M12 15l4.5-4.5"/><circle cx="12" cy="15" r="1.4"/><path d="M4 19h16"/>') },
+    { seccion: 'estanqueidad', nombre: 'Prueba de estanqueidad', ayuda: 'Con la foto del manómetro', obra: true, pasos: ['[data-pe="nuevo"]'],
+      icono: svg('<path d="M12 3.5c3 4 5.5 7 5.5 10a5.5 5.5 0 0 1-11 0c0-3 2.5-6 5.5-10z"/>') },
     { seccion: 'ncr', nombre: 'Nueva NCR', ayuda: 'No conformidad con foto', obra: true, pasos: ['[data-ncr="nueva"]'],
       icono: svg('<path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.5"/><circle cx="12" cy="17" r=".6" fill="currentColor"/>') },
     { seccion: 'reparaciones', nombre: 'Reparación', ayuda: 'Un equipo que hay que reparar', obra: true, pasos: ['[data-rp="nueva"]'],
@@ -73,18 +78,14 @@
       icono: svg('<rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4"/>') },
     { seccion: 'albaranes', nombre: 'Escanear albarán', ayuda: 'Foto del albarán; casa con su pedido', obra: false, pasos: ['[data-accion="foto"]'],
       icono: svg('<path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><path d="M8 9h8M8 12h8M8 15h5"/>') },
-    { seccion: 'commissioning', nombre: 'Medir equipo', ayuda: 'Busca el equipo y mide boca a boca', obra: true, pasos: ['[data-cx-buscar]'],
-      icono: svg('<path d="M4 15a8 8 0 1 1 16 0"/><path d="M12 15l4.5-4.5"/><circle cx="12" cy="15" r="1.4"/><path d="M4 19h16"/>') },
-    { seccion: 'estanqueidad', nombre: 'Prueba de estanqueidad', ayuda: 'Con la foto del manómetro', obra: true, pasos: ['[data-pe="nuevo"]'],
-      icono: svg('<path d="M12 3.5c3 4 5.5 7 5.5 10a5.5 5.5 0 0 1-11 0c0-3 2.5-6 5.5-10z"/>') },
     { seccion: 'partes', nombre: 'Parte', ayuda: 'Parte de incidencia al jefe de obra', obra: true, pasos: ['[data-pi="nuevo"]'],
       icono: svg('<path d="M14 3.5H6.5A1.5 1.5 0 0 0 5 5v14a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19V8.5z"/><path d="M14 3.5v5h5"/><path d="M12 11v4M12 17.5v.1"/>') },
   ];
 
-  /* El título de cada sección, arriba. */
+  /* El título de cada sección, arriba: corto, que en el iPhone quepa junto a la pastilla (18-oct). */
   const TITULO = {
-    inicio: 'Inicio', commissioning: 'Commissioning', partes: 'Partes de incidencia', ncr: 'No conformidades', reparaciones: 'Reparaciones de equipos', avance: 'Avance de obra', albaranes: 'Albaranes',
-    inventario: 'Inventario', bloc: 'Bloc de notas', personal: 'Personal', estanqueidad: 'Pruebas de estanqueidad', cuenta: 'Cuenta',
+    inicio: 'Inicio', commissioning: 'Commissioning', partes: 'Partes', ncr: 'No conformidades', reparaciones: 'Reparaciones', avance: 'Avance de obra', albaranes: 'Albaranes',
+    inventario: 'Inventario', bloc: 'Notas', personal: 'Personal', estanqueidad: 'Estanqueidad', cuenta: 'Cuenta',
   };
   /* Las que no dependen de la obra elegida no enseñan el selector. */
   const SIN_OBRA = new Set(['cuenta', 'albaranes']);
@@ -413,7 +414,7 @@
         let destino = visibles[0][0];
         try { const u = localStorage.getItem(`movil.pestana.${p.id}`); if (u && visibles.some(([id]) => id === u)) destino = u; } catch { /* nada */ }
         if (actual === p) destino = s;
-        return `<a href="#${destino}" class="${actual === p ? 'activa' : ''}" ${actual === p ? 'aria-current="page"' : ''}>${p.icono}<span>${esc(p.nombre)}</span></a>`;
+        return `<a href="#${destino}" class="pestana-${p.id}${actual === p ? ' activa' : ''}" ${actual === p ? 'aria-current="page"' : ''}>${p.icono}<span>${esc(p.nombre)}</span></a>`;
       };
       const centro = accionesDisponibles().length
         ? '<div class="barra-centro"><button type="button" class="boton-anadir" id="boton-anadir" aria-label="Añadir" aria-haspopup="dialog">' + MAS + '</button><span>Añadir</span></div>'
@@ -612,12 +613,12 @@
       <section class="grupo inicio-avance">
         <div class="fila-dato"><span>Equipos completos</span><strong>${cifra(hechos)} de ${cifra(t.equipos)} · ${pct} %</strong></div>
         <div class="progreso" aria-label="${pct} % completo"><i style="width:${pct}%"></i></div>
-        ${t.soloDoc ? `<a class="fila-dato" href="#commissioning" data-ir-seg="soloDoc"><span>Doc. completa, faltan fichas o ensayo</span><strong>${cifra(t.soloDoc)} ›</strong></a>` : ''}
+        ${t.soloDoc ? `<a class="fila-dato" href="#commissioning" data-ir-seg="soloDoc"><span>Doc. completa, faltan fichas, balanceo o estanqueidad</span><strong>${cifra(t.soloDoc)} ›</strong></a>` : ''}
       </section>
       <div class="resumen-fila">
-        ${dato('commissioning', t.equipos, 'equipos')}
         ${dato('commissioning', t.faltaDocumentacion, 'falta doc.', t.faltaDocumentacion, 'faltaDoc')}
-        ${dato('commissioning', t.faltaEnsayo, 'falta ensayo', t.faltaEnsayo, 'faltaEnsayo')}
+        ${dato('commissioning', t.faltaBalanceo || 0, 'falta balanceo', t.faltaBalanceo, 'faltaBalanceo')}
+        ${dato('commissioning', t.faltaEstanqueidadEnvio || 0, 'falta estanqueidad', t.faltaEstanqueidadEnvio, 'faltaEstanqueidad')}
         ${dato('commissioning', bocas[1] - bocas[0], 'bocas por medir', bocas[1] - bocas[0])}
       </div>` : ''}
       <h2 class="titulo-grupo">Pendiente</h2>
@@ -648,10 +649,10 @@
         <div class="fila-dato"><span>Datos</span><strong>${yo.local ? 'En este teléfono' : 'En el ordenador de la oficina'}</strong></div>
       </section>
       <p class="nota">${yo.local
-        ? 'Todo se guarda en este teléfono; funciona sin red.'
+        ? (sincro() ? 'Se guarda en este teléfono (funciona sin red) y se envía a la oficina en cuanto hay conexión.' : 'Todo se guarda en este teléfono; funciona sin red.')
         : 'Los datos están en el ordenador de la oficina y se llega a él por la wifi: con el ordenador apagado o fuera de su red, la app no puede traer ni guardar nada.'}</p>
       ${yo.local && window.cxObra && window.cxObra.traerDatos ? conLaOficina() : ''}
-      ${yo.local && !(window.cxObra && window.cxObra.salir) ? '' : '<button class="boton secundario" id="cx-salir">Salir</button>'}
+      ${yo.local && !(window.cxObra && window.cxObra.salir) ? '' : '<button class="boton peligro" id="cx-salir">Salir</button>'}
       <p class="nota pie">Vidaire Cx${window.cxObra && window.cxObra.ota ? ` · versión ${esc(window.cxObra.ota.info().version)}${window.cxObra.ota.info().lista ? ` (la ${esc(window.cxObra.ota.info().lista)} entra al volver a abrir)` : ''}` : ''}</p>`;
     const b = document.getElementById('cx-salir');
     if (b) b.onclick = () => {
@@ -685,11 +686,19 @@
     const hoy = new Date().toDateString() === d.toDateString();
     return `${hoy ? 'hoy' : fechaEs(iso)} a las ${d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
   };
+  /* «Conectando» solo los primeros segundos (revisión UX 18-oct): si no entra,
+     la pastilla gris para siempre no decía nada. Después, lo que pasa. */
+  const ARRANQUE = Date.now();
+  const PACIENCIA = 15000;
+  setTimeout(() => { pastillaSync(); }, PACIENCIA + 100);
   function textoSync(e) {
     const n = e.pendientes || 0;
     const pend = n ? ` · ${n} por enviar` : '';
     /* Sin «Entrar en la nube» (15-oct-2026, JC: «siempre conectado»): entra solo. */
-    if (!e.entrado || e.estado === 'sin-sesion') return ['', 'Conectando'];
+    if (!e.entrado || e.estado === 'sin-sesion') {
+      if (Date.now() - ARRANQUE < PACIENCIA) return ['', 'Conectando'];
+      return e.estado === 'sin-sesion' && e.entrado ? ['sin-sesion', 'Sin sesión'] : ['sin-red', `Solo en el móvil${pend}`];
+    }
     if (e.estado === 'sin-red') return ['sin-red', `Sin red${pend}`];
     if (e.estado === 'error') return ['error', 'No sincroniza'];
     if (e.estado === 'al-dia') return ['al-dia', n ? `${n} por enviar` : 'Al día'];
@@ -760,6 +769,7 @@
     return `
       <h2 class="titulo-grupo">Con la oficina, al momento</h2>
       ${grupoSync()}
+      ${!est.entrado ? '<p class="nota aviso">Este teléfono aún no ha podido entrar en la oficina: lo que hagas se queda guardado aquí y se enviará cuando entre. Si sigue así, pulsa «Sincronizar ahora» con cobertura.</p>' : ''}
       <button class="boton" id="cx-sync-ya">Sincronizar ahora</button>
       <p class="nota">Lo que guardas aquí llega al ordenador de la oficina al momento, y lo de la oficina llega solo. Sin cobertura se guarda en el teléfono y se envía al volver la red.</p>
       <details class="grupo-plegable"><summary>Sin red: por fichero (plan B)</summary>${fichero}</details>`;

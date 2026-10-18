@@ -105,7 +105,7 @@
     const borrador = leerBorrador();
     const mias = (datos.recientes || []).filter((p) => p.obraId === o.id);
     $app.innerHTML = `
-      ${obras().length > 1 ? `<label class="elegir-obra">Obra<select data-pe-cambio="obra">${obras().map((x) => `<option value="${esc(x.id)}" ${x.id === o.id ? 'selected' : ''}>${esc(x.codigo)} · ${esc(x.nombre)}</option>`).join('')}</select></label>` : `<p class="nota">${esc(o.codigo)} · ${esc(o.nombre)}</p>`}
+      ${window.CX && window.CX.obras().length ? '' : obras().length > 1 ? `<label class="elegir-obra">Obra<select data-pe-cambio="obra">${obras().map((x) => `<option value="${esc(x.id)}" ${x.id === o.id ? 'selected' : ''}>${esc(x.codigo)} · ${esc(x.nombre)}</option>`).join('')}</select></label>` : `<p class="nota">${esc(o.codigo)} · ${esc(o.nombre)}</p>`}
       ${borrador && puede ? `<section class="acciones">
         <button class="boton grande" data-pe="seguir">⏱ Seguir con la prueba de ${esc((EM.INSTALACIONES[borrador.instalacion] || {}).nombre || 'la instalación')}</button>
         <p class="nota centrada">${esc(borrador.tramo || 'Sin tramo')} · empezada a las ${esc(borrador.horaInicio || '—')}. <button class="enlace" data-pe="descartar">Descartarla</button></p>
