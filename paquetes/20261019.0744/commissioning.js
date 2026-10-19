@@ -150,7 +150,7 @@
     const grupos = [...new Set(equipos.map(grupoDe))].sort(agrupar === 'planta' ? porPlanta
       : (a, b) => sin(a) - sin(b) || a.localeCompare(b, 'es', { numeric: true }));
     $app.innerHTML = `
-      <div class="resumen-fila cinco" role="tablist">${[['todos', conj ? t.conjuntos : t.equipos, conj ? 'conjuntos' : 'equipos'], ['completos', t.completos, 'completos'], ['soloDoc', t.soloDoc || 0, 'doc. completa'], ['faltaDoc', t.faltaDocumentacion, 'falta doc.'], ['faltaBalanceo', t.faltaBalanceo || 0, 'falta balanceo'], ['faltaEstanqueidad', t.faltaEstanqueidadEnvio || 0, 'falta estanq.']]
+      <div class="resumen-fila cinco" role="tablist">${[['todos', conj ? t.conjuntos : t.equipos, conj && t.unidades !== t.conjuntos ? 'conjuntos' : 'equipos'], ['completos', t.completos, 'completos'], ['soloDoc', t.soloDoc || 0, 'doc. completa'], ['faltaDoc', t.faltaDocumentacion, 'falta doc.'], ['faltaBalanceo', t.faltaBalanceo || 0, 'falta balanceo'], ['faltaEstanqueidad', t.faltaEstanqueidadEnvio || 0, 'falta estanq.']]
         .map(([id, n, texto]) => `<button role="tab" data-cx-seg="${id}" aria-selected="${segmento === id}" class="${segmento === id ? 'activa' : ''} ${id.startsWith('falta') && n ? 'aviso' : ''}"><b>${cifra(n)}</b><span>${esc(texto)}</span></button>`).join('')}</div>
       ${conj && t.unidades !== t.conjuntos ? `<p class="nota tenue cuenta-conjuntos">${cifra(t.conjuntos)} conjuntos con ${cifra(t.unidades)} unidades: ${cifra(t.pares)} splits y ${cifra(t.sistemas)} VRF van en una línea con su exterior.</p>` : ''}
       <input type="search" class="buscar" placeholder="Buscar TAG, planta, tipo o marca" value="${esc(filtro)}" data-cx-buscar>
@@ -241,6 +241,13 @@
     if (b) document.documentElement.style.setProperty('--alto-barra', `${b.offsetHeight}px`);
   }
 
+  /* Los estados llegan como códigos ('enMarcha', 'aptoSinBocas'): se dicen con palabras. */
+  const NOMBRE_ESTADO = {
+    pendiente: 'Pendiente', programada: 'Programada', enProceso: 'En proceso', enMarcha: 'En marcha', hecha: 'Hecha',
+    conReservas: 'Con reservas', apto: 'Apto', aptoSinBocas: 'Apto (sin bocas)', noApto: 'No apto', noAplica: 'No aplica',
+  };
+  const nombreEstado = (v) => NOMBRE_ESTADO[v] || v;
+
   function checklist(k, med) {
     if (!k) return '';
     /* Sin fila «Ensayo» (16-oct, JC): el balanceo y la estanqueidad salen solo
@@ -260,9 +267,9 @@
         ${fila('Certificado CE', si(k.ce))}
         ${fila('Manual', si(k.manual))}
         ${fila('Ficha PM', si(k.fichaPM))}
-        ${pideBal ? fila('Balanceo', `<strong>${esc(k.balanceoEstado || 'pendiente')}</strong>`) : ''}
-        ${pideEst ? fila('Estanqueidad', `<strong>${esc(est)}</strong>`) : ''}
-        ${fila('Puesta en marcha', `<strong>${esc(k.estadoPM || '—')}</strong>`)}
+        ${pideBal ? fila('Balanceo', `<strong>${esc(nombreEstado(k.balanceoEstado || 'pendiente'))}</strong>`) : ''}
+        ${pideEst ? fila('Estanqueidad', `<strong>${esc(nombreEstado(est))}</strong>`) : ''}
+        ${fila('Puesta en marcha', `<strong>${esc(k.estadoPM ? nombreEstado(k.estadoPM) : '—')}</strong>`)}
       </section>
       ${(k.incidencias || []).length ? `<p class="nota aviso">${esc(k.incidencias.map((i) => INCIDENCIA[i] || i).join(' · '))}</p>` : ''}`;
   }
@@ -1088,16 +1095,6 @@
         ${a.puntos.map((p, i) => `<div class="ir"><span class="et">${esc(p.etiqueta.replace(/\s*\(clase\)$/i, ''))}${obligatorioDe(p)}${unidadDe(p)}</span>${inputPunto(p, ed, `${p.etiqueta} · impulsión`)}${inputPunto(b.puntos[i], ed, `${p.etiqueta} · retorno`)}</div>`).join('')}
       </section>`;
   }
-  /* Las secciones de la hoja, juntando las parejas de impulsión y retorno. */
-  function htmlSecciones(secciones, ed) {
-    const out = [];
-    for (let i = 0; i < secciones.length; i += 1) {
-      const s = secciones[i];
-      if (parejaDe(s, secciones[i + 1])) { out.push(htmlPareja(s, secciones[i + 1], ed)); i += 1; continue; }
-      out.push(htmlSeccion(s, ed));
-    }
-    return out.join('');
-  }
 
   /*
    * LOS DATOS DEL SISTEMA DE LA FICHA DE BALANCEO, a la manera de su Excel
@@ -1151,6 +1148,70 @@
       </section>`;
   }
 
+  /*
+   * LA HOJA POR APARTADOS (revisión UX, 18-oct): un checklist de 42 preguntas
+   * era una sola página que no se acababa nunca, con «Guardar» al fondo. Si la
+   * hoja es larga se parte en apartados, con una barra arriba que dice cuántos
+   * obligatorios lleva cada uno (✓ si están todos) y «Siguiente» al final.
+   * Las hojas cortas siguen en una página.
+   */
+  const PUNTOS_UNA_PAGINA = 15;
+  const PUNTOS_POR_PASO = 8;
+  const relleno = (s, p) => {
+    const v = s.tipo === 'parametros' ? valorDe(p, 'm') : valorDe(p);
+    return v !== null && v !== undefined && v !== '';
+  };
+  /* Los apartados: las secciones (con sus parejas), juntando las pequeñas seguidas. */
+  function pasosHoja(f, ed) {
+    const secs = f.secciones.filter((s) => s.tipo !== 'fotos' && (s.tipo === 'bocas' || s.puntos.length));
+    const trozos = [];
+    for (let i = 0; i < secs.length; i += 1) {
+      const s = secs[i];
+      if (s.tipo === 'bocas') trozos.push({ secs: [s], solo: true, html: `<h3 class="banda">${esc(s.titulo)}</h3><p class="nota">Las bocas se miden en la ficha del equipo (boca a boca sobre su plano) y salen en el informe del balanceo.</p>` });
+      else if (s.tipo === 'datos' && f.plantilla.codigo === 'BALANCEO_CAUDALES') trozos.push({ secs: [s], solo: true, html: htmlDatosBalanceo(s, ed) });
+      else if (parejaDe(s, secs[i + 1])) { trozos.push({ secs: [s, secs[i + 1]], html: htmlPareja(s, secs[i + 1], ed) }); i += 1; }
+      else trozos.push({ secs: [s], html: htmlSeccion(s, ed) });
+    }
+    const pasos = [];
+    for (const t of trozos) {
+      const n = t.secs.reduce((a, s) => a + s.puntos.length, 0);
+      const ult = pasos[pasos.length - 1];
+      if (ult && !t.solo && !ult.solo && ult.n + n <= PUNTOS_POR_PASO) { ult.secs.push(...t.secs); ult.html += t.html; ult.n += n; }
+      else pasos.push({ ...t, secs: [...t.secs], n, titulo: t.secs[0].tipo === 'checklist' && t.secs[0].numero ? tituloSeccion(t.secs[0]) : (LADO_RE.exec(t.secs[0].titulo || '') || [null, t.secs[0].titulo])[1] });
+    }
+    return pasos;
+  }
+  /* Obligatorios rellenos de un apartado: [hechos, de]. */
+  function cuentaPaso(paso) {
+    let hechos = 0;
+    let de = 0;
+    for (const s of paso.secs) for (const p of s.puntos) if (p.obligatorio) { de += 1; if (relleno(s, p)) hechos += 1; }
+    return [hechos, de];
+  }
+  const marcaPaso = (paso) => {
+    const [hechos, de] = cuentaPaso(paso);
+    return !de ? '' : hechos === de ? '<b class="ok" aria-label="completo">✓</b>' : `<small>${hechos}/${de}</small>`;
+  };
+  function refrescarPasos() {
+    if (!hoja || !hoja.pasos) return;
+    $app.querySelectorAll('[data-cx="paso-hoja"][data-paso]').forEach((b) => {
+      const paso = hoja.pasos[Number(b.dataset.paso)];
+      const m = b.querySelector('.marca');
+      if (paso && m) m.innerHTML = marcaPaso(paso);
+    });
+  }
+  function irAPaso(i) {
+    const n = $app.querySelectorAll('.paso-hoja').length;
+    if (!n) return;
+    hoja.paso = Math.max(0, Math.min(n - 1, i));
+    $app.querySelectorAll('.paso-hoja').forEach((x, k) => { x.hidden = k !== hoja.paso; });
+    $app.querySelectorAll('.pasos-hoja [data-paso]').forEach((b, k) => { b.setAttribute('aria-selected', String(k === hoja.paso)); b.classList.toggle('activa', k === hoja.paso); });
+    const chip = $app.querySelector('.pasos-hoja .activa');
+    if (chip) chip.scrollIntoView({ block: 'nearest', inline: 'center' });
+    window.scrollTo(0, 0);
+  }
+  const estadoGuardar = (h) => `<span class="estado-guardar ${h.cambiada ? 'pendiente' : 'al-dia'}">${h.cambiada ? 'Cambios sin guardar' : 'Todo guardado'}</span>`;
+
   function pintarHoja() {
     const h = hoja;
     const f = h.f;
@@ -1158,29 +1219,35 @@
     const fotosGuardadas = f.fotos.filter((x) => !h.quitar.has(x.i));
     const total = fotosGuardadas.length + h.nuevas.length;
     const q = new URLSearchParams(h.ref);
+    const pasos = pasosHoja(f, ed);
+    const porPasos = pasos.length > 1 && pasos.reduce((a, p) => a + p.n, 0) > PUNTOS_UNA_PAGINA;
+    h.pasos = porPasos ? pasos : null;
+    const nPasos = pasos.length + 1;
+    const actual = porPasos ? Math.min(h.paso || 0, nPasos - 1) : 0;
+    h.paso = actual;
+    const tituloPaso = (i) => (i < pasos.length ? pasos[i].titulo : 'Cierre');
+    const abre = (i) => (porPasos ? `<div class="paso-hoja" ${i === actual ? '' : 'hidden'}>` : '');
+    const cierra = (i) => (!porPasos ? '' : `<nav class="pasos-pie">
+        ${i > 0 ? `<button class="boton secundario" data-cx="paso-hoja" data-ir="${i - 1}">‹ Anterior</button>` : '<span></span>'}
+        ${i < nPasos - 1 ? `<button class="boton" data-cx="paso-hoja" data-ir="${i + 1}">Siguiente: ${esc(tituloPaso(i + 1))} ›</button>` : ''}
+      </nav></div>`);
+    const ensayo = `<h3 class="banda">El ensayo <span class="tenue">${esc(`${f.plantilla.codigo} v${f.plantilla.version || 1}`)}</span></h3>
+      <section class="hoja-tabla rejilla-datos">
+        <label class="fd"><span class="et">Fecha</span><input type="date" ${ed ? '' : 'disabled'} value="${esc(cabDe('fechaEnsayo') || '')}" data-h-cab="fechaEnsayo"></label>
+        <label class="fd"><span class="et">Realizado por</span><input autocomplete="name" ${ed ? '' : 'disabled'} value="${esc(cabDe('realizadoPor') || '')}" data-h-cab="realizadoPor"></label>
+      </section>`;
+    const FALTAN_VISTOS = porPasos ? 6 : 30;
     $app.innerHTML = `
       ${tagFijo(ficha ? ficha.equipo.tag : (f.titulo || 'Equipo'), h.nombre || f.plantilla.nombre, 'volver-equipo',
         `${chipFicha(f.estado, f.resultado)}${f.medidos ? ` <span class="chip neutra">${f.medidos.rellenos}/${f.medidos.obligatorios}</span>` : ''}`)}
       <div class="densa">
       ${ed ? '' : `<p class="nota aviso">${f.firmada ? 'La ficha está firmada: ya no se cambia.' : 'Tu rol puede ver la ficha, pero no rellenarla.'}</p>`}
-      <h3 class="banda">El ensayo <span class="tenue">${esc(`${f.plantilla.codigo} v${f.plantilla.version || 1}`)}</span></h3>
-      <section class="hoja-tabla rejilla-datos">
-        <label class="fd"><span class="et">Fecha</span><input type="date" ${ed ? '' : 'disabled'} value="${esc(cabDe('fechaEnsayo') || '')}" data-h-cab="fechaEnsayo"></label>
-        <label class="fd"><span class="et">Realizado por</span><input autocomplete="name" ${ed ? '' : 'disabled'} value="${esc(cabDe('realizadoPor') || '')}" data-h-cab="realizadoPor"></label>
-      </section>
-      ${(() => {
-        const secs = f.secciones.filter((s) => s.tipo !== 'fotos' && (s.tipo === 'bocas' || s.puntos.length));
-        const out = [];
-        let tramo = [];
-        const vaciar = () => { if (tramo.length) out.push(htmlSecciones(tramo, ed)); tramo = []; };
-        for (const s of secs) {
-          if (s.tipo === 'bocas') { vaciar(); out.push(`<h3 class="banda">${esc(s.titulo)}</h3><p class="nota">Las bocas se miden en la ficha del equipo (boca a boca sobre su plano) y salen en el informe del balanceo.</p>`); }
-          else if (s.tipo === 'datos' && f.plantilla.codigo === 'BALANCEO_CAUDALES') { vaciar(); out.push(htmlDatosBalanceo(s, ed)); }
-          else tramo.push(s);
-        }
-        vaciar();
-        return out.join('');
-      })()}
+      ${porPasos ? `<nav class="pasos-hoja" role="tablist" aria-label="Apartados de la hoja">
+        ${pasos.map((p, i) => `<button role="tab" class="${i === actual ? 'activa' : ''}" aria-selected="${i === actual}" data-cx="paso-hoja" data-paso="${i}"><span class="t">${esc(p.titulo)}</span><span class="marca">${marcaPaso(p)}</span></button>`).join('')}
+        <button role="tab" class="${actual === pasos.length ? 'activa' : ''}" aria-selected="${actual === pasos.length}" data-cx="paso-hoja" data-paso="${pasos.length}"><span class="t">Cierre</span><span class="marca"></span></button>
+      </nav>` : ''}
+      ${porPasos ? pasos.map((p, i) => `${abre(i)}${i === 0 ? ensayo : ''}${p.html}${cierra(i)}`).join('') : `${ensayo}${pasos.map((p) => p.html).join('')}`}
+      ${abre(nPasos - 1)}
       <h3 class="banda">Observaciones</h3>
       <textarea class="obs" rows="3" ${ed ? '' : 'disabled'} data-h-obs placeholder="Lo que haya que contar (obligatorio si algo sale «No»)">${esc(h.observaciones !== undefined ? h.observaciones : f.observaciones || '')}</textarea>
       <h3 class="banda">Fotos <span class="tenue">${total}/8</span></h3>
@@ -1194,22 +1261,29 @@
         <button class="boton secundario" data-cx="foto" data-camara="1"><i class="ic ic-camara"></i>Hacer foto</button>
         <button class="boton secundario" data-cx="foto" data-camara="0">De la galería</button>
       </div>` : ''}
-      ${f.faltan.length ? `<h3 class="banda">Lo que falta <span class="tenue">${f.faltan.length}</span></h3><ul class="faltan-hoja">${f.faltan.slice(0, 30).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+      ${f.faltan.length ? `<h3 class="banda">Lo que falta <span class="tenue">${f.faltan.length}</span></h3>
+        ${porPasos ? '<p class="nota">En la barra de arriba, cada apartado dice cuántos obligatorios lleva.</p>' : ''}
+        <ul class="faltan-hoja">${f.faltan.slice(0, FALTAN_VISTOS).map((x) => `<li>${esc(x)}</li>`).join('')}${f.faltan.length > FALTAN_VISTOS ? `<li class="tenue">y ${f.faltan.length - FALTAN_VISTOS} más</li>` : ''}</ul>` : ''}
       ${f.avisos.length ? `<p class="nota aviso">${esc(f.avisos.join(' · '))}</p>` : ''}
       <div class="barra-hoja">
-        ${ed ? `<button class="boton grande" data-cx="guardar-hoja" ${h.cambiada ? '' : 'disabled'}>Guardar</button>` : ''}
         <button class="boton grande secundario" data-cx="pdf-hoja"><i class="ic ic-doc"></i>Informe PDF</button>
-        <button class="boton grande secundario" data-cx="pdf-hoja-obra"><i class="ic ic-doc"></i>PDF sin medidos (para obra)</button>
+        <button class="boton grande secundario" data-cx="pdf-hoja-obra"><i class="ic ic-doc"></i>PDF para obra</button>
       </div>
-      </div>`;
+      <p class="nota">«PDF para obra» lleva lo de proyecto y deja en blanco lo medido, para rellenarlo a mano.</p>
+      ${cierra(nPasos - 1)}
+      </div>
+      ${ed ? `<div class="barra-guardar" role="status">${estadoGuardar(h)}<button class="boton" data-cx="guardar-hoja" ${h.cambiada ? '' : 'disabled'}>Guardar</button></div>` : ''}`;
     C.cargarImagenes($app);
   }
 
   function marcarCambiada() {
+    refrescarPasos();
     if (hoja.cambiada) return;
     hoja.cambiada = true;
     const b = $app.querySelector('[data-cx="guardar-hoja"]');
     if (b) b.disabled = false;
+    const e = $app.querySelector('.barra-guardar .estado-guardar');
+    if (e) e.outerHTML = estadoGuardar(hoja);
   }
 
   function anotar(el) {
@@ -1323,6 +1397,7 @@
     else if (que === 'ficha-equipo' && ficha) { document.body.classList.remove('sin-scroll'); pestanaEq = 'equipo'; pintarFicha(); window.scrollTo(0, 0); }
     else if (que === 'hoja') abrirHoja(Number(b.dataset.i));
     else if (que === 'volver-equipo') salirHoja();
+    else if (que === 'paso-hoja' && hoja) irAPaso(Number(b.dataset.ir !== undefined ? b.dataset.ir : b.dataset.paso));
     else if (que === 'foto') fotoHoja(b.dataset.camara === '1');
     else if (que === 'quitar-foto' && hoja) { hoja.quitar.add(Number(b.dataset.i)); hoja.cambiada = true; pintarHoja(); }
     else if (que === 'quitar-nueva' && hoja) { const [x] = hoja.nuevas.splice(Number(b.dataset.i), 1); if (x) URL.revokeObjectURL(x.url); pintarHoja(); }
@@ -1364,7 +1439,7 @@
     hoja.valores[p] = { v: nuevo };
     for (const x of b.parentElement.children) x.className = '';
     if (nuevo) b.className = b.parentElement.classList.contains('segmento') ? 'activa' : `activa ${nuevo === 'no' || nuevo === 'noOk' ? 'mal' : nuevo === 'na' ? 'neutra' : 'bien'}`;
-    if (!hoja.cambiada) { hoja.cambiada = true; const g = $app.querySelector('[data-cx="guardar-hoja"]'); if (g) g.disabled = false; }
+    marcarCambiada();
   });
   $app.addEventListener('change', (ev) => { if (activa() && hoja) anotar(ev.target); });
   $app.addEventListener('input', (ev) => {

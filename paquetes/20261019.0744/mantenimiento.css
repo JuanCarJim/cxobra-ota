@@ -1,0 +1,45 @@
+/* Modo MANTENIMIENTO de Vidaire Cx: solo lo que no está ya en movil.css. */
+
+/* En este modo la barra de secciones y el selector de obra de Cx no pintan nada. */
+body.modo-mant #segmentos,
+body.modo-mant #obra-movil-caja { display: none !important; }
+
+/* El selector Obra | Mantenimiento, bajo el título. */
+.modo-vidaire { margin: 8px 0 0; }
+.modo-vidaire button { padding: 6px 6px; font-size: 13px; }
+
+.mant-nota-demo { margin-top: 18px; }
+.mant-fila-doble { display: flex; gap: 10px; }
+.mant-fila-doble > * { flex: 1; }
+.mant-botones { display: flex; flex-direction: column; gap: 10px; margin: 14px 0; }
+.mant-botones .boton { width: 100%; }
+.boton.peligro-suave { background: var(--mal-fondo); color: var(--mal); }
+.boton.bien { background: var(--bien-fondo); color: var(--bien); }
+
+.mant-cilindro { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.mant-cilindro small { display: block; color: var(--textoTenue); font-size: 13px; margin-top: 2px; }
+.mant-cilindro.fuera { opacity: .6; }
+.mant-barra-gas { height: 6px; border-radius: 3px; background: var(--panel3); overflow: hidden; margin-top: 8px; }
+.mant-barra-gas i { display: block; height: 100%; background: var(--acento); }
+
+.mant-op { display: flex; gap: 12px; align-items: flex-start; padding: 12px 18px; }
+.mant-op + .mant-op { border-top: 1px solid var(--rejillaSuave); }
+.mant-op input[type=checkbox] { width: 24px; height: 24px; min-height: 24px; margin: 2px 0 0; flex: none; accent-color: var(--acento); box-shadow: none; }
+.mant-op select { margin-top: 8px; min-height: 40px; font-size: 14px; }
+.mant-op small { display: block; color: var(--textoTenue); font-size: 12.5px; margin-top: 2px; }
+
+.mant-pizarra { display: block; width: 100%; height: 150px; margin-top: 6px; background: var(--panel); border: 1.5px dashed var(--rejilla); border-radius: var(--radio); touch-action: none; }
+.mant-limpiar { float: right; font-size: 13px; padding: 0; }
+
+.mant-rojo { background: var(--mal-fondo); color: var(--mal); border-radius: var(--radio-tarjeta); padding: 16px 18px; margin: 10px 0; line-height: 1.4; }
+.mant-rojo b { display: block; font-size: 17px; margin-bottom: 4px; }
+.mant-verde { background: var(--bien-fondo); color: var(--bien); border-radius: var(--radio-tarjeta); padding: 14px 18px; margin: 10px 0; }
+
+.mant-hoy { font-size: 15px; }
+.mant-hoy li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 18px; list-style: none; }
+.mant-hoy li + li { border-top: 1px solid var(--rejillaSuave); }
+.mant-hoy ul { margin: 0; padding: 0; }
+.mant-hoy small { display: block; color: var(--textoTenue); font-size: 12.5px; }
+
+.mant-qr { text-align: center; padding: 24px 8px; }
+.mant-qr .boton { max-width: 320px; margin: 0 auto; }

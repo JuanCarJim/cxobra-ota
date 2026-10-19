@@ -33,6 +33,9 @@
   --panel: #FFFFFF;
   --panel2: #EEF2F0;
   --panel3: #E3EAE7;
+  /* Barras de pestañas: la principal en verde claro, la subbarra en azul-teal claro. */
+  --barraPrincipal: #D3E9DF;
+  --barraSub: #E0EDF1;
   --rejilla: #CAD1D3;
   --rejillaSuave: #E1E6E7;
   --borde: #7F8480;
@@ -68,6 +71,9 @@
   --sobreVerdeLinea: #1A5443;
   --sobreVerdeHover: #0A4B36;
   --menuActivo: #04533A;
+  /* (18-oct) El verde CBRE como TEXTO y el texto sobre un relleno de estado. */
+  --verdeTexto: #003F2D;
+  --sobreEstado: #FFFFFF;
 
   /* ── Estado ───────────────────────────────────────────────────── */
   --bien: #003F2D;
@@ -126,6 +132,8 @@
   --panel: #012A2D;
   --panel2: #043534;
   --panel3: #0A413E;
+  --barraPrincipal: #0E4B3F;
+  --barraSub: #0B3B4B;
   --rejilla: #1C4A45;
   --rejillaSuave: #143B37;
   --borde: #628680;
@@ -157,6 +165,18 @@
   --sobreVerdeLinea: #1A5443;
   --sobreVerdeHover: #0A4B36;
   --menuActivo: #04533A;
+  --verdeTexto: #8FD1BE;
+  --sobreEstado: #001E19;
+  /* (18-oct) Los estados en oscuro (ESTADO_OSCURO de marca/colores.js): los de
+     claro daban 1,28:1 (bien) y 2,04:1 (mal) sobre el panel. */
+  --bien: #5FD39E;
+  --bien-fondo: #0C3F31;
+  --aviso: #E3C35A;
+  --aviso-fondo: #3A3212;
+  --mal: #FF9E92;
+  --mal-fondo: #4A1F1F;
+  --info: #8CC6E0;
+  --info-fondo: #0E3445;
   --sombra: 0 1px 2px rgba(0, 0, 0, 0.45);
   --sombra-alta: 0 14px 34px rgba(0, 0, 0, 0.6);
 }
