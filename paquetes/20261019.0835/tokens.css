@@ -33,6 +33,9 @@
   --panel: #FFFFFF;
   --panel2: #EEF2F0;
   --panel3: #E3EAE7;
+  /* Barras de pestañas: la principal en verde claro, la subbarra en azul-teal claro. */
+  --barraPrincipal: #0E5A5A; --barraPrincipalTxt: #E3F4F2; --barraPrincipalBorde: #0A4545;
+  --barraSub: #CFEDEA; --barraSub2: #E4F5F3; --barraSubTxt: #0B4A4A; --barraSubBorde: #A9D8D3; --barraSubAct: #17807C;
   --rejilla: #CAD1D3;
   --rejillaSuave: #E1E6E7;
   --borde: #7F8480;
@@ -129,6 +132,8 @@
   --panel: #012A2D;
   --panel2: #043534;
   --panel3: #0A413E;
+  --barraPrincipal: #0E5A5A; --barraPrincipalTxt: #E3F4F2; --barraPrincipalBorde: #0A4545;
+  --barraSub: #0F4A4C; --barraSub2: #0B3A3C; --barraSubTxt: #D7F0ED; --barraSubBorde: #1F6B6B; --barraSubAct: #1B7F7B;
   --rejilla: #1C4A45;
   --rejillaSuave: #143B37;
   --borde: #628680;

@@ -1,9 +1,9 @@
 {
-  "version": "20261019.0753",
+  "version": "20261019.0835",
   "runtime": "1",
   "canal": "produccion",
-  "publicada": "2026-10-19T07:53:47.483Z",
-  "base": "https://raw.githubusercontent.com/JuanCarJim/cxobra-ota/main/paquetes/20261019.0753/",
+  "publicada": "2026-10-19T08:35:56.605Z",
+  "base": "https://raw.githubusercontent.com/JuanCarJim/cxobra-ota/main/paquetes/20261019.0835/",
   "archivos": {
     "acceso.js": "c4f217316bc1149ac1f6d1a9bbc1a617d6fb49dba625261163a4f4cd035eb9a1",
     "albaranes.js": "4a7891d1de95dd97796993d8a0bc91729e6f740094350021ef6722b2531e8d52",
@@ -43,11 +43,11 @@
     "mantenimiento-motor.js": "62ec6b0ddf8c9761da3bbcb695799863c188c2167a064aa48998bcea8d5690d4",
     "mantenimiento.css": "57d11434333590da45fade494ec07757a61e320d142fe62218169d0e70fe7a96",
     "mantenimiento.js": "0bba48026e7f138dcb9579fbc52f016b852c6761feffbb028a9bb75a1f785be2",
-    "motor-cxobra.js": "543d1f476905c3d2bf8c7bf8ec09b4e8ae6bdb8da07dd074a031ecc773a21b38",
+    "motor-cxobra.js": "34df16ffbd169bc07cdcd782e911b1e27beebbb6b1a1ca569aea5f7b0ba44b54",
     "movil.css": "ef73cc1f32426e1a4951694e856e05d1af2b0ed85d43e6935974436264c9fe39",
     "movil.js": "97fc5d32cf6eb92076fe05308f05e76c7744a581f5ee42d9607a0498ed262751",
     "ncr.js": "e0be15724271a46727feed339e0e9e86f135b7b60930835366dbdd91f7343f3d",
-    "ota-version.json": "5b1b7c9c166cd84c8fa35c72aa12c5c1b9f2bf1da41bf3a42d6b63e8832f4c32",
+    "ota-version.json": "99f1dee1f359b8fa1e4d288c4eb2902905278f5c45ffca4aa25c2ac8569876c9",
     "partes.js": "260e0d70e4ce1ae797e091c5a65574babe07ec4e325a2843a6a63ce2698dbf89",
     "partesIncidencia.js": "30f829e6847a78284f07d8a1cefacc5fdf097cc79a50a346fd600b97df5f0748",
     "personal.js": "8e188c9004b7e19b3234b56acffe0ca3f574c6f82f52920e751e659e9d55c3a7",
@@ -57,6 +57,6 @@
     "simbolosBoca.js": "700ee9637e60f698806e79370e561b2c748fdb259d8f44158afaf6a3437902a3",
     "sql-wasm-browser.wasm": "38c14f6e379210bc942bdc4ebca44e7bfdb4318ecc1c72ca666a28fdce96670a",
     "sql-wasm.wasm": "38c14f6e379210bc942bdc4ebca44e7bfdb4318ecc1c72ca666a28fdce96670a",
-    "tokens.css": "76c0c6437890bcb9cc444265ce3729c5c071ab4405394ebe8403563e2bed9464"
+    "tokens.css": "937e48ebb04926a4c3d21e4639e4c9fb6b490d411dac3792e17bc322678c9cb2"
   }
 }

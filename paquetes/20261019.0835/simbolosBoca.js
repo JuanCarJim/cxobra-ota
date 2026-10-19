@@ -12,6 +12,8 @@
  *   lineal       lineal de ranuras (PureLine): alargado con sus ranuras
  *   rejillaH     rejilla de lamas horizontales (X-Grille H, WG, TR2, retorno)
  *   rejillaV     rejilla de lamas verticales (X-Grille V)
+ *   rejaRetorno  reja rectangular de retorno (15-oct, JC: «el dibujito de una
+ *                reja rectangular»): rectángulo apaisado 2:1 con cinco lamas
  *   rejillaP     rejilla de placa perforada (X-Grille P)
  *   tobera       tobera de largo alcance
  *   extraccion   boca de extracción (válvula): círculo con su disco
@@ -31,6 +33,7 @@ const FAMILIAS_BOCA = {
   lineal: { nombre: 'Difusor lineal', ancho: 44, alto: 12 },
   rejillaH: { nombre: 'Rejilla de lamas horizontales', ancho: 32, alto: 18 },
   rejillaV: { nombre: 'Rejilla de lamas verticales', ancho: 32, alto: 18 },
+  rejaRetorno: { nombre: 'Reja de retorno', ancho: 36, alto: 18 },
   rejillaP: { nombre: 'Rejilla perforada', ancho: 28, alto: 20 },
   tobera: { nombre: 'Tobera', ancho: 24, alto: 24 },
   extraccion: { nombre: 'Boca de extracción', ancho: 22, alto: 22 },
@@ -45,6 +48,7 @@ function familiaBoca(tipo) {
   if (/^cuadrado/.test(t)) return 'cuadrado';
   if (/^circularConos/.test(t)) return 'conos';
   if (/^lineal|^trox-pl\d/.test(t)) return 'lineal';
+  if (/^rejillaRet|^rejillaRectRet|^propioRet|^rejaRet/.test(t)) return 'rejaRetorno';
   if (/^trox-xgm-v/.test(t)) return 'rejillaV';
   if (/^trox-xgm-p/.test(t)) return 'rejillaP';
   if (/^trox-xgm|^troxXgm|^troxWg|^troxTr2|^rejilla/.test(t)) return 'rejillaH';
@@ -86,6 +90,8 @@ function trazosBoca(familia) {
       return `<rect class="cuerpo" x="1" y="1" width="42" height="10" rx="1.5"/>${lineas([[4, 4, 40, 4], [4, 6, 40, 6], [4, 8, 40, 8]])}`;
     case 'rejillaH':
       return `<rect class="cuerpo" x="1" y="1" width="30" height="16" rx="1"/>${lineas([[4, 4.5, 28, 4.5], [4, 7.5, 28, 7.5], [4, 10.5, 28, 10.5], [4, 13.5, 28, 13.5]])}`;
+    case 'rejaRetorno':
+      return `<rect class="cuerpo" x="1" y="1" width="34" height="16" rx="1"/><rect x="3.2" y="3.2" width="29.6" height="11.6" rx=".5" stroke-width=".7"/>${lineas([[5, 5, 31, 5], [5, 7, 31, 7], [5, 9, 31, 9], [5, 11, 31, 11], [5, 13, 31, 13]])}`;
     case 'rejillaV':
       return `<rect class="cuerpo" x="1" y="1" width="30" height="16" rx="1"/>${lineas([[6, 4, 6, 14], [11, 4, 11, 14], [16, 4, 16, 14], [21, 4, 21, 14], [26, 4, 26, 14]])}`;
     case 'rejillaP': {

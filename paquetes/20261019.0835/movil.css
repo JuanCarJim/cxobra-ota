@@ -512,7 +512,7 @@ a.fila-dato strong { color: var(--acento); font-weight: 600; }
 .boca-cabeza { display: flex; gap: 8px; align-items: baseline; }
 .boca-cabeza strong { font-size: 17px; font-weight: 700; }
 .boca-cabeza .sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.boca-cifras { display: grid; grid-template-columns: 1fr 1fr 1fr .9fr; gap: 8px; align-items: end; margin-top: 6px; }
+.boca-cifras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, .9fr); gap: 8px; align-items: end; margin-top: 6px; }
 /* Con qué se midió la boca: botón chiquito arriba a la derecha y su menú. */
 .boca-cabeza .sub { flex: 1 1 auto; min-width: 0; }
 .instr-boca { position: relative; flex: none; margin-left: auto; align-self: center; }
@@ -539,9 +539,10 @@ a.fila-dato strong { color: var(--acento); font-weight: 600; }
 .equipo-medida-todo .nota { margin: 8px 0 0; }
 .q-aparato { margin-top: 6px; }
 .q-aparato input { font-size: 15px; padding: 6px; }
-.lecturas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
+.lecturas { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
 .lecturas label, .q-balometro { display: block; font-size: 11.5px; color: var(--textoTenue); }
-.lecturas input, .q-balometro input { display: block; width: 100%; box-sizing: border-box; margin-top: 2px; font-size: 17px; padding: 8px 6px; text-align: center; font-variant-numeric: tabular-nums; }
+.lecturas label, .boca-cifras > div { min-width: 0; }
+.lecturas input, .q-balometro input { display: block; width: 100%; min-width: 0; box-sizing: border-box; margin-top: 2px; font-size: 17px; padding: 8px 6px; text-align: center; font-variant-numeric: tabular-nums; }
 .q-balometro { margin-top: 8px; }
 .formula { margin-top: 6px; font-size: 12.5px; color: var(--textoTenue); font-variant-numeric: tabular-nums; }
 .formula b { color: var(--texto, inherit); }
@@ -573,7 +574,7 @@ a.fila-dato strong { color: var(--acento); font-weight: 600; }
 .marca-boca.bien .rotulo-boca { background: var(--bien); }
 .marca-boca.mal .rotulo-boca { background: var(--mal); }
 .marca-boca::after { content: ''; position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; transform: translate(-50%, -50%); } /* dedo: 44 px */
-.plano-bocas figcaption { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; font-size: 12.5px; color: var(--textoTenue); }
+.plano-bocas figcaption { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; min-width: 0; padding: 8px 12px; font-size: 12.5px; color: var(--textoTenue); }
 .plano-bocas .leyenda i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 4px 0 8px; vertical-align: -1px; background: #8A8F94; }
 .plano-bocas .leyenda i:first-child { margin-left: 0; }
 .plano-bocas .leyenda i.bien { background: var(--bien); }
