@@ -241,6 +241,13 @@
     if (b) document.documentElement.style.setProperty('--alto-barra', `${b.offsetHeight}px`);
   }
 
+  /* Los estados llegan como códigos ('enMarcha', 'aptoSinBocas'): se dicen con palabras. */
+  const NOMBRE_ESTADO = {
+    pendiente: 'Pendiente', programada: 'Programada', enProceso: 'En proceso', enMarcha: 'En marcha', hecha: 'Hecha',
+    conReservas: 'Con reservas', apto: 'Apto', aptoSinBocas: 'Apto (sin bocas)', noApto: 'No apto', noAplica: 'No aplica',
+  };
+  const nombreEstado = (v) => NOMBRE_ESTADO[v] || v;
+
   function checklist(k, med) {
     if (!k) return '';
     /* Sin fila «Ensayo» (16-oct, JC): el balanceo y la estanqueidad salen solo
@@ -260,9 +267,9 @@
         ${fila('Certificado CE', si(k.ce))}
         ${fila('Manual', si(k.manual))}
         ${fila('Ficha PM', si(k.fichaPM))}
-        ${pideBal ? fila('Balanceo', `<strong>${esc(k.balanceoEstado || 'pendiente')}</strong>`) : ''}
-        ${pideEst ? fila('Estanqueidad', `<strong>${esc(est)}</strong>`) : ''}
-        ${fila('Puesta en marcha', `<strong>${esc(k.estadoPM || '—')}</strong>`)}
+        ${pideBal ? fila('Balanceo', `<strong>${esc(nombreEstado(k.balanceoEstado || 'pendiente'))}</strong>`) : ''}
+        ${pideEst ? fila('Estanqueidad', `<strong>${esc(nombreEstado(est))}</strong>`) : ''}
+        ${fila('Puesta en marcha', `<strong>${esc(k.estadoPM ? nombreEstado(k.estadoPM) : '—')}</strong>`)}
       </section>
       ${(k.incidencias || []).length ? `<p class="nota aviso">${esc(k.incidencias.map((i) => INCIDENCIA[i] || i).join(' · '))}</p>` : ''}`;
   }

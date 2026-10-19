@@ -6723,25 +6723,6 @@ globalThis.CX_VARIANTE="cxobra";
         ["alcance", "editar"],
         ["alcance", "borrar"]
       ];
-      var PROPUESTA_RESTRICCIONES_JEFE_PRODUCCION = {
-        /* A · El dinero: lo que se cobra al cliente y lo que se compromete. */
-        dinero: [
-          ["certificaciones", "crear"],
-          ["certificaciones", "editar"],
-          ["costsPlan", "crear"],
-          ["costsPlan", "editar"],
-          ["compras", "crear"],
-          ["compras", "editar"],
-          ["avanceObra", "aprobar"],
-          ["actas", "aprobar"]
-        ],
-        /* B · La obra y el equipo: la ficha de la obra y las vacaciones de su gente. */
-        obra: [["obras", "editar"], ["vacaciones", "aprobar"]],
-        /* C · Lo que puede acabar en un juicio: abre y mete pruebas, no cambia ni retira. */
-        conflictos: [["conflictos", "editar"], ["conflictos", "borrar"]],
-        /* D · Quitar cosas: pedidos, NCR y PPI los borra solo el jefe de obra. */
-        borrar: [["pedidos", "borrar"], ["ncr", "borrar"], ["ppi", "borrar"]]
-      };
       (function anadirJefeProduccion() {
         const i = ROLES.findIndex((r) => r.id === "jefeObra");
         const jo = ROLES[i];
@@ -6911,7 +6892,8 @@ globalThis.CX_VARIANTE="cxobra";
         gantt: { modulo: "costsPlan", etiqueta: "Diagrama de Gantt" },
         planEconomica: { modulo: "costsPlan", etiqueta: "Planificaci\xF3n econ\xF3mica" }
       };
-      var AYUDA_EN_BARRA = [{ id: "queHaceLaApp", etiqueta: "Qu\xE9 hace la app", icono: "?" }];
+      var AYUDA_EN_BARRA = [{ id: "queHaceLaApp", etiqueta: "Qu\xE9 hace y cu\xE1nto ahorra", icono: "\u20AC" }];
+      var veQueHaceLaApp = (idRol) => idRol === "administrador";
       var DEPARTAMENTOS_EN_BARRA = {
         estudios: ["proyectos", "presupuestos", "calculo", "biblioteca", "reparto"],
         delineacion: ["reparto", "proyectos"],
@@ -6980,7 +6962,6 @@ globalThis.CX_VARIANTE="cxobra";
         modulosVisibles,
         campoVetado,
         RESTRICCIONES_JEFE_PRODUCCION,
-        PROPUESTA_RESTRICCIONES_JEFE_PRODUCCION,
         SECCIONES_MOVIL,
         seccionesMovil,
         entraEnEscritorio,
@@ -6989,6 +6970,7 @@ globalThis.CX_VARIANTE="cxobra";
         SECCIONES_OBRA,
         ATAJOS_OBRA,
         AYUDA_EN_BARRA,
+        veQueHaceLaApp,
         barraDeRol
       });
     }
@@ -8802,7 +8784,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261018.1121" : "0";
+      var VERSION = true ? "20261019.0753" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -34991,6 +34973,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         lineal: { nombre: "Difusor lineal", ancho: 44, alto: 12 },
         rejillaH: { nombre: "Rejilla de lamas horizontales", ancho: 32, alto: 18 },
         rejillaV: { nombre: "Rejilla de lamas verticales", ancho: 32, alto: 18 },
+        rejaRetorno: { nombre: "Reja de retorno", ancho: 36, alto: 18 },
         rejillaP: { nombre: "Rejilla perforada", ancho: 28, alto: 20 },
         tobera: { nombre: "Tobera", ancho: 24, alto: 24 },
         extraccion: { nombre: "Boca de extracci\xF3n", ancho: 22, alto: 22 },
@@ -35003,6 +34986,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         if (/^cuadrado/.test(t)) return "cuadrado";
         if (/^circularConos/.test(t)) return "conos";
         if (/^lineal|^trox-pl\d/.test(t)) return "lineal";
+        if (/^rejillaRet|^rejillaRectRet|^propioRet|^rejaRet/.test(t)) return "rejaRetorno";
         if (/^trox-xgm-v/.test(t)) return "rejillaV";
         if (/^trox-xgm-p/.test(t)) return "rejillaP";
         if (/^trox-xgm|^troxXgm|^troxWg|^troxTr2|^rejilla/.test(t)) return "rejillaH";
@@ -35043,6 +35027,8 @@ ${subtitulo}`, c[5]] : c.slice())]);
             return `<rect class="cuerpo" x="1" y="1" width="42" height="10" rx="1.5"/>${lineas([[4, 4, 40, 4], [4, 6, 40, 6], [4, 8, 40, 8]])}`;
           case "rejillaH":
             return `<rect class="cuerpo" x="1" y="1" width="30" height="16" rx="1"/>${lineas([[4, 4.5, 28, 4.5], [4, 7.5, 28, 7.5], [4, 10.5, 28, 10.5], [4, 13.5, 28, 13.5]])}`;
+          case "rejaRetorno":
+            return `<rect class="cuerpo" x="1" y="1" width="34" height="16" rx="1"/><rect x="3.2" y="3.2" width="29.6" height="11.6" rx=".5" stroke-width=".7"/>${lineas([[5, 5, 31, 5], [5, 7, 31, 7], [5, 9, 31, 9], [5, 11, 31, 11], [5, 13, 31, 13]])}`;
           case "rejillaV":
             return `<rect class="cuerpo" x="1" y="1" width="30" height="16" rx="1"/>${lineas([[6, 4, 6, 14], [11, 4, 11, 14], [16, 4, 16, 14], [21, 4, 21, 14], [26, 4, 26, 14]])}`;
           case "rejillaP": {
@@ -40269,12 +40255,14 @@ ${subtitulo}`, c[5]] : c.slice())]);
         const parciales = [];
         const diferencias = [];
         let activos = 0;
+        const activosPorObra = {};
         for (const o of repo.listar("obras", sesion)) {
           const d = obra(repo, sesion, o.id);
           if (!d) continue;
           for (const f of d.filas) {
             if (!f.calc.activo || f.calc.estado === "borrador") continue;
             activos += 1;
+            activosPorObra[o.id] = (activosPorObra[o.id] || 0) + 1;
             const x = {
               id: f.id,
               obraId: o.id,
@@ -40297,7 +40285,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         }
         proximos.sort((a, b) => String(a.fechaPrevista).localeCompare(String(b.fechaPrevista)));
         retrasados.sort((a, b) => (b.retrasoDias || 0) - (a.retrasoDias || 0));
-        return { retrasados, sinConfirmar, proximos, parciales, diferencias, activos, gestiona: gestiona(sesion) };
+        return { retrasados, sinConfirmar, proximos, parciales, diferencias, activos, activosPorObra, gestiona: gestiona(sesion) };
       }
       module.exports = {
         /* Para los albaranes (electron/data/albaranes.js). */
@@ -73433,12 +73421,14 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         const porRevisar = [];
         const vencidas = [];
         let activas = 0;
+        const activosPorObra = {};
         for (const o of repo.listar("obras", sesion)) {
           const d = obra(repo, sesion, o.id);
           if (!d) continue;
           for (const f of d.filas) {
             if (!f.calc.activa) continue;
             activas += 1;
+            activosPorObra[o.id] = (activosPorObra[o.id] || 0) + 1;
             const x = {
               id: f.id,
               obraId: o.id,
@@ -73458,7 +73448,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
             if (f.calc.vencida) vencidas.push(x);
           }
         }
-        return { mias, porRevisar, vencidas, activas, aprueba };
+        return { mias, porRevisar, vencidas, activas, activosPorObra, aprueba };
       }
       module.exports = {
         obra,
@@ -79846,7 +79836,10 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         };
       }
       var ORDEN_ROL_EQUIPO = ["jefeProduccion", "encargadoObra", "operario"];
-      function equipo(db, o) {
+      var SUPERIORES = { jefeProduccion: ["jefeObra", "jefeGrupo"] };
+      var POR_ENCIMA = "El jefe de obra est\xE1 por encima del jefe de producci\xF3n: a \xE9l y al jefe de grupo no se les encargan tareas desde producci\xF3n.";
+      var porEncima = (sesion, rolDe) => (SUPERIORES[sesion.rol] || []).includes(rolDe);
+      function equipo(db, o, sesion = {}) {
         const de = new Set([o.jefeProduccionId, o.jefeObraId, o.jefeGrupoId, ...lista(o.encargadosIds), ...lista(o.tecnicosIds)].filter(Boolean));
         const peso = (p) => {
           const i = ORDEN_ROL_EQUIPO.indexOf(p.rol);
@@ -79855,7 +79848,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         return db.prepare("SELECT id, nombre, rol FROM personas WHERE activo = 1").all().map((p) => {
           const r = ROLES.rol(p.rol);
           return { ...p, rolNombre: r ? r.nombre : "", deLaObra: de.has(p.id) };
-        }).sort((a, b) => b.deLaObra - a.deLaObra || (a.deLaObra ? peso(a) - peso(b) : 0) || a.nombre.localeCompare(b.nombre, "es"));
+        }).filter((p) => !porEncima(sesion, p.rol)).sort((a, b) => b.deLaObra - a.deLaObra || (a.deLaObra ? peso(a) - peso(b) : 0) || a.nombre.localeCompare(b.nombre, "es"));
       }
       var nombres = (db) => new Map(db.prepare("SELECT id, nombre FROM personas").all().map((p) => [p.id, p.nombre]));
       function obra(repo, sesion, obraId, { hoy = hoyIso() } = {}) {
@@ -79879,7 +79872,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           obra: { id: o.id, codigo: o.codigo, nombre: o.nombre },
           tareas,
           resumen: T.resumen(tareas, hoy),
-          personas: equipo(db, o),
+          personas: equipo(db, o, sesion),
           permisos: permisosDe(sesion, null),
           yo: sesion.personaId,
           hoy
@@ -79927,7 +79920,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           permisos: permisosDe(sesion, t)
         };
       }
-      function limpiar(repo, entrada, actual = {}) {
+      function limpiar(repo, entrada, actual = {}, sesion = {}) {
         const c = {};
         if (entrada.titulo !== void 0) {
           c.titulo = llano(entrada.titulo).slice(0, 200);
@@ -79946,7 +79939,9 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         }
         if (entrada.responsableId !== void 0) {
           const r = llano(entrada.responsableId);
-          if (r && !repo.db.prepare("SELECT id FROM personas WHERE id = ? AND activo = 1").get(r)) return { error: "No se encuentra a esa persona." };
+          const p = r ? repo.db.prepare("SELECT id, rol FROM personas WHERE id = ? AND activo = 1").get(r) : null;
+          if (r && !p) return { error: "No se encuentra a esa persona." };
+          if (p && p.rol && porEncima(sesion, p.rol) && r !== actual.responsableId) return { error: POR_ENCIMA };
           c.responsableId = r || null;
         }
         for (const k of Object.keys(c)) if ((actual[k] ?? null) === c[k]) delete c[k];
@@ -79978,7 +79973,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         const o = obraId ? repo.leer("obras", sesion, obraId) : null;
         if (!o) return { ok: false, error: "No se encuentra la obra." };
         if (!llano(entrada.titulo)) return { ok: false, error: "La tarea necesita un t\xEDtulo (qu\xE9 hay que hacer)." };
-        const { cambios, error } = limpiar(repo, { prioridad: "media", ...entrada });
+        const { cambios, error } = limpiar(repo, { prioridad: "media", ...entrada }, {}, sesion);
         if (error) return { ok: false, error };
         return enTransaccion(repo, () => {
           const codigos = repo.db.prepare("SELECT codigo FROM tareasObra WHERE obraId = ?").all(obraId).map((x) => x.codigo);
@@ -80002,7 +79997,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           const otros = Object.keys(entrada).filter((k) => k !== "material" && entrada[k] !== void 0);
           if (otros.length) return { ok: false, error: "Como responsable puedes cambiar el material y el estado; el encargo lo cambia quien lo hizo." };
         }
-        const r = limpiar(repo, entrada, t);
+        const r = limpiar(repo, entrada, t, sesion);
         if (r.error) return { ok: false, error: r.error };
         if (Object.keys(r.cambios).length) repo.modificar("tareasObra", sesion, id, r.cambios);
         return { ok: true };

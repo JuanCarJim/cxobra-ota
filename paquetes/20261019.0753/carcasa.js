@@ -321,6 +321,7 @@
     obrasListas: () => obrasListas,
     activa: (s) => seccion() === s,
     abrirAnadir: () => abrirHoja(),
+    volverAObra: () => { pintar(); },
     cabeza, menu,
   };
 
@@ -396,6 +397,8 @@
   /* ═══════════════════════════════════ Las pestañas */
 
   function pintar() {
+    /* En modo Mantenimiento (cxobra/mantenimiento/pantallas/mantenimiento.js) la barra, el título y las secciones son suyos. */
+    if (window.VIDAIRE_MODO && window.VIDAIRE_MODO() === 'mant') return;
     const s = seccion();
     /* La cabecera de trabajo es de su sección: al irse a otra, la normal. */
     if (document.body.classList.contains('modo-trabajo') && s !== seccionTrabajo) {
