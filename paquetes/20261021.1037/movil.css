@@ -573,6 +573,8 @@ a.fila-dato strong { color: var(--acento); font-weight: 600; }
 .marca-boca .rotulo-boca { background: #6B7075; }
 .marca-boca.bien .rotulo-boca { background: var(--bien); }
 .marca-boca.mal .rotulo-boca { background: var(--mal); }
+/* Las bocas del otro circuito (impulsión/retorno) se ven, apagadas. */
+.marca-boca.otro-circuito { opacity: .45; }
 .marca-boca::after { content: ''; position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; transform: translate(-50%, -50%); } /* dedo: 44 px */
 .plano-bocas figcaption { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; min-width: 0; padding: 8px 12px; font-size: 12.5px; color: var(--textoTenue); }
 .plano-bocas .leyenda i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 4px 0 8px; vertical-align: -1px; background: #8A8F94; }
