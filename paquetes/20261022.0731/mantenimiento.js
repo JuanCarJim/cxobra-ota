@@ -45,7 +45,7 @@
     { id: 'incidencias', nombre: 'Incidencias', rutas: ['incidencias'],
       icono: ICONO('<path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.5"/><circle cx="12" cy="17" r=".6" fill="currentColor"/>',
         `<path d="M12 3.5 2.8 19.5h18.4z" fill="currentColor"/><path d="M12 10v4" ${HUECO} stroke-width="2.2"/><path d="M12 16.9v.1" ${HUECO} stroke-width="2.4"/>`) },
-    { id: 'mas', nombre: 'Más', rutas: ['mas', 'certificados', 'libro', 'alta'],
+    { id: 'mas', nombre: 'Más', rutas: ['mas', 'certificados', 'libro', 'alta', 'entrega'],
       icono: ICONO('<rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/>',
         '<g fill="currentColor"><rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/></g>') },
   ];
@@ -54,7 +54,7 @@
   const TITULOS = {
     ruta: 'Ruta de hoy', edificio: 'Equipos de hoy', equipo: 'Equipo', gas: 'Añadir gas', recuperar: 'Recuperar gas', fuga: 'Hay fuga', it3: 'IT 3 (RITE)',
     cerrar: 'Cerrar la visita', fin: 'Visita cerrada', furgoneta: 'Mi furgoneta', cilindro: 'Cilindro', incidencias: 'Mis incidencias', mas: 'Más', certificados: 'Mis certificados',
-    libro: 'Libro F-gas', alta: 'Añadir equipo', escanear: 'Escanear equipo',
+    libro: 'Libro F-gas', alta: 'Añadir equipo', escanear: 'Escanear equipo', entrega: 'Acta de entrega',
   };
 
   const fecha = (iso) => (iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : '—');
@@ -153,6 +153,7 @@
   const PANTALLAS = {
     ruta: pRuta, edificio: pEdificio, equipo: pEquipo, gas: pGas, recuperar: pRecuperar, fuga: pFuga, it3: pIt3, cerrar: pCerrar, fin: pFin,
     furgoneta: pFurgoneta, cilindro: pCilindroNuevo, incidencias: pIncidencias, mas: pMas, certificados: pCertificados, libro: pLibro, alta: pAlta, escanear: pEscanear,
+    entrega: pEntrega,
   };
 
   let pintando = 0;
@@ -368,7 +369,7 @@
 
   async function pGas([id]) {
     const { m, c, e } = await contextoEquipo(id);
-    const todos = await m.mant.cilindros(c.base);
+    const todos = await m.mant.cilindros(c.base, c.usuarioId);
     const { permitidos, prohibidos } = m.reglas.cilindrosParaCargar(e, todos, c.hoy);
     const recomendado = permitidos[0] ? permitidos[0].id : null;
     const lleva = (cil) => `${cil.origen || 'virgen'} · quedan ${kgT(cil.kg)} kg`;
@@ -395,7 +396,7 @@
 
   async function pRecuperar([id]) {
     const { m, c, e } = await contextoEquipo(id);
-    const todos = await m.mant.cilindros(c.base);
+    const todos = await m.mant.cilindros(c.base, c.usuarioId);
     const cil = m.reglas.cilindroDeRecuperacion(e, todos);
     const libre = cil ? Math.max(0, Number(cil.capacidad_kg ?? 0) - cil.kg) : 0;
     $app.innerHTML = `
@@ -464,7 +465,7 @@
 
   async function pFurgoneta() {
     const m = M(); const c = ctx();
-    const lista = await m.mant.cilindros(c.base);
+    const lista = await m.mant.cilindros(c.base, c.usuarioId);
     const grupo = (uso, nombre) => {
       const xs = lista.filter((x) => x.uso === uso);
       return `<h2 class="titulo-grupo">${nombre}</h2>${xs.length ? `<ul class="lista-ios">${xs.map((x) => {
@@ -480,14 +481,17 @@
   }
 
   async function pCilindroNuevo() {
-    const gases = M().normativa.REFRIGERANTES ? M().normativa.REFRIGERANTES.map((r) => r.id) : ['R410A', 'R32', 'R134a', 'R404A', 'R407C', 'R290'];
+    // REFRIGERANTES es un objeto (id → ficha); la lista de ids es IDS_REFRIGERANTES.
+    const gases = M().normativa.IDS_REFRIGERANTES || ['R410A', 'R32', 'R134a', 'R404A', 'R407C', 'R290'];
     $app.innerHTML = `
       <button class="volver" data-m="furgoneta">‹ Mi furgoneta</button>
       <div class="campos" style="grid-template-columns:1fr">
         <label>Código del cilindro<input id="cl-codigo" type="text" autocomplete="off" placeholder="C-12"></label>
         <label>Para<select id="cl-uso"><option value="carga">Cargar en equipos</option><option value="recuperacion">Recuperar gas</option></select></label>
         <label>Gas<select id="cl-gas">${gases.map((g) => `<option value="${esc(g)}">${esc(g)}</option>`).join('')}</select></label>
-        <label>Origen (solo para cargar)<select id="cl-origen"><option value="virgen">Virgen</option><option value="regenerado">Regenerado</option><option value="reciclado">Reciclado</option></select></label>
+        <label class="cl-carga">Origen<select id="cl-origen"><option value="virgen">Virgen</option><option value="regenerado">Regenerado</option><option value="reciclado">Reciclado</option></select></label>
+        <label class="cl-tratado" hidden>Dónde se trató<input id="cl-lugar" type="text" autocomplete="off" placeholder="Planta o empresa autorizada"></label>
+        <label class="cl-reciclado" hidden>¿Lo recuperó tu empresa?<select id="cl-propio"><option value="">No lo sé</option><option value="1">Sí</option><option value="0">No</option></select></label>
         <label>Kg que lleva<input id="cl-kg" type="text" inputmode="decimal" placeholder="0,0"></label>
         <label>Capacidad (kg)<input id="cl-cap" type="text" inputmode="decimal" placeholder="13,4"></label>
         <label>Lote<input id="cl-lote" type="text" autocomplete="off"></label>
@@ -526,6 +530,7 @@
         <li><button class="fila-ios" data-m="certificados"><strong>Mis certificados</strong><span class="texto-2">Gases fluorados y RITE: caducidad y qué puedes hacer.</span></button></li>
         <li><button class="fila-ios" data-m="libro"><strong>Libro F-gas</strong><span class="texto-2">Controles, cargas y recuperaciones anotadas.</span></button></li>
         <li><button class="fila-ios" data-m="alta"><strong>Añadir un equipo</strong><span class="texto-2">Uno que has encontrado y no está en la ruta.</span></button></li>
+        <li><button class="fila-ios" data-m="entrega"><strong>Traer un acta de entrega</strong><span class="texto-2">Los equipos de una obra recién entregada, con su historial.</span></button></li>
       </ul>
       ${await bloqueNube(m, hay)}`;
   }
@@ -656,6 +661,42 @@
       <div class="mant-botones"><button class="boton grande" data-m="alta-guardar">Añadir el equipo</button></div>`;
   }
 
+  /* ═══════════════════════════════════ El acta de entrega de una obra (entrega.ts) */
+
+  /* El acta leída y el edificio elegido, mientras se está en la pantalla. */
+  let entregaActa = null;
+  let entregaEd = null;
+
+  async function pEntrega() {
+    const m = M(); const c = ctx();
+    const eds = await c.base.todas('select id, nombre from edificios where borrado_en is null order by nombre');
+    if (!eds.length) { $app.innerHTML = vacio('<p>Primero hace falta el edificio del contrato. Entra en Vidaire en «Más».</p>'); return; }
+    if (!eds.some((x) => x.id === entregaEd)) entregaEd = eds[0].id;
+    let resumen = '';
+    if (entregaActa) {
+      const v = await m.entrega.previsualizarEntrega(c.base, entregaActa, entregaEd);
+      const a = entregaActa.acta;
+      resumen = `
+        <section class="grupo">
+          ${fila('Acta', esc(`${a.numero} · ${fecha(a.fecha)}`))}
+          ${fila('Obra', esc((a.obra && (a.obra.codigo || a.obra.nombre)) || '—'))}
+          ${fila('Firma', esc((a.firmante && a.firmante.nombre) || '—'))}
+          ${fila('Equipos nuevos', num(v.nuevos.length))}
+          ${v.conReservas ? fila('Con reservas de la obra', num(v.conReservas)) : ''}
+          ${v.yaEstan.length ? fila('Ya están en el edificio', esc(v.yaEstan.join(', '))) : ''}
+        </section>
+        <div class="mant-botones"><button class="boton grande" data-m="entrega-traer" ${v.nuevos.length ? '' : 'disabled'}>${v.nuevos.length ? `Traer ${num(v.nuevos.length)} equipos` : 'Nada nuevo que traer'}</button></div>`;
+    }
+    $app.innerHTML = `
+      <button class="volver" data-m="atras">‹ Volver</button>
+      <p class="nota">El acta firmada en Vidaire Obras (Commissioning › Entregas › «Guardar para mantenimiento»). Sus equipos entran en el edificio ya en operación, con su historial de obra dentro.</p>
+      <div class="campos" style="grid-template-columns:1fr">
+        <label>Edificio del contrato<select id="en-ed">${eds.map((x) => `<option value="${esc(x.id)}" ${x.id === entregaEd ? 'selected' : ''}>${esc(x.nombre)}</option>`).join('')}</select></label>
+        <label>Acta (.json)<input id="en-fichero" type="file" accept=".json,application/json"></label>
+      </div>
+      ${resumen}`;
+  }
+
   /* ═══════════════════════════════════ Escanear */
 
   async function pEscanear() {
@@ -673,7 +714,7 @@
     for (const t of textos) {
       const e = await m.mant.buscarPorQr(c.base, t);
       if (e) { location.hash = `m/equipo/${encodeURIComponent(e.id)}`; return true; }
-      const cil = await m.mant.cilindroPorCodigo(c.base, t);
+      const cil = await m.mant.cilindroPorCodigo(c.base, t, c.usuarioId);
       if (cil) { location.hash = 'm/furgoneta'; return true; }
     }
     return false;
@@ -697,7 +738,15 @@
     const a = b.dataset.m;
     const m = M();
     try {
-      if (a === 'ruta' || a === 'furgoneta' || a === 'certificados' || a === 'libro') { location.hash = `m/${a}`; return; }
+      if (a === 'ruta' || a === 'furgoneta' || a === 'certificados' || a === 'libro' || a === 'entrega') { location.hash = `m/${a}`; return; }
+      if (a === 'entrega-traer') {
+        b.disabled = true;
+        const r = await m.entrega.importarEntrega(ctx(), entregaActa, entregaEd);
+        aviso(`${num(r.altas.length)} equipos traídos del acta ${entregaActa.acta.numero}${r.yaEstaban.length ? ` · ${num(r.yaEstaban.length)} ya estaban` : ''}. Se envían a Vidaire con lo demás.`, 'bien');
+        entregaActa = null;
+        repintar();
+        return;
+      }
       if (a === 'atras') { history.length > 1 ? history.back() : (location.hash = 'm/ruta'); return; }
       if (a === 'edificio') { location.hash = `m/edificio/${encodeURIComponent(b.dataset.ed)}`; return; }
       if (a === 'equipo') { location.hash = `m/equipo/${encodeURIComponent(b.dataset.id)}`; return; }
@@ -851,14 +900,15 @@
       /* ── furgoneta */
       if (a === 'cilindro-guardar') {
         const c = ctx();
-        const codigo = valor('#cl-codigo');
-        const kg = leerNum('#cl-kg');
-        if (!codigo) { aviso('Falta el código del cilindro.'); return; }
-        if (!(kg >= 0)) { aviso('Escribe los kg que lleva.'); return; }
         const uso = valor('#cl-uso');
-        const cap = leerNum('#cl-cap');
-        await c.base.ejecutar('insert into cilindros (id, codigo, uso, refrigerante, origen, kg, capacidad_kg, lote, lugar_tratamiento, reciclado_por_mi_empresa) values (?, ?, ?, ?, ?, ?, ?, ?, null, null)',
-          [m.uuid(), codigo, uso, valor('#cl-gas'), uso === 'carga' ? valor('#cl-origen') : null, kg, cap > 0 ? cap : null, valor('#cl-lote') || null]);
+        const propio = valor('#cl-propio');
+        const id = await conBloqueo(() => m.mant.altaCilindro(c, {
+          codigo: valor('#cl-codigo'), uso, refrigerante: valor('#cl-gas'), kg: leerNum('#cl-kg'), capacidad_kg: leerNum('#cl-cap'),
+          lote: valor('#cl-lote'), origen: uso === 'carga' ? valor('#cl-origen') : null, lugar_tratamiento: valor('#cl-lugar'),
+          reciclado_por_mi_empresa: propio === '' ? null : propio === '1',
+        }));
+        if (!id) return;
+        if (conNube()) void m.nube.sincronizar();
         aviso('Cilindro añadido.', 'bien');
         location.hash = 'm/furgoneta';
         return;
@@ -943,6 +993,21 @@
 
   $app.addEventListener('change', (ev) => {
     if (ev.target.matches('#al-ed')) location.hash = `m/alta/${encodeURIComponent(ev.target.value)}`;
+    if (ev.target.matches('#en-ed')) { entregaEd = ev.target.value; repintar(); }
+    if (ev.target.matches('#en-fichero') && ev.target.files && ev.target.files[0]) {
+      ev.target.files[0].text().then((texto) => {
+        try { entregaActa = M().entrega.leerEntrega(texto); } catch (e) { entregaActa = null; aviso(e.message); }
+        repintar();
+      });
+    }
+    if (ev.target.matches('#cl-uso, #cl-origen')) {
+      // Solo se pregunta lo que pide la ley para ese cilindro.
+      const carga = valor('#cl-uso') === 'carga';
+      const origen = valor('#cl-origen');
+      $app.querySelector('.cl-carga').hidden = !carga;
+      $app.querySelector('.cl-tratado').hidden = !carga || origen === 'virgen';
+      $app.querySelector('.cl-reciclado').hidden = !carga || origen !== 'reciclado';
+    }
   });
 
   /* ═══════════════════════════════════ Arranque */

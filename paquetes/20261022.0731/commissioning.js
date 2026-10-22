@@ -89,6 +89,12 @@
     /* Una sola regla: la de shared/commissioning/control.js (papeles + fichas + ensayo). */
     ['completos', 'Completos', (e) => e.completo],
     ['soloDoc', 'Doc. completa', (e) => e.docCompleta && !e.completo],
+    /* 22-oct (JC): «puestos en marcha» y «falta ficha», las mismas cuentas que el
+       inicio del escritorio (shared/commissioning/control.js · totalesDe). */
+    ['enMarcha', 'Puestos en marcha', (e) => e.estadoPM === 'enMarcha' || e.estadoPM === 'hecha'],
+    ['faltaFichas', 'Falta ficha', (e) => e.envio === 'faltaFichas'],
+    ['faltaEnsayo', 'Falta ensayo', (e) => e.envio === 'faltaEnsayo'],
+    ['enviadas', 'Mandados a la DF', (e) => e.envio === 'enviada'],
   ];
   let segmento = 'todos';
   const porPlanta = (a, b) => (a === 'Sin planta') - (b === 'Sin planta') || a.localeCompare(b, 'es', { numeric: true });
@@ -150,7 +156,8 @@
     const grupos = [...new Set(equipos.map(grupoDe))].sort(agrupar === 'planta' ? porPlanta
       : (a, b) => sin(a) - sin(b) || a.localeCompare(b, 'es', { numeric: true }));
     $app.innerHTML = `
-      <div class="resumen-fila cinco" role="tablist">${[['todos', conj ? t.conjuntos : t.equipos, conj && t.unidades !== t.conjuntos ? 'conjuntos' : 'equipos'], ['completos', t.completos, 'completos'], ['soloDoc', t.soloDoc || 0, 'doc. completa'], ['faltaDoc', t.faltaDocumentacion, 'falta doc.'], ['faltaBalanceo', t.faltaBalanceo || 0, 'falta balanceo'], ['faltaEstanqueidad', t.faltaEstanqueidadEnvio || 0, 'falta estanq.']]
+      <div class="resumen-fila ocho" role="tablist">${[['todos', conj ? t.conjuntos : t.equipos, conj && t.unidades !== t.conjuntos ? 'conjuntos' : 'equipos'], ['enMarcha', t.enMarcha, 'en marcha'], ['completos', t.completos, 'completos'], ['soloDoc', t.soloDoc || 0, 'doc. completa'], ['faltaDoc', t.faltaDocumentacion, 'falta doc.'], ['faltaFichas', t.faltaFichas || 0, 'falta ficha'], ['faltaBalanceo', t.faltaBalanceo || 0, 'falta balanceo'], ['faltaEstanqueidad', t.faltaEstanqueidadEnvio || 0, 'falta estanq.']]
+        .filter(([id, n]) => id !== 'enMarcha' || n !== undefined)
         .map(([id, n, texto]) => `<button role="tab" data-cx-seg="${id}" aria-selected="${segmento === id}" class="${segmento === id ? 'activa' : ''} ${id.startsWith('falta') && n ? 'aviso' : ''}"><b>${cifra(n)}</b><span>${esc(texto)}</span></button>`).join('')}</div>
       ${conj && t.unidades !== t.conjuntos ? `<p class="nota tenue cuenta-conjuntos">${cifra(t.conjuntos)} conjuntos con ${cifra(t.unidades)} unidades: ${cifra(t.pares)} splits y ${cifra(t.sistemas)} VRF van en una línea con su exterior.</p>` : ''}
       <input type="search" class="buscar" placeholder="Buscar TAG, planta, tipo o marca" value="${esc(filtro)}" data-cx-buscar>

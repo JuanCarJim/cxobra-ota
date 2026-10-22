@@ -2180,6 +2180,28 @@
     { nombre: "plantillas_prueba", columnas: ["organizacion_id", "codigo", "revision", "tipo_prueba", "clase_equipo", "disciplina", "nivel", "titulo_codigo", "titulo", "estado"], alcance: { tipo: "global", filtro: "publicadas" } },
     { nombre: "plantilla_puntos", columnas: ["plantilla_id", "orden", "codigo", "categoria", "texto_codigo", "texto", "criterio", "tipo_respuesta", "obligatorio", "requiere_evidencia"], bool: ["obligatorio", "requiere_evidencia"], alcance: { tipo: "hijo", padre: "plantillas_prueba", fk: "plantilla_id" } },
     { nombre: "textos_sistema", columnas: ["organizacion_id", "codigo", "idioma", "texto"], alcance: { tipo: "global" } },
+    // Cilindros de la mantenedora (0016_cilindros.sql). Bajan todos los que el RLS
+    // deja ver, no solo los del técnico: si la oficina pasa uno a otra furgoneta,
+    // el cambio de tecnico_id también tiene que llegar. La furgoneta filtra los suyos.
+    {
+      nombre: "cilindros",
+      columnas: [
+        "organizacion_id",
+        "tecnico_id",
+        "codigo",
+        "uso",
+        "refrigerante",
+        "origen",
+        "kg",
+        "capacidad_kg",
+        "lote",
+        "lugar_tratamiento",
+        "reciclado_por_mi_empresa",
+        "estado"
+      ],
+      bool: ["reciclado_por_mi_empresa"],
+      alcance: { tipo: "global" }
+    },
     { nombre: "edificios", columnas: ["titular_id", "nombre", "direccion", "municipio", "provincia", "ccaa", "uso"], alcance: { tipo: "edificio", columna: "id" } },
     { nombre: "proyectos_cx", columnas: ["titular_id", "edificio_id", "codigo", "nombre", "fase", "idioma_entregables"], alcance: { tipo: "edificio", columna: "edificio_id" } },
     { nombre: "ubicaciones", columnas: ["edificio_id", "padre_id", "nivel", "codigo", "nombre", "orden"], alcance: { tipo: "edificio", columna: "edificio_id" } },
@@ -2213,8 +2235,12 @@
         "potencia_frio_kw",
         "potencia_calor_kw",
         "fecha_instalacion",
-        "qr_token"
+        "qr_token",
+        "entregado_en",
+        "datos_tecnicos"
       ],
+      /* datos_tecnicos.cx: el historial de la obra que trae el acta de entrega (22-oct). */
+      json: ["datos_tecnicos"],
       bool: ["hermetico", "deteccion_fugas", "en_vivienda"],
       alcance: { tipo: "edificio", columna: "edificio_id" }
     },
@@ -2357,21 +2383,6 @@ create table if not exists conflictos (
   visto integer not null default 0
 );
 
--- Cilindros de la furgoneta (de carga y de recuperaci\xF3n). A\xFAn no hay tabla en el
--- servidor: ver supabase/migrations/0016_cilindros.sql (propuesta, sin aplicar).
-create table if not exists cilindros (
-  id text primary key,
-  codigo text not null,
-  uso text not null check (uso in ('carga', 'recuperacion')),
-  refrigerante text not null,
-  origen text check (origen in ('virgen', 'regenerado', 'reciclado')),
-  kg real not null default 0,
-  capacidad_kg real,
-  lote text,
-  lugar_tratamiento text,
-  reciclado_por_mi_empresa integer
-);
-
 -- La visita del d\xEDa a un edificio (mantenimiento).
 create table if not exists visitas (
   id text primary key,
@@ -2415,6 +2426,20 @@ create table if not exists ajustes (
 `;
   function sqlEsquema() {
     return ESPEJO.map(crearEspejo).join("\n") + "\n" + LOCALES;
+  }
+  async function ampliarEspejo(base2) {
+    const anadidas = [];
+    for (const t of ESPEJO) {
+      const hay = new Set((await base2.todas(`pragma table_info(${t.nombre})`)).map((c) => c.name));
+      const deBajada = [["version", "version integer not null default 0"], ["actualizado_en", "actualizado_en text"], ["borrado_en", "borrado_en text"]];
+      const faltan = [...t.columnas.filter((c) => !hay.has(c)).map((c) => [c, c]), ...deBajada.filter(([c]) => !hay.has(c))];
+      for (const [c, def] of faltan) {
+        await base2.ejecutar(`alter table ${t.nombre} add column ${def}`);
+        anadidas.push(`${t.nombre}.${c}`);
+      }
+      if (faltan.length) await base2.ejecutar(`delete from ajustes where clave = ? or clave like ?`, [`cursor:${t.nombre}`, `cursor:${t.nombre}:%`]);
+    }
+    return anadidas;
   }
   function aLocal(t, fila2) {
     const valores = [String(fila2.id)];
@@ -2553,7 +2578,8 @@ create table if not exists ajustes (
         await guardarYa();
       }
     };
-    if (!previa) await base2.script(sqlEsquema());
+    await base2.script(sqlEsquema());
+    if (previa) await ampliarEspejo(base2);
     return base2;
   }
 
@@ -2564,10 +2590,10 @@ create table if not exists ajustes (
     const cols = ["id", ...t.columnas.filter((c) => c in f)];
     await base2.ejecutar(`insert or replace into ${tabla2} (${cols.join(", ")}, version, actualizado_en) values (${cols.map(() => "?").join(", ")}, 1, '2026-09-01T00:00:00Z')`, cols.map((c) => f[c] ?? null));
   }
-  function menosMeses(hoy, meses, dia) {
+  function menosMeses(hoy, meses, dia2) {
     const [a, m, d] = hoy.split("-").map(Number);
     const total = a * 12 + (m - 1) - meses;
-    return `${Math.floor(total / 12)}-${String(total % 12 + 1).padStart(2, "0")}-${String(dia ?? Math.min(d, 28)).padStart(2, "0")}`;
+    return `${Math.floor(total / 12)}-${String(total % 12 + 1).padStart(2, "0")}-${String(dia2 ?? Math.min(d, 28)).padStart(2, "0")}`;
   }
   async function cargarDemo(base2, hoy) {
     const u = DEMO_USUARIO;
@@ -2623,7 +2649,7 @@ create table if not exists ajustes (
       await control("i-5", "eq-en02", "ed-alc", menosMeses(hoy, 5, 2));
       await fila(base2, "intervenciones", { id: "i-6", equipo_id: "eq-cf01", edificio_id: "ed-ma44", contrato_id: "ctr-1", empresa_id: "org-mant", tecnico_id: u.id, tipo: "carga", realizada_en: `${menosMeses(hoy, 3, 11)}T10:00:00Z`, resultado: null, observaciones: "Fuga en v\xE1lvula de servicio, reparada", estado: "firmado", tecnico_nombre: "L. Pardo" });
       await fila(base2, "movimientos_gas", { id: "m-6", intervencion_id: "i-6", sentido: "carga", refrigerante: "R404A", kg: 0.8, origen: "regenerado", lugar_tratamiento: "Planta de regeneraci\xF3n autorizada (Getafe)", cilindro: "C-3310", lote: "RG-26-0193" });
-      const cil = (id, codigo, uso, gas, origen, kg2, cap, lote, trat) => base2.ejecutar("insert or replace into cilindros (id, codigo, uso, refrigerante, origen, kg, capacidad_kg, lote, lugar_tratamiento, reciclado_por_mi_empresa) values (?, ?, ?, ?, ?, ?, ?, ?, ?, null)", [id, codigo, uso, gas, origen, kg2, cap, lote, trat]);
+      const cil = (id, codigo, uso, gas, origen, kg2, cap, lote, trat) => fila(base2, "cilindros", { id, organizacion_id: "org-mant", tecnico_id: u.id, codigo, uso, refrigerante: gas, origen, kg: kg2, capacidad_kg: cap, lote, lugar_tratamiento: trat, estado: "en_uso" });
       await cil("c-2231", "C-2231", "carga", "R410A", "virgen", 7.8, null, "L24-0877", null);
       await cil("c-2877", "C-2877", "carga", "R32", "virgen", 4.4, null, "L25-1120", null);
       await cil("c-1904", "C-1904", "carga", "R404A", "virgen", 9.1, null, "L23-0412", null);
@@ -2825,6 +2851,7 @@ create table if not exists ajustes (
   var mantenimiento_exports = {};
   __export(mantenimiento_exports, {
     Bloqueo: () => Bloqueo,
+    altaCilindro: () => altaCilindro,
     altaEquipo: () => altaEquipo,
     avisarOficina: () => avisarOficina,
     borrarBorrador: () => borrarBorrador,
@@ -2955,11 +2982,11 @@ create table if not exists ajustes (
     if (!m) throw new RangeError(`Fecha no v\xE1lida (se espera AAAA-MM-DD): ${fecha}`);
     const anio = Number(m[1]);
     const mes = Number(m[2]);
-    const dia = Number(m[3]);
-    if (mes < 1 || mes > 12 || dia < 1 || dia > diasDelMes(anio, mes)) {
+    const dia2 = Number(m[3]);
+    if (mes < 1 || mes > 12 || dia2 < 1 || dia2 > diasDelMes(anio, mes)) {
       throw new RangeError(`Fecha inexistente: ${fecha}`);
     }
-    return { anio, mes, dia };
+    return { anio, mes, dia: dia2 };
   }
   function esFechaValida(fecha) {
     try {
@@ -2969,8 +2996,8 @@ create table if not exists ajustes (
       return false;
     }
   }
-  function formatear(anio, mes, dia) {
-    return `${String(anio).padStart(4, "0")}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+  function formatear(anio, mes, dia2) {
+    return `${String(anio).padStart(4, "0")}-${String(mes).padStart(2, "0")}-${String(dia2).padStart(2, "0")}`;
   }
   function comparar(a, b) {
     partes(a);
@@ -2985,19 +3012,19 @@ create table if not exists ajustes (
   }
   function sumarMeses(fecha, meses) {
     if (!Number.isInteger(meses)) throw new RangeError("Los meses deben ser enteros");
-    const { anio, mes, dia } = partes(fecha);
+    const { anio, mes, dia: dia2 } = partes(fecha);
     const total = anio * 12 + (mes - 1) + meses;
     const nuevoAnio = Math.floor(total / 12);
     const nuevoMes = total % 12 + 1;
-    const nuevoDia = Math.min(dia, diasDelMes(nuevoAnio, nuevoMes));
+    const nuevoDia = Math.min(dia2, diasDelMes(nuevoAnio, nuevoMes));
     return formatear(nuevoAnio, nuevoMes, nuevoDia);
   }
   function sumarAnios(fecha, anios) {
     return sumarMeses(fecha, anios * 12);
   }
   function sumarDias(fecha, dias) {
-    const { anio, mes, dia } = partes(fecha);
-    const d = new Date(Date.UTC(anio, mes - 1, dia + dias));
+    const { anio, mes, dia: dia2 } = partes(fecha);
+    const d = new Date(Date.UTC(anio, mes - 1, dia2 + dias));
     return formatear(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
   }
   function diasEntre(a, b) {
@@ -3021,8 +3048,8 @@ create table if not exists ajustes (
     "diciembre"
   ];
   function fechaLarga(fecha) {
-    const { anio, mes, dia } = partes(fecha);
-    return `${dia} de ${MESES[mes - 1]} de ${anio}`;
+    const { anio, mes, dia: dia2 } = partes(fecha);
+    return `${dia2} de ${MESES[mes - 1]} de ${anio}`;
   }
 
   // cxobra/mantenimiento/normativa/src/fuentes.ts
@@ -4517,12 +4544,57 @@ create table if not exists ajustes (
   async function puedo(ctx, actividad, e) {
     return habilitacion(await misCertificados(ctx), actividad, Number(e.carga_kg ?? 0), ctx.hoy);
   }
-  async function cilindros(base2) {
-    return base2.todas("select * from cilindros order by uso, refrigerante, codigo");
+  var DE_LA_FURGONETA = `borrado_en is null and coalesce(estado, 'en_uso') <> 'devuelto'`;
+  var DE_ESTE_TECNICO = `(tecnico_id = ? or (tecnico_id is null and organizacion_id is null))`;
+  async function cilindros(base2, usuarioId) {
+    if (usuarioId === void 0) return base2.todas(`select * from cilindros where ${DE_LA_FURGONETA} order by uso, refrigerante, codigo`);
+    return base2.todas(`select * from cilindros where ${DE_LA_FURGONETA} and ${DE_ESTE_TECNICO} order by uso, refrigerante, codigo`, [usuarioId]);
   }
-  async function cilindroPorCodigo(base2, texto2) {
+  async function cilindroPorCodigo(base2, texto2, usuarioId) {
     const codigo = texto2.trim().split(/[/?#=]/).filter(Boolean).pop() ?? "";
-    return base2.una("select * from cilindros where upper(codigo) = upper(?) or id = ?", [codigo, codigo]);
+    const donde = `(upper(codigo) = upper(?) or id = ?) and ${DE_LA_FURGONETA}`;
+    if (usuarioId === void 0) return base2.una(`select * from cilindros where ${donde}`, [codigo, codigo]);
+    return base2.una(`select * from cilindros where ${donde} and ${DE_ESTE_TECNICO}`, [codigo, codigo, usuarioId]);
+  }
+  async function moverKg(base2, cilindro, delta) {
+    const c = cilindro.id ? await base2.una("select id, kg, organizacion_id from cilindros where id = ?", [cilindro.id]) : await base2.una(
+      "select id, kg, organizacion_id from cilindros where upper(codigo) = upper(?) and borrado_en is null order by organizacion_id is null",
+      [cilindro.codigo ?? ""]
+    );
+    if (!c) return;
+    const kg2 = Math.round((Number(c.kg) + delta) * 1e3) / 1e3;
+    if (c.organizacion_id) await actualizar(base2, "cilindros", c.id, { kg: kg2 });
+    else await base2.ejecutar("update cilindros set kg = ? where id = ?", [kg2, c.id]);
+  }
+  async function altaCilindro(ctx, n) {
+    const codigo = n.codigo.trim();
+    if (!codigo) throw new Bloqueo("codigo", "Falta el c\xF3digo del cilindro.");
+    if (!ctx.organizacionId) throw new Bloqueo("empresa", "No perteneces a ninguna empresa mantenedora en Vidaire: pide a la oficina que te d\xE9 de alta.");
+    if (!(n.kg >= 0)) throw new Bloqueo("cantidad", "Escribe los kg que lleva.");
+    const cap = n.capacidad_kg && n.capacidad_kg > 0 ? n.capacidad_kg : null;
+    if (cap !== null && n.kg > cap + 1e-9) throw new Bloqueo("capacidad", `Lleva m\xE1s de lo que cabe: ${kg(n.kg)} de ${kg(cap)} kg.`);
+    const origen = n.uso === "carga" ? n.origen ?? "virgen" : null;
+    const lugar = origen && origen !== "virgen" ? (n.lugar_tratamiento ?? "").trim() : "";
+    if (origen && origen !== "virgen" && !lugar) throw new Bloqueo("tratamiento", `Un gas ${origen} lleva d\xF3nde se trat\xF3 (art. 7.1.c): escribe la planta o la empresa.`);
+    const ya = await ctx.base.una("select id from cilindros where upper(codigo) = upper(?) and borrado_en is null and (organizacion_id = ? or organizacion_id is null)", [codigo, ctx.organizacionId]);
+    if (ya) throw new Bloqueo("repetido", `Ya hay un cilindro ${codigo} en tu empresa.`);
+    const id = uuidv7();
+    await insertar(ctx.base, "cilindros", {
+      id,
+      organizacion_id: ctx.organizacionId,
+      tecnico_id: ctx.usuarioId,
+      codigo,
+      uso: n.uso,
+      refrigerante: n.refrigerante,
+      origen,
+      kg: n.kg,
+      capacidad_kg: cap,
+      lote: n.lote?.trim() || null,
+      lugar_tratamiento: lugar || null,
+      reciclado_por_mi_empresa: origen === "reciclado" && n.reciclado_por_mi_empresa != null ? n.reciclado_por_mi_empresa ? 1 : 0 : null,
+      estado: "en_uso"
+    });
+    return id;
   }
   async function nuevaIntervencion(ctx, v, e, tipo, resultado, observaciones) {
     const contrato = v.contrato_id ? await ctx.base.una("select mantenedora_id from contratos where id = ?", [v.contrato_id]) : null;
@@ -4583,7 +4655,7 @@ create table if not exists ajustes (
       for (const id of [intervencionId, ...hijos]) {
         const movs = await ctx.base.todas("select sentido, kg, cilindro from movimientos_gas where intervencion_id = ?", [id]);
         for (const m of movs) {
-          await ctx.base.ejecutar(`update cilindros set kg = round(kg ${m.sentido === "carga" ? "+" : "-"} ?, 3) where codigo = ?`, [m.kg, m.cilindro]);
+          await moverKg(ctx.base, { codigo: m.cilindro }, m.sentido === "carga" ? m.kg : -m.kg);
         }
         await ctx.base.ejecutar("delete from movimientos_gas where intervencion_id = ?", [id]);
         await ctx.base.ejecutar("delete from intervenciones where id = ?", [id]);
@@ -4615,7 +4687,7 @@ create table if not exists ajustes (
         cilindro: c.codigo,
         lote: c.lote
       });
-      await ctx.base.ejecutar("update cilindros set kg = round(kg - ?, 3) where id = ?", [kg2, c.id]);
+      await moverKg(ctx.base, { id: c.id }, -kg2);
     });
     const control = await controlDeHoy(ctx, e.id);
     const conFuga = control && control.resultado !== "sin_fugas";
@@ -4643,7 +4715,7 @@ create table if not exists ajustes (
         cilindro: c.codigo,
         lote: c.lote
       });
-      await ctx.base.ejecutar("update cilindros set kg = round(kg + ?, 3) where id = ?", [kg2, c.id]);
+      await moverKg(ctx.base, { id: c.id }, kg2);
       if (motivo === "desmontaje") {
         await nuevaIntervencion(ctx, v, e, "desmantelamiento", "no_aplica", null);
         await ctx.base.ejecutar("insert into visita_equipos (visita_id, equipo_id, terminado) values (?, ?, 1) on conflict (visita_id, equipo_id) do update set terminado = 1", [v.id, e.id]);
@@ -4782,7 +4854,7 @@ create table if not exists ajustes (
   }
   async function altaEquipo(ctx, a) {
     const id = uuidv7();
-    const carga = a.cargaFabricaKg ? Math.round((a.cargaFabricaKg + a.cargaAnadidaKg) * 1e3) / 1e3 : null;
+    const carga2 = a.cargaFabricaKg ? Math.round((a.cargaFabricaKg + a.cargaAnadidaKg) * 1e3) / 1e3 : null;
     await ctx.base.transaccion(async () => {
       await insertar(ctx.base, "equipos", {
         id,
@@ -4797,7 +4869,7 @@ create table if not exists ajustes (
         modelo: a.modelo,
         numero_serie: a.numeroSerie,
         refrigerante: a.refrigerante,
-        carga_kg: carga,
+        carga_kg: carga2,
         hermetico: 0,
         deteccion_fugas: 0,
         en_vivienda: 0,
@@ -4920,6 +4992,155 @@ create table if not exists ajustes (
   }
   function ahora2(ctx) {
     return ctx.ahora ? ctx.ahora() : ahoraLocalISO();
+  }
+
+  // cxobra/mantenimiento/fuente/logica/entrega.ts
+  var entrega_exports = {};
+  __export(entrega_exports, {
+    FORMATO_ENTREGA: () => FORMATO_ENTREGA,
+    VERSION_ENTREGA: () => VERSION_ENTREGA,
+    importarEntrega: () => importarEntrega,
+    leerEntrega: () => leerEntrega,
+    previsualizarEntrega: () => previsualizarEntrega,
+    validarEntrega: () => validarEntrega
+  });
+  var FORMATO_ENTREGA = "vidaire-acta-entrega";
+  var VERSION_ENTREGA = 1;
+  var TIPOS = /* @__PURE__ */ new Set([
+    "split",
+    "multisplit",
+    "vrf",
+    "compacto",
+    "rooftop",
+    "enfriadora",
+    "bomba_calor_aire_agua",
+    "bomba_calor_aire_aire",
+    "camara_frigorifica",
+    "central_frigorifica",
+    "mueble_frigorifico",
+    "unidad_tratamiento_aire",
+    "recuperador",
+    "fancoil",
+    "ventilador",
+    "extractor",
+    "caldera",
+    "bomba",
+    "cuadro_electrico",
+    "otro"
+  ]);
+  var DISCIPLINAS = /* @__PURE__ */ new Set([
+    "clima",
+    "ventilacion",
+    "fontaneria",
+    "saneamiento",
+    "electricidad",
+    "iluminacion",
+    "pci",
+    "control",
+    "telecomunicaciones",
+    "ascensores",
+    "energia_renovable",
+    "frio_industrial",
+    "general"
+  ]);
+  function validarEntrega(p) {
+    const x = p;
+    if (!x || typeof x !== "object") return "No es un paquete de entrega.";
+    if (x.formato !== FORMATO_ENTREGA) return "No es un acta de entrega de Vidaire Obras.";
+    if (Number(x.version) > VERSION_ENTREGA) return "El acta es de una versi\xF3n m\xE1s nueva: actualiza la app.";
+    if (!x.acta || !x.acta.huella || !x.acta.fecha) return "El acta no viene firmada.";
+    if (!Array.isArray(x.equipos) || !x.equipos.length) return "El acta no trae equipos.";
+    return null;
+  }
+  function leerEntrega(texto2) {
+    let p;
+    try {
+      p = JSON.parse(texto2);
+    } catch {
+      throw new Error("El fichero no es un acta de entrega (no se puede leer).");
+    }
+    const mal = validarEntrega(p);
+    if (mal) throw new Error(mal);
+    return p;
+  }
+  var tagDe = (t) => String(t ?? "").trim().toUpperCase();
+  var refrigerante2 = (v) => {
+    const t = String(v ?? "").trim().toUpperCase();
+    return /^R[0-9A-Z()-]+$/.test(t) ? t : null;
+  };
+  var carga = (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? Math.round(n * 1e3) / 1e3 : null;
+  };
+  var dia = (v) => {
+    const t = String(v ?? "").slice(0, 10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(t) ? t : null;
+  };
+  async function tagsDelEdificio(base2, edificioId) {
+    const filas = await base2.todas(
+      `select tag from equipos where edificio_id = ? and borrado_en is null and coalesce(estado, 'activo') <> 'desmantelado'`,
+      [edificioId]
+    );
+    return new Set(filas.map((f) => tagDe(f.tag)));
+  }
+  async function previsualizarEntrega(base2, p, edificioId) {
+    const hay = await tagsDelEdificio(base2, edificioId);
+    const vistos = /* @__PURE__ */ new Set();
+    const nuevos = [];
+    const yaEstan = [];
+    for (const e of p.equipos) {
+      const tag = tagDe(e.tag);
+      if (!tag) continue;
+      if (hay.has(tag) || vistos.has(tag)) {
+        yaEstan.push(tag);
+        continue;
+      }
+      vistos.add(tag);
+      nuevos.push(e);
+    }
+    const conReservas = nuevos.filter((e) => Array.isArray(e.datos_tecnicos?.cx?.reservas) && e.datos_tecnicos.cx.reservas.length).length;
+    return { nuevos, yaEstan, conReservas };
+  }
+  async function importarEntrega(ctx, p, edificioId) {
+    const mal = validarEntrega(p);
+    if (mal) throw new Error(mal);
+    const ed = await ctx.base.una("select titular_id from edificios where id = ? and borrado_en is null", [edificioId]);
+    if (!ed) throw new Error("Ese edificio no est\xE1 en el m\xF3vil.");
+    const { nuevos, yaEstan } = await previsualizarEntrega(ctx.base, p, edificioId);
+    const entregado = dia(p.acta.fecha);
+    const altas = [];
+    await ctx.base.transaccion(async () => {
+      for (const e of nuevos) {
+        const cx = { ...e.datos_tecnicos?.cx ?? {}, acta_huella: p.acta.huella, acta_firmante: p.acta.firmante?.nombre ?? null };
+        const reservas = Array.isArray(cx.reservas) && cx.reservas.length > 0;
+        await insertar(ctx.base, "equipos", {
+          id: uuidv7(),
+          edificio_id: edificioId,
+          titular_id: ed.titular_id,
+          proyecto_id: null,
+          disciplina: DISCIPLINAS.has(e.disciplina) ? e.disciplina : "general",
+          tag: tagDe(e.tag),
+          descripcion: [e.descripcion, e.ubicacion].filter(Boolean).join(" \xB7 ") || null,
+          tipo: TIPOS.has(e.tipo) ? e.tipo : "otro",
+          fabricante: e.fabricante ?? null,
+          modelo: e.modelo ?? null,
+          numero_serie: e.numero_serie ?? null,
+          refrigerante: refrigerante2(e.refrigerante),
+          carga_kg: carga(e.carga_kg),
+          hermetico: 0,
+          deteccion_fugas: 0,
+          en_vivienda: 0,
+          fecha_instalacion: dia(e.fecha_instalacion) ?? entregado,
+          entregado_en: entregado,
+          estado: "activo",
+          estado_montaje: "recepcionado",
+          estado_pm: reservas ? "con_reservas" : "hecha",
+          datos_tecnicos: JSON.stringify({ ...e.datos_tecnicos, cx })
+        });
+        altas.push(tagDe(e.tag));
+      }
+    });
+    return { altas, yaEstaban: yaEstan };
   }
 
   // cxobra/mantenimiento/fuente/i18n/es.ts
@@ -6259,6 +6480,8 @@ create table if not exists ajustes (
     almacen: almacen_exports,
     normativa: src_exports,
     es,
-    base: () => base
+    base: () => base,
+    /* El acta de entrega de la obra: sus equipos pasan al edificio del contrato (entrega.ts). */
+    entrega: entrega_exports
   };
 })();

@@ -526,93 +526,91 @@
      rol no puede ver no se pide ni se enseña. */
 
   /*
-   * LO QUE ME TOCA (16-oct, JC): las sesiones de la planificación del jefe de
-   * obra en las que estoy, por día, con cada equipo o incidencia. Lo firmado
-   * (o la incidencia terminada) sale hecho. Sin sesiones, no se pinta nada.
+   * «HOY» Y «ESTA SEMANA» (22-oct, JC: «tenía hoy puestas en marcha y balanceos
+   * de UTAs y en el móvil no los veo»). Lo mismo que el inicio del escritorio
+   * (electron/data/agenda.js · miAgendaInicio): cada sesión de la planificación
+   * con su tipo y el nombre de sus equipos («Puesta en marcha · UTA-PALCO»).
+   * Cada TAG abre su ficha. Lo de días anteriores sin terminar va plegado al
+   * pie de «Hoy», sin empujar nada. Filas densas, sin tarjetas.
    */
-  const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-  function nombreDia(fecha, hoy) {
-    const d = new Date(`${fecha}T12:00:00`);
-    const n = Math.round((d - new Date(`${hoy}T12:00:00`)) / 86400000);
-    const corta = `${d.getDate()}/${d.getMonth() + 1}`;
-    if (n === 0) return `Hoy · ${corta}`;
-    if (n === 1) return `Mañana · ${corta}`;
-    if (n === -1) return `Ayer · ${corta}`;
-    return `${DIAS_SEMANA[d.getDay()]} · ${corta}`;
-  }
-  /*
-   * 21-oct (JC): «Lo que me toca» enseña lo de HOY y lo vencido (tareas, visitas,
-   * mediciones y no conformidades de mis obras) y se pliega con un toque; queda
-   * recordado si estaba plegado. Filas densas, sin tarjetas.
-   */
-  const CLAVE_PLEGADO = 'cx.inicio.toca.plegado';
-  const estaPlegado = () => { try { return localStorage.getItem(CLAVE_PLEGADO) === '1'; } catch { return false; } };
   const NOMBRE_TIPO = { tarea: 'Tarea', ncr: 'NC' };
-  function loQueMeToca(plan, dia) {
+  const DIA_CORTO = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+  const diaCorto = (f) => { const d = new Date(`${f}T12:00:00`); return `${DIA_CORTO[d.getDay()]} ${f.slice(8, 10)}/${f.slice(5, 7)}`; };
+  const ORDEN_FRANJA = { 'Mañana': 0, 'Todo el día': 1, 'Tarde': 2 };
+  const tipoSesion = (s) => s.tarea || (s.ambito === 'commissioning' ? 'Commissioning' : 'Incidencias');
+  /* El mismo orden que la agenda del escritorio: día, franja y texto. */
+  const ordenSesiones = (a, b) => a.fecha.localeCompare(b.fecha) || (ORDEN_FRANJA[a.franja] ?? 3) - (ORDEN_FRANJA[b.franja] ?? 3)
+    || tipoSesion(a).localeCompare(tipoSesion(b), 'es') || String((a.items[0] || {}).texto || '').localeCompare(String((b.items[0] || {}).texto || ''), 'es', { numeric: true });
+
+  function filaSesion(s, conDia) {
+    const items = s.items.map((i) => {
+      const t = esc(i.tag || i.texto);
+      const cls = `ag-equipo${i.hecho ? ' hecho' : ''}`;
+      return i.abrir ? `<a class="${cls}" href="#${esc(i.abrir.seccion)}" data-ir-abrir="${esc(i.abrir.id)}">${i.hecho ? '✓ ' : ''}${t}</a>` : `<span class="${cls}">${t}</span>`;
+    });
+    const detalle = [s.franja, s.encargado ? 'eres el encargado' : null, s.empresa, s.socotec ? 'con Socotec' : null].filter(Boolean).join(' · ');
+    const hecho = s.items.length && s.hechos === s.items.length;
+    return `<div class="ag-fila${hecho ? ' hecha' : ''}">
+      ${conDia ? `<span class="ag-dia">${esc(diaCorto(s.fecha))}</span>` : ''}
+      <div class="ag-que"><b>${esc(tipoSesion(s))}</b> · ${items.join(', ') || 'sin equipos'}
+        ${detalle || s.notas ? `<small>${esc([detalle, s.notas].filter(Boolean).join(' · '))}</small>` : ''}</div>
+      <span class="ag-cuenta">${cifra(s.hechos)}/${cifra(s.items.length)}</span>
+    </div>`;
+  }
+  function filaDia(i, hoy) {
+    const dentro = `<span class="ag-dia${i.vencida ? ' vencida' : ''}">${i.vencida ? esc(diaCorto(i.fecha)) : esc(NOMBRE_TIPO[i.tipo] || '')}</span>
+      <div class="ag-que"><b>${esc(i.texto)}</b>${i.sub || i.obra ? `<small>${esc([i.vencida ? NOMBRE_TIPO[i.tipo] : '', i.obra, i.sub].filter(Boolean).join(' · '))}</small>` : ''}</div>`;
+    return i.abrir
+      ? `<a class="ag-fila" href="#${esc(i.abrir.seccion)}" data-ir-abrir="${esc(i.abrir.id)}">${dentro}</a>`
+      : `<div class="ag-fila">${dentro}</div>`;
+  }
+
+  /** Los bloques «Hoy» y «Esta semana»: { hoy, semana } en HTML (vacíos si no hay datos). */
+  function bloquesAgenda(plan, dia, obraIdActual) {
     const planOk = plan && plan.ok;
     const diaOk = dia && dia.ok;
-    if (!planOk && !diaOk) return '';
+    if (!planOk && !diaOk) return { hoy: '', semana: '', nHoy: 0, nSemana: 0 };
     const hoy = planOk ? plan.hoy : dia.hoy;
-    const sesiones = planOk ? plan.sesiones : [];
-    const esMedicion = (s) => s.ambito === 'commissioning' && s.tarea === 'Medición de caudales';
-    const deHoy = sesiones.filter((s) => s.fecha <= hoy);
-    const items = diaOk ? dia.items : [];
-    const nVisitas = deHoy.filter((s) => !esMedicion(s)).length;
-    const nMed = deHoy.filter(esMedicion).length;
-    const nTareas = items.filter((i) => i.tipo === 'tarea').length;
-    const nNcr = items.filter((i) => i.tipo === 'ncr').length;
-    const nVenc = items.filter((i) => i.vencida).length + deHoy.filter((s) => s.fecha < hoy).length;
-    const resumen = [
-      nTareas && `${cifra(nTareas)} ${nTareas === 1 ? 'tarea' : 'tareas'}`,
-      nVisitas && `${cifra(nVisitas)} ${nVisitas === 1 ? 'visita' : 'visitas'}`,
-      nMed && `${cifra(nMed)} ${nMed === 1 ? 'medición' : 'mediciones'}`,
-      nNcr && `${cifra(nNcr)} NC`,
-    ].filter(Boolean).join(' · ') || 'Nada para hoy';
-    const varias = diaOk && dia.obras > 1;
-    const fila = (i) => {
-      const dentro = `<span class="toca-tipo">${NOMBRE_TIPO[i.tipo] || ''}</span>
-        <span class="toca-texto"><b>${esc(i.texto)}</b>${i.sub || varias ? `<small>${esc([varias ? i.obra : '', i.sub].filter(Boolean).join(' · '))}</small>` : ''}</span>
-        <span class="toca-fecha${i.vencida ? ' vencida' : ''}">${i.vencida ? esc(nombreDia(i.fecha, hoy)) : 'Hoy'}</span>`;
-      return i.abrir
-        ? `<a class="toca-fila" href="#${esc(i.abrir.seccion)}" data-ir-abrir="${esc(i.abrir.id)}">${dentro}</a>`
-        : `<div class="toca-fila">${dentro}</div>`;
-    };
-    const linea = (i) => {
-      const dentro = `<span class="plan-marca${i.hecho ? ' hecha' : ''}" aria-label="${i.hecho ? 'Hecho' : 'Pendiente'}">${i.hecho ? '✓' : ''}</span>
-        <span class="plan-texto"><b>${esc(i.texto)}</b>${i.sub ? `<small>${esc(i.sub)}</small>` : ''}</span>`;
-      return i.abrir
-        ? `<a class="plan-linea${i.hecho ? ' hecha' : ''}" href="#${esc(i.abrir.seccion)}" data-ir-abrir="${esc(i.abrir.id)}">${dentro}<i>›</i></a>`
-        : `<div class="plan-linea${i.hecho ? ' hecha' : ''}">${dentro}</div>`;
-    };
-    const sesionHtml = (s) => `
-      <div class="plan-sesion">
-        <div class="plan-titulo"><b>${esc([s.franja, s.tarea || (s.ambito === 'commissioning' ? 'Commissioning' : 'Incidencias')].filter(Boolean).join(' · '))}</b>
-          <span>${cifra(s.hechos)} de ${cifra(s.items.length)} hechos</span></div>
-        <p class="plan-detalle">${esc([s.encargado ? 'Eres el encargado' : null, s.empresa, s.operarios, s.socotec ? 'Con Socotec' : null].filter(Boolean).join(' · '))}</p>
-        ${s.notas ? `<p class="plan-detalle">${esc(s.notas)}</p>` : ''}
-        ${s.items.map(linea).join('')}
-      </div>`;
-    const porDia = new Map();
-    for (const s of sesiones) { if (!porDia.has(s.fecha)) porDia.set(s.fecha, []); porDia.get(s.fecha).push(s); }
-    const plegado = estaPlegado();
-    return `<section class="grupo toca${plegado ? ' plegado' : ''}" data-toca>
-      <button type="button" class="toca-cabeza" data-toca-plegar aria-expanded="${plegado ? 'false' : 'true'}">
-        <span class="toca-flecha" aria-hidden="true">▾</span>
-        <b>Lo que me toca</b>
-        <span class="toca-resumen">${esc(resumen)}</span>
-        ${nVenc ? `<span class="toca-venc">${cifra(nVenc)} vencid${nVenc === 1 ? 'o' : 'os'}</span>` : ''}
-      </button>
-      <div class="toca-cuerpo"${plegado ? ' hidden' : ''}>
-        ${items.map(fila).join('')}
-        ${[...porDia].map(([fecha, ss]) => `
-        <div class="plan-dia">
-          <div class="plan-cabeza"><b>${esc(nombreDia(fecha, hoy))}</b>${fecha < hoy ? '<span>sin terminar</span>' : ''}</div>
-          ${ss.map(sesionHtml).join('')}
-        </div>`).join('')}
-        ${!items.length && !porDia.size ? '<p class="toca-vacio">Nada pendiente para hoy.</p>' : ''}
-      </div>
-    </section>`;
+    const sesiones = (planOk ? plan.sesiones : []).slice().sort(ordenSesiones);
+    const items = (diaOk ? dia.items : []).filter((i) => !obraIdActual || !i.obraId || i.obraId === obraIdActual);
+    const deHoy = sesiones.filter((s) => s.fecha === hoy);
+    const atrasadas = sesiones.filter((s) => s.fecha < hoy);
+    const finSemana = planOk && plan.semanaHasta ? plan.semanaHasta : null;
+    const semana = sesiones.filter((s) => s.fecha > hoy && (!finSemana || s.fecha <= finSemana));
+    const itemsHoy = items.filter((i) => !i.vencida);
+    const vencidos = items.filter((i) => i.vencida);
+    const nAtras = atrasadas.length + vencidos.length;
+    const nHoy = deHoy.length + itemsHoy.length;
+    const pie = nAtras ? `<details class="ag-atras">
+        <summary>${cifra(nAtras)} sin terminar de días anteriores</summary>
+        ${atrasadas.map((s) => filaSesion(s, true)).join('')}${vencidos.map((i) => filaDia(i, hoy)).join('')}
+      </details>` : '';
+    const htmlHoy = `<section class="ag-bloque" data-bloque-ini="hoy">
+        <h2 class="titulo-grupo ag-titulo">Hoy <span>${esc(diaCorto(hoy))}${nHoy ? ` · ${cifra(nHoy)}` : ''}</span></h2>
+        ${deHoy.map((s) => filaSesion(s, false)).join('')}${itemsHoy.map((i) => filaDia(i, hoy)).join('')}
+        ${nHoy ? '' : '<p class="ag-vacio">Hoy no hay nada planificado.</p>'}
+        ${pie}
+      </section>`;
+    const htmlSemana = `<section class="ag-bloque" data-bloque-ini="semana">
+        <h2 class="titulo-grupo ag-titulo">${planOk && plan.semanaQueViene ? 'Esta semana y la que viene' : 'Esta semana'}${semana.length ? ` <span>${cifra(semana.length)}</span>` : ''}</h2>
+        ${semana.map((s) => filaSesion(s, true)).join('') || '<p class="ag-vacio">Nada más planificado esta semana.</p>'}
+      </section>`;
+    return { hoy: htmlHoy, semana: htmlSemana, nHoy, nSemana: semana.length };
   }
+
+  /*
+   * QUÉ BLOQUES VER (22-oct, JC): una línea de casillas arriba; lo que cada
+   * persona quita se recuerda para ella en este teléfono. Se guarda lo oculto,
+   * no lo visible, para que un bloque nuevo salga sin tocar nada.
+   */
+  const BLOQUES_INICIO = [['hoy', 'Hoy'], ['semana', 'Semana'], ['cx', 'Commissioning'], ['pendiente', 'Pendiente']];
+  const claveOcultos = () => { const s = sesion() || {}; return `cx.inicio.ocultos.${s.email || s.nombre || 'anonimo'}.${s.rol || ''}`; };
+  const leerOcultos = () => {
+    try { const v = JSON.parse(localStorage.getItem(claveOcultos()) || '[]'); return new Set(Array.isArray(v) ? v.map(String) : []); } catch { return new Set(); }
+  };
+  const guardarOcultos = (set) => {
+    try { if (set.size) localStorage.setItem(claveOcultos(), JSON.stringify([...set])); else localStorage.removeItem(claveOcultos()); } catch { /* sin almacén: se ve todo */ }
+  };
 
   async function inicio() {
     const yo = sesion();
@@ -637,66 +635,73 @@
     // Como la lista de Commissioning: si hay conjuntos (split = UE + UI), se cuenta por conjunto.
     const tc = cx && cx.ok && cx.totalesConjuntos && cx.totalesConjuntos.conjuntos ? cx.totalesConjuntos : null;
     const t = cx && cx.ok && cx.totales ? (tc ? { ...cx.totales, ...tc, equipos: tc.conjuntos } : cx.totales) : null;
-    const hechos = t ? (t.completos || 0) : 0;
-    const pct = t && t.equipos ? Math.round((hechos / t.equipos) * 100) : 0;
     const bocas = cx && cx.equipos ? cx.equipos.reduce((a, e) => [a[0] + (e.medidas || 0), a[1] + (e.bocas || 0)], [0, 0]) : [0, 0];
     const pruebas = pe && pe.recientes ? pe.recientes.filter((p) => p.obraId === o.id) : null;
     const partes = pi && pi.recientes ? pi.recientes.filter((p) => p.obraId === o.id && p.estado !== 'cerrado') : null;
     const ncrAbiertas = ncr && ncr.ok ? ncr.filas.filter((f) => f.activa) : null;
     const repPendientes = rp && rp.filas ? rp.filas.filter((f) => f.activa && f.estado !== 'terminada') : null;
-    const dato = (href, valor, texto, aviso, seg = 'todos') => `<a class="${aviso ? 'aviso' : ''}" href="#${href}" data-ir-seg="${seg}"><b>${cifra(valor)}</b><span>${esc(texto)}</span></a>`;
     /* Lo pendiente son los equipos que piden estanqueidad y no la tienen, no las
        pruebas apuntadas: sin ninguna hecha, faltan todas (15-oct, JC). */
     const textoEstanqueidad = (tt, ps) => {
       const falta = tt && tt.pideEstanqueidad ? tt.faltaEstanqueidad || 0 : null;
       const mal = ps ? ps.filter((p) => p.resultado !== 'correcta').length : 0;
-      const partes = [];
-      if (falta !== null) partes.push(falta ? `faltan ${cifra(falta)} de ${cifra(tt.pideEstanqueidad)}` : 'todas hechas');
-      if (mal) partes.push(`${cifra(mal)} sin superar`);
-      if (!partes.length) partes.push(ps && ps.length ? `${cifra(ps.length)} hechas` : 'Ninguna hecha');
-      return partes.join(' · ');
+      const trozos = [];
+      if (falta !== null) trozos.push(falta ? `faltan ${cifra(falta)} de ${cifra(tt.pideEstanqueidad)}` : 'todas hechas');
+      if (mal) trozos.push(`${cifra(mal)} sin superar`);
+      if (!trozos.length) trozos.push(ps && ps.length ? `${cifra(ps.length)} hechas` : 'Ninguna hecha');
+      return trozos.join(' · ');
     };
     const fila = (href, nombre, valor, aviso) => `<a class="fila-dato${aviso ? ' aviso' : ''}" href="#${href}"><span>${esc(nombre)}</span><strong>${valor} ›</strong></a>`;
+    /* Commissioning: las mismas filas y cifras que el bloque del escritorio (renderer/bloques.js). */
+    const pctDe = (v, n) => (n ? `${Math.round((v / n) * 100)} %` : '');
+    const filaCx = (texto, v, seg, aviso) => `<a class="ini-cx${aviso && v ? ' aviso' : ''}" href="#commissioning" data-ir-seg="${seg}">
+        <span>${esc(texto)}</span><b>${cifra(v || 0)}</b><i>${v !== undefined ? pctDe(v || 0, t.equipos) : ''}</i><em>›</em></a>`;
+    const cxHtml = t ? `<section class="ag-bloque" data-bloque-ini="cx">
+        <h2 class="titulo-grupo ag-titulo">Commissioning <span>${esc(o.codigo || '')} · ${cifra(t.equipos)} equipos${t.unidades && t.unidades !== t.equipos ? ` (${cifra(t.unidades)} unidades)` : ''}</span></h2>
+        <div class="ini-cx-tabla">
+          ${filaCx('Con la documentación completa', t.docCompleta, 'soloDoc')}
+          ${t.enMarcha !== undefined ? filaCx('Puestos en marcha', t.enMarcha, 'enMarcha') : ''}
+          ${filaCx('Les falta un ensayo (balanceo o estanqueidad)', t.faltaEnsayo, 'faltaEnsayo', true)}
+          ${filaCx('Les falta una ficha (checklist o PM)', t.faltaFichas, 'faltaFichas', true)}
+          ${filaCx('Mandados a la DF', t.enviadas, 'enviadas')}
+          ${filaCx('Completos', t.completos, 'completos')}
+          ${filaCx('Sin la documentación completa', t.faltaDocumentacion, 'faltaDoc', true)}
+          ${bocas[1] ? `<a class="ini-cx${bocas[1] - bocas[0] ? ' aviso' : ''}" href="#commissioning" data-ir-seg="todos"><span>Bocas por medir</span><b>${cifra(bocas[1] - bocas[0])}</b><i>de ${cifra(bocas[1])}</i><em>›</em></a>` : ''}
+        </div>
+      </section>` : '';
+    const pendienteHtml = `<section class="ag-bloque" data-bloque-ini="pendiente">
+        <h2 class="titulo-grupo ag-titulo">Pendiente</h2>
+        <div class="grupo ini-pend">
+        ${pruebas || (t && t.pideEstanqueidad) ? fila('estanqueidad', 'Pruebas de estanqueidad', textoEstanqueidad(t, pruebas), (t && t.faltaEstanqueidad) || (pruebas && pruebas.some((p) => p.resultado !== 'correcta'))) : ''}
+        ${partes ? fila('partes', 'Partes abiertos', cifra(partes.length)) : ''}
+        ${repPendientes ? fila('reparaciones', 'Reparaciones pendientes', cifra(repPendientes.length), repPendientes.some((f) => f.vencida)) : ''}
+        ${ncrAbiertas ? fila('ncr', 'No conformidades abiertas', cifra(ncrAbiertas.length)) : ''}
+        </div>
+      </section>`;
+    const ag = bloquesAgenda(plan, dia, o.id);
+    const bloques = { hoy: ag.hoy, semana: ag.semana, cx: cxHtml, pendiente: pendienteHtml };
+    const hay = BLOQUES_INICIO.filter(([id]) => bloques[id]);
+    const ocultos = leerOcultos();
     app.innerHTML = `
       <section class="grupo inicio-obra">
         <label class="fila-dato selector-obra"><span>Obra</span>
           <select data-inicio-obra aria-label="Obra">${obras.map((x) => `<option value="${esc(x.id)}" ${x.id === o.id ? 'selected' : ''}>${esc(x.codigo)} · ${esc(x.nombre)}</option>`).join('')}</select>
         </label>
       </section>
-      ${loQueMeToca(plan, dia)}
-      ${t ? `
-      <h2 class="titulo-grupo">Commissioning</h2>
-      <section class="grupo inicio-avance">
-        <div class="fila-dato"><span>Equipos completos</span><strong>${cifra(hechos)} de ${cifra(t.equipos)} · ${pct} %</strong></div>
-        <div class="progreso" aria-label="${pct} % completo"><i style="width:${pct}%"></i></div>
-        ${t.soloDoc ? `<a class="fila-dato" href="#commissioning" data-ir-seg="soloDoc"><span>Doc. completa, faltan fichas, balanceo o estanqueidad</span><strong>${cifra(t.soloDoc)} ›</strong></a>` : ''}
-      </section>
-      <div class="resumen-fila">
-        ${dato('commissioning', t.faltaDocumentacion, 'falta doc.', t.faltaDocumentacion, 'faltaDoc')}
-        ${dato('commissioning', t.faltaBalanceo || 0, 'falta balanceo', t.faltaBalanceo, 'faltaBalanceo')}
-        ${dato('commissioning', t.faltaEstanqueidadEnvio || 0, 'falta estanqueidad', t.faltaEstanqueidadEnvio, 'faltaEstanqueidad')}
-        ${dato('commissioning', bocas[1] - bocas[0], 'bocas por medir', bocas[1] - bocas[0])}
-      </div>` : ''}
-      <h2 class="titulo-grupo">Pendiente</h2>
-      <section class="grupo">
-        ${pruebas || (t && t.pideEstanqueidad) ? fila('estanqueidad', 'Pruebas de estanqueidad', textoEstanqueidad(t, pruebas), (t && t.faltaEstanqueidad) || (pruebas && pruebas.some((p) => p.resultado !== 'correcta'))) : ''}
-        ${partes ? fila('partes', 'Partes abiertos', cifra(partes.length)) : ''}
-        ${repPendientes ? fila('reparaciones', 'Reparaciones pendientes', cifra(repPendientes.length), repPendientes.some((f) => f.vencida)) : ''}
-        ${ncrAbiertas ? fila('ncr', 'No conformidades abiertas', cifra(ncrAbiertas.length)) : ''}
-      </section>`;
-    /* Sin botón «Añadir…»: ya está el + de la barra (15-oct, JC). */
-    /* Una línea de «Lo que me toca» abre su ficha: el módulo lo recoge al cargar. */
-    const toca = app.querySelector('[data-toca]');
-    if (toca) {
-      const cab = toca.querySelector('[data-toca-plegar]');
-      cab.onclick = () => {
-        const plegar = !toca.classList.contains('plegado');
-        toca.classList.toggle('plegado', plegar);
-        toca.querySelector('.toca-cuerpo').hidden = plegar;
-        cab.setAttribute('aria-expanded', plegar ? 'false' : 'true');
-        try { localStorage.setItem(CLAVE_PLEGADO, plegar ? '1' : '0'); } catch { /* nada */ }
+      ${hay.length > 1 ? `<div class="ver-bloques" role="group" aria-label="Qué bloques ver"><span>Ver</span>${hay
+        .map(([id, nombre]) => `<button type="button" data-ver-bloque="${id}" aria-pressed="${!ocultos.has(id)}" class="${ocultos.has(id) ? '' : 'activa'}">${esc(nombre)}</button>`).join('')}</div>` : ''}
+      ${hay.filter(([id]) => !ocultos.has(id)).map(([id]) => bloques[id]).join('')}
+      ${hay.length && hay.every(([id]) => ocultos.has(id)) ? '<p class="ag-vacio">Has quitado todos los bloques: toca uno arriba para verlo.</p>' : ''}`;
+    for (const b of app.querySelectorAll('[data-ver-bloque]')) {
+      b.onclick = () => {
+        const set = leerOcultos();
+        if (set.has(b.dataset.verBloque)) set.delete(b.dataset.verBloque); else set.add(b.dataset.verBloque);
+        guardarOcultos(set);
+        inicio();
       };
     }
+    /* Sin botón «Añadir…»: ya está el + de la barra (15-oct, JC). */
+    /* Un TAG de «Hoy» o «Esta semana» abre su ficha: el módulo lo recoge al cargar. */
     for (const a of app.querySelectorAll('[data-ir-abrir]')) a.onclick = () => { try { sessionStorage.setItem('cx.abrir', a.dataset.irAbrir); } catch { /* nada */ } };
     for (const a of app.querySelectorAll('[data-ir-seg]')) a.onclick = () => { try { sessionStorage.setItem('cx.segmento', a.dataset.irSeg); } catch { /* nada */ } };
   }

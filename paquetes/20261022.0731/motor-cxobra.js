@@ -4098,7 +4098,7 @@ globalThis.CX_VARIANTE="cxobra";
       var import_buffer_global10 = __toESM(require_buffer_global());
       (function() {
         const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-        const LOGO_CBRE = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4304 1024"><path fill="#003F2D" d="M1784.178 783.855h-355.145v-170.808h363.6c45.661 4.228 79.908 41.011 79.908 84.558 0.423 47.353-38.474 86.249-88.363 86.249zM1429.457 225.348h376.707c41.011 6.342 73.566 41.011 73.566 82.444s-32.555 79.908-75.68 84.558h-370.365l-4.228-167.002zM1957.523 495.934c136.562-43.125 160.238-151.359 160.238-240.145 0-136.562-99.779-253.252-396.155-253.252h-554.279v1017.235h552.165c298.913 0 409.262-147.131 409.262-292.149-0.423-175.458-171.23-231.69-171.23-231.69v0z"/><path fill="#003F2D" d="M3368.799 4.651h935.214v220.697h-675.197v164.466h608.396v222.811h-608.396v177.572h675.197v233.803h-935.214v-1019.349z"/><path fill="#003F2D" d="M2966.302 320.476c-4.228 32.555-38.897 69.338-84.558 69.338h-365.714v-162.352h365.714c43.125 0 77.794 30.441 84.558 71.452v21.562zM2823.399 4.651h-564.849v1019.772h259.594v-411.376h285.807c82.444 2.114 145.017 65.11 145.017 145.017v266.358h255.366v-328.931c0-151.359-153.896-197.021-153.896-197.021s158.124-45.661 158.124-224.925c-2.114-223.656-199.135-268.895-385.163-268.895z"/><path fill="#003F2D" d="M998.633 777.090c-4.228 0-355.145 6.342-476.063-4.228-194.907-17.334-264.244-156.010-264.244-268.472 0-140.789 99.779-244.796 255.366-264.244 73.566-8.456 478.6-4.228 482.827-4.228h8.456v-231.267h-467.607c-52.003 2.114-136.562 8.456-222.811 41.011-79.908 36.783-153.896 93.014-208.013 162.352-67.224 88.786-104.007 192.793-104.007 303.141 0 34.669 2.114 69.338 8.456 101.893 32.555 153.896 138.675 281.579 290.035 350.494 52.003 21.562 129.797 47.775 290.035 56.231l86.672 2.114h328.931v-244.796h-8.033z"/></svg>';
+        const LOGO_CBRE = "<b>Vidaire Cx</b>";
         const fechaEs = (d) => d ? String(d).slice(0, 10).split("-").reverse().join("/") : "";
         function hoja({ documento = "", obra = "", fecha = "", cuerpo = "", pie = null, clase = "" } = {}) {
           const linea = [documento, obra].filter(Boolean).join(" \xB7 ");
@@ -5907,6 +5907,15 @@ globalThis.CX_VARIANTE="cxobra";
          */
         partesIncidencia: "Partes de incidencia",
         /*
+         * LOS PARTES DE TRABAJO (JC, 22-oct): un trabajo que alguien pide y que no
+         * está en el contrato tal cual (mover una tubería por falta de
+         * coordinación…). Quién lo pide y por qué, horas, material, coste, la
+         * validación del jefe de obra, la firma de quien lo pidió y a quién se
+         * repercute (variante al cliente, conflicto a otro gremio o lo asumimos).
+         * El dinero, solo con `aprobar`. Vive en Obra › Económico.
+         */
+        partesTrabajo: "Partes de trabajo",
+        /*
          * LAS PRUEBAS DE ESTANQUEIDAD: el encargado apunta desde el móvil la prueba
          * de presión de un tramo y hace la foto del manómetro; al jefe de obra le
          * sale el informe en PDF, guardado en la documentación de la obra.
@@ -5924,6 +5933,13 @@ globalThis.CX_VARIANTE="cxobra";
         clientes: "Clientes",
         personas: "Personas y roles",
         estadisticas: "Estad\xEDsticas",
+        /*
+         * LAS LICITACIONES PÚBLICAS DE OBRAS DE INSTALACIONES (JC 21-oct): las que
+         * están en plazo en la comunidad, por provincia y fecha de vencimiento, con
+         * quién licita y su enlace; y APARTE las oportunidades privadas de los
+         * boletines. Solo leer y exportar: no se guarda nada.
+         */
+        licitaciones: "Licitaciones",
         /*
          * LA TRAZABILIDAD: quién cambió qué, de qué a qué y cuándo, con filtro por
          * persona, obra y fechas, y en PDF y Excel. Es de los jefes; cada uno ve
@@ -6015,6 +6031,7 @@ globalThis.CX_VARIANTE="cxobra";
           descripcion: "Direcci\xF3n. Lo ve todo y no edita casi nada: su trabajo es decidir.",
           alcance: "todo",
           permisos: {
+            licitaciones: ["ver", "exportar"],
             notas: BLOC,
             vacaciones: ["ver", "exportar"],
             tareas: ["ver", "exportar"],
@@ -6042,8 +6059,9 @@ globalThis.CX_VARIANTE="cxobra";
             incidencias: ["ver", "exportar"],
             conflictos: ["ver", "exportar"],
             partesIncidencia: ["ver", "exportar"],
+            partesTrabajo: ["ver", "exportar"],
             pruebasEstanqueidad: ["ver", "exportar"],
-            legalizaciones: ["ver", "exportar"],
+            /* Legalizaciones: solo jefe de obra, producción, grupo y director del departamento (JC, 22-oct). */
             correos: SOLO_VER,
             normativa: ["ver", "exportar"],
             estadisticas: ["ver", "exportar"],
@@ -6079,6 +6097,7 @@ globalThis.CX_VARIANTE="cxobra";
           descripcion: "Ve TODOS los presupuestos en estudio, reparte el trabajo y responde del acierto del departamento.",
           alcance: "departamento",
           permisos: {
+            licitaciones: ["ver", "exportar"],
             notas: BLOC,
             vacaciones: [...TODO, "aprobar"],
             proyectos: [...TODO, "aprobar", "traspasar"],
@@ -6142,6 +6161,7 @@ globalThis.CX_VARIANTE="cxobra";
           descripcion: "Hace presupuestos. Solo ve los suyos y los que su jefe le comparta expresamente.",
           alcance: "compartido",
           permisos: {
+            licitaciones: ["ver", "exportar"],
             notas: BLOC,
             vacaciones: ["ver", "crear", "editar", "borrar"],
             proyectos: ["ver", "crear", "editar", "exportar"],
@@ -6281,8 +6301,10 @@ globalThis.CX_VARIANTE="cxobra";
             conflictos: TODO,
             partes: TODO,
             partesIncidencia: [...TODO, "aprobar"],
+            partesTrabajo: [...TODO, "aprobar"],
             pruebasEstanqueidad: [...TODO, "aprobar"],
-            legalizaciones: ["ver", "exportar"],
+            /* 22-oct (JC): el director del departamento rellena la ficha, genera y descarga las legalizaciones. */
+            legalizaciones: ["ver", "crear", "editar", "exportar"],
             correos: ["ver", "crear", "editar", "borrar"],
             normativa: ["ver", "editar", "aprobar", "exportar"],
             proveedores: TODO,
@@ -6351,8 +6373,10 @@ globalThis.CX_VARIANTE="cxobra";
             conflictos: ["ver", "exportar"],
             partes: ["ver"],
             partesIncidencia: ["ver", "exportar"],
+            partesTrabajo: ["ver", "exportar"],
             pruebasEstanqueidad: ["ver", "exportar"],
-            legalizaciones: ["ver", "exportar"],
+            /* 22-oct (JC): el jefe de grupo rellena la ficha, genera y descarga las legalizaciones. */
+            legalizaciones: ["ver", "crear", "editar", "exportar"],
             correos: ["ver", "crear", "editar"],
             normativa: ["ver", "editar", "aprobar", "exportar"],
             proveedores: SOLO_VER,
@@ -6421,9 +6445,13 @@ globalThis.CX_VARIANTE="cxobra";
             /* Los recibe, los imprime y los manda; `aprobar` es valorar lo robado y
                cerrarlos. Un parte no se borra. */
             partesIncidencia: ["ver", "crear", "editar", "aprobar", "exportar"],
+            partesTrabajo: ["ver", "crear", "editar", "aprobar", "exportar"],
             /* Recibe el informe hecho; `aprobar` es marcarla como vista. Una prueba no se borra. */
             pruebasEstanqueidad: ["ver", "crear", "editar", "aprobar", "exportar"],
-            legalizaciones: ["ver", "exportar"],
+            /* 22-oct (JC): las legalizaciones las rellenan, generan y descargan el jefe
+               de obra y el de producción (que hereda esto), el jefe de grupo y el
+               director del departamento. Nadie más: lo comprueba la capa de datos. */
+            legalizaciones: ["ver", "crear", "editar", "exportar"],
             /* Archiva en la obra los correos de su buzón (el pedido, la DF, el cliente…). */
             correos: ["ver", "crear", "editar", "borrar"],
             /* Es el técnico de la obra: le salta el cambio del BOE, elige las
@@ -6482,7 +6510,7 @@ globalThis.CX_VARIANTE="cxobra";
             ppi: TODO,
             incidencias: ["ver", "crear", "editar", "exportar"],
             pruebasEstanqueidad: ["ver", "crear", "editar", "aprobar", "exportar"],
-            legalizaciones: ["ver", "exportar"],
+            /* Legalizaciones, no (JC, 22-oct): solo jefe de obra, producción, grupo y director. */
             correos: ["ver", "crear", "editar", "borrar"],
             normativa: ["ver", "editar", "aprobar", "exportar"],
             proveedores: SOLO_VER,
@@ -6578,9 +6606,9 @@ globalThis.CX_VARIANTE="cxobra";
             partes: ["ver", "crear", "editar"],
             /* Los da él desde el móvil. Lo que vale lo robado no le llega. */
             partesIncidencia: ["ver", "crear"],
+            partesTrabajo: ["ver", "crear"],
             /* Las da él desde el móvil, con la foto del manómetro. */
             pruebasEstanqueidad: ["ver", "crear"],
-            legalizaciones: ["ver", "exportar"],
             correos: ["ver", "crear"],
             commissioning: ["ver", "crear", "editar"],
             /* Las fechas las sabe él, que estaba allí el día que se montó; y
@@ -6675,11 +6703,11 @@ globalThis.CX_VARIANTE="cxobra";
             partes: ["ver", "crear"],
             /* Sus partes de incidencia (robo, daños, seguridad…), con foto. */
             partesIncidencia: ["ver", "crear"],
+            partesTrabajo: ["ver", "crear"],
             /* Las incidencias que le encargan: las ve y apunta lo que ha hecho. */
             incidencias: ["ver", "editar"],
             /* La documentación de su tajo: las pruebas y sus informes. */
             pruebasEstanqueidad: SOLO_VER,
-            legalizaciones: ["ver", "exportar"],
             commissioning: SOLO_VER
           },
           camposVetados: [
@@ -6713,6 +6741,7 @@ globalThis.CX_VARIANTE="cxobra";
           descripcion: "Clientes, ofertas, cartera y embudo. Ve el precio de venta de las ofertas; los costes internos, no.",
           alcance: "todo",
           permisos: {
+            licitaciones: ["ver", "exportar"],
             notas: BLOC,
             vacaciones: ["ver", "crear", "editar", "borrar"],
             clientes: TODO,
@@ -6782,12 +6811,12 @@ globalThis.CX_VARIANTE="cxobra";
             /* La documentación de la obra. */
             commissioning: ["ver", "exportar"],
             pruebasEstanqueidad: ["ver", "exportar"],
-            legalizaciones: ["ver", "exportar"],
             ncr: ["ver", "exportar"],
             ppi: ["ver", "exportar"],
             correos: ["ver", "crear", "editar"],
             /* Las reclamaciones y los cambios con el cliente: mete las pruebas. */
             conflictos: ["ver", "crear", "editar", "exportar"],
+            partesTrabajo: ["ver", "exportar"],
             /* El control de cambios: quién cambió qué, de qué a qué y cuándo. */
             trazabilidad: ["ver", "exportar"],
             proveedores: ["ver", "crear", "editar", "exportar"],
@@ -6991,16 +7020,17 @@ globalThis.CX_VARIANTE="cxobra";
             "avisosNormativa",
             "avisosMantenimiento"
           ] },
-          jefeProyectos: { fijo: [
-            C("traspasosPendientes"),
-            C("alertasDesviacion"),
-            C("obrasPorFase"),
-            "avisosConflictos",
-            "avisosNcr",
-            "certificacionesMes",
-            "avisosPartes",
-            "avisosNormativa",
-            C("cargaEquipo")
+          /*
+           * EL DIRECTOR DE PROYECTOS (22-oct, JC): el Inicio es solo un resumen. Arriba
+           * el gráfico de sus obras (certificado, pendiente, margen y avance, con el
+           * total del departamento) y debajo dos agendas distintas: hoy y la semana
+           * (sus reuniones, lo más importante de cada obra, las entregas de Estudios y
+           * las firmas de contrato). El resto, en «Departamentos» (barraDeRol).
+           */
+          jefeProyectos: { director: true, fijo: [
+            C("graficoObras"),
+            { bloque: "agendaHoy", modo: "director", siempre: true },
+            { bloque: "agendaSemana", modo: "director", siempre: true }
           ] },
           gerente: { fijo: [C("empresaKpis"), C("alertasDesviacion"), C("obrasPorFase"), "certificacionesMes", C("empresaDepartamentos")] },
           contractSupport: { fijo: ["comprasPendientes", "certificacionesMes", "avisosConflictos", C("obrasPorFase")] },
@@ -7023,6 +7053,7 @@ globalThis.CX_VARIANTE="cxobra";
       function panelInicio(rolId, fases = []) {
         const p = PANEL_INICIO[rolId] || { fijo: (porId.get(rolId) || { home: [] }).home.map((b) => b.bloque) };
         const norma = (x) => typeof x === "string" ? { bloque: x, ancho: "mitad" } : { ancho: "mitad", ...x };
+        if (p.director) return p.fijo.map(norma);
         let lista = [...p.cabecera || [], ...p.fijo || []];
         if (p.porFase) {
           const usadas = ["arranque", "montaje", "pruebas", "entrega", "garantia"].filter((f) => fases.includes(f));
@@ -7081,22 +7112,23 @@ globalThis.CX_VARIANTE="cxobra";
       var BARRAS_POR_ROL = {
         /* Gerencia y administración: «Empresa» y un apartado por departamento (DEPARTAMENTOS_EN_BARRA). */
         gerente: { empresa: true, trabajo: [], consulta: [] },
-        jefeEstudios: { trabajo: ["presupuestos", "alcance", "proyectos", "calculo", "biblioteca", "reparto"], consulta: ["clientes", "proveedores", "estadisticas", "trazabilidad", "vacaciones"] },
-        tecnicoEstudios: { trabajo: ["presupuestos", "alcance", "proyectos", "calculo", "biblioteca"], consulta: ["clientes", "proveedores", "vacaciones"] },
+        jefeEstudios: { trabajo: ["presupuestos", "licitaciones", "alcance", "proyectos", "calculo", "biblioteca", "reparto"], consulta: ["clientes", "proveedores", "estadisticas", "trazabilidad", "vacaciones"] },
+        tecnicoEstudios: { trabajo: ["presupuestos", "licitaciones", "alcance", "proyectos", "calculo", "biblioteca"], consulta: ["clientes", "proveedores", "vacaciones"] },
         jefeDelineacion: { trabajo: ["reparto", "proyectos", "calculo"], consulta: ["presupuestos", "personas", "trazabilidad", "vacaciones"] },
         delineante: { trabajo: ["proyectos", "calculo"], consulta: ["presupuestos", "vacaciones"] },
-        comercial: { trabajo: ["clientes", "presupuestos"], consulta: ["proyectos", "estadisticas", "vacaciones"] },
-        jefeProyectos: { trabajo: ["obras", "alcance", "tareas", "actas", "compras", "costsPlan", "certificaciones", "informeSemanal", "reporteDireccion", "presupuestos", "proyectos"], consulta: ["estadisticas", "ncr", "ppi", "conflictos", "clientes", "proveedores", "personas", "vacaciones"] },
-        jefeGrupo: { trabajo: ["obras", "alcance", "tareas", "actas", "informeSemanal", "reporteDireccion", "costsPlan", "certificaciones", "compras"], consulta: ["pedidos", "commissioning", "ncr", "ppi", "conflictos", "estadisticas", "vacaciones"] },
-        jefeObra: { trabajo: ["obras", "planosObra", "tareas", "actas", "costsPlan", "compras", "pedidos", "certificaciones", "commissioning", "legalizaciones", "ppi", "ncr", "partesIncidencia"], consulta: ["calculo", "pruebasEstanqueidad", "balanceo", "proveedores", "vacaciones"] },
+        comercial: { trabajo: ["clientes", "licitaciones", "presupuestos"], consulta: ["proyectos", "estadisticas", "vacaciones"] },
+        /* 22-oct (JC): el Director de Proyectos, con «Departamentos» (DEPARTAMENTOS_DIRECTOR) en vez de «Mi trabajo». */
+        jefeProyectos: { director: true, trabajo: ["obras", "alcance", "tareas", "actas", "compras", "costsPlan", "certificaciones", "legalizaciones", "informeSemanal", "reporteDireccion", "presupuestos", "proyectos"], consulta: ["estadisticas", "ncr", "ppi", "conflictos", "clientes", "proveedores", "personas", "vacaciones"] },
+        jefeGrupo: { trabajo: ["obras", "alcance", "tareas", "actas", "informeSemanal", "reporteDireccion", "costsPlan", "certificaciones", "compras", "legalizaciones"], consulta: ["pedidos", "commissioning", "ncr", "ppi", "conflictos", "estadisticas", "vacaciones"] },
+        jefeObra: { trabajo: ["obras", "planosObra", "tareas", "actas", "costsPlan", "compras", "pedidos", "certificaciones", "commissioning", "legalizaciones", "ppi", "ncr", "partesIncidencia", "partesTrabajo"], consulta: ["calculo", "pruebasEstanqueidad", "balanceo", "proveedores", "vacaciones"] },
         /* De momento, la misma que el jefe de obra (ver RESTRICCIONES_JEFE_PRODUCCION). */
-        jefeProduccion: { trabajo: ["obras", "planosObra", "tareas", "actas", "costsPlan", "compras", "pedidos", "certificaciones", "commissioning", "legalizaciones", "ppi", "ncr", "partesIncidencia"], consulta: ["calculo", "pruebasEstanqueidad", "balanceo", "proveedores", "vacaciones"] },
-        encargadoObra: { trabajo: ["tareas", "pedidos", "partes", "partesIncidencia", "ppi", "ncr", "pruebasEstanqueidad"], consulta: ["obras", "commissioning", "vacaciones"] },
-        jefeCommissioning: { trabajo: ["commissioning", "balanceo", "pruebasEstanqueidad", "legalizaciones", "ncr", "ppi"], consulta: ["calculo", "obras", "tareas", "vacaciones", "informeSemanal", "reporteDireccion", "mantenimiento"] },
+        jefeProduccion: { trabajo: ["obras", "planosObra", "tareas", "actas", "costsPlan", "compras", "pedidos", "certificaciones", "commissioning", "legalizaciones", "ppi", "ncr", "partesIncidencia", "partesTrabajo"], consulta: ["calculo", "pruebasEstanqueidad", "balanceo", "proveedores", "vacaciones"] },
+        encargadoObra: { trabajo: ["tareas", "pedidos", "partes", "partesIncidencia", "partesTrabajo", "ppi", "ncr", "pruebasEstanqueidad"], consulta: ["obras", "commissioning", "vacaciones"] },
+        jefeCommissioning: { trabajo: ["commissioning", "balanceo", "pruebasEstanqueidad", "ncr", "ppi"], consulta: ["calculo", "obras", "tareas", "vacaciones", "informeSemanal", "reporteDireccion", "mantenimiento"] },
         contractSupport: { trabajo: ["certificaciones", "compras", "pedidos", "conflictos", "ncr"], consulta: ["tareas", "clientes", "proveedores", "trazabilidad", "vacaciones"] },
         jefeMantenimiento: { trabajo: ["mantenimiento", "incidencias"], consulta: ["commissioning", "obras", "ncr", "vacaciones"] },
         /* 16-oct: 'tareas', para que vea las que le encargan (solo las suyas). */
-        operario: { trabajo: ["tareas", "partes", "partesIncidencia", "pruebasEstanqueidad", "balanceo"], consulta: [] },
+        operario: { trabajo: ["tareas", "partes", "partesIncidencia", "partesTrabajo", "pruebasEstanqueidad", "balanceo"], consulta: [] },
         administrador: { empresa: true, accesos: true, trabajo: [], consulta: [] }
       };
       var SECCIONES_OBRA = {
@@ -7110,12 +7142,15 @@ globalThis.CX_VARIANTE="cxobra";
          */
         jefeObra: [
           { nombre: "Documentaci\xF3n", modulos: ["alcance", "analisisProyecto", "nube", "actas", "informeSemanal", "reporteDireccion", "planosObra", "puntosControl", "calculo", "proyectos", "trazabilidad"] },
-          { nombre: "Econ\xF3mico", modulos: ["presupuestoObra", "costsPlan", "variantes", "certificaciones", "conflictos", "estadisticas"] },
+          { nombre: "Econ\xF3mico", modulos: ["presupuestoObra", "costsPlan", "variantes", "partesTrabajo", "certificaciones", "conflictos", "estadisticas"] },
           { nombre: "Planificaci\xF3n", modulos: ["gantt", "planEconomica", "obras", "avanceObra", "tareas", "partes", "vacaciones"] },
           { nombre: "Compras", modulos: ["planCompras", "comparativos", "pedidos", "proveedores"] },
           /* 21-oct (JC): las no conformidades, dentro de Commissioning (shared/barraLateral.js, DENTRO_DE_OTRA). */
           { nombre: "Commissioning y No Conformidades", modulos: ["commissioning", "balanceo", "pruebasEstanqueidad", "legalizaciones", "incidencias", "mantenimiento"] },
-          { nombre: "Calidad", modulos: ["ppi", "partesIncidencia"] }
+          /* 22-oct (JC, opción A): los partes de incidencia (robos, tajos parados, daños,
+             seguridad) salen de Calidad a su propia sección; en Calidad quedan los PPI. */
+          { nombre: "Seguridad e incidencias", modulos: ["partesIncidencia"] },
+          { nombre: "Calidad", modulos: ["ppi"] }
         ]
       };
       SECCIONES_OBRA.jefeProduccion = SECCIONES_OBRA.jefeObra;
@@ -7137,6 +7172,38 @@ globalThis.CX_VARIANTE="cxobra";
       };
       var AYUDA_EN_BARRA = [{ id: "queHaceLaApp", etiqueta: "Qu\xE9 hace y cu\xE1nto ahorra", icono: "\u20AC" }];
       var veQueHaceLaApp = (idRol) => idRol === "administrador";
+      var DEPARTAMENTOS_DIRECTOR = [
+        { id: "obras", nombre: "Obras y Producci\xF3n", necesita: "obras", vistas: [
+          ["resumen", "Resumen"],
+          ["listado", "Listado"],
+          ["reportes", "Reportes"],
+          ["informes", "Informes"],
+          ["certificaciones", "Certificaciones"],
+          ["facturacion", "Facturaci\xF3n"],
+          ["oportunidades", "Oportunidades"],
+          ["desvios", "Desv\xEDos"],
+          ["costes", "Costes y producci\xF3n"],
+          ["equipo", "Equipo y saturaci\xF3n"],
+          ["agenda", "Agenda"]
+        ] },
+        { id: "estudios", nombre: "Estudios", necesita: "presupuestos", vistas: [
+          ["resumen", "Resumen"],
+          ["ofertas", "Ofertas y adjudicaciones"],
+          ["reportes", "Reportes"],
+          ["informes", "Informes"],
+          ["oportunidades", "Oportunidades"],
+          ["equipo", "Equipo y saturaci\xF3n"],
+          ["agenda", "Agenda"]
+        ] },
+        { id: "delineacion", nombre: "Delineaci\xF3n", necesita: "presupuestos", vistas: [
+          ["resumen", "Resumen"],
+          ["planos", "Planos"],
+          ["entregas", "Entregas"],
+          ["reportes", "Reportes"],
+          ["equipo", "Equipo y saturaci\xF3n"],
+          ["agenda", "Agenda"]
+        ] }
+      ];
       var DEPARTAMENTOS_EN_BARRA = {
         estudios: ["proyectos", "presupuestos", "calculo", "biblioteca", "reparto"],
         delineacion: ["reparto", "proyectos"],
@@ -7155,6 +7222,7 @@ globalThis.CX_VARIANTE="cxobra";
           "ppi",
           "conflictos",
           "partesIncidencia",
+          "partesTrabajo",
           "pruebasEstanqueidad",
           "proveedores",
           "tareas",
@@ -7170,6 +7238,14 @@ globalThis.CX_VARIANTE="cxobra";
         const b = BARRAS_POR_ROL[idRol] || { trabajo: [], consulta: "*" };
         const trabajo = b.trabajo.filter(ve);
         const consulta = b.consulta === "*" ? null : b.consulta.filter((m) => ve(m) && !trabajo.includes(m));
+        if (b.director) {
+          const departamentosDirector = DEPARTAMENTOS_DIRECTOR.filter((d) => visibles.includes(d.necesita)).map((d) => ({ id: d.id, nombre: d.nombre, vistas: d.vistas.map(([id, etiqueta]) => ({ id, etiqueta, href: `dir:${d.id}:${id}` })) }));
+          const secciones = SECCIONES_OBRA.jefeObra.map((s) => ({
+            nombre: s.nombre,
+            modulos: s.modulos.filter((m) => HERRAMIENTAS_EN_SECCION.includes(m) || ve(m))
+          })).filter((s) => s.modulos.length);
+          return { trabajo, consulta: [], director: true, departamentosDirector, seccionesObra: secciones };
+        }
         if (SECCIONES_OBRA[idRol]) {
           const secciones = SECCIONES_OBRA[idRol].map((s) => ({
             nombre: s.nombre,
@@ -7196,6 +7272,7 @@ globalThis.CX_VARIANTE="cxobra";
       })({
         DEPARTAMENTOS,
         DEPARTAMENTOS_EN_BARRA,
+        DEPARTAMENTOS_DIRECTOR,
         MODULOS,
         SIN_PANTALLA,
         VERBOS,
@@ -7738,11 +7815,12 @@ globalThis.CX_VARIANTE="cxobra";
           };
         }
         function cuadroDeMando(reg, { aplazamientos = [], asignaciones = [], equipos = [], maxLista = 15 } = {}) {
-          const { filas, cfg, corte } = reg;
+          const { cfg, corte } = reg;
+          const filas = reg.filas.filter((f) => f.estado !== "anulada");
+          const anuladas = reg.filas.length - filas.length;
           const lunes = lunesDe(corte);
           const domingo = sumarDias(lunes, 6);
           const activas = filas.filter((f) => f.calc.activa);
-          const anuladas = filas.filter((f) => f.estado === "anulada").length;
           const cerradas = filas.filter((f) => f.estado === "cerrada").length;
           const semana = {
             lunes,
@@ -7833,7 +7911,7 @@ globalThis.CX_VARIANTE="cxobra";
               total: filas.length,
               activas: activas.length,
               cerradas,
-              pctCerradas: filas.length - anuladas ? cerradas / (filas.length - anuladas) : null,
+              pctCerradas: filas.length ? cerradas / filas.length : null,
               anuladas,
               /* Las que esperan a quien revisa (DF / propiedad / jefe de obra). */
               enviadasRevision: enviadas.length,
@@ -7969,6 +8047,7 @@ globalThis.CX_VARIANTE="cxobra";
             if (f.tipo && tipoDe(n) !== f.tipo) return false;
             if (f.estado === "activas" && !n.calc.activa) return false;
             if (f.estado && f.estado !== "activas" && f.estado !== "todas" && n.estado !== f.estado) return false;
+            if (f.estado === "todas" && n.estado === "anulada") return false;
             if (f.plazo && n.calc.plazo !== f.plazo) return false;
             for (const campo of ["planta", "zona", "disciplina", "industrialResponsable", "origen", "prioridad", "empresaResuelve"]) {
               if (f[campo] === void 0 || f[campo] === null || f[campo] === "") continue;
@@ -8002,7 +8081,7 @@ globalThis.CX_VARIANTE="cxobra";
           return CAMPOS_BUSQUEDA.map((c) => Array.isArray(n[c]) ? n[c].join(" ") : n[c]).join(" ");
         }
         function cuentaPorEstado(filas = []) {
-          const c = { activas: 0, todas: filas.length };
+          const c = { activas: 0, todas: filas.filter((n) => n.estado !== "anulada").length };
           for (const e of Object.keys(ESTADOS)) c[e] = 0;
           for (const n of filas) {
             if (ESTADOS[n.estado]) c[n.estado] += 1;
@@ -8639,7 +8718,7 @@ globalThis.CX_VARIANTE="cxobra";
 <article class="documentoPedido">
   <header class="cabeceraPedido">
     <div>
-      <p class="marca">CBRE \xB7 Project Management</p>
+      <p class="marca">Vidaire Cx \xB7 Project Management</p>
       <h1>Solicitud de precio</h1>
       <p class="ref">Referencia <strong>${esc(pedido.codigo)}</strong>${obra.codigo ? ` \xB7 Obra ${esc(obra.codigo)}` : ""}</p>
     </div>
@@ -8657,7 +8736,7 @@ globalThis.CX_VARIANTE="cxobra";
     </div>
     <div class="parte">
       <h2>Solicita</h2>
-      <p class="nombre">${esc(emisor.nombre || "CBRE")}</p>
+      <p class="nombre">${esc(emisor.nombre || "Vidaire Cx")}</p>
       ${emisor.email ? `<p>${esc(emisor.email)}</p>` : ""}
       ${emisor.telefono ? `<p>${esc(emisor.telefono)}</p>` : ""}
     </div>
@@ -9118,7 +9197,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261022.0326" : "0";
+      var VERSION = true ? "20261022.0731" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -13737,6 +13816,73 @@ globalThis.CX_VARIANTE="cxobra";
      creadoEn        TEXT NOT NULL,
      modificadoEn    TEXT NOT NULL
    )`,
+        /* LOS PARTES DE TRABAJO (JC, 22-oct): un trabajo que alguien pide y que
+           no está en el contrato tal cual. Quién lo pide y por qué, qué se hizo,
+           sus horas y material (parteTrabajoLineas) y a quién se repercute: al
+           cliente con una variante (`adendaId`), a otro gremio con un conflicto
+           (`conflictoId`) o lo asumimos. Las reglas, en shared/obra/parteTrabajo.js. */
+        `CREATE TABLE IF NOT EXISTS partesTrabajo (
+     id                 TEXT PRIMARY KEY,
+     obraId             TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     codigo             TEXT NOT NULL,
+     fecha              TEXT NOT NULL,
+     titulo             TEXT NOT NULL,
+     descripcion        TEXT,
+     zona               TEXT,
+     pideTipo           TEXT NOT NULL,
+     pideNombre         TEXT,
+     pideEmpresa        TEXT,
+     motivo             TEXT NOT NULL,
+     referencia         TEXT,
+     fechaInicio        TEXT,
+     fechaFin           TEXT,
+     estado             TEXT NOT NULL DEFAULT 'borrador'
+                        CHECK (estado IN ('borrador','dado','validado','firmado','repercutido','asumido','anulado')),
+     repercutirA        TEXT CHECK (repercutirA IS NULL OR repercutirA IN ('cliente','gremio','nosotros')),
+     adendaId           TEXT REFERENCES adendas(id) ON DELETE SET NULL,
+     conflictoId        TEXT REFERENCES conflictos(id) ON DELETE SET NULL,
+     importeRepercutido REAL,
+     importeCoste       REAL,
+     importeVenta       REAL,
+     firmaNombre        TEXT,
+     firmaFecha         TEXT,
+     creadoPor          TEXT REFERENCES personas(id),
+     dadoPor            TEXT REFERENCES personas(id),
+     dadoEn             TEXT,
+     validadoPor        TEXT REFERENCES personas(id),
+     validadoEn         TEXT,
+     devueltoNota       TEXT,
+     anuladoMotivo      TEXT,
+     notas              TEXT,
+     creadoEn           TEXT NOT NULL,
+     modificadoEn       TEXT NOT NULL,
+     UNIQUE (obraId, codigo)
+   )`,
+        /* Lo hecho en un parte de trabajo: horas (operario, empresa, categoría,
+           día; `tarifa` congelada al validar) o material y otros (qué, cuánto, su
+           coste `precio` y su venta `venta` por unidad). */
+        `CREATE TABLE IF NOT EXISTS parteTrabajoLineas (
+     id              TEXT PRIMARY KEY,
+     parteId         TEXT NOT NULL REFERENCES partesTrabajo(id) ON DELETE CASCADE,
+     obraId          TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     orden           INTEGER NOT NULL DEFAULT 0,
+     clase           TEXT NOT NULL CHECK (clase IN ('horas','material','otro')),
+     operario        TEXT,
+     empresa         TEXT,
+     categoria       TEXT,
+     fecha           TEXT,
+     horas           REAL,
+     tarifa          REAL,
+     descripcion     TEXT,
+     cantidad        REAL,
+     unidad          TEXT,
+     precio          REAL,
+     venta           REAL,
+     origen          TEXT,
+     notas           TEXT,
+     creadoEn        TEXT NOT NULL,
+     modificadoEn    TEXT NOT NULL
+   )`,
         /* Las pruebas de estanqueidad que el encargado da desde el móvil. `fotos`
            es JSON con la ruta y el momento (inicio, final, otra); `rutaPdf` el
            informe guardado en la documentación de la obra y `nube` cómo fue la
@@ -14111,6 +14257,7 @@ globalThis.CX_VARIANTE="cxobra";
      cambio          TEXT,
      personaId       TEXT REFERENCES personas(id),
      creadoEn        TEXT NOT NULL,
+     modificadoEn    TEXT NOT NULL,
      UNIQUE (versionId, revision)
    )`,
         `CREATE TABLE IF NOT EXISTS ganttElecciones (
@@ -14121,7 +14268,8 @@ globalThis.CX_VARIANTE="cxobra";
      base            TEXT NOT NULL,
      motivo          TEXT,
      personaId       TEXT REFERENCES personas(id),
-     creadoEn        TEXT NOT NULL
+     creadoEn        TEXT NOT NULL,
+     modificadoEn    TEXT NOT NULL
    )`,
         /*
          * EL COSTS PLAN 2.09a (shared/obra/costPlan209a.js). `costPlanCierres` es la
@@ -14460,6 +14608,48 @@ globalThis.CX_VARIANTE="cxobra";
      subidoPor        TEXT REFERENCES personas(id),
      creadoEn         TEXT NOT NULL,
      modificadoEn     TEXT NOT NULL
+   )`,
+        /*
+         * LA FICHA DE LEGALIZACIÓN de la obra (22-oct, JC): los datos que piden los
+         * modelos oficiales y que la obra no sabe por sí sola (NIF del promotor,
+         * instalador habilitado, DF, potencias, refrigerante, gas, PCI…), una fila
+         * por obra con el JSON de shared/legalizaciones/ficha.js. Solo la escriben
+         * el jefe de obra, el de producción, el de grupo y el director del
+         * departamento (electron/data/legalizaciones.js + shared/roles.js).
+         */
+        `CREATE TABLE IF NOT EXISTS legalizacionesObra (
+     id               TEXT PRIMARY KEY,
+     obraId           TEXT NOT NULL UNIQUE REFERENCES obras(id) ON DELETE CASCADE,
+     datos            TEXT NOT NULL DEFAULT '{}',
+     creadoEn         TEXT NOT NULL,
+     modificadoEn     TEXT NOT NULL
+   )`,
+        /*
+         * EL ACTA DE ENTREGA (22-oct, paso 5 de la propuesta de Vidaire): la puerta
+         * de la obra al mantenimiento. `contenido` es lo que se firma (JSON de
+         * shared/commissioning/actaEntrega.js: equipos con su historial de Cx y
+         * reservas) y `huella` su sha256. Firmada no se toca: se anula con motivo
+         * y se hace otra (electron/data/actaEntrega.js).
+         */
+        `CREATE TABLE IF NOT EXISTS actasEntrega (
+     id               TEXT PRIMARY KEY,
+     obraId           TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     numero           TEXT NOT NULL,
+     fecha            TEXT NOT NULL,
+     estado           TEXT NOT NULL DEFAULT 'firmada' CHECK (estado IN ('firmada','anulada')),
+     firmanteNombre   TEXT NOT NULL,
+     firmanteCargo    TEXT,
+     firmanteEmpresa  TEXT,
+     observaciones    TEXT,
+     contenido        TEXT NOT NULL DEFAULT '{}',
+     huella           TEXT NOT NULL,
+     firmadoPor       TEXT REFERENCES personas(id),
+     motivoAnulacion  TEXT,
+     anuladoPor       TEXT REFERENCES personas(id),
+     anuladoEn        TEXT,
+     creadoEn         TEXT NOT NULL,
+     modificadoEn     TEXT NOT NULL,
+     UNIQUE (obraId, numero)
    )`
       ];
       var INDICES = [
@@ -14559,6 +14749,8 @@ globalThis.CX_VARIANTE="cxobra";
         `CREATE INDEX IF NOT EXISTS idx_correosObra_obra   ON correosObra (obraId, fecha)`,
         `CREATE INDEX IF NOT EXISTS idx_correosObra_pedido ON correosObra (pedidoId)`,
         `CREATE INDEX IF NOT EXISTS idx_parteIncLin_parte  ON parteIncidenciaLineas (parteId, orden)`,
+        `CREATE INDEX IF NOT EXISTS idx_partesTrab_obra    ON partesTrabajo (obraId, fecha)`,
+        `CREATE INDEX IF NOT EXISTS idx_parteTrabLin_parte ON parteTrabajoLineas (parteId, orden)`,
         `CREATE INDEX IF NOT EXISTS idx_pruebasEst_obra    ON pruebasEstanqueidad (obraId, fecha)`,
         `CREATE INDEX IF NOT EXISTS idx_calculos_proyecto ON calculos (proyectoId, tipo)`,
         `CREATE INDEX IF NOT EXISTS idx_ppiRev_obra        ON ppiRevisiones (obraId, fecha)`,
@@ -15128,6 +15320,8 @@ globalThis.CX_VARIANTE="cxobra";
         puntosControlAjustes: { porObra: "obraId" },
         pruebasPuntosBms: { porObra: "obraId" },
         documentosProyecto: { porObra: "obraId" },
+        legalizacionesObra: { porObra: "obraId" },
+        actasEntrega: { porObra: "obraId" },
         sesionesPlanInc: { porObra: "obraId" },
         incidenciaHoras: { porObra: "obraId" },
         avancePartidas: { porObra: "obraId" },
@@ -15152,6 +15346,9 @@ globalThis.CX_VARIANTE="cxobra";
         /* Los partes de incidencia (robos, avance, daños…), de la obra donde pasó. */
         partesIncidencia: { porObra: "obraId" },
         parteIncidenciaLineas: { porObra: "obraId" },
+        /* Los partes de trabajo, de la obra donde se hizo el trabajo. */
+        partesTrabajo: { porObra: "obraId" },
+        parteTrabajoLineas: { porObra: "obraId" },
         /* Las pruebas de estanqueidad, de la obra donde se hicieron. */
         pruebasEstanqueidad: { porObra: "obraId" },
         ppiRevisiones: { porObra: "obraId" },
@@ -15499,6 +15696,8 @@ globalThis.CX_VARIANTE="cxobra";
         puntosControlAjustes: "commissioning",
         pruebasPuntosBms: "commissioning",
         documentosProyecto: "commissioning",
+        legalizacionesObra: "legalizaciones",
+        actasEntrega: "commissioning",
         sesionesPlanInc: "incidencias",
         incidenciaHoras: "incidencias",
         avancePartidas: "avanceObra",
@@ -15539,6 +15738,9 @@ globalThis.CX_VARIANTE="cxobra";
         /* Robos, problemas de avance, daños… que da el encargado desde el móvil. */
         partesIncidencia: "partesIncidencia",
         parteIncidenciaLineas: "partesIncidencia",
+        /* Los trabajos que alguien pide fuera de contrato, con sus horas y material. */
+        partesTrabajo: "partesTrabajo",
+        parteTrabajoLineas: "partesTrabajo",
         /* Las pruebas de presión de las instalaciones, con la foto del manómetro. */
         pruebasEstanqueidad: "pruebasEstanqueidad",
         /* Los cálculos de instalaciones guardados con el proyecto. */
@@ -15666,9 +15868,10 @@ globalThis.CX_VARIANTE="cxobra";
           if (cambiados) versionar(entidad, id, "editar", sesion, opciones);
           return true;
         }
-        function borrar(entidad, sesion, id) {
-          exigir(entidad, sesion, "borrar");
-          if (!puedeTocar(entidad, sesion, id)) throw new SinPermiso(MODULO_DE[entidad], "borrar", sesion.rol);
+        function borrar(entidad, sesion, id, opciones = {}) {
+          const verbo = opciones.verbo || "borrar";
+          exigir(entidad, sesion, verbo);
+          if (!puedeTocar(entidad, sesion, id)) throw new SinPermiso(MODULO_DE[entidad], verbo, sesion.rol);
           const antes = alcance.esPrivada(entidad) ? null : db.prepare(`SELECT * FROM ${entidad} WHERE id = ?`).get(id);
           db.prepare(`DELETE FROM ${entidad} WHERE id = ?`).run(id);
           anotar(entidad, id, "borrar", null, null, null, sesion);
@@ -17182,6 +17385,8 @@ globalThis.CX_VARIANTE="cxobra";
           personalPrevisto: "Personal previsto",
           partesIncidencia: "Parte de incidencia",
           parteIncidenciaLineas: "L\xEDnea de parte de incidencia",
+          partesTrabajo: "Parte de trabajo",
+          parteTrabajoLineas: "L\xEDnea de parte de trabajo",
           pruebasEstanqueidad: "Prueba de estanqueidad",
           ppiPlantillas: "Plantilla de PPI",
           ppiRevisiones: "Checklist PPI",
@@ -19323,7 +19528,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       (function iniciarPlantillasCbre() {
-        const FORMATO = "Formato CBRE - rev.2 - 06/10/2026";
+        const FORMATO = "Formato Vidaire Cx - rev.1";
         const CRITERIO_PM = "Criterio: desviaci\xF3n sobre proyecto (o te\xF3rico si no hay proyecto) dentro de la tolerancia de la obra (la fija el jefe de obra) \u2192 APTO. Medido id\xE9ntico al valor de referencia \u2192 A REVISAR (posible valor copiado).";
         const CRITERIO_CHECKLIST = "S\xED = conforme \xB7 No = no conforme (detallar en observaciones) \xB7 NA = no aplica.";
         const OBL = "obligatorio";
@@ -22226,6 +22431,59 @@ globalThis.CX_VARIANTE="cxobra";
             ]),
             bloque("09", "MANTENIMIENTO", P_MANTENIMIENTO_LARGO)
           ]),
+          /* 22-oct (JC: «crea el modelo que falta»): los CRAC de CPD no tenían
+             checklist. Mismo esqueleto que la bomba de calor, con lo propio de una
+             sala técnica: humedad, N+1, detección de agua, alarmas y suelo técnico. */
+          Object.assign(checklist("CHECKLIST_CRAC", "CHECKLIST CRAC", "RECEPCI\xD3N Y PUESTA EN OBRA \xB7 CRAC (CLIMATIZACI\xD3N DE PRECISI\xD3N)", [
+            { titulo: "DATOS DE LA INSTALACI\xD3N", tipo: "datos", puntos: [
+              lista("descarga_aire", "Descarga de aire", ["Suelo t\xE9cnico", "Frontal", "Conductos"]),
+              texto("sala", "Sala / CPD servido")
+            ] },
+            bloque("02", "VERIFICACIONES F\xCDSICAS", [
+              ["02.01", "La unidad interior y la condensadora est\xE1n libres de da\xF1os"],
+              ["02.02", "Todos los componentes presentes y en orden"],
+              ["02.03", "Manual de instalaci\xF3n y encendido provisto"],
+              ["02.04", "Placa de caracter\xEDsticas correctamente colocada"],
+              ["02.05", "Filtros instalados, limpios y de la clase de proyecto"]
+            ]),
+            bloque("03", "AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA", [
+              ["03.01", "Los equipos instalados se corresponden con el Proyecto o Memoria T\xE9cnica"],
+              ["03.02", "La ubicaci\xF3n de los equipos instalados se corresponde con el Proyecto o Memoria T\xE9cnica"],
+              ["03.03", "N\xBA de unidades y reserva (N+1) seg\xFAn proyecto"]
+            ]),
+            bloque("04", "INSTALACI\xD3N DEL EQUIPO", [
+              ["04.01", "Unidad interior apoyada en bancada o soporte de suelo t\xE9cnico, nivelada"],
+              ["04.02", "Condensadora apoyada, con antivibratorios y nivelada"],
+              ["04.03", "Espacio libre de mantenimiento delante y detr\xE1s de las unidades"],
+              ["04.04", "Plenum / rejillas de suelo t\xE9cnico colocados seg\xFAn proyecto, sin bypass de aire"],
+              ["04.05", "Unidades interior y exterior etiquetadas y emparejadas"]
+            ]),
+            bloque("05", "CIRCUITO FRIGOR\xCDFICO Y DESAG\xDCES", [
+              ["05.01", "L\xEDnea frigor\xEDfica con el di\xE1metro y recorrido de proyecto, soportada y aislada"],
+              ["05.02", "Prueba de estanqueidad y vac\xEDo del circuito realizadas (ver hoja de estanqueidad)"],
+              ["05.03", "Carga de refrigerante adicional anotada en la unidad"],
+              ["05.04", "Desag\xFCe de condensados con sif\xF3n y pendiente; funciona"],
+              ["05.05", "Alimentaci\xF3n de agua al humidificador conectada (si lleva)"],
+              ["05.06", "Detector de fuga de agua bajo la unidad instalado"]
+            ]),
+            bloque("06", "EL\xC9CTRICO", P_ELECTRICO),
+            bloque("07", "CONTROLES - INSTALACI\xD3N", [
+              ["07.01", "Sondas de temperatura y humedad de sala colocadas"],
+              ["07.02", "Cableado de control entre unidad interior y condensadora"],
+              ["07.03", "Red de rotaci\xF3n / reserva entre unidades (N+1) cableada"],
+              ["07.04", "Alarmas y estados integrados en BMS"]
+            ]),
+            bloque("08", "CONTROLES - PUESTA EN MARCHA", [
+              ["08.01", "Tensi\xF3n de alimentaci\xF3n (RSTN) y sentido de rotaci\xF3n correctos"],
+              ["08.02", "Consignas de temperatura y humedad ajustadas seg\xFAn proyecto"],
+              ["08.03", "Rotaci\xF3n y entrada de la reserva al fallar una unidad verificadas"],
+              ["08.04", "Rearranque autom\xE1tico tras corte de tensi\xF3n verificado"],
+              ["08.05", "Alarmas probadas (alta temperatura, fuga de agua, filtro sucio, fallo) y recibidas en BMS"],
+              ["08.06", "El sistema funciona sin ruido ni vibraci\xF3n anormal"],
+              ["08.07", "Se adjunta informe de puesta en marcha del fabricante con detalle de las pruebas, medidas y ajustes"]
+            ]),
+            bloque("09", "MANTENIMIENTO", P_MANTENIMIENTO_LARGO)
+          ]), { hojaBase: "CHECKLIST BOMBA CALOR" }),
           checklist("CHECKLIST_RECUPERADOR", "CHECKLIST RECUPERADOR", "RECEPCI\xD3N Y PUESTA EN OBRA \xB7 RECUPERADOR DE CALOR", [
             bloque("02", "VERIFICACIONES F\xCDSICAS", [
               ["02.01", "La unidad est\xE1 libre de da\xF1os"],
@@ -22556,7 +22814,7 @@ globalThis.CX_VARIANTE="cxobra";
             nombre: "PANASONIC CRACS",
             nombrePdf: "Panasonic CRAC",
             plantillas: ["CRAC_UD_INTERIOR", "CRAC_UD_EXTERIOR"],
-            anexos: [{ plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
+            anexos: [{ plantilla: "CHECKLIST_CRAC" }, { plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante" }],
             balanceo: false,
             estanqueidad: "refrigerante",
             medicion: "ninguna"
@@ -23215,7 +23473,7 @@ globalThis.CX_VARIANTE="cxobra";
           fichaTecnica: "Ficha t\xE9cnica del fabricante"
         };
         const ROLES_FIRMA = {
-          CBRE: "Jefe de obra (CBRE)"
+          CBRE: "Jefe de obra"
         };
         const llanoFx = (v) => String(v ?? "").trim();
         function numFx(v) {
@@ -23501,7 +23759,13 @@ globalThis.CX_VARIANTE="cxobra";
             pisadas: Number.isInteger(c.pisadas) && c.pisadas > 0 ? c.pisadas : 0,
             por: hayValorFx(c.por) ? llanoFx(c.por) : null,
             personaId: hayValorFx(c.personaId) ? llanoFx(c.personaId) : null,
-            en: hayValorFx(c.en) ? llanoFx(c.en) : null
+            en: hayValorFx(c.en) ? llanoFx(c.en) : null,
+            /* Para deshacerla: el lote y lo que había (shared/commissioning/rejillaChecklist.js › selloCopia).
+               Las copias de antes no lo llevan y se quedan sin él. */
+            ...hayValorFx(c.lote) ? { lote: llanoFx(c.lote) } : {},
+            ...c.antes && typeof c.antes === "object" ? { antes: Object.fromEntries(Object.entries(c.antes).filter(([, v]) => v && typeof v === "object" && hayValorFx(v.v)).map(([k, v]) => [llanoFx(k), { v: llanoFx(v.v), ...hayValorFx(v.o) ? { o: llanoFx(v.o) } : {} }])) } : {},
+            ...c.cabecera && typeof c.cabecera === "object" ? { cabecera: Object.fromEntries(["fechaEnsayo", "realizadoPor"].filter((k) => hayValorFx(c.cabecera[k])).map((k) => [k, llanoFx(c.cabecera[k])])) } : {},
+            ...hayValorFx(c.observaciones) ? { observaciones: String(c.observaciones).slice(0, 4e3) } : {}
           }));
           return base;
         }
@@ -24160,6 +24424,30 @@ globalThis.CX_VARIANTE="cxobra";
         const orden = campo === "planta" ? (a, b) => ordenPlantas(a.concepto, b.concepto) : (a, b) => b.total - a.total || a.concepto.localeCompare(b.concepto, "es", { numeric: true });
         return [...grupos.values()].map((g) => ({ ...g, pctCompletos: g.total ? g.completos / g.total : null })).sort(orden);
       }
+      var TIPOS_POR_FAMILIA = {
+        TROX_UTA: "UTAs",
+        CARRIER_ROOFTOPS: "Rooftops",
+        CARRIER_CHILLERS: "Enfriadoras / bombas de calor",
+        AIRLAN_FANCOIL: "Fan coils",
+        AIRLAN_HRU: "Recuperadores",
+        PANASONIC_VRF: "VRF",
+        PANASONIC_SPLIT: "Splits",
+        PANASONIC_CRACS: "CRAC",
+        WILO_GP: "Grupos de presi\xF3n",
+        WILO_PUMPS: "Bombas",
+        SP_VENTILACION: "Ventiladores",
+        SP_PARKING: "Ventiladores",
+        SP_PRESURIZACION: "Ventiladores"
+      };
+      function tipoDeEquipo(f) {
+        const fam = String(f && f.familia || "").trim();
+        if (TIPOS_POR_FAMILIA[fam]) return TIPOS_POR_FAMILIA[fam];
+        if (fam) {
+          const t = fam.replace(/_/g, " ").toLowerCase();
+          return t.charAt(0).toUpperCase() + t.slice(1);
+        }
+        return "Sin tipolog\xEDa";
+      }
       function aReclamar(filas, modeloDe) {
         const uso = /* @__PURE__ */ new Map();
         for (const f of filas) {
@@ -24177,11 +24465,14 @@ globalThis.CX_VARIANTE="cxobra";
                  trae su CE por nº de serie, al modelo no hace falta pedírselo. */
               sinFT: 0,
               sinCE: 0,
-              sinManual: 0
+              sinManual: 0,
+              tipos: []
             });
           }
           const u = uso.get(clave);
           u.equipos += 1;
+          const tipo = tipoDeEquipo(f);
+          if (!u.tipos.includes(tipo)) u.tipos.push(tipo);
           if (!f.ft) u.sinFT += 1;
           if (!f.ce) u.sinCE += 1;
           if (!f.manual) u.sinManual += 1;
@@ -24429,7 +24720,8 @@ globalThis.CX_VARIANTE="cxobra";
         RANGO_PM,
         gruposDeConjunto,
         conjuntosDeEquipos,
-        contarConjuntos
+        contarConjuntos,
+        tipoDeEquipo
       });
     }
   });
@@ -24812,7 +25104,7 @@ globalThis.CX_VARIANTE="cxobra";
           const hallado = encontrados[clave];
           if (!hallado) continue;
           const actual = fila[campo];
-          const deMotor = fila[origenDe(campo)] === "motor";
+          const deMotor = ["motor", "internet"].includes(fila[origenDe(campo)]);
           if (!vacio(actual) && !deMotor) {
             respetados += 1;
             continue;
@@ -24929,27 +25221,37 @@ globalThis.CX_VARIANTE="cxobra";
         const familias = /* @__PURE__ */ new Map();
         for (const e of E) {
           const clave = String(e.familia || e.grupo || "Sin familia");
-          if (!familias.has(clave)) familias.set(clave, { familia: clave, equipos: 0, ft: 0, ce: 0, mi: 0, modelos: /* @__PURE__ */ new Map() });
+          if (!familias.has(clave)) familias.set(clave, { familia: clave, equipos: 0, ft: 0, ce: 0, mi: 0, web: 0, modelos: /* @__PURE__ */ new Map() });
           const f = familias.get(clave);
           const m = modeloDe(e);
           f.equipos += 1;
           const nombreModelo = String(e.modelo || "").trim() || "(sin modelo)";
-          for (const [k, campo] of PAPELES) {
-            if (!vacio(e[campo]) || !vacio(m[campo])) continue;
-            f[k] += 1;
-            if (!f.modelos.has(nombreModelo)) f.modelos.set(nombreModelo, { modelo: nombreModelo, equipos: /* @__PURE__ */ new Set(), ft: false, ce: false, mi: false });
+          const fila = () => {
+            if (!f.modelos.has(nombreModelo)) f.modelos.set(nombreModelo, { modelo: nombreModelo, equipos: /* @__PURE__ */ new Set(), ft: false, ce: false, mi: false, web: {} });
             const fm = f.modelos.get(nombreModelo);
             fm.equipos.add(e.id);
-            fm[k] = true;
+            return fm;
+          };
+          for (const [k, campo] of PAPELES) {
+            if (!vacio(e[campo])) continue;
+            if (!vacio(m[campo]) && m[origenDe(campo)] === "internet") {
+              f.web += 1;
+              fila().web[k] = m[campo];
+              continue;
+            }
+            if (!vacio(m[campo])) continue;
+            f[k] += 1;
+            fila()[k] = true;
           }
         }
-        const faltas = [...familias.values()].filter((f) => f.ft || f.ce || f.mi).map((f) => ({
+        const faltas = [...familias.values()].filter((f) => f.ft || f.ce || f.mi || f.web).map((f) => ({
           familia: f.familia,
           equipos: f.equipos,
           ft: f.ft,
           ce: f.ce,
           mi: f.mi,
-          modelos: [...f.modelos.values()].map((m) => ({ modelo: m.modelo, equipos: m.equipos.size, ft: m.ft, ce: m.ce, mi: m.mi })).sort((a, b) => b.equipos - a.equipos || a.modelo.localeCompare(b.modelo))
+          web: f.web,
+          modelos: [...f.modelos.values()].map((m) => ({ modelo: m.modelo, equipos: m.equipos.size, ft: m.ft, ce: m.ce, mi: m.mi, web: m.web })).sort((a, b) => b.equipos - a.equipos || a.modelo.localeCompare(b.modelo))
         })).sort((a, b) => b.ft + b.ce + b.mi - (a.ft + a.ce + a.mi) || a.familia.localeCompare(b.familia));
         const usados = /* @__PURE__ */ new Set();
         for (const fila of [...M, ...E]) for (const [, campo] of PAPELES) if (!vacio(fila[campo])) usados.add(fila[campo]);
@@ -27719,7 +28021,7 @@ globalThis.CX_VARIANTE="cxobra";
         const entrada = abrirZip(fs.readFileSync(m[1])).get(interno);
         if (!entrada) throw new Error(`El zip ya no lleva ${interno}.`);
         const bytes = entrada.metodo === 0 ? entrada.datos : zlib.inflateRawSync(entrada.datos);
-        const destino = path.join(os.tmpdir(), "cbre-project-360-zip", path.basename(m[1], path.extname(m[1])), interno);
+        const destino = path.join(os.tmpdir(), "vidaire-obras-zip", path.basename(m[1], path.extname(m[1])), interno);
         fs.mkdirSync(path.dirname(destino), { recursive: true });
         fs.writeFileSync(destino, bytes);
         return destino;
@@ -30425,6 +30727,7 @@ globalThis.CX_VARIANTE="cxobra";
           const valores = { ...destino.valores || {} };
           const cuenta = { copiadas: 0, pisadas: 0, conservadas: 0, iguales: 0 };
           const puntos = [];
+          const antes = {};
           let hayNo = false;
           for (const p of puntosChecklist(plantilla)) {
             const o = valoresO[p.codigo];
@@ -30440,6 +30743,7 @@ globalThis.CX_VARIANTE="cxobra";
                 continue;
               }
               cuenta.pisadas += 1;
+              antes[p.codigo] = { ...d };
             }
             valores[p.codigo] = { v: o.v, o: "copia" };
             cuenta.copiadas += 1;
@@ -30464,20 +30768,120 @@ globalThis.CX_VARIANTE="cxobra";
             datos: { ...destino, valores, cabecera, observaciones },
             ...cuenta,
             puntos,
+            antes,
             cabeceraRellena: rellenos,
+            /* Lo que se ha puesto en la cabecera, con su valor: deshacer solo lo quita si sigue igual. */
+            cabeceraCopiada: Object.fromEntries(rellenos.map((k) => [k, cabecera[k]])),
             observacionesCopiadas
           };
         }
-        function selloCopia({ de, clave, puntos = [], pisadas = 0, por, personaId, en } = {}) {
+        const valorPuntoRc = (x) => x && typeof x === "object" && hayRc(x.v) ? { v: llanoRc(x.v), ...hayRc(x.o) ? { o: llanoRc(x.o) } : {} } : null;
+        function selloCopia({ de, clave, puntos = [], pisadas = 0, por, personaId, en, lote, antes, cabecera, observaciones } = {}) {
+          const lista = (Array.isArray(puntos) ? puntos : []).map(llanoRc).filter(Boolean).slice(0, 300);
+          const previos = {};
+          for (const p of lista) {
+            const v = valorPuntoRc(antes && antes[p]);
+            if (v) previos[p] = v;
+          }
+          const cab = {};
+          for (const k of ["fechaEnsayo", "realizadoPor"]) if (cabecera && hayRc(cabecera[k])) cab[k] = llanoRc(cabecera[k]);
           return {
             de: llanoRc(de) || null,
             clave: llanoRc(clave) || null,
-            puntos: (Array.isArray(puntos) ? puntos : []).map(llanoRc).filter(Boolean).slice(0, 300),
+            puntos: lista,
             pisadas: Number.isInteger(pisadas) && pisadas > 0 ? pisadas : 0,
             por: llanoRc(por) || null,
             personaId: llanoRc(personaId) || null,
-            en: llanoRc(en) || null
+            en: llanoRc(en) || null,
+            lote: llanoRc(lote) || null,
+            antes: previos,
+            cabecera: cab,
+            observaciones: hayRc(observaciones) ? String(observaciones).slice(0, 4e3) : null
           };
+        }
+        function loteDe(c) {
+          if (!c) return null;
+          if (hayRc(c.lote)) return llanoRc(c.lote);
+          return hayRc(c.en) ? `${llanoRc(c.en)}|${llanoRc(c.clave)}` : null;
+        }
+        function deshacerCopia(datos = {}, lote) {
+          const copias = Array.isArray(datos.copias) ? datos.copias : [];
+          let i = -1;
+          for (let k = copias.length - 1; k >= 0; k -= 1) if (loteDe(copias[k]) === llanoRc(lote)) {
+            i = k;
+            break;
+          }
+          if (i < 0) return { encontrada: false };
+          const c = copias[i];
+          const conAntes = c.antes && typeof c.antes === "object";
+          if (!conAntes && c.pisadas > 0) {
+            return { encontrada: true, posible: false, motivo: "Esa copia pis\xF3 respuestas y no guard\xF3 cu\xE1les hab\xEDa: hay que corregirla a mano." };
+          }
+          const valores = { ...datos.valores || {} };
+          const posteriores = copias.slice(i + 1).map((x) => x.antes && typeof x.antes === "object" ? { ...x, antes: { ...x.antes } } : { ...x });
+          const cuenta = { deshechas: 0, aMano: 0, deOtraCopia: 0 };
+          for (const p of c.puntos || []) {
+            const v = valores[p];
+            if (!v || v.o !== "copia") {
+              cuenta.aMano += 1;
+              continue;
+            }
+            const previo = conAntes ? valorPuntoRc(c.antes[p]) : null;
+            const otra = posteriores.filter((x) => (x.puntos || []).includes(p)).pop();
+            if (otra) {
+              if (otra.antes && otra.antes[p] && otra.antes[p].o === "copia") {
+                if (previo) otra.antes[p] = previo;
+                else delete otra.antes[p];
+              }
+              cuenta.deOtraCopia += 1;
+              continue;
+            }
+            if (previo) valores[p] = previo;
+            else delete valores[p];
+            cuenta.deshechas += 1;
+          }
+          const cabecera = { ...datos.cabecera || {} };
+          const cabeceraVaciada = [];
+          let observaciones = datos.observaciones || "";
+          let observacionesQuitadas = false;
+          if (!cuenta.aMano) {
+            for (const [k, valor] of Object.entries(c.cabecera || {})) {
+              if (llanoRc(cabecera[k]) === llanoRc(valor)) {
+                cabecera[k] = null;
+                cabeceraVaciada.push(k);
+              }
+            }
+            if (hayRc(c.observaciones) && llanoRc(observaciones) === llanoRc(c.observaciones)) {
+              observaciones = "";
+              observacionesQuitadas = true;
+            }
+          }
+          return {
+            encontrada: true,
+            posible: true,
+            sello: c,
+            datos: { ...datos, valores, cabecera, observaciones, copias: [...copias.slice(0, i), ...posteriores] },
+            ...cuenta,
+            cabeceraVaciada,
+            observacionesQuitadas
+          };
+        }
+        function copiasRecientes(fichas = [], { maximo = 5 } = {}) {
+          const lotes = /* @__PURE__ */ new Map();
+          for (const f of fichas) {
+            const copias = f && f.datos && Array.isArray(f.datos.copias) ? f.datos.copias : [];
+            for (const c of copias) {
+              const lote = loteDe(c);
+              if (!lote) continue;
+              if (!lotes.has(lote)) lotes.set(lote, { lote, de: c.de, por: c.por, en: c.en, equipos: 0, respuestas: 0, firmadas: 0, deshacible: true });
+              const g = lotes.get(lote);
+              g.equipos += 1;
+              if (f.firmada) g.firmadas += 1;
+              g.respuestas += (c.puntos || []).filter((p) => copiaDePunto(f.datos, p) === c).length;
+              if (!(c.antes && typeof c.antes === "object") && c.pisadas > 0) g.deshacible = false;
+            }
+          }
+          return [...lotes.values()].sort((a, b) => llanoRc(b.en).localeCompare(llanoRc(a.en))).slice(0, maximo).map((g) => ({ ...g, texto: `${textoCopia({ de: g.de, por: g.por, en: g.en, puntos: [] }).replace(/ · 0 respuestas$/, "")} \xB7 a ${g.equipos} ${g.equipos === 1 ? "equipo" : "equipos"}` }));
         }
         function copiaDePunto(datos = {}, codigo) {
           const v = (datos.valores || {})[codigo];
@@ -30516,7 +30920,7 @@ globalThis.CX_VARIANTE="cxobra";
         (function exportar(API) {
           if (typeof module !== "undefined" && module.exports) module.exports = API;
           if (typeof window !== "undefined") window.REJILLA_CHECKLIST = API;
-        })({ puntosChecklist, copiarRespuestas, selloCopia, copiaDePunto, textoCopia, fechaCorta: fechaCortaRc, copiasVigentes });
+        })({ puntosChecklist, copiarRespuestas, selloCopia, copiaDePunto, textoCopia, fechaCorta: fechaCortaRc, copiasVigentes, loteDe, deshacerCopia, copiasRecientes });
       })();
     }
   });
@@ -30632,6 +31036,8 @@ ${subtitulo}`, c[5]] : c.slice())]);
           };
         }
         const estiloDe = (m, celda) => m.estilos[celda.st] || "";
+        const ROT_JEFE = /^(CBRE|JEFE DE OBRA)$/;
+        const formatoPie = (f) => globalThis.CX_VARIANTE === "cxobra" && /CBRE/.test(f) ? "Formato Vidaire Cx - rev.1" : f;
         const esBanda = (m, celda) => estiloDe(m, celda).includes(BANDA);
         const esSubcab = (m, celda) => estiloDe(m, celda).includes(SUBCAB);
         const celdaEn = (fila, c) => fila.celdas.find((x) => x.c === c);
@@ -30845,25 +31251,25 @@ ${subtitulo}`, c[5]] : c.slice())]);
                 m.filas[desde].celdas = [{ c: 0, cs: 8, rs: r - 1 - desde, st: 0, txt: "", html, lleno: true, clase: "xlFotos" }];
               }
             }
-            const rotFirma = cs.filter((x) => x.txt === "CBRE" || norm(x.txt) === "DIRECCION FACULTATIVA");
+            const rotFirma = cs.filter((x) => ROT_JEFE.test(x.txt) || norm(x.txt) === "DIRECCION FACULTATIVA");
             if (rotFirma.length) {
               for (const x of rotFirma) {
                 const caja = m.filas[r + 1] && celdaEn(m.filas[r + 1], x.c);
                 if (caja) {
-                  caja.html = fuente.firma(x.txt === "CBRE" ? "CBRE" : "DF");
+                  caja.html = fuente.firma(ROT_JEFE.test(x.txt) ? "CBRE" : "DF");
                   caja.clase = "xlFirma";
                 }
               }
               continue;
             }
-            if (r === m.filas.length - 1 || /^Formato CBRE/.test((cs[0] || {}).txt || "")) {
+            if (r === m.filas.length - 1 || /^Formato (CBRE|Vidaire)/.test((cs[0] || {}).txt || "")) {
               let pie = cs.find((x) => x.c === 0 && (x.f || /^Formato/.test(x.txt)));
               if (!pie && r === m.filas.length - 1 && !cs.length) {
                 const st = m.estilos.indexOf("font-weight:700;font-size:7pt;vertical-align:bottom");
                 pie = { c: 0, cs: 4, rs: 1, st: Math.max(st, 0), txt: "" };
                 fila.celdas.push(pie);
               }
-              if (pie && fuente.formato) pie.html = esc(fuente.formato);
+              if (pie && fuente.formato) pie.html = esc(formatoPie(fuente.formato));
               if (pie) continue;
             }
             const sub = cs.filter((x) => esSubcab(m, x) && x.txt && x.cs >= 4);
@@ -31275,7 +31681,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
             return esc(partes.join(" \xB7 ") || (ev.equipoMedida || ""));
           };
           const fuente = {
-            formato: "Formato CBRE - rev.2 - 06/10/2026",
+            formato: "Formato Vidaire Cx - rev.1",
             cab: (k) => ({
               edificio: esc(ob.edificio || ctx.obra && ctx.obra.nombre || ""),
               direccion: esc(ob.direccion || ""),
@@ -31444,7 +31850,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
             }
             f.push(fila(6, vacias(4)));
             const mitad = Math.floor(nC / 2);
-            f.push(fila(16, [celda(0, mitad, 1, 18, "CBRE"), celda(mitad, nC - mitad, 1, 18, "DIRECCI\xD3N FACULTATIVA")]));
+            f.push(fila(16, [celda(0, mitad, 1, 18, "JEFE DE OBRA"), celda(mitad, nC - mitad, 1, 18, "DIRECCI\xD3N FACULTATIVA")]));
             f.push(fila(16, [celda(0, mitad, 3, 19, "Nombre, firma y fecha"), celda(mitad, nC - mitad, 3, 19, "Nombre, firma y fecha")]));
             f.push(fila(16, [celda(0, 4, 1, 20, datos.formato || "")]));
             const m = {
@@ -31452,7 +31858,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
               estilos,
               anchos,
               filas: f,
-              imagenes: [["image1.png", 0, 0, 0, 0, 166, 64]]
+              imagenes: []
             };
             return pintar(m, { clase: "hojaTablaUI", util: APAISADO_UTIL });
           };
@@ -31648,7 +32054,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
           return `<article class="hojaPM${blanco ? " enBlanco" : ""}">
     ${marca ? `<div class="marcaAgua">${marca}</div>` : ""}
     <header class="cab">
-      <div class="logo">CBRE</div>
+      <div class="logo">Vidaire Cx</div>
       <h1>${escFh(plantilla.titulo || plantilla.nombre)}</h1>
     </header>
     <table class="datos cabecera">
@@ -31669,7 +32075,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
     ${resultado}
     <p class="criterio">${escFh(plantilla.criterio || "")}
       ${(plantilla.clase === "fichaPM" || plantilla.clase === "balanceo") && usaToleranciasObraFh(ev) ? ` Tolerancias de la obra (fijadas por el jefe de obra): caudal total ${tolFh(ev.tolerancias.total)}, por boca ${tolFh(ev.tolerancias.boca)}.` : ""}</p>
-    <table class="firmas"><tr>${cuadroFirma("CBRE", "JEFE DE OBRA (CBRE)")}${firma("DF") || blanco ? cuadroFirma("DF", "DIRECCI\xD3N FACULTATIVA") : ""}</tr></table>
+    <table class="firmas"><tr>${cuadroFirma("CBRE", "JEFE DE OBRA")}${firma("DF") || blanco ? cuadroFirma("DF", "DIRECCI\xD3N FACULTATIVA") : ""}</tr></table>
     <footer class="pie">${escFh(plantilla.formato || "")} \xB7 plantilla ${escFh(plantilla.codigo)} v${plantilla.version || 1}${blanco ? " \xB7 modelo en blanco" : ""}</footer>
   </article>`;
         }
@@ -31714,7 +32120,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
     </table>`).join("");
           const avisos = ev.avisos || [];
           return `<article class="hojaPM hojaBal">
-    <header class="cab"><div class="logo">CBRE</div><h1>HOJA DE BALANCEO DE CAUDALES</h1></header>
+    <header class="cab"><div class="logo">Vidaire Cx</div><h1>HOJA DE BALANCEO DE CAUDALES</h1></header>
     <table class="datos cabecera">
       <tr><th>Edificio</th><td>${escFh(ob.edificio || ctx.obra && ctx.obra.nombre || "")}</td><th>Referencia / TAG</th><td><strong>${escFh(eq.tag || "")}</strong></td></tr>
       <tr><th>Equipo</th><td>${escFh([ev.tipo && ev.tipo.nombre, eq.denominacion].filter(Boolean).join(" \xB7 "))}</td><th>Planta / sala</th><td>${escFh([eq.planta, eq.sala].filter(Boolean).join(" / "))}</td></tr>
@@ -31763,7 +32169,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
       <td colspan="2">${a.motivo ? `<strong>${escFh(a.motivo)}</strong>` : "al final del dossier"}</td></tr>`).join("");
           const todasFirmadas = partes.length && partes.every((p) => p.evaluacion && p.evaluacion.estado === "firmada" || !p.evaluacion && p.cubierta && p.cubiertaCerrada);
           const portada = `<article class="hojaPM portada">
-    <header class="cab"><div class="logo">CBRE</div><h1>DOSSIER DE PUESTA EN MARCHA</h1></header>
+    <header class="cab"><div class="logo">Vidaire Cx</div><h1>DOSSIER DE PUESTA EN MARCHA</h1></header>
     <table class="datos cabecera">
       <tr><th>Edificio</th><td>${escFh(ctx.cabeceraObra && ctx.cabeceraObra.edificio || ctx.obra && ctx.obra.nombre || "")}</td><th>TAG</th><td><strong>${escFh(equipo.tag)}</strong></td></tr>
       <tr><th>Denominaci\xF3n</th><td>${escFh(equipo.denominacion || "")}</td><th>Planta / sala</th><td>${escFh([equipo.planta, equipo.sala].filter(Boolean).join(" / "))}</td></tr>
@@ -31948,7 +32354,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         const chip = (texto, clase) => texto ? `<span class="chipDoc ${clase || ""}">${esc(texto)}</span>` : "";
         const cab = (titulo, obra, sub = "") => `
   <header class="cabDoc">
-    <div class="logo">CBRE</div>
+    <div class="logo">Vidaire Cx</div>
     <div><h1>${esc(titulo)}</h1><p>${esc(obra ? `${obra.codigo || ""} \xB7 ${obra.nombre || ""}` : "")}${sub ? ` \xB7 ${esc(sub)}` : ""}</p></div>
   </header>`;
         function fichaNcr(f, ctx = {}) {
@@ -31996,7 +32402,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
     </table></section>
     <table class="firmasDoc"><tr>
       <td><div class="rol">INDUSTRIAL</div><div class="hueco">Nombre, firma y fecha</div></td>
-      <td><div class="rol">CBRE</div><div class="hueco">Nombre, firma y fecha</div></td>
+      <td><div class="rol">Vidaire Cx</div><div class="hueco">Nombre, firma y fecha</div></td>
       <td><div class="rol">DEO / DF</div><div class="hueco">Nombre, firma y fecha</div></td>
     </tr></table>
     <footer class="pieDoc">${esc(n.codigo)} \xB7 impresa el ${fecha(ctx.hoy || (/* @__PURE__ */ new Date()).toISOString())}</footer>
@@ -32022,7 +32428,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
       </tr>`).join("") || '<tr><td colspan="8">Ninguna activa.</td></tr>'}</tbody>
     </table>
     <table class="firmasDoc"><tr><td><div class="rol">RECIBIDO (${esc(industrial || "")})</div><div class="hueco">Nombre, firma y fecha</div></td>
-      <td><div class="rol">CBRE</div><div class="hueco">Nombre, firma y fecha</div></td></tr></table>
+      <td><div class="rol">Vidaire Cx</div><div class="hueco">Nombre, firma y fecha</div></td></tr></table>
     <footer class="pieDoc">${esc(d.obra.codigo)} \xB7 ${fecha(ctx.hoy || (/* @__PURE__ */ new Date()).toISOString())}</footer>
   </article>`;
         }
@@ -32047,7 +32453,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
           <td>${esc(f.industrialResponsable)}</td><td>${esc(estadoTxt(f.estado))}</td>
           <td class="c">${caja}</td><td class="c">${caja}</td><td class="obsHueco"></td></tr>`).join("")}</tbody>
       </table>`).join("")}
-    <table class="firmasDoc"><tr><td><div class="rol">CBRE</div><div class="hueco">Nombre, firma y fecha</div></td>
+    <table class="firmasDoc"><tr><td><div class="rol">Vidaire Cx</div><div class="hueco">Nombre, firma y fecha</div></td>
       <td><div class="rol">DEO / DF</div><div class="hueco">Nombre, firma y fecha</div></td></tr></table>
     <footer class="pieDoc">${esc(d.obra.codigo)} \xB7 ${fecha(ctx.hoy || (/* @__PURE__ */ new Date()).toISOString())}</footer>
   </article>`;
@@ -32316,7 +32722,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
           const campos = ctx.campos || CAMPOS_HARBOUR;
           return `<article class="hojaNcr apaisada">
     <header class="cabDoc">
-      <div class="logo">CBRE</div>
+      <div class="logo">Vidaire Cx</div>
       <div><h1>NO CONFORMIDADES \xB7 RESUMEN PARA HARBOUR</h1>
         <p>${esc(d.obra ? `${d.obra.codigo || ""} \xB7 ${d.obra.nombre || ""}` : "")} \xB7 ${filas.length} NCR${PROVISIONAL ? " \xB7 campos de ejemplo" : ""}</p></div>
     </header>
@@ -32423,6 +32829,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
           otros: "Otros datos"
         };
         const CAMPOS_MUDOS = /* @__PURE__ */ new Set(["modificadoEn", "creadoEn", "importacionId", "creadoPor", "numero", "codigo", "tarifaOficial", "tarifaOperario", "precioCobroH", "tarifasCongeladas"]);
+        const CAMPOS_TRIAJE = /* @__PURE__ */ new Set(["disciplina", "planta", "zona", "sala", "industrialResponsable", "fechaCierre"]);
         const nombreEstado = (e) => Mi.ESTADOS[e] ? Mi.ESTADOS[e].nombre : llano(e);
         const fechaTxt = (d) => {
           const x = Mi.dia(d);
@@ -32479,7 +32886,13 @@ ${subtitulo}`, c[5]] : c.slice())]);
         }
         const activo = (estado) => Boolean(Mi.ESTADOS[estado] && Mi.ESTADOS[estado].activa);
         function resumenSemanal({ filas = [], historial = [], comentarios = [], aplazamientos = [], semana = null, hoy = hoyLocal(), semanasAtras = 8 } = {}) {
-          const lunes = Mi.lunesDe(semana || hoy);
+          const limpia = (l) => Array.isArray(l) ? l.filter((x) => x && typeof x === "object") : [];
+          filas = limpia(filas);
+          historial = limpia(historial);
+          comentarios = limpia(comentarios);
+          aplazamientos = limpia(aplazamientos);
+          if (!Mi.dia(hoy)) hoy = hoyLocal();
+          const lunes = Mi.lunesDe(Mi.dia(semana) ? semana : hoy);
           const domingo = Mi.sumarDias(lunes, 6);
           const esActual = hoy >= lunes && hoy <= domingo;
           const esFutura = hoy < lunes;
@@ -32504,12 +32917,19 @@ ${subtitulo}`, c[5]] : c.slice())]);
           const primeraLinea = ordenado.length ? llano(ordenado[0].creadoEn) : null;
           const nace = (n) => Mi.dia(n.fechaDeteccion) || diaLocal((porNcr.get(n.id) || {}).creadoEn || n.creadoEn) || null;
           const altaEnApp = (n) => diaLocal((porNcr.get(n.id) || {}).creadoEn || n.creadoEn) || nace(n);
+          const deTriaje = (n, h) => {
+            if (!n.importacionId) return false;
+            const alta = altaEnApp(n);
+            if (!alta || Mi.lunesDe(alta) !== Mi.lunesDe(diaLocal(h.creadoEn) || alta)) return false;
+            return CAMPOS_TRIAJE.has(h.campo) || h.campo === "estado" && ["observacion", "anulada"].includes(h.valorDespues);
+          };
           function estadoEn(n, instante) {
             const x = porNcr.get(n.id);
-            const cambios = x ? x.historial.filter((h) => h.campo === "estado") : [];
+            const todos = x ? x.historial.filter((h) => h.campo === "estado") : [];
+            const cambios = todos.filter((h) => !deTriaje(n, h));
             const posteriores = cambios.filter((h) => llano(h.creadoEn) >= instante);
             if (posteriores.length) return llano(posteriores[0].valorAntes) || "abierta";
-            if (!cambios.length && !activo(n.estado) && Mi.dia(n.fechaCierre) && finDia(Mi.dia(n.fechaCierre)) > instante) return "abierta";
+            if (!todos.length && !activo(n.estado) && Mi.dia(n.fechaCierre) && finDia(Mi.dia(n.fechaCierre)) > instante) return "abierta";
             return n.estado;
           }
           const existeEn = (n, dia) => {
@@ -32588,7 +33008,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
                 const l = enSemana.filter((h) => h.campo === campo);
                 if (campo === "estado" || llano(l[0].valorAntes) !== llano(l[l.length - 1].valorDespues)) neto.add(campo);
               }
-              const lineas = enSemana.filter((h) => neto.has(h.campo));
+              const lineas = enSemana.filter((h) => neto.has(h.campo) && !deTriaje(n, h));
               const coment = x.comentarios.filter((c) => llano(c.creadoEn) >= desde && llano(c.creadoEn) < hasta);
               const cambios = lineas.map((h) => cambioDe(h, x.aplazamientos));
               for (const c of coment) {
@@ -35898,7 +36318,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
           vacia();
           if (p.criterio) filas.push([p.criterio]);
           vacia();
-          filas.push(["JEFE DE OBRA (CBRE)", "", "", "DIRECCI\xD3N FACULTATIVA"]);
+          filas.push(["JEFE DE OBRA", "", "", "DIRECCI\xD3N FACULTATIVA"]);
           filas.push(["Nombre, firma y fecha", "", "", "Nombre, firma y fecha"]);
           return [{ nombre: String(p.nombre || p.codigo || "Modelo").slice(0, 31), filas, anchos: [44, 12, 18, 22, 14, 18, 14, 12] }];
         }
@@ -39987,6 +40407,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         if (!def || def.clase !== "checklist") return { ok: false, error: `${plantilla} no es un checklist.` };
         const puntos = RC.puntosChecklist(def);
         const filas = [];
+        const leidas = [];
         for (const { e, fam, reqs } of conChecklists) {
           if (familia && (!fam || fam.codigo !== familia)) continue;
           const req = reqs.find((r) => r.plantilla === plantilla);
@@ -40002,6 +40423,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
             if (c) copiadas[p.codigo] = RC.textoCopia(c);
           }
           const copias = Array.isArray(datos.copias) ? datos.copias : [];
+          leidas.push({ tag: e.tag, datos, firmada: Boolean(fila && leerJson(fila.firmas, []).length) });
           const cab = datos.cabecera || {};
           filas.push({
             equipoId: e.id,
@@ -40028,7 +40450,9 @@ ${subtitulo}`, c[5]] : c.slice())]);
           familias: listaFamilias,
           /* Lo que una ficha nueva toma de la obra (realizado por…), para enseñarlo de pista. */
           cabeceraObra: cabeceraDe(configDe(repo, sesion, obraId)),
-          editable: puede(sesion.rol, "commissioning", "editar")
+          editable: puede(sesion.rol, "commissioning", "editar"),
+          /* Las últimas copias de esta familia, para poder deshacerlas de golpe. */
+          copiasRecientes: RC.copiasRecientes(leidas)
         };
       }
       function guardarRejillaChecklist(repo, sesion, obraId, plantilla, cambios = []) {
@@ -40085,7 +40509,8 @@ ${subtitulo}`, c[5]] : c.slice())]);
         }
         const quien = nombreDe(repo, sesion) || sesion.personaId;
         const en = (/* @__PURE__ */ new Date()).toISOString();
-        const r = { equipos: 0, copiadas: 0, pisadas: 0, conservadas: 0, iguales: 0, firmadas: [], errores: [], conConservadas: [] };
+        const lote = nuevoId();
+        const r = { lote, equipos: 0, copiadas: 0, pisadas: 0, conservadas: 0, iguales: 0, firmadas: [], errores: [], conConservadas: [] };
         for (const clave of [...new Set(Array.isArray(destinos) ? destinos : [])]) {
           if (clave === origen) continue;
           const f = ficha(repo, sesion, obraId, { clave, plantilla });
@@ -40107,7 +40532,19 @@ ${subtitulo}`, c[5]] : c.slice())]);
             if (c.copiadas) r.equipos += 1;
             continue;
           }
-          const sello = RC.selloCopia({ de: fo.titulo, clave: origen, puntos: c.puntos, pisadas: c.pisadas, por: quien, personaId: sesion.personaId, en });
+          const sello = RC.selloCopia({
+            de: fo.titulo,
+            clave: origen,
+            puntos: c.puntos,
+            pisadas: c.pisadas,
+            por: quien,
+            personaId: sesion.personaId,
+            en,
+            lote,
+            antes: c.antes,
+            cabecera: c.cabeceraCopiada,
+            observaciones: c.observacionesCopiadas ? c.datos.observaciones : null
+          });
           const copias = [...f.evaluacion.datos.copias || [], sello];
           const g = guardarFicha(repo, sesion, obraId, { clave, plantilla }, c.datos, { copias });
           if (!g.ok) {
@@ -40118,6 +40555,80 @@ ${subtitulo}`, c[5]] : c.slice())]);
           r.equipos += 1;
         }
         return { ok: true, simulado: Boolean(simular), de: fo.titulo, ...r };
+      }
+      function anotarDeshacerCopia(repo, sesion, fichaId, texto, cuenta) {
+        const fila = {
+          entidad: "fichasPM",
+          registroId: fichaId,
+          accion: "deshacerCopia",
+          campo: "respuestas",
+          antes: texto,
+          despues: cuenta,
+          personaId: sesion && sesion.personaId
+        };
+        let aud = null;
+        try {
+          aud = require_auditoria2();
+        } catch {
+        }
+        if (aud && aud.apuntar) {
+          aud.apuntar(repo.db, { ...fila, origen: aud.origenDe(sesion) });
+          return;
+        }
+        try {
+          repo.db.prepare(
+            `INSERT INTO historial (id, entidad, registroId, accion, campo, valorAntes, valorDespues, personaId, creadoEn)
+       VALUES (?,?,?,?,?,?,?,?,?)`
+          ).run(nuevoId(), fila.entidad, fichaId, fila.accion, fila.campo, texto, cuenta, fila.personaId, (/* @__PURE__ */ new Date()).toISOString());
+        } catch {
+        }
+      }
+      function deshacerCopiaChecklist(repo, sesion, obraId, plantilla, { lote, simular = false } = {}) {
+        if (!obraVisible(repo, sesion, obraId)) return { ok: false, error: "No se encuentra la obra." };
+        if (!puede(sesion.rol, "commissioning", "editar")) return { ok: false, error: NO_EDITA };
+        if (!llano(lote)) return { ok: false, error: "Falta qu\xE9 copia deshacer." };
+        const filas = repo.listar("fichasPM", sesion, { condicion: "obraId = ? AND plantilla = ?", params: [obraId, plantilla] });
+        const r = { equipos: 0, deshechas: 0, aMano: 0, deOtraCopia: 0, firmadas: [], imposibles: [], errores: [], texto: null };
+        for (const fila of filas) {
+          const datos = leerJson(fila.datos, {});
+          const d = RC.deshacerCopia(datos, lote);
+          if (!d.encontrada) continue;
+          const titulo = () => {
+            const f = ficha(repo, sesion, obraId, { clave: fila.clave, plantilla });
+            return f && f.titulo || fila.clave;
+          };
+          if (!d.posible) {
+            r.imposibles.push(`${titulo()}: ${d.motivo}`);
+            continue;
+          }
+          if (!r.texto) r.texto = RC.textoCopia(d.sello);
+          if (leerJson(fila.firmas, []).length) {
+            r.firmadas.push(titulo());
+            continue;
+          }
+          r.deshechas += d.deshechas;
+          r.aMano += d.aMano;
+          r.deOtraCopia += d.deOtraCopia;
+          r.equipos += 1;
+          if (simular) continue;
+          const g = guardarFicha(repo, sesion, obraId, { clave: fila.clave, plantilla }, d.datos, { copias: d.datos.copias });
+          if (!g.ok) {
+            r.errores.push(`${titulo()}: ${g.error}`);
+            r.equipos -= 1;
+            continue;
+          }
+          anotarDeshacerCopia(
+            repo,
+            sesion,
+            g.id,
+            RC.textoCopia(d.sello),
+            `${d.deshechas} vuelven a como estaban${d.aMano ? `; ${d.aMano} cambiadas a mano se quedan` : ""}${d.deOtraCopia ? `; ${d.deOtraCopia} de otra copia posterior se quedan` : ""}`
+          );
+        }
+        if (!r.equipos && !r.firmadas.length && !r.imposibles.length && !r.errores.length) {
+          return { ok: false, error: "Esa copia ya no est\xE1 en ning\xFAn equipo de este checklist." };
+        }
+        return { ok: true, simulado: Boolean(simular), ...r };
       }
       function importarLibro(repo, sesion, obraId, lectura = {}) {
         if (!obraVisible(repo, sesion, obraId)) return { ok: false, error: "No se encuentra la obra." };
@@ -40309,6 +40820,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         rejillaChecklist,
         guardarRejillaChecklist,
         copiarRespuestasChecklist,
+        deshacerCopiaChecklist,
         conCabeceraDelBalanceo,
         sinMedidoDelBalanceo,
         conCaudalesDelBalanceo,
@@ -74219,8 +74731,27 @@ ${linea}` : linea;
             ok: true,
             equipos: t.filas.map(unidad),
             conjuntos,
-            totales: { equipos: t.totales.equipos, completos: t.totales.completos, docCompleta: t.totales.docCompleta, soloDoc: t.totales.soloDoc, faltaFichas: t.totales.faltaFichas, listas: t.totales.listas, enviadas: t.totales.enviadas, faltaDocumentacion: t.totales.faltaDocumentacion, faltaEnsayo: t.totales.faltaEnsayo, faltaBalanceo: t.totales.faltaBalanceo, faltaEstanqueidadEnvio: t.totales.faltaEstanqueidadEnvio, pideEstanqueidad: t.totales.pideEstanqueidad, faltaEstanqueidad: t.totales.faltaEstanqueidad },
-            totalesConjuntos: { conjuntos: tc.conjuntos, unidades: tc.unidades, pares: tc.pares, sistemas: tc.sistemas, completos: tc.completos, docCompleta: tc.docCompleta, soloDoc: tc.soloDoc, faltaFichas: tc.faltaFichas, listas: tc.listas, enviadas: tc.enviadas, faltaDocumentacion: tc.faltaDocumentacion, faltaEnsayo: tc.faltaEnsayo, faltaBalanceo: tc.faltaBalanceo, faltaEstanqueidadEnvio: tc.faltaEstanqueidadEnvio, pideEstanqueidad: tc.pideEstanqueidad, faltaEstanqueidad: tc.faltaEstanqueidad }
+            totales: { equipos: t.totales.equipos, completos: t.totales.completos, docCompleta: t.totales.docCompleta, soloDoc: t.totales.soloDoc, faltaFichas: t.totales.faltaFichas, listas: t.totales.listas, enviadas: t.totales.enviadas, faltaDocumentacion: t.totales.faltaDocumentacion, faltaEnsayo: t.totales.faltaEnsayo, faltaBalanceo: t.totales.faltaBalanceo, faltaEstanqueidadEnvio: t.totales.faltaEstanqueidadEnvio, pideEstanqueidad: t.totales.pideEstanqueidad, faltaEstanqueidad: t.totales.faltaEstanqueidad, enMarcha: t.totales.enMarcha },
+            totalesConjuntos: {
+              conjuntos: tc.conjuntos,
+              unidades: tc.unidades,
+              pares: tc.pares,
+              sistemas: tc.sistemas,
+              completos: tc.completos,
+              docCompleta: tc.docCompleta,
+              soloDoc: tc.soloDoc,
+              faltaFichas: tc.faltaFichas,
+              listas: tc.listas,
+              enviadas: tc.enviadas,
+              faltaDocumentacion: tc.faltaDocumentacion,
+              faltaEnsayo: tc.faltaEnsayo,
+              faltaBalanceo: tc.faltaBalanceo,
+              faltaEstanqueidadEnvio: tc.faltaEstanqueidadEnvio,
+              pideEstanqueidad: tc.pideEstanqueidad,
+              faltaEstanqueidad: tc.faltaEstanqueidad,
+              /* «Puestos en marcha» (22-oct, JC): la misma cuenta que el inicio del escritorio. */
+              enMarcha: tc.enMarcha
+            }
           };
         }
         function equipo({ ses, query }) {
@@ -74480,7 +75011,9 @@ ${linea}` : linea;
           if (!d) return { ok: false, error: "No se encuentra la obra." };
           return {
             ok: true,
-            filas: d.filas.map((f) => ({
+            /* Las ANULADAS no salen en el teléfono (22-oct-2026, JC): no son NCR
+               de la obra, así que tampoco cuentan como «Cerradas». */
+            filas: d.filas.filter((f) => f.estado !== "anulada").map((f) => ({
               id: f.id,
               codigo: f.codigo,
               estado: f.estado,
@@ -75218,7 +75751,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
   <section class="relato"><h2>Coste extra y repercusi\xF3n</h2><div style="border:0.3mm solid #999;height:14mm"></div></section>
   <section class="relato" style="display:flex;gap:10mm;margin-top:8mm">
     <div style="flex:1;border-top:0.3mm solid #444;padding-top:1mm;font-size:8pt">Encargado (nombre, firma y fecha)</div>
-    <div style="flex:1;border-top:0.3mm solid #444;padding-top:1mm;font-size:8pt">Jefe de obra (CBRE) (nombre, firma y fecha)</div>
+    <div style="flex:1;border-top:0.3mm solid #444;padding-top:1mm;font-size:8pt">Jefe de obra (nombre, firma y fecha)</div>
   </section>
 </article>`;
           return PAPEL.hoja({ documento: "Incidencia de equipos \xB7 modelo", obra: nombreObra, fecha: hoy, cuerpo });
@@ -75253,7 +75786,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
             ["Concepto", "", "", "", "Importe"],
             [],
             [],
-            ["ENCARGADO", "", "", "JEFE DE OBRA (CBRE)"],
+            ["ENCARGADO", "", "", "JEFE DE OBRA"],
             ["Nombre, firma y fecha", "", "", "Nombre, firma y fecha"]
           ];
           return [{ nombre: "Incidencia", filas, anchos: [18, 24, 26, 60, 14] }];
@@ -75393,6 +75926,118 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
     }
   });
 
+  // shared/incidencias/informeServicioTecnico.js
+  var require_informeServicioTecnico = __commonJS({
+    "shared/incidencias/informeServicioTecnico.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const PAPEL = typeof module !== "undefined" && module.exports ? require_papel() : window.PAPEL;
+        const llano = (v) => String(v ?? "").trim();
+        const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+        const fechaEs = (d) => d ? String(d).slice(0, 10).split("-").reverse().join("/") : "";
+        const pendiente = (r) => Boolean(r && r.resultadoVigente && r.resultadoVigente.resultado === "pendienteTercero");
+        const plantaDe = (r) => r.planta || r.equipo && r.equipo.planta || "";
+        const zonaDe = (r) => r.zona || r.equipo && r.equipo.zona || "";
+        function sitioDe(r) {
+          const ya = new Set([plantaDe(r), zonaDe(r)].map((v) => llano(v).toLowerCase()).filter(Boolean));
+          const s = llano(r.ubicacion).split("\xB7").map(llano).filter((p) => p && !ya.has(p.toLowerCase())).join(" \xB7 ");
+          return s || [r.equipo && r.equipo.sala, r.equipo && r.equipo.codSala].filter(Boolean).join(" \xB7 ");
+        }
+        const diasDe = (r) => r.calc && r.calc.diasAbierta !== null && r.calc.diasAbierta !== void 0 ? r.calc.diasAbierta : "";
+        const fallaDe = (r) => llano(r.falla) || llano(r.titulo);
+        function elegir(filas, { ids = null } = {}) {
+          return (filas || []).filter((r) => pendiente(r) && (!ids || ids.includes(r.id))).sort((a, b) => String(plantaDe(a)).localeCompare(String(plantaDe(b)), "es", { numeric: true }) || String(zonaDe(a)).localeCompare(String(zonaDe(b)), "es") || String(a.codigo).localeCompare(String(b.codigo), "es", { numeric: true }));
+        }
+        function lineas(reparaciones) {
+          const salida = [];
+          for (const r of reparaciones || []) {
+            const us = r.unidades && r.unidades.length ? r.unidades : [r.equipo ? { tag: r.equipo.tag, marca: r.equipo.marca, modelo: r.equipo.modelo, numSerie: "" } : null];
+            us.forEach((u, i) => salida.push({ r, u, primera: i === 0, n: us.length }));
+          }
+          return salida;
+        }
+        function cuentas(reparaciones) {
+          const ls = lineas(reparaciones).filter((l) => l.u);
+          return { reparaciones: (reparaciones || []).length, unidades: ls.length, sinSerie: ls.filter((l) => !llano(l.u.numSerie)).length };
+        }
+        const marcaModelo = (u) => [u.marca, u.modelo].map(llano).filter(Boolean).join(" \xB7 ");
+        function tabla(reparaciones) {
+          const c = cuentas(reparaciones);
+          const filas = lineas(reparaciones).map(({ r, u, primera, n }) => {
+            const nueva = primera ? " nuevaRep" : "";
+            const serie = u ? llano(u.numSerie) ? `<span class="serie">${esc(u.numSerie)}</span>` : '<span class="sinSerie">sin n\xBA de serie</span>' : "";
+            const fotos = primera && (r.fotos || []).length ? `<div class="miniaturas">${r.fotos.map((f) => `<img src="${esc(f.src)}" alt="">`).join("")}</div>` : "";
+            return `<tr class="${nueva.trim()}">
+      <td class="codigo">${primera ? esc(r.codigo) : ""}</td>
+      <td>${primera ? esc(plantaDe(r)) : ""}</td><td>${primera ? esc(zonaDe(r)) : ""}</td><td class="sitio">${primera ? esc(sitioDe(r)) : ""}</td>
+      <td class="rotulo">${esc(u && u.rotulo ? u.rotulo : "")}</td><td class="tag">${esc(u ? u.tag : "")}</td><td class="modelo">${esc(u ? marcaModelo(u) : "")}</td>
+      <td class="serieCelda">${serie}</td>
+      <td class="falla">${primera ? esc(fallaDe(r)) : n > 1 ? '<span class="mismo">\u2033</span>' : ""}</td>
+      <td class="fecha">${primera ? esc(fechaEs(r.fechaApertura)) : ""}</td><td class="num">${primera ? esc(diasDe(r)) : ""}</td>
+      <td class="fotosCelda">${fotos}</td></tr>`;
+          }).join("");
+          return `<table class="tablaServTec">
+    <thead><tr><th>C\xF3digo</th><th>Planta</th><th>Zona</th><th>Sala / sitio</th><th>Unidad</th><th>Tag</th><th>Marca \xB7 modelo</th><th>N\xBA de serie</th><th class="falla">Qu\xE9 falla</th><th class="fecha">Abierta</th><th class="num">D\xEDas</th><th>Fotos</th></tr></thead>
+    <tbody>${filas}</tbody>
+    <tfoot><tr><th colspan="12">Total \xB7 ${c.unidades} ${c.unidades === 1 ? "unidad" : "unidades"} en ${c.reparaciones} ${c.reparaciones === 1 ? "reparaci\xF3n" : "reparaciones"}${c.sinSerie ? ` \xB7 ${c.sinSerie} sin n\xBA de serie` : ""}</th></tr></tfoot>
+  </table>`;
+        }
+        function html({ obra = {}, cliente = "", reparaciones = [], alcance = "", hoy = "" } = {}) {
+          const nombreObra = [obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ");
+          const c = cuentas(reparaciones);
+          const cuerpo = `<article class="informeServTec">
+    ${PAPEL.portada({
+            tipo: "Informe para el servicio t\xE9cnico",
+            titulo: nombreObra || "Obra",
+            subtitulo: `Unidades pendientes de servicio t\xE9cnico${alcance ? ` \xB7 ${alcance}` : ""}`,
+            datos: [["Cliente", cliente], ["Fecha", fechaEs(hoy)], ["Unidades", String(c.unidades)], ["Reparaciones", String(c.reparaciones)], ["Sin n\xBA de serie", String(c.sinSerie)]]
+          })}
+    ${c.sinSerie ? `<p class="avisoSerie">${c.sinSerie} ${c.sinSerie === 1 ? "unidad no tiene" : "unidades no tienen"} n\xBA de serie en la lista de equipos: van en rojo.</p>` : ""}
+    ${reparaciones.length ? tabla(reparaciones) : '<p class="nota">No hay reparaciones pendientes de servicio t\xE9cnico.</p>'}
+  </article>`;
+          return PAPEL.hoja({ documento: "Informe para el servicio t\xE9cnico", obra: nombreObra, fecha: hoy, cuerpo, clase: "apaisado papelServTec" });
+        }
+        function hojas({ obra = {}, cliente = "", reparaciones = [], alcance = "", hoy = "" } = {}) {
+          const c = cuentas(reparaciones);
+          const cab = ["C\xF3digo", "Planta", "Zona", "Sala / sitio", "Unidad", "Tag", "Marca", "Modelo", "N\xBA de serie", "Qu\xE9 falla", "Abierta", "D\xEDas abierta", "Fotos"];
+          const filas = lineas(reparaciones).map(({ r, u }) => [
+            r.codigo,
+            plantaDe(r),
+            zonaDe(r),
+            sitioDe(r),
+            u && u.rotulo || "",
+            u ? u.tag || "" : "",
+            u ? llano(u.marca) : "",
+            u ? llano(u.modelo) : "",
+            u ? llano(u.numSerie) || "SIN N\xBA DE SERIE" : "",
+            fallaDe(r),
+            fechaEs(r.fechaApertura),
+            diasDe(r),
+            (r.fotos || []).length || ""
+          ]);
+          return [
+            { nombre: "Servicio t\xE9cnico", marca: true, filtro: true, filas: [cab, ...filas], anchos: [10, 7, 10, 28, 7, 24, 12, 14, 16, 50, 10, 8, 6] },
+            { nombre: "Datos", filas: [
+              ["Dato", "Valor"],
+              ["Obra", [obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ")],
+              ["Cliente", cliente],
+              ["Fecha", fechaEs(hoy)],
+              ["Alcance", alcance || "Todas las pendientes"],
+              ["Unidades", c.unidades],
+              ["Reparaciones", c.reparaciones],
+              ["Unidades sin n\xBA de serie", c.sinSerie]
+            ], anchos: [26, 50] }
+          ];
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.INFORME_SERVICIO_TECNICO = API;
+        })({ pendiente, elegir, lineas, cuentas, html, hojas });
+      })();
+    }
+  });
+
   // electron/data/incidencias.js
   var require_incidencias = __commonJS({
     "electron/data/incidencias.js"(exports, module) {
@@ -75405,6 +76050,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       var CONV = require_conversacion();
       var DOC = require_documento();
       var INF = require_informeReparaciones();
+      var IST = require_informeServicioTecnico();
       var N = require_motor();
       var { limpiarCoste } = require_partesIncidencia2();
       var { puede, campoVetado } = require_roles();
@@ -76100,6 +76746,46 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         const nombreArchivo = `${d.obra.codigo} informe de reparaciones ${hoy()}.pdf`.replace(/[\\/:*?"<>|]/g, "-");
         return { html, nombreArchivo, n: reparaciones.length };
       }
+      function elegidasServicioTecnico(repo, sesion, obraId, ids) {
+        const d = obra(repo, sesion, obraId);
+        return d ? { d, elegidas: IST.elegir(d.filas, { ids: Array.isArray(ids) && ids.length ? ids : null }) } : null;
+      }
+      function fotosServicioTecnico(repo, sesion, obraId, { ids = null } = {}) {
+        const e = elegidasServicioTecnico(repo, sesion, obraId, ids);
+        return e ? e.elegidas.flatMap((r) => miniaturasDe(r)) : [];
+      }
+      var miniaturasDe = (r) => [...r.fotos || []].sort((a, b) => (a.momento === "despues" ? 1 : 0) - (b.momento === "despues" ? 1 : 0)).slice(0, 3);
+      function informeServicioTecnico(repo, sesion, obraId, { ids = null, alcance = "", rutas = null, formato = "pdf" } = {}) {
+        if (!puede(sesion.rol, "incidencias", "exportar")) return { error: "Tu rol no puede sacar el informe." };
+        const e = elegidasServicioTecnico(repo, sesion, obraId, ids);
+        if (!e) return { error: "No se encuentra la obra." };
+        const { d, elegidas } = e;
+        const equipos = repo.db.prepare("SELECT id, tag, marca, modelo, numSerie, denominacion, plantillaPM, equipoAsociado FROM equiposObra WHERE obraId = ? ORDER BY tag").all(obraId);
+        const conjuntoDe = /* @__PURE__ */ new Map();
+        for (const c2 of require_conjuntos().agrupar(equipos)) for (const u of c2.unidades) conjuntoDe.set(u.id, c2.unidades);
+        const comentarios = (id) => repo.db.prepare("SELECT texto, resultado, creadoEn FROM incidenciaComentarios WHERE incidenciaId = ? AND resultado = 'pendienteTercero' AND COALESCE(tipo, '') <> 'estado' ORDER BY creadoEn").all(id);
+        const reparaciones = elegidas.map((r) => {
+          const notas = comentarios(r.id).filter((c2) => llano(c2.texto));
+          return {
+            ...r,
+            unidades: r.equipoId ? (conjuntoDe.get(r.equipoId) || []).map((u) => ({ rotulo: u.rotulo || "", tag: u.tag, marca: u.marca, modelo: u.modelo, numSerie: llano(u.numSerie) })) : [],
+            falla: notas.length ? notas[notas.length - 1].texto : "",
+            fotos: formato === "pdf" ? miniaturasDe(r).map((f) => fotoEmbebida(f, rutas)).filter((f) => f.src) : r.fotos || []
+          };
+        });
+        const o = repo.db.prepare("SELECT clienteId FROM obras WHERE id = ?").get(obraId) || {};
+        const cliente = o.clienteId ? (repo.db.prepare("SELECT nombre FROM clientes WHERE id = ?").get(o.clienteId) || {}).nombre || "" : "";
+        const datos = { obra: d.obra, cliente, reparaciones, alcance, hoy: hoy() };
+        const nombre = `${d.obra.codigo} informe servicio t\xE9cnico ${hoy()}`.replace(/[\\/:*?"<>|]/g, "-");
+        const c = IST.cuentas(reparaciones);
+        return {
+          n: reparaciones.length,
+          unidades: c.unidades,
+          sinSerie: c.sinSerie,
+          nombre,
+          ...formato === "excel" ? { hojas: IST.hojas(datos) } : { html: IST.html(datos) }
+        };
+      }
       function costes(repo, sesion, obraId) {
         const d = obra(repo, sesion, obraId);
         return d && d.verDinero ? d.costes : null;
@@ -76188,7 +76874,14 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         costesReparaciones,
         avisos,
         documento,
-        informeReparaciones
+        informeReparaciones,
+        informeServicioTecnico,
+        fotosServicioTecnico,
+        /* Las tarifas de la obra, también para los partes de trabajo. */
+        tarifasDe,
+        precioCobroDe,
+        asegurarEmpresas,
+        empresasConTarifa
       };
     }
   });
@@ -77288,7 +77981,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           const proxima = a.proximaReunion ? `${fechaEs(a.proximaReunion)}${String(a.proximaReunion).length > 10 ? ` \xB7 ${String(a.proximaReunion).slice(11, 16)} h` : ""}` : "Por fijar";
           return `
     <header class="cabeceraActa">
-      <div class="marcaActa"><span class="logoCbre">CBRE</span><span>Vidaire Obras \xB7 Acta de reuni\xF3n</span></div>
+      <div class="marcaActa"><span class="logoCbre">Vidaire Cx</span><span>Vidaire Obras \xB7 Acta de reuni\xF3n</span></div>
       <h1>Acta n\xBA ${numeroActa(a.numero)} \xB7 ${escDoc(tipo)}</h1>
       <p class="obraActa">${escDoc(obra.codigo || "")} \xB7 ${escDoc(obra.nombre || "")}${a.estado === "cerrada" ? "" : ' \xB7 <strong class="borrador">BORRADOR</strong>'}</p>
     </header>
@@ -77306,7 +77999,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
     <h2>Puntos tratados</h2>
     ${porCategoria.length ? porCategoria.map(([c, l]) => `<h3>${escDoc(c)}</h3><table class="tablaActa">${cab}<tbody>${l.map((p) => filaPunto(p, false)).join("")}</tbody></table>`).join("") : '<p class="vacioActa">Ning\xFAn punto nuevo.</p>'}
     <section class="firmasActa">
-      ${["Por CBRE", "Por la propiedad / DF", "Por los industriales"].map((f) => `<div class="firmaActa"><div class="rayaFirma"></div>${f}</div>`).join("")}
+      ${["Por el contratista", "Por la propiedad / DF", "Por los industriales"].map((f) => `<div class="firmaActa"><div class="rayaFirma"></div>${f}</div>`).join("")}
     </section>
     <p class="pieActa">Los puntos no cerrados pasan a la siguiente acta con su n\xFAmero. \u2713 cambio ya aplicado en el proyecto \xB7 \u2192 se aplica al cerrar el acta.</p>`;
         }
@@ -78470,17 +79163,27 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           };
           const totalToGo = e(Math.max(0, turnover.fcac - invoiced.actual));
           const prev = informe && Array.isArray(informe.prevision) ? informe.prevision : [];
+          const finMes = mes(fin);
           const meses = [];
           let quedan = totalToGo;
           for (let k = 0; k < 4; k += 1) {
-            const p = prev[k];
-            const periodoK = p ? p.periodo : sumarMeses(periodo, k + 1);
-            const deseado = p ? num(p.necesario) !== null ? p.necesario : p.alRitmo : 0;
+            const periodoK = sumarMeses(periodo, k + 1);
+            const p = prev.find((x) => x && x.periodo === periodoK);
+            let deseado = 0;
+            let origen = null;
+            if (p) {
+              deseado = num(p.necesario) !== null ? p.necesario : num(p.alRitmo) || 0;
+              origen = "certificaciones";
+            } else if (finMes && periodoK && periodoK <= finMes && quedan > 0) {
+              deseado = quedan / (mesesEntre(periodoK, finMes) + 1);
+              origen = "lineal";
+            }
             const importe = e(Math.max(0, Math.min(quedan, deseado || 0)));
             quedan = e(quedan - importe);
-            meses.push({ periodo: periodoK, importe });
+            meses.push({ periodo: periodoK, importe, origen });
           }
-          const billing = { meses, thereafter: e(Math.max(0, quedan)), totalToGo };
+          const metodo = meses.some((m) => m.origen === "lineal") ? meses.some((m) => m.origen === "certificaciones") ? "mixto" : "lineal" : meses.some((m) => m.origen === "certificaciones") ? "certificaciones" : finMes ? "nada" : "sinFin";
+          const billing = { meses, thereafter: e(Math.max(0, quedan)), totalToGo, metodo, fin: finMes };
           const facturadoLiquido = informe && informe.cobro ? e(informe.cobro.liquido) : e(certificado);
           const cobrado = num(datos.cobrado);
           const caja = {
@@ -78492,6 +79195,120 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
             margenFcac: margen.fcac,
             margenConContingencia: num(datos.contingencia) === null ? null : e(margen.fcac + num(datos.contingencia))
           };
+          const sinCert = !(informe && !informe.vacio) && !(certificado > 0);
+          const COSTE = ["actual", "committed", "etc", "fcac", "original"];
+          const todas = (motivo, cols = COSTE) => Object.fromEntries(cols.map((c) => [c, motivo]));
+          if (sinCert) invoiced.faltan = { actual: "No hay ninguna certificaci\xF3n al cliente emitida en la obra: falta importarlas (Certificaciones \u203A Cliente). Por eso todo el Turnover sale en Estimate to complete." };
+          if (num(datos.ingresoDevengado) === null) accrued.faltan = { actual: "Se teclea al cerrar el mes: lo producido y a\xFAn sin certificar al cliente." };
+          if (num(datos.costeDevengado) === null) wip.faltan = { actual: "Se teclea al cerrar el mes: lo gastado de lo que a\xFAn no ha llegado factura." };
+          for (const f of prelims) {
+            if (f.capitulos.length || f.clave === "insurance" && f.nota) continue;
+            f.faltan = todas(`El Costs Plan no tiene ning\xFAn cap\xEDtulo de ${f.nombre}: se rellena en cuanto se a\xF1ade uno (o se nombra as\xED uno que ya est\xE1).`);
+            f.sinCapitulo = true;
+          }
+          for (const f of filasPaquete) {
+            const c = caps.find((x) => x.id === f.clave);
+            if (!c || c.previsto > 0 || !(c.partidas > 0)) continue;
+            const n = c.sinObjetivo || c.partidas;
+            f.faltan = {
+              original: `${n === 1 ? "La partida" : `Las ${n} partidas`} de este cap\xEDtulo no ${n === 1 ? "tiene" : "tienen"} coste de estudio, solo precio de venta: falta cargar el coste (Presupuesto \u203A coste) para tener lo autorizado.`,
+              ...c.pendienteManual ? {} : {
+                etc: "Sin coste de estudio no se sabe lo que falta por comprar: se teclea en \xABCompras y facturas\xBB.",
+                fcac: "Incompleto: le falta el Estimate to complete."
+              }
+            };
+          }
+          if (!previo) {
+            const motivo = `Sale del cierre del mes anterior y a\xFAn no se ha cerrado ninguno: se rellena al pulsar \xABCerrar\xBB a final de mes.`;
+            for (const f of [invoiced, accrued, turnover, ...prelims, totalPrelims, ...filasPaquete, totalPaquetes, totalCostes, wip, margen]) {
+              f.faltan = { ...f.faltan || {}, previous: motivo, variance: motivo };
+            }
+          } else {
+            for (const f of [invoiced, accrued, ...prelims, ...filasPaquete, wip]) {
+              if (f.previous === null && !(f.faltan && f.faltan.original && f.sinCapitulo)) f.faltan = { ...f.faltan || {}, previous: `Fila nueva: no estaba en el cierre de ${previo.periodo}.`, variance: `Fila nueva: no estaba en el cierre de ${previo.periodo}.` };
+            }
+          }
+          const parcialDe = (filas) => {
+            const r = {};
+            for (const c of ["actual", "committed", "etc", "fcac", "original"]) {
+              if (filas.some((x) => x.faltan && x.faltan[c] && !x.sinCapitulo)) r[c] = true;
+            }
+            return r;
+          };
+          turnover.parcial = parcialDe([invoiced, accrued]);
+          totalPrelims.parcial = parcialDe(prelims);
+          totalPaquetes.parcial = parcialDe(filasPaquete);
+          totalCostes.parcial = { ...totalPrelims.parcial, ...totalPaquetes.parcial };
+          const costeEstudio = e(caps.reduce((a, c) => a + (c.previsto || 0), 0));
+          const sinCoste = caps.length > 0 && !(costeEstudio > 0) && ventaFcac > 0;
+          if (sinCoste) {
+            const motivo = "Sin coste de estudio en el Costs Plan el margen sale casi del 100 % y no significa nada: falta cargar el coste.";
+            margen.faltan = todas(motivo, COLUMNAS);
+            margenPct.faltan = todas(motivo, COLUMNAS);
+          }
+          const avisos = [];
+          const txt = (v) => new Intl.NumberFormat("es-ES", { maximumFractionDigits: 0, useGrouping: "always" }).format(Math.round(Number(v) || 0));
+          const MES_TXT = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+          const mesTxt = (m) => m ? `${MES_TXT[Number(m.slice(5, 7)) - 1]} de ${m.slice(0, 4)}` : "";
+          const sinCosteN = caps.reduce((a, c) => a + (c.sinObjetivo || 0), 0);
+          if (contrato && contrato.importeOriginal) {
+            const firmadas = (contrato.filas || []).filter((a) => a.cuenta);
+            const mayor = [...firmadas].sort((a, b) => (b.importe || 0) - (a.importe || 0))[0];
+            const borr = (contrato.filas || []).filter((a) => a.estado === "borrador" || a.estado === "enviada");
+            avisos.push({
+              clave: "turnover",
+              tipo: "info",
+              titulo: `Turnover ${txt(ventaFcac)} \u20AC = contrato ${txt(ventaOriginal)} \u20AC${contrato.codigo ? ` (${contrato.codigo})` : ""} + ${firmadas.length} ${firmadas.length === 1 ? "adenda firmada" : "adendas firmadas"} ${txt(e(ventaFcac - ventaOriginal))} \u20AC`,
+              detalle: `Original J&A authorised es el contrato tal como se firm\xF3, sin adendas.${mayor && mayor.importe ? ` La adenda mayor es ${mayor.numero}${mayor.concepto ? ` \xAB${mayor.concepto}\xBB` : ""}, ${txt(mayor.importe)} \u20AC.` : ""}${borr.length ? ` ${borr.length === 1 ? "Hay 1 adenda" : `Hay ${borr.length} adendas`} sin firmar (${borr.map((a) => a.numero).join(", ")}) que no cuenta${borr.length === 1 ? "" : "n"}.` : ""} El detalle por adenda, en la pesta\xF1a Variations.`
+            });
+          }
+          if (sinCert) {
+            avisos.push({
+              clave: "sinCertificaciones",
+              tipo: "aviso",
+              titulo: "No hay certificaciones al cliente cargadas",
+              detalle: `Invoiced to Customer sale a 0 y los ${txt(ventaFcac)} \u20AC quedan como lo que falta por certificar. Se arregla importando las certificaciones emitidas en Certificaciones \u203A Cliente.`
+            });
+          }
+          if (caps.length && t.venta > 0 && ventaFcac > 0 && t.venta < ventaFcac * 0.9) {
+            avisos.push({
+              clave: "cobertura",
+              tipo: "aviso",
+              titulo: `El Costs Plan solo cubre ${txt(t.venta)} \u20AC de venta de los ${txt(ventaFcac)} \u20AC del contrato`,
+              detalle: "Le faltan las partidas del resto de la obra (otra fase u otro presupuesto): sin ellas, el coste de esa parte no sale en ninguna fila."
+            });
+          }
+          if (sinCoste) {
+            avisos.push({
+              clave: "sinCoste",
+              tipo: "aviso",
+              titulo: `${sinCosteN ? `Las ${txt(sinCosteN)} partidas con precio` : "Las partidas"} del Costs Plan no tienen coste de estudio`,
+              detalle: "Solo tienen precio de venta, as\xED que Original J&A, Estimate to complete y el margen salen sin dato. El seguro s\xED sale: es el 1,4 % de la venta."
+            });
+          }
+          if (!previo) {
+            avisos.push({
+              clave: "sinCierre",
+              tipo: "info",
+              titulo: "A\xFAn no se ha cerrado ning\xFAn mes",
+              detalle: "Previous FCAC y Last fcst variance comparan con el \xFAltimo cierre: el primero se hace con el bot\xF3n \xABCerrar\xBB a final de mes."
+            });
+          }
+          if (billing.metodo === "lineal" || billing.metodo === "mixto") {
+            avisos.push({
+              clave: "billingLineal",
+              tipo: "info",
+              titulo: "Billing Forecast estimado a partes iguales hasta el fin previsto",
+              detalle: `Sin previsi\xF3n de certificaciones para esos meses, lo que queda (${txt(totalToGo)} \u20AC) se reparte igual cada mes hasta ${mesTxt(billing.fin)} (fin previsto); Thereafter es lo de despu\xE9s de los 4 meses que caben en la plantilla.`
+            });
+          } else if (billing.metodo === "sinFin" && totalToGo > 0) {
+            avisos.push({
+              clave: "billingSinFin",
+              tipo: "aviso",
+              titulo: "Billing Forecast sin repartir: la obra no tiene fin previsto",
+              detalle: "Se pone la fecha de fin en el contrato o en la obra y lo que queda se reparte hasta ella."
+            });
+          }
           return {
             cabecera: {
               projectNo: obra.codigo || "",
@@ -78514,8 +79331,17 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
             margenPct,
             staff: staffCostes,
             billing,
-            caja
+            caja,
+            avisos,
+            faltanStaff: staff.every((f) => f.sinCapitulo) ? "El Costs Plan no tiene cap\xEDtulo de Project Management ni de Supervision: el coste de personal no tiene de d\xF3nde salir." : null,
+            sinCertificaciones: sinCert,
+            sinCoste
           };
+        }
+        function mesesEntre(a, b) {
+          const [ya, ma] = a.split("-").map(Number);
+          const [yb, mb] = b.split("-").map(Number);
+          return yb * 12 + mb - (ya * 12 + ma);
         }
         function sumarMeses(periodo, n) {
           if (!periodo) return null;
@@ -79285,7 +80111,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         const grupos = agruparPorCapitulo(filas.filter((f) => f.aOrigen || f.periodo || f.importeContrato));
         const t = totalesDeFilas(filas);
         const n = escHoja(certificacion.numero);
-        const logoHtml = logo ? `<div class="logoHoja">${logo}</div>` : '<div class="logoHoja logoTexto">CBRE</div>';
+        const logoHtml = logo ? `<div class="logoHoja">${logo}</div>` : '<div class="logoHoja logoTexto">Vidaire Cx</div>';
         const nombreProyecto = proyecto || obra.nombre || "";
         const nombreObra = `${obra.codigo || ""}${obra.nombre ? ` \xB7 ${obra.nombre}` : ""}`;
         const fila = (f) => `<tr>
@@ -79367,7 +80193,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       ${fases.length > 1 ? `<table class="cierreHoja"><thead><tr><th>Fase</th><th class="n">Contrato</th><th class="n">Este mes</th><th class="n">A origen</th><th class="n">%</th></tr></thead>
         <tbody>${fases.map((f) => `<tr><td>${escHoja(f.nombre)}</td><td class="n">${eurHoja(f.contrato)}</td><td class="n">${eurHoja(f.periodo)}</td><td class="n">${eurHoja(f.origen)}</td><td class="n">${pctTxt(f.pctOrigen)}</td></tr>`).join("")}</tbody></table>` : ""}
       <div class="firmas">
-        <div class="firma"><span>El contratista (CBRE)</span></div>
+        <div class="firma"><span>El contratista</span></div>
         <div class="firma"><span>La Direcci\xF3n Facultativa</span></div>
         <div class="firma"><span>La Propiedad</span></div>
       </div>
@@ -79857,7 +80683,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         fecha = "",
         borrador = false
       } = {}) {
-        const logoHtml = logo ? `<div class="logoHoja">${logo}</div>` : '<div class="logoHoja logoTexto">CBRE</div>';
+        const logoHtml = logo ? `<div class="logoHoja">${logo}</div>` : '<div class="logoHoja logoTexto">Vidaire Cx</div>';
         const marca = borrador ? '<div class="marcaBorradorCi">BORRADOR</div>' : "";
         const paginas = [];
         paginas.push(`<section class="caratulaHoja caratulaCi">
@@ -83710,7 +84536,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         }
         if (!c) return null;
         const adendas = repo.db.prepare("SELECT * FROM adendas WHERE contratoId = ?").all(c.id);
-        return { ...CONTRATO.resumen(c, adendas, []), fechaInicio: c.fechaInicio || null };
+        return { ...CONTRATO.resumen(c, adendas, []), fechaInicio: c.fechaInicio || null, codigo: c.codigo || null };
       }
       var leerJson = (t) => {
         try {
@@ -87006,6 +87832,21 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           return obras.get(id);
         };
         const quien = new Map(repo.db.prepare("SELECT id, nombre FROM personas").all().map((p) => [p.id, p.nombre]));
+        const tagDe = (() => {
+          let st = null;
+          try {
+            st = repo.db.prepare("SELECT tag FROM equiposObra WHERE id = ?");
+          } catch {
+          }
+          return (id) => {
+            try {
+              const r = st && st.get(id);
+              return r && r.tag ? r.tag : null;
+            } catch {
+              return null;
+            }
+          };
+        })();
         for (const a of Object.keys(TABLA)) {
           if (!puede(sesion.rol, a, "ver")) continue;
           let filas;
@@ -87029,7 +87870,12 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
               id: `s:${a}:${s.id}`,
               sesionId: s.id,
               vas,
-              texto: `${s.tarea || AMBITO_NOMBRE[a]} \xB7 ${items.length} ${unidad}`,
+              texto: (() => {
+                const tags = a === "commissioning" ? items.map(tagDe).filter(Boolean) : [];
+                const base = `${s.tarea || AMBITO_NOMBRE[a]} \xB7 `;
+                if (!tags.length) return `${base}${items.length} ${unidad}`;
+                return base + tags.slice(0, 4).join(", ") + (tags.length > 4 ? ` y ${items.length - 4} m\xE1s` : "");
+              })(),
               detalle: [
                 s.franja,
                 AMBITO_NOMBRE[a],
@@ -87126,12 +87972,13 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       var MNCR = require_motor();
       var { puede } = require_roles();
       var { hoyLocal } = require_fecha();
+      var AG = require_agenda();
       var PERMISOS_PLANIFICACION = {
         "GET api/mi-planificacion": [["commissioning", "ver"], ["incidencias", "ver"]],
         "GET api/mi-dia": [["tareas", "ver"], ["ncr", "ver"]]
       };
       var llano = (v) => String(v ?? "").trim();
-      var dia = (d) => d.toISOString().slice(0, 10);
+      var dia = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
       var ORDEN_FRANJA = { "Ma\xF1ana": 0, "Todo el d\xEDa": 1, "Tarde": 2 };
       var lista = (v) => {
         try {
@@ -87179,6 +88026,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
                 id,
                 abrir: { seccion: "commissioning", id: l.id },
                 texto: l.tag + (us.length > 1 ? ` + ${us.length - 1}` : ""),
+                tag: l.tag,
                 sub: [l.familiaNombre, dato("planta"), dato("sala") || dato("codSala")].filter(Boolean).join(" \xB7 "),
                 hecho: Boolean(l.pm && l.pm.estado === "firmada"),
                 estado: l.pm ? l.pm.estado : "pendiente"
@@ -87215,7 +88063,9 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           });
         }
         sesiones.sort((a, b) => a.fecha.localeCompare(b.fecha) || (ORDEN_FRANJA[a.franja] ?? 3) - (ORDEN_FRANJA[b.franja] ?? 3));
-        return { ok: true, hoy: hoyD, desde, hasta, sesiones };
+        const ds = AG.diaSemana(hoyD);
+        const semanaHasta = AG.sumarDias(hoyD, 7 - ds + (ds >= 5 ? 7 : 0));
+        return { ok: true, hoy: hoyD, desde, hasta, semanaHasta, semanaQueViene: ds >= 5, sesiones };
       }
       function miDia(repo, ses, { hoy = hoyLocal() } = {}) {
         const items = [];
