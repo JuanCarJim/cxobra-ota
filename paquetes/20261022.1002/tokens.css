@@ -8,25 +8,25 @@
   /* El alto de la pila de avisos flotantes: lo pone avisos.js. */
   --altoAvisos: 0px;
   /* ── Marca CBRE ───────────────────────────────────────────────── */
-  --cbre-verde: #003F2D;
-  --cbre-acento: #17E88F;
-  --cbre-verde-oscuro: #012A2D;
-  --cbre-gris-oscuro: #435254;
-  --cbre-gris-claro: #CAD1D3;
+  --marca-verde: #003F2D;
+  --marca-acento: #17E88F;
+  --marca-verde-oscuro: #012A2D;
+  --marca-gris-oscuro: #435254;
+  --marca-gris-claro: #CAD1D3;
   /* Un blanco que NO cambia con el tema: el texto sobre el verde CBRE y sobre
      el pie de las tablas es blanco en claro y en oscuro. La variable --panel
      no sirve ahi: en tema oscuro vale #012A2D. */
   --blanco: #FFFFFF;
-  --cbre-celadon: #80BBAD;
-  --cbre-celadon-tinte: #C0D4CB;
-  --cbre-wheat: #DBD99A;
-  --cbre-wheat-tinte: #EFECD2;
-  --cbre-cement: #7F8480;
-  --cbre-cement-tinte: #CBCDCB;
-  --cbre-sage: #538184;
-  --cbre-sage-tinte: #96B3B6;
-  --cbre-midnight: #032842;
-  --cbre-midnight-tinte: #778F9C;
+  --marca-celadon: #80BBAD;
+  --marca-celadon-tinte: #C0D4CB;
+  --marca-wheat: #DBD99A;
+  --marca-wheat-tinte: #EFECD2;
+  --marca-cement: #7F8480;
+  --marca-cement-tinte: #CBCDCB;
+  --marca-sage: #538184;
+  --marca-sage-tinte: #96B3B6;
+  --marca-midnight: #032842;
+  --marca-midnight-tinte: #778F9C;
 
   /* ── Interfaz (tema claro) ────────────────────────────────────── */
   --papel: #F4F6F5;
@@ -54,13 +54,13 @@
   --capMedioTexto: #003F2D;
   /* Bloques del libro DTM.CERT. */
   --dtmContrato: var(--panel);
-  --dtmContratoTexto: var(--cbre-verde);
+  --dtmContratoTexto: var(--marca-verde);
   --dtmActual: var(--panel);
-  --dtmActualTexto: var(--cbre-verde);
+  --dtmActualTexto: var(--marca-verde);
   --dtmAnterior: var(--panel);
-  --dtmAnteriorTexto: var(--cbre-verde);
+  --dtmAnteriorTexto: var(--marca-verde);
   --dtmOrigen: var(--panel);
-  --dtmOrigenTexto: var(--cbre-verde);
+  --dtmOrigenTexto: var(--marca-verde);
   --dtmResumen: var(--capOscuro);
   --dtmResumenTexto: var(--capOscuroTexto);
   --destacado: #EDF5F1;
