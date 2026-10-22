@@ -318,7 +318,7 @@ function repercusionHtml(parte, tot) {
 }
 
 /*
- * La firma de arriba del documento. En el escritorio (CBRE Project 360) es la
+ * La firma de arriba del documento. En el escritorio (Vidaire Obras) es la
  * de CBRE; en Vidaire Cx, la app del teléfono que va a la App Store sin marca
  * ajena, la suya. Vidaire Cx lo dice al arrancar con globalThis.CX_VARIANTE.
  */

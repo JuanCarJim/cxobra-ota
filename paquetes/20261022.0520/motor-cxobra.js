@@ -50,9 +50,9 @@ globalThis.CX_VARIANTE="cxobra";
   ));
   var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-  // node_modules/base64-js/index.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/base64-js/index.js
   var require_base64_js = __commonJS({
-    "node_modules/base64-js/index.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/base64-js/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       exports.byteLength = byteLength;
@@ -152,9 +152,9 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/ieee754/index.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/ieee754/index.js
   var require_ieee754 = __commonJS({
-    "node_modules/ieee754/index.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/ieee754/index.js"(exports) {
       var import_buffer_global10 = __toESM(require_buffer_global());
       exports.read = function(buffer, offset, isLE2, mLen, nBytes) {
         var e, m;
@@ -236,9 +236,9 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/buffer/index.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/buffer/index.js
   var require_buffer = __commonJS({
-    "node_modules/buffer/index.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/buffer/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var base64 = require_base64_js();
@@ -1850,9 +1850,9 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/sql.js/dist/sql-wasm-browser.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/sql.js/dist/sql-wasm-browser.js
   var require_sql_wasm_browser = __commonJS({
-    "node_modules/sql.js/dist/sql-wasm-browser.js"(exports, module) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/sql.js/dist/sql-wasm-browser.js"(exports, module) {
       var import_buffer_global10 = __toESM(require_buffer_global());
       var initSqlJsPromise = void 0;
       var initSqlJs = function(moduleConfig) {
@@ -4091,12 +4091,111 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
+  // shared/papel.js
+  var require_papel = __commonJS({
+    "shared/papel.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+        const LOGO_CBRE = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4304 1024"><path fill="#003F2D" d="M1784.178 783.855h-355.145v-170.808h363.6c45.661 4.228 79.908 41.011 79.908 84.558 0.423 47.353-38.474 86.249-88.363 86.249zM1429.457 225.348h376.707c41.011 6.342 73.566 41.011 73.566 82.444s-32.555 79.908-75.68 84.558h-370.365l-4.228-167.002zM1957.523 495.934c136.562-43.125 160.238-151.359 160.238-240.145 0-136.562-99.779-253.252-396.155-253.252h-554.279v1017.235h552.165c298.913 0 409.262-147.131 409.262-292.149-0.423-175.458-171.23-231.69-171.23-231.69v0z"/><path fill="#003F2D" d="M3368.799 4.651h935.214v220.697h-675.197v164.466h608.396v222.811h-608.396v177.572h675.197v233.803h-935.214v-1019.349z"/><path fill="#003F2D" d="M2966.302 320.476c-4.228 32.555-38.897 69.338-84.558 69.338h-365.714v-162.352h365.714c43.125 0 77.794 30.441 84.558 71.452v21.562zM2823.399 4.651h-564.849v1019.772h259.594v-411.376h285.807c82.444 2.114 145.017 65.11 145.017 145.017v266.358h255.366v-328.931c0-151.359-153.896-197.021-153.896-197.021s158.124-45.661 158.124-224.925c-2.114-223.656-199.135-268.895-385.163-268.895z"/><path fill="#003F2D" d="M998.633 777.090c-4.228 0-355.145 6.342-476.063-4.228-194.907-17.334-264.244-156.010-264.244-268.472 0-140.789 99.779-244.796 255.366-264.244 73.566-8.456 478.6-4.228 482.827-4.228h8.456v-231.267h-467.607c-52.003 2.114-136.562 8.456-222.811 41.011-79.908 36.783-153.896 93.014-208.013 162.352-67.224 88.786-104.007 192.793-104.007 303.141 0 34.669 2.114 69.338 8.456 101.893 32.555 153.896 138.675 281.579 290.035 350.494 52.003 21.562 129.797 47.775 290.035 56.231l86.672 2.114h328.931v-244.796h-8.033z"/></svg>';
+        const fechaEs = (d) => d ? String(d).slice(0, 10).split("-").reverse().join("/") : "";
+        function hoja({ documento = "", obra = "", fecha = "", cuerpo = "", pie = null, clase = "" } = {}) {
+          const linea = [documento, obra].filter(Boolean).join(" \xB7 ");
+          return `<table class="papelHoja ${esc(clase)}">
+    <thead><tr><td class="papelCabecera">
+      <div class="papelCabeceraLinea"><span class="papelLogo">${LOGO_CBRE}</span><span class="papelDocumento">${esc(linea)}</span><span class="papelFecha">${esc(fechaEs(fecha))}</span></div>
+    </td></tr></thead>
+    <tfoot><tr><td class="papelPie">
+      <div class="papelPieLinea"><span>${esc(pie === null ? linea : pie)}</span><span class="papelPagina"></span></div>
+    </td></tr></tfoot>
+    <tbody><tr><td class="papelCuerpo">${cuerpo}</td></tr></tbody>
+  </table>`;
+        }
+        function portada({ tipo = "", titulo = "", subtitulo = "", datos = [] } = {}) {
+          return `<header class="papelPortada">
+    ${tipo ? `<p class="papelTipo">${esc(tipo)}</p>` : ""}
+    ${titulo ? `<h1>${esc(titulo)}</h1>` : ""}
+    ${subtitulo ? `<p class="papelSubtitulo">${esc(subtitulo)}</p>` : ""}
+    ${datos.length ? `<dl class="papelDatos">${datos.filter((d) => d && String(d[1] ?? "").trim()).map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>` : ""}
+  </header>`;
+        }
+        function cifras(lista) {
+          const utiles = (lista || []).filter(Boolean);
+          if (!utiles.length) return "";
+          return `<div class="papelCifras" style="--n:${utiles.length}">${utiles.map((c) => `<div class="papelCifra${c.clase ? ` ${esc(c.clase)}` : ""}">
+    <span class="que">${esc(c.que)}</span><span class="valor">${esc(c.valor)}</span>${c.nota ? `<span class="nota">${esc(c.nota)}</span>` : ""}
+  </div>`).join("")}</div>`;
+        }
+        async function incrustarEstilos(html, leer) {
+          const enlaces = [...String(html).matchAll(/<link\b[^>]*rel=["']stylesheet["'][^>]*>/gi)];
+          let salida = String(html);
+          for (const [etiqueta] of enlaces) {
+            const href = (etiqueta.match(/href=["']([^"']+)["']/i) || [])[1];
+            if (!href) continue;
+            let css = null;
+            try {
+              css = await leer(href);
+            } catch {
+              css = null;
+            }
+            if (typeof css !== "string") continue;
+            salida = salida.replace(etiqueta, `<style data-hoja="${esc(href)}">${css.replace(/<\/style/gi, "<\\/style")}</style>`);
+          }
+          return salida;
+        }
+        function documentoHtml({ titulo = "", estilos = "", cuerpo = "", apaisado = false } = {}) {
+          return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${esc(titulo)}</title>
+    <link rel="stylesheet" href="tokens.css"><link rel="stylesheet" href="papel.css">
+    <style>${estilos}</style></head><body class="${apaisado ? "papelApaisado" : ""}">${cuerpo}</body></html>`;
+        }
+        async function imprimirEnMarco(html, { tope = 3e3 } = {}) {
+          const marco = document.createElement("iframe");
+          marco.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+          document.body.appendChild(marco);
+          marco.contentDocument.open();
+          marco.contentDocument.write(html);
+          marco.contentDocument.close();
+          const doc = marco.contentDocument;
+          const alCargar = (el) => new Promise((r) => {
+            el.addEventListener("load", r, { once: true });
+            el.addEventListener("error", r, { once: true });
+          });
+          const pendientes = [
+            ...[...doc.images].filter((img) => !img.complete).map(alCargar),
+            ...[...doc.querySelectorAll('link[rel="stylesheet"]')].filter((l) => !l.sheet).map(alCargar),
+            ...doc.fonts && doc.fonts.ready ? [doc.fonts.ready] : []
+          ];
+          await Promise.race([Promise.all(pendientes), new Promise((r) => setTimeout(r, tope))]);
+          await new Promise((r) => setTimeout(r, 100));
+          if (typeof globalThis.impresoraDePruebas === "function") {
+            globalThis.impresoraDePruebas(html);
+            marco.remove();
+            return marco;
+          }
+          try {
+            marco.contentWindow.focus();
+            marco.contentWindow.print();
+          } finally {
+            setTimeout(() => marco.remove(), 4e3);
+          }
+          return marco;
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.PAPEL = API;
+        })({ LOGO_CBRE, hoja, portada, cifras, fechaEs, incrustarEstilos, documentoHtml, imprimirEnMarco });
+      })();
+    }
+  });
+
   // ipad/adaptadores.js
   var require_adaptadores = __commonJS({
     "ipad/adaptadores.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var { meterArchivo: meterArchivo2, archivos: archivos2 } = require_nodeFalso();
+      var PAPEL = require_papel();
       function pedirArchivo({ filters = [], properties = [] } = {}) {
         if (typeof globalThis.selectorDePruebas === "function") {
           return Promise.resolve(globalThis.selectorDePruebas({ filters, properties }) || []);
@@ -4162,6 +4261,10 @@ globalThis.CX_VARIANTE="cxobra";
             globalThis.impresoraDePruebas(html);
             return new Uint8Array();
           }
+          html = await PAPEL.incrustarEstilos(html, async (href) => {
+            const r = await fetch(new URL(href, document.baseURI), { cache: "force-cache" });
+            return r.ok ? r.text() : null;
+          });
           const marco = document.createElement("iframe");
           marco.className = "marco-impresion";
           document.body.append(marco);
@@ -4169,12 +4272,15 @@ globalThis.CX_VARIANTE="cxobra";
           marco.contentDocument.write(html);
           marco.contentDocument.close();
           const doc = marco.contentDocument;
-          const imagenes = [...doc.images];
+          const alCargar = (el) => new Promise((r) => {
+            el.addEventListener("load", r, { once: true });
+            el.addEventListener("error", r, { once: true });
+          });
+          const imagenes = [...doc.images].filter((img) => !img.complete).map(alCargar);
+          const hojas = [...doc.querySelectorAll('link[rel="stylesheet"]')].filter((l) => !l.sheet).map(alCargar);
+          const fuentes = doc.fonts && doc.fonts.ready ? [doc.fonts.ready] : [];
           await Promise.race([
-            Promise.all(imagenes.map((img) => img.complete ? null : new Promise((r) => {
-              img.addEventListener("load", r, { once: true });
-              img.addEventListener("error", r, { once: true });
-            }))),
+            Promise.all([...imagenes, ...hojas, ...fuentes]),
             new Promise((r) => setTimeout(r, 3e3))
           ]);
           await new Promise((r) => setTimeout(r, 150));
@@ -4194,7 +4300,7 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/@noble/hashes/utils.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/utils.js
   function isBytes(a) {
     return a instanceof Uint8Array || ArrayBuffer.isView(a) && a.constructor.name === "Uint8Array" && "BYTES_PER_ELEMENT" in a && a.BYTES_PER_ELEMENT === 1;
   }
@@ -4327,7 +4433,7 @@ globalThis.CX_VARIANTE="cxobra";
   }
   var import_buffer_global, atitle, aobject, aopts, isLE, swap32IfBE, oidNist;
   var init_utils = __esm({
-    "node_modules/@noble/hashes/utils.js"() {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/utils.js"() {
       import_buffer_global = __toESM(require_buffer_global(), 1);
       atitle = (title) => title ? `"${title}" ` : "";
       aobject = (value, label) => {
@@ -4352,10 +4458,10 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/@noble/hashes/hmac.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/hmac.js
   var import_buffer_global2, _HMAC, hmac;
   var init_hmac = __esm({
-    "node_modules/@noble/hashes/hmac.js"() {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/hmac.js"() {
       import_buffer_global2 = __toESM(require_buffer_global(), 1);
       init_utils();
       _HMAC = class {
@@ -4436,7 +4542,7 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/@noble/hashes/pbkdf2.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/pbkdf2.js
   function pbkdf2Init(hash, _password, _salt, _opts) {
     ahash(hash);
     const opts = checkOpts({ dkLen: 32, asyncTick: 10 }, _opts);
@@ -4512,14 +4618,14 @@ globalThis.CX_VARIANTE="cxobra";
   }
   var import_buffer_global3;
   var init_pbkdf2 = __esm({
-    "node_modules/@noble/hashes/pbkdf2.js"() {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/pbkdf2.js"() {
       import_buffer_global3 = __toESM(require_buffer_global(), 1);
       init_hmac();
       init_utils();
     }
   });
 
-  // node_modules/@noble/hashes/_u64.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/_u64.js
   function fromBig(n, le = false) {
     if (le)
       return { h: Number(n & U32_MASK64), l: Number(n >> _32n & U32_MASK64) };
@@ -4547,7 +4653,7 @@ globalThis.CX_VARIANTE="cxobra";
   }
   var import_buffer_global4, U32_MASK64, _32n, fromNumH, fromNumL, shrSH, shrSL, rotrSH, rotrSL, rotrBH, rotrBL, add3L, add3H, add4L, add4H, add5L, add5H;
   var init_u64 = __esm({
-    "node_modules/@noble/hashes/_u64.js"() {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/_u64.js"() {
       import_buffer_global4 = __toESM(require_buffer_global(), 1);
       U32_MASK64 = /* @__PURE__ */ (() => BigInt(2 ** 32 - 1))();
       _32n = /* @__PURE__ */ BigInt(32);
@@ -4568,7 +4674,7 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/@noble/hashes/_md.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/_md.js
   function Chi(a, b, c) {
     return a & b ^ ~a & c;
   }
@@ -4577,7 +4683,7 @@ globalThis.CX_VARIANTE="cxobra";
   }
   var import_buffer_global5, HashMD, SHA256_IV, SHA224_IV, SHA384_IV, SHA512_IV;
   var init_md = __esm({
-    "node_modules/@noble/hashes/_md.js"() {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/_md.js"() {
       import_buffer_global5 = __toESM(require_buffer_global(), 1);
       init_u64();
       init_utils();
@@ -4735,7 +4841,7 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/@noble/hashes/sha2.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/sha2.js
   var sha2_exports = {};
   __export(sha2_exports, {
     _SHA224: () => _SHA224,
@@ -4753,7 +4859,7 @@ globalThis.CX_VARIANTE="cxobra";
   });
   var import_buffer_global6, SHA256_K, SHA256_W, SHA2_32B, _SHA256, _SHA224, K512, SHA512_Kh, SHA512_Kl, SHA512_W_H, SHA512_W_L, SHA2_64B, _SHA512, _SHA384, T224_IV, T256_IV, _SHA512_224, _SHA512_256, sha256, sha224, sha512, sha384, sha512_256, sha512_224;
   var init_sha2 = __esm({
-    "node_modules/@noble/hashes/sha2.js"() {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/sha2.js"() {
       import_buffer_global6 = __toESM(require_buffer_global(), 1);
       init_md();
       init_u64();
@@ -5228,7 +5334,7 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/@noble/hashes/scrypt.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/scrypt.js
   var scrypt_exports = {};
   __export(scrypt_exports, {
     scrypt: () => scrypt,
@@ -5417,7 +5523,7 @@ globalThis.CX_VARIANTE="cxobra";
   }
   var import_buffer_global7, SCRYPT_DEFAULT_MAXMEM;
   var init_scrypt = __esm({
-    "node_modules/@noble/hashes/scrypt.js"() {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/scrypt.js"() {
       import_buffer_global7 = __toESM(require_buffer_global(), 1);
       init_pbkdf2();
       init_sha2();
@@ -5806,6 +5912,7 @@ globalThis.CX_VARIANTE="cxobra";
          * sale el informe en PDF, guardado en la documentación de la obra.
          */
         pruebasEstanqueidad: "Pruebas de estanqueidad",
+        legalizaciones: "Legalizaciones",
         /*
          * LA NORMATIVA EN EL BOE: cada día se lee el sumario del BOE y, si sale una
          * disposición que toca una norma de aplicación de la obra (RITE, REBT, CTE,
@@ -5818,11 +5925,18 @@ globalThis.CX_VARIANTE="cxobra";
         personas: "Personas y roles",
         estadisticas: "Estad\xEDsticas",
         /*
+         * LAS LICITACIONES PÚBLICAS DE OBRAS DE INSTALACIONES (JC 21-oct): las que
+         * están en plazo en la comunidad, por provincia y fecha de vencimiento, con
+         * quién licita y su enlace; y APARTE las oportunidades privadas de los
+         * boletines. Solo leer y exportar: no se guarda nada.
+         */
+        licitaciones: "Licitaciones",
+        /*
          * LA TRAZABILIDAD: quién cambió qué, de qué a qué y cuándo, con filtro por
          * persona, obra y fechas, y en PDF y Excel. Es de los jefes; cada uno ve
          * los cambios de lo que ya ve —el alcance es el de siempre—.
          */
-        trazabilidad: "Trazabilidad",
+        trazabilidad: "Auditor\xEDa",
         /*
          * El reparto es del JEFE de Estudios, no del departamento entero: es donde
          * se decide a quién le toca cada petición. Un técnico no tiene nada que
@@ -5908,6 +6022,7 @@ globalThis.CX_VARIANTE="cxobra";
           descripcion: "Direcci\xF3n. Lo ve todo y no edita casi nada: su trabajo es decidir.",
           alcance: "todo",
           permisos: {
+            licitaciones: ["ver", "exportar"],
             notas: BLOC,
             vacaciones: ["ver", "exportar"],
             tareas: ["ver", "exportar"],
@@ -5936,6 +6051,7 @@ globalThis.CX_VARIANTE="cxobra";
             conflictos: ["ver", "exportar"],
             partesIncidencia: ["ver", "exportar"],
             pruebasEstanqueidad: ["ver", "exportar"],
+            /* Legalizaciones: solo jefe de obra, producción, grupo y director del departamento (JC, 22-oct). */
             correos: SOLO_VER,
             normativa: ["ver", "exportar"],
             estadisticas: ["ver", "exportar"],
@@ -5971,6 +6087,7 @@ globalThis.CX_VARIANTE="cxobra";
           descripcion: "Ve TODOS los presupuestos en estudio, reparte el trabajo y responde del acierto del departamento.",
           alcance: "departamento",
           permisos: {
+            licitaciones: ["ver", "exportar"],
             notas: BLOC,
             vacaciones: [...TODO, "aprobar"],
             proyectos: [...TODO, "aprobar", "traspasar"],
@@ -6034,6 +6151,7 @@ globalThis.CX_VARIANTE="cxobra";
           descripcion: "Hace presupuestos. Solo ve los suyos y los que su jefe le comparta expresamente.",
           alcance: "compartido",
           permisos: {
+            licitaciones: ["ver", "exportar"],
             notas: BLOC,
             vacaciones: ["ver", "crear", "editar", "borrar"],
             proyectos: ["ver", "crear", "editar", "exportar"],
@@ -6174,6 +6292,8 @@ globalThis.CX_VARIANTE="cxobra";
             partes: TODO,
             partesIncidencia: [...TODO, "aprobar"],
             pruebasEstanqueidad: [...TODO, "aprobar"],
+            /* 22-oct (JC): el director del departamento rellena la ficha, genera y descarga las legalizaciones. */
+            legalizaciones: ["ver", "crear", "editar", "exportar"],
             correos: ["ver", "crear", "editar", "borrar"],
             normativa: ["ver", "editar", "aprobar", "exportar"],
             proveedores: TODO,
@@ -6243,6 +6363,8 @@ globalThis.CX_VARIANTE="cxobra";
             partes: ["ver"],
             partesIncidencia: ["ver", "exportar"],
             pruebasEstanqueidad: ["ver", "exportar"],
+            /* 22-oct (JC): el jefe de grupo rellena la ficha, genera y descarga las legalizaciones. */
+            legalizaciones: ["ver", "crear", "editar", "exportar"],
             correos: ["ver", "crear", "editar"],
             normativa: ["ver", "editar", "aprobar", "exportar"],
             proveedores: SOLO_VER,
@@ -6313,6 +6435,10 @@ globalThis.CX_VARIANTE="cxobra";
             partesIncidencia: ["ver", "crear", "editar", "aprobar", "exportar"],
             /* Recibe el informe hecho; `aprobar` es marcarla como vista. Una prueba no se borra. */
             pruebasEstanqueidad: ["ver", "crear", "editar", "aprobar", "exportar"],
+            /* 22-oct (JC): las legalizaciones las rellenan, generan y descargan el jefe
+               de obra y el de producción (que hereda esto), el jefe de grupo y el
+               director del departamento. Nadie más: lo comprueba la capa de datos. */
+            legalizaciones: ["ver", "crear", "editar", "exportar"],
             /* Archiva en la obra los correos de su buzón (el pedido, la DF, el cliente…). */
             correos: ["ver", "crear", "editar", "borrar"],
             /* Es el técnico de la obra: le salta el cambio del BOE, elige las
@@ -6371,6 +6497,7 @@ globalThis.CX_VARIANTE="cxobra";
             ppi: TODO,
             incidencias: ["ver", "crear", "editar", "exportar"],
             pruebasEstanqueidad: ["ver", "crear", "editar", "aprobar", "exportar"],
+            /* Legalizaciones, no (JC, 22-oct): solo jefe de obra, producción, grupo y director. */
             correos: ["ver", "crear", "editar", "borrar"],
             normativa: ["ver", "editar", "aprobar", "exportar"],
             proveedores: SOLO_VER,
@@ -6602,6 +6729,7 @@ globalThis.CX_VARIANTE="cxobra";
             notas: BLOC,
             vacaciones: ["ver", "crear", "editar", "borrar"],
             clientes: TODO,
+            licitaciones: ["ver", "exportar"],
             /* Da de alta la oportunidad (el proyecto) y la sigue hasta que se gana
                o se pierde; el presupuesto lo hace Estudios. */
             proyectos: ["ver", "crear", "editar", "exportar"],
@@ -6806,6 +6934,120 @@ globalThis.CX_VARIANTE="cxobra";
         if (r.permisos.actas || !r.permisos.tareas || r.id === "operario") continue;
         r.permisos.actas = [...r.permisos.tareas];
       }
+      var PANEL_INICIO = (() => {
+        const C = (bloque) => ({ bloque, ancho: "completo" });
+        const jefeObra = {
+          porFase: {
+            arranque: ["documentacionEquipos", "personalHoy", "comprasPendientes", "certificacionesMes", "avisosNormativa", "avisosConflictos"],
+            montaje: [
+              "personalHoy",
+              "comprasPendientes",
+              "avisosIncidencias",
+              "avisosPartes",
+              "alertasDesviacion",
+              "certificacionesMes",
+              "documentacionEquipos",
+              "avisosNcr"
+            ],
+            pruebas: [
+              "commissioningObra",
+              "documentacionEquipos",
+              "personalHoy",
+              "avisosEstanqueidad",
+              "avisosNcr",
+              "avisosIncidencias",
+              "comprasPendientes",
+              "certificacionesMes"
+            ],
+            entrega: [
+              "commissioningObra",
+              "documentacionEquipos",
+              "avisosNcr",
+              "avisosIncidencias",
+              "certificacionesMes",
+              "alertasDesviacion",
+              "avisosMantenimiento"
+            ],
+            garantia: ["avisosMantenimiento", "avisosIncidencias", "avisosNcr"]
+          }
+        };
+        return {
+          jefeObra,
+          jefeProduccion: jefeObra,
+          encargadoObra: {
+            porFase: {
+              arranque: ["personalHoy", "comprasPendientes", "avisosIncidencias", "avisosPartes"],
+              montaje: ["personalHoy", "comprasPendientes", "avisosIncidencias", "avisosPartes", "avisosEstanqueidad"],
+              pruebas: ["commissioningObra", "personalHoy", "avisosEstanqueidad", "avisosNcr", "avisosIncidencias", "comprasPendientes"],
+              entrega: ["commissioningObra", "avisosIncidencias", "avisosNcr", "personalHoy"],
+              garantia: ["avisosMantenimiento", "avisosIncidencias"]
+            }
+          },
+          operario: { fijo: ["avisosIncidencias"] },
+          jefeCommissioning: {
+            cabecera: [C("obrasPorFase")],
+            porFase: {
+              arranque: ["documentacionEquipos", "avisosEstadoEquipos"],
+              montaje: ["documentacionEquipos", "avisosEstadoEquipos", "avisosEstanqueidad"],
+              pruebas: ["commissioningObra", "avisosEstadoEquipos", "avisosEstanqueidad", "avisosNcr", "documentacionEquipos"],
+              entrega: ["commissioningObra", "documentacionEquipos", "avisosNcr", "avisosEstadoEquipos"],
+              garantia: ["avisosMantenimiento", "avisosNcr"]
+            }
+          },
+          jefeMantenimiento: { fijo: ["avisosMantenimiento", "avisosNcr", "avisosIncidencias", "avisosNormativa", C("obrasPorFase")] },
+          jefeGrupo: { fijo: [
+            C("obrasPorFase"),
+            "alertasDesviacion",
+            "avisosConflictos",
+            "avisosNcr",
+            "certificacionesMes",
+            "avisosNormativa",
+            "avisosMantenimiento"
+          ] },
+          /*
+           * EL DIRECTOR DE PROYECTOS (22-oct, JC): el Inicio es solo un resumen. Arriba
+           * el gráfico de sus obras (certificado, pendiente, margen y avance, con el
+           * total del departamento) y debajo dos agendas distintas: hoy y la semana
+           * (sus reuniones, lo más importante de cada obra, las entregas de Estudios y
+           * las firmas de contrato). El resto, en «Departamentos» (barraDeRol).
+           */
+          jefeProyectos: { director: true, fijo: [
+            C("graficoObras"),
+            { bloque: "agendaHoy", modo: "director", siempre: true },
+            { bloque: "agendaSemana", modo: "director", siempre: true }
+          ] },
+          gerente: { fijo: [C("empresaKpis"), C("alertasDesviacion"), C("obrasPorFase"), "certificacionesMes", C("empresaDepartamentos")] },
+          contractSupport: { fijo: ["comprasPendientes", "certificacionesMes", "avisosConflictos", C("obrasPorFase")] },
+          jefeEstudios: { fijo: [
+            "colaAprobacion",
+            "ofertasQueVencen",
+            "avisosCalidad",
+            "traspasosPendientes",
+            C("cargaEquipo"),
+            "embudoEstudios",
+            "repartoTipologia"
+          ] },
+          tecnicoEstudios: { fijo: ["seguirDondeLoDeje", "misPlazos", C("misPresupuestos"), C("avisosCalidad")] },
+          jefeDelineacion: { fijo: ["ofertasQueVencen", C("cargaEquipo")] },
+          delineante: { fijo: ["misPlazos", C("misPresupuestos")] },
+          comercial: { fijo: ["ofertasQueVencen", "embudoEstudios", C("carteraPorCliente"), C("misPresupuestos")] },
+          administrador: { fijo: ["miBlocGrande", "empresaResumen", C("registroAcceso"), C("empresaDepartamentos")] }
+        };
+      })();
+      function panelInicio(rolId, fases = []) {
+        const p = PANEL_INICIO[rolId] || { fijo: (porId.get(rolId) || { home: [] }).home.map((b) => b.bloque) };
+        const norma = (x) => typeof x === "string" ? { bloque: x, ancho: "mitad" } : { ancho: "mitad", ...x };
+        if (p.director) return p.fijo.map(norma);
+        let lista = [...p.cabecera || [], ...p.fijo || []];
+        if (p.porFase) {
+          const usadas = ["arranque", "montaje", "pruebas", "entrega", "garantia"].filter((f) => fases.includes(f));
+          for (const f of usadas.length ? usadas : ["arranque"]) lista = lista.concat(p.porFase[f] || []);
+        }
+        const vistas = /* @__PURE__ */ new Set();
+        const secciones = lista.map(norma).filter((s) => !["miBloc", "agendaHoy", "agendaSemana"].includes(s.bloque) && !vistas.has(s.bloque) && vistas.add(s.bloque));
+        return [{ bloque: "agendaHoy", ancho: "mitad" }, { bloque: "agendaSemana", ancho: "mitad" }, ...secciones];
+      }
+      var inicioPorFase = (rolId) => Boolean(PANEL_INICIO[rolId] && PANEL_INICIO[rolId].porFase);
       var porId = new Map(ROLES.map((r) => [r.id, r]));
       function rol(id) {
         return porId.get(id) || null;
@@ -6854,18 +7096,19 @@ globalThis.CX_VARIANTE="cxobra";
       var BARRAS_POR_ROL = {
         /* Gerencia y administración: «Empresa» y un apartado por departamento (DEPARTAMENTOS_EN_BARRA). */
         gerente: { empresa: true, trabajo: [], consulta: [] },
-        jefeEstudios: { trabajo: ["presupuestos", "alcance", "proyectos", "calculo", "biblioteca", "reparto"], consulta: ["clientes", "proveedores", "estadisticas", "trazabilidad", "vacaciones"] },
-        tecnicoEstudios: { trabajo: ["presupuestos", "alcance", "proyectos", "calculo", "biblioteca"], consulta: ["clientes", "proveedores", "vacaciones"] },
+        jefeEstudios: { trabajo: ["presupuestos", "licitaciones", "alcance", "proyectos", "calculo", "biblioteca", "reparto"], consulta: ["clientes", "proveedores", "estadisticas", "trazabilidad", "vacaciones"] },
+        tecnicoEstudios: { trabajo: ["presupuestos", "licitaciones", "alcance", "proyectos", "calculo", "biblioteca"], consulta: ["clientes", "proveedores", "vacaciones"] },
         jefeDelineacion: { trabajo: ["reparto", "proyectos", "calculo"], consulta: ["presupuestos", "personas", "trazabilidad", "vacaciones"] },
         delineante: { trabajo: ["proyectos", "calculo"], consulta: ["presupuestos", "vacaciones"] },
-        comercial: { trabajo: ["clientes", "presupuestos"], consulta: ["proyectos", "estadisticas", "vacaciones"] },
-        jefeProyectos: { trabajo: ["obras", "alcance", "tareas", "actas", "compras", "costsPlan", "certificaciones", "informeSemanal", "presupuestos", "proyectos"], consulta: ["estadisticas", "ncr", "ppi", "conflictos", "clientes", "proveedores", "personas", "vacaciones"] },
-        jefeGrupo: { trabajo: ["obras", "alcance", "tareas", "actas", "informeSemanal", "costsPlan", "certificaciones", "compras"], consulta: ["pedidos", "commissioning", "ncr", "ppi", "conflictos", "estadisticas", "vacaciones"] },
-        jefeObra: { trabajo: ["obras", "tareas", "actas", "costsPlan", "compras", "pedidos", "certificaciones", "commissioning", "ppi", "ncr", "partesIncidencia"], consulta: ["calculo", "pruebasEstanqueidad", "balanceo", "proveedores", "vacaciones"] },
+        comercial: { trabajo: ["clientes", "licitaciones", "presupuestos"], consulta: ["proyectos", "estadisticas", "vacaciones"] },
+        /* 22-oct (JC): el Director de Proyectos, con «Departamentos» (DEPARTAMENTOS_DIRECTOR) en vez de «Mi trabajo». */
+        jefeProyectos: { director: true, trabajo: ["obras", "alcance", "tareas", "actas", "compras", "costsPlan", "certificaciones", "legalizaciones", "informeSemanal", "reporteDireccion", "presupuestos", "proyectos"], consulta: ["estadisticas", "ncr", "ppi", "conflictos", "clientes", "proveedores", "personas", "vacaciones"] },
+        jefeGrupo: { trabajo: ["obras", "alcance", "tareas", "actas", "informeSemanal", "reporteDireccion", "costsPlan", "certificaciones", "compras", "legalizaciones"], consulta: ["pedidos", "commissioning", "ncr", "ppi", "conflictos", "estadisticas", "vacaciones"] },
+        jefeObra: { trabajo: ["obras", "planosObra", "tareas", "actas", "costsPlan", "compras", "pedidos", "certificaciones", "commissioning", "legalizaciones", "ppi", "ncr", "partesIncidencia"], consulta: ["calculo", "pruebasEstanqueidad", "balanceo", "proveedores", "vacaciones"] },
         /* De momento, la misma que el jefe de obra (ver RESTRICCIONES_JEFE_PRODUCCION). */
-        jefeProduccion: { trabajo: ["obras", "tareas", "actas", "costsPlan", "compras", "pedidos", "certificaciones", "commissioning", "ppi", "ncr", "partesIncidencia"], consulta: ["calculo", "pruebasEstanqueidad", "balanceo", "proveedores", "vacaciones"] },
+        jefeProduccion: { trabajo: ["obras", "planosObra", "tareas", "actas", "costsPlan", "compras", "pedidos", "certificaciones", "commissioning", "legalizaciones", "ppi", "ncr", "partesIncidencia"], consulta: ["calculo", "pruebasEstanqueidad", "balanceo", "proveedores", "vacaciones"] },
         encargadoObra: { trabajo: ["tareas", "pedidos", "partes", "partesIncidencia", "ppi", "ncr", "pruebasEstanqueidad"], consulta: ["obras", "commissioning", "vacaciones"] },
-        jefeCommissioning: { trabajo: ["commissioning", "balanceo", "pruebasEstanqueidad", "ncr", "ppi"], consulta: ["calculo", "obras", "tareas", "vacaciones", "informeSemanal", "mantenimiento"] },
+        jefeCommissioning: { trabajo: ["commissioning", "balanceo", "pruebasEstanqueidad", "ncr", "ppi"], consulta: ["calculo", "obras", "tareas", "vacaciones", "informeSemanal", "reporteDireccion", "mantenimiento"] },
         contractSupport: { trabajo: ["certificaciones", "compras", "pedidos", "conflictos", "ncr"], consulta: ["tareas", "clientes", "proveedores", "trazabilidad", "vacaciones"] },
         jefeMantenimiento: { trabajo: ["mantenimiento", "incidencias"], consulta: ["commissioning", "obras", "ncr", "vacaciones"] },
         /* 16-oct: 'tareas', para que vea las que le encargan (solo las suyas). */
@@ -6882,11 +7125,12 @@ globalThis.CX_VARIANTE="cxobra";
          * Presupuesto de obra, Plan de compras y Comparativos.
          */
         jefeObra: [
-          { nombre: "Documentaci\xF3n", modulos: ["alcance", "analisisProyecto", "nube", "actas", "informeSemanal", "puntosControl", "calculo", "proyectos", "trazabilidad"] },
+          { nombre: "Documentaci\xF3n", modulos: ["alcance", "analisisProyecto", "nube", "actas", "informeSemanal", "reporteDireccion", "planosObra", "puntosControl", "calculo", "proyectos", "trazabilidad"] },
           { nombre: "Econ\xF3mico", modulos: ["presupuestoObra", "costsPlan", "variantes", "certificaciones", "conflictos", "estadisticas"] },
           { nombre: "Planificaci\xF3n", modulos: ["gantt", "planEconomica", "obras", "avanceObra", "tareas", "partes", "vacaciones"] },
           { nombre: "Compras", modulos: ["planCompras", "comparativos", "pedidos", "proveedores"] },
-          { nombre: "Commissioning y No Conformidades", modulos: ["commissioning", "balanceo", "pruebasEstanqueidad", "ncr", "incidencias", "mantenimiento"] },
+          /* 21-oct (JC): las no conformidades, dentro de Commissioning (shared/barraLateral.js, DENTRO_DE_OTRA). */
+          { nombre: "Commissioning y No Conformidades", modulos: ["commissioning", "balanceo", "pruebasEstanqueidad", "legalizaciones", "incidencias", "mantenimiento"] },
           { nombre: "Calidad", modulos: ["ppi", "partesIncidencia"] }
         ]
       };
@@ -6901,16 +7145,53 @@ globalThis.CX_VARIANTE="cxobra";
         planCompras: { modulo: "compras", etiqueta: "Plan de compras" },
         comparativos: { modulo: "compras", etiqueta: "Comparativos" },
         gantt: { modulo: "costsPlan", etiqueta: "Diagrama de Gantt" },
-        planEconomica: { modulo: "costsPlan", etiqueta: "Planificaci\xF3n econ\xF3mica" }
+        planEconomica: { modulo: "costsPlan", etiqueta: "Planificaci\xF3n econ\xF3mica" },
+        /* 21-oct (JC): el reporte a los jefes, montado solo con lo de todas las pantallas de la obra. */
+        reporteDireccion: { modulo: "informeSemanal", etiqueta: "Reporte a direcci\xF3n" },
+        /* 21-oct (JC): los planos viven en Documentación (versiones, vigentes); el Avance de obra los lee de aquí. */
+        planosObra: { modulo: "avanceObra", etiqueta: "Planos" }
       };
       var AYUDA_EN_BARRA = [{ id: "queHaceLaApp", etiqueta: "Qu\xE9 hace y cu\xE1nto ahorra", icono: "\u20AC" }];
       var veQueHaceLaApp = (idRol) => idRol === "administrador";
+      var DEPARTAMENTOS_DIRECTOR = [
+        { id: "obras", nombre: "Obras y Producci\xF3n", necesita: "obras", vistas: [
+          ["resumen", "Resumen"],
+          ["listado", "Listado"],
+          ["reportes", "Reportes"],
+          ["informes", "Informes"],
+          ["certificaciones", "Certificaciones"],
+          ["facturacion", "Facturaci\xF3n"],
+          ["oportunidades", "Oportunidades"],
+          ["desvios", "Desv\xEDos"],
+          ["costes", "Costes y producci\xF3n"],
+          ["equipo", "Equipo y saturaci\xF3n"],
+          ["agenda", "Agenda"]
+        ] },
+        { id: "estudios", nombre: "Estudios", necesita: "presupuestos", vistas: [
+          ["resumen", "Resumen"],
+          ["ofertas", "Ofertas y adjudicaciones"],
+          ["reportes", "Reportes"],
+          ["informes", "Informes"],
+          ["oportunidades", "Oportunidades"],
+          ["equipo", "Equipo y saturaci\xF3n"],
+          ["agenda", "Agenda"]
+        ] },
+        { id: "delineacion", nombre: "Delineaci\xF3n", necesita: "presupuestos", vistas: [
+          ["resumen", "Resumen"],
+          ["planos", "Planos"],
+          ["entregas", "Entregas"],
+          ["reportes", "Reportes"],
+          ["equipo", "Equipo y saturaci\xF3n"],
+          ["agenda", "Agenda"]
+        ] }
+      ];
       var DEPARTAMENTOS_EN_BARRA = {
         estudios: ["proyectos", "presupuestos", "calculo", "biblioteca", "reparto"],
         delineacion: ["reparto", "proyectos"],
         proyectos: [
           "obras",
           "informeSemanal",
+          "reporteDireccion",
           "costsPlan",
           "certificaciones",
           "compras",
@@ -6933,9 +7214,18 @@ globalThis.CX_VARIANTE="cxobra";
       };
       function barraDeRol(idRol) {
         const visibles = modulosVisibles(idRol);
+        const ve = (m) => visibles.includes(ATAJOS_OBRA[m] ? ATAJOS_OBRA[m].modulo : m);
         const b = BARRAS_POR_ROL[idRol] || { trabajo: [], consulta: "*" };
-        const trabajo = b.trabajo.filter((m) => visibles.includes(m));
-        const consulta = b.consulta === "*" ? null : b.consulta.filter((m) => visibles.includes(m) && !trabajo.includes(m));
+        const trabajo = b.trabajo.filter(ve);
+        const consulta = b.consulta === "*" ? null : b.consulta.filter((m) => ve(m) && !trabajo.includes(m));
+        if (b.director) {
+          const departamentosDirector = DEPARTAMENTOS_DIRECTOR.filter((d) => visibles.includes(d.necesita)).map((d) => ({ id: d.id, nombre: d.nombre, vistas: d.vistas.map(([id, etiqueta]) => ({ id, etiqueta, href: `dir:${d.id}:${id}` })) }));
+          const secciones = SECCIONES_OBRA.jefeObra.map((s) => ({
+            nombre: s.nombre,
+            modulos: s.modulos.filter((m) => HERRAMIENTAS_EN_SECCION.includes(m) || ve(m))
+          })).filter((s) => s.modulos.length);
+          return { trabajo, consulta: [], director: true, departamentosDirector, seccionesObra: secciones };
+        }
         if (SECCIONES_OBRA[idRol]) {
           const secciones = SECCIONES_OBRA[idRol].map((s) => ({
             nombre: s.nombre,
@@ -6947,7 +7237,7 @@ globalThis.CX_VARIANTE="cxobra";
         const departamentos = Object.entries(DEPARTAMENTOS_EN_BARRA).map(([id, mods]) => ({
           id,
           nombre: DEPARTAMENTOS[id].nombre,
-          modulos: mods.filter((m) => visibles.includes(m) && !(b.accesos && m === "personas"))
+          modulos: mods.filter((m) => ve(m) && !(b.accesos && m === "personas"))
         }));
         return { trabajo, consulta, empresa: true, accesos: Boolean(b.accesos), departamentos };
       }
@@ -6962,6 +7252,7 @@ globalThis.CX_VARIANTE="cxobra";
       })({
         DEPARTAMENTOS,
         DEPARTAMENTOS_EN_BARRA,
+        DEPARTAMENTOS_DIRECTOR,
         MODULOS,
         SIN_PANTALLA,
         VERBOS,
@@ -6982,7 +7273,10 @@ globalThis.CX_VARIANTE="cxobra";
         ATAJOS_OBRA,
         AYUDA_EN_BARRA,
         veQueHaceLaApp,
-        barraDeRol
+        barraDeRol,
+        PANEL_INICIO,
+        panelInicio,
+        inicioPorFase
       });
     }
   });
@@ -6996,18 +7290,29 @@ globalThis.CX_VARIANTE="cxobra";
         const ESTADOS = {
           abierta: { nombre: "ABIERTA", activa: true, clase: "mal", orden: 1 },
           enCurso: { nombre: "EN CURSO", activa: true, clase: "aviso", orden: 2 },
-          pteVerificar: { nombre: "PTE. VERIFICAR", activa: true, clase: "naranja", orden: 3 },
-          cerrada: { nombre: "CERRADA", activa: false, clase: "bien", orden: 4 },
-          observacion: { nombre: "OBSERVACI\xD3N", activa: false, clase: "info", orden: 5 },
-          anulada: { nombre: "ANULADA", activa: false, clase: "neutra", orden: 6 }
+          enviadaRevision: { nombre: "ENVIADA A REVISI\xD3N", activa: true, clase: "info", orden: 3 },
+          pteVerificar: { nombre: "PTE. VERIFICAR", activa: true, clase: "naranja", orden: 4 },
+          cerrada: { nombre: "CERRADA", activa: false, clase: "bien", orden: 5 },
+          observacion: { nombre: "OBSERVACI\xD3N", activa: false, clase: "info", orden: 6 },
+          anulada: { nombre: "ANULADA", activa: false, clase: "neutra", orden: 7 }
         };
         const TRANSICIONES = {
-          abierta: ["enCurso", "pteVerificar", "observacion"],
-          enCurso: ["abierta", "pteVerificar", "observacion"],
-          pteVerificar: ["abierta", "enCurso", "observacion"],
+          abierta: ["enCurso", "enviadaRevision", "observacion"],
+          enCurso: ["enviadaRevision", "abierta", "observacion"],
+          enviadaRevision: ["pteVerificar", "enCurso", "abierta", "observacion"],
+          pteVerificar: ["enviadaRevision", "enCurso", "abierta", "observacion"],
           cerrada: ["abierta"],
           observacion: ["abierta"],
           anulada: ["abierta"]
+        };
+        const SIGUIENTE_PASO = {
+          abierta: { a: "enCurso", texto: "Poner en curso" },
+          enCurso: { a: "enviadaRevision", texto: "Enviar a revisi\xF3n" },
+          enviadaRevision: { cerrar: true, texto: "Verificar y cerrar", alternativa: { a: "pteVerificar", texto: "Pte. verificar en campo" } },
+          pteVerificar: { cerrar: true, texto: "Verificar y cerrar" },
+          cerrada: { a: "abierta", texto: "Reabrir" },
+          observacion: { a: "abierta", texto: "Reabrir" },
+          anulada: { a: "abierta", texto: "Reactivar" }
         };
         const PLAZOS = {
           noActiva: { nombre: "-", clase: "" },
@@ -7355,6 +7660,8 @@ globalThis.CX_VARIANTE="cxobra";
             return { error: `De ${ESTADOS[n.estado] ? ESTADOS[n.estado].nombre : n.estado} no se pasa a ${ESTADOS[nuevo].nombre}.` };
           }
           const cambios = { estado: nuevo };
+          if (nuevo === "enviadaRevision") cambios.fechaEnvioRevision = hoy;
+          else if (["abierta", "enCurso"].includes(nuevo) && n.fechaEnvioRevision) cambios.fechaEnvioRevision = null;
           if (ESTADOS[nuevo].activa) {
             cambios.fechaCierre = null;
             if (n.estado === "cerrada") {
@@ -7513,6 +7820,7 @@ globalThis.CX_VARIANTE="cxobra";
           const ordenPrevista = (a, b) => (a.fechaPrevista || "").localeCompare(b.fechaPrevista || "") || (a.numero || 0) - (b.numero || 0);
           const proximas = activas.filter((f) => f.calc.plazo === "proximosDias").sort(ordenPrevista);
           const vencidas = activas.filter((f) => f.calc.plazo === "vencida").sort(ordenPrevista);
+          const enviadas = activas.filter((f) => f.estado === "enviadaRevision").sort((a, b) => (a.fechaEnvioRevision || "").localeCompare(b.fechaEnvioRevision || "") || (a.numero || 0) - (b.numero || 0));
           const resumenFila = (f) => ({
             id: f.id,
             codigo: f.codigo,
@@ -7520,7 +7828,8 @@ globalThis.CX_VARIANTE="cxobra";
             planta: f.planta,
             descripcion: f.descripcion,
             industrial: f.industrialResponsable,
-            estado: f.estado
+            estado: f.estado,
+            fechaEnvioRevision: f.fechaEnvioRevision || null
           });
           const evolucion = [];
           for (let i = 11; i >= 0; i--) {
@@ -7582,7 +7891,10 @@ globalThis.CX_VARIANTE="cxobra";
               activas: activas.length,
               cerradas,
               pctCerradas: filas.length - anuladas ? cerradas / (filas.length - anuladas) : null,
-              anuladas
+              anuladas,
+              /* Las que esperan a quien revisa (DF / propiedad / jefe de obra). */
+              enviadasRevision: enviadas.length,
+              pteVerificar: activas.filter((f) => f.estado === "pteVerificar").length
             },
             semana,
             plazos: {
@@ -7617,7 +7929,9 @@ globalThis.CX_VARIANTE="cxobra";
               proximas: proximas.slice(0, maxLista).map(resumenFila),
               masProximas: Math.max(0, proximas.length - maxLista),
               vencidas: vencidas.slice(0, maxLista).map(resumenFila),
-              masVencidas: Math.max(0, vencidas.length - maxLista)
+              masVencidas: Math.max(0, vencidas.length - maxLista),
+              enviadasRevision: enviadas.slice(0, maxLista).map(resumenFila),
+              masEnviadas: Math.max(0, enviadas.length - maxLista)
             },
             evolucion,
             porDisciplina,
@@ -7720,22 +8034,38 @@ globalThis.CX_VARIANTE="cxobra";
             if (f.bloquea && !Number(n.bloqueaCommissioning)) return false;
             if (f.conAviso && !n.calc.avisos.some((a) => a.codigo === f.conAviso)) return false;
             if (t) {
-              const heno = normalizar([
-                n.codigo,
-                n.codExterno,
-                n.descripcion,
-                n.accionInicial,
-                n.accionFinal,
-                n.sala,
-                n.salaNueva,
-                n.descripcionLocal,
-                n.industrialResponsable,
-                n.empresaResuelve
-              ].join(" "));
-              if (!heno.includes(t)) return false;
+              if (!normalizar(textoDeBusqueda(n)).includes(t)) return false;
             }
             return true;
           });
+        }
+        const CAMPOS_BUSQUEDA = [
+          "codigo",
+          "codExterno",
+          "descripcion",
+          "accionInicial",
+          "accionFinal",
+          "planta",
+          "zona",
+          "sala",
+          "salaNueva",
+          "descripcionLocal",
+          "disciplina",
+          "industrialResponsable",
+          "empresaResuelve",
+          "equiposTags"
+        ];
+        function textoDeBusqueda(n = {}) {
+          return CAMPOS_BUSQUEDA.map((c) => Array.isArray(n[c]) ? n[c].join(" ") : n[c]).join(" ");
+        }
+        function cuentaPorEstado(filas = []) {
+          const c = { activas: 0, todas: filas.length };
+          for (const e of Object.keys(ESTADOS)) c[e] = 0;
+          for (const n of filas) {
+            if (ESTADOS[n.estado]) c[n.estado] += 1;
+            if (n.calc && n.calc.activa) c.activas += 1;
+          }
+          return c;
         }
         function ordenPorPlazo(a, b) {
           const orden = { vencida: 0, proximosDias: 1, enPlazo: 2, sinPlanificar: 3, noActiva: 4 };
@@ -7746,7 +8076,8 @@ globalThis.CX_VARIANTE="cxobra";
           if (!n) return null;
           if (/^ABIERT/.test(n) || n === "OPEN" || /^PENDIENTE/.test(n) || n === "NEW") return "abierta";
           if (n === "WIP" || /^EN CURSO/.test(n) || /^IN PROGRESS/.test(n) || /^EN PROCESO/.test(n)) return "enCurso";
-          if (/^REVIS/.test(n) || /^CORREGID/.test(n) || /^PTE.*VERIF/.test(n) || /^READY/.test(n) || /^FIXED/.test(n) || /^RESUELT/.test(n)) return "pteVerificar";
+          if (/^REVIS/.test(n) || /^READY/.test(n) || /^ENVIAD/.test(n) || /^SENT/.test(n) || /^(EN|PARA|A) REVISION/.test(n) || /^(IN|FOR|UNDER) REVIEW/.test(n)) return "enviadaRevision";
+          if (/^CORREGID/.test(n) || /^PTE.*VERIF/.test(n) || /^FIXED/.test(n) || /^RESUELT/.test(n) || /^VERIF/.test(n)) return "pteVerificar";
           if (/^APROBAD/.test(n) || /^CERRAD/.test(n) || /^CLOSED/.test(n) || n === "DONE" || /^COMPLET/.test(n) || n === "OK") return "cerrada";
           if (/^OBS/.test(n)) return "observacion";
           if (/^ANULAD/.test(n) || /^VOID/.test(n) || /^CANCEL/.test(n)) return "anulada";
@@ -7824,7 +8155,7 @@ globalThis.CX_VARIANTE="cxobra";
             } else if (h.includes("ACCION INICIAL")) col.accionInicial = c;
             else if (h.startsWith("ACCION") || h.startsWith("ACTION") || h.startsWith("RESPUESTA")) {
               if (col.accionFinal === void 0) col.accionFinal = c;
-            } else if (h.includes("PDF") || h.startsWith("DOCUMENTO") || h.startsWith("ADJUNTO")) {
+            } else if (h.includes("PDF") || h.startsWith("DOCUMENTO") || h.startsWith("REF DOC") || h.startsWith("ADJUNTO")) {
               if (col.documento === void 0) col.documento = c;
             } else if (["PLANTA", "NIVEL", "LEVEL", "FLOOR"].includes(h)) col.planta = c;
             else if (["ZONA", "SECTOR", "AREA", "ZONE"].includes(h)) col.zona = c;
@@ -7845,19 +8176,33 @@ globalThis.CX_VARIANTE="cxobra";
         }
         const textoCelda = (v) => v === null || v === void 0 ? "" : v instanceof Date ? v.toISOString().slice(0, 10) : llano(v);
         const textoCodigo = (v) => typeof v === "number" && Number.isFinite(v) ? String(Number(v.toPrecision(12))) : textoCelda(v);
-        function analizarPunchlist(libro, fichero = "") {
+        const HOJAS_CUADRO = /^(HOME|INICIO|PORTADA|LEEME|LÉEME|CONFIG|CUADRO DE MANDO|DASHBOARD)$/i;
+        function analizarPunchlist(libro, fichero = "", { incluirOcultas = false } = {}) {
           const filas = [];
           const hojas = [];
           const omitidas = [];
+          const ocultas = [];
           const avisos = [];
           const sinCodigo = [];
           const sospechosos = [];
           let estadosNoReconocidos = 0;
           for (const hoja of libro && libro.hojas || []) {
-            if (hoja.oculta) continue;
+            if (HOJAS_CUADRO.test(llano(hoja.nombre))) {
+              if (!hoja.oculta) omitidas.push(hoja.nombre);
+              continue;
+            }
             const cab = buscarCabecera(hoja.filas || []);
             if (!cab) {
-              omitidas.push(hoja.nombre);
+              if (!hoja.oculta) omitidas.push(hoja.nombre);
+              continue;
+            }
+            if (hoja.oculta && !incluirOcultas) {
+              let n2 = 0;
+              for (let r = cab.fila + 1; r < hoja.filas.length; r++) {
+                const cod = textoCodigo((hoja.filas[r] || [])[cab.codigo]);
+                if (cod && normalizar(cod) !== cab.cabeceraCodigo) n2 += 1;
+              }
+              ocultas.push({ nombre: hoja.nombre, filas: n2 });
               continue;
             }
             const cabecera = hoja.filas[cab.fila] || [];
@@ -7950,8 +8295,12 @@ globalThis.CX_VARIANTE="cxobra";
               filas: n,
               columnaCodigo: cab.cabeceraCodigo,
               planta: col.planta !== void 0 ? "columna" : plantaHoja || null,
-              columnas: Object.keys(col)
+              columnas: Object.keys(col),
+              oculta: Boolean(hoja.oculta)
             });
+          }
+          for (const h of ocultas) {
+            if (h.filas) avisos.push(`${h.nombre}: pesta\xF1a OCULTA con ${h.filas} NCR; no se importa salvo que se pida incluir las ocultas.`);
           }
           const porFecha = /* @__PURE__ */ new Map();
           for (const f of filas) {
@@ -7960,7 +8309,7 @@ globalThis.CX_VARIANTE="cxobra";
           const conHora = filas.filter((f) => f.fechaDeteccion && f.fechaDeteccion.length > 10).length;
           const fechasCarga = [...porFecha.entries()].filter(([, n]) => n >= 20 && conHora > 0).map(([d]) => d);
           for (const f of filas) f.fechaDeteccionEstimada = fechasCarga.includes(f.fechaDeteccion) ? 1 : 0;
-          return { fichero, filas, hojas, omitidas, avisos, sinCodigo, sospechosos, estadosNoReconocidos, fechasCarga };
+          return { fichero, filas, hojas, omitidas, ocultas, avisos, sinCodigo, sospechosos, estadosNoReconocidos, fechasCarga };
         }
         const SOLO_SI_VACIO = ["descripcion", "sala", "salaNueva", "descripcionLocal", "zona", "disciplina", "industrialResponsable", "planta", "refDocumento"];
         const SI_VIENE = ["accionInicial", "accionFinal", "numeroExcel", "nombreExcel", "fechaModificada", "estadoExcel", "estadoTrasActuacion", "estadoDalux", "fechaAccion"];
@@ -7968,6 +8317,7 @@ globalThis.CX_VARIANTE="cxobra";
           const c = configuracion(cfg);
           const porCodigo = /* @__PURE__ */ new Map();
           for (const n of existentes) if (llano(n.codExterno)) porCodigo.set(normalizar(n.codExterno), n);
+          for (const n of existentes) if (llano(n.codigo) && !porCodigo.has(normalizar(n.codigo))) porCodigo.set(normalizar(n.codigo), n);
           let { numero: siguiente } = siguienteCodigo(existentes.map((n) => n.codigo), cfg);
           const nuevas = /* @__PURE__ */ new Map();
           const actualizaciones = /* @__PURE__ */ new Map();
@@ -8060,6 +8410,7 @@ globalThis.CX_VARIANTE="cxobra";
               fechasCarga: analisis.fechasCarga || [],
               hojas: analisis.hojas || [],
               omitidas: analisis.omitidas || [],
+              ocultas: analisis.ocultas || [],
               avisos: analisis.avisos || [],
               ejemplosRepetidos: repetidos.slice(0, 8),
               ejemplosSinCodigo: (analisis.sinCodigo || []).slice(0, 5),
@@ -8075,6 +8426,7 @@ globalThis.CX_VARIANTE="cxobra";
         })({
           ESTADOS,
           TRANSICIONES,
+          SIGUIENTE_PASO,
           PLAZOS,
           ESTADOS_COBRO,
           ESTADOS_EQUIPO,
@@ -8106,6 +8458,9 @@ globalThis.CX_VARIANTE="cxobra";
           cuadroDeMando,
           contabilidad,
           filtrar,
+          textoDeBusqueda,
+          cuentaPorEstado,
+          CAMPOS_BUSQUEDA,
           tipoDe,
           ordenPorPlazo,
           mapearEstado,
@@ -8470,7 +8825,9 @@ globalThis.CX_VARIANTE="cxobra";
           "ppiRevisiones",
           "ppiLineas",
           /* 16-oct: la planificación del jefe de obra, para «Lo que me toca» (solo ida). */
-          "sesionesPlanCx"
+          "sesionesPlanCx",
+          /* 21-oct: las tareas del jefe de obra, para «Lo que me toca» (solo ida). */
+          "tareasObra"
         ],
         ncr: [
           "ncr",
@@ -8483,9 +8840,10 @@ globalThis.CX_VARIANTE="cxobra";
           "incidenciaComentarios",
           "incidenciaPartes",
           "incidenciaHoras",
-          "sesionesPlanInc"
+          "sesionesPlanInc",
+          "tareasObra"
         ],
-        reparaciones: ["incidencias", "incidenciaComentarios", "incidenciaPartes", "incidenciaHoras", "equiposObra", "ncrEmpresas", "ncrConfig", "sesionesPlanInc"],
+        reparaciones: ["incidencias", "incidenciaComentarios", "incidenciaPartes", "incidenciaHoras", "equiposObra", "ncrEmpresas", "ncrConfig", "sesionesPlanInc", "tareasObra"],
         partes: ["partesIncidencia", "parteIncidenciaLineas"],
         albaranes: ["pedidosCompra", "pedidoDocumentos", "albaranes", "albaranLineas", "pedidosConfig"],
         inventario: ["pedidosCompra", "pedidoDocumentos", "albaranes", "albaranLineas"],
@@ -8817,8 +9175,9 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261019.1358" : "0";
+      var VERSION = true ? "20261022.0520" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
+      var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
       function masNueva(a, b) {
@@ -8917,7 +9276,7 @@ globalThis.CX_VARIANTE="cxobra";
         if (e.lista && !masNueva(e.lista.version, VERSION)) delete e.lista;
         guardar(e);
       }
-      async function buscar({ canal = CONFIG.canal } = {}) {
+      async function buscar({ canal = CANAL } = {}) {
         const n = nativo();
         if (!n) return { estado: "sin-nativo" };
         const e = leer();
@@ -8958,7 +9317,7 @@ globalThis.CX_VARIANTE="cxobra";
       }
       function info() {
         const e = leer();
-        return { version: VERSION, runtime: CONFIG.runtime, canal: CONFIG.canal, url: URL_OTA, lista: e.lista ? e.lista.version : null, rotas: e.rotas || [] };
+        return { version: VERSION, runtime: CONFIG.runtime, canal: CANAL, url: URL_OTA, lista: e.lista ? e.lista.version : null, rotas: e.rotas || [] };
       }
       module.exports = { VERSION, CONFIG, masNueva, hayQueBajar, alAbrir, alArrancar, arrancoBien, buscar, info };
     }
@@ -10295,7 +10654,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var { crearSyncTelefono, ponerMiFicha: ponerMiFicha2 } = require_telefono();
-      var PUBLICO = require_sync_publico();
+      var PUBLICO = false ? { url: "https://nube-apagada.invalid", publishableKey: "apagada" } : require_sync_publico();
       var CLAVE_NUBE = "cxobra.nube";
       var CLAVE_APARATO = "cxobra.aparato";
       var leerLS2 = (k) => {
@@ -10399,6 +10758,562 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       module.exports = { "/app/shared/presupuesto/modelo.js": "", "/app/renderer/demoPresupuesto.js": "", "/app/renderer/demoCompras.js": "" };
+    }
+  });
+
+  // shared/auditoria.js
+  var require_auditoria = __commonJS({
+    "shared/auditoria.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var PRIVADOS = {
+        empresas: /* @__PURE__ */ new Set(["sueldoBrutoAnual", "numeroPagas", "brutoPorPaga", "hayBonus", "importeBonus", "condicionesBonus"])
+      };
+      var SECRETO = /contrase[nñ]|password|passwd|clave|token|secret|api[_-]?key|private[_-]?key|\bhash\b|^hash|salt|^sal$|^pin$|credencial/i;
+      var esSecreto = (nombre) => SECRETO.test(String(nombre || ""));
+      var DEL_MOTOR = /* @__PURE__ */ new Set(["id", "creadoEn", "modificadoEn", "empresaId", "proyectoId"]);
+      var MAX_TEXTO_VERSION = 4e3;
+      var gen = (cadena) => `GENESIS:${cadena}`;
+      function instantanea(entidad, fila) {
+        if (!fila) return null;
+        const privados = PRIVADOS[entidad?.name] || /* @__PURE__ */ new Set();
+        const datos = {};
+        const sinGuardar = [];
+        const campos = new Map((entidad?.fields || []).filter((f) => !f.computed).map((f) => [f.name, f]));
+        for (const [nombre, v] of Object.entries(fila)) {
+          if (v === void 0) continue;
+          if (nombre === "id" || nombre === "empresaId" || nombre === "proyectoId") {
+            datos[nombre] = v;
+            continue;
+          }
+          if (nombre === "creadoEn" || nombre === "modificadoEn") continue;
+          if (esSecreto(nombre) || privados.has(nombre)) continue;
+          const campo = campos.get(nombre);
+          if (!campo) continue;
+          if (v === null || v === "") {
+            datos[nombre] = null;
+            continue;
+          }
+          const binario = v instanceof Uint8Array || typeof ArrayBuffer !== "undefined" && v instanceof ArrayBuffer;
+          if (campo.type === "image" || campo.type === "pdf" || binario || typeof v === "string" && /^data:[\w/+.-]+;base64,/.test(v)) {
+            sinGuardar.push(nombre);
+            continue;
+          }
+          if (typeof v === "string" && v.length > MAX_TEXTO_VERSION) {
+            sinGuardar.push(nombre);
+            continue;
+          }
+          datos[nombre] = typeof v === "object" ? JSON.stringify(v) : v;
+        }
+        return { datos, sinGuardar };
+      }
+      var ACCIONES = {
+        crear: "Crear",
+        editar: "Editar",
+        borrar: "Borrar",
+        estado: "Cambio de estado",
+        importar: "Importar",
+        certificar: "Certificar",
+        firmar: "Firmar",
+        restaurar: "Restaurar versi\xF3n",
+        otra: "Otra"
+      };
+      function accionDe({ canal = "", detalles = [], tablas = {} } = {}) {
+        const c = String(canal);
+        if (c === "versiones:restaurar") return "restaurar";
+        if (/importar|recoger|migrarFotos/i.test(c)) return "importar";
+        if (/firmar|firma/i.test(c)) return "firmar";
+        if (/certific|cierreDeMes/i.test(c)) return "certificar";
+        if (/adjudicar|:estado$|^ncr:aplazar|marcarEnviado/i.test(c)) return "estado";
+        if (detalles.length) {
+          const ops = new Set(detalles.map((d) => d.operacion));
+          if (ops.size === 1 && ops.has("alta")) return "crear";
+          if (ops.size === 1 && ops.has("baja")) return "borrar";
+          if (detalles.length === 1 && ops.has("cambio")) {
+            const cambios = detalles[0].cambios || [];
+            if (cambios.length && cambios.every((x) => /^estado/i.test(x.campo || ""))) return "estado";
+          }
+          return "editar";
+        }
+        const t = Object.values(tablas);
+        if (t.length) {
+          const altas = t.reduce((a, x) => a + x.altas, 0);
+          const cambios = t.reduce((a, x) => a + x.cambios, 0);
+          const bajas = t.reduce((a, x) => a + x.bajas, 0);
+          if (altas && !cambios && !bajas) return "crear";
+          if (bajas && !altas && !cambios) return "borrar";
+          return "editar";
+        }
+        return "otra";
+      }
+      function moduloDe({ canal = "", entidades = "" } = {}) {
+        const prefijo = String(canal).split(":")[0] || "";
+        if (prefijo === "datos" || prefijo === "versiones" || !prefijo) {
+          return String(entidades).split(",").filter(Boolean)[0] || prefijo || "otro";
+        }
+        return prefijo;
+      }
+      function canonica(f) {
+        const n = (v) => v === void 0 ? null : v;
+        return JSON.stringify([
+          n(f.id),
+          n(f.fecha),
+          n(f.usuario),
+          n(f.nombreUsuario),
+          n(f.origen),
+          n(f.empresaId),
+          n(f.proyectoId),
+          n(f.canal),
+          n(f.accion),
+          n(f.modulo),
+          n(f.resumen),
+          n(f.entidades),
+          n(f.registros),
+          n(f.tablas),
+          n(f.detalles),
+          Number(f.omitidos) || 0,
+          n(f.cadena),
+          Number(f.seq) || 0,
+          n(f.hashAnterior)
+        ]);
+      }
+      var hashDe = (f, sha256Hex) => sha256Hex(canonica(f));
+      function verificar(filas, sha256Hex) {
+        const problemas = [];
+        const cadenas = /* @__PURE__ */ new Map();
+        let legadas = 0;
+        let revisadas = 0;
+        for (const f of filas || []) {
+          if (f.cadena == null && f.hash == null) {
+            legadas++;
+            continue;
+          }
+          if (f.cadena == null || f.hash == null || f.seq == null) {
+            problemas.push({ id: f.id, cadena: f.cadena, seq: f.seq, tipo: "sinHash", texto: "L\xEDnea con la cadena incompleta." });
+            continue;
+          }
+          if (!cadenas.has(f.cadena)) cadenas.set(f.cadena, []);
+          cadenas.get(f.cadena).push(f);
+        }
+        for (const [cadena, lineas] of cadenas) {
+          lineas.sort((a, b) => Number(a.seq) - Number(b.seq));
+          let previa = null;
+          for (const f of lineas) {
+            revisadas++;
+            const seq = Number(f.seq);
+            if (hashDe(f, sha256Hex) !== f.hash) {
+              problemas.push({ id: f.id, cadena, seq, tipo: "alterada", texto: `La l\xEDnea ${seq} no coincide con su hash: se ha modificado.` });
+            }
+            if (!previa) {
+              if (seq !== 1) problemas.push({ id: f.id, cadena, seq, tipo: "faltan", texto: `Faltan las l\xEDneas anteriores a la ${seq}.` });
+              else if (f.hashAnterior !== gen(cadena)) problemas.push({ id: f.id, cadena, seq, tipo: "enlace", texto: "La primera l\xEDnea no arranca donde debe." });
+            } else {
+              const ps = Number(previa.seq);
+              if (seq !== ps + 1) {
+                problemas.push({ id: f.id, cadena, seq, tipo: "faltan", texto: `Faltan ${seq - ps - 1} l\xEDnea(s) entre la ${ps} y la ${seq}.` });
+              } else if (f.hashAnterior !== previa.hash) {
+                problemas.push({ id: f.id, cadena, seq, tipo: "enlace", texto: `La l\xEDnea ${seq} no sigue a la ${ps}.` });
+              }
+            }
+            previa = f;
+          }
+        }
+        return { ok: problemas.length === 0, revisadas, legadas, cadenas: cadenas.size, problemas };
+      }
+      function versionesDe(lineas) {
+        const orden = [...lineas].sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)) || (Number(a.seq) || 0) - (Number(b.seq) || 0));
+        const out = [];
+        for (const l of orden) {
+          for (const d of l.detalles || []) {
+            if (out.length === 0 && d.operacion === "cambio" && d.antesFila) {
+              out.push({
+                n: 1,
+                lineaId: null,
+                fecha: null,
+                usuario: null,
+                nombreUsuario: null,
+                origen: null,
+                accion: "otra",
+                operacion: "inicio",
+                resumen: "Estado anterior al primer cambio apuntado",
+                datos: d.antesFila,
+                sinGuardar: d.antesSin || [],
+                borrado: false,
+                completa: true,
+                restauraVersion: null
+              });
+            }
+            const borrado = d.operacion === "baja";
+            const datos = borrado ? d.antesFila || null : d.fila || null;
+            out.push({
+              n: out.length + 1,
+              lineaId: l.id,
+              fecha: l.fecha,
+              usuario: l.usuario,
+              nombreUsuario: l.nombreUsuario,
+              origen: l.origen,
+              accion: l.accion || accionDe({ canal: l.canal, detalles: [d] }),
+              operacion: d.operacion,
+              resumen: l.resumen,
+              datos,
+              sinGuardar: (borrado ? d.antesSin : d.sinGuardar) || [],
+              borrado,
+              completa: Boolean(datos),
+              restauraVersion: d.restauraVersion ?? null
+            });
+          }
+        }
+        return out;
+      }
+      var fechaHora = (iso) => {
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return "";
+        const p = (x) => String(x).padStart(2, "0");
+        return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+      };
+      function detalleTexto(l) {
+        const partes = [];
+        for (const d of l.detalles || []) {
+          const quien = `${d.singular || d.entidad || "registro"}${d.nombre ? ` \xAB${d.nombre}\xBB` : ""}`;
+          if (d.cambios?.length) {
+            partes.push(`${quien}: ${d.cambios.map((c) => `${c.etiqueta || c.campo} ${c.antes ?? "\u2014"} \u2192 ${c.despues ?? "\u2014"}`).join("; ")}`);
+          } else {
+            partes.push(`${d.operacion === "alta" ? "Alta" : d.operacion === "baja" ? "Baja" : "Cambio"} ${quien}`);
+          }
+        }
+        if (l.omitidos) partes.push(`y ${l.omitidos} registro(s) m\xE1s`);
+        return partes.join(" | ");
+      }
+      function hojasExcel(lineas, { nombreObra = () => "", nombreModulo = (m) => m, verificacion = null, filtros = {} } = {}) {
+        const resumen = [
+          ["L\xEDneas exportadas", lineas.length],
+          ["Generado", fechaHora((/* @__PURE__ */ new Date()).toISOString())],
+          ...Object.entries(filtros).filter(([, v]) => v).map(([k, v]) => [`Filtro \xB7 ${k}`, v])
+        ];
+        if (verificacion) {
+          resumen.push(
+            ["Cadena de hashes", verificacion.ok ? "\xCDntegra" : `ROTA: ${verificacion.problemas.length} problema(s)`],
+            ["L\xEDneas verificadas", verificacion.revisadas],
+            ["L\xEDneas anteriores a la verificaci\xF3n", verificacion.legadas]
+          );
+        }
+        const hojas = [
+          { titulo: "Resumen", columnas: [{ titulo: "Dato", ancho: 38 }, { titulo: "Valor", ancho: 60 }], filas: resumen },
+          {
+            titulo: "Auditor\xEDa",
+            columnas: [
+              { titulo: "Fecha y hora", ancho: 17 },
+              { titulo: "Usuario", ancho: 26 },
+              { titulo: "Desde", ancho: 11 },
+              { titulo: "Proyecto", ancho: 26 },
+              { titulo: "M\xF3dulo", ancho: 20 },
+              { titulo: "Acci\xF3n", ancho: 16 },
+              { titulo: "Resumen", ancho: 56 },
+              { titulo: "Detalle (antes \u2192 despu\xE9s)", ancho: 90 },
+              { titulo: "Hash", ancho: 18 }
+            ],
+            filas: lineas.map((l) => [
+              fechaHora(l.fecha),
+              l.nombreUsuario || l.usuario || "",
+              l.origen || "",
+              nombreObra(l.proyectoId) || "",
+              nombreModulo(l.modulo || moduloDe(l)),
+              ACCIONES[l.accion] || l.accion || "",
+              l.resumen || "",
+              detalleTexto(l),
+              l.hash ? String(l.hash).slice(0, 16) : ""
+            ])
+          }
+        ];
+        if (verificacion && verificacion.problemas.length) {
+          hojas.push({
+            titulo: "Problemas de integridad",
+            columnas: [{ titulo: "Tipo", ancho: 12 }, { titulo: "L\xEDnea", ancho: 38 }, { titulo: "N\xBA", ancho: 8 }, { titulo: "Qu\xE9 pasa", ancho: 70 }],
+            filas: verificacion.problemas.map((p) => [p.tipo, p.id, p.seq, p.texto])
+          });
+        }
+        return hojas;
+      }
+      var esc = (v) => String(v ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+      function htmlAuditoria(lineas, { nombreObra = () => "", nombreModulo = (m) => m, verificacion = null, filtros = {}, generado = /* @__PURE__ */ new Date() } = {}) {
+        const f = Object.entries(filtros).filter(([, v]) => v).map(([k, v]) => `${esc(k)}: ${esc(v)}`).join(" \xB7 ");
+        const integridad = verificacion ? `<b class="${verificacion.ok ? "ok" : "mal"}">Cadena de hashes ${verificacion.ok ? "\xEDntegra" : `ROTA (${verificacion.problemas.length} problema(s))`}</b> \xB7 ${verificacion.revisadas} l\xEDneas verificadas \xB7 ${verificacion.legadas} anteriores a la verificaci\xF3n` : "";
+        const filas = lineas.map((l) => `<tr>
+    <td class="n">${esc(fechaHora(l.fecha))}</td><td>${esc(l.nombreUsuario || l.usuario || "")}</td><td>${esc(l.origen || "")}</td>
+    <td>${esc(nombreObra(l.proyectoId) || "")}</td><td>${esc(nombreModulo(l.modulo || moduloDe(l)))}</td>
+    <td>${esc(ACCIONES[l.accion] || l.accion || "")}</td><td>${esc(l.resumen || "")}</td>
+    <td class="d">${esc(detalleTexto(l))}</td><td class="h">${esc(l.hash ? String(l.hash).slice(0, 10) : "")}</td></tr>`).join("");
+        return `<!doctype html><html lang="es"><head><meta charset="utf-8"><style>
+    @page { size: A4 landscape; margin: 8mm; }
+    body { font: 7.5pt/1.25 Helvetica, Arial, sans-serif; color: #111; margin: 0; }
+    h1 { font-size: 12pt; margin: 0 0 2px; }
+    .meta { color: #444; margin-bottom: 4px; }
+    .ok { color: #15803d; } .mal { color: #b91c1c; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    th, td { border: 0.5pt solid #999; padding: 1px 3px; vertical-align: top; overflow-wrap: anywhere; }
+    th { background: #e5e7eb; text-align: left; }
+    thead { display: table-header-group; } tr { page-break-inside: avoid; }
+    .n { white-space: nowrap; width: 62px; } .h { font-family: Menlo, monospace; width: 56px; } .d { width: 34%; }
+  </style></head><body>
+    <h1>Auditor\xEDa \xB7 Vidaire Gestor</h1>
+    <div class="meta">${esc(fechaHora(generado.toISOString()))} \xB7 ${lineas.length} l\xEDnea(s)${f ? ` \xB7 ${f}` : ""}</div>
+    <div class="meta">${integridad}</div>
+    <table><thead><tr><th>Fecha y hora</th><th>Usuario</th><th>Desde</th><th>Proyecto</th><th>M\xF3dulo</th><th>Acci\xF3n</th><th>Resumen</th><th>Detalle (antes \u2192 despu\xE9s)</th><th>Hash</th></tr></thead>
+    <tbody>${filas}</tbody></table></body></html>`;
+      }
+      module.exports = {
+        PRIVADOS,
+        DEL_MOTOR,
+        ACCIONES,
+        esSecreto,
+        instantanea,
+        accionDe,
+        moduloDe,
+        gen,
+        canonica,
+        hashDe,
+        verificar,
+        versionesDe,
+        detalleTexto,
+        hojasExcel,
+        htmlAuditoria,
+        fechaHora
+      };
+    }
+  });
+
+  // electron/db/auditoria.js
+  var require_auditoria2 = __commonJS({
+    "electron/db/auditoria.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var crypto2 = require_crypto();
+      var A = require_auditoria();
+      var sha256Hex = (texto2) => crypto2.createHash("sha256").update(String(texto2)).digest("hex");
+      var esSecreto = (campo) => {
+        const base = String(campo || "").split(":")[0];
+        return base !== "clave" && A.esSecreto(base);
+      };
+      function origenDe(sesion) {
+        if (sesion && sesion.origen) return sesion.origen;
+        if (globalThis.enIpad) return "ipad";
+        if (globalThis.enWeb) return "web";
+        return "escritorio";
+      }
+      var TABLAS = [
+        `CREATE TABLE IF NOT EXISTS auditoriaMeta (clave TEXT PRIMARY KEY, valor TEXT)`,
+        /* Las fotos de cada registro, una por alta, cambio, baja o restauración. */
+        `CREATE TABLE IF NOT EXISTS versionesRegistro (
+     id              TEXT PRIMARY KEY,
+     entidad         TEXT NOT NULL,
+     registroId      TEXT NOT NULL,
+     operacion       TEXT NOT NULL,
+     foto            TEXT,
+     sinGuardar      TEXT,
+     restauraVersion INTEGER,
+     personaId       TEXT,
+     origen          TEXT,
+     creadoEn        TEXT NOT NULL,
+     cadena          TEXT,
+     seq             INTEGER,
+     hashAnterior    TEXT,
+     hash            TEXT
+   )`
+      ];
+      var COLUMNAS_HISTORIAL = [
+        ["historial", "origen", "TEXT"],
+        ["historial", "cadena", "TEXT"],
+        ["historial", "seq", "INTEGER"],
+        ["historial", "hashAnterior", "TEXT"],
+        ["historial", "hash", "TEXT"]
+      ];
+      function prepararAuditoria(db) {
+        for (const sql of TABLAS) db.prepare(sql).run();
+        db.exec("CREATE INDEX IF NOT EXISTS idx_versiones_registro ON versionesRegistro (entidad, registroId, creadoEn)");
+        for (const t of ["historial", "versionesRegistro"]) {
+          db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_${t}_cadena ON ${t} (cadena, seq) WHERE cadena IS NOT NULL`);
+          db.exec(`CREATE TRIGGER IF NOT EXISTS ${t}_sin_cambios BEFORE UPDATE ON ${t}
+      BEGIN SELECT RAISE(ABORT, 'El historial es de solo a\xF1adir: no se puede modificar.'); END`);
+          db.exec(`CREATE TRIGGER IF NOT EXISTS ${t}_sin_borrado BEFORE DELETE ON ${t}
+      BEGIN SELECT RAISE(ABORT, 'El historial es de solo a\xF1adir: no se puede borrar.'); END`);
+        }
+        if (!db.prepare("SELECT 1 AS x FROM auditoriaMeta WHERE clave = 'equipo'").get()) {
+          const ins = db.prepare("INSERT OR IGNORE INTO auditoriaMeta (clave, valor) VALUES (?, ?)");
+          ins.run("equipo", crypto2.randomUUID());
+          ins.run("inicio", (/* @__PURE__ */ new Date()).toISOString());
+          ins.run("anteriores", String(db.prepare("SELECT COUNT(*) AS n FROM historial").get().n));
+        }
+      }
+      function cadenaDe(db, tabla, origen) {
+        const r = db.prepare("SELECT valor FROM auditoriaMeta WHERE clave = 'equipo'").get();
+        const equipo = r ? r.valor : "sin-equipo";
+        return `${equipo}:${origen}${tabla === "versionesRegistro" ? ":v" : ""}`;
+      }
+      function comoLinea(tabla, f) {
+        const base = {
+          id: f.id,
+          fecha: f.creadoEn,
+          usuario: f.personaId ?? null,
+          nombreUsuario: null,
+          origen: f.origen ?? null,
+          empresaId: null,
+          proyectoId: null,
+          entidades: f.entidad,
+          registros: f.registroId,
+          tablas: null,
+          omitidos: 0,
+          cadena: f.cadena,
+          seq: f.seq,
+          hashAnterior: f.hashAnterior,
+          hash: f.hash,
+          modulo: f.entidad
+        };
+        if (tabla === "versionesRegistro") {
+          return {
+            ...base,
+            canal: `versiones:${f.operacion}`,
+            accion: f.operacion,
+            resumen: null,
+            detalles: [f.foto ?? null, f.sinGuardar ?? null, f.restauraVersion ?? null]
+          };
+        }
+        return {
+          ...base,
+          canal: `${f.entidad}:${f.accion}`,
+          accion: f.accion,
+          resumen: f.campo ?? null,
+          detalles: [f.valorAntes ?? null, f.valorDespues ?? null]
+        };
+      }
+      function insertarEncadenada(db, tabla, fila) {
+        const cadena = cadenaDe(db, tabla, fila.origen || "escritorio");
+        const ultima = db.prepare(`SELECT seq, hash FROM ${tabla} WHERE cadena = ? ORDER BY seq DESC LIMIT 1`).get(cadena);
+        const f = { ...fila, cadena, seq: ultima ? Number(ultima.seq) + 1 : 1, hashAnterior: ultima ? ultima.hash : A.gen(cadena) };
+        f.hash = A.hashDe(comoLinea(tabla, f), sha256Hex);
+        const cols = Object.keys(f);
+        db.prepare(`INSERT INTO ${tabla} (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`).run(...cols.map((c) => f[c]));
+        return f;
+      }
+      var texto = (v) => v === void 0 || v === null ? null : String(v);
+      function apuntar(db, { id, entidad, registroId, accion, campo = null, antes = null, despues = null, personaId = null, origen = null, creadoEn = null }) {
+        if (campo && esSecreto(campo)) return null;
+        try {
+          return insertarEncadenada(db, "historial", {
+            id: id || nuevoId(),
+            entidad,
+            registroId,
+            accion,
+            campo,
+            valorAntes: texto(antes),
+            valorDespues: texto(despues),
+            personaId: personaId || null,
+            creadoEn: creadoEn || (/* @__PURE__ */ new Date()).toISOString(),
+            origen: origen || origenDe(null)
+          });
+        } catch {
+          return null;
+        }
+      }
+      var columnasPorBase = /* @__PURE__ */ new WeakMap();
+      function entidadDe(db, tabla) {
+        if (!columnasPorBase.has(db)) columnasPorBase.set(db, /* @__PURE__ */ new Map());
+        const columnas = columnasPorBase.get(db);
+        if (!columnas.has(tabla)) {
+          columnas.set(tabla, db.prepare(`PRAGMA table_info(${tabla})`).all().map((c) => ({ name: c.name, type: /BLOB/i.test(c.type || "") ? "pdf" : "text" })));
+        }
+        return { name: tabla, fields: columnas.get(tabla) };
+      }
+      function apuntarVersion(db, { entidad, registroId, operacion, fila, personaId = null, origen = null, restauraVersion = null }) {
+        try {
+          const foto = fila ? A.instantanea(entidadDe(db, entidad), fila) : null;
+          if (foto) {
+            for (const k of Object.keys(foto.datos)) if (esSecreto(k)) delete foto.datos[k];
+          }
+          return insertarEncadenada(db, "versionesRegistro", {
+            id: nuevoId(),
+            entidad,
+            registroId,
+            operacion,
+            foto: foto ? JSON.stringify(foto.datos) : null,
+            sinGuardar: foto && foto.sinGuardar.length ? JSON.stringify(foto.sinGuardar) : null,
+            restauraVersion: restauraVersion || null,
+            personaId: personaId || null,
+            origen: origen || origenDe(null),
+            creadoEn: (/* @__PURE__ */ new Date()).toISOString()
+          });
+        } catch {
+          return null;
+        }
+      }
+      function versionesDe(db, entidad, registroId) {
+        const filas = db.prepare(
+          `SELECT * FROM versionesRegistro WHERE entidad = ? AND registroId = ? ORDER BY creadoEn, seq`
+        ).all(entidad, registroId);
+        const lineas = filas.map((v) => {
+          let datos = null;
+          let sin = [];
+          try {
+            datos = v.foto ? JSON.parse(v.foto) : null;
+          } catch {
+            datos = null;
+          }
+          try {
+            sin = v.sinGuardar ? JSON.parse(v.sinGuardar) : [];
+          } catch {
+            sin = [];
+          }
+          const op = v.operacion === "crear" ? "alta" : v.operacion === "borrar" ? "baja" : "cambio";
+          return {
+            id: v.id,
+            fecha: v.creadoEn,
+            seq: v.seq,
+            usuario: v.personaId,
+            nombreUsuario: null,
+            origen: v.origen,
+            accion: v.restauraVersion ? "restaurar" : v.operacion,
+            resumen: null,
+            detalles: [op === "baja" ? { operacion: op, antesFila: datos, antesSin: sin } : { operacion: op, fila: datos, sinGuardar: sin, restauraVersion: v.restauraVersion }]
+          };
+        });
+        return A.versionesDe(lineas);
+      }
+      function verificar(db) {
+        const meta = Object.fromEntries(db.prepare("SELECT clave, valor FROM auditoriaMeta").all().map((m) => [m.clave, m.valor]));
+        const revisar = (tabla) => A.verificar(db.prepare(`SELECT * FROM ${tabla}`).all().map((f) => comoLinea(tabla, f)), sha256Hex);
+        const h = revisar("historial");
+        const v = revisar("versionesRegistro");
+        const problemas = [
+          ...h.problemas.map((p) => ({ ...p, tabla: "historial" })),
+          ...v.problemas.map((p) => ({ ...p, tabla: "versiones" }))
+        ];
+        return {
+          ok: problemas.length === 0,
+          revisadas: h.revisadas + v.revisadas,
+          lineas: h.revisadas,
+          versiones: v.revisadas,
+          anteriores: h.legadas,
+          cadenas: h.cadenas + v.cadenas,
+          problemas: problemas.slice(0, 200),
+          nProblemas: problemas.length,
+          inicio: meta.inicio || null,
+          revisadoEn: (/* @__PURE__ */ new Date()).toISOString()
+        };
+      }
+      function nuevoId() {
+        return Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+      }
+      module.exports = {
+        prepararAuditoria,
+        COLUMNAS_HISTORIAL,
+        apuntar,
+        apuntarVersion,
+        versionesDe,
+        verificar,
+        esSecreto,
+        origenDe,
+        comoLinea,
+        sha256Hex
+      };
     }
   });
 
@@ -10688,11 +11603,13 @@ globalThis.CX_VARIANTE="cxobra";
         const buscadas = new Set(familias.map((f) => f.id));
         const porDisciplina = !buscadas.size && disciplinas.size > 0;
         const peso = { activo: 0, alta: 1 };
-        const propuestos = (proveedores || []).filter((p) => estadoDeFam(p) !== "inactivo").map((p) => {
+        const casan = (proveedores || []).filter((p) => estadoDeFam(p) !== "inactivo").map((p) => {
           const suyas = porDisciplina ? String(p.disciplinas || "").split(",").map((d) => d.trim()).filter((d) => disciplinas.has(d)) : listaFamilias(p.familias).filter((f) => buscadas.has(f));
           return { id: p.id, nombre: p.nombre, estado: estadoDeFam(p), familias: suyas, revisar: Number(p.familiasRevisar) === 1 };
         }).filter((p) => p.familias.length).sort((a, b) => peso[a.estado] - peso[b.estado] || b.familias.length - a.familias.length || String(a.nombre).localeCompare(String(b.nombre), "es"));
-        return { familias, sinFamilia, propuestos, porDisciplina };
+        const propuestos = porDisciplina ? casan : casan.filter((p) => !p.revisar);
+        const sinValidar = porDisciplina ? [] : casan.filter((p) => p.revisar);
+        return { familias, sinFamilia, propuestos, sinValidar, porDisciplina };
       }
       function textoFamiliasDe(lineas, catalogo) {
         const r = proponerIndustriales(lineas, [], catalogo);
@@ -11985,6 +12902,19 @@ globalThis.CX_VARIANTE="cxobra";
      UNIQUE (repetitivaId, fecha)
    )`,
         /*
+         * LAS OBRAS QUE SIGO (22-oct, JC): la estrella del listado de obras. Es de
+         * cada uno, como las notas: marcar una no cambia nada a nadie más. Una fila
+         * = la sigo; quitar la estrella la borra.
+         */
+        `CREATE TABLE IF NOT EXISTS obrasSeguidas (
+     id            TEXT PRIMARY KEY,
+     personaId     TEXT NOT NULL REFERENCES personas(id) ON DELETE CASCADE,
+     obraId        TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     creadoEn      TEXT NOT NULL,
+     modificadoEn  TEXT NOT NULL,
+     UNIQUE (personaId, obraId)
+   )`,
+        /*
          * LAS NO CONFORMIDADES (NCR) de una obra: el libro «NCR_CampNou.xlsm».
          *
          * Una fila = una NCR, con los 35 campos que en el Excel se rellenaban. Las
@@ -12035,7 +12965,9 @@ globalThis.CX_VARIANTE="cxobra";
      estadoDalux              TEXT,
      fechaAccion              TEXT,
      estado                   TEXT NOT NULL DEFAULT 'abierta'
-                              CHECK (estado IN ('abierta','enCurso','pteVerificar','cerrada','observacion','anulada')),
+                              CHECK (estado IN ('abierta','enCurso','enviadaRevision','pteVerificar','cerrada','observacion','anulada')),
+     /* Cu\xE1ndo quien resuelve la dio por corregida y la mand\xF3 a revisar (21-oct-2026). */
+     fechaEnvioRevision       TEXT,
      fechaPrevistaInicial     TEXT,
      fechaPrevista            TEXT,
      motivoUltimoAplazamiento TEXT,
@@ -12665,6 +13597,51 @@ globalThis.CX_VARIANTE="cxobra";
      UNIQUE (pedidoId, periodo)
    )`,
         /*
+         * LAS CERTIFICACIONES QUE MANDAN LOS INDUSTRIALES, LEÍDAS Y PROPUESTAS
+         * (21-oct-2026; electron/data/entradaCertIndustriales.js). Llegan del
+         * SharePoint (`fuente` 'sharepoint', `ruta` relativa a la carpeta y
+         * `huella` = tamaño y fecha, para no leerla dos veces) o del ordenador
+         * ('archivo', con su copia en `copia`). `filas` es lo leído, para volver a
+         * casarlo si se cambia de pedido sin leer el archivo otra vez; `origen` la
+         * propuesta ({ "L1": 3, … } a origen). PROPUESTA no cuenta: solo al
+         * VALIDARLA el jefe de obra pasa a la hoja del pedido (certIndustriales).
+         */
+        `CREATE TABLE IF NOT EXISTS certIndustrialesEntradas (
+     id            TEXT PRIMARY KEY,
+     obraId        TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     proveedorId   TEXT REFERENCES proveedores(id),
+     pedidoId      TEXT REFERENCES pedidosCompra(id) ON DELETE SET NULL,
+     periodo       TEXT,
+     estado        TEXT NOT NULL DEFAULT 'propuesta' CHECK (estado IN ('propuesta','validada','descartada')),
+     fuente        TEXT NOT NULL CHECK (fuente IN ('sharepoint','archivo')),
+     nombre        TEXT NOT NULL,
+     ruta          TEXT,
+     copia         TEXT,
+     huella        TEXT,
+     filas         TEXT,
+     mapeo         TEXT,
+     origen        TEXT,
+     lectura       TEXT,
+     numeroSuyo    INTEGER,
+     totalSuyo     REAL,
+     motivo        TEXT,
+     validadaPor   TEXT REFERENCES personas(id),
+     validadaEn    TEXT,
+     creadoPor     TEXT REFERENCES personas(id),
+     creadoEn      TEXT NOT NULL,
+     modificadoEn  TEXT NOT NULL
+   )`,
+        /* La carpeta del SharePoint (sincronizada con OneDrive) donde se dejan las
+           certificaciones de los industriales de la obra. */
+        `CREATE TABLE IF NOT EXISTS certIndustrialesCarpeta (
+     id            TEXT PRIMARY KEY,
+     obraId        TEXT NOT NULL UNIQUE REFERENCES obras(id) ON DELETE CASCADE,
+     carpeta       TEXT NOT NULL,
+     revisadaEn    TEXT,
+     creadoEn      TEXT NOT NULL,
+     modificadoEn  TEXT NOT NULL
+   )`,
+        /*
          * EL PERSONAL EN OBRA (shared/obra/personal.js). Cada operario de una
          * subcontrata lleva una tarjeta con un QR (`codigo`, aleatorio y único); el
          * encargado la fotografía con el móvil al llegar y queda fichado ese día.
@@ -13162,6 +14139,50 @@ globalThis.CX_VARIANTE="cxobra";
      UNIQUE (obraId, deId, aId)
    )`,
         /*
+         * EL PROGRAMA DE LA OBRA POR VERSIONES (shared/obra/ganttVersiones.js; JC,
+         * 22-oct). Cada persona con acceso a la obra tiene SU versión (`datos`: las
+         * tareas, sus dependencias, retrasos y el calendario, en JSON); las demás
+         * la leen. Cada cambio deja una revisión entera en `ganttVersionesRev`
+         * (quién, cuándo y qué cambió, y se puede volver a ella). Elegir «el Gantt
+         * a seguir» es una fila nueva en `ganttElecciones` con la foto de sus
+         * fechas (`base`, la línea base vigente): la última manda y las anteriores
+         * son el registro de quién la cambió y cuándo. Nada se borra.
+         */
+        `CREATE TABLE IF NOT EXISTS ganttVersiones (
+     id              TEXT PRIMARY KEY,
+     obraId          TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     personaId       TEXT NOT NULL REFERENCES personas(id),
+     nombre          TEXT NOT NULL,
+     datos           TEXT NOT NULL,
+     revision        INTEGER NOT NULL DEFAULT 1,
+     creadoEn        TEXT NOT NULL,
+     modificadoEn    TEXT NOT NULL,
+     UNIQUE (obraId, personaId)
+   )`,
+        `CREATE TABLE IF NOT EXISTS ganttVersionesRev (
+     id              TEXT PRIMARY KEY,
+     versionId       TEXT NOT NULL REFERENCES ganttVersiones(id) ON DELETE CASCADE,
+     obraId          TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     revision        INTEGER NOT NULL,
+     datos           TEXT NOT NULL,
+     cambio          TEXT,
+     personaId       TEXT REFERENCES personas(id),
+     creadoEn        TEXT NOT NULL,
+     modificadoEn    TEXT NOT NULL,
+     UNIQUE (versionId, revision)
+   )`,
+        `CREATE TABLE IF NOT EXISTS ganttElecciones (
+     id              TEXT PRIMARY KEY,
+     obraId          TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     versionId       TEXT NOT NULL REFERENCES ganttVersiones(id),
+     revision        INTEGER NOT NULL,
+     base            TEXT NOT NULL,
+     motivo          TEXT,
+     personaId       TEXT REFERENCES personas(id),
+     creadoEn        TEXT NOT NULL,
+     modificadoEn    TEXT NOT NULL
+   )`,
+        /*
          * EL COSTS PLAN 2.09a (shared/obra/costPlan209a.js). `costPlanCierres` es la
          * foto del FCAC de cada fila al cerrar el mes (da el Previous FCAC del
          * siguiente); `costPlanVariaciones`, lo que le cuesta cada adenda firmada
@@ -13498,6 +14519,21 @@ globalThis.CX_VARIANTE="cxobra";
      subidoPor        TEXT REFERENCES personas(id),
      creadoEn         TEXT NOT NULL,
      modificadoEn     TEXT NOT NULL
+   )`,
+        /*
+         * LA FICHA DE LEGALIZACIÓN de la obra (22-oct, JC): los datos que piden los
+         * modelos oficiales y que la obra no sabe por sí sola (NIF del promotor,
+         * instalador habilitado, DF, potencias, refrigerante, gas, PCI…), una fila
+         * por obra con el JSON de shared/legalizaciones/ficha.js. Solo la escriben
+         * el jefe de obra, el de producción, el de grupo y el director del
+         * departamento (electron/data/legalizaciones.js + shared/roles.js).
+         */
+        `CREATE TABLE IF NOT EXISTS legalizacionesObra (
+     id               TEXT PRIMARY KEY,
+     obraId           TEXT NOT NULL UNIQUE REFERENCES obras(id) ON DELETE CASCADE,
+     datos            TEXT NOT NULL DEFAULT '{}',
+     creadoEn         TEXT NOT NULL,
+     modificadoEn     TEXT NOT NULL
    )`
       ];
       var INDICES = [
@@ -13538,6 +14574,7 @@ globalThis.CX_VARIANTE="cxobra";
         `CREATE INDEX IF NOT EXISTS idx_precios_proyecto   ON preciosPartida (proyectoId)`,
         `CREATE INDEX IF NOT EXISTS idx_obras_proyecto     ON obras (proyectoId)`,
         `CREATE INDEX IF NOT EXISTS idx_certind_obra     ON certIndustriales (obraId, periodo)`,
+        `CREATE INDEX IF NOT EXISTS idx_certindent_obra  ON certIndustrialesEntradas (obraId, estado)`,
         `CREATE INDEX IF NOT EXISTS idx_obras_jefe         ON obras (jefeObraId, estado)`,
         `CREATE INDEX IF NOT EXISTS idx_notas_proyecto     ON notasTraspaso (proyectoId, codigo)`,
         `CREATE INDEX IF NOT EXISTS idx_mensajes_proyecto  ON mensajes (proyectoId, creadoEn)`,
@@ -13610,6 +14647,8 @@ globalThis.CX_VARIANTE="cxobra";
         `CREATE INDEX IF NOT EXISTS idx_ausencias_persona  ON ausencias (personaId, desde)`,
         `CREATE INDEX IF NOT EXISTS idx_ausencias_operario ON ausencias (operarioId, desde)`,
         `CREATE INDEX IF NOT EXISTS idx_festivos_fecha     ON festivos (fecha)`,
+        `CREATE INDEX IF NOT EXISTS idx_ganttVersRev_version ON ganttVersionesRev (versionId, revision)`,
+        `CREATE INDEX IF NOT EXISTS idx_ganttElecciones_obra ON ganttElecciones (obraId, creadoEn)`,
         `CREATE INDEX IF NOT EXISTS idx_tareas_obra        ON tareasObra (obraId, estado)`,
         `CREATE INDEX IF NOT EXISTS idx_tareas_responsable ON tareasObra (responsableId, estado)`,
         `CREATE INDEX IF NOT EXISTS idx_tareacoment_tarea  ON tareaComentarios (tareaId, creadoEn)`,
@@ -13620,11 +14659,20 @@ globalThis.CX_VARIANTE="cxobra";
         `CREATE INDEX IF NOT EXISTS idx_docsproyecto_obra  ON documentosProyecto (obraId, seccion)`
       ];
       var COLUMNAS_A\u00D1ADIDAS = [
+        /* La auditoría (22-oct-2026): desde dónde y el eslabón de la cadena de hashes (electron/db/auditoria.js). */
+        ...require_auditoria2().COLUMNAS_HISTORIAL,
         /* Cómo quedó la reparación en esa entrada de la Conversación (19-oct): noReparada, pendienteMaterial… */
         ["incidenciaComentarios", "resultado", "TEXT"],
         /* Quién va a cada sesión de la planificación (16-oct): su agenda. */
         ["sesionesPlanCx", "asisten", "TEXT"],
         ["sesionesPlanInc", "asisten", "TEXT"],
+        /* Las horas de cada sesión (20-oct): inicio «HH:MM», duración prevista y tiempo real, en minutos. */
+        ["sesionesPlanCx", "horaInicio", "TEXT"],
+        ["sesionesPlanCx", "duracionMin", "INTEGER"],
+        ["sesionesPlanCx", "realMin", "INTEGER"],
+        ["sesionesPlanInc", "horaInicio", "TEXT"],
+        ["sesionesPlanInc", "duracionMin", "INTEGER"],
+        ["sesionesPlanInc", "realMin", "INTEGER"],
         /* La fase del contrato que certifica (para el precio vigente de esa fase). */
         ["certificaciones", "faseId", "TEXT"],
         /* La certificación final: emitirla cierra la obra (15-oct-2026). */
@@ -13656,6 +14704,25 @@ globalThis.CX_VARIANTE="cxobra";
            queda por las bases de antes y se rellena desde aquí. */
         ["planosAvance", "escala", "REAL"],
         ["planosAvance", "capas", "TEXT"],
+        /* Las versiones de los planos (21-oct-2026, JC: «que quede claro cuáles son
+           los ÚNICOS vigentes»). `version`: vigente | obsoleto | propuesta (por
+           confirmar; sin valor, vigente). `serieId`: el primero de la serie (sin
+           valor, él mismo). Nº de plano, revisión y fecha del cajetín; quién lo
+           subió, de dónde (subida | sharepoint) y su historial (JSON). Nunca se borran. */
+        ["planosAvance", "codigo", "TEXT"],
+        ["planosAvance", "revision", "TEXT"],
+        ["planosAvance", "fechaRevision", "TEXT"],
+        ["planosAvance", "version", "TEXT"],
+        ["planosAvance", "serieId", "TEXT"],
+        ["planosAvance", "sustituyeA", "TEXT"],
+        ["planosAvance", "sustituidoPor", "TEXT"],
+        ["planosAvance", "sustituidoEn", "TEXT"],
+        ["planosAvance", "archivo", "TEXT"],
+        ["planosAvance", "origen", "TEXT"],
+        ["planosAvance", "rutaOrigen", "TEXT"],
+        ["planosAvance", "subidoPor", "TEXT"],
+        ["planosAvance", "propuesta", "TEXT"],
+        ["planosAvance", "historial", "TEXT"],
         ["avanceMarcas", "capa", "TEXT"],
         ["avanceMarcas", "extra", "REAL"],
         ["avanceMarcas", "extraNota", "TEXT"],
@@ -13674,6 +14741,11 @@ globalThis.CX_VARIANTE="cxobra";
         ["incidencias", "fechaPrevista", "TEXT"],
         ["incidencias", "horasPrevistas", "REAL"],
         ["incidencias", "trabajos", "TEXT"],
+        /* Quién la repara y dónde está (21-oct): el operario o la empresa (nombre, como en incidenciaHoras),
+         * la zona del estadio (Tribuna, Gol Norte…) y la planta (N00, N10…). */
+        ["incidencias", "operario", "TEXT"],
+        ["incidencias", "zona", "TEXT"],
+        ["incidencias", "planta", "TEXT"],
         ["partesIncidencia", "costeExtra", "REAL"],
         ["partesIncidencia", "costeExtraConcepto", "TEXT"],
         ["partesIncidencia", "repercusion", "TEXT"],
@@ -13718,6 +14790,9 @@ globalThis.CX_VARIANTE="cxobra";
         /* Las familias de compra de cada industrial. */
         ["proveedores", "familias", "TEXT"],
         ["proveedores", "familiasRevisar", "INTEGER NOT NULL DEFAULT 0"],
+        /* Quién validó sus familias (nombre) y cuándo (ISO). 21-oct, JC. */
+        ["proveedores", "familiasValidadasPor", "TEXT"],
+        ["proveedores", "familiasValidadasEn", "TEXT"],
         /*
          * `repo.crear` escribe SIEMPRE `creadoEn` y `modificadoEn`. Estas cuatro
          * tablas no las tenían, así que cualquier escritura por el repositorio
@@ -13784,6 +14859,9 @@ globalThis.CX_VARIANTE="cxobra";
         ["configCommissioning", "psRefrigerante", "REAL"],
         ["configCommissioning", "caidaAdmisible", "REAL"],
         ["configCommissioning", "cabeceraPM", "TEXT"],
+        /* Cada cuántos minutos busca la app documentación nueva en la lista o la
+           carpeta de SharePoint (en blanco: 30; 0: desactivada). */
+        ["configCommissioning", "busquedaDocsMin", "INTEGER"],
         /* Los albaranes comparados con el pedido línea a línea. */
         ["pedidoDocumentos", "albaranId", "TEXT"],
         ["pedidosCompra", "fechaCierreDiferencias", "TEXT"],
@@ -13816,6 +14894,13 @@ globalThis.CX_VARIANTE="cxobra";
         ["ofertasProveedor", "totalEscrito", "REAL"],
         ["ofertasProveedor", "motivoDescarte", "TEXT"],
         ["pedidosCompra", "adjudicacionId", "TEXT"],
+        /* Las subcontratas que trabajan A HORAS (21-oct, shared/compras/aHoras.js):
+           la modalidad del paquete ('partidas' o 'horas') y su cuadrilla tipo
+           ({ categoría → personas }, JSON); y las tarifas de cada oferta a horas
+           ([{ categoria, precioHora, horas }], JSON). */
+        ["peticionesOferta", "modalidad", "TEXT NOT NULL DEFAULT 'partidas'"],
+        ["peticionesOferta", "cuadrilla", "TEXT"],
+        ["ofertasProveedor", "tarifasHora", "TEXT"],
         /* El acceso con contraseña (electron/data/acceso.js). */
         ["personas", "intentosFallidos", "INTEGER NOT NULL DEFAULT 0"],
         ["personas", "bloqueadoHasta", "TEXT"],
@@ -13846,6 +14931,8 @@ globalThis.CX_VARIANTE="cxobra";
         ["ncr", "estadoTrasActuacion", "TEXT"],
         ["ncr", "estadoDalux", "TEXT"],
         ["ncr", "fechaAccion", "TEXT"],
+        /* El estado «enviada a revisión» (21-oct-2026) trae su fecha. */
+        ["ncr", "fechaEnvioRevision", "TEXT"],
         /* La matriz de costes, para bases creadas antes de que existiera. */
         ...["est", "vent", "obr"].flatMap((fase) => ["Material", "Auxiliares", "Transporte", "ManoObra", "Subcontrata"].map((comp) => ["lineas", `${fase}${comp}`, "REAL"]))
       ];
@@ -13929,6 +15016,38 @@ globalThis.CX_VARIANTE="cxobra";
           throw e;
         }
       }
+      function columnasDeHoy(db, tabla, sql) {
+        const prueba = `${tabla}_forma`;
+        db.exec(`DROP TABLE IF EXISTS temp.${prueba}`);
+        db.exec(sql.replace(`IF NOT EXISTS ${tabla} (`, `temp.${prueba} (`));
+        const hoy = db.prepare(`PRAGMA temp.table_info(${prueba})`).all().map((c) => c.name);
+        db.exec(`DROP TABLE temp.${prueba}`);
+        return hoy;
+      }
+      function reconstruirTabla(db, tabla, sql) {
+        const viejas = db.prepare(`PRAGMA table_info(${tabla})`).all().map((c) => c.name);
+        const hoy = columnasDeHoy(db, tabla, sql);
+        const a\u00F1adidas = COLUMNAS_A\u00D1ADIDAS.filter(([t]) => t === tabla).map(([, c]) => c);
+        const comunes = viejas.filter((c) => hoy.includes(c) || a\u00F1adidas.includes(c));
+        const lista = comunes.join(", ");
+        db.exec("PRAGMA foreign_keys = OFF");
+        db.exec("BEGIN");
+        try {
+          db.exec(sql.replace(`IF NOT EXISTS ${tabla} (`, `${tabla}_nueva (`));
+          for (const [t, c, tipo] of COLUMNAS_A\u00D1ADIDAS) {
+            if (t === tabla && !hoy.includes(c) && comunes.includes(c)) db.exec(`ALTER TABLE ${tabla}_nueva ADD COLUMN ${c} ${tipo}`);
+          }
+          db.exec(`INSERT INTO ${tabla}_nueva (${lista}) SELECT ${lista} FROM ${tabla}`);
+          db.exec(`DROP TABLE ${tabla}`);
+          db.exec(`ALTER TABLE ${tabla}_nueva RENAME TO ${tabla}`);
+          db.exec("COMMIT");
+        } catch (e) {
+          db.exec("ROLLBACK");
+          throw e;
+        } finally {
+          db.exec("PRAGMA foreign_keys = ON");
+        }
+      }
       function quitarColumnasObligatoriasViejas(db) {
         for (const sql of TABLAS) {
           const m = /^\s*CREATE TABLE IF NOT EXISTS (\w+) \(/.exec(sql);
@@ -13936,33 +15055,19 @@ globalThis.CX_VARIANTE="cxobra";
           const tabla = m[1];
           const viejas = db.prepare(`PRAGMA table_info(${tabla})`).all();
           if (!viejas.length) continue;
-          const prueba = `${tabla}_forma`;
-          db.exec(`DROP TABLE IF EXISTS temp.${prueba}`);
-          db.exec(sql.replace(`IF NOT EXISTS ${tabla} (`, `temp.${prueba} (`));
-          const hoy = db.prepare(`PRAGMA temp.table_info(${prueba})`).all().map((c) => c.name);
-          db.exec(`DROP TABLE temp.${prueba}`);
+          const hoy = columnasDeHoy(db, tabla, sql);
           const sobran = viejas.filter((c) => !hoy.includes(c.name) && c.notnull && c.dflt_value === null && !c.pk);
           if (!sobran.length) continue;
-          const a\u00F1adidas = COLUMNAS_A\u00D1ADIDAS.filter(([t]) => t === tabla).map(([, c]) => c);
-          const comunes = viejas.map((c) => c.name).filter((c) => hoy.includes(c) || a\u00F1adidas.includes(c));
-          const lista = comunes.join(", ");
-          db.exec("PRAGMA foreign_keys = OFF");
-          db.exec("BEGIN");
-          try {
-            db.exec(sql.replace(`IF NOT EXISTS ${tabla} (`, `${tabla}_nueva (`));
-            for (const [t, c, tipo] of COLUMNAS_A\u00D1ADIDAS) {
-              if (t === tabla && !hoy.includes(c) && comunes.includes(c)) db.exec(`ALTER TABLE ${tabla}_nueva ADD COLUMN ${c} ${tipo}`);
-            }
-            db.exec(`INSERT INTO ${tabla}_nueva (${lista}) SELECT ${lista} FROM ${tabla}`);
-            db.exec(`DROP TABLE ${tabla}`);
-            db.exec(`ALTER TABLE ${tabla}_nueva RENAME TO ${tabla}`);
-            db.exec("COMMIT");
-          } catch (e) {
-            db.exec("ROLLBACK");
-            throw e;
-          } finally {
-            db.exec("PRAGMA foreign_keys = ON");
-          }
+          reconstruirTabla(db, tabla, sql);
+        }
+      }
+      var CHECKS_AMPLIADOS = [["ncr", "'enviadaRevision'"]];
+      function ampliarChecks(db) {
+        for (const [tabla, valor] of CHECKS_AMPLIADOS) {
+          const fila = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?").get(tabla);
+          if (!fila || !fila.sql || fila.sql.includes(valor)) continue;
+          const sql = TABLAS.find((s) => new RegExp(`^\\s*CREATE TABLE IF NOT EXISTS ${tabla} \\(`).test(s));
+          if (sql) reconstruirTabla(db, tabla, sql);
         }
       }
       function rellenarCantidadDelMes(db) {
@@ -13998,8 +15103,10 @@ globalThis.CX_VARIANTE="cxobra";
         rehacerHojaAlcanceAntigua(db);
         rellenarCantidadDelMes(db);
         quitarColumnasObligatoriasViejas(db);
+        ampliarChecks(db);
         for (const sql of INDICES) db.prepare(sql).run();
         disparadoresDeEstado(db);
+        require_auditoria2().prepararAuditoria(db);
         return db;
       }
       function disparadoresDeEstado(db) {
@@ -14095,6 +15202,7 @@ globalThis.CX_VARIANTE="cxobra";
         puntosControlAjustes: { porObra: "obraId" },
         pruebasPuntosBms: { porObra: "obraId" },
         documentosProyecto: { porObra: "obraId" },
+        legalizacionesObra: { porObra: "obraId" },
         sesionesPlanInc: { porObra: "obraId" },
         incidenciaHoras: { porObra: "obraId" },
         avancePartidas: { porObra: "obraId" },
@@ -14143,6 +15251,10 @@ globalThis.CX_VARIANTE="cxobra";
         ganttEstudio: { porPresupuesto: "presupuestoId" },
         ganttElementos: { porObra: "obraId" },
         ganttEnlaces: { porObra: "obraId" },
+        /* El programa por versiones: quien ve la obra ve todas sus versiones. */
+        ganttVersiones: { porObra: "obraId" },
+        ganttVersionesRev: { porObra: "obraId" },
+        ganttElecciones: { porObra: "obraId" },
         /* Las horas de obra, como las de estudio: quien ve la obra ve lo que costó. */
         horasObra: { porObra: "obraId" },
         /* Las plantillas de puesta en marcha son de la casa, como la biblioteca. */
@@ -14155,6 +15267,8 @@ globalThis.CX_VARIANTE="cxobra";
         lineasCertificacion: { porObra: "obraId" },
         correccionesCertificacion: { porObra: "obraId" },
         certIndustriales: { porObra: "obraId" },
+        certIndustrialesEntradas: { porObra: "obraId" },
+        certIndustrialesCarpeta: { porObra: "obraId" },
         notasTraspaso: { porProyecto: "proyectoId" },
         /* Los cálculos de instalaciones: quien ve el proyecto ve sus cálculos. */
         calculos: { porProyecto: "proyectoId" },
@@ -14188,6 +15302,7 @@ globalThis.CX_VARIANTE="cxobra";
         /* Las tareas repetitivas de la agenda del bloc, y lo hecho: igual de privadas. */
         tareasRepetitivas: { privadoDe: "personaId" },
         tareasRepetitivasHechas: { privadoDe: "personaId" },
+        obrasSeguidas: { privadoDe: "personaId" },
         /* La biblioteca es de la casa: la ve cualquiera que pueda presupuestar. */
         descripcionesConcepto: { publico: true },
         /*
@@ -14373,6 +15488,7 @@ globalThis.CX_VARIANTE="cxobra";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var alcance = require_alcance();
       var { puede, planifica } = require_roles();
+      var auditoria = require_auditoria2();
       var SinPermiso = class extends Error {
         constructor(modulo, verbo, idRol) {
           super(`El rol \xAB${idRol}\xBB no puede \xAB${verbo}\xBB en \xAB${modulo}\xBB.`);
@@ -14458,6 +15574,7 @@ globalThis.CX_VARIANTE="cxobra";
         puntosControlAjustes: "commissioning",
         pruebasPuntosBms: "commissioning",
         documentosProyecto: "commissioning",
+        legalizacionesObra: "legalizaciones",
         sesionesPlanInc: "incidencias",
         incidenciaHoras: "incidencias",
         avancePartidas: "avanceObra",
@@ -14473,6 +15590,9 @@ globalThis.CX_VARIANTE="cxobra";
         correccionesCertificacion: "certificaciones",
         /* Lo que se le certifica a cada industrial, por pedido y mes. */
         certIndustriales: "certificaciones",
+        /* Las que mandan los industriales, leídas y por validar, y su carpeta. */
+        certIndustrialesEntradas: "certificaciones",
+        certIndustrialesCarpeta: "certificaciones",
         /* Las cuatro tablas de compras van al módulo 'compras', no a
            'presupuestos': pedir ofertas y presupuestar son dos trabajos y dos
            permisos, y hay roles que tienen uno y no el otro. */
@@ -14525,6 +15645,9 @@ globalThis.CX_VARIANTE="cxobra";
         ganttEstudio: "presupuestos",
         ganttElementos: "costsPlan",
         ganttEnlaces: "costsPlan",
+        ganttVersiones: "costsPlan",
+        ganttVersionesRev: "costsPlan",
+        ganttElecciones: "costsPlan",
         horasObra: "horasObra",
         clientes: "clientes",
         departamentosCliente: "clientes",
@@ -14535,6 +15658,7 @@ globalThis.CX_VARIANTE="cxobra";
         notas: "notas",
         tareasRepetitivas: "notas",
         tareasRepetitivasHechas: "notas",
+        obrasSeguidas: "notas",
         descripcionesConcepto: "biblioteca",
         ausencias: "vacaciones",
         festivos: "vacaciones",
@@ -14592,7 +15716,8 @@ globalThis.CX_VARIANTE="cxobra";
           db.prepare(
             `INSERT INTO ${entidad} (${campos.join(",")}) VALUES (${campos.map(() => "?").join(",")})`
           ).run(...campos.map((c) => fila[c]));
-          anotar(entidad, fila.id, "crear", null, null, null, sesion);
+          anotar(entidad, fila.id, opciones.accionHistorial || "crear", null, null, null, sesion);
+          versionar(entidad, fila.id, "crear", sesion, opciones);
           return fila.id;
         }
         function modificar(entidad, sesion, id, cambios, opciones = {}) {
@@ -14607,38 +15732,41 @@ globalThis.CX_VARIANTE="cxobra";
             anotar(entidad, id, "editar", null, null, null, sesion);
             return true;
           }
+          let cambiados = 0;
           for (const c of campos) {
             if (c === "modificadoEn") continue;
             if (String(antes[c] ?? "") === String(fila[c] ?? "")) continue;
-            anotar(entidad, id, "editar", c, antes[c], fila[c], sesion);
+            anotar(entidad, id, opciones.accionHistorial || "editar", c, antes[c], fila[c], sesion);
+            cambiados += 1;
           }
+          if (cambiados) versionar(entidad, id, "editar", sesion, opciones);
           return true;
         }
         function borrar(entidad, sesion, id) {
           exigir(entidad, sesion, "borrar");
           if (!puedeTocar(entidad, sesion, id)) throw new SinPermiso(MODULO_DE[entidad], "borrar", sesion.rol);
+          const antes = alcance.esPrivada(entidad) ? null : db.prepare(`SELECT * FROM ${entidad} WHERE id = ?`).get(id);
           db.prepare(`DELETE FROM ${entidad} WHERE id = ?`).run(id);
           anotar(entidad, id, "borrar", null, null, null, sesion);
+          if (antes) auditoria.apuntarVersion(db, { entidad, registroId: id, operacion: "borrar", fila: antes, personaId: sesion && sesion.personaId, origen: auditoria.origenDe(sesion) });
           return true;
         }
         function anotar(entidad, registroId, accion, campo, antes, despues, sesion) {
-          try {
-            db.prepare(
-              `INSERT INTO historial (id, entidad, registroId, accion, campo, valorAntes, valorDespues, personaId, creadoEn)
-         VALUES (?,?,?,?,?,?,?,?,?)`
-            ).run(
-              nuevoId(),
-              entidad,
-              registroId,
-              accion,
-              campo,
-              antes === void 0 || antes === null ? null : String(antes),
-              despues === void 0 || despues === null ? null : String(despues),
-              sesion.personaId,
-              (/* @__PURE__ */ new Date()).toISOString()
-            );
-          } catch {
-          }
+          auditoria.apuntar(db, { entidad, registroId, accion, campo, antes, despues, personaId: sesion && sesion.personaId, origen: auditoria.origenDe(sesion) });
+        }
+        function versionar(entidad, id, operacion, sesion, opciones = {}) {
+          if (alcance.esPrivada(entidad)) return;
+          const fila = db.prepare(`SELECT * FROM ${entidad} WHERE id = ?`).get(id);
+          if (!fila) return;
+          auditoria.apuntarVersion(db, {
+            entidad,
+            registroId: id,
+            operacion,
+            fila,
+            personaId: sesion && sesion.personaId,
+            origen: auditoria.origenDe(sesion),
+            restauraVersion: opciones.restauraVersion || null
+          });
         }
         return { listar, leer, crear, modificar, borrar, puedeTocar, db };
       }
@@ -15076,7 +16204,7 @@ globalThis.CX_VARIANTE="cxobra";
             id: "E-2601",
             codigo: "EST-26-001",
             nombre: "Hospital Vall d\u2019Hebron \u2014 Bloque quir\xFArgico",
-            cliente: "Ferrovial Construcci\xF3n",
+            cliente: "Construcciones Ribera",
             emplazamiento: "Passeig de la Vall d\u2019Hebron 119, Barcelona",
             responsableId: "ana",
             estado: "enEstudio",
@@ -16115,6 +17243,8 @@ globalThis.CX_VARIANTE="cxobra";
           lineasCertificacion: "L\xEDnea de certificaci\xF3n",
           correccionesCertificacion: "Correcci\xF3n de certificaci\xF3n",
           certIndustriales: "Certificaci\xF3n de industrial",
+          certIndustrialesEntradas: "Certificaci\xF3n recibida de industrial",
+          certIndustrialesCarpeta: "Carpeta de certificaciones de industriales",
           peticionesOferta: "Petici\xF3n de oferta",
           ofertasProveedor: "Oferta de proveedor",
           lineasOfertaProveedor: "L\xEDnea de oferta",
@@ -16192,6 +17322,7 @@ globalThis.CX_VARIANTE="cxobra";
           aOrigen: "A origen",
           titulo: "T\xEDtulo",
           observaciones: "Observaciones",
+          ubicacion: "Ubicaci\xF3n",
           lugarEntrega: "Lugar de entrega",
           fechaLimiteRespuesta: "Respuesta antes del",
           fechaSolicitud: "Solicitado el",
@@ -16222,7 +17353,10 @@ globalThis.CX_VARIANTE="cxobra";
           margenPrevisto: "Margen previsto"
         };
         const CAMPOS_RUIDO = /* @__PURE__ */ new Set(["modificadoEn", "creadoEn", "orden", "padreId", "id"]);
-        const ACCIONES = { crear: "Alta", editar: "Cambio", borrar: "Baja" };
+        const ACCIONES = { crear: "Alta", editar: "Cambio", borrar: "Baja", restaurar: "Restauraci\xF3n" };
+        const conValores = (accion) => accion === "editar" || accion === "restaurar";
+        const ORIGENES = { escritorio: "Escritorio", web: "Web", ipad: "iPad", movil: "M\xF3vil" };
+        const nombreOrigen = (o) => o ? ORIGENES[o] || o : "";
         const nombreEntidad = (e) => ENTIDADES[e] || partirCamel(e);
         function partirCamel(s) {
           const t = String(s || "").replace(/Id$/, "").replace(/([a-z0-9])([A-Z])/g, "$1 $2").toLowerCase();
@@ -16288,10 +17422,11 @@ globalThis.CX_VARIANTE="cxobra";
             obraId: texto(f.obraId),
             entidad: f.entidad && ENTIDADES[f.entidad] ? f.entidad : null,
             accion: ACCIONES[f.accion] ? f.accion : null,
+            texto: texto(String(f.texto || "").trim()),
             limite: Math.max(1, Math.min(Number(f.limite) || 2e3, 5e3))
           };
         }
-        const CABECERA = ["Fecha", "Hora", "Persona", "Obra / proyecto", "Qu\xE9", "Registro", "Acci\xF3n", "Campo", "Antes", "Despu\xE9s"];
+        const CABECERA = ["Fecha", "Hora", "Persona", "Obra / proyecto", "Qu\xE9", "Registro", "Acci\xF3n", "Campo", "Antes", "Despu\xE9s", "Desde", "Hash"];
         function filaPlana(h, nombres) {
           const cuando = fechaEs(h.creadoEn, true);
           const oc = (v) => h.oculto ? "oculto" : v;
@@ -16304,8 +17439,11 @@ globalThis.CX_VARIANTE="cxobra";
             h.registro || "",
             ACCIONES[h.accion] || h.accion,
             h.campo ? nombreCampo(h.campo) : "",
-            h.accion === "editar" || h.accion === "borrar" ? oc(valorLegible(h.campo, h.valorAntes, nombres)) : "",
-            h.accion === "editar" ? oc(valorLegible(h.campo, h.valorDespues, nombres)) : ""
+            conValores(h.accion) || h.accion === "borrar" ? oc(valorLegible(h.campo, h.valorAntes, nombres)) : "",
+            conValores(h.accion) ? oc(valorLegible(h.campo, h.valorDespues, nombres)) : "",
+            nombreOrigen(h.origen),
+            /* El eslabón de la cadena: con él se comprueba que la línea no se ha tocado. */
+            h.hash ? String(h.hash).slice(0, 12) : "anterior"
           ];
         }
         function hojasExcel(resultado) {
@@ -16314,7 +17452,7 @@ globalThis.CX_VARIANTE="cxobra";
             {
               nombre: "Historial",
               filas: [CABECERA, ...resultado.filas.map((h) => filaPlana(h, n))],
-              anchos: [11, 6, 22, 30, 22, 30, 8, 24, 30, 30]
+              anchos: [11, 6, 22, 30, 22, 30, 8, 24, 30, 30, 10, 14]
             },
             {
               nombre: "Filtro",
@@ -16331,6 +17469,9 @@ globalThis.CX_VARIANTE="cxobra";
             ["Desde", f.desde ? fechaEs(f.desde) : "El principio"],
             ["Hasta", f.hasta ? fechaEs(f.hasta) : "Hoy"],
             ["Qu\xE9", f.entidad ? nombreEntidad(f.entidad) : "Todo"],
+            ["Acci\xF3n", f.accion ? ACCIONES[f.accion] : "Todas"],
+            ...f.texto ? [["Texto", f.texto]] : [],
+            ...r.integridad ? [["Cadena de hashes", textoIntegridad(r.integridad)]] : [],
             ["Cambios", `${r.filas.length}${r.recortado ? ` (los ${r.filas.length} m\xE1s recientes: afina el filtro para ver el resto)` : ""}`],
             ["Sacado por", `${r.sacadoPor || ""} el ${fechaEs(r.sacadoEn || (/* @__PURE__ */ new Date()).toISOString(), true)}`]
           ];
@@ -16343,14 +17484,28 @@ globalThis.CX_VARIANTE="cxobra";
             const c = filaPlana(h, n);
             return `<tr class="${h.accion}"><td>${escH(c[0])}</td><td>${escH(c[1])}</td><td>${escH(c[2])}</td><td>${escH(c[3])}</td>
       <td>${escH(c[4])}</td><td>${escH(c[5])}</td><td>${escH(c[6])}</td><td>${escH(c[7])}</td>
-      <td class="antes">${escH(c[8])}</td><td>${escH(c[9])}</td></tr>`;
+      <td class="antes">${escH(c[8])}</td><td>${escH(c[9])}</td><td>${escH(c[10])}</td><td class="hash">${escH(c[11])}</td></tr>`;
           }).join("");
-          return `<h1>Trazabilidad: qui\xE9n cambi\xF3 qu\xE9</h1>
+          return `<h1>Auditor\xEDa: qui\xE9n cambi\xF3 qu\xE9</h1>
     <p class="filtro">${filtro}</p>
     <table class="trazas">
       <thead><tr>${CABECERA.map((c) => `<th>${escH(c)}</th>`).join("")}</tr></thead>
       <tbody>${filas || `<tr><td colspan="${CABECERA.length}">Ning\xFAn cambio con este filtro.</td></tr>`}</tbody>
     </table>`;
+        }
+        function textoIntegridad(v) {
+          if (!v) return "";
+          const n = (x) => Number(x || 0).toLocaleString("es-ES");
+          const anteriores = v.anteriores ? ` \xB7 ${n(v.anteriores)} anteriores, sin cadena` : "";
+          return v.ok ? `\xCDntegra: ${n(v.revisadas)} l\xEDneas encadenadas, ninguna tocada${anteriores}` : `ROTA: ${n(v.nProblemas)} problema(s) en ${n(v.revisadas)} l\xEDneas${anteriores}`;
+        }
+        function compararVersiones(a, b) {
+          const da = a && a.datos || {};
+          const db = b && b.datos || {};
+          const sin = /* @__PURE__ */ new Set([...a && a.sinGuardar || [], ...b && b.sinGuardar || [], ...a && a.ocultos || [], ...b && b.ocultos || []]);
+          const claves = [.../* @__PURE__ */ new Set([...Object.keys(da), ...Object.keys(db)])].filter((k) => !CAMPOS_RUIDO.has(k) && !sin.has(k));
+          const v = (x) => x === void 0 || x === null ? "" : String(x);
+          return claves.filter((k) => v(da[k]) !== v(db[k])).map((k) => ({ campo: k, antes: da[k] ?? null, despues: db[k] ?? null }));
         }
         (function exportar(API) {
           if (typeof module !== "undefined" && module.exports) module.exports = API;
@@ -16361,6 +17516,11 @@ globalThis.CX_VARIANTE="cxobra";
           CAMPOS_RUIDO,
           ACCIONES,
           CABECERA,
+          ORIGENES,
+          conValores,
+          nombreOrigen,
+          textoIntegridad,
+          compararVersiones,
           nombreEntidad,
           nombreCampo,
           valorLegible,
@@ -16382,27 +17542,13 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var { REGLAS, filtro, esPrivada } = require_alcance();
+      var alcanceEsPrivada = esPrivada;
       var { rol: rolDe, puede, campoVetado } = require_roles();
       var { MODULO_DE, nuevoId } = require_repositorio();
       var T = require_trazabilidad();
+      var AUD = require_auditoria2();
       function anotar(db, sesion, entidad, registroId, accion, campo = null, antes = null, despues = null) {
-        try {
-          db.prepare(
-            `INSERT INTO historial (id, entidad, registroId, accion, campo, valorAntes, valorDespues, personaId, creadoEn)
-       VALUES (?,?,?,?,?,?,?,?,?)`
-          ).run(
-            nuevoId(),
-            entidad,
-            registroId,
-            accion,
-            campo,
-            antes === void 0 || antes === null ? null : String(antes),
-            despues === void 0 || despues === null ? null : String(despues),
-            sesion && sesion.personaId || null,
-            (/* @__PURE__ */ new Date()).toISOString()
-          );
-        } catch {
-        }
+        AUD.apuntar(db, { entidad, registroId, accion, campo, antes, despues, personaId: sesion && sesion.personaId, origen: AUD.origenDe(sesion) });
       }
       function rutaDe(entidad) {
         const r = REGLAS[entidad] || {};
@@ -16535,7 +17681,7 @@ globalThis.CX_VARIANTE="cxobra";
         }
         return nombres;
       }
-      var ruido = (h) => h.campo && T.CAMPOS_RUIDO.has(String(h.campo).split(":")[0]);
+      var ruido = (h) => h.campo && (T.CAMPOS_RUIDO.has(String(h.campo).split(":")[0]) || AUD.esSecreto(h.campo));
       var HIJOS = {
         certificaciones: [{ entidad: "lineasCertificacion", columna: "certificacionId" }],
         pedidosCompra: [{ entidad: "pedidoDocumentos", columna: "pedidoId" }, { entidad: "albaranes", columna: "pedidoId" }],
@@ -16568,7 +17714,7 @@ globalThis.CX_VARIANTE="cxobra";
             const trozo = c.ids.slice(i, i + 400);
             filas.push(...db.prepare(
               `SELECT h.id, h.entidad, h.registroId, h.accion, h.campo, h.valorAntes, h.valorDespues, h.personaId, h.creadoEn,
-                p.nombre AS persona
+                h.origen, h.hash, p.nombre AS persona
            FROM historial h LEFT JOIN personas p ON p.id = h.personaId
           WHERE h.entidad = ? AND h.registroId IN (${trozo.map(() => "?").join(",")})
           ORDER BY h.creadoEn DESC LIMIT 1000`
@@ -16648,10 +17794,16 @@ globalThis.CX_VARIANTE="cxobra";
           if (!obraFiltro) return vacio(f, sesion, db);
         }
         const sql = `SELECT h.id, h.entidad, h.registroId, h.accion, h.campo, h.valorAntes, h.valorDespues, h.personaId, h.creadoEn,
-                      p.nombre AS persona
+                      h.origen, h.hash, p.nombre AS persona
                  FROM historial h LEFT JOIN personas p ON p.id = h.personaId
                 WHERE ${donde.join(" AND ")}
                 ORDER BY h.creadoEn DESC, h.id DESC LIMIT ? OFFSET ?`;
+        const llano = (x) => String(x ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        const buscado = f.texto ? llano(f.texto) : "";
+        const casa = (h, c, ses) => {
+          const visible = valorOculto(h.entidad, h.campo, ses) ? [] : [h.valorAntes, h.valorDespues];
+          return [c.registro, T.nombreEntidad(h.entidad), h.campo && T.nombreCampo(h.campo), h.persona, ...visible].some((x) => llano(x).includes(buscado));
+        };
         const conocidos = /* @__PURE__ */ new Map();
         const salida = [];
         const TANDA = 2e3;
@@ -16694,7 +17846,9 @@ globalThis.CX_VARIANTE="cxobra";
           for (const h of tanda) {
             const c = conocidos.get(`${h.entidad}|${h.registroId}`);
             if (!c) continue;
+            if (ruido(h)) continue;
             if (obraFiltro && c.obraId !== obraFiltro.id && !(c.proyectoId && c.proyectoId === obraFiltro.proyectoId)) continue;
+            if (buscado && !casa(h, c, sesion)) continue;
             salida.push({ ...limpiar(h, sesion), registro: c.registro, obraId: c.obraId, proyectoId: c.proyectoId });
             if (salida.length >= f.limite) break;
           }
@@ -16721,6 +17875,117 @@ globalThis.CX_VARIANTE="cxobra";
           puedeExportar: puede(sesion.rol, "trazabilidad", "exportar")
         };
       }
+      function verificar(repo, sesion) {
+        if (!puedeConsultar(sesion)) return null;
+        const r = AUD.verificar(repo.db);
+        return { ...r, problemas: r.problemas.map((p) => ({ tabla: p.tabla, seq: p.seq, tipo: p.tipo, texto: p.texto })) };
+      }
+      function registroVisible(repo, sesion, entidad, id) {
+        if (!sesion || !tablaLegible(entidad, sesion)) return false;
+        let fila = null;
+        try {
+          fila = repo.leer(entidad, sesion, id);
+        } catch {
+          return false;
+        }
+        if (fila) return fila;
+        let existe = true;
+        try {
+          existe = Boolean(repo.db.prepare(`SELECT 1 FROM ${entidad} WHERE id = ?`).get(id));
+        } catch {
+          return false;
+        }
+        return !existe && veLoBorrado(entidad, sesion) ? null : false;
+      }
+      function versiones(repo, sesion, entidad, id) {
+        const fila = registroVisible(repo, sesion, entidad, id);
+        if (fila === false) return null;
+        const db = repo.db;
+        const lista = AUD.versionesDe(db, entidad, id);
+        const ids = [...new Set(lista.map((v) => v.usuario).filter(Boolean))];
+        const personas = new Map(ids.length ? db.prepare(`SELECT id, nombre FROM personas WHERE id IN (${ids.map(() => "?").join(",")})`).all(...ids).map((p) => [p.id, p.nombre]) : []);
+        const salida = lista.map((v) => {
+          const datos = {};
+          const ocultos = [];
+          for (const [k, val] of Object.entries(v.datos || {})) {
+            if (AUD.esSecreto(k)) continue;
+            if (valorOculto(entidad, k, sesion)) {
+              ocultos.push(k);
+              continue;
+            }
+            datos[k] = val;
+          }
+          return {
+            n: v.n,
+            fecha: v.fecha,
+            personaId: v.usuario,
+            persona: personas.get(v.usuario) || "",
+            origen: v.origen,
+            accion: v.accion,
+            operacion: v.operacion,
+            borrado: v.borrado,
+            completa: v.completa,
+            restauraVersion: v.restauraVersion,
+            datos: v.datos ? datos : null,
+            sinGuardar: v.sinGuardar || [],
+            ocultos
+          };
+        });
+        const tras = fila ? fila : null;
+        return {
+          entidad,
+          registroId: id,
+          registro: tras ? etiquetaDe(entidad, tras) : etiquetaDe(entidad, (salida[salida.length - 1] || {}).datos),
+          borrado: !fila,
+          versiones: salida,
+          nombres: nombresDe(db, salida.flatMap((v) => Object.entries(v.datos || {}).map(([campo, x]) => ({ campo, valorAntes: x, valorDespues: null })))),
+          puedeRestaurar: puede(sesion.rol, MODULO_DE[entidad], fila ? "editar" : "crear")
+        };
+      }
+      var NO_SE_RESTAURA = /^(id|creadoEn|modificadoEn|estado\w*)$/;
+      function colgadoDe(entidad) {
+        const r = REGLAS[entidad] || {};
+        return new Set(["porObra", "porProyecto", "porPresupuesto", "porPeticion", "porOferta", "porLinea"].map((k) => r[k]).filter(Boolean));
+      }
+      function bloqueo(entidad, fila) {
+        if (entidad === "certificaciones" && fila && fila.estado && fila.estado !== "borrador") {
+          return "Una certificaci\xF3n emitida o aprobada no se restaura: es la historia de la obra. Haz una correcci\xF3n.";
+        }
+        return null;
+      }
+      function restaurar(repo, sesion, entidad, id, n) {
+        const v = versiones(repo, sesion, entidad, id);
+        if (!v) throw new Error("No ves este registro.");
+        const version = v.versiones.find((x) => x.n === Number(n));
+        if (!version) throw new Error("Esa versi\xF3n no existe.");
+        if (version.borrado) throw new Error("Esa es la versi\xF3n de la baja: elige una anterior.");
+        if (!version.completa) throw new Error("Esa versi\xF3n no guarda la foto completa: se puede consultar, no restaurar.");
+        if (alcanceEsPrivada(entidad)) throw new Error("Esto no se restaura.");
+        const db = repo.db;
+        const actual = db.prepare(`SELECT * FROM ${entidad} WHERE id = ?`).get(id);
+        const motivo = bloqueo(entidad, actual);
+        if (motivo) throw new Error(motivo);
+        const columnas = new Set(db.prepare(`PRAGMA table_info(${entidad})`).all().map((c) => c.name));
+        const opciones2 = { accionHistorial: "restaurar", restauraVersion: version.n };
+        if (actual) {
+          const fuera = colgadoDe(entidad);
+          const cambios = {};
+          for (const [k, val] of Object.entries(version.datos)) {
+            if (!columnas.has(k) || NO_SE_RESTAURA.test(k) || fuera.has(k) || AUD.esSecreto(k)) continue;
+            if (String(actual[k] ?? "") !== String(val ?? "")) cambios[k] = val;
+          }
+          if (!Object.keys(cambios).length) return { restaurado: false, motivo: "Ya est\xE1 tal y como era en esa versi\xF3n." };
+          repo.modificar(entidad, sesion, id, cambios, opciones2);
+          return { restaurado: true, recreado: false, version: version.n, campos: Object.keys(cambios) };
+        }
+        const datos = { id };
+        for (const [k, val] of Object.entries(version.datos)) {
+          if (!columnas.has(k) || /^(id|creadoEn|modificadoEn)$/.test(k) || AUD.esSecreto(k)) continue;
+          datos[k] = val;
+        }
+        repo.crear(entidad, sesion, datos, opciones2);
+        return { restaurado: true, recreado: true, version: version.n, campos: Object.keys(datos).filter((k) => k !== "id") };
+      }
       function nombrePersona(db, id) {
         const p = id ? db.prepare("SELECT nombre FROM personas WHERE id = ?").get(id) : null;
         return p ? p.nombre : "";
@@ -16737,7 +18002,7 @@ globalThis.CX_VARIANTE="cxobra";
           puedeExportar: puede(sesion.rol, "trazabilidad", "exportar")
         };
       }
-      module.exports = { anotar, deRegistro, opciones, consulta, valorOculto, HIJOS };
+      module.exports = { anotar, deRegistro, opciones, consulta, valorOculto, HIJOS, versiones, restaurar, verificar };
     }
   });
 
@@ -17885,10 +19150,10 @@ globalThis.CX_VARIANTE="cxobra";
         {
           id: "OB-1",
           proyectoId: "E-2606",
-          codigo: "OBR-26-001",
-          nombre: "Nave Mercadona Ribarroja \u2014 Instalaciones",
-          cliente: "Mercadona",
-          emplazamiento: "Ribarroja del Turia, Valencia",
+          codigo: "NCN-EJ-001",
+          nombre: "Nou Camp Nou \u2014 Instalaciones",
+          cliente: "Distribuciones Turia",
+          emplazamiento: "Barcelona",
           estado: "enCurso",
           recibidaPor: "pablo",
           jefeGrupoId: "gonzalo",
@@ -17924,7 +19189,7 @@ globalThis.CX_VARIANTE="cxobra";
           proyectoId: "E-2542",
           codigo: "OBR-25-041",
           nombre: "Residencia Les Corts \u2014 Climatizaci\xF3n",
-          cliente: "Grupo Sanitas",
+          cliente: "Grupo Mediterr\xE1neo",
           emplazamiento: "Barcelona",
           estado: "enCurso",
           recibidaPor: "pablo",
@@ -17942,8 +19207,8 @@ globalThis.CX_VARIANTE="cxobra";
           id: "OB-4",
           proyectoId: "E-2611",
           codigo: "OBR-26-004",
-          nombre: "Sanitas \u2014 Cl\xEDnica Vall\xE9s, ampliaci\xF3n consultas",
-          cliente: "Grupo Sanitas",
+          nombre: "Mediterr\xE1neo \u2014 Cl\xEDnica Vall\xE9s, ampliaci\xF3n consultas",
+          cliente: "Grupo Mediterr\xE1neo",
           emplazamiento: "Sabadell",
           estado: "sinAsignar",
           recibidaPor: "pablo",
@@ -17962,7 +19227,7 @@ globalThis.CX_VARIANTE="cxobra";
           proyectoId: "E-2544",
           codigo: "OBR-25-044",
           nombre: "Illacuna \u2014 PCI del aparcamiento",
-          cliente: "Merlin Properties",
+          cliente: "Patrimonial Mistral",
           emplazamiento: "Barcelona",
           estado: "enCurso",
           recibidaPor: "pablo",
@@ -22312,7 +23577,13 @@ globalThis.CX_VARIANTE="cxobra";
             pisadas: Number.isInteger(c.pisadas) && c.pisadas > 0 ? c.pisadas : 0,
             por: hayValorFx(c.por) ? llanoFx(c.por) : null,
             personaId: hayValorFx(c.personaId) ? llanoFx(c.personaId) : null,
-            en: hayValorFx(c.en) ? llanoFx(c.en) : null
+            en: hayValorFx(c.en) ? llanoFx(c.en) : null,
+            /* Para deshacerla: el lote y lo que había (shared/commissioning/rejillaChecklist.js › selloCopia).
+               Las copias de antes no lo llevan y se quedan sin él. */
+            ...hayValorFx(c.lote) ? { lote: llanoFx(c.lote) } : {},
+            ...c.antes && typeof c.antes === "object" ? { antes: Object.fromEntries(Object.entries(c.antes).filter(([, v]) => v && typeof v === "object" && hayValorFx(v.v)).map(([k, v]) => [llanoFx(k), { v: llanoFx(v.v), ...hayValorFx(v.o) ? { o: llanoFx(v.o) } : {} }])) } : {},
+            ...c.cabecera && typeof c.cabecera === "object" ? { cabecera: Object.fromEntries(["fechaEnsayo", "realizadoPor"].filter((k) => hayValorFx(c.cabecera[k])).map((k) => [k, llanoFx(c.cabecera[k])])) } : {},
+            ...hayValorFx(c.observaciones) ? { observaciones: String(c.observaciones).slice(0, 4e3) } : {}
           }));
           return base;
         }
@@ -22343,6 +23614,11 @@ globalThis.CX_VARIANTE="cxobra";
           const d = normalizarFicha(plantilla, datos);
           const firmas = Array.isArray(opciones.firmas) ? opciones.firmas : [];
           const faltan = [];
+          const faltanDatos = [];
+          const faltaDato = (t) => {
+            faltan.push(t);
+            faltanDatos.push(t);
+          };
           const avisos = [];
           let obligatorios = 0;
           let rellenos = 0;
@@ -22391,7 +23667,7 @@ globalThis.CX_VARIANTE="cxobra";
                     obligatorios += 1;
                     rellenos += 1;
                   } else paramVacios.push(punto.etiqueta);
-                  if (ev.m !== null && ev.ref === null) faltan.push(`Proyecto o fabricante: ${punto.etiqueta}`);
+                  if (ev.m !== null && ev.ref === null) faltaDato(`Proyecto o fabricante: ${punto.etiqueta}`);
                 }
                 if (ev.resultado === "aRevisar") {
                   sinConfirmar += 1;
@@ -22413,7 +23689,7 @@ globalThis.CX_VARIANTE="cxobra";
                 }
                 if (val === "no" && s.tipo === "checklist") {
                   resultado = peorFx(resultado, "noApto");
-                  if (!d.observaciones) faltan.push(`Explicar en observaciones el \xABNo\xBB de ${punto.numero || punto.codigo}`);
+                  if (!d.observaciones) faltaDato(`Explicar en observaciones el \xABNo\xBB de ${punto.numero || punto.codigo}`);
                 }
                 if (val === "no" && s.tipo === "checklist" && d.observaciones) {
                   avisos.push(`${punto.numero || punto.codigo} ${punto.etiqueta || ""}: respuesta \xABNo\xBB \u2014 NO APTO`.replace(/\s+/g, " "));
@@ -22454,7 +23730,7 @@ globalThis.CX_VARIANTE="cxobra";
               }
               const total = Object.values(sec.circuitos).reduce((n, c) => n + c.bocas, 0);
               if (plantilla.clase === "balanceo" && total === 0) {
-                faltan.push("No hay ninguna boca con caudal de proyecto");
+                faltaDato("No hay ninguna boca con caudal de proyecto");
               }
               if (Object.values(sec.circuitos).some((c) => c.filas.some((b) => b.resultado === "aRevisar"))) {
                 avisos.push("Hay bocas con el medido id\xE9ntico al de proyecto (\xBFcopiado?)");
@@ -22481,9 +23757,9 @@ globalThis.CX_VARIANTE="cxobra";
             obligatorios += paramVacios.length;
             faltan.unshift(...paramVacios.map((e) => `Medido: ${e}`));
           }
-          if (!d.cabecera.fechaEnsayo) faltan.push("Fecha de ensayo");
-          if (!d.cabecera.realizadoPor) faltan.push("Realizado por");
-          for (const t of sinTol) faltan.push(`La ${NOMBRE_TOLERANCIA[t]} de la obra (la pone el jefe de obra)`);
+          if (!d.cabecera.fechaEnsayo) faltaDato("Fecha de ensayo");
+          if (!d.cabecera.realizadoPor) faltaDato("Realizado por");
+          for (const t of sinTol) faltaDato(`La ${NOMBRE_TOLERANCIA[t]} de la obra (la pone el jefe de obra)`);
           if (datosPrueba) avisos.unshift("Lleva DATOS DE PRUEBA: no se puede firmar");
           let medidosPrueba = 0;
           for (const v of Object.values(d.valores)) if (v && v.mp !== void 0) medidosPrueba += 1;
@@ -22508,6 +23784,7 @@ globalThis.CX_VARIANTE="cxobra";
             secciones,
             medidos: { obligatorios, rellenos },
             faltan,
+            faltanDatos,
             avisos,
             resultado,
             datosPrueba,
@@ -23817,9 +25094,9 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/fflate/lib/browser.cjs
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/fflate/lib/browser.cjs
   var require_browser = __commonJS({
-    "node_modules/fflate/lib/browser.cjs"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/fflate/lib/browser.cjs"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       exports.deflate = deflate;
@@ -26492,6 +27769,21 @@ globalThis.CX_VARIANTE="cxobra";
         if (esLista(fuente)) return docs.rutasDeLista(fs.readFileSync(fuente, "utf8"), urlSharePoint);
         return recorrerCarpeta(fuente, max);
       }
+      function fechaDe(fuente) {
+        try {
+          return esLista(fuente) ? fs.statSync(fuente).mtime.toISOString() : null;
+        } catch {
+          return null;
+        }
+      }
+      function marcaDe(fuente) {
+        try {
+          const st = fs.statSync(fuente);
+          return `${st.mtimeMs}:${st.size}`;
+        } catch {
+          return null;
+        }
+      }
       function enlazador(fuente, urlSharePoint) {
         const url = String(urlSharePoint || "").trim().replace(/\/+$/, "");
         const web = (rel) => `${url}/${rel.split("/").map(encodeURIComponent).join("/")}`;
@@ -26514,7 +27806,7 @@ globalThis.CX_VARIANTE="cxobra";
         fs.writeFileSync(destino, bytes);
         return destino;
       }
-      module.exports = { esLista, nombresZip, recorrerCarpeta, rutasDe, enlazador, abrirLocal, MAX_ZIP };
+      module.exports = { esLista, nombresZip, recorrerCarpeta, rutasDe, fechaDe, marcaDe, enlazador, abrirLocal, MAX_ZIP };
     }
   });
 
@@ -27761,7 +29053,7 @@ globalThis.CX_VARIANTE="cxobra";
       var SECCION_RED = /(?:^|[^\d])(\d{2,4})\s*[x×X*]\s*(\d{2,4})(?!\d)/;
       var DIAMETRO_RED = /[Ø∅ø]\s*(\d{2,4})(?!\d)/;
       var CIRCUITO_RED = [[/\b(RET|RETORNO|EXT|EXTRACCION|EXPULSION)\b/i, "retorno"], [/\b(IMP|IMPULSION)\b/i, "impulsion"]];
-      var BOCA_RED = /\b(DIF|DIFUSOR|REJ|REJILLA|RJ|D|R)[-_. ]?\d{1,3}\b/i;
+      var BOCA_RED = /\b(DIF|DIFUSOR|REJ|REJILLA|RJ|D|R)[-_. ]?\d{1,3}\b|\b(DR|DL|RR|RE)_\d{1,2}_[0-9A-Z]{3,5}\b/i;
       var MODULO_TECHO_RED = /* @__PURE__ */ new Set(["600x600", "625x625", "595x595", "300x300"]);
       var ELEMENTOS_RED = [
         [/\b(CCF|CORTAFUEGOS|CF)\b/i, "compuertaCortafuegos"],
@@ -29215,6 +30507,7 @@ globalThis.CX_VARIANTE="cxobra";
           const valores = { ...destino.valores || {} };
           const cuenta = { copiadas: 0, pisadas: 0, conservadas: 0, iguales: 0 };
           const puntos = [];
+          const antes = {};
           let hayNo = false;
           for (const p of puntosChecklist(plantilla)) {
             const o = valoresO[p.codigo];
@@ -29230,6 +30523,7 @@ globalThis.CX_VARIANTE="cxobra";
                 continue;
               }
               cuenta.pisadas += 1;
+              antes[p.codigo] = { ...d };
             }
             valores[p.codigo] = { v: o.v, o: "copia" };
             cuenta.copiadas += 1;
@@ -29254,20 +30548,120 @@ globalThis.CX_VARIANTE="cxobra";
             datos: { ...destino, valores, cabecera, observaciones },
             ...cuenta,
             puntos,
+            antes,
             cabeceraRellena: rellenos,
+            /* Lo que se ha puesto en la cabecera, con su valor: deshacer solo lo quita si sigue igual. */
+            cabeceraCopiada: Object.fromEntries(rellenos.map((k) => [k, cabecera[k]])),
             observacionesCopiadas
           };
         }
-        function selloCopia({ de, clave, puntos = [], pisadas = 0, por, personaId, en } = {}) {
+        const valorPuntoRc = (x) => x && typeof x === "object" && hayRc(x.v) ? { v: llanoRc(x.v), ...hayRc(x.o) ? { o: llanoRc(x.o) } : {} } : null;
+        function selloCopia({ de, clave, puntos = [], pisadas = 0, por, personaId, en, lote, antes, cabecera, observaciones } = {}) {
+          const lista = (Array.isArray(puntos) ? puntos : []).map(llanoRc).filter(Boolean).slice(0, 300);
+          const previos = {};
+          for (const p of lista) {
+            const v = valorPuntoRc(antes && antes[p]);
+            if (v) previos[p] = v;
+          }
+          const cab = {};
+          for (const k of ["fechaEnsayo", "realizadoPor"]) if (cabecera && hayRc(cabecera[k])) cab[k] = llanoRc(cabecera[k]);
           return {
             de: llanoRc(de) || null,
             clave: llanoRc(clave) || null,
-            puntos: (Array.isArray(puntos) ? puntos : []).map(llanoRc).filter(Boolean).slice(0, 300),
+            puntos: lista,
             pisadas: Number.isInteger(pisadas) && pisadas > 0 ? pisadas : 0,
             por: llanoRc(por) || null,
             personaId: llanoRc(personaId) || null,
-            en: llanoRc(en) || null
+            en: llanoRc(en) || null,
+            lote: llanoRc(lote) || null,
+            antes: previos,
+            cabecera: cab,
+            observaciones: hayRc(observaciones) ? String(observaciones).slice(0, 4e3) : null
           };
+        }
+        function loteDe(c) {
+          if (!c) return null;
+          if (hayRc(c.lote)) return llanoRc(c.lote);
+          return hayRc(c.en) ? `${llanoRc(c.en)}|${llanoRc(c.clave)}` : null;
+        }
+        function deshacerCopia(datos = {}, lote) {
+          const copias = Array.isArray(datos.copias) ? datos.copias : [];
+          let i = -1;
+          for (let k = copias.length - 1; k >= 0; k -= 1) if (loteDe(copias[k]) === llanoRc(lote)) {
+            i = k;
+            break;
+          }
+          if (i < 0) return { encontrada: false };
+          const c = copias[i];
+          const conAntes = c.antes && typeof c.antes === "object";
+          if (!conAntes && c.pisadas > 0) {
+            return { encontrada: true, posible: false, motivo: "Esa copia pis\xF3 respuestas y no guard\xF3 cu\xE1les hab\xEDa: hay que corregirla a mano." };
+          }
+          const valores = { ...datos.valores || {} };
+          const posteriores = copias.slice(i + 1).map((x) => x.antes && typeof x.antes === "object" ? { ...x, antes: { ...x.antes } } : { ...x });
+          const cuenta = { deshechas: 0, aMano: 0, deOtraCopia: 0 };
+          for (const p of c.puntos || []) {
+            const v = valores[p];
+            if (!v || v.o !== "copia") {
+              cuenta.aMano += 1;
+              continue;
+            }
+            const previo = conAntes ? valorPuntoRc(c.antes[p]) : null;
+            const otra = posteriores.filter((x) => (x.puntos || []).includes(p)).pop();
+            if (otra) {
+              if (otra.antes && otra.antes[p] && otra.antes[p].o === "copia") {
+                if (previo) otra.antes[p] = previo;
+                else delete otra.antes[p];
+              }
+              cuenta.deOtraCopia += 1;
+              continue;
+            }
+            if (previo) valores[p] = previo;
+            else delete valores[p];
+            cuenta.deshechas += 1;
+          }
+          const cabecera = { ...datos.cabecera || {} };
+          const cabeceraVaciada = [];
+          let observaciones = datos.observaciones || "";
+          let observacionesQuitadas = false;
+          if (!cuenta.aMano) {
+            for (const [k, valor] of Object.entries(c.cabecera || {})) {
+              if (llanoRc(cabecera[k]) === llanoRc(valor)) {
+                cabecera[k] = null;
+                cabeceraVaciada.push(k);
+              }
+            }
+            if (hayRc(c.observaciones) && llanoRc(observaciones) === llanoRc(c.observaciones)) {
+              observaciones = "";
+              observacionesQuitadas = true;
+            }
+          }
+          return {
+            encontrada: true,
+            posible: true,
+            sello: c,
+            datos: { ...datos, valores, cabecera, observaciones, copias: [...copias.slice(0, i), ...posteriores] },
+            ...cuenta,
+            cabeceraVaciada,
+            observacionesQuitadas
+          };
+        }
+        function copiasRecientes(fichas = [], { maximo = 5 } = {}) {
+          const lotes = /* @__PURE__ */ new Map();
+          for (const f of fichas) {
+            const copias = f && f.datos && Array.isArray(f.datos.copias) ? f.datos.copias : [];
+            for (const c of copias) {
+              const lote = loteDe(c);
+              if (!lote) continue;
+              if (!lotes.has(lote)) lotes.set(lote, { lote, de: c.de, por: c.por, en: c.en, equipos: 0, respuestas: 0, firmadas: 0, deshacible: true });
+              const g = lotes.get(lote);
+              g.equipos += 1;
+              if (f.firmada) g.firmadas += 1;
+              g.respuestas += (c.puntos || []).filter((p) => copiaDePunto(f.datos, p) === c).length;
+              if (!(c.antes && typeof c.antes === "object") && c.pisadas > 0) g.deshacible = false;
+            }
+          }
+          return [...lotes.values()].sort((a, b) => llanoRc(b.en).localeCompare(llanoRc(a.en))).slice(0, maximo).map((g) => ({ ...g, texto: `${textoCopia({ de: g.de, por: g.por, en: g.en, puntos: [] }).replace(/ · 0 respuestas$/, "")} \xB7 a ${g.equipos} ${g.equipos === 1 ? "equipo" : "equipos"}` }));
         }
         function copiaDePunto(datos = {}, codigo) {
           const v = (datos.valores || {})[codigo];
@@ -29306,7 +30700,7 @@ globalThis.CX_VARIANTE="cxobra";
         (function exportar(API) {
           if (typeof module !== "undefined" && module.exports) module.exports = API;
           if (typeof window !== "undefined") window.REJILLA_CHECKLIST = API;
-        })({ puntosChecklist, copiarRespuestas, selloCopia, copiaDePunto, textoCopia, fechaCorta: fechaCortaRc, copiasVigentes });
+        })({ puntosChecklist, copiarRespuestas, selloCopia, copiaDePunto, textoCopia, fechaCorta: fechaCortaRc, copiasVigentes, loteDe, deshacerCopia, copiasRecientes });
       })();
     }
   });
@@ -30733,7 +32127,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         const estadoTxt = (e) => Mi.ESTADOS[e] ? Mi.ESTADOS[e].nombre : e || "";
         const plazoTxt = (p) => Mi.PLAZOS[p] ? Mi.PLAZOS[p].nombre : "";
         const prioridadTxt = (p) => Mi.prioridad(p) ? Mi.prioridad(p).nombre : p || "";
-        const CLASE_ESTADO = { abierta: "mal", enCurso: "aviso", pteVerificar: "info", cerrada: "bien", observacion: "info", anulada: "neutra" };
+        const CLASE_ESTADO = { abierta: "mal", enCurso: "aviso", enviadaRevision: "info", pteVerificar: "info", cerrada: "bien", observacion: "info", anulada: "neutra" };
         const CLASE_PLAZO = { vencida: "mal", proximosDias: "aviso", sinPlanificar: "neutra", enPlazo: "bien" };
         const chip = (texto, clase) => texto ? `<span class="chipDoc ${clase || ""}">${esc(texto)}</span>` : "";
         const cab = (titulo, obra, sub = "") => `
@@ -31062,6 +32456,578 @@ ${subtitulo}`, c[5]] : c.slice())]);
     }
   });
 
+  // shared/ncr/harbour.js
+  var require_harbour = __commonJS({
+    "shared/ncr/harbour.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function iniciarHarbour() {
+        const Mi = typeof __require !== "undefined" ? require_motor() : window.NCR_MOTOR;
+        const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+        const fecha = (d) => {
+          const x = Mi.dia(d);
+          return x ? x.split("-").reverse().join("/") : "";
+        };
+        const estadoTxt = (e) => Mi.ESTADOS[e] ? Mi.ESTADOS[e].nombre : e || "";
+        const prioridadTxt = (p) => Mi.prioridad(p) ? Mi.prioridad(p).nombre : p || "";
+        const unir = (...p) => p.filter(Boolean).join(" \xB7 ");
+        const PROVISIONAL = true;
+        const CAMPOS_HARBOUR = [
+          ["Referencia", (f) => f.codigo],
+          ["Referencia externa", (f) => f.codExterno],
+          ["Fecha de detecci\xF3n", (f) => fecha(f.fechaDeteccion)],
+          ["Ubicaci\xF3n", (f) => unir(f.planta, f.zona, f.sala)],
+          ["Disciplina", (f) => f.disciplina],
+          ["Descripci\xF3n", (f) => f.descripcion],
+          ["Responsable", (f) => f.industrialResponsable],
+          ["Prioridad", (f) => prioridadTxt(f.prioridad)],
+          ["Estado", (f) => estadoTxt(f.estado)],
+          ["Fecha prevista", (f) => fecha(f.fechaPrevista)],
+          ["Acci\xF3n correctora", (f) => f.accionInicial],
+          ["Fecha de cierre", (f) => fecha(f.fechaCierre)],
+          ["Comentarios", (f) => f.accionFinal]
+        ];
+        const celda = (v) => String(v ?? "").replace(/[\t\r\n]+/g, " ").trim();
+        const valores = (f, campos) => campos.map((c) => celda(c[1](f)));
+        function tablaHarbour(filas, { campos = CAMPOS_HARBOUR, sinCabecera = false } = {}) {
+          const l = filas.map((f) => valores(f, campos).join("	"));
+          return (sinCabecera ? l : [campos.map((c) => c[0]).join("	"), ...l]).join("\n");
+        }
+        function fichaHarbour(f, { campos = CAMPOS_HARBOUR } = {}) {
+          return campos.map((c) => `${c[0]}: ${celda(c[1](f))}`).join("\n");
+        }
+        function resumenHarbour(d, filas, ctx = {}) {
+          const campos = ctx.campos || CAMPOS_HARBOUR;
+          return `<article class="hojaNcr apaisada">
+    <header class="cabDoc">
+      <div class="logo">CBRE</div>
+      <div><h1>NO CONFORMIDADES \xB7 RESUMEN PARA HARBOUR</h1>
+        <p>${esc(d.obra ? `${d.obra.codigo || ""} \xB7 ${d.obra.nombre || ""}` : "")} \xB7 ${filas.length} NCR${PROVISIONAL ? " \xB7 campos de ejemplo" : ""}</p></div>
+    </header>
+    <table class="tablaDoc">
+      <thead><tr>${campos.map((c) => `<th>${esc(c[0])}</th>`).join("")}</tr></thead>
+      <tbody>${filas.map((f) => `<tr>${valores(f, campos).map((v) => `<td>${esc(v)}</td>`).join("")}</tr>`).join("") || `<tr><td colspan="${campos.length}">Ninguna.</td></tr>`}</tbody>
+    </table>
+    <footer class="pieDoc">${esc(d.obra ? d.obra.codigo : "")} \xB7 ${fecha(ctx.hoy || (/* @__PURE__ */ new Date()).toISOString())}</footer>
+  </article>`;
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.NCR_HARBOUR = API;
+        })({ CAMPOS_HARBOUR, PROVISIONAL, tablaHarbour, fichaHarbour, resumenHarbour });
+      })();
+    }
+  });
+
+  // shared/ncr/resumenSemanal.js
+  var require_resumenSemanal = __commonJS({
+    "shared/ncr/resumenSemanal.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function iniciarResumenSemanalNcr() {
+        const Mi = typeof __require !== "undefined" ? require_motor() : window.NCR_MOTOR;
+        const llano = (v) => (v === null || v === void 0 ? "" : String(v)).trim();
+        function diaLocal(iso) {
+          const t = llano(iso);
+          if (!t) return null;
+          if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+          if (!/T\d{2}:\d{2}/.test(t)) return Mi.dia(t);
+          const d = new Date(t);
+          if (Number.isNaN(d.getTime())) return Mi.dia(t);
+          return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+        }
+        function inicioDia(dia) {
+          const [a, m, d] = dia.split("-").map(Number);
+          return new Date(a, m - 1, d, 0, 0, 0, 0).toISOString();
+        }
+        const finDia = (dia) => inicioDia(Mi.sumarDias(dia, 1));
+        const hoyLocal = () => new Date((/* @__PURE__ */ new Date()).getTime() - (/* @__PURE__ */ new Date()).getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+        const NOMBRES_CAMPO = {
+          estado: "Estado",
+          fechaPrevista: "Fecha prevista",
+          fechaPrevistaInicial: "Prevista inicial",
+          motivoUltimoAplazamiento: "Motivo del aplazamiento",
+          industrialResponsable: "Industrial responsable",
+          empresaResuelve: "Empresa que resuelve",
+          fechaResolucionReal: "Resoluci\xF3n real",
+          fechaCierre: "Fecha de cierre",
+          fechaEnvioRevision: "Enviada a revisi\xF3n",
+          verificadoPor: "Verificado por",
+          descripcion: "Descripci\xF3n",
+          accionInicial: "Acci\xF3n inicial",
+          accionFinal: "Acci\xF3n final",
+          planta: "Planta",
+          zona: "Zona",
+          sala: "Sala",
+          salaNueva: "Sala nueva",
+          descripcionLocal: "Local",
+          disciplina: "Disciplina",
+          causa: "Causa",
+          prioridad: "Prioridad",
+          urgencia: "Urgencia",
+          dificultad: "Dificultad",
+          bloqueaCommissioning: "Bloquea commissioning",
+          fotos: "Fotos",
+          horasOficial: "Horas de oficial",
+          horasOperario: "Horas de operario",
+          cobrarPropiedad: "Se cobra a la propiedad",
+          estadoCobro: "Estado del cobro",
+          nCertificacion: "Certificaci\xF3n",
+          evidencia: "Evidencia",
+          codExterno: "C\xF3digo Dalux",
+          refDocumento: "Referencia",
+          origen: "Origen",
+          detectadoPor: "Detectado por",
+          fechaDeteccion: "Fecha de detecci\xF3n",
+          estadoDalux: "Estado en Dalux",
+          estadoExcel: "Estado en el Excel",
+          fechaAccion: "Fecha de la acci\xF3n",
+          motivoAnulacion: "Motivo de anulaci\xF3n"
+        };
+        const TIPO_DE_CAMPO = {
+          estado: "estado",
+          fechaEnvioRevision: "estado",
+          fechaCierre: "estado",
+          fechaResolucionReal: "estado",
+          verificadoPor: "estado",
+          motivoAnulacion: "estado",
+          fechaPrevista: "plazo",
+          fechaPrevistaInicial: "plazo",
+          motivoUltimoAplazamiento: "plazo",
+          industrialResponsable: "industrial",
+          empresaResuelve: "industrial",
+          fotos: "fotos"
+        };
+        const TIPOS = {
+          estado: "Estado",
+          plazo: "Plazo",
+          industrial: "Industrial",
+          comentario: "Comentarios",
+          fotos: "Fotos",
+          otros: "Otros datos"
+        };
+        const CAMPOS_MUDOS = /* @__PURE__ */ new Set(["modificadoEn", "creadoEn", "importacionId", "creadoPor", "numero", "codigo", "tarifaOficial", "tarifaOperario", "precioCobroH", "tarifasCongeladas"]);
+        const nombreEstado = (e) => Mi.ESTADOS[e] ? Mi.ESTADOS[e].nombre : llano(e);
+        const fechaTxt = (d) => {
+          const x = Mi.dia(d);
+          return x ? x.split("-").reverse().join("/") : llano(d);
+        };
+        function valorTxt(campo, v) {
+          if (v === null || v === void 0 || llano(v) === "") return "\u2014";
+          if (campo === "estado") return nombreEstado(v);
+          if (campo === "fotos") {
+            try {
+              const l = JSON.parse(v);
+              return Array.isArray(l) ? `${l.length} ${l.length === 1 ? "foto" : "fotos"}` : llano(v);
+            } catch {
+              return llano(v);
+            }
+          }
+          if (/^fecha/.test(campo)) return fechaTxt(v) || llano(v);
+          if (["bloqueaCommissioning", "cobrarPropiedad"].includes(campo)) return Number(v) ? "s\xED" : "no";
+          const t = llano(v).replace(/\s+/g, " ");
+          return t.length > 140 ? `${t.slice(0, 137)}\u2026` : t;
+        }
+        function cambioDe(h, aplazamientosNcr = []) {
+          const campo = h.campo || "";
+          let detalle = "";
+          if (campo === "fotos") {
+            const n = (v) => {
+              try {
+                const l = JSON.parse(v || "[]");
+                return Array.isArray(l) ? l.length : 0;
+              } catch {
+                return 0;
+              }
+            };
+            const d = n(h.valorDespues) - n(h.valorAntes);
+            detalle = d > 0 ? `${d} ${d === 1 ? "foto a\xF1adida" : "fotos a\xF1adidas"}` : d < 0 ? `${-d} ${d === -1 ? "foto quitada" : "fotos quitadas"}` : "fotos cambiadas";
+          }
+          if (campo === "fechaPrevista") {
+            const dia = diaLocal(h.creadoEn);
+            const ap = aplazamientosNcr.find((a) => Mi.dia(a.fechaRegistro) === dia && Mi.dia(a.fechaNueva) === Mi.dia(h.valorDespues));
+            if (ap && ap.motivo) detalle = `motivo: ${llano(ap.motivo)}${ap.detalle ? ` (${llano(ap.detalle)})` : ""}`;
+          }
+          return {
+            cuando: h.creadoEn,
+            dia: diaLocal(h.creadoEn),
+            quien: llano(h.persona) || llano(h.personaId) || null,
+            tipo: TIPO_DE_CAMPO[campo] || "otros",
+            campo,
+            nombre: NOMBRES_CAMPO[campo] || campo,
+            antes: valorTxt(campo, h.valorAntes),
+            despues: valorTxt(campo, h.valorDespues),
+            detalle,
+            texto: campo === "fotos" ? detalle : `${NOMBRES_CAMPO[campo] || campo}: ${valorTxt(campo, h.valorAntes)} \u2192 ${valorTxt(campo, h.valorDespues)}${detalle ? ` \xB7 ${detalle}` : ""}`
+          };
+        }
+        const activo = (estado) => Boolean(Mi.ESTADOS[estado] && Mi.ESTADOS[estado].activa);
+        function resumenSemanal({ filas = [], historial = [], comentarios = [], aplazamientos = [], semana = null, hoy = hoyLocal(), semanasAtras = 8 } = {}) {
+          const limpia = (l) => Array.isArray(l) ? l.filter((x) => x && typeof x === "object") : [];
+          filas = limpia(filas);
+          historial = limpia(historial);
+          comentarios = limpia(comentarios);
+          aplazamientos = limpia(aplazamientos);
+          if (!Mi.dia(hoy)) hoy = hoyLocal();
+          const lunes = Mi.lunesDe(Mi.dia(semana) ? semana : hoy);
+          const domingo = Mi.sumarDias(lunes, 6);
+          const esActual = hoy >= lunes && hoy <= domingo;
+          const esFutura = hoy < lunes;
+          const porNcr = /* @__PURE__ */ new Map();
+          const de = (id) => {
+            if (!porNcr.has(id)) porNcr.set(id, { historial: [], comentarios: [], aplazamientos: [], creadoEn: null });
+            return porNcr.get(id);
+          };
+          const ordenado = [...historial].sort((a, b) => llano(a.creadoEn).localeCompare(llano(b.creadoEn)));
+          for (const h of ordenado) {
+            const x = de(h.registroId);
+            if (h.accion === "crear") {
+              if (!x.creadoEn) x.creadoEn = h.creadoEn;
+              continue;
+            }
+            if (h.accion !== "editar" || !h.campo || CAMPOS_MUDOS.has(h.campo)) continue;
+            if (llano(h.valorAntes) === llano(h.valorDespues)) continue;
+            x.historial.push(h);
+          }
+          for (const c of comentarios) de(c.ncrId).comentarios.push(c);
+          for (const a of aplazamientos) de(a.ncrId).aplazamientos.push(a);
+          const primeraLinea = ordenado.length ? llano(ordenado[0].creadoEn) : null;
+          const nace = (n) => Mi.dia(n.fechaDeteccion) || diaLocal((porNcr.get(n.id) || {}).creadoEn || n.creadoEn) || null;
+          const altaEnApp = (n) => diaLocal((porNcr.get(n.id) || {}).creadoEn || n.creadoEn) || nace(n);
+          function estadoEn(n, instante) {
+            const x = porNcr.get(n.id);
+            const cambios = x ? x.historial.filter((h) => h.campo === "estado") : [];
+            const posteriores = cambios.filter((h) => llano(h.creadoEn) >= instante);
+            if (posteriores.length) return llano(posteriores[0].valorAntes) || "abierta";
+            if (!cambios.length && !activo(n.estado) && Mi.dia(n.fechaCierre) && finDia(Mi.dia(n.fechaCierre)) > instante) return "abierta";
+            return n.estado;
+          }
+          const existeEn = (n, dia) => {
+            const d = nace(n);
+            return Boolean(d) && d <= dia;
+          };
+          const resumenFila = (n) => ({
+            id: n.id,
+            codigo: n.codigo,
+            codExterno: n.codExterno || null,
+            descripcion: n.descripcion || "",
+            planta: n.planta || "",
+            zona: n.zona || "",
+            disciplina: n.disciplina || "",
+            industrial: n.industrialResponsable || "",
+            estado: n.estado,
+            fechaPrevista: n.fechaPrevista || null,
+            fechaCierre: n.fechaCierre || null,
+            prioridad: n.prioridad || null
+          });
+          function semanaDe(ini, fin, { conListas = false } = {}) {
+            const desde = inicioDia(ini);
+            const hasta = finDia(fin);
+            const cierre = esActual && fin >= hoy || hoy < fin ? null : hasta;
+            const instanteFin = cierre || finDia(hoy);
+            const diaFin = cierre ? fin : hoy;
+            const nuevas = [];
+            const cerradas = [];
+            const actualizadas = [];
+            let abiertasInicio = 0;
+            let importadas = 0;
+            let abiertasFin = 0;
+            let vencidasFin = 0;
+            let sinFechaFin = 0;
+            const porEstadoFin = {};
+            const porTipo = { estado: 0, plazo: 0, industrial: 0, comentario: 0, fotos: 0, otros: 0 };
+            const grupos = { industrial: /* @__PURE__ */ new Map(), planta: /* @__PURE__ */ new Map(), disciplina: /* @__PURE__ */ new Map() };
+            const grupo = (n) => {
+              const claves = { industrial: llano(n.industrialResponsable), planta: llano(n.planta), disciplina: llano(n.disciplina) };
+              return Object.entries(claves).map(([k, clave]) => {
+                if (!grupos[k].has(clave)) grupos[k].set(clave, { clave, nuevas: 0, cerradas: 0, actualizadas: 0, abiertasFin: 0, vencidasFin: 0 });
+                return grupos[k].get(clave);
+              });
+            };
+            for (const n of filas) {
+              if (n.estado === "anulada" && !existeEn(n, diaFin)) continue;
+              const x = porNcr.get(n.id) || { historial: [], comentarios: [], aplazamientos: [] };
+              const g = grupo(n);
+              if (existeEn(n, Mi.sumarDias(ini, -1)) && activo(estadoEn(n, desde))) abiertasInicio += 1;
+              if (existeEn(n, diaFin)) {
+                const e = estadoEn(n, instanteFin);
+                porEstadoFin[e] = (porEstadoFin[e] || 0) + 1;
+                if (activo(e)) {
+                  abiertasFin += 1;
+                  for (const gg of g) gg.abiertasFin += 1;
+                  const fp = Mi.dia(n.fechaPrevista);
+                  if (!fp) sinFechaFin += 1;
+                  else if (fp < diaFin) {
+                    vencidasFin += 1;
+                    for (const gg of g) gg.vencidasFin += 1;
+                  }
+                }
+              }
+              const d = nace(n);
+              const llega = Boolean(d) && d >= ini && d <= fin;
+              const importada = llega && !Mi.dia(n.fechaDeteccion) && Boolean(n.importacionId);
+              const esNueva = llega && !importada;
+              if (importada) importadas += 1;
+              if (esNueva) {
+                nuevas.push(n);
+                for (const gg of g) gg.nuevas += 1;
+              }
+              const enSemana = x.historial.filter((h) => llano(h.creadoEn) >= desde && llano(h.creadoEn) < hasta);
+              const neto = /* @__PURE__ */ new Set();
+              for (const campo of new Set(enSemana.map((h) => h.campo))) {
+                const l = enSemana.filter((h) => h.campo === campo);
+                if (campo === "estado" || llano(l[0].valorAntes) !== llano(l[l.length - 1].valorDespues)) neto.add(campo);
+              }
+              const lineas = enSemana.filter((h) => neto.has(h.campo));
+              const coment = x.comentarios.filter((c) => llano(c.creadoEn) >= desde && llano(c.creadoEn) < hasta);
+              const cambios = lineas.map((h) => cambioDe(h, x.aplazamientos));
+              for (const c of coment) {
+                cambios.push({
+                  cuando: c.creadoEn,
+                  dia: diaLocal(c.creadoEn),
+                  quien: llano(c.persona) || llano(c.personaId) || null,
+                  tipo: "comentario",
+                  campo: "comentario",
+                  nombre: "Comentario",
+                  antes: "",
+                  despues: llano(c.texto),
+                  detalle: "",
+                  texto: `Comentario: ${llano(c.texto).length > 140 ? `${llano(c.texto).slice(0, 137)}\u2026` : llano(c.texto)}`
+                });
+              }
+              cambios.sort((a, b) => llano(a.cuando).localeCompare(llano(b.cuando)));
+              const cierres = lineas.filter((h) => h.campo === "estado" && h.valorDespues === "cerrada");
+              const cierreSinHistorial = !cierres.length && n.estado === "cerrada" && !x.historial.some((h) => h.campo === "estado") && Mi.dia(n.fechaCierre) && Mi.dia(n.fechaCierre) >= ini && Mi.dia(n.fechaCierre) <= fin;
+              if (cierres.length || cierreSinHistorial) {
+                const ult = cierres[cierres.length - 1];
+                cerradas.push({
+                  ...resumenFila(n),
+                  cuando: ult ? ult.creadoEn : Mi.dia(n.fechaCierre) || null,
+                  dia: ult ? diaLocal(ult.creadoEn) : Mi.dia(n.fechaCierre),
+                  quien: ult ? llano(ult.persona) || llano(ult.personaId) || null : null,
+                  sinRegistro: !ult,
+                  reabierta: n.estado !== "cerrada",
+                  cambios
+                });
+                for (const gg of g) gg.cerradas += 1;
+                continue;
+              }
+              const soloAlta = cambios.length === 0;
+              if (!soloAlta && !(esNueva && cambios.every((c) => c.dia === altaEnApp(n) && c.tipo === "otros"))) {
+                const tipos = [...new Set(cambios.map((c) => c.tipo))];
+                for (const t2 of tipos) porTipo[t2] += 1;
+                actualizadas.push({ ...resumenFila(n), tipos, cambios, ultimo: cambios[cambios.length - 1] });
+                for (const gg of g) gg.actualizadas += 1;
+              }
+            }
+            const ordenCodigo = (a, b) => llano(a.cuando || a.dia).localeCompare(llano(b.cuando || b.dia)) || String(a.codigo).localeCompare(String(b.codigo), "es", { numeric: true });
+            cerradas.sort(ordenCodigo);
+            actualizadas.sort((a, b) => llano(b.ultimo.cuando).localeCompare(llano(a.ultimo.cuando)));
+            const lista = (m) => [...m.values()].filter((g) => g.nuevas || g.cerradas || g.actualizadas || g.abiertasFin).sort((a, b) => b.abiertasFin - a.abiertasFin || b.cerradas - a.cerradas || a.clave.localeCompare(b.clave, "es", { numeric: true }));
+            const t = {
+              abiertasInicio,
+              nuevas: nuevas.length,
+              importadas,
+              cerradas: cerradas.length,
+              actualizadas: actualizadas.length,
+              abiertasFin,
+              vencidasFin,
+              sinFechaFin,
+              enviadasRevisionFin: porEstadoFin.enviadaRevision || 0,
+              pteVerificarFin: porEstadoFin.pteVerificar || 0,
+              porEstadoFin,
+              balance: nuevas.length - cerradas.length,
+              porTipo,
+              personas: [...new Set([...cerradas.map((c) => c.quien), ...actualizadas.flatMap((a) => a.cambios.map((c) => c.quien))].filter(Boolean))]
+            };
+            return conListas ? {
+              lunes: ini,
+              domingo: fin,
+              totales: t,
+              nuevas: nuevas.map(resumenFila),
+              cerradas,
+              actualizadas,
+              porIndustrial: lista(grupos.industrial),
+              porPlanta: lista(grupos.planta),
+              porDisciplina: lista(grupos.disciplina)
+            } : { lunes: ini, domingo: fin, ...t };
+          }
+          const actual = semanaDe(lunes, domingo, { conListas: true });
+          const tendencia = [];
+          for (let i = semanasAtras; i >= 1; i--) {
+            const ini = Mi.sumarDias(lunes, -7 * i);
+            tendencia.push(semanaDe(ini, Mi.sumarDias(ini, 6)));
+          }
+          tendencia.push({ lunes, domingo, ...actual.totales });
+          const previa = tendencia.length > 1 ? tendencia[tendencia.length - 2] : null;
+          let aviso = null;
+          if (esFutura) aviso = "Esa semana todav\xEDa no ha empezado.";
+          else if (primeraLinea && diaLocal(primeraLinea) > lunes) aviso = `El historial de la app empieza el ${fechaTxt(diaLocal(primeraLinea))}: antes de eso solo se sabe lo que tra\xEDan las fechas de Dalux.`;
+          return {
+            semana: { lunes, domingo, actual: esActual, futura: esFutura, hastaHoy: esActual ? hoy : domingo },
+            totales: actual.totales,
+            nuevas: actual.nuevas,
+            cerradas: actual.cerradas,
+            actualizadas: actual.actualizadas,
+            porIndustrial: actual.porIndustrial,
+            porPlanta: actual.porPlanta,
+            porDisciplina: actual.porDisciplina,
+            tendencia,
+            frente: previa ? {
+              cerradas: actual.totales.cerradas - previa.cerradas,
+              nuevas: actual.totales.nuevas - previa.nuevas,
+              actualizadas: actual.totales.actualizadas - previa.actualizadas,
+              abiertasFin: actual.totales.abiertasFin - previa.abiertasFin
+            } : null,
+            aviso,
+            TIPOS
+          };
+        }
+        function hojasExcel(r, { obra = {} } = {}) {
+          const t = r.totales;
+          const cab = `${obra.codigo || ""} ${obra.nombre || ""}`.trim();
+          const resumen = [
+            ["Resumen semanal de NCR", cab],
+            ["Semana", `del ${fechaTxt(r.semana.lunes)} al ${fechaTxt(r.semana.domingo)}`],
+            [],
+            ["Abiertas al inicio", t.abiertasInicio],
+            ["Nuevas", t.nuevas],
+            ["Importadas sin fecha de detecci\xF3n", t.importadas],
+            ["Cerradas", t.cerradas],
+            ["Actualizadas", t.actualizadas],
+            ["Abiertas al final", t.abiertasFin],
+            ["Vencidas al final", t.vencidasFin],
+            ["Sin fecha prevista", t.sinFechaFin],
+            ["Enviadas a revisi\xF3n", t.enviadasRevisionFin],
+            ["Pte. verificar", t.pteVerificarFin]
+          ];
+          const cerradas = [
+            ["NCR", "Dalux", "Planta", "Disciplina", "Industrial", "Descripci\xF3n", "Cerrada el", "Por", "Otros cambios de la semana"],
+            ...r.cerradas.map((c) => [
+              c.codigo,
+              c.codExterno || "",
+              c.planta,
+              c.disciplina,
+              c.industrial,
+              c.descripcion,
+              fechaTxt(c.dia),
+              c.quien || (c.sinRegistro ? "no consta (importada)" : ""),
+              c.cambios.filter((x) => x.campo !== "estado").map((x) => x.texto).join(" \xB7 ")
+            ])
+          ];
+          const actualizadas = [
+            ["NCR", "Dalux", "Planta", "Disciplina", "Industrial", "Estado", "Descripci\xF3n", "Cu\xE1ndo", "Qui\xE9n", "Qu\xE9 cambi\xF3"],
+            ...r.actualizadas.flatMap((a) => a.cambios.map((c) => [
+              a.codigo,
+              a.codExterno || "",
+              a.planta,
+              a.disciplina,
+              a.industrial,
+              nombreEstado(a.estado),
+              a.descripcion,
+              fechaTxt(c.dia),
+              c.quien || "",
+              c.texto
+            ]))
+          ];
+          const desglose = (lista, nombre) => [
+            [nombre, "Nuevas", "Cerradas", "Actualizadas", "Abiertas al final", "Vencidas al final"],
+            ...lista.map((g) => [g.clave || `(sin ${nombre.toLowerCase()})`, g.nuevas, g.cerradas, g.actualizadas, g.abiertasFin, g.vencidasFin])
+          ];
+          const tendencia = [
+            ["Semana del", "Abiertas al inicio", "Nuevas", "Cerradas", "Actualizadas", "Abiertas al final", "Vencidas al final"],
+            ...r.tendencia.map((s) => [fechaTxt(s.lunes), s.abiertasInicio, s.nuevas, s.cerradas, s.actualizadas, s.abiertasFin, s.vencidasFin])
+          ];
+          return [
+            { nombre: "Resumen", filas: resumen, anchos: [26, 40], cabecera: 0 },
+            { nombre: "Cerradas", filas: cerradas, anchos: [11, 10, 8, 16, 20, 50, 11, 22, 50], filtro: true },
+            { nombre: "Actualizadas", filas: actualizadas, anchos: [11, 10, 8, 16, 20, 14, 50, 11, 22, 60], filtro: true },
+            { nombre: "Por industrial", filas: desglose(r.porIndustrial, "Industrial"), anchos: [28, 9, 9, 12, 16, 16] },
+            { nombre: "Por planta", filas: desglose(r.porPlanta, "Planta"), anchos: [28, 9, 9, 12, 16, 16] },
+            { nombre: "Por disciplina", filas: desglose(r.porDisciplina, "Disciplina"), anchos: [28, 9, 9, 12, 16, 16] },
+            { nombre: "Tendencia", filas: tendencia, anchos: [12, 16, 9, 9, 12, 16, 16] }
+          ];
+        }
+        const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+        const corto = (t, n = 110) => {
+          const s = llano(t).replace(/\s+/g, " ");
+          return s.length > n ? `${s.slice(0, n - 1)}\u2026` : s;
+        };
+        function documento(r, { obra = {}, hoy = hoyLocal() } = {}) {
+          const P = typeof __require !== "undefined" ? require_papel() : window.PAPEL;
+          const t = r.totales;
+          const nombreObra = [obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ");
+          const semanaTxt = `del ${fechaTxt(r.semana.lunes)} al ${fechaTxt(r.semana.domingo)}`;
+          const dif = (v) => v === null || v === void 0 || v === 0 ? "" : `${v > 0 ? "+" : ""}${v} frente a la anterior`;
+          const fr = r.frente || {};
+          const tabla = (cabeza, filas, vacia) => `<table class="tablaDoc"><thead><tr>${cabeza.map(([h, n]) => `<th${n ? ' class="n"' : ""}>${esc(h)}</th>`).join("")}</tr></thead>
+    <tbody>${filas.length ? filas.join("") : `<tr><td colspan="${cabeza.length}">${esc(vacia)}</td></tr>`}</tbody></table>`;
+          const cerradas = r.cerradas.map((c) => `<tr><td>${esc(c.codigo)}</td><td>${esc(c.codExterno || "")}</td><td>${esc(c.planta)}</td><td>${esc(c.industrial)}</td>
+    <td>${esc(corto(c.descripcion))}</td><td>${esc(fechaTxt(c.dia))}</td><td>${esc(c.quien || (c.sinRegistro ? "no consta" : ""))}${c.reabierta ? " \xB7 reabierta despu\xE9s" : ""}</td></tr>`);
+          const actualizadas = r.actualizadas.map((a) => `<tr><td>${esc(a.codigo)}</td><td>${esc(a.codExterno || "")}</td><td>${esc(a.planta)}</td><td>${esc(a.industrial)}</td>
+    <td>${esc(nombreEstado(a.estado))}</td><td>${a.cambios.map((c) => `${esc(fechaTxt(c.dia).slice(0, 5))} ${esc(c.texto)}${c.quien ? ` <span class="tenue">(${esc(c.quien)})</span>` : ""}`).join("<br>")}</td></tr>`);
+          const desglose = (lista, nombre) => `<div><h3>Por ${nombre.toLowerCase()}</h3>${tabla(
+            [[nombre], ["Nuevas", 1], ["Cerradas", 1], ["Actualiz.", 1], ["Abiertas", 1], ["Vencidas", 1]],
+            lista.slice(0, 25).map((g) => `<tr><td>${esc(g.clave || `(sin ${nombre.toLowerCase()})`)}</td><td class="n">${g.nuevas || ""}</td><td class="n">${g.cerradas || ""}</td>
+      <td class="n">${g.actualizadas || ""}</td><td class="n">${g.abiertasFin || ""}</td><td class="n">${g.vencidasFin || ""}</td></tr>`),
+            "Nada esta semana."
+          )}</div>`;
+          const filasTendencia = [["Abiertas al inicio", "abiertasInicio"], ["Nuevas", "nuevas"], ["Cerradas", "cerradas"], ["Actualizadas", "actualizadas"], ["Abiertas al final", "abiertasFin"], ["Vencidas al final", "vencidasFin"]];
+          const cuerpo = `<article class="hojaNcr apaisada resumenSemanalDoc">
+    ${P.portada({
+            tipo: "No conformidades",
+            titulo: "Resumen semanal",
+            subtitulo: `Semana ${semanaTxt}${r.semana.actual ? ` \xB7 hasta hoy ${fechaTxt(hoy)}` : ""}`,
+            datos: [["Obra", nombreObra], ["Qui\xE9n ha movido NCR", t.personas.join(", ")]]
+          })}
+    ${P.cifras([
+            { que: "Abiertas al inicio", valor: String(t.abiertasInicio) },
+            { que: "Nuevas", valor: String(t.nuevas), nota: t.importadas ? `+${t.importadas} importadas sin fecha` : dif(fr.nuevas) },
+            { que: "Cerradas", valor: String(t.cerradas), nota: dif(fr.cerradas), clase: t.cerradas ? "bien" : "" },
+            { que: "Actualizadas", valor: String(t.actualizadas), nota: dif(fr.actualizadas) },
+            { que: "Abiertas al final", valor: String(t.abiertasFin), nota: `balance ${t.balance >= 0 ? "+" : ""}${t.balance}` },
+            { que: "Vencidas", valor: String(t.vencidasFin), clase: t.vencidasFin ? "mal" : "" },
+            { que: "Sin fecha", valor: String(t.sinFechaFin) },
+            { que: "Enviadas a revisi\xF3n", valor: String(t.enviadasRevisionFin), nota: t.pteVerificarFin ? `${t.pteVerificarFin} pte. verificar` : "" }
+          ])}
+    ${r.aviso ? `<p class="tenue">${esc(r.aviso)}</p>` : ""}
+    <h3>Tendencia</h3>
+    <table class="tablaDoc"><thead><tr><th>Semana del</th>${r.tendencia.map((s) => `<th class="n">${esc(fechaTxt(s.lunes).slice(0, 5))}</th>`).join("")}</tr></thead>
+      <tbody>${filasTendencia.map(([n, c]) => `<tr><th>${n}</th>${r.tendencia.map((s) => `<td class="n">${s[c]}</td>`).join("")}</tr>`).join("")}</tbody></table>
+    <h3>Cerradas (${r.cerradas.length})</h3>
+    ${tabla([["NCR"], ["Dalux"], ["Planta"], ["Industrial"], ["Descripci\xF3n"], ["Cerrada el"], ["Por"]], cerradas, "Ninguna cerrada esta semana.")}
+    <h3>Actualizadas (${r.actualizadas.length})</h3>
+    ${tabla([["NCR"], ["Dalux"], ["Planta"], ["Industrial"], ["Estado"], ["Qu\xE9 cambi\xF3"]], actualizadas, "Ninguna actualizada esta semana.")}
+    <div class="tresColDoc">${desglose(r.porIndustrial, "Industrial")}${desglose(r.porPlanta, "Planta")}${desglose(r.porDisciplina, "Disciplina")}</div>
+  </article>`;
+          return P.hoja({ documento: `Resumen semanal de NCR \xB7 ${semanaTxt}`, obra: nombreObra, fecha: hoy, cuerpo, clase: "apaisado" });
+        }
+        function paraReporte(r) {
+          const t = r.totales;
+          const trozos = [
+            `${t.cerradas} ${t.cerradas === 1 ? "cerrada" : "cerradas"}`,
+            `${t.nuevas} ${t.nuevas === 1 ? "nueva" : "nuevas"}`,
+            `${t.actualizadas} ${t.actualizadas === 1 ? "actualizada" : "actualizadas"}`
+          ];
+          return {
+            lunes: r.semana.lunes,
+            cerradas: t.cerradas,
+            nuevas: t.nuevas,
+            actualizadas: t.actualizadas,
+            abiertasInicio: t.abiertasInicio,
+            abiertasFin: t.abiertasFin,
+            balance: t.balance,
+            linea: `Esta semana: ${trozos.join(", ")}; de ${t.abiertasInicio} abiertas a ${t.abiertasFin}.`
+          };
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.NCR_RESUMEN = API;
+        })({ resumenSemanal, hojasExcel, documento, paraReporte, cambioDe, valorTxt, diaLocal, NOMBRES_CAMPO, TIPOS });
+      })();
+    }
+  });
+
   // electron/data/ncr.js
   var require_ncr = __commonJS({
     "electron/data/ncr.js"(exports, module) {
@@ -31142,6 +33108,12 @@ ${subtitulo}`, c[5]] : c.slice())]);
             estadoEquipo: M.estadoEquipo(a, n)
           };
         });
+        const tagsPorNcr = /* @__PURE__ */ new Map();
+        for (const a of asignaciones) {
+          if (!a.tag) continue;
+          if (!tagsPorNcr.has(a.ncrId)) tagsPorNcr.set(a.ncrId, []);
+          tagsPorNcr.get(a.ncrId).push(a.tag);
+        }
         const plantas = [...new Set([
           ...reg.cfg.catalogos.planta,
           ...d.equipos.map((e) => llano(e.planta)),
@@ -31152,7 +33124,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
           corte: reg.corte,
           config: reg.cfg,
           plantas,
-          filas: (dinero ? reg.filas : reg.filas.map(sinDinero)).map((f) => ({ ...f, ...CONV.resumen(conv, f.id) })),
+          filas: (dinero ? reg.filas : reg.filas.map(sinDinero)).map((f) => ({ ...f, equiposTags: tagsPorNcr.get(f.id) || [], ...CONV.resumen(conv, f.id) })),
           aplazamientos: d.aplazamientos.map((a) => ({ ...a, codigo: (ncrPorId.get(a.ncrId) || {}).codigo })),
           asignaciones,
           empresas: d.empresas,
@@ -31176,11 +33148,15 @@ ${subtitulo}`, c[5]] : c.slice())]);
         if (!n) return null;
         const datos = obra(repo, sesion, n.obraId);
         const fila = datos.filas.find((f) => f.id === id);
+        const creador = n.creadoPor ? repo.db.prepare("SELECT nombre FROM personas WHERE id = ?").get(n.creadoPor) : null;
         const historial = repo.db.prepare(
-          `SELECT h.accion, h.campo, h.valorAntes, h.valorDespues, h.creadoEn, p.nombre AS persona
+          `SELECT h.accion, h.campo, h.valorAntes, h.valorDespues, h.creadoEn, h.personaId, p.nombre AS persona
        FROM historial h LEFT JOIN personas p ON p.id = h.personaId
       WHERE h.entidad = 'ncr' AND h.registroId = ? ORDER BY h.creadoEn DESC LIMIT 200`
-        ).all(id).filter((h) => datos.verDinero || !["tarifaOficial", "tarifaOperario", "precioCobroH"].includes(h.campo));
+        ).all(id).filter((h) => datos.verDinero || !["tarifaOficial", "tarifaOperario", "precioCobroH"].includes(h.campo)).map((h) => ({
+          ...h,
+          persona: h.persona || (h.accion === "crear" && creador ? creador.nombre : null) || h.personaId || (n.importacionId ? "Importaci\xF3n de la punchlist" : "La app")
+        }));
         return {
           ncr: fila,
           obra: datos.obra,
@@ -31416,22 +33392,56 @@ ${subtitulo}`, c[5]] : c.slice())]);
       function tarifasDe(repo, sesion, obraId) {
         return new Map(repo.listar("ncrEmpresas", sesion, { condicion: "obraId = ?", params: [obraId] }).map((e) => [M.normalizar(e.nombre), { oficial: e.tarifaOficial, operario: e.tarifaOperario }]));
       }
+      var DESHACER_SEGUNDOS = 90;
+      var cierresRecientes = /* @__PURE__ */ new Map();
+      var CAMPOS_CIERRE = [
+        "estado",
+        "fechaResolucionReal",
+        "fechaCierre",
+        "verificadoPor",
+        "tarifaOficial",
+        "tarifaOperario",
+        "precioCobroH",
+        "estadoCobro"
+      ];
       function cerrar(repo, sesion, id, { fechaResolucionReal, confirmar = false } = {}) {
         if (!puede(sesion.rol, "ncr", "editar")) return { ok: false, error: SIN_EDITAR };
         const n = repo.leer("ncr", sesion, id);
         if (!n) return { ok: false, error: "No se encuentra la NCR." };
         const cfg = M.configuracion(configDe(repo, sesion, n.obraId));
+        const fecha = M.dia(fechaResolucionReal) || (fechaResolucionReal ? null : hoy());
         const r = M.comprobarCierre(
           n,
-          { fechaResolucionReal, verificadoPor: nombreDe(repo, sesion) },
+          { fechaResolucionReal: fecha, verificadoPor: nombreDe(repo, sesion) },
           { tarifas: tarifasDe(repo, sesion, n.obraId), precioCobroH: cfg.precioCobroH },
           hoy()
         );
         if (r.errores.length) return { ok: false, error: r.errores.join(" ") };
         if (r.avisos.length && !confirmar) return { ok: false, avisos: r.avisos, pideConfirmar: true };
+        const antes = Object.fromEntries(CAMPOS_CIERRE.map((c) => [c, n[c] ?? null]));
         repo.modificar("ncr", sesion, id, r.cambios);
+        cierresRecientes.set(id, { antes, personaId: sesion.personaId, cuando: Date.now() });
         const pendientes = repo.listar("ncrEquipos", sesion, { condicion: "ncrId = ? AND requiereRePM = 1 AND fechaRePM IS NULL", params: [id] }).map((a) => (repo.leer("equiposObra", sesion, a.equipoId) || {}).tag).filter(Boolean);
-        return { ok: true, equiposPteRePM: pendientes, diasResolucion: M.diasEntre(n.fechaDeteccion, r.cambios.fechaResolucionReal) };
+        return {
+          ok: true,
+          fechaResolucionReal: r.cambios.fechaResolucionReal,
+          equiposPteRePM: pendientes,
+          diasResolucion: M.diasEntre(n.fechaDeteccion, r.cambios.fechaResolucionReal),
+          deshacerSegundos: DESHACER_SEGUNDOS
+        };
+      }
+      function deshacerCierre(repo, sesion, id) {
+        if (!puede(sesion.rol, "ncr", "editar")) return { ok: false, error: SIN_EDITAR };
+        const n = repo.leer("ncr", sesion, id);
+        if (!n) return { ok: false, error: "No se encuentra la NCR." };
+        const c = cierresRecientes.get(id);
+        if (!c || c.personaId !== sesion.personaId || Date.now() - c.cuando > DESHACER_SEGUNDOS * 1e3) {
+          return { ok: false, error: "Ya no se puede deshacer: re\xE1brela desde el men\xFA \xAB\u22EF\xBB." };
+        }
+        if (n.estado !== "cerrada") return { ok: false, error: "La NCR ya no est\xE1 cerrada." };
+        cierresRecientes.delete(id);
+        repo.modificar("ncr", sesion, id, c.antes);
+        return { ok: true, estado: c.antes.estado };
       }
       function anular(repo, sesion, id, motivo) {
         if (!puede(sesion.rol, "ncr", "editar")) return { ok: false, error: SIN_EDITAR };
@@ -31536,7 +33546,15 @@ ${subtitulo}`, c[5]] : c.slice())]);
           if (!f || typeof f.ruta !== "string" || !f.ruta.trim() || ya.has(f.ruta)) return false;
           ya.add(f.ruta);
           return true;
-        }).map((f) => ({ ruta: f.ruta, nombre: llano(f.nombre) || f.ruta.split(/[\\/]/).pop(), tipo, fecha: hoy() }));
+        }).map((f) => ({
+          ruta: f.ruta,
+          nombre: llano(f.nombre) || f.ruta.split(/[\\/]/).pop(),
+          tipo,
+          fecha: hoy(),
+          /* La copia en la nube (shared/sync/fotosNube.js), si la foto viene de la web. */
+          ...typeof f.nube === "string" && f.nube ? { nube: f.nube } : {},
+          ...typeof f.origen === "string" && f.origen ? { origen: f.origen } : {}
+        }));
         const todas = [...actuales, ...nuevas];
         if (todas.length > MAX_FOTOS) return { ok: false, error: `Como mucho ${MAX_FOTOS} fotos por NCR.` };
         repo.modificar("ncr", sesion, id, { fotos: JSON.stringify(todas) });
@@ -31699,8 +33717,11 @@ ${subtitulo}`, c[5]] : c.slice())]);
             nombre: llano(h.nombre).slice(0, 100),
             filas: Number(h.filas) || 0,
             columnaCodigo: llano(h.columnaCodigo).slice(0, 100),
-            planta: h.planta ? llano(h.planta).slice(0, 30) : null
+            planta: h.planta ? llano(h.planta).slice(0, 30) : null,
+            oculta: h.oculta ? 1 : 0
           })),
+          /* Las pestañas ocultas con NCR que NO se importan: quedan en el resumen para que se vea por qué faltan. */
+          ocultas: (Array.isArray(analisis.ocultas) ? analisis.ocultas : []).slice(0, 100).map((h) => ({ nombre: llano(h && h.nombre).slice(0, 100), filas: Number(h && h.filas) || 0 })),
           omitidas: lista(analisis.omitidas),
           avisos: lista(analisis.avisos),
           sinCodigo: lista(analisis.sinCodigo, 1e3),
@@ -31802,11 +33823,43 @@ ${subtitulo}`, c[5]] : c.slice())]);
             apaisado: true
           };
         }
+        if (tipo === "harbour") {
+          const ids = Array.isArray(opciones.ids) ? new Set(opciones.ids) : null;
+          const filas = d.filas.filter((f) => !ids || ids.has(f.id)).sort((a, b) => a.numero - b.numero);
+          return { ok: true, html: require_harbour().resumenHarbour(d, filas, ctx), nombre: nombreFichero(`${cod} NCR resumen Harbour`), apaisado: true };
+        }
         if (tipo === "cobrables") {
           if (!d.verDinero) return { ok: false, error: "El cobro no es de tu rol." };
           return { ok: true, html: I.cobrables(d, ctx), nombre: nombreFichero(`${cod} NCR cobrables`), apaisado: false };
         }
         return { ok: false, error: "Informe desconocido." };
+      }
+      function resumenSemanal(repo, sesion, obraId, { semana = null, semanasAtras = 8 } = {}) {
+        if (!puede(sesion.rol, "ncr", "ver")) return null;
+        const o = obraVisible(repo, sesion, obraId);
+        if (!o) return null;
+        const R = require_resumenSemanal();
+        const d = crudo(repo, sesion, obraId);
+        const dinero = verDinero(sesion);
+        const nombres = new Map(repo.db.prepare("SELECT id, nombre FROM personas").all().map((p) => [p.id, p.nombre]));
+        const quien = (id) => id ? nombres.get(id) || "Usuario sin ficha" : null;
+        const historial = repo.db.prepare(
+          `SELECT h.registroId, h.accion, h.campo, h.valorAntes, h.valorDespues, h.creadoEn, h.personaId
+       FROM historial h JOIN ncr n ON n.id = h.registroId
+      WHERE h.entidad = 'ncr' AND n.obraId = ?`
+        ).all(obraId).filter((h) => dinero || !["tarifaOficial", "tarifaOperario", "precioCobroH", "estadoCobro"].includes(h.campo)).map((h) => ({ ...h, persona: quien(h.personaId) }));
+        const comentarios = repo.listar("ncrComentarios", sesion, { condicion: "obraId = ?", params: [obraId], orden: "creadoEn" }).map((c) => ({ ...c, persona: quien(c.personaId) }));
+        const r = R.resumenSemanal({ filas: d.ncr, historial, comentarios, aplazamientos: d.aplazamientos, semana, hoy: hoy(), semanasAtras });
+        return { obra: { id: o.id, codigo: o.codigo, nombre: o.nombre }, ...r };
+      }
+      function resumenSemanalDocumento(repo, sesion, obraId, { semana = null, formato = "pdf" } = {}) {
+        if (!puede(sesion.rol, "ncr", "exportar") && !puede(sesion.rol, "ncr", "editar")) return { ok: false, error: "Tu rol no saca informes de NCR." };
+        const r = resumenSemanal(repo, sesion, obraId, { semana });
+        if (!r) return { ok: false, error: "No se encuentra la obra." };
+        const R = require_resumenSemanal();
+        const nombre = nombreFichero(`${r.obra.codigo} NCR resumen semana ${r.semana.lunes}`);
+        if (formato === "excel") return { ok: true, hojas: R.hojasExcel(r, { obra: r.obra }), nombre };
+        return { ok: true, html: R.documento(r, { obra: r.obra, hoy: hoy() }), nombre, apaisado: true, papel: true };
       }
       function avisos(repo, sesion) {
         if (!puede(sesion.rol, "ncr", "ver")) return null;
@@ -31824,13 +33877,22 @@ ${subtitulo}`, c[5]] : c.slice())]);
             vencidas: cm.plazos.vencidas,
             proximas: cm.plazos.proximos,
             sinFecha: cm.plazos.sinFecha,
+            enviadasRevision: cm.global.enviadasRevision,
+            pteVerificar: cm.global.pteVerificar,
             equiposBloqueados: cm.commissioning.equiposBloqueados,
             pteRePM: cm.commissioning.equiposPteRePM,
-            lista: [...cm.listas.vencidas, ...cm.listas.proximas].slice(0, 5)
+            lista: [...cm.listas.vencidas, ...cm.listas.proximas].slice(0, 5),
+            listaRevision: cm.listas.enviadasRevision.slice(0, 5)
           });
         }
-        obras.sort((a, b) => b.vencidas - a.vencidas || b.activas - a.activas);
-        return { obras };
+        obras.sort((a, b) => b.vencidas - a.vencidas || b.enviadasRevision - a.enviadasRevision || b.activas - a.activas);
+        return {
+          obras,
+          /* Lo que revisa quien entra: las enviadas a revisión de sus obras. */
+          enviadasRevision: obras.reduce((s, o) => s + o.enviadasRevision, 0),
+          /* Quién revisa: el jefe de obra y los que mandan sobre él. */
+          revisa: puede(sesion.rol, "ncr", "editar") && ["jefeObra", "jefeGrupo", "jefeProyectos", "jefeCommissioning", "gerente", "jefeProduccion"].includes(sesion.rol)
+        };
       }
       module.exports = {
         obra,
@@ -31841,6 +33903,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         planificar,
         cambiarEstado,
         cerrar,
+        deshacerCierre,
         anular,
         asignarEquipos,
         quitarEquipo,
@@ -31859,7 +33922,9 @@ ${subtitulo}`, c[5]] : c.slice())]);
         avisos,
         sanear,
         htmlFicha,
-        htmlInforme
+        htmlInforme,
+        resumenSemanal,
+        resumenSemanalDocumento
       };
     }
   });
@@ -35006,6 +37071,31 @@ ${subtitulo}`, c[5]] : c.slice())]);
       var CAUDAL_DIF = /(\d{1,3}(?:\.\d{3})*(?:,\d+)?|\d+(?:[.,]\d+)?)\s*m\s*(?:3|³)\s*\/\s*h/i;
       var CAUDAL_Q_DIF = /\bQ\s*[=:]\s*(\d+(?:[.,]\d+)?)/i;
       var RADIO_DIF = 0.06;
+      var CODIGO_CAD_DIF = /^(DR|DL|DF|DIF|RR|RJ|RT|RA|RI|RET|EXT|IMP|RE)_(\d{1,2})_([0-9A-Z]{3,5})$/i;
+      var RETORNO_CAD_DIF = /^(RR|RJ|RT|RA|RI|RET|EXT)$/i;
+      var OTRO_SISTEMA_DIF = /\bVI-N\d+|\bELECT-/i;
+      var RADIO_OTRO_DIF = 0.09;
+      var RADIO_EXTERIOR_DIF = 0.12;
+      var CORTE_DIF = /(^|[_\s])(section|secci[oó]n|corte)([_\s]|\d|$)/i;
+      var CORTE_IZQ_DIF = 0.065;
+      var CORTE_DER_DIF = 0.1;
+      var CORTE_ALTO_DIF = 0.22;
+      function recuentoTablaDif(textos) {
+        const lista = (Array.isArray(textos) ? textos : []).map((t) => ({ x: Number(t && t.x), y: Number(t && t.y), t: String(t && t.texto || "").trim() })).filter((t) => Number.isFinite(t.x) && Number.isFinite(t.y) && t.t);
+        const enteros = lista.filter((t) => /^\d{1,3}$/.test(t.t));
+        const filas = [];
+        for (const c of lista) {
+          if (!CODIGO_CAD_DIF.test(c.t)) continue;
+          const n = enteros.filter((e) => e.x > c.x && e.x - c.x < 0.5 && Math.abs(e.y - c.y) < 4e-3).sort((p, q) => p.x - q.x)[0];
+          if (n) filas.push({ codigo: c.t.toUpperCase(), x: c.x, xn: n.x, n: Number(n.t) });
+        }
+        const salida = {};
+        for (const f of filas) {
+          const columna = filas.filter((g) => Math.abs(g.x - f.x) < 4e-3 && Math.abs(g.xn - f.xn) < 4e-3);
+          if (new Set(columna.map((g) => g.codigo)).size >= 2 && salida[f.codigo] === void 0) salida[f.codigo] = f.n;
+        }
+        return salida;
+      }
       function numeroCaudalDif(t) {
         const m = CAUDAL_DIF.exec(t) || CAUDAL_Q_DIF.exec(t);
         if (!m) return null;
@@ -35013,7 +37103,14 @@ ${subtitulo}`, c[5]] : c.slice())]);
         const n = /^\d{1,3}(\.\d{3})+$/.test(crudo) ? Number(crudo.replace(/\./g, "")) : Number(crudo.replace(",", "."));
         return Number.isFinite(n) && n > 0 && n < 1e5 ? n : null;
       }
-      function reconocerBocasDif(textos, { modelos = [], existentes = [] } = {}) {
+      function reconocerBocasDif(textos, { modelos = [], existentes = [], recuento = null, excluir = [] } = {}) {
+        const avisos = [];
+        const descartadas = [];
+        const exteriores = [];
+        const otros = [];
+        const cortes = [];
+        const fuera = new Set((excluir || []).map((r) => String(r).toUpperCase()));
+        const tabla = { ...recuentoTablaDif(textos), ...recuento || {} };
         const porRef = new Map((modelos || []).map((m) => [String(m.ref || "").replace(/[\s_.-]/g, "").toUpperCase(), m]));
         const etiquetas = [];
         const caudales = [];
@@ -35025,8 +37122,22 @@ ${subtitulo}`, c[5]] : c.slice())]);
           if (!texto) continue;
           const q = numeroCaudalDif(texto);
           if (q !== null) caudales.push({ x, y, q, usado: false });
+          if (OTRO_SISTEMA_DIF.test(texto)) otros.push({ x, y });
+          if (CORTE_DIF.test(texto)) cortes.push({ x, y });
           const trozos = texto.split(/[\s;,()[\]]+/).filter(Boolean);
           for (let i = 0; i < trozos.length; i++) {
+            const cad = CODIGO_CAD_DIF.exec(trozos[i]);
+            if (cad) {
+              const pref = cad[1].toUpperCase();
+              const codigo = trozos[i].toUpperCase();
+              if (pref === "RE") {
+                exteriores.push({ x, y });
+                break;
+              }
+              const modelo = porRef.get(codigo.replace(/[\s_.-]/g, "")) || null;
+              etiquetas.push({ x, y, ref: codigo, modelo, retorno: modelo ? tipoDif(modelo.tipo).circuito === "retorno" : RETORNO_CAD_DIF.test(pref), q, lineal: pref === "DL", cad: true });
+              break;
+            }
             const hit = [trozos[i], trozos[i + 1] ? `${trozos[i]} ${trozos[i + 1]}` : null].filter(Boolean).map((limpio) => {
               const modelo = porRef.get(limpio.replace(/[\s_.-]/g, "").toUpperCase()) || null;
               const m = ETIQUETA_DIF.exec(limpio);
@@ -35038,6 +37149,9 @@ ${subtitulo}`, c[5]] : c.slice())]);
             break;
           }
         }
+        const enCorte = (e) => e.cad && cortes.some((c) => e.x >= c.x - CORTE_IZQ_DIF && e.x <= c.x + CORTE_DER_DIF && e.y < c.y && c.y - e.y <= CORTE_ALTO_DIF);
+        for (const e of etiquetas.filter(enCorte)) descartadas.push({ ref: e.ref, x: e.x, y: e.y, motivo: "r\xF3tulo de un corte (secci\xF3n), no del plano" });
+        etiquetas.splice(0, etiquetas.length, ...etiquetas.filter((e) => !enCorte(e)));
         const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
         const pares = [];
         etiquetas.forEach((e, i) => {
@@ -35058,9 +37172,34 @@ ${subtitulo}`, c[5]] : c.slice())]);
           e.px = Math.min(1, Math.max(0, e.x + (e.x - c.x) * 0.8));
           e.py = Math.min(1, Math.max(0, e.y + (e.y - c.y) * 0.8));
         }
+        const aparte = (e) => e.cad && e.retorno && (fuera.has(e.ref) || otros.some((o) => dist(e, o) <= RADIO_OTRO_DIF) || exteriores.some((o) => dist(e, o) <= RADIO_EXTERIOR_DIF));
+        for (const e of etiquetas.filter(aparte)) descartadas.push({ ref: e.ref, x: e.x, y: e.y, motivo: "parece de otro sistema (cuarto o reja exterior al lado)" });
+        etiquetas.splice(0, etiquetas.length, ...etiquetas.filter((e) => !aparte(e)));
+        const lineales = {};
+        for (const e of etiquetas.filter((x) => x.lineal)) (lineales[e.ref] = lineales[e.ref] || []).push(e);
+        for (const [codigo, rotulos2] of Object.entries(lineales)) {
+          const total = tabla[codigo];
+          if (!Number.isInteger(total) || total <= rotulos2.length) {
+            avisos.push(`${codigo}: ${rotulos2.length} r\xF3tulos de difusor lineal y no se ha le\xEDdo la tabla de selecci\xF3n; cada r\xF3tulo suele se\xF1alar varias unidades, cu\xE9ntalas en el plano.`);
+            continue;
+          }
+          const extra = total - rotulos2.length;
+          for (let k = 0; k < extra; k++) {
+            const base = rotulos2[k % rotulos2.length];
+            const p = juntoADif(base.x, base.y, 1 + Math.floor(k / rotulos2.length));
+            etiquetas.push({ ...base, px: p.x, py: p.y, q: base.q, qDe: base, aprox: true });
+          }
+          avisos.push(`${codigo}: la tabla cuenta ${total} unidades lineales y el plano solo rotula ${rotulos2.length}; se han creado ${total} (las ${extra} a\xF1adidas, junto a su r\xF3tulo): col\xF3calas en su sitio.`);
+        }
+        const rotulados = {};
+        for (const e of etiquetas) if (!e.lineal && e.cad) rotulados[e.ref] = (rotulados[e.ref] || 0) + 1;
+        for (const [codigo, n] of Object.entries(rotulados)) {
+          if (Number.isInteger(tabla[codigo]) && tabla[codigo] !== n) avisos.push(`${codigo}: la tabla cuenta ${tabla[codigo]} y el plano rotula ${n}; revisa que est\xE9n todas.`);
+        }
         etiquetas.sort((a, b) => Math.abs(a.y - b.y) > 0.02 ? a.y - b.y : a.x - b.x);
         const todas = [...existentes || []];
         const bocas = [];
+        const rotulos = etiquetas.map((e) => ({ ref: e.ref, x: e.x, y: e.y, cad: Boolean(e.cad), lineal: Boolean(e.lineal), aprox: Boolean(e.aprox) }));
         for (const e of etiquetas) {
           const circuito = e.retorno ? "retorno" : "impulsion";
           const base = e.modelo ? { ...camposModeloDif(e.modelo), modeloId: e.modelo.id } : { tipo: circuito === "retorno" ? "rejillaRet" : TIPO_DEFECTO_DIF };
@@ -35070,12 +37209,29 @@ ${subtitulo}`, c[5]] : c.slice())]);
             x: e.px ?? e.x,
             y: e.py ?? e.y,
             caudalDiseno: e.q !== null ? e.q : e.modelo ? e.modelo.caudalProyecto : null,
-            nota: `Del plano: ${e.ref}`
+            nota: `Del plano: ${e.ref}${e.lineal ? " (difusor lineal)" : ""}${e.aprox ? " \xB7 posici\xF3n aproximada: unidad de la tabla sin r\xF3tulo propio" : ""}`
           }, todas.length);
           todas.push(p);
           bocas.push(p);
         }
-        return { bocas, sinCaudal: bocas.filter((b) => b.caudalDiseno === null).length, leidos: (textos || []).length };
+        return { bocas, rotulos, sinCaudal: bocas.filter((b) => b.caudalDiseno === null).length, leidos: (textos || []).length, avisos, descartadas, recuento: tabla };
+      }
+      var PASO_JUNTO_DIF = 0.012;
+      function juntoADif(x, y, k = 1) {
+        const sx = x > 0.9 ? -1 : 1;
+        const sy = y > 0.9 ? -1 : 1;
+        const lim = (v) => Math.max(0, Math.min(1, v));
+        return { x: lim(x + sx * PASO_JUNTO_DIF * k), y: lim(y + sy * PASO_JUNTO_DIF * k) };
+      }
+      function zonasCorteDif(textos) {
+        const salida = [];
+        for (const t of Array.isArray(textos) ? textos : []) {
+          const x = Number(t && t.x);
+          const y = Number(t && t.y);
+          if (!Number.isFinite(x) || !Number.isFinite(y) || !CORTE_DIF.test(String(t && t.texto || ""))) continue;
+          salida.push({ x0: x - CORTE_IZQ_DIF, x1: x + CORTE_DER_DIF, y0: y - CORTE_ALTO_DIF, y1: y });
+        }
+        return salida;
       }
       (function exportar(API) {
         if (typeof module !== "undefined" && module.exports) module.exports = API;
@@ -35123,7 +37279,11 @@ ${subtitulo}`, c[5]] : c.slice())]);
         generarBocas: generarBocasDif,
         colocarEnLista: colocarEnListaDif,
         reconocerBocas: reconocerBocasDif,
-        caudalDeTexto: numeroCaudalDif
+        recuentoTabla: recuentoTablaDif,
+        caudalDeTexto: numeroCaudalDif,
+        zonasCorte: zonasCorteDif,
+        juntoA: juntoADif,
+        CODIGO_CAD: CODIGO_CAD_DIF
       });
     }
   });
@@ -38017,6 +40177,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         if (!def || def.clase !== "checklist") return { ok: false, error: `${plantilla} no es un checklist.` };
         const puntos = RC.puntosChecklist(def);
         const filas = [];
+        const leidas = [];
         for (const { e, fam, reqs } of conChecklists) {
           if (familia && (!fam || fam.codigo !== familia)) continue;
           const req = reqs.find((r) => r.plantilla === plantilla);
@@ -38032,6 +40193,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
             if (c) copiadas[p.codigo] = RC.textoCopia(c);
           }
           const copias = Array.isArray(datos.copias) ? datos.copias : [];
+          leidas.push({ tag: e.tag, datos, firmada: Boolean(fila && leerJson(fila.firmas, []).length) });
           const cab = datos.cabecera || {};
           filas.push({
             equipoId: e.id,
@@ -38058,7 +40220,9 @@ ${subtitulo}`, c[5]] : c.slice())]);
           familias: listaFamilias,
           /* Lo que una ficha nueva toma de la obra (realizado por…), para enseñarlo de pista. */
           cabeceraObra: cabeceraDe(configDe(repo, sesion, obraId)),
-          editable: puede(sesion.rol, "commissioning", "editar")
+          editable: puede(sesion.rol, "commissioning", "editar"),
+          /* Las últimas copias de esta familia, para poder deshacerlas de golpe. */
+          copiasRecientes: RC.copiasRecientes(leidas)
         };
       }
       function guardarRejillaChecklist(repo, sesion, obraId, plantilla, cambios = []) {
@@ -38092,13 +40256,16 @@ ${subtitulo}`, c[5]] : c.slice())]);
         return { ok: true, ...r };
       }
       function anotarCopia(repo, sesion, fichaId, de, texto) {
-        try {
-          repo.db.prepare(
-            `INSERT INTO historial (id, entidad, registroId, accion, campo, valorAntes, valorDespues, personaId, creadoEn)
-       VALUES (?,?,?,?,?,?,?,?,?)`
-          ).run(nuevoId(), "fichasPM", fichaId, "copiar", "respuestas", de, texto, sesion.personaId, (/* @__PURE__ */ new Date()).toISOString());
-        } catch {
-        }
+        require_auditoria2().apuntar(repo.db, {
+          entidad: "fichasPM",
+          registroId: fichaId,
+          accion: "copiar",
+          campo: "respuestas",
+          antes: de,
+          despues: texto,
+          personaId: sesion && sesion.personaId,
+          origen: require_auditoria2().origenDe(sesion)
+        });
       }
       function copiarRespuestasChecklist(repo, sesion, obraId, plantilla, { origen, destinos = [], pisar = false, simular = false } = {}) {
         if (!obraVisible(repo, sesion, obraId)) return { ok: false, error: "No se encuentra la obra." };
@@ -38112,7 +40279,8 @@ ${subtitulo}`, c[5]] : c.slice())]);
         }
         const quien = nombreDe(repo, sesion) || sesion.personaId;
         const en = (/* @__PURE__ */ new Date()).toISOString();
-        const r = { equipos: 0, copiadas: 0, pisadas: 0, conservadas: 0, iguales: 0, firmadas: [], errores: [], conConservadas: [] };
+        const lote = nuevoId();
+        const r = { lote, equipos: 0, copiadas: 0, pisadas: 0, conservadas: 0, iguales: 0, firmadas: [], errores: [], conConservadas: [] };
         for (const clave of [...new Set(Array.isArray(destinos) ? destinos : [])]) {
           if (clave === origen) continue;
           const f = ficha(repo, sesion, obraId, { clave, plantilla });
@@ -38134,7 +40302,19 @@ ${subtitulo}`, c[5]] : c.slice())]);
             if (c.copiadas) r.equipos += 1;
             continue;
           }
-          const sello = RC.selloCopia({ de: fo.titulo, clave: origen, puntos: c.puntos, pisadas: c.pisadas, por: quien, personaId: sesion.personaId, en });
+          const sello = RC.selloCopia({
+            de: fo.titulo,
+            clave: origen,
+            puntos: c.puntos,
+            pisadas: c.pisadas,
+            por: quien,
+            personaId: sesion.personaId,
+            en,
+            lote,
+            antes: c.antes,
+            cabecera: c.cabeceraCopiada,
+            observaciones: c.observacionesCopiadas ? c.datos.observaciones : null
+          });
           const copias = [...f.evaluacion.datos.copias || [], sello];
           const g = guardarFicha(repo, sesion, obraId, { clave, plantilla }, c.datos, { copias });
           if (!g.ok) {
@@ -38145,6 +40325,80 @@ ${subtitulo}`, c[5]] : c.slice())]);
           r.equipos += 1;
         }
         return { ok: true, simulado: Boolean(simular), de: fo.titulo, ...r };
+      }
+      function anotarDeshacerCopia(repo, sesion, fichaId, texto, cuenta) {
+        const fila = {
+          entidad: "fichasPM",
+          registroId: fichaId,
+          accion: "deshacerCopia",
+          campo: "respuestas",
+          antes: texto,
+          despues: cuenta,
+          personaId: sesion && sesion.personaId
+        };
+        let aud = null;
+        try {
+          aud = require_auditoria2();
+        } catch {
+        }
+        if (aud && aud.apuntar) {
+          aud.apuntar(repo.db, { ...fila, origen: aud.origenDe(sesion) });
+          return;
+        }
+        try {
+          repo.db.prepare(
+            `INSERT INTO historial (id, entidad, registroId, accion, campo, valorAntes, valorDespues, personaId, creadoEn)
+       VALUES (?,?,?,?,?,?,?,?,?)`
+          ).run(nuevoId(), fila.entidad, fichaId, fila.accion, fila.campo, texto, cuenta, fila.personaId, (/* @__PURE__ */ new Date()).toISOString());
+        } catch {
+        }
+      }
+      function deshacerCopiaChecklist(repo, sesion, obraId, plantilla, { lote, simular = false } = {}) {
+        if (!obraVisible(repo, sesion, obraId)) return { ok: false, error: "No se encuentra la obra." };
+        if (!puede(sesion.rol, "commissioning", "editar")) return { ok: false, error: NO_EDITA };
+        if (!llano(lote)) return { ok: false, error: "Falta qu\xE9 copia deshacer." };
+        const filas = repo.listar("fichasPM", sesion, { condicion: "obraId = ? AND plantilla = ?", params: [obraId, plantilla] });
+        const r = { equipos: 0, deshechas: 0, aMano: 0, deOtraCopia: 0, firmadas: [], imposibles: [], errores: [], texto: null };
+        for (const fila of filas) {
+          const datos = leerJson(fila.datos, {});
+          const d = RC.deshacerCopia(datos, lote);
+          if (!d.encontrada) continue;
+          const titulo = () => {
+            const f = ficha(repo, sesion, obraId, { clave: fila.clave, plantilla });
+            return f && f.titulo || fila.clave;
+          };
+          if (!d.posible) {
+            r.imposibles.push(`${titulo()}: ${d.motivo}`);
+            continue;
+          }
+          if (!r.texto) r.texto = RC.textoCopia(d.sello);
+          if (leerJson(fila.firmas, []).length) {
+            r.firmadas.push(titulo());
+            continue;
+          }
+          r.deshechas += d.deshechas;
+          r.aMano += d.aMano;
+          r.deOtraCopia += d.deOtraCopia;
+          r.equipos += 1;
+          if (simular) continue;
+          const g = guardarFicha(repo, sesion, obraId, { clave: fila.clave, plantilla }, d.datos, { copias: d.datos.copias });
+          if (!g.ok) {
+            r.errores.push(`${titulo()}: ${g.error}`);
+            r.equipos -= 1;
+            continue;
+          }
+          anotarDeshacerCopia(
+            repo,
+            sesion,
+            g.id,
+            RC.textoCopia(d.sello),
+            `${d.deshechas} vuelven a como estaban${d.aMano ? `; ${d.aMano} cambiadas a mano se quedan` : ""}${d.deOtraCopia ? `; ${d.deOtraCopia} de otra copia posterior se quedan` : ""}`
+          );
+        }
+        if (!r.equipos && !r.firmadas.length && !r.imposibles.length && !r.errores.length) {
+          return { ok: false, error: "Esa copia ya no est\xE1 en ning\xFAn equipo de este checklist." };
+        }
+        return { ok: true, simulado: Boolean(simular), ...r };
       }
       function importarLibro(repo, sesion, obraId, lectura = {}) {
         if (!obraVisible(repo, sesion, obraId)) return { ok: false, error: "No se encuentra la obra." };
@@ -38336,6 +40590,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         rejillaChecklist,
         guardarRejillaChecklist,
         copiarRespuestasChecklist,
+        deshacerCopiaChecklist,
         conCabeceraDelBalanceo,
         sinMedidoDelBalanceo,
         conCaudalesDelBalanceo,
@@ -38431,6 +40686,15 @@ ${subtitulo}`, c[5]] : c.slice())]);
           const minimo = campo === "caidaAdmisible" ? 0 : 1e-9;
           if (!Number.isFinite(n) || n < minimo || n > 200) return { ok: false, error: `\xAB${datos[campo]}\xBB no es una presi\xF3n v\xE1lida (en bar).` };
           cambios[campo] = n;
+        }
+        if (datos.busquedaDocsMin !== void 0) {
+          const t = String(datos.busquedaDocsMin ?? "").trim();
+          if (!t) cambios.busquedaDocsMin = null;
+          else {
+            const n = Number(t);
+            if (!Number.isInteger(n) || n < 0 || n > 1440) return { ok: false, error: `\xAB${datos.busquedaDocsMin}\xBB no es un intervalo v\xE1lido (minutos, 0 para desactivar).` };
+            cambios.busquedaDocsMin = n;
+          }
         }
         if (datos.cabeceraPM !== void 0) {
           if (!puede(sesion.rol, "commissioning", "editar")) return { ok: false, error: "Tu rol no puede cambiar la cabecera de las fichas." };
@@ -38875,6 +41139,11 @@ ${subtitulo}`, c[5]] : c.slice())]);
         } catch (e) {
           return { ok: false, error: e.message };
         }
+        let anterior = null;
+        try {
+          anterior = cfg.ultimoEnlace ? JSON.parse(cfg.ultimoEnlace) : null;
+        } catch {
+        }
         const aEnlace = fuente.enlazador(carpeta, url);
         const config = {
           carpetasPM: docs.listaConfig(cfg.carpetasPM, docs.CARPETAS_PM_DEFECTO),
@@ -38896,6 +41165,11 @@ ${subtitulo}`, c[5]] : c.slice())]);
         }
         const informe = {
           cuando: (/* @__PURE__ */ new Date()).toISOString(),
+          origen: opciones.origen === "auto" ? "auto" : "manual",
+          /* De cuándo es la foto del SharePoint: la fecha de la lista. Una carpeta
+             sincronizada está siempre al día, y una prueba no tiene fecha. */
+          fechaFuente: opciones.fechaFuente !== void 0 ? opciones.fechaFuente : fuente.fechaDe(carpeta),
+          novedades: novedadesDe(anterior, plan),
           carpeta,
           enlacesWeb: Boolean(url),
           archivos: plan.archivos,
@@ -38911,6 +41185,20 @@ ${subtitulo}`, c[5]] : c.slice())]);
         };
         repo.modificar("configCommissioning", sesion, cfg.id, { ultimoEnlace: JSON.stringify(informe) });
         return { ok: true, ...informe };
+      }
+      function novedadesDe(anterior, plan) {
+        if (!anterior || !anterior.porTipo) return null;
+        const porTipo = {};
+        for (const [t, n] of Object.entries(plan.porTipo || {})) {
+          const d = n - ((anterior.porTipo || {})[t] || 0);
+          if (d > 0) porTipo[t] = d;
+        }
+        return {
+          archivos: Math.max(0, plan.archivos - (anterior.archivos || 0)),
+          documentos: Math.max(0, plan.documentos - (anterior.documentos || 0)),
+          porTipo,
+          enlazados: plan.modelos.length + plan.equipos.length
+        };
       }
       var CAMPOS_DOC = ["docFichaTecnica", "docMarcadoCE", "docManual", "docFichaPM", "docBalanceo", "docEstanqueidad"];
       function documentoParaAbrir(repo, sesion, obraId, enlace) {
@@ -39018,12 +41306,12 @@ ${subtitulo}`, c[5]] : c.slice())]);
           insPersona.run(id, nombre, `${id}@ejemplo.local`, rol, dep, jefe, ahora, ahora);
         }
         const CLIENTES = [
-          ["c1", "Ferrovial Construcci\xF3n", "A28019206", "Obra civil y edificaci\xF3n", "Marta Abad", "marta.abad@ejemplo.local", "900 100 101"],
-          ["c2", "Merlin Properties", "A86977790", "Patrimonial de oficinas", "Ignacio Pons", "i.pons@ejemplo.local", "900 100 102"],
-          ["c3", "Acciona", "A08001851", "Infraestructuras", "Rosa Ib\xE1\xF1ez", "rosa.ibanez@ejemplo.local", "900 100 103"],
-          ["c4", "Prologis", "B85000000", "Log\xEDstica", "Tom Weller", "t.weller@ejemplo.local", "900 100 104"],
-          ["c5", "Meli\xE1 Hotels", "A78304516", "Hotelero", "Carla Ruano", "c.ruano@ejemplo.local", "900 100 105"],
-          ["c6", "Mercadona", "A46103834", "Retail y log\xEDstica", "Vicent Ort\xED", "v.orti@ejemplo.local", "900 100 106"]
+          ["c1", "Construcciones Ribera", "A00000011", "Obra civil y edificaci\xF3n", "Marta Abad", "marta.abad@ejemplo.local", "900 100 101"],
+          ["c2", "Patrimonial Mistral", "A00000022", "Patrimonial de oficinas", "Ignacio Pons", "i.pons@ejemplo.local", "900 100 102"],
+          ["c3", "Infralevante", "A00000033", "Infraestructuras", "Rosa Ib\xE1\xF1ez", "rosa.ibanez@ejemplo.local", "900 100 103"],
+          ["c4", "Log\xEDstica Norte", "B00000044", "Log\xEDstica", "Tom Weller", "t.weller@ejemplo.local", "900 100 104"],
+          ["c5", "Hoteles Costa Azul", "A00000055", "Hotelero", "Carla Ruano", "c.ruano@ejemplo.local", "900 100 105"],
+          ["c6", "Distribuciones Turia", "A00000066", "Retail y log\xEDstica", "Vicent Ort\xED", "v.orti@ejemplo.local", "900 100 106"]
         ];
         const insCliente = db.prepare(
           "INSERT OR IGNORE INTO clientes (id,nombre,cif,sector,contacto,email,telefono,creadoEn,modificadoEn) VALUES (?,?,?,?,?,?,?,?,?)"
@@ -39113,12 +41401,12 @@ ${subtitulo}`, c[5]] : c.slice())]);
           ["PR-2603", "EST-26-003", "CPD Zona Franca \u2014 Ampliaci\xF3n sala 3", "c3", "beni", "pendienteVistoBueno", -60],
           ["PR-2604", "EST-26-004", "Centro log\xEDstico Getafe \u2014 PCI", "c4", "sofia", "aprobado", -52],
           ["PR-2605", "EST-26-005", "Hotel Meli\xE1 Sitges \u2014 Climatizaci\xF3n", "c5", "beni", "ofertado", -90],
-          ["PR-2606", "EST-26-006", "Nave Mercadona Ribarroja", "c6", "sofia", "adjudicado", -120],
+          ["PR-2606", "EST-26-006", "Nou Camp Nou", "c6", "sofia", "adjudicado", -120],
           ["PR-2607", "EST-26-007", "Colegio Sagrado Coraz\xF3n \u2014 Renovaci\xF3n", "c1", "ana", "enObra", -180],
           ["PR-2608", "EST-26-008", "Oficinas Cuatrecasas \u2014 Planta 9", "c2", "beni", "rechazado", -150],
           /* Los tres que ya están en obra. Existen como proyecto porque toda obra
              nace de un estudio: sin ellos, las obras colgarían de la nada. */
-          ["PR-2611", "EST-26-011", "Sanitas \u2014 Cl\xEDnica Vall\xE9s, ampliaci\xF3n", "c3", "sofia", "adjudicado", -74],
+          ["PR-2611", "EST-26-011", "Mediterr\xE1neo \u2014 Cl\xEDnica Vall\xE9s, ampliaci\xF3n", "c3", "sofia", "adjudicado", -74],
           ["PR-2542", "EST-25-042", "Residencia Les Corts \u2014 Climatizaci\xF3n", "c3", "ana", "enObra", -260],
           ["PR-2544", "EST-25-044", "Illacuna \u2014 PCI del aparcamiento", "c5", "beni", "enObra", -300]
         ];
@@ -39141,7 +41429,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         );
         for (const [campo, valor] of [
           ["nombre", P.nombre],
-          ["cliente", "Ferrovial Construcci\xF3n"],
+          ["cliente", "Construcciones Ribera"],
           ["emplazamiento", P.emplazamiento],
           ["tipoContrato", "A medici\xF3n"],
           ["posicion", "Subcontratista"],
@@ -39229,10 +41517,10 @@ ${subtitulo}`, c[5]] : c.slice())]);
           "E-2544": "PR-2544"
         };
         const CLIENTE_DE = {
-          "Mercadona": "c6",
+          "Distribuciones Turia": "c6",
           "Fundaci\xF3n Educativa": "c1",
-          "Grupo Sanitas": "c3",
-          "Merlin Properties": "c5"
+          "Grupo Mediterr\xE1neo": "c3",
+          "Patrimonial Mistral": "c5"
         };
         const insObra = db.prepare(
           `INSERT OR IGNORE INTO obras (id,proyectoId,codigo,nombre,clienteId,emplazamiento,recibidaPor,
@@ -46636,7 +48924,7 @@ ${linea}` : linea;
           lineas: lineas.map(quitarDinero),
           totales: dinero ? M.totales(lineas) : null,
           cuentas: dinero ? M.cuentasParte(p, M.totales(lineas)) : null,
-          fotos: fotosDe(p).map((f, i) => ({ i, nombre: f.nombre, existe: fs.existsSync(f.ruta) })),
+          fotos: fotosDe(p).map((f, i) => ({ i, nombre: f.nombre, existe: fs.existsSync(f.ruta) || Boolean(f.nube) })),
           creadoPor: nombre.get(p.creadoPor) || null,
           vistoPor: nombre.get(p.vistoPor) || null,
           cerradoPor: nombre.get(p.cerradoPor) || null,
@@ -46647,10 +48935,11 @@ ${linea}` : linea;
           puede: { comentar: CONV.puedeComentar(sesion, "parteIncidencia"), valorar: dinero && p.estado !== "cerrado", cerrar: dinero && p.estado !== "cerrado", reabrir: dinero && p.estado === "cerrado" }
         };
       }
-      function foto(repo, sesion, id, i) {
+      function foto(repo, sesion, id, i, rutaBajada = null) {
         const p = repo.leer("partesIncidencia", sesion, id);
         if (!p) return null;
         const f = fotosDe(p)[Number(i)];
+        if (f && rutaBajada) f.ruta = rutaBajada;
         if (!f || !fs.existsSync(f.ruta)) return null;
         const mime = MIME[path.extname(f.ruta).toLowerCase()];
         if (!mime || mime === "image/heic" || mime === "image/heif") return { ruta: f.ruta, src: null };
@@ -48501,16 +50790,33 @@ ${linea}` : linea;
         const TIPOS = {
           nota: { orden: 1, etiqueta: "Nota", obra: false },
           repetitiva: { orden: 2, etiqueta: "Tarea repetitiva", obra: false },
-          /* Una sesión de la planificación de Commissioning o Incidencias en la que estás. */
+          /* Una sesión de la planificación de Commissioning (puesta en marcha,
+             caudales, balanceo, estanqueidad) o de Incidencias (reparaciones), de
+             cualquiera de tus obras: si vas tú, el detalle lo dice. */
           sesion: { orden: 2.5, etiqueta: "Planificaci\xF3n", obra: true },
+          /* La próxima reunión fijada en un acta, o la reunión de un acta abierta. */
+          reunion: { orden: 2.7, etiqueta: "Reuni\xF3n", obra: true },
           hito: { orden: 3, etiqueta: "Hito", obra: true },
           tarea: { orden: 4, etiqueta: "Tarea de obra", obra: true },
           /* Un punto de un acta aún abierta del que eres responsable, por su fecha. */
           puntoActa: { orden: 4.5, etiqueta: "Punto de acta", obra: true },
-          entregaPrevista: { orden: 5, etiqueta: "Entrega prevista", obra: true },
+          /* Lo que tiene fecha prevista o límite en su pantalla. */
+          incidencia: { orden: 4.6, etiqueta: "Incidencia", obra: true, corto: "Incidencia" },
+          ncr: { orden: 4.7, etiqueta: "NCR prevista", obra: true, corto: "NCR" },
+          parte: { orden: 4.8, etiqueta: "Parte de incidencia", obra: true, corto: "Parte" },
+          conflicto: { orden: 4.9, etiqueta: "Conflicto: pr\xF3ximo paso", obra: true, corto: "Conflicto" },
+          entregaPrevista: { orden: 5, etiqueta: "Entrega prevista", obra: true, corto: "Llega" },
           entrega: { orden: 6, etiqueta: "Entregado", obra: true },
           pedido: { orden: 7, etiqueta: "Pedido", obra: true },
-          actividad: { orden: 8, etiqueta: "Actividad", obra: true }
+          actividad: { orden: 8, etiqueta: "Actividad", obra: true, corto: "Empieza" },
+          estanqueidad: { orden: 8.2, etiqueta: "Prueba de estanqueidad", obra: true, corto: "Estanqueidad" },
+          mantenimiento: { orden: 8.4, etiqueta: "Mantenimiento preventivo", obra: true, corto: "Mantenimiento" },
+          inspeccion: { orden: 8.5, etiqueta: "Inspecci\xF3n reglamentaria", obra: true, corto: "Inspecci\xF3n" },
+          certificacion: { orden: 8.6, etiqueta: "Certificaci\xF3n", obra: true },
+          oferta: { orden: 8.7, etiqueta: "Ofertas: fecha l\xEDmite", obra: true, corto: "Ofertas" },
+          caducidad: { orden: 8.8, etiqueta: "Caduca", obra: true },
+          ausencia: { orden: 9, etiqueta: "Ausencia", obra: false },
+          festivo: { orden: 9.5, etiqueta: "Festivo", obra: false }
         };
         const esDia = (t) => {
           if (!RE_DIA.test(String(t || ""))) return false;
@@ -48858,7 +51164,7 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/tslib/tslib.es6.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/tslib/tslib.es6.js
   var tslib_es6_exports = {};
   __export(tslib_es6_exports, {
     __assign: () => __assign,
@@ -49163,7 +51469,7 @@ ${linea}` : linea;
   }
   var import_buffer_global8, extendStatics, __assign;
   var init_tslib_es6 = __esm({
-    "node_modules/tslib/tslib.es6.js"() {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/tslib/tslib.es6.js"() {
       import_buffer_global8 = __toESM(require_buffer_global());
       extendStatics = function(d, b) {
         extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
@@ -49186,9 +51492,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/base64.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/base64.js
   var require_base64 = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/base64.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/base64.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -49256,9 +51562,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/strings.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/strings.js
   var require_strings = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/strings.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/strings.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -49409,9 +51715,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/arrays.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/arrays.js
   var require_arrays = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/arrays.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/arrays.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -49540,9 +51846,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/async.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/async.js
   var require_async = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/async.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/async.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -49557,9 +51863,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/unicode.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/unicode.js
   var require_unicode = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/unicode.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/unicode.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -49700,9 +52006,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/numbers.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/numbers.js
   var require_numbers = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/numbers.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/numbers.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -49743,9 +52049,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/errors.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/errors.js
   var require_errors = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/errors.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/errors.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -49756,9 +52062,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pako/lib/utils/common.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/utils/common.js
   var require_common = __commonJS({
-    "node_modules/pako/lib/utils/common.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/utils/common.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var TYPED_OK = typeof Uint8Array !== "undefined" && typeof Uint16Array !== "undefined" && typeof Int32Array !== "undefined";
@@ -49848,9 +52154,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pako/lib/zlib/trees.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/trees.js
   var require_trees = __commonJS({
-    "node_modules/pako/lib/zlib/trees.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/trees.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var utils = require_common();
@@ -50491,9 +52797,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pako/lib/zlib/adler32.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/adler32.js
   var require_adler32 = __commonJS({
-    "node_modules/pako/lib/zlib/adler32.js"(exports, module) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/adler32.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function adler32(adler, buf, len, pos) {
@@ -50514,9 +52820,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pako/lib/zlib/crc32.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/crc32.js
   var require_crc32 = __commonJS({
-    "node_modules/pako/lib/zlib/crc32.js"(exports, module) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/crc32.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function makeTable() {
@@ -50543,9 +52849,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pako/lib/zlib/messages.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/messages.js
   var require_messages = __commonJS({
-    "node_modules/pako/lib/zlib/messages.js"(exports, module) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/messages.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       module.exports = {
@@ -50571,9 +52877,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pako/lib/zlib/deflate.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/deflate.js
   var require_deflate = __commonJS({
-    "node_modules/pako/lib/zlib/deflate.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/deflate.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var utils = require_common();
@@ -51621,9 +53927,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pako/lib/utils/strings.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/utils/strings.js
   var require_strings2 = __commonJS({
-    "node_modules/pako/lib/utils/strings.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/utils/strings.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var utils = require_common();
@@ -51764,9 +54070,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pako/lib/zlib/zstream.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/zstream.js
   var require_zstream = __commonJS({
-    "node_modules/pako/lib/zlib/zstream.js"(exports, module) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/zstream.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function ZStream() {
@@ -51787,9 +54093,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pako/lib/deflate.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/deflate.js
   var require_deflate2 = __commonJS({
-    "node_modules/pako/lib/deflate.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/deflate.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var zlib_deflate = require_deflate();
@@ -51949,9 +54255,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pako/lib/zlib/inffast.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/inffast.js
   var require_inffast = __commonJS({
-    "node_modules/pako/lib/zlib/inffast.js"(exports, module) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/inffast.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var BAD = 30;
@@ -52179,9 +54485,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pako/lib/zlib/inftrees.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/inftrees.js
   var require_inftrees = __commonJS({
-    "node_modules/pako/lib/zlib/inftrees.js"(exports, module) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/inftrees.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var utils = require_common();
@@ -52496,9 +54802,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pako/lib/zlib/inflate.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/inflate.js
   var require_inflate = __commonJS({
-    "node_modules/pako/lib/zlib/inflate.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/inflate.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var utils = require_common();
@@ -53736,9 +56042,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pako/lib/zlib/constants.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/constants.js
   var require_constants = __commonJS({
-    "node_modules/pako/lib/zlib/constants.js"(exports, module) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/constants.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       module.exports = {
@@ -53784,9 +56090,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pako/lib/zlib/gzheader.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/gzheader.js
   var require_gzheader = __commonJS({
-    "node_modules/pako/lib/zlib/gzheader.js"(exports, module) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/gzheader.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function GZheader() {
@@ -53805,9 +56111,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pako/lib/inflate.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/inflate.js
   var require_inflate2 = __commonJS({
-    "node_modules/pako/lib/inflate.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/inflate.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var zlib_inflate = require_inflate();
@@ -53980,9 +56286,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pako/index.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/index.js
   var require_pako = __commonJS({
-    "node_modules/pako/index.js"(exports, module) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/index.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var assign = require_common().assign;
@@ -53995,9 +56301,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/utils.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/utils.js
   var require_utils = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/utils.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/utils.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -54058,107 +56364,107 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Courier-Bold.compressed.json
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-Bold.compressed.json
   var require_Courier_Bold_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Courier-Bold.compressed.json"(exports, module) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-Bold.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Courier-BoldOblique.compressed.json
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-BoldOblique.compressed.json
   var require_Courier_BoldOblique_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Courier-BoldOblique.compressed.json"(exports, module) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-BoldOblique.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Courier-Oblique.compressed.json
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-Oblique.compressed.json
   var require_Courier_Oblique_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Courier-Oblique.compressed.json"(exports, module) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-Oblique.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Courier.compressed.json
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier.compressed.json
   var require_Courier_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Courier.compressed.json"(exports, module) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Bold.compressed.json
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Bold.compressed.json
   var require_Helvetica_Bold_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Bold.compressed.json"(exports, module) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Bold.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Helvetica-BoldOblique.compressed.json
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-BoldOblique.compressed.json
   var require_Helvetica_BoldOblique_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Helvetica-BoldOblique.compressed.json"(exports, module) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-BoldOblique.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Oblique.compressed.json
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Oblique.compressed.json
   var require_Helvetica_Oblique_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Oblique.compressed.json"(exports, module) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Oblique.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Helvetica.compressed.json
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica.compressed.json
   var require_Helvetica_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Helvetica.compressed.json"(exports, module) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Times-Bold.compressed.json
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Bold.compressed.json
   var require_Times_Bold_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Times-Bold.compressed.json"(exports, module) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Bold.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Times-BoldItalic.compressed.json
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-BoldItalic.compressed.json
   var require_Times_BoldItalic_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Times-BoldItalic.compressed.json"(exports, module) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-BoldItalic.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Times-Italic.compressed.json
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Italic.compressed.json
   var require_Times_Italic_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Times-Italic.compressed.json"(exports, module) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Italic.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Times-Roman.compressed.json
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Roman.compressed.json
   var require_Times_Roman_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Times-Roman.compressed.json"(exports, module) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Roman.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Symbol.compressed.json
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Symbol.compressed.json
   var require_Symbol_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Symbol.compressed.json"(exports, module) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Symbol.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/ZapfDingbats.compressed.json
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/ZapfDingbats.compressed.json
   var require_ZapfDingbats_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/ZapfDingbats.compressed.json"(exports, module) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/ZapfDingbats.compressed.json"(exports, module) {
       module.exports = "eJxtmNtu20YQhl+F4FULyMGeD7pz3AY1ChtG7NpFA18w1NomIlECSRcxgrx7SVk7+wOdG8H5OJydf2Z2d5gf9cV+t0v9VK/r+6vXsXlOlbHe28paq229qj/t++m62aXZ4J/m8PRb1z9/baZxefK63Z6eXN5dVMvTCh83u277xr/6kLrnl2XNq7TpXnczuZyabdee98/b2VzM/x4/dd/T5qab2pd6PQ2vaVVfvDRD005puE3Lu7eH1HbN9hTjx4/77/X6y5lcnUmjVzHIVVDicVX/1W/SsO36dLMfu6nb9/X6TAoBD+5euvZbn8axXtuZ36dhPJrVQqgPQoh5hev91LWLkIv94W1Ygq9+aX+tZAx2tfz64284/sblN/rqfLP/mqrbt3FKu7G67Nv9cNgPzZQ2H6rz7bb6vLgZq89pTMO/M/xfEqturJpqSM/d7GJIm2oamk3aNcO3av80O5xh3yyKmm1193ZIT02bqovTKjP+MAf++7zsZvZ3276kYyWWXB0z99S18/PbafPHQ71W4fjn/fxnFO+ZvkrT0LVzTr78qB/+nk38bHM9exgP8zr1z9U7jt6840YW5uSJKcZOCaBBnKgm5mU8MVNYyMwWFvO7Ukagkmgg6sDWQ5yFFqjzUrLEaQ3BEmiwNsMSaZS0vgWfOkPHWQowNeTUc0kumnxZvsgPxlGai6VTGUqAVCTQ6QkWnc77DKEiLktSUBJKqHIQZ86d8gCpHYoiEzMsb1ubYy8vW50DChB5ZhGqrijD0EqUIeiaEHIfCg5Kpuu0ApiToaGPSY0uaQsyr65L2oKi1yFt1PLaQ3lzfXTgXodGoJYzglndSLDMPg1sTPJpQJHJigw0QrGERqD9YhyTOgONQDUyuF1zaxuokc/BW2ztXCMrGZ9WMW1oQZHIXWNBkSCfRZEL5BMUiZw6CzVSFCfUSGZFNjIldoKDkonTKQiJIGzWmFd3BizJJ9SINoLDriOfUCOZS+zg+KGD1qGiLNMLxtJD1/ns00ON6EzyUCM6vbxhoBKaqbG3DFQCNiL1iHccBPV0DHhQH/JW8EW90dkyFKGywCJU0WkVSvSGeiSUODWFFD0HYdPQVoiRgfPMA+/nnRgiAyNYSjpWNQcNSMrtFCUH4ZIRpSCWocFCSuhCEY6hoUClc0WC52BJlCYYLQdhN+hygRRRlo5BKRRLS6oihSqh+ZzzRGG1Mo4Iz1LoP0qsxDGFzk0JE42ji0jCPejomJKCuwil4m5CiRMEUMVSzVLDUstSx1Juc0oVWMpqY295qVltmtWmWW2a1aZZbZrVplltmtWmWW2G1WZYbYbVZlhthtVmWG2G1WZYbYbVZlhtltVmWW2W1WZZbZbVZlltltVmWW2W1QYjQCh7E2aAQHeGhCFgPoNoy8KNb2wxBhmGKBxoUZXlLGsLI6AsftEDHV0wIURVbANLcTKlGGBIKPOAxCmhePCKUwFzAmpDFRQvjA9R06Hq8TONvshgKDCuRAZTXigUxjxNFfKRo3CLhnIJBMFRvMZpqpNBMlQJzGT5WFQMVQI/AikPMIhEU1aDjqJvQwmjSHB05cC9jbYwc5UtAHNLhDw41ha+lEqF4JaH3gmB61SYcqInxTDmQK8v08vjqv4zDf1N0w3Lf4A8/vwPpfK11w==";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Font.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Font.js
   var require_Font = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Font.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Font.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -54253,16 +56559,16 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/all-encodings.compressed.json
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/all-encodings.compressed.json
   var require_all_encodings_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/all-encodings.compressed.json"(exports, module) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/all-encodings.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Encoding.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Encoding.js
   var require_Encoding = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Encoding.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Encoding.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -54308,9 +56614,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/index.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/index.js
   var require_lib = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/index.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function __export2(m) {
@@ -54322,9 +56628,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/objects.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/objects.js
   var require_objects = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/objects.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/objects.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -54345,9 +56651,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/validators.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/validators.js
   var require_validators = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/validators.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/validators.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -54531,9 +56837,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/pdfDocEncoding.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/pdfDocEncoding.js
   var require_pdfDocEncoding = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/pdfDocEncoding.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/pdfDocEncoding.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -54598,9 +56904,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/Cache.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/Cache.js
   var require_Cache = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/Cache.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/Cache.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -54632,9 +56938,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/index.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/index.js
   var require_utils2 = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/index.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -54656,9 +56962,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/errors.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/errors.js
   var require_errors2 = __commonJS({
-    "node_modules/pdf-lib/cjs/core/errors.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/errors.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55067,9 +57373,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/syntax/CharCodes.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/CharCodes.js
   var require_CharCodes = __commonJS({
-    "node_modules/pdf-lib/cjs/core/syntax/CharCodes.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/CharCodes.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55138,9 +57444,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/document/PDFHeader.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFHeader.js
   var require_PDFHeader = __commonJS({
-    "node_modules/pdf-lib/cjs/core/document/PDFHeader.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFHeader.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55189,9 +57495,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFObject.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFObject.js
   var require_PDFObject = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFObject.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFObject.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55220,9 +57526,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFNumber.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFNumber.js
   var require_PDFNumber = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFNumber.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFNumber.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55268,9 +57574,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFArray.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFArray.js
   var require_PDFArray = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFArray.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFArray.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55396,9 +57702,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFBool.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFBool.js
   var require_PDFBool = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFBool.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFBool.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55456,9 +57762,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/syntax/Delimiters.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Delimiters.js
   var require_Delimiters = __commonJS({
-    "node_modules/pdf-lib/cjs/core/syntax/Delimiters.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Delimiters.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55479,9 +57785,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/syntax/Whitespace.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Whitespace.js
   var require_Whitespace = __commonJS({
-    "node_modules/pdf-lib/cjs/core/syntax/Whitespace.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Whitespace.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55498,9 +57804,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/syntax/Irregular.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Irregular.js
   var require_Irregular = __commonJS({
-    "node_modules/pdf-lib/cjs/core/syntax/Irregular.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Irregular.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55519,9 +57825,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFName.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFName.js
   var require_PDFName = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFName.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFName.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55655,9 +57961,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFNull.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFNull.js
   var require_PDFNull = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFNull.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFNull.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55697,9 +58003,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFDict.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFDict.js
   var require_PDFDict = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFDict.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFDict.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55842,9 +58148,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFStream.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFStream.js
   var require_PDFStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFStream.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55926,9 +58232,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFRawStream.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFRawStream.js
   var require_PDFRawStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFRawStream.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFRawStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -55969,9 +58275,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFRef.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFRef.js
   var require_PDFRef = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFRef.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFRef.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -56027,9 +58333,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/operators/PDFOperator.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/operators/PDFOperator.js
   var require_PDFOperator = __commonJS({
-    "node_modules/pdf-lib/cjs/core/operators/PDFOperator.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/operators/PDFOperator.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -56093,9 +58399,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/operators/PDFOperatorNames.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/operators/PDFOperatorNames.js
   var require_PDFOperatorNames = __commonJS({
-    "node_modules/pdf-lib/cjs/core/operators/PDFOperatorNames.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/operators/PDFOperatorNames.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -56179,9 +58485,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/structures/PDFFlateStream.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFFlateStream.js
   var require_PDFFlateStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/structures/PDFFlateStream.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFFlateStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -56223,9 +58529,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/structures/PDFContentStream.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFContentStream.js
   var require_PDFContentStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/structures/PDFContentStream.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFContentStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -56296,9 +58602,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/rng.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/rng.js
   var require_rng = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/rng.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/rng.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -56323,9 +58629,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/PDFContext.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/PDFContext.js
   var require_PDFContext = __commonJS({
-    "node_modules/pdf-lib/cjs/core/PDFContext.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/PDFContext.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -56523,9 +58829,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/structures/PDFPageLeaf.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFPageLeaf.js
   var require_PDFPageLeaf = __commonJS({
-    "node_modules/pdf-lib/cjs/core/structures/PDFPageLeaf.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFPageLeaf.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -56738,9 +59044,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/PDFObjectCopier.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/PDFObjectCopier.js
   var require_PDFObjectCopier = __commonJS({
-    "node_modules/pdf-lib/cjs/core/PDFObjectCopier.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/PDFObjectCopier.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -56836,9 +59142,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/document/PDFCrossRefSection.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFCrossRefSection.js
   var require_PDFCrossRefSection = __commonJS({
-    "node_modules/pdf-lib/cjs/core/document/PDFCrossRefSection.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFCrossRefSection.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -56966,9 +59272,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/document/PDFTrailer.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFTrailer.js
   var require_PDFTrailer = __commonJS({
-    "node_modules/pdf-lib/cjs/core/document/PDFTrailer.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFTrailer.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -57018,9 +59324,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/document/PDFTrailerDict.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFTrailerDict.js
   var require_PDFTrailerDict = __commonJS({
-    "node_modules/pdf-lib/cjs/core/document/PDFTrailerDict.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFTrailerDict.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -57061,9 +59367,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/structures/PDFObjectStream.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFObjectStream.js
   var require_PDFObjectStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/structures/PDFObjectStream.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFObjectStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -57148,9 +59454,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/writers/PDFWriter.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/writers/PDFWriter.js
   var require_PDFWriter = __commonJS({
-    "node_modules/pdf-lib/cjs/core/writers/PDFWriter.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/writers/PDFWriter.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -57302,9 +59608,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFInvalidObject.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFInvalidObject.js
   var require_PDFInvalidObject = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFInvalidObject.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFInvalidObject.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -57345,9 +59651,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/structures/PDFCrossRefStream.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFCrossRefStream.js
   var require_PDFCrossRefStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/structures/PDFCrossRefStream.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFCrossRefStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -57538,9 +59844,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/writers/PDFStreamWriter.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/writers/PDFStreamWriter.js
   var require_PDFStreamWriter = __commonJS({
-    "node_modules/pdf-lib/cjs/core/writers/PDFStreamWriter.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/writers/PDFStreamWriter.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -57662,9 +59968,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFHexString.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFHexString.js
   var require_PDFHexString = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFHexString.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFHexString.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -57745,9 +60051,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/StandardFontEmbedder.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/StandardFontEmbedder.js
   var require_StandardFontEmbedder = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/StandardFontEmbedder.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/StandardFontEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -57839,9 +60145,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/CMap.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CMap.js
   var require_CMap = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/CMap.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CMap.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -57889,9 +60195,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/FontFlags.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/FontFlags.js
   var require_FontFlags = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/FontFlags.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/FontFlags.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -57935,9 +60241,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFString.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFString.js
   var require_PDFString = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFString.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFString.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -58057,9 +60363,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/CustomFontEmbedder.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CustomFontEmbedder.js
   var require_CustomFontEmbedder = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/CustomFontEmbedder.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CustomFontEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -58301,9 +60607,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/CustomFontSubsetEmbedder.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CustomFontSubsetEmbedder.js
   var require_CustomFontSubsetEmbedder = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/CustomFontSubsetEmbedder.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CustomFontSubsetEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -58378,9 +60684,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/FileEmbedder.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/FileEmbedder.js
   var require_FileEmbedder = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/FileEmbedder.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/FileEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -58459,9 +60765,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/JpegEmbedder.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/JpegEmbedder.js
   var require_JpegEmbedder = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/JpegEmbedder.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/JpegEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -58579,9 +60885,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/@pdf-lib/upng/cjs/UPNG.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/upng/cjs/UPNG.js
   var require_UPNG = __commonJS({
-    "node_modules/@pdf-lib/upng/cjs/UPNG.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/upng/cjs/UPNG.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", {
@@ -60050,9 +62356,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/png.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/png.js
   var require_png = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/png.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/png.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -60126,9 +62432,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/PngEmbedder.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/PngEmbedder.js
   var require_PngEmbedder = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/PngEmbedder.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/PngEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -60201,9 +62507,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/streams/Stream.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/Stream.js
   var require_Stream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/streams/Stream.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/Stream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -60309,9 +62615,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/streams/DecodeStream.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/DecodeStream.js
   var require_DecodeStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/streams/DecodeStream.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/DecodeStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -60457,9 +62763,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/streams/Ascii85Stream.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/Ascii85Stream.js
   var require_Ascii85Stream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/streams/Ascii85Stream.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/Ascii85Stream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -60541,9 +62847,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/streams/AsciiHexStream.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/AsciiHexStream.js
   var require_AsciiHexStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/streams/AsciiHexStream.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/AsciiHexStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -60607,9 +62913,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/streams/FlateStream.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/FlateStream.js
   var require_FlateStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/streams/FlateStream.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/FlateStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -61495,9 +63801,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/streams/LZWStream.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/LZWStream.js
   var require_LZWStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/streams/LZWStream.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/LZWStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -61627,9 +63933,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/streams/RunLengthStream.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/RunLengthStream.js
   var require_RunLengthStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/streams/RunLengthStream.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/RunLengthStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -61678,9 +63984,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/streams/decode.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/decode.js
   var require_decode = __commonJS({
-    "node_modules/pdf-lib/cjs/core/streams/decode.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/decode.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -61741,9 +64047,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/PDFPageEmbedder.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/PDFPageEmbedder.js
   var require_PDFPageEmbedder = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/PDFPageEmbedder.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/PDFPageEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -61837,9 +64143,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/interactive/ViewerPreferences.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/interactive/ViewerPreferences.js
   var require_ViewerPreferences = __commonJS({
-    "node_modules/pdf-lib/cjs/core/interactive/ViewerPreferences.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/interactive/ViewerPreferences.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -62085,9 +64391,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroField.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroField.js
   var require_PDFAcroField = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroField.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroField.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -62233,9 +64539,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/annotation/BorderStyle.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/BorderStyle.js
   var require_BorderStyle = __commonJS({
-    "node_modules/pdf-lib/cjs/core/annotation/BorderStyle.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/BorderStyle.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -62272,9 +64578,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/annotation/PDFAnnotation.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/PDFAnnotation.js
   var require_PDFAnnotation = __commonJS({
-    "node_modules/pdf-lib/cjs/core/annotation/PDFAnnotation.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/PDFAnnotation.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -62402,9 +64708,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/annotation/AppearanceCharacteristics.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/AppearanceCharacteristics.js
   var require_AppearanceCharacteristics = __commonJS({
-    "node_modules/pdf-lib/cjs/core/annotation/AppearanceCharacteristics.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/AppearanceCharacteristics.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -62532,9 +64838,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/annotation/PDFWidgetAnnotation.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/PDFWidgetAnnotation.js
   var require_PDFWidgetAnnotation = __commonJS({
-    "node_modules/pdf-lib/cjs/core/annotation/PDFWidgetAnnotation.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/PDFWidgetAnnotation.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -62651,9 +64957,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroTerminal.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroTerminal.js
   var require_PDFAcroTerminal = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroTerminal.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroTerminal.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -62720,9 +65026,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroButton.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroButton.js
   var require_PDFAcroButton = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroButton.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroButton.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -62819,9 +65125,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroCheckBox.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroCheckBox.js
   var require_PDFAcroCheckBox = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroCheckBox.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroCheckBox.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -62878,9 +65184,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/flags.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/flags.js
   var require_flags = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/flags.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/flags.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -62923,9 +65229,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroChoice.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroChoice.js
   var require_PDFAcroChoice = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroChoice.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroChoice.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -63055,9 +65361,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroComboBox.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroComboBox.js
   var require_PDFAcroComboBox = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroComboBox.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroComboBox.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -63090,9 +65396,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroNonTerminal.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroNonTerminal.js
   var require_PDFAcroNonTerminal = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroNonTerminal.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroNonTerminal.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -63133,9 +65439,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroSignature.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroSignature.js
   var require_PDFAcroSignature = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroSignature.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroSignature.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -63158,9 +65464,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroText.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroText.js
   var require_PDFAcroText = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroText.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroText.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -63236,9 +65542,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroPushButton.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroPushButton.js
   var require_PDFAcroPushButton = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroPushButton.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroPushButton.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -63271,9 +65577,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroRadioButton.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroRadioButton.js
   var require_PDFAcroRadioButton = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroRadioButton.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroRadioButton.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -63337,9 +65643,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroListBox.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroListBox.js
   var require_PDFAcroListBox = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroListBox.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroListBox.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -63370,9 +65676,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/utils.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/utils.js
   var require_utils3 = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/utils.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/utils.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -63481,9 +65787,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroForm.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroForm.js
   var require_PDFAcroForm = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroForm.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroForm.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -63570,9 +65876,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/index.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/index.js
   var require_acroform = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/index.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -63634,9 +65940,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/structures/PDFCatalog.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFCatalog.js
   var require_PDFCatalog = __commonJS({
-    "node_modules/pdf-lib/cjs/core/structures/PDFCatalog.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFCatalog.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -63715,9 +66021,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/structures/PDFPageTree.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFPageTree.js
   var require_PDFPageTree = __commonJS({
-    "node_modules/pdf-lib/cjs/core/structures/PDFPageTree.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFPageTree.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -63871,9 +66177,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/syntax/Numeric.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Numeric.js
   var require_Numeric = __commonJS({
-    "node_modules/pdf-lib/cjs/core/syntax/Numeric.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Numeric.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -63904,9 +66210,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/parser/BaseParser.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/BaseParser.js
   var require_BaseParser = __commonJS({
-    "node_modules/pdf-lib/cjs/core/parser/BaseParser.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/BaseParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -64020,9 +66326,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/parser/ByteStream.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/ByteStream.js
   var require_ByteStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/parser/ByteStream.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/ByteStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -64093,9 +66399,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/syntax/Keywords.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Keywords.js
   var require_Keywords = __commonJS({
-    "node_modules/pdf-lib/cjs/core/syntax/Keywords.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Keywords.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -64185,9 +66491,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/parser/PDFObjectParser.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFObjectParser.js
   var require_PDFObjectParser = __commonJS({
-    "node_modules/pdf-lib/cjs/core/parser/PDFObjectParser.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFObjectParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -64406,9 +66712,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/parser/PDFObjectStreamParser.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFObjectStreamParser.js
   var require_PDFObjectStreamParser = __commonJS({
-    "node_modules/pdf-lib/cjs/core/parser/PDFObjectStreamParser.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFObjectStreamParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -64493,9 +66799,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/parser/PDFXRefStreamParser.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFXRefStreamParser.js
   var require_PDFXRefStreamParser = __commonJS({
-    "node_modules/pdf-lib/cjs/core/parser/PDFXRefStreamParser.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFXRefStreamParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -64588,9 +66894,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/parser/PDFParser.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFParser.js
   var require_PDFParser = __commonJS({
-    "node_modules/pdf-lib/cjs/core/parser/PDFParser.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -64930,9 +67236,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/annotation/flags.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/flags.js
   var require_flags2 = __commonJS({
-    "node_modules/pdf-lib/cjs/core/annotation/flags.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/flags.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -64956,9 +67262,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/annotation/index.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/index.js
   var require_annotation = __commonJS({
-    "node_modules/pdf-lib/cjs/core/annotation/index.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -64979,9 +67285,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/index.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/index.js
   var require_core = __commonJS({
-    "node_modules/pdf-lib/cjs/core/index.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -65183,9 +67489,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/objects.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/objects.js
   var require_objects2 = __commonJS({
-    "node_modules/pdf-lib/cjs/api/objects.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/objects.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -65203,9 +67509,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/rotations.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/rotations.js
   var require_rotations = __commonJS({
-    "node_modules/pdf-lib/cjs/api/rotations.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/rotations.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -65284,9 +67590,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/operators.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/operators.js
   var require_operators = __commonJS({
-    "node_modules/pdf-lib/cjs/api/operators.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/operators.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -65531,9 +67837,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/colors.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/colors.js
   var require_colors = __commonJS({
-    "node_modules/pdf-lib/cjs/api/colors.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/colors.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -65584,9 +67890,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/svgPath.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/svgPath.js
   var require_svgPath = __commonJS({
-    "node_modules/pdf-lib/cjs/api/svgPath.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/svgPath.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -65947,9 +68253,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/operations.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/operations.js
   var require_operations = __commonJS({
-    "node_modules/pdf-lib/cjs/api/operations.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/operations.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -66400,9 +68706,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/errors.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/errors.js
   var require_errors3 = __commonJS({
-    "node_modules/pdf-lib/cjs/api/errors.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/errors.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -66610,9 +68916,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/text/alignment.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/alignment.js
   var require_alignment = __commonJS({
-    "node_modules/pdf-lib/cjs/api/text/alignment.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/alignment.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -66626,9 +68932,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/text/layout.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/layout.js
   var require_layout = __commonJS({
-    "node_modules/pdf-lib/cjs/api/text/layout.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/layout.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -66830,9 +69136,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/appearances.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/appearances.js
   var require_appearances = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/appearances.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/appearances.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -67231,9 +69537,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFEmbeddedPage.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFEmbeddedPage.js
   var require_PDFEmbeddedPage = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFEmbeddedPage.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFEmbeddedPage.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -67292,9 +69598,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFFont.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFFont.js
   var require_PDFFont = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFFont.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFFont.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -67377,9 +69683,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFImage.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFImage.js
   var require_PDFImage = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFImage.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFImage.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -67455,9 +69761,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/image/alignment.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/image/alignment.js
   var require_alignment2 = __commonJS({
-    "node_modules/pdf-lib/cjs/api/image/alignment.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/image/alignment.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -67471,9 +69777,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/image/index.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/image/index.js
   var require_image = __commonJS({
-    "node_modules/pdf-lib/cjs/api/image/index.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/image/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -67482,9 +69788,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFField.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFField.js
   var require_PDFField = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFField.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFField.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -67711,9 +70017,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFCheckBox.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFCheckBox.js
   var require_PDFCheckBox = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFCheckBox.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFCheckBox.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -67829,9 +70135,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFDropdown.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFDropdown.js
   var require_PDFDropdown = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFDropdown.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFDropdown.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -68048,9 +70354,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFOptionList.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFOptionList.js
   var require_PDFOptionList = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFOptionList.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFOptionList.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -68245,9 +70551,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFRadioGroup.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFRadioGroup.js
   var require_PDFRadioGroup = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFRadioGroup.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFRadioGroup.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -68411,9 +70717,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFSignature.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFSignature.js
   var require_PDFSignature = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFSignature.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFSignature.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -68446,9 +70752,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFTextField.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFTextField.js
   var require_PDFTextField = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFTextField.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFTextField.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -68689,9 +70995,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/StandardFonts.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/StandardFonts.js
   var require_StandardFonts = __commonJS({
-    "node_modules/pdf-lib/cjs/api/StandardFonts.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/StandardFonts.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -68716,9 +71022,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFForm.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFForm.js
   var require_PDFForm = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFForm.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFForm.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -69096,9 +71402,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/sizes.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/sizes.js
   var require_sizes = __commonJS({
-    "node_modules/pdf-lib/cjs/api/sizes.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/sizes.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -69158,9 +71464,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFDocumentOptions.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFDocumentOptions.js
   var require_PDFDocumentOptions = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFDocumentOptions.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFDocumentOptions.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -69175,9 +71481,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFEmbeddedFile.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFEmbeddedFile.js
   var require_PDFEmbeddedFile = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFEmbeddedFile.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFEmbeddedFile.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -69242,9 +71548,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFJavaScript.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFJavaScript.js
   var require_PDFJavaScript = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFJavaScript.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFJavaScript.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -69305,9 +71611,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/JavaScriptEmbedder.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/JavaScriptEmbedder.js
   var require_JavaScriptEmbedder = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/JavaScriptEmbedder.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/JavaScriptEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -69352,9 +71658,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFDocument.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFDocument.js
   var require_PDFDocument = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFDocument.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFDocument.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -70060,9 +72366,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFPageOptions.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFPageOptions.js
   var require_PDFPageOptions = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFPageOptions.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFPageOptions.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -70085,9 +72391,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFPage.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFPage.js
   var require_PDFPage = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFPage.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFPage.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -70757,9 +73063,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFButton.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFButton.js
   var require_PDFButton = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFButton.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFButton.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -70868,9 +73174,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/index.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/index.js
   var require_form = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/index.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -70915,9 +73221,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/text/index.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/index.js
   var require_text = __commonJS({
-    "node_modules/pdf-lib/cjs/api/text/index.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -70927,9 +73233,9 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/index.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/index.js
   var require_api = __commonJS({
-    "node_modules/pdf-lib/cjs/api/index.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -70974,18 +73280,18 @@ ${linea}` : linea;
     }
   });
 
-  // node_modules/pdf-lib/cjs/types/index.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/types/index.js
   var require_types = __commonJS({
-    "node_modules/pdf-lib/cjs/types/index.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/types/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
     }
   });
 
-  // node_modules/pdf-lib/cjs/index.js
+  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/index.js
   var require_cjs = __commonJS({
-    "node_modules/pdf-lib/cjs/index.js"(exports) {
+    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -71654,6 +73960,7 @@ ${linea}` : linea;
             estado: ev.estado,
             resultado: ev.resultado,
             faltan: ev.faltan,
+            faltanDatos: ev.faltanDatos || [],
             avisos: ev.avisos,
             medidos: ev.medidos,
             firmada: ev.firmas.length > 0,
@@ -72700,6 +75007,19 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           media: { nombre: "Media", orden: 2 },
           baja: { nombre: "Baja", orden: 3 }
         };
+        const ZONAS = ["Tribuna", "Gol Norte", "Gol Sur", "Lateral"];
+        const ZONA_ALIAS = { "GOL NORD": "Gol Norte", "GOL SUD": "Gol Sur", "GOL NORTE": "Gol Norte", "GOL SUR": "Gol Sur", TRIBUNA: "Tribuna", LATERAL: "Lateral" };
+        function zonaLegible(z) {
+          const t = String(z ?? "").trim().replace(/\s+/g, " ");
+          if (!t) return null;
+          const k = t.toUpperCase();
+          if (ZONA_ALIAS[k]) return ZONA_ALIAS[k];
+          return t === k ? t.toLowerCase().replace(/(^|\s)(\S)/g, (m, a, b) => a + b.toUpperCase()) : t;
+        }
+        function plantaLegible(p) {
+          const t = String(p ?? "").trim().replace(/\s+/g, "").toUpperCase();
+          return t || null;
+        }
         const RESULTADOS = CV.RESULTADOS;
         function limpiarResultado(r) {
           const resultado = r ? String(r) : null;
@@ -73002,7 +75322,10 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           repercusionDe,
           calcular,
           ordenar,
-          costesObra
+          costesObra,
+          ZONAS,
+          zonaLegible,
+          plantaLegible
         });
       })();
     }
@@ -73021,6 +75344,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         const horas = (n) => `${Number(n || 0).toLocaleString("es-ES", { maximumFractionDigits: 2 })} h`;
         const REPERCUSION_TEXTO = { si: "S\xED, todo", no: "No", parcial: "Parcial" };
         const CV = typeof __require !== "undefined" ? require_motor3() : window.CONVERSACION_FICHA;
+        const PAPEL = typeof __require !== "undefined" ? require_papel() : window.PAPEL;
         const RESULTADO_TEXTO = Object.fromEntries(Object.entries(CV.RESULTADOS).map(([k, v]) => [k, v.nombre]));
         const TIPO_TEXTO = { feedback: "Lo hecho", comentario: "Comentario", estado: "Estado" };
         const ESTADO_TEXTO = { abierta: "Abierta", enCurso: "En curso", terminada: "Terminada", cerrada: "Cerrada", anulada: "Anulada" };
@@ -73030,7 +75354,9 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
             ["Despu\xE9s", fotos.filter((f) => f.momento === "despues")],
             [fotos.some((f) => f.momento) ? "Otras fotos" : "Fotos", fotos.filter((f) => f.momento !== "antes" && f.momento !== "despues")]
           ].filter(([, l]) => l.length);
-          return grupos.map(([titulo, lista]) => `<section class="fotosParte"><h2>${esc(titulo)}</h2><div class="rejilla">${lista.map((f) => `<figure><img src="${esc(f.src)}" alt="${esc(f.nombre || "")}"></figure>`).join("")}</div></section>`).join("");
+          const pie = (f) => [f.nombre, f.fecha, f.autor].filter(Boolean).map(esc).join(" \xB7 ");
+          const caja = (f) => `<figure>${f.src ? `<div class="caja"><img src="${esc(f.src)}" alt="${esc(f.nombre || "")}"></div>` : `<div class="caja sinFoto"><span>Foto no disponible en este equipo</span>${f.motivo ? `<small>${esc(f.motivo)}</small>` : ""}</div>`}<figcaption>${pie(f)}</figcaption></figure>`;
+          return grupos.map(([titulo, lista]) => `<section class="fotosParte"><h2>${esc(titulo)}</h2><div class="rejilla">${lista.map(caja).join("")}</div></section>`).join("");
         }
         function html({ incidencia: i = {}, comentarios = [], obra = {}, fotos = [], conDinero = false, hoy = "" } = {}) {
           const dato = (que, valor) => llano(valor) ? `<div><dt>${esc(que)}</dt><dd>${esc(valor)}</dd></div>` : "";
@@ -73039,13 +75365,14 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           const repercusion = REPERCUSION_TEXTO[i.repercusion] ? i.repercusion : Number(i.repercutir) === 1 ? "si" : "no";
           const equipo = i.equipo ? [i.equipo.tag, i.equipo.denominacion || [i.equipo.marca, i.equipo.modelo].filter(Boolean).join(" ")].filter(Boolean).join(" \xB7 ") : "";
           const lineas = (rec.lineas || []).filter((l) => l.cuenta !== false);
-          return `
+          const nombreObra = [obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ");
+          const cuerpo = `
 <article class="documentoParte documentoIncidencia">
   <header class="cabeceraParte">
     <div>
-      <p class="marca">CBRE \xB7 Incidencia de equipos</p>
+      <p class="marca">Incidencia de equipos</p>
       <h1>${esc(i.codigo)} \u2014 ${esc(i.titulo)}</h1>
-      <p class="ref">${esc([obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 "))}</p>
+      <p class="ref">${esc(nombreObra)}</p>
     </div>
     <p class="fecha">${esc(fechaEs(hoy))}</p>
   </header>
@@ -73056,6 +75383,9 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
     ${dato("Prioridad", i.prioridad)}
     ${dato("Equipo", equipo)}
     ${dato("Ubicaci\xF3n", i.ubicacion)}
+    ${dato("Planta", i.planta)}
+    ${dato("Zona", i.zona)}
+    ${dato("Operario", i.operario)}
     ${dato("Encargado", i.encargado)}
     ${dato("Abierta el", fechaEs(i.fechaApertura))}
     ${dato("Fecha l\xEDmite", fechaEs(i.fechaLimite))}
@@ -73093,6 +75423,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
 
   ${bloquesFotos(fotos)}
 </article>`;
+          return PAPEL.hoja({ documento: `Incidencia ${i.codigo || ""}`.trim(), obra: nombreObra, fecha: hoy, cuerpo });
         }
         const MODELO = {
           codigo: "INCIDENCIA",
@@ -73134,11 +75465,12 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           }
           const hueco = (n, celdas) => Array.from({ length: n }, () => `<tr style="height:9mm;page-break-inside:avoid">${celdas}</tr>`).join("");
           const campo = (q) => `<div><dt>${esc(q)}</dt><dd style="border-bottom:0.3mm solid #999;min-height:6mm">&nbsp;</dd></div>`;
-          return `
+          const nombreObra = [obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ");
+          const cuerpo = `
 <article class="documentoParte documentoIncidencia">
   <header class="cabeceraParte">
     <div>
-      <p class="marca">CBRE \xB7 Incidencia de equipos \xB7 modelo en blanco</p>
+      <p class="marca">Incidencia de equipos \xB7 modelo en blanco</p>
       <h1>INC-____ \u2014 ________________________________</h1>
       <p class="ref">${esc([obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 "))}</p>
     </div>
@@ -73171,6 +75503,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
     <div style="flex:1;border-top:0.3mm solid #444;padding-top:1mm;font-size:8pt">Jefe de obra (CBRE) (nombre, firma y fecha)</div>
   </section>
 </article>`;
+          return PAPEL.hoja({ documento: "Incidencia de equipos \xB7 modelo", obra: nombreObra, fecha: hoy, cuerpo });
         }
         function hojasExcel() {
           const filas = [
@@ -73222,10 +75555,12 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       (function() {
+        const PAPEL = typeof module !== "undefined" && module.exports ? require_papel() : window.PAPEL;
         const llano = (v) => String(v ?? "").trim();
         const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
         const fechaEs = (d) => d ? String(d).slice(0, 10).split("-").reverse().join("/") : "";
-        const horas = (n) => `${Number(n || 0).toLocaleString("es-ES", { maximumFractionDigits: 2 })} h`;
+        const num = (n, dec = 2) => Number(n || 0).toLocaleString("es-ES", { maximumFractionDigits: dec });
+        const horas = (n) => `${num(n)} h`;
         const ESTADO_TEXTO = { abierta: "Abierta", enCurso: "En curso", terminada: "Terminada", cerrada: "Cerrada", anulada: "Anulada" };
         const TIPOS_OBSERVACION = /* @__PURE__ */ new Set(["feedback", "comentario"]);
         function visitasDe(r) {
@@ -73247,33 +75582,39 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           return v.length ? v[v.length - 1].fecha : "";
         }
         const RES_TEXTO = { noReparada: "No se ha podido reparar", pendienteMaterial: "Pendiente de material", pendienteTercero: "Pendiente de servicio t\xE9cnico", parcial: "Reparada parcialmente" };
-        const noRep = (r) => r.resultadoVigente && RES_TEXTO[r.resultadoVigente.resultado] ? ` \xB7 <strong>${esc(RES_TEXTO[r.resultadoVigente.resultado])}</strong>` : "";
+        const resultadoDe = (r) => r.resultadoVigente && RES_TEXTO[r.resultadoVigente.resultado] || "";
+        const totalHoras = (r) => Number((r.recuento || {}).total) || 0;
+        const plantaDe = (r) => r.planta || r.equipo && r.equipo.planta || "";
+        const zonaDe = (r) => r.zona || r.equipo && r.equipo.zona || "";
         const equipoTexto = (e) => e ? [e.tag, e.denominacion || [e.marca, e.modelo].filter(Boolean).join(" ")].filter(Boolean).join(" \xB7 ") : "";
-        function portada({ obra, periodo, hoy, logo, n }) {
-          return `<section class="hojaInforme portadaInforme">
-    <div class="marcaInforme">${logo || "<strong>CBRE</strong>"}<span>Project 360</span></div>
-    <div class="tituloInforme">
-      <p class="antetitulo">Informe de reparaciones</p>
-      <h1>${esc([obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 "))}</h1>
-      <p class="periodo">${esc(periodo)}</p>
-    </div>
-    <dl class="datosPortada">
-      <div><dt>Reparaciones</dt><dd>${n}</dd></div>
-      <div><dt>Fecha del informe</dt><dd>${esc(fechaEs(hoy))}</dd></div>
-    </dl>
-  </section>`;
+        function estadoHtml(r) {
+          const res = resultadoDe(r);
+          return `<span class="estadoRep${res ? " aviso" : ""}">${esc(res || ESTADO_TEXTO[r.estado] || r.estado)}</span>`;
+        }
+        function indicadores(reps) {
+          const equipos = new Set(reps.map((r) => r.equipoId || r.equipo && r.equipo.tag).filter(Boolean)).size;
+          const visitas = reps.reduce((a, r) => a + visitasDe(r).length, 0);
+          const sinResolver = reps.filter((r) => resultadoDe(r)).length;
+          return PAPEL.cifras([
+            { que: "Reparaciones", valor: num(reps.length, 0) },
+            { que: "Equipos", valor: num(equipos, 0) },
+            { que: "Visitas", valor: num(visitas, 0) },
+            { que: "Horas", valor: num(reps.reduce((a, r) => a + totalHoras(r), 0)), nota: "apuntadas en las visitas" },
+            sinResolver ? { que: "Sin resolver del todo", valor: num(sinResolver, 0), nota: "pendientes de material o de terceros", clase: "mal" } : null
+          ]);
         }
         function resumen(reps) {
           return `<section class="resumenInforme">
     <h2>Resumen</h2>
-    <table class="tablaParte">
-      <thead><tr><th>C\xF3digo</th><th>Equipo</th><th>Planta</th><th>Qu\xE9 le pasaba</th><th>Visitas</th><th class="num">Horas</th><th>Hecha el</th><th>Estado</th></tr></thead>
+    <table class="tablaInformeRep">
+      <thead><tr><th>C\xF3digo</th><th>Equipo</th><th>Planta</th><th>Zona</th><th class="ancha">Qu\xE9 le pasaba</th><th>Operario</th><th class="num">Visitas</th><th class="num">Horas</th><th class="fecha">Hecha el</th><th>Estado</th></tr></thead>
       <tbody>${reps.map((r) => `<tr>
-        <td>${esc(r.codigo)}</td><td>${esc(r.equipo ? r.equipo.tag : "")}</td><td>${esc(r.equipo ? r.equipo.planta || "" : "")}</td>
-        <td>${esc(r.titulo)}</td><td class="num">${visitasDe(r).length}</td><td class="num">${horas((r.recuento || {}).total)}</td>
-        <td>${esc(fechaEs(fechaHecha(r)))}</td><td>${esc(ESTADO_TEXTO[r.estado] || r.estado)}${noRep(r)}</td></tr>`).join("")}</tbody>
-      <tfoot><tr><td colspan="5">Total \xB7 ${reps.length} reparaciones</td><td class="num">${horas(reps.reduce((a, r) => a + (Number((r.recuento || {}).total) || 0), 0))}</td><td colspan="2"></td></tr></tfoot>
+        <td class="codigo">${esc(r.codigo)}</td><td class="equipo">${esc(r.equipo ? r.equipo.tag : "")}</td><td>${esc(plantaDe(r))}</td><td>${esc(zonaDe(r))}</td>
+        <td class="ancha">${esc(r.titulo)}</td><td>${esc(r.operario || "")}</td><td class="num">${visitasDe(r).length}</td><td class="num">${num(totalHoras(r))}</td>
+        <td class="fecha">${esc(fechaEs(fechaHecha(r)))}</td><td>${estadoHtml(r)}</td></tr>`).join("")}</tbody>
+      <tfoot><tr><th colspan="6">Total \xB7 ${reps.length} ${reps.length === 1 ? "reparaci\xF3n" : "reparaciones"}</th><th class="num">${reps.reduce((a, r) => a + visitasDe(r).length, 0)}</th><th class="num">${num(reps.reduce((a, r) => a + totalHoras(r), 0))}</th><th colspan="2"></th></tr></tfoot>
     </table>
+    <p class="nota">Horas: las apuntadas en las visitas. El estado es el de cierre de cada reparaci\xF3n.</p>
   </section>`;
         }
         function fotosDe(r, momento) {
@@ -73287,33 +75628,38 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           const despues = fotosDe(r, "despues");
           const columna = (titulo, fotos) => `<div class="columnaFotos"><h3>${titulo}</h3>${fotos.length ? fotos.map((f) => `<figure><img src="${esc(f.src)}" alt="${esc(f.nombre || "")}"></figure>`).join("") : '<p class="nota">Sin fotos.</p>'}</div>`;
           return `<section class="hojaInforme reparacionInforme">
-    <header class="cabeceraParte">
-      <div><p class="marca">CBRE \xB7 Reparaci\xF3n de equipo</p><h1>${esc(r.codigo)} \u2014 ${esc(r.titulo)}</h1></div>
-      <p class="fecha">${esc(ESTADO_TEXTO[r.estado] || r.estado)}${noRep(r)}</p>
+    <header class="cabeceraRep">
+      <div><p class="tipoRep">Reparaci\xF3n de equipo</p><h2>${esc(r.codigo)} \xB7 ${esc(r.titulo)}</h2></div>
+      ${estadoHtml(r)}
     </header>
-    <dl class="datosParte">
+    <dl class="datosRep">
       ${dato("Equipo", equipoTexto(r.equipo))}
-      ${dato("Planta", r.equipo && r.equipo.planta)}
+      ${dato("Planta", plantaDe(r))}
+      ${dato("Zona", zonaDe(r))}
       ${dato("Ubicaci\xF3n", r.ubicacion)}
+      ${dato("Operario", r.operario)}
+      ${dato("Prioridad", llano(r.prioridad).charAt(0).toUpperCase() + llano(r.prioridad).slice(1))}
       ${dato("Abierta el", fechaEs(r.fechaApertura))}
       ${dato("Hecha el", fechaEs(fechaHecha(r)))}
-      ${dato("Prioridad", llano(r.prioridad).charAt(0).toUpperCase() + llano(r.prioridad).slice(1))}
+      ${dato("Horas", visitas.length ? horas(totalHoras(r)) : "")}
     </dl>
-    ${llano(r.descripcion) ? `<section class="relato"><h2>Qu\xE9 le pasaba</h2><p>${esc(r.descripcion).replace(/\n/g, "<br>")}</p></section>` : ""}
-    ${visitas.length ? `<section><h2>Visitas</h2>
-      <table class="tablaParte">
-        <thead><tr><th>Fecha</th><th>T\xE9cnicos</th><th>Empresa</th><th class="num">Horas</th></tr></thead>
-        <tbody>${visitas.map((v) => `<tr><td>${esc(fechaEs(v.fecha))}</td><td>${esc(v.tecnicos.join(", "))}</td><td>${esc(v.empresas.join(", "))}</td><td class="num">${horas(v.horas)}</td></tr>`).join("")}</tbody>
+    ${llano(r.descripcion) ? `<section class="relato"><h3>Qu\xE9 le pasaba</h3><p>${esc(r.descripcion).replace(/\n/g, "<br>")}</p></section>` : ""}
+    ${visitas.length ? `<section class="visitasRep"><h3>Visitas</h3>
+      <table class="tablaInformeRep">
+        <thead><tr><th class="fecha">Fecha</th><th>T\xE9cnicos</th><th>Empresa</th><th class="num">Horas</th></tr></thead>
+        <tbody>${visitas.map((v) => `<tr><td class="fecha">${esc(fechaEs(v.fecha))}</td><td>${esc(v.tecnicos.join(", "))}</td><td>${esc(v.empresas.join(", "))}</td><td class="num">${num(v.horas)}</td></tr>`).join("")}</tbody>
       </table></section>` : ""}
-    ${obs.length ? `<section class="relato"><h2>Observaciones</h2><ul class="observaciones">${obs.map((c) => `<li><span class="cuando">${esc(fechaEs(c.creadoEn || c.cuando))}${c.persona ? ` \xB7 ${esc(c.persona)}` : ""}</span> ${esc(c.texto).replace(/\n/g, "<br>")}</li>`).join("")}</ul></section>` : ""}
-    <section class="fotosInforme"><h2>Fotos</h2><div class="antesDespues">${columna("Antes", antes)}${columna("Despu\xE9s", despues)}</div></section>
+    ${obs.length ? `<section class="relato"><h3>Observaciones</h3><ul class="observaciones">${obs.map((c) => `<li><span class="cuando">${esc(fechaEs(c.creadoEn || c.cuando))}${c.persona ? ` \xB7 ${esc(c.persona)}` : ""}</span> ${esc(c.texto).replace(/\n/g, "<br>")}</li>`).join("")}</ul></section>` : ""}
+    ${antes.length || despues.length ? `<section class="fotosInforme"><h3>Fotos</h3><div class="antesDespues">${columna("Antes", antes)}${columna("Despu\xE9s", despues)}</div></section>` : ""}
   </section>`;
         }
-        function html({ obra = {}, reparaciones = [], periodo = "", hoy = "", logo = "" } = {}) {
-          return `<article class="documentoParte informeReparaciones">
-    ${portada({ obra, periodo, hoy, logo, n: reparaciones.length })}
-    ${reparaciones.length ? resumen(reparaciones) + reparaciones.map(hojaReparacion).join("") : '<p class="nota">No hay reparaciones hechas en ese periodo.</p>'}
+        function html({ obra = {}, reparaciones = [], periodo = "", hoy = "" } = {}) {
+          const nombreObra = [obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ");
+          const cuerpo = `<article class="informeReparaciones">
+    ${PAPEL.portada({ tipo: "Informe de reparaciones", titulo: nombreObra || "Obra", subtitulo: periodo, datos: [["Fecha del informe", fechaEs(hoy)], ["Reparaciones", reparaciones.length ? num(reparaciones.length, 0) : ""]] })}
+    ${reparaciones.length ? indicadores(reparaciones) + resumen(reparaciones) + reparaciones.map(hojaReparacion).join("") : '<p class="nota">No hay reparaciones hechas en ese periodo.</p>'}
   </article>`;
+          return PAPEL.hoja({ documento: "Informe de reparaciones", obra: nombreObra, fecha: hoy, cuerpo, clase: "papelInformeRep" });
         }
         function elegir(filas, { desde = "", hasta = "", estados = ["terminada", "cerrada"], ids = null } = {}) {
           return filas.filter((r) => r.equipoId && estados.includes(r.estado) && (!ids || ids.includes(r.id))).filter((r) => {
@@ -73325,6 +75671,118 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           if (typeof module !== "undefined" && module.exports) module.exports = API;
           if (typeof window !== "undefined") window.INFORME_REPARACIONES = API;
         })({ html, elegir, visitasDe, observacionesDe, fechaHecha });
+      })();
+    }
+  });
+
+  // shared/incidencias/informeServicioTecnico.js
+  var require_informeServicioTecnico = __commonJS({
+    "shared/incidencias/informeServicioTecnico.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const PAPEL = typeof module !== "undefined" && module.exports ? require_papel() : window.PAPEL;
+        const llano = (v) => String(v ?? "").trim();
+        const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+        const fechaEs = (d) => d ? String(d).slice(0, 10).split("-").reverse().join("/") : "";
+        const pendiente = (r) => Boolean(r && r.resultadoVigente && r.resultadoVigente.resultado === "pendienteTercero");
+        const plantaDe = (r) => r.planta || r.equipo && r.equipo.planta || "";
+        const zonaDe = (r) => r.zona || r.equipo && r.equipo.zona || "";
+        function sitioDe(r) {
+          const ya = new Set([plantaDe(r), zonaDe(r)].map((v) => llano(v).toLowerCase()).filter(Boolean));
+          const s = llano(r.ubicacion).split("\xB7").map(llano).filter((p) => p && !ya.has(p.toLowerCase())).join(" \xB7 ");
+          return s || [r.equipo && r.equipo.sala, r.equipo && r.equipo.codSala].filter(Boolean).join(" \xB7 ");
+        }
+        const diasDe = (r) => r.calc && r.calc.diasAbierta !== null && r.calc.diasAbierta !== void 0 ? r.calc.diasAbierta : "";
+        const fallaDe = (r) => llano(r.falla) || llano(r.titulo);
+        function elegir(filas, { ids = null } = {}) {
+          return (filas || []).filter((r) => pendiente(r) && (!ids || ids.includes(r.id))).sort((a, b) => String(plantaDe(a)).localeCompare(String(plantaDe(b)), "es", { numeric: true }) || String(zonaDe(a)).localeCompare(String(zonaDe(b)), "es") || String(a.codigo).localeCompare(String(b.codigo), "es", { numeric: true }));
+        }
+        function lineas(reparaciones) {
+          const salida = [];
+          for (const r of reparaciones || []) {
+            const us = r.unidades && r.unidades.length ? r.unidades : [r.equipo ? { tag: r.equipo.tag, marca: r.equipo.marca, modelo: r.equipo.modelo, numSerie: "" } : null];
+            us.forEach((u, i) => salida.push({ r, u, primera: i === 0, n: us.length }));
+          }
+          return salida;
+        }
+        function cuentas(reparaciones) {
+          const ls = lineas(reparaciones).filter((l) => l.u);
+          return { reparaciones: (reparaciones || []).length, unidades: ls.length, sinSerie: ls.filter((l) => !llano(l.u.numSerie)).length };
+        }
+        const marcaModelo = (u) => [u.marca, u.modelo].map(llano).filter(Boolean).join(" \xB7 ");
+        function tabla(reparaciones) {
+          const c = cuentas(reparaciones);
+          const filas = lineas(reparaciones).map(({ r, u, primera, n }) => {
+            const nueva = primera ? " nuevaRep" : "";
+            const serie = u ? llano(u.numSerie) ? `<span class="serie">${esc(u.numSerie)}</span>` : '<span class="sinSerie">sin n\xBA de serie</span>' : "";
+            const fotos = primera && (r.fotos || []).length ? `<div class="miniaturas">${r.fotos.map((f) => `<img src="${esc(f.src)}" alt="">`).join("")}</div>` : "";
+            return `<tr class="${nueva.trim()}">
+      <td class="codigo">${primera ? esc(r.codigo) : ""}</td>
+      <td>${primera ? esc(plantaDe(r)) : ""}</td><td>${primera ? esc(zonaDe(r)) : ""}</td><td class="sitio">${primera ? esc(sitioDe(r)) : ""}</td>
+      <td class="rotulo">${esc(u && u.rotulo ? u.rotulo : "")}</td><td class="tag">${esc(u ? u.tag : "")}</td><td class="modelo">${esc(u ? marcaModelo(u) : "")}</td>
+      <td class="serieCelda">${serie}</td>
+      <td class="falla">${primera ? esc(fallaDe(r)) : n > 1 ? '<span class="mismo">\u2033</span>' : ""}</td>
+      <td class="fecha">${primera ? esc(fechaEs(r.fechaApertura)) : ""}</td><td class="num">${primera ? esc(diasDe(r)) : ""}</td>
+      <td class="fotosCelda">${fotos}</td></tr>`;
+          }).join("");
+          return `<table class="tablaServTec">
+    <thead><tr><th>C\xF3digo</th><th>Planta</th><th>Zona</th><th>Sala / sitio</th><th>Unidad</th><th>Tag</th><th>Marca \xB7 modelo</th><th>N\xBA de serie</th><th class="falla">Qu\xE9 falla</th><th class="fecha">Abierta</th><th class="num">D\xEDas</th><th>Fotos</th></tr></thead>
+    <tbody>${filas}</tbody>
+    <tfoot><tr><th colspan="12">Total \xB7 ${c.unidades} ${c.unidades === 1 ? "unidad" : "unidades"} en ${c.reparaciones} ${c.reparaciones === 1 ? "reparaci\xF3n" : "reparaciones"}${c.sinSerie ? ` \xB7 ${c.sinSerie} sin n\xBA de serie` : ""}</th></tr></tfoot>
+  </table>`;
+        }
+        function html({ obra = {}, cliente = "", reparaciones = [], alcance = "", hoy = "" } = {}) {
+          const nombreObra = [obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ");
+          const c = cuentas(reparaciones);
+          const cuerpo = `<article class="informeServTec">
+    ${PAPEL.portada({
+            tipo: "Informe para el servicio t\xE9cnico",
+            titulo: nombreObra || "Obra",
+            subtitulo: `Unidades pendientes de servicio t\xE9cnico${alcance ? ` \xB7 ${alcance}` : ""}`,
+            datos: [["Cliente", cliente], ["Fecha", fechaEs(hoy)], ["Unidades", String(c.unidades)], ["Reparaciones", String(c.reparaciones)], ["Sin n\xBA de serie", String(c.sinSerie)]]
+          })}
+    ${c.sinSerie ? `<p class="avisoSerie">${c.sinSerie} ${c.sinSerie === 1 ? "unidad no tiene" : "unidades no tienen"} n\xBA de serie en la lista de equipos: van en rojo.</p>` : ""}
+    ${reparaciones.length ? tabla(reparaciones) : '<p class="nota">No hay reparaciones pendientes de servicio t\xE9cnico.</p>'}
+  </article>`;
+          return PAPEL.hoja({ documento: "Informe para el servicio t\xE9cnico", obra: nombreObra, fecha: hoy, cuerpo, clase: "apaisado papelServTec" });
+        }
+        function hojas({ obra = {}, cliente = "", reparaciones = [], alcance = "", hoy = "" } = {}) {
+          const c = cuentas(reparaciones);
+          const cab = ["C\xF3digo", "Planta", "Zona", "Sala / sitio", "Unidad", "Tag", "Marca", "Modelo", "N\xBA de serie", "Qu\xE9 falla", "Abierta", "D\xEDas abierta", "Fotos"];
+          const filas = lineas(reparaciones).map(({ r, u }) => [
+            r.codigo,
+            plantaDe(r),
+            zonaDe(r),
+            sitioDe(r),
+            u && u.rotulo || "",
+            u ? u.tag || "" : "",
+            u ? llano(u.marca) : "",
+            u ? llano(u.modelo) : "",
+            u ? llano(u.numSerie) || "SIN N\xBA DE SERIE" : "",
+            fallaDe(r),
+            fechaEs(r.fechaApertura),
+            diasDe(r),
+            (r.fotos || []).length || ""
+          ]);
+          return [
+            { nombre: "Servicio t\xE9cnico", marca: true, filtro: true, filas: [cab, ...filas], anchos: [10, 7, 10, 28, 7, 24, 12, 14, 16, 50, 10, 8, 6] },
+            { nombre: "Datos", filas: [
+              ["Dato", "Valor"],
+              ["Obra", [obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ")],
+              ["Cliente", cliente],
+              ["Fecha", fechaEs(hoy)],
+              ["Alcance", alcance || "Todas las pendientes"],
+              ["Unidades", c.unidades],
+              ["Reparaciones", c.reparaciones],
+              ["Unidades sin n\xBA de serie", c.sinSerie]
+            ], anchos: [26, 50] }
+          ];
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.INFORME_SERVICIO_TECNICO = API;
+        })({ pendiente, elegir, lineas, cuentas, html, hojas });
       })();
     }
   });
@@ -73341,6 +75799,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       var CONV = require_conversacion();
       var DOC = require_documento();
       var INF = require_informeReparaciones();
+      var IST = require_informeServicioTecnico();
       var N = require_motor();
       var { limpiarCoste } = require_partesIncidencia2();
       var { puede, campoVetado } = require_roles();
@@ -73395,7 +75854,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           horas: por("incidenciaHoras", "fecha, creadoEn"),
           partes: por("incidenciaPartes", "creadoEn"),
           comentarios: por("incidenciaComentarios", "creadoEn"),
-          equipos: repo.db.prepare("SELECT id, tag, planta, sala, codSala, zona, marca, modelo, denominacion, grupo, familia, plantillaPM FROM equiposObra WHERE obraId = ? ORDER BY tag").all(obraId)
+          equipos: repo.db.prepare("SELECT id, tag, planta, sala, codSala, zona, marca, modelo, denominacion, grupo, familia, plantillaPM, equipoAsociado FROM equiposObra WHERE obraId = ? ORDER BY tag").all(obraId)
         };
       }
       var agrupar = (lista, clave) => {
@@ -73432,7 +75891,8 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
             denominacion: e.denominacion,
             grupo: e.grupo,
             familia: e.familia,
-            plantillaPM: e.plantillaPM
+            plantillaPM: e.plantillaPM,
+            ...e.unidades ? { unidades: e.unidades } : {}
           } : null,
           encargado: nombre.get(i.encargadoId) || null,
           creador: nombre.get(i.creadoPor) || null,
@@ -73462,6 +75922,20 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         }
         return fila;
       }
+      function asignablesDe(repo, obraId, filas) {
+        const nom = [
+          ...filas.map((f) => f.operario),
+          ...repo.db.prepare("SELECT nombre FROM operariosObra WHERE obraId = ? AND activo = 1").all(obraId).map((r) => r.nombre),
+          ...repo.db.prepare("SELECT p.nombre FROM operariosObra o JOIN proveedores p ON p.id = o.proveedorId WHERE o.obraId = ? AND o.activo = 1").all(obraId).map((r) => r.nombre),
+          ...repo.db.prepare("SELECT nombre FROM ncrEmpresas WHERE obraId = ?").all(obraId).map((r) => r.nombre),
+          ...require_personal2().subcontratasDe(repo, obraId).map((s) => s.nombre)
+        ].map(llano).filter(Boolean);
+        const vistos = /* @__PURE__ */ new Map();
+        for (const n of nom) if (!vistos.has(N.normalizar(n))) vistos.set(N.normalizar(n), n);
+        return [...vistos.values()].sort((a, b) => a.localeCompare(b, "es"));
+      }
+      var zonasDe = (base, filas, equipos) => [...new Set([...base, ...filas.map((f) => f.zona), ...equipos.map((e) => M.zonaLegible(e.zona))].filter(Boolean))].sort((a, b) => (base.indexOf(a) + 1 || 99) - (base.indexOf(b) + 1 || 99) || a.localeCompare(b, "es"));
+      var plantasDe = (filas, equipos) => [...new Set([...filas.map((f) => f.planta), ...equipos.map((e) => M.plantaLegible(e.planta))].filter(Boolean))].sort((a, b) => a.localeCompare(b, "es", { numeric: true }));
       function encargadosDe(repo, o, nombre) {
         const ids = [...new Set([...listaDe(o.encargadosIds), o.jefeObraId].filter(Boolean))];
         const roles = new Map(repo.db.prepare("SELECT id, rol FROM personas").all().map((p) => [p.id, p.rol]));
@@ -73477,6 +75951,11 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         const tarifas = tarifasDe(repo, obraId);
         const precioCobroH = precioCobroDe(repo, obraId);
         const equipoPorId = new Map(d.equipos.map((e) => [e.id, e]));
+        for (const c of require_conjuntos().agrupar(d.equipos)) {
+          if (c.unidades.length < 2) continue;
+          const cab = { ...equipoPorId.get(c.id), unidades: c.unidades.map((u) => u.tag) };
+          for (const u of c.unidades) equipoPorId.set(u.id, cab);
+        }
         const hPor = agrupar(d.horas, "incidenciaId");
         const pPor = agrupar(d.partes, "incidenciaId");
         const cPor = agrupar(d.comentarios, "incidenciaId");
@@ -73498,9 +75977,13 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           obra: { id: o.id, codigo: o.codigo, nombre: o.nombre, jefeObraId: o.jefeObraId },
           filas: dinero ? filas : filas.map(({ costeCalc, ...f }) => f),
           encargados: encargadosDe(repo, o, nombre),
-          equipos: d.equipos.map((e) => ({ id: e.id, tag: e.tag, planta: e.planta, marca: e.marca, modelo: e.modelo })),
+          equipos: d.equipos.map((e) => ({ id: e.id, tag: e.tag, planta: e.planta, zona: e.zona || "", sala: e.sala || "", marca: e.marca, modelo: e.modelo })),
           empresas,
           operarios,
+          /* A quién se le puede asignar una reparación: las empresas y operarios de la obra (más los que ya figuran). */
+          asignables: asignablesDe(repo, obraId, filas),
+          zonas: zonasDe(M.ZONAS, filas, d.equipos),
+          plantas: plantasDe(filas, d.equipos),
           /* Empresas con su tarifa (solo a quien ve dinero) y los tipos de la lista de NCR. */
           empresasTarifa: dinero ? conTarifa : null,
           tiposEmpresa: dinero ? N.configuracion(repo.db.prepare("SELECT * FROM ncrConfig WHERE obraId = ?").get(obraId) || void 0).catalogos.tipoEmpresa : [],
@@ -73548,6 +76031,9 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           equipos: datos.equipos,
           empresas: datos.empresas,
           operarios: datos.operarios,
+          asignables: datos.asignables,
+          zonas: datos.zonas,
+          plantas: datos.plantas,
           verDinero: datos.verDinero,
           puede: { ...datos.puede, encargo: puedeEncargo(sesion, i) }
         };
@@ -73566,7 +76052,10 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         "repercusion",
         "importeRepercutido",
         "costeExtra",
-        "costeExtraConcepto"
+        "costeExtraConcepto",
+        "operario",
+        "zona",
+        "planta"
       ];
       function limpiar(repo, sesion, obraId, entrada = {}, actual = {}) {
         const cambios = {};
@@ -73604,6 +76093,9 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           if (llano(entrada.equipoId) && !eq) return { error: "Ese equipo no es de esta obra." };
           cambios.equipoId = eq ? eq.id : null;
         }
+        if (entrada.operario !== void 0) cambios.operario = llano(entrada.operario).replace(/\s+/g, " ").slice(0, 120) || null;
+        if (entrada.zona !== void 0) cambios.zona = M.zonaLegible(entrada.zona);
+        if (entrada.planta !== void 0) cambios.planta = M.plantaLegible(entrada.planta);
         if (entrada.repercutir !== void 0) {
           if (!verDinero(sesion)) return { error: "Repercutirla al cliente no es de tu rol." };
           cambios.repercutir = entrada.repercutir === true || entrada.repercutir === 1 || entrada.repercutir === "1" ? 1 : 0;
@@ -73626,6 +76118,13 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         if (!llano(entrada.titulo)) return { ok: false, error: "La incidencia necesita un t\xEDtulo (qu\xE9 le pasa a qu\xE9)." };
         const { cambios, error } = limpiar(repo, sesion, obraId, entrada);
         if (error) return { ok: false, error };
+        if (cambios.equipoId && (cambios.zona === void 0 || cambios.planta === void 0)) {
+          const eq = repo.db.prepare("SELECT zona, planta FROM equiposObra WHERE id = ?").get(cambios.equipoId);
+          if (eq) {
+            if (cambios.zona === void 0) cambios.zona = M.zonaLegible(eq.zona);
+            if (cambios.planta === void 0) cambios.planta = M.plantaLegible(eq.planta);
+          }
+        }
         const codigos = repo.db.prepare("SELECT codigo FROM incidencias WHERE obraId = ?").all(obraId).map((x) => x.codigo);
         const { numero, codigo } = M.siguienteCodigo(codigos);
         const encargadoId = cambios.encargadoId !== void 0 ? cambios.encargadoId : sesion.rol === "encargadoObra" ? sesion.personaId : null;
@@ -73946,18 +76445,21 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         return i ? fotosDe(i)[Number(indice)] || null : null;
       }
       var MIME_FOTO = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".gif": "image/gif", ".webp": "image/webp" };
-      function fotoEmbebida(f, rutas = null) {
+      function fotoEmbebida(f, rutas = null, autores = null) {
+        const base = {
+          nombre: f.nombre || "",
+          momento: MOMENTOS_FOTO[f.momento] ? f.momento : null,
+          fecha: f.fecha ? String(f.fecha).split("-").reverse().join("/") : "",
+          autor: autores && f.personaId && autores.get(f.personaId) || ""
+        };
         try {
           const ruta = rutas && rutas.get(claveFoto(f)) || f.ruta;
-          const mime = MIME_FOTO[path.extname(ruta || "").toLowerCase()];
-          if (!mime || !ruta || !fs.existsSync(ruta)) return null;
-          return {
-            nombre: MOMENTOS_FOTO[f.momento] ? `${MOMENTOS_FOTO[f.momento]} \xB7 ${f.nombre}` : f.nombre,
-            momento: MOMENTOS_FOTO[f.momento] ? f.momento : null,
-            src: `data:${mime};base64,${fs.readFileSync(ruta).toString("base64")}`
-          };
+          const mime = MIME_FOTO[path.extname(ruta || f.nombre || "").toLowerCase()];
+          if (!mime) return { ...base, motivo: "Formato que el PDF no puede pintar" };
+          if (!ruta || !fs.existsSync(ruta)) return { ...base, motivo: f.nube ? "No se pudo bajar de la nube" : "El archivo ya no est\xE1" };
+          return { ...base, src: `data:${mime};base64,${fs.readFileSync(ruta).toString("base64")}` };
         } catch {
-          return null;
+          return { ...base, motivo: "No se pudo leer" };
         }
       }
       var claveFoto = (f) => f && (f.nube || f.ruta) || "";
@@ -73971,10 +76473,11 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         const f = ficha(repo, sesion, id);
         if (!f) return { error: "No se encuentra la incidencia." };
         const i = f.incidencia;
-        const fotos = (i.fotos || []).map((x) => fotoEmbebida(x, rutas)).filter(Boolean);
+        const autores = nombres(repo);
+        const fotos = (i.fotos || []).map((x) => fotoEmbebida(x, rutas, autores));
         const html = DOC.html({ incidencia: i, comentarios: f.comentarios, obra: f.obra, fotos, conDinero: f.verDinero, hoy: hoy() });
         const nombreArchivo = `${f.obra.codigo} ${i.codigo} incidencia${f.verDinero ? " (valorada)" : ""}.pdf`.replace(/[\\/:*?"<>|]/g, "-");
-        return { html, nombreArchivo, fotosOmitidas: (i.fotos || []).length - fotos.length };
+        return { html, nombreArchivo, fotosOmitidas: fotos.filter((x) => !x.src).length };
       }
       function informeReparaciones(repo, sesion, obraId, { desde = "", hasta = "", ids = null, rutas = null } = {}) {
         if (!puede(sesion.rol, "incidencias", "exportar")) return { error: "Tu rol no puede sacar el informe." };
@@ -73985,20 +76488,52 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         const reparaciones = elegidas.map((r) => ({
           ...r,
           comentarios: repo.listar("incidenciaComentarios", sesion, { condicion: "incidenciaId = ?", params: [r.id], orden: "creadoEn" }).map((c) => ({ ...c, persona: nombre.get(c.personaId) || null })),
-          fotos: (r.fotos || []).map((f) => {
-            const e = fotoEmbebida(f, rutas);
-            return e ? { ...e, momento: f.momento || null } : null;
-          }).filter(Boolean)
+          fotos: (r.fotos || []).map((f) => ({ ...fotoEmbebida(f, rutas), momento: f.momento || null })).filter((e) => e.src)
         }));
-        let logo = "";
-        try {
-          logo = fs.readFileSync(path.join("/app/electron/data", "..", "..", "marca", "cbre-logo.svg"), "utf8").replace(/<\?xml[^>]*>/, "");
-        } catch {
-        }
         const periodo = desde || hasta ? `Reparaciones hechas ${desde ? `del ${desde.split("-").reverse().join("/")} ` : ""}${hasta ? `al ${hasta.split("-").reverse().join("/")}` : "hasta hoy"}` : "Todas las reparaciones hechas";
-        const html = INF.html({ obra: d.obra, reparaciones, periodo, hoy: hoy(), logo });
+        const html = INF.html({ obra: d.obra, reparaciones, periodo, hoy: hoy() });
         const nombreArchivo = `${d.obra.codigo} informe de reparaciones ${hoy()}.pdf`.replace(/[\\/:*?"<>|]/g, "-");
         return { html, nombreArchivo, n: reparaciones.length };
+      }
+      function elegidasServicioTecnico(repo, sesion, obraId, ids) {
+        const d = obra(repo, sesion, obraId);
+        return d ? { d, elegidas: IST.elegir(d.filas, { ids: Array.isArray(ids) && ids.length ? ids : null }) } : null;
+      }
+      function fotosServicioTecnico(repo, sesion, obraId, { ids = null } = {}) {
+        const e = elegidasServicioTecnico(repo, sesion, obraId, ids);
+        return e ? e.elegidas.flatMap((r) => miniaturasDe(r)) : [];
+      }
+      var miniaturasDe = (r) => [...r.fotos || []].sort((a, b) => (a.momento === "despues" ? 1 : 0) - (b.momento === "despues" ? 1 : 0)).slice(0, 3);
+      function informeServicioTecnico(repo, sesion, obraId, { ids = null, alcance = "", rutas = null, formato = "pdf" } = {}) {
+        if (!puede(sesion.rol, "incidencias", "exportar")) return { error: "Tu rol no puede sacar el informe." };
+        const e = elegidasServicioTecnico(repo, sesion, obraId, ids);
+        if (!e) return { error: "No se encuentra la obra." };
+        const { d, elegidas } = e;
+        const equipos = repo.db.prepare("SELECT id, tag, marca, modelo, numSerie, denominacion, plantillaPM, equipoAsociado FROM equiposObra WHERE obraId = ? ORDER BY tag").all(obraId);
+        const conjuntoDe = /* @__PURE__ */ new Map();
+        for (const c2 of require_conjuntos().agrupar(equipos)) for (const u of c2.unidades) conjuntoDe.set(u.id, c2.unidades);
+        const comentarios = (id) => repo.db.prepare("SELECT texto, resultado, creadoEn FROM incidenciaComentarios WHERE incidenciaId = ? AND resultado = 'pendienteTercero' AND COALESCE(tipo, '') <> 'estado' ORDER BY creadoEn").all(id);
+        const reparaciones = elegidas.map((r) => {
+          const notas = comentarios(r.id).filter((c2) => llano(c2.texto));
+          return {
+            ...r,
+            unidades: r.equipoId ? (conjuntoDe.get(r.equipoId) || []).map((u) => ({ rotulo: u.rotulo || "", tag: u.tag, marca: u.marca, modelo: u.modelo, numSerie: llano(u.numSerie) })) : [],
+            falla: notas.length ? notas[notas.length - 1].texto : "",
+            fotos: formato === "pdf" ? miniaturasDe(r).map((f) => fotoEmbebida(f, rutas)).filter((f) => f.src) : r.fotos || []
+          };
+        });
+        const o = repo.db.prepare("SELECT clienteId FROM obras WHERE id = ?").get(obraId) || {};
+        const cliente = o.clienteId ? (repo.db.prepare("SELECT nombre FROM clientes WHERE id = ?").get(o.clienteId) || {}).nombre || "" : "";
+        const datos = { obra: d.obra, cliente, reparaciones, alcance, hoy: hoy() };
+        const nombre = `${d.obra.codigo} informe servicio t\xE9cnico ${hoy()}`.replace(/[\\/:*?"<>|]/g, "-");
+        const c = IST.cuentas(reparaciones);
+        return {
+          n: reparaciones.length,
+          unidades: c.unidades,
+          sinSerie: c.sinSerie,
+          nombre,
+          ...formato === "excel" ? { hojas: IST.hojas(datos) } : { html: IST.html(datos) }
+        };
       }
       function costes(repo, sesion, obraId) {
         const d = obra(repo, sesion, obraId);
@@ -74088,7 +76623,9 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         costesReparaciones,
         avisos,
         documento,
-        informeReparaciones
+        informeReparaciones,
+        informeServicioTecnico,
+        fotosServicioTecnico
       };
     }
   });
@@ -74109,6 +76646,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         "GET api/reparacion": [["incidencias", "ver"]],
         "POST api/reparacion": [["incidencias", "crear"]],
         "POST api/reparacion/visita": [["incidencias", "crear"]],
+        "POST api/reparacion/datos": [["incidencias", "editar"]],
         "POST api/reparacion/estado": [["incidencias", "editar"]],
         "POST api/reparacion/comentar": [["incidencias", "crear"]],
         "POST api/reparacion/foto": [["incidencias", "editar"]],
@@ -74135,6 +76673,9 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           encargadoId: f.encargadoId || null,
           encargado: f.encargado || null,
           equipo: f.equipo ? { id: f.equipo.id, tag: f.equipo.tag, planta: f.equipo.planta || "", sala: f.equipo.sala || "", codSala: f.equipo.codSala || "", zona: f.equipo.zona || "" } : null,
+          operario: f.operario || "",
+          zona: f.zona || "",
+          planta: f.planta || "",
           fechaApertura: f.fechaApertura || null,
           fechaLimite: f.fechaLimite || null,
           horas: f.calc ? f.calc.horas : 0,
@@ -74155,9 +76696,12 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
             ok: true,
             filas: d.filas.filter((f) => f.equipoId && f.estado !== "anulada").map(filaMovil),
             encargados: d.encargados.map((p) => ({ id: p.id, nombre: p.nombre })),
-            equipos: d.equipos.map((e) => ({ id: e.id, tag: e.tag, planta: e.planta || "", sala: e.sala || "", codSala: e.codSala || "" })),
+            equipos: d.equipos.map((e) => ({ id: e.id, tag: e.tag, planta: e.planta || "", zona: e.zona || "", sala: e.sala || "", codSala: e.codSala || "" })),
             empresas: d.empresas,
             operarios: d.operarios,
+            asignables: d.asignables,
+            zonas: d.zonas,
+            plantas: d.plantas,
             yo: ses.personaId,
             mias,
             puede: { crear: d.puede.crear, editar: d.puede.editar, aprobar: d.puede.aprobar }
@@ -74195,9 +76739,12 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
             comentarios: d.comentarios.map((c) => ({ tipo: c.tipo, texto: c.texto, persona: c.persona, cuando: c.creadoEn })),
             empresas: d.empresas,
             operarios: d.operarios,
+            asignables: d.asignables,
+            zonas: d.zonas,
+            plantas: d.plantas,
             pasos,
             /* 16-oct: las fotos del antes y del después, también con la reparación cerrada. */
-            puede: { visita: verbos.editar && M.ESTADOS[i.estado].activa, foto: verbos.editar, nota: puede(ses.rol, "incidencias", "crear") }
+            puede: { datos: Boolean(d.puede.encargo && verbos.editar && M.ESTADOS[i.estado].activa), visita: verbos.editar && M.ESTADOS[i.estado].activa, foto: verbos.editar, nota: puede(ses.rol, "incidencias", "crear") }
           };
         }
         function crear({ ses, json }) {
@@ -74213,6 +76760,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
             prioridad: e.prioridad || "media",
             fechaLimite: llano(e.fechaLimite) || null
           };
+          for (const k of ["operario", "zona", "planta"]) if (llano(e[k])) entrada[k] = llano(e[k]);
           if (e.encargadoId !== void 0) entrada.encargadoId = llano(e.encargadoId) || null;
           return INC.crear(repo, ses, llano(e.obraId), entrada);
         }
@@ -74238,6 +76786,12 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
             if (!c.ok) return c;
           }
           return { ok: true };
+        }
+        function datos({ ses, json }) {
+          const e = json();
+          const cambios = {};
+          for (const k of ["operario", "zona", "planta"]) if (e[k] !== void 0) cambios[k] = e[k];
+          return INC.guardar(repo, ses, llano(e.id), cambios);
         }
         function estado({ ses, json }) {
           const e = json();
@@ -74285,6 +76839,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           "GET api/reparacion": ficha,
           "POST api/reparacion": crear,
           "POST api/reparacion/visita": visita,
+          "POST api/reparacion/datos": datos,
           "POST api/reparacion/estado": estado,
           "POST api/reparacion/comentar": comentar,
           "POST api/reparacion/foto": fotoNueva,
@@ -74623,6 +77178,359 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
     }
   });
 
+  // shared/obra/versionesPlano.js
+  var require_versionesPlano = __commonJS({
+    "shared/obra/versionesPlano.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function iniciarVersionesPlano() {
+        const VERSIONES = {
+          vigente: { nombre: "Vigente", tono: "bien" },
+          obsoleto: { nombre: "Obsoleto", tono: "neutra" },
+          propuesta: { nombre: "Por confirmar", tono: "aviso" }
+        };
+        const sinAcentos = (s) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "");
+        const llano = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
+        function normalizarCodigo(c) {
+          return sinAcentos(c).toUpperCase().replace(/[^A-Z0-9]/g, "");
+        }
+        function normalizarNombre(n) {
+          return sinAcentos(n).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+        }
+        const dosCifras = (n) => String(n).padStart(2, "0");
+        function fechaValida(a, m, d) {
+          const an = Number(a.length === 2 ? `20${a}` : a);
+          const me = Number(m);
+          const di = Number(d);
+          if (!(an >= 1990 && an <= 2100 && me >= 1 && me <= 12 && di >= 1 && di <= 31)) return null;
+          return `${an}-${dosCifras(me)}-${dosCifras(di)}`;
+        }
+        function leerFecha(t) {
+          const s = String(t ?? "");
+          let m = s.match(new RegExp("(?<!\\d)(\\d{4})[-_./](\\d{1,2})[-_./](\\d{1,2})(?!\\d)"));
+          if (m) {
+            const f = fechaValida(m[1], m[2], m[3]);
+            if (f) return { fecha: f, texto: m[0] };
+          }
+          m = s.match(new RegExp("(?<!\\d)(\\d{1,2})[-_./](\\d{1,2})[-_./](\\d{4}|\\d{2})(?!\\d)"));
+          if (m) {
+            const f = fechaValida(m[3], m[2], m[1]);
+            if (f) return { fecha: f, texto: m[0] };
+          }
+          m = s.match(new RegExp("(?<!\\d)(20\\d{2})(\\d{2})(\\d{2})(?!\\d)"));
+          if (m) {
+            const f = fechaValida(m[1], m[2], m[3]);
+            if (f) return { fecha: f, texto: m[0] };
+          }
+          return null;
+        }
+        const RE_REV = [
+          /(?:^|[\s_\-.(\[])(?:rev(?:isi[oó]n)?|ed(?:ici[oó]n)?)\.?\s*[-_:]?\s*([a-z]{1,2}|\d{1,3}|[a-z]\d{1,3})(?=$|[\s_\-.)\]])/i,
+          /(?:^|[\s_\-.(\[])r(\d{1,3})(?=$|[\s_\-.)\]])/i,
+          /(?:^|[\s_\-.(\[])v(\d{1,3})(?=$|[\s_\-.)\]])/i,
+          /* P01, C02: al final o antes de la fecha («…_P02_2026-10-20»); la última que haya, no la del código. */
+          /[\s_\-.]([PC]\d{2})(?=$|[\s_\-.])(?!.*[\s_\-.][PC]\d{2}(?:$|[\s_\-.]))/i,
+          /\(\s*([a-z]|\d{1,2})\s*\)/i
+        ];
+        function valorRevision(r) {
+          const s = normalizarCodigo(r);
+          if (!s) return null;
+          if (/^\d{1,3}$/.test(s)) return { clase: "numero", fase: 0, n: Number(s) };
+          if (/^[A-Z]{1,2}$/.test(s)) {
+            const n = s.length === 1 ? s.charCodeAt(0) - 64 : (s.charCodeAt(0) - 64) * 26 + (s.charCodeAt(1) - 64);
+            return { clase: "letra", fase: 0, n };
+          }
+          const m = s.match(/^([A-Z])(\d{1,3})$/);
+          if (m) {
+            const fase = m[1] === "P" ? 1 : m[1] === "C" ? 2 : 1 + (m[1].charCodeAt(0) - 64) / 100;
+            return { clase: "fase", fase, n: Number(m[2]) };
+          }
+          return null;
+        }
+        function compararRevisiones(a, b) {
+          const x = valorRevision(a);
+          const y = valorRevision(b);
+          if (!x || !y) return null;
+          if (x.clase !== y.clase && !(x.clase === "fase" && y.clase === "fase")) return null;
+          if (x.fase !== y.fase) return x.fase < y.fase ? -1 : 1;
+          return x.n === y.n ? 0 : x.n < y.n ? -1 : 1;
+        }
+        function revisionSeguida(a, b) {
+          const x = valorRevision(a);
+          const y = valorRevision(b);
+          if (!x || !y || x.clase !== y.clase) return true;
+          if (x.fase !== y.fase) return true;
+          return y.n - x.n === 1 || x.clase === "numero" && x.n === 0 && y.n === 1;
+        }
+        function codigoDelPrincipio(base) {
+          const primera = llano(base).split(/\s+/)[0] || "";
+          const trozos = primera.split(/([-_.])/);
+          const buenos = [];
+          for (let i = 0; i < trozos.length; i += 2) {
+            const t = trozos[i];
+            if (!t) break;
+            if (!/^[A-Za-z0-9]{1,6}$/.test(t) || t.length > 4 && !/\d/.test(t)) break;
+            buenos.push(t);
+          }
+          const codigo = buenos.join("-");
+          if (!/\d/.test(codigo) || !/[A-Za-z]/.test(codigo) || normalizarCodigo(codigo).length < 3) return "";
+          return primera.slice(0, buenos.reduce((n, t, i) => n + t.length + (i ? 1 : 0), 0)).toUpperCase();
+        }
+        function leerNombre(nombre) {
+          let base = llano(String(nombre ?? "").replace(/\.(pdf|png|jpe?g|webp|dwg|dxf)$/i, ""));
+          let revision = "";
+          for (const re of RE_REV) {
+            const m = base.match(re);
+            if (m) {
+              revision = m[1].toUpperCase();
+              base = (base.slice(0, m.index) + base.slice(m.index + m[0].length)).trim();
+              break;
+            }
+          }
+          const f = leerFecha(base);
+          if (f) base = base.replace(f.texto, " ");
+          base = llano(base.replace(/[_]+/g, " ").replace(/\s*-\s*$/, "").replace(/^\s*-\s*/, "").replace(/\(\s*\)|\[\s*\]/g, ""));
+          const codigo = codigoDelPrincipio(base);
+          const titulo = llano(codigo ? base.slice(codigo.length).replace(/^[\s\-–_.]+/, "") : base);
+          return { codigo, revision, fecha: f ? f.fecha : "", titulo, base };
+        }
+        const ETIQUETAS = {
+          codigo: /^(n[º°o.]?\s*(de\s*)?plano|plano\s*n[º°o.]?|c[oó]digo(\s*plano)?|dwg\.?\s*no\.?|drawing\s*(no|number)\.?|n[º°]\s*dibujo)\s*[:.]?\s*/i,
+          revision: /^(rev(isi[oó]n)?|ed(ici[oó]n)?)\s*[:.]?\s*/i,
+          fecha: /^(fecha|date)\s*[:.]?\s*/i
+        };
+        function leerCajetin(textos) {
+          const lista = (textos || []).filter((t) => t && llano(t.texto));
+          const peso = (t) => (t.x > 0.55 ? 1 : 0) + (t.y > 0.6 ? 1 : 0);
+          const valorJunto = (et, i) => {
+            const t = lista[i];
+            const resto = llano(t.texto.replace(ETIQUETAS[et], ""));
+            if (resto && resto !== llano(t.texto)) return resto;
+            const otros = lista.filter((o) => o !== t && !Object.values(ETIQUETAS).some((re) => re.test(llano(o.texto)) && !llano(o.texto.replace(re, ""))));
+            const cercano = (dist) => {
+              let mejor2 = null;
+              let min = Infinity;
+              for (const o of otros) {
+                const d = dist(o.x - t.x, o.y - t.y);
+                if (d < min && d < 0.12) {
+                  min = d;
+                  mejor2 = o;
+                }
+              }
+              return mejor2;
+            };
+            const mejor = cercano((dx, dy) => dx > 0 && Math.abs(dy) < 0.012 ? dx : Infinity) || cercano((dx, dy) => dy > 0 && Math.abs(dx) < 0.04 ? dy : Infinity);
+            return mejor ? llano(mejor.texto) : "";
+          };
+          const hallado = {};
+          for (const et of Object.keys(ETIQUETAS)) {
+            const cand = lista.map((t, i) => ({ t, i })).filter(({ t }) => ETIQUETAS[et].test(llano(t.texto))).sort((a, b) => peso(b.t) - peso(a.t) || b.t.y - a.t.y);
+            for (const { i } of cand) {
+              const v = valorJunto(et, i);
+              if (!v) continue;
+              if (et === "revision" && !valorRevision(v.split(/\s+/)[0])) continue;
+              if (et === "fecha" && !leerFecha(v)) continue;
+              if (et === "codigo" && !/\d/.test(v)) continue;
+              hallado[et] = v;
+              break;
+            }
+          }
+          return {
+            codigo: hallado.codigo ? hallado.codigo.split(/\s+/)[0].toUpperCase() : "",
+            revision: hallado.revision ? normalizarCodigo(hallado.revision.split(/\s+/)[0]) : "",
+            fecha: hallado.fecha ? leerFecha(hallado.fecha).fecha : ""
+          };
+        }
+        function datosDelPlano(nombreArchivo, textos) {
+          const n = leerNombre(nombreArchivo);
+          const c = textos && textos.length ? leerCajetin(textos) : { codigo: "", revision: "", fecha: "" };
+          return {
+            codigo: c.codigo || n.codigo,
+            revision: c.revision || n.revision,
+            fecha: c.fecha || n.fecha,
+            titulo: n.titulo,
+            origen: { codigo: c.codigo ? "cajetin" : n.codigo ? "nombre" : "", revision: c.revision ? "cajetin" : n.revision ? "nombre" : "" }
+          };
+        }
+        const versionDe = (p) => p.version || "vigente";
+        const esVigente = (p) => versionDe(p) === "vigente" && p.activo !== false && p.activo !== 0;
+        function clave(p) {
+          const c = normalizarCodigo(p.codigo);
+          if (c) return `c:${c}`;
+          const n = normalizarNombre(leerNombre(p.nombre || "").base);
+          return n ? `n:${n}` : "";
+        }
+        const nombreVersion = (p) => `${p.codigo || p.nombre}${p.revision ? ` rev. ${p.revision}` : ""}`;
+        function clasificar(nuevo, existentes) {
+          const k = clave(nuevo);
+          const hermanos = k ? (existentes || []).filter((p) => versionDe(p) !== "propuesta" && clave(p) === k) : [];
+          if (!hermanos.length) return { accion: "nuevo", seguro: true, serieId: null, anteriorId: null, motivo: k ? "No hay otro plano con ese n\xFAmero." : "Sin n\xFAmero de plano: entra como uno nuevo." };
+          const porCodigo = k.startsWith("c:");
+          const serieId = hermanos[0].serieId || hermanos[0].id;
+          const vigentes = hermanos.filter(esVigente);
+          const ref = vigentes[0] || hermanos.slice().sort((a, b) => compararRevisiones(b.revision, a.revision) || 0 || String(b.fechaRevision || "").localeCompare(String(a.fechaRevision || "")))[0];
+          const base = { serieId: ref.serieId || ref.id, anteriorId: ref.id };
+          if (vigentes.length > 1) {
+            return { ...base, accion: "revision", seguro: false, motivo: `Hay ${vigentes.length} vigentes de ${nombreVersion(ref)}: elige a cu\xE1l sustituye.` };
+          }
+          if (!porCodigo) {
+            return { ...base, accion: "revision", seguro: false, motivo: `Se llama como ${ref.nombre}, pero sin n\xFAmero de plano no se puede asegurar que sea una revisi\xF3n.` };
+          }
+          const cmp = compararRevisiones(nuevo.revision, ref.revision);
+          const fN = nuevo.fecha || nuevo.fechaRevision || "";
+          const fR = ref.fechaRevision || "";
+          const fechas = fN && fR ? fN < fR ? -1 : fN > fR ? 1 : 0 : null;
+          if (cmp === null) {
+            if (!nuevo.revision && !ref.revision && fechas === 1) {
+              return { ...base, accion: "revision", seguro: false, motivo: `Mismo n\xFAmero que ${nombreVersion(ref)} y fecha posterior, pero ninguno dice su revisi\xF3n.` };
+            }
+            return { ...base, accion: "revision", seguro: false, motivo: !nuevo.revision ? `Mismo n\xFAmero que ${nombreVersion(ref)}, pero no se ve su revisi\xF3n.` : `La revisi\xF3n ${nuevo.revision} no se puede comparar con la ${ref.revision || "(sin revisi\xF3n)"} del vigente.` };
+          }
+          if (cmp === 0) {
+            const iguales = Number(nuevo.ancho) === Number(ref.ancho) && Number(nuevo.alto) === Number(ref.alto);
+            return { ...base, accion: "repetido", seguro: false, motivo: `Es la misma revisi\xF3n (${ref.revision}) que la vigente${iguales ? ", y del mismo tama\xF1o" : ""}: \xBFla sustituye o sobra?` };
+          }
+          if (cmp < 0) {
+            return { ...base, accion: "anterior", seguro: true, motivo: `Es la rev. ${nuevo.revision}, anterior a la vigente (${ref.revision}): se archiva como obsoleta.` };
+          }
+          const anteriores = hermanos.filter((p) => compararRevisiones(p.revision, nuevo.revision) === 1);
+          if (anteriores.length) {
+            return { ...base, accion: "revision", seguro: false, motivo: `Ya hay una revisi\xF3n posterior archivada (${anteriores[0].revision}).` };
+          }
+          if (fechas === -1) {
+            return { ...base, accion: "revision", seguro: false, motivo: `La rev. ${nuevo.revision} tiene fecha anterior a la ${ref.revision} vigente: no cuadra.` };
+          }
+          if (!revisionSeguida(ref.revision, nuevo.revision)) {
+            return { ...base, accion: "revision", seguro: false, motivo: `De la ${ref.revision} salta a la ${nuevo.revision}: falta alguna revisi\xF3n por medio.` };
+          }
+          return { ...base, accion: "revision", seguro: true, motivo: `Sustituye a la rev. ${ref.revision || "\u2014"}.` };
+        }
+        function series(planos) {
+          const grupos = /* @__PURE__ */ new Map();
+          for (const p of planos || []) {
+            const s = p.serieId || p.id;
+            if (!grupos.has(s)) grupos.set(s, []);
+            grupos.get(s).push(p);
+          }
+          const orden = (a, b) => esVigente(b) - esVigente(a) || (versionDe(a) === "propuesta" ? -1 : 0) - (versionDe(b) === "propuesta" ? -1 : 0) || (compararRevisiones(b.revision, a.revision) || 0) || String(b.fechaRevision || "").localeCompare(String(a.fechaRevision || "")) || String(b.creadoEn || "").localeCompare(String(a.creadoEn || ""));
+          return [...grupos.entries()].map(([serieId, versiones]) => ({ serieId, versiones: versiones.sort(orden) }));
+        }
+        function avisos(planos) {
+          const fuera = [];
+          for (const { serieId, versiones } of series(planos)) {
+            const vig = versiones.filter(esVigente);
+            const ref = vig[0] || versiones[0];
+            const nombre = nombreVersion(ref);
+            if (vig.length > 1) {
+              fuera.push({
+                tipo: "dosVigentes",
+                grave: true,
+                serieId,
+                ids: vig.map((p) => p.id),
+                texto: `${nombre}: hay ${vig.length} versiones vigentes (${vig.map((p) => p.revision || "sin rev.").join(", ")}). Deja solo una.`
+              });
+            }
+            for (const p of versiones.filter((x) => versionDe(x) === "propuesta")) {
+              fuera.push({ tipo: "propuesta", grave: false, serieId, ids: [p.id], texto: `${nombreVersion(p)}: falta confirmar qu\xE9 es (${p.propuesta && p.propuesta.motivo || "dudoso"}).` });
+            }
+            if (vig.length === 1) {
+              const v = vig[0];
+              const masNueva = versiones.find((x) => x !== v && versionDe(x) === "obsoleto" && compararRevisiones(x.revision, v.revision) === 1);
+              if (masNueva) {
+                fuera.push({
+                  tipo: "noCuadra",
+                  grave: true,
+                  serieId,
+                  ids: [v.id, masNueva.id],
+                  texto: `${nombre}: la vigente es la rev. ${v.revision}, pero hay archivada una posterior (${masNueva.revision}).`
+                });
+              }
+              const conFecha = versiones.find((x) => x !== v && versionDe(x) === "obsoleto" && x.fechaRevision && v.fechaRevision && x.fechaRevision > v.fechaRevision && compararRevisiones(x.revision, v.revision) !== -1);
+              if (!masNueva && conFecha) {
+                fuera.push({
+                  tipo: "noCuadra",
+                  grave: false,
+                  serieId,
+                  ids: [v.id, conFecha.id],
+                  texto: `${nombre}: una versi\xF3n archivada tiene fecha posterior a la vigente.`
+                });
+              }
+              const conRev = versiones.filter((x) => versionDe(x) !== "propuesta" && x.revision).slice().reverse();
+              for (let i = 1; i < conRev.length; i += 1) {
+                if (!revisionSeguida(conRev[i - 1].revision, conRev[i].revision) && compararRevisiones(conRev[i - 1].revision, conRev[i].revision) === -1) {
+                  fuera.push({
+                    tipo: "salto",
+                    grave: false,
+                    serieId,
+                    ids: [conRev[i].id],
+                    texto: `${nombre}: de la rev. ${conRev[i - 1].revision} se pasa a la ${conRev[i].revision}; falta alguna por medio.`
+                  });
+                  break;
+                }
+              }
+            }
+          }
+          const porCodigo = /* @__PURE__ */ new Map();
+          for (const { serieId, versiones } of series(planos)) {
+            const v = versiones.find(esVigente);
+            const c = v && normalizarCodigo(v.codigo);
+            if (!c) continue;
+            if (!porCodigo.has(c)) porCodigo.set(c, []);
+            porCodigo.get(c).push({ serieId, v });
+          }
+          for (const lista of porCodigo.values()) {
+            if (lista.length > 1) {
+              fuera.push({
+                tipo: "dosVigentes",
+                grave: true,
+                serieId: lista[0].serieId,
+                ids: lista.map((x) => x.v.id),
+                texto: `${lista[0].v.codigo}: ${lista.length} planos distintos con el mismo n\xFAmero est\xE1n vigentes. \xBFEs uno revisi\xF3n del otro?`
+              });
+            }
+          }
+          const sinNumero = (planos || []).filter((p) => esVigente(p) && !p.codigo).length;
+          if (sinNumero) {
+            fuera.push({
+              tipo: "sinNumero",
+              grave: false,
+              serieId: null,
+              ids: [],
+              texto: `${sinNumero === 1 ? "Un plano vigente no tiene" : `${sinNumero} planos vigentes no tienen`} n\xFAmero ni revisi\xF3n: as\xED no se le reconocen las versiones nuevas.`
+            });
+          }
+          return fuera;
+        }
+        function cambiaEncuadre(a, b) {
+          if (!a || !b || !a.ancho || !a.alto || !b.ancho || !b.alto) return false;
+          return Math.abs(a.ancho / a.alto - b.ancho / b.alto) > 0.02;
+        }
+        const API = {
+          VERSIONES,
+          normalizarCodigo,
+          normalizarNombre,
+          leerFecha,
+          valorRevision,
+          compararRevisiones,
+          revisionSeguida,
+          leerNombre,
+          leerCajetin,
+          datosDelPlano,
+          clave,
+          clasificar,
+          series,
+          avisos,
+          esVigente,
+          versionDe,
+          nombreVersion,
+          cambiaEncuadre
+        };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.VERSIONES_PLANO = API;
+      })();
+    }
+  });
+
   // shared/obra/actas.js
   var require_actas = __commonJS({
     "shared/obra/actas.js"(exports, module) {
@@ -74817,7 +77725,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           const proxima = a.proximaReunion ? `${fechaEs(a.proximaReunion)}${String(a.proximaReunion).length > 10 ? ` \xB7 ${String(a.proximaReunion).slice(11, 16)} h` : ""}` : "Por fijar";
           return `
     <header class="cabeceraActa">
-      <div class="marcaActa"><span class="logoCbre">CBRE</span><span>Project 360 \xB7 Acta de reuni\xF3n</span></div>
+      <div class="marcaActa"><span class="logoCbre">CBRE</span><span>Vidaire Obras \xB7 Acta de reuni\xF3n</span></div>
       <h1>Acta n\xBA ${numeroActa(a.numero)} \xB7 ${escDoc(tipo)}</h1>
       <p class="obraActa">${escDoc(obra.codigo || "")} \xB7 ${escDoc(obra.nombre || "")}${a.estado === "cerrada" ? "" : ' \xB7 <strong class="borrador">BORRADOR</strong>'}</p>
     </header>
@@ -75835,15 +78743,17 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       var pts1 = (v) => `${unDecimalInf(Math.abs(v))} pt`;
       function documento(a) {
         const o = a.obra || {};
-        return `
+        const PAPEL = typeof module !== "undefined" && module.exports ? require_papel() : window.PAPEL;
+        const cuerpoHtml = `
     <header class="cabeceraInforme">
-      <div class="marca">CBRE \xB7 Proyectos</div>
+      <div class="marca">Proyectos \xB7 Certificaciones</div>
       <h1>Certificaciones: avance y previsi\xF3n</h1>
       <p class="obra">${escInf(o.codigo || "")} \xB7 ${escInf(o.nombre || "")}${o.estado === "cerrada" ? " \xB7 cerrada" : ""}</p>
       <p class="fecha">A ${escInf(a.hoy)}${a.ultimoPeriodo ? ` \xB7 \xFAltima certificaci\xF3n emitida: ${textoMes(a.ultimoPeriodo)}` : ""}
         ${a.borrador ? ` \xB7 n\xBA ${a.borrador.numero} en borrador` : ""}</p>
     </header>
     ${cuerpoInforme(a)}`;
+        return PAPEL.hoja({ documento: "Informe de certificaciones", obra: [o.codigo, o.nombre].filter(Boolean).join(" \xB7 "), fecha: a.hoy, cuerpo: cuerpoHtml });
       }
       (function exportar(API) {
         if (typeof module !== "undefined" && module.exports) module.exports = API;
@@ -79185,6 +82095,1840 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
     }
   });
 
+  // shared/compras/aHoras.js
+  var require_aHoras = __commonJS({
+    "shared/compras/aHoras.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function aHorasModulo() {
+        const M = typeof __require !== "undefined" ? require_modelo() : window.MODELO;
+        const MODALIDAD = { PARTIDAS: "partidas", HORAS: "horas" };
+        const CATEGORIAS = ["Encargado", "Oficial 1\xAA", "Oficial 2\xAA", "Oficial", "Ayudante", "Pe\xF3n", "Aprendiz"];
+        const HORAS_JORNADA = 8;
+        const hayNumero = (v) => v !== null && v !== void 0 && String(v).trim() !== "" && Number.isFinite(Number(v));
+        const num = (v) => {
+          if (typeof v === "number") return Number.isFinite(v) ? v : null;
+          let t = String(v ?? "").trim().replace(/[\s€]/g, "").replace(/\/h$/i, "");
+          if (!t) return null;
+          if (t.includes(",")) t = t.replace(/\./g, "").replace(",", ".");
+          else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, "");
+          const n = Number(t);
+          return Number.isFinite(n) ? n : null;
+        };
+        const clave = (c) => String(c || "").trim().toLowerCase().replace(/\s+/g, " ");
+        const orden = (c) => {
+          const i = CATEGORIAS.findIndex((x) => clave(x) === clave(c));
+          return i < 0 ? 99 : i;
+        };
+        const ordenar = (lista) => [...lista].sort((a, b) => orden(a) - orden(b) || a.localeCompare(b, "es"));
+        const r2 = (v) => M.redondear(v, 2);
+        const enHoras = (unidad) => /^h(oras?)?\.?$/i.test(String(unidad || "").trim());
+        function leerJson(v) {
+          if (!v) return null;
+          if (typeof v === "object") return v;
+          try {
+            return JSON.parse(v);
+          } catch {
+            return null;
+          }
+        }
+        function limpiarTarifas(lista) {
+          const fuera = /* @__PURE__ */ new Map();
+          for (const t of leerJson(lista) || []) {
+            if (!t) continue;
+            const categoria = nombreCategoria(t.categoria);
+            const precio = num(t.precioHora);
+            if (!categoria || precio === null || precio < 0) continue;
+            const horas = num(t.horas);
+            fuera.set(clave(categoria), {
+              categoria,
+              precioHora: M.precio(precio),
+              horas: horas !== null && horas > 0 ? M.medida(horas) : null
+            });
+          }
+          return ordenar([...fuera.values()].map((t) => t.categoria)).map((c) => fuera.get(clave(c)));
+        }
+        const nombreCategoria = (c) => {
+          const t = String(c || "").trim().replace(/\s+/g, " ").slice(0, 60);
+          return CATEGORIAS.find((x) => clave(x) === clave(t)) || t;
+        };
+        function limpiarCuadrilla(c) {
+          const fuera = {};
+          for (const [k, v] of Object.entries(leerJson(c) || {})) {
+            const n = num(v);
+            const cat = nombreCategoria(k);
+            if (cat && n !== null && n > 0) fuera[cat] = M.medida((fuera[cat] || 0) + n);
+          }
+          return Object.keys(fuera).length ? fuera : null;
+        }
+        function comparar(paquete, ofertas = [], opciones = {}) {
+          const vivas = ofertas.filter((o) => o && o.estado !== "descartada");
+          const tarifas = new Map(ofertas.map((o) => [o.proveedorId, limpiarTarifas(o.tarifasHora)]));
+          let planificado = 0;
+          let venta = 0;
+          let sinCoste = 0;
+          let horas = 0;
+          const fueraDeHoras = { partidas: 0, importe: 0 };
+          for (const p of paquete && paquete.partidas || []) {
+            const cant = M.medida(p.cantidad);
+            const pv = M.precio(p.precio);
+            const iv = M.euros(hayNumero(p.importe) ? p.importe : cant * pv);
+            const coste = M.precio(p.precioCoste);
+            if (!enHoras(p.unidad)) {
+              fueraDeHoras.partidas += 1;
+              fueraDeHoras.importe += coste > 0 ? M.euros(cant * coste) : iv;
+              continue;
+            }
+            if (!(coste > 0)) sinCoste += 1;
+            planificado += coste > 0 ? M.euros(cant * coste) : iv;
+            venta += iv;
+            horas += cant;
+          }
+          const conTarifa = vivas.filter((o) => (tarifas.get(o.proveedorId) || []).length);
+          const todas = /* @__PURE__ */ new Map();
+          for (const ts of tarifas.values()) for (const t of ts) if (!todas.has(clave(t.categoria))) todas.set(clave(t.categoria), t.categoria);
+          const cuadrillaDada = limpiarCuadrilla(opciones.cuadrilla);
+          const cuadrilla = cuadrillaDada || Object.fromEntries([...todas.values()].map((c) => [c, 1]));
+          const enCuadrilla = ordenar(Object.keys(cuadrilla));
+          const categorias = ordenar([...new Set([...enCuadrilla, ...todas.values()].map((c) => todas.get(clave(c)) || c))]);
+          const tarifaDe = (pid, cat) => (tarifas.get(pid) || []).find((t) => clave(t.categoria) === clave(cat)) || null;
+          const comunes = enCuadrilla.filter((cat) => conTarifa.length && conTarifa.every((o) => tarifaDe(o.proveedorId, cat)));
+          const columnas = ofertas.map((o) => {
+            const ts = tarifas.get(o.proveedorId) || [];
+            const faltan = enCuadrilla.filter((cat) => !tarifaDe(o.proveedorId, cat));
+            const personasComunes = comunes.reduce((a, cat) => a + cuadrilla[cat], 0);
+            const cuadrillaComparable = comunes.length && comunes.every((cat) => tarifaDe(o.proveedorId, cat)) ? r2(comunes.reduce((a, cat) => a + cuadrilla[cat] * tarifaDe(o.proveedorId, cat).precioHora, 0)) : null;
+            const completa = !faltan.length && ts.length > 0;
+            const personas = enCuadrilla.reduce((a, cat) => a + cuadrilla[cat], 0);
+            const cuadrillaEntera = completa ? r2(enCuadrilla.reduce((a, cat) => a + cuadrilla[cat] * tarifaDe(o.proveedorId, cat).precioHora, 0)) : null;
+            const conHoras = ts.filter((t) => t.horas !== null);
+            return {
+              ofertaId: o.id || null,
+              proveedorId: o.proveedorId,
+              proveedor: o.proveedor || o.proveedorId,
+              fecha: o.fecha || null,
+              descartada: o.estado === "descartada",
+              motivoDescarte: o.motivoDescarte || null,
+              tarifas: ts,
+              faltan,
+              completa,
+              /* €/h de la cuadrilla sobre lo comparable, y la media por persona-hora. */
+              cuadrillaComparable,
+              horaComparable: cuadrillaComparable !== null && personasComunes > 0 ? r2(cuadrillaComparable / personasComunes) : null,
+              cuadrillaEntera,
+              horaMedia: cuadrillaEntera !== null && personas > 0 ? r2(cuadrillaEntera / personas) : null,
+              horasOfertadas: conHoras.length ? M.medida(conHoras.reduce((a, t) => a + t.horas, 0)) : null,
+              totalOfertado: conHoras.length ? M.euros(conHoras.reduce((a, t) => a + t.horas * t.precioHora, 0)) : null,
+              horasCompletas: ts.length > 0 && conHoras.length === ts.length
+            };
+          });
+          const valor = (c) => c.descartada || c.horaComparable === null ? Infinity : c.horaComparable;
+          columnas.sort((a, b) => valor(a) - valor(b) || String(a.proveedor).localeCompare(String(b.proveedor), "es"));
+          const mejor = columnas.find((c) => !c.descartada && c.completa && c.horaComparable !== null) || null;
+          for (const c of columnas) {
+            c.mejor = Boolean(mejor && c.proveedorId === mejor.proveedorId);
+            c.situacion = c.descartada ? "descartada" : !c.tarifas.length ? "sinTarifa" : c.faltan.length ? "incompleta" : c.mejor ? "mejor" : "compite";
+            c.diferencia = mejor && c.horaComparable !== null && !c.descartada ? r2(c.horaComparable - mejor.horaComparable) : null;
+          }
+          const avisos = [];
+          if (!vivas.length) avisos.push({ gravedad: "aviso", mensaje: "Todav\xEDa no ha entrado ninguna oferta a horas." });
+          for (const c of columnas.filter((x) => !x.descartada && !x.tarifas.length)) {
+            avisos.push({ gravedad: "bloqueante", mensaje: `${c.proveedor} no tiene ninguna tarifa por hora: as\xED no compite.` });
+          }
+          if (fueraDeHoras.partidas) {
+            avisos.push({ gravedad: "aviso", mensaje: `${fueraDeHoras.partidas} ${fueraDeHoras.partidas === 1 ? "partida del paquete no va" : "partidas del paquete no van"} en horas (${M.euros(fueraDeHoras.importe)} \u20AC): no cuentan en lo planificado de mano de obra.` });
+          }
+          if (paquete && (paquete.partidas || []).length && !(planificado > 0)) {
+            avisos.push({ gravedad: "aviso", mensaje: "El paquete no tiene partidas en horas: no hay mano de obra planificada con la que comparar." });
+          }
+          if (conTarifa.length > 1 && !comunes.length && enCuadrilla.length) {
+            avisos.push({ gravedad: "bloqueante", mensaje: "No hay ni una categor\xEDa que hayan tarifado todos: no se pueden comparar." });
+          }
+          for (const c of columnas.filter((x) => !x.descartada && x.tarifas.length && x.faltan.length)) {
+            avisos.push({ gravedad: "aviso", mensaje: `${c.proveedor} no tarifa ${c.faltan.join(", ")}: se compara sin ${c.faltan.length === 1 ? "esa categor\xEDa" : "esas categor\xEDas"}.` });
+          }
+          if (!cuadrillaDada && todas.size > 1) {
+            avisos.push({ gravedad: "aviso", mensaje: `Sin cuadrilla tipo: se compara con una persona de cada categor\xEDa (${enCuadrilla.join(" + ")}). Ponla para que pese lo que de verdad va a ir.` });
+          }
+          return {
+            modalidad: MODALIDAD.HORAS,
+            paquete: paquete ? paquete.codigo : null,
+            partidas: (paquete && paquete.partidas || []).length,
+            planificado: M.euros(planificado),
+            venta: M.euros(venta),
+            horasPlanificadas: M.medida(horas),
+            fueraDeHoras: { partidas: fueraDeHoras.partidas, importe: M.euros(fueraDeHoras.importe) },
+            sinCoste,
+            cuadrilla,
+            cuadrillaSupuesta: !cuadrillaDada,
+            categorias,
+            comunes,
+            columnas,
+            mejor: mejor ? { proveedorId: mejor.proveedorId, proveedor: mejor.proveedor, horaComparable: mejor.horaComparable } : null,
+            avisos
+          };
+        }
+        function trazaAdjudicacion({ paquete, comparativo, proveedorId, personaId, motivo, cuando = (/* @__PURE__ */ new Date()).toISOString() }) {
+          const col = comparativo.columnas.find((c) => c.proveedorId === proveedorId);
+          if (!col) return null;
+          return {
+            modalidad: MODALIDAD.HORAS,
+            paquete: paquete && paquete.codigo,
+            proveedorId,
+            proveedor: col.proveedor,
+            ofertaId: col.ofertaId,
+            fechaOferta: col.fecha,
+            tarifas: col.tarifas,
+            cuadrilla: comparativo.cuadrilla,
+            cuadrillaSupuesta: comparativo.cuadrillaSupuesta,
+            horaMedia: col.horaMedia,
+            horaComparable: col.horaComparable,
+            horasOfertadas: col.horasOfertadas,
+            totalOfertado: col.totalOfertado,
+            importePresupuestado: comparativo.planificado,
+            categoriasSinTarifa: col.faltan,
+            ofertasCompetidoras: comparativo.columnas.filter((c) => c.proveedorId !== proveedorId).map((c) => ({ proveedor: c.proveedor, ofertaId: c.ofertaId, tarifas: c.tarifas, horaComparable: c.horaComparable, descartada: c.descartada })),
+            decididoPor: personaId || null,
+            motivo: motivo || null,
+            cuando
+          };
+        }
+        function tarifaDeTraza(traza) {
+          const t = leerJson(traza);
+          const ts = limpiarTarifas(t && t.tarifas);
+          if (!t || t.modalidad !== MODALIDAD.HORAS || !ts.length) return { precioHora: null, motivo: "la adjudicaci\xF3n no lleva tarifas por hora" };
+          if (ts.length === 1) return { precioHora: ts[0].precioHora, exacto: ts[0].precioHora, origen: `${ts[0].categoria} a ${ts[0].precioHora} \u20AC/h`, tarifas: ts };
+          const cuadrilla = !t.cuadrillaSupuesta ? limpiarCuadrilla(t.cuadrilla) : null;
+          if (cuadrilla) {
+            let personas = 0;
+            let suma = 0;
+            for (const [cat, n] of Object.entries(cuadrilla)) {
+              const x = ts.find((y) => clave(y.categoria) === clave(cat));
+              if (!x) return { precioHora: null, motivo: `la cuadrilla lleva ${cat} y la oferta adjudicada no lo tarifa` };
+              personas += n;
+              suma += n * x.precioHora;
+            }
+            return { precioHora: r2(suma / personas), exacto: suma / personas, origen: `media de la cuadrilla (${Object.entries(cuadrilla).map(([c, n]) => `${n} ${c}`).join(" + ")})`, tarifas: ts };
+          }
+          if (ts.every((x) => x.horas !== null)) {
+            const h = ts.reduce((a, x) => a + x.horas, 0);
+            const exacto = ts.reduce((a, x) => a + x.horas * x.precioHora, 0) / h;
+            return { precioHora: r2(exacto), exacto, origen: "media ponderada por las horas ofertadas", tarifas: ts };
+          }
+          return { precioHora: null, motivo: `tarifa ${ts.length} categor\xEDas y no se sabe en qu\xE9 proporci\xF3n van: pon la cuadrilla tipo en el comparativo` };
+        }
+        const ms = (d) => Date.parse(`${d}T00:00:00Z`);
+        const esFecha = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v || "")) && !Number.isNaN(ms(v));
+        const isoDe = (t) => new Date(t).toISOString().slice(0, 10);
+        function laborables(inicio, fin, festivos = /* @__PURE__ */ new Set()) {
+          if (!esFecha(inicio) || !esFecha(fin) || fin < inicio) return [];
+          const fuera = [];
+          for (let t = ms(inicio), n = 0; t <= ms(fin) && n < 3700; t += 864e5, n += 1) {
+            const w = new Date(t).getUTCDay();
+            const d = isoDe(t);
+            if (w !== 0 && w !== 6 && !festivos.has(d)) fuera.push(d);
+          }
+          return fuera;
+        }
+        function costeGantt({ tramos = [], adjudicaciones = [], sinAdjudicar = [], festivos = [], horasJornada = HORAS_JORNADA } = {}) {
+          const fest = new Set(festivos);
+          const jornada = Number(horasJornada) > 0 ? Number(horasJornada) : HORAS_JORNADA;
+          const avisos = [];
+          const mesesTodos = /* @__PURE__ */ new Set();
+          const porProveedor = /* @__PURE__ */ new Map();
+          for (const a of [...adjudicaciones].sort((x, y) => String(x.creadoEn || "").localeCompare(String(y.creadoEn || "")))) {
+            if (!porProveedor.has(a.proveedorId)) porProveedor.set(a.proveedorId, []);
+            porProveedor.get(a.proveedorId).push(a);
+          }
+          const filas = [];
+          for (const [proveedorId, adjs] of porProveedor) {
+            const ultima = adjs[adjs.length - 1];
+            const nombre = ultima.proveedor || proveedorId;
+            const fila = {
+              proveedorId,
+              proveedor: nombre,
+              comparativos: adjs.map((a) => a.comparativo || a.grupo).filter(Boolean),
+              precioHora: null,
+              origenTarifa: null,
+              tarifas: [],
+              planificado: M.euros(adjs.reduce((s, a) => s + (Number(a.planificado) || 0), 0)),
+              paquetes: [],
+              horas: 0,
+              coste: null,
+              meses: {},
+              avisos: []
+            };
+            const suyos = tramos.filter((t) => t.proveedorId === proveedorId);
+            if (!suyos.length) fila.avisos.push("No est\xE1 asignada a ning\xFAn paquete del Gantt: sin asignaci\xF3n no hay horas.");
+            const horasMes = {};
+            const costeMes = {};
+            let coste2 = 0;
+            let calculadas2 = 0;
+            let planComparable = 0;
+            let costeComparable2 = 0;
+            const tarifasUsadas = [];
+            for (const a of adjs) {
+              const tarifa = tarifaDeTraza(a.traza);
+              const etiqueta = a.comparativo || a.grupo || "";
+              if (tarifa.precioHora === null) fila.avisos.push(`Sin tarifa con la que calcular${adjs.length > 1 && etiqueta ? ` ${etiqueta}` : ""}: ${tarifa.motivo}.`);
+              else tarifasUsadas.push({ tarifa, etiqueta });
+              const deEsta = suyos.filter((t) => t.grupo ? t.grupo === a.grupo : a === ultima);
+              if (suyos.length && !deEsta.length) fila.avisos.push(`${etiqueta || "Lo adjudicado"}: est\xE1 en el Gantt, pero no en ning\xFAn paquete con sus partidas.`);
+              let horasAdj = 0;
+              for (const t of deEsta) {
+                const dias = laborables(t.inicio, t.fin, fest);
+                const personas = Number(t.personas) > 0 ? Number(t.personas) : 0;
+                const hp = Number(t.horasPartida) > 0 ? Number(t.horasPartida) : 0;
+                const p = { capituloId: t.capituloId, paquete: t.paquete || t.capituloId, comparativo: etiqueta || null, inicio: t.inicio || null, fin: t.fin || null, personas: personas || null, dias: dias.length, horas: 0, origen: null };
+                const mesDe = {};
+                if (!esFecha(t.inicio) || !esFecha(t.fin)) {
+                  fila.avisos.push(`${p.paquete}: sin fechas en el Gantt, no se sabe cu\xE1ndo ni cu\xE1nto.`);
+                } else if (!dias.length) {
+                  fila.avisos.push(`${p.paquete}: no tiene ning\xFAn d\xEDa laborable entre ${t.inicio} y ${t.fin}.`);
+                } else if (personas) {
+                  p.horas = dias.length * personas * jornada;
+                  p.origen = `${dias.length} d\xEDas \xD7 ${personas} ${personas === 1 ? "persona" : "personas"} \xD7 ${jornada} h`;
+                  for (const d of dias) mesDe[d.slice(0, 7)] = (mesDe[d.slice(0, 7)] || 0) + personas * jornada;
+                } else if (hp) {
+                  p.horas = hp;
+                  p.origen = `${M.medida(hp)} h presupuestadas en sus partidas, repartidas en ${dias.length} d\xEDas`;
+                  for (const d of dias) mesDe[d.slice(0, 7)] = (mesDe[d.slice(0, 7)] || 0) + hp / dias.length;
+                } else {
+                  fila.avisos.push(`${p.paquete}: sin personas al d\xEDa en el Gantt ni horas en sus partidas.`);
+                }
+                p.horas = M.medida(p.horas);
+                horasAdj += p.horas;
+                for (const [mes, h] of Object.entries(mesDe)) {
+                  horasMes[mes] = (horasMes[mes] || 0) + h;
+                  if (tarifa.precioHora !== null) costeMes[mes] = (costeMes[mes] || 0) + h * tarifa.exacto;
+                }
+                fila.paquetes.push(p);
+              }
+              if (tarifa.precioHora !== null) {
+                const c = horasAdj * tarifa.exacto;
+                coste2 += c;
+                calculadas2 += 1;
+                if (Number(a.planificado) > 0) {
+                  planComparable += Number(a.planificado);
+                  costeComparable2 += c;
+                }
+              }
+            }
+            fila.horas = M.medida(fila.paquetes.reduce((a, p) => a + p.horas, 0));
+            const distintas = new Set(tarifasUsadas.map((x) => x.tarifa.precioHora));
+            if (distintas.size === 1) {
+              fila.precioHora = tarifasUsadas[0].tarifa.precioHora;
+              fila.origenTarifa = tarifasUsadas[0].tarifa.origen || null;
+              fila.tarifas = tarifasUsadas[0].tarifa.tarifas || [];
+            } else if (distintas.size > 1) {
+              fila.precioHora = fila.horas > 0 && calculadas2 === adjs.length ? r2(coste2 / fila.horas) : null;
+              fila.origenTarifa = `cada comparativo a su tarifa: ${tarifasUsadas.map((x) => `${x.etiqueta} ${x.tarifa.precioHora} \u20AC/h`).join(" \xB7 ")}`;
+              fila.tarifas = tarifasUsadas.flatMap((x) => x.tarifa.tarifas || []);
+            }
+            if (calculadas2) {
+              fila.coste = M.euros(coste2);
+              for (const [mes, h] of Object.entries(horasMes)) {
+                fila.meses[mes] = { horas: M.medida(h), coste: M.euros(costeMes[mes] || 0) };
+                mesesTodos.add(mes);
+              }
+              const meses2 = Object.keys(fila.meses).sort();
+              if (meses2.length) {
+                const suma = meses2.reduce((a, m) => a + fila.meses[m].coste, 0);
+                const ult = fila.meses[meses2[meses2.length - 1]];
+                ult.coste = M.euros(ult.coste + (fila.coste - suma));
+              }
+            }
+            fila.planificadoComparable = M.euros(planComparable);
+            fila.costeComparable = M.euros(costeComparable2);
+            if (planComparable > 0) {
+              fila.desviacion = M.euros(costeComparable2 - planComparable);
+              fila.pctDesviacion = M.redondear(fila.desviacion / planComparable * 100, 1);
+            } else {
+              fila.desviacion = null;
+              fila.pctDesviacion = null;
+              if (!(fila.planificado > 0)) fila.avisos.push("Lo adjudicado no tiene importe planificado con el que comparar.");
+            }
+            for (const a of fila.avisos) avisos.push({ proveedor: nombre, mensaje: a });
+            filas.push(fila);
+          }
+          for (const s of sinAdjudicar) {
+            if (porProveedor.has(s.proveedorId)) continue;
+            const m = `Tiene oferta a horas${s.comparativo ? ` en ${s.comparativo}` : ""} y est\xE1 en el Gantt, pero no hay tarifa adjudicada: no se calcula.`;
+            avisos.push({ proveedor: s.proveedor || s.proveedorId, mensaje: m });
+          }
+          filas.sort((a, b) => (b.coste || 0) - (a.coste || 0) || String(a.proveedor).localeCompare(String(b.proveedor), "es"));
+          const meses = [...mesesTodos].sort();
+          const porMes = meses.map((mes) => ({
+            mes,
+            horas: M.medida(filas.reduce((a, f) => a + ((f.meses[mes] || {}).horas || 0), 0)),
+            coste: M.euros(filas.reduce((a, f) => a + ((f.meses[mes] || {}).coste || 0), 0))
+          }));
+          let acum = 0;
+          for (const m of porMes) {
+            acum += m.coste;
+            m.acumulado = M.euros(acum);
+          }
+          const calculadas = filas.filter((f) => f.coste !== null);
+          const coste = M.euros(calculadas.reduce((a, f) => a + f.coste, 0));
+          const planificado = M.euros(filas.reduce((a, f) => a + f.planificadoComparable, 0));
+          const costeComparable = M.euros(filas.reduce((a, f) => a + f.costeComparable, 0));
+          return {
+            horasJornada: jornada,
+            filas,
+            meses: porMes,
+            totales: {
+              subcontratas: filas.length,
+              calculadas: calculadas.length,
+              horas: M.medida(calculadas.reduce((a, f) => a + f.horas, 0)),
+              coste,
+              planificado,
+              costeComparable,
+              desviacion: planificado > 0 ? M.euros(costeComparable - planificado) : null,
+              pctDesviacion: planificado > 0 ? M.redondear((costeComparable - planificado) / planificado * 100, 1) : null
+            },
+            avisos
+          };
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.A_HORAS = API;
+        })({ MODALIDAD, CATEGORIAS, HORAS_JORNADA, limpiarTarifas, limpiarCuadrilla, comparar, trazaAdjudicacion, tarifaDeTraza, laborables, costeGantt, enHoras });
+      })();
+    }
+  });
+
+  // shared/compras/cuadroComparativo.js
+  var require_cuadroComparativo = __commonJS({
+    "shared/compras/cuadroComparativo.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function cuadroComparativoModulo() {
+        const M = typeof __require !== "undefined" ? require_modelo() : window.MODELO;
+        const COBERTURA = { SUM_MO: "sumMO", SOLO_MO: "soloMO" };
+        const TEXTO_COBERTURA = { sumMO: "Sum. + MO", soloMO: "Solo mano de obra" };
+        const ESTADO_MATERIAL = { adjudicado: "Adjudicado", provisional: "Provisional", noLleva: "No lleva" };
+        const SITUACION = {
+          adjudicada: "Adjudicada",
+          descartada: "Descartada",
+          incompleta: "Incompleta",
+          mejor: "Mejor oferta",
+          compite: "En estudio"
+        };
+        const MARGEN_OBJETIVO = 0.12;
+        const hayNumero = (v) => v !== null && v !== void 0 && String(v).trim() !== "" && Number.isFinite(Number(v));
+        const pct = (parte, total) => total > 0 ? M.redondear(parte / total * 100, 1) : null;
+        function cuadro(paquete, ofertas, opciones = {}) {
+          const margenObjetivo = hayNumero(opciones.margenObjetivo) ? Number(opciones.margenObjetivo) : MARGEN_OBJETIVO;
+          const material = opciones.material || {};
+          const pedidos = opciones.pedidos || {};
+          const partidas = paquete && paquete.partidas || [];
+          const industriales = (ofertas || []).filter((o) => o && o.proveedorId).map((o, i) => ({
+            n: i + 1,
+            proveedorId: o.proveedorId,
+            proveedor: o.proveedor || o.proveedorId,
+            ofertaId: o.id || null,
+            poblacion: o.poblacion || "",
+            cobertura: o.cobertura === COBERTURA.SOLO_MO ? COBERTURA.SOLO_MO : COBERTURA.SUM_MO,
+            descartada: o.estado === "descartada",
+            motivoDescarte: o.motivoDescarte || null,
+            adjudicada: Boolean(opciones.adjudicadoA) && opciones.adjudicadoA === o.proveedorId,
+            numeroPedido: pedidos[o.proveedorId] || null,
+            totalEscrito: hayNumero(o.totalEscrito) ? M.euros(Number(o.totalEscrito)) : null,
+            lineas: new Map((o.lineas || []).filter((l) => l && l.partidaCodigo).map((l) => [String(l.partidaCodigo), l]))
+          }));
+          const filasPartida = partidas.map((p) => {
+            const codigo = String(p.codigo);
+            const cantidad = M.medida(p.cantidad);
+            const precioVenta = M.precio(p.precio);
+            const importeVenta = M.euros(hayNumero(p.importe) ? p.importe : cantidad * precioVenta);
+            const coste = M.precio(p.precioCoste);
+            const sinCoste = !(coste > 0);
+            const precioPlan = sinCoste ? precioVenta : coste;
+            const importePlan = M.euros(cantidad * precioPlan);
+            const m = material[codigo] || null;
+            const mat = {
+              precio: m && hayNumero(m.precio) ? M.precio(Number(m.precio)) : null,
+              suministra: m && m.suministra || "",
+              estado: m && ESTADO_MATERIAL[m.estado] ? m.estado : m && hayNumero(m.precio) ? "provisional" : "noLleva"
+            };
+            const celdas = {};
+            for (const ind of industriales) {
+              const l = ind.lineas.get(codigo);
+              if (!l || l.incluye === false || !hayNumero(l.precio) || Number(l.precio) < 0) {
+                celdas[ind.proveedorId] = {
+                  conPrecio: false,
+                  motivo: !l ? "Sin precio" : l.incluye === false ? l.observacion || "La excluye" : "Sin precio"
+                };
+                continue;
+              }
+              const precioMO = M.precio(Number(l.precio));
+              const importeOfertado = M.euros(cantidad * precioMO);
+              if (ind.cobertura === COBERTURA.SOLO_MO && mat.precio === null) {
+                celdas[ind.proveedorId] = {
+                  conPrecio: false,
+                  pendienteMaterial: true,
+                  precio: precioMO,
+                  importeOfertado,
+                  motivo: "Falta el precio del material"
+                };
+                continue;
+              }
+              const importeMaterial = ind.cobertura === COBERTURA.SOLO_MO ? M.euros(cantidad * mat.precio) : 0;
+              const importe = M.euros(importeOfertado + importeMaterial);
+              celdas[ind.proveedorId] = {
+                conPrecio: true,
+                precio: precioMO,
+                importe,
+                importeOfertado,
+                importeMaterial,
+                observacion: l.observacion || null,
+                /* + = ahorro, como en el Excel. */
+                pctPlan: importePlan > 0 ? M.redondear((importePlan - importe) / importePlan * 100, 1) : null
+              };
+            }
+            let mejor = null;
+            for (const ind of industriales) {
+              const c = celdas[ind.proveedorId];
+              if (ind.descartada || !c.conPrecio) continue;
+              if (mejor === null || c.importe < celdas[mejor].importe) mejor = ind.proveedorId;
+            }
+            if (mejor) celdas[mejor].mejor = true;
+            return {
+              tipo: "partida",
+              codigo,
+              resumen: p.resumen || "",
+              unidad: p.unidad || "",
+              cantidad,
+              camino: (p.camino || []).map((c) => ({ codigo: String(c.codigo || ""), resumen: c.resumen || "" })),
+              precioPlan,
+              importePlan,
+              sinCoste,
+              precioVenta,
+              importeVenta,
+              material: mat,
+              celdas,
+              mejor
+            };
+          });
+          const filas = [];
+          let previo = [];
+          const capitulos = [];
+          for (const f of filasPartida) {
+            let comun = 0;
+            while (comun < previo.length && comun < f.camino.length && previo[comun].codigo === f.camino[comun].codigo) comun++;
+            for (let k = comun; k < f.camino.length; k++) {
+              const cap = {
+                tipo: "capitulo",
+                nivel: k,
+                codigo: f.camino[k].codigo,
+                resumen: f.camino[k].resumen,
+                clave: f.camino.slice(0, k + 1).map((c) => c.codigo).join("/"),
+                importePlan: 0,
+                importeVenta: 0,
+                importes: {},
+                sinPrecio: {},
+                partidas: 0
+              };
+              capitulos.push(cap);
+              filas.push(cap);
+            }
+            filas.push(f);
+            previo = f.camino;
+          }
+          for (const cap of capitulos) {
+            const suyas = filasPartida.filter((f) => f.camino.slice(0, cap.nivel + 1).map((c) => c.codigo).join("/") === cap.clave);
+            cap.partidas = suyas.length;
+            cap.importePlan = M.euros(suyas.reduce((a, f) => a + f.importePlan, 0));
+            cap.importeVenta = M.euros(suyas.reduce((a, f) => a + f.importeVenta, 0));
+            for (const ind of industriales) {
+              cap.importes[ind.proveedorId] = M.euros(suyas.reduce((a, f) => a + (f.celdas[ind.proveedorId].importe || 0), 0));
+              cap.sinPrecio[ind.proveedorId] = suyas.filter((f) => !f.celdas[ind.proveedorId].conPrecio).length;
+            }
+          }
+          const planificado = M.euros(filasPartida.reduce((a, f) => a + f.importePlan, 0));
+          const venta = M.euros(filasPartida.reduce((a, f) => a + f.importeVenta, 0));
+          const totales = {
+            partidas: filasPartida.length,
+            planificado,
+            venta,
+            sinPrecioPlan: filasPartida.filter((f) => !(f.precioPlan > 0)).length,
+            sinCoste: filasPartida.filter((f) => f.sinCoste).length,
+            margenEstudio: M.euros(venta - planificado),
+            pctMargenEstudio: pct(venta - planificado, venta),
+            margenObjetivo,
+            materialOtro: filasPartida.filter((f) => f.material.estado !== "noLleva").length
+          };
+          const columnas = industriales.map((ind) => {
+            let ofertado = 0;
+            let mat = 0;
+            let sinPrecio = 0;
+            for (const f of filasPartida) {
+              const c = f.celdas[ind.proveedorId];
+              if (c.importeOfertado) ofertado += c.importeOfertado;
+              if (c.conPrecio) mat += c.importeMaterial || 0;
+              else sinPrecio++;
+            }
+            ofertado = M.euros(ofertado);
+            mat = M.euros(mat);
+            const comparable = M.euros(ofertado + mat);
+            const diferencia = ind.totalEscrito === null ? null : M.euros(ind.totalEscrito - ofertado);
+            const completa = sinPrecio === 0;
+            const vsPlan = completa ? M.euros(planificado - comparable) : null;
+            const margenVenta = completa ? M.euros(venta - comparable) : null;
+            const pctMargen = completa ? pct(venta - comparable, venta) : null;
+            return {
+              n: ind.n,
+              proveedorId: ind.proveedorId,
+              proveedor: ind.proveedor,
+              ofertaId: ind.ofertaId,
+              poblacion: ind.poblacion,
+              cobertura: ind.cobertura,
+              coberturaTexto: TEXTO_COBERTURA[ind.cobertura],
+              descartada: ind.descartada,
+              motivoDescarte: ind.motivoDescarte,
+              adjudicada: ind.adjudicada,
+              numeroPedido: ind.numeroPedido,
+              estadoOferta: ind.adjudicada ? "Adjudicada" : ind.descartada ? "Descartada" : "Pendiente",
+              totalEscrito: ind.totalEscrito,
+              diferencia,
+              cuadra: diferencia === null ? null : Math.abs(diferencia) < 0.01,
+              ofertado,
+              material: mat,
+              comparable,
+              sinPrecio,
+              conPrecio: filasPartida.length - sinPrecio,
+              completa,
+              vsPlan,
+              pctPlan: completa ? pct(planificado - comparable, planificado) : null,
+              margenVenta,
+              pctMargen,
+              bajoObjetivo: pctMargen !== null && pctMargen < M.redondear(margenObjetivo * 100, 1)
+            };
+          });
+          const r = { paquete: paquete && paquete.codigo, totales, filas, partidas: filasPartida, columnas };
+          r.ofertas = ranking(r);
+          r.resumenCapitulos = resumenCapitulos(r);
+          return r;
+        }
+        function ranking(cq) {
+          const compiten = cq.columnas.filter((c) => !c.descartada && c.completa).sort((a, b) => a.comparable - b.comparable);
+          const incompletas = cq.columnas.filter((c) => !c.descartada && !c.completa);
+          const descartadas = cq.columnas.filter((c) => c.descartada);
+          const puesto = new Map(compiten.map((c, i) => [c.proveedorId, i + 1]));
+          return [...compiten, ...incompletas, ...descartadas].map((c) => {
+            let situacion = "compite";
+            if (c.adjudicada) situacion = "adjudicada";
+            else if (c.descartada) situacion = "descartada";
+            else if (!c.completa) situacion = "incompleta";
+            else if (puesto.get(c.proveedorId) === 1) situacion = "mejor";
+            return {
+              n: c.n,
+              proveedorId: c.proveedorId,
+              proveedor: c.proveedor,
+              poblacion: c.poblacion,
+              cobertura: c.coberturaTexto,
+              situacion,
+              situacionTexto: SITUACION[situacion],
+              puesto: puesto.get(c.proveedorId) || null,
+              conPrecio: `${c.conPrecio} de ${cq.totales.partidas}`,
+              comparable: c.comparable,
+              ahorro: c.vsPlan,
+              pctMejora: c.pctPlan,
+              margenVenta: c.margenVenta,
+              pctMargen: c.pctMargen,
+              bajoObjetivo: c.bajoObjetivo,
+              mejor: puesto.get(c.proveedorId) === 1,
+              adjudicada: c.adjudicada,
+              numeroPedido: c.numeroPedido,
+              motivoDescarte: c.motivoDescarte
+            };
+          });
+        }
+        function resumenCapitulos(cq) {
+          const ps = cq.partidas;
+          if (!ps.length) return { filas: [], total: null };
+          let nivel = 0;
+          const minimo = Math.min(...ps.map((f) => f.camino.length));
+          while (nivel < minimo && ps.every((f) => f.camino[nivel].codigo === ps[0].camino[nivel].codigo)) nivel++;
+          if (nivel === minimo && nivel > 0 && ps.every((f) => f.camino.length === minimo)) nivel = minimo - 1;
+          const grupos = /* @__PURE__ */ new Map();
+          for (const f of ps) {
+            const cap = f.camino[nivel] || { codigo: "", resumen: "Partidas sueltas" };
+            if (!grupos.has(cap.codigo)) grupos.set(cap.codigo, { codigo: cap.codigo, resumen: cap.resumen, partidas: [] });
+            grupos.get(cap.codigo).partidas.push(f);
+          }
+          const linea = (codigo, resumen, lista) => {
+            const plan = M.euros(lista.reduce((a, f) => a + f.importePlan, 0));
+            const venta = M.euros(lista.reduce((a, f) => a + f.importeVenta, 0));
+            const industriales = {};
+            let mejor = null;
+            for (const col of cq.columnas) {
+              const sinPrecio = lista.filter((f) => !f.celdas[col.proveedorId].conPrecio).length;
+              const coste = M.euros(lista.reduce((a, f) => a + (f.celdas[col.proveedorId].importe || 0), 0));
+              industriales[col.proveedorId] = {
+                coste,
+                sinPrecio,
+                pctPlan: sinPrecio ? null : pct(plan - coste, plan),
+                pctMargen: sinPrecio ? null : pct(venta - coste, venta)
+              };
+              if (!col.descartada && !sinPrecio && (mejor === null || coste < industriales[mejor].coste)) mejor = col.proveedorId;
+            }
+            if (mejor) industriales[mejor].mejor = true;
+            return {
+              codigo,
+              resumen,
+              partidas: lista.length,
+              plan,
+              venta,
+              margen: M.euros(venta - plan),
+              pctMargen: pct(venta - plan, venta),
+              industriales,
+              mejor
+            };
+          };
+          return {
+            filas: [...grupos.values()].map((g) => linea(g.codigo, g.resumen, g.partidas)),
+            total: linea("", "TOTAL PAQUETE", ps)
+          };
+        }
+        function registroAdjudicacion(cq, proveedorId) {
+          const col = cq.columnas.find((c) => c.proveedorId === proveedorId);
+          if (!col) return null;
+          const adjudicadas = [];
+          const pendientes = [];
+          const noAdjudicadas = [];
+          const detalle = [];
+          let importePedido = 0;
+          for (const f of cq.partidas) {
+            const c = f.celdas[proveedorId];
+            const materialComprado = f.material.estado === "adjudicado";
+            if (!c.conPrecio) {
+              pendientes.push(f.codigo);
+              continue;
+            }
+            if (materialComprado && col.cobertura === COBERTURA.SUM_MO) {
+              noAdjudicadas.push(f.codigo);
+              continue;
+            }
+            adjudicadas.push(f.codigo);
+            importePedido += c.importeOfertado;
+            detalle.push({
+              capitulo: f.camino.length ? f.camino[f.camino.length - 1].codigo : "",
+              codigo: f.codigo,
+              resumen: f.resumen,
+              unidad: f.unidad,
+              cantidad: f.cantidad,
+              precio: c.precio,
+              importe: c.importeOfertado,
+              material: col.cobertura === COBERTURA.SOLO_MO ? f.material.precio : null,
+              suministra: col.cobertura === COBERTURA.SOLO_MO ? f.material.suministra || "" : col.proveedor
+            });
+          }
+          const avisos = [];
+          const primero = cq.ofertas.find((o) => o.puesto === 1);
+          if (primero && primero.proveedorId !== proveedorId) {
+            avisos.push(`No es la mejor oferta: ${primero.proveedor} est\xE1 ${M.textoEuros(col.comparable - primero.comparable)} \u20AC por debajo`);
+          }
+          if (!col.completa) avisos.push(`Oferta incompleta: ${col.sinPrecio} ${col.sinPrecio === 1 ? "partida" : "partidas"} sin precio`);
+          if (col.cobertura === COBERTURA.SOLO_MO && cq.partidas.some((f) => f.material.estado === "provisional" && f.celdas[proveedorId].conPrecio)) {
+            avisos.push("El material de alguna partida es provisional: todav\xEDa no est\xE1 comprado");
+          }
+          if (col.bajoObjetivo) avisos.push(`El margen sobre venta (${col.pctMargen} %) baja del objetivo`);
+          return {
+            proveedorId,
+            proveedor: col.proveedor,
+            cobertura: col.coberturaTexto,
+            importePedido: M.euros(importePedido),
+            importeComparable: col.comparable,
+            adjudicadas,
+            pendientes,
+            noAdjudicadas,
+            avisos,
+            detalle
+          };
+        }
+        function numeroPegado(v) {
+          let t = String(v ?? "").replace(/[\s €%]/g, "");
+          if (!t) return null;
+          if (!/^-?[\d.,]+$/.test(t)) return null;
+          const coma = t.lastIndexOf(",");
+          const punto = t.lastIndexOf(".");
+          if (coma >= 0 && punto >= 0) {
+            t = coma > punto ? t.replace(/\./g, "").replace(",", ".") : t.replace(/,/g, "");
+          } else if (coma >= 0) {
+            t = t.match(/,/g).length > 1 ? t.replace(/,/g, "") : t.replace(",", ".");
+          } else if (punto >= 0 && (t.match(/\./g).length > 1 || /^\d{1,3}\.\d{3}$/.test(t.replace("-", "")))) {
+            t = t.replace(/\./g, "");
+          }
+          const n = Number(t);
+          return Number.isFinite(n) ? n : null;
+        }
+        const CABECERAS = [
+          ["codigo", /^(c[oó]d(igo)?\.?|ref(erencia)?\.?|n[ºo°]\.?)$/i],
+          ["resumen", /^(resumen|descripci[oó]n|concepto|partida|texto|denominaci[oó]n)$/i],
+          ["unidad", /^(ud\.?|uds\.?|unidad|ud\s*\.?)$/i],
+          ["cantidad", /^(cant(idad)?\.?|medici[oó]n|med\.?|canpres)$/i],
+          ["precio", /^(precio|p\.?\s*u\.?|pr\.?\s*unit(ario)?\.?|€\s*\/\s*ud|precio\s*unitario|prpres)$/i],
+          ["importe", /^(importe|total|imp\.?|subtotal|imppres)$/i]
+        ];
+        const normal = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
+        function interpretarPegado(texto, partidas = []) {
+          const lineas = String(texto || "").replace(/\r/g, "").split("\n").map((l) => l.split("	").map((c) => c.trim())).filter((celdas) => celdas.some((c) => c !== ""));
+          if (!lineas.length) return { columnas: {}, filas: [], lineas: [], casadas: 0, sinCasar: 0, ignoradas: 0 };
+          let columnas = {};
+          let inicio = 0;
+          const cabecera = lineas.findIndex((celdas) => {
+            const m = {};
+            celdas.forEach((c, i) => {
+              const hit = CABECERAS.find(([, re]) => re.test(c.trim()));
+              if (hit && m[hit[0]] === void 0) m[hit[0]] = i;
+            });
+            if (Object.keys(m).length >= 2) {
+              columnas = m;
+              return true;
+            }
+            return false;
+          });
+          if (cabecera >= 0 && cabecera < 5) inicio = cabecera + 1;
+          else {
+            columnas = {};
+            const ancho = Math.max(...lineas.map((l) => l.length));
+            const numericas = [];
+            const texto2 = [];
+            for (let i = 0; i < ancho; i++) {
+              const vals = lineas.map((l) => l[i] || "").filter((v) => v !== "");
+              if (!vals.length) continue;
+              const nums = vals.filter((v) => numeroPegado(v) !== null).length;
+              if (nums / vals.length >= 0.6 && !vals.every((v) => /^\d+(\.\d+)+$/.test(v) && v.split(".").length > 2)) numericas.push(i);
+              else texto2.push({ i, largo: vals.reduce((a, v) => a + v.length, 0) / vals.length, vals });
+            }
+            const codigoCol = texto2.find((t) => t.vals.every((v) => !/\s/.test(v) && v.length <= 20 && /\d/.test(v)));
+            if (codigoCol) columnas.codigo = codigoCol.i;
+            const resto = texto2.filter((t) => t !== codigoCol);
+            const unidadCol = resto.find((t) => t.largo <= 4);
+            if (unidadCol) columnas.unidad = unidadCol.i;
+            const resumenCol = resto.filter((t) => t !== unidadCol).sort((a, b) => b.largo - a.largo)[0];
+            if (resumenCol) columnas.resumen = resumenCol.i;
+            if (numericas.length >= 3) [columnas.cantidad, columnas.precio, columnas.importe] = numericas.slice(-3);
+            else if (numericas.length === 2) [columnas.cantidad, columnas.precio] = numericas;
+            else if (numericas.length === 1) columnas.precio = numericas[0];
+          }
+          const celda = (l, clave) => columnas[clave] === void 0 ? "" : l[columnas[clave]] || "";
+          const filas = lineas.slice(inicio).map((l) => {
+            const codigo = celda(l, "codigo");
+            const resumen = celda(l, "resumen") || l.filter((c) => numeroPegado(c) === null).sort((a, b) => b.length - a.length)[0] || "";
+            const unidad = celda(l, "unidad");
+            const cantidad = numeroPegado(celda(l, "cantidad"));
+            let precio = numeroPegado(celda(l, "precio"));
+            const importe = numeroPegado(celda(l, "importe"));
+            if (precio === null && importe !== null && cantidad > 0) precio = M.precio(importe / cantidad);
+            let tipo = "capitulo";
+            if (/^\s*total/i.test(codigo) || /^\s*total/i.test(resumen) || resumen.length > 250) tipo = "ignorar";
+            else if (unidad || cantidad !== null || precio !== null) tipo = "partida";
+            return { tipo, codigo, resumen, unidad, cantidad, precio };
+          });
+          const porCodigo = new Map(partidas.map((p) => [normal(p.codigo), String(p.codigo)]));
+          const porResumen = /* @__PURE__ */ new Map();
+          for (const p of partidas) {
+            const k = normal(p.resumen).slice(0, 60);
+            if (k && !porResumen.has(k)) porResumen.set(k, String(p.codigo));
+          }
+          const usadas = /* @__PURE__ */ new Set();
+          const deFila = filas.filter((f) => f.tipo === "partida");
+          for (const f of deFila) {
+            const k = f.codigo && porCodigo.get(normal(f.codigo)) || porResumen.get(normal(f.resumen).slice(0, 60)) || null;
+            if (k && !usadas.has(k)) {
+              f.casadaCon = k;
+              usadas.add(k);
+            }
+          }
+          if (deFila.length === partidas.length && !usadas.size) {
+            deFila.forEach((f, i) => {
+              f.casadaCon = String(partidas[i].codigo);
+              usadas.add(f.casadaCon);
+              f.porOrden = true;
+            });
+          }
+          const resultado = deFila.filter((f) => f.casadaCon && f.precio !== null).map((f) => ({ partidaCodigo: f.casadaCon, precio: M.precio(f.precio) }));
+          return {
+            columnas,
+            filas,
+            lineas: resultado,
+            casadas: resultado.length,
+            sinCasar: deFila.filter((f) => !f.casadaCon).length,
+            sinPrecio: deFila.filter((f) => f.casadaCon && f.precio === null).length,
+            ignoradas: filas.filter((f) => f.tipo === "ignorar").length,
+            capitulos: filas.filter((f) => f.tipo === "capitulo").length
+          };
+        }
+        const API = {
+          cuadro,
+          ranking,
+          resumenCapitulos,
+          registroAdjudicacion,
+          interpretarPegado,
+          numeroPegado,
+          COBERTURA,
+          TEXTO_COBERTURA,
+          ESTADO_MATERIAL,
+          SITUACION,
+          MARGEN_OBJETIVO
+        };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.CUADRO_COMPARATIVO = API;
+      })();
+    }
+  });
+
+  // shared/compras/planCompras.js
+  var require_planCompras = __commonJS({
+    "shared/compras/planCompras.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function planComprasModulo() {
+        const M = typeof __require !== "undefined" ? require_modelo() : window.MODELO;
+        const CQ = typeof __require !== "undefined" ? require_cuadroComparativo() : window.CUADRO_COMPARATIVO;
+        const ESTADO = { sinPedir: "Sin pedir", pidiendo: "Pidiendo precio", ofertas: "Ofertas recibidas", adjudicado: "Adjudicado", pedido: "Pedido" };
+        const pct = (parte, total) => total > 0 ? M.redondear(parte / total * 100, 1) : null;
+        function partidasPlan(partidas) {
+          const cq = CQ.cuadro({ partidas: partidas || [] }, []);
+          return cq.partidas.map((f) => ({ codigo: String(f.codigo), plan: f.importePlan, venta: f.importeVenta, sinCoste: f.sinCoste }));
+        }
+        function plan({ paquetes = [], sinComparativo = [] } = {}) {
+          const filas = paquetes.map((paq) => {
+            const ps = partidasPlan(paq.partidas);
+            const planTotal2 = M.euros(ps.reduce((a, f) => a + f.plan, 0));
+            const venta2 = M.euros(ps.reduce((a, f) => a + f.venta, 0));
+            const adj = paq.adjudicacion || null;
+            let compradoPlan2 = 0;
+            let compradoPor2 = null;
+            if (adj) {
+              const entran = Array.isArray(adj.adjudicadas) && adj.adjudicadas.length ? new Set(adj.adjudicadas.map(String)) : null;
+              compradoPlan2 = M.euros(ps.filter((f) => !entran || entran.has(f.codigo)).reduce((a, f) => a + f.plan, 0));
+              compradoPor2 = adj.segunHoras ? compradoPlan2 : M.euros(Number(adj.importe) || 0);
+            }
+            const mejora2 = adj && !adj.segunHoras ? M.euros(compradoPlan2 - compradoPor2) : null;
+            const estado = paq.estado || (adj ? "adjudicado" : "sinPedir");
+            return {
+              codigo: paq.codigo,
+              nombre: paq.nombre || paq.codigo,
+              partidas: ps.length,
+              sinCoste: ps.filter((f) => f.sinCoste).length,
+              plan: planTotal2,
+              venta: venta2,
+              estado,
+              estadoTexto: ESTADO[estado] || estado,
+              comprado: Boolean(adj),
+              proveedor: adj ? adj.proveedor || "" : "",
+              fecha: adj ? adj.fecha || null : null,
+              pedido: adj ? adj.pedido || null : null,
+              compradoPlan: compradoPlan2,
+              compradoPor: compradoPor2,
+              mejora: mejora2,
+              mejoraPct: adj && mejora2 !== null ? pct(mejora2, compradoPlan2) : null,
+              segunHoras: Boolean(adj && adj.segunHoras),
+              ofertas: Number(paq.ofertas) || 0,
+              porComprar: M.euros(planTotal2 - compradoPlan2)
+            };
+          });
+          const sin = partidasPlan(sinComparativo);
+          const sinPlan = M.euros(sin.reduce((a, f) => a + f.plan, 0));
+          const sinVenta = M.euros(sin.reduce((a, f) => a + f.venta, 0));
+          const suma = (k) => M.euros(filas.reduce((a, f) => a + (Number(f[k]) || 0), 0));
+          const planTotal = M.euros(suma("plan") + sinPlan);
+          const venta = M.euros(suma("venta") + sinVenta);
+          const compradoPlan = suma("compradoPlan");
+          const compradoPor = suma("compradoPor");
+          const mejora = M.euros(compradoPlan - compradoPor);
+          const porComprar = M.euros(suma("porComprar") + sinPlan);
+          const prevision = M.euros(compradoPor + porComprar);
+          let acumulada = 0;
+          const evolucion = filas.filter((f) => f.comprado).sort((a, b) => String(a.fecha || "").localeCompare(String(b.fecha || "")) || a.codigo.localeCompare(b.codigo)).map((f) => {
+            acumulada = M.euros(acumulada + f.mejora);
+            return { codigo: f.codigo, nombre: f.nombre, fecha: f.fecha, proveedor: f.proveedor, mejora: f.mejora, acumulada };
+          });
+          return {
+            filas: filas.sort((a, b) => a.comprado === b.comprado ? b.plan - a.plan : a.comprado ? 1 : -1),
+            sinComparativo: { partidas: sin.length, plan: sinPlan, venta: sinVenta },
+            evolucion,
+            totales: {
+              plan: planTotal,
+              venta,
+              compradoPlan,
+              compradoPor,
+              mejora,
+              mejoraPct: pct(mejora, compradoPlan),
+              porComprar,
+              pctComprado: pct(compradoPlan, planTotal),
+              prevision,
+              margenEstudio: M.euros(venta - planTotal),
+              margenPrevisto: M.euros(venta - prevision),
+              pctMargenPrevisto: pct(venta - prevision, venta),
+              paquetes: filas.length,
+              cerrados: filas.filter((f) => f.comprado).length
+            }
+          };
+        }
+        function tsv(r) {
+          const n = (v) => v === null || v === void 0 ? "" : String(v).replace(".", ",");
+          const cab = ["C\xF3digo", "Paquete", "Estado", "Industrial", "Fecha", "Estudio", "Comprado (estudio)", "Adjudicado", "Mejora", "Mejora %", "Por comprar"];
+          const filas = r.filas.map((f) => [f.codigo, f.nombre, f.estadoTexto, f.proveedor, f.fecha || "", n(f.plan), n(f.compradoPlan), n(f.compradoPor), n(f.mejora), n(f.mejoraPct), n(f.porComprar)]);
+          if (r.sinComparativo.partidas) filas.push(["", "Sin comparativo", "Sin pedir", "", "", n(r.sinComparativo.plan), "0", "", "", "", n(r.sinComparativo.plan)]);
+          const t = r.totales;
+          filas.push(["", "TOTAL", "", "", "", n(t.plan), n(t.compradoPlan), n(t.compradoPor), n(t.mejora), n(t.mejoraPct), n(t.porComprar)]);
+          return [cab, ...filas].map((l) => l.join("	")).join("\n");
+        }
+        const API = { plan, tsv, ESTADO };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.PLAN_COMPRAS = API;
+      })();
+    }
+  });
+
+  // electron/data/compras.js
+  var require_compras = __commonJS({
+    "electron/data/compras.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var modelo = require_modelo();
+      var comparativo = require_comparativo();
+      var cuadroComparativo = require_cuadroComparativo();
+      var planCompras = require_planCompras();
+      var aHoras = require_aHoras();
+      var { puede } = require_roles();
+      var { armarArbol } = require_presupuestos();
+      function deFilaPeticion(f) {
+        if (!f) return null;
+        return {
+          id: f.id,
+          presupuestoId: f.presupuestoId || null,
+          obraId: f.obraId || null,
+          grupo: f.grupo,
+          descripcion: f.descripcion || null,
+          fechaEnvio: f.fechaEnvio || null,
+          fechaLimite: f.fechaLimite || null,
+          estado: f.estado,
+          pedidaPor: f.pedidaPor || null,
+          /* Solo las marcadas en el presupuesto llevan lista; las de antes, por
+             `grupo`, la dejan en null y su paquete sale de la columna. */
+          partidas: leerListaCompras(f.partidas),
+          invitados: leerListaCompras(f.invitados) || [],
+          /* El margen objetivo (0,12 = 12 %) y el material de otro comparativo,
+             por partida: { codigo → { precio, suministra, estado } }. */
+          margenObjetivo: f.margenObjetivo === null || f.margenObjetivo === void 0 ? null : Number(f.margenObjetivo),
+          material: leerTrazaCompras(f.material) || {},
+          /* 'horas': el paquete es de una subcontrata A HORAS (shared/compras/aHoras.js):
+             se compara solo la tarifa/hora por categoría, sobre su cuadrilla tipo. */
+          modalidad: f.modalidad === "horas" ? "horas" : "partidas",
+          cuadrilla: aHoras.limpiarCuadrilla(f.cuadrilla),
+          creadoEn: f.creadoEn,
+          modificadoEn: f.modificadoEn
+        };
+      }
+      function listarPeticiones(repo, sesion, presupuestoId) {
+        return repo.listar("peticionesOferta", sesion, {
+          condicion: "presupuestoId = ?",
+          params: [presupuestoId],
+          orden: "grupo"
+        }).map(deFilaPeticion);
+      }
+      function abrirPeticion(repo, sesion, { presupuestoId, grupo, descripcion, fechaLimite } = {}) {
+        if (!presupuestoId || !grupo) return { error: "Falta el presupuesto o el paquete." };
+        if (!repo.puedeTocar("presupuestos", sesion, presupuestoId)) {
+          return { error: "Ese presupuesto no existe o no es suyo." };
+        }
+        const ya = listarPeticiones(repo, sesion, presupuestoId).find((p) => p.grupo === grupo);
+        if (ya) return ya;
+        const id = repo.crear("peticionesOferta", sesion, {
+          presupuestoId,
+          grupo,
+          descripcion: descripcion || null,
+          fechaLimite: fechaLimite || null,
+          estado: "preparando",
+          pedidaPor: sesion.personaId
+        });
+        return deFilaPeticion(repo.leer("peticionesOferta", sesion, id));
+      }
+      function enviarPeticion(repo, sesion, peticionId, fecha) {
+        if (!repo.leer("peticionesOferta", sesion, peticionId)) return { error: "Esa petici\xF3n no existe." };
+        repo.modificar("peticionesOferta", sesion, peticionId, {
+          estado: "enviada",
+          fechaEnvio: fecha || hoyCompras()
+        });
+        return deFilaPeticion(repo.leer("peticionesOferta", sesion, peticionId));
+      }
+      function deFilaOferta(f) {
+        if (!f) return null;
+        return {
+          id: f.id,
+          peticionId: f.peticionId,
+          proveedorId: f.proveedorId,
+          fecha: f.fecha || null,
+          validezDias: f.validezDias ?? null,
+          plazoEntregaDias: f.plazoEntregaDias ?? null,
+          condicionesPago: f.condicionesPago || null,
+          observaciones: f.observaciones || null,
+          documento: f.documento || null,
+          estado: f.estado,
+          /* «sumMO» (suministro y montaje) o «soloMO» (solo la mano de obra). */
+          cobertura: f.cobertura === "soloMO" ? "soloMO" : "sumMO",
+          totalEscrito: f.totalEscrito === null || f.totalEscrito === void 0 ? null : Number(f.totalEscrito),
+          motivoDescarte: f.motivoDescarte || null,
+          /* Las tarifas de una oferta a horas: [{ categoria, precioHora, horas }]. */
+          tarifasHora: aHoras.limpiarTarifas(f.tarifasHora),
+          creadoEn: f.creadoEn
+        };
+      }
+      function lineasDe(repo, sesion, ofertaId) {
+        return repo.listar("lineasOfertaProveedor", sesion, {
+          condicion: "ofertaId = ?",
+          params: [ofertaId],
+          orden: "partidaCodigo"
+        }).map((f) => ({
+          id: f.id,
+          partidaCodigo: f.partidaCodigo,
+          precio: f.precio === null || f.precio === void 0 ? null : Number(f.precio),
+          /*
+           * `incluye` distingue «no lo incluyo» de «no lo he valorado», que no es lo
+           * mismo: lo primero es información y lo segundo es un hueco. El
+           * comparativo las trata distinto al explicar por qué falta una partida.
+           */
+          incluye: f.incluye !== 0,
+          observacion: f.observacion || null,
+          /*
+           * Si el industrial separa el suministro del montaje, lo que pide por el
+           * suministro (el montaje es el resto). Vacío: lo da todo junto. Es lo que
+           * valora el material robado en un parte de incidencia.
+           */
+          precioSuministro: f.precioSuministro === null || f.precioSuministro === void 0 ? null : Number(f.precioSuministro)
+        }));
+      }
+      function ofertasDe(repo, sesion, peticionId) {
+        const nombres = new Map(
+          repo.listar("proveedores", sesion, {}).map((p) => [p.id, p.nombre])
+        );
+        return repo.listar("ofertasProveedor", sesion, {
+          condicion: "peticionId = ?",
+          params: [peticionId],
+          orden: "fecha"
+        }).map((f) => {
+          const o = deFilaOferta(f);
+          o.proveedor = nombres.get(o.proveedorId) || o.proveedorId;
+          o.lineas = lineasDe(repo, sesion, o.id);
+          return o;
+        });
+      }
+      function guardarOferta(repo, sesion, datos = {}) {
+        const {
+          peticionId,
+          proveedorId,
+          fecha,
+          validezDias,
+          plazoEntregaDias,
+          condicionesPago,
+          observaciones,
+          documento,
+          cobertura,
+          totalEscrito,
+          lineas = [],
+          tarifasHora
+        } = datos;
+        if (!peticionId || !proveedorId) return { error: "Falta la petici\xF3n o el industrial." };
+        if (!repo.leer("peticionesOferta", sesion, peticionId)) return { error: "Esa petici\xF3n no existe." };
+        if (!repo.leer("proveedores", sesion, proveedorId)) return { error: "Ese industrial no est\xE1 en la base." };
+        const cabecera = {
+          peticionId,
+          proveedorId,
+          fecha: fecha || hoyCompras(),
+          validezDias: enteroOnuloCompras(validezDias),
+          plazoEntregaDias: enteroOnuloCompras(plazoEntregaDias),
+          condicionesPago: condicionesPago || null,
+          observaciones: observaciones || null,
+          documento: documento || null,
+          estado: "recibida",
+          cobertura: cobertura === "soloMO" ? "soloMO" : "sumMO",
+          totalEscrito: totalEscrito === "" || totalEscrito === null || totalEscrito === void 0 ? null : numeroCompras(totalEscrito)
+        };
+        if (tarifasHora !== void 0) {
+          const ts = aHoras.limpiarTarifas(tarifasHora);
+          if (!ts.length) return { error: "Falta al menos una tarifa por hora (categor\xEDa y \u20AC/h)." };
+          cabecera.tarifasHora = JSON.stringify(ts);
+        }
+        const previas = repo.listar("ofertasProveedor", sesion, {
+          condicion: "peticionId = ? AND proveedorId = ?",
+          params: [peticionId, proveedorId],
+          limite: 1
+        });
+        const db = repo.db;
+        db.exec("BEGIN");
+        try {
+          let ofertaId;
+          if (previas.length) {
+            ofertaId = previas[0].id;
+            if (previas[0].estado === "descartada") cabecera.estado = "descartada";
+            const soloTarifas = tarifasHora !== void 0 && datos.lineas === void 0;
+            if (soloTarifas && cobertura === void 0) cabecera.cobertura = previas[0].cobertura || "sumMO";
+            repo.modificar("ofertasProveedor", sesion, ofertaId, cabecera);
+            if (!soloTarifas) db.prepare("DELETE FROM lineasOfertaProveedor WHERE ofertaId = ?").run(ofertaId);
+          } else {
+            if (tarifasHora !== void 0 && cobertura === void 0) cabecera.cobertura = "soloMO";
+            ofertaId = repo.crear("ofertasProveedor", sesion, cabecera);
+          }
+          for (const l of lineas) {
+            if (!l || !l.partidaCodigo) continue;
+            repo.crear("lineasOfertaProveedor", sesion, {
+              ofertaId,
+              partidaCodigo: String(l.partidaCodigo),
+              precio: precioOnuloCompras(l.precio),
+              incluye: l.incluye === false ? 0 : 1,
+              observacion: l.observacion || null,
+              precioSuministro: precioOnuloCompras(l.precioSuministro)
+            });
+          }
+          db.exec("COMMIT");
+        } catch (e) {
+          db.exec("ROLLBACK");
+          return { error: `La oferta no se ha guardado: ${e && e.message || e}` };
+        }
+        return ofertasDe(repo, sesion, peticionId).find((o) => o.proveedorId === proveedorId) || null;
+      }
+      function descartarOferta(repo, sesion, ofertaId, { motivo, readmitir } = {}) {
+        const o = repo.leer("ofertasProveedor", sesion, ofertaId);
+        if (!o) return { error: "Esa oferta no existe." };
+        if (readmitir) {
+          repo.modificar("ofertasProveedor", sesion, ofertaId, { estado: "recibida", motivoDescarte: null });
+          return deFilaOferta(repo.leer("ofertasProveedor", sesion, ofertaId));
+        }
+        const limpio = String(motivo || "").trim();
+        if (!limpio) return { error: "Hace falta el motivo del descarte: dentro de un a\xF1o nadie lo recordar\xE1." };
+        const adj = adjudicacionDe(repo, sesion, o.peticionId);
+        if (adj && adj.proveedorId === o.proveedorId) return { error: "No se puede descartar la oferta adjudicada." };
+        repo.modificar("ofertasProveedor", sesion, ofertaId, { estado: "descartada", motivoDescarte: limpio.slice(0, 500) });
+        return deFilaOferta(repo.leer("ofertasProveedor", sesion, ofertaId));
+      }
+      function guardarAjustesComparativo(repo, sesion, peticionId, { margenObjetivo, material, modalidad, cuadrilla } = {}) {
+        const pet = repo.leer("peticionesOferta", sesion, peticionId);
+        if (!pet) return { error: "Esa petici\xF3n no existe." };
+        const cambios = {};
+        if (modalidad !== void 0) {
+          const m = modalidad === "horas" ? "horas" : "partidas";
+          if (m !== (pet.modalidad === "horas" ? "horas" : "partidas") && adjudicacionDe(repo, sesion, peticionId)) {
+            return { error: "El comparativo ya est\xE1 adjudicado: su modalidad no se cambia." };
+          }
+          cambios.modalidad = m;
+        }
+        if (cuadrilla !== void 0) {
+          const c = aHoras.limpiarCuadrilla(cuadrilla);
+          cambios.cuadrilla = c ? JSON.stringify(c) : null;
+        }
+        if (margenObjetivo !== void 0) {
+          if (margenObjetivo === null || String(margenObjetivo).trim() === "") cambios.margenObjetivo = null;
+          else {
+            let m = numeroCompras(margenObjetivo);
+            if (m === null || m < 0 || m >= 100) return { error: "El margen objetivo no se entiende: escr\xEDbelo en %, por ejemplo 12." };
+            if (m >= 1) m /= 100;
+            cambios.margenObjetivo = m;
+          }
+        }
+        if (material !== void 0) {
+          const limpio = {};
+          for (const [codigo, v] of Object.entries(material || {})) {
+            if (!v) continue;
+            const precio = String(v.precio ?? "").trim() === "" ? null : numeroCompras(v.precio);
+            if (precio !== null && !(precio >= 0)) return { error: `El precio del material de ${codigo} no se entiende.` };
+            const estado = cuadroComparativo.ESTADO_MATERIAL[v.estado] ? v.estado : precio === null ? "noLleva" : "provisional";
+            if (precio === null && estado === "noLleva" && !String(v.suministra || "").trim()) continue;
+            limpio[String(codigo)] = { precio, suministra: String(v.suministra || "").trim().slice(0, 120), estado };
+          }
+          cambios.material = JSON.stringify(limpio);
+        }
+        repo.modificar("peticionesOferta", sesion, peticionId, cambios);
+        return deFilaPeticion(repo.leer("peticionesOferta", sesion, peticionId));
+      }
+      function borrarOferta(repo, sesion, ofertaId) {
+        if (!repo.leer("ofertasProveedor", sesion, ofertaId)) return { error: "Esa oferta no existe." };
+        repo.borrar("ofertasProveedor", sesion, ofertaId);
+        return true;
+      }
+      function estadoDeLosPaquetes(repo, sesion, presupuestoId) {
+        const estado = {};
+        for (const p of listarPeticiones(repo, sesion, presupuestoId)) {
+          estado[p.grupo] = {
+            peticion: p,
+            ofertas: ofertasDe(repo, sesion, p.id).length,
+            adjudicacion: adjudicacionDe(repo, sesion, p.id)
+          };
+        }
+        return estado;
+      }
+      function paqueteDe(repo, sesion, presupuestoId, grupo) {
+        if (!repo.puedeTocar("presupuestos", sesion, presupuestoId)) return null;
+        const arbol = modelo.calcularArbol(armarArbol(repo.db, presupuestoId));
+        const peticiones = listarPeticiones(repo, sesion, presupuestoId);
+        return comparativo.comparativosDelPresupuesto(arbol, peticiones).paquetes.find((p) => p.codigo === grupo) || null;
+      }
+      function comparativoDe(repo, sesion, presupuestoId, grupo) {
+        if (!repo.puedeTocar("presupuestos", sesion, presupuestoId)) {
+          return { error: "Ese presupuesto no existe, o no es de los que t\xFA ves." };
+        }
+        const paquete = paqueteDe(repo, sesion, presupuestoId, grupo);
+        if (!paquete) return { error: `No hay ning\xFAn paquete \xAB${grupo}\xBB en el presupuesto.` };
+        const peticion = listarPeticiones(repo, sesion, presupuestoId).find((p) => p.grupo === grupo);
+        const ofertas = peticion ? ofertasDe(repo, sesion, peticion.id) : [];
+        if (peticion && peticion.modalidad === "horas") {
+          const h = aHoras.comparar(paquete, ofertas, { cuadrilla: peticion.cuadrilla });
+          return {
+            ...h,
+            /* Los nombres que la pantalla y adjudicar() esperan de cualquier comparativo. */
+            presupuestado: h.planificado,
+            filas: (paquete.partidas || []).map((p) => ({ codigo: p.codigo, resumen: p.resumen, unidad: p.unidad, cantidad: p.cantidad })),
+            peticion,
+            adjudicacion: adjudicacionDe(repo, sesion, peticion.id),
+            ofertas
+          };
+        }
+        const { cumplimientoIndustriales } = require_personal2();
+        const c = comparativo.comparar(
+          paquete,
+          ofertas.filter((o) => o.estado !== "descartada"),
+          { cumplimientos: cumplimientoIndustriales(repo) }
+        );
+        c.peticion = peticion || null;
+        c.adjudicacion = peticion ? adjudicacionDe(repo, sesion, peticion.id) : null;
+        const provincias = new Map(repo.listar("proveedores", sesion, {}).map((p) => [p.id, p.provincia || ""]));
+        const pedido = peticion ? pedidoDelComparativo(repo, sesion, peticion.id) : null;
+        c.cuadro = cuadroComparativo.cuadro(
+          paquete,
+          ofertas.map((o) => ({ ...o, poblacion: provincias.get(o.proveedorId) || "" })),
+          {
+            margenObjetivo: peticion && peticion.margenObjetivo !== null ? peticion.margenObjetivo : void 0,
+            material: peticion && peticion.material || {},
+            adjudicadoA: c.adjudicacion ? c.adjudicacion.proveedorId : null,
+            pedidos: c.adjudicacion && pedido ? { [c.adjudicacion.proveedorId]: pedido.codigo } : {}
+          }
+        );
+        c.ofertas = ofertas;
+        return c;
+      }
+      function deFilaAdjudicacion(f) {
+        if (!f) return null;
+        return {
+          id: f.id,
+          peticionId: f.peticionId || null,
+          ofertaId: f.ofertaId || null,
+          proveedorId: f.proveedorId,
+          obraId: f.obraId || null,
+          grupo: f.grupo || null,
+          importe: Number(f.importe) || 0,
+          estado: f.estado,
+          motivo: f.motivo || null,
+          traza: leerTrazaCompras(f.traza),
+          decididoPor: f.decididoPor || null,
+          fechaInicio: f.fechaInicio || null,
+          fechaFin: f.fechaFin || null,
+          creadoEn: f.creadoEn
+        };
+      }
+      function adjudicacionDe(repo, sesion, peticionId) {
+        const filas = repo.listar("adjudicaciones", sesion, {
+          condicion: "peticionId = ?",
+          params: [peticionId],
+          limite: 1
+        });
+        return filas.length ? deFilaAdjudicacion(filas[0]) : null;
+      }
+      function adjudicar(repo, sesion, { presupuestoId, grupo, proveedorId, motivo, importe } = {}) {
+        if (!puede(sesion.rol, "compras", "aprobar")) {
+          return {
+            error: "Su rol puede pedir ofertas y compararlas, pero no adjudicar. Adjudicar compromete el dinero de la obra y es del departamento de Proyectos."
+          };
+        }
+        if (!proveedorId) return { error: "Hace falta a qui\xE9n se le adjudica." };
+        const c = comparativoDe(repo, sesion, presupuestoId, grupo);
+        if (c.error) return c;
+        if (!c.peticion) return { error: "Ese paquete no tiene ninguna petici\xF3n de oferta abierta." };
+        if (c.modalidad === "horas") return adjudicarAHoras(repo, sesion, c, { grupo, proveedorId, motivo, importe });
+        const columna = c.columnas.find((x) => x.proveedorId === proveedorId);
+        if (!columna && (c.ofertas || []).some((o) => o.proveedorId === proveedorId && o.estado === "descartada")) {
+          return { error: "Esa oferta est\xE1 descartada: se readmite antes de adjudic\xE1rsela." };
+        }
+        if (!columna) {
+          const proveedor = repo.leer("proveedores", sesion, proveedorId);
+          return {
+            error: `${proveedor && proveedor.nombre || "Ese industrial"} no ha ofertado este paquete. Adjudicar a quien no ofert\xF3 deja la compra sin poder explicar de d\xF3nde sale el precio.`
+          };
+        }
+        const masBarato = c.columnas[0];
+        const razones = [];
+        if (masBarato.proveedorId !== proveedorId) {
+          razones.push(`no es el m\xE1s barato: ${masBarato.proveedor} est\xE1 ${modelo.textoEuros(columna.totalComparable - masBarato.totalComparable)} \u20AC por debajo en lo que se puede comparar`);
+        }
+        if (columna.cobertura < 100) {
+          const cuantas = columna.sinCubrir.length === 1 ? "una partida" : `${columna.sinCubrir.length} partidas`;
+          razones.push(`deja fuera ${cuantas}, que a precio de estudio son ${modelo.textoEuros(columna.huecoEconomico)} \u20AC`);
+        }
+        for (const a of c.avisos) {
+          if (a.gravedad === "bloqueante") razones.push(a.mensaje.replace(/\.$/, ""));
+        }
+        const limpio = String(motivo || "").trim();
+        if (razones.length && !limpio) {
+          return {
+            error: `Hace falta escribir el motivo, porque hay algo que explicar: ${razones.join("; ")}. Sin escribirlo, dentro de un a\xF1o en obra nadie se acuerda.`,
+            razones,
+            masBarato: {
+              proveedorId: masBarato.proveedorId,
+              proveedor: masBarato.proveedor,
+              totalComparable: masBarato.totalComparable
+            }
+          };
+        }
+        const traza = comparativo.trazaAdjudicacion({
+          paquete: { codigo: grupo },
+          comparativo: c,
+          proveedorId,
+          personaId: sesion.personaId,
+          motivo: limpio || null
+        });
+        const registro = cuadroComparativo.registroAdjudicacion(c.cuadro, proveedorId);
+        if (traza && registro) {
+          traza.registro = {
+            cobertura: registro.cobertura,
+            importePedido: registro.importePedido,
+            importeComparable: registro.importeComparable,
+            adjudicadas: registro.adjudicadas,
+            pendientes: registro.pendientes,
+            noAdjudicadas: registro.noAdjudicadas,
+            avisos: registro.avisos
+          };
+        }
+        const pedido = Number(importe);
+        const fila = {
+          peticionId: c.peticion.id,
+          ofertaId: columna.ofertaId,
+          proveedorId,
+          grupo,
+          importe: Number.isFinite(pedido) && pedido > 0 ? modelo.euros(pedido) : columna.total,
+          estado: "enCurso",
+          motivo: limpio || null,
+          /*
+           * La traza se guarda ENTERA, no solo el precio: contra quién se ganó, con
+           * qué precios y qué quedaba fuera. En obra, «¿esto estaba incluido?» tiene
+           * entonces respuesta y no opinión.
+           */
+          traza: JSON.stringify(traza),
+          decididoPor: sesion.personaId
+        };
+        const decidir = { verbo: "aprobar" };
+        const ya = adjudicacionDe(repo, sesion, c.peticion.id);
+        if (ya) repo.modificar("adjudicaciones", sesion, ya.id, fila, decidir);
+        else repo.crear("adjudicaciones", sesion, fila, decidir);
+        repo.modificar("peticionesOferta", sesion, c.peticion.id, { estado: "adjudicada" }, decidir);
+        return adjudicacionDe(repo, sesion, c.peticion.id);
+      }
+      function adjudicarAHoras(repo, sesion, c, { grupo, proveedorId, motivo, importe }) {
+        const columna = c.columnas.find((x) => x.proveedorId === proveedorId);
+        if (!columna) {
+          const proveedor = repo.leer("proveedores", sesion, proveedorId);
+          return { error: `${proveedor && proveedor.nombre || "Ese industrial"} no ha ofertado este paquete a horas.` };
+        }
+        if (columna.descartada) return { error: "Esa oferta est\xE1 descartada: se readmite antes de adjudic\xE1rsela." };
+        if (!columna.tarifas.length) return { error: `${columna.proveedor} no tiene ninguna tarifa por hora: no hay qu\xE9 adjudicar.` };
+        const razones = [];
+        if (c.mejor && c.mejor.proveedorId !== proveedorId) {
+          razones.push(columna.horaComparable === null ? `no se puede comparar con ${c.mejor.proveedor}, que es la de menor \u20AC/h` : `no es la m\xE1s barata: ${c.mejor.proveedor} est\xE1 ${modelo.textoEuros(columna.horaComparable - c.mejor.horaComparable)} \u20AC/h por debajo`);
+        }
+        if (columna.faltan.length) razones.push(`no tarifa ${columna.faltan.join(", ")}`);
+        for (const a of c.avisos) if (a.gravedad === "bloqueante") razones.push(a.mensaje.replace(/\.$/, ""));
+        const limpio = String(motivo || "").trim();
+        if (razones.length && !limpio) {
+          return {
+            error: `Hace falta escribir el motivo, porque hay algo que explicar: ${razones.join("; ")}.`,
+            razones,
+            masBarato: c.mejor
+          };
+        }
+        const traza = aHoras.trazaAdjudicacion({ paquete: { codigo: grupo }, comparativo: c, proveedorId, personaId: sesion.personaId, motivo: limpio || null });
+        const tarifa = aHoras.tarifaDeTraza(traza);
+        if (tarifa.precioHora === null) return { error: `As\xED no hay tarifa con la que calcular el coste: ${tarifa.motivo}.` };
+        traza.importeSegunHoras = !(Number(importe) > 0) && !(columna.horasCompletas && columna.totalOfertado !== null);
+        const pedido = Number(importe);
+        const fila = {
+          peticionId: c.peticion.id,
+          ofertaId: columna.ofertaId,
+          proveedorId,
+          grupo,
+          importe: Number.isFinite(pedido) && pedido > 0 ? modelo.euros(pedido) : columna.horasCompletas && columna.totalOfertado !== null ? columna.totalOfertado : 0,
+          estado: "enCurso",
+          motivo: limpio || null,
+          traza: JSON.stringify(traza),
+          decididoPor: sesion.personaId
+        };
+        const decidir = { verbo: "aprobar" };
+        const ya = adjudicacionDe(repo, sesion, c.peticion.id);
+        if (ya) repo.modificar("adjudicaciones", sesion, ya.id, fila, decidir);
+        else repo.crear("adjudicaciones", sesion, fila, decidir);
+        repo.modificar("peticionesOferta", sesion, c.peticion.id, { estado: "adjudicada" }, decidir);
+        return adjudicacionDe(repo, sesion, c.peticion.id);
+      }
+      var ESTADO_COMPRA = {
+        sinPedir: "Sin pedir",
+        pidiendo: "Pidiendo precio",
+        ofertas: "Ofertas recibidas",
+        adjudicado: "Adjudicado",
+        pedido: "Pedido"
+      };
+      function crearComparativo(repo, sesion, datos = {}) {
+        const { presupuestoId, nombre, partidas = [], capitulos = [], proveedores = [], fechaLimite } = datos;
+        if (!puede(sesion.rol, "compras", "crear")) {
+          return { error: "Su rol puede ver las compras, pero no abrir comparativos." };
+        }
+        if (!presupuestoId) return { error: "Falta el presupuesto." };
+        if (!repo.puedeTocar("presupuestos", sesion, presupuestoId)) {
+          return { error: "Ese presupuesto no existe, o no es de los que t\xFA ves." };
+        }
+        const titulo = String(nombre || "").trim();
+        if (!titulo) return { error: "El comparativo necesita un nombre (por ejemplo, \xABClimatizaci\xF3n: equipos\xBB)." };
+        if (titulo.length > 120) return { error: "El nombre es demasiado largo: como mucho 120 letras." };
+        const arbol = modelo.calcularArbol(armarArbol(repo.db, presupuestoId));
+        const codigos = comparativo.partidasDeLoMarcado(arbol, { partidas, capitulos });
+        if (!codigos.length) {
+          return { error: "Lo marcado no tiene ninguna partida que comprar. Los cap\xEDtulos de coste no entran en un comparativo." };
+        }
+        const peticiones = listarPeticiones(repo, sesion, presupuestoId);
+        const repetidas = [];
+        for (const p of peticiones) {
+          if (!Array.isArray(p.partidas)) continue;
+          const ya = codigos.filter((c) => p.partidas.includes(c));
+          if (!ya.length) continue;
+          const cuales = `${ya.slice(0, 3).join(", ")}${ya.length > 3 ? "\u2026" : ""}`;
+          repetidas.push(ya.length === 1 ? `la partida ${cuales} ya est\xE1 en \xAB${p.descripcion || p.grupo}\xBB` : `${ya.length} partidas (${cuales}) ya est\xE1n en \xAB${p.descripcion || p.grupo}\xBB`);
+        }
+        if (repetidas.length) {
+          return { error: `No se crea: ${repetidas.join("; ")}. Una partida va en un solo comparativo, o se compra dos veces.` };
+        }
+        const existentes = new Set(repo.db.prepare("SELECT id FROM proveedores").all().map((f) => f.id));
+        const invitados = [...new Set((proveedores || []).map(String))].filter((id2) => existentes.has(id2));
+        const usados = peticiones.map((p) => /^CMP-(\d+)$/.exec(p.grupo)).filter(Boolean).map((m) => Number(m[1]));
+        const grupo = `CMP-${String((usados.length ? Math.max(...usados) : 0) + 1).padStart(2, "0")}`;
+        const presupuesto = repo.db.prepare("SELECT obraIdVinculada FROM presupuestos WHERE id = ?").get(presupuestoId) || {};
+        const id = repo.crear("peticionesOferta", sesion, {
+          presupuestoId,
+          obraId: presupuesto.obraIdVinculada || null,
+          grupo,
+          descripcion: titulo,
+          fechaLimite: fechaLimite || null,
+          estado: "preparando",
+          pedidaPor: sesion.personaId,
+          partidas: JSON.stringify(codigos),
+          invitados: JSON.stringify(invitados)
+        });
+        return deFilaPeticion(repo.leer("peticionesOferta", sesion, id));
+      }
+      function pedidoDelComparativo(repo, sesion, peticionId) {
+        if (!puede(sesion.rol, "pedidos", "ver")) return null;
+        try {
+          const filas = repo.listar("pedidosCompra", sesion, {
+            condicion: "peticionId = ? AND fechaAnulacion IS NULL",
+            params: [peticionId],
+            limite: 1
+          });
+          return filas.length ? { id: filas[0].id, codigo: filas[0].codigo, obraId: filas[0].obraId } : null;
+        } catch {
+          return null;
+        }
+      }
+      function estadoDeCompra({ peticion, ofertas, adjudicacion, pedido }) {
+        if (pedido) return "pedido";
+        if (adjudicacion) return "adjudicado";
+        if (ofertas > 0) return "ofertas";
+        if (peticion) return "pidiendo";
+        return "sinPedir";
+      }
+      function comparativosDe(repo, sesion, presupuestoId) {
+        if (!repo.puedeTocar("presupuestos", sesion, presupuestoId)) return null;
+        const arbol = modelo.calcularArbol(armarArbol(repo.db, presupuestoId));
+        const peticiones = listarPeticiones(repo, sesion, presupuestoId);
+        const r = comparativo.comparativosDelPresupuesto(arbol, peticiones);
+        const porGrupo = new Map(peticiones.map((p) => [p.grupo, p]));
+        const paquetes = r.paquetes.map((paq) => {
+          const peticion = porGrupo.get(paq.codigo) || null;
+          const ofertas = peticion ? ofertasDe(repo, sesion, peticion.id).length : 0;
+          const adjudicacion = peticion ? adjudicacionDe(repo, sesion, peticion.id) : null;
+          const pedido = peticion ? pedidoDelComparativo(repo, sesion, peticion.id) : null;
+          const estado = estadoDeCompra({ peticion, ofertas, adjudicacion, pedido });
+          return { ...paq, peticion, ofertas, adjudicacion, pedido, estado, estadoTexto: ESTADO_COMPRA[estado] };
+        });
+        return {
+          paquetes,
+          sinComparativo: r.sinComparativo,
+          importeSinComparativo: r.importeSinComparativo,
+          sinComparativoPorCapitulo: r.sinComparativoPorCapitulo,
+          /* Con los nombres de antes, para quien aún los lea. */
+          sinGrupo: r.sinComparativo,
+          importeSinGrupo: r.importeSinComparativo
+        };
+      }
+      function pedirAdjudicado(repo, sesion, { presupuestoId, grupo, obraId } = {}) {
+        const pedidos = require_pedidos2();
+        const c = comparativoDe(repo, sesion, presupuestoId, grupo);
+        if (c.error) return { ok: false, error: c.error };
+        if (!c.adjudicacion) return { ok: false, error: "Ese comparativo todav\xEDa no est\xE1 adjudicado." };
+        const ya = pedidoDelComparativo(repo, sesion, c.peticion.id);
+        if (ya) return { ok: false, error: `Ese comparativo ya tiene su pedido: ${ya.codigo}.` };
+        const destino = obraId || c.peticion.obraId;
+        if (!destino) return { ok: false, error: "Falta la obra a la que va el pedido." };
+        if (c.modalidad === "horas") {
+          const t = c.adjudicacion.traza || {};
+          const r2 = pedidos.crear(repo, sesion, destino, {
+            titulo: c.peticion.descripcion || grupo,
+            proveedorId: c.adjudicacion.proveedorId,
+            importe: c.adjudicacion.importe > 0 ? c.adjudicacion.importe : void 0,
+            lineas: (t.tarifas || []).map((x) => ({
+              descripcion: `${x.categoria} \xB7 ${modelo.textoEuros(x.precioHora)} \u20AC/h`,
+              referencia: x.categoria,
+              unidad: "h",
+              cantidad: x.horas > 0 ? x.horas : ""
+            })),
+            observaciones: `Sale del comparativo ${grupo}, a horas: se paga por las horas trabajadas a estas tarifas.`
+          });
+          if (!r2.ok) return r2;
+          repo.db.prepare("UPDATE pedidosCompra SET peticionId = ?, adjudicacionId = ? WHERE id = ?").run(c.peticion.id, c.adjudicacion.id, r2.id);
+          return r2;
+        }
+        const paquete = paqueteDe(repo, sesion, presupuestoId, grupo);
+        const registro = cuadroComparativo.registroAdjudicacion(c.cuadro, c.adjudicacion.proveedorId);
+        const entran = registro ? new Set(registro.adjudicadas) : null;
+        const r = pedidos.crear(repo, sesion, destino, {
+          titulo: c.peticion.descripcion || grupo,
+          proveedorId: c.adjudicacion.proveedorId,
+          /* Lo adjudicado, no el total de la oferta: la oferta puede llevar
+             partidas que no entraron (pendientes o ya compradas a otro). */
+          importe: registro && typeof registro.importePedido === "number" ? registro.importePedido : c.adjudicacion.importe,
+          lineas: (paquete && paquete.partidas || []).filter((p) => !entran || !entran.size || entran.has(String(p.codigo))).slice(0, 300).map((p) => ({
+            descripcion: p.resumen || p.codigo,
+            referencia: p.codigo,
+            unidad: p.unidad || "",
+            cantidad: Number(p.cantidad) > 0 ? Number(p.cantidad) : ""
+          })),
+          observaciones: `Sale del comparativo ${grupo}.`
+        });
+        if (!r.ok) return r;
+        repo.db.prepare("UPDATE pedidosCompra SET peticionId = ?, adjudicacionId = ? WHERE id = ?").run(c.peticion.id, c.adjudicacion.id, r.id);
+        return r;
+      }
+      function registroAdjudicaciones(repo, sesion, presupuestoId) {
+        if (!repo.puedeTocar("presupuestos", sesion, presupuestoId)) {
+          return { error: "Ese presupuesto no existe, o no es de los que t\xFA ves." };
+        }
+        const filas = [];
+        const detalle = [];
+        for (const pet of listarPeticiones(repo, sesion, presupuestoId)) {
+          const adj = adjudicacionDe(repo, sesion, pet.id);
+          if (!adj) continue;
+          const c = comparativoDe(repo, sesion, presupuestoId, pet.grupo);
+          if (c.error) continue;
+          if (c.modalidad === "horas") {
+            const t = adj.traza || {};
+            const pedido2 = pedidoDelComparativo(repo, sesion, pet.id);
+            filas.push({
+              grupo: pet.grupo,
+              comparativo: pet.descripcion || pet.grupo,
+              fecha: String(adj.creadoEn || "").slice(0, 10),
+              numeroPedido: pedido2 ? pedido2.codigo : null,
+              pedidoId: pedido2 ? pedido2.id : null,
+              industrial: t.proveedor || adj.proveedorId,
+              cobertura: `A horas \xB7 ${(t.tarifas || []).map((x) => `${x.categoria} ${modelo.textoEuros(x.precioHora)} \u20AC/h`).join(" \xB7 ")}`,
+              importePedido: adj.importe > 0 ? adj.importe : null,
+              importeComparable: null,
+              adjudicadas: 0,
+              pendientes: [],
+              noAdjudicadas: [],
+              avisos: (t.categoriasSinTarifa || []).length ? [`Sin tarifa de ${t.categoriasSinTarifa.join(", ")}`] : [],
+              motivo: adj.motivo
+            });
+            continue;
+          }
+          const reg = cuadroComparativo.registroAdjudicacion(c.cuadro, adj.proveedorId);
+          if (!reg) continue;
+          const pedido = pedidoDelComparativo(repo, sesion, pet.id);
+          filas.push({
+            grupo: pet.grupo,
+            comparativo: pet.descripcion || pet.grupo,
+            fecha: String(adj.creadoEn || "").slice(0, 10),
+            numeroPedido: pedido ? pedido.codigo : null,
+            pedidoId: pedido ? pedido.id : null,
+            industrial: reg.proveedor,
+            cobertura: reg.cobertura,
+            /* Lo del pedido, si ya salió; si no, lo que se adjudica (sin lo
+               pendiente ni lo no adjudicado), no el total de la oferta. */
+            importePedido: pedido && typeof pedido.importe === "number" ? pedido.importe : reg.importePedido,
+            importeComparable: reg.importeComparable,
+            adjudicadas: reg.adjudicadas.length,
+            pendientes: reg.pendientes,
+            noAdjudicadas: reg.noAdjudicadas,
+            avisos: reg.avisos,
+            motivo: adj.motivo
+          });
+          for (const d of reg.detalle) {
+            detalle.push({
+              numeroPedido: pedido ? pedido.codigo : null,
+              industrial: reg.proveedor,
+              concepto: pet.descripcion || pet.grupo,
+              ...d
+            });
+          }
+        }
+        return { filas, detalle };
+      }
+      function compraSuelta(repo, sesion, datos = {}) {
+        const pedidos = require_pedidos2();
+        const { obraId, proveedorId, proveedorNombre, concepto, cantidad, unidad, precio, presupuestoId, imputacion } = datos;
+        const que = String(concepto || "").trim();
+        if (!que) return { ok: false, error: "Falta el concepto: qu\xE9 se compra." };
+        if (!obraId) return { ok: false, error: "Falta la obra." };
+        if (!String(proveedorId || "").trim() && !String(proveedorNombre || "").trim()) {
+          return { ok: false, error: "Falta el proveedor." };
+        }
+        const cant = String(cantidad ?? "").trim() === "" ? null : numeroCompras(cantidad);
+        if (String(cantidad ?? "").trim() !== "" && !(cant > 0)) return { ok: false, error: "La cantidad no se entiende." };
+        const pu = String(precio ?? "").trim() === "" ? null : numeroCompras(precio);
+        if (String(precio ?? "").trim() !== "" && !(pu >= 0)) return { ok: false, error: "El precio no se entiende." };
+        const importe = pu === null ? void 0 : modelo.euros((cant || 1) * pu);
+        let imputado = null;
+        if (imputacion && imputacion.codigo) {
+          if (!presupuestoId || !repo.puedeTocar("presupuestos", sesion, presupuestoId)) {
+            return { ok: false, error: "No se puede imputar a un presupuesto que no ves." };
+          }
+          const esCap = imputacion.tipo === "capitulo";
+          const buscar = (nodos) => {
+            for (const n of nodos || []) {
+              if (String(n.codigo) === String(imputacion.codigo) && esCap === (n.tipo === "capitulo")) return n;
+              const h = buscar(n.hijos);
+              if (h) return h;
+            }
+            return null;
+          };
+          const nodo = buscar(armarArbol(repo.db, presupuestoId));
+          if (!nodo) {
+            return { ok: false, error: `No hay ${esCap ? "ning\xFAn cap\xEDtulo" : "ninguna partida"} \xAB${imputacion.codigo}\xBB en el presupuesto.` };
+          }
+          imputado = { presupuestoId, tipo: esCap ? "capitulo" : "partida", codigo: nodo.codigo, resumen: nodo.resumen || "" };
+        }
+        const entrada = {
+          titulo: que.slice(0, 200),
+          lineas: [{ descripcion: que.slice(0, 500), unidad: String(unidad || "").trim(), cantidad: cant === null ? "" : cant }],
+          observaciones: imputado ? `Compra suelta, sin comparativo. Se imputa a ${imputado.tipo === "capitulo" ? "el cap\xEDtulo" : "la partida"} ${imputado.codigo} \xB7 ${imputado.resumen}.` : "Compra suelta, sin comparativo."
+        };
+        if (String(proveedorId || "").trim()) entrada.proveedorId = proveedorId;
+        else entrada.proveedorNombre = proveedorNombre;
+        if (importe !== void 0) entrada.importe = importe;
+        const r = pedidos.crear(repo, sesion, obraId, entrada);
+        if (!r.ok) return r;
+        if (imputado) repo.db.prepare("UPDATE pedidosCompra SET imputacion = ? WHERE id = ?").run(JSON.stringify(imputado), r.id);
+        return { ...r, importe: importe ?? null, imputacion: imputado };
+      }
+      function numeroCompras(v) {
+        if (typeof v === "number") return Number.isFinite(v) ? v : null;
+        let t = String(v ?? "").trim().replace(/[\s€]/g, "");
+        if (!t) return null;
+        if (t.includes(",")) t = t.replace(/\./g, "").replace(",", ".");
+        const n = Number(t);
+        return Number.isFinite(n) ? n : null;
+      }
+      function leerListaCompras(texto) {
+        if (!texto) return null;
+        try {
+          const v = JSON.parse(texto);
+          return Array.isArray(v) ? v.map(String) : null;
+        } catch {
+          return null;
+        }
+      }
+      function hoyCompras() {
+        return require_fecha().hoyLocal();
+      }
+      function enteroOnuloCompras(v) {
+        if (v === "" || v === null || v === void 0) return null;
+        const n = Number(v);
+        return Number.isFinite(n) ? Math.round(n) : null;
+      }
+      function precioOnuloCompras(v) {
+        if (v === "" || v === null || v === void 0) return null;
+        const n = Number(v);
+        return Number.isFinite(n) ? n : null;
+      }
+      function leerTrazaCompras(texto) {
+        if (!texto) return null;
+        try {
+          return JSON.parse(texto);
+        } catch {
+          return null;
+        }
+      }
+      function planDeCompras(repo, sesion, presupuestoId) {
+        const r = comparativosDe(repo, sesion, presupuestoId);
+        if (!r) return { error: "Ese presupuesto no existe, o no es de los que t\xFA ves." };
+        const nombres = new Map(repo.listar("proveedores", sesion, {}).map((p) => [p.id, p.nombre || p.id]));
+        const paquetes = r.paquetes.map((paq) => {
+          const adj = paq.adjudicacion;
+          if (!adj) return { ...paq, nombre: paq.peticion && paq.peticion.descripcion || paq.nombre, adjudicacion: null };
+          let adjudicadas = null;
+          let importe = adj.importe;
+          let proveedor = nombres.get(adj.proveedorId) || "";
+          try {
+            const c = comparativoDe(repo, sesion, presupuestoId, paq.codigo);
+            const reg = c && !c.error ? cuadroComparativo.registroAdjudicacion(c.cuadro, adj.proveedorId) : null;
+            if (reg) {
+              adjudicadas = reg.adjudicadas;
+              proveedor = reg.proveedor || proveedor;
+              importe = reg.importePedido;
+            }
+          } catch {
+          }
+          return {
+            ...paq,
+            nombre: paq.peticion && paq.peticion.descripcion || paq.nombre,
+            adjudicacion: {
+              importe,
+              proveedor,
+              adjudicadas,
+              segunHoras: Boolean(adj.traza && adj.traza.importeSegunHoras),
+              fecha: String(adj.creadoEn || "").slice(0, 10) || null,
+              pedido: paq.pedido ? paq.pedido.codigo : null
+            }
+          };
+        });
+        return planCompras.plan({ paquetes, sinComparativo: r.sinComparativo });
+      }
+      module.exports = {
+        listarPeticiones,
+        abrirPeticion,
+        enviarPeticion,
+        ofertasDe,
+        lineasDe,
+        guardarOferta,
+        borrarOferta,
+        descartarOferta,
+        guardarAjustesComparativo,
+        registroAdjudicaciones,
+        planDeCompras,
+        paqueteDe,
+        comparativoDe,
+        estadoDeLosPaquetes,
+        adjudicar,
+        adjudicacionDe,
+        crearComparativo,
+        comparativosDe,
+        pedirAdjudicado,
+        compraSuelta,
+        ESTADO_COMPRA,
+        deFilaPeticion,
+        deFilaOferta,
+        deFilaAdjudicacion
+      };
+    }
+  });
+
   // electron/data/costsPlan.js
   var require_costsPlan = __commonJS({
     "electron/data/costsPlan.js"(exports, module) {
@@ -79201,7 +83945,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       var pedidosData = require_pedidos2();
       var certificaciones = require_certificaciones();
       var commissioning = require_commissioning();
-      var { puede } = require_roles();
+      var { puede, campoVetado } = require_roles();
       var SIN_VER = null;
       var SIN_EDITAR = "Tu rol puede ver el Costs Plan, pero no cambiarlo.";
       var hoyIso = () => require_fecha().hoyLocal();
@@ -79588,6 +84332,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       var PL = require_planificacion();
       var RED = require_ganttRed();
       var PER = require_personal();
+      var aHoras = require_aHoras();
       var esFecha = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v || ""));
       function certMesesDe(repo, obra) {
         const certs = repo.db.prepare(
@@ -79804,6 +84549,78 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         const r1 = (v) => Math.round(v * 10) / 10;
         return { semanas, filas: [...filas.values()].map((f) => ({ ...f, previsto: f.previsto.map(r1), real: f.real.map(r1) })) };
       }
+      function subcontratasAHoras(repo, sesion, obra, paquetes) {
+        if (campoVetado(sesion.rol, "precioCoste")) return null;
+        let peticiones = [];
+        try {
+          peticiones = repo.db.prepare("SELECT id, presupuestoId, grupo, descripcion FROM peticionesOferta WHERE modalidad = 'horas' AND (presupuestoId = ? OR obraId = ?)").all(obra.presupuestoId || "", obra.id);
+        } catch {
+          return null;
+        }
+        const nombres = new Map(repo.db.prepare("SELECT id, nombre FROM proveedores").all().map((p) => [p.id, p.nombre]));
+        const recursos = repo.db.prepare("SELECT capituloId, proveedorId, personas FROM ganttRecursos WHERE obraId = ?").all(obra.id);
+        const enGantt = new Set(recursos.map((r) => r.proveedorId));
+        const dePaq = new Map(paquetes.map((x) => [x.id, x]));
+        const adjudicaciones = [];
+        const sinAdjudicar = [];
+        const tramos = [];
+        for (const p of peticiones) {
+          const nombre = p.descripcion ? `${p.grupo} \xB7 ${p.descripcion}` : p.grupo;
+          const adj = repo.db.prepare("SELECT proveedorId, traza, creadoEn FROM adjudicaciones WHERE peticionId = ? LIMIT 1").get(p.id);
+          if (adj) {
+            let traza = null;
+            try {
+              traza = JSON.parse(adj.traza || "null");
+            } catch {
+            }
+            adjudicaciones.push({
+              proveedorId: adj.proveedorId,
+              proveedor: nombres.get(adj.proveedorId) || adj.proveedorId,
+              grupo: p.grupo,
+              comparativo: nombre,
+              traza,
+              planificado: traza && Number(traza.importePresupuestado) > 0 ? Number(traza.importePresupuestado) : 0,
+              creadoEn: adj.creadoEn
+            });
+            const paq = require_compras().paqueteDe(repo, sesion, p.presupuestoId || obra.presupuestoId, p.grupo);
+            const horasDe = /* @__PURE__ */ new Map();
+            for (const x of paq && paq.partidas || []) {
+              const cap = [...x.camino || []].reverse().find((c) => dePaq.has(c.id));
+              if (!cap) continue;
+              horasDe.set(cap.id, (horasDe.get(cap.id) || 0) + (aHoras.enHoras(x.unidad) ? Number(modelo.medida(x.cantidad)) || 0 : 0));
+            }
+            for (const r of recursos.filter((x) => x.proveedorId === adj.proveedorId && horasDe.has(x.capituloId))) {
+              const k = dePaq.get(r.capituloId);
+              tramos.push({
+                proveedorId: r.proveedorId,
+                grupo: p.grupo,
+                capituloId: r.capituloId,
+                paquete: `${k.codigo || ""} ${k.resumen || ""}`.trim() || r.capituloId,
+                inicio: k.inicio,
+                fin: k.fin,
+                personas: r.personas,
+                horasPartida: horasDe.get(r.capituloId)
+              });
+            }
+            continue;
+          }
+          for (const o of repo.db.prepare("SELECT proveedorId FROM ofertasProveedor WHERE peticionId = ? AND estado <> 'descartada'").all(p.id)) {
+            if (enGantt.has(o.proveedorId)) sinAdjudicar.push({ proveedorId: o.proveedorId, proveedor: nombres.get(o.proveedorId) || o.proveedorId, comparativo: nombre });
+          }
+        }
+        if (!adjudicaciones.length && !sinAdjudicar.length) return null;
+        for (const a of adjudicaciones) {
+          if (!tramos.some((t) => t.proveedorId === a.proveedorId) && enGantt.has(a.proveedorId)) {
+            tramos.push({ proveedorId: a.proveedorId, grupo: "(otros paquetes)" });
+          }
+        }
+        let festivos = [];
+        try {
+          festivos = repo.db.prepare("SELECT fecha FROM festivos WHERE obraId IS NULL OR obraId = ?").all(obra.id).map((f) => f.fecha);
+        } catch {
+        }
+        return aHoras.costeGantt({ tramos, adjudicaciones, sinAdjudicar, festivos });
+      }
       function gantt(repo, sesion, obraId, { hoy = hoyIso() } = {}) {
         if (!ve(sesion)) return SIN_VER;
         const obra = obraVisible(repo, sesion, obraId);
@@ -79889,6 +84706,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           compras: red.compras,
           empresas: red.empresas,
           personal: red.personal,
+          aHoras: subcontratasAHoras(repo, sesion, obra, filas),
           meses,
           sinFechas: p.sinFechas,
           certificadaEsteMes: p.certificadaEsteMes,
@@ -81474,6 +86292,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       var import_buffer_global10 = __toESM(require_buffer_global());
       var P = require_avancePlano();
       var MED = require_avanceMedir();
+      var V = require_versionesPlano();
       var { puede } = require_roles();
       var MAX_IMAGEN = 12 * 1024 * 1024;
       var RE_IMAGEN = /^data:image\/(png|jpeg|jpg|webp);base64,[A-Za-z0-9+/=]+$/;
@@ -81508,7 +86327,22 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           escala: p.escala || null,
           capas: P.normalizarCapas(p.capas),
           activo: p.activo !== 0,
-          modificadoEn: p.modificadoEn
+          modificadoEn: p.modificadoEn,
+          codigo: p.codigo || "",
+          revision: p.revision || "",
+          fechaRevision: p.fechaRevision || "",
+          version: p.version || "vigente",
+          serieId: p.serieId || p.id,
+          sustituyeA: p.sustituyeA || null,
+          sustituidoPor: p.sustituidoPor || null,
+          sustituidoEn: p.sustituidoEn || null,
+          archivo: p.archivo || "",
+          origen: p.origen || "subida",
+          rutaOrigen: p.rutaOrigen || "",
+          subidoPor: p.subidoPor || null,
+          creadoEn: p.creadoEn,
+          propuesta: leerJson(p.propuesta, null),
+          historial: leerJson(p.historial, [])
         };
       }
       function valeParaPartida(m, plano) {
@@ -81586,7 +86420,11 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       }
       function planos(repo, ses, obraId, { todos = false } = {}) {
         if (!obraVisible(repo, ses, obraId)) return null;
-        return repo.listar("planosAvance", ses, { condicion: todos ? "obraId = ?" : "obraId = ? AND activo = 1", params: [obraId], orden: "orden, nombre" }).map(planoLigero);
+        return repo.listar("planosAvance", ses, {
+          condicion: todos ? "obraId = ?" : "obraId = ? AND activo = 1 AND COALESCE(version, 'vigente') = 'vigente'",
+          params: [obraId],
+          orden: "orden, nombre"
+        }).map(planoLigero);
       }
       function imagen(repo, ses, planoId) {
         const p = repo.leer("planosAvance", ses, llano(planoId));
@@ -81598,26 +86436,151 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         if (!RE_IMAGEN.test(img)) return "Eso no es una imagen (PNG, JPEG o WebP).";
         return null;
       }
+      function apuntar(repo, ses, plano, que, texto, extra = {}) {
+        const h = leerJson(plano.historial, []);
+        h.push({ en: (/* @__PURE__ */ new Date()).toISOString(), por: ses.personaId || null, que, texto });
+        repo.modificar("planosAvance", ses, plano.id, { ...extra, historial: JSON.stringify(h.slice(-50)) });
+      }
+      function ponerVigente(repo, ses, nuevoId, { motivo = "" } = {}) {
+        const n = repo.leer("planosAvance", ses, nuevoId);
+        const serie = n.serieId || n.id;
+        const hermanas = repo.listar("planosAvance", ses, { condicion: "obraId = ? AND (serieId = ? OR id = ?) AND id <> ?", params: [n.obraId, serie, serie, n.id] });
+        const ahora = (/* @__PURE__ */ new Date()).toISOString();
+        const quitadas = [];
+        for (const h of hermanas) {
+          if ((h.version || "vigente") !== "vigente") continue;
+          apuntar(
+            repo,
+            ses,
+            h,
+            "sustituido",
+            `Sustituido por ${V.nombreVersion(planoLigero(n))}.`,
+            { version: "obsoleto", sustituidoPor: n.id, sustituidoEn: ahora, serieId: serie }
+          );
+          quitadas.push(h);
+        }
+        apuntar(
+          repo,
+          ses,
+          repo.leer("planosAvance", ses, n.id),
+          "vigente",
+          motivo || "Versi\xF3n vigente.",
+          { version: "vigente", propuesta: null, activo: 1, serieId: serie === n.id ? null : serie, sustituyeA: quitadas[0] ? quitadas[0].id : n.sustituyeA || null }
+        );
+        return quitadas;
+      }
       function crearPlano(repo, ses, obraId, d = {}) {
         if (!obraVisible(repo, ses, obraId)) return { ok: false, error: "No se encuentra la obra." };
-        if (!puede(ses.rol, "avanceObra", "aprobar")) return { ok: false, error: "Los planos del avance los sube el jefe de obra." };
+        if (!puede(ses.rol, "avanceObra", "aprobar")) return { ok: false, error: "Los planos los sube el jefe de obra." };
         const error = comprobarImagen(d.imagen);
         if (error) return { ok: false, error };
-        const disciplina = P.DISCIPLINAS[d.disciplina] ? d.disciplina : "otra";
         const existentes = planos(repo, ses, obraId, { todos: true }) || [];
+        const datos = {
+          codigo: llano(d.codigo).slice(0, 40).toUpperCase(),
+          revision: llano(d.revision).slice(0, 8).toUpperCase(),
+          fechaRevision: FECHA.test(llano(d.fechaRevision)) ? llano(d.fechaRevision) : ""
+        };
+        const nombre = llano(d.nombre).slice(0, 80) || `Plano ${existentes.length + 1}`;
+        const cl = d.forzar === "nuevo" ? { accion: "nuevo", seguro: true, motivo: "Plano distinto (lo dijo quien lo subi\xF3)." } : V.clasificar({ ...datos, fecha: datos.fechaRevision, nombre, ancho: dimension(d.ancho), alto: dimension(d.alto) }, existentes);
+        const ant = cl.anteriorId ? existentes.find((p) => p.id === cl.anteriorId) : null;
+        const disciplina = P.DISCIPLINAS[d.disciplina] ? d.disciplina : ant ? ant.disciplina : "otra";
+        const version = !cl.seguro ? "propuesta" : cl.accion === "anterior" ? "obsoleto" : "vigente";
         const id = repo.crear("planosAvance", ses, {
           obraId,
-          nombre: llano(d.nombre).slice(0, 80) || `Plano ${existentes.length + 1}`,
-          planta: llano(d.planta).slice(0, 40) || null,
+          nombre,
+          planta: llano(d.planta).slice(0, 40) || (ant ? ant.planta || null : null),
           disciplina,
-          orden: existentes.length ? Math.max(...existentes.map((p) => p.orden || 0)) + 1 : 0,
+          orden: ant ? ant.orden : existentes.length ? Math.max(...existentes.map((p) => p.orden || 0)) + 1 : 0,
           imagen: d.imagen,
           ancho: dimension(d.ancho),
           alto: dimension(d.alto),
-          escala: positivo(d.escala),
-          capas: JSON.stringify(d.capas ? P.normalizarCapas(d.capas) : P.capasDe(disciplina))
+          escala: positivo(d.escala) || (ant && !V.cambiaEncuadre(ant, { ancho: dimension(d.ancho), alto: dimension(d.alto) }) ? ant.escala : null),
+          capas: JSON.stringify(d.capas ? P.normalizarCapas(d.capas) : ant && ant.disciplina === disciplina ? ant.capas : P.capasDe(disciplina)),
+          codigo: datos.codigo || null,
+          revision: datos.revision || null,
+          fechaRevision: datos.fechaRevision || null,
+          version: version === "vigente" && cl.accion === "revision" ? "propuesta" : version,
+          serieId: cl.accion === "nuevo" ? null : cl.serieId,
+          archivo: llano(d.archivo).slice(0, 200) || null,
+          origen: d.origen === "sharepoint" ? "sharepoint" : "subida",
+          rutaOrigen: llano(d.rutaOrigen).slice(0, 500) || null,
+          subidoPor: ses.personaId || null,
+          propuesta: cl.seguro ? null : JSON.stringify({ accion: cl.accion, anteriorId: cl.anteriorId || null, motivo: cl.motivo }),
+          historial: "[]"
         });
-        return { ok: true, id };
+        const nuevo = repo.leer("planosAvance", ses, id);
+        const de = d.origen === "sharepoint" ? " desde el SharePoint" : "";
+        apuntar(repo, ses, nuevo, "subido", `Subido${de}${d.archivo ? ` (${llano(d.archivo)})` : ""}.`);
+        let sustituidos = [];
+        if (cl.seguro && cl.accion === "revision") {
+          sustituidos = ponerVigente(repo, ses, id, { motivo: `Revisi\xF3n detectada sola: ${cl.motivo}` });
+        } else if (cl.seguro && cl.accion === "anterior") {
+          apuntar(repo, ses, repo.leer("planosAvance", ses, id), "archivado", cl.motivo);
+        } else if (!cl.seguro) {
+          apuntar(repo, ses, repo.leer("planosAvance", ses, id), "propuesta", `Por confirmar: ${cl.motivo}`);
+        }
+        return {
+          ok: true,
+          id,
+          accion: cl.accion,
+          seguro: cl.seguro,
+          motivo: cl.motivo,
+          version: repo.leer("planosAvance", ses, id).version,
+          sustituye: sustituidos.map((p) => p.id),
+          encuadre: ant ? V.cambiaEncuadre(ant, { ancho: dimension(d.ancho), alto: dimension(d.alto) }) : false
+        };
+      }
+      function confirmarPlano(repo, ses, id, decision, { anteriorId = null } = {}) {
+        if (!puede(ses.rol, "avanceObra", "aprobar")) return { ok: false, error: "Lo confirma el jefe de obra." };
+        const p = repo.leer("planosAvance", ses, llano(id));
+        if (!p) return { ok: false, error: "No se encuentra el plano." };
+        const prop = leerJson(p.propuesta, null) || {};
+        const refId = llano(anteriorId) || prop.anteriorId || null;
+        const ref = refId ? repo.leer("planosAvance", ses, refId) : null;
+        if (refId && (!ref || ref.obraId !== p.obraId)) return { ok: false, error: "No se encuentra el plano al que sustituye." };
+        const serieRef = ref ? ref.serieId || ref.id : null;
+        if (decision === "sustituye") {
+          if (!ref) return { ok: false, error: "Elige a qu\xE9 plano sustituye." };
+          repo.modificar("planosAvance", ses, p.id, { serieId: serieRef });
+          ponerVigente(repo, ses, p.id, { motivo: `Confirmado: sustituye a ${V.nombreVersion(planoLigero(ref))}.` });
+        } else if (decision === "nuevo") {
+          apuntar(repo, ses, p, "confirmado", "Confirmado: es un plano distinto.", { serieId: null });
+          ponerVigente(repo, ses, p.id, { motivo: "Plano distinto: vigente en su serie." });
+        } else if (decision === "archivar") {
+          apuntar(
+            repo,
+            ses,
+            p,
+            "archivado",
+            ref ? `Archivado como versi\xF3n anterior de ${V.nombreVersion(planoLigero(ref))}.` : "Archivado.",
+            { version: "obsoleto", propuesta: null, serieId: serieRef || p.serieId || null }
+          );
+        } else if (decision === "sobra") {
+          apuntar(repo, ses, p, "sobra", "Descartado: sobraba. Se guarda archivado.", { version: "obsoleto", propuesta: null, activo: 0 });
+        } else if (decision === "vigente") {
+          ponerVigente(repo, ses, p.id, { motivo: "Puesta como vigente a mano." });
+        } else {
+          return { ok: false, error: "Decisi\xF3n no v\xE1lida." };
+        }
+        return { ok: true };
+      }
+      function registro(repo, ses, obraId) {
+        const lista = planos(repo, ses, obraId, { todos: true });
+        if (!lista) return null;
+        const nombres = nombresPersonas(repo);
+        let marcasPor = {};
+        try {
+          marcasPor = Object.fromEntries(repo.db.prepare("SELECT planoId, COUNT(*) AS n FROM avanceMarcas WHERE obraId = ? AND estado <> 'descartada' GROUP BY planoId").all(obraId).map((r) => [r.planoId, r.n]));
+        } catch {
+          marcasPor = {};
+        }
+        const conNombres = lista.map((p) => ({
+          ...p,
+          subidoPorNombre: nombres[p.subidoPor] || "",
+          marcas: marcasPor[p.id] || 0,
+          historial: p.historial.map((h) => ({ ...h, porNombre: nombres[h.por] || "" }))
+        }));
+        return { planos: conNombres, avisos: V.avisos(conNombres), puede: { subir: puede(ses.rol, "avanceObra", "aprobar") } };
       }
       function guardarPlano(repo, ses, planoId, d = {}) {
         const p = repo.leer("planosAvance", ses, llano(planoId));
@@ -81629,6 +86592,9 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         if (d.escala !== void 0) c.escala = positivo(d.escala);
         if (d.capas !== void 0) c.capas = JSON.stringify(P.normalizarCapas(d.capas));
         if (d.activo !== void 0) c.activo = d.activo ? 1 : 0;
+        if (d.codigo !== void 0) c.codigo = llano(d.codigo).slice(0, 40).toUpperCase() || null;
+        if (d.revision !== void 0) c.revision = llano(d.revision).slice(0, 8).toUpperCase() || null;
+        if (d.fechaRevision !== void 0) c.fechaRevision = FECHA.test(llano(d.fechaRevision)) ? llano(d.fechaRevision) : null;
         if (d.imagen !== void 0) {
           const error = comprobarImagen(d.imagen);
           if (error) return { ok: false, error };
@@ -81695,6 +86661,9 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       function crearMarca(repo, ses, d = {}) {
         const p = repo.leer("planosAvance", ses, llano(d.planoId));
         if (!p) return { ok: false, error: "No se encuentra el plano." };
+        if ((p.version || "vigente") !== "vigente") {
+          return { ok: false, error: "Ese plano ya no es el vigente (hay una revisi\xF3n nueva): vuelve a la lista y abre el vigente." };
+        }
         const capa = P.normalizarCapas(p.capas).find((c) => c.id === llano(d.capa));
         if (!capa) return { ok: false, error: "Elige la capa en la que marcas (tuber\xEDa, conductos, equipos\u2026)." };
         const fecha = FECHA.test(llano(d.fecha)) ? llano(d.fecha) : (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
@@ -81949,6 +86918,8 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         imagen,
         crearPlano,
         guardarPlano,
+        confirmarPlano,
+        registro,
         marcas,
         resumen,
         crearMarca,
@@ -82130,12 +87101,84 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
     }
   });
 
+  // shared/obra/planificacionTiempos.js
+  var require_planificacionTiempos = __commonJS({
+    "shared/obra/planificacionTiempos.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
+      function minutos(v) {
+        if (v === "" || v === null || v === void 0) return null;
+        const n = Math.round(Number(v));
+        return Number.isFinite(n) && n > 0 ? n : null;
+      }
+      var hora = (v) => HORA.test(String(v || "")) ? String(v) : null;
+      function fin(inicio, duracionMin) {
+        const h = hora(inicio);
+        const d = minutos(duracionMin);
+        if (!h || !d) return null;
+        const t = Math.min(23 * 60 + 59, Number(h.slice(0, 2)) * 60 + Number(h.slice(3)) + d);
+        return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
+      }
+      function totalesPorDia(sesiones) {
+        const dias = {};
+        for (const s of sesiones || []) {
+          const t = dias[s.fecha] || (dias[s.fecha] = { sesiones: 0, previstoMin: 0, realMin: 0, sinDuracion: 0 });
+          t.sesiones += 1;
+          t.previstoMin += minutos(s.duracionMin) || 0;
+          t.realMin += minutos(s.realMin) || 0;
+          if (!minutos(s.duracionMin)) t.sinDuracion += 1;
+        }
+        return dias;
+      }
+      function precision(sesiones) {
+        const por = {};
+        for (const s of sesiones || []) {
+          const p = minutos(s.duracionMin);
+          const r = minutos(s.realMin);
+          if (!p || !r) continue;
+          const k = s.tarea || "Sin tarea";
+          const t = por[k] || (por[k] = { n: 0, previstoMin: 0, realMin: 0, equipos: 0 });
+          t.n += 1;
+          t.previstoMin += p;
+          t.realMin += r;
+          t.equipos += Array.isArray(s.items) ? s.items.length : 0;
+        }
+        const fuera = {};
+        for (const [k, t] of Object.entries(por)) {
+          fuera[k] = {
+            n: t.n,
+            previstoMin: t.previstoMin,
+            realMin: t.realMin,
+            factor: Math.round(t.realMin / t.previstoMin * 100) / 100,
+            minPorEquipo: t.equipos ? Math.round(t.realMin / t.equipos) : null
+          };
+        }
+        return fuera;
+      }
+      function sugerirDuracion(prec, tarea, nEquipos) {
+        const t = prec && prec[tarea];
+        if (!t || !t.minPorEquipo || !nEquipos) return null;
+        return Math.max(5, Math.round(t.minPorEquipo * nEquipos / 5) * 5);
+      }
+      function texto(min) {
+        const m = Math.round(Number(min) || 0);
+        if (!m) return "0 min";
+        const h = Math.floor(m / 60);
+        const r = m % 60;
+        return h ? r ? `${h} h ${String(r).padStart(2, "0")}` : `${h} h` : `${r} min`;
+      }
+      module.exports = { minutos, hora, fin, totalesPorDia, precision, sugerirDuracion, texto };
+    }
+  });
+
   // electron/data/planificacion.js
   var require_planificacion2 = __commonJS({
     "electron/data/planificacion.js"(exports, module) {
       var import_buffer_global10 = __toESM(require_buffer_global());
       var { puede, planifica } = require_roles();
       var FPM = require_fichasPM();
+      var TIEMPOS = require_planificacionTiempos();
       var INC = require_incidencias();
       var TABLA = { commissioning: "sesionesPlanCx", incidencias: "sesionesPlanInc" };
       var TAREAS = {
@@ -82263,6 +87306,8 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           obra: { id: obra.id, codigo: obra.codigo, nombre: obra.nombre, jefeObraId: obra.jefeObraId || null },
           pendientes: pendientes.map((p) => ({ ...p, planificado: planificados.has(p.id), fechas: fechas.get(p.id) || {} })),
           sesiones,
+          totalesDia: TIEMPOS.totalesPorDia(sesiones),
+          precision: TIEMPOS.precision(sesiones),
           encargados: encargadosDe(repo, obra),
           personas: equipoDe(repo, obra),
           tareas: TAREAS[a],
@@ -82281,7 +87326,10 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         "socotecProcede",
         "descontratada",
         "descontratadaConvocada",
-        "notas"
+        "notas",
+        "horaInicio",
+        "duracionMin",
+        "realMin"
       ];
       function guardarSesion(repo, sesion, ambito, obraId, s) {
         const a = ambitoValido(ambito);
@@ -82290,6 +87338,8 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         const fila = {};
         for (const c of CAMPOS) if (c in s) fila[c] = s[c] === "" ? null : s[c];
         for (const c of ["socotec", "socotecProcede", "descontratadaConvocada"]) if (c in fila) fila[c] = fila[c] ? 1 : 0;
+        if ("horaInicio" in fila) fila.horaInicio = TIEMPOS.hora(fila.horaInicio);
+        for (const c of ["duracionMin", "realMin"]) if (c in fila) fila[c] = TIEMPOS.minutos(fila[c]);
         fila.items = JSON.stringify(Array.isArray(s.items) ? s.items.map(String) : []);
         if (Array.isArray(s.asisten)) fila.asisten = JSON.stringify([...new Set(s.asisten.map(String).filter(Boolean))]);
         try {
@@ -82385,8 +87435,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         }
       }
       var AMBITO_NOMBRE = { commissioning: "Commissioning", incidencias: "Incidencias" };
-      function sesionesDe(repo, sesion, { desde, hasta, personaId = sesion.personaId } = {}) {
-        if (!personaId) return [];
+      function sesionesEntre(repo, sesion, { desde, hasta, personaId = sesion.personaId } = {}) {
         const fuera = [];
         const obras = /* @__PURE__ */ new Map();
         const obraDe = (id) => {
@@ -82398,12 +87447,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           if (!puede(sesion.rol, a, "ver")) continue;
           let filas;
           try {
-            filas = repo.listar(TABLA[a], sesion, {
-              condicion: `fecha BETWEEN ? AND ? AND (encargadoId = ? OR asisten LIKE ?
-          OR ((asisten IS NULL OR asisten = '') AND obraId IN (SELECT id FROM obras WHERE jefeObraId = ?)))`,
-              params: [desde, hasta, personaId, `%"${personaId}"%`, personaId],
-              orden: "fecha, franja"
-            });
+            filas = repo.listar(TABLA[a], sesion, { condicion: "fecha BETWEEN ? AND ?", params: [desde, hasta], orden: "fecha, franja" });
           } catch (e) {
             if (e && e.name === "SinPermiso") continue;
             throw e;
@@ -82411,18 +87455,24 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           for (const s of filas) {
             const o = obraDe(s.obraId);
             const items = lista(s.items);
+            const asisten = lista(s.asisten);
+            const vas = Boolean(personaId) && (s.encargadoId === personaId || asisten.includes(personaId) || !asisten.length && Boolean(o) && o.jefeObraId === personaId);
             const unidad = a === "commissioning" ? items.length === 1 ? "equipo" : "equipos" : items.length === 1 ? "incidencia" : "incidencias";
+            const nombres = asisten.filter((p) => p !== personaId).map((p) => quien.get(p)).filter(Boolean);
             fuera.push({
               tipo: "sesion",
               ambito: a,
               fecha: s.fecha,
               id: `s:${a}:${s.id}`,
               sesionId: s.id,
+              vas,
               texto: `${s.tarea || AMBITO_NOMBRE[a]} \xB7 ${items.length} ${unidad}`,
               detalle: [
                 s.franja,
                 AMBITO_NOMBRE[a],
                 s.encargadoId === personaId ? "eres el encargado" : s.encargadoId ? `encargado ${quien.get(s.encargadoId) || ""}`.trim() : null,
+                vas && s.encargadoId !== personaId ? "vas t\xFA" : null,
+                nombres.length ? `con ${nombres.join(", ")}` : null,
                 s.empresa,
                 s.socotec ? "Socotec" : null
               ].filter(Boolean).join(" \xB7 "),
@@ -82434,6 +87484,11 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           }
         }
         return fuera;
+      }
+      function sesionesDe(repo, sesion, opciones = {}) {
+        const personaId = opciones.personaId || sesion.personaId;
+        if (!personaId) return [];
+        return sesionesEntre(repo, sesion, { ...opciones, personaId }).filter((e) => e.vas);
       }
       function informe(repo, sesion, obraId, que = "commissioning", opciones = {}) {
         const d = datos(repo, sesion, "commissioning", obraId);
@@ -82492,7 +87547,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         const emitido = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`;
         return { que, obra: d.obra, emitido, sesiones, lineas, personas, agrupar: opciones.agrupar || null, alcance: opciones.alcanceTexto || "" };
       }
-      module.exports = { informe, datos, guardarSesion, asignarFechas, repartirFechas, borrarSesion, sesionesDe, ordenDe, ORDEN_FAMILIA, TABLA };
+      module.exports = { informe, datos, guardarSesion, asignarFechas, repartirFechas, borrarSesion, sesionesDe, sesionesEntre, ordenDe, ORDEN_FAMILIA, TABLA };
     }
   });
 
@@ -82504,8 +87559,13 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       var PLAN = require_planificacion2();
       var FPM = require_fichasPM();
       var INC = require_incidencias();
+      var NCR = require_ncr();
+      var MNCR = require_motor();
+      var { puede } = require_roles();
+      var { hoyLocal } = require_fecha();
       var PERMISOS_PLANIFICACION = {
-        "GET api/mi-planificacion": [["commissioning", "ver"], ["incidencias", "ver"]]
+        "GET api/mi-planificacion": [["commissioning", "ver"], ["incidencias", "ver"]],
+        "GET api/mi-dia": [["tareas", "ver"], ["ncr", "ver"]]
       };
       var llano = (v) => String(v ?? "").trim();
       var dia = (d) => d.toISOString().slice(0, 10);
@@ -82594,12 +87654,57 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         sesiones.sort((a, b) => a.fecha.localeCompare(b.fecha) || (ORDEN_FRANJA[a.franja] ?? 3) - (ORDEN_FRANJA[b.franja] ?? 3));
         return { ok: true, hoy: hoyD, desde, hasta, sesiones };
       }
+      function miDia(repo, ses, { hoy = hoyLocal() } = {}) {
+        const items = [];
+        const obras = repo.listar("obras", ses);
+        const verTareas = puede(ses.rol, "tareas", "ver");
+        const verNcr = puede(ses.rol, "ncr", "ver");
+        for (const o of obras) {
+          if (verTareas) {
+            let ts = [];
+            try {
+              ts = repo.listar("tareasObra", ses, {
+                condicion: "obraId = ? AND responsableId = ? AND estado IN ('pendiente','enCurso') AND fechaLimite IS NOT NULL AND fechaLimite <= ?",
+                params: [o.id, ses.personaId, hoy]
+              });
+            } catch {
+            }
+            for (const t of ts) {
+              items.push({ tipo: "tarea", id: t.id, obraId: o.id, obra: o.codigo, texto: `${t.codigo} \xB7 ${t.titulo}`, sub: t.prioridad === "alta" ? "Prioridad alta" : "", fecha: t.fechaLimite, vencida: t.fechaLimite < hoy, abrir: null });
+            }
+          }
+          if (verNcr) {
+            let d = null;
+            try {
+              d = NCR.obra(repo, ses, o.id);
+            } catch {
+            }
+            for (const f of d ? d.filas : []) {
+              if (!(MNCR.ESTADOS[f.estado] || {}).activa || !f.fechaPrevista || f.fechaPrevista > hoy) continue;
+              items.push({
+                tipo: "ncr",
+                id: f.id,
+                obraId: o.id,
+                obra: o.codigo,
+                texto: `${f.codigo} \xB7 ${f.descripcion || "No conformidad"}`,
+                sub: [f.planta, f.zona].filter(Boolean).join(" \xB7 "),
+                fecha: f.fechaPrevista,
+                vencida: f.fechaPrevista < hoy,
+                abrir: { seccion: "ncr", id: f.id }
+              });
+            }
+          }
+        }
+        items.sort((a, b) => a.fecha.localeCompare(b.fecha) || a.texto.localeCompare(b.texto));
+        return { ok: true, hoy, items, obras: obras.length };
+      }
       function crearRutasPlanificacion({ repo }) {
         return {
-          "GET api/mi-planificacion": ({ ses, query }) => miPlanificacion(repo, ses, llano(query.obra))
+          "GET api/mi-planificacion": ({ ses, query }) => miPlanificacion(repo, ses, llano(query.obra)),
+          "GET api/mi-dia": ({ ses }) => miDia(repo, ses)
         };
       }
-      module.exports = { crearRutasPlanificacion, PERMISOS_PLANIFICACION, miPlanificacion };
+      module.exports = { crearRutasPlanificacion, PERMISOS_PLANIFICACION, miPlanificacion, miDia };
     }
   });
 
@@ -82864,7 +87969,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
             const fn = RUTAS[`${metodo} ${ruta}`];
             if (!fn) return res(404, { ok: false, error: "No existe." });
             const tipo = String(cabeceras["content-type"] || "").split(";")[0].trim().toLowerCase();
-            const r = await fn({ ses: { personaId: m.personaId, rol: m.rol }, quien: m.nombre, json, cuerpo, tipo, query });
+            const r = await fn({ ses: { personaId: m.personaId, rol: m.rol, origen: "movil" }, quien: m.nombre, json, cuerpo, tipo, query });
             if (Array.isArray(r)) return res(r[0], r[1]);
             if (r && r.bytes) return { codigo: 200, tipo: r.tipo, bytes: r.bytes, nombre: r.nombre };
             return res(200, r);
@@ -83309,6 +88414,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
   var ota = require_ota2();
   var { crearSyncCx, ponerMiFicha } = require_sync();
   var incrustados = require_incrustados();
+  var DEMO = false;
   var CARPETA = "/cxobra";
   var CLAVE_SESION = "cxobra.sesion";
   var CLAVE_PERSONA = "cxobra.persona";
@@ -83451,6 +88557,12 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       return null;
     };
     const vacia = () => !base.prepare("SELECT COUNT(*) AS n FROM personas").get().n;
+    if (DEMO && (vacia() || !oficina().ejemplo)) {
+      if (!vacia()) throw new Error("Esta es la versi\xF3n de pruebas: solo abre la obra de ejemplo.");
+      sembrarSiVacia(base);
+      apuntarOficina({ ejemplo: true });
+      await almacen.guardarYa(() => base.serializar());
+    }
     if (vacia()) {
       if (aviso) aviso.remove();
       ota.arrancoBien();
@@ -83652,6 +88764,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         location.reload();
       },
       traerDatos: async () => {
+        if (DEMO) return { ok: false, error: "Esta es la versi\xF3n de pruebas: solo lleva la obra de ejemplo." };
         const f = await puerta.elegirFichero();
         if (!f) return { ok: false, cancelado: true };
         const p = await puerta.leerPaquete(f);

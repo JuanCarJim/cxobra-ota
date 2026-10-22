@@ -1252,6 +1252,19 @@ main, #app { min-width: 0; max-width: 100%; }
   .barra-fila .quien { display: none; }
   .barra h1 { font-size: 24px; }
 }
+/* Propuesta 1 (21-oct): dentro de un equipo o de una hoja, el título de sección
+   deja de ser título: una línea fina y tenue («Commissioning») junto a la
+   pastilla, y manda la franja del TAG. En el teléfono es donde se nota. */
+@media (max-width: 699px) {
+  body:has(.tag-fijo) .barra { padding-top: calc(2px + env(safe-area-inset-top)); padding-bottom: 2px; }
+  body:has(.tag-fijo) .barra-fila { align-items: center; min-height: 28px; }
+  body:has(.tag-fijo) .barra h1 { font-family: inherit; font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--textoTenue); }
+  body:has(.tag-fijo) .sync-pastilla { transform: scale(.9); transform-origin: right center; }
+}
+/* Propuesta 5: «Lo que falta» por apartados, cada uno es un enlace al apartado. */
+.faltan-hoja .enlace { padding: 0; color: inherit; font-weight: 600; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); text-underline-offset: 2px; }
+/* Propuesta 4: «Avisar con un parte» dentro del aviso del modelo. */
+.nota.aviso .enlace { padding: 0; color: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
 /* Barra inferior: «Commissioning» e «Incidencias» enteras (antes se ensanchaba Inicio). */
 .barra-inferior a { font-size: 10px; letter-spacing: -.02em; }
 .barra-inferior a:first-child { flex: 1; }
@@ -1312,3 +1325,39 @@ main, #app { min-width: 0; max-width: 100%; }
 .plan-marca { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--rejilla); display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
 .plan-marca.hecha { background: var(--bien); border-color: var(--bien); color: #fff; }
 .plan-linea.hecha .plan-texto b { color: var(--textoTenue); text-decoration: line-through; }
+
+/* «Lo que me toca» plegable (21-oct): hoy y lo vencido, filas densas tipo Excel, sin sombras. */
+.toca { padding: 0; overflow: hidden; }
+.toca-cabeza { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 6px 14px; border: 0; background: var(--acento-suave); color: var(--acento-fuerte); font: inherit; font-size: 15px; text-align: left; cursor: pointer; }
+.toca-flecha { flex: none; width: 14px; transition: transform .12s; }
+.toca.plegado .toca-flecha { transform: rotate(-90deg); }
+.toca-resumen { margin-left: auto; font-size: 12.5px; color: var(--textoTenue); text-align: right; }
+.toca-venc { flex: none; font-size: 12px; font-weight: 700; color: var(--aviso); }
+.toca-cuerpo[hidden] { display: none; }
+.toca-fila { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 4px 14px; border-top: 1px solid var(--rejillaSuave); color: var(--texto); text-decoration: none; font-size: 14px; }
+.toca-tipo { flex: none; width: 44px; font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--textoTenue); }
+.toca-texto { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+.toca-texto b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toca-texto small { font-size: 12px; color: var(--textoTenue); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toca-fecha { flex: none; font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--textoTenue); }
+.toca-fecha.vencida { font-weight: 700; color: var(--aviso); }
+.toca-vacio { margin: 0; padding: 10px 14px; font-size: 13.5px; color: var(--textoTenue); border-top: 1px solid var(--rejillaSuave); }
+
+/* ═══════════════ Interfaz «B + C» de la familia Vidaire (JC, 22-oct)
+   Los valores de marca/diseno/tokens.css (aquí copiados: el móvil se sirve sin esa carpeta).
+   Fondo blanco, sin sombras: separa una línea de 1 px; un solo acento, el teal del logo. */
+:root {
+  --acento: #0E7C66; --acento-vivo: #13957A; --acento-suave: #E6F4F0; --acento-fuerte: #0B5E4E;
+  --papel: #FFFFFF; --panel2: #F5F5F7; --panel3: #EBEBEF; --seleccion: #F5F5F7;
+  --rejilla: #E6E6EA; --rejillaSuave: #EFEFF2; --borde: #D1D1D6;
+  --texto: #1D1D1F; --textoSuave: #4A4A50; --textoTenue: #76767C;
+  --sombra: 0 0 0 1px #E6E6EA;
+  --sombra-alta: 0 0 0 1px #D1D1D6, 0 8px 24px rgba(0, 0, 0, .08);
+}
+.barra { background: rgba(255, 255, 255, .9); border-bottom: 1px solid var(--rejilla); }
+.lista-ios > li { border-color: var(--rejilla); }
+/* Encabezados de bloque: en minúscula de frase, gris y sin fondo verde; el teal queda para lo que se pulsa. */
+#app .titulo-grupo, .densa h2, .densa h3.banda, .toca-cabeza {
+  background: var(--panel2); color: var(--textoSuave); text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 600;
+}
+.toca-cabeza { font-size: 15px; color: var(--texto); }

@@ -4,10 +4,6 @@
 body.modo-mant #segmentos,
 body.modo-mant #obra-movil-caja { display: none !important; }
 
-/* El selector Obra | Mantenimiento, bajo el título. */
-.modo-vidaire { margin: 8px 0 0; }
-.modo-vidaire button { padding: 6px 6px; font-size: 13px; }
-
 .mant-nota-demo { margin-top: 18px; }
 .mant-fila-doble { display: flex; gap: 10px; }
 .mant-fila-doble > * { flex: 1; }

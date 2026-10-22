@@ -271,7 +271,34 @@
         ${pideEst ? fila('Estanqueidad', `<strong>${esc(nombreEstado(est))}</strong>`) : ''}
         ${fila('Puesta en marcha', `<strong>${esc(k.estadoPM ? nombreEstado(k.estadoPM) : '—')}</strong>`)}
       </section>
-      ${(k.incidencias || []).length ? `<p class="nota aviso">${esc(k.incidencias.map((i) => INCIDENCIA[i] || i).join(' · '))}</p>` : ''}`;
+      ${htmlIncidenciasEquipo(k.incidencias || [])}`;
+  }
+
+  /*
+   * «MODELO SIN DAR DE ALTA» CON ACCIÓN (revisión UX 18-oct, 4): el aviso
+   * decía el problema y no quién lo arregla. Lo da de alta la oficina, en el
+   * ordenador (Commissioning › «Dar de alta los modelos que faltan»); desde
+   * aquí se le avisa con un parte de incidencia ya relleno con el equipo.
+   */
+  function htmlIncidenciasEquipo(inc) {
+    if (!inc.length) return '';
+    const resto = inc.filter((i) => i !== 'modeloSinAlta');
+    return `${resto.length ? `<p class="nota aviso">${esc(resto.map((i) => INCIDENCIA[i] || i).join(' · '))}</p>` : ''}
+      ${inc.includes('modeloSinAlta') ? `<p class="nota aviso">${INCIDENCIA.modeloSinAlta}: lo da de alta la oficina en el ordenador (Commissioning › «Dar de alta los modelos que faltan»). <button class="enlace" data-cx="avisar-modelo">Avisar con un parte</button></p>` : ''}`;
+  }
+  function avisarModelo() {
+    const e = ficha && ficha.equipo;
+    if (!e) return;
+    const modelo = [e.marca, e.modelo].filter(Boolean).join(' ') || 'sin marca ni modelo en la lista';
+    const prefill = {
+      tipo: 'otros',
+      titulo: `Dar de alta el modelo ${modelo}`.slice(0, 120),
+      descripcion: `El equipo ${e.tag || ''}${e.planta ? ` (${e.planta})` : ''} es ${modelo} y ese modelo no está dado de alta en Commissioning: no se le puede enlazar la ficha técnica, el CE ni el manual. Hay que darlo de alta en el ordenador (Commissioning › «Dar de alta los modelos que faltan»).`,
+      gravedad: 'baja',
+    };
+    try { sessionStorage.setItem('partes.prefill', JSON.stringify(prefill)); } catch { /* sin almacén */ }
+    if (C.hacer) C.hacer({ seccion: 'partes', pasos: ['[data-pi="nuevo"]'] });
+    else location.hash = 'partes';
   }
 
   /*
@@ -1214,6 +1241,34 @@
   }
   const estadoGuardar = (h) => `<span class="estado-guardar ${h.cambiada ? 'pendiente' : 'al-dia'}">${h.cambiada ? 'Cambios sin guardar' : 'Todo guardado'}</span>`;
 
+  /*
+   * «LO QUE FALTA» CON LA MISMA CUENTA QUE LA PASTILLA (revisión UX 18-oct, 5):
+   * la pastilla de arriba dice «0/42» (medidas obligatorias) y esta lista decía
+   * 44, porque metía la fecha y el «realizado por». Ahora se separan: primero
+   * los datos (que se resuelven aquí mismo) y luego las medidas, que en una
+   * hoja por apartados no se listan una a una («Respuesta 3.5» × 40) sino por
+   * apartado, con un enlace que lleva a él.
+   */
+  function htmlLoQueFalta(f, pasos, vistos) {
+    if (!f.faltan.length) return '';
+    const datos = f.faltanDatos || [];
+    const medidasLista = f.faltan.filter((x) => !datos.includes(x));
+    const medidas = f.medidos ? Math.max(0, f.medidos.obligatorios - f.medidos.rellenos) : medidasLista.length;
+    const partes = [];
+    if (medidas) partes.push(`${medidas} medida${medidas === 1 ? '' : 's'}`);
+    if (datos.length) partes.push(`${datos.length} dato${datos.length === 1 ? '' : 's'}`);
+    if (!partes.length) return '';
+    let liMedidas = '';
+    const pendientes = pasos && medidas ? pasos.map((p, i) => [p, i, cuentaPaso(p)]).filter(([, , [h, de]]) => h < de) : [];
+    if (pendientes.length) {
+      liMedidas = pendientes.map(([p, i, [h, de]]) => `<li><button class="enlace" data-cx="paso-hoja" data-ir="${i}">${esc(p.titulo)}</button> <span class="tenue">${de - h} de ${de}</span></li>`).join('');
+    } else if (medidas) {
+      liMedidas = medidasLista.slice(0, vistos).map((x) => `<li>${esc(x)}</li>`).join('') + (medidasLista.length > vistos ? `<li class="tenue">y ${medidasLista.length - vistos} más</li>` : '');
+    }
+    return `<h3 class="banda">Lo que falta <span class="tenue">${partes.join(' · ')}</span></h3>
+      <ul class="faltan-hoja">${datos.map((x) => `<li>${esc(x)}</li>`).join('')}${liMedidas}</ul>`;
+  }
+
   function pintarHoja() {
     const h = hoja;
     const f = h.f;
@@ -1263,9 +1318,7 @@
         <button class="boton secundario" data-cx="foto" data-camara="1"><i class="ic ic-camara"></i>Hacer foto</button>
         <button class="boton secundario" data-cx="foto" data-camara="0">De la galería</button>
       </div>` : ''}
-      ${f.faltan.length ? `<h3 class="banda">Lo que falta <span class="tenue">${f.faltan.length}</span></h3>
-        ${porPasos ? '<p class="nota">En la barra de arriba, cada apartado dice cuántos obligatorios lleva.</p>' : ''}
-        <ul class="faltan-hoja">${f.faltan.slice(0, FALTAN_VISTOS).map((x) => `<li>${esc(x)}</li>`).join('')}${f.faltan.length > FALTAN_VISTOS ? `<li class="tenue">y ${f.faltan.length - FALTAN_VISTOS} más</li>` : ''}</ul>` : ''}
+      ${htmlLoQueFalta(f, porPasos ? pasos : null, FALTAN_VISTOS)}
       ${f.avisos.length ? `<p class="nota aviso">${esc(f.avisos.join(' · '))}</p>` : ''}
       <div class="barra-hoja">
         <button class="boton grande secundario" data-cx="pdf-hoja"><i class="ic ic-doc"></i>Informe PDF</button>
@@ -1428,6 +1481,7 @@
     else if (que === 'cerrar-boca' && ficha) cerrarHojaBoca();
     else if (que === 'boca-siguiente' && ficha) bocaVecina(1);
     else if (que === 'boca-anterior' && ficha) bocaVecina(-1);
+    else if (que === 'avisar-modelo') avisarModelo();
     else if (que === 'foto-equipo') fotoEquipo(b);
     else if (que === 'quitar-foto-equipo') quitarFotoEquipo(b);
     else if (que === 'nube-ahora' && window.cxObra && window.cxObra.sync) { b.disabled = true; window.cxObra.sync.ahora().finally(() => { if (ficha) abrir(ficha.equipo.id, { quieto: true }); }); }
@@ -1446,7 +1500,32 @@
     for (const x of b.parentElement.children) x.className = '';
     if (nuevo) b.className = b.parentElement.classList.contains('segmento') ? 'activa' : `activa ${nuevo === 'no' || nuevo === 'noOk' ? 'mal' : nuevo === 'na' ? 'neutra' : 'bien'}`;
     marcarCambiada();
+    if (nuevo) pasarSiCompleto();
   });
+  /*
+   * AVANZAR SOLO AL COMPLETAR EL APARTADO (revisión UX 18-oct, 2): en una hoja
+   * por apartados, cuando el toque que acaba de darse deja el apartado con
+   * todos sus obligatorios, se pasa al siguiente tras un momento, con un aviso
+   * que dice adónde. Solo con los toques Sí/No/N/A (no al escribir un número,
+   * que se sigue escribiendo) y nunca desde el último apartado ni hacia atrás.
+   */
+  let avanceHoja = null;
+  function pasarSiCompleto() {
+    if (!hoja || !hoja.pasos) return;
+    const i = hoja.paso || 0;
+    const paso = hoja.pasos[i];
+    if (!paso) return;
+    const [hechos, de] = cuentaPaso(paso);
+    if (!de || hechos < de) return;
+    const siguiente = hoja.pasos[i + 1] || { titulo: 'Cierre' };
+    clearTimeout(avanceHoja);
+    const h = hoja;
+    avanceHoja = setTimeout(() => {
+      if (hoja !== h || h.paso !== i) return;
+      irAPaso(i + 1);
+      C.aviso(`${paso.titulo} completo · ${siguiente.titulo}`, 'bien');
+    }, 450);
+  }
   $app.addEventListener('change', (ev) => { if (activa() && hoja) anotar(ev.target); });
   $app.addEventListener('input', (ev) => {
     if (activa() && hoja) { anotar(ev.target); return; }

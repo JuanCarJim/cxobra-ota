@@ -111,7 +111,23 @@
     if (!o) return;
     form = { obraId: o.id, tipo: '', fecha: hoy(), hora: ahoraHora(), zona: '', titulo: '', descripcion: '', gravedad: 'media',
       denuncia: 'no', atestado: '', causa: '', proveedorId: '', diasRetraso: '', lineas: [], fotos: [] };
+    /* Un parte que viene ya relleno de otra sección (Commissioning: «Avisar con
+       un parte» de un modelo sin dar de alta): se salta la pregunta del tipo. */
+    const previo = prefill();
+    if (previo) {
+      for (const k of ['tipo', 'titulo', 'descripcion', 'gravedad', 'zona']) if (typeof previo[k] === 'string' && previo[k]) form[k] = previo[k];
+      if (form.tipo && PM.TIPOS[form.tipo]) { pintarForm(); return; }
+      form.tipo = '';
+    }
     pintarTipo();
+  }
+  function prefill() {
+    try {
+      const t = sessionStorage.getItem('partes.prefill');
+      if (!t) return null;
+      sessionStorage.removeItem('partes.prefill');
+      return JSON.parse(t);
+    } catch { return null; }
   }
 
   /* Primero el tipo, con botones grandes: es lo que decide el resto. */

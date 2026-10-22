@@ -9,7 +9,8 @@
  * lógica portada de la app de campo + packages/normativa). Aquí solo hay
  * pantallas, con las clases y la navegación de Cx.
  *
- * Se entra con el selector «Obra | Mantenimiento» de la cabecera. Las
+ * Se entra según el rol (no hay selector): quien es de mantenimiento ve
+ * este modo y los demás, el de obra. Las
  * direcciones son #m/ruta, #m/equipo/<id>… y la carcasa de Cx no pinta nada
  * mientras el modo es Mantenimiento (window.VIDAIRE_MODO).
  */
@@ -19,16 +20,16 @@
   if (!$app || !C) return;
   const { esc } = C;
 
-  const CLAVE_MODO = 'vidaire.modo';
-  const CLAVE_ULTIMA_OBRA = 'vidaire.ultimaObra';
+  /* El rol decide el modo: el jefe de mantenimiento va a Mantenimiento; el resto, a Obra (JC, 22-oct). */
+  const ROLES_MANT = ['jefeMantenimiento'];
+  const sesion = () => (window.ACCESO_MOVIL && window.ACCESO_MOVIL.sesion()) || null;
+  const modoDelRol = () => { const s = sesion(); return s && ROLES_MANT.includes(s.rol) ? 'mant' : 'obra'; };
   let modo = 'obra';
-  try { modo = localStorage.getItem(CLAVE_MODO) === 'mant' ? 'mant' : 'obra'; } catch { /* nada */ }
-  window.VIDAIRE_MODO = () => modo;
+  window.VIDAIRE_MODO = () => (modo = modoDelRol());
 
   const M = () => window.MANT;
   const hayMotor = () => Boolean(window.MANT);
   const ctx = () => M().contexto();
-  const sesion = () => (window.ACCESO_MOVIL && window.ACCESO_MOVIL.sesion()) || null;
 
   /* ═══════════════════════════════════ Utilidades */
 
@@ -122,52 +123,6 @@
     };
   }
 
-  /* ═══════════════════════════════════ Cabecera: el selector Obra | Mantenimiento */
-
-  function selector() {
-    const barra = document.querySelector('.barra');
-    if (!barra || !hayMotor() || !sesion()) return;
-    let s = document.getElementById('modo-vidaire');
-    if (!s) {
-      s = document.createElement('div');
-      s.id = 'modo-vidaire';
-      s.className = 'segmentado modo-vidaire';
-      s.setAttribute('role', 'tablist');
-      s.setAttribute('aria-label', 'Modo');
-      s.innerHTML = '<button type="button" data-modo="obra">Obra</button><button type="button" data-modo="mant">Mantenimiento</button>';
-      barra.append(s);
-      s.addEventListener('click', (ev) => {
-        const b = ev.target.closest('[data-modo]');
-        if (b) cambiarModo(b.dataset.modo);
-      });
-    }
-    for (const b of s.querySelectorAll('[data-modo]')) {
-      const on = b.dataset.modo === modo;
-      b.classList.toggle('activa', on);
-      b.setAttribute('aria-selected', on ? 'true' : 'false');
-    }
-  }
-
-  function cambiarModo(nuevo) {
-    if (nuevo === modo) return;
-    try {
-      if (modo === 'obra' && location.hash && !location.hash.startsWith('#m/')) localStorage.setItem(CLAVE_ULTIMA_OBRA, location.hash.slice(1));
-      localStorage.setItem(CLAVE_MODO, nuevo);
-    } catch { /* nada */ }
-    modo = nuevo;
-    document.body.classList.toggle('modo-mant', modo === 'mant');
-    document.getElementById('cabeza-sub')?.remove();
-    document.body.classList.remove('modo-trabajo');
-    let destino = 'inicio';
-    if (modo === 'mant') destino = 'm/ruta';
-    else { try { destino = localStorage.getItem(CLAVE_ULTIMA_OBRA) || 'inicio'; } catch { /* nada */ } if (destino.startsWith('m/')) destino = 'inicio'; }
-    selector();
-    if (location.hash.slice(1) === destino) window.dispatchEvent(new HashChangeEvent('hashchange'));
-    else location.hash = destino;
-    /* Al volver a Obra la carcasa repinta su barra aunque la dirección no cambie. */
-    if (modo === 'obra') { C.volverAObra(); window.dispatchEvent(new HashChangeEvent('hashchange')); }
-  }
-
   /* ═══════════════════════════════════ Barra de abajo y router */
 
   const partes = () => { const h = location.hash.slice(1); return h.startsWith('m/') ? h.slice(2).split('/').map(decodeURIComponent) : null; };
@@ -202,8 +157,12 @@
 
   let pintando = 0;
   async function ir() {
-    selector();
-    if (modo !== 'mant') return;
+    if (window.VIDAIRE_MODO() !== 'mant') {
+      /* Quien no es de mantenimiento no ve nada suyo, ni con una dirección #m/ guardada. */
+      document.body.classList.remove('modo-mant');
+      if (sesion() && location.hash.startsWith('#m/')) { location.hash = 'inicio'; window.dispatchEvent(new HashChangeEvent('hashchange')); C.volverAObra(); }
+      return;
+    }
     let r = partes();
     if (!r) { location.hash = 'm/ruta'; return; }
     if (!PANTALLAS[r[0]]) r = ['ruta'];
@@ -233,12 +192,21 @@
 
   async function pRuta() {
     const m = M();
-    if (!(await m.hayDatos())) { $app.innerHTML = sinDatos(); return; }
+    const nube = conNube() ? await m.nube.estado() : null;
+    if (!(await m.hayDatos())) {
+      $app.innerHTML = nube && nube.conectado
+        ? vacio(`<p>Aún no te ha llegado ninguna ruta.</p><p style="font-size:14px;font-weight:400;color:var(--textoTenue)">${esc(textoNube(nube))}. Cuando la oficina te asigne visitas en Vidaire aparecerán aquí.</p>
+          <button class="boton secundario" data-m="nube-sync">Sincronizar ahora</button>`)
+        : sinDatos();
+      return;
+    }
     const c = ctx();
     const [ruta, sin] = await Promise.all([m.mant.rutaDeHoy(c), m.mant.visitasSinCerrar(c)]);
     const hoyTxt = fecha(c.hoy);
+    /* Lo de la nube solo si hay algo que contar (minimalista): por enviar, sin red o un fallo. */
+    const nubeTxt = nube && nube.conectado && (nube.porEnviar || nube.sinRed || nube.error) ? ` · ${textoNube(nube)}` : '';
     $app.innerHTML = `
-      <p class="nota">${esc(hoyTxt)} · ${esc(c.usuarioNombre)}</p>
+      <p class="nota">${esc(hoyTxt)} · ${esc(c.usuarioNombre)}${esc(nubeTxt)}</p>
       ${sin.length ? `<h2 class="titulo-grupo">Sin cerrar de otro día</h2>
         <ul class="lista-ios">${sin.map((v) => `<li><button class="fila-ios" data-m="cerrar-visita" data-ed="${esc(v.edificio_id)}" data-fecha="${esc(v.fecha)}">
           <div class="fila-principal"><strong>${esc(v.nombre)}</strong>${chip('aviso', fecha(v.fecha))}</div>
@@ -400,7 +368,7 @@
 
   async function pGas([id]) {
     const { m, c, e } = await contextoEquipo(id);
-    const todos = await m.mant.cilindros(c.base);
+    const todos = await m.mant.cilindros(c.base, c.usuarioId);
     const { permitidos, prohibidos } = m.reglas.cilindrosParaCargar(e, todos, c.hoy);
     const recomendado = permitidos[0] ? permitidos[0].id : null;
     const lleva = (cil) => `${cil.origen || 'virgen'} · quedan ${kgT(cil.kg)} kg`;
@@ -427,7 +395,7 @@
 
   async function pRecuperar([id]) {
     const { m, c, e } = await contextoEquipo(id);
-    const todos = await m.mant.cilindros(c.base);
+    const todos = await m.mant.cilindros(c.base, c.usuarioId);
     const cil = m.reglas.cilindroDeRecuperacion(e, todos);
     const libre = cil ? Math.max(0, Number(cil.capacidad_kg ?? 0) - cil.kg) : 0;
     $app.innerHTML = `
@@ -496,7 +464,7 @@
 
   async function pFurgoneta() {
     const m = M(); const c = ctx();
-    const lista = await m.mant.cilindros(c.base);
+    const lista = await m.mant.cilindros(c.base, c.usuarioId);
     const grupo = (uso, nombre) => {
       const xs = lista.filter((x) => x.uso === uso);
       return `<h2 class="titulo-grupo">${nombre}</h2>${xs.length ? `<ul class="lista-ios">${xs.map((x) => {
@@ -512,14 +480,17 @@
   }
 
   async function pCilindroNuevo() {
-    const gases = M().normativa.REFRIGERANTES ? M().normativa.REFRIGERANTES.map((r) => r.id) : ['R410A', 'R32', 'R134a', 'R404A', 'R407C', 'R290'];
+    // REFRIGERANTES es un objeto (id → ficha); la lista de ids es IDS_REFRIGERANTES.
+    const gases = M().normativa.IDS_REFRIGERANTES || ['R410A', 'R32', 'R134a', 'R404A', 'R407C', 'R290'];
     $app.innerHTML = `
       <button class="volver" data-m="furgoneta">‹ Mi furgoneta</button>
       <div class="campos" style="grid-template-columns:1fr">
         <label>Código del cilindro<input id="cl-codigo" type="text" autocomplete="off" placeholder="C-12"></label>
         <label>Para<select id="cl-uso"><option value="carga">Cargar en equipos</option><option value="recuperacion">Recuperar gas</option></select></label>
         <label>Gas<select id="cl-gas">${gases.map((g) => `<option value="${esc(g)}">${esc(g)}</option>`).join('')}</select></label>
-        <label>Origen (solo para cargar)<select id="cl-origen"><option value="virgen">Virgen</option><option value="regenerado">Regenerado</option><option value="reciclado">Reciclado</option></select></label>
+        <label class="cl-carga">Origen<select id="cl-origen"><option value="virgen">Virgen</option><option value="regenerado">Regenerado</option><option value="reciclado">Reciclado</option></select></label>
+        <label class="cl-tratado" hidden>Dónde se trató<input id="cl-lugar" type="text" autocomplete="off" placeholder="Planta o empresa autorizada"></label>
+        <label class="cl-reciclado" hidden>¿Lo recuperó tu empresa?<select id="cl-propio"><option value="">No lo sé</option><option value="1">Sí</option><option value="0">No</option></select></label>
         <label>Kg que lleva<input id="cl-kg" type="text" inputmode="decimal" placeholder="0,0"></label>
         <label>Capacidad (kg)<input id="cl-cap" type="text" inputmode="decimal" placeholder="13,4"></label>
         <label>Lote<input id="cl-lote" type="text" autocomplete="off"></label>
@@ -559,12 +530,64 @@
         <li><button class="fila-ios" data-m="libro"><strong>Libro F-gas</strong><span class="texto-2">Controles, cargas y recuperaciones anotadas.</span></button></li>
         <li><button class="fila-ios" data-m="alta"><strong>Añadir un equipo</strong><span class="texto-2">Uno que has encontrado y no está en la ruta.</span></button></li>
       </ul>
-      <h2 class="titulo-grupo">Datos de este móvil</h2>
-      <div class="mant-botones">
-        ${hay ? '<button class="boton peligro-suave" data-m="vaciar">Borrar los datos de Mantenimiento</button>' : '<button class="boton secundario" data-m="ejemplo">Cargar datos de ejemplo</button>'}
-      </div>
-      <p class="nota">Mantenimiento guarda sus datos en este móvil, aparte de la obra. Aún no se sincronizan con la nube de Vidaire: lo que anotes aquí se queda en el teléfono.</p>`;
+      ${await bloqueNube(m, hay)}`;
   }
+
+  /* ═══════════════════════════════════ La cuenta de Vidaire (cuenta.ts en el motor) */
+
+  const CLAVE_CORREO = 'vidaire.mant.correo';
+  const conNube = () => Boolean(M() && M().nube && M().nube.hay);
+  const horaCorta = (iso) => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? '' : d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }); };
+
+  /** El estado en pocas palabras: «Al día · 10:42», «3 por enviar», «Sin conexión…». */
+  function textoNube(e) {
+    if (e.error) return e.error;
+    if (e.sincronizando) return 'Enviando y recibiendo…';
+    if (e.sinRed) return e.porEnviar ? `Sin conexión · ${num(e.porEnviar)} por enviar, se envían al volver la red` : 'Sin conexión';
+    if (e.porEnviar) return `${num(e.porEnviar)} por enviar`;
+    return e.ultima ? `Al día · ${horaCorta(e.ultima)}` : 'Al día';
+  }
+
+  async function bloqueNube(m, hay) {
+    const local = hay ? '<button class="boton peligro-suave" data-m="vaciar">Borrar los datos de Mantenimiento</button>' : '<button class="boton secundario" data-m="ejemplo">Cargar datos de ejemplo</button>';
+    if (!conNube()) {
+      return `<h2 class="titulo-grupo">Datos de este móvil</h2><div class="mant-botones">${local}</div>
+        <p class="nota">Esta versión no se conecta con Vidaire: lo que anotes aquí se queda en el teléfono.</p>`;
+    }
+    const e = await m.nube.estado();
+    if (!e.conectado) {
+      let correo = '';
+      try { correo = localStorage.getItem(CLAVE_CORREO) || ''; } catch { /* nada */ }
+      return `<h2 class="titulo-grupo">Vidaire</h2>
+        ${e.error ? `<p class="nota">${esc(e.error)}</p>` : ''}
+        <div class="campos" style="grid-template-columns:1fr">
+          <label>Correo<input id="nb-correo" type="email" autocomplete="username" autocapitalize="off" spellcheck="false" value="${esc(correo)}"></label>
+          <label>Contraseña<input id="nb-clave" type="password" autocomplete="current-password"></label>
+        </div>
+        <div class="mant-botones"><button class="boton" data-m="nube-entrar">Entrar en Vidaire</button></div>
+        <p class="nota">Con tu usuario de Vidaire te llega la ruta que te asigna la oficina y lo que anotes se envía solo, también lo hecho sin cobertura.${hay ? ' Los datos de ejemplo de este móvil se quitan al entrar.' : ''}</p>
+        <div class="mant-botones">${local}</div>`;
+    }
+    const rech = e.rechazados ? await m.nube.rechazados() : [];
+    return `<h2 class="titulo-grupo">Vidaire</h2>
+      <section class="grupo">${fila('Usuario', esc(e.correo || ''))}${fila('Estado', esc(textoNube(e)))}
+        ${e.conflictos ? fila('Cambios en los que ganó la oficina', num(e.conflictos)) : ''}</section>
+      ${rech.length ? `<h2 class="titulo-grupo">No aceptado por Vidaire</h2>
+        <section class="grupo">${rech.map((r) => fila(r.tabla.replace(/_/g, ' '), esc(r.mensaje.replace(/^[A-Z0-9]+: /, '')))).join('')}</section>` : ''}
+      <div class="mant-botones"><button class="boton secundario" data-m="nube-sync">Sincronizar ahora</button>
+        <button class="boton peligro-suave" data-m="nube-salir">Salir de Vidaire</button></div>`;
+  }
+
+  /* Al acabar una vuelta: repintar la lista si ha entrado algo (nunca un formulario a medias). */
+  window.addEventListener('vidaire:mant-sync', (ev) => {
+    if (window.VIDAIRE_MODO() !== 'mant') return;
+    const r = partes();
+    if (!r) return;
+    const escribiendo = document.activeElement && $app.contains(document.activeElement) && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+    if (escribiendo) return;
+    const v = ev.detail && ev.detail.vuelta;
+    if (r[0] === 'mas' || (['ruta', 'edificio', 'incidencias', 'furgoneta'].includes(r[0]) && v && v.filas)) repintar();
+  });
 
   async function pCertificados() {
     const m = M(); const c = ctx();
@@ -653,7 +676,7 @@
     for (const t of textos) {
       const e = await m.mant.buscarPorQr(c.base, t);
       if (e) { location.hash = `m/equipo/${encodeURIComponent(e.id)}`; return true; }
-      const cil = await m.mant.cilindroPorCodigo(c.base, t);
+      const cil = await m.mant.cilindroPorCodigo(c.base, t, c.usuarioId);
       if (cil) { location.hash = 'm/furgoneta'; return true; }
     }
     return false;
@@ -673,7 +696,7 @@
 
   $app.addEventListener('click', async (ev) => {
     const b = ev.target.closest('[data-m]');
-    if (!b || modo !== 'mant') return;
+    if (!b || window.VIDAIRE_MODO() !== 'mant') return;
     const a = b.dataset.m;
     const m = M();
     try {
@@ -687,6 +710,39 @@
       if (a === 'ficha-tab') { pestanaFicha = b.dataset.tab; repintar(); return; }
       if (a === 'limpiar') { pizarras[b.dataset.p]?.limpiar(); return; }
       if (a === 'ejemplo') { b.disabled = true; await m.ejemplo(); aviso('Datos de ejemplo cargados.', 'bien'); location.hash = 'm/ruta'; repintar(); return; }
+      if (a === 'nube-entrar') {
+        const correo = ($app.querySelector('#nb-correo')?.value || '').trim();
+        const clave = $app.querySelector('#nb-clave')?.value || '';
+        if (!correo || !clave) { aviso('Escribe tu correo y tu contraseña de Vidaire.'); return; }
+        try { localStorage.setItem(CLAVE_CORREO, correo); } catch { /* nada */ }
+        b.disabled = true; b.textContent = 'Entrando…';
+        try {
+          const yo = await m.nube.entrar(correo, clave);
+          aviso(`Hola, ${yo.nombre}. Tu ruta ya está en el móvil.`, 'bien');
+          location.hash = 'm/ruta';
+        } catch (e) { aviso(e && e.esDeRed ? 'Sin conexión: prueba cuando tengas cobertura.' : (e && e.message) || String(e)); }
+        repintar();
+        return;
+      }
+      if (a === 'nube-sync') {
+        b.disabled = true; b.textContent = 'Sincronizando…';
+        const r = await m.nube.sincronizar();
+        const e = await m.nube.estado();
+        aviso(textoNube(e), r && !r.sinRed && !e.error ? 'bien' : 'mal');
+        repintar();
+        return;
+      }
+      if (a === 'nube-salir') {
+        const e = await m.nube.estado();
+        const pierde = e.porEnviar > 0;
+        const ok = await confirmar(pierde ? `Hay ${num(e.porEnviar)} cambios sin enviar` : '¿Salir de Vidaire?',
+          pierde ? 'Si sales ahora se pierden. Mejor sincroniza antes con cobertura.' : 'Tu ruta y lo anotado se quitan de este móvil; en Vidaire sigue todo.',
+          pierde ? 'Salir y perderlos' : 'Sí, salir', 'No, volver');
+        if (!ok) return;
+        try { await m.nube.salir(pierde); aviso('Has salido de Vidaire.', 'bien'); } catch (x) { aviso((x && x.message) || String(x)); }
+        repintar();
+        return;
+      }
       if (a === 'vaciar') {
         if (await confirmar('¿Borrar los datos de Mantenimiento?', 'Se quita todo lo que hay en este móvil: ruta, equipos, cilindros y lo anotado.', 'Sí, borrar', 'No, dejarlos')) { await m.vaciar(); aviso('Datos borrados.', 'bien'); repintar(); }
         return;
@@ -798,14 +854,15 @@
       /* ── furgoneta */
       if (a === 'cilindro-guardar') {
         const c = ctx();
-        const codigo = valor('#cl-codigo');
-        const kg = leerNum('#cl-kg');
-        if (!codigo) { aviso('Falta el código del cilindro.'); return; }
-        if (!(kg >= 0)) { aviso('Escribe los kg que lleva.'); return; }
         const uso = valor('#cl-uso');
-        const cap = leerNum('#cl-cap');
-        await c.base.ejecutar('insert into cilindros (id, codigo, uso, refrigerante, origen, kg, capacidad_kg, lote, lugar_tratamiento, reciclado_por_mi_empresa) values (?, ?, ?, ?, ?, ?, ?, ?, null, null)',
-          [m.uuid(), codigo, uso, valor('#cl-gas'), uso === 'carga' ? valor('#cl-origen') : null, kg, cap > 0 ? cap : null, valor('#cl-lote') || null]);
+        const propio = valor('#cl-propio');
+        const id = await conBloqueo(() => m.mant.altaCilindro(c, {
+          codigo: valor('#cl-codigo'), uso, refrigerante: valor('#cl-gas'), kg: leerNum('#cl-kg'), capacidad_kg: leerNum('#cl-cap'),
+          lote: valor('#cl-lote'), origen: uso === 'carga' ? valor('#cl-origen') : null, lugar_tratamiento: valor('#cl-lugar'),
+          reciclado_por_mi_empresa: propio === '' ? null : propio === '1',
+        }));
+        if (!id) return;
+        if (conNube()) void m.nube.sincronizar();
         aviso('Cilindro añadido.', 'bien');
         location.hash = 'm/furgoneta';
         return;
@@ -890,18 +947,25 @@
 
   $app.addEventListener('change', (ev) => {
     if (ev.target.matches('#al-ed')) location.hash = `m/alta/${encodeURIComponent(ev.target.value)}`;
+    if (ev.target.matches('#cl-uso, #cl-origen')) {
+      // Solo se pregunta lo que pide la ley para ese cilindro.
+      const carga = valor('#cl-uso') === 'carga';
+      const origen = valor('#cl-origen');
+      $app.querySelector('.cl-carga').hidden = !carga;
+      $app.querySelector('.cl-tratado').hidden = !carga || origen === 'virgen';
+      $app.querySelector('.cl-reciclado').hidden = !carga || origen !== 'reciclado';
+    }
   });
 
   /* ═══════════════════════════════════ Arranque */
 
   function arrancar() {
     if (!sesion()) { setTimeout(arrancar, 400); return; }
-    selector();
-    if (modo === 'mant') {
+    if (window.VIDAIRE_MODO() === 'mant') {
       document.body.classList.add('modo-mant');
       if (!partes()) location.hash = 'm/ruta'; else ir();
-    }
+    } else ir();
   }
-  /* Con el modo guardado en Mantenimiento, ni la carcasa ni este script se pisan: pintar() de la carcasa ya no hace nada. */
+  /* Con un rol de Mantenimiento, ni la carcasa ni este script se pisan: pintar() de la carcasa ya no hace nada. */
   arrancar();
 })();

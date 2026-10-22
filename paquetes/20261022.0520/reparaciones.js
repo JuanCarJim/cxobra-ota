@@ -75,7 +75,7 @@
 
   /* Se busca sin puntos, espacios ni tildes: «s2ste0021» encuentra S2.STE.0021. */
   const plano = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
-  const pajar = (f) => plano([f.codigo, f.titulo, f.encargado, ...(f.equipo ? [f.equipo.tag, f.equipo.sala, f.equipo.codSala, f.equipo.zona] : [])].join(' '));
+  const pajar = (f) => plano([f.codigo, f.titulo, f.encargado, f.operario, f.zona, f.planta, ...(f.equipo ? [f.equipo.tag, f.equipo.sala, f.equipo.codSala, f.equipo.zona] : [])].join(' '));
   /* La sala del equipo: el código de sala (S2.STE.0053) y el del plano (10.STE.082). */
   const salaDe = (e) => (e ? [e.sala, e.codSala].filter(Boolean).join(' · ') : '');
 
@@ -86,7 +86,7 @@
     if (!nRevisar) porRevisar = false;
     const q = plano(texto);
     const vistas = filas.filter(enFiltro).filter((f) => !q || pajar(f).includes(q));
-    const planta = (f) => (f.equipo && f.equipo.planta) || 'Sin planta';
+    const planta = (f) => f.planta || (f.equipo && f.equipo.planta) || 'Sin planta';
     const conMias = datos.mias || datos.filas.some((f) => f.encargadoId === datos.yo);
     $app.innerHTML = `
       ${datos.puede && datos.puede.crear ? '<button class="boton grande" data-rp="nueva">＋ Nueva reparación</button>' : ''}
@@ -106,7 +106,7 @@
           <div class="fila-principal"><strong class="cifra">${esc(f.equipo ? f.equipo.tag : f.codigo)}</strong><span>${chipPrioridad(f.prioridad)} ${chipEstado(f)}</span></div>
           ${salaDe(f.equipo) ? `<div class="sala-rp">Sala <strong>${esc(salaDe(f.equipo))}</strong></div>` : ''}
           <div class="texto-2">${esc(f.titulo)}</div>
-          <div class="sub">${esc(f.codigo)} · ${esc(f.encargado || 'Sin encargado')}${f.horas ? ` · ${horasTxt(f.horas)}` : ''}${f.visitas ? ` · ${f.visitas} visita${f.visitas === 1 ? '' : 's'}` : ''}${f.vencida ? ' · <strong class="mal">vencida</strong>' : f.fechaLimite ? ` · para el ${fechaEs(f.fechaLimite)}` : ''}</div>
+          <div class="sub">${esc(f.codigo)}${f.zona ? ` · ${esc(f.zona)}` : ''} · ${esc(f.operario || f.encargado || 'Sin encargado')}${f.horas ? ` · ${horasTxt(f.horas)}` : ''}${f.visitas ? ` · ${f.visitas} visita${f.visitas === 1 ? '' : 's'}` : ''}${f.vencida ? ' · <strong class="mal">vencida</strong>' : f.fechaLimite ? ` · para el ${fechaEs(f.fechaLimite)}` : ''}</div>
         </button></li>` })
     : `<p class="vacio">${q ? 'Ninguna reparación con ese texto.' : filtro === 'cerradas' ? 'No hay reparaciones cerradas.' : porRevisar ? 'Nada esperando a que el jefe de obra lo revise.' : 'No hay reparaciones abiertas.'}</p>`}`;
   }
@@ -114,7 +114,7 @@
   /* ═══════════════════════════════════ 2. Nueva */
 
   function nueva() {
-    form = { tag: '', descripcion: '', prioridad: 'media', encargadoId: '', fechaLimite: '', fotos: [] };
+    form = { tag: '', planta: '', zona: '', operario: '', descripcion: '', prioridad: 'media', encargadoId: '', fechaLimite: '', fotos: [] };
     pintarForm();
   }
 
@@ -126,6 +126,13 @@
       <p class="nota">${esc(C.obra() ? `${C.obra().codigo} · ${C.obra().nombre}` : '')}</p>
       <label>Equipo (TAG)<input data-rp-campo="tag" list="rp-equipos" value="${esc(f.tag)}" autocomplete="off" placeholder="Escribe el TAG del equipo"></label>
       <datalist id="rp-equipos">${(datos.equipos || []).map((e) => `<option value="${esc(e.tag)}">${esc(e.planta)}</option>`).join('')}</datalist>
+      <div class="campos">
+        <label>Planta<input data-rp-campo="planta" list="rp-plantas" value="${esc(f.planta)}" autocomplete="off" placeholder="N00, N10…"></label>
+        <label>Zona<input data-rp-campo="zona" list="rp-zonas" value="${esc(f.zona)}" autocomplete="off" placeholder="Tribuna, Gol Norte…"></label>
+      </div>
+      <datalist id="rp-plantas">${(datos.plantas || []).map((v) => `<option value="${esc(v)}">`).join('')}</datalist>
+      <datalist id="rp-zonas">${(datos.zonas || []).map((v) => `<option value="${esc(v)}">`).join('')}</datalist>
+      <label>Operario<select data-rp-campo="operario"><option value="">—</option>${(datos.asignables || []).map((v) => `<option value="${esc(v)}" ${v === f.operario ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></label>
       <label>Qué le pasa<textarea rows="4" data-rp-campo="descripcion" placeholder="Qué falla y qué hay que hacer">${esc(f.descripcion)}</textarea></label>
       <label>Prioridad</label>
       <div class="segmentado">${['alta', 'media', 'baja'].map((p) => `<button data-rp-prioridad="${p}" class="${f.prioridad === p ? 'activa' : ''}">${NOMBRE_PRIORIDAD[p]}</button>`).join('')}</div>
@@ -160,7 +167,8 @@
       const primera = form.descripcion.trim().split('\n')[0].slice(0, 120);
       const r = await C.postJson('api/reparacion', {
         obraId: C.obraId(), equipoId: eq.id, titulo: `${eq.tag} · ${primera}`, descripcion: form.descripcion,
-        prioridad: form.prioridad, encargadoId: form.encargadoId || undefined, fechaLimite: form.fechaLimite || null,
+        prioridad: form.prioridad, encargadoId: form.encargadoId || undefined,
+        operario: form.operario || undefined, zona: form.zona || undefined, planta: form.planta || undefined, fechaLimite: form.fechaLimite || null,
       });
       if (!r.ok) throw new Error(r.error);
       let sinFoto = 0;
@@ -228,12 +236,18 @@
       </section>
       ${r.avisos.length ? `<p class="nota aviso">${esc(r.avisos.join(' · '))}</p>` : ''}
       <section class="grupo">
-        ${dato('Código', r.codigo)}${dato('Planta', r.equipo && r.equipo.planta)}
+        ${dato('Código', r.codigo)}${dato('Planta', r.planta || (r.equipo && r.equipo.planta))}${dato('Zona', r.zona || (r.equipo && r.equipo.zona))}${dato('Operario', r.operario)}
         ${dato('Sala', r.equipo && r.equipo.sala)}${dato('Código de sala', r.equipo && r.equipo.codSala)}
         ${dato('Encargado', r.encargado || 'Sin encargado')}
         ${dato('Abierta', fechaEs(r.fechaApertura))}${dato('Para el', fechaEs(r.fechaLimite))}
         ${dato('Horas', horasTxt(r.horas))}${dato('Visitas', String(r.visitas || 0))}
       </section>
+      ${puede.datos ? `<h2>Dónde y quién</h2><div class="campos">
+        <label>Planta<input data-rp-dato="planta" list="rp-plantas" value="${esc(r.planta || '')}" placeholder="${esc((r.equipo && r.equipo.planta) || 'N00…')}"></label>
+        <label>Zona<input data-rp-dato="zona" list="rp-zonas" value="${esc(r.zona || '')}" placeholder="${esc((r.equipo && r.equipo.zona) || 'Tribuna…')}"></label></div>
+        <datalist id="rp-plantas">${(abierta.plantas || []).map((v) => `<option value="${esc(v)}">`).join('')}</datalist>
+        <datalist id="rp-zonas">${(abierta.zonas || []).map((v) => `<option value="${esc(v)}">`).join('')}</datalist>
+        <label>Operario<select data-rp-dato="operario"><option value="">—</option>${[...new Set([...(abierta.asignables || []), r.operario].filter(Boolean))].map((v) => `<option value="${esc(v)}" ${v === r.operario ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></label>` : ''}
       ${r.descripcion ? `<h2>Qué le pasa</h2><p class="texto-ficha">${esc(r.descripcion)}</p>` : ''}
       ${r.instrucciones ? `<h2>Instrucciones</h2><p class="texto-ficha">${esc(r.instrucciones)}</p>` : ''}
       ${[['antes', 'Fotos del antes'], ['despues', 'Fotos del después']].map(([m, titulo]) => {
@@ -441,10 +455,25 @@
     else if (a === 'quitar-tecnico') { visita.tecnicos.splice(Number(b.dataset.i), 1); pintarVisita(); }
     else if (a === 'anotar-visita') anotarVisita();
   });
+  /* Planta, zona u operario de la ficha: se guarda al elegirlo (no es de lo que espera al «Guardar»). */
+  async function guardarDato(campo) {
+    try {
+      const r = await C.postJson('api/reparacion/datos', { id: abierta.reparacion.id, [campo.dataset.rpDato]: campo.value });
+      if (!r.ok) throw new Error(r.error);
+      abierta.reparacion[campo.dataset.rpDato] = campo.value.trim();
+      C.aviso('Guardado.', 'bien');
+    } catch (e) { C.aviso(e.message); }
+  }
   const recoger = (ev) => {
     if (!activa()) return;
     const t = ev.target;
     if (form && t.dataset.rpCampo) form[t.dataset.rpCampo] = t.value;
+    /* Elegido el equipo, se sugieren su planta y su zona (si no se han escrito). */
+    if (form && ev.type === 'change' && t.dataset.rpCampo === 'tag') {
+      const eq = (datos.equipos || []).find((e) => String(e.tag).trim().toLowerCase() === t.value.trim().toLowerCase());
+      if (eq && ((!form.planta && eq.planta) || (!form.zona && eq.zona))) { form.planta = form.planta || eq.planta || ''; form.zona = form.zona || eq.zona || ''; pintarForm(); }
+    }
+    if (abierta && ev.type === 'change' && t.dataset.rpDato) guardarDato(t);
     if (visita && t.dataset.rpV) visita[t.dataset.rpV] = t.value;
     if (visita && t.dataset.rpT !== undefined) visita.tecnicos[Number(t.dataset.rpT)][t.dataset.k] = t.value;
     if (cambios && t.hasAttribute('data-rp-nota')) { cambios.nota = t.value; refrescarBarra(); }
