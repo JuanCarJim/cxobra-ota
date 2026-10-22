@@ -2416,6 +2416,39 @@ create table if not exists ajustes (
   function sqlEsquema() {
     return ESPEJO.map(crearEspejo).join("\n") + "\n" + LOCALES;
   }
+  function aLocal(t, fila2) {
+    const valores = [String(fila2.id)];
+    for (const c of t.columnas) valores.push(valorLocal(t, c, fila2[c]));
+    valores.push(Number(fila2.version ?? 0), fila2.actualizado_en ?? null, fila2.borrado_en ?? null);
+    return valores;
+  }
+  function valorLocal(t, columna, v) {
+    if (v === void 0 || v === null) return null;
+    if (t.json?.includes(columna)) return JSON.stringify(v);
+    if (t.bool?.includes(columna) || typeof v === "boolean") return v ? 1 : 0;
+    if (typeof v === "object") return JSON.stringify(v);
+    return v;
+  }
+  function aServidor(t, fila2) {
+    const r = { id: fila2.id };
+    for (const c of t.columnas) {
+      if (!(c in fila2)) continue;
+      r[c] = valorServidor(t, c, fila2[c]);
+    }
+    return r;
+  }
+  function valorServidor(t, columna, v) {
+    if (v === null || v === void 0) return null;
+    if (t.json?.includes(columna)) return typeof v === "string" ? JSON.parse(v) : v;
+    if (t.bool?.includes(columna)) return v === 1 || v === true || v === "1";
+    return v;
+  }
+  function sqlUpsertEspejo(t) {
+    const cols = ["id", ...t.columnas, "version", "actualizado_en", "borrado_en"];
+    const marcas = cols.map(() => "?").join(", ");
+    const set = cols.slice(1).map((c) => `${c} = excluded.${c}`).join(", ");
+    return `insert into ${t.nombre} (${cols.join(", ")}) values (${marcas}) on conflict (id) do update set ${set}`;
+  }
 
   // cxobra/mantenimiento/fuente/datos/base-wasm.ts
   var NOMBRE = "vidaire-mant";
@@ -3142,8 +3175,8 @@ create table if not exists ajustes (
     Object.fromEntries(Object.keys(DEFINICIONES).map((id) => [id, construir(id)]))
   );
   var IDS_REFRIGERANTES = Object.keys(DEFINICIONES);
-  function buscarRefrigerante(texto) {
-    const limpio = texto.toUpperCase().replace(/[\s-]/g, "");
+  function buscarRefrigerante(texto2) {
+    const limpio = texto2.toUpperCase().replace(/[\s-]/g, "");
     const alias = { R1234ZE: "R1234ze(E)", "R1234ZE(E)": "R1234ze(E)", R507: "R507A" };
     if (alias[limpio]) return REFRIGERANTES[alias[limpio]];
     return IDS_REFRIGERANTES.map((id) => REFRIGERANTES[id]).find((r) => r.id.toUpperCase() === limpio);
@@ -4105,8 +4138,8 @@ create table if not exists ajustes (
     const [a, m, d] = iso.slice(0, 10).split("-").map(Number);
     return a === Number(hoy.slice(0, 4)) ? `${d} ${meses[m - 1]}` : fechaLarga2(iso, meses);
   }
-  function sinCortar(texto) {
-    return texto.replace(/(\S)-(?=\S)/g, "$1\u2011");
+  function sinCortar(texto2) {
+    return texto2.replace(/(\S)-(?=\S)/g, "$1\u2011");
   }
   function hora(iso) {
     const d = new Date(iso);
@@ -4119,8 +4152,8 @@ create table if not exists ajustes (
   function numero(n, decimales, decimalComa = ",") {
     return n.toFixed(decimales).replace(".", decimalComa);
   }
-  function leerCantidad(texto) {
-    const n = Number(texto.replace(",", "."));
+  function leerCantidad(texto2) {
+    const n = Number(texto2.replace(",", "."));
     return Number.isFinite(n) ? n : 0;
   }
   function pulsarTecla(actual, tecla) {
@@ -4388,8 +4421,8 @@ create table if not exists ajustes (
   async function equipo(base2, id) {
     return base2.una(`select ${COLS_EQUIPO} from equipos e left join ubicaciones u on u.id = e.ubicacion_id where e.id = ?`, [id]);
   }
-  async function buscarPorQr(base2, texto) {
-    const token = texto.trim().split(/[/?#=]/).filter(Boolean).pop() ?? "";
+  async function buscarPorQr(base2, texto2) {
+    const token = texto2.trim().split(/[/?#=]/).filter(Boolean).pop() ?? "";
     return base2.una(
       `select ${COLS_EQUIPO} from equipos e left join ubicaciones u on u.id = e.ubicacion_id
       where (e.qr_token = ? or upper(e.tag) = upper(?)) and e.borrado_en is null limit 1`,
@@ -4487,8 +4520,8 @@ create table if not exists ajustes (
   async function cilindros(base2) {
     return base2.todas("select * from cilindros order by uso, refrigerante, codigo");
   }
-  async function cilindroPorCodigo(base2, texto) {
-    const codigo = texto.trim().split(/[/?#=]/).filter(Boolean).pop() ?? "";
+  async function cilindroPorCodigo(base2, texto2) {
+    const codigo = texto2.trim().split(/[/?#=]/).filter(Boolean).pop() ?? "";
     return base2.una("select * from cilindros where upper(codigo) = upper(?) or id = ?", [codigo, codigo]);
   }
   async function nuevaIntervencion(ctx, v, e, tipo, resultado, observaciones) {
@@ -4744,8 +4777,8 @@ create table if not exists ajustes (
   function bytesUtf8(s) {
     return new TextEncoder().encode(s).length;
   }
-  async function avisarOficina(ctx, edificioId, equipoId, texto) {
-    await ctx.base.ejecutar("insert into avisos_oficina (id, edificio_id, equipo_id, texto, creado_en) values (?, ?, ?, ?, ?)", [uuidv7(), edificioId, equipoId, texto, ahora(ctx)]);
+  async function avisarOficina(ctx, edificioId, equipoId, texto2) {
+    await ctx.base.ejecutar("insert into avisos_oficina (id, edificio_id, equipo_id, texto, creado_en) values (?, ?, ?, ?, ?)", [uuidv7(), edificioId, equipoId, texto2, ahora(ctx)]);
   }
   async function altaEquipo(ctx, a) {
     const id = uuidv7();
@@ -5598,10 +5631,593 @@ create table if not exists ajustes (
     }
   };
 
+  // cxobra/mantenimiento/fuente/datos/sincronizacion.ts
+  var ErrorServidor = class extends Error {
+    codigo;
+    constructor(codigo, mensaje) {
+      super(mensaje);
+      this.codigo = codigo;
+    }
+    /**
+     * Sin red o el servidor no contesta: se reintenta más tarde. En Vidaire Cx,
+     * también si la sesión caducó a mitad (nube-vidaire.ts): no es culpa del
+     * cambio, así que no se rechaza; sube al volver a entrar.
+     */
+    get esDeRed() {
+      return this.codigo === "red" || this.codigo === "sin_sesion" || /^5\d\d$/.test(this.codigo);
+    }
+  };
+  async function subir(base2, servidor, leerFichero2) {
+    const r = { subidos: 0, rechazados: 0, conflictos: 0, sinRed: false };
+    const cola = await base2.todas(`select * from cola where estado = 'pendiente' order by n`);
+    for (const e of cola) {
+      await base2.ejecutar("update cola set intentos = intentos + 1, ultimo_intento = ? where n = ?", [ahoraISO(), e.n]);
+      try {
+        if (e.tipo === "fila") r.conflictos += await subirFila(base2, servidor, e);
+        else if (e.tipo === "intervencion") await subirIntervencion(base2, servidor, e.fila_id);
+        else await subirFichero(base2, servidor, e.fila_id, leerFichero2);
+        await base2.ejecutar("delete from cola where n = ?", [e.n]);
+        r.subidos++;
+      } catch (err) {
+        const x = err instanceof ErrorServidor ? err : new ErrorServidor("red", String(err?.message ?? err));
+        if (x.esDeRed) {
+          await base2.ejecutar("update cola set mensaje = ? where n = ?", [x.message, e.n]);
+          r.sinRed = true;
+          break;
+        }
+        await base2.ejecutar(`update cola set estado = 'rechazado', mensaje = ? where n = ?`, [`${x.codigo}: ${x.message}`, e.n]);
+        r.rechazados++;
+      }
+    }
+    return r;
+  }
+  async function subirFila(base2, servidor, e) {
+    const t = TABLAS_ESPEJO.get(e.tabla);
+    const cambios = JSON.parse(e.cambios);
+    if (e.operacion === "upsert" || e.version_leida === null) {
+      const local = await base2.una(`select * from ${e.tabla} where id = ?`, [e.fila_id]);
+      const fila2 = aServidor(t, local ?? { id: e.fila_id, ...cambios });
+      const v = await servidor.upsert(e.tabla, fila2);
+      await base2.ejecutar(`update ${e.tabla} set version = ?, actualizado_en = ? where id = ?`, [v.version, v.actualizado_en, e.fila_id]);
+      return 0;
+    }
+    const paraServidor = (c) => Object.fromEntries(Object.entries(c).map(([k, v]) => [k, valorServidor(t, k, v)]));
+    try {
+      const v = await servidor.actualizar(e.tabla, e.fila_id, paraServidor(cambios), e.version_leida);
+      await base2.ejecutar(`update ${e.tabla} set version = ?, actualizado_en = ? where id = ?`, [v.version, v.actualizado_en, e.fila_id]);
+      return 0;
+    } catch (err) {
+      if (!(err instanceof ErrorServidor) || err.codigo !== "PT409") throw err;
+      return rebasar(base2, servidor, t, e, cambios);
+    }
+  }
+  async function rebasar(base2, servidor, t, e, cambios) {
+    const remota = await servidor.leer(e.tabla, e.fila_id);
+    if (!remota) throw new ErrorServidor("PT404", "La fila ya no existe en el servidor.");
+    const antes = JSON.parse(e.antes ?? "{}");
+    const remotaLocal = aLocal(t, remota);
+    const valorRemoto = (c) => remotaLocal[t.columnas.indexOf(c) + 1] ?? null;
+    const quedan = {};
+    let conflictos = 0;
+    for (const [campo, mio] of Object.entries(cambios)) {
+      const suyo = valorRemoto(campo);
+      if (igual(suyo, mio)) continue;
+      if (igual(suyo, antes[campo] ?? null)) {
+        quedan[campo] = mio;
+        continue;
+      }
+      conflictos++;
+      await base2.ejecutar(
+        "insert into conflictos (id, tabla, fila_id, campo, mio, servidor, creado_en) values (?, ?, ?, ?, ?, ?, ?)",
+        [uuidv7(), e.tabla, e.fila_id, campo, texto(mio), texto(suyo), ahoraISO()]
+      );
+    }
+    await base2.ejecutar(sqlUpsertEspejo(t), remotaLocal);
+    if (Object.keys(quedan).length) {
+      const cols = Object.keys(quedan);
+      await base2.ejecutar(`update ${e.tabla} set ${cols.map((c) => `${c} = ?`).join(", ")} where id = ?`, [...cols.map((c) => quedan[c] ?? null), e.fila_id]);
+      const v = await servidor.actualizar(
+        e.tabla,
+        e.fila_id,
+        Object.fromEntries(cols.map((c) => [c, valorServidor(t, c, quedan[c])])),
+        Number(remota.version)
+      );
+      await base2.ejecutar(`update ${e.tabla} set version = ?, actualizado_en = ? where id = ?`, [v.version, v.actualizado_en, e.fila_id]);
+    }
+    return conflictos;
+  }
+  async function cargaIntervencion(base2, id) {
+    const i = await base2.una("select * from intervenciones where id = ?", [id]);
+    if (!i) throw new ErrorServidor("PT404", "La intervenci\xF3n ya no est\xE1 en el m\xF3vil.");
+    const movimientos = await base2.todas("select * from movimientos_gas where intervencion_id = ? and borrado_en is null", [id]);
+    const documentos = await base2.todas("select * from documentos where intervencion_id = ? and borrado_en is null", [id]);
+    return {
+      id: i.id,
+      equipo_id: i.equipo_id,
+      contrato_id: i.contrato_id,
+      tecnico_id: i.tecnico_id,
+      tipo: i.tipo,
+      realizada_en: i.realizada_en,
+      resultado: i.resultado,
+      observaciones: i.observaciones,
+      firmante_cliente_nombre: i.firmante_cliente_nombre,
+      firmante_cliente_cargo: i.firmante_cliente_cargo,
+      anula_a_id: i.anula_a_id,
+      cliente_modificado_en: ahoraISO(),
+      estado: i.estado,
+      movimientos: movimientos.map((m) => ({ id: m.id, sentido: m.sentido, refrigerante: m.refrigerante, kg: m.kg, origen: m.origen, lugar_tratamiento: m.lugar_tratamiento, cilindro: m.cilindro, lote: m.lote })),
+      documentos: documentos.map((d) => ({ id: d.id, tipo: d.tipo, titulo: d.titulo, ruta: d.ruta, mime: d.mime, bytes: d.bytes, sha256: d.sha256 }))
+    };
+  }
+  async function subirIntervencion(base2, servidor, id) {
+    await servidor.subirIntervencion(await cargaIntervencion(base2, id));
+    await base2.ejecutar("update intervenciones set version = max(version, 1) where id = ?", [id]);
+    await base2.ejecutar("update movimientos_gas set version = max(version, 1) where intervencion_id = ?", [id]);
+    await base2.ejecutar("update documentos set version = max(version, 1) where intervencion_id = ?", [id]);
+  }
+  async function subirFichero(base2, servidor, documentoId, leer2) {
+    const f = await base2.una("select * from ficheros where documento_id = ?", [documentoId]);
+    if (!f || f.subido) return;
+    const d = await base2.una("select ruta from documentos where id = ?", [documentoId]);
+    if (!d) throw new ErrorServidor("PT404", "El documento del fichero ya no est\xE1 en el m\xF3vil.");
+    await servidor.subirFichero(d.ruta, await leer2(f), f.mime);
+    await base2.ejecutar("update ficheros set subido = 1 where documento_id = ?", [documentoId]);
+  }
+  var SOLAPE_MS = 5 * 60 * 1e3;
+  var PAGINA = 500;
+  async function bajar(base2, servidor, usuarioId, hoy) {
+    let filas = 0;
+    for (const t of ESPEJO.filter((x) => x.alcance.tipo === "global" || x.alcance.tipo === "hijo" && x.alcance.padre === "plantillas_prueba")) {
+      filas += await bajarTabla(base2, servidor, t, usuarioId, void 0, hoy);
+    }
+    const edificios = await servidor.edificiosDeTrabajo(usuarioId);
+    const antes = JSON.parse(await leerAjuste(base2, "edificios") ?? "[]");
+    for (const fuera of antes.filter((x) => !edificios.includes(x))) await olvidarEdificio(base2, fuera);
+    for (const ed of edificios) {
+      for (const t of ESPEJO.filter((x) => x.alcance.tipo === "edificio" || x.alcance.tipo === "hijo" && x.alcance.padre !== "plantillas_prueba")) {
+        filas += await bajarTabla(base2, servidor, t, usuarioId, ed, hoy);
+      }
+    }
+    await guardarAjuste(base2, "edificios", JSON.stringify(edificios));
+    await guardarAjuste(base2, "ultima_bajada", ahoraISO());
+    return { filas, edificios };
+  }
+  async function bajarTabla(base2, servidor, t, usuarioId, edificio, hoy) {
+    const clave = `cursor:${t.nombre}${edificio ? `:${edificio}` : ""}`;
+    const cursor = await leerAjuste(base2, clave);
+    const desde2 = cursor ? new Date(Date.parse(cursor) - SOLAPE_MS).toISOString() : null;
+    const fechaMinima = t.alcance.tipo === "edificio" && t.alcance.desdeMeses ? restarMeses(hoy, t.alcance.desdeMeses) : void 0;
+    let total = 0;
+    let marca = desde2;
+    let maximo = cursor;
+    for (; ; ) {
+      const lote = await servidor.bajar(t, { desde: marca, edificio, usuarioId, limite: PAGINA, fechaMinima });
+      for (const fila2 of lote) {
+        if (await aplicarFila(base2, t, fila2)) total++;
+        const a = fila2.actualizado_en;
+        if (a && (!maximo || a > maximo)) maximo = a;
+      }
+      if (lote.length < PAGINA) break;
+      const ultimo = lote[lote.length - 1].actualizado_en;
+      if (ultimo === marca) break;
+      marca = ultimo;
+    }
+    if (maximo) await guardarAjuste(base2, clave, maximo);
+    return total;
+  }
+  async function aplicarFila(base2, t, fila2) {
+    const id = String(fila2.id);
+    const pendiente = await base2.una(`select n from cola where tabla = ? and fila_id = ? and estado = 'pendiente'`, [t.nombre, id]);
+    if (pendiente) return false;
+    const local = await base2.una(`select version from ${t.nombre} where id = ?`, [id]);
+    if (local && local.version === Number(fila2.version)) return false;
+    if (fila2.borrado_en) {
+      await base2.ejecutar(`delete from ${t.nombre} where id = ?`, [id]);
+      return true;
+    }
+    await base2.ejecutar(sqlUpsertEspejo(t), aLocal(t, fila2));
+    return true;
+  }
+  async function olvidarEdificio(base2, edificio) {
+    const pend = `not exists (select 1 from cola c where c.fila_id = %T.id and c.estado = 'pendiente')`;
+    await base2.transaccion(async () => {
+      for (const t of ESPEJO) {
+        if (t.alcance.tipo === "hijo" && t.alcance.padre !== "plantillas_prueba") {
+          await base2.ejecutar(`delete from ${t.nombre} where ${t.alcance.fk} in (select id from ${t.alcance.padre} where edificio_id = ?) and ${pend.replace("%T", t.nombre)}`, [edificio]);
+        }
+      }
+      for (const t of ESPEJO) {
+        if (t.alcance.tipo === "edificio") {
+          await base2.ejecutar(`delete from ${t.nombre} where ${t.alcance.columna} = ? and ${pend.replace("%T", t.nombre)}`, [edificio]);
+          await base2.ejecutar("delete from ajustes where clave = ?", [`cursor:${t.nombre}:${edificio}`]);
+        }
+        if (t.alcance.tipo === "hijo") await base2.ejecutar("delete from ajustes where clave = ?", [`cursor:${t.nombre}:${edificio}`]);
+      }
+    });
+  }
+  function igual(a, b) {
+    if (a === null || a === void 0) return b === null || b === void 0;
+    return String(a) === String(b);
+  }
+  function texto(v) {
+    return v === null || v === void 0 ? null : String(v);
+  }
+  function restarMeses(fecha, meses) {
+    const [a, m, d] = fecha.split("-").map(Number);
+    const total = a * 12 + (m - 1) - meses;
+    return `${Math.floor(total / 12)}-${String(total % 12 + 1).padStart(2, "0")}-${String(Math.min(d, 28)).padStart(2, "0")}`;
+  }
+
+  // cxobra/mantenimiento/fuente/datos/nube-vidaire.ts
+  function fallo(status, cuerpo, texto2) {
+    const c = cuerpo && typeof cuerpo === "object" ? cuerpo : {};
+    const mensaje = String(c.message ?? c.msg ?? c.error_description ?? c.error ?? texto2 ?? "Sin mensaje");
+    const codigo = typeof c.code === "string" && c.code ? c.code : "";
+    if (/^PT\d\d\d$/.test(codigo)) return new ErrorServidor(codigo, mensaje);
+    if (status >= 500) return new ErrorServidor(String(status), mensaje);
+    return new ErrorServidor(codigo || String(status), mensaje);
+  }
+  function crearNube(cfg) {
+    const base2 = cfg.url.replace(/\/+$/, "");
+    const pedirRed = cfg.fetch ?? ((...a) => globalThis.fetch(...a));
+    const ahora3 = cfg.ahora ?? (() => Math.floor(Date.now() / 1e3));
+    let sesion = cfg.sesion ?? null;
+    let renovando = null;
+    const poner = (s) => {
+      sesion = s;
+      cfg.alCambiarSesion?.(s);
+    };
+    async function bruto(ruta, p = {}) {
+      const cab = { apikey: cfg.clave, ...p.cabeceras };
+      if (!p.sinSesion && sesion) cab.Authorization = `Bearer ${sesion.token}`;
+      let body;
+      if (p.bytes) {
+        body = p.bytes;
+        cab["Content-Type"] = p.mime ?? "application/octet-stream";
+      } else if (p.cuerpo !== void 0) {
+        body = JSON.stringify(p.cuerpo);
+        cab["Content-Type"] = "application/json";
+      }
+      let r;
+      try {
+        r = await pedirRed(`${base2}${ruta}`, { method: p.metodo ?? "GET", headers: cab, body });
+      } catch (e) {
+        throw new ErrorServidor("red", e?.message || "Sin conexi\xF3n");
+      }
+      const texto2 = await r.text().catch(() => "");
+      let cuerpo = null;
+      try {
+        cuerpo = texto2 ? JSON.parse(texto2) : null;
+      } catch {
+        cuerpo = null;
+      }
+      return { status: r.status, cuerpo, texto: texto2 };
+    }
+    function aSesion(c, correo) {
+      const u = c.user ?? {};
+      const caduca = Number(c.expires_at) || ahora3() + Number(c.expires_in ?? 3600);
+      return { token: String(c.access_token), renovar: String(c.refresh_token), caduca, usuarioId: String(u.id ?? sesion?.usuarioId ?? ""), correo: String(u.email ?? correo) };
+    }
+    async function renovar() {
+      if (!sesion) throw new ErrorServidor("sin_sesion", "No has entrado en Vidaire.");
+      if (!renovando) {
+        const actual = sesion;
+        renovando = (async () => {
+          const r = await bruto("/auth/v1/token?grant_type=refresh_token", { metodo: "POST", cuerpo: { refresh_token: actual.renovar }, sinSesion: true });
+          if (r.status >= 200 && r.status < 300 && r.cuerpo) {
+            poner(aSesion(r.cuerpo, actual.correo));
+            return;
+          }
+          const e = fallo(r.status, r.cuerpo, r.texto);
+          if (!e.esDeRed) {
+            poner(null);
+            throw new ErrorServidor("sin_sesion", "La sesi\xF3n de Vidaire ha caducado: vuelve a entrar.");
+          }
+          throw e;
+        })().finally(() => {
+          renovando = null;
+        });
+      }
+      return renovando;
+    }
+    async function pedir(ruta, p = {}) {
+      if (!sesion) throw new ErrorServidor("sin_sesion", "No has entrado en Vidaire.");
+      if (sesion.caduca - 60 <= ahora3()) await renovar();
+      let r = await bruto(ruta, p);
+      if (r.status === 401 || r.cuerpo?.code === "PGRST301") {
+        await renovar();
+        r = await bruto(ruta, p);
+      }
+      if (r.status >= 200 && r.status < 300) return r.cuerpo;
+      throw fallo(r.status, r.cuerpo, r.texto);
+    }
+    async function entrar(correo, clave) {
+      const r = await bruto("/auth/v1/token?grant_type=password", { metodo: "POST", cuerpo: { email: correo.trim(), password: clave }, sinSesion: true });
+      if (r.status >= 200 && r.status < 300 && r.cuerpo) {
+        const s = aSesion(r.cuerpo, correo.trim());
+        poner(s);
+        return s;
+      }
+      const e = fallo(r.status, r.cuerpo, r.texto);
+      if (e.esDeRed) throw e;
+      const c = r.cuerpo ?? {};
+      if (c.error_code === "invalid_credentials" || c.error === "invalid_grant" || r.status === 400) throw new ErrorServidor("credenciales", "El correo o la contrase\xF1a no son correctos.");
+      if (c.error_code === "email_not_confirmed") throw new ErrorServidor("sin_confirmar", "A\xFAn no has confirmado tu correo: mira el enlace que te mand\xF3 Vidaire.");
+      throw e;
+    }
+    async function salir() {
+      const s = sesion;
+      poner(null);
+      if (!s) return;
+      try {
+        await pedirRed(`${base2}/auth/v1/logout`, { method: "POST", headers: { apikey: cfg.clave, Authorization: `Bearer ${s.token}` } });
+      } catch {
+      }
+    }
+    const q = encodeURIComponent;
+    const lista = (xs) => `(${xs.map((x) => /[,()"\s]/.test(x) ? `"${x.replace(/"/g, '\\"')}"` : x).join(",")})`;
+    const una = (d) => Array.isArray(d) ? d[0] ?? null : d;
+    const VERSION = "select=version,actualizado_en";
+    const servidor = {
+      async bajar(t, c) {
+        const cols = ["id", ...t.columnas, "version", "actualizado_en", "borrado_en"].join(",");
+        const a = t.alcance;
+        const sel = a.tipo === "hijo" ? `${cols},${a.padre}!inner(${a.padre === "plantillas_prueba" ? "estado" : "edificio_id"})` : cols;
+        const f = [`select=${q(sel)}`, "order=actualizado_en.asc,id.asc", `limit=${c.limite}`];
+        if (c.desde) f.push(`actualizado_en=gt.${q(c.desde)}`);
+        if (a.tipo === "global") {
+          if (a.filtro === "usuario") f.push(`${t.nombre === "perfiles" ? "id" : "usuario_id"}=eq.${q(c.usuarioId)}`);
+          if (a.filtro === "tecnico") f.push(`tecnico_id=eq.${q(c.usuarioId)}`);
+          if (a.filtro === "publicadas") f.push(`estado=in.${q(lista(["publicada", "retirada"]))}`);
+        } else if (a.tipo === "edificio") {
+          f.push(`${a.columna}=eq.${q(c.edificio)}`);
+          if (c.fechaMinima && a.columnaFecha) f.push(`${a.columnaFecha}=gte.${q(c.fechaMinima)}`);
+        } else if (a.padre === "plantillas_prueba") {
+          f.push(`${a.padre}.estado=in.${q(lista(["publicada", "retirada"]))}`);
+        } else {
+          f.push(`${a.padre}.edificio_id=eq.${q(c.edificio)}`);
+        }
+        const filas = await pedir(`/rest/v1/${t.nombre}?${f.join("&")}`) ?? [];
+        return filas.map((x) => {
+          if (a.tipo === "hijo") delete x[a.padre];
+          return x;
+        });
+      },
+      async upsert(tabla2, fila2) {
+        const d = una(await pedir(`/rest/v1/${tabla2}?${VERSION}`, { metodo: "POST", cuerpo: fila2, cabeceras: { Prefer: "resolution=merge-duplicates,return=representation" } }));
+        if (!d) throw new ErrorServidor("PT403", "No tienes permiso para guardar esta fila.");
+        return d;
+      },
+      async actualizar(tabla2, id, cambios, version) {
+        const d = una(await pedir(`/rest/v1/${tabla2}?id=eq.${q(id)}&${VERSION}`, { metodo: "PATCH", cuerpo: { ...cambios, version }, cabeceras: { Prefer: "return=representation" } }));
+        if (!d) throw new ErrorServidor("PT403", "No tienes permiso para cambiar esta fila o ya no la ves.");
+        return d;
+      },
+      async leer(tabla2, id) {
+        return una(await pedir(`/rest/v1/${tabla2}?select=*&id=eq.${q(id)}`));
+      },
+      async subirIntervencion(p) {
+        await pedir("/rest/v1/rpc/subir_intervencion", { metodo: "POST", cuerpo: { p } });
+      },
+      async subirFichero(ruta, datos, mime) {
+        try {
+          await pedir(`/storage/v1/object/registro/${ruta.split("/").map(q).join("/")}`, { metodo: "POST", bytes: datos, mime, cabeceras: { "x-upsert": "false" } });
+        } catch (e) {
+          const x = e;
+          if (x.codigo === "409" || /already exists|Duplicate/i.test(x.message)) return;
+          throw e;
+        }
+      },
+      async edificiosDeTrabajo(usuarioId) {
+        const ruta = await pedir("/rest/v1/rpc/sync_ruta", { metodo: "POST", cuerpo: {} }) ?? [];
+        const ids = new Set(ruta.map((x) => typeof x === "string" ? x : x.sync_ruta));
+        const mias = await pedir(`/rest/v1/miembros?select=organizacion_id&usuario_id=eq.${q(usuarioId)}&activo=eq.true`) ?? [];
+        const orgs = mias.map((m) => m.organizacion_id);
+        if (orgs.length) {
+          const obras = await pedir(`/rest/v1/proyecto_participantes?select=${q("proyectos_cx!inner(edificio_id)")}&organizacion_id=in.${q(lista(orgs))}&estado=eq.vigente`) ?? [];
+          for (const o of obras) {
+            for (const x of Array.isArray(o.proyectos_cx) ? o.proyectos_cx : [o.proyectos_cx]) ids.add(x.edificio_id);
+          }
+        }
+        return [...ids];
+      }
+    };
+    return { entrar, salir, renovar, pedir, servidor, sesion: () => sesion };
+  }
+
+  // cxobra/mantenimiento/fuente/datos/cuenta.ts
+  async function deducirIdentidad(base2, usuarioId, correo) {
+    const perfil = await base2.una("select nombre_completo from perfiles where id = ?", [usuarioId]);
+    const orgs = await base2.todas(
+      `select o.id, o.tipos from organizaciones o join miembros m on m.organizacion_id = o.id where m.usuario_id = ? and coalesce(m.activo, 1) = 1 order by o.nombre`,
+      [usuarioId]
+    );
+    const mant = orgs.find((o) => o.tipos?.includes("mantenedora")) ?? orgs[0];
+    return { usuarioId, nombre: perfil?.nombre_completo || correo, organizacionId: mant?.id ?? "", correo };
+  }
+  function crearCuenta(o) {
+    let identidad = null;
+    let sincronizando = null;
+    let ultima = null;
+    let sinRed = false;
+    let error = null;
+    const laBase = () => {
+      const b = o.base();
+      if (!b) throw new Error("El modo Mantenimiento a\xFAn no est\xE1 abierto.");
+      return b;
+    };
+    async function estado() {
+      const b = o.base();
+      const p = b ? await pendientes(b) : { porEnviar: 0, rechazados: 0 };
+      const c = b ? await b.una("select count(*) as n from conflictos") : null;
+      const s = o.nube.sesion();
+      return { conectado: Boolean(s), correo: s?.correo ?? null, sincronizando: Boolean(sincronizando), ultima, sinRed, error, ...p, conflictos: c?.n ?? 0 };
+    }
+    async function avisar(r) {
+      if (o.alCambiar) o.alCambiar(await estado(), r);
+    }
+    async function recuperar() {
+      const s = o.nube.sesion();
+      if (!s) {
+        identidad = null;
+        return null;
+      }
+      const b = laBase();
+      const usuario = await leerAjuste(b, "usuario");
+      if (usuario !== s.usuarioId) {
+        identidad = null;
+        return null;
+      }
+      ultima = await leerAjuste(b, "ultima_vuelta");
+      identidad = await deducirIdentidad(b, s.usuarioId, s.correo);
+      return identidad;
+    }
+    function sincronizar() {
+      if (sincronizando) return sincronizando;
+      const s = o.nube.sesion();
+      const b = o.base();
+      if (!s || !b) return Promise.resolve(null);
+      sincronizando = (async () => {
+        void avisar();
+        const r = { subidos: 0, rechazados: 0, conflictos: 0, filas: 0, sinRed: false };
+        try {
+          const sub = await subir(b, o.nube.servidor, o.leerFichero);
+          Object.assign(r, { subidos: sub.subidos, rechazados: sub.rechazados, conflictos: sub.conflictos, sinRed: sub.sinRed });
+          if (!sub.sinRed) {
+            const baj = await bajar(b, o.nube.servidor, s.usuarioId, o.hoy());
+            r.filas = baj.filas;
+            ultima = (/* @__PURE__ */ new Date()).toISOString();
+            await guardarAjuste(b, "ultima_vuelta", ultima);
+          }
+          sinRed = r.sinRed;
+          error = !o.nube.sesion() ? "La sesi\xF3n de Vidaire ha caducado: vuelve a entrar." : null;
+          identidad = await deducirIdentidad(b, s.usuarioId, s.correo);
+        } catch (e) {
+          const x = e;
+          sinRed = Boolean(x.esDeRed);
+          r.sinRed = sinRed;
+          error = sinRed && x.codigo !== "sin_sesion" ? null : x.message;
+        }
+        return r;
+      })().finally(() => {
+        sincronizando = null;
+      });
+      return sincronizando.then(async (r) => {
+        await avisar(r ?? void 0);
+        return r;
+      });
+    }
+    async function entrar(correo, clave) {
+      const b = laBase();
+      const anterior = await leerAjuste(b, "usuario");
+      const s = await o.nube.entrar(correo, clave);
+      if (anterior !== s.usuarioId) {
+        if (anterior && (await pendientes(b)).porEnviar > 0) {
+          await o.nube.salir();
+          throw new ErrorServidor("otro_usuario", "En este m\xF3vil hay cambios de otro t\xE9cnico que a\xFAn no han llegado a Vidaire. Que entre \xE9l y los env\xEDe antes.");
+        }
+        await o.vaciar();
+        const nueva = laBase();
+        await guardarAjuste(nueva, "usuario", s.usuarioId);
+      }
+      await guardarAjuste(laBase(), "correo", s.correo);
+      error = null;
+      identidad = await deducirIdentidad(laBase(), s.usuarioId, s.correo);
+      await sincronizar();
+      return identidad;
+    }
+    async function salir(forzar = false) {
+      const b = o.base();
+      if (b && !forzar && (await pendientes(b)).porEnviar > 0) {
+        throw new ErrorServidor("pendientes", "Hay cambios sin enviar a Vidaire. Si sales ahora, se pierden.");
+      }
+      await o.nube.salir();
+      await o.vaciar();
+      identidad = null;
+      ultima = null;
+      sinRed = false;
+      error = null;
+      await avisar();
+    }
+    async function rechazados() {
+      const b = o.base();
+      if (!b) return [];
+      return b.todas(`select tabla, coalesce(mensaje, '') as mensaje from cola where estado = 'rechazado' order by n`);
+    }
+    return { entrar, salir, sincronizar, recuperar, estado, rechazados, identidad: () => identidad };
+  }
+
+  // cxobra/mantenimiento/vidaire-publico.json
+  var vidaire_publico_default = {
+    url: "https://kuctmrwyejbzokmudroe.supabase.co",
+    publishableKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1Y3Rtcnd5ZWpiem9rbXVkcm9lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1MDY2ODYsImV4cCI6MjEwNjA4MjY4Nn0.Wdpx_549-Mrt-J7NhRcG_YCkciruU45b5gZBxNddc8M"
+  };
+
   // cxobra/mantenimiento/fuente/motor.ts
+  var SIN_NUBE = Boolean(false);
   var base = null;
+  var CLAVE_SESION = "vidaire.mant.sesion";
+  function sesionGuardada() {
+    try {
+      return JSON.parse(localStorage.getItem(CLAVE_SESION) ?? "null");
+    } catch {
+      return null;
+    }
+  }
+  var nube = crearNube({
+    url: vidaire_publico_default.url,
+    clave: vidaire_publico_default.publishableKey,
+    sesion: SIN_NUBE ? null : sesionGuardada(),
+    alCambiarSesion: (s) => {
+      try {
+        if (s) localStorage.setItem(CLAVE_SESION, JSON.stringify(s));
+        else localStorage.removeItem(CLAVE_SESION);
+      } catch {
+      }
+    }
+  });
+  var leerFichero = async (f) => {
+    if (f.contenido !== null) return new TextEncoder().encode(f.contenido);
+    const r = await fetch(f.uri);
+    return new Uint8Array(await r.arrayBuffer());
+  };
+  var cuenta = crearCuenta({
+    base: () => base,
+    nube,
+    vaciar: async () => {
+      if (base) await base.vaciar();
+    },
+    leerFichero,
+    hoy: () => hoyLocal(),
+    alCambiar: (e, r) => {
+      try {
+        globalThis.dispatchEvent(new CustomEvent("vidaire:mant-sync", { detail: { estado: e, vuelta: r ?? null } }));
+      } catch {
+      }
+    }
+  });
+  var reloj = null;
+  function vigilar() {
+    if (reloj || SIN_NUBE) return;
+    reloj = setInterval(() => {
+      if (nube.sesion()) void cuenta.sincronizar();
+    }, 3e4);
+    globalThis.addEventListener?.("online", () => {
+      if (nube.sesion()) void cuenta.sincronizar();
+    });
+    globalThis.document?.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && nube.sesion()) void cuenta.sincronizar();
+    });
+  }
   async function iniciar(urlWasm) {
-    if (!base) base = await abrirBaseWasm(urlWasm);
+    if (!base) {
+      base = await abrirBaseWasm(urlWasm);
+      if (nube.sesion()) {
+        await cuenta.recuperar();
+        void cuenta.sincronizar();
+      }
+      vigilar();
+    }
     return base;
   }
   function hoyLocal() {
@@ -5609,6 +6225,8 @@ create table if not exists ajustes (
   }
   function contexto() {
     if (!base) throw new Error("El modo Mantenimiento a\xFAn no est\xE1 abierto.");
+    const yo = cuenta.identidad();
+    if (yo) return { base, usuarioId: yo.usuarioId, usuarioNombre: yo.nombre, organizacionId: yo.organizacionId, hoy: hoyLocal() };
     return { base, usuarioId: DEMO_USUARIO.id, usuarioNombre: DEMO_USUARIO.nombre, organizacionId: DEMO_USUARIO.organizacionId, hoy: hoyLocal() };
   }
   async function hayDatos() {
@@ -5618,6 +6236,7 @@ create table if not exists ajustes (
   }
   async function ejemplo() {
     if (!base) throw new Error("El modo Mantenimiento a\xFAn no est\xE1 abierto.");
+    if (nube.sesion()) throw new Error("Has entrado en Vidaire: los datos de ejemplo se mezclar\xEDan con los tuyos.");
     await cargarDemo(base, hoyLocal());
   }
   async function vaciar() {
@@ -5631,6 +6250,8 @@ create table if not exists ajustes (
     vaciar,
     hoyLocal,
     uuid: uuidv7,
+    /* La cuenta de Vidaire: entrar, salir, sincronizar, estado… (cuenta.ts). */
+    nube: { ...cuenta, hay: !SIN_NUBE },
     mant: mantenimiento_exports,
     inc: incidencias_exports,
     reglas: reglas_exports,

@@ -318,7 +318,7 @@ function repercusionHtml(parte, tot) {
 }
 
 /*
- * La firma de arriba del documento. En el escritorio (CBRE Project 360) es la
+ * La firma de arriba del documento. En el escritorio (Vidaire Obras) es la
  * de CBRE; en Vidaire Cx, la app del teléfono que va a la App Store sin marca
  * ajena, la suya. Vidaire Cx lo dice al arrancar con globalThis.CX_VARIANTE.
  */
@@ -329,7 +329,10 @@ const marcaDocumento = () => (globalThis.CX_VARIANTE === 'cxobra' ? 'Vidaire Cx'
  * coste de cada cosa y el total): la copia para el jefe de obra. Sin él, la
  * que puede ver cualquiera (la aseguradora, la denuncia, la subcontrata).
  */
-function html({ parte = {}, lineas = [], obra = {}, emisor = {}, proveedor = null, fotos = [], conDinero = false, hoy } = {}) {
+function html({ parte = {}, lineas = [], obra = {}, emisor = {}, proveedor = null, fotos = [], conDinero = false, hoy, comentarios = [] } = {}) {
+  /* La conversación, la misma de las incidencias y las NCR (se busca aquí para no atar este fichero al bundle móvil). */
+  const CV = typeof require !== 'undefined' ? require('../conversacion/motor') : window.CONVERSACION_FICHA;
+  const vigente = parte.resultadoVigente && CV.RESULTADOS[parte.resultadoVigente.resultado] ? CV.RESULTADOS[parte.resultadoVigente.resultado].nombre : '';
   const t = TIPOS[parte.tipo] || { nombre: parte.tipo };
   const dato = (que, valor) => (llano(valor) ? `<div><dt>${esc(que)}</dt><dd>${esc(valor)}</dd></div>` : '');
   const tot = totales(lineas);
@@ -367,9 +370,12 @@ function html({ parte = {}, lineas = [], obra = {}, emisor = {}, proveedor = nul
     ${proveedor ? dato(parte.tipo === 'danos' ? 'Causante' : 'Subcontrata', proveedor) : ''}
     ${dato('Lo da', [emisor.nombre, emisor.rol].filter(Boolean).join(', '))}
     ${dato('Estado', (ESTADOS[parte.estado] || {}).nombre)}
+    ${dato('Reparación', vigente)}
   </dl>
 
   ${llano(parte.descripcion) ? `<section class="relato"><h2>Lo que ha pasado</h2><p>${esc(parte.descripcion).replace(/\n/g, '<br>')}</p></section>` : ''}
+
+  ${CV.papel(comentarios, { estilo: 'parte', resultados: Object.fromEntries(Object.entries(CV.RESULTADOS).map(([k, v]) => [k, v.nombre])) })}
 
   ${lineas.length ? `<section>
     <h2>${parte.tipo === 'robo' ? 'Lo que se han llevado' : 'Lo que se ha roto'}</h2>

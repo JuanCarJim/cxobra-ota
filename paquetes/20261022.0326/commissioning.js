@@ -271,7 +271,34 @@
         ${pideEst ? fila('Estanqueidad', `<strong>${esc(nombreEstado(est))}</strong>`) : ''}
         ${fila('Puesta en marcha', `<strong>${esc(k.estadoPM ? nombreEstado(k.estadoPM) : '—')}</strong>`)}
       </section>
-      ${(k.incidencias || []).length ? `<p class="nota aviso">${esc(k.incidencias.map((i) => INCIDENCIA[i] || i).join(' · '))}</p>` : ''}`;
+      ${htmlIncidenciasEquipo(k.incidencias || [])}`;
+  }
+
+  /*
+   * «MODELO SIN DAR DE ALTA» CON ACCIÓN (revisión UX 18-oct, 4): el aviso
+   * decía el problema y no quién lo arregla. Lo da de alta la oficina, en el
+   * ordenador (Commissioning › «Dar de alta los modelos que faltan»); desde
+   * aquí se le avisa con un parte de incidencia ya relleno con el equipo.
+   */
+  function htmlIncidenciasEquipo(inc) {
+    if (!inc.length) return '';
+    const resto = inc.filter((i) => i !== 'modeloSinAlta');
+    return `${resto.length ? `<p class="nota aviso">${esc(resto.map((i) => INCIDENCIA[i] || i).join(' · '))}</p>` : ''}
+      ${inc.includes('modeloSinAlta') ? `<p class="nota aviso">${INCIDENCIA.modeloSinAlta}: lo da de alta la oficina en el ordenador (Commissioning › «Dar de alta los modelos que faltan»). <button class="enlace" data-cx="avisar-modelo">Avisar con un parte</button></p>` : ''}`;
+  }
+  function avisarModelo() {
+    const e = ficha && ficha.equipo;
+    if (!e) return;
+    const modelo = [e.marca, e.modelo].filter(Boolean).join(' ') || 'sin marca ni modelo en la lista';
+    const prefill = {
+      tipo: 'otros',
+      titulo: `Dar de alta el modelo ${modelo}`.slice(0, 120),
+      descripcion: `El equipo ${e.tag || ''}${e.planta ? ` (${e.planta})` : ''} es ${modelo} y ese modelo no está dado de alta en Commissioning: no se le puede enlazar la ficha técnica, el CE ni el manual. Hay que darlo de alta en el ordenador (Commissioning › «Dar de alta los modelos que faltan»).`,
+      gravedad: 'baja',
+    };
+    try { sessionStorage.setItem('partes.prefill', JSON.stringify(prefill)); } catch { /* sin almacén */ }
+    if (C.hacer) C.hacer({ seccion: 'partes', pasos: ['[data-pi="nuevo"]'] });
+    else location.hash = 'partes';
   }
 
   /*
@@ -327,8 +354,10 @@
     if (seg) seg.hidden = true;
     const med = f.medicion || {};
     /* Impulsión | Retorno (16-oct-2026, JC): dos botones arriba y la lista
-       de bocas, y las marcas del plano, solo del circuito elegido. Si el
-       equipo solo tiene un circuito, no hay botones y sale todo. */
+       de bocas solo del circuito elegido. Si el equipo solo tiene un
+       circuito, no hay botones y sale todo. El plano, en cambio, enseña
+       siempre todas (19-oct-2026, JC: «Faltan las rejas de retorno»): las
+       del otro circuito, apagadas; tocar una cambia de circuito y la abre. */
     const todas = f.planos.flatMap((p) => p.bocas);
     const nRet = todas.filter(esRetorno).length;
     const hayDos = nRet > 0 && nRet < todas.length;
@@ -336,7 +365,7 @@
     const delCircuito = (b) => !circ || (circ === 'retorno') === esRetorno(b);
     const nombreRet = med.retorno || 'Retorno';
     const cuenta = (ret) => { const bs = todas.filter((b) => esRetorno(b) === ret); return `${bs.filter((b) => b.caudal !== null && b.caudal !== undefined).length}/${bs.length}`; };
-    const planosVistos = f.planos.map((p) => ({ ...p, bocas: p.bocas.filter(delCircuito) })).filter((p) => p.bocas.length);
+    const planosVistos = f.planos.map((p) => ({ ...p, todas: p.bocas, bocas: p.bocas.filter(delCircuito) })).filter((p) => p.bocas.length);
     const balanceo = () => `
       ${hayDos ? `<div class="segmentado circuito-bal" role="tablist" aria-label="Circuito">${[['impulsion', 'Impulsión', cuenta(false)], ['retorno', nombreRet, cuenta(true)]]
         .map(([id, n, c]) => `<button role="tab" data-cx="circuito-bal" data-circuito="${id}" aria-selected="${circ === id}" class="${circ === id ? 'activa' : ''}">${esc(n)} <small>${c}</small></button>`).join('')}</div>` : ''}
@@ -345,7 +374,7 @@
       ${med.velocidad ? `<p class="nota">Una medida por boca, con el equipo a velocidad ${esc(med.velocidad)}.</p>` : ''}
       ${f.planos.length ? planosVistos.map((p) => `
         <h2>${esc(p.nombre)} <span class="cuenta">${p.bocas.length} boca${p.bocas.length === 1 ? '' : 's'}${circ ? ` de ${circ === 'retorno' ? esc(nombreRet.toLowerCase()) : 'impulsión'}` : ''}</span></h2>
-        ${htmlPlano(p)}
+        ${htmlPlano(p, circ ? delCircuito : null)}
         <ul class="bocas">${p.bocas.map((b) => htmlBoca(p, b, puede, f.tolerancias)).join('')}</ul>`).join('') : sinPlano()}
       ${puede || !f.planos.length ? '' : '<p class="nota">Tu rol puede ver las medidas, pero no tomarlas.</p>'}
       ${f.planos.length ? '<button class="boton secundario" data-cx="pdf-balanceo"><i class="ic ic-doc"></i>Informe del balanceo (PDF)</button>' : ''}
@@ -380,14 +409,14 @@
   /* La forma de su tipo de difusor o reja (shared/commissioning/simbolosBoca.js). */
   const simbolo = (b) => (window.SIMBOLOS_BOCA ? window.SIMBOLOS_BOCA.svg(b.tipoId, { titulo: b.tipo || '' }) : '');
 
-  function htmlPlano(p) {
-    const conSitio = p.bocas.filter((b) => b.x !== null && b.x !== undefined && b.y !== null && b.y !== undefined);
+  function htmlPlano(p, delCircuito) {
+    const conSitio = (p.todas || p.bocas).filter((b) => b.x !== null && b.x !== undefined && b.y !== null && b.y !== undefined);
     if (!p.imagen || !conSitio.length) return '';
     return `<figure class="plano-bocas" data-plano-fig="${esc(p.id)}">
       <div class="plano-marco"><div class="plano-lienzo">
         <img data-src="api/equipo/plano?id=${encodeURIComponent(p.id)}" alt="Plano ${esc(p.nombre)}">
-        ${conSitio.map((b) => `<button class="marca-boca ${claseMarca(b.estado)}${b.circuito === 'retorno' ? ' ret' : ''}" style="left:${(b.x * 100).toFixed(2)}%;top:${(b.y * 100).toFixed(2)}%"
-          data-cx="ir-boca" data-boca="${esc(claveBoca(p.id, b.id))}" aria-label="Ir a la boca ${esc(b.nombre)}">${simbolo(b)}<span class="rotulo-boca">${esc(b.nombre)}</span></button>`).join('')}
+        ${conSitio.map((b) => { const otro = delCircuito && !delCircuito(b); return `<button class="marca-boca ${claseMarca(b.estado)}${esRetorno(b) ? ' ret' : ''}${otro ? ' otro-circuito' : ''}" style="left:${(b.x * 100).toFixed(2)}%;top:${(b.y * 100).toFixed(2)}%"
+          data-cx="ir-boca" data-boca="${esc(claveBoca(p.id, b.id))}"${otro ? ` data-circuito="${esRetorno(b) ? 'retorno' : 'impulsion'}"` : ''} aria-label="Ir a la boca ${esc(b.nombre)}">${simbolo(b)}<span class="rotulo-boca">${esc(b.nombre)}</span></button>`; }).join('')}
       </div></div>
       <figcaption><span class="leyenda"><i class="neutra"></i>Sin medir <i class="bien"></i>Dentro <i class="mal"></i>Fuera</span>
         <span class="zoom-botones"><button class="enlace" data-cx="zoom-menos" aria-label="Alejar">−</button><button class="enlace" data-cx="zoom-mas" aria-label="Acercar">+</button>
@@ -1212,6 +1241,34 @@
   }
   const estadoGuardar = (h) => `<span class="estado-guardar ${h.cambiada ? 'pendiente' : 'al-dia'}">${h.cambiada ? 'Cambios sin guardar' : 'Todo guardado'}</span>`;
 
+  /*
+   * «LO QUE FALTA» CON LA MISMA CUENTA QUE LA PASTILLA (revisión UX 18-oct, 5):
+   * la pastilla de arriba dice «0/42» (medidas obligatorias) y esta lista decía
+   * 44, porque metía la fecha y el «realizado por». Ahora se separan: primero
+   * los datos (que se resuelven aquí mismo) y luego las medidas, que en una
+   * hoja por apartados no se listan una a una («Respuesta 3.5» × 40) sino por
+   * apartado, con un enlace que lleva a él.
+   */
+  function htmlLoQueFalta(f, pasos, vistos) {
+    if (!f.faltan.length) return '';
+    const datos = f.faltanDatos || [];
+    const medidasLista = f.faltan.filter((x) => !datos.includes(x));
+    const medidas = f.medidos ? Math.max(0, f.medidos.obligatorios - f.medidos.rellenos) : medidasLista.length;
+    const partes = [];
+    if (medidas) partes.push(`${medidas} medida${medidas === 1 ? '' : 's'}`);
+    if (datos.length) partes.push(`${datos.length} dato${datos.length === 1 ? '' : 's'}`);
+    if (!partes.length) return '';
+    let liMedidas = '';
+    const pendientes = pasos && medidas ? pasos.map((p, i) => [p, i, cuentaPaso(p)]).filter(([, , [h, de]]) => h < de) : [];
+    if (pendientes.length) {
+      liMedidas = pendientes.map(([p, i, [h, de]]) => `<li><button class="enlace" data-cx="paso-hoja" data-ir="${i}">${esc(p.titulo)}</button> <span class="tenue">${de - h} de ${de}</span></li>`).join('');
+    } else if (medidas) {
+      liMedidas = medidasLista.slice(0, vistos).map((x) => `<li>${esc(x)}</li>`).join('') + (medidasLista.length > vistos ? `<li class="tenue">y ${medidasLista.length - vistos} más</li>` : '');
+    }
+    return `<h3 class="banda">Lo que falta <span class="tenue">${partes.join(' · ')}</span></h3>
+      <ul class="faltan-hoja">${datos.map((x) => `<li>${esc(x)}</li>`).join('')}${liMedidas}</ul>`;
+  }
+
   function pintarHoja() {
     const h = hoja;
     const f = h.f;
@@ -1261,9 +1318,7 @@
         <button class="boton secundario" data-cx="foto" data-camara="1"><i class="ic ic-camara"></i>Hacer foto</button>
         <button class="boton secundario" data-cx="foto" data-camara="0">De la galería</button>
       </div>` : ''}
-      ${f.faltan.length ? `<h3 class="banda">Lo que falta <span class="tenue">${f.faltan.length}</span></h3>
-        ${porPasos ? '<p class="nota">En la barra de arriba, cada apartado dice cuántos obligatorios lleva.</p>' : ''}
-        <ul class="faltan-hoja">${f.faltan.slice(0, FALTAN_VISTOS).map((x) => `<li>${esc(x)}</li>`).join('')}${f.faltan.length > FALTAN_VISTOS ? `<li class="tenue">y ${f.faltan.length - FALTAN_VISTOS} más</li>` : ''}</ul>` : ''}
+      ${htmlLoQueFalta(f, porPasos ? pasos : null, FALTAN_VISTOS)}
       ${f.avisos.length ? `<p class="nota aviso">${esc(f.avisos.join(' · '))}</p>` : ''}
       <div class="barra-hoja">
         <button class="boton grande secundario" data-cx="pdf-hoja"><i class="ic ic-doc"></i>Informe PDF</button>
@@ -1408,7 +1463,11 @@
     else if (que === 'equipo-medida-todo' && ficha) cambiarEquipo(b, true);
     else if (que === 'lectura' && ficha) cambiarEquipo(b, false);
     else if (que === 'lectura-todo' && ficha) cambiarEquipo(b, true);
-    else if (que === 'ir-boca' && ficha) irABoca(b.dataset.boca);
+    else if (que === 'ir-boca' && ficha) {
+      /* Una boca del otro circuito: se cambia de circuito y se abre. */
+      if (b.dataset.circuito && b.dataset.circuito !== circuitoBal) { cerrarHojaBoca(); circuitoBal = b.dataset.circuito; pintarFicha(); }
+      irABoca(b.dataset.boca);
+    }
     else if (que === 'plano-grande' && ficha) planoGrande(b);
     else if (que === 'circuito-bal' && ficha) {
       if (circuitoBal === b.dataset.circuito) return;
@@ -1422,6 +1481,7 @@
     else if (que === 'cerrar-boca' && ficha) cerrarHojaBoca();
     else if (que === 'boca-siguiente' && ficha) bocaVecina(1);
     else if (que === 'boca-anterior' && ficha) bocaVecina(-1);
+    else if (que === 'avisar-modelo') avisarModelo();
     else if (que === 'foto-equipo') fotoEquipo(b);
     else if (que === 'quitar-foto-equipo') quitarFotoEquipo(b);
     else if (que === 'nube-ahora' && window.cxObra && window.cxObra.sync) { b.disabled = true; window.cxObra.sync.ahora().finally(() => { if (ficha) abrir(ficha.equipo.id, { quieto: true }); }); }
@@ -1440,7 +1500,32 @@
     for (const x of b.parentElement.children) x.className = '';
     if (nuevo) b.className = b.parentElement.classList.contains('segmento') ? 'activa' : `activa ${nuevo === 'no' || nuevo === 'noOk' ? 'mal' : nuevo === 'na' ? 'neutra' : 'bien'}`;
     marcarCambiada();
+    if (nuevo) pasarSiCompleto();
   });
+  /*
+   * AVANZAR SOLO AL COMPLETAR EL APARTADO (revisión UX 18-oct, 2): en una hoja
+   * por apartados, cuando el toque que acaba de darse deja el apartado con
+   * todos sus obligatorios, se pasa al siguiente tras un momento, con un aviso
+   * que dice adónde. Solo con los toques Sí/No/N/A (no al escribir un número,
+   * que se sigue escribiendo) y nunca desde el último apartado ni hacia atrás.
+   */
+  let avanceHoja = null;
+  function pasarSiCompleto() {
+    if (!hoja || !hoja.pasos) return;
+    const i = hoja.paso || 0;
+    const paso = hoja.pasos[i];
+    if (!paso) return;
+    const [hechos, de] = cuentaPaso(paso);
+    if (!de || hechos < de) return;
+    const siguiente = hoja.pasos[i + 1] || { titulo: 'Cierre' };
+    clearTimeout(avanceHoja);
+    const h = hoja;
+    avanceHoja = setTimeout(() => {
+      if (hoja !== h || h.paso !== i) return;
+      irAPaso(i + 1);
+      C.aviso(`${paso.titulo} completo · ${siguiente.titulo}`, 'bien');
+    }, 450);
+  }
   $app.addEventListener('change', (ev) => { if (activa() && hoja) anotar(ev.target); });
   $app.addEventListener('input', (ev) => {
     if (activa() && hoja) { anotar(ev.target); return; }

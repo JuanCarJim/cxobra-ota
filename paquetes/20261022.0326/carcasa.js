@@ -11,8 +11,7 @@
  *   · INICIO es la primera pantalla al entrar: la obra, cómo va el
  *     commissioning y lo que espera (partes, NCR, pruebas), con atajos.
  *   · ARRIBA, si la pestaña tiene más de una sección, un selector segmentado:
- *     Commissioning = Equipos | Estanqueidad (la prueba es parte del
- *     commissioning); Incidencias = Partes | NCR | Reparaciones; Más = Notas (el bloc) |
+ *     Incidencias = Partes | NCR | Reparaciones; Más = Notas (el bloc) |
  *     Albaranes | Inventario | Personal | Cuenta.
  *   · LA OBRA se elige una vez en la cabecera y vale para todas las secciones
  *     (se guarda en el teléfono). Al cambiarla se avisa con «movil:obra».
@@ -38,7 +37,8 @@
     { id: 'commissioning', nombre: 'Commissioning',
       icono: icono('<path d="M4 15a8 8 0 1 1 16 0"/><path d="M12 15l4.5-4.5"/><circle cx="12" cy="15" r="1.4"/><path d="M4 19h16"/>',
         `<path d="M4 15a8 8 0 1 1 16 0z" fill="currentColor"/><path d="M12 15l4.5-4.5" ${HUECO}/><path d="M4 19h16"/>`),
-      secciones: [['commissioning', 'Equipos'], ['estanqueidad', 'Estanqueidad']] },
+      /* Sin subbarra (JC, 22-oct): Estanqueidad se abre desde Inicio y desde el «+», no como pestaña. */
+      secciones: [['commissioning', 'Equipos'], ['estanqueidad', 'Estanqueidad', true]] },
     { id: 'incidencias', nombre: 'Incidencias',
       icono: icono('<path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.5"/><circle cx="12" cy="17" r=".6" fill="currentColor"/>',
         `<path d="M12 3.5 2.8 19.5h18.4z" fill="currentColor"/><path d="M12 10v4" ${HUECO} stroke-width="2.2"/><path d="M12 16.9v.1" ${HUECO} stroke-width="2.4"/>`),
@@ -322,6 +322,9 @@
     activa: (s) => seccion() === s,
     abrirAnadir: () => abrirHoja(),
     volverAObra: () => { pintar(); },
+    /* Ir a otra sección y pulsar sus botones (los atajos del Inicio); también lo
+       usa Commissioning para abrir un parte ya relleno. */
+    hacer: (a) => hacer(a),
     cabeza, menu,
   };
 
@@ -413,10 +416,11 @@
       const boton = (p) => {
         const visibles = p.secciones.filter(([id]) => ok.has(id));
         if (!visibles.length) return '';
-        /* Al volver a una pestaña, la última sección que se usó en ella. */
-        let destino = visibles[0][0];
-        try { const u = localStorage.getItem(`movil.pestana.${p.id}`); if (u && visibles.some(([id]) => id === u)) destino = u; } catch { /* nada */ }
-        if (actual === p) destino = s;
+        /* Al volver a una pestaña, la última sección que se usó en ella (las sin subbarra, no). */
+        const propias = visibles.filter(([, , oculta]) => !oculta);
+        let destino = (propias[0] || visibles[0])[0];
+        try { const u = localStorage.getItem(`movil.pestana.${p.id}`); if (u && propias.some(([id]) => id === u)) destino = u; } catch { /* nada */ }
+        if (actual === p && propias.some(([id]) => id === s)) destino = s;
         return `<a href="#${destino}" class="pestana-${p.id}${actual === p ? ' activa' : ''}" ${actual === p ? 'aria-current="page"' : ''}>${p.icono}<span>${esc(p.nombre)}</span></a>`;
       };
       const centro = accionesDisponibles().length
@@ -429,7 +433,7 @@
     }
     const seg = document.getElementById('segmentos');
     if (seg) {
-      const visibles = actual ? actual.secciones.filter(([id]) => ok.has(id)) : [];
+      const visibles = actual ? actual.secciones.filter(([id, , oculta]) => ok.has(id) && !oculta) : [];
       seg.hidden = visibles.length < 2;
       seg.innerHTML = visibles.map(([id, nombre]) => `<a href="#${id}" class="${id === s ? 'activa' : ''}" ${id === s ? 'aria-current="page"' : ''}>${esc(nombre)}</a>`).join('');
     }
@@ -536,10 +540,43 @@
     if (n === -1) return `Ayer · ${corta}`;
     return `${DIAS_SEMANA[d.getDay()]} · ${corta}`;
   }
-  function loQueMeToca(plan) {
-    if (!plan || !plan.ok || !plan.sesiones || !plan.sesiones.length) return '';
-    const porDia = new Map();
-    for (const s of plan.sesiones) { if (!porDia.has(s.fecha)) porDia.set(s.fecha, []); porDia.get(s.fecha).push(s); }
+  /*
+   * 21-oct (JC): «Lo que me toca» enseña lo de HOY y lo vencido (tareas, visitas,
+   * mediciones y no conformidades de mis obras) y se pliega con un toque; queda
+   * recordado si estaba plegado. Filas densas, sin tarjetas.
+   */
+  const CLAVE_PLEGADO = 'cx.inicio.toca.plegado';
+  const estaPlegado = () => { try { return localStorage.getItem(CLAVE_PLEGADO) === '1'; } catch { return false; } };
+  const NOMBRE_TIPO = { tarea: 'Tarea', ncr: 'NC' };
+  function loQueMeToca(plan, dia) {
+    const planOk = plan && plan.ok;
+    const diaOk = dia && dia.ok;
+    if (!planOk && !diaOk) return '';
+    const hoy = planOk ? plan.hoy : dia.hoy;
+    const sesiones = planOk ? plan.sesiones : [];
+    const esMedicion = (s) => s.ambito === 'commissioning' && s.tarea === 'Medición de caudales';
+    const deHoy = sesiones.filter((s) => s.fecha <= hoy);
+    const items = diaOk ? dia.items : [];
+    const nVisitas = deHoy.filter((s) => !esMedicion(s)).length;
+    const nMed = deHoy.filter(esMedicion).length;
+    const nTareas = items.filter((i) => i.tipo === 'tarea').length;
+    const nNcr = items.filter((i) => i.tipo === 'ncr').length;
+    const nVenc = items.filter((i) => i.vencida).length + deHoy.filter((s) => s.fecha < hoy).length;
+    const resumen = [
+      nTareas && `${cifra(nTareas)} ${nTareas === 1 ? 'tarea' : 'tareas'}`,
+      nVisitas && `${cifra(nVisitas)} ${nVisitas === 1 ? 'visita' : 'visitas'}`,
+      nMed && `${cifra(nMed)} ${nMed === 1 ? 'medición' : 'mediciones'}`,
+      nNcr && `${cifra(nNcr)} NC`,
+    ].filter(Boolean).join(' · ') || 'Nada para hoy';
+    const varias = diaOk && dia.obras > 1;
+    const fila = (i) => {
+      const dentro = `<span class="toca-tipo">${NOMBRE_TIPO[i.tipo] || ''}</span>
+        <span class="toca-texto"><b>${esc(i.texto)}</b>${i.sub || varias ? `<small>${esc([varias ? i.obra : '', i.sub].filter(Boolean).join(' · '))}</small>` : ''}</span>
+        <span class="toca-fecha${i.vencida ? ' vencida' : ''}">${i.vencida ? esc(nombreDia(i.fecha, hoy)) : 'Hoy'}</span>`;
+      return i.abrir
+        ? `<a class="toca-fila" href="#${esc(i.abrir.seccion)}" data-ir-abrir="${esc(i.abrir.id)}">${dentro}</a>`
+        : `<div class="toca-fila">${dentro}</div>`;
+    };
     const linea = (i) => {
       const dentro = `<span class="plan-marca${i.hecho ? ' hecha' : ''}" aria-label="${i.hecho ? 'Hecho' : 'Pendiente'}">${i.hecho ? '✓' : ''}</span>
         <span class="plan-texto"><b>${esc(i.texto)}</b>${i.sub ? `<small>${esc(i.sub)}</small>` : ''}</span>`;
@@ -555,11 +592,26 @@
         ${s.notas ? `<p class="plan-detalle">${esc(s.notas)}</p>` : ''}
         ${s.items.map(linea).join('')}
       </div>`;
-    return `<h2 class="titulo-grupo">Lo que me toca</h2>${[...porDia].map(([fecha, ss]) => `
-      <section class="grupo plan-dia">
-        <div class="plan-cabeza"><b>${esc(nombreDia(fecha, plan.hoy))}</b>${fecha < plan.hoy ? '<span>sin terminar</span>' : ''}</div>
-        ${ss.map(sesionHtml).join('')}
-      </section>`).join('')}`;
+    const porDia = new Map();
+    for (const s of sesiones) { if (!porDia.has(s.fecha)) porDia.set(s.fecha, []); porDia.get(s.fecha).push(s); }
+    const plegado = estaPlegado();
+    return `<section class="grupo toca${plegado ? ' plegado' : ''}" data-toca>
+      <button type="button" class="toca-cabeza" data-toca-plegar aria-expanded="${plegado ? 'false' : 'true'}">
+        <span class="toca-flecha" aria-hidden="true">▾</span>
+        <b>Lo que me toca</b>
+        <span class="toca-resumen">${esc(resumen)}</span>
+        ${nVenc ? `<span class="toca-venc">${cifra(nVenc)} vencid${nVenc === 1 ? 'o' : 'os'}</span>` : ''}
+      </button>
+      <div class="toca-cuerpo"${plegado ? ' hidden' : ''}>
+        ${items.map(fila).join('')}
+        ${[...porDia].map(([fecha, ss]) => `
+        <div class="plan-dia">
+          <div class="plan-cabeza"><b>${esc(nombreDia(fecha, hoy))}</b>${fecha < hoy ? '<span>sin terminar</span>' : ''}</div>
+          ${ss.map(sesionHtml).join('')}
+        </div>`).join('')}
+        ${!items.length && !porDia.size ? '<p class="toca-vacio">Nada pendiente para hoy.</p>' : ''}
+      </div>
+    </section>`;
   }
 
   async function inicio() {
@@ -575,10 +627,11 @@
     const q = encodeURIComponent(o.id);
     const traer = (sec, ruta) => (ok.has(sec) ? pedir(ruta).catch(() => null) : Promise.resolve(null));
     const tocaPlan = ok.has('commissioning') || ok.has('reparaciones') || ok.has('ncr');
-    const [cx, pe, pi, ncr, rp, plan] = await Promise.all([
+    const [cx, pe, pi, ncr, rp, plan, dia] = await Promise.all([
       traer('commissioning', `api/commissioning?obra=${q}`), traer('estanqueidad', 'api/estanqueidad'),
       traer('partes', 'api/partes'), traer('ncr', `api/ncr?obra=${q}`), traer('reparaciones', `api/reparaciones?obra=${q}`),
       tocaPlan ? pedir(`api/mi-planificacion?obra=${q}`).catch(() => null) : null,
+      pedir('api/mi-dia').catch(() => null),
     ]);
     if (seccion() !== 'inicio' || window.CX.obraId() !== o.id) return;
     // Como la lista de Commissioning: si hay conjuntos (split = UE + UI), se cuenta por conjunto.
@@ -610,7 +663,7 @@
           <select data-inicio-obra aria-label="Obra">${obras.map((x) => `<option value="${esc(x.id)}" ${x.id === o.id ? 'selected' : ''}>${esc(x.codigo)} · ${esc(x.nombre)}</option>`).join('')}</select>
         </label>
       </section>
-      ${loQueMeToca(plan)}
+      ${loQueMeToca(plan, dia)}
       ${t ? `
       <h2 class="titulo-grupo">Commissioning</h2>
       <section class="grupo inicio-avance">
@@ -633,6 +686,17 @@
       </section>`;
     /* Sin botón «Añadir…»: ya está el + de la barra (15-oct, JC). */
     /* Una línea de «Lo que me toca» abre su ficha: el módulo lo recoge al cargar. */
+    const toca = app.querySelector('[data-toca]');
+    if (toca) {
+      const cab = toca.querySelector('[data-toca-plegar]');
+      cab.onclick = () => {
+        const plegar = !toca.classList.contains('plegado');
+        toca.classList.toggle('plegado', plegar);
+        toca.querySelector('.toca-cuerpo').hidden = plegar;
+        cab.setAttribute('aria-expanded', plegar ? 'false' : 'true');
+        try { localStorage.setItem(CLAVE_PLEGADO, plegar ? '1' : '0'); } catch { /* nada */ }
+      };
+    }
     for (const a of app.querySelectorAll('[data-ir-abrir]')) a.onclick = () => { try { sessionStorage.setItem('cx.abrir', a.dataset.irAbrir); } catch { /* nada */ } };
     for (const a of app.querySelectorAll('[data-ir-seg]')) a.onclick = () => { try { sessionStorage.setItem('cx.segmento', a.dataset.irSeg); } catch { /* nada */ } };
   }
