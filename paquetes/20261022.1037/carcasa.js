@@ -654,17 +654,20 @@
     const fila = (href, nombre, valor, aviso) => `<a class="fila-dato${aviso ? ' aviso' : ''}" href="#${href}"><span>${esc(nombre)}</span><strong>${valor} ›</strong></a>`;
     /* Commissioning: las mismas filas y cifras que el bloque del escritorio (renderer/bloques.js). */
     const pctDe = (v, n) => (n ? `${Math.round((v / n) * 100)} %` : '');
-    const filaCx = (texto, v, seg, aviso) => `<a class="ini-cx${aviso && v ? ' aviso' : ''}" href="#commissioning" data-ir-seg="${seg}">
-        <span>${esc(texto)}</span><b>${cifra(v || 0)}</b><i>${v !== undefined ? pctDe(v || 0, t.equipos) : ''}</i><em>›</em></a>`;
+    const filaCx = (texto, v, seg, aviso, de = t.equipos) => `<a class="ini-cx${aviso && v ? ' aviso' : ''}" href="#commissioning" data-ir-seg="${seg}">
+        <span>${esc(texto)}</span><b>${cifra(v || 0)}</b><i>${v !== undefined ? pctDe(v || 0, de) : ''}</i><em>›</em></a>`;
+    /* La documentación, de todos; lo demás, de los que tienen la instalación verificada (22-oct). */
+    const ins = t ? t.instaladas ?? t.equipos : 0;
     const cxHtml = t ? `<section class="ag-bloque" data-bloque-ini="cx">
         <h2 class="titulo-grupo ag-titulo">Commissioning <span>${esc(o.codigo || '')} · ${cifra(t.equipos)} equipos${t.unidades && t.unidades !== t.equipos ? ` (${cifra(t.unidades)} unidades)` : ''}</span></h2>
         <div class="ini-cx-tabla">
           ${filaCx('Con la documentación completa', t.docCompleta, 'soloDoc')}
-          ${t.enMarcha !== undefined ? filaCx('Puestos en marcha', t.enMarcha, 'enMarcha') : ''}
-          ${filaCx('Les falta un ensayo (balanceo o estanqueidad)', t.faltaEnsayo, 'faltaEnsayo', true)}
-          ${filaCx('Les falta una ficha (checklist o PM)', t.faltaFichas, 'faltaFichas', true)}
-          ${filaCx('Mandados a la DF', t.enviadas, 'enviadas')}
-          ${filaCx('Completos', t.completos, 'completos')}
+          ${t.instaladas !== undefined ? filaCx('Con la instalación verificada', ins, 'sinVerificar') : ''}
+          ${t.enMarcha !== undefined ? filaCx('Puestos en marcha', t.enMarcha, 'enMarcha', false, ins) : ''}
+          ${filaCx('Les falta un ensayo (balanceo o estanqueidad)', t.faltaEnsayo, 'faltaEnsayo', true, ins)}
+          ${filaCx('Les falta una ficha (checklist o PM)', t.faltaFichas, 'faltaFichas', true, ins)}
+          ${filaCx('Mandados a la DF', t.enviadas, 'enviadas', false, ins)}
+          ${filaCx('Completos', t.completos, 'completos', false, ins)}
           ${filaCx('Sin la documentación completa', t.faltaDocumentacion, 'faltaDoc', true)}
           ${bocas[1] ? `<a class="ini-cx${bocas[1] - bocas[0] ? ' aviso' : ''}" href="#commissioning" data-ir-seg="todos"><span>Bocas por medir</span><b>${cifra(bocas[1] - bocas[0])}</b><i>de ${cifra(bocas[1])}</i><em>›</em></a>` : ''}
         </div>

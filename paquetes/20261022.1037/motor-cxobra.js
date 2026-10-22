@@ -4098,13 +4098,13 @@ globalThis.CX_VARIANTE="cxobra";
       var import_buffer_global10 = __toESM(require_buffer_global());
       (function() {
         const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-        const LOGO_CBRE = "<b>Vidaire Cx</b>";
+        const LOGO_CLIENTE = "<b>Vidaire Cx</b>";
         const fechaEs = (d) => d ? String(d).slice(0, 10).split("-").reverse().join("/") : "";
         function hoja({ documento = "", obra = "", fecha = "", cuerpo = "", pie = null, clase = "" } = {}) {
           const linea = [documento, obra].filter(Boolean).join(" \xB7 ");
           return `<table class="papelHoja ${esc(clase)}">
     <thead><tr><td class="papelCabecera">
-      <div class="papelCabeceraLinea"><span class="papelLogo">${LOGO_CBRE}</span><span class="papelDocumento">${esc(linea)}</span><span class="papelFecha">${esc(fechaEs(fecha))}</span></div>
+      <div class="papelCabeceraLinea"><span class="papelLogo">${LOGO_CLIENTE}</span><span class="papelDocumento">${esc(linea)}</span><span class="papelFecha">${esc(fechaEs(fecha))}</span></div>
     </td></tr></thead>
     <tfoot><tr><td class="papelPie">
       <div class="papelPieLinea"><span>${esc(pie === null ? linea : pie)}</span><span class="papelPagina"></span></div>
@@ -4184,7 +4184,7 @@ globalThis.CX_VARIANTE="cxobra";
         (function exportar(API) {
           if (typeof module !== "undefined" && module.exports) module.exports = API;
           if (typeof window !== "undefined") window.PAPEL = API;
-        })({ LOGO_CBRE, hoja, portada, cifras, fechaEs, incrustarEstilos, documentoHtml, imprimirEnMarco });
+        })({ LOGO_CLIENTE, hoja, portada, cifras, fechaEs, incrustarEstilos, documentoHtml, imprimirEnMarco });
       })();
     }
   });
@@ -9197,7 +9197,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261022.0731" : "0";
+      var VERSION = true ? "20261022.1037" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -9466,8 +9466,14 @@ globalThis.CX_VARIANTE="cxobra";
             const boton = c.querySelector("#pc-entrar");
             boton.disabled = true;
             boton.textContent = "Trayendo tus obras\u2026";
+            const miles = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+            const avance = (ev2) => {
+              const t = ev2.detail && ev2.detail.trayendo;
+              if (t && t.total) boton.textContent = `Trayendo tus obras\u2026 ${miles(t.hechas)} de ${miles(t.total)}`;
+            };
+            window.addEventListener("cxobra:sync", avance);
             const [correo, clave] = datos();
-            const mal = await nube(correo, clave);
+            const mal = await nube(correo, clave).finally(() => window.removeEventListener("cxobra:sync", avance));
             boton.disabled = false;
             boton.textContent = "Entrar";
             if (!mal) {
@@ -9670,6 +9676,8 @@ globalThis.CX_VARIANTE="cxobra";
           })),
           salir: () => ponerSesion(null),
           sal: (email) => pedir("/rest/v1/rpc/cx_sal", { metodo: "POST", cuerpo: { p_email: String(email || "") } }),
+          /** Una función de la base (p. ej. cx_puedo_web). */
+          rpc: (fn, args = {}) => pedir(`/rest/v1/rpc/${fn}`, { metodo: "POST", cuerpo: args }),
           /** Filas de cx_filas: `consulta` en el formato de PostgREST. */
           leer: (tabla, consulta) => pedir(`/rest/v1/${tabla}?${consulta}`),
           /** Mete o cambia filas (por su clave primaria). */
@@ -9879,7 +9887,7 @@ globalThis.CX_VARIANTE="cxobra";
         obrasDeAutor = () => [],
         /* escritorio: las obras en las que puede escribir cada persona */
         archivos: archivos2 = null,
-        /* fotos: { alSubir(fila), alBajar(fila) } (archivos.js) */
+        /* fotos: { alSubir(fila), alBajar(fila), bajarPendientes() } (archivos.js) */
         alCambiar = () => {
         },
         /* (tablas) cuando entra algo de fuera */
@@ -10108,6 +10116,7 @@ globalThis.CX_VARIANTE="cxobra";
           for (const r of iguales) apuntar.run(r.tabla, r.id, String(r.modificado_en || ""));
           let entradas = 0;
           const tocadas = /* @__PURE__ */ new Set();
+          if (hacenFalta.length) cambiarEstado({ trayendo: { hechas: 0, total: hacenFalta.length } });
           for (let i = 0; i < hacenFalta.length; i += 40) {
             const seqs = hacenFalta.slice(i, i + 40).map((r2) => r2.seq).join(",");
             const filas = await nube.leer("cx_filas", `select=tabla,id,obras,persona_id,datos,modificado_en,borrado,seq,autor&espacio=eq.${encodeURIComponent(espacio)}&seq=in.(${seqs})`);
@@ -10117,7 +10126,9 @@ globalThis.CX_VARIANTE="cxobra";
             const r = aplicarFilas(filas || []);
             entradas += r.entradas;
             for (const t of r.tablas) tocadas.add(t);
+            cambiarEstado({ trayendo: { hechas: Math.min(i + 40, hacenFalta.length), total: hacenFalta.length } });
           }
+          if (hacenFalta.length) cambiarEstado({ trayendo: null });
           ponerEstado("cursor", cursor);
           ponerEstado("tablasConocidas", conocidas);
           const sello = ahora().toISOString();
@@ -10216,6 +10227,22 @@ globalThis.CX_VARIANTE="cxobra";
         }
         let enMarcha = null;
         let otraVez = false;
+        let fotos = null;
+        function bajarFotos() {
+          if (!archivos2 || !archivos2.bajarPendientes) return Promise.resolve(null);
+          if (!fotos) {
+            fotos = archivos2.bajarPendientes().then((r) => {
+              cambiarEstado({ fotosPendientes: r.quedan });
+              return r;
+            }).catch((e) => {
+              registro(`Fotos: ${e.message}`);
+              return null;
+            }).finally(() => {
+              fotos = null;
+            });
+          }
+          return fotos;
+        }
         async function ciclo() {
           if (enMarcha) {
             otraVez = true;
@@ -10227,6 +10254,7 @@ globalThis.CX_VARIANTE="cxobra";
               cambiarEstado({ estado: "sincronizando" });
               res.bajada = await bajar();
               res.subida = await subir();
+              bajarFotos();
               let n = 0;
               try {
                 const p = pendientes();
@@ -10271,6 +10299,7 @@ globalThis.CX_VARIANTE="cxobra";
           bajar,
           pendientes,
           aplicarFilas,
+          bajarFotos,
           estado: () => ({ ...estado }),
           /** Tras guardar algo aquí: una vuelta enseguida (agrupando ráfagas). */
           avisar(ms = 400) {
@@ -10327,6 +10356,7 @@ globalThis.CX_VARIANTE="cxobra";
         return out;
       }
       function crearArchivos({ db, nube, espacio, io, subir = true, registro = () => {
+      }, alLlegar = () => {
       } }) {
         db.exec("CREATE TABLE IF NOT EXISTS _syncArchivos (clave TEXT PRIMARY KEY)");
         const yaSubida = (c) => Boolean(db.prepare("SELECT 1 AS x FROM _syncArchivos WHERE clave = ?").get(c));
@@ -10355,6 +10385,11 @@ globalThis.CX_VARIANTE="cxobra";
             if (cambio) fila.datos[k] = JSON.stringify(lista);
           }
         }
+        db.exec("CREATE TABLE IF NOT EXISTS _syncFotosPendientes (clave TEXT PRIMARY KEY, destino TEXT NOT NULL, tabla TEXT, intentos INTEGER NOT NULL DEFAULT 0)");
+        const encolar = db.prepare("INSERT INTO _syncFotosPendientes (clave, destino, tabla) VALUES (?, ?, ?) ON CONFLICT(clave) DO UPDATE SET destino = excluded.destino");
+        const quitar = db.prepare("DELETE FROM _syncFotosPendientes WHERE clave = ?");
+        const fallida = db.prepare("UPDATE _syncFotosPendientes SET intentos = intentos + 1 WHERE clave = ?");
+        const MAX_INTENTOS = 5;
         async function alBajar(fila) {
           for (const [k, lista] of listasDeFotos(fila.datos)) {
             let cambio = false;
@@ -10368,16 +10403,7 @@ globalThis.CX_VARIANTE="cxobra";
                 continue;
               }
               const aqui = destino(f.nube);
-              if (!io.existe(aqui)) {
-                try {
-                  io.escribir(aqui, await nube.bajarArchivo(CUBO, f.nube));
-                  apuntar(f.nube);
-                } catch (e) {
-                  if (e && e.sinRed) throw e;
-                  registro(`Nube: no se pudo bajar la foto ${f.nube} (${e && e.message}).`);
-                  continue;
-                }
-              }
+              if (!io.existe(aqui)) encolar.run(f.nube, aqui, fila.tabla || null);
               if (f.ruta !== aqui) {
                 f.ruta = aqui;
                 cambio = true;
@@ -10386,7 +10412,50 @@ globalThis.CX_VARIANTE="cxobra";
             if (cambio) fila.datos[k] = JSON.stringify(lista);
           }
         }
-        return { alSubir, alBajar };
+        let tanda = null;
+        function bajarPendientes({ aLaVez = 6 } = {}) {
+          if (tanda) return tanda;
+          tanda = (async () => {
+            const cola = db.prepare("SELECT clave, destino, tabla FROM _syncFotosPendientes WHERE intentos < ? ORDER BY rowid").all(MAX_INTENTOS);
+            const tablas = /* @__PURE__ */ new Set();
+            let bajadas = 0;
+            let sinRed = false;
+            let i = 0;
+            const trabajador = async () => {
+              while (!sinRed && i < cola.length) {
+                const p = cola[i++];
+                try {
+                  if (!io.existe(p.destino)) io.escribir(p.destino, await nube.bajarArchivo(CUBO, p.clave));
+                  apuntar(p.clave);
+                  quitar.run(p.clave);
+                  bajadas++;
+                  if (p.tabla) tablas.add(p.tabla);
+                } catch (e) {
+                  if (e && e.sinRed) {
+                    sinRed = true;
+                    break;
+                  }
+                  fallida.run(p.clave);
+                  registro(`Nube: no se pudo bajar la foto ${p.clave} (${e && e.message}).`);
+                }
+              }
+            };
+            await Promise.all(Array.from({ length: Math.min(aLaVez, cola.length) }, trabajador));
+            if (bajadas) {
+              registro(`Nube: ${bajadas} foto(s) bajada(s).`);
+              try {
+                alLlegar([...tablas]);
+              } catch {
+              }
+            }
+            return { bajadas, quedan: fotosPendientes(), sinRed };
+          })();
+          return tanda.finally(() => {
+            tanda = null;
+          });
+        }
+        const fotosPendientes = () => db.prepare("SELECT COUNT(*) AS n FROM _syncFotosPendientes WHERE intentos < ?").get(MAX_INTENTOS).n;
+        return { alSubir, alBajar, bajarPendientes, fotosPendientes };
       }
       module.exports = { crearArchivos, listasDeFotos, CUBO };
     }
@@ -10591,7 +10660,7 @@ globalThis.CX_VARIANTE="cxobra";
             alCambiar,
             alEstado,
             registro,
-            archivos: io ? crearArchivos({ db, nube, espacio: yo.espacio, io, subir: true, registro }) : null
+            archivos: io ? crearArchivos({ db, nube, espacio: yo.espacio, io, subir: true, registro, alLlegar: alCambiar }) : null
           });
           if (conTimbre) {
             timbre = crearTimbre({
@@ -12438,7 +12507,7 @@ globalThis.CX_VARIANTE="cxobra";
          * Una plantilla no se edita: se publica una versión nueva. La ficha guarda
          * con qué versión se rellenó, así que cambiar un checklist mañana no cambia
          * lo que ya se firmó ayer. `definicion` es el JSON de secciones y puntos
-         * (la forma la dice `shared/commissioning/plantillasCbre.js`).
+         * (la forma la dice `shared/commissioning/plantillasCliente.js`).
          */
         `CREATE TABLE IF NOT EXISTS plantillasPM (
      id                 TEXT PRIMARY KEY,
@@ -14650,6 +14719,30 @@ globalThis.CX_VARIANTE="cxobra";
      creadoEn         TEXT NOT NULL,
      modificadoEn     TEXT NOT NULL,
      UNIQUE (obraId, numero)
+   )`,
+        /*
+         * LAS FOTOS DE INCIDENCIAS DE SPLITS YA LEÍDAS (22-oct-2026): qué termómetro
+         * se leyó en cada una, qué se hizo con la lectura y con qué lector. Sirve
+         * para no leer dos veces la misma foto y para poder explicar de dónde sale
+         * cada temperatura de la hoja (electron/data/temperaturasFoto.js).
+         * `estado`: escrita | propuesta | igual | dudosa | sinTermometro | sinFicha |
+         * firmada | sinFoto | error.
+         */
+        `CREATE TABLE IF NOT EXISTS lecturasFotoIncidencia (
+     id               TEXT PRIMARY KEY,
+     obraId           TEXT NOT NULL,
+     incidenciaId     TEXT NOT NULL,
+     equipoId         TEXT,
+     foto             TEXT NOT NULL,
+     temperatura      REAL,
+     sonda            TEXT,
+     tipo             TEXT,
+     campo            TEXT,
+     estado           TEXT NOT NULL,
+     motivo           TEXT,
+     lector           TEXT,
+     creadoEn         TEXT NOT NULL,
+     modificadoEn     TEXT NOT NULL
    )`
       ];
       var INDICES = [
@@ -14970,6 +15063,11 @@ globalThis.CX_VARIANTE="cxobra";
            lleva de cada uno. */
         ["configCommissioning", "modelosDifusores", "TEXT"],
         ["equiposObra", "modelosDif", "TEXT"],
+        /* LA INSTALACIÓN VERIFICADA (22-oct): desde cuándo y quién la vio. Hasta
+           entonces el equipo no cuenta en commissioning (shared/commissioning/
+           control.js › instalacionVerificada). */
+        ["equiposObra", "instalacionVerificadaEn", "TEXT"],
+        ["equiposObra", "instalacionVerificadaPor", "TEXT"],
         ["configCommissioning", "tolTotal", "REAL"],
         ["configCommissioning", "tolBoca", "REAL"],
         /* La prueba del refrigerante: presión mínima y caída admisible (bar). Como
@@ -15463,7 +15561,19 @@ globalThis.CX_VARIANTE="cxobra";
         familiasCompra: { publico: true },
         /* Las plantillas de PPI son de la empresa: las ve quien tiene el módulo. */
         ppiPlantillas: { publico: true },
-        personas: { publico: true }
+        personas: { publico: true },
+        /*
+         * 22-oct-2026 (la web por persona, electron/sync/espejoPersona.js): tablas que
+         * el repositorio no lista pero que la app lee en pantalla. Sin regla, la web
+         * recortada no las llevaría; con ella, van con el alcance de su obra o solo
+         * a su dueño, como todo lo demás.
+         */
+        cambiosEstadoEquipo: { porObra: "obraId" },
+        lecturasFotoIncidencia: { porObra: "obraId" },
+        actividades: { porObra: "obraId" },
+        avisosLeidos: { privadoDe: "personaId" },
+        columnasVisibles: { privadoDe: "personaId" },
+        visitasConversacion: { privadoDe: "personaId" }
       };
       var AlcanceNoDeclarado = class extends Error {
         constructor(entidad) {
@@ -15796,6 +15906,13 @@ globalThis.CX_VARIANTE="cxobra";
         tareaComentarios: "tareas",
         tareaPedidos: "tareas"
       };
+      function permitido(entidad, idRol, verbo) {
+        const modulo = MODULO_DE[entidad];
+        if (!modulo) return false;
+        const v = verbo === "borrar" && BORRA_QUIEN_EDITA.has(entidad) ? "editar" : verbo;
+        if (PLANIFICACION.has(entidad) && verbo !== "ver" && planifica(idRol, modulo)) return true;
+        return puede(idRol, modulo, v);
+      }
       function crearRepositorio(db) {
         function idsCompartidos(entidad, sesion) {
           try {
@@ -15807,9 +15924,7 @@ globalThis.CX_VARIANTE="cxobra";
         function exigir(entidad, sesion, verbo) {
           const modulo = MODULO_DE[entidad];
           if (!modulo) throw new alcance.AlcanceNoDeclarado(entidad);
-          const v = verbo === "borrar" && BORRA_QUIEN_EDITA.has(entidad) ? "editar" : verbo;
-          if (PLANIFICACION.has(entidad) && verbo !== "ver" && planifica(sesion.rol, modulo)) return;
-          if (!puede(sesion.rol, modulo, v)) throw new SinPermiso(modulo, verbo, sesion.rol);
+          if (!permitido(entidad, sesion.rol, verbo)) throw new SinPermiso(modulo, verbo, sesion.rol);
         }
         function listar(entidad, sesion, { condicion = null, params = [], orden = null, limite = null } = {}) {
           exigir(entidad, sesion, "ver");
@@ -15900,7 +16015,7 @@ globalThis.CX_VARIANTE="cxobra";
       function nuevoId() {
         return Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
       }
-      module.exports = { crearRepositorio, SinPermiso, nuevoId, MODULO_DE };
+      module.exports = { crearRepositorio, SinPermiso, nuevoId, MODULO_DE, permitido };
     }
   });
 
@@ -19522,12 +19637,12 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // shared/commissioning/plantillasCbre.js
-  var require_plantillasCbre = __commonJS({
-    "shared/commissioning/plantillasCbre.js"(exports, module) {
+  // shared/commissioning/plantillasCliente.js
+  var require_plantillasCliente = __commonJS({
+    "shared/commissioning/plantillasCliente.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
-      (function iniciarPlantillasCbre() {
+      (function iniciarPlantillasCliente() {
         const FORMATO = "Formato Vidaire Cx - rev.1";
         const CRITERIO_PM = "Criterio: desviaci\xF3n sobre proyecto (o te\xF3rico si no hay proyecto) dentro de la tolerancia de la obra (la fija el jefe de obra) \u2192 APTO. Medido id\xE9ntico al valor de referencia \u2192 A REVISAR (posible valor copiado).";
         const CRITERIO_CHECKLIST = "S\xED = conforme \xB7 No = no conforme (detallar en observaciones) \xB7 NA = no aplica.";
@@ -21889,9 +22004,11 @@ globalThis.CX_VARIANTE="cxobra";
               numPunto("t_sala_invierno", "T\xAA sala invierno", "\xB0C")
             ] },
             /* v2 (15-oct): en un split solo se mide la Tª de impulsión. Se queda el
-               código t_salida_frio para no perder lo ya medido. */
+               código t_salida_frio para no perder lo ya medido. La entrada en frío es
+               el retorno (22-oct): así se llama, y ahí van las fotos de la sonda en
+               la aspiración (temperaturasFoto.js). */
             { titulo: "TEMPERATURAS AIRE", tipo: "parametros", puntos: [
-              param("t_entrada_frio", "T\xAA entrada fr\xEDo", "\xB0C", OPC),
+              param("t_entrada_frio", "T\xAA retorno (entrada fr\xEDo)", "\xB0C", OPC),
               param("t_salida_frio", "T\xAA impulsi\xF3n (salida fr\xEDo)", "\xB0C", OBL),
               param("t_entrada_calor", "T\xAA entrada calor", "\xB0C", OPC),
               param("t_salida_calor", "T\xAA salida calor", "\xB0C", OPC)
@@ -23217,7 +23334,7 @@ globalThis.CX_VARIANTE="cxobra";
         ];
         (function exportar(API) {
           if (typeof module !== "undefined" && module.exports) module.exports = API;
-          if (typeof window !== "undefined") window.PLANTILLAS_CBRE = API;
+          if (typeof window !== "undefined") window.PLANTILLAS_CLIENTE = API;
         })({ PLANTILLAS, FAMILIAS, MEDICIONES });
       })();
     }
@@ -23432,7 +23549,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       (function iniciarFichasPM() {
-        const catalogoFx = typeof __require !== "undefined" ? require_plantillasCbre() : window.PLANTILLAS_CBRE;
+        const catalogoFx = typeof __require !== "undefined" ? require_plantillasCliente() : window.PLANTILLAS_CLIENTE;
         const instrumentosFx = typeof __require !== "undefined" ? require_instrumentos() : window.INSTRUMENTOS_PM;
         const reglasFx = typeof __require !== "undefined" ? require_reglasCx() : window.REGLAS_CX;
         const TOLERANCIAS_DEFECTO = { total: null, boca: null, psRefrigerante: null, caidaAdmisible: null };
@@ -23470,7 +23587,10 @@ globalThis.CX_VARIANTE="cxobra";
           copia: "Copiado de otro equipo",
           prueba: "DATO DE PRUEBA",
           balanceo: "Suma de las bocas de la hoja de balanceo",
-          fichaTecnica: "Ficha t\xE9cnica del fabricante"
+          fichaTecnica: "Ficha t\xE9cnica del fabricante",
+          /* Leído de la foto del termómetro de una incidencia (temperaturasFoto.js):
+             queda A REVISAR hasta que una persona lo confirma. */
+          fotoIncidencia: "Le\xEDdo de la foto de una incidencia"
         };
         const ROLES_FIRMA = {
           CBRE: "Jefe de obra"
@@ -23575,7 +23695,10 @@ globalThis.CX_VARIANTE="cxobra";
           let resultado = null;
           let copiado = false;
           let sinTolerancia = null;
-          if (m !== null && ref !== null && igualesFx(m, ref) && fuente !== "norma") {
+          const deFoto = valor.o === "fotoIncidencia" && m !== null;
+          if (deFoto && !valor.revisado) {
+            resultado = "aRevisar";
+          } else if (m !== null && ref !== null && igualesFx(m, ref) && fuente !== "norma") {
             copiado = true;
             resultado = valor.revisado ? "apto" : "aRevisar";
           } else if (criterio && m !== null && ref !== null) {
@@ -23597,7 +23720,8 @@ globalThis.CX_VARIANTE="cxobra";
             resultado,
             copiado,
             revisado: Boolean(valor.revisado),
-            sinTolerancia
+            sinTolerancia,
+            deFoto
           };
         }
         function respuesta(v) {
@@ -23724,6 +23848,10 @@ globalThis.CX_VARIANTE="cxobra";
                 if (v.nBocas) fila.nBocas = Number(v.nBocas) || null;
               }
               if (v.om === "puntosBms" && fila.m !== void 0) fila.om = "puntosBms";
+              if (fila.o === "fotoIncidencia" && fila.m !== void 0 && hayValorFx(v.fi)) fila.fi = llanoFx(v.fi).slice(0, 300);
+              if (v.lf && typeof v.lf === "object" && numFx(v.lf.m) !== null) {
+                fila.lf = { m: numFx(v.lf.m), fi: llanoFx(v.lf.fi).slice(0, 300) || null };
+              }
               base.valores[punto.codigo] = fila;
             } else {
               let val = v.v;
@@ -23853,7 +23981,12 @@ globalThis.CX_VARIANTE="cxobra";
                 }
                 if (ev.resultado === "aRevisar") {
                   sinConfirmar += 1;
-                  avisos.push(`${punto.etiqueta}: medido id\xE9ntico al de ${ev.fuente} (\xBFcopiado?)`);
+                  avisos.push(ev.deFoto ? `${punto.etiqueta}: ${ev.m} ${punto.unidad || ""} le\xEDdo de la foto de ${v && v.fi || "una incidencia"}; pendiente de confirmar.`.replace(/\s+/g, " ") : `${punto.etiqueta}: medido id\xE9ntico al de ${ev.fuente} (\xBFcopiado?)`);
+                }
+                if (v && v.o === "fotoIncidencia" && v.fi) fila.fuenteMedido = v.fi;
+                if (v && v.lf) {
+                  fila.propuestaFoto = v.lf;
+                  avisos.push(`${punto.etiqueta}: la foto de ${v.lf.fi || "una incidencia"} da ${v.lf.m} ${punto.unidad || ""}; se deja el medido (${ev.m}).`.replace(/\s+/g, " "));
                 }
                 if (ev.resultado === "noApto") {
                   const ud = punto.unidad ? ` ${punto.unidad}` : "";
@@ -24230,8 +24363,15 @@ globalThis.CX_VARIANTE="cxobra";
         faltaEnsayo: { orden: 3, nombre: "Falta balanceo o estanqueidad" },
         /* Papeles completos, fichas (checklist, PM, estanqueidad) por hacer. */
         faltaFichas: { orden: 3.5, nombre: "Doc. completa \xB7 faltan fichas" },
-        faltaDocumentacion: { orden: 4, nombre: "Falta documentaci\xF3n" }
+        faltaDocumentacion: { orden: 4, nombre: "Falta documentaci\xF3n" },
+        /* Aún no ha entrado en commissioning: su instalación no está verificada. */
+        sinVerificar: { orden: 5, nombre: "Instalaci\xF3n sin verificar" }
       };
+      var PM_DEMUESTRA = /* @__PURE__ */ new Set(["enMarcha", "hecha", "conReservas"]);
+      function instalacionVerificada(e) {
+        if (!e) return false;
+        return Boolean(e.instalacionVerificadaEn) || PM_DEMUESTRA.has(e.estadoPM) || e.estado === "enMarcha" || e.estado === "recepcionado" || ["apto", "aptoSinBocas", "noApto"].includes(e.balanceoEstado) || ["apta", "noApta"].includes(e.estanqueidadEstado) || Boolean(e.fechaEnvioDF);
+      }
       var INCIDENCIAS = {
         sinSerie: "Sin n\xBA de serie",
         sinModelo: "Sin modelo",
@@ -24256,7 +24396,7 @@ globalThis.CX_VARIANTE="cxobra";
       function familiaPideEstanqueidad(codigo) {
         if (!codigo) return false;
         if (!familiasCx) {
-          const P = typeof __require !== "undefined" ? require_plantillasCbre() : window.PLANTILLAS_CBRE;
+          const P = typeof __require !== "undefined" ? require_plantillasCliente() : window.PLANTILLAS_CLIENTE;
           familiasCx = new Map((P && P.FAMILIAS || []).map((f2) => [f2.codigo, f2]));
         }
         const f = familiasCx.get(codigo);
@@ -24325,7 +24465,7 @@ globalThis.CX_VARIANTE="cxobra";
         return p.completas >= p.total;
       }
       var esCompleto = (docCompleta, fichas, ensayo) => Boolean(docCompleta) && fichas !== false && ensayo !== false;
-      function evaluarEquipo(e, modelo, repetidos, unidad) {
+      function evaluarEquipo(e, modelo, repetidos, unidad, exigirInstalacion = false) {
         const ft = hayDoc(e.docFichaTecnica) || hayDoc(modelo && modelo.docFichaTecnica);
         const ce = hayDoc(e.docMarcadoCE) || hayDoc(modelo && modelo.docMarcadoCE);
         const manual = hayDoc(e.docManual) || hayDoc(modelo && modelo.docManual);
@@ -24334,8 +24474,10 @@ globalThis.CX_VARIANTE="cxobra";
         const docCompleta = ft && ce && manual && fichaPM;
         const fichas = fichasCompletas(e);
         const fichasFaltan = e.pmFichas && Array.isArray(e.pmFichas.faltan) ? e.pmFichas.faltan.map((x) => x.nombre) : [];
+        const instalada = !exigirInstalacion || instalacionVerificada(e);
         let envio;
         if (e.fechaEnvioDF) envio = "enviada";
+        else if (!instalada) envio = "sinVerificar";
         else if (!docCompleta) envio = "faltaDocumentacion";
         else if (fichas === false) envio = "faltaFichas";
         else if (ensayo === false) envio = "faltaEnsayo";
@@ -24351,6 +24493,7 @@ globalThis.CX_VARIANTE="cxobra";
           incidencias.push("balanceoSinBocas");
         }
         const falta = [];
+        if (!instalada) falta.push("verificar la instalaci\xF3n");
         if (!ft) falta.push("FT");
         if (!ce) falta.push("CE");
         if (!manual) falta.push("manual");
@@ -24371,7 +24514,8 @@ globalThis.CX_VARIANTE="cxobra";
           docCompleta,
           fichas,
           fichasFaltan,
-          completo: esCompleto(docCompleta, fichas, ensayo),
+          instalada,
+          completo: instalada && esCompleto(docCompleta, fichas, ensayo),
           envio,
           ensayoFalta: ensayosQueFaltan({ ...e, ensayo }),
           incidencias,
@@ -24406,11 +24550,13 @@ globalThis.CX_VARIANTE="cxobra";
               estanqueidad: 0,
               enMarcha: 0,
               completos: 0,
-              enviadas: 0
+              enviadas: 0,
+              instaladas: 0
             });
           }
           const g = grupos.get(clave);
           g.total += 1;
+          if (f.instalada !== false) g.instaladas += 1;
           if (f.fichaPM) g.fichaPM += 1;
           if (f.ft) g.ft += 1;
           if (f.ce) g.ce += 1;
@@ -24439,7 +24585,7 @@ globalThis.CX_VARIANTE="cxobra";
         SP_PARKING: "Ventiladores",
         SP_PRESURIZACION: "Ventiladores"
       };
-      function tipoDeEquipo(f) {
+      function tipologiaDeEquipo(f) {
         const fam = String(f && f.familia || "").trim();
         if (TIPOS_POR_FAMILIA[fam]) return TIPOS_POR_FAMILIA[fam];
         if (fam) {
@@ -24471,7 +24617,7 @@ globalThis.CX_VARIANTE="cxobra";
           }
           const u = uso.get(clave);
           u.equipos += 1;
-          const tipo = tipoDeEquipo(f);
+          const tipo = tipologiaDeEquipo(f);
           if (!u.tipos.includes(tipo)) u.tipos.push(tipo);
           if (!f.ft) u.sinFT += 1;
           if (!f.ce) u.sinCE += 1;
@@ -24512,8 +24658,10 @@ globalThis.CX_VARIANTE="cxobra";
         const estanqueidadEstado = pideEst.length ? peorEnsayo(pideEst, "estanqueidadEstado", ["apta", "noAplica", "pendiente", "noApta"]) : exterior.estanqueidadEstado;
         const fechas = miembros.map((m) => m.fechaEnvioDF).filter(Boolean);
         const fechaEnvioDF = fechas.length === miembros.length ? fechas.sort().pop() : null;
+        const instalada = miembros.every((m) => m.instalada !== false);
         let envio;
         if (fechaEnvioDF) envio = "enviada";
+        else if (!instalada) envio = "sinVerificar";
         else if (!docCompleta) envio = "faltaDocumentacion";
         else if (fichas === false) envio = "faltaFichas";
         else if (ensayo === false) envio = "faltaEnsayo";
@@ -24544,7 +24692,9 @@ globalThis.CX_VARIANTE="cxobra";
           ensayoRequerido,
           balanceoEstado,
           estanqueidadEstado,
-          completo: esCompleto(docCompleta, fichas, ensayo),
+          instalada,
+          instalacionVerificadaEn: instalada ? miembros.map((m) => m.instalacionVerificadaEn).filter(Boolean).sort().pop() || null : null,
+          completo: instalada && esCompleto(docCompleta, fichas, ensayo),
           fechaEnvioDF,
           envio,
           incidencias,
@@ -24608,11 +24758,15 @@ globalThis.CX_VARIANTE="cxobra";
           unidades: lineas.reduce((a, l) => a + l.unidades, 0),
           pares: cuenta((l) => l.clase === "par"),
           sistemas: cuenta((l) => l.clase === "sistema"),
+          /* Los que han entrado en commissioning: sobre ellos se cuenta lo demás. */
+          instaladas: cuenta((l) => l.instalada !== false),
+          sinVerificar: cuenta((l) => l.envio === "sinVerificar"),
           enMarcha: cuenta((l) => l.estadoPM === "enMarcha" || l.estadoPM === "hecha"),
+          /* La documentación se recopila de todos, instalados o no. */
           docCompleta: cuenta((l) => l.docCompleta),
           completos: cuenta((l) => l.completo),
           /* Papeles completos pero con fichas o ensayo por hacer. */
-          soloDoc: cuenta((l) => l.docCompleta && !l.completo),
+          soloDoc: cuenta((l) => l.docCompleta && !l.completo && l.instalada !== false),
           faltaFichas: cuenta((l) => l.envio === "faltaFichas"),
           enviadas: cuenta((l) => l.envio === "enviada"),
           listas: cuenta((l) => l.envio === "lista"),
@@ -24620,7 +24774,8 @@ globalThis.CX_VARIANTE="cxobra";
           /* «Falta ensayo», partido por su nombre: un conjunto puede estar en las dos. */
           faltaBalanceo: cuenta((l) => l.envio === "faltaEnsayo" && l.ensayoFalta.includes("balanceo")),
           faltaEstanqueidadEnvio: cuenta((l) => l.envio === "faltaEnsayo" && l.ensayoFalta.includes("estanqueidad")),
-          faltaDocumentacion: cuenta((l) => l.envio === "faltaDocumentacion"),
+          /* La documentación se pide para todos, con la instalación verificada o no. */
+          faltaDocumentacion: cuenta((l) => l.envio !== "enviada" && !l.docCompleta),
           balanceosSinBocas: cuenta((l) => l.incidencias.includes("balanceoSinBocas")),
           pideEstanqueidad: cuenta(pideEstanqueidad),
           faltaEstanqueidad: cuenta(faltaEstanqueidad),
@@ -24630,10 +24785,10 @@ globalThis.CX_VARIANTE="cxobra";
       function conjuntoDeEquipo(lineas, id) {
         return lineas.find((l) => l.miembros.some((m) => m.id === id)) || null;
       }
-      function evaluar({ equipos = [], modelos = [] } = {}) {
+      function evaluar({ equipos = [], modelos = [], exigirInstalacion = false } = {}) {
         const modeloDe = indiceModelos(modelos);
         const sis = sistemasCx.analizar(equipos);
-        const filas = equipos.map((e) => evaluarEquipo(e, modeloDe(e), sis.repetidos, sis.porEquipo.get(e.id))).sort((a, b) => ordenPlantas(a.planta, b.planta) || String(a.tag || "").localeCompare(String(b.tag || ""), "es", { numeric: true }));
+        const filas = equipos.map((e) => evaluarEquipo(e, modeloDe(e), sis.repetidos, sis.porEquipo.get(e.id), exigirInstalacion)).sort((a, b) => ordenPlantas(a.planta, b.planta) || String(a.tag || "").localeCompare(String(b.tag || ""), "es", { numeric: true }));
         const cuenta = (pred) => filas.filter(pred).length;
         const conjuntos = agruparConjuntos(filas, sis);
         return {
@@ -24650,17 +24805,19 @@ globalThis.CX_VARIANTE="cxobra";
           totales: {
             equipos: filas.length,
             modelos: modelos.length,
+            instaladas: cuenta((f) => f.instalada),
+            sinVerificar: cuenta((f) => f.envio === "sinVerificar"),
             enMarcha: cuenta((f) => f.estadoPM === "enMarcha" || f.estadoPM === "hecha"),
             docCompleta: cuenta((f) => f.docCompleta),
             completos: cuenta((f) => f.completo),
-            soloDoc: cuenta((f) => f.docCompleta && !f.completo),
+            soloDoc: cuenta((f) => f.docCompleta && !f.completo && f.instalada),
             faltaFichas: cuenta((f) => f.envio === "faltaFichas"),
             enviadas: cuenta((f) => f.envio === "enviada"),
             listas: cuenta((f) => f.envio === "lista"),
             faltaEnsayo: cuenta((f) => f.envio === "faltaEnsayo"),
             faltaBalanceo: cuenta((f) => f.envio === "faltaEnsayo" && f.ensayoFalta.includes("balanceo")),
             faltaEstanqueidadEnvio: cuenta((f) => f.envio === "faltaEnsayo" && f.ensayoFalta.includes("estanqueidad")),
-            faltaDocumentacion: cuenta((f) => f.envio === "faltaDocumentacion"),
+            faltaDocumentacion: cuenta((f) => f.envio !== "enviada" && !f.docCompleta),
             balanceos: cuenta(balanceoApto),
             balanceosSinBocas: cuenta((f) => f.incidencias.includes("balanceoSinBocas")),
             estanqueidades: cuenta(estanqueidadApta),
@@ -24701,6 +24858,7 @@ globalThis.CX_VARIANTE="cxobra";
         INCIDENCIAS,
         fichasCompletas,
         esCompleto,
+        instalacionVerificada,
         hayDoc,
         ensayoPorDefecto,
         ensayoSuperado,
@@ -24721,7 +24879,7 @@ globalThis.CX_VARIANTE="cxobra";
         gruposDeConjunto,
         conjuntosDeEquipos,
         contarConjuntos,
-        tipoDeEquipo
+        tipoDeEquipo: tipologiaDeEquipo
       });
     }
   });
@@ -30980,7 +31138,7 @@ globalThis.CX_VARIANTE="cxobra";
           if (M && M.hojas[nombre]) return nombre;
           return HOJA_ALIAS[nombre] && M && M.hojas[HOJA_ALIAS[nombre]] ? HOJA_ALIAS[nombre] : nombre;
         };
-        const PLANT = () => cargar("./plantillasCbre", "PLANTILLAS_CBRE");
+        const PLANT = () => cargar("./plantillasCliente", "PLANTILLAS_CLIENTE");
         const DERIVADAS = /* @__PURE__ */ new Map();
         function hojaDerivada(nombre, plantilla) {
           const propia = Boolean(plantilla && plantilla.hojaBase);
@@ -36396,7 +36554,8 @@ ${subtitulo}`, c[5]] : c.slice())]);
       var FICHA_PL50_DIF = "PURELINE50_PD_2026_06_29_DE_es.pdf (TROX PL50, PD-06/2026)";
       var HOJA_OBRA_DIF = "CONVERSION CAUDAL REJAS.xlsx (Drive de la obra, feb. 2026)";
       var FUENTE_TABLAS_DIF = `TROX: fichas de producto y tablas de selecci\xF3n r\xE1pida (${ADJUNTOS_DIF}); WG y TR2 de \xABCONVERSION CAUDAL REJAS.xlsx\xBB`;
-      var NOTA_PL_DIF = "Las fichas de TROX de la PureLine (PD y selecci\xF3n r\xE1pida) no dan \xE1rea efectiva ni geom\xE9trica: pon el Ak a mano (pedirlo a TROX).";
+      var NOTA_PL_DIF = "Sin Ak: medir con bal\xF3metro. Las fichas de TROX de la PureLine (PD de 33 p\xE1gs. y selecci\xF3n r\xE1pida) no dan \xE1rea efectiva ni geom\xE9trica; si TROX lo da, se pone a mano.";
+      var AVISO_SIN_AK_DIF = "sin Ak: medir con bal\xF3metro";
       var LN_PL_DIF = [600, 750, 900, 1050, 1200, 1350, 1500, 1650, 1800, 1950];
       var TAMANOS_VDW_DIF = ["300 \xD7 8", "400 \xD7 16", "500 \xD7 24", "600 \xD7 24", "600 \xD7 48", "625 \xD7 24", "625 \xD7 54", "825 \xD7 72"];
       var TABLAS_DIF = {
@@ -36945,6 +37104,13 @@ ${subtitulo}`, c[5]] : c.slice())]);
         if (numDif(p.caudalMedido) !== null) return "balometro";
         return numDif(p.velocidad) !== null ? "anemometro" : null;
       }
+      function sinAkDif(p = {}) {
+        const f = factorDif(p);
+        return f.modo === "ak" && f.valor === null;
+      }
+      function equipoPropuestoDif(p = {}) {
+        return equipoMedidaDif(p) || (sinAkDif(p) ? "balometro" : null);
+      }
       var LECTURAS_DIF = { velocidad: "Velocidad (m/s)", caudal: "Caudal (m\xB3/h)" };
       function lecturaDif(p = {}) {
         if (LECTURAS_DIF[p.lectura]) return p.lectura;
@@ -37125,7 +37291,11 @@ ${subtitulo}`, c[5]] : c.slice())]);
           lecturasLista: leerVelocidadesDif(p.lecturas).lecturas,
           lecturasCaudalLista: leerVelocidadesDif(p.lecturasCaudal).lecturas,
           desviacion: desv,
-          estado
+          estado,
+          /* Sin Ak: el aviso y el aparato que se propone (no cambia lo medido). */
+          sinAk: f.modo === "ak" && f.valor === null,
+          avisoSinAk: f.modo === "ak" && f.valor === null ? AVISO_SIN_AK_DIF : null,
+          equipoPropuesto: equipo || (f.modo === "ak" && f.valor === null ? "balometro" : null)
         };
       }
       function resumenDif({ puntos = [], diseno = {}, tolerancias = {} } = {}) {
@@ -37496,6 +37666,9 @@ ${subtitulo}`, c[5]] : c.slice())]);
         tolerancias: toleranciasDif,
         EQUIPOS_MEDIDA: EQUIPOS_MEDIDA_DIF,
         equipoMedida: equipoMedidaDif,
+        sinAk: sinAkDif,
+        equipoPropuesto: equipoPropuestoDif,
+        AVISO_SIN_AK: AVISO_SIN_AK_DIF,
         LECTURAS: LECTURAS_DIF,
         lectura: lecturaDif,
         evaluarPunto: evaluarPuntoDif,
@@ -38375,7 +38548,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       (function iniciarImportarLibroPM() {
-        const catalogoLb = typeof __require !== "undefined" ? require_plantillasCbre() : window.PLANTILLAS_CBRE;
+        const catalogoLb = typeof __require !== "undefined" ? require_plantillasCliente() : window.PLANTILLAS_CLIENTE;
         const fichasLb = typeof __require !== "undefined" ? require_fichas() : window.FICHAS_PM;
         const tablaLb = typeof __require !== "undefined" ? require_importarTabla() : window.IMPORTAR_TABLA_CX;
         const llanoLb = (v) => v === null || v === void 0 ? "" : String(v).trim();
@@ -38449,6 +38622,11 @@ ${subtitulo}`, c[5]] : c.slice())]);
           ["ESTANQ_AGUA", "MATERIAL DIAMETROS", "material"],
           ["ESTANQ_AGUA", "PRUEBA PRELIMINAR DE ESTANQUEIDAD DURACION", "duracion_h"],
           ["ESTANQ_AGUA", "RESULTADO OK NO OK", "resultado"],
+          /* Splits: el libro dice «entrada / salida frío»; la plantilla, retorno e impulsión. */
+          ["SPLIT_UD_INTERIOR", "T\xAA ENTRADA FRIO", "t_entrada_frio"],
+          ["SPLIT_UD_INTERIOR", "TEMPERATURAS AIRE T\xAA ENTRADA FRIO", "t_entrada_frio"],
+          ["SPLIT_UD_INTERIOR", "T\xAA SALIDA FRIO", "t_salida_frio"],
+          ["SPLIT_UD_INTERIOR", "TEMPERATURAS AIRE T\xAA SALIDA FRIO", "t_salida_frio"],
           /* Fan coils: la «vel. máxima» del libro es la velocidad alta de la plantilla v2. */
           ["*", "CAUDAL AIRE VEL MAXIMA", "caudal_aire_vel_max"],
           ["*", "CAUDALES AIRE CAUDAL AIRE VEL MAXIMA", "caudal_aire_vel_max"],
@@ -39501,7 +39679,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
       var F = require_fichas();
       var RC = require_rejillaChecklist();
       var fichaHtml = require_fichaHtml();
-      var catalogo = require_plantillasCbre();
+      var catalogo = require_plantillasCliente();
       var INS = require_instrumentos();
       var { puede } = require_roles();
       var { nuevoId } = require_repositorio();
@@ -40841,7 +41019,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
       var balanceo = require_balanceo();
       var panelBal = require_panelBalanceo();
       var preventivo = require_preventivo();
-      var plantillasCbre = require_plantillasCbre();
+      var plantillasCliente = require_plantillasCliente();
       var { huecosUbicacion } = require_ubicacionTag();
       var { puede } = require_roles();
       var MAX_ARCHIVOS = 1e5;
@@ -40867,7 +41045,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         }
         const conFichas = fichas ? equipos.map((e) => fichas.has(e.id) ? { ...e, pmFichas: fichas.get(e.id) } : e) : equipos;
         return {
-          ...control.evaluar({ equipos: conFichas, modelos }),
+          ...control.evaluar({ equipos: conFichas, modelos, exigirInstalacion: true }),
           modelos,
           config: cfg ? { ...cfg, ultimoEnlace } : null
         };
@@ -40991,10 +41169,10 @@ ${subtitulo}`, c[5]] : c.slice())]);
           if (VALIDOS[campo] && v !== null && !VALIDOS[campo].includes(v)) {
             return { error: `\xAB${v}\xBB no es un valor v\xE1lido para ${campo}.` };
           }
-          if (campo === "familia" && v !== null && !plantillasCbre.FAMILIAS.some((f) => f.codigo === v)) {
+          if (campo === "familia" && v !== null && !plantillasCliente.FAMILIAS.some((f) => f.codigo === v)) {
             return { error: `\xAB${v}\xBB no es una familia de puesta en marcha.` };
           }
-          if (campo === "plantillaPM" && v !== null && !plantillasCbre.PLANTILLAS.some((p) => p.codigo === v && p.clase === "fichaPM")) {
+          if (campo === "plantillaPM" && v !== null && !plantillasCliente.PLANTILLAS.some((p) => p.codigo === v && p.clase === "fichaPM")) {
             return { error: `\xAB${v}\xBB no es una plantilla de ficha de puesta en marcha.` };
           }
           if (campo === "caudalNominal" && v !== null) {
@@ -41108,6 +41286,44 @@ ${subtitulo}`, c[5]] : c.slice())]);
           return { ok: false, error: `No se ha cambiado nada: ${err.message}` };
         }
         return { ok: true, cambiados: equipos.length };
+      }
+      function verificarInstalacion(repo, sesion, ids = [], { verificada = true, fecha = null } = {}) {
+        if (!puede(sesion.rol, "commissioning", "editar")) return { ok: false, error: "Tu rol no puede verificar instalaciones." };
+        const lista = [...new Set((Array.isArray(ids) ? ids : []).filter(Boolean))];
+        if (!lista.length) return { ok: false, error: "No hay equipos marcados." };
+        const equipos = lista.map((id) => repo.leer("equiposObra", sesion, id));
+        if (equipos.some((e) => !e)) return { ok: false, error: "Alguno de los equipos no se encuentra." };
+        const dia = fecha ? String(fecha).slice(0, 10) : require_fecha().hoyLocal();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dia)) return { ok: false, error: `\xAB${fecha}\xBB no es una fecha.` };
+        let quien = null;
+        try {
+          quien = sesion.personaId && (repo.db.prepare("SELECT nombre FROM personas WHERE id = ?").get(sesion.personaId) || {}).nombre || null;
+        } catch {
+        }
+        const todos = /* @__PURE__ */ new Map();
+        const porObra = /* @__PURE__ */ new Map();
+        for (const e of equipos) {
+          todos.set(e.id, e);
+          if (!porObra.has(e.obraId)) porObra.set(e.obraId, equiposDe(repo, sesion, e.obraId));
+          for (const c of companerasDe(porObra.get(e.obraId), e.id)) todos.set(c.id, c);
+        }
+        const cambios = verificada ? { instalacionVerificadaEn: dia, instalacionVerificadaPor: quien } : { instalacionVerificadaEn: null, instalacionVerificadaPor: null };
+        let cambiados = 0;
+        const db = repo.db;
+        db.exec("BEGIN");
+        try {
+          for (const e of todos.values()) {
+            if (verificada && e.instalacionVerificadaEn) continue;
+            if (!verificada && !e.instalacionVerificadaEn) continue;
+            repo.modificar("equiposObra", sesion, e.id, cambios);
+            cambiados += 1;
+          }
+          db.exec("COMMIT");
+        } catch (err) {
+          db.exec("ROLLBACK");
+          return { ok: false, error: `No se ha cambiado nada: ${err.message}` };
+        }
+        return { ok: true, cambiados, marcados: equipos.length };
       }
       var CAMPOS_CONJUNTO = ["estadoPM", "estanqueidadEstado"];
       var esVrf = (e) => /VRF|VRV/i.test(`${e.plantillaPM || ""} ${e.grupo || ""}`);
@@ -41459,6 +41675,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         importarEquipos,
         marcarEnviado,
         asignarUbicacion,
+        verificarInstalacion,
         emparejarEquipo,
         emparejarObra,
         companerasDe,
@@ -43555,11 +43772,11 @@ ${subtitulo}`, c[5]] : c.slice())]);
     "shared/obra/personal.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
-      var PREFIJO_CBRE = "CBRE360-OP:";
+      var PREFIJO_ANTIGUO = "CBRE360-OP:";
       var PREFIJO_CXOBRA = "CXOBRA-OP:";
-      var PREFIJOS_QR = [PREFIJO_CBRE, PREFIJO_CXOBRA];
-      var prefijoQr = () => globalThis.CX_VARIANTE === "cxobra" ? PREFIJO_CXOBRA : PREFIJO_CBRE;
-      var PREFIJO_QR = PREFIJO_CBRE;
+      var PREFIJOS_QR = [PREFIJO_CXOBRA, PREFIJO_ANTIGUO];
+      var prefijoQr = () => PREFIJO_CXOBRA;
+      var PREFIJO_QR = PREFIJO_CXOBRA;
       var UMBRAL_AVISO = 0.8;
       var llano = (v) => String(v ?? "").trim();
       var textoQr = (codigo) => `${prefijoQr()}${codigo}`;
@@ -49709,7 +49926,7 @@ ${linea}` : linea;
     "shared/obra/estanqueidadLibro.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
-      var P = require_plantillasCbre();
+      var P = require_plantillasCliente();
       var ME = require_pruebasEstanqueidad();
       var HOJA = { fontaneria: "ESTANQ_AGUA", acs: "ESTANQ_AGUA", clima: "ESTANQ_AGUA", frigorifica: "ESTANQ_REFRIGERANTE" };
       var hay = (v) => v !== null && v !== void 0 && String(v).trim() !== "";
@@ -74644,6 +74861,7 @@ ${linea}` : linea;
         "GET api/equipo": [["commissioning", "ver"]],
         "POST api/boca": [["commissioning", "editar"]],
         "POST api/equipo/medida": [["commissioning", "editar"]],
+        "POST api/equipo/instalacion": [["commissioning", "editar"]],
         "POST api/equipo/fotos": [["commissioning", "editar"]],
         "POST api/equipo/fotos/quitar": [["commissioning", "editar"]],
         "GET api/equipo/foto": [["commissioning", "ver"]],
@@ -74704,6 +74922,7 @@ ${linea}` : linea;
             completo: f.completo,
             docCompleta: Boolean(f.docCompleta),
             estadoPM: f.estadoPM || null,
+            instalada: f.instalada !== false,
             ...bocas.get(f.id) || { bocas: 0, medidas: 0 }
           });
           const conjuntos = (t.conjuntos || []).map((l) => {
@@ -74723,6 +74942,7 @@ ${linea}` : linea;
               completo: l.completo,
               docCompleta: Boolean(l.docCompleta),
               estadoPM: l.estadoPM || null,
+              instalada: l.instalada !== false,
               unidades: l.miembros.map((m) => ({ id: m.id, tag: m.tag, papel: m.id === ext.id && l.clase !== "suelto" ? "UE" : "UI", modelo: m.modelo || null, planta: m.planta || null }))
             };
           });
@@ -74731,9 +74951,11 @@ ${linea}` : linea;
             ok: true,
             equipos: t.filas.map(unidad),
             conjuntos,
-            totales: { equipos: t.totales.equipos, completos: t.totales.completos, docCompleta: t.totales.docCompleta, soloDoc: t.totales.soloDoc, faltaFichas: t.totales.faltaFichas, listas: t.totales.listas, enviadas: t.totales.enviadas, faltaDocumentacion: t.totales.faltaDocumentacion, faltaEnsayo: t.totales.faltaEnsayo, faltaBalanceo: t.totales.faltaBalanceo, faltaEstanqueidadEnvio: t.totales.faltaEstanqueidadEnvio, pideEstanqueidad: t.totales.pideEstanqueidad, faltaEstanqueidad: t.totales.faltaEstanqueidad, enMarcha: t.totales.enMarcha },
+            totales: { equipos: t.totales.equipos, instaladas: t.totales.instaladas, sinVerificar: t.totales.sinVerificar, completos: t.totales.completos, docCompleta: t.totales.docCompleta, soloDoc: t.totales.soloDoc, faltaFichas: t.totales.faltaFichas, listas: t.totales.listas, enviadas: t.totales.enviadas, faltaDocumentacion: t.totales.faltaDocumentacion, faltaEnsayo: t.totales.faltaEnsayo, faltaBalanceo: t.totales.faltaBalanceo, faltaEstanqueidadEnvio: t.totales.faltaEstanqueidadEnvio, pideEstanqueidad: t.totales.pideEstanqueidad, faltaEstanqueidad: t.totales.faltaEstanqueidad, enMarcha: t.totales.enMarcha },
             totalesConjuntos: {
               conjuntos: tc.conjuntos,
+              instaladas: tc.instaladas,
+              sinVerificar: tc.sinVerificar,
               unidades: tc.unidades,
               pares: tc.pares,
               sistemas: tc.sistemas,
@@ -74797,9 +75019,12 @@ ${linea}` : linea;
               estadoPM: fila.estadoPM || null,
               envio: fila.envio,
               falta: fila.falta,
-              incidencias: fila.incidencias
+              incidencias: fila.incidencias,
+              instalada: fila.instalada !== false,
+              instalacionVerificadaEn: fila.instalacionVerificadaEn || null,
+              instalacionVerificadaPor: fila.instalacionVerificadaPor || null
             } : null,
-            /* Qué se mide de este equipo (plantillasCbre.js › MEDICIONES): decide
+            /* Qué se mide de este equipo (plantillasCliente.js › MEDICIONES): decide
                si sale la fila del balanceo y con qué nombre. */
             medicion: fila ? fila.medicion || null : null,
             planos: d.planos.map((p) => ({
@@ -74827,6 +75052,8 @@ ${linea}` : linea;
                   metodo: e.metodo || null,
                   equipoMedida: e.equipoMedida || null,
                   equipoElegido: x.equipoMedida || null,
+                  sinAk: Boolean(e.sinAk),
+                  avisoSinAk: e.avisoSinAk || null,
                   modoFactor: e.modoFactor || null,
                   origenFactor: e.origenFactor || null,
                   factor: e.factor,
@@ -74909,6 +75136,10 @@ ${linea}` : linea;
           const r = DIF.guardarPlano(repo, ses, planoId, { puntos });
           if (!r.ok) return r;
           return { ok: true, ...equipo({ ses, query: { id: plano.equipoId } }) };
+        }
+        function equipoInstalacion({ ses, json }) {
+          const e = json();
+          return CX.verificarInstalacion(repo, ses, [llano(e.equipoId)], { verificada: e.verificada !== false });
         }
         function equipoMedida({ ses, json }) {
           const e = json();
@@ -75209,6 +75440,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           "GET api/equipo": equipo,
           "POST api/boca": boca,
           "POST api/equipo/medida": equipoMedida,
+          "POST api/equipo/instalacion": equipoInstalacion,
           "POST api/equipo/fotos": equipoFotos,
           "POST api/equipo/fotos/quitar": equipoFotoQuitar,
           "GET api/equipo/foto": equipoFoto,
@@ -77981,7 +78213,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           const proxima = a.proximaReunion ? `${fechaEs(a.proximaReunion)}${String(a.proximaReunion).length > 10 ? ` \xB7 ${String(a.proximaReunion).slice(11, 16)} h` : ""}` : "Por fijar";
           return `
     <header class="cabeceraActa">
-      <div class="marcaActa"><span class="logoCbre">Vidaire Cx</span><span>Vidaire Obras \xB7 Acta de reuni\xF3n</span></div>
+      <div class="marcaActa"><span class="logoCliente">Vidaire Cx</span><span>Vidaire Obras \xB7 Acta de reuni\xF3n</span></div>
       <h1>Acta n\xBA ${numeroActa(a.numero)} \xB7 ${escDoc(tipo)}</h1>
       <p class="obraActa">${escDoc(obra.codigo || "")} \xB7 ${escDoc(obra.nombre || "")}${a.estado === "cerrada" ? "" : ' \xB7 <strong class="borrador">BORRADOR</strong>'}</p>
     </header>

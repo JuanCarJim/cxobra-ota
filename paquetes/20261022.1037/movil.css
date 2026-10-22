@@ -1358,11 +1358,11 @@ main, #app { min-width: 0; max-width: 100%; }
 }
 .barra { background: rgba(255, 255, 255, .9); border-bottom: 1px solid var(--rejilla); }
 .lista-ios > li { border-color: var(--rejilla); }
-/* Encabezados de bloque: en minúscula de frase, gris y sin fondo verde; el teal queda para lo que se pulsa. */
+/* Encabezados de bloque (JC, 22-oct): franja de teal claro con el título en teal oscuro (AA: 7,6:1), en toda la app. */
 #app .titulo-grupo, .densa h2, .densa h3.banda, .toca-cabeza {
-  background: var(--panel2); color: var(--textoSuave); text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 600;
+  background: var(--acento-suave); color: var(--acento-fuerte); text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 600;
 }
-.toca-cabeza { font-size: 15px; color: var(--texto); }
+.toca-cabeza { font-size: 15px; color: var(--acento-fuerte); }
 
 /* ═══════════════ Inicio por bloques (22-oct, JC): «Hoy», «Esta semana», Commissioning y
    Pendiente, con una línea «Ver» para quitar y poner bloques. Filas de hoja, sin tarjetas
@@ -1373,7 +1373,7 @@ main, #app { min-width: 0; max-width: 100%; }
 .ver-bloques button.activa { border-color: var(--acento); background: var(--acento-suave); color: var(--acento-fuerte); font-weight: 600; }
 #app .ag-bloque { margin: 0; }
 #app .ag-titulo { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 8px 0 0; padding: 5px 12px; border-radius: 0; }
-#app .ag-titulo span { font-weight: 500; color: var(--textoTenue); font-variant-numeric: tabular-nums; text-align: right; }
+#app .ag-titulo span { font-weight: 500; color: var(--acento-fuerte); font-variant-numeric: tabular-nums; text-align: right; }
 .ag-fila { display: flex; align-items: flex-start; gap: 8px; padding: 6px 12px; border-bottom: 1px solid var(--rejillaSuave); background: var(--panel); color: var(--texto); text-decoration: none; font-size: 14px; line-height: 1.35; }
 .ag-dia { flex: none; width: 58px; padding-top: 1px; font-size: 12px; font-weight: 600; color: var(--textoSuave); font-variant-numeric: tabular-nums; }
 .ag-dia.vencida { color: var(--aviso); }
