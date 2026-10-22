@@ -33,9 +33,9 @@
     mod
   ));
 
-  // ../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/sql.js/dist/sql-wasm-browser.js
+  // ../../../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/sql.js/dist/sql-wasm-browser.js
   var require_sql_wasm_browser = __commonJS({
-    "../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/sql.js/dist/sql-wasm-browser.js"(exports, module) {
+    "../../../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/sql.js/dist/sql-wasm-browser.js"(exports, module) {
       var initSqlJsPromise = void 0;
       var initSqlJs2 = function(moduleConfig) {
         if (initSqlJsPromise) {
@@ -2235,8 +2235,12 @@
         "potencia_frio_kw",
         "potencia_calor_kw",
         "fecha_instalacion",
-        "qr_token"
+        "qr_token",
+        "entregado_en",
+        "datos_tecnicos"
       ],
+      /* datos_tecnicos.cx: el historial de la obra que trae el acta de entrega (22-oct). */
+      json: ["datos_tecnicos"],
       bool: ["hermetico", "deteccion_fugas", "en_vivienda"],
       alcance: { tipo: "edificio", columna: "edificio_id" }
     },
@@ -2586,10 +2590,10 @@ create table if not exists ajustes (
     const cols = ["id", ...t.columnas.filter((c) => c in f)];
     await base2.ejecutar(`insert or replace into ${tabla2} (${cols.join(", ")}, version, actualizado_en) values (${cols.map(() => "?").join(", ")}, 1, '2026-09-01T00:00:00Z')`, cols.map((c) => f[c] ?? null));
   }
-  function menosMeses(hoy, meses, dia) {
+  function menosMeses(hoy, meses, dia2) {
     const [a, m, d] = hoy.split("-").map(Number);
     const total = a * 12 + (m - 1) - meses;
-    return `${Math.floor(total / 12)}-${String(total % 12 + 1).padStart(2, "0")}-${String(dia ?? Math.min(d, 28)).padStart(2, "0")}`;
+    return `${Math.floor(total / 12)}-${String(total % 12 + 1).padStart(2, "0")}-${String(dia2 ?? Math.min(d, 28)).padStart(2, "0")}`;
   }
   async function cargarDemo(base2, hoy) {
     const u = DEMO_USUARIO;
@@ -2978,11 +2982,11 @@ create table if not exists ajustes (
     if (!m) throw new RangeError(`Fecha no v\xE1lida (se espera AAAA-MM-DD): ${fecha}`);
     const anio = Number(m[1]);
     const mes = Number(m[2]);
-    const dia = Number(m[3]);
-    if (mes < 1 || mes > 12 || dia < 1 || dia > diasDelMes(anio, mes)) {
+    const dia2 = Number(m[3]);
+    if (mes < 1 || mes > 12 || dia2 < 1 || dia2 > diasDelMes(anio, mes)) {
       throw new RangeError(`Fecha inexistente: ${fecha}`);
     }
-    return { anio, mes, dia };
+    return { anio, mes, dia: dia2 };
   }
   function esFechaValida(fecha) {
     try {
@@ -2992,8 +2996,8 @@ create table if not exists ajustes (
       return false;
     }
   }
-  function formatear(anio, mes, dia) {
-    return `${String(anio).padStart(4, "0")}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+  function formatear(anio, mes, dia2) {
+    return `${String(anio).padStart(4, "0")}-${String(mes).padStart(2, "0")}-${String(dia2).padStart(2, "0")}`;
   }
   function comparar(a, b) {
     partes(a);
@@ -3008,19 +3012,19 @@ create table if not exists ajustes (
   }
   function sumarMeses(fecha, meses) {
     if (!Number.isInteger(meses)) throw new RangeError("Los meses deben ser enteros");
-    const { anio, mes, dia } = partes(fecha);
+    const { anio, mes, dia: dia2 } = partes(fecha);
     const total = anio * 12 + (mes - 1) + meses;
     const nuevoAnio = Math.floor(total / 12);
     const nuevoMes = total % 12 + 1;
-    const nuevoDia = Math.min(dia, diasDelMes(nuevoAnio, nuevoMes));
+    const nuevoDia = Math.min(dia2, diasDelMes(nuevoAnio, nuevoMes));
     return formatear(nuevoAnio, nuevoMes, nuevoDia);
   }
   function sumarAnios(fecha, anios) {
     return sumarMeses(fecha, anios * 12);
   }
   function sumarDias(fecha, dias) {
-    const { anio, mes, dia } = partes(fecha);
-    const d = new Date(Date.UTC(anio, mes - 1, dia + dias));
+    const { anio, mes, dia: dia2 } = partes(fecha);
+    const d = new Date(Date.UTC(anio, mes - 1, dia2 + dias));
     return formatear(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
   }
   function diasEntre(a, b) {
@@ -3044,8 +3048,8 @@ create table if not exists ajustes (
     "diciembre"
   ];
   function fechaLarga(fecha) {
-    const { anio, mes, dia } = partes(fecha);
-    return `${dia} de ${MESES[mes - 1]} de ${anio}`;
+    const { anio, mes, dia: dia2 } = partes(fecha);
+    return `${dia2} de ${MESES[mes - 1]} de ${anio}`;
   }
 
   // cxobra/mantenimiento/normativa/src/fuentes.ts
@@ -4850,7 +4854,7 @@ create table if not exists ajustes (
   }
   async function altaEquipo(ctx, a) {
     const id = uuidv7();
-    const carga = a.cargaFabricaKg ? Math.round((a.cargaFabricaKg + a.cargaAnadidaKg) * 1e3) / 1e3 : null;
+    const carga2 = a.cargaFabricaKg ? Math.round((a.cargaFabricaKg + a.cargaAnadidaKg) * 1e3) / 1e3 : null;
     await ctx.base.transaccion(async () => {
       await insertar(ctx.base, "equipos", {
         id,
@@ -4865,7 +4869,7 @@ create table if not exists ajustes (
         modelo: a.modelo,
         numero_serie: a.numeroSerie,
         refrigerante: a.refrigerante,
-        carga_kg: carga,
+        carga_kg: carga2,
         hermetico: 0,
         deteccion_fugas: 0,
         en_vivienda: 0,
@@ -4988,6 +4992,155 @@ create table if not exists ajustes (
   }
   function ahora2(ctx) {
     return ctx.ahora ? ctx.ahora() : ahoraLocalISO();
+  }
+
+  // cxobra/mantenimiento/fuente/logica/entrega.ts
+  var entrega_exports = {};
+  __export(entrega_exports, {
+    FORMATO_ENTREGA: () => FORMATO_ENTREGA,
+    VERSION_ENTREGA: () => VERSION_ENTREGA,
+    importarEntrega: () => importarEntrega,
+    leerEntrega: () => leerEntrega,
+    previsualizarEntrega: () => previsualizarEntrega,
+    validarEntrega: () => validarEntrega
+  });
+  var FORMATO_ENTREGA = "vidaire-acta-entrega";
+  var VERSION_ENTREGA = 1;
+  var TIPOS = /* @__PURE__ */ new Set([
+    "split",
+    "multisplit",
+    "vrf",
+    "compacto",
+    "rooftop",
+    "enfriadora",
+    "bomba_calor_aire_agua",
+    "bomba_calor_aire_aire",
+    "camara_frigorifica",
+    "central_frigorifica",
+    "mueble_frigorifico",
+    "unidad_tratamiento_aire",
+    "recuperador",
+    "fancoil",
+    "ventilador",
+    "extractor",
+    "caldera",
+    "bomba",
+    "cuadro_electrico",
+    "otro"
+  ]);
+  var DISCIPLINAS = /* @__PURE__ */ new Set([
+    "clima",
+    "ventilacion",
+    "fontaneria",
+    "saneamiento",
+    "electricidad",
+    "iluminacion",
+    "pci",
+    "control",
+    "telecomunicaciones",
+    "ascensores",
+    "energia_renovable",
+    "frio_industrial",
+    "general"
+  ]);
+  function validarEntrega(p) {
+    const x = p;
+    if (!x || typeof x !== "object") return "No es un paquete de entrega.";
+    if (x.formato !== FORMATO_ENTREGA) return "No es un acta de entrega de Vidaire Obras.";
+    if (Number(x.version) > VERSION_ENTREGA) return "El acta es de una versi\xF3n m\xE1s nueva: actualiza la app.";
+    if (!x.acta || !x.acta.huella || !x.acta.fecha) return "El acta no viene firmada.";
+    if (!Array.isArray(x.equipos) || !x.equipos.length) return "El acta no trae equipos.";
+    return null;
+  }
+  function leerEntrega(texto2) {
+    let p;
+    try {
+      p = JSON.parse(texto2);
+    } catch {
+      throw new Error("El fichero no es un acta de entrega (no se puede leer).");
+    }
+    const mal = validarEntrega(p);
+    if (mal) throw new Error(mal);
+    return p;
+  }
+  var tagDe = (t) => String(t ?? "").trim().toUpperCase();
+  var refrigerante2 = (v) => {
+    const t = String(v ?? "").trim().toUpperCase();
+    return /^R[0-9A-Z()-]+$/.test(t) ? t : null;
+  };
+  var carga = (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? Math.round(n * 1e3) / 1e3 : null;
+  };
+  var dia = (v) => {
+    const t = String(v ?? "").slice(0, 10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(t) ? t : null;
+  };
+  async function tagsDelEdificio(base2, edificioId) {
+    const filas = await base2.todas(
+      `select tag from equipos where edificio_id = ? and borrado_en is null and coalesce(estado, 'activo') <> 'desmantelado'`,
+      [edificioId]
+    );
+    return new Set(filas.map((f) => tagDe(f.tag)));
+  }
+  async function previsualizarEntrega(base2, p, edificioId) {
+    const hay = await tagsDelEdificio(base2, edificioId);
+    const vistos = /* @__PURE__ */ new Set();
+    const nuevos = [];
+    const yaEstan = [];
+    for (const e of p.equipos) {
+      const tag = tagDe(e.tag);
+      if (!tag) continue;
+      if (hay.has(tag) || vistos.has(tag)) {
+        yaEstan.push(tag);
+        continue;
+      }
+      vistos.add(tag);
+      nuevos.push(e);
+    }
+    const conReservas = nuevos.filter((e) => Array.isArray(e.datos_tecnicos?.cx?.reservas) && e.datos_tecnicos.cx.reservas.length).length;
+    return { nuevos, yaEstan, conReservas };
+  }
+  async function importarEntrega(ctx, p, edificioId) {
+    const mal = validarEntrega(p);
+    if (mal) throw new Error(mal);
+    const ed = await ctx.base.una("select titular_id from edificios where id = ? and borrado_en is null", [edificioId]);
+    if (!ed) throw new Error("Ese edificio no est\xE1 en el m\xF3vil.");
+    const { nuevos, yaEstan } = await previsualizarEntrega(ctx.base, p, edificioId);
+    const entregado = dia(p.acta.fecha);
+    const altas = [];
+    await ctx.base.transaccion(async () => {
+      for (const e of nuevos) {
+        const cx = { ...e.datos_tecnicos?.cx ?? {}, acta_huella: p.acta.huella, acta_firmante: p.acta.firmante?.nombre ?? null };
+        const reservas = Array.isArray(cx.reservas) && cx.reservas.length > 0;
+        await insertar(ctx.base, "equipos", {
+          id: uuidv7(),
+          edificio_id: edificioId,
+          titular_id: ed.titular_id,
+          proyecto_id: null,
+          disciplina: DISCIPLINAS.has(e.disciplina) ? e.disciplina : "general",
+          tag: tagDe(e.tag),
+          descripcion: [e.descripcion, e.ubicacion].filter(Boolean).join(" \xB7 ") || null,
+          tipo: TIPOS.has(e.tipo) ? e.tipo : "otro",
+          fabricante: e.fabricante ?? null,
+          modelo: e.modelo ?? null,
+          numero_serie: e.numero_serie ?? null,
+          refrigerante: refrigerante2(e.refrigerante),
+          carga_kg: carga(e.carga_kg),
+          hermetico: 0,
+          deteccion_fugas: 0,
+          en_vivienda: 0,
+          fecha_instalacion: dia(e.fecha_instalacion) ?? entregado,
+          entregado_en: entregado,
+          estado: "activo",
+          estado_montaje: "recepcionado",
+          estado_pm: reservas ? "con_reservas" : "hecha",
+          datos_tecnicos: JSON.stringify({ ...e.datos_tecnicos, cx })
+        });
+        altas.push(tagDe(e.tag));
+      }
+    });
+    return { altas, yaEstaban: yaEstan };
   }
 
   // cxobra/mantenimiento/fuente/i18n/es.ts
@@ -6327,6 +6480,8 @@ create table if not exists ajustes (
     almacen: almacen_exports,
     normativa: src_exports,
     es,
-    base: () => base
+    base: () => base,
+    /* El acta de entrega de la obra: sus equipos pasan al edificio del contrato (entrega.ts). */
+    entrega: entrega_exports
   };
 })();

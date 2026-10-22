@@ -45,7 +45,7 @@
     { id: 'incidencias', nombre: 'Incidencias', rutas: ['incidencias'],
       icono: ICONO('<path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.5"/><circle cx="12" cy="17" r=".6" fill="currentColor"/>',
         `<path d="M12 3.5 2.8 19.5h18.4z" fill="currentColor"/><path d="M12 10v4" ${HUECO} stroke-width="2.2"/><path d="M12 16.9v.1" ${HUECO} stroke-width="2.4"/>`) },
-    { id: 'mas', nombre: 'Más', rutas: ['mas', 'certificados', 'libro', 'alta'],
+    { id: 'mas', nombre: 'Más', rutas: ['mas', 'certificados', 'libro', 'alta', 'entrega'],
       icono: ICONO('<rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/>',
         '<g fill="currentColor"><rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/></g>') },
   ];
@@ -54,7 +54,7 @@
   const TITULOS = {
     ruta: 'Ruta de hoy', edificio: 'Equipos de hoy', equipo: 'Equipo', gas: 'Añadir gas', recuperar: 'Recuperar gas', fuga: 'Hay fuga', it3: 'IT 3 (RITE)',
     cerrar: 'Cerrar la visita', fin: 'Visita cerrada', furgoneta: 'Mi furgoneta', cilindro: 'Cilindro', incidencias: 'Mis incidencias', mas: 'Más', certificados: 'Mis certificados',
-    libro: 'Libro F-gas', alta: 'Añadir equipo', escanear: 'Escanear equipo',
+    libro: 'Libro F-gas', alta: 'Añadir equipo', escanear: 'Escanear equipo', entrega: 'Acta de entrega',
   };
 
   const fecha = (iso) => (iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : '—');
@@ -153,6 +153,7 @@
   const PANTALLAS = {
     ruta: pRuta, edificio: pEdificio, equipo: pEquipo, gas: pGas, recuperar: pRecuperar, fuga: pFuga, it3: pIt3, cerrar: pCerrar, fin: pFin,
     furgoneta: pFurgoneta, cilindro: pCilindroNuevo, incidencias: pIncidencias, mas: pMas, certificados: pCertificados, libro: pLibro, alta: pAlta, escanear: pEscanear,
+    entrega: pEntrega,
   };
 
   let pintando = 0;
@@ -529,6 +530,7 @@
         <li><button class="fila-ios" data-m="certificados"><strong>Mis certificados</strong><span class="texto-2">Gases fluorados y RITE: caducidad y qué puedes hacer.</span></button></li>
         <li><button class="fila-ios" data-m="libro"><strong>Libro F-gas</strong><span class="texto-2">Controles, cargas y recuperaciones anotadas.</span></button></li>
         <li><button class="fila-ios" data-m="alta"><strong>Añadir un equipo</strong><span class="texto-2">Uno que has encontrado y no está en la ruta.</span></button></li>
+        <li><button class="fila-ios" data-m="entrega"><strong>Traer un acta de entrega</strong><span class="texto-2">Los equipos de una obra recién entregada, con su historial.</span></button></li>
       </ul>
       ${await bloqueNube(m, hay)}`;
   }
@@ -659,6 +661,42 @@
       <div class="mant-botones"><button class="boton grande" data-m="alta-guardar">Añadir el equipo</button></div>`;
   }
 
+  /* ═══════════════════════════════════ El acta de entrega de una obra (entrega.ts) */
+
+  /* El acta leída y el edificio elegido, mientras se está en la pantalla. */
+  let entregaActa = null;
+  let entregaEd = null;
+
+  async function pEntrega() {
+    const m = M(); const c = ctx();
+    const eds = await c.base.todas('select id, nombre from edificios where borrado_en is null order by nombre');
+    if (!eds.length) { $app.innerHTML = vacio('<p>Primero hace falta el edificio del contrato. Entra en Vidaire en «Más».</p>'); return; }
+    if (!eds.some((x) => x.id === entregaEd)) entregaEd = eds[0].id;
+    let resumen = '';
+    if (entregaActa) {
+      const v = await m.entrega.previsualizarEntrega(c.base, entregaActa, entregaEd);
+      const a = entregaActa.acta;
+      resumen = `
+        <section class="grupo">
+          ${fila('Acta', esc(`${a.numero} · ${fecha(a.fecha)}`))}
+          ${fila('Obra', esc((a.obra && (a.obra.codigo || a.obra.nombre)) || '—'))}
+          ${fila('Firma', esc((a.firmante && a.firmante.nombre) || '—'))}
+          ${fila('Equipos nuevos', num(v.nuevos.length))}
+          ${v.conReservas ? fila('Con reservas de la obra', num(v.conReservas)) : ''}
+          ${v.yaEstan.length ? fila('Ya están en el edificio', esc(v.yaEstan.join(', '))) : ''}
+        </section>
+        <div class="mant-botones"><button class="boton grande" data-m="entrega-traer" ${v.nuevos.length ? '' : 'disabled'}>${v.nuevos.length ? `Traer ${num(v.nuevos.length)} equipos` : 'Nada nuevo que traer'}</button></div>`;
+    }
+    $app.innerHTML = `
+      <button class="volver" data-m="atras">‹ Volver</button>
+      <p class="nota">El acta firmada en Vidaire Obras (Commissioning › Entregas › «Guardar para mantenimiento»). Sus equipos entran en el edificio ya en operación, con su historial de obra dentro.</p>
+      <div class="campos" style="grid-template-columns:1fr">
+        <label>Edificio del contrato<select id="en-ed">${eds.map((x) => `<option value="${esc(x.id)}" ${x.id === entregaEd ? 'selected' : ''}>${esc(x.nombre)}</option>`).join('')}</select></label>
+        <label>Acta (.json)<input id="en-fichero" type="file" accept=".json,application/json"></label>
+      </div>
+      ${resumen}`;
+  }
+
   /* ═══════════════════════════════════ Escanear */
 
   async function pEscanear() {
@@ -700,7 +738,15 @@
     const a = b.dataset.m;
     const m = M();
     try {
-      if (a === 'ruta' || a === 'furgoneta' || a === 'certificados' || a === 'libro') { location.hash = `m/${a}`; return; }
+      if (a === 'ruta' || a === 'furgoneta' || a === 'certificados' || a === 'libro' || a === 'entrega') { location.hash = `m/${a}`; return; }
+      if (a === 'entrega-traer') {
+        b.disabled = true;
+        const r = await m.entrega.importarEntrega(ctx(), entregaActa, entregaEd);
+        aviso(`${num(r.altas.length)} equipos traídos del acta ${entregaActa.acta.numero}${r.yaEstaban.length ? ` · ${num(r.yaEstaban.length)} ya estaban` : ''}. Se envían a Vidaire con lo demás.`, 'bien');
+        entregaActa = null;
+        repintar();
+        return;
+      }
       if (a === 'atras') { history.length > 1 ? history.back() : (location.hash = 'm/ruta'); return; }
       if (a === 'edificio') { location.hash = `m/edificio/${encodeURIComponent(b.dataset.ed)}`; return; }
       if (a === 'equipo') { location.hash = `m/equipo/${encodeURIComponent(b.dataset.id)}`; return; }
@@ -947,6 +993,13 @@
 
   $app.addEventListener('change', (ev) => {
     if (ev.target.matches('#al-ed')) location.hash = `m/alta/${encodeURIComponent(ev.target.value)}`;
+    if (ev.target.matches('#en-ed')) { entregaEd = ev.target.value; repintar(); }
+    if (ev.target.matches('#en-fichero') && ev.target.files && ev.target.files[0]) {
+      ev.target.files[0].text().then((texto) => {
+        try { entregaActa = M().entrega.leerEntrega(texto); } catch (e) { entregaActa = null; aviso(e.message); }
+        repintar();
+      });
+    }
     if (ev.target.matches('#cl-uso, #cl-origen')) {
       // Solo se pregunta lo que pide la ley para ese cilindro.
       const carga = valor('#cl-uso') === 'carga';

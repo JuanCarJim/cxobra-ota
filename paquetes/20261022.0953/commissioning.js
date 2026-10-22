@@ -40,6 +40,8 @@
     faltaDocumentacion: ['aviso', 'Falta documentación'], faltaEnsayo: ['aviso', 'Falta balanceo o estanqueidad'],
     /* Papeles completos y fichas por hacer: no es «completo» (15-oct-2026, JC). */
     faltaFichas: ['info', 'Doc. completa'],
+    /* Aún fuera de commissioning: nadie ha verificado su instalación (22-oct). */
+    sinVerificar: ['neutra', 'Sin verificar'],
   };
   /* «Falta ensayo» dicho por su nombre (16-oct): ensayoFalta = ['balanceo', 'estanqueidad']. */
   const nombreEnsayoFalta = (f) => (!f || !f.length ? null : f.length === 2 ? 'Falta balanceo y estanqueidad'
@@ -83,12 +85,19 @@
   /* Segmentos por estado: son las cifras de arriba, siempre a la vista; cada una filtra la lista. */
   const SEGMENTOS = [
     ['todos', 'Todos', () => true],
-    ['faltaDoc', 'Falta doc.', (e) => !e.completo && e.envio === 'faltaDocumentacion'],
+    ['faltaDoc', 'Falta doc.', (e) => !e.completo && e.envio !== 'enviada' && !e.docCompleta],
     ['faltaBalanceo', 'Falta balanceo', (e) => !e.completo && e.envio === 'faltaEnsayo' && (!e.ensayoFalta || e.ensayoFalta.includes('balanceo'))],
     ['faltaEstanqueidad', 'Falta estanqueidad', (e) => !e.completo && e.envio === 'faltaEnsayo' && (e.ensayoFalta || []).includes('estanqueidad')],
     /* Una sola regla: la de shared/commissioning/control.js (papeles + fichas + ensayo). */
     ['completos', 'Completos', (e) => e.completo],
     ['soloDoc', 'Doc. completa', (e) => e.docCompleta && !e.completo],
+    /* 22-oct (JC): «puestos en marcha» y «falta ficha», las mismas cuentas que el
+       inicio del escritorio (shared/commissioning/control.js · totalesDe). */
+    ['enMarcha', 'Puestos en marcha', (e) => e.estadoPM === 'enMarcha' || e.estadoPM === 'hecha'],
+    ['faltaFichas', 'Falta ficha', (e) => e.envio === 'faltaFichas'],
+    ['faltaEnsayo', 'Falta ensayo', (e) => e.envio === 'faltaEnsayo'],
+    ['enviadas', 'Mandados a la DF', (e) => e.envio === 'enviada'],
+    ['sinVerificar', 'Instalación sin verificar', (e) => e.envio === 'sinVerificar'],
   ];
   let segmento = 'todos';
   const porPlanta = (a, b) => (a === 'Sin planta') - (b === 'Sin planta') || a.localeCompare(b, 'es', { numeric: true });
@@ -150,8 +159,10 @@
     const grupos = [...new Set(equipos.map(grupoDe))].sort(agrupar === 'planta' ? porPlanta
       : (a, b) => sin(a) - sin(b) || a.localeCompare(b, 'es', { numeric: true }));
     $app.innerHTML = `
-      <div class="resumen-fila cinco" role="tablist">${[['todos', conj ? t.conjuntos : t.equipos, conj && t.unidades !== t.conjuntos ? 'conjuntos' : 'equipos'], ['completos', t.completos, 'completos'], ['soloDoc', t.soloDoc || 0, 'doc. completa'], ['faltaDoc', t.faltaDocumentacion, 'falta doc.'], ['faltaBalanceo', t.faltaBalanceo || 0, 'falta balanceo'], ['faltaEstanqueidad', t.faltaEstanqueidadEnvio || 0, 'falta estanq.']]
+      <div class="resumen-fila ocho" role="tablist">${[['todos', conj ? t.conjuntos : t.equipos, conj && t.unidades !== t.conjuntos ? 'conjuntos' : 'equipos'], ['enMarcha', t.enMarcha, 'en marcha'], ['completos', t.completos, 'completos'], ['soloDoc', t.soloDoc || 0, 'doc. completa'], ['faltaDoc', t.faltaDocumentacion, 'falta doc.'], ['faltaFichas', t.faltaFichas || 0, 'falta ficha'], ['faltaBalanceo', t.faltaBalanceo || 0, 'falta balanceo'], ['faltaEstanqueidad', t.faltaEstanqueidadEnvio || 0, 'falta estanq.']]
+        .filter(([id, n]) => id !== 'enMarcha' || n !== undefined)
         .map(([id, n, texto]) => `<button role="tab" data-cx-seg="${id}" aria-selected="${segmento === id}" class="${segmento === id ? 'activa' : ''} ${id.startsWith('falta') && n ? 'aviso' : ''}"><b>${cifra(n)}</b><span>${esc(texto)}</span></button>`).join('')}</div>
+      ${t.sinVerificar ? `<p class="nota tenue cuenta-instaladas">${cifra(t.instaladas)} de ${cifra(conj ? t.conjuntos : t.equipos)} con la instalación verificada; los otros ${cifra(t.sinVerificar)}, solo documentación. <button class="enlace" data-cx-seg="sinVerificar">${segmento === 'sinVerificar' ? 'Ver todos' : 'Ver cuáles'}</button></p>` : ''}
       ${conj && t.unidades !== t.conjuntos ? `<p class="nota tenue cuenta-conjuntos">${cifra(t.conjuntos)} conjuntos con ${cifra(t.unidades)} unidades: ${cifra(t.pares)} splits y ${cifra(t.sistemas)} VRF van en una línea con su exterior.</p>` : ''}
       <input type="search" class="buscar" placeholder="Buscar TAG, planta, tipo o marca" value="${esc(filtro)}" data-cx-buscar>
       <div class="agrupar" role="group" aria-label="Agrupar por"><span>Agrupar por</span>${AGRUPAR
@@ -248,7 +259,7 @@
   };
   const nombreEstado = (v) => NOMBRE_ESTADO[v] || v;
 
-  function checklist(k, med) {
+  function checklist(k, med, puede = false) {
     if (!k) return '';
     /* Sin fila «Ensayo» (16-oct, JC): el balanceo y la estanqueidad salen solo
        si el equipo los lleva. Un split o una enfriadora no llevan balanceo de bocas. */
@@ -263,6 +274,9 @@
     const fila = (n, v) => `<div class="fd"><span class="et">${n}</span>${v}</div>`;
     return `<h3 class="banda">Documentación y estado</h3>
       <section class="hoja-tabla rejilla-datos estado-eq">
+        ${fila('Instalación', k.instalada
+          ? `<strong>Verificada</strong>${k.instalacionVerificadaEn ? ` <span class="tenue">${esc(String(k.instalacionVerificadaEn).slice(0, 10).split('-').reverse().join('/'))}${k.instalacionVerificadaPor ? ` · ${esc(k.instalacionVerificadaPor)}` : ''}</span>` : ''}`
+          : (puede ? '<button class="enlace" data-cx="verificar-instalacion">Marcar verificada</button>' : '<span class="no">Sin verificar</span>'))}
         ${fila('Ficha técnica', si(k.ft))}
         ${fila('Certificado CE', si(k.ce))}
         ${fila('Manual', si(k.manual))}
@@ -383,7 +397,7 @@
       : `${htmlConjunto(f.conjunto, e.id)}
       ${htmlFichas('equipo', 'Fichas del equipo')}
       ${htmlFotosEquipo(f, puede)}
-      ${checklist(f.checklist, f.medicion)}`;
+      ${checklist(f.checklist, f.medicion, puede)}`;
     const sub = [e.planta, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
     $app.innerHTML = `
       ${pestanaEq === 'balanceo'
@@ -713,6 +727,16 @@
     } catch (e) { C.aviso(e.message); boton.disabled = false; }
   }
 
+  /* Hasta que alguien verifica la instalación, el equipo solo cuenta para la documentación (22-oct). */
+  async function verificarInstalacion(boton) {
+    boton.disabled = true;
+    try {
+      const r = await C.postJson('api/equipo/instalacion', { equipoId: ficha.equipo.id, verificada: true });
+      if (!r.ok) throw new Error(r.error);
+      await abrir(ficha.equipo.id, { quieto: true });
+    } catch (e) { C.aviso(e.message); boton.disabled = false; }
+  }
+
   async function quitarFotoEquipo(boton) {
     if (!window.confirm('¿Quitar esta foto del equipo?')) return;
     try {
@@ -799,6 +823,7 @@
         <div class="porc"><span class="chip ${clase}" data-vivo="chip">${porc === null ? esc(nombre) : `${porc} %`}</span></div>
       </div>
       <p class="nota aviso" data-vivo="aviso" ${fuera ? '' : 'hidden'}>${fuera ? textoFuera(b.desviacion, tolB) : ''}</p>
+      ${b.sinAk ? '<p class="nota aviso">Sin Ak en la ficha de TROX: apunta las velocidades (se guardan) o mide con balómetro; el caudal sale cuando haya Ak.</p>' : ''}
       ${b.caudalDiseno ? '' : '<p class="nota">Esta boca no tiene caudal de proyecto: sin él no se puede saber si va bien. Se pone en el plano (ordenador › Commissioning › Balanceo).</p>'}
     </li>`;
   }
@@ -1482,6 +1507,7 @@
     else if (que === 'boca-siguiente' && ficha) bocaVecina(1);
     else if (que === 'boca-anterior' && ficha) bocaVecina(-1);
     else if (que === 'avisar-modelo') avisarModelo();
+    else if (que === 'verificar-instalacion' && ficha) verificarInstalacion(b);
     else if (que === 'foto-equipo') fotoEquipo(b);
     else if (que === 'quitar-foto-equipo') quitarFotoEquipo(b);
     else if (que === 'nube-ahora' && window.cxObra && window.cxObra.sync) { b.disabled = true; window.cxObra.sync.ahora().finally(() => { if (ficha) abrir(ficha.equipo.id, { quieto: true }); }); }
