@@ -823,7 +823,7 @@
         <div class="porc"><span class="chip ${clase}" data-vivo="chip">${porc === null ? esc(nombre) : `${porc} %`}</span></div>
       </div>
       <p class="nota aviso" data-vivo="aviso" ${fuera ? '' : 'hidden'}>${fuera ? textoFuera(b.desviacion, tolB) : ''}</p>
-      ${b.sinAk ? '<p class="nota aviso">Sin Ak en la ficha de TROX: apunta las velocidades (se guardan) o mide con balómetro; el caudal sale cuando haya Ak.</p>' : ''}
+      ${b.sinAk && b.metodo !== 'balometro' && b.metodo !== 'directo' ? '<p class="nota aviso">Sin Ak: apunta las velocidades (se guardan) o mide con balómetro; el caudal sale cuando se ponga el Ak.</p>' : ''}
       ${b.caudalDiseno ? '' : '<p class="nota">Esta boca no tiene caudal de proyecto: sin él no se puede saber si va bien. Se pone en el plano (ordenador › Commissioning › Balanceo).</p>'}
     </li>`;
   }
