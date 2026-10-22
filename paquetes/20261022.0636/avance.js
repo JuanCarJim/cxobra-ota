@@ -108,7 +108,7 @@
             <div class="fila-principal"><strong>${esc(p.nombre)}</strong><span class="sub">${esc(p.planta)}</span></div>
             <div class="sub">${esc((PL.DISCIPLINAS[p.disciplina] || PL.DISCIPLINAS.otra).nombre)} · ${p.capas.map((c) => esc(c.nombre)).join(', ')}${p.escala ? '' : ' · <strong class="mal">sin escala: no mide</strong>'}</div>
           </button></li>`).join('')}</ul>`
-        : '<p class="vacio">Todavía no hay planos. Los sube el jefe de obra desde el ordenador (Planificación › Avance de obra).</p>';
+        : '<p class="vacio">Todavía no hay planos. Los sube el jefe de obra desde el ordenador (Documentación › Planos). Aquí sale solo la versión vigente de cada plano.</p>';
     } else if (pestana === 'material') {
       cuerpo = `${datos.puede.crear ? '<button class="boton grande" data-av="material-nuevo">＋ Material no previsto</button>' : ''}
         <p class="nota">Lo que has tenido que poner y no estaba en el presupuesto. El jefe de obra lo acepta y entra como coste y como posible orden de cambio.</p>

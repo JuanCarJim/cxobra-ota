@@ -33,9 +33,9 @@
     mod
   ));
 
-  // node_modules/sql.js/dist/sql-wasm-browser.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/sql.js/dist/sql-wasm-browser.js
   var require_sql_wasm_browser = __commonJS({
-    "node_modules/sql.js/dist/sql-wasm-browser.js"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/sql.js/dist/sql-wasm-browser.js"(exports, module) {
       var initSqlJsPromise = void 0;
       var initSqlJs2 = function(moduleConfig) {
         if (initSqlJsPromise) {
@@ -2180,6 +2180,28 @@
     { nombre: "plantillas_prueba", columnas: ["organizacion_id", "codigo", "revision", "tipo_prueba", "clase_equipo", "disciplina", "nivel", "titulo_codigo", "titulo", "estado"], alcance: { tipo: "global", filtro: "publicadas" } },
     { nombre: "plantilla_puntos", columnas: ["plantilla_id", "orden", "codigo", "categoria", "texto_codigo", "texto", "criterio", "tipo_respuesta", "obligatorio", "requiere_evidencia"], bool: ["obligatorio", "requiere_evidencia"], alcance: { tipo: "hijo", padre: "plantillas_prueba", fk: "plantilla_id" } },
     { nombre: "textos_sistema", columnas: ["organizacion_id", "codigo", "idioma", "texto"], alcance: { tipo: "global" } },
+    // Cilindros de la mantenedora (0016_cilindros.sql). Bajan todos los que el RLS
+    // deja ver, no solo los del técnico: si la oficina pasa uno a otra furgoneta,
+    // el cambio de tecnico_id también tiene que llegar. La furgoneta filtra los suyos.
+    {
+      nombre: "cilindros",
+      columnas: [
+        "organizacion_id",
+        "tecnico_id",
+        "codigo",
+        "uso",
+        "refrigerante",
+        "origen",
+        "kg",
+        "capacidad_kg",
+        "lote",
+        "lugar_tratamiento",
+        "reciclado_por_mi_empresa",
+        "estado"
+      ],
+      bool: ["reciclado_por_mi_empresa"],
+      alcance: { tipo: "global" }
+    },
     { nombre: "edificios", columnas: ["titular_id", "nombre", "direccion", "municipio", "provincia", "ccaa", "uso"], alcance: { tipo: "edificio", columna: "id" } },
     { nombre: "proyectos_cx", columnas: ["titular_id", "edificio_id", "codigo", "nombre", "fase", "idioma_entregables"], alcance: { tipo: "edificio", columna: "edificio_id" } },
     { nombre: "ubicaciones", columnas: ["edificio_id", "padre_id", "nivel", "codigo", "nombre", "orden"], alcance: { tipo: "edificio", columna: "edificio_id" } },
@@ -2213,8 +2235,12 @@
         "potencia_frio_kw",
         "potencia_calor_kw",
         "fecha_instalacion",
-        "qr_token"
+        "qr_token",
+        "entregado_en",
+        "datos_tecnicos"
       ],
+      /* datos_tecnicos.cx: el historial de la obra que trae el acta de entrega (22-oct). */
+      json: ["datos_tecnicos"],
       bool: ["hermetico", "deteccion_fugas", "en_vivienda"],
       alcance: { tipo: "edificio", columna: "edificio_id" }
     },
@@ -2357,21 +2383,6 @@ create table if not exists conflictos (
   visto integer not null default 0
 );
 
--- Cilindros de la furgoneta (de carga y de recuperaci\xF3n). A\xFAn no hay tabla en el
--- servidor: ver supabase/migrations/0016_cilindros.sql (propuesta, sin aplicar).
-create table if not exists cilindros (
-  id text primary key,
-  codigo text not null,
-  uso text not null check (uso in ('carga', 'recuperacion')),
-  refrigerante text not null,
-  origen text check (origen in ('virgen', 'regenerado', 'reciclado')),
-  kg real not null default 0,
-  capacidad_kg real,
-  lote text,
-  lugar_tratamiento text,
-  reciclado_por_mi_empresa integer
-);
-
 -- La visita del d\xEDa a un edificio (mantenimiento).
 create table if not exists visitas (
   id text primary key,
@@ -2415,6 +2426,53 @@ create table if not exists ajustes (
 `;
   function sqlEsquema() {
     return ESPEJO.map(crearEspejo).join("\n") + "\n" + LOCALES;
+  }
+  async function ampliarEspejo(base2) {
+    const anadidas = [];
+    for (const t of ESPEJO) {
+      const hay = new Set((await base2.todas(`pragma table_info(${t.nombre})`)).map((c) => c.name));
+      const deBajada = [["version", "version integer not null default 0"], ["actualizado_en", "actualizado_en text"], ["borrado_en", "borrado_en text"]];
+      const faltan = [...t.columnas.filter((c) => !hay.has(c)).map((c) => [c, c]), ...deBajada.filter(([c]) => !hay.has(c))];
+      for (const [c, def] of faltan) {
+        await base2.ejecutar(`alter table ${t.nombre} add column ${def}`);
+        anadidas.push(`${t.nombre}.${c}`);
+      }
+      if (faltan.length) await base2.ejecutar(`delete from ajustes where clave = ? or clave like ?`, [`cursor:${t.nombre}`, `cursor:${t.nombre}:%`]);
+    }
+    return anadidas;
+  }
+  function aLocal(t, fila2) {
+    const valores = [String(fila2.id)];
+    for (const c of t.columnas) valores.push(valorLocal(t, c, fila2[c]));
+    valores.push(Number(fila2.version ?? 0), fila2.actualizado_en ?? null, fila2.borrado_en ?? null);
+    return valores;
+  }
+  function valorLocal(t, columna, v) {
+    if (v === void 0 || v === null) return null;
+    if (t.json?.includes(columna)) return JSON.stringify(v);
+    if (t.bool?.includes(columna) || typeof v === "boolean") return v ? 1 : 0;
+    if (typeof v === "object") return JSON.stringify(v);
+    return v;
+  }
+  function aServidor(t, fila2) {
+    const r = { id: fila2.id };
+    for (const c of t.columnas) {
+      if (!(c in fila2)) continue;
+      r[c] = valorServidor(t, c, fila2[c]);
+    }
+    return r;
+  }
+  function valorServidor(t, columna, v) {
+    if (v === null || v === void 0) return null;
+    if (t.json?.includes(columna)) return typeof v === "string" ? JSON.parse(v) : v;
+    if (t.bool?.includes(columna)) return v === 1 || v === true || v === "1";
+    return v;
+  }
+  function sqlUpsertEspejo(t) {
+    const cols = ["id", ...t.columnas, "version", "actualizado_en", "borrado_en"];
+    const marcas = cols.map(() => "?").join(", ");
+    const set = cols.slice(1).map((c) => `${c} = excluded.${c}`).join(", ");
+    return `insert into ${t.nombre} (${cols.join(", ")}) values (${marcas}) on conflict (id) do update set ${set}`;
   }
 
   // cxobra/mantenimiento/fuente/datos/base-wasm.ts
@@ -2520,7 +2578,8 @@ create table if not exists ajustes (
         await guardarYa();
       }
     };
-    if (!previa) await base2.script(sqlEsquema());
+    await base2.script(sqlEsquema());
+    if (previa) await ampliarEspejo(base2);
     return base2;
   }
 
@@ -2531,10 +2590,10 @@ create table if not exists ajustes (
     const cols = ["id", ...t.columnas.filter((c) => c in f)];
     await base2.ejecutar(`insert or replace into ${tabla2} (${cols.join(", ")}, version, actualizado_en) values (${cols.map(() => "?").join(", ")}, 1, '2026-09-01T00:00:00Z')`, cols.map((c) => f[c] ?? null));
   }
-  function menosMeses(hoy, meses, dia) {
+  function menosMeses(hoy, meses, dia2) {
     const [a, m, d] = hoy.split("-").map(Number);
     const total = a * 12 + (m - 1) - meses;
-    return `${Math.floor(total / 12)}-${String(total % 12 + 1).padStart(2, "0")}-${String(dia ?? Math.min(d, 28)).padStart(2, "0")}`;
+    return `${Math.floor(total / 12)}-${String(total % 12 + 1).padStart(2, "0")}-${String(dia2 ?? Math.min(d, 28)).padStart(2, "0")}`;
   }
   async function cargarDemo(base2, hoy) {
     const u = DEMO_USUARIO;
@@ -2590,7 +2649,7 @@ create table if not exists ajustes (
       await control("i-5", "eq-en02", "ed-alc", menosMeses(hoy, 5, 2));
       await fila(base2, "intervenciones", { id: "i-6", equipo_id: "eq-cf01", edificio_id: "ed-ma44", contrato_id: "ctr-1", empresa_id: "org-mant", tecnico_id: u.id, tipo: "carga", realizada_en: `${menosMeses(hoy, 3, 11)}T10:00:00Z`, resultado: null, observaciones: "Fuga en v\xE1lvula de servicio, reparada", estado: "firmado", tecnico_nombre: "L. Pardo" });
       await fila(base2, "movimientos_gas", { id: "m-6", intervencion_id: "i-6", sentido: "carga", refrigerante: "R404A", kg: 0.8, origen: "regenerado", lugar_tratamiento: "Planta de regeneraci\xF3n autorizada (Getafe)", cilindro: "C-3310", lote: "RG-26-0193" });
-      const cil = (id, codigo, uso, gas, origen, kg2, cap, lote, trat) => base2.ejecutar("insert or replace into cilindros (id, codigo, uso, refrigerante, origen, kg, capacidad_kg, lote, lugar_tratamiento, reciclado_por_mi_empresa) values (?, ?, ?, ?, ?, ?, ?, ?, ?, null)", [id, codigo, uso, gas, origen, kg2, cap, lote, trat]);
+      const cil = (id, codigo, uso, gas, origen, kg2, cap, lote, trat) => fila(base2, "cilindros", { id, organizacion_id: "org-mant", tecnico_id: u.id, codigo, uso, refrigerante: gas, origen, kg: kg2, capacidad_kg: cap, lote, lugar_tratamiento: trat, estado: "en_uso" });
       await cil("c-2231", "C-2231", "carga", "R410A", "virgen", 7.8, null, "L24-0877", null);
       await cil("c-2877", "C-2877", "carga", "R32", "virgen", 4.4, null, "L25-1120", null);
       await cil("c-1904", "C-1904", "carga", "R404A", "virgen", 9.1, null, "L23-0412", null);
@@ -2792,6 +2851,7 @@ create table if not exists ajustes (
   var mantenimiento_exports = {};
   __export(mantenimiento_exports, {
     Bloqueo: () => Bloqueo,
+    altaCilindro: () => altaCilindro,
     altaEquipo: () => altaEquipo,
     avisarOficina: () => avisarOficina,
     borrarBorrador: () => borrarBorrador,
@@ -2922,11 +2982,11 @@ create table if not exists ajustes (
     if (!m) throw new RangeError(`Fecha no v\xE1lida (se espera AAAA-MM-DD): ${fecha}`);
     const anio = Number(m[1]);
     const mes = Number(m[2]);
-    const dia = Number(m[3]);
-    if (mes < 1 || mes > 12 || dia < 1 || dia > diasDelMes(anio, mes)) {
+    const dia2 = Number(m[3]);
+    if (mes < 1 || mes > 12 || dia2 < 1 || dia2 > diasDelMes(anio, mes)) {
       throw new RangeError(`Fecha inexistente: ${fecha}`);
     }
-    return { anio, mes, dia };
+    return { anio, mes, dia: dia2 };
   }
   function esFechaValida(fecha) {
     try {
@@ -2936,8 +2996,8 @@ create table if not exists ajustes (
       return false;
     }
   }
-  function formatear(anio, mes, dia) {
-    return `${String(anio).padStart(4, "0")}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+  function formatear(anio, mes, dia2) {
+    return `${String(anio).padStart(4, "0")}-${String(mes).padStart(2, "0")}-${String(dia2).padStart(2, "0")}`;
   }
   function comparar(a, b) {
     partes(a);
@@ -2952,19 +3012,19 @@ create table if not exists ajustes (
   }
   function sumarMeses(fecha, meses) {
     if (!Number.isInteger(meses)) throw new RangeError("Los meses deben ser enteros");
-    const { anio, mes, dia } = partes(fecha);
+    const { anio, mes, dia: dia2 } = partes(fecha);
     const total = anio * 12 + (mes - 1) + meses;
     const nuevoAnio = Math.floor(total / 12);
     const nuevoMes = total % 12 + 1;
-    const nuevoDia = Math.min(dia, diasDelMes(nuevoAnio, nuevoMes));
+    const nuevoDia = Math.min(dia2, diasDelMes(nuevoAnio, nuevoMes));
     return formatear(nuevoAnio, nuevoMes, nuevoDia);
   }
   function sumarAnios(fecha, anios) {
     return sumarMeses(fecha, anios * 12);
   }
   function sumarDias(fecha, dias) {
-    const { anio, mes, dia } = partes(fecha);
-    const d = new Date(Date.UTC(anio, mes - 1, dia + dias));
+    const { anio, mes, dia: dia2 } = partes(fecha);
+    const d = new Date(Date.UTC(anio, mes - 1, dia2 + dias));
     return formatear(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
   }
   function diasEntre(a, b) {
@@ -2988,8 +3048,8 @@ create table if not exists ajustes (
     "diciembre"
   ];
   function fechaLarga(fecha) {
-    const { anio, mes, dia } = partes(fecha);
-    return `${dia} de ${MESES[mes - 1]} de ${anio}`;
+    const { anio, mes, dia: dia2 } = partes(fecha);
+    return `${dia2} de ${MESES[mes - 1]} de ${anio}`;
   }
 
   // cxobra/mantenimiento/normativa/src/fuentes.ts
@@ -3142,8 +3202,8 @@ create table if not exists ajustes (
     Object.fromEntries(Object.keys(DEFINICIONES).map((id) => [id, construir(id)]))
   );
   var IDS_REFRIGERANTES = Object.keys(DEFINICIONES);
-  function buscarRefrigerante(texto) {
-    const limpio = texto.toUpperCase().replace(/[\s-]/g, "");
+  function buscarRefrigerante(texto2) {
+    const limpio = texto2.toUpperCase().replace(/[\s-]/g, "");
     const alias = { R1234ZE: "R1234ze(E)", "R1234ZE(E)": "R1234ze(E)", R507: "R507A" };
     if (alias[limpio]) return REFRIGERANTES[alias[limpio]];
     return IDS_REFRIGERANTES.map((id) => REFRIGERANTES[id]).find((r) => r.id.toUpperCase() === limpio);
@@ -4105,8 +4165,8 @@ create table if not exists ajustes (
     const [a, m, d] = iso.slice(0, 10).split("-").map(Number);
     return a === Number(hoy.slice(0, 4)) ? `${d} ${meses[m - 1]}` : fechaLarga2(iso, meses);
   }
-  function sinCortar(texto) {
-    return texto.replace(/(\S)-(?=\S)/g, "$1\u2011");
+  function sinCortar(texto2) {
+    return texto2.replace(/(\S)-(?=\S)/g, "$1\u2011");
   }
   function hora(iso) {
     const d = new Date(iso);
@@ -4119,8 +4179,8 @@ create table if not exists ajustes (
   function numero(n, decimales, decimalComa = ",") {
     return n.toFixed(decimales).replace(".", decimalComa);
   }
-  function leerCantidad(texto) {
-    const n = Number(texto.replace(",", "."));
+  function leerCantidad(texto2) {
+    const n = Number(texto2.replace(",", "."));
     return Number.isFinite(n) ? n : 0;
   }
   function pulsarTecla(actual, tecla) {
@@ -4388,8 +4448,8 @@ create table if not exists ajustes (
   async function equipo(base2, id) {
     return base2.una(`select ${COLS_EQUIPO} from equipos e left join ubicaciones u on u.id = e.ubicacion_id where e.id = ?`, [id]);
   }
-  async function buscarPorQr(base2, texto) {
-    const token = texto.trim().split(/[/?#=]/).filter(Boolean).pop() ?? "";
+  async function buscarPorQr(base2, texto2) {
+    const token = texto2.trim().split(/[/?#=]/).filter(Boolean).pop() ?? "";
     return base2.una(
       `select ${COLS_EQUIPO} from equipos e left join ubicaciones u on u.id = e.ubicacion_id
       where (e.qr_token = ? or upper(e.tag) = upper(?)) and e.borrado_en is null limit 1`,
@@ -4484,12 +4544,57 @@ create table if not exists ajustes (
   async function puedo(ctx, actividad, e) {
     return habilitacion(await misCertificados(ctx), actividad, Number(e.carga_kg ?? 0), ctx.hoy);
   }
-  async function cilindros(base2) {
-    return base2.todas("select * from cilindros order by uso, refrigerante, codigo");
+  var DE_LA_FURGONETA = `borrado_en is null and coalesce(estado, 'en_uso') <> 'devuelto'`;
+  var DE_ESTE_TECNICO = `(tecnico_id = ? or (tecnico_id is null and organizacion_id is null))`;
+  async function cilindros(base2, usuarioId) {
+    if (usuarioId === void 0) return base2.todas(`select * from cilindros where ${DE_LA_FURGONETA} order by uso, refrigerante, codigo`);
+    return base2.todas(`select * from cilindros where ${DE_LA_FURGONETA} and ${DE_ESTE_TECNICO} order by uso, refrigerante, codigo`, [usuarioId]);
   }
-  async function cilindroPorCodigo(base2, texto) {
-    const codigo = texto.trim().split(/[/?#=]/).filter(Boolean).pop() ?? "";
-    return base2.una("select * from cilindros where upper(codigo) = upper(?) or id = ?", [codigo, codigo]);
+  async function cilindroPorCodigo(base2, texto2, usuarioId) {
+    const codigo = texto2.trim().split(/[/?#=]/).filter(Boolean).pop() ?? "";
+    const donde = `(upper(codigo) = upper(?) or id = ?) and ${DE_LA_FURGONETA}`;
+    if (usuarioId === void 0) return base2.una(`select * from cilindros where ${donde}`, [codigo, codigo]);
+    return base2.una(`select * from cilindros where ${donde} and ${DE_ESTE_TECNICO}`, [codigo, codigo, usuarioId]);
+  }
+  async function moverKg(base2, cilindro, delta) {
+    const c = cilindro.id ? await base2.una("select id, kg, organizacion_id from cilindros where id = ?", [cilindro.id]) : await base2.una(
+      "select id, kg, organizacion_id from cilindros where upper(codigo) = upper(?) and borrado_en is null order by organizacion_id is null",
+      [cilindro.codigo ?? ""]
+    );
+    if (!c) return;
+    const kg2 = Math.round((Number(c.kg) + delta) * 1e3) / 1e3;
+    if (c.organizacion_id) await actualizar(base2, "cilindros", c.id, { kg: kg2 });
+    else await base2.ejecutar("update cilindros set kg = ? where id = ?", [kg2, c.id]);
+  }
+  async function altaCilindro(ctx, n) {
+    const codigo = n.codigo.trim();
+    if (!codigo) throw new Bloqueo("codigo", "Falta el c\xF3digo del cilindro.");
+    if (!ctx.organizacionId) throw new Bloqueo("empresa", "No perteneces a ninguna empresa mantenedora en Vidaire: pide a la oficina que te d\xE9 de alta.");
+    if (!(n.kg >= 0)) throw new Bloqueo("cantidad", "Escribe los kg que lleva.");
+    const cap = n.capacidad_kg && n.capacidad_kg > 0 ? n.capacidad_kg : null;
+    if (cap !== null && n.kg > cap + 1e-9) throw new Bloqueo("capacidad", `Lleva m\xE1s de lo que cabe: ${kg(n.kg)} de ${kg(cap)} kg.`);
+    const origen = n.uso === "carga" ? n.origen ?? "virgen" : null;
+    const lugar = origen && origen !== "virgen" ? (n.lugar_tratamiento ?? "").trim() : "";
+    if (origen && origen !== "virgen" && !lugar) throw new Bloqueo("tratamiento", `Un gas ${origen} lleva d\xF3nde se trat\xF3 (art. 7.1.c): escribe la planta o la empresa.`);
+    const ya = await ctx.base.una("select id from cilindros where upper(codigo) = upper(?) and borrado_en is null and (organizacion_id = ? or organizacion_id is null)", [codigo, ctx.organizacionId]);
+    if (ya) throw new Bloqueo("repetido", `Ya hay un cilindro ${codigo} en tu empresa.`);
+    const id = uuidv7();
+    await insertar(ctx.base, "cilindros", {
+      id,
+      organizacion_id: ctx.organizacionId,
+      tecnico_id: ctx.usuarioId,
+      codigo,
+      uso: n.uso,
+      refrigerante: n.refrigerante,
+      origen,
+      kg: n.kg,
+      capacidad_kg: cap,
+      lote: n.lote?.trim() || null,
+      lugar_tratamiento: lugar || null,
+      reciclado_por_mi_empresa: origen === "reciclado" && n.reciclado_por_mi_empresa != null ? n.reciclado_por_mi_empresa ? 1 : 0 : null,
+      estado: "en_uso"
+    });
+    return id;
   }
   async function nuevaIntervencion(ctx, v, e, tipo, resultado, observaciones) {
     const contrato = v.contrato_id ? await ctx.base.una("select mantenedora_id from contratos where id = ?", [v.contrato_id]) : null;
@@ -4550,7 +4655,7 @@ create table if not exists ajustes (
       for (const id of [intervencionId, ...hijos]) {
         const movs = await ctx.base.todas("select sentido, kg, cilindro from movimientos_gas where intervencion_id = ?", [id]);
         for (const m of movs) {
-          await ctx.base.ejecutar(`update cilindros set kg = round(kg ${m.sentido === "carga" ? "+" : "-"} ?, 3) where codigo = ?`, [m.kg, m.cilindro]);
+          await moverKg(ctx.base, { codigo: m.cilindro }, m.sentido === "carga" ? m.kg : -m.kg);
         }
         await ctx.base.ejecutar("delete from movimientos_gas where intervencion_id = ?", [id]);
         await ctx.base.ejecutar("delete from intervenciones where id = ?", [id]);
@@ -4582,7 +4687,7 @@ create table if not exists ajustes (
         cilindro: c.codigo,
         lote: c.lote
       });
-      await ctx.base.ejecutar("update cilindros set kg = round(kg - ?, 3) where id = ?", [kg2, c.id]);
+      await moverKg(ctx.base, { id: c.id }, -kg2);
     });
     const control = await controlDeHoy(ctx, e.id);
     const conFuga = control && control.resultado !== "sin_fugas";
@@ -4610,7 +4715,7 @@ create table if not exists ajustes (
         cilindro: c.codigo,
         lote: c.lote
       });
-      await ctx.base.ejecutar("update cilindros set kg = round(kg + ?, 3) where id = ?", [kg2, c.id]);
+      await moverKg(ctx.base, { id: c.id }, kg2);
       if (motivo === "desmontaje") {
         await nuevaIntervencion(ctx, v, e, "desmantelamiento", "no_aplica", null);
         await ctx.base.ejecutar("insert into visita_equipos (visita_id, equipo_id, terminado) values (?, ?, 1) on conflict (visita_id, equipo_id) do update set terminado = 1", [v.id, e.id]);
@@ -4744,12 +4849,12 @@ create table if not exists ajustes (
   function bytesUtf8(s) {
     return new TextEncoder().encode(s).length;
   }
-  async function avisarOficina(ctx, edificioId, equipoId, texto) {
-    await ctx.base.ejecutar("insert into avisos_oficina (id, edificio_id, equipo_id, texto, creado_en) values (?, ?, ?, ?, ?)", [uuidv7(), edificioId, equipoId, texto, ahora(ctx)]);
+  async function avisarOficina(ctx, edificioId, equipoId, texto2) {
+    await ctx.base.ejecutar("insert into avisos_oficina (id, edificio_id, equipo_id, texto, creado_en) values (?, ?, ?, ?, ?)", [uuidv7(), edificioId, equipoId, texto2, ahora(ctx)]);
   }
   async function altaEquipo(ctx, a) {
     const id = uuidv7();
-    const carga = a.cargaFabricaKg ? Math.round((a.cargaFabricaKg + a.cargaAnadidaKg) * 1e3) / 1e3 : null;
+    const carga2 = a.cargaFabricaKg ? Math.round((a.cargaFabricaKg + a.cargaAnadidaKg) * 1e3) / 1e3 : null;
     await ctx.base.transaccion(async () => {
       await insertar(ctx.base, "equipos", {
         id,
@@ -4764,7 +4869,7 @@ create table if not exists ajustes (
         modelo: a.modelo,
         numero_serie: a.numeroSerie,
         refrigerante: a.refrigerante,
-        carga_kg: carga,
+        carga_kg: carga2,
         hermetico: 0,
         deteccion_fugas: 0,
         en_vivienda: 0,
@@ -4887,6 +4992,155 @@ create table if not exists ajustes (
   }
   function ahora2(ctx) {
     return ctx.ahora ? ctx.ahora() : ahoraLocalISO();
+  }
+
+  // cxobra/mantenimiento/fuente/logica/entrega.ts
+  var entrega_exports = {};
+  __export(entrega_exports, {
+    FORMATO_ENTREGA: () => FORMATO_ENTREGA,
+    VERSION_ENTREGA: () => VERSION_ENTREGA,
+    importarEntrega: () => importarEntrega,
+    leerEntrega: () => leerEntrega,
+    previsualizarEntrega: () => previsualizarEntrega,
+    validarEntrega: () => validarEntrega
+  });
+  var FORMATO_ENTREGA = "vidaire-acta-entrega";
+  var VERSION_ENTREGA = 1;
+  var TIPOS = /* @__PURE__ */ new Set([
+    "split",
+    "multisplit",
+    "vrf",
+    "compacto",
+    "rooftop",
+    "enfriadora",
+    "bomba_calor_aire_agua",
+    "bomba_calor_aire_aire",
+    "camara_frigorifica",
+    "central_frigorifica",
+    "mueble_frigorifico",
+    "unidad_tratamiento_aire",
+    "recuperador",
+    "fancoil",
+    "ventilador",
+    "extractor",
+    "caldera",
+    "bomba",
+    "cuadro_electrico",
+    "otro"
+  ]);
+  var DISCIPLINAS = /* @__PURE__ */ new Set([
+    "clima",
+    "ventilacion",
+    "fontaneria",
+    "saneamiento",
+    "electricidad",
+    "iluminacion",
+    "pci",
+    "control",
+    "telecomunicaciones",
+    "ascensores",
+    "energia_renovable",
+    "frio_industrial",
+    "general"
+  ]);
+  function validarEntrega(p) {
+    const x = p;
+    if (!x || typeof x !== "object") return "No es un paquete de entrega.";
+    if (x.formato !== FORMATO_ENTREGA) return "No es un acta de entrega de Vidaire Obras.";
+    if (Number(x.version) > VERSION_ENTREGA) return "El acta es de una versi\xF3n m\xE1s nueva: actualiza la app.";
+    if (!x.acta || !x.acta.huella || !x.acta.fecha) return "El acta no viene firmada.";
+    if (!Array.isArray(x.equipos) || !x.equipos.length) return "El acta no trae equipos.";
+    return null;
+  }
+  function leerEntrega(texto2) {
+    let p;
+    try {
+      p = JSON.parse(texto2);
+    } catch {
+      throw new Error("El fichero no es un acta de entrega (no se puede leer).");
+    }
+    const mal = validarEntrega(p);
+    if (mal) throw new Error(mal);
+    return p;
+  }
+  var tagDe = (t) => String(t ?? "").trim().toUpperCase();
+  var refrigerante2 = (v) => {
+    const t = String(v ?? "").trim().toUpperCase();
+    return /^R[0-9A-Z()-]+$/.test(t) ? t : null;
+  };
+  var carga = (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? Math.round(n * 1e3) / 1e3 : null;
+  };
+  var dia = (v) => {
+    const t = String(v ?? "").slice(0, 10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(t) ? t : null;
+  };
+  async function tagsDelEdificio(base2, edificioId) {
+    const filas = await base2.todas(
+      `select tag from equipos where edificio_id = ? and borrado_en is null and coalesce(estado, 'activo') <> 'desmantelado'`,
+      [edificioId]
+    );
+    return new Set(filas.map((f) => tagDe(f.tag)));
+  }
+  async function previsualizarEntrega(base2, p, edificioId) {
+    const hay = await tagsDelEdificio(base2, edificioId);
+    const vistos = /* @__PURE__ */ new Set();
+    const nuevos = [];
+    const yaEstan = [];
+    for (const e of p.equipos) {
+      const tag = tagDe(e.tag);
+      if (!tag) continue;
+      if (hay.has(tag) || vistos.has(tag)) {
+        yaEstan.push(tag);
+        continue;
+      }
+      vistos.add(tag);
+      nuevos.push(e);
+    }
+    const conReservas = nuevos.filter((e) => Array.isArray(e.datos_tecnicos?.cx?.reservas) && e.datos_tecnicos.cx.reservas.length).length;
+    return { nuevos, yaEstan, conReservas };
+  }
+  async function importarEntrega(ctx, p, edificioId) {
+    const mal = validarEntrega(p);
+    if (mal) throw new Error(mal);
+    const ed = await ctx.base.una("select titular_id from edificios where id = ? and borrado_en is null", [edificioId]);
+    if (!ed) throw new Error("Ese edificio no est\xE1 en el m\xF3vil.");
+    const { nuevos, yaEstan } = await previsualizarEntrega(ctx.base, p, edificioId);
+    const entregado = dia(p.acta.fecha);
+    const altas = [];
+    await ctx.base.transaccion(async () => {
+      for (const e of nuevos) {
+        const cx = { ...e.datos_tecnicos?.cx ?? {}, acta_huella: p.acta.huella, acta_firmante: p.acta.firmante?.nombre ?? null };
+        const reservas = Array.isArray(cx.reservas) && cx.reservas.length > 0;
+        await insertar(ctx.base, "equipos", {
+          id: uuidv7(),
+          edificio_id: edificioId,
+          titular_id: ed.titular_id,
+          proyecto_id: null,
+          disciplina: DISCIPLINAS.has(e.disciplina) ? e.disciplina : "general",
+          tag: tagDe(e.tag),
+          descripcion: [e.descripcion, e.ubicacion].filter(Boolean).join(" \xB7 ") || null,
+          tipo: TIPOS.has(e.tipo) ? e.tipo : "otro",
+          fabricante: e.fabricante ?? null,
+          modelo: e.modelo ?? null,
+          numero_serie: e.numero_serie ?? null,
+          refrigerante: refrigerante2(e.refrigerante),
+          carga_kg: carga(e.carga_kg),
+          hermetico: 0,
+          deteccion_fugas: 0,
+          en_vivienda: 0,
+          fecha_instalacion: dia(e.fecha_instalacion) ?? entregado,
+          entregado_en: entregado,
+          estado: "activo",
+          estado_montaje: "recepcionado",
+          estado_pm: reservas ? "con_reservas" : "hecha",
+          datos_tecnicos: JSON.stringify({ ...e.datos_tecnicos, cx })
+        });
+        altas.push(tagDe(e.tag));
+      }
+    });
+    return { altas, yaEstaban: yaEstan };
   }
 
   // cxobra/mantenimiento/fuente/i18n/es.ts
@@ -5598,10 +5852,593 @@ create table if not exists ajustes (
     }
   };
 
+  // cxobra/mantenimiento/fuente/datos/sincronizacion.ts
+  var ErrorServidor = class extends Error {
+    codigo;
+    constructor(codigo, mensaje) {
+      super(mensaje);
+      this.codigo = codigo;
+    }
+    /**
+     * Sin red o el servidor no contesta: se reintenta más tarde. En Vidaire Cx,
+     * también si la sesión caducó a mitad (nube-vidaire.ts): no es culpa del
+     * cambio, así que no se rechaza; sube al volver a entrar.
+     */
+    get esDeRed() {
+      return this.codigo === "red" || this.codigo === "sin_sesion" || /^5\d\d$/.test(this.codigo);
+    }
+  };
+  async function subir(base2, servidor, leerFichero2) {
+    const r = { subidos: 0, rechazados: 0, conflictos: 0, sinRed: false };
+    const cola = await base2.todas(`select * from cola where estado = 'pendiente' order by n`);
+    for (const e of cola) {
+      await base2.ejecutar("update cola set intentos = intentos + 1, ultimo_intento = ? where n = ?", [ahoraISO(), e.n]);
+      try {
+        if (e.tipo === "fila") r.conflictos += await subirFila(base2, servidor, e);
+        else if (e.tipo === "intervencion") await subirIntervencion(base2, servidor, e.fila_id);
+        else await subirFichero(base2, servidor, e.fila_id, leerFichero2);
+        await base2.ejecutar("delete from cola where n = ?", [e.n]);
+        r.subidos++;
+      } catch (err) {
+        const x = err instanceof ErrorServidor ? err : new ErrorServidor("red", String(err?.message ?? err));
+        if (x.esDeRed) {
+          await base2.ejecutar("update cola set mensaje = ? where n = ?", [x.message, e.n]);
+          r.sinRed = true;
+          break;
+        }
+        await base2.ejecutar(`update cola set estado = 'rechazado', mensaje = ? where n = ?`, [`${x.codigo}: ${x.message}`, e.n]);
+        r.rechazados++;
+      }
+    }
+    return r;
+  }
+  async function subirFila(base2, servidor, e) {
+    const t = TABLAS_ESPEJO.get(e.tabla);
+    const cambios = JSON.parse(e.cambios);
+    if (e.operacion === "upsert" || e.version_leida === null) {
+      const local = await base2.una(`select * from ${e.tabla} where id = ?`, [e.fila_id]);
+      const fila2 = aServidor(t, local ?? { id: e.fila_id, ...cambios });
+      const v = await servidor.upsert(e.tabla, fila2);
+      await base2.ejecutar(`update ${e.tabla} set version = ?, actualizado_en = ? where id = ?`, [v.version, v.actualizado_en, e.fila_id]);
+      return 0;
+    }
+    const paraServidor = (c) => Object.fromEntries(Object.entries(c).map(([k, v]) => [k, valorServidor(t, k, v)]));
+    try {
+      const v = await servidor.actualizar(e.tabla, e.fila_id, paraServidor(cambios), e.version_leida);
+      await base2.ejecutar(`update ${e.tabla} set version = ?, actualizado_en = ? where id = ?`, [v.version, v.actualizado_en, e.fila_id]);
+      return 0;
+    } catch (err) {
+      if (!(err instanceof ErrorServidor) || err.codigo !== "PT409") throw err;
+      return rebasar(base2, servidor, t, e, cambios);
+    }
+  }
+  async function rebasar(base2, servidor, t, e, cambios) {
+    const remota = await servidor.leer(e.tabla, e.fila_id);
+    if (!remota) throw new ErrorServidor("PT404", "La fila ya no existe en el servidor.");
+    const antes = JSON.parse(e.antes ?? "{}");
+    const remotaLocal = aLocal(t, remota);
+    const valorRemoto = (c) => remotaLocal[t.columnas.indexOf(c) + 1] ?? null;
+    const quedan = {};
+    let conflictos = 0;
+    for (const [campo, mio] of Object.entries(cambios)) {
+      const suyo = valorRemoto(campo);
+      if (igual(suyo, mio)) continue;
+      if (igual(suyo, antes[campo] ?? null)) {
+        quedan[campo] = mio;
+        continue;
+      }
+      conflictos++;
+      await base2.ejecutar(
+        "insert into conflictos (id, tabla, fila_id, campo, mio, servidor, creado_en) values (?, ?, ?, ?, ?, ?, ?)",
+        [uuidv7(), e.tabla, e.fila_id, campo, texto(mio), texto(suyo), ahoraISO()]
+      );
+    }
+    await base2.ejecutar(sqlUpsertEspejo(t), remotaLocal);
+    if (Object.keys(quedan).length) {
+      const cols = Object.keys(quedan);
+      await base2.ejecutar(`update ${e.tabla} set ${cols.map((c) => `${c} = ?`).join(", ")} where id = ?`, [...cols.map((c) => quedan[c] ?? null), e.fila_id]);
+      const v = await servidor.actualizar(
+        e.tabla,
+        e.fila_id,
+        Object.fromEntries(cols.map((c) => [c, valorServidor(t, c, quedan[c])])),
+        Number(remota.version)
+      );
+      await base2.ejecutar(`update ${e.tabla} set version = ?, actualizado_en = ? where id = ?`, [v.version, v.actualizado_en, e.fila_id]);
+    }
+    return conflictos;
+  }
+  async function cargaIntervencion(base2, id) {
+    const i = await base2.una("select * from intervenciones where id = ?", [id]);
+    if (!i) throw new ErrorServidor("PT404", "La intervenci\xF3n ya no est\xE1 en el m\xF3vil.");
+    const movimientos = await base2.todas("select * from movimientos_gas where intervencion_id = ? and borrado_en is null", [id]);
+    const documentos = await base2.todas("select * from documentos where intervencion_id = ? and borrado_en is null", [id]);
+    return {
+      id: i.id,
+      equipo_id: i.equipo_id,
+      contrato_id: i.contrato_id,
+      tecnico_id: i.tecnico_id,
+      tipo: i.tipo,
+      realizada_en: i.realizada_en,
+      resultado: i.resultado,
+      observaciones: i.observaciones,
+      firmante_cliente_nombre: i.firmante_cliente_nombre,
+      firmante_cliente_cargo: i.firmante_cliente_cargo,
+      anula_a_id: i.anula_a_id,
+      cliente_modificado_en: ahoraISO(),
+      estado: i.estado,
+      movimientos: movimientos.map((m) => ({ id: m.id, sentido: m.sentido, refrigerante: m.refrigerante, kg: m.kg, origen: m.origen, lugar_tratamiento: m.lugar_tratamiento, cilindro: m.cilindro, lote: m.lote })),
+      documentos: documentos.map((d) => ({ id: d.id, tipo: d.tipo, titulo: d.titulo, ruta: d.ruta, mime: d.mime, bytes: d.bytes, sha256: d.sha256 }))
+    };
+  }
+  async function subirIntervencion(base2, servidor, id) {
+    await servidor.subirIntervencion(await cargaIntervencion(base2, id));
+    await base2.ejecutar("update intervenciones set version = max(version, 1) where id = ?", [id]);
+    await base2.ejecutar("update movimientos_gas set version = max(version, 1) where intervencion_id = ?", [id]);
+    await base2.ejecutar("update documentos set version = max(version, 1) where intervencion_id = ?", [id]);
+  }
+  async function subirFichero(base2, servidor, documentoId, leer2) {
+    const f = await base2.una("select * from ficheros where documento_id = ?", [documentoId]);
+    if (!f || f.subido) return;
+    const d = await base2.una("select ruta from documentos where id = ?", [documentoId]);
+    if (!d) throw new ErrorServidor("PT404", "El documento del fichero ya no est\xE1 en el m\xF3vil.");
+    await servidor.subirFichero(d.ruta, await leer2(f), f.mime);
+    await base2.ejecutar("update ficheros set subido = 1 where documento_id = ?", [documentoId]);
+  }
+  var SOLAPE_MS = 5 * 60 * 1e3;
+  var PAGINA = 500;
+  async function bajar(base2, servidor, usuarioId, hoy) {
+    let filas = 0;
+    for (const t of ESPEJO.filter((x) => x.alcance.tipo === "global" || x.alcance.tipo === "hijo" && x.alcance.padre === "plantillas_prueba")) {
+      filas += await bajarTabla(base2, servidor, t, usuarioId, void 0, hoy);
+    }
+    const edificios = await servidor.edificiosDeTrabajo(usuarioId);
+    const antes = JSON.parse(await leerAjuste(base2, "edificios") ?? "[]");
+    for (const fuera of antes.filter((x) => !edificios.includes(x))) await olvidarEdificio(base2, fuera);
+    for (const ed of edificios) {
+      for (const t of ESPEJO.filter((x) => x.alcance.tipo === "edificio" || x.alcance.tipo === "hijo" && x.alcance.padre !== "plantillas_prueba")) {
+        filas += await bajarTabla(base2, servidor, t, usuarioId, ed, hoy);
+      }
+    }
+    await guardarAjuste(base2, "edificios", JSON.stringify(edificios));
+    await guardarAjuste(base2, "ultima_bajada", ahoraISO());
+    return { filas, edificios };
+  }
+  async function bajarTabla(base2, servidor, t, usuarioId, edificio, hoy) {
+    const clave = `cursor:${t.nombre}${edificio ? `:${edificio}` : ""}`;
+    const cursor = await leerAjuste(base2, clave);
+    const desde2 = cursor ? new Date(Date.parse(cursor) - SOLAPE_MS).toISOString() : null;
+    const fechaMinima = t.alcance.tipo === "edificio" && t.alcance.desdeMeses ? restarMeses(hoy, t.alcance.desdeMeses) : void 0;
+    let total = 0;
+    let marca = desde2;
+    let maximo = cursor;
+    for (; ; ) {
+      const lote = await servidor.bajar(t, { desde: marca, edificio, usuarioId, limite: PAGINA, fechaMinima });
+      for (const fila2 of lote) {
+        if (await aplicarFila(base2, t, fila2)) total++;
+        const a = fila2.actualizado_en;
+        if (a && (!maximo || a > maximo)) maximo = a;
+      }
+      if (lote.length < PAGINA) break;
+      const ultimo = lote[lote.length - 1].actualizado_en;
+      if (ultimo === marca) break;
+      marca = ultimo;
+    }
+    if (maximo) await guardarAjuste(base2, clave, maximo);
+    return total;
+  }
+  async function aplicarFila(base2, t, fila2) {
+    const id = String(fila2.id);
+    const pendiente = await base2.una(`select n from cola where tabla = ? and fila_id = ? and estado = 'pendiente'`, [t.nombre, id]);
+    if (pendiente) return false;
+    const local = await base2.una(`select version from ${t.nombre} where id = ?`, [id]);
+    if (local && local.version === Number(fila2.version)) return false;
+    if (fila2.borrado_en) {
+      await base2.ejecutar(`delete from ${t.nombre} where id = ?`, [id]);
+      return true;
+    }
+    await base2.ejecutar(sqlUpsertEspejo(t), aLocal(t, fila2));
+    return true;
+  }
+  async function olvidarEdificio(base2, edificio) {
+    const pend = `not exists (select 1 from cola c where c.fila_id = %T.id and c.estado = 'pendiente')`;
+    await base2.transaccion(async () => {
+      for (const t of ESPEJO) {
+        if (t.alcance.tipo === "hijo" && t.alcance.padre !== "plantillas_prueba") {
+          await base2.ejecutar(`delete from ${t.nombre} where ${t.alcance.fk} in (select id from ${t.alcance.padre} where edificio_id = ?) and ${pend.replace("%T", t.nombre)}`, [edificio]);
+        }
+      }
+      for (const t of ESPEJO) {
+        if (t.alcance.tipo === "edificio") {
+          await base2.ejecutar(`delete from ${t.nombre} where ${t.alcance.columna} = ? and ${pend.replace("%T", t.nombre)}`, [edificio]);
+          await base2.ejecutar("delete from ajustes where clave = ?", [`cursor:${t.nombre}:${edificio}`]);
+        }
+        if (t.alcance.tipo === "hijo") await base2.ejecutar("delete from ajustes where clave = ?", [`cursor:${t.nombre}:${edificio}`]);
+      }
+    });
+  }
+  function igual(a, b) {
+    if (a === null || a === void 0) return b === null || b === void 0;
+    return String(a) === String(b);
+  }
+  function texto(v) {
+    return v === null || v === void 0 ? null : String(v);
+  }
+  function restarMeses(fecha, meses) {
+    const [a, m, d] = fecha.split("-").map(Number);
+    const total = a * 12 + (m - 1) - meses;
+    return `${Math.floor(total / 12)}-${String(total % 12 + 1).padStart(2, "0")}-${String(Math.min(d, 28)).padStart(2, "0")}`;
+  }
+
+  // cxobra/mantenimiento/fuente/datos/nube-vidaire.ts
+  function fallo(status, cuerpo, texto2) {
+    const c = cuerpo && typeof cuerpo === "object" ? cuerpo : {};
+    const mensaje = String(c.message ?? c.msg ?? c.error_description ?? c.error ?? texto2 ?? "Sin mensaje");
+    const codigo = typeof c.code === "string" && c.code ? c.code : "";
+    if (/^PT\d\d\d$/.test(codigo)) return new ErrorServidor(codigo, mensaje);
+    if (status >= 500) return new ErrorServidor(String(status), mensaje);
+    return new ErrorServidor(codigo || String(status), mensaje);
+  }
+  function crearNube(cfg) {
+    const base2 = cfg.url.replace(/\/+$/, "");
+    const pedirRed = cfg.fetch ?? ((...a) => globalThis.fetch(...a));
+    const ahora3 = cfg.ahora ?? (() => Math.floor(Date.now() / 1e3));
+    let sesion = cfg.sesion ?? null;
+    let renovando = null;
+    const poner = (s) => {
+      sesion = s;
+      cfg.alCambiarSesion?.(s);
+    };
+    async function bruto(ruta, p = {}) {
+      const cab = { apikey: cfg.clave, ...p.cabeceras };
+      if (!p.sinSesion && sesion) cab.Authorization = `Bearer ${sesion.token}`;
+      let body;
+      if (p.bytes) {
+        body = p.bytes;
+        cab["Content-Type"] = p.mime ?? "application/octet-stream";
+      } else if (p.cuerpo !== void 0) {
+        body = JSON.stringify(p.cuerpo);
+        cab["Content-Type"] = "application/json";
+      }
+      let r;
+      try {
+        r = await pedirRed(`${base2}${ruta}`, { method: p.metodo ?? "GET", headers: cab, body });
+      } catch (e) {
+        throw new ErrorServidor("red", e?.message || "Sin conexi\xF3n");
+      }
+      const texto2 = await r.text().catch(() => "");
+      let cuerpo = null;
+      try {
+        cuerpo = texto2 ? JSON.parse(texto2) : null;
+      } catch {
+        cuerpo = null;
+      }
+      return { status: r.status, cuerpo, texto: texto2 };
+    }
+    function aSesion(c, correo) {
+      const u = c.user ?? {};
+      const caduca = Number(c.expires_at) || ahora3() + Number(c.expires_in ?? 3600);
+      return { token: String(c.access_token), renovar: String(c.refresh_token), caduca, usuarioId: String(u.id ?? sesion?.usuarioId ?? ""), correo: String(u.email ?? correo) };
+    }
+    async function renovar() {
+      if (!sesion) throw new ErrorServidor("sin_sesion", "No has entrado en Vidaire.");
+      if (!renovando) {
+        const actual = sesion;
+        renovando = (async () => {
+          const r = await bruto("/auth/v1/token?grant_type=refresh_token", { metodo: "POST", cuerpo: { refresh_token: actual.renovar }, sinSesion: true });
+          if (r.status >= 200 && r.status < 300 && r.cuerpo) {
+            poner(aSesion(r.cuerpo, actual.correo));
+            return;
+          }
+          const e = fallo(r.status, r.cuerpo, r.texto);
+          if (!e.esDeRed) {
+            poner(null);
+            throw new ErrorServidor("sin_sesion", "La sesi\xF3n de Vidaire ha caducado: vuelve a entrar.");
+          }
+          throw e;
+        })().finally(() => {
+          renovando = null;
+        });
+      }
+      return renovando;
+    }
+    async function pedir(ruta, p = {}) {
+      if (!sesion) throw new ErrorServidor("sin_sesion", "No has entrado en Vidaire.");
+      if (sesion.caduca - 60 <= ahora3()) await renovar();
+      let r = await bruto(ruta, p);
+      if (r.status === 401 || r.cuerpo?.code === "PGRST301") {
+        await renovar();
+        r = await bruto(ruta, p);
+      }
+      if (r.status >= 200 && r.status < 300) return r.cuerpo;
+      throw fallo(r.status, r.cuerpo, r.texto);
+    }
+    async function entrar(correo, clave) {
+      const r = await bruto("/auth/v1/token?grant_type=password", { metodo: "POST", cuerpo: { email: correo.trim(), password: clave }, sinSesion: true });
+      if (r.status >= 200 && r.status < 300 && r.cuerpo) {
+        const s = aSesion(r.cuerpo, correo.trim());
+        poner(s);
+        return s;
+      }
+      const e = fallo(r.status, r.cuerpo, r.texto);
+      if (e.esDeRed) throw e;
+      const c = r.cuerpo ?? {};
+      if (c.error_code === "invalid_credentials" || c.error === "invalid_grant" || r.status === 400) throw new ErrorServidor("credenciales", "El correo o la contrase\xF1a no son correctos.");
+      if (c.error_code === "email_not_confirmed") throw new ErrorServidor("sin_confirmar", "A\xFAn no has confirmado tu correo: mira el enlace que te mand\xF3 Vidaire.");
+      throw e;
+    }
+    async function salir() {
+      const s = sesion;
+      poner(null);
+      if (!s) return;
+      try {
+        await pedirRed(`${base2}/auth/v1/logout`, { method: "POST", headers: { apikey: cfg.clave, Authorization: `Bearer ${s.token}` } });
+      } catch {
+      }
+    }
+    const q = encodeURIComponent;
+    const lista = (xs) => `(${xs.map((x) => /[,()"\s]/.test(x) ? `"${x.replace(/"/g, '\\"')}"` : x).join(",")})`;
+    const una = (d) => Array.isArray(d) ? d[0] ?? null : d;
+    const VERSION = "select=version,actualizado_en";
+    const servidor = {
+      async bajar(t, c) {
+        const cols = ["id", ...t.columnas, "version", "actualizado_en", "borrado_en"].join(",");
+        const a = t.alcance;
+        const sel = a.tipo === "hijo" ? `${cols},${a.padre}!inner(${a.padre === "plantillas_prueba" ? "estado" : "edificio_id"})` : cols;
+        const f = [`select=${q(sel)}`, "order=actualizado_en.asc,id.asc", `limit=${c.limite}`];
+        if (c.desde) f.push(`actualizado_en=gt.${q(c.desde)}`);
+        if (a.tipo === "global") {
+          if (a.filtro === "usuario") f.push(`${t.nombre === "perfiles" ? "id" : "usuario_id"}=eq.${q(c.usuarioId)}`);
+          if (a.filtro === "tecnico") f.push(`tecnico_id=eq.${q(c.usuarioId)}`);
+          if (a.filtro === "publicadas") f.push(`estado=in.${q(lista(["publicada", "retirada"]))}`);
+        } else if (a.tipo === "edificio") {
+          f.push(`${a.columna}=eq.${q(c.edificio)}`);
+          if (c.fechaMinima && a.columnaFecha) f.push(`${a.columnaFecha}=gte.${q(c.fechaMinima)}`);
+        } else if (a.padre === "plantillas_prueba") {
+          f.push(`${a.padre}.estado=in.${q(lista(["publicada", "retirada"]))}`);
+        } else {
+          f.push(`${a.padre}.edificio_id=eq.${q(c.edificio)}`);
+        }
+        const filas = await pedir(`/rest/v1/${t.nombre}?${f.join("&")}`) ?? [];
+        return filas.map((x) => {
+          if (a.tipo === "hijo") delete x[a.padre];
+          return x;
+        });
+      },
+      async upsert(tabla2, fila2) {
+        const d = una(await pedir(`/rest/v1/${tabla2}?${VERSION}`, { metodo: "POST", cuerpo: fila2, cabeceras: { Prefer: "resolution=merge-duplicates,return=representation" } }));
+        if (!d) throw new ErrorServidor("PT403", "No tienes permiso para guardar esta fila.");
+        return d;
+      },
+      async actualizar(tabla2, id, cambios, version) {
+        const d = una(await pedir(`/rest/v1/${tabla2}?id=eq.${q(id)}&${VERSION}`, { metodo: "PATCH", cuerpo: { ...cambios, version }, cabeceras: { Prefer: "return=representation" } }));
+        if (!d) throw new ErrorServidor("PT403", "No tienes permiso para cambiar esta fila o ya no la ves.");
+        return d;
+      },
+      async leer(tabla2, id) {
+        return una(await pedir(`/rest/v1/${tabla2}?select=*&id=eq.${q(id)}`));
+      },
+      async subirIntervencion(p) {
+        await pedir("/rest/v1/rpc/subir_intervencion", { metodo: "POST", cuerpo: { p } });
+      },
+      async subirFichero(ruta, datos, mime) {
+        try {
+          await pedir(`/storage/v1/object/registro/${ruta.split("/").map(q).join("/")}`, { metodo: "POST", bytes: datos, mime, cabeceras: { "x-upsert": "false" } });
+        } catch (e) {
+          const x = e;
+          if (x.codigo === "409" || /already exists|Duplicate/i.test(x.message)) return;
+          throw e;
+        }
+      },
+      async edificiosDeTrabajo(usuarioId) {
+        const ruta = await pedir("/rest/v1/rpc/sync_ruta", { metodo: "POST", cuerpo: {} }) ?? [];
+        const ids = new Set(ruta.map((x) => typeof x === "string" ? x : x.sync_ruta));
+        const mias = await pedir(`/rest/v1/miembros?select=organizacion_id&usuario_id=eq.${q(usuarioId)}&activo=eq.true`) ?? [];
+        const orgs = mias.map((m) => m.organizacion_id);
+        if (orgs.length) {
+          const obras = await pedir(`/rest/v1/proyecto_participantes?select=${q("proyectos_cx!inner(edificio_id)")}&organizacion_id=in.${q(lista(orgs))}&estado=eq.vigente`) ?? [];
+          for (const o of obras) {
+            for (const x of Array.isArray(o.proyectos_cx) ? o.proyectos_cx : [o.proyectos_cx]) ids.add(x.edificio_id);
+          }
+        }
+        return [...ids];
+      }
+    };
+    return { entrar, salir, renovar, pedir, servidor, sesion: () => sesion };
+  }
+
+  // cxobra/mantenimiento/fuente/datos/cuenta.ts
+  async function deducirIdentidad(base2, usuarioId, correo) {
+    const perfil = await base2.una("select nombre_completo from perfiles where id = ?", [usuarioId]);
+    const orgs = await base2.todas(
+      `select o.id, o.tipos from organizaciones o join miembros m on m.organizacion_id = o.id where m.usuario_id = ? and coalesce(m.activo, 1) = 1 order by o.nombre`,
+      [usuarioId]
+    );
+    const mant = orgs.find((o) => o.tipos?.includes("mantenedora")) ?? orgs[0];
+    return { usuarioId, nombre: perfil?.nombre_completo || correo, organizacionId: mant?.id ?? "", correo };
+  }
+  function crearCuenta(o) {
+    let identidad = null;
+    let sincronizando = null;
+    let ultima = null;
+    let sinRed = false;
+    let error = null;
+    const laBase = () => {
+      const b = o.base();
+      if (!b) throw new Error("El modo Mantenimiento a\xFAn no est\xE1 abierto.");
+      return b;
+    };
+    async function estado() {
+      const b = o.base();
+      const p = b ? await pendientes(b) : { porEnviar: 0, rechazados: 0 };
+      const c = b ? await b.una("select count(*) as n from conflictos") : null;
+      const s = o.nube.sesion();
+      return { conectado: Boolean(s), correo: s?.correo ?? null, sincronizando: Boolean(sincronizando), ultima, sinRed, error, ...p, conflictos: c?.n ?? 0 };
+    }
+    async function avisar(r) {
+      if (o.alCambiar) o.alCambiar(await estado(), r);
+    }
+    async function recuperar() {
+      const s = o.nube.sesion();
+      if (!s) {
+        identidad = null;
+        return null;
+      }
+      const b = laBase();
+      const usuario = await leerAjuste(b, "usuario");
+      if (usuario !== s.usuarioId) {
+        identidad = null;
+        return null;
+      }
+      ultima = await leerAjuste(b, "ultima_vuelta");
+      identidad = await deducirIdentidad(b, s.usuarioId, s.correo);
+      return identidad;
+    }
+    function sincronizar() {
+      if (sincronizando) return sincronizando;
+      const s = o.nube.sesion();
+      const b = o.base();
+      if (!s || !b) return Promise.resolve(null);
+      sincronizando = (async () => {
+        void avisar();
+        const r = { subidos: 0, rechazados: 0, conflictos: 0, filas: 0, sinRed: false };
+        try {
+          const sub = await subir(b, o.nube.servidor, o.leerFichero);
+          Object.assign(r, { subidos: sub.subidos, rechazados: sub.rechazados, conflictos: sub.conflictos, sinRed: sub.sinRed });
+          if (!sub.sinRed) {
+            const baj = await bajar(b, o.nube.servidor, s.usuarioId, o.hoy());
+            r.filas = baj.filas;
+            ultima = (/* @__PURE__ */ new Date()).toISOString();
+            await guardarAjuste(b, "ultima_vuelta", ultima);
+          }
+          sinRed = r.sinRed;
+          error = !o.nube.sesion() ? "La sesi\xF3n de Vidaire ha caducado: vuelve a entrar." : null;
+          identidad = await deducirIdentidad(b, s.usuarioId, s.correo);
+        } catch (e) {
+          const x = e;
+          sinRed = Boolean(x.esDeRed);
+          r.sinRed = sinRed;
+          error = sinRed && x.codigo !== "sin_sesion" ? null : x.message;
+        }
+        return r;
+      })().finally(() => {
+        sincronizando = null;
+      });
+      return sincronizando.then(async (r) => {
+        await avisar(r ?? void 0);
+        return r;
+      });
+    }
+    async function entrar(correo, clave) {
+      const b = laBase();
+      const anterior = await leerAjuste(b, "usuario");
+      const s = await o.nube.entrar(correo, clave);
+      if (anterior !== s.usuarioId) {
+        if (anterior && (await pendientes(b)).porEnviar > 0) {
+          await o.nube.salir();
+          throw new ErrorServidor("otro_usuario", "En este m\xF3vil hay cambios de otro t\xE9cnico que a\xFAn no han llegado a Vidaire. Que entre \xE9l y los env\xEDe antes.");
+        }
+        await o.vaciar();
+        const nueva = laBase();
+        await guardarAjuste(nueva, "usuario", s.usuarioId);
+      }
+      await guardarAjuste(laBase(), "correo", s.correo);
+      error = null;
+      identidad = await deducirIdentidad(laBase(), s.usuarioId, s.correo);
+      await sincronizar();
+      return identidad;
+    }
+    async function salir(forzar = false) {
+      const b = o.base();
+      if (b && !forzar && (await pendientes(b)).porEnviar > 0) {
+        throw new ErrorServidor("pendientes", "Hay cambios sin enviar a Vidaire. Si sales ahora, se pierden.");
+      }
+      await o.nube.salir();
+      await o.vaciar();
+      identidad = null;
+      ultima = null;
+      sinRed = false;
+      error = null;
+      await avisar();
+    }
+    async function rechazados() {
+      const b = o.base();
+      if (!b) return [];
+      return b.todas(`select tabla, coalesce(mensaje, '') as mensaje from cola where estado = 'rechazado' order by n`);
+    }
+    return { entrar, salir, sincronizar, recuperar, estado, rechazados, identidad: () => identidad };
+  }
+
+  // cxobra/mantenimiento/vidaire-publico.json
+  var vidaire_publico_default = {
+    url: "https://kuctmrwyejbzokmudroe.supabase.co",
+    publishableKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1Y3Rtcnd5ZWpiem9rbXVkcm9lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1MDY2ODYsImV4cCI6MjEwNjA4MjY4Nn0.Wdpx_549-Mrt-J7NhRcG_YCkciruU45b5gZBxNddc8M"
+  };
+
   // cxobra/mantenimiento/fuente/motor.ts
+  var SIN_NUBE = Boolean(false);
   var base = null;
+  var CLAVE_SESION = "vidaire.mant.sesion";
+  function sesionGuardada() {
+    try {
+      return JSON.parse(localStorage.getItem(CLAVE_SESION) ?? "null");
+    } catch {
+      return null;
+    }
+  }
+  var nube = crearNube({
+    url: vidaire_publico_default.url,
+    clave: vidaire_publico_default.publishableKey,
+    sesion: SIN_NUBE ? null : sesionGuardada(),
+    alCambiarSesion: (s) => {
+      try {
+        if (s) localStorage.setItem(CLAVE_SESION, JSON.stringify(s));
+        else localStorage.removeItem(CLAVE_SESION);
+      } catch {
+      }
+    }
+  });
+  var leerFichero = async (f) => {
+    if (f.contenido !== null) return new TextEncoder().encode(f.contenido);
+    const r = await fetch(f.uri);
+    return new Uint8Array(await r.arrayBuffer());
+  };
+  var cuenta = crearCuenta({
+    base: () => base,
+    nube,
+    vaciar: async () => {
+      if (base) await base.vaciar();
+    },
+    leerFichero,
+    hoy: () => hoyLocal(),
+    alCambiar: (e, r) => {
+      try {
+        globalThis.dispatchEvent(new CustomEvent("vidaire:mant-sync", { detail: { estado: e, vuelta: r ?? null } }));
+      } catch {
+      }
+    }
+  });
+  var reloj = null;
+  function vigilar() {
+    if (reloj || SIN_NUBE) return;
+    reloj = setInterval(() => {
+      if (nube.sesion()) void cuenta.sincronizar();
+    }, 3e4);
+    globalThis.addEventListener?.("online", () => {
+      if (nube.sesion()) void cuenta.sincronizar();
+    });
+    globalThis.document?.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && nube.sesion()) void cuenta.sincronizar();
+    });
+  }
   async function iniciar(urlWasm) {
-    if (!base) base = await abrirBaseWasm(urlWasm);
+    if (!base) {
+      base = await abrirBaseWasm(urlWasm);
+      if (nube.sesion()) {
+        await cuenta.recuperar();
+        void cuenta.sincronizar();
+      }
+      vigilar();
+    }
     return base;
   }
   function hoyLocal() {
@@ -5609,6 +6446,8 @@ create table if not exists ajustes (
   }
   function contexto() {
     if (!base) throw new Error("El modo Mantenimiento a\xFAn no est\xE1 abierto.");
+    const yo = cuenta.identidad();
+    if (yo) return { base, usuarioId: yo.usuarioId, usuarioNombre: yo.nombre, organizacionId: yo.organizacionId, hoy: hoyLocal() };
     return { base, usuarioId: DEMO_USUARIO.id, usuarioNombre: DEMO_USUARIO.nombre, organizacionId: DEMO_USUARIO.organizacionId, hoy: hoyLocal() };
   }
   async function hayDatos() {
@@ -5618,6 +6457,7 @@ create table if not exists ajustes (
   }
   async function ejemplo() {
     if (!base) throw new Error("El modo Mantenimiento a\xFAn no est\xE1 abierto.");
+    if (nube.sesion()) throw new Error("Has entrado en Vidaire: los datos de ejemplo se mezclar\xEDan con los tuyos.");
     await cargarDemo(base, hoyLocal());
   }
   async function vaciar() {
@@ -5631,6 +6471,8 @@ create table if not exists ajustes (
     vaciar,
     hoyLocal,
     uuid: uuidv7,
+    /* La cuenta de Vidaire: entrar, salir, sincronizar, estado… (cuenta.ts). */
+    nube: { ...cuenta, hay: !SIN_NUBE },
     mant: mantenimiento_exports,
     inc: incidencias_exports,
     reglas: reglas_exports,
@@ -5638,6 +6480,8 @@ create table if not exists ajustes (
     almacen: almacen_exports,
     normativa: src_exports,
     es,
-    base: () => base
+    base: () => base,
+    /* El acta de entrega de la obra: sus equipos pasan al edificio del contrato (entrega.ts). */
+    entrega: entrega_exports
   };
 })();
