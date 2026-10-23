@@ -60,7 +60,7 @@
   async function cargarLista() {
     ficha = null; hoja = null; pilaEquipos = [];
     bocaAbierta = null; grandeId = null;
-    document.body.classList.remove('con-hoja-boca', 'sin-scroll');
+    document.body.classList.remove('sin-scroll');
     /* Desde una cifra del Inicio: la lista llega ya filtrada. */
     try { const v = sessionStorage.getItem('cx.segmento'); if (v) { segmento = v; sessionStorage.removeItem('cx.segmento'); AGRUPAR.forEach(([id]) => C.reiniciarLista(`cx-equipos-${id}`)); } } catch { /* nada */ }
     await C.obrasListas();
@@ -383,6 +383,7 @@
     const balanceo = () => `
       ${hayDos ? `<div class="segmentado circuito-bal" role="tablist" aria-label="Circuito">${[['impulsion', 'Impulsión', cuenta(false)], ['retorno', nombreRet, cuenta(true)]]
         .map(([id, n, c]) => `<button role="tab" data-cx="circuito-bal" data-circuito="${id}" aria-selected="${circ === id}" class="${circ === id ? 'activa' : ''}">${esc(n)} <small>${c}</small></button>`).join('')}</div>` : ''}
+      ${htmlCrono()}
       ${circ !== 'retorno' ? totalCircuito(f.circuitos && f.circuitos.impulsion, 'Impulsión') : ''}
       ${circ !== 'impulsion' ? totalCircuito(f.circuitos && f.circuitos.retorno, nombreRet) : ''}
       ${med.velocidad ? `<p class="nota">Una medida por boca, con el equipo a velocidad ${esc(med.velocidad)}.</p>` : ''}
@@ -405,8 +406,8 @@
         : tagFijo(e.tag, sub, 'atras')}
       <div class="densa">${cuerpo}</div>`;
     C.cargarImagenes($app);
-    if (pestanaEq === 'balanceo') restaurarPlano();
-    else { bocaAbierta = null; grandeId = null; document.body.classList.remove('con-hoja-boca', 'sin-scroll'); }
+    if (pestanaEq === 'balanceo') { restaurarPlano(); latirCrono(); }
+    else { bocaAbierta = null; grandeId = null; document.body.classList.remove('sin-scroll'); }
   }
 
   /* «Balanceo de caudales», «Caudales de extracción»… según lo que se mide. */
@@ -573,59 +574,58 @@
   }, true);
 
   /*
-   * LA TARJETA DE UNA BOCA, ABAJO (16-oct-2026, JC: «al pulsar un difusor,
-   * que salga su tarjeta para meter la medición»). Es la misma boca de la
-   * lista, llevada a una hoja que sube desde abajo (y devuelta a su sitio al
-   * cerrarla): se guarda igual, al salir de ella o con Intro, y el plano
-   * sigue a la vista por encima.
+   * UNA SOLA BOCA EN EL LISTADO (23-oct-2026, JC: «si pulsas un difusor, que
+   * salga solo ese en el listado»). Al pulsar una marca del plano el listado
+   * se filtra a esa boca (la misma ficha de siempre, un único formulario, se
+   * guarda igual) con una barra «Solo I17 · Anterior · Siguiente · Ver todas».
    */
-  function abrirHojaBoca(clave) {
-    cerrarHojaBoca({ seguir: true });
+  const bocaVisible = () => $app.querySelector('.densa li[data-boca]:not(.fuera-filtro)');
+  function abrirHojaBoca(clave, { foco = false } = {}) {
+    quitarFiltroBoca();
     const li = $app.querySelector(`.densa li[data-boca="${CSS.escape(clave)}"]`);
     if (!li) { bocaAbierta = null; return; }
     bocaAbierta = clave;
-    const hueco = document.createElement('li');
-    hueco.className = 'hueco-boca';
-    hueco.hidden = true;
-    hueco.dataset.hueco = clave;
-    li.replaceWith(hueco);
-    const hojaB = document.createElement('div');
-    hojaB.className = 'hoja-boca';
-    hojaB.setAttribute('role', 'dialog');
-    hojaB.setAttribute('aria-label', 'Medición de la boca');
-    hojaB.innerHTML = `<div class="hoja-boca-cab"><span class="asa"></span>
-      <button class="enlace" data-cx="boca-anterior" aria-label="Boca anterior">‹ Anterior</button>
-      <button class="enlace" data-cx="boca-siguiente" aria-label="Boca siguiente">Siguiente ›</button>
-      <button class="enlace" data-cx="cerrar-boca">Listo</button></div><ul class="bocas"></ul>`;
-    hojaB.querySelector('ul').appendChild(li);
-    $app.appendChild(hojaB);
-    document.body.classList.add('con-hoja-boca');
+    const ul = li.closest('ul');
+    for (const x of ul.querySelectorAll('li[data-boca]')) x.classList.toggle('fuera-filtro', x !== li);
+    const nombre = (li.querySelector('.boca-cabeza strong') || {}).textContent || '';
+    const barra = document.createElement('div');
+    barra.className = 'filtro-boca';
+    barra.innerHTML = `<span class="solo">Solo <b></b></span>
+      <button class="enlace" data-cx="boca-anterior" aria-label="Boca anterior">‹</button>
+      <button class="enlace" data-cx="boca-siguiente" aria-label="Boca siguiente">›</button>
+      <button class="enlace" data-cx="cerrar-boca">Ver todas</button>`;
+    barra.querySelector('b').textContent = nombre;
+    ul.before(barra);
     for (const m of $app.querySelectorAll('.marca-boca.elegida')) m.classList.remove('elegida');
     const marca = $app.querySelector(`.marca-boca[data-boca="${CSS.escape(clave)}"]`);
     if (marca) marca.classList.add('elegida');
+    if (foco) {
+      const c = casillas(li)[0];
+      if (c) { try { c.focus({ preventScroll: true }); } catch (e) { c.focus(); } }
+      barra.scrollIntoView({ block: 'nearest' });
+    }
+  }
+  function quitarFiltroBoca() {
+    for (const f of $app.querySelectorAll('.filtro-boca')) f.remove();
+    for (const x of $app.querySelectorAll('li.fuera-filtro')) x.classList.remove('fuera-filtro');
   }
   function cerrarHojaBoca({ seguir = false } = {}) {
-    const hojaB = $app.querySelector('.hoja-boca');
     if (!seguir) bocaAbierta = null;
-    if (!hojaB) return;
-    const li = hojaB.querySelector('li[data-boca]');
     /* Lo tecleado se guarda al salir: quitar el foco dispara el guardado. */
+    const li = bocaVisible();
     if (li && li.contains(document.activeElement)) document.activeElement.blur();
-    const hueco = $app.querySelector('li.hueco-boca');
-    if (li && hueco) hueco.replaceWith(li); else if (hueco) hueco.remove();
-    hojaB.remove();
-    document.body.classList.remove('con-hoja-boca');
+    quitarFiltroBoca();
     for (const m of $app.querySelectorAll('.marca-boca.elegida')) m.classList.remove('elegida');
   }
   /* La boca de al lado, en el orden de la lista. */
   function bocaVecina(paso) {
-    const claves = [...$app.querySelectorAll('.densa li[data-boca], .densa li.hueco-boca')].map((x) => x.dataset.boca || x.dataset.hueco);
+    const claves = [...$app.querySelectorAll('.densa li[data-boca]')].map((x) => x.dataset.boca);
     const sig = claves[claves.indexOf(bocaAbierta) + paso];
-    if (sig) abrirHojaBoca(sig);
+    if (sig) abrirHojaBoca(sig, { foco: true });
   }
 
   function irABoca(clave) {
-    abrirHojaBoca(clave);
+    abrirHojaBoca(clave, { foco: true });
   }
 
   /* Tras repintar la ficha: el zoom de cada plano, la pantalla completa y la tarjeta abierta, como estaban. */
@@ -642,7 +642,7 @@
       if (img) img.addEventListener('load', () => aplicarVista(fig), { once: true });
     }
     if (!grandeId) document.body.classList.remove('sin-scroll');
-    if (bocaAbierta) abrirHojaBoca(bocaAbierta); else document.body.classList.remove('con-hoja-boca');
+    if (bocaAbierta) abrirHojaBoca(bocaAbierta);
   }
 
   function planoGrande(boton) {
@@ -919,8 +919,6 @@
       if (destino === 'siguiente' && bocaAbierta) {
         /* Con la tarjeta abierta desde el plano, Intro pasa a la boca siguiente en la misma tarjeta. */
         bocaVecina(1);
-        const li2 = $app.querySelector('.hoja-boca li[data-boca]');
-        if (li2 && casillas(li2)[0]) casillas(li2)[0].focus();
       } else if (destino === 'siguiente') {
         const bocas = [...$app.querySelectorAll('li[data-boca]')];
         const i = bocas.findIndex((x) => x.dataset.boca === claveBoca(plano, punto));
@@ -1457,6 +1455,191 @@
     window.scrollTo(0, 0);
   }
 
+  /* ═══════════════════════════════════ El cronómetro de cuadrilla */
+
+  /*
+   * EL CRONÓMETRO DE CUADRILLA (23-oct-2026, JC: «contar las horas de los dos
+   * para saber el tiempo y el dinero que cuesta medir cada equipo»). Empezar /
+   * Pausar / Terminar guardan la HORA en la hoja de balanceo del equipo (no un
+   * contador): cerrar la app no lo para. La cuadrilla es quien mide + 1
+   * operario, editable. Las cuentas, en shared/commissioning/cronometro.js
+   * (por electron/data/cronometroBalanceo.js); aquí solo se toca y se enseña.
+   */
+  let cuadrillaLocal = null; /* la cuadrilla mientras se edita: { equipoId, personas } */
+  let relojCrono = null;
+  const ROL_CRONO = { oficial: 'Técnico', operario: 'Operario' };
+  const hms = (msT) => {
+    const s = Math.max(0, Math.floor(msT / 1000));
+    return `${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  };
+  const comaCr = (n, d = 1) => (n === null || n === undefined ? '—' : Number(n).toLocaleString('es-ES', { maximumFractionDigits: d }));
+  const eurosCx = (n) => (n === null || n === undefined ? '—' : `${Number(n).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`);
+
+  function estiloCrono() {
+    if (document.getElementById('estilo-crono')) return;
+    const st = document.createElement('style');
+    st.id = 'estilo-crono';
+    st.textContent = `
+      .crono { margin: 4px 0 14px; padding: 0 2px; }
+      .crono h2 { display: flex; align-items: baseline; gap: 8px; }
+      .crono-reloj { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 2px 0 8px; }
+      .crono-tiempo { font-size: 30px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--acento-fuerte); letter-spacing: .5px; }
+      .crono-botones { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+      .crono-botones .boton { width: fit-content; min-width: 104px; border-radius: 999px; padding: 0 18px; }
+      .crono-botones .boton.empezar { background: var(--bien); color: #fff; }
+      .crono-botones .boton.terminar { background: #1F5FA8; color: #fff; }
+      .crono table { border-collapse: collapse; width: 100%; font-size: 14px; margin: 4px 0 6px; }
+      .crono th { text-align: left; font-weight: 600; color: var(--acento); background: none; border-bottom: 2px solid var(--acento); padding: 4px 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .3px; }
+      .crono td { border-bottom: 1px solid var(--rejilla); padding: 4px 6px; vertical-align: middle; }
+      .crono td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+      .crono td input, .crono td select { width: 100%; min-height: 36px; font-size: 15px; border: 1px solid var(--borde); border-radius: 8px; padding: 2px 6px; background: var(--panel); color: var(--texto); box-sizing: border-box; }
+      .crono td .quitar { border: 0; background: none; color: var(--mal); font-size: 20px; min-width: 36px; min-height: 36px; }
+      .crono-acciones { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 10px; }
+      .crono-acciones .boton { width: fit-content; border-radius: 999px; padding: 0 16px; min-height: 40px; font-size: 15px; }
+      .crono-cifras { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+      .crono-cifras span { width: fit-content; border-radius: 999px; padding: 3px 12px; background: var(--acento-suave); color: var(--acento-fuerte); font-size: 14px; font-variant-numeric: tabular-nums; }
+      .crono-cifras span.azul { background: #E8F0FA; color: #1F5FA8; }
+      .crono-cifras span.verde { background: var(--bien-fondo); color: var(--bien); }
+      .crono-cifras span.falta { background: var(--aviso-fondo); color: var(--aviso); }
+      .crono-bocas { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--textoSuave); margin: 4px 0; }
+      .crono-bocas input { width: 80px; min-height: 36px; border: 1px solid var(--borde); border-radius: 8px; padding: 2px 6px; font-size: 15px; }`;
+    document.head.appendChild(st);
+  }
+
+  const datosCrono = () => (ficha && ficha.cronometro && ficha.cronometro.ok ? ficha.cronometro : null);
+
+  function personasCrono() {
+    const d = datosCrono();
+    if (!d) return [];
+    if (!cuadrillaLocal || cuadrillaLocal.equipoId !== ficha.equipo.id) {
+      cuadrillaLocal = { equipoId: ficha.equipo.id, personas: (d.cronometro.cuadrilla && d.cronometro.cuadrilla.length ? d.cronometro.cuadrilla
+        : [{ nombre: 'Yo', rol: 'oficial', empresa: null }, { nombre: 'Operario 1', rol: 'operario', empresa: null }]).map((p) => ({ ...p })), cambiada: false };
+    }
+    return cuadrillaLocal.personas;
+  }
+
+  function htmlCrono() {
+    const d = datosCrono();
+    if (!d) return '';
+    estiloCrono();
+    const c = d.cronometro;
+    const ed = d.puede.medir;
+    const gente = personasCrono();
+    const estado = c.enMarcha ? ['bien', 'En marcha'] : c.terminado ? ['info', 'Terminado'] : c.vacio ? ['neutra', 'Sin empezar'] : ['aviso', 'En pausa'];
+    const vivo = c.enMarcha ? `data-crono-inicio="${esc(c.inicioTramo)}" data-crono-cerrados="${c.msCerrados}"` : '';
+    const b = c.bocas;
+    const dinero = c.veDinero && c.dinero;
+    const filas = gente.map((p, i) => `<tr>
+        <td>${ed ? `<input data-crono-campo="nombre" data-i="${i}" value="${esc(p.nombre)}" aria-label="Nombre">` : esc(p.nombre)}</td>
+        <td>${ed ? `<select data-crono-campo="rol" data-i="${i}" aria-label="Rol">${Object.entries(ROL_CRONO).map(([k, n]) => `<option value="${k}" ${p.rol === k ? 'selected' : ''}>${n}</option>`).join('')}</select>` : esc(ROL_CRONO[p.rol] || p.rol)}</td>
+        <td>${ed ? `<input data-crono-campo="empresa" data-i="${i}" value="${esc(p.empresa || '')}" list="crono-empresas" placeholder="Empresa" aria-label="Empresa">` : esc(p.empresa || '—')}</td>
+        ${ed ? `<td><button class="quitar" data-cx="crono-quitar" data-i="${i}" aria-label="Quitar a ${esc(p.nombre)}" ${gente.length < 2 ? 'disabled' : ''}>×</button></td>` : ''}
+      </tr>`).join('');
+    const porPersona = c.personas.length ? `<table><thead><tr><th>Persona</th><th>Rol</th><th class="num">Horas</th>${dinero ? '<th class="num">Coste</th>' : ''}</tr></thead><tbody>
+      ${c.personas.map((p) => `<tr><td>${esc(p.nombre)}</td><td>${esc(ROL_CRONO[p.rol] || p.rol)}</td><td class="num">${comaCr(p.horas, 2)} h</td>
+        ${dinero ? `<td class="num">${p.coste === null ? '<span class="chip aviso">falta la tarifa</span>' : eurosCx(p.coste)}</td>` : ''}</tr>`).join('')}</tbody></table>` : '';
+    return `<section class="crono" data-crono>
+      <h2>Cronómetro de cuadrilla <span class="chip ${estado[0]}">${estado[1]}</span></h2>
+      <div class="crono-reloj"><span class="crono-tiempo" ${vivo} data-crono-tiempo>${hms(c.duracionMs)}</span>
+        <span class="cuenta">${c.tramos ? `${c.tramos} tramo${c.tramos === 1 ? '' : 's'}` : 'mide el tiempo de la cuadrilla en este equipo'}</span></div>
+      ${ed ? `<div class="crono-botones">
+        ${c.enMarcha ? '<button class="boton secundario" data-cx="crono" data-accion="pausar">Pausar</button>'
+          : `<button class="boton empezar" data-cx="crono" data-accion="empezar">${c.vacio ? 'Empezar' : 'Seguir'}</button>`}
+        ${!c.vacio && !c.terminado ? '<button class="boton terminar" data-cx="crono" data-accion="terminar">Terminar</button>' : ''}
+      </div>` : ''}
+      <table><thead><tr><th>Cuadrilla</th><th>Rol</th><th>Empresa</th>${ed ? '<th></th>' : ''}</tr></thead><tbody>${filas}</tbody></table>
+      <datalist id="crono-empresas">${(d.empresas || []).map((n) => `<option value="${esc(n)}">`).join('')}</datalist>
+      ${ed ? `<div class="crono-acciones"><button class="boton secundario" data-cx="crono-anadir">+ Persona</button>
+        ${cuadrillaLocal && cuadrillaLocal.cambiada ? `<button class="boton" data-cx="crono" data-accion="cuadrilla">Guardar cuadrilla</button>` : ''}</div>` : ''}
+      ${c.vacio ? '' : `<div class="crono-cifras">
+        <span>${comaCr(c.duracionH, 2)} h de reloj</span>
+        <span>${comaCr(c.horasPersona, 2)} horas-persona</span>
+        <span class="azul">${b.total} boca${b.total === 1 ? '' : 's'}${b.aMano !== null ? ' (a mano)' : ` · ${b.difusores} dif. · ${b.rejas} rejas`}</span>
+        ${c.minPorBoca !== null ? `<span class="verde">${comaCr(c.minPorBoca)} min/boca</span>` : ''}
+        ${c.bocasHora !== null ? `<span class="verde">${comaCr(c.bocasHora)} bocas/h</span>` : ''}
+        ${dinero ? (dinero.coste !== null ? `<span>${eurosCx(dinero.coste)}${dinero.costePorBoca !== null ? ` · ${eurosCx(dinero.costePorBoca)}/boca` : ''}</span>`
+          : `<span class="falta">Falta la tarifa: ${esc(dinero.sinTarifa.join(', '))}</span>`) : ''}
+      </div>
+      ${porPersona}
+      ${ed ? `<label class="crono-bocas">Bocas medidas a mano <input inputmode="numeric" data-crono-bocas value="${b.aMano === null ? '' : b.aMano}" placeholder="${b.contadas}"> <span>vacío = las medidas en la app</span></label>` : ''}
+      ${c.parteId ? `<p class="nota">Pasado al parte de trabajo <strong>${esc(c.parteCodigo || '')}</strong>.</p>`
+        : !c.enMarcha && d.puede.parte ? '<div class="crono-acciones"><button class="boton secundario" data-cx="crono-parte">Pasar a parte de trabajo</button></div>' : ''}
+      ${!c.enMarcha ? '<div class="crono-acciones"><button class="boton secundario" data-cx="crono-pdf" title="Interno: no es para el cliente">Informe interno (PDF)</button></div>' : ''}`}
+    </section>`;
+  }
+
+  function repintarCrono() {
+    const s = $app.querySelector('[data-crono]');
+    if (!s) return;
+    const t = document.createElement('div');
+    t.innerHTML = htmlCrono();
+    if (t.firstElementChild) s.replaceWith(t.firstElementChild);
+    latirCrono();
+  }
+
+  /* El reloj cuenta solo en la pantalla con la hora guardada; no guarda nada. */
+  function latirCrono() {
+    clearInterval(relojCrono);
+    const el = $app.querySelector('[data-crono-inicio]');
+    if (!el) return;
+    const inicio = Date.parse(el.dataset.cronoInicio);
+    const cerrados = Number(el.dataset.cronoCerrados) || 0;
+    const tic = () => {
+      const x = $app.querySelector('[data-crono-inicio]');
+      if (!x || !activa()) { clearInterval(relojCrono); return; }
+      x.textContent = hms(cerrados + Date.now() - inicio);
+    };
+    tic();
+    relojCrono = setInterval(tic, 1000);
+  }
+
+  function leerCuadrilla() {
+    personasCrono();
+    $app.querySelectorAll('[data-crono-campo]').forEach((el) => {
+      const p = cuadrillaLocal.personas[Number(el.dataset.i)];
+      if (p) p[el.dataset.cronoCampo] = el.value;
+    });
+    return cuadrillaLocal.personas;
+  }
+
+  async function accionCrono(boton, accion, extra = {}) {
+    if (!ficha) return;
+    if (boton) boton.disabled = true;
+    try {
+      const cuerpo = { equipoId: ficha.equipo.id, accion, ...extra };
+      if (accion === 'empezar' || accion === 'cuadrilla' || (accion === 'pausar' && cuadrillaLocal && cuadrillaLocal.cambiada)) cuerpo.cuadrilla = leerCuadrilla();
+      if (accion === 'terminar' && !window.confirm('¿Terminar el cronómetro de este equipo? Se congelan las bocas medidas en este tiempo.')) { if (boton) boton.disabled = false; return; }
+      const r = await C.postJson('api/cronometro', cuerpo);
+      if (!r.ok) throw new Error(r.error);
+      ficha.cronometro.cronometro = r.cronometro;
+      if (cuerpo.cuadrilla) { cuadrillaLocal = null; }
+      repintarCrono();
+      const txt = { empezar: 'Cronómetro en marcha', pausar: 'En pausa', terminar: `Terminado: ${hms(r.cronometro.duracionMs)}`, cuadrilla: 'Cuadrilla guardada', bocas: 'Bocas apuntadas' }[accion];
+      if (txt) C.aviso(txt, 'bien');
+    } catch (e) { C.aviso(e.message); if (boton) boton.disabled = false; }
+  }
+
+  async function parteCrono(boton) {
+    if (!ficha) return;
+    boton.disabled = true;
+    try {
+      const r = await C.postJson('api/cronometro/parte', { equipoId: ficha.equipo.id });
+      if (!r.ok) throw new Error(r.error);
+      const d = await C.pedir(`api/cronometro?equipo=${encodeURIComponent(ficha.equipo.id)}`);
+      if (d.ok) ficha.cronometro = d;
+      repintarCrono();
+      C.aviso(r.yaEstaba ? `Ya estaba en el parte ${r.codigo}` : `Parte ${r.codigo} abierto con las horas`, 'bien');
+    } catch (e) { C.aviso(e.message); boton.disabled = false; }
+  }
+
+  $app.addEventListener('change', (ev) => {
+    if (!activa() || hoja || !ficha) return;
+    if (ev.target.hasAttribute('data-crono-campo')) {
+      leerCuadrilla();
+      if (!cuadrillaLocal.cambiada) { cuadrillaLocal.cambiada = true; repintarCrono(); }
+    } else if (ev.target.hasAttribute('data-crono-bocas')) accionCrono(null, 'bocas', { bocasAMano: ev.target.value.trim() });
+  });
+
   /* ═══════════════════════════════════ Eventos */
 
   $app.addEventListener('click', (ev) => {
@@ -1516,6 +1699,11 @@
     else if (que === 'foto-equipo') fotoEquipo(b);
     else if (que === 'quitar-foto-equipo') quitarFotoEquipo(b);
     else if (que === 'nube-ahora' && window.cxObra && window.cxObra.sync) { b.disabled = true; window.cxObra.sync.ahora().finally(() => { if (ficha) abrir(ficha.equipo.id, { quieto: true }); }); }
+    else if (que === 'crono' && ficha) accionCrono(b, b.dataset.accion);
+    else if (que === 'crono-anadir' && ficha) { const g = leerCuadrilla(); g.push({ nombre: `Operario ${g.filter((p) => p.rol === 'operario').length + 1}`, rol: 'operario', empresa: (g[g.length - 1] || {}).empresa || null }); cuadrillaLocal.cambiada = true; repintarCrono(); }
+    else if (que === 'crono-quitar' && ficha) { const g = leerCuadrilla(); if (g.length > 1) { g.splice(Number(b.dataset.i), 1); cuadrillaLocal.cambiada = true; repintarCrono(); } }
+    else if (que === 'crono-parte' && ficha) parteCrono(b);
+    else if (que === 'crono-pdf' && ficha) compartirPdf(`api/informe?tipo=cronometro&equipo=${encodeURIComponent(ficha.equipo.id)}`, `${ficha.equipo.tag} - tiempo de medida (interno).pdf`, b);
     else if (que === 'pdf-balanceo' && ficha) compartirPdf(`api/informe?tipo=balanceo&equipo=${encodeURIComponent(ficha.equipo.id)}`, `${ficha.equipo.tag} - balanceo.pdf`, b);
   });
   /* Sí / No / N/A: un toque marca, otro toque en la misma desmarca. */
@@ -1582,8 +1770,6 @@
     if (cambiada(li)) medir(li, 'siguiente');
     else if (bocaAbierta) {
       bocaVecina(1);
-      const li2 = $app.querySelector('.hoja-boca li[data-boca]');
-      if (li2 && casillas(li2)[0]) casillas(li2)[0].focus();
     } else {
       const bocas = [...$app.querySelectorAll('li[data-boca]')];
       const sig = bocas[bocas.indexOf(li) + 1];
