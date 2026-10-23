@@ -165,11 +165,16 @@
     boton.disabled = true;
     try {
       const primera = form.descripcion.trim().split('\n')[0].slice(0, 120);
-      const r = await C.postJson('api/reparacion', {
+      const alta = {
         obraId: C.obraId(), equipoId: eq.id, titulo: `${eq.tag} · ${primera}`, descripcion: form.descripcion,
         prioridad: form.prioridad, encargadoId: form.encargadoId || undefined,
         operario: form.operario || undefined, zona: form.zona || undefined, planta: form.planta || undefined, fechaLimite: form.fechaLimite || null,
-      });
+      };
+      let r = await C.postJson('api/reparacion', alta);
+      /* El equipo ya tiene una reparación sin cerrar: se pregunta antes de abrir otra. */
+      if (r.repetida && window.confirm(`${r.error}\n\n¿Es otra avería distinta y quieres abrir otra reparación?`)) {
+        r = await C.postJson('api/reparacion', { ...alta, aunqueRepetida: true });
+      }
       if (!r.ok) throw new Error(r.error);
       let sinFoto = 0;
       for (const archivo of form.fotos) {
