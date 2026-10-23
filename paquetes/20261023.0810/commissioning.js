@@ -815,6 +815,9 @@
         : `<div class="lecturas">${[0, 1, 2, 3].map((i) => `<label>M${i + 1} <small class="unidad-m">${unidadM}</small>
             <input inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis} ${datos} data-m="${i}"
               value="${lect[i] === undefined ? '' : comaD(lect[i], enQ ? 1 : 2)}" aria-label="Lectura M${i + 1} en ${unidadM} en ${esc(b.nombre)}"></label>`).join('')}</div>`}
+      <label class="t-boca">Tª (°C)
+        <input inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis} ${datos} data-t="1"
+          value="${b.temperatura === null || b.temperatura === undefined ? '' : comaD(b.temperatura, 1)}" aria-label="Temperatura en ${esc(b.nombre)}, en grados"></label>
       ${bal ? '' : `<div data-vivo="formula">${formula}</div>`}
       <div class="boca-cifras">
         <div><span>Q medido</span><b data-vivo="q">${cifra(b.caudal)}</b></div>
@@ -892,6 +895,8 @@
     const mIns = ins.filter((x) => x.dataset.m !== undefined);
     if (qIn) c.caudalMedido = qIn.value.trim();
     if (mIns.length) c.lecturas = mIns.map((x) => x.value.trim()).filter((v) => v !== '');
+    const tIn = ins.find((x) => x.dataset.t);
+    if (tIn) c.temperatura = tIn.value.trim();
     return c;
   }
 
@@ -1569,8 +1574,8 @@
     if (!activa() || !ev.target.dataset || !ev.target.dataset.punto || ev.key !== 'Enter') return;
     ev.preventDefault();
     const li = ev.target.closest('li[data-boca]');
-    /* «Q del aparato» es opcional: Intro desde M4 salta a la boca siguiente. */
-    const ins = casillas(li).filter((x) => x === ev.target || !x.closest('.q-aparato'));
+    /* «Q del aparato» y la Tª son opcionales: Intro desde M4 salta a la boca siguiente. */
+    const ins = casillas(li).filter((x) => x === ev.target || !x.closest('.q-aparato, .t-boca'));
     const i = ins.indexOf(ev.target);
     if (i < ins.length - 1) { ins[i + 1].focus(); return; }
     saltando = true;

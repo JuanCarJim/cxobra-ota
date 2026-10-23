@@ -544,6 +544,8 @@ a.fila-dato strong { color: var(--acento); font-weight: 600; }
 .lecturas label, .boca-cifras > div { min-width: 0; }
 .lecturas input, .q-balometro input { display: block; width: 100%; min-width: 0; box-sizing: border-box; margin-top: 2px; font-size: 17px; padding: 8px 6px; text-align: center; font-variant-numeric: tabular-nums; }
 .q-balometro { margin-top: 8px; }
+.t-boca { display: block; margin-top: 8px; font-size: 11.5px; color: var(--textoTenue); }
+.t-boca input { display: block; width: 6em; min-width: 0; box-sizing: border-box; margin-top: 2px; font-size: 17px; padding: 8px 6px; text-align: center; font-variant-numeric: tabular-nums; }
 .formula { margin-top: 6px; font-size: 12.5px; color: var(--textoTenue); font-variant-numeric: tabular-nums; }
 .formula b { color: var(--texto, inherit); }
 .formula.aviso { color: var(--mal); }
@@ -1062,6 +1064,7 @@ body:has(.tag-fijo) .obra-movil { display: none; }
 #app input[type=search].buscar { padding-left: 34px; }
 .hoja-tabla .num { min-width: 38px; }
 #app .boca .lecturas input, #app .boca .q-balometro input { min-height: 30px; height: 30px; padding: 2px 4px; margin-top: 1px; font-size: 15px; }
+#app .boca .t-boca input { min-height: 30px; height: 30px; padding: 2px 4px; margin-top: 1px; font-size: 15px; }
 #app .boca .q-aparato input { min-height: 30px; padding: 2px 6px; font-size: 14px; }
 #app .boca .chip { padding: 1px 6px; }
 
