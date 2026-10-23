@@ -955,6 +955,8 @@ body:has(.tag-fijo) .obra-movil { display: none; }
 #app .tarjeta, #app .pedido-elegido { padding: 8px 12px; margin: 6px 0; }
 #app .linea { padding: 8px 12px; margin: 6px 0; }
 #app .titulo { font-size: 14.5px; margin: 2px 0 0; }
+#app .tarjeta .faltan { margin: 6px 0 0; padding: 5px 0 0; font-size: 13.5px; }
+#app .tarjeta .faltan li { padding: 1px 0; }
 #app .cabeza { font-size: 12px; }
 #app .recientes li { padding: 7px 12px; font-size: 14px; }
 #app .lista-ios > li { border: 0; box-shadow: none; }
@@ -1096,7 +1098,7 @@ body:has(.tag-fijo) .obra-movil { display: none; }
 .av-banda > div { background: var(--panel); padding: 8px 10px; display: flex; flex-direction: column; }
 .av-banda strong { font-size: 18px; }
 .av-banda span { font-size: 12px; color: var(--textoTenue); }
-@media (max-width: 520px) { .av-banda { grid-template-columns: repeat(3, 1fr); } .av-banda .ancho { grid-column: 1 / -1; } }
+@media (max-width: 520px) { .av-banda { grid-template-columns: repeat(3, 1fr); } .av-banda .ancho { grid-column: 1 / -1; flex-direction: row; align-items: baseline; justify-content: space-between; padding: 5px 10px; } }
 .av-capas { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
 .av-capa { display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid var(--borde); background: var(--panel); color: var(--texto); border-radius: 999px; padding: 6px 12px 6px 8px; font: inherit; font-size: 14px; }
 .av-capa.activa { border-color: var(--c); background: color-mix(in srgb, var(--c) 12%, var(--panel)); font-weight: 600; }
@@ -1183,20 +1185,23 @@ main#app .circuito-bal { margin: 8px 0 6px; }
 main#app .circuito-bal button { min-height: 36px; font-size: 14.5px; }
 .circuito-bal small { margin-left: 4px; font-size: 12px; font-weight: 500; color: var(--textoTenue); font-variant-numeric: tabular-nums; }
 
-/* La tarjeta de la boca pulsada en el plano: sube desde abajo, por encima
-   de la barra y del plano a pantalla completa. */
-.hoja-boca { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; max-width: 640px; margin: 0 auto;
-  max-height: 62vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
-  padding: 6px 10px calc(10px + env(safe-area-inset-bottom)); background: var(--panel);
-  border-radius: 14px 14px 0 0; box-shadow: 0 -8px 24px rgba(15, 23, 42, .18); border-top: 1px solid var(--rejilla); }
-.hoja-boca-cab { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; }
-.hoja-boca-cab .asa { flex: 1; }
-.hoja-boca-cab .asa::before { content: ''; display: block; width: 36px; height: 5px; border-radius: 3px; background: var(--rejilla); }
-.hoja-boca-cab .enlace { min-height: 32px; padding: 2px 8px; font-size: 14px; }
-.hoja-boca .bocas { margin: 0; padding: 0; list-style: none; }
-main#app .hoja-boca .boca { border-radius: 10px; }
-body.con-hoja-boca .barra-inferior { display: none; }
-body.con-hoja-boca main#app .densa { padding-bottom: 62vh; }
+/* Listado filtrado a la boca pulsada en el plano (23-oct). */
+li.fuera-filtro { display: none !important; }
+.filtro-boca { display: flex; align-items: center; gap: 4px; width: fit-content; max-width: 100%; margin: 6px 0; padding: 2px 4px 2px 12px;
+  border-radius: 999px; background: var(--acento-suave); color: var(--acento-fuerte); font-size: 14px; box-sizing: border-box; }
+.filtro-boca .solo { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filtro-boca .enlace { min-height: 32px; min-width: 32px; padding: 2px 8px; font-size: 15px; }
+
+/* Nada desborda a 390–430 px: rejilla M1–M4, cabeceras de la boca y pie del plano. */
+#app .densa, #app .densa .bocas, #app .densa .boca, .plano-bocas { box-sizing: border-box; max-width: 100%; min-width: 0; }
+#app .boca .lecturas { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; min-width: 0; }
+#app .boca .lecturas > label { min-width: 0; }
+#app .boca .lecturas input, #app .boca input { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; }
+#app .boca .boca-cabeza { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; }
+#app .boca .boca-cabeza > * { min-width: 0; max-width: 100%; }
+#app .boca .boca-cabeza select, #app .boca .boca-cabeza button { max-width: 100%; box-sizing: border-box; }
+.plano-bocas .plano-marco { max-width: 100%; }
+.plano-bocas figcaption > * { min-width: 0; max-width: 100%; }
 
 /* ═══════════════ 16-oct: nada más ancho que el iPhone (390 pt)
    En el teléfono la cabecera lleva además la pastilla de sincronización; el h1
@@ -1359,7 +1364,7 @@ main, #app { min-width: 0; max-width: 100%; }
 }
 .barra { background: rgba(255, 255, 255, .9); border-bottom: 1px solid var(--rejilla); }
 .lista-ios > li { border-color: var(--rejilla); }
-/* Encabezados de bloque: en minúscula de frase, gris y sin fondo verde; el teal queda para lo que se pulsa. */
+/* Encabezados de bloque (JC, 22-oct): franja de teal claro con el título en teal oscuro (AA: 7,6:1), en toda la app. */
 #app .titulo-grupo, .densa h2, .densa h3.banda, .toca-cabeza {
   background: var(--acento-suave); color: var(--acento-fuerte); text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 600;
 }
