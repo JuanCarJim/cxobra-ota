@@ -934,6 +934,37 @@
     }
   }
 
+  /*
+   * GUARDAR MIENTRAS SE ESCRIBE (23-oct-2026, JC: «la sincronización con el
+   * ordenador debe de ser instantánea»): antes la boca solo se guardaba al
+   * salir de ella, así que lo último tecleado no llegaba a la oficina hasta
+   * tocar otra boca. Ahora, a los ~0,8 s sin teclear, se guarda en silencio:
+   * sin bloquear las casillas ni repintar (se sigue escribiendo). Al guardar,
+   * la base cambia y la sincronización sube sola (cxobra/arranque.js › tras).
+   * Al salir de la boca se hace el guardado de siempre, que repinta.
+   */
+  const ESPERA_GUARDAR_BOCA = 800;
+  const temporizadores = new WeakMap();
+  function guardarBocaPronto(li) {
+    clearTimeout(temporizadores.get(li));
+    temporizadores.set(li, setTimeout(() => { guardarBocaEnSilencio(li); }, ESPERA_GUARDAR_BOCA));
+  }
+  async function guardarBocaEnSilencio(li) {
+    if (!li.isConnected || !activa() || !cambiada(li)) return;
+    const ins = casillas(li);
+    if (!ins.length) return;
+    const { plano, punto } = ins[0].dataset;
+    const enviado = ins.map((x) => x.value);
+    try {
+      const r = await C.postJson('api/boca', { planoId: plano, puntoId: punto, ...cuerpoBoca(ins) });
+      if (!r.ok) return; /* el error se dirá al salir de la boca */
+      ficha = r;
+      /* Lo que no ha cambiado mientras viajaba ya está guardado; lo demás sigue pendiente. */
+      ins.forEach((x, i) => { if (x.value === enviado[i]) x.defaultValue = x.value; });
+      li.dataset.guardada = '1';
+    } catch { /* sin conexión de datos no hay nada que hacer aquí: se reintenta al salir */ }
+  }
+
   /* El equipo de medida de una boca, o de todas: se guarda ya. Lo medido no
      se borra (con el anemómetro, un caudal apuntado sale en «Q del aparato»). */
   async function cambiarEquipo(boton, todas) {
@@ -1748,7 +1779,7 @@
   $app.addEventListener('change', (ev) => { if (activa() && hoja) anotar(ev.target); });
   $app.addEventListener('input', (ev) => {
     if (activa() && hoja) { anotar(ev.target); return; }
-    if (activa() && ev.target.dataset && ev.target.dataset.punto) { const li = ev.target.closest('li[data-boca]'); if (li) vivoBoca(li); return; }
+    if (activa() && ev.target.dataset && ev.target.dataset.punto) { const li = ev.target.closest('li[data-boca]'); if (li) { vivoBoca(li); guardarBocaPronto(li); } return; }
     if (!activa() || !ev.target.hasAttribute('data-cx-buscar')) return;
     filtro = ev.target.value;
     const pos = ev.target.selectionStart;
@@ -1767,7 +1798,7 @@
     const i = ins.indexOf(ev.target);
     if (i < ins.length - 1) { ins[i + 1].focus(); return; }
     saltando = true;
-    if (cambiada(li)) medir(li, 'siguiente');
+    if (cambiada(li) || li.dataset.guardada) medir(li, 'siguiente');
     else if (bocaAbierta) {
       bocaVecina(1);
     } else {
@@ -1782,7 +1813,9 @@
     if (!activa() || saltando || !ev.target.dataset || !ev.target.dataset.punto) return;
     const li = ev.target.closest('li[data-boca]');
     if (!li || (ev.relatedTarget && li.contains(ev.relatedTarget))) return;
-    if (!cambiada(li)) return;
+    clearTimeout(temporizadores.get(li));
+    /* Ya guardada en silencio: se repinta con lo guardado (totales, chips) como siempre. */
+    if (!cambiada(li) && !li.dataset.guardada) return;
     const r = ev.relatedTarget && ev.relatedTarget.dataset && ev.relatedTarget.dataset.punto ? ev.relatedTarget.dataset : null;
     medir(li, r ? { plano: r.plano, punto: r.punto, m: r.m } : null);
   });
@@ -1791,7 +1824,13 @@
   window.addEventListener('hashchange', (ev) => {
     if (!activa()) return;
     /* Ha llegado algo de la oficina con un equipo abierto: se repinta ese equipo, no la lista. */
-    if (ev.cxDatos && ficha) { if (!hoja) abrir(ficha.equipo.id, { quieto: true }); return; }
+    if (ev.cxDatos && ficha) {
+      /* Con una boca a medio escribir no se repinta: se perdería lo tecleado (se guarda y repinta sola). */
+      const foco = document.activeElement && document.activeElement.closest ? document.activeElement.closest('li[data-boca]') : null;
+      if (foco && (cambiada(foco) || foco.dataset.guardada)) return;
+      if (!hoja) abrir(ficha.equipo.id, { quieto: true });
+      return;
+    }
     cargarLista();
   });
   if (activa()) cargarLista();

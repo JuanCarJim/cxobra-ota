@@ -33,7 +33,8 @@
     { id: 'inicio', nombre: 'Inicio',
       icono: icono('<path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/>',
         '<path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z" fill="currentColor"/>'),
-      secciones: [['inicio', 'Inicio']] },
+      /* 24-oct: «Mis tareas», las órdenes de mantenimiento de quien lleva el teléfono. */
+      secciones: [['inicio', 'Inicio'], ['misTareas', 'Mis tareas']] },
     { id: 'commissioning', nombre: 'Commissioning',
       icono: icono('<path d="M4 15a8 8 0 1 1 16 0"/><path d="M12 15l4.5-4.5"/><circle cx="12" cy="15" r="1.4"/><path d="M4 19h16"/>',
         `<path d="M4 15a8 8 0 1 1 16 0z" fill="currentColor"/><path d="M12 15l4.5-4.5" ${HUECO}/><path d="M4 19h16"/>`),
@@ -86,6 +87,7 @@
   const TITULO = {
     inicio: 'Inicio', commissioning: 'Commissioning', partes: 'Partes', ncr: 'No conformidades', reparaciones: 'Reparaciones', avance: 'Avance de obra', albaranes: 'Albaranes',
     inventario: 'Inventario', bloc: 'Notas', personal: 'Personal', estanqueidad: 'Estanqueidad', cuenta: 'Cuenta',
+    misTareas: 'Mis tareas',
   };
   /* Las que no dependen de la obra elegida no enseñan el selector. */
   const SIN_OBRA = new Set(['cuenta', 'albaranes']);
@@ -625,11 +627,12 @@
     const q = encodeURIComponent(o.id);
     const traer = (sec, ruta) => (ok.has(sec) ? pedir(ruta).catch(() => null) : Promise.resolve(null));
     const tocaPlan = ok.has('commissioning') || ok.has('reparaciones') || ok.has('ncr');
-    const [cx, pe, pi, ncr, rp, plan, dia] = await Promise.all([
+    const [cx, pe, pi, ncr, rp, plan, dia, mt] = await Promise.all([
       traer('commissioning', `api/commissioning?obra=${q}`), traer('estanqueidad', 'api/estanqueidad'),
       traer('partes', 'api/partes'), traer('ncr', `api/ncr?obra=${q}`), traer('reparaciones', `api/reparaciones?obra=${q}`),
       tocaPlan ? pedir(`api/mi-planificacion?obra=${q}`).catch(() => null) : null,
       pedir('api/mi-dia').catch(() => null),
+      traer('misTareas', 'api/mistareas'),
     ]);
     if (seccion() !== 'inicio' || window.CX.obraId() !== o.id) return;
     // Como la lista de Commissioning: si hay conjuntos (split = UE + UI), se cuenta por conjunto.
@@ -640,6 +643,8 @@
     const partes = pi && pi.recientes ? pi.recientes.filter((p) => p.obraId === o.id && p.estado !== 'cerrado') : null;
     const ncrAbiertas = ncr && ncr.ok ? ncr.filas.filter((f) => f.activa) : null;
     const repPendientes = rp && rp.filas ? rp.filas.filter((f) => f.activa && f.estado !== 'terminada') : null;
+    /* Las órdenes de mantenimiento que me tocan (de todas mis obras). */
+    const misOrdenes = mt && mt.ok && mt.tareas.length ? mt.tareas : null;
     /* Lo pendiente son los equipos que piden estanqueidad y no la tienen, no las
        pruebas apuntadas: sin ninguna hecha, faltan todas (15-oct, JC). */
     const textoEstanqueidad = (tt, ps) => {
@@ -677,6 +682,7 @@
         <div class="grupo ini-pend">
         ${pruebas || (t && t.pideEstanqueidad) ? fila('estanqueidad', 'Pruebas de estanqueidad', textoEstanqueidad(t, pruebas), (t && t.faltaEstanqueidad) || (pruebas && pruebas.some((p) => p.resultado !== 'correcta'))) : ''}
         ${partes ? fila('partes', 'Partes abiertos', cifra(partes.length)) : ''}
+        ${misOrdenes ? fila('misTareas', 'Mis tareas de mantenimiento', cifra(misOrdenes.length), misOrdenes.some((f) => f.atrasada)) : ''}
         ${repPendientes ? fila('reparaciones', 'Reparaciones pendientes', cifra(repPendientes.length), repPendientes.some((f) => f.vencida)) : ''}
         ${ncrAbiertas ? fila('ncr', 'No conformidades abiertas', cifra(ncrAbiertas.length)) : ''}
         </div>

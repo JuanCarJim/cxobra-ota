@@ -5882,6 +5882,13 @@ globalThis.CX_VARIANTE="cxobra";
          */
         mantenimiento: "Mantenimiento preventivo",
         /*
+         * LAS ÓRDENES DE TRABAJO DE MANTENIMIENTO y los operarios que las hacen
+         * (24-oct): sin pantalla propia, viven dentro de Mantenimiento; son módulo
+         * aparte porque el operario las ve y las cierra desde Vidaire Cx («Mis
+         * tareas») sin ver el resto del mantenimiento, y el encargado las reasigna.
+         */
+        ordenesMant: "\xD3rdenes de trabajo de mantenimiento",
+        /*
          * LAS NO CONFORMIDADES (NCR): lo que la DEO, la DF o el propio CBRE
          * encuentran mal en obra, hasta que se corrige, se verifica y —si toca— se
          * cobra. Módulo propio y no dentro de commissioning: la mayoría no tocan
@@ -6041,7 +6048,7 @@ globalThis.CX_VARIANTE="cxobra";
       };
       var BLOC = ["ver", "crear", "editar", "borrar"];
       var HORAS = ["ver", "crear", "editar", "borrar"];
-      var SIN_PANTALLA = /* @__PURE__ */ new Set(["notas", "dedicaciones", "horasObra", "notasTraspaso", "columnas", "correos", "encargosDelineacion"]);
+      var SIN_PANTALLA = /* @__PURE__ */ new Set(["notas", "dedicaciones", "horasObra", "notasTraspaso", "columnas", "correos", "encargosDelineacion", "ordenesMant"]);
       var VERBOS = ["ver", "crear", "editar", "borrar", "aprobar", "exportar", "traspasar"];
       var TODO = ["ver", "crear", "editar", "borrar", "exportar"];
       var SOLO_VER = ["ver"];
@@ -6076,6 +6083,7 @@ globalThis.CX_VARIANTE="cxobra";
             pedidos: ["ver", "exportar"],
             commissioning: SOLO_VER,
             mantenimiento: ["ver", "exportar"],
+            ordenesMant: ["ver", "exportar"],
             ncr: ["ver", "exportar"],
             ppi: ["ver", "exportar"],
             incidencias: ["ver", "exportar"],
@@ -6394,6 +6402,7 @@ globalThis.CX_VARIANTE="cxobra";
             pedidos: ["ver", "exportar"],
             commissioning: ["ver", "exportar"],
             mantenimiento: ["ver", "exportar"],
+            ordenesMant: ["ver", "exportar"],
             ncr: ["ver", "exportar"],
             ppi: ["ver", "exportar"],
             incidencias: ["ver", "exportar"],
@@ -6536,6 +6545,7 @@ globalThis.CX_VARIANTE="cxobra";
             commissioning: TODO,
             /* Lo ve y lo exporta; editarlo es de mantenimiento (JC, 15-oct). */
             mantenimiento: ["ver", "exportar"],
+            ordenesMant: ["ver", "exportar"],
             ncr: TODO,
             ppi: TODO,
             incidencias: ["ver", "crear", "editar", "exportar"],
@@ -6583,6 +6593,8 @@ globalThis.CX_VARIANTE="cxobra";
                commissioning): por eso `crear` y `editar`. */
             commissioning: ["ver", "crear", "editar", "exportar"],
             mantenimiento: TODO,
+            /* Genera las órdenes, las reparte y las cierra. */
+            ordenesMant: TODO,
             incidencias: TODO,
             ncr: ["ver", "exportar"],
             partesIncidencia: ["ver", "exportar"],
@@ -6609,7 +6621,10 @@ globalThis.CX_VARIANTE="cxobra";
             "precioCobroH",
             "importeVenta",
             "objetivoCompras",
-            "coeficienteCompras"
+            "coeficienteCompras",
+            /* El coste de las órdenes de mantenimiento y la tarifa de sus operarios. */
+            "costeMant",
+            "tarifaHoraMant"
           ],
           home: [
             { bloque: "avisosMantenimiento", ancho: "completo", titulo: "Mantenimiento: vencido y pr\xF3ximos 30 d\xEDas" },
@@ -6648,6 +6663,8 @@ globalThis.CX_VARIANTE="cxobra";
                apunta lo que hace el mantenedor, que lo ve hacer. */
             /* Lo ve, pero no lo edita (JC, 15-oct). */
             mantenimiento: ["ver"],
+            /* Las órdenes de mantenimiento: las ve, las reasigna y las cierra (24-oct). */
+            ordenesMant: ["ver", "editar"],
             /* Las ve, las da de alta y las pone al día en el recorrido; el dinero
                (tarifas, coste, cobro) no le llega: lo recorta la capa de datos. */
             ncr: ["ver", "crear", "editar"],
@@ -6697,7 +6714,10 @@ globalThis.CX_VARIANTE="cxobra";
                de obras aunque la pantalla no los pintara. */
             "importeVenta",
             "objetivoCompras",
-            "coeficienteCompras"
+            "coeficienteCompras",
+            /* El coste de las órdenes de mantenimiento y la tarifa de sus operarios. */
+            "costeMant",
+            "tarifaHoraMant"
           ],
           home: [
             /* Lo que le ha dejado el jefe de obra: lo primero que ve al entrar. */
@@ -6741,7 +6761,9 @@ globalThis.CX_VARIANTE="cxobra";
             incidencias: ["ver", "editar"],
             /* La documentación de su tajo: las pruebas y sus informes. */
             pruebasEstanqueidad: SOLO_VER,
-            commissioning: SOLO_VER
+            commissioning: SOLO_VER,
+            /* «Mis tareas» en Vidaire Cx: sus órdenes de mantenimiento, que empieza y cierra. */
+            ordenesMant: ["ver", "editar"]
           },
           camposVetados: [
             "precioCoste",
@@ -6759,7 +6781,10 @@ globalThis.CX_VARIANTE="cxobra";
             "precioCobroH",
             "importeVenta",
             "objetivoCompras",
-            "coeficienteCompras"
+            "coeficienteCompras",
+            /* El coste de las órdenes de mantenimiento y la tarifa de sus operarios. */
+            "costeMant",
+            "tarifaHoraMant"
           ],
           /* No abre la app del ordenador; el inicio es por si alguna vez lo hace. */
           home: [
@@ -7116,6 +7141,8 @@ globalThis.CX_VARIANTE="cxobra";
         { id: "ncr", nombre: "NCR", modulo: "ncr", soloVer: true },
         /* Las reparaciones de equipos: las abre el jefe de obra, las hace el encargado. */
         { id: "reparaciones", nombre: "Reparaciones", modulo: "incidencias", soloVer: true },
+        /* 24-oct: las órdenes de mantenimiento de quien lleva el teléfono (Mis tareas). */
+        { id: "misTareas", nombre: "Mis tareas", modulo: "ordenesMant", soloVer: true },
         /* El avance de obra: lo marca el encargado, partida a partida. */
         { id: "avance", nombre: "Avance", modulo: "avanceObra" },
         { id: "albaranes", nombre: "Albaranes", modulo: "pedidos" },
@@ -8902,7 +8929,9 @@ globalThis.CX_VARIANTE="cxobra";
         personal: ["operariosObra", "personalPrevisto", "fichajes", "documentosPersonal", "festivos"],
         estanqueidad: ["pruebasEstanqueidad"],
         /* Los planos y las partidas los pone el ordenador; las marcas, el encargado. */
-        avance: ["planosAvance", "avancePartidas", "avanceMarcas", "avanceMateriales"]
+        avance: ["planosAvance", "avancePartidas", "avanceMarcas", "avanceMateriales"],
+        /* 24-oct: las órdenes de mantenimiento, sus operarios (sin tarifa) y el libro del equipo. */
+        misTareas: ["ordenesMant", "operariosMant", "equiposObra", "registrosMant", "incidencias"]
       };
       var CATALOGOS_SECCION = {
         commissioning: ["plantillasPM", "instrumentosMedida", "ppiPlantillas"],
@@ -8937,13 +8966,15 @@ globalThis.CX_VARIANTE="cxobra";
         "ppiLineas",
         "avanceMarcas",
         "avanceMateriales",
+        /* 24-oct: la orden de mantenimiento cerrada en el teléfono (sin coste: lo pone el ordenador). */
+        "ordenesMant",
         /* 16-oct: la empresa que el encargado escribe en una visita y aún no
            existía (electron/data/incidencias.js la da de alta). Vuelve sin tarifas
            (FUERA) y aplicar() solo pone las columnas que trae: las tarifas que el
            ordenador ya tenga no se tocan. */
         "ncrEmpresas"
       ];
-      var FUERA = /^(importe|precio|coste|tarifaOficial|tarifaOperario|iban|cuenta|banco|hashClave)/i;
+      var FUERA = /^(importe|precio|coste|tarifaOficial|tarifaOperario|tarifaHora|iban|cuenta|banco|hashClave)/i;
       var COLUMNAS_PERSONA = ["id", "nombre", "email", "rol", "departamento", "jefeId", "activo", "creadoEn", "modificadoEn"];
       var columnas = (db, tabla) => db.prepare(`PRAGMA table_info("${tabla}")`).all().map((c) => c.name);
       var existe = (db, tabla) => Boolean(db.prepare("SELECT 1 AS x FROM sqlite_master WHERE type = 'table' AND name = ?").get(tabla));
@@ -9227,7 +9258,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261023.0910" : "0";
+      var VERSION = true ? "20261024.1203" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -12518,6 +12549,73 @@ globalThis.CX_VARIANTE="cxobra";
      modificadoEn       TEXT NOT NULL
    )`,
         /*
+         * LAS ÓRDENES DE TRABAJO DE MANTENIMIENTO (shared/mantenimiento/ordenes.js):
+         * lo que se le manda a un operario de mantenimiento, preventivo, de control
+         * de fugas F-gas o correctivo (de una incidencia sobre un equipo). Las listas
+         * (operaciones, checklist, medidas, fotos) van en JSON. Al cerrarla se apuntan
+         * sus operaciones en `registrosMant` y, si viene de una incidencia, se cierra.
+         * `costeMant` es dinero: no le llega ni al operario ni al encargado.
+         */
+        `CREATE TABLE IF NOT EXISTS ordenesMant (
+     id                 TEXT PRIMARY KEY,
+     obraId             TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     codigo             TEXT NOT NULL,
+     tipo               TEXT NOT NULL DEFAULT 'preventiva',
+     equipoId           TEXT REFERENCES equiposObra(id) ON DELETE SET NULL,
+     equipoTag          TEXT,
+     planta             TEXT,
+     zona               TEXT,
+     operaciones        TEXT,
+     especialidad       TEXT NOT NULL DEFAULT 'general',
+     carne              TEXT,
+     minutosEstimados   INTEGER,
+     fechaPrevista      TEXT,
+     prioridad          TEXT NOT NULL DEFAULT 'media',
+     estado             TEXT NOT NULL DEFAULT 'pendiente',
+     operarioId         TEXT,
+     asignadaPor        TEXT,
+     asignacionAuto     INTEGER,
+     motivoAsignacion   TEXT,
+     incidenciaId       TEXT,
+     checklist          TEXT,
+     medidas            TEXT,
+     fotos              TEXT,
+     firma              TEXT,
+     firmadoPor         TEXT,
+     horas              REAL,
+     costeMant          REAL,
+     observaciones      TEXT,
+     fechaInicio        TEXT,
+     fechaCierre        TEXT,
+     cerradaPor         TEXT,
+     motivoAnulacion    TEXT,
+     creadoPor          TEXT,
+     creadoEn           TEXT NOT NULL,
+     modificadoEn       TEXT NOT NULL
+   )`,
+        /*
+         * LOS OPERARIOS DE MANTENIMIENTO de una obra, con sus especialidades y sus
+         * carnés (JSON `[{ tipo, numero, caduca }]`): de aquí sale a quién se le
+         * manda cada orden (shared/mantenimiento/asignacion.js). `personaId` es su
+         * usuario de Vidaire Cx, para que vea «Mis tareas». `tarifaHoraMant` es dinero.
+         */
+        `CREATE TABLE IF NOT EXISTS operariosMant (
+     id                 TEXT PRIMARY KEY,
+     obraId             TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     personaId          TEXT REFERENCES personas(id) ON DELETE SET NULL,
+     nombre             TEXT NOT NULL,
+     empresa            TEXT,
+     especialidades     TEXT,
+     carnes             TEXT,
+     planta             TEXT,
+     zona               TEXT,
+     jornadaMin         INTEGER,
+     tarifaHoraMant     REAL,
+     activo             INTEGER NOT NULL DEFAULT 1,
+     creadoEn           TEXT NOT NULL,
+     modificadoEn       TEXT NOT NULL
+   )`,
+        /*
          * LAS INSPECCIONES REGLAMENTARIAS: van por INSTALACIÓN, no por equipo (la de
          * baja tensión es del edificio entero) y las hace un tercero, una OCA o una
          * empresa habilitada. `inspeccionesInst` es cada instalación sujeta a
@@ -15096,6 +15194,9 @@ globalThis.CX_VARIANTE="cxobra";
         `CREATE INDEX IF NOT EXISTS idx_planosdif_equipo  ON planosDifusores (equipoId, orden)`,
         `CREATE INDEX IF NOT EXISTS idx_fotosequipo_equipo ON fotosEquipo (equipoId, creadoEn)`,
         `CREATE INDEX IF NOT EXISTS idx_registrosmant_obra ON registrosMant (obraId, equipoId, fecha)`,
+        `CREATE INDEX IF NOT EXISTS idx_ordenesmant_obra  ON ordenesMant (obraId, estado, fechaPrevista)`,
+        `CREATE INDEX IF NOT EXISTS idx_ordenesmant_oper  ON ordenesMant (operarioId, estado)`,
+        `CREATE INDEX IF NOT EXISTS idx_operariosmant_obra ON operariosMant (obraId, activo)`,
         `CREATE INDEX IF NOT EXISTS idx_inspeccionesInst_obra ON inspeccionesInst (obraId)`,
         `CREATE INDEX IF NOT EXISTS idx_inspeccionesHechas_inst ON inspeccionesHechas (obraId, instalacionId, fecha)`,
         `CREATE INDEX IF NOT EXISTS idx_cert_obra          ON certificaciones (obraId, numero)`,
@@ -15386,6 +15487,12 @@ globalThis.CX_VARIANTE="cxobra";
         /* Cada cuántos minutos busca la app documentación nueva en la lista o la
            carpeta de SharePoint (en blanco: 30; 0: desactivada). */
         ["configCommissioning", "busquedaDocsMin", "INTEGER"],
+        /* EL GAS DEL EQUIPO, para el control de fugas F-gas (24-oct). Vacíos, se
+           leen de las notas («R-410A 12,5 kg»), como en las legalizaciones. */
+        ["equiposObra", "refrigerante", "TEXT"],
+        ["equiposObra", "cargaKg", "REAL"],
+        ["equiposObra", "hermetico", "INTEGER"],
+        ["equiposObra", "deteccionFugas", "INTEGER"],
         /* Los albaranes comparados con el pedido línea a línea. */
         ["pedidoDocumentos", "albaranId", "TEXT"],
         ["pedidosCompra", "fechaCierreDiferencias", "TEXT"],
@@ -15765,6 +15872,9 @@ globalThis.CX_VARIANTE="cxobra";
         fichasPM: { porObra: "obraId" },
         /* Lo hecho en mantenimiento, también de la obra. */
         registrosMant: { porObra: "obraId" },
+        /* Las órdenes de trabajo y los operarios de mantenimiento, de la obra. */
+        ordenesMant: { porObra: "obraId" },
+        operariosMant: { porObra: "obraId" },
         inspeccionesInst: { porObra: "obraId" },
         inspeccionesHechas: { porObra: "obraId" },
         /* Los conflictos y sus pruebas, de la obra: quien la ve, ve su expediente. */
@@ -16176,6 +16286,8 @@ globalThis.CX_VARIANTE="cxobra";
         segLineas: "commissioning",
         segHitos: "commissioning",
         registrosMant: "mantenimiento",
+        ordenesMant: "ordenesMant",
+        operariosMant: "ordenesMant",
         inspeccionesInst: "mantenimiento",
         inspeccionesHechas: "mantenimiento",
         conflictos: "conflictos",
@@ -29534,13 +29646,14 @@ globalThis.CX_VARIANTE="cxobra";
           const bocas = plano ? bocasDelPlano(plano, id, tol.boca) : evaluarBocas(hoja, id, tol.boca);
           const perdida = plano ? { total: null, partidas: [], avisos: [], supuestos: [] } : perdidaCircuito(hoja, id);
           const magnitud = id === "impulsion" ? "caudalImpulsion" : "caudalRetorno";
-          const medidas = bocas.filter((b) => b.caudalMedido !== null);
-          const sumaMedido = medidas.length ? medidas.reduce((s, b) => s + b.caudalMedido, 0) : null;
+          const conCaudal = bocas.filter((b) => b.caudalMedido !== null);
+          const medidas = bocas.filter((b) => b.caudalMedido !== null || b.estado === "sinFactor");
+          const sumaMedido = conCaudal.length ? conCaudal.reduce((s, b) => s + b.caudalMedido, 0) : null;
           const sumaProyecto = bocas.reduce((s, b) => s + (b.caudalProyecto || 0), 0) || null;
           const proyectoEquipo = numBal(proyectoEf[magnitud]);
           const medidoEquipo = numBal(hoja.medido[magnitud]);
           const fabricaEquipo = numBal(hoja.fabrica[magnitud]);
-          const todasMedidas = bocas.length > 0 && medidas.length === bocas.length;
+          const todasMedidas = bocas.length > 0 && conCaudal.length === bocas.length;
           const referenciaTotal = proyectoEquipo !== null ? proyectoEquipo : sumaProyecto;
           const totalMedido = medidoEquipo !== null ? medidoEquipo : todasMedidas ? sumaMedido : null;
           const dTotal = desviacion(totalMedido, referenciaTotal);
@@ -29589,6 +29702,7 @@ globalThis.CX_VARIANTE="cxobra";
             })(),
             veredictoBocas: todasMedidas ? _reglasBal.veredicto({ medido: sumaMedido, referencia: sumaProyecto, limite: tol.total }) : medidas.length ? "pendiente" : null,
             medidas: medidas.length,
+            sinAk: bocas.filter((b) => b.estado === "sinFactor").length,
             fuera: bocas.filter((b) => b.estado === "alto" || b.estado === "bajo").length,
             aRevisar: bocas.filter((b) => b.estado === "aRevisar").length,
             todasMedidas
@@ -38509,6 +38623,28 @@ ${subtitulo}`, c[5]] : c.slice())]);
         if (p && p.largo && p.alto) return `${p.largo}\xD7${p.alto}`;
         return p && p.tamano ? p.tamano : "";
       }
+      function mismoGrupoAkDif(p, tipo, clave) {
+        return p && p.tipo === tipo && claveTamanoPuntoDif(p) === (clave || "");
+      }
+      function aplicarAkPorGrupoDif(puntos, grupo = {}, ak = null) {
+        const v = numDif(ak);
+        const valor = v !== null && v > 0 ? v : null;
+        return (puntos || []).map((p) => mismoGrupoAkDif(p, grupo.tipo, grupo.clave) && (p.modo || tipoDif(p.tipo).modo) !== "k" ? { ...p, modo: "ak", ak: valor } : p);
+      }
+      function gruposAkDif(puntos) {
+        const m = /* @__PURE__ */ new Map();
+        for (const p of puntos || []) {
+          const clave = claveTamanoPuntoDif(p);
+          const id = `${p.tipo}|${clave}`;
+          const g = m.get(id) || { tipo: p.tipo, clave, tipoNombre: tipoDif(p.tipo).nombre, circuito: tipoDif(p.tipo).circuito, bocas: 0, sinAk: 0, aks: /* @__PURE__ */ new Set() };
+          g.bocas += 1;
+          const f = factorDif(p);
+          if (f.modo === "ak" && f.valor === null) g.sinAk += 1;
+          else if (f.modo === "ak") g.aks.add(f.valor);
+          m.set(id, g);
+        }
+        return [...m.values()].map((g) => ({ ...g, ak: g.aks.size === 1 ? [...g.aks][0] : null, aks: void 0 }));
+      }
       function caudalDif({ velocidad, modo = "ak", ak = null, k = null } = {}) {
         const v = numDif(velocidad);
         if (v === null || v < 0) return null;
@@ -38581,8 +38717,10 @@ ${subtitulo}`, c[5]] : c.slice())]);
           const suma = conCaudal.length ? redDif(conCaudal.reduce((a, f) => a + f.caudal, 0), 1) : null;
           const disenoPuntos = suyos.every((f) => numDif(f.caudalDiseno) !== null) && suyos.length ? redDif(suyos.reduce((a, f) => a + numDif(f.caudalDiseno), 0), 1) : null;
           const disenoEquipo = numDif(diseno && diseno[id]);
-          const faltan = suyos.length - conCaudal.length;
-          const completo = suyos.length > 0 && faltan === 0;
+          const medidasN = suyos.filter((f) => f.estado !== "sinMedir").length;
+          const faltan = suyos.length - medidasN;
+          const sinCaudal = suyos.length - conCaudal.length;
+          const completo = suyos.length > 0 && sinCaudal === 0;
           const disenoReferencia = disenoPuntos !== null ? disenoPuntos : disenoEquipo;
           const desv = completo ? desviacionDif(suma, disenoReferencia) : null;
           let estado;
@@ -38593,8 +38731,9 @@ ${subtitulo}`, c[5]] : c.slice())]);
           circuitos[id] = {
             id,
             puntos: suyos.length,
-            medidos: conCaudal.length,
+            medidos: medidasN,
             faltan,
+            sinAk: suyos.filter((f) => f.estado === "sinFactor").length,
             suma,
             disenoEquipo,
             disenoPuntos,
@@ -38932,6 +39071,8 @@ ${subtitulo}`, c[5]] : c.slice())]);
         variantes: variantesDif,
         tamanos: tamanosDif,
         claveTamanoPunto: claveTamanoPuntoDif,
+        aplicarAkPorGrupo: aplicarAkPorGrupoDif,
+        gruposAk: gruposAkDif,
         MARCA_EJEMPLO: MARCA_EJEMPLO_DIF,
         factor: factorDif,
         caudal: caudalDif,
@@ -81351,6 +81492,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           return { valor: e(importe * f), fraccion: f };
         }
         const CAP_REPARACIONES = "_reparaciones";
+        const CAP_MANTENIMIENTO = "_mantenimiento";
         function analizar({
           arbol = [],
           pedidos = [],
@@ -81359,7 +81501,8 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           imputaciones = {},
           pendientes = {},
           certificado = {},
-          reparaciones = null
+          reparaciones = null,
+          mantenimiento = null
         } = {}) {
           const capitulos = capitulosDe(arbol, certificado);
           const rep = reparaciones && ((num(reparaciones.coste) || 0) > 0 || (num(reparaciones.venta) || 0) > 0) ? reparaciones : null;
@@ -81370,6 +81513,24 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
               resumen: "Reparaci\xF3n de equipos",
               reparaciones: true,
               venta: e(num(rep.venta) || 0),
+              previsto: 0,
+              estimacion: 0,
+              certificado: 0,
+              partidas: 0,
+              sinObjetivo: 0,
+              conCosteObra: 0,
+              grupos: /* @__PURE__ */ new Map(),
+              texto: []
+            });
+          }
+          const mant = mantenimiento && (num(mantenimiento.coste) || 0) > 0 ? mantenimiento : null;
+          if (mant) {
+            capitulos.push({
+              id: CAP_MANTENIMIENTO,
+              codigo: "",
+              resumen: "Mantenimiento",
+              mantenimiento: true,
+              venta: 0,
               previsto: 0,
               estimacion: 0,
               certificado: 0,
@@ -81502,6 +81663,27 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
               porque: "Horas de los t\xE9cnicos y extras de las incidencias de equipos (Commissioning \u203A Reparaciones)"
             });
           }
+          if (mant) {
+            const coste = e(num(mant.coste) || 0);
+            documentos.push({
+              tipo: "mantenimiento",
+              id: CAP_MANTENIMIENTO,
+              codigo: "",
+              titulo: `\xD3rdenes de mantenimiento (${mant.n || 0})`,
+              proveedorId: null,
+              proveedor: "",
+              comprometido: coste,
+              gastado: coste,
+              facturado: null,
+              recibido: null,
+              facturas: 0,
+              horas: num(mant.horas) || 0,
+              venta: 0,
+              reparto: [{ capituloId: CAP_MANTENIMIENTO, fraccion: 1 }],
+              imputacion: "manual",
+              porque: "Horas de las \xF3rdenes de trabajo cerradas por la tarifa de cada operario (Mantenimiento \u203A \xD3rdenes de trabajo)"
+            });
+          }
           const sinImputar = { comprometido: 0, gastado: 0, documentos: [] };
           for (const c of capitulos) Object.assign(c, { comprometido: 0, gastado: 0, documentos: [], propuestos: 0 });
           for (const d of documentos) {
@@ -81543,7 +81725,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
             c.desvioPct = c.previsto > 0 ? c.desvio / c.previsto : null;
             c.pctComprometido = c.previsto > 0 ? c.comprometido / c.previsto : null;
             c.avance = c.venta > 0 ? Math.min(1, c.certificado / c.venta) : null;
-            c.semaforo = c.reparaciones ? "gris" : semaforo(c);
+            c.semaforo = c.reparaciones || c.mantenimiento ? "gris" : semaforo(c);
             c.margenPrevisto = c.venta > 0 ? (c.venta - c.forecast) / c.venta : null;
           }
           const pctTxt = (v) => `${(v * 100).toLocaleString("es-ES", { maximumFractionDigits: 1 })} %`;
@@ -81684,6 +81866,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           SEMAFORO,
           SIN_IMPUTAR,
           CAP_REPARACIONES,
+          CAP_MANTENIMIENTO,
           semaforo,
           palabras,
           capitulosDe,
@@ -85017,6 +85200,3150 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
     }
   });
 
+  // shared/mantenimiento/ordenes.js
+  var require_ordenes = __commonJS({
+    "shared/mantenimiento/ordenes.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const carga = (nombre, ventana) => {
+          if (typeof window !== "undefined" && window[ventana]) return window[ventana];
+          return __require(nombre);
+        };
+        const G = carga("./gamas", "GAMAS_MANT");
+        const F = carga("./fgas", "FGAS_MANT");
+        const A = carga("./asignacion", "ASIGNACION_MANT");
+        const ESTADOS = {
+          pendiente: { nombre: "Sin asignar", orden: 1 },
+          asignada: { nombre: "Asignada", orden: 2 },
+          enCurso: { nombre: "En curso", orden: 3 },
+          cerrada: { nombre: "Cerrada", orden: 4 },
+          anulada: { nombre: "Anulada", orden: 5 }
+        };
+        const TIPOS = {
+          preventiva: { nombre: "Preventiva" },
+          fgas: { nombre: "Control F-gas" },
+          correctiva: { nombre: "Correctiva" }
+        };
+        const ABIERTA = (o) => o.estado !== "cerrada" && o.estado !== "anulada";
+        const HORIZONTE_DIAS = 30;
+        const lista = A.lista;
+        function sumarDias(dia, n) {
+          const [a, m, d] = dia.split("-").map(Number);
+          return new Date(Date.UTC(a, m - 1, d + n)).toISOString().slice(0, 10);
+        }
+        function siguienteCodigo(existentes) {
+          const max = existentes.reduce((m, o) => {
+            const n = /^OT-(\d+)$/.exec(String(o.codigo || ""));
+            return n ? Math.max(m, Number(n[1])) : m;
+          }, 0);
+          return `OT-${String(max + 1).padStart(4, "0")}`;
+        }
+        function yaPedido(ordenes) {
+          const m = /* @__PURE__ */ new Map();
+          for (const o of ordenes) {
+            if (!ABIERTA(o) || !o.equipoId) continue;
+            if (!m.has(o.equipoId)) m.set(o.equipoId, /* @__PURE__ */ new Set());
+            for (const t of lista(o.operaciones)) m.get(o.equipoId).add(t);
+          }
+          return m;
+        }
+        function ordenesNuevas({ evaluacion, fgas = [], existentes = [], hoy, horizonteDias = HORIZONTE_DIAS }) {
+          const limite = sumarDias(hoy, horizonteDias);
+          const pedidas = yaPedido(existentes);
+          const filaDe = new Map((evaluacion ? evaluacion.filas : []).map((f) => [f.id, f]));
+          const grupos = /* @__PURE__ */ new Map();
+          const meter = (equipo, texto, proxima, tipoOt, gama) => {
+            if ((pedidas.get(equipo.id) || /* @__PURE__ */ new Set()).has(texto)) return;
+            const clave = `${equipo.id}|${gama.especialidad}`;
+            if (!grupos.has(clave)) {
+              grupos.set(clave, {
+                tipo: tipoOt,
+                equipoId: equipo.id,
+                equipoTag: equipo.tag || "",
+                planta: equipo.planta || "",
+                zona: equipo.zona || "",
+                tipoEquipo: equipo.tipo || null,
+                especialidad: gama.especialidad,
+                carnes: /* @__PURE__ */ new Set(),
+                operaciones: [],
+                minutosEstimados: 0,
+                proxima: proxima || hoy,
+                vencida: false
+              });
+            }
+            const g = grupos.get(clave);
+            if (g.operaciones.includes(texto)) return;
+            g.operaciones.push(texto);
+            g.minutosEstimados += gama.minutos;
+            if (gama.carne) g.carnes.add(gama.carne);
+            if (tipoOt === "preventiva") g.tipo = "preventiva";
+            if (proxima && proxima < g.proxima) g.proxima = proxima;
+            if (!proxima || proxima < hoy) g.vencida = true;
+          };
+          for (const p of evaluacion ? evaluacion.pendientes : []) {
+            if (p.proxima && p.proxima > limite) continue;
+            const f = filaDe.get(p.equipoId) || { id: p.equipoId, tag: p.tag, planta: p.planta };
+            meter(
+              { id: p.equipoId, tag: p.tag, planta: p.planta, zona: f.zona, tipo: f.tipo },
+              p.operacion,
+              p.proxima,
+              "preventiva",
+              G.gamaOperacion(p.operacion, f.tipo, f.disciplina)
+            );
+          }
+          for (const { equipo, proximo } of fgas) {
+            if (!proximo || proximo.estado !== "vencido" && proximo.estado !== "pronto") continue;
+            meter(equipo, F.OPERACION, proximo.fechaLimite, "fgas", { especialidad: "frigorista", minutos: G.gamaOperacion(F.OPERACION, equipo.tipo).minutos, carne: "fgas" });
+          }
+          let todas = [...existentes];
+          const nuevas = [];
+          for (const g of grupos.values()) {
+            const carnes = [...g.carnes];
+            const orden = {
+              codigo: siguienteCodigo(todas),
+              tipo: g.tipo,
+              equipoId: g.equipoId,
+              equipoTag: g.equipoTag,
+              planta: g.planta,
+              zona: g.zona,
+              operaciones: g.operaciones,
+              especialidad: g.especialidad,
+              carne: carnes.includes("fgas") ? "fgas" : carnes[0] || null,
+              minutosEstimados: g.minutosEstimados,
+              fechaPrevista: g.vencida || g.proxima < hoy ? hoy : g.proxima,
+              prioridad: g.vencida ? "alta" : "media",
+              estado: "pendiente",
+              checklist: G.checklistDe(g.operaciones),
+              medidas: G.medidasDe(g.tipoEquipo, g.operaciones).map((m) => ({ ...m, valor: null }))
+            };
+            nuevas.push(orden);
+            todas = [...todas, orden];
+          }
+          nuevas.sort((a, b) => String(a.fechaPrevista).localeCompare(String(b.fechaPrevista)) || String(a.equipoTag).localeCompare(String(b.equipoTag), "es", { numeric: true }));
+          const base = siguienteCodigo(existentes);
+          let n = Number(base.slice(3));
+          for (const o of nuevas) {
+            o.codigo = `OT-${String(n).padStart(4, "0")}`;
+            n += 1;
+          }
+          return nuevas;
+        }
+        function ordenCorrectiva(incidencia, equipo, { existentes = [], hoy, tipoId = null, disciplina = null, fgasSujeto = false } = {}) {
+          if (!incidencia || !incidencia.equipoId) return { ok: false, error: "La incidencia no es de un equipo: no se puede hacer una orden de mantenimiento." };
+          if (existentes.some((o) => o.incidenciaId === incidencia.id && ABIERTA(o))) return { ok: false, error: "Esa incidencia ya tiene una orden abierta." };
+          if (incidencia.estado === "cerrada" || incidencia.estado === "anulada") return { ok: false, error: "La incidencia ya est\xE1 cerrada." };
+          const g = G.gamaCorrectiva(incidencia, { tipoId, disciplina, fgasSujeto });
+          return {
+            ok: true,
+            orden: {
+              codigo: siguienteCodigo(existentes),
+              tipo: "correctiva",
+              incidenciaId: incidencia.id,
+              equipoId: incidencia.equipoId,
+              equipoTag: equipo && equipo.tag || "",
+              planta: incidencia.planta || equipo && equipo.planta || "",
+              zona: incidencia.zona || equipo && equipo.zona || "",
+              operaciones: g.operaciones,
+              especialidad: g.especialidad,
+              carne: g.carne,
+              minutosEstimados: g.minutos,
+              fechaPrevista: incidencia.fechaPrevista && incidencia.fechaPrevista >= hoy ? incidencia.fechaPrevista : hoy,
+              prioridad: incidencia.prioridad || "media",
+              estado: "pendiente",
+              checklist: g.checklist,
+              medidas: g.medidas.map((m) => ({ ...m, valor: null }))
+            }
+          };
+        }
+        const TRANSICIONES = {
+          pendiente: ["asignada", "anulada"],
+          asignada: ["pendiente", "enCurso", "anulada"],
+          enCurso: ["asignada", "cerrada", "anulada"],
+          cerrada: ["enCurso"],
+          anulada: []
+        };
+        const puedePasar = (de, a) => (TRANSICIONES[de] || []).includes(a);
+        const VALORES_CHECK = ["ok", "mal", "na"];
+        const FIRMA_MAX = 300 * 1024;
+        function cerrar(orden, { checklist, medidas, firma, firmadoPor, horas, fecha, observaciones, fotos, quien, hoy, tarifaHora }) {
+          if (!puedePasar(orden.estado, "cerrada")) return { ok: false, error: `Una orden \xAB${(ESTADOS[orden.estado] || {}).nombre || orden.estado}\xBB no se puede cerrar: hay que empezarla primero.` };
+          const lc = lista(checklist ?? orden.checklist);
+          if (!lc.length) return { ok: false, error: "La orden no tiene lista de comprobaci\xF3n." };
+          const sinContestar = lc.filter((c) => !VALORES_CHECK.includes(c.valor));
+          if (sinContestar.length) return { ok: false, error: `Faltan ${sinContestar.length} comprobaciones por contestar: \xAB${sinContestar[0].texto}\xBB.` };
+          const mal = lc.filter((c) => c.valor === "mal");
+          const obs = String(observaciones || "").trim();
+          if (mal.length && !obs) return { ok: false, error: "Hay comprobaciones que han salido mal: di qu\xE9 pasa en las observaciones." };
+          const h = Number(String(horas ?? "").replace(",", "."));
+          if (!Number.isFinite(h) || h <= 0 || h > 24) return { ok: false, error: "Las horas tienen que ser m\xE1s de 0 y no m\xE1s de 24." };
+          if (!firma || !/^data:image\/(png|jpeg|svg\+xml);base64,/.test(String(firma))) return { ok: false, error: "Falta la firma de quien ha hecho el trabajo." };
+          if (String(firma).length > FIRMA_MAX) return { ok: false, error: "La firma pesa demasiado." };
+          const nombre = String(firmadoPor || "").trim();
+          if (!nombre) return { ok: false, error: "Falta el nombre de quien firma." };
+          const dia = String(fecha || hoy).slice(0, 10);
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(dia)) return { ok: false, error: "La fecha no se entiende." };
+          if (dia > hoy) return { ok: false, error: "La fecha de cierre no puede ser futura." };
+          const lm = lista(medidas ?? orden.medidas);
+          const avisos2 = lm.filter((m) => m.valor !== null && m.valor !== "" && Number.isFinite(Number(m.valor)) && (m.min !== void 0 && Number(m.valor) < m.min || m.max !== void 0 && Number(m.valor) > m.max)).map((m) => `${m.nombre}: ${m.valor} ${m.unidad} (fuera de rango)`);
+          const tarifa = Number(tarifaHora);
+          const coste = Number.isFinite(tarifa) && tarifa > 0 ? Math.round(h * tarifa * 100) / 100 : null;
+          const textoObs = [obs, ...avisos2].filter(Boolean).join(" \xB7 ");
+          return {
+            ok: true,
+            avisos: avisos2,
+            cambios: {
+              estado: "cerrada",
+              checklist: lc,
+              medidas: lm,
+              firma,
+              firmadoPor: nombre,
+              horas: h,
+              costeMant: coste,
+              observaciones: textoObs || null,
+              fechaCierre: dia,
+              cerradaPor: quien || null,
+              ...fotos ? { fotos: lista(fotos) } : {}
+            },
+            /* Lo que se apunta en el libro de mantenimiento del equipo: cada operación hecha. */
+            registros: orden.equipoId ? lista(orden.operaciones).map((op) => ({
+              equipoId: orden.equipoId,
+              operacion: op,
+              fecha: dia,
+              realizadoPor: nombre,
+              observaciones: [`${orden.codigo}`, textoObs].filter(Boolean).join(" \xB7 ")
+            })) : [],
+            cerrarIncidencia: orden.incidenciaId || null
+          };
+        }
+        function avisos({ evaluacion = null, fgas = [], incidencias = [], ordenes = [], operarios = [], hoy }) {
+          const salida = [];
+          const pronto = sumarDias(hoy, 7);
+          const enOrden = yaPedido(ordenes);
+          if (evaluacion) {
+            for (const p of evaluacion.pendientes) {
+              const pedida = (enOrden.get(p.equipoId) || /* @__PURE__ */ new Set()).has(p.operacion);
+              salida.push({
+                nivel: p.estado === "vencida" ? "mal" : "aviso",
+                clase: "preventivo",
+                equipoId: p.equipoId,
+                tag: p.tag,
+                fecha: p.proxima,
+                texto: `${p.operacion} \u2014 ${p.estado === "vencida" ? p.nunca ? "nunca hecha" : `vencida el ${p.proxima}` : `toca el ${p.proxima}`}${pedida ? "" : " \xB7 sin orden"}`
+              });
+            }
+          }
+          for (const { equipo, proximo } of fgas) {
+            if (!proximo || !proximo.control) continue;
+            if (proximo.control.faltaDeteccion) {
+              salida.push({ nivel: "mal", clase: "fgas", equipoId: equipo.id, tag: equipo.tag, texto: "F-gas: con esta carga la detecci\xF3n de fugas es obligatoria y no la tiene" });
+            }
+            if (proximo.estado === "vencido" || proximo.estado === "pronto") {
+              salida.push({
+                nivel: proximo.estado === "vencido" ? "mal" : "aviso",
+                clase: "fgas",
+                equipoId: equipo.id,
+                tag: equipo.tag,
+                fecha: proximo.fechaLimite,
+                texto: proximo.nunca ? `Control de fugas (cada ${proximo.control.meses} meses): no consta ninguno` : `Control de fugas ${proximo.estado === "vencido" ? "vencido el" : "antes del"} ${proximo.fechaLimite}`
+              });
+            }
+          }
+          for (const i of incidencias) {
+            if (!i.equipoId || i.estado === "cerrada" || i.estado === "anulada") continue;
+            const conOrden = ordenes.some((o) => o.incidenciaId === i.id && ABIERTA(o));
+            salida.push({
+              nivel: i.prioridad === "alta" ? "mal" : "aviso",
+              clase: "incidencia",
+              equipoId: i.equipoId,
+              tag: i.equipoTag || "",
+              incidenciaId: i.id,
+              texto: `${i.codigo || "Incidencia"}: ${i.titulo || ""}${conOrden ? "" : " \xB7 sin orden de trabajo"}`,
+              fecha: i.fechaApertura || null
+            });
+          }
+          for (const o of ordenes) {
+            if (!ABIERTA(o)) continue;
+            if (o.fechaPrevista && o.fechaPrevista < hoy) {
+              salida.push({ nivel: "mal", clase: "orden", ordenId: o.id, equipoId: o.equipoId, tag: o.equipoTag, fecha: o.fechaPrevista, texto: `${o.codigo} atrasada (era para el ${o.fechaPrevista})` });
+            } else if (!o.operarioId && o.fechaPrevista && o.fechaPrevista <= pronto) {
+              salida.push({ nivel: "aviso", clase: "orden", ordenId: o.id, equipoId: o.equipoId, tag: o.equipoTag, fecha: o.fechaPrevista, texto: `${o.codigo} sin operario (para el ${o.fechaPrevista})` });
+            }
+          }
+          for (const op of operarios) {
+            if (op.activo === 0) continue;
+            for (const c of A.carnesPorCaducar(op, hoy)) {
+              const nombre = (A.CARNE_POR_ID.get(c.tipo) || { nombre: c.tipo }).nombre;
+              salida.push({ nivel: c.caducado ? "mal" : "aviso", clase: "carne", operarioId: op.id, fecha: String(c.caduca).slice(0, 10), texto: `${op.nombre}: ${nombre} ${c.caducado ? "caducado" : "caduca"} el ${String(c.caduca).slice(0, 10)}` });
+            }
+          }
+          return salida.sort((a, b) => (a.nivel === b.nivel ? 0 : a.nivel === "mal" ? -1 : 1) || String(a.fecha || "").localeCompare(String(b.fecha || "")));
+        }
+        const horasDe = (o) => Number(o.horas) || 0;
+        function informeMes(ordenes, mes) {
+          const delMes = (d) => d && String(d).slice(0, 7) === mes;
+          const previstas = ordenes.filter((o) => o.tipo !== "correctiva" && o.estado !== "anulada" && delMes(o.fechaPrevista));
+          const cerradas = previstas.filter((o) => o.estado === "cerrada");
+          const aTiempo = cerradas.filter((o) => o.fechaCierre && o.fechaCierre <= o.fechaPrevista);
+          const correctivas = ordenes.filter((o) => o.tipo === "correctiva" && o.estado !== "anulada" && (delMes(o.creadoEn) || delMes(o.fechaCierre) || delMes(o.fechaPrevista)));
+          const corrCerradas = correctivas.filter((o) => o.estado === "cerrada" && delMes(o.fechaCierre));
+          const dias = corrCerradas.map((o) => (Date.parse(`${o.fechaCierre}T00:00:00Z`) - Date.parse(`${String(o.creadoEn || o.fechaPrevista).slice(0, 10)}T00:00:00Z`)) / 864e5).filter((d) => Number.isFinite(d) && d >= 0);
+          const hechasMes = ordenes.filter((o) => o.estado === "cerrada" && delMes(o.fechaCierre));
+          const porEsp = /* @__PURE__ */ new Map();
+          for (const o of hechasMes) {
+            const e = porEsp.get(o.especialidad) || { especialidad: o.especialidad, ordenes: 0, horas: 0, estimadas: 0, coste: 0, conCoste: 0 };
+            e.ordenes += 1;
+            e.horas += horasDe(o);
+            e.estimadas += (Number(o.minutosEstimados) || 0) / 60;
+            if (Number.isFinite(Number(o.costeMant)) && o.costeMant !== null && o.costeMant !== void 0) {
+              e.coste += Number(o.costeMant);
+              e.conCoste += 1;
+            }
+            porEsp.set(o.especialidad, e);
+          }
+          const redondo = (x) => Math.round(x * 100) / 100;
+          const especialidades = [...porEsp.values()].map((e) => ({ ...e, horas: redondo(e.horas), estimadas: redondo(e.estimadas), coste: redondo(e.coste) })).sort((a, b) => b.horas - a.horas);
+          return {
+            mes,
+            preventivo: {
+              previstas: previstas.length,
+              cerradas: cerradas.length,
+              aTiempo: aTiempo.length,
+              cumplimiento: previstas.length ? Math.round(cerradas.length / previstas.length * 1e3) / 10 : null,
+              pendientes: previstas.filter((o) => o.estado !== "cerrada").map((o) => ({ codigo: o.codigo, equipoTag: o.equipoTag, fechaPrevista: o.fechaPrevista, estado: o.estado }))
+            },
+            correctivo: {
+              abiertas: correctivas.filter((o) => ABIERTA(o)).length,
+              cerradas: corrCerradas.length,
+              diasMedios: dias.length ? Math.round(dias.reduce((s, d) => s + d, 0) / dias.length * 10) / 10 : null
+            },
+            especialidades,
+            horas: redondo(especialidades.reduce((s, e) => s + e.horas, 0)),
+            horasEstimadas: redondo(especialidades.reduce((s, e) => s + e.estimadas, 0)),
+            coste: redondo(especialidades.reduce((s, e) => s + e.coste, 0)),
+            ordenesCerradas: hechasMes.length
+          };
+        }
+        function costeObra(ordenes) {
+          const cerradas = ordenes.filter((o) => o.estado === "cerrada");
+          const horas = cerradas.reduce((s, o) => s + horasDe(o), 0);
+          const coste = cerradas.reduce((s, o) => s + (Number(o.costeMant) || 0), 0);
+          return { n: cerradas.length, horas: Math.round(horas * 100) / 100, coste: Math.round(coste * 100) / 100 };
+        }
+        const API = {
+          ESTADOS,
+          TIPOS,
+          TRANSICIONES,
+          HORIZONTE_DIAS,
+          VALORES_CHECK,
+          abierta: ABIERTA,
+          puedePasar,
+          siguienteCodigo,
+          ordenesNuevas,
+          ordenCorrectiva,
+          cerrar,
+          avisos,
+          informeMes,
+          costeObra
+        };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.ORDENES_MANT = API;
+      })();
+    }
+  });
+
+  // shared/mantenimiento/gamas.js
+  var require_gamas = __commonJS({
+    "shared/mantenimiento/gamas.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const ESPECIALIDADES = [
+          { id: "frigorista", nombre: "Frigorista" },
+          { id: "termico", nombre: "Instalador t\xE9rmico (RITE)" },
+          { id: "electricista", nombre: "Electricista" },
+          { id: "fontanero", nombre: "Fontanero" },
+          { id: "bms", nombre: "Control / BMS" },
+          { id: "pci", nombre: "Protecci\xF3n contra incendios" },
+          { id: "general", nombre: "Mantenimiento general" }
+        ];
+        const ESPECIALIDAD_POR_ID = new Map(ESPECIALIDADES.map((e) => [e.id, e]));
+        const REGLAS = [
+          {
+            patron: /gases fluorados|estanquidad y niveles de refrigerante/i,
+            esp: "frigorista",
+            carne: "fgas",
+            min: { enfriadora: 60, bombaCalor: 60, autonomo: 25, _: 30 }
+          },
+          { patron: /evaporador|condensador/i, esp: "frigorista", min: { enfriadora: 90, bombaCalor: 90, autonomo: 30, _: 45 } },
+          { patron: /equipos aut[oó]nomos/i, esp: "frigorista", min: 30 },
+          { patron: /control autom[aá]tico|\bbms\b/i, esp: "bms", min: { control: 45, _: 15 } },
+          { patron: /legionel|desinfecci|acumulador|\bacs\b/i, esp: "fontanero", carne: "legionela", min: { torre: 180, _: 60 } },
+          { patron: /tratamiento de agua|niveles de agua|vaso de expansi/i, esp: "fontanero", min: 20 },
+          { patron: /quemador|humos|caldera|chimenea/i, esp: "termico", carne: "rite", min: { _: 45 } },
+          { patron: /retimbrado/i, esp: "pci", carne: "pci", min: 30 },
+          { patron: /manguera/i, esp: "pci", carne: "pci", min: 30 },
+          { patron: /empresa mantenedora|une 23500|activaci[oó]n manual/i, esp: "pci", carne: "pci", min: { extintor: 10, detector: 10, pulsador: 10, _: 45 } },
+          { patron: /\(titular\)/i, esp: "general", min: { extintor: 5, detector: 5, pulsador: 5, _: 20 }, disciplina: "PCI" },
+          { patron: /cierre, fusible|cortafuegos/i, esp: "pci", carne: "pci", min: 20 },
+          /* Lo demás de PCI (el grupo de bombeo, la extinción) es de la empresa de PCI. */
+          { patron: /.*/, disciplina: "PCI", esp: "pci", carne: "pci", min: 45 },
+          { patron: /grupo electr|arranque y prueba|prueba en carga/i, esp: "electricista", min: { _: 60 } },
+          { patron: /bater[ií]as|autonom[ií]a|prueba de funcionamiento/i, esp: "electricista", carne: "rebt", min: { emergencia: 5, sai: 45, _: 20 } },
+          { patron: /alimentaci[oó]n el[eé]ctrica|protecciones/i, esp: "electricista", carne: "rebt", min: 30 },
+          { patron: /filtros de aire/i, esp: "general", min: { uta: 45, recuperador: 30, fancoil: 15, autonomo: 15, _: 20 } },
+          { patron: /bombas y ventiladores/i, esp: "termico", min: { uta: 30, _: 20 } },
+          { patron: /seguridad/i, esp: "termico", carne: "rite", min: 20 },
+          { patron: /conductos|calidad ambiental/i, esp: "termico", min: 60 },
+          { patron: /bater[ií]as de intercambio|intercambiadores|recuperaci[oó]n de calor|humectaci/i, esp: "termico", min: 40 },
+          { patron: /unidades terminales/i, esp: "termico", min: { fancoil: 20, _: 15 } },
+          { patron: /impulsi[oó]n y retorno/i, esp: "termico", min: 30 },
+          { patron: /.*/, esp: "general", min: 30 }
+        ];
+        const COMPROBACIONES_BASE = [
+          "Equipo identificado (TAG) y accesible",
+          "Trabajo hecho sin dejar el equipo fuera de servicio",
+          "Zona recogida y limpia"
+        ];
+        const MEDIDAS_POR_TIPO = {
+          autonomo: [
+            { id: "tImpulsion", nombre: "Temperatura de impulsi\xF3n", unidad: "\xB0C" },
+            { id: "tRetorno", nombre: "Temperatura de retorno", unidad: "\xB0C" },
+            { id: "consumo", nombre: "Consumo el\xE9ctrico", unidad: "A" }
+          ],
+          fancoil: [
+            { id: "velocidades", nombre: "Velocidades V1/V2/V3 funcionan", unidad: "s\xED/no" },
+            { id: "tImpulsion", nombre: "Temperatura de impulsi\xF3n", unidad: "\xB0C" }
+          ],
+          enfriadora: [
+            { id: "tEntradaEvap", nombre: "Agua entrada evaporador", unidad: "\xB0C" },
+            { id: "tSalidaEvap", nombre: "Agua salida evaporador", unidad: "\xB0C" },
+            { id: "pEvap", nombre: "Presi\xF3n de evaporaci\xF3n", unidad: "bar" },
+            { id: "pCond", nombre: "Presi\xF3n de condensaci\xF3n", unidad: "bar" },
+            { id: "potencia", nombre: "Potencia el\xE9ctrica absorbida", unidad: "kW" }
+          ],
+          caldera: [
+            { id: "tIda", nombre: "Temperatura de ida", unidad: "\xB0C" },
+            { id: "tRetorno", nombre: "Temperatura de retorno", unidad: "\xB0C" },
+            { id: "tHumos", nombre: "Temperatura de humos", unidad: "\xB0C" },
+            { id: "co", nombre: "CO en humos", unidad: "ppm" },
+            { id: "co2", nombre: "CO2 en humos", unidad: "%" }
+          ],
+          uta: [
+            { id: "dpFiltros", nombre: "P\xE9rdida de carga de filtros", unidad: "Pa" },
+            { id: "consumo", nombre: "Consumo del ventilador", unidad: "A" }
+          ],
+          ventilador: [{ id: "consumo", nombre: "Consumo el\xE9ctrico", unidad: "A" }],
+          acs: [
+            { id: "tAcumulador", nombre: "Temperatura del acumulador", unidad: "\xB0C", min: 60 },
+            { id: "tRetorno", nombre: "Temperatura de retorno", unidad: "\xB0C", min: 50 }
+          ],
+          termo: [{ id: "tAcumulador", nombre: "Temperatura del acumulador", unidad: "\xB0C", min: 60 }],
+          emergencia: [{ id: "autonomia", nombre: "Autonom\xEDa", unidad: "min", min: 60 }],
+          extintor: [{ id: "presion", nombre: "Presi\xF3n en zona verde", unidad: "s\xED/no" }]
+        };
+        MEDIDAS_POR_TIPO.bombaCalor = MEDIDAS_POR_TIPO.enfriadora;
+        MEDIDAS_POR_TIPO.recuperador = MEDIDAS_POR_TIPO.uta;
+        const MEDIDAS_FGAS = [
+          { id: "metodo", nombre: "M\xE9todo (directo / indirecto / detector)", unidad: "texto" },
+          { id: "fuga", nombre: "Fuga encontrada", unidad: "s\xED/no" },
+          { id: "cargaAnadida", nombre: "Carga a\xF1adida", unidad: "kg" }
+        ];
+        function regla(texto, _tipoId, disciplina) {
+          return REGLAS.find((r) => r.patron.test(texto) && (!r.disciplina || r.disciplina === disciplina)) || REGLAS[REGLAS.length - 1];
+        }
+        const minutosDe = (r, tipoId) => typeof r.min === "number" ? r.min : r.min[tipoId] ?? r.min._ ?? 30;
+        function gamaOperacion(texto, tipoId, disciplina) {
+          const r = regla(String(texto || ""), tipoId, disciplina);
+          return { especialidad: r.esp, minutos: minutosDe(r, tipoId), carne: r.carne || null };
+        }
+        function medidasDe(tipoId, operaciones = []) {
+          const lista = [...MEDIDAS_POR_TIPO[tipoId] || []];
+          if (operaciones.some((o) => /gases fluorados|refrigerante/i.test(o))) lista.push(...MEDIDAS_FGAS);
+          const vistas = /* @__PURE__ */ new Set();
+          return lista.filter((m) => vistas.has(m.id) ? false : vistas.add(m.id));
+        }
+        function checklistDe(operaciones) {
+          return [...operaciones.map((o) => ({ texto: o, valor: null })), ...COMPROBACIONES_BASE.map((t) => ({ texto: t, valor: null }))];
+        }
+        function gamaDelTipo(tipo, columna = "mas70") {
+          return (tipo.operaciones || []).filter((o) => o.cada[columna]).map((o) => ({ texto: o.texto, periodo: o.cada[columna], norma: o.norma, ...gamaOperacion(o.texto, tipo.id, tipo.disciplina) }));
+        }
+        const PISTAS_CORRECTIVO = [
+          { patron: /fuga de (gas|refrigerante)|refrigerante|gas\b|compresor|no enfr[ií]a|no da fr[ií]o|presi[oó]n de (alta|baja)|hielo|escarcha/i, esp: "frigorista" },
+          { patron: /el[eé]ctric|diferencial|magnetot[eé]rmico|disyuntor|salta|cuadro|cable|tensi[oó]n|fase|luminaria|emergencia/i, esp: "electricista" },
+          { patron: /fuga de agua|gotea|goteo|desag[uü]e|bandeja|condensados|tuber[ií]a|v[aá]lvula|presi[oó]n de agua|legionel/i, esp: "fontanero" },
+          { patron: /sonda|termostato|bms|scada|comunicaci[oó]n|consigna|controlador|alarma de control/i, esp: "bms" },
+          { patron: /extintor|detector|bie\b|rociador|incendio/i, esp: "pci" },
+          { patron: /quemador|caldera|humos|llama/i, esp: "termico" }
+        ];
+        const ESP_POR_DISCIPLINA = { PCI: "pci", Electricidad: "electricista", Fontaner\u00EDa: "fontanero", Control: "bms", Clima: "termico" };
+        const ESP_POR_TIPO = { autonomo: "frigorista", enfriadora: "frigorista", bombaCalor: "frigorista" };
+        function gamaCorrectiva(incidencia, { tipoId = null, disciplina = null, fgasSujeto = false } = {}) {
+          const texto = `${incidencia.titulo || ""} ${incidencia.descripcion || ""} ${incidencia.instrucciones || ""}`;
+          const pista = PISTAS_CORRECTIVO.find((p) => p.patron.test(texto));
+          const especialidad = pista ? pista.esp : ESP_POR_TIPO[tipoId] || ESP_POR_DISCIPLINA[disciplina] || "general";
+          const horas = Number(incidencia.horasPrevistas);
+          const minutos = Number.isFinite(horas) && horas > 0 ? Math.round(horas * 60) : 120;
+          const operaciones = [`Correctivo: ${String(incidencia.titulo || "reparaci\xF3n").trim()}`];
+          const checklist = [
+            { texto: "Diagn\xF3stico de la aver\xEDa", valor: null },
+            { texto: "Reparaci\xF3n hecha", valor: null },
+            { texto: "Prueba de funcionamiento tras reparar", valor: null },
+            ...COMPROBACIONES_BASE.map((t) => ({ texto: t, valor: null }))
+          ];
+          const frigorifico = especialidad === "frigorista";
+          if (frigorifico && fgasSujeto) checklist.push({ texto: "Programada la comprobaci\xF3n de fugas tras reparar (entre 24 h y 1 mes)", valor: null });
+          return {
+            especialidad,
+            minutos,
+            operaciones,
+            checklist,
+            carne: frigorifico ? "fgas" : null,
+            medidas: medidasDe(tipoId, frigorifico ? ["refrigerante"] : [])
+          };
+        }
+        const API = {
+          ESPECIALIDADES,
+          ESPECIALIDAD_POR_ID,
+          COMPROBACIONES_BASE,
+          MEDIDAS_POR_TIPO,
+          MEDIDAS_FGAS,
+          gamaOperacion,
+          gamaDelTipo,
+          medidasDe,
+          checklistDe,
+          gamaCorrectiva
+        };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.GAMAS_MANT = API;
+      })();
+    }
+  });
+
+  // shared/mantenimiento/fgas.js
+  var require_fgas = __commonJS({
+    "shared/mantenimiento/fgas.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const SUSTANCIAS = {
+          "HFC-32": { pca: 675, anexo: "I" },
+          "HFC-125": { pca: 3500, anexo: "I" },
+          "HFC-134a": { pca: 1430, anexo: "I" },
+          "HFC-143a": { pca: 4470, anexo: "I" },
+          "HFC-1234yf": { pca: 0.501, anexo: "II" },
+          "HFC-1234ze": { pca: 1.37, anexo: "II" },
+          "R-290": { pca: 0.02, anexo: "VI" },
+          "R-600a": { pca: 0, anexo: "VI" },
+          "R-717": { pca: 0, anexo: "VI" },
+          "R-744": { pca: 1, anexo: "CO2" },
+          "HCFC-22": { pca: 1960, anexo: "SAO" }
+        };
+        const COMPOSICION = {
+          R32: [["HFC-32", 100]],
+          R410A: [["HFC-32", 50], ["HFC-125", 50]],
+          R407C: [["HFC-32", 23], ["HFC-125", 25], ["HFC-134a", 52]],
+          R404A: [["HFC-125", 44], ["HFC-143a", 52], ["HFC-134a", 4]],
+          R507A: [["HFC-125", 50], ["HFC-143a", 50]],
+          R134a: [["HFC-134a", 100]],
+          R422D: [["HFC-125", 65.1], ["HFC-134a", 31.5], ["R-600a", 3.4]],
+          R427A: [["HFC-32", 15], ["HFC-125", 25], ["HFC-143a", 10], ["HFC-134a", 50]],
+          R448A: [["HFC-32", 26], ["HFC-125", 26], ["HFC-1234yf", 20], ["HFC-134a", 21], ["HFC-1234ze", 7]],
+          R449A: [["HFC-32", 24.3], ["HFC-125", 24.7], ["HFC-1234yf", 25.3], ["HFC-134a", 25.7]],
+          R452A: [["HFC-1234yf", 30], ["HFC-32", 11], ["HFC-125", 59]],
+          R454B: [["HFC-32", 68.9], ["HFC-1234yf", 31.1]],
+          R454C: [["HFC-32", 21.5], ["HFC-1234yf", 78.5]],
+          R513A: [["HFC-1234yf", 56], ["HFC-134a", 44]],
+          R1234yf: [["HFC-1234yf", 100]],
+          "R1234ze(E)": [["HFC-1234ze", 100]],
+          R290: [["R-290", 100]],
+          R600a: [["R-600a", 100]],
+          R744: [["R-744", 100]],
+          R717: [["R-717", 100]],
+          R22: [["HCFC-22", 100]]
+        };
+        const limpiar = (x, dec = 6) => Math.round(x * 10 ** dec) / 10 ** dec;
+        function construir(id) {
+          const comp = COMPOSICION[id];
+          const anexos = comp.map(([s]) => SUSTANCIAS[s].anexo);
+          const clase = anexos.includes("I") ? "HFC" : anexos.includes("SAO") ? "SAO" : anexos.includes("II") ? "HFO" : "natural";
+          const pca = comp.length > 1 ? limpiar(comp.reduce((s, [sus, por]) => s + por / 100 * SUSTANCIAS[sus].pca, 0)) : SUSTANCIAS[comp[0][0]].pca;
+          return { id, clase, pca, esMezcla: comp.length > 1 };
+        }
+        const REFRIGERANTES = Object.freeze(Object.fromEntries(Object.keys(COMPOSICION).map((id) => [id, construir(id)])));
+        function buscar(texto) {
+          const limpio = String(texto || "").toUpperCase().replace(/[\s-]/g, "");
+          if (!limpio) return null;
+          const alias = { R1234ZE: "R1234ze(E)", "R1234ZE(E)": "R1234ze(E)", R507: "R507A" };
+          if (alias[limpio]) return REFRIGERANTES[alias[limpio]];
+          return Object.values(REFRIGERANTES).find((r) => r.id.toUpperCase() === limpio) || null;
+        }
+        function deTexto(texto) {
+          const t = String(texto || "");
+          const gas = /\b(R-?\s?\d{2,4}[A-Za-z]{0,2}(?:\(E\))?)/i.exec(t);
+          const kg = /(\d+(?:[.,]\d+)?)\s*kg\b/i.exec(t);
+          return {
+            refrigerante: gas ? (buscar(gas[1]) || {}).id || gas[1].toUpperCase().replace(/\s/g, "") : "",
+            cargaKg: kg ? Number(kg[1].replace(",", ".")) : null
+          };
+        }
+        const tco2e = (kg, r) => limpiar(kg * r.pca / 1e3);
+        const truncar2 = (t) => Math.floor(limpiar(t * 100, 6)) / 100;
+        const numeroES = (n) => String(n).replace(".", ",");
+        const textoT = (t) => `${truncar2(t).toFixed(2).replace(".", ",")} t CO2e`;
+        function controlFugas({ refrigerante, cargaKg, hermetico = false, deteccion = false, residencial = false } = {}) {
+          const r = typeof refrigerante === "object" && refrigerante ? refrigerante : buscar(refrigerante);
+          const kg = Number(cargaKg);
+          const nada = { sujeto: false, meses: null, tramo: null, deteccionObligatoria: false, faltaDeteccion: false };
+          if (!r) {
+            return {
+              ...nada,
+              desconocido: true,
+              clase: null,
+              tco2e: null,
+              magnitud: null,
+              norma: "",
+              explicacion: refrigerante ? `No se conoce el refrigerante \xAB${refrigerante}\xBB: ap\xFAntalo como R32, R410A, R407C\u2026` : "Falta el refrigerante del equipo."
+            };
+          }
+          if (!Number.isFinite(kg) || kg <= 0) {
+            return {
+              ...nada,
+              desconocido: true,
+              clase: r.clase,
+              tco2e: null,
+              magnitud: null,
+              norma: "",
+              explicacion: `Falta la carga de ${r.id} (kg) para saber cada cu\xE1nto toca el control de fugas.`
+            };
+          }
+          const t = tco2e(kg, r);
+          if (r.clase === "natural") {
+            return {
+              ...nada,
+              clase: r.clase,
+              tco2e: t,
+              magnitud: { valor: kg, unidad: "kg" },
+              norma: "Reglamento (UE) 2024/573, art. 5.1",
+              explicacion: `El ${r.id} no es un gas fluorado: el reglamento no le pide control de fugas.`
+            };
+          }
+          if (r.clase === "SAO") {
+            const norma2 = "Reglamento (UE) 2024/590, art. 21.3";
+            if (kg < 3 || hermetico && kg < 6) {
+              return {
+                ...nada,
+                clase: r.clase,
+                tco2e: t,
+                magnitud: { valor: kg, unidad: "kg" },
+                norma: norma2,
+                explicacion: `${r.id} con ${numeroES(kg)} kg: no est\xE1 sujeto a control peri\xF3dico de fugas.`
+              };
+            }
+            const [meses2, tramo2] = kg < 30 ? [12, "bajo"] : kg < 300 ? [6, "medio"] : [3, "alto"];
+            return {
+              ...nada,
+              sujeto: true,
+              meses: meses2,
+              tramo: tramo2,
+              clase: r.clase,
+              tco2e: t,
+              magnitud: { valor: kg, unidad: "kg" },
+              norma: norma2,
+              explicacion: `${r.id} con ${numeroES(kg)} kg: control de fugas cada ${meses2} meses. No se puede recargar.`
+            };
+          }
+          const esHfc = r.clase === "HFC";
+          const valor = esHfc ? t : kg;
+          const [u1, u2, u3] = esHfc ? [5, 50, 500] : [1, 10, 100];
+          const magnitud = { valor, unidad: esHfc ? "t CO2e" : "kg" };
+          const textoValor = esHfc ? textoT(valor) : `${numeroES(kg)} kg`;
+          const norma = "Reglamento (UE) 2024/573, art. 5";
+          if (valor < u1) {
+            return {
+              ...nada,
+              clase: r.clase,
+              tco2e: t,
+              magnitud,
+              norma,
+              explicacion: `${r.id} con ${numeroES(kg)} kg = ${textoValor}: por debajo de ${u1} ${magnitud.unidad}, sin control de fugas.`
+            };
+          }
+          const exento = hermetico && (esHfc && t < 10 || !esHfc && kg < 2 || residencial && kg < 3);
+          if (exento) {
+            return {
+              ...nada,
+              clase: r.clase,
+              tco2e: t,
+              magnitud,
+              norma,
+              explicacion: `${r.id} con ${numeroES(kg)} kg = ${textoValor}: sellado herm\xE9ticamente y etiquetado, exento del control de fugas.`
+            };
+          }
+          const [tramo, base] = valor < u2 ? ["bajo", 12] : valor < u3 ? ["medio", 6] : ["alto", 3];
+          const meses = deteccion ? base * 2 : base;
+          const deteccionObligatoria = valor >= u3;
+          const faltaDeteccion = deteccionObligatoria && !deteccion;
+          let explicacion = `${r.id} con ${numeroES(kg)} kg = ${textoValor}: control de fugas cada ${meses} meses`;
+          explicacion += deteccion ? " (con detecci\xF3n de fugas, el doble de plazo)." : ".";
+          if (faltaDeteccion) explicacion += ` Con ${esHfc ? "500 t CO2e" : "100 kg"} o m\xE1s la detecci\xF3n de fugas es obligatoria y no la tiene.`;
+          return { sujeto: true, meses, tramo, deteccionObligatoria, faltaDeteccion, clase: r.clase, tco2e: t, magnitud, norma: `${norma}.6`, explicacion };
+        }
+        function sumarMeses(dia, meses) {
+          const [a, m, d] = dia.split("-").map(Number);
+          const total = a * 12 + (m - 1) + meses;
+          const anio = Math.floor(total / 12);
+          const mes = total - anio * 12;
+          const ultimo = new Date(Date.UTC(anio, mes + 1, 0)).getUTCDate();
+          return new Date(Date.UTC(anio, mes, Math.min(d, ultimo))).toISOString().slice(0, 10);
+        }
+        const diasEntre = (desde, hasta) => {
+          const ms = (x) => {
+            const [a, m, d] = x.split("-").map(Number);
+            return Date.UTC(a, m - 1, d);
+          };
+          return Math.round((ms(hasta) - ms(desde)) / 864e5);
+        };
+        const AVISO_DIAS_FGAS = 30;
+        function proximoControl(equipo, ultimo, hoy) {
+          const c = equipo && equipo.sujeto !== void 0 && equipo.meses !== void 0 ? equipo : controlFugas(equipo);
+          if (!c.sujeto) return { control: c, fechaLimite: null, estado: null, dias: null };
+          if (!ultimo) return { control: c, fechaLimite: null, estado: "vencido", dias: null, nunca: true };
+          const fechaLimite = sumarMeses(ultimo, c.meses);
+          const dias = diasEntre(hoy, fechaLimite);
+          return { control: c, fechaLimite, dias, estado: dias < 0 ? "vencido" : dias <= AVISO_DIAS_FGAS ? "pronto" : "alDia" };
+        }
+        const OPERACION_FGAS = "Control de fugas de gases fluorados (F-gas)";
+        const API = {
+          REFRIGERANTES,
+          SUSTANCIAS,
+          OPERACION: OPERACION_FGAS,
+          AVISO_DIAS: AVISO_DIAS_FGAS,
+          buscar,
+          deTexto,
+          controlFugas,
+          proximoControl,
+          textoT,
+          truncar2
+        };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.FGAS_MANT = API;
+      })();
+    }
+  });
+
+  // shared/mantenimiento/asignacion.js
+  var require_asignacion = __commonJS({
+    "shared/mantenimiento/asignacion.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const CARNES = [
+          { id: "fgas", nombre: "Certificado F-gas (manipulaci\xF3n de gases fluorados, cat. I)", norma: "RD 115/2017 y Reglamento (UE) 2024/573, art. 10" },
+          { id: "rite", nombre: "Carn\xE9 de instalador o mantenedor t\xE9rmico (RITE)", norma: "RITE, art. 41" },
+          { id: "rebt", nombre: "Instalador electricista (REBT)", norma: "REBT, ITC-BT-03" },
+          { id: "pci", nombre: "Mantenedor de PCI habilitado", norma: "RD 513/2017, art. 16" },
+          { id: "legionela", nombre: "Curso higi\xE9nico-sanitario de legionela", norma: "RD 487/2022" },
+          { id: "prl", nombre: "Formaci\xF3n PRL del puesto", norma: "Ley 31/1995" }
+        ];
+        const CARNE_POR_ID = new Map(CARNES.map((c) => [c.id, c]));
+        const TARIFA_HORA = { frigorista: 38, termico: 36, electricista: 34, fontanero: 32, bms: 42, pci: 35, general: 28 };
+        const TARIFA_PROVISIONAL = true;
+        const JORNADA_MIN = 480;
+        const lista = (v) => {
+          if (Array.isArray(v)) return v;
+          if (!v) return [];
+          try {
+            const x = JSON.parse(v);
+            return Array.isArray(x) ? x : [];
+          } catch {
+            return [];
+          }
+        };
+        const llano = (v) => String(v ?? "").trim().toLowerCase();
+        function carneVigente(operario, tipo, fecha) {
+          const c = lista(operario.carnes).find((x) => x && x.tipo === tipo);
+          if (!c) return { tiene: false, vigente: false, caduca: null };
+          const caduca = c.caduca ? String(c.caduca).slice(0, 10) : null;
+          return { tiene: true, vigente: !caduca || caduca >= fecha, caduca };
+        }
+        function carnesPorCaducar(operario, hoy, dias = 60) {
+          const limite = new Date(Date.parse(`${hoy}T00:00:00Z`) + dias * 864e5).toISOString().slice(0, 10);
+          return lista(operario.carnes).filter((c) => c && c.caduca && String(c.caduca).slice(0, 10) <= limite).map((c) => ({ ...c, caducado: String(c.caduca).slice(0, 10) < hoy }));
+        }
+        function tarifaDe(operario, especialidad) {
+          const propia = Number(operario && operario.tarifaHoraMant);
+          if (Number.isFinite(propia) && propia > 0) return propia;
+          return TARIFA_HORA[especialidad] ?? TARIFA_HORA.general;
+        }
+        function candidatos(orden, operarios, { cargas = {} } = {}) {
+          const fecha = orden.fechaPrevista;
+          const buenos = [];
+          const fuera = [];
+          for (const o of operarios) {
+            if (o.activo === 0 || o.activo === false) continue;
+            const esp = lista(o.especialidades);
+            const motivos = [];
+            let puntos = 0;
+            if (esp.includes(orden.especialidad)) puntos += 100;
+            else if (orden.especialidad === "general") puntos += 60;
+            else {
+              fuera.push({ operario: o, motivo: `No es ${orden.especialidad}` });
+              continue;
+            }
+            if (orden.carne) {
+              const c = carneVigente(o, orden.carne, fecha);
+              const nombre = (CARNE_POR_ID.get(orden.carne) || { nombre: orden.carne }).nombre;
+              if (!c.tiene) {
+                fuera.push({ operario: o, motivo: `Sin ${nombre}` });
+                continue;
+              }
+              if (!c.vigente) {
+                fuera.push({ operario: o, motivo: `${nombre}: caducado el ${c.caduca}` });
+                continue;
+              }
+            }
+            const jornada = Number(o.jornadaMin) > 0 ? Number(o.jornadaMin) : JORNADA_MIN;
+            const ya = (cargas[o.id] || {})[fecha] || 0;
+            const libre = jornada - ya;
+            puntos -= Math.round(ya / jornada * 50);
+            if (libre < (orden.minutosEstimados || 0)) {
+              puntos -= 40;
+              motivos.push("no le cabe en la jornada");
+            } else motivos.push(`le quedan ${libre} min ese d\xEDa`);
+            if (orden.planta && llano(o.planta) && llano(o.planta) === llano(orden.planta)) {
+              puntos += 20;
+              motivos.push(`est\xE1 en ${orden.planta}`);
+            }
+            if (orden.zona && llano(o.zona) && llano(o.zona) === llano(orden.zona)) {
+              puntos += 10;
+              motivos.push(`zona ${orden.zona}`);
+            }
+            buenos.push({ operario: o, puntos, carga: ya, libre, motivo: motivos.join("; ") });
+          }
+          buenos.sort((a, b) => b.puntos - a.puntos || a.carga - b.carga || String(a.operario.nombre).localeCompare(String(b.operario.nombre), "es"));
+          return { candidatos: buenos, descartados: fuera };
+        }
+        function cargasDe(ordenes) {
+          const c = {};
+          for (const o of ordenes) {
+            if (!o.operarioId || o.estado === "cerrada" || o.estado === "anulada" || !o.fechaPrevista) continue;
+            c[o.operarioId] = c[o.operarioId] || {};
+            c[o.operarioId][o.fechaPrevista] = (c[o.operarioId][o.fechaPrevista] || 0) + (Number(o.minutosEstimados) || 0);
+          }
+          return c;
+        }
+        const PESO_PRIORIDAD = { alta: 0, media: 1, baja: 2 };
+        function repartir(ordenes, operarios) {
+          const cargas = cargasDe(ordenes);
+          const libres = ordenes.filter((o) => !o.operarioId && (o.estado === "pendiente" || !o.estado)).sort((a, b) => (PESO_PRIORIDAD[a.prioridad] ?? 1) - (PESO_PRIORIDAD[b.prioridad] ?? 1) || String(a.fechaPrevista).localeCompare(String(b.fechaPrevista)) || String(a.codigo).localeCompare(String(b.codigo), "es", { numeric: true }));
+          const asignaciones = [];
+          const sinCandidato = [];
+          for (const o of libres) {
+            const { candidatos: c, descartados } = candidatos(o, operarios, { cargas });
+            if (!c.length) {
+              sinCandidato.push({ ordenId: o.id, motivo: descartados.length ? descartados.map((d) => `${d.operario.nombre}: ${d.motivo}`).join(" \xB7 ") : "No hay operarios de mantenimiento en la obra" });
+              continue;
+            }
+            const elegido = c[0];
+            asignaciones.push({ ordenId: o.id, operarioId: elegido.operario.id, motivo: elegido.motivo });
+            cargas[elegido.operario.id] = cargas[elegido.operario.id] || {};
+            cargas[elegido.operario.id][o.fechaPrevista] = (cargas[elegido.operario.id][o.fechaPrevista] || 0) + (Number(o.minutosEstimados) || 0);
+          }
+          return { asignaciones, sinCandidato };
+        }
+        const API = {
+          CARNES,
+          CARNE_POR_ID,
+          TARIFA_HORA,
+          TARIFA_PROVISIONAL,
+          JORNADA_MIN,
+          lista,
+          carneVigente,
+          carnesPorCaducar,
+          tarifaDe,
+          candidatos,
+          cargasDe,
+          repartir
+        };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.ASIGNACION_MANT = API;
+      })();
+    }
+  });
+
+  // shared/mantenimiento/inspecciones.js
+  var require_inspecciones = __commonJS({
+    "shared/mantenimiento/inspecciones.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const M = typeof module !== "undefined" && module.exports ? require_preventivo() : window.MANTENIMIENTO;
+        const AVISO_DIAS = 90;
+        const TIPOS = [
+          {
+            id: "riteCalor",
+            nombre: "Eficiencia energ\xE9tica \xB7 calefacci\xF3n y ACS",
+            instalacion: "Clima",
+            ref: "RITE IT 4.2.1 y 4.3.1",
+            normaId: "rite",
+            quien: "OCA o t\xE9cnico independiente",
+            variantes: [{ id: "general", nombre: "Generadores de calor de m\xE1s de 70 kW", meses: 48 }],
+            nota: "Solo con m\xE1s de 70 kW de calor. Exenta con contrato de rendimiento energ\xE9tico o con un sistema de automatizaci\xF3n y control como el de la IT 1.2.4.3.5.",
+            equipos: ["caldera", "bombaCalor"],
+            potencia: true
+          },
+          {
+            id: "riteFrio",
+            nombre: "Eficiencia energ\xE9tica \xB7 aire acondicionado",
+            instalacion: "Clima",
+            ref: "RITE IT 4.2.2 y 4.3.2",
+            normaId: "rite",
+            quien: "OCA o t\xE9cnico independiente",
+            variantes: [{ id: "general", nombre: "Generadores de fr\xEDo de m\xE1s de 70 kW", meses: 48 }],
+            nota: "Solo con m\xE1s de 70 kW de fr\xEDo. Mismas exenciones que la de calefacci\xF3n.",
+            equipos: ["enfriadora", "bombaCalor", "autonomo", "torre"],
+            potencia: true
+          },
+          {
+            id: "riteCompleta",
+            nombre: "Instalaci\xF3n t\xE9rmica completa",
+            instalacion: "Clima",
+            ref: "RITE IT 4.2.3 y 4.3.3",
+            normaId: "rite",
+            quien: "OCA o t\xE9cnico independiente",
+            variantes: [{ id: "general", nombre: "Cada 15 a\xF1os", meses: 180 }],
+            nota: "La primera, a los 15 a\xF1os de la instalaci\xF3n, coincidiendo con la del generador; despu\xE9s, cada 15.",
+            equipos: ["caldera", "bombaCalor", "enfriadora"],
+            potencia: true
+          },
+          {
+            id: "bt",
+            nombre: "Baja tensi\xF3n",
+            instalacion: "Electricidad",
+            ref: "REBT ITC-BT-05, apartado 4.2",
+            normaId: "rebt",
+            quien: "OCA",
+            variantes: [
+              { id: "inicial", nombre: "Precis\xF3 inspecci\xF3n inicial (p\xFAblica concurrencia, industria > 100 kW, garaje > 25 plazas\u2026)", meses: 60 },
+              { id: "comunes", nombre: "Zonas comunes de viviendas de m\xE1s de 100 kW", meses: 120 }
+            ],
+            plazoDefectos: 6,
+            siempre: true
+          },
+          {
+            id: "at",
+            nombre: "Alta tensi\xF3n \xB7 centro de transformaci\xF3n",
+            instalacion: "Electricidad",
+            ref: "RD 337/2014, art. 21 e ITC-RAT 23",
+            normaId: "altaTension",
+            quien: "OCA",
+            variantes: [{ id: "general", nombre: "Cada 3 a\xF1os", meses: 36 }],
+            nota: "Adem\xE1s, la verificaci\xF3n del mantenedor de alta tensi\xF3n, tambi\xE9n cada 3 a\xF1os.",
+            texto: /centro de transformaci|\bct\b|transformador|media tensi|alta tensi|\bcelda/
+          },
+          {
+            id: "pci",
+            nombre: "Protecci\xF3n contra incendios",
+            instalacion: "PCI",
+            ref: "RD 513/2017, art. 22",
+            normaId: "ripci",
+            quien: "OCA",
+            variantes: [{ id: "general", nombre: "Establecimiento no industrial", meses: 120 }],
+            nota: "Exentos: vivienda; administrativo y docente de menos de 2.000 m\xB2; comercial, p\xFAblica concurrencia y aparcamiento de menos de 500 m\xB2 (sin zonas de riesgo especial alto).",
+            equipos: ["extintor", "pulsador", "detector", "bie", "centralIncendios", "grupoPci", "extincionFija", "compuertaCortafuegos"]
+          },
+          {
+            id: "pciIndustrial",
+            nombre: "Incendios en establecimiento industrial",
+            instalacion: "PCI",
+            ref: "RD 164/2025, art. 13",
+            normaId: "rsciei",
+            quien: "OCA",
+            variantes: [{ id: "general", nombre: "Cada 5 a\xF1os", meses: 60 }],
+            nota: "En lugar de la del RD 513/2017 cuando el edificio es un establecimiento industrial."
+          },
+          {
+            id: "ascensor",
+            nombre: "Ascensor",
+            instalacion: "Elevaci\xF3n",
+            ref: "RD 355/2024 (ITC AEM 1)",
+            normaId: "ascensores",
+            quien: "OCA",
+            variantes: [
+              { id: "publica", nombre: "Edificio industrial o de p\xFAblica concurrencia", meses: 24 },
+              { id: "viviendas", nombre: "M\xE1s de 20 viviendas o m\xE1s de 4 plantas servidas", meses: 48 },
+              { id: "otros", nombre: "Los dem\xE1s", meses: 72 }
+            ],
+            nota: "Uno por aparato: cada ascensor tiene su RAE y su certificado.",
+            texto: /ascensor|montacarga|elevador|\blift\b/
+          },
+          {
+            id: "legionelaAcs",
+            nombre: "Legionela \xB7 limpieza y desinfecci\xF3n del agua sanitaria",
+            instalacion: "Fontaner\xEDa",
+            ref: "RD 487/2022, anexo IV, parte B",
+            normaId: "legionela",
+            quien: "Empresa de biocidas (ROESB)",
+            variantes: [{ id: "general", nombre: "Una vez al a\xF1o, sin pasar de 12 meses", meses: 12 }],
+            nota: "El certificado es el del anexo X del RD 487/2022.",
+            equipos: ["acs", "termo"]
+          },
+          {
+            id: "legionelaTorre",
+            nombre: "Legionela \xB7 limpieza y desinfecci\xF3n de torres",
+            instalacion: "Clima",
+            ref: "RD 487/2022, anexo IV, parte C",
+            normaId: "legionela",
+            quien: "Empresa de biocidas (ROESB)",
+            variantes: [{ id: "general", nombre: "Dos veces al a\xF1o (primavera y oto\xF1o)", meses: 6 }],
+            nota: "El certificado es el del anexo X del RD 487/2022.",
+            equipos: ["torre"]
+          },
+          {
+            id: "legionelaPlan",
+            nombre: "Legionela \xB7 revisi\xF3n del plan (PPCL)",
+            instalacion: "Fontaner\xEDa",
+            ref: "RD 487/2022 (plan de prevenci\xF3n y control)",
+            normaId: "legionela",
+            quien: "Responsable t\xE9cnico del plan",
+            variantes: [{ id: "general", nombre: "Anual", meses: 12 }],
+            equipos: ["acs", "termo", "torre"]
+          },
+          {
+            id: "fluorados",
+            nombre: "Gases fluorados \xB7 control de fugas",
+            instalacion: "Clima",
+            ref: "Reglamento (UE) 2024/573 y RD 115/2017",
+            normaId: "fluorados",
+            quien: "Empresa habilitada en gases fluorados",
+            variantes: [
+              { id: "t5", nombre: "De 5 a 50 t CO\u2082-eq", meses: 12 },
+              { id: "t5d", nombre: "De 5 a 50 t CO\u2082-eq, con detecci\xF3n de fugas", meses: 24 },
+              { id: "t50", nombre: "De 50 a 500 t CO\u2082-eq", meses: 6 },
+              { id: "t50d", nombre: "De 50 a 500 t CO\u2082-eq, con detecci\xF3n de fugas", meses: 12 },
+              { id: "t500", nombre: "500 t CO\u2082-eq o m\xE1s", meses: 3 },
+              { id: "t500d", nombre: "500 t CO\u2082-eq o m\xE1s, con detecci\xF3n de fugas", meses: 6 }
+            ],
+            nota: "Por circuito. Las t CO\u2082-eq son la carga en kg por el PCA del gas entre mil (R-410A: 2.088; R-32: 675).",
+            equipos: ["enfriadora", "bombaCalor", "autonomo"]
+          }
+        ];
+        const TIPO_POR_ID = new Map(TIPOS.map((t) => [t.id, t]));
+        const RESULTADOS = {
+          favorable: { nombre: "Favorable", clase: "bien" },
+          condicionada: { nombre: "Con defectos (condicionada)", clase: "aviso" },
+          desfavorable: { nombre: "Desfavorable", clase: "mal" }
+        };
+        const ESTADOS = {
+          vencida: { orden: 1, nombre: "Vencida" },
+          defectos: { orden: 2, nombre: "Defectos sin subsanar" },
+          pronto: { orden: 3, nombre: `En menos de ${AVISO_DIAS} d\xEDas` },
+          sinFecha: { orden: 4, nombre: "Sin fecha de puesta en servicio" },
+          alDia: { orden: 5, nombre: "Al d\xEDa" }
+        };
+        function varianteDe(tipo, id) {
+          return tipo.variantes.find((v) => v.id === id) || tipo.variantes[0];
+        }
+        const ordenar = (lista) => [...lista].sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)) || String(b.creadoEn || "").localeCompare(String(a.creadoEn || "")));
+        function evaluarInstalacion(inst, { hechas = [], hoy, avisosBoe = [] }) {
+          const tipo = TIPO_POR_ID.get(inst.tipo) || null;
+          const variante = tipo ? varianteDe(tipo, inst.variante) : null;
+          const propios = Number(inst.periodoMeses);
+          const meses = Number.isFinite(propios) && propios > 0 ? propios : variante ? variante.meses : null;
+          const lista = ordenar(hechas.map((h) => ({ ...h, fecha: M.fecha(h.fecha) })).filter((h) => h.fecha));
+          const ultima = lista[0] || null;
+          const referencia = M.fecha(inst.fechaReferencia);
+          const base = ultima ? ultima.fecha : referencia;
+          const proxima = base && meses ? M.sumarMeses(base, meses) : null;
+          const dias = proxima ? M.diasEntre(hoy, proxima) : null;
+          let defectos = null;
+          if (ultima && ultima.resultado && ultima.resultado !== "favorable") {
+            const plazo = M.fecha(ultima.plazoSubsanar) || M.sumarMeses(ultima.fecha, tipo && tipo.plazoDefectos || 6);
+            defectos = { resultado: ultima.resultado, texto: ultima.defectos || "", plazo, vencido: hoy > plazo, dias: M.diasEntre(hoy, plazo) };
+          }
+          let estado;
+          if (!proxima) estado = "sinFecha";
+          else if (dias < 0 || defectos && defectos.vencido) estado = "vencida";
+          else if (defectos) estado = "defectos";
+          else if (dias <= AVISO_DIAS) estado = "pronto";
+          else estado = "alDia";
+          const boe = tipo ? avisosBoe.filter((a) => (a.normas || []).includes(tipo.normaId)) : [];
+          return {
+            id: inst.id,
+            tipo: inst.tipo,
+            tipoNombre: tipo ? tipo.nombre : inst.tipo,
+            instalacion: tipo ? tipo.instalacion : "",
+            nombre: inst.nombre || "",
+            variante: variante ? variante.id : null,
+            varianteNombre: variante ? variante.nombre : "",
+            meses,
+            mesesPropios: Number.isFinite(propios) && propios > 0,
+            ref: tipo ? tipo.ref : "",
+            quien: tipo ? tipo.quien : "",
+            normaId: tipo ? tipo.normaId : null,
+            fechaReferencia: referencia,
+            notas: inst.notas || "",
+            ultima: ultima ? {
+              id: ultima.id,
+              fecha: ultima.fecha,
+              entidad: ultima.entidad || "",
+              certificado: ultima.numeroCertificado || "",
+              resultado: ultima.resultado || null,
+              adjuntos: ultima.adjuntos || []
+            } : null,
+            hechas: lista,
+            proxima,
+            dias,
+            estado,
+            defectos,
+            sinCertificado: Boolean(ultima && !(ultima.adjuntos || []).length),
+            boe: boe.map((a) => ({ id: a.id, titulo: a.titulo || "", fecha: a.fecha || null, estado: a.estado || null }))
+          };
+        }
+        function sugerir({ filas = [], potenciaKw = null, yaHay = [] } = {}) {
+          const tiene = new Set(yaHay);
+          const porTipo = /* @__PURE__ */ new Map();
+          for (const f of filas) if (f.tipo) porTipo.set(f.tipo, (porTipo.get(f.tipo) || []).concat(f));
+          const kw = Number(potenciaKw);
+          const conPotencia = Number.isFinite(kw) && kw > 0;
+          const salida = [];
+          for (const t of TIPOS) {
+            if (tiene.has(t.id)) continue;
+            if (t.id === "pci" && tiene.has("pciIndustrial")) continue;
+            let motivo = null;
+            if (t.siempre && filas.length) motivo = "Toda obra con instalaci\xF3n el\xE9ctrica: comprueba si precis\xF3 inspecci\xF3n inicial.";
+            if (t.equipos) {
+              const de = t.equipos.flatMap((id) => porTipo.get(id) || []);
+              if (de.length) {
+                const nombres = [...new Set(de.map((f) => f.tipoNombre))].slice(0, 3).join(", ");
+                motivo = `${de.length === 1 ? "Hay 1 equipo" : `Hay ${de.length} equipos`} de ${nombres.toLowerCase()}`;
+                if (t.potencia) {
+                  if (conPotencia && kw <= M.UMBRAL_KW) continue;
+                  motivo += conPotencia ? ` y la instalaci\xF3n tiene ${kw} kW.` : " (solo si pasa de 70 kW: la potencia de la obra no est\xE1 puesta).";
+                } else motivo += ".";
+              }
+            }
+            if (t.texto) {
+              const de = filas.filter((f) => t.texto.test(` ${[f.grupo, f.tag, f.marca, f.modelo].join(" ").toLowerCase()} `));
+              if (de.length) motivo = `${de.length === 1 ? "Hay 1 equipo" : `Hay ${de.length} equipos`} que lo parecen (${de.slice(0, 3).map((f) => f.tag).join(", ")}).`;
+            }
+            if (!motivo) continue;
+            salida.push({ tipo: t.id, nombre: t.nombre, instalacion: t.instalacion, ref: t.ref, motivo });
+          }
+          return salida;
+        }
+        function evaluar({ instalaciones = [], hechas = [], hoy, avisosBoe = [], filas = [], potenciaKw = null } = {}) {
+          const dia = M.fecha(hoy) || ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
+          const deInst = /* @__PURE__ */ new Map();
+          for (const h of hechas) deInst.set(h.instalacionId, (deInst.get(h.instalacionId) || []).concat(h));
+          const lista = instalaciones.map((i) => evaluarInstalacion(i, { hechas: deInst.get(i.id) || [], hoy: dia, avisosBoe })).sort((a, b) => ESTADOS[a.estado].orden - ESTADOS[b.estado].orden || String(a.proxima || "9").localeCompare(String(b.proxima || "9")) || a.tipoNombre.localeCompare(b.tipoNombre, "es"));
+          const cuenta = (e) => lista.filter((x) => x.estado === e).length;
+          const servicios = filas.map((f) => f.fechaPuestaMarcha || f.fechaInstalacion).filter(Boolean).sort();
+          return {
+            hoy: dia,
+            filas: lista,
+            pedir: lista.filter((x) => ["vencida", "defectos", "pronto"].includes(x.estado)),
+            sugeridas: sugerir({ filas, potenciaKw, yaHay: instalaciones.map((i) => i.tipo) }),
+            fechaServicio: servicios[0] || null,
+            totales: {
+              instalaciones: lista.length,
+              vencidas: cuenta("vencida"),
+              defectos: cuenta("defectos"),
+              pronto: cuenta("pronto"),
+              sinFecha: cuenta("sinFecha"),
+              sinCertificado: lista.filter((x) => x.sinCertificado).length,
+              boe: lista.filter((x) => x.boe.length).length
+            }
+          };
+        }
+        function paraAviso(obra, resultado) {
+          return (resultado ? resultado.pedir : []).map((x) => ({
+            obraId: obra.id,
+            obra: obra.codigo,
+            instalacionId: x.id,
+            nombre: x.nombre || x.tipoNombre,
+            tipoNombre: x.tipoNombre,
+            quien: x.quien,
+            proxima: x.proxima,
+            dias: x.dias,
+            estado: x.estado,
+            defectos: x.defectos,
+            cuando: cuando(x)
+          }));
+        }
+        function cuando(x) {
+          const d = (iso) => iso ? iso.split("-").reverse().join("/") : "";
+          if (x.estado === "vencida" && x.defectos && x.defectos.vencido) return `defectos sin subsanar desde el ${d(x.defectos.plazo)}`;
+          if (x.estado === "vencida") return `vencida desde el ${d(x.proxima)}`;
+          if (x.estado === "defectos") return `subsanar antes del ${d(x.defectos.plazo)}`;
+          if (x.estado === "pronto") return `toca el ${d(x.proxima)}`;
+          return x.proxima ? `el ${d(x.proxima)}` : "sin fecha";
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.INSPECCIONES = API;
+        })({
+          AVISO_DIAS,
+          TIPOS,
+          TIPO_POR_ID,
+          RESULTADOS,
+          ESTADOS,
+          varianteDe,
+          evaluarInstalacion,
+          sugerir,
+          evaluar,
+          paraAviso,
+          cuando
+        });
+      })();
+    }
+  });
+
+  // shared/normativa/boe.js
+  var require_boe = __commonJS({
+    "shared/normativa/boe.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const llano = (v) => String(v ?? "").trim();
+        const sinAcentos = (t) => llano(t).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+        const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+        const lista = (x) => Array.isArray(x) ? x : x ? [x] : [];
+        const NORMAS = [
+          {
+            id: "cte",
+            nombre: "C\xF3digo T\xE9cnico de la Edificaci\xF3n (CTE)",
+            ref: "Real Decreto 314/2006",
+            boe: "BOE-A-2006-5515",
+            numeros: ["314/2006"],
+            nombres: ["codigo tecnico de la edificacion"],
+            siempre: true,
+            afecta: {
+              disciplinas: ["fontaneria", "pci", "ventilacion", "climatizacion"],
+              subdisciplinas: ["electricidad.alumbrado"],
+              palabras: ["aislamiento", "alumbrado de emergencia", "evacuacion", "sectorizacion", "placa solar", "captador"]
+            }
+          },
+          {
+            id: "rite",
+            nombre: "Reglamento de Instalaciones T\xE9rmicas en los Edificios (RITE)",
+            ref: "Real Decreto 1027/2007",
+            boe: "BOE-A-2007-15820",
+            numeros: ["1027/2007"],
+            nombres: ["instalaciones termicas en los edificios"],
+            afecta: {
+              disciplinas: ["climatizacion", "ventilacion"],
+              subdisciplinas: ["fontaneria.aguaCaliente", "control.controladores", "control.sondas"],
+              palabras: ["caldera", "bomba de calor", "enfriadora", "recuperador", "acs", "agua caliente sanitaria", "fancoil", "climatizadora"]
+            }
+          },
+          {
+            id: "rebt",
+            nombre: "Reglamento Electrot\xE9cnico para Baja Tensi\xF3n (REBT)",
+            ref: "Real Decreto 842/2002",
+            boe: "BOE-A-2002-18099",
+            numeros: ["842/2002"],
+            nombres: ["electrotecnico para baja tension"],
+            afecta: { disciplinas: ["electricidad"], palabras: ["cuadro electrico", "cable", "puesta a tierra", "diferencial"] }
+          },
+          {
+            id: "recargaVe",
+            nombre: "Recarga del veh\xEDculo el\xE9ctrico (ITC-BT-52)",
+            ref: "Real Decreto 1053/2014",
+            numeros: ["1053/2014"],
+            nombres: ["recarga de vehiculos electricos", "infraestructura de recarga", "puntos de recarga"],
+            afecta: { palabras: ["recarga", "cargador", "wallbox", "vehiculo electrico"] }
+          },
+          {
+            id: "altaTension",
+            nombre: "Alta tensi\xF3n y centros de transformaci\xF3n",
+            ref: "Reales Decretos 337/2014 y 223/2008",
+            numeros: ["337/2014", "223/2008"],
+            nombres: ["instalaciones electricas de alta tension", "lineas electricas de alta tension"],
+            afecta: { palabras: ["centro de transformacion", "transformador", "media tension", "alta tension", "celda"] }
+          },
+          {
+            id: "autoconsumo",
+            nombre: "Autoconsumo de energ\xEDa el\xE9ctrica",
+            ref: "Real Decreto 244/2019",
+            numeros: ["244/2019"],
+            nombres: ["autoconsumo de energia electrica"],
+            afecta: { palabras: ["fotovoltaic", "inversor", "modulo solar", "autoconsumo"] }
+          },
+          {
+            id: "ripci",
+            nombre: "Reglamento de Instalaciones de Protecci\xF3n contra Incendios (RIPCI)",
+            ref: "Real Decreto 513/2017",
+            boe: "BOE-A-2017-6606",
+            numeros: ["513/2017"],
+            nombres: ["instalaciones de proteccion contra incendios"],
+            afecta: { disciplinas: ["pci"], palabras: ["extintor", "detector", "rociador", "bie", "hidrante", "alumbrado de emergencia"] }
+          },
+          {
+            id: "rsciei",
+            nombre: "Seguridad contra incendios en establecimientos industriales",
+            ref: "Real Decreto 2267/2004 y su sustituto",
+            numeros: ["2267/2004", "164/2025"],
+            nombres: ["seguridad contra incendios en los establecimientos industriales"],
+            afecta: { disciplinas: ["pci"], palabras: ["compuerta cortafuego", "sectorizacion", "exutorio"] }
+          },
+          {
+            id: "ascensores",
+            nombre: "Ascensores (ITC AEM 1)",
+            ref: "Real Decreto 355/2024",
+            boe: "BOE-A-2024-7258",
+            numeros: ["355/2024", "88/2013", "2291/1985"],
+            nombres: ["ascensores", "aparatos de elevacion"],
+            afecta: { palabras: ["ascensor", "montacarga", "elevador", "plataforma elevadora"] }
+          },
+          {
+            id: "frigorificas",
+            nombre: "Seguridad en instalaciones frigor\xEDficas (RSIF)",
+            ref: "Real Decreto 552/2019",
+            numeros: ["552/2019"],
+            nombres: ["seguridad para instalaciones frigorificas"],
+            afecta: {
+              subdisciplinas: ["climatizacion.gasRefrigerante", "climatizacion.unidadesExteriores", "climatizacion.tuberiaCobre"],
+              palabras: ["refrigerante", "vrv", "vrf", "camara frigorifica", "enfriadora"]
+            }
+          },
+          {
+            id: "fluorados",
+            nombre: "Gases fluorados de efecto invernadero",
+            ref: "Real Decreto 115/2017 y Reglamento (UE) 2024/573",
+            numeros: ["115/2017", "2024/573"],
+            nombres: ["gases fluorados"],
+            afecta: { subdisciplinas: ["climatizacion.gasRefrigerante"], palabras: ["refrigerante", "r-32", "r32", "r-410", "r410", "vrv", "vrf"] }
+          },
+          {
+            id: "gas",
+            nombre: "Reglamento t\xE9cnico de distribuci\xF3n y utilizaci\xF3n de combustibles gaseosos",
+            ref: "Real Decreto 919/2006",
+            boe: "BOE-A-2006-15345",
+            numeros: ["919/2006"],
+            nombres: ["utilizacion de combustibles gaseosos"],
+            afecta: { subdisciplinas: ["gases.gasNatural"], palabras: ["gas natural", "glp", "contador de gas"] }
+          },
+          {
+            id: "presion",
+            nombre: "Reglamento de equipos a presi\xF3n",
+            ref: "Real Decreto 809/2021",
+            numeros: ["809/2021"],
+            nombres: ["reglamento de equipos a presion"],
+            afecta: { subdisciplinas: ["gases.aireComprimido", "fontaneria.grupoPresion"], palabras: ["deposito", "calderin", "compresor", "vaso de expansion"] }
+          },
+          {
+            id: "legionela",
+            nombre: "Prevenci\xF3n y control de la legionelosis",
+            ref: "Real Decreto 487/2022",
+            numeros: ["487/2022"],
+            nombres: ["legionelosis"],
+            afecta: { subdisciplinas: ["fontaneria.aguaCaliente", "fontaneria.aguaFria"], palabras: ["torre de refrigeracion", "acs", "humectador", "acumulador"] }
+          },
+          {
+            id: "aguaConsumo",
+            nombre: "Calidad del agua de consumo",
+            ref: "Real Decreto 3/2023",
+            numeros: ["3/2023"],
+            nombres: ["calidad del agua de consumo"],
+            afecta: { subdisciplinas: ["fontaneria.aguaFria", "fontaneria.aguaCaliente"], palabras: ["tuberia de agua", "deposito de agua", "descalcificador"] }
+          },
+          {
+            id: "eficiencia",
+            nombre: "Certificaci\xF3n de la eficiencia energ\xE9tica de los edificios",
+            ref: "Real Decreto 390/2021",
+            numeros: ["390/2021"],
+            nombres: ["eficiencia energetica de los edificios"],
+            afecta: { disciplinas: ["climatizacion"], subdisciplinas: ["electricidad.alumbrado", "fontaneria.aguaCaliente"], palabras: ["certificado energetico"] }
+          },
+          {
+            id: "seguridadSalud",
+            nombre: "Seguridad y salud en las obras de construcci\xF3n",
+            ref: "Real Decreto 1627/1997",
+            boe: "BOE-A-1997-22614",
+            numeros: ["1627/1997"],
+            nombres: ["seguridad y de salud en las obras de construccion", "seguridad y salud en las obras de construccion"],
+            siempre: true,
+            afecta: { subdisciplinas: ["otros.seguridadSalud"], palabras: ["seguridad y salud", "proteccion colectiva", "epi"] }
+          },
+          {
+            id: "subcontratacion",
+            nombre: "Subcontrataci\xF3n en el sector de la construcci\xF3n",
+            ref: "Ley 32/2006",
+            siempre: true,
+            numeros: ["32/2006"],
+            nombres: ["subcontratacion en el sector de la construccion"],
+            afecta: { palabras: ["subcontrata"] }
+          },
+          {
+            id: "residuos",
+            nombre: "Residuos de construcci\xF3n y demolici\xF3n",
+            ref: "Real Decreto 105/2008",
+            boe: "BOE-A-2008-2486",
+            siempre: true,
+            numeros: ["105/2008"],
+            nombres: ["residuos de construccion y demolicion"],
+            afecta: { subdisciplinas: ["otros.gestionResiduos"], palabras: ["residuo", "contenedor", "escombro"] }
+          },
+          {
+            id: "convenio",
+            nombre: "Convenio colectivo general del sector de la construcci\xF3n",
+            ref: "Convenio estatal",
+            siempre: true,
+            numeros: [],
+            nombres: ["convenio colectivo general del sector de la construccion"],
+            afecta: { todas: true }
+          },
+          {
+            id: "revisionPrecios",
+            nombre: "Revisi\xF3n excepcional de precios",
+            ref: "Real Decreto-ley 3/2022 y siguientes",
+            siempre: true,
+            numeros: [],
+            nombres: ["revision excepcional de precios", "revision de precios en los contratos"],
+            afecta: { todas: true }
+          }
+        ];
+        const NORMA_POR_ID = Object.fromEntries(NORMAS.map((n) => [n.id, n]));
+        const TIPOS = {
+          corrige: { nombre: "Corrige errores", patron: /correccion de error/ },
+          deroga: { nombre: "La deroga", patron: /\bderoga/ },
+          modifica: { nombre: "La modifica", patron: /\bmodific|\bactualiz/ },
+          aprueba: { nombre: "Aprueba una nueva", patron: /\baprueba|\bpublica\b|\bse registra|\bse establece/ },
+          desarrolla: { nombre: "La desarrolla", patron: /\bdesarroll|\binstruccion tecnica|\bguia tecnica|\bcriterios/ },
+          otro: { nombre: "La cita", patron: /./ }
+        };
+        const VALORACIONES = {
+          afecta: { nombre: "Afecta a la obra", pideMedida: true },
+          noAfecta: { nombre: "No afecta a la obra", pideMedida: false }
+        };
+        const ESTADOS = {
+          nuevo: { nombre: "Sin ver" },
+          visto: { nombre: "Visto, sin cerrar" },
+          cerrado: { nombre: "Cerrado" }
+        };
+        const SECCIONES = { 1: "I. Disposiciones generales", 3: "III. Otras disposiciones" };
+        function disposicionesDelSumario(respuesta) {
+          const datos = respuesta && respuesta.data ? respuesta.data : respuesta;
+          const s = datos && datos.sumario;
+          if (!s) return [];
+          const f = llano(s.metadatos && (s.metadatos.fecha_publicacion || s.metadatos.fecha));
+          const fecha = /^\d{8}$/.test(f) ? `${f.slice(0, 4)}-${f.slice(4, 6)}-${f.slice(6, 8)}` : null;
+          const salida = [];
+          const texto = (u) => u && typeof u === "object" ? llano(u.texto) : llano(u);
+          const meter = (it, seccion, departamento, epigrafe) => {
+            if (!it || !it.identificador) return;
+            salida.push({
+              id: llano(it.identificador),
+              titulo: llano(it.titulo).replace(/\s+/g, " "),
+              seccion,
+              departamento,
+              epigrafe,
+              urlHtml: texto(it.url_html) || `https://www.boe.es/diario_boe/txt.php?id=${encodeURIComponent(llano(it.identificador))}`,
+              urlPdf: texto(it.url_pdf) || null,
+              fecha
+            });
+          };
+          for (const diario of lista(s.diario)) {
+            for (const sec of lista(diario.seccion)) {
+              const seccion = llano(sec.codigo);
+              for (const dep of lista(sec.departamento)) {
+                const departamento = llano(dep.nombre);
+                for (const it of lista(dep.item)) meter(it, seccion, departamento, null);
+                for (const ep of lista(dep.epigrafe)) {
+                  for (const it of lista(ep.item)) meter(it, seccion, departamento, llano(ep.nombre) || null);
+                }
+              }
+            }
+          }
+          return salida;
+        }
+        function citaNumero(titulo, numero) {
+          for (let i = titulo.indexOf(numero); i >= 0; i = titulo.indexOf(numero, i + 1)) {
+            const antes = titulo[i - 1];
+            const despues = titulo[i + numero.length];
+            if (!(antes && /[\d/]/.test(antes)) && !(despues && /\d/.test(despues))) return true;
+          }
+          return false;
+        }
+        function tipoCambio(titulo) {
+          const t = sinAcentos(titulo);
+          for (const [k, v] of Object.entries(TIPOS)) if (v.patron.test(t)) return k;
+          return "otro";
+        }
+        function normasQueToca(disp, normas = NORMAS) {
+          if (!SECCIONES[disp.seccion]) return [];
+          const t = sinAcentos(disp.titulo);
+          const tocadas = normas.filter((n) => n.numeros.some((x) => citaNumero(t, x)) || n.nombres.some((x) => t.includes(x)));
+          if (!tocadas.length) return [];
+          if (disp.seccion === "3" && tipoCambio(disp.titulo) === "otro") return [];
+          return tocadas.map((n) => n.id);
+        }
+        function tocaPartida(norma, linea) {
+          const a = norma.afecta || {};
+          if (a.todas) return true;
+          if (linea.disciplina && (a.disciplinas || []).includes(linea.disciplina)) return true;
+          if (linea.disciplina && linea.subdisciplina && (a.subdisciplinas || []).includes(`${linea.disciplina}.${linea.subdisciplina}`)) return true;
+          const r = ` ${sinAcentos(`${linea.resumen || ""} ${linea.codigo || ""}`).replace(/[^a-z0-9/-]+/g, " ")} `;
+          return (a.palabras || []).some((p) => r.includes(p.length <= 4 ? ` ${p} ` : p));
+        }
+        function partidasAfectadas(normasIds, lineas) {
+          const normas = normasIds.map((id) => NORMA_POR_ID[id]).filter(Boolean);
+          const porId = new Map((lineas || []).map((l) => [l.id, l]));
+          const capituloDe = (l) => {
+            let x = l;
+            let ultimo = null;
+            for (let n = 0; x && n < 20; n += 1) {
+              if (x.tipo === "capitulo") ultimo = x;
+              x = x.padreId ? porId.get(x.padreId) : null;
+            }
+            return ultimo ? [ultimo.codigo, ultimo.resumen].filter(Boolean).join(" ") : "";
+          };
+          return (lineas || []).filter((l) => l.tipo === "partida").map((l) => {
+            const cuales = normas.filter((n) => tocaPartida(n, l)).map((n) => n.id);
+            return cuales.length ? {
+              id: l.id,
+              codigo: l.codigo || "",
+              resumen: l.resumen || "",
+              unidad: l.unidad || "",
+              disciplina: l.disciplina || null,
+              capitulo: capituloDe(l),
+              normas: cuales
+            } : null;
+          }).filter(Boolean);
+        }
+        function normasDeObra(lineas, elegidas = null) {
+          if (Array.isArray(elegidas)) return elegidas.filter((id) => NORMA_POR_ID[id]);
+          const partidas = (lineas || []).filter((l) => l.tipo === "partida");
+          return NORMAS.filter((n) => n.siempre || !n.afecta.todas && partidas.some((l) => tocaPartida(n, l))).map((n) => n.id);
+        }
+        const aDia = (d) => d.toISOString().slice(0, 10);
+        const masDias = (dia, n) => aDia(new Date(Date.parse(`${dia}T12:00:00Z`) + n * 864e5));
+        function diasPorLeer(ultimoLeido, hoy, { primeraVez = 7, tope = 31 } = {}) {
+          const desde = ultimoLeido ? masDias(ultimoLeido, 1) : masDias(hoy, -(primeraVez - 1));
+          const dias = [];
+          for (let d = desde; d <= hoy; d = masDias(d, 1)) dias.push(d);
+          return dias.slice(-tope);
+        }
+        const urlSumario = (dia) => `https://www.boe.es/datosabiertos/api/boe/sumario/${dia.replace(/-/g, "")}`;
+        const urlNorma = (n) => n.boe ? `https://www.boe.es/buscar/act.php?id=${n.boe}` : `https://www.boe.es/buscar/legislacion.php?campo%5B0%5D=TIT&dato%5B0%5D=${encodeURIComponent(n.ref)}`;
+        const enlaceBoe = (u) => /^https:\/\/(www\.)?boe\.es\//.test(llano(u));
+        function notificacion(avisos) {
+          const n = avisos.length;
+          const obras = [...new Set(avisos.map((a) => a.obra))];
+          const primero = avisos[0];
+          return {
+            titulo: n === 1 ? `BOE: cambio de normativa en ${primero.obra}` : `BOE: ${n} cambios de normativa en tus obras`,
+            cuerpo: n === 1 ? `${primero.normasNombres.join(", ")} \u2014 ${primero.partidas} ${primero.partidas === 1 ? "partida afectada" : "partidas afectadas"}.` : `En ${obras.join(", ")}. \xC1brelos para ver las partidas y apuntar qu\xE9 se hace.`
+          };
+        }
+        const fechaEs = (d) => d ? String(d).slice(0, 10).split("-").reverse().join("/") : "";
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.NORMATIVA_BOE = API;
+        })({
+          NORMAS,
+          NORMA_POR_ID,
+          TIPOS,
+          VALORACIONES,
+          ESTADOS,
+          SECCIONES,
+          disposicionesDelSumario,
+          normasQueToca,
+          tipoCambio,
+          tocaPartida,
+          partidasAfectadas,
+          normasDeObra,
+          diasPorLeer,
+          urlSumario,
+          urlNorma,
+          enlaceBoe,
+          notificacion,
+          fechaEs,
+          sinAcentos,
+          esc
+        });
+      })();
+    }
+  });
+
+  // electron/data/normativa.js
+  var require_normativa = __commonJS({
+    "electron/data/normativa.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var fs = require_fs();
+      var B = require_boe();
+      var INSP = require_inspecciones();
+      var P = require_pedidos2();
+      var { puede } = require_roles();
+      var llano = (v) => String(v ?? "").trim();
+      var json = (t, def) => {
+        try {
+          return JSON.parse(t);
+        } catch {
+          return def;
+        }
+      };
+      var nuevoId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+      var MARGEN_DIAS = 30;
+      function hoyLocal(ahora = /* @__PURE__ */ new Date()) {
+        return new Date(ahora.getTime() - ahora.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+      }
+      var revisa = (sesion) => puede(sesion.rol, "normativa", "aprobar");
+      function presupuestoDe(db, obra) {
+        if (obra.presupuestoId) return obra.presupuestoId;
+        const p = db.prepare("SELECT id FROM presupuestos WHERE obraIdVinculada = ? LIMIT 1").get(obra.id);
+        return p ? p.id : null;
+      }
+      function lineasDe(db, obra) {
+        const pid = presupuestoDe(db, obra);
+        if (!pid) return [];
+        return db.prepare(`SELECT id, padreId, tipo, codigo, resumen, unidad, disciplina, subdisciplina
+                       FROM lineas WHERE presupuestoId = ? ORDER BY orden`).all(pid);
+      }
+      function elegidasDe(db, obraId) {
+        const f = db.prepare("SELECT normas FROM normativaObras WHERE obraId = ?").get(obraId);
+        return f ? json(f.normas, null) : null;
+      }
+      function deInspecciones(db, obraId) {
+        return new Set(db.prepare("SELECT DISTINCT tipo FROM inspeccionesInst WHERE obraId = ?").all(obraId).map((f) => (INSP.TIPO_POR_ID.get(f.tipo) || {}).normaId).filter((id) => id && B.NORMA_POR_ID[id]));
+      }
+      async function revisar(repo, { descargar, hoy = hoyLocal() } = {}) {
+        const db = repo.db;
+        const ultimo = (db.prepare("SELECT MAX(fecha) AS f FROM normativaBoeDias").get() || {}).f || null;
+        const dias = B.diasPorLeer(ultimo, hoy);
+        const salida = { ok: true, leidos: 0, encontradas: 0, avisos: 0, hasta: ultimo };
+        const guardarDia = db.prepare(`INSERT OR REPLACE INTO normativaBoeDias (fecha, estado, disposiciones, encontradas, leidoEn)
+                                 VALUES (?,?,?,?,?)`);
+        const guardarDisp = db.prepare(`INSERT OR IGNORE INTO normativaDisposiciones
+      (id, fecha, titulo, seccion, departamento, urlHtml, urlPdf, tipo, normas, creadoEn) VALUES (?,?,?,?,?,?,?,?,?,?)`);
+        for (const dia of dias) {
+          let r;
+          try {
+            r = await descargar(B.urlSumario(dia));
+          } catch (e) {
+            salida.ok = false;
+            salida.error = `No se ha podido leer el BOE del ${B.fechaEs(dia)}: ${e.message}`;
+            break;
+          }
+          if (r.status === 404) {
+            if (dia === hoy) break;
+            guardarDia.run(dia, "sinBoe", 0, 0, (/* @__PURE__ */ new Date()).toISOString());
+            salida.hasta = dia;
+            continue;
+          }
+          if (r.status !== 200 || !r.datos) {
+            salida.ok = false;
+            salida.error = `El BOE ha contestado ${r.status} al pedir el ${B.fechaEs(dia)}.`;
+            break;
+          }
+          const disps = B.disposicionesDelSumario(r.datos);
+          let encontradas = 0;
+          const ahora = (/* @__PURE__ */ new Date()).toISOString();
+          db.exec("BEGIN");
+          try {
+            for (const d of disps) {
+              const normas = B.normasQueToca(d);
+              if (!normas.length) continue;
+              encontradas += 1;
+              guardarDisp.run(
+                d.id,
+                d.fecha || dia,
+                d.titulo,
+                d.seccion,
+                d.departamento,
+                B.enlaceBoe(d.urlHtml) ? d.urlHtml : null,
+                B.enlaceBoe(d.urlPdf) ? d.urlPdf : null,
+                B.tipoCambio(d.titulo),
+                JSON.stringify(normas),
+                ahora
+              );
+            }
+            guardarDia.run(dia, "leido", disps.length, encontradas, ahora);
+            db.exec("COMMIT");
+          } catch (e) {
+            db.exec("ROLLBACK");
+            throw e;
+          }
+          salida.leidos += 1;
+          salida.encontradas += encontradas;
+          salida.hasta = dia;
+        }
+        salida.avisos = cruzar(repo);
+        return salida;
+      }
+      function cruzar(repo) {
+        const db = repo.db;
+        const obras = db.prepare("SELECT id, presupuestoId, creadoEn FROM obras WHERE estado <> 'cerrada'").all();
+        if (!obras.length) return 0;
+        const disps = db.prepare("SELECT id, fecha, normas FROM normativaDisposiciones ORDER BY fecha").all();
+        if (!disps.length) return 0;
+        const yaHay = db.prepare("SELECT 1 FROM normativaAvisos WHERE obraId = ? AND disposicionId = ?");
+        const meter = db.prepare(`INSERT OR IGNORE INTO normativaAvisos
+      (id, obraId, disposicionId, normas, partidas, estado, creadoEn, modificadoEn) VALUES (?,?,?,?,?,'nuevo',?,?)`);
+        let nuevos = 0;
+        const ahora = (/* @__PURE__ */ new Date()).toISOString();
+        for (const o of obras) {
+          const desde = o.creadoEn ? new Date(Date.parse(o.creadoEn) - MARGEN_DIAS * 864e5).toISOString().slice(0, 10) : "";
+          const candidatas = disps.filter((d) => d.fecha >= desde && !yaHay.get(o.id, d.id));
+          if (!candidatas.length) continue;
+          const lineas = lineasDe(db, o);
+          const inspeccion = deInspecciones(db, o.id);
+          const deObra = /* @__PURE__ */ new Set([...B.normasDeObra(lineas, elegidasDe(db, o.id)), ...inspeccion]);
+          for (const d of candidatas) {
+            const normas = json(d.normas, []).filter((id) => deObra.has(id));
+            if (!normas.length) continue;
+            const partidas = B.partidasAfectadas(normas, lineas);
+            const toda = normas.some((id) => (B.NORMA_POR_ID[id].afecta || {}).todas || inspeccion.has(id));
+            if (!partidas.length && !toda && lineas.length) continue;
+            nuevos += meter.run(nuevoId(), o.id, d.id, JSON.stringify(normas), JSON.stringify(partidas), ahora, ahora).changes;
+          }
+        }
+        return nuevos;
+      }
+      function estado(repo) {
+        const f = repo.db.prepare("SELECT fecha, leidoEn FROM normativaBoeDias ORDER BY fecha DESC LIMIT 1").get();
+        return { hasta: f ? f.fecha : null, leidoEn: f ? f.leidoEn : null };
+      }
+      function aFila(a, obras, disps) {
+        const o = obras.get(a.obraId) || {};
+        const d = disps.get(a.disposicionId) || {};
+        const normas = json(a.normas, []);
+        return {
+          id: a.id,
+          obraId: a.obraId,
+          obra: o.codigo || "",
+          obraNombre: o.nombre || "",
+          disposicionId: a.disposicionId,
+          fecha: d.fecha || null,
+          titulo: d.titulo || "",
+          tipo: d.tipo || "otro",
+          normas,
+          normasNombres: normas.map((id) => (B.NORMA_POR_ID[id] || {}).nombre || id),
+          partidas: json(a.partidas, []).length,
+          estado: a.estado,
+          valoracion: a.valoracion
+        };
+      }
+      function disposicionesPorId(repo, sesion, ids) {
+        if (!ids.length) return /* @__PURE__ */ new Map();
+        return new Map(repo.listar("normativaDisposiciones", sesion, {
+          condicion: `id IN (${ids.map(() => "?").join(",")})`,
+          params: ids
+        }).map((d) => [d.id, d]));
+      }
+      function lista(repo, sesion, { obraId = null, estado: est = null } = {}) {
+        if (!puede(sesion.rol, "normativa", "ver")) return null;
+        const obras = repo.listar("obras", sesion, { orden: "codigo" });
+        const porObra = new Map(obras.map((o) => [o.id, o]));
+        const cond = [];
+        const params = [];
+        if (obraId) {
+          cond.push("obraId = ?");
+          params.push(obraId);
+        }
+        if (est === "abiertos") cond.push("estado <> 'cerrado'");
+        else if (est) {
+          cond.push("estado = ?");
+          params.push(est);
+        }
+        const avs = repo.listar("normativaAvisos", sesion, { condicion: cond.join(" AND ") || void 0, params, orden: "creadoEn DESC" }).filter((a) => porObra.has(a.obraId));
+        const disps = disposicionesPorId(repo, sesion, [...new Set(avs.map((a) => a.disposicionId))]);
+        const filas = avs.map((a) => aFila(a, porObra, disps)).sort((x, y) => String(y.fecha).localeCompare(String(x.fecha)) || x.obra.localeCompare(y.obra));
+        return {
+          obras: obras.filter((o) => o.estado !== "cerrada").map((o) => ({ id: o.id, codigo: o.codigo, nombre: o.nombre })),
+          filas,
+          cuenta: { nuevo: filas.filter((f) => f.estado === "nuevo").length, abiertos: filas.filter((f) => f.estado !== "cerrado").length },
+          boe: estado(repo),
+          puede: { editar: puede(sesion.rol, "normativa", "editar"), aprobar: revisa(sesion) }
+        };
+      }
+      function leer(repo, sesion, id) {
+        if (!puede(sesion.rol, "normativa", "ver")) return null;
+        let a = repo.leer("normativaAvisos", sesion, id);
+        if (!a) return null;
+        if (revisa(sesion) && a.estado === "nuevo") {
+          repo.modificar("normativaAvisos", sesion, id, { estado: "visto", vistoPor: sesion.personaId, vistoEn: (/* @__PURE__ */ new Date()).toISOString() });
+          a = repo.leer("normativaAvisos", sesion, id);
+        }
+        const obra = repo.db.prepare("SELECT id, codigo, nombre FROM obras WHERE id = ?").get(a.obraId);
+        const d = repo.leer("normativaDisposiciones", sesion, a.disposicionId) || {};
+        const nombre = P.nombres(repo);
+        const normas = json(a.normas, []).map((nid) => B.NORMA_POR_ID[nid]).filter(Boolean).map((n) => ({ id: n.id, nombre: n.nombre, ref: n.ref, url: B.urlNorma(n) }));
+        return {
+          aviso: { id: a.id, estado: a.estado, valoracion: a.valoracion, medida: a.medida, vistoEn: a.vistoEn, cerradoEn: a.cerradoEn },
+          obra,
+          disposicion: {
+            id: d.id,
+            fecha: d.fecha,
+            titulo: d.titulo,
+            seccion: d.seccion,
+            seccionNombre: B.SECCIONES[d.seccion] || d.seccion,
+            departamento: d.departamento,
+            tipo: d.tipo,
+            tipoNombre: (B.TIPOS[d.tipo] || B.TIPOS.otro).nombre,
+            urlHtml: d.urlHtml,
+            urlPdf: d.urlPdf
+          },
+          normas,
+          partidas: json(a.partidas, []),
+          vistoPor: nombre.get(a.vistoPor) || null,
+          cerradoPor: nombre.get(a.cerradoPor) || null,
+          puede: { cerrar: revisa(sesion) && puede(sesion.rol, "normativa", "editar") }
+        };
+      }
+      function cerrar(repo, sesion, id, { valoracion, medida, reabrir = false } = {}) {
+        if (!revisa(sesion) || !puede(sesion.rol, "normativa", "editar")) return { ok: false, error: "Tu rol no puede cerrar avisos de normativa." };
+        const a = repo.leer("normativaAvisos", sesion, id);
+        if (!a) return { ok: false, error: "No se encuentra el aviso (o no es de tus obras)." };
+        if (reabrir) {
+          repo.modificar("normativaAvisos", sesion, id, { estado: "visto", cerradoPor: null, cerradoEn: null });
+          return { ok: true };
+        }
+        const v = B.VALORACIONES[valoracion];
+        if (!v) return { ok: false, error: "Di si afecta o no a la obra." };
+        const m = llano(medida).slice(0, 4e3);
+        if (v.pideMedida && !m) return { ok: false, error: "Si afecta, apunta qu\xE9 medida se toma." };
+        repo.modificar("normativaAvisos", sesion, id, {
+          estado: "cerrado",
+          valoracion,
+          medida: m || null,
+          cerradoPor: sesion.personaId,
+          cerradoEn: (/* @__PURE__ */ new Date()).toISOString(),
+          vistoPor: a.vistoPor || sesion.personaId,
+          vistoEn: a.vistoEn || (/* @__PURE__ */ new Date()).toISOString()
+        });
+        return { ok: true };
+      }
+      function avisos(repo, sesion) {
+        const l = lista(repo, sesion, { estado: "abiertos" });
+        if (!l) return null;
+        return {
+          paraCerrar: l.puede.aprobar,
+          filas: l.filas.slice(0, 20),
+          cuenta: l.cuenta,
+          boe: l.boe
+        };
+      }
+      function normasObra(repo, sesion, obraId) {
+        if (!puede(sesion.rol, "normativa", "ver")) return null;
+        const obra = repo.leer("obras", sesion, obraId);
+        if (!obra) return null;
+        const lineas = lineasDe(repo.db, obra);
+        const elegidas = elegidasDe(repo.db, obra.id);
+        const deducidas = B.normasDeObra(lineas);
+        const inspeccion = deInspecciones(repo.db, obra.id);
+        const activas = /* @__PURE__ */ new Set([...B.normasDeObra(lineas, elegidas), ...inspeccion]);
+        return {
+          obra: { id: obra.id, codigo: obra.codigo, nombre: obra.nombre },
+          aMano: Array.isArray(elegidas),
+          conPresupuesto: lineas.length > 0,
+          normas: B.NORMAS.map((n) => ({
+            id: n.id,
+            nombre: n.nombre,
+            ref: n.ref,
+            url: B.urlNorma(n),
+            vigilada: activas.has(n.id),
+            porInspeccion: inspeccion.has(n.id),
+            deducida: deducidas.includes(n.id),
+            partidas: lineas.length ? B.partidasAfectadas([n.id], lineas).length : 0
+          })),
+          puede: { editar: puede(sesion.rol, "normativa", "editar") }
+        };
+      }
+      function guardarNormasObra(repo, sesion, obraId, normas) {
+        if (!puede(sesion.rol, "normativa", "editar")) return { ok: false, error: "Tu rol no puede cambiar las normas de la obra." };
+        if (!repo.leer("obras", sesion, obraId)) return { ok: false, error: "No se encuentra la obra (o no es de las tuyas)." };
+        const f = repo.listar("normativaObras", sesion, { condicion: "obraId = ?", params: [obraId] })[0];
+        if (normas === null) {
+          if (f) repo.db.prepare("DELETE FROM normativaObras WHERE id = ?").run(f.id);
+        } else {
+          const ids = JSON.stringify([...new Set((normas || []).filter((id) => B.NORMA_POR_ID[id]))]);
+          if (f) repo.modificar("normativaObras", sesion, f.id, { normas: ids });
+          else if (puede(sesion.rol, "normativa", "crear")) repo.crear("normativaObras", sesion, { obraId, normas: ids });
+          else {
+            const ahora = (/* @__PURE__ */ new Date()).toISOString();
+            repo.db.prepare("INSERT INTO normativaObras (id, obraId, normas, creadoEn, modificadoEn) VALUES (?,?,?,?,?)").run(nuevoId(), obraId, ids, ahora, ahora);
+          }
+        }
+        return { ok: true, avisos: cruzar(repo) };
+      }
+      async function sumarioDia(sesion, dia, { descargar }) {
+        if (!puede(sesion.rol, "normativa", "ver")) return null;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(llano(dia))) return { ok: false, error: "Fecha no v\xE1lida." };
+        let r;
+        try {
+          r = await descargar(B.urlSumario(dia));
+        } catch (e) {
+          return { ok: false, dia, error: `No se ha podido leer el BOE del ${B.fechaEs(dia)}: ${e.message}` };
+        }
+        if (r.status === 404) return { ok: true, dia, sinBoe: true, disposiciones: [], departamentos: [] };
+        if (r.status !== 200 || !r.datos) return { ok: false, dia, error: `El BOE ha contestado ${r.status} al pedir el ${B.fechaEs(dia)}.` };
+        const disposiciones2 = B.disposicionesDelSumario(r.datos).filter((d) => B.SECCIONES[d.seccion]).map((d) => {
+          const normas = B.normasQueToca(d);
+          return {
+            id: d.id,
+            titulo: d.titulo,
+            seccion: d.seccion,
+            departamento: d.departamento,
+            epigrafe: d.epigrafe,
+            urlHtml: B.enlaceBoe(d.urlHtml) ? d.urlHtml : null,
+            urlPdf: B.enlaceBoe(d.urlPdf) ? d.urlPdf : null,
+            normas,
+            normasNombres: normas.map((id) => B.NORMA_POR_ID[id].nombre),
+            tipo: normas.length ? B.tipoCambio(d.titulo) : null
+          };
+        }).sort((a, b) => (b.normas.length > 0) - (a.normas.length > 0) || a.seccion.localeCompare(b.seccion));
+        const departamentos = [...new Set(disposiciones2.map((d) => d.departamento).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"));
+        return { ok: true, dia, sinBoe: false, disposiciones: disposiciones2, departamentos, vigiladas: disposiciones2.filter((d) => d.normas.length).length };
+      }
+      function disposiciones(repo, sesion, { norma = null, limite = 300 } = {}) {
+        if (!puede(sesion.rol, "normativa", "ver")) return null;
+        const todas = repo.listar("normativaDisposiciones", sesion, { orden: "fecha DESC, id", limite });
+        const obras = new Set(repo.listar("obras", sesion).map((o) => o.id));
+        const avisos2 = repo.listar("normativaAvisos", sesion).filter((a) => obras.has(a.obraId));
+        const porDisp = /* @__PURE__ */ new Map();
+        for (const a of avisos2) {
+          if (!porDisp.has(a.disposicionId)) porDisp.set(a.disposicionId, { obras: 0, abiertos: 0 });
+          const c = porDisp.get(a.disposicionId);
+          c.obras += 1;
+          if (a.estado !== "cerrado") c.abiertos += 1;
+        }
+        const filas = todas.map((d) => {
+          const normas = json(d.normas, []);
+          const c = porDisp.get(d.id) || { obras: 0, abiertos: 0 };
+          return {
+            id: d.id,
+            fecha: d.fecha,
+            titulo: d.titulo,
+            seccion: d.seccion,
+            departamento: d.departamento,
+            tipo: d.tipo,
+            tipoNombre: (B.TIPOS[d.tipo] || B.TIPOS.otro).nombre,
+            normas,
+            normasNombres: normas.map((id) => (B.NORMA_POR_ID[id] || {}).nombre || id),
+            urlHtml: d.urlHtml,
+            urlPdf: d.urlPdf,
+            obras: c.obras,
+            abiertos: c.abiertos
+          };
+        }).filter((f) => !norma || f.normas.includes(norma));
+        const dias = repo.db.prepare("SELECT fecha, estado, disposiciones, encontradas, leidoEn FROM normativaBoeDias ORDER BY fecha DESC LIMIT 60").all();
+        return { filas, dias, boe: estado(repo) };
+      }
+      function catalogo(repo, sesion) {
+        if (!puede(sesion.rol, "normativa", "ver")) return null;
+        const obras = repo.listar("obras", sesion, { orden: "codigo" }).filter((o) => o.estado !== "cerrada");
+        const vigiladasPor = new Map(B.NORMAS.map((n) => [n.id, []]));
+        for (const o of obras) {
+          const activas = /* @__PURE__ */ new Set([...B.normasDeObra(lineasDe(repo.db, o), elegidasDe(repo.db, o.id)), ...deInspecciones(repo.db, o.id)]);
+          for (const id of activas) if (vigiladasPor.has(id)) vigiladasPor.get(id).push(o.codigo);
+        }
+        const ultima = /* @__PURE__ */ new Map();
+        for (const d of repo.listar("normativaDisposiciones", sesion, { orden: "fecha DESC" })) {
+          for (const id of json(d.normas, [])) {
+            if (!ultima.has(id)) ultima.set(id, { fecha: d.fecha, veces: 0 });
+            ultima.get(id).veces += 1;
+          }
+        }
+        return {
+          obras: obras.map((o) => ({ id: o.id, codigo: o.codigo, nombre: o.nombre })),
+          normas: B.NORMAS.map((n) => ({
+            id: n.id,
+            nombre: n.nombre,
+            ref: n.ref,
+            url: B.urlNorma(n),
+            siempre: Boolean(n.siempre),
+            obras: vigiladasPor.get(n.id),
+            ultima: (ultima.get(n.id) || {}).fecha || null,
+            veces: (ultima.get(n.id) || {}).veces || 0
+          }))
+        };
+      }
+      function paraAlertar(repo, sesion, ruta) {
+        const a = lista(repo, sesion, { estado: "abiertos" });
+        if (!a || !a.puede.aprobar) return [];
+        const todos = json(fs.existsSync(ruta) ? fs.readFileSync(ruta, "utf8") : "{}", {}) || {};
+        const ya = new Set(todos[sesion.personaId] || []);
+        const nuevos = a.filas.filter((f) => f.estado === "nuevo" && !ya.has(f.id));
+        if (nuevos.length) {
+          const abiertos = new Set(a.filas.map((f) => f.id));
+          todos[sesion.personaId] = [...[...ya].filter((id) => abiertos.has(id)), ...nuevos.map((f) => f.id)];
+          fs.writeFileSync(ruta, JSON.stringify(todos));
+        }
+        return nuevos;
+      }
+      module.exports = {
+        revisar,
+        cruzar,
+        estado,
+        lista,
+        leer,
+        cerrar,
+        avisos,
+        normasObra,
+        guardarNormasObra,
+        paraAlertar,
+        MARGEN_DIAS,
+        sumarioDia,
+        disposiciones,
+        catalogo
+      };
+    }
+  });
+
+  // electron/data/inspecciones.js
+  var require_inspecciones2 = __commonJS({
+    "electron/data/inspecciones.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var INSP = require_inspecciones();
+      var M = require_preventivo();
+      var { puede } = require_roles();
+      var SIN_EDITAR = "Tu rol puede ver el mantenimiento de esta obra, pero no cambiarlo.";
+      var MAX_ADJUNTOS = 20;
+      var llano = (v) => String(v ?? "").trim();
+      var hoyIso = () => require_fecha().hoyLocal();
+      function conAdjuntos(r) {
+        let adjuntos = [];
+        try {
+          adjuntos = JSON.parse(r.adjuntos || "[]");
+        } catch {
+          adjuntos = [];
+        }
+        return { ...r, adjuntos: Array.isArray(adjuntos) ? adjuntos : [] };
+      }
+      function avisosBoe(repo, sesion, obraId) {
+        if (!puede(sesion.rol, "normativa", "ver")) return [];
+        const N = require_normativa();
+        const l = N.lista(repo, sesion, { obraId, estado: "abiertos" });
+        return l ? l.filas : [];
+      }
+      function cruzarBoe(repo) {
+        try {
+          return require_normativa().cruzar(repo);
+        } catch {
+          return 0;
+        }
+      }
+      function deObra(repo, sesion, obraId, { hoy, filas = [], potenciaKw = null } = {}) {
+        const instalaciones = repo.listar("inspeccionesInst", sesion, { condicion: "obraId = ?", params: [obraId] });
+        const hechas = repo.listar("inspeccionesHechas", sesion, { condicion: "obraId = ?", params: [obraId] }).map(conAdjuntos);
+        return {
+          ...INSP.evaluar({ instalaciones, hechas, hoy, avisosBoe: avisosBoe(repo, sesion, obraId), filas, potenciaKw }),
+          veBoe: puede(sesion.rol, "normativa", "ver")
+        };
+      }
+      function validarInstalacion(entrada, actual = {}) {
+        const tipoId = entrada.tipo !== void 0 ? llano(entrada.tipo) : actual.tipo;
+        const tipo = INSP.TIPO_POR_ID.get(tipoId);
+        if (!tipo) return { error: "Elige qu\xE9 inspecci\xF3n es." };
+        const cambios = { tipo: tipoId };
+        const varianteId = entrada.variante !== void 0 ? llano(entrada.variante) : entrada.tipo !== void 0 ? "" : actual.variante;
+        if (varianteId && !tipo.variantes.some((v) => v.id === varianteId)) return { error: `\xAB${varianteId}\xBB no es un caso de ${tipo.nombre.toLowerCase()}.` };
+        cambios.variante = varianteId || tipo.variantes[0].id;
+        if (entrada.nombre !== void 0) {
+          cambios.nombre = llano(entrada.nombre).slice(0, 200) || null;
+        }
+        if (entrada.fechaReferencia !== void 0) {
+          const v = llano(entrada.fechaReferencia);
+          if (!v) cambios.fechaReferencia = null;
+          else {
+            const f = M.fecha(v);
+            if (!f) return { error: `\xAB${v}\xBB no es una fecha v\xE1lida de puesta en servicio.` };
+            if (f > hoyIso()) return { error: "La puesta en servicio es de un d\xEDa que a\xFAn no ha llegado." };
+            cambios.fechaReferencia = f;
+          }
+        }
+        if (entrada.periodoMeses !== void 0) {
+          const v = llano(entrada.periodoMeses);
+          if (!v) cambios.periodoMeses = null;
+          else {
+            const n = Number(v);
+            if (!Number.isInteger(n) || n < 1 || n > 240) return { error: "La periodicidad va en meses enteros, de 1 a 240." };
+            cambios.periodoMeses = n;
+          }
+        }
+        if (entrada.notas !== void 0) cambios.notas = llano(entrada.notas).slice(0, 2e3) || null;
+        return { cambios };
+      }
+      function crearInstalacion(repo, sesion, obraId, entrada = {}) {
+        if (!puede(sesion.rol, "mantenimiento", "crear")) return { ok: false, error: SIN_EDITAR };
+        if (!obraId || !repo.leer("obras", sesion, obraId)) return { ok: false, error: "No se encuentra la obra." };
+        const { error, cambios } = validarInstalacion(entrada);
+        if (error) return { ok: false, error };
+        const id = repo.crear("inspeccionesInst", sesion, { obraId, ...cambios });
+        return { ok: true, id, avisosBoe: cruzarBoe(repo) };
+      }
+      function guardarInstalacion(repo, sesion, id, entrada = {}) {
+        if (!puede(sesion.rol, "mantenimiento", "editar")) return { ok: false, error: SIN_EDITAR };
+        const actual = repo.leer("inspeccionesInst", sesion, id);
+        if (!actual) return { ok: false, error: "No se encuentra la instalaci\xF3n." };
+        const { error, cambios } = validarInstalacion(entrada, actual);
+        if (error) return { ok: false, error };
+        repo.modificar("inspeccionesInst", sesion, id, cambios);
+        return { ok: true, avisosBoe: cambios.tipo !== actual.tipo ? cruzarBoe(repo) : 0 };
+      }
+      function borrarInstalacion(repo, sesion, id) {
+        if (!puede(sesion.rol, "mantenimiento", "borrar")) return { ok: false, error: SIN_EDITAR };
+        const actual = repo.leer("inspeccionesInst", sesion, id);
+        if (!actual) return { ok: false, error: "No se encuentra la instalaci\xF3n." };
+        const n = repo.listar("inspeccionesHechas", sesion, { condicion: "instalacionId = ?", params: [id], limite: 1 }).length;
+        if (n) return { ok: false, error: "Tiene inspecciones apuntadas: qu\xEDtalas antes (sus certificados son historia de la obra)." };
+        repo.borrar("inspeccionesInst", sesion, id);
+        return { ok: true };
+      }
+      function registrarInspeccion(repo, sesion, entrada = {}) {
+        if (!puede(sesion.rol, "mantenimiento", "crear")) return { ok: false, error: SIN_EDITAR };
+        const inst = repo.leer("inspeccionesInst", sesion, entrada.instalacionId);
+        if (!inst) return { ok: false, error: "Elige la instalaci\xF3n inspeccionada." };
+        const fecha = M.fecha(llano(entrada.fecha));
+        if (!fecha) return { ok: false, error: "Falta la fecha de la inspecci\xF3n, o no se entiende." };
+        if (fecha > hoyIso()) return { ok: false, error: "La fecha es de un d\xEDa que a\xFAn no ha llegado: se apunta la inspecci\xF3n pasada, no la prevista." };
+        const entidad = llano(entrada.entidad).slice(0, 200);
+        if (!entidad) return { ok: false, error: "Falta qui\xE9n la hizo (la OCA o la empresa)." };
+        const resultado = llano(entrada.resultado);
+        if (!INSP.RESULTADOS[resultado]) return { ok: false, error: "Di el resultado: favorable, con defectos o desfavorable." };
+        const defectos = llano(entrada.defectos).slice(0, 4e3) || null;
+        if (resultado !== "favorable" && !defectos) return { ok: false, error: "Con defectos, apunta cu\xE1les (lo que dice el certificado)." };
+        let plazoSubsanar = null;
+        if (resultado !== "favorable" && llano(entrada.plazoSubsanar)) {
+          plazoSubsanar = M.fecha(llano(entrada.plazoSubsanar));
+          if (!plazoSubsanar) return { ok: false, error: "El plazo para subsanar no es una fecha v\xE1lida." };
+          if (plazoSubsanar < fecha) return { ok: false, error: "El plazo para subsanar es anterior a la inspecci\xF3n." };
+        }
+        const adjuntos = (Array.isArray(entrada.adjuntos) ? entrada.adjuntos : []).filter((a) => a && typeof a.ruta === "string" && a.ruta.trim()).map((a) => ({ ruta: a.ruta, nombre: String(a.nombre || a.ruta.split(/[\\/]/).pop()) }));
+        if (adjuntos.length > MAX_ADJUNTOS) return { ok: false, error: `Como mucho ${MAX_ADJUNTOS} adjuntos por inspecci\xF3n.` };
+        const id = repo.crear("inspeccionesHechas", sesion, {
+          obraId: inst.obraId,
+          instalacionId: inst.id,
+          fecha,
+          entidad,
+          numeroCertificado: llano(entrada.numeroCertificado).slice(0, 100) || null,
+          resultado,
+          defectos: resultado === "favorable" ? null : defectos,
+          plazoSubsanar,
+          adjuntos: adjuntos.length ? JSON.stringify(adjuntos) : null,
+          registradoPor: sesion.personaId
+        });
+        return { ok: true, id };
+      }
+      function adjuntarCertificado(repo, sesion, id, nuevos = []) {
+        if (!puede(sesion.rol, "mantenimiento", "editar")) return { ok: false, error: SIN_EDITAR };
+        const h = repo.leer("inspeccionesHechas", sesion, id);
+        if (!h) return { ok: false, error: "No se encuentra la inspecci\xF3n." };
+        const actuales = conAdjuntos(h).adjuntos;
+        const mas = (Array.isArray(nuevos) ? nuevos : []).filter((a) => a && typeof a.ruta === "string" && a.ruta.trim()).map((a) => ({ ruta: a.ruta, nombre: String(a.nombre || a.ruta.split(/[\\/]/).pop()) }));
+        if (!mas.length) return { ok: false, error: "Elige el certificado." };
+        const todos = [...actuales, ...mas];
+        if (todos.length > MAX_ADJUNTOS) return { ok: false, error: `Como mucho ${MAX_ADJUNTOS} adjuntos por inspecci\xF3n.` };
+        repo.modificar("inspeccionesHechas", sesion, id, { adjuntos: JSON.stringify(todos) });
+        return { ok: true };
+      }
+      function borrarInspeccion(repo, sesion, id) {
+        if (!puede(sesion.rol, "mantenimiento", "borrar")) return { ok: false, error: SIN_EDITAR };
+        const h = repo.leer("inspeccionesHechas", sesion, id);
+        if (!h) return { ok: false, error: "No se encuentra la inspecci\xF3n." };
+        if (h.registradoPor !== sesion.personaId) return { ok: false, error: "Solo la puede quitar quien la apunt\xF3." };
+        repo.borrar("inspeccionesHechas", sesion, id);
+        return { ok: true };
+      }
+      function certificado(repo, sesion, id, indice) {
+        if (!puede(sesion.rol, "mantenimiento", "ver")) return null;
+        const h = repo.leer("inspeccionesHechas", sesion, id);
+        if (!h) return null;
+        return conAdjuntos(h).adjuntos[Number(indice)] || null;
+      }
+      module.exports = {
+        deObra,
+        crearInstalacion,
+        guardarInstalacion,
+        borrarInstalacion,
+        registrarInspeccion,
+        adjuntarCertificado,
+        borrarInspeccion,
+        certificado
+      };
+    }
+  });
+
+  // electron/data/mantenimiento.js
+  var require_mantenimiento = __commonJS({
+    "electron/data/mantenimiento.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var preventivo = require_preventivo();
+      var INSP = require_inspecciones();
+      var I = require_inspecciones2();
+      var { puede } = require_roles();
+      var SIN_EDITAR = "Tu rol puede ver el mantenimiento de esta obra, pero no cambiarlo.";
+      var configDe = (repo, sesion, obraId) => repo.listar("configCommissioning", sesion, { condicion: "obraId = ?", params: [obraId], limite: 1 })[0] || null;
+      function obra(repo, sesion, obraId, hoy) {
+        if (!puede(sesion.rol, "mantenimiento", "ver")) return null;
+        if (!obraId || !repo.leer("obras", sesion, obraId)) return null;
+        const equipos = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
+        const cfg = configDe(repo, sesion, obraId);
+        const potenciaKw = cfg ? cfg.potenciaTermicaKw : null;
+        const registros = repo.listar("registrosMant", sesion, { condicion: "obraId = ?", params: [obraId] }).map(conAdjuntos);
+        const plan = preventivo.evaluar({ equipos, potenciaKw, registros, hoy });
+        const inspecciones = I.deObra(repo, sesion, obraId, { hoy: plan.hoy, filas: plan.filas, potenciaKw });
+        return { obraId, potenciaKw, ...plan, inspecciones };
+      }
+      function conAdjuntos(r) {
+        let adjuntos = [];
+        try {
+          adjuntos = JSON.parse(r.adjuntos || "[]");
+        } catch {
+          adjuntos = [];
+        }
+        return { ...r, adjuntos: Array.isArray(adjuntos) ? adjuntos : [] };
+      }
+      var FECHAS = ["fechaFabricacion", "fechaInstalacion", "fechaPuestaMarcha"];
+      var NOMBRE = {
+        fechaFabricacion: "la fecha de fabricaci\xF3n",
+        fechaInstalacion: "la fecha de instalaci\xF3n",
+        fechaPuestaMarcha: "la fecha de puesta en marcha"
+      };
+      function guardarEquipo(repo, sesion, equipoId, entrada = {}) {
+        if (!puede(sesion.rol, "mantenimiento", "editar")) return { ok: false, error: SIN_EDITAR };
+        const actual = repo.leer("equiposObra", sesion, equipoId);
+        if (!actual) return { ok: false, error: "No se encuentra el equipo." };
+        const cambios = {};
+        for (const campo of FECHAS) {
+          if (entrada[campo] === void 0) continue;
+          const v = String(entrada[campo] ?? "").trim();
+          if (!v) {
+            cambios[campo] = null;
+            continue;
+          }
+          const f = preventivo.fecha(v);
+          if (!f) return { ok: false, error: `\xAB${v}\xBB no es una fecha v\xE1lida para ${NOMBRE[campo]}.` };
+          if (f > preventivo.sumarMeses(require_fecha().hoyLocal(), 24)) {
+            return { ok: false, error: `${NOMBRE[campo][0].toUpperCase()}${NOMBRE[campo].slice(1)} cae a m\xE1s de dos a\xF1os vista: \xBFno ser\xE1 otro a\xF1o?` };
+          }
+          cambios[campo] = f;
+        }
+        if (entrada.tipoMantenimiento !== void 0) {
+          const v = String(entrada.tipoMantenimiento ?? "").trim();
+          if (v && !preventivo.TIPOS.some((t) => t.id === v)) {
+            return { ok: false, error: `\xAB${v}\xBB no es un tipo de mantenimiento conocido.` };
+          }
+          cambios.tipoMantenimiento = v || null;
+        }
+        if (entrada.vidaUtilAnios !== void 0) {
+          const v = String(entrada.vidaUtilAnios ?? "").trim().replace(",", ".");
+          if (!v) cambios.vidaUtilAnios = null;
+          else {
+            const n = Number(v);
+            if (!Number.isFinite(n) || n <= 0 || n > 100) {
+              return { ok: false, error: "La vida \xFAtil va en a\xF1os, entre 1 y 100." };
+            }
+            cambios.vidaUtilAnios = n;
+          }
+        }
+        if (Object.keys(cambios).length) repo.modificar("equiposObra", sesion, equipoId, cambios);
+        return { ok: true };
+      }
+      function fijarPotencia(repo, sesion, obraId, kw) {
+        if (!puede(sesion.rol, "mantenimiento", "editar")) return { ok: false, error: SIN_EDITAR };
+        if (!obraId || !repo.leer("obras", sesion, obraId)) return { ok: false, error: "No se encuentra la obra." };
+        const texto = String(kw ?? "").trim().replace(",", ".");
+        let valor = null;
+        if (texto) {
+          valor = Number(texto);
+          if (!Number.isFinite(valor) || valor <= 0) return { ok: false, error: "La potencia va en kW y tiene que ser mayor que cero." };
+        }
+        const cfg = configDe(repo, sesion, obraId);
+        if (cfg) repo.modificar("configCommissioning", sesion, cfg.id, { potenciaTermicaKw: valor });
+        else repo.crear("configCommissioning", sesion, { obraId, potenciaTermicaKw: valor });
+        return { ok: true };
+      }
+      var MAX_ADJUNTOS = 20;
+      function registrar(repo, sesion, entrada = {}) {
+        if (!puede(sesion.rol, "mantenimiento", "crear")) return { ok: false, error: SIN_EDITAR };
+        const ids = [...new Set((Array.isArray(entrada.equipoIds) ? entrada.equipoIds : [entrada.equipoId]).filter(Boolean))];
+        if (!ids.length) return { ok: false, error: "Elige el equipo." };
+        const operacion = String(entrada.operacion ?? "").trim();
+        if (!operacion) return { ok: false, error: "Falta qu\xE9 operaci\xF3n se ha hecho." };
+        if (operacion.length > 300) return { ok: false, error: "La operaci\xF3n es demasiado larga." };
+        const fecha = preventivo.fecha(String(entrada.fecha ?? "").trim());
+        if (!fecha) return { ok: false, error: "Falta la fecha en que se hizo, o no se entiende." };
+        if (fecha > require_fecha().hoyLocal()) return { ok: false, error: "La fecha es de un d\xEDa que a\xFAn no ha llegado: se apunta lo hecho, no lo previsto." };
+        const realizadoPor = String(entrada.realizadoPor ?? "").trim();
+        if (!realizadoPor) return { ok: false, error: "Falta qui\xE9n la hizo (la empresa o el t\xE9cnico)." };
+        const observaciones = String(entrada.observaciones ?? "").trim() || null;
+        const adjuntos = (Array.isArray(entrada.adjuntos) ? entrada.adjuntos : []).filter((a) => a && typeof a.ruta === "string" && a.ruta.trim()).map((a) => ({ ruta: a.ruta, nombre: String(a.nombre || a.ruta.split(/[\\/]/).pop()) }));
+        if (adjuntos.length > MAX_ADJUNTOS) return { ok: false, error: `Como mucho ${MAX_ADJUNTOS} adjuntos por operaci\xF3n.` };
+        const equipos = ids.map((id) => repo.leer("equiposObra", sesion, id));
+        if (equipos.some((e) => !e)) return { ok: false, error: "No se encuentra alguno de los equipos." };
+        const creados = equipos.map((e) => repo.crear("registrosMant", sesion, {
+          obraId: e.obraId,
+          equipoId: e.id,
+          operacion,
+          fecha,
+          realizadoPor,
+          observaciones,
+          adjuntos: adjuntos.length ? JSON.stringify(adjuntos) : null,
+          registradoPor: sesion.personaId
+        }));
+        return { ok: true, ids: creados };
+      }
+      function borrarRegistro(repo, sesion, id) {
+        if (!puede(sesion.rol, "mantenimiento", "borrar")) return { ok: false, error: SIN_EDITAR };
+        const r = repo.leer("registrosMant", sesion, id);
+        if (!r) return { ok: false, error: "No se encuentra la operaci\xF3n." };
+        if (r.registradoPor !== sesion.personaId) return { ok: false, error: "Solo la puede quitar quien la apunt\xF3." };
+        repo.borrar("registrosMant", sesion, id);
+        return { ok: true };
+      }
+      function adjunto(repo, sesion, registroId, indice) {
+        if (!puede(sesion.rol, "mantenimiento", "ver")) return null;
+        const r = repo.leer("registrosMant", sesion, registroId);
+        if (!r) return null;
+        return conAdjuntos(r).adjuntos[Number(indice)] || null;
+      }
+      function avisos(repo, sesion, hoy) {
+        if (!puede(sesion.rol, "mantenimiento", "ver")) return null;
+        const todas = repo.listar("obras", sesion).map((o) => ({ obra: o, resultado: obra(repo, sesion, o.id, hoy) })).filter((x) => x.resultado);
+        const salida = preventivo.avisosInicio(todas.filter((x) => x.resultado.totales.equipos));
+        const filas = todas.flatMap((x) => INSP.paraAviso(x.obra, x.resultado.inspecciones)).sort((a, b) => INSP.ESTADOS[a.estado].orden - INSP.ESTADOS[b.estado].orden || String(a.proxima).localeCompare(String(b.proxima)));
+        const cuenta = (e) => filas.filter((f) => f.estado === e).length;
+        salida.inspecciones = { filas, vencidas: cuenta("vencida"), defectos: cuenta("defectos"), pronto: cuenta("pronto") };
+        return salida;
+      }
+      function resumen(repo, sesion, hoy) {
+        if (!puede(sesion.rol, "mantenimiento", "ver")) return null;
+        const obras = repo.listar("obras", sesion);
+        const filas = [];
+        const sustituciones = [];
+        for (const o of obras) {
+          const r = obra(repo, sesion, o.id, hoy);
+          if (!r || !r.totales.equipos && !r.inspecciones.totales.instalaciones) continue;
+          const ti = r.inspecciones.totales;
+          filas.push({
+            obraId: o.id,
+            codigo: o.codigo,
+            nombre: o.nombre,
+            cerrada: Boolean(o.cerradaEn),
+            ...r.totales,
+            inspecciones: ti.instalaciones,
+            inspeccionesVencidas: ti.vencidas + ti.defectos,
+            inspeccionesPronto: ti.pronto
+          });
+          for (const s of r.sustituciones) {
+            sustituciones.push({
+              obraId: o.id,
+              obra: o.codigo,
+              equipoId: s.id,
+              tag: s.tag,
+              tipo: s.tipoNombre,
+              marca: s.marca,
+              modelo: s.modelo,
+              estado: s.sustitucion.estado,
+              fin: s.sustitucion.fin
+            });
+          }
+        }
+        sustituciones.sort((a, b) => a.fin.localeCompare(b.fin) || a.obra.localeCompare(b.obra));
+        filas.sort((a, b) => b.caducados + b.aSustituir - (a.caducados + a.aSustituir) || String(a.codigo).localeCompare(String(b.codigo), "es", { numeric: true }));
+        return { obras: filas, sustituciones };
+      }
+      module.exports = { obra, guardarEquipo, fijarPotencia, resumen, registrar, borrarRegistro, adjunto, avisos };
+    }
+  });
+
+  // shared/mantenimiento/informes.js
+  var require_informes2 = __commonJS({
+    "shared/mantenimiento/informes.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const PAPEL = typeof module !== "undefined" && module.exports ? require_papel() : window.PAPEL;
+        const F = typeof module !== "undefined" && module.exports ? require_fgas() : window.FGAS_MANT;
+        const llano = (v) => String(v ?? "").trim();
+        const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+        const fechaEs = (d) => d ? String(d).slice(0, 10).split("-").reverse().join("/") : "";
+        const num = (n, dec = 2) => Number(n || 0).toLocaleString("es-ES", { maximumFractionDigits: dec, minimumFractionDigits: 0 });
+        const euros = (n) => `${Number(n || 0).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} \u20AC`;
+        const nombreObra = (obra) => [obra && obra.codigo, obra && obra.nombre].filter(Boolean).join(" \xB7 ");
+        const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+        const mesTexto = (m) => {
+          const [a, n] = String(m || "").split("-").map(Number);
+          return a && n ? `${MESES[n - 1]} de ${a}` : "";
+        };
+        const VALOR_TEXTO = { ok: "Bien", mal: "Mal", na: "No aplica" };
+        const ESTADO_TEXTO = { pendiente: "Sin asignar", asignada: "Asignada", enCurso: "En curso", cerrada: "Cerrada", anulada: "Anulada" };
+        const TIPO_TEXTO = { preventiva: "Preventiva", fgas: "Control de fugas F-gas", correctiva: "Correctiva" };
+        const archivo = (s) => llano(s).replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ");
+        const dato = (que, valor) => llano(valor) ? `<div><dt>${esc(que)}</dt><dd>${esc(valor)}</dd></div>` : "";
+        const etiqueta = (texto, aviso) => `<span class="estadoRep${aviso ? " aviso" : ""}">${esc(texto)}</span>`;
+        const equipoTexto = (e) => e ? [e.tag, e.denominacion || [e.marca, e.modelo].filter(Boolean).join(" ")].filter(Boolean).join(" \xB7 ") : "";
+        const gasTexto = (g) => g && g.refrigerante ? `${g.refrigerante}${g.cargaKg ? ` \xB7 ${num(g.cargaKg)} kg` : ""}` : "";
+        function ordenHtml({ obra = {}, orden: o = {}, equipo = null, operario = null, incidencia = null, especialidad = "", fotos = [], hoy = "" } = {}) {
+          const checklist = Array.isArray(o.checklist) ? o.checklist : [];
+          const medidas = Array.isArray(o.medidas) ? o.medidas : [];
+          const malas = checklist.filter((c) => c.valor === "mal").length;
+          const fueraDeRango = (m) => m.valor !== null && m.valor !== "" && Number.isFinite(Number(m.valor)) && (m.min !== void 0 && m.min !== null && Number(m.valor) < m.min || m.max !== void 0 && m.max !== null && Number(m.valor) > m.max);
+          const cuerpo = `<article class="informeReparaciones">
+    ${PAPEL.portada({
+            tipo: `Orden de trabajo \xB7 ${TIPO_TEXTO[o.tipo] || o.tipo || ""}`,
+            titulo: `${llano(o.codigo)} \xB7 ${llano(o.equipoTag) || "Sin equipo"}`,
+            subtitulo: nombreObra(obra),
+            datos: [["Cerrada el", fechaEs(o.fechaCierre)], ["Operario", operario ? [operario.nombre, operario.empresa].filter(Boolean).join(" \xB7 ") : ""], ["Horas", o.horas != null ? `${num(o.horas)} h` : ""]]
+          })}
+    <section class="hojaInforme reparacionInforme">
+      <header class="cabeceraRep"><div><p class="tipoRep">${esc(especialidad)}</p><h2>${esc(equipoTexto(equipo) || o.equipoTag || "")}</h2></div>
+        ${etiqueta(malas ? `${malas} comprobaci${malas === 1 ? "\xF3n" : "ones"} mal` : ESTADO_TEXTO[o.estado] || o.estado, malas > 0)}</header>
+      <dl class="datosRep">
+        ${dato("Tipo de equipo", equipo && equipo.tipo)}${dato("Marca", equipo && equipo.marca)}${dato("Modelo", equipo && equipo.modelo)}
+        ${dato("N\xBA de serie", equipo && equipo.numSerie)}${dato("Planta", o.planta || equipo && equipo.planta)}${dato("Zona", o.zona || equipo && equipo.zona)}
+        ${dato("Sala", equipo && equipo.sala)}${dato("Gas", equipo && gasTexto(equipo.gas))}
+        ${dato("Prevista", fechaEs(o.fechaPrevista))}${dato("Empezada", fechaEs(o.fechaInicio))}${dato("Cerrada", fechaEs(o.fechaCierre))}
+        ${dato("Incidencia", incidencia ? `${incidencia.codigo} \xB7 ${incidencia.titulo}` : "")}
+      </dl>
+      ${checklist.length ? `<section class="visitasRep"><h3>Comprobaciones</h3>
+        <table class="tablaInformeRep">
+          <thead><tr><th class="num">N\xBA</th><th class="ancha">Operaci\xF3n</th><th>Resultado</th></tr></thead>
+          <tbody>${checklist.map((c, i) => `<tr><td class="num">${i + 1}</td><td class="ancha">${esc(c.texto)}</td><td>${c.valor === "mal" ? etiqueta("Mal", true) : esc(VALOR_TEXTO[c.valor] || "\u2014")}</td></tr>`).join("")}</tbody>
+          <tfoot><tr><th colspan="2">Total \xB7 ${checklist.length} comprobaciones</th><th>${checklist.filter((c) => c.valor === "ok").length} bien \xB7 ${malas} mal</th></tr></tfoot>
+        </table></section>` : ""}
+      ${medidas.length ? `<section class="visitasRep"><h3>Medidas</h3>
+        <table class="tablaInformeRep">
+          <thead><tr><th class="ancha">Medida</th><th class="num">Valor</th><th>Unidad</th><th class="num">Rango</th></tr></thead>
+          <tbody>${medidas.map((m) => `<tr><td class="ancha">${esc(m.nombre)}</td><td class="num">${m.valor == null || m.valor === "" ? "\u2014" : esc(m.valor)}${fueraDeRango(m) ? ` ${etiqueta("fuera de rango", true)}` : ""}</td><td>${esc(m.unidad || "")}</td><td class="num">${m.min != null || m.max != null ? `${m.min ?? "\u2026"} \u2013 ${m.max ?? "\u2026"}` : ""}</td></tr>`).join("")}</tbody>
+        </table></section>` : ""}
+      ${llano(o.observaciones) ? `<section class="relato"><h3>Observaciones</h3><p>${esc(o.observaciones).replace(/\n/g, "<br>")}</p></section>` : ""}
+      ${fotos.length ? `<section class="fotosInforme"><h3>Fotos</h3><div class="rejillaFotosRep">${fotos.map((f) => `<figure><img src="${esc(f.src)}" alt="${esc(f.nombre || "")}"><figcaption>${esc(f.nombre || "")}</figcaption></figure>`).join("")}</div></section>` : ""}
+      <section class="relato"><h3>Conformidad</h3>
+        <dl class="datosRep">${dato("Firmado por", o.firmadoPor)}${dato("Fecha", fechaEs(o.fechaCierre))}${dato("Horas empleadas", o.horas != null ? `${num(o.horas)} h` : "")}</dl>
+        ${/^data:image\/(png|jpeg|svg\+xml);base64,/.test(llano(o.firma)) ? `<p><img class="firmaOt" src="${esc(o.firma)}" alt="Firma" style="max-height:28mm;max-width:80mm"></p>` : ""}
+      </section>
+    </section>
+  </article>`;
+          return {
+            html: PAPEL.hoja({ documento: `Orden de trabajo ${llano(o.codigo)}`, obra: nombreObra(obra), fecha: hoy, cuerpo, clase: "papelInformeRep" }),
+            nombreArchivo: archivo(`${llano(o.codigo)} ${llano(o.equipoTag)} ${fechaEs(o.fechaCierre).replace(/\//g, "-")}.pdf`)
+          };
+        }
+        function informeMesHtml({ obra = {}, informe: r, cerradas = [], hoy = "", veCoste = false } = {}) {
+          const p = r.preventivo;
+          const c = r.correctivo;
+          const conCoste = veCoste && r.coste !== null && r.coste !== void 0;
+          const cuerpo = `<article class="informeReparaciones">
+    ${PAPEL.portada({ tipo: "Informe mensual de mantenimiento", titulo: nombreObra(obra) || "Obra", subtitulo: `Mes de ${mesTexto(r.mes)}`, datos: [["Fecha del informe", fechaEs(hoy)]] })}
+    ${PAPEL.cifras([
+            { que: "Cumplimiento del preventivo", valor: p.cumplimiento === null ? "\u2014" : `${num(p.cumplimiento, 1)} %`, nota: `${p.cerradas} de ${p.previstas} previstas` },
+            { que: "A tiempo", valor: num(p.aTiempo, 0), nota: "cerradas antes de su fecha" },
+            { que: "Correctivos cerrados", valor: num(c.cerradas, 0), nota: c.diasMedios === null ? "" : `${num(c.diasMedios, 1)} d\xEDas de media` },
+            { que: "Horas", valor: num(r.horas), nota: `estimadas ${num(r.horasEstimadas)}` },
+            c.abiertas ? { que: "Correctivos abiertos", valor: num(c.abiertas, 0), clase: "mal" } : null,
+            conCoste ? { que: "Coste", valor: euros(r.coste), nota: "horas por tarifa del operario" } : null
+          ])}
+    <section class="resumenInforme"><h2>Horas por especialidad</h2>
+      <table class="tablaInformeRep">
+        <thead><tr><th class="ancha">Especialidad</th><th class="num">\xD3rdenes</th><th class="num">Horas</th><th class="num">Estimadas</th>${conCoste ? '<th class="num">Coste</th>' : ""}</tr></thead>
+        <tbody>${r.especialidades.map((e) => `<tr><td class="ancha">${esc(e.nombre || e.especialidad)}</td><td class="num">${e.ordenes}</td><td class="num">${num(e.horas)}</td><td class="num">${num(e.estimadas)}</td>${conCoste ? `<td class="num">${euros(e.coste)}</td>` : ""}</tr>`).join("") || `<tr><td colspan="${conCoste ? 5 : 4}">No se cerr\xF3 ninguna orden en el mes.</td></tr>`}</tbody>
+        <tfoot><tr><th>Total</th><th class="num">${r.ordenesCerradas}</th><th class="num">${num(r.horas)}</th><th class="num">${num(r.horasEstimadas)}</th>${conCoste ? `<th class="num">${euros(r.coste)}</th>` : ""}</tr></tfoot>
+      </table></section>
+    ${cerradas.length ? `<section class="resumenInforme"><h2>\xD3rdenes cerradas en el mes</h2>
+      <table class="tablaInformeRep">
+        <thead><tr><th>C\xF3digo</th><th>Equipo</th><th>Planta</th><th>Tipo</th><th class="ancha">Especialidad</th><th>Operario</th><th class="fecha">Prevista</th><th class="fecha">Cerrada</th><th class="num">Horas</th></tr></thead>
+        <tbody>${cerradas.map((o) => `<tr><td class="codigo">${esc(o.codigo)}</td><td class="equipo">${esc(o.equipoTag || "")}</td><td>${esc(o.planta || "")}</td><td>${esc(TIPO_TEXTO[o.tipo] || o.tipo)}</td><td class="ancha">${esc(o.especialidadNombre || o.especialidad || "")}</td><td>${esc(o.operario || "")}</td><td class="fecha">${esc(fechaEs(o.fechaPrevista))}</td><td class="fecha">${esc(fechaEs(o.fechaCierre))}</td><td class="num">${num(o.horas)}</td></tr>`).join("")}</tbody>
+        <tfoot><tr><th colspan="8">Total \xB7 ${cerradas.length} \xF3rdenes</th><th class="num">${num(cerradas.reduce((s, o) => s + (Number(o.horas) || 0), 0))}</th></tr></tfoot>
+      </table></section>` : ""}
+    ${p.pendientes.length ? `<section class="resumenInforme"><h2>Previstas en el mes sin cerrar</h2>
+      <table class="tablaInformeRep">
+        <thead><tr><th>C\xF3digo</th><th class="ancha">Equipo</th><th class="fecha">Prevista</th><th>Estado</th></tr></thead>
+        <tbody>${p.pendientes.map((o) => `<tr><td class="codigo">${esc(o.codigo)}</td><td class="ancha">${esc(o.equipoTag || "")}</td><td class="fecha">${esc(fechaEs(o.fechaPrevista))}</td><td>${etiqueta(ESTADO_TEXTO[o.estado] || o.estado, true)}</td></tr>`).join("")}</tbody>
+      </table></section>` : ""}
+  </article>`;
+          return {
+            html: PAPEL.hoja({ documento: "Informe mensual de mantenimiento", obra: nombreObra(obra), fecha: hoy, cuerpo, clase: "papelInformeRep" }),
+            nombreArchivo: archivo(`Mantenimiento ${llano(obra.codigo)} ${r.mes}.pdf`)
+          };
+        }
+        function libroHtml({ obra = {}, equipos = [], registros = [], desde = "", hasta = "", hoy = "" } = {}) {
+          const enPeriodo = registros.filter((r) => {
+            const f = String(r.fecha || "").slice(0, 10);
+            return (!desde || f >= desde) && (!hasta || f <= hasta);
+          });
+          const porEquipo = /* @__PURE__ */ new Map();
+          for (const r of enPeriodo) {
+            if (!porEquipo.has(r.equipoId)) porEquipo.set(r.equipoId, []);
+            porEquipo.get(r.equipoId).push(r);
+          }
+          const lista = equipos.filter((e) => porEquipo.has(e.id)).sort((a, b) => String(a.tag).localeCompare(String(b.tag), "es", { numeric: true }));
+          const periodo = desde || hasta ? `Del ${fechaEs(desde) || "inicio"} al ${fechaEs(hasta) || fechaEs(hoy)}` : "Todas las operaciones apuntadas";
+          const hojaEquipo = (e) => {
+            const regs = porEquipo.get(e.id).sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
+            return `<section class="hojaInforme reparacionInforme">
+      <header class="cabeceraRep"><div><p class="tipoRep">${esc(e.tipo || "Equipo")}</p><h2>${esc(equipoTexto(e))}</h2></div>${etiqueta(`${regs.length} operaciones`)}</header>
+      <dl class="datosRep">${dato("Marca", e.marca)}${dato("Modelo", e.modelo)}${dato("N\xBA de serie", e.numSerie)}${dato("Planta", e.planta)}${dato("Zona", e.zona)}${dato("Gas", gasTexto(e.gas))}</dl>
+      <table class="tablaInformeRep">
+        <thead><tr><th class="fecha">Fecha</th><th class="ancha">Operaci\xF3n</th><th>Realizada por</th><th class="ancha">Observaciones</th></tr></thead>
+        <tbody>${regs.map((r) => `<tr><td class="fecha">${esc(fechaEs(r.fecha))}</td><td class="ancha">${esc(r.operacion)}</td><td>${esc(r.realizadoPor || "")}</td><td class="ancha">${esc(r.observaciones || "")}</td></tr>`).join("")}</tbody>
+      </table>
+    </section>`;
+          };
+          const cuerpo = `<article class="informeReparaciones">
+    ${PAPEL.portada({ tipo: "Libro de mantenimiento (RITE, IT 3)", titulo: nombreObra(obra) || "Obra", subtitulo: periodo, datos: [["Fecha", fechaEs(hoy)], ["Equipos", String(lista.length)], ["Operaciones", String(enPeriodo.length)]] })}
+    <p class="nota">Registro de las operaciones de mantenimiento de la instalaci\xF3n t\xE9rmica (Reglamento de Instalaciones T\xE9rmicas en los Edificios, IT 3.3). Una hoja por equipo.</p>
+    ${lista.length ? `<section class="resumenInforme"><h2>Resumen</h2><table class="tablaInformeRep">
+      <thead><tr><th>Equipo</th><th class="ancha">Tipo</th><th>Planta</th><th class="num">Operaciones</th><th class="fecha">\xDAltima</th></tr></thead>
+      <tbody>${lista.map((e) => {
+            const r = porEquipo.get(e.id);
+            return `<tr><td class="equipo">${esc(e.tag)}</td><td class="ancha">${esc(e.tipo || "")}</td><td>${esc(e.planta || "")}</td><td class="num">${r.length}</td><td class="fecha">${esc(fechaEs(r.map((x) => x.fecha).sort().pop()))}</td></tr>`;
+          }).join("")}</tbody>
+      <tfoot><tr><th colspan="3">Total \xB7 ${lista.length} equipos</th><th class="num">${enPeriodo.length}</th><th></th></tr></tfoot>
+    </table></section>${lista.map(hojaEquipo).join("")}` : '<p class="nota">No hay operaciones apuntadas en ese periodo.</p>'}
+  </article>`;
+          return {
+            html: PAPEL.hoja({ documento: "Libro de mantenimiento", obra: nombreObra(obra), fecha: hoy, cuerpo, clase: "papelInformeRep" }),
+            nombreArchivo: archivo(`Libro de mantenimiento ${llano(obra.codigo)} ${llano(hoy)}.pdf`),
+            n: enPeriodo.length
+          };
+        }
+        function registroFgasHtml({ obra = {}, sujetos = [], controles = [], sinDatos = [], hoy = "" } = {}) {
+          const ESTADO = { vencido: ["Vencido", true], pronto: ["Toca pronto", true], alDia: ["Al d\xEDa", false] };
+          const porEquipo = /* @__PURE__ */ new Map();
+          for (const r of controles) {
+            if (!porEquipo.has(r.equipoId)) porEquipo.set(r.equipoId, []);
+            porEquipo.get(r.equipoId).push(r);
+          }
+          const filas = [...sujetos].sort((a, b) => String(a.equipo.tag).localeCompare(String(b.equipo.tag), "es", { numeric: true }));
+          const tco2e = filas.reduce((s, x) => s + (Number(x.proximo.control.tco2e) || 0), 0);
+          const vencidos = filas.filter((x) => x.proximo.estado === "vencido").length;
+          const cuerpo = `<article class="informeReparaciones">
+    ${PAPEL.portada({ tipo: "Registro de gases fluorados", titulo: nombreObra(obra) || "Obra", subtitulo: "Reglamento (UE) 2024/573, art. 7 \xB7 control de fugas (art. 5)", datos: [["Fecha", fechaEs(hoy)], ["Equipos sujetos", String(filas.length)]] })}
+    ${PAPEL.cifras([
+            { que: "Equipos sujetos", valor: num(filas.length, 0) },
+            { que: "t CO2e", valor: num(tco2e, 1), nota: "carga total equivalente" },
+            { que: "Controles apuntados", valor: num(controles.length, 0) },
+            vencidos ? { que: "Controles vencidos", valor: num(vencidos, 0), clase: "mal" } : null
+          ])}
+    <section class="resumenInforme"><h2>Equipos y control de fugas</h2>
+      <table class="tablaInformeRep">
+        <thead><tr><th>Equipo</th><th>Planta</th><th>Gas</th><th class="num">Carga (kg)</th><th class="num">t CO2e</th><th class="num">Cada (meses)</th><th class="fecha">\xDAltimo</th><th class="fecha">Pr\xF3ximo</th><th>Estado</th></tr></thead>
+        <tbody>${filas.map((x) => {
+            const [t, aviso] = ESTADO[x.proximo.estado] || ["\u2014", false];
+            return `<tr><td class="equipo">${esc(x.equipo.tag)}</td><td>${esc(x.equipo.planta || "")}</td><td>${esc(x.gas.refrigerante)}</td><td class="num">${num(x.gas.cargaKg)}</td><td class="num">${x.proximo.control.tco2e == null ? "\u2014" : num(x.proximo.control.tco2e, 2)}</td><td class="num">${x.proximo.control.meses ?? "\u2014"}</td><td class="fecha">${esc(fechaEs(x.ultimo) || "Nunca")}</td><td class="fecha">${esc(fechaEs(x.proximo.fechaLimite))}</td><td>${etiqueta(t, aviso)}</td></tr>`;
+          }).join("") || '<tr><td colspan="9">Ning\xFAn equipo de la obra est\xE1 sujeto a control de fugas.</td></tr>'}</tbody>
+        <tfoot><tr><th colspan="4">Total \xB7 ${filas.length} equipos</th><th class="num">${num(tco2e, 2)}</th><th colspan="4"></th></tr></tfoot>
+      </table>
+      <p class="nota">Periodicidad seg\xFAn la carga en t CO2e (art. 5 del Reglamento (UE) 2024/573); con detecci\xF3n de fugas, la mitad de frecuencia.</p>
+    </section>
+    ${filas.filter((x) => porEquipo.has(x.equipo.id)).map((x) => `<section class="visitasRep"><h3>${esc(x.equipo.tag)} \xB7 ${esc(x.gas.refrigerante)} \xB7 ${num(x.gas.cargaKg)} kg</h3>
+      <table class="tablaInformeRep">
+        <thead><tr><th class="fecha">Fecha</th><th>Realizado por</th><th class="ancha">Resultado y observaciones</th></tr></thead>
+        <tbody>${porEquipo.get(x.equipo.id).sort((a, b) => String(a.fecha).localeCompare(String(b.fecha))).map((r) => `<tr><td class="fecha">${esc(fechaEs(r.fecha))}</td><td>${esc(r.realizadoPor || "")}</td><td class="ancha">${esc(r.observaciones || "")}</td></tr>`).join("")}</tbody>
+      </table></section>`).join("")}
+    ${sinDatos.length ? `<section class="relato"><h3>Equipos con gas sin datos</h3><p>${esc(sinDatos.map((e) => e.tag).join(", "))}: falta el refrigerante o la carga para saber si est\xE1n sujetos.</p></section>` : ""}
+  </article>`;
+          return {
+            html: PAPEL.hoja({ documento: "Registro F-gas", obra: nombreObra(obra), fecha: hoy, cuerpo, clase: "papelInformeRep" }),
+            nombreArchivo: archivo(`Registro F-gas ${llano(obra.codigo)} ${llano(hoy)}.pdf`),
+            n: filas.length
+          };
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.INFORMES_MANT = API;
+        })({ ordenHtml, informeMesHtml, libroHtml, registroFgasHtml, OPERACION_FGAS: F && F.OPERACION });
+      })();
+    }
+  });
+
+  // electron/data/ordenesMant.js
+  var require_ordenesMant = __commonJS({
+    "electron/data/ordenesMant.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var O = require_ordenes();
+      var G = require_gamas();
+      var F = require_fgas();
+      var A = require_asignacion();
+      var P = require_preventivo();
+      var { puede } = require_roles();
+      var { hoyLocal } = require_fecha();
+      var { nuevoId } = require_repositorio();
+      var M = require_mantenimiento();
+      var INC = require_incidencias();
+      var MI = require_motor4();
+      var INF = require_informes2();
+      var SIN_EDITAR = "Tu rol puede ver las \xF3rdenes de trabajo, pero no cambiarlas.";
+      var SOLO_JEFE = "Esto es del jefe de mantenimiento.";
+      var JSONS = ["operaciones", "checklist", "medidas", "fotos"];
+      var lista = A.lista;
+      function deFila(o) {
+        if (!o) return o;
+        const r = { ...o };
+        for (const c of JSONS) r[c] = lista(o[c]);
+        return r;
+      }
+      function aFila(o) {
+        const r = { ...o };
+        for (const c of JSONS) if (c in r) r[c] = r[c] == null ? null : JSON.stringify(r[c]);
+        return r;
+      }
+      var operarioDe = (o) => ({ ...o, especialidades: lista(o.especialidades), carnes: lista(o.carnes) });
+      var obraVisible = (repo, sesion, obraId) => obraId ? repo.leer("obras", sesion, obraId) : null;
+      var ordenesDe = (repo, sesion, obraId) => repo.listar("ordenesMant", sesion, { condicion: "obraId = ?", params: [obraId], orden: "fechaPrevista, codigo" }).map(deFila);
+      var operariosDe = (repo, sesion, obraId) => repo.listar("operariosMant", sesion, { condicion: "obraId = ?", params: [obraId], orden: "nombre" }).map(operarioDe);
+      function yoEnObra(repo, sesion, obraId) {
+        return repo.listar("operariosMant", sesion, { condicion: "obraId = ? AND personaId = ?", params: [obraId, sesion.personaId], limite: 1 })[0] || null;
+      }
+      var soloLasSuyas = (sesion) => sesion.rol === "operario";
+      function gasDe(e) {
+        const deNotas = F.deTexto(`${e.notas || ""} ${e.denominacion || ""} ${e.modelo || ""}`);
+        const refrigerante = String(e.refrigerante || "").trim() || deNotas.refrigerante;
+        const carga = Number(e.cargaKg);
+        return {
+          refrigerante,
+          cargaKg: Number.isFinite(carga) && carga > 0 ? carga : deNotas.cargaKg,
+          hermetico: Boolean(Number(e.hermetico)),
+          deteccion: Boolean(Number(e.deteccionFugas)),
+          deNotas: !String(e.refrigerante || "").trim() && Boolean(deNotas.refrigerante)
+        };
+      }
+      var TIPOS_CON_GAS = /* @__PURE__ */ new Set(["enfriadora", "bombaCalor", "autonomo"]);
+      function fgasDeObra(equipos, registros, hoy) {
+        const ultimo = /* @__PURE__ */ new Map();
+        for (const r of registros) {
+          if (r.operacion !== F.OPERACION) continue;
+          if (!ultimo.has(r.equipoId) || r.fecha > ultimo.get(r.equipoId)) ultimo.set(r.equipoId, r.fecha);
+        }
+        const sujetos = [];
+        const sinDatos = [];
+        for (const e of equipos) {
+          const { tipo } = P.tipoDe(e);
+          const gas = gasDe(e);
+          const equipo = { id: e.id, tag: e.tag, planta: e.planta || "", zona: e.zona || "", tipo: tipo ? tipo.id : null };
+          if (!gas.refrigerante || !gas.cargaKg) {
+            if (tipo && TIPOS_CON_GAS.has(tipo.id)) sinDatos.push({ ...equipo, ...gas });
+            continue;
+          }
+          const control = F.controlFugas(gas);
+          if (!control.sujeto) continue;
+          const proximo = F.proximoControl(control, ultimo.get(e.id) || null, hoy);
+          sujetos.push({ equipo, gas, proximo, ultimo: ultimo.get(e.id) || null });
+        }
+        return { sujetos, sinDatos };
+      }
+      function guardarGas(repo, sesion, equipoId, entrada = {}) {
+        if (!puede(sesion.rol, "mantenimiento", "editar")) return { ok: false, error: "Tu rol no puede cambiar los datos de mantenimiento del equipo." };
+        const e = repo.leer("equiposObra", sesion, equipoId);
+        if (!e) return { ok: false, error: "No se encuentra el equipo." };
+        const cambios = {};
+        if (entrada.refrigerante !== void 0) {
+          const t = String(entrada.refrigerante || "").trim();
+          if (t && !F.buscar(t)) return { ok: false, error: `No se conoce el refrigerante \xAB${t}\xBB: escr\xEDbelo como R32, R410A, R407C\u2026` };
+          cambios.refrigerante = t ? F.buscar(t).id : null;
+        }
+        if (entrada.cargaKg !== void 0) {
+          const t = String(entrada.cargaKg ?? "").trim().replace(",", ".");
+          if (!t) cambios.cargaKg = null;
+          else {
+            const n = Number(t);
+            if (!Number.isFinite(n) || n <= 0 || n > 1e4) return { ok: false, error: "La carga va en kg y tiene que ser mayor que cero." };
+            cambios.cargaKg = n;
+          }
+        }
+        if (entrada.hermetico !== void 0) cambios.hermetico = entrada.hermetico ? 1 : 0;
+        if (entrada.deteccionFugas !== void 0) cambios.deteccionFugas = entrada.deteccionFugas ? 1 : 0;
+        if (Object.keys(cambios).length) repo.modificar("equiposObra", sesion, equipoId, cambios);
+        return { ok: true };
+      }
+      function obra(repo, sesion, obraId, hoy = hoyLocal()) {
+        if (!puede(sesion.rol, "ordenesMant", "ver")) return null;
+        if (!obraVisible(repo, sesion, obraId)) return null;
+        let ordenes = ordenesDe(repo, sesion, obraId);
+        const operarios = operariosDe(repo, sesion, obraId);
+        if (soloLasSuyas(sesion)) {
+          const yo = operarios.find((o) => o.personaId === sesion.personaId);
+          ordenes = yo ? ordenes.filter((o) => o.operarioId === yo.id) : [];
+        }
+        const plan = puede(sesion.rol, "mantenimiento", "ver") ? M.obra(repo, sesion, obraId, hoy) : null;
+        let fgas = { sujetos: [], sinDatos: [] };
+        if (plan) {
+          const equipos = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
+          const registros = repo.listar("registrosMant", sesion, { condicion: "obraId = ?", params: [obraId] });
+          fgas = fgasDeObra(equipos, registros, hoy);
+        }
+        const incidencias = puede(sesion.rol, "incidencias", "ver") ? repo.listar("incidencias", sesion, { condicion: "obraId = ? AND equipoId IS NOT NULL", params: [obraId] }) : [];
+        const tagDe = new Map((plan ? plan.filas : []).map((f) => [f.id, f.tag]));
+        const avisos = O.avisos({
+          evaluacion: plan,
+          fgas: fgas.sujetos,
+          hoy,
+          ordenes,
+          incidencias: incidencias.map((i) => ({ ...i, equipoTag: tagDe.get(i.equipoId) || "" })),
+          operarios: soloLasSuyas(sesion) ? [] : operarios
+        });
+        return {
+          obraId,
+          hoy,
+          ordenes,
+          operarios: soloLasSuyas(sesion) ? operarios.filter((o) => o.personaId === sesion.personaId) : operarios,
+          avisos,
+          fgas,
+          incidencias,
+          puede: {
+            generar: puede(sesion.rol, "ordenesMant", "crear"),
+            asignar: puede(sesion.rol, "ordenesMant", "editar") && !soloLasSuyas(sesion),
+            cerrar: puede(sesion.rol, "ordenesMant", "editar"),
+            operarios: puede(sesion.rol, "ordenesMant", "crear")
+          },
+          catalogo: {
+            estados: O.ESTADOS,
+            tipos: O.TIPOS,
+            especialidades: G.ESPECIALIDADES,
+            carnes: A.CARNES,
+            tarifaProvisional: A.TARIFA_PROVISIONAL
+          }
+        };
+      }
+      function ficha(repo, sesion, ordenId) {
+        if (!puede(sesion.rol, "ordenesMant", "ver")) return null;
+        const o = deFila(repo.leer("ordenesMant", sesion, ordenId));
+        if (!o) return null;
+        if (soloLasSuyas(sesion)) {
+          const yo = yoEnObra(repo, sesion, o.obraId);
+          if (!yo || o.operarioId !== yo.id) return null;
+        }
+        const equipo = o.equipoId && puede(sesion.rol, "commissioning", "ver") ? repo.leer("equiposObra", sesion, o.equipoId) : null;
+        const incidencia = o.incidenciaId && puede(sesion.rol, "incidencias", "ver") ? repo.leer("incidencias", sesion, o.incidenciaId) : null;
+        const operario = o.operarioId ? repo.leer("operariosMant", sesion, o.operarioId) : null;
+        return {
+          orden: o,
+          equipo: equipo && {
+            id: equipo.id,
+            tag: equipo.tag,
+            planta: equipo.planta,
+            sala: equipo.sala,
+            zona: equipo.zona,
+            grupo: equipo.grupo,
+            denominacion: equipo.denominacion,
+            marca: equipo.marca,
+            modelo: equipo.modelo,
+            numSerie: equipo.numSerie,
+            tipo: (P.tipoDe(equipo).tipo || {}).nombre || null,
+            gas: gasDe(equipo)
+          },
+          incidencia: incidencia && { id: incidencia.id, codigo: incidencia.codigo, titulo: incidencia.titulo, descripcion: incidencia.descripcion, estado: incidencia.estado },
+          operario: operario && { id: operario.id, nombre: operario.nombre, empresa: operario.empresa }
+        };
+      }
+      function misTareas(repo, sesion, hoy = hoyLocal()) {
+        if (!puede(sesion.rol, "ordenesMant", "ver")) return null;
+        const yo = repo.listar("operariosMant", sesion, { condicion: "personaId = ? AND activo = 1", params: [sesion.personaId] });
+        if (!yo.length) return { tareas: [], cerradas: [] };
+        const ids = yo.map((o) => o.id);
+        const desde = P.sumarDias(hoy, -30);
+        const todas = repo.listar("ordenesMant", sesion, {
+          condicion: `operarioId IN (${ids.map(() => "?").join(",")}) AND estado != 'anulada'`,
+          params: ids,
+          orden: "fechaPrevista, codigo"
+        }).map(deFila);
+        return {
+          tareas: todas.filter(O.abierta),
+          cerradas: todas.filter((o) => o.estado === "cerrada" && String(o.fechaCierre || "") >= desde)
+        };
+      }
+      function generar(repo, sesion, obraId, { hoy = hoyLocal(), repartir: tambienRepartir = true, horizonteDias } = {}) {
+        if (!puede(sesion.rol, "ordenesMant", "crear")) return { ok: false, error: SOLO_JEFE };
+        if (!obraVisible(repo, sesion, obraId)) return { ok: false, error: "No se encuentra la obra." };
+        const plan = M.obra(repo, sesion, obraId, hoy);
+        if (!plan) return { ok: false, error: "Para generar las \xF3rdenes hace falta ver el plan de mantenimiento." };
+        const equipos = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
+        const registros = repo.listar("registrosMant", sesion, { condicion: "obraId = ?", params: [obraId] });
+        const existentes = ordenesDe(repo, sesion, obraId);
+        const fgas = fgasDeObra(equipos, registros, hoy);
+        const nuevas = O.ordenesNuevas({ evaluacion: plan, fgas: fgas.sujetos, existentes, hoy, horizonteDias });
+        const ids = [];
+        repo.db.exec("BEGIN");
+        try {
+          for (const o of nuevas) ids.push(repo.crear("ordenesMant", sesion, aFila({ ...o, obraId, creadoPor: sesion.personaId })));
+          repo.db.exec("COMMIT");
+        } catch (e) {
+          repo.db.exec("ROLLBACK");
+          throw e;
+        }
+        const r = { ok: true, creadas: ids.length, ids, sinDatosFgas: fgas.sinDatos.length };
+        if (tambienRepartir && ids.length) Object.assign(r, repartir(repo, sesion, obraId));
+        r.ok = true;
+        return r;
+      }
+      function repartir(repo, sesion, obraId) {
+        if (!puede(sesion.rol, "ordenesMant", "editar") || soloLasSuyas(sesion)) return { ok: false, error: SIN_EDITAR };
+        if (!obraVisible(repo, sesion, obraId)) return { ok: false, error: "No se encuentra la obra." };
+        const ordenes = ordenesDe(repo, sesion, obraId);
+        const operarios = operariosDe(repo, sesion, obraId);
+        const r = A.repartir(ordenes, operarios);
+        for (const a of r.asignaciones) {
+          repo.modificar("ordenesMant", sesion, a.ordenId, {
+            operarioId: a.operarioId,
+            estado: "asignada",
+            asignacionAuto: 1,
+            motivoAsignacion: a.motivo,
+            asignadaPor: sesion.personaId
+          });
+        }
+        return { ok: true, asignadas: r.asignaciones.length, sinCandidato: r.sinCandidato };
+      }
+      function candidatos(repo, sesion, ordenId) {
+        if (!puede(sesion.rol, "ordenesMant", "editar") || soloLasSuyas(sesion)) return null;
+        const o = deFila(repo.leer("ordenesMant", sesion, ordenId));
+        if (!o) return null;
+        const todas = ordenesDe(repo, sesion, o.obraId).filter((x) => x.id !== o.id);
+        const r = A.candidatos(o, operariosDe(repo, sesion, o.obraId), { cargas: A.cargasDe(todas) });
+        const limpio = (x) => ({ id: x.operario.id, nombre: x.operario.nombre, empresa: x.operario.empresa || "", motivo: x.motivo, puntos: x.puntos });
+        return { candidatos: r.candidatos.map(limpio), descartados: r.descartados.map((d) => ({ id: d.operario.id, nombre: d.operario.nombre, motivo: d.motivo })) };
+      }
+      function asignar(repo, sesion, ordenId, operarioId, { fechaPrevista } = {}) {
+        if (!puede(sesion.rol, "ordenesMant", "editar") || soloLasSuyas(sesion)) return { ok: false, error: SIN_EDITAR };
+        const o = deFila(repo.leer("ordenesMant", sesion, ordenId));
+        if (!o) return { ok: false, error: "No se encuentra la orden." };
+        if (!O.abierta(o)) return { ok: false, error: "La orden ya est\xE1 cerrada o anulada." };
+        if (o.estado === "enCurso") return { ok: false, error: "La orden ya est\xE1 empezada: que la devuelva quien la tiene antes de cambiarla." };
+        const cambios = {};
+        if (fechaPrevista !== void 0) {
+          const f = P.fecha(String(fechaPrevista || "").trim());
+          if (!f) return { ok: false, error: "La fecha prevista no se entiende." };
+          cambios.fechaPrevista = f;
+        }
+        let aviso = null;
+        if (operarioId) {
+          const op = repo.leer("operariosMant", sesion, operarioId);
+          if (!op || op.obraId !== o.obraId) return { ok: false, error: "Ese operario no es de esta obra." };
+          if (!op.activo) return { ok: false, error: `${op.nombre} est\xE1 de baja.` };
+          const dia = cambios.fechaPrevista || o.fechaPrevista || hoyLocal();
+          if (o.carne) {
+            const c = A.carneVigente(op, o.carne, dia);
+            const nombre = (A.CARNE_POR_ID.get(o.carne) || { nombre: o.carne }).nombre;
+            if (!c.tiene) return { ok: false, error: `${op.nombre} no tiene ${nombre}, y la ley lo pide para esta orden.` };
+            if (!c.vigente) return { ok: false, error: `${op.nombre}: ${nombre} caducado el ${c.caduca}.` };
+          }
+          if (o.especialidad !== "general" && !lista(op.especialidades).includes(o.especialidad)) {
+            aviso = `${op.nombre} no es ${(G.ESPECIALIDADES.find((e) => e.id === o.especialidad) || { nombre: o.especialidad }).nombre.toLowerCase()}.`;
+          }
+          Object.assign(cambios, { operarioId, estado: "asignada", asignacionAuto: 0, motivoAsignacion: aviso ? `A mano. ${aviso}` : "A mano", asignadaPor: sesion.personaId });
+        } else if (operarioId === null) {
+          Object.assign(cambios, { operarioId: null, estado: "pendiente", asignacionAuto: null, motivoAsignacion: null, asignadaPor: null });
+        }
+        if (Object.keys(cambios).length) repo.modificar("ordenesMant", sesion, ordenId, cambios);
+        return { ok: true, aviso };
+      }
+      function suyaOError(repo, sesion, ordenId) {
+        if (!puede(sesion.rol, "ordenesMant", "editar")) return { error: SIN_EDITAR };
+        const o = deFila(repo.leer("ordenesMant", sesion, ordenId));
+        if (!o) return { error: "No se encuentra la orden." };
+        if (soloLasSuyas(sesion)) {
+          const yo = yoEnObra(repo, sesion, o.obraId);
+          if (!yo || o.operarioId !== yo.id) return { error: "Esa orden no es tuya." };
+        }
+        return { orden: o };
+      }
+      function empezar(repo, sesion, ordenId) {
+        const { orden: o, error } = suyaOError(repo, sesion, ordenId);
+        if (error) return { ok: false, error };
+        if (!O.puedePasar(o.estado, "enCurso")) return { ok: false, error: o.estado === "pendiente" ? "La orden no tiene operario: as\xEDgnala antes." : "Esta orden no se puede empezar." };
+        repo.modificar("ordenesMant", sesion, ordenId, { estado: "enCurso", fechaInicio: o.fechaInicio || (/* @__PURE__ */ new Date()).toISOString() });
+        return { ok: true };
+      }
+      function devolver(repo, sesion, ordenId, motivo) {
+        const { orden: o, error } = suyaOError(repo, sesion, ordenId);
+        if (error) return { ok: false, error };
+        const texto = String(motivo || "").trim();
+        if (!texto) return { ok: false, error: "Di por qu\xE9." };
+        if (o.estado === "enCurso") {
+          repo.modificar("ordenesMant", sesion, ordenId, { estado: "asignada", observaciones: [o.observaciones, `Devuelta: ${texto}`].filter(Boolean).join(" \xB7 ") });
+          return { ok: true };
+        }
+        if (o.estado === "cerrada") {
+          if (soloLasSuyas(sesion)) return { ok: false, error: "Reabrir una orden cerrada es del jefe o del encargado." };
+          repo.modificar("ordenesMant", sesion, ordenId, { estado: "enCurso", fechaCierre: null, cerradaPor: null, observaciones: [o.observaciones, `Reabierta: ${texto}`].filter(Boolean).join(" \xB7 ") });
+          return { ok: true };
+        }
+        return { ok: false, error: "Solo se devuelve una orden empezada o se reabre una cerrada." };
+      }
+      function guardarAvance(repo, sesion, ordenId, entrada = {}) {
+        const { orden: o, error } = suyaOError(repo, sesion, ordenId);
+        if (error) return { ok: false, error };
+        if (o.estado !== "enCurso") return { ok: false, error: "Empieza la orden para ir apuntando." };
+        const cambios = {};
+        if (Array.isArray(entrada.checklist)) cambios.checklist = entrada.checklist.map((c, i) => ({ ...o.checklist[i] || {}, valor: O.VALORES_CHECK.includes(c.valor) ? c.valor : null }));
+        if (Array.isArray(entrada.medidas)) cambios.medidas = entrada.medidas.map((m, i) => ({ ...o.medidas[i] || {}, valor: m.valor === "" || m.valor == null ? null : m.valor }));
+        if (Array.isArray(entrada.fotos)) cambios.fotos = entrada.fotos;
+        if (entrada.observaciones !== void 0) cambios.observaciones = String(entrada.observaciones || "").trim() || null;
+        if (Object.keys(cambios).length) repo.modificar("ordenesMant", sesion, ordenId, aFila(cambios));
+        return { ok: true };
+      }
+      function cerrar(repo, sesion, ordenId, entrada = {}, hoy = hoyLocal()) {
+        const { orden: o, error } = suyaOError(repo, sesion, ordenId);
+        if (error) return { ok: false, error };
+        const tarifaFila = o.operarioId ? repo.db.prepare("SELECT tarifaHoraMant FROM operariosMant WHERE id = ?").get(o.operarioId) : null;
+        const r = O.cerrar(o, { ...entrada, quien: sesion.personaId, hoy, tarifaHora: A.tarifaDe(tarifaFila || {}, o.especialidad) });
+        if (!r.ok) return r;
+        const ahora = (/* @__PURE__ */ new Date()).toISOString();
+        repo.db.exec("BEGIN");
+        try {
+          repo.modificar("ordenesMant", sesion, ordenId, aFila(r.cambios));
+          for (const reg of r.registros) {
+            repo.db.prepare(`INSERT INTO registrosMant (id, obraId, equipoId, operacion, fecha, realizadoPor, observaciones, adjuntos, registradoPor, creadoEn, modificadoEn)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+              nuevoId(),
+              o.obraId,
+              reg.equipoId,
+              reg.operacion,
+              reg.fecha,
+              reg.realizadoPor,
+              reg.observaciones,
+              r.cambios.fotos && r.cambios.fotos.length ? JSON.stringify(r.cambios.fotos.map((f) => ({ ruta: f.ruta, nombre: f.nombre || String(f.ruta).split(/[\\/]/).pop() })).filter((f) => f.ruta)) : null,
+              sesion.personaId,
+              ahora,
+              ahora
+            );
+          }
+          repo.db.exec("COMMIT");
+        } catch (e) {
+          repo.db.exec("ROLLBACK");
+          throw e;
+        }
+        let incidencia = null;
+        if (r.cerrarIncidencia) incidencia = cerrarIncidencia(repo, sesion, r.cerrarIncidencia, o.codigo);
+        return { ok: true, avisos: r.avisos, registros: r.registros.length, incidencia, coste: r.cambios.costeMant };
+      }
+      function cerrarIncidencia(repo, sesion, incidenciaId, codigo) {
+        if (!puede(sesion.rol, "incidencias", "editar")) return { estado: null, aviso: "La incidencia la tiene que cerrar quien la lleva." };
+        const i = repo.leer("incidencias", sesion, incidenciaId);
+        if (!i) return { estado: null, aviso: "No se encuentra la incidencia." };
+        const comentario = `Resuelta con la orden de mantenimiento ${codigo}.`;
+        if (i.estado === "abierta" || i.estado === "enCurso") {
+          let t;
+          try {
+            t = INC.cambiarEstado(repo, sesion, incidenciaId, "terminada", { comentario });
+          } catch {
+            const m = MI.cambiarEstado(i, "terminada", { verbos: ["ver", "editar"], quien: sesion.personaId, hoy: hoyLocal() });
+            if (m.error) return { estado: i.estado, aviso: m.error };
+            const campos = { ...m.cambios, modificadoEn: (/* @__PURE__ */ new Date()).toISOString() };
+            repo.db.prepare(`UPDATE incidencias SET ${Object.keys(campos).map((c) => `${c} = ?`).join(", ")} WHERE id = ?`).run(...Object.values(campos), incidenciaId);
+            t = { ok: true };
+          }
+          if (!t.ok) return { estado: i.estado, aviso: t.error };
+        }
+        if (puede(sesion.rol, "incidencias", "aprobar")) {
+          const c = INC.cambiarEstado(repo, sesion, incidenciaId, "cerrada", { comentario });
+          if (c.ok) return { estado: "cerrada" };
+        }
+        return { estado: "terminada", aviso: "La incidencia queda terminada: cerrarla es del jefe de obra." };
+      }
+      function anular(repo, sesion, ordenId, motivo) {
+        if (!puede(sesion.rol, "ordenesMant", "crear")) return { ok: false, error: SOLO_JEFE };
+        const o = repo.leer("ordenesMant", sesion, ordenId);
+        if (!o) return { ok: false, error: "No se encuentra la orden." };
+        if (!O.puedePasar(o.estado, "anulada")) return { ok: false, error: "Una orden cerrada no se anula." };
+        const texto = String(motivo || "").trim();
+        if (!texto) return { ok: false, error: "Di por qu\xE9 se anula." };
+        repo.modificar("ordenesMant", sesion, ordenId, { estado: "anulada", motivoAnulacion: texto });
+        return { ok: true };
+      }
+      function correctiva(repo, sesion, incidenciaId, { hoy = hoyLocal(), repartir: tambienRepartir = true } = {}) {
+        if (!puede(sesion.rol, "ordenesMant", "crear")) return { ok: false, error: SOLO_JEFE };
+        const i = repo.leer("incidencias", sesion, incidenciaId);
+        if (!i) return { ok: false, error: "No se encuentra la incidencia." };
+        const equipo = i.equipoId ? repo.leer("equiposObra", sesion, i.equipoId) : null;
+        const tipo = equipo ? P.tipoDe(equipo).tipo : null;
+        const gas = equipo ? gasDe(equipo) : null;
+        const r = O.ordenCorrectiva(i, equipo, {
+          existentes: ordenesDe(repo, sesion, i.obraId),
+          hoy,
+          tipoId: tipo ? tipo.id : null,
+          disciplina: tipo ? tipo.disciplina : null,
+          fgasSujeto: Boolean(gas && gas.refrigerante && gas.cargaKg && F.controlFugas(gas).sujeto)
+        });
+        if (!r.ok) return r;
+        const id = repo.crear("ordenesMant", sesion, aFila({ ...r.orden, obraId: i.obraId, creadoPor: sesion.personaId }));
+        const salida = { ok: true, id, codigo: r.orden.codigo };
+        if (tambienRepartir) {
+          const rep = repartir(repo, sesion, i.obraId);
+          salida.asignada = Boolean(rep.ok && rep.asignadas);
+        }
+        return salida;
+      }
+      var ESP_IDS = new Set(G.ESPECIALIDADES.map((e) => e.id));
+      var CARNE_IDS = new Set(A.CARNES.map((c) => c.id));
+      function guardarOperario(repo, sesion, obraId, entrada = {}) {
+        if (!puede(sesion.rol, "ordenesMant", "crear")) return { ok: false, error: SOLO_JEFE };
+        if (!obraVisible(repo, sesion, obraId)) return { ok: false, error: "No se encuentra la obra." };
+        const nombre = String(entrada.nombre || "").trim();
+        if (!nombre) return { ok: false, error: "Falta el nombre." };
+        const especialidades = [...new Set(lista(entrada.especialidades))].filter((e) => ESP_IDS.has(e));
+        if (!especialidades.length) return { ok: false, error: "Elige al menos una especialidad." };
+        const carnes = [];
+        for (const c of lista(entrada.carnes)) {
+          if (!c || !CARNE_IDS.has(c.tipo)) continue;
+          const caduca = c.caduca ? P.fecha(String(c.caduca)) : null;
+          if (c.caduca && !caduca) return { ok: false, error: `La caducidad del carn\xE9 \xAB${c.tipo}\xBB no se entiende.` };
+          carnes.push({ tipo: c.tipo, numero: String(c.numero || "").trim() || null, caduca });
+        }
+        const jornada = entrada.jornadaMin === void 0 || entrada.jornadaMin === "" ? null : Number(entrada.jornadaMin);
+        if (jornada !== null && (!Number.isFinite(jornada) || jornada < 60 || jornada > 720)) return { ok: false, error: "La jornada va en minutos, entre 60 y 720." };
+        const fila = {
+          nombre,
+          empresa: String(entrada.empresa || "").trim() || null,
+          especialidades: JSON.stringify(especialidades),
+          carnes: JSON.stringify(carnes),
+          planta: String(entrada.planta || "").trim() || null,
+          zona: String(entrada.zona || "").trim() || null,
+          jornadaMin: jornada,
+          personaId: entrada.personaId || null,
+          activo: entrada.activo === false || entrada.activo === 0 ? 0 : 1
+        };
+        if (entrada.tarifaHoraMant !== void 0 && puede(sesion.rol, "costsPlan", "ver")) {
+          const t = String(entrada.tarifaHoraMant ?? "").trim().replace(",", ".");
+          fila.tarifaHoraMant = t ? Number(t) : null;
+          if (t && (!Number.isFinite(fila.tarifaHoraMant) || fila.tarifaHoraMant <= 0)) return { ok: false, error: "La tarifa va en \u20AC/h y tiene que ser mayor que cero." };
+        }
+        if (entrada.id) {
+          const actual = repo.leer("operariosMant", sesion, entrada.id);
+          if (!actual || actual.obraId !== obraId) return { ok: false, error: "No se encuentra el operario." };
+          repo.modificar("operariosMant", sesion, entrada.id, fila);
+          return { ok: true, id: entrada.id };
+        }
+        return { ok: true, id: repo.crear("operariosMant", sesion, { ...fila, obraId }) };
+      }
+      function informe(repo, sesion, obraId, mes) {
+        if (!puede(sesion.rol, "ordenesMant", "ver") || soloLasSuyas(sesion)) return null;
+        const o = obraVisible(repo, sesion, obraId);
+        if (!o) return null;
+        if (!/^\d{4}-\d{2}$/.test(String(mes || ""))) mes = hoyLocal().slice(0, 7);
+        const ordenes = ordenesDe(repo, sesion, obraId);
+        const r = O.informeMes(ordenes, mes);
+        const veCoste = ordenes.length === 0 || ordenes.some((x) => "costeMant" in x);
+        return { obra: { id: o.id, codigo: o.codigo, nombre: o.nombre }, ...r, coste: veCoste ? r.coste : null, veCoste };
+      }
+      function costeObraSql(db, obraId) {
+        let filas = [];
+        try {
+          filas = db.prepare(`SELECT o.estado, o.horas, o.costeMant, o.fechaCierre, o.codigo, o.tipo, o.especialidad,
+        p.tarifaHoraMant
+      FROM ordenesMant o LEFT JOIN operariosMant p ON p.id = o.operarioId
+      WHERE o.obraId = ? AND o.estado = 'cerrada'`).all(obraId);
+        } catch {
+          filas = [];
+        }
+        filas = filas.map(({ tarifaHoraMant, ...o }) => {
+          if (o.costeMant !== null && o.costeMant !== void 0 && o.costeMant !== "") return o;
+          const t = A.tarifaDe({ tarifaHoraMant }, o.especialidad);
+          const h = Number(o.horas);
+          return Number.isFinite(h) && h > 0 && Number(t) > 0 ? { ...o, costeMant: Math.round(h * t * 100) / 100, costeCalculado: true } : o;
+        });
+        return { ...O.costeObra(filas), ordenes: filas };
+      }
+      var MIME_FOTO = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" };
+      var claveFoto = (f) => f && (f.nube || f.ruta) || "";
+      function fotoEmbebida(f, rutas) {
+        try {
+          const ruta = rutas && rutas.get(claveFoto(f)) || f.ruta;
+          const mime = MIME_FOTO[require_path().extname(ruta || f.nombre || "").toLowerCase()];
+          const fs = require_fs();
+          if (!mime || !ruta || !fs.existsSync(ruta)) return null;
+          return { nombre: f.nombre || "", src: `data:${mime};base64,${fs.readFileSync(ruta).toString("base64")}` };
+        } catch {
+          return null;
+        }
+      }
+      var datosObra = (o) => ({ id: o.id, codigo: o.codigo, nombre: o.nombre });
+      function fotosParaDocumento(repo, sesion, ordenId) {
+        const f = ficha(repo, sesion, ordenId);
+        return f ? f.orden.fotos || [] : [];
+      }
+      function documentoOrden(repo, sesion, ordenId, { rutas = null, hoy = hoyLocal() } = {}) {
+        const f = ficha(repo, sesion, ordenId);
+        if (!f) return { error: "No se encuentra la orden (o no es tuya)." };
+        if (f.orden.estado !== "cerrada") return { error: "El PDF es de las \xF3rdenes cerradas." };
+        const ob = obraVisible(repo, sesion, f.orden.obraId) || {};
+        const esp = G.ESPECIALIDAD_POR_ID.get(f.orden.especialidad);
+        return INF.ordenHtml({
+          obra: datosObra(ob),
+          orden: f.orden,
+          equipo: f.equipo,
+          operario: f.operario,
+          incidencia: f.incidencia,
+          especialidad: esp ? esp.nombre : f.orden.especialidad,
+          hoy,
+          fotos: (f.orden.fotos || []).map((x) => fotoEmbebida(x, rutas)).filter(Boolean)
+        });
+      }
+      function documentoInforme(repo, sesion, obraId, mes, { hoy = hoyLocal() } = {}) {
+        const r = informe(repo, sesion, obraId, mes);
+        if (!r) return { error: "Tu rol no tiene el informe de mantenimiento." };
+        const operarios = new Map(operariosDe(repo, sesion, obraId).map((o) => [o.id, o.nombre]));
+        const nombreEsp = (id) => (G.ESPECIALIDAD_POR_ID.get(id) || {}).nombre || id;
+        const cerradas = ordenesDe(repo, sesion, obraId).filter((o) => o.estado === "cerrada" && String(o.fechaCierre || "").slice(0, 7) === r.mes).sort((a, b) => String(a.fechaCierre).localeCompare(String(b.fechaCierre)) || String(a.codigo).localeCompare(String(b.codigo), "es", { numeric: true })).map((o) => ({ ...o, operario: operarios.get(o.operarioId) || "", especialidadNombre: nombreEsp(o.especialidad) }));
+        const inf = { ...r, especialidades: r.especialidades.map((e) => ({ ...e, nombre: nombreEsp(e.especialidad) })) };
+        return { ...INF.informeMesHtml({ obra: r.obra, informe: inf, cerradas, hoy, veCoste: r.veCoste }), n: r.preventivo.previstas + r.ordenesCerradas };
+      }
+      var equiposDoc = (repo, sesion, obraId) => repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] }).map((e) => ({
+        id: e.id,
+        tag: e.tag,
+        planta: e.planta || "",
+        zona: e.zona || "",
+        marca: e.marca || "",
+        modelo: e.modelo || "",
+        numSerie: e.numSerie || "",
+        denominacion: e.denominacion || "",
+        tipo: (P.tipoDe(e).tipo || {}).nombre || "",
+        gas: gasDe(e)
+      }));
+      function documentoLibro(repo, sesion, obraId, { desde = "", hasta = "", hoy = hoyLocal() } = {}) {
+        if (!puede(sesion.rol, "mantenimiento", "ver")) return { error: "Tu rol no tiene el libro de mantenimiento." };
+        const ob = obraVisible(repo, sesion, obraId);
+        if (!ob) return { error: "No se encuentra la obra." };
+        const registros = repo.listar("registrosMant", sesion, { condicion: "obraId = ?", params: [obraId] });
+        return INF.libroHtml({ obra: datosObra(ob), equipos: equiposDoc(repo, sesion, obraId), registros, desde, hasta, hoy });
+      }
+      function documentoFgas(repo, sesion, obraId, { hoy = hoyLocal() } = {}) {
+        if (!puede(sesion.rol, "mantenimiento", "ver")) return { error: "Tu rol no tiene el registro F-gas." };
+        const ob = obraVisible(repo, sesion, obraId);
+        if (!ob) return { error: "No se encuentra la obra." };
+        const equipos = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
+        const registros = repo.listar("registrosMant", sesion, { condicion: "obraId = ?", params: [obraId] });
+        const { sujetos, sinDatos } = fgasDeObra(equipos, registros, hoy);
+        return INF.registroFgasHtml({ obra: datosObra(ob), sujetos, sinDatos, controles: registros.filter((r) => r.operacion === F.OPERACION), hoy });
+      }
+      module.exports = {
+        obra,
+        ficha,
+        misTareas,
+        generar,
+        repartir,
+        candidatos,
+        asignar,
+        empezar,
+        devolver,
+        guardarAvance,
+        cerrar,
+        anular,
+        correctiva,
+        guardarOperario,
+        guardarGas,
+        informe,
+        costeObraSql,
+        gasDe,
+        fgasDeObra,
+        fotosParaDocumento,
+        documentoOrden,
+        documentoInforme,
+        documentoLibro,
+        documentoFgas
+      };
+    }
+  });
+
   // shared/cargaObra.js
   var require_cargaObra = __commonJS({
     "shared/cargaObra.js"(exports, module) {
@@ -87653,6 +90980,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           pendientes,
           certificado: certificadoDe(repo, obra, arbol),
           reparaciones: require_incidencias().costesReparaciones(repo, obra.id),
+          mantenimiento: require_ordenesMant().costeObraSql(repo.db, obra.id),
           prov
         };
       }
@@ -91448,6 +94776,208 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
     }
   });
 
+  // electron/movil/rutasMantenimiento.js
+  var require_rutasMantenimiento = __commonJS({
+    "electron/movil/rutasMantenimiento.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var fs = require_fs();
+      var path = require_path();
+      var crypto2 = require_crypto();
+      var OM = require_ordenesMant();
+      var O = require_ordenes();
+      var G = require_gamas();
+      var A = require_asignacion();
+      var { puede } = require_roles();
+      var { hoyLocal } = require_fecha();
+      var PERMISOS_MANTENIMIENTO = {
+        "GET api/mistareas": [["ordenesMant", "ver"]],
+        "GET api/orden": [["ordenesMant", "ver"]],
+        "POST api/orden/empezar": [["ordenesMant", "editar"]],
+        "POST api/orden/avance": [["ordenesMant", "editar"]],
+        "POST api/orden/foto": [["ordenesMant", "editar"]],
+        "GET api/orden/foto": [["ordenesMant", "ver"]],
+        "POST api/orden/devolver": [["ordenesMant", "editar"]],
+        "POST api/orden/cerrar": [["ordenesMant", "editar"]]
+      };
+      var llano = (v) => String(v ?? "").trim();
+      var TIPO_DE_EXT = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".heic": "image/heic", ".heif": "image/heif", ".webp": "image/webp" };
+      var EXT_DE_TIPO = { "image/jpeg": ".jpg", "image/png": ".png", "image/heic": ".heic", "image/heif": ".heif", "image/webp": ".webp" };
+      var MAX_FOTOS = 30;
+      function filaMovil(o, hoy) {
+        const esp = G.ESPECIALIDAD_POR_ID.get(o.especialidad);
+        const carne = o.carne ? A.CARNE_POR_ID.get(o.carne) : null;
+        return {
+          id: o.id,
+          obraId: o.obraId,
+          codigo: o.codigo,
+          tipo: o.tipo,
+          tipoNombre: (O.TIPOS[o.tipo] || {}).nombre || o.tipo,
+          estado: o.estado,
+          estadoNombre: (O.ESTADOS[o.estado] || {}).nombre || o.estado,
+          abierta: O.abierta(o),
+          equipoId: o.equipoId || null,
+          equipoTag: o.equipoTag || "",
+          planta: o.planta || "",
+          zona: o.zona || "",
+          especialidad: o.especialidad,
+          especialidadNombre: esp ? esp.nombre : o.especialidad || "",
+          carne: carne ? carne.nombre : null,
+          minutos: Number(o.minutosEstimados) || null,
+          fechaPrevista: o.fechaPrevista || null,
+          prioridad: o.prioridad || "media",
+          atrasada: Boolean(O.abierta(o) && o.fechaPrevista && o.fechaPrevista < hoy),
+          operaciones: (o.operaciones || []).length,
+          operarioId: o.operarioId || null,
+          incidenciaId: o.incidenciaId || null,
+          fechaCierre: o.fechaCierre || null
+        };
+      }
+      function crearRutasMantenimiento({ repo, carpeta, fotosPedidas, soltar }) {
+        const carpetaMant = () => path.join(carpeta, "mantenimiento");
+        const esOperario = (ses) => ses.rol === "operario";
+        function lista({ ses, query }) {
+          const hoy = hoyLocal();
+          const m = OM.misTareas(repo, ses, hoy);
+          if (!m) return { ok: false, error: "Tu rol no tiene las \xF3rdenes de mantenimiento." };
+          const salida = {
+            ok: true,
+            hoy,
+            tareas: m.tareas.map((o) => filaMovil(o, hoy)),
+            cerradas: m.cerradas.map((o) => filaMovil(o, hoy)),
+            obra: null
+          };
+          const obraId = llano(query.obra);
+          if (obraId && !esOperario(ses)) {
+            const d = OM.obra(repo, ses, obraId, hoy);
+            if (d) {
+              const nombres = new Map(d.operarios.map((x) => [x.id, x.nombre]));
+              salida.obra = d.ordenes.filter(O.abierta).map((o) => ({ ...filaMovil(o, hoy), operario: nombres.get(o.operarioId) || "" }));
+            }
+          }
+          return salida;
+        }
+        function ficha({ ses, query }) {
+          const f = OM.ficha(repo, ses, llano(query.id));
+          if (!f) return { ok: false, error: "No se encuentra la orden (o no es tuya)." };
+          const o = f.orden;
+          const hoy = hoyLocal();
+          const editar = puede(ses.rol, "ordenesMant", "editar");
+          let mia = !esOperario(ses);
+          if (!mia) {
+            const yo = repo.listar("operariosMant", ses, { condicion: "obraId = ? AND personaId = ?", params: [o.obraId, ses.personaId], limite: 1 })[0];
+            mia = Boolean(yo && yo.id === o.operarioId);
+          }
+          return {
+            ok: true,
+            orden: {
+              ...filaMovil(o, hoy),
+              lista: o.operaciones || [],
+              checklist: (o.checklist || []).map((c) => ({ texto: c.texto, valor: c.valor ?? null })),
+              medidas: (o.medidas || []).map((x) => ({ id: x.id, nombre: x.nombre, unidad: x.unidad, min: x.min, max: x.max, valor: x.valor ?? null })),
+              fotos: (o.fotos || []).map((x, i) => ({ indice: i, nombre: x.nombre || "", fecha: x.fecha || null })),
+              observaciones: o.observaciones || "",
+              horas: o.horas ?? null,
+              firmadoPor: o.firmadoPor || "",
+              firmada: Boolean(o.firma),
+              fechaInicio: o.fechaInicio || null,
+              motivoAsignacion: o.motivoAsignacion || ""
+            },
+            equipo: f.equipo,
+            incidencia: f.incidencia,
+            operario: f.operario ? { nombre: f.operario.nombre, empresa: f.operario.empresa || "" } : null,
+            puede: {
+              empezar: editar && mia && O.puedePasar(o.estado, "enCurso") && o.estado !== "pendiente" && o.estado !== "cerrada",
+              apuntar: editar && mia && o.estado === "enCurso",
+              cerrar: editar && mia && o.estado === "enCurso",
+              devolver: editar && mia && o.estado === "enCurso"
+            },
+            valores: O.VALORES_CHECK
+          };
+        }
+        const id = (e) => llano(e.id);
+        function empezar({ ses, json }) {
+          return OM.empezar(repo, ses, id(json()));
+        }
+        function avance({ ses, json }) {
+          const e = json();
+          return OM.guardarAvance(repo, ses, id(e), { checklist: e.checklist, medidas: e.medidas, observaciones: e.observaciones });
+        }
+        function devolver({ ses, json }) {
+          const e = json();
+          return OM.devolver(repo, ses, id(e), e.motivo);
+        }
+        function cerrar({ ses, json }) {
+          const e = json();
+          const r = OM.cerrar(repo, ses, id(e), {
+            checklist: e.checklist,
+            medidas: e.medidas,
+            firma: e.firma,
+            firmadoPor: e.firmadoPor,
+            horas: e.horas,
+            fecha: e.fecha,
+            observaciones: e.observaciones
+          });
+          if (!r.ok) return r;
+          const { coste, ...sinDinero } = r;
+          return sinDinero;
+        }
+        function fotoNueva({ ses, json }) {
+          const e = json();
+          const f = OM.ficha(repo, ses, id(e));
+          if (!f) return { ok: false, error: "No se encuentra la orden (o no es tuya)." };
+          const o = f.orden;
+          if (o.estado !== "enCurso") return { ok: false, error: "Empieza la orden para hacerle fotos." };
+          const antes = o.fotos || [];
+          const pedidas = Array.isArray(e.fotos) ? e.fotos.slice(0, 10).map(String) : [];
+          if (antes.length + pedidas.length > MAX_FOTOS) return { ok: false, error: `Una orden lleva como mucho ${MAX_FOTOS} fotos.` };
+          const p = fotosPedidas(pedidas, { sinPdf: true });
+          if (p.error) return { ok: false, error: p.error };
+          fs.mkdirSync(carpetaMant(), { recursive: true });
+          const ahora = (/* @__PURE__ */ new Date()).toISOString();
+          const nuevas = p.fotos.map((x) => {
+            const destino = path.join(carpetaMant(), `${String(o.codigo).replace(/[^A-Za-z0-9_-]/g, "_")}-${crypto2.randomBytes(6).toString("hex")}${EXT_DE_TIPO[x.tipo] || ".jpg"}`);
+            fs.writeFileSync(destino, fs.readFileSync(x.ruta));
+            return { ruta: destino, nombre: path.basename(destino), fecha: ahora, id: x.id };
+          });
+          const r = OM.guardarAvance(repo, ses, o.id, { fotos: [...antes, ...nuevas.map(({ id: _, ...resto }) => resto)] });
+          if (r.ok) for (const x of nuevas) soltar(x.id);
+          else for (const x of nuevas) {
+            try {
+              fs.unlinkSync(x.ruta);
+            } catch {
+            }
+          }
+          return r.ok ? { ok: true, fotos: antes.length + nuevas.length } : r;
+        }
+        function foto({ ses, query }) {
+          const f = OM.ficha(repo, ses, llano(query.id));
+          if (!f) return [404, { ok: false, error: "No se encuentra la orden." }];
+          const x = (f.orden.fotos || [])[Number(query.i)];
+          if (!x || !x.ruta) return [404, { ok: false, error: "No est\xE1 esa foto." }];
+          const tipo = TIPO_DE_EXT[path.extname(x.ruta).toLowerCase()];
+          if (!tipo) return [415, { ok: false, error: "Esa foto no se puede ense\xF1ar en el m\xF3vil." }];
+          try {
+            return { bytes: fs.readFileSync(x.ruta), tipo };
+          } catch {
+            return [404, { ok: false, error: "La foto ya no est\xE1 en su carpeta." }];
+          }
+        }
+        return {
+          "GET api/mistareas": lista,
+          "GET api/orden": ficha,
+          "POST api/orden/empezar": empezar,
+          "POST api/orden/avance": avance,
+          "POST api/orden/foto": fotoNueva,
+          "GET api/orden/foto": foto,
+          "POST api/orden/devolver": devolver,
+          "POST api/orden/cerrar": cerrar
+        };
+      }
+      module.exports = { crearRutasMantenimiento, PERMISOS_MANTENIMIENTO, filaMovil };
+    }
+  });
+
   // electron/movil/manejador.js
   var require_manejador = __commonJS({
     "electron/movil/manejador.js"(exports, module) {
@@ -91467,6 +94997,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       var { crearRutasReparaciones, PERMISOS_REPARACIONES } = require_rutasReparaciones();
       var { crearRutasAvance, PERMISOS_AVANCE } = require_rutasAvance();
       var { crearRutasPlanificacion, PERMISOS_PLANIFICACION } = require_rutasPlanificacion();
+      var { crearRutasMantenimiento, PERMISOS_MANTENIMIENTO } = require_rutasMantenimiento();
       var PERMISOS = {
         "GET api/albaranes": [["pedidos", "ver"]],
         "POST api/formulario": [["pedidos", "ver"]],
@@ -91481,7 +95012,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         "POST api/parte": [["partesIncidencia", "crear"]],
         "GET api/estanqueidad": [["pruebasEstanqueidad", "ver"]],
         "POST api/estanqueidad": [["pruebasEstanqueidad", "crear"]],
-        "POST api/foto": [["pedidos", "crear"], ["commissioning", "editar"], ["partesIncidencia", "crear"], ["pruebasEstanqueidad", "crear"], ["ncr", "crear"], ["notas", "crear"], ["incidencias", "editar"]],
+        "POST api/foto": [["pedidos", "crear"], ["commissioning", "editar"], ["partesIncidencia", "crear"], ["pruebasEstanqueidad", "crear"], ["ncr", "crear"], ["notas", "crear"], ["incidencias", "editar"], ["ordenesMant", "editar"]],
         /* Commissioning, NCR, inventario y bloc (electron/movil/rutasObra.js). */
         ...PERMISOS_OBRA,
         /* Las reparaciones de equipos (electron/movil/rutasReparaciones.js). */
@@ -91489,7 +95020,9 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         /* El avance de obra sobre planos (electron/movil/rutasAvance.js). */
         ...PERMISOS_AVANCE,
         /* «Lo que me toca» del Inicio (electron/movil/rutasPlanificacion.js). */
-        ...PERMISOS_PLANIFICACION
+        ...PERMISOS_PLANIFICACION,
+        /* «Mis tareas»: las órdenes de mantenimiento (electron/movil/rutasMantenimiento.js). */
+        ...PERMISOS_MANTENIMIENTO
       };
       var RUTAS_BINARIAS = /* @__PURE__ */ new Set(["api/foto", "api/qr"]);
       function permitida(rol, metodo, ruta) {
@@ -91684,7 +95217,8 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           ...rutasObra,
           ...crearRutasReparaciones({ repo, carpeta: carpetaDocumentos || carpeta, fotosPedidas, soltar }),
           ...crearRutasAvance({ repo, carpeta: carpetaDocumentos || carpeta, fotosPedidas, soltar }),
-          ...crearRutasPlanificacion({ repo })
+          ...crearRutasPlanificacion({ repo }),
+          ...crearRutasMantenimiento({ repo, carpeta: carpetaDocumentos || carpeta, fotosPedidas, soltar })
         };
         async function atender({ metodo, ruta, query = {}, cabeceras = {}, cuerpo = Buffer.alloc(0) }) {
           const res = (codigo, json2) => ({ codigo, json: json2 });
