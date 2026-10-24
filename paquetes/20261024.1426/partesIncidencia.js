@@ -323,13 +323,6 @@ function repercusionHtml(parte, tot) {
  * ajena, la suya. Vidaire Cx lo dice al arrancar con globalThis.CX_VARIANTE.
  */
 const marcaDocumento = () => (globalThis.CX_VARIANTE === 'cxobra' ? 'Vidaire Cx' : 'CBRE · Project Management');
-/** El logo de la empresa de la obra (shared/papel.js); en Vidaire Cx nada: ya va su marca en texto. */
-function logoMarca(obra) {
-  let P = null;
-  try { P = typeof require === 'function' ? require('../papel') : (typeof window !== 'undefined' ? window.PAPEL : null); } catch { P = typeof window !== 'undefined' ? window.PAPEL : null; }
-  const logo = P && P.logoObra ? P.logoObra(obra, { alto: '7mm', soloLogo: true }) : '';
-  return logo ? `<p class="logoMarca" style="margin:0 0 1.5mm">${logo}</p>` : '';
-}
 
 /**
  * EL PARTE EN PAPEL (para el PDF). Con `conDinero` sale la valoración (venta y
@@ -358,7 +351,6 @@ function html({ parte = {}, lineas = [], obra = {}, emisor = {}, proveedor = nul
 <article class="documentoParte">
   <header class="cabeceraParte">
     <div>
-      ${logoMarca(obra)}
       <p class="marca">${esc(marcaDocumento())}</p>
       <h1>Parte de incidencia · ${esc(t.nombre)}</h1>
       <p class="ref">Referencia <strong>${esc(parte.codigo)}</strong>${obra.codigo ? ` · Obra ${esc(obra.codigo)}` : ''}</p>

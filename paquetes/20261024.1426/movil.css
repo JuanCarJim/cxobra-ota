@@ -1241,7 +1241,7 @@ main, #app { min-width: 0; max-width: 100%; }
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   padding: 6px 6px 6px 14px; border-radius: 14px;
   background: var(--barra-solida); border: 1px solid var(--rejilla);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, .14);
+  box-shadow: none; border-top: 2px solid var(--acento);
 }
 .barra-guardar .estado-guardar { font-size: 13.5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .barra-guardar .estado-guardar.pendiente { color: var(--aviso); font-weight: 600; }
@@ -1250,7 +1250,7 @@ main, #app { min-width: 0; max-width: 100%; }
 #app .barra-guardar .boton { margin: 0; flex: none; width: auto; min-height: 38px; padding: 4px 22px; }
 #app .barra-guardar .boton:disabled { opacity: .45; }
 /* Que lo último de la ficha no quede debajo de la barra. */
-#app:has(.barra-guardar) { padding-bottom: 80px; }
+#app:has(.barra-guardar) { padding-bottom: calc(var(--hueco-barra) + 76px + env(safe-area-inset-bottom)); }
 
 /* ═══════════════ Revisión UX 18-oct (cxobra/docs/ux/revision-18oct.md) */
 /* Cabecera del iPhone: el título entero junto a la pastilla; el nombre ya sale en Cuenta. */
@@ -1413,34 +1413,32 @@ main, #app { min-width: 0; max-width: 100%; }
   #app .resumen-fila.ocho > :first-child { border-left: 0; }
 }
 
-/* ═══════════════ Inventario de campo (24-oct): tablas densas como las del escritorio.
-   Cabecera sin fondo, texto y línea teal; sin tarjetas ni sombras. */
-#app .invc { margin: 6px 0 10px; border: 0; border-radius: 0; box-shadow: none; }
-.invc .cab, .invc-fila { display: grid; grid-template-columns: minmax(0, 1fr) 62px 62px; gap: 6px; align-items: center; padding: 7px 4px; }
-.invc .cab { background: none; color: var(--acento); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; border-bottom: 2px solid var(--acento); padding-top: 3px; padding-bottom: 3px; }
-.invc .cab span:not(:first-child), .invc-fila > b { text-align: right; }
-.invc .cab.cab-mov, .invc-fila.mov { grid-template-columns: minmax(0, 1fr) 78px; }
-.invc .cab.cab-ped, .invc-fila.ped { grid-template-columns: minmax(0, 1fr) 46px 50px 46px; }
-.invc-fila { border-bottom: 1px solid var(--rejillaSuave); background: none; cursor: pointer; min-height: 44px; }
-.invc-fila.mov, .invc-fila.ped { cursor: default; }
-.invc-fila.abierta { background: var(--acento-suave); }
-.invc-fila .mat { min-width: 0; overflow-wrap: anywhere; }
-.invc-fila .mat strong { display: block; font-size: 14px; font-weight: 600; line-height: 1.25; }
-.invc-fila .mat small { display: block; font-size: 12px; color: var(--textoTenue); line-height: 1.4; }
-.invc-fila > b { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.invc-fila > b small { font-size: 11px; font-weight: 500; color: var(--textoTenue); }
-.invc-fila > b.bien { color: var(--bien); }
-.invc-fila > b.aviso { color: var(--aviso); }
-.invc-fila > b.info { color: var(--acento); }
-#app .invc-fila .chip { padding: 1px 7px; font-size: 11px; }
-.invc-editor { background: var(--acento-suave); padding: 4px 10px 12px; border-bottom: 1px solid var(--rejilla); margin-bottom: 4px; }
-#app .invc-editor .campos { margin-top: 6px; gap: 8px; }
-.invc-editor label { margin-top: 6px; }
-#app .invc-editor input { min-height: 40px; margin-top: 3px; padding: 6px 10px; }
-.invc-botones { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; }
-#app .invc-botones .boton { margin: 0; min-height: 44px; font-size: 15px; }
-.invc-borrador { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0; padding: 6px 4px; border-top: 2px solid var(--acento); border-bottom: 1px solid var(--rejilla); font-size: 14px; }
-.invc-borrador span { flex: 1 1 100%; }
-#app .invc-borrador .boton { margin: 0; min-height: 40px; width: auto; flex: 1 1 auto; font-size: 14px; }
-#app .invc-nuevo { margin: 4px 0 8px; min-height: 40px; font-size: 14px; width: auto; }
-.invc-titulo { margin: 14px 0 2px; font-size: 14px; font-weight: 700; color: var(--acento); }
+/* Ficha de una orden de mantenimiento (Mis tareas): subsecciones, cada una en una pantalla de iPhone. */
+#app .subsecciones-ot { display: flex; margin: 6px 0; overflow-x: auto; scrollbar-width: none; }
+#app .subsecciones-ot::-webkit-scrollbar { display: none; }
+#app .subsecciones-ot button { flex: 1 1 auto; white-space: nowrap; padding: 7px 6px; font-size: 13px; }
+#app .subsecciones-ot button.hecha { color: var(--bien); }
+#app .subsecciones-ot button.activa { color: var(--acento-fuerte); }
+#app .subsecciones-ot .visto { font-weight: 700; }
+#app .subsecciones-ot small { font-size: 11.5px; opacity: .8; }
+#app .sec-ot { padding-bottom: 12px; }
+#app .sec-ot > h2 { margin: 10px 0 4px; }
+#app .grupo.compacto .fila-dato > span { flex: none; min-width: 96px; white-space: nowrap; }
+#app .grupo.compacto .fila-dato { min-height: 30px; padding: 3px 12px; font-size: 13.5px; }
+#app .lista-ot { margin: 4px 0; padding-left: 22px; font-size: 14px; }
+#app .lista-ot li { padding: 1px 0; }
+#app .lista-check-ot { list-style: none; margin: 4px 0; padding: 0; }
+#app .lista-check-ot > .check-ot { display: flex; flex-direction: row; align-items: center; justify-content: space-between; text-align: left; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--rejillaSuave); font-size: 13.5px; }
+#app .check-ot > span { flex: 1 1 auto; min-width: 0; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+#app .check-ot.mal > span { color: var(--mal); }
+#app .check-ot .check-ot-opciones { flex: none; margin: 0; display: grid; grid-template-columns: repeat(3, 48px); width: auto; gap: 0; }
+#app .check-ot .check-ot-opciones button + button { border-left: 1px solid var(--rejilla); border-radius: 0; }
+#app .check-ot .check-ot-opciones button { min-height: 44px; padding: 0; font-size: 13px; white-space: nowrap; }
+#app .campos-ot label { display: block; margin: 6px 0; font-size: 13.5px; }
+#app .siguiente-ot { width: 100%; margin: 12px 0 0; }
+#app canvas[data-mt-firma] { width: 100%; height: 130px; border: 1px solid var(--rejilla); border-radius: 8px; background: var(--panel); touch-action: none; }
+
+/* Estados de las órdenes en «Mis tareas»: sin ámbar ni amarillo (JC, 24-oct). */
+#app .chip.azul { background: #E3EEF7; color: #1B4F78; }
+#app .chip.porCerrar { background: transparent; color: var(--acento-fuerte); border: 1.5px solid var(--acento); }
+#app .nota.atrasada { color: var(--mal); background: var(--mal-fondo); padding: 6px 10px; border-radius: var(--radio); }
