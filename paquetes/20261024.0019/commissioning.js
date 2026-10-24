@@ -60,7 +60,7 @@
   async function cargarLista() {
     ficha = null; hoja = null; pilaEquipos = [];
     bocaAbierta = null; grandeId = null;
-    document.body.classList.remove('con-hoja-boca', 'sin-scroll');
+    document.body.classList.remove('sin-scroll');
     /* Desde una cifra del Inicio: la lista llega ya filtrada. */
     try { const v = sessionStorage.getItem('cx.segmento'); if (v) { segmento = v; sessionStorage.removeItem('cx.segmento'); AGRUPAR.forEach(([id]) => C.reiniciarLista(`cx-equipos-${id}`)); } } catch { /* nada */ }
     await C.obrasListas();
@@ -407,7 +407,7 @@
       <div class="densa">${cuerpo}</div>`;
     C.cargarImagenes($app);
     if (pestanaEq === 'balanceo') { restaurarPlano(); latirCrono(); }
-    else { bocaAbierta = null; grandeId = null; document.body.classList.remove('con-hoja-boca', 'sin-scroll'); }
+    else { bocaAbierta = null; grandeId = null; document.body.classList.remove('sin-scroll'); }
   }
 
   /* «Balanceo de caudales», «Caudales de extracción»… según lo que se mide. */
@@ -574,59 +574,58 @@
   }, true);
 
   /*
-   * LA TARJETA DE UNA BOCA, ABAJO (16-oct-2026, JC: «al pulsar un difusor,
-   * que salga su tarjeta para meter la medición»). Es la misma boca de la
-   * lista, llevada a una hoja que sube desde abajo (y devuelta a su sitio al
-   * cerrarla): se guarda igual, al salir de ella o con Intro, y el plano
-   * sigue a la vista por encima.
+   * UNA SOLA BOCA EN EL LISTADO (23-oct-2026, JC: «si pulsas un difusor, que
+   * salga solo ese en el listado»). Al pulsar una marca del plano el listado
+   * se filtra a esa boca (la misma ficha de siempre, un único formulario, se
+   * guarda igual) con una barra «Solo I17 · Anterior · Siguiente · Ver todas».
    */
-  function abrirHojaBoca(clave) {
-    cerrarHojaBoca({ seguir: true });
+  const bocaVisible = () => $app.querySelector('.densa li[data-boca]:not(.fuera-filtro)');
+  function abrirHojaBoca(clave, { foco = false } = {}) {
+    quitarFiltroBoca();
     const li = $app.querySelector(`.densa li[data-boca="${CSS.escape(clave)}"]`);
     if (!li) { bocaAbierta = null; return; }
     bocaAbierta = clave;
-    const hueco = document.createElement('li');
-    hueco.className = 'hueco-boca';
-    hueco.hidden = true;
-    hueco.dataset.hueco = clave;
-    li.replaceWith(hueco);
-    const hojaB = document.createElement('div');
-    hojaB.className = 'hoja-boca';
-    hojaB.setAttribute('role', 'dialog');
-    hojaB.setAttribute('aria-label', 'Medición de la boca');
-    hojaB.innerHTML = `<div class="hoja-boca-cab"><span class="asa"></span>
-      <button class="enlace" data-cx="boca-anterior" aria-label="Boca anterior">‹ Anterior</button>
-      <button class="enlace" data-cx="boca-siguiente" aria-label="Boca siguiente">Siguiente ›</button>
-      <button class="enlace" data-cx="cerrar-boca">Listo</button></div><ul class="bocas"></ul>`;
-    hojaB.querySelector('ul').appendChild(li);
-    $app.appendChild(hojaB);
-    document.body.classList.add('con-hoja-boca');
+    const ul = li.closest('ul');
+    for (const x of ul.querySelectorAll('li[data-boca]')) x.classList.toggle('fuera-filtro', x !== li);
+    const nombre = (li.querySelector('.boca-cabeza strong') || {}).textContent || '';
+    const barra = document.createElement('div');
+    barra.className = 'filtro-boca';
+    barra.innerHTML = `<span class="solo">Solo <b></b></span>
+      <button class="enlace" data-cx="boca-anterior" aria-label="Boca anterior">‹</button>
+      <button class="enlace" data-cx="boca-siguiente" aria-label="Boca siguiente">›</button>
+      <button class="enlace" data-cx="cerrar-boca">Ver todas</button>`;
+    barra.querySelector('b').textContent = nombre;
+    ul.before(barra);
     for (const m of $app.querySelectorAll('.marca-boca.elegida')) m.classList.remove('elegida');
     const marca = $app.querySelector(`.marca-boca[data-boca="${CSS.escape(clave)}"]`);
     if (marca) marca.classList.add('elegida');
+    if (foco) {
+      const c = casillas(li)[0];
+      if (c) { try { c.focus({ preventScroll: true }); } catch (e) { c.focus(); } }
+      barra.scrollIntoView({ block: 'nearest' });
+    }
+  }
+  function quitarFiltroBoca() {
+    for (const f of $app.querySelectorAll('.filtro-boca')) f.remove();
+    for (const x of $app.querySelectorAll('li.fuera-filtro')) x.classList.remove('fuera-filtro');
   }
   function cerrarHojaBoca({ seguir = false } = {}) {
-    const hojaB = $app.querySelector('.hoja-boca');
     if (!seguir) bocaAbierta = null;
-    if (!hojaB) return;
-    const li = hojaB.querySelector('li[data-boca]');
     /* Lo tecleado se guarda al salir: quitar el foco dispara el guardado. */
+    const li = bocaVisible();
     if (li && li.contains(document.activeElement)) document.activeElement.blur();
-    const hueco = $app.querySelector('li.hueco-boca');
-    if (li && hueco) hueco.replaceWith(li); else if (hueco) hueco.remove();
-    hojaB.remove();
-    document.body.classList.remove('con-hoja-boca');
+    quitarFiltroBoca();
     for (const m of $app.querySelectorAll('.marca-boca.elegida')) m.classList.remove('elegida');
   }
   /* La boca de al lado, en el orden de la lista. */
   function bocaVecina(paso) {
-    const claves = [...$app.querySelectorAll('.densa li[data-boca], .densa li.hueco-boca')].map((x) => x.dataset.boca || x.dataset.hueco);
+    const claves = [...$app.querySelectorAll('.densa li[data-boca]')].map((x) => x.dataset.boca);
     const sig = claves[claves.indexOf(bocaAbierta) + paso];
-    if (sig) abrirHojaBoca(sig);
+    if (sig) abrirHojaBoca(sig, { foco: true });
   }
 
   function irABoca(clave) {
-    abrirHojaBoca(clave);
+    abrirHojaBoca(clave, { foco: true });
   }
 
   /* Tras repintar la ficha: el zoom de cada plano, la pantalla completa y la tarjeta abierta, como estaban. */
@@ -643,7 +642,7 @@
       if (img) img.addEventListener('load', () => aplicarVista(fig), { once: true });
     }
     if (!grandeId) document.body.classList.remove('sin-scroll');
-    if (bocaAbierta) abrirHojaBoca(bocaAbierta); else document.body.classList.remove('con-hoja-boca');
+    if (bocaAbierta) abrirHojaBoca(bocaAbierta);
   }
 
   function planoGrande(boton) {
@@ -920,8 +919,6 @@
       if (destino === 'siguiente' && bocaAbierta) {
         /* Con la tarjeta abierta desde el plano, Intro pasa a la boca siguiente en la misma tarjeta. */
         bocaVecina(1);
-        const li2 = $app.querySelector('.hoja-boca li[data-boca]');
-        if (li2 && casillas(li2)[0]) casillas(li2)[0].focus();
       } else if (destino === 'siguiente') {
         const bocas = [...$app.querySelectorAll('li[data-boca]')];
         const i = bocas.findIndex((x) => x.dataset.boca === claveBoca(plano, punto));
@@ -935,6 +932,37 @@
       C.aviso(e.message);
       ins.forEach((x) => { x.disabled = false; x.value = x.defaultValue; });
     }
+  }
+
+  /*
+   * GUARDAR MIENTRAS SE ESCRIBE (23-oct-2026, JC: «la sincronización con el
+   * ordenador debe de ser instantánea»): antes la boca solo se guardaba al
+   * salir de ella, así que lo último tecleado no llegaba a la oficina hasta
+   * tocar otra boca. Ahora, a los ~0,8 s sin teclear, se guarda en silencio:
+   * sin bloquear las casillas ni repintar (se sigue escribiendo). Al guardar,
+   * la base cambia y la sincronización sube sola (cxobra/arranque.js › tras).
+   * Al salir de la boca se hace el guardado de siempre, que repinta.
+   */
+  const ESPERA_GUARDAR_BOCA = 800;
+  const temporizadores = new WeakMap();
+  function guardarBocaPronto(li) {
+    clearTimeout(temporizadores.get(li));
+    temporizadores.set(li, setTimeout(() => { guardarBocaEnSilencio(li); }, ESPERA_GUARDAR_BOCA));
+  }
+  async function guardarBocaEnSilencio(li) {
+    if (!li.isConnected || !activa() || !cambiada(li)) return;
+    const ins = casillas(li);
+    if (!ins.length) return;
+    const { plano, punto } = ins[0].dataset;
+    const enviado = ins.map((x) => x.value);
+    try {
+      const r = await C.postJson('api/boca', { planoId: plano, puntoId: punto, ...cuerpoBoca(ins) });
+      if (!r.ok) return; /* el error se dirá al salir de la boca */
+      ficha = r;
+      /* Lo que no ha cambiado mientras viajaba ya está guardado; lo demás sigue pendiente. */
+      ins.forEach((x, i) => { if (x.value === enviado[i]) x.defaultValue = x.value; });
+      li.dataset.guardada = '1';
+    } catch { /* sin conexión de datos no hay nada que hacer aquí: se reintenta al salir */ }
   }
 
   /* El equipo de medida de una boca, o de todas: se guarda ya. Lo medido no
@@ -1751,7 +1779,7 @@
   $app.addEventListener('change', (ev) => { if (activa() && hoja) anotar(ev.target); });
   $app.addEventListener('input', (ev) => {
     if (activa() && hoja) { anotar(ev.target); return; }
-    if (activa() && ev.target.dataset && ev.target.dataset.punto) { const li = ev.target.closest('li[data-boca]'); if (li) vivoBoca(li); return; }
+    if (activa() && ev.target.dataset && ev.target.dataset.punto) { const li = ev.target.closest('li[data-boca]'); if (li) { vivoBoca(li); guardarBocaPronto(li); } return; }
     if (!activa() || !ev.target.hasAttribute('data-cx-buscar')) return;
     filtro = ev.target.value;
     const pos = ev.target.selectionStart;
@@ -1770,11 +1798,9 @@
     const i = ins.indexOf(ev.target);
     if (i < ins.length - 1) { ins[i + 1].focus(); return; }
     saltando = true;
-    if (cambiada(li)) medir(li, 'siguiente');
+    if (cambiada(li) || li.dataset.guardada) medir(li, 'siguiente');
     else if (bocaAbierta) {
       bocaVecina(1);
-      const li2 = $app.querySelector('.hoja-boca li[data-boca]');
-      if (li2 && casillas(li2)[0]) casillas(li2)[0].focus();
     } else {
       const bocas = [...$app.querySelectorAll('li[data-boca]')];
       const sig = bocas[bocas.indexOf(li) + 1];
@@ -1787,7 +1813,9 @@
     if (!activa() || saltando || !ev.target.dataset || !ev.target.dataset.punto) return;
     const li = ev.target.closest('li[data-boca]');
     if (!li || (ev.relatedTarget && li.contains(ev.relatedTarget))) return;
-    if (!cambiada(li)) return;
+    clearTimeout(temporizadores.get(li));
+    /* Ya guardada en silencio: se repinta con lo guardado (totales, chips) como siempre. */
+    if (!cambiada(li) && !li.dataset.guardada) return;
     const r = ev.relatedTarget && ev.relatedTarget.dataset && ev.relatedTarget.dataset.punto ? ev.relatedTarget.dataset : null;
     medir(li, r ? { plano: r.plano, punto: r.punto, m: r.m } : null);
   });
@@ -1796,7 +1824,13 @@
   window.addEventListener('hashchange', (ev) => {
     if (!activa()) return;
     /* Ha llegado algo de la oficina con un equipo abierto: se repinta ese equipo, no la lista. */
-    if (ev.cxDatos && ficha) { if (!hoja) abrir(ficha.equipo.id, { quieto: true }); return; }
+    if (ev.cxDatos && ficha) {
+      /* Con una boca a medio escribir no se repinta: se perdería lo tecleado (se guarda y repinta sola). */
+      const foco = document.activeElement && document.activeElement.closest ? document.activeElement.closest('li[data-boca]') : null;
+      if (foco && (cambiada(foco) || foco.dataset.guardada)) return;
+      if (!hoja) abrir(ficha.equipo.id, { quieto: true });
+      return;
+    }
     cargarLista();
   });
   if (activa()) cargarLista();
