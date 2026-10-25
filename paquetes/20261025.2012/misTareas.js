@@ -10,8 +10,10 @@
  *   2. LA FICHA: el equipo (marca, modelo, serie, gas), lo que hay que hacer,
  *      y, empezada la orden, la lista de comprobación (bien · mal · no
  *      aplica), las medidas, las fotos, las observaciones, las horas y la
- *      firma con el dedo. «Guardar» deja lo hecho; «Cerrar la orden» lo
- *      valida todo y lo apunta en el libro del equipo.
+ *      firma con el dedo. «Guardar» deja lo hecho; «Marcar como terminada»
+ *      lo valida todo y la deja PENDIENTE DE CIERRE. Cerrarla (libro del
+ *      equipo, coste y PDF) es del jefe o del encargado de mantenimiento en
+ *      el ordenador, que también puede devolverla con un motivo.
  *
  * Ni tarifas ni costes: el dinero de la orden lo pone el ordenador.
  */
@@ -32,7 +34,9 @@
   let borrador = null;
   let sucio = false;
 
-  const TONO_ESTADO = { pendiente: 'aviso', asignada: 'info', enCurso: 'aviso', cerrada: 'bien', anulada: 'neutra' };
+  /* Sin ámbar ni amarillo (JC, 24-oct): gris sin asignar, teal asignada, azul
+     en curso, teal con borde pendiente de cierre y verde cerrada. */
+  const TONO_ESTADO = { pendiente: 'neutra', asignada: 'info', enCurso: 'azul', terminada: 'porCerrar', cerrada: 'bien', anulada: 'neutra' };
   const TONO_TIPO = { preventiva: 'neutra', fgas: 'info', correctiva: 'mal' };
   const chip = (texto, tono) => `<span class="chip ${tono || 'neutra'}">${esc(texto)}</span>`;
   const VALORES = [['ok', 'Bien'], ['mal', 'Mal'], ['na', 'No aplica']];
@@ -77,7 +81,7 @@
     let ir = null;
     try { ir = sessionStorage.getItem('cx.abrir'); } catch { /* sin almacenamiento */ }
     pintarLista();
-    if (ir && [...datos.tareas, ...datos.cerradas, ...(datos.obra || [])].some((o) => o.id === ir)) {
+    if (ir && [...datos.tareas, ...(datos.terminadas || []), ...datos.cerradas, ...(datos.obra || [])].some((o) => o.id === ir)) {
       try { sessionStorage.removeItem('cx.abrir'); } catch { /* nada */ }
       abrir(ir);
     }
@@ -94,22 +98,26 @@
   const ORDEN_GRUPOS = ['Atrasadas', 'Hoy', 'Esta semana', 'Más adelante', 'Sin fecha'];
 
   function pintarLista() {
-    const filas = vista === 'cerradas' ? datos.cerradas : vista === 'obra' ? (datos.obra || []) : datos.tareas;
-    const opciones = [['mias', 'Mías', datos.tareas.length], ...(datos.obra ? [['obra', 'De la obra', datos.obra.length]] : []), ['cerradas', 'Cerradas', datos.cerradas.length]];
-    const grupo = vista === 'cerradas' ? (o) => (o.fechaCierre ? `Cerradas en ${fechaEs(o.fechaCierre).slice(3)}` : 'Cerradas') : cuando;
+    /* «Hechas»: las terminadas, pendientes de cierre en la oficina, y las cerradas. */
+    const hechas = [...(datos.terminadas || []), ...datos.cerradas];
+    const filas = vista === 'cerradas' ? hechas : vista === 'obra' ? (datos.obra || []) : datos.tareas;
+    const opciones = [['mias', 'Mías', datos.tareas.length], ...(datos.obra ? [['obra', 'De la obra', datos.obra.length]] : []), ['cerradas', 'Hechas', hechas.length]];
+    const grupo = vista === 'cerradas'
+      ? (o) => (o.estado === 'terminada' ? 'Pendientes de cierre' : o.fechaCierre ? `Cerradas en ${fechaEs(o.fechaCierre).slice(3)}` : 'Cerradas')
+      : cuando;
     $app.innerHTML = `
       <div class="segmentado" role="tablist">
         ${opciones.map(([id, nombre, n]) => `<button role="tab" data-mt-vista="${id}" class="${vista === id ? 'activa' : ''}" aria-selected="${vista === id}">${esc(nombre)} <small>${n}</small></button>`).join('')}
       </div>
       ${filas.length ? C.listaAgrupada(`mt-${vista}`, filas, {
-        grupo, repintar: pintarLista, orden: ORDEN_GRUPOS,
+        grupo, repintar: pintarLista, orden: vista === 'cerradas' ? ['Pendientes de cierre'] : ORDEN_GRUPOS,
         fila: (o) => `
         <li><button class="fila-ios" data-mt="ficha" data-id="${esc(o.id)}">
           <div class="fila-principal"><strong class="cifra">${esc(o.equipoTag || o.codigo)}</strong><span>${chip(o.tipoNombre, TONO_TIPO[o.tipo])} ${chip(o.estadoNombre, TONO_ESTADO[o.estado])}</span></div>
           <div class="texto-2">${esc(o.operaciones)} operaci${o.operaciones === 1 ? 'ón' : 'ones'} · ${esc(o.especialidadNombre)}${o.carne ? ` · <strong>${esc(o.carne)}</strong>` : ''}</div>
           <div class="sub">${esc(o.codigo)}${o.planta ? ` · ${esc(o.planta)}` : ''}${o.zona ? ` · ${esc(o.zona)}` : ''}${o.minutos ? ` · ${o.minutos} min` : ''}${o.operario ? ` · ${esc(o.operario)}` : vista === 'obra' && !o.operarioId ? ' · <strong class="mal">sin asignar</strong>' : ''}${o.atrasada ? ` · <strong class="mal">atrasada (${fechaEs(o.fechaPrevista)})</strong>` : o.fechaPrevista ? ` · ${fechaEs(o.fechaPrevista)}` : ''}</div>
         </button></li>` })
-    : `<p class="vacio">${vista === 'cerradas' ? 'No has cerrado ninguna orden en los últimos treinta días.' : vista === 'obra' ? 'La obra no tiene órdenes abiertas.' : 'No tienes órdenes de mantenimiento pendientes.'}</p>`}`;
+    : `<p class="vacio">${vista === 'cerradas' ? 'No has terminado ninguna orden en los últimos treinta días.' : vista === 'obra' ? 'La obra no tiene órdenes abiertas.' : 'No tienes órdenes de mantenimiento pendientes.'}</p>`}`;
   }
 
   /* ═══════════════════════════════════ 2. La ficha */
@@ -149,14 +157,14 @@
 
   /* Las que no tienen nada para este tipo de orden no salen. */
   function subsecciones(o, editable) {
-    const trabajo = o.estado === 'enCurso' || o.estado === 'cerrada';
-    const cerrada = o.estado === 'cerrada';
+    const trabajo = ['enCurso', 'terminada', 'cerrada'].includes(o.estado);
+    const cerrada = o.estado === 'terminada' || o.estado === 'cerrada';
     const lista = [{ id: 'resumen', nombre: 'Resumen', hecha: false }];
     if (!trabajo) return lista;
     if (o.checklist.length) lista.push({ id: 'comprobaciones', nombre: 'Comprob.', cuenta: `${contestadas()}/${o.checklist.length}`, hecha: cerrada || contestadas() === o.checklist.length });
     if (o.medidas.length) lista.push({ id: 'medidas', nombre: 'Medidas', hecha: cerrada || borrador.medidas.every((v) => v !== '') });
     lista.push({ id: 'fotos', nombre: 'Fotos', hecha: cerrada || !!borrador.firma });
-    if (editable || cerrada) lista.push({ id: 'cerrar', nombre: editable ? 'Cerrar' : 'Cierre', hecha: cerrada });
+    if (editable || cerrada) lista.push({ id: 'terminar', nombre: editable ? 'Terminar' : 'Hecha', hecha: cerrada });
     return lista;
   }
 
@@ -173,7 +181,7 @@
       <section class="grupo compacto">
         ${dato('Orden', o.codigo)}${dato('Prevista', fechaEs(o.fechaPrevista))}${dato('Tiempo estimado', o.minutos ? `${o.minutos} min` : '')}
         ${dato('Planta', o.planta)}${dato('Zona', o.zona)}${dato('Operario', operario ? [operario.nombre, operario.empresa].filter(Boolean).join(' · ') : '')}
-        ${dato('Empezada', o.fechaInicio ? fechaEs(o.fechaInicio) : '')}${dato('Cerrada', fechaEs(o.fechaCierre))}
+        ${dato('Empezada', o.fechaInicio ? fechaEs(o.fechaInicio) : '')}${dato('Terminada', fechaEs(o.fechaTerminada))}${dato('Cerrada', fechaEs(o.fechaCierre))}
         ${e ? `${dato('Equipo', [e.tipo, e.denominacion].filter(Boolean).join(' · '))}${dato('Marca', [e.marca, e.modelo].filter(Boolean).join(' '))}${dato('Nº de serie', e.numSerie)}
         ${dato('Sala', e.sala)}${dato('Gas', gas)}${dato('Detección de fugas', e.gas && e.gas.deteccion ? 'Sí' : '')}` : ''}
         ${inc ? `${dato(inc.codigo, inc.titulo)}` : ''}
@@ -189,7 +197,8 @@
         <div class="fila-principal"><h2 class="cifra">${esc(o.equipoTag || o.codigo)}</h2><span>${chip(o.tipoNombre, TONO_TIPO[o.tipo])} ${chip(o.estadoNombre, TONO_ESTADO[o.estado])}</span></div>
         <p class="texto-ficha">${esc(o.especialidadNombre)}${o.carne ? ` · necesita ${esc(o.carne)}` : ''}</p>
       </section>
-      ${o.atrasada ? `<p class="nota aviso">Atrasada: tocaba el ${esc(fechaEs(o.fechaPrevista))}.</p>` : ''}
+      ${o.estado === 'terminada' ? '<p class="nota">Terminada: pendiente de cierre en la oficina. Si falta algo, te la devuelven con el motivo.</p>' : ''}
+      ${o.atrasada ? `<p class="nota atrasada">Atrasada: tocaba el ${esc(fechaEs(o.fechaPrevista))}.</p>` : ''}
       ${subs.length > 1 ? `<div class="segmentado subsecciones-ot" role="tablist">${subs.map((x) => `<button type="button" role="tab" data-mt-sec="${x.id}" class="${x.id === sec ? 'activa' : ''}${x.hecha ? ' hecha' : ''}" aria-selected="${x.id === sec}">${x.hecha ? '<span class="visto" aria-label="completa">✓</span> ' : ''}${esc(x.nombre)}${x.cuenta ? ` <small>${x.cuenta}</small>` : ''}</button>`).join('')}</div>` : ''}
       <div class="sec-ot" data-sec="${sec}">${cuerpo}${siguiente}</div>
       ${editable ? `<div class="barra-guardar" role="status">
@@ -236,13 +245,14 @@
         <canvas class="firma-ot" width="600" height="200" data-mt-firma aria-label="Firma"></canvas>
         <div class="fila-botones"><button type="button" class="boton secundario" data-mt="borrar-firma">Borrar la firma</button></div>` : ''}`;
     }
-    /* cerrar */
+    /* terminar */
     return editable ? `
       <div class="campos">
         <label>Horas<input type="number" inputmode="decimal" step="0.25" min="0" max="24" data-mt-campo="horas" value="${esc(b.horas)}"></label>
         <label>Firma de<input data-mt-campo="firmadoPor" value="${esc(b.firmadoPor)}" autocomplete="name"></label>
       </div>
-      <button class="boton grande" data-mt="cerrar">Cerrar la orden</button>
+      <button class="boton grande" data-mt="terminar">Marcar como terminada</button>
+      <p class="nota">Queda pendiente de cierre: la cierra el jefe o el encargado de mantenimiento en el ordenador.</p>
       <button class="boton secundario" data-mt="devolver">Devolverla (no la puedo hacer)</button>`
       : `<section class="grupo compacto">${o.horas != null ? `<div class="fila-dato"><span>Horas</span><strong>${esc(String(o.horas).replace('.', ','))} h</strong></div>` : ''}${o.firmadoPor ? `<div class="fila-dato"><span>Firmada por</span><strong>${esc(o.firmadoPor)}</strong></div>` : ''}</section>`;
   }
@@ -303,19 +313,19 @@
     } catch (e) { C.aviso(e.message); if (boton) boton.disabled = false; return false; }
   }
 
-  async function cerrar(boton) {
+  async function terminar(boton) {
     const faltan = borrador.checklist.filter((v) => !v).length;
     if (faltan) { C.aviso(`Faltan ${faltan} comprobaciones por contestar.`, 'aviso'); return; }
-    if (!borrador.firma) { C.aviso('Firma con el dedo antes de cerrar.', 'aviso'); return; }
-    if (!window.confirm('¿Cerrar la orden? Lo hecho se apunta en el libro del equipo.')) return;
+    if (!borrador.firma) { C.aviso('Firma con el dedo antes de terminarla.', 'aviso'); return; }
+    if (!window.confirm('¿Dar la orden por terminada? Queda pendiente de cierre en la oficina.')) return;
     boton.disabled = true;
     try {
-      const r = await C.postJson('api/orden/cerrar', {
+      const r = await C.postJson('api/orden/terminar', {
         ...recogerBorrador(), horas: borrador.horas, firmadoPor: borrador.firmadoPor, firma: borrador.firma, fecha: hoy(),
       });
       if (!r.ok) throw new Error(r.error);
-      const extra = [r.avisos && r.avisos.length ? `Fuera de rango: ${r.avisos.join('; ')}` : '', r.incidencia && r.incidencia.aviso ? r.incidencia.aviso : ''].filter(Boolean).join(' · ');
-      C.aviso(`Orden cerrada${extra ? `. ${extra}` : '.'}`, r.avisos && r.avisos.length ? 'aviso' : 'bien');
+      const extra = r.avisos && r.avisos.length ? `Fuera de rango: ${r.avisos.join('; ')}` : '';
+      C.aviso(`Orden terminada: pendiente de cierre${extra ? `. ${extra}` : '.'}`, r.avisos && r.avisos.length ? 'aviso' : 'bien');
       C.cabeza(null);
       vista = 'mias';
       await lista();
@@ -391,7 +401,7 @@
     else if (a === 'ficha') abrir(b.dataset.id);
     else if (a === 'empezar') empezar(b);
     else if (a === 'guardar') guardar(b);
-    else if (a === 'cerrar') cerrar(b);
+    else if (a === 'terminar') terminar(b);
     else if (a === 'devolver') devolver(b);
     else if (a === 'camara') foto(true);
     else if (a === 'galeria') foto(false);

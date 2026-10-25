@@ -196,6 +196,13 @@ function nombreInforme(prueba = {}, obra = {}) {
  * ajena, la suya. Vidaire Cx lo dice al arrancar con globalThis.CX_VARIANTE.
  */
 const marcaDocumento = () => (globalThis.CX_VARIANTE === 'cxobra' ? 'Vidaire Cx' : 'CBRE · Project Management');
+/** El logo de la empresa de la obra (shared/papel.js); en Vidaire Cx nada: ya va su marca en texto. */
+function logoMarca(obra) {
+  let P = null;
+  try { P = typeof require === 'function' ? require('../papel') : (typeof window !== 'undefined' ? window.PAPEL : null); } catch { P = typeof window !== 'undefined' ? window.PAPEL : null; }
+  const logo = P && P.logoObra ? P.logoObra(obra, { alto: '7mm', soloLogo: true }) : '';
+  return logo ? `<p class="logoMarca" style="margin:0 0 1.5mm">${logo}</p>` : '';
+}
 
 /** EL INFORME EN PAPEL (para el PDF). `fotos` son `{ src, momento }`. */
 function html({ prueba = {}, obra = {}, emisor = {}, empresa = null, fotos = [], hoy } = {}) {
@@ -211,6 +218,7 @@ function html({ prueba = {}, obra = {}, emisor = {}, empresa = null, fotos = [],
 <article class="documentoParte documentoPrueba">
   <header class="cabeceraParte">
     <div>
+      ${logoMarca(obra)}
       <p class="marca">${esc(marcaDocumento())}</p>
       <h1>Prueba de estanqueidad · ${esc(ins.nombre)}</h1>
       <p class="ref">Referencia <strong>${esc(prueba.codigo)}</strong>${obra.codigo ? ` · Obra ${esc(obra.codigo)}` : ''}</p>

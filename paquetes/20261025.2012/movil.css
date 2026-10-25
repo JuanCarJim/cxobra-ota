@@ -36,6 +36,7 @@
   --bien: #2E7D32;   --bien-fondo: #EDF7EE;
   --aviso: #A35F00;  --aviso-fondo: #FFF5E6;
   --mal: #C62828;    --mal-fondo: #FDEDED;
+  --alto: #6A1B9A;   --alto-fondo: #F3E8F9; /* caudal por encima del de proyecto (25-oct, JC: morado) */
 
   --fuente-titular: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --fuente-texto: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -225,6 +226,7 @@ small, .sub { color: var(--textoTenue); font-size: 13px; }
 .chip.bien { background: var(--bien-fondo); color: var(--bien); }
 .chip.aviso { background: var(--aviso-fondo); color: var(--aviso); }
 .chip.mal { background: var(--mal-fondo); color: var(--mal); }
+.chip.alto { background: var(--alto-fondo); color: var(--alto); }
 .chip.neutra { background: var(--panel3); color: var(--textoSuave); }
 .chip.info { background: var(--acento-suave); color: var(--acento-fuerte); }
 
@@ -509,6 +511,7 @@ a.fila-dato strong { color: var(--acento); font-weight: 600; }
 .boca { padding: 12px 16px; margin: 8px 0; }
 .boca.mal { box-shadow: inset 3px 0 0 var(--mal), var(--sombra); }
 .boca.bien { box-shadow: inset 3px 0 0 var(--bien), var(--sombra); }
+.boca.alto { box-shadow: inset 3px 0 0 var(--alto), var(--sombra); }
 .boca-cabeza { display: flex; gap: 8px; align-items: baseline; }
 .boca-cabeza strong { font-size: 17px; font-weight: 700; }
 .boca-cabeza .sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -551,6 +554,7 @@ a.fila-dato strong { color: var(--acento); font-weight: 600; }
 .formula.aviso { color: var(--mal); }
 .boca .nota.aviso { margin: 6px 0 0; }
 .boca.mal .nota.aviso { color: var(--mal); background: var(--mal-fondo); font-weight: 600; }
+.boca.alto .nota.aviso { color: var(--alto); background: var(--alto-fondo); font-weight: 600; }
 .boca-cifras b { font-size: 17px; font-weight: 600; }
 .boca-cifras .porc { text-align: right; padding-bottom: 4px; }
 
@@ -567,14 +571,17 @@ a.fila-dato strong { color: var(--acento); font-weight: 600; }
 .marca-boca .simbolo-boca .lleno { fill: currentColor; }
 .marca-boca.bien { color: var(--bien); }
 .marca-boca.mal { color: var(--mal); }
+.marca-boca.alto { color: var(--alto); }
 .marca-boca.bien .simbolo-boca .cuerpo { fill: color-mix(in srgb, var(--bien) 22%, #fff); }
 .marca-boca.mal .simbolo-boca .cuerpo { fill: color-mix(in srgb, var(--mal) 22%, #fff); }
+.marca-boca.alto .simbolo-boca .cuerpo { fill: color-mix(in srgb, var(--alto) 22%, #fff); }
 /* La etiqueta al lado, sin tapar el plano. */
 .marca-boca .rotulo-boca { position: absolute; left: calc(100% + 2px); top: 50%; transform: translateY(-50%); padding: 0 3px; border-radius: 3px;
   font: 700 9px/12px system-ui, sans-serif; color: #fff; background: currentColor; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .marca-boca .rotulo-boca { background: #6B7075; }
 .marca-boca.bien .rotulo-boca { background: var(--bien); }
 .marca-boca.mal .rotulo-boca { background: var(--mal); }
+.marca-boca.alto .rotulo-boca { background: var(--alto); }
 /* Las bocas del otro circuito (impulsión/retorno) se ven, apagadas. */
 .marca-boca.otro-circuito { opacity: .45; }
 .marca-boca::after { content: ''; position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; transform: translate(-50%, -50%); } /* dedo: 44 px */
@@ -583,6 +590,7 @@ a.fila-dato strong { color: var(--acento); font-weight: 600; }
 .plano-bocas .leyenda i:first-child { margin-left: 0; }
 .plano-bocas .leyenda i.bien { background: var(--bien); }
 .plano-bocas .leyenda i.mal { background: var(--mal); }
+.plano-bocas .leyenda i.alto { background: var(--alto); }
 /* Ampliado: a pantalla completa, el plano al 250 % y se arrastra con el dedo. */
 .plano-bocas.grande { position: fixed; inset: 0; z-index: 50; margin: 0; border-radius: 0; display: flex; flex-direction: column;
   padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
@@ -1035,6 +1043,7 @@ body:has(.tag-fijo) .obra-movil { display: none; }
 #app .bocas > .boca:only-child { border-radius: 10px; }
 #app .boca.mal { box-shadow: inset 3px 0 0 var(--mal); }
 #app .boca.bien { box-shadow: inset 3px 0 0 var(--bien); }
+#app .boca.alto { box-shadow: inset 3px 0 0 var(--alto); }
 #app .boca-cabeza strong { font-size: 14.5px; }
 #app .boca-cifras { margin-top: 2px; gap: 6px; }
 #app .boca-cifras b { font-size: 14.5px; }
@@ -1413,6 +1422,38 @@ main, #app { min-width: 0; max-width: 100%; }
   #app .resumen-fila.ocho > :first-child { border-left: 0; }
 }
 
+/* ═══════════════ Inventario de campo (24-oct): tablas densas como las del escritorio.
+   Cabecera sin fondo, texto y línea teal; sin tarjetas ni sombras. */
+#app .invc { margin: 6px 0 10px; border: 0; border-radius: 0; box-shadow: none; }
+.invc .cab, .invc-fila { display: grid; grid-template-columns: minmax(0, 1fr) 62px 62px; gap: 6px; align-items: center; padding: 7px 4px; }
+.invc .cab { background: none; color: var(--acento); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; border-bottom: 2px solid var(--acento); padding-top: 3px; padding-bottom: 3px; }
+.invc .cab span:not(:first-child), .invc-fila > b { text-align: right; }
+.invc .cab.cab-mov, .invc-fila.mov { grid-template-columns: minmax(0, 1fr) 78px; }
+.invc .cab.cab-ped, .invc-fila.ped { grid-template-columns: minmax(0, 1fr) 46px 50px 46px; }
+.invc-fila { border-bottom: 1px solid var(--rejillaSuave); background: none; cursor: pointer; min-height: 44px; }
+.invc-fila.mov, .invc-fila.ped { cursor: default; }
+.invc-fila.abierta { background: var(--acento-suave); }
+.invc-fila .mat { min-width: 0; overflow-wrap: anywhere; }
+.invc-fila .mat strong { display: block; font-size: 14px; font-weight: 600; line-height: 1.25; }
+.invc-fila .mat small { display: block; font-size: 12px; color: var(--textoTenue); line-height: 1.4; }
+.invc-fila > b { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.invc-fila > b small { font-size: 11px; font-weight: 500; color: var(--textoTenue); }
+.invc-fila > b.bien { color: var(--bien); }
+.invc-fila > b.aviso { color: var(--aviso); }
+.invc-fila > b.info { color: var(--acento); }
+#app .invc-fila .chip { padding: 1px 7px; font-size: 11px; }
+.invc-editor { background: var(--acento-suave); padding: 4px 10px 12px; border-bottom: 1px solid var(--rejilla); margin-bottom: 4px; }
+#app .invc-editor .campos { margin-top: 6px; gap: 8px; }
+.invc-editor label { margin-top: 6px; }
+#app .invc-editor input { min-height: 40px; margin-top: 3px; padding: 6px 10px; }
+.invc-botones { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; }
+#app .invc-botones .boton { margin: 0; min-height: 44px; font-size: 15px; }
+.invc-borrador { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0; padding: 6px 4px; border-top: 2px solid var(--acento); border-bottom: 1px solid var(--rejilla); font-size: 14px; }
+.invc-borrador span { flex: 1 1 100%; }
+#app .invc-borrador .boton { margin: 0; min-height: 40px; width: auto; flex: 1 1 auto; font-size: 14px; }
+#app .invc-nuevo { margin: 4px 0 8px; min-height: 40px; font-size: 14px; width: auto; }
+.invc-titulo { margin: 14px 0 2px; font-size: 14px; font-weight: 700; color: var(--acento); }
+
 /* Ficha de una orden de mantenimiento (Mis tareas): subsecciones, cada una en una pantalla de iPhone. */
 #app .subsecciones-ot { display: flex; margin: 6px 0; overflow-x: auto; scrollbar-width: none; }
 #app .subsecciones-ot::-webkit-scrollbar { display: none; }
@@ -1437,3 +1478,26 @@ main, #app { min-width: 0; max-width: 100%; }
 #app .campos-ot label { display: block; margin: 6px 0; font-size: 13.5px; }
 #app .siguiente-ot { width: 100%; margin: 12px 0 0; }
 #app canvas[data-mt-firma] { width: 100%; height: 130px; border: 1px solid var(--rejilla); border-radius: 8px; background: var(--panel); touch-action: none; }
+
+/* Estados de las órdenes en «Mis tareas»: sin ámbar ni amarillo (JC, 24-oct). */
+#app .chip.azul { background: #E3EEF7; color: #1B4F78; }
+#app .chip.porCerrar { background: transparent; color: var(--acento-fuerte); border: 1.5px solid var(--acento); }
+#app .nota.atrasada { color: var(--mal); background: var(--mal-fondo); padding: 6px 10px; border-radius: var(--radio); }
+
+/* ═══ Reportar al claim (24-oct): pastillas de elección, cronómetro y fotos quitables. Sin tarjetas ni sombras. ═══ */
+.opciones { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 4px; }
+.opcion {
+  min-height: 40px; padding: 8px 14px; border-radius: 999px; font: inherit; font-size: 14px; font-weight: 600;
+  background: var(--panel3); color: var(--textoSuave); border: 1px solid transparent; cursor: pointer;
+}
+.opcion.activa { background: var(--acento-suave); color: var(--acento-fuerte); border-color: var(--acento-fuerte); }
+.cronometro { display: flex; align-items: center; gap: 12px; margin: 12px 0 4px; }
+.cronometro .boton { margin: 0; width: auto; padding-inline: 18px; }
+.cronometro .tiempo { font-variant-numeric: tabular-nums; font-size: 26px; font-weight: 700; color: var(--acento-fuerte); }
+.fotos .miniatura { padding: 0; border: 0; background: none; border-radius: 14px; }
+
+/* El caudal medido toma el color de su estado: morado por encima, rojo por debajo, verde dentro (25-oct, JC). */
+.total-circuito.bien .cifras-total > div:first-child b, .boca.bien .boca-cifras [data-vivo="q"] { color: var(--bien); }
+.total-circuito.mal .cifras-total > div:first-child b, .boca.mal .boca-cifras [data-vivo="q"] { color: var(--mal); }
+.total-circuito.alto .cifras-total > div:first-child b, .boca.alto .boca-cifras [data-vivo="q"] { color: var(--alto); }
+.chip.alto { background: var(--alto-fondo); color: var(--alto); }

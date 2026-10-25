@@ -9,7 +9,7 @@
      (Commissioning · Incidencias · [+] · Compras · Más) y, dentro de cada
      una, sus secciones arriba; la obra se elige una vez en la cabecera y vale
      para todas (carcasa.js). Cada sección es un script que se activa con su
-     dirección: #commissioning, #partes, #ncr, #albaranes, #inventario, #bloc,
+     dirección: #commissioning, #partes, #claim, #ncr, #albaranes, #inventario, #bloc,
      #personal, #estanqueidad y #cuenta.
      La sirve la app del ordenador por la wifi (electron/movil/servidor.js), y
      las direcciones son relativas porque todo cuelga de /m/<llave>/. acceso.js
@@ -44,9 +44,13 @@
   <input type="file" id="camara-qr" accept="image/*" capture="environment" hidden>
   <input type="file" id="camara-parte" accept="image/*" capture="environment" hidden>
   <input type="file" id="galeria-parte" accept="image/*" hidden>
+  <input type="file" id="camara-claim" accept="image/*" capture="environment" hidden>
+  <input type="file" id="galeria-claim" accept="image/*" hidden>
+  <input type="file" id="captura-claim" accept="image/*" hidden>
   <input type="file" id="camara-prueba" accept="image/*" capture="environment" hidden>
   <input type="file" id="galeria-prueba" accept="image/*" hidden>
   <nav class="barra-inferior" id="barra-inferior" aria-label="Pestañas"></nav>
+
 
 
 
