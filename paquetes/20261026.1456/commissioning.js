@@ -51,7 +51,7 @@
     if (!completo && e === 'faltaEnsayo') nombre = nombreEnsayoFalta(ensayoFalta) || nombre;
     return `<span class="chip ${clase}">${esc(nombre)}</span>`;
   };
-  const ESTADO_BOCA = { aRevisar: ['aviso', 'A REVISAR'], dentro: ['bien', 'OK'], ok: ['bien', 'OK'], sinFactor: ['aviso', 'Falta el Ak'], medido: ['neutra', 'Medida'], alto: ['alto', 'Alto'], bajo: ['mal', 'Bajo'], sinMedir: ['neutra', 'Sin medir'], sinProyecto: ['neutra', 'Sin Q proyecto'], sinTolerancia: ['neutra', 'Medida'] };
+  const ESTADO_BOCA = { aRevisar: ['aviso', 'A REVISAR'], dentro: ['bien', 'OK'], ok: ['bien', 'OK'], sinFactor: ['aviso', 'Falta el Ak'], medido: ['neutra', 'Medida'], alto: ['mal', 'Alto'], bajo: ['mal', 'Bajo'], sinMedir: ['neutra', 'Sin medir'], sinProyecto: ['neutra', 'Sin Q proyecto'], sinTolerancia: ['neutra', 'Medida'] };
   const INCIDENCIA = { sinSerie: 'Sin nº de serie', modeloSinAlta: 'Modelo sin dar de alta' };
   const pct = (q, d) => (q === null || q === undefined || !d ? null : Math.round((q / d) * 100));
 
@@ -214,19 +214,14 @@
     }
   }
 
-  function totalCircuito(c, nombre, tol) {
+  function totalCircuito(c, nombre) {
     if (!c || c.estado === 'sinPuntos') return '';
     /* El total contra lo mismo que la hoja de balanceo (el resumen lo dice). */
     const diseno = c.disenoReferencia ?? c.disenoPuntos ?? c.disenoEquipo ?? null;
     const p = c.desviacion === null || c.desviacion === undefined ? null : pct(c.suma, diseno);
-    const clase = (c.estado === 'ok' || c.estado === 'dentro') ? 'bien' : c.estado === 'alto' ? 'alto' : c.estado === 'bajo' ? 'mal' : 'neutra';
-    /* Con bocas por medir no hay juicio del total (puede faltar caudal), salvo por arriba: si lo medido ya pasa
-       el proyecto más su tolerancia, va morado aunque falten bocas (25-oct, JC: el total medido en color). */
-    const tolT = tol && tol.total ? tol.total : 0.1;
-    const yaPasa = c.estado === 'incompleto' && diseno && c.suma !== null && c.suma !== undefined && c.suma > diseno * (1 + tolT);
-    const claseTotal = yaPasa ? 'alto' : clase;
-    return `<div class="total-circuito ${claseTotal}">
-      <div class="fila-principal"><strong>${esc(nombre)}</strong><span class="chip ${claseTotal}">${p === null ? `${c.medidos}/${c.puntos} medidas` : `${p} %`}</span></div>
+    const clase = (c.estado === 'ok' || c.estado === 'dentro') ? 'bien' : (c.estado === 'alto' || c.estado === 'bajo') ? 'mal' : 'neutra';
+    return `<div class="total-circuito">
+      <div class="fila-principal"><strong>${esc(nombre)}</strong><span class="chip ${clase}">${p === null ? `${c.medidos}/${c.puntos} medidas` : `${p} %`}</span></div>
       <div class="cifras-total">
         <div><span>Medido</span><b>${cifra(c.suma)}</b><em>m³/h</em></div>
         <div><span>Proyecto</span><b>${cifra(diseno)}</b><em>m³/h</em></div>
@@ -389,8 +384,8 @@
       ${hayDos ? `<div class="segmentado circuito-bal" role="tablist" aria-label="Circuito">${[['impulsion', 'Impulsión', cuenta(false)], ['retorno', nombreRet, cuenta(true)]]
         .map(([id, n, c]) => `<button role="tab" data-cx="circuito-bal" data-circuito="${id}" aria-selected="${circ === id}" class="${circ === id ? 'activa' : ''}">${esc(n)} <small>${c}</small></button>`).join('')}</div>` : ''}
       ${htmlCrono()}
-      ${circ !== 'retorno' ? totalCircuito(f.circuitos && f.circuitos.impulsion, 'Impulsión', f.tolerancias) : ''}
-      ${circ !== 'impulsion' ? totalCircuito(f.circuitos && f.circuitos.retorno, nombreRet, f.tolerancias) : ''}
+      ${circ !== 'retorno' ? totalCircuito(f.circuitos && f.circuitos.impulsion, 'Impulsión') : ''}
+      ${circ !== 'impulsion' ? totalCircuito(f.circuitos && f.circuitos.retorno, nombreRet) : ''}
       ${med.velocidad ? `<p class="nota">Una medida por boca, con el equipo a velocidad ${esc(med.velocidad)}.</p>` : ''}
       ${f.planos.length ? planosVistos.map((p) => `
         <h2>${esc(p.nombre)} <span class="cuenta">${p.bocas.length} boca${p.bocas.length === 1 ? '' : 's'}${circ ? ` de ${circ === 'retorno' ? esc(nombreRet.toLowerCase()) : 'impulsión'}` : ''}</span></h2>
@@ -417,7 +412,7 @@
 
   /* «Balanceo de caudales», «Caudales de extracción»… según lo que se mide. */
   const tituloMedicion = (f) => (f.medicion && f.medicion.titulo) || 'Balanceo de caudales';
-  const claseMarca = (estado) => (estado === 'dentro' || estado === 'ok' ? 'bien' : estado === 'alto' ? 'alto' : estado === 'bajo' ? 'mal' : 'neutra');
+  const claseMarca = (estado) => (estado === 'dentro' || estado === 'ok' ? 'bien' : estado === 'alto' || estado === 'bajo' ? 'mal' : 'neutra');
 
   /*
    * EL PLANO CON SUS BOCAS (15-oct-2026, JC: «la imagen del plano con las
@@ -438,7 +433,7 @@
         ${conSitio.map((b) => { const otro = delCircuito && !delCircuito(b); return `<button class="marca-boca ${claseMarca(b.estado)}${esRetorno(b) ? ' ret' : ''}${otro ? ' otro-circuito' : ''}" style="left:${(b.x * 100).toFixed(2)}%;top:${(b.y * 100).toFixed(2)}%"
           data-cx="ir-boca" data-boca="${esc(claveBoca(p.id, b.id))}"${otro ? ` data-circuito="${esRetorno(b) ? 'retorno' : 'impulsion'}"` : ''} aria-label="Ir a la boca ${esc(b.nombre)}">${simbolo(b)}<span class="rotulo-boca">${esc(b.nombre)}</span></button>`; }).join('')}
       </div></div>
-      <figcaption><span class="leyenda"><i class="neutra"></i>Sin medir <i class="bien"></i>Dentro <i class="mal"></i>Por debajo <i class="alto"></i>Por encima</span>
+      <figcaption><span class="leyenda"><i class="neutra"></i>Sin medir <i class="bien"></i>Dentro <i class="mal"></i>Fuera</span>
         <span class="zoom-botones"><button class="enlace" data-cx="zoom-menos" aria-label="Alejar">−</button><button class="enlace" data-cx="zoom-mas" aria-label="Acercar">+</button>
         <button class="enlace" data-cx="plano-grande">Ampliar</button></span></figcaption>
     </figure>`;
@@ -874,17 +869,17 @@
     }
     const desv = q !== null && diseno ? q / diseno - 1 : null;
     const fuera = desv !== null && Math.abs(desv) * 100 > tolB;
-    const clase = q === null ? 'neutra' : desv === null ? 'neutra' : fuera ? (desv > 0 ? 'alto' : 'mal') : 'bien';
+    const clase = q === null ? 'neutra' : desv === null ? 'neutra' : fuera ? 'mal' : 'bien';
     const pon = (k, t) => { const el = li.querySelector(`[data-vivo="${k}"]`); if (el) el.textContent = t; return el; };
     pon('q', q === null ? '—' : cifra(Math.round(q)));
     pon('desv', desv === null ? '—' : `${desv > 0 ? '+' : ''}${comaD(desv * 100, 1)} %`);
     const chip = pon('chip', q === null ? 'Sin medir' : diseno ? `${Math.round((q / diseno) * 100)} %` : 'Sin Q proyecto');
     if (chip) chip.className = `chip ${clase}`;
-    li.classList.remove('bien', 'mal', 'alto', 'aviso', 'neutra');
+    li.classList.remove('bien', 'mal', 'aviso', 'neutra');
     li.classList.add(clase);
     /* Su marca en el plano, del mismo color. */
     const marca = $app.querySelector(`.marca-boca[data-boca="${CSS.escape(li.dataset.boca)}"]`);
-    if (marca) { marca.classList.remove('bien', 'mal', 'alto', 'neutra'); marca.classList.add(clase); }
+    if (marca) { marca.classList.remove('bien', 'mal', 'neutra'); marca.classList.add(clase); }
     const av = li.querySelector('[data-vivo="aviso"]');
     if (av) { av.hidden = !fuera; av.textContent = fuera ? textoFuera(desv, tolB) : ''; }
   }
