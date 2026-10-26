@@ -19,6 +19,10 @@
 
   let datos = null;
   let filtro = 'abiertas';
+  /* El alcance (26-oct-2026): por defecto solo lo NUESTRO (climatización y fontanería). */
+  let alcance = 'nuestras';
+  const ALC = { nuestras: 'Nuestras', deOtros: 'De otros', sinClasificar: 'Sin clasificar', todas: 'Todas' };
+  const dentro = (f, a) => a === 'todas' || (a === 'nuestras' ? f.alcance === 'nuestra' : a === 'deOtros' ? f.alcance === 'deOtros' : !f.alcance);
   let texto = '';
   let form = null;
   let abierta = null;
@@ -46,8 +50,12 @@
   }
 
   function pintarLista() {
-    const filas = datos.filas || [];
+    const todasLasFilas = datos.filas || [];
+    const filas = todasLasFilas.filter((f) => dentro(f, alcance));
     const abiertas = filas.filter((f) => f.activa).length;
+    const fuera = todasLasFilas.filter((f) => f.activa && !dentro(f, 'nuestras'));
+    const deOtros = fuera.filter((f) => f.alcance === 'deOtros').length;
+    const sinClas = fuera.length - deOtros;
     const q = texto.trim().toLowerCase();
     const vistas = filas.filter((f) => (filtro === 'todas' ? true : filtro === 'abiertas' ? f.activa : !f.activa))
       .filter((f) => !q || `${f.codigo} ${f.descripcion || ''} ${f.planta || ''} ${f.zona || ''}`.toLowerCase().includes(q));
@@ -56,6 +64,10 @@
       <div class="segmentado" role="tablist">
         ${[['abiertas', `Abiertas ${abiertas}`], ['cerradas', `Cerradas ${filas.length - abiertas}`], ['todas', 'Todas']].map(([id, nombre]) => `<button role="tab" data-ncr-filtro="${id}" class="${filtro === id ? 'activa' : ''}" aria-selected="${filtro === id}">${esc(nombre)}</button>`).join('')}
       </div>
+      <div class="segmentado" role="tablist" aria-label="Alcance">
+        ${Object.entries(ALC).map(([id, nombre]) => `<button role="tab" data-ncr-alcance="${id}" class="${alcance === id ? 'activa' : ''}" aria-selected="${alcance === id}">${esc(nombre)}</button>`).join('')}
+      </div>
+      ${alcance === 'nuestras' && fuera.length ? `<p class="nota">+${deOtros} de otros · ${sinClas} sin clasificar (abiertas, no cuentan)</p>` : ''}
       <input type="search" class="buscar" placeholder="Buscar código, texto o planta" value="${esc(texto)}" data-ncr-buscar>
       ${vistas.length ? C.listaAgrupada(`ncr-${filtro}`, vistas, {
         grupo: (f) => f.planta || 'Sin planta', buscando: !!q, repintar: pintarLista,
@@ -64,7 +76,7 @@
         <li><button class="fila-ios" data-ncr="ficha" data-id="${esc(f.id)}">
           <div class="fila-principal"><strong class="cifra">${esc(f.codigo)}</strong><span>${chipPrioridad(f.prioridad)} ${chipEstado(f)}</span></div>
           <div class="texto-2">${esc(f.descripcion)}</div>
-          <div class="sub">${esc([f.planta, f.zona, f.disciplina].filter(Boolean).join(' · '))}${f.fechaDeteccion ? ` · ${fechaEs(f.fechaDeteccion)}` : ''}${f.fotos ? ` · ${f.fotos} foto${f.fotos === 1 ? '' : 's'}` : ''}</div>
+          <div class="sub">${f.alcance === 'deOtros' ? '<span class="chip neutra">De otros</span> ' : !f.alcance && f.sugerida ? `<span class="chip aviso">Sugerida: ${f.sugerida === 'nuestra' ? 'nuestra' : 'de otros'}</span> ` : !f.alcance && f.dudosa ? '<span class="chip aviso">Dudosa</span> ' : ''}${esc([f.planta, f.zona, f.disciplina].filter(Boolean).join(' · '))}${f.fechaDeteccion ? ` · ${fechaEs(f.fechaDeteccion)}` : ''}${f.fotos ? ` · ${f.fotos} foto${f.fotos === 1 ? '' : 's'}` : ''}</div>
         </button></li>` }) : `<p class="vacio">${q ? 'Ninguna NCR con ese texto.' : filtro === 'abiertas' ? 'No hay NCR abiertas en esta obra.' : 'No hay NCR.'}</p>`}`;
   }
 
@@ -150,6 +162,7 @@
         <p class="texto-ficha">${esc(n.descripcion)}</p>
       </section>
       <section class="grupo">
+        ${dato('Alcance', n.alcance === 'nuestra' ? 'Nuestra' : n.alcance === 'deOtros' ? `De otros${n.alcanceDe ? ` · ${n.alcanceDe}` : ''}` : n.sugerida ? `Sin clasificar (sugerida: ${n.sugerida === 'nuestra' ? 'nuestra' : 'de otros'})` : n.dudosa ? 'Sin clasificar (dudosa)' : 'Sin clasificar')}${dato('Motivo del alcance', n.alcanceMotivo)}
         ${dato('Planta', n.planta)}${dato('Zona', n.zona)}${dato('Disciplina', n.disciplina)}
         ${dato('Responsable', n.industrialResponsable)}${dato('Acción inicial', n.accionInicial)}
         ${dato('Detectada', fechaEs(n.fechaDeteccion))}${dato('Prevista', fechaEs(n.fechaPrevista))}${dato('Cerrada', fechaEs(n.fechaCierre))}
@@ -157,6 +170,9 @@
       </section>
       ${n.fotos.length ? `<h2>Fotos</h2><div class="fotos">${n.fotos.map((f) => `<img data-src="api/ncr/foto?id=${encodeURIComponent(n.id)}&i=${f.indice}" alt="${esc(f.tipo || '')}">`).join('')}</div>` : ''}
       ${puedeFoto ? '<button class="boton secundario" data-ncr="camara"><i class="ic ic-camara"></i>Añadir foto</button>' : ''}
+      ${puedeFoto ? `<h2>Alcance</h2>
+        ${n.alcance !== 'deOtros' ? '<button class="boton secundario" data-ncr="alcance" data-alcance="deOtros">No es nuestra</button>' : ''}
+        ${n.alcance !== 'nuestra' ? '<button class="boton secundario" data-ncr="alcance" data-alcance="nuestra">Sí es nuestra</button>' : ''}` : ''}
       ${pasos.length || puedeCerrar ? `<h2>Cambiar estado</h2>
         ${pasos.filter((p) => p.id !== 'cerrada').map((p) => `<button class="boton secundario" data-ncr="paso" data-estado="${esc(p.id)}">Pasar a «${esc(p.nombre)}»</button>`).join('')}
         ${puedeCerrar ? '<button class="boton grande" data-ncr="cerrar"><i class="ic ic-check"></i>Cerrar NCR</button>' : ''}` : ''}
@@ -179,12 +195,31 @@
     } catch (e) { C.aviso(e.message); boton.disabled = false; }
   }
 
+  async function marcarAlcance(modo, boton) {
+    let motivo = '';
+    let de = '';
+    if (modo === 'deOtros') {
+      motivo = (window.prompt('¿Por qué no es nuestra?') || '').trim();
+      if (!motivo) return;
+      de = (window.prompt('¿A quién corresponde? (gremio o empresa)') || '').trim();
+    }
+    boton.disabled = true;
+    try {
+      const r = await C.postJson('api/ncr/alcance', { id: abierta.ncr.id, alcance: modo, motivo, de });
+      if (!r.ok) throw new Error(r.error);
+      C.aviso(modo === 'deOtros' ? 'Marcada como de otros.' : 'Marcada como nuestra.', 'bien');
+      abrir(abierta.ncr.id);
+    } catch (e) { C.aviso(e.message); boton.disabled = false; }
+  }
+
   /* ═══════════════════════════════════ Eventos */
 
   $app.addEventListener('click', (ev) => {
     if (!activa()) return;
     const f = ev.target.closest('[data-ncr-filtro]');
     if (f) { filtro = f.dataset.ncrFiltro; pintarLista(); return; }
+    const al = ev.target.closest('[data-ncr-alcance]');
+    if (al) { alcance = al.dataset.ncrAlcance; pintarLista(); return; }
     const p = ev.target.closest('[data-ncr-prioridad]');
     if (p && form) { form.prioridad = p.dataset.ncrPrioridad; pintarForm(); return; }
     const b = ev.target.closest('[data-ncr]');
@@ -199,6 +234,7 @@
     else if (a === 'enviar') enviar(b);
     else if (a === 'paso') cambiar(b.dataset.estado, b);
     else if (a === 'cerrar') cambiar('cerrada', b);
+    else if (a === 'alcance') marcarAlcance(b.dataset.alcance, b);
   });
   const recoger = (ev) => { if (activa() && form && ev.target.dataset.ncrCampo) form[ev.target.dataset.ncrCampo] = ev.target.value; };
   $app.addEventListener('input', recoger);
