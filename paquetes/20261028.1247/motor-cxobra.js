@@ -9289,6 +9289,7 @@ globalThis.CX_VARIANTE="cxobra";
           "planosDifusores",
           "imagenesPlanoDif",
           "fotosEquipo",
+          "firmasEquipo",
           "registrosMant",
           "fichasPM",
           "segInstalaciones",
@@ -9360,6 +9361,7 @@ globalThis.CX_VARIANTE="cxobra";
         "hojasBalanceo",
         "planosDifusores",
         "fotosEquipo",
+        "firmasEquipo",
         "fichasPM",
         "registrosMant",
         "segHitos",
@@ -9692,7 +9694,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261028.0911" : "0";
+      var VERSION = true ? "20261028.1247" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -12937,6 +12939,21 @@ globalThis.CX_VARIANTE="cxobra";
      creadoEn           TEXT NOT NULL,
      modificadoEn       TEXT NOT NULL
    )`,
+        /* LAS FIRMAS DEL EQUIPO (28-oct-2026): la del cliente y la del jefe de
+           obra, hechas con el dedo en el móvil, que salen en los papeles del
+           equipo (checklist, PM, balanceo, estanqueidad). Una por equipo y papel;
+           en un split o un VRF vale para todo el conjunto (data/firmasEquipo.js). */
+        `CREATE TABLE IF NOT EXISTS firmasEquipo (
+     id                 TEXT PRIMARY KEY,
+     obraId             TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     equipoId           TEXT NOT NULL REFERENCES equiposObra(id) ON DELETE CASCADE,
+     rol                TEXT NOT NULL CHECK (rol IN ('cliente','jefeObra')),
+     nombre             TEXT NOT NULL,
+     imagen             TEXT NOT NULL,
+     fecha              TEXT NOT NULL,
+     creadoEn           TEXT NOT NULL,
+     modificadoEn       TEXT NOT NULL
+   )`,
         `CREATE TABLE IF NOT EXISTS imagenesPlanoDif (
      id                 TEXT PRIMARY KEY,
      obraId             TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
@@ -15942,6 +15959,7 @@ globalThis.CX_VARIANTE="cxobra";
         `CREATE INDEX IF NOT EXISTS idx_fichaspm_equipo    ON fichasPM (equipoId)`,
         `CREATE INDEX IF NOT EXISTS idx_planosdif_equipo  ON planosDifusores (equipoId, orden)`,
         `CREATE INDEX IF NOT EXISTS idx_fotosequipo_equipo ON fotosEquipo (equipoId, creadoEn)`,
+        `CREATE INDEX IF NOT EXISTS idx_firmasequipo_equipo ON firmasEquipo (equipoId, rol)`,
         `CREATE INDEX IF NOT EXISTS idx_registrosmant_obra ON registrosMant (obraId, equipoId, fecha)`,
         `CREATE INDEX IF NOT EXISTS idx_ordenesmant_obra  ON ordenesMant (obraId, estado, fechaPrevista)`,
         `CREATE INDEX IF NOT EXISTS idx_ordenesmant_oper  ON ordenesMant (operarioId, estado)`,
@@ -16736,6 +16754,7 @@ globalThis.CX_VARIANTE="cxobra";
         redesAgua: { porObra: "obraId" },
         planosDifusores: { porObra: "obraId" },
         fotosEquipo: { porObra: "obraId" },
+        firmasEquipo: { porObra: "obraId" },
         imagenesPlanoDif: { porObra: "obraId" },
         fichasPM: { porObra: "obraId" },
         /* Lo hecho en mantenimiento, también de la obra. */
@@ -17222,6 +17241,7 @@ globalThis.CX_VARIANTE="cxobra";
         redesAgua: "commissioning",
         planosDifusores: "commissioning",
         fotosEquipo: "commissioning",
+        firmasEquipo: "commissioning",
         imagenesPlanoDif: "commissioning",
         fichasPM: "commissioning",
         plantillasPM: "commissioning",
@@ -18936,6 +18956,7 @@ globalThis.CX_VARIANTE="cxobra";
           redesAgua: "Red de agua (balanceo)",
           planosDifusores: "Plano de difusores",
           fotosEquipo: "Foto de equipo",
+          firmasEquipo: "Firma del equipo",
           imagenesPlanoDif: "Imagen de plano de difusores",
           fichasPM: "Ficha de puesta en marcha",
           registrosMant: "Mantenimiento",
@@ -25734,9 +25755,12 @@ globalThis.CX_VARIANTE="cxobra";
           }
           return mejor;
         }
-        function requeridas(equipo = {}, familia, plantillas) {
+        function requeridas(equipo = {}, familia, plantillas, { unidades = null, buscar = null } = {}) {
           if (!familia) return [];
           const indice = plantillas instanceof Map ? plantillas : indicePlantillas(plantillas);
+          if (esConjuntoUnico(familia) && Array.isArray(unidades) && unidades.length > 1) {
+            return requeridasConjunto(unidades, familia, indice, buscar).reqs;
+          }
           const pm = equipo.plantillaPM || plantillaPorDefecto(equipo, familia, indice);
           const nombrePM = sinAcentosFx((indice.get(pm) || {}).nombre || pm || "");
           const exterior = /EXTERIOR/.test(nombrePM);
@@ -25769,8 +25793,68 @@ globalThis.CX_VARIANTE="cxobra";
           fuera.push(...anexos.filter((a) => a.clase !== "checklist"));
           return fuera;
         }
-        function estadoEquipo(equipo, familia, plantillas, buscar) {
-          const lista = requeridas(equipo, familia, plantillas).map((r) => {
+        const FAMILIAS_CONJUNTO = /* @__PURE__ */ new Set(["PANASONIC_SPLIT", "PANASONIC_VRF"]);
+        const esConjuntoUnico = (familia) => Boolean(familia && FAMILIAS_CONJUNTO.has(familia.codigo));
+        const RANGO_FICHA = { firmada: 4, completa: 3, pendiente: 2, sinEmpezar: 1 };
+        const rangoFicha = (f) => f ? RANGO_FICHA[f.estado] || 1 : 0;
+        function esExteriorFx(u, familia, indice) {
+          const pm = u.plantillaPM || plantillaPorDefecto(u, familia, indice);
+          return /EXTERIOR/.test(sinAcentosFx((indice.get(pm) || {}).nombre || pm || ""));
+        }
+        function requeridasConjunto(unidades, familia, plantillas, buscar = null) {
+          const indice = plantillas instanceof Map ? plantillas : indicePlantillas(plantillas);
+          const orden = (a, b) => String(a.tag || "").localeCompare(String(b.tag || ""), "es", { numeric: true });
+          const todas = [...unidades].sort(orden);
+          const interiores = todas.filter((u) => !esExteriorFx(u, familia, indice));
+          const exteriores = todas.filter((u) => esExteriorFx(u, familia, indice));
+          const ref = interiores[0] || exteriores[0];
+          const porUnidad = [ref, ...todas.filter((u) => u !== ref)].map((u) => ({ u, reqs: requeridas(u, familia, indice) }));
+          const busca = (r) => buscar && r.clave && r.plantilla ? buscar(r.clave, r.plantilla) : null;
+          const deRef = porUnidad[0].reqs;
+          const reqs = [];
+          const mejorDe = (candidatas) => {
+            let mejor = null;
+            let rango = -1;
+            for (const r of candidatas) {
+              const n = rangoFicha(busca(r));
+              if (n > rango) {
+                mejor = r;
+                rango = n;
+              }
+            }
+            return mejor;
+          };
+          for (const r of deRef) {
+            if (r.clase === "checklist") {
+              reqs.push({ ...mejorDe(porUnidad.flatMap((x) => x.reqs.filter((q) => q.plantilla === r.plantilla && q.clave))) || r, conjunto: true });
+            } else if (r.clase === "fichaPM") {
+              reqs.push({ ...r, nombre: r.plantilla ? "Toma de datos" : r.nombre, conjunto: true });
+            } else {
+              const ue = exteriores.length ? porUnidad.find((x) => x.u === exteriores[0]) : null;
+              const deUe = ue ? ue.reqs.find((q) => q.plantilla === r.plantilla && q.clave) : null;
+              reqs.push({ ...deUe || r, conjunto: true });
+            }
+          }
+          const usadas = new Set(reqs.map((r) => `${r.clave}|${r.plantilla}`));
+          const conservadas = [];
+          for (const { u, reqs: rs } of porUnidad) {
+            for (const r of rs) {
+              const k = `${r.clave}|${r.plantilla}`;
+              if (!r.clave || !r.plantilla || usadas.has(k) || !busca(r)) continue;
+              usadas.add(k);
+              conservadas.push({
+                ...r,
+                conservada: true,
+                unidadId: u.id,
+                unidadTag: u.tag || null,
+                motivo: "Guardada antes de juntar el conjunto: se conserva y se puede leer; no cuenta para \xABcompleto\xBB."
+              });
+            }
+          }
+          return { reqs, conservadas, referencia: ref };
+        }
+        function estadoEquipo(equipo, familia, plantillas, buscar, unidades = null) {
+          const lista = requeridas(equipo, familia, plantillas, { unidades, buscar }).map((r) => {
             const ficha = r.clave && r.plantilla ? buscar(r.clave, r.plantilla) : null;
             return {
               ...r,
@@ -25885,6 +25969,8 @@ globalThis.CX_VARIANTE="cxobra";
           plantillaPorDefecto,
           medicionDe,
           requeridas,
+          requeridasConjunto,
+          esConjuntoUnico,
           estadoEquipo,
           estadoChecklist,
           avance: avancePorGrupo
@@ -42527,6 +42613,15 @@ ${subtitulo}`, c[5]] : c.slice())]);
         }
         return null;
       }
+      function unidadesPorEquipo(equipos) {
+        const porId = new Map(equipos.map((e) => [e.id, e]));
+        const fuera = /* @__PURE__ */ new Map();
+        for (const l of require_conjuntos().agrupar(equipos)) {
+          const us = (l.unidades || []).map((u) => porId.get(u.id)).filter(Boolean);
+          for (const u of us) fuera.set(u.id, us);
+        }
+        return fuera;
+      }
       function fichasPorEquipo(repo, sesion, obraId, equipos) {
         const cat = catalogoDe(repo, sesion);
         const cfg = configDe(repo, sesion, obraId);
@@ -42536,10 +42631,12 @@ ${subtitulo}`, c[5]] : c.slice())]);
           if (r) fichas.set(`${fila.clave}|${fila.plantilla}`, { id: fila.id, estado: r.ev.estado, resultado: r.ev.resultado });
         }
         const buscar = (clave, plantilla) => fichas.get(`${clave}|${plantilla}`) || null;
-        const lista = equipos || repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
+        const deLaObra = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
+        const lista = equipos || deLaObra;
+        const unidades = unidadesPorEquipo(deLaObra);
         const out = /* @__PURE__ */ new Map();
         for (const e of lista) {
-          const pm = F.estadoEquipo(e, F.familiaDe(e, catalogo.FAMILIAS), cat.vigentes, buscar);
+          const pm = F.estadoEquipo(e, F.familiaDe(e, catalogo.FAMILIAS), cat.vigentes, buscar, unidades.get(e.id));
           out.set(e.id, {
             total: pm.total,
             completas: pm.completas,
@@ -42581,9 +42678,10 @@ ${subtitulo}`, c[5]] : c.slice())]);
           if (!ncrDe.has(x.equipoId)) ncrDe.set(x.equipoId, []);
           ncrDe.get(x.equipoId).push(x.codigo);
         }
+        const unidades = unidadesPorEquipo(equipos);
         const filas = equipos.map((e) => {
           const fam = F.familiaDe(e, catalogo.FAMILIAS);
-          const pm = F.estadoEquipo(e, fam, cat.vigentes, buscar);
+          const pm = F.estadoEquipo(e, fam, cat.vigentes, buscar, unidades.get(e.id));
           return {
             id: e.id,
             tag: e.tag,
@@ -42884,12 +42982,19 @@ ${subtitulo}`, c[5]] : c.slice())]);
         const cat = catalogoDe(repo, sesion);
         const cfg = configDe(repo, sesion, equipo.obraId);
         const fam = F.familiaDe(equipo, catalogo.FAMILIAS);
-        const partes = F.requeridas(equipo, fam, cat.vigentes).map((req) => {
-          const fila = req.clave && req.plantilla ? filaFicha(repo, sesion, equipo.obraId, req.clave, req.plantilla) : null;
+        const deLaObra = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [equipo.obraId] });
+        const unidades = unidadesPorEquipo(deLaObra).get(equipo.id) || [equipo];
+        const filas = new Map(filasFichas(repo, sesion, equipo.obraId).map((f) => [`${f.clave}|${f.plantilla}`, f]));
+        const buscar = (clave, plantilla) => filas.get(`${clave}|${plantilla}`) || null;
+        const cj = fam && F.esConjuntoUnico(fam) && unidades.length > 1 ? F.requeridasConjunto(unidades, fam, cat.vigentes, buscar) : null;
+        const leer = (req) => {
+          const fila = req.clave && req.plantilla ? buscar(req.clave, req.plantilla) : null;
           const r = fila ? evaluarFila(fila, cat, cfg, { repo, sesion }) : null;
           return { ...req, plantillaDef: r ? r.def : req.plantilla ? cat.vigentes.get(req.plantilla) : null, evaluacion: r ? r.ev : null, fichaId: fila ? fila.id : null };
-        });
-        return { equipo, obra, familia: fam, partes, cabeceraObra: cabeceraDe(cfg), tolerancias: F.tolerancias(cfg || {}) };
+        };
+        const partes = (cj ? cj.reqs : F.requeridas(equipo, fam, cat.vigentes)).map(leer);
+        const conservadas = cj ? cj.conservadas.map(leer) : [];
+        return { equipo, obra, familia: fam, partes, conservadas, cabeceraObra: cabeceraDe(cfg), tolerancias: F.tolerancias(cfg || {}) };
       }
       var TIPOS_IMAGEN = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".gif": "image/gif", ".bmp": "image/bmp", ".webp": "image/webp" };
       function imagenesDe(fotos = []) {
@@ -43037,7 +43142,8 @@ ${subtitulo}`, c[5]] : c.slice())]);
         return htmlDossierUnidad(repo, sesion, equipoId);
       }
       function htmlDossierConjunto(repo, sesion, linea) {
-        const partes = linea.unidades.map((u) => ({ u, r: htmlDossierUnidad(repo, sesion, u.id, u.rotulo) })).filter((x) => x.r.ok);
+        const vistas = /* @__PURE__ */ new Set();
+        const partes = linea.unidades.map((u) => ({ u, r: htmlDossierUnidad(repo, sesion, u.id, u.rotulo, vistas) })).filter((x) => x.r.ok);
         if (!partes.length) return { ok: false, error: "No se encuentra el equipo." };
         const cuerpo = (h) => {
           const m = /<body[^>]*>([\s\S]*)<\/body>/i.exec(h);
@@ -43055,10 +43161,18 @@ ${subtitulo}`, c[5]] : c.slice())]);
           anexos: partes.flatMap((x) => x.r.anexos || [])
         };
       }
-      function htmlDossierUnidad(repo, sesion, equipoId, rotulo = null) {
+      function htmlDossierUnidad(repo, sesion, equipoId, rotulo = null, vistas = null) {
         const d = dossier(repo, sesion, equipoId);
         if (!d) return { ok: false, error: "No se encuentra el equipo." };
-        const partes = d.partes.map((p) => {
+        const todas = [...d.partes, ...(d.conservadas || []).filter((p) => p.evaluacion)];
+        const propias = vistas ? todas.filter((p) => {
+          if (!p.clave || !p.plantilla) return true;
+          const k = `${p.clave}|${p.plantilla}`;
+          if (vistas.has(k)) return false;
+          vistas.add(k);
+          return true;
+        }) : todas;
+        const partes = propias.map((p) => {
           const titulo = p.clave && p.clave.startsWith("circuito:") ? llano(d.equipo.circuito) : p.clave && p.clave.startsWith("refrigerante:") ? p.clave.slice("refrigerante:".length) : d.equipo.tag;
           return { ...p, titulo: rotulo ? `${rotulo} \xB7 ${titulo}` : titulo };
         });
@@ -43172,9 +43286,12 @@ ${subtitulo}`, c[5]] : c.slice())]);
         const cat = catalogoDe(repo, sesion);
         const equipos = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId], orden: "planta, tag" });
         const familias = /* @__PURE__ */ new Map();
+        const unidades = unidadesPorEquipo(equipos);
+        const filasG = new Map(filasFichas(repo, sesion, obraId).map((f) => [`${f.clave}|${f.plantilla}`, f]));
+        const buscarG = (clave, pl) => filasG.get(`${clave}|${pl}`) || null;
         const conChecklists = equipos.map((e) => {
           const fam = F.familiaDe(e, catalogo.FAMILIAS);
-          const reqs = F.requeridas(e, fam, cat.vigentes).filter((r) => r.clase === "checklist" && r.clave);
+          const reqs = F.requeridas(e, fam, cat.vigentes, { unidades: unidades.get(e.id), buscar: buscarG }).filter((r) => r.clase === "checklist" && r.clave && (!r.conjunto || r.clave === `equipo:${e.id}`));
           if (fam && reqs.length) {
             if (!familias.has(fam.codigo)) familias.set(fam.codigo, { codigo: fam.codigo, nombre: fam.nombre, equipos: 0, checklists: /* @__PURE__ */ new Map() });
             const g = familias.get(fam.codigo);
@@ -58172,6 +58289,138 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         return true;
       }
       module.exports = { listar, crear, guardar, marcarTarea, borrar, deFila, aFila };
+    }
+  });
+
+  // electron/data/firmasEquipo.js
+  var require_firmasEquipo = __commonJS({
+    "electron/data/firmasEquipo.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var ROLES = {
+        cliente: "El cliente",
+        jefeObra: "El jefe de obra"
+      };
+      var MAX_IMAGEN = 400 * 1024;
+      var llano = (v) => String(v ?? "").trim();
+      var sinAcentos = (v) => llano(v).toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+      function filasDe(repo, sesion, equipoIds) {
+        const ids = [...new Set((equipoIds || []).filter(Boolean))];
+        if (!ids.length) return [];
+        return repo.listar("firmasEquipo", sesion, { condicion: `equipoId IN (${ids.map(() => "?").join(",")})`, params: ids, orden: "modificadoEn" });
+      }
+      var publica = (f) => ({ id: f.id, equipoId: f.equipoId, rol: f.rol, rotulo: ROLES[f.rol] || f.rol, nombre: f.nombre || "", fecha: f.fecha || "", imagen: f.imagen });
+      function firmasDeEquipos(repo, sesion, equipoIds) {
+        const r = { cliente: null, jefeObra: null };
+        for (const f of filasDe(repo, sesion, equipoIds)) if (f.rol in r) r[f.rol] = publica(f);
+        return r;
+      }
+      function unidadesDelConjunto(repo, sesion, equipo) {
+        if (!equipo) return [];
+        const todos = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [equipo.obraId] });
+        const linea = require_conjuntos().agrupar(todos).find((l) => (l.unidades || []).some((u) => u.id === equipo.id));
+        const ids = linea ? linea.unidades.map((u) => u.id) : [equipo.id];
+        return [equipo.id, ...ids.filter((x) => x !== equipo.id)];
+      }
+      function firmasDeEquipo(repo, sesion, equipoId) {
+        const eq = repo.leer("equiposObra", sesion, llano(equipoId));
+        if (!eq) return { cliente: null, jefeObra: null };
+        return firmasDeEquipos(repo, sesion, unidadesDelConjunto(repo, sesion, eq));
+      }
+      function firmasDeClave(repo, sesion, obraId, clave) {
+        const m = /^(equipo|refrigerante):(.+)$/.exec(llano(clave));
+        if (!m) return { cliente: null, jefeObra: null };
+        if (m[1] === "equipo") return firmasDeEquipo(repo, sesion, m[2]);
+        const equipos = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
+        const ue = equipos.find((e) => sinAcentos(e.tag) === m[2]);
+        if (ue) return firmasDeEquipo(repo, sesion, ue.id);
+        return firmasDeEquipos(repo, sesion, equipos.filter((e) => sinAcentos(e.equipoAsociado) === m[2]).map((e) => e.id));
+      }
+      function bytesDeImagen(dataUrl) {
+        const m = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl || ""));
+        return m ? Buffer.from(m[1], "base64") : null;
+      }
+      function paraPdf(firmas) {
+        return ["jefeObra", "cliente"].map((rol) => {
+          const f = firmas && firmas[rol];
+          return f ? { rotulo: ROLES[rol], nombre: f.nombre, fecha: f.fecha, imagen: bytesDeImagen(f.imagen) } : null;
+        }).filter(Boolean);
+      }
+      function firmar(repo, sesion, equipoId, { rol, nombre, imagen, quitar } = {}) {
+        const eq = repo.leer("equiposObra", sesion, llano(equipoId));
+        if (!eq) return { ok: false, error: "No se encuentra el equipo." };
+        if (!(rol in ROLES)) return { ok: false, error: "Esa firma no existe." };
+        const ids = unidadesDelConjunto(repo, sesion, eq);
+        const previas = filasDe(repo, sesion, ids).filter((f) => f.rol === rol);
+        if (quitar) {
+          for (const f of previas) repo.borrar("firmasEquipo", sesion, f.id, { verbo: "editar" });
+          return { ok: true, firmas: firmasDeEquipos(repo, sesion, ids) };
+        }
+        const n = llano(nombre).slice(0, 80);
+        if (!n) return { ok: false, error: "Falta el nombre de quien firma." };
+        const img = llano(imagen);
+        if (!bytesDeImagen(img)) return { ok: false, error: "No llega la firma." };
+        if (img.length > MAX_IMAGEN) return { ok: false, error: "La firma es demasiado grande." };
+        const fecha = (/* @__PURE__ */ new Date()).toISOString();
+        const ultima = previas[previas.length - 1];
+        if (ultima) {
+          repo.modificar("firmasEquipo", sesion, ultima.id, { nombre: n, imagen: img, fecha, equipoId: eq.id });
+          for (const f of previas.slice(0, -1)) repo.borrar("firmasEquipo", sesion, f.id, { verbo: "editar" });
+        } else {
+          repo.crear("firmasEquipo", sesion, { obraId: eq.obraId, equipoId: eq.id, rol, nombre: n, imagen: img, fecha }, { verbo: "editar" });
+        }
+        return { ok: true, firmas: firmasDeEquipos(repo, sesion, ids) };
+      }
+      module.exports = { ROLES, firmar, firmasDeEquipo, firmasDeEquipos, firmasDeClave, paraPdf, bytesDeImagen, unidadesDelConjunto };
+    }
+  });
+
+  // shared/commissioning/filaMovil.js
+  var require_filaMovil = __commonJS({
+    "shared/commissioning/filaMovil.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const llano = (v) => String(v ?? "").trim();
+        const clave = (v) => llano(v).toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[\s_-]+/g, "-");
+        const PAPEL_DELANTE = /^U[EI][\s_-]+/i;
+        const PAPEL_DETRAS = /[\s_-]+U[EI]$/i;
+        function sinPapel(tag, planta) {
+          let t = llano(tag).replace(PAPEL_DELANTE, "").replace(PAPEL_DETRAS, "");
+          const p = llano(planta);
+          if (p) {
+            const re = new RegExp(`^${p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\s_-]+`, "i");
+            const sin = t.replace(re, "");
+            if (sin) t = sin;
+          }
+          return t;
+        }
+        function nombreConjunto(unidades, planta) {
+          const us = (unidades || []).filter((u) => u && llano(u.tag));
+          if (us.length !== 2) return null;
+          if (!us.every((u) => PAPEL_DELANTE.test(llano(u.tag)) || PAPEL_DETRAS.test(llano(u.tag)))) return null;
+          const nombres = us.map((u) => sinPapel(u.tag, planta));
+          if (!nombres[0] || clave(nombres[0]) !== clave(nombres[1])) return null;
+          return nombres[0];
+        }
+        const esCodigoLocal = (v) => /^[A-Z]{1,2}\d{0,2}\.[A-Z]{2,4}\.\d{2,}$/i.test(llano(v));
+        function localDe(unidades) {
+          const us = (unidades || []).filter(Boolean);
+          const interiores = new Set(us.filter((u) => u.papel === "UI" && llano(u.sala)).map((u) => llano(u.sala)));
+          if (interiores.size > 1) return null;
+          const orden = [...us.filter((u) => u.papel === "UI"), ...us.filter((u) => u.papel !== "UI")];
+          const s = (orden.find((u) => llano(u.sala)) || {}).sala;
+          if (!llano(s)) return null;
+          return esCodigoLocal(s) ? `Local ${llano(s)}` : llano(s);
+        }
+        const pideBalanceo = (f) => f.ensayoRequerido === "balanceo" || f.ensayoRequerido === "ambos";
+        function llevaPlanoBocas(f = {}) {
+          return f.medicion ? Boolean(f.medicion.plano) : pideBalanceo(f) || /UTA|climatiz|recuper|fan.?coil|extrac|ventil/i.test(f.grupo || "");
+        }
+        const API = { sinPapel, nombreConjunto, esCodigoLocal, localDe, llevaPlanoBocas };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.FILA_MOVIL_CX = API;
+      })();
     }
   });
 
@@ -80382,6 +80631,10 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
       }
       var esJpeg = (b) => b && b.length > 3 && b[0] === 255 && b[1] === 216;
       var esPng = (b) => b && b.length > 8 && b[0] === 137 && b[1] === 80 && b[2] === 78 && b[3] === 71;
+      function fechaFirma(t) {
+        const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(t || ""));
+        return m ? `${m[3]}/${m[2]}/${m[1]}` : String(t || "");
+      }
       async function informePdf(doc = {}) {
         const pdf = await PDFDocument.create();
         pdf.setTitle(String(doc.titulo || "Informe"));
@@ -80623,11 +80876,27 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           sitio(78);
           y -= 6;
           const col = (ANCHO - (firmas.length - 1) * 12) / firmas.length;
-          firmas.forEach((f, j) => {
+          for (let j = 0; j < firmas.length; j += 1) {
+            const f = firmas[j];
             const x = MARGEN + j * (col + 12);
+            const rotulo = typeof f === "string" ? f : f && f.rotulo || "";
             pagina.drawRectangle({ x, y: y - 64, width: col, height: 64, borderColor: LINEA, borderWidth: 0.8 });
-            pagina.drawText(limpio(f), { x: x + 6, y: y - 12, size: 8, font: negrita, color: GRIS });
-          });
+            pagina.drawText(limpio(rotulo), { x: x + 6, y: y - 12, size: 8, font: negrita, color: GRIS });
+            if (f && typeof f === "object") {
+              let img = null;
+              try {
+                if (f.imagen && esPng(f.imagen)) img = await pdf.embedPng(f.imagen);
+              } catch {
+                img = null;
+              }
+              if (img) {
+                const esc = Math.min((col - 12) / img.width, 34 / img.height);
+                pagina.drawImage(img, { x: x + 6, y: y - 50, width: img.width * esc, height: img.height * esc });
+              }
+              const pie2 = [f.nombre, f.fecha ? fechaFirma(f.fecha) : null].filter(Boolean).join(" \xB7 ");
+              if (pie2) pagina.drawText(limpio(pie2).slice(0, 60), { x: x + 6, y: y - 60, size: 7.5, font: normal, color: GRIS });
+            }
+          }
           y -= 70;
         }
         if ((doc.anexos || []).some(Boolean)) await bloques(doc.anexos);
@@ -80701,7 +80970,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         }
         return fuera;
       }
-      async function hojaExcelPdf({ hojas = [], imagen = null, anexoPdf = null, titulo = "Hoja", sinPie = false } = {}) {
+      async function hojaExcelPdf({ hojas = [], imagen = null, anexoPdf = null, titulo = "Hoja", sinPie = false, firmas = [] } = {}) {
         const pdf = await PDFDocument.create();
         pdf.setTitle(String(titulo));
         pdf.setProducer("Vidaire Cx");
@@ -80729,6 +80998,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           return img;
         };
         const propias = [];
+        let fondoUltima = null;
         for (const hoja of hojas) {
           const { anchos, filas, imagenes } = hoja.disp;
           const xs = [0];
@@ -80767,6 +81037,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           const Y = (v) => yTop - v * z;
           const pagina = pdf.addPage(A4);
           propias.push(pagina);
+          fondoUltima = { pagina, y: Y(altoHoja) };
           for (const c of celdas) {
             if (!c.e.fondo) continue;
             const top = ys[c.r];
@@ -80831,6 +81102,8 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             });
           }
         }
+        const conFirma = (firmas || []).filter((f) => f && typeof f === "object");
+        if (conFirma.length) await pintarFirmas(pdf, F, limpio, conFirma, fondoUltima, propias);
         if (!sinPie) propias.forEach((p, i) => {
           const t = `P\xE1gina ${i + 1} de ${propias.length}`;
           p.drawText(limpio(t), { x: A4[0] - MARGEN - F.n.widthOfTextAtSize(t, 7), y: MARGEN / 2, size: 7, font: F.n, color: rgb(0.45, 0.45, 0.45) });
@@ -80841,6 +81114,43 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           for (const p of copias) pdf.addPage(p);
         }
         return pdf.save();
+      }
+      var ALTO_FIRMAS = 92;
+      async function pintarFirmas(pdf, F, limpio, firmas, fondo, propias) {
+        let pagina;
+        let y;
+        if (fondo && fondo.y - ALTO_FIRMAS - 8 >= MARGEN) {
+          pagina = fondo.pagina;
+          y = fondo.y - 10;
+        } else {
+          pagina = pdf.addPage(A4);
+          propias.push(pagina);
+          y = A4[1] - MARGEN;
+        }
+        const gris = rgb(0.3, 0.3, 0.3);
+        const ancho = A4[0] - 2 * MARGEN;
+        pagina.drawText(limpio("Firmas"), { x: MARGEN, y: y - 10, size: 9, font: F.b, color: gris });
+        y -= 16;
+        const col = Math.min(240, (ancho - (firmas.length - 1) * 12) / firmas.length);
+        for (let j = 0; j < firmas.length; j += 1) {
+          const f = firmas[j];
+          const x = MARGEN + j * (col + 12);
+          pagina.drawRectangle({ x, y: y - 70, width: col, height: 70, borderColor: rgb(0.7, 0.7, 0.7), borderWidth: 0.8 });
+          pagina.drawText(limpio(f.rotulo || ""), { x: x + 6, y: y - 11, size: 8, font: F.b, color: gris });
+          let img = null;
+          try {
+            if (f.imagen && f.imagen[0] === 137) img = await pdf.embedPng(f.imagen);
+          } catch {
+            img = null;
+          }
+          if (img) {
+            const esc = Math.min((col - 12) / img.width, 40 / img.height);
+            pagina.drawImage(img, { x: x + 6, y: y - 56, width: img.width * esc, height: img.height * esc });
+          }
+          const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(f.fecha || ""));
+          const pie = [f.nombre, m ? `${m[3]}/${m[2]}/${m[1]}` : null].filter(Boolean).join(" \xB7 ");
+          if (pie) pagina.drawText(limpio(pie).slice(0, 60), { x: x + 6, y: y - 66, size: 7.5, font: F.n, color: gris });
+        }
       }
       module.exports = { hojaExcelPdf, leerEstilo, aTexto };
     }
@@ -80855,6 +81165,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
       var path = require_path();
       var crypto2 = require_crypto();
       var FPM = require_fichasPM();
+      var FIR = require_firmasEquipo();
       var F = require_fichas();
       var RG = require_reglasCx();
       var DIF = require_difusores2();
@@ -80914,12 +81225,15 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             ok: true,
             equipo: { id: d.equipo.id, tag: d.equipo.tag, obraId: d.equipo.obraId },
             familia: d.familia ? d.familia.nombre : null,
-            fichas: d.partes.map((p) => ({
+            fichas: [...d.partes, ...d.conservadas || []].map((p) => ({
               plantilla: p.plantilla,
               clave: p.clave,
               clase: p.clase,
               nombre: p.nombre,
               motivo: p.motivo,
+              /* Split y VRF: lo guardado antes en otra unidad del conjunto, para leerlo. */
+              conservada: Boolean(p.conservada),
+              unidadTag: p.unidadTag || null,
               estado: p.evaluacion ? p.evaluacion.estado : "sinFicha",
               resultado: p.evaluacion ? p.evaluacion.resultado : null,
               medidos: p.evaluacion ? p.evaluacion.medidos : null,
@@ -81059,6 +81373,16 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           if (p.tipo === "numero") return `${cifra(p.valor, 2)}${p.unidad ? ` ${p.unidad}` : ""}`;
           return String(p.valor);
         };
+        function conFirmas(rotulos, firmas) {
+          const hechas = FIR.paraPdf(firmas);
+          if (!hechas.length) return rotulos;
+          const jefe = hechas.find((f) => f.rotulo === FIR.ROLES.jefeObra);
+          const cliente = hechas.find((f) => f.rotulo === FIR.ROLES.cliente);
+          const lista = rotulos.map((r) => r === FIR.ROLES.jefeObra && jefe ? jefe : r);
+          if (jefe && !lista.includes(jefe)) lista.push(jefe);
+          lista.push(cliente || FIR.ROLES.cliente);
+          return lista;
+        }
         function docFicha(ses, obraId, ref) {
           const f = FPM.ficha(repo, ses, obraId, ref);
           if (!f || f.ok === false) return { error: f && f.error || "No se encuentra la obra." };
@@ -81144,7 +81468,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
               ],
               bloques,
               fotos,
-              firmas: ["Realizado por", "La empresa instaladora", "El jefe de obra"]
+              firmas: conFirmas(["Realizado por", "La empresa instaladora", "El jefe de obra"], FIR.firmasDeClave(repo, ses, obraId, ref.clave))
             }
           };
         }
@@ -81339,7 +81663,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
                   nota: notaMetodo
                 }))
               ],
-              firmas: ["Medido por", "El jefe de obra"],
+              firmas: conFirmas(["Medido por", "El jefe de obra"], FIR.firmasDeEquipo(repo, ses, equipoId)),
               anexos: d.planos.map((p) => {
                 const imagen = lamina(p);
                 return imagen ? { plano: true, titulo: `Plano de bocas \xB7 ${p.nombre}`, imagen, marcas: marcas(p), nota: "Junto a cada boca: medido / proyecto (m\xB3/h). Verde: dentro de tolerancia \xB7 rojo: fuera \xB7 gris: sin medir o sin caudal de proyecto." } : null;
@@ -81380,7 +81704,8 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           if (!r) return null;
           const fotos = sinMedidos ? [] : (f.evaluacion.datos.fotos || []).map((x) => ({ bytes: bytesDe(x.ruta), pie: x.nombre || path.basename(x.ruta) }));
           const anexoPdf = fotos.length ? await informePdf({ titulo: `Anexo \xB7 Fotos \xB7 ${f.titulo || ""}`, fecha: ahoraEs(), fotos, pie: `Anexo de ${f.plantilla.nombre} \xB7 ${f.titulo || ""}` }) : null;
-          const bytes = await hojaExcelPdf({ hojas: [{ disp: X.disposicion(r.m, r.opciones), marca: r.opciones.marca }], imagen: imagenLibro, anexoPdf, titulo: f.plantilla.nombre });
+          const firmas = sinMedidos ? [] : FIR.paraPdf(FIR.firmasDeClave(repo, ses, obraId, ref.clave));
+          const bytes = await hojaExcelPdf({ hojas: [{ disp: X.disposicion(r.m, r.opciones), marca: r.opciones.marca }], imagen: imagenLibro, anexoPdf, titulo: f.plantilla.nombre, firmas });
           return { bytes, nombre: `${nombreSeguro([eq.sala, f.titulo, f.plantilla.nombre].filter(Boolean).join(" - "))}.pdf` };
         }
         async function pdfBalanceoHoja(ses, equipoId, opciones = {}) {
@@ -81393,7 +81718,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           const d = docBalanceo(ses, equipoId);
           const planos = d.doc ? (d.doc.anexos || []).filter(Boolean) : [];
           const anexoPdf = planos.length ? await informePdf({ titulo: `Anexo \xB7 Plano de bocas \xB7 ${eq.tag || ""}`, fecha: ahoraEs(), datos: filasTiempo(ses, eq), bloques: planos, pie: `Anexo de la hoja de balanceo de ${eq.tag || ""}` }) : null;
-          const bytes = await hojaExcelPdf({ hojas: [{ disp: X.disposicion(r.m, r.opciones), marca: r.opciones.marca }], imagen: imagenLibro, anexoPdf, titulo: `BALANCEO - ${eq.tag || ""}` });
+          const bytes = await hojaExcelPdf({ hojas: [{ disp: X.disposicion(r.m, r.opciones), marca: r.opciones.marca }], imagen: imagenLibro, anexoPdf, titulo: `BALANCEO - ${eq.tag || ""}`, firmas: FIR.paraPdf(FIR.firmasDeEquipo(repo, ses, eq.id)) });
           return { bytes, nombre: `${nombreSeguro(`BALANCEO - ${eq.tag || eq.id}`)}.pdf` };
         }
         async function pdfEstanqueidadHoja(ses, id, opciones = {}) {
@@ -81476,8 +81801,10 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
       var INV = require_inventario2();
       var CAMPO = require_inventarioCampo();
       var NOTAS = require_notas2();
+      var FIR = require_firmasEquipo();
       var MNCR = require_motor();
       var MDIF = require_difusores();
+      var FMOV = require_filaMovil();
       var { puede } = require_roles();
       var { crearRutasFichas, PERMISOS_FICHAS } = require_rutasFichas();
       var PERMISOS_OBRA = {
@@ -81494,6 +81821,8 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         "POST api/equipo/fotos": [["commissioning", "editar"]],
         "POST api/equipo/fotos/quitar": [["commissioning", "editar"]],
         "GET api/equipo/foto": [["commissioning", "ver"]],
+        /* Las firmas del cliente y del jefe de obra (28-oct-2026). */
+        "POST api/equipo/firma": [["commissioning", "editar"]],
         "GET api/equipo/plano": [["commissioning", "ver"]],
         "GET api/ncr": [["ncr", "ver"]],
         "GET api/ncr/ficha": [["ncr", "ver"]],
@@ -81557,7 +81886,10 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             docCompleta: Boolean(f.docCompleta),
             estadoPM: f.estadoPM || null,
             instalada: f.instalada !== false,
-            ...bocas.get(f.id) || { bocas: 0, medidas: 0 }
+            ...bocas.get(f.id) || { bocas: 0, medidas: 0 },
+            /* La tarjeta del móvil (28-oct, JC): el local y si lleva plano de bocas. */
+            local: FMOV.localDe([{ sala: f.sala, papel: "UE" }]),
+            conPlano: FMOV.llevaPlanoBocas(f)
           });
           const conjuntos = (t.conjuntos || []).map((l) => {
             const ext = l.exterior || l.miembros[0];
@@ -81578,6 +81910,16 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
               estadoPM: l.estadoPM || null,
               instalada: l.instalada !== false,
               unidades: l.miembros.map((m) => ({ id: m.id, tag: m.tag, papel: m.id === ext.id && l.clase !== "suelto" ? "UE" : "UI", modelo: m.modelo || null, planta: m.planta || null }))
+            };
+          }).map((c, i) => {
+            const l = t.conjuntos[i];
+            const us = l.miembros.map((m, j) => ({ tag: m.tag, sala: m.sala, papel: c.unidades[j].papel }));
+            return {
+              ...c,
+              /* Un split se nombra una vez («SALA DAS 037»); null si sus TAG no cuadran. */
+              nombre: l.clase === "par" ? FMOV.nombreConjunto(us, c.planta) : null,
+              local: FMOV.localDe(us),
+              conPlano: l.miembros.some((m) => FMOV.llevaPlanoBocas(m))
             };
           });
           const tc = t.totalesConjuntos || {};
@@ -81700,6 +82042,8 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
               })
             })),
             fotos: fotosDe(ses, d.equipo.id),
+            /* Las firmas del cliente y del jefe de obra (las del conjunto, si es un split o un VRF). */
+            firmas: FIR.firmasDeEquipo(repo, ses, d.equipo.id),
             /* El equipo de medida de todo el equipo: el de todas sus bocas si es el
                mismo; null si cada una va con el suyo (o no hay ninguna medida). */
             equipoMedida: (() => {
@@ -81878,6 +82222,16 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           } catch {
           }
           return { ok: true, ...equipo({ ses, query: { id: f.equipoId } }) };
+        }
+        function equipoFirma({ ses, json }) {
+          const e = json();
+          let r;
+          try {
+            r = FIR.firmar(repo, ses, llano(e.equipoId), { rol: llano(e.rol), nombre: e.nombre, imagen: e.imagen, quitar: Boolean(e.quitar) });
+          } catch {
+            return { ok: false, error: "Tu rol no puede firmar este equipo." };
+          }
+          return r;
         }
         function equipoFoto({ ses, query }) {
           const f = repo.leer("fotosEquipo", ses, llano(query.id));
@@ -82136,6 +82490,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           "POST api/equipo/fotos": equipoFotos,
           "POST api/equipo/fotos/quitar": equipoFotoQuitar,
           "GET api/equipo/foto": equipoFoto,
+          "POST api/equipo/firma": equipoFirma,
           "GET api/equipo/plano": equipoPlano,
           "GET api/ncr": ncrLista,
           "GET api/ncr/ficha": ncrFicha,

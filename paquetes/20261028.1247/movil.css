@@ -486,7 +486,6 @@ a.fila-dato strong { color: var(--acento); font-weight: 600; }
 .conjunto-cx .fila-dato.actual { background: var(--seleccion, rgba(0,63,45,.06)); }
 .conjunto-cx .fila-dato > span:first-child:not(.papel) { flex: 1; }
 .conjunto-cx .flecha { color: var(--textoTenue); font-size: 20px; }
-.cuenta-conjuntos { margin: 2px 4px 8px; font-size: 12.5px; }
 .fila-dato.interruptor input { width: 24px; height: 24px; min-height: 24px; margin: 0; accent-color: var(--acento); box-shadow: none; }
 .pie { text-align: center; margin-top: 28px; font-size: 13px; color: var(--textoTenue); }
 .cabeza-ficha h2 { margin: 6px 0 2px; font-size: 26px; letter-spacing: -.02em; }
@@ -670,12 +669,6 @@ details.grupo-lista[open] > summary::before { transform: rotate(90deg); }
 details.grupo-lista > summary span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 details.grupo-lista > summary .contador { font-family: var(--fuente-cifras, inherit); color: var(--textoTenue); font-weight: 600; }
 details.grupo-lista[open] > summary { margin-bottom: 6px; }
-/* Commissioning: el contador descuenta lo hecho («120 de 146») y el desglose por planta va debajo. */
-details.grupo-lista > summary .contador small { font-size: 12px; font-weight: 400; }
-details.grupo-lista > summary .contador.hecho { color: var(--acento); }
-details.grupo-lista > summary .titulo-grupo small.desglose-plantas { display: block; font-size: 12px; font-weight: 400; color: var(--textoTenue); overflow: hidden; text-overflow: ellipsis; }
-details.grupo-lista > summary .desglose-plantas b { color: var(--acento); font-weight: 600; }
-.lista-ios > li.hecho .fila-ios { opacity: .7; }
 .ver-mas { display: block; width: 100%; margin: 6px 0 4px; padding: 10px; border: 0; border-radius: 12px; background: transparent; color: var(--acento, #00695c); font: inherit; font-weight: 600; }
 .ver-mas small { color: var(--textoTenue); font-weight: 400; }
 
@@ -878,6 +871,8 @@ input.mal { box-shadow: 0 0 0 2px var(--mal-fondo) !important; }
 .densa button.fila-ios::after { right: 10px; font-size: 18px; }
 .densa .fila-principal strong { font-size: 14.5px; }
 .densa .fila-ios .sub { font-size: 12px; }
+/* La línea del equipo se parte entre trozos (tipo · planta · local · modelo), nunca dentro de uno (28-oct). */
+.fila-ios .sub .trozo { white-space: nowrap; }
 .densa .grupo, .densa .total-circuito, .densa .boca { border-radius: 0; box-shadow: none; border: 1px solid var(--rejilla); }
 .densa .obs { width: 100%; min-height: 64px; display: block; }
 .densa .barra-hoja { margin-top: 12px; }
@@ -1511,3 +1506,19 @@ main, #app { min-width: 0; max-width: 100%; }
 .total-circuito.mal .cifras-total > div:first-child b, .boca.mal .boca-cifras [data-vivo="q"] { color: var(--mal); }
 .total-circuito.alto .cifras-total > div:first-child b, .boca.alto .boca-cifras [data-vivo="q"] { color: var(--alto); }
 .chip.alto { background: var(--alto-fondo); color: var(--alto); }
+
+/* LAS FIRMAS DEL EQUIPO (28-oct-2026): en «Documentación y estado», a todo el
+   ancho; el lienzo para firmar con el dedo, blanco con borde teal. */
+.estado-eq > .fd.firma-fd { grid-column: 1 / -1; }
+/* A 390 px el rótulo no se pisa con su valor: el rótulo ocupa lo suyo y el valor, lo que quede, a la derecha. */
+.estado-eq > .fd { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; column-gap: 10px; row-gap: 2px; }
+.estado-eq > .fd > :last-child { margin-left: auto; text-align: right; }
+.firma-hecha .tenue { white-space: nowrap; }
+.estado-eq > .fd .enlace { white-space: normal; text-align: right; }
+.firma-valor { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.firma-hecha { display: inline-flex; align-items: center; gap: 6px; }
+.firma-hecha img { height: 30px; width: auto; max-width: 120px; background: #fff; border-bottom: 1px solid var(--acento); }
+.firma-lienzo { margin: 8px 0 12px; }
+.firma-lienzo .campo { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; font-size: 13px; color: var(--textoSuave); }
+.firma-lienzo input { font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid var(--borde); border-radius: 8px; background: var(--panel); color: var(--texto); }
+.firma-lienzo canvas { display: block; width: 100%; aspect-ratio: 3 / 1; background: #fff; border: 1.5px solid var(--acento); border-radius: 8px; touch-action: none; cursor: crosshair; }
