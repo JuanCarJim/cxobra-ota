@@ -1506,3 +1506,46 @@ main, #app { min-width: 0; max-width: 100%; }
 .total-circuito.mal .cifras-total > div:first-child b, .boca.mal .boca-cifras [data-vivo="q"] { color: var(--mal); }
 .total-circuito.alto .cifras-total > div:first-child b, .boca.alto .boca-cifras [data-vivo="q"] { color: var(--alto); }
 .chip.alto { background: var(--alto-fondo); color: var(--alto); }
+
+/* LAS FIRMAS DEL EQUIPO (28-oct-2026): en «Documentación y estado», a todo el
+   ancho; el lienzo para firmar con el dedo, blanco con borde teal. */
+.estado-eq > .fd.firma-fd { grid-column: 1 / -1; }
+/* A 390 px el rótulo no se pisa con su valor: el rótulo ocupa lo suyo y el valor, lo que quede, a la derecha. */
+.estado-eq > .fd { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; column-gap: 10px; row-gap: 2px; }
+.estado-eq > .fd > :last-child { margin-left: auto; text-align: right; }
+.firma-hecha .tenue { white-space: nowrap; }
+.estado-eq > .fd .enlace { white-space: normal; text-align: right; }
+.firma-valor { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.firma-hecha { display: inline-flex; align-items: center; gap: 6px; }
+.firma-hecha img { height: 30px; width: auto; max-width: 120px; background: #fff; border-bottom: 1px solid var(--acento); }
+.firma-lienzo { margin: 8px 0 12px; }
+.firma-lienzo .campo { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; font-size: 13px; color: var(--textoSuave); }
+.firma-lienzo input { font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid var(--borde); border-radius: 8px; background: var(--panel); color: var(--texto); }
+.firma-lienzo canvas { display: block; width: 100%; aspect-ratio: 3 / 1; background: #fff; border: 1.5px solid var(--acento); border-radius: 8px; touch-action: none; cursor: crosshair; }
+
+/* Subencabezado de planta dentro de un desplegable: texto pequeño teal, sin caja. */
+.subgrupo-cab { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 10px 2px 2px; font-size: 12px; font-weight: 600; color: var(--teal, var(--acento, #007a73)); letter-spacing: .02em; }
+.subgrupo-cab b { font-family: var(--fuente-cifras, inherit); font-weight: 600; }
+
+/* RESUMEN DE LA OBRA en el Inicio (28-oct, JC): una fila por área (nombre en
+   teal) y debajo 2-4 cifras grandes y tabulares; cada una se toca y lleva a su
+   lista filtrada. Sin cajas ni sombras: solo una raya fina entre áreas. El
+   color dice qué es: verde hecho, teal en curso, ámbar falta, rojo vencido; gris si es cero. */
+.res-obra { background: var(--panel); }
+.res-area { padding: 8px 12px 6px; border-bottom: 1px solid var(--rejillaSuave); }
+.res-nombre { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 12.5px; font-weight: 600; color: var(--acento-fuerte); }
+.res-nombre small { font-size: 12px; font-weight: 500; color: var(--textoTenue); font-variant-numeric: tabular-nums; }
+.res-cifras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-top: 2px; }
+.res-cifras.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.res-cifras.n2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.res-cifras.n1 { grid-template-columns: minmax(0, 1fr); }
+.res-cifra { display: flex; flex-direction: column; min-width: 0; padding: 2px 0 4px; border-radius: 6px; text-decoration: none; color: var(--texto); -webkit-tap-highlight-color: transparent; }
+.res-cifra:active { background: var(--acento-suave); }
+.res-cifra b { font-size: 24px; font-weight: 600; letter-spacing: -.02em; line-height: 1.15; font-variant-numeric: tabular-nums lining-nums; }
+.res-cifra span { font-size: 11.5px; line-height: 1.25; color: var(--textoSuave); overflow-wrap: anywhere; }
+.res-cifra span i { font-style: normal; color: var(--textoTenue); white-space: nowrap; }
+.res-cifra.bien b { color: var(--bien); }
+.res-cifra.info b { color: var(--acento); }
+.res-cifra.aviso b { color: var(--aviso); }
+.res-cifra.mal b { color: var(--mal); }
+.res-cifra.cero b { color: var(--textoTenue); font-weight: 500; }

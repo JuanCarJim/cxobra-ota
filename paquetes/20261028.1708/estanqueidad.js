@@ -26,6 +26,9 @@
   const $camara = document.getElementById('camara-prueba');
   const $galeria = document.getElementById('galeria-prueba');
   const BORRADOR = 'estanqueidad.borrador';
+  /* Las fotos, en el teléfono al hacerlas (JC, 28-oct: autoguardado en toda la app). */
+  const AG = window.AUTOGUARDADO || null;
+  const vistaDe = (x) => vistas.get(x.local || x.id);
 
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   /* Un sello con hora (creadoEn, en UTC) se enseña con el día LOCAL: a la 01:20 del 15 ya es 15. */
@@ -72,7 +75,7 @@
 
   /* El borrador: la prueba a medias, en el teléfono, por si se cierra el navegador. */
   function guardarBorrador() {
-    try { if (form) localStorage.setItem(BORRADOR, JSON.stringify(form)); else localStorage.removeItem(BORRADOR); } catch { /* sin almacenamiento */ }
+    try { if (form) localStorage.setItem(BORRADOR, JSON.stringify(form, (k, v) => (k === 'archivo' ? undefined : v))); else localStorage.removeItem(BORRADOR); } catch { /* sin almacenamiento */ }
   }
   function leerBorrador() {
     try { return JSON.parse(localStorage.getItem(BORRADOR) || 'null'); } catch { return null; }
@@ -191,7 +194,7 @@
   function fotoDe(momento) {
     const f = form.fotos.filter((x) => x.momento === momento).slice(-1)[0];
     if (!f) return '';
-    const url = vistas.get(f.id);
+    const url = vistaDe(f);
     return url ? `<img src="${esc(url)}" alt="Foto del manómetro">` : '<span class="sin-vista" title="Foto guardada"><i class="ic ic-camara"></i></span>';
   }
 
@@ -241,9 +244,10 @@
       <label>Manómetro (nº de serie o calibración)<input data-pe-campo="manometro" value="${esc(f.manometro)}" placeholder="opcional" autocomplete="off"></label>
       <label class="notas">Observaciones<textarea data-pe-campo="observaciones" rows="3" placeholder="Lo que se ha reparado, purgas, temperatura…">${esc(f.observaciones)}</textarea></label>
       <h2>Otras fotos <span class="cuenta">${otras.length}</span></h2>
-      <div class="fotos">${otras.map((x) => (vistas.get(x.id) ? `<img src="${esc(vistas.get(x.id))}" alt="Foto">` : '<span class="sin-vista"><i class="ic ic-camara"></i></span>')).join('')}
+      <div class="fotos">${otras.map((x) => (vistaDe(x) ? `<img src="${esc(vistaDe(x))}" alt="Foto">` : '<span class="sin-vista"><i class="ic ic-camara"></i></span>')).join('')}
         <button class="anadir-foto" data-pe="foto" data-momento="otra" aria-label="Hacer otra foto">＋</button></div>
       <button class="enlace" data-pe="galeria">o elegir una foto de la galería</button>
+      ${AG ? AG.marca('movil') : ''}
       <button class="boton grande" data-pe="enviar">Enviar al jefe de obra</button>
       <p class="nota centrada">Se hace el informe en PDF y se guarda en la documentación de la obra. Puedes cerrar el navegador mientras dura la prueba: queda guardada en el teléfono.</p>`;
     arrancarReloj();
@@ -265,26 +269,75 @@
   }
   function pararReloj() { if (reloj) clearInterval(reloj); reloj = null; }
 
+  const subirArchivo = async (archivo) => {
+    const r = await pedir('api/foto?leer=0', { method: 'POST', headers: { 'Content-Type': archivo.type || 'image/jpeg' }, body: archivo });
+    if (!r.ok) throw new Error(r.error);
+    return r.fotoId;
+  };
+  /*
+   * La foto se guarda en el teléfono ANTES de subirla: si no hay red, o el
+   * ordenador la olvida (app cerrada), se vuelve a subir desde aquí al enviar.
+   */
   async function foto(archivo) {
     if (!archivo || !form) return;
+    const momento = momentoFoto;
+    const f = form;
+    const item = { id: null, momento };
+    if (AG) item.local = await AG.guardarFoto(archivo);
+    try { vistas.set(item.local || `v${Date.now()}`, URL.createObjectURL(archivo)); } catch { /* sin vista */ }
+    if (!item.local) item.archivo = archivo;
+    /* La del manómetro se sustituye; las otras se suman. */
+    if (momento !== 'otra') {
+      for (const x of f.fotos) if (x.momento === momento && x.local && AG) AG.borrarFoto(x.local);
+      f.fotos = f.fotos.filter((x) => x.momento !== momento);
+    }
+    f.fotos.push(item);
+    if (form === f) { guardarBorrador(); pintarForm(); }
     try {
-      const r = await pedir('api/foto?leer=0', { method: 'POST', headers: { 'Content-Type': archivo.type || 'image/jpeg' }, body: archivo });
-      if (!r.ok) throw new Error(r.error);
-      /* La del manómetro se sustituye; las otras se suman. */
-      if (momentoFoto !== 'otra') form.fotos = form.fotos.filter((x) => x.momento !== momentoFoto);
-      form.fotos.push({ id: r.fotoId, momento: momentoFoto });
-      vistas.set(r.fotoId, URL.createObjectURL(archivo));
-      guardarBorrador();
-      pintarForm();
-    } catch (e) { aviso(e.message); }
+      item.id = await subirArchivo(archivo);
+      if (form === f) guardarBorrador();
+    } catch (e) {
+      if (!(AG && AG.sinRed(e))) aviso(e.message);
+      if (!item.local) { f.fotos = f.fotos.filter((x) => x !== item); if (form === f) pintarForm(); }
+    }
   }
+  /* Antes de enviar: toda foto sin subir (o que el ordenador olvidó) sale del teléfono. */
+  async function subirPendientes(f, todas = false) {
+    for (const x of f.fotos) {
+      if (x.id && !todas) continue;
+      const blob = x.archivo || (AG && x.local ? await AG.leerFoto(x.local) : null);
+      if (!blob) { if (!x.id) throw new Error('Una foto ya no está en el teléfono: vuelve a hacerla.'); continue; }
+      x.id = await subirArchivo(blob);
+    }
+    if (form === f) guardarBorrador();
+  }
+  /* Al seguir una prueba a medias, las fotos se vuelven a ver. */
+  async function restaurarVistas() {
+    if (!form || !AG) return;
+    let alguna = false;
+    for (const x of form.fotos || []) {
+      if (!x.local || vistas.has(x.local)) continue;
+      const blob = await AG.leerFoto(x.local);
+      if (blob) { try { vistas.set(x.local, URL.createObjectURL(blob)); alguna = true; } catch { /* sin vista */ } }
+    }
+    if (alguna && form && activa() && document.getElementById('pe-veredicto')) pintarForm();
+  }
+  const fotosAlServidor = (f) => f.fotos.filter((x) => x.id).map(({ id, momento }) => ({ id, momento }));
+  function borrarFotosLocales(f) { if (AG && f) for (const x of f.fotos || []) if (x.local) AG.borrarFoto(x.local); }
 
   async function enviar(boton) {
     const f = form;
     boton.disabled = true;
     try {
-      const r = await postJson('api/estanqueidad', { ...f, duracionMin: duracion() });
+      await subirPendientes(f);
+      let r = await postJson('api/estanqueidad', { ...f, fotos: fotosAlServidor(f), duracionMin: duracion() });
+      /* El ordenador olvidó alguna foto en espera: se suben otra vez desde el teléfono. */
+      if (!r.ok && /ya no está/i.test(String(r.error || ''))) {
+        await subirPendientes(f, true);
+        r = await postJson('api/estanqueidad', { ...f, fotos: fotosAlServidor(f), duracionMin: duracion() });
+      }
       if (!r.ok) throw new Error(r.error);
+      borrarFotosLocales(f);
       form = null;
       guardarBorrador();
       pararReloj();
@@ -301,7 +354,7 @@
         <button class="boton secundario" data-pe="lista">Volver a la lista</button>`;
       datos = await pedir('api/estanqueidad').catch(() => datos);
     } catch (e) {
-      aviso(e.message);
+      aviso(AG && AG.sinRed(e) ? 'Sin conexión: la prueba sigue guardada en el teléfono. Envíala cuando vuelva la red.' : e.message);
       boton.disabled = false;
     }
   }
@@ -317,10 +370,10 @@
     else if (a === 'nuevo') { if (datos) nuevo(); }
     else if (a === 'seguir') {
       form = leerBorrador();
-      if (form && EM.INSTALACIONES[form.instalacion]) pintarForm(); else nuevo();
+      if (form && EM.INSTALACIONES[form.instalacion]) { pintarForm(); restaurarVistas(); } else nuevo();
     } else if (a === 'descartar') {
       if (!confirm('¿Descartar la prueba a medias?')) return;
-      form = null; guardarBorrador(); pintarLista();
+      borrarFotosLocales(form || leerBorrador()); form = null; guardarBorrador(); pintarLista();
     } else if (a === 'instalacion') { elegirInstalacion(b.dataset.id); guardarBorrador(); }
     else if (a === 'cambiar-instalacion') pintarInstalacion();
     else if (a === 'sugerida') {

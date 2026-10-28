@@ -33,6 +33,64 @@
   /* Lo tocado en la ficha y aún sin guardar. */
   let borrador = null;
   let sucio = false;
+  /*
+   * AUTOGUARDADO (JC, 28-oct: «en toda la app»): lo tocado en la orden se
+   * queda en el teléfono al momento (`cx.borrador.orden.<id>`, con la firma,
+   * las horas y quién firma) y se manda solo a los ~1,2 s, al volver a la
+   * lista o al salir de la app. Sin red, la cola lo manda al volver. Las
+   * fotos se guardan en el teléfono antes de subirlas.
+   */
+  const AG = window.AUTOGUARDADO || null;
+  const COLA = window.COLA_GUARDADO || null;
+  const ESPERA = 1200;
+  let relojAG = null;
+  let estadoAG = '';
+  const claveOrden = (id) => `orden.${id}`;
+  const TEXTO_AG = { guardando: 'Guardando…', guardado: 'Guardado', movil: 'Guardado en el móvil', sinRed: 'Sin conexión, se guardará', error: 'No se ha guardado' };
+  const marcaAG = () => `<span class="autoguardado ${esc(estadoAG)}" role="status" aria-live="polite">${esc(TEXTO_AG[estadoAG] || '')}</span>`;
+  function pintarMarcaAG() {
+    const el = $app.querySelector && $app.querySelector('.barra-guardar .autoguardado');
+    if (el) { el.className = `autoguardado ${estadoAG}`; el.textContent = TEXTO_AG[estadoAG] || ''; }
+  }
+  /* El borrador de la orden abierta, en el teléfono. */
+  function apuntar() {
+    if (!AG || !abierta || !borrador) return;
+    AG.guardar(claveOrden(abierta.orden.id), { sucio, cuerpo: recogerBorrador(), local: borrador });
+  }
+  function tocado() {
+    sucio = true;
+    estadoAG = 'movil';
+    apuntar();
+    pintarMarcaAG();
+    clearTimeout(relojAG);
+    relojAG = setTimeout(() => { relojAG = null; if (sucio) guardarYa(); }, ESPERA);
+  }
+  let enVuelo = null;
+  /* Manda ya lo pendiente (nunca dos envíos a la vez de la misma orden). */
+  function guardarYa() {
+    clearTimeout(relojAG); relojAG = null;
+    if (enVuelo) return enVuelo;
+    if (!abierta || !sucio) return Promise.resolve(true);
+    enVuelo = guardar(null, true).finally(() => { enVuelo = null; });
+    return enVuelo;
+  }
+  /* La cola: lo que quedó en el teléfono se manda aunque la orden no esté abierta. */
+  async function enviarPendiente(clave, b) {
+    if (abierta && claveOrden(abierta.orden.id) === clave) return sucio ? guardarYa() : true;
+    if (!b || !b.sucio || !b.cuerpo) return true;
+    const r = await C.postJson('api/orden/avance', b.cuerpo);
+    if (!r.ok) { if (AG) AG.olvidar(clave); return true; }
+    if (AG) AG.guardar(clave, { ...b, sucio: false });
+    return true;
+  }
+  async function enviarFotoPendiente(clave, b) {
+    const [x] = AG ? await AG.restaurarFotos((b && b.fotos) || []) : [];
+    if (!x || !x.archivo || !b.ordenId) { if (AG) AG.borrar(clave); return true; }
+    const r = await C.postJson('api/orden/foto', { id: b.ordenId, fotos: [await C.subirFoto(x.archivo)] });
+    if (!r.ok) throw new Error(r.error);
+    AG.borrar(clave);
+    return true;
+  }
 
   /* Sin ámbar ni amarillo (JC, 24-oct): gris sin asignar, teal asignada, azul
      en curso, teal con borde pendiente de cierre y verde cerrada. */
@@ -63,6 +121,7 @@
   /* ═══════════════════════════════════ 1. La lista */
 
   async function lista() {
+    if (abierta && sucio) await guardarYa();
     abierta = null; borrador = null; sucio = false;
     await C.obrasListas();
     if (!activa()) return;
@@ -137,6 +196,17 @@
         firma: null,
       };
       sucio = false;
+      estadoAG = '';
+      /* Lo que quedó en el teléfono (atrás, app cerrada, sin red) vuelve. */
+      const guardado = AG ? AG.leer(claveOrden(r.orden.id)) : null;
+      if (guardado && guardado.local && ['enCurso', 'asignada', 'pendiente'].includes(r.orden.estado)) {
+        const l = guardado.local;
+        if (Array.isArray(l.checklist) && l.checklist.length === borrador.checklist.length) borrador.checklist = l.checklist;
+        if (Array.isArray(l.medidas) && l.medidas.length === borrador.medidas.length) borrador.medidas = l.medidas;
+        for (const k of ['observaciones', 'horas', 'firmadoPor', 'firma']) if (l[k] !== undefined && l[k] !== null) borrador[k] = l[k];
+        sucio = Boolean(guardado.sucio);
+        estadoAG = sucio ? 'movil' : '';
+      } else if (guardado && AG) AG.olvidar(claveOrden(r.orden.id));
       sec = secGuardada(r.orden.id) || 'resumen';
       pintarFicha();
       window.scrollTo(0, 0);
@@ -201,11 +271,9 @@
       ${o.atrasada ? `<p class="nota atrasada">Atrasada: tocaba el ${esc(fechaEs(o.fechaPrevista))}.</p>` : ''}
       ${subs.length > 1 ? `<div class="segmentado subsecciones-ot" role="tablist">${subs.map((x) => `<button type="button" role="tab" data-mt-sec="${x.id}" class="${x.id === sec ? 'activa' : ''}${x.hecha ? ' hecha' : ''}" aria-selected="${x.id === sec}">${x.hecha ? '<span class="visto" aria-label="completa">✓</span> ' : ''}${esc(x.nombre)}${x.cuenta ? ` <small>${x.cuenta}</small>` : ''}</button>`).join('')}</div>` : ''}
       <div class="sec-ot" data-sec="${sec}">${cuerpo}${siguiente}</div>
-      ${editable ? `<div class="barra-guardar" role="status">
-          <span class="estado-guardar ${sucio ? 'pendiente' : 'al-dia'}">${sucio ? 'Cambios sin guardar' : 'Todo guardado'}</span>
-          <button type="button" class="boton secundario" data-mt="guardar" ${sucio ? '' : 'disabled'}>Guardar</button>
-        </div>` : ''}`;
+      ${editable ? `<div class="barra-guardar">${marcaAG()}</div>` : ''}`;
     C.cargarImagenes($app);
+    if (sucio && !relojAG) { relojAG = setTimeout(() => { relojAG = null; if (sucio) guardarYa(); }, ESPERA); }
     if (editable && sec === 'fotos') prepararFirma();
   }
 
@@ -272,7 +340,7 @@
     const punto = (ev) => { const r = lienzo.getBoundingClientRect(); return [(ev.clientX - r.left) * (lienzo.width / r.width), (ev.clientY - r.top) * (lienzo.height / r.height)]; };
     lienzo.addEventListener('pointerdown', (ev) => { ev.preventDefault(); dibujando = true; lienzo.setPointerCapture(ev.pointerId); ctx.beginPath(); ctx.moveTo(...punto(ev)); });
     lienzo.addEventListener('pointermove', (ev) => { if (!dibujando) return; ev.preventDefault(); ctx.lineTo(...punto(ev)); ctx.stroke(); });
-    const fin = () => { if (!dibujando) return; dibujando = false; borrador.firma = lienzo.toDataURL('image/png'); };
+    const fin = () => { if (!dibujando) return; dibujando = false; borrador.firma = lienzo.toDataURL('image/png'); apuntar(); };
     lienzo.addEventListener('pointerup', fin);
     lienzo.addEventListener('pointercancel', fin);
   }
@@ -301,16 +369,32 @@
     } catch (e) { C.aviso(e.message); boton.disabled = false; }
   }
 
-  async function guardar(boton) {
+  async function guardar(boton, silencio = false) {
     if (boton) boton.disabled = true;
+    if (!abierta || !borrador) return true;
+    const orden = abierta;
+    const cuerpo = recogerBorrador();
+    const enviado = JSON.stringify(cuerpo);
+    estadoAG = 'guardando'; pintarMarcaAG();
     try {
-      const r = await C.postJson('api/orden/avance', recogerBorrador());
+      const r = await C.postJson('api/orden/avance', cuerpo);
       if (!r.ok) throw new Error(r.error);
-      sucio = false;
-      C.aviso('Guardado.', 'bien');
-      repintar();
+      if (abierta !== orden) return true;
+      /* Lo tocado mientras viajaba sigue pendiente. */
+      sucio = JSON.stringify(recogerBorrador()) !== enviado;
+      estadoAG = sucio ? 'movil' : 'guardado';
+      apuntar();
+      if (!silencio) { C.aviso('Guardado.', 'bien'); repintar(); } else pintarMarcaAG();
       return true;
-    } catch (e) { C.aviso(e.message); if (boton) boton.disabled = false; return false; }
+    } catch (e) {
+      const sinRed = AG && AG.sinRed(e);
+      estadoAG = sinRed ? 'sinRed' : 'error';
+      pintarMarcaAG();
+      if (!sinRed) C.aviso(e.message);
+      if (sinRed && COLA) COLA.masTarde();
+      if (boton) boton.disabled = false;
+      return false;
+    }
   }
 
   async function terminar(boton) {
@@ -324,6 +408,8 @@
         ...recogerBorrador(), horas: borrador.horas, firmadoPor: borrador.firmadoPor, firma: borrador.firma, fecha: hoy(),
       });
       if (!r.ok) throw new Error(r.error);
+      if (AG) AG.borrar(claveOrden(abierta.orden.id));
+      sucio = false;
       const extra = r.avisos && r.avisos.length ? `Fuera de rango: ${r.avisos.join('; ')}` : '';
       C.aviso(`Orden terminada: pendiente de cierre${extra ? `. ${extra}` : '.'}`, r.avisos && r.avisos.length ? 'aviso' : 'bien');
       C.cabeza(null);
@@ -364,21 +450,30 @@
   async function foto(camara) {
     const archivo = await C.elegirFoto(camara);
     if (!archivo || !abierta) return;
+    const ordenId = abierta.orden.id;
+    /* La foto, en el teléfono antes de subirla: sin red se sube sola después. */
+    const reducida = await reducir(archivo);
+    const x = AG ? await AG.fotoNueva(reducida, {}) : null;
+    const clave = `ordenFoto.${ordenId}.${Date.now().toString(36)}`;
+    if (x) AG.guardar(clave, { ordenId, fotos: AG.fotosParaGuardar([x]) });
     try {
       /* Lo apuntado se guarda antes: la foto vuelve a pintar la ficha. */
-      if (sucio && !(await guardar(null))) return;
-      const r = await C.postJson('api/orden/foto', { id: abierta.orden.id, fotos: [await C.subirFoto(await reducir(archivo))] });
+      if (sucio) await guardarYa();
+      const r = await C.postJson('api/orden/foto', { id: ordenId, fotos: [await C.subirFoto(reducida)] });
       if (!r.ok) throw new Error(r.error);
+      if (x) AG.borrar(clave);
       C.aviso('Foto guardada.', 'bien');
-      const firma = borrador.firma;
-      await abrir(abierta.orden.id);
-      if (borrador) { borrador.firma = firma; repintar(); }
-    } catch (e) { C.aviso(e.message); }
+      const firma = borrador && borrador.firma;
+      if (!abierta || abierta.orden.id !== ordenId) return;
+      await abrir(ordenId);
+      if (borrador && firma) { borrador.firma = firma; apuntar(); repintar(); }
+    } catch (e) {
+      if (x && AG.sinRed(e)) { C.aviso('Sin conexión: la foto queda en el móvil y se subirá sola.'); if (COLA) COLA.masTarde(); } else C.aviso(e.message);
+    }
   }
 
   /* ═══════════════════════════════════ Eventos */
 
-  const salirSinGuardar = () => !sucio || window.confirm('Hay cambios sin guardar en esta orden. ¿Salir sin guardarlos?');
 
   $app.addEventListener('click', (ev) => {
     if (!activa()) return;
@@ -390,23 +485,24 @@
     if (c && borrador) {
       const i = Number(c.dataset.mtCheck);
       borrador.checklist[i] = borrador.checklist[i] === c.dataset.valor ? null : c.dataset.valor;
-      sucio = true;
+      tocado();
       repintar();
       return;
     }
     const b = ev.target.closest('[data-mt]');
     if (!b) return;
     const a = b.dataset.mt;
-    if (a === 'lista') { if (abierta && !salirSinGuardar()) return; C.cabeza(null); lista(); }
+    if (a === 'lista') { C.cabeza(null); lista(); }
     else if (a === 'ficha') abrir(b.dataset.id);
     else if (a === 'empezar') empezar(b);
-    else if (a === 'guardar') guardar(b);
+    else if (a === 'guardar') guardarYa();
     else if (a === 'terminar') terminar(b);
     else if (a === 'devolver') devolver(b);
     else if (a === 'camara') foto(true);
     else if (a === 'galeria') foto(false);
     else if (a === 'borrar-firma') {
       borrador.firma = null;
+      apuntar();
       const l = $app.querySelector('[data-mt-firma]');
       if (l && l.getContext) l.getContext('2d').clearRect(0, 0, l.width, l.height);
     }
@@ -414,19 +510,19 @@
   const recoger = (ev) => {
     if (!activa() || !borrador) return;
     const t = ev.target;
-    if (t.dataset.mtMedida !== undefined) { borrador.medidas[Number(t.dataset.mtMedida)] = t.value; sucio = true; }
-    else if (t.dataset.mtCampo) { borrador[t.dataset.mtCampo] = t.value; if (t.dataset.mtCampo === 'observaciones') sucio = true; }
-    else return;
-    const e = $app.querySelector('.estado-guardar');
-    const g = $app.querySelector('[data-mt="guardar"]');
-    if (e && sucio) { e.textContent = 'Cambios sin guardar'; e.className = 'estado-guardar pendiente'; }
-    if (g && sucio) g.disabled = false;
+    if (t.dataset.mtMedida !== undefined) { borrador.medidas[Number(t.dataset.mtMedida)] = t.value; tocado(); }
+    else if (t.dataset.mtCampo) {
+      borrador[t.dataset.mtCampo] = t.value;
+      /* Horas y quién firma van con «Terminar»: se quedan en el teléfono. */
+      if (t.dataset.mtCampo === 'observaciones') tocado(); else apuntar();
+    }
   };
   $app.addEventListener('input', recoger);
   $app.addEventListener('change', recoger);
-  window.addEventListener('beforeunload', (ev) => { if (activa() && sucio) { ev.preventDefault(); ev.returnValue = ''; } });
+  if (AG) AG.alSalir(() => { if (abierta) { apuntar(); guardarYa(); } });
+  if (COLA) { COLA.registrar('orden.', enviarPendiente); COLA.registrar('ordenFoto.', enviarFotoPendiente); }
 
   window.addEventListener('movil:obra', () => { if (activa()) lista(); });
-  window.addEventListener('hashchange', () => { if (activa()) lista(); });
+  window.addEventListener('hashchange', () => { if (!activa() && abierta) guardarYa(); if (activa()) lista(); });
   if (activa()) lista();
 })();
