@@ -33,6 +33,7 @@
   let yLista = 0;       /* dónde estaba la lista al abrir un equipo */
   let fichasEq = null; /* las fichas que necesita el equipo abierto */
   let hoja = null;     /* la ficha que se está rellenando */
+  let abriendoHoja = 0; /* hojas pidiéndose al servidor (abrirHoja a medias) */
   /* La toma de datos de la primera pantalla: clave|plantilla → la misma forma que `hoja`. */
   const tomas = new Map();
   let filtro = '';
@@ -53,7 +54,7 @@
     if (!completo && e === 'faltaEnsayo') nombre = nombreEnsayoFalta(ensayoFalta) || nombre;
     return `<span class="chip ${clase}">${esc(nombre)}</span>`;
   };
-  const ESTADO_BOCA = { aRevisar: ['aviso', 'A REVISAR'], dentro: ['bien', 'OK'], ok: ['bien', 'OK'], sinFactor: ['aviso', 'Falta el Ak'], medido: ['neutra', 'Medida'], alto: ['mal', 'Alto'], bajo: ['mal', 'Bajo'], sinMedir: ['neutra', 'Sin medir'], sinProyecto: ['neutra', 'Sin Q proyecto'], sinTolerancia: ['neutra', 'Medida'] };
+  const ESTADO_BOCA = { aRevisar: ['aviso', 'A REVISAR'], dentro: ['bien', 'OK'], ok: ['bien', 'OK'], sinFactor: ['aviso', 'Falta el Ak'], medido: ['neutra', 'Medida'], alto: ['alto', 'Alto'], bajo: ['mal', 'Bajo'], sinMedir: ['neutra', 'Sin medir'], sinProyecto: ['neutra', 'Sin Q proyecto'], sinTolerancia: ['neutra', 'Medida'] };
   const INCIDENCIA = { sinSerie: 'Sin nº de serie', modeloSinAlta: 'Modelo sin dar de alta' };
   const pct = (q, d) => (q === null || q === undefined || !d ? null : Math.round((q / d) * 100));
 
@@ -193,6 +194,18 @@
     try {
       const r = await C.pedir(`api/equipo?id=${encodeURIComponent(id)}`);
       if (!r.ok) throw new Error(r.error);
+      /*
+       * EL REPINTADO EN SILENCIO NO CIERRA UNA HOJA (JC, 28-oct). Tras guardar la
+       * toma de datos de un split, la nube trae algo, se repinta el equipo en
+       * silencio y, si mientras se esperaba la respuesta se había abierto el
+       * checklist, aquí se anulaba la hoja: lo marcado se perdía sin aviso y la
+       * pantalla del equipo decía «Todo guardado». Con una hoja abierta (o
+       * abriéndose) solo se refresca el equipo de fondo; la hoja sigue.
+       */
+      if (quieto && (hoja || abriendoHoja)) {
+        if (ficha && ficha.equipo.id === r.equipo.id) ficha = r;
+        return;
+      }
       if (!ficha || ficha.equipo.id !== r.equipo.id) { pestanaEq = 'equipo'; circuitoBal = 'impulsion'; }
       ficha = r;
       hoja = null;
@@ -220,14 +233,19 @@
     cargarTomas(id);
   }
 
-  function totalCircuito(c, nombre) {
+  function totalCircuito(c, nombre, tol) {
     if (!c || c.estado === 'sinPuntos') return '';
     /* El total contra lo mismo que la hoja de balanceo (el resumen lo dice). */
     const diseno = c.disenoReferencia ?? c.disenoPuntos ?? c.disenoEquipo ?? null;
     const p = c.desviacion === null || c.desviacion === undefined ? null : pct(c.suma, diseno);
-    const clase = (c.estado === 'ok' || c.estado === 'dentro') ? 'bien' : (c.estado === 'alto' || c.estado === 'bajo') ? 'mal' : 'neutra';
-    return `<div class="total-circuito">
-      <div class="fila-principal"><strong>${esc(nombre)}</strong><span class="chip ${clase}">${p === null ? `${c.medidos}/${c.puntos} medidas` : `${p} %`}</span></div>
+    const clase = (c.estado === 'ok' || c.estado === 'dentro') ? 'bien' : c.estado === 'alto' ? 'alto' : c.estado === 'bajo' ? 'mal' : 'neutra';
+    /* Con bocas por medir no hay juicio del total (puede faltar caudal), salvo por arriba: si lo medido ya pasa
+       el proyecto más su tolerancia, va morado aunque falten bocas (25-oct, JC: el total medido en color). */
+    const tolT = tol && tol.total ? tol.total : 0.1;
+    const yaPasa = c.estado === 'incompleto' && diseno && c.suma !== null && c.suma !== undefined && c.suma > diseno * (1 + tolT);
+    const claseTotal = yaPasa ? 'alto' : clase;
+    return `<div class="total-circuito ${claseTotal}">
+      <div class="fila-principal"><strong>${esc(nombre)}</strong><span class="chip ${claseTotal}">${p === null ? `${c.medidos}/${c.puntos} medidas` : `${p} %`}</span></div>
       <div class="cifras-total">
         <div><span>Medido</span><b>${cifra(c.suma)}</b><em>m³/h</em></div>
         <div><span>Proyecto</span><b>${cifra(diseno)}</b><em>m³/h</em></div>
@@ -390,8 +408,8 @@
       ${hayDos ? `<div class="segmentado circuito-bal" role="tablist" aria-label="Circuito">${[['impulsion', 'Impulsión', cuenta(false)], ['retorno', nombreRet, cuenta(true)]]
         .map(([id, n, c]) => `<button role="tab" data-cx="circuito-bal" data-circuito="${id}" aria-selected="${circ === id}" class="${circ === id ? 'activa' : ''}">${esc(n)} <small>${c}</small></button>`).join('')}</div>` : ''}
       ${htmlCrono()}
-      ${circ !== 'retorno' ? totalCircuito(f.circuitos && f.circuitos.impulsion, 'Impulsión') : ''}
-      ${circ !== 'impulsion' ? totalCircuito(f.circuitos && f.circuitos.retorno, nombreRet) : ''}
+      ${circ !== 'retorno' ? totalCircuito(f.circuitos && f.circuitos.impulsion, 'Impulsión', f.tolerancias) : ''}
+      ${circ !== 'impulsion' ? totalCircuito(f.circuitos && f.circuitos.retorno, nombreRet, f.tolerancias) : ''}
       ${med.velocidad ? `<p class="nota">Una medida por boca, con el equipo a velocidad ${esc(med.velocidad)}.</p>` : ''}
       ${f.planos.length ? planosVistos.map((p) => `
         <h2>${esc(p.nombre)} <span class="cuenta">${p.bocas.length} boca${p.bocas.length === 1 ? '' : 's'}${circ ? ` de ${circ === 'retorno' ? esc(nombreRet.toLowerCase()) : 'impulsión'}` : ''}</span></h2>
@@ -419,7 +437,7 @@
 
   /* «Balanceo de caudales», «Caudales de extracción»… según lo que se mide. */
   const tituloMedicion = (f) => (f.medicion && f.medicion.titulo) || 'Balanceo de caudales';
-  const claseMarca = (estado) => (estado === 'dentro' || estado === 'ok' ? 'bien' : estado === 'alto' || estado === 'bajo' ? 'mal' : 'neutra');
+  const claseMarca = (estado) => (estado === 'dentro' || estado === 'ok' ? 'bien' : estado === 'alto' ? 'alto' : estado === 'bajo' ? 'mal' : 'neutra');
 
   /*
    * EL PLANO CON SUS BOCAS (15-oct-2026, JC: «la imagen del plano con las
@@ -440,7 +458,7 @@
         ${conSitio.map((b) => { const otro = delCircuito && !delCircuito(b); return `<button class="marca-boca ${claseMarca(b.estado)}${esRetorno(b) ? ' ret' : ''}${otro ? ' otro-circuito' : ''}" style="left:${(b.x * 100).toFixed(2)}%;top:${(b.y * 100).toFixed(2)}%"
           data-cx="ir-boca" data-boca="${esc(claveBoca(p.id, b.id))}"${otro ? ` data-circuito="${esRetorno(b) ? 'retorno' : 'impulsion'}"` : ''} aria-label="Ir a la boca ${esc(b.nombre)}">${simbolo(b)}<span class="rotulo-boca">${esc(b.nombre)}</span></button>`; }).join('')}
       </div></div>
-      <figcaption><span class="leyenda"><i class="neutra"></i>Sin medir <i class="bien"></i>Dentro <i class="mal"></i>Fuera</span>
+      <figcaption><span class="leyenda"><i class="neutra"></i>Sin medir <i class="bien"></i>Dentro <i class="mal"></i>Por debajo <i class="alto"></i>Por encima</span>
         <span class="zoom-botones"><button class="enlace" data-cx="zoom-menos" aria-label="Alejar">−</button><button class="enlace" data-cx="zoom-mas" aria-label="Acercar">+</button>
         <button class="enlace" data-cx="plano-grande">Ampliar</button></span></figcaption>
     </figure>`;
@@ -876,17 +894,17 @@
     }
     const desv = q !== null && diseno ? q / diseno - 1 : null;
     const fuera = desv !== null && Math.abs(desv) * 100 > tolB;
-    const clase = q === null ? 'neutra' : desv === null ? 'neutra' : fuera ? 'mal' : 'bien';
+    const clase = q === null ? 'neutra' : desv === null ? 'neutra' : fuera ? (desv > 0 ? 'alto' : 'mal') : 'bien';
     const pon = (k, t) => { const el = li.querySelector(`[data-vivo="${k}"]`); if (el) el.textContent = t; return el; };
     pon('q', q === null ? '—' : cifra(Math.round(q)));
     pon('desv', desv === null ? '—' : `${desv > 0 ? '+' : ''}${comaD(desv * 100, 1)} %`);
     const chip = pon('chip', q === null ? 'Sin medir' : diseno ? `${Math.round((q / diseno) * 100)} %` : 'Sin Q proyecto');
     if (chip) chip.className = `chip ${clase}`;
-    li.classList.remove('bien', 'mal', 'aviso', 'neutra');
+    li.classList.remove('bien', 'mal', 'alto', 'aviso', 'neutra');
     li.classList.add(clase);
     /* Su marca en el plano, del mismo color. */
     const marca = $app.querySelector(`.marca-boca[data-boca="${CSS.escape(li.dataset.boca)}"]`);
-    if (marca) { marca.classList.remove('bien', 'mal', 'neutra'); marca.classList.add(clase); }
+    if (marca) { marca.classList.remove('bien', 'mal', 'alto', 'neutra'); marca.classList.add(clase); }
     const av = li.querySelector('[data-vivo="aviso"]');
     if (av) { av.hidden = !fuera; av.textContent = fuera ? textoFuera(desv, tolB) : ''; }
   }
@@ -1102,6 +1120,7 @@
       return;
     }
     $app.innerHTML = '<p class="cargando">Cargando la ficha…</p>';
+    abriendoHoja += 1;
     try {
       const ref = { obra: fichasEq.equipo.obraId, clave: x.clave, plantilla: x.plantilla };
       const r = await C.pedir(`api/ficha?${new URLSearchParams(ref)}`);
@@ -1109,7 +1128,7 @@
       hoja = nuevaHoja(ref, x.nombre, r);
       pintarHoja();
       window.scrollTo(0, 0);
-    } catch (e) { C.aviso(e.message); pintarFicha(); }
+    } catch (e) { C.aviso(e.message); pintarFicha(); } finally { abriendoHoja -= 1; }
   }
 
   /* Lo que se ve: lo tecleado ahora si lo hay; si no, lo guardado. */
@@ -1412,6 +1431,9 @@
         <button class="boton grande secundario" data-cx="pdf-hoja-obra"><i class="ic ic-doc"></i>PDF para obra</button>
       </div>
       <p class="nota">«PDF para obra» lleva lo de proyecto y deja en blanco lo medido, para rellenarlo a mano.</p>
+      ${ficha ? `<div class="fila-botones">
+        <button class="boton grande" data-cx="terminar-hoja">${ed ? 'Terminar y volver al equipo' : 'Volver al equipo'}</button>
+      </div>` : ''}
       ${cierra(nPasos - 1)}
       </div>
       ${ed ? `<div class="barra-guardar" role="status">${estadoGuardar(h)}<button class="boton" data-cx="guardar-hoja" ${h.cambiada ? '' : 'disabled'}>Guardar</button></div>` : ''}`;
@@ -1481,13 +1503,44 @@
     };
   }
 
+  /*
+   * «GUARDADA» SOLO SI SE HA GUARDADO DE VERDAD (JC, 28-oct: el checklist de un
+   * split decía «Todo guardado» y al volver no estaba). El servidor contesta con
+   * la ficha RELEÍDA de la base tras guardarla; se comprueba que trae lo que se
+   * mandó (las respuestas y los datos sueltos, que el servidor no recalcula). Si
+   * algo no está, no se da por guardado: se avisa y lo tecleado se queda.
+   */
+  function noReleido(cuerpo, r) {
+    if (!r || !r.id) return ['la ficha'];
+    const puntos = new Map((r.secciones || []).flatMap((s) => s.puntos || []).map((p) => [p.codigo, p]));
+    const igual = (a, b) => {
+      const n = (x) => (x === null || x === undefined ? '' : String(x).trim());
+      if (n(a) === n(b)) return true;
+      return n(a) !== '' && n(b) !== '' && Number.isFinite(Number(n(a))) && Number(n(a)) === Number(n(b));
+    };
+    const faltan = [];
+    for (const [codigo, v] of Object.entries(cuerpo.valores || {})) {
+      const p = puntos.get(codigo);
+      if (!p) continue; /* fuera de la plantilla: el servidor lo descarta a propósito */
+      if (v === null) { if (!igual(p.valor, null)) faltan.push(codigo); continue; }
+      if ('v' in v && !igual(p.valor, v.v)) faltan.push(codigo);
+    }
+    return faltan;
+  }
+  async function postFicha(cuerpo) {
+    const r = await C.postJson('api/ficha', cuerpo);
+    if (!r.ok) throw new Error(r.error || 'No se ha podido guardar.');
+    const faltan = noReleido(cuerpo, r);
+    if (faltan.length) throw new Error(`No se ha guardado bien (${faltan.length === 1 ? faltan[0] : `${faltan.length} puntos`}): vuelve a pulsar Guardar.`);
+    return r;
+  }
+
   async function guardarHoja(boton) {
     const h = hoja;
     if (!h || !h.cambiada) return true;
     if (boton) boton.disabled = true;
     try {
-      const r = await C.postJson('api/ficha', cuerpoFicha(h));
-      if (!r.ok) throw new Error(r.error);
+      const r = await postFicha(cuerpoFicha(h));
       for (const x of h.nuevas) URL.revokeObjectURL(x.url);
       hoja = { ...h, f: r, valores: {}, cabecera: {}, observaciones: undefined, nuevas: [], quitar: new Set(), cambiada: false };
       tomas.delete(`${h.ref.clave}|${h.ref.plantilla}`);
@@ -1502,6 +1555,12 @@
       if (boton) boton.disabled = false;
       return false;
     }
+  }
+
+  async function terminarHoja(boton) {
+    if (hoja.cambiada && hoja.f.editable && !(await guardarHoja(boton))) return;
+    salirHoja();
+    window.scrollTo(0, 0);
   }
 
   const compartirPdf = (...a) => C.compartirPdf(...a);
@@ -1660,8 +1719,7 @@
     const fallos = [];
     for (const [k, t] of sucias) {
       try {
-        const r = await C.postJson('api/ficha', cuerpoFicha(t));
-        if (!r.ok) throw new Error(r.error);
+        const r = await postFicha(cuerpoFicha(t));
         tomas.set(k, nuevaToma(t.ref, t.nombre, r, t.vistos));
         bien += 1;
         if (r.estado === 'completa') completas += 1;
@@ -1895,6 +1953,9 @@
     else if (que === 'ficha-equipo' && ficha) { document.body.classList.remove('sin-scroll'); pestanaEq = 'equipo'; pintarFicha(); window.scrollTo(0, 0); }
     else if (que === 'hoja') abrirHoja(Number(b.dataset.i));
     else if (que === 'volver-equipo') salirHoja();
+    /* Fin del checklist (JC, 28-oct): guarda lo pendiente y vuelve al equipo;
+       si no se ha podido guardar, se queda en la hoja con el aviso del error. */
+    else if (que === 'terminar-hoja' && hoja) terminarHoja(b);
     else if (que === 'paso-hoja' && hoja) irAPaso(Number(b.dataset.ir !== undefined ? b.dataset.ir : b.dataset.paso));
     else if (que === 'foto') fotoHoja(b.dataset.camara === '1');
     else if (que === 'quitar-foto' && hoja) { hoja.quitar.add(Number(b.dataset.i)); hoja.cambiada = true; pintarHoja(); }
@@ -2044,7 +2105,7 @@
       if (foco && (cambiada(foco) || foco.dataset.guardada)) return;
       /* Tampoco con el dedo en la toma de datos: se perdería el foco a medio escribir. */
       if (document.activeElement && document.activeElement.closest && document.activeElement.closest('[data-toma]')) return;
-      if (!hoja) abrir(ficha.equipo.id, { quieto: true });
+      if (!hoja && !abriendoHoja) abrir(ficha.equipo.id, { quieto: true });
       return;
     }
     cargarLista();
