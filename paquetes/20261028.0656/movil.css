@@ -793,6 +793,20 @@ main:has(.densa) { max-width: 1040px; padding-top: 0; }
 .densa h2 .cuenta, .densa h3.banda .tenue { font-size: 11px; font-weight: 600; color: var(--textoTenue); text-transform: none; letter-spacing: 0; margin-left: 4px; }
 .densa .nota { font-size: 13px; margin: 6px 2px; }
 
+/* La toma de datos en la primera pantalla del equipo (27-oct): las mismas filas
+   de la hoja, agrupadas por ficha, con «Abrir la ficha completa» en su banda. */
+.toma-grupo h3.banda { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 6px; }
+.toma-grupo h3.banda .enlace { margin-left: auto; font-size: 11.5px; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--acento); padding: 0; min-height: 0; }
+.toma-tabla .fd .et .desv { display: block; font-size: 11.5px; font-weight: 600; color: var(--textoTenue); }
+.toma-tabla .fd .et .desv.bien { color: var(--bien); } .toma-tabla .fd .et .desv.mal { color: var(--mal); } .toma-tabla .fd .et .desv.aviso { color: var(--aviso); }
+.toma-tabla input.medido { border-color: var(--acento); border-width: 1.5px; }
+.barra-toma { display: flex; align-items: center; gap: 10px; width: fit-content; max-width: 100%; margin: 8px 2px 4px; }
+.barra-toma .estado-guardar { font-size: 13px; }
+.barra-toma .estado-guardar.pendiente { color: var(--acento-fuerte); font-weight: 600; }
+.barra-toma .estado-guardar.al-dia { color: var(--bien); }
+#app .barra-toma .boton { margin: 0; width: auto; min-height: 36px; padding: 4px 22px; border-radius: 999px; }
+#app .barra-toma .boton:disabled { opacity: .45; }
+
 /* Las tablas de la hoja: blanco, filas de 36 px y una línea entre ellas. */
 .hoja-tabla { background: var(--panel); border: 1px solid var(--rejilla); border-top: 0; }
 .hoja-tabla input, .hoja-tabla select, .densa .obs {

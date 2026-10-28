@@ -33,6 +33,8 @@
   let yLista = 0;       /* dónde estaba la lista al abrir un equipo */
   let fichasEq = null; /* las fichas que necesita el equipo abierto */
   let hoja = null;     /* la ficha que se está rellenando */
+  /* La toma de datos de la primera pantalla: clave|plantilla → la misma forma que `hoja`. */
+  const tomas = new Map();
   let filtro = '';
 
   const ENVIO = {
@@ -195,6 +197,9 @@
       ficha = r;
       hoja = null;
       fichasEq = null;
+      /* Lo leído antes puede haber cambiado (llegó algo de la oficina): se vuelve
+         a pedir. Lo tecleado y sin guardar se queda. */
+      for (const [k, t] of tomas) if (!t.cambiada) tomas.delete(k);
       pintarFicha();
       window.scrollTo(0, quieto ? y : 0);
       cargarFichas(id);
@@ -212,6 +217,7 @@
       pintarFicha();
       window.scrollTo(0, y);
     }
+    cargarTomas(id);
   }
 
   function totalCircuito(c, nombre) {
@@ -396,6 +402,7 @@
       ${htmlFichas('balanceo', 'Hoja de balanceo')}`;
     const cuerpo = pestanaEq === 'balanceo' ? balanceo()
       : `${htmlConjunto(f.conjunto, e.id)}
+      ${htmlTomaDatos()}
       ${htmlFichas('equipo', 'Fichas del equipo')}
       ${htmlFotosEquipo(f, puede)}
       ${checklist(f.checklist, f.medicion, puede)}`;
@@ -1069,22 +1076,37 @@
   const coma = (n) => (n === null || n === undefined ? '' : String(n).replace('.', ','));
   const num = (t) => { const s = String(t ?? '').trim().replace(/\s/g, '').replace(',', '.'); return s === '' ? null : (Number.isFinite(Number(s)) ? Number(s) : NaN); };
 
+  /* Una ficha leída del servidor, lista para teclear en ella (la hoja o la toma de datos). */
+  function nuevaHoja(ref, nombre, r) {
+    const h = { ref, nombre, f: r, valores: {}, cabecera: {}, observaciones: undefined, nuevas: [], quitar: new Set(), cambiada: false };
+    /* Hoy y quien lleva el teléfono, de entrada (se pueden cambiar). */
+    if (r.editable && !r.cabecera.fechaEnsayo) h.cabecera.fechaEnsayo = hoyIso();
+    if (r.editable && !r.cabecera.realizadoPor) {
+      let s = null;
+      try { s = window.ACCESO_MOVIL && window.ACCESO_MOVIL.sesion(); } catch { /* sin sesión */ }
+      if (s && s.nombre) h.cabecera.realizadoPor = s.nombre;
+    }
+    return h;
+  }
+
   async function abrirHoja(i) {
     const x = fichasEq && fichasEq.fichas[i];
     if (!x) return;
+    /* Lo tecleado en la toma de datos y sin guardar sigue en la hoja completa. */
+    const t = tomas.get(claveToma(x));
+    if (t && t.f && t.cambiada) {
+      tomas.delete(claveToma(x));
+      hoja = { ...t, nombre: x.nombre };
+      pintarHoja();
+      window.scrollTo(0, 0);
+      return;
+    }
     $app.innerHTML = '<p class="cargando">Cargando la ficha…</p>';
     try {
       const ref = { obra: fichasEq.equipo.obraId, clave: x.clave, plantilla: x.plantilla };
       const r = await C.pedir(`api/ficha?${new URLSearchParams(ref)}`);
       if (!r.ok) throw new Error(r.error);
-      hoja = { ref, nombre: x.nombre, f: r, valores: {}, cabecera: {}, observaciones: undefined, nuevas: [], quitar: new Set(), cambiada: false };
-      /* Hoy y quien lleva el teléfono, de entrada (se pueden cambiar). */
-      if (r.editable && !r.cabecera.fechaEnsayo) hoja.cabecera.fechaEnsayo = hoyIso();
-      if (r.editable && !r.cabecera.realizadoPor) {
-        let s = null;
-        try { s = window.ACCESO_MOVIL && window.ACCESO_MOVIL.sesion(); } catch { /* sin sesión */ }
-        if (s && s.nombre) hoja.cabecera.realizadoPor = s.nombre;
-      }
+      hoja = nuevaHoja(ref, x.nombre, r);
       pintarHoja();
       window.scrollTo(0, 0);
     } catch (e) { C.aviso(e.message); pintarFicha(); }
@@ -1138,12 +1160,18 @@
     return `<div class="${clase}"><span class="et">${num}${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}</span>${inputPunto(p, ed)}</div>`;
   }
 
+  const casillaParametro = (p, k, n, dis) => `<input class="cifra${k === 'm' ? ' medido' : ''}" inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis}
+      aria-label="${esc(`${p.etiqueta} · ${n}`)}" value="${esc(coma(valorDe(p, k)))}" data-h-punto="${esc(p.codigo)}" data-h-k="${k}">`;
+  /* La desviación y el resultado de un parámetro, como los calcula el servidor. */
+  function desvParametro(p) {
+    const [cr, nr] = p.resultado && RESULTADO[p.resultado] ? RESULTADO[p.resultado] : ['neutra', ''];
+    return p.desv !== null && p.desv !== undefined ? `<span class="desv ${cr}">${cifra(p.desv * 100, 1)} %${nr ? ` · ${esc(nr)}` : ''}</span>` : (nr ? `<span class="desv ${cr}">${esc(nr)}</span>` : '');
+  }
+
   function filaParametro(p, ed) {
     const dis = ed ? '' : 'disabled';
-    const [cr, nr] = p.resultado && RESULTADO[p.resultado] ? RESULTADO[p.resultado] : ['neutra', ''];
-    const casilla = (k, n) => `<input class="cifra${k === 'm' ? ' medido' : ''}" inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis}
-      aria-label="${esc(`${p.etiqueta} · ${n}`)}" value="${esc(coma(valorDe(p, k)))}" data-h-punto="${esc(p.codigo)}" data-h-k="${k}">`;
-    const desv = p.desv !== null && p.desv !== undefined ? `<span class="desv ${cr}">${cifra(p.desv * 100, 1)} %${nr ? ` · ${esc(nr)}` : ''}</span>` : (nr ? `<span class="desv ${cr}">${esc(nr)}</span>` : '');
+    const casilla = (k, n) => casillaParametro(p, k, n, dis);
+    const desv = desvParametro(p);
     /* Caudal de aire: de dónde sale el medido (lo tecleado ahora es del equipo). */
     const tecleado = hoja.valores[p.codigo] && hoja.valores[p.codigo].m !== undefined;
     const origen = p.origen ? ` <span class="tenue">· ${esc(tecleado ? 'medido en equipo' : p.origen)}</span>` : '';
@@ -1401,8 +1429,11 @@
   }
 
   function anotar(el) {
-    const h = hoja;
-    if (!h) return;
+    if (anotarEn(hoja, el)) marcarCambiada();
+  }
+  /* Apunta en la ficha `h` lo tecleado en `el`; dice si había algo que apuntar. */
+  function anotarEn(h, el) {
+    if (!h || !el.dataset) return false;
     if (el.dataset.hCab) h.cabecera[el.dataset.hCab] = el.value;
     else if (el.hasAttribute('data-h-obs')) h.observaciones = el.value;
     else if (el.dataset.hPie !== undefined) { const x = h.nuevas[Number(el.dataset.hPie)]; if (x) x.pie = el.value; }
@@ -1411,13 +1442,13 @@
       let v = el.value;
       if (k !== 'v' || el.hasAttribute('data-h-num')) {
         const n = num(v);
-        if (Number.isNaN(n)) { el.classList.add('mal'); return; }
+        if (Number.isNaN(n)) { el.classList.add('mal'); return false; }
         el.classList.remove('mal');
         v = n;
       } else if (v === '') v = null;
       h.valores[el.dataset.hPunto] = { ...(h.valores[el.dataset.hPunto] || {}), [k]: v };
-    } else return;
-    marcarCambiada();
+    } else return false;
+    return true;
   }
 
   async function fotoHoja(camara) {
@@ -1435,26 +1466,31 @@
     } catch (e) { C.aviso(e.message); }
   }
 
+  /* Lo que se manda al guardar una ficha: los datos sueltos con `v`; los de parámetros con p/f/m. */
+  function cuerpoFicha(h) {
+    const valores = {};
+    for (const [codigo, c] of Object.entries(h.valores)) {
+      if ('v' in c) valores[codigo] = c.v === null || c.v === '' ? null : { v: c.v };
+      else valores[codigo] = c;
+    }
+    return {
+      obraId: h.ref.obra, clave: h.ref.clave, plantilla: h.ref.plantilla,
+      cabecera: h.cabecera, valores, observaciones: h.observaciones,
+      fotosNuevas: h.nuevas.map((x) => ({ id: x.id, pie: x.pie, hora: x.hora })),
+      quitarFotos: [...h.quitar],
+    };
+  }
+
   async function guardarHoja(boton) {
     const h = hoja;
     if (!h || !h.cambiada) return true;
     if (boton) boton.disabled = true;
     try {
-      /* Los datos sueltos van con `v`; los de parámetros con p/f/m. */
-      const valores = {};
-      for (const [codigo, c] of Object.entries(h.valores)) {
-        if ('v' in c) valores[codigo] = c.v === null || c.v === '' ? null : { v: c.v };
-        else valores[codigo] = c;
-      }
-      const r = await C.postJson('api/ficha', {
-        obraId: h.ref.obra, clave: h.ref.clave, plantilla: h.ref.plantilla,
-        cabecera: h.cabecera, valores, observaciones: h.observaciones,
-        fotosNuevas: h.nuevas.map((x) => ({ id: x.id, pie: x.pie, hora: x.hora })),
-        quitarFotos: [...h.quitar],
-      });
+      const r = await C.postJson('api/ficha', cuerpoFicha(h));
       if (!r.ok) throw new Error(r.error);
       for (const x of h.nuevas) URL.revokeObjectURL(x.url);
       hoja = { ...h, f: r, valores: {}, cabecera: {}, observaciones: undefined, nuevas: [], quitar: new Set(), cambiada: false };
+      tomas.delete(`${h.ref.clave}|${h.ref.plantilla}`);
       fichasEq = null;
       if (ficha) cargarFichas(ficha.equipo.id);
       C.aviso(r.estado === 'completa' ? 'Guardada: la ficha está completa.' : 'Guardada.', 'bien');
@@ -1478,11 +1514,174 @@
     await compartirPdf(`api/informe?${q}`, `${tag} - ${hoja.nombre || hoja.f.plantilla.nombre}${sinMedidos ? ' - sin medidos' : ''}.pdf`, boton);
   }
 
+  /* ═══════════════════════════════════ La toma de datos de la primera pantalla */
+
+  /*
+   * TOMA DE DATOS SIN ABRIR LAS FICHAS (27-oct-2026, JC): para medir había que
+   * abrir cada ficha («SPLIT UD. EXTERIOR · 0 de 2 datos») y dentro ir por
+   * apartados. Ahora, debajo del conjunto, salen juntos los datos que faltan de
+   * las fichas del equipo: los obligatorios sin rellenar y las casillas
+   * «Medido» vacías (temperaturas, presiones…), agrupados por ficha, con un
+   * Guardar para todas. Es la MISMA ficha que la hoja completa (api/ficha), con
+   * sus mismos campos, su misma validación y su mismo guardado: el servidor
+   * calcula desviación y resultado igual que siempre. El checklist (Sí/No por
+   * docenas) y el balanceo no entran: se rellenan en su hoja.
+   */
+  const claveToma = (x) => `${x.clave}|${x.plantilla}`;
+  const CLASES_SIN_TOMA = new Set(['checklist', 'balanceo']);
+  const fichasToma = () => (fichasEq && fichasEq.ok !== false ? (fichasEq.fichas || []) : [])
+    .map((x, i) => [x, i])
+    .filter(([x]) => x.plantilla && pestanaDeFicha(x) === 'equipo' && !CLASES_SIN_TOMA.has(x.clase) && x.estado !== 'firmada');
+
+  /* Las funciones de la hoja leen `hoja`: se pinta cada ficha de la toma como si lo fuera. */
+  function conHoja(h, fn) {
+    const antes = hoja;
+    hoja = h;
+    try { return fn(); } finally { hoja = antes; }
+  }
+
+  /* Lo que sale en la toma: lo vacío según lo GUARDADO (no desaparece al teclear)
+     y, tras guardar, lo que ya salía (para ver su desviación). */
+  function puntosToma(t) {
+    const r = [];
+    for (const s of t.f.secciones || []) {
+      if (s.tipo === 'fotos' || s.tipo === 'bocas') continue;
+      for (const p of s.puntos || []) {
+        const v = s.tipo === 'parametros' ? p.m : p.valor;
+        const vacio = v === null || v === undefined || v === '';
+        if (t.vistos.has(p.codigo) || (vacio && (p.obligatorio || s.tipo === 'parametros'))) r.push([s, p]);
+      }
+    }
+    return r;
+  }
+  function nuevaToma(ref, nombre, r, vistos = null) {
+    const t = nuevaHoja(ref, nombre, r);
+    t.vistos = new Set(vistos || []);
+    for (const [, p] of puntosToma(t)) t.vistos.add(p.codigo);
+    return t;
+  }
+
+  /* Pide en paralelo las fichas que aún no están (las demás, de la caché). */
+  async function cargarTomas(id) {
+    if (!fichasEq || fichasEq.ok === false || !fichasEq.equipo) return;
+    const obra = fichasEq.equipo.obraId;
+    const faltan = fichasToma().filter(([x]) => !tomas.has(claveToma(x)));
+    if (!faltan.length) return;
+    await Promise.all(faltan.map(async ([x]) => {
+      const ref = { obra, clave: x.clave, plantilla: x.plantilla };
+      try {
+        const r = await C.pedir(`api/ficha?${new URLSearchParams(ref)}`);
+        if (!r.ok) throw new Error(r.error);
+        if (!tomas.has(claveToma(x))) tomas.set(claveToma(x), nuevaToma(ref, x.nombre, r));
+      } catch (e) {
+        /* Sin red: no se guarda en la caché, la próxima vez se vuelve a pedir. */
+        tomas.set(claveToma(x), { ref, nombre: x.nombre, error: e.message, cambiada: false, temporal: true });
+      }
+    }));
+    if (activa() && ficha && !hoja && ficha.equipo.id === id && pestanaEq === 'equipo') {
+      const y = window.scrollY;
+      pintarFicha();
+      window.scrollTo(0, y);
+    }
+    for (const [k, t] of tomas) if (t.temporal) tomas.delete(k);
+  }
+
+  function filaToma(s, p, ed) {
+    if (s.tipo !== 'parametros') return campoPunto(s, p, ed);
+    /* Un parámetro: solo la casilla Medido; el de proyecto, a la vista para comparar. */
+    const ref = valorDe(p, 'p');
+    const proy = ref !== null && ref !== undefined && ref !== '' ? ` <span class="tenue">proy. ${esc(coma(ref))}</span>` : '';
+    return `<div class="fd n"><span class="et">${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}${proy}${desvParametro(p)}</span>${casillaParametro(p, 'm', 'Medido', ed ? '' : 'disabled')}</div>`;
+  }
+
+  function htmlTomaDatos() {
+    const fs = fichasToma();
+    if (!fs.length) return '';
+    const grupos = fs.map(([x, i]) => [x, i, tomas.get(claveToma(x))]);
+    const listas = grupos.filter(([, , t]) => t && t.f);
+    const cargando = grupos.some(([, , t]) => !t);
+    /* Sin permiso para rellenar ninguna: no sale (se ve todo en las fichas). */
+    if (!cargando && listas.length && !listas.some(([, , t]) => t.f.editable)) return '';
+    const cuerpos = grupos.map(([x, i, t]) => {
+      if (!t) return '';
+      const abrirla = `<button class="enlace" data-cx="hoja" data-i="${i}">Abrir la ficha completa</button>`;
+      if (!t.f) return `<div class="toma-grupo"><h3 class="banda">${esc(x.nombre)}</h3><p class="nota aviso">${esc(t.error || 'No se ha podido leer la ficha')}. ${abrirla}</p></div>`;
+      const ps = puntosToma(t);
+      if (!ps.length) return '';
+      const ed = t.f.editable;
+      const m = t.f.medidos;
+      return `<div class="toma-grupo" data-toma="${esc(claveToma(x))}">
+        <h3 class="banda">${esc(x.nombre)}${m ? ` <span class="tenue">${m.rellenos} de ${m.obligatorios}</span>` : ''} ${abrirla}</h3>
+        ${ed ? '' : `<p class="nota">${t.f.firmada ? 'Firmada: ya no se cambia.' : 'Tu rol puede ver la ficha, pero no rellenarla.'}</p>`}
+        <section class="hoja-tabla rejilla-datos toma-tabla">${conHoja(t, () => ps.map(([s, p]) => filaToma(s, p, ed)).join(''))}</section>
+      </div>`;
+    }).filter(Boolean);
+    if (!cuerpos.length) return cargando ? '<section id="toma-datos"><h2>Toma de datos</h2><p class="cargando">Cargando lo que falta por medir…</p></section>' : '';
+    const sucias = listas.filter(([, , t]) => t.cambiada).length;
+    const puede = listas.some(([, , t]) => t.f.editable);
+    return `<section id="toma-datos">
+      <h2>Toma de datos <span class="cuenta">lo que falta, sin abrir las fichas</span></h2>
+      ${cuerpos.join('')}
+      ${cargando ? '<p class="cargando">Cargando el resto…</p>' : ''}
+      ${puede ? `<div class="barra-toma">${estadoToma(sucias)}<button class="boton" data-cx="guardar-toma" ${sucias ? '' : 'disabled'}>Guardar</button></div>` : ''}
+    </section>`;
+  }
+  const estadoToma = (n) => `<span class="estado-guardar ${n ? 'pendiente' : 'al-dia'}">${n ? `Cambios sin guardar en ${n} ficha${n === 1 ? '' : 's'}` : 'Todo guardado'}</span>`;
+
+  const tomaDe = (el) => {
+    const g = el && el.closest ? el.closest('[data-toma]') : null;
+    const t = g ? tomas.get(g.dataset.toma) : null;
+    return t && t.f && t.f.editable ? t : null;
+  };
+  function anotarToma(el) {
+    const t = tomaDe(el);
+    if (!t) return false;
+    if (anotarEn(t, el)) marcarToma(t);
+    return true;
+  }
+  function marcarToma(t) {
+    t.cambiada = true;
+    const n = [...tomas.values()].filter((x) => x.cambiada).length;
+    const b = $app.querySelector('[data-cx="guardar-toma"]');
+    if (b) b.disabled = false;
+    const e = $app.querySelector('.barra-toma .estado-guardar');
+    if (e) e.outerHTML = estadoToma(n);
+  }
+
+  /* Guarda una a una las fichas tocadas, por el mismo camino que la hoja. Lo que
+     no se guarde (sin red) se queda tecleado, con su aviso, para reintentar. */
+  async function guardarTomas(boton) {
+    const claves = new Set(fichasToma().map(([x]) => claveToma(x)));
+    const sucias = [...tomas.entries()].filter(([k, t]) => claves.has(k) && t.f && t.cambiada);
+    if (!sucias.length) return;
+    if (boton) boton.disabled = true;
+    let bien = 0;
+    let completas = 0;
+    const fallos = [];
+    for (const [k, t] of sucias) {
+      try {
+        const r = await C.postJson('api/ficha', cuerpoFicha(t));
+        if (!r.ok) throw new Error(r.error);
+        tomas.set(k, nuevaToma(t.ref, t.nombre, r, t.vistos));
+        bien += 1;
+        if (r.estado === 'completa') completas += 1;
+      } catch (e) { fallos.push(`${t.nombre}: ${e.message}`); }
+    }
+    if (fallos.length) C.aviso(`${bien ? `Guardadas ${bien}; ` : ''}sin guardar ${fallos.join(' · ')}`);
+    else C.aviso(completas ? `Guardado: ${completas === 1 ? 'una ficha completa' : `${completas} fichas completas`}.` : 'Guardado.', 'bien');
+    if (!activa() || !ficha || hoja) return;
+    const y = window.scrollY;
+    pintarFicha();
+    window.scrollTo(0, y);
+    if (bien) cargarFichas(ficha.equipo.id);
+  }
+
   function salirHoja() {
     if (hoja && hoja.cambiada && !window.confirm('Hay cambios sin guardar en la ficha. ¿Salir sin guardarlos?')) return;
     hoja = null;
     pintarFicha();
     if (!fichasEq && ficha) cargarFichas(ficha.equipo.id);
+    else if (ficha) cargarTomas(ficha.equipo.id);
     window.scrollTo(0, 0);
   }
 
@@ -1701,6 +1900,7 @@
     else if (que === 'quitar-foto' && hoja) { hoja.quitar.add(Number(b.dataset.i)); hoja.cambiada = true; pintarHoja(); }
     else if (que === 'quitar-nueva' && hoja) { const [x] = hoja.nuevas.splice(Number(b.dataset.i), 1); if (x) URL.revokeObjectURL(x.url); pintarHoja(); }
     else if (que === 'guardar-hoja') guardarHoja(b);
+    else if (que === 'guardar-toma' && ficha && !hoja) guardarTomas(b);
     else if (que === 'pdf-hoja') pdfHoja(b);
     else if (que === 'pdf-hoja-obra') pdfHoja(b, true);
     else if (que === 'equipo-medida' && ficha) cambiarEquipo(b, false);
@@ -1739,19 +1939,29 @@
   });
   /* Sí / No / N/A: un toque marca, otro toque en la misma desmarca. */
   $app.addEventListener('click', (ev) => {
-    if (!activa() || !hoja) return;
+    if (!activa()) return;
     const b = ev.target.closest('[data-h-resp]');
     if (!b || b.disabled) return;
+    if (hoja) {
+      const nuevo = tocarResp(hoja, b);
+      marcarCambiada();
+      if (nuevo) pasarSiCompleto();
+      return;
+    }
+    const t = tomaDe(b);
+    if (t) { tocarResp(t, b); marcarToma(t); }
+  });
+  /* Un toque en Sí / No / N/A de la ficha `h`: marca, o desmarca si ya lo estaba. */
+  function tocarResp(h, b) {
     const p = b.dataset.hPunto;
-    const guardado = (hoja.f.secciones.flatMap((s) => s.puntos).find((x) => x.codigo === p) || {}).valor;
-    const actual = hoja.valores[p] && 'v' in hoja.valores[p] ? hoja.valores[p].v : guardado;
+    const guardado = (h.f.secciones.flatMap((s) => s.puntos).find((x) => x.codigo === p) || {}).valor;
+    const actual = h.valores[p] && 'v' in h.valores[p] ? h.valores[p].v : guardado;
     const nuevo = actual === b.dataset.hResp ? null : b.dataset.hResp;
-    hoja.valores[p] = { v: nuevo };
+    h.valores[p] = { v: nuevo };
     for (const x of b.parentElement.children) x.className = '';
     if (nuevo) b.className = b.parentElement.classList.contains('segmento') ? 'activa' : `activa ${nuevo === 'no' || nuevo === 'noOk' ? 'mal' : nuevo === 'na' ? 'neutra' : 'bien'}`;
-    marcarCambiada();
-    if (nuevo) pasarSiCompleto();
-  });
+    return nuevo;
+  }
   /*
    * AVANZAR SOLO AL COMPLETAR EL APARTADO (revisión UX 18-oct, 2): en una hoja
    * por apartados, cuando el toque que acaba de darse deja el apartado con
@@ -1776,9 +1986,13 @@
       C.aviso(`${paso.titulo} completo · ${siguiente.titulo}`, 'bien');
     }, 450);
   }
-  $app.addEventListener('change', (ev) => { if (activa() && hoja) anotar(ev.target); });
+  $app.addEventListener('change', (ev) => {
+    if (activa() && hoja) anotar(ev.target);
+    else if (activa()) anotarToma(ev.target);
+  });
   $app.addEventListener('input', (ev) => {
     if (activa() && hoja) { anotar(ev.target); return; }
+    if (activa() && anotarToma(ev.target)) return;
     if (activa() && ev.target.dataset && ev.target.dataset.punto) { const li = ev.target.closest('li[data-boca]'); if (li) { vivoBoca(li); guardarBocaPronto(li); } return; }
     if (!activa() || !ev.target.hasAttribute('data-cx-buscar')) return;
     filtro = ev.target.value;
@@ -1828,6 +2042,8 @@
       /* Con una boca a medio escribir no se repinta: se perdería lo tecleado (se guarda y repinta sola). */
       const foco = document.activeElement && document.activeElement.closest ? document.activeElement.closest('li[data-boca]') : null;
       if (foco && (cambiada(foco) || foco.dataset.guardada)) return;
+      /* Tampoco con el dedo en la toma de datos: se perdería el foco a medio escribir. */
+      if (document.activeElement && document.activeElement.closest && document.activeElement.closest('[data-toma]')) return;
       if (!hoja) abrir(ficha.equipo.id, { quieto: true });
       return;
     }
