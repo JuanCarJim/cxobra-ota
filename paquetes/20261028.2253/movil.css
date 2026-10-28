@@ -34,7 +34,7 @@
   --info: var(--acento);
   --info-fondo: var(--acento-suave);
   --bien: #2E7D32;   --bien-fondo: #EDF7EE;
-  --aviso: #A35F00;  --aviso-fondo: #FFF5E6;
+  --aviso: #14507F;  --aviso-fondo: #E1ECF6;
   --mal: #C62828;    --mal-fondo: #FDEDED;
   --alto: #6A1B9A;   --alto-fondo: #F3E8F9; /* caudal por encima del de proyecto (25-oct, JC: morado) */
 
@@ -1152,7 +1152,7 @@ body:has(.tag-fijo) .obra-movil { display: none; }
 .av-partida small { font-size: 11px; color: var(--textoTenue); line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .av-partida.activa { border-color: var(--c, var(--acento)); background: color-mix(in srgb, var(--c, var(--acento)) 14%, var(--panel)); box-shadow: inset 0 0 0 1px var(--c, var(--acento)); }
 .av-partida.sin strong { font-size: 15px; color: var(--textoSuave); }
-.av-partida.sin.activa { border-color: var(--aviso, #b45309); background: var(--aviso-fondo, #fff7ed); box-shadow: none; }
+.av-partida.sin.activa { border-color: var(--aviso, #14507F); background: var(--aviso-fondo, #E1ECF6); box-shadow: none; }
 .av-num { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .av-num button { min-width: 48px; height: 44px; border: 1.5px solid var(--borde); border-radius: 8px; background: var(--panel); color: var(--texto); font: inherit; font-size: 18px; font-weight: 600; }
 .av-num button.activa { border-color: var(--acento); background: var(--acento-suave); color: var(--acento); }
@@ -1167,7 +1167,7 @@ body:has(.tag-fijo) .obra-movil { display: none; }
 .av-tabla th { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: var(--textoTenue); background: var(--panel3); }
 .av-tabla .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .av-tabla td i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
-.av-tabla tr.sin td { color: var(--textoSuave); background: var(--aviso-fondo, #fff7ed); }
+.av-tabla tr.sin td { color: var(--textoSuave); background: var(--aviso-fondo, #E1ECF6); }
 .av-tabla .sub { font-size: 11px; color: var(--textoTenue); }
 
 /* Listas como tarjetitas separadas (16-oct-2026, JC: en Commissioning «se
@@ -1556,3 +1556,149 @@ main, #app { min-width: 0; max-width: 100%; }
 .ag-flecha { flex: none; width: 14px; transition: transform .12s; }
 .ag-bloque.plegado .ag-flecha { transform: rotate(-90deg); }
 .ag-cuerpo[hidden] { display: none; }
+
+/* ═══ KPI de Commissioning como los de Vidaire Obras (28-oct-2026, JC) ═══
+   Los de Conflictos del escritorio (renderer/tarjetas.css · .bandaCx): caja
+   clara con borde fino, filete de 2 px arriba (teal hecho, azul falta, gris
+   neutro), etiqueta en mayúsculas, cifra tabular, pie gris y barra fina. */
+#app .kpis-cx { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 4px 0 10px; }
+@media (min-width: 900px) { #app .kpis-cx { grid-template-columns: repeat(9, minmax(0, 1fr)); } }
+#app .kpi-cx {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0;
+  padding: 7px 9px 7px; text-align: left; font: inherit; color: var(--texto, #1F2A2A); cursor: pointer;
+  background: var(--panel); border: 1px solid #E1E6E6; border-top: 2px solid #B7C4C4; border-radius: 8px; box-shadow: none;
+}
+#app .kpi-cx.bien { border-top-color: #17807C; }
+#app .kpi-cx.falta { border-top-color: #4F8FCB; }
+#app .kpi-cx .et { font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--textoTenue); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: calc(100% - 10px); }
+#app .kpi-cx b { display: block; font-size: 21px; font-weight: 600; line-height: 1.1; letter-spacing: -.01em; font-variant-numeric: tabular-nums; color: var(--texto, #1F2A2A); }
+#app .kpi-cx.falta b { color: #2F6FA8; }
+#app .kpi-cx .pie { font-size: 10.5px; line-height: 1.2; color: var(--textoTenue); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+#app .kpi-cx .barra { display: block; width: 100%; height: 4px; margin: 2px 0 1px; border-radius: 2px; background: #E6EEEE; overflow: hidden; }
+#app .kpi-cx .barra > i { display: block; height: 100%; border-radius: 2px; background: #17807C; }
+#app .kpi-cx .ir { position: absolute; top: 5px; right: 7px; font-size: 13px; line-height: 1; color: #9AABAB; }
+#app .kpi-cx.activa { background: var(--acento-suave); border-color: #17807C; border-top-color: #17807C; }
+#app .kpi-cx.activa .et, #app .kpi-cx.activa .ir { color: var(--acento-fuerte); }
+
+/* ═══════════════ Los avisos flotantes (renderer/avisoFlotante.js + movil/avisosMovil.js, 28-oct)
+   Como en Vidaire Obras: un indicador pequeño «⚠ N avisos» en lugar de la banda,
+   y el texto en un recuadro que flota por encima (no empuja nada). La burbuja
+   sustituye al globo nativo del title: tocar la abre, tocar fuera la cierra. */
+.avisoFlot { display: inline-flex; align-items: center; margin: 4px 0; }
+button.avisoFlotBoton {
+  min-height: 28px; padding: 0 10px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  background: var(--aviso-fondo); color: var(--aviso); border: 1px solid var(--aviso); border-radius: 999px; width: fit-content;
+}
+.avisoFlot.mal button.avisoFlotBoton { background: var(--mal-fondo); color: var(--mal); border-color: var(--mal); }
+.avisoFlot.abierto button.avisoFlotBoton { box-shadow: inset 0 0 0 1px var(--aviso); }
+.avisoFlotPanel {
+  position: fixed; z-index: 90; overflow-y: auto; box-sizing: border-box;
+  background: var(--panel); color: var(--texto);
+  border: 1px solid var(--aviso); border-left: 3px solid var(--aviso); border-radius: 10px;
+  box-shadow: var(--sombra-alta); font-size: 14px; font-weight: 400; line-height: 1.4;
+}
+.avisoFlot.mal .avisoFlotPanel { border-color: var(--mal); }
+.avisoFlotPanel[hidden] { display: none; }
+.avisoFlotCabecera { display: flex; align-items: center; justify-content: space-between; padding: 4px 6px 4px 12px; border-bottom: 1px solid var(--borde); color: var(--aviso); }
+.avisoFlot.mal .avisoFlotCabecera { color: var(--mal); }
+button.avisoFlotCerrar { min-height: 32px; width: 32px; padding: 0; border: 0; background: transparent; color: var(--textoSuave); font-size: 20px; line-height: 1; cursor: pointer; }
+.avisoFlotCuerpo { padding: 8px 12px 10px; }
+.avisoFlotCuerpo .lineaAviso { margin: 0 0 6px; padding: 6px 8px; border-radius: 6px; background: var(--aviso-fondo); color: var(--texto); }
+.avisoFlotCuerpo .lineaAviso.bloqueante { background: var(--mal-fondo); }
+.avisoFlotCuerpo .lineaAviso:last-child { margin-bottom: 0; }
+.avisoBurbuja {
+  position: fixed; z-index: 95; box-sizing: border-box; padding: 8px 12px; white-space: pre-line;
+  background: var(--aviso-fondo); color: var(--texto);
+  border: 1px solid var(--aviso); border-left: 3px solid var(--aviso);
+  border-radius: 10px; box-shadow: var(--sombra-alta); font-size: 13px; font-weight: 400; line-height: 1.4;
+  pointer-events: none;
+}
+.avisoBurbuja.fija { pointer-events: auto; }
+.avisoBurbuja.mal { background: var(--mal-fondo); border-color: var(--mal); }
+.avisoBurbuja.info { background: var(--panel); border-color: var(--borde); border-left-color: var(--acento); }
+.avisoBurbuja[hidden] { display: none; }
+@media (hover: hover) { [data-aviso-texto] { cursor: help; } }
+
+/* ═══════════════ TARJETAS Y PESTAÑAS MODERNAS (28-oct-2026, JC)
+   Un solo sitio para toda la app móvil: bloques blancos sobre un fondo de
+   página gris muy claro, esquinas de 16 px, sombra pequeña y suave y un borde
+   apenas visible. Las cabeceras de bloque (banda teal clara) se recortan con el
+   redondeo (overflow: hidden). Todo sale de estas variables: para cambiar el
+   aspecto de la app entera basta tocarlas. */
+:root {
+  --fondo-pagina: #F3F5F6;
+  --radio-bloque: 16px;
+  --radio-kpi: 12px;
+  --sombra-bloque: 0 2px 8px rgba(0, 0, 0, .07);
+  --borde-bloque: 1px solid rgba(15, 23, 42, .05);
+  --pest-activa-fondo: var(--acento-suave);
+}
+body { background: var(--fondo-pagina); }
+.barra { background: rgba(243, 245, 246, .88); border-bottom: 0; }
+#app.densa { --radio-tarjeta: var(--radio-bloque); --sombra: var(--sombra-bloque); }
+
+/* El selector «Inicio / Mis tareas»: texto sin caja; la activa en teal con pastilla suave. */
+.segmentos, .segmentado, #app .segmentado { background: none; padding: 0; gap: 4px; border-radius: 0; box-shadow: none; }
+.segmentos { margin: 4px 16px 0; }
+.segmentos a, .segmentado button {
+  padding: 6px 14px; border-radius: 999px; background: none; box-shadow: none;
+  color: var(--textoTenue); font-size: 14px; font-weight: 500;
+}
+.segmentos a.activa, .segmentado button.activa {
+  background: var(--pest-activa-fondo); color: var(--acento-fuerte); font-weight: 600; box-shadow: none;
+}
+@media (max-width: 699px) { .segmentos { margin: 4px 12px 0; } }
+
+/* El estado de la conexión: un punto de color y el texto, sin fondo. */
+.sync-pastilla, .sync-pastilla.al-dia, .sync-pastilla.sin-red, .sync-pastilla.sin-sesion, .sync-pastilla.error {
+  background: none; padding: 4px 2px; min-height: 28px; font-weight: 500;
+}
+.sync-pastilla { color: var(--textoSuave); }
+.sync-pastilla::before { background: var(--textoTenue); }
+.sync-pastilla.al-dia { color: var(--bien); }
+.sync-pastilla.al-dia::before { background: var(--bien); }
+.sync-pastilla.sin-red { color: var(--aviso); }
+.sync-pastilla.sin-red::before { background: var(--aviso); }
+.sync-pastilla.sin-sesion, .sync-pastilla.error { color: var(--mal); }
+.sync-pastilla.sin-sesion::before, .sync-pastilla.error::before { background: var(--mal); }
+.sync-pastilla.girando::before { background: var(--acento-vivo); }
+
+/* Los bloques: tarjeta blanca redondeada con sombra suave. */
+#app .tarjeta, #app .pedido-elegido, #app .linea, #app .grupo, #app .boca, #app .total-circuito, #app .tabla-inv,
+#app .tipo-parte, #app .recientes, #app .tabla-resultado, #app .hoy, #app .plano-bocas, #app .resumen, #app .editor-nota,
+#app .fotos-ficha li, #app .lista-ios > li, #app .resumen-fila, #app .res-obra, #app .ini-cx-tabla {
+  background: var(--panel); border: var(--borde-bloque); border-radius: var(--radio-bloque); box-shadow: var(--sombra-bloque);
+}
+#app .resumen-fila { overflow: hidden; }
+#app .resumen-fila > * { background: transparent; box-shadow: none; border-radius: 0; }
+#app .lista-ios > li { overflow: hidden; }
+#app .lista-ios:not(h2 + .lista-ios):not(h3 + .lista-ios) { border-top: 0; }
+#app .selector-obra, .selector-obra { background: var(--panel); border-radius: var(--radio-bloque); box-shadow: var(--sombra-bloque); border: var(--borde-bloque); }
+
+/* Los bloques del Inicio (Hoy, Esta semana, Commissioning, Pendiente…): la sección entera es la tarjeta. */
+#app .ag-bloque {
+  margin: 12px 0; background: var(--panel); border: var(--borde-bloque); border-radius: var(--radio-bloque);
+  box-shadow: var(--sombra-bloque); overflow: hidden;
+}
+#app .ag-bloque > .ag-titulo { margin: 0; border-radius: 0; }
+#app .ag-bloque .grupo, #app .ag-bloque .ini-pend, #app .ag-bloque .res-obra, #app .ag-bloque .ini-cx-tabla {
+  border: 0; border-radius: 0; box-shadow: none; margin: 0;
+}
+#app .ag-bloque > :last-child .ag-fila:last-child, #app .ag-bloque .ini-cx:last-child { border-bottom: 0; }
+
+/* Cabeceras de banda teal: siguen el redondeo de su bloque. */
+#app .titulo-grupo { border: var(--borde-bloque); border-bottom: 0; border-radius: var(--radio-bloque) var(--radio-bloque) 0 0; box-shadow: var(--sombra-bloque); clip-path: inset(0 -8px 0 -8px); }
+#app .titulo-grupo + * { margin-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+#app.densa h2, #app.densa h3.banda { border-radius: var(--radio-bloque) var(--radio-bloque) 0 0; }
+#app.densa h3.banda + *, #app.densa h2 + .lista-ios, #app.densa h2 + .hoja-tabla, #app.densa .hoja-tabla { border-radius: 0 0 var(--radio-bloque) var(--radio-bloque); }
+#app.densa > .hoja-tabla:first-child { border-radius: var(--radio-bloque); }
+#app.densa .grupo, #app.densa .total-circuito, #app.densa .boca { border-radius: var(--radio-bloque); border: var(--borde-bloque); box-shadow: var(--sombra-bloque); }
+#app.densa .fotos-rapidas { border-radius: 0 0 var(--radio-bloque) var(--radio-bloque); }
+#app .cabeza-ficha h2 { border-radius: 0; }
+#app .ag-titulo { border-radius: 0; }
+
+/* Las cifras KPI de Commissioning. */
+#app .kpi-cx { border: var(--borde-bloque); border-top: 2px solid #B7C4C4; border-radius: var(--radio-kpi); box-shadow: var(--sombra-bloque); }
+#app .kpi-cx.bien { border-top-color: #17807C; }
+#app .kpi-cx.falta { border-top-color: #4F8FCB; }
+#app .kpi-cx.activa { border-top-color: #17807C; }

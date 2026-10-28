@@ -44,7 +44,7 @@
       icono: icono('<path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.5"/><circle cx="12" cy="17" r=".6" fill="currentColor"/>',
         `<path d="M12 3.5 2.8 19.5h18.4z" fill="currentColor"/><path d="M12 10v4" ${HUECO} stroke-width="2.2"/><path d="M12 16.9v.1" ${HUECO} stroke-width="2.4"/>`),
       /* 26-oct: «Reclamables», los avisos del tajo que pueden reclamarse (avisosReclamables.js). */
-      secciones: [['partes', 'Partes'], ['avisos', 'Reclamables'], ['ncr', 'NCR'], ['reparaciones', 'Reparaciones']] },
+      secciones: [['partes', 'Partes'], ['avisos', 'Reclamables'], ['qhse', 'QHSE'], ['ncr', 'NCR'], ['reparaciones', 'Reparaciones']] },
     /* El avance de obra sobre planos (16-oct): el encargado marca lo hecho. */
     { id: 'avance', nombre: 'Avance',
       icono: icono('<rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M7 15.5l3.5-4 3 2.5L17 8.5"/>',
@@ -85,13 +85,16 @@
     /* 26-oct: esperas, accesos denegados, falta de medios… (avisosReclamables.js). */
     { seccion: 'avisos', nombre: 'Algo reclamable', ayuda: 'Esperas, accesos denegados, sin grúa…', obra: true, pasos: ['[data-at="nuevo"]'],
       icono: svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>') },
+    /* 28-oct: la inspección del sitio de cada semana (qhse.js). */
+    { seccion: 'qhse', nombre: 'Inspección del sitio', ayuda: 'QHSE: la de esta semana, control de subcontratas, CAE', obra: true, pasos: ['[data-qh="nuevo"][data-p="inspeccionObra"]'],
+      icono: svg('<path d="M9 4.5h6M9 4.5A1.5 1.5 0 0 0 7.5 6H6a1.5 1.5 0 0 0-1.5 1.5v11A1.5 1.5 0 0 0 6 20h12a1.5 1.5 0 0 0 1.5-1.5v-11A1.5 1.5 0 0 0 18 6h-1.5A1.5 1.5 0 0 0 15 4.5"/><path d="M8.5 13l2.5 2.5 4.5-5"/>') },
   ];
 
   /* El título de cada sección, arriba: corto, que en el iPhone quepa junto a la pastilla (18-oct). */
   const TITULO = {
     inicio: 'Inicio', commissioning: 'Commissioning', partes: 'Partes', ncr: 'No conformidades', reparaciones: 'Reparaciones', avance: 'Avance de obra', albaranes: 'Albaranes',
     inventario: 'Inventario', bloc: 'Notas', personal: 'Personal', estanqueidad: 'Estanqueidad', cuenta: 'Cuenta',
-    misTareas: 'Mis tareas', avisos: 'Reclamables',
+    misTareas: 'Mis tareas', avisos: 'Reclamables', qhse: 'QHSE',
   };
   /* Las que no dependen de la obra elegida no enseñan el selector. */
   const SIN_OBRA = new Set(['cuenta', 'albaranes']);

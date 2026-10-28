@@ -78,8 +78,8 @@
   /* ── Estado ───────────────────────────────────────────────────── */
   --bien: #003F2D;
   --bien-fondo: #DFF0E8;
-  --aviso: #7A5B00;
-  --aviso-fondo: #F7EFCF;
+  --aviso: #14507F;
+  --aviso-fondo: #E1ECF6;
   --mal: #9C2B2B;
   --mal-fondo: #F7DEDE;
   --info: #0B4A63;
@@ -171,8 +171,8 @@
      claro daban 1,28:1 (bien) y 2,04:1 (mal) sobre el panel. */
   --bien: #5FD39E;
   --bien-fondo: #0C3F31;
-  --aviso: #E3C35A;
-  --aviso-fondo: #3A3212;
+  --aviso: #8DBBEA;
+  --aviso-fondo: #14273B;
   --mal: #FF9E92;
   --mal-fondo: #4A1F1F;
   --info: #8CC6E0;
