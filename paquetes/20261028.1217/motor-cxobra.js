@@ -9692,7 +9692,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261028.0844" : "0";
+      var VERSION = true ? "20261028.1217" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -58175,6 +58175,55 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
+  // shared/commissioning/filaMovil.js
+  var require_filaMovil = __commonJS({
+    "shared/commissioning/filaMovil.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const llano = (v) => String(v ?? "").trim();
+        const clave = (v) => llano(v).toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[\s_-]+/g, "-");
+        const PAPEL_DELANTE = /^U[EI][\s_-]+/i;
+        const PAPEL_DETRAS = /[\s_-]+U[EI]$/i;
+        function sinPapel(tag, planta) {
+          let t = llano(tag).replace(PAPEL_DELANTE, "").replace(PAPEL_DETRAS, "");
+          const p = llano(planta);
+          if (p) {
+            const re = new RegExp(`^${p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\s_-]+`, "i");
+            const sin = t.replace(re, "");
+            if (sin) t = sin;
+          }
+          return t;
+        }
+        function nombreConjunto(unidades, planta) {
+          const us = (unidades || []).filter((u) => u && llano(u.tag));
+          if (us.length !== 2) return null;
+          if (!us.every((u) => PAPEL_DELANTE.test(llano(u.tag)) || PAPEL_DETRAS.test(llano(u.tag)))) return null;
+          const nombres = us.map((u) => sinPapel(u.tag, planta));
+          if (!nombres[0] || clave(nombres[0]) !== clave(nombres[1])) return null;
+          return nombres[0];
+        }
+        const esCodigoLocal = (v) => /^[A-Z]{1,2}\d{0,2}\.[A-Z]{2,4}\.\d{2,}$/i.test(llano(v));
+        function localDe(unidades) {
+          const us = (unidades || []).filter(Boolean);
+          const interiores = new Set(us.filter((u) => u.papel === "UI" && llano(u.sala)).map((u) => llano(u.sala)));
+          if (interiores.size > 1) return null;
+          const orden = [...us.filter((u) => u.papel === "UI"), ...us.filter((u) => u.papel !== "UI")];
+          const s = (orden.find((u) => llano(u.sala)) || {}).sala;
+          if (!llano(s)) return null;
+          return esCodigoLocal(s) ? `Local ${llano(s)}` : llano(s);
+        }
+        const pideBalanceo = (f) => f.ensayoRequerido === "balanceo" || f.ensayoRequerido === "ambos";
+        function llevaPlanoBocas(f = {}) {
+          return f.medicion ? Boolean(f.medicion.plano) : pideBalanceo(f) || /UTA|climatiz|recuper|fan.?coil|extrac|ventil/i.test(f.grupo || "");
+        }
+        const API = { sinPapel, nombreConjunto, esCodigoLocal, localDe, llevaPlanoBocas };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.FILA_MOVIL_CX = API;
+      })();
+    }
+  });
+
   // ../Vidaire_Obras/node_modules/tslib/tslib.es6.js
   var tslib_es6_exports = {};
   __export(tslib_es6_exports, {
@@ -81478,6 +81527,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
       var NOTAS = require_notas2();
       var MNCR = require_motor();
       var MDIF = require_difusores();
+      var FMOV = require_filaMovil();
       var { puede } = require_roles();
       var { crearRutasFichas, PERMISOS_FICHAS } = require_rutasFichas();
       var PERMISOS_OBRA = {
@@ -81557,7 +81607,10 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             docCompleta: Boolean(f.docCompleta),
             estadoPM: f.estadoPM || null,
             instalada: f.instalada !== false,
-            ...bocas.get(f.id) || { bocas: 0, medidas: 0 }
+            ...bocas.get(f.id) || { bocas: 0, medidas: 0 },
+            /* La tarjeta del móvil (28-oct, JC): el local y si lleva plano de bocas. */
+            local: FMOV.localDe([{ sala: f.sala, papel: "UE" }]),
+            conPlano: FMOV.llevaPlanoBocas(f)
           });
           const conjuntos = (t.conjuntos || []).map((l) => {
             const ext = l.exterior || l.miembros[0];
@@ -81578,6 +81631,16 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
               estadoPM: l.estadoPM || null,
               instalada: l.instalada !== false,
               unidades: l.miembros.map((m) => ({ id: m.id, tag: m.tag, papel: m.id === ext.id && l.clase !== "suelto" ? "UE" : "UI", modelo: m.modelo || null, planta: m.planta || null }))
+            };
+          }).map((c, i) => {
+            const l = t.conjuntos[i];
+            const us = l.miembros.map((m, j) => ({ tag: m.tag, sala: m.sala, papel: c.unidades[j].papel }));
+            return {
+              ...c,
+              /* Un split se nombra una vez («SALA DAS 037»); null si sus TAG no cuadran. */
+              nombre: l.clase === "par" ? FMOV.nombreConjunto(us, c.planta) : null,
+              local: FMOV.localDe(us),
+              conPlano: l.miembros.some((m) => FMOV.llevaPlanoBocas(m))
             };
           });
           const tc = t.totalesConjuntos || {};

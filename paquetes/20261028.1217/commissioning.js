@@ -134,9 +134,16 @@
      es conjunto (15-oct-2026, JC). Sin conjuntos (un servidor viejo), por unidades. */
   const porConjuntos = () => Array.isArray(lista.conjuntos);
   const NOMBRE_CLASE = { par: 'Split', sistema: 'VRF' };
-  const textoDe = (e) => `${(e.unidades || []).map((u) => u.tag).join(' ') || e.tag} ${e.planta || ''} ${e.marca || ''} ${e.modelo || ''} ${tipoDe(e)}`;
+  const textoDe = (e) => `${(e.unidades || []).map((u) => u.tag).join(' ') || e.tag} ${e.nombre || ''} ${e.local || ''} ${e.planta || ''} ${e.marca || ''} ${e.modelo || ''} ${tipoDe(e)}`;
   function tagsFila(e) {
     const us = e.unidades || [];
+    /* El split, UNA vez por su nombre (28-oct-2026, JC: «en lugar de UE y luego
+       debajo UI, quiero el nombre del conjunto una vez»). Lo da el servidor
+       (shared/commissioning/filaMovil.js) solo si los dos TAG dicen lo mismo:
+       si no cuadran, las dos unidades como antes. */
+    if (e.clase === 'par' && e.nombre) {
+      return `<strong class="cifra" title="${esc(us.map((u) => u.tag).join(' / '))}">${esc(e.nombre)}</strong>`;
+    }
     if (e.clase === 'par') {
       return `<div class="tags-par">${us.map((u) => `<strong class="cifra"><em>${esc(u.papel)}</em>${esc(u.tag)}</strong>`).join('')}</div>`;
     }
@@ -147,6 +154,21 @@
     return `<strong class="cifra">${esc(e.tag)}</strong>`;
   }
 
+  /* EL NÚMERO DE CADA GRUPO DICE LO HECHO (28-oct-2026, JC: «pon como estaban
+     pero el número ese que aparece en el extremo como total lo pones como
+     X/total»). La barra es la de siempre (título a la izquierda, número a la
+     derecha); el número es «hechos/total». «Hecho» es `e.completo`, la misma
+     regla de siempre (papeles + fichas + ensayo, shared/commissioning/control.js)
+     que pinta el chip «Completo»: no hay otra. Los hechos van al final del grupo. */
+  const hecho = (e) => !!e.completo;
+  function cabeceraGrupo(fs, g) {
+    const hechos = fs.filter(hecho).length;
+    return `<span>${esc(g)}</span><b class="contador" aria-label="${hechos} hechos de ${fs.length}">${cifra(hechos)}/${cifra(fs.length)}</b>`;
+  }
+
+  /* Bajo los KPI ya no va «544 conjuntos con 778 unidades: … van en una línea
+     con su exterior» (28-oct-2026, JC: «ese texto fuera»); la de la instalación
+     verificada se queda, que lleva el enlace «Ver cuáles». */
   function pintarLista() {
     /* La ficha del equipo escondía el selector de arriba: vuelve. */
     const seg = document.getElementById('segmentos');
@@ -156,7 +178,9 @@
     const q = filtro.trim().toLowerCase();
     const todos = (conj ? lista.conjuntos : lista.equipos) || [];
     const [, , pasa] = SEGMENTOS.find(([id]) => id === segmento) || SEGMENTOS[0];
-    const equipos = todos.filter(pasa).filter((e) => !q || textoDe(e).toLowerCase().includes(q));
+    /* Los hechos, al final de su grupo (orden estable: lo demás no se mueve). */
+    const equipos = todos.filter(pasa).filter((e) => !q || textoDe(e).toLowerCase().includes(q))
+      .sort((a, b) => hecho(a) - hecho(b));
     const [, , grupoDe] = AGRUPAR.find(([id]) => id === agrupar) || AGRUPAR[0];
     const sin = (g) => g.startsWith('Sin ');
     const grupos = [...new Set(equipos.map(grupoDe))].sort(agrupar === 'planta' ? porPlanta
@@ -166,21 +190,22 @@
         .filter(([id, n]) => id !== 'enMarcha' || n !== undefined)
         .map(([id, n, texto]) => `<button role="tab" data-cx-seg="${id}" aria-selected="${segmento === id}" class="${segmento === id ? 'activa' : ''} ${id.startsWith('falta') && n ? 'aviso' : ''}"><b>${cifra(n)}</b><span>${esc(texto)}</span></button>`).join('')}</div>
       ${t.sinVerificar ? `<p class="nota tenue cuenta-instaladas">${cifra(t.instaladas)} de ${cifra(conj ? t.conjuntos : t.equipos)} con la instalación verificada; los otros ${cifra(t.sinVerificar)}, solo documentación. <button class="enlace" data-cx-seg="sinVerificar">${segmento === 'sinVerificar' ? 'Ver todos' : 'Ver cuáles'}</button></p>` : ''}
-      ${conj && t.unidades !== t.conjuntos ? `<p class="nota tenue cuenta-conjuntos">${cifra(t.conjuntos)} conjuntos con ${cifra(t.unidades)} unidades: ${cifra(t.pares)} splits y ${cifra(t.sistemas)} VRF van en una línea con su exterior.</p>` : ''}
-      <input type="search" class="buscar" placeholder="Buscar TAG, planta, tipo o marca" value="${esc(filtro)}" data-cx-buscar>
+      <input type="search" class="buscar" placeholder="Buscar TAG, sala, planta, tipo o marca" value="${esc(filtro)}" data-cx-buscar>
       <div class="agrupar" role="group" aria-label="Agrupar por"><span>Agrupar por</span>${AGRUPAR
         .map(([id, texto]) => `<button data-cx-agrupar="${id}" aria-pressed="${agrupar === id}" class="${agrupar === id ? 'activa' : ''}">${texto}</button>`).join('')}</div>
       ${equipos.length ? C.listaAgrupada(`cx-equipos-${agrupar}`, equipos, {
-        grupo: grupoDe, orden: grupos, buscando: !!q, repintar: pintarLista,
+        grupo: grupoDe, orden: grupos, buscando: !!q, repintar: pintarLista, cabecera: cabeceraGrupo,
         fila: (e) => `
         <li><button class="fila-ios" data-cx="equipo" data-id="${esc(e.id)}">
           <div class="fila-principal">
             ${tagsFila(e)}
             ${chipEnvio(e.envio, e.completo, e.ensayoFalta)}
           </div>
-          <div class="sub">${esc([NOMBRE_CLASE[e.clase], e.planta, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · ') || 'Sin datos')}</div>
+          <div class="sub">${[NOMBRE_CLASE[e.clase], e.planta, e.local, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean)
+            /* Cada trozo entero: a 390 px se parte entre trozos, no en «U-|71PZH3E5». */
+            .map((x) => `<span class="trozo">${esc(x)}</span>`).join(' · ') || 'Sin datos'}</div>
           ${e.bocas ? `<div class="progreso" aria-label="${e.medidas} de ${e.bocas} bocas medidas"><i style="width:${Math.round((e.medidas / e.bocas) * 100)}%"></i></div>
-          <div class="sub">${cifra(e.medidas)} de ${cifra(e.bocas)} bocas medidas</div>` : '<div class="sub">Sin plano de bocas</div>'}
+          <div class="sub">${cifra(e.medidas)} de ${cifra(e.bocas)} bocas medidas</div>` : e.conPlano === false ? '' : '<div class="sub">Sin plano de bocas</div>'}
           ${e.falta && e.falta.length && !e.completo ? `<div class="sub aviso">Falta: ${esc(e.falta.join(', '))}</div>` : ''}
         </button></li>` }) : `<p class="vacio">${q || segmento !== 'todos' ? 'Ningún equipo con ese filtro.' : 'Esta obra no tiene equipos dados de alta.'}</p>`}`;
   }
