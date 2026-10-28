@@ -426,7 +426,7 @@
       <canvas width="600" height="200" data-firma-lienzo aria-label="Firme aquí con el dedo"></canvas>
       <p class="nota">Firme dentro del recuadro con el dedo. ${marcaAG(AG && ficha && AG.leer(claveFirma(ficha.equipo.id, firmando)) ? 'movil' : '')}</p>
       <div class="fila-botones">
-        <button class="boton" data-cx="guardar-firma">Guardar firma</button>
+        <button class="boton" data-cx="guardar-firma">Firmar</button>
         <button class="boton secundario" data-cx="limpiar-firma">Borrar trazo</button>
         <button class="boton secundario" data-cx="cancelar-firma">Cancelar</button>
         ${previa ? '<button class="enlace mal" data-cx="quitar-firma">Quitar la firma guardada</button>' : ''}
@@ -935,7 +935,7 @@
       : !ok ? fichasEq.error
       : nombres.length ? nombres.map((n) => n.charAt(0).toUpperCase() + n.slice(1).toLowerCase()).join(' · ')
       : 'Este equipo no tiene familia asignada: se le pone en el ordenador (Puesta en marcha).';
-    return `<section id="fichas-equipo">
+    return `<section id="fichas-equipo" data-plegable>
       <h2>Fichas del equipo <span class="cuenta">${ok ? nombres.length : ''}</span></h2>
       <ul class="lista-ios"><li><button class="fila-ios" data-cx="ver-fichas">
         <div class="fila-principal"><strong>${ok && nombres.length ? `${hechas} de ${fs.length} hechas` : 'Abrir'}</strong><span>${chip}</span></div>
@@ -1380,7 +1380,7 @@
     const notaMed = med ? `<p class="nota">Medición de aire: ${esc(med.texto.charAt(0).toLowerCase() + med.texto.slice(1))}.</p>` : '';
     const vacio = pestana === 'equipo' && !(fichasEq.fichas || []).length
       ? 'Este equipo no tiene familia asignada: se le pone en el ordenador (Puesta en marcha).' : 'Sin fichas.';
-    return `<section id="fichas-equipo">
+    return `<section id="fichas-equipo" data-plegable>
       <h2>${esc(titulo)} <span class="cuenta">${fs.length + (filaBal ? 1 : 0)}</span></h2>
       ${fs.length || filaBal ? `<ul class="lista-ios numerada">${fs.map(([x, i]) => (!x.plantilla ? `
         <li><div class="fila-ios apagada">
@@ -1399,7 +1399,7 @@
   function htmlConservadas() {
     const cs = ((fichasEq && fichasEq.ok !== false && fichasEq.fichas) || []).map((x, i) => [x, i]).filter(([x]) => x.conservada);
     if (!cs.length) return '';
-    return `<section id="fichas-conservadas">
+    return `<section id="fichas-conservadas" data-plegable>
       <h2>Guardadas antes en otra unidad <span class="cuenta">${cs.length}</span></h2>
       <p class="nota">Se hicieron antes de juntar el conjunto: se conservan y se pueden leer; no cuentan para «completo».</p>
       <ul class="lista-ios">${cs.map(([x, i]) => `
@@ -2238,7 +2238,7 @@
     if (!cuerpos.length) return cargando ? '<section id="toma-datos"><h2>Toma de datos</h2><p class="cargando">Cargando lo que falta por medir…</p></section>' : '';
     const sucias = listas.filter(([, , t]) => t.cambiada).length;
     const puede = listas.some(([, , t]) => t.f.editable);
-    return `<section id="toma-datos">
+    return `<section id="toma-datos" data-plegable>
       <h2>Toma de datos <span class="cuenta">lo que falta, sin abrir las fichas</span></h2>
       ${cuerpos.join('')}
       ${cargando ? '<p class="cargando">Cargando el resto…</p>' : ''}

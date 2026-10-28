@@ -31,7 +31,7 @@ const DISCIPLINAS_PLANO = {
   electricidad: { nombre: 'Electricidad', capas: [
     ['bandejas', 'Bandejas', 'trazo', '#b45309'],
     ['cable', 'Cable', 'trazo', '#be123c'],
-    ['luz', 'Puntos de luz', 'punto', '#ca8a04'],
+    ['luz', 'Puntos de luz', 'punto', '#6FA0CF'],
     ['tomas', 'Tomas de corriente', 'punto', '#2563eb'],
     ['cuadros', 'Cuadros', 'punto', '#475569'],
   ] },

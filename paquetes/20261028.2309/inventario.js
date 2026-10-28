@@ -94,8 +94,8 @@
   function barraBorrador() {
     if (!borrador.size) return '';
     return `<div class="invc-borrador">
-      <span><b>${cifra(borrador.size)}</b> ${borrador.size === 1 ? 'material contado' : 'materiales contados'} sin guardar</span>
-      <button class="boton" data-inv="guardar" ${ocupado ? 'disabled' : ''}>Guardar recuento</button>
+      <span><b>${cifra(borrador.size)}</b> ${borrador.size === 1 ? 'material contado' : 'materiales contados'} sin registrar</span>
+      <button class="boton" data-inv="guardar" ${ocupado ? 'disabled' : ''}>Registrar recuento</button>
       <button class="boton secundario" data-inv="descartar">Descartar</button>
     </div>`;
   }

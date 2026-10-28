@@ -29,7 +29,7 @@
   let filtro = 'abiertas';
   let porRevisar = false;
   let soloMias = null;
-  /* Lo tocado en la ficha que aún no se ha guardado (botón «Guardar»). */
+  /* Lo tocado en la ficha que aún no ha llegado al servidor (se guarda solo). */
   let cambios = null;
   let texto = '';
   let form = null;
@@ -270,8 +270,11 @@
    * 16-oct-2026, JC: «botón de guardar para guardar la foto y tal y que luego
    * salga en el PDF». En la ficha nada se manda al tocarlo: las fotos del
    * antes y del después, la nota, la visita (técnicos y horas) y el estado se
-   * quedan en `cambios` («Cambios sin guardar») hasta pulsar «Guardar», que lo
-   * guarda todo de una vez. Guardado queda en el teléfono al momento y sube a
+   * quedan en `cambios` y se guardan SOLOS (28-oct, JC: «ese botón ya no sirve
+   * si toda la app tiene autoguardado»): al hacer la foto, al apuntar la
+   * visita, al elegir el estado, a una pausa o al salir del cuadro de la nota,
+   * al salir de la ficha, al ir atrás y al pasar la app a segundo plano. Sin
+   * botón: solo el indicador de la cabecera. Guardado queda en el teléfono al momento y sube a
    * la nube con sus fotos en cuanto hay red (shared/sync/archivos.js); si no
    * la hay, se reintenta solo.
    */
@@ -335,18 +338,23 @@
 
   const NOMBRE_PASO = (p) => (p.id === 'cerrada' ? 'Cerrarla' : p.nombre === 'TERMINADA' ? 'Terminada' : p.nombre === 'EN CURSO' ? 'Empezada' : p.nombre);
 
-  function barraGuardar() {
+  /* El indicador de la cabecera (sin botón: todo se guarda solo). */
+  function marcaGuardado() {
     const hay = hayCambios();
-    const n = cambios ? cambios.fotos.length : 0;
-    const texto = estadoBarra === 'guardando' ? 'Guardando…'
-      : hay && estadoBarra === 'sinRed' ? 'Sin conexión, se guardará'
-      : hay && estadoBarra === 'error' ? 'No se ha guardado: toca Guardar'
-      : hay ? (n || cambios.visita ? `Sin guardar${n ? ` · ${n} foto${n === 1 ? '' : 's'}` : ''}` : 'Sin guardar · se guarda al salir')
-      : (Date.now() - guardadoA < 6000 ? 'Guardado' : 'Todo guardado');
-    return `<span class="estado-guardar ${hay || estadoBarra === 'guardando' ? 'pendiente' : 'al-dia'}">${esc(texto)}</span>
-      <button type="button" class="boton" data-rp="guardar" ${hay ? '' : 'disabled'}>Guardar</button>`;
+    const e = estadoBarra === 'sinRed' && hay ? 'sinRed'
+      : estadoBarra === 'error' && hay ? 'error'
+      : estadoBarra === 'guardando' || hay ? 'guardando'
+      : 'guardado';
+    const texto = e === 'sinRed' ? 'Sin conexión: se guardará al volver' : e === 'error' ? 'No se ha guardado' : e === 'guardando' ? 'Guardando…' : 'Guardado';
+    return { e, texto };
   }
-  const refrescarBarra = () => { const b = $app.querySelector('.barra-guardar'); if (b) b.innerHTML = barraGuardar(); };
+  const refrescarBarra = () => {
+    const el = $app.querySelector('.barra-editor .autoguardado');
+    if (!el) return;
+    const { e, texto } = marcaGuardado();
+    el.className = `autoguardado ${e}`;
+    el.textContent = texto;
+  };
 
   function pintarFicha() {
     const { reparacion: r, porOperario, comentarios, pasos, puede } = abierta;
@@ -354,7 +362,7 @@
     const v = cambios.visita;
     const horasV = v ? v.tecnicos.reduce((s, t) => s + (Number(String(t.horas).replace(',', '.')) || 0), 0) : 0;
     $app.innerHTML = `
-      <button class="volver" data-rp="lista">‹ Reparaciones</button>
+      <div class="barra-editor"><button class="volver" data-rp="lista">‹ Reparaciones</button><span class="autoguardado ${marcaGuardado().e}" role="status" aria-live="polite">${esc(marcaGuardado().texto)}</span></div>
       <section class="cabeza-ficha">
         <div class="fila-principal"><h2 class="cifra">${esc(r.equipo ? r.equipo.tag : r.codigo)}</h2><span>${chipPrioridad(r.prioridad)} ${chipEstado(r)}</span></div>
         <p class="texto-ficha">${esc(r.titulo)}</p>
@@ -395,11 +403,10 @@
           <div class="fila-botones"><button class="boton secundario" data-rp="editar-visita">Cambiar</button><button class="boton secundario" data-rp="quitar-visita">Quitar</button></div>
         </section>` : '<button class="boton secundario" data-rp="visita"><i class="ic ic-check"></i>Apuntar visita: técnicos y horas</button>'}` : ''}
       ${pasos.length ? `<h2>Estado</h2><div class="segmentado pasos-rp">${pasos.map((p) => `<button type="button" data-rp="paso" data-estado="${esc(p.id)}" class="${cambios.estado === p.id ? 'activa' : ''}" aria-pressed="${cambios.estado === p.id}">${esc(NOMBRE_PASO(p))}</button>`).join('')}</div>
-        ${cambios.estado ? `<p class="nota">Pasará a «${esc(NOMBRE_PASO(pasos.find((p) => p.id === cambios.estado)))}» al guardar${cambios.motivo ? `: ${esc(cambios.motivo)}` : ''}.</p>` : ''}` : ''}
+        ${cambios.estado ? `<p class="nota">Pasará a «${esc(NOMBRE_PASO(pasos.find((p) => p.id === cambios.estado)))}»${cambios.motivo ? `: ${esc(cambios.motivo)}` : ''}.</p>` : ''}` : ''}
       <h2>Lo que se ha hecho</h2>
-      ${puede.nota ? `<textarea rows="3" data-rp-nota placeholder="Escribe una nota; se guarda sola al salir">${esc(cambios.nota)}</textarea>` : ''}
-      ${comentarios.length ? `<ul class="historial">${[...comentarios].reverse().map((c) => `<li><span class="sub">${fechaEs(c.cuando)}${c.persona ? ` · ${esc(c.persona)}` : ''}</span> ${c.tipo === 'estado' ? `<em>${esc(c.texto)}</em>` : esc(c.texto)}</li>`).join('')}</ul>` : '<p class="vacio">Todavía nada.</p>'}
-      <div class="barra-guardar" role="status">${barraGuardar()}</div>`;
+      ${puede.nota ? `<textarea rows="3" data-rp-nota placeholder="Escribe una nota; se guarda sola">${esc(cambios.nota)}</textarea>` : ''}
+      ${comentarios.length ? `<ul class="historial">${[...comentarios].reverse().map((c) => `<li><span class="sub">${fechaEs(c.cuando)}${c.persona ? ` · ${esc(c.persona)}` : ''}</span> ${c.tipo === 'estado' ? `<em>${esc(c.texto)}</em>` : esc(c.texto)}</li>`).join('')}</ul>` : '<p class="vacio">Todavía nada.</p>'}`;
     C.cargarImagenes($app);
   }
 
@@ -485,6 +492,8 @@
     const y = window.scrollY;
     pintarFicha();
     window.scrollTo(0, y);
+    /* El cambio de estado se guarda solo, como todo lo demás (28-oct). */
+    guardar({ silencioso: true });
   }
 
   /*
@@ -495,6 +504,7 @@
    * manda media nota mientras se escribe. Solo uno a la vez; lo que llegue
    * mientras, detrás.
    */
+  let relojNota = null;
   let enMarcha = null;
   let detras = null;
   function guardar(op = {}) {
@@ -675,7 +685,6 @@
     else if (a === 'ver-nueva') verNueva(Number(b.dataset.i));
     else if (a === 'quitar-foto') { const [x] = form.fotos.splice(Number(b.dataset.i), 1); if (x && x.local) AG.borrarFoto(x.local); persistirAlta(); pintarForm(); }
     else if (a === 'paso') elegirPaso(b.dataset.estado);
-    else if (a === 'guardar') guardar({ boton: b });
     else if (a === 'visita' || a === 'editar-visita') nuevaVisita();
     else if (a === 'quitar-visita') { cambios.visita = null; persistirCambios(); const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
     else if (a === 'volver-ficha') { visita = null; persistirCambios(); pintarFicha(); }
@@ -711,6 +720,9 @@
       refrescarBarra();
       /* Al terminar de escribir (sale del cuadro), la nota va sola al servidor. */
       if (ev.type === 'change' && abierta) guardar({ silencioso: true });
+      /* Y si se hace una pausa larga escribiendo, también (autoguardado con espera). */
+      clearTimeout(relojNota);
+      if (abierta && cambios.nota.trim()) relojNota = setTimeout(() => { if (abierta && hayCambios()) guardar({ silencioso: true }); }, 4000);
     }
   };
   $app.addEventListener('input', recoger);
@@ -743,5 +755,6 @@
   });
   AG.alSalir(() => { if (form) persistirAlta(); alSalirDeFicha(); });
   window.addEventListener('online', () => { if (abierta && hayCambios()) guardar({ silencioso: true }); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && activa() && abierta && hayCambios()) guardar({ silencioso: true }); });
   if (activa()) lista();
 })();

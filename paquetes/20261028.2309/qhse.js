@@ -216,7 +216,7 @@
         <label>Cargo<input data-qh-firma="cargo" value="${esc(f.firma.cargo)}" ${dis}></label>
       </div>
       <div class="pie">
-        ${cerrado ? '' : '<button class="boton secundario" data-qh="guardar">Guardar borrador</button><button class="boton" data-qh="terminar">Terminar</button>'}
+        ${cerrado ? '' : '<button class="boton" data-qh="terminar">Terminar</button>'}
         <span class="guardado" data-qh-estado>${esc(estadoGuardado)}</span>
       </div>
     </div>`;
@@ -362,7 +362,9 @@
   $app.addEventListener('change', recoger);
 
   window.addEventListener('hashchange', () => { if (activa()) lista(); else if (form) volcar(); });
-  window.addEventListener('pagehide', () => { if (form) { if (sucio) apuntar(form); volcar(); } });
+  /* Al irse de la app (gesto, bloquear, otra app, cerrar): una última vez. */
+  const alIrse = () => { if (form) { if (sucio) apuntar(form); volcar(); } };
+  if (AG) AG.alSalir(alIrse); else window.addEventListener('pagehide', alIrse);
 
   /* La cola manda lo que quedó en el teléfono aunque QHSE no esté abierta;
      nunca el formulario que se está escribiendo (ese lo manda esta pantalla). */
