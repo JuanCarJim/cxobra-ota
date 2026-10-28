@@ -5693,6 +5693,22 @@ globalThis.CX_VARIANTE="cxobra";
         copyFileSync(origen, destino) {
           archivos2.set(normalizar(destino), fs.readFileSync(origen));
         },
+        /*
+         * Las versiones con callback. El backend las usa para borrar temporales
+         * (el HTML que se imprime a PDF, la foto reducida del termómetro) dentro de
+         * un setTimeout: si no existen, el TypeError salta fuera de cualquier
+         * try/catch y la web enseña la pantalla de error dos segundos después de
+         * imprimir. Borrar algo que no está no es un error (como `force: true`).
+         */
+        rm(p, opciones, cb) {
+          const fin = typeof opciones === "function" ? opciones : cb;
+          archivos2.delete(normalizar(p));
+          if (typeof fin === "function") queueMicrotask(() => fin(null));
+        },
+        unlink(p, cb) {
+          archivos2.delete(normalizar(p));
+          if (typeof cb === "function") queueMicrotask(() => cb(null));
+        },
         createReadStream() {
           throw new Error("No hay flujos de archivo en el iPad");
         },
@@ -5702,7 +5718,10 @@ globalThis.CX_VARIANTE="cxobra";
         readFile: async (p, o) => fs.readFileSync(p, o),
         writeFile: async (p, d) => fs.writeFileSync(p, d),
         mkdir: async () => void 0,
-        unlink: async (p) => fs.unlinkSync(p)
+        unlink: async (p) => fs.unlinkSync(p),
+        rm: async (p) => {
+          fs.rmSync(p);
+        }
       };
       function tipoPorExtension(ruta) {
         const ext = path.extname(ruta).toLowerCase();
@@ -9673,7 +9692,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261028.0656" : "0";
+      var VERSION = true ? "20261028.0911" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -44166,6 +44185,9 @@ ${subtitulo}`, c[5]] : c.slice())]);
             porMes: [...meses.values()].map(r).sort((a, b) => a.mes.localeCompare(b.mes))
           };
         }
+        const sinCerrar = (inc) => !!(inc && ESTADOS[inc.estado] && ESTADOS[inc.estado].activa);
+        const cerradaDelTodo = (inc) => !!inc && inc.estado === "cerrada";
+        const SUBSECCIONES = { abiertas: sinCerrar, cerradas: cerradaDelTodo, todas: () => true };
         (function exportar(API) {
           if (typeof module !== "undefined" && module.exports) module.exports = API;
           if (typeof window !== "undefined") window.INCIDENCIAS_MOTOR = API;
@@ -44191,7 +44213,10 @@ ${subtitulo}`, c[5]] : c.slice())]);
           costesObra,
           ZONAS,
           zonaLegible,
-          plantaLegible
+          plantaLegible,
+          sinCerrar,
+          cerradaDelTodo,
+          SUBSECCIONES
         });
       })();
     }
@@ -52023,6 +52048,377 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
+  // shared/incidencias/tipoEquipo.js
+  var require_tipoEquipo = __commonJS({
+    "shared/incidencias/tipoEquipo.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const TIPOS = [
+          { id: "split", nombre: "Splits", familias: ["PANASONIC_SPLIT"], re: /split|\bs-\d{3,}pk|\bcs-|\bcu-/i },
+          { id: "vrf", nombre: "VRF", familias: ["PANASONIC_VRF"], re: /\bvrf\b/i },
+          { id: "crac", nombre: "CRAC", familias: ["PANASONIC_CRACS"], re: /\bcrac/i },
+          { id: "uta", nombre: "UTAs", familias: ["TROX_UTA"], re: /\buta\b|uta-|climatizador|\.ste\./i },
+          { id: "fancoil", nombre: "Fan coils", familias: ["AIRLAN_FANCOIL"], re: /fan ?-?coil|fancoil|cassette|\bfc[-\s]|\.cfb\./i },
+          { id: "rooftop", nombre: "Rooftops", familias: ["CARRIER_ROOFTOPS"], re: /roof ?top|compacto/i },
+          { id: "recuperador", nombre: "Recuperadores", familias: ["AIRLAN_HRU"], re: /recuper|\bhru\b/i },
+          { id: "enfriadora", nombre: "Enfriadoras", familias: ["CARRIER_CHILLERS"], re: /chiller|enfriad|bomba de calor/i },
+          { id: "bomba", nombre: "Bombas", familias: ["WILO_GP", "WILO_PUMPS"], re: /bomba|bombeo|wilo/i },
+          { id: "ventilador", nombre: "Ventiladores", familias: ["SP_PARKING", "SP_VENTILACION", "SP_PRESURIZACION"], re: /ventil|extract|presuriz/i }
+        ];
+        const OTROS = { id: "otro", nombre: "Otros equipos" };
+        const SIN_EQUIPO = { id: "sinEquipo", nombre: "Sin equipo" };
+        function tipoDe(equipo) {
+          if (!equipo) return SIN_EQUIPO;
+          const fam = String(equipo.familia || "").toUpperCase();
+          if (fam) {
+            const t = TIPOS.find((x) => x.familias.includes(fam));
+            if (t) return t;
+          }
+          const texto = [equipo.grupo, equipo.denominacion, equipo.tag, equipo.modelo, equipo.plantillaPM].filter(Boolean).join(" ");
+          return TIPOS.find((x) => x.re.test(texto)) || OTROS;
+        }
+        function tiposConIncidencias(filas) {
+          const cuenta = /* @__PURE__ */ new Map();
+          for (const f of filas || []) {
+            const t = tipoDe(f.equipo);
+            const c = cuenta.get(t.id) || { id: t.id, nombre: t.nombre, total: 0, activas: 0 };
+            c.total += 1;
+            if (f.calc && f.calc.activa) c.activas += 1;
+            cuenta.set(t.id, c);
+          }
+          return [...TIPOS, OTROS, SIN_EQUIPO].map((t) => cuenta.get(t.id)).filter(Boolean);
+        }
+        const API = { TIPOS, tipoDe, tiposConIncidencias };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.TIPO_EQUIPO_INCIDENCIA = API;
+      })();
+    }
+  });
+
+  // shared/incidencias/equiposPorEstado.js
+  var require_equiposPorEstado = __commonJS({
+    "shared/incidencias/equiposPorEstado.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const llano = (v) => String(v ?? "").trim();
+        const dia = (v) => v ? String(v).slice(0, 10) : "";
+        const fechaEs = (d) => d ? dia(d).split("-").reverse().join("/") : "";
+        const ABIERTAS = ["abierta", "enCurso", "terminada"];
+        const NOMBRE_ESTADO = { abierta: "Abierta", enCurso: "En curso", terminada: "Por revisar" };
+        function tipos() {
+          if (typeof __require !== "undefined") {
+            try {
+              return require_tipoEquipo();
+            } catch {
+            }
+          }
+          return typeof window !== "undefined" ? window.TIPO_EQUIPO_INCIDENCIA : null;
+        }
+        function papel() {
+          if (typeof __require !== "undefined") {
+            try {
+              return require_papel();
+            } catch {
+            }
+          }
+          return typeof window !== "undefined" ? window.PAPEL : null;
+        }
+        const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+        const menor = (a, b) => !a ? b : !b ? a : a < b ? a : b;
+        const mayor = (a, b) => !a ? b : !b ? a : a > b ? a : b;
+        function dias(desde, hasta) {
+          if (!desde || !hasta) return null;
+          const a = Date.parse(`${dia(desde)}T00:00:00Z`);
+          const b = Date.parse(`${dia(hasta)}T00:00:00Z`);
+          return Number.isFinite(a) && Number.isFinite(b) ? Math.max(0, Math.round((b - a) / 864e5)) : null;
+        }
+        function agrupar(filas, { hoy = "" } = {}) {
+          const T = tipos();
+          const porEquipo = /* @__PURE__ */ new Map();
+          let sinEquipo = 0;
+          for (const f of filas || []) {
+            if (!f || f.estado === "anulada" || f.borrado) continue;
+            if (!f.equipo || !f.equipo.id) {
+              sinEquipo += 1;
+              continue;
+            }
+            const e = f.equipo;
+            if (!porEquipo.has(e.id)) {
+              const t = T ? T.tipoDe(e) : { id: "otro", nombre: "" };
+              porEquipo.set(e.id, {
+                id: e.id,
+                tag: llano(e.tag),
+                unidades: Array.isArray(e.unidades) ? e.unidades : null,
+                tipoId: t.id,
+                tipo: t.nombre,
+                marca: llano(e.marca),
+                modelo: llano(e.modelo),
+                planta: "",
+                zona: "",
+                sitio: "",
+                total: 0,
+                abiertas: 0,
+                enCurso: 0,
+                porRevisar: 0,
+                cerradas: 0,
+                primera: "",
+                ultima: "",
+                abiertaMasAntigua: "",
+                fechaCierre: "",
+                codigos: [],
+                codigosAbiertas: [],
+                vencidas: 0
+              });
+            }
+            const g = porEquipo.get(e.id);
+            g.total += 1;
+            g.codigos.push(f.codigo);
+            g.primera = menor(g.primera, dia(f.fechaApertura));
+            g.ultima = mayor(g.ultima, dia(f.fechaApertura));
+            g.planta = g.planta || llano(f.planta) || llano(e.planta);
+            g.zona = g.zona || llano(f.zona) || llano(e.zona);
+            g.sitio = g.sitio || llano(f.ubicacion) || llano(e.sala) || llano(e.codSala);
+            if (ABIERTAS.includes(f.estado)) {
+              g.codigosAbiertas.push(f.codigo);
+              if (f.estado === "abierta") g.abiertas += 1;
+              else if (f.estado === "enCurso") g.enCurso += 1;
+              else g.porRevisar += 1;
+              g.abiertaMasAntigua = menor(g.abiertaMasAntigua, dia(f.fechaApertura));
+              if (f.calc && f.calc.vencida) g.vencidas += 1;
+            } else if (f.estado === "cerrada") {
+              g.cerradas += 1;
+              g.fechaCierre = mayor(g.fechaCierre, dia(f.fechaCierre));
+            }
+          }
+          const conIncidencias = [];
+          const cerrados = [];
+          for (const g of porEquipo.values()) {
+            const sinCerrar = g.abiertas + g.enCurso + g.porRevisar;
+            if (sinCerrar) {
+              g.sinCerrar = sinCerrar;
+              g.estado = g.abiertas ? "abierta" : g.enCurso ? "enCurso" : "terminada";
+              g.estadoTexto = NOMBRE_ESTADO[g.estado];
+              g.diasAbierto = dias(g.abiertaMasAntigua, hoy);
+              g.fechaCierre = "";
+              conIncidencias.push(g);
+            } else if (g.cerradas) {
+              g.sinCerrar = 0;
+              g.estado = "cerrada";
+              g.estadoTexto = "Cerrado";
+              cerrados.push(g);
+            }
+          }
+          const porTag = (a, b) => a.tag.localeCompare(b.tag, "es", { numeric: true });
+          conIncidencias.sort((a, b) => (a.abiertaMasAntigua || "9").localeCompare(b.abiertaMasAntigua || "9") || porTag(a, b));
+          cerrados.sort((a, b) => (b.fechaCierre || "").localeCompare(a.fechaCierre || "") || porTag(a, b));
+          return { conIncidencias, cerrados, sinEquipo };
+        }
+        function filtrar(lista, { tipo = "todos", texto = "" } = {}) {
+          const t = llano(texto).toLowerCase();
+          return (lista || []).filter((g) => !tipo || tipo === "todos" || g.tipoId === tipo).filter((g) => !t || [g.tag, ...g.unidades || [], g.planta, g.zona, g.sitio, g.marca, g.modelo, g.tipo, ...g.codigos].some((v) => String(v || "").toLowerCase().includes(t)));
+        }
+        const conjuntoDe = (g) => g.unidades && g.unidades.length > 1 ? g.unidades.join(" + ") : g.tag;
+        function hojas(lista, que, { obra = {}, hoy = "", alcance = "" } = {}) {
+          const cerr = que === "cerrados";
+          const cab = cerr ? ["Equipo", "Conjunto", "Tipo", "Planta", "Zona", "Sala / sitio", "Marca", "Modelo", "N\xBA incidencias", "Primera", "\xDAltima", "Fecha de cierre", "Estado", "Incidencias"] : [
+            "Equipo",
+            "Conjunto",
+            "Tipo",
+            "Planta",
+            "Zona",
+            "Sala / sitio",
+            "Marca",
+            "Modelo",
+            "Sin cerrar",
+            "Abiertas",
+            "En curso",
+            "Por revisar",
+            "Cerradas",
+            "Total",
+            "M\xE1s antigua",
+            "M\xE1s reciente",
+            "D\xEDas",
+            "Vencidas",
+            "Estado",
+            "Incidencias sin cerrar"
+          ];
+          const filas = (lista || []).map((g) => cerr ? [g.tag, conjuntoDe(g), g.tipo, g.planta, g.zona, g.sitio, g.marca, g.modelo, g.total, fechaEs(g.primera), fechaEs(g.ultima), fechaEs(g.fechaCierre), g.estadoTexto, g.codigos.join(", ")] : [
+            g.tag,
+            conjuntoDe(g),
+            g.tipo,
+            g.planta,
+            g.zona,
+            g.sitio,
+            g.marca,
+            g.modelo,
+            g.sinCerrar,
+            g.abiertas,
+            g.enCurso,
+            g.porRevisar,
+            g.cerradas,
+            g.total,
+            fechaEs(g.abiertaMasAntigua),
+            fechaEs(g.ultima),
+            g.diasAbierto ?? "",
+            g.vencidas || "",
+            g.estadoTexto,
+            g.codigosAbiertas.join(", ")
+          ]);
+          const nombre = cerr ? "Equipos cerrados" : "Equipos con incidencias";
+          return [
+            {
+              nombre,
+              marca: true,
+              filtro: true,
+              filas: [cab, ...filas],
+              anchos: cerr ? [22, 30, 14, 8, 12, 24, 14, 16, 10, 11, 11, 13, 10, 40] : [22, 30, 14, 8, 12, 24, 14, 16, 9, 9, 9, 10, 9, 7, 11, 11, 6, 8, 11, 40]
+            },
+            { nombre: "Datos", filas: [
+              ["Dato", "Valor"],
+              ["Obra", [obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ")],
+              ["Listado", nombre],
+              ["Fecha", fechaEs(hoy)],
+              ["Alcance", alcance || "Todos los equipos"],
+              ["Equipos", (lista || []).length],
+              ["Criterio", cerr ? "Todas sus incidencias (sin contar las anuladas) est\xE1n cerradas; la fecha de cierre es la de la \xFAltima que se cerr\xF3." : "Al menos una incidencia sin cerrar: abierta, en curso o terminada por el encargado y pendiente de cerrar."]
+            ], anchos: [16, 90] }
+          ];
+        }
+        function html(lista, que, { obra = {}, hoy = "", alcance = "" } = {}) {
+          const P = papel();
+          const cerr = que === "cerrados";
+          const titulo = cerr ? "Equipos cerrados" : "Equipos con incidencias";
+          const nombreObra = [obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ");
+          const l = lista || [];
+          const n = l.length;
+          const total = `Total \xB7 ${n} ${n === 1 ? "equipo" : "equipos"}`;
+          const cab = cerr ? ["Equipo", "Tipo", "Planta", "Zona", "Sala / sitio", "N\xBA inc.", "Primera", "\xDAltima", "Cierre", "Incidencias"] : ["Equipo", "Tipo", "Planta", "Zona", "Sala / sitio", "Sin cerrar", "Total", "M\xE1s antigua", "D\xEDas", "M\xE1s reciente", "Estado", "Incidencias sin cerrar"];
+          const num = new Set(cerr ? ["N\xBA inc."] : ["Sin cerrar", "Total", "D\xEDas"]);
+          const fila = (g) => {
+            const equipo = `<td class="tag"><span class="codigo">${esc(g.tag)}</span>${g.unidades && g.unidades.length > 1 ? `<br><span class="mismo">+ ${esc(g.unidades.filter((t) => t !== g.tag).join(", "))}</span>` : ""}</td>`;
+            const comun = `${equipo}<td>${esc(g.tipo)}</td><td>${esc(g.planta)}</td><td>${esc(g.zona)}</td><td class="sitio">${esc(g.sitio)}</td>`;
+            return cerr ? `<tr>${comun}<td class="num">${g.total}</td><td class="fecha">${fechaEs(g.primera)}</td><td class="fecha">${fechaEs(g.ultima)}</td><td class="fecha">${fechaEs(g.fechaCierre)}</td><td>${esc(g.codigos.join(", "))}</td></tr>` : `<tr>${comun}<td class="num">${g.sinCerrar}</td><td class="num">${g.total}</td><td class="fecha">${fechaEs(g.abiertaMasAntigua)}</td><td class="num">${g.diasAbierto ?? ""}</td><td class="fecha">${fechaEs(g.ultima)}</td><td>${esc(g.estadoTexto)}${g.vencidas ? " \xB7 vencida" : ""}</td><td>${esc(g.codigosAbiertas.join(", "))}</td></tr>`;
+          };
+          const tabla = `<table class="tablaServTec tablaEqEstado">
+    <thead><tr>${cab.map((c) => `<th${num.has(c) ? ' class="num"' : ""}>${esc(c)}</th>`).join("")}</tr></thead>
+    <tbody>${l.map(fila).join("")}</tbody>
+    <!-- El total, una sola vez al final: como table-row-group no se repite al pie de cada hoja (el thead s\xED). -->
+    <tfoot style="display: table-row-group"><tr><th colspan="${cab.length}">${total}</th></tr></tfoot>
+  </table>`;
+          const criterio = cerr ? "Todas sus incidencias cerradas (las anuladas no cuentan); cierre = la \xFAltima que se cerr\xF3." : "Al menos una incidencia sin cerrar: abierta, en curso o terminada pendiente de cerrar.";
+          const cuerpo = `<article class="informeServTec informeEqEstado">
+    ${P.portada({
+            tipo: titulo,
+            titulo: nombreObra || "Obra",
+            subtitulo: `${criterio}${alcance ? ` \xB7 ${alcance}` : ""}`,
+            datos: [["Fecha", fechaEs(hoy)], ["Equipos", String(n)]]
+          })}
+    ${n ? tabla : '<p class="nota">No hay equipos en este listado.</p>'}
+  </article>`;
+          return P.hoja({ documento: titulo, obra: nombreObra, fecha: hoy, cuerpo, pie: `${titulo} \xB7 ${nombreObra}`, clase: "apaisado papelServTec", marca: obra });
+        }
+        const API = { agrupar, filtrar, hojas, html, dias };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.EQUIPOS_POR_ESTADO_INC = API;
+      })();
+    }
+  });
+
+  // shared/incidencias/listadoIncidencias.js
+  var require_listadoIncidencias = __commonJS({
+    "shared/incidencias/listadoIncidencias.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const llano = (v) => String(v ?? "").trim();
+        const dia = (v) => v ? String(v).slice(0, 10) : "";
+        const fechaEs = (d) => d ? dia(d).split("-").reverse().join("/") : "";
+        const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+        function papel() {
+          if (typeof __require !== "undefined") {
+            try {
+              return require_papel();
+            } catch {
+            }
+          }
+          return typeof window !== "undefined" ? window.PAPEL : null;
+        }
+        const ESTADO = { abierta: "Abierta", enCurso: "En curso", terminada: "Por revisar", cerrada: "Cerrada", anulada: "Anulada" };
+        const PRIORIDAD = { alta: "Alta", media: "Media", baja: "Baja" };
+        const TITULO = { abiertas: "Incidencias abiertas", cerradas: "Incidencias cerradas", todas: "Todas las incidencias" };
+        const CRITERIO = {
+          abiertas: "Sin cerrar: abiertas, en curso y terminadas por revisar.",
+          cerradas: "Cerradas por el jefe de obra.",
+          todas: "Todas las incidencias de la obra."
+        };
+        const queDe = (v) => v === "cerradas" || v === "todas" ? v : "abiertas";
+        function elegir(filas, ids) {
+          const porId = new Map((filas || []).map((f) => [f.id, f]));
+          const vistos = /* @__PURE__ */ new Set();
+          const out = [];
+          for (const id of Array.isArray(ids) ? ids : []) {
+            if (vistos.has(id) || !porId.has(id)) continue;
+            vistos.add(id);
+            out.push(porId.get(id));
+          }
+          return out;
+        }
+        function html(lista, que, { obra = {}, hoy = "", alcance = "" } = {}) {
+          const P = papel();
+          const q = queDe(que);
+          const conCierre = q !== "abiertas";
+          const titulo = TITULO[q];
+          const nombreObra = [obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ");
+          const l = lista || [];
+          const n = l.length;
+          const vencidas = l.filter((x) => x.calc && x.calc.vencida).length;
+          const total = `Total \xB7 ${n} ${n === 1 ? "incidencia" : "incidencias"}${vencidas ? ` \xB7 ${vencidas} ${vencidas === 1 ? "vencida" : "vencidas"}` : ""}`;
+          const cab = ["C\xF3digo", "Prior.", "Equipo", "Sala / sitio", "Planta", "Zona", "Qu\xE9 le pasa", "Estado", "Encargado", "Apertura", "D\xEDas", "L\xEDmite", ...conCierre ? ["Cierre"] : []];
+          const num = /* @__PURE__ */ new Set(["D\xEDas"]);
+          const equipo = (x) => x.equipo && x.equipo.tag ? `<span class="codigo">${esc(x.equipo.tag)}</span>${Array.isArray(x.equipo.unidades) && x.equipo.unidades.length > 1 ? `<br><span class="mismo">+ ${esc(x.equipo.unidades.filter((t) => t !== x.equipo.tag).join(", "))}</span>` : ""}` : '<span class="mismo">sin equipo</span>';
+          const sitio = (x) => llano(x.ubicacion) || (x.equipo ? llano(x.equipo.sala) || llano(x.equipo.codSala) : "");
+          const dias = (x) => x.calc && x.calc.diasAbierta !== null && x.calc.diasAbierta !== void 0 ? x.calc.diasAbierta : "";
+          const fila = (x) => `<tr>
+      <td class="tag"><span class="codigo">${esc(x.codigo)}</span></td>
+      <td>${esc(PRIORIDAD[x.prioridad] || x.prioridad || "")}</td>
+      <td class="tag">${equipo(x)}</td>
+      <td class="sitio">${esc(sitio(x))}</td>
+      <td>${esc(x.planta || x.equipo && x.equipo.planta || "")}</td>
+      <td>${esc(x.zona || "")}</td>
+      <td class="falla">${esc(x.titulo)}</td>
+      <td>${esc(ESTADO[x.estado] || x.estado || "")}</td>
+      <td>${esc(x.encargado || "")}</td>
+      <td class="fecha">${fechaEs(x.fechaApertura)}</td>
+      <td class="num">${dias(x)}</td>
+      <td class="fecha">${fechaEs(x.fechaLimite)}${x.calc && x.calc.vencida ? ' <span class="sinSerie">vencida</span>' : ""}</td>
+      ${conCierre ? `<td class="fecha">${fechaEs(x.fechaCierre)}</td>` : ""}
+    </tr>`;
+          const tabla = `<table class="tablaServTec tablaListadoInc">
+    <thead><tr>${cab.map((c) => `<th${num.has(c) ? ' class="num"' : ""}>${esc(c)}</th>`).join("")}</tr></thead>
+    <tbody>${l.map(fila).join("")}</tbody>
+    <!-- El total, una sola vez al final: como table-row-group no se repite al pie de cada hoja (el thead s\xED). -->
+    <tfoot style="display: table-row-group"><tr><th colspan="${cab.length}">${total}</th></tr></tfoot>
+  </table>`;
+          const cuerpo = `<article class="informeServTec informeListadoInc">
+    ${P.portada({
+            tipo: titulo,
+            titulo: nombreObra || "Obra",
+            subtitulo: `${CRITERIO[q]}${alcance ? ` \xB7 ${alcance}` : ""}`,
+            datos: [["Fecha", fechaEs(hoy)], ["Incidencias", String(n)], ...vencidas ? [["Vencidas", String(vencidas)]] : []]
+          })}
+    ${n ? tabla : '<p class="nota">No hay incidencias en este listado.</p>'}
+  </article>`;
+          return P.hoja({ documento: titulo, obra: nombreObra, fecha: hoy, cuerpo, pie: `${titulo} \xB7 ${nombreObra}`, clase: "apaisado papelServTec", marca: obra });
+        }
+        const API = { elegir, html, queDe, TITULO };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.LISTADO_INCIDENCIAS = API;
+      })();
+    }
+  });
+
   // electron/data/incidencias.js
   var require_incidencias = __commonJS({
     "electron/data/incidencias.js"(exports, module) {
@@ -52833,6 +53229,34 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           ...formato === "excel" ? { hojas: require_papel().excelConLogo(IST.hojas(datos), d.obra) } : { html: IST.html(datos) }
         };
       }
+      function equiposPorEstado(repo, sesion, obraId, { que = null, tipo = "todos", texto = "", formato = null } = {}) {
+        if ((formato === "excel" || formato === "pdf") && !puede(sesion.rol, "incidencias", "exportar")) return { error: "Tu rol no puede exportar las incidencias." };
+        const d = obra(repo, sesion, obraId);
+        if (!d) return { error: "No se encuentra la obra." };
+        const EP = require_equiposPorEstado();
+        const r = EP.agrupar(d.filas, { hoy: hoy() });
+        if (formato !== "excel" && formato !== "pdf") return { obra: d.obra, ...r };
+        const cerr = que === "cerrados";
+        const lista = EP.filtrar(cerr ? r.cerrados : r.conIncidencias, { tipo, texto });
+        const alcance = [tipo && tipo !== "todos" ? `Tipo ${lista[0] && lista[0].tipo || tipo}` : "", llano(texto) ? `\xAB${llano(texto)}\xBB` : ""].filter(Boolean).join(" \xB7 ");
+        const nombre = `${d.obra.codigo} ${cerr ? "equipos cerrados" : "equipos con incidencias"} ${hoy()}`.replace(/[\\/:*?"<>|]/g, "-");
+        if (formato === "pdf") return { n: lista.length, nombre, html: EP.html(lista, cerr ? "cerrados" : "abiertos", { obra: d.obra, hoy: hoy(), alcance }) };
+        return {
+          n: lista.length,
+          nombre,
+          hojas: require_papel().excelConLogo(EP.hojas(lista, cerr ? "cerrados" : "abiertos", { obra: d.obra, hoy: hoy(), alcance }), d.obra)
+        };
+      }
+      function listadoIncidencias(repo, sesion, obraId, { que = "abiertas", ids = null, alcance = "" } = {}) {
+        if (!puede(sesion.rol, "incidencias", "exportar")) return { error: "Tu rol no puede exportar las incidencias." };
+        const d = obra(repo, sesion, obraId);
+        if (!d) return { error: "No se encuentra la obra." };
+        const LI = require_listadoIncidencias();
+        const q = LI.queDe(que);
+        const lista = LI.elegir(d.filas, ids);
+        const nombre = `${d.obra.codigo} ${LI.TITULO[q].toLowerCase()} ${hoy()}`.replace(/[\\/:*?"<>|]/g, "-");
+        return { n: lista.length, nombre, html: LI.html(lista, q, { obra: d.obra, hoy: hoy(), alcance: llano(alcance) }) };
+      }
       function costes(repo, sesion, obraId) {
         const d = obra(repo, sesion, obraId);
         return d && d.verDinero ? d.costes : null;
@@ -52925,6 +53349,8 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         parteHoras,
         informeServicioTecnico,
         fotosServicioTecnico,
+        equiposPorEstado,
+        listadoIncidencias,
         /* Las tarifas de la obra, también para los partes de trabajo. */
         tarifasDe,
         precioCobroDe,

@@ -36,6 +36,7 @@
   --bien: #2E7D32;   --bien-fondo: #EDF7EE;
   --aviso: #A35F00;  --aviso-fondo: #FFF5E6;
   --mal: #C62828;    --mal-fondo: #FDEDED;
+  --alto: #6A1B9A;   --alto-fondo: #F3E8F9; /* caudal por encima del de proyecto (25-oct, JC: morado) */
 
   --fuente-titular: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --fuente-texto: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -225,6 +226,7 @@ small, .sub { color: var(--textoTenue); font-size: 13px; }
 .chip.bien { background: var(--bien-fondo); color: var(--bien); }
 .chip.aviso { background: var(--aviso-fondo); color: var(--aviso); }
 .chip.mal { background: var(--mal-fondo); color: var(--mal); }
+.chip.alto { background: var(--alto-fondo); color: var(--alto); }
 .chip.neutra { background: var(--panel3); color: var(--textoSuave); }
 .chip.info { background: var(--acento-suave); color: var(--acento-fuerte); }
 
@@ -509,6 +511,7 @@ a.fila-dato strong { color: var(--acento); font-weight: 600; }
 .boca { padding: 12px 16px; margin: 8px 0; }
 .boca.mal { box-shadow: inset 3px 0 0 var(--mal), var(--sombra); }
 .boca.bien { box-shadow: inset 3px 0 0 var(--bien), var(--sombra); }
+.boca.alto { box-shadow: inset 3px 0 0 var(--alto), var(--sombra); }
 .boca-cabeza { display: flex; gap: 8px; align-items: baseline; }
 .boca-cabeza strong { font-size: 17px; font-weight: 700; }
 .boca-cabeza .sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -551,6 +554,7 @@ a.fila-dato strong { color: var(--acento); font-weight: 600; }
 .formula.aviso { color: var(--mal); }
 .boca .nota.aviso { margin: 6px 0 0; }
 .boca.mal .nota.aviso { color: var(--mal); background: var(--mal-fondo); font-weight: 600; }
+.boca.alto .nota.aviso { color: var(--alto); background: var(--alto-fondo); font-weight: 600; }
 .boca-cifras b { font-size: 17px; font-weight: 600; }
 .boca-cifras .porc { text-align: right; padding-bottom: 4px; }
 
@@ -567,14 +571,17 @@ a.fila-dato strong { color: var(--acento); font-weight: 600; }
 .marca-boca .simbolo-boca .lleno { fill: currentColor; }
 .marca-boca.bien { color: var(--bien); }
 .marca-boca.mal { color: var(--mal); }
+.marca-boca.alto { color: var(--alto); }
 .marca-boca.bien .simbolo-boca .cuerpo { fill: color-mix(in srgb, var(--bien) 22%, #fff); }
 .marca-boca.mal .simbolo-boca .cuerpo { fill: color-mix(in srgb, var(--mal) 22%, #fff); }
+.marca-boca.alto .simbolo-boca .cuerpo { fill: color-mix(in srgb, var(--alto) 22%, #fff); }
 /* La etiqueta al lado, sin tapar el plano. */
 .marca-boca .rotulo-boca { position: absolute; left: calc(100% + 2px); top: 50%; transform: translateY(-50%); padding: 0 3px; border-radius: 3px;
   font: 700 9px/12px system-ui, sans-serif; color: #fff; background: currentColor; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .marca-boca .rotulo-boca { background: #6B7075; }
 .marca-boca.bien .rotulo-boca { background: var(--bien); }
 .marca-boca.mal .rotulo-boca { background: var(--mal); }
+.marca-boca.alto .rotulo-boca { background: var(--alto); }
 /* Las bocas del otro circuito (impulsión/retorno) se ven, apagadas. */
 .marca-boca.otro-circuito { opacity: .45; }
 .marca-boca::after { content: ''; position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; transform: translate(-50%, -50%); } /* dedo: 44 px */
@@ -583,6 +590,7 @@ a.fila-dato strong { color: var(--acento); font-weight: 600; }
 .plano-bocas .leyenda i:first-child { margin-left: 0; }
 .plano-bocas .leyenda i.bien { background: var(--bien); }
 .plano-bocas .leyenda i.mal { background: var(--mal); }
+.plano-bocas .leyenda i.alto { background: var(--alto); }
 /* Ampliado: a pantalla completa, el plano al 250 % y se arrastra con el dedo. */
 .plano-bocas.grande { position: fixed; inset: 0; z-index: 50; margin: 0; border-radius: 0; display: flex; flex-direction: column;
   padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
@@ -662,6 +670,12 @@ details.grupo-lista[open] > summary::before { transform: rotate(90deg); }
 details.grupo-lista > summary span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 details.grupo-lista > summary .contador { font-family: var(--fuente-cifras, inherit); color: var(--textoTenue); font-weight: 600; }
 details.grupo-lista[open] > summary { margin-bottom: 6px; }
+/* Commissioning: el contador descuenta lo hecho («120 de 146») y el desglose por planta va debajo. */
+details.grupo-lista > summary .contador small { font-size: 12px; font-weight: 400; }
+details.grupo-lista > summary .contador.hecho { color: var(--acento); }
+details.grupo-lista > summary .titulo-grupo small.desglose-plantas { display: block; font-size: 12px; font-weight: 400; color: var(--textoTenue); overflow: hidden; text-overflow: ellipsis; }
+details.grupo-lista > summary .desglose-plantas b { color: var(--acento); font-weight: 600; }
+.lista-ios > li.hecho .fila-ios { opacity: .7; }
 .ver-mas { display: block; width: 100%; margin: 6px 0 4px; padding: 10px; border: 0; border-radius: 12px; background: transparent; color: var(--acento, #00695c); font: inherit; font-weight: 600; }
 .ver-mas small { color: var(--textoTenue); font-weight: 400; }
 
@@ -1051,6 +1065,7 @@ body:has(.tag-fijo) .obra-movil { display: none; }
 #app .bocas > .boca:only-child { border-radius: 10px; }
 #app .boca.mal { box-shadow: inset 3px 0 0 var(--mal); }
 #app .boca.bien { box-shadow: inset 3px 0 0 var(--bien); }
+#app .boca.alto { box-shadow: inset 3px 0 0 var(--alto); }
 #app .boca-cabeza strong { font-size: 14.5px; }
 #app .boca-cifras { margin-top: 2px; gap: 6px; }
 #app .boca-cifras b { font-size: 14.5px; }
@@ -1490,3 +1505,9 @@ main, #app { min-width: 0; max-width: 100%; }
 #app .chip.azul { background: #E3EEF7; color: #1B4F78; }
 #app .chip.porCerrar { background: transparent; color: var(--acento-fuerte); border: 1.5px solid var(--acento); }
 #app .nota.atrasada { color: var(--mal); background: var(--mal-fondo); padding: 6px 10px; border-radius: var(--radio); }
+
+/* El caudal medido toma el color de su estado: morado por encima, rojo por debajo, verde dentro (25-oct, JC). */
+.total-circuito.bien .cifras-total > div:first-child b, .boca.bien .boca-cifras [data-vivo="q"] { color: var(--bien); }
+.total-circuito.mal .cifras-total > div:first-child b, .boca.mal .boca-cifras [data-vivo="q"] { color: var(--mal); }
+.total-circuito.alto .cifras-total > div:first-child b, .boca.alto .boca-cifras [data-vivo="q"] { color: var(--alto); }
+.chip.alto { background: var(--alto-fondo); color: var(--alto); }

@@ -269,6 +269,7 @@
    * @param o.buscando  si hay texto en el buscador (abre los grupos)
    * @param o.repintar  la función que vuelve a pintar la pantalla
    * @param o.orden    orden de los grupos (array de títulos); los demás, detrás
+   * @param o.cabecera(filas, titulo) → html de dentro del <summary> (por defecto título + contador)
    */
   function listaAgrupada(clave, filas, o) {
     const st = estadoLista(clave);
@@ -298,7 +299,7 @@
         + (mas > 0 ? `<button class="ver-mas" data-lista-mas="${esc(clave)}" data-grupo="${esc(g)}">Ver ${Math.min(mas, POR_GRUPO)} más <small>(quedan ${mas})</small></button>` : '');
       const abierto = st.abiertos.has(g) ? st.abiertos.get(g) : (solo || o.buscando);
       return `<details class="grupo-lista" data-lista="${esc(clave)}" data-grupo="${esc(g)}" ${abierto ? 'open' : ''}>
-        <summary><span>${esc(g || 'Todo')}</span><b class="contador">${cifra(fs.length)}</b></summary>${cuerpo}</details>`;
+        <summary>${o.cabecera ? o.cabecera(fs, g) : `<span>${esc(g || 'Todo')}</span><b class="contador">${cifra(fs.length)}</b>`}</summary>${cuerpo}</details>`;
     }).join('');
   }
   document.addEventListener('toggle', (ev) => {
