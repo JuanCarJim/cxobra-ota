@@ -46,8 +46,20 @@
 
   /* ═══════════════════════════════════ 1. La lista */
 
+  /* Desde una cifra del Inicio (28-oct): «pendientes» (sin terminar) o «vencidas», sobre las abiertas de todos. */
+  let solo = null;
+  const SOLO = { pendientes: ['Solo pendientes', (f) => f.estado !== 'terminada'], vencidas: ['Solo vencidas', (f) => f.vencida] };
+
   async function lista() {
     form = null; visita = null; abierta = null;
+    try {
+      const v = sessionStorage.getItem('rp.filtro');
+      if (v) {
+        sessionStorage.removeItem('rp.filtro');
+        filtro = 'abiertas'; soloMias = false; texto = '';
+        porRevisar = v === 'revisar'; solo = SOLO[v] ? v : null;
+      }
+    } catch { /* nada */ }
     await C.obrasListas();
     if (!activa()) return;
     if (!C.obraId()) { $app.innerHTML = '<p class="vacio">No tienes ninguna obra abierta.</p>'; return; }
@@ -75,7 +87,7 @@
 
   /* Se busca sin puntos, espacios ni tildes: «s2ste0021» encuentra S2.STE.0021. */
   const plano = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
-  const pajar = (f) => plano([f.codigo, f.titulo, f.encargado, f.operario, f.zona, f.planta, ...(f.equipo ? [f.equipo.tag, f.equipo.sala, f.equipo.codSala, f.equipo.zona] : [])].join(' '));
+  const pajar = (f) => plano([f.codigo, f.titulo, f.encargado, f.operario, f.zona, f.planta, ...(f.equipo ? [...(f.equipo.unidades || [f.equipo.tag]), f.equipo.sala, f.equipo.codSala, f.equipo.zona] : [])].join(' '));
   /* La sala del equipo: el código de sala (S2.STE.0053) y el del plano (10.STE.082). */
   const salaDe = (e) => (e ? [e.sala, e.codSala].filter(Boolean).join(' · ') : '');
 
@@ -85,15 +97,16 @@
     const nRevisar = filas.filter((f) => f.estado === 'terminada').length;
     if (!nRevisar) porRevisar = false;
     const q = plano(texto);
-    const vistas = filas.filter(enFiltro).filter((f) => !q || pajar(f).includes(q));
+    const vistas = filas.filter(enFiltro).filter((f) => !solo || filtro !== 'abiertas' || SOLO[solo][1](f)).filter((f) => !q || pajar(f).includes(q));
     const planta = (f) => f.planta || (f.equipo && f.equipo.planta) || 'Sin planta';
     const conMias = datos.mias || datos.filas.some((f) => f.encargadoId === datos.yo);
     $app.innerHTML = `
-      ${datos.puede && datos.puede.crear ? '<button class="boton grande" data-rp="nueva">＋ Nueva reparación</button>' : ''}
+      ${datos.puede && datos.puede.crear ? (AG.leer(claveAlta()) ? '<div class="borrador-pendiente"><p>Tienes una reparación sin terminar (guardada en el móvil).</p><div class="fila-botones"><button class="boton" data-rp="nueva">Seguir con ella</button></div></div>' : '<button class="boton grande" data-rp="nueva">＋ Nueva reparación</button>') : ''}
       <div class="segmentado" role="tablist">
         ${[['abiertas', 'Abiertas'], ['cerradas', 'Cerradas']].map(([id, nombre]) => `<button role="tab" data-rp-filtro="${id}" class="${filtro === id ? 'activa' : ''}" aria-selected="${filtro === id}">${esc(nombre)} <small>${cuenta(id)}</small></button>`).join('')}
       </div>
-      ${filtro === 'abiertas' && (nRevisar || conMias) ? `<div class="filtros-rp">
+      ${filtro === 'abiertas' && (nRevisar || conMias || solo) ? `<div class="filtros-rp">
+        ${solo ? `<button type="button" class="chip-filtro activa" data-rp="solo" aria-pressed="true">${esc(SOLO[solo][0])} ✕</button>` : ''}
         ${conMias ? `<button type="button" class="chip-filtro ${soloMias ? 'activa' : ''}" data-rp="mias" aria-pressed="${Boolean(soloMias)}">Solo las mías</button>` : ''}
         ${nRevisar ? `<button type="button" class="chip-filtro ${porRevisar ? 'activa' : ''}" data-rp="revisar" aria-pressed="${porRevisar}">Por revisar <small>${nRevisar}</small></button>` : ''}
       </div>` : ''}
@@ -103,7 +116,7 @@
         orden: [...new Set(vistas.map(planta))].sort((a, b) => (a === 'Sin planta') - (b === 'Sin planta') || a.localeCompare(b, 'es', { numeric: true })),
         fila: (f) => `
         <li><button class="fila-ios" data-rp="ficha" data-id="${esc(f.id)}">
-          <div class="fila-principal"><strong class="cifra">${esc(f.equipo ? f.equipo.tag : f.codigo)}</strong><span>${chipPrioridad(f.prioridad)} ${chipEstado(f)}</span></div>
+          <div class="fila-principal"><strong class="cifra">${esc(f.equipo ? (f.equipo.unidades || [f.equipo.tag]).join(' + ') : f.codigo)}</strong><span>${chipPrioridad(f.prioridad)} ${chipEstado(f)}</span></div>
           ${salaDe(f.equipo) ? `<div class="sala-rp">Sala <strong>${esc(salaDe(f.equipo))}</strong></div>` : ''}
           <div class="texto-2">${esc(f.titulo)}</div>
           <div class="sub">${esc(f.codigo)}${f.zona ? ` · ${esc(f.zona)}` : ''} · ${esc(f.operario || f.encargado || 'Sin encargado')}${f.horas ? ` · ${horasTxt(f.horas)}` : ''}${f.visitas ? ` · ${f.visitas} visita${f.visitas === 1 ? '' : 's'}` : ''}${f.vencida ? ' · <strong class="mal">vencida</strong>' : f.fechaLimite ? ` · para el ${fechaEs(f.fechaLimite)}` : ''}</div>
@@ -113,9 +126,36 @@
 
   /* ═══════════════════════════════════ 2. Nueva */
 
-  function nueva() {
-    form = { tag: '', planta: '', zona: '', operario: '', descripcion: '', prioridad: 'media', encargadoId: '', fechaLimite: '', fotos: [] };
-    pintarForm();
+  /*
+   * AUTOGUARDADO (28-oct-2026, JC: un encargado metía fotos, pulsó atrás y lo
+   * perdió todo). El alta a medias y lo tocado en la ficha quedan en el
+   * teléfono con cada tecla y cada foto (autoguardado.js). En la ficha, cada
+   * FOTO y cada VISITA anotada se guardan solas en el servidor al momento; la
+   * nota y el estado, al salir (atrás, gesto, otra pestaña, bloquear) o al
+   * terminar de escribir. «Guardado» solo cuando el servidor lo confirma y
+   * la ficha releída trae las fotos (como en commissioning, ee2f7fd).
+   */
+  const AG = window.AUTOGUARDADO;
+  const claveAlta = () => `rep.alta.${C.obraId() || ''}`;
+  const altaVacia = () => ({ tag: '', planta: '', zona: '', operario: '', descripcion: '', prioridad: 'media', encargadoId: '', fechaLimite: '', fotos: [] });
+  const altaConContenido = (f) => Boolean(f && (String(f.tag || '').trim() || String(f.descripcion || '').trim() || String(f.zona || '').trim()
+    || String(f.planta || '').trim() || f.operario || f.encargadoId || f.fechaLimite || (f.fotos || []).length));
+  function persistirAlta() {
+    if (!form) return;
+    let ok = true;
+    if (altaConContenido(form)) ok = AG.guardar(form.clave, { ...form, fotos: AG.fotosParaGuardar(form.fotos) });
+    else AG.borrar(form.clave);
+    if (activa()) AG.pintarMarca($app, ok ? 'movil' : 'error', ok ? (altaConContenido(form) ? 'Guardado en el móvil · se envía al dar de alta' : 'Se guarda solo mientras escribes') : 'No se ha podido guardar en el móvil');
+  }
+
+  async function nueva() {
+    const b = AG.leer(claveAlta());
+    if (altaConContenido(b)) {
+      const { _en, ...resto } = b;
+      form = { ...altaVacia(), ...resto, clave: claveAlta(), fotos: await AG.restaurarFotos(b.fotos) };
+      C.aviso('Sigues con la reparación que tenías sin terminar.', 'aviso');
+    } else form = { ...altaVacia(), clave: claveAlta() };
+    if (activa()) pintarForm();
   }
 
   function pintarForm() {
@@ -124,6 +164,7 @@
       <button class="volver" data-rp="lista">‹ Reparaciones</button>
       <h2>Nueva reparación</h2>
       <p class="nota">${esc(C.obra() ? `${C.obra().codigo} · ${C.obra().nombre}` : '')}</p>
+      ${AG.marca('movil', altaConContenido(f) ? 'Guardado en el móvil · se envía al dar de alta' : 'Se guarda solo mientras escribes')}
       <label>Equipo (TAG)<input data-rp-campo="tag" list="rp-equipos" value="${esc(f.tag)}" autocomplete="off" placeholder="Escribe el TAG del equipo"></label>
       <datalist id="rp-equipos">${(datos.equipos || []).map((e) => `<option value="${esc(e.tag)}">${esc(e.planta)}</option>`).join('')}</datalist>
       <div class="campos">
@@ -141,7 +182,7 @@
         <label>Para el<input type="date" data-rp-campo="fechaLimite" value="${esc(f.fechaLimite)}" min="${hoy()}"></label>
       </div>
       <label>Fotos del antes${f.fotos.length ? ` · ${f.fotos.length}` : ''}</label>
-      ${f.fotos.length ? `<div class="fotos">${f.fotos.map((a, i) => `<img src="${URL.createObjectURL(a)}" alt="" data-rp="quitar-foto" data-i="${i}">`).join('')}</div><p class="nota">Toca una foto para quitarla.</p>` : ''}
+      ${f.fotos.length ? `<div class="fotos">${f.fotos.map((a, i) => (a.url ? `<img src="${esc(a.url)}" alt="" data-rp="ver-foto" data-i="${i}">` : `<span class="foto-sin-vista" data-rp="ver-foto" data-i="${i}">Foto</span>`)).join('')}</div><p class="nota">Toca una foto para verla en grande, cambiarla o quitarla.</p>` : ''}
       <div class="fila-botones">
         <button class="boton secundario" data-rp="alta-camara"><i class="ic ic-camara"></i>Hacer foto</button>
         <button class="boton secundario" data-rp="alta-galeria">De la galería</button>
@@ -149,12 +190,39 @@
       <button class="boton grande" data-rp="enviar">Dar de alta</button>`;
   }
 
-  /* Las fotos del alta se guardan aquí y se suben al darla de alta. */
+  /* Las fotos del alta se guardan en el teléfono al momento y se suben al darla de alta. */
+  /* Con la cámara, una; de la galería, varias a la vez (tarea 368b6690). */
+  const elegir = async (camara) => (camara ? [await C.elegirFoto(true)].filter(Boolean) : AG.elegirFotos(false));
   async function fotoAlta(camara) {
-    const archivo = await C.elegirFoto(camara);
-    if (!archivo || !form) return;
-    form.fotos.push(archivo);
-    pintarForm();
+    const archivos = await elegir(camara);
+    if (!archivos.length || !form) return;
+    const f = form;
+    for (const archivo of archivos) f.fotos.push(await AG.fotoNueva(archivo));
+    if (form === f) { persistirAlta(); if (activa()) pintarForm(); }
+  }
+  const soltarFoto = (x) => { if (!x) return; if (x.local) AG.borrarFoto(x.local); if (x.url) { try { URL.revokeObjectURL(x.url); } catch { /* nada */ } } };
+  /* Tocar una foto del alta: en grande, para reemplazarla o quitarla (y se guarda sola en el móvil). */
+  function verFotoAlta(i) {
+    const f = form;
+    const viejo = f && f.fotos[i];
+    if (!viejo) return;
+    AG.verFoto({
+      url: viejo.url,
+      quitar: () => {
+        const k = f.fotos.indexOf(viejo);
+        if (k < 0) return;
+        f.fotos.splice(k, 1);
+        soltarFoto(viejo);
+        if (form === f) { persistirAlta(); if (activa()) pintarForm(); }
+      },
+      reemplazar: async (archivo) => {
+        const x = await AG.fotoNueva(archivo);
+        const k = f.fotos.indexOf(viejo);
+        if (k < 0) f.fotos.push(x); else f.fotos.splice(k, 1, x);
+        soltarFoto(viejo);
+        if (form === f) { persistirAlta(); if (activa()) pintarForm(); }
+      },
+    });
   }
 
   async function enviar(boton) {
@@ -177,16 +245,23 @@
       }
       if (!r.ok) throw new Error(r.error);
       let sinFoto = 0;
-      for (const archivo of form.fotos) {
+      for (const x of form.fotos) {
         try {
-          const f = await C.postJson('api/reparacion/foto', { id: r.id, fotos: [await C.subirFoto(archivo)], momento: 'antes' });
+          const archivo = x.archivo || await AG.leerFoto(x.local);
+          if (!archivo) throw new Error('sin foto');
+          const f = await C.postJson('api/reparacion/foto', { id: r.id, fotos: [await C.subirFoto(await reducir(archivo))], momento: 'antes' });
           if (!f.ok) sinFoto++;
         } catch { sinFoto++; }
       }
+      AG.borrar(form.clave);
       form = null;
       C.aviso(`${r.codigo || 'Reparación'} dada de alta${sinFoto ? `, pero ${sinFoto} foto(s) no se subieron: añádelas desde la ficha` : ''}.`, sinFoto ? 'aviso' : 'bien');
       await lista();
-    } catch (e) { C.aviso(e.message); boton.disabled = false; }
+    } catch (e) {
+      persistirAlta();
+      C.aviso(AG.sinRed(e) ? 'Sin conexión: la reparación sigue guardada en el móvil. Vuelve a darla de alta con conexión.' : e.message);
+      boton.disabled = false;
+    }
   }
 
   /* ═══════════════════════════════════ 3. La ficha */
@@ -201,20 +276,61 @@
    * la hay, se reintenta solo.
    */
   const nuevosCambios = () => ({ fotos: [], nota: '', estado: null, motivo: '', visita: null });
-  const hayCambios = () => Boolean(cambios && (cambios.fotos.length || cambios.nota.trim() || cambios.estado || cambios.visita));
+  const hayEn = (c) => Boolean(c && (c.fotos.length || c.nota.trim() || c.estado || c.visita));
+  const hayCambios = () => hayEn(cambios);
   let guardadoA = 0;
+  /* null | 'guardando' | 'sinRed' | 'error': lo que dice la barra mientras hay cambios. */
+  let estadoBarra = null;
+
+  /* Lo tocado en la ficha, al teléfono (también la visita que se está apuntando). */
+  function persistirCambios(id = abierta && abierta.reparacion.id, c = cambios, v = visita) {
+    if (!id || !c) return;
+    if (hayEn(c) || v) {
+      AG.guardar(`rep.${id}`, { nota: c.nota, estado: c.estado, motivo: c.motivo, visita: c.visita, visitaEnCurso: v || null, fotos: AG.fotosParaGuardar(c.fotos) });
+    } else AG.olvidar(`rep.${id}`);
+  }
 
   async function abrir(id, { conservar = false } = {}) {
     visita = null;
-    if (!conservar) cambios = nuevosCambios();
+    let enCurso = null;
+    if (!conservar) {
+      cambios = nuevosCambios();
+      estadoBarra = null;
+      /* Lo que se quedó a medias en esta reparación (atrás, app cerrada…). */
+      const b = AG.leer(`rep.${id}`);
+      if (b) {
+        cambios = { ...cambios, nota: b.nota || '', estado: b.estado || null, motivo: b.motivo || '', visita: b.visita || null, fotos: await AG.restaurarFotos(b.fotos) };
+        enCurso = b.visitaEnCurso || null;
+      }
+    }
     $app.innerHTML = '<p class="cargando">Cargando…</p>';
     try {
       const r = await C.pedir(`api/reparacion?id=${encodeURIComponent(id)}`);
       if (!r.ok) throw new Error(r.error);
       abierta = r;
+      if (!activa()) return;
       pintarFicha();
       window.scrollTo(0, 0);
+      if (enCurso) { visita = enCurso; pintarVisita(); C.aviso('Recuperada la visita que estabas apuntando.', 'aviso'); }
+      /* Si quedó algo sin subir, se sube ya. */
+      if (hayCambios()) guardar({ silencioso: true });
     } catch (e) { C.aviso(e.message); lista(); }
+  }
+
+  /* Relee la ficha del servidor y la repinta sin moverla ni quitar el foco a quien escribe. */
+  async function recargar(id) {
+    try {
+      const r = await C.pedir(`api/reparacion?id=${encodeURIComponent(id)}`);
+      if (!r.ok || !abierta || abierta.reparacion.id !== id) return r;
+      abierta = r;
+      if (!activa() || visita) return r;
+      const foco = document.activeElement;
+      if (foco && $app.contains && $app.contains(foco) && /^(INPUT|TEXTAREA|SELECT)$/.test(foco.tagName || '')) { refrescarBarra(); return r; }
+      const y = window.scrollY;
+      pintarFicha();
+      window.scrollTo(0, y);
+      return r;
+    } catch { return null; }
   }
 
   const NOMBRE_PASO = (p) => (p.id === 'cerrada' ? 'Cerrarla' : p.nombre === 'TERMINADA' ? 'Terminada' : p.nombre === 'EN CURSO' ? 'Empezada' : p.nombre);
@@ -222,8 +338,12 @@
   function barraGuardar() {
     const hay = hayCambios();
     const n = cambios ? cambios.fotos.length : 0;
-    const texto = hay ? `Cambios sin guardar${n ? ` · ${n} foto${n === 1 ? '' : 's'}` : ''}` : (Date.now() - guardadoA < 6000 ? 'Guardado' : 'Todo guardado');
-    return `<span class="estado-guardar ${hay ? 'pendiente' : 'al-dia'}">${esc(texto)}</span>
+    const texto = estadoBarra === 'guardando' ? 'Guardando…'
+      : hay && estadoBarra === 'sinRed' ? 'Sin conexión, se guardará'
+      : hay && estadoBarra === 'error' ? 'No se ha guardado: toca Guardar'
+      : hay ? (n || cambios.visita ? `Sin guardar${n ? ` · ${n} foto${n === 1 ? '' : 's'}` : ''}` : 'Sin guardar · se guarda al salir')
+      : (Date.now() - guardadoA < 6000 ? 'Guardado' : 'Todo guardado');
+    return `<span class="estado-guardar ${hay || estadoBarra === 'guardando' ? 'pendiente' : 'al-dia'}">${esc(texto)}</span>
       <button type="button" class="boton" data-rp="guardar" ${hay ? '' : 'disabled'}>Guardar</button>`;
   }
   const refrescarBarra = () => { const b = $app.querySelector('.barra-guardar'); if (b) b.innerHTML = barraGuardar(); };
@@ -261,7 +381,7 @@
         const nuevas = cambios.fotos.map((f, i) => ({ ...f, i })).filter((f) => f.momento === m);
         if (!suyas.length && !nuevas.length && !puede.foto) return '';
         return `<h2>${titulo}${suyas.length + nuevas.length ? ` · ${suyas.length + nuevas.length}` : ''}</h2>
-          ${suyas.length || nuevas.length ? `<div class="fotos">${suyas.map((f) => `<img data-src="api/reparacion/foto?id=${encodeURIComponent(r.id)}&i=${f.indice}" alt="">`).join('')}${nuevas.map((f) => `<button type="button" class="foto-nueva" data-rp="quitar-nueva" data-i="${f.i}" aria-label="Quitar esta foto sin guardar"><img src="${f.url}" alt=""><span>Sin guardar</span></button>`).join('')}</div>` : ''}
+          ${suyas.length || nuevas.length ? `<div class="fotos">${suyas.map((f) => `<img data-src="api/reparacion/foto?id=${encodeURIComponent(r.id)}&i=${f.indice}" alt="">`).join('')}${nuevas.map((f) => `<button type="button" class="foto-nueva" data-rp="ver-nueva" data-i="${f.i}" aria-label="Ver esta foto en grande, reemplazarla o quitarla"><img src="${f.url}" alt=""><span>Sin guardar</span></button>`).join('')}</div>` : ''}
           ${nuevas.length ? '<p class="nota">Toca una foto sin guardar para quitarla.</p>' : ''}
           ${puede.foto ? `<div class="fila-botones">
             <button class="boton secundario" data-rp="camara" data-momento="${m}"><i class="ic ic-camara"></i>Hacer foto</button>
@@ -277,7 +397,7 @@
       ${pasos.length ? `<h2>Estado</h2><div class="segmentado pasos-rp">${pasos.map((p) => `<button type="button" data-rp="paso" data-estado="${esc(p.id)}" class="${cambios.estado === p.id ? 'activa' : ''}" aria-pressed="${cambios.estado === p.id}">${esc(NOMBRE_PASO(p))}</button>`).join('')}</div>
         ${cambios.estado ? `<p class="nota">Pasará a «${esc(NOMBRE_PASO(pasos.find((p) => p.id === cambios.estado)))}» al guardar${cambios.motivo ? `: ${esc(cambios.motivo)}` : ''}.</p>` : ''}` : ''}
       <h2>Lo que se ha hecho</h2>
-      ${puede.nota ? `<textarea rows="3" data-rp-nota placeholder="Escribe una nota; se guarda con el botón Guardar">${esc(cambios.nota)}</textarea>` : ''}
+      ${puede.nota ? `<textarea rows="3" data-rp-nota placeholder="Escribe una nota; se guarda sola al salir">${esc(cambios.nota)}</textarea>` : ''}
       ${comentarios.length ? `<ul class="historial">${[...comentarios].reverse().map((c) => `<li><span class="sub">${fechaEs(c.cuando)}${c.persona ? ` · ${esc(c.persona)}` : ''}</span> ${c.tipo === 'estado' ? `<em>${esc(c.texto)}</em>` : esc(c.texto)}</li>`).join('')}</ul>` : '<p class="vacio">Todavía nada.</p>'}
       <div class="barra-guardar" role="status">${barraGuardar()}</div>`;
     C.cargarImagenes($app);
@@ -304,13 +424,51 @@
     } catch { return archivo; }
   }
 
+  /* La foto: al teléfono al momento y, sin esperar a nadie, al servidor. */
   async function foto(camara = true, momento = 'antes') {
-    const archivo = await C.elegirFoto(camara);
-    if (!archivo || !abierta || !cambios) return;
-    cambios.fotos.push({ archivo, momento, url: URL.createObjectURL(archivo) });
-    const y = window.scrollY;
-    pintarFicha();
-    window.scrollTo(0, y);
+    const archivos = await elegir(camara);
+    if (!archivos.length || !abierta || !cambios) return;
+    const c = cambios;
+    for (const archivo of archivos) c.fotos.push(await AG.fotoNueva(archivo, { momento }));
+    persistirCambios(abierta.reparacion.id, c);
+    if (c === cambios && activa() && !visita) {
+      const y = window.scrollY;
+      pintarFicha();
+      window.scrollTo(0, y);
+    }
+    return guardar({ silencioso: true, completo: false });
+  }
+
+  /*
+   * Tocar una foto de la ficha que aún no ha llegado al servidor: en grande,
+   * para reemplazarla o quitarla; el reemplazo se guarda solo. Las ya
+   * guardadas se ven en grande (autoguardado.js) pero no se cambian aquí.
+   */
+  function verNueva(i) {
+    const c = cambios;
+    const viejo = c && c.fotos[i];
+    if (!viejo) return;
+    const repintar = () => { if (c === cambios && activa() && !visita) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); } };
+    AG.verFoto({
+      url: viejo.url,
+      quitar: () => {
+        const k = c.fotos.indexOf(viejo);
+        if (k < 0) { C.aviso('Esa foto ya estaba guardada en la ficha.', 'aviso'); return; }
+        c.fotos.splice(k, 1);
+        soltarFoto(viejo);
+        persistirCambios(abierta && abierta.reparacion.id, c);
+        repintar();
+      },
+      reemplazar: async (archivo) => {
+        const x = await AG.fotoNueva(archivo, { momento: viejo.momento });
+        const k = c.fotos.indexOf(viejo);
+        if (k < 0) { c.fotos.push(x); C.aviso('Esa foto ya estaba guardada en la ficha: se añade la nueva.', 'aviso'); } else { c.fotos.splice(k, 1, x); soltarFoto(viejo); }
+        if (!abierta) return;
+        persistirCambios(abierta.reparacion.id, c);
+        repintar();
+        await guardar({ silencioso: true, completo: false });
+      },
+    });
   }
 
   function elegirPaso(estado) {
@@ -323,53 +481,108 @@
       }
       cambios.estado = estado; cambios.motivo = motivo;
     }
+    persistirCambios();
     const y = window.scrollY;
     pintarFicha();
     window.scrollTo(0, y);
   }
 
-  /* GUARDAR: fotos, visita, nota y estado, por ese orden. Lo que se guarda sale
-     de `cambios`; si algo falla, lo demás se queda para el siguiente intento. */
-  async function guardar(boton) {
-    if (!hayCambios()) return;
-    boton.disabled = true;
+  /*
+   * GUARDAR: fotos, visita, nota y estado, por ese orden. Lo que se guarda sale
+   * de `cambios`; si algo falla, lo demás se queda (y en el teléfono) para el
+   * siguiente intento. `completo: false` (lo que se lanza solo al hacer una
+   * foto o anotar una visita) deja la nota y el estado para el final: no se
+   * manda media nota mientras se escribe. Solo uno a la vez; lo que llegue
+   * mientras, detrás.
+   */
+  let enMarcha = null;
+  let detras = null;
+  function guardar(op = {}) {
+    if (enMarcha) {
+      detras = { silencioso: true, completo: Boolean((detras && detras.completo) || op.completo !== false) };
+      return enMarcha;
+    }
+    enMarcha = guardarYa(op).finally(() => {
+      enMarcha = null;
+      const o = detras;
+      detras = null;
+      if (o && hayEn(cambios)) guardar(o);
+    });
+    return enMarcha;
+  }
+
+  async function guardarYa({ boton = null, silencioso = false, completo = true } = {}) {
+    /* Se fija a qué reparación va ANTES de esperar a nada: aunque se salga, va a la suya. */
+    const c = cambios;
+    if (!abierta || !c) return false;
     const id = abierta.reparacion.id;
-    const estado = $app.querySelector('.estado-guardar');
-    if (estado) estado.textContent = 'Guardando…';
+    const pendiente = () => c.fotos.length || c.visita || (completo && (c.estado || c.nota.trim()));
+    if (!pendiente()) return true;
+    if (boton) boton.disabled = true;
+    const fotosAntes = abierta.reparacion.fotos.length;
+    const subidas = [];
+    estadoBarra = 'guardando';
+    refrescarBarra();
     try {
-      while (cambios.fotos.length) {
-        const f = cambios.fotos[0];
-        const r = await C.postJson('api/reparacion/foto', { id, fotos: [await C.subirFoto(await reducir(f.archivo))], momento: f.momento });
+      while (c.fotos.length) {
+        const f = c.fotos[0];
+        const blob = f.archivo || await AG.leerFoto(f.local);
+        if (!blob) { c.fotos.splice(c.fotos.indexOf(f), 1); persistirCambios(id, c); C.aviso('Una foto no se ha podido recuperar del teléfono: hazla de nuevo.'); continue; }
+        const r = await C.postJson('api/reparacion/foto', { id, fotos: [await C.subirFoto(await reducir(blob))], momento: f.momento });
         if (!r.ok) throw new Error(r.error);
-        URL.revokeObjectURL(f.url);
-        cambios.fotos.shift();
+        /* Por identidad: mientras subía, la pudieron reemplazar o quitar. */
+        const k = c.fotos.indexOf(f);
+        if (k >= 0) c.fotos.splice(k, 1);
+        subidas.push(f);
+        persistirCambios(id, c);
       }
-      if (cambios.visita) {
-        const r = await C.postJson('api/reparacion/visita', { id, ...cambios.visita });
+      if (c.visita) {
+        const r = await C.postJson('api/reparacion/visita', { id, ...c.visita });
         if (!r.ok) throw new Error(r.error);
-        cambios.visita = null;
+        c.visita = null;
+        persistirCambios(id, c);
       }
-      if (cambios.nota.trim()) {
-        const r = await C.postJson('api/reparacion/comentar', { id, texto: cambios.nota });
+      if (completo && c.nota.trim()) {
+        const enviado = c.nota;
+        const r = await C.postJson('api/reparacion/comentar', { id, texto: enviado });
         if (!r.ok) throw new Error(r.error);
-        cambios.nota = '';
+        /* Lo escrito mientras se mandaba se queda para la próxima. */
+        c.nota = c.nota.startsWith(enviado) ? c.nota.slice(enviado.length).trimStart() : c.nota;
+        const ta = $app.querySelector('[data-rp-nota]');
+        if (ta && c === cambios && ta.value === enviado) ta.value = '';
+        persistirCambios(id, c);
       }
-      if (cambios.estado) {
+      if (completo && c.estado) {
         /* La visita «terminada» ya la ha pasado a terminada: no se repite. */
         const ahora = await C.pedir(`api/reparacion?id=${encodeURIComponent(id)}`);
-        if (!ahora.ok || ahora.reparacion.estado !== cambios.estado) {
-          const r = await C.postJson('api/reparacion/estado', { id, estado: cambios.estado, comentario: cambios.motivo });
+        if (!ahora.ok || ahora.reparacion.estado !== c.estado) {
+          const r = await C.postJson('api/reparacion/estado', { id, estado: c.estado, comentario: c.motivo });
           if (!r.ok) throw new Error(r.error);
         }
-        cambios.estado = null; cambios.motivo = '';
+        c.estado = null; c.motivo = '';
+        persistirCambios(id, c);
       }
-      guardadoA = Date.now();
-      C.aviso('Guardado. Las fotos suben a la nube en cuanto haya red.', 'bien');
-      await abrir(id, { conservar: true });
+      /* «Guardado» solo si la ficha releída del servidor trae las fotos. */
+      const leida = abierta && abierta.reparacion.id === id ? await recargar(id) : await C.pedir(`api/reparacion?id=${encodeURIComponent(id)}`).catch(() => null);
+      if (subidas.length && (!leida || !leida.ok || leida.reparacion.fotos.length < fotosAntes + subidas.length)) {
+        c.fotos.unshift(...subidas.splice(0));
+        persistirCambios(id, c);
+        throw new Error('el servidor no tiene todas las fotos');
+      }
+      for (const f of subidas) { if (f.local) AG.borrarFoto(f.local); if (f.url) { try { URL.revokeObjectURL(f.url); } catch { /* nada */ } } }
+      if (c === cambios) { estadoBarra = null; guardadoA = Date.now(); refrescarBarra(); }
+      if (!silencioso) C.aviso('Guardado. Las fotos suben a la nube en cuanto haya red.', 'bien');
       setTimeout(() => { if (abierta && abierta.reparacion.id === id) refrescarBarra(); }, 6100);
+      return true;
     } catch (e) {
-      C.aviso(`No se ha guardado todo: ${e.message}`);
-      await abrir(id, { conservar: true });
+      const red = AG.sinRed(e);
+      persistirCambios(id, c);
+      if (c === cambios) { estadoBarra = red ? 'sinRed' : 'error'; refrescarBarra(); }
+      if (!red || !silencioso) C.aviso(red ? 'Sin conexión: queda guardado en el móvil y se guardará en cuanto haya red.' : `No se ha guardado todo: ${e.message}`);
+      if (abierta && abierta.reparacion.id === id) await recargar(id);
+      return false;
+    } finally {
+      if (boton) boton.disabled = false;
     }
   }
 
@@ -410,7 +623,7 @@
       <label>Cómo ha quedado</label>
       <div class="segmentado">${RESULTADOS.map(([id, n]) => `<button data-rp-resultado="${id}" class="${v.resultado === id ? 'activa' : ''}">${n}</button>`).join('')}</div>
       <button class="boton grande" data-rp="anotar-visita">Añadir a la ficha</button>
-      <p class="nota">La visita se guarda con el botón «Guardar» de la ficha.</p>`;
+      <p class="nota">Lo que apuntas se guarda en el móvil al momento; al añadirla a la ficha, se guarda sola.</p>`;
   }
 
   function anotarVisita() {
@@ -419,6 +632,8 @@
     if (visita.resultado !== 'noRealizada' && !conHoras.length) { C.aviso('Apunta al menos un técnico con sus horas.', 'aviso'); return; }
     cambios.visita = visita;
     visita = null;
+    persistirCambios();
+    guardar({ silencioso: true, completo: false });
     pintarFicha();
     const b = $app.querySelector('.visita-pendiente');
     if (b) b.scrollIntoView({ block: 'center' });
@@ -426,38 +641,46 @@
 
   /* ═══════════════════════════════════ Eventos */
 
-  const salirSinGuardar = () => !hayCambios() || window.confirm('Hay cambios sin guardar en esta reparación. ¿Salir sin guardarlos?');
+  /* Salir de la ficha: lo pendiente se guarda solo (y ya está en el teléfono). */
+  function alSalirDeFicha() {
+    if (!abierta || !cambios) return;
+    persistirCambios();
+    if (hayCambios()) guardar({ silencioso: true });
+  }
 
   $app.addEventListener('click', (ev) => {
     if (!activa()) return;
     const f = ev.target.closest('[data-rp-filtro]');
     if (f) { filtro = f.dataset.rpFiltro; pintarLista(); return; }
     const p = ev.target.closest('[data-rp-prioridad]');
-    if (p && form) { form.prioridad = p.dataset.rpPrioridad; pintarForm(); return; }
+    if (p && form) { form.prioridad = p.dataset.rpPrioridad; persistirAlta(); pintarForm(); return; }
     const res = ev.target.closest('[data-rp-resultado]');
-    if (res && visita) { visita.resultado = res.dataset.rpResultado; pintarVisita(); return; }
+    if (res && visita) { visita.resultado = res.dataset.rpResultado; persistirCambios(); pintarVisita(); return; }
     const b = ev.target.closest('[data-rp]');
     if (!b) return;
     const a = b.dataset.rp;
-    if (a === 'lista') { if (abierta && !visita && !salirSinGuardar()) return; cambios = null; lista(); }
+    if (a === 'lista') { alSalirDeFicha(); cambios = null; lista(); }
     else if (a === 'mias') { soloMias = !soloMias; pintarLista(); }
-    else if (a === 'revisar') { porRevisar = !porRevisar; pintarLista(); }
+    else if (a === 'revisar') { porRevisar = !porRevisar; solo = null; pintarLista(); }
+    else if (a === 'solo') { solo = null; pintarLista(); }
     else if (a === 'nueva') nueva();
     else if (a === 'enviar') enviar(b);
     else if (a === 'ficha') abrir(b.dataset.id);
     else if (a === 'camara') foto(true, b.dataset.momento);
     else if (a === 'galeria') foto(false, b.dataset.momento);
-    else if (a === 'quitar-nueva') { const [x] = cambios.fotos.splice(Number(b.dataset.i), 1); if (x) URL.revokeObjectURL(x.url); const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
+    else if (a === 'quitar-nueva') { const [x] = cambios.fotos.splice(Number(b.dataset.i), 1); if (x) { if (x.url) URL.revokeObjectURL(x.url); if (x.local) AG.borrarFoto(x.local); } persistirCambios(); const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
     else if (a === 'alta-camara') fotoAlta(true);
     else if (a === 'alta-galeria') fotoAlta(false);
-    else if (a === 'quitar-foto') { form.fotos.splice(Number(b.dataset.i), 1); pintarForm(); }
+    else if (a === 'ver-foto') verFotoAlta(Number(b.dataset.i));
+    else if (a === 'ver-nueva') verNueva(Number(b.dataset.i));
+    else if (a === 'quitar-foto') { const [x] = form.fotos.splice(Number(b.dataset.i), 1); if (x && x.local) AG.borrarFoto(x.local); persistirAlta(); pintarForm(); }
     else if (a === 'paso') elegirPaso(b.dataset.estado);
-    else if (a === 'guardar') guardar(b);
+    else if (a === 'guardar') guardar({ boton: b });
     else if (a === 'visita' || a === 'editar-visita') nuevaVisita();
-    else if (a === 'quitar-visita') { cambios.visita = null; const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
-    else if (a === 'volver-ficha') { visita = null; pintarFicha(); }
-    else if (a === 'otro-tecnico') { visita.tecnicos.push({ operario: '', empresa: visita.tecnicos[0].empresa, categoria: 'operario', horas: visita.tecnicos[0].horas }); pintarVisita(); }
-    else if (a === 'quitar-tecnico') { visita.tecnicos.splice(Number(b.dataset.i), 1); pintarVisita(); }
+    else if (a === 'quitar-visita') { cambios.visita = null; persistirCambios(); const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
+    else if (a === 'volver-ficha') { visita = null; persistirCambios(); pintarFicha(); }
+    else if (a === 'otro-tecnico') { visita.tecnicos.push({ operario: '', empresa: visita.tecnicos[0].empresa, categoria: 'operario', horas: visita.tecnicos[0].horas }); persistirCambios(); pintarVisita(); }
+    else if (a === 'quitar-tecnico') { visita.tecnicos.splice(Number(b.dataset.i), 1); persistirCambios(); pintarVisita(); }
     else if (a === 'anotar-visita') anotarVisita();
   });
   /* Planta, zona u operario de la ficha: se guarda al elegirlo (no es de lo que espera al «Guardar»). */
@@ -472,16 +695,23 @@
   const recoger = (ev) => {
     if (!activa()) return;
     const t = ev.target;
-    if (form && t.dataset.rpCampo) form[t.dataset.rpCampo] = t.value;
+    if (form && t.dataset.rpCampo) { form[t.dataset.rpCampo] = t.value; persistirAlta(); }
     /* Elegido el equipo, se sugieren su planta y su zona (si no se han escrito). */
     if (form && ev.type === 'change' && t.dataset.rpCampo === 'tag') {
       const eq = (datos.equipos || []).find((e) => String(e.tag).trim().toLowerCase() === t.value.trim().toLowerCase());
       if (eq && ((!form.planta && eq.planta) || (!form.zona && eq.zona))) { form.planta = form.planta || eq.planta || ''; form.zona = form.zona || eq.zona || ''; pintarForm(); }
     }
     if (abierta && ev.type === 'change' && t.dataset.rpDato) guardarDato(t);
-    if (visita && t.dataset.rpV) visita[t.dataset.rpV] = t.value;
-    if (visita && t.dataset.rpT !== undefined) visita.tecnicos[Number(t.dataset.rpT)][t.dataset.k] = t.value;
-    if (cambios && t.hasAttribute('data-rp-nota')) { cambios.nota = t.value; refrescarBarra(); }
+    if (visita && t.dataset.rpV) { visita[t.dataset.rpV] = t.value; persistirCambios(); }
+    if (visita && t.dataset.rpT !== undefined) { visita.tecnicos[Number(t.dataset.rpT)][t.dataset.k] = t.value; persistirCambios(); }
+    if (cambios && t.hasAttribute('data-rp-nota')) {
+      cambios.nota = t.value;
+      if (estadoBarra === 'error') estadoBarra = null;
+      persistirCambios();
+      refrescarBarra();
+      /* Al terminar de escribir (sale del cuadro), la nota va sola al servidor. */
+      if (ev.type === 'change' && abierta) guardar({ silencioso: true });
+    }
   };
   $app.addEventListener('input', recoger);
   $app.addEventListener('change', recoger);
@@ -496,7 +726,22 @@
   /* Cerrar la app o recargar con cambios sin guardar: el navegador pregunta. */
   window.addEventListener('beforeunload', (ev) => { if (activa() && hayCambios()) { ev.preventDefault(); ev.returnValue = ''; } });
 
-  window.addEventListener('movil:obra', () => { if (activa()) lista(); });
-  window.addEventListener('hashchange', () => { if (activa()) lista(); });
+  window.addEventListener('movil:obra', () => { if (activa()) { alSalirDeFicha(); lista(); } });
+  /*
+   * Atrás (botón, gesto o navegador) o a otra pestaña: lo pendiente se guarda
+   * solo; al volver se sigue en la misma pantalla (alta, ficha o visita).
+   */
+  window.addEventListener('hashchange', () => {
+    if (!activa()) { alSalirDeFicha(); if (form) persistirAlta(); return; }
+    let desdeInicio = false;
+    try { desdeInicio = Boolean(sessionStorage.getItem('rp.filtro') || sessionStorage.getItem('cx.abrir')); } catch { /* nada */ }
+    if (!desdeInicio && datos && form) pintarForm();
+    else if (!desdeInicio && abierta && cambios) {
+      if (visita) pintarVisita();
+      else { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); recargar(abierta.reparacion.id); }
+    } else lista();
+  });
+  AG.alSalir(() => { if (form) persistirAlta(); alSalirDeFicha(); });
+  window.addEventListener('online', () => { if (abierta && hayCambios()) guardar({ silencioso: true }); });
   if (activa()) lista();
 })();

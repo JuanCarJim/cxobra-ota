@@ -269,6 +269,8 @@
    * @param o.buscando  si hay texto en el buscador (abre los grupos)
    * @param o.repintar  la función que vuelve a pintar la pantalla
    * @param o.orden    orden de los grupos (array de títulos); los demás, detrás
+   * @param o.subgrupo(f) → subencabezado dentro del grupo (opcional); o.subOrden(a,b) ordena los subgrupos;
+   *        o.subCabecera(filas, titulo) → html del subencabezado
    * @param o.cabecera(filas, titulo) → html de dentro del <summary> (por defecto título + contador)
    */
   function listaAgrupada(clave, filas, o) {
@@ -295,8 +297,21 @@
       const fs = grupos.get(g);
       const tope = st.cuantos.get(g) || POR_GRUPO;
       const mas = fs.length - tope;
-      const cuerpo = envolver(fs.slice(0, tope).map(o.fila).join(''))
-        + (mas > 0 ? `<button class="ver-mas" data-lista-mas="${esc(clave)}" data-grupo="${esc(g)}">Ver ${Math.min(mas, POR_GRUPO)} más <small>(quedan ${mas})</small></button>` : '');
+      let cuerpo;
+      if (o.subgrupo) {
+        /* Dentro del grupo, por subgrupo (p. ej. planta): se pagina por equipos, el subencabezado cuenta el subgrupo entero. */
+        const subs = new Map();
+        for (const f of fs) { const k = o.subgrupo(f) || ''; if (!subs.has(k)) subs.set(k, []); subs.get(k).push(f); }
+        const claves = [...subs.keys()]; if (o.subOrden) claves.sort(o.subOrden);
+        let resto = tope; const partes = [];
+        for (const k of claves) {
+          if (resto <= 0) break;
+          const todas = subs.get(k), vis = todas.slice(0, resto); resto -= vis.length;
+          partes.push(`<div class="subgrupo-lista"><div class="subgrupo-cab">${o.subCabecera ? o.subCabecera(todas, k) : `<span>${esc(k)}</span><b>${cifra(todas.length)}</b>`}</div>${envolver(vis.map(o.fila).join(''))}</div>`);
+        }
+        cuerpo = partes.join('');
+      } else cuerpo = envolver(fs.slice(0, tope).map(o.fila).join(''));
+      cuerpo += (mas > 0 ? `<button class="ver-mas" data-lista-mas="${esc(clave)}" data-grupo="${esc(g)}">Ver ${Math.min(mas, POR_GRUPO)} más <small>(quedan ${mas})</small></button>` : '');
       const abierto = st.abiertos.has(g) ? st.abiertos.get(g) : (solo || o.buscando);
       return `<details class="grupo-lista" data-lista="${esc(clave)}" data-grupo="${esc(g)}" ${abierto ? 'open' : ''}>
         <summary>${o.cabecera ? o.cabecera(fs, g) : `<span>${esc(g || 'Todo')}</span><b class="contador">${cifra(fs.length)}</b>`}</summary>${cuerpo}</details>`;
@@ -573,7 +588,7 @@
   }
 
   /** Los bloques «Hoy» y «Esta semana»: { hoy, semana } en HTML (vacíos si no hay datos). */
-  function bloquesAgenda(plan, dia, obraIdActual) {
+  function bloquesAgenda(plan, dia, obraIdActual, plegados = new Set()) {
     const planOk = plan && plan.ok;
     const diaOk = dia && dia.ok;
     if (!planOk && !diaOk) return { hoy: '', semana: '', nHoy: 0, nSemana: 0 };
@@ -588,19 +603,24 @@
     const vencidos = items.filter((i) => i.vencida);
     const nAtras = atrasadas.length + vencidos.length;
     const nHoy = deHoy.length + itemsHoy.length;
-    const pie = nAtras ? `<details class="ag-atras">
+    const pie = nAtras ? `<details class="ag-atras" data-plegar-atras${plegados.has('atras') ? ' open' : ''}>
         <summary>${cifra(nAtras)} sin terminar de días anteriores</summary>
         ${atrasadas.map((s) => filaSesion(s, true)).join('')}${vencidos.map((i) => filaDia(i, hoy)).join('')}
       </details>` : '';
-    const htmlHoy = `<section class="ag-bloque" data-bloque-ini="hoy">
-        <h2 class="titulo-grupo ag-titulo">Hoy <span>${esc(diaCorto(hoy))}${nHoy ? ` · ${cifra(nHoy)}` : ''}</span></h2>
+    const cab = (id, texto, resumen) => `<h2 class="titulo-grupo ag-titulo ag-plegable" data-plegar="${id}" role="button" tabindex="0" aria-expanded="${!plegados.has(id)}"><b class="ag-flecha">▾</b> <em>${texto}</em> <span>${resumen}</span></h2>`;
+    const htmlHoy = `<section class="ag-bloque${plegados.has('hoy') ? ' plegado' : ''}" data-bloque-ini="hoy">
+        ${cab('hoy', 'Hoy', `${esc(diaCorto(hoy))}${nHoy ? ` · ${cifra(nHoy)}` : ''}${nAtras ? ` · ${cifra(nAtras)} atrasadas` : ''}`)}
+        <div class="ag-cuerpo"${plegados.has('hoy') ? ' hidden' : ''}>
         ${deHoy.map((s) => filaSesion(s, false)).join('')}${itemsHoy.map((i) => filaDia(i, hoy)).join('')}
         ${nHoy ? '' : '<p class="ag-vacio">Hoy no hay nada planificado.</p>'}
         ${pie}
+        </div>
       </section>`;
-    const htmlSemana = `<section class="ag-bloque" data-bloque-ini="semana">
-        <h2 class="titulo-grupo ag-titulo">${planOk && plan.semanaQueViene ? 'Esta semana y la que viene' : 'Esta semana'}${semana.length ? ` <span>${cifra(semana.length)}</span>` : ''}</h2>
+    const htmlSemana = `<section class="ag-bloque${plegados.has('semana') ? ' plegado' : ''}" data-bloque-ini="semana">
+        ${cab('semana', planOk && plan.semanaQueViene ? 'Esta semana y la que viene' : 'Esta semana', semana.length ? cifra(semana.length) : '')}
+        <div class="ag-cuerpo"${plegados.has('semana') ? ' hidden' : ''}>
         ${semana.map((s) => filaSesion(s, true)).join('') || '<p class="ag-vacio">Nada más planificado esta semana.</p>'}
+        </div>
       </section>`;
     return { hoy: htmlHoy, semana: htmlSemana, nHoy, nSemana: semana.length };
   }
@@ -610,8 +630,84 @@
    * persona quita se recuerda para ella en este teléfono. Se guarda lo oculto,
    * no lo visible, para que un bloque nuevo salga sin tocar nada.
    */
-  const BLOQUES_INICIO = [['hoy', 'Hoy'], ['semana', 'Semana'], ['cx', 'Commissioning'], ['pendiente', 'Pendiente']];
+  /* 28-oct (JC): «en lugar de commissioning, un resumen de commissioning,
+     incidencias, reparaciones… escueto». El id sigue siendo 'cx' para que
+     quien lo había quitado lo siga teniendo quitado. */
+  const BLOQUES_INICIO = [['hoy', 'Hoy'], ['utas', 'UTAs hoy'], ['semana', 'Semana'], ['cx', 'Resumen'], ['marcha', 'En marcha'], ['pendiente', 'Pendiente']];
+
+  /*
+   * RESUMEN DE LA OBRA (28-oct, JC; tarea ca2a4a48): una fila por área con 2-4
+   * cifras grandes, cada una lleva a su pestaña ya filtrada. Sin tarjetas: el
+   * nombre del área en teal y las cifras debajo, en el color de lo que dicen
+   * (verde lo hecho, ámbar lo que falta, rojo lo vencido, gris si es cero).
+   * Recibe lo ya pedido por el Inicio (nada nuevo al servidor):
+   *   r.t        totales de commissioning (por conjunto si los hay)
+   *   r.bocas    [medidas, totales]
+   *   r.pruebas  pruebas de estanqueidad de la obra (o null)
+   *   r.ncr      filas de NCR (o null) · r.rep filas de reparaciones (o null)
+   * Una celda: [etiqueta, valor, tono, href, { seg | filtro }, sub].
+   */
+  function resumenObra(r) {
+    const t = r.t;
+    const celda = ([etq, v, tono, href, ir = {}, sub]) => {
+      const n = Number(v) || 0;
+      const attr = ir.seg ? ` data-ir-seg="${esc(ir.seg)}"` : ir.filtro ? ` data-ir-filtro="${esc(ir.filtro)}"` : '';
+      return `<a class="res-cifra ${n ? tono : 'cero'}" href="#${href}"${attr}><b>${cifra(n)}</b><span>${esc(etq)}${sub ? ` <i>${esc(sub)}</i>` : ''}</span></a>`;
+    };
+    const fila = (nombre, extra, celdas) => (celdas.length ? `<div class="res-area">
+        <div class="res-nombre"><span>${esc(nombre)}</span>${extra ? `<small>${esc(extra)}</small>` : ''}</div>
+        <div class="res-cifras n${celdas.length}">${celdas.map(celda).join('')}</div></div>` : '');
+    const filas = [];
+    if (t) {
+      filas.push(fila('Commissioning', `${cifra(t.equipos)} equipos${t.unidades && t.unidades !== t.equipos ? ` · ${cifra(t.unidades)} unid.` : ''}`, [
+        ['Completos', t.completos, 'bien', 'commissioning', { seg: 'completos' }],
+        ...(t.enMarcha !== undefined ? [['En marcha', t.enMarcha, 'info', 'commissioning', { seg: 'enMarcha' }]] : []),
+        ['Falta doc.', t.faltaDocumentacion, 'aviso', 'commissioning', { seg: 'faltaDoc' }],
+        ['Falta ficha', t.faltaFichas, 'aviso', 'commissioning', { seg: 'faltaFichas' }],
+      ]));
+      const mal = r.pruebas ? r.pruebas.filter((p) => p.resultado !== 'correcta').length : 0;
+      const sinMedir = r.bocas && r.bocas[1] ? r.bocas[1] - r.bocas[0] : null;
+      filas.push(fila('Ensayos', '', [
+        ['Falta balanceo', t.faltaBalanceo ?? t.faltaEnsayo, 'aviso', 'commissioning', { seg: t.faltaBalanceo !== undefined ? 'faltaBalanceo' : 'faltaEnsayo' }],
+        ...(t.pideEstanqueidad ? [['Falta estanq.', t.faltaEstanqueidad, 'aviso', 'estanqueidad', {}, `de ${cifra(t.pideEstanqueidad)}`]] : []),
+        ...(mal ? [['Estanq. mal', mal, 'mal', 'estanqueidad']] : []),
+        ...(sinMedir !== null ? [['Bocas sin medir', sinMedir, 'aviso', 'commissioning', { seg: 'todos' }, `de ${cifra(r.bocas[1])}`]] : []),
+      ]));
+    }
+    if (r.ncr) {
+      /* Las de la lista de NCR por defecto: abiertas y nuestras (ncr.js). */
+      const ab = r.ncr.filter((f) => f.activa && f.alcance === 'nuestra');
+      filas.push(fila('Incidencias (NCR)', '', [
+        ['Abiertas', ab.length, 'info', 'ncr', { filtro: 'ncr:abiertas' }],
+        ['Vencidas', ab.filter((f) => f.vencida).length, 'mal', 'ncr', { filtro: 'ncr:vencidas' }],
+        ['Urgentes (A)', ab.filter((f) => f.prioridad === 'A').length, 'mal', 'ncr', { filtro: 'ncr:urgentes' }],
+      ]));
+    }
+    if (r.rep) {
+      /* Pendientes: abiertas sin terminar; por revisar: terminadas que esperan al jefe de obra. */
+      const ab = r.rep.filter((f) => f.activa);
+      filas.push(fila('Reparaciones', '', [
+        ['Pendientes', ab.filter((f) => f.estado !== 'terminada').length, 'info', 'reparaciones', { filtro: 'rp:pendientes' }],
+        ['Vencidas', ab.filter((f) => f.vencida).length, 'mal', 'reparaciones', { filtro: 'rp:vencidas' }],
+        ['Por revisar', ab.filter((f) => f.estado === 'terminada').length, 'aviso', 'reparaciones', { filtro: 'rp:revisar' }],
+      ]));
+    }
+    const cuerpo = filas.join('');
+    return cuerpo ? `<section class="ag-bloque" data-bloque-ini="cx">
+        <h2 class="titulo-grupo ag-titulo">Resumen <span>${esc(r.codigo || '')}</span></h2>
+        <div class="res-obra">${cuerpo}</div>
+      </section>` : '';
+  }
+  /* fin resumenObra */
   const claveOcultos = () => { const s = sesion() || {}; return `cx.inicio.ocultos.${s.email || s.nombre || 'anonimo'}.${s.rol || ''}`; };
+  /* Bloques plegados con un toque en su título (recordado por persona; 'atras' = lo atrasado desplegado). */
+  const clavePlegados = () => claveOcultos().replace('.ocultos.', '.plegados.');
+  const leerPlegados = () => {
+    try { const v = JSON.parse(localStorage.getItem(clavePlegados()) || '[]'); return new Set(Array.isArray(v) ? v.map(String) : []); } catch { return new Set(); }
+  };
+  const guardarPlegados = (set) => {
+    try { if (set.size) localStorage.setItem(clavePlegados(), JSON.stringify([...set])); else localStorage.removeItem(clavePlegados()); } catch { /* sin almacén */ }
+  };
   const leerOcultos = () => {
     try { const v = JSON.parse(localStorage.getItem(claveOcultos()) || '[]'); return new Set(Array.isArray(v) ? v.map(String) : []); } catch { return new Set(); }
   };
@@ -646,54 +742,22 @@
     const bocas = cx && cx.equipos ? cx.equipos.reduce((a, e) => [a[0] + (e.medidas || 0), a[1] + (e.bocas || 0)], [0, 0]) : [0, 0];
     const pruebas = pe && pe.recientes ? pe.recientes.filter((p) => p.obraId === o.id) : null;
     const partes = pi && pi.recientes ? pi.recientes.filter((p) => p.obraId === o.id && p.estado !== 'cerrado') : null;
-    const ncrAbiertas = ncr && ncr.ok ? ncr.filas.filter((f) => f.activa) : null;
-    const repPendientes = rp && rp.filas ? rp.filas.filter((f) => f.activa && f.estado !== 'terminada') : null;
     /* Las órdenes de mantenimiento que me tocan (de todas mis obras). */
     const misOrdenes = mt && mt.ok && mt.tareas.length ? mt.tareas : null;
-    /* Lo pendiente son los equipos que piden estanqueidad y no la tienen, no las
-       pruebas apuntadas: sin ninguna hecha, faltan todas (15-oct, JC). */
-    const textoEstanqueidad = (tt, ps) => {
-      const falta = tt && tt.pideEstanqueidad ? tt.faltaEstanqueidad || 0 : null;
-      const mal = ps ? ps.filter((p) => p.resultado !== 'correcta').length : 0;
-      const trozos = [];
-      if (falta !== null) trozos.push(falta ? `faltan ${cifra(falta)} de ${cifra(tt.pideEstanqueidad)}` : 'todas hechas');
-      if (mal) trozos.push(`${cifra(mal)} sin superar`);
-      if (!trozos.length) trozos.push(ps && ps.length ? `${cifra(ps.length)} hechas` : 'Ninguna hecha');
-      return trozos.join(' · ');
-    };
     const fila = (href, nombre, valor, aviso) => `<a class="fila-dato${aviso ? ' aviso' : ''}" href="#${href}"><span>${esc(nombre)}</span><strong>${valor} ›</strong></a>`;
-    /* Commissioning: las mismas filas y cifras que el bloque del escritorio (renderer/bloques.js). */
-    const pctDe = (v, n) => (n ? `${Math.round((v / n) * 100)} %` : '');
-    const filaCx = (texto, v, seg, aviso, de = t.equipos) => `<a class="ini-cx${aviso && v ? ' aviso' : ''}" href="#commissioning" data-ir-seg="${seg}">
-        <span>${esc(texto)}</span><b>${cifra(v || 0)}</b><i>${v !== undefined ? pctDe(v || 0, de) : ''}</i><em>›</em></a>`;
-    /* La documentación, de todos; lo demás, de los que tienen la instalación verificada (22-oct). */
-    const ins = t ? t.instaladas ?? t.equipos : 0;
-    const cxHtml = t ? `<section class="ag-bloque" data-bloque-ini="cx">
-        <h2 class="titulo-grupo ag-titulo">Commissioning <span>${esc(o.codigo || '')} · ${cifra(t.equipos)} equipos${t.unidades && t.unidades !== t.equipos ? ` (${cifra(t.unidades)} unidades)` : ''}</span></h2>
-        <div class="ini-cx-tabla">
-          ${filaCx('Con la documentación completa', t.docCompleta, 'soloDoc')}
-          ${t.instaladas !== undefined ? filaCx('Con la instalación verificada', ins, 'sinVerificar') : ''}
-          ${t.enMarcha !== undefined ? filaCx('Puestos en marcha', t.enMarcha, 'enMarcha', false, ins) : ''}
-          ${filaCx('Les falta un ensayo (balanceo o estanqueidad)', t.faltaEnsayo, 'faltaEnsayo', true, ins)}
-          ${filaCx('Les falta una ficha (checklist o PM)', t.faltaFichas, 'faltaFichas', true, ins)}
-          ${filaCx('Mandados a la DF', t.enviadas, 'enviadas', false, ins)}
-          ${filaCx('Completos', t.completos, 'completos', false, ins)}
-          ${filaCx('Sin la documentación completa', t.faltaDocumentacion, 'faltaDoc', true)}
-          ${bocas[1] ? `<a class="ini-cx${bocas[1] - bocas[0] ? ' aviso' : ''}" href="#commissioning" data-ir-seg="todos"><span>Bocas por medir</span><b>${cifra(bocas[1] - bocas[0])}</b><i>de ${cifra(bocas[1])}</i><em>›</em></a>` : ''}
-        </div>
-      </section>` : '';
-    const pendienteHtml = `<section class="ag-bloque" data-bloque-ini="pendiente">
+    /* El resumen (28-oct): commissioning, ensayos, NCR y reparaciones en cifras. */
+    const cxHtml = resumenObra({ t, bocas, pruebas, ncr: ncr && ncr.ok ? ncr.filas : null, rep: rp && rp.filas ? rp.filas : null, codigo: o.codigo });
+    /* Lo que queda fuera del resumen: lo mío (partes y órdenes de mantenimiento). */
+    const pendienteHtml = partes || misOrdenes ? `<section class="ag-bloque" data-bloque-ini="pendiente">
         <h2 class="titulo-grupo ag-titulo">Pendiente</h2>
         <div class="grupo ini-pend">
-        ${pruebas || (t && t.pideEstanqueidad) ? fila('estanqueidad', 'Pruebas de estanqueidad', textoEstanqueidad(t, pruebas), (t && t.faltaEstanqueidad) || (pruebas && pruebas.some((p) => p.resultado !== 'correcta'))) : ''}
         ${partes ? fila('partes', 'Partes abiertos', cifra(partes.length)) : ''}
         ${misOrdenes ? fila('misTareas', 'Mis tareas de mantenimiento', cifra(misOrdenes.length), misOrdenes.some((f) => f.atrasada)) : ''}
-        ${repPendientes ? fila('reparaciones', 'Reparaciones pendientes', cifra(repPendientes.length), repPendientes.some((f) => f.vencida)) : ''}
-        ${ncrAbiertas ? fila('ncr', 'No conformidades abiertas', cifra(ncrAbiertas.length)) : ''}
         </div>
-      </section>`;
-    const ag = bloquesAgenda(plan, dia, o.id);
-    const bloques = { hoy: ag.hoy, semana: ag.semana, cx: cxHtml, pendiente: pendienteHtml };
+      </section>` : '';
+    const ag = bloquesAgenda(plan, dia, o.id, leerPlegados());
+    const PN = window.CX.panelNcn; /* el panel de NCN (panelNcn.js) */
+    const bloques = { hoy: ag.hoy, utas: PN ? PN.htmlUtasHoy(plan, { esc, cifra }) : '', semana: ag.semana, cx: cxHtml, marcha: PN ? PN.htmlPuestosEnMarcha(cx, { esc, cifra }) : '', pendiente: pendienteHtml };
     const hay = BLOQUES_INICIO.filter(([id]) => bloques[id]);
     const ocultos = leerOcultos();
     app.innerHTML = `
@@ -714,10 +778,30 @@
         inicio();
       };
     }
+    for (const h of app.querySelectorAll('[data-plegar]')) {
+      const alternar = () => {
+        const set = leerPlegados();
+        const id = h.dataset.plegar;
+        if (set.has(id)) set.delete(id); else set.add(id);
+        guardarPlegados(set);
+        const sec = h.closest('.ag-bloque');
+        const cerrado = set.has(id);
+        sec.classList.toggle('plegado', cerrado);
+        sec.querySelector('.ag-cuerpo').hidden = cerrado;
+        h.setAttribute('aria-expanded', String(!cerrado));
+      };
+      h.onclick = alternar;
+      h.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); alternar(); } };
+    }
+    for (const d of app.querySelectorAll('[data-plegar-atras]')) {
+      d.ontoggle = () => { const set = leerPlegados(); if (d.open) set.add('atras'); else set.delete('atras'); guardarPlegados(set); };
+    }
     /* Sin botón «Añadir…»: ya está el + de la barra (15-oct, JC). */
     /* Un TAG de «Hoy» o «Esta semana» abre su ficha: el módulo lo recoge al cargar. */
     for (const a of app.querySelectorAll('[data-ir-abrir]')) a.onclick = () => { try { sessionStorage.setItem('cx.abrir', a.dataset.irAbrir); } catch { /* nada */ } };
     for (const a of app.querySelectorAll('[data-ir-seg]')) a.onclick = () => { try { sessionStorage.setItem('cx.segmento', a.dataset.irSeg); } catch { /* nada */ } };
+    /* «ncr:vencidas», «rp:revisar»…: la pestaña lo recoge al cargar (ncr.js, reparaciones.js). */
+    for (const a of app.querySelectorAll('[data-ir-filtro]')) a.onclick = () => { try { const [k, v] = a.dataset.irFiltro.split(':'); sessionStorage.setItem(`${k}.filtro`, v); } catch { /* nada */ } };
   }
   window.addEventListener('movil:obra', () => { if (seccion() === 'inicio') inicio(); });
 

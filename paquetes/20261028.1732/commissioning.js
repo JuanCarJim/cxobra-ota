@@ -37,6 +37,11 @@
   /* La toma de datos de la primera pantalla: clave|plantilla → la misma forma que `hoja`. */
   const tomas = new Map();
   let filtro = '';
+  /* El autoguardado común del móvil (autoguardado.js) y su cola sin conexión (colaGuardado.js). */
+  const AG = window.AUTOGUARDADO || null;
+  const COLA = window.COLA_GUARDADO || null;
+  /* Las fichas con algo aún por mandar, abiertas o no: clave del borrador → ficha. */
+  const vivas = new Map();
 
   const ENVIO = {
     completo: ['bien', 'Completo'], enviada: ['bien', 'Enviada'], lista: ['bien', 'Lista para enviar'],
@@ -61,6 +66,7 @@
   /* ═══════════════════════════════════ 1. La lista */
 
   async function cargarLista() {
+    guardarTodoYa();
     ficha = null; hoja = null; pilaEquipos = [];
     bocaAbierta = null; grandeId = null;
     document.body.classList.remove('sin-scroll');
@@ -161,6 +167,9 @@
      regla de siempre (papeles + fichas + ensayo, shared/commissioning/control.js)
      que pinta el chip «Completo»: no hay otra. Los hechos van al final del grupo. */
   const hecho = (e) => !!e.completo;
+  function cabeceraPlanta(fs, p) {
+    return `<span>${esc(p)}</span><b aria-label="${fs.filter(hecho).length} hechos de ${fs.length}">${cifra(fs.filter(hecho).length)}/${cifra(fs.length)}</b>`;
+  }
   function cabeceraGrupo(fs, g) {
     const hechos = fs.filter(hecho).length;
     return `<span>${esc(g)}</span><b class="contador" aria-label="${hechos} hechos de ${fs.length}">${cifra(hechos)}/${cifra(fs.length)}</b>`;
@@ -193,8 +202,11 @@
       <input type="search" class="buscar" placeholder="Buscar TAG, sala, planta, tipo o marca" value="${esc(filtro)}" data-cx-buscar>
       <div class="agrupar" role="group" aria-label="Agrupar por"><span>Agrupar por</span>${AGRUPAR
         .map(([id, texto]) => `<button data-cx-agrupar="${id}" aria-pressed="${agrupar === id}" class="${agrupar === id ? 'activa' : ''}">${texto}</button>`).join('')}</div>
+      ${window.CX_PLANO_EQUIPOS ? '<button class="enlace" data-cx="plano-equipos">Ver los equipos en el plano</button>' : ''}
       ${equipos.length ? C.listaAgrupada(`cx-equipos-${agrupar}`, equipos, {
         grupo: grupoDe, orden: grupos, buscando: !!q, repintar: pintarLista, cabecera: cabeceraGrupo,
+        /* «Por plantas pero en los desplegables de los equipos» (JC, 28-oct): al agrupar por tipo o marca, cada grupo sale por planta. */
+        ...(agrupar === 'planta' ? {} : { subgrupo: (e) => e.planta || 'Sin planta', subOrden: porPlanta, subCabecera: cabeceraPlanta }),
         fila: (e) => `
         <li><button class="fila-ios" data-cx="equipo" data-id="${esc(e.id)}">
           <div class="fila-principal">
@@ -231,7 +243,7 @@
         if (ficha && ficha.equipo.id === r.equipo.id) ficha = r;
         return;
       }
-      if (!ficha || ficha.equipo.id !== r.equipo.id) { pestanaEq = 'equipo'; circuitoBal = 'impulsion'; firmando = null; }
+      if (!ficha || ficha.equipo.id !== r.equipo.id) { pestanaEq = 'equipo'; circuitoBal = 'impulsion'; firmando = firmaAMedias(r.equipo.id); }
       ficha = r;
       hoja = null;
       fichasEq = null;
@@ -250,7 +262,7 @@
       if (!r.ok) throw new Error(r.error);
       fichasEq = r;
     } catch (e) { fichasEq = { ok: false, error: e.message, fichas: [] }; }
-    if (activa() && ficha && !hoja && !firmando && ficha.equipo.id === id) {
+    if (activa() && ficha && !hoja && !firmando && ficha.equipo.id === id && !escribiendoEnApp()) {
       const y = window.scrollY;
       pintarFicha();
       window.scrollTo(0, y);
@@ -348,6 +360,7 @@
   const ROTULO_FIRMA = { jefeObra: 'Firma del jefe de obra', cliente: 'Firma del cliente' };
   let firmando = null; /* 'jefeObra' | 'cliente' mientras se firma */
   let trazado = false;
+  let firmaSinPintar = null; /* la firma a medias recuperada, mientras se pinta en el lienzo */
   function htmlFirmas(puede) {
     const fs = (ficha && ficha.firmas) || {};
     return ['jefeObra', 'cliente'].map((rol) => {
@@ -361,12 +374,14 @@
   }
   function htmlLienzoFirma() {
     const previa = ((ficha && ficha.firmas) || {})[firmando];
+    const medias = AG && ficha ? AG.leer(claveFirma(ficha.equipo.id, firmando)) : null;
+    const nombre = medias && medias.nombre ? medias.nombre : (previa ? previa.nombre : '');
     return `<section class="firma-lienzo" data-firma="${firmando}">
       <h3 class="banda">${ROTULO_FIRMA[firmando]}</h3>
       <label class="campo"><span>Nombre de quien firma</span>
-        <input type="text" maxlength="80" data-firma-nombre value="${esc(previa ? previa.nombre : '')}" placeholder="${firmando === 'cliente' ? 'Nombre y empresa del cliente' : 'Nombre del jefe de obra'}" autocomplete="name"></label>
+        <input type="text" maxlength="80" data-firma-nombre value="${esc(nombre)}" placeholder="${firmando === 'cliente' ? 'Nombre y empresa del cliente' : 'Nombre del jefe de obra'}" autocomplete="name"></label>
       <canvas width="600" height="200" data-firma-lienzo aria-label="Firme aquí con el dedo"></canvas>
-      <p class="nota">Firme dentro del recuadro con el dedo.</p>
+      <p class="nota">Firme dentro del recuadro con el dedo. ${marcaAG(AG && ficha && AG.leer(claveFirma(ficha.equipo.id, firmando)) ? 'movil' : '')}</p>
       <div class="fila-botones">
         <button class="boton" data-cx="guardar-firma">Guardar firma</button>
         <button class="boton secundario" data-cx="limpiar-firma">Borrar trazo</button>
@@ -391,10 +406,41 @@
       cx.beginPath(); cx.moveTo(ultimo.x, ultimo.y); cx.lineTo(p.x, p.y); cx.stroke();
       ultimo = p;
     });
-    const fin = () => { ultimo = null; };
+    const fin = () => { if (ultimo) apuntarFirma(); ultimo = null; };
+    /* Lo firmado a medias (atrás, otra pestaña, app cerrada) vuelve al lienzo. */
+    const b = AG && ficha ? AG.leer(claveFirma(ficha.equipo.id, firmando)) : null;
+    if (b && b.imagen && typeof Image !== 'undefined') {
+      const img = new Image();
+      firmaSinPintar = b.imagen;
+      img.onload = () => { try { cx.drawImage(img, 0, 0, cv.width, cv.height); } catch { /* nada */ } firmaSinPintar = null; };
+      img.src = b.imagen;
+      trazado = true;
+    }
     cv.addEventListener('pointerup', fin);
     cv.addEventListener('pointercancel', fin);
     cv.addEventListener('pointerleave', fin);
+  }
+  /*
+   * LA FIRMA A MEDIAS NO SE PIERDE (JC, 28-oct): el nombre y el trazo se
+   * apuntan en el teléfono al levantar el dedo o al escribir; al volver al
+   * equipo, el lienzo sale abierto con lo que había. Guardarla sigue siendo
+   * un gesto de quien firma («Guardar firma»): no se firma sola.
+   */
+  const claveFirma = (equipoId, rol) => `firma.${equipoId}.${rol}`;
+  function firmaAMedias(equipoId) {
+    if (!AG) return null;
+    return ['jefeObra', 'cliente'].find((rol) => AG.leer(claveFirma(equipoId, rol))) || null;
+  }
+  function apuntarFirma() {
+    if (!AG || !ficha || !firmando) return;
+    const cv = $app.querySelector('[data-firma-lienzo]');
+    const nombre = ($app.querySelector('[data-firma-nombre]') || {}).value || '';
+    let imagen = null;
+    try { imagen = firmaSinPintar || (trazado && cv ? cv.toDataURL('image/png') : null); } catch { /* sin lienzo */ }
+    if (!imagen && !nombre.trim()) { AG.olvidar(claveFirma(ficha.equipo.id, firmando)); return; }
+    AG.guardar(claveFirma(ficha.equipo.id, firmando), { nombre, imagen });
+    const m = $app.querySelector('.firma-lienzo .autoguardado');
+    if (m) { m.className = 'autoguardado movil'; m.textContent = TEXTO_AG.movil; }
   }
   function abrirFirma(rol) {
     firmando = rol;
@@ -404,7 +450,8 @@
     const sec = $app.querySelector('.firma-lienzo');
     if (sec) sec.scrollIntoView({ block: 'center' });
   }
-  function cerrarFirma() {
+  function cerrarFirma({ olvidar = false } = {}) {
+    if (olvidar && AG && ficha && firmando) AG.olvidar(claveFirma(ficha.equipo.id, firmando));
     firmando = null;
     const y = window.scrollY;
     pintarFicha();
@@ -426,7 +473,7 @@
       if (!r.ok) throw new Error(r.error);
       ficha.firmas = r.firmas;
       C.aviso(quitar ? 'Firma quitada' : 'Firma guardada', 'bien');
-      cerrarFirma();
+      cerrarFirma({ olvidar: true });
     } catch (e) { C.aviso(e.message); boton.disabled = false; }
   }
 
@@ -505,7 +552,7 @@
     const f = ficha;
     const e = f.equipo;
     const puede = f.puedeMedir;
-    if (pestanaEq === 'balanceo' && !tieneBalanceo(f)) pestanaEq = 'fichas';
+    if (pestanaEq === 'balanceo' && !tieneBalanceo(f)) pestanaEq = 'equipo';
     const seg = document.getElementById('segmentos');
     if (seg) seg.hidden = true;
     const med = f.medicion || {};
@@ -538,8 +585,8 @@
       ${htmlFichas('balanceo', 'Hoja de balanceo')}`;
     /*
      * LA PANTALLA DEL EQUIPO (JC, 28-oct-2026): solo «Fotos del equipo» y
-     * «Documentación y estado», y UNA entrada «Fichas del equipo» que lleva a
-     * lo que su tipo pide (checklist, toma de datos, estanqueidad, balanceo…).
+     * «Documentación y estado», y la LISTA numerada de fichas del equipo
+     * directamente (checklist, toma de datos, estanqueidad…): cada fila abre su ficha.
      * El conjunto (split, VRF) es un solo commissioning: no salen sus unidades.
      */
     const cuerpo = pestanaEq === 'balanceo' ? balanceo()
@@ -547,18 +594,19 @@
       ${htmlFichas('equipo', 'Fichas del equipo')}
       ${htmlTomaDatos()}
       ${htmlConservadas()}`
-      : `${htmlEntradaFichas()}
+      : `${htmlNotaConjunto(f.conjunto)}
+      ${htmlFichas('equipo', 'Fichas del equipo')}
       ${htmlFotosEquipo(f, puede)}
       ${checklist(f.checklist, f.medicion, puede)}`;
     const sub = [e.planta, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
     $app.innerHTML = `
-      ${pestanaEq === 'balanceo' ? tagFijo(e.tag, tituloMedicion(f), 'ver-fichas')
+      ${pestanaEq === 'balanceo' ? tagFijo(e.tag, tituloMedicion(f), 'ficha-equipo')
         : pestanaEq === 'fichas' ? tagFijo(e.tag, 'Fichas del equipo', 'ficha-equipo')
         : tagFijo(e.tag, sub, 'atras')}
       <div class="densa">${cuerpo}</div>`;
     C.cargarImagenes($app);
     if (firmando) prepararLienzo();
-    if (pestanaEq === 'balanceo') { restaurarPlano(); latirCrono(); }
+    if (pestanaEq === 'balanceo') { restaurarBocas(); restaurarPlano(); latirCrono(); }
     else { bocaAbierta = null; grandeId = null; document.body.classList.remove('sin-scroll'); }
   }
 
@@ -860,7 +908,9 @@
   const PIES_FOTO = ['Placa', 'Vista general', 'Otra'];
   function htmlFotosEquipo(f, puede) {
     const fotos = f.fotos || [];
+    const enMovil = COLA && f.equipo ? COLA.claves(`fotoEquipo.${f.equipo.id}.`).filter((k) => !fotosEquipoEnCurso.has(k)).length : 0;
     return `<h2>Fotos del equipo <span class="cuenta">${fotos.length}</span></h2>
+      ${enMovil ? `<p class="nota">${marcaAG('sinRed')} ${enMovil === 1 ? 'Una foto está' : `${enMovil} fotos están`} en el móvil: se subirá${enMovil === 1 ? '' : 'n'} sola${enMovil === 1 ? '' : 's'} al volver la conexión.</p>` : ''}
       ${fotos.length ? `<ul class="fotos-equipo">${fotos.map((x) => `<li><img data-src="api/equipo/foto?id=${encodeURIComponent(x.id)}" alt="${esc(x.pie || 'Foto')}">
         <div class="pie"><span>${esc([x.pie, x.hora].filter(Boolean).join(' · '))}</span>${puede ? `<button class="enlace mal" data-cx="quitar-foto-equipo" data-id="${esc(x.id)}">Quitar</button>` : ''}</div></li>`).join('')}</ul>` : ''}
       ${puede ? `<div class="fila-botones fotos-rapidas">
@@ -869,22 +919,73 @@
       </div>` : ''}`;
   }
 
+  /*
+   * LA FOTO DEL EQUIPO, EN EL TELÉFONO ANTES QUE NADA (JC, 28-oct): se guarda
+   * en el móvil al hacerla (`cx.borrador.fotoEquipo.<equipo>.<n>` + IndexedDB)
+   * y luego se sube. Sin red, se queda y la cola la sube sola al volver.
+   */
+  const fotosEquipoEnCurso = new Set();
   async function fotoEquipo(boton) {
     if (!ficha) return;
     const archivo = await C.elegirFoto(!boton.dataset.galeria);
     if (!archivo || !ficha) return;
+    const equipoId = ficha.equipo.id;
+    const pie = boton.dataset.pie === 'Otra' ? '' : boton.dataset.pie;
+    const clave = `fotoEquipo.${equipoId}.${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+    const foto = AG ? await AG.fotoNueva(archivo, { id: null, pie, hora: ahoraEs() }) : { id: null, pie, hora: ahoraEs(), archivo };
+    const apuntar = () => { if (AG) AG.guardar(clave, { equipoId, fotos: AG.fotosParaGuardar([foto]) }); };
+    apuntar();
+    fotosEquipoEnCurso.add(clave);
     boton.disabled = true;
     try {
-      const id = await C.subirFoto(archivo);
-      const pie = boton.dataset.pie === 'Otra' ? '' : boton.dataset.pie;
-      const r = await C.postJson('api/equipo/fotos', { equipoId: ficha.equipo.id, fotos: [{ id, pie, hora: ahoraEs() }] });
-      if (!r.ok) throw new Error(r.error);
-      ficha = r;
-      if (!activa()) return;
+      const r = await mandarFotoEquipo(equipoId, foto, apuntar);
+      if (AG) AG.borrar(clave); else if (foto.url) URL.revokeObjectURL(foto.url);
+      if (ficha && ficha.equipo.id === equipoId) ficha = r;
+      if (!activa() || !ficha || ficha.equipo.id !== equipoId) return;
       const y = window.scrollY;
       pintarFicha();
       window.scrollTo(0, y);
-    } catch (e) { C.aviso(e.message); boton.disabled = false; }
+    } catch (e) {
+      boton.disabled = false;
+      if (AG && AG.sinRed(e)) {
+        C.aviso('Sin conexión: la foto queda guardada en el móvil y se subirá sola.');
+        if (COLA) COLA.masTarde();
+        if (activa() && ficha && ficha.equipo.id === equipoId && !hoja) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
+      } else C.aviso(e.message);
+    } finally { fotosEquipoEnCurso.delete(clave); }
+  }
+  /* Sube la foto (desde el teléfono si hace falta) y la une al equipo. */
+  async function mandarFotoEquipo(equipoId, foto, apuntar = () => {}) {
+    const subir = async () => {
+      const blob = foto.archivo || (AG && foto.local ? await AG.leerFoto(foto.local) : null);
+      if (!blob) throw new Error('La foto ya no está en el teléfono: vuelve a hacerla.');
+      foto.archivo = blob;
+      foto.id = await C.subirFoto(blob);
+      apuntar();
+    };
+    if (!foto.id) await subir();
+    const unir = () => C.postJson('api/equipo/fotos', { equipoId, fotos: [{ id: foto.id, pie: foto.pie, hora: foto.hora }] });
+    let r = await unir();
+    /* El ordenador olvidó la foto en espera (app cerrada): se vuelve a subir desde el teléfono. */
+    if (!r.ok && /ya no está/i.test(String(r.error || ''))) { foto.id = null; await subir(); r = await unir(); }
+    if (!r.ok) throw new Error(r.error);
+    return r;
+  }
+  async function enviarFotoEquipoPendiente(clave, b) {
+    if (fotosEquipoEnCurso.has(clave)) return false;
+    const [foto] = AG ? await AG.restaurarFotos((b && b.fotos) || []) : [];
+    if (!foto || !foto.archivo || !b.equipoId) { if (AG) AG.borrar(clave); return true; }
+    fotosEquipoEnCurso.add(clave);
+    try {
+      const r = await mandarFotoEquipo(b.equipoId, foto, () => AG.guardar(clave, { equipoId: b.equipoId, fotos: AG.fotosParaGuardar([foto]) }));
+      AG.borrar(clave);
+      if (foto.url) { try { URL.revokeObjectURL(foto.url); } catch { /* nada */ } }
+      if (ficha && ficha.equipo.id === b.equipoId) {
+        ficha = r;
+        if (activa() && !hoja && !escribiendoEnApp()) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
+      }
+      return true;
+    } catch { return false; } finally { fotosEquipoEnCurso.delete(clave); }
   }
 
   /* Hasta que alguien verifica la instalación, el equipo solo cuenta para la documentación (22-oct). */
@@ -1088,10 +1189,54 @@
         const d = $app.querySelector(`input[data-plano="${CSS.escape(destino.plano)}"][data-punto="${CSS.escape(destino.punto)}"]${destino.m !== undefined ? `[data-m="${destino.m}"]` : '[data-q]'}`);
         if (d) d.focus();
       }
+      if (AG) AG.olvidar(claveBorradorBoca(plano, punto));
     } catch (e) {
-      C.aviso(e.message);
-      ins.forEach((x) => { x.disabled = false; x.value = x.defaultValue; });
+      /* Lo tecleado NO se borra (JC, 28-oct): se queda en la casilla y en el móvil. */
+      ins.forEach((x) => { x.disabled = false; });
+      apuntarBoca(li);
+      if (AG && AG.sinRed(e)) { C.aviso('Sin conexión: la medida queda guardada en el móvil y se mandará sola.'); if (COLA) COLA.masTarde(); } else C.aviso(e.message);
     }
+  }
+
+  /*
+   * LA BOCA A MEDIAS, EN EL TELÉFONO (JC, 28-oct: «autoguardado en toda la
+   * app»): cada tecla deja la boca en `cx.borrador.boca.<plano>|<punto>`; si
+   * no llega al ordenador (sin red, app cerrada), al volver se repinta lo
+   * tecleado y la cola la manda sola. Se borra cuando el servidor la guarda.
+   */
+  const claveBorradorBoca = (plano, punto) => `boca.${plano}|${punto}`;
+  const claveCasilla = (x) => (x.dataset.q ? 'q' : x.dataset.t ? 't' : `m${x.dataset.m}`);
+  function apuntarBoca(li) {
+    if (!AG) return;
+    const ins = casillas(li);
+    if (!ins.length) return;
+    const { plano, punto } = ins[0].dataset;
+    const clave = claveBorradorBoca(plano, punto);
+    if (!cambiada(li)) { AG.olvidar(clave); return; }
+    AG.guardar(clave, { planoId: plano, puntoId: punto, cuerpo: cuerpoBoca(ins), valores: Object.fromEntries(ins.map((x) => [claveCasilla(x), x.value])) });
+  }
+  function restaurarBocas() {
+    if (!AG) return;
+    for (const li of $app.querySelectorAll('li[data-boca]')) {
+      const ins = casillas(li);
+      if (!ins.length) continue;
+      const b = AG.leer(claveBorradorBoca(ins[0].dataset.plano, ins[0].dataset.punto));
+      if (!b || !b.valores) continue;
+      ins.forEach((x) => { const v = b.valores[claveCasilla(x)]; if (v !== undefined) x.value = v; });
+      if (cambiada(li)) { li.dataset.borrador = '1'; try { vivoBoca(li); } catch { /* nada */ } }
+    }
+  }
+  async function enviarBocaPendiente(clave, b) {
+    const foco = document.activeElement;
+    if (foco && foco.dataset && foco.dataset.plano === b.planoId && foco.dataset.punto === b.puntoId) return false;
+    const r = await C.postJson('api/boca', { planoId: b.planoId, puntoId: b.puntoId, ...(b.cuerpo || {}) });
+    /* Un «no» del servidor (permiso, boca que ya no existe) no se reintenta para siempre. */
+    AG.olvidar(clave);
+    if (r.ok && ficha && r.equipo && ficha.equipo.id === r.equipo.id) {
+      ficha = r;
+      if (activa() && !hoja && pestanaEq === 'balanceo' && !escribiendoEnApp()) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
+    }
+    return true;
   }
 
   /*
@@ -1122,7 +1267,8 @@
       /* Lo que no ha cambiado mientras viajaba ya está guardado; lo demás sigue pendiente. */
       ins.forEach((x, i) => { if (x.value === enviado[i]) x.defaultValue = x.value; });
       li.dataset.guardada = '1';
-    } catch { /* sin conexión de datos no hay nada que hacer aquí: se reintenta al salir */ }
+      apuntarBoca(li);
+    } catch { /* sin conexión: queda en el móvil (apuntarBoca) y la cola la manda */ if (COLA) COLA.masTarde(); }
   }
 
   /* El equipo de medida de una boca, o de todas: se guarda ya. Lo medido no
@@ -1262,9 +1408,13 @@
     if (!x) return;
     /* Lo tecleado en la toma de datos y sin guardar sigue en la hoja completa. */
     const t = tomas.get(claveToma(x));
-    if (t && t.f && t.cambiada) {
+    const ref = { obra: fichasEq.equipo.obraId, clave: x.clave, plantilla: x.plantilla };
+    /* La misma ficha aún guardándose (se salió hace un momento): se sigue con ella, no con una copia. */
+    const viva = (t && t.f && t.cambiada) ? t : vivas.get(claveBorrador(ref));
+    if (viva && viva.f && viva.cambiada) {
       tomas.delete(claveToma(x));
-      hoja = { ...t, nombre: x.nombre };
+      viva.nombre = x.nombre;
+      hoja = viva;
       pintarHoja();
       window.scrollTo(0, 0);
       return;
@@ -1272,10 +1422,9 @@
     $app.innerHTML = '<p class="cargando">Cargando la ficha…</p>';
     abriendoHoja += 1;
     try {
-      const ref = { obra: fichasEq.equipo.obraId, clave: x.clave, plantilla: x.plantilla };
       const r = await C.pedir(`api/ficha?${new URLSearchParams(ref)}`);
       if (!r.ok) throw new Error(r.error);
-      hoja = nuevaHoja(ref, x.nombre, r);
+      hoja = await recuperarBorrador(nuevaHoja(ref, x.nombre, r));
       pintarHoja();
       window.scrollTo(0, 0);
     } catch (e) { C.aviso(e.message); pintarFicha(); } finally { abriendoHoja -= 1; }
@@ -1495,7 +1644,10 @@
     if (chip) chip.scrollIntoView({ block: 'nearest', inline: 'center' });
     window.scrollTo(0, 0);
   }
-  const estadoGuardar = (h) => `<span class="estado-guardar ${h.cambiada ? 'pendiente' : 'al-dia'}">${h.cambiada ? 'Cambios sin guardar' : 'Todo guardado'}</span>`;
+  /* El aviso discreto del autoguardado (sin botón Guardar que se pueda olvidar). */
+  const TEXTO_AG = { guardando: 'Guardando…', guardado: 'Guardado', movil: 'Guardado en el móvil', sinRed: 'Sin conexión, se guardará', error: 'No se ha guardado', pendiente: 'Sin guardar' };
+  const marcaAG = (estado) => `<span class="autoguardado ${esc(estado || '')}" role="status" aria-live="polite">${esc(TEXTO_AG[estado] || '')}</span>`;
+  const estadoGuardar = (h) => marcaAG(h._estado || (h.cambiada ? 'movil' : ''));
 
   /*
    * «LO QUE FALTA» CON LA MISMA CUENTA QUE LA PASTILLA (revisión UX 18-oct, 5):
@@ -1566,9 +1718,9 @@
       <h3 class="banda">Fotos <span class="tenue">${total}/8</span></h3>
       ${total ? `<ul class="fotos-ficha">
         ${fotosGuardadas.map((x) => `<li><img data-src="api/ficha/foto?${q}&i=${x.i}" alt="${esc(x.nombre)}"><div class="pie"><span>${esc(x.nombre)}</span>${ed ? `<button class="enlace mal" data-cx="quitar-foto" data-i="${x.i}">Quitar</button>` : ''}</div></li>`).join('')}
-        ${h.nuevas.map((x, i) => `<li class="nueva"><img src="${esc(x.url)}" alt="Foto nueva">
-          <div class="pie"><input placeholder="¿Qué se ve? (p. ej. placa del equipo)" value="${esc(x.pie)}" data-h-pie="${i}"><span class="tenue">${esc(x.hora)} · sin guardar</span>
-          <button class="enlace mal" data-cx="quitar-nueva" data-i="${i}">Quitar</button></div></li>`).join('')}
+        ${h.nuevas.map((x, i) => `<li class="nueva">${x.url ? `<img src="${esc(x.url)}" alt="Foto nueva">` : '<span class="foto-sin-vista">Foto</span>'}
+          <div class="pie"><input placeholder="¿Qué se ve? (p. ej. placa del equipo)" value="${esc(x.pie)}" data-h-pie="${esc(x.local || i)}"><span class="tenue">${esc(x.hora)} · guardada en el móvil</span>
+          <button class="enlace mal" data-cx="quitar-nueva" data-i="${esc(x.local || i)}">Quitar</button></div></li>`).join('')}
       </ul>` : '<p class="nota">Las fotos que se hagan aquí salen en el informe, con su pie y su hora.</p>'}
       ${ed && total < 8 ? `<div class="fila-botones">
         <button class="boton secundario" data-cx="foto" data-camara="1"><i class="ic ic-camara"></i>Hacer foto</button>
@@ -1586,18 +1738,13 @@
       </div>` : ''}
       ${cierra(nPasos - 1)}
       </div>
-      ${ed ? `<div class="barra-guardar" role="status">${estadoGuardar(h)}<button class="boton" data-cx="guardar-hoja" ${h.cambiada ? '' : 'disabled'}>Guardar</button></div>` : ''}`;
+      ${ed ? `<div class="barra-guardar" data-hoja-abierta>${estadoGuardar(h)}</div>` : ''}`;
     C.cargarImagenes($app);
   }
 
   function marcarCambiada() {
     refrescarPasos();
-    if (hoja.cambiada) return;
-    hoja.cambiada = true;
-    const b = $app.querySelector('[data-cx="guardar-hoja"]');
-    if (b) b.disabled = false;
-    const e = $app.querySelector('.barra-guardar .estado-guardar');
-    if (e) e.outerHTML = estadoGuardar(hoja);
+    cambio(hoja);
   }
 
   function anotar(el) {
@@ -1608,7 +1755,7 @@
     if (!h || !el.dataset) return false;
     if (el.dataset.hCab) h.cabecera[el.dataset.hCab] = el.value;
     else if (el.hasAttribute('data-h-obs')) h.observaciones = el.value;
-    else if (el.dataset.hPie !== undefined) { const x = h.nuevas[Number(el.dataset.hPie)]; if (x) x.pie = el.value; }
+    else if (el.dataset.hPie !== undefined) { const x = fotoNuevaDe(h, el.dataset.hPie); if (x) x.pie = el.value; }
     else if (el.dataset.hPunto) {
       const k = el.dataset.hK;
       let v = el.value;
@@ -1623,23 +1770,42 @@
     return true;
   }
 
+  /* Una foto nueva de la ficha por su clave en el teléfono (o, sin ella, por su posición). */
+  const fotoNuevaDe = (h, k) => h.nuevas.find((x) => x.local && x.local === k) || (/^\d+$/.test(String(k)) ? h.nuevas[Number(k)] : null);
+
+  /*
+   * LA FOTO, EN EL TELÉFONO ANTES QUE NADA (JC, 28-oct): se guarda en el móvil
+   * (IndexedDB) en cuanto se hace y luego se sube. Si no hay red, se queda en
+   * el teléfono y se sube sola después; la ficha no la pierde.
+   */
   async function fotoHoja(camara) {
     const archivo = await C.elegirFoto(camara);
     if (!archivo || !hoja) return;
-    try {
-      const id = await C.subirFoto(archivo);
-      hoja.nuevas.push({ id, url: URL.createObjectURL(archivo), pie: '', hora: ahoraEs() });
-      hoja.cambiada = true;
+    const h = hoja;
+    const x = AG ? await AG.fotoNueva(archivo, { id: null, pie: '', hora: ahoraEs(), t: Date.now() })
+      : { id: null, pie: '', hora: ahoraEs(), t: Date.now(), archivo, url: URL.createObjectURL(archivo) };
+    h.nuevas.push(x);
+    cambio(h);
+    if (hoja === h && activa()) {
       const y = window.scrollY;
       pintarHoja();
       window.scrollTo(0, y);
       const pies = $app.querySelectorAll('[data-h-pie]');
       if (pies.length) pies[pies.length - 1].focus();
-    } catch (e) { C.aviso(e.message); }
+    }
+    try { await subirFotoNueva(x); escribirBorrador(h); } catch { /* se sube al guardar */ }
+  }
+  async function subirFotoNueva(x) {
+    if (x.id) return x.id;
+    const blob = x.archivo || (AG && x.local ? await AG.leerFoto(x.local) : null);
+    if (!blob) throw new Error('La foto ya no está en el teléfono: vuelve a hacerla.');
+    x.archivo = blob;
+    x.id = await C.subirFoto(blob);
+    return x.id;
   }
 
   /* Lo que se manda al guardar una ficha: los datos sueltos con `v`; los de parámetros con p/f/m. */
-  function cuerpoFicha(h) {
+  function cuerpoFicha(h, fotos = h.nuevas) {
     const valores = {};
     for (const [codigo, c] of Object.entries(h.valores)) {
       if ('v' in c) valores[codigo] = c.v === null || c.v === '' ? null : { v: c.v };
@@ -1648,7 +1814,7 @@
     return {
       obraId: h.ref.obra, clave: h.ref.clave, plantilla: h.ref.plantilla,
       cabecera: h.cabecera, valores, observaciones: h.observaciones,
-      fotosNuevas: h.nuevas.map((x) => ({ id: x.id, pie: x.pie, hora: x.hora })),
+      fotosNuevas: fotos.map((x) => ({ id: x.id, pie: x.pie, hora: x.hora })),
       quitarFotos: [...h.quitar],
     };
   }
@@ -1681,34 +1847,229 @@
     const r = await C.postJson('api/ficha', cuerpo);
     if (!r.ok) throw new Error(r.error || 'No se ha podido guardar.');
     const faltan = noReleido(cuerpo, r);
-    if (faltan.length) throw new Error(`No se ha guardado bien (${faltan.length === 1 ? faltan[0] : `${faltan.length} puntos`}): vuelve a pulsar Guardar.`);
+    if (faltan.length) throw new Error(`No se ha guardado bien (${faltan.length === 1 ? faltan[0] : `${faltan.length} puntos`}): sigue en el móvil y se vuelve a intentar.`);
     return r;
   }
 
-  async function guardarHoja(boton) {
-    const h = hoja;
-    if (!h || !h.cambiada) return true;
-    if (boton) boton.disabled = true;
+  /* ═══════════════════════════════════ El autoguardado de las fichas */
+
+  /*
+   * NADA SE PIERDE AL IR ATRÁS (JC, 28-oct-2026: «Autoguardado… en toda la
+   * app»). Antes lo tecleado en una hoja (checklist, puesta en marcha,
+   * estanqueidad del circuito, hoja de balanceo) o en la toma de datos vivía
+   * en memoria hasta pulsar «Guardar»: atrás, otra pestaña, bloquear el móvil
+   * o cerrar la app, y se perdía. Ahora no hay botón Guardar:
+   *   · cada cambio se apunta AL MOMENTO en un borrador del teléfono
+   *     (autoguardado.js: `cx.borrador.ficha.<obra>|<clave>|<plantilla>`), y
+   *     las fotos se guardan en el teléfono (IndexedDB) antes de subirlas;
+   *   · al ~1,2 s sin tocar nada, al salir de la hoja, al cambiar de pantalla
+   *     y al irse de la app se manda al servidor por el camino de siempre
+   *     (api/ficha, con su comprobación de lo releído);
+   *   · sin conexión, el borrador espera en el teléfono y se manda solo al
+   *     volver la red (colaGuardado.js), aunque la hoja ya no esté abierta;
+   *   · al reabrir la ficha, lo que quedó en el teléfono se vuelve a poner.
+   * El aviso discreto dice dónde está: Guardando… · Guardado · Guardado en el
+   * móvil · Sin conexión, se guardará.
+   */
+  const ESPERA_AUTOGUARDADO = 1200;
+  const claveBorrador = (ref) => `ficha.${ref.obra}|${ref.clave}|${ref.plantilla}`;
+  const hayPendiente = (h) => Object.keys(h.valores).length > 0 || Object.keys(h.cabecera).length > 0
+    || h.observaciones !== undefined || h.nuevas.length > 0 || h.quitar.size > 0;
+  const comoJson = (v) => JSON.stringify(v === undefined ? null : v);
+
+  function escribirBorrador(h) {
+    if (!AG || !h || !h.ref) return;
+    if (!h.cambiada) { AG.olvidar(claveBorrador(h.ref)); return; }
+    AG.guardar(claveBorrador(h.ref), {
+      ref: h.ref, nombre: h.nombre, valores: h.valores, cabecera: h.cabecera,
+      observaciones: h.observaciones === undefined ? null : h.observaciones, hayObs: h.observaciones !== undefined,
+      fotos: AG.fotosParaGuardar(h.nuevas), quitar: [...h.quitar],
+    });
+  }
+
+  /* Lo que quedó en el teléfono, otra vez en la ficha leída del servidor. */
+  async function recuperarBorrador(h) {
+    if (!AG || !h || !h.f || !h.f.editable) return h;
+    const b = AG.leer(claveBorrador(h.ref));
+    if (!b) return h;
+    Object.assign(h.valores, b.valores || {});
+    Object.assign(h.cabecera, b.cabecera || {});
+    if (b.hayObs) h.observaciones = b.observaciones || '';
+    const ya = new Set(h.nuevas.map((x) => x.local));
+    for (const x of await AG.restaurarFotos(b.fotos || [])) if (!ya.has(x.local)) h.nuevas.push(x);
+    for (const i of b.quitar || []) h.quitar.add(Number(i));
+    h.cambiada = hayPendiente(h);
+    if (h.cambiada) { h._estado = 'movil'; vivas.set(claveBorrador(h.ref), h); programar(h, 300); }
+    return h;
+  }
+
+  function cambio(h) {
+    if (!h) return;
+    h.cambiada = true;
+    vivas.set(claveBorrador(h.ref), h);
+    h._estado = 'movil';
+    escribirBorrador(h);
+    pintarEstado(h);
+    programar(h);
+  }
+  function programar(h, ms = ESPERA_AUTOGUARDADO) {
+    clearTimeout(h._reloj);
+    h._reloj = setTimeout(() => { h._reloj = null; autoguardar(h); }, ms);
+  }
+
+  /* El aviso de la hoja abierta o, en la toma, el de todas sus fichas juntas. */
+  function pintarEstado(h) {
+    if (!$app.querySelector) return;
+    if (h === hoja) {
+      const el = $app.querySelector('.barra-guardar .autoguardado');
+      if (el) { el.className = `autoguardado ${h._estado || ''}`; el.textContent = TEXTO_AG[h._estado] || ''; }
+      return;
+    }
+    const el = $app.querySelector('.barra-toma .autoguardado');
+    if (el) { const e = estadoTomas(); el.className = `autoguardado ${e}`; el.textContent = TEXTO_AG[e] || ''; }
+  }
+  function estadoTomas() {
+    const es = [...tomas.values()].map((t) => t._estado).filter(Boolean);
+    return ['guardando', 'error', 'sinRed', 'movil', 'guardado'].find((e) => es.includes(e)) || '';
+  }
+
+  /* Una foto nueva va al servidor cuando ya tiene pie (o pasado un rato, o al salir), no mientras se escribe. */
+  const fotoLista = (x, forzar) => {
+    const foco = document.activeElement;
+    const escribiendo = foco && foco.dataset && foco.dataset.hPie !== undefined && foco.dataset.hPie === String(x.local);
+    return forzar || (!escribiendo && (String(x.pie || '').trim() !== '' || Date.now() - (x.t || 0) > 30000));
+  };
+
+  async function autoguardar(h, { forzar = false } = {}) {
+    if (!h || !h.f || !h.f.editable) return true;
+    clearTimeout(h._reloj);
+    h._reloj = null;
+    while (h._vuelo) { try { await h._vuelo; } catch { /* lo dice el aviso */ } }
+    if (!h.cambiada) return true;
+    h._vuelo = enviarFicha(h, forzar);
+    try { return await h._vuelo; } finally { h._vuelo = null; }
+  }
+
+  async function enviarFicha(h, forzar) {
+    h._estado = 'guardando';
+    pintarEstado(h);
     try {
-      const r = await postFicha(cuerpoFicha(h));
-      for (const x of h.nuevas) URL.revokeObjectURL(x.url);
-      hoja = { ...h, f: r, valores: {}, cabecera: {}, observaciones: undefined, nuevas: [], quitar: new Set(), cambiada: false };
-      tomas.delete(`${h.ref.clave}|${h.ref.plantilla}`);
-      fichasEq = null;
-      if (ficha) cargarFichas(ficha.equipo.id);
-      C.aviso(r.estado === 'completa' ? 'Guardada: la ficha está completa.' : 'Guardada.', 'bien');
-      const y = window.scrollY;
-      if (activa() && hoja) { pintarHoja(); window.scrollTo(0, y); }
-      return true;
+      const listas = h.nuevas.filter((x) => fotoLista(x, forzar));
+      for (const x of listas) await subirFotoNueva(x);
+      /* Lo que se manda, para saber después qué ha cambiado mientras viajaba. */
+      const enviado = {
+        valores: Object.fromEntries(Object.entries(h.valores).map(([k, v]) => [k, comoJson(v)])),
+        cabecera: Object.fromEntries(Object.entries(h.cabecera).map(([k, v]) => [k, comoJson(v)])),
+        observaciones: h.observaciones, quitar: [...h.quitar], fotos: listas,
+      };
+      let r;
+      try { r = await postFicha(cuerpoFicha(h, listas)); } catch (e) {
+        /* El ordenador olvidó la foto en espera (p. ej. al cerrar la app): se vuelve a subir desde el teléfono. */
+        if (!listas.length || !/ya no está/i.test(e.message) || (AG && AG.sinRed(e))) throw e;
+        for (const x of listas) { x.id = null; await subirFotoNueva(x); }
+        r = await postFicha(cuerpoFicha(h, listas));
+      }
+      h.f = r;
+      for (const [k, v] of Object.entries(enviado.valores)) if (comoJson(h.valores[k]) === v) delete h.valores[k];
+      for (const [k, v] of Object.entries(enviado.cabecera)) if (comoJson(h.cabecera[k]) === v) delete h.cabecera[k];
+      if (h.observaciones === enviado.observaciones) h.observaciones = undefined;
+      for (const i of enviado.quitar) h.quitar.delete(i);
+      for (const x of enviado.fotos) {
+        const i = h.nuevas.indexOf(x);
+        if (i >= 0) h.nuevas.splice(i, 1);
+        if (x.url) { try { URL.revokeObjectURL(x.url); } catch { /* nada */ } }
+        if (AG && x.local) AG.borrarFoto(x.local);
+      }
+      h.cambiada = hayPendiente(h);
+      h._estado = h.cambiada ? 'movil' : 'guardado';
+      h._error = null;
+      if (!h.cambiada && vivas.get(claveBorrador(h.ref)) === h) vivas.delete(claveBorrador(h.ref));
+      escribirBorrador(h);
+      trasGuardar(h, r, forzar);
+      if (h.cambiada && !h._reloj) programar(h, h.nuevas.length && !Object.keys(h.valores).length ? 15000 : ESPERA_AUTOGUARDADO);
+      return !h.cambiada;
     } catch (e) {
-      C.aviso(e.message);
-      if (boton) boton.disabled = false;
+      const sinRed = AG ? AG.sinRed(e) : false;
+      h._estado = sinRed ? 'sinRed' : 'error';
+      pintarEstado(h);
+      if (!sinRed && !h._silencio && (forzar || h._error !== e.message)) C.aviso(e.message);
+      h._error = e.message;
+      if (COLA) COLA.masTarde();
       return false;
     }
   }
 
-  async function terminarHoja(boton) {
-    if (hoja.cambiada && hoja.f.editable && !(await guardarHoja(boton))) return;
+  /* Tras guardar: se avisa en silencio y se repinta solo si no se está escribiendo. */
+  function trasGuardar(h, r, forzar) {
+    const k = `${h.ref.clave}|${h.ref.plantilla}`;
+    if (h === hoja) {
+      tomas.delete(k);
+      fichasEq = null;
+      if (forzar) C.aviso(r.estado === 'completa' ? 'Guardada: la ficha está completa.' : 'Guardada.', 'bien');
+      if (ficha) cargarFichas(ficha.equipo.id);
+      if (!activa()) return;
+      if (escribiendoEnApp()) { h._repintar = true; pintarEstado(h); refrescarPasos(); return; }
+      const y = window.scrollY;
+      pintarHoja();
+      window.scrollTo(0, y);
+      return;
+    }
+    if (tomas.get(k) === h) {
+      for (const [, p] of puntosToma(h)) h.vistos.add(p.codigo);
+      h._repintar = true;
+      pintarEstado(h);
+      if (activa() && ficha && !hoja && !escribiendoEnApp()) repintarTomas();
+    }
+  }
+  const escribiendoEnApp = () => {
+    const a = document.activeElement;
+    return Boolean(a && a !== document.body && /^(INPUT|TEXTAREA|SELECT)$/.test(String(a.tagName || '')) && (!$app.contains || $app.contains(a)));
+  };
+  function repintarTomas() {
+    for (const t of tomas.values()) t._repintar = false;
+    const y = window.scrollY;
+    pintarFicha();
+    window.scrollTo(0, y);
+    if (ficha) cargarFichas(ficha.equipo.id);
+  }
+
+  /* La cola: un borrador de ficha que quedó en el teléfono se manda aunque la ficha no esté abierta. */
+  async function enviarBorradorFicha(clave, b) {
+    const viva = vivas.get(clave);
+    if (viva) return autoguardar(viva, { forzar: true });
+    if (!b || !b.ref || !b.ref.obra || !b.ref.clave) { if (AG) AG.borrar(clave); return true; }
+    const h = {
+      ref: b.ref, nombre: b.nombre, f: { editable: true }, valores: b.valores || {}, cabecera: b.cabecera || {},
+      observaciones: b.hayObs ? (b.observaciones || '') : undefined,
+      nuevas: AG ? await AG.restaurarFotos(b.fotos || []) : [], quitar: new Set((b.quitar || []).map(Number)),
+      cambiada: true, _silencio: true,
+    };
+    if (vivas.has(clave)) return autoguardar(vivas.get(clave), { forzar: true });
+    vivas.set(clave, h);
+    const ok = await autoguardar(h, { forzar: true });
+    if (vivas.get(clave) === h && !h.cambiada) vivas.delete(clave);
+    return ok;
+  }
+
+  /* Todo lo pendiente (la hoja abierta y la toma), ya: al salir de la hoja, de la pantalla o de la app. */
+  function guardarTodoYa() {
+    const hs = [hoja, ...tomas.values()].filter((h) => h && h.f && h.cambiada);
+    for (const h of hs) escribirBorrador(h);
+    return Promise.all(hs.map((h) => autoguardar(h, { forzar: true })));
+  }
+
+  /* Lo que se llama «Guardar» por dentro: guardar ya, y decir si ha ido bien. */
+  async function guardarHoja() {
+    const h = hoja;
+    if (!h || !h.cambiada) return true;
+    return autoguardar(h, { forzar: true });
+  }
+
+  async function terminarHoja() {
+    if (hoja.cambiada && hoja.f.editable && !(await guardarHoja())) {
+      /* Sin red sí se sale: queda en el teléfono y se manda solo. */
+      if (hoja._estado !== 'sinRed') return;
+    }
     salirHoja();
     window.scrollTo(0, 0);
   }
@@ -1781,13 +2142,19 @@
       try {
         const r = await C.pedir(`api/ficha?${new URLSearchParams(ref)}`);
         if (!r.ok) throw new Error(r.error);
-        if (!tomas.has(claveToma(x))) tomas.set(claveToma(x), nuevaToma(ref, x.nombre, r));
+        if (tomas.has(claveToma(x))) return;
+        /* La ficha aún guardándose desde la hoja, o lo que quedó en el teléfono. */
+        const viva = vivas.get(claveBorrador(ref));
+        if (viva && viva.cambiada && viva !== hoja) { viva.vistos = viva.vistos || new Set(); for (const [, p] of puntosToma(viva)) viva.vistos.add(p.codigo); tomas.set(claveToma(x), viva); return; }
+        const t = await recuperarBorrador(nuevaToma(ref, x.nombre, r));
+        for (const [, p] of puntosToma(t)) t.vistos.add(p.codigo);
+        if (!tomas.has(claveToma(x))) tomas.set(claveToma(x), t);
       } catch (e) {
         /* Sin red: no se guarda en la caché, la próxima vez se vuelve a pedir. */
         tomas.set(claveToma(x), { ref, nombre: x.nombre, error: e.message, cambiada: false, temporal: true });
       }
     }));
-    if (activa() && ficha && !hoja && ficha.equipo.id === id && pestanaEq === 'fichas') {
+    if (activa() && ficha && !hoja && ficha.equipo.id === id && pestanaEq === 'fichas' && !escribiendoEnApp()) {
       const y = window.scrollY;
       pintarFicha();
       window.scrollTo(0, y);
@@ -1832,10 +2199,9 @@
       <h2>Toma de datos <span class="cuenta">lo que falta, sin abrir las fichas</span></h2>
       ${cuerpos.join('')}
       ${cargando ? '<p class="cargando">Cargando el resto…</p>' : ''}
-      ${puede ? `<div class="barra-toma">${estadoToma(sucias)}<button class="boton" data-cx="guardar-toma" ${sucias ? '' : 'disabled'}>Guardar</button></div>` : ''}
+      ${puede ? `<div class="barra-toma" data-toma-guardado="${sucias}">${marcaAG(estadoTomas() || (sucias ? 'movil' : ''))}</div>` : ''}
     </section>`;
   }
-  const estadoToma = (n) => `<span class="estado-guardar ${n ? 'pendiente' : 'al-dia'}">${n ? `Cambios sin guardar en ${n} ficha${n === 1 ? '' : 's'}` : 'Todo guardado'}</span>`;
 
   const tomaDe = (el) => {
     const g = el && el.closest ? el.closest('[data-toma]') : null;
@@ -1848,44 +2214,20 @@
     if (anotarEn(t, el)) marcarToma(t);
     return true;
   }
-  function marcarToma(t) {
-    t.cambiada = true;
-    const n = [...tomas.values()].filter((x) => x.cambiada).length;
-    const b = $app.querySelector('[data-cx="guardar-toma"]');
-    if (b) b.disabled = false;
-    const e = $app.querySelector('.barra-toma .estado-guardar');
-    if (e) e.outerHTML = estadoToma(n);
-  }
+  /* Cada ficha de la toma se guarda sola, como la hoja (autoguardado). */
+  function marcarToma(t) { cambio(t); }
 
-  /* Guarda una a una las fichas tocadas, por el mismo camino que la hoja. Lo que
-     no se guarde (sin red) se queda tecleado, con su aviso, para reintentar. */
-  async function guardarTomas(boton) {
+  /* Guardar ya todas las fichas tocadas de la toma (por dentro; ya no hay botón). */
+  async function guardarTomas() {
     const claves = new Set(fichasToma().map(([x]) => claveToma(x)));
     const sucias = [...tomas.entries()].filter(([k, t]) => claves.has(k) && t.f && t.cambiada);
-    if (!sucias.length) return;
-    if (boton) boton.disabled = true;
-    let bien = 0;
-    let completas = 0;
-    const fallos = [];
-    for (const [k, t] of sucias) {
-      try {
-        const r = await postFicha(cuerpoFicha(t));
-        tomas.set(k, nuevaToma(t.ref, t.nombre, r, t.vistos));
-        bien += 1;
-        if (r.estado === 'completa') completas += 1;
-      } catch (e) { fallos.push(`${t.nombre}: ${e.message}`); }
-    }
-    if (fallos.length) C.aviso(`${bien ? `Guardadas ${bien}; ` : ''}sin guardar ${fallos.join(' · ')}`);
-    else C.aviso(completas ? `Guardado: ${completas === 1 ? 'una ficha completa' : `${completas} fichas completas`}.` : 'Guardado.', 'bien');
-    if (!activa() || !ficha || hoja) return;
-    const y = window.scrollY;
-    pintarFicha();
-    window.scrollTo(0, y);
-    if (bien) cargarFichas(ficha.equipo.id);
+    await Promise.all(sucias.map(([, t]) => autoguardar(t, { forzar: true })));
+    if (activa() && ficha && !hoja && sucias.length) repintarTomas();
   }
 
+  /* Salir de la hoja no pide confirmar: lo pendiente ya está en el teléfono y se manda solo. */
   function salirHoja() {
-    if (hoja && hoja.cambiada && !window.confirm('Hay cambios sin guardar en la ficha. ¿Salir sin guardarlos?')) return;
+    if (hoja && hoja.cambiada) autoguardar(hoja, { forzar: true });
     hoja = null;
     pintarFicha();
     if (!fichasEq && ficha) cargarFichas(ficha.equipo.id);
@@ -1988,7 +2330,7 @@
       <table><thead><tr><th>Cuadrilla</th><th>Rol</th><th>Empresa</th>${ed ? '<th></th>' : ''}</tr></thead><tbody>${filas}</tbody></table>
       <datalist id="crono-empresas">${(d.empresas || []).map((n) => `<option value="${esc(n)}">`).join('')}</datalist>
       ${ed ? `<div class="crono-acciones"><button class="boton secundario" data-cx="crono-anadir">+ Persona</button>
-        ${cuadrillaLocal && cuadrillaLocal.cambiada ? `<button class="boton" data-cx="crono" data-accion="cuadrilla">Guardar cuadrilla</button>` : ''}</div>` : ''}
+        ${cuadrillaLocal && cuadrillaLocal.cambiada ? marcaAG(cuadrillaLocal.estado || 'guardando') : ''}</div>` : ''}
       ${c.vacio ? '' : `<div class="crono-cifras">
         <span>${comaCr(c.duracionH, 2)} h de reloj</span>
         <span>${comaCr(c.horasPersona, 2)} horas-persona</span>
@@ -2040,7 +2382,13 @@
     return cuadrillaLocal.personas;
   }
 
-  async function accionCrono(boton, accion, extra = {}) {
+  /* La cuadrilla se guarda sola (JC, 28-oct): ~1 s después de tocarla, sin botón. */
+  let relojCuadrilla = null;
+  function cuadrillaPronto() {
+    clearTimeout(relojCuadrilla);
+    relojCuadrilla = setTimeout(() => { relojCuadrilla = null; if (ficha && cuadrillaLocal && cuadrillaLocal.cambiada) accionCrono(null, 'cuadrilla', {}, true); }, 1000);
+  }
+  async function accionCrono(boton, accion, extra = {}, silencio = false) {
     if (!ficha) return;
     if (boton) boton.disabled = true;
     try {
@@ -2053,8 +2401,16 @@
       if (cuerpo.cuadrilla) { cuadrillaLocal = null; }
       repintarCrono();
       const txt = { empezar: 'Cronómetro en marcha', pausar: 'En pausa', terminar: `Terminado: ${hms(r.cronometro.duracionMs)}`, cuadrilla: 'Cuadrilla guardada', bocas: 'Bocas apuntadas' }[accion];
-      if (txt) C.aviso(txt, 'bien');
-    } catch (e) { C.aviso(e.message); if (boton) boton.disabled = false; }
+      if (txt && !silencio) C.aviso(txt, 'bien');
+    } catch (e) {
+      if (boton) boton.disabled = false;
+      if (silencio && cuadrillaLocal) {
+        cuadrillaLocal.estado = AG && AG.sinRed(e) ? 'sinRed' : 'error';
+        if (cuadrillaLocal.estado === 'error') C.aviso(e.message);
+        if (!escribiendoEnApp()) repintarCrono();
+        setTimeout(cuadrillaPronto, 30000);
+      } else C.aviso(e.message);
+    }
   }
 
   async function parteCrono(boton) {
@@ -2074,7 +2430,9 @@
     if (!activa() || hoja || !ficha) return;
     if (ev.target.hasAttribute('data-crono-campo')) {
       leerCuadrilla();
+      cuadrillaLocal.estado = 'guardando';
       if (!cuadrillaLocal.cambiada) { cuadrillaLocal.cambiada = true; repintarCrono(); }
+      cuadrillaPronto();
     } else if (ev.target.hasAttribute('data-crono-bocas')) accionCrono(null, 'bocas', { bocasAMano: ev.target.value.trim() });
   });
 
@@ -2095,13 +2453,16 @@
     if (!b) return;
     const que = b.dataset.cx;
     if (que === 'lista') cargarLista();
+    /* El plano de equipos por plantas con sus colores (planoEquipos.js, 28-oct). */
+    else if (que === 'plano-equipos' && window.CX_PLANO_EQUIPOS) { ficha = null; window.CX_PLANO_EQUIPOS.abrir($app); }
     /* 16-oct (JC): la franja del TAG vuelve SIEMPRE a la pantalla anterior:
        si se llegó desde otra unidad del conjunto (UI → UE-DAS), a esa unidad. */
     else if (que === 'atras') { const prev = pilaEquipos.pop(); if (prev) abrir(prev, { atras: true }); else { const y = yLista; cargarLista().then(() => window.scrollTo(0, y)); } }
     else if (que === 'equipo') { if (!ficha) yLista = window.scrollY; if (ficha && ficha.equipo.id !== b.dataset.id) pilaEquipos.push(ficha.equipo.id); abrir(b.dataset.id); }
     else if (que === 'ver-balanceo' && ficha) { pestanaEq = 'balanceo'; pintarFicha(); window.scrollTo(0, 0); }
-    else if (que === 'ficha-equipo' && ficha) { document.body.classList.remove('sin-scroll'); pestanaEq = 'equipo'; pintarFicha(); window.scrollTo(0, 0); }
+    /* Ya no hay botón: la subpantalla (toma de datos y guardadas antes) queda para quien la invoque. */
     else if (que === 'ver-fichas' && ficha) { document.body.classList.remove('sin-scroll'); pestanaEq = 'fichas'; pintarFicha(); window.scrollTo(0, 0); if (fichasEq) cargarTomas(ficha.equipo.id); }
+    else if (que === 'ficha-equipo' && ficha) { document.body.classList.remove('sin-scroll'); pestanaEq = 'equipo'; pintarFicha(); window.scrollTo(0, 0); }
     else if (que === 'hoja') abrirHoja(Number(b.dataset.i));
     else if (que === 'volver-equipo') salirHoja();
     /* Fin del checklist (JC, 28-oct): guarda lo pendiente y vuelve al equipo;
@@ -2109,10 +2470,18 @@
     else if (que === 'terminar-hoja' && hoja) terminarHoja(b);
     else if (que === 'paso-hoja' && hoja) irAPaso(Number(b.dataset.ir !== undefined ? b.dataset.ir : b.dataset.paso));
     else if (que === 'foto') fotoHoja(b.dataset.camara === '1');
-    else if (que === 'quitar-foto' && hoja) { hoja.quitar.add(Number(b.dataset.i)); hoja.cambiada = true; pintarHoja(); }
-    else if (que === 'quitar-nueva' && hoja) { const [x] = hoja.nuevas.splice(Number(b.dataset.i), 1); if (x) URL.revokeObjectURL(x.url); pintarHoja(); }
-    else if (que === 'guardar-hoja') guardarHoja(b);
-    else if (que === 'guardar-toma' && ficha && !hoja) guardarTomas(b);
+    else if (que === 'quitar-foto' && hoja) { hoja.quitar.add(Number(b.dataset.i)); cambio(hoja); pintarHoja(); }
+    else if (que === 'quitar-nueva' && hoja) {
+      const x = fotoNuevaDe(hoja, b.dataset.i);
+      const i = hoja.nuevas.indexOf(x);
+      if (i >= 0) hoja.nuevas.splice(i, 1);
+      if (x && x.url) { try { URL.revokeObjectURL(x.url); } catch { /* nada */ } }
+      if (x && x.local && AG) AG.borrarFoto(x.local);
+      cambio(hoja);
+      pintarHoja();
+    }
+    else if (que === 'guardar-hoja') guardarHoja();
+    else if (que === 'guardar-toma' && ficha && !hoja) guardarTomas();
     else if (que === 'pdf-hoja') pdfHoja(b);
     else if (que === 'pdf-hoja-obra') pdfHoja(b, true);
     else if (que === 'equipo-medida' && ficha) cambiarEquipo(b, false);
@@ -2141,15 +2510,15 @@
     else if (que === 'verificar-instalacion' && ficha) verificarInstalacion(b);
     else if (que === 'foto-equipo') fotoEquipo(b);
     else if (que === 'firmar' && ficha) abrirFirma(b.dataset.rol);
-    else if (que === 'cancelar-firma' && ficha) cerrarFirma();
-    else if (que === 'limpiar-firma' && ficha) { const cv = $app.querySelector('[data-firma-lienzo]'); if (cv) { cv.getContext('2d').clearRect(0, 0, cv.width, cv.height); trazado = false; } }
+    else if (que === 'cancelar-firma' && ficha) cerrarFirma({ olvidar: true });
+    else if (que === 'limpiar-firma' && ficha) { const cv = $app.querySelector('[data-firma-lienzo]'); if (cv) { cv.getContext('2d').clearRect(0, 0, cv.width, cv.height); trazado = false; firmaSinPintar = null; apuntarFirma(); } }
     else if (que === 'guardar-firma' && ficha) guardarFirma(b);
     else if (que === 'quitar-firma' && ficha) guardarFirma(b, true);
     else if (que === 'quitar-foto-equipo') quitarFotoEquipo(b);
     else if (que === 'nube-ahora' && window.cxObra && window.cxObra.sync) { b.disabled = true; window.cxObra.sync.ahora().finally(() => { if (ficha) abrir(ficha.equipo.id, { quieto: true }); }); }
     else if (que === 'crono' && ficha) accionCrono(b, b.dataset.accion);
-    else if (que === 'crono-anadir' && ficha) { const g = leerCuadrilla(); g.push({ nombre: `Operario ${g.filter((p) => p.rol === 'operario').length + 1}`, rol: 'operario', empresa: (g[g.length - 1] || {}).empresa || null }); cuadrillaLocal.cambiada = true; repintarCrono(); }
-    else if (que === 'crono-quitar' && ficha) { const g = leerCuadrilla(); if (g.length > 1) { g.splice(Number(b.dataset.i), 1); cuadrillaLocal.cambiada = true; repintarCrono(); } }
+    else if (que === 'crono-anadir' && ficha) { const g = leerCuadrilla(); g.push({ nombre: `Operario ${g.filter((p) => p.rol === 'operario').length + 1}`, rol: 'operario', empresa: (g[g.length - 1] || {}).empresa || null }); cuadrillaLocal.cambiada = true; cuadrillaLocal.estado = 'guardando'; repintarCrono(); cuadrillaPronto(); }
+    else if (que === 'crono-quitar' && ficha) { const g = leerCuadrilla(); if (g.length > 1) { g.splice(Number(b.dataset.i), 1); cuadrillaLocal.cambiada = true; cuadrillaLocal.estado = 'guardando'; repintarCrono(); cuadrillaPronto(); } }
     else if (que === 'crono-parte' && ficha) parteCrono(b);
     else if (que === 'crono-pdf' && ficha) compartirPdf(`api/informe?tipo=cronometro&equipo=${encodeURIComponent(ficha.equipo.id)}`, `${ficha.equipo.tag} - tiempo de medida (interno).pdf`, b);
     else if (que === 'pdf-balanceo' && ficha) compartirPdf(`api/informe?tipo=balanceo&equipo=${encodeURIComponent(ficha.equipo.id)}`, `${ficha.equipo.tag} - balanceo.pdf`, b);
@@ -2209,8 +2578,9 @@
   });
   $app.addEventListener('input', (ev) => {
     if (activa() && hoja) { anotar(ev.target); return; }
+    if (activa() && firmando && ev.target.hasAttribute && ev.target.hasAttribute('data-firma-nombre')) { apuntarFirma(); return; }
     if (activa() && anotarToma(ev.target)) return;
-    if (activa() && ev.target.dataset && ev.target.dataset.punto) { const li = ev.target.closest('li[data-boca]'); if (li) { vivoBoca(li); guardarBocaPronto(li); } return; }
+    if (activa() && ev.target.dataset && ev.target.dataset.punto) { const li = ev.target.closest('li[data-boca]'); if (li) { vivoBoca(li); apuntarBoca(li); guardarBocaPronto(li); } return; }
     if (!activa() || !ev.target.hasAttribute('data-cx-buscar')) return;
     filtro = ev.target.value;
     const pos = ev.target.selectionStart;
@@ -2253,7 +2623,8 @@
 
   window.addEventListener('movil:obra', () => { if (activa()) cargarLista(); });
   window.addEventListener('hashchange', (ev) => {
-    if (!activa()) return;
+    /* Se va a otra pantalla (atrás, otra pestaña): lo pendiente se manda ya. */
+    if (!activa()) { guardarTodoYa(); return; }
     /* Ha llegado algo de la oficina con un equipo abierto: se repinta ese equipo, no la lista. */
     if (ev.cxDatos && ficha) {
       /* Con una boca a medio escribir no se repinta: se perdería lo tecleado (se guarda y repinta sola). */
@@ -2268,5 +2639,13 @@
     }
     cargarLista();
   });
+  /* Al irse de la app (gesto de inicio, bloquear, cerrar): lo pendiente, una última vez. */
+  if (AG) AG.alSalir(() => { guardarTodoYa(); });
+  /* Lo que quedó en el teléfono sin mandar (sin red, app cerrada): la cola lo manda al volver. */
+  if (COLA) {
+    COLA.registrar('ficha.', enviarBorradorFicha);
+    COLA.registrar('fotoEquipo.', enviarFotoEquipoPendiente);
+    COLA.registrar('boca.', enviarBocaPendiente);
+  }
   if (activa()) cargarLista();
 })();
