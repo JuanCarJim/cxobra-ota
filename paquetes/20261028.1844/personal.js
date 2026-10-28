@@ -26,6 +26,19 @@
   const activa = () => location.hash === '#personal';
   const CLASE = { bien: 'bien', aviso: 'aviso', mal: 'mal', vacio: 'neutra', futuro: 'neutra' };
 
+  /*
+   * AUTOGUARDADO (JC, 28-oct: «en toda la app»): el alta de un operario vive
+   * en el teléfono desde la primera letra (`cx.borrador.personal.alta.<id>`).
+   * Atrás, otra pantalla o cerrar la app no la pierden: al volver a «+ Operario
+   * nuevo» sale como se dejó. «Dar de alta» es el acto de darlo de alta (crea
+   * una persona que ficha): se manda con un id propio, así que repetirlo sin
+   * red no lo duplica, y si no hay conexión la cola lo manda sola al volver.
+   */
+  const AG = window.AUTOGUARDADO || null;
+  const COLA = window.COLA_GUARDADO || null;
+  const CLAVE = 'personal.alta.';
+  let altaForm = null;
+
   let datos = null;
   let obraId = null;
   /* La obra es la elegida en la cabecera (carcasa.js), la misma para todas. */
@@ -91,7 +104,18 @@
       </section>` : '<p class="nota">Tu rol puede ver quién ha venido, pero no fichar.</p>'}
       <h2>Subcontratas <span class="cuenta">${o.subcontratas.length}</span></h2>
       ${o.subcontratas.length ? window.CX.listaAgrupada('personal-subs', o.subcontratas, { envolver: (h) => h, fila: (s) => tarjetaSub(s, puede), repintar: pintarHoy }) : '<p class="vacio">Aún no hay subcontratas con operarios dados de alta ni previsión en esta obra.</p>'}
+      ${puede ? avisoAltasPendientes() : ''}
       ${puede ? '<button class="boton secundario" data-per="alta">+ Operario nuevo</button>' : ''}`;
+  }
+
+  /* Altas que están en el móvil sin haber llegado al ordenador. */
+  function avisoAltasPendientes() {
+    const p = pendientesAlta().map((x) => x.b);
+    if (!p.length) return '';
+    const mandando = p.filter((b) => b.listo);
+    const abiertas = p.filter((b) => !b.listo && b.nombre);
+    return `${mandando.length ? `<p class="nota aviso">${mandando.length === 1 ? `${esc(mandando[0].nombre)} está` : `${mandando.length} altas están`} en el móvil y se mandará${mandando.length === 1 ? '' : 'n'} sola${mandando.length === 1 ? '' : 's'} al tener conexión.</p>` : ''}
+      ${abiertas.length ? `<p class="nota">Alta sin terminar: ${esc(abiertas[0].nombre)}. Pulsa «+ Operario nuevo» para seguir.</p>` : ''}`;
   }
 
   function tarjetaSub(s, puede) {
@@ -162,39 +186,120 @@
     } catch (e) { aviso(e.message); }
   }
 
+  const TEXTO_MARCA = { movil: 'Guardado en el móvil', guardado: 'Guardado', sinRed: 'Sin conexión, se guardará', error: 'No se ha guardado' };
+  const pendientesAlta = () => (COLA ? COLA.claves(CLAVE) : []).map((k) => ({ clave: k, b: AG ? AG.leer(k) : null })).filter((x) => x.b);
+  const nuevoId = () => `op${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+
+  function apuntarAlta() {
+    if (!AG || !altaForm) return;
+    AG.guardar(CLAVE + altaForm.id, { ...altaForm });
+  }
+  function marcaAlta(estado) {
+    const el = $app.querySelector && $app.querySelector('.autoguardado');
+    if (el) { el.className = `autoguardado ${estado}`; el.textContent = TEXTO_MARCA[estado] || ''; }
+  }
+
   function alta() {
     const o = obra();
     if (!o) return;
-    const opciones = (lista) => lista.map((p) => `<option value="${esc(p.id)}">${esc(p.nombre)}</option>`).join('');
+    /* Un alta que se dejó a medias (o sin red) vuelve tal cual. */
+    if (!altaForm) {
+      const previo = pendientesAlta().map((x) => x.b).filter((b) => b.obraId === o.id).sort((a, b) => (b._en || 0) - (a._en || 0))[0];
+      altaForm = previo ? { id: previo.id, obraId: o.id, nombre: previo.nombre || '', proveedorId: previo.proveedorId || '', oficio: previo.oficio || '', ficharHoy: previo.ficharHoy !== false, listo: false }
+        : { id: nuevoId(), obraId: o.id, nombre: '', proveedorId: '', oficio: '', ficharHoy: true, listo: false };
+    }
+    const f = altaForm;
+    const opciones = (lista) => lista.map((p) => `<option value="${esc(p.id)}" ${p.id === f.proveedorId ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('');
     $app.innerHTML = `
-      <button class="volver" data-per="hoy">‹ Personal</button>
+      <div class="barra-editor"><button class="volver" data-per="hoy">‹ Personal</button><span class="autoguardado ${f.nombre ? 'movil' : ''}" role="status" aria-live="polite">${f.nombre ? 'Guardado en el móvil' : ''}</span></div>
       <h2>Operario nuevo</h2>
       <p class="nota">${esc(o.codigo)} · ${esc(o.nombre)}. Solo el nombre, la empresa y el oficio: nada más.</p>
-      <label>Nombre y apellido<input id="a-nombre" autocomplete="off" autocapitalize="words"></label>
+      <label>Nombre y apellido<input id="a-nombre" autocomplete="off" autocapitalize="words" value="${esc(f.nombre)}"></label>
       <label>Empresa<select id="a-empresa"><option value="">Elige…</option>
         ${o.proveedores.deObra.length ? `<optgroup label="En esta obra">${opciones(o.proveedores.deObra)}</optgroup>` : ''}
         ${o.proveedores.resto.length ? `<optgroup label="Otras">${opciones(o.proveedores.resto)}</optgroup>` : ''}
       </select></label>
-      <label>Oficio (si quieres)<input id="a-oficio" autocomplete="off" placeholder="Oficial, peón, frigorista…"></label>
-      <label class="marca"><input type="checkbox" id="a-hoy" checked> Ha venido hoy: ficharlo ya (a mano)</label>
+      <label>Oficio (si quieres)<input id="a-oficio" autocomplete="off" placeholder="Oficial, peón, frigorista…" value="${esc(f.oficio)}"></label>
+      <label class="marca"><input type="checkbox" id="a-hoy" ${f.ficharHoy ? 'checked' : ''}> Ha venido hoy: ficharlo ya (a mano)</label>
       <button class="boton grande" data-per="guardar-alta">Dar de alta</button>
-      <p class="nota">Su tarjeta con el QR se imprime en el ordenador: Obra › Personal › Operarios.</p>`;
-    document.getElementById('a-nombre').focus();
+      <p class="nota">Lo que escribes se guarda solo en el móvil. Su tarjeta con el QR se imprime en el ordenador: Obra › Personal › Operarios.</p>`;
+    if (!f.nombre) document.getElementById('a-nombre').focus();
+  }
+
+  /* Un campo del alta cambia: queda en el teléfono al momento. */
+  function cambioAlta(ev) {
+    if (!activa() || !altaForm) return;
+    const t = ev.target;
+    const mapa = { 'a-nombre': 'nombre', 'a-empresa': 'proveedorId', 'a-oficio': 'oficio' };
+    if (t.id === 'a-hoy') altaForm.ficharHoy = Boolean(t.checked);
+    else if (mapa[t.id]) altaForm[mapa[t.id]] = t.value;
+    else return;
+    apuntarAlta();
+    marcaAlta('movil');
+  }
+
+  /* Manda el alta. Devuelve true si el ordenador ya la tiene (o no hay nada que mandar). */
+  async function mandarAlta(b) {
+    if (!b.listo) return true;
+    try {
+      const r = await postJson('api/operario', { id: b.id, obraId: b.obraId, nombre: b.nombre, proveedorId: b.proveedorId, oficio: b.oficio, ficharHoy: b.ficharHoy });
+      /* «Ya está dado de alta» con su id: otro envío (o un compañero) lo hizo; basta con ficharlo. */
+      if (!r.ok && r.id) {
+        if (b.ficharHoy) { try { await postJson('api/fichar', { operarioId: r.id, notas: 'Alta en obra, sin tarjeta todavía' }); } catch { /* ya estaba */ } }
+        if (AG) AG.borrar(CLAVE + b.id);
+        return { ok: true, nombre: b.nombre, yaEstaba: true };
+      }
+      if (!r.ok) {
+        /* El ordenador dice que no vale (falta algo): vuelve a ser un borrador para corregirlo. */
+        if (AG) AG.guardar(CLAVE + b.id, { ...b, listo: false, error: r.error });
+        return { ok: false, error: r.error };
+      }
+      if (AG) AG.borrar(CLAVE + b.id);
+      return r;
+    } catch (e) {
+      return { ok: false, sinRed: AG ? AG.sinRed(e) : true, error: e.message };
+    }
   }
 
   async function guardarAlta(boton) {
-    const v = (id) => document.getElementById(id).value;
+    const f = altaForm;
+    if (!f) return;
+    if (!String(f.nombre).trim()) { aviso('Escribe el nombre y el apellido.', 'aviso'); return; }
+    if (!f.proveedorId) { aviso('Elige la empresa del operario.', 'aviso'); return; }
     boton.disabled = true;
-    try {
-      const r = await postJson('api/operario', { obraId: obra().id, nombre: v('a-nombre'), proveedorId: v('a-empresa'), oficio: v('a-oficio'), ficharHoy: document.getElementById('a-hoy').checked });
-      if (!r.ok) throw new Error(r.error);
-      aviso(`${r.nombre} dado de alta${r.fichaje && r.fichaje.ok ? ' y fichado hoy a mano' : ''}. Imprime su tarjeta en el ordenador.`, 'bien');
-      await cargar();
-      pintarHoy();
-    } catch (e) {
-      aviso(e.message);
-      boton.disabled = false;
+    f.listo = true;
+    apuntarAlta();
+    marcaAlta('movil');
+    const r = await mandarAlta(f);
+    if (r === true || r.ok) {
+      altaForm = null;
+      aviso(r.yaEstaba ? `${r.nombre} ya estaba dado de alta${f.ficharHoy ? ' y queda fichado hoy' : ''}.` : `${r.nombre} dado de alta${r.fichaje && r.fichaje.ok ? ' y fichado hoy a mano' : ''}. Imprime su tarjeta en el ordenador.`, 'bien');
+      try { await cargar(); } catch { /* se verá al volver */ }
+      if (activa()) pintarHoy();
+      return;
     }
+    boton.disabled = false;
+    if (r.sinRed) {
+      /* Sin conexión: queda en el móvil y la cola lo manda al volver la red. */
+      marcaAlta('sinRed');
+      aviso('Sin conexión: el alta queda guardada en el móvil y se mandará sola.', 'aviso');
+      altaForm = null;
+      if (COLA) COLA.masTarde();
+      if (activa() && datos) pintarHoy();
+      return;
+    }
+    f.listo = false;
+    marcaAlta('error');
+    aviso(r.error);
+  }
+
+  /* La cola: un alta que quedó en el teléfono (app cerrada o sin red) se manda sola. */
+  async function enviarPendiente(clave, b) {
+    if (altaForm && altaForm.id === b.id && !b.listo) return true;
+    const r = await mandarAlta(b);
+    if (r === true) return true;
+    if (r.ok) { if (activa() && datos) { try { await cargar(); pintarHoy(); } catch { /* nada */ } } return true; }
+    return !r.sinRed;
   }
 
   /* ═══════════════════════════════════ Los clics */
@@ -204,13 +309,15 @@
     const b = ev.target.closest('[data-per]');
     if (!b) return;
     const a = b.dataset.per;
-    if (a === 'hoy') hoy();
+    if (a === 'hoy') { altaForm = null; hoy(); }
     else if (a === 'leer') $camara.click();
     else if (a === 'mano') aMano(b.dataset.id, b.dataset.nombre);
     else if (a === 'alta') alta();
     else if (a === 'guardar-alta') guardarAlta(b);
   });
+  $app.addEventListener('input', cambioAlta);
   $app.addEventListener('change', (ev) => {
+    cambioAlta(ev);
     if (!activa() || ev.target.dataset.perCambio !== 'obra') return;
     obraId = ev.target.value;
     try { localStorage.setItem('personal.obra', obraId); } catch { /* sin almacenamiento */ }
@@ -222,6 +329,7 @@
     fotoQr(archivo);
   });
 
-  window.addEventListener('hashchange', () => { if (activa()) hoy(); });
+  if (COLA) COLA.registrar(CLAVE, enviarPendiente);
+  window.addEventListener('hashchange', () => { if (activa()) { altaForm = null; hoy(); } });
   if (activa()) hoy();
 })();

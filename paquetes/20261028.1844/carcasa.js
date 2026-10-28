@@ -44,7 +44,7 @@
       icono: icono('<path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.5"/><circle cx="12" cy="17" r=".6" fill="currentColor"/>',
         `<path d="M12 3.5 2.8 19.5h18.4z" fill="currentColor"/><path d="M12 10v4" ${HUECO} stroke-width="2.2"/><path d="M12 16.9v.1" ${HUECO} stroke-width="2.4"/>`),
       /* 26-oct: «Reclamables», los avisos del tajo que pueden reclamarse (avisosReclamables.js). */
-      secciones: [['partes', 'Partes'], ['avisos', 'Reclamables'], ['ncr', 'NCR'], ['reparaciones', 'Reparaciones']] },
+      secciones: [['partes', 'Partes'], ['avisos', 'Reclamables'], ['qhse', 'QHSE'], ['ncr', 'NCR'], ['reparaciones', 'Reparaciones']] },
     /* El avance de obra sobre planos (16-oct): el encargado marca lo hecho. */
     { id: 'avance', nombre: 'Avance',
       icono: icono('<rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M7 15.5l3.5-4 3 2.5L17 8.5"/>',
@@ -85,13 +85,16 @@
     /* 26-oct: esperas, accesos denegados, falta de medios… (avisosReclamables.js). */
     { seccion: 'avisos', nombre: 'Algo reclamable', ayuda: 'Esperas, accesos denegados, sin grúa…', obra: true, pasos: ['[data-at="nuevo"]'],
       icono: svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>') },
+    /* 28-oct: la inspección del sitio de cada semana (qhse.js). */
+    { seccion: 'qhse', nombre: 'Inspección del sitio', ayuda: 'QHSE: la de esta semana, control de subcontratas, CAE', obra: true, pasos: ['[data-qh="nuevo"][data-p="inspeccionObra"]'],
+      icono: svg('<path d="M9 4.5h6M9 4.5A1.5 1.5 0 0 0 7.5 6H6a1.5 1.5 0 0 0-1.5 1.5v11A1.5 1.5 0 0 0 6 20h12a1.5 1.5 0 0 0 1.5-1.5v-11A1.5 1.5 0 0 0 18 6h-1.5A1.5 1.5 0 0 0 15 4.5"/><path d="M8.5 13l2.5 2.5 4.5-5"/>') },
   ];
 
   /* El título de cada sección, arriba: corto, que en el iPhone quepa junto a la pastilla (18-oct). */
   const TITULO = {
     inicio: 'Inicio', commissioning: 'Commissioning', partes: 'Partes', ncr: 'No conformidades', reparaciones: 'Reparaciones', avance: 'Avance de obra', albaranes: 'Albaranes',
     inventario: 'Inventario', bloc: 'Notas', personal: 'Personal', estanqueidad: 'Estanqueidad', cuenta: 'Cuenta',
-    misTareas: 'Mis tareas', avisos: 'Reclamables',
+    misTareas: 'Mis tareas', avisos: 'Reclamables', qhse: 'QHSE',
   };
   /* Las que no dependen de la obra elegida no enseñan el selector. */
   const SIN_OBRA = new Set(['cuenta', 'albaranes']);
@@ -588,7 +591,7 @@
   }
 
   /** Los bloques «Hoy» y «Esta semana»: { hoy, semana } en HTML (vacíos si no hay datos). */
-  function bloquesAgenda(plan, dia, obraIdActual) {
+  function bloquesAgenda(plan, dia, obraIdActual, plegados = new Set()) {
     const planOk = plan && plan.ok;
     const diaOk = dia && dia.ok;
     if (!planOk && !diaOk) return { hoy: '', semana: '', nHoy: 0, nSemana: 0 };
@@ -603,19 +606,24 @@
     const vencidos = items.filter((i) => i.vencida);
     const nAtras = atrasadas.length + vencidos.length;
     const nHoy = deHoy.length + itemsHoy.length;
-    const pie = nAtras ? `<details class="ag-atras">
+    const pie = nAtras ? `<details class="ag-atras" data-plegar-atras${plegados.has('atras') ? ' open' : ''}>
         <summary>${cifra(nAtras)} sin terminar de días anteriores</summary>
         ${atrasadas.map((s) => filaSesion(s, true)).join('')}${vencidos.map((i) => filaDia(i, hoy)).join('')}
       </details>` : '';
-    const htmlHoy = `<section class="ag-bloque" data-bloque-ini="hoy">
-        <h2 class="titulo-grupo ag-titulo">Hoy <span>${esc(diaCorto(hoy))}${nHoy ? ` · ${cifra(nHoy)}` : ''}</span></h2>
+    const cab = (id, texto, resumen) => `<h2 class="titulo-grupo ag-titulo ag-plegable" data-plegar="${id}" role="button" tabindex="0" aria-expanded="${!plegados.has(id)}"><b class="ag-flecha">▾</b> <em>${texto}</em> <span>${resumen}</span></h2>`;
+    const htmlHoy = `<section class="ag-bloque${plegados.has('hoy') ? ' plegado' : ''}" data-bloque-ini="hoy">
+        ${cab('hoy', 'Hoy', `${esc(diaCorto(hoy))}${nHoy ? ` · ${cifra(nHoy)}` : ''}${nAtras ? ` · ${cifra(nAtras)} atrasadas` : ''}`)}
+        <div class="ag-cuerpo"${plegados.has('hoy') ? ' hidden' : ''}>
         ${deHoy.map((s) => filaSesion(s, false)).join('')}${itemsHoy.map((i) => filaDia(i, hoy)).join('')}
         ${nHoy ? '' : '<p class="ag-vacio">Hoy no hay nada planificado.</p>'}
         ${pie}
+        </div>
       </section>`;
-    const htmlSemana = `<section class="ag-bloque" data-bloque-ini="semana">
-        <h2 class="titulo-grupo ag-titulo">${planOk && plan.semanaQueViene ? 'Esta semana y la que viene' : 'Esta semana'}${semana.length ? ` <span>${cifra(semana.length)}</span>` : ''}</h2>
+    const htmlSemana = `<section class="ag-bloque${plegados.has('semana') ? ' plegado' : ''}" data-bloque-ini="semana">
+        ${cab('semana', planOk && plan.semanaQueViene ? 'Esta semana y la que viene' : 'Esta semana', semana.length ? cifra(semana.length) : '')}
+        <div class="ag-cuerpo"${plegados.has('semana') ? ' hidden' : ''}>
         ${semana.map((s) => filaSesion(s, true)).join('') || '<p class="ag-vacio">Nada más planificado esta semana.</p>'}
+        </div>
       </section>`;
     return { hoy: htmlHoy, semana: htmlSemana, nHoy, nSemana: semana.length };
   }
@@ -628,7 +636,7 @@
   /* 28-oct (JC): «en lugar de commissioning, un resumen de commissioning,
      incidencias, reparaciones… escueto». El id sigue siendo 'cx' para que
      quien lo había quitado lo siga teniendo quitado. */
-  const BLOQUES_INICIO = [['hoy', 'Hoy'], ['semana', 'Semana'], ['cx', 'Resumen'], ['pendiente', 'Pendiente']];
+  const BLOQUES_INICIO = [['hoy', 'Hoy'], ['utas', 'UTAs hoy'], ['semana', 'Semana'], ['cx', 'Resumen'], ['marcha', 'En marcha'], ['pendiente', 'Pendiente']];
 
   /*
    * RESUMEN DE LA OBRA (28-oct, JC; tarea ca2a4a48): una fila por área con 2-4
@@ -695,6 +703,14 @@
   }
   /* fin resumenObra */
   const claveOcultos = () => { const s = sesion() || {}; return `cx.inicio.ocultos.${s.email || s.nombre || 'anonimo'}.${s.rol || ''}`; };
+  /* Bloques plegados con un toque en su título (recordado por persona; 'atras' = lo atrasado desplegado). */
+  const clavePlegados = () => claveOcultos().replace('.ocultos.', '.plegados.');
+  const leerPlegados = () => {
+    try { const v = JSON.parse(localStorage.getItem(clavePlegados()) || '[]'); return new Set(Array.isArray(v) ? v.map(String) : []); } catch { return new Set(); }
+  };
+  const guardarPlegados = (set) => {
+    try { if (set.size) localStorage.setItem(clavePlegados(), JSON.stringify([...set])); else localStorage.removeItem(clavePlegados()); } catch { /* sin almacén */ }
+  };
   const leerOcultos = () => {
     try { const v = JSON.parse(localStorage.getItem(claveOcultos()) || '[]'); return new Set(Array.isArray(v) ? v.map(String) : []); } catch { return new Set(); }
   };
@@ -742,8 +758,9 @@
         ${misOrdenes ? fila('misTareas', 'Mis tareas de mantenimiento', cifra(misOrdenes.length), misOrdenes.some((f) => f.atrasada)) : ''}
         </div>
       </section>` : '';
-    const ag = bloquesAgenda(plan, dia, o.id);
-    const bloques = { hoy: ag.hoy, semana: ag.semana, cx: cxHtml, pendiente: pendienteHtml };
+    const ag = bloquesAgenda(plan, dia, o.id, leerPlegados());
+    const PN = window.CX.panelNcn; /* el panel de NCN (panelNcn.js) */
+    const bloques = { hoy: ag.hoy, utas: PN ? PN.htmlUtasHoy(plan, { esc, cifra }) : '', semana: ag.semana, cx: cxHtml, marcha: PN ? PN.htmlPuestosEnMarcha(cx, { esc, cifra }) : '', pendiente: pendienteHtml };
     const hay = BLOQUES_INICIO.filter(([id]) => bloques[id]);
     const ocultos = leerOcultos();
     app.innerHTML = `
@@ -763,6 +780,24 @@
         guardarOcultos(set);
         inicio();
       };
+    }
+    for (const h of app.querySelectorAll('[data-plegar]')) {
+      const alternar = () => {
+        const set = leerPlegados();
+        const id = h.dataset.plegar;
+        if (set.has(id)) set.delete(id); else set.add(id);
+        guardarPlegados(set);
+        const sec = h.closest('.ag-bloque');
+        const cerrado = set.has(id);
+        sec.classList.toggle('plegado', cerrado);
+        sec.querySelector('.ag-cuerpo').hidden = cerrado;
+        h.setAttribute('aria-expanded', String(!cerrado));
+      };
+      h.onclick = alternar;
+      h.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); alternar(); } };
+    }
+    for (const d of app.querySelectorAll('[data-plegar-atras]')) {
+      d.ontoggle = () => { const set = leerPlegados(); if (d.open) set.add('atras'); else set.delete('atras'); guardarPlegados(set); };
     }
     /* Sin botón «Añadir…»: ya está el + de la barra (15-oct, JC). */
     /* Un TAG de «Hoy» o «Esta semana» abre su ficha: el módulo lo recoge al cargar. */

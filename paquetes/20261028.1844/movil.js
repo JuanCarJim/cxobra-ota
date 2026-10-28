@@ -36,6 +36,21 @@
   const CLASE = { pendiente: 'neutra', parcial: 'aviso', diferencias: 'mal', recepcionado: 'bien' };
   const chip = (estado) => `<span class="chip ${CLASE[estado] || 'neutra'}">${esc((A.RECEPCION[estado] || {}).nombre || estado)}</span>`;
 
+  /*
+   * AUTOGUARDADO (JC, 28-oct: «en toda la app»): el albarán que se rellena
+   * vive en el teléfono desde el primer dato (`cx.borrador.albaran.<id>`), con
+   * sus fotos en IndexedDB. Atrás, otra pantalla, cerrar la app o quedarse sin
+   * red no lo pierden: en la lista sale «Albarán sin registrar» para seguirlo.
+   * «Registrar albarán» es el acto de registrar la entrega (cambia el estado
+   * del pedido y avisa al jefe de obra): se manda con un id propio, así que
+   * repetirlo no lo duplica, y sin conexión la cola lo registra sola.
+   */
+  const AG = window.AUTOGUARDADO || null;
+  const COLA = window.COLA_GUARDADO || null;
+  const CLAVE = 'albaran.';
+  const TEXTO_MARCA = { movil: 'Guardado en el móvil', guardando: 'Guardando…', guardado: 'Guardado', sinRed: 'Sin conexión, se guardará', error: 'No se ha guardado' };
+  const nuevoId = () => `alb${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+
   let datos = null;     /* la lista */
   let form = null;      /* el albarán que se está rellenando */
 
@@ -66,7 +81,7 @@
       datos = await pedir('api/albaranes');
       if (seccion() !== 'albaranes') return; /* se ha cambiado de sección mientras cargaba */
     } catch (e) {
-      $app.innerHTML = `<div class="vacio mal"><p>${esc(e.message)}</p><button class="boton" data-accion="recargar">Reintentar</button></div>`;
+      $app.innerHTML = `${bannerBorradores()}<div class="vacio mal"><p>${esc(e.message)}</p><button class="boton" data-accion="recargar">Reintentar</button></div>`;
       return;
     }
     document.getElementById('quien').textContent = datos.quien || '';
@@ -78,6 +93,7 @@
     const puede = datos.puede && datos.puede.registrar;
     const pedidos = datos.pedidos || [];
     $app.innerHTML = `
+      ${bannerBorradores()}
       ${puede ? `<section class="acciones">
         <button class="boton grande" data-accion="foto"><i class="ic ic-camara"></i>Fotografiar albarán</button>
         <div class="fila-botones">
@@ -105,6 +121,98 @@
     </article>`;
   }
 
+  /* ═══════════════════════════════════ Borradores (autoguardado) */
+
+  const borradores = () => (COLA && AG ? COLA.claves(CLAVE).map((k) => AG.leer(k)).filter(Boolean) : []);
+
+  /* Los albaranes que están en el móvil sin haber llegado al ordenador. */
+  function bannerBorradores() {
+    const todos = borradores();
+    if (!todos.length) return '';
+    return todos.map((b) => (b.listo
+      ? `<div class="borrador-pendiente"><p>Albarán ${esc(b.pedido.codigo)}${b.numero ? ` (${esc(b.numero)})` : ''}: está en el móvil y se registrará solo al tener conexión.</p></div>`
+      : `<div class="borrador-pendiente"><p>Albarán sin registrar: ${esc(b.pedido.codigo)}${b.numero ? ` · ${esc(b.numero)}` : ''}. Está guardado en el móvil.</p>
+        <div class="fila-botones"><button class="boton pequeno" data-accion="seguir-borrador" data-id="${esc(b.id)}">Seguir</button><button class="boton secundario pequeno" data-accion="quitar-borrador" data-id="${esc(b.id)}">Descartar</button></div>${b.error ? `<p class="nota aviso">${esc(b.error)}</p>` : ''}</div>`)).join('');
+  }
+
+  /* Lo que queda en el teléfono: todo menos los archivos de las fotos y las vistas. */
+  function apuntar(f) {
+    if (!AG || !f || !f.clave) return;
+    AG.guardar(f.clave, {
+      id: f.id, listo: Boolean(f.listo), error: f.error || null,
+      pedido: { id: f.pedido.id, codigo: f.pedido.codigo, titulo: f.pedido.titulo, proveedor: f.pedido.proveedor, obra: f.pedido.obra },
+      numero: f.numero, fecha: f.fecha, notas: f.notas, texto: f.texto || '', opciones: f.opciones || [],
+      lectura: f.lectura ? { numero: f.lectura.numero, fecha: f.lectura.fecha, faltan: f.lectura.faltan } : null,
+      lineas: f.lineas, extras: f.extras, fotos: AG.fotosParaGuardar(f.fotos),
+    });
+  }
+  function marca(estado) {
+    const el = $app.querySelector && $app.querySelector('.barra-editor .autoguardado');
+    if (el) { el.className = `autoguardado ${estado}`; el.textContent = TEXTO_MARCA[estado] || ''; }
+  }
+  function cambio() {
+    if (!form) return;
+    apuntar(form);
+    marca('movil');
+  }
+
+  async function formDeBorrador(b) {
+    return {
+      id: b.id, clave: CLAVE + b.id, listo: Boolean(b.listo), error: b.error || null,
+      pedido: b.pedido, lectura: b.lectura, texto: b.texto || '', opciones: b.opciones || [], repetido: false,
+      numero: b.numero || '', fecha: b.fecha || hoy(), notas: b.notas || '', lineas: b.lineas || [], extras: b.extras || [],
+      fotos: AG ? await AG.restaurarFotos(b.fotos || []) : [],
+    };
+  }
+
+  /*
+   * Manda el albarán: sube las fotos que falten desde el teléfono, lo registra
+   * con su id y, si llega, borra el borrador. Devuelve {ok, ...} o {sinRed}.
+   */
+  async function mandar(f) {
+    try {
+      const subir = async (x) => {
+        const blob = x.archivo || (AG && x.local ? await AG.leerFoto(x.local) : null);
+        if (!blob) return false;
+        x.archivo = blob;
+        const r = await subirFoto(blob, false);
+        if (r.ok === false) throw new Error(r.error);
+        x.id = r.fotoId;
+        return true;
+      };
+      for (const x of [...f.fotos]) if (!x.id && !(await subir(x))) f.fotos = f.fotos.filter((y) => y !== x);
+      const cuerpo = () => ({
+        id: f.id, pedidoId: f.pedido.id, numero: f.numero, fecha: f.fecha, notas: f.notas,
+        lineas: lineasAMandar(f), fotos: f.fotos.map((x) => x.id), textoLeido: f.texto || null,
+      });
+      let r = await postJson('api/albaran', cuerpo());
+      if (!r.ok && /ya no est/i.test(String(r.error || ''))) {
+        /* El ordenador olvidó las fotos en espera: se suben otra vez desde el teléfono. */
+        for (const x of f.fotos) await subir(x);
+        r = await postJson('api/albaran', cuerpo());
+      }
+      if (!r.ok) {
+        /* El ordenador dice que no vale: vuelve a ser un borrador para corregirlo. */
+        f.listo = false; f.error = r.error; apuntar(f);
+        return { ok: false, error: r.error };
+      }
+      if (AG) AG.borrar(f.clave);
+      return r;
+    } catch (e) {
+      return { ok: false, sinRed: AG ? AG.sinRed(e) : false, error: e.message };
+    }
+  }
+
+  /* La cola: un albarán dado por listo que quedó en el teléfono se registra solo. */
+  async function enviarPendiente(clave, b) {
+    if (!b.listo) return true;
+    if (form && form.id === b.id) return true; /* se está registrando desde la pantalla */
+    const f = await formDeBorrador(b);
+    const r = await mandar(f);
+    if (r.ok) { datos = null; return true; }
+    return !r.sinRed;
+  }
+
   /* ═══════════════════════════════════ 2. La foto */
 
   async function subirFoto(archivo, leer) {
@@ -114,23 +222,36 @@
     return pedir(`api/foto?leer=${leer ? 1 : 0}${obra}`, { method: 'POST', headers: { 'Content-Type': tipo }, body: archivo });
   }
 
+  /* La foto se guarda en el teléfono nada más elegirla; después se sube. */
+  async function fotoLocal(archivo) {
+    const x = AG ? await AG.fotoNueva(archivo, { id: null }) : { id: null, archivo, url: URL.createObjectURL(archivo) };
+    return x;
+  }
+
   async function fotoNueva(archivo) {
     if (!archivo) return;
+    const foto = await fotoLocal(archivo);
     if (form) {
       /* Otra foto del mismo albarán (la segunda hoja): solo se guarda. */
+      form.fotos.push(foto);
+      cambio();
       try {
         const r = await subirFoto(archivo, false);
         if (r.ok === false) throw new Error(r.error);
-        form.fotos.push({ id: r.fotoId, url: URL.createObjectURL(archivo) });
-        pintarFormulario();
-      } catch (e) { aviso(e.message); }
+        foto.id = r.fotoId;
+      } catch (e) {
+        if (!(AG && AG.sinRed(e))) aviso(e.message);
+        else aviso('Sin conexión: la foto queda en el móvil y se subirá sola.', 'aviso');
+      }
+      cambio();
+      if (form) pintarFormulario();
       return;
     }
     $app.innerHTML = '<div class="leyendo"><div class="giro"></div><p>Leyendo el albarán…</p><small>La foto se lee en el ordenador de la obra.</small></div>';
     try {
       const r = await subirFoto(archivo, true);
       if (r.ok === false) throw new Error(r.error);
-      const foto = { id: r.fotoId, url: URL.createObjectURL(archivo) };
+      foto.id = r.fotoId;
       if (!r.leida) {
         aviso(r.error || 'No se ha podido leer: rellénalo a mano.', 'aviso');
         elegirPedido({ fotos: [foto] });
@@ -143,6 +264,12 @@
       }
       nuevoFormulario({ pedidoId: r.pedidoId, propuesta: r.propuesta, lectura: r.lectura, texto: r.texto, opciones: r.opciones, fotos: [foto], repetido: r.repetido });
     } catch (e) {
+      if (AG && AG.sinRed(e) && datos && (datos.pedidos || []).length) {
+        /* Sin conexión: la foto queda en el móvil y se elige el pedido a mano. */
+        aviso('Sin conexión: la foto queda en el móvil. Elige el pedido y rellénalo.', 'aviso');
+        elegirPedido({ fotos: [foto] });
+        return;
+      }
       aviso(e.message);
       lista();
     }
@@ -171,7 +298,16 @@
       const r = await postJson('api/formulario', { pedidoId, lectura: base.lectura ? { lineas: base.lectura.lineas } : {} });
       if (!r.ok) throw new Error(r.error);
       nuevoFormulario({ ...base, pedidoId, propuesta: r.propuesta });
-    } catch (e) { aviso(e.message); lista(); }
+    } catch (e) {
+      if (AG && AG.sinRed(e) && base.fotos && base.fotos.length) {
+        /* Sin red no se puede preparar el formulario: la foto queda guardada. */
+        aviso('Sin conexión: la foto queda en el móvil. Prueba cuando vuelva la red.', 'aviso');
+        $app.innerHTML = `<div class="borrador-pendiente"><p>La foto del albarán está guardada en el móvil, pero hace falta conexión para preparar el formulario.</p></div>
+          <button class="boton" data-accion="elegir" data-id="${esc(pedidoId)}">Reintentar</button><button class="boton secundario" data-accion="lista">Volver a la lista</button>`;
+        return;
+      }
+      aviso(e.message); lista();
+    }
   }
 
   /* ═══════════════════════════════════ 3. El formulario */
@@ -179,13 +315,15 @@
   function nuevoFormulario({ pedidoId, propuesta, lectura = null, texto = '', opciones = [], fotos = [], repetido = false }) {
     const p = ((datos && datos.pedidos) || []).find((x) => x.id === pedidoId) || { id: pedidoId, codigo: '', titulo: '' };
     form = {
-      pedido: p, lectura, texto, opciones, fotos, repetido,
+      id: nuevoId(), listo: false, pedido: p, lectura, texto, opciones, fotos, repetido,
       numero: (lectura && lectura.numero) || '',
       fecha: (lectura && lectura.fecha) || hoy(),
       notas: '',
       lineas: propuesta.lineas.map((l) => ({ ...l, llega: l.cantidad === null ? '' : String(l.cantidad).replace('.', ','), unidadLlega: l.unidadLeida || '' })),
       extras: propuesta.extras.map((x) => ({ ...x, destino: '', llega: String(x.cantidad ?? '').replace('.', ',') })),
     };
+    form.clave = CLAVE + form.id;
+    apuntar(form);
     pintarFormulario();
   }
 
@@ -197,9 +335,9 @@
   }
 
   /* Lo que se mandaría, y cómo quedaría el pedido (el mismo motor que el ordenador). */
-  function lineasAMandar() {
-    const fuera = form.lineas.filter((l) => String(l.llega).trim() !== '').map((l) => ({ lineaPedido: l.indice, cantidad: l.llega, unidad: l.unidadLlega || null, descripcion: l.leida || null }));
-    for (const x of form.extras) {
+  function lineasAMandar(f = form) {
+    const fuera = f.lineas.filter((l) => String(l.llega).trim() !== '').map((l) => ({ lineaPedido: l.indice, cantidad: l.llega, unidad: l.unidadLlega || null, descripcion: l.leida || null }));
+    for (const x of f.extras) {
       if (x.destino === 'quitar' || String(x.llega).trim() === '') continue;
       fuera.push({ lineaPedido: x.destino === '' ? null : Number(x.destino), cantidad: x.llega, unidad: x.unidad || null, descripcion: x.descripcion, referencia: x.referencia || null });
     }
@@ -222,7 +360,7 @@
     const porLinea = prev.recepcion ? prev.recepcion.lineas : [];
     const opcionesLinea = f.lineas.map((l) => `<option value="${l.indice}">${esc(l.descripcion)}</option>`).join('');
     $app.innerHTML = `
-      <button class="volver" data-accion="lista">‹ Albaranes</button>
+      <div class="barra-editor"><button class="volver" data-accion="lista">‹ Albaranes</button><span class="autoguardado movil" role="status" aria-live="polite">${esc(TEXTO_MARCA.movil)}</span></div>
       <section class="pedido-elegido">
         <div class="cabeza"><strong>${esc(f.pedido.codigo)}</strong><button class="enlace" data-accion="cambiar">Cambiar de pedido</button></div>
         <div class="titulo">${esc(f.pedido.titulo)}</div>
@@ -236,7 +374,7 @@
         <label>Fecha<input id="f-fecha" type="date" value="${esc(f.fecha)}" max="${hoy()}"></label>
       </div>
       <h2>¿Qué ha llegado?</h2>
-      <p class="nota">Lo leído ya está puesto. Corrige lo que no cuadre con lo que tienes delante; deja en blanco lo que no ha llegado.</p>
+      <p class="nota">Lo que pones se guarda solo en el móvil. Lo leído ya está puesto. Corrige lo que no cuadre con lo que tienes delante; deja en blanco lo que no ha llegado.</p>
       ${f.lineas.map((l, i) => {
         const r = porLinea[l.indice] || {};
         const [clase, nombre] = ESTADO_LINEA[r.estado] || ESTADO_LINEA.pendiente;
@@ -263,7 +401,7 @@
           </div></div>`).join('')}` : ''}
       <button class="boton secundario" data-accion="otra-linea">+ Algo que no estaba en el pedido</button>
       <h2>Fotos del albarán</h2>
-      <div class="fotos">${f.fotos.map((x) => `<img src="${esc(x.url)}" alt="Foto del albarán">`).join('')}
+      <div class="fotos">${f.fotos.map((x) => (x.url ? `<img src="${esc(x.url)}" alt="Foto del albarán">` : '<span class="foto-sin-vista">en el móvil</span>')).join('')}
         <button class="anadir-foto" data-accion="foto" aria-label="Añadir otra foto">＋</button></div>
       <label class="notas">Notas<textarea id="f-notas" rows="2" placeholder="Bultos dañados, faltas que dice el transportista…">${esc(f.notas)}</textarea></label>
       <section class="resumen ${prev.error ? 'mal' : CLASE[prev.estado] || 'neutra'}">
@@ -289,6 +427,7 @@
     const descripcion = window.prompt('¿Qué ha llegado que no estaba en el pedido?');
     if (!descripcion || !descripcion.trim()) return;
     form.extras.push({ descripcion: descripcion.trim(), referencia: null, unidad: null, destino: '', llega: '1' });
+    cambio();
     pintarFormulario();
   }
 
@@ -298,18 +437,26 @@
     if (!lineas.length) { aviso('Pon la cantidad de al menos una línea.'); return; }
     boton.disabled = true;
     boton.textContent = 'Registrando…';
-    try {
-      const r = await postJson('api/albaran', {
-        pedidoId: form.pedido.id, numero: form.numero, fecha: form.fecha, notas: form.notas,
-        lineas, fotos: form.fotos.map((x) => x.id), textoLeido: form.texto || null,
-      });
-      if (!r.ok) throw new Error(r.error);
-      resultado(r);
-    } catch (e) {
-      aviso(e.message);
-      boton.disabled = false;
-      boton.textContent = 'Registrar albarán';
+    const f = form;
+    f.listo = true;
+    f.error = null;
+    apuntar(f);
+    marca('guardando');
+    const r = await mandar(f);
+    if (r.ok) { resultado(r); return; }
+    if (r.sinRed) {
+      /* Sin conexión: queda en el móvil, listo, y la cola lo registra al volver la red. */
+      if (form === f) form = null;
+      if (COLA) COLA.masTarde();
+      $app.innerHTML = `<section class="resultado aviso"><div class="icono">◔</div><h1>Guardado en el móvil</h1>
+        <p>${esc(f.pedido.codigo)} · ${esc(f.pedido.titulo)}</p><p class="sub">Sin conexión: el albarán se registrará solo cuando vuelva.</p></section>
+        <button class="boton secundario" data-accion="lista">Volver a la lista</button>`;
+      return;
     }
+    aviso(r.error);
+    marca('error');
+    boton.disabled = false;
+    boton.textContent = 'Registrar albarán';
   }
 
   /* ═══════════════════════════════════ 4. El resultado */
@@ -331,9 +478,9 @@
         <p>${esc(r.codigo)} · ${esc(f.pedido.titulo)}</p>
         <p class="sub">${esc(sub)}</p>
       </section>
-      ${r.avisos.length ? `<ul class="avisos">${r.avisos.map((a) => `<li class="${a.nivel}">${esc(a.texto)}</li>`).join('')}</ul>` : ''}
+      ${(r.avisos || []).length ? `<ul class="avisos">${(r.avisos || []).map((a) => `<li class="${a.nivel}">${esc(a.texto)}</li>`).join('')}</ul>` : ''}
       <table class="tabla-resultado"><thead><tr><th>Línea</th><th>Pedido</th><th>Recibido</th><th></th></tr></thead><tbody>
-        ${r.lineas.map((l) => { const [c, n] = ESTADO_LINEA[l.estado] || ESTADO_LINEA.pendiente; return `<tr><td>${esc(l.descripcion)}</td><td>${cifra(l.pedida)}</td><td>${cifra(l.recibida)}</td><td><span class="chip ${c}">${n}</span></td></tr>`; }).join('')}
+        ${(r.lineas || []).map((l) => { const [c, n] = ESTADO_LINEA[l.estado] || ESTADO_LINEA.pendiente; return `<tr><td>${esc(l.descripcion)}</td><td>${cifra(l.pedida)}</td><td>${cifra(l.recibida)}</td><td><span class="chip ${c}">${n}</span></td></tr>`; }).join('')}
       </tbody></table>
       <button class="boton grande" data-accion="foto"><i class="ic ic-camara"></i>Otro albarán</button>
       <button class="boton secundario" data-accion="lista">Volver a la lista</button>`;
@@ -354,7 +501,9 @@
     else if (accion === 'mano') elegirPedido({ fotos: [] });
     else if (accion === 'abrir') abrirPedido(b.dataset.id, { fotos: [] });
     else if (accion === 'elegir') abrirPedido(b.dataset.id, elegirPedido.base || { fotos: [] });
-    else if (accion === 'cambiar') { const f = form; form = null; elegirPedido({ fotos: f.fotos, lectura: f.lectura, texto: f.texto, opciones: f.opciones }); }
+    else if (accion === 'seguir-borrador') seguirBorrador(b.dataset.id);
+    else if (accion === 'quitar-borrador') { if (AG) AG.borrar(CLAVE + b.dataset.id); if (datos) pintarAlbaranes(); else lista(); }
+    else if (accion === 'cambiar') { const f = form; form = null; if (AG && f.clave) AG.olvidar(f.clave); elegirPedido({ fotos: f.fotos, lectura: f.lectura, texto: f.texto, opciones: f.opciones }); }
     else if (accion === 'otra-linea') otraLinea();
     else if (accion === 'registrar') registrar(b);
   });
@@ -364,14 +513,16 @@
     if (!form) return;
     if (t.dataset.linea !== undefined) form.lineas[Number(t.dataset.linea)].llega = t.value;
     else if (t.dataset.extra !== undefined) form.extras[Number(t.dataset.extra)].llega = t.value;
+    else if (t.id === 'f-numero' || t.id === 'f-fecha' || t.id === 'f-notas') leerCampos();
     else return;
+    cambio();
   });
   /* Al salir de una cantidad, se recalcula cómo queda (sin perder el foco mientras se escribe). */
   $app.addEventListener('change', (ev) => {
     const t = ev.target;
     if (!form) return;
     if (t.dataset.destino !== undefined) form.extras[Number(t.dataset.destino)].destino = t.value;
-    if (t.dataset.linea !== undefined || t.dataset.extra !== undefined || t.dataset.destino !== undefined) { leerCampos(); pintarFormulario(); }
+    if (t.dataset.linea !== undefined || t.dataset.extra !== undefined || t.dataset.destino !== undefined) { leerCampos(); cambio(); pintarFormulario(); }
   });
   $app.addEventListener('keydown', (ev) => {
     if (ev.key === 'Enter' && ev.target.closest('[data-accion="abrir"],[data-accion="elegir"]')) ev.target.click();
@@ -384,6 +535,17 @@
       fotoNueva(archivo);
     });
   }
+
+  async function seguirBorrador(id) {
+    const b = AG && AG.leer(CLAVE + id);
+    if (!b) { lista(); return; }
+    form = await formDeBorrador(b);
+    form.listo = false;
+    pintarFormulario();
+  }
+
+  if (AG) AG.alSalir(() => { if (form) { leerCampos(); apuntar(form); } });
+  if (COLA) COLA.registrar(CLAVE, enviarPendiente);
 
   /* ═══════════════════════════════════ La sección */
 

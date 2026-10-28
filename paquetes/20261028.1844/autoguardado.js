@@ -108,6 +108,13 @@
   /* Lo que se guarda de cada foto en el borrador (sin el archivo ni la vista). */
   const fotosParaGuardar = (lista) => (lista || []).map(({ archivo, url, subiendo, ...resto }) => resto);
 
+  /* Un id para un alta que se crea desde el teléfono (partes y NCR, 28-oct): el
+     mismo en cada reintento, así el servidor nunca la duplica. */
+  function nuevoId() {
+    try { if (typeof crypto !== 'undefined' && crypto.randomUUID) return `m${crypto.randomUUID().replace(/-/g, '')}`; } catch { /* sin crypto */ }
+    return `m${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}${Math.random().toString(36).slice(2, 8)}`;
+  }
+
   /* ── El indicador */
   const TEXTO = { guardando: 'Guardando…', guardado: 'Guardado', movil: 'Guardado en el móvil', sinRed: 'Sin conexión, se guardará', error: 'No se ha guardado', pendiente: 'Sin guardar' };
   const marca = (estado, texto) => `<span class="autoguardado ${esc(estado)}" role="status" aria-live="polite">${esc(texto || TEXTO[estado] || '')}</span>`;
@@ -229,6 +236,6 @@
 
   window.AUTOGUARDADO = {
     guardar, leer, borrar, olvidar, guardarFoto, leerFoto, borrarFoto, fotoNueva, restaurarFotos, fotosParaGuardar,
-    marca, pintarMarca, sinRed, alSalir, TEXTO, elegirFotos, verFoto, cerrarVisor,
+    marca, pintarMarca, sinRed, alSalir, TEXTO, elegirFotos, verFoto, cerrarVisor, nuevoId,
   };
 })();

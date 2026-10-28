@@ -205,7 +205,7 @@ function logoMarca(obra) {
 }
 
 /** EL INFORME EN PAPEL (para el PDF). `fotos` son `{ src, momento }`. */
-function html({ prueba = {}, obra = {}, emisor = {}, empresa = null, fotos = [], hoy } = {}) {
+function html({ prueba = {}, obra = {}, emisor = {}, empresa = null, fotos = [], hoy, graficas = '' } = {}) {
   const ins = INSTALACIONES[prueba.instalacion] || { nombre: prueba.instalacion };
   const u = prueba.unidad || 'bar';
   const dato = (que, valor) => (llano(valor) ? `<div><dt>${esc(que)}</dt><dd>${esc(valor)}</dd></div>` : '');
@@ -260,6 +260,8 @@ function html({ prueba = {}, obra = {}, emisor = {}, empresa = null, fotos = [],
 
   ${llano(prueba.observaciones) ? `<section class="relato"><h2>Observaciones</h2><p>${esc(prueba.observaciones).replace(/\n/g, '<br>')}</p></section>` : ''}
   ${llano(prueba.notasJefe) ? `<section class="relato"><h2>Notas del jefe de obra</h2><p>${esc(prueba.notasJefe).replace(/\n/g, '<br>')}</p></section>` : ''}
+
+  ${graficas || ''}
 
   ${fotos.length ? `<section class="fotosParte"><h2>Fotos</h2><div class="rejilla">${fotos.map((f) => `<figure><img src="${esc(f.src)}" alt=""><figcaption>${esc(pie(f))}</figcaption></figure>`).join('')}</div></section>` : ''}
 
