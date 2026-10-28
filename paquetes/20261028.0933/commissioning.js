@@ -33,6 +33,7 @@
   let yLista = 0;       /* dónde estaba la lista al abrir un equipo */
   let fichasEq = null; /* las fichas que necesita el equipo abierto */
   let hoja = null;     /* la ficha que se está rellenando */
+  let abriendoHoja = 0; /* hojas pidiéndose al servidor (abrirHoja a medias) */
   /* La toma de datos de la primera pantalla: clave|plantilla → la misma forma que `hoja`. */
   const tomas = new Map();
   let filtro = '';
@@ -146,6 +147,18 @@
     return `<strong class="cifra">${esc(e.tag)}</strong>`;
   }
 
+  /* EL NÚMERO DE CADA GRUPO DICE LO HECHO (28-oct-2026, JC: «pon como estaban
+     pero el número ese que aparece en el extremo como total lo pones como
+     X/total»). La barra es la de siempre (título a la izquierda, número a la
+     derecha); el número es «hechos/total». «Hecho» es `e.completo`, la misma
+     regla de siempre (papeles + fichas + ensayo, shared/commissioning/control.js)
+     que pinta el chip «Completo»: no hay otra. Los hechos van al final del grupo. */
+  const hecho = (e) => !!e.completo;
+  function cabeceraGrupo(fs, g) {
+    const hechos = fs.filter(hecho).length;
+    return `<span>${esc(g)}</span><b class="contador" aria-label="${hechos} hechos de ${fs.length}">${cifra(hechos)}/${cifra(fs.length)}</b>`;
+  }
+
   function pintarLista() {
     /* La ficha del equipo escondía el selector de arriba: vuelve. */
     const seg = document.getElementById('segmentos');
@@ -155,7 +168,9 @@
     const q = filtro.trim().toLowerCase();
     const todos = (conj ? lista.conjuntos : lista.equipos) || [];
     const [, , pasa] = SEGMENTOS.find(([id]) => id === segmento) || SEGMENTOS[0];
-    const equipos = todos.filter(pasa).filter((e) => !q || textoDe(e).toLowerCase().includes(q));
+    /* Los hechos, al final de su grupo (orden estable: lo demás no se mueve). */
+    const equipos = todos.filter(pasa).filter((e) => !q || textoDe(e).toLowerCase().includes(q))
+      .sort((a, b) => hecho(a) - hecho(b));
     const [, , grupoDe] = AGRUPAR.find(([id]) => id === agrupar) || AGRUPAR[0];
     const sin = (g) => g.startsWith('Sin ');
     const grupos = [...new Set(equipos.map(grupoDe))].sort(agrupar === 'planta' ? porPlanta
@@ -170,7 +185,7 @@
       <div class="agrupar" role="group" aria-label="Agrupar por"><span>Agrupar por</span>${AGRUPAR
         .map(([id, texto]) => `<button data-cx-agrupar="${id}" aria-pressed="${agrupar === id}" class="${agrupar === id ? 'activa' : ''}">${texto}</button>`).join('')}</div>
       ${equipos.length ? C.listaAgrupada(`cx-equipos-${agrupar}`, equipos, {
-        grupo: grupoDe, orden: grupos, buscando: !!q, repintar: pintarLista,
+        grupo: grupoDe, orden: grupos, buscando: !!q, repintar: pintarLista, cabecera: cabeceraGrupo,
         fila: (e) => `
         <li><button class="fila-ios" data-cx="equipo" data-id="${esc(e.id)}">
           <div class="fila-principal">
@@ -193,6 +208,18 @@
     try {
       const r = await C.pedir(`api/equipo?id=${encodeURIComponent(id)}`);
       if (!r.ok) throw new Error(r.error);
+      /*
+       * EL REPINTADO EN SILENCIO NO CIERRA UNA HOJA (JC, 28-oct). Tras guardar la
+       * toma de datos de un split, la nube trae algo, se repinta el equipo en
+       * silencio y, si mientras se esperaba la respuesta se había abierto el
+       * checklist, aquí se anulaba la hoja: lo marcado se perdía sin aviso y la
+       * pantalla del equipo decía «Todo guardado». Con una hoja abierta (o
+       * abriéndose) solo se refresca el equipo de fondo; la hoja sigue.
+       */
+      if (quieto && (hoja || abriendoHoja)) {
+        if (ficha && ficha.equipo.id === r.equipo.id) ficha = r;
+        return;
+      }
       if (!ficha || ficha.equipo.id !== r.equipo.id) { pestanaEq = 'equipo'; circuitoBal = 'impulsion'; }
       ficha = r;
       hoja = null;
@@ -1107,6 +1134,7 @@
       return;
     }
     $app.innerHTML = '<p class="cargando">Cargando la ficha…</p>';
+    abriendoHoja += 1;
     try {
       const ref = { obra: fichasEq.equipo.obraId, clave: x.clave, plantilla: x.plantilla };
       const r = await C.pedir(`api/ficha?${new URLSearchParams(ref)}`);
@@ -1114,7 +1142,7 @@
       hoja = nuevaHoja(ref, x.nombre, r);
       pintarHoja();
       window.scrollTo(0, 0);
-    } catch (e) { C.aviso(e.message); pintarFicha(); }
+    } catch (e) { C.aviso(e.message); pintarFicha(); } finally { abriendoHoja -= 1; }
   }
 
   /* Lo que se ve: lo tecleado ahora si lo hay; si no, lo guardado. */
@@ -1417,6 +1445,9 @@
         <button class="boton grande secundario" data-cx="pdf-hoja-obra"><i class="ic ic-doc"></i>PDF para obra</button>
       </div>
       <p class="nota">«PDF para obra» lleva lo de proyecto y deja en blanco lo medido, para rellenarlo a mano.</p>
+      ${ficha ? `<div class="fila-botones">
+        <button class="boton grande" data-cx="terminar-hoja">${ed ? 'Terminar y volver al equipo' : 'Volver al equipo'}</button>
+      </div>` : ''}
       ${cierra(nPasos - 1)}
       </div>
       ${ed ? `<div class="barra-guardar" role="status">${estadoGuardar(h)}<button class="boton" data-cx="guardar-hoja" ${h.cambiada ? '' : 'disabled'}>Guardar</button></div>` : ''}`;
@@ -1486,13 +1517,44 @@
     };
   }
 
+  /*
+   * «GUARDADA» SOLO SI SE HA GUARDADO DE VERDAD (JC, 28-oct: el checklist de un
+   * split decía «Todo guardado» y al volver no estaba). El servidor contesta con
+   * la ficha RELEÍDA de la base tras guardarla; se comprueba que trae lo que se
+   * mandó (las respuestas y los datos sueltos, que el servidor no recalcula). Si
+   * algo no está, no se da por guardado: se avisa y lo tecleado se queda.
+   */
+  function noReleido(cuerpo, r) {
+    if (!r || !r.id) return ['la ficha'];
+    const puntos = new Map((r.secciones || []).flatMap((s) => s.puntos || []).map((p) => [p.codigo, p]));
+    const igual = (a, b) => {
+      const n = (x) => (x === null || x === undefined ? '' : String(x).trim());
+      if (n(a) === n(b)) return true;
+      return n(a) !== '' && n(b) !== '' && Number.isFinite(Number(n(a))) && Number(n(a)) === Number(n(b));
+    };
+    const faltan = [];
+    for (const [codigo, v] of Object.entries(cuerpo.valores || {})) {
+      const p = puntos.get(codigo);
+      if (!p) continue; /* fuera de la plantilla: el servidor lo descarta a propósito */
+      if (v === null) { if (!igual(p.valor, null)) faltan.push(codigo); continue; }
+      if ('v' in v && !igual(p.valor, v.v)) faltan.push(codigo);
+    }
+    return faltan;
+  }
+  async function postFicha(cuerpo) {
+    const r = await C.postJson('api/ficha', cuerpo);
+    if (!r.ok) throw new Error(r.error || 'No se ha podido guardar.');
+    const faltan = noReleido(cuerpo, r);
+    if (faltan.length) throw new Error(`No se ha guardado bien (${faltan.length === 1 ? faltan[0] : `${faltan.length} puntos`}): vuelve a pulsar Guardar.`);
+    return r;
+  }
+
   async function guardarHoja(boton) {
     const h = hoja;
     if (!h || !h.cambiada) return true;
     if (boton) boton.disabled = true;
     try {
-      const r = await C.postJson('api/ficha', cuerpoFicha(h));
-      if (!r.ok) throw new Error(r.error);
+      const r = await postFicha(cuerpoFicha(h));
       for (const x of h.nuevas) URL.revokeObjectURL(x.url);
       hoja = { ...h, f: r, valores: {}, cabecera: {}, observaciones: undefined, nuevas: [], quitar: new Set(), cambiada: false };
       tomas.delete(`${h.ref.clave}|${h.ref.plantilla}`);
@@ -1507,6 +1569,12 @@
       if (boton) boton.disabled = false;
       return false;
     }
+  }
+
+  async function terminarHoja(boton) {
+    if (hoja.cambiada && hoja.f.editable && !(await guardarHoja(boton))) return;
+    salirHoja();
+    window.scrollTo(0, 0);
   }
 
   const compartirPdf = (...a) => C.compartirPdf(...a);
@@ -1665,8 +1733,7 @@
     const fallos = [];
     for (const [k, t] of sucias) {
       try {
-        const r = await C.postJson('api/ficha', cuerpoFicha(t));
-        if (!r.ok) throw new Error(r.error);
+        const r = await postFicha(cuerpoFicha(t));
         tomas.set(k, nuevaToma(t.ref, t.nombre, r, t.vistos));
         bien += 1;
         if (r.estado === 'completa') completas += 1;
@@ -1900,6 +1967,9 @@
     else if (que === 'ficha-equipo' && ficha) { document.body.classList.remove('sin-scroll'); pestanaEq = 'equipo'; pintarFicha(); window.scrollTo(0, 0); }
     else if (que === 'hoja') abrirHoja(Number(b.dataset.i));
     else if (que === 'volver-equipo') salirHoja();
+    /* Fin del checklist (JC, 28-oct): guarda lo pendiente y vuelve al equipo;
+       si no se ha podido guardar, se queda en la hoja con el aviso del error. */
+    else if (que === 'terminar-hoja' && hoja) terminarHoja(b);
     else if (que === 'paso-hoja' && hoja) irAPaso(Number(b.dataset.ir !== undefined ? b.dataset.ir : b.dataset.paso));
     else if (que === 'foto') fotoHoja(b.dataset.camara === '1');
     else if (que === 'quitar-foto' && hoja) { hoja.quitar.add(Number(b.dataset.i)); hoja.cambiada = true; pintarHoja(); }
@@ -2049,7 +2119,7 @@
       if (foco && (cambiada(foco) || foco.dataset.guardada)) return;
       /* Tampoco con el dedo en la toma de datos: se perdería el foco a medio escribir. */
       if (document.activeElement && document.activeElement.closest && document.activeElement.closest('[data-toma]')) return;
-      if (!hoja) abrir(ficha.equipo.id, { quieto: true });
+      if (!hoja && !abriendoHoja) abrir(ficha.equipo.id, { quieto: true });
       return;
     }
     cargarLista();
