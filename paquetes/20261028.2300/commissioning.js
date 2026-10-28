@@ -109,7 +109,7 @@
     ['sinVerificar', 'Instalación sin verificar', (e) => e.envio === 'sinVerificar'],
   ];
   let segmento = 'todos';
-  const porPlanta = (a, b) => (a === 'Sin planta') - (b === 'Sin planta') || a.localeCompare(b, 'es', { numeric: true });
+  const porPlanta = (a, b) => /^Sin (planta|zona)$/.test(a) - /^Sin (planta|zona)$/.test(b) || a.localeCompare(b, 'es', { numeric: true });
 
   /* AGRUPAR por planta, por tipo de equipo o por marca (15-oct-2026, JC). El
      tipo sale de la familia de plantillas (PANASONIC_SPLIT → Split): la marca
@@ -130,6 +130,8 @@
   };
   const AGRUPAR = [
     ['planta', 'Planta', (e) => e.planta || 'Sin planta'],
+    /* Por plantas o por zonas, según el dato que haya (28-oct-2026, JC). */
+    ['zona', 'Zona', (e) => e.zona || 'Sin zona'],
     ['tipo', 'Tipo', tipoDe],
     ['marca', 'Marca', (e) => e.marca || 'Sin marca'],
   ];
@@ -140,7 +142,7 @@
      es conjunto (15-oct-2026, JC). Sin conjuntos (un servidor viejo), por unidades. */
   const porConjuntos = () => Array.isArray(lista.conjuntos);
   const NOMBRE_CLASE = { par: 'Split', sistema: 'VRF' };
-  const textoDe = (e) => `${(e.unidades || []).map((u) => u.tag).join(' ') || e.tag} ${e.nombre || ''} ${e.local || ''} ${e.planta || ''} ${e.marca || ''} ${e.modelo || ''} ${tipoDe(e)}`;
+  const textoDe = (e) => `${(e.unidades || []).map((u) => u.tag).join(' ') || e.tag} ${e.nombre || ''} ${e.local || ''} ${e.planta || ''} ${e.zona || ''} ${e.marca || ''} ${e.modelo || ''} ${tipoDe(e)}`;
   function tagsFila(e) {
     const us = e.unidades || [];
     /* El split, UNA vez por su nombre (28-oct-2026, JC: «en lugar de UE y luego
@@ -175,6 +177,42 @@
     return `<span>${esc(g)}</span><b class="contador" aria-label="${hechos} hechos de ${fs.length}">${cifra(hechos)}/${cifra(fs.length)}</b>`;
   }
 
+  /* LOS KPI DE ARRIBA, COMO LOS DE VIDAIRE OBRAS (28-oct-2026, JC: «mejora la
+     tarjeta de resumen… y dale el aspecto de los KPI de Vidaire Obras», los de
+     Conflictos del escritorio): cada cifra en su caja clara con el filete de
+     color arriba (teal hecho, azul lo que falta, gris neutro), etiqueta en
+     mayúsculas, cifra grande tabular, una línea de contexto y, donde cabe, la
+     barra fina de avance. Siguen siendo los filtros de la lista (data-cx-seg).
+     «X de N con la instalación verificada» deja de ser una frase suelta: es el
+     KPI «Verificados», que pulsado enseña los que faltan por verificar. */
+  function kpisCx(t, conj) {
+    const total = (conj ? t.conjuntos : t.equipos) || 0;
+    const pct = (n) => (total ? Math.round(((n || 0) / total) * 100) : 0);
+    const celdas = [
+      { id: 'todos', et: conj && t.unidades !== t.conjuntos ? 'Conjuntos' : 'Equipos', n: total, tono: 'neutro',
+        pie: conj && t.unidades && t.unidades !== t.conjuntos ? `${cifra(t.unidades)} unidades` : 'en la obra' },
+      t.sinVerificar !== undefined && t.instaladas !== undefined
+        ? { id: 'sinVerificar', et: 'Verificados', n: t.instaladas, tono: t.sinVerificar ? 'falta' : 'bien', barra: pct(t.instaladas),
+          pie: t.sinVerificar ? `${cifra(t.sinVerificar)} sin verificar` : 'instalación verificada', titulo: 'Pulsa para ver los que faltan por verificar' }
+        : null,
+      t.enMarcha !== undefined ? { id: 'enMarcha', et: 'En marcha', n: t.enMarcha, tono: 'bien', barra: pct(t.enMarcha), pie: `${pct(t.enMarcha)} % puestos en marcha` } : null,
+      { id: 'completos', et: 'Completos', n: t.completos, tono: 'bien', barra: pct(t.completos), pie: `${pct(t.completos)} % del total` },
+      { id: 'soloDoc', et: 'Doc. completa', n: t.soloDoc || 0, tono: 'neutro', pie: 'falta el ensayo' },
+      { id: 'faltaDoc', et: 'Falta doc.', n: t.faltaDocumentacion || 0, tono: 'falta', pie: 'papeles por subir' },
+      { id: 'faltaFichas', et: 'Falta ficha', n: t.faltaFichas || 0, tono: 'falta', pie: 'fichas por rellenar' },
+      { id: 'faltaBalanceo', et: 'Falta balanceo', n: t.faltaBalanceo || 0, tono: 'falta', pie: 'bocas por medir' },
+      { id: 'faltaEstanqueidad', et: 'Falta estanq.', n: t.faltaEstanqueidadEnvio || 0, tono: 'falta', pie: 'prueba por hacer' },
+    ].filter(Boolean);
+    return `<div class="kpis-cx" role="tablist" aria-label="Resumen del commissioning">${celdas.map((c) => {
+      const tono = c.tono === 'falta' && !c.n ? 'bien' : c.tono;
+      const activa = segmento === c.id;
+      return `<button role="tab" data-cx-seg="${c.id}" aria-selected="${activa}" class="kpi-cx ${tono}${activa ? ' activa' : ''}"${c.titulo ? ` title="${esc(c.titulo)}"` : ''}>
+        <span class="et">${esc(c.et)}</span><b class="cifra">${cifra(c.n)}</b>
+        ${c.barra !== undefined ? `<i class="barra" aria-hidden="true"><i style="width:${c.barra}%"></i></i>` : ''}
+        <span class="pie">${c.pie}</span><span class="ir" aria-hidden="true">›</span></button>`;
+    }).join('')}</div>`;
+  }
+
   /* Bajo los KPI ya no va «544 conjuntos con 778 unidades: … van en una línea
      con su exterior» (28-oct-2026, JC: «ese texto fuera»); la de la instalación
      verificada se queda, que lleva el enlace «Ver cuáles». */
@@ -190,23 +228,28 @@
     /* Los hechos, al final de su grupo (orden estable: lo demás no se mueve). */
     const equipos = todos.filter(pasa).filter((e) => !q || textoDe(e).toLowerCase().includes(q))
       .sort((a, b) => hecho(a) - hecho(b));
-    const [, , grupoDe] = AGRUPAR.find(([id]) => id === agrupar) || AGRUPAR[0];
+    /* Zona solo se ofrece si algún equipo la tiene; si ninguno trae planta pero
+       sí zona, se agrupa por zona (y los desplegables por tipo, también). */
+    const hayPlanta = todos.some((e) => e.planta);
+    const hayZona = todos.some((e) => e.zona);
+    const opciones = AGRUPAR.filter(([id]) => id !== 'zona' || hayZona);
+    let modo = opciones.some(([id]) => id === agrupar) ? agrupar : 'planta';
+    if (modo === 'planta' && !hayPlanta && hayZona) modo = 'zona';
+    const [, , grupoDe] = AGRUPAR.find(([id]) => id === modo) || AGRUPAR[0];
     const sin = (g) => g.startsWith('Sin ');
-    const grupos = [...new Set(equipos.map(grupoDe))].sort(agrupar === 'planta' ? porPlanta
+    const grupos = [...new Set(equipos.map(grupoDe))].sort(modo === 'planta' || modo === 'zona' ? porPlanta
       : (a, b) => sin(a) - sin(b) || a.localeCompare(b, 'es', { numeric: true }));
+    const subPor = !hayPlanta && hayZona ? 'zona' : 'planta';
     $app.innerHTML = `
-      <div class="resumen-fila ocho" role="tablist">${[['todos', conj ? t.conjuntos : t.equipos, conj && t.unidades !== t.conjuntos ? 'conjuntos' : 'equipos'], ['enMarcha', t.enMarcha, 'en marcha'], ['completos', t.completos, 'completos'], ['soloDoc', t.soloDoc || 0, 'doc. completa'], ['faltaDoc', t.faltaDocumentacion, 'falta doc.'], ['faltaFichas', t.faltaFichas || 0, 'falta ficha'], ['faltaBalanceo', t.faltaBalanceo || 0, 'falta balanceo'], ['faltaEstanqueidad', t.faltaEstanqueidadEnvio || 0, 'falta estanq.']]
-        .filter(([id, n]) => id !== 'enMarcha' || n !== undefined)
-        .map(([id, n, texto]) => `<button role="tab" data-cx-seg="${id}" aria-selected="${segmento === id}" class="${segmento === id ? 'activa' : ''} ${id.startsWith('falta') && n ? 'aviso' : ''}"><b>${cifra(n)}</b><span>${esc(texto)}</span></button>`).join('')}</div>
-      ${t.sinVerificar ? `<p class="nota tenue cuenta-instaladas">${cifra(t.instaladas)} de ${cifra(conj ? t.conjuntos : t.equipos)} con la instalación verificada; los otros ${cifra(t.sinVerificar)}, solo documentación. <button class="enlace" data-cx-seg="sinVerificar">${segmento === 'sinVerificar' ? 'Ver todos' : 'Ver cuáles'}</button></p>` : ''}
+      ${kpisCx(t, conj)}
       <input type="search" class="buscar" placeholder="Buscar TAG, sala, planta, tipo o marca" value="${esc(filtro)}" data-cx-buscar>
-      <div class="agrupar" role="group" aria-label="Agrupar por"><span>Agrupar por</span>${AGRUPAR
-        .map(([id, texto]) => `<button data-cx-agrupar="${id}" aria-pressed="${agrupar === id}" class="${agrupar === id ? 'activa' : ''}">${texto}</button>`).join('')}</div>
+      <div class="agrupar" role="group" aria-label="Agrupar por"><span>Agrupar por</span>${opciones
+        .map(([id, texto]) => `<button data-cx-agrupar="${id}" aria-pressed="${modo === id}" class="${modo === id ? 'activa' : ''}">${texto}</button>`).join('')}</div>
       ${window.CX_PLANO_EQUIPOS ? '<button class="enlace" data-cx="plano-equipos">Ver los equipos en el plano</button>' : ''}
-      ${equipos.length ? C.listaAgrupada(`cx-equipos-${agrupar}`, equipos, {
+      ${equipos.length ? C.listaAgrupada(`cx-equipos-${modo}`, equipos, {
         grupo: grupoDe, orden: grupos, buscando: !!q, repintar: pintarLista, cabecera: cabeceraGrupo,
         /* «Por plantas pero en los desplegables de los equipos» (JC, 28-oct): al agrupar por tipo o marca, cada grupo sale por planta. */
-        ...(agrupar === 'planta' ? {} : { subgrupo: (e) => e.planta || 'Sin planta', subOrden: porPlanta, subCabecera: cabeceraPlanta }),
+        ...(modo === 'planta' || modo === 'zona' ? {} : { subgrupo: subPor === 'zona' ? (e) => e.zona || 'Sin zona' : (e) => e.planta || 'Sin planta', subOrden: porPlanta, subCabecera: cabeceraPlanta }),
         fila: (e) => `
         <li><button class="fila-ios" data-cx="equipo" data-id="${esc(e.id)}">
           <div class="fila-principal">

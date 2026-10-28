@@ -54,8 +54,34 @@
     document.head.appendChild(s);
   }
 
+  /*
+   * AUTOGUARDADO EN EL TELÉFONO (28-oct-2026, JC: un encargado pulsó atrás y
+   * lo perdió todo; «autoguardado… y de cualquier formulario de alta»). Cada
+   * cambio queda AL MOMENTO en un borrador del teléfono (autoguardado.js:
+   * `cx.borrador.qhse.<obra>|<clave>`), antes de la espera de 1,5 s que lo
+   * manda al ordenador. Así sobrevive a atrás, al gesto de inicio y a que se
+   * cierre la app: la cola (colaGuardado.js) lo manda sola al volver, y si
+   * aún no ha llegado, al entrar en QHSE se sigue con él sin preguntar. El
+   * borrador se borra cuando el ordenador confirma lo último escrito.
+   */
+  const AG = window.AUTOGUARDADO || null;
+  const COLA = window.COLA_GUARDADO || null;
+  const PREF = 'qhse.';
+  const claveDe = (f) => `${PREF}${f.obraId}|${f.clave}`;
+  const aBorrador = (f) => ({ id: f.id, clave: f.clave, obraId: f.obraId, plantilla: f.plantilla, fecha: f.fecha, proveedorId: f.proveedorId, datos: f.datos });
+  function apuntar(f) { if (AG && f && f.estado !== 'hecho') AG.guardar(claveDe(f), aBorrador(f)); }
+  /* Lo que quedó en el teléfono de esta obra sin llegar al ordenador. */
+  function borradorDe(obraId, id = null) {
+    if (!AG || !COLA) return null;
+    for (const k of COLA.claves(`${PREF}${obraId}|`)) {
+      const b = AG.leer(k);
+      if (b && b.datos && b.plantilla && (!id || b.id === id)) return b;
+    }
+    return null;
+  }
+
   let datos = null;
-  let form = null; /* { id, obraId, plantilla, fecha, datos, estado, proveedorId } */
+  let form = null; /* { id, clave, obraId, plantilla, fecha, datos, estado, proveedorId } */
   let sucio = false;
   let guardando = Promise.resolve();
   let temporizador = null;
@@ -72,6 +98,8 @@
   async function lista() {
     if (form) await volcar();
     form = null;
+    /* Lo que quedó en el teléfono (app cerrada a medias): primero se manda. */
+    if (COLA) { try { await COLA.vaciar(); } catch { /* sigue en el teléfono */ } }
     $app.innerHTML = '<p class="cargando">Cargando…</p>';
     try {
       datos = await CX().pedir('api/qhse');
@@ -81,7 +109,18 @@
       $app.innerHTML = `<div class="vacio mal"><p>${esc(e.message)}</p><button class="boton" data-qh="lista">Reintentar</button></div>`;
       return;
     }
-    if (activa()) pintarLista();
+    if (!activa()) return;
+    /* Si algo no ha podido llegar, se sigue con ello tal cual, sin preguntar. */
+    const o = obra();
+    const b = o && borradorDe(o.id);
+    if (b && plantilla(b.plantilla)) {
+      form = { ...b, estado: 'borrador' };
+      estadoGuardado = 'Guardado en el móvil';
+      pintarForm();
+      aviso('Sigues con el formulario que tenías a medias.', 'aviso');
+      return;
+    }
+    pintarLista();
   }
 
   function pintarLista() {
@@ -112,7 +151,7 @@
     const p = plantilla(pid);
     if (!o || !p) return;
     const base = JSON.parse(JSON.stringify(o.inicial[pid]));
-    form = { id: null, obraId: o.id, plantilla: pid, fecha: datos.hoy, estado: 'borrador', proveedorId: null, datos: base };
+    form = { id: null, clave: AG ? AG.nuevoId() : `m${Date.now().toString(36)}`, obraId: o.id, plantilla: pid, fecha: datos.hoy, estado: 'borrador', proveedorId: null, datos: base };
     estadoGuardado = '';
     pintarForm();
   }
@@ -121,7 +160,10 @@
     try {
       const r = await CX().pedir(`api/qhse/abrir?id=${encodeURIComponent(id)}`);
       if (!r.ok) throw new Error(r.error);
-      form = { id: r.id, obraId: r.obraId, plantilla: r.plantilla, fecha: r.fecha, estado: r.estado, proveedorId: r.proveedorId, datos: r.datos };
+      form = { id: r.id, clave: r.id, obraId: r.obraId, plantilla: r.plantilla, fecha: r.fecha, estado: r.estado, proveedorId: r.proveedorId, datos: r.datos };
+      /* Lo escrito en este teléfono que aún no llegó manda sobre lo del ordenador. */
+      const b = r.estado === 'hecho' ? null : borradorDe(r.obraId, r.id);
+      if (b) { form.datos = b.datos; form.proveedorId = b.proveedorId; form.clave = b.clave || r.id; }
       const p = plantilla(r.plantilla);
       form.datos.cabecera = form.datos.cabecera || {};
       form.datos.respuestas = form.datos.respuestas || {};
@@ -215,7 +257,8 @@
 
   function programar() {
     sucio = true;
-    estadoGuardado = 'Sin guardar…';
+    apuntar(form);
+    estadoGuardado = 'Guardado en el móvil';
     const e = $app.querySelector('[data-qh-estado]'); if (e) e.textContent = estadoGuardado;
     clearTimeout(temporizador);
     temporizador = setTimeout(() => { volcar(); }, 1500);
@@ -235,12 +278,15 @@
         if (!r.ok) throw new Error(r.error);
         f.id = r.id;
         if (terminar) f.estado = 'hecho';
+        /* Llegó: el borrador del teléfono sobra, salvo que se haya seguido escribiendo. */
+        if (AG) { if (terminar || !(sucio && form === f)) AG.olvidar(claveDe(f)); else apuntar(f); }
         estadoGuardado = terminar ? `Terminado · ${r.codigo}` : 'Guardado';
         const e = $app.querySelector('[data-qh-estado]'); if (e && form === f) e.textContent = estadoGuardado;
         return r;
       } catch (e) {
         sucio = true;
-        estadoGuardado = 'No se ha podido guardar';
+        apuntar(f);
+        estadoGuardado = AG ? (AG.sinRed(e) ? 'Sin conexión: guardado en el móvil, se mandará solo' : 'Guardado en el móvil; no ha llegado al ordenador') : 'No se ha podido guardar';
         const el = $app.querySelector('[data-qh-estado]'); if (el) el.textContent = estadoGuardado;
         if (terminar) aviso(e.message);
         return null;
@@ -316,6 +362,20 @@
   $app.addEventListener('change', recoger);
 
   window.addEventListener('hashchange', () => { if (activa()) lista(); else if (form) volcar(); });
-  window.addEventListener('pagehide', () => { if (form) volcar(); });
+  window.addEventListener('pagehide', () => { if (form) { if (sucio) apuntar(form); volcar(); } });
+
+  /* La cola manda lo que quedó en el teléfono aunque QHSE no esté abierta;
+     nunca el formulario que se está escribiendo (ese lo manda esta pantalla). */
+  if (COLA && AG) {
+    COLA.registrar(PREF, async (clave, b) => {
+      if (form && claveDe(form) === clave) return false;
+      if (!b || !b.plantilla || !b.obraId) { AG.olvidar(clave); return true; }
+      const r = await CX().postJson('api/qhse/guardar', { id: b.id || null, obraId: b.obraId, plantilla: b.plantilla, fecha: b.fecha, proveedorId: b.proveedorId, datos: b.datos, terminar: false });
+      if (r && r.ok) { AG.olvidar(clave); return true; }
+      /* Un «no» del ordenador (ya terminado, sin permiso…): no se reintenta para siempre. */
+      if (r && r.ok === false && /terminado|no se encuentra|tu rol/i.test(String(r.error || ''))) { AG.olvidar(clave); return true; }
+      return false;
+    });
+  }
   if (activa()) lista();
 })();

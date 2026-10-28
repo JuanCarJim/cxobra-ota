@@ -203,7 +203,10 @@
     for (const img of raiz.querySelectorAll('img[data-src]')) {
       const url = img.dataset.src;
       img.removeAttribute('data-src');
-      fetch(url).then((r) => (r.ok ? r.blob() : null)).then((b) => { if (b) img.src = URL.createObjectURL(b); }).catch(() => {});
+      /* Miniatura: mientras llega se ve el hueco (cargando) y, si no llega, «sin foto» en vez de nada. */
+      img.classList.add('cargando');
+      const fallo = () => { img.classList.remove('cargando'); img.classList.add('sin-foto'); img.alt = img.alt || 'Foto no disponible'; };
+      fetch(url).then((r) => (r.ok ? r.blob() : null)).then((b) => { if (b) { img.src = URL.createObjectURL(b); img.classList.remove('cargando'); } else fallo(); }).catch(fallo);
     }
   }
 
