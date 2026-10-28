@@ -31,6 +31,29 @@
   const haceDias = (n) => { const d = new Date(`${hoy()}T12:00:00`); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
   const NS = 'http://www.w3.org/2000/svg';
 
+  /*
+   * AUTOGUARDADO (JC, 28-oct: «en toda la app»).
+   *  · MATERIAL FUERA DE PRESUPUESTO: se guarda solo (~1,2 s sin escribir, al
+   *    volver, al salir de la app); sin botón «Guardar». Vive en el teléfono
+   *    (`cx.borrador.avance.material.<id>`, fotos en IndexedDB) y se manda con
+   *    un id propio: si se repite, el ordenador lo pone al día, no lo duplica.
+   *  · EL TRAMO MARCADO (puntos, partida, nota, metros de subidas, fotos): desde
+   *    el primer toque queda en el teléfono (`avance.marca.<id>`); si se sale
+   *    del plano o de la app, al volver a abrirlo sigue ahí. «Guardar» es el
+   *    acto de marcar (le llega al jefe de obra): se manda con id propio, y sin
+   *    red queda «listo» en el móvil y la cola lo manda sola.
+   */
+  const AG = window.AUTOGUARDADO || null;
+  const COLA = window.COLA_GUARDADO || null;
+  const CLAVE_MAT = 'avance.material.';
+  const CLAVE_MAR = 'avance.marca.';
+  const ESPERA = 1200;
+  const TEXTO_MARCA = { movil: 'Guardado en el móvil', guardando: 'Guardando…', guardado: 'Guardado', sinRed: 'Sin conexión, se guardará', error: 'No se ha guardado' };
+  const nuevoId = (pre) => `${pre}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+  let relojMat = null;
+  let enVueloMat = null;
+  let borradorId = null;     // el tramo que se está marcando (su borrador)
+
   let datos = null;          // GET api/avance
   let pestana = 'planos';
   let materiales = null;
@@ -63,6 +86,7 @@
 
   async function lista() {
     cerrarPlano();
+    if (formMaterial) await guardarMaterialYa();
     formMaterial = null;
     await C.obrasListas();
     if (!activa()) return;
@@ -149,10 +173,16 @@
 
   /* ═══════════════════════════════════ 4. Material fuera de presupuesto */
 
+  const marcaHtml = (estado) => `<span class="autoguardado ${esc(estado || '')}" role="status" aria-live="polite">${esc(TEXTO_MARCA[estado] || '')}</span>`;
+  function pintarMarcaMaterial(f) {
+    const el = $app.querySelector && $app.querySelector('.barra-editor .autoguardado');
+    if (el && f === formMaterial) { el.className = `autoguardado ${f.estado || ''}`; el.textContent = TEXTO_MARCA[f.estado] || ''; }
+  }
+
   function pintarMaterial() {
     const f = formMaterial;
     $app.innerHTML = `
-      <button class="volver" data-av="lista">‹ Avance</button>
+      <div class="barra-editor"><button class="volver" data-av="lista">‹ Avance</button>${marcaHtml(f.estado)}</div>
       <h2>Material no previsto</h2>
       <label>Qué material<input data-av-mat="descripcion" value="${esc(f.descripcion)}" placeholder="Codos DN50, soportes, manguitos…" autocomplete="off"></label>
       <div class="campos">
@@ -161,22 +191,111 @@
       </div>
       <label>Día<input type="date" data-av-mat="fecha" value="${esc(f.fecha)}" max="${hoy()}"></label>
       <label>Por qué hizo falta<textarea rows="3" data-av-mat="nota" placeholder="Dónde y por qué">${esc(f.nota)}</textarea></label>
-      <label class="interruptor"><input type="checkbox" data-av-mat-foto ${f.foto ? 'checked' : ''}> Añadir una foto al guardar</label>
-      <button class="boton grande" data-av="material-guardar">Guardar</button>`;
+      ${f.nuevas.length ? `<div class="fotos">${f.nuevas.map((x) => (x.url ? `<img src="${esc(x.url)}" alt="">` : '<span class="foto-sin-vista">en el móvil</span>')).join('')}</div>` : ''}
+      <div class="fila-botones">
+        <button class="boton secundario" data-av="mat-foto" data-camara="1"><i class="ic ic-camara"></i>Foto</button>
+        <button class="boton secundario" data-av="mat-foto" data-camara="0">Galería</button>
+      </div>
+      <p class="nota">Se guarda solo: le llega al jefe de obra sin pulsar nada.</p>`;
   }
 
-  async function guardarMaterial(boton) {
+  /* Un material sin terminar (o sin mandar) que se dejó: vuelve tal cual. */
+  function materialPendiente() {
+    if (!AG || !COLA) return null;
+    const o = C.obraId();
+    return COLA.claves(CLAVE_MAT).map((k) => ({ k, b: AG.leer(k) })).filter((x) => x.b && x.b.obraId === o)
+      .sort((a, b) => (b.b._en || 0) - (a.b._en || 0))[0] || null;
+  }
+  async function nuevoMaterial() {
+    const p = materialPendiente();
+    if (p) {
+      const b = p.b;
+      formMaterial = { id: b.id, clave: p.k, obraId: b.obraId, descripcion: b.descripcion || '', cantidad: b.cantidad || '1', unidad: b.unidad || 'ud', fecha: b.fecha || hoy(), nota: b.nota || '',
+        nuevas: AG ? (await AG.restaurarFotos(b.fotos || [])).filter((x) => x.archivo) : [], sucia: true, estado: 'movil' };
+    } else {
+      const id = nuevoId('mat');
+      formMaterial = { id, clave: CLAVE_MAT + id, obraId: C.obraId(), descripcion: '', cantidad: '1', unidad: 'ud', fecha: hoy(), nota: '', nuevas: [], sucia: false, estado: '' };
+    }
+    pintarMaterial();
+  }
+
+  function apuntarMaterial(f) {
+    if (!AG) return;
+    if (!f.sucia) { AG.borrar(f.clave); return; }
+    AG.guardar(f.clave, { id: f.id, obraId: f.obraId, descripcion: f.descripcion, cantidad: f.cantidad, unidad: f.unidad, fecha: f.fecha, nota: f.nota, fotos: AG.fotosParaGuardar(f.nuevas) });
+  }
+  function cambioMaterial(f) {
+    f.sucia = true;
+    f.estado = 'movil';
+    apuntarMaterial(f);
+    pintarMarcaMaterial(f);
+    clearTimeout(relojMat);
+    relojMat = setTimeout(() => { relojMat = null; mandarMaterial(f); }, ESPERA);
+  }
+
+  /* Manda el material (y sus fotos). Devuelve true si queda en el ordenador. */
+  async function mandarMaterial(f) {
+    if (enVueloMat) { await enVueloMat.catch(() => {}); if (!f.sucia) return true; }
+    if (!f.descripcion.trim()) { if (f === formMaterial) { f.estado = f.sucia ? 'movil' : ''; pintarMarcaMaterial(f); } return true; }
+    const vuelo = (async () => {
+      const antes = [f.descripcion, f.cantidad, f.unidad, f.fecha, f.nota].join('\u0001');
+      f.estado = 'guardando'; pintarMarcaMaterial(f);
+      try {
+        const r = await C.postJson('api/avance/material', { id: f.id, obraId: f.obraId, descripcion: f.descripcion, cantidad: f.cantidad, unidad: f.unidad, fecha: f.fecha, nota: f.nota });
+        if (!r.ok) throw new Error(r.error);
+        for (const x of [...f.nuevas]) {
+          const subir = async () => {
+            const blob = x.archivo || (AG && x.local ? await AG.leerFoto(x.local) : null);
+            if (!blob) return null;
+            x.archivo = blob;
+            return C.subirFoto(blob);
+          };
+          const fotoId = await subir();
+          if (fotoId) {
+            let a = await C.postJson('api/avance/material/foto', { id: r.id, fotos: [fotoId] });
+            if (!a.ok && /ya no est/i.test(String(a.error || ''))) a = await C.postJson('api/avance/material/foto', { id: r.id, fotos: [await subir()] });
+            if (!a.ok) throw new Error(a.error);
+          }
+          f.nuevas = f.nuevas.filter((y) => y !== x);
+          if (AG && x.local) AG.borrarFoto(x.local);
+        }
+        f.sucia = [f.descripcion, f.cantidad, f.unidad, f.fecha, f.nota].join('\u0001') !== antes || f.nuevas.length > 0;
+        f.estado = f.sucia ? 'movil' : 'guardado';
+        apuntarMaterial(f);
+        pintarMarcaMaterial(f);
+        return true;
+      } catch (err) {
+        f.estado = AG && AG.sinRed(err) ? 'sinRed' : 'error';
+        pintarMarcaMaterial(f);
+        if (f.estado === 'error') C.aviso(err.message);
+        if (COLA) COLA.masTarde();
+        return false;
+      }
+    })();
+    enVueloMat = vuelo;
+    try { return await vuelo; } finally { if (enVueloMat === vuelo) enVueloMat = null; }
+  }
+  function guardarMaterialYa() {
+    clearTimeout(relojMat); relojMat = null;
     const f = formMaterial;
-    if (!f.descripcion.trim()) { C.aviso('Di qué material.', 'aviso'); return; }
-    boton.disabled = true;
-    try {
-      const r = await C.postJson('api/avance/material', { obraId: C.obraId(), ...f });
-      if (!r.ok) throw new Error(r.error);
-      if (f.foto) await fotoA('api/avance/material/foto', r.id);
-      C.aviso('Apuntado: le llega al jefe de obra.', 'bien');
-      pestana = 'material';
-      lista();
-    } catch (e) { C.aviso(e.message); boton.disabled = false; }
+    return f && f.sucia ? mandarMaterial(f) : Promise.resolve(true);
+  }
+  /* La cola: un material que quedó en el teléfono (app cerrada o sin red) se manda solo. */
+  async function enviarMaterialPendiente(clave, b) {
+    if (formMaterial && formMaterial.clave === clave) return formMaterial.sucia ? mandarMaterial(formMaterial) : true;
+    if (!String(b.descripcion || '').trim()) return true; /* a medias: espera a que se abra y se termine */
+    const f = { id: b.id, clave, obraId: b.obraId, descripcion: b.descripcion, cantidad: b.cantidad || '1', unidad: b.unidad || 'ud', fecha: b.fecha, nota: b.nota || '',
+      nuevas: AG ? (await AG.restaurarFotos(b.fotos || [])).filter((x) => x.archivo) : [], sucia: true };
+    return mandarMaterial(f);
+  }
+  async function fotoMaterial(camara) {
+    const f = formMaterial;
+    const archivo = await C.elegirFoto(camara);
+    if (!archivo || !f) return;
+    const x = AG ? await AG.fotoNueva(archivo, { id: null }) : { id: null, archivo, url: URL.createObjectURL(archivo) };
+    f.nuevas.push(x);
+    cambioMaterial(f);
+    if (f === formMaterial && activa()) pintarMaterial();
   }
 
   async function fotoA(ruta, id) {
@@ -191,7 +310,7 @@
 
   function cerrarPlano() {
     if (urlImagen) URL.revokeObjectURL(urlImagen);
-    plano = null; urlImagen = null; marcas = []; dibujo = []; hoja = null;
+    plano = null; urlImagen = null; marcas = []; dibujo = []; hoja = null; borradorId = null;
   }
 
   async function abrirPlano(id, marcaId = null) {
@@ -212,6 +331,16 @@
       await cargarMarcas();
     } catch (e) { C.aviso(e.message); lista(); return; }
     if (!activa() || plano !== p) return;
+    if (!marcaId && AG && COLA) {
+      const k = COLA.claves(CLAVE_MAR).find((x) => { const d = AG.leer(x); return d && !d.listo && d.planoId === id && d.obraId === C.obraId(); });
+      const d = k && AG.leer(k);
+      if (d && Array.isArray(d.puntos) && d.puntos.length && capa(d.capa)) {
+        capaActiva = d.capa; fecha = d.fecha || fecha; dibujo = d.puntos; borradorId = d.id;
+        hoja = d.hoja ? { ...d.hoja, tipo: 'guardar', nuevas: (await AG.restaurarFotos(d.hoja.fotos || [])).filter((x) => x.archivo) } : null;
+        if (hoja) delete hoja.fotos;
+        C.aviso('Sigues donde lo dejaste: el tramo estaba sin guardar.', 'aviso');
+      }
+    }
     if (marcaId) { periodo = 'todo'; modo = 'mover'; const m = marcas.find((x) => x.id === marcaId); if (m) hoja = { tipo: 'ver', marca: m }; }
     pintarPlano();
     window.scrollTo(0, 0);
@@ -273,6 +402,7 @@
       ${tablaPartidas()}
       ${hoja ? pintarHoja() : ''}`;
     dibujarSvg();
+    apuntarMarca();
   }
 
   /* El punto a mitad de recorrido de un trazo (puntos relativos 0..1). */
@@ -442,7 +572,7 @@
     const ultima = leerUltima(c.id);
     const lineaId = lista.length === 1 ? lista[0].lineaId : (lista.some((p) => p.lineaId === ultima) ? ultima : '');
     hoja = {
-      tipo: 'guardar', nota: '', extra: '', extraNota: '', cantidad: '', lineaId, foto: false,
+      tipo: 'guardar', nota: '', extra: '', extraNota: '', cantidad: '', lineaId, nuevas: [],
       paralelos: (siguiente && siguiente.paralelos) || c.paralelos || 1,
       secForma: 'rect', secAncho: '', secAlto: '', secDiam: '', kgm: '', secTocada: false,
     };
@@ -459,6 +589,7 @@
     $app.insertAdjacentHTML('beforeend', pintarHoja());
     const nueva = $app.querySelector('.hoja');
     if (nueva) nueva.scrollTop = arriba;
+    apuntarMarca();
   }
 
   function pintarHoja() {
@@ -534,12 +665,69 @@
       <label>${c.tipo === 'punto' ? 'Cuántas unidades (si es más de una)' : trazo ? 'O el recorrido a mano (m), si lo sabes' : 'O la cantidad a mano, si la sabes'}<input type="number" inputmode="decimal" step="any" min="0" data-av-h="cantidad" value="${esc(hoja.cantidad)}" placeholder="${c.tipo === 'punto' ? '1' : 'Lo medido'}"></label>
       <p class="av-cuenta" data-av-cuenta>${esc(cuentaHoja())}</p>
       <label>Nota<textarea rows="2" data-av-h="nota" placeholder="Tramo, local, lo que haga falta">${esc(hoja.nota)}</textarea></label>
-      <label class="interruptor"><input type="checkbox" data-av-h-foto ${hoja.foto ? 'checked' : ''}> Añadir una foto al guardar</label>
+      ${hoja.nuevas.length ? `<div class="fotos">${hoja.nuevas.map((x) => (x.url ? `<img src="${esc(x.url)}" alt="">` : '<span class="foto-sin-vista">en el móvil</span>')).join('')}</div>` : ''}
+      <div class="fila-botones">
+        <button class="boton secundario" data-av="hoja-foto" data-camara="1"><i class="ic ic-camara"></i>Foto</button>
+        <button class="boton secundario" data-av="hoja-foto" data-camara="0">Galería</button>
+      </div>
       <button class="boton grande" data-av="guardar-marca">Guardar</button>
       ${trazo ? `<button class="boton secundario grande" data-av="guardar-seguir">Guardar y seguir con otro diámetro</button>
         <p class="nota">Guarda este tramo y empieza otro desde su último punto, en la misma capa: para cuando el recorrido cambia de diámetro o de sección.</p>` : ''}
       <button class="boton cancelar" data-av="cerrar-hoja">Cancelar</button>
     </div>`;
+  }
+
+  /* El tramo marcado vive en el teléfono desde el primer toque. */
+  function apuntarMarca() {
+    if (!AG || !plano) return;
+    if (!dibujo.length) { if (borradorId) AG.borrar(CLAVE_MAR + borradorId); borradorId = null; return; }
+    if (!borradorId) borradorId = nuevoId('mar');
+    const h = hoja && hoja.tipo === 'guardar' ? hoja : null;
+    const previo = AG.leer(CLAVE_MAR + borradorId);
+    if (previo && previo.listo) return; /* ya se está mandando: no se pisa */
+    AG.guardar(CLAVE_MAR + borradorId, {
+      id: borradorId, planoId: plano.id, obraId: C.obraId(), capa: capaActiva, fecha, puntos: dibujo, listo: false,
+      hoja: h ? { ...h, nuevas: undefined, fotos: AG.fotosParaGuardar(h.nuevas) } : null,
+    });
+  }
+
+  async function fotoHoja(camara) {
+    const h = hoja;
+    const archivo = await C.elegirFoto(camara);
+    if (!archivo || !h) return;
+    h.nuevas.push(AG ? await AG.fotoNueva(archivo, { id: null }) : { id: null, archivo, url: URL.createObjectURL(archivo) });
+    if (hoja === h) repintarHoja();
+  }
+
+  /* Manda un tramo «listo» y sus fotos. true = hecho (o rechazado y anotado); false = reintentar. */
+  async function mandarMarca(clave, b) {
+    try {
+      const r = await C.postJson('api/avance/marca', b.body);
+      if (!r.ok) {
+        if (AG) AG.guardar(clave, { ...b, listo: false, error: r.error });
+        C.aviso(`No se ha podido guardar el tramo: ${r.error}`);
+        return true;
+      }
+      const fotos = AG ? await AG.restaurarFotos(b.fotos || []) : [];
+      for (const x of fotos) {
+        if (!x.archivo) continue;
+        const subir = () => C.subirFoto(x.archivo);
+        let a = await C.postJson('api/avance/foto', { id: r.id, fotos: [await subir()] });
+        if (!a.ok && /ya no est/i.test(String(a.error || ''))) a = await C.postJson('api/avance/foto', { id: r.id, fotos: [await subir()] });
+        if (!a.ok) throw new Error(a.error);
+        b = { ...b, fotos: (b.fotos || []).filter((f) => f.local !== x.local) };
+        if (AG) { AG.guardar(clave, b); if (x.local) AG.borrarFoto(x.local); }
+      }
+      if (AG) AG.borrar(clave);
+      return true;
+    } catch (e) {
+      if (AG && AG.sinRed(e)) { if (COLA) COLA.masTarde(); return false; }
+      throw e;
+    }
+  }
+  async function enviarMarcaPendiente(clave, b) {
+    if (!b.listo || !b.body) return true;
+    try { return await mandarMarca(clave, b); } catch (e) { return false; }
   }
 
   async function guardarMarca(boton, seguir = false) {
@@ -549,21 +737,34 @@
     const p = partidaDe(h.lineaId);
     const ud = p ? MED.unidadNormal(p.unidad) : null;
     try {
-      const r = await C.postJson('api/avance/marca', {
-        planoId: plano.id, capa: capaActiva, fecha, puntos: dibujo, nota: h.nota, extra: h.extra, extraNota: h.extraNota,
+      if (!borradorId) borradorId = nuevoId('mar');
+      const clave = CLAVE_MAR + borradorId;
+      const body = {
+        id: borradorId, planoId: plano.id, capa: capaActiva, fecha, puntos: dibujo, nota: h.nota, extra: h.extra, extraNota: h.extraNota,
         cantidad: h.cantidad, lineaId: h.lineaId || undefined,
         paralelos: c.tipo === 'trazo' ? MED.paralelosDe(h.paralelos) : undefined,
         seccion: c.tipo === 'trazo' && (ud === 'm2' || ud === 'kg') ? (seccionHoja(h) || undefined) : undefined,
-      });
-      if (!r.ok) throw new Error(r.error);
+      };
+      const b = { id: borradorId, planoId: plano.id, obraId: C.obraId(), listo: true, body, fotos: AG ? AG.fotosParaGuardar(h.nuevas) : [] };
+      let enviado = false;
+      if (AG) {
+        AG.guardar(clave, b);
+        try { enviado = await mandarMarca(clave, b); } catch (e) { if (!AG.sinRed(e)) throw e; }
+      } else {
+        const r = await C.postJson('api/avance/marca', body);
+        if (!r.ok) throw new Error(r.error);
+        for (const x of h.nuevas) await C.postJson('api/avance/foto', { id: r.id, fotos: [await C.subirFoto(x.archivo)] });
+        enviado = true;
+      }
+      if (!enviado) { C.aviso('Sin conexión: el tramo queda guardado en el móvil y se mandará solo.', 'aviso'); if (COLA) COLA.masTarde(); }
       guardarUltima(c.id, h.lineaId);
-      if (h.foto) { try { await fotoA('api/avance/foto', r.id); } catch (e) { C.aviso(e.message); } }
       const ultimo = dibujo[dibujo.length - 1];
       dibujo = seguir && ultimo ? [ultimo] : [];
+      borradorId = null; /* el siguiente tramo es otro borrador */
       siguiente = seguir ? { paralelos: MED.paralelosDe(h.paralelos) } : null;
       hoja = null;
-      await cargarMarcas();
-      C.aviso(seguir ? 'Guardado. Sigue el recorrido desde el último punto y elige el otro diámetro al terminar.' : 'Marcado: le llega al jefe de obra.', 'bien');
+      try { await cargarMarcas(); } catch (e) { /* sin red: se verá al volver */ }
+      if (enviado) C.aviso(seguir ? 'Guardado. Sigue el recorrido desde el último punto y elige el otro diámetro al terminar.' : 'Marcado: le llega al jefe de obra.', 'bien');
       pintarPlano();
     } catch (e) { C.aviso(e.message); boton.disabled = false; }
   }
@@ -603,12 +804,13 @@
     else if (a === 'revisar') revisar([b.dataset.id], b.dataset.estado, b);
     else if (a === 'todas-vistas') revisar(pendientes.map((m) => m.id), 'vista', b);
     else if (a === 'revisar-hoja') revisar([hoja.marca.id], b.dataset.estado, b);
-    else if (a === 'material-nuevo') { formMaterial = { descripcion: '', cantidad: '1', unidad: 'ud', fecha: hoy(), nota: '', foto: false }; pintarMaterial(); }
-    else if (a === 'material-guardar') guardarMaterial(b);
+    else if (a === 'material-nuevo') nuevoMaterial();
+    else if (a === 'mat-foto') fotoMaterial(b.dataset.camara === '1');
     else if (a === 'deshacer') { dibujo.pop(); pintarPlano(); }
     else if (a === 'borrar-dibujo') { dibujo = []; pintarPlano(); }
     else if (a === 'terminar') abrirHojaGuardar();
     else if (a === 'cerrar-hoja') { if (hoja && hoja.tipo === 'guardar' && capa(capaActiva).tipo === 'punto') dibujo = []; hoja = null; pintarPlano(); }
+    else if (a === 'hoja-foto') fotoHoja(b.dataset.camara === '1');
     else if (a === 'guardar-marca') guardarMarca(b);
     else if (a === 'guardar-seguir') guardarMarca(b, true);
     else if (a === 'foto-marca') {
@@ -619,12 +821,11 @@
   const recoger = (ev) => {
     if (!activa()) return;
     const t = ev.target;
-    if (formMaterial && t.dataset.avMat) formMaterial[t.dataset.avMat] = t.value;
-    if (formMaterial && t.hasAttribute('data-av-mat-foto')) formMaterial.foto = t.checked;
+    if (formMaterial && t.dataset.avMat) { formMaterial[t.dataset.avMat] = t.value; cambioMaterial(formMaterial); }
     if (hoja && t.dataset.avH) hoja[t.dataset.avH] = t.value;
     if (hoja && t.hasAttribute('data-av-sec')) hoja.secTocada = true;
     if (hoja && hoja.tipo === 'guardar' && t.dataset.avH) { const k = $app.querySelector('[data-av-cuenta]'); if (k) k.textContent = cuentaHoja(); }
-    if (hoja && t.hasAttribute('data-av-h-foto')) hoja.foto = t.checked;
+    if (hoja && hoja.tipo === 'guardar' && (t.dataset.avH || t.hasAttribute('data-av-sec'))) apuntarMarca();
     if (ev.type === 'change' && t.hasAttribute('data-av-fecha') && t.value) { fecha = t.value; pintarPlano(); }
   };
   $app.addEventListener('input', recoger);
@@ -633,6 +834,8 @@
   new MutationObserver(() => { if (activa() && $app.querySelector('img[data-src]')) C.cargarImagenes($app); }).observe($app, { childList: true, subtree: true });
 
   window.addEventListener('movil:obra', () => { if (activa()) lista(); });
-  window.addEventListener('hashchange', () => { if (activa()) lista(); else cerrarPlano(); });
+  if (AG) AG.alSalir(() => { guardarMaterialYa(); });
+  if (COLA) { COLA.registrar(CLAVE_MAT, enviarMaterialPendiente); COLA.registrar(CLAVE_MAR, enviarMarcaPendiente); }
+  window.addEventListener('hashchange', () => { if (activa()) lista(); else { if (formMaterial) { guardarMaterialYa(); formMaterial = null; } cerrarPlano(); } });
   if (activa()) lista();
 })();

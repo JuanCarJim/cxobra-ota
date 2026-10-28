@@ -1549,3 +1549,72 @@ main, #app { min-width: 0; max-width: 100%; }
 .res-cifra.aviso b { color: var(--aviso); }
 .res-cifra.mal b { color: var(--mal); }
 .res-cifra.cero b { color: var(--textoTenue); font-weight: 500; }
+
+/* Hoy y Esta semana se pliegan con un toque en el título (28-oct); el estado se recuerda. */
+#app .ag-plegable { cursor: pointer; user-select: none; min-height: 32px; align-items: center; }
+#app .ag-plegable em { font-style: normal; flex: 1; text-align: left; }
+.ag-flecha { flex: none; width: 14px; transition: transform .12s; }
+.ag-bloque.plegado .ag-flecha { transform: rotate(-90deg); }
+.ag-cuerpo[hidden] { display: none; }
+
+/* ═══ KPI de Commissioning como los de Vidaire Obras (28-oct-2026, JC) ═══
+   Los de Conflictos del escritorio (renderer/tarjetas.css · .bandaCx): caja
+   clara con borde fino, filete de 2 px arriba (teal hecho, azul falta, gris
+   neutro), etiqueta en mayúsculas, cifra tabular, pie gris y barra fina. */
+#app .kpis-cx { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 4px 0 10px; }
+@media (min-width: 900px) { #app .kpis-cx { grid-template-columns: repeat(9, minmax(0, 1fr)); } }
+#app .kpi-cx {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0;
+  padding: 7px 9px 7px; text-align: left; font: inherit; color: var(--texto, #1F2A2A); cursor: pointer;
+  background: var(--panel); border: 1px solid #E1E6E6; border-top: 2px solid #B7C4C4; border-radius: 8px; box-shadow: none;
+}
+#app .kpi-cx.bien { border-top-color: #17807C; }
+#app .kpi-cx.falta { border-top-color: #4F8FCB; }
+#app .kpi-cx .et { font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--textoTenue); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: calc(100% - 10px); }
+#app .kpi-cx b { display: block; font-size: 21px; font-weight: 600; line-height: 1.1; letter-spacing: -.01em; font-variant-numeric: tabular-nums; color: var(--texto, #1F2A2A); }
+#app .kpi-cx.falta b { color: #2F6FA8; }
+#app .kpi-cx .pie { font-size: 10.5px; line-height: 1.2; color: var(--textoTenue); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+#app .kpi-cx .barra { display: block; width: 100%; height: 4px; margin: 2px 0 1px; border-radius: 2px; background: #E6EEEE; overflow: hidden; }
+#app .kpi-cx .barra > i { display: block; height: 100%; border-radius: 2px; background: #17807C; }
+#app .kpi-cx .ir { position: absolute; top: 5px; right: 7px; font-size: 13px; line-height: 1; color: #9AABAB; }
+#app .kpi-cx.activa { background: var(--acento-suave); border-color: #17807C; border-top-color: #17807C; }
+#app .kpi-cx.activa .et, #app .kpi-cx.activa .ir { color: var(--acento-fuerte); }
+
+/* ═══════════════ Los avisos flotantes (renderer/avisoFlotante.js + movil/avisosMovil.js, 28-oct)
+   Como en Vidaire Obras: un indicador pequeño «⚠ N avisos» en lugar de la banda,
+   y el texto en un recuadro que flota por encima (no empuja nada). La burbuja
+   sustituye al globo nativo del title: tocar la abre, tocar fuera la cierra. */
+.avisoFlot { display: inline-flex; align-items: center; margin: 4px 0; }
+button.avisoFlotBoton {
+  min-height: 28px; padding: 0 10px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  background: var(--aviso-fondo); color: var(--aviso); border: 1px solid var(--aviso); border-radius: 999px; width: fit-content;
+}
+.avisoFlot.mal button.avisoFlotBoton { background: var(--mal-fondo); color: var(--mal); border-color: var(--mal); }
+.avisoFlot.abierto button.avisoFlotBoton { box-shadow: inset 0 0 0 1px var(--aviso); }
+.avisoFlotPanel {
+  position: fixed; z-index: 90; overflow-y: auto; box-sizing: border-box;
+  background: var(--panel); color: var(--texto);
+  border: 1px solid var(--aviso); border-left: 3px solid var(--aviso); border-radius: 10px;
+  box-shadow: var(--sombra-alta); font-size: 14px; font-weight: 400; line-height: 1.4;
+}
+.avisoFlot.mal .avisoFlotPanel { border-color: var(--mal); }
+.avisoFlotPanel[hidden] { display: none; }
+.avisoFlotCabecera { display: flex; align-items: center; justify-content: space-between; padding: 4px 6px 4px 12px; border-bottom: 1px solid var(--borde); color: var(--aviso); }
+.avisoFlot.mal .avisoFlotCabecera { color: var(--mal); }
+button.avisoFlotCerrar { min-height: 32px; width: 32px; padding: 0; border: 0; background: transparent; color: var(--textoSuave); font-size: 20px; line-height: 1; cursor: pointer; }
+.avisoFlotCuerpo { padding: 8px 12px 10px; }
+.avisoFlotCuerpo .lineaAviso { margin: 0 0 6px; padding: 6px 8px; border-radius: 6px; background: var(--aviso-fondo); color: var(--texto); }
+.avisoFlotCuerpo .lineaAviso.bloqueante { background: var(--mal-fondo); }
+.avisoFlotCuerpo .lineaAviso:last-child { margin-bottom: 0; }
+.avisoBurbuja {
+  position: fixed; z-index: 95; box-sizing: border-box; padding: 8px 12px; white-space: pre-line;
+  background: var(--aviso-fondo); color: var(--texto);
+  border: 1px solid var(--aviso); border-left: 3px solid var(--aviso);
+  border-radius: 10px; box-shadow: var(--sombra-alta); font-size: 13px; font-weight: 400; line-height: 1.4;
+  pointer-events: none;
+}
+.avisoBurbuja.fija { pointer-events: auto; }
+.avisoBurbuja.mal { background: var(--mal-fondo); border-color: var(--mal); }
+.avisoBurbuja.info { background: var(--panel); border-color: var(--borde); border-left-color: var(--acento); }
+.avisoBurbuja[hidden] { display: none; }
+@media (hover: hover) { [data-aviso-texto] { cursor: help; } }
