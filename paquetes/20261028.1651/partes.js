@@ -43,6 +43,45 @@
   let datos = null;
   let form = null;
   let obraId = null;
+
+  /*
+   * AUTOGUARDADO (28-oct-2026, JC: un encargado metía fotos, pulsó atrás y lo
+   * perdió todo). El parte a medias se guarda en el teléfono con cada tecla
+   * y cada foto (autoguardado.js); la foto, además, se sube al momento. Al
+   * volver se sigue donde estaba; si se cerró la app, la lista ofrece
+   * seguir con él. Solo se borra cuando el servidor confirma el envío. No se
+   * crea en el servidor antes de enviarlo: le saldría al jefe de obra a medias.
+   */
+  const AG = window.AUTOGUARDADO;
+  const CLAVE = 'parte';
+  const vacio = () => ({ obraId: null, tipo: '', fecha: hoy(), hora: ahoraHora(), zona: '', titulo: '', descripcion: '', gravedad: 'media',
+    denuncia: 'no', atestado: '', causa: '', proveedorId: '', diasRetraso: '', lineas: [], fotos: [] });
+  const conContenido = (f) => Boolean(f && (f.tipo || String(f.titulo || '').trim() || String(f.descripcion || '').trim() || String(f.zona || '').trim()
+    || (f.fotos || []).length || (f.lineas || []).some((l) => String(l.descripcion || '').trim())));
+  function estadoMarca() {
+    if (!form) return ['movil', ''];
+    if (form.fotos.some((x) => x.subiendo)) return ['guardando', 'Subiendo foto…'];
+    if (form.fotos.some((x) => !x.id)) return ['sinRed', 'Sin conexión: la foto se subirá al enviar'];
+    return conContenido(form) ? ['movil', 'Guardado en el móvil · se envía con el botón'] : ['movil', 'Se guarda solo mientras escribes'];
+  }
+  function persistir() {
+    if (!form) return;
+    if (conContenido(form)) {
+      if (!AG.guardar(CLAVE, { ...form, fotos: AG.fotosParaGuardar(form.fotos) })) { AG.pintarMarca($app, 'error', 'No se ha podido guardar en el móvil'); return; }
+    } else AG.borrar(CLAVE);
+    if (activa()) AG.pintarMarca($app, ...estadoMarca());
+  }
+  async function recuperar() {
+    const b = AG.leer(CLAVE);
+    if (!conContenido(b)) return false;
+    const { _en, ...resto } = b;
+    form = { ...vacio(), ...resto, fotos: await AG.restaurarFotos(b.fotos) };
+    return true;
+  }
+  const pintarActual = () => (form.tipo && PM.TIPOS[form.tipo] ? pintarForm() : pintarTipo());
+  async function seguir() {
+    if (await recuperar() && activa()) pintarActual();
+  }
   /* La obra es la elegida en la cabecera (carcasa.js), la misma para todas. */
   try { obraId = localStorage.getItem('movil.obra') || localStorage.getItem('partes.obra'); } catch { /* sin almacenamiento */ }
   window.addEventListener('movil:obra', (ev) => { obraId = ev.detail; if (activa() && !form && datos) pintarLista(); });
@@ -89,7 +128,12 @@
     if (!o) { $app.innerHTML = '<p class="vacio">No tienes obras abiertas en las que dar partes.</p>'; return; }
     const puede = datos.puede && datos.puede.crear;
     const mios = (datos.recientes || []).filter((p) => p.obraId === o.id);
-    $app.innerHTML = `
+    const b = AG.leer(CLAVE);
+    const borrador = conContenido(b) ? `<section class="borrador-pendiente" role="status">
+        <p><strong>Tienes un parte sin terminar</strong><br><small>${esc([(PM.TIPOS[b.tipo] || {}).nombre, b.titulo, (b.fotos || []).length ? `${b.fotos.length} foto${b.fotos.length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ') || 'Sin título')}</small></p>
+        <div class="fila-botones"><button class="boton" data-pi="seguir">Seguir con él</button><button class="boton secundario" data-pi="descartar">Descartar</button></div>
+      </section>` : '';
+    $app.innerHTML = `${borrador}
       ${window.CX && window.CX.obras().length ? '' : obras().length > 1 ? `<label class="elegir-obra">Obra<select data-pi-cambio="obra">${obras().map((x) => `<option value="${esc(x.id)}" ${x.id === o.id ? 'selected' : ''}>${esc(x.codigo)} · ${esc(x.nombre)}</option>`).join('')}</select></label>` : `<p class="nota">${esc(o.codigo)} · ${esc(o.nombre)}</p>`}
       ${puede ? `<section class="acciones">
         <button class="boton grande" data-pi="nuevo"><i class="ic ic-aviso"></i>Nuevo parte de incidencia</button>
@@ -106,17 +150,23 @@
 
   /* ═══════════════════════════════════ 2. El parte */
 
-  function nuevo() {
+  async function nuevo() {
     const o = obra();
     if (!o) return;
-    form = { obraId: o.id, tipo: '', fecha: hoy(), hora: ahoraHora(), zona: '', titulo: '', descripcion: '', gravedad: 'media',
-      denuncia: 'no', atestado: '', causa: '', proveedorId: '', diasRetraso: '', lineas: [], fotos: [] };
+    /* Un parte sin terminar no se pisa: se sigue con él (o se descarta en la lista). */
+    if (await recuperar()) {
+      try { sessionStorage.removeItem('partes.prefill'); } catch { /* nada */ }
+      aviso('Sigues con el parte que tenías sin terminar.', 'aviso');
+      if (activa()) pintarActual();
+      return;
+    }
+    form = { ...vacio(), obraId: o.id };
     /* Un parte que viene ya relleno de otra sección (Commissioning: «Avisar con
        un parte» de un modelo sin dar de alta): se salta la pregunta del tipo. */
     const previo = prefill();
     if (previo) {
       for (const k of ['tipo', 'titulo', 'descripcion', 'gravedad', 'zona']) if (typeof previo[k] === 'string' && previo[k]) form[k] = previo[k];
-      if (form.tipo && PM.TIPOS[form.tipo]) { pintarForm(); return; }
+      if (form.tipo && PM.TIPOS[form.tipo]) { persistir(); pintarForm(); return; }
       form.tipo = '';
     }
     pintarTipo();
@@ -151,6 +201,7 @@
     $app.innerHTML = `
       <button class="volver" data-pi="cambiar-tipo">‹ ${esc(t.icono)} ${esc(t.nombre)} <small>(cambiar)</small></button>
       <p class="nota">${esc(o.codigo)} · ${esc(o.nombre)}</p>
+      ${AG.marca(...estadoMarca())}
       <label>En pocas palabras<input data-pi-campo="titulo" value="${esc(f.titulo)}" maxlength="120" placeholder="${esc(t.ejemplo)}" autocomplete="off"></label>
       <div class="campos">
         <label>Día<input type="date" data-pi-campo="fecha" value="${esc(f.fecha)}" max="${hoy()}"></label>
@@ -171,7 +222,7 @@
       ${conCosas ? cosas(o, f) : ''}
       <label class="notas">Qué ha pasado<textarea data-pi-campo="descripcion" rows="4" placeholder="${esc(t.pista)}">${esc(f.descripcion)}</textarea></label>
       <h2>Fotos <span class="cuenta">${f.fotos.length}</span></h2>
-      <div class="fotos">${f.fotos.map((x) => `<img src="${esc(x.url)}" alt="Foto del parte">`).join('')}
+      <div class="fotos">${f.fotos.map((x, i) => (x.url ? `<img src="${esc(x.url)}" alt="Foto del parte" data-pi="ver-foto" data-i="${i}">` : `<span class="foto-sin-vista" data-pi="ver-foto" data-i="${i}">Foto</span>`)).join('')}
         <button class="anadir-foto" data-pi="foto" aria-label="Hacer una foto">＋</button></div>
       <button class="enlace" data-pi="galeria">o elegir una de la galería</button>
       <button class="boton grande" data-pi="enviar">Enviar al jefe de obra</button>
@@ -206,23 +257,80 @@
     if (c && c.unidad && !l.unidad) l.unidad = c.unidad;
   }
 
+  /* La foto: primero al teléfono (no se pierde) y al momento al ordenador. */
   async function foto(archivo) {
     if (!archivo || !form) return;
+    const f = form;
+    const x = await AG.fotoNueva(archivo, { id: null });
+    x.subiendo = true;
+    f.fotos.push(x);
+    if (form === f) { persistir(); if (activa()) pintarForm(); }
+    await subir(x);
+    if (form === f) persistir();
+  }
+  async function subir(x) {
+    x.subiendo = true;
     try {
-      const r = await pedir('api/foto?leer=0', { method: 'POST', headers: { 'Content-Type': archivo.type || 'image/jpeg' }, body: archivo });
+      const blob = x.archivo || await AG.leerFoto(x.local);
+      if (!blob) throw new Error('La foto no se ha podido recuperar del teléfono: hazla de nuevo.');
+      const r = await pedir('api/foto?leer=0', { method: 'POST', headers: { 'Content-Type': blob.type || 'image/jpeg' }, body: blob });
       if (!r.ok) throw new Error(r.error);
-      form.fotos.push({ id: r.fotoId, url: URL.createObjectURL(archivo) });
-      pintarForm();
-    } catch (e) { aviso(e.message); }
+      x.id = r.fotoId;
+      return true;
+    } catch (e) {
+      x.id = null;
+      if (!AG.sinRed(e)) aviso(e.message);
+      return false;
+    } finally { x.subiendo = false; }
+  }
+  /* Tocar una foto: en grande, para reemplazarla o quitarla (y se guarda sola). */
+  function verFoto(i) {
+    const f = form;
+    const viejo = f && f.fotos[i];
+    if (!viejo) return;
+    const soltar = (x) => { if (x.local) AG.borrarFoto(x.local); if (x.url) { try { URL.revokeObjectURL(x.url); } catch { /* nada */ } } };
+    AG.verFoto({
+      url: viejo.url,
+      quitar: () => {
+        const k = f.fotos.indexOf(viejo);
+        if (k < 0) return;
+        f.fotos.splice(k, 1);
+        soltar(viejo);
+        if (form === f) { persistir(); if (activa()) pintarForm(); }
+      },
+      reemplazar: async (archivo) => {
+        const x = await AG.fotoNueva(archivo, { id: null });
+        x.subiendo = true;
+        const k = f.fotos.indexOf(viejo);
+        if (k < 0) f.fotos.push(x); else f.fotos.splice(k, 1, x);
+        soltar(viejo);
+        if (form === f) { persistir(); if (activa()) pintarForm(); }
+        await subir(x);
+        if (form === f) persistir();
+      },
+    });
+  }
+
+  /* Antes de enviar, las que no llegaron (o todas, si el ordenador ya no las tiene). */
+  async function subirFaltan(todas) {
+    for (const x of form.fotos) {
+      if (!todas && x.id) continue;
+      if (!(await subir(x))) throw new Error('No se ha podido subir una foto. El parte sigue guardado en el móvil: vuelve a enviarlo con conexión.');
+    }
   }
 
   async function enviar(boton) {
     const f = form;
     boton.disabled = true;
     try {
-      const r = await postJson('api/parte', { ...f, fotos: f.fotos.map((x) => x.id) });
+      await subirFaltan(false);
+      const cuerpo = () => ({ ...f, fotos: f.fotos.map((x) => x.id) });
+      let r = await postJson('api/parte', cuerpo());
+      /* El ordenador se reinició y olvidó las fotos en espera: se suben otra vez desde el teléfono. */
+      if (!r.ok && /fotos ya no está/i.test(String(r.error || ''))) { await subirFaltan(true); r = await postJson('api/parte', cuerpo()); }
       if (!r.ok) throw new Error(r.error);
       form = null;
+      AG.borrar(CLAVE);
       $app.innerHTML = `
         <section class="resultado bien"><div class="icono">✓</div><h1>${esc(r.codigo)}</h1>
           <p>Parte enviado</p><p class="sub">${esc(r.avisados && r.avisados.length ? `Le sale a ${r.avisados.join(', ')}.` : 'Le sale al jefe de obra en la aplicación.')}</p></section>
@@ -231,7 +339,8 @@
         <button class="boton secundario" data-pi="lista">Volver a la lista</button>`;
       datos = await pedir('api/partes').catch(() => datos);
     } catch (e) {
-      aviso(e.message);
+      persistir();
+      aviso(AG.sinRed(e) ? 'Sin conexión: el parte sigue guardado en el móvil. Vuelve a enviarlo con conexión.' : e.message);
       boton.disabled = false;
     }
   }
@@ -245,13 +354,17 @@
     const a = b.dataset.pi;
     if (a === 'lista') lista();
     else if (a === 'nuevo') { if (datos) nuevo(); }
+    else if (a === 'seguir') seguir();
+    else if (a === 'descartar') { if (window.confirm('¿Descartar el parte sin terminar? Se borra lo escrito y sus fotos.')) { AG.borrar(CLAVE); form = null; pintarLista(); } }
     else if (a === 'tipo') {
       form.tipo = b.dataset.id;
       if ((form.tipo === 'robo' || form.tipo === 'danos') && !form.lineas.length) form.lineas.push(lineaVacia('material'));
+      persistir();
       pintarForm();
     } else if (a === 'cambiar-tipo') pintarTipo();
-    else if (a === 'linea') { form.lineas.push(lineaVacia(b.dataset.clase)); pintarForm(); }
-    else if (a === 'quitar-linea') { form.lineas.splice(Number(b.dataset.i), 1); pintarForm(); }
+    else if (a === 'linea') { form.lineas.push(lineaVacia(b.dataset.clase)); persistir(); pintarForm(); }
+    else if (a === 'quitar-linea') { form.lineas.splice(Number(b.dataset.i), 1); persistir(); pintarForm(); }
+    else if (a === 'ver-foto') verFoto(Number(b.dataset.i));
     else if (a === 'foto') $camara.click();
     else if (a === 'galeria') $galeria.click();
     else if (a === 'enviar') enviar(b);
@@ -278,17 +391,26 @@
         if (t.dataset.campo === 'clase' || (ev.type === 'change' && antes !== l.ref)) pintarForm();
       }
     }
+    if (t.dataset.piCampo || t.dataset.piLinea !== undefined) persistir();
   };
   $app.addEventListener('input', recoger);
   $app.addEventListener('change', recoger);
   for (const input of [$camara, $galeria]) {
-    input.addEventListener('change', () => {
-      const archivo = input.files && input.files[0];
+    /* De la galería, varias a la vez (tarea 368b6690). */
+    input.addEventListener('change', async () => {
+      const archivos = Array.from(input.files || []);
       input.value = '';
-      foto(archivo);
+      for (const archivo of archivos) await foto(archivo);
     });
   }
 
-  window.addEventListener('hashchange', () => { if (activa()) lista(); });
+  /* Atrás (botón, gesto o navegador) y vuelta: el parte a medias sigue ahí. */
+  window.addEventListener('hashchange', () => {
+    if (!activa()) { persistir(); return; }
+    if (form && datos) pintarActual();
+    else lista();
+  });
+  AG.alSalir(persistir);
+  window.addEventListener('online', () => { if (form) for (const x of form.fotos) if (!x.id && !x.subiendo) subir(x).then(persistir); });
   if (activa()) lista();
 })();

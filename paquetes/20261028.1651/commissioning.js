@@ -134,9 +134,16 @@
      es conjunto (15-oct-2026, JC). Sin conjuntos (un servidor viejo), por unidades. */
   const porConjuntos = () => Array.isArray(lista.conjuntos);
   const NOMBRE_CLASE = { par: 'Split', sistema: 'VRF' };
-  const textoDe = (e) => `${(e.unidades || []).map((u) => u.tag).join(' ') || e.tag} ${e.planta || ''} ${e.marca || ''} ${e.modelo || ''} ${tipoDe(e)}`;
+  const textoDe = (e) => `${(e.unidades || []).map((u) => u.tag).join(' ') || e.tag} ${e.nombre || ''} ${e.local || ''} ${e.planta || ''} ${e.marca || ''} ${e.modelo || ''} ${tipoDe(e)}`;
   function tagsFila(e) {
     const us = e.unidades || [];
+    /* El split, UNA vez por su nombre (28-oct-2026, JC: «en lugar de UE y luego
+       debajo UI, quiero el nombre del conjunto una vez»). Lo da el servidor
+       (shared/commissioning/filaMovil.js) solo si los dos TAG dicen lo mismo:
+       si no cuadran, las dos unidades como antes. */
+    if (e.clase === 'par' && e.nombre) {
+      return `<strong class="cifra" title="${esc(us.map((u) => u.tag).join(' / '))}">${esc(e.nombre)}</strong>`;
+    }
     if (e.clase === 'par') {
       return `<div class="tags-par">${us.map((u) => `<strong class="cifra"><em>${esc(u.papel)}</em>${esc(u.tag)}</strong>`).join('')}</div>`;
     }
@@ -154,11 +161,17 @@
      regla de siempre (papeles + fichas + ensayo, shared/commissioning/control.js)
      que pinta el chip «Completo»: no hay otra. Los hechos van al final del grupo. */
   const hecho = (e) => !!e.completo;
+  function cabeceraPlanta(fs, p) {
+    return `<span>${esc(p)}</span><b aria-label="${fs.filter(hecho).length} hechos de ${fs.length}">${cifra(fs.filter(hecho).length)}/${cifra(fs.length)}</b>`;
+  }
   function cabeceraGrupo(fs, g) {
     const hechos = fs.filter(hecho).length;
     return `<span>${esc(g)}</span><b class="contador" aria-label="${hechos} hechos de ${fs.length}">${cifra(hechos)}/${cifra(fs.length)}</b>`;
   }
 
+  /* Bajo los KPI ya no va «544 conjuntos con 778 unidades: … van en una línea
+     con su exterior» (28-oct-2026, JC: «ese texto fuera»); la de la instalación
+     verificada se queda, que lleva el enlace «Ver cuáles». */
   function pintarLista() {
     /* La ficha del equipo escondía el selector de arriba: vuelve. */
     const seg = document.getElementById('segmentos');
@@ -180,21 +193,24 @@
         .filter(([id, n]) => id !== 'enMarcha' || n !== undefined)
         .map(([id, n, texto]) => `<button role="tab" data-cx-seg="${id}" aria-selected="${segmento === id}" class="${segmento === id ? 'activa' : ''} ${id.startsWith('falta') && n ? 'aviso' : ''}"><b>${cifra(n)}</b><span>${esc(texto)}</span></button>`).join('')}</div>
       ${t.sinVerificar ? `<p class="nota tenue cuenta-instaladas">${cifra(t.instaladas)} de ${cifra(conj ? t.conjuntos : t.equipos)} con la instalación verificada; los otros ${cifra(t.sinVerificar)}, solo documentación. <button class="enlace" data-cx-seg="sinVerificar">${segmento === 'sinVerificar' ? 'Ver todos' : 'Ver cuáles'}</button></p>` : ''}
-      ${conj && t.unidades !== t.conjuntos ? `<p class="nota tenue cuenta-conjuntos">${cifra(t.conjuntos)} conjuntos con ${cifra(t.unidades)} unidades: ${cifra(t.pares)} splits y ${cifra(t.sistemas)} VRF van en una línea con su exterior.</p>` : ''}
-      <input type="search" class="buscar" placeholder="Buscar TAG, planta, tipo o marca" value="${esc(filtro)}" data-cx-buscar>
+      <input type="search" class="buscar" placeholder="Buscar TAG, sala, planta, tipo o marca" value="${esc(filtro)}" data-cx-buscar>
       <div class="agrupar" role="group" aria-label="Agrupar por"><span>Agrupar por</span>${AGRUPAR
         .map(([id, texto]) => `<button data-cx-agrupar="${id}" aria-pressed="${agrupar === id}" class="${agrupar === id ? 'activa' : ''}">${texto}</button>`).join('')}</div>
       ${equipos.length ? C.listaAgrupada(`cx-equipos-${agrupar}`, equipos, {
         grupo: grupoDe, orden: grupos, buscando: !!q, repintar: pintarLista, cabecera: cabeceraGrupo,
+        /* «Por plantas pero en los desplegables de los equipos» (JC, 28-oct): al agrupar por tipo o marca, cada grupo sale por planta. */
+        ...(agrupar === 'planta' ? {} : { subgrupo: (e) => e.planta || 'Sin planta', subOrden: porPlanta, subCabecera: cabeceraPlanta }),
         fila: (e) => `
         <li><button class="fila-ios" data-cx="equipo" data-id="${esc(e.id)}">
           <div class="fila-principal">
             ${tagsFila(e)}
             ${chipEnvio(e.envio, e.completo, e.ensayoFalta)}
           </div>
-          <div class="sub">${esc([NOMBRE_CLASE[e.clase], e.planta, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · ') || 'Sin datos')}</div>
+          <div class="sub">${[NOMBRE_CLASE[e.clase], e.planta, e.local, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean)
+            /* Cada trozo entero: a 390 px se parte entre trozos, no en «U-|71PZH3E5». */
+            .map((x) => `<span class="trozo">${esc(x)}</span>`).join(' · ') || 'Sin datos'}</div>
           ${e.bocas ? `<div class="progreso" aria-label="${e.medidas} de ${e.bocas} bocas medidas"><i style="width:${Math.round((e.medidas / e.bocas) * 100)}%"></i></div>
-          <div class="sub">${cifra(e.medidas)} de ${cifra(e.bocas)} bocas medidas</div>` : '<div class="sub">Sin plano de bocas</div>'}
+          <div class="sub">${cifra(e.medidas)} de ${cifra(e.bocas)} bocas medidas</div>` : e.conPlano === false ? '' : '<div class="sub">Sin plano de bocas</div>'}
           ${e.falta && e.falta.length && !e.completo ? `<div class="sub aviso">Falta: ${esc(e.falta.join(', '))}</div>` : ''}
         </button></li>` }) : `<p class="vacio">${q || segmento !== 'todos' ? 'Ningún equipo con ese filtro.' : 'Esta obra no tiene equipos dados de alta.'}</p>`}`;
   }
@@ -220,7 +236,7 @@
         if (ficha && ficha.equipo.id === r.equipo.id) ficha = r;
         return;
       }
-      if (!ficha || ficha.equipo.id !== r.equipo.id) { pestanaEq = 'equipo'; circuitoBal = 'impulsion'; }
+      if (!ficha || ficha.equipo.id !== r.equipo.id) { pestanaEq = 'equipo'; circuitoBal = 'impulsion'; firmando = null; }
       ficha = r;
       hoja = null;
       fichasEq = null;
@@ -239,7 +255,7 @@
       if (!r.ok) throw new Error(r.error);
       fichasEq = r;
     } catch (e) { fichasEq = { ok: false, error: e.message, fichas: [] }; }
-    if (activa() && ficha && !hoja && ficha.equipo.id === id) {
+    if (activa() && ficha && !hoja && !firmando && ficha.equipo.id === id) {
       const y = window.scrollY;
       pintarFicha();
       window.scrollTo(0, y);
@@ -322,8 +338,101 @@
         ${pideBal ? fila('Balanceo', `<strong>${esc(nombreEstado(k.balanceoEstado || 'pendiente'))}</strong>`) : ''}
         ${pideEst ? fila('Estanqueidad', `<strong>${esc(nombreEstado(est))}</strong>`) : ''}
         ${fila('Puesta en marcha', `<strong>${esc(k.estadoPM ? nombreEstado(k.estadoPM) : '—')}</strong>`)}
+        ${htmlFirmas(puede)}
       </section>
+      ${firmando ? htmlLienzoFirma() : ''}
       ${htmlIncidenciasEquipo(k.incidencias || [])}`;
+  }
+
+  /*
+   * LAS FIRMAS DEL EQUIPO (JC, 28-oct-2026): la del jefe de obra y la del
+   * cliente, con el dedo, en el propio móvil. Se guardan con el equipo (en un
+   * split o un VRF, para todo el conjunto) y salen en los PDF del checklist,
+   * la ficha de PM, el balanceo y la estanqueidad. Volver a firmar sustituye.
+   */
+  const ROTULO_FIRMA = { jefeObra: 'Firma del jefe de obra', cliente: 'Firma del cliente' };
+  let firmando = null; /* 'jefeObra' | 'cliente' mientras se firma */
+  let trazado = false;
+  function htmlFirmas(puede) {
+    const fs = (ficha && ficha.firmas) || {};
+    return ['jefeObra', 'cliente'].map((rol) => {
+      const f = fs[rol];
+      const fecha = f && f.fecha ? String(f.fecha).slice(0, 10).split('-').reverse().join('/') : '';
+      const valor = f
+        ? `<span class="firma-hecha"><img src="${esc(f.imagen)}" alt="Firma de ${esc(f.nombre)}"><span class="tenue">${esc([f.nombre, fecha].filter(Boolean).join(' · '))}</span></span>${puede ? ` <button class="enlace" data-cx="firmar" data-rol="${rol}">Volver a firmar</button>` : ''}`
+        : (puede ? `<button class="enlace" data-cx="firmar" data-rol="${rol}">Firmar</button>` : '<span class="no">Sin firmar</span>');
+      return `<div class="fd firma-fd"><span class="et">${ROTULO_FIRMA[rol]}</span><span class="firma-valor">${valor}</span></div>`;
+    }).join('');
+  }
+  function htmlLienzoFirma() {
+    const previa = ((ficha && ficha.firmas) || {})[firmando];
+    return `<section class="firma-lienzo" data-firma="${firmando}">
+      <h3 class="banda">${ROTULO_FIRMA[firmando]}</h3>
+      <label class="campo"><span>Nombre de quien firma</span>
+        <input type="text" maxlength="80" data-firma-nombre value="${esc(previa ? previa.nombre : '')}" placeholder="${firmando === 'cliente' ? 'Nombre y empresa del cliente' : 'Nombre del jefe de obra'}" autocomplete="name"></label>
+      <canvas width="600" height="200" data-firma-lienzo aria-label="Firme aquí con el dedo"></canvas>
+      <p class="nota">Firme dentro del recuadro con el dedo.</p>
+      <div class="fila-botones">
+        <button class="boton" data-cx="guardar-firma">Guardar firma</button>
+        <button class="boton secundario" data-cx="limpiar-firma">Borrar trazo</button>
+        <button class="boton secundario" data-cx="cancelar-firma">Cancelar</button>
+        ${previa ? '<button class="enlace mal" data-cx="quitar-firma">Quitar la firma guardada</button>' : ''}
+      </div>
+    </section>`;
+  }
+  function prepararLienzo() {
+    const cv = $app.querySelector('[data-firma-lienzo]');
+    if (!cv) return;
+    const cx = cv.getContext('2d');
+    cx.lineWidth = 3; cx.lineCap = 'round'; cx.lineJoin = 'round'; cx.strokeStyle = '#0F5F56';
+    trazado = false;
+    let ultimo = null;
+    const punto = (ev) => { const r = cv.getBoundingClientRect(); return { x: ((ev.clientX - r.left) / r.width) * cv.width, y: ((ev.clientY - r.top) / r.height) * cv.height }; };
+    cv.addEventListener('pointerdown', (ev) => { ev.preventDefault(); try { cv.setPointerCapture(ev.pointerId); } catch { /* sin captura */ } ultimo = punto(ev); cx.beginPath(); cx.arc(ultimo.x, ultimo.y, 1.5, 0, Math.PI * 2); cx.fillStyle = cx.strokeStyle; cx.fill(); trazado = true; });
+    cv.addEventListener('pointermove', (ev) => {
+      if (!ultimo) return;
+      ev.preventDefault();
+      const p = punto(ev);
+      cx.beginPath(); cx.moveTo(ultimo.x, ultimo.y); cx.lineTo(p.x, p.y); cx.stroke();
+      ultimo = p;
+    });
+    const fin = () => { ultimo = null; };
+    cv.addEventListener('pointerup', fin);
+    cv.addEventListener('pointercancel', fin);
+    cv.addEventListener('pointerleave', fin);
+  }
+  function abrirFirma(rol) {
+    firmando = rol;
+    const y = window.scrollY;
+    pintarFicha();
+    window.scrollTo(0, y);
+    const sec = $app.querySelector('.firma-lienzo');
+    if (sec) sec.scrollIntoView({ block: 'center' });
+  }
+  function cerrarFirma() {
+    firmando = null;
+    const y = window.scrollY;
+    pintarFicha();
+    window.scrollTo(0, y);
+  }
+  async function guardarFirma(boton, quitar = false) {
+    if (!ficha || !firmando) return;
+    const nombre = ($app.querySelector('[data-firma-nombre]') || {}).value || '';
+    const cv = $app.querySelector('[data-firma-lienzo]');
+    if (!quitar) {
+      if (!nombre.trim()) { C.aviso('Falta el nombre de quien firma.'); return; }
+      if (!trazado || !cv) { C.aviso('Firme en el recuadro antes de guardar.'); return; }
+    }
+    boton.disabled = true;
+    try {
+      const r = await C.postJson('api/equipo/firma', quitar
+        ? { equipoId: ficha.equipo.id, rol: firmando, quitar: true }
+        : { equipoId: ficha.equipo.id, rol: firmando, nombre: nombre.trim(), imagen: cv.toDataURL('image/png') });
+      if (!r.ok) throw new Error(r.error);
+      ficha.firmas = r.firmas;
+      C.aviso(quitar ? 'Firma quitada' : 'Firma guardada', 'bien');
+      cerrarFirma();
+    } catch (e) { C.aviso(e.message); boton.disabled = false; }
   }
 
   /*
@@ -432,19 +541,29 @@
       ${puede || !f.planos.length ? '' : '<p class="nota">Tu rol puede ver las medidas, pero no tomarlas.</p>'}
       ${f.planos.length ? '<button class="boton secundario" data-cx="pdf-balanceo"><i class="ic ic-doc"></i>Informe del balanceo (PDF)</button>' : ''}
       ${htmlFichas('balanceo', 'Hoja de balanceo')}`;
+    /*
+     * LA PANTALLA DEL EQUIPO (JC, 28-oct-2026): solo «Fotos del equipo» y
+     * «Documentación y estado», y la LISTA numerada de fichas del equipo
+     * directamente (checklist, toma de datos, estanqueidad…): cada fila abre su ficha.
+     * El conjunto (split, VRF) es un solo commissioning: no salen sus unidades.
+     */
     const cuerpo = pestanaEq === 'balanceo' ? balanceo()
-      : `${htmlConjunto(f.conjunto, e.id)}
+      : pestanaEq === 'fichas' ? `${htmlNotaConjunto(f.conjunto)}
+      ${htmlFichas('equipo', 'Fichas del equipo')}
       ${htmlTomaDatos()}
+      ${htmlConservadas()}`
+      : `${htmlNotaConjunto(f.conjunto)}
       ${htmlFichas('equipo', 'Fichas del equipo')}
       ${htmlFotosEquipo(f, puede)}
       ${checklist(f.checklist, f.medicion, puede)}`;
     const sub = [e.planta, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
     $app.innerHTML = `
-      ${pestanaEq === 'balanceo'
-        ? tagFijo(e.tag, tituloMedicion(f), 'ficha-equipo')
+      ${pestanaEq === 'balanceo' ? tagFijo(e.tag, tituloMedicion(f), 'ficha-equipo')
+        : pestanaEq === 'fichas' ? tagFijo(e.tag, 'Fichas del equipo', 'ficha-equipo')
         : tagFijo(e.tag, sub, 'atras')}
       <div class="densa">${cuerpo}</div>`;
     C.cargarImagenes($app);
+    if (firmando) prepararLienzo();
     if (pestanaEq === 'balanceo') { restaurarPlano(); latirCrono(); }
     else { bocaAbierta = null; grandeId = null; document.body.classList.remove('sin-scroll'); }
   }
@@ -709,27 +828,35 @@
   }
 
   /*
-   * EL CONJUNTO: en un split la exterior y la interior se ponen en marcha y
-   * se entregan juntas; aquí salen las dos, con su modelo y nº de serie, y un
-   * toque abre la otra. En un VRF, la exterior y sus interiores.
+   * EL CONJUNTO (split, VRF) ES UN SOLO COMMISSIONING (JC, 28-oct-2026): sin
+   * fichas de unidad exterior ni interior; en las fichas, una línea lo dice.
    */
-  function htmlConjunto(cj, actual) {
+  function htmlNotaConjunto(cj) {
     if (!cj || !cj.unidades || cj.unidades.length < 2) return '';
-    const titulo = cj.clase === 'par' ? 'Split: UE + UI' : `VRF: UE + ${cj.unidades.length - 1} UI`;
-    return `<h2>${esc(titulo)} <span class="cuenta">un solo commissioning</span></h2>
-      <section class="grupo conjunto-cx">
-        ${cj.unidades.map((u) => {
-          const datos = `<span class="papel">${esc(u.papel)}</span>
-            <span class="que"><strong class="cifra">${esc(u.tag)}</strong>
-              <span class="sub">${esc([u.modelo, u.numSerie ? `nº ${u.numSerie}` : 'sin nº de serie', u.planta].filter(Boolean).join(' · '))}</span></span>
-            <span class="tenue">${esc(u.estadoPM || '')}</span>`;
-          return u.id === actual
-            ? `<div class="fila-dato actual">${datos}</div>`
-            : `<button class="fila-dato" data-cx="equipo" data-id="${esc(u.id)}">${datos}<span class="flecha">›</span></button>`;
-        }).join('')}
-        <div class="fila-dato"><span>Estado del conjunto</span>${chipEnvio(cj.envio, cj.completo, cj.ensayoFalta)}</div>
-      </section>
+    const que = cj.clase === 'par' ? 'Split' : 'VRF';
+    return `<p class="nota nota-conjunto">${que}: un solo commissioning para ${esc(cj.unidades.map((u) => u.tag).join(' + '))}. ${chipEnvio(cj.envio, cj.completo, cj.ensayoFalta)}</p>
       ${cj.falta && cj.falta.length && !cj.completo ? `<p class="nota aviso">Falta en el conjunto: ${esc(cj.falta.join(', '))}</p>` : ''}`;
+  }
+
+  /* La entrada a las fichas: lo que lleva el equipo y cuántas están hechas. */
+  function htmlEntradaFichas() {
+    const ok = fichasEq && fichasEq.ok !== false;
+    const fs = ok ? (fichasEq.fichas || []).filter((x) => !x.conservada) : [];
+    const bal = ficha && tieneBalanceo(ficha) && !fs.some((x) => x.clase === 'balanceo') ? [tituloMedicion(ficha)] : [];
+    const nombres = [...fs.map((x) => x.nombre), ...bal];
+    const hechas = fs.filter((x) => x.estado === 'completa' || x.estado === 'firmada').length;
+    const chip = ok && fs.length ? `<span class="chip ${hechas === fs.length ? 'bien' : 'neutra'}">${hechas}/${fs.length}</span>` : '';
+    const sub = !fichasEq ? 'Cargando las fichas…'
+      : !ok ? fichasEq.error
+      : nombres.length ? nombres.map((n) => n.charAt(0).toUpperCase() + n.slice(1).toLowerCase()).join(' · ')
+      : 'Este equipo no tiene familia asignada: se le pone en el ordenador (Puesta en marcha).';
+    return `<section id="fichas-equipo">
+      <h2>Fichas del equipo <span class="cuenta">${ok ? nombres.length : ''}</span></h2>
+      <ul class="lista-ios"><li><button class="fila-ios" data-cx="ver-fichas">
+        <div class="fila-principal"><strong>${ok && nombres.length ? `${hechas} de ${fs.length} hechas` : 'Abrir'}</strong><span>${chip}</span></div>
+        <div class="sub">${esc(sub)}</div>
+      </button></li></ul>
+    </section>`;
   }
 
   /*
@@ -1061,7 +1188,7 @@
     if (!fichasEq) return `<section id="fichas-equipo"><h2>${esc(titulo)}</h2><p class="cargando">Cargando las fichas…</p></section>`;
     if (fichasEq.ok === false) return `<section id="fichas-equipo"><h2>${esc(titulo)}</h2><p class="nota aviso">${esc(fichasEq.error)}</p></section>`;
     /* Se conserva el índice de cada ficha en la lista completa: data-i lo usa abrirHoja. */
-    const fs = (fichasEq.fichas || []).map((x, i) => [x, i]).filter(([x]) => pestanaDeFicha(x) === pestana);
+    const fs = (fichasEq.fichas || []).map((x, i) => [x, i]).filter(([x]) => !x.conservada && pestanaDeFicha(x) === pestana);
     if (!fs.length && pestana === 'balanceo') return '';
     /* El balanceo, una fila más: abre las bocas del plano y la hoja. */
     const filaBal = pestana === 'equipo' && ficha && tieneBalanceo(ficha) ? htmlFilaBalanceo(ficha) : '';
@@ -1082,6 +1209,21 @@
           <div class="sub">${esc([CLASE_FICHA[x.clase] || x.clase, x.motivo, textoMedidos(x), x.fotos ? `${x.fotos} foto${x.fotos === 1 ? '' : 's'}` : null].filter(Boolean).join(' · '))}</div>
         </button></li>`)).join('')}${filaBal}</ul>` : `<p class="vacio">${esc(vacio)}</p>`}
       ${notaMed}
+    </section>`;
+  }
+
+  /* Split y VRF: lo guardado antes en otra unidad del conjunto, para leerlo (no cuenta). */
+  function htmlConservadas() {
+    const cs = ((fichasEq && fichasEq.ok !== false && fichasEq.fichas) || []).map((x, i) => [x, i]).filter(([x]) => x.conservada);
+    if (!cs.length) return '';
+    return `<section id="fichas-conservadas">
+      <h2>Guardadas antes en otra unidad <span class="cuenta">${cs.length}</span></h2>
+      <p class="nota">Se hicieron antes de juntar el conjunto: se conservan y se pueden leer; no cuentan para «completo».</p>
+      <ul class="lista-ios">${cs.map(([x, i]) => `
+        <li><button class="fila-ios" data-cx="hoja" data-i="${i}">
+          <div class="fila-principal"><strong>${esc(x.nombre)}</strong><span>${chipFicha(x.estado, x.resultado)}</span></div>
+          <div class="sub">${esc([x.unidadTag, CLASE_FICHA[x.clase] || x.clase, textoMedidos(x)].filter(Boolean).join(' · '))}</div>
+        </button></li>`).join('')}</ul>
     </section>`;
   }
 
@@ -1604,7 +1746,7 @@
   const CLASES_SIN_TOMA = new Set(['checklist', 'balanceo']);
   const fichasToma = () => (fichasEq && fichasEq.ok !== false ? (fichasEq.fichas || []) : [])
     .map((x, i) => [x, i])
-    .filter(([x]) => x.plantilla && pestanaDeFicha(x) === 'equipo' && !CLASES_SIN_TOMA.has(x.clase) && x.estado !== 'firmada');
+    .filter(([x]) => x.plantilla && !x.conservada && pestanaDeFicha(x) === 'equipo' && !CLASES_SIN_TOMA.has(x.clase) && x.estado !== 'firmada');
 
   /* Las funciones de la hoja leen `hoja`: se pinta cada ficha de la toma como si lo fuera. */
   function conHoja(h, fn) {
@@ -1651,7 +1793,7 @@
         tomas.set(claveToma(x), { ref, nombre: x.nombre, error: e.message, cambiada: false, temporal: true });
       }
     }));
-    if (activa() && ficha && !hoja && ficha.equipo.id === id && pestanaEq === 'equipo') {
+    if (activa() && ficha && !hoja && ficha.equipo.id === id && pestanaEq === 'fichas') {
       const y = window.scrollY;
       pintarFicha();
       window.scrollTo(0, y);
@@ -1964,6 +2106,8 @@
     else if (que === 'atras') { const prev = pilaEquipos.pop(); if (prev) abrir(prev, { atras: true }); else { const y = yLista; cargarLista().then(() => window.scrollTo(0, y)); } }
     else if (que === 'equipo') { if (!ficha) yLista = window.scrollY; if (ficha && ficha.equipo.id !== b.dataset.id) pilaEquipos.push(ficha.equipo.id); abrir(b.dataset.id); }
     else if (que === 'ver-balanceo' && ficha) { pestanaEq = 'balanceo'; pintarFicha(); window.scrollTo(0, 0); }
+    /* Ya no hay botón: la subpantalla (toma de datos y guardadas antes) queda para quien la invoque. */
+    else if (que === 'ver-fichas' && ficha) { document.body.classList.remove('sin-scroll'); pestanaEq = 'fichas'; pintarFicha(); window.scrollTo(0, 0); if (fichasEq) cargarTomas(ficha.equipo.id); }
     else if (que === 'ficha-equipo' && ficha) { document.body.classList.remove('sin-scroll'); pestanaEq = 'equipo'; pintarFicha(); window.scrollTo(0, 0); }
     else if (que === 'hoja') abrirHoja(Number(b.dataset.i));
     else if (que === 'volver-equipo') salirHoja();
@@ -2003,6 +2147,11 @@
     else if (que === 'avisar-modelo') avisarModelo();
     else if (que === 'verificar-instalacion' && ficha) verificarInstalacion(b);
     else if (que === 'foto-equipo') fotoEquipo(b);
+    else if (que === 'firmar' && ficha) abrirFirma(b.dataset.rol);
+    else if (que === 'cancelar-firma' && ficha) cerrarFirma();
+    else if (que === 'limpiar-firma' && ficha) { const cv = $app.querySelector('[data-firma-lienzo]'); if (cv) { cv.getContext('2d').clearRect(0, 0, cv.width, cv.height); trazado = false; } }
+    else if (que === 'guardar-firma' && ficha) guardarFirma(b);
+    else if (que === 'quitar-firma' && ficha) guardarFirma(b, true);
     else if (que === 'quitar-foto-equipo') quitarFotoEquipo(b);
     else if (que === 'nube-ahora' && window.cxObra && window.cxObra.sync) { b.disabled = true; window.cxObra.sync.ahora().finally(() => { if (ficha) abrir(ficha.equipo.id, { quieto: true }); }); }
     else if (que === 'crono' && ficha) accionCrono(b, b.dataset.accion);
@@ -2119,6 +2268,8 @@
       if (foco && (cambiada(foco) || foco.dataset.guardada)) return;
       /* Tampoco con el dedo en la toma de datos: se perdería el foco a medio escribir. */
       if (document.activeElement && document.activeElement.closest && document.activeElement.closest('[data-toma]')) return;
+      /* Ni a media firma: se borraría el trazo. */
+      if (firmando) return;
       if (!hoja && !abriendoHoja) abrir(ficha.equipo.id, { quieto: true });
       return;
     }

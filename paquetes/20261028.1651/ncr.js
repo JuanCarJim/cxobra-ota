@@ -26,6 +26,9 @@
   let texto = '';
   let form = null;
   let abierta = null;
+  /* Desde una cifra del Inicio (28-oct): «vencidas» o «urgentes», sobre las abiertas nuestras. */
+  let solo = null;
+  const SOLO = { vencidas: ['Solo vencidas', (f) => f.vencida], urgentes: ['Solo urgentes (A)', (f) => f.prioridad === 'A'] };
 
   const PRIORIDAD = { A: 'mal', B: 'aviso', C: 'neutra' };
   const chipEstado = (n) => `<span class="chip ${n.activa ? 'aviso' : 'bien'}">${esc(n.estadoNombre)}</span>`;
@@ -35,6 +38,10 @@
 
   async function lista() {
     form = null; abierta = null;
+    try {
+      const v = sessionStorage.getItem('ncr.filtro');
+      if (v) { sessionStorage.removeItem('ncr.filtro'); filtro = 'abiertas'; alcance = 'nuestras'; solo = SOLO[v] ? v : null; texto = ''; }
+    } catch { /* nada */ }
     await C.obrasListas();
     if (!activa()) return;
     if (!C.obraId()) { $app.innerHTML = '<p class="vacio">No tienes ninguna obra abierta.</p>'; return; }
@@ -58,8 +65,14 @@
     const sinClas = fuera.length - deOtros;
     const q = texto.trim().toLowerCase();
     const vistas = filas.filter((f) => (filtro === 'todas' ? true : filtro === 'abiertas' ? f.activa : !f.activa))
+      .filter((f) => !solo || SOLO[solo][1](f))
       .filter((f) => !q || `${f.codigo} ${f.descripcion || ''} ${f.planta || ''} ${f.zona || ''}`.toLowerCase().includes(q));
+    const b = AG.leer(clave());
     $app.innerHTML = `
+      ${conContenido(b) ? `<section class="borrador-pendiente" role="status">
+        <p><strong>Tienes una NCR sin terminar</strong><br><small>${esc([String(b.descripcion || '').slice(0, 60), (b.fotos || []).length ? `${b.fotos.length} foto${b.fotos.length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ') || 'Sin texto')}</small></p>
+        <div class="fila-botones"><button class="boton" data-ncr="seguir">Seguir con ella</button><button class="boton secundario" data-ncr="descartar">Descartar</button></div>
+      </section>` : ''}
       ${datos.puede && datos.puede.crear ? '<button class="boton grande" data-ncr="nueva">＋ Nueva NCR</button>' : ''}
       <div class="segmentado" role="tablist">
         ${[['abiertas', `Abiertas ${abiertas}`], ['cerradas', `Cerradas ${filas.length - abiertas}`], ['todas', 'Todas']].map(([id, nombre]) => `<button role="tab" data-ncr-filtro="${id}" class="${filtro === id ? 'activa' : ''}" aria-selected="${filtro === id}">${esc(nombre)}</button>`).join('')}
@@ -67,6 +80,7 @@
       <div class="segmentado" role="tablist" aria-label="Alcance">
         ${Object.entries(ALC).map(([id, nombre]) => `<button role="tab" data-ncr-alcance="${id}" class="${alcance === id ? 'activa' : ''}" aria-selected="${alcance === id}">${esc(nombre)}</button>`).join('')}
       </div>
+      ${solo ? `<div class="filtros-rp"><button type="button" class="chip-filtro activa" data-ncr-solo aria-pressed="true">${esc(SOLO[solo][0])} ✕</button></div>` : ''}
       ${alcance === 'nuestras' && fuera.length ? `<p class="nota">+${deOtros} de otros · ${sinClas} sin clasificar (abiertas, no cuentan)</p>` : ''}
       <input type="search" class="buscar" placeholder="Buscar código, texto o planta" value="${esc(texto)}" data-ncr-buscar>
       ${vistas.length ? C.listaAgrupada(`ncr-${filtro}`, vistas, {
@@ -82,8 +96,39 @@
 
   /* ═══════════════════════════════════ 2. El alta */
 
-  function nueva() {
-    form = { descripcion: '', planta: '', zona: '', disciplina: '', prioridad: 'B', fotos: [] };
+  /*
+   * AUTOGUARDADO (28-oct-2026, JC: con atrás se perdían las fotos de una
+   * incidencia). La NCR a medias queda en el teléfono con cada tecla y cada
+   * foto (autoguardado.js), por obra; la foto sube al momento. Atrás y vuelta:
+   * sigue ahí; si se cerró la app, la lista ofrece seguir con ella. Se borra
+   * cuando el servidor confirma el alta.
+   */
+  const AG = window.AUTOGUARDADO;
+  const clave = () => `ncr.${C.obraId() || ''}`;
+  const conContenido = (f) => Boolean(f && (String(f.descripcion || '').trim() || String(f.zona || '').trim() || f.planta || f.disciplina || (f.fotos || []).length));
+  function estadoMarca() {
+    if (form.fotos.some((x) => x.subiendo)) return ['guardando', 'Subiendo foto…'];
+    if (form.fotos.some((x) => !x.id)) return ['sinRed', 'Sin conexión: la foto se subirá al dar de alta'];
+    return conContenido(form) ? ['movil', 'Guardado en el móvil · se envía al dar de alta'] : ['movil', 'Se guarda solo mientras escribes'];
+  }
+  function persistir() {
+    if (!form) return;
+    if (conContenido(form)) {
+      if (!AG.guardar(form.clave, { ...form, fotos: AG.fotosParaGuardar(form.fotos) })) { AG.pintarMarca($app, 'error', 'No se ha podido guardar en el móvil'); return; }
+    } else AG.borrar(form.clave);
+    if (activa()) AG.pintarMarca($app, ...estadoMarca());
+  }
+  async function recuperar() {
+    const b = AG.leer(clave());
+    if (!conContenido(b)) return false;
+    const { _en, ...resto } = b;
+    form = { descripcion: '', planta: '', zona: '', disciplina: '', prioridad: 'B', ...resto, clave: clave(), fotos: await AG.restaurarFotos(b.fotos) };
+    return true;
+  }
+
+  async function nueva() {
+    if (await recuperar()) { C.aviso('Sigues con la NCR que tenías sin terminar.', 'aviso'); if (activa()) pintarForm(); return; }
+    form = { descripcion: '', planta: '', zona: '', disciplina: '', prioridad: 'B', fotos: [], clave: clave() };
     pintarForm();
   }
 
@@ -94,11 +139,12 @@
       <button class="volver" data-ncr="lista">‹ NCR</button>
       <h2>Nueva NCR</h2>
       <p class="nota">${esc(C.obra() ? `${C.obra().codigo} · ${C.obra().nombre}` : '')}</p>
+      ${AG.marca(...estadoMarca())}
       <div class="fila-botones">
         <button class="boton" data-ncr="camara"><i class="ic ic-camara"></i>Foto</button>
         <button class="boton secundario" data-ncr="galeria">De la galería</button>
       </div>
-      ${f.fotos.length ? `<div class="fotos">${f.fotos.map((x, i) => `<button class="foto-quitar" data-ncr="quitar-foto" data-i="${i}" aria-label="Quitar foto"><img src="${esc(x.url)}" alt=""></button>`).join('')}</div>` : ''}
+      ${f.fotos.length ? `<div class="fotos">${f.fotos.map((x, i) => `<button type="button" class="foto-quitar" data-ncr="ver-foto" data-i="${i}" aria-label="Ver la foto en grande, reemplazarla o quitarla">${x.url ? `<img src="${esc(x.url)}" alt="">` : '<span class="foto-sin-vista">Foto</span>'}</button>`).join('')}</div>` : ''}
       <label>Qué pasa<textarea rows="4" data-ncr-campo="descripcion" placeholder="Describe la no conformidad">${esc(f.descripcion)}</textarea></label>
       <div class="campos">
         <label>Planta${plantas.length
@@ -112,31 +158,105 @@
       <button class="boton grande" data-ncr="enviar">Dar de alta</button>`;
   }
 
-  async function foto(camara) {
-    const archivo = await C.elegirFoto(camara);
-    if (!archivo) return;
+  /* La foto del alta: primero al teléfono (no se pierde) y al momento al ordenador. */
+  async function subir(x) {
+    x.subiendo = true;
     try {
-      const id = await C.subirFoto(archivo);
-      if (form) { form.fotos.push({ id, url: URL.createObjectURL(archivo) }); pintarForm(); }
-      else if (abierta) {
-        const r = await C.postJson('api/ncr/foto', { id: abierta.ncr.id, fotos: [id], tipo: abierta.ncr.activa ? 'deteccion' : 'resolucion' });
+      const blob = x.archivo || await AG.leerFoto(x.local);
+      if (!blob) throw new Error('La foto no se ha podido recuperar del teléfono: hazla de nuevo.');
+      x.id = await C.subirFoto(blob);
+      return true;
+    } catch (e) {
+      x.id = null;
+      if (!AG.sinRed(e)) C.aviso(e.message);
+      return false;
+    } finally { x.subiendo = false; }
+  }
+  async function subirFaltan(todas) {
+    for (const x of form.fotos) {
+      if (!todas && x.id) continue;
+      if (!(await subir(x))) throw new Error('No se ha podido subir una foto. La NCR sigue guardada en el móvil: vuelve a darla de alta con conexión.');
+    }
+  }
+
+  /* Con la cámara, una; de la galería, varias a la vez (tarea 368b6690). */
+  async function foto(camara) {
+    const archivos = camara ? [await C.elegirFoto(true)].filter(Boolean) : await AG.elegirFotos(false);
+    if (!archivos.length) return;
+    if (form) {
+      const f = form;
+      const nuevas = [];
+      for (const archivo of archivos) {
+        const x = await AG.fotoNueva(archivo, { id: null });
+        x.subiendo = true;
+        f.fotos.push(x);
+        nuevas.push(x);
+      }
+      if (form === f) { persistir(); if (activa()) pintarForm(); }
+      for (const x of nuevas) await subir(x);
+      if (form === f) persistir();
+      return;
+    }
+    try {
+      const ids = [];
+      for (const archivo of archivos) ids.push(await C.subirFoto(archivo));
+      if (abierta) {
+        const r = await C.postJson('api/ncr/foto', { id: abierta.ncr.id, fotos: ids, tipo: abierta.ncr.activa ? 'deteccion' : 'resolucion' });
         if (!r.ok) throw new Error(r.error);
-        C.aviso('Foto añadida.', 'bien');
+        C.aviso(ids.length === 1 ? 'Foto añadida.' : `${ids.length} fotos añadidas.`, 'bien');
         abrir(abierta.ncr.id);
       }
     } catch (e) { C.aviso(e.message); }
   }
 
+  /* Tocar una foto del alta: en grande, para reemplazarla o quitarla (y se guarda sola). */
+  function verFoto(i) {
+    const f = form;
+    const viejo = f && f.fotos[i];
+    if (!viejo) return;
+    const soltar = (x) => { if (x.local) AG.borrarFoto(x.local); if (x.url) { try { URL.revokeObjectURL(x.url); } catch { /* nada */ } } };
+    AG.verFoto({
+      url: viejo.url,
+      quitar: () => {
+        const k = f.fotos.indexOf(viejo);
+        if (k < 0) return;
+        f.fotos.splice(k, 1);
+        soltar(viejo);
+        if (form === f) { persistir(); if (activa()) pintarForm(); }
+      },
+      reemplazar: async (archivo) => {
+        const x = await AG.fotoNueva(archivo, { id: null });
+        x.subiendo = true;
+        const k = f.fotos.indexOf(viejo);
+        if (k < 0) f.fotos.push(x); else f.fotos.splice(k, 1, x);
+        soltar(viejo);
+        if (form === f) { persistir(); if (activa()) pintarForm(); }
+        await subir(x);
+        if (form === f) persistir();
+      },
+    });
+  }
+
   async function enviar(boton) {
     if (!form.descripcion.trim()) { C.aviso('Escribe qué pasa.', 'aviso'); return; }
     boton.disabled = true;
+    const f = form;
     try {
-      const r = await C.postJson('api/ncr', { obraId: C.obraId(), ...form, fotos: form.fotos.map((x) => x.id) });
+      await subirFaltan(false);
+      const cuerpo = () => { const { clave: _c, ...datosForm } = f; return { obraId: f.obraId || C.obraId(), ...datosForm, fotos: f.fotos.map((x) => x.id) }; };
+      let r = await C.postJson('api/ncr', cuerpo());
+      /* El ordenador olvidó las fotos en espera: se suben otra vez desde el teléfono. */
+      if (!r.ok && /fotos ya no está/i.test(String(r.error || ''))) { await subirFaltan(true); r = await C.postJson('api/ncr', cuerpo()); }
       if (!r.ok) throw new Error(r.error);
+      AG.borrar(f.clave);
       form = null;
       C.aviso(`${r.codigo || 'NCR'} dada de alta.${r.avisoFotos ? ` ${r.avisoFotos}` : ''}`, r.avisoFotos ? 'aviso' : 'bien');
       await lista();
-    } catch (e) { C.aviso(e.message); boton.disabled = false; }
+    } catch (e) {
+      persistir();
+      C.aviso(AG.sinRed(e) ? 'Sin conexión: la NCR sigue guardada en el móvil. Vuelve a darla de alta con conexión.' : e.message);
+      boton.disabled = false;
+    }
   }
 
   /* ═══════════════════════════════════ 3. La ficha */
@@ -217,26 +337,30 @@
   $app.addEventListener('click', (ev) => {
     if (!activa()) return;
     const f = ev.target.closest('[data-ncr-filtro]');
-    if (f) { filtro = f.dataset.ncrFiltro; pintarLista(); return; }
+    if (f) { filtro = f.dataset.ncrFiltro; solo = null; pintarLista(); return; }
+    if (ev.target.closest('[data-ncr-solo]')) { solo = null; pintarLista(); return; }
     const al = ev.target.closest('[data-ncr-alcance]');
     if (al) { alcance = al.dataset.ncrAlcance; pintarLista(); return; }
     const p = ev.target.closest('[data-ncr-prioridad]');
-    if (p && form) { form.prioridad = p.dataset.ncrPrioridad; pintarForm(); return; }
+    if (p && form) { form.prioridad = p.dataset.ncrPrioridad; persistir(); pintarForm(); return; }
     const b = ev.target.closest('[data-ncr]');
     if (!b) return;
     const a = b.dataset.ncr;
     if (a === 'lista') lista();
     else if (a === 'nueva') nueva();
+    else if (a === 'seguir') nueva();
+    else if (a === 'descartar') { if (window.confirm('¿Descartar la NCR sin terminar? Se borra lo escrito y sus fotos.')) { AG.borrar(clave()); form = null; pintarLista(); } }
     else if (a === 'ficha') abrir(b.dataset.id);
     else if (a === 'camara') foto(true);
     else if (a === 'galeria') foto(false);
-    else if (a === 'quitar-foto') { form.fotos.splice(Number(b.dataset.i), 1); pintarForm(); }
+    else if (a === 'ver-foto') verFoto(Number(b.dataset.i));
+    else if (a === 'quitar-foto') { const [x] = form.fotos.splice(Number(b.dataset.i), 1); if (x && x.local) AG.borrarFoto(x.local); persistir(); pintarForm(); }
     else if (a === 'enviar') enviar(b);
     else if (a === 'paso') cambiar(b.dataset.estado, b);
     else if (a === 'cerrar') cambiar('cerrada', b);
     else if (a === 'alcance') marcarAlcance(b.dataset.alcance, b);
   });
-  const recoger = (ev) => { if (activa() && form && ev.target.dataset.ncrCampo) form[ev.target.dataset.ncrCampo] = ev.target.value; };
+  const recoger = (ev) => { if (activa() && form && ev.target.dataset.ncrCampo) { form[ev.target.dataset.ncrCampo] = ev.target.value; persistir(); } };
   $app.addEventListener('input', recoger);
   $app.addEventListener('change', recoger);
   $app.addEventListener('input', (ev) => {
@@ -249,6 +373,13 @@
   });
 
   window.addEventListener('movil:obra', () => { if (activa()) lista(); });
-  window.addEventListener('hashchange', () => { if (activa()) lista(); });
+  /* Atrás (botón, gesto o navegador) y vuelta: la NCR a medias sigue ahí. */
+  window.addEventListener('hashchange', () => {
+    if (!activa()) { persistir(); return; }
+    if (form && datos) pintarForm();
+    else lista();
+  });
+  AG.alSalir(persistir);
+  window.addEventListener('online', () => { if (form) for (const x of form.fotos) if (!x.id && !x.subiendo) subir(x).then(persistir); });
   if (activa()) lista();
 })();
