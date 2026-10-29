@@ -150,7 +150,8 @@
      es conjunto (15-oct-2026, JC). Sin conjuntos (un servidor viejo), por unidades. */
   const porConjuntos = () => Array.isArray(lista.conjuntos);
   const NOMBRE_CLASE = { par: 'Split', sistema: 'VRF' };
-  const textoDe = (e) => `${(e.unidades || []).map((u) => u.tag).join(' ') || e.tag} ${e.nombre || ''} ${e.local || ''} ${e.planta || ''} ${e.zona || ''} ${e.marca || ''} ${e.modelo || ''} ${tipoDe(e)}`;
+  /* Campos sueltos (TAG, sala, código de sala…): la búsqueda por cifras compara cada código por separado (buscador.js). */
+  const textosDe = (e) => [...(e.unidades || []).map((u) => u.tag), e.tag, e.nombre, e.local, e.codSala, ...(e.unidades || []).map((u) => u.codSala), e.planta, e.zona, e.marca, e.modelo, tipoDe(e)];
   function tagsFila(e) {
     const us = e.unidades || [];
     /* El split, UNA vez por su nombre (28-oct-2026, JC: «en lugar de UE y luego
@@ -318,7 +319,7 @@
     const todos = (conj ? lista.conjuntos : lista.equipos) || [];
     const [, , pasa] = SEGMENTOS.find(([id]) => id === segmento) || SEGMENTOS[0];
     /* Los hechos, al final de su grupo (orden estable: lo demás no se mueve). */
-    const equipos = todos.filter(pasa).filter((e) => !q || textoDe(e).toLowerCase().includes(q))
+    const equipos = todos.filter(pasa).filter((e) => !q || window.BUSCADOR_MOVIL.coincide(q, textosDe(e)))
       .sort((a, b) => hecho(a) - hecho(b));
     /* Zona solo se ofrece si algún equipo la tiene; si ninguno trae planta pero
        sí zona, se agrupa por zona (y los desplegables por tipo, también). */
@@ -334,7 +335,7 @@
     const subPor = !hayPlanta && hayZona ? 'zona' : 'planta';
     $app.innerHTML = `
       ${kpisCx(t, conj)}
-      <input type="search" class="buscar" placeholder="Buscar TAG, sala, planta, tipo o marca" value="${esc(filtro)}" data-cx-buscar>
+      ${window.BUSCADOR_MOVIL.campo({ placeholder: 'Buscar TAG, sala, planta, tipo o marca', valor: filtro, atributo: 'data-cx-buscar' })}
       <div class="agrupar" role="group" aria-label="Agrupar por"><span>Agrupar por</span>${opciones
         .map(([id, texto]) => `<button data-cx-agrupar="${id}" aria-pressed="${modo === id}" class="${modo === id ? 'activa' : ''}">${texto}</button>`).join('')}</div>
       <p class="leyenda-franja" aria-label="Franja de estado de cada equipo"><span><i class="m-firma"></i>Falta firma</span><span><i class="m-docs"></i>Faltan docs</span><span><i class="m-ambos"></i>Ambos</span><span><i class="m-completo"></i>Completo</span></p>
@@ -355,7 +356,7 @@
           ${serieFila(e)}
           ${e.bocas ? `<div class="progreso" aria-label="${e.medidas} de ${e.bocas} bocas medidas"><i style="width:${Math.round((e.medidas / e.bocas) * 100)}%"></i></div>
           <div class="sub">${cifra(e.medidas)} de ${cifra(e.bocas)} bocas medidas</div>` : e.conPlano === false ? '' : '<div class="sub">Sin plano de bocas</div>'}
-          ${faltasDe(e).length ? `<div class="sub aviso">Falta: ${esc(faltasDe(e).join(', '))}</div>` : ''}
+          ${e.bloqueadoPor ? `<div class="sub aviso">Bloqueado por ${esc(e.bloqueadoPor.codigo)}</div>` : faltasDe(e).length ? `<div class="sub aviso">Falta: ${esc(faltasDe(e).join(', '))}</div>` : ''}
         </button></li>` }) : `<p class="vacio">${q || segmento !== 'todos' ? 'Ningún equipo con ese filtro.' : 'Esta obra no tiene equipos dados de alta.'}</p>`}`;
   }
 
@@ -515,6 +516,58 @@
   const nombreEstado = (v) => NOMBRE_ESTADO[v] || v;
 
   function checklist(k, med, puede = false) {
+  /*
+   * INCIDENCIAS DEL EQUIPO (29-oct, JC): con una incidencia abierta no se toman datos
+   * (la regla manda el servidor; aquí solo se explica y se ocultan los controles),
+   * al terminarla o cerrarla el equipo pide «Validado tras incidencia», y desde la ficha
+   * se abre una incidencia nueva ya rellena.
+   */
+  const bloqueosDe = (f) => ((f && f.incidenciaEquipo && f.incidenciaEquipo.bloqueo) || []);
+  const fechaCorta = (v) => esc(String(v || '').slice(0, 10).split('-').reverse().join('/'));
+  function htmlIncidenciaEquipo(f) {
+    const inc = f.incidenciaEquipo;
+    if (!inc) return '';
+    const bl = inc.bloqueo || [];
+    const lineas = bl.map((b) => `<p class="nota inc-aviso bloqueo-inc">Bloqueado por <button type="button" class="enlace" data-cx="ir-incidencia" data-id="${esc(b.id)}">${esc(b.codigo)}${b.titulo ? ` · ${esc(b.titulo)}` : ''}</button>. No se pueden tomar datos hasta que se termine o se cierre.</p>`);
+    if (inc.revalidar) {
+      lineas.push(`<p class="nota inc-aviso revalidar-inc">Revalidar tras ${esc(inc.revalidar.tras)}${inc.revalidar.desde ? ` <span class="tenue">· desde el ${fechaCorta(inc.revalidar.desde)}</span>` : ''}${inc.puedeValidar ? ` <button type="button" class="boton secundario" data-cx="validar-tras-inc">Validado tras incidencia</button>` : ''}</p>`);
+    } else if (inc.ultimaValidacion) {
+      const u = inc.ultimaValidacion;
+      lineas.push(`<p class="nota tenue">Validado tras ${esc(u.tras)}${u.en ? ` el ${fechaCorta(u.en)}` : ''}${u.por ? ` · ${esc(u.por)}` : ''}</p>`);
+    }
+    if (inc.puedeCrear) lineas.push('<div class="fila-botones"><button type="button" class="boton secundario" data-cx="crear-incidencia">Crear incidencia</button></div>');
+    return lineas.length ? `<section id="incidencias-equipo">${lineas.join('')}</section>` : '';
+  }
+  /* «Crear incidencia»: el alta de reparaciones, ya con el equipo, su conjunto, planta y sala. */
+  function crearIncidencia() {
+    const e = ficha && ficha.equipo;
+    if (!e) return;
+    const cj = ficha.conjunto;
+    const sala = ((cj && cj.unidades) || []).map((u) => u.sala).find(Boolean) || e.sala || '';
+    const prefill = {
+      equipoId: e.id, tag: e.tag, planta: e.planta || '', zona: e.zona || '', ubicacion: sala || '',
+      unidades: ((cj && cj.unidades) || []).map((u) => ({ id: u.id, tag: u.tag, papel: u.papel })),
+      volverA: e.id,
+    };
+    try { sessionStorage.setItem('reparaciones.prefill', JSON.stringify(prefill)); } catch { /* sin almacén */ }
+    if (C.hacer) C.hacer({ seccion: 'reparaciones', pasos: ['[data-rp="nueva"]'] });
+    else location.hash = 'reparaciones';
+  }
+  async function validarTrasIncidencia(boton) {
+    if (!ficha) return;
+    boton.disabled = true;
+    try {
+      const r = await C.postJson('api/equipo/revalidar', { equipoId: ficha.equipo.id });
+      if (!r.ok) throw new Error(r.error);
+      C.aviso(`Validado tras ${r.tras}.`, 'bien');
+      await abrir(ficha.equipo.id, { quieto: true });
+    } catch (e) { C.aviso(e.message); boton.disabled = false; }
+  }
+  function irIncidencia(id) {
+    try { sessionStorage.setItem('cx.abrir', id); } catch { /* sin almacén */ }
+    location.hash = 'reparaciones';
+  }
+
     if (!k) return '';
     /* Sin fila «Ensayo» (16-oct, JC): el balanceo y la estanqueidad salen solo
        si el equipo los lleva. Un split o una enfriadora no llevan balanceo de bocas. */
@@ -770,6 +823,8 @@
     const e = f.equipo;
     const puede = f.puedeMedir;
     if (pestanaEq === 'balanceo' && !tieneBalanceo(f)) pestanaEq = 'equipo';
+    /* Con una incidencia abierta: se ven las hojas y se hacen fotos, pero no se toman datos. */
+    const puedeToma = puede && !bloqueosDe(f).length;
     const seg = document.getElementById('segmentos');
     if (seg) seg.hidden = true;
     const med = f.medicion || {};
@@ -796,8 +851,8 @@
       ${f.planos.length ? planosVistos.map((p) => `
         <h2>${esc(p.nombre)} <span class="cuenta">${p.bocas.length} boca${p.bocas.length === 1 ? '' : 's'}${circ ? ` de ${circ === 'retorno' ? esc(nombreRet.toLowerCase()) : 'impulsión'}` : ''}</span></h2>
         ${htmlPlano(p, circ ? delCircuito : null)}
-        <ul class="bocas">${p.bocas.map((b) => htmlBoca(p, b, puede, f.tolerancias)).join('')}</ul>`).join('') : sinPlano()}
-      ${puede || !f.planos.length ? '' : '<p class="nota">Tu rol puede ver las medidas, pero no tomarlas.</p>'}
+        <ul class="bocas">${p.bocas.map((b) => htmlBoca(p, b, puedeToma, f.tolerancias)).join('')}</ul>`).join('') : sinPlano()}
+      ${bloqueosDe(f).length ? htmlIncidenciaEquipo(f) : (puede || !f.planos.length ? '' : '<p class="nota">Tu rol puede ver las medidas, pero no tomarlas.</p>')}
       ${f.planos.length ? '<button class="boton secundario" data-cx="pdf-balanceo"><i class="ic ic-doc"></i>Informe del balanceo (PDF)</button>' : ''}
       ${htmlFichas('balanceo', 'Hoja de balanceo')}`;
     /*
@@ -809,11 +864,13 @@
     const cuerpo = pestanaEq === 'balanceo' ? balanceo()
       : pestanaEq === 'fichas' ? `${htmlNotaConjunto(f.conjunto)}
       ${htmlFichas('equipo', 'Fichas del equipo')}
+      ${htmlIncidenciaEquipo(f)}
       ${htmlTomaDatos()}
       ${htmlConservadas()}`
       : `${htmlNotaConjunto(f.conjunto)}
       ${htmlNumSerie(e, f.conjunto, puede)}
       ${htmlFichas('equipo', 'Fichas del equipo')}
+      ${htmlIncidenciaEquipo(f)}
       ${htmlUnidadesInteriores(f, puede)}
       ${htmlFotosEquipo(f, puede)}
       ${checklist(f.checklist, f.medicion, puede)}`;
@@ -1221,7 +1278,7 @@
           : '<span class="miniatura-ui hueco apagada"></span>';
         return `<li class="fila-ui">
           <div class="ui-datos"><strong>${esc(corto(x))}</strong>${chipFicha(x.estado, x.resultado, x.medidos, x.bocasSinMedir)}<span class="sub">${esc(x.unidadSala || 'Sin sala')} · ${valorSerie((cj.unidades || []).find((y) => y.id === x.unidadId) || { id: x.unidadId, tag: x.unidadTag }, puede, 'Nº serie ')}</span></div>
-          <button type="button" class="boton secundario ui-toma" data-cx="hoja" data-i="${i}">${hecha(x) ? 'Ver datos' : 'Toma de datos'}</button>
+          <button type="button" class="boton secundario ui-toma" data-cx="hoja" data-i="${i}">${hecha(x) || bloqueosDe(f).length ? 'Ver datos' : 'Toma de datos'}</button>
           ${mini}
         </li>`;
       }).join('')}</ul>
@@ -2203,6 +2260,7 @@
       </div>` : ''}
       ${htmlLoQueFalta(f, porPasos ? pasos : null, FALTAN_VISTOS)}
       ${f.avisos.length ? `<p class="nota aviso">${esc(f.avisos.join(' · '))}</p>` : ''}
+      ${f.bloqueo ? `<p class="nota inc-aviso bloqueo-inc">Bloqueado por <button type="button" class="enlace" data-cx="ir-incidencia" data-id="${esc(f.bloqueo.id)}">${esc(f.bloqueo.codigo)}${f.bloqueo.titulo ? ` · ${esc(f.bloqueo.titulo)}` : ''}</button>: la hoja solo se puede ver.</p>` : ''}
       <div class="barra-hoja">
         <button class="boton grande secundario" data-cx="pdf-hoja"><i class="ic ic-doc"></i>Informe PDF</button>
         <button class="boton grande secundario" data-cx="pdf-hoja-obra"><i class="ic ic-doc"></i>PDF para obra</button>
@@ -2790,7 +2848,7 @@
     if (!d) return '';
     estiloCrono();
     const c = d.cronometro;
-    const ed = d.puede.medir;
+    const ed = d.puede.medir && !bloqueosDe(ficha).length;
     const gente = personasCrono();
     const estado = c.enMarcha ? ['bien', 'En marcha'] : c.terminado ? ['info', 'Terminado'] : c.vacio ? ['neutra', 'Sin empezar'] : ['aviso', 'En pausa'];
     const vivo = c.enMarcha ? `data-crono-inicio="${esc(c.inicioTramo)}" data-crono-cerrados="${c.msCerrados}"` : '';
@@ -3001,6 +3059,9 @@
     else if (que === 'boca-anterior' && ficha) bocaVecina(-1);
     else if (que === 'avisar-modelo') avisarModelo();
     else if (que === 'verificar-instalacion' && ficha) verificarInstalacion(b);
+    else if (que === 'crear-incidencia') crearIncidencia();
+    else if (que === 'validar-tras-inc' && ficha) validarTrasIncidencia(b);
+    else if (que === 'ir-incidencia') irIncidencia(b.dataset.id);
     else if (que === 'foto-equipo') fotoEquipo(b);
     else if (que === 'foto-ui-grande' && ficha) fotoUiGrande(b.dataset.equipo);
     else if (que === 'firmar' && ficha) abrirFirma(b.dataset.rol);
