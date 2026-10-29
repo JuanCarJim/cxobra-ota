@@ -1256,6 +1256,19 @@ main, #app { min-width: 0; max-width: 100%; }
 #app .fila-dato > * { min-width: 0; }
 #app input, #app select, #app textarea, #app .campos > *, #app .fila-botones > * { min-width: 0; max-width: 100%; }
 
+/* ═══════════════ 29-oct: al ancho del iPhone también en la app (JC)
+   La causa de verdad era la ampliación del iPhone al tocar un campo de menos de
+   16 px (index.html, maximum-scale=1). Además: */
+/* «Siguiente: CONTROLES - PUESTA EN MARCHA ›» se cortaba por los dos lados:
+   .boton es flex centrado y ahí no hay «…». Bloque de una línea con «…». */
+.pasos-pie { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: stretch; }
+.pasos-pie > :only-child { grid-column: 1 / -1; }
+#app .pasos-pie .boton { display: block; width: 100%; line-height: 28px; text-align: center; }
+#app .pasos-pie .boton.secundario { width: auto; padding-left: 14px; padding-right: 14px; }
+/* El aviso de abajo: en teal oscuro, nunca negro, y el texto baja de línea. */
+.toast { background: var(--acento-fuerte); color: #FFFFFF; max-width: min(560px, calc(100vw - 32px)); overflow-wrap: anywhere; }
+.toast::before { background: #FFFFFF; }
+
 /* ═══════════════ Reparaciones: filtros y sala */
 .filtros-rp { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
 .chip-filtro {
@@ -1762,3 +1775,28 @@ body { background: var(--fondo-pagina); }
 .ver-hoja .enlace { padding: 2px 0; font-size: 13px; font-weight: 600; }
 .ver-hoja .chip { font-size: 10.5px; padding: 1px 6px; }
 .densa .ver-hoja { padding: 0 12px 4px; }
+
+/* UNIDADES INTERIORES DEL VRF (JC, 29-oct): una fila por UI con su toma de
+   datos y, a la derecha del botón, la miniatura de su foto (o el hueco con la
+   cámara). Mismo bloque que los demás de la ficha: cabecera y filas, sin tarjetas. */
+.filas-ui > li.fila-ui { display: flex; align-items: center; gap: 8px; padding: 6px 10px; }
+.densa .filas-ui { gap: 0; }
+.densa .filas-ui > li.fila-ui { border-radius: 0; box-shadow: none; border-width: 0 0 1px; }
+.fila-ui .ui-datos { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; }
+.fila-ui .ui-datos strong { font-size: 14px; }
+.fila-ui .ui-datos .sub { font-size: 12px; color: var(--textoTenue); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.fila-ui .ui-datos .chip { font-size: 10.5px; padding: 1px 6px; }
+.fila-ui .ui-toma { flex: none; margin: 0; padding: 6px 10px; min-height: 36px; font-size: 13px; width: auto; }
+.miniatura-ui { flex: none; width: 44px; height: 44px; padding: 0; border: 1px solid var(--rejillaSuave); border-radius: 8px; background: var(--acento-suave); overflow: hidden; display: inline-flex; align-items: center; justify-content: center; color: var(--acento); }
+.miniatura-ui img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.miniatura-ui.en-movil { outline: 2px dashed var(--acento); outline-offset: -2px; }
+.miniatura-ui.hueco { border-style: dashed; border-color: var(--acento); }
+.miniatura-ui.hueco .ic { width: 22px; height: 22px; }
+.miniatura-ui.apagada { opacity: .4; }
+.visor-foto-ui { position: fixed; inset: 0; z-index: 60; background: var(--fondo, #fff); display: flex; flex-direction: column; gap: 10px; padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px calc(env(safe-area-inset-bottom, 0px) + 12px); }
+.visor-foto-ui .visor-cabeza { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.visor-foto-ui img { flex: 1; min-height: 0; width: 100%; object-fit: contain; background: #0b1f1c; border-radius: 10px; }
+.visor-foto-ui .fila-botones { display: flex; gap: 8px; }
+.visor-foto-ui .fila-botones .boton { flex: 1; margin: 0; }
+.fila-ui .ui-datos .sub { flex-basis: 100%; }
+.fila-ui .sin-serie { font-style: italic; }

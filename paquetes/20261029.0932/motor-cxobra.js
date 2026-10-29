@@ -10017,7 +10017,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261029.0909" : "0";
+      var VERSION = true ? "20261029.0932" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -16922,6 +16922,13 @@ globalThis.CX_VARIANTE="cxobra";
           return Number.isFinite(n) ? n : null;
         };
         const iguales = (a, b) => a !== null && b !== null && Math.abs(a - b) < 1e-9;
+        const UNIDADES_CAUDAL = /^\s*(m³|m3)\s*\/\s*h\s*$|^\s*l(itros)?\s*\/\s*(s|h|min)\s*$/i;
+        function juzgaDesviacion(punto) {
+          if (!punto) return false;
+          if (punto.caudal === true) return true;
+          if (/^caudal/i.test(String(punto.codigo || punto.id || ""))) return true;
+          return UNIDADES_CAUDAL.test(String(punto.unidad || ""));
+        }
         function desviacion(medido, referencia) {
           const m = numR(medido);
           const r = numR(referencia);
@@ -17003,6 +17010,7 @@ globalThis.CX_VARIANTE="cxobra";
         })({
           NORMA_BALANCEO,
           CRITERIO_JC,
+          juzgaDesviacion,
           desviacion,
           dentro,
           esDescope,
@@ -17090,7 +17098,7 @@ globalThis.CX_VARIANTE="cxobra";
           return Math.round(v * f) / f;
         };
         const igualesFx = (a, b) => a !== null && b !== null && Math.abs(a - b) < 1e-9;
-        const esCaudalFx = (punto) => /^caudal/.test(String(punto && punto.codigo || ""));
+        const esCaudalFx = (punto) => reglasFx.juzgaDesviacion(punto);
         const hayValorFx = (v) => v !== null && v !== void 0 && llanoFx(v) !== "";
         function tolerancias(config = {}) {
           const t = { ...TOLERANCIAS_DEFECTO };
@@ -17168,16 +17176,19 @@ globalThis.CX_VARIANTE="cxobra";
               alternativa = { fuente: "fabricante", ref: f, desv: redFx(dF) };
             }
           }
-          const desv = reglasFx.desviacion(m, ref);
           const tolPropia = typeof punto.tolerancia === "number" && punto.tolerancia >= 0 ? punto.tolerancia : null;
+          const juzga = esCaudalFx(puntoDef) || tolPropia !== null;
+          const desv = juzga ? reglasFx.desviacion(m, ref) : null;
           const cualTol = punto.tolerancia === "boca" ? "boca" : "total";
-          const limite = criterio ? null : tolPropia !== null ? tolPropia : tol[cualTol] ?? null;
+          const limite = criterio || !juzga ? null : tolPropia !== null ? tolPropia : tol[cualTol] ?? null;
           let resultado = null;
           let copiado = false;
           let sinTolerancia = null;
           const deFoto = valor.o === "fotoIncidencia" && m !== null;
           if (deFoto && !valor.revisado) {
             resultado = "aRevisar";
+          } else if (!juzga && !criterio) {
+            resultado = null;
           } else if (m !== null && ref !== null && igualesFx(m, ref) && fuente !== "norma") {
             copiado = true;
             resultado = valor.revisado ? "apto" : "aRevisar";
@@ -17215,7 +17226,7 @@ globalThis.CX_VARIANTE="cxobra";
           return null;
         }
         function evaluarBocasFicha(filas = [], tol = TOLERANCIAS_DEFECTO, proyectoSistema = null) {
-          const puntoBoca = { resultado: true, tolerancia: "boca" };
+          const puntoBoca = { resultado: true, tolerancia: "boca", caudal: true };
           const evaluadas = (filas || []).map((b) => ({
             ...b,
             ...evaluarParametro(puntoBoca, { p: b.p, m: b.m, revisado: b.revisado }, tol)
@@ -17227,7 +17238,7 @@ globalThis.CX_VARIANTE="cxobra";
           const refTotal = numFx(proyectoSistema) ?? sumP;
           let total = null;
           if (conProyecto.length && medidas.length === conProyecto.length) {
-            total = evaluarParametro({ resultado: true, tolerancia: "total" }, { p: refTotal, m: sumM }, tol);
+            total = evaluarParametro({ resultado: true, tolerancia: "total", caudal: true }, { p: refTotal, m: sumM }, tol);
             if (total.copiado && !medidas.every((b) => b.copiado)) {
               total = { ...total, copiado: false, resultado: "apto" };
             }
@@ -17747,6 +17758,50 @@ globalThis.CX_VARIANTE="cxobra";
           const pm = u.plantillaPM || plantillaPorDefecto(u, familia, indice);
           return /EXTERIOR/.test(sinAcentosFx((indice.get(pm) || {}).nombre || pm || ""));
         }
+        const esVrfConjunto = (familia, interiores) => Boolean(familia && familia.codigo === "PANASONIC_VRF" || interiores.length > 1);
+        function rotuloUi(tag) {
+          const m = /(?:^|[\s·-])UI\s*0*(\d+)\s*$/i.exec(String(tag || ""));
+          return m ? `UI ${m[1].padStart(2, "0")}` : String(tag || "UI");
+        }
+        function tomasVrf(exteriores, interiores, porUnidad) {
+          const fuera = [];
+          const reqDe = (u) => (porUnidad.find((x) => x.u === u) || { reqs: [] }).reqs.find((q) => q.clase === "fichaPM");
+          const varias = exteriores.length > 1;
+          exteriores.forEach((u, i) => {
+            const r = reqDe(u);
+            if (!r) return;
+            fuera.push({
+              ...r,
+              nombre: `Toma de datos UE${varias ? ` ${i + 1}` : ""}`,
+              conjunto: true,
+              porUnidad: true,
+              papel: "UE",
+              unidadId: u.id,
+              unidadTag: u.tag || null,
+              unidadSala: u.sala || u.codSala || null
+            });
+          });
+          for (const u of interiores) {
+            const r = reqDe(u);
+            if (!r) continue;
+            fuera.push({
+              ...r,
+              nombre: `Toma de datos ${rotuloUi(u.tag)}`,
+              conjunto: true,
+              porUnidad: true,
+              papel: "UI",
+              unidadId: u.id,
+              unidadTag: u.tag || null,
+              unidadSala: u.sala || u.codSala || null
+            });
+          }
+          return fuera;
+        }
+        function resumenUis(fichas = []) {
+          const uis = fichas.filter((f) => f.porUnidad && f.papel === "UI" && !f.conservada);
+          const hecha = (f) => f.estado === "completa" || f.estado === "firmada";
+          return { total: uis.length, completas: uis.filter(hecha).length, empezadas: uis.filter((f) => !hecha(f) && f.estado !== "sinEmpezar" && f.estado !== "sinFicha").length };
+        }
         function requeridasConjunto(unidades, familia, plantillas, buscar = null) {
           const indice = plantillas instanceof Map ? plantillas : indicePlantillas(plantillas);
           const orden = (a, b) => String(a.tag || "").localeCompare(String(b.tag || ""), "es", { numeric: true });
@@ -17770,9 +17825,12 @@ globalThis.CX_VARIANTE="cxobra";
             }
             return mejor;
           };
+          const vrf = esVrfConjunto(familia, interiores);
           for (const r of deRef) {
             if (r.clase === "checklist") {
               reqs.push({ ...mejorDe(porUnidad.flatMap((x) => x.reqs.filter((q) => q.plantilla === r.plantilla && q.clave))) || r, conjunto: true });
+            } else if (r.clase === "fichaPM" && vrf) {
+              reqs.push(...tomasVrf(exteriores, interiores, porUnidad));
             } else if (r.clase === "fichaPM") {
               reqs.push({ ...r, nombre: r.plantilla ? "Toma de datos" : r.nombre, conjunto: true });
             } else {
@@ -18050,6 +18108,8 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
           requeridas,
           requeridasConjunto,
           esConjuntoUnico,
+          rotuloUi,
+          resumenUis,
           fichaFundida,
           fundirRespuestas,
           estadoEquipo,
@@ -31697,8 +31757,8 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         { id: "caudalRetorno", nombre: "Caudal de retorno / extracci\xF3n", unidad: "m\xB3/h", circuito: "retorno", tolerancia: "total" },
         { id: "presionImpulsion", nombre: "Presi\xF3n disponible impulsi\xF3n", unidad: "Pa", circuito: "impulsion" },
         { id: "presionRetorno", nombre: "Presi\xF3n disponible retorno", unidad: "Pa", circuito: "retorno" },
-        { id: "tempImpulsion", nombre: "Temperatura de impulsi\xF3n", unidad: "\xB0C", absoluta: 1 },
-        { id: "tempRetorno", nombre: "Temperatura de retorno", unidad: "\xB0C", absoluta: 1 },
+        { id: "tempImpulsion", nombre: "Temperatura de impulsi\xF3n", unidad: "\xB0C" },
+        { id: "tempRetorno", nombre: "Temperatura de retorno", unidad: "\xB0C" },
         { id: "tempExterior", nombre: "Temperatura exterior", unidad: "\xB0C" },
         { id: "tempAguaEntrada", nombre: "Temperatura de entrada de agua fr\xEDa", unidad: "\xB0C" },
         { id: "tempAguaSalida", nombre: "Temperatura de salida de agua fr\xEDa", unidad: "\xB0C" },
@@ -32034,10 +32094,7 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
           const x = numBal(hoja.medido[m.id]);
           let estado = null;
           let d = null;
-          if (m.absoluta && x !== null && p !== null) {
-            d = x - p;
-            estado = Math.abs(d) <= m.absoluta + 1e-9 ? "ok" : d > 0 ? "alto" : "bajo";
-          } else if (m.tolerancia && x !== null && p !== null) {
+          if (m.tolerancia && _reglasBal.juzgaDesviacion({ unidad: m.unidad, caudal: true }) && x !== null && p !== null) {
             d = desviacion(x, p);
             const limite = tol[m.tolerancia] ?? null;
             estado = d === null || limite === null ? null : _reglasBal.dentro(d, limite) ? "ok" : d > 0 ? "alto" : "bajo";
@@ -44555,6 +44612,13 @@ ${subtitulo}`, c[5]] : c.slice())]);
             ...cambios
           });
         }
+        const serie = limpio.valores && limpio.valores.num_serie ? String(limpio.valores.num_serie.v ?? "").trim() : "";
+        if (!leido && serie && r.dueno && String(clave).startsWith("equipo:") && String(r.dueno.numSerie || "").trim() !== serie) {
+          try {
+            repo.modificar("equiposObra", sesion, r.dueno.id, { numSerie: serie.slice(0, 80) });
+          } catch {
+          }
+        }
         const equipoFirma = fila && fila.equipoId || r.dueno && r.dueno.id;
         if (!leido && equipoFirma && ev.estado !== "sinEmpezar") {
           const cab = limpio.cabecera || {};
@@ -44857,6 +44921,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         if (!d) return { ok: false, error: "No se encuentra el equipo." };
         const todas = [...d.partes, ...(d.conservadas || []).filter((p) => p.evaluacion)];
         const propias = vistas ? todas.filter((p) => {
+          if (p.porUnidad && p.unidadId && p.unidadId !== d.equipo.id) return false;
           if (!p.clave || !p.plantilla) return true;
           const k = `${p.clave}|${p.plantilla}`;
           if (vistas.has(k)) return false;
@@ -44864,7 +44929,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
           return true;
         }) : todas;
         const partes = propias.map((p) => {
-          const titulo = p.clave && p.clave.startsWith("circuito:") ? llano(d.equipo.circuito) : p.clave && p.clave.startsWith("refrigerante:") ? p.clave.slice("refrigerante:".length) : d.equipo.tag;
+          const titulo = p.clave && p.clave.startsWith("circuito:") ? llano(d.equipo.circuito) : p.clave && p.clave.startsWith("refrigerante:") ? p.clave.slice("refrigerante:".length) : p.porUnidad && p.unidadTag || d.equipo.tag;
           return { ...p, titulo: rotulo ? `${rotulo} \xB7 ${titulo}` : titulo };
         });
         const imagenes = Object.assign({}, ...partes.filter((p) => p.evaluacion).map((p) => imagenesDe(p.evaluacion.datos.fotos)));
@@ -89599,6 +89664,11 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
               /* Split y VRF: lo guardado antes en otra unidad del conjunto, para leerlo. */
               conservada: Boolean(p.conservada),
               unidadTag: p.unidadTag || null,
+              /* VRF (29-oct-2026, JC): una toma por unidad; la de cada UI lleva su TAG y su sala. */
+              porUnidad: Boolean(p.porUnidad),
+              papel: p.papel || null,
+              unidadId: p.unidadId || null,
+              unidadSala: p.unidadSala || null,
               estado: p.evaluacion ? p.evaluacion.estado : "sinFicha",
               resultado: p.evaluacion ? p.evaluacion.resultado : null,
               medidos: p.evaluacion ? p.evaluacion.medidos : null,
@@ -91296,6 +91366,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
       var MNCR = require_motor();
       var MDIF = require_difusores();
       var FMOV = require_filaMovil();
+      var F = require_fichas();
       var { puede } = require_roles();
       var { crearRutasFichas, PERMISOS_FICHAS } = require_rutasFichas();
       var { crearRutasPlanoEquipos, PERMISOS_PLANO_EQUIPOS } = require_rutasPlanoEquipos();
@@ -91486,7 +91557,9 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
                 planta: m.planta || null,
                 sala: FMOV.salaVisibleDe(m),
                 estadoPM: m.estadoPM || null,
-                falta: m.falta || []
+                falta: m.falta || [],
+                /* VRF (29-oct-2026, JC): la miniatura de cada UI junto a su toma de datos (la última foto de esa unidad). */
+                foto: ultimaFoto(ses, m.id)
               }))
             } : null,
             checklist: fila ? {
@@ -91679,13 +91752,22 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         const MAX_FOTOS_EQUIPO = 30;
         const carpetaEquipos = (obraId) => path.join(carpeta, "commissioning", String(obraId).replace(/[^A-Za-z0-9_-]/g, "_"), "equipos");
         const fotosDe = (ses, equipoId) => repo.listar("fotosEquipo", ses, { condicion: "equipoId = ?", params: [equipoId], orden: "creadoEn" }).map((f) => ({ id: f.id, pie: f.pie || "", hora: f.hora || "" }));
+        const ultimaFoto = (ses, equipoId) => {
+          const f = fotosDe(ses, equipoId).pop();
+          return f ? { ...f, url: `api/equipo/foto?id=${encodeURIComponent(f.id)}` } : null;
+        };
+        const partirPie = (nombre) => {
+          const t = String(nombre || "Foto");
+          const m = /^(.*?)\s·\s(\d{1,2}\/\d{1,2}\/\d{2,4}(?:\s+\d{1,2}:\d{2})?)$/.exec(t);
+          return m ? [m[1], m[2]] : [t, ""];
+        };
         function fotosDelEquipo(ses, eq, linea, dos) {
           const unidades = linea && linea.clase !== "suelto" && linea.miembros.length ? linea.miembros : [eq];
           const varias = unidades.length > 1;
           const fuera = [];
           for (const u of unidades) {
             for (const f of fotosDe(ses, u.id)) {
-              fuera.push({ ...f, origen: "equipo", equipoId: u.id, unidad: varias ? linea.exterior && u.id === linea.exterior.id ? "UE" : linea.clase === "par" ? "UI" : u.tag : null, ficha: null, url: `api/equipo/foto?id=${encodeURIComponent(f.id)}` });
+              fuera.push({ ...f, origen: "equipo", equipoId: u.id, unidad: varias ? linea.exterior && u.id === linea.exterior.id ? "UE" : linea.clase === "par" ? "UI" : F.rotuloUi(u.tag) : null, ficha: null, url: `api/equipo/foto?id=${encodeURIComponent(f.id)}` });
             }
           }
           const vistas = /* @__PURE__ */ new Set();
@@ -91697,9 +91779,9 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
             const lista = p.evaluacion && p.evaluacion.datos && Array.isArray(p.evaluacion.datos.fotos) ? p.evaluacion.datos.fotos : [];
             lista.forEach((x, i) => {
               if (!x) return;
-              const [pie, ...resto] = String(x.nombre || "Foto").split(" \xB7 ");
+              const [pie, hora] = partirPie(x.nombre);
               const q = new URLSearchParams({ obra: eq.obraId, clave: p.clave, plantilla: p.plantilla, i: String(i) });
-              fuera.push({ id: `${k}|${i}`, pie: pie === "Foto" ? "" : pie, hora: resto.join(" \xB7 "), origen: "ficha", equipoId: null, unidad: p.unidadTag || null, ficha: p.nombre || "Ficha", url: `api/ficha/foto?${q}` });
+              fuera.push({ id: `${k}|${i}`, pie: pie === "Foto" ? "" : pie, hora, origen: "ficha", equipoId: p.porUnidad ? p.unidadId || null : null, unidad: p.unidadTag ? F.rotuloUi(p.unidadTag) : null, ficha: p.nombre || "Ficha", url: `api/ficha/foto?${q}` });
             });
           }
           return fuera;
@@ -91743,7 +91825,8 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
             return { ok: false, error: err.message || "No se pudo guardar la foto." };
           }
           for (const x of nuevas) soltar(llano(x.id));
-          return { ok: true, ...equipo({ ses, query: { id: eq.id } }) };
+          const vista = llano(e.vista) && repo.leer("equiposObra", ses, llano(e.vista)) ? llano(e.vista) : eq.id;
+          return { ok: true, ...equipo({ ses, query: { id: vista } }) };
         }
         function equipoFotoQuitar({ ses, json }) {
           const e = json();
