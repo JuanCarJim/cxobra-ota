@@ -47,6 +47,7 @@
   let $raiz = null;
   let vista = null; /* cómo estaba el plano al irse a una ficha, para volver igual */
   let propio = false; /* sección «Plano de equipos» (sin Commissioning) */
+  let verSinUbicar = false; /* franja gris «Sin ubicar en el plano» abierta */
   try { planta = sessionStorage.getItem('cx.planoEquipos.planta'); } catch { /* sin almacén */ }
 
   const ESTILO = `
@@ -114,6 +115,13 @@
   .pe-lista tr.elegida td{background:var(--acento-suave,#E6F4F0)}
   .pe-lista td.estado{white-space:nowrap}
   .pe-lista .tenue{color:var(--textoTenue,#567)}
+  /* Sin ubicar en el plano (29-oct, JC): en gris, para estudiarlos. */
+  .pe-punto.pe-gris{background:var(--textoTenue,#567);opacity:.55}
+  .pe-sin-ubicar{margin:0 0 8px;font-size:13px;color:var(--textoTenue,#567)}
+  .pe-sin-ubicar summary{min-height:36px;display:inline-flex;align-items:center;gap:6px;font-weight:600;cursor:pointer}
+  .pe-sin-ubicar .pe-grises{display:flex;flex-wrap:wrap;gap:4px;max-height:118px;overflow:auto;margin-top:4px}
+  .pe-sin-ubicar .pe-grises button{min-height:32px;border:1px solid var(--borde,#c9d3d6);background:var(--fondo,#f3f5f6);color:var(--textoTenue,#567);border-radius:999px;padding:2px 10px;font-size:12.5px}
+  .pe-lista tr.sin-ubicar td{color:var(--textoTenue,#567)}
   @media (min-width:900px){
     .pe-cuerpo{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:12px;align-items:start}
     .pe-marco{height:calc(100vh - 250px)}
@@ -319,13 +327,15 @@
       <div class="pe-leyenda" role="group" aria-label="Colores">${ORDEN.map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}"><i class="pe-punto pe-${k}"></i>${esc(NOMBRE[k])} <b>${cifra(c[k] || 0)}</b></button>`).join('')}
         <p class="nota">sin sala ${cifra(c.sinSala)}${p.plano ? ` · en el plano ${cifra(c.enPlano)} de ${cifra(p.equipos.length)}` : ''}</p></div>
       ${p.plano ? leyendaIconos(p) : ''}
+      ${p.plano && (p.sinUbicar || []).length ? `<details class="pe-sin-ubicar" data-pe-sin-ubicar${verSinUbicar ? ' open' : ''}><summary><i class="pe-punto pe-gris"></i>Sin ubicar en el plano · ${cifra(p.sinUbicar.length)}</summary>
+        <div class="pe-grises">${p.sinUbicar.map((g) => `<button data-pe-fila="${esc(g.id)}" aria-label="${esc(`${g.tag}: en el listado de esta planta y no en su plano`)}">${esc(g.tag)}</button>`).join('')}</div></details>` : ''}
       <div class="pe-cuerpo">
         <div>${plano}</div>
         <div class="pe-lado">
           <div class="pe-hoja" data-pe-hoja hidden></div>
           ${equipoElegido() ? '' : `<p class="nota pe-ayuda">${p.plano ? 'Pellizca para acercar, arrastra para moverte y toca un equipo.' : 'Toca un equipo de la lista para ver qué le falta.'}</p>`}
           <div class="pe-lista"><table><thead><tr><th>Equipo</th><th>Sala</th><th>Estado</th></tr></thead><tbody>
-          ${visibles.map((e) => `<tr data-pe-fila="${esc(e.id)}" class="${e.id === elegida ? 'elegida' : ''}"><td>${e.papel ? `<em class="tenue">${esc(e.papel)}</em> ` : ''}${esc(e.tag)}</td><td>${e.sala ? esc(e.sala) : '<span class="tenue">sin sala</span>'}</td><td class="estado"><i class="pe-punto pe-${e.color}"></i> ${esc(NOMBRE[e.color])}</td></tr>`).join('') || '<tr><td colspan="3" class="tenue">Ningún equipo con esos colores.</td></tr>'}
+          ${visibles.map((e) => `<tr data-pe-fila="${esc(e.id)}" class="${e.id === elegida ? 'elegida' : ''}${p.plano && e.x === null ? ' sin-ubicar' : ''}"><td>${e.papel ? `<em class="tenue">${esc(e.papel)}</em> ` : ''}${esc(e.tag)}</td><td>${e.sala ? esc(e.sala) : '<span class="tenue">sin sala</span>'}</td><td class="estado">${p.plano && e.x === null ? '<i class="pe-punto pe-gris"></i> Sin ubicar' : `<i class="pe-punto pe-${e.color}"></i> ${esc(NOMBRE[e.color])}`}</td></tr>`).join('') || '<tr><td colspan="3" class="tenue">Ningún equipo con esos colores.</td></tr>'}
           </tbody></table></div>
         </div>
       </div>`;
@@ -518,6 +528,11 @@
     vista = { planta, zoom, elegida, ocultos: [...ocultos], sl: marco ? marco.scrollLeft : 0, st: marco ? marco.scrollTop : 0, lista: lista ? lista.scrollTop : 0, pagina: window.scrollY };
     window.CX_COMMISSIONING_IR(e.id, accion, $raiz);
   }
+
+  /* La franja gris abierta o cerrada se recuerda al repintar. */
+  document.addEventListener('toggle', (ev) => {
+    if (ev.target && ev.target.matches && ev.target.matches('[data-pe-sin-ubicar]')) verSinUbicar = ev.target.open;
+  }, true);
 
   /* Un arrastre o pellizco no es un toque: se traga el click que viene detrás. */
   document.addEventListener('click', (ev) => {

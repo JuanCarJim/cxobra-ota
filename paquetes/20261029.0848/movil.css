@@ -675,7 +675,7 @@ details.grupo-lista[open] > summary { margin-bottom: 6px; }
 .ver-mas small { color: var(--textoTenue); font-weight: 400; }
 
 /* Las fotos del equipo (placa, vista general): tira de miniaturas. */
-.fotos-equipo { list-style: none; margin: 0 0 8px; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.fotos-equipo { list-style: none; margin: 0 0 8px; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .fotos-equipo li { margin: 0; }
 .fotos-equipo img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; background: var(--rejillaSuave); display: block; }
 .fotos-equipo .pie { display: flex; flex-direction: column; gap: 2px; font-size: 11.5px; color: var(--textoTenue); margin-top: 3px; }
@@ -904,7 +904,7 @@ input.mal { box-shadow: 0 0 0 2px var(--mal-fondo) !important; }
 .densa .fotos-rapidas .boton { min-height: 40px; padding: 4px 2px; font-size: 13px; border-radius: 0; background: var(--panel); color: var(--acento-fuerte); }
 .densa .fotos-rapidas .boton + .boton { border-left: 1px solid var(--rejillaSuave); }
 .densa .fotos-rapidas .ic { width: 15px; height: 15px; margin-right: 3px; }
-.densa .fotos-equipo { margin: 6px 0; grid-template-columns: repeat(4, 1fr); }
+.densa .fotos-equipo { margin: 6px 0; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .estado-eq { grid-template-columns: 1fr 1fr; }
 .estado-eq > .fd { grid-template-columns: minmax(0, 1fr) auto; }
 .estado-eq > .fd:nth-child(2) { border-top: 0; }
@@ -1741,3 +1741,15 @@ body { background: var(--fondo-pagina); }
 .barra-guardar { position: static; margin: 6px 0 0; padding: 0; background: none; border: 0; box-shadow: none; text-align: right; }
 .barra-guardar .autoguardado { margin: 0; font-size: 12px; }
 .barra-editor .autoguardado { margin: 0; font-size: 12px; white-space: nowrap; }
+
+/* FOTOS DEL EQUIPO DEL CONJUNTO (JC, 29-oct): de qué ficha/unidad viene cada
+   foto y cuáles siguen solo en el teléfono, sin subir. */
+.fotos-equipo .origen-foto { font-size: 10.5px; font-weight: 600; color: var(--acento); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fotos-equipo li.en-movil img { outline: 2px dashed var(--borde, currentColor); outline-offset: -2px; }
+.fotos-equipo li { min-width: 0; }
+
+/* «Ver hoja» bajo cada ficha: el modelo oficial relleno, Definitiva o Borrador. */
+.ver-hoja { display: flex; align-items: center; gap: 8px; padding: 0 16px 6px; }
+.ver-hoja .enlace { padding: 2px 0; font-size: 13px; font-weight: 600; }
+.ver-hoja .chip { font-size: 10.5px; padding: 1px 6px; }
+.densa .ver-hoja { padding: 0 12px 4px; }

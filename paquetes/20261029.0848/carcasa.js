@@ -306,21 +306,25 @@
       const mas = fs.length - tope;
       let cuerpo;
       if (o.subgrupo) {
-        /* Dentro del grupo, por subgrupo (p. ej. planta): se pagina por equipos, el subencabezado cuenta el subgrupo entero. */
+        /* Dentro del grupo, por subgrupo (p. ej. planta): cada subgrupo se pagina por su cuenta
+           y su «Ver más» dice lo que queda de ESE subgrupo (29-oct, JC: «N10 tiene 43 y me dice
+           que quedan 126»: contaba lo que quedaba de todo el grupo). */
         const subs = new Map();
         for (const f of fs) { const k = o.subgrupo(f) || ''; if (!subs.has(k)) subs.set(k, []); subs.get(k).push(f); }
         const claves = [...subs.keys()]; if (o.subOrden) claves.sort(o.subOrden);
-        let resto = tope; const partes = [];
+        const partes = [];
         for (const k of claves) {
-          if (resto <= 0) break;
-          const todas = subs.get(k), vis = todas.slice(0, resto); resto -= vis.length;
+          const claveSub = `${g}\u0001${k}`;
+          const todas = subs.get(k), topeSub = st.cuantos.get(claveSub) || POR_GRUPO, vis = todas.slice(0, topeSub);
+          const masSub = todas.length - vis.length;
+          const verMasSub = masSub > 0 ? `<button class="ver-mas" data-lista-mas="${esc(clave)}" data-grupo="${esc(claveSub)}" data-abre="${esc(g)}">Ver ${Math.min(masSub, POR_GRUPO)} más <small>(quedan ${masSub}${k ? ` en ${esc(k)}` : ''})</small></button>` : '';
           /* El subencabezado se pliega con un toque (clave: obra + lista + grupo + subgrupo; por defecto desplegado). */
           const idSub = `sub/${(typeof window !== 'undefined' && window.CX && window.CX.obraId && window.CX.obraId()) || ''}/${clave}/${g}/${k}`;
-          partes.push(`<div class="subgrupo-lista" data-plg-caja="${esc(idSub)}"><div class="subgrupo-cab plg-h"><button type="button" class="plg-cab" data-plg="${esc(idSub)}" aria-expanded="true"><b class="plg-flecha" aria-hidden="true">▸</b>${o.subCabecera ? o.subCabecera(todas, k) : `<span>${esc(k)}</span><b>${cifra(todas.length)}</b>`}</button></div><div class="plg-cuerpo">${envolver(vis.map(o.fila).join(''))}</div></div>`);
+          partes.push(`<div class="subgrupo-lista" data-plg-caja="${esc(idSub)}"><div class="subgrupo-cab plg-h"><button type="button" class="plg-cab" data-plg="${esc(idSub)}" aria-expanded="true"><b class="plg-flecha" aria-hidden="true">▸</b>${o.subCabecera ? o.subCabecera(todas, k) : `<span>${esc(k)}</span><b>${cifra(todas.length)}</b>`}</button></div><div class="plg-cuerpo">${envolver(vis.map(o.fila).join(''))}${verMasSub}</div></div>`);
         }
         cuerpo = partes.join('');
       } else cuerpo = envolver(fs.slice(0, tope).map(o.fila).join(''));
-      cuerpo += (mas > 0 ? `<button class="ver-mas" data-lista-mas="${esc(clave)}" data-grupo="${esc(g)}">Ver ${Math.min(mas, POR_GRUPO)} más <small>(quedan ${mas})</small></button>` : '');
+      if (!o.subgrupo) cuerpo += (mas > 0 ? `<button class="ver-mas" data-lista-mas="${esc(clave)}" data-grupo="${esc(g)}">Ver ${Math.min(mas, POR_GRUPO)} más <small>(quedan ${mas})</small></button>` : '');
       const abierto = st.abiertos.has(g) ? st.abiertos.get(g) : (solo || o.buscando);
       return `<details class="grupo-lista" data-lista="${esc(clave)}" data-grupo="${esc(g)}" ${abierto ? 'open' : ''}>
         <summary>${o.cabecera ? o.cabecera(fs, g) : `<span>${esc(g || 'Todo')}</span><b class="contador">${cifra(fs.length)}</b>`}</summary>${cuerpo}</details>`;
@@ -337,7 +341,7 @@
     const st = estadoLista(b.dataset.listaMas);
     const g = b.dataset.grupo;
     st.cuantos.set(g, (st.cuantos.get(g) || POR_GRUPO) + POR_GRUPO);
-    st.abiertos.set(g, true);
+    st.abiertos.set(b.dataset.abre || g, true);
     if (st.repintar) { const y = window.scrollY; st.repintar(); window.scrollTo(0, y); }
   });
   /** Al cambiar de obra o de filtro, las listas vuelven a su tope. */

@@ -50,9 +50,9 @@ globalThis.CX_VARIANTE="cxobra";
   ));
   var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-  // node_modules/base64-js/index.js
+  // ../Vidaire_Obras/node_modules/base64-js/index.js
   var require_base64_js = __commonJS({
-    "node_modules/base64-js/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/base64-js/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       exports.byteLength = byteLength;
@@ -152,9 +152,9 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/ieee754/index.js
+  // ../Vidaire_Obras/node_modules/ieee754/index.js
   var require_ieee754 = __commonJS({
-    "node_modules/ieee754/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/ieee754/index.js"(exports) {
       var import_buffer_global10 = __toESM(require_buffer_global());
       exports.read = function(buffer, offset, isLE2, mLen, nBytes) {
         var e, m;
@@ -236,9 +236,9 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/buffer/index.js
+  // ../Vidaire_Obras/node_modules/buffer/index.js
   var require_buffer = __commonJS({
-    "node_modules/buffer/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/buffer/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var base64 = require_base64_js();
@@ -1850,9 +1850,9 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/sql.js/dist/sql-wasm-browser.js
+  // ../Vidaire_Obras/node_modules/sql.js/dist/sql-wasm-browser.js
   var require_sql_wasm_browser = __commonJS({
-    "node_modules/sql.js/dist/sql-wasm-browser.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/sql.js/dist/sql-wasm-browser.js"(exports, module) {
       var import_buffer_global10 = __toESM(require_buffer_global());
       var initSqlJsPromise = void 0;
       var initSqlJs = function(moduleConfig) {
@@ -4123,6 +4123,20 @@ globalThis.CX_VARIANTE="cxobra";
           const enCx = !ES_LOGO || typeof globalThis !== "undefined" && globalThis.CX_VARIANTE === "cxobra";
           return enCx ? { clave: "propia", nombre: "Vidaire Cx", svg: ES_LOGO ? "<b>Vidaire Cx</b>" : LOGO_CLIENTE, esLogo: false } : { clave: m.clave, nombre: m.nombre, svg: m.svg, esLogo: true };
         }
+        function empresaDeObra(obra) {
+          if (obra === false) return null;
+          const o = obra && typeof obra === "object" ? obra : {};
+          const dicha = [o.empresa, o.empresaEjecutora, o.marca].find((v) => v !== void 0 && v !== null && v !== "");
+          if (dicha === void 0) return TITULAR;
+          const nombre = String(typeof dicha === "object" ? dicha.clave || dicha.nombre || "" : dicha).trim();
+          return Object.keys(MARCAS).find((k) => k === nombre.toLowerCase() || MARCAS[k].reconoce.test(nombre)) || null;
+        }
+        function modelosOficiales(obra) {
+          if (empresaDeObra(obra) === "cbre") return true;
+          const o = obra && typeof obra === "object" ? obra : {};
+          const cli = o.cliente && typeof o.cliente === "object" ? o.cliente.nombre : o.cliente || o.clienteNombre;
+          return MARCAS.cbre.reconoce.test(String(cli || ""));
+        }
         function logoObra(obra, { alto = "7mm", clase = "", soloLogo = false, oficial = null } = {}) {
           if (esOficial(oficial)) return "";
           const m = marcaDeObra(obra);
@@ -4251,7 +4265,7 @@ globalThis.CX_VARIANTE="cxobra";
         (function exportar(API) {
           if (typeof module !== "undefined" && module.exports) module.exports = API;
           if (typeof window !== "undefined") window.PAPEL = API;
-        })({ LOGO_CLIENTE, MARCAS, marcaDeObra, esOficial, logoObra, pngLogoObra, excelConLogo, hoja, portada, cifras, fechaEs, incrustarEstilos, documentoHtml, imprimirEnMarco, sinCabecerasDelNavegador });
+        })({ LOGO_CLIENTE, MARCAS, marcaDeObra, empresaDeObra, modelosOficiales, esOficial, logoObra, pngLogoObra, excelConLogo, hoja, portada, cifras, fechaEs, incrustarEstilos, documentoHtml, imprimirEnMarco, sinCabecerasDelNavegador });
       })();
     }
   });
@@ -4368,7 +4382,7 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/@noble/hashes/utils.js
+  // ../Vidaire_Obras/node_modules/@noble/hashes/utils.js
   function isBytes(a) {
     return a instanceof Uint8Array || ArrayBuffer.isView(a) && a.constructor.name === "Uint8Array" && "BYTES_PER_ELEMENT" in a && a.BYTES_PER_ELEMENT === 1;
   }
@@ -4501,7 +4515,7 @@ globalThis.CX_VARIANTE="cxobra";
   }
   var import_buffer_global, atitle, aobject, aopts, isLE, swap32IfBE, oidNist;
   var init_utils = __esm({
-    "node_modules/@noble/hashes/utils.js"() {
+    "../Vidaire_Obras/node_modules/@noble/hashes/utils.js"() {
       import_buffer_global = __toESM(require_buffer_global(), 1);
       atitle = (title) => title ? `"${title}" ` : "";
       aobject = (value, label) => {
@@ -4526,10 +4540,10 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/@noble/hashes/hmac.js
+  // ../Vidaire_Obras/node_modules/@noble/hashes/hmac.js
   var import_buffer_global2, _HMAC, hmac;
   var init_hmac = __esm({
-    "node_modules/@noble/hashes/hmac.js"() {
+    "../Vidaire_Obras/node_modules/@noble/hashes/hmac.js"() {
       import_buffer_global2 = __toESM(require_buffer_global(), 1);
       init_utils();
       _HMAC = class {
@@ -4610,7 +4624,7 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/@noble/hashes/pbkdf2.js
+  // ../Vidaire_Obras/node_modules/@noble/hashes/pbkdf2.js
   function pbkdf2Init(hash, _password, _salt, _opts) {
     ahash(hash);
     const opts = checkOpts({ dkLen: 32, asyncTick: 10 }, _opts);
@@ -4686,14 +4700,14 @@ globalThis.CX_VARIANTE="cxobra";
   }
   var import_buffer_global3;
   var init_pbkdf2 = __esm({
-    "node_modules/@noble/hashes/pbkdf2.js"() {
+    "../Vidaire_Obras/node_modules/@noble/hashes/pbkdf2.js"() {
       import_buffer_global3 = __toESM(require_buffer_global(), 1);
       init_hmac();
       init_utils();
     }
   });
 
-  // node_modules/@noble/hashes/_u64.js
+  // ../Vidaire_Obras/node_modules/@noble/hashes/_u64.js
   function fromBig(n, le = false) {
     if (le)
       return { h: Number(n & U32_MASK64), l: Number(n >> _32n & U32_MASK64) };
@@ -4721,7 +4735,7 @@ globalThis.CX_VARIANTE="cxobra";
   }
   var import_buffer_global4, U32_MASK64, _32n, fromNumH, fromNumL, shrSH, shrSL, rotrSH, rotrSL, rotrBH, rotrBL, add3L, add3H, add4L, add4H, add5L, add5H;
   var init_u64 = __esm({
-    "node_modules/@noble/hashes/_u64.js"() {
+    "../Vidaire_Obras/node_modules/@noble/hashes/_u64.js"() {
       import_buffer_global4 = __toESM(require_buffer_global(), 1);
       U32_MASK64 = /* @__PURE__ */ (() => BigInt(2 ** 32 - 1))();
       _32n = /* @__PURE__ */ BigInt(32);
@@ -4742,7 +4756,7 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/@noble/hashes/_md.js
+  // ../Vidaire_Obras/node_modules/@noble/hashes/_md.js
   function Chi(a, b, c) {
     return a & b ^ ~a & c;
   }
@@ -4751,7 +4765,7 @@ globalThis.CX_VARIANTE="cxobra";
   }
   var import_buffer_global5, HashMD, SHA256_IV, SHA224_IV, SHA384_IV, SHA512_IV;
   var init_md = __esm({
-    "node_modules/@noble/hashes/_md.js"() {
+    "../Vidaire_Obras/node_modules/@noble/hashes/_md.js"() {
       import_buffer_global5 = __toESM(require_buffer_global(), 1);
       init_u64();
       init_utils();
@@ -4909,7 +4923,7 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/@noble/hashes/sha2.js
+  // ../Vidaire_Obras/node_modules/@noble/hashes/sha2.js
   var sha2_exports = {};
   __export(sha2_exports, {
     _SHA224: () => _SHA224,
@@ -4927,7 +4941,7 @@ globalThis.CX_VARIANTE="cxobra";
   });
   var import_buffer_global6, SHA256_K, SHA256_W, SHA2_32B, _SHA256, _SHA224, K512, SHA512_Kh, SHA512_Kl, SHA512_W_H, SHA512_W_L, SHA2_64B, _SHA512, _SHA384, T224_IV, T256_IV, _SHA512_224, _SHA512_256, sha256, sha224, sha512, sha384, sha512_256, sha512_224;
   var init_sha2 = __esm({
-    "node_modules/@noble/hashes/sha2.js"() {
+    "../Vidaire_Obras/node_modules/@noble/hashes/sha2.js"() {
       import_buffer_global6 = __toESM(require_buffer_global(), 1);
       init_md();
       init_u64();
@@ -5402,7 +5416,7 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/@noble/hashes/scrypt.js
+  // ../Vidaire_Obras/node_modules/@noble/hashes/scrypt.js
   var scrypt_exports = {};
   __export(scrypt_exports, {
     scrypt: () => scrypt,
@@ -5591,7 +5605,7 @@ globalThis.CX_VARIANTE="cxobra";
   }
   var import_buffer_global7, SCRYPT_DEFAULT_MAXMEM;
   var init_scrypt = __esm({
-    "node_modules/@noble/hashes/scrypt.js"() {
+    "../Vidaire_Obras/node_modules/@noble/hashes/scrypt.js"() {
       import_buffer_global7 = __toESM(require_buffer_global(), 1);
       init_pbkdf2();
       init_sha2();
@@ -10003,7 +10017,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261029.0733" : "0";
+      var VERSION = true ? "20261029.0848" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -11013,9 +11027,30 @@ globalThis.CX_VARIANTE="cxobra";
             registro("Bajada desde el principio (tablas nuevas o tel\xE9fono sin obras).");
             cursor = 0;
           }
+          const columnasAhora = columnasLocales();
+          let columnasAntes = null;
+          try {
+            columnasAntes = JSON.parse(leerEstado("columnasConocidas") || "null");
+          } catch {
+            columnasAntes = null;
+          }
+          const columnasNuevas = /* @__PURE__ */ new Map();
+          if (columnasAntes && typeof columnasAntes === "object") {
+            for (const [t, cols] of Object.entries(columnasAhora)) {
+              const antes = columnasAntes[t];
+              if (!Array.isArray(antes)) continue;
+              const nuevas = cols.filter((c) => !antes.includes(c));
+              if (nuevas.length) columnasNuevas.set(t, nuevas);
+            }
+          }
+          if (cursor && columnasNuevas.size) {
+            registro(`Bajada desde el principio (columnas nuevas en ${[...columnasNuevas.keys()].join(", ")}).`);
+            cursor = 0;
+          }
           let desdeSeq = Math.max(0, cursor - SOLAPE);
           const hacenFalta = [];
           const iguales = [];
+          const aRellenar = [];
           const aFusionar = /* @__PURE__ */ new Set();
           const visto = modo === "movil" ? vistos() : null;
           const base = modo === "movil" ? String(desde() || "") : "";
@@ -11047,7 +11082,10 @@ globalThis.CX_VARIANTE="cxobra";
                 }
               }
               if (local === null || local < remoto) hacenFalta.push(r);
-              else if (local === remoto) iguales.push(r);
+              else if (local === remoto) {
+                iguales.push(r);
+                if (columnasNuevas.has(r.tabla)) aRellenar.push(r);
+              }
             }
             if (!lista || lista.length < POR_PAGINA) break;
             desdeSeq = Number(lista[lista.length - 1].seq);
@@ -11094,8 +11132,18 @@ globalThis.CX_VARIANTE="cxobra";
             cambiarEstado({ trayendo: { hechas: Math.min(i + 40, hacenFalta.length), total: hacenFalta.length } });
           }
           if (hacenFalta.length) cambiarEstado({ trayendo: null });
+          for (let i = 0; i < aRellenar.length; i += 40) {
+            const seqs = aRellenar.slice(i, i + 40).map((r) => r.seq).join(",");
+            const filas = await nube.leer("cx_filas", `select=tabla,id,datos,modificado_en,borrado&espacio=eq.${encodeURIComponent(espacio)}&seq=in.(${seqs})`);
+            const n = rellenarColumnas(filas || [], columnasNuevas);
+            if (n.length) {
+              entradas += n.length;
+              for (const t of n) tocadas.add(t);
+            }
+          }
           ponerEstado("cursor", cursor);
           ponerEstado("tablasConocidas", conocidas);
+          ponerEstado("columnasConocidas", JSON.stringify(columnasAhora));
           const sello = ahora().toISOString();
           ponerEstado("ultimaBajada", sello);
           if (entradas) {
@@ -11111,6 +11159,35 @@ globalThis.CX_VARIANTE="cxobra";
             }
           }
           return { entradas, tablas: [...tocadas] };
+        }
+        function columnasLocales() {
+          const r = {};
+          for (const t of [...tablasLocales].filter((x) => /^[A-Za-z]+$/.test(x)).sort()) {
+            try {
+              r[t] = db.prepare(`PRAGMA table_info("${t}")`).all().map((c) => c.name).sort();
+            } catch {
+            }
+          }
+          return r;
+        }
+        function rellenarColumnas(filas, columnasNuevas) {
+          const tocadas = [];
+          for (const f of filas) {
+            const cols = columnasNuevas.get(f.tabla);
+            if (!cols || f.borrado || !f.datos) continue;
+            const pon = cols.filter((c) => Object.prototype.hasOwnProperty.call(f.datos, c) && (f.datos[c] === null || typeof f.datos[c] !== "object"));
+            if (!pon.length) continue;
+            try {
+              const r = db.prepare(`UPDATE "${f.tabla}" SET ${pon.map((c) => `"${c}" = ?`).join(", ")} WHERE id = ? AND modificadoEn = ?`).run(...pon.map((c) => typeof f.datos[c] === "boolean" ? Number(f.datos[c]) : f.datos[c]), f.id, String(f.modificado_en || ""));
+              if (r.changes) {
+                tocadas.push(f.tabla);
+                apuntarBase(f.tabla, f.id);
+              }
+            } catch (e) {
+              registro(`No se pudo rellenar ${f.tabla}/${f.id}: ${e.message}`);
+            }
+          }
+          return tocadas;
         }
         function fusionarFila(f) {
           const tabla = f.tabla;
@@ -11348,17 +11425,20 @@ globalThis.CX_VARIANTE="cxobra";
       };
       var nombreDe = (r) => String(r || "").split(/[\\/]/).pop();
       var limpio = (s) => String(s || "").replace(/[^A-Za-z0-9._-]/g, "_");
+      var conFotos = (lista) => Array.isArray(lista) && lista.some((f) => f && typeof f.ruta === "string" && TIPOS[ext(f.ruta)]);
       function listasDeFotos(datos) {
         const out = [];
         for (const [k, v] of Object.entries(datos || {})) {
-          if (typeof v !== "string" || v[0] !== "[" || !v.includes('"ruta"')) continue;
-          let lista;
+          if (typeof v !== "string" || v[0] !== "[" && v[0] !== "{" || !v.includes('"ruta"')) continue;
+          let x;
           try {
-            lista = JSON.parse(v);
+            x = JSON.parse(v);
           } catch {
             continue;
           }
-          if (Array.isArray(lista) && lista.some((f) => f && typeof f.ruta === "string" && TIPOS[ext(f.ruta)])) out.push([k, lista]);
+          if (Array.isArray(x)) {
+            if (conFotos(x)) out.push([k, x, () => JSON.stringify(x)]);
+          } else if (x && typeof x === "object" && conFotos(x.fotos)) out.push([k, x.fotos, () => JSON.stringify(x)]);
         }
         return out;
       }
@@ -11374,7 +11454,7 @@ globalThis.CX_VARIANTE="cxobra";
           if (!subir) return;
           const obra = fila.obras && fila.obras.length ? fila.obras[0] : fila.datos && fila.datos.obraId || null;
           if (!obra) return;
-          for (const [k, lista] of listasDeFotos(fila.datos)) {
+          for (const [k, lista, escribir] of listasDeFotos(fila.datos)) {
             let cambio = false;
             for (const f of lista) {
               if (!f || typeof f.ruta !== "string" || !TIPOS[ext(f.ruta)]) continue;
@@ -11390,7 +11470,7 @@ globalThis.CX_VARIANTE="cxobra";
               f.origen = f.ruta;
               cambio = true;
             }
-            if (cambio) fila.datos[k] = JSON.stringify(lista);
+            if (cambio) fila.datos[k] = escribir();
           }
           if (esFotoSuelta(fila.datos) && !fila.datos.rutaNube) {
             const r = fila.datos.ruta;
@@ -11411,7 +11491,7 @@ globalThis.CX_VARIANTE="cxobra";
         const fallida = db.prepare("UPDATE _syncFotosPendientes SET intentos = intentos + 1 WHERE clave = ?");
         const MAX_INTENTOS = 5;
         async function alBajar(fila) {
-          for (const [k, lista] of listasDeFotos(fila.datos)) {
+          for (const [k, lista, escribir] of listasDeFotos(fila.datos)) {
             let cambio = false;
             for (const f of lista) {
               if (!f || !f.nube) continue;
@@ -11429,7 +11509,7 @@ globalThis.CX_VARIANTE="cxobra";
                 cambio = true;
               }
             }
-            if (cambio) fila.datos[k] = JSON.stringify(lista);
+            if (cambio) fila.datos[k] = escribir();
           }
           const d = fila.datos;
           if (d && d.rutaNube) {
@@ -28335,9 +28415,9 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
     }
   });
 
-  // node_modules/fflate/lib/browser.cjs
+  // ../Vidaire_Obras/node_modules/fflate/lib/browser.cjs
   var require_browser = __commonJS({
-    "node_modules/fflate/lib/browser.cjs"(exports) {
+    "../Vidaire_Obras/node_modules/fflate/lib/browser.cjs"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       exports.deflate = deflate;
@@ -34025,16 +34105,35 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
     }
   });
 
+  // shared/commissioning/maquetasExcel.js
+  var require_maquetasExcel = __commonJS({
+    "shared/commissioning/maquetasExcel.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function(M) {
+        if (typeof module !== "undefined" && module.exports) module.exports = M;
+        if (typeof window !== "undefined") window.MAQUETAS_EXCEL = M;
+      })({ "estilos": ["", "font-size:11pt;vertical-align:bottom", "font-weight:700;font-size:13pt;text-align:center;vertical-align:middle;white-space:pre-wrap;border-bottom:1.5pt solid #000000", "font-weight:700;font-size:9pt;text-align:right;vertical-align:bottom", "font-size:11pt;vertical-align:bottom;border-bottom:1.5pt solid #000000", "font-weight:700;font-size:9pt;vertical-align:bottom", "background:#E2F0D9;font-style:italic;font-size:9pt;vertical-align:middle;border-bottom:0.75pt dotted #000000", "background:#006A4D;font-weight:700;font-size:9pt;color:#FFFFFF;text-align:center;vertical-align:middle;white-space:pre-wrap", "background:#E2F0D9;font-style:italic;font-size:9pt;text-align:center;vertical-align:middle;white-space:pre-wrap;border-bottom:0.75pt dotted #000000", "background:#D9E2DD;font-weight:700;font-size:9pt;text-align:center;vertical-align:middle;white-space:pre-wrap", "background:#D9E2DD;font-weight:700;font-size:8pt;text-align:center;vertical-align:middle;white-space:pre-wrap", "font-weight:700;font-size:9pt;vertical-align:bottom;border-bottom:0.75pt dotted #000000", "font-size:9pt;text-align:center;vertical-align:middle;white-space:pre-wrap;border-bottom:0.75pt dotted #000000", "background:#F2F2F2;font-size:9pt;text-align:center;vertical-align:middle;white-space:pre-wrap;border-bottom:0.75pt dotted #000000", "background:#F2F2F2;font-weight:700;font-size:9pt;text-align:center;vertical-align:middle;white-space:pre-wrap;border-bottom:0.75pt dotted #000000", "background:#F2F2F2;font-size:11pt;vertical-align:bottom;border-bottom:0.75pt dotted #000000", "background:#E2F0D9;font-style:italic;font-size:9pt;vertical-align:top;white-space:pre-wrap", "font-style:italic;font-size:7pt;vertical-align:top;white-space:pre-wrap", "background:#D9E2DD;font-weight:700;font-size:8pt;text-align:center;vertical-align:middle;white-space:pre-wrap;border-left:0.75pt solid #000000;border-right:0.75pt solid #000000;border-top:0.75pt solid #000000;border-bottom:0.75pt solid #000000", "font-style:italic;font-size:7pt;color:#808080;text-align:center;vertical-align:bottom;border-left:0.75pt solid #000000;border-right:0.75pt solid #000000;border-top:0.75pt solid #000000;border-bottom:0.75pt solid #000000", "font-weight:700;font-size:7pt;vertical-align:bottom", "font-size:11pt;text-align:center;vertical-align:middle;white-space:pre-wrap;border-bottom:0.75pt dotted #000000", "background:#E2F0D9;font-style:italic;font-size:9pt;vertical-align:middle;white-space:pre-wrap;border-bottom:0.75pt dotted #000000", "background:#F2F2F2;font-size:9pt;text-align:center;vertical-align:middle;white-space:pre-wrap", "background:#F2F2F2;font-weight:700;font-size:9pt;text-align:center;vertical-align:middle;white-space:pre-wrap", "font-weight:700;font-size:9pt;vertical-align:bottom;border-top:0.75pt solid #000000;border-bottom:0.75pt dotted #000000", "font-size:11pt;vertical-align:bottom;border-top:0.75pt solid #000000;border-bottom:0.75pt dotted #000000", "background:#F2F2F2;font-weight:700;font-size:9pt;text-align:center;vertical-align:middle;white-space:pre-wrap;border-top:0.75pt solid #000000;border-bottom:0.75pt dotted #000000", "background:#F2F2F2;font-size:9pt;text-align:center;vertical-align:middle;white-space:pre-wrap;border-top:0.75pt solid #000000;border-bottom:0.75pt dotted #000000", "font-size:9pt;vertical-align:middle;white-space:pre-wrap;border-bottom:0.75pt dotted #000000", "background:#E2F0D9;font-weight:700;font-size:9pt;text-align:center;vertical-align:middle;white-space:pre-wrap;border-bottom:0.75pt dotted #000000"], "hojas": { "UTA": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "FICHA DE PUESTA EN MARCHA\nUNIDAD DE TRATAMIENTO DE AIRE"], [7, 1, 1, 3, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "DATOS FISICOS"]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "DENOMINACION:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MARCA:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MODELO:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "N\xBA SERIE:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "POTENCIA FRIO:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "POTENCIA CALOR:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 4, 1, 9, "VENTILADOR DE IMPULSI\xD3N"], [4, 4, 1, 9, "VENTILADOR DE RETORNO"]]], [13.5, [[0, 1, 1, 5, "MARCA:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "MARCA:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "MODELO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "MODELO:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "N\xBA VENTILADORES:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "N\xBA VENTILADORES:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "POTENCIA:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "kW"], [4, 1, 1, 5, "POTENCIA:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [13.5, [[0, 1, 1, 5, "VOLTAJE:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "V"], [4, 1, 1, 5, "VOLTAJE:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "V"]]], [13.5, [[0, 1, 1, 5, "CONSUMO PLACA:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "A"], [4, 1, 1, 5, "CONSUMO PLACA:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "A"]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 4, 1, 9, "FILTROS IMPULSI\xD3N"], [4, 4, 1, 9, "FILTROS RETORNO"]]], [13.5, [[0, 1, 1, 5, "ETAPA 1 (CLASE):"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "ETAPA 1 (CLASE):"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "ETAPA 2 (CLASE):"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "ETAPA 2 (CLASE):"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "ETAPA 3 (CLASE):"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "ETAPA 3 (CLASE):"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "COMPROBACIONES EN LA INSTALACI\xD3N (OK / NO OK)"]]], [13.5, [[0, 1, 1, 5, "ENCLAVAMIENTO INCENDIOS:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "SE\xD1AL A BMS:"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "CAUDALES EN LA INSTALACI\xD3N"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [13.5, [[0, 1, 1, 11, "CAUDAL AIRE IMPULSI\xD3N"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [13.5, [[0, 1, 1, 11, "   \xB7 VELOCIDAD BAJA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [13.5, [[0, 1, 1, 11, "   \xB7 VELOCIDAD MEDIA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [13.5, [[0, 1, 1, 11, "   \xB7 VELOCIDAD ALTA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [13.5, [[0, 1, 1, 11, "CAUDAL AIRE RETORNO"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [13.5, [[0, 1, 1, 11, "   \xB7 VELOCIDAD BAJA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [13.5, [[0, 1, 1, 11, "   \xB7 VELOCIDAD MEDIA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [13.5, [[0, 1, 1, 11, "   \xB7 VELOCIDAD ALTA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [13.5, [[0, 1, 1, 11, "CAUDAL AGUA BATER\xCDA FRIO"], [1, 1, 1, 12, "l/s"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [13.5, [[0, 1, 1, 11, "CAUDAL AGUA BATER\xCDA CALOR"], [1, 1, 1, 12, "l/s"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "TEMPERATURAS EN LA INSTALACI\xD3N"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [13.5, [[0, 1, 1, 11, "T\xAA IMPULSI\xD3N EN SALA \xB7 FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA RETORNO EN SALA \xB7 FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA IMPULSI\xD3N EN SALA \xB7 CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA RETORNO EN SALA \xB7 CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA ENTRADA AGUA FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA SALIDA AGUA FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA ENTRADA AGUA CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA SALIDA AGUA CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "OBSERVACIONES"]]], [13.5, [[0, 8, 2, 16, ""]]], [13.5, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "Criterio: desviaci\xF3n sobre proyecto (o te\xF3rico si no hay proyecto) dentro de la tolerancia de la hoja DATOS \u2192 APTO. Medido id\xE9ntico al valor de referencia \u2192 A REVISAR (posible valor copiado)."]]], [13.5, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [13.5, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [13.5, []], [13.5, []], [13.5, [[0, 4, 1, 20, "Formato Vidaire Cx - rev.1"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "CLIMATIZADOR REC. ESTATICO": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "FICHA DE PUESTA EN MARCHA\nCLIMATIZADOR CON RECUPERADOR EST\xC1TICO"], [7, 1, 1, 3, "53A"]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "DATOS FISICOS"]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "DENOMINACION:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MARCA:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MODELO:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "N\xBA SERIE:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "POTENCIA FRIO:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "POTENCIA CALOR:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 4, 1, 9, "VENTILADOR DE IMPULSI\xD3N"], [4, 4, 1, 9, "VENTILADOR DE RETORNO"]]], [13.5, [[0, 1, 1, 5, "MARCA:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "MARCA:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "MODELO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "MODELO:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "N\xBA VENTILADORES:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "N\xBA VENTILADORES:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "POTENCIA:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "kW"], [4, 1, 1, 5, "POTENCIA:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [13.5, [[0, 1, 1, 5, "VOLTAJE:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "V"], [4, 1, 1, 5, "VOLTAJE:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "V"]]], [13.5, [[0, 1, 1, 5, "CONSUMO PLACA:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "A"], [4, 1, 1, 5, "CONSUMO PLACA:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "A"]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 4, 1, 9, "FILTROS IMPULSI\xD3N"], [4, 4, 1, 9, "FILTROS RETORNO"]]], [13.5, [[0, 1, 1, 5, "ETAPA 1 (CLASE):"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "ETAPA 1 (CLASE):"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "ETAPA 2 (CLASE):"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "ETAPA 2 (CLASE):"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "ETAPA 3 (CLASE):"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "ETAPA 3 (CLASE):"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "COMPROBACIONES EN LA INSTALACI\xD3N (OK / NO OK)"]]], [13.5, [[0, 1, 1, 5, "ENCLAVAMIENTO INCENDIOS:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "SE\xD1AL A BMS:"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "CAUDALES EN LA INSTALACI\xD3N"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [13.5, [[0, 1, 1, 11, "CAUDAL AIRE IMPULSI\xD3N"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [13.5, [[0, 1, 1, 11, "   \xB7 VELOCIDAD BAJA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [13.5, [[0, 1, 1, 11, "   \xB7 VELOCIDAD MEDIA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [13.5, [[0, 1, 1, 11, "   \xB7 VELOCIDAD ALTA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [13.5, [[0, 1, 1, 11, "CAUDAL AIRE RETORNO"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [13.5, [[0, 1, 1, 11, "   \xB7 VELOCIDAD BAJA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [13.5, [[0, 1, 1, 11, "   \xB7 VELOCIDAD MEDIA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [13.5, [[0, 1, 1, 11, "   \xB7 VELOCIDAD ALTA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [13.5, [[0, 1, 1, 11, "CAUDAL AGUA BATER\xCDA FRIO"], [1, 1, 1, 12, "l/s"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [13.5, [[0, 1, 1, 11, "CAUDAL AGUA BATER\xCDA CALOR"], [1, 1, 1, 12, "l/s"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "TEMPERATURAS EN LA INSTALACI\xD3N"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [13.5, [[0, 1, 1, 11, "T\xAA IMPULSI\xD3N EN SALA \xB7 FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA RETORNO EN SALA \xB7 FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA IMPULSI\xD3N EN SALA \xB7 CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA RETORNO EN SALA \xB7 CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA ENTRADA AGUA FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA SALIDA AGUA FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA ENTRADA AGUA CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA SALIDA AGUA CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "RECUPERADOR EST\xC1TICO"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [13.5, [[0, 1, 1, 11, "T\xAA AIRE EXTERIOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA IMPULSI\xD3N TRAS RECUP."], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA RETORNO (EXTRACCI\xD3N)"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA EXPULSI\xD3N"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "EFICIENCIA T\xC9RMICA"], [1, 1, 1, 21, "%"], [2, 1, 1, 14, "", 1], [3, 1, 1, 14, "", 1], [4, 1, 1, 14, "", 1], [5, 3, 1, 14, "", 1]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "OBSERVACIONES"]]], [13.5, [[0, 8, 2, 16, ""]]], [13.5, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "Criterio: desviaci\xF3n sobre proyecto (o te\xF3rico si no hay proyecto) dentro de la tolerancia de la hoja DATOS \u2192 APTO. Medido id\xE9ntico al valor de referencia \u2192 A REVISAR (posible valor copiado)."]]], [13.5, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [13.5, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [13.5, []], [13.5, []], [13.5, [[0, 4, 1, 20, "F.611-CL10/2-FECHA 10/10/01"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "CLIMATIZADOR REC. ROTATIVO": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "FICHA DE PUESTA EN MARCHA\nCLIMATIZADOR CON RECUPERADOR ROTATIVO"], [7, 1, 1, 3, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "DATOS FISICOS"]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "DENOMINACION:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MARCA:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MODELO:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "N\xBA SERIE:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "POTENCIA FRIO:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "POTENCIA CALOR:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 4, 1, 9, "VENTILADOR DE IMPULSI\xD3N"], [4, 4, 1, 9, "VENTILADOR DE RETORNO"]]], [13.5, [[0, 1, 1, 5, "MARCA:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "MARCA:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "MODELO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "MODELO:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "N\xBA VENTILADORES:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "N\xBA VENTILADORES:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "POTENCIA:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "kW"], [4, 1, 1, 5, "POTENCIA:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [13.5, [[0, 1, 1, 5, "VOLTAJE:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "V"], [4, 1, 1, 5, "VOLTAJE:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "V"]]], [13.5, [[0, 1, 1, 5, "CONSUMO PLACA:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "A"], [4, 1, 1, 5, "CONSUMO PLACA:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "A"]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 4, 1, 9, "FILTROS IMPULSI\xD3N"], [4, 4, 1, 9, "FILTROS RETORNO"]]], [13.5, [[0, 1, 1, 5, "ETAPA 1 (CLASE):"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "ETAPA 1 (CLASE):"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "ETAPA 2 (CLASE):"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "ETAPA 2 (CLASE):"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "ETAPA 3 (CLASE):"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "ETAPA 3 (CLASE):"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "COMPROBACIONES EN LA INSTALACI\xD3N (OK / NO OK)"]]], [13.5, [[0, 1, 1, 5, "ENCLAVAMIENTO INCENDIOS:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "SE\xD1AL A BMS:"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "CAUDALES EN LA INSTALACI\xD3N"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [13.5, [[0, 1, 1, 11, "CAUDAL AIRE IMPULSI\xD3N"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [13.5, [[0, 1, 1, 11, "   \xB7 VELOCIDAD BAJA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [13.5, [[0, 1, 1, 11, "   \xB7 VELOCIDAD MEDIA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [13.5, [[0, 1, 1, 11, "   \xB7 VELOCIDAD ALTA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [13.5, [[0, 1, 1, 11, "CAUDAL AIRE RETORNO"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [13.5, [[0, 1, 1, 11, "   \xB7 VELOCIDAD BAJA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [13.5, [[0, 1, 1, 11, "   \xB7 VELOCIDAD MEDIA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [13.5, [[0, 1, 1, 11, "   \xB7 VELOCIDAD ALTA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [13.5, [[0, 1, 1, 11, "CAUDAL AGUA BATER\xCDA FRIO"], [1, 1, 1, 12, "l/s"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [13.5, [[0, 1, 1, 11, "CAUDAL AGUA BATER\xCDA CALOR"], [1, 1, 1, 12, "l/s"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "TEMPERATURAS EN LA INSTALACI\xD3N"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [13.5, [[0, 1, 1, 11, "T\xAA IMPULSI\xD3N EN SALA \xB7 FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA RETORNO EN SALA \xB7 FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA IMPULSI\xD3N EN SALA \xB7 CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA RETORNO EN SALA \xB7 CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA ENTRADA AGUA FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA SALIDA AGUA FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA ENTRADA AGUA CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA SALIDA AGUA CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "RECUPERADOR ROTATIVO"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [13.5, [[0, 1, 1, 11, "T\xAA AIRE EXTERIOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA IMPULSI\xD3N TRAS RECUP."], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA RETORNO (EXTRACCI\xD3N)"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA EXPULSI\xD3N"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "EFICIENCIA T\xC9RMICA"], [1, 1, 1, 21, "%"], [2, 1, 1, 14, "", 1], [3, 1, 1, 14, "", 1], [4, 1, 1, 14, "", 1], [5, 3, 1, 14, "", 1]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "OBSERVACIONES"]]], [13.5, [[0, 8, 2, 16, ""]]], [13.5, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "Criterio: desviaci\xF3n sobre proyecto (o te\xF3rico si no hay proyecto) dentro de la tolerancia de la hoja DATOS \u2192 APTO. Medido id\xE9ntico al valor de referencia \u2192 A REVISAR (posible valor copiado)."]]], [13.5, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [13.5, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [13.5, []], [13.5, []], [13.5, [[0, 4, 1, 20, "Formato Vidaire Cx - rev.1"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "SPLIT UD. INTERIOR": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "FICHA DE PUESTA EN MARCHA\nSPLIT - UNIDAD INTERIOR"], [7, 1, 1, 3, "16A"]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "DATOS FISICOS"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "DENOMINACION:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MARCA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MODELO:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "N\xBA SERIE:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "UD. EXTERIOR ASOCIADA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "CAUDAL:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "m3/h"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "POTENCIA FRIO:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "POTENCIA CALOR:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "TEMPERATURAS AIRE"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [16, [[0, 1, 1, 11, "T\xAA ENTRADA FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA SALIDA FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA ENTRADA CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA SALIDA CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "OBSERVACIONES"]]], [16, [[0, 8, 2, 16, ""]]], [16, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "Criterio: desviaci\xF3n sobre proyecto (o te\xF3rico si no hay proyecto) dentro de la tolerancia de la hoja DATOS \u2192 APTO. Medido id\xE9ntico al valor de referencia \u2192 A REVISAR (posible valor copiado)."]]], [16, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [16, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [16, []], [16, []], [16, [[0, 4, 1, 20, "F.611-FC02/2-FECHA:22/07/01"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "SPLIT UD. EXTERIOR": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "FICHA DE PUESTA EN MARCHA\nSPLIT - UNIDAD EXTERIOR"], [7, 1, 1, 3, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "DATOS FISICOS"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "DENOMINACION:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MARCA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MODELO:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "N\xBA SERIE:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "UD. INTERIOR ASOCIADA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "POTENCIA FRIO:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "POTENCIA CALOR:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "REFRIGERANTE:"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 4, 1, 9, "CIRCUITO FRIGOR\xCDFICO"], [4, 4, 1, 9, "DATOS ELECTRICOS"]]], [16, [[0, 1, 1, 5, "LONGITUD TUBER\xCDA:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "m"], [4, 1, 1, 5, "VOLTAJE:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "V"]]], [16, [[0, 1, 1, 5, "CARGA DE F\xC1BRICA:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "kg"], [4, 1, 1, 5, "CONSUMO PLACA:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "A"]]], [16, [[0, 1, 1, 5, "CARGA ADICIONAL:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "kg"], [4, 1, 1, 5, "CONSUMO:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "A"]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "TEMPERATURAS AIRE"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [16, [[0, 1, 1, 11, "T\xAA AIRE EXTERIOR (ENTRADA)"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA SALIDA AIRE EN FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA SALIDA AIRE EN CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "OBSERVACIONES"]]], [16, [[0, 8, 2, 16, ""]]], [16, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "Criterio: desviaci\xF3n sobre proyecto (o te\xF3rico si no hay proyecto) dentro de la tolerancia de la hoja DATOS \u2192 APTO. Medido id\xE9ntico al valor de referencia \u2192 A REVISAR (posible valor copiado)."]]], [16, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [16, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [16, []], [16, []], [16, [[0, 4, 1, 20, "Formato Vidaire Cx - rev.1"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "FAN-COIL AGUA": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "FICHA DE PUESTA EN MARCHA\nFAN-COIL (AGUA)"], [7, 1, 1, 3, "16A"]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "DATOS FISICOS"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "DENOMINACION:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MARCA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MODELO:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "N\xBA SERIE:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "CAUDAL:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "m3/h"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "POTENCIA FRIO:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "POTENCIA CALOR:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "CAUDALES AIRE"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [16, [[0, 1, 1, 11, "CAUDAL AIRE (VEL. M\xC1XIMA)"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD BAJA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD MEDIA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD ALTA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "TEMPERATURAS AIRE"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [16, [[0, 1, 1, 11, "T\xAA ENTRADA FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA SALIDA FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA ENTRADA CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA SALIDA CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "TEMPERATURAS AGUA"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [16, [[0, 1, 1, 11, "T\xAA ENTRADA AGUA FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA SALIDA AGUA FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA ENTRADA AGUA CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA SALIDA AGUA CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "OBSERVACIONES"]]], [16, [[0, 8, 2, 16, ""]]], [16, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "Criterio: desviaci\xF3n sobre proyecto (o te\xF3rico si no hay proyecto) dentro de la tolerancia de la hoja DATOS \u2192 APTO. Medido id\xE9ntico al valor de referencia \u2192 A REVISAR (posible valor copiado)."]]], [16, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [16, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [16, []], [16, []], [16, [[0, 4, 1, 20, "F.611-FC02/2-FECHA:22/07/01"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "CASSETTE AGUA": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "FICHA DE PUESTA EN MARCHA\nCASSETTE (AGUA)"], [7, 1, 1, 3, "16A"]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "DATOS FISICOS"]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "DENOMINACION:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MARCA:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MODELO:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "N\xBA SERIE:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "CAUDAL:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "m3/h"]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "POTENCIA FRIO:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "POTENCIA CALOR:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 4, 1, 9, "CARACTERISTICAS MOTOR"], [4, 4, 1, 9, "PROTECCIONES ELECTRICAS"]]], [13.5, [[0, 1, 1, 5, "MARCA:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "MARGEN REGULACION:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "A"]]], [13.5, [[0, 1, 1, 5, "MODELO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "TIPO DE ARRANQUE:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "POTENCIA:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "kW"], [4, 1, 1, 5, "MARCA ARRANCADOR:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "VOLTAJE:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "V"], [4, 1, 1, 5, "MODELO ARRANCADOR:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "COSENO \u03C6:"], [1, 3, 1, 6, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 5, "AMP PLACA:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "A"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 5, "AMP REAL:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "A"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "CAUDALES AIRE"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [13.5, [[0, 1, 1, 11, "CAUDAL AIRE (VEL. M\xC1XIMA)"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [13.5, [[0, 1, 1, 11, "   \xB7 VELOCIDAD BAJA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [13.5, [[0, 1, 1, 11, "   \xB7 VELOCIDAD MEDIA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [13.5, [[0, 1, 1, 11, "   \xB7 VELOCIDAD ALTA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "TEMPERATURAS AIRE"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [13.5, [[0, 1, 1, 11, "T\xAA ENTRADA FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA SALIDA FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA ENTRADA CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA SALIDA CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "TEMPERATURAS AGUA"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [13.5, [[0, 1, 1, 11, "T\xAA ENTRADA AGUA FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA SALIDA AGUA FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA ENTRADA AGUA CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [13.5, [[0, 1, 1, 11, "T\xAA SALIDA AGUA CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "OBSERVACIONES"]]], [13.5, [[0, 8, 2, 16, ""]]], [13.5, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "Criterio: desviaci\xF3n sobre proyecto (o te\xF3rico si no hay proyecto) dentro de la tolerancia de la hoja DATOS \u2192 APTO. Medido id\xE9ntico al valor de referencia \u2192 A REVISAR (posible valor copiado)."]]], [13.5, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [13.5, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [13.5, []], [13.5, []], [13.5, [[0, 4, 1, 20, "F.611-FC02/2-FECHA:22/07/01"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "RECUPERADOR PLACAS": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "FICHA DE PUESTA EN MARCHA\nRECUPERADOR DE PLACAS"], [7, 1, 1, 3, "13A"]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "DATOS FISICOS"]]], [16, [[0, 1, 1, 5, "DENOMINACION:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "MARCA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "MODELO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "N\xBA SERIE:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "CAUDAL APORTACI\xD3N:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "m3/h"], [4, 1, 1, 5, "CAUDAL EXTRACCI\xD3N:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "m3/h"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "CAUDALES AIRE"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [16, [[0, 1, 1, 11, "APORTACI\xD3N"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD BAJA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD MEDIA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD ALTA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "EXTRACCI\xD3N"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD BAJA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD MEDIA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD ALTA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "TEMPERATURAS Y EFICIENCIA"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [16, [[0, 1, 1, 11, "T\xAA AIRE EXTERIOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA IMPULSI\xD3N TRAS RECUP."], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA RETORNO (EXTRACCI\xD3N)"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA EXPULSI\xD3N"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "EFICIENCIA T\xC9RMICA"], [1, 1, 1, 21, "%"], [2, 1, 1, 14, "", 1], [3, 1, 1, 14, "", 1], [4, 1, 1, 14, "", 1], [5, 3, 1, 14, "", 1]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "OBSERVACIONES"]]], [16, [[0, 8, 2, 16, ""]]], [16, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "Criterio: desviaci\xF3n sobre proyecto (o te\xF3rico si no hay proyecto) dentro de la tolerancia de la hoja DATOS \u2192 APTO. Medido id\xE9ntico al valor de referencia \u2192 A REVISAR (posible valor copiado)."]]], [16, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [16, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [16, []], [16, []], [16, [[0, 4, 1, 20, "F.611-FC02/2-FECHA:22/07/01"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "RECUPERADOR ROTATIVO": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "FICHA DE PUESTA EN MARCHA\nRECUPERADOR ROTATIVO"], [7, 1, 1, 3, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "DATOS FISICOS"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "DENOMINACION:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MARCA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MODELO:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "N\xBA SERIE:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "CAUDAL APORTACI\xD3N:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "m3/h"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "CAUDAL EXTRACCI\xD3N:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "m3/h"]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 4, 1, 9, "ROTOR"], [4, 4, 1, 9, "MOTOR ROTOR"]]], [16, [[0, 1, 1, 5, "TIPO (SENSIBLE/ENT\xC1LPICO):"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "MARCA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "DI\xC1METRO:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "mm"], [4, 1, 1, 5, "POTENCIA:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [16, [[0, 1, 1, 5, "VELOCIDAD NOMINAL:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "r.p.m"], [4, 1, 1, 5, "VOLTAJE:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "V"]]], [16, [[0, 1, 1, 5, "VELOCIDAD MEDIDA:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "r.p.m"], [4, 1, 1, 5, "CONSUMO PLACA:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "A"]]], [16, [[0, 1, 1, 5, "SECTOR DE PURGA (S\xCD/NO):"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "CONSUMO REAL:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "A"]]], [16, [[0, 1, 1, 5, "ESTADO JUNTAS / CORREA:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "VARIADOR / SE\xD1AL:"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "CAUDALES AIRE"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [16, [[0, 1, 1, 11, "APORTACI\xD3N"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD BAJA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD MEDIA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD ALTA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "EXTRACCI\xD3N"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD BAJA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD MEDIA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD ALTA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "\u0394P ROTOR APORTACI\xD3N"], [1, 1, 1, 12, "Pa"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "\u0394P ROTOR EXTRACCI\xD3N"], [1, 1, 1, 12, "Pa"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "TEMPERATURAS Y EFICIENCIA"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [16, [[0, 1, 1, 11, "T\xAA AIRE EXTERIOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA IMPULSI\xD3N TRAS RECUP."], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA RETORNO (EXTRACCI\xD3N)"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA EXPULSI\xD3N"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "EFICIENCIA T\xC9RMICA"], [1, 1, 1, 21, "%"], [2, 1, 1, 14, "", 1], [3, 1, 1, 14, "", 1], [4, 1, 1, 14, "", 1], [5, 3, 1, 14, "", 1]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "OBSERVACIONES"]]], [16, [[0, 8, 2, 16, ""]]], [16, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "Criterio: desviaci\xF3n sobre proyecto (o te\xF3rico si no hay proyecto) dentro de la tolerancia de la hoja DATOS \u2192 APTO. Medido id\xE9ntico al valor de referencia \u2192 A REVISAR (posible valor copiado)."]]], [16, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [16, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [16, []], [16, []], [16, [[0, 4, 1, 20, "Formato Vidaire Cx - rev.1"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "VENTILADOR-EXTRACTOR": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "FICHA DE PUESTA EN MARCHA\nVENTILADOR - EXTRACTOR"], [7, 1, 1, 3, "13A"]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "DATOS FISICOS"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "DENOMINACION:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MARCA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MODELO:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "N\xBA SERIE:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "CAUDAL NOMINAL:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "m3/h"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "ACTIVACI\xD3N CENTRAL PCI:"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "CAUDALES AIRE"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [16, [[0, 1, 1, 11, "CAUDAL NOMINAL"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD BAJA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD MEDIA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD ALTA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "OBSERVACIONES"]]], [16, [[0, 8, 2, 16, ""]]], [16, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "Criterio: desviaci\xF3n sobre proyecto (o te\xF3rico si no hay proyecto) dentro de la tolerancia de la hoja DATOS \u2192 APTO. Medido id\xE9ntico al valor de referencia \u2192 A REVISAR (posible valor copiado)."]]], [16, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [16, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [16, []], [16, []], [16, [[0, 4, 1, 20, "F.611-FC02/2-FECHA:22/07/01"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "VENTILADOR AXIAL": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "FICHA DE PUESTA EN MARCHA\nVENTILADOR - EXTRACTOR (AXIAL)"], [7, 1, 1, 3, "13A"]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "DATOS FISICOS"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "DENOMINACION:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MARCA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MODELO:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "N\xBA SERIE:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "CAUDAL NOMINAL:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "m3/h"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "ACTIVACI\xD3N CENTRAL PCI:"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "CAUDALES AIRE"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [16, [[0, 1, 1, 11, "CAUDAL NOMINAL"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD BAJA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD MEDIA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD ALTA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "OBSERVACIONES"]]], [16, [[0, 8, 2, 16, ""]]], [16, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "Criterio: desviaci\xF3n sobre proyecto (o te\xF3rico si no hay proyecto) dentro de la tolerancia de la hoja DATOS \u2192 APTO. Medido id\xE9ntico al valor de referencia \u2192 A REVISAR (posible valor copiado)."]]], [16, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [16, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [16, []], [16, []], [16, [[0, 4, 1, 20, "F.611-FC02/2-FECHA:22/07/01"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "VENT. COMPLETO": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "FICHA DE PUESTA EN MARCHA\nVENTILADOR-EXTRACTOR"], [7, 1, 1, 3, "8A"]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "DATOS FISICOS"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "DENOMINACION:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MARCA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MODELO:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "N\xBA SERIE:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "CAUDAL NOMINAL:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "m3/h"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "ACTIVACI\xD3N CENTRAL PCI:"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 4, 1, 9, "DATOS ELECTRICOS"], [4, 4, 1, 9, "PROTECCIONES ELECTRICAS"]]], [16, [[0, 1, 1, 5, "POTENCIA:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "W"], [4, 1, 1, 5, "MARGEN REGULACION:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "A"]]], [16, [[0, 1, 1, 5, "VOLTAJE:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "V"], [4, 1, 1, 5, "TIPO DE ARRANQUE:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "CONSUMO PLACA:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "A"], [4, 1, 1, 5, "MARCA ARRANCADOR:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "CONSUMO REAL:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "A"], [4, 1, 1, 5, "MODELO ARRANCADOR:"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "OPERACIONES"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [16, [[0, 1, 1, 11, "CAUDAL AIRE"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD BAJA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD MEDIA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD ALTA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "PRESION ESTATICA"], [1, 1, 1, 12, "mm.c.a"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "OBSERVACIONES"]]], [16, [[0, 8, 2, 16, ""]]], [16, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "Criterio: desviaci\xF3n sobre proyecto (o te\xF3rico si no hay proyecto) dentro de la tolerancia de la hoja DATOS \u2192 APTO. Medido id\xE9ntico al valor de referencia \u2192 A REVISAR (posible valor copiado)."]]], [16, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [16, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [16, []], [16, []], [16, [[0, 4, 1, 20, "F.611-VE02/2-FECHA:7/2/02"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "VRF UD. EXTERIOR": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "FICHA DE PUESTA EN MARCHA\nVRF - UNIDAD EXTERIOR"], [7, 1, 1, 3, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "DATOS FISICOS"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "DENOMINACION:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MARCA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MODELO:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "N\xBA SERIE:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "POTENCIA FRIO:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "POTENCIA CALOR:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "REFRIGERANTE:"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 4, 1, 9, "CIRCUITO FRIGOR\xCDFICO"], [4, 4, 1, 9, "DATOS ELECTRICOS"]]], [16, [[0, 1, 1, 5, "N\xBA UDS. INTERIORES:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "VOLTAJE:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "V"]]], [16, [[0, 1, 1, 5, "LONGITUD TUBER\xCDA:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "m"], [4, 1, 1, 5, "CONSUMO PLACA:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "A"]]], [16, [[0, 1, 1, 5, "CARGA DE F\xC1BRICA:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "kg"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 5, "CARGA ADICIONAL:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "kg"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 5, "PRESI\xD3N PRUEBA ESTANQ.:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "bar"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 5, "DURACI\xD3N PRUEBA:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "h"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 5, "VAC\xCDO ALCANZADO:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "mbar"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "FUNCIONAMIENTO EN FRIO"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [16, [[0, 1, 1, 11, "PRESI\xD3N ALTA"], [1, 1, 1, 12, "bar"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "PRESI\xD3N BAJA"], [1, 1, 1, 12, "bar"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA DESCARGA"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "RECALENTAMIENTO"], [1, 1, 1, 12, "K"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "SUBENFRIAMIENTO"], [1, 1, 1, 12, "K"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA AIRE EXTERIOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "FUNCIONAMIENTO EN CALOR"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [16, [[0, 1, 1, 11, "PRESI\xD3N ALTA"], [1, 1, 1, 12, "bar"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "PRESI\xD3N BAJA"], [1, 1, 1, 12, "bar"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA DESCARGA"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA AIRE EXTERIOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "OBSERVACIONES"]]], [16, [[0, 8, 2, 16, ""]]], [16, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "Criterio: desviaci\xF3n sobre proyecto (o te\xF3rico si no hay proyecto) dentro de la tolerancia de la hoja DATOS \u2192 APTO. Medido id\xE9ntico al valor de referencia \u2192 A REVISAR (posible valor copiado)."]]], [16, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [16, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [16, []], [16, []], [16, [[0, 4, 1, 20, "Formato Vidaire Cx - rev.1"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "VRF UI CONDUCTOS": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "FICHA DE PUESTA EN MARCHA\nVRF - UNIDAD INTERIOR (CONDUCTOS)"], [7, 1, 1, 3, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "DATOS FISICOS"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "DENOMINACION:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MARCA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MODELO:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "N\xBA SERIE:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "UD. EXTERIOR ASOCIADA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "CAUDAL:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "m3/h"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "POTENCIA FRIO:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "POTENCIA CALOR:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 4, 1, 9, "DATOS ELECTRICOS"], [4, 4, 1, 9, "COMPROBACIONES (OK / NO OK)"]]], [16, [[0, 1, 1, 5, "VOLTAJE:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "V"], [4, 1, 1, 5, "MANDO / TERMOSTATO:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "CONSUMO:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "A"], [4, 1, 1, 5, "COMUNICACI\xD3N CON UE:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "FILTROS Y LAMAS:"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "CAUDALES AIRE"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [16, [[0, 1, 1, 11, "CAUDAL AIRE (VEL. M\xC1XIMA)"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD BAJA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD MEDIA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD ALTA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "TEMPERATURAS AIRE"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [16, [[0, 1, 1, 11, "T\xAA ENTRADA FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA SALIDA FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA ENTRADA CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA SALIDA CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "OBSERVACIONES"]]], [16, [[0, 8, 2, 16, ""]]], [16, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "Criterio: desviaci\xF3n sobre proyecto (o te\xF3rico si no hay proyecto) dentro de la tolerancia de la hoja DATOS \u2192 APTO. Medido id\xE9ntico al valor de referencia \u2192 A REVISAR (posible valor copiado)."]]], [16, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [16, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [16, []], [16, []], [16, [[0, 4, 1, 20, "Formato Vidaire Cx - rev.1"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "VRF UI CASSETTE": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "FICHA DE PUESTA EN MARCHA\nVRF - UNIDAD INTERIOR (CASSETTE)"], [7, 1, 1, 3, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "DATOS FISICOS"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "DENOMINACION:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MARCA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MODELO:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "N\xBA SERIE:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "UD. EXTERIOR ASOCIADA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "CAUDAL:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "m3/h"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "POTENCIA FRIO:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "POTENCIA CALOR:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 4, 1, 9, "DATOS ELECTRICOS"], [4, 4, 1, 9, "COMPROBACIONES (OK / NO OK)"]]], [16, [[0, 1, 1, 5, "VOLTAJE:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "V"], [4, 1, 1, 5, "MANDO / TERMOSTATO:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "CONSUMO:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "A"], [4, 1, 1, 5, "COMUNICACI\xD3N CON UE:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "FILTROS Y LAMAS:"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "CAUDALES AIRE"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [16, [[0, 1, 1, 11, "CAUDAL AIRE (VEL. M\xC1XIMA)"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD BAJA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD MEDIA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD ALTA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "TEMPERATURAS AIRE"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [16, [[0, 1, 1, 11, "T\xAA ENTRADA FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA SALIDA FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA ENTRADA CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA SALIDA CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "OBSERVACIONES"]]], [16, [[0, 8, 2, 16, ""]]], [16, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "Criterio: desviaci\xF3n sobre proyecto (o te\xF3rico si no hay proyecto) dentro de la tolerancia de la hoja DATOS \u2192 APTO. Medido id\xE9ntico al valor de referencia \u2192 A REVISAR (posible valor copiado)."]]], [16, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [16, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [16, []], [16, []], [16, [[0, 4, 1, 20, "Formato Vidaire Cx - rev.1"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "CRAC UD. INTERIOR": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "FICHA DE PUESTA EN MARCHA\nCRAC - UNIDAD INTERIOR"], [7, 1, 1, 3, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "DATOS FISICOS"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "DENOMINACION:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MARCA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MODELO:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "N\xBA SERIE:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "UD. EXTERIOR ASOCIADA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "POTENCIA FRIGORIFICA:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "CAUDAL:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "m3/h"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "VOLTAJE:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "V"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "CONSUMO PLACA:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "A"]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 4, 1, 9, "CONSIGNAS"], [4, 4, 1, 9, "COMPROBACIONES (OK / NO OK)"]]], [16, [[0, 1, 1, 5, "CONSIGNA TEMPERATURA:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "\xB0C"], [4, 1, 1, 5, "DESAG\xDCE CONDENSADOS:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "CONSIGNA HUMEDAD:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "%HR"], [4, 1, 1, 5, "DETECCI\xD3N DE FUGA DE AGUA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "ROTACI\xD3N / RESERVA (N+1):"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "ALARMAS A BMS:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "FILTROS (CLASE):"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "ARRANQUE TRAS CORTE TENSI\xD3N:"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "MEDICIONES EN LA INSTALACI\xD3N"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [16, [[0, 1, 1, 11, "CAUDAL AIRE IMPULSI\xD3N"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD BAJA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD MEDIA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD ALTA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "T\xAA RETORNO (SALA)"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA IMPULSI\xD3N"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "HUMEDAD RELATIVA SALA"], [1, 1, 1, 12, "%HR"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "CONSUMO"], [1, 1, 1, 12, "A"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "OBSERVACIONES"]]], [16, [[0, 8, 2, 16, ""]]], [16, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "Criterio: desviaci\xF3n sobre proyecto (o te\xF3rico si no hay proyecto) dentro de la tolerancia de la hoja DATOS \u2192 APTO. Medido id\xE9ntico al valor de referencia \u2192 A REVISAR (posible valor copiado)."]]], [16, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [16, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [16, []], [16, []], [16, [[0, 4, 1, 20, "Formato Vidaire Cx - rev.1"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "CRAC UD. EXTERIOR": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "FICHA DE PUESTA EN MARCHA\nCRAC - UNIDAD EXTERIOR (CONDENSADORA)"], [7, 1, 1, 3, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "DATOS FISICOS"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "DENOMINACION:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MARCA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MODELO:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "N\xBA SERIE:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "UD. INTERIOR ASOCIADA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "N\xBA CONDENSADORAS:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "CAUDAL AIRE:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "m3/h"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "REFRIGERANTE:"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 4, 1, 9, "CIRCUITO FRIGOR\xCDFICO"], [4, 4, 1, 9, "DATOS ELECTRICOS"]]], [16, [[0, 1, 1, 5, "LONGITUD TUBER\xCDA:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "m"], [4, 1, 1, 5, "VOLTAJE:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "V"]]], [16, [[0, 1, 1, 5, "DI\xC1METRO L\xCDQ. / GAS:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "CONSUMO PLACA:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "A"]]], [16, [[0, 1, 1, 5, "CARGA DE F\xC1BRICA:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "kg"], [4, 1, 1, 5, "CONSUMO:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "A"]]], [16, [[0, 1, 1, 5, "CARGA ADICIONAL:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "kg"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "MEDICIONES EN LA INSTALACI\xD3N"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [16, [[0, 1, 1, 11, "T\xAA AIRE EXTERIOR (ENTRADA)"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA SALIDA AIRE CONDENSADORA"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "OBSERVACIONES"]]], [16, [[0, 8, 2, 16, ""]]], [16, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "Criterio: desviaci\xF3n sobre proyecto (o te\xF3rico si no hay proyecto) dentro de la tolerancia de la hoja DATOS \u2192 APTO. Medido id\xE9ntico al valor de referencia \u2192 A REVISAR (posible valor copiado)."]]], [16, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [16, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [16, []], [16, []], [16, [[0, 4, 1, 20, "Formato Vidaire Cx - rev.1"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "BOMBA DE CALOR": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "FICHA DE PUESTA EN MARCHA\nBOMBA DE CALOR"], [7, 1, 1, 3, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "DATOS FISICOS"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "DENOMINACION:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MARCA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MODELO:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "N\xBA SERIE:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "POTENCIA FRIO:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "POTENCIA CALOR:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "REFRIGERANTE / CARGA:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kg"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "N\xBA COMPRESORES / ETAPAS:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "VOLTAJE:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "V"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "CONSUMO NOMINAL:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "A"]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "MEDICIONES EN LA INSTALACI\xD3N"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [16, [[0, 1, 1, 11, "T\xAA IDA COLECTOR \xB7 FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA RETORNO COLECTOR \xB7 FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA IDA COLECTOR \xB7 CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA RETORNO COLECTOR \xB7 CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA AIRE EXTERIOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "CAUDAL DEL CIRCUITO"], [1, 1, 1, 12, "l/s"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "OBSERVACIONES"]]], [16, [[0, 8, 2, 16, ""]]], [16, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "Criterio: desviaci\xF3n sobre proyecto (o te\xF3rico si no hay proyecto) dentro de la tolerancia de la hoja DATOS \u2192 APTO. Medido id\xE9ntico al valor de referencia \u2192 A REVISAR (posible valor copiado)."]]], [16, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [16, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [16, []], [16, []], [16, [[0, 4, 1, 20, "Formato Vidaire Cx - rev.1"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "ROOFTOP": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "FICHA DE PUESTA EN MARCHA\nROOFTOP"], [7, 1, 1, 3, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "DATOS FISICOS"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "DENOMINACION:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MARCA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MODELO:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "N\xBA SERIE:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "POTENCIA FRIO:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "POTENCIA CALOR:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "REFRIGERANTE / CARGA:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kg"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "VOLTAJE:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "V"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "CONSUMO NOMINAL:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "A"]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 4, 1, 9, "VENTILADOR DE IMPULSI\xD3N"], [4, 4, 1, 9, "VENTILADOR DE RETORNO"]]], [16, [[0, 1, 1, 5, "MARCA:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "MARCA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "MODELO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "MODELO:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "POTENCIA:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "kW"], [4, 1, 1, 5, "POTENCIA:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kW"]]], [16, [[0, 1, 1, 5, "VOLTAJE:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "V"], [4, 1, 1, 5, "VOLTAJE:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "V"]]], [16, [[0, 1, 1, 5, "CONSUMO PLACA:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "A"], [4, 1, 1, 5, "CONSUMO PLACA:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "A"]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 4, 1, 9, "FILTROS IMPULSI\xD3N"], [4, 4, 1, 9, "FILTROS RETORNO"]]], [16, [[0, 1, 1, 5, "ETAPA 1 (CLASE):"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "ETAPA 1 (CLASE):"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "ETAPA 2 (CLASE):"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "ETAPA 2 (CLASE):"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "CAUDALES EN LA INSTALACI\xD3N"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [16, [[0, 1, 1, 11, "CAUDAL AIRE IMPULSI\xD3N"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD BAJA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD MEDIA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD ALTA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "CAUDAL AIRE RETORNO"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD BAJA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD MEDIA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "   \xB7 VELOCIDAD ALTA"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, "\u2014"], [3, 1, 1, 8, "\u2014"], [4, 1, 1, 8, ""], [5, 1, 1, 13, ""], [6, 2, 1, 14, ""]]], [16, [[0, 1, 1, 11, "CAUDAL AIRE EXTERIOR"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "TEMPERATURAS AIRE"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [16, [[0, 1, 1, 11, "T\xAA AIRE EXTERIOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA RETORNO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA IMPULSI\xD3N FRIO"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "T\xAA IMPULSI\xD3N CALOR"], [1, 1, 1, 12, "\xB0C"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "OBSERVACIONES"]]], [16, [[0, 8, 2, 16, ""]]], [16, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "Criterio: desviaci\xF3n sobre proyecto (o te\xF3rico si no hay proyecto) dentro de la tolerancia de la hoja DATOS \u2192 APTO. Medido id\xE9ntico al valor de referencia \u2192 A REVISAR (posible valor copiado)."]]], [16, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [16, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [16, []], [16, []], [16, [[0, 4, 1, 20, "Formato Vidaire Cx - rev.1"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "GRUPO DE BOMBEO": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "FICHA DE PUESTA EN MARCHA\nGRUPO DE BOMBEO"], [7, 1, 1, 3, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "DATOS FISICOS"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "DENOMINACION:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MARCA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MODELO:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "N\xBA SERIE:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "CIRCUITO:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "N\xBA BOMBAS DEL GRUPO:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "CAUDAL:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "m3/h"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "ALTURA:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "m.c.a"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "CONSIGNA:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "m.c.a"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 5, "MODO DE REGULACI\xD3N:"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "DATOS ELECTRICOS"]]], [16, [[0, 1, 1, 5, "POTENCIA:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "kW"], [4, 1, 1, 5, "VELOCIDAD DE GIRO PLACA:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "r.p.m"]]], [16, [[0, 1, 1, 5, "VOLTAJE:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "V"], [4, 1, 1, 5, "VELOCIDAD DE GIRO REAL:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "r.p.m"]]], [16, [[0, 1, 1, 5, "CONSUMO PLACA:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "A"], [4, 1, 1, 5, "SENTIDO DE GIRO (OK/NO):"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "CONSUMO REAL:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "A"], [4, 1, 1, 5, "CONSIGNA VARIADOR:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "Hz"]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "MEDICIONES EN LA INSTALACI\xD3N"]]], [24, [[0, 1, 1, 10, "PAR\xC1METRO"], [1, 1, 1, 10, "UD"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "TE\xD3RICO (FABRIC.)"], [4, 1, 1, 10, "MEDIDO"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [16, [[0, 1, 1, 11, "CAUDAL DEL CIRCUITO"], [1, 1, 1, 12, "m3/h"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [16, [[0, 1, 1, 11, "PRESI\xD3N ASPIRACI\xD3N"], [1, 1, 1, 12, "bar"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "PRESI\xD3N IMPULSI\xD3N"], [1, 1, 1, 12, "bar"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 15, ""], [6, 2, 1, 15, ""]]], [16, [[0, 1, 1, 11, "PRESI\xD3N DIFERENCIAL CIRCUITO"], [1, 1, 1, 12, "m.c.a"], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 8, ""], [5, 1, 1, 13, "", 1], [6, 2, 1, 14, "", 1]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "OBSERVACIONES"]]], [16, [[0, 8, 2, 16, ""]]], [16, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "Criterio: desviaci\xF3n sobre proyecto (o te\xF3rico si no hay proyecto) dentro de la tolerancia de la hoja DATOS \u2192 APTO. Medido id\xE9ntico al valor de referencia \u2192 A REVISAR (posible valor copiado)."]]], [16, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [16, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [16, []], [16, []], [16, [[0, 4, 1, 20, "Formato Vidaire Cx - rev.1"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "BALANCEO CAUDALES": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "FICHA DE\nBALANCEO DE CAUDALES DE AIRE"], [7, 1, 1, 3, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "DATOS DEL SISTEMA"]]], [13.5, [[0, 1, 1, 5, "EQUIPO (TAG):"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "ZONA SERVIDA:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "CAUDAL PROYECTO IMPULSI\xD3N:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "m3/h"], [4, 1, 1, 5, "CAUDAL PROYECTO RETORNO:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "m3/h"]]], [13.5, [[0, 1, 1, 5, "M\xC9TODO DE MEDIDA:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "NORMA APLICADA:"], [5, 3, 1, 6, "UNE-EN 12599 / RITE IT 2.3"]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "RESUMEN DEL BALANCEO DEL SISTEMA"]]], [24, [[0, 1, 1, 10, "RED"], [1, 1, 1, 10, "N\xBA BOCAS"], [2, 1, 1, 10, "PROYECTO SISTEMA"], [3, 1, 1, 10, "SUMA PROY. BOCAS"], [4, 1, 1, 10, "CAUDAL MEDIDO (SUMA DE BOCAS)"], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [13.5, [[0, 1, 1, 11, "IMPULSI\xD3N"], [1, 1, 1, 14, "", 1], [2, 1, 1, 14, "", 1], [3, 1, 1, 14, "", 1], [4, 1, 1, 14, "", 1], [5, 1, 1, 14, "", 1], [6, 2, 1, 14, "", 1]]], [13.5, [[0, 1, 1, 11, "RETORNO / EXTRACCI\xD3N"], [1, 1, 1, 14, "", 1], [2, 1, 1, 14, "", 1], [3, 1, 1, 14, "", 1], [4, 1, 1, 14, "", 1], [5, 1, 1, 14, "", 1], [6, 2, 1, 14, "", 1]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "IMPULSI\xD3N - UNIDADES TERMINALES"]]], [13.5, [[0, 1, 1, 10, "LOCAL / SALA"], [1, 1, 1, 10, "TERMINAL"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "MEDIDO"], [4, 1, 1, 10, "POSICI\xD3N COMPUERTA / OBSERV."], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 25, "TOTAL"], [1, 1, 1, 26, ""], [2, 1, 1, 27, "", 1], [3, 1, 1, 27, "", 1], [4, 1, 1, 26, ""], [5, 1, 1, 28, "", 1], [6, 2, 1, 27, "", 1]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "RETORNO / EXTRACCI\xD3N - UNIDADES TERMINALES"]]], [13.5, [[0, 1, 1, 10, "LOCAL / SALA"], [1, 1, 1, 10, "TERMINAL"], [2, 1, 1, 10, "PROYECTO"], [3, 1, 1, 10, "MEDIDO"], [4, 1, 1, 10, "POSICI\xD3N COMPUERTA / OBSERV."], [5, 1, 1, 10, "DESV. %"], [6, 2, 1, 10, "RESULTADO"]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 22, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 22, ""], [5, 1, 1, 23, "", 1], [6, 2, 1, 24, "", 1]]], [13.5, [[0, 1, 1, 25, "TOTAL"], [1, 1, 1, 26, ""], [2, 1, 1, 27, "", 1], [3, 1, 1, 27, "", 1], [4, 1, 1, 26, ""], [5, 1, 1, 28, "", 1], [6, 2, 1, 27, "", 1]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "OBSERVACIONES"]]], [13.5, [[0, 8, 4, 16, ""]]], [13.5, []], [13.5, []], [13.5, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "Criterio: total del sistema dentro de la tolerancia de caudales y cada boca dentro de la tolerancia por boca (hoja DATOS) \u2192 APTO. Medido id\xE9ntico a proyecto \u2192 A REVISAR (posible valor copiado)."]]], [13.5, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [13.5, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [13.5, []], [13.5, []]], "imagenes": [] }, "ESTANQ. REFRIGERANTE": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "CERTIFICADO DE PRUEBA DE ESTANQUEIDAD\nTUBER\xCDAS DE GAS REFRIGERANTE"], [7, 1, 1, 3, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "ACTA FABRICANTE N\xBA / FECHA:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "T\xC9CNICO FABRICANTE:"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "DATOS DEL CIRCUITO"]]], [13.5, [[0, 1, 1, 5, "SISTEMA / EQUIPO (TAG):"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "REFRIGERANTE:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "TRAMO / ZONA:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PRESI\xD3N M\xC1X. ADMISIBLE PS:"], [5, 2, 1, 8, "41.5"], [7, 1, 1, 5, "bar"]]], [13.5, [[0, 1, 1, 5, "LONGITUD DE TUBER\xCDA:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "m"], [4, 1, 1, 5, "DI\xC1METROS L\xCDQ. / GAS:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "MATERIAL / TIPO DE UNI\xD3N:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "CARGA ADICIONAL:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "kg"]]], [13.5, [[0, 1, 1, 5, "NORMA APLICADA:"], [1, 3, 1, 6, "RD 552/2019 (RSIF) / UNE-EN 378-2"], [4, 1, 1, 5, "EMPRESA FRIGORISTA:"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "PRUEBA DE PRESI\xD3N"]]], [13.5, [[0, 1, 1, 5, "GAS DE PRUEBA:"], [1, 3, 1, 6, "NITR\xD3GENO SECO"], [4, 1, 1, 5, "MAN\xD3METRO N\xBA / CALIBR.:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "PRESI\xD3N M\xCDNIMA EXIGIDA:"], [1, 2, 1, 14, "", 1], [3, 1, 1, 5, "bar"], [4, 1, 1, 5, "DURACI\xD3N:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "h"]]], [13.5, [[0, 1, 1, 5, "FECHA Y HORA DE INICIO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "FECHA Y HORA DE FIN:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "PRESI\xD3N INICIAL:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "bar"], [4, 1, 1, 5, "PRESI\xD3N FINAL:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "bar"]]], [13.5, [[0, 1, 1, 5, "T\xAA AMBIENTE INICIAL:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "\xB0C"], [4, 1, 1, 5, "T\xAA AMBIENTE FINAL:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "\xB0C"]]], [13.5, [[0, 1, 1, 5, "PRESI\xD3N FINAL CORREGIDA:"], [1, 2, 1, 14, "", 1], [3, 1, 1, 5, "bar"], [4, 1, 1, 5, "CA\xCDDA ADMISIBLE:"], [5, 2, 1, 8, "0"], [7, 1, 1, 5, "bar"]]], [13.5, [[0, 1, 1, 5, "CA\xCDDA DE PRESI\xD3N CORREGIDA:"], [1, 2, 1, 14, "", 1], [3, 1, 1, 5, "bar"], [4, 1, 1, 5, "RESULTADO:"], [5, 3, 1, 14, "", 1]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "PRUEBA DE VAC\xCDO"]]], [13.5, [[0, 1, 1, 5, "VAC\xCDO ALCANZADO:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "mbar"], [4, 1, 1, 5, "TIEMPO DE MANTENIMIENTO:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "h"]]], [13.5, [[0, 1, 1, 5, "VACU\xD3METRO N\xBA / CALIBR.:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "RESULTADO (OK / NO OK):"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "COMPROBACIONES (OK / NO OK)"]]], [13.5, [[0, 1, 1, 5, "REVISI\xD3N FUGAS EN UNIONES:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "SOLDADURA CON NITR\xD3GENO:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "AISLAMIENTO T\xC9RMICO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "IDENTIFICACI\xD3N DE CIRCUITOS:"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "OBSERVACIONES"]]], [13.5, [[0, 8, 3, 16, ""]]], [13.5, []], [13.5, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "FOTOGRAF\xCDAS DE LOS MAN\xD3METROS"]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "Criterio: presi\xF3n inicial no inferior a la m\xEDnima exigida y ca\xEDda de presi\xF3n no superior a la admisible. En refrigerante, la presi\xF3n final se corrige por temperatura ambiente y la m\xEDnima exigida es PS (41,5 bar por defecto, R32/R410A: confirmar con el fabricante)."]]], [13.5, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [13.5, [[0, 4, 3, 19, "Juan Carlos Jim\xE9nez Lima"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [13.5, []], [13.5, []]], "imagenes": [] }, "ESTANQ. AGUA": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "CERTIFICADO DE PRUEBA DE ESTANQUEIDAD\nTUBER\xCDAS DE AGUA"], [7, 1, 1, 3, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "CIRCUITO:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "DATOS DEL CIRCUITO"]]], [16, [[0, 1, 1, 5, "CIRCUITO / TRAMO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "ZONA / PLANTA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "FLUIDO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "TEMPERATURA:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "\xB0C"]]], [16, [[0, 1, 1, 5, "MATERIAL:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PRESI\xD3N M\xC1X. DE TRABAJO:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "bar"]]], [16, [[0, 1, 1, 5, "NORMA APLICADA:"], [1, 3, 1, 6, "RITE IT 2.2.2 / UNE 100151"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "PRUEBA DE ESTANQUEIDAD"]]], [16, [[0, 1, 1, 5, "PRESI\xD3N:"], [1, 2, 1, 8, ""], [3, 1, 1, 5, "bar"], [4, 1, 1, 5, "DURACI\xD3N:"], [5, 2, 1, 8, ""], [7, 1, 1, 5, "h"]]], [16, [[0, 1, 1, 5, "FUGAS DETECTADAS (S\xCD / NO):"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "RESULTADO (OK / NO OK):"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "COMPROBACIONES (OK / NO OK)"]]], [16, [[0, 1, 1, 5, "LLENADO Y PURGA DE AIRE:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "EQUIPOS SENSIBLES AISLADOS:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "LIMPIEZA PREVIA DE LA RED:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "REPOSICI\xD3N PRESI\xD3N SERVICIO:"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "OBSERVACIONES"]]], [16, [[0, 8, 3, 16, ""]]], [16, []], [16, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "FOTOGRAF\xCDAS DE LOS MAN\xD3METROS"]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "Criterio: la red mantiene la presi\xF3n de prueba durante el tiempo indicado, sin fugas en uniones ni ca\xEDda de presi\xF3n."]]], [16, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [16, [[0, 4, 3, 19, "Juan Carlos Jim\xE9nez Lima"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [16, []], [16, []]], "imagenes": [] }, "CHECKLIST UTA": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "LISTADO DE CHEQUEO\nRECEPCI\xD3N Y PUESTA EN OBRA \xB7 UTA"], [7, 1, 1, 3, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 6, 1, 7, "02 \xB7 VERIFICACIONES F\xCDSICAS"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "02.01 La unidad est\xE1 libre de da\xF1os"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "02.02 Todos los componentes presentes y en orden"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "02.03 Las aperturas de la l\xEDnea de agua est\xE1n selladas"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "02.04 Manual de instalaci\xF3n y encendido provisto"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "02.05 Placa de caracter\xEDsticas correctamente colocada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "03 \xB7 AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "03.01 Los equipos instalados se corresponden con el Proyecto o Memoria T\xE9cnica"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "03.02 La ubicaci\xF3n de las unidades instaladas se corresponde con el Proyecto o Memoria"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "04 \xB7 INSTALACI\xD3N DEL EQUIPO"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "04.01 Unidad perfectamente apoyada usando el tama\xF1o adecuado de anclajes de montaje"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.02 Antivibratorios correctamente instalados y unidad convenientemente nivelada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.03 Se cumplen las distancias m\xEDnimas recomendadas por el fabricante"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.04 La aspiraci\xF3n y descarga de aire es adecuada y no afecta a otros"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.05 Unidad etiquetada y f\xE1cil de identificar"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.06 La unidad se puede retirar del edificio"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.07 El equipo est\xE1 convenientemente conectado a la red de conductos"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "05 \xB7 TUBER\xCDAS Y V\xC1LVULAS"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "05.01 Todos los componentes de las tuber\xEDas han sido instalados"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.02 Los soportes de las tuber\xEDas est\xE1n como se requieren en las especificaciones"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.03 Las tuber\xEDas est\xE1n convenientemente conectadas a m\xE1quina con elementos antivibratorios"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.04 Tuber\xEDas limpias y libres de suciedad"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.05 El aislamiento de tuber\xEDas est\xE1 completo e instalado seg\xFAn las especificaciones"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.06 Existen llaves de corte para la independencia hidr\xE1ulica"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.07 Etiquetas de v\xE1lvulas fijadas"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.08 Se ha comprobado que el desag\xFCe funciona (altura, sifones, bomba)"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.09 Se dispone de tomas para la medida de presi\xF3n y temperatura a la entrada y salida de m\xE1quina"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "06 \xB7 EL\xC9CTRICO"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "06.01 Desconexi\xF3n local instalada en un lugar accesible"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "06.02 Rotaci\xF3n del motor del ventilador en la direcci\xF3n correcta"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "06.03 Todas las conexiones el\xE9ctricas bien fijadas"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "06.04 Todas las conexiones el\xE9ctricas est\xE1n conectadas a tierra"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "07 \xB7 CONTROLES - INSTALACI\xD3N"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "07.01 Termostatos / presostatos instalados y verificada su calibraci\xF3n"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "07.02 Cableado de control para la unidad exterior (compresor)"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "07.03 Comunicaci\xF3n con la unidad exterior verificada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "08 \xB7 CONTROLES - PUESTA EN MARCHA"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "08.01 Tensi\xF3n de alimentaci\xF3n (RSTN) y sentido de rotaci\xF3n correctos"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.02 Secuencia de control de opci\xF3n fr\xEDo verificada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.03 Secuencia de control de opci\xF3n calor verificada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.04 El sistema se enciende sin ning\xFAn ruido o vibraci\xF3n anormal"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.05 Se adjunta informe de puesta en marcha del fabricante con detalle"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "09 \xB7 MANTENIMIENTO"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "09.01 Espacio libre adecuado alrededor de la unidad para su servicio"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "09.02 Todos los componentes son accesibles para mantenimiento"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "09.03 Las tuber\xEDas est\xE1n dispuestas para la retirada f\xE1cil de la unidad"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "09.04 Existen los dispositivos adecuados para el mantenimiento y son accesibles"], [6, 2, 1, 30, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "OBSERVACIONES"]]], [13.5, [[0, 8, 4, 16, ""]]], [13.5, []], [13.5, []], [13.5, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "S\xED = conforme \xB7 No = no conforme (detallar en observaciones) \xB7 NA = no aplica."]]], [13.5, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [13.5, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [13.5, []], [13.5, []], [13.5, [[0, 4, 1, 20, "Formato Vidaire Cx - rev.1"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "CHECKLIST FANCOIL": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "LISTADO DE CHEQUEO\nRECEPCI\xD3N Y PUESTA EN OBRA \xB7 FANCOIL"], [7, 1, 1, 3, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "DATOS DE LA INSTALACI\xD3N"]]], [13.5, [[0, 1, 1, 5, "ASOCIADO A RED DE CONDUCTOS:"], [1, 3, 1, 6, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 6, 1, 7, "02 \xB7 VERIFICACIONES F\xCDSICAS"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "02.01 La unidad est\xE1 libre de da\xF1os"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "02.02 Todos los componentes presentes y en orden"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "02.03 Las aperturas de la l\xEDnea de agua est\xE1n selladas"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "02.04 Manual de instalaci\xF3n y encendido provisto"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "02.05 Placa de caracter\xEDsticas correctamente colocada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "03 \xB7 AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "03.01 Los fancoils instalados se corresponden con el Proyecto o Memoria T\xE9cnica"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "03.02 La ubicaci\xF3n de las unidades instaladas se corresponde con el Proyecto o Memoria T\xE9cnica"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "04 \xB7 INSTALACI\xD3N DEL EQUIPO"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "04.01 Unidad perfectamente apoyada usando el tama\xF1o adecuado de anclajes de montaje"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.02 Antivibratorios correctamente instalados y unidad convenientemente nivelada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.03 El fancoil est\xE1 convenientemente conectado a la red de conductos"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.04 La unidad se puede retirar del edificio"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.05 Unidad etiquetada y f\xE1cil de identificar"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "05 \xB7 TUBER\xCDAS Y V\xC1LVULAS"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "05.01 Todos los componentes de las tuber\xEDas han sido instalados"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.02 Los soportes de las tuber\xEDas est\xE1n como se requieren en las especificaciones"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.03 Las tuber\xEDas est\xE1n convenientemente conectadas a m\xE1quina con elementos antivibratorios"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.04 Tuber\xEDas limpias y libres de suciedad"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.05 El aislamiento de tuber\xEDas est\xE1 completo e instalado seg\xFAn las especificaciones"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.06 Existen llaves de corte para la independencia hidr\xE1ulica de cada fancoil"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.07 Etiquetas de v\xE1lvulas fijadas"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.08 Se ha comprobado que el desag\xFCe funciona (altura, sifones, bomba de condensados)"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "06 \xB7 EL\xC9CTRICO"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "06.01 Desconexi\xF3n local instalada en un lugar accesible"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "06.02 Rotaci\xF3n del motor del ventilador en la direcci\xF3n correcta"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "06.03 Todas las conexiones el\xE9ctricas bien fijadas"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "06.04 Todas las conexiones el\xE9ctricas est\xE1n conectadas a tierra"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "07 \xB7 CONTROLES - INSTALACI\xD3N"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "07.01 Termostato del local instalado y verificada su calibraci\xF3n"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "07.02 Cableado de control para la unidad exterior (compresor)"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "07.03 Comunicaci\xF3n con la unidad exterior verificada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "08 \xB7 CONTROLES - PUESTA EN MARCHA"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "08.01 Tensi\xF3n de alimentaci\xF3n (RSTN) y sentido de rotaci\xF3n correctos"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.02 Secuencia de control de opci\xF3n fr\xEDo verificada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.03 Secuencia de control de opci\xF3n calor verificada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.04 El sistema se enciende sin ning\xFAn ruido o vibraci\xF3n anormal"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.05 Se adjunta informe de puesta en marcha del fabricante con detalle de las pruebas, medidas y ajustes"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "09 \xB7 MANTENIMIENTO"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "09.01 Espacio libre adecuado alrededor de la unidad para su servicio"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "09.02 Todos los componentes son accesibles para mantenimiento"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "09.03 Las tuber\xEDas est\xE1n dispuestas para la retirada f\xE1cil de la unidad"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "09.04 Existen los dispositivos adecuados para el mantenimiento y son accesibles (v\xE1lvulas de corte, vaciados, purgas, desag\xFCes)"], [6, 2, 1, 30, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "OBSERVACIONES"]]], [13.5, [[0, 8, 4, 16, ""]]], [13.5, []], [13.5, []], [13.5, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "S\xED = conforme \xB7 No = no conforme (detallar en observaciones) \xB7 NA = no aplica."]]], [13.5, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [13.5, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [13.5, []], [13.5, []], [13.5, [[0, 4, 1, 20, "Formato Vidaire Cx - rev.1"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "CHECKLIST RECUPERADOR": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "LISTADO DE CHEQUEO\nRECEPCI\xD3N Y PUESTA EN OBRA \xB7 RECUPERADOR DE CALOR"], [7, 1, 1, 3, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 6, 1, 7, "02 \xB7 VERIFICACIONES F\xCDSICAS"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "02.01 La unidad est\xE1 libre de da\xF1os"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "02.02 Todos los componentes presentes y en orden"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "02.03 Los filtros est\xE1n bien instalados y limpios"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "02.04 Manual de instalaci\xF3n y encendido provisto"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "02.05 Placa de caracter\xEDsticas correctamente colocada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "03 \xB7 AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "03.01 Los equipos instalados se corresponden con el Proyecto o Memoria T\xE9cnica"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "03.02 La ubicaci\xF3n de los equipos instalados se corresponde con el Proyecto o Memoria T\xE9cnica"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "04 \xB7 INSTALACI\xD3N DEL EQUIPO"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "04.01 Unidad perfectamente apoyada usando el tama\xF1o adecuado de anclajes de montaje"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.02 Antivibratorios correctamente instalados y unidad convenientemente nivelada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.03 La aspiraci\xF3n del aire exterior es adecuada y no toma aire de salidas"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.04 El equipo est\xE1 convenientemente conectado a la red de conductos"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.05 La unidad se puede retirar del edificio"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.06 Unidad etiquetada y f\xE1cil de identificar"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "05 \xB7 EL\xC9CTRICO"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "05.01 Desconexi\xF3n local instalada en un lugar accesible"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.02 Rotaci\xF3n del motor del ventilador en la direcci\xF3n correcta"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.03 Todas las conexiones el\xE9ctricas bien fijadas"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.04 Todas las conexiones el\xE9ctricas est\xE1n conectadas a tierra"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "06 \xB7 SISTEMA MEC\xC1NICO"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "06.01 El sistema est\xE1 limpio"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "06.02 Rueda lubricada y alineada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "06.03 Las correas de la rueda est\xE1n en buenas condiciones"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "07 \xB7 CONTROLES - INSTALACI\xD3N"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "07.01 Termostato del local instalado y verificada su calibraci\xF3n"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "07.02 Cableado de control para la unidad exterior (compresor)"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "07.03 Conexi\xF3n de cableado de control adecuado"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "08 \xB7 CONTROLES - PUESTA EN MARCHA"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "08.01 Tensi\xF3n de alimentaci\xF3n (RSTN) y sentido de rotaci\xF3n correctos"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.02 Secuencia de control de opci\xF3n fr\xEDo verificada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.03 Secuencia de control de opci\xF3n calor verificada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.04 El sistema se enciende sin ning\xFAn ruido o vibraci\xF3n anormal"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.05 La p\xE9rdida de presi\xF3n de los filtros es la esperada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.06 Los ventiladores giran correctamente y su velocidad se corresponde con el Proyecto"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.07 Se adjunta informe de puesta en marcha del fabricante con detalle de las pruebas, medidas y ajustes"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "09 \xB7 MANTENIMIENTO"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "09.01 Espacio libre adecuado alrededor de la unidad para su servicio"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "09.02 Todos los componentes son accesibles para mantenimiento"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "09.03 Las tuber\xEDas est\xE1n dispuestas para la retirada f\xE1cil de la unidad"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "09.04 Existen los dispositivos adecuados para el mantenimiento y son accesibles (v\xE1lvulas de corte, vaciados, purgas, desag\xFCes)"], [6, 2, 1, 30, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "OBSERVACIONES"]]], [13.5, [[0, 8, 4, 16, ""]]], [13.5, []], [13.5, []], [13.5, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "S\xED = conforme \xB7 No = no conforme (detallar en observaciones) \xB7 NA = no aplica."]]], [13.5, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [13.5, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [13.5, []], [13.5, []], [13.5, [[0, 4, 1, 20, "Formato Vidaire Cx - rev.1"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "CHECKLIST VENTILADOR": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "LISTADO DE CHEQUEO\nRECEPCI\xD3N Y PUESTA EN OBRA \xB7 VENTILADOR"], [7, 1, 1, 3, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 6, 1, 7, "02 \xB7 VERIFICACIONES F\xCDSICAS"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "02.01 La unidad est\xE1 libre de da\xF1os"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "02.02 Todos los componentes presentes y en orden"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "02.03 Los filtros est\xE1n bien instalados y limpios"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "02.04 Manual de instalaci\xF3n y encendido provisto"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "02.05 Placa de caracter\xEDsticas correctamente colocada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "03 \xB7 AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "03.01 Los equipos instalados se corresponden con el Proyecto o Memoria T\xE9cnica"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "03.02 La ubicaci\xF3n de los equipos instalados se corresponde con el Proyecto o Memoria T\xE9cnica"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "04 \xB7 INSTALACI\xD3N DEL EQUIPO"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "04.01 Unidad perfectamente apoyada usando el tama\xF1o adecuado de anclajes de montaje"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.02 Antivibratorios correctamente instalados y unidad convenientemente nivelada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.03 La aspiraci\xF3n del aire exterior es adecuada y no toma aire de salidas"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.04 El equipo est\xE1 convenientemente conectado a la red de conductos"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.05 La unidad se puede retirar del edificio"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.06 Unidad etiquetada y f\xE1cil de identificar"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "05 \xB7 EL\xC9CTRICO"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "05.01 Desconexi\xF3n local instalada en un lugar accesible"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.02 Rotaci\xF3n del motor del ventilador en la direcci\xF3n correcta"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.03 Todas las conexiones el\xE9ctricas bien fijadas"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.04 Todas las conexiones el\xE9ctricas est\xE1n conectadas a tierra"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "06 \xB7 SISTEMA MEC\xC1NICO"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "06.01 El sistema est\xE1 limpio"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "06.02 Rueda lubricada y alineada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "06.03 Las correas de la rueda est\xE1n en buenas condiciones"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "07 \xB7 CONTROLES - INSTALACI\xD3N"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "07.01 Existen sensores o dispositivos para el arranque y parada del motor"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "07.02 Conexi\xF3n de cableado de control adecuado"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "08 \xB7 CONTROLES - PUESTA EN MARCHA"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "08.01 Tensi\xF3n de alimentaci\xF3n (RSTN) y sentido de rotaci\xF3n correctos"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.04 El sistema se enciende sin ning\xFAn ruido o vibraci\xF3n anormal"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.05 Verificaci\xF3n del arranque y paro por sistema de control"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.06 Los ventiladores giran correctamente y su velocidad se corresponde con el Proyecto"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.07 Se adjunta informe de puesta en marcha del fabricante con detalle de las pruebas, medidas y ajustes"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "09 \xB7 MANTENIMIENTO"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "09.01 Espacio libre adecuado alrededor de la unidad para su servicio"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "09.02 Todos los componentes son accesibles para mantenimiento"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "09.03 Las tuber\xEDas est\xE1n dispuestas para la retirada f\xE1cil de la unidad"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "09.04 Existen los dispositivos adecuados para el mantenimiento y son accesibles (v\xE1lvulas de corte, vaciados, purgas, desag\xFCes)"], [6, 2, 1, 30, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "OBSERVACIONES"]]], [13.5, [[0, 8, 4, 16, ""]]], [13.5, []], [13.5, []], [13.5, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "S\xED = conforme \xB7 No = no conforme (detallar en observaciones) \xB7 NA = no aplica."]]], [13.5, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [13.5, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [13.5, []], [13.5, []], [13.5, [[0, 4, 1, 20, "Formato Vidaire Cx - rev.1"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "CHECKLIST ENFRIADORA": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "LISTADO DE CHEQUEO\nRECEPCI\xD3N Y PUESTA EN OBRA \xB7 ENFRIADORA AIRE-AGUA"], [7, 1, 1, 3, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 6, 1, 7, "02 \xB7 VERIFICACIONES F\xCDSICAS"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "02.01 La unidad est\xE1 libre de da\xF1os"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "02.02 Todos los componentes presentes y en orden"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "02.03 Las aperturas de la l\xEDnea de agua est\xE1n selladas"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "02.04 Manual de instalaci\xF3n y encendido provisto"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "02.05 Placa de caracter\xEDsticas correctamente colocada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "03 \xB7 AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "03.01 Los equipos instalados se corresponden con el Proyecto o Memoria T\xE9cnica"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "04 \xB7 INSTALACI\xD3N DEL EQUIPO"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "04.01 Unidad perfectamente apoyada usando el tama\xF1o adecuado de anclajes de montaje"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.02 Antivibratorios correctamente instalados y unidad convenientemente nivelada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.03 Se cumplen las distancias m\xEDnimas recomendadas por el fabricante"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.04 La aspiraci\xF3n y descarga de aire es adecuada y no afecta a otros aparatos"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.05 Unidad etiquetada y f\xE1cil de identificar"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.06 La unidad se puede retirar del edificio"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.07 Existen tomas para la lectura de la presi\xF3n de alta y baja"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "05 \xB7 CONEXI\xD3N HIDR\xC1ULICA"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "05.01 Todos los componentes de las tuber\xEDas han sido instalados"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.02 Los soportes de las tuber\xEDas est\xE1n como se requieren en las especificaciones"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.03 Las tuber\xEDas est\xE1n convenientemente conectadas a m\xE1quina con elementos antivibratorios"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.04 Tuber\xEDas limpias y libres de suciedad"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.05 El aislamiento de tuber\xEDas est\xE1 completo e instalado seg\xFAn las especificaciones de Proyecto"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.06 Existen llaves de corte para la independencia hidr\xE1ulica"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.07 Etiquetas de v\xE1lvulas fijadas"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.08 Se ha comprobado que el desag\xFCe funciona (altura, sifones, bomba de condensados)"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.09 Se dispone de tomas para la medida de presi\xF3n (man\xF3metros) y temperatura a la entrada y salida de m\xE1quina"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "06 \xB7 EL\xC9CTRICO"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "06.01 Desconexi\xF3n local instalada en un lugar accesible"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "06.02 Rotaci\xF3n del motor del ventilador en la direcci\xF3n correcta"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "06.03 Todas las conexiones el\xE9ctricas bien fijadas"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "06.04 Todas las conexiones el\xE9ctricas est\xE1n conectadas a tierra"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "06.05 El magnetot\xE9rmico se corresponde con la intensidad de consumo m\xE1s 25%"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "06.06 El diferencial se corresponde con la intensidad de consumo m\xE1s 40%"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "07 \xB7 CONTROLES - INSTALACI\xD3N"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "07.01 El interruptor de flujo est\xE1 instalado, conectado y funciona"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "07.02 La sonda de temperatura est\xE1 instalada, conectada y funciona"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "07.03 El cableado de control para la unidad est\xE1 correctamente conectado"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "08 \xB7 CONTROLES - PUESTA EN MARCHA"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "08.01 Tensi\xF3n de alimentaci\xF3n (RSTN) y sentido de rotaci\xF3n correctos"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.02 Secuencia de control de opci\xF3n fr\xEDo verificada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.03 Secuencia de control de opci\xF3n calor verificada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.04 El sistema se enciende sin ning\xFAn ruido o vibraci\xF3n anormal"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.05 Se adjunta informe de puesta en marcha del fabricante con detalle de las pruebas, medidas y ajustes"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "09 \xB7 MANTENIMIENTO"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "09.01 Espacio libre adecuado alrededor de la unidad para su servicio"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "09.03 Las tuber\xEDas est\xE1n dispuestas para la retirada f\xE1cil de la unidad"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "09.04 Existen los dispositivos adecuados para el mantenimiento y son accesibles (v\xE1lvulas de corte, vaciados, purgas, desag\xFCes, dispositivos de lectura)"], [6, 2, 1, 30, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "OBSERVACIONES"]]], [13.5, [[0, 8, 4, 16, ""]]], [13.5, []], [13.5, []], [13.5, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "S\xED = conforme \xB7 No = no conforme (detallar en observaciones) \xB7 NA = no aplica."]]], [13.5, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [13.5, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [13.5, []], [13.5, []], [13.5, [[0, 4, 1, 20, "Formato Vidaire Cx - rev.1"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "CHECKLIST BOMBA CALOR": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "LISTADO DE CHEQUEO\nRECEPCI\xD3N Y PUESTA EN OBRA \xB7 BOMBA DE CALOR"], [7, 1, 1, 3, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "DATOS DE LA INSTALACI\xD3N"]]], [13.5, [[0, 1, 1, 5, "ASOCIADO A RED DE CONDUCTOS:"], [1, 3, 1, 6, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 6, 1, 7, "02 \xB7 VERIFICACIONES F\xCDSICAS"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "02.01 La unidad est\xE1 libre de da\xF1os"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "02.02 Todos los componentes presentes y en orden"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "02.03 Las aperturas de la l\xEDnea de agua est\xE1n selladas"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "02.04 Manual de instalaci\xF3n y encendido provisto"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "02.05 Placa de caracter\xEDsticas correctamente colocada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "03 \xB7 AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "03.01 Los equipos instalados se corresponden con el Proyecto o Memoria T\xE9cnica"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "03.02 La ubicaci\xF3n de los equipos instalados se corresponde con el Proyecto o Memoria T\xE9cnica"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "04 \xB7 INSTALACI\xD3N DEL EQUIPO"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "04.01 Unidad perfectamente apoyada usando el tama\xF1o adecuado de anclajes de montaje"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.02 Antivibratorios correctamente instalados y unidad convenientemente nivelada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.03 El equipo est\xE1 convenientemente conectado a la red de conductos"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.04 La unidad se puede retirar del edificio"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.05 Unidad etiquetada y f\xE1cil de identificar"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "05 \xB7 TUBER\xCDAS Y V\xC1LVULAS"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "05.01 Todos los componentes de las tuber\xEDas han sido instalados"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.02 Los soportes de las tuber\xEDas est\xE1n como se requieren en las especificaciones"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.03 Las tuber\xEDas est\xE1n convenientemente conectadas a m\xE1quina con elementos antivibratorios"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.04 Tuber\xEDas limpias y libres de suciedad"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.05 El aislamiento de tuber\xEDas est\xE1 completo e instalado seg\xFAn las especificaciones"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.06 Existen llaves de corte para la independencia hidr\xE1ulica"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.07 Etiquetas de v\xE1lvulas fijadas"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "05.08 Se ha comprobado que el desag\xFCe funciona (altura, sifones, bomba de condensados)"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "06 \xB7 EL\xC9CTRICO"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "06.01 Desconexi\xF3n local instalada en un lugar accesible"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "06.02 Rotaci\xF3n del motor del ventilador en la direcci\xF3n correcta"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "06.03 Todas las conexiones el\xE9ctricas bien fijadas"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "06.04 Todas las conexiones el\xE9ctricas est\xE1n conectadas a tierra"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "07 \xB7 CONTROLES - INSTALACI\xD3N"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "07.01 Termostato del local instalado y verificada su calibraci\xF3n"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "07.02 Cableado de control para la unidad exterior (compresor)"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "07.03 Comunicaci\xF3n con la unidad exterior verificada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "08 \xB7 CONTROLES - PUESTA EN MARCHA"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "08.01 Tensi\xF3n de alimentaci\xF3n (RSTN) y sentido de rotaci\xF3n correctos"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.02 Secuencia de control de opci\xF3n fr\xEDo verificada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.03 Secuencia de control de opci\xF3n calor verificada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.04 El sistema se enciende sin ning\xFAn ruido o vibraci\xF3n anormal"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "08.05 Se adjunta informe de puesta en marcha del fabricante con detalle de las pruebas, medidas y ajustes"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "09 \xB7 MANTENIMIENTO"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "09.01 Espacio libre adecuado alrededor de la unidad para su servicio"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "09.02 Todos los componentes son accesibles para mantenimiento"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "09.03 Las tuber\xEDas est\xE1n dispuestas para la retirada f\xE1cil de la unidad"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "09.04 Existen los dispositivos adecuados para el mantenimiento y son accesibles (v\xE1lvulas de corte, vaciados, purgas, desag\xFCes)"], [6, 2, 1, 30, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "OBSERVACIONES"]]], [13.5, [[0, 8, 4, 16, ""]]], [13.5, []], [13.5, []], [13.5, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "S\xED = conforme \xB7 No = no conforme (detallar en observaciones) \xB7 NA = no aplica."]]], [13.5, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [13.5, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [13.5, []], [13.5, []], [13.5, [[0, 4, 1, 20, "Formato Vidaire Cx - rev.1"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "CHECKLIST CONDUCTOS": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "LISTADO DE CHEQUEO\nCHEQUEO DE RED DE CONDUCTOS"], [7, 1, 1, 3, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [16, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [16, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [16, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "DATOS DE LA INSTALACI\xD3N"]]], [16, [[0, 1, 1, 5, "RED (IMPULSI\xD3N / RETORNO):"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "ASOCIADO A:"], [5, 3, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 6, 1, 7, "02 \xB7 VERIFICACIONES F\xCDSICAS"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [16, [[0, 6, 1, 29, "02.01 El material est\xE1 libre de da\xF1os"], [6, 2, 1, 30, ""]]], [16, [[0, 6, 1, 29, "02.02 Todos los componentes presentes y en orden"], [6, 2, 1, 30, ""]]], [16, [[0, 6, 1, 7, "03 \xB7 AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [16, [[0, 6, 1, 29, "03.01 El trazado se corresponde con los planos del Proyecto o Memoria T\xE9cnica"], [6, 2, 1, 30, ""]]], [16, [[0, 6, 1, 29, "03.02 Las dimensiones de conductos se corresponden con los planos del Proyecto o Memoria T\xE9cnica"], [6, 2, 1, 30, ""]]], [16, [[0, 6, 1, 29, "03.03 Los espesores de los aislamientos se corresponden con los planos del Proyecto o Memoria T\xE9cnica"], [6, 2, 1, 30, ""]]], [16, [[0, 6, 1, 29, "03.04 La red dispone de los accesorios exigidos en el Proyecto o Memoria T\xE9cnica (compuertas, sensores, registros\u2026)"], [6, 2, 1, 30, ""]]], [16, [[0, 6, 1, 7, "04 \xB7 INSTALACI\xD3N DE LA RED DE CONDUCTOS"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [16, [[0, 6, 1, 29, "04.01 Conductos limpios y libres de suciedad"], [6, 2, 1, 30, ""]]], [16, [[0, 6, 1, 29, "04.02 Soportes de sujeci\xF3n adecuados y fijaciones correctas"], [6, 2, 1, 30, ""]]], [16, [[0, 6, 1, 29, "04.03 Distancia entre soportes adecuada para evitar deformaciones"], [6, 2, 1, 30, ""]]], [16, [[0, 6, 1, 29, "04.04 Uniones entre conductos adecuadas"], [6, 2, 1, 30, ""]]], [16, [[0, 6, 1, 29, "04.05 La conexi\xF3n de conductos a plenums, difusores y equipos es adecuada"], [6, 2, 1, 30, ""]]], [16, [[0, 6, 1, 29, "04.06 Existen los registros necesarios para la limpieza interior"], [6, 2, 1, 30, ""]]], [16, [[0, 6, 1, 29, "04.07 Existe identificaci\xF3n de la red"], [6, 2, 1, 30, ""]]], [16, [[0, 6, 1, 7, "05 \xB7 AISLAMIENTOS Y RECUBRIMIENTOS"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [16, [[0, 6, 1, 29, "05.01 El aislamiento de conductos est\xE1 completo e instalado seg\xFAn las especificaciones"], [6, 2, 1, 30, ""]]], [16, [[0, 6, 1, 29, "05.02 La uni\xF3n del aislamiento con el conducto es adecuada"], [6, 2, 1, 30, ""]]], [16, [[0, 6, 1, 29, "05.03 Las uniones entre paneles o coquillas de aislamiento est\xE1n correctamente selladas"], [6, 2, 1, 30, ""]]], [16, [[0, 6, 1, 29, "05.04 Los accesorios intercalados en el conducto est\xE1n correctamente aislados"], [6, 2, 1, 30, ""]]], [16, [[0, 6, 1, 29, "05.05 Los tramos de la red expuestos al exterior disponen de recubrimiento adecuado para soportar la radiaci\xF3n solar y la lluvia"], [6, 2, 1, 30, ""]]], [16, [[0, 6, 1, 29, "05.06 El recubrimiento de tuber\xEDas exteriores est\xE1 completo e instalado seg\xFAn las especificaciones"], [6, 2, 1, 30, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [16, [[0, 8, 1, 7, "OBSERVACIONES"]]], [16, [[0, 8, 7, 16, ""]]], [16, []], [16, []], [16, []], [16, []], [16, []], [16, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "S\xED = conforme \xB7 No = no conforme (detallar en observaciones) \xB7 NA = no aplica."]]], [16, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [16, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [16, []], [16, []], [16, [[0, 4, 1, 20, "Formato Vidaire Cx - rev.1"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] }, "CHECKLIST DIFUSORES": { "anchos": [203, 77, 77, 77, 203, 77, 77, 77], "filas": [[18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 4, 4, 2, "LISTADO DE CHEQUEO\nCHEQUEO DE DIFUSORES Y REJILLAS"], [7, 1, 1, 3, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [18, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 1, 1, 1, ""], [1, 1, 1, 1, ""], [2, 1, 1, 1, ""], [3, 1, 1, 1, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [13.5, [[0, 1, 1, 5, "EDIFICIO:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REFERENCIA / TAG:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "DIRECCION:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "REALIZADO POR:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "LOCALIDAD:"], [1, 3, 1, 6, "", 1], [4, 1, 1, 5, "RESPONSABLE:"], [5, 3, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "FECHA DE ENSAYO:"], [1, 3, 1, 6, ""], [4, 1, 1, 5, "PLANTA / SALA:"], [5, 3, 1, 6, ""]]], [13.5, [[0, 1, 1, 5, "APARATOS UTILIZADOS:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "CONDICIONES DE ENSAYO:"], [1, 7, 1, 6, "", 1]]], [13.5, [[0, 1, 1, 5, "DENOMINACION DEL EQUIPO:"], [1, 7, 1, 6, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "DATOS DE LA INSTALACI\xD3N"]]], [13.5, [[0, 1, 1, 5, "ASOCIADO A:"], [1, 3, 1, 6, ""], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 6, 1, 7, "02 \xB7 VERIFICACIONES F\xCDSICAS"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "02.01 El material est\xE1 libre de da\xF1os"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "02.02 Todos los componentes presentes y en orden"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "03 \xB7 AJUSTE AL PROYECTO O MEMORIA T\xC9CNICA"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "03.01 Las dimensiones de los difusores o rejillas se corresponden con el Proyecto o Memoria T\xE9cnica"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "03.02 La ubicaci\xF3n de los difusores / rejillas se corresponde con el Proyecto o Memoria T\xE9cnica"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 7, "04 \xB7 INSTALACI\xD3N DE DIFUSORES Y REJILLAS"], [6, 2, 1, 7, "S\xCD / NO / NA"]]], [13.5, [[0, 6, 1, 29, "04.01 Soportes de sujeci\xF3n adecuados y fijaciones correctas"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.02 La conexi\xF3n del difusor / rejilla / plenum a conducto es adecuada"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.03 El difusor / rejilla es f\xE1cilmente desmontable"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.04 Existen compuertas para el equilibrado de los caudales"], [6, 2, 1, 30, ""]]], [13.5, [[0, 6, 1, 29, "04.05 Inexistencia de ruidos por exceso de velocidad de aire en los difusores / rejillas"], [6, 2, 1, 30, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "IMPULSI\xD3N \xB7 05 EQUILIBRADO DE DIFUSORES Y REJILLAS"]]], [24, [[0, 1, 1, 10, "LOCAL / SALA"], [1, 1, 1, 10, "DIFUSOR / REJILLA"], [2, 1, 1, 10, "CAUDAL PROYECTO"], [3, 1, 1, 10, "CAUDAL MEDIDO"], [4, 1, 1, 10, "OBSERVACIONES"], [5, 1, 1, 10, "dB"], [6, 2, 1, 10, "TARADO COMPUERTA"]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "RETORNO \xB7 05 EQUILIBRADO DE DIFUSORES Y REJILLAS"]]], [24, [[0, 1, 1, 10, "LOCAL / SALA"], [1, 1, 1, 10, "DIFUSOR / REJILLA"], [2, 1, 1, 10, "CAUDAL PROYECTO"], [3, 1, 1, 10, "CAUDAL MEDIDO"], [4, 1, 1, 10, "OBSERVACIONES"], [5, 1, 1, 10, "dB"], [6, 2, 1, 10, "TARADO COMPUERTA"]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [13.5, [[0, 1, 1, 6, ""], [1, 1, 1, 6, ""], [2, 1, 1, 8, ""], [3, 1, 1, 8, ""], [4, 1, 1, 6, ""], [5, 1, 1, 8, ""], [6, 2, 1, 8, ""]]], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [13.5, [[0, 8, 1, 7, "OBSERVACIONES"]]], [13.5, [[0, 8, 4, 16, ""]]], [13.5, []], [13.5, []], [13.5, []], [6, [[0, 1, 1, 4, ""], [1, 1, 1, 4, ""], [2, 1, 1, 4, ""], [3, 1, 1, 4, ""], [4, 1, 1, 4, ""], [5, 1, 1, 4, ""], [6, 1, 1, 4, ""], [7, 1, 1, 4, ""]]], [22, [[0, 8, 1, 17, "S\xED = conforme \xB7 No = no conforme (detallar en observaciones) \xB7 NA = no aplica."]]], [13.5, [[0, 4, 1, 18, "JEFE DE OBRA"], [4, 4, 1, 18, "DIRECCI\xD3N FACULTATIVA"]]], [13.5, [[0, 4, 3, 19, "Nombre, firma y fecha"], [4, 4, 3, 19, "Nombre, firma y fecha"]]], [13.5, []], [13.5, []], [13.5, [[0, 4, 1, 20, "Formato Vidaire Cx - rev.1"], [4, 1, 1, 1, ""], [5, 1, 1, 1, ""], [6, 1, 1, 1, ""], [7, 1, 1, 1, ""]]]], "imagenes": [] } } });
+    }
+  });
+
   // shared/commissioning/fichaExcel.js
   var require_fichaExcel = __commonJS({
     "shared/commissioning/fichaExcel.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       (function iniciarFichaExcel() {
+        const MODULOS = {
+          "./maquetasExcel": () => require_maquetasExcel(),
+          "../papel": () => require_papel(),
+          "./rejillaChecklist": () => require_rejillaChecklist(),
+          "./reglasCx": () => require_reglasCx(),
+          "./plantillasCliente": () => require_plantillasCliente()
+        };
         const cargar = (mod, global) => {
-          if (typeof __require !== "undefined") {
+          if (typeof __require !== "undefined" && MODULOS[mod]) {
             try {
-              return __require(mod);
+              return MODULOS[mod]();
             } catch (e) {
             }
           }
@@ -35019,10 +35118,16 @@ ${subtitulo}`, c[5]] : c.slice())]);
   return true;
 })()`;
         const tieneHoja = (nombre) => Boolean(hojaDe(nombre));
+        function usaHoja(nombre, obra) {
+          if (!tieneHoja(nombre)) return false;
+          if (obra === void 0 || obra === null) return true;
+          const P = cargar("../papel", "PAPEL");
+          return !P || !P.modelosOficiales || P.modelosOficiales(obra);
+        }
         (function exportar(API) {
           if (typeof module !== "undefined" && module.exports) module.exports = API;
           if (typeof window !== "undefined") window.FICHA_EXCEL = API;
-        })({ hojaFicha, hojaBalanceo, rejillaFicha, rejillaBalanceo, disposicion, tieneHoja, hojaInterioresVrf, hoja: hojaDe, norm, AJUSTE_PAPEL, terminalCorto, soloProyecto });
+        })({ hojaFicha, hojaBalanceo, rejillaFicha, rejillaBalanceo, disposicion, tieneHoja, usaHoja, hojaInterioresVrf, hoja: hojaDe, norm, AJUSTE_PAPEL, terminalCorto, soloProyecto });
       })();
     }
   });
@@ -35178,7 +35283,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         const excelFh = () => typeof __require !== "undefined" ? require_fichaExcel() : typeof window !== "undefined" ? window.FICHA_EXCEL : null;
         function hojaFicha(ev, plantilla, ctx = {}) {
           const X = excelFh();
-          if (X && plantilla && X.tieneHoja(plantilla.nombre)) {
+          if (X && plantilla && (X.usaHoja ? X.usaHoja(plantilla.nombre, ctx.obra) : X.tieneHoja(plantilla.nombre))) {
             const html = X.hojaFicha(ev, plantilla, ctx);
             if (html) return html;
           }
@@ -35242,7 +35347,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         };
         function hojaBalanceo(ev, ctx = {}) {
           const X = excelFh();
-          if (X && X.tieneHoja("BALANCEO CAUDALES")) {
+          if (X && (X.usaHoja ? X.usaHoja("BALANCEO CAUDALES", ctx.obra) : X.tieneHoja("BALANCEO CAUDALES"))) {
             const html = X.hojaBalanceo(ev, ctx);
             if (html) return html;
           }
@@ -46117,14 +46222,14 @@ ${subtitulo}`, c[5]] : c.slice())]);
         }
         function firmasHtml(r) {
           const hechas = new Map((r.firmas || []).map((f) => [f.rol, f]));
-          const casilla = (rol, rotulo) => {
+          const casilla = (rol, rotulo, rotuloVacia = rotulo) => {
             const f = hechas.get(rol);
-            return `<div class="casillaFirma${f ? "" : " vacia"}"><p class="rotuloFirma">${esc(rotulo)}</p>
+            return `<div class="casillaFirma${f ? "" : " vacia"}"><p class="rotuloFirma">${esc(f ? rotulo : rotuloVacia)}</p>
       <div class="trazoFirma">${f && f.imagen ? `<img src="${esc(f.imagen)}" alt="Firma de ${esc(f.nombre)}">` : ""}</div>
       <p class="nombreFirma">${f ? esc(f.nombre) : "Sin firmar"}${f && f.cargo ? ` \xB7 ${esc(f.cargo)}` : ""}</p>
       <p class="fechaFirma">${f ? esc(fechaEs(f.fecha)) : ""}</p></div>`;
           };
-          return `<section class="firmasRep"><h3>Firmas</h3><div class="rejillaFirmasRep">${casilla("jefeObra", "T\xE9cnico responsable")}${casilla("cliente", "Segunda firma")}</div></section>`;
+          return `<section class="firmasRep"><h3>Firmas</h3><div class="rejillaFirmasRep">${casilla("jefeObra", "T\xE9cnico responsable")}${casilla("cliente", "Segunda firma", "Segunda firma \xB7 Cliente / DF / DEO (nombre, apellidos y firma)")}</div></section>`;
         }
         function indicadores(reps) {
           const equipos = new Set(reps.map((r) => r.equipoId || r.equipo && r.equipo.tag).filter(Boolean)).size;
@@ -46173,6 +46278,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
       ${dato("Equipo", equipoTexto(r.equipo))}
       ${dato("Planta", plantaDe(r))}
       ${dato("Zona", zonaDe(r))}
+      ${dato("Sala", r.equipo && !llano(r.ubicacion) ? llano(r.equipo.sala) || llano(r.equipo.codSala) : "")}
       ${dato("Ubicaci\xF3n", r.ubicacion)}
       ${dato("Operario", r.operario)}
       ${dato("Prioridad", llano(r.prioridad).charAt(0).toUpperCase() + llano(r.prioridad).slice(1))}
@@ -46209,7 +46315,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         (function exportar(API) {
           if (typeof module !== "undefined" && module.exports) module.exports = API;
           if (typeof window !== "undefined") window.INFORME_REPARACIONES = API;
-        })({ html, cuerpo, elegir, visitasDe, observacionesDe, fechaHecha });
+        })({ html, cuerpo, hojaReparacion, elegir, visitasDe, observacionesDe, fechaHecha });
       })();
     }
   });
@@ -46495,6 +46601,69 @@ ${subtitulo}`, c[5]] : c.slice())]);
           if (typeof module !== "undefined" && module.exports) module.exports = API;
           if (typeof window !== "undefined") window.INFORME_SERVICIO_TECNICO = API;
         })({ pendiente, elegir, lineas, cuentas, html, hojas });
+      })();
+    }
+  });
+
+  // shared/commissioning/filaMovil.js
+  var require_filaMovil = __commonJS({
+    "shared/commissioning/filaMovil.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const llano = (v) => String(v ?? "").trim();
+        const clave = (v) => llano(v).toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[\s_-]+/g, "-");
+        const PAPEL_DELANTE = /^U[EI][\s_-]+/i;
+        const PAPEL_DETRAS = /[\s_-]+U[EI]$/i;
+        function sinPapel(tag, planta) {
+          let t = llano(tag).replace(PAPEL_DELANTE, "").replace(PAPEL_DETRAS, "");
+          const p = llano(planta);
+          if (p) {
+            const re = new RegExp(`^${p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\s_-]+`, "i");
+            const sin = t.replace(re, "");
+            if (sin) t = sin;
+          }
+          return t;
+        }
+        function nombreConjunto(unidades, planta) {
+          const us = (unidades || []).filter((u) => u && llano(u.tag));
+          if (us.length !== 2) return null;
+          if (!us.every((u) => PAPEL_DELANTE.test(llano(u.tag)) || PAPEL_DETRAS.test(llano(u.tag)))) return null;
+          const nombres = us.map((u) => sinPapel(u.tag, planta));
+          if (!nombres[0] || clave(nombres[0]) !== clave(nombres[1])) return null;
+          return nombres[0];
+        }
+        const esCodigoLocal = (v) => /^[A-Z]{1,2}\d{0,2}\.[A-Z]{2,4}\.\d{2,}$/i.test(llano(v));
+        function salaGrisDe(u = {}) {
+          const g = llano(u.salaGris);
+          const estado = llano(u.salaGrisEstado);
+          if (!g || estado !== "asignada" && estado !== "por confirmar") return null;
+          const n = llano(u.salaGrisNombre);
+          const texto = n ? `${g} \xB7 ${n}` : g;
+          return estado === "asignada" ? texto : `${texto} (por confirmar)`;
+        }
+        function salaVisibleDe(u = {}) {
+          const gris = salaGrisDe(u);
+          if (gris) return gris;
+          const s = llano(u.sala);
+          return s && !esCodigoLocal(s) ? s : null;
+        }
+        function localDe(unidades) {
+          const us = (unidades || []).filter(Boolean);
+          const dondeEsta = (u2) => salaVisibleDe(u2);
+          const interiores = new Set(us.filter((u2) => u2.papel === "UI" && dondeEsta(u2)).map(dondeEsta));
+          if (interiores.size > 1) return null;
+          const orden = [...us.filter((u2) => u2.papel === "UI"), ...us.filter((u2) => u2.papel !== "UI")];
+          const u = orden.find((x) => dondeEsta(x));
+          return u ? dondeEsta(u) : null;
+        }
+        const pideBalanceo = (f) => f.ensayoRequerido === "balanceo" || f.ensayoRequerido === "ambos";
+        function llevaPlanoBocas(f = {}) {
+          return f.medicion ? Boolean(f.medicion.plano) : pideBalanceo(f) || /UTA|climatiz|recuper|fan.?coil|extrac|ventil/i.test(f.grupo || "");
+        }
+        const API = { sinPapel, nombreConjunto, esCodigoLocal, salaGrisDe, salaVisibleDe, localDe, llevaPlanoBocas };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.FILA_MOVIL_CX = API;
       })();
     }
   });
@@ -55609,6 +55778,8 @@ ${linea}` : linea;
           db.prepare(`UPDATE lineas SET ${campo} = ?, modificadoEn = ? WHERE id = ?`).run(valor, ahora, id);
           historial.anotar(db, sesion, "lineas", id, "editar", campo, valorAntes, valor);
         };
+        const medidas = new Set(db.prepare(`SELECT DISTINCT m.lineaId FROM mediciones m JOIN lineas l ON l.id = m.lineaId
+    WHERE l.presupuestoId = ? AND m.fase = 'obra'`).all(presupuestoId).map((r) => r.lineaId));
         db.exec("SAVEPOINT coste_desde_compras");
         try {
           const fila = db.prepare("SELECT * FROM lineas WHERE id = ?");
@@ -55623,6 +55794,7 @@ ${linea}` : linea;
             const r = { antes: {}, puesto: {} };
             let tocada = false;
             for (const campo of CAMPOS_OBRA) {
+              if (campo === "cantidadObra" && medidas.has(id)) continue;
               const mio = campo in previo.puesto && igual(f[campo], previo.puesto[campo]);
               const base = mio ? previo.antes[campo] ?? null : f[campo];
               if (a[campo] !== void 0) {
@@ -55719,6 +55891,7 @@ ${linea}` : linea;
             if (viejo && !usadas.has(viejo.id)) {
               usadas.add(viejo.id);
               idPorCodigo.set(n.codigo, viejo.id);
+              if (medidas.has(viejo.id)) delete valores.cantidadObra;
               if (ajustar(viejo, valores)) cambios.cambiadas += 1;
               continue;
             }
@@ -55748,6 +55921,10 @@ ${linea}` : linea;
             );
             historial.anotar(db, sesion, "lineas", id, "crear", null, null, `${n.codigo} ${n.resumen}`);
             cambios.creadas += 1;
+          }
+          for (const x of existentes.filter((y) => y.tipo === "partida" && medidas.has(y.id))) {
+            usadas.add(x.id);
+            if (x.padreId) usadas.add(x.padreId);
           }
           for (const x of existentes.filter((y) => y.tipo === "partida" && !usadas.has(y.id))) {
             db.prepare("DELETE FROM lineas WHERE id = ?").run(x.id);
@@ -59180,6 +59357,17 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         const dia = (v) => v ? String(v).slice(0, 10) : "";
         const fechaEs = (d) => d ? dia(d).split("-").reverse().join("/") : "";
         const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+        function informe() {
+          if (typeof __require !== "undefined") {
+            try {
+              return require_informeReparaciones();
+            } catch {
+            }
+          }
+          return typeof window !== "undefined" ? window.INFORME_REPARACIONES : null;
+        }
+        const ESTADOS_CON_FICHA = /* @__PURE__ */ new Set(["terminada", "cerrada"]);
+        const conFicha = (lista) => (lista || []).filter((x) => ESTADOS_CON_FICHA.has(x.estado));
         function papel() {
           if (typeof __require !== "undefined") {
             try {
@@ -59192,12 +59380,6 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         const ESTADO = { abierta: "Abierta", enCurso: "En curso", terminada: "Por revisar", cerrada: "Cerrada", anulada: "Anulada" };
         const PRIORIDAD = { alta: "Alta", media: "Media", baja: "Baja" };
         const TITULO = { abiertas: "Incidencias abiertas", cerradas: "Incidencias cerradas", todas: "Todas las incidencias", seleccion: "Incidencias seleccionadas" };
-        const CRITERIO = {
-          abiertas: "Sin cerrar: abiertas, en curso y terminadas por revisar.",
-          cerradas: "Cerradas por el jefe de obra.",
-          todas: "Todas las incidencias de la obra.",
-          seleccion: "Las elegidas a mano en el di\xE1logo del PDF."
-        };
         const queDe = (v) => v === "cerradas" || v === "todas" || v === "seleccion" ? v : "abiertas";
         function elegir(filas, ids) {
           const porId = new Map((filas || []).map((f) => [f.id, f]));
@@ -59210,7 +59392,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           }
           return out;
         }
-        function html(lista, que, { obra = {}, hoy = "", alcance = "" } = {}) {
+        function html(lista, que, { obra = {}, hoy = "", fichas = [] } = {}) {
           const P = papel();
           const q = queDe(que);
           const conCierre = q !== "abiertas";
@@ -59247,17 +59429,19 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     <tfoot style="display: table-row-group"><tr><th colspan="${cab.length}">${total}</th></tr></tfoot>
   </table>`;
           const cuerpo = `<article class="informeServTec informeListadoInc">
+    ${/* 29-oct, JC: el título grande, solo el nombre de la obra (sin el código) y sin subtítulo. */
+          ""}
     ${P.portada({
             tipo: titulo,
-            titulo: nombreObra || "Obra",
-            subtitulo: `${CRITERIO[q]}${alcance ? ` \xB7 ${alcance}` : ""}`,
-            datos: [["Fecha", fechaEs(hoy)], ["Incidencias", String(n)], ...vencidas ? [["Vencidas", String(vencidas)]] : []]
+            titulo: llano(obra.nombre) || llano(obra.codigo) || "Obra",
+            datos: [["Fecha", fechaEs(hoy)], ["Incidencias", String(n)], ...vencidas ? [["Vencidas", String(vencidas)]] : [], ...fichas && fichas.length ? [["Fichas", String(fichas.length)]] : []]
           })}
     ${n ? tabla : '<p class="nota">No hay incidencias en este listado.</p>'}
+    ${n && fichas && fichas.length ? `<div class="informeReparaciones fichasListado">${fichas.map(informe().hojaReparacion).join("")}</div>` : ""}
   </article>`;
           return P.hoja({ documento: titulo, obra: nombreObra, fecha: hoy, cuerpo, pie: `${titulo} \xB7 ${nombreObra}`, clase: "apaisado papelServTec", marca: obra });
         }
-        const API = { elegir, html, queDe, TITULO };
+        const API = { elegir, html, queDe, conFicha, TITULO };
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.LISTADO_INCIDENCIAS = API;
       })();
@@ -59279,6 +59463,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
       var FR = require_firmasReparacion();
       var IST = require_informeServicioTecnico();
       var N = require_motor();
+      var FMOV = require_filaMovil();
       var { limpiarCoste } = require_partesIncidencia2();
       var { puede, campoVetado } = require_roles();
       var { nuevoId } = require_repositorio();
@@ -59332,7 +59517,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           horas: por("incidenciaHoras", "fecha, creadoEn"),
           partes: por("incidenciaPartes", "creadoEn"),
           comentarios: por("incidenciaComentarios", "creadoEn"),
-          equipos: repo.db.prepare("SELECT id, tag, planta, sala, codSala, zona, marca, modelo, denominacion, grupo, familia, plantillaPM, equipoAsociado FROM equiposObra WHERE obraId = ? ORDER BY tag").all(obraId)
+          equipos: repo.db.prepare("SELECT id, tag, planta, sala, codSala, salaGris, salaGrisNombre, salaGrisEstado, zona, marca, modelo, denominacion, grupo, familia, plantillaPM, equipoAsociado FROM equiposObra WHERE obraId = ? ORDER BY tag").all(obraId)
         };
       }
       var agrupar = (lista, clave) => {
@@ -59361,7 +59546,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             id: e.id,
             tag: e.tag,
             planta: e.planta,
-            sala: e.sala || "",
+            sala: FMOV.salaVisibleDe(e) || "",
             codSala: e.codSala || "",
             zona: e.zona || "",
             marca: e.marca,
@@ -60184,7 +60369,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           hojas: require_papel().excelConLogo(EP.hojas(lista, cerr ? "cerrados" : "abiertos", { obra: d.obra, hoy: hoy(), alcance }), d.obra)
         };
       }
-      function listadoIncidencias(repo, sesion, obraId, { que = "abiertas", ids = null, alcance = "" } = {}) {
+      function listadoIncidencias(repo, sesion, obraId, { que = "abiertas", ids = null, alcance = "", rutas = null } = {}) {
         if (!puede(sesion.rol, "incidencias", "exportar")) return { error: "Tu rol no puede exportar las incidencias." };
         const d = obra(repo, sesion, obraId);
         if (!d) return { error: "No se encuentra la obra." };
@@ -60192,7 +60377,21 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         const q = LI.queDe(que);
         const lista = LI.elegir(d.filas, ids);
         const nombre = `${d.obra.codigo} ${LI.TITULO[q].toLowerCase()} ${hoy()}`.replace(/[\\/:*?"<>|]/g, "-");
-        return { n: lista.length, nombre, html: LI.html(lista, q, { obra: d.obra, hoy: hoy(), alcance: llano(alcance) }) };
+        const persona = nombres(repo);
+        const fichas = LI.conFicha(lista).map((r) => ({
+          ...r,
+          comentarios: repo.listar("incidenciaComentarios", sesion, { condicion: "incidenciaId = ?", params: [r.id], orden: "creadoEn" }).map((c) => ({ ...c, persona: persona.get(c.personaId) || null })),
+          fotos: (r.fotos || []).map((f) => ({ ...fotoEmbebida(f, rutas), momento: f.momento || null })).filter((e) => e.src),
+          ...firmasDeInforme(repo, sesion, r)
+        }));
+        return { n: lista.length, fichas: fichas.length, nombre, html: LI.html(lista, q, { obra: d.obra, hoy: hoy(), alcance: llano(alcance), fichas }) };
+      }
+      function fotosListado(repo, sesion, obraId, { ids = null } = {}) {
+        if (!puede(sesion.rol, "incidencias", "exportar")) return [];
+        const d = obra(repo, sesion, obraId);
+        if (!d) return [];
+        const LI = require_listadoIncidencias();
+        return LI.conFicha(LI.elegir(d.filas, ids)).flatMap((r) => r.fotos || []);
       }
       function costes(repo, sesion, obraId) {
         const d = obra(repo, sesion, obraId);
@@ -60292,6 +60491,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         fotosServicioTecnico,
         equiposPorEstado,
         listadoIncidencias,
+        fotosListado,
         /* Las tarifas de la obra, también para los partes de trabajo. */
         tarifasDe,
         precioCobroDe,
@@ -64692,6 +64892,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         if (!f) return null;
         const F = require_fichas();
         const X = require_fichaExcel();
+        if (!X.usaHoja(f.plantilla.nombre, obra || {})) return null;
         const hoja = X.hojaFicha(F.evaluar(f.plantilla, f.datos), f.plantilla, { equipo: f.equipo, titulo: f.titulo, obra: obra || {} });
         if (!hoja) return null;
         const e = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -66420,66 +66621,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // shared/commissioning/filaMovil.js
-  var require_filaMovil = __commonJS({
-    "shared/commissioning/filaMovil.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function() {
-        const llano = (v) => String(v ?? "").trim();
-        const clave = (v) => llano(v).toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[\s_-]+/g, "-");
-        const PAPEL_DELANTE = /^U[EI][\s_-]+/i;
-        const PAPEL_DETRAS = /[\s_-]+U[EI]$/i;
-        function sinPapel(tag, planta) {
-          let t = llano(tag).replace(PAPEL_DELANTE, "").replace(PAPEL_DETRAS, "");
-          const p = llano(planta);
-          if (p) {
-            const re = new RegExp(`^${p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\s_-]+`, "i");
-            const sin = t.replace(re, "");
-            if (sin) t = sin;
-          }
-          return t;
-        }
-        function nombreConjunto(unidades, planta) {
-          const us = (unidades || []).filter((u) => u && llano(u.tag));
-          if (us.length !== 2) return null;
-          if (!us.every((u) => PAPEL_DELANTE.test(llano(u.tag)) || PAPEL_DETRAS.test(llano(u.tag)))) return null;
-          const nombres = us.map((u) => sinPapel(u.tag, planta));
-          if (!nombres[0] || clave(nombres[0]) !== clave(nombres[1])) return null;
-          return nombres[0];
-        }
-        const esCodigoLocal = (v) => /^[A-Z]{1,2}\d{0,2}\.[A-Z]{2,4}\.\d{2,}$/i.test(llano(v));
-        function salaGrisDe(u = {}) {
-          const g = llano(u.salaGris);
-          if (!g || llano(u.salaGrisEstado) !== "asignada") return null;
-          const n = llano(u.salaGrisNombre);
-          return n ? `${g} \xB7 ${n}` : g;
-        }
-        function localDe(unidades) {
-          const us = (unidades || []).filter(Boolean);
-          const dondeEsta = (u2) => salaGrisDe(u2) || llano(u2.sala);
-          const interiores = new Set(us.filter((u2) => u2.papel === "UI" && dondeEsta(u2)).map(dondeEsta));
-          if (interiores.size > 1) return null;
-          const orden = [...us.filter((u2) => u2.papel === "UI"), ...us.filter((u2) => u2.papel !== "UI")];
-          const u = orden.find((x) => dondeEsta(x)) || {};
-          const gris = salaGrisDe(u);
-          if (gris) return gris;
-          const s = u.sala;
-          if (!llano(s)) return null;
-          return esCodigoLocal(s) ? `Local ${llano(s)}` : llano(s);
-        }
-        const pideBalanceo = (f) => f.ensayoRequerido === "balanceo" || f.ensayoRequerido === "ambos";
-        function llevaPlanoBocas(f = {}) {
-          return f.medicion ? Boolean(f.medicion.plano) : pideBalanceo(f) || /UTA|climatiz|recuper|fan.?coil|extrac|ventil/i.test(f.grupo || "");
-        }
-        const API = { sinPapel, nombreConjunto, esCodigoLocal, salaGrisDe, localDe, llevaPlanoBocas };
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.FILA_MOVIL_CX = API;
-      })();
-    }
-  });
-
-  // node_modules/tslib/tslib.es6.js
+  // ../Vidaire_Obras/node_modules/tslib/tslib.es6.js
   var tslib_es6_exports = {};
   __export(tslib_es6_exports, {
     __assign: () => __assign,
@@ -66784,7 +66926,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
   }
   var import_buffer_global8, extendStatics, __assign;
   var init_tslib_es6 = __esm({
-    "node_modules/tslib/tslib.es6.js"() {
+    "../Vidaire_Obras/node_modules/tslib/tslib.es6.js"() {
       import_buffer_global8 = __toESM(require_buffer_global());
       extendStatics = function(d, b) {
         extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
@@ -66807,9 +66949,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/base64.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/base64.js
   var require_base64 = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/base64.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/base64.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -66877,9 +67019,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/strings.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/strings.js
   var require_strings = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/strings.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/strings.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -67030,9 +67172,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/arrays.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/arrays.js
   var require_arrays = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/arrays.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/arrays.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -67161,9 +67303,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/async.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/async.js
   var require_async = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/async.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/async.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -67178,9 +67320,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/unicode.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/unicode.js
   var require_unicode = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/unicode.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/unicode.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -67321,9 +67463,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/numbers.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/numbers.js
   var require_numbers = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/numbers.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/numbers.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -67364,9 +67506,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/errors.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/errors.js
   var require_errors = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/errors.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/errors.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -67377,9 +67519,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pako/lib/utils/common.js
+  // ../Vidaire_Obras/node_modules/pako/lib/utils/common.js
   var require_common = __commonJS({
-    "node_modules/pako/lib/utils/common.js"(exports) {
+    "../Vidaire_Obras/node_modules/pako/lib/utils/common.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var TYPED_OK = typeof Uint8Array !== "undefined" && typeof Uint16Array !== "undefined" && typeof Int32Array !== "undefined";
@@ -67469,9 +67611,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pako/lib/zlib/trees.js
+  // ../Vidaire_Obras/node_modules/pako/lib/zlib/trees.js
   var require_trees = __commonJS({
-    "node_modules/pako/lib/zlib/trees.js"(exports) {
+    "../Vidaire_Obras/node_modules/pako/lib/zlib/trees.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var utils = require_common();
@@ -68112,9 +68254,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pako/lib/zlib/adler32.js
+  // ../Vidaire_Obras/node_modules/pako/lib/zlib/adler32.js
   var require_adler32 = __commonJS({
-    "node_modules/pako/lib/zlib/adler32.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/pako/lib/zlib/adler32.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function adler32(adler, buf, len, pos) {
@@ -68135,9 +68277,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pako/lib/zlib/crc32.js
+  // ../Vidaire_Obras/node_modules/pako/lib/zlib/crc32.js
   var require_crc32 = __commonJS({
-    "node_modules/pako/lib/zlib/crc32.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/pako/lib/zlib/crc32.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function makeTable() {
@@ -68164,9 +68306,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pako/lib/zlib/messages.js
+  // ../Vidaire_Obras/node_modules/pako/lib/zlib/messages.js
   var require_messages = __commonJS({
-    "node_modules/pako/lib/zlib/messages.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/pako/lib/zlib/messages.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       module.exports = {
@@ -68192,9 +68334,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pako/lib/zlib/deflate.js
+  // ../Vidaire_Obras/node_modules/pako/lib/zlib/deflate.js
   var require_deflate = __commonJS({
-    "node_modules/pako/lib/zlib/deflate.js"(exports) {
+    "../Vidaire_Obras/node_modules/pako/lib/zlib/deflate.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var utils = require_common();
@@ -69242,9 +69384,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pako/lib/utils/strings.js
+  // ../Vidaire_Obras/node_modules/pako/lib/utils/strings.js
   var require_strings2 = __commonJS({
-    "node_modules/pako/lib/utils/strings.js"(exports) {
+    "../Vidaire_Obras/node_modules/pako/lib/utils/strings.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var utils = require_common();
@@ -69385,9 +69527,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pako/lib/zlib/zstream.js
+  // ../Vidaire_Obras/node_modules/pako/lib/zlib/zstream.js
   var require_zstream = __commonJS({
-    "node_modules/pako/lib/zlib/zstream.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/pako/lib/zlib/zstream.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function ZStream() {
@@ -69408,9 +69550,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pako/lib/deflate.js
+  // ../Vidaire_Obras/node_modules/pako/lib/deflate.js
   var require_deflate2 = __commonJS({
-    "node_modules/pako/lib/deflate.js"(exports) {
+    "../Vidaire_Obras/node_modules/pako/lib/deflate.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var zlib_deflate = require_deflate();
@@ -69570,9 +69712,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pako/lib/zlib/inffast.js
+  // ../Vidaire_Obras/node_modules/pako/lib/zlib/inffast.js
   var require_inffast = __commonJS({
-    "node_modules/pako/lib/zlib/inffast.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/pako/lib/zlib/inffast.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var BAD = 30;
@@ -69800,9 +69942,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pako/lib/zlib/inftrees.js
+  // ../Vidaire_Obras/node_modules/pako/lib/zlib/inftrees.js
   var require_inftrees = __commonJS({
-    "node_modules/pako/lib/zlib/inftrees.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/pako/lib/zlib/inftrees.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var utils = require_common();
@@ -70117,9 +70259,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pako/lib/zlib/inflate.js
+  // ../Vidaire_Obras/node_modules/pako/lib/zlib/inflate.js
   var require_inflate = __commonJS({
-    "node_modules/pako/lib/zlib/inflate.js"(exports) {
+    "../Vidaire_Obras/node_modules/pako/lib/zlib/inflate.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var utils = require_common();
@@ -71357,9 +71499,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pako/lib/zlib/constants.js
+  // ../Vidaire_Obras/node_modules/pako/lib/zlib/constants.js
   var require_constants = __commonJS({
-    "node_modules/pako/lib/zlib/constants.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/pako/lib/zlib/constants.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       module.exports = {
@@ -71405,9 +71547,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pako/lib/zlib/gzheader.js
+  // ../Vidaire_Obras/node_modules/pako/lib/zlib/gzheader.js
   var require_gzheader = __commonJS({
-    "node_modules/pako/lib/zlib/gzheader.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/pako/lib/zlib/gzheader.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function GZheader() {
@@ -71426,9 +71568,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pako/lib/inflate.js
+  // ../Vidaire_Obras/node_modules/pako/lib/inflate.js
   var require_inflate2 = __commonJS({
-    "node_modules/pako/lib/inflate.js"(exports) {
+    "../Vidaire_Obras/node_modules/pako/lib/inflate.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var zlib_inflate = require_inflate();
@@ -71601,9 +71743,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pako/index.js
+  // ../Vidaire_Obras/node_modules/pako/index.js
   var require_pako = __commonJS({
-    "node_modules/pako/index.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/pako/index.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var assign = require_common().assign;
@@ -71616,9 +71758,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/utils.js
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/utils.js
   var require_utils = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/utils.js"(exports) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/utils.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -71679,107 +71821,107 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Courier-Bold.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-Bold.compressed.json
   var require_Courier_Bold_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Courier-Bold.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-Bold.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Courier-BoldOblique.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-BoldOblique.compressed.json
   var require_Courier_BoldOblique_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Courier-BoldOblique.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-BoldOblique.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Courier-Oblique.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-Oblique.compressed.json
   var require_Courier_Oblique_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Courier-Oblique.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-Oblique.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Courier.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier.compressed.json
   var require_Courier_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Courier.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Bold.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Bold.compressed.json
   var require_Helvetica_Bold_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Bold.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Bold.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Helvetica-BoldOblique.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-BoldOblique.compressed.json
   var require_Helvetica_BoldOblique_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Helvetica-BoldOblique.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-BoldOblique.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Oblique.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Oblique.compressed.json
   var require_Helvetica_Oblique_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Oblique.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Oblique.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Helvetica.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica.compressed.json
   var require_Helvetica_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Helvetica.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Times-Bold.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Bold.compressed.json
   var require_Times_Bold_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Times-Bold.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Bold.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Times-BoldItalic.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-BoldItalic.compressed.json
   var require_Times_BoldItalic_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Times-BoldItalic.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-BoldItalic.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Times-Italic.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Italic.compressed.json
   var require_Times_Italic_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Times-Italic.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Italic.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Times-Roman.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Roman.compressed.json
   var require_Times_Roman_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Times-Roman.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Roman.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Symbol.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Symbol.compressed.json
   var require_Symbol_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Symbol.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Symbol.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/ZapfDingbats.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/ZapfDingbats.compressed.json
   var require_ZapfDingbats_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/ZapfDingbats.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/ZapfDingbats.compressed.json"(exports, module) {
       module.exports = "eJxtmNtu20YQhl+F4FULyMGeD7pz3AY1ChtG7NpFA18w1NomIlECSRcxgrx7SVk7+wOdG8H5OJydf2Z2d5gf9cV+t0v9VK/r+6vXsXlOlbHe28paq229qj/t++m62aXZ4J/m8PRb1z9/baZxefK63Z6eXN5dVMvTCh83u277xr/6kLrnl2XNq7TpXnczuZyabdee98/b2VzM/x4/dd/T5qab2pd6PQ2vaVVfvDRD005puE3Lu7eH1HbN9hTjx4/77/X6y5lcnUmjVzHIVVDicVX/1W/SsO36dLMfu6nb9/X6TAoBD+5euvZbn8axXtuZ36dhPJrVQqgPQoh5hev91LWLkIv94W1Ygq9+aX+tZAx2tfz64284/sblN/rqfLP/mqrbt3FKu7G67Nv9cNgPzZQ2H6rz7bb6vLgZq89pTMO/M/xfEqturJpqSM/d7GJIm2oamk3aNcO3av80O5xh3yyKmm1193ZIT02bqovTKjP+MAf++7zsZvZ3276kYyWWXB0z99S18/PbafPHQ71W4fjn/fxnFO+ZvkrT0LVzTr78qB/+nk38bHM9exgP8zr1z9U7jt6840YW5uSJKcZOCaBBnKgm5mU8MVNYyMwWFvO7Ukagkmgg6sDWQ5yFFqjzUrLEaQ3BEmiwNsMSaZS0vgWfOkPHWQowNeTUc0kumnxZvsgPxlGai6VTGUqAVCTQ6QkWnc77DKEiLktSUBJKqHIQZ86d8gCpHYoiEzMsb1ubYy8vW50DChB5ZhGqrijD0EqUIeiaEHIfCg5Kpuu0ApiToaGPSY0uaQsyr65L2oKi1yFt1PLaQ3lzfXTgXodGoJYzglndSLDMPg1sTPJpQJHJigw0QrGERqD9YhyTOgONQDUyuF1zaxuokc/BW2ztXCMrGZ9WMW1oQZHIXWNBkSCfRZEL5BMUiZw6CzVSFCfUSGZFNjIldoKDkonTKQiJIGzWmFd3BizJJ9SINoLDriOfUCOZS+zg+KGD1qGiLNMLxtJD1/ns00ON6EzyUCM6vbxhoBKaqbG3DFQCNiL1iHccBPV0DHhQH/JW8EW90dkyFKGywCJU0WkVSvSGeiSUODWFFD0HYdPQVoiRgfPMA+/nnRgiAyNYSjpWNQcNSMrtFCUH4ZIRpSCWocFCSuhCEY6hoUClc0WC52BJlCYYLQdhN+hygRRRlo5BKRRLS6oihSqh+ZzzRGG1Mo4Iz1LoP0qsxDGFzk0JE42ji0jCPejomJKCuwil4m5CiRMEUMVSzVLDUstSx1Juc0oVWMpqY295qVltmtWmWW2a1aZZbZrVplltmtWmWW2G1WZYbYbVZlhthtVmWG2G1WZYbYbVZlhtltVmWW2W1WZZbZbVZlltltVmWW2W1QYjQCh7E2aAQHeGhCFgPoNoy8KNb2wxBhmGKBxoUZXlLGsLI6AsftEDHV0wIURVbANLcTKlGGBIKPOAxCmhePCKUwFzAmpDFRQvjA9R06Hq8TONvshgKDCuRAZTXigUxjxNFfKRo3CLhnIJBMFRvMZpqpNBMlQJzGT5WFQMVQI/AikPMIhEU1aDjqJvQwmjSHB05cC9jbYwc5UtAHNLhDw41ha+lEqF4JaH3gmB61SYcqInxTDmQK8v08vjqv4zDf1N0w3Lf4A8/vwPpfK11w==";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Font.js
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Font.js
   var require_Font = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Font.js"(exports) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Font.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -71874,16 +72016,16 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/all-encodings.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/all-encodings.compressed.json
   var require_all_encodings_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/all-encodings.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/all-encodings.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Encoding.js
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Encoding.js
   var require_Encoding = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Encoding.js"(exports) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Encoding.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -71929,9 +72071,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/index.js
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/index.js
   var require_lib = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function __export2(m) {
@@ -71943,9 +72085,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/objects.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/objects.js
   var require_objects = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/objects.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/objects.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -71966,9 +72108,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/validators.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/validators.js
   var require_validators = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/validators.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/validators.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -72152,9 +72294,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/pdfDocEncoding.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/pdfDocEncoding.js
   var require_pdfDocEncoding = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/pdfDocEncoding.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/pdfDocEncoding.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -72219,9 +72361,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/Cache.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/Cache.js
   var require_Cache = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/Cache.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/Cache.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -72253,9 +72395,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/index.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/index.js
   var require_utils2 = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -72277,9 +72419,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/errors.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/errors.js
   var require_errors2 = __commonJS({
-    "node_modules/pdf-lib/cjs/core/errors.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/errors.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -72688,9 +72830,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/syntax/CharCodes.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/CharCodes.js
   var require_CharCodes = __commonJS({
-    "node_modules/pdf-lib/cjs/core/syntax/CharCodes.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/CharCodes.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -72759,9 +72901,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/document/PDFHeader.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFHeader.js
   var require_PDFHeader = __commonJS({
-    "node_modules/pdf-lib/cjs/core/document/PDFHeader.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFHeader.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -72810,9 +72952,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFObject.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFObject.js
   var require_PDFObject = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFObject.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFObject.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -72841,9 +72983,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFNumber.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFNumber.js
   var require_PDFNumber = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFNumber.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFNumber.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -72889,9 +73031,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFArray.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFArray.js
   var require_PDFArray = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFArray.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFArray.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -73017,9 +73159,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFBool.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFBool.js
   var require_PDFBool = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFBool.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFBool.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -73077,9 +73219,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/syntax/Delimiters.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Delimiters.js
   var require_Delimiters = __commonJS({
-    "node_modules/pdf-lib/cjs/core/syntax/Delimiters.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Delimiters.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -73100,9 +73242,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/syntax/Whitespace.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Whitespace.js
   var require_Whitespace = __commonJS({
-    "node_modules/pdf-lib/cjs/core/syntax/Whitespace.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Whitespace.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -73119,9 +73261,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/syntax/Irregular.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Irregular.js
   var require_Irregular = __commonJS({
-    "node_modules/pdf-lib/cjs/core/syntax/Irregular.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Irregular.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -73140,9 +73282,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFName.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFName.js
   var require_PDFName = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFName.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFName.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -73276,9 +73418,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFNull.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFNull.js
   var require_PDFNull = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFNull.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFNull.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -73318,9 +73460,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFDict.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFDict.js
   var require_PDFDict = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFDict.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFDict.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -73463,9 +73605,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFStream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFStream.js
   var require_PDFStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -73547,9 +73689,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFRawStream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFRawStream.js
   var require_PDFRawStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFRawStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFRawStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -73590,9 +73732,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFRef.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFRef.js
   var require_PDFRef = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFRef.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFRef.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -73648,9 +73790,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/operators/PDFOperator.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/operators/PDFOperator.js
   var require_PDFOperator = __commonJS({
-    "node_modules/pdf-lib/cjs/core/operators/PDFOperator.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/operators/PDFOperator.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -73714,9 +73856,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/operators/PDFOperatorNames.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/operators/PDFOperatorNames.js
   var require_PDFOperatorNames = __commonJS({
-    "node_modules/pdf-lib/cjs/core/operators/PDFOperatorNames.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/operators/PDFOperatorNames.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -73800,9 +73942,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/structures/PDFFlateStream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFFlateStream.js
   var require_PDFFlateStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/structures/PDFFlateStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFFlateStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -73844,9 +73986,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/structures/PDFContentStream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFContentStream.js
   var require_PDFContentStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/structures/PDFContentStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFContentStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -73917,9 +74059,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/rng.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/rng.js
   var require_rng = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/rng.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/rng.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -73944,9 +74086,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/PDFContext.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/PDFContext.js
   var require_PDFContext = __commonJS({
-    "node_modules/pdf-lib/cjs/core/PDFContext.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/PDFContext.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -74144,9 +74286,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/structures/PDFPageLeaf.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFPageLeaf.js
   var require_PDFPageLeaf = __commonJS({
-    "node_modules/pdf-lib/cjs/core/structures/PDFPageLeaf.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFPageLeaf.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -74359,9 +74501,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/PDFObjectCopier.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/PDFObjectCopier.js
   var require_PDFObjectCopier = __commonJS({
-    "node_modules/pdf-lib/cjs/core/PDFObjectCopier.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/PDFObjectCopier.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -74457,9 +74599,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/document/PDFCrossRefSection.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFCrossRefSection.js
   var require_PDFCrossRefSection = __commonJS({
-    "node_modules/pdf-lib/cjs/core/document/PDFCrossRefSection.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFCrossRefSection.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -74587,9 +74729,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/document/PDFTrailer.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFTrailer.js
   var require_PDFTrailer = __commonJS({
-    "node_modules/pdf-lib/cjs/core/document/PDFTrailer.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFTrailer.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -74639,9 +74781,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/document/PDFTrailerDict.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFTrailerDict.js
   var require_PDFTrailerDict = __commonJS({
-    "node_modules/pdf-lib/cjs/core/document/PDFTrailerDict.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFTrailerDict.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -74682,9 +74824,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/structures/PDFObjectStream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFObjectStream.js
   var require_PDFObjectStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/structures/PDFObjectStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFObjectStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -74769,9 +74911,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/writers/PDFWriter.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/writers/PDFWriter.js
   var require_PDFWriter = __commonJS({
-    "node_modules/pdf-lib/cjs/core/writers/PDFWriter.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/writers/PDFWriter.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -74923,9 +75065,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFInvalidObject.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFInvalidObject.js
   var require_PDFInvalidObject = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFInvalidObject.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFInvalidObject.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -74966,9 +75108,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/structures/PDFCrossRefStream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFCrossRefStream.js
   var require_PDFCrossRefStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/structures/PDFCrossRefStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFCrossRefStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -75159,9 +75301,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/writers/PDFStreamWriter.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/writers/PDFStreamWriter.js
   var require_PDFStreamWriter = __commonJS({
-    "node_modules/pdf-lib/cjs/core/writers/PDFStreamWriter.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/writers/PDFStreamWriter.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -75283,9 +75425,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFHexString.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFHexString.js
   var require_PDFHexString = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFHexString.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFHexString.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -75366,9 +75508,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/StandardFontEmbedder.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/StandardFontEmbedder.js
   var require_StandardFontEmbedder = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/StandardFontEmbedder.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/StandardFontEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -75460,9 +75602,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/CMap.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CMap.js
   var require_CMap = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/CMap.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CMap.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -75510,9 +75652,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/FontFlags.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/FontFlags.js
   var require_FontFlags = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/FontFlags.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/FontFlags.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -75556,9 +75698,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFString.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFString.js
   var require_PDFString = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFString.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFString.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -75678,9 +75820,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/CustomFontEmbedder.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CustomFontEmbedder.js
   var require_CustomFontEmbedder = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/CustomFontEmbedder.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CustomFontEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -75922,9 +76064,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/CustomFontSubsetEmbedder.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CustomFontSubsetEmbedder.js
   var require_CustomFontSubsetEmbedder = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/CustomFontSubsetEmbedder.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CustomFontSubsetEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -75999,9 +76141,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/FileEmbedder.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/FileEmbedder.js
   var require_FileEmbedder = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/FileEmbedder.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/FileEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -76080,9 +76222,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/JpegEmbedder.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/JpegEmbedder.js
   var require_JpegEmbedder = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/JpegEmbedder.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/JpegEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -76200,9 +76342,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/@pdf-lib/upng/cjs/UPNG.js
+  // ../Vidaire_Obras/node_modules/@pdf-lib/upng/cjs/UPNG.js
   var require_UPNG = __commonJS({
-    "node_modules/@pdf-lib/upng/cjs/UPNG.js"(exports) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/upng/cjs/UPNG.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", {
@@ -77671,9 +77813,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/png.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/png.js
   var require_png = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/png.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/png.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -77747,9 +77889,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/PngEmbedder.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/PngEmbedder.js
   var require_PngEmbedder = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/PngEmbedder.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/PngEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -77822,9 +77964,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/streams/Stream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/Stream.js
   var require_Stream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/streams/Stream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/Stream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -77930,9 +78072,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/streams/DecodeStream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/DecodeStream.js
   var require_DecodeStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/streams/DecodeStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/DecodeStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -78078,9 +78220,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/streams/Ascii85Stream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/Ascii85Stream.js
   var require_Ascii85Stream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/streams/Ascii85Stream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/Ascii85Stream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -78162,9 +78304,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/streams/AsciiHexStream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/AsciiHexStream.js
   var require_AsciiHexStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/streams/AsciiHexStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/AsciiHexStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -78228,9 +78370,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/streams/FlateStream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/FlateStream.js
   var require_FlateStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/streams/FlateStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/FlateStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -79116,9 +79258,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/streams/LZWStream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/LZWStream.js
   var require_LZWStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/streams/LZWStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/LZWStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -79248,9 +79390,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/streams/RunLengthStream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/RunLengthStream.js
   var require_RunLengthStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/streams/RunLengthStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/RunLengthStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -79299,9 +79441,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/streams/decode.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/decode.js
   var require_decode = __commonJS({
-    "node_modules/pdf-lib/cjs/core/streams/decode.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/decode.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -79362,9 +79504,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/PDFPageEmbedder.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/PDFPageEmbedder.js
   var require_PDFPageEmbedder = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/PDFPageEmbedder.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/PDFPageEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -79458,9 +79600,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/interactive/ViewerPreferences.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/interactive/ViewerPreferences.js
   var require_ViewerPreferences = __commonJS({
-    "node_modules/pdf-lib/cjs/core/interactive/ViewerPreferences.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/interactive/ViewerPreferences.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -79706,9 +79848,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroField.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroField.js
   var require_PDFAcroField = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroField.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroField.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -79854,9 +79996,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/annotation/BorderStyle.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/BorderStyle.js
   var require_BorderStyle = __commonJS({
-    "node_modules/pdf-lib/cjs/core/annotation/BorderStyle.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/BorderStyle.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -79893,9 +80035,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/annotation/PDFAnnotation.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/PDFAnnotation.js
   var require_PDFAnnotation = __commonJS({
-    "node_modules/pdf-lib/cjs/core/annotation/PDFAnnotation.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/PDFAnnotation.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -80023,9 +80165,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/annotation/AppearanceCharacteristics.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/AppearanceCharacteristics.js
   var require_AppearanceCharacteristics = __commonJS({
-    "node_modules/pdf-lib/cjs/core/annotation/AppearanceCharacteristics.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/AppearanceCharacteristics.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -80153,9 +80295,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/annotation/PDFWidgetAnnotation.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/PDFWidgetAnnotation.js
   var require_PDFWidgetAnnotation = __commonJS({
-    "node_modules/pdf-lib/cjs/core/annotation/PDFWidgetAnnotation.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/PDFWidgetAnnotation.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -80272,9 +80414,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroTerminal.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroTerminal.js
   var require_PDFAcroTerminal = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroTerminal.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroTerminal.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -80341,9 +80483,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroButton.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroButton.js
   var require_PDFAcroButton = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroButton.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroButton.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -80440,9 +80582,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroCheckBox.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroCheckBox.js
   var require_PDFAcroCheckBox = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroCheckBox.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroCheckBox.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -80499,9 +80641,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/flags.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/flags.js
   var require_flags = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/flags.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/flags.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -80544,9 +80686,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroChoice.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroChoice.js
   var require_PDFAcroChoice = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroChoice.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroChoice.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -80676,9 +80818,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroComboBox.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroComboBox.js
   var require_PDFAcroComboBox = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroComboBox.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroComboBox.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -80711,9 +80853,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroNonTerminal.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroNonTerminal.js
   var require_PDFAcroNonTerminal = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroNonTerminal.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroNonTerminal.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -80754,9 +80896,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroSignature.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroSignature.js
   var require_PDFAcroSignature = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroSignature.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroSignature.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -80779,9 +80921,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroText.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroText.js
   var require_PDFAcroText = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroText.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroText.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -80857,9 +80999,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroPushButton.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroPushButton.js
   var require_PDFAcroPushButton = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroPushButton.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroPushButton.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -80892,9 +81034,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroRadioButton.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroRadioButton.js
   var require_PDFAcroRadioButton = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroRadioButton.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroRadioButton.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -80958,9 +81100,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroListBox.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroListBox.js
   var require_PDFAcroListBox = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroListBox.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroListBox.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -80991,9 +81133,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/utils.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/utils.js
   var require_utils3 = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/utils.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/utils.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -81102,9 +81244,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroForm.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroForm.js
   var require_PDFAcroForm = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroForm.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroForm.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -81191,9 +81333,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/index.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/index.js
   var require_acroform = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -81255,9 +81397,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/structures/PDFCatalog.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFCatalog.js
   var require_PDFCatalog = __commonJS({
-    "node_modules/pdf-lib/cjs/core/structures/PDFCatalog.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFCatalog.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -81336,9 +81478,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/structures/PDFPageTree.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFPageTree.js
   var require_PDFPageTree = __commonJS({
-    "node_modules/pdf-lib/cjs/core/structures/PDFPageTree.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFPageTree.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -81492,9 +81634,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/syntax/Numeric.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Numeric.js
   var require_Numeric = __commonJS({
-    "node_modules/pdf-lib/cjs/core/syntax/Numeric.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Numeric.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -81525,9 +81667,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/parser/BaseParser.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/BaseParser.js
   var require_BaseParser = __commonJS({
-    "node_modules/pdf-lib/cjs/core/parser/BaseParser.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/BaseParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -81641,9 +81783,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/parser/ByteStream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/ByteStream.js
   var require_ByteStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/parser/ByteStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/ByteStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -81714,9 +81856,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/syntax/Keywords.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Keywords.js
   var require_Keywords = __commonJS({
-    "node_modules/pdf-lib/cjs/core/syntax/Keywords.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Keywords.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -81806,9 +81948,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/parser/PDFObjectParser.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFObjectParser.js
   var require_PDFObjectParser = __commonJS({
-    "node_modules/pdf-lib/cjs/core/parser/PDFObjectParser.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFObjectParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -82027,9 +82169,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/parser/PDFObjectStreamParser.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFObjectStreamParser.js
   var require_PDFObjectStreamParser = __commonJS({
-    "node_modules/pdf-lib/cjs/core/parser/PDFObjectStreamParser.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFObjectStreamParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -82114,9 +82256,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/parser/PDFXRefStreamParser.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFXRefStreamParser.js
   var require_PDFXRefStreamParser = __commonJS({
-    "node_modules/pdf-lib/cjs/core/parser/PDFXRefStreamParser.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFXRefStreamParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -82209,9 +82351,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/parser/PDFParser.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFParser.js
   var require_PDFParser = __commonJS({
-    "node_modules/pdf-lib/cjs/core/parser/PDFParser.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -82551,9 +82693,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/annotation/flags.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/flags.js
   var require_flags2 = __commonJS({
-    "node_modules/pdf-lib/cjs/core/annotation/flags.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/flags.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -82577,9 +82719,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/annotation/index.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/index.js
   var require_annotation = __commonJS({
-    "node_modules/pdf-lib/cjs/core/annotation/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -82600,9 +82742,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/index.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/index.js
   var require_core = __commonJS({
-    "node_modules/pdf-lib/cjs/core/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -82804,9 +82946,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/objects.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/objects.js
   var require_objects2 = __commonJS({
-    "node_modules/pdf-lib/cjs/api/objects.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/objects.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -82824,9 +82966,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/rotations.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/rotations.js
   var require_rotations = __commonJS({
-    "node_modules/pdf-lib/cjs/api/rotations.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/rotations.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -82905,9 +83047,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/operators.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/operators.js
   var require_operators = __commonJS({
-    "node_modules/pdf-lib/cjs/api/operators.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/operators.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -83152,9 +83294,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/colors.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/colors.js
   var require_colors = __commonJS({
-    "node_modules/pdf-lib/cjs/api/colors.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/colors.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -83205,9 +83347,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/svgPath.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/svgPath.js
   var require_svgPath = __commonJS({
-    "node_modules/pdf-lib/cjs/api/svgPath.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/svgPath.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -83568,9 +83710,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/operations.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/operations.js
   var require_operations = __commonJS({
-    "node_modules/pdf-lib/cjs/api/operations.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/operations.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -84021,9 +84163,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/errors.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/errors.js
   var require_errors3 = __commonJS({
-    "node_modules/pdf-lib/cjs/api/errors.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/errors.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -84231,9 +84373,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/text/alignment.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/alignment.js
   var require_alignment = __commonJS({
-    "node_modules/pdf-lib/cjs/api/text/alignment.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/alignment.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -84247,9 +84389,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/text/layout.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/layout.js
   var require_layout = __commonJS({
-    "node_modules/pdf-lib/cjs/api/text/layout.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/layout.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -84451,9 +84593,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/appearances.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/appearances.js
   var require_appearances = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/appearances.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/appearances.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -84852,9 +84994,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFEmbeddedPage.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFEmbeddedPage.js
   var require_PDFEmbeddedPage = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFEmbeddedPage.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFEmbeddedPage.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -84913,9 +85055,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFFont.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFFont.js
   var require_PDFFont = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFFont.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFFont.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -84998,9 +85140,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFImage.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFImage.js
   var require_PDFImage = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFImage.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFImage.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -85076,9 +85218,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/image/alignment.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/image/alignment.js
   var require_alignment2 = __commonJS({
-    "node_modules/pdf-lib/cjs/api/image/alignment.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/image/alignment.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -85092,9 +85234,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/image/index.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/image/index.js
   var require_image = __commonJS({
-    "node_modules/pdf-lib/cjs/api/image/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/image/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -85103,9 +85245,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFField.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFField.js
   var require_PDFField = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFField.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFField.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -85332,9 +85474,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFCheckBox.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFCheckBox.js
   var require_PDFCheckBox = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFCheckBox.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFCheckBox.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -85450,9 +85592,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFDropdown.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFDropdown.js
   var require_PDFDropdown = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFDropdown.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFDropdown.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -85669,9 +85811,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFOptionList.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFOptionList.js
   var require_PDFOptionList = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFOptionList.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFOptionList.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -85866,9 +86008,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFRadioGroup.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFRadioGroup.js
   var require_PDFRadioGroup = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFRadioGroup.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFRadioGroup.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -86032,9 +86174,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFSignature.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFSignature.js
   var require_PDFSignature = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFSignature.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFSignature.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -86067,9 +86209,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFTextField.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFTextField.js
   var require_PDFTextField = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFTextField.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFTextField.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -86310,9 +86452,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/StandardFonts.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/StandardFonts.js
   var require_StandardFonts = __commonJS({
-    "node_modules/pdf-lib/cjs/api/StandardFonts.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/StandardFonts.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -86337,9 +86479,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFForm.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFForm.js
   var require_PDFForm = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFForm.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFForm.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -86717,9 +86859,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/sizes.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/sizes.js
   var require_sizes = __commonJS({
-    "node_modules/pdf-lib/cjs/api/sizes.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/sizes.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -86779,9 +86921,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFDocumentOptions.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFDocumentOptions.js
   var require_PDFDocumentOptions = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFDocumentOptions.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFDocumentOptions.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -86796,9 +86938,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFEmbeddedFile.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFEmbeddedFile.js
   var require_PDFEmbeddedFile = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFEmbeddedFile.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFEmbeddedFile.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -86863,9 +87005,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFJavaScript.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFJavaScript.js
   var require_PDFJavaScript = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFJavaScript.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFJavaScript.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -86926,9 +87068,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/JavaScriptEmbedder.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/JavaScriptEmbedder.js
   var require_JavaScriptEmbedder = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/JavaScriptEmbedder.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/JavaScriptEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -86973,9 +87115,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFDocument.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFDocument.js
   var require_PDFDocument = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFDocument.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFDocument.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -87681,9 +87823,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFPageOptions.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFPageOptions.js
   var require_PDFPageOptions = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFPageOptions.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFPageOptions.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -87706,9 +87848,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFPage.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFPage.js
   var require_PDFPage = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFPage.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFPage.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -88378,9 +88520,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFButton.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFButton.js
   var require_PDFButton = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFButton.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFButton.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -88489,9 +88631,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/index.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/index.js
   var require_form = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -88536,9 +88678,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/text/index.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/index.js
   var require_text = __commonJS({
-    "node_modules/pdf-lib/cjs/api/text/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -88548,9 +88690,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/index.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/index.js
   var require_api = __commonJS({
-    "node_modules/pdf-lib/cjs/api/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -88595,18 +88737,18 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // node_modules/pdf-lib/cjs/types/index.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/types/index.js
   var require_types = __commonJS({
-    "node_modules/pdf-lib/cjs/types/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/types/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
     }
   });
 
-  // node_modules/pdf-lib/cjs/index.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/index.js
   var require_cjs = __commonJS({
-    "node_modules/pdf-lib/cjs/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -89456,7 +89598,16 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           if (!b) return [404, { ok: false, error: "La foto ya no est\xE1." }];
           return { bytes: b, tipo };
         }
-        const obraDe = (ses, id) => repo.leer("obras", ses, id) || {};
+        const obraDe = (ses, id) => {
+          const o = repo.leer("obras", ses, id) || {};
+          if (!o.clienteId || o.clienteNombre) return o;
+          let c = null;
+          try {
+            c = repo.db.prepare("SELECT nombre FROM clientes WHERE id = ?").get(o.clienteId);
+          } catch {
+          }
+          return c ? { ...o, clienteNombre: c.nombre } : o;
+        };
         const valorPunto = (s, p) => {
           if (s.tipo === "parametros") return null;
           if (p.valor === null || p.valor === void 0) return "";
@@ -89783,10 +89934,12 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         async function pdfFichaHoja(ses, obraId, ref, opciones = {}) {
           const sinMedidos = Boolean(opciones.sinMedidos);
           const f = FPM.ficha(repo, ses, obraId, ref);
-          if (!f || f.ok === false || !X.tieneHoja(f.plantilla.nombre)) return null;
+          if (!f || f.ok === false) return null;
+          const obra = obraDe(ses, obraId);
+          if (!X.usaHoja(f.plantilla.nombre, obra)) return null;
           const eq = f.equipo || {};
           const r = X.rejillaFicha(f.evaluacion, f.plantilla, {
-            obra: obraDe(ses, obraId),
+            obra,
             cabeceraObra: f.cabeceraObra,
             equipo: eq,
             titulo: f.titulo,
@@ -89804,6 +89957,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         async function pdfBalanceoHoja(ses, equipoId, opciones = {}) {
           const eq = repo.leer("equiposObra", ses, equipoId);
           if (!eq) return null;
+          if (!X.usaHoja("BALANCEO CAUDALES", obraDe(ses, eq.obraId))) return null;
           const b = FPM.hojaBalanceoDe(repo, ses, eq);
           if (!b) return null;
           const r = X.rejillaBalanceo(b.ev, { ...b.ctx, sinObservaciones: Boolean(opciones.sinObservaciones) });
@@ -89821,6 +89975,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           const f = require_estanqueidadLibro().fichaDePrueba(p, { realizadoPor: quien && quien.nombre });
           if (!f) return null;
           const obra = obraDe(ses, p.obraId);
+          if (!X.usaHoja(f.plantilla.nombre, obra)) return null;
           const r = X.rejillaFicha(F.evaluar(f.plantilla, f.datos), f.plantilla, { obra, equipo: f.equipo, titulo: f.titulo, sinObservaciones: Boolean(opciones.sinObservaciones) });
           if (!r) return null;
           let fotos = [];
@@ -89888,6 +90043,58 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         const CERCA = 0.015;
         const clave = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, "");
         const claveSuelta = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().split(/[^A-Z0-9]+/).map((x) => x.replace(/(^|[A-Z])0+(?=\d)/g, "$1")).join("");
+        const RE_NO_EQUIPO = /^(?:C\.?C\.?F|CRF|CF|CORTA\s?FUEGOS?|COMPUERTAS?|DAMPERS?|DMP|VAV|V[23]V|VALV(?:ULAS?)?|VAL|VS|VM|CGBT|CUADRO)(?=$|[\s._\-/\d])/i;
+        const RE_FAMILIA_NO_EQUIPO = /^(ELEC_|CONTROL_|HOSP_|TELE_|GAS_|PCI_(?!BOMBEO))/;
+        function esEquipoDelPlano(e) {
+          if (!e) return false;
+          const tag = String(e.tag || "").trim();
+          if (clave(tag).length < 2) return false;
+          if (RE_NO_EQUIPO.test(tag)) return false;
+          if (RE_FAMILIA_NO_EQUIPO.test(String(e.familia || "").trim())) return false;
+          return true;
+        }
+        const claveCasado = (t) => claveSuelta(t);
+        function casar(tagsPlano, equipos) {
+          const delListado = (equipos || []).filter(esEquipoDelPlano);
+          const porClave = /* @__PURE__ */ new Map();
+          for (const e of delListado) {
+            for (const k of /* @__PURE__ */ new Set([clave(e.tag), claveCasado(e.tag)])) {
+              if (!k) continue;
+              if (!porClave.has(k)) porClave.set(k, []);
+              porClave.get(k).push(e);
+            }
+          }
+          const casados = [];
+          const vistos = /* @__PURE__ */ new Set();
+          const sobran = [];
+          const sobranVistos = /* @__PURE__ */ new Set();
+          for (const t of tagsPlano || []) {
+            const tag = String(t || "").trim();
+            if (!tag || RE_NO_EQUIPO.test(tag)) continue;
+            const casan = porClave.get(clave(tag)) || porClave.get(claveCasado(tag));
+            if (!casan) {
+              if (!sobranVistos.has(claveCasado(tag))) {
+                sobranVistos.add(claveCasado(tag));
+                sobran.push(tag);
+              }
+              continue;
+            }
+            for (const e of casan) {
+              if (vistos.has(e.id)) continue;
+              vistos.add(e.id);
+              casados.push({ equipoId: e.id, tag: e.tag, tagPlano: tag });
+            }
+          }
+          return { casados, sinUbicar: delListado.filter((e) => !vistos.has(e.id)), sobranEnPlano: sobran };
+        }
+        function cruce(equiposPlanta, marcas) {
+          const conMarca = new Set((marcas || []).map((m) => m.equipoId));
+          const delListado = (equiposPlanta || []).filter(esEquipoDelPlano);
+          return {
+            casados: delListado.filter((e) => conMarca.has(e.id)),
+            sinUbicar: delListado.filter((e) => !conMarca.has(e.id))
+          };
+        }
         function palabrasDe(textos) {
           const salida = [];
           for (const t of textos || []) {
@@ -89901,6 +90108,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           const porClave = /* @__PURE__ */ new Map();
           const porSuelta = /* @__PURE__ */ new Map();
           for (const e of equipos || []) {
+            if (!esEquipoDelPlano(e)) continue;
             const k = clave(e.tag);
             if (k.length < 4) continue;
             if (!porClave.has(k)) porClave.set(k, []);
@@ -89955,7 +90163,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             if (p) cuenta.set(p, (cuenta.get(p) || 0) + 1);
           }
           const planta = [...cuenta.entries()].sort((a, b) => b[1] - a[1])[0];
-          const deLaPlanta = planta ? (equipos || []).filter((e) => String(e.planta || "") === planta[0]) : [];
+          const deLaPlanta = planta ? (equipos || []).filter((e) => esEquipoDelPlano(e) && String(e.planta || "") === planta[0]) : [];
           const noEncontrados = deLaPlanta.filter((e) => !vistos.has(e.id)).map((e) => ({ id: e.id, tag: e.tag }));
           return { marcas, planta: planta ? planta[0] : null, noEncontrados, reconocidos: marcas.length };
         }
@@ -90146,7 +90354,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           const salida = [];
           for (const m of marcas || []) {
             const u = filas.get(m.equipoId);
-            if (!u) continue;
+            if (!u || !esEquipoDelPlano(u)) continue;
             const e = est.get(u.id);
             cuentas[e.color] += 1;
             salida.push({ ...m, tag: u.tag, ...e });
@@ -90293,6 +90501,10 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         const API = {
           clave,
           claveSuelta,
+          claveCasado,
+          esEquipoDelPlano,
+          casar,
+          cruce,
           palabrasDe,
           reconocer,
           empezado,
@@ -90660,8 +90872,8 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         if (gris) return { sala: gris, fuente: "base" };
         const s = llano(e.sala);
         if (s && !FM.esCodigoLocal(s) && !P.esCodigoSala(s)) return { sala: s, fuente: "base" };
-        if (marca && llano(marca.sala)) return { sala: P.limpiarSala(llano(marca.sala)), fuente: "plano" };
-        if (s) return { sala: `Local ${P.limpiarSala(s)}`, fuente: "codigo" };
+        const rotulo = marca && llano(marca.sala) ? P.limpiarSala(llano(marca.sala)) : "";
+        if (rotulo && !FM.esCodigoLocal(rotulo)) return { sala: rotulo, fuente: "plano" };
         return { sala: null, fuente: null };
       }
       function marcarFichasConDato(repo, ses, obraId, t) {
@@ -90688,16 +90900,17 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         const filas = repo.listar("planosEquipos", lec, { condicion: "obraId = ?", params: [obraId] });
         const t = CX.tabla(repo, lec, obraId) || { filas: [], conjuntos: [] };
         marcarFichasConDato(repo, lec, obraId, t);
+        const filasEq = (t.filas || []).filter(P.esEquipoDelPlano);
         const est = P.estados(t, { puedeEditar });
         const botones = (e) => conCx ? e.acciones : [];
         const datosDe = (f, e) => ({ tipo: e.tipo, icono: e.icono, miembros: e.miembros, marca: e.marca || null, modelo: e.modelo || null, acciones: botones(e), puedeEditar });
         const planoDe = new Map(filas.map((p) => [p.planta || "", p]));
         const marcaDe = /* @__PURE__ */ new Map();
         for (const p of filas) for (const m of leerJson(p.marcas, [])) marcaDe.set(m.equipoId, { ...m, planoId: p.id, planta: p.planta || "" });
-        const nombres = /* @__PURE__ */ new Set([...t.filas.map((f) => llano(f.planta)), ...filas.map((p) => p.planta || "")]);
+        const nombres = /* @__PURE__ */ new Set([...filasEq.map((f) => llano(f.planta)), ...filas.map((p) => p.planta || "")]);
         const plantas = [...nombres].sort(ordenPlanta).map((planta) => {
           const p = planoDe.get(planta) || null;
-          const equipos = t.filas.filter((f) => llano(f.planta) === planta).map((f) => {
+          const equipos = filasEq.filter((f) => llano(f.planta) === planta).map((f) => {
             const e = est.get(f.id);
             const m = marcaDe.get(f.id);
             const enEste = m && p && m.planoId === p.id ? m : null;
@@ -90721,23 +90934,26 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           if (p) {
             const ya = new Set(equipos.map((x) => x.id));
             for (const m of leerJson(p.marcas, [])) {
-              const f = t.filas.find((x) => x.id === m.equipoId);
+              const f = filasEq.find((x) => x.id === m.equipoId);
               if (!f || ya.has(f.id)) continue;
               const e = est.get(f.id);
               const { sala, fuente } = salaDe(f, m);
               equipos.push({ id: f.id, tag: f.tag, familia: f.familia || null, papel: e.papel, conjunto: e.conjunto, color: e.color, falta: e.falta, sala, salaFuente: fuente, ...datosDe(f, e), x: m.x, y: m.y, mano: Boolean(m.mano) });
             }
           }
-          const cuentas = { verde: 0, azul: 0, rojo: 0, sinSala: 0, enPlano: 0 };
+          const cuentas = { verde: 0, azul: 0, rojo: 0, sinSala: 0, enPlano: 0, sinUbicar: 0 };
           for (const q of equipos) {
             cuentas[q.color] += 1;
             if (!q.sala) cuentas.sinSala += 1;
             if (q.x !== null) cuentas.enPlano += 1;
           }
+          const sinUbicar = p ? equipos.filter((q) => q.x === null).map((q) => ({ id: q.id, tag: q.tag, familia: q.familia, sala: q.sala, icono: q.icono })).sort((a, b) => String(a.tag).localeCompare(String(b.tag), "es", { numeric: true })) : [];
+          cuentas.sinUbicar = sinUbicar.length;
           return {
             planta: planta || null,
             equipos,
             cuentas,
+            sinUbicar,
             plano: p ? { id: p.id, nombre: p.nombre, ancho: p.ancho, alto: p.alto, modificadoEn: p.modificadoEn, salas: salasParaPintar(p.rotulos) } : null
           };
         });
@@ -90780,7 +90996,8 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           return { ok: false, error: "No se ha reconocido ning\xFAn equipo de la obra en ese plano y no se sabe de qu\xE9 planta es. Escribe la planta y vuelve a subirlo." };
         }
         const rotulos = Array.isArray(d.textos) ? P.rotulosSala(d.textos) : [];
-        const marcas = P.limpiarMarcas(P.ponerSalas(r.marcas, rotulos));
+        const esEquipo = new Set(equipos.filter(P.esEquipoDelPlano).map((e) => e.id));
+        const marcas = P.limpiarMarcas(P.ponerSalas(r.marcas, rotulos)).filter((m) => esEquipo.has(m.equipoId));
         const nombre = llano(d.nombre).slice(0, 120) || `Planta ${planta}`;
         const viejo = repo.listar("planosEquipos", ses, { condicion: "obraId = ? AND planta = ?", params: [obraId, planta], limite: 1 })[0];
         const ancho = dimension(d.ancho);
@@ -90791,7 +91008,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           repo.modificar("planosEquipos", ses, viejo.id, datos);
           id = viejo.id;
         } else id = repo.crear("planosEquipos", ses, { obraId, ...datos });
-        const dePlanta = equipos.filter((e) => String(e.planta || "") === planta);
+        const dePlanta = equipos.filter((e) => P.esEquipoDelPlano(e) && String(e.planta || "") === planta);
         return {
           ok: true,
           id,
@@ -90809,6 +91026,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         if (!p) return { ok: false, error: "No se encuentra el plano." };
         const eq = repo.leer("equiposObra", ses, llano(equipoId));
         if (!eq || eq.obraId !== p.obraId) return { ok: false, error: "Ese equipo no es de esta obra." };
+        if (x !== null && x !== void 0 && !P.esEquipoDelPlano(eq)) return { ok: false, error: "En el plano solo van equipos (ni compuertas, ni v\xE1lvulas, ni cuadros)." };
         const otras = leerJson(p.marcas, []).filter((m) => m.equipoId !== eq.id);
         let marcas = otras;
         let sala = null;
@@ -90934,6 +91152,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
       var CAMPO = require_inventarioCampo();
       var NOTAS = require_notas2();
       var FIR = require_firmasEquipo();
+      var FPM = require_fichasPM();
       var MNCR = require_motor();
       var MDIF = require_difusores();
       var FMOV = require_filaMovil();
@@ -91098,6 +91317,11 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           const fila = t ? t.filas.find((f) => f.id === d.equipo.id) : null;
           const evaluada = new Map(d.resumen.filas.map((f) => [f.id, f]));
           const linea = t && t.conjuntos ? t.conjuntos.find((l) => l.miembros.some((m) => m.id === d.equipo.id)) : null;
+          let dosier = null;
+          try {
+            dosier = FPM.dossier(repo, ses, d.equipo.id);
+          } catch {
+          }
           return {
             ok: true,
             equipo: d.equipo,
@@ -91116,7 +91340,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
                 modelo: m.modelo || null,
                 numSerie: m.numSerie || null,
                 planta: m.planta || null,
-                sala: m.sala || null,
+                sala: FMOV.salaVisibleDe(m),
                 estadoPM: m.estadoPM || null,
                 falta: m.falta || []
               }))
@@ -91180,7 +91404,8 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
                 };
               })
             })),
-            fotos: fotosDe(ses, d.equipo.id),
+            fotos: fotosDelEquipo(ses, d.equipo, linea, dosier),
+            fichasConFotos: fichasDelEquipo(d.equipo, dosier),
             /* Las firmas del cliente y del jefe de obra (las del conjunto, si es un split o un VRF). */
             firmas: FIR.firmasDeEquipo(repo, ses, d.equipo.id),
             /* El equipo de medida de todo el equipo: el de todas sus bocas si es el
@@ -91310,6 +91535,35 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         const MAX_FOTOS_EQUIPO = 30;
         const carpetaEquipos = (obraId) => path.join(carpeta, "commissioning", String(obraId).replace(/[^A-Za-z0-9_-]/g, "_"), "equipos");
         const fotosDe = (ses, equipoId) => repo.listar("fotosEquipo", ses, { condicion: "equipoId = ?", params: [equipoId], orden: "creadoEn" }).map((f) => ({ id: f.id, pie: f.pie || "", hora: f.hora || "" }));
+        function fotosDelEquipo(ses, eq, linea, dos) {
+          const unidades = linea && linea.clase !== "suelto" && linea.miembros.length ? linea.miembros : [eq];
+          const varias = unidades.length > 1;
+          const fuera = [];
+          for (const u of unidades) {
+            for (const f of fotosDe(ses, u.id)) {
+              fuera.push({ ...f, origen: "equipo", equipoId: u.id, unidad: varias ? linea.exterior && u.id === linea.exterior.id ? "UE" : linea.clase === "par" ? "UI" : u.tag : null, ficha: null, url: `api/equipo/foto?id=${encodeURIComponent(f.id)}` });
+            }
+          }
+          const vistas = /* @__PURE__ */ new Set();
+          for (const p of dos ? [...dos.partes, ...dos.conservadas || []] : []) {
+            if (!p.clave || !p.plantilla) continue;
+            const k = `${p.clave}|${p.plantilla}`;
+            if (vistas.has(k)) continue;
+            vistas.add(k);
+            const lista = p.evaluacion && p.evaluacion.datos && Array.isArray(p.evaluacion.datos.fotos) ? p.evaluacion.datos.fotos : [];
+            lista.forEach((x, i) => {
+              if (!x) return;
+              const [pie, ...resto] = String(x.nombre || "Foto").split(" \xB7 ");
+              const q = new URLSearchParams({ obra: eq.obraId, clave: p.clave, plantilla: p.plantilla, i: String(i) });
+              fuera.push({ id: `${k}|${i}`, pie: pie === "Foto" ? "" : pie, hora: resto.join(" \xB7 "), origen: "ficha", equipoId: null, unidad: p.unidadTag || null, ficha: p.nombre || "Ficha", url: `api/ficha/foto?${q}` });
+            });
+          }
+          return fuera;
+        }
+        function fichasDelEquipo(eq, dos) {
+          if (!dos) return [];
+          return [...dos.partes, ...dos.conservadas || []].filter((p) => p.clave && p.plantilla).map((p) => ({ obra: eq.obraId, clave: p.clave, plantilla: p.plantilla, nombre: p.nombre || "Ficha" }));
+        }
         function equipoFotos({ ses, json }) {
           const e = json();
           const eq = repo.leer("equiposObra", ses, llano(e.equipoId));
@@ -91360,7 +91614,8 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
             fs.unlinkSync(f.ruta);
           } catch {
           }
-          return { ok: true, ...equipo({ ses, query: { id: f.equipoId } }) };
+          const vista = llano(e.vista) && repo.leer("equiposObra", ses, llano(e.vista)) ? llano(e.vista) : f.equipoId;
+          return { ok: true, ...equipo({ ses, query: { id: vista } }) };
         }
         function equipoFirma({ ses, json }) {
           const e = json();
@@ -91743,6 +91998,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       var FR = require_firmasReparacion();
       var M = require_motor4();
       var { puede } = require_roles();
+      var FMOV = require_filaMovil();
       var PERMISOS_REPARACIONES = {
         "GET api/reparaciones": [["incidencias", "ver"]],
         "GET api/reparacion": [["incidencias", "ver"]],
@@ -91809,7 +92065,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
             ok: true,
             filas: d.filas.filter((f) => f.equipoId && f.estado !== "anulada").map(filaMovil),
             encargados: d.encargados.map((p) => ({ id: p.id, nombre: p.nombre })),
-            equipos: d.equipos.map((e) => ({ id: e.id, tag: e.tag, planta: e.planta || "", zona: e.zona || "", sala: e.sala || "", codSala: e.codSala || "" })),
+            equipos: d.equipos.map((e) => ({ id: e.id, tag: e.tag, planta: e.planta || "", zona: e.zona || "", sala: FMOV.salaVisibleDe(e) || "", codSala: e.codSala || "" })),
             empresas: d.empresas,
             operarios: d.operarios,
             asignables: d.asignables,
@@ -99451,6 +99707,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       var FR = require_firmasReparacion();
       var MI = require_motor4();
       var INF = require_informes2();
+      var FMOV = require_filaMovil();
       var SIN_PERMISO = "Tu rol no tiene las \xF3rdenes de trabajo de mantenimiento.";
       var SIN_EDITAR = "Tu rol puede ver las \xF3rdenes de trabajo, pero no cambiarlas.";
       var SOLO_JEFE = "Esto es del jefe de mantenimiento.";
@@ -99603,7 +99860,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
             id: equipo.id,
             tag: equipo.tag,
             planta: equipo.planta,
-            sala: equipo.sala,
+            sala: FMOV.salaVisibleDe(equipo),
             zona: equipo.zona,
             grupo: equipo.grupo,
             denominacion: equipo.denominacion,
@@ -105923,6 +106180,14 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       var TIEMPOS = require_planificacionTiempos();
       var INC = require_incidencias();
       var PERSONAS = require_personas();
+      var FMOV = require_filaMovil();
+      function salaLineaDe(l, us, equipos) {
+        for (const u of [l, ...us]) {
+          const s = FMOV.salaVisibleDe(equipos.get(u.id) || u);
+          if (s) return s;
+        }
+        return null;
+      }
       var TABLA = { commissioning: "sesionesPlanCx", incidencias: "sesionesPlanInc" };
       var TAREAS = {
         commissioning: ["Puesta en marcha", "Medici\xF3n de caudales", "Balanceo", "Estanqueidad"],
@@ -106004,7 +106269,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
             orden,
             planta: primero("planta"),
             zona: primero("zona"),
-            sala: primero("sala") || primero("codSala"),
+            sala: salaLineaDe(l, us, equipos) || primero("codSala"),
             equipo: l.tag,
             denominacion: l.denominacion || "",
             asociadas: us.filter((u) => u.id !== l.id).map((u) => u.tag),
@@ -106358,7 +106623,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
             orden,
             planta: primero("planta"),
             zona: primero("zona"),
-            sala: primero("sala") || primero("codSala"),
+            sala: salaLineaDe(l, us, equipos) || primero("codSala"),
             tag: l.tag,
             denominacion: l.denominacion || "",
             asociadas: us.filter((u) => u.id !== l.id).map((u) => u.tag),
@@ -111214,9 +111479,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/@kenjiuno/msgreader/lib/utils.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/utils.js
   var require_utils4 = __commonJS({
-    "node_modules/@kenjiuno/msgreader/lib/utils.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/utils.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -111327,9 +111592,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/@kenjiuno/msgreader/lib/const.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/const.js
   var require_const = __commonJS({
-    "node_modules/@kenjiuno/msgreader/lib/const.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/const.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -111526,9 +111791,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/safer-buffer/safer.js
+  // ../Vidaire_Obras/node_modules/safer-buffer/safer.js
   var require_safer = __commonJS({
-    "node_modules/safer-buffer/safer.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/safer-buffer/safer.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var buffer = require_buffer();
@@ -111595,9 +111860,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/iconv-lite/lib/bom-handling.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/lib/bom-handling.js
   var require_bom_handling = __commonJS({
-    "node_modules/iconv-lite/lib/bom-handling.js"(exports) {
+    "../Vidaire_Obras/node_modules/iconv-lite/lib/bom-handling.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var BOMChar = "\uFEFF";
@@ -111640,9 +111905,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/safe-buffer/index.js
+  // ../Vidaire_Obras/node_modules/safe-buffer/index.js
   var require_safe_buffer = __commonJS({
-    "node_modules/safe-buffer/index.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/safe-buffer/index.js"(exports, module) {
       var import_buffer_global10 = __toESM(require_buffer_global());
       var buffer = require_buffer();
       var Buffer2 = buffer.Buffer;
@@ -111699,9 +111964,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/string_decoder/lib/string_decoder.js
+  // ../Vidaire_Obras/node_modules/string_decoder/lib/string_decoder.js
   var require_string_decoder = __commonJS({
-    "node_modules/string_decoder/lib/string_decoder.js"(exports) {
+    "../Vidaire_Obras/node_modules/string_decoder/lib/string_decoder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safe_buffer().Buffer;
@@ -111938,9 +112203,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/iconv-lite/encodings/internal.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/internal.js
   var require_internal = __commonJS({
-    "node_modules/iconv-lite/encodings/internal.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/internal.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safer().Buffer;
@@ -112091,9 +112356,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/iconv-lite/encodings/utf32.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/utf32.js
   var require_utf32 = __commonJS({
-    "node_modules/iconv-lite/encodings/utf32.js"(exports) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/utf32.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safer().Buffer;
@@ -112311,9 +112576,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/iconv-lite/encodings/utf16.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/utf16.js
   var require_utf16 = __commonJS({
-    "node_modules/iconv-lite/encodings/utf16.js"(exports) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/utf16.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safer().Buffer;
@@ -112446,9 +112711,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/iconv-lite/encodings/utf7.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/utf7.js
   var require_utf7 = __commonJS({
-    "node_modules/iconv-lite/encodings/utf7.js"(exports) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/utf7.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safer().Buffer;
@@ -112648,9 +112913,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/iconv-lite/encodings/sbcs-codec.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/sbcs-codec.js
   var require_sbcs_codec = __commonJS({
-    "node_modules/iconv-lite/encodings/sbcs-codec.js"(exports) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/sbcs-codec.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safer().Buffer;
@@ -112705,9 +112970,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/iconv-lite/encodings/sbcs-data.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/sbcs-data.js
   var require_sbcs_data = __commonJS({
-    "node_modules/iconv-lite/encodings/sbcs-data.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/sbcs-data.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       module.exports = {
@@ -112859,9 +113124,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/iconv-lite/encodings/sbcs-data-generated.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/sbcs-data-generated.js
   var require_sbcs_data_generated = __commonJS({
-    "node_modules/iconv-lite/encodings/sbcs-data-generated.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/sbcs-data-generated.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       module.exports = {
@@ -113315,9 +113580,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/iconv-lite/encodings/dbcs-codec.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/dbcs-codec.js
   var require_dbcs_codec = __commonJS({
-    "node_modules/iconv-lite/encodings/dbcs-codec.js"(exports) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/dbcs-codec.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safer().Buffer;
@@ -113733,9 +113998,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/iconv-lite/encodings/tables/shiftjis.json
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/shiftjis.json
   var require_shiftjis = __commonJS({
-    "node_modules/iconv-lite/encodings/tables/shiftjis.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/shiftjis.json"(exports, module) {
       module.exports = [
         ["0", "\0", 128],
         ["a1", "\uFF61", 62],
@@ -113864,9 +114129,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/iconv-lite/encodings/tables/eucjp.json
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/eucjp.json
   var require_eucjp = __commonJS({
-    "node_modules/iconv-lite/encodings/tables/eucjp.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/eucjp.json"(exports, module) {
       module.exports = [
         ["0", "\0", 127],
         ["8ea1", "\uFF61", 62],
@@ -114052,9 +114317,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/iconv-lite/encodings/tables/cp936.json
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/cp936.json
   var require_cp936 = __commonJS({
-    "node_modules/iconv-lite/encodings/tables/cp936.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/cp936.json"(exports, module) {
       module.exports = [
         ["0", "\0", 127, "\u20AC"],
         ["8140", "\u4E02\u4E04\u4E05\u4E06\u4E0F\u4E12\u4E17\u4E1F\u4E20\u4E21\u4E23\u4E26\u4E29\u4E2E\u4E2F\u4E31\u4E33\u4E35\u4E37\u4E3C\u4E40\u4E41\u4E42\u4E44\u4E46\u4E4A\u4E51\u4E55\u4E57\u4E5A\u4E5B\u4E62\u4E63\u4E64\u4E65\u4E67\u4E68\u4E6A", 5, "\u4E72\u4E74", 9, "\u4E7F", 6, "\u4E87\u4E8A"],
@@ -114322,9 +114587,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/iconv-lite/encodings/tables/gbk-added.json
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/gbk-added.json
   var require_gbk_added = __commonJS({
-    "node_modules/iconv-lite/encodings/tables/gbk-added.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/gbk-added.json"(exports, module) {
       module.exports = [
         ["a140", "\uE4C6", 62],
         ["a180", "\uE505", 32],
@@ -114384,16 +114649,16 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/iconv-lite/encodings/tables/gb18030-ranges.json
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/gb18030-ranges.json
   var require_gb18030_ranges = __commonJS({
-    "node_modules/iconv-lite/encodings/tables/gb18030-ranges.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/gb18030-ranges.json"(exports, module) {
       module.exports = { uChars: [128, 165, 169, 178, 184, 216, 226, 235, 238, 244, 248, 251, 253, 258, 276, 284, 300, 325, 329, 334, 364, 463, 465, 467, 469, 471, 473, 475, 477, 506, 594, 610, 712, 716, 730, 930, 938, 962, 970, 1026, 1104, 1106, 8209, 8215, 8218, 8222, 8231, 8241, 8244, 8246, 8252, 8365, 8452, 8454, 8458, 8471, 8482, 8556, 8570, 8596, 8602, 8713, 8720, 8722, 8726, 8731, 8737, 8740, 8742, 8748, 8751, 8760, 8766, 8777, 8781, 8787, 8802, 8808, 8816, 8854, 8858, 8870, 8896, 8979, 9322, 9372, 9548, 9588, 9616, 9622, 9634, 9652, 9662, 9672, 9676, 9680, 9702, 9735, 9738, 9793, 9795, 11906, 11909, 11913, 11917, 11928, 11944, 11947, 11951, 11956, 11960, 11964, 11979, 12284, 12292, 12312, 12319, 12330, 12351, 12436, 12447, 12535, 12543, 12586, 12842, 12850, 12964, 13200, 13215, 13218, 13253, 13263, 13267, 13270, 13384, 13428, 13727, 13839, 13851, 14617, 14703, 14801, 14816, 14964, 15183, 15471, 15585, 16471, 16736, 17208, 17325, 17330, 17374, 17623, 17997, 18018, 18212, 18218, 18301, 18318, 18760, 18811, 18814, 18820, 18823, 18844, 18848, 18872, 19576, 19620, 19738, 19887, 40870, 59244, 59336, 59367, 59413, 59417, 59423, 59431, 59437, 59443, 59452, 59460, 59478, 59493, 63789, 63866, 63894, 63976, 63986, 64016, 64018, 64021, 64025, 64034, 64037, 64042, 65074, 65093, 65107, 65112, 65127, 65132, 65375, 65510, 65536], gbChars: [0, 36, 38, 45, 50, 81, 89, 95, 96, 100, 103, 104, 105, 109, 126, 133, 148, 172, 175, 179, 208, 306, 307, 308, 309, 310, 311, 312, 313, 341, 428, 443, 544, 545, 558, 741, 742, 749, 750, 805, 819, 820, 7922, 7924, 7925, 7927, 7934, 7943, 7944, 7945, 7950, 8062, 8148, 8149, 8152, 8164, 8174, 8236, 8240, 8262, 8264, 8374, 8380, 8381, 8384, 8388, 8390, 8392, 8393, 8394, 8396, 8401, 8406, 8416, 8419, 8424, 8437, 8439, 8445, 8482, 8485, 8496, 8521, 8603, 8936, 8946, 9046, 9050, 9063, 9066, 9076, 9092, 9100, 9108, 9111, 9113, 9131, 9162, 9164, 9218, 9219, 11329, 11331, 11334, 11336, 11346, 11361, 11363, 11366, 11370, 11372, 11375, 11389, 11682, 11686, 11687, 11692, 11694, 11714, 11716, 11723, 11725, 11730, 11736, 11982, 11989, 12102, 12336, 12348, 12350, 12384, 12393, 12395, 12397, 12510, 12553, 12851, 12962, 12973, 13738, 13823, 13919, 13933, 14080, 14298, 14585, 14698, 15583, 15847, 16318, 16434, 16438, 16481, 16729, 17102, 17122, 17315, 17320, 17402, 17418, 17859, 17909, 17911, 17915, 17916, 17936, 17939, 17961, 18664, 18703, 18814, 18962, 19043, 33469, 33470, 33471, 33484, 33485, 33490, 33497, 33501, 33505, 33513, 33520, 33536, 33550, 37845, 37921, 37948, 38029, 38038, 38064, 38065, 38066, 38069, 38075, 38076, 38078, 39108, 39109, 39113, 39114, 39115, 39116, 39265, 39394, 189e3] };
     }
   });
 
-  // node_modules/iconv-lite/encodings/tables/cp949.json
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/cp949.json
   var require_cp949 = __commonJS({
-    "node_modules/iconv-lite/encodings/tables/cp949.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/cp949.json"(exports, module) {
       module.exports = [
         ["0", "\0", 127],
         ["8141", "\uAC02\uAC03\uAC05\uAC06\uAC0B", 4, "\uAC18\uAC1E\uAC1F\uAC21\uAC22\uAC23\uAC25", 6, "\uAC2E\uAC32\uAC33\uAC34"],
@@ -114670,9 +114935,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/iconv-lite/encodings/tables/cp950.json
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/cp950.json
   var require_cp950 = __commonJS({
-    "node_modules/iconv-lite/encodings/tables/cp950.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/cp950.json"(exports, module) {
       module.exports = [
         ["0", "\0", 127],
         ["a140", "\u3000\uFF0C\u3001\u3002\uFF0E\u2027\uFF1B\uFF1A\uFF1F\uFF01\uFE30\u2026\u2025\uFE50\uFE51\uFE52\xB7\uFE54\uFE55\uFE56\uFE57\uFF5C\u2013\uFE31\u2014\uFE33\u2574\uFE34\uFE4F\uFF08\uFF09\uFE35\uFE36\uFF5B\uFF5D\uFE37\uFE38\u3014\u3015\uFE39\uFE3A\u3010\u3011\uFE3B\uFE3C\u300A\u300B\uFE3D\uFE3E\u3008\u3009\uFE3F\uFE40\u300C\u300D\uFE41\uFE42\u300E\u300F\uFE43\uFE44\uFE59\uFE5A"],
@@ -114853,9 +115118,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/iconv-lite/encodings/tables/big5-added.json
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/big5-added.json
   var require_big5_added = __commonJS({
-    "node_modules/iconv-lite/encodings/tables/big5-added.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/big5-added.json"(exports, module) {
       module.exports = [
         ["8740", "\u43F0\u4C32\u4603\u45A6\u4578\u{27267}\u4D77\u45B3\u{27CB1}\u4CE2\u{27CC5}\u3B95\u4736\u4744\u4C47\u4C40\u{242BF}\u{23617}\u{27352}\u{26E8B}\u{270D2}\u4C57\u{2A351}\u474F\u45DA\u4C85\u{27C6C}\u4D07\u4AA4\u46A1\u{26B23}\u7225\u{25A54}\u{21A63}\u{23E06}\u{23F61}\u664D\u56FB"],
         ["8767", "\u7D95\u591D\u{28BB9}\u3DF4\u9734\u{27BEF}\u5BDB\u{21D5E}\u5AA4\u3625\u{29EB0}\u5AD1\u5BB7\u5CFC\u676E\u8593\u{29945}\u7461\u749D\u3875\u{21D53}\u{2369E}\u{26021}\u3EEC"],
@@ -114981,9 +115246,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/iconv-lite/encodings/dbcs-data.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/dbcs-data.js
   var require_dbcs_data = __commonJS({
-    "node_modules/iconv-lite/encodings/dbcs-data.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/dbcs-data.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       module.exports = {
@@ -115229,9 +115494,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/iconv-lite/encodings/index.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/index.js
   var require_encodings = __commonJS({
-    "node_modules/iconv-lite/encodings/index.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/index.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var modules = [
@@ -115257,9 +115522,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/iconv-lite/lib/streams.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/lib/streams.js
   var require_streams = __commonJS({
-    "node_modules/iconv-lite/lib/streams.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/lib/streams.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safer().Buffer;
@@ -115360,9 +115625,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/iconv-lite/lib/index.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/lib/index.js
   var require_lib2 = __commonJS({
-    "node_modules/iconv-lite/lib/index.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/lib/index.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safer().Buffer;
@@ -115481,9 +115746,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/@kenjiuno/msgreader/lib/DataStream.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/DataStream.js
   var require_DataStream = __commonJS({
-    "node_modules/@kenjiuno/msgreader/lib/DataStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/DataStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -116491,9 +116756,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/@kenjiuno/msgreader/lib/Reader.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/Reader.js
   var require_Reader = __commonJS({
-    "node_modules/@kenjiuno/msgreader/lib/Reader.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/Reader.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -116851,9 +117116,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/@kenjiuno/msgreader/lib/Burner.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/Burner.js
   var require_Burner = __commonJS({
-    "node_modules/@kenjiuno/msgreader/lib/Burner.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/Burner.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -117113,9 +117378,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/@kenjiuno/msgreader/lib/EntryStreamParser.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/EntryStreamParser.js
   var require_EntryStreamParser = __commonJS({
-    "node_modules/@kenjiuno/msgreader/lib/EntryStreamParser.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/EntryStreamParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -117143,9 +117408,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/@kenjiuno/msgreader/lib/VerbStreamParser.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/VerbStreamParser.js
   var require_VerbStreamParser = __commonJS({
-    "node_modules/@kenjiuno/msgreader/lib/VerbStreamParser.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/VerbStreamParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -117197,9 +117462,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/@kenjiuno/msgreader/lib/TZDEFINITIONParser.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/TZDEFINITIONParser.js
   var require_TZDEFINITIONParser = __commonJS({
-    "node_modules/@kenjiuno/msgreader/lib/TZDEFINITIONParser.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/TZDEFINITIONParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -117268,9 +117533,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/@kenjiuno/msgreader/lib/TZREGParser.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/TZREGParser.js
   var require_TZREGParser = __commonJS({
-    "node_modules/@kenjiuno/msgreader/lib/TZREGParser.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/TZREGParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -117300,9 +117565,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/@kenjiuno/msgreader/lib/AppointmentRecurParser.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/AppointmentRecurParser.js
   var require_AppointmentRecurParser = __commonJS({
-    "node_modules/@kenjiuno/msgreader/lib/AppointmentRecurParser.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/AppointmentRecurParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -117547,9 +117812,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/@kenjiuno/msgreader/lib/MsgReader.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/MsgReader.js
   var require_MsgReader = __commonJS({
-    "node_modules/@kenjiuno/msgreader/lib/MsgReader.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/MsgReader.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -117991,9 +118256,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/@kenjiuno/msgreader/lib/index.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/index.js
   var require_lib3 = __commonJS({
-    "node_modules/@kenjiuno/msgreader/lib/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __createBinding2 = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
@@ -118022,9 +118287,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/@kenjiuno/decompressrtf/lib/index.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/decompressrtf/lib/index.js
   var require_lib4 = __commonJS({
-    "node_modules/@kenjiuno/decompressrtf/lib/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/decompressrtf/lib/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
