@@ -180,9 +180,33 @@
   }
   /* En la pantalla del equipo, cada unidad en su línea, también la que no lo tiene. */
   function htmlNumSerie(e, cj, puede) {
-    const us = cj && cj.unidades && cj.unidades.length > 1 ? cj.unidades : [{ id: e.id, tag: e.tag, numSerie: e.numSerie }];
+    const us = cj && cj.unidades && cj.unidades.length > 1 ? cj.unidades : [{ id: e.id, tag: e.tag, numSerie: e.numSerie, seriePlaca: e.seriePlaca }];
     return `<dl class="num-serie">${us.map((u) => `<dt>Nº serie${us.length > 1 ? ` <em>${esc(u.papel || '')}</em>` : ''}</dt>
-      <dd class="${u.numSerie ? 'cifra' : 'aviso'}">${valorSerie(u, puede)}${us.length > 1 ? ` <small>${esc(u.tag)}</small>` : ''}</dd>`).join('')}</dl>`;
+      <dd class="${u.numSerie ? 'cifra' : 'aviso'}">${valorSerie(u, puede)}${us.length > 1 ? ` <small>${esc(u.tag)}</small>` : ''}${htmlSeriePlaca(u, puede)}</dd>`).join('')}</dl>`;
+  }
+  /* EL Nº LEÍDO DE LA FOTO DE LA PLACA (29-oct-2026, JC: «si al hacer una foto
+     a la placa de ese equipo no hay número de serie, automáticamente se lee de
+     la placa y se pone»). Lo lee el Mac (electron/data/lecturaPlaca.js); aquí
+     se dice en qué va y, si hay duda, se confirma o se descarta con un toque. */
+  function htmlSeriePlaca(u, puede) {
+    const p = u.seriePlaca;
+    if (!p) return '';
+    if (p.estado === 'leyendo') return '<div class="sub tenue serie-placa">Leyendo el nº de la foto de la placa…</div>';
+    if (p.estado === 'sinLectura') return '<div class="sub tenue serie-placa">La foto de la placa no se ha podido leer: escríbelo o repite la foto.</div>';
+    if (p.estado === 'aplicada' || p.estado === 'confirmada') return '<div class="sub tenue serie-placa">Leído de la foto de la placa</div>';
+    if (p.estado !== 'propuesta') return '';
+    return `<div class="sub serie-placa">Nº de serie leído de la placa: <strong class="cifra">${esc(p.valor || '')}</strong> — revisar${puede && u.id
+      ? ` <button type="button" class="boton" data-cx="placa-confirmar" data-equipo="${esc(u.id)}">Confirmar</button> <button type="button" class="enlace" data-cx="placa-descartar" data-equipo="${esc(u.id)}">Descartar</button>` : ''}</div>`;
+  }
+  async function responderPlaca(b, accion) {
+    b.disabled = true;
+    try {
+      const r = await C.postJson('api/equipo/placa', { equipoId: b.dataset.equipo, accion, vista: ficha.equipo.id });
+      if (!r.ok) throw new Error(r.error || 'No se ha guardado.');
+      if (r.equipo && ficha.equipo.id === r.equipo.id) ficha = r;
+      repintarConScroll();
+      if (fichasEq && ficha) refrescarEquipo(ficha.equipo.id);
+    } catch (e) { b.disabled = false; C.aviso(e.message); }
   }
   /* ESCRIBIR EL Nº DE SERIE DESDE LA FICHA (29-oct-2026, JC: «desde ahí poder
      meter numeros de serie»): el valor (o «Sin nº de serie») se pulsa y sale un
@@ -3084,6 +3108,8 @@
     else if (que === 'serie' && ficha) abrirSerie(b);
     else if (que === 'serie-guardar' && ficha) guardarSerie(b.closest('.serie-edita'));
     else if (que === 'serie-cancelar' && ficha) repintarConScroll();
+    else if (que === 'placa-confirmar' && ficha) responderPlaca(b, 'confirmar');
+    else if (que === 'placa-descartar' && ficha) responderPlaca(b, 'descartar');
     else if (que === 'pdf-uis' && ficha) compartirPdf(`api/informe?tipo=vrf&equipo=${encodeURIComponent(ficha.equipo.id)}`, `${ficha.equipo.tag} - tomas de datos UE y UIs.pdf`, b);
     else if (que === 'pdf-balanceo' && ficha) compartirPdf(`api/informe?tipo=balanceo&equipo=${encodeURIComponent(ficha.equipo.id)}`, `${ficha.equipo.tag} - balanceo.pdf`, b);
   });

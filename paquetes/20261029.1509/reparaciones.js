@@ -387,12 +387,14 @@
       const f = fs[rol];
       const fecha = f && f.fecha ? fechaEs(f.fecha) : '';
       const valor = f
-        ? `<span class="firma-hecha"><img src="${esc(f.imagen)}" alt="Firma de ${esc(f.nombre)}"><span class="tenue">${esc([f.nombre, f.cargo, fecha].filter(Boolean).join(' · '))}</span></span>${puedeFirmar ? ` <button class="enlace" data-rp="firmar" data-rol="${rol}">Volver a firmar</button>` : ''}`
-        : (puedeFirmar ? `<button class="enlace" data-rp="firmar" data-rol="${rol}">Firmar</button>` : '<span class="no">Sin firmar</span>');
+        ? `<span class="firma-hecha"><img src="${esc(f.imagen)}" alt="Firma de ${esc(f.nombre)}"><span class="tenue">${esc([f.nombre, f.cargo, fecha].filter(Boolean).join(' · '))}</span></span>${puedeFirmar ? ` <button class="boton secundario" data-rp="firmar" data-rol="${rol}">Volver a firmar</button>` : ''}`
+        : (puedeFirmar ? `<button class="boton secundario" data-rp="firmar" data-rol="${rol}"><i class="ic ic-firma"></i>Firmar</button>` : '<span class="no">Sin firmar</span>');
       return `<div class="fd firma-fd"><span class="et">${ROTULO_FIRMA[rol]}</span><span class="firma-valor">${valor}</span></div>`;
     };
-    return `<h2>Firma del equipo</h2><section class="grupo">${fila('jefeObra')}${fila('cliente')}</section>
-      ${abierta.firmada ? '' : '<p class="nota aviso">Sin la firma del técnico responsable la reparación no se puede cerrar.</p>'}
+    return `<h2>Firma del equipo</h2><section class="firmas-rep">${fila('jefeObra')}${fila('cliente')}</section>
+      ${abierta.firmada ? '' : abierta.firmaCierre
+    ? `<p class="nota">Al cerrarla se pone sola la firma de ${esc(abierta.firmaCierre.nombre)} (jefe de obra) y queda cerrada: no hace falta firmar.</p>`
+    : '<p class="nota aviso">El jefe de obra no tiene firma guardada: sin la firma del técnico responsable la reparación no se puede cerrar.</p>'}
       ${firmando ? htmlLienzoRep() : ''}`;
   }
   function htmlLienzoRep() {
@@ -494,7 +496,7 @@
           ${nuevas.length ? '<p class="nota">Toca una foto sin guardar para quitarla.</p>' : ''}
           ${puede.foto ? `<div class="fila-botones">
             <button class="boton secundario" data-rp="camara" data-momento="${m}"><i class="ic ic-camara"></i>Hacer foto</button>
-            <button class="boton secundario" data-rp="galeria" data-momento="${m}">De la galería</button>
+            <button class="boton secundario" data-rp="galeria" data-momento="${m}"><i class="ic ic-galeria"></i>De la galería</button>
           </div>` : ''}`;
       }).join('')}
       ${puede.visita ? `<h2>Visita</h2>${v ? `<section class="grupo visita-pendiente">
@@ -670,7 +672,11 @@
         const ahora = await C.pedir(`api/reparacion?id=${encodeURIComponent(id)}`);
         if (!ahora.ok || ahora.reparacion.estado !== c.estado) {
           const r = await C.postJson('api/reparacion/estado', { id, estado: c.estado, comentario: c.motivo });
-          if (!r.ok) throw new Error(r.error);
+          /* Si el servidor lo rechaza (no es la red), el cambio de estado no se reintenta solo
+             en cada pantalla (29-oct, JC: el aviso le perseguía por Inicio y Mis tareas). */
+          if (!r.ok) { c.estado = null; c.motivo = ''; persistirCambios(id, c); throw new Error(r.error); }
+          /* Cerrada con la firma guardada del jefe de obra, puesta por el servidor (29-oct). */
+          if (r.firmadaPor) C.aviso(`Cerrada con la firma de ${r.firmadaPor} (jefe de obra).`, 'bien');
         }
         c.estado = null; c.motivo = '';
         persistirCambios(id, c);
@@ -691,7 +697,10 @@
       const red = AG.sinRed(e);
       persistirCambios(id, c);
       if (c === cambios) { estadoBarra = red ? 'sinRed' : 'error'; refrescarBarra(); }
-      if (!red || !silencioso) C.aviso(red ? 'Sin conexión: queda guardado en el móvil y se guardará en cuanto haya red.' : `No se ha guardado todo: ${e.message}`);
+      /* El aviso, solo con la ficha en pantalla: fuera de ella no persigue por otras pantallas
+         (lo pendiente sigue en el teléfono y su barra lo cuenta al volver). */
+      const enPantalla = activa() && abierta && abierta.reparacion.id === id;
+      if (enPantalla && (!red || !silencioso)) C.aviso(red ? 'Sin conexión: queda guardado en el móvil y se guardará en cuanto haya red.' : `No se ha guardado todo: ${e.message}`);
       if (abierta && abierta.reparacion.id === id) await recargar(id);
       return false;
     } finally {
