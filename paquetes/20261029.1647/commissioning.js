@@ -186,12 +186,25 @@
   }
   /* EL Nº LEÍDO DE LA FOTO DE LA PLACA (29-oct-2026, JC: «si al hacer una foto
      a la placa de ese equipo no hay número de serie, automáticamente se lee de
-     la placa y se pone»). Lo lee el Mac (electron/data/lecturaPlaca.js); aquí
-     se dice en qué va y, si hay duda, se confirma o se descarta con un toque. */
+     la placa y se pone»). La lee el propio teléfono, sin el Mac (JC: «que
+     funcione sin mi Mac, autónomamente»): renderer/ocrPlaca.js, nada más subir
+     la foto; el motor decide (electron/data/lecturaPlaca.js). Aquí se dice en
+     qué va y, si hay duda, se confirma o se descarta con un toque. Las fotos
+     que ya estaban subidas se leen con «Leer el nº de la placa». */
+  const leyendoPlaca = new Set();
+  const puedeLeerPlaca = () => Boolean(window.OCR_PLACA && window.OCR_PLACA.disponible());
   function htmlSeriePlaca(u, puede) {
     const p = u.seriePlaca;
+    if (u.id && leyendoPlaca.has(u.id) && !u.numSerie) return '<div class="sub tenue serie-placa">Leyendo el nº de la foto de la placa…</div>';
     if (!p) return '';
-    if (p.estado === 'leyendo') return '<div class="sub tenue serie-placa">Leyendo el nº de la foto de la placa…</div>';
+    if (p.estado === 'porLeer') {
+      const f = (p.fotos || [])[0];
+      const boton = puede && u.id && f && puedeLeerPlaca()
+        ? ` <button type="button" class="enlace" data-cx="placa-leer" data-equipo="${esc(u.id)}" data-foto="${esc(f.id)}">Leer el nº de la placa</button>` : '';
+      return p.antes === 'sinLectura'
+        ? `<div class="sub tenue serie-placa">La foto de la placa no se ha podido leer: escríbelo o repite la foto.${boton}</div>`
+        : boton ? `<div class="sub tenue serie-placa">${boton.trim()}</div>` : '';
+    }
     if (p.estado === 'sinLectura') return '<div class="sub tenue serie-placa">La foto de la placa no se ha podido leer: escríbelo o repite la foto.</div>';
     if (p.estado === 'aplicada' || p.estado === 'confirmada') return '<div class="sub tenue serie-placa">Leído de la foto de la placa</div>';
     if (p.estado !== 'propuesta') return '';
@@ -207,6 +220,49 @@
       repintarConScroll();
       if (fichasEq && ficha) refrescarEquipo(ficha.equipo.id);
     } catch (e) { b.disabled = false; C.aviso(e.message); }
+  }
+  /* Lo que dice la placa de una unidad (la abierta o una del conjunto). */
+  function placaDeUnidad(f, equipoId) {
+    if (!f || !f.equipo) return null;
+    if (f.equipo.id === equipoId) return { p: f.equipo.seriePlaca, e: f.equipo };
+    const u = ((f.conjunto && f.conjunto.unidades) || []).find((y) => y.id === equipoId);
+    return u ? { p: u.seriePlaca, e: u } : null;
+  }
+  /* Nada más subir la foto: si el equipo no tiene nº y la foto puede ser la placa, se lee aquí. */
+  function leerPlacaSiToca(f, equipoId, blob) {
+    const x = placaDeUnidad(f, equipoId);
+    if (!x || !x.p || x.p.estado !== 'porLeer' || x.e.numSerie || !blob) return;
+    const fotoId = ((x.p.fotos || [])[0] || {}).id;
+    if (fotoId) leerPlaca(equipoId, fotoId, blob).catch(() => {});
+  }
+  /* Lee la foto en el teléfono (Tesseract) y manda los renglones; sin nada claro, no se inventa nada. */
+  async function leerPlaca(equipoId, fotoId, blob = null, boton = null) {
+    if (!puedeLeerPlaca() || leyendoPlaca.has(equipoId)) return;
+    const vista = ficha ? ficha.equipo.id : equipoId;
+    const pintar = () => { if (activa() && ficha && ficha.equipo.id === vista && !hoja) repintarConScroll(); };
+    leyendoPlaca.add(equipoId);
+    if (boton) boton.disabled = true;
+    pintar();
+    try {
+      const datos = (placaDeUnidad(ficha, equipoId) || {}).e || {};
+      let b = blob;
+      if (!b) {
+        const res = await fetch(`api/equipo/foto?id=${encodeURIComponent(fotoId)}`);
+        if (!res.ok) throw new Error('No se ha podido traer la foto.');
+        b = await res.blob();
+      }
+      const { pasadas } = await window.OCR_PLACA.leer(b, { marca: datos.marca || '', modelo: datos.modelo || '' });
+      const r = await C.postJson('api/equipo/placa', { equipoId, accion: 'lectura', fotoId, pasadas, vista });
+      if (!r.ok) throw new Error(r.error || 'No se ha guardado la lectura.');
+      if (ficha && r.equipo && ficha.equipo.id === r.equipo.id) ficha = r;
+      if (r.lectura === 'aplicada' && r.numSerie) C.aviso(`Nº de serie leído de la placa: ${r.numSerie}`);
+    } catch (e) {
+      if (boton) C.aviso(e.message || 'No se ha podido leer la foto.');
+    } finally {
+      leyendoPlaca.delete(equipoId);
+      pintar();
+      if (fichasEq && ficha && ficha.equipo.id === vista) refrescarEquipo(vista);
+    }
   }
   /* ESCRIBIR EL Nº DE SERIE DESDE LA FICHA (29-oct-2026, JC: «desde ahí poder
      meter numeros de serie»): el valor (o «Sin nº de serie») se pulsa y sale un
@@ -628,7 +684,11 @@
   const TONO_PM = { enMarcha: 'ok', faltaHojaFabricante: 'aviso', conReservas: 'aviso' };
   /* La fecha de puesta en marcha (para el mantenimiento) y la garantía, que
      cuenta desde la entrega a DF (29-oct, JC). Las corrige quien edita la ficha. */
-  function htmlFechasEquipo(k, puede, fila) {
+  /* Desde el 29-oct también en la app del teléfono (Vidaire Cx, sin el Mac):
+     la fecha y la garantía son campos de obra del equipo (paquete.js ›
+     CAMPOS_VUELTA) y suben a la nube por cx_filas (migración 0014). */
+  function htmlFechasEquipo(k, puedeFicha, fila) {
+    const puede = puedeFicha;
     const fpm = k.fechaPuestaMarcha ? String(k.fechaPuestaMarcha).slice(0, 10) : '';
     const g = k.garantia || { texto: 'Garantía: sin empezar (pendiente de entrega a DF)' };
     const textoG = esc(String(g.texto || '').replace(/^Garantía:\s*/, ''));
@@ -1455,6 +1515,7 @@
       const r = await mandarFotoEquipo(equipoId, foto, apuntar, vista);
       if (AG) AG.borrar(clave); else if (foto.url) URL.revokeObjectURL(foto.url);
       if (ficha && ficha.equipo.id === vista) ficha = r;
+      leerPlacaSiToca(r, equipoId, foto.archivo);
       if (despues) await despues();
       if (!activa() || !ficha || ficha.equipo.id !== vista || hoja) return;
       const y = window.scrollY;
@@ -1495,6 +1556,7 @@
       const r = await mandarFotoEquipo(b.equipoId, foto, () => AG.guardar(clave, { equipoId: b.equipoId, fotos: AG.fotosParaGuardar([foto]) }));
       AG.borrar(clave);
       if (foto.url) { try { URL.revokeObjectURL(foto.url); } catch { /* nada */ } }
+      leerPlacaSiToca(r, b.equipoId, foto.archivo);
       if (ficha && ficha.equipo.id === b.equipoId) {
         ficha = r;
         if (activa() && !hoja && !escribiendoEnApp()) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
@@ -3137,6 +3199,7 @@
     else if (que === 'serie-cancelar' && ficha) repintarConScroll();
     else if (que === 'placa-confirmar' && ficha) responderPlaca(b, 'confirmar');
     else if (que === 'placa-descartar' && ficha) responderPlaca(b, 'descartar');
+    else if (que === 'placa-leer' && ficha) leerPlaca(b.dataset.equipo, b.dataset.foto, null, b);
     else if (que === 'pdf-uis' && ficha) compartirPdf(`api/informe?tipo=vrf&equipo=${encodeURIComponent(ficha.equipo.id)}`, `${ficha.equipo.tag} - tomas de datos UE y UIs.pdf`, b);
     else if (que === 'pdf-balanceo' && ficha) compartirPdf(`api/informe?tipo=balanceo&equipo=${encodeURIComponent(ficha.equipo.id)}`, `${ficha.equipo.tag} - balanceo.pdf`, b);
   });
