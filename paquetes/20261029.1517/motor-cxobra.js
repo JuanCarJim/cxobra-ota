@@ -10017,7 +10017,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261029.1421" : "0";
+      var VERSION = true ? "20261029.1517" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -13057,6 +13057,41 @@ globalThis.CX_VARIANTE="cxobra";
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.SISTEMAS_CX = API;
       })();
+    }
+  });
+
+  // shared/commissioning/garantia.js
+  var require_garantia = __commonJS({
+    "shared/commissioning/garantia.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var fechaISO = (v) => {
+        const s = String(v || "").trim();
+        return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : null;
+      };
+      function sumarAnios(iso, anios) {
+        const [a, m, d] = iso.split("-").map(Number);
+        const meses = Math.round(Number(anios) * 12);
+        const f = new Date(Date.UTC(a, m - 1 + meses, d));
+        if (f.getUTCDate() !== d) f.setUTCDate(0);
+        return f.toISOString().slice(0, 10);
+      }
+      var hoyLocal = () => ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
+      var fechaVisible = (iso) => iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "";
+      function garantiaDe(e, hoy = hoyLocal()) {
+        const inicio = fechaISO(e && e.fechaEnvioDF);
+        const n = Number(e && e.garantiaAnios);
+        const anios = Number.isFinite(n) && n > 0 ? n : null;
+        if (!inicio) return { estado: "sinEmpezar", inicio: null, fin: null, anios, texto: "Garant\xEDa: sin empezar (pendiente de entrega a DF)" };
+        if (!anios) return { estado: "sinAnios", inicio, fin: null, anios: null, texto: `Garant\xEDa: desde ${fechaVisible(inicio)} (faltan los a\xF1os de garant\xEDa)` };
+        const fin = sumarAnios(inicio, anios);
+        const estado = fin < hoy ? "vencida" : "vigente";
+        return { estado, inicio, fin, anios, texto: `Garant\xEDa: ${fechaVisible(inicio)} \u2192 ${fechaVisible(fin)}${estado === "vencida" ? " (vencida)" : ""}` };
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.GARANTIA_CX = API;
+      })({ garantiaDe, sumarAnios, fechaVisible, fechaISO });
     }
   });
 
@@ -18166,6 +18201,7 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var sistemasCx = typeof __require !== "undefined" ? require_sistemas() : window.SISTEMAS_CX;
+      var garantiaCx = typeof __require !== "undefined" ? require_garantia() : window.GARANTIA_CX;
       var ESTADOS_MONTAJE = ["pendiente", "acopiado", "instalado", "enMarcha", "recepcionado"];
       var ESTADOS_PM = ["pendiente", "programada", "enProceso", "enMarcha", "hecha", "conReservas"];
       var ENSAYOS = ["ninguno", "balanceo", "estanqueidad", "ambos"];
@@ -18184,7 +18220,8 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
       var PM_DEMUESTRA = /* @__PURE__ */ new Set(["enMarcha", "hecha", "conReservas"]);
       function instalacionVerificada(e) {
         if (!e) return false;
-        return Boolean(e.instalacionVerificadaEn) || PM_DEMUESTRA.has(e.estadoPM) || e.estado === "enMarcha" || e.estado === "recepcionado" || ["apto", "aptoSinBocas", "noApto"].includes(e.balanceoEstado) || ["apta", "noApta"].includes(e.estanqueidadEstado) || Boolean(e.fechaEnvioDF);
+        const pmGuardado = Object.prototype.hasOwnProperty.call(e, "estadoPMGuardado") ? e.estadoPMGuardado : e.estadoPM;
+        return Boolean(e.instalacionVerificadaEn) || PM_DEMUESTRA.has(pmGuardado) || e.estado === "enMarcha" || e.estado === "recepcionado" || ["apto", "aptoSinBocas", "noApto"].includes(e.balanceoEstado) || ["apta", "noApta"].includes(e.estanqueidadEstado) || Boolean(e.fechaEnvioDF);
       }
       var INCIDENCIAS = {
         sinSerie: "Sin n\xBA de serie",
@@ -18300,12 +18337,39 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         return null;
       }
       var esCompleto = (docCompleta, fichas, ensayo) => Boolean(docCompleta) && fichas !== false && ensayo !== false;
+      var ESTADOS_PM_VISIBLES = {
+        pendienteFichaPM: "Pendiente de ficha PM",
+        faltaHojaFabricante: "Falta hoja del fabricante",
+        conReservas: "Con reservas",
+        enMarcha: "En marcha"
+      };
+      var hojaFabricantePM = (e) => hayDoc(e && e.docFichaPM);
+      function estadoPMDerivado(e) {
+        const a = e && e.pmFichas ? e.pmFichas.fichaPM : null;
+        if (a === "noApta") return "conReservas";
+        if (a !== "hecha") return "pendienteFichaPM";
+        return hojaFabricantePM(e) ? "enMarcha" : "faltaHojaFabricante";
+      }
+      var pmEnMarcha = (e) => Boolean(e) && e.estadoPM === "enMarcha";
+      function fichaPMDeFichas(fichas, fechaDe = () => null) {
+        const pm = (fichas || []).filter((x) => x.clase === "fichaPM");
+        if (!pm.length) return { fichaPM: "noAplica", fechaFichaPM: null };
+        const hechas = pm.filter((x) => x.estado === "completa" || x.estado === "firmada");
+        if (hechas.length < pm.length) return { fichaPM: "pendiente", fechaFichaPM: null };
+        const fechas = hechas.map((x) => x.fichaId ? fechaDe(x.fichaId) : null).filter(Boolean).sort();
+        return { fichaPM: hechas.some((x) => x.resultado === "noApto") ? "noApta" : "hecha", fechaFichaPM: fechas.pop() || null };
+      }
+      function conEstadoPM(e) {
+        if (!e || Object.prototype.hasOwnProperty.call(e, "estadoPMGuardado")) return e;
+        return { ...e, estadoPMGuardado: e.estadoPM || null, estadoPM: estadoPMDerivado(e) };
+      }
       function evaluarEquipo(e, modelo, repetidos, unidad, exigirInstalacion = false) {
         e = conEnsayoCorregido(e);
         const ft = hayDoc(e.docFichaTecnica) || hayDoc(modelo && modelo.docFichaTecnica);
         const ce = hayDoc(e.docMarcadoCE) || hayDoc(modelo && modelo.docMarcadoCE);
         const manual = hayDoc(e.docManual) || hayDoc(modelo && modelo.docManual);
-        const fichaPM = hayDoc(e.docFichaPM) || e.estadoPM === "hecha";
+        const fichaPM = hojaFabricantePM(e);
+        e = conEstadoPM(e);
         const ensayo = ensayoSuperado(e);
         const checklist = checklistHecho(e);
         const bloqueadoPor = e.bloqueadoPor || null;
@@ -18360,6 +18424,8 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
           instalada,
           completo: instalada && esCompleto(docCompleta, fichas, ensayo),
           envio,
+          /* Desde la entrega a DF, no desde la puesta en marcha (29-oct, JC). */
+          garantia: garantiaCx.garantiaDe(e),
           ensayoFalta: ensayosQueFaltan({ ...e, ensayo }),
           incidencias,
           falta,
@@ -18408,7 +18474,7 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
           if (f.manual) g.manual += 1;
           if (balanceoApto(f)) g.balanceo += 1;
           if (estanqueidadApta(f)) g.estanqueidad += 1;
-          if (f.estadoPM === "enMarcha" || f.estadoPM === "hecha") g.enMarcha += 1;
+          if (pmEnMarcha(f)) g.enMarcha += 1;
           if (f.completo) g.completos += 1;
           if (f.envio === "enviada") g.enviadas += 1;
         }
@@ -18470,7 +18536,7 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         }
         return [...uso.values()].map((u) => ({ ...u, faltaFT: u.sinFT > 0, faltaCE: u.sinCE > 0, faltaManual: u.sinManual > 0 })).filter((u) => u.faltaFT || u.faltaCE || u.faltaManual).sort((a, b) => b.equipos - a.equipos || a.modelo.localeCompare(b.modelo, "es"));
       }
-      var RANGO_PM = { pendiente: 0, programada: 1, enProceso: 2, conReservas: 3, enMarcha: 4, hecha: 5 };
+      var RANGO_PM = { pendiente: 0, pendienteFichaPM: 0, programada: 1, enProceso: 2, conReservas: 3, faltaHojaFabricante: 3.5, enMarcha: 4, hecha: 5 };
       var esVrf = (f) => /VRF|VRV/i.test(`${f.plantillaPM || ""} ${f.grupo || ""} ${f.familia || ""}`);
       function estadoPMConjunto(miembros) {
         return miembros.map((m) => m.estadoPM || "pendiente").reduce((a, b) => (RANGO_PM[b] ?? 0) < (RANGO_PM[a] ?? 0) ? b : a);
@@ -18489,7 +18555,7 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         const ft = todos("ft");
         const ce = todos("ce");
         const manual = todos("manual");
-        const fichaPM = miembros.some((m) => hayDoc(m.docFichaPM)) || miembros.every((m) => m.estadoPM === "hecha");
+        const fichaPM = miembros.some((m) => hayDoc(m.docFichaPM));
         const conChecklist = miembros.filter((m) => m.checklist === true || m.checklist === false);
         const checklist = conChecklist.length ? conChecklist.every((m) => m.checklist) : null;
         const bloqueadoPor = (miembros.find((m) => m.bloqueadoPor) || {}).bloqueadoPor || null;
@@ -18553,6 +18619,9 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
           falta,
           bloqueadoPor,
           revalidarTras,
+          /* La garantía del conjunto: desde el envío que lo completa (29-oct, JC). */
+          garantia: garantiaCx.garantiaDe({ fechaEnvioDF, garantiaAnios: miembros.map((m) => Number(m.garantiaAnios) || 0).reduce((x, y) => Math.max(x, y), 0) || null }),
+          fechaPuestaMarcha: miembros.map((m) => m.fechaPuestaMarcha).filter(Boolean).sort().pop() || null,
           ensayoFalta: ensayosQueFaltan({ ensayo, ensayoRequerido, balanceoEstado, estanqueidadEstado }),
           /* Qué unidad trae cada incidencia, para decirlo en la ficha. */
           incidenciasPorUnidad: miembros.map((m) => ({ tag: m.tag, incidencias: extras.includes(m) ? m.incidencias.filter((c) => c !== "exteriorSinInteriores") : m.incidencias })).filter((m) => m.incidencias.length)
@@ -18615,7 +18684,7 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
           /* Los que han entrado en commissioning: sobre ellos se cuenta lo demás. */
           instaladas: cuenta((l) => l.instalada !== false),
           sinVerificar: cuenta((l) => l.envio === "sinVerificar"),
-          enMarcha: cuenta((l) => l.estadoPM === "enMarcha" || l.estadoPM === "hecha"),
+          enMarcha: cuenta(pmEnMarcha),
           /* La documentación se recopila de todos, instalados o no. */
           docCompleta: cuenta((l) => l.docCompleta),
           /* El checklist del equipo (los que lo piden): hechos y pendientes. */
@@ -18669,7 +18738,7 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
             modelos: modelos.length,
             instaladas: cuenta((f) => f.instalada),
             sinVerificar: cuenta((f) => f.envio === "sinVerificar"),
-            enMarcha: cuenta((f) => f.estadoPM === "enMarcha" || f.estadoPM === "hecha"),
+            enMarcha: cuenta(pmEnMarcha),
             docCompleta: cuenta((f) => f.docCompleta),
             checklistHechos: cuenta((f) => f.checklist === true),
             checklistPendientes: cuenta((f) => f.checklist === false),
@@ -18814,6 +18883,12 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         conjuntoDeEquipo,
         estadoPMConjunto,
         RANGO_PM,
+        ESTADOS_PM_VISIBLES,
+        estadoPMDerivado,
+        pmEnMarcha,
+        fichaPMDeFichas,
+        conEstadoPM,
+        hojaFabricantePM,
         gruposDeConjunto,
         conjuntosDeEquipos,
         contarConjuntos,
@@ -22783,6 +22858,8 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         ["firmasEquipo", "cargo", "TEXT"],
         /* Cuándo se hizo el trazo a mano (29-oct): la firma guardada del técnico es su último trazo; las puestas solas lo llevan vacío. */
         ["firmasEquipo", "trazoEn", "TEXT"],
+        /* Quién hizo ese trazo (29-oct): el personaId de la sesión; la firma guardada solo sale de trazos propios. */
+        ["firmasEquipo", "trazoPor", "TEXT"],
         /* Cómo quedó la reparación en esa entrada de la Conversación (19-oct): noReparada, pendienteMaterial… */
         ["incidenciaComentarios", "resultado", "TEXT"],
         /* Quién va a cada sesión de la planificación (16-oct): su agenda. */
@@ -22815,6 +22892,9 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         ["certIndustriales", "seguimientoEn", "TEXT"],
         ["certIndustriales", "historialSeguimiento", "TEXT"],
         /* El alcance de cada línea ({L1: 'suministro'|'montaje'|'ambos'}); pasa de un mes al siguiente. */
+        /* El nº de serie leído de la foto de la placa (29-oct, JC): la propuesta o lo guardado solo, en JSON
+           (electron/data/lecturaPlaca.js). En el equipo y no en la foto: la fila de la foto no la reescribe el Mac. */
+        ["equiposObra", "seriePlaca", "TEXT"],
         ["certIndustriales", "alcances", "TEXT"],
         /* Lo del MES de cada partida, su importe a su precio, lo de origen y quién lo midió. */
         ["lineasCertificacion", "cantidad", "REAL"],
@@ -22989,6 +23069,8 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         ["equiposObra", "fechaFabricacion", "TEXT"],
         ["equiposObra", "fechaInstalacion", "TEXT"],
         ["equiposObra", "fechaPuestaMarcha", "TEXT"],
+        /* Los años de garantía (29-oct-2026): cuentan desde la entrega a DF. */
+        ["equiposObra", "garantiaAnios", "REAL"],
         ["equiposObra", "tipoMantenimiento", "TEXT"],
         ["equiposObra", "vidaUtilAnios", "REAL"],
         ["configCommissioning", "potenciaTermicaKw", "REAL"],
@@ -25986,7 +26068,7 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         const CAMPOS_RUIDO = /* @__PURE__ */ new Set(["modificadoEn", "creadoEn", "orden", "padreId", "id"]);
         const ACCIONES = { crear: "Alta", editar: "Cambio", borrar: "Baja", restaurar: "Restauraci\xF3n" };
         const conValores = (accion) => accion === "editar" || accion === "restaurar";
-        const ORIGENES = { escritorio: "Escritorio", web: "Web", ipad: "iPad", movil: "M\xF3vil" };
+        const ORIGENES = { escritorio: "Escritorio", web: "Web", ipad: "iPad", movil: "M\xF3vil", lecturaPlaca: "Lectura de placa" };
         const nombreOrigen = (o) => o ? ORIGENES[o] || o : "";
         const nombreEntidad = (e) => ENTIDADES[e] || partirCamel(e);
         function partirCamel(s) {
@@ -41531,12 +41613,13 @@ ${subtitulo}`, c[5]] : c.slice())]);
         const ahora = (/* @__PURE__ */ new Date()).toISOString();
         const fecha = rol === "jefeObra" && fechaDelTrabajo(repo, sesion, ids) || ahora;
         const trazoEn = rol === "jefeObra" && !elegida.deGuardada ? ahora : null;
+        const trazoPor = autorDelTrazo(sesion, trazoEn);
         const ultima = previas[previas.length - 1];
         if (ultima) {
-          repo.modificar("firmasEquipo", sesion, ultima.id, { nombre: n, cargo: c, imagen: img, fecha, trazoEn, equipoId: eq.id });
+          repo.modificar("firmasEquipo", sesion, ultima.id, { nombre: n, cargo: c, imagen: img, fecha, trazoEn, trazoPor, equipoId: eq.id });
           for (const f of previas.slice(0, -1)) repo.borrar("firmasEquipo", sesion, f.id, { verbo: "editar" });
         } else {
-          repo.crear("firmasEquipo", sesion, { obraId: eq.obraId, equipoId: eq.id, rol, nombre: n, cargo: c, imagen: img, fecha, trazoEn }, { verbo: "editar" });
+          repo.crear("firmasEquipo", sesion, { obraId: eq.obraId, equipoId: eq.id, rol, nombre: n, cargo: c, imagen: img, fecha, trazoEn, trazoPor }, { verbo: "editar" });
         }
         return { ok: true, firmas: firmasDeEquipos(repo, sesion, ids) };
       }
@@ -41591,13 +41674,36 @@ ${subtitulo}`, c[5]] : c.slice())]);
         }
         return hecha || empezada;
       }
-      function firmaGuardada(repo, nombre) {
-        if (!sinAcentos(nombre) || !repo.db) return null;
-        const filas = repo.db.prepare(`SELECT nombre, imagen FROM firmasEquipo
-    WHERE rol = 'jefeObra'
-    ORDER BY COALESCE(trazoEn, '') DESC, modificadoEn DESC`).all();
-        const f = filas.find((x) => mismoNombre(x.nombre, nombre) && bytesDeImagen(x.imagen));
-        return f ? { nombre: f.nombre, imagen: f.imagen } : null;
+      function autorDelTrazo(sesion, trazoEn) {
+        return trazoEn && sesion && sesion.personaId ? String(sesion.personaId) : null;
+      }
+      function quienPusoLaImagen(repo, filaId) {
+        try {
+          const h = repo.db.prepare(`SELECT personaId FROM historial WHERE entidad = 'firmasEquipo' AND registroId = ?
+      AND (accion = 'crear' OR campo = 'imagen') ORDER BY creadoEn DESC, rowid DESC LIMIT 1`).get(filaId);
+          return h && h.personaId ? String(h.personaId) : null;
+        } catch {
+          return null;
+        }
+      }
+      function firmaGuardada(repo, personaId) {
+        const id = llano(personaId);
+        if (!id || !repo.db) return null;
+        let p = null;
+        try {
+          p = repo.db.prepare("SELECT nombre FROM personas WHERE id = ?").get(id);
+        } catch {
+        }
+        const suNombre = llano(p && p.nombre);
+        if (!suNombre) return null;
+        const filas = repo.db.prepare(`SELECT id, nombre, imagen, trazoPor FROM firmasEquipo
+    WHERE rol = 'jefeObra' AND (trazoPor = ? OR trazoPor IS NULL OR trazoPor = '')
+    ORDER BY COALESCE(trazoEn, '') DESC, modificadoEn DESC`).all(id);
+        for (const f of filas) {
+          if (!mismoNombre(f.nombre, suNombre) || !bytesDeImagen(f.imagen)) continue;
+          if (f.trazoPor === id || quienPusoLaImagen(repo, f.id) === id) return { nombre: f.nombre, imagen: f.imagen };
+        }
+        return null;
       }
       function nombreDeSesion(repo, sesion) {
         if (!sesion) return "";
@@ -41609,7 +41715,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         return llano(yo && yo.nombre || sesion.nombre);
       }
       function firmaPropia(repo, sesion) {
-        return firmaGuardada(repo, nombreDeSesion(repo, sesion));
+        return sesion && sesion.personaId ? firmaGuardada(repo, sesion.personaId) : null;
       }
       function ponerFirmaTecnico(repo, sesion, equipoId, { nombre = null } = {}) {
         const eq = repo.leer("equiposObra", sesion, llano(equipoId));
@@ -41625,12 +41731,13 @@ ${subtitulo}`, c[5]] : c.slice())]);
           repo.modificar("firmasEquipo", sesion, ultima.id, { fecha });
           return { ok: true, hecho: "fecha" };
         }
-        const g = firmaGuardada(repo, nombre);
+        if (llano(nombre) && !mismoNombre(nombreDeSesion(repo, sesion), nombre)) return { ok: true, hecho: "responsableOtro" };
+        const g = firmaPropia(repo, sesion);
         if (!g) return { ok: true, hecho: "sinFirmaGuardada" };
         repo.crear("firmasEquipo", sesion, { obraId: eq.obraId, equipoId: eq.id, rol: "jefeObra", nombre: g.nombre, cargo: null, imagen: g.imagen, fecha }, { verbo: "editar" });
         return { ok: true, hecho: "puesta" };
       }
-      module.exports = { ROLES, CARGOS, rotuloCargo, firmar, firmasDeEquipo, firmasDeEquipos, equiposConFirmas, firmasDeClave, paraPdf, bytesDeImagen, unidadesDelConjunto, fechaDelTrabajo, firmaGuardada, firmaPropia, nombreDeSesion, imagenAFirmar, ponerFirmaTecnico };
+      module.exports = { ROLES, CARGOS, rotuloCargo, firmar, firmasDeEquipo, firmasDeEquipos, equiposConFirmas, firmasDeClave, paraPdf, bytesDeImagen, unidadesDelConjunto, fechaDelTrabajo, firmaGuardada, firmaPropia, nombreDeSesion, imagenAFirmar, ponerFirmaTecnico, autorDelTrazo, quienPusoLaImagen };
     }
   });
 
@@ -41681,12 +41788,13 @@ ${subtitulo}`, c[5]] : c.slice())]);
         const img = elegida.imagen;
         const fecha = (/* @__PURE__ */ new Date()).toISOString();
         const trazoEn = rol === "jefeObra" && !elegida.deGuardada ? fecha : null;
+        const trazoPor = FIR.autorDelTrazo(sesion, trazoEn);
         const ultima = previas[previas.length - 1];
         if (ultima) {
-          repo.modificar("firmasEquipo", sesion, ultima.id, { nombre: n, cargo: car, imagen: img, fecha, trazoEn });
+          repo.modificar("firmasEquipo", sesion, ultima.id, { nombre: n, cargo: car, imagen: img, fecha, trazoEn, trazoPor });
           for (const f of previas.slice(0, -1)) repo.borrar("firmasEquipo", sesion, f.id, { verbo: "editar" });
         } else {
-          repo.crear("firmasEquipo", sesion, { obraId: i.obraId, equipoId: i.equipoId, incidenciaId: i.id, rol, nombre: n, cargo: car, imagen: img, fecha, trazoEn }, { verbo: "editar" });
+          repo.crear("firmasEquipo", sesion, { obraId: i.obraId, equipoId: i.equipoId, incidenciaId: i.id, rol, nombre: n, cargo: car, imagen: img, fecha, trazoEn, trazoPor }, { verbo: "editar" });
         }
         const firmas = firmasDe(repo, sesion, i.id);
         return { ok: true, firmas, firmada: firmada(firmas) };
@@ -41699,7 +41807,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         for (const id of orden) {
           const p = repo.db.prepare("SELECT nombre FROM personas WHERE id = ?").get(id);
           const nombre = llano(p && p.nombre);
-          const g = nombre ? FIR.firmaGuardada(repo, nombre) : null;
+          const g = nombre ? FIR.firmaGuardada(repo, id) : null;
           if (g) return { personaId: id, nombre: nombre.slice(0, 80), imagen: g.imagen };
         }
         return null;
@@ -41709,7 +41817,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         if (!j) return null;
         const previas = filas(repo, sesion, i.id).filter((f) => f.rol === "jefeObra");
         for (const f of previas) repo.borrar("firmasEquipo", sesion, f.id, { verbo: "editar" });
-        repo.crear("firmasEquipo", sesion, { obraId: i.obraId, equipoId: i.equipoId, incidenciaId: i.id, rol: "jefeObra", nombre: j.nombre, cargo: "", imagen: j.imagen, fecha: (/* @__PURE__ */ new Date()).toISOString(), trazoEn: null }, { verbo: "editar" });
+        repo.crear("firmasEquipo", sesion, { obraId: i.obraId, equipoId: i.equipoId, incidenciaId: i.id, rol: "jefeObra", nombre: j.nombre, cargo: "", imagen: j.imagen, fecha: (/* @__PURE__ */ new Date()).toISOString(), trazoEn: null, trazoPor: null }, { verbo: "editar" });
         return { nombre: j.nombre };
       }
       var paraInforme = (firmas) => ["jefeObra", "cliente"].map((r) => firmas && firmas[r] ? { rol: r, rotulo: ROTULOS[r], nombre: firmas[r].nombre, cargo: firmas[r].cargo || "", fecha: firmas[r].fecha, imagen: firmas[r].imagen } : null).filter(Boolean);
@@ -57998,7 +58106,8 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         function empezado(u) {
           if (!u) return false;
           if (u.instalacionVerificadaEn || u.estado === "enMarcha" || u.estado === "recepcionado") return true;
-          if (u.estadoPM && u.estadoPM !== "pendiente") return true;
+          const pmGuardado = Object.prototype.hasOwnProperty.call(u, "estadoPMGuardado") ? u.estadoPMGuardado : u.estadoPM;
+          if (pmGuardado && pmGuardado !== "pendiente") return true;
           if (hayDato(u.docFichaPM) || hayDato(u.docBalanceo) || hayDato(u.docEstanqueidad)) return true;
           if (BALANCEO_HECHO.has(u.balanceoEstado) || ESTANQ_HECHA.has(u.estanqueidadEstado)) return true;
           if (u.fechaEnvioDF) return true;
@@ -60417,6 +60526,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
       var fs = require_fs();
       var path = require_path();
       var F = require_fichas();
+      var CXC = require_control();
       var RC = require_rejillaChecklist();
       var fichaHtml = require_fichaHtml();
       var catalogo = require_plantillasCliente();
@@ -60696,9 +60806,11 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         const cat = catalogoDe(repo, sesion);
         const cfg = configDe(repo, sesion, obraId);
         const fichas = /* @__PURE__ */ new Map();
+        const fechaDe = /* @__PURE__ */ new Map();
         for (const fila of filasFichas(repo, sesion, obraId)) {
           const r = evaluarFila(fila, cat, cfg, { repo, sesion });
           if (r) fichas.set(`${fila.clave}|${fila.plantilla}`, { id: fila.id, estado: F.estadoVisible(r.ev.estado, r.ev.medidos, F.bocasSinMedir(r.ev)), resultado: r.ev.resultado, medidos: r.ev.medidos && r.ev.medidos.rellenos, enObra: r.ev.enObra, fusionada: F.fichaFundida(fila) });
+          if (fila.clase === "fichaPM") fechaDe.set(fila.id, fechaTrabajoFicha(fila));
         }
         const buscar = (clave, plantilla) => fichas.get(`${clave}|${plantilla}`) || null;
         const deLaObra = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
@@ -60715,10 +60827,27 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
             checklist: F.estadoChecklist(pm),
             /* Para la franja de la tarjeta: fichas con algún dato tomado en obra (o firmadas).
                Lo importado del SharePoint no cuenta (29-oct, JC: salía en equipos «sin verificar»). */
-            iniciadas: pm.fichas.filter((x) => x.estado === "firmada" || x.enObra).length
+            iniciadas: pm.fichas.filter((x) => x.estado === "firmada" || x.enObra).length,
+            /* La ficha de puesta en marcha de la app (29-oct, JC): decide el «En marcha»
+               (shared/commissioning/control.js › estadoPMDerivado) y su fecha. */
+            ...CXC.fichaPMDeFichas(pm.fichas, (id) => fechaDe.get(id) || null)
           });
         }
         return out;
+      }
+      function conFichasPM(repo, sesion, obraId, equipos) {
+        let fichas = null;
+        try {
+          fichas = fichasPorEquipo(repo, sesion, obraId, equipos);
+        } catch {
+          fichas = null;
+        }
+        return fichas ? equipos.map((e) => fichas.has(e.id) ? { ...e, pmFichas: fichas.get(e.id) } : e) : equipos;
+      }
+      function fechaTrabajoFicha(fila) {
+        const d = leerJson(fila && fila.datos, {});
+        const f = String(d && d.cabecera && d.cabecera.fechaEnsayo || "").slice(0, 10);
+        return /^\d{4}-\d{2}-\d{2}$/.test(f) ? f : null;
       }
       function puestaEnMarcha(repo, sesion, obraId) {
         const obra = obraVisible(repo, sesion, obraId);
@@ -60959,6 +61088,20 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           try {
             repo.modificar("equiposObra", sesion, r.dueno.id, { numSerie: serie.slice(0, 80) });
           } catch {
+          }
+        }
+        const hechaPM = def.clase === "fichaPM" && ["completa", "firmada"].includes(F.estadoVisible(ev.estado, ev.medidos, F.bocasSinMedir(ev)));
+        const fechaPM = hechaPM ? fechaTrabajoFicha({ datos: JSON.stringify(limpio) }) : null;
+        if (!leido && fechaPM) {
+          const ids = [...new Set([r.dueno && r.dueno.id, ...(r.afectados || []).map((x) => x.id)].filter(Boolean))];
+          for (const eid of ids) {
+            const eq = repo.leer("equiposObra", sesion, eid);
+            if (eq && !String(eq.fechaPuestaMarcha || "").trim()) {
+              try {
+                repo.modificar("equiposObra", sesion, eid, { fechaPuestaMarcha: fechaPM });
+              } catch {
+              }
+            }
           }
         }
         const equipoFirma = fila && fila.equipoId || r.dueno && r.dueno.id;
@@ -62017,6 +62160,8 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         nuevaVersionPlantilla,
         puestaEnMarcha,
         fichasPorEquipo,
+        conFichasPM,
+        fechaTrabajoFicha,
         ficha,
         guardarFicha,
         actualizarVersion,
@@ -63835,12 +63980,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           ultimoEnlace = cfg && cfg.ultimoEnlace ? JSON.parse(cfg.ultimoEnlace) : null;
         } catch {
         }
-        let fichas = null;
-        try {
-          fichas = require_fichasPM().fichasPorEquipo(repo, sesion, obraId, equipos);
-        } catch {
-        }
-        const conFichas = fichas ? equipos.map((e) => fichas.has(e.id) ? { ...e, pmFichas: fichas.get(e.id) } : e) : equipos;
+        const conFichas = require_fichasPM().conFichasPM(repo, sesion, obraId, equipos);
         let bloqueos = /* @__PURE__ */ new Map();
         try {
           bloqueos = require_incidencias().bloqueosDeObra(repo, obraId);
@@ -63858,7 +63998,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         if (!obra) return null;
         const crudos = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
         const modelos = repo.listar("modelosEquipo", sesion, { condicion: "obraId = ?", params: [obraId] });
-        const docs2 = new Map(control.evaluar({ equipos: crudos, modelos }).filas.map((f) => [f.id, f]));
+        const docs2 = new Map(control.evaluar({ equipos: require_fichasPM().conFichasPM(repo, sesion, obraId, crudos), modelos }).filas.map((f) => [f.id, f]));
         const pmDe = /* @__PURE__ */ new Map();
         const fichas = repo.listar("fichasPM", sesion, { condicion: "obraId = ? AND clase = 'fichaPM' AND equipoId IS NOT NULL", params: [obraId] }).sort((a, b) => String(a.modificadoEn || "").localeCompare(String(b.modificadoEn || "")));
         for (const f of fichas) {
@@ -63878,7 +64018,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         const equipos = crudos.map((e) => {
           const f = docs2.get(e.id);
           const conPm = pmDe.has(e.id) ? { ...e, pm: pmDe.get(e.id) } : e;
-          return f ? { ...conPm, ft: f.ft, ce: f.ce, manual: f.manual } : conPm;
+          return f ? { ...conPm, ft: f.ft, ce: f.ce, manual: f.manual, estadoPM: f.estadoPM, estadoPMGuardado: f.estadoPMGuardado } : conPm;
         });
         const sesiones = repo.listar("sesionesPlanCx", sesion, { condicion: "obraId = ?", params: [obraId] }).map((x) => ({ fecha: x.fecha, tarea: x.tarea, items: x.items }));
         return { obra: { codigo: obra.codigo, nombre: obra.nombre }, equipos, sesiones };
@@ -64199,6 +64339,35 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           return { ok: false, error: `No se ha cambiado nada: ${err.message}` };
         }
         return { ok: true, cambiados, marcados: equipos.length };
+      }
+      function guardarFechasEquipo(repo, sesion, id, entrada = {}) {
+        if (!puede(sesion.rol, "commissioning", "editar")) return { ok: false, error: "Tu rol no puede cambiar las fechas del equipo." };
+        const actual = repo.leer("equiposObra", sesion, id);
+        if (!actual) return { ok: false, error: "No se encuentra el equipo." };
+        const cambios = {};
+        if (entrada.fechaPuestaMarcha !== void 0) {
+          const v = entrada.fechaPuestaMarcha ? String(entrada.fechaPuestaMarcha).trim().slice(0, 10) : null;
+          if (v && !/^\d{4}-\d{2}-\d{2}$/.test(v)) return { ok: false, error: `\xAB${entrada.fechaPuestaMarcha}\xBB no es una fecha.` };
+          cambios.fechaPuestaMarcha = v;
+        }
+        if (entrada.garantiaAnios !== void 0) {
+          const s = entrada.garantiaAnios === null ? "" : String(entrada.garantiaAnios).trim().replace(",", ".");
+          const n = s === "" ? null : Number(s);
+          if (n !== null && (!Number.isFinite(n) || n <= 0 || n > 50)) return { ok: false, error: `\xAB${entrada.garantiaAnios}\xBB no son unos a\xF1os de garant\xEDa.` };
+          cambios.garantiaAnios = n;
+        }
+        if (!Object.keys(cambios).length) return { ok: false, error: "No hay nada que cambiar." };
+        const ids = [id, ...companerasDe(equiposDe(repo, sesion, actual.obraId), id).map((c) => c.id)];
+        const db = repo.db;
+        db.exec("BEGIN");
+        try {
+          for (const x of ids) repo.modificar("equiposObra", sesion, x, cambios);
+          db.exec("COMMIT");
+        } catch (err) {
+          db.exec("ROLLBACK");
+          return { ok: false, error: `No se ha cambiado nada: ${err.message}` };
+        }
+        return { ok: true, cambiados: ids.length, ...cambios };
       }
       var CAMPOS_CONJUNTO = ["estadoPM", "estanqueidadEstado"];
       var esVrf = (e) => /VRF|VRV/i.test(`${e.plantillaPM || ""} ${e.grupo || ""}`);
@@ -64697,6 +64866,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         marcarEnviado,
         asignarUbicacion,
         verificarInstalacion,
+        guardarFechasEquipo,
         validarTrasIncidencia,
         emparejarEquipo,
         emparejarObra,
@@ -68445,6 +68615,761 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         return true;
       }
       module.exports = { listar, crear, guardar, marcarTarea, borrar, deFila, aFila };
+    }
+  });
+
+  // shared/commissioning/placaSerie.js
+  var require_placaSerie = __commonJS({
+    "shared/commissioning/placaSerie.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var ETIQUETA = new RegExp([
+        "S\\s*/\\s*N[O0]?\\.?",
+        "SERIAL\\s*(?:N[O0\xBA\xB0]\\.?|NUMBER|NUM\\.?|#)?",
+        "SER\\.?\\s*N[O0]\\.?",
+        "SERIE\\s*N[O0\xBA\xB0]\\.?",
+        "N[\xBA\xB0O0]?\\.?\\s*(?:DE\\s+)?S[E\xC9]RIE",
+        "NUM(?:ERO|\\.)?\\s*(?:DE\\s+)?S[E\xC9]RIE",
+        "N\xDAMERO\\s*(?:DE\\s+)?SERIE",
+        "MFG\\.?\\s*N[O0\xBA\xB0]\\.?",
+        "MANUFACTURING\\s*N[O0]\\.?",
+        "SERIENNUMMER",
+        "SERIEN-?NR\\.?",
+        "FABR\\.?\\s*-?\\s*NR\\.?",
+        "MATRICOLA",
+        "NUMERO\\s+DI\\s+SERIE",
+        "\u0421\u0415\u0420\u0418\u0419\u041D\u042B\u0419\\s*\u041D\u041E\u041C\u0415\u0420\\.?",
+        "\u0421\u0415\u0420\u0406\u0419\u041D\u0418\u0419\\s*\u041D\u041E\u041C\u0415\u0420\\.?"
+      ].map((p) => `(?<![A-Z0-9\u0410-\u042F\u0406\u0407\u0404])(?:${p})`).join("|"), "giu");
+      var FORMATO_MARCA = {
+        PANASONIC: /^(?:\d{9,11}|[A-Z]\d{8,10})$/,
+        DAIKIN: /^(?:[A-Z]?\d{6,10}|\d{2}[A-Z]\d{5,8})$/,
+        MITSUBISHI: /^\d[A-Z0-9]{6,9}$/,
+        LG: /^\d{3}[A-Z0-9]{6,12}$/,
+        SAMSUNG: /^[0-9A-Z]{13,16}$/,
+        TOSHIBA: /^[0-9A-Z]{7,12}$/,
+        CARRIER: /^(?:\d{9}[A-Z]|[A-Z]\d{10})$/
+      };
+      var llano = (v) => String(v ?? "").trim();
+      var normal = (v) => llano(v).toUpperCase().replace(/[\s\-_/.]/g, "");
+      var marcaDe = (m) => Object.keys(FORMATO_MARCA).find((k) => normal(m).includes(k)) || null;
+      var UNIDAD = /^(?:K?W|V|HZ|A|BAR|MPA|KG|KPA|PA|DB|M3\/H|L\/S|PH|IPX?\d+)$/i;
+      function pareceSerie(token, { modelo } = {}) {
+        const t = llano(token).replace(/^[:#.\-]+|[:;,.]+$/g, "");
+        if (t.length < 5 || t.length > 25) return false;
+        if (!/^[A-Z0-9][A-Z0-9\-/]*[A-Z0-9]$/i.test(t)) return false;
+        const cifras = (t.match(/\d/g) || []).length;
+        if (cifras < 4) return false;
+        if (/^R\d{2,4}[A-Z]?$/i.test(t)) return false;
+        if (/^(?:19|20)\d{2}[-/]?\d{1,2}(?:[-/]?\d{1,2})?$/.test(t) && t.length <= 10 && /[-/]/.test(t)) return false;
+        if (/^\d{1,4}-\d{1,4}(?:-\d{1,4})?$/.test(t)) return false;
+        if (/^IPX?\d+$/i.test(t)) return false;
+        if (modelo && normal(t) === normal(modelo)) return false;
+        return true;
+      }
+      var trozos = (s) => llano(s).split(/\s+/).filter(Boolean);
+      function primeroQueParece(texto, opciones) {
+        const ts = trozos(texto.replace(/^[\s:.#\-]+/, ""));
+        for (let i = 0; i < ts.length; i += 1) {
+          const t = ts[i].replace(/^[:#]+|[:;,]+$/g, "");
+          if (!t) continue;
+          if (UNIDAD.test(ts[i + 1] || "") && /^\d+([.,]\d+)?$/.test(t)) continue;
+          if (pareceSerie(t, opciones)) return t.replace(/[:;,.]+$/, "");
+        }
+        return null;
+      }
+      function extraerNumeroSerie(texto, opciones = {}) {
+        const lineas = (Array.isArray(texto) ? texto : String(texto ?? "").split(/\r?\n/)).map(llano).filter(Boolean);
+        const marca = marcaDe(opciones.marca) || marcaDe(lineas.slice(0, 4).join(" "));
+        const formato = marca ? FORMATO_MARCA[marca] : null;
+        const delFormato = (v) => Boolean(formato && formato.test(normal(v)));
+        const hallados = [];
+        lineas.forEach((l, i) => {
+          ETIQUETA.lastIndex = 0;
+          let m;
+          let antes = null;
+          while ((m = ETIQUETA.exec(l)) !== null) {
+            if (antes !== null && m.index === antes) {
+              ETIQUETA.lastIndex += 1;
+              continue;
+            }
+            antes = m.index;
+            const resto = l.slice(m.index + m[0].length);
+            const hasta = resto.search(new RegExp("(?<![A-Z0-9\u0410-\u042F])(?:PROD|DATE|MODEL|DATA|\u0414\u0410\u0422\u0410|FECHA|TYPE|TIPO)(?![A-Z0-9\u0410-\u042F])", "iu"));
+            const v = primeroQueParece(hasta >= 0 ? resto.slice(0, hasta) : resto, opciones);
+            if (v) {
+              hallados.push({ valor: v, sitio: "mismo" });
+              continue;
+            }
+            for (const sig of lineas.slice(i + 1, i + 3)) {
+              const w = primeroQueParece(sig, opciones);
+              if (w) {
+                hallados.push({ valor: w, sitio: "debajo" });
+                break;
+              }
+            }
+          }
+        });
+        const distintos = [...new Set(hallados.map((h) => normal(h.valor)))];
+        const otroModelo = modeloDistinto(lineas, opciones.modelo);
+        if (hallados.length) {
+          const mejor = hallados.find((h) => h.sitio === "mismo") || hallados[0];
+          const unanime = distintos.length === 1;
+          const alta = !otroModelo && unanime && (mejor.sitio === "mismo" ? !formato || delFormato(mejor.valor) || normal(mejor.valor).length >= 6 : delFormato(mejor.valor));
+          return {
+            valor: mejor.valor,
+            confianza: alta ? "alta" : "media",
+            candidatos: [...new Set(hallados.map((h) => h.valor))],
+            motivo: otroModelo ? `La placa es de otro modelo (no dice ${llano(opciones.modelo)})` : !unanime ? "La placa da m\xE1s de un n\xFAmero" : alta ? "Junto a su etiqueta" : "La etiqueta est\xE1, pero el n\xFAmero no va pegado a ella"
+          };
+        }
+        if (formato) {
+          const sueltos = [...new Set(lineas.flatMap(trozos).map((t) => t.replace(/^[:#]+|[:;,.]+$/g, "")).filter((t) => pareceSerie(t, opciones) && delFormato(t)))];
+          if (sueltos.length === 1) return { valor: sueltos[0], confianza: "baja", candidatos: sueltos, motivo: "Sin etiqueta: por el formato de la marca" };
+          if (sueltos.length > 1) return { valor: null, confianza: null, candidatos: sueltos, motivo: "Sin etiqueta y con varios n\xFAmeros posibles" };
+        }
+        return { valor: null, confianza: null, candidatos: [], motivo: "No se ve ning\xFAn n\xBA de serie en la foto" };
+      }
+      function modeloDistinto(lineas, modelo) {
+        const m = normal(modelo);
+        if (m.length < 4) return false;
+        const todo = normal(lineas.join(" "));
+        if (!/MODEL|МОДЕЛЬ|MODELO/i.test(lineas.join(" "))) return false;
+        return !todo.includes(m);
+      }
+      var SE\u00D1ALES_PLACA = [
+        /MODEL|МОДЕЛЬ/i,
+        /SERIAL|S\/N|SERIE|СЕРИЙН|СЕРІЙН|MFG/i,
+        /REFRIGERANT|R410A|R32\b|R-?407C|R-?134A|ХЛАДАГЕНТ/i,
+        /POWER\s*SOURCE|POWER\s*SUPPLY|ALIMENTACI|\d\s*HZ\b/i,
+        /\bK?W\b|KW/i,
+        /MPA|BAR\b/i,
+        /\bIPX?\d/i,
+        /\bKG\b/i
+      ];
+      function pareceplaca(texto) {
+        const t = (Array.isArray(texto) ? texto : String(texto ?? "").split(/\r?\n/)).join(" ");
+        return SE\u00D1ALES_PLACA.filter((r) => r.test(t)).length >= 3;
+      }
+      function estadoSerie(v) {
+        const s = llano(v);
+        if (!s || /^(-|—|n\/?a|sin.*)$/i.test(s)) return "vacio";
+        return /\d/.test(s) ? "tiene" : "nota";
+      }
+      var esFotoPlaca = (pie) => /^\s*placa\b/i.test(llano(pie));
+      function decidir({ serieActual, lectura, placa = true }) {
+        const est = estadoSerie(serieActual);
+        if (est === "tiene" || !lectura || !lectura.valor) return "nada";
+        if (!placa) return lectura.confianza === "baja" ? "nada" : "proponer";
+        if (est === "vacio" && lectura.confianza === "alta") return "aplicar";
+        return "proponer";
+      }
+      function leerEstado(v) {
+        if (!v) return null;
+        try {
+          const o = typeof v === "string" ? JSON.parse(v) : v;
+          return o && typeof o === "object" ? o : null;
+        } catch {
+          return null;
+        }
+      }
+      module.exports = { extraerNumeroSerie, pareceSerie, pareceplaca, estadoSerie, esFotoPlaca, decidir, leerEstado, FORMATO_MARCA };
+    }
+  });
+
+  // ipad/shims/vacio.js
+  var require_vacio = __commonJS({
+    "ipad/shims/vacio.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var falta = (nombre) => function noHay() {
+        const donde = globalThis.enWeb ? "En la web" : "En el iPad";
+        throw new Error(`${donde} no hay \xAB${nombre}\xBB: esto solo lo hace la app de escritorio.`);
+      };
+      module.exports = new Proxy({}, {
+        get(_o, nombre) {
+          if (nombre === "__esModule" || nombre === "default" || typeof nombre === "symbol") return void 0;
+          return falta(String(nombre));
+        }
+      });
+    }
+  });
+
+  // shared/importacion/pdf.js
+  var require_pdf = __commonJS({
+    "shared/importacion/pdf.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var NL = String.fromCharCode(10);
+      var CR = String.fromCharCode(13);
+      var TAB = String.fromCharCode(9);
+      var BS = String.fromCharCode(8);
+      var FF = String.fromCharCode(12);
+      var _zlibPdf = typeof __require !== "undefined" ? require_zlib() : null;
+      var _leerTablasDeFuentes = null;
+      function registrarLectorDeFuentes(fn) {
+        _leerTablasDeFuentes = fn;
+      }
+      var aBytesPdf = (dato) => {
+        if (dato instanceof Uint8Array) return dato;
+        if (typeof ArrayBuffer !== "undefined" && dato instanceof ArrayBuffer) return new Uint8Array(dato);
+        if (typeof dato === "string") {
+          const salida = new Uint8Array(dato.length);
+          for (let i = 0; i < dato.length; i += 1) salida[i] = dato.charCodeAt(i) & 255;
+          return salida;
+        }
+        return new Uint8Array(0);
+      };
+      function latin1(bytes, desde = 0, hasta = bytes.length) {
+        let s = "";
+        for (let i = desde; i < hasta; i += 1) s += String.fromCharCode(bytes[i]);
+        return s;
+      }
+      function inflar(bytes) {
+        if (!_zlibPdf) return null;
+        try {
+          return new Uint8Array(_zlibPdf.inflateSync(Buffer.from(bytes)));
+        } catch {
+        }
+        try {
+          return new Uint8Array(_zlibPdf.inflateRawSync(Buffer.from(bytes)));
+        } catch {
+          return null;
+        }
+      }
+      async function inflarAsync(bytes) {
+        if (_zlibPdf) return inflar(bytes);
+        if (typeof DecompressionStream === "undefined") return null;
+        for (const formato of ["deflate", "deflate-raw"]) {
+          try {
+            const flujo = new Blob([bytes]).stream().pipeThrough(new DecompressionStream(formato));
+            return new Uint8Array(await new Response(flujo).arrayBuffer());
+          } catch {
+          }
+        }
+        return null;
+      }
+      function localizarFlujos(bytes) {
+        const texto = latin1(bytes);
+        const flujos = [];
+        let i = 0;
+        while (i < texto.length) {
+          const inicio = texto.indexOf("stream", i);
+          if (inicio === -1) break;
+          const dicc = texto.slice(Math.max(0, inicio - 800), inicio);
+          let datos = inicio + "stream".length;
+          if (texto.charCodeAt(datos) === 13) datos += 1;
+          if (texto.charCodeAt(datos) === 10) datos += 1;
+          const fin = texto.indexOf("endstream", datos);
+          if (fin === -1) break;
+          flujos.push({
+            dicc,
+            desde: datos,
+            hasta: fin,
+            comprimido: /\/FlateDecode/.test(dicc),
+            /* Un flujo que no es de contenido —una imagen, una fuente— se salta. */
+            esImagen: /\/Subtype\s*\/Image/.test(dicc),
+            esFuente: /\/FontFile|\/Type\s*\/Font/.test(dicc)
+          });
+          i = fin + "endstream".length;
+        }
+        return flujos;
+      }
+      function leerCadena(texto, i, dosBytes = false) {
+        if (texto[i] === "<") {
+          const fin = texto.indexOf(">", i);
+          if (fin === -1) return null;
+          const hex = texto.slice(i + 1, fin).replace(/[^0-9a-fA-F]/g, "");
+          let s2 = "";
+          const paso = dosBytes ? 4 : 2;
+          for (let k2 = 0; k2 + paso <= hex.length; k2 += paso) {
+            s2 += String.fromCharCode(parseInt(hex.slice(k2, k2 + paso), 16));
+          }
+          return { valor: s2, siguiente: fin + 1 };
+        }
+        if (texto[i] !== "(") return null;
+        const ESCAPES = { n: NL, r: CR, t: TAB, b: BS, f: FF, "(": "(", ")": ")", "\\": "\\" };
+        let s = "";
+        let nivel = 1;
+        let k = i + 1;
+        while (k < texto.length) {
+          const c = texto[k];
+          if (c === "\\") {
+            const d = texto[k + 1];
+            const octal = texto.slice(k + 1, k + 4).match(/^[0-7]{1,3}/);
+            if (octal) {
+              s += String.fromCharCode(parseInt(octal[0], 8));
+              k += 1 + octal[0].length;
+              continue;
+            }
+            if (d === NL) {
+              k += 2;
+              continue;
+            }
+            s += ESCAPES[d] !== void 0 ? ESCAPES[d] : d;
+            k += 2;
+            continue;
+          }
+          if (c === "(") {
+            nivel += 1;
+            s += c;
+            k += 1;
+            continue;
+          }
+          if (c === ")") {
+            nivel -= 1;
+            if (nivel === 0) return { valor: s, siguiente: k + 1 };
+            s += c;
+            k += 1;
+            continue;
+          }
+          s += c;
+          k += 1;
+        }
+        return null;
+      }
+      var WINANSI = {
+        128: "\u20AC",
+        130: "\u201A",
+        132: "\u201E",
+        133: "\u2026",
+        137: "\u2030",
+        139: "\u2039",
+        145: "\u2018",
+        146: "\u2019",
+        147: "\u201C",
+        148: "\u201D",
+        149: "\u2022",
+        150: "\u2013",
+        151: "\u2014",
+        155: "\u203A",
+        160: " "
+      };
+      var traducir = (s) => s.replace(/[- ]/g, (c) => WINANSI[c.charCodeAt(0)] || c);
+      function traducirCon(tabla, cadena) {
+        let s = "";
+        for (let i = 0; i < cadena.length; i += 1) {
+          const codigo = cadena.charCodeAt(i);
+          const letra = tabla.get(codigo);
+          if (letra !== void 0) {
+            s += letra;
+            continue;
+          }
+          if (codigo >= 128) continue;
+          s += cadena[i];
+        }
+        return s;
+      }
+      function trozosDelFlujo(texto, tablas = null) {
+        const trozos = [];
+        const pendientes = [];
+        let x = 0;
+        let y = 0;
+        let dentro = false;
+        let i = 0;
+        let tabla = null;
+        let tam = 10;
+        let dosBytes = false;
+        const soltar = () => {
+          if (!pendientes.length) return;
+          const junto = traducir(pendientes.join(""));
+          if (junto.trim()) trozos.push({ x, y, tam, texto: junto });
+          pendientes.length = 0;
+        };
+        while (i < texto.length) {
+          const c = texto[i];
+          if (texto.slice(i, i + 2) === "BT") {
+            dentro = true;
+            i += 2;
+            continue;
+          }
+          if (texto.slice(i, i + 2) === "ET") {
+            soltar();
+            dentro = false;
+            i += 2;
+            continue;
+          }
+          if (!dentro) {
+            i += 1;
+            continue;
+          }
+          if (c === "/") {
+            const m = texto.slice(i).match(/^\/([A-Za-z0-9+._-]+)\s+([-\d.]+)\s+Tf/);
+            if (m) {
+              soltar();
+              const fuente = tablas ? tablas.get(m[1]) || null : null;
+              tabla = fuente ? fuente.mapa : null;
+              dosBytes = Boolean(fuente && fuente.dosBytes);
+              tam = Math.abs(Number(m[2])) || tam;
+              i += m[0].length;
+              continue;
+            }
+          }
+          if (c === "(" || c === "<") {
+            const r = leerCadena(texto, i, dosBytes);
+            if (!r) {
+              i += 1;
+              continue;
+            }
+            pendientes.push(tabla ? traducirCon(tabla, r.valor) : r.valor);
+            i = r.siguiente;
+            continue;
+          }
+          if (texto.slice(i, i + 2) === "T*") {
+            soltar();
+            y -= 12;
+            i += 2;
+            continue;
+          }
+          if (/[-\d.]/.test(c)) {
+            const m = texto.slice(i).match(/^((?:-?[\d.]+\s+)+)(Td|TD|Tm|cm)/);
+            if (m) {
+              const nums = m[1].trim().split(/\s+/).map(Number);
+              soltar();
+              if (m[2] === "Tm") {
+                x = nums[4] || 0;
+                y = nums[5] || 0;
+              } else if (m[2] === "Td" || m[2] === "TD") {
+                x += nums[nums.length - 2] || 0;
+                y += nums[nums.length - 1] || 0;
+              }
+              i += m[1].length + m[2].length;
+              continue;
+            }
+            const n = texto.slice(i).match(/^(-?[\d.]+)/);
+            if (n) {
+              if (pendientes.length && Number(n[1]) < -320) pendientes.push(" ");
+              i += n[1].length;
+              continue;
+            }
+          }
+          i += 1;
+        }
+        soltar();
+        return trozos;
+      }
+      function agruparEnLineas(trozos, tolerancia = 3) {
+        const orden = [...trozos].sort((a, b) => b.y - a.y || a.x - b.x);
+        const lineas = [];
+        for (const t of orden) {
+          if (!t.texto.trim()) continue;
+          const ultima = lineas[lineas.length - 1];
+          if (ultima && Math.abs(ultima.y - t.y) <= tolerancia) {
+            ultima.trozos.push(t);
+            ultima.y = (ultima.y + t.y) / 2;
+          } else {
+            lineas.push({ y: t.y, trozos: [t] });
+          }
+        }
+        return lineas.map((l) => {
+          const cols = [...l.trozos].sort((a, b) => a.x - b.x);
+          const texto = cols.map((c) => c.texto).join(" ");
+          return {
+            y: l.y,
+            /* Las columnas se guardan aparte del texto seguido: de ellas sale la
+               tabla, y del texto seguido sale la búsqueda. */
+            columnas: cols.map((c) => ({ x: c.x, texto: c.texto.trim() })).filter((c) => c.texto),
+            texto: texto.replace(/\s+/g, " ").trim()
+          };
+        }).filter((l) => l.texto);
+      }
+      function montarResultado(bytes, flujos, contenidos, tablas) {
+        const cabecera = latin1(bytes, 0, Math.min(1024, bytes.length));
+        const avisos = [];
+        if (!/^%PDF-/.test(cabecera)) avisos.push("El archivo no empieza por %PDF: puede no ser un PDF.");
+        if (/\/Encrypt\b/.test(latin1(bytes, 0, Math.min(4096, bytes.length)))) {
+          avisos.push("El PDF est\xE1 cifrado: puede que no se lea nada.");
+        }
+        const paginas = [];
+        for (const texto of contenidos) {
+          const lineas = agruparEnLineas(trozosDelFlujo(texto, tablas && tablas.porNombre));
+          if (lineas.length) paginas.push({ lineas });
+        }
+        const conTexto = paginas.reduce((s, p) => s + p.lineas.length, 0);
+        const hayImagenes = flujos.some((f) => f.esImagen);
+        if (!conTexto) {
+          avisos.push(hayImagenes ? "Este PDF no lleva texto dentro: es un escaneo. Para leerlo har\xEDa falta reconocimiento \xF3ptico, que esta aplicaci\xF3n no hace." : "No se ha encontrado texto en el PDF.");
+        }
+        const sospechoso = paginas.some((p) => p.lineas.some((l) => /[-]/.test(l.texto)));
+        if (sospechoso) avisos.push("Algunas letras pueden salir mal: el PDF usa una codificaci\xF3n de fuente propia.");
+        return {
+          paginas,
+          lineas: paginas.flatMap((p) => p.lineas),
+          texto: paginas.map((p) => p.lineas.map((l) => l.texto).join(NL)).join(NL + NL),
+          avisos,
+          escaneado: !conTexto && hayImagenes
+        };
+      }
+      function leerPdf(dato) {
+        const bytes = aBytesPdf(dato);
+        const flujos = localizarFlujos(bytes);
+        const contenidos = [];
+        for (const f of flujos) {
+          if (f.esImagen || f.esFuente) continue;
+          const crudo = bytes.slice(f.desde, f.hasta);
+          const datos = f.comprimido ? inflar(crudo) : crudo;
+          if (datos) contenidos.push(latin1(datos));
+        }
+        const tablas = _leerTablasDeFuentes ? _leerTablasDeFuentes(bytes) : null;
+        return montarResultado(bytes, flujos, contenidos, tablas);
+      }
+      async function leerPdfAsync(dato) {
+        const bytes = aBytesPdf(dato);
+        const flujos = localizarFlujos(bytes);
+        const contenidos = [];
+        for (const f of flujos) {
+          if (f.esImagen || f.esFuente) continue;
+          const crudo = bytes.slice(f.desde, f.hasta);
+          const datos = f.comprimido ? await inflarAsync(crudo) : crudo;
+          if (datos) contenidos.push(latin1(datos));
+        }
+        const tablas = _leerTablasDeFuentes ? await _leerTablasDeFuentes(bytes) : null;
+        return montarResultado(bytes, flujos, contenidos, tablas);
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.PDF = API;
+      })({
+        leerPdf,
+        leerPdfAsync,
+        agruparEnLineas,
+        trozosDelFlujo,
+        localizarFlujos,
+        leerCadena,
+        latin1,
+        registrarLectorDeFuentes
+      });
+    }
+  });
+
+  // electron/lectura/ocr.js
+  var require_ocr = __commonJS({
+    "electron/lectura/ocr.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var fs = require_fs();
+      var os = require_os();
+      var path = require_path();
+      var { execFile } = require_vacio();
+      var A = require_albaranes();
+      var SCRIPT_MAC = path.join("/app/electron/data", "ocrMac.jxa");
+      var ESPERA_MS = 6e4;
+      function ejecutar(cmd, args, { timeout = ESPERA_MS } = {}) {
+        return new Promise((resolve, reject) => {
+          execFile(cmd, args, { timeout, maxBuffer: 32 * 1024 * 1024 }, (err, stdout, stderr) => {
+            if (err) reject(new Error(llano(stderr) || err.message));
+            else resolve(stdout);
+          });
+        });
+      }
+      var llano = (v) => String(v ?? "").trim();
+      async function trozosMac(ruta) {
+        const codigo = fs.readFileSync(SCRIPT_MAC, "utf8");
+        const salida = await ejecutar("osascript", ["-l", "JavaScript", "-e", codigo, path.resolve(ruta)]);
+        const trozos = JSON.parse(llano(salida) || "[]");
+        return Array.isArray(trozos) ? trozos : [];
+      }
+      function filasDePdf(ruta) {
+        const { leerPdf } = require_pdf();
+        const r = leerPdf(fs.readFileSync(ruta));
+        if (r.escaneado || !r.lineas.length) return null;
+        const ANCHO = 595;
+        return r.lineas.map((l, i) => {
+          const celdas = (l.columnas.length ? l.columnas : [{ x: 0, texto: l.texto }]).map((c) => ({ t: c.texto, x: c.x / ANCHO, y: i / 100, w: c.texto.length * 5 / ANCHO, h: 0.01 }));
+          return { y: i / 100, h: 0.01, celdas, texto: l.texto };
+        });
+      }
+      async function leerArchivo(ruta, opciones = {}) {
+        const ext = path.extname(llano(ruta)).toLowerCase();
+        const plataforma = opciones.plataforma || "ios";
+        const motor = opciones.motor || (plataforma === "darwin" ? trozosMac : null);
+        try {
+          if (ext === ".pdf") {
+            const filas = filasDePdf(ruta);
+            if (filas) return { ok: true, filas, origen: "pdf" };
+            if (!motor || plataforma !== "darwin") return { ok: false, error: "El PDF es un escaneo y en este ordenador no se puede leer: rellena el albar\xE1n a mano." };
+            const dir = fs.mkdtempSync(path.join(os.tmpdir(), "albaran-"));
+            const png = path.join(dir, "pagina.png");
+            try {
+              await ejecutar("sips", ["-s", "format", "png", path.resolve(ruta), "--out", png]);
+              return { ok: true, filas: A.filasDeTrozos(await motor(png)), origen: "escaneo" };
+            } finally {
+              fs.rmSync(dir, { recursive: true, force: true });
+            }
+          }
+          if (!motor) return { ok: false, error: "En este ordenador todav\xEDa no se lee la foto: rellena el albar\xE1n a mano." };
+          const trozos = await motor(ruta);
+          if (!trozos.length) return { ok: false, error: "No se ha encontrado texto en la foto: rep\xEDtela con m\xE1s luz y de frente, o rell\xE9nalo a mano." };
+          return { ok: true, filas: A.filasDeTrozos(trozos), origen: "foto" };
+        } catch (e) {
+          return { ok: false, error: `No se ha podido leer la foto (${e.message.split("\n")[0]}): rell\xE9nalo a mano.` };
+        }
+      }
+      module.exports = { leerArchivo, trozosMac, filasDePdf };
+    }
+  });
+
+  // electron/data/lecturaPlaca.js
+  var require_lecturaPlaca = __commonJS({
+    "electron/data/lecturaPlaca.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var fs = require_fs();
+      var PS = require_placaSerie();
+      var SESION_LECTURA = Object.freeze({ personaId: null, rol: "administrador", nombre: "Lectura de placa", origen: "lecturaPlaca" });
+      var INTENTOS = 3;
+      var llano = (v) => String(v ?? "").trim();
+      var fpm = () => require_fichasPM();
+      async function textoMac(ruta) {
+        if (true) return null;
+        const O = require_ocr();
+        const A = require_albaranes();
+        const filas = A.filasDeTrozos(await O.trozosMac(ruta));
+        return filas.map((f) => f.texto);
+      }
+      function claseDeFoto(pie) {
+        if (PS.esFotoPlaca(pie)) return "placa";
+        return llano(pie) ? null : "camara";
+      }
+      function prepararTabla(db) {
+        db.exec(`CREATE TABLE IF NOT EXISTS _lecturasPlaca (
+    fotoId TEXT PRIMARY KEY, equipoId TEXT, estado TEXT NOT NULL, valor TEXT, texto TEXT, en TEXT NOT NULL)`);
+      }
+      function pendientes(db, { obraId = null } = {}) {
+        prepararTabla(db);
+        const filas = db.prepare(`
+    SELECT f.id, f.obraId, f.equipoId, f.ruta, f.pie, f.creadoEn, e.tag, e.marca, e.modelo, e.numSerie
+      FROM fotosEquipo f JOIN equiposObra e ON e.id = f.equipoId
+     WHERE f.id NOT IN (SELECT fotoId FROM _lecturasPlaca) ${obraId ? "AND f.obraId = ?" : ""}
+     ORDER BY f.creadoEn`).all(...obraId ? [obraId] : []);
+        return filas.filter((f) => claseDeFoto(f.pie) && PS.estadoSerie(f.numSerie) !== "tiene");
+      }
+      var fallos = /* @__PURE__ */ new Map();
+      async function leerPendientes(repo, { leer = textoMac, obraId = null, registro = () => {
+      } } = {}) {
+        const r = { aplicadas: 0, propuestas: 0, sinLectura: 0, enCola: 0, detalle: [] };
+        for (const f of pendientes(repo.db, { obraId })) {
+          if (!f.ruta || !fs.existsSync(f.ruta)) {
+            r.enCola += 1;
+            continue;
+          }
+          let lineas;
+          try {
+            lineas = await leer(f.ruta);
+          } catch (e) {
+            const n = (fallos.get(f.id) || 0) + 1;
+            fallos.set(f.id, n);
+            if (n >= INTENTOS) apuntarLeida(repo.db, f, { estado: "error", valor: null }, llano(e.message).split("\n")[0]);
+            r.enCola += 1;
+            continue;
+          }
+          if (lineas === null) {
+            r.enCola += 1;
+            continue;
+          }
+          const res = procesarLectura(repo, f, lineas);
+          r[res.estado === "aplicada" ? "aplicadas" : res.estado === "propuesta" ? "propuestas" : "sinLectura"] += 1;
+          r.detalle.push({ fotoId: f.id, equipoId: f.equipoId, tag: f.tag, ...res });
+          registro(`Placa ${f.tag}: ${res.estado}${res.valor ? ` ${res.valor}` : ""}`);
+        }
+        return r;
+      }
+      function procesarLectura(repo, foto, lineas) {
+        const eq = repo.db.prepare("SELECT id, numSerie, marca, modelo, seriePlaca FROM equiposObra WHERE id = ?").get(foto.equipoId) || {};
+        const lectura = PS.extraerNumeroSerie(lineas, { marca: eq.marca, modelo: eq.modelo });
+        const placa = claseDeFoto(foto.pie) === "placa" || PS.pareceplaca(lineas);
+        const que = PS.decidir({ serieActual: eq.numSerie, lectura, placa });
+        const nota = { valor: lectura.valor || null, confianza: lectura.confianza, motivo: lectura.motivo, fotoId: foto.id, ...placa && !PS.esFotoPlaca(foto.pie) ? { placaSinPie: true } : {} };
+        let estado = "sinLectura";
+        if (que === "aplicar") {
+          const w = fpm().ponerNumSerie(repo, SESION_LECTURA, eq.id, lectura.valor);
+          estado = w.ok ? "aplicada" : "propuesta";
+        } else if (que === "proponer") estado = "propuesta";
+        const antes = PS.leerEstado(eq.seriePlaca);
+        const pisa = estado !== "sinLectura" || !antes || antes.estado === "sinLectura";
+        if (pisa && (estado !== "sinLectura" || placa)) {
+          repo.modificar("equiposObra", SESION_LECTURA, eq.id, { seriePlaca: JSON.stringify({ estado, ...nota, en: (/* @__PURE__ */ new Date()).toISOString() }) });
+        }
+        apuntarLeida(repo.db, foto, { estado, valor: nota.valor }, lineas.join("\n"));
+        return { estado, ...nota };
+      }
+      function apuntarLeida(db, foto, { estado, valor }, texto) {
+        prepararTabla(db);
+        db.prepare("INSERT OR REPLACE INTO _lecturasPlaca (fotoId, equipoId, estado, valor, texto, en) VALUES (?, ?, ?, ?, ?, ?)").run(foto.id, foto.equipoId, estado, valor || null, String(texto || "").slice(0, 8e3), (/* @__PURE__ */ new Date()).toISOString());
+      }
+      function responder(repo, ses, { equipoId, accion, valor } = {}) {
+        const eq = repo.leer("equiposObra", ses, llano(equipoId));
+        if (!eq) return { ok: false, error: "No se encuentra el equipo." };
+        const nota = PS.leerEstado(eq.seriePlaca);
+        if (!nota || nota.estado !== "propuesta") return { ok: false, error: "Este equipo no tiene ning\xFAn n\xBA de serie le\xEDdo por confirmar." };
+        const quien = ses.nombre || null;
+        if (accion === "descartar") {
+          try {
+            repo.modificar("equiposObra", ses, eq.id, { seriePlaca: JSON.stringify({ ...nota, estado: "descartada", por: quien, en: (/* @__PURE__ */ new Date()).toISOString() }) });
+          } catch {
+            return { ok: false, error: "Tu rol no puede tocar este equipo." };
+          }
+          return { ok: true, equipoId: eq.id };
+        }
+        if (accion !== "confirmar") return { ok: false, error: "Acci\xF3n desconocida." };
+        if (PS.estadoSerie(eq.numSerie) === "tiene") return { ok: false, error: `El equipo ya tiene n\xBA de serie (${eq.numSerie}): no se cambia.` };
+        const serie = llano(valor) || nota.valor;
+        if (!serie) return { ok: false, error: "Falta el n\xBA de serie." };
+        const w = fpm().ponerNumSerie(repo, ses, eq.id, serie);
+        if (!w.ok) return w;
+        repo.modificar("equiposObra", ses, eq.id, { seriePlaca: JSON.stringify({ ...nota, estado: "confirmada", valor: serie, por: quien, en: (/* @__PURE__ */ new Date()).toISOString() }) });
+        return { ok: true, equipoId: eq.id, numSerie: serie };
+      }
+      function paraPantalla(eq, fotos = []) {
+        if (!eq) return null;
+        const nota = PS.leerEstado(eq.seriePlaca);
+        const tiene = PS.estadoSerie(eq.numSerie) === "tiene";
+        const placas = fotos.filter((f) => claseDeFoto(f.pie) === "placa");
+        if (nota && (nota.estado === "aplicada" || nota.estado === "confirmada")) return tiene ? { estado: nota.estado, valor: nota.valor } : null;
+        if (tiene) return null;
+        if (nota && nota.estado === "propuesta") return { estado: "propuesta", valor: nota.valor, motivo: nota.motivo || "" };
+        const sinLeer = placas.some((f) => !nota || nota.fotoId !== f.id && String(f.creadoEn || "") > String(nota.en || ""));
+        if (sinLeer) return { estado: "leyendo" };
+        if (nota && nota.estado === "sinLectura") return { estado: "sinLectura" };
+        return null;
+      }
+      var vigia = null;
+      function arrancarVigia({ repo, alTerminar = () => {
+      }, cada = 3e4, registro = (t) => console.log(t) } = {}) {
+        if (vigia || true) return null;
+        let ocupado = false;
+        let otraVez = false;
+        const vuelta = async () => {
+          if (ocupado) {
+            otraVez = true;
+            return;
+          }
+          ocupado = true;
+          try {
+            const r = await leerPendientes(repo, { registro });
+            if (r.aplicadas || r.propuestas || r.sinLectura) alTerminar(r);
+          } catch (e) {
+            registro(`Lectura de placas: ${e.message}`);
+          }
+          ocupado = false;
+          if (otraVez) {
+            otraVez = false;
+            setTimeout(vuelta, 50);
+          }
+        };
+        const t = setInterval(vuelta, cada);
+        if (t.unref) t.unref();
+        setTimeout(vuelta, 5e3);
+        vigia = { avisar: () => setTimeout(vuelta, 200), parar: () => {
+          clearInterval(t);
+          vigia = null;
+        } };
+        return vigia;
+      }
+      var avisar = () => {
+        if (vigia) vigia.avisar();
+      };
+      module.exports = { SESION_LECTURA, prepararTabla, pendientes, leerPendientes, procesarLectura, responder, paraPantalla, arrancarVigia, avisar, textoMac, claseDeFoto };
     }
   });
 
@@ -92172,6 +93097,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
       var FIR = require_firmasEquipo();
       var INC = require_incidencias();
       var FPM = require_fichasPM();
+      var LP = require_lecturaPlaca();
       var MNCR = require_motor();
       var MDIF = require_difusores();
       var FMOV = require_filaMovil();
@@ -92193,6 +93119,8 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         "POST api/equipo/instalacion": [["commissioning", "editar"]],
         "POST api/equipo/revalidar": [["commissioning", "editar"]],
         "POST api/equipo/serie": [["commissioning", "editar"]],
+        /* Confirmar o descartar el nº de serie leído de la foto de la placa (29-oct-2026). */
+        "POST api/equipo/placa": [["commissioning", "editar"]],
         "POST api/equipo/fotos": [["commissioning", "editar"]],
         "POST api/equipo/fotos/quitar": [["commissioning", "editar"]],
         "GET api/equipo/foto": [["commissioning", "ver"]],
@@ -92377,7 +93305,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           return {
             ok: true,
             /* Con su nº de serie (29-oct, JC): difusoresEquipo no lo trae. */
-            equipo: { ...d.equipo, numSerie: fila ? FMOV.serieDe(fila) : null },
+            equipo: { ...d.equipo, numSerie: fila ? FMOV.serieDe(fila) : null, seriePlaca: placaDe(ses, d.equipo.id) },
             conjunto: linea && linea.clase !== "suelto" ? {
               clase: linea.clase,
               envio: linea.envio,
@@ -92392,6 +93320,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
                 marca: m.marca || null,
                 modelo: m.modelo || null,
                 numSerie: FMOV.serieDe(m),
+                seriePlaca: placaDe(ses, m.id),
                 planta: m.planta || null,
                 sala: FMOV.salaVisibleDe(m),
                 estadoPM: m.estadoPM || null,
@@ -92416,7 +93345,14 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
               incidencias: fila.incidencias,
               instalada: fila.instalada !== false,
               instalacionVerificadaEn: fila.instalacionVerificadaEn || null,
-              instalacionVerificadaPor: fila.instalacionVerificadaPor || null
+              instalacionVerificadaPor: fila.instalacionVerificadaPor || null,
+              /* La fecha de puesta en marcha (mantenimiento) y la garantía, que cuenta
+                 desde la entrega a DF (29-oct, JC); las del conjunto si es un split o un VRF. */
+              fichaPMHecha: fila.pmFichas ? fila.pmFichas.fichaPM || null : null,
+              fechaPuestaMarcha: (linea && linea.clase !== "suelto" ? linea.fechaPuestaMarcha : fila.fechaPuestaMarcha) || null,
+              fechaEnvioDF: (linea && linea.clase !== "suelto" ? linea.fechaEnvioDF : fila.fechaEnvioDF) || null,
+              garantiaAnios: fila.garantiaAnios ?? null,
+              garantia: (linea && linea.clase !== "suelto" ? linea.garantia : fila.garantia) || null
             } : null,
             /* Qué se mide de este equipo (plantillasCliente.js › MEDICIONES): decide
                si sale la fila del balanceo y con qué nombre. */
@@ -92573,6 +93509,13 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           const e = json();
           return CX.verificarInstalacion(repo, ses, [llano(e.equipoId)], { verificada: e.verificada !== false });
         }
+        function equipoFechas({ ses, json }) {
+          const e = json();
+          const entrada = {};
+          if ("fechaPuestaMarcha" in e) entrada.fechaPuestaMarcha = e.fechaPuestaMarcha;
+          if ("garantiaAnios" in e) entrada.garantiaAnios = e.garantiaAnios;
+          return CX.guardarFechasEquipo(repo, ses, llano(e.equipoId), entrada);
+        }
         function equipoRevalidar({ ses, json }) {
           const e = json();
           return CX.validarTrasIncidencia(repo, ses, llano(e.equipoId));
@@ -92583,6 +93526,22 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           if (!r.ok) return r;
           const vuelta = llano(e.volver) || r.equipoId;
           return { ...equipo({ ses, query: { id: vuelta } }), ok: true, numSerie: r.numSerie, serieDe: r.equipoId };
+        }
+        function placaDe(ses, equipoId) {
+          try {
+            const eq = repo.leer("equiposObra", ses, equipoId);
+            const fotos = repo.listar("fotosEquipo", ses, { condicion: "equipoId = ?", params: [equipoId] });
+            return LP.paraPantalla(eq, fotos);
+          } catch {
+            return null;
+          }
+        }
+        function equipoPlaca({ ses, quien, json }) {
+          const e = json();
+          const r = LP.responder(repo, { ...ses, nombre: ses.nombre || (typeof quien === "string" ? quien : quien && quien.nombre) || null }, { equipoId: llano(e.equipoId), accion: llano(e.accion), valor: e.valor });
+          if (!r.ok) return r;
+          const vista = llano(e.vista) && repo.leer("equiposObra", ses, llano(e.vista)) ? llano(e.vista) : r.equipoId;
+          return { ...equipo({ ses, quien, query: { id: vista } }), ok: true, numSerie: r.numSerie || null };
         }
         function equipoMedida({ ses, json }) {
           const e = json();
@@ -92685,6 +93644,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
             return { ok: false, error: err.message || "No se pudo guardar la foto." };
           }
           for (const x of nuevas) soltar(llano(x.id));
+          LP.avisar();
           const vista = llano(e.vista) && repo.leer("equiposObra", ses, llano(e.vista)) ? llano(e.vista) : eq.id;
           return { ok: true, ...equipo({ ses, query: { id: vista } }) };
         }
@@ -93043,7 +94003,9 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           "POST api/cronometro": cronometroAccion,
           "POST api/cronometro/parte": cronometroParte,
           "POST api/equipo/instalacion": equipoInstalacion,
+          "POST api/equipo/fechas": equipoFechas,
           "POST api/equipo/serie": equipoSerie,
+          "POST api/equipo/placa": equipoPlaca,
           "POST api/equipo/revalidar": equipoRevalidar,
           "POST api/equipo/fotos": equipoFotos,
           "POST api/equipo/fotos/quitar": equipoFotoQuitar,
@@ -107345,7 +108307,8 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       function pendientesCx(repo, sesion, obraId) {
         const pm = FPM.puestaEnMarcha(repo, sesion, obraId);
         if (!pm) return [];
-        const equipos = new Map(repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] }).map((e) => [e.id, e]));
+        const crudos = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
+        const equipos = new Map(FPM.conFichasPM(repo, sesion, obraId, crudos).map((e) => [e.id, CX.conEstadoPM(e)]));
         return pm.lineas.map((l) => {
           const us = l.unidades || [l];
           const e = equipos.get(l.id) || {};
@@ -125191,6 +126154,14 @@ ${l}`;
             semana: ctx.semana,
             subcontratas: ctx.subcontratas,
             actividades: ctx.actividades,
+            /* Empresas de la obra (ncrEmpresas) para sugerir al contratista. */
+            empresas: (() => {
+              try {
+                return repo.db.prepare("SELECT nombre FROM ncrEmpresas WHERE obraId = ? ORDER BY nombre").all(o.id).map((e) => e.nombre);
+              } catch {
+                return [];
+              }
+            })(),
             /* El formulario en blanco de cada tipo, con la cabecera ya rellena. */
             inicial: Object.fromEntries(ORDEN.map((id) => [id, M.vacio(id, { obra: o, cliente, persona, contexto: ctx, hoy })])),
             sugerencias: Object.fromEntries(ORDEN.map((id) => [id, M.sugerencias(id, { contexto: ctx })])),
@@ -125848,353 +126819,6 @@ ${l}`;
         return { atender, limpiar };
       }
       module.exports = { crearManejador, PERMISOS, RUTAS_BINARIAS, permitida, MAX_FOTO, MAX_JSON };
-    }
-  });
-
-  // shared/importacion/pdf.js
-  var require_pdf = __commonJS({
-    "shared/importacion/pdf.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var NL = String.fromCharCode(10);
-      var CR = String.fromCharCode(13);
-      var TAB = String.fromCharCode(9);
-      var BS = String.fromCharCode(8);
-      var FF = String.fromCharCode(12);
-      var _zlibPdf = typeof __require !== "undefined" ? require_zlib() : null;
-      var _leerTablasDeFuentes = null;
-      function registrarLectorDeFuentes(fn) {
-        _leerTablasDeFuentes = fn;
-      }
-      var aBytesPdf = (dato) => {
-        if (dato instanceof Uint8Array) return dato;
-        if (typeof ArrayBuffer !== "undefined" && dato instanceof ArrayBuffer) return new Uint8Array(dato);
-        if (typeof dato === "string") {
-          const salida = new Uint8Array(dato.length);
-          for (let i = 0; i < dato.length; i += 1) salida[i] = dato.charCodeAt(i) & 255;
-          return salida;
-        }
-        return new Uint8Array(0);
-      };
-      function latin1(bytes, desde = 0, hasta = bytes.length) {
-        let s = "";
-        for (let i = desde; i < hasta; i += 1) s += String.fromCharCode(bytes[i]);
-        return s;
-      }
-      function inflar(bytes) {
-        if (!_zlibPdf) return null;
-        try {
-          return new Uint8Array(_zlibPdf.inflateSync(Buffer.from(bytes)));
-        } catch {
-        }
-        try {
-          return new Uint8Array(_zlibPdf.inflateRawSync(Buffer.from(bytes)));
-        } catch {
-          return null;
-        }
-      }
-      async function inflarAsync(bytes) {
-        if (_zlibPdf) return inflar(bytes);
-        if (typeof DecompressionStream === "undefined") return null;
-        for (const formato of ["deflate", "deflate-raw"]) {
-          try {
-            const flujo = new Blob([bytes]).stream().pipeThrough(new DecompressionStream(formato));
-            return new Uint8Array(await new Response(flujo).arrayBuffer());
-          } catch {
-          }
-        }
-        return null;
-      }
-      function localizarFlujos(bytes) {
-        const texto = latin1(bytes);
-        const flujos = [];
-        let i = 0;
-        while (i < texto.length) {
-          const inicio = texto.indexOf("stream", i);
-          if (inicio === -1) break;
-          const dicc = texto.slice(Math.max(0, inicio - 800), inicio);
-          let datos = inicio + "stream".length;
-          if (texto.charCodeAt(datos) === 13) datos += 1;
-          if (texto.charCodeAt(datos) === 10) datos += 1;
-          const fin = texto.indexOf("endstream", datos);
-          if (fin === -1) break;
-          flujos.push({
-            dicc,
-            desde: datos,
-            hasta: fin,
-            comprimido: /\/FlateDecode/.test(dicc),
-            /* Un flujo que no es de contenido —una imagen, una fuente— se salta. */
-            esImagen: /\/Subtype\s*\/Image/.test(dicc),
-            esFuente: /\/FontFile|\/Type\s*\/Font/.test(dicc)
-          });
-          i = fin + "endstream".length;
-        }
-        return flujos;
-      }
-      function leerCadena(texto, i, dosBytes = false) {
-        if (texto[i] === "<") {
-          const fin = texto.indexOf(">", i);
-          if (fin === -1) return null;
-          const hex = texto.slice(i + 1, fin).replace(/[^0-9a-fA-F]/g, "");
-          let s2 = "";
-          const paso = dosBytes ? 4 : 2;
-          for (let k2 = 0; k2 + paso <= hex.length; k2 += paso) {
-            s2 += String.fromCharCode(parseInt(hex.slice(k2, k2 + paso), 16));
-          }
-          return { valor: s2, siguiente: fin + 1 };
-        }
-        if (texto[i] !== "(") return null;
-        const ESCAPES = { n: NL, r: CR, t: TAB, b: BS, f: FF, "(": "(", ")": ")", "\\": "\\" };
-        let s = "";
-        let nivel = 1;
-        let k = i + 1;
-        while (k < texto.length) {
-          const c = texto[k];
-          if (c === "\\") {
-            const d = texto[k + 1];
-            const octal = texto.slice(k + 1, k + 4).match(/^[0-7]{1,3}/);
-            if (octal) {
-              s += String.fromCharCode(parseInt(octal[0], 8));
-              k += 1 + octal[0].length;
-              continue;
-            }
-            if (d === NL) {
-              k += 2;
-              continue;
-            }
-            s += ESCAPES[d] !== void 0 ? ESCAPES[d] : d;
-            k += 2;
-            continue;
-          }
-          if (c === "(") {
-            nivel += 1;
-            s += c;
-            k += 1;
-            continue;
-          }
-          if (c === ")") {
-            nivel -= 1;
-            if (nivel === 0) return { valor: s, siguiente: k + 1 };
-            s += c;
-            k += 1;
-            continue;
-          }
-          s += c;
-          k += 1;
-        }
-        return null;
-      }
-      var WINANSI = {
-        128: "\u20AC",
-        130: "\u201A",
-        132: "\u201E",
-        133: "\u2026",
-        137: "\u2030",
-        139: "\u2039",
-        145: "\u2018",
-        146: "\u2019",
-        147: "\u201C",
-        148: "\u201D",
-        149: "\u2022",
-        150: "\u2013",
-        151: "\u2014",
-        155: "\u203A",
-        160: " "
-      };
-      var traducir = (s) => s.replace(/[- ]/g, (c) => WINANSI[c.charCodeAt(0)] || c);
-      function traducirCon(tabla, cadena) {
-        let s = "";
-        for (let i = 0; i < cadena.length; i += 1) {
-          const codigo = cadena.charCodeAt(i);
-          const letra = tabla.get(codigo);
-          if (letra !== void 0) {
-            s += letra;
-            continue;
-          }
-          if (codigo >= 128) continue;
-          s += cadena[i];
-        }
-        return s;
-      }
-      function trozosDelFlujo(texto, tablas = null) {
-        const trozos = [];
-        const pendientes = [];
-        let x = 0;
-        let y = 0;
-        let dentro = false;
-        let i = 0;
-        let tabla = null;
-        let tam = 10;
-        let dosBytes = false;
-        const soltar = () => {
-          if (!pendientes.length) return;
-          const junto = traducir(pendientes.join(""));
-          if (junto.trim()) trozos.push({ x, y, tam, texto: junto });
-          pendientes.length = 0;
-        };
-        while (i < texto.length) {
-          const c = texto[i];
-          if (texto.slice(i, i + 2) === "BT") {
-            dentro = true;
-            i += 2;
-            continue;
-          }
-          if (texto.slice(i, i + 2) === "ET") {
-            soltar();
-            dentro = false;
-            i += 2;
-            continue;
-          }
-          if (!dentro) {
-            i += 1;
-            continue;
-          }
-          if (c === "/") {
-            const m = texto.slice(i).match(/^\/([A-Za-z0-9+._-]+)\s+([-\d.]+)\s+Tf/);
-            if (m) {
-              soltar();
-              const fuente = tablas ? tablas.get(m[1]) || null : null;
-              tabla = fuente ? fuente.mapa : null;
-              dosBytes = Boolean(fuente && fuente.dosBytes);
-              tam = Math.abs(Number(m[2])) || tam;
-              i += m[0].length;
-              continue;
-            }
-          }
-          if (c === "(" || c === "<") {
-            const r = leerCadena(texto, i, dosBytes);
-            if (!r) {
-              i += 1;
-              continue;
-            }
-            pendientes.push(tabla ? traducirCon(tabla, r.valor) : r.valor);
-            i = r.siguiente;
-            continue;
-          }
-          if (texto.slice(i, i + 2) === "T*") {
-            soltar();
-            y -= 12;
-            i += 2;
-            continue;
-          }
-          if (/[-\d.]/.test(c)) {
-            const m = texto.slice(i).match(/^((?:-?[\d.]+\s+)+)(Td|TD|Tm|cm)/);
-            if (m) {
-              const nums = m[1].trim().split(/\s+/).map(Number);
-              soltar();
-              if (m[2] === "Tm") {
-                x = nums[4] || 0;
-                y = nums[5] || 0;
-              } else if (m[2] === "Td" || m[2] === "TD") {
-                x += nums[nums.length - 2] || 0;
-                y += nums[nums.length - 1] || 0;
-              }
-              i += m[1].length + m[2].length;
-              continue;
-            }
-            const n = texto.slice(i).match(/^(-?[\d.]+)/);
-            if (n) {
-              if (pendientes.length && Number(n[1]) < -320) pendientes.push(" ");
-              i += n[1].length;
-              continue;
-            }
-          }
-          i += 1;
-        }
-        soltar();
-        return trozos;
-      }
-      function agruparEnLineas(trozos, tolerancia = 3) {
-        const orden = [...trozos].sort((a, b) => b.y - a.y || a.x - b.x);
-        const lineas = [];
-        for (const t of orden) {
-          if (!t.texto.trim()) continue;
-          const ultima = lineas[lineas.length - 1];
-          if (ultima && Math.abs(ultima.y - t.y) <= tolerancia) {
-            ultima.trozos.push(t);
-            ultima.y = (ultima.y + t.y) / 2;
-          } else {
-            lineas.push({ y: t.y, trozos: [t] });
-          }
-        }
-        return lineas.map((l) => {
-          const cols = [...l.trozos].sort((a, b) => a.x - b.x);
-          const texto = cols.map((c) => c.texto).join(" ");
-          return {
-            y: l.y,
-            /* Las columnas se guardan aparte del texto seguido: de ellas sale la
-               tabla, y del texto seguido sale la búsqueda. */
-            columnas: cols.map((c) => ({ x: c.x, texto: c.texto.trim() })).filter((c) => c.texto),
-            texto: texto.replace(/\s+/g, " ").trim()
-          };
-        }).filter((l) => l.texto);
-      }
-      function montarResultado(bytes, flujos, contenidos, tablas) {
-        const cabecera = latin1(bytes, 0, Math.min(1024, bytes.length));
-        const avisos = [];
-        if (!/^%PDF-/.test(cabecera)) avisos.push("El archivo no empieza por %PDF: puede no ser un PDF.");
-        if (/\/Encrypt\b/.test(latin1(bytes, 0, Math.min(4096, bytes.length)))) {
-          avisos.push("El PDF est\xE1 cifrado: puede que no se lea nada.");
-        }
-        const paginas = [];
-        for (const texto of contenidos) {
-          const lineas = agruparEnLineas(trozosDelFlujo(texto, tablas && tablas.porNombre));
-          if (lineas.length) paginas.push({ lineas });
-        }
-        const conTexto = paginas.reduce((s, p) => s + p.lineas.length, 0);
-        const hayImagenes = flujos.some((f) => f.esImagen);
-        if (!conTexto) {
-          avisos.push(hayImagenes ? "Este PDF no lleva texto dentro: es un escaneo. Para leerlo har\xEDa falta reconocimiento \xF3ptico, que esta aplicaci\xF3n no hace." : "No se ha encontrado texto en el PDF.");
-        }
-        const sospechoso = paginas.some((p) => p.lineas.some((l) => /[-]/.test(l.texto)));
-        if (sospechoso) avisos.push("Algunas letras pueden salir mal: el PDF usa una codificaci\xF3n de fuente propia.");
-        return {
-          paginas,
-          lineas: paginas.flatMap((p) => p.lineas),
-          texto: paginas.map((p) => p.lineas.map((l) => l.texto).join(NL)).join(NL + NL),
-          avisos,
-          escaneado: !conTexto && hayImagenes
-        };
-      }
-      function leerPdf(dato) {
-        const bytes = aBytesPdf(dato);
-        const flujos = localizarFlujos(bytes);
-        const contenidos = [];
-        for (const f of flujos) {
-          if (f.esImagen || f.esFuente) continue;
-          const crudo = bytes.slice(f.desde, f.hasta);
-          const datos = f.comprimido ? inflar(crudo) : crudo;
-          if (datos) contenidos.push(latin1(datos));
-        }
-        const tablas = _leerTablasDeFuentes ? _leerTablasDeFuentes(bytes) : null;
-        return montarResultado(bytes, flujos, contenidos, tablas);
-      }
-      async function leerPdfAsync(dato) {
-        const bytes = aBytesPdf(dato);
-        const flujos = localizarFlujos(bytes);
-        const contenidos = [];
-        for (const f of flujos) {
-          if (f.esImagen || f.esFuente) continue;
-          const crudo = bytes.slice(f.desde, f.hasta);
-          const datos = f.comprimido ? await inflarAsync(crudo) : crudo;
-          if (datos) contenidos.push(latin1(datos));
-        }
-        const tablas = _leerTablasDeFuentes ? await _leerTablasDeFuentes(bytes) : null;
-        return montarResultado(bytes, flujos, contenidos, tablas);
-      }
-      (function exportar(API) {
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.PDF = API;
-      })({
-        leerPdf,
-        leerPdfAsync,
-        agruparEnLineas,
-        trozosDelFlujo,
-        localizarFlujos,
-        leerCadena,
-        latin1,
-        registrarLectorDeFuentes
-      });
     }
   });
 

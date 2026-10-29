@@ -558,8 +558,8 @@
     if (t && !document.body.classList.contains('modo-trabajo')) t.textContent = s === 'inicio' && nombrePila ? `Hola, ${nombrePila}` : (TITULO[s] || 'Vidaire Cx');
     document.title = `${TITULO[s] || 'Inicio'} · Vidaire Cx`;
     const caja = document.getElementById('obra-movil-caja');
-    /* En Inicio la obra se elige en su tarjeta: arriba sobraría. */
-    if (caja) caja.hidden = !sesion() || SIN_OBRA.has(s) || s === 'inicio' || !obras.length;
+    /* La obra se elige en la cabecera, igual en todas las pantallas (Inicio incluido, 29-oct JC). */
+    if (caja) caja.hidden = !sesion() || SIN_OBRA.has(s) || !obras.length;
     if (actual) { try { localStorage.setItem(`movil.pestana.${actual.id}`, s); } catch { /* nada */ } }
     if (s === 'cuenta') cuenta();
     if (s === 'inicio') inicio();
@@ -857,11 +857,6 @@
     const hay = BLOQUES_INICIO.filter(([id]) => bloques[id]);
     const ocultos = leerOcultos();
     app.innerHTML = `
-      <section class="grupo inicio-obra">
-        <label class="fila-dato selector-obra"><span>Obra</span>
-          <select data-inicio-obra aria-label="Obra">${obras.map((x) => `<option value="${esc(x.id)}" ${x.id === o.id ? 'selected' : ''}>${esc(x.codigo)} · ${esc(x.nombre)}</option>`).join('')}</select>
-        </label>
-      </section>
       ${hay.length > 1 ? `<div class="ver-bloques" role="group" aria-label="Qué bloques ver"><span>Ver</span>${hay
         .map(([id, nombre]) => `<button type="button" data-ver-bloque="${id}" aria-pressed="${!ocultos.has(id)}" class="${ocultos.has(id) ? '' : 'activa'}">${esc(nombre)}</button>`).join('')}</div>` : ''}
       ${hay.filter(([id]) => !ocultos.has(id)).map(([id]) => bloques[id]).join('')}
@@ -1055,7 +1050,6 @@
   /* ═══════════════════════════════════ Arranque */
 
   document.getElementById('obra-movil').addEventListener('change', (ev) => ponerObra(ev.target.value));
-  document.addEventListener('change', (ev) => { if (ev.target.matches('[data-inicio-obra]')) ponerObra(ev.target.value); });
   window.addEventListener('hashchange', pintar);
   pintar();
 })();
