@@ -50,8 +50,9 @@
   const ENVIO = {
     completo: ['bien', 'Completo'], enviada: ['bien', 'Enviada'], lista: ['bien', 'Lista para enviar'],
     faltaDocumentacion: ['aviso', 'Falta documentación'], faltaEnsayo: ['aviso', 'Falta balanceo o estanqueidad'],
-    /* Papeles completos y fichas por hacer: no es «completo» (15-oct-2026, JC). */
-    faltaFichas: ['info', 'Doc. completa'],
+    /* Papeles completos y fichas por hacer: no es «completo» (15-oct-2026, JC). El rótulo era «Doc. completa» y
+       engañaba con una ficha a medias (29-oct, JC): ahora dice lo que falta. */
+    faltaFichas: ['aviso', 'Faltan fichas'],
     /* Aún fuera de commissioning: nadie ha verificado su instalación (22-oct). */
     sinVerificar: ['neutra', 'Sin verificar'],
   };
@@ -104,7 +105,7 @@
     ['faltaEstanqueidad', 'Falta estanqueidad', (e) => !e.completo && (e.ensayoFalta || []).includes('estanqueidad')],
     /* Una sola regla: la de shared/commissioning/control.js (papeles + fichas + ensayo). */
     ['completos', 'Completos', (e) => e.completo],
-    ['soloDoc', 'Doc. completa', (e) => e.docCompleta && !e.completo],
+    ['soloDoc', 'Papeles OK', (e) => e.docCompleta && !e.completo],
     /* 22-oct (JC): «puestos en marcha» y «falta ficha», las mismas cuentas que el
        inicio del escritorio (shared/commissioning/control.js · totalesDe). */
     ['enMarcha', 'Puestos en marcha', (e) => e.estadoPM === 'enMarcha' || e.estadoPM === 'hecha'],
@@ -286,7 +287,7 @@
         : null,
       t.enMarcha !== undefined ? { id: 'enMarcha', et: 'En marcha', n: t.enMarcha, tono: 'bien', barra: pct(t.enMarcha), pie: `${pct(t.enMarcha)} % puestos en marcha` } : null,
       { id: 'completos', et: 'Completos', n: t.completos, tono: 'bien', barra: pct(t.completos), pie: `${pct(t.completos)} % del total` },
-      { id: 'soloDoc', et: 'Doc. lista', n: t.soloDoc || 0, tono: 'neutro', pie: 'falta el ensayo' },
+      { id: 'soloDoc', et: 'Papeles OK', n: t.soloDoc || 0, tono: 'neutro', pie: 'faltan fichas o pruebas' },
       { id: 'faltaDoc', et: 'Sin doc.', n: t.faltaDocumentacion || 0, tono: 'falta', pie: 'papeles por subir' },
       { id: 'faltaFichas', et: 'Sin ficha', n: t.faltaFichas || 0, tono: 'falta', pie: 'fichas por rellenar' },
       { id: 'faltaBalanceo', et: 'Balanceo', n: t.faltaBalanceo || 0, tono: 'falta', pie: 'equipos por medir' },
@@ -334,13 +335,14 @@
       <input type="search" class="buscar" placeholder="Buscar TAG, sala, planta, tipo o marca" value="${esc(filtro)}" data-cx-buscar>
       <div class="agrupar" role="group" aria-label="Agrupar por"><span>Agrupar por</span>${opciones
         .map(([id, texto]) => `<button data-cx-agrupar="${id}" aria-pressed="${modo === id}" class="${modo === id ? 'activa' : ''}">${texto}</button>`).join('')}</div>
+      <p class="leyenda-franja" aria-label="Franja de estado de cada equipo"><span><i class="m-firma"></i>Falta firma</span><span><i class="m-docs"></i>Faltan documentos</span><span><i class="m-ambos"></i>Ambos</span></p>
       ${window.CX_PLANO_EQUIPOS ? '<button class="enlace" data-cx="plano-equipos">Ver los equipos en el plano</button>' : ''}
       ${equipos.length ? C.listaAgrupada(`cx-equipos-${modo}`, equipos, {
         grupo: grupoDe, orden: grupos, buscando: !!q, repintar: pintarLista, cabecera: cabeceraGrupo,
         /* «Por plantas pero en los desplegables de los equipos» (JC, 28-oct): al agrupar por tipo o marca, cada grupo sale por planta. */
         ...(modo === 'planta' || modo === 'zona' ? {} : { subgrupo: subPor === 'zona' ? (e) => e.zona || 'Sin zona' : (e) => e.planta || 'Sin planta', subOrden: porPlanta, subCabecera: cabeceraPlanta }),
         fila: (e) => `
-        <li><button class="fila-ios" data-cx="equipo" data-id="${esc(e.id)}">
+        <li${e.franja ? ` class="franja-${e.franja}"` : ''}><button class="fila-ios" data-cx="equipo" data-id="${esc(e.id)}">
           <div class="fila-principal">
             ${tagsFila(e)}
             ${chipEnvio(e.envio, e.completo, e.ensayoFalta)}
@@ -1155,9 +1157,12 @@
     const total = fotos.length + enCola.length;
     const pieDe = (x) => esc([x.pie, x.hora].filter(Boolean).join(' · ') || 'Foto');
     const marca = (x) => { const o = origenFoto(x); return o ? `<span class="origen-foto">${esc(o)}</span>` : ''; };
+    /* La localización en plano (29-oct-2026, JC): el recorte del plano, delante de las fotos hechas. */
+    const loc = (f.localizacion || []).map((x) => `<li class="localizacion-plano"><img data-src="${esc(x.url)}" alt="Localización en plano">
+        <div class="pie"><span>${esc(x.pie || 'Localización en plano')}</span></div></li>`).join('');
     return `<h2>Fotos del equipo <span class="cuenta">${total}</span></h2>
       ${enCola.length ? `<p class="nota">${marcaAG('sinRed')} ${enCola.length === 1 ? 'Una foto está' : `${enCola.length} fotos están`} solo en el móvil: se subirá${enCola.length === 1 ? '' : 'n'} sola${enCola.length === 1 ? '' : 's'} al volver la conexión.</p>` : ''}
-      ${total ? `<ul class="fotos-equipo">${fotos.map((x) => `<li><img data-src="${esc(x.url || `api/equipo/foto?id=${encodeURIComponent(x.id)}`)}" alt="${esc(x.pie || 'Foto')}">
+      ${total || loc ? `<ul class="fotos-equipo">${loc}${fotos.map((x) => `<li><img data-src="${esc(x.url || `api/equipo/foto?id=${encodeURIComponent(x.id)}`)}" alt="${esc(x.pie || 'Foto')}">
         <div class="pie"><span>${pieDe(x)}</span>${marca(x)}${puede && (x.origen || 'equipo') === 'equipo' ? `<button class="enlace mal" data-cx="quitar-foto-equipo" data-id="${esc(x.id)}">Quitar</button>` : ''}</div></li>`).join('')}${enCola.map((x) => `<li class="en-movil"><img data-local="${esc(x.local)}" alt="${esc(x.pie || 'Foto')}">
         <div class="pie"><span>${pieDe(x)}</span>${marca(x)}<span class="origen-foto">En el móvil</span></div></li>`).join('')}</ul>` : ''}
       ${puede ? `<div class="fila-botones fotos-rapidas">
@@ -1331,7 +1336,8 @@
     fotosEquipoEnCurso.add(clave);
     if (boton) boton.disabled = true;
     /* Ya en el teléfono: la miniatura sale aunque no haya red. */
-    if (activa() && ficha && ficha.equipo.id === vista && !hoja && equipoId !== vista) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
+    /* Para todo equipo, no solo la UI de un VRF (29-oct, JC: «el contador se queda en 0»). */
+    if (activa() && ficha && ficha.equipo.id === vista && !hoja) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
     try {
       const r = await mandarFotoEquipo(equipoId, foto, apuntar, vista);
       if (AG) AG.borrar(clave); else if (foto.url) URL.revokeObjectURL(foto.url);
