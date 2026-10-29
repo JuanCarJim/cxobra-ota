@@ -30,6 +30,10 @@
   let lista = null;
   let ficha = null;
   let pilaEquipos = []; /* las unidades por las que se ha pasado, para volver */
+  /* Llegar desde el plano de equipos (29-oct, JC): al terminar se vuelve al plano, con su zoom y su sitio. */
+  let origenPlano = false; /* se entró al equipo desde el plano */
+  let directoPlano = false; /* … directo a una pantalla (datos, balanceo): su «atrás» es el plano */
+  let hojaDirecta = false; /* … directo a una hoja (checklist, estanqueidad, balanceo): al salir de ella, el plano */
   let yLista = 0;       /* dónde estaba la lista al abrir un equipo */
   let fichasEq = null; /* las fichas que necesita el equipo abierto */
   let hoja = null;     /* la ficha que se está rellenando */
@@ -68,6 +72,7 @@
   async function cargarLista() {
     guardarTodoYa();
     ficha = null; hoja = null; pilaEquipos = [];
+    origenPlano = false; directoPlano = false; hojaDirecta = false;
     bocaAbierta = null; grandeId = null;
     document.body.classList.remove('sin-scroll');
     /* Desde una cifra del Inicio: la lista llega ya filtrada. */
@@ -266,6 +271,53 @@
   }
 
   /* ═══════════════════════════════════ 2. La ficha */
+
+  /* Vuelta al plano de equipos tal y como se dejó (planoEquipos.js guarda la vista). */
+  function volverAlPlano() {
+    origenPlano = false; directoPlano = false; hojaDirecta = false;
+    ficha = null; hoja = null; fichasEq = null; pilaEquipos = [];
+    document.body.classList.remove('sin-scroll');
+    if (window.CX_PLANO_EQUIPOS) window.CX_PLANO_EQUIPOS.volver($app); else cargarLista();
+  }
+
+  /*
+   * IR DESDE EL PLANO A LO QUE EL EQUIPO NECESITA (29-oct, JC). El plano dice
+   * qué botones salen (shared/commissioning/planoEquipos.js, con las reglas de
+   * siempre); aquí cada uno abre la pantalla que ya existía, sin formularios
+   * nuevos: «datos» (la toma de datos de las fichas, con lo que falta a la
+   * vista), «checklist» y «estanqueidad» (su hoja), «balanceo» (como el botón
+   * del equipo) y «equipo» (la ficha completa).
+   */
+  async function irA(id, accion) {
+    origenPlano = true; directoPlano = accion !== 'equipo'; hojaDirecta = false;
+    ficha = null; fichasEq = null;
+    await abrir(id);
+    if (!ficha || ficha.equipo.id !== id || accion === 'equipo') return;
+    await cargarFichas(id);
+    if (!ficha || ficha.equipo.id !== id) return;
+    const fs = (fichasEq && fichasEq.fichas) || [];
+    const buscar = (clases) => fs.findIndex((x) => clases.includes(x.clase) && !x.conservada && x.plantilla);
+    if (accion === 'balanceo') {
+      const i = hojaUnicaBalanceo();
+      if (i >= 0) { balDirecto = true; hojaDirecta = true; abrirHoja(i); return; }
+      pestanaEq = 'balanceo'; pintarFicha(); window.scrollTo(0, 0);
+    } else if (accion === 'checklist' || accion === 'estanqueidad') {
+      const i = buscar(accion === 'checklist' ? ['checklist'] : ['estanqRefrigerante', 'estanqAgua']);
+      if (i >= 0) { hojaDirecta = true; abrirHoja(i); return; }
+      C.aviso(accion === 'checklist' ? 'Este equipo aún no tiene el checklist.' : 'Este equipo aún no tiene la ficha de estanqueidad.');
+    } else if (accion === 'datos') {
+      document.body.classList.remove('sin-scroll');
+      pestanaEq = 'fichas'; pintarFicha(); window.scrollTo(0, 0);
+      await cargarTomas(id);
+      /* Al primer dato que falta. */
+      setTimeout(() => {
+        const campos = [...document.querySelectorAll('#toma-datos input, #toma-datos select, #toma-datos textarea')];
+        const vacio = campos.find((c) => c.type !== 'hidden' && c.type !== 'checkbox' && !c.disabled && !String(c.value || '').trim());
+        if (vacio) vacio.scrollIntoView({ block: 'center' });
+      }, 120);
+    }
+  }
+  window.CX_COMMISSIONING_IR = (id, accion) => irA(id, accion);
 
   async function abrir(id, { quieto = false } = {}) {
     /* quieto: se repinta el mismo equipo (llegó algo de la oficina) sin moverse de donde estaba. */
@@ -2325,6 +2377,7 @@
   function salirHoja() {
     if (hoja && hoja.cambiada) autoguardar(hoja, { forzar: true });
     hoja = null;
+    if (hojaDirecta && origenPlano) { volverAlPlano(); return; }
     if (balDirecto) { balDirecto = false; pestanaEq = 'equipo'; }
     pintarFicha();
     if (!fichasEq && ficha) cargarFichas(ficha.equipo.id);
@@ -2554,7 +2607,7 @@
     else if (que === 'plano-equipos' && window.CX_PLANO_EQUIPOS) { ficha = null; window.CX_PLANO_EQUIPOS.abrir($app); }
     /* 16-oct (JC): la franja del TAG vuelve SIEMPRE a la pantalla anterior:
        si se llegó desde otra unidad del conjunto (UI → UE-DAS), a esa unidad. */
-    else if (que === 'atras') { const prev = pilaEquipos.pop(); if (prev) abrir(prev, { atras: true }); else { const y = yLista; cargarLista().then(() => window.scrollTo(0, y)); } }
+    else if (que === 'atras') { const prev = pilaEquipos.pop(); if (prev) abrir(prev, { atras: true }); else if (origenPlano) volverAlPlano(); else { const y = yLista; cargarLista().then(() => window.scrollTo(0, y)); } }
     else if (que === 'equipo') { if (!ficha) yLista = window.scrollY; if (ficha && ficha.equipo.id !== b.dataset.id) pilaEquipos.push(ficha.equipo.id); abrir(b.dataset.id); }
     else if (que === 'ver-balanceo' && ficha) {
       /* Una sola hoja de balanceo y sin plano de bocas: se abre la hoja directamente (JC, 29-oct: «¿por qué otra vez?»). */
@@ -2564,6 +2617,7 @@
     }
     /* Ya no hay botón: la subpantalla (toma de datos y guardadas antes) queda para quien la invoque. */
     else if (que === 'ver-fichas' && ficha) { document.body.classList.remove('sin-scroll'); pestanaEq = 'fichas'; pintarFicha(); window.scrollTo(0, 0); if (fichasEq) cargarTomas(ficha.equipo.id); }
+    else if (que === 'ficha-equipo' && ficha && directoPlano && origenPlano) volverAlPlano();
     else if (que === 'ficha-equipo' && ficha) { document.body.classList.remove('sin-scroll'); pestanaEq = 'equipo'; pintarFicha(); window.scrollTo(0, 0); }
     else if (que === 'hoja') abrirHoja(Number(b.dataset.i));
     else if (que === 'volver-equipo') salirHoja();

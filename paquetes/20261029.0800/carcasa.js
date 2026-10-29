@@ -54,7 +54,7 @@
     { id: 'mas', nombre: 'Más',
       icono: icono('<rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/>',
         '<g fill="currentColor"><rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/></g>'),
-      secciones: [['qhse', 'QHSE'], ['bloc', 'Notas'], ['albaranes', 'Albaranes'], ['inventario', 'Inventario'], ['personal', 'Personal'], ['cuenta', 'Cuenta']] },
+      secciones: [['qhse', 'QHSE'], ['plano', 'Plano de equipos'], ['bloc', 'Notas'], ['albaranes', 'Albaranes'], ['inventario', 'Inventario'], ['personal', 'Personal'], ['cuenta', 'Cuenta']] },
     /* 29-oct (JC): «QHSE es una cosa aparte, no es una incidencia»: sección propia (como «Seguridad» en la web), la primera de «Más». */
   ];
   const MAS = svg('<path d="M12 5v14M5 12h14" stroke-width="2.6"/>');
@@ -95,7 +95,7 @@
   const TITULO = {
     inicio: 'Inicio', commissioning: 'Commissioning', partes: 'Partes', ncr: 'No conformidades', reparaciones: 'Reparaciones', avance: 'Avance de obra', albaranes: 'Albaranes',
     inventario: 'Inventario', bloc: 'Notas', personal: 'Personal', estanqueidad: 'Estanqueidad', cuenta: 'Cuenta',
-    misTareas: 'Mis tareas', avisos: 'Reclamables', qhse: 'QHSE',
+    misTareas: 'Mis tareas', avisos: 'Reclamables', qhse: 'QHSE', plano: 'Plano de equipos',
   };
   /* Las que no dependen de la obra elegida no enseñan el selector. */
   const SIN_OBRA = new Set(['cuenta', 'albaranes']);
@@ -902,13 +902,15 @@
     if (traer) traer.onclick = () => window.cxObra.traerDatos().then((r) => { if (r && r.ok) location.reload(); else if (r && r.error) aviso(r.error); });
     const enviar = document.getElementById('cx-enviar');
     if (enviar) enviar.onclick = () => window.cxObra.enviarOficina().then((r) => { if (r && r.error) aviso(r.error); else if (r && r.ok) { aviso(r.texto, 'bien'); cuenta(); } });
+    const vistos = document.getElementById('cx-conflictos-vistos');
+    if (vistos) vistos.onclick = () => { sincro().conflictosVistos(); cuenta(); };
     const ya = document.getElementById('cx-sync-ya');
     if (ya) ya.onclick = async () => {
       ya.disabled = true;
       const r = await sincro().ahora();
       ya.disabled = false;
       if (r && r.error) aviso(r.error.sinRed ? 'Sin conexión: se enviará al volver la red.' : r.error.message);
-      else aviso('Al día con la oficina.', 'bien');
+      else aviso('Sincronizado con la oficina.', 'bien');
       cuenta();
     };
   }
@@ -929,17 +931,22 @@
   const ARRANQUE = Date.now();
   const PACIENCIA = 15000;
   setTimeout(() => { pastillaSync(); }, PACIENCIA + 100);
+  /* SIN COBERTURA (29-oct-2026, JC: «a veces no hay cobertura en las obras»):
+     «Sin conexión · 3 pendientes» y, cuando ha subido, «Sincronizado». Corto
+     para que a 390 px no se coma el saludo; el detalle, al pulsarla.
+     Azul sin red, verde al día (nada de amarillo: colores teal/verde/azul). */
+  const cambios = (n) => `${n} ${n === 1 ? 'pendiente' : 'pendientes'}`;
   function textoSync(e) {
     const n = e.pendientes || 0;
-    const pend = n ? ` · ${n} por enviar` : '';
+    const pend = n ? ` · ${cambios(n)}` : '';
     /* Sin «Entrar en la nube» (15-oct-2026, JC: «siempre conectado»): entra solo. */
     if (!e.entrado || e.estado === 'sin-sesion') {
       if (Date.now() - ARRANQUE < PACIENCIA) return ['', 'Conectando'];
       return e.estado === 'sin-sesion' && e.entrado ? ['sin-sesion', 'Sin sesión'] : ['sin-red', `Solo en el móvil${pend}`];
     }
-    if (e.estado === 'sin-red') return ['sin-red', `Sin red${pend}`];
-    if (e.estado === 'error') return ['error', 'No sincroniza'];
-    if (e.estado === 'al-dia') return ['al-dia', n ? `${n} por enviar` : 'Al día'];
+    if (e.estado === 'sin-red') return ['sin-red', `Sin conexión${pend}`];
+    if (e.estado === 'error') return ['error', `No sincroniza${pend}`];
+    if (e.estado === 'al-dia') return n ? ['sin-red', cambios(n)] : ['al-dia', 'Sincronizado'];
     return ['', 'Conectando'];
   }
   let ultimaClase = null;
@@ -980,12 +987,30 @@
     const [, texto] = textoSync(e);
     return `
       <section class="grupo" id="cx-sync-grupo">
-        <div class="fila-dato"><span>Con la oficina</span><strong>${esc(e.estado === 'al-dia' && !e.pendientes ? 'Al día' : texto)}</strong></div>
+        <div class="fila-dato"><span>Con la oficina</span><strong>${esc(texto)}</strong></div>
         <div class="fila-dato"><span>Último dato recibido</span><strong>${esc(hora(e.ultimoRecibido))}</strong></div>
         <div class="fila-dato"><span>Última comprobación</span><strong>${esc(hora(e.ultimaBajada))}</strong></div>
         <div class="fila-dato"><span>Pendiente de enviar</span><strong>${e.pendientes || 0} cambio${e.pendientes === 1 ? '' : 's'}</strong></div>
         <div class="fila-dato"><span>Aviso al momento</span><strong>${e.tiempoReal ? 'Conectado' : 'Cada 30 segundos'}</strong></div>
         ${e.error && e.estado === 'error' ? `<div class="fila-dato"><span>Error</span><strong>${esc(e.error)}</strong></div>` : ''}
+      </section>
+      ${conflictosSync(e)}`;
+  }
+
+  /* Lo que perdió al mezclar un cambio de aquí con otro de la oficina en la
+     misma ficha (shared/sync/fusion.js): no se tira, se enseña aquí. */
+  function conflictosSync(e) {
+    const s = sincro();
+    if (!s || !s.conflictos || !e.conflictos) return '';
+    const corto = (v) => { const t = String(v == null ? '—' : v); return t.startsWith('data:') ? '(imagen)' : t.length > 80 ? `${t.slice(0, 80)}…` : t; };
+    const filas = s.conflictos().slice(0, 30).map((c) => `
+        <li><strong>${esc(c.tabla)} · ${esc(c.campo)}</strong><br>
+          <span class="tenue">Se queda ${c.gana === 'aqui' ? 'lo de este teléfono' : 'lo de la oficina'} (el cambio más reciente): «${esc(corto(c.valorQueGana))}». Lo otro era «${esc(corto(c.valorQuePierde))}».</span></li>`).join('');
+    return `
+      <section class="grupo" id="cx-conflictos">
+        <div class="fila-dato"><span>Cambiado aquí y en la oficina a la vez</span><strong>${e.conflictos}</strong></div>
+        <ul class="lista-conflictos">${filas}</ul>
+        <button class="boton secundario" id="cx-conflictos-vistos">Entendido</button>
       </section>`;
   }
 

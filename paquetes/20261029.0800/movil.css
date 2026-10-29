@@ -719,6 +719,9 @@ details.grupo-lista[open] > summary { margin-bottom: 6px; }
 .sync-pastilla.girando::before { animation: sync-latido 1s ease-in-out infinite; }
 @keyframes sync-latido { 50% { opacity: .25; } }
 .barra-fila .sync-pastilla + .quien { max-width: 30%; }
+.lista-conflictos { list-style: none; margin: 0; padding: 0 18px 8px; font-size: 14px; }
+.lista-conflictos li { padding: 8px 0; border-top: 1px solid var(--rejillaSuave); }
+#cx-conflictos .boton { margin: 4px 18px 14px; }
 .grupo-plegable { margin-top: 18px; }
 .grupo-plegable > summary { cursor: pointer; padding: 10px 4px; font-size: 15px; font-weight: 600; color: var(--acento); list-style: none; }
 .grupo-plegable > summary::-webkit-details-marker { display: none; }

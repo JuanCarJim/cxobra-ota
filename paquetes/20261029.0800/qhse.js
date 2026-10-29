@@ -187,7 +187,7 @@
     try {
       const r = await CX().pedir(`api/qhse/abrir?id=${encodeURIComponent(id)}`);
       if (!r.ok) throw new Error(r.error);
-      form = { id: r.id, clave: r.id, obraId: r.obraId, plantilla: r.plantilla, fecha: r.fecha, estado: r.estado, proveedorId: r.proveedorId, datos: r.datos, adjuntos: r.adjuntos || [] };
+      form = { id: r.id, clave: r.id, obraId: r.obraId, plantilla: r.plantilla, fecha: r.fecha, estado: r.estado, proveedorId: r.proveedorId, datos: r.datos, adjuntos: r.adjuntos || [], harbour: Boolean(r.actividad && r.actividad.harbour), puedeSeguir: Boolean(r.puede && r.puede.rellenar) };
       /* Lo escrito en este teléfono que aún no llegó manda sobre lo del ordenador. */
       const b = r.estado === 'hecho' ? null : borradorDe(r.obraId, r.id);
       if (b) { form.datos = b.datos; form.proveedorId = b.proveedorId; form.clave = b.clave || r.id; }
@@ -235,7 +235,8 @@
       ${p.secciones.map((s, si) => `<details ${si === 0 && !cerrado ? 'open' : ''}><summary><span>${esc(s.nombre)}</span><span class="cuenta" data-qh-cuenta="${esc(s.id)}">${conteo(s)}</span></summary>
         ${s.items.map((t, i) => punto(p, s, t, i, dis)).join('')}</details>`).join('')}
       <h2>${esc(p.planTitulo || 'Plan de acción')}</h2>
-      <div data-qh-plan>${plan(dis)}</div>
+      <div data-qh-plan>${cerrado ? seguimiento() : plan(dis)}</div>
+      ${cerrado && form.harbour ? `<label class="harbour"><input type="checkbox" data-qh-harbour ${f.harbour && f.harbour.subido ? 'checked' : ''} ${form.puedeSeguir ? '' : 'disabled'}> Subido a Harbour${f.harbour && f.harbour.fecha ? ` el ${esc(fechaEs(f.harbour.fecha))}` : ''}</label>` : ''}
       ${cerrado ? '' : `${p.secciones.length ? '<button class="boton secundario" data-qh="plan-nc">Traer los puntos que no cumplen</button> ' : ''}<button class="boton secundario" data-qh="plan-mas">${p.secciones.length ? '+ Añadir acción' : '+ Añadir NC'}</button>`}
       <h2>Fotos</h2>
       <div class="fotos" data-qh-fotos>${fotos()}</div>
@@ -270,6 +271,36 @@
     </tbody></table>${dis ? '' : '<button class="boton secundario" data-qh="as-mas">+ Asistente</button>'}`;
   }
 
+  /* Registro terminado: cada NC se cierra desde aquí (cómo se subsanó, foto si se quiere);
+     lo hace la misma función que el escritorio (electron/data/qhse.js · nc), y allí se ve cerrada. */
+  function seguimiento() {
+    const pl = (form.datos.plan || []).map((a, i) => ({ ...a, i })).filter((a) => a.ref || a.problema || a.medida);
+    if (!pl.length) return '<p class="nota">Sin no conformidades.</p>';
+    return pl.map((a) => {
+      const cerr = a.estado === 'cerrada';
+      return `<div class="plan-fila nc ${cerr ? 'cerrada' : 'abierta'}" data-qh-nc="${a.i}">
+        <p><strong>${esc(a.problema || a.punto || '')}</strong></p>
+        ${a.medida || a.responsable ? `<p class="nota">${esc(a.medida || '')}${a.responsable ? ` · ${esc(a.responsable)}` : ''}${a.fecha ? ` · antes del ${esc(fechaEs(a.fecha))}` : ''}</p>` : ''}
+        <p><span class="chip ${cerr ? 'bien' : 'aviso'}">${cerr ? `Cerrada ${esc(fechaEs(a.cerradaEn))}${a.cerradaPor ? ` · ${esc(a.cerradaPor)}` : ''}` : 'Abierta'}</span></p>
+        ${cerr ? `${a.cierre ? `<p class="nota">${esc(a.cierre)}</p>` : ''}${form.puedeSeguir ? `<button class="boton secundario" data-qh="nc-reabrir" data-i="${a.i}">Reabrir</button>` : ''}`
+          : (form.puedeSeguir ? `<input class="com" data-qh-cierre="${a.i}" value="${esc(a.cierre || '')}" placeholder="Cómo se ha subsanado">
+            <div class="acciones"><label class="boton secundario" style="width:fit-content;border-radius:999px">Foto<input type="file" accept="image/*" capture="environment" data-qh-fotonc="${a.i}" hidden></label>
+            <button class="boton" data-qh="nc-cerrar" data-i="${a.i}">Cerrar NC</button></div>` : '')}
+      </div>`;
+    }).join('');
+  }
+
+  /* Cierra / reabre una NC o marca Harbour en un registro terminado. */
+  async function seguir(ruta, cuerpo, ok) {
+    try {
+      const r = await CX().postJson(ruta, { id: form.id, ...cuerpo });
+      if (!r.ok) throw new Error(r.error);
+      form.datos = r.datos;
+      pintarForm();
+      aviso(ok, 'bien');
+    } catch (e) { aviso(e.message); }
+  }
+
   function plan(dis) {
     const pl = form.datos.plan || [];
     if (!pl.length) return '<p class="nota">Sin acciones.</p>';
@@ -301,17 +332,16 @@
     } finally { URL.revokeObjectURL(url); }
   }
 
-  async function subirFoto(archivo) {
+  async function subirFoto(archivo, ref = 'registro') {
     if (!form) return;
     try {
       /* La foto cuelga de un registro: si aún no está en el ordenador, se guarda primero. */
-      sucio = true;
-      await volcar();
+      if (form.estado !== 'hecho') { sucio = true; await volcar(); }
       if (!form.id) throw new Error('Sin conexión: guarda el registro con conexión y añade la foto después.');
       const contenido = await reducirFoto(archivo);
-      const r = await CX().postJson('api/qhse/adjunto', { controlId: form.id, ref: 'registro', nombre: 'foto.jpg', tipo: 'image/jpeg', contenido });
+      const r = await CX().postJson('api/qhse/adjunto', { controlId: form.id, ref, nombre: 'foto.jpg', tipo: 'image/jpeg', contenido });
       if (!r.ok) throw new Error(r.error);
-      form.adjuntos.push({ id: r.id, ref: 'registro', nombre: 'foto.jpg', tipo: 'image/jpeg', contenido });
+      form.adjuntos.push({ id: r.id, ref, nombre: 'foto.jpg', tipo: 'image/jpeg', contenido });
       repintarFotos();
     } catch (e) { aviso(e.message); }
   }
@@ -413,12 +443,26 @@
         form.adjuntos = form.adjuntos.filter((x) => x.id !== b.dataset.id); repintarFotos();
       }).catch((e) => aviso(e.message));
     }
+    else if (a === 'nc-cerrar') {
+      const c = $app.querySelector(`[data-qh-cierre="${b.dataset.i}"]`);
+      seguir('api/qhse/nc', { i: Number(b.dataset.i), cerrar: true, cierre: c ? c.value : undefined }, 'NC cerrada.');
+    }
+    else if (a === 'nc-reabrir') seguir('api/qhse/nc', { i: Number(b.dataset.i), reabrir: true }, 'NC reabierta.');
     else if (a === 'guardar') { sucio = true; volcar().then((r) => { if (r) aviso('Guardado.', 'bien'); }); }
     else if (a === 'terminar') terminar(b);
   });
 
   $app.addEventListener('change', (ev) => {
     const t = ev.target;
+    if (activa() && form && t.matches && t.matches('[data-qh-harbour]')) {
+      seguir('api/qhse/harbour', { subido: t.checked }, t.checked ? 'Marcado como subido a Harbour.' : 'Marcado como no subido.');
+      return;
+    }
+    if (activa() && form && t.matches && t.matches('[data-qh-fotonc]')) {
+      const f = t.files && t.files[0]; const i = t.dataset.qhFotonc; t.value = '';
+      if (f) subirFoto(f, `nc:${i}`);
+      return;
+    }
     if (!activa() || !form || !t.matches || !t.matches('[data-qh-foto]')) return;
     const f = t.files && t.files[0]; t.value = '';
     if (f) subirFoto(f);
