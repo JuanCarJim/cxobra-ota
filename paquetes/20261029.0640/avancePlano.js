@@ -29,7 +29,7 @@ const DISCIPLINAS_PLANO = {
     ['difusion', 'Rejillas y difusores', 'punto', '#7c3aed'],
   ] },
   electricidad: { nombre: 'Electricidad', capas: [
-    ['bandejas', 'Bandejas', 'trazo', '#b45309'],
+    ['bandejas', 'Bandejas', 'trazo', '#2B6CB0'],
     ['cable', 'Cable', 'trazo', '#be123c'],
     ['luz', 'Puntos de luz', 'punto', '#6FA0CF'],
     ['tomas', 'Tomas de corriente', 'punto', '#2563eb'],

@@ -44,7 +44,7 @@
       icono: icono('<path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.5"/><circle cx="12" cy="17" r=".6" fill="currentColor"/>',
         `<path d="M12 3.5 2.8 19.5h18.4z" fill="currentColor"/><path d="M12 10v4" ${HUECO} stroke-width="2.2"/><path d="M12 16.9v.1" ${HUECO} stroke-width="2.4"/>`),
       /* 26-oct: «Reclamables», los avisos del tajo que pueden reclamarse (avisosReclamables.js). */
-      secciones: [['partes', 'Partes'], ['avisos', 'Reclamables'], ['qhse', 'QHSE'], ['ncr', 'NCR'], ['reparaciones', 'Reparaciones']] },
+      secciones: [['partes', 'Partes'], ['avisos', 'Reclamables'], ['ncr', 'NCR'], ['reparaciones', 'Reparaciones']] },
     /* El avance de obra sobre planos (16-oct): el encargado marca lo hecho. */
     { id: 'avance', nombre: 'Avance',
       icono: icono('<rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M7 15.5l3.5-4 3 2.5L17 8.5"/>',
@@ -54,7 +54,8 @@
     { id: 'mas', nombre: 'Más',
       icono: icono('<rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/>',
         '<g fill="currentColor"><rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/></g>'),
-      secciones: [['bloc', 'Notas'], ['albaranes', 'Albaranes'], ['inventario', 'Inventario'], ['personal', 'Personal'], ['cuenta', 'Cuenta']] },
+      secciones: [['qhse', 'QHSE'], ['bloc', 'Notas'], ['albaranes', 'Albaranes'], ['inventario', 'Inventario'], ['personal', 'Personal'], ['cuenta', 'Cuenta']] },
+    /* 29-oct (JC): «QHSE es una cosa aparte, no es una incidencia»: sección propia (como «Seguridad» en la web), la primera de «Más». */
   ];
   const MAS = svg('<path d="M12 5v14M5 12h14" stroke-width="2.6"/>');
 
@@ -313,7 +314,9 @@
         for (const k of claves) {
           if (resto <= 0) break;
           const todas = subs.get(k), vis = todas.slice(0, resto); resto -= vis.length;
-          partes.push(`<div class="subgrupo-lista"><div class="subgrupo-cab">${o.subCabecera ? o.subCabecera(todas, k) : `<span>${esc(k)}</span><b>${cifra(todas.length)}</b>`}</div>${envolver(vis.map(o.fila).join(''))}</div>`);
+          /* El subencabezado se pliega con un toque (clave: obra + lista + grupo + subgrupo; por defecto desplegado). */
+          const idSub = `sub/${(typeof window !== 'undefined' && window.CX && window.CX.obraId && window.CX.obraId()) || ''}/${clave}/${g}/${k}`;
+          partes.push(`<div class="subgrupo-lista" data-plg-caja="${esc(idSub)}"><div class="subgrupo-cab plg-h"><button type="button" class="plg-cab" data-plg="${esc(idSub)}" aria-expanded="true"><b class="plg-flecha" aria-hidden="true">▸</b>${o.subCabecera ? o.subCabecera(todas, k) : `<span>${esc(k)}</span><b>${cifra(todas.length)}</b>`}</button></div><div class="plg-cuerpo">${envolver(vis.map(o.fila).join(''))}</div></div>`);
         }
         cuerpo = partes.join('');
       } else cuerpo = envolver(fs.slice(0, tope).map(o.fila).join(''));
@@ -340,7 +343,77 @@
   /** Al cambiar de obra o de filtro, las listas vuelven a su tope. */
   function reiniciarLista(clave) { const st = estadoLista(clave); st.cuantos.clear(); }
 
+  /*
+   * BLOQUES QUE SE PLIEGAN (28-oct, JC: «todas esas tarjetas deben de poder plegarse
+   * y desplegarse»). Una sola pieza para todo el móvil:
+   *   · cabecera(id, titulo, extra): el botón de la cabecera (aria-expanded) con el
+   *     chevron ▸ (cerrado) / ▾ (abierto) a la izquierda; va dentro de un <h2>/<div>.
+   *   · caja con data-plg-caja="id" (+ data-plg-defecto="plegado" si nace plegada) y
+   *     su contenido en un hijo directo con class="plg-cuerpo".
+   *   · auto: cualquier <section data-plegable> cuyo primer hijo sea un <h2> se
+   *     convierte sola (la cabecera pasa a botón y el resto al cuerpo).
+   * El estado (id → plegada o no) se recuerda por persona en este teléfono, con
+   * try/catch; lo que no se ha tocado sale como nace (desplegado salvo defecto).
+   */
+  const plegable = (() => {
+    const clave = () => { const s = sesion() || {}; return `cx.plegado.${s.email || s.nombre || 'anonimo'}.${s.rol || ''}`; };
+    const leer = () => { try { const v = JSON.parse(localStorage.getItem(clave()) || '{}'); return v && typeof v === 'object' && !Array.isArray(v) ? v : {}; } catch { return {}; } };
+    const guardar = (m) => { try { localStorage.setItem(clave(), JSON.stringify(m)); } catch { /* sin almacén: no se recuerda */ } };
+    const ident = (caja) => `${seccion()}/${caja.dataset.plgCaja}`;
+    const cabecera = (id, titulo, extra = '') => `<button type="button" class="plg-cab" data-plg="${esc(id)}" aria-expanded="true"><b class="plg-flecha" aria-hidden="true">▸</b><em>${titulo}</em>${extra !== '' ? `<span>${extra}</span>` : ''}</button>`;
+    function poner(caja, plegada) {
+      caja.classList.toggle('plegado', plegada);
+      for (const c of caja.children) if (c.classList.contains('plg-cuerpo')) c.hidden = plegada;
+      const b = caja.querySelector(':scope > .plg-h .plg-cab, :scope > .plg-cab');
+      if (b) b.setAttribute('aria-expanded', String(!plegada));
+    }
+    function preparar(caja) {
+      if (caja.dataset.plgOk) return;
+      caja.dataset.plgOk = '1';
+      if (caja.hasAttribute('data-plegable') && !caja.dataset.plgCaja) {
+        const h = caja.firstElementChild;
+        if (!h || h.tagName !== 'H2') { delete caja.dataset.plgOk; return; }
+        caja.dataset.plgCaja = caja.id || h.textContent.trim().slice(0, 30).toLowerCase().replace(/\W+/g, '-');
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'plg-cab'; b.dataset.plg = caja.dataset.plgCaja;
+        b.innerHTML = `<b class="plg-flecha" aria-hidden="true">▸</b><em></em>`;
+        const em = b.querySelector('em');
+        while (h.firstChild) em.appendChild(h.firstChild);
+        h.classList.add('plg-h'); h.appendChild(b);
+        const cuerpo = document.createElement('div');
+        cuerpo.className = 'plg-cuerpo';
+        while (h.nextSibling) cuerpo.appendChild(h.nextSibling);
+        caja.appendChild(cuerpo);
+      }
+      const m = leer();
+      const v = m[ident(caja)];
+      poner(caja, typeof v === 'boolean' ? v : caja.dataset.plgDefecto === 'plegado');
+    }
+    function activar(raiz = document) {
+      for (const c of raiz.querySelectorAll('[data-plg-caja]:not([data-plg-ok]), [data-plegable]:not([data-plg-ok])')) preparar(c);
+    }
+    function alternar(b) {
+      const caja = b.closest('[data-plg-caja]');
+      if (!caja) return;
+      const plegada = !caja.classList.contains('plegado');
+      poner(caja, plegada);
+      const m = leer(); m[ident(caja)] = plegada; guardar(m);
+    }
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest && e.target.closest('.plg-cab');
+      if (b) { e.preventDefault(); alternar(b); }
+    });
+    let pendiente = false;
+    new MutationObserver(() => {
+      if (pendiente) return;
+      pendiente = true;
+      Promise.resolve().then(() => { pendiente = false; activar(document); });
+    }).observe(document.documentElement, { childList: true, subtree: true });
+    return { cabecera, activar, alternar };
+  })();
+
   window.CX = {
+    plegable,
     esc, pedir, postJson, aviso, subirFoto, elegirFoto, cargarImagenes, fechaEs, cifra, compartirPdf,
     listaAgrupada, reiniciarLista,
     obra: () => obras.find((o) => o.id === obraId) || null,
@@ -481,6 +554,9 @@
 
   /* ═══════════════════════════════════ El «+»: la hoja de Añadir */
 
+  /* Nombre corto para la rejilla (dos líneas como mucho). */
+  const CORTO = { estanqueidad: 'Estanqueidad', albaranes: 'Albarán', avisos: 'Reclamable', qhse: 'Inspección QHSE', avance: 'Avance' };
+
   const accionesDisponibles = () => { const ok = new Set(permitidas()); return ACCIONES.filter((a) => ok.has(a.seccion)); };
 
   function cerrarHoja() {
@@ -507,9 +583,9 @@
     h.innerHTML = `<div class="asa"></div>
       <h3>Añadir</h3>
       <p class="sub">${o ? `En ${esc(o.codigo)} · ${esc(o.nombre)}` : 'Sin obra elegida'}</p>
-      <ul>${lista.map((a, i) => {
+      <ul class="rejilla-anadir">${lista.map((a, i) => {
         const falta = a.obra && !o;
-        return `<li><button class="accion-rapida" data-rapida="${i}" ${falta ? 'disabled' : ''}><span class="ico">${a.icono}</span><span><b>${esc(a.nombre)}</b><small>${falta ? 'Elige antes una obra' : esc(a.ayuda)}</small></span></button></li>`;
+        return `<li><button class="accion-rapida" data-rapida="${i}" ${falta ? 'disabled' : ''} title="${esc(falta ? 'Elige antes una obra' : a.ayuda)}"><span class="ico">${a.icono}</span><b>${esc(CORTO[a.seccion] || a.nombre)}</b></button></li>`;
       }).join('')}</ul>
       <button class="boton secundario cancelar" data-rapida="cerrar">Cancelar</button>`;
     document.body.append(fondo, h);
@@ -613,18 +689,18 @@
         <summary>${cifra(nAtras)} sin terminar de días anteriores</summary>
         ${atrasadas.map((s) => filaSesion(s, true)).join('')}${vencidos.map((i) => filaDia(i, hoy)).join('')}
       </details>` : '';
-    const cab = (id, texto, resumen) => `<h2 class="titulo-grupo ag-titulo ag-plegable" data-plegar="${id}" role="button" tabindex="0" aria-expanded="${!plegados.has(id)}"><b class="ag-flecha">▾</b> <em>${texto}</em> <span>${resumen}</span></h2>`;
-    const htmlHoy = `<section class="ag-bloque${plegados.has('hoy') ? ' plegado' : ''}" data-bloque-ini="hoy">
+    const cab = (id, texto, resumen) => `<h2 class="titulo-grupo ag-titulo plg-h">${plegable.cabecera(id, texto, resumen)}</h2>`;
+    const htmlHoy = `<section class="ag-bloque" data-bloque-ini="hoy" data-plg-caja="hoy">
         ${cab('hoy', 'Hoy', `${esc(diaCorto(hoy))}${nHoy ? ` · ${cifra(nHoy)}` : ''}${nAtras ? ` · ${cifra(nAtras)} atrasadas` : ''}`)}
-        <div class="ag-cuerpo"${plegados.has('hoy') ? ' hidden' : ''}>
+        <div class="ag-cuerpo plg-cuerpo">
         ${deHoy.map((s) => filaSesion(s, false)).join('')}${itemsHoy.map((i) => filaDia(i, hoy)).join('')}
         ${nHoy ? '' : '<p class="ag-vacio">Hoy no hay nada planificado.</p>'}
         ${pie}
         </div>
       </section>`;
-    const htmlSemana = `<section class="ag-bloque${plegados.has('semana') ? ' plegado' : ''}" data-bloque-ini="semana">
+    const htmlSemana = `<section class="ag-bloque" data-bloque-ini="semana" data-plg-caja="semana">
         ${cab('semana', planOk && plan.semanaQueViene ? 'Esta semana y la que viene' : 'Esta semana', semana.length ? cifra(semana.length) : '')}
-        <div class="ag-cuerpo"${plegados.has('semana') ? ' hidden' : ''}>
+        <div class="ag-cuerpo plg-cuerpo">
         ${semana.map((s) => filaSesion(s, true)).join('') || '<p class="ag-vacio">Nada más planificado esta semana.</p>'}
         </div>
       </section>`;
@@ -660,9 +736,9 @@
       const attr = ir.seg ? ` data-ir-seg="${esc(ir.seg)}"` : ir.filtro ? ` data-ir-filtro="${esc(ir.filtro)}"` : '';
       return `<a class="res-cifra ${n ? tono : 'cero'}" href="#${href}"${attr}><b>${cifra(n)}</b><span>${esc(etq)}${sub ? ` <i>${esc(sub)}</i>` : ''}</span></a>`;
     };
-    const fila = (nombre, extra, celdas) => (celdas.length ? `<div class="res-area">
-        <div class="res-nombre"><span>${esc(nombre)}</span>${extra ? `<small>${esc(extra)}</small>` : ''}</div>
-        <div class="res-cifras n${celdas.length}">${celdas.map(celda).join('')}</div></div>` : '');
+    const fila = (nombre, extra, celdas) => (celdas.length ? `<div class="res-area" data-plg-caja="res-${esc(nombre)}">
+        <div class="res-nombre plg-h">${plegable.cabecera(`res-${nombre}`, esc(nombre), extra ? esc(extra) : '')}</div>
+        <div class="res-cifras plg-cuerpo n${celdas.length}">${celdas.map(celda).join('')}</div></div>` : '');
     const filas = [];
     if (t) {
       filas.push(fila('Commissioning', `${cifra(t.equipos)} equipos${t.unidades && t.unidades !== t.equipos ? ` · ${cifra(t.unidades)} unid.` : ''}`, [
@@ -675,7 +751,7 @@
       const sinMedir = r.bocas && r.bocas[1] ? r.bocas[1] - r.bocas[0] : null;
       filas.push(fila('Ensayos', '', [
         ['Falta balanceo', t.faltaBalanceo ?? t.faltaEnsayo, 'aviso', 'commissioning', { seg: t.faltaBalanceo !== undefined ? 'faltaBalanceo' : 'faltaEnsayo' }],
-        ...(t.pideEstanqueidad ? [['Falta estanq.', t.faltaEstanqueidad, 'aviso', 'estanqueidad', {}, `de ${cifra(t.pideEstanqueidad)}`]] : []),
+        ...(t.pideEstanqueidad ? [['Falta estanq.', (typeof window !== 'undefined' && window.KPI_CX ? window.KPI_CX.faltaEstanqueidad(t) : t.faltaEstanqueidad), 'aviso', 'estanqueidad', {}, `de ${cifra(t.pideEstanqueidad)}`]] : []),
         ...(mal ? [['Estanq. mal', mal, 'mal', 'estanqueidad']] : []),
         ...(sinMedir !== null ? [['Bocas sin medir', sinMedir, 'aviso', 'commissioning', { seg: 'todos' }, `de ${cifra(r.bocas[1])}`]] : []),
       ]));
@@ -699,9 +775,9 @@
       ]));
     }
     const cuerpo = filas.join('');
-    return cuerpo ? `<section class="ag-bloque" data-bloque-ini="cx">
-        <h2 class="titulo-grupo ag-titulo">Resumen <span>${esc(r.codigo || '')}</span></h2>
-        <div class="res-obra">${cuerpo}</div>
+    return cuerpo ? `<section class="ag-bloque" data-bloque-ini="cx" data-plg-caja="cx">
+        <h2 class="titulo-grupo ag-titulo plg-h">${plegable.cabecera('cx', 'Resumen', esc(r.codigo || ''))}</h2>
+        <div class="res-obra plg-cuerpo">${cuerpo}</div>
       </section>` : '';
   }
   /* fin resumenObra */
@@ -754,9 +830,9 @@
     /* El resumen (28-oct): commissioning, ensayos, NCR y reparaciones en cifras. */
     const cxHtml = resumenObra({ t, bocas, pruebas, ncr: ncr && ncr.ok ? ncr.filas : null, rep: rp && rp.filas ? rp.filas : null, codigo: o.codigo });
     /* Lo que queda fuera del resumen: lo mío (partes y órdenes de mantenimiento). */
-    const pendienteHtml = partes || misOrdenes ? `<section class="ag-bloque" data-bloque-ini="pendiente">
-        <h2 class="titulo-grupo ag-titulo">Pendiente</h2>
-        <div class="grupo ini-pend">
+    const pendienteHtml = partes || misOrdenes ? `<section class="ag-bloque" data-bloque-ini="pendiente" data-plg-caja="pendiente">
+        <h2 class="titulo-grupo ag-titulo plg-h">${plegable.cabecera('pendiente', 'Pendiente')}</h2>
+        <div class="grupo ini-pend plg-cuerpo">
         ${partes ? fila('partes', 'Partes abiertos', cifra(partes.length)) : ''}
         ${misOrdenes ? fila('misTareas', 'Mis tareas de mantenimiento', cifra(misOrdenes.length), misOrdenes.some((f) => f.atrasada)) : ''}
         </div>
@@ -784,21 +860,7 @@
         inicio();
       };
     }
-    for (const h of app.querySelectorAll('[data-plegar]')) {
-      const alternar = () => {
-        const set = leerPlegados();
-        const id = h.dataset.plegar;
-        if (set.has(id)) set.delete(id); else set.add(id);
-        guardarPlegados(set);
-        const sec = h.closest('.ag-bloque');
-        const cerrado = set.has(id);
-        sec.classList.toggle('plegado', cerrado);
-        sec.querySelector('.ag-cuerpo').hidden = cerrado;
-        h.setAttribute('aria-expanded', String(!cerrado));
-      };
-      h.onclick = alternar;
-      h.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); alternar(); } };
-    }
+    plegable.activar(app);
     for (const d of app.querySelectorAll('[data-plegar-atras]')) {
       d.ontoggle = () => { const set = leerPlegados(); if (d.open) set.add('atras'); else set.delete('atras'); guardarPlegados(set); };
     }
@@ -840,13 +902,15 @@
     if (traer) traer.onclick = () => window.cxObra.traerDatos().then((r) => { if (r && r.ok) location.reload(); else if (r && r.error) aviso(r.error); });
     const enviar = document.getElementById('cx-enviar');
     if (enviar) enviar.onclick = () => window.cxObra.enviarOficina().then((r) => { if (r && r.error) aviso(r.error); else if (r && r.ok) { aviso(r.texto, 'bien'); cuenta(); } });
+    const vistos = document.getElementById('cx-conflictos-vistos');
+    if (vistos) vistos.onclick = () => { sincro().conflictosVistos(); cuenta(); };
     const ya = document.getElementById('cx-sync-ya');
     if (ya) ya.onclick = async () => {
       ya.disabled = true;
       const r = await sincro().ahora();
       ya.disabled = false;
       if (r && r.error) aviso(r.error.sinRed ? 'Sin conexión: se enviará al volver la red.' : r.error.message);
-      else aviso('Al día con la oficina.', 'bien');
+      else aviso('Sincronizado con la oficina.', 'bien');
       cuenta();
     };
   }
@@ -867,17 +931,22 @@
   const ARRANQUE = Date.now();
   const PACIENCIA = 15000;
   setTimeout(() => { pastillaSync(); }, PACIENCIA + 100);
+  /* SIN COBERTURA (29-oct-2026, JC: «a veces no hay cobertura en las obras»):
+     «Sin conexión · 3 pendientes» y, cuando ha subido, «Sincronizado». Corto
+     para que a 390 px no se coma el saludo; el detalle, al pulsarla.
+     Azul sin red, verde al día (nada de amarillo: colores teal/verde/azul). */
+  const cambios = (n) => `${n} ${n === 1 ? 'pendiente' : 'pendientes'}`;
   function textoSync(e) {
     const n = e.pendientes || 0;
-    const pend = n ? ` · ${n} por enviar` : '';
+    const pend = n ? ` · ${cambios(n)}` : '';
     /* Sin «Entrar en la nube» (15-oct-2026, JC: «siempre conectado»): entra solo. */
     if (!e.entrado || e.estado === 'sin-sesion') {
       if (Date.now() - ARRANQUE < PACIENCIA) return ['', 'Conectando'];
       return e.estado === 'sin-sesion' && e.entrado ? ['sin-sesion', 'Sin sesión'] : ['sin-red', `Solo en el móvil${pend}`];
     }
-    if (e.estado === 'sin-red') return ['sin-red', `Sin red${pend}`];
-    if (e.estado === 'error') return ['error', 'No sincroniza'];
-    if (e.estado === 'al-dia') return ['al-dia', n ? `${n} por enviar` : 'Al día'];
+    if (e.estado === 'sin-red') return ['sin-red', `Sin conexión${pend}`];
+    if (e.estado === 'error') return ['error', `No sincroniza${pend}`];
+    if (e.estado === 'al-dia') return n ? ['sin-red', cambios(n)] : ['al-dia', 'Sincronizado'];
     return ['', 'Conectando'];
   }
   let ultimaClase = null;
@@ -918,12 +987,30 @@
     const [, texto] = textoSync(e);
     return `
       <section class="grupo" id="cx-sync-grupo">
-        <div class="fila-dato"><span>Con la oficina</span><strong>${esc(e.estado === 'al-dia' && !e.pendientes ? 'Al día' : texto)}</strong></div>
+        <div class="fila-dato"><span>Con la oficina</span><strong>${esc(texto)}</strong></div>
         <div class="fila-dato"><span>Último dato recibido</span><strong>${esc(hora(e.ultimoRecibido))}</strong></div>
         <div class="fila-dato"><span>Última comprobación</span><strong>${esc(hora(e.ultimaBajada))}</strong></div>
         <div class="fila-dato"><span>Pendiente de enviar</span><strong>${e.pendientes || 0} cambio${e.pendientes === 1 ? '' : 's'}</strong></div>
         <div class="fila-dato"><span>Aviso al momento</span><strong>${e.tiempoReal ? 'Conectado' : 'Cada 30 segundos'}</strong></div>
         ${e.error && e.estado === 'error' ? `<div class="fila-dato"><span>Error</span><strong>${esc(e.error)}</strong></div>` : ''}
+      </section>
+      ${conflictosSync(e)}`;
+  }
+
+  /* Lo que perdió al mezclar un cambio de aquí con otro de la oficina en la
+     misma ficha (shared/sync/fusion.js): no se tira, se enseña aquí. */
+  function conflictosSync(e) {
+    const s = sincro();
+    if (!s || !s.conflictos || !e.conflictos) return '';
+    const corto = (v) => { const t = String(v == null ? '—' : v); return t.startsWith('data:') ? '(imagen)' : t.length > 80 ? `${t.slice(0, 80)}…` : t; };
+    const filas = s.conflictos().slice(0, 30).map((c) => `
+        <li><strong>${esc(c.tabla)} · ${esc(c.campo)}</strong><br>
+          <span class="tenue">Se queda ${c.gana === 'aqui' ? 'lo de este teléfono' : 'lo de la oficina'} (el cambio más reciente): «${esc(corto(c.valorQueGana))}». Lo otro era «${esc(corto(c.valorQuePierde))}».</span></li>`).join('');
+    return `
+      <section class="grupo" id="cx-conflictos">
+        <div class="fila-dato"><span>Cambiado aquí y en la oficina a la vez</span><strong>${e.conflictos}</strong></div>
+        <ul class="lista-conflictos">${filas}</ul>
+        <button class="boton secundario" id="cx-conflictos-vistos">Entendido</button>
       </section>`;
   }
 

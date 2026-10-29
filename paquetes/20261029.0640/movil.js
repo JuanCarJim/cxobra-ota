@@ -275,9 +275,13 @@
     }
   }
 
-  /* Sin pedido claro: la lista de pedidos para elegir. */
-  function elegirPedido(base) {
+  /* Sin pedido claro: la lista de pedidos para elegir. Con un solo pedido
+     esperando material no hay nada que elegir: se abre ya su formulario, que
+     lleva «Cambiar de pedido» (JC, 29-oct: sin pasos de una sola opción). Al
+     venir de «Cambiar de pedido» sí se enseña la lista, para no volver al mismo. */
+  function elegirPedido(base, { saltarUnico = true } = {}) {
     const pedidos = (datos && datos.pedidos) || [];
+    if (saltarUnico && pedidos.length === 1) { elegirPedido.base = base; abrirPedido(pedidos[0].id, base); return; }
     const sugeridos = new Set((base.opciones || []).map((o) => o.pedidoId));
     const orden = [...pedidos].sort((a, b) => (sugeridos.has(b.id) ? 1 : 0) - (sugeridos.has(a.id) ? 1 : 0));
     $app.innerHTML = `
@@ -503,7 +507,7 @@
     else if (accion === 'elegir') abrirPedido(b.dataset.id, elegirPedido.base || { fotos: [] });
     else if (accion === 'seguir-borrador') seguirBorrador(b.dataset.id);
     else if (accion === 'quitar-borrador') { if (AG) AG.borrar(CLAVE + b.dataset.id); if (datos) pintarAlbaranes(); else lista(); }
-    else if (accion === 'cambiar') { const f = form; form = null; if (AG && f.clave) AG.olvidar(f.clave); elegirPedido({ fotos: f.fotos, lectura: f.lectura, texto: f.texto, opciones: f.opciones }); }
+    else if (accion === 'cambiar') { const f = form; form = null; if (AG && f.clave) AG.olvidar(f.clave); elegirPedido({ fotos: f.fotos, lectura: f.lectura, texto: f.texto, opciones: f.opciones }, { saltarUnico: false }); }
     else if (accion === 'otra-linea') otraLinea();
     else if (accion === 'registrar') registrar(b);
   });

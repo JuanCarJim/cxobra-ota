@@ -119,7 +119,8 @@
   }
 
   function tarjetaSub(s, puede) {
-    const chip = s.previsto === null
+    /* Previsión 0 y nadie fichado no es «0 de 0»: es que no hay previsión. */
+    const chip = s.previsto === null || (!s.previsto && !s.real)
       ? `<span class="chip ${s.real ? 'aviso' : 'neutra'}">${s.real} · sin previsión</span>`
       : `<span class="chip ${CLASE[s.estado] || 'neutra'}">${s.real} de ${s.previsto}</span>`;
     return `<article class="tarjeta sub">
