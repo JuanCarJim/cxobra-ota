@@ -411,6 +411,14 @@ main > label { margin-top: 14px; }
 .cifra { font-variant-numeric: tabular-nums; }
 .tenue { color: var(--textoTenue); }
 .sub.aviso { color: var(--aviso); }
+/* El nº de serie de cada unidad (29-oct-2026): en la tarjeta, una línea; en el equipo, una rejilla. */
+.sub.serie .cifra { overflow-wrap: anywhere; }
+.num-serie { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 4px 16px 10px; font-size: 13px; }
+.num-serie dt { color: var(--textoTenue); }
+.num-serie dt em { font-style: normal; font-weight: 600; }
+.num-serie dd { margin: 0; overflow-wrap: anywhere; }
+.num-serie dd small { margin-left: 4px; }
+.num-serie dd.aviso { color: var(--aviso); }
 .buscar {
   margin: 12px 0; min-height: 44px; padding-left: 40px; border-radius: 12px; background-color: var(--panel3);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239A9A9A' stroke-width='1.8' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='M16 16l4 4'/%3E%3C/svg%3E");
@@ -675,7 +683,7 @@ details.grupo-lista[open] > summary { margin-bottom: 6px; }
 .ver-mas small { color: var(--textoTenue); font-weight: 400; }
 
 /* Las fotos del equipo (placa, vista general): tira de miniaturas. */
-.fotos-equipo { list-style: none; margin: 0 0 8px; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.fotos-equipo { list-style: none; margin: 0 0 8px; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .fotos-equipo li { margin: 0; }
 .fotos-equipo img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; background: var(--rejillaSuave); display: block; }
 .fotos-equipo .pie { display: flex; flex-direction: column; gap: 2px; font-size: 11.5px; color: var(--textoTenue); margin-top: 3px; }
@@ -904,7 +912,7 @@ input.mal { box-shadow: 0 0 0 2px var(--mal-fondo) !important; }
 .densa .fotos-rapidas .boton { min-height: 40px; padding: 4px 2px; font-size: 13px; border-radius: 0; background: var(--panel); color: var(--acento-fuerte); }
 .densa .fotos-rapidas .boton + .boton { border-left: 1px solid var(--rejillaSuave); }
 .densa .fotos-rapidas .ic { width: 15px; height: 15px; margin-right: 3px; }
-.densa .fotos-equipo { margin: 6px 0; grid-template-columns: repeat(4, 1fr); }
+.densa .fotos-equipo { margin: 6px 0; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .estado-eq { grid-template-columns: 1fr 1fr; }
 .estado-eq > .fd { grid-template-columns: minmax(0, 1fr) auto; }
 .estado-eq > .fd:nth-child(2) { border-top: 0; }
@@ -1501,10 +1509,11 @@ main, #app { min-width: 0; max-width: 100%; }
 /* A 390 px el rótulo no se pisa con su valor: el rótulo ocupa lo suyo y el valor, lo que quede, a la derecha. */
 .estado-eq > .fd { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; column-gap: 10px; row-gap: 2px; }
 .estado-eq > .fd > :last-child { margin-left: auto; text-align: right; }
-.firma-hecha .tenue { white-space: nowrap; }
+/* El nombre y la fecha se parten si no caben (29-oct: a 390 px la fecha se cortaba). */
+.firma-hecha .tenue { white-space: normal; overflow-wrap: anywhere; }
 .estado-eq > .fd .enlace { white-space: normal; text-align: right; }
 .firma-valor { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-.firma-hecha { display: inline-flex; align-items: center; gap: 6px; }
+.firma-hecha { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; min-width: 0; max-width: 100%; }
 .firma-hecha img { height: 30px; width: auto; max-width: 120px; background: #fff; border-bottom: 1px solid var(--acento); }
 .firma-lienzo { margin: 8px 0 12px; }
 .firma-lienzo .campo { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; font-size: 13px; color: var(--textoSuave); }
@@ -1741,3 +1750,40 @@ body { background: var(--fondo-pagina); }
 .barra-guardar { position: static; margin: 6px 0 0; padding: 0; background: none; border: 0; box-shadow: none; text-align: right; }
 .barra-guardar .autoguardado { margin: 0; font-size: 12px; }
 .barra-editor .autoguardado { margin: 0; font-size: 12px; white-space: nowrap; }
+
+/* FOTOS DEL EQUIPO DEL CONJUNTO (JC, 29-oct): de qué ficha/unidad viene cada
+   foto y cuáles siguen solo en el teléfono, sin subir. */
+.fotos-equipo .origen-foto { font-size: 10.5px; font-weight: 600; color: var(--acento); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fotos-equipo li.en-movil img { outline: 2px dashed var(--borde, currentColor); outline-offset: -2px; }
+.fotos-equipo li { min-width: 0; }
+
+/* «Ver hoja» bajo cada ficha: el modelo oficial relleno, Definitiva o Borrador. */
+.ver-hoja { display: flex; align-items: center; gap: 8px; padding: 0 16px 6px; }
+.ver-hoja .enlace { padding: 2px 0; font-size: 13px; font-weight: 600; }
+.ver-hoja .chip { font-size: 10.5px; padding: 1px 6px; }
+.densa .ver-hoja { padding: 0 12px 4px; }
+
+/* UNIDADES INTERIORES DEL VRF (JC, 29-oct): una fila por UI con su toma de
+   datos y, a la derecha del botón, la miniatura de su foto (o el hueco con la
+   cámara). Mismo bloque que los demás de la ficha: cabecera y filas, sin tarjetas. */
+.filas-ui > li.fila-ui { display: flex; align-items: center; gap: 8px; padding: 6px 10px; }
+.densa .filas-ui { gap: 0; }
+.densa .filas-ui > li.fila-ui { border-radius: 0; box-shadow: none; border-width: 0 0 1px; }
+.fila-ui .ui-datos { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; }
+.fila-ui .ui-datos strong { font-size: 14px; }
+.fila-ui .ui-datos .sub { font-size: 12px; color: var(--textoTenue); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.fila-ui .ui-datos .chip { font-size: 10.5px; padding: 1px 6px; }
+.fila-ui .ui-toma { flex: none; margin: 0; padding: 6px 10px; min-height: 36px; font-size: 13px; width: auto; }
+.miniatura-ui { flex: none; width: 44px; height: 44px; padding: 0; border: 1px solid var(--rejillaSuave); border-radius: 8px; background: var(--acento-suave); overflow: hidden; display: inline-flex; align-items: center; justify-content: center; color: var(--acento); }
+.miniatura-ui img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.miniatura-ui.en-movil { outline: 2px dashed var(--acento); outline-offset: -2px; }
+.miniatura-ui.hueco { border-style: dashed; border-color: var(--acento); }
+.miniatura-ui.hueco .ic { width: 22px; height: 22px; }
+.miniatura-ui.apagada { opacity: .4; }
+.visor-foto-ui { position: fixed; inset: 0; z-index: 60; background: var(--fondo, #fff); display: flex; flex-direction: column; gap: 10px; padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px calc(env(safe-area-inset-bottom, 0px) + 12px); }
+.visor-foto-ui .visor-cabeza { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.visor-foto-ui img { flex: 1; min-height: 0; width: 100%; object-fit: contain; background: #0b1f1c; border-radius: 10px; }
+.visor-foto-ui .fila-botones { display: flex; gap: 8px; }
+.visor-foto-ui .fila-botones .boton { flex: 1; margin: 0; }
+.fila-ui .ui-datos .sub { flex-basis: 100%; }
+.fila-ui .sin-serie { font-style: italic; }
