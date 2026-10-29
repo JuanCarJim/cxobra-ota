@@ -191,6 +191,9 @@ h2 { font-family: var(--fuente-titular); font-weight: 700; font-size: 19px; lett
 small, .sub { color: var(--textoTenue); font-size: 13px; }
 .nota { color: var(--textoTenue); font-size: 14px; margin: 8px 2px; }
 .nota.aviso { color: var(--aviso); background: var(--aviso-fondo); padding: 10px 14px; border-radius: var(--radio); }
+/* Bloqueo y «revalidar» de la ficha del equipo (29-oct): siempre a la vista, no recogidos en el chip «1 aviso». */
+.nota.inc-aviso { color: var(--aviso); background: var(--aviso-fondo); padding: 10px 14px; border-radius: var(--radio); }
+.nota.inc-aviso .enlace { font-weight: 600; }
 .cargando { color: var(--textoTenue); text-align: center; padding: 48px 8px; }
 
 /* El estado vacío, igual en todas las listas (el EmptyState de CoachIn): un
@@ -453,11 +456,13 @@ button.fila-ios::after {
 .lista-ios > li[class*="franja-"]::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 4px; z-index: 1; pointer-events: none; }
 .lista-ios > li.franja-firma::before { background: var(--franja-firma); }
 .lista-ios > li.franja-docs::before { background: var(--franja-docs); }
+.lista-ios > li.franja-completo::before { background: var(--bien); }
 .lista-ios > li.franja-ambos::before { background: linear-gradient(90deg, var(--franja-docs) 50%, var(--franja-firma) 50%); }
 .leyenda-franja { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 8px; font-size: 12px; color: var(--textoTenue); }
 .leyenda-franja span { display: inline-flex; align-items: center; gap: 5px; }
 .leyenda-franja i { display: inline-block; width: 16px; height: 4px; border-radius: 2px; }
 .leyenda-franja i.m-firma { background: var(--franja-firma); }
+.leyenda-franja i.m-completo { background: var(--bien); }
 .leyenda-franja i.m-docs { background: var(--franja-docs); }
 .leyenda-franja i.m-ambos { background: linear-gradient(90deg, var(--franja-docs) 50%, var(--franja-firma) 50%); }
 .fila-principal { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
@@ -1829,3 +1834,17 @@ body { background: var(--fondo-pagina); }
 .serie-edita .serie-no { font-size: 14px; padding: 4px 2px; }
 .fila-ui .ui-datos .sub { white-space: normal; overflow: visible; }
 .fila-ui .serie-boton { white-space: nowrap; }
+
+/* El buscador de las listas (29-oct-2026, JC): ✕ para borrar y conmutador de teclado 123 / ABC (buscador.js). */
+.buscar-caja { position: relative; display: flex; align-items: center; gap: 6px; margin: 6px 0; }
+.buscar-campo { position: relative; flex: 1; min-width: 0; }
+.buscar-campo .buscar { width: 100%; box-sizing: border-box; }
+.buscar-caja input[type=search]::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; display: none; }
+.buscar-borrar { position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; min-height: 44px; padding: 0; margin: 0;
+  border: 0; background: none; box-shadow: none; color: var(--acento-fuerte); font-size: 16px; line-height: 1; border-radius: 50%; cursor: pointer; }
+.buscar-borrar[hidden] { display: none; }
+.buscar-modo { flex: none; display: inline-flex; align-items: stretch; min-height: 44px; padding: 3px; margin: 0; border: 1px solid var(--rejilla); border-radius: 10px;
+  background: var(--panel3); box-shadow: none; cursor: pointer; }
+.buscar-modo span { display: flex; align-items: center; padding: 0 7px; font-size: 12px; font-weight: 600; color: var(--textoSuave); border-radius: 7px; }
+.buscar-modo span.activa { background: var(--acento-suave); color: var(--acento-fuerte); }
+#app .buscar-caja .buscar { margin: 0; padding-right: 46px; }
