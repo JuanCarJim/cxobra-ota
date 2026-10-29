@@ -87,7 +87,7 @@
 
   /* Se busca sin puntos, espacios ni tildes: «s2ste0021» encuentra S2.STE.0021. */
   const plano = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
-  const pajar = (f) => plano([f.codigo, f.titulo, f.encargado, f.operario, f.zona, f.planta, ...(f.equipo ? [...(f.equipo.unidades || [f.equipo.tag]), f.equipo.sala, f.equipo.codSala, f.equipo.zona] : [])].join(' '));
+  const textosDe = (f) => ([f.codigo, f.titulo, f.encargado, f.operario, f.zona, f.planta, ...(f.equipo ? [...(f.equipo.unidades || [f.equipo.tag]), f.equipo.sala, f.equipo.codSala, f.equipo.zona] : [])]);
   /* La sala del equipo: el código de sala (S2.STE.0053) y el del plano (10.STE.082). */
   const salaDe = (e) => (e ? [e.sala, e.codSala].filter(Boolean).join(' · ') : '');
 
@@ -97,7 +97,7 @@
     const nRevisar = filas.filter((f) => f.estado === 'terminada').length;
     if (!nRevisar) porRevisar = false;
     const q = plano(texto);
-    const vistas = filas.filter(enFiltro).filter((f) => !solo || filtro !== 'abiertas' || SOLO[solo][1](f)).filter((f) => !q || pajar(f).includes(q));
+    const vistas = filas.filter(enFiltro).filter((f) => !solo || filtro !== 'abiertas' || SOLO[solo][1](f)).filter((f) => !q || window.BUSCADOR_MOVIL.coincide(texto, textosDe(f)));
     const planta = (f) => f.planta || (f.equipo && f.equipo.planta) || 'Sin planta';
     const conMias = datos.mias || datos.filas.some((f) => f.encargadoId === datos.yo);
     $app.innerHTML = `
@@ -110,7 +110,7 @@
         ${conMias ? `<button type="button" class="chip-filtro ${soloMias ? 'activa' : ''}" data-rp="mias" aria-pressed="${Boolean(soloMias)}">Solo las mías</button>` : ''}
         ${nRevisar ? `<button type="button" class="chip-filtro ${porRevisar ? 'activa' : ''}" data-rp="revisar" aria-pressed="${porRevisar}">Por revisar <small>${nRevisar}</small></button>` : ''}
       </div>` : ''}
-      <input type="search" class="buscar" placeholder="Buscar TAG, sala, código o encargado" value="${esc(texto)}" data-rp-buscar>
+      ${window.BUSCADOR_MOVIL.campo({ placeholder: 'Buscar TAG, sala, código o encargado', valor: texto, atributo: 'data-rp-buscar' })}
       ${vistas.length ? C.listaAgrupada(`rp-${filtro}`, vistas, {
         grupo: planta, buscando: !!q, repintar: pintarLista,
         orden: [...new Set(vistas.map(planta))].sort((a, b) => (a === 'Sin planta') - (b === 'Sin planta') || a.localeCompare(b, 'es', { numeric: true })),
@@ -137,7 +137,7 @@
    */
   const AG = window.AUTOGUARDADO;
   const claveAlta = () => `rep.alta.${C.obraId() || ''}`;
-  const altaVacia = () => ({ tag: '', planta: '', zona: '', operario: '', descripcion: '', prioridad: 'media', encargadoId: '', fechaLimite: '', fotos: [] });
+  const altaVacia = () => ({ tag: '', planta: '', zona: '', ubicacion: '', operario: '', descripcion: '', prioridad: 'media', encargadoId: '', fechaLimite: '', fotos: [] });
   const altaConContenido = (f) => Boolean(f && (String(f.tag || '').trim() || String(f.descripcion || '').trim() || String(f.zona || '').trim()
     || String(f.planta || '').trim() || f.operario || f.encargadoId || f.fechaLimite || (f.fotos || []).length));
   function persistirAlta() {
@@ -148,7 +148,20 @@
     if (activa()) AG.pintarMarca($app, ok ? 'movil' : 'error', ok ? (altaConContenido(form) ? 'Guardado en el móvil · se envía al dar de alta' : 'Se guarda solo mientras escribes') : 'No se ha podido guardar en el móvil');
   }
 
+  /* Desde la ficha de commissioning (29-oct, JC): «Crear incidencia» deja el equipo, su conjunto, la planta y la sala. */
+  function prefillDeCx() {
+    let p = null;
+    try { p = JSON.parse(sessionStorage.getItem('reparaciones.prefill') || 'null'); sessionStorage.removeItem('reparaciones.prefill'); } catch { /* nada */ }
+    return p && p.tag ? p : null;
+  }
   async function nueva() {
+    const cx = prefillDeCx();
+    if (cx) {
+      /* Un alta empezada antes no se pisa en silencio: lo de la ficha manda, y la vieja se descarta. */
+      form = { ...altaVacia(), clave: claveAlta(), tag: cx.tag, planta: cx.planta || '', zona: cx.zona || '', ubicacion: cx.ubicacion || '', unidades: cx.unidades || [], desdeCx: cx.volverA || '' };
+      if (activa()) pintarForm();
+      return;
+    }
     const b = AG.leer(claveAlta());
     if (altaConContenido(b)) {
       const { _en, ...resto } = b;
@@ -165,7 +178,8 @@
       <h2>Nueva reparación</h2>
       <p class="nota">${esc(C.obra() ? `${C.obra().codigo} · ${C.obra().nombre}` : '')}</p>
       ${AG.marca('movil', altaConContenido(f) ? 'Guardado en el móvil · se envía al dar de alta' : 'Se guarda solo mientras escribes')}
-      <label>Equipo (TAG)<input data-rp-campo="tag" list="rp-equipos" value="${esc(f.tag)}" autocomplete="off" placeholder="Escribe el TAG del equipo"></label>
+      ${(f.unidades || []).length > 1 ? `<label>Unidad con el problema<select data-rp-campo="tag">${f.unidades.map((u) => `<option value="${esc(u.tag)}" ${u.tag === f.tag ? 'selected' : ''}>${esc(u.papel ? `${u.papel} · ` : '')}${esc(u.tag)}</option>`).join('')}</select></label>
+      <p class="nota">Una avería en la UE o en una UI bloquea el commissioning del conjunto entero.</p>` : `<label>Equipo (TAG)<input data-rp-campo="tag" list="rp-equipos" value="${esc(f.tag)}" autocomplete="off" placeholder="Escribe el TAG del equipo"></label>`}
       <datalist id="rp-equipos">${(datos.equipos || []).map((e) => `<option value="${esc(e.tag)}">${esc(e.planta)}</option>`).join('')}</datalist>
       <div class="campos">
         <label>Planta<input data-rp-campo="planta" list="rp-plantas" value="${esc(f.planta)}" autocomplete="off" placeholder="N00, N10…"></label>
@@ -173,6 +187,7 @@
       </div>
       <datalist id="rp-plantas">${(datos.plantas || []).map((v) => `<option value="${esc(v)}">`).join('')}</datalist>
       <datalist id="rp-zonas">${(datos.zonas || []).map((v) => `<option value="${esc(v)}">`).join('')}</datalist>
+      ${f.ubicacion !== undefined && (f.ubicacion || f.desdeCx) ? `<label>Ubicación<input data-rp-campo="ubicacion" value="${esc(f.ubicacion)}" autocomplete="off" placeholder="Sala, local…"></label>` : ''}
       <label>Operario<select data-rp-campo="operario"><option value="">—</option>${(datos.asignables || []).map((v) => `<option value="${esc(v)}" ${v === f.operario ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></label>
       <label>Qué le pasa<textarea rows="4" data-rp-campo="descripcion" placeholder="Qué falla y qué hay que hacer">${esc(f.descripcion)}</textarea></label>
       <label>Prioridad</label>
@@ -236,7 +251,7 @@
       const alta = {
         obraId: C.obraId(), equipoId: eq.id, titulo: `${eq.tag} · ${primera}`, descripcion: form.descripcion,
         prioridad: form.prioridad, encargadoId: form.encargadoId || undefined,
-        operario: form.operario || undefined, zona: form.zona || undefined, planta: form.planta || undefined, fechaLimite: form.fechaLimite || null,
+        operario: form.operario || undefined, zona: form.zona || undefined, planta: form.planta || undefined, ubicacion: form.ubicacion || undefined, fechaLimite: form.fechaLimite || null,
       };
       let r = await C.postJson('api/reparacion', alta);
       /* El equipo ya tiene una reparación sin cerrar: se pregunta antes de abrir otra. */

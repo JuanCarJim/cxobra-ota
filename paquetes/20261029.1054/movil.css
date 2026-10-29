@@ -191,6 +191,9 @@ h2 { font-family: var(--fuente-titular); font-weight: 700; font-size: 19px; lett
 small, .sub { color: var(--textoTenue); font-size: 13px; }
 .nota { color: var(--textoTenue); font-size: 14px; margin: 8px 2px; }
 .nota.aviso { color: var(--aviso); background: var(--aviso-fondo); padding: 10px 14px; border-radius: var(--radio); }
+/* Bloqueo y «revalidar» de la ficha del equipo (29-oct): siempre a la vista, no recogidos en el chip «1 aviso». */
+.nota.inc-aviso { color: var(--aviso); background: var(--aviso-fondo); padding: 10px 14px; border-radius: var(--radio); }
+.nota.inc-aviso .enlace { font-weight: 600; }
 .cargando { color: var(--textoTenue); text-align: center; padding: 48px 8px; }
 
 /* El estado vacío, igual en todas las listas (el EmptyState de CoachIn): un
@@ -446,6 +449,22 @@ button.fila-ios::after {
   background: var(--acento-suave); color: var(--acento); font-weight: 600; font-size: 15px;
 }
 .fila-ios:active { background: var(--seleccion); }
+/* La franja de estado de la tarjeta de equipo (29-oct, JC): 4 px pegados arriba. Amarillo a petición
+   suya (la paleta lo evita); azul de la paleta. Sin franja: completo o sin datos tomados aún. */
+:root { --franja-firma: #F2B705; --franja-docs: #2B6CB0; }
+.lista-ios > li[class*="franja-"] { position: relative; }
+.lista-ios > li[class*="franja-"]::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 4px; z-index: 1; pointer-events: none; }
+.lista-ios > li.franja-firma::before { background: var(--franja-firma); }
+.lista-ios > li.franja-docs::before { background: var(--franja-docs); }
+.lista-ios > li.franja-completo::before { background: var(--bien); }
+.lista-ios > li.franja-ambos::before { background: linear-gradient(90deg, var(--franja-docs) 50%, var(--franja-firma) 50%); }
+.leyenda-franja { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 8px; font-size: 12px; color: var(--textoTenue); }
+.leyenda-franja span { display: inline-flex; align-items: center; gap: 5px; }
+.leyenda-franja i { display: inline-block; width: 16px; height: 4px; border-radius: 2px; }
+.leyenda-franja i.m-firma { background: var(--franja-firma); }
+.leyenda-franja i.m-completo { background: var(--bien); }
+.leyenda-franja i.m-docs { background: var(--franja-docs); }
+.leyenda-franja i.m-ambos { background: linear-gradient(90deg, var(--franja-docs) 50%, var(--franja-firma) 50%); }
 .fila-principal { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .fila-principal strong { font-size: 16px; font-weight: 600; }
 .texto-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 3px 0; font-size: 15px; color: var(--textoSuave); }
