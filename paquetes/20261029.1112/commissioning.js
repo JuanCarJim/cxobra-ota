@@ -150,7 +150,8 @@
      es conjunto (15-oct-2026, JC). Sin conjuntos (un servidor viejo), por unidades. */
   const porConjuntos = () => Array.isArray(lista.conjuntos);
   const NOMBRE_CLASE = { par: 'Split', sistema: 'VRF' };
-  const textoDe = (e) => `${(e.unidades || []).map((u) => u.tag).join(' ') || e.tag} ${e.nombre || ''} ${e.local || ''} ${e.planta || ''} ${e.zona || ''} ${e.marca || ''} ${e.modelo || ''} ${tipoDe(e)}`;
+  /* Campos sueltos (TAG, sala, código de sala…): la búsqueda por cifras compara cada código por separado (buscador.js). */
+  const textosDe = (e) => [...(e.unidades || []).map((u) => u.tag), e.tag, e.nombre, e.local, e.codSala, ...(e.unidades || []).map((u) => u.codSala), e.planta, e.zona, e.marca, e.modelo, tipoDe(e)];
   function tagsFila(e) {
     const us = e.unidades || [];
     /* El split, UNA vez por su nombre (28-oct-2026, JC: «en lugar de UE y luego
@@ -318,7 +319,7 @@
     const todos = (conj ? lista.conjuntos : lista.equipos) || [];
     const [, , pasa] = SEGMENTOS.find(([id]) => id === segmento) || SEGMENTOS[0];
     /* Los hechos, al final de su grupo (orden estable: lo demás no se mueve). */
-    const equipos = todos.filter(pasa).filter((e) => !q || textoDe(e).toLowerCase().includes(q))
+    const equipos = todos.filter(pasa).filter((e) => !q || window.BUSCADOR_MOVIL.coincide(q, textosDe(e)))
       .sort((a, b) => hecho(a) - hecho(b));
     /* Zona solo se ofrece si algún equipo la tiene; si ninguno trae planta pero
        sí zona, se agrupa por zona (y los desplegables por tipo, también). */
@@ -334,7 +335,7 @@
     const subPor = !hayPlanta && hayZona ? 'zona' : 'planta';
     $app.innerHTML = `
       ${kpisCx(t, conj)}
-      <input type="search" class="buscar" placeholder="Buscar TAG, sala, planta, tipo o marca" value="${esc(filtro)}" data-cx-buscar>
+      ${window.BUSCADOR_MOVIL.campo({ placeholder: 'Buscar TAG, sala, planta, tipo o marca', valor: filtro, atributo: 'data-cx-buscar' })}
       <div class="agrupar" role="group" aria-label="Agrupar por"><span>Agrupar por</span>${opciones
         .map(([id, texto]) => `<button data-cx-agrupar="${id}" aria-pressed="${modo === id}" class="${modo === id ? 'activa' : ''}">${texto}</button>`).join('')}</div>
       <p class="leyenda-franja" aria-label="Franja de estado de cada equipo"><span><i class="m-firma"></i>Falta firma</span><span><i class="m-docs"></i>Faltan docs</span><span><i class="m-ambos"></i>Ambos</span><span><i class="m-completo"></i>Completo</span></p>
