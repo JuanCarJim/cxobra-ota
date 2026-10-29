@@ -9612,12 +9612,14 @@ globalThis.CX_VARIANTE="cxobra";
           /* 21-oct: las tareas del jefe de obra, para «Lo que me toca» (solo ida). */
           "tareasObra",
           /* 28-oct: el plano de equipos de cada planta con sus marcas (solo ida). */
-          "planosEquipos"
+          "planosEquipos",
+          /* 29-oct: los materiales instalados del plano (compuertas, difusores…). */
+          "materialesInstalados"
         ],
         /* 29-oct (JC): el plano lo ve todo el enrolado en la obra, aunque su rol no tenga
            Commissioning: con él, lo mínimo para pintar los colores (equipos, modelos,
            fichas y config). Quien tiene Commissioning ya lo trae todo. */
-        plano: ["planosEquipos", "equiposObra", "modelosEquipo", "configCommissioning", "fichasPM"],
+        plano: ["planosEquipos", "materialesInstalados", "equiposObra", "modelosEquipo", "configCommissioning", "fichasPM"],
         ncr: [
           "ncr",
           "ncrEquipos",
@@ -9699,6 +9701,8 @@ globalThis.CX_VARIANTE="cxobra";
         "avanceMateriales",
         /* 24-oct: la orden de mantenimiento cerrada en el teléfono (sin coste: lo pone el ordenador). */
         "ordenesMant",
+        /* 29-oct: el nº de serie y los datos de un material, apuntados en obra. */
+        "materialesInstalados",
         /* 16-oct: la empresa que el encargado escribe en una visita y aún no
            existía (electron/data/incidencias.js la da de alta). Vuelve sin tarifas
            (FUERA) y aplicar() solo pone las columnas que trae: las tarifas que el
@@ -10017,7 +10021,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261029.1446" : "0";
+      var VERSION = true ? "20261029.1528" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -10786,6 +10790,7 @@ globalThis.CX_VARIANTE="cxobra";
       var MAX_LOTE = 15e5;
       var POR_PAGINA = 1e3;
       var EN_VUELO = 4;
+      var REINTENTO_RECHAZO = 10 * 60 * 1e3;
       function crearMotor({
         db,
         nube,
@@ -10844,6 +10849,21 @@ globalThis.CX_VARIANTE="cxobra";
           }
         };
         const conflictosSinVer = () => db.prepare("SELECT COUNT(*) AS n FROM _syncConflictos WHERE visto = 0").get().n;
+        db.exec("CREATE TABLE IF NOT EXISTS _syncRechazos (tabla TEXT NOT NULL, id TEXT NOT NULL, modificadoEn TEXT NOT NULL, cuando TEXT NOT NULL, PRIMARY KEY (tabla, id))");
+        const ponerRechazo = db.prepare("INSERT INTO _syncRechazos (tabla, id, modificadoEn, cuando) VALUES (?, ?, ?, ?) ON CONFLICT(tabla, id) DO UPDATE SET modificadoEn = excluded.modificadoEn, cuando = excluded.cuando");
+        const quitarRechazo = db.prepare("DELETE FROM _syncRechazos WHERE tabla = ? AND id = ?");
+        function rechazosRecientes() {
+          const m = /* @__PURE__ */ new Map();
+          const limite = new Date(ahora().getTime() - REINTENTO_RECHAZO).toISOString();
+          for (const r of db.prepare("SELECT tabla, id, modificadoEn, cuando FROM _syncRechazos").all()) {
+            if (r.cuando > limite) m.set(F.clave(r.tabla, r.id), r.modificadoEn);
+          }
+          return m;
+        }
+        if (modo === "movil" && !leerEstado("qhseRepasado")) {
+          db.prepare("DELETE FROM _syncVisto WHERE tabla IN ('qhseControles', 'qhseAdjuntos')").run();
+          ponerEstado("qhseRepasado", "1");
+        }
         const vistos = () => {
           const m = /* @__PURE__ */ new Map();
           for (const v of db.prepare("SELECT tabla, id, modificadoEn FROM _syncVisto").all()) m.set(F.clave(v.tabla, v.id), v.modificadoEn);
@@ -10884,7 +10904,9 @@ globalThis.CX_VARIANTE="cxobra";
           const visto = vistos();
           const base = modo === "movil" ? String(desde() || "") : "";
           const suben = [];
+          const rechazadas = rechazosRecientes();
           for (const [k, e] of idx) {
+            if (rechazadas.get(k) === e.mod) continue;
             const v = visto.get(k);
             if (v === void 0) {
               if (!base || e.mod > base) suben.push(e);
@@ -10945,6 +10967,7 @@ globalThis.CX_VARIANTE="cxobra";
           const listas = filas.filter((x) => !x.descartar);
           for (const x of filas.filter((y) => y.descartar)) olvidar.run(x.fila.tabla, x.fila.id);
           const hecho = (x) => {
+            quitarRechazo.run(x.fila.tabla, x.fila.id);
             if (x.lapida) olvidar.run(x.fila.tabla, x.fila.id);
             else {
               apuntar.run(x.fila.tabla, x.fila.id, x.mod);
@@ -10966,7 +10989,7 @@ globalThis.CX_VARIANTE="cxobra";
                   if (e2.sinRed) throw e2;
                   rechazadas++;
                   registro(`La nube no acepta ${x.fila.tabla}/${x.fila.id}: ${e2.message}`);
-                  if (!x.lapida) apuntar.run(x.fila.tabla, x.fila.id, x.mod);
+                  if (!x.lapida) ponerRechazo.run(x.fila.tabla, String(x.fila.id), x.mod, ahora().toISOString());
                   else olvidar.run(x.fila.tabla, x.fila.id);
                 }
               }
@@ -11343,8 +11366,16 @@ globalThis.CX_VARIANTE="cxobra";
             const res = { bajada: null, subida: null, error: null };
             try {
               cambiarEstado({ estado: "sincronizando" });
-              res.bajada = await bajar();
+              let fallo = null;
+              try {
+                res.bajada = await bajar();
+              } catch (e) {
+                if (e.sinRed) throw e;
+                fallo = e;
+                registro(`Bajada: ${e.message}`);
+              }
               res.subida = await subir();
+              if (fallo) throw fallo;
               bajarFotos();
               let n = 0;
               try {
@@ -13057,6 +13088,41 @@ globalThis.CX_VARIANTE="cxobra";
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.SISTEMAS_CX = API;
       })();
+    }
+  });
+
+  // shared/commissioning/garantia.js
+  var require_garantia = __commonJS({
+    "shared/commissioning/garantia.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var fechaISO = (v) => {
+        const s = String(v || "").trim();
+        return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : null;
+      };
+      function sumarAnios(iso, anios) {
+        const [a, m, d] = iso.split("-").map(Number);
+        const meses = Math.round(Number(anios) * 12);
+        const f = new Date(Date.UTC(a, m - 1 + meses, d));
+        if (f.getUTCDate() !== d) f.setUTCDate(0);
+        return f.toISOString().slice(0, 10);
+      }
+      var hoyLocal = () => ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
+      var fechaVisible = (iso) => iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "";
+      function garantiaDe(e, hoy = hoyLocal()) {
+        const inicio = fechaISO(e && e.fechaEnvioDF);
+        const n = Number(e && e.garantiaAnios);
+        const anios = Number.isFinite(n) && n > 0 ? n : null;
+        if (!inicio) return { estado: "sinEmpezar", inicio: null, fin: null, anios, texto: "Garant\xEDa: sin empezar (pendiente de entrega a DF)" };
+        if (!anios) return { estado: "sinAnios", inicio, fin: null, anios: null, texto: `Garant\xEDa: desde ${fechaVisible(inicio)} (faltan los a\xF1os de garant\xEDa)` };
+        const fin = sumarAnios(inicio, anios);
+        const estado = fin < hoy ? "vencida" : "vigente";
+        return { estado, inicio, fin, anios, texto: `Garant\xEDa: ${fechaVisible(inicio)} \u2192 ${fechaVisible(fin)}${estado === "vencida" ? " (vencida)" : ""}` };
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.GARANTIA_CX = API;
+      })({ garantiaDe, sumarAnios, fechaVisible, fechaISO });
     }
   });
 
@@ -18166,6 +18232,7 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var sistemasCx = typeof __require !== "undefined" ? require_sistemas() : window.SISTEMAS_CX;
+      var garantiaCx = typeof __require !== "undefined" ? require_garantia() : window.GARANTIA_CX;
       var ESTADOS_MONTAJE = ["pendiente", "acopiado", "instalado", "enMarcha", "recepcionado"];
       var ESTADOS_PM = ["pendiente", "programada", "enProceso", "enMarcha", "hecha", "conReservas"];
       var ENSAYOS = ["ninguno", "balanceo", "estanqueidad", "ambos"];
@@ -18184,7 +18251,8 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
       var PM_DEMUESTRA = /* @__PURE__ */ new Set(["enMarcha", "hecha", "conReservas"]);
       function instalacionVerificada(e) {
         if (!e) return false;
-        return Boolean(e.instalacionVerificadaEn) || PM_DEMUESTRA.has(e.estadoPM) || e.estado === "enMarcha" || e.estado === "recepcionado" || ["apto", "aptoSinBocas", "noApto"].includes(e.balanceoEstado) || ["apta", "noApta"].includes(e.estanqueidadEstado) || Boolean(e.fechaEnvioDF);
+        const pmGuardado = Object.prototype.hasOwnProperty.call(e, "estadoPMGuardado") ? e.estadoPMGuardado : e.estadoPM;
+        return Boolean(e.instalacionVerificadaEn) || PM_DEMUESTRA.has(pmGuardado) || e.estado === "enMarcha" || e.estado === "recepcionado" || ["apto", "aptoSinBocas", "noApto"].includes(e.balanceoEstado) || ["apta", "noApta"].includes(e.estanqueidadEstado) || Boolean(e.fechaEnvioDF);
       }
       var INCIDENCIAS = {
         sinSerie: "Sin n\xBA de serie",
@@ -18300,12 +18368,39 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         return null;
       }
       var esCompleto = (docCompleta, fichas, ensayo) => Boolean(docCompleta) && fichas !== false && ensayo !== false;
+      var ESTADOS_PM_VISIBLES = {
+        pendienteFichaPM: "Pendiente de ficha PM",
+        faltaHojaFabricante: "Falta hoja del fabricante",
+        conReservas: "Con reservas",
+        enMarcha: "En marcha"
+      };
+      var hojaFabricantePM = (e) => hayDoc(e && e.docFichaPM);
+      function estadoPMDerivado(e) {
+        const a = e && e.pmFichas ? e.pmFichas.fichaPM : null;
+        if (a === "noApta") return "conReservas";
+        if (a !== "hecha") return "pendienteFichaPM";
+        return hojaFabricantePM(e) ? "enMarcha" : "faltaHojaFabricante";
+      }
+      var pmEnMarcha = (e) => Boolean(e) && e.estadoPM === "enMarcha";
+      function fichaPMDeFichas(fichas, fechaDe = () => null) {
+        const pm = (fichas || []).filter((x) => x.clase === "fichaPM");
+        if (!pm.length) return { fichaPM: "noAplica", fechaFichaPM: null };
+        const hechas = pm.filter((x) => x.estado === "completa" || x.estado === "firmada");
+        if (hechas.length < pm.length) return { fichaPM: "pendiente", fechaFichaPM: null };
+        const fechas = hechas.map((x) => x.fichaId ? fechaDe(x.fichaId) : null).filter(Boolean).sort();
+        return { fichaPM: hechas.some((x) => x.resultado === "noApto") ? "noApta" : "hecha", fechaFichaPM: fechas.pop() || null };
+      }
+      function conEstadoPM(e) {
+        if (!e || Object.prototype.hasOwnProperty.call(e, "estadoPMGuardado")) return e;
+        return { ...e, estadoPMGuardado: e.estadoPM || null, estadoPM: estadoPMDerivado(e) };
+      }
       function evaluarEquipo(e, modelo, repetidos, unidad, exigirInstalacion = false) {
         e = conEnsayoCorregido(e);
         const ft = hayDoc(e.docFichaTecnica) || hayDoc(modelo && modelo.docFichaTecnica);
         const ce = hayDoc(e.docMarcadoCE) || hayDoc(modelo && modelo.docMarcadoCE);
         const manual = hayDoc(e.docManual) || hayDoc(modelo && modelo.docManual);
-        const fichaPM = hayDoc(e.docFichaPM) || e.estadoPM === "hecha";
+        const fichaPM = hojaFabricantePM(e);
+        e = conEstadoPM(e);
         const ensayo = ensayoSuperado(e);
         const checklist = checklistHecho(e);
         const bloqueadoPor = e.bloqueadoPor || null;
@@ -18360,6 +18455,8 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
           instalada,
           completo: instalada && esCompleto(docCompleta, fichas, ensayo),
           envio,
+          /* Desde la entrega a DF, no desde la puesta en marcha (29-oct, JC). */
+          garantia: garantiaCx.garantiaDe(e),
           ensayoFalta: ensayosQueFaltan({ ...e, ensayo }),
           incidencias,
           falta,
@@ -18408,7 +18505,7 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
           if (f.manual) g.manual += 1;
           if (balanceoApto(f)) g.balanceo += 1;
           if (estanqueidadApta(f)) g.estanqueidad += 1;
-          if (f.estadoPM === "enMarcha" || f.estadoPM === "hecha") g.enMarcha += 1;
+          if (pmEnMarcha(f)) g.enMarcha += 1;
           if (f.completo) g.completos += 1;
           if (f.envio === "enviada") g.enviadas += 1;
         }
@@ -18470,7 +18567,7 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         }
         return [...uso.values()].map((u) => ({ ...u, faltaFT: u.sinFT > 0, faltaCE: u.sinCE > 0, faltaManual: u.sinManual > 0 })).filter((u) => u.faltaFT || u.faltaCE || u.faltaManual).sort((a, b) => b.equipos - a.equipos || a.modelo.localeCompare(b.modelo, "es"));
       }
-      var RANGO_PM = { pendiente: 0, programada: 1, enProceso: 2, conReservas: 3, enMarcha: 4, hecha: 5 };
+      var RANGO_PM = { pendiente: 0, pendienteFichaPM: 0, programada: 1, enProceso: 2, conReservas: 3, faltaHojaFabricante: 3.5, enMarcha: 4, hecha: 5 };
       var esVrf = (f) => /VRF|VRV/i.test(`${f.plantillaPM || ""} ${f.grupo || ""} ${f.familia || ""}`);
       function estadoPMConjunto(miembros) {
         return miembros.map((m) => m.estadoPM || "pendiente").reduce((a, b) => (RANGO_PM[b] ?? 0) < (RANGO_PM[a] ?? 0) ? b : a);
@@ -18489,7 +18586,7 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         const ft = todos("ft");
         const ce = todos("ce");
         const manual = todos("manual");
-        const fichaPM = miembros.some((m) => hayDoc(m.docFichaPM)) || miembros.every((m) => m.estadoPM === "hecha");
+        const fichaPM = miembros.some((m) => hayDoc(m.docFichaPM));
         const conChecklist = miembros.filter((m) => m.checklist === true || m.checklist === false);
         const checklist = conChecklist.length ? conChecklist.every((m) => m.checklist) : null;
         const bloqueadoPor = (miembros.find((m) => m.bloqueadoPor) || {}).bloqueadoPor || null;
@@ -18553,6 +18650,9 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
           falta,
           bloqueadoPor,
           revalidarTras,
+          /* La garantía del conjunto: desde el envío que lo completa (29-oct, JC). */
+          garantia: garantiaCx.garantiaDe({ fechaEnvioDF, garantiaAnios: miembros.map((m) => Number(m.garantiaAnios) || 0).reduce((x, y) => Math.max(x, y), 0) || null }),
+          fechaPuestaMarcha: miembros.map((m) => m.fechaPuestaMarcha).filter(Boolean).sort().pop() || null,
           ensayoFalta: ensayosQueFaltan({ ensayo, ensayoRequerido, balanceoEstado, estanqueidadEstado }),
           /* Qué unidad trae cada incidencia, para decirlo en la ficha. */
           incidenciasPorUnidad: miembros.map((m) => ({ tag: m.tag, incidencias: extras.includes(m) ? m.incidencias.filter((c) => c !== "exteriorSinInteriores") : m.incidencias })).filter((m) => m.incidencias.length)
@@ -18615,7 +18715,7 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
           /* Los que han entrado en commissioning: sobre ellos se cuenta lo demás. */
           instaladas: cuenta((l) => l.instalada !== false),
           sinVerificar: cuenta((l) => l.envio === "sinVerificar"),
-          enMarcha: cuenta((l) => l.estadoPM === "enMarcha" || l.estadoPM === "hecha"),
+          enMarcha: cuenta(pmEnMarcha),
           /* La documentación se recopila de todos, instalados o no. */
           docCompleta: cuenta((l) => l.docCompleta),
           /* El checklist del equipo (los que lo piden): hechos y pendientes. */
@@ -18669,7 +18769,7 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
             modelos: modelos.length,
             instaladas: cuenta((f) => f.instalada),
             sinVerificar: cuenta((f) => f.envio === "sinVerificar"),
-            enMarcha: cuenta((f) => f.estadoPM === "enMarcha" || f.estadoPM === "hecha"),
+            enMarcha: cuenta(pmEnMarcha),
             docCompleta: cuenta((f) => f.docCompleta),
             checklistHechos: cuenta((f) => f.checklist === true),
             checklistPendientes: cuenta((f) => f.checklist === false),
@@ -18814,6 +18914,12 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         conjuntoDeEquipo,
         estadoPMConjunto,
         RANGO_PM,
+        ESTADOS_PM_VISIBLES,
+        estadoPMDerivado,
+        pmEnMarcha,
+        fichaPMDeFichas,
+        conEstadoPM,
+        hojaFabricantePM,
         gruposDeConjunto,
         conjuntosDeEquipos,
         contarConjuntos,
@@ -19513,6 +19619,41 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
      creadoEn           TEXT NOT NULL,
      modificadoEn       TEXT NOT NULL
    )`,
+        /* LOS MATERIALES INSTALADOS (29-oct, JC): compuertas, VAV, difusores,
+           rejillas, válvulas, detectores, actuadores, sondas… No son equipos de
+           commissioning: cada uno es una pieza en el plano de su planta (x, y en
+           fracción del plano) con su TAG, marca, modelo, nº de serie,
+           características según tipo (JSON) y sus papeles —ficha técnica y marcado
+           CE, JSON {nombre, url, nivel}—. Salen solos del plano de instalaciones
+           (origen 'plano') o se dan de alta tocando el plano ('manual'). Reglas en
+           shared/commissioning/materialesInstalados.js. */
+        `CREATE TABLE IF NOT EXISTS materialesInstalados (
+     id                 TEXT PRIMARY KEY,
+     obraId             TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     planoId            TEXT,
+     planta             TEXT,
+     tipo               TEXT NOT NULL,
+     codigo             TEXT,
+     tag                TEXT NOT NULL,
+     sala               TEXT,
+     x                  REAL,
+     y                  REAL,
+     marca              TEXT,
+     modelo             TEXT,
+     numSerie           TEXT,
+     caracteristicas    TEXT NOT NULL DEFAULT '{}',
+     fichaTecnica       TEXT,
+     marcadoCE          TEXT,
+     fotos              TEXT NOT NULL DEFAULT '[]',
+     equipoId           TEXT,
+     materialPadreId    TEXT,
+     incidencia         TEXT,
+     origen             TEXT NOT NULL DEFAULT 'manual',
+     editado            INTEGER NOT NULL DEFAULT 0,
+     creadoEn           TEXT NOT NULL,
+     modificadoEn       TEXT NOT NULL
+   )`,
+        `CREATE INDEX IF NOT EXISTS idx_materiales_planta ON materialesInstalados (obraId, planta)`,
         /* LAS FOTOS DEL EQUIPO hechas en obra (la placa, la vista general…), con
            su pie y su hora. Se hacen en el móvil y vuelven a la oficina. */
         `CREATE TABLE IF NOT EXISTS fotosEquipo (
@@ -22817,6 +22958,9 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         ["certIndustriales", "seguimientoEn", "TEXT"],
         ["certIndustriales", "historialSeguimiento", "TEXT"],
         /* El alcance de cada línea ({L1: 'suministro'|'montaje'|'ambos'}); pasa de un mes al siguiente. */
+        /* El nº de serie leído de la foto de la placa (29-oct, JC): la propuesta o lo guardado solo, en JSON
+           (electron/data/lecturaPlaca.js). En el equipo y no en la foto: la fila de la foto no la reescribe el Mac. */
+        ["equiposObra", "seriePlaca", "TEXT"],
         ["certIndustriales", "alcances", "TEXT"],
         /* Lo del MES de cada partida, su importe a su precio, lo de origen y quién lo midió. */
         ["lineasCertificacion", "cantidad", "REAL"],
@@ -22991,6 +23135,8 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         ["equiposObra", "fechaFabricacion", "TEXT"],
         ["equiposObra", "fechaInstalacion", "TEXT"],
         ["equiposObra", "fechaPuestaMarcha", "TEXT"],
+        /* Los años de garantía (29-oct-2026): cuentan desde la entrega a DF. */
+        ["equiposObra", "garantiaAnios", "REAL"],
         ["equiposObra", "tipoMantenimiento", "TEXT"],
         ["equiposObra", "vidaUtilAnios", "REAL"],
         ["configCommissioning", "potenciaTermicaKw", "REAL"],
@@ -23626,6 +23772,7 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         redesAgua: { porObra: "obraId" },
         planosDifusores: { porObra: "obraId" },
         planosEquipos: { porObra: "obraId" },
+        materialesInstalados: { porObra: "obraId" },
         fotosEquipo: { porObra: "obraId" },
         firmasEquipo: { porObra: "obraId" },
         imagenesPlanoDif: { porObra: "obraId" },
@@ -24121,6 +24268,7 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         redesAgua: "commissioning",
         planosDifusores: "commissioning",
         planosEquipos: "planoEquipos",
+        materialesInstalados: "planoEquipos",
         fotosEquipo: "commissioning",
         firmasEquipo: "commissioning",
         imagenesPlanoDif: "commissioning",
@@ -25988,7 +26136,7 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         const CAMPOS_RUIDO = /* @__PURE__ */ new Set(["modificadoEn", "creadoEn", "orden", "padreId", "id"]);
         const ACCIONES = { crear: "Alta", editar: "Cambio", borrar: "Baja", restaurar: "Restauraci\xF3n" };
         const conValores = (accion) => accion === "editar" || accion === "restaurar";
-        const ORIGENES = { escritorio: "Escritorio", web: "Web", ipad: "iPad", movil: "M\xF3vil" };
+        const ORIGENES = { escritorio: "Escritorio", web: "Web", ipad: "iPad", movil: "M\xF3vil", lecturaPlaca: "Lectura de placa" };
         const nombreOrigen = (o) => o ? ORIGENES[o] || o : "";
         const nombreEntidad = (e) => ENTIDADES[e] || partirCamel(e);
         function partirCamel(s) {
@@ -58026,7 +58174,8 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         function empezado(u) {
           if (!u) return false;
           if (u.instalacionVerificadaEn || u.estado === "enMarcha" || u.estado === "recepcionado") return true;
-          if (u.estadoPM && u.estadoPM !== "pendiente") return true;
+          const pmGuardado = Object.prototype.hasOwnProperty.call(u, "estadoPMGuardado") ? u.estadoPMGuardado : u.estadoPM;
+          if (pmGuardado && pmGuardado !== "pendiente") return true;
           if (hayDato(u.docFichaPM) || hayDato(u.docBalanceo) || hayDato(u.docEstanqueidad)) return true;
           if (BALANCEO_HECHO.has(u.balanceoEstado) || ESTANQ_HECHA.has(u.estanqueidadEstado)) return true;
           if (u.fechaEnvioDF) return true;
@@ -58661,6 +58810,1225 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
     }
   });
 
+  // shared/commissioning/materialesInstalados.js
+  var require_materialesInstalados = __commonJS({
+    "shared/commissioning/materialesInstalados.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var TIPOS_MAT = {
+        compuertaCortafuegos: { nombre: "Compuerta cortafuegos", corto: "CCF", capa: "compuertas", prefijos: ["CCF", "CF", "CCT"], campos: ["Medida", "Clasificaci\xF3n EI", "Actuador", "Tensi\xF3n actuador"] },
+        compuertaRegulacion: { nombre: "Compuerta de caudal constante", corto: "CRC", capa: "compuertas", prefijos: ["CRC", "CR", "CRG", "CCC", "CRM"], campos: ["Medida", "Caudal", "Actuador"] },
+        compuertaSobrepresion: { nombre: "Compuerta de sobrepresi\xF3n", corto: "CS", capa: "compuertas", prefijos: ["CS", "CSP", "CSO"], campos: ["Medida"] },
+        vav: { nombre: "Regulador VAV", corto: "VAV", capa: "vav", prefijos: ["VAV", "CVV"], campos: ["Medida", "Caudal m\xEDn.", "Caudal m\xE1x.", "Actuador"] },
+        difusor: { nombre: "Difusor", corto: "DIF", capa: "difusores", prefijos: ["DR", "DF", "DIF", "DC", "DT"], campos: ["Tipo", "Cuello", "Caudal"] },
+        difusorLineal: { nombre: "Difusor lineal", corto: "DL", capa: "difusores", prefijos: ["DL"], campos: ["Tipo", "Longitud", "Caudal"] },
+        tobera: { nombre: "Tobera / boca", corto: "TB", capa: "difusores", prefijos: ["TB", "TOB", "BX"], campos: ["Tipo", "Cuello", "Caudal"] },
+        rejilla: { nombre: "Rejilla", corto: "REJ", capa: "rejillas", prefijos: ["RR", "RJ", "RT", "RA", "RI", "RET", "EXT", "IMP", "RC"], campos: ["Tipo", "Medida", "Caudal"] },
+        rejaExterior: { nombre: "Rejilla exterior", corto: "RE", capa: "rejillas", prefijos: ["RE"], campos: ["Medida", "Caudal"] },
+        rejillaIntumescente: { nombre: "Rejilla intumescente", corto: "INT", capa: "rejillas", prefijos: ["INT"], campos: ["Medida", "Clasificaci\xF3n EI"] },
+        filtro: { nombre: "Filtro", corto: "FIL", capa: "otros", prefijos: ["FIL"], campos: ["Clase", "Medida"] },
+        detector: { nombre: "Detector", corto: "DET", capa: "detectores", prefijos: ["DET", "DOC", "DCO", "DTH"], campos: ["Tipo", "Lazo", "Direcci\xF3n"] },
+        valvula: { nombre: "V\xE1lvula", corto: "VAL", capa: "valvulas", prefijos: ["V2V", "V3V", "VEQ", "VBL", "VMZ", "VRT"], campos: ["DN", "PN", "Tipo"] },
+        actuador: { nombre: "Actuador", corto: "ACT", capa: "actuadores", prefijos: ["ACT"], campos: ["Tensi\xF3n", "Se\xF1al", "Par"] },
+        sonda: { nombre: "Sonda", corto: "SON", capa: "sondas", prefijos: ["SON", "STE", "SHU", "SCO"], campos: ["Magnitud", "Rango", "Se\xF1al"] }
+      };
+      var CAPAS_MAT = [
+        { id: "equipos", nombre: "Equipos" },
+        { id: "compuertas", nombre: "Compuertas" },
+        { id: "vav", nombre: "VAV" },
+        { id: "difusores", nombre: "Difusores" },
+        { id: "rejillas", nombre: "Rejillas" },
+        { id: "valvulas", nombre: "V\xE1lvulas" },
+        { id: "detectores", nombre: "Detectores" },
+        { id: "actuadores", nombre: "Actuadores" },
+        { id: "sondas", nombre: "Sondas" },
+        { id: "otros", nombre: "Otros" }
+      ];
+      var ESTADOS_MAT = {
+        sinDatos: { nombre: "Sin datos", clase: "gris" },
+        conFicha: { nombre: "Con ficha", clase: "teal" },
+        conIncidencia: { nombre: "Con incidencia", clase: "rojo" }
+      };
+      var RE_CODIGO_MAT = /^([A-Z][A-Z0-9]{1,3})_(\d{2})_([A-Z0-9]{4})$/;
+      var RE_CAUDAL_MAT = /^(\d{1,3}(?:[.\s]\d{3})*|\d+)(?:,\d+)?\s*m[³3]\/h$/i;
+      var CERCA_X = 3e-3;
+      var CERCA_Y = 18e-4;
+      var MISMO_SITIO = 6e-4;
+      var PREFIJO_A_TIPO = (() => {
+        const m = {};
+        for (const [k, t] of Object.entries(TIPOS_MAT)) for (const p of t.prefijos) m[p] = k;
+        return m;
+      })();
+      var llanoMat = (v) => String(v ?? "").trim();
+      function tipoDeCodigo(codigo) {
+        const m = RE_CODIGO_MAT.exec(llanoMat(codigo).toUpperCase());
+        return m ? PREFIJO_A_TIPO[m[1]] || null : null;
+      }
+      var capaDe = (tipo) => TIPOS_MAT[tipo] ? TIPOS_MAT[tipo].capa : "otros";
+      var prefijoDe = (codigo) => {
+        const m = RE_CODIGO_MAT.exec(llanoMat(codigo).toUpperCase());
+        return m ? m[1] : null;
+      };
+      function medidaTexto(texto) {
+        const s = llanoMat(texto).toUpperCase().replace(/,/g, ".");
+        let m = s.match(/\bL\s*(\d{2,4})\s*[X×]\s*H\s*(\d{2,4})/);
+        if (m) return `${Number(m[1])}x${Number(m[2])}`;
+        m = s.match(/(?:^|[^\d])(\d{2,4})\s*[X×]\s*(\d{2,4})(?!\d)/);
+        if (m) return `${Number(m[1])}x${Number(m[2])}`;
+        m = s.match(/[ØΦ]\s*(\d{2,4})/) || s.match(/\/(\d{3})(?:\/|$)/);
+        if (m) return `\xD8${Number(m[1])}`;
+        return null;
+      }
+      function datosCatalogo(cat) {
+        if (!cat) return { marca: null, modelo: null, medida: null };
+        const desc = (cat.desc || []).map(llanoMat).filter(Boolean);
+        const soloMedida = (d) => /^L\s*\d+\s*x\s*H\s*\d+\s*mm$/i.test(d) || /^[ØΦ]?\s*\d+(\s*x\s*\d+)?\s*(mm)?$/i.test(d);
+        let modelo = desc.find((d) => !soloMedida(d) && /[A-Z]{2,}/i.test(d)) || null;
+        if (modelo) modelo = modelo.replace(/[_\s]+\d{2,4}\s*x\s*\d{2,4}$/i, "").trim() || null;
+        let medida = null;
+        for (const d of desc) {
+          medida = medidaTexto(d);
+          if (medida) break;
+        }
+        const marca = (cat.marca || []).map(llanoMat).find((m) => /^[A-Za-zÁÉÍÓÚÑ][\w&.-]{1,20}$/.test(m)) || null;
+        return { marca, modelo, medida };
+      }
+      var numeroCaudal = (t) => Number(String(t).replace(/m[³3]\/h/i, "").replace(/[.\s]/g, "").replace(",", ".").trim());
+      function reconocer(textos, { catalogo = {}, planta = "", rotulos = [], salaCercana = null } = {}) {
+        const ts = (textos || []).filter((t) => t && typeof t.texto === "string").map((t) => ({ texto: t.texto.trim(), x: Number(t.x) || 0, y: Number(t.y) || 0 }));
+        const caudales = ts.filter((t) => RE_CAUDAL_MAT.test(t.texto));
+        const vistos = [];
+        const sinTipo = {};
+        const crudos = [];
+        for (const t of ts) {
+          const codigo = t.texto.toUpperCase();
+          if (!RE_CODIGO_MAT.test(codigo)) continue;
+          const tipo = tipoDeCodigo(codigo);
+          if (!tipo) {
+            const p = prefijoDe(codigo);
+            sinTipo[p] = (sinTipo[p] || 0) + 1;
+            continue;
+          }
+          if (vistos.some((v) => v.codigo === codigo && Math.abs(v.x - t.x) < MISMO_SITIO && Math.abs(v.y - t.y) < MISMO_SITIO)) continue;
+          vistos.push({ codigo, x: t.x, y: t.y });
+          let caudal = null;
+          let d = Infinity;
+          for (const c of caudales) {
+            const dx = Math.abs(c.x - t.x);
+            const dy = Math.abs(c.y - t.y);
+            if (dx <= CERCA_X && dy <= CERCA_Y && dx + dy < d) {
+              d = dx + dy;
+              caudal = c;
+            }
+          }
+          const cat = datosCatalogo(catalogo[codigo]);
+          const car = {};
+          if (cat.medida) car.Medida = cat.medida;
+          if (caudal) car.Caudal = `${numeroCaudal(caudal.texto)} m\xB3/h`;
+          const sala = salaCercana && rotulos && rotulos.length ? salaCercana(rotulos, t.x, t.y) : null;
+          crudos.push({ codigo, tipo, x: Number(t.x.toFixed(5)), y: Number(t.y.toFixed(5)), marca: cat.marca, modelo: cat.modelo, caracteristicas: car, sala: sala || null });
+        }
+        const banda = (v) => Math.floor(v / 0.01);
+        crudos.sort((a, b) => banda(a.y) - banda(b.y) || a.x - b.x);
+        const cuenta = {};
+        const porTipo = {};
+        const pl = llanoMat(planta).toUpperCase() || "SP";
+        const materiales = crudos.map((m) => {
+          const p = prefijoDe(m.codigo);
+          cuenta[p] = (cuenta[p] || 0) + 1;
+          porTipo[m.tipo] = (porTipo[m.tipo] || 0) + 1;
+          return { ...m, tag: `${pl}-${p}-${String(cuenta[p]).padStart(3, "0")}` };
+        });
+        return { materiales, porTipo, sinTipo };
+      }
+      var normal = (s) => llanoMat(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
+      function fichasPara(m, docs) {
+        const modelo = normal(m.modelo);
+        const marca = normal(m.marca);
+        const elegir = (clase) => {
+          const deClase = (docs || []).filter((d) => (d.clase || "ficha") === clase && d.url);
+          const porModelo = modelo && deClase.find((d) => (d.modelos || []).some((x) => x && modelo.includes(normal(x))));
+          if (porModelo) return { nombre: porModelo.nombre, url: porModelo.url, nivel: "modelo" };
+          const porTipo = deClase.find((d) => (d.tipos || []).includes(m.tipo) && (!d.marca || !marca || normal(d.marca) === marca));
+          return porTipo ? { nombre: porTipo.nombre, url: porTipo.url, nivel: "tipo" } : null;
+        };
+        return { ficha: elegir("ficha"), ce: elegir("ce") };
+      }
+      function urlSharePoint(base, ruta) {
+        const b = llanoMat(base).replace(/\/+$/, "");
+        if (!b || !llanoMat(ruta)) return null;
+        return `${encodeURI(b)}/${llanoMat(ruta).split("/").map(encodeURIComponent).join("/")}`;
+      }
+      var leerJsonMat = (v, d) => {
+        if (v && typeof v === "object") return v;
+        try {
+          return v ? JSON.parse(v) : d;
+        } catch {
+          return d;
+        }
+      };
+      function estado(m) {
+        if (llanoMat(m.incidencia)) return "conIncidencia";
+        const f = leerJsonMat(m.fichaTecnica, null);
+        return f && f.url ? "conFicha" : "sinDatos";
+      }
+      function filasFicha(m) {
+        const t = TIPOS_MAT[m.tipo];
+        const car = leerJsonMat(m.caracteristicas, {});
+        const filas = [
+          ["Tipo", t ? t.nombre : m.tipo],
+          ["C\xF3digo CAD", m.codigo],
+          ["Marca", m.marca],
+          ["Modelo", m.modelo],
+          ["N\xBA de serie", m.numSerie],
+          ["Sala", m.sala]
+        ];
+        for (const [k, v] of Object.entries(car)) filas.push([k, v]);
+        if (m.sirveA) filas.push(["Sirve a", m.sirveA]);
+        return filas.filter(([, v]) => llanoMat(v));
+      }
+      function cuentasPorCapa(materiales) {
+        const c = {};
+        for (const m of materiales || []) {
+          const k = capaDe(m.tipo);
+          c[k] = (c[k] || 0) + 1;
+        }
+        return c;
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.MATERIALES_INSTALADOS = API;
+      })({
+        TIPOS: TIPOS_MAT,
+        CAPAS: CAPAS_MAT,
+        ESTADOS: ESTADOS_MAT,
+        RE_CODIGO: RE_CODIGO_MAT,
+        tipoDeCodigo,
+        capaDe,
+        prefijoDe,
+        medidaTexto,
+        datosCatalogo,
+        reconocer,
+        fichasPara,
+        urlSharePoint,
+        estado,
+        filasFicha,
+        cuentasPorCapa
+      });
+    }
+  });
+
+  // shared/commissioning/placaSerie.js
+  var require_placaSerie = __commonJS({
+    "shared/commissioning/placaSerie.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var ETIQUETA = new RegExp([
+        "S\\s*/\\s*N[O0]?\\.?",
+        "SERIAL\\s*(?:N[O0\xBA\xB0]\\.?|NUMBER|NUM\\.?|#)?",
+        "SER\\.?\\s*N[O0]\\.?",
+        "SERIE\\s*N[O0\xBA\xB0]\\.?",
+        "N[\xBA\xB0O0]?\\.?\\s*(?:DE\\s+)?S[E\xC9]RIE",
+        "NUM(?:ERO|\\.)?\\s*(?:DE\\s+)?S[E\xC9]RIE",
+        "N\xDAMERO\\s*(?:DE\\s+)?SERIE",
+        "MFG\\.?\\s*N[O0\xBA\xB0]\\.?",
+        "MANUFACTURING\\s*N[O0]\\.?",
+        "SERIENNUMMER",
+        "SERIEN-?NR\\.?",
+        "FABR\\.?\\s*-?\\s*NR\\.?",
+        "MATRICOLA",
+        "NUMERO\\s+DI\\s+SERIE",
+        "\u0421\u0415\u0420\u0418\u0419\u041D\u042B\u0419\\s*\u041D\u041E\u041C\u0415\u0420\\.?",
+        "\u0421\u0415\u0420\u0406\u0419\u041D\u0418\u0419\\s*\u041D\u041E\u041C\u0415\u0420\\.?"
+      ].map((p) => `(?<![A-Z0-9\u0410-\u042F\u0406\u0407\u0404])(?:${p})`).join("|"), "giu");
+      var FORMATO_MARCA = {
+        PANASONIC: /^(?:\d{9,11}|[A-Z]\d{8,10})$/,
+        DAIKIN: /^(?:[A-Z]?\d{6,10}|\d{2}[A-Z]\d{5,8})$/,
+        MITSUBISHI: /^\d[A-Z0-9]{6,9}$/,
+        LG: /^\d{3}[A-Z0-9]{6,12}$/,
+        SAMSUNG: /^[0-9A-Z]{13,16}$/,
+        TOSHIBA: /^[0-9A-Z]{7,12}$/,
+        CARRIER: /^(?:\d{9}[A-Z]|[A-Z]\d{10})$/
+      };
+      var llano = (v) => String(v ?? "").trim();
+      var normal = (v) => llano(v).toUpperCase().replace(/[\s\-_/.]/g, "");
+      var marcaDe = (m) => Object.keys(FORMATO_MARCA).find((k) => normal(m).includes(k)) || null;
+      var UNIDAD = /^(?:K?W|V|HZ|A|BAR|MPA|KG|KPA|PA|DB|M3\/H|L\/S|PH|IPX?\d+)$/i;
+      function pareceSerie(token, { modelo } = {}) {
+        const t = llano(token).replace(/^[:#.\-]+|[:;,.]+$/g, "");
+        if (t.length < 5 || t.length > 25) return false;
+        if (!/^[A-Z0-9][A-Z0-9\-/]*[A-Z0-9]$/i.test(t)) return false;
+        const cifras = (t.match(/\d/g) || []).length;
+        if (cifras < 4) return false;
+        if (/^R\d{2,4}[A-Z]?$/i.test(t)) return false;
+        if (/^(?:19|20)\d{2}[-/]?\d{1,2}(?:[-/]?\d{1,2})?$/.test(t) && t.length <= 10 && /[-/]/.test(t)) return false;
+        if (/^\d{1,4}-\d{1,4}(?:-\d{1,4})?$/.test(t)) return false;
+        if (/^IPX?\d+$/i.test(t)) return false;
+        if (modelo && normal(t) === normal(modelo)) return false;
+        return true;
+      }
+      var trozos = (s) => llano(s).split(/\s+/).filter(Boolean);
+      function primeroQueParece(texto, opciones) {
+        const ts = trozos(texto.replace(/^[\s:.#\-]+/, ""));
+        for (let i = 0; i < ts.length; i += 1) {
+          const t = ts[i].replace(/^[:#]+|[:;,]+$/g, "");
+          if (!t) continue;
+          if (UNIDAD.test(ts[i + 1] || "") && /^\d+([.,]\d+)?$/.test(t)) continue;
+          if (pareceSerie(t, opciones)) return t.replace(/[:;,.]+$/, "");
+        }
+        return null;
+      }
+      function extraerNumeroSerie(texto, opciones = {}) {
+        const lineas = (Array.isArray(texto) ? texto : String(texto ?? "").split(/\r?\n/)).map(llano).filter(Boolean);
+        const marca = marcaDe(opciones.marca) || marcaDe(lineas.slice(0, 4).join(" "));
+        const formato = marca ? FORMATO_MARCA[marca] : null;
+        const delFormato = (v) => Boolean(formato && formato.test(normal(v)));
+        const hallados = [];
+        lineas.forEach((l, i) => {
+          ETIQUETA.lastIndex = 0;
+          let m;
+          let antes = null;
+          while ((m = ETIQUETA.exec(l)) !== null) {
+            if (antes !== null && m.index === antes) {
+              ETIQUETA.lastIndex += 1;
+              continue;
+            }
+            antes = m.index;
+            const resto = l.slice(m.index + m[0].length);
+            const hasta = resto.search(new RegExp("(?<![A-Z0-9\u0410-\u042F])(?:PROD|DATE|MODEL|DATA|\u0414\u0410\u0422\u0410|FECHA|TYPE|TIPO)(?![A-Z0-9\u0410-\u042F])", "iu"));
+            const v = primeroQueParece(hasta >= 0 ? resto.slice(0, hasta) : resto, opciones);
+            if (v) {
+              hallados.push({ valor: v, sitio: "mismo" });
+              continue;
+            }
+            for (const sig of lineas.slice(i + 1, i + 3)) {
+              const w = primeroQueParece(sig, opciones);
+              if (w) {
+                hallados.push({ valor: w, sitio: "debajo" });
+                break;
+              }
+            }
+          }
+        });
+        const distintos = [...new Set(hallados.map((h) => normal(h.valor)))];
+        const otroModelo = modeloDistinto(lineas, opciones.modelo);
+        if (hallados.length) {
+          const mejor = hallados.find((h) => h.sitio === "mismo") || hallados[0];
+          const unanime = distintos.length === 1;
+          const alta = !otroModelo && unanime && (mejor.sitio === "mismo" ? !formato || delFormato(mejor.valor) || normal(mejor.valor).length >= 6 : delFormato(mejor.valor));
+          return {
+            valor: mejor.valor,
+            confianza: alta ? "alta" : "media",
+            candidatos: [...new Set(hallados.map((h) => h.valor))],
+            motivo: otroModelo ? `La placa es de otro modelo (no dice ${llano(opciones.modelo)})` : !unanime ? "La placa da m\xE1s de un n\xFAmero" : alta ? "Junto a su etiqueta" : "La etiqueta est\xE1, pero el n\xFAmero no va pegado a ella"
+          };
+        }
+        if (formato) {
+          const sueltos = [...new Set(lineas.flatMap(trozos).map((t) => t.replace(/^[:#]+|[:;,.]+$/g, "")).filter((t) => pareceSerie(t, opciones) && delFormato(t)))];
+          if (sueltos.length === 1) return { valor: sueltos[0], confianza: "baja", candidatos: sueltos, motivo: "Sin etiqueta: por el formato de la marca" };
+          if (sueltos.length > 1) return { valor: null, confianza: null, candidatos: sueltos, motivo: "Sin etiqueta y con varios n\xFAmeros posibles" };
+        }
+        return { valor: null, confianza: null, candidatos: [], motivo: "No se ve ning\xFAn n\xBA de serie en la foto" };
+      }
+      function modeloDistinto(lineas, modelo) {
+        const m = normal(modelo);
+        if (m.length < 4) return false;
+        const todo = normal(lineas.join(" "));
+        if (!/MODEL|МОДЕЛЬ|MODELO/i.test(lineas.join(" "))) return false;
+        return !todo.includes(m);
+      }
+      var SE\u00D1ALES_PLACA = [
+        /MODEL|МОДЕЛЬ/i,
+        /SERIAL|S\/N|SERIE|СЕРИЙН|СЕРІЙН|MFG/i,
+        /REFRIGERANT|R410A|R32\b|R-?407C|R-?134A|ХЛАДАГЕНТ/i,
+        /POWER\s*SOURCE|POWER\s*SUPPLY|ALIMENTACI|\d\s*HZ\b/i,
+        /\bK?W\b|KW/i,
+        /MPA|BAR\b/i,
+        /\bIPX?\d/i,
+        /\bKG\b/i
+      ];
+      function pareceplaca(texto) {
+        const t = (Array.isArray(texto) ? texto : String(texto ?? "").split(/\r?\n/)).join(" ");
+        return SE\u00D1ALES_PLACA.filter((r) => r.test(t)).length >= 3;
+      }
+      function estadoSerie(v) {
+        const s = llano(v);
+        if (!s || /^(-|—|n\/?a|sin.*)$/i.test(s)) return "vacio";
+        return /\d/.test(s) ? "tiene" : "nota";
+      }
+      var esFotoPlaca = (pie) => /^\s*placa\b/i.test(llano(pie));
+      function decidir({ serieActual, lectura, placa = true }) {
+        const est = estadoSerie(serieActual);
+        if (est === "tiene" || !lectura || !lectura.valor) return "nada";
+        if (!placa) return lectura.confianza === "baja" ? "nada" : "proponer";
+        if (est === "vacio" && lectura.confianza === "alta") return "aplicar";
+        return "proponer";
+      }
+      function leerEstado(v) {
+        if (!v) return null;
+        try {
+          const o = typeof v === "string" ? JSON.parse(v) : v;
+          return o && typeof o === "object" ? o : null;
+        } catch {
+          return null;
+        }
+      }
+      module.exports = { extraerNumeroSerie, pareceSerie, pareceplaca, estadoSerie, esFotoPlaca, decidir, leerEstado, FORMATO_MARCA };
+    }
+  });
+
+  // ipad/shims/vacio.js
+  var require_vacio = __commonJS({
+    "ipad/shims/vacio.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var falta = (nombre) => function noHay() {
+        const donde = globalThis.enWeb ? "En la web" : "En el iPad";
+        throw new Error(`${donde} no hay \xAB${nombre}\xBB: esto solo lo hace la app de escritorio.`);
+      };
+      module.exports = new Proxy({}, {
+        get(_o, nombre) {
+          if (nombre === "__esModule" || nombre === "default" || typeof nombre === "symbol") return void 0;
+          return falta(String(nombre));
+        }
+      });
+    }
+  });
+
+  // shared/importacion/pdf.js
+  var require_pdf = __commonJS({
+    "shared/importacion/pdf.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var NL = String.fromCharCode(10);
+      var CR = String.fromCharCode(13);
+      var TAB = String.fromCharCode(9);
+      var BS = String.fromCharCode(8);
+      var FF = String.fromCharCode(12);
+      var _zlibPdf = typeof __require !== "undefined" ? require_zlib() : null;
+      var _leerTablasDeFuentes = null;
+      function registrarLectorDeFuentes(fn) {
+        _leerTablasDeFuentes = fn;
+      }
+      var aBytesPdf = (dato) => {
+        if (dato instanceof Uint8Array) return dato;
+        if (typeof ArrayBuffer !== "undefined" && dato instanceof ArrayBuffer) return new Uint8Array(dato);
+        if (typeof dato === "string") {
+          const salida = new Uint8Array(dato.length);
+          for (let i = 0; i < dato.length; i += 1) salida[i] = dato.charCodeAt(i) & 255;
+          return salida;
+        }
+        return new Uint8Array(0);
+      };
+      function latin1(bytes, desde = 0, hasta = bytes.length) {
+        let s = "";
+        for (let i = desde; i < hasta; i += 1) s += String.fromCharCode(bytes[i]);
+        return s;
+      }
+      function inflar(bytes) {
+        if (!_zlibPdf) return null;
+        try {
+          return new Uint8Array(_zlibPdf.inflateSync(Buffer.from(bytes)));
+        } catch {
+        }
+        try {
+          return new Uint8Array(_zlibPdf.inflateRawSync(Buffer.from(bytes)));
+        } catch {
+          return null;
+        }
+      }
+      async function inflarAsync(bytes) {
+        if (_zlibPdf) return inflar(bytes);
+        if (typeof DecompressionStream === "undefined") return null;
+        for (const formato of ["deflate", "deflate-raw"]) {
+          try {
+            const flujo = new Blob([bytes]).stream().pipeThrough(new DecompressionStream(formato));
+            return new Uint8Array(await new Response(flujo).arrayBuffer());
+          } catch {
+          }
+        }
+        return null;
+      }
+      function localizarFlujos(bytes) {
+        const texto = latin1(bytes);
+        const flujos = [];
+        let i = 0;
+        while (i < texto.length) {
+          const inicio = texto.indexOf("stream", i);
+          if (inicio === -1) break;
+          const dicc = texto.slice(Math.max(0, inicio - 800), inicio);
+          let datos = inicio + "stream".length;
+          if (texto.charCodeAt(datos) === 13) datos += 1;
+          if (texto.charCodeAt(datos) === 10) datos += 1;
+          const fin = texto.indexOf("endstream", datos);
+          if (fin === -1) break;
+          flujos.push({
+            dicc,
+            desde: datos,
+            hasta: fin,
+            comprimido: /\/FlateDecode/.test(dicc),
+            /* Un flujo que no es de contenido —una imagen, una fuente— se salta. */
+            esImagen: /\/Subtype\s*\/Image/.test(dicc),
+            esFuente: /\/FontFile|\/Type\s*\/Font/.test(dicc)
+          });
+          i = fin + "endstream".length;
+        }
+        return flujos;
+      }
+      function leerCadena(texto, i, dosBytes = false) {
+        if (texto[i] === "<") {
+          const fin = texto.indexOf(">", i);
+          if (fin === -1) return null;
+          const hex = texto.slice(i + 1, fin).replace(/[^0-9a-fA-F]/g, "");
+          let s2 = "";
+          const paso = dosBytes ? 4 : 2;
+          for (let k2 = 0; k2 + paso <= hex.length; k2 += paso) {
+            s2 += String.fromCharCode(parseInt(hex.slice(k2, k2 + paso), 16));
+          }
+          return { valor: s2, siguiente: fin + 1 };
+        }
+        if (texto[i] !== "(") return null;
+        const ESCAPES = { n: NL, r: CR, t: TAB, b: BS, f: FF, "(": "(", ")": ")", "\\": "\\" };
+        let s = "";
+        let nivel = 1;
+        let k = i + 1;
+        while (k < texto.length) {
+          const c = texto[k];
+          if (c === "\\") {
+            const d = texto[k + 1];
+            const octal = texto.slice(k + 1, k + 4).match(/^[0-7]{1,3}/);
+            if (octal) {
+              s += String.fromCharCode(parseInt(octal[0], 8));
+              k += 1 + octal[0].length;
+              continue;
+            }
+            if (d === NL) {
+              k += 2;
+              continue;
+            }
+            s += ESCAPES[d] !== void 0 ? ESCAPES[d] : d;
+            k += 2;
+            continue;
+          }
+          if (c === "(") {
+            nivel += 1;
+            s += c;
+            k += 1;
+            continue;
+          }
+          if (c === ")") {
+            nivel -= 1;
+            if (nivel === 0) return { valor: s, siguiente: k + 1 };
+            s += c;
+            k += 1;
+            continue;
+          }
+          s += c;
+          k += 1;
+        }
+        return null;
+      }
+      var WINANSI = {
+        128: "\u20AC",
+        130: "\u201A",
+        132: "\u201E",
+        133: "\u2026",
+        137: "\u2030",
+        139: "\u2039",
+        145: "\u2018",
+        146: "\u2019",
+        147: "\u201C",
+        148: "\u201D",
+        149: "\u2022",
+        150: "\u2013",
+        151: "\u2014",
+        155: "\u203A",
+        160: " "
+      };
+      var traducir = (s) => s.replace(/[- ]/g, (c) => WINANSI[c.charCodeAt(0)] || c);
+      function traducirCon(tabla, cadena) {
+        let s = "";
+        for (let i = 0; i < cadena.length; i += 1) {
+          const codigo = cadena.charCodeAt(i);
+          const letra = tabla.get(codigo);
+          if (letra !== void 0) {
+            s += letra;
+            continue;
+          }
+          if (codigo >= 128) continue;
+          s += cadena[i];
+        }
+        return s;
+      }
+      function trozosDelFlujo(texto, tablas = null) {
+        const trozos = [];
+        const pendientes = [];
+        let x = 0;
+        let y = 0;
+        let dentro = false;
+        let i = 0;
+        let tabla = null;
+        let tam = 10;
+        let dosBytes = false;
+        const soltar = () => {
+          if (!pendientes.length) return;
+          const junto = traducir(pendientes.join(""));
+          if (junto.trim()) trozos.push({ x, y, tam, texto: junto });
+          pendientes.length = 0;
+        };
+        while (i < texto.length) {
+          const c = texto[i];
+          if (texto.slice(i, i + 2) === "BT") {
+            dentro = true;
+            i += 2;
+            continue;
+          }
+          if (texto.slice(i, i + 2) === "ET") {
+            soltar();
+            dentro = false;
+            i += 2;
+            continue;
+          }
+          if (!dentro) {
+            i += 1;
+            continue;
+          }
+          if (c === "/") {
+            const m = texto.slice(i).match(/^\/([A-Za-z0-9+._-]+)\s+([-\d.]+)\s+Tf/);
+            if (m) {
+              soltar();
+              const fuente = tablas ? tablas.get(m[1]) || null : null;
+              tabla = fuente ? fuente.mapa : null;
+              dosBytes = Boolean(fuente && fuente.dosBytes);
+              tam = Math.abs(Number(m[2])) || tam;
+              i += m[0].length;
+              continue;
+            }
+          }
+          if (c === "(" || c === "<") {
+            const r = leerCadena(texto, i, dosBytes);
+            if (!r) {
+              i += 1;
+              continue;
+            }
+            pendientes.push(tabla ? traducirCon(tabla, r.valor) : r.valor);
+            i = r.siguiente;
+            continue;
+          }
+          if (texto.slice(i, i + 2) === "T*") {
+            soltar();
+            y -= 12;
+            i += 2;
+            continue;
+          }
+          if (/[-\d.]/.test(c)) {
+            const m = texto.slice(i).match(/^((?:-?[\d.]+\s+)+)(Td|TD|Tm|cm)/);
+            if (m) {
+              const nums = m[1].trim().split(/\s+/).map(Number);
+              soltar();
+              if (m[2] === "Tm") {
+                x = nums[4] || 0;
+                y = nums[5] || 0;
+              } else if (m[2] === "Td" || m[2] === "TD") {
+                x += nums[nums.length - 2] || 0;
+                y += nums[nums.length - 1] || 0;
+              }
+              i += m[1].length + m[2].length;
+              continue;
+            }
+            const n = texto.slice(i).match(/^(-?[\d.]+)/);
+            if (n) {
+              if (pendientes.length && Number(n[1]) < -320) pendientes.push(" ");
+              i += n[1].length;
+              continue;
+            }
+          }
+          i += 1;
+        }
+        soltar();
+        return trozos;
+      }
+      function agruparEnLineas(trozos, tolerancia = 3) {
+        const orden = [...trozos].sort((a, b) => b.y - a.y || a.x - b.x);
+        const lineas = [];
+        for (const t of orden) {
+          if (!t.texto.trim()) continue;
+          const ultima = lineas[lineas.length - 1];
+          if (ultima && Math.abs(ultima.y - t.y) <= tolerancia) {
+            ultima.trozos.push(t);
+            ultima.y = (ultima.y + t.y) / 2;
+          } else {
+            lineas.push({ y: t.y, trozos: [t] });
+          }
+        }
+        return lineas.map((l) => {
+          const cols = [...l.trozos].sort((a, b) => a.x - b.x);
+          const texto = cols.map((c) => c.texto).join(" ");
+          return {
+            y: l.y,
+            /* Las columnas se guardan aparte del texto seguido: de ellas sale la
+               tabla, y del texto seguido sale la búsqueda. */
+            columnas: cols.map((c) => ({ x: c.x, texto: c.texto.trim() })).filter((c) => c.texto),
+            texto: texto.replace(/\s+/g, " ").trim()
+          };
+        }).filter((l) => l.texto);
+      }
+      function montarResultado(bytes, flujos, contenidos, tablas) {
+        const cabecera = latin1(bytes, 0, Math.min(1024, bytes.length));
+        const avisos = [];
+        if (!/^%PDF-/.test(cabecera)) avisos.push("El archivo no empieza por %PDF: puede no ser un PDF.");
+        if (/\/Encrypt\b/.test(latin1(bytes, 0, Math.min(4096, bytes.length)))) {
+          avisos.push("El PDF est\xE1 cifrado: puede que no se lea nada.");
+        }
+        const paginas = [];
+        for (const texto of contenidos) {
+          const lineas = agruparEnLineas(trozosDelFlujo(texto, tablas && tablas.porNombre));
+          if (lineas.length) paginas.push({ lineas });
+        }
+        const conTexto = paginas.reduce((s, p) => s + p.lineas.length, 0);
+        const hayImagenes = flujos.some((f) => f.esImagen);
+        if (!conTexto) {
+          avisos.push(hayImagenes ? "Este PDF no lleva texto dentro: es un escaneo. Para leerlo har\xEDa falta reconocimiento \xF3ptico, que esta aplicaci\xF3n no hace." : "No se ha encontrado texto en el PDF.");
+        }
+        const sospechoso = paginas.some((p) => p.lineas.some((l) => /[-]/.test(l.texto)));
+        if (sospechoso) avisos.push("Algunas letras pueden salir mal: el PDF usa una codificaci\xF3n de fuente propia.");
+        return {
+          paginas,
+          lineas: paginas.flatMap((p) => p.lineas),
+          texto: paginas.map((p) => p.lineas.map((l) => l.texto).join(NL)).join(NL + NL),
+          avisos,
+          escaneado: !conTexto && hayImagenes
+        };
+      }
+      function leerPdf(dato) {
+        const bytes = aBytesPdf(dato);
+        const flujos = localizarFlujos(bytes);
+        const contenidos = [];
+        for (const f of flujos) {
+          if (f.esImagen || f.esFuente) continue;
+          const crudo = bytes.slice(f.desde, f.hasta);
+          const datos = f.comprimido ? inflar(crudo) : crudo;
+          if (datos) contenidos.push(latin1(datos));
+        }
+        const tablas = _leerTablasDeFuentes ? _leerTablasDeFuentes(bytes) : null;
+        return montarResultado(bytes, flujos, contenidos, tablas);
+      }
+      async function leerPdfAsync(dato) {
+        const bytes = aBytesPdf(dato);
+        const flujos = localizarFlujos(bytes);
+        const contenidos = [];
+        for (const f of flujos) {
+          if (f.esImagen || f.esFuente) continue;
+          const crudo = bytes.slice(f.desde, f.hasta);
+          const datos = f.comprimido ? await inflarAsync(crudo) : crudo;
+          if (datos) contenidos.push(latin1(datos));
+        }
+        const tablas = _leerTablasDeFuentes ? await _leerTablasDeFuentes(bytes) : null;
+        return montarResultado(bytes, flujos, contenidos, tablas);
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.PDF = API;
+      })({
+        leerPdf,
+        leerPdfAsync,
+        agruparEnLineas,
+        trozosDelFlujo,
+        localizarFlujos,
+        leerCadena,
+        latin1,
+        registrarLectorDeFuentes
+      });
+    }
+  });
+
+  // electron/lectura/ocr.js
+  var require_ocr = __commonJS({
+    "electron/lectura/ocr.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var fs = require_fs();
+      var os = require_os();
+      var path = require_path();
+      var { execFile } = require_vacio();
+      var A = require_albaranes();
+      var SCRIPT_MAC = path.join("/app/electron/data", "ocrMac.jxa");
+      var ESPERA_MS = 6e4;
+      function ejecutar(cmd, args, { timeout = ESPERA_MS } = {}) {
+        return new Promise((resolve, reject) => {
+          execFile(cmd, args, { timeout, maxBuffer: 32 * 1024 * 1024 }, (err, stdout, stderr) => {
+            if (err) reject(new Error(llano(stderr) || err.message));
+            else resolve(stdout);
+          });
+        });
+      }
+      var llano = (v) => String(v ?? "").trim();
+      async function trozosMac(ruta) {
+        const codigo = fs.readFileSync(SCRIPT_MAC, "utf8");
+        const salida = await ejecutar("osascript", ["-l", "JavaScript", "-e", codigo, path.resolve(ruta)]);
+        const trozos = JSON.parse(llano(salida) || "[]");
+        return Array.isArray(trozos) ? trozos : [];
+      }
+      function filasDePdf(ruta) {
+        const { leerPdf } = require_pdf();
+        const r = leerPdf(fs.readFileSync(ruta));
+        if (r.escaneado || !r.lineas.length) return null;
+        const ANCHO = 595;
+        return r.lineas.map((l, i) => {
+          const celdas = (l.columnas.length ? l.columnas : [{ x: 0, texto: l.texto }]).map((c) => ({ t: c.texto, x: c.x / ANCHO, y: i / 100, w: c.texto.length * 5 / ANCHO, h: 0.01 }));
+          return { y: i / 100, h: 0.01, celdas, texto: l.texto };
+        });
+      }
+      async function leerArchivo(ruta, opciones = {}) {
+        const ext = path.extname(llano(ruta)).toLowerCase();
+        const plataforma = opciones.plataforma || "ios";
+        const motor = opciones.motor || (plataforma === "darwin" ? trozosMac : null);
+        try {
+          if (ext === ".pdf") {
+            const filas = filasDePdf(ruta);
+            if (filas) return { ok: true, filas, origen: "pdf" };
+            if (!motor || plataforma !== "darwin") return { ok: false, error: "El PDF es un escaneo y en este ordenador no se puede leer: rellena el albar\xE1n a mano." };
+            const dir = fs.mkdtempSync(path.join(os.tmpdir(), "albaran-"));
+            const png = path.join(dir, "pagina.png");
+            try {
+              await ejecutar("sips", ["-s", "format", "png", path.resolve(ruta), "--out", png]);
+              return { ok: true, filas: A.filasDeTrozos(await motor(png)), origen: "escaneo" };
+            } finally {
+              fs.rmSync(dir, { recursive: true, force: true });
+            }
+          }
+          if (!motor) return { ok: false, error: "En este ordenador todav\xEDa no se lee la foto: rellena el albar\xE1n a mano." };
+          const trozos = await motor(ruta);
+          if (!trozos.length) return { ok: false, error: "No se ha encontrado texto en la foto: rep\xEDtela con m\xE1s luz y de frente, o rell\xE9nalo a mano." };
+          return { ok: true, filas: A.filasDeTrozos(trozos), origen: "foto" };
+        } catch (e) {
+          return { ok: false, error: `No se ha podido leer la foto (${e.message.split("\n")[0]}): rell\xE9nalo a mano.` };
+        }
+      }
+      module.exports = { leerArchivo, trozosMac, filasDePdf };
+    }
+  });
+
+  // electron/data/lecturaPlaca.js
+  var require_lecturaPlaca = __commonJS({
+    "electron/data/lecturaPlaca.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var fs = require_fs();
+      var PS = require_placaSerie();
+      var SESION_LECTURA = Object.freeze({ personaId: null, rol: "administrador", nombre: "Lectura de placa", origen: "lecturaPlaca" });
+      var INTENTOS = 3;
+      var llano = (v) => String(v ?? "").trim();
+      var fpm = () => require_fichasPM();
+      async function textoMac(ruta) {
+        if (true) return null;
+        const O = require_ocr();
+        const A = require_albaranes();
+        const filas = A.filasDeTrozos(await O.trozosMac(ruta));
+        return filas.map((f) => f.texto);
+      }
+      function claseDeFoto(pie) {
+        if (PS.esFotoPlaca(pie)) return "placa";
+        return llano(pie) ? null : "camara";
+      }
+      function prepararTabla(db) {
+        db.exec(`CREATE TABLE IF NOT EXISTS _lecturasPlaca (
+    fotoId TEXT PRIMARY KEY, equipoId TEXT, estado TEXT NOT NULL, valor TEXT, texto TEXT, en TEXT NOT NULL)`);
+      }
+      function pendientes(db, { obraId = null } = {}) {
+        prepararTabla(db);
+        const filas = db.prepare(`
+    SELECT f.id, f.obraId, f.equipoId, f.ruta, f.pie, f.creadoEn, e.tag, e.marca, e.modelo, e.numSerie
+      FROM fotosEquipo f JOIN equiposObra e ON e.id = f.equipoId
+     WHERE f.id NOT IN (SELECT fotoId FROM _lecturasPlaca) ${obraId ? "AND f.obraId = ?" : ""}
+     ORDER BY f.creadoEn`).all(...obraId ? [obraId] : []);
+        return filas.filter((f) => claseDeFoto(f.pie) && PS.estadoSerie(f.numSerie) !== "tiene");
+      }
+      var fallos = /* @__PURE__ */ new Map();
+      async function leerPendientes(repo, { leer = textoMac, obraId = null, registro = () => {
+      } } = {}) {
+        const r = { aplicadas: 0, propuestas: 0, sinLectura: 0, enCola: 0, detalle: [] };
+        for (const f of pendientes(repo.db, { obraId })) {
+          if (!f.ruta || !fs.existsSync(f.ruta)) {
+            r.enCola += 1;
+            continue;
+          }
+          let lineas;
+          try {
+            lineas = await leer(f.ruta);
+          } catch (e) {
+            const n = (fallos.get(f.id) || 0) + 1;
+            fallos.set(f.id, n);
+            if (n >= INTENTOS) apuntarLeida(repo.db, f, { estado: "error", valor: null }, llano(e.message).split("\n")[0]);
+            r.enCola += 1;
+            continue;
+          }
+          if (lineas === null) {
+            r.enCola += 1;
+            continue;
+          }
+          const res = procesarLectura(repo, f, lineas);
+          r[res.estado === "aplicada" ? "aplicadas" : res.estado === "propuesta" ? "propuestas" : "sinLectura"] += 1;
+          r.detalle.push({ fotoId: f.id, equipoId: f.equipoId, tag: f.tag, ...res });
+          registro(`Placa ${f.tag}: ${res.estado}${res.valor ? ` ${res.valor}` : ""}`);
+        }
+        return r;
+      }
+      function procesarLectura(repo, foto, lineas) {
+        const eq = repo.db.prepare("SELECT id, numSerie, marca, modelo, seriePlaca FROM equiposObra WHERE id = ?").get(foto.equipoId) || {};
+        const lectura = PS.extraerNumeroSerie(lineas, { marca: eq.marca, modelo: eq.modelo });
+        const placa = claseDeFoto(foto.pie) === "placa" || PS.pareceplaca(lineas);
+        const que = PS.decidir({ serieActual: eq.numSerie, lectura, placa });
+        const nota = { valor: lectura.valor || null, confianza: lectura.confianza, motivo: lectura.motivo, fotoId: foto.id, ...placa && !PS.esFotoPlaca(foto.pie) ? { placaSinPie: true } : {} };
+        let estado = "sinLectura";
+        if (que === "aplicar") {
+          const w = fpm().ponerNumSerie(repo, SESION_LECTURA, eq.id, lectura.valor);
+          estado = w.ok ? "aplicada" : "propuesta";
+        } else if (que === "proponer") estado = "propuesta";
+        const antes = PS.leerEstado(eq.seriePlaca);
+        const pisa = estado !== "sinLectura" || !antes || antes.estado === "sinLectura";
+        if (pisa && (estado !== "sinLectura" || placa)) {
+          repo.modificar("equiposObra", SESION_LECTURA, eq.id, { seriePlaca: JSON.stringify({ estado, ...nota, en: (/* @__PURE__ */ new Date()).toISOString() }) });
+        }
+        apuntarLeida(repo.db, foto, { estado, valor: nota.valor }, lineas.join("\n"));
+        return { estado, ...nota };
+      }
+      function apuntarLeida(db, foto, { estado, valor }, texto) {
+        prepararTabla(db);
+        db.prepare("INSERT OR REPLACE INTO _lecturasPlaca (fotoId, equipoId, estado, valor, texto, en) VALUES (?, ?, ?, ?, ?, ?)").run(foto.id, foto.equipoId, estado, valor || null, String(texto || "").slice(0, 8e3), (/* @__PURE__ */ new Date()).toISOString());
+      }
+      function responder(repo, ses, { equipoId, accion, valor } = {}) {
+        const eq = repo.leer("equiposObra", ses, llano(equipoId));
+        if (!eq) return { ok: false, error: "No se encuentra el equipo." };
+        const nota = PS.leerEstado(eq.seriePlaca);
+        if (!nota || nota.estado !== "propuesta") return { ok: false, error: "Este equipo no tiene ning\xFAn n\xBA de serie le\xEDdo por confirmar." };
+        const quien = ses.nombre || null;
+        if (accion === "descartar") {
+          try {
+            repo.modificar("equiposObra", ses, eq.id, { seriePlaca: JSON.stringify({ ...nota, estado: "descartada", por: quien, en: (/* @__PURE__ */ new Date()).toISOString() }) });
+          } catch {
+            return { ok: false, error: "Tu rol no puede tocar este equipo." };
+          }
+          return { ok: true, equipoId: eq.id };
+        }
+        if (accion !== "confirmar") return { ok: false, error: "Acci\xF3n desconocida." };
+        if (PS.estadoSerie(eq.numSerie) === "tiene") return { ok: false, error: `El equipo ya tiene n\xBA de serie (${eq.numSerie}): no se cambia.` };
+        const serie = llano(valor) || nota.valor;
+        if (!serie) return { ok: false, error: "Falta el n\xBA de serie." };
+        const w = fpm().ponerNumSerie(repo, ses, eq.id, serie);
+        if (!w.ok) return w;
+        repo.modificar("equiposObra", ses, eq.id, { seriePlaca: JSON.stringify({ ...nota, estado: "confirmada", valor: serie, por: quien, en: (/* @__PURE__ */ new Date()).toISOString() }) });
+        return { ok: true, equipoId: eq.id, numSerie: serie };
+      }
+      function paraPantalla(eq, fotos = []) {
+        if (!eq) return null;
+        const nota = PS.leerEstado(eq.seriePlaca);
+        const tiene = PS.estadoSerie(eq.numSerie) === "tiene";
+        const placas = fotos.filter((f) => claseDeFoto(f.pie) === "placa");
+        if (nota && (nota.estado === "aplicada" || nota.estado === "confirmada")) return tiene ? { estado: nota.estado, valor: nota.valor } : null;
+        if (tiene) return null;
+        if (nota && nota.estado === "propuesta") return { estado: "propuesta", valor: nota.valor, motivo: nota.motivo || "" };
+        const sinLeer = placas.some((f) => !nota || nota.fotoId !== f.id && String(f.creadoEn || "") > String(nota.en || ""));
+        if (sinLeer) return { estado: "leyendo" };
+        if (nota && nota.estado === "sinLectura") return { estado: "sinLectura" };
+        return null;
+      }
+      var vigia = null;
+      function arrancarVigia({ repo, alTerminar = () => {
+      }, cada = 3e4, registro = (t) => console.log(t) } = {}) {
+        if (vigia || true) return null;
+        let ocupado = false;
+        let otraVez = false;
+        const vuelta = async () => {
+          if (ocupado) {
+            otraVez = true;
+            return;
+          }
+          ocupado = true;
+          try {
+            const r = await leerPendientes(repo, { registro });
+            if (r.aplicadas || r.propuestas || r.sinLectura) alTerminar(r);
+          } catch (e) {
+            registro(`Lectura de placas: ${e.message}`);
+          }
+          ocupado = false;
+          if (otraVez) {
+            otraVez = false;
+            setTimeout(vuelta, 50);
+          }
+        };
+        const t = setInterval(vuelta, cada);
+        if (t.unref) t.unref();
+        setTimeout(vuelta, 5e3);
+        vigia = { avisar: () => setTimeout(vuelta, 200), parar: () => {
+          clearInterval(t);
+          vigia = null;
+        } };
+        return vigia;
+      }
+      var avisar = () => {
+        if (vigia) vigia.avisar();
+      };
+      module.exports = { SESION_LECTURA, prepararTabla, pendientes, leerPendientes, procesarLectura, responder, paraPantalla, arrancarVigia, avisar, textoMac, claseDeFoto };
+    }
+  });
+
+  // electron/data/materialesInstalados.js
+  var require_materialesInstalados2 = __commonJS({
+    "electron/data/materialesInstalados.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var M = require_materialesInstalados();
+      var P = require_planoEquipos();
+      var alcance = require_alcance();
+      var { puede } = require_roles();
+      var llano = (v) => String(v ?? "").trim();
+      var leerJson = (t, d) => {
+        if (t && typeof t === "object") return t;
+        try {
+          return t ? JSON.parse(t) : d;
+        } catch {
+          return d;
+        }
+      };
+      var corto = (v, n = 200) => llano(v) ? llano(v).slice(0, n) : null;
+      var CASAR = 4e-3;
+      function obraVisible(repo, ses, obraId) {
+        if (!obraId) return null;
+        const f = alcance.filtro("obras", ses, {});
+        return repo.db.prepare(`SELECT * FROM obras WHERE (${f.where}) AND id = ?`).get(...f.params, obraId) || null;
+      }
+      var puedeEditar = (ses) => puede(ses.rol, "commissioning", "editar");
+      function enlace(v) {
+        const o = leerJson(v, null);
+        if (!o || typeof o !== "object") return null;
+        const url = llano(o.url);
+        if (!/^https?:\/\//i.test(url)) return null;
+        return { nombre: corto(o.nombre, 160) || "Ficha t\xE9cnica", url: url.slice(0, 1500), nivel: o.nivel === "modelo" ? "modelo" : "tipo" };
+      }
+      function paraPintar(m, tagEquipo) {
+        const t = M.TIPOS[m.tipo];
+        const base = { ...m, caracteristicas: leerJson(m.caracteristicas, {}), sirveA: tagEquipo || null };
+        return {
+          id: m.id,
+          tag: m.tag,
+          tipo: m.tipo,
+          tipoNombre: t ? t.nombre : m.tipo,
+          capa: M.capaDe(m.tipo),
+          codigo: m.codigo,
+          planta: m.planta,
+          sala: m.sala ? P.limpiarSala(m.sala) : null,
+          x: m.x,
+          y: m.y,
+          marca: m.marca,
+          modelo: m.modelo,
+          numSerie: m.numSerie,
+          caracteristicas: base.caracteristicas,
+          fichaTecnica: enlace(m.fichaTecnica),
+          marcadoCE: enlace(m.marcadoCE),
+          incidencia: m.incidencia || null,
+          equipoId: m.equipoId || null,
+          sirveA: tagEquipo || null,
+          origen: m.origen,
+          estado: M.estado(m),
+          filas: M.filasFicha(base)
+        };
+      }
+      function porPlanta(repo, ses, obraId) {
+        const fuera = /* @__PURE__ */ new Map();
+        let filas;
+        try {
+          filas = repo.listar("materialesInstalados", ses, { condicion: "obraId = ?", params: [obraId] });
+        } catch {
+          return fuera;
+        }
+        if (!filas.length) return fuera;
+        const tags = new Map(repo.db.prepare("SELECT id, tag FROM equiposObra WHERE obraId = ?").all(obraId).map((e) => [e.id, e.tag]));
+        for (const m of filas) {
+          const k = m.planta || "";
+          if (!fuera.has(k)) fuera.set(k, []);
+          fuera.get(k).push(paraPintar(m, m.equipoId ? tags.get(m.equipoId) : null));
+        }
+        for (const l of fuera.values()) l.sort((a, b) => String(a.tag).localeCompare(String(b.tag), "es", { numeric: true }));
+        return fuera;
+      }
+      function aprendido(filas) {
+        const porCodigo = {};
+        const fichaTipo = {};
+        for (const m of filas) {
+          const c = leerJson(m.caracteristicas, {});
+          const p = porCodigo[m.codigo] || (porCodigo[m.codigo] = {});
+          if (m.marca && !p.marca) p.marca = m.marca;
+          if (m.modelo && !p.modelo) p.modelo = m.modelo;
+          if (c.Medida && !p.medida) p.medida = c.Medida;
+          if (m.fichaTecnica && !p.fichaTecnica) p.fichaTecnica = m.fichaTecnica;
+          if (m.marcadoCE && !p.marcadoCE) p.marcadoCE = m.marcadoCE;
+          const f = enlace(m.fichaTecnica);
+          if (f && f.nivel === "tipo" && !fichaTipo[m.tipo]) fichaTipo[m.tipo] = m.fichaTecnica;
+        }
+        return { porCodigo, fichaTipo };
+      }
+      function cargarDePlano(repo, ses, obraId, d = {}) {
+        if (!obraVisible(repo, ses, obraId)) return { ok: false, error: "No se encuentra la obra." };
+        if (!puedeEditar(ses)) return { ok: false, error: "No puedes editar los materiales de esta obra." };
+        const planta = llano(d.planta);
+        if (!planta) return { ok: false, error: "Falta la planta." };
+        const textos = Array.isArray(d.textos) ? d.textos : [];
+        const todos = repo.listar("materialesInstalados", ses, { condicion: "obraId = ?", params: [obraId] });
+        const sabido = aprendido(todos);
+        const r = M.reconocer(textos, { catalogo: d.catalogo || {}, planta, rotulos: P.rotulosSala(textos), salaCercana: P.salaCercana });
+        const viejos = todos.filter((m) => (m.planta || "") === planta && m.origen === "plano");
+        const usados = /* @__PURE__ */ new Set();
+        let nuevos = 0;
+        let actualizados = 0;
+        let conservados = 0;
+        for (const n of r.materiales) {
+          const s = sabido.porCodigo[n.codigo] || {};
+          const car = { ...n.caracteristicas };
+          if (!car.Medida && s.medida) car.Medida = s.medida;
+          const marca = n.marca || s.marca || null;
+          const modelo = n.modelo || s.modelo || null;
+          const f = M.fichasPara({ tipo: n.tipo, marca, modelo }, d.docs || []);
+          const ficha = f.ficha ? JSON.stringify(f.ficha) : s.fichaTecnica || sabido.fichaTipo[n.tipo] || null;
+          const ce = f.ce ? JSON.stringify(f.ce) : s.marcadoCE || null;
+          let casa = null;
+          let dist = Infinity;
+          for (const v of viejos) {
+            if (usados.has(v.id) || v.codigo !== n.codigo) continue;
+            const dd = Math.abs(v.x - n.x) + Math.abs(v.y - n.y);
+            if (dd < CASAR && dd < dist) {
+              dist = dd;
+              casa = v;
+            }
+          }
+          const datos = { planoId: d.planoId || null, planta, tipo: n.tipo, codigo: n.codigo, x: n.x, y: n.y, sala: n.sala };
+          if (casa) {
+            usados.add(casa.id);
+            if (casa.editado) {
+              repo.modificar("materialesInstalados", ses, casa.id, datos);
+              conservados += 1;
+              continue;
+            }
+            repo.modificar("materialesInstalados", ses, casa.id, { ...datos, tag: n.tag, marca, modelo, caracteristicas: JSON.stringify(car), fichaTecnica: ficha, marcadoCE: ce });
+            actualizados += 1;
+          } else {
+            repo.crear("materialesInstalados", ses, { obraId, ...datos, tag: n.tag, marca, modelo, caracteristicas: JSON.stringify(car), fichaTecnica: ficha, marcadoCE: ce, fotos: "[]", origen: "plano", editado: 0 });
+            nuevos += 1;
+          }
+        }
+        let quitados = 0;
+        for (const v of viejos) {
+          if (usados.has(v.id) || v.editado) continue;
+          repo.borrar("materialesInstalados", ses, v.id, { verbo: "editar" });
+          quitados += 1;
+        }
+        return { ok: true, planta, nuevos, actualizados, quitados, conservados, porTipo: r.porTipo, sinTipo: r.sinTipo, total: r.materiales.length };
+      }
+      function siguienteTag(repo, obraId, planta, prefijo) {
+        const pl = llano(planta).toUpperCase() || "SP";
+        const base = `${pl}-${prefijo}-`;
+        const filas = repo.db.prepare("SELECT tag FROM materialesInstalados WHERE obraId = ? AND tag LIKE ?").all(obraId, `${base}%`);
+        const max = filas.reduce((a, f) => Math.max(a, Number(String(f.tag).slice(base.length)) || 0), 0);
+        return `${base}${String(max + 1).padStart(3, "0")}`;
+      }
+      function alta(repo, ses, obraId, d = {}) {
+        if (!obraVisible(repo, ses, obraId)) return { ok: false, error: "No se encuentra la obra." };
+        if (!puedeEditar(ses)) return { ok: false, error: "No puedes dar de alta materiales en esta obra." };
+        const tipo = llano(d.tipo);
+        if (!M.TIPOS[tipo]) return { ok: false, error: "Elige el tipo de material." };
+        const x = Number(d.x);
+        const y = Number(d.y);
+        if (!(x >= 0 && x <= 1 && y >= 0 && y <= 1)) return { ok: false, error: "Toca el sitio del plano donde est\xE1." };
+        const planta = llano(d.planta);
+        const plano = repo.db.prepare("SELECT id, rotulos FROM planosEquipos WHERE obraId = ? AND planta = ?").get(obraId, planta);
+        const sala = plano ? P.salaCercana(leerJson(plano.rotulos, []), x, y) : null;
+        const tag = corto(d.tag, 40) || siguienteTag(repo, obraId, planta, M.TIPOS[tipo].corto);
+        const id = repo.crear("materialesInstalados", ses, {
+          obraId,
+          planoId: plano ? plano.id : null,
+          planta,
+          tipo,
+          codigo: corto(d.codigo, 40),
+          tag,
+          sala,
+          x,
+          y,
+          marca: corto(d.marca, 80),
+          modelo: corto(d.modelo, 120),
+          numSerie: corto(d.numSerie, 80),
+          caracteristicas: "{}",
+          fotos: "[]",
+          origen: "manual",
+          editado: 1
+        });
+        return { ok: true, id, tag, sala };
+      }
+      var EDITABLES = ["numSerie", "marca", "modelo", "sala", "tag", "incidencia", "equipoId"];
+      function guardar(repo, ses, id, d = {}) {
+        const m = repo.leer("materialesInstalados", ses, llano(id));
+        if (!m) return { ok: false, error: "No se encuentra el material." };
+        if (!puedeEditar(ses)) return { ok: false, error: "No puedes editar este material." };
+        const datos = { editado: 1 };
+        for (const k of EDITABLES) if (k in d) datos[k] = corto(d[k], k === "incidencia" ? 1e3 : 160);
+        if ("tag" in d && !datos.tag) delete datos.tag;
+        if ("caracteristicas" in d) {
+          const c = leerJson(d.caracteristicas, {});
+          const limpio = {};
+          for (const [k, v] of Object.entries(c && typeof c === "object" ? c : {}).slice(0, 30)) if (llano(k) && llano(v)) limpio[llano(k).slice(0, 60)] = llano(v).slice(0, 200);
+          datos.caracteristicas = JSON.stringify(limpio);
+        }
+        for (const k of ["fichaTecnica", "marcadoCE"]) {
+          if (!(k in d)) continue;
+          if (d[k] === null || d[k] === "") {
+            datos[k] = null;
+            continue;
+          }
+          const e = enlace(typeof d[k] === "string" && /^https?:/i.test(d[k]) ? { url: d[k], nivel: "modelo" } : d[k]);
+          if (!e) return { ok: false, error: "El enlace tiene que empezar por http:// o https://." };
+          datos[k] = JSON.stringify(e);
+        }
+        if ("x" in d && "y" in d) {
+          const x = Number(d.x);
+          const y = Number(d.y);
+          if (x >= 0 && x <= 1 && y >= 0 && y <= 1) {
+            datos.x = x;
+            datos.y = y;
+          }
+        }
+        if (datos.equipoId) {
+          const e = repo.db.prepare("SELECT id FROM equiposObra WHERE id = ? AND obraId = ?").get(datos.equipoId, m.obraId);
+          if (!e) return { ok: false, error: "Ese equipo no es de esta obra." };
+        }
+        repo.modificar("materialesInstalados", ses, m.id, datos);
+        return { ok: true };
+      }
+      function borrar(repo, ses, id) {
+        const m = repo.leer("materialesInstalados", ses, llano(id));
+        if (!m) return { ok: false, error: "No se encuentra el material." };
+        if (!puedeEditar(ses)) return { ok: false, error: "No puedes borrar este material." };
+        repo.borrar("materialesInstalados", ses, m.id, { verbo: "editar" });
+        return { ok: true };
+      }
+      async function leerPlaca(repo, ses, id, ruta) {
+        const m = repo.leer("materialesInstalados", ses, llano(id));
+        if (!m) return { ok: false, error: "No se encuentra el material." };
+        const LP = require_lecturaPlaca();
+        const PS = require_placaSerie();
+        const texto = await LP.textoMac(llano(ruta));
+        if (!texto) return { ok: false, error: "La lectura de placas solo funciona en el Mac." };
+        const lectura = PS.extraerNumeroSerie(texto, { marca: m.marca, modelo: m.modelo });
+        const que = PS.decidir({ serieActual: m.numSerie, lectura, placa: true });
+        const fotos = leerJson(m.fotos, []);
+        fotos.push({ ruta: llano(ruta), pie: "Placa", hora: (/* @__PURE__ */ new Date()).toISOString() });
+        const datos = { fotos: JSON.stringify(fotos.slice(-20)), editado: 1 };
+        if (que === "aplicar") datos.numSerie = lectura.valor;
+        if (puedeEditar(ses)) repo.modificar("materialesInstalados", ses, m.id, datos);
+        return { ok: true, que, valor: lectura ? lectura.valor : null, confianza: lectura ? lectura.confianza : null };
+      }
+      module.exports = { porPlanta, paraPintar, cargarDePlano, alta, guardar, borrar, leerPlaca, siguienteTag, enlace };
+    }
+  });
+
   // shared/commissioning/localizacionPlano.js
   var require_localizacionPlano = __commonJS({
     "shared/commissioning/localizacionPlano.js"(exports, module) {
@@ -58915,7 +60283,9 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         const planoDe = new Map(filas.map((p) => [p.planta || "", p]));
         const marcaDe = /* @__PURE__ */ new Map();
         for (const p of filas) for (const m of leerJson(p.marcas, [])) marcaDe.set(m.equipoId, { ...m, planoId: p.id, planta: p.planta || "" });
-        const nombres = /* @__PURE__ */ new Set([...filasEq.map((f) => llano(f.planta)), ...filas.map((p) => p.planta || "")]);
+        const MI = require_materialesInstalados2();
+        const materialesDe = MI.porPlanta(repo, ses, obraId);
+        const nombres = /* @__PURE__ */ new Set([...filasEq.map((f) => llano(f.planta)), ...filas.map((p) => p.planta || ""), ...materialesDe.keys()]);
         const plantas = [...nombres].sort(ordenPlanta).map((planta) => {
           const p = planoDe.get(planta) || null;
           const equipos = filasEq.filter((f) => llano(f.planta) === planta).map((f) => {
@@ -58957,11 +60327,16 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           }
           const sinUbicar = p ? equipos.filter((q) => q.x === null).map((q) => ({ id: q.id, tag: q.tag, familia: q.familia, sala: q.sala, icono: q.icono })).sort((a, b) => String(a.tag).localeCompare(String(b.tag), "es", { numeric: true })) : [];
           cuentas.sinUbicar = sinUbicar.length;
+          const materiales = materialesDe.get(planta) || [];
+          const M = require_materialesInstalados();
+          const capas = { equipos: equipos.length, ...M.cuentasPorCapa(materiales) };
           return {
             planta: planta || null,
             equipos,
             cuentas,
             sinUbicar,
+            materiales,
+            capas,
             plano: p ? { id: p.id, nombre: p.nombre, ancho: p.ancho, alto: p.alto, modificadoEn: p.modificadoEn, salas: salasParaPintar(p.rotulos) } : null
           };
         });
@@ -58981,7 +60356,9 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         });
         const iconos = {};
         for (const k of Object.keys(P.ICONOS)) iconos[k] = P.ICONOS[k];
-        return { plantas, planos, iconos, colores: P.COLORES, puedeEditar, conCommissioning: conCx };
+        const MT = require_materialesInstalados();
+        const tiposMaterial = Object.fromEntries(Object.entries(MT.TIPOS).map(([k, v]) => [k, { nombre: v.nombre, corto: v.corto, capa: v.capa, campos: v.campos }]));
+        return { plantas, planos, iconos, colores: P.COLORES, puedeEditar, conCommissioning: conCx, capas: MT.CAPAS, tiposMaterial };
       }
       function imagen(repo, ses, id) {
         const p = repo.leer("planosEquipos", ses, llano(id));
@@ -60445,6 +61822,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
       var fs = require_fs();
       var path = require_path();
       var F = require_fichas();
+      var CXC = require_control();
       var RC = require_rejillaChecklist();
       var fichaHtml = require_fichaHtml();
       var catalogo = require_plantillasCliente();
@@ -60724,9 +62102,11 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         const cat = catalogoDe(repo, sesion);
         const cfg = configDe(repo, sesion, obraId);
         const fichas = /* @__PURE__ */ new Map();
+        const fechaDe = /* @__PURE__ */ new Map();
         for (const fila of filasFichas(repo, sesion, obraId)) {
           const r = evaluarFila(fila, cat, cfg, { repo, sesion });
           if (r) fichas.set(`${fila.clave}|${fila.plantilla}`, { id: fila.id, estado: F.estadoVisible(r.ev.estado, r.ev.medidos, F.bocasSinMedir(r.ev)), resultado: r.ev.resultado, medidos: r.ev.medidos && r.ev.medidos.rellenos, enObra: r.ev.enObra, fusionada: F.fichaFundida(fila) });
+          if (fila.clase === "fichaPM") fechaDe.set(fila.id, fechaTrabajoFicha(fila));
         }
         const buscar = (clave, plantilla) => fichas.get(`${clave}|${plantilla}`) || null;
         const deLaObra = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
@@ -60743,10 +62123,27 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
             checklist: F.estadoChecklist(pm),
             /* Para la franja de la tarjeta: fichas con algún dato tomado en obra (o firmadas).
                Lo importado del SharePoint no cuenta (29-oct, JC: salía en equipos «sin verificar»). */
-            iniciadas: pm.fichas.filter((x) => x.estado === "firmada" || x.enObra).length
+            iniciadas: pm.fichas.filter((x) => x.estado === "firmada" || x.enObra).length,
+            /* La ficha de puesta en marcha de la app (29-oct, JC): decide el «En marcha»
+               (shared/commissioning/control.js › estadoPMDerivado) y su fecha. */
+            ...CXC.fichaPMDeFichas(pm.fichas, (id) => fechaDe.get(id) || null)
           });
         }
         return out;
+      }
+      function conFichasPM(repo, sesion, obraId, equipos) {
+        let fichas = null;
+        try {
+          fichas = fichasPorEquipo(repo, sesion, obraId, equipos);
+        } catch {
+          fichas = null;
+        }
+        return fichas ? equipos.map((e) => fichas.has(e.id) ? { ...e, pmFichas: fichas.get(e.id) } : e) : equipos;
+      }
+      function fechaTrabajoFicha(fila) {
+        const d = leerJson(fila && fila.datos, {});
+        const f = String(d && d.cabecera && d.cabecera.fechaEnsayo || "").slice(0, 10);
+        return /^\d{4}-\d{2}-\d{2}$/.test(f) ? f : null;
       }
       function puestaEnMarcha(repo, sesion, obraId) {
         const obra = obraVisible(repo, sesion, obraId);
@@ -60987,6 +62384,20 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           try {
             repo.modificar("equiposObra", sesion, r.dueno.id, { numSerie: serie.slice(0, 80) });
           } catch {
+          }
+        }
+        const hechaPM = def.clase === "fichaPM" && ["completa", "firmada"].includes(F.estadoVisible(ev.estado, ev.medidos, F.bocasSinMedir(ev)));
+        const fechaPM = hechaPM ? fechaTrabajoFicha({ datos: JSON.stringify(limpio) }) : null;
+        if (!leido && fechaPM) {
+          const ids = [...new Set([r.dueno && r.dueno.id, ...(r.afectados || []).map((x) => x.id)].filter(Boolean))];
+          for (const eid of ids) {
+            const eq = repo.leer("equiposObra", sesion, eid);
+            if (eq && !String(eq.fechaPuestaMarcha || "").trim()) {
+              try {
+                repo.modificar("equiposObra", sesion, eid, { fechaPuestaMarcha: fechaPM });
+              } catch {
+              }
+            }
           }
         }
         const equipoFirma = fila && fila.equipoId || r.dueno && r.dueno.id;
@@ -62045,6 +63456,8 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         nuevaVersionPlantilla,
         puestaEnMarcha,
         fichasPorEquipo,
+        conFichasPM,
+        fechaTrabajoFicha,
         ficha,
         guardarFicha,
         actualizarVersion,
@@ -63863,12 +65276,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           ultimoEnlace = cfg && cfg.ultimoEnlace ? JSON.parse(cfg.ultimoEnlace) : null;
         } catch {
         }
-        let fichas = null;
-        try {
-          fichas = require_fichasPM().fichasPorEquipo(repo, sesion, obraId, equipos);
-        } catch {
-        }
-        const conFichas = fichas ? equipos.map((e) => fichas.has(e.id) ? { ...e, pmFichas: fichas.get(e.id) } : e) : equipos;
+        const conFichas = require_fichasPM().conFichasPM(repo, sesion, obraId, equipos);
         let bloqueos = /* @__PURE__ */ new Map();
         try {
           bloqueos = require_incidencias().bloqueosDeObra(repo, obraId);
@@ -63886,7 +65294,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         if (!obra) return null;
         const crudos = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
         const modelos = repo.listar("modelosEquipo", sesion, { condicion: "obraId = ?", params: [obraId] });
-        const docs2 = new Map(control.evaluar({ equipos: crudos, modelos }).filas.map((f) => [f.id, f]));
+        const docs2 = new Map(control.evaluar({ equipos: require_fichasPM().conFichasPM(repo, sesion, obraId, crudos), modelos }).filas.map((f) => [f.id, f]));
         const pmDe = /* @__PURE__ */ new Map();
         const fichas = repo.listar("fichasPM", sesion, { condicion: "obraId = ? AND clase = 'fichaPM' AND equipoId IS NOT NULL", params: [obraId] }).sort((a, b) => String(a.modificadoEn || "").localeCompare(String(b.modificadoEn || "")));
         for (const f of fichas) {
@@ -63906,7 +65314,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         const equipos = crudos.map((e) => {
           const f = docs2.get(e.id);
           const conPm = pmDe.has(e.id) ? { ...e, pm: pmDe.get(e.id) } : e;
-          return f ? { ...conPm, ft: f.ft, ce: f.ce, manual: f.manual } : conPm;
+          return f ? { ...conPm, ft: f.ft, ce: f.ce, manual: f.manual, estadoPM: f.estadoPM, estadoPMGuardado: f.estadoPMGuardado } : conPm;
         });
         const sesiones = repo.listar("sesionesPlanCx", sesion, { condicion: "obraId = ?", params: [obraId] }).map((x) => ({ fecha: x.fecha, tarea: x.tarea, items: x.items }));
         return { obra: { codigo: obra.codigo, nombre: obra.nombre }, equipos, sesiones };
@@ -64227,6 +65635,35 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           return { ok: false, error: `No se ha cambiado nada: ${err.message}` };
         }
         return { ok: true, cambiados, marcados: equipos.length };
+      }
+      function guardarFechasEquipo(repo, sesion, id, entrada = {}) {
+        if (!puede(sesion.rol, "commissioning", "editar")) return { ok: false, error: "Tu rol no puede cambiar las fechas del equipo." };
+        const actual = repo.leer("equiposObra", sesion, id);
+        if (!actual) return { ok: false, error: "No se encuentra el equipo." };
+        const cambios = {};
+        if (entrada.fechaPuestaMarcha !== void 0) {
+          const v = entrada.fechaPuestaMarcha ? String(entrada.fechaPuestaMarcha).trim().slice(0, 10) : null;
+          if (v && !/^\d{4}-\d{2}-\d{2}$/.test(v)) return { ok: false, error: `\xAB${entrada.fechaPuestaMarcha}\xBB no es una fecha.` };
+          cambios.fechaPuestaMarcha = v;
+        }
+        if (entrada.garantiaAnios !== void 0) {
+          const s = entrada.garantiaAnios === null ? "" : String(entrada.garantiaAnios).trim().replace(",", ".");
+          const n = s === "" ? null : Number(s);
+          if (n !== null && (!Number.isFinite(n) || n <= 0 || n > 50)) return { ok: false, error: `\xAB${entrada.garantiaAnios}\xBB no son unos a\xF1os de garant\xEDa.` };
+          cambios.garantiaAnios = n;
+        }
+        if (!Object.keys(cambios).length) return { ok: false, error: "No hay nada que cambiar." };
+        const ids = [id, ...companerasDe(equiposDe(repo, sesion, actual.obraId), id).map((c) => c.id)];
+        const db = repo.db;
+        db.exec("BEGIN");
+        try {
+          for (const x of ids) repo.modificar("equiposObra", sesion, x, cambios);
+          db.exec("COMMIT");
+        } catch (err) {
+          db.exec("ROLLBACK");
+          return { ok: false, error: `No se ha cambiado nada: ${err.message}` };
+        }
+        return { ok: true, cambiados: ids.length, ...cambios };
       }
       var CAMPOS_CONJUNTO = ["estadoPM", "estanqueidadEstado"];
       var esVrf = (e) => /VRF|VRV/i.test(`${e.plantillaPM || ""} ${e.grupo || ""}`);
@@ -64725,6 +66162,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         marcarEnviado,
         asignarUbicacion,
         verificarInstalacion,
+        guardarFechasEquipo,
         validarTrasIncidencia,
         emparejarEquipo,
         emparejarObra,
@@ -92070,6 +93508,384 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
     }
   });
 
+  // marca/colores.js
+  var require_colores = __commonJS({
+    "marca/colores.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var MARCA = {
+        // El verde de CBRE. Es EL color: cabeceras, titulares, totales.
+        verde: { hex: "#003F2D", nombre: "CBRE Green", pantone: "3435 C", procedencia: "confirmado" },
+        // El verde vivo. Acento, NUNCA fondo de texto largo ni superficie grande.
+        verdeAcento: { hex: "#17E88F", nombre: "Accent Green", pantone: "7479 C", procedencia: "confirmado" },
+        // Verde casi negro. Barra lateral y bloque del logo, modo oscuro, pies de documento.
+        verdeOscuro: { hex: "#012A2D", nombre: "Dark Green", pantone: "627 C", procedencia: "confirmado" },
+        grisOscuro: { hex: "#435254", nombre: "Dark Grey", pantone: "431 C", procedencia: "confirmado" },
+        grisClaro: { hex: "#CAD1D3", nombre: "Light Grey", pantone: "428 C", procedencia: "confirmado" },
+        /*
+         * El blanco es un token porque hace falta un blanco QUE NO CAMBIE con el
+         * tema: el texto sobre el verde CBRE y sobre el pie de las tablas es blanco
+         * en los dos temas. Usar `--panel` ahí rompería el modo oscuro, donde
+         * `--panel` vale #012A2D.
+         */
+        blanco: { hex: "#FFFFFF", nombre: "Blanco", pantone: "\u2014", procedencia: "no es de marca" }
+      };
+      var AMPLIADA = {
+        celadon: { hex: "#80BBAD", tinte: "#C0D4CB", nombre: "Celadon", procedencia: "confirmado" },
+        wheat: { hex: "#DBD99A", tinte: "#EFECD2", nombre: "Wheat", procedencia: "confirmado" },
+        cement: { hex: "#7F8480", tinte: "#CBCDCB", nombre: "Cement", procedencia: "tinte confirmado, base inferida" },
+        sage: { hex: "#538184", tinte: "#96B3B6", nombre: "Sage", procedencia: "tinte confirmado, base inferida" },
+        midnight: { hex: "#032842", tinte: "#778F9C", nombre: "Midnight", procedencia: "tinte confirmado, base inferida" }
+      };
+      var ESTADO = {
+        bien: { hex: "#003F2D", fondo: "#DFF0E8" },
+        aviso: { hex: "#14507F", fondo: "#E1ECF6" },
+        mal: { hex: "#9C2B2B", fondo: "#F7DEDE" },
+        info: { hex: "#0B4A63", fondo: "#DCEAF1" }
+      };
+      var ESTADO_OSCURO = {
+        bien: { hex: "#5FD39E", fondo: "#0C3F31" },
+        aviso: { hex: "#8DBBEA", fondo: "#14273B" },
+        mal: { hex: "#FF9E92", fondo: "#4A1F1F" },
+        info: { hex: "#8CC6E0", fondo: "#0E3445" }
+      };
+      var DISCIPLINAS = {
+        electricidad: "#003F2D",
+        climatizacion: "#538184",
+        fontaneria: "#80BBAD",
+        pci: "#9C2B2B",
+        control: "#032842",
+        gases: "#DBD99A",
+        ventilacion: "#96B3B6",
+        otros: "#7F8480"
+      };
+      var INTERFAZ = {
+        claro: {
+          papel: "#F4F6F5",
+          panel: "#FFFFFF",
+          panel2: "#EEF2F0",
+          panel3: "#E3EAE7",
+          rejilla: "#CAD1D3",
+          rejillaSuave: "#E1E6E7",
+          borde: "#7F8480",
+          texto: "#1A1A1A",
+          textoSuave: "#435254",
+          /* 4,75:1 sobre el papel. El anterior (#6B7674) daba 4,33 y no llegaba a
+             AA, justo en el texto que explica POR QUÉ salta un aviso. */
+          textoTenue: "#63706D",
+          seleccion: "#DFF0E8",
+          /*
+           * LA BANDA DE CAPÍTULO tiene que existir en los dos temas.
+           * Antes se usaba directamente el celadon tinte de marca, que es un color
+           * claro, también en modo oscuro: la banda salía blanquecina con texto casi
+           * blanco encima (1,35:1) y el cursor no se veía (1,04:1).
+           */
+          bandaCapitulo: "#C0D4CB",
+          bandaCapitulo2: "#E3EAE7",
+          /*
+           * LOS BLOQUES IMPORTANTES DEL INICIO: un pastel sacado del celadon, muy
+           * rebajado, para que destaquen sin parecer un aviso. La cabecera va un
+           * punto más cargada que el cuerpo, como la banda de los demás bloques.
+           */
+          destacado: "#EDF5F1",
+          destacadoCabeza: "#D6E9E1",
+          destacadoBorde: "#A9CFC2",
+          /*
+           * EL FOCO NO PUEDE SER EL VERDE ACENTO EN TEMA CLARO.
+           * #17E88F sobre papel da 1,49:1 — el anillo de «dónde estoy» era
+           * invisible en toda la aplicación. En claro manda el verde CBRE (11,06:1);
+           * en oscuro sí funciona el acento.
+           */
+          foco: "#003F2D",
+          /* Sobre el verde de la barra lateral, donde no vale ningún gris normal. */
+          sobreVerdeTexto: "#D2E0DB",
+          sobreVerdeLinea: "#1A5443",
+          sobreVerdeHover: "#0A4B36",
+          menuActivo: "#04533A",
+          /* El verde CBRE como TEXTO (cabeceras de tabla, rótulos). En oscuro el
+             verde de marca sobre el panel daba 1,28:1: ahí va un verde claro. */
+          verdeTexto: "#003F2D",
+          /* El texto sobre un relleno de estado (contador «hecho», insignias). */
+          sobreEstado: "#FFFFFF"
+        },
+        oscuro: {
+          papel: "#001E19",
+          panel: "#012A2D",
+          panel2: "#043534",
+          panel3: "#0A413E",
+          rejilla: "#1C4A45",
+          rejillaSuave: "#143B37",
+          borde: "#628680",
+          texto: "#EAF1EE",
+          textoSuave: "#A9BDB7",
+          textoTenue: "#7E918C",
+          seleccion: "#0C4A38",
+          bandaCapitulo: "#124C42",
+          bandaCapitulo2: "#0A413E",
+          /* En oscuro el cuerpo no se aclara: el texto tenue ya va justo sobre el
+             panel (4,61:1) y cualquier teal más claro lo bajaba de AA (3,87:1).
+             Aquí el bloque importante lo marcan la cabecera y el borde. */
+          destacado: "#012A2D",
+          destacadoCabeza: "#0D4A47",
+          destacadoBorde: "#2A6A62",
+          foco: "#17E88F",
+          sobreVerdeTexto: "#D2E0DB",
+          sobreVerdeLinea: "#1A5443",
+          sobreVerdeHover: "#0A4B36",
+          menuActivo: "#04533A",
+          verdeTexto: "#8FD1BE",
+          sobreEstado: "#001E19"
+        }
+      };
+      var PILA_SISTEMA = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
+      var FUENTES = {
+        /*
+         * TITULARES.
+         *
+         * CBRE compone con Financier Display, un serif. Si está instalada, se usa.
+         * Si no —que es lo normal—, el respaldo NO es otro serif: es la pila del
+         * sistema.
+         *
+         * El motivo es que el respaldo real de un serif en Mac y en Windows es
+         * Georgia o Times, y ninguna de las dos se parece a Financier: son tipos de
+         * otra época y le dan a la aplicación un aire de documento de Word. Una
+         * herramienta de trabajo compuesta en San Francisco o en Segoe se ve actual
+         * y, sobre todo, se ve intencionada.
+         *
+         * Georgia además compone cifras de estilo antiguo por defecto, lo que hacía
+         * bailar las cifras grandes del inicio.
+         */
+        titular: `'Financier Display', ${PILA_SISTEMA}`,
+        /* Texto e interfaz. Calibre cuando CBRE ceda licencia. */
+        texto: `'Calibre', ${PILA_SISTEMA}`,
+        /* Números: TABULAR SIEMPRE. Una columna de importes que baila es un error. */
+        cifra: "'SF Mono', 'Segoe UI Mono', 'Roboto Mono', ui-monospace, monospace"
+      };
+      var ESCALA = {
+        micro: "10.5px",
+        // rótulos de columna, unidades
+        menor: "11.5px",
+        // apoyo, pies, motivos
+        base: "12.5px",
+        // texto e interfaz
+        medio: "14px",
+        // títulos de bloque
+        mayor: "18px",
+        // título de pantalla
+        cifra: "24px"
+        // las cifras grandes de los indicadores
+      };
+      module.exports = { MARCA, AMPLIADA, ESTADO, ESTADO_OSCURO, DISCIPLINAS, INTERFAZ, FUENTES, ESCALA };
+    }
+  });
+
+  // electron/data/entregablePlano.js
+  var require_entregablePlano = __commonJS({
+    "electron/data/entregablePlano.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var PE = require_planoEquipos2();
+      var M = require_materialesInstalados();
+      var { MARCA, AMPLIADA, ESTADO, INTERFAZ, FUENTES } = require_colores();
+      var esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+      var llano = (v) => String(v ?? "").trim();
+      var fecha = (v) => {
+        const s = llano(v).slice(0, 10);
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+        return m ? `${m[3]}/${m[2]}/${m[1]}` : s;
+      };
+      var idSeguro = (v) => llano(v).replace(/[^A-Za-z0-9_-]/g, "_");
+      var COLOR_CAPA = {
+        equipos: MARCA.verde.hex,
+        compuertas: AMPLIADA.sage.hex,
+        vav: AMPLIADA.midnight.hex,
+        difusores: ESTADO.info.hex,
+        rejillas: ESTADO.aviso.hex,
+        valvulas: MARCA.verdeOscuro.hex,
+        detectores: MARCA.grisOscuro.hex,
+        actuadores: AMPLIADA.sage.hex,
+        sondas: ESTADO.info.hex,
+        otros: AMPLIADA.cement.hex
+      };
+      function datosEquipos(repo, obraId) {
+        const cols = new Set(repo.db.prepare("SELECT name FROM pragma_table_info('equiposObra')").all().map((c) => c.name));
+        const pide = ["id", "numSerie", "fechaInstalacion", "fechaPuestaMarcha", "garantiaAnios", "fechaFabricacion", "potencia", "denominacion"].filter((c) => cols.has(c));
+        const eq = new Map(repo.db.prepare(`SELECT ${pide.join(", ")} FROM equiposObra WHERE obraId = ?`).all(obraId).map((e) => [e.id, e]));
+        const rep = /* @__PURE__ */ new Map();
+        try {
+          for (const i of repo.db.prepare("SELECT equipoId, titulo, estado, fechaApertura, fechaCierre FROM incidencias WHERE obraId = ? AND equipoId IS NOT NULL AND estado != 'anulada' ORDER BY fechaApertura").all(obraId)) {
+            if (!rep.has(i.equipoId)) rep.set(i.equipoId, []);
+            rep.get(i.equipoId).push(i);
+          }
+        } catch {
+        }
+        return { eq, rep };
+      }
+      var ESTADO_REP = { abierta: "abierta", enCurso: "en curso", terminada: "terminada", cerrada: "cerrada" };
+      function puntosDePlanta(pl, extra) {
+        const puntos = [];
+        let n = 0;
+        for (const e of pl.equipos) {
+          n += 1;
+          const d = extra.eq.get(e.id) || {};
+          const filas = [
+            ["Tipo", e.familia || e.tipo],
+            ["Sala", e.sala],
+            ["Marca", e.marca],
+            ["Modelo", e.modelo],
+            ["N\xBA de serie", d.numSerie],
+            ["Instalaci\xF3n", fecha(d.fechaInstalacion)],
+            ["Puesta en marcha", fecha(d.fechaPuestaMarcha)],
+            ["Garant\xEDa", d.garantiaAnios ? `${String(d.garantiaAnios).replace(".", ",")} a\xF1os` : null]
+          ].filter(([, v]) => llano(v));
+          puntos.push({ n, capa: "equipos", tag: e.tag, nombre: e.familia || "Equipo", x: e.x, y: e.y, filas, ficha: null, ce: null, reparaciones: extra.rep.get(e.id) || [], estado: e.color });
+        }
+        for (const m of pl.materiales || []) {
+          n += 1;
+          puntos.push({ n, capa: m.capa, tag: m.tag, nombre: m.tipoNombre, x: m.x, y: m.y, filas: m.filas.filter(([k]) => k !== "Tipo"), ficha: m.fichaTecnica, ce: m.marcadoCE, reparaciones: [], incidencia: m.incidencia, estado: m.estado });
+        }
+        return puntos;
+      }
+      function seccionPlanta(pl, img, puntos, idP) {
+        const enPlano = puntos.filter((p) => p.x !== null && p.x !== void 0);
+        const porCapa = {};
+        for (const p of puntos) porCapa[p.capa] = (porCapa[p.capa] || 0) + 1;
+        const porTipo = {};
+        for (const p of puntos) porTipo[`${p.capa}|${p.nombre}`] = (porTipo[`${p.capa}|${p.nombre}`] || 0) + 1;
+        const leyenda = Object.entries(porTipo).sort().map(([k, c]) => {
+          const [capa, nombre] = k.split("|");
+          return `<span class="ley"><i style="background:${COLOR_CAPA[capa] || COLOR_CAPA.otros}"></i>${esc(nombre)} <b>${c}</b></span>`;
+        }).join("");
+        const capas = M.CAPAS.filter((c) => porCapa[c.id]).map((c) => `<label class="capa"><input type="checkbox" checked data-capa="${c.id}" data-p="${idP}"> ${esc(c.nombre)} <b>${porCapa[c.id]}</b></label>`).join("");
+        const marcas = enPlano.map((p) => `<a class="mk c-${p.capa}${p.capa === "equipos" ? " eq" : ""}" href="#f-${idP}-${p.n}" title="${esc(`${p.tag} \xB7 ${p.nombre}`)}" style="left:${(p.x * 100).toFixed(3)}%;top:${(p.y * 100).toFixed(3)}%;background:${COLOR_CAPA[p.capa] || COLOR_CAPA.otros}">${p.n}</a>`).join("");
+        const plano = img ? `<div class="marco" id="m-${idP}"><div class="lienzo" style="aspect-ratio:${pl.plano.ancho || 1}/${pl.plano.alto || 1}"><img src="${img}" alt="Plano ${esc(pl.planta)}">${marcas}</div></div>` : '<p class="nota">Esta planta no tiene plano cargado: solo su lista.</p>';
+        const filas = puntos.map((p) => {
+          const datos = p.filas.map(([k, v]) => `<span class="dt"><em>${esc(k)}</em> ${esc(v)}</span>`).join("");
+          const docs = [
+            p.ficha ? `<a class="doc" href="${esc(p.ficha.url)}" target="_blank" rel="noopener">Ficha t\xE9cnica \u2197</a>${p.ficha.nivel === "tipo" ? '<span class="tenue"> (del tipo)</span>' : ""}` : '<span class="tenue">Sin ficha t\xE9cnica</span>',
+            p.ce ? `<a class="doc" href="${esc(p.ce.url)}" target="_blank" rel="noopener">Marcado CE \u2197</a>` : ""
+          ].filter(Boolean).join(" \xB7 ");
+          const rep = p.reparaciones.length ? `<div class="rep"><em>Reparaciones</em> ${p.reparaciones.map((r) => `${fecha(r.fechaApertura)} ${esc(r.titulo)} (${esc(ESTADO_REP[r.estado] || r.estado)}${r.fechaCierre ? ` ${fecha(r.fechaCierre)}` : ""})`).join(" \xB7 ")}</div>` : "";
+          const inc = p.incidencia ? `<div class="rep mal"><em>Incidencia</em> ${esc(p.incidencia)}</div>` : "";
+          return `<tr id="f-${idP}-${p.n}" class="c-${p.capa}"><td class="n"><span class="bola" style="background:${COLOR_CAPA[p.capa] || COLOR_CAPA.otros}">${p.n}</span></td><td class="tag">${esc(p.tag)}<div class="tenue">${esc(p.nombre)}</div></td><td>${datos}${rep}${inc}</td><td class="docs">${docs}</td><td class="vuelta">${p.x !== null && p.x !== void 0 && img ? `<a href="#m-${idP}">\u2191 plano</a>` : '<span class="tenue">sin ubicar</span>'}</td></tr>`;
+        }).join("");
+        return `<section class="planta" id="p-${idP}">
+  <h2>Planta ${esc(pl.planta || "sin planta")}${pl.plano ? ` <span class="tenue">\xB7 ${esc(pl.plano.nombre)}</span>` : ""}</h2>
+  <div class="barra no-imp">${capas}<span class="zoom"><button type="button" data-z="-1" data-p="${idP}">\u2212</button><button type="button" data-z="1" data-p="${idP}">+</button></span></div>
+  <div class="leyenda">${leyenda}</div>
+  ${plano}
+  <h3 class="salto">Fichas \xB7 planta ${esc(pl.planta || "")} <span class="tenue">(${puntos.length})</span></h3>
+  <table class="fichas"><thead><tr><th>N\xBA</th><th>TAG</th><th>Datos</th><th>Documentos</th><th></th></tr></thead><tbody>${filas}</tbody></table>
+</section>`;
+      }
+      function html(repo, ses, obraId, { planta = null } = {}) {
+        const d = PE.listar(repo, ses, obraId);
+        if (!d) return { ok: false, error: "No se encuentra la obra." };
+        const obra = repo.db.prepare("SELECT * FROM obras WHERE id = ?").get(obraId) || {};
+        let plantas = d.plantas.filter((p) => p.equipos.length || (p.materiales || []).length);
+        if (planta) plantas = plantas.filter((p) => String(p.planta || "") === String(planta));
+        if (!plantas.length) return { ok: false, error: planta ? `La planta ${planta} no tiene equipos ni materiales.` : "La obra no tiene equipos ni materiales en planos." };
+        const extra = datosEquipos(repo, obraId);
+        const cuentas = {};
+        const secciones = plantas.map((pl) => {
+          const idP = idSeguro(pl.planta || "SP");
+          let img = null;
+          if (pl.plano) {
+            const i = PE.imagen(repo, ses, pl.plano.id);
+            img = i ? i.imagen : null;
+          }
+          const puntos = puntosDePlanta(pl, extra);
+          cuentas[pl.planta || ""] = { equipos: pl.equipos.length, materiales: (pl.materiales || []).length };
+          return seccionPlanta(pl, img, puntos, idP);
+        }).join("\n");
+        const indice = plantas.length > 1 ? `<nav class="indice no-imp-no">${plantas.map((pl) => `<a href="#p-${idSeguro(pl.planta || "SP")}">Planta ${esc(pl.planta || "\u2014")} <span class="tenue">${pl.equipos.length} eq. \xB7 ${(pl.materiales || []).length} mat.</span></a>`).join("")}</nav>` : "";
+        const hoy = require_fecha().hoyLocal();
+        const titulo = `${obra.codigo || ""} \xB7 Planos de mantenimiento${planta ? ` \xB7 planta ${planta}` : ""}`;
+        const I = INTERFAZ.claro;
+        const doc = `<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(titulo)}</title>
+<style>
+:root{--verde:${MARCA.verde.hex};--texto:${I.texto};--suave:${I.textoSuave};--tenue:${I.textoTenue};--rejilla:${I.rejilla};--panel:${I.panel};--papel:${I.papel};--mal:${ESTADO.mal.hex};--malFondo:${ESTADO.mal.fondo}}
+*{box-sizing:border-box}
+body{margin:0;padding:16px;font:13px/1.4 ${FUENTES.texto};color:var(--texto);background:var(--panel)}
+h1{font:600 20px/1.2 ${FUENTES.titular};color:var(--verde);margin:0 0 2px}
+h2{font:600 16px/1.2 ${FUENTES.titular};color:var(--verde);margin:18px 0 6px;border-bottom:1px solid var(--verde);padding-bottom:3px}
+h3{font-size:13px;color:var(--verde);margin:14px 0 4px}
+.tenue{color:var(--tenue);font-weight:400}
+.cab{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.indice{display:flex;flex-wrap:wrap;gap:4px 14px;margin:6px 0}
+.indice a{color:var(--verde);text-decoration:none;font-weight:600}
+.barra{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:4px 0;width:fit-content}
+.capa{border:1px solid var(--rejilla);border-radius:999px;padding:1px 8px;font-size:12px;cursor:pointer;white-space:nowrap}
+.zoom button{border:1px solid var(--rejilla);background:var(--panel);border-radius:3px;width:26px;height:22px;margin-left:2px;cursor:pointer;color:var(--verde);font-weight:700}
+.leyenda{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:12px;margin:4px 0}
+.ley i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+.marco{overflow:auto;border:1px solid var(--rejilla);max-height:80vh}
+.lienzo{position:relative;width:100%}
+.lienzo img{display:block;width:100%;height:100%}
+.mk{position:absolute;transform:translate(-50%,-50%);min-width:13px;height:13px;padding:0 2px;border-radius:7px;color:${I.sobreEstado};font:600 8px/13px ${FUENTES.cifra};text-align:center;text-decoration:none;opacity:.92}
+.mk.eq{border-radius:2px;min-width:16px;height:15px;font-size:9px;line-height:15px}
+.mk:hover,.mk:focus{opacity:1;outline:2px solid var(--verde);z-index:2}
+.oculta{display:none!important}
+table.fichas{border-collapse:collapse;width:100%;font-size:12px}
+.fichas th{text-align:left;color:var(--verde);border-bottom:1px solid var(--verde);font-weight:600;padding:3px 6px}
+.fichas td{border-bottom:1px solid var(--rejilla);padding:3px 6px;vertical-align:top}
+.fichas tr:target{background:${ESTADO.bien.fondo}}
+.fichas .n{width:34px}.fichas .tag{white-space:nowrap;font-weight:600}
+.bola{display:inline-block;min-width:22px;padding:0 3px;border-radius:9px;color:${I.sobreEstado};text-align:center;font:600 11px/18px ${FUENTES.cifra}}
+.dt{display:inline-block;margin-right:12px;white-space:nowrap}.dt em,.rep em{font-style:normal;color:var(--tenue);margin-right:3px}
+.rep{margin-top:2px}.rep.mal{color:var(--mal)}
+.doc{color:var(--verde);font-weight:600;white-space:nowrap}
+.vuelta a{color:var(--suave);white-space:nowrap}
+.nota{color:var(--tenue)}
+@media print{
+  body{padding:0}.no-imp{display:none}
+  .marco{max-height:none;overflow:visible;border:0;page-break-after:always}
+  .planta{page-break-before:always}.planta:first-of-type{page-break-before:auto}
+  /* El plano entero en UNA hoja A3 (277 mm \xFAtiles menos cabecera y leyenda): manda la altura. */
+  .marco{page-break-inside:avoid}
+  .lienzo{width:auto!important;height:228mm;max-width:100%;margin:0 auto}
+  .fichas tr{page-break-inside:avoid}
+}
+@page{size:A3 landscape;margin:10mm}
+</style></head><body>
+<div class="cab">${require_papel().logoObra(obra, { alto: "9mm" })}<h1>${esc(obra.nombre || "Obra")}</h1><span class="tenue">${esc(obra.codigo || "")} \xB7 Planos de equipos y materiales instalados para mantenimiento \xB7 ${fecha(hoy)}</span></div>
+<p class="tenue">Cada n\xFAmero del plano lleva a su ficha; cada ficha, a su ficha t\xE9cnica y de vuelta al plano. Funciona sin conexi\xF3n salvo los enlaces a los documentos del fabricante.</p>
+${indice}
+${secciones}
+<script>
+document.addEventListener('change',function(e){var c=e.target;if(!c.dataset||!c.dataset.capa)return;var s=document.getElementById('p-'+c.dataset.p);
+s.querySelectorAll('.c-'+c.dataset.capa).forEach(function(n){n.classList.toggle('oculta',!c.checked)});});
+document.addEventListener('click',function(e){var b=e.target.closest('[data-z]');if(!b)return;var l=document.querySelector('#m-'+b.dataset.p+' .lienzo');if(!l)return;
+var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>0?1.5:1/1.5)));l.style.width=w+'%';});
+<\/script>
+</body></html>`;
+        const nombre = `${obra.codigo || "obra"}-mantenimiento${planta ? `-${planta}` : ""}-${hoy}`.replace(/[^\w.-]+/g, "_");
+        return { ok: true, html: doc, nombre, cuentas };
+      }
+      async function pdf(htmlTexto, ruta) {
+        const fs = require_fs();
+        const os = require_os();
+        const path = require_path();
+        const { BrowserWindow } = require_electronFalso();
+        const tmp = path.join(os.tmpdir(), `entregable-${Date.now()}.html`);
+        fs.writeFileSync(tmp, htmlTexto);
+        const w = new BrowserWindow({ show: false, width: 1600, height: 1100, webPreferences: { javascript: false, offscreen: true } });
+        try {
+          await w.loadFile(tmp);
+          const buf = await w.webContents.printToPDF({ pageSize: "A3", landscape: true, printBackground: true, margins: { marginType: "custom", top: 0.4, bottom: 0.4, left: 0.4, right: 0.4 } });
+          fs.writeFileSync(ruta, buf);
+          return { ok: true, ruta, bytes: buf.length };
+        } finally {
+          w.destroy();
+          fs.rmSync(tmp, { force: true });
+        }
+      }
+      module.exports = { html, pdf, COLOR_CAPA };
+    }
+  });
+
   // electron/movil/rutasPlanoEquipos.js
   var require_rutasPlanoEquipos = __commonJS({
     "electron/movil/rutasPlanoEquipos.js"(exports, module) {
@@ -92081,7 +93897,12 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         "GET api/plano-equipos": [["planoEquipos", "ver"]],
         "GET api/plano-equipos/imagen": [["planoEquipos", "ver"]],
         /* La localización de un equipo en el plano (29-oct): sale en su ficha, entre sus fotos. */
-        "GET api/plano-equipos/localizacion": [["commissioning", "ver"]]
+        "GET api/plano-equipos/localizacion": [["commissioning", "ver"]],
+        /* Los materiales instalados (29-oct): apuntar el nº de serie o la ficha en obra, y el
+           entregable a mantenimiento (HTML autónomo del plano con sus fichas). */
+        "POST api/materiales": [["planoEquipos", "editar"]],
+        "POST api/materiales/alta": [["planoEquipos", "crear"]],
+        "GET api/plano-equipos/entregable": [["planoEquipos", "ver"]]
       };
       function localizacionDe(repo, ses, equipoId) {
         try {
@@ -92101,7 +93922,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         function lista({ ses, query }) {
           const d = PE.listar(repo, ses, String(query.obra || ""));
           if (!d) return { ok: false, error: "No se encuentra la obra." };
-          return { ok: true, plantas: d.plantas, planos: d.planos, iconos: d.iconos, colores: d.colores, puedeEditar: d.puedeEditar, conCommissioning: d.conCommissioning };
+          return { ok: true, plantas: d.plantas, planos: d.planos, iconos: d.iconos, colores: d.colores, puedeEditar: d.puedeEditar, conCommissioning: d.conCommissioning, capas: d.capas, tiposMaterial: d.tiposMaterial };
         }
         function imagen({ ses, query }) {
           const img = PE.imagen(repo, ses, String(query.id || ""));
@@ -92117,7 +93938,30 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           if (!svg) return [404, { ok: false, error: "El plano no tiene imagen." }];
           return { bytes: Buffer.from(svg, "utf8"), tipo: "image/svg+xml" };
         }
-        return { "GET api/plano-equipos": lista, "GET api/plano-equipos/imagen": imagen, "GET api/plano-equipos/localizacion": localizacion };
+        const MI = require_materialesInstalados2();
+        function material({ ses, json }) {
+          const d = json || {};
+          if (d.borrar) return MI.borrar(repo, ses, String(d.id || ""));
+          return MI.guardar(repo, ses, String(d.id || ""), d);
+        }
+        function materialAlta({ ses, json }) {
+          const d = json || {};
+          return MI.alta(repo, ses, String(d.obra || ""), d);
+        }
+        function entregable({ ses, query }) {
+          const EP = require_entregablePlano();
+          const r = EP.html(repo, ses, String(query.obra || ""), { planta: query.planta ? String(query.planta) : null });
+          if (!r.ok) return [404, r];
+          return { bytes: Buffer.from(r.html, "utf8"), tipo: "text/html; charset=utf-8" };
+        }
+        return {
+          "POST api/materiales": material,
+          "POST api/materiales/alta": materialAlta,
+          "GET api/plano-equipos/entregable": entregable,
+          "GET api/plano-equipos": lista,
+          "GET api/plano-equipos/imagen": imagen,
+          "GET api/plano-equipos/localizacion": localizacion
+        };
       }
       module.exports = { crearRutasPlanoEquipos, PERMISOS_PLANO_EQUIPOS, localizacionDe };
     }
@@ -92200,6 +94044,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
       var FIR = require_firmasEquipo();
       var INC = require_incidencias();
       var FPM = require_fichasPM();
+      var LP = require_lecturaPlaca();
       var MNCR = require_motor();
       var MDIF = require_difusores();
       var FMOV = require_filaMovil();
@@ -92221,6 +94066,8 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         "POST api/equipo/instalacion": [["commissioning", "editar"]],
         "POST api/equipo/revalidar": [["commissioning", "editar"]],
         "POST api/equipo/serie": [["commissioning", "editar"]],
+        /* Confirmar o descartar el nº de serie leído de la foto de la placa (29-oct-2026). */
+        "POST api/equipo/placa": [["commissioning", "editar"]],
         "POST api/equipo/fotos": [["commissioning", "editar"]],
         "POST api/equipo/fotos/quitar": [["commissioning", "editar"]],
         "GET api/equipo/foto": [["commissioning", "ver"]],
@@ -92405,7 +94252,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           return {
             ok: true,
             /* Con su nº de serie (29-oct, JC): difusoresEquipo no lo trae. */
-            equipo: { ...d.equipo, numSerie: fila ? FMOV.serieDe(fila) : null },
+            equipo: { ...d.equipo, numSerie: fila ? FMOV.serieDe(fila) : null, seriePlaca: placaDe(ses, d.equipo.id) },
             conjunto: linea && linea.clase !== "suelto" ? {
               clase: linea.clase,
               envio: linea.envio,
@@ -92420,6 +94267,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
                 marca: m.marca || null,
                 modelo: m.modelo || null,
                 numSerie: FMOV.serieDe(m),
+                seriePlaca: placaDe(ses, m.id),
                 planta: m.planta || null,
                 sala: FMOV.salaVisibleDe(m),
                 estadoPM: m.estadoPM || null,
@@ -92444,7 +94292,14 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
               incidencias: fila.incidencias,
               instalada: fila.instalada !== false,
               instalacionVerificadaEn: fila.instalacionVerificadaEn || null,
-              instalacionVerificadaPor: fila.instalacionVerificadaPor || null
+              instalacionVerificadaPor: fila.instalacionVerificadaPor || null,
+              /* La fecha de puesta en marcha (mantenimiento) y la garantía, que cuenta
+                 desde la entrega a DF (29-oct, JC); las del conjunto si es un split o un VRF. */
+              fichaPMHecha: fila.pmFichas ? fila.pmFichas.fichaPM || null : null,
+              fechaPuestaMarcha: (linea && linea.clase !== "suelto" ? linea.fechaPuestaMarcha : fila.fechaPuestaMarcha) || null,
+              fechaEnvioDF: (linea && linea.clase !== "suelto" ? linea.fechaEnvioDF : fila.fechaEnvioDF) || null,
+              garantiaAnios: fila.garantiaAnios ?? null,
+              garantia: (linea && linea.clase !== "suelto" ? linea.garantia : fila.garantia) || null
             } : null,
             /* Qué se mide de este equipo (plantillasCliente.js › MEDICIONES): decide
                si sale la fila del balanceo y con qué nombre. */
@@ -92601,6 +94456,13 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           const e = json();
           return CX.verificarInstalacion(repo, ses, [llano(e.equipoId)], { verificada: e.verificada !== false });
         }
+        function equipoFechas({ ses, json }) {
+          const e = json();
+          const entrada = {};
+          if ("fechaPuestaMarcha" in e) entrada.fechaPuestaMarcha = e.fechaPuestaMarcha;
+          if ("garantiaAnios" in e) entrada.garantiaAnios = e.garantiaAnios;
+          return CX.guardarFechasEquipo(repo, ses, llano(e.equipoId), entrada);
+        }
         function equipoRevalidar({ ses, json }) {
           const e = json();
           return CX.validarTrasIncidencia(repo, ses, llano(e.equipoId));
@@ -92611,6 +94473,22 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           if (!r.ok) return r;
           const vuelta = llano(e.volver) || r.equipoId;
           return { ...equipo({ ses, query: { id: vuelta } }), ok: true, numSerie: r.numSerie, serieDe: r.equipoId };
+        }
+        function placaDe(ses, equipoId) {
+          try {
+            const eq = repo.leer("equiposObra", ses, equipoId);
+            const fotos = repo.listar("fotosEquipo", ses, { condicion: "equipoId = ?", params: [equipoId] });
+            return LP.paraPantalla(eq, fotos);
+          } catch {
+            return null;
+          }
+        }
+        function equipoPlaca({ ses, quien, json }) {
+          const e = json();
+          const r = LP.responder(repo, { ...ses, nombre: ses.nombre || (typeof quien === "string" ? quien : quien && quien.nombre) || null }, { equipoId: llano(e.equipoId), accion: llano(e.accion), valor: e.valor });
+          if (!r.ok) return r;
+          const vista = llano(e.vista) && repo.leer("equiposObra", ses, llano(e.vista)) ? llano(e.vista) : r.equipoId;
+          return { ...equipo({ ses, quien, query: { id: vista } }), ok: true, numSerie: r.numSerie || null };
         }
         function equipoMedida({ ses, json }) {
           const e = json();
@@ -92713,6 +94591,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
             return { ok: false, error: err.message || "No se pudo guardar la foto." };
           }
           for (const x of nuevas) soltar(llano(x.id));
+          LP.avisar();
           const vista = llano(e.vista) && repo.leer("equiposObra", ses, llano(e.vista)) ? llano(e.vista) : eq.id;
           return { ok: true, ...equipo({ ses, query: { id: vista } }) };
         }
@@ -93071,7 +94950,9 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           "POST api/cronometro": cronometroAccion,
           "POST api/cronometro/parte": cronometroParte,
           "POST api/equipo/instalacion": equipoInstalacion,
+          "POST api/equipo/fechas": equipoFechas,
           "POST api/equipo/serie": equipoSerie,
+          "POST api/equipo/placa": equipoPlaca,
           "POST api/equipo/revalidar": equipoRevalidar,
           "POST api/equipo/fotos": equipoFotos,
           "POST api/equipo/fotos/quitar": equipoFotoQuitar,
@@ -107373,7 +109254,8 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       function pendientesCx(repo, sesion, obraId) {
         const pm = FPM.puestaEnMarcha(repo, sesion, obraId);
         if (!pm) return [];
-        const equipos = new Map(repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] }).map((e) => [e.id, e]));
+        const crudos = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
+        const equipos = new Map(FPM.conFichasPM(repo, sesion, obraId, crudos).map((e) => [e.id, CX.conEstadoPM(e)]));
         return pm.lineas.map((l) => {
           const us = l.unidades || [l];
           const e = equipos.get(l.id) || {};
@@ -124894,6 +126776,7 @@ ${l}`;
       var MAX_DATOS = 700 * 1024;
       var MAX_ADJUNTO = 700 * 1024;
       var TIPOS_ADJ = /* @__PURE__ */ new Set(["image/jpeg", "image/png", "application/pdf"]);
+      var ID_CLIENTE = /^m[0-9a-z]{8,40}$/i;
       var nombreDe = (repo, id) => id ? (repo.db.prepare("SELECT nombre FROM personas WHERE id = ?").get(id) || {}).nombre || null : null;
       var existe = (repo, t) => Boolean(repo.db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(t));
       var filas = (repo, t, obraId) => existe(repo, t) ? repo.db.prepare(`SELECT * FROM "${t}" WHERE obraId = ?`).all(obraId) : [];
@@ -125219,6 +127102,14 @@ ${l}`;
             semana: ctx.semana,
             subcontratas: ctx.subcontratas,
             actividades: ctx.actividades,
+            /* Empresas de la obra (ncrEmpresas) para sugerir al contratista. */
+            empresas: (() => {
+              try {
+                return repo.db.prepare("SELECT nombre FROM ncrEmpresas WHERE obraId = ? ORDER BY nombre").all(o.id).map((e) => e.nombre);
+              } catch {
+                return [];
+              }
+            })(),
             /* El formulario en blanco de cada tipo, con la cabecera ya rellena. */
             inicial: Object.fromEntries(ORDEN.map((id) => [id, M.vacio(id, { obra: o, cliente, persona, contexto: ctx, hoy })])),
             sugerencias: Object.fromEntries(ORDEN.map((id) => [id, M.sugerencias(id, { contexto: ctx })])),
@@ -125353,6 +127244,10 @@ ${l}`;
         if (proveedorId && !repo.db.prepare("SELECT 1 FROM proveedores WHERE id = ?").get(proveedorId)) proveedorId = null;
         const ahora = (/* @__PURE__ */ new Date()).toISOString();
         const fechaCab = esFecha(datos.cabecera.fecha) ? datos.cabecera.fecha : null;
+        const idCli = [e.id, e.clave].map(llano).find((x) => ID_CLIENTE.test(x)) || null;
+        const yaHay = (id2) => Boolean(id2 && repo.db.prepare("SELECT 1 FROM qhseControles WHERE id = ?").get(id2));
+        if (!e.id && idCli && yaHay(idCli)) e = { ...e, id: idCli };
+        if (e.id && !yaHay(llano(e.id)) && idCli === llano(e.id) && e.obraId) e = { ...e, id: null };
         if (e.id) {
           const c = repo.leer("qhseControles", ses, llano(e.id));
           if (!c || !esRegistro(c)) return no("No se encuentra el formulario (o no es de tus obras).");
@@ -125379,6 +127274,7 @@ ${l}`;
         const previos = repo.db.prepare("SELECT COUNT(*) n FROM qhseControles WHERE obraId = ? AND plantilla = ? AND semana = ?").get(obra.id, plantilla, clave).n;
         const codigo = M.codigo(plantilla, fecha, obra.codigo, previos + 1);
         const id = repo.crear("qhseControles", ses, {
+          ...idCli && !yaHay(idCli) ? { id: idCli } : {},
           obraId: obra.id,
           plantilla,
           codigo,
@@ -125467,6 +127363,15 @@ ${l}`;
         repo.borrar("qhseAdjuntos", ses, a.id, { verbo: "crear" });
         return { ok: true };
       }
+      function enNube(repo, ses, id) {
+        if (!puede(ses.rol, MOD, "ver")) return no("Tu rol no ve QHSE.");
+        const fila = repo.db.prepare("SELECT id, obraId, modificadoEn, estado FROM qhseControles WHERE id = ?").get(llano(id));
+        if (!fila) return { ok: true, existe: false, enNube: false };
+        if (!repo.leer("obras", ses, fila.obraId)) return no("No se encuentra el formulario (o no es de tus obras).");
+        if (!existe(repo, "_syncVisto")) return { ok: true, existe: true, enNube: null, estado: fila.estado };
+        const v = repo.db.prepare("SELECT modificadoEn FROM _syncVisto WHERE tabla = 'qhseControles' AND id = ?").get(fila.id);
+        return { ok: true, existe: true, enNube: Boolean(v && String(v.modificadoEn) >= String(fila.modificadoEn)), estado: fila.estado };
+      }
       async function informe(repo, ses, id) {
         const r = abrir(repo, ses, id);
         if (!r.ok) return r;
@@ -125490,6 +127395,7 @@ ${l}`;
         adjunto,
         quitarAdjunto,
         informe,
+        enNube,
         resumenObras,
         listarPlantillas,
         guardarPlantilla,
@@ -125512,6 +127418,8 @@ ${l}`;
         /* 29-oct: el plan de la obra, las fotos de las NC, su seguimiento, Harbour y el informe. */
         "GET api/qhse/plan": [["qhse", "ver"]],
         "GET api/qhse/pdf": [["qhse", "ver"]],
+        /* 29-oct: ¿el formulario ya está en la nube? (la copia del teléfono espera hasta entonces). */
+        "GET api/qhse/enNube": [["qhse", "ver"]],
         "POST api/qhse/adjunto": [["qhse", "crear"]],
         "POST api/qhse/quitarAdjunto": [["qhse", "crear"]],
         "POST api/qhse/nc": [["qhse", "crear"]],
@@ -125529,6 +127437,7 @@ ${l}`;
             const r = await Q.informe(repo, ses, llano(query && query.id));
             return r.ok ? { bytes: r.bytes, tipo: r.tipo, nombre: r.nombre } : r;
           },
+          "GET api/qhse/enNube": ({ ses, query }) => Q.enNube(repo, ses, llano(query && query.id)),
           "POST api/qhse/adjunto": ({ ses, json }) => Q.adjunto(repo, ses, json()),
           "POST api/qhse/quitarAdjunto": ({ ses, json }) => Q.quitarAdjunto(repo, ses, llano(json().id)),
           "POST api/qhse/nc": ({ ses, json }) => Q.nc(repo, ses, json()),
@@ -125876,353 +127785,6 @@ ${l}`;
         return { atender, limpiar };
       }
       module.exports = { crearManejador, PERMISOS, RUTAS_BINARIAS, permitida, MAX_FOTO, MAX_JSON };
-    }
-  });
-
-  // shared/importacion/pdf.js
-  var require_pdf = __commonJS({
-    "shared/importacion/pdf.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var NL = String.fromCharCode(10);
-      var CR = String.fromCharCode(13);
-      var TAB = String.fromCharCode(9);
-      var BS = String.fromCharCode(8);
-      var FF = String.fromCharCode(12);
-      var _zlibPdf = typeof __require !== "undefined" ? require_zlib() : null;
-      var _leerTablasDeFuentes = null;
-      function registrarLectorDeFuentes(fn) {
-        _leerTablasDeFuentes = fn;
-      }
-      var aBytesPdf = (dato) => {
-        if (dato instanceof Uint8Array) return dato;
-        if (typeof ArrayBuffer !== "undefined" && dato instanceof ArrayBuffer) return new Uint8Array(dato);
-        if (typeof dato === "string") {
-          const salida = new Uint8Array(dato.length);
-          for (let i = 0; i < dato.length; i += 1) salida[i] = dato.charCodeAt(i) & 255;
-          return salida;
-        }
-        return new Uint8Array(0);
-      };
-      function latin1(bytes, desde = 0, hasta = bytes.length) {
-        let s = "";
-        for (let i = desde; i < hasta; i += 1) s += String.fromCharCode(bytes[i]);
-        return s;
-      }
-      function inflar(bytes) {
-        if (!_zlibPdf) return null;
-        try {
-          return new Uint8Array(_zlibPdf.inflateSync(Buffer.from(bytes)));
-        } catch {
-        }
-        try {
-          return new Uint8Array(_zlibPdf.inflateRawSync(Buffer.from(bytes)));
-        } catch {
-          return null;
-        }
-      }
-      async function inflarAsync(bytes) {
-        if (_zlibPdf) return inflar(bytes);
-        if (typeof DecompressionStream === "undefined") return null;
-        for (const formato of ["deflate", "deflate-raw"]) {
-          try {
-            const flujo = new Blob([bytes]).stream().pipeThrough(new DecompressionStream(formato));
-            return new Uint8Array(await new Response(flujo).arrayBuffer());
-          } catch {
-          }
-        }
-        return null;
-      }
-      function localizarFlujos(bytes) {
-        const texto = latin1(bytes);
-        const flujos = [];
-        let i = 0;
-        while (i < texto.length) {
-          const inicio = texto.indexOf("stream", i);
-          if (inicio === -1) break;
-          const dicc = texto.slice(Math.max(0, inicio - 800), inicio);
-          let datos = inicio + "stream".length;
-          if (texto.charCodeAt(datos) === 13) datos += 1;
-          if (texto.charCodeAt(datos) === 10) datos += 1;
-          const fin = texto.indexOf("endstream", datos);
-          if (fin === -1) break;
-          flujos.push({
-            dicc,
-            desde: datos,
-            hasta: fin,
-            comprimido: /\/FlateDecode/.test(dicc),
-            /* Un flujo que no es de contenido —una imagen, una fuente— se salta. */
-            esImagen: /\/Subtype\s*\/Image/.test(dicc),
-            esFuente: /\/FontFile|\/Type\s*\/Font/.test(dicc)
-          });
-          i = fin + "endstream".length;
-        }
-        return flujos;
-      }
-      function leerCadena(texto, i, dosBytes = false) {
-        if (texto[i] === "<") {
-          const fin = texto.indexOf(">", i);
-          if (fin === -1) return null;
-          const hex = texto.slice(i + 1, fin).replace(/[^0-9a-fA-F]/g, "");
-          let s2 = "";
-          const paso = dosBytes ? 4 : 2;
-          for (let k2 = 0; k2 + paso <= hex.length; k2 += paso) {
-            s2 += String.fromCharCode(parseInt(hex.slice(k2, k2 + paso), 16));
-          }
-          return { valor: s2, siguiente: fin + 1 };
-        }
-        if (texto[i] !== "(") return null;
-        const ESCAPES = { n: NL, r: CR, t: TAB, b: BS, f: FF, "(": "(", ")": ")", "\\": "\\" };
-        let s = "";
-        let nivel = 1;
-        let k = i + 1;
-        while (k < texto.length) {
-          const c = texto[k];
-          if (c === "\\") {
-            const d = texto[k + 1];
-            const octal = texto.slice(k + 1, k + 4).match(/^[0-7]{1,3}/);
-            if (octal) {
-              s += String.fromCharCode(parseInt(octal[0], 8));
-              k += 1 + octal[0].length;
-              continue;
-            }
-            if (d === NL) {
-              k += 2;
-              continue;
-            }
-            s += ESCAPES[d] !== void 0 ? ESCAPES[d] : d;
-            k += 2;
-            continue;
-          }
-          if (c === "(") {
-            nivel += 1;
-            s += c;
-            k += 1;
-            continue;
-          }
-          if (c === ")") {
-            nivel -= 1;
-            if (nivel === 0) return { valor: s, siguiente: k + 1 };
-            s += c;
-            k += 1;
-            continue;
-          }
-          s += c;
-          k += 1;
-        }
-        return null;
-      }
-      var WINANSI = {
-        128: "\u20AC",
-        130: "\u201A",
-        132: "\u201E",
-        133: "\u2026",
-        137: "\u2030",
-        139: "\u2039",
-        145: "\u2018",
-        146: "\u2019",
-        147: "\u201C",
-        148: "\u201D",
-        149: "\u2022",
-        150: "\u2013",
-        151: "\u2014",
-        155: "\u203A",
-        160: " "
-      };
-      var traducir = (s) => s.replace(/[- ]/g, (c) => WINANSI[c.charCodeAt(0)] || c);
-      function traducirCon(tabla, cadena) {
-        let s = "";
-        for (let i = 0; i < cadena.length; i += 1) {
-          const codigo = cadena.charCodeAt(i);
-          const letra = tabla.get(codigo);
-          if (letra !== void 0) {
-            s += letra;
-            continue;
-          }
-          if (codigo >= 128) continue;
-          s += cadena[i];
-        }
-        return s;
-      }
-      function trozosDelFlujo(texto, tablas = null) {
-        const trozos = [];
-        const pendientes = [];
-        let x = 0;
-        let y = 0;
-        let dentro = false;
-        let i = 0;
-        let tabla = null;
-        let tam = 10;
-        let dosBytes = false;
-        const soltar = () => {
-          if (!pendientes.length) return;
-          const junto = traducir(pendientes.join(""));
-          if (junto.trim()) trozos.push({ x, y, tam, texto: junto });
-          pendientes.length = 0;
-        };
-        while (i < texto.length) {
-          const c = texto[i];
-          if (texto.slice(i, i + 2) === "BT") {
-            dentro = true;
-            i += 2;
-            continue;
-          }
-          if (texto.slice(i, i + 2) === "ET") {
-            soltar();
-            dentro = false;
-            i += 2;
-            continue;
-          }
-          if (!dentro) {
-            i += 1;
-            continue;
-          }
-          if (c === "/") {
-            const m = texto.slice(i).match(/^\/([A-Za-z0-9+._-]+)\s+([-\d.]+)\s+Tf/);
-            if (m) {
-              soltar();
-              const fuente = tablas ? tablas.get(m[1]) || null : null;
-              tabla = fuente ? fuente.mapa : null;
-              dosBytes = Boolean(fuente && fuente.dosBytes);
-              tam = Math.abs(Number(m[2])) || tam;
-              i += m[0].length;
-              continue;
-            }
-          }
-          if (c === "(" || c === "<") {
-            const r = leerCadena(texto, i, dosBytes);
-            if (!r) {
-              i += 1;
-              continue;
-            }
-            pendientes.push(tabla ? traducirCon(tabla, r.valor) : r.valor);
-            i = r.siguiente;
-            continue;
-          }
-          if (texto.slice(i, i + 2) === "T*") {
-            soltar();
-            y -= 12;
-            i += 2;
-            continue;
-          }
-          if (/[-\d.]/.test(c)) {
-            const m = texto.slice(i).match(/^((?:-?[\d.]+\s+)+)(Td|TD|Tm|cm)/);
-            if (m) {
-              const nums = m[1].trim().split(/\s+/).map(Number);
-              soltar();
-              if (m[2] === "Tm") {
-                x = nums[4] || 0;
-                y = nums[5] || 0;
-              } else if (m[2] === "Td" || m[2] === "TD") {
-                x += nums[nums.length - 2] || 0;
-                y += nums[nums.length - 1] || 0;
-              }
-              i += m[1].length + m[2].length;
-              continue;
-            }
-            const n = texto.slice(i).match(/^(-?[\d.]+)/);
-            if (n) {
-              if (pendientes.length && Number(n[1]) < -320) pendientes.push(" ");
-              i += n[1].length;
-              continue;
-            }
-          }
-          i += 1;
-        }
-        soltar();
-        return trozos;
-      }
-      function agruparEnLineas(trozos, tolerancia = 3) {
-        const orden = [...trozos].sort((a, b) => b.y - a.y || a.x - b.x);
-        const lineas = [];
-        for (const t of orden) {
-          if (!t.texto.trim()) continue;
-          const ultima = lineas[lineas.length - 1];
-          if (ultima && Math.abs(ultima.y - t.y) <= tolerancia) {
-            ultima.trozos.push(t);
-            ultima.y = (ultima.y + t.y) / 2;
-          } else {
-            lineas.push({ y: t.y, trozos: [t] });
-          }
-        }
-        return lineas.map((l) => {
-          const cols = [...l.trozos].sort((a, b) => a.x - b.x);
-          const texto = cols.map((c) => c.texto).join(" ");
-          return {
-            y: l.y,
-            /* Las columnas se guardan aparte del texto seguido: de ellas sale la
-               tabla, y del texto seguido sale la búsqueda. */
-            columnas: cols.map((c) => ({ x: c.x, texto: c.texto.trim() })).filter((c) => c.texto),
-            texto: texto.replace(/\s+/g, " ").trim()
-          };
-        }).filter((l) => l.texto);
-      }
-      function montarResultado(bytes, flujos, contenidos, tablas) {
-        const cabecera = latin1(bytes, 0, Math.min(1024, bytes.length));
-        const avisos = [];
-        if (!/^%PDF-/.test(cabecera)) avisos.push("El archivo no empieza por %PDF: puede no ser un PDF.");
-        if (/\/Encrypt\b/.test(latin1(bytes, 0, Math.min(4096, bytes.length)))) {
-          avisos.push("El PDF est\xE1 cifrado: puede que no se lea nada.");
-        }
-        const paginas = [];
-        for (const texto of contenidos) {
-          const lineas = agruparEnLineas(trozosDelFlujo(texto, tablas && tablas.porNombre));
-          if (lineas.length) paginas.push({ lineas });
-        }
-        const conTexto = paginas.reduce((s, p) => s + p.lineas.length, 0);
-        const hayImagenes = flujos.some((f) => f.esImagen);
-        if (!conTexto) {
-          avisos.push(hayImagenes ? "Este PDF no lleva texto dentro: es un escaneo. Para leerlo har\xEDa falta reconocimiento \xF3ptico, que esta aplicaci\xF3n no hace." : "No se ha encontrado texto en el PDF.");
-        }
-        const sospechoso = paginas.some((p) => p.lineas.some((l) => /[-]/.test(l.texto)));
-        if (sospechoso) avisos.push("Algunas letras pueden salir mal: el PDF usa una codificaci\xF3n de fuente propia.");
-        return {
-          paginas,
-          lineas: paginas.flatMap((p) => p.lineas),
-          texto: paginas.map((p) => p.lineas.map((l) => l.texto).join(NL)).join(NL + NL),
-          avisos,
-          escaneado: !conTexto && hayImagenes
-        };
-      }
-      function leerPdf(dato) {
-        const bytes = aBytesPdf(dato);
-        const flujos = localizarFlujos(bytes);
-        const contenidos = [];
-        for (const f of flujos) {
-          if (f.esImagen || f.esFuente) continue;
-          const crudo = bytes.slice(f.desde, f.hasta);
-          const datos = f.comprimido ? inflar(crudo) : crudo;
-          if (datos) contenidos.push(latin1(datos));
-        }
-        const tablas = _leerTablasDeFuentes ? _leerTablasDeFuentes(bytes) : null;
-        return montarResultado(bytes, flujos, contenidos, tablas);
-      }
-      async function leerPdfAsync(dato) {
-        const bytes = aBytesPdf(dato);
-        const flujos = localizarFlujos(bytes);
-        const contenidos = [];
-        for (const f of flujos) {
-          if (f.esImagen || f.esFuente) continue;
-          const crudo = bytes.slice(f.desde, f.hasta);
-          const datos = f.comprimido ? await inflarAsync(crudo) : crudo;
-          if (datos) contenidos.push(latin1(datos));
-        }
-        const tablas = _leerTablasDeFuentes ? await _leerTablasDeFuentes(bytes) : null;
-        return montarResultado(bytes, flujos, contenidos, tablas);
-      }
-      (function exportar(API) {
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.PDF = API;
-      })({
-        leerPdf,
-        leerPdfAsync,
-        agruparEnLineas,
-        trozosDelFlujo,
-        localizarFlujos,
-        leerCadena,
-        latin1,
-        registrarLectorDeFuentes
-      });
     }
   });
 
