@@ -167,6 +167,20 @@
     return `<strong class="cifra">${esc(e.tag)}</strong>`;
   }
 
+  /* EL Nº DE SERIE (29-oct-2026, JC: «ponme los números de serie en los
+     equipos en Vidaire Cx también»): el de cada unidad, «UE … · UI …»
+     (shared/commissioning/filaMovil.js › seriesTexto; lo escribe la ruta,
+     que ya lo trae limpio). Sin ninguno, nada. */
+  function serieFila(e) {
+    return e.serie ? `<div class="sub serie">Nº serie <span class="cifra">${esc(e.serie)}</span></div>` : '';
+  }
+  /* En la pantalla del equipo, cada unidad en su línea, también la que no lo tiene. */
+  function htmlNumSerie(e, cj) {
+    const us = cj && cj.unidades && cj.unidades.length > 1 ? cj.unidades : [{ tag: e.tag, numSerie: e.numSerie }];
+    return `<dl class="num-serie">${us.map((u) => `<dt>Nº serie${us.length > 1 ? ` <em>${esc(u.papel || '')}</em>` : ''}</dt>
+      <dd class="${u.numSerie ? 'cifra' : 'aviso'}">${esc(u.numSerie || 'Sin nº de serie')}${us.length > 1 ? ` <small>${esc(u.tag)}</small>` : ''}</dd>`).join('')}</dl>`;
+  }
+
   /* EL NÚMERO DE CADA GRUPO DICE LO HECHO (28-oct-2026, JC: «pon como estaban
      pero el número ese que aparece en el extremo como total lo pones como
      X/total»). La barra es la de siempre (título a la izquierda, número a la
@@ -264,6 +278,7 @@
           <div class="sub">${[NOMBRE_CLASE[e.clase], e.planta, e.local, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean)
             /* Cada trozo entero: a 390 px se parte entre trozos, no en «U-|71PZH3E5». */
             .map((x) => `<span class="trozo">${esc(x)}</span>`).join(' · ') || 'Sin datos'}</div>
+          ${serieFila(e)}
           ${e.bocas ? `<div class="progreso" aria-label="${e.medidas} de ${e.bocas} bocas medidas"><i style="width:${Math.round((e.medidas / e.bocas) * 100)}%"></i></div>
           <div class="sub">${cifra(e.medidas)} de ${cifra(e.bocas)} bocas medidas</div>` : e.conPlano === false ? '' : '<div class="sub">Sin plano de bocas</div>'}
           ${e.falta && e.falta.length && !e.completo ? `<div class="sub aviso">Falta: ${esc(e.falta.join(', '))}</div>` : ''}
@@ -349,6 +364,16 @@
       window.scrollTo(0, quieto ? y : 0);
       cargarFichas(id);
     } catch (e) { C.aviso(e.message); cargarLista(); }
+  }
+
+  /* El equipo otra vez del servidor, sin tocar lo demás (fichas, tomas, pestaña). */
+  async function refrescarEquipo(id) {
+    try {
+      const r = await C.pedir(`api/equipo?id=${encodeURIComponent(id)}`);
+      if (!r.ok || !ficha || ficha.equipo.id !== id) return;
+      ficha = r;
+      if (activa() && !hoja && !abriendoHoja && !firmando && !escribiendoEnApp()) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
+    } catch { /* sin red: se queda lo que había y las fotos de la cola */ }
   }
 
   async function cargarFichas(id) {
@@ -713,6 +738,7 @@
       ${htmlTomaDatos()}
       ${htmlConservadas()}`
       : `${htmlNotaConjunto(f.conjunto)}
+      ${htmlNumSerie(e, f.conjunto)}
       ${htmlFichas('equipo', 'Fichas del equipo')}
       ${htmlFotosEquipo(f, puede)}
       ${checklist(f.checklist, f.medicion, puede)}`;
@@ -723,6 +749,7 @@
         : tagFijo(e.tag, sub, 'atras')}
       <div class="densa">${cuerpo}</div>`;
     C.cargarImagenes($app);
+    cargarFotosLocales($app);
     if (firmando) prepararLienzo();
     if (pestanaEq === 'balanceo') { restaurarBocas(); restaurarPlano(); latirCrono(); }
     else { bocaAbierta = null; grandeId = null; document.body.classList.remove('sin-scroll'); }
@@ -1024,17 +1051,62 @@
    * cámara y la foto se guarda ya, con ese pie y la hora. Sin pasos de más.
    */
   const PIES_FOTO = ['Placa', 'Vista general', 'Otra'];
+  /*
+   * TODAS LAS FOTOS DEL EQUIPO (29-oct-2026, JC: «acabo de hacer una foto del
+   * equipo tras el checklist y al volver no aparece ninguna foto»). El servidor
+   * manda las de todas las unidades del conjunto y las de sus fichas, cada una
+   * con su origen; aquí se suman las que siguen en la cola del teléfono (foto
+   * del equipo sin subir o foto de una ficha aún en su borrador), con su
+   * miniatura sacada del propio teléfono.
+   */
+  const unidadesDe = (f) => (f.conjunto && f.conjunto.unidades && f.conjunto.unidades.length ? f.conjunto.unidades.map((u) => u.id) : [f.equipo.id]);
+  function fotosEnCola(f) {
+    if (!COLA || !AG || !f || !f.equipo) return [];
+    const fuera = [];
+    for (const id of unidadesDe(f)) {
+      for (const k of COLA.claves(`fotoEquipo.${id}.`)) {
+        const b = AG.leer(k);
+        for (const x of (b && b.fotos) || []) if (x && x.local) fuera.push({ local: x.local, pie: x.pie || '', hora: x.hora || '', origen: 'equipo', ficha: null });
+      }
+    }
+    for (const r of f.fichasConFotos || []) {
+      const b = AG.leer(claveBorrador(r));
+      for (const x of (b && b.fotos) || []) if (x && x.local) fuera.push({ local: x.local, pie: x.pie || '', hora: x.hora || '', origen: 'ficha', ficha: r.nombre });
+    }
+    return fuera;
+  }
+  /* De dónde viene cada foto: «Checklist split», «UE»… (nada si es de este mismo equipo). */
+  const origenFoto = (x) => [x.ficha ? fichaCorta(x.ficha) : null, x.unidad].filter(Boolean).join(' · ');
+  const fichaCorta = (n) => { const t = String(n || '').trim(); return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase(); };
   function htmlFotosEquipo(f, puede) {
     const fotos = f.fotos || [];
-    const enMovil = COLA && f.equipo ? COLA.claves(`fotoEquipo.${f.equipo.id}.`).filter((k) => !fotosEquipoEnCurso.has(k)).length : 0;
-    return `<h2>Fotos del equipo <span class="cuenta">${fotos.length}</span></h2>
-      ${enMovil ? `<p class="nota">${marcaAG('sinRed')} ${enMovil === 1 ? 'Una foto está' : `${enMovil} fotos están`} en el móvil: se subirá${enMovil === 1 ? '' : 'n'} sola${enMovil === 1 ? '' : 's'} al volver la conexión.</p>` : ''}
-      ${fotos.length ? `<ul class="fotos-equipo">${fotos.map((x) => `<li><img data-src="api/equipo/foto?id=${encodeURIComponent(x.id)}" alt="${esc(x.pie || 'Foto')}">
-        <div class="pie"><span>${esc([x.pie, x.hora].filter(Boolean).join(' · '))}</span>${puede ? `<button class="enlace mal" data-cx="quitar-foto-equipo" data-id="${esc(x.id)}">Quitar</button>` : ''}</div></li>`).join('')}</ul>` : ''}
+    const enCola = fotosEnCola(f);
+    const total = fotos.length + enCola.length;
+    const pieDe = (x) => esc([x.pie, x.hora].filter(Boolean).join(' · ') || 'Foto');
+    const marca = (x) => { const o = origenFoto(x); return o ? `<span class="origen-foto">${esc(o)}</span>` : ''; };
+    return `<h2>Fotos del equipo <span class="cuenta">${total}</span></h2>
+      ${enCola.length ? `<p class="nota">${marcaAG('sinRed')} ${enCola.length === 1 ? 'Una foto está' : `${enCola.length} fotos están`} solo en el móvil: se subirá${enCola.length === 1 ? '' : 'n'} sola${enCola.length === 1 ? '' : 's'} al volver la conexión.</p>` : ''}
+      ${total ? `<ul class="fotos-equipo">${fotos.map((x) => `<li><img data-src="${esc(x.url || `api/equipo/foto?id=${encodeURIComponent(x.id)}`)}" alt="${esc(x.pie || 'Foto')}">
+        <div class="pie"><span>${pieDe(x)}</span>${marca(x)}${puede && (x.origen || 'equipo') === 'equipo' ? `<button class="enlace mal" data-cx="quitar-foto-equipo" data-id="${esc(x.id)}">Quitar</button>` : ''}</div></li>`).join('')}${enCola.map((x) => `<li class="en-movil"><img data-local="${esc(x.local)}" alt="${esc(x.pie || 'Foto')}">
+        <div class="pie"><span>${pieDe(x)}</span>${marca(x)}<span class="origen-foto">En el móvil</span></div></li>`).join('')}</ul>` : ''}
       ${puede ? `<div class="fila-botones fotos-rapidas">
         ${PIES_FOTO.map((pie) => `<button class="boton secundario" data-cx="foto-equipo" data-pie="${esc(pie)}"><i class="ic ic-camara"></i>${esc(pie)}</button>`).join('')}
         <button class="boton secundario" data-cx="foto-equipo" data-pie="" data-galeria="1">De la galería</button>
       </div>` : ''}`;
+  }
+  /* Las miniaturas de las fotos que siguen en el teléfono (IndexedDB). */
+  function cargarFotosLocales(raiz) {
+    if (!AG) return;
+    for (const img of raiz.querySelectorAll('img[data-local]')) {
+      const k = img.dataset.local;
+      img.removeAttribute('data-local');
+      img.classList.add('cargando');
+      AG.leerFoto(k).then((b) => {
+        img.classList.remove('cargando');
+        if (b) { try { img.src = URL.createObjectURL(b); return; } catch { /* sin vista */ } }
+        img.classList.add('sin-foto');
+      }, () => { img.classList.remove('cargando'); img.classList.add('sin-foto'); });
+    }
   }
 
   /*
@@ -1101,6 +1173,9 @@
       if (ficha && ficha.equipo.id === b.equipoId) {
         ficha = r;
         if (activa() && !hoja && !escribiendoEnApp()) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
+      } else if (ficha && unidadesDe(ficha).includes(b.equipoId)) {
+        /* Era de la otra unidad del split: se relee el equipo que está abierto. */
+        refrescarEquipo(ficha.equipo.id);
       }
       return true;
     } catch { return false; } finally { fotosEquipoEnCurso.delete(clave); }
@@ -1119,7 +1194,7 @@
   async function quitarFotoEquipo(boton) {
     if (!window.confirm('¿Quitar esta foto del equipo?')) return;
     try {
-      const r = await C.postJson('api/equipo/fotos/quitar', { id: boton.dataset.id });
+      const r = await C.postJson('api/equipo/fotos/quitar', { id: boton.dataset.id, vista: ficha ? ficha.equipo.id : '' });
       if (!r.ok) throw new Error(r.error);
       ficha = r;
       if (activa()) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
@@ -1450,6 +1525,29 @@
     return x.medidos && x.medidos.obligatorios ? `${x.medidos.rellenos} de ${x.medidos.obligatorios} datos` : null;
   }
 
+  /*
+   * «VER HOJA» (JC, 29-oct: «poder ver los modelos con los datos definitivos
+   * cuando se rellenen»): el modelo oficial del cliente tal como se imprime y se entrega —el
+   * mismo PDF que saca el escritorio, con sus firmas—, a pantalla completa y
+   * con Compartir. Mientras la ficha no esté completa es un BORRADOR y lo dice
+   * aquí y en el nombre del PDF (la hoja no lleva marca de agua: JC, 15-oct).
+   */
+  const esDefinitiva = (x) => ['completa', 'firmada'].includes(estadoVisible(x.estado, x.medidos, x.bocasSinMedir));
+  function htmlVerHoja(x, i) {
+    if (!x.plantilla || estadoVisible(x.estado, x.medidos, x.bocasSinMedir) === 'sinFicha') return '';
+    const def = esDefinitiva(x);
+    return `<div class="ver-hoja"><button type="button" class="enlace" data-cx="ver-hoja" data-i="${i}">Ver hoja</button><span class="chip ${def ? 'bien' : 'aviso'}">${def ? 'Definitiva' : 'Borrador'}</span></div>`;
+  }
+
+  async function verHoja(b) {
+    const x = fichasEq && (fichasEq.fichas || [])[Number(b.dataset.i)];
+    if (!x || !x.plantilla) return;
+    const obra = (fichasEq.equipo && fichasEq.equipo.obraId) || (ficha && ficha.equipo.obraId);
+    const q = new URLSearchParams({ tipo: 'ficha', obra, clave: x.clave, plantilla: x.plantilla });
+    const tag = ficha ? ficha.equipo.tag : '';
+    await compartirPdf(`api/informe?${q}`, `${[tag, x.nombre].filter(Boolean).join(' - ')}${esDefinitiva(x) ? '' : ' (BORRADOR)'}.pdf`, b);
+  }
+
   function htmlFichas(pestana = 'equipo', titulo = 'Fichas del equipo') {
     if (!fichasEq) return `<section id="fichas-equipo"><h2>${esc(titulo)}</h2><p class="cargando">Cargando las fichas…</p></section>`;
     if (fichasEq.ok === false) return `<section id="fichas-equipo"><h2>${esc(titulo)}</h2><p class="nota aviso">${esc(fichasEq.error)}</p></section>`;
@@ -1473,7 +1571,7 @@
         <li><button class="fila-ios" data-cx="hoja" data-i="${i}">
           <div class="fila-principal"><strong>${esc(x.nombre)}</strong><span>${chipFicha(x.estado, x.resultado, x.medidos, x.bocasSinMedir)}</span></div>
           <div class="sub">${esc([CLASE_FICHA[x.clase] || x.clase, x.motivo, textoMedidos(x), x.fotos ? `${x.fotos} foto${x.fotos === 1 ? '' : 's'}` : null].filter(Boolean).join(' · '))}</div>
-        </button></li>`)).join('')}${filaBal}</ul>` : `<p class="vacio">${esc(vacio)}</p>`}
+        </button>${htmlVerHoja(x, i)}</li>`)).join('')}${filaBal}</ul>` : `<p class="vacio">${esc(vacio)}</p>`}
       ${notaMed}
     </section>`;
   }
@@ -1489,7 +1587,7 @@
         <li><button class="fila-ios" data-cx="hoja" data-i="${i}">
           <div class="fila-principal"><strong>${esc(x.nombre)}</strong><span>${chipFicha(x.estado, x.resultado, x.medidos, x.bocasSinMedir)}</span></div>
           <div class="sub">${esc([x.unidadTag, CLASE_FICHA[x.clase] || x.clase, textoMedidos(x)].filter(Boolean).join(' · '))}</div>
-        </button></li>`).join('')}</ul>
+        </button>${htmlVerHoja(x, i)}</li>`).join('')}</ul>
     </section>`;
   }
 
@@ -1587,7 +1685,20 @@
   const cabDe = (k) => (hoja.cabecera[k] !== undefined ? hoja.cabecera[k] : hoja.f.cabecera[k]);
 
   const BOTONES_RESP = { siNoNa: [['si', 'Sí'], ['no', 'No'], ['na', 'N/A']], siNo: [['si', 'Sí'], ['no', 'No']], okNoOk: [['ok', 'OK'], ['noOk', 'NO OK']] };
-  const claseResp = (k) => `activa ${k === 'no' || k === 'noOk' ? 'mal' : k === 'na' ? 'neutra' : 'bien'}`;
+  /* El color del botón marcado: la misma regla que el PDF (reglasCx.tonoRespuesta,
+     29-oct-2026). Rojo solo lo NO conforme: el «No» de un punto de chequeo, el
+     «NO OK» y el «Sí» de una fuga. Un dato de la instalación («Asociado a red
+     de conductos») es una respuesta, sin rojo ni verde. */
+  const tonoResp = (p, k, tipoSeccion) => {
+    if (k === 'noOk') return 'mal';
+    if (k === 'ok') return 'bien';
+    if (k === 'na') return 'neutra';
+    if (p && p.tipo === 'siNo' && /fuga/i.test(String(p.codigo || ''))) return k === 'si' ? 'mal' : 'bien';
+    const deChequeo = tipoSeccion ? tipoSeccion === 'checklist' : !(p && p.tipo === 'siNo');
+    if (!deChequeo) return 'neutra';
+    return k === 'no' ? 'mal' : 'bien';
+  };
+  const claseResp = (k, p, tipoSeccion) => `activa ${tonoResp(p, k, tipoSeccion)}`;
 
   /*
    * LA HOJA DENSA, como la hoja del PDF (15-oct-2026, JC: «no me gustan nada
@@ -1600,12 +1711,12 @@
   const unidadDe = (p) => (p.unidad ? ` <span class="tenue">${esc(p.unidad)}</span>` : '');
 
   /* Solo el campo, sin etiqueta: para las filas y las rejillas. */
-  function inputPunto(p, ed, aria) {
+  function inputPunto(p, ed, aria, tipoSeccion) {
     const dis = ed ? '' : 'disabled';
     const v = valorDe(p);
     const a = `aria-label="${esc(aria || p.etiqueta)}"`;
     if (BOTONES_RESP[p.tipo]) {
-      return `<div class="respuestas mini">${BOTONES_RESP[p.tipo].map(([k, n]) => `<button type="button" ${dis} class="${v === k ? claseResp(k) : ''}" data-h-resp="${k}" data-h-punto="${esc(p.codigo)}">${n}</button>`).join('')}</div>`;
+      return `<div class="respuestas mini">${BOTONES_RESP[p.tipo].map(([k, n]) => `<button type="button" ${dis} class="${v === k ? claseResp(k, p, tipoSeccion) : ''}" data-h-resp="${k}" data-h-punto="${esc(p.codigo)}">${n}</button>`).join('')}</div>`;
     }
     if (p.tipo === 'numero') return `<input class="cifra corto" inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis} ${a} value="${esc(coma(v))}" data-h-punto="${esc(p.codigo)}" data-h-k="v" data-h-num>`;
     if (p.tipo === 'fecha') return `<input type="date" ${dis} ${a} value="${esc(String(v || '').slice(0, 10))}" data-h-punto="${esc(p.codigo)}" data-h-k="v">`;
@@ -1623,7 +1734,7 @@
     if (s.tipo === 'parametros') return filaParametro(p, ed);
     const num = s.tipo === 'checklist' ? `<span class="num">${esc(numCheck(p.numero || p.codigo))}</span>` : '';
     const clase = BOTONES_RESP[p.tipo] ? 'fd resp' : `fd${p.tipo === 'numero' ? ' n' : ''}`;
-    return `<div class="${clase}"><span class="et">${num}${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}</span>${inputPunto(p, ed)}</div>`;
+    return `<div class="${clase}"><span class="et">${num}${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}</span>${inputPunto(p, ed, null, s.tipo)}</div>`;
   }
 
   const casillaParametro = (p, k, n, dis) => `<input class="cifra${k === 'm' ? ' medido' : ''}" inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis}
@@ -2375,9 +2486,12 @@
 
   /* Salir de la hoja no pide confirmar: lo pendiente ya está en el teléfono y se manda solo. */
   function salirHoja() {
-    if (hoja && hoja.cambiada) autoguardar(hoja, { forzar: true });
+    const guardando = hoja && hoja.cambiada ? autoguardar(hoja, { forzar: true }) : null;
     hoja = null;
     if (hojaDirecta && origenPlano) { volverAlPlano(); return; }
+    /* Al volver al equipo, sus fotos al día: las hechas en la ficha salen ya
+       (desde la cola del teléfono mientras no han subido; luego, del servidor). */
+    if (ficha) { const id = ficha.equipo.id; Promise.resolve(guardando).catch(() => {}).then(() => refrescarEquipo(id)); }
     if (balDirecto) { balDirecto = false; pestanaEq = 'equipo'; }
     pintarFicha();
     if (!fichasEq && ficha) cargarFichas(ficha.equipo.id);
@@ -2671,6 +2785,7 @@
     else if (que === 'guardar-firma' && ficha) guardarFirma(b);
     else if (que === 'quitar-firma' && ficha) guardarFirma(b, true);
     else if (que === 'quitar-foto-equipo') quitarFotoEquipo(b);
+    else if (que === 'ver-hoja') verHoja(b);
     else if (que === 'nube-ahora' && window.cxObra && window.cxObra.sync) { b.disabled = true; window.cxObra.sync.ahora().finally(() => { if (ficha) abrir(ficha.equipo.id, { quieto: true }); }); }
     else if (que === 'crono' && ficha) accionCrono(b, b.dataset.accion);
     else if (que === 'crono-anadir' && ficha) { const g = leerCuadrilla(); g.push({ nombre: `Operario ${g.filter((p) => p.rol === 'operario').length + 1}`, rol: 'operario', empresa: (g[g.length - 1] || {}).empresa || null }); cuadrillaLocal.cambiada = true; cuadrillaLocal.estado = 'guardando'; repintarCrono(); cuadrillaPronto(); }
@@ -2696,12 +2811,14 @@
   /* Un toque en Sí / No / N/A de la ficha `h`: marca, o desmarca si ya lo estaba. */
   function tocarResp(h, b) {
     const p = b.dataset.hPunto;
-    const guardado = (h.f.secciones.flatMap((s) => s.puntos).find((x) => x.codigo === p) || {}).valor;
+    const sec = h.f.secciones.find((s) => (s.puntos || []).some((x) => x.codigo === p));
+    const punto = sec ? sec.puntos.find((x) => x.codigo === p) : null;
+    const guardado = (punto || {}).valor;
     const actual = h.valores[p] && 'v' in h.valores[p] ? h.valores[p].v : guardado;
     const nuevo = actual === b.dataset.hResp ? null : b.dataset.hResp;
     h.valores[p] = { v: nuevo };
     for (const x of b.parentElement.children) x.className = '';
-    if (nuevo) b.className = b.parentElement.classList.contains('segmento') ? 'activa' : `activa ${nuevo === 'no' || nuevo === 'noOk' ? 'mal' : nuevo === 'na' ? 'neutra' : 'bien'}`;
+    if (nuevo) b.className = b.parentElement.classList.contains('segmento') ? 'activa' : claseResp(nuevo, punto, sec && sec.tipo);
     return nuevo;
   }
   /*
