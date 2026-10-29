@@ -10017,7 +10017,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261029.1013" : "0";
+      var VERSION = true ? "20261029.1053" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -18004,6 +18004,25 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
           r.cambia = Boolean(r.copiados || r.cabecera.length || r.fotos || r.anexos || r.bocas || r.observaciones);
           return { datos: d, ...r };
         }
+        function bocasSinMedir(ev) {
+          const fuera = [];
+          for (const s of ev.secciones || []) {
+            for (const [c, v] of Object.entries(s.circuitos || {})) {
+              const conProyecto = (v.filas || []).filter((b) => b.p !== null && b.p !== void 0);
+              for (const b of conProyecto) {
+                if (b.m !== null && b.m !== void 0) continue;
+                const total = conProyecto.length === 1 && v.proyectoSistema !== null && Number(b.p) === Number(v.proyectoSistema);
+                fuera.push({ circuito: c, terminal: b.terminal || b.local || null, proyecto: b.p, totalEquipo: total });
+              }
+            }
+          }
+          return fuera;
+        }
+        function estadoVisible(estado, medidos, bocasSinMedirLista) {
+          if (estado !== "pendiente" || !medidos) return estado;
+          if (!medidos.rellenos) return "sinEmpezar";
+          return medidos.obligatorios && medidos.rellenos >= medidos.obligatorios && !(bocasSinMedirLista || []).length ? "completa" : estado;
+        }
         function estadoEquipo(equipo, familia, plantillas, buscar, unidades = null) {
           const lista = requeridas(equipo, familia, plantillas, { unidades, buscar }).map((r) => {
             const ficha = r.clave && r.plantilla ? buscar(r.clave, r.plantilla) : null;
@@ -18126,6 +18145,8 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
           resumenUis,
           fichaFundida,
           fundirRespuestas,
+          bocasSinMedir,
+          estadoVisible,
           estadoEquipo,
           estadoChecklist,
           avance: avancePorGrupo
@@ -40666,6 +40687,11 @@ ${subtitulo}`, c[5]] : c.slice())]);
         for (const f of filasDe(repo, sesion, equipoIds)) if (f.rol in r) r[f.rol] = publica(f);
         return r;
       }
+      function equiposConFirmas(repo, sesion, equipoIds) {
+        const r = { jefeObra: /* @__PURE__ */ new Set(), cliente: /* @__PURE__ */ new Set() };
+        for (const f of filasDe(repo, sesion, equipoIds)) if (f.rol in r) r[f.rol].add(f.equipoId);
+        return r;
+      }
       function unidadesDelConjunto(repo, sesion, equipo) {
         if (!equipo) return [];
         const todos = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [equipo.obraId] });
@@ -40800,7 +40826,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         repo.crear("firmasEquipo", sesion, { obraId: eq.obraId, equipoId: eq.id, rol: "jefeObra", nombre: g.nombre, cargo: null, imagen: g.imagen, fecha }, { verbo: "editar" });
         return { ok: true, hecho: "puesta" };
       }
-      module.exports = { ROLES, CARGOS, rotuloCargo, firmar, firmasDeEquipo, firmasDeEquipos, firmasDeClave, paraPdf, bytesDeImagen, unidadesDelConjunto, fechaDelTrabajo, firmaGuardada, ponerFirmaTecnico };
+      module.exports = { ROLES, CARGOS, rotuloCargo, firmar, firmasDeEquipo, firmasDeEquipos, equiposConFirmas, firmasDeClave, paraPdf, bytesDeImagen, unidadesDelConjunto, fechaDelTrabajo, firmaGuardada, ponerFirmaTecnico };
     }
   });
 
@@ -45736,7 +45762,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         const fichas = /* @__PURE__ */ new Map();
         for (const fila of filasFichas(repo, sesion, obraId)) {
           const r = evaluarFila(fila, cat, cfg, { repo, sesion });
-          if (r) fichas.set(`${fila.clave}|${fila.plantilla}`, { id: fila.id, estado: r.ev.estado, resultado: r.ev.resultado, fusionada: F.fichaFundida(fila) });
+          if (r) fichas.set(`${fila.clave}|${fila.plantilla}`, { id: fila.id, estado: F.estadoVisible(r.ev.estado, r.ev.medidos, F.bocasSinMedir(r.ev)), resultado: r.ev.resultado, medidos: r.ev.medidos && r.ev.medidos.rellenos, fusionada: F.fichaFundida(fila) });
         }
         const buscar = (clave, plantilla) => fichas.get(`${clave}|${plantilla}`) || null;
         const deLaObra = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
@@ -45750,7 +45776,9 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
             completas: pm.completas,
             faltan: pm.fichas.filter((x) => x.estado !== "completa" && x.estado !== "firmada").map((x) => ({ nombre: x.nombre, clase: x.clase, estado: x.estado })),
             /* 'noAplica' | 'hecho' | 'pendiente': cuenta para la documentación completa. */
-            checklist: F.estadoChecklist(pm)
+            checklist: F.estadoChecklist(pm),
+            /* Para la franja de la tarjeta: fichas con algún dato medido (o ya hechas); la placa sola no cuenta. */
+            iniciadas: pm.fichas.filter((x) => x.estado === "completa" || x.estado === "firmada" || x.medidos > 0).length
           });
         }
         return out;
@@ -68179,6 +68207,31 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         return true;
       }
       module.exports = { listar, crear, guardar, marcarTarea, borrar, deFila, aFila };
+    }
+  });
+
+  // shared/commissioning/franjaEstado.js
+  var require_franjaEstado = __commonJS({
+    "shared/commissioning/franjaEstado.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      function franjaEstado({ iniciado, faltaDoc, faltaFirma } = {}) {
+        if (!iniciado) return null;
+        if (faltaDoc && faltaFirma) return "ambos";
+        if (faltaDoc) return "docs";
+        if (faltaFirma) return "firma";
+        return "completo";
+      }
+      function firmasQueFaltan(firmas) {
+        const f = firmas || {};
+        return [...f.tecnico ? [] : ["firma t\xE9cnico"], ...f.segunda ? [] : ["2\xAA firma"]];
+      }
+      function franjaDeLinea({ miembros, completo, firmas, medidas }) {
+        const ms = miembros || [];
+        const iniciado = (medidas || 0) > 0 || ms.some((m) => m.pmFichas && m.pmFichas.iniciadas > 0);
+        return franjaEstado({ iniciado, faltaDoc: !completo, faltaFirma: firmasQueFaltan(firmas).length > 0 });
+      }
+      module.exports = { franjaEstado, franjaDeLinea, firmasQueFaltan };
     }
   });
 
@@ -91099,20 +91152,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           return null;
         }
       }
-      function bocasSinMedir(ev) {
-        const fuera = [];
-        for (const s of ev.secciones || []) {
-          for (const [c, v] of Object.entries(s.circuitos || {})) {
-            const conProyecto = (v.filas || []).filter((b) => b.p !== null && b.p !== void 0);
-            for (const b of conProyecto) {
-              if (b.m !== null && b.m !== void 0) continue;
-              const total = conProyecto.length === 1 && v.proyectoSistema !== null && Number(b.p) === Number(v.proyectoSistema);
-              fuera.push({ circuito: c, terminal: b.terminal || b.local || null, proyecto: b.p, totalEquipo: total });
-            }
-          }
-        }
-        return fuera;
-      }
+      var bocasSinMedir = F.bocasSinMedir;
       function crearRutasFichas({ repo, carpeta, fotosPedidas, soltar }) {
         const carpetaFichas = (obraId) => path.join(carpeta, "commissioning", String(obraId).replace(/[^A-Za-z0-9_-]/g, "_"));
         function fichas({ ses, query }) {
@@ -91894,6 +91934,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
       var MNCR = require_motor();
       var MDIF = require_difusores();
       var FMOV = require_filaMovil();
+      var FRA = require_franjaEstado();
       var F = require_fichas();
       var { puede } = require_roles();
       var { crearRutasFichas, PERMISOS_FICHAS } = require_rutasFichas();
@@ -91968,7 +92009,13 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             b.medidas += puntos.filter((x) => MDIF.num(x.velocidad) !== null || MDIF.num(x.caudalMedido) !== null).length;
             bocas.set(p.equipoId, b);
           }
+          const firmados = FIR.equiposConFirmas(repo, ses, t.filas.map((f) => f.id));
+          const firmasDe = (miembros) => ({ tecnico: miembros.some((m) => firmados.jefeObra.has(m.id)), segunda: miembros.some((m) => firmados.cliente.has(m.id)) });
+          const franjaDe = (miembros, completo, medidas) => FRA.franjaDeLinea({ miembros, completo, medidas, firmas: firmasDe(miembros) });
+          const faltaFirmaDe = (miembros, completo, medidas) => FRA.franjaDeLinea({ miembros, completo, medidas, firmas: firmasDe(miembros) }) ? FRA.firmasQueFaltan(firmasDe(miembros)) : [];
           const unidad = (f) => ({
+            franja: franjaDe([f], f.completo, (bocas.get(f.id) || {}).medidas),
+            faltaFirma: faltaFirmaDe([f], f.completo, (bocas.get(f.id) || {}).medidas),
             id: f.id,
             tag: f.tag,
             planta: f.planta,
@@ -91999,6 +92046,8 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             return {
               ...unidad(ext),
               ...b,
+              franja: franjaDe(l.miembros, l.completo, b.medidas),
+              faltaFirma: faltaFirmaDe(l.miembros, l.completo, b.medidas),
               tag: l.clase === "par" ? l.tag : ext.tag,
               clase: l.clase,
               envio: l.envio,
@@ -92301,11 +92350,11 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         };
         function fotosDelEquipo(ses, eq, linea, dos) {
           const unidades = linea && linea.clase !== "suelto" && linea.miembros.length ? linea.miembros : [eq];
-          const varias = unidades.length > 1;
+          const vrf = Boolean(linea && linea.clase === "sistema" && unidades.length > 1);
           const fuera = [];
           for (const u of unidades) {
             for (const f of fotosDe(ses, u.id)) {
-              fuera.push({ ...f, origen: "equipo", equipoId: u.id, unidad: varias ? linea.exterior && u.id === linea.exterior.id ? "UE" : linea.clase === "par" ? "UI" : F.rotuloUi(u.tag) : null, ficha: null, url: `api/equipo/foto?id=${encodeURIComponent(f.id)}` });
+              fuera.push({ ...f, origen: "equipo", equipoId: u.id, unidad: vrf ? linea.exterior && u.id === linea.exterior.id ? "UE" : F.rotuloUi(u.tag) : null, ficha: null, url: `api/equipo/foto?id=${encodeURIComponent(f.id)}` });
             }
           }
           const vistas = /* @__PURE__ */ new Set();
@@ -92319,7 +92368,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
               if (!x) return;
               const [pie, hora] = partirPie(x.nombre);
               const q = new URLSearchParams({ obra: eq.obraId, clave: p.clave, plantilla: p.plantilla, i: String(i) });
-              fuera.push({ id: `${k}|${i}`, pie: pie === "Foto" ? "" : pie, hora, origen: "ficha", equipoId: p.porUnidad ? p.unidadId || null : null, unidad: p.unidadTag ? F.rotuloUi(p.unidadTag) : null, ficha: p.nombre || "Ficha", url: `api/ficha/foto?${q}` });
+              fuera.push({ id: `${k}|${i}`, pie: pie === "Foto" ? "" : pie, hora, origen: "ficha", equipoId: p.porUnidad ? p.unidadId || null : null, unidad: vrf && p.unidadTag ? F.rotuloUi(p.unidadTag) : null, ficha: p.nombre || "Ficha", url: `api/ficha/foto?${q}` });
             });
           }
           return fuera;

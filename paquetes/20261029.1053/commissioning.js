@@ -50,14 +50,17 @@
   const ENVIO = {
     completo: ['bien', 'Completo'], enviada: ['bien', 'Enviada'], lista: ['bien', 'Lista para enviar'],
     faltaDocumentacion: ['aviso', 'Falta documentación'], faltaEnsayo: ['aviso', 'Falta balanceo o estanqueidad'],
-    /* Papeles completos y fichas por hacer: no es «completo» (15-oct-2026, JC). */
-    faltaFichas: ['info', 'Doc. completa'],
+    /* Papeles completos y fichas por hacer: no es «completo» (15-oct-2026, JC). El rótulo era «Doc. completa» y
+       engañaba con una ficha a medias (29-oct, JC): ahora dice lo que falta. */
+    faltaFichas: ['aviso', 'Faltan fichas'],
     /* Aún fuera de commissioning: nadie ha verificado su instalación (22-oct). */
     sinVerificar: ['neutra', 'Sin verificar'],
   };
   /* «Falta ensayo» dicho por su nombre (16-oct): ensayoFalta = ['balanceo', 'estanqueidad']. */
   const nombreEnsayoFalta = (f) => (!f || !f.length ? null : f.length === 2 ? 'Falta balanceo y estanqueidad'
     : f[0] === 'estanqueidad' ? 'Falta estanqueidad' : 'Falta balanceo');
+  /* Lo que dice «Falta: …» de la tarjeta: documentos y, de los equipos con datos, las firmas (29-oct, JC). */
+  const faltasDe = (e) => [...(e.completo ? [] : (e.falta || [])), ...(e.faltaFirma || [])];
   const chipEnvio = (e, completo, ensayoFalta) => {
     let [clase, nombre] = completo ? ENVIO.completo : (ENVIO[e] || ['neutra', e || 'Pendiente']);
     if (!completo && e === 'faltaEnsayo') nombre = nombreEnsayoFalta(ensayoFalta) || nombre;
@@ -104,7 +107,7 @@
     ['faltaEstanqueidad', 'Falta estanqueidad', (e) => !e.completo && (e.ensayoFalta || []).includes('estanqueidad')],
     /* Una sola regla: la de shared/commissioning/control.js (papeles + fichas + ensayo). */
     ['completos', 'Completos', (e) => e.completo],
-    ['soloDoc', 'Doc. completa', (e) => e.docCompleta && !e.completo],
+    ['soloDoc', 'Papeles OK', (e) => e.docCompleta && !e.completo],
     /* 22-oct (JC): «puestos en marcha» y «falta ficha», las mismas cuentas que el
        inicio del escritorio (shared/commissioning/control.js · totalesDe). */
     ['enMarcha', 'Puestos en marcha', (e) => e.estadoPM === 'enMarcha' || e.estadoPM === 'hecha'],
@@ -286,7 +289,7 @@
         : null,
       t.enMarcha !== undefined ? { id: 'enMarcha', et: 'En marcha', n: t.enMarcha, tono: 'bien', barra: pct(t.enMarcha), pie: `${pct(t.enMarcha)} % puestos en marcha` } : null,
       { id: 'completos', et: 'Completos', n: t.completos, tono: 'bien', barra: pct(t.completos), pie: `${pct(t.completos)} % del total` },
-      { id: 'soloDoc', et: 'Doc. lista', n: t.soloDoc || 0, tono: 'neutro', pie: 'falta el ensayo' },
+      { id: 'soloDoc', et: 'Papeles OK', n: t.soloDoc || 0, tono: 'neutro', pie: 'faltan fichas o pruebas' },
       { id: 'faltaDoc', et: 'Sin doc.', n: t.faltaDocumentacion || 0, tono: 'falta', pie: 'papeles por subir' },
       { id: 'faltaFichas', et: 'Sin ficha', n: t.faltaFichas || 0, tono: 'falta', pie: 'fichas por rellenar' },
       { id: 'faltaBalanceo', et: 'Balanceo', n: t.faltaBalanceo || 0, tono: 'falta', pie: 'equipos por medir' },
@@ -334,13 +337,14 @@
       <input type="search" class="buscar" placeholder="Buscar TAG, sala, planta, tipo o marca" value="${esc(filtro)}" data-cx-buscar>
       <div class="agrupar" role="group" aria-label="Agrupar por"><span>Agrupar por</span>${opciones
         .map(([id, texto]) => `<button data-cx-agrupar="${id}" aria-pressed="${modo === id}" class="${modo === id ? 'activa' : ''}">${texto}</button>`).join('')}</div>
+      <p class="leyenda-franja" aria-label="Franja de estado de cada equipo"><span><i class="m-firma"></i>Falta firma</span><span><i class="m-docs"></i>Faltan docs</span><span><i class="m-ambos"></i>Ambos</span><span><i class="m-completo"></i>Completo</span></p>
       ${window.CX_PLANO_EQUIPOS ? '<button class="enlace" data-cx="plano-equipos">Ver los equipos en el plano</button>' : ''}
       ${equipos.length ? C.listaAgrupada(`cx-equipos-${modo}`, equipos, {
         grupo: grupoDe, orden: grupos, buscando: !!q, repintar: pintarLista, cabecera: cabeceraGrupo,
         /* «Por plantas pero en los desplegables de los equipos» (JC, 28-oct): al agrupar por tipo o marca, cada grupo sale por planta. */
         ...(modo === 'planta' || modo === 'zona' ? {} : { subgrupo: subPor === 'zona' ? (e) => e.zona || 'Sin zona' : (e) => e.planta || 'Sin planta', subOrden: porPlanta, subCabecera: cabeceraPlanta }),
         fila: (e) => `
-        <li><button class="fila-ios" data-cx="equipo" data-id="${esc(e.id)}">
+        <li${e.franja ? ` class="franja-${e.franja}"` : ''}><button class="fila-ios" data-cx="equipo" data-id="${esc(e.id)}">
           <div class="fila-principal">
             ${tagsFila(e)}
             ${chipEnvio(e.envio, e.completo, e.ensayoFalta)}
@@ -351,7 +355,7 @@
           ${serieFila(e)}
           ${e.bocas ? `<div class="progreso" aria-label="${e.medidas} de ${e.bocas} bocas medidas"><i style="width:${Math.round((e.medidas / e.bocas) * 100)}%"></i></div>
           <div class="sub">${cifra(e.medidas)} de ${cifra(e.bocas)} bocas medidas</div>` : e.conPlano === false ? '' : '<div class="sub">Sin plano de bocas</div>'}
-          ${e.falta && e.falta.length && !e.completo ? `<div class="sub aviso">Falta: ${esc(e.falta.join(', '))}</div>` : ''}
+          ${faltasDe(e).length ? `<div class="sub aviso">Falta: ${esc(faltasDe(e).join(', '))}</div>` : ''}
         </button></li>` }) : `<p class="vacio">${q || segmento !== 'todos' ? 'Ningún equipo con ese filtro.' : 'Esta obra no tiene equipos dados de alta.'}</p>`}`;
   }
 
