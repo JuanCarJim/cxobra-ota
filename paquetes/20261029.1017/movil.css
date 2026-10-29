@@ -687,6 +687,10 @@ details.grupo-lista[open] > summary { margin-bottom: 6px; }
 .fotos-equipo li { margin: 0; }
 .fotos-equipo img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; background: var(--rejillaSuave); display: block; }
 .fotos-equipo .pie { display: flex; flex-direction: column; gap: 2px; font-size: 11.5px; color: var(--textoTenue); margin-top: 3px; }
+/* La localización en plano (29-oct-2026): el recorte, a todo el ancho y entero (sin cortarlo en cuadrado). */
+.fotos-equipo li.localizacion-plano { grid-column: 1 / -1; }
+.fotos-equipo li.localizacion-plano img { aspect-ratio: 4 / 3; object-fit: contain; background: #fff; border: 1px solid var(--acento); }
+.fotos-equipo li.localizacion-plano .pie { font-weight: 600; color: var(--acento); }
 .fotos-rapidas { flex-wrap: wrap; }
 .fotos-rapidas .boton { flex: 1 1 45%; }
 
@@ -1800,3 +1804,14 @@ body { background: var(--fondo-pagina); }
 .visor-foto-ui .fila-botones .boton { flex: 1; margin: 0; }
 .fila-ui .ui-datos .sub { flex-basis: 100%; }
 .fila-ui .sin-serie { font-style: italic; }
+
+/* EL Nº DE SERIE SE ESCRIBE DESDE LA FICHA (JC, 29-oct): el valor se pulsa y
+   sale un campo a 16 px (el iPhone no amplía la pantalla) con Guardar. */
+.serie-boton { padding: 0; font: inherit; color: var(--acento); text-decoration: underline dotted; text-underline-offset: 3px; text-align: left; }
+.num-serie .serie-boton .sin-serie, .fila-ui .serie-boton .sin-serie { font-style: italic; }
+.serie-edita { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; max-width: 100%; }
+#app .serie-edita input.serie-campo[type="text"], .serie-edita .serie-campo { font-size: 16px; min-width: 0; width: 12em; max-width: 100%; padding: 6px 8px; border: 1px solid var(--acento); border-radius: 8px; background: var(--fondo, #fff); color: inherit; }
+.serie-edita .serie-ok { margin: 0; padding: 6px 12px; min-height: 36px; width: auto; font-size: 14px; }
+.serie-edita .serie-no { font-size: 14px; padding: 4px 2px; }
+.fila-ui .ui-datos .sub { white-space: normal; overflow: visible; }
+.fila-ui .serie-boton { white-space: nowrap; }

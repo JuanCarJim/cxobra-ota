@@ -10017,7 +10017,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261029.0932" : "0";
+      var VERSION = true ? "20261029.1017" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -11047,6 +11047,11 @@ globalThis.CX_VARIANTE="cxobra";
             registro(`Bajada desde el principio (columnas nuevas en ${[...columnasNuevas.keys()].join(", ")}).`);
             cursor = 0;
           }
+          const repasoPropias = cursor && !leerEstado("propiasRepasadas");
+          if (repasoPropias) {
+            registro("Repaso desde el principio (filas propias perdidas).");
+            cursor = 0;
+          }
           let desdeSeq = Math.max(0, cursor - SOLAPE);
           const hacenFalta = [];
           const iguales = [];
@@ -11054,6 +11059,7 @@ globalThis.CX_VARIANTE="cxobra";
           const aFusionar = /* @__PURE__ */ new Set();
           const visto = modo === "movil" ? vistos() : null;
           const base = modo === "movil" ? String(desde() || "") : "";
+          let vistoTodo = null;
           for (; ; ) {
             const lista = await nube.leer(
               "cx_filas",
@@ -11061,11 +11067,18 @@ globalThis.CX_VARIANTE="cxobra";
             );
             for (const r of lista || []) {
               cursor = Math.max(cursor, Number(r.seq));
-              if (r.dispositivo && r.dispositivo === dispositivo) continue;
+              const propia = Boolean(r.dispositivo && r.dispositivo === dispositivo);
+              if (propia && r.borrado) continue;
               if (modo === "escritorio" && (r.autor === "escritorio" || !r.autor)) continue;
               const local = modLocal(r.tabla, r.id);
               if (local === void 0) continue;
               const remoto = String(r.modificado_en || "");
+              if (propia) {
+                if (local === null) {
+                  if (!vistoTodo) vistoTodo = vistos();
+                  if (vistoTodo.has(F.clave(r.tabla, r.id))) continue;
+                } else if (!(local < remoto)) continue;
+              }
               if (r.borrado) {
                 if (local !== null && local <= remoto) hacenFalta.push(r);
                 else if (local === null) olvidar.run(r.tabla, r.id);
@@ -11142,6 +11155,7 @@ globalThis.CX_VARIANTE="cxobra";
             }
           }
           ponerEstado("cursor", cursor);
+          if (!leerEstado("propiasRepasadas")) ponerEstado("propiasRepasadas", "1");
           ponerEstado("tablasConocidas", conocidas);
           ponerEstado("columnasConocidas", JSON.stringify(columnasAhora));
           const sello = ahora().toISOString();
@@ -35534,10 +35548,33 @@ ${subtitulo}`, c[5]] : c.slice())]);
           const hojas = partes.filter((p) => p.evaluacion && p.plantillaDef).map((p) => hojaFicha(p.evaluacion, p.plantillaDef, { ...ctx, equipo, titulo: p.titulo || equipo.tag }));
           return [portada, ...hojas, ...extras.map((x) => x.html || "")].join("");
         }
+        function hojaFotos(titulo, fotos = [], ctx = {}) {
+          const eq = ctx.equipo || {};
+          return `<article class="hojaPM fotosUnidad">
+    <header class="cab"><div class="logo">${logoFh(ctx.obra)}</div><h1>FOTOGRAF\xCDAS</h1></header>
+    <table class="datos cabecera">
+      <tr><th>Referencia / TAG</th><td><strong>${escFh(titulo || eq.tag || "")}</strong></td><th>Planta / sala</th><td>${escFh([eq.planta, eq.sala].filter(Boolean).join(" / "))}</td></tr>
+      <tr><th>Marca / modelo</th><td>${escFh([eq.marca, eq.modelo].filter(Boolean).join(" / "))}</td><th>N\xBA serie</th><td>${escFh(eq.numSerie || "")}</td></tr>
+    </table>
+    <section class="sec"><h3>FOTOGRAF\xCDAS</h3>${seccionFotos(fotos, ctx.imagenes, false)}</section>
+  </article>`;
+        }
+        function hojaLocalizacion(titulo, figuras = [], ctx = {}) {
+          const eq = ctx.equipo || {};
+          return `<article class="hojaPM localizacionPlano">
+    <header class="cab"><div class="logo">${logoFh(ctx.obra)}</div><h1>LOCALIZACI\xD3N EN PLANO</h1></header>
+    <table class="datos cabecera">
+      <tr><th>Referencia / TAG</th><td><strong>${escFh(titulo || eq.tag || "")}</strong></td><th>Planta / sala</th><td>${escFh([eq.planta, eq.sala].filter(Boolean).join(" / "))}</td></tr>
+    </table>
+    <section class="sec"><h3>LOCALIZACI\xD3N EN PLANO</h3>${figuras.map((f) => `<figure class="recortePlano" style="margin:0 0 10px;break-inside:avoid">
+      <div style="border:1px solid #178276">${String(f.svg || "").replace(/ width="\d+" height="\d+"/, ' width="100%"')}</div>
+      <figcaption style="color:#178276;font-weight:600">${escFh(f.pie || "Localizaci\xF3n en plano")}</figcaption></figure>`).join("")}</section>
+  </article>`;
+        }
         (function exportar(API) {
           if (typeof module !== "undefined" && module.exports) module.exports = API;
           if (typeof window !== "undefined") window.FICHA_HTML = API;
-        })({ hojaFicha, hojaBalanceo, dossier, numero: numFh, porcentaje: pctFh, fecha: fechaFh });
+        })({ hojaFicha, hojaBalanceo, hojaFotos, hojaLocalizacion, dossier, numero: numFh, porcentaje: pctFh, fecha: fechaFh });
       })();
     }
   });
@@ -42777,6 +42814,1338 @@ ${subtitulo}`, c[5]] : c.slice())]);
     }
   });
 
+  // shared/commissioning/planoEquipos.js
+  var require_planoEquipos = __commonJS({
+    "shared/commissioning/planoEquipos.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const MAX_PALABRAS = 8;
+        const CERCA = 0.015;
+        const clave = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+        const claveSuelta = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().split(/[^A-Z0-9]+/).map((x) => x.replace(/(^|[A-Z])0+(?=\d)/g, "$1")).join("");
+        const RE_NO_EQUIPO = /^(?:C\.?C\.?F|CRF|CF|CORTA\s?FUEGOS?|COMPUERTAS?|DAMPERS?|DMP|VAV|V[23]V|VALV(?:ULAS?)?|VAL|VS|VM|CGBT|CUADRO)(?=$|[\s._\-/\d])/i;
+        const RE_FAMILIA_NO_EQUIPO = /^(ELEC_|CONTROL_|HOSP_|TELE_|GAS_|PCI_(?!BOMBEO))/;
+        function esEquipoDelPlano(e) {
+          if (!e) return false;
+          const tag = String(e.tag || "").trim();
+          if (clave(tag).length < 2) return false;
+          if (RE_NO_EQUIPO.test(tag)) return false;
+          if (RE_FAMILIA_NO_EQUIPO.test(String(e.familia || "").trim())) return false;
+          return true;
+        }
+        const claveCasado = (t) => claveSuelta(t);
+        function casar(tagsPlano, equipos) {
+          const delListado = (equipos || []).filter(esEquipoDelPlano);
+          const porClave = /* @__PURE__ */ new Map();
+          for (const e of delListado) {
+            for (const k of /* @__PURE__ */ new Set([clave(e.tag), claveCasado(e.tag)])) {
+              if (!k) continue;
+              if (!porClave.has(k)) porClave.set(k, []);
+              porClave.get(k).push(e);
+            }
+          }
+          const casados = [];
+          const vistos = /* @__PURE__ */ new Set();
+          const sobran = [];
+          const sobranVistos = /* @__PURE__ */ new Set();
+          for (const t of tagsPlano || []) {
+            const tag = String(t || "").trim();
+            if (!tag || RE_NO_EQUIPO.test(tag)) continue;
+            const casan = porClave.get(clave(tag)) || porClave.get(claveCasado(tag));
+            if (!casan) {
+              if (!sobranVistos.has(claveCasado(tag))) {
+                sobranVistos.add(claveCasado(tag));
+                sobran.push(tag);
+              }
+              continue;
+            }
+            for (const e of casan) {
+              if (vistos.has(e.id)) continue;
+              vistos.add(e.id);
+              casados.push({ equipoId: e.id, tag: e.tag, tagPlano: tag });
+            }
+          }
+          return { casados, sinUbicar: delListado.filter((e) => !vistos.has(e.id)), sobranEnPlano: sobran };
+        }
+        function cruce(equiposPlanta, marcas) {
+          const conMarca = new Set((marcas || []).map((m) => m.equipoId));
+          const delListado = (equiposPlanta || []).filter(esEquipoDelPlano);
+          return {
+            casados: delListado.filter((e) => conMarca.has(e.id)),
+            sinUbicar: delListado.filter((e) => !conMarca.has(e.id))
+          };
+        }
+        function palabrasDe(textos) {
+          const salida = [];
+          for (const t of textos || []) {
+            if (!t || typeof t.texto !== "string") continue;
+            const trozos = t.texto.split(/\s+/).filter(Boolean);
+            trozos.forEach((p, i) => salida.push({ p, k: clave(p), s: claveSuelta(p), x: Number(t.x) || 0, y: Number(t.y) || 0, mismo: i > 0 }));
+          }
+          return salida;
+        }
+        function reconocer(textos, equipos) {
+          const porClave = /* @__PURE__ */ new Map();
+          const porSuelta = /* @__PURE__ */ new Map();
+          for (const e of equipos || []) {
+            if (!esEquipoDelPlano(e)) continue;
+            const k = clave(e.tag);
+            if (k.length < 4) continue;
+            if (!porClave.has(k)) porClave.set(k, []);
+            porClave.get(k).push(e);
+            const s = claveSuelta(e.tag);
+            if (!porSuelta.has(s)) porSuelta.set(s, []);
+            porSuelta.get(s).push(e);
+          }
+          const palabras = palabrasDe(textos);
+          const usadas = new Uint8Array(palabras.length);
+          const marcas = [];
+          const vistos = /* @__PURE__ */ new Set();
+          for (let i = 0; i < palabras.length; i++) {
+            if (usadas[i] || !palabras[i].k) continue;
+            let hasta = i;
+            const ks = [palabras[i].k];
+            const ss = [palabras[i].s];
+            for (let j = i + 1; j < palabras.length && j - i < MAX_PALABRAS; j++) {
+              const a = palabras[j - 1];
+              const b = palabras[j];
+              if (usadas[j]) break;
+              if (!b.mismo && Math.hypot(a.x - b.x, a.y - b.y) > CERCA) break;
+              ks.push(b.k);
+              ss.push(b.s);
+              hasta = j;
+            }
+            for (let fin = hasta; fin >= i; fin--) {
+              const k = ks.slice(0, fin - i + 1).join("");
+              const casan = porClave.get(k) || porSuelta.get(ss.slice(0, fin - i + 1).join(""));
+              if (!casan) continue;
+              let sx = 0;
+              let sy = 0;
+              for (let n = i; n <= fin; n++) {
+                sx += palabras[n].x;
+                sy += palabras[n].y;
+                usadas[n] = 1;
+              }
+              const x = Math.round(sx / (fin - i + 1) * 1e4) / 1e4;
+              const y = Math.round(sy / (fin - i + 1) * 1e4) / 1e4;
+              for (const e of casan) {
+                if (vistos.has(e.id)) continue;
+                vistos.add(e.id);
+                marcas.push({ equipoId: e.id, tag: e.tag, x, y });
+              }
+              break;
+            }
+          }
+          const cuenta = /* @__PURE__ */ new Map();
+          for (const m of marcas) {
+            const e = (equipos || []).find((q) => q.id === m.equipoId);
+            const p = e && e.planta ? String(e.planta) : null;
+            if (p) cuenta.set(p, (cuenta.get(p) || 0) + 1);
+          }
+          const planta = [...cuenta.entries()].sort((a, b) => b[1] - a[1])[0];
+          const deLaPlanta = planta ? (equipos || []).filter((e) => esEquipoDelPlano(e) && String(e.planta || "") === planta[0]) : [];
+          const noEncontrados = deLaPlanta.filter((e) => !vistos.has(e.id)).map((e) => ({ id: e.id, tag: e.tag }));
+          return { marcas, planta: planta ? planta[0] : null, noEncontrados, reconocidos: marcas.length };
+        }
+        const COLORES = {
+          verde: { nombre: "Hecho", largo: "Commissioning completo", hex: "#1a7f4b" },
+          azul: { nombre: "Falta documento", largo: "Empezado, falta alg\xFAn documento", hex: "#1f63c6" },
+          rojo: { nombre: "Sin empezar", largo: "No se ha empezado", hex: "#c8303a" }
+        };
+        const ORDEN_COLOR = ["verde", "azul", "rojo"];
+        const BALANCEO_HECHO = /* @__PURE__ */ new Set(["apto", "aptoSinBocas", "noApto"]);
+        const ESTANQ_HECHA = /* @__PURE__ */ new Set(["apta", "noApta"]);
+        const hayDato = (v) => {
+          const t = String(v ?? "").trim().toLowerCase();
+          return t !== "" && t !== "pendiente" && t !== "\u2014" && t !== "-";
+        };
+        function empezado(u) {
+          if (!u) return false;
+          if (u.instalacionVerificadaEn || u.estado === "enMarcha" || u.estado === "recepcionado") return true;
+          if (u.estadoPM && u.estadoPM !== "pendiente") return true;
+          if (hayDato(u.docFichaPM) || hayDato(u.docBalanceo) || hayDato(u.docEstanqueidad)) return true;
+          if (BALANCEO_HECHO.has(u.balanceoEstado) || ESTANQ_HECHA.has(u.estanqueidadEstado)) return true;
+          if (u.fechaEnvioDF) return true;
+          if (u.fichaConDato) return true;
+          const f = u.pmFichas;
+          if (f && (f.completas > 0 || f.checklist === "hecho")) return true;
+          return false;
+        }
+        function estadoEnPlano(unidad, linea) {
+          const l = linea || unidad;
+          if (!l) return "rojo";
+          if (l.completo) return "verde";
+          const miembros = Array.isArray(l.miembros) && l.miembros.length ? l.miembros : [l];
+          return miembros.some(empezado) || unidad && empezado(unidad) ? "azul" : "rojo";
+        }
+        function lineasPorUnidad(tabla) {
+          const lineaDe = /* @__PURE__ */ new Map();
+          for (const c of tabla && tabla.conjuntos || []) {
+            for (const m of c.miembros || [c]) lineaDe.set(m.id, c);
+          }
+          return lineaDe;
+        }
+        const TIPO_LLANO = {
+          TROX_UTA: "Climatizador (UTA)",
+          CARRIER_ROOFTOPS: "Rooftop",
+          CARRIER_CHILLERS: "Enfriadora o bomba de calor",
+          AIRLAN_FANCOIL: "Fan coil",
+          AIRLAN_HRU: "Recuperador de calor",
+          PANASONIC_VRF: "Unidad de VRF",
+          PANASONIC_SPLIT: "Split",
+          PANASONIC_CRACS: "Equipo de precisi\xF3n (CRAC)",
+          WILO_GP: "Grupo de presi\xF3n",
+          WILO_PUMPS: "Bomba",
+          SP_VENTILACION: "Ventilador",
+          SP_PARKING: "Ventilador de parking",
+          SP_PRESURIZACION: "Ventilador de presurizaci\xF3n"
+        };
+        const TEXTO_ACCION = { datos: "Rellenar datos que faltan", checklist: "Checklist", balanceo: "Balanceo", estanqueidad: "Estanqueidad" };
+        function controlCx() {
+          return typeof __require !== "undefined" ? require_control() : typeof window !== "undefined" ? window.CONTROL_CX : null;
+        }
+        function fichasCx() {
+          return typeof __require !== "undefined" ? require_fichas() : typeof window !== "undefined" ? window.FICHAS_PM : null;
+        }
+        const T = 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
+        const CUERPO = 'class="cuerpo" stroke="currentColor" stroke-width="2" stroke-linejoin="round"';
+        const ICONOS = {
+          splitInt: { nombre: "Split interior (pared)", svg: `<rect ${CUERPO} x="2" y="5" width="20" height="10" rx="3"/><path ${T} d="M5 12h14M7 18l-1 3M12 18v3M17 18l1 3"/>` },
+          splitExt: { nombre: "Split exterior", svg: `<rect ${CUERPO} x="3" y="3" width="18" height="18" rx="3"/><circle ${T} cx="12" cy="12" r="5.5"/><path class="lleno" d="M12 12C10 9 10.5 6.5 12 6.5S14 9 12 12ZM12 12c3 .5 4.5 2.5 3.5 3.7S12.500 15 12 12ZM12 12c-3 .5-4.500 2.500-3.500 3.700S11.500 15 12 12Z"/>` },
+          vrfInt: { nombre: "VRF interior (casete)", svg: `<rect ${CUERPO} x="3" y="3" width="18" height="18" rx="2"/><rect ${T} x="8" y="8" width="8" height="8"/><path ${T} d="M3 3l5 5M21 3l-5 5M3 21l5-5M21 21l-5-5"/>` },
+          vrfExt: { nombre: "VRF exterior", svg: `<rect ${CUERPO} x="1.5" y="4" width="21" height="16" rx="3"/><circle ${T} cx="7.5" cy="12" r="4"/><circle ${T} cx="16.5" cy="12" r="4"/><circle class="lleno" cx="7.5" cy="12" r="1.300"/><circle class="lleno" cx="16.5" cy="12" r="1.300"/>` },
+          fancoil: { nombre: "Fan coil", svg: `<rect ${CUERPO} x="2" y="6" width="20" height="12" rx="2"/><path ${T} d="M5 12l2-3 2 6 2-6 2 6 2-6 2 3"/>` },
+          uta: { nombre: "UTA (climatizador)", svg: `<rect ${CUERPO} x="1.5" y="6" width="21" height="12" rx="1.500"/><path ${T} d="M8 6v12M15.500 6v12"/><circle ${T} cx="11.750" cy="12" r="2.200"/><path ${T} d="M3.500 12h2.500M17.500 9l3 6M20.500 9l-3 6"/>` },
+          hru: { nombre: "Recuperador de calor (HRU)", svg: `<rect ${CUERPO} x="1.5" y="5" width="21" height="14" rx="2"/><path ${T} d="M12 5.500l6.500 6.500-6.500 6.500L5.500 12z"/><path ${T} d="M1.500 12H5M19 12h3.500"/>` },
+          rooftop: { nombre: "Rooftop", svg: `<rect ${CUERPO} x="2.500" y="10" width="19" height="10" rx="1.500"/><path ${T} d="M6 10l3-5.500h6l3 5.500"/><circle ${T} cx="12" cy="15" r="2.500"/>` },
+          crac: { nombre: "CRAC (precisi\xF3n)", svg: `<rect ${CUERPO} x="4" y="2" width="16" height="20" rx="2"/><path ${T} d="M12 6v12M6.800 9l10.400 6M6.800 15l10.400-6"/>` },
+          chiller: { nombre: "Enfriadora o bomba de calor", svg: `<rect ${CUERPO} x="1.500" y="4" width="21" height="16" rx="2"/><path ${T} d="M4.500 10c1.750-2 3.500-2 5.250 0s3.500 2 5.250 0 2.500-1.500 4.500 0M4.500 15c1.750-2 3.500-2 5.250 0s3.500 2 5.250 0 2.500-1.500 4.500 0"/>` },
+          bomba: { nombre: "Bomba o grupo de presi\xF3n", svg: `<circle ${CUERPO} cx="11" cy="14" r="7.500"/><path class="lleno" d="M8.500 10.500l6.500 3.500-6.500 3.500z"/><path ${T} d="M11 6.500V3h10"/>` },
+          ventilador: { nombre: "Ventilador o extractor", svg: `<circle ${CUERPO} cx="12" cy="12" r="9.500"/><path class="lleno" d="M12 12C9.500 8 10.500 4.500 12 4.500S14.500 8 12 12Z"/><path class="lleno" d="M12 12C9.500 8 10.500 4.500 12 4.500S14.500 8 12 12Z" transform="rotate(120 12 12)"/><path class="lleno" d="M12 12C9.500 8 10.500 4.500 12 4.500S14.500 8 12 12Z" transform="rotate(240 12 12)"/>` },
+          agua: { nombre: "Agua (AFS, ADE, fluxores, ACS)", svg: `<path ${CUERPO} d="M12 2.500S5 10.500 5 15a7 7 0 0 0 14 0c0-4.500-7-12.500-7-12.500z"/><path ${T} d="M8.500 15a3.500 3.500 0 0 0 3 3.400"/>` },
+          generico: { nombre: "Otro equipo", svg: `<rect ${CUERPO} x="2" y="2" width="20" height="20" rx="3"/><rect class="lleno" x="8" y="8" width="8" height="8" rx="1"/>` }
+        };
+        const ICONO_DE_FAMILIA = {
+          PANASONIC_SPLIT: "splitInt",
+          PANASONIC_VRF: "vrfInt",
+          AIRLAN_FANCOIL: "fancoil",
+          TROX_UTA: "uta",
+          AIRLAN_HRU: "hru",
+          CARRIER_ROOFTOPS: "rooftop",
+          PANASONIC_CRACS: "crac",
+          CARRIER_CHILLERS: "chiller",
+          WILO_PUMPS: "bomba",
+          WILO_GP: "bomba",
+          PCI_BOMBEO: "bomba",
+          SP_VENTILACION: "ventilador",
+          SP_PRESURIZACION: "ventilador",
+          SP_PARKING: "ventilador",
+          FONT_ACS: "agua"
+        };
+        const esExteriorTag = (tag) => /^UE([\s_-]|\d|$)/i.test(String(tag || "").trim());
+        function iconoDe(u) {
+          const fam = String(u && u.familia || "").trim();
+          const ext = u && u.papel === "UE" || esExteriorTag(u && u.tag);
+          let id = ICONO_DE_FAMILIA[fam];
+          if (id === "splitInt" && ext) id = "splitExt";
+          if (id === "vrfInt" && ext) id = "vrfExt";
+          if (id) return id;
+          const t = String(u && u.tag || "").trim();
+          if (/^(AFS|ADE|FLX|FLUX)/i.test(t)) return "agua";
+          return "generico";
+        }
+        const ORDEN_ICONOS = ["uta", "hru", "fancoil", "splitInt", "splitExt", "vrfInt", "vrfExt", "rooftop", "crac", "chiller", "bomba", "ventilador", "agua", "generico"];
+        function leyendaIconos(equipos) {
+          const usados = new Set((equipos || []).map((e) => e.icono || iconoDe(e)));
+          return ORDEN_ICONOS.filter((k) => usados.has(k)).map((k) => ({ id: k, nombre: ICONOS[k].nombre }));
+        }
+        function conjuntoEnPlanos(plantas, id, plantaActual) {
+          const todos = [];
+          for (const p of plantas || []) for (const e of p.equipos || []) todos.push({ e, planta: p.planta || "" });
+          const base = todos.find((t) => t.e.id === id);
+          const miembros = base && base.e.miembros;
+          if (!Array.isArray(miembros) || miembros.length < 2) return [];
+          return miembros.map((m) => {
+            const aqui = todos.find((t) => t.e.id === m.id && t.planta === (plantaActual || "") && t.e.x !== null && t.e.x !== void 0);
+            const alguna = aqui || todos.find((t) => t.e.id === m.id && t.e.x !== null && t.e.x !== void 0);
+            const donde = alguna || todos.find((t) => t.e.id === m.id);
+            return { id: m.id, tag: m.tag, papel: m.papel, planta: donde ? donde.planta : null, aqui: Boolean(aqui), enPlano: Boolean(alguna), x: alguna ? alguna.e.x : null, y: alguna ? alguna.e.y : null };
+          });
+        }
+        function tipoLlano(u) {
+          const fam = String(u && u.familia || "").trim();
+          if (!fam) return null;
+          if (TIPO_LLANO[fam]) return TIPO_LLANO[fam];
+          let nombre = fam;
+          try {
+            const PC = typeof __require !== "undefined" ? require_plantillasCliente() : window.PLANTILLAS_CLIENTE;
+            const f = PC && PC.FAMILIAS.find((x) => x.codigo === fam);
+            if (f && f.nombrePdf) nombre = f.nombrePdf;
+          } catch {
+          }
+          const t = nombre.replace(/_/g, " ").toLowerCase();
+          return t.charAt(0).toUpperCase() + t.slice(1);
+        }
+        function llevaBalanceo(u) {
+          const C = controlCx();
+          const med = u && u.medicion !== void 0 ? u.medicion : null;
+          if (med) return Boolean(med.plano);
+          const req = C ? C.ensayoCorregido(u && u.familia, u && u.ensayoRequerido) : u && u.ensayoRequerido;
+          return req === "balanceo" || req === "ambos";
+        }
+        function acciones(unidad, linea, { color = "rojo", puedeEditar = true } = {}) {
+          const u = unidad || {};
+          const C = controlCx();
+          const salida = [];
+          const conFamilia = Boolean(String(u.familia || "").trim());
+          if (conFamilia && puedeEditar && color !== "verde") salida.push("datos");
+          if (conFamilia) salida.push("checklist");
+          if (llevaBalanceo(u)) salida.push("balanceo");
+          const l = linea || u;
+          if (C && C.pideEstanqueidad(Array.isArray(l.miembros) && l.miembros.length ? l : u)) salida.push("estanqueidad");
+          return salida.map((id) => ({ id, texto: TEXTO_ACCION[id] }));
+        }
+        function estados(tabla, { puedeEditar = true } = {}) {
+          const lineaDe = lineasPorUnidad(tabla);
+          const out = /* @__PURE__ */ new Map();
+          for (const u of tabla && tabla.filas || []) {
+            const l = lineaDe.get(u.id) || u;
+            const enConjunto = l.clase === "par" || l.clase === "sistema";
+            out.set(u.id, {
+              color: estadoEnPlano(u, l),
+              papel: enConjunto ? l.exterior && l.exterior.id === u.id ? "UE" : "UI" : null,
+              conjunto: enConjunto ? l.tag || null : null,
+              lineaId: l.id || u.id,
+              falta: l.completo ? [] : (l.falta || []).map(textoFalta),
+              tipo: tipoLlano(u),
+              icono: iconoDe({ familia: u.familia, tag: u.tag, papel: enConjunto ? l.exterior && l.exterior.id === u.id ? "UE" : "UI" : null }),
+              miembros: enConjunto && Array.isArray(l.miembros) && l.miembros.length > 1 ? l.miembros.map((m) => ({ id: m.id, tag: m.tag, papel: l.exterior && l.exterior.id === m.id || esExteriorTag(m.tag) ? "UE" : "UI" })) : null,
+              marca: u.marca || null,
+              modelo: u.modelo || null,
+              acciones: acciones(u, l, { color: estadoEnPlano(u, l), puedeEditar })
+            });
+          }
+          return out;
+        }
+        function colorear(marcas, tabla) {
+          const filas = new Map((tabla && tabla.filas || []).map((f) => [f.id, f]));
+          const est = estados(tabla);
+          const cuentas = { verde: 0, azul: 0, rojo: 0 };
+          const salida = [];
+          for (const m of marcas || []) {
+            const u = filas.get(m.equipoId);
+            if (!u || !esEquipoDelPlano(u)) continue;
+            const e = est.get(u.id);
+            cuentas[e.color] += 1;
+            salida.push({ ...m, tag: u.tag, ...e });
+          }
+          return { marcas: salida, cuentas };
+        }
+        const SIGLAS = /* @__PURE__ */ new Set(["FT", "CE", "PM", "UTA", "UTAS", "VRF", "CRAC", "BT", "SAI", "BMS", "ACS", "ICT", "IT", "UI", "UE", "VE", "PCI", "BIE", "CPD", "DF"]);
+        const ABREV = [[/\bUD\.\s*/gi, "unidad "], [/\bREC\.\s*/gi, "recuperaci\xF3n "], [/\bVENT\.\s*/gi, "ventilador "], [/\bESTANQ\.\s*/gi, "estanqueidad "], [/\bBOMBA CALOR\b/gi, "BOMBA DE CALOR"], [/\bESTATICO\b/gi, "EST\xC1TICO"]];
+        const FEMENINAS = /^(uta|bomba|batería|central|extinción|instalación|llamada|recarga|fotovoltaica|estanqueidad|unidad|sala|enfriadora|ficha|caja)$/;
+        const PLURAL_F = /^(bombas|baterías|unidades|rejillas)$/;
+        const PLURAL_M = /^(extintores|rociadores|conductos|difusores|gases|bie|ventiladores|equipos)$/;
+        const deArticulo = (frase) => {
+          const w = frase.split(/[\s\-/]/)[0].toLowerCase();
+          if (PLURAL_F.test(w)) return "de las";
+          if (PLURAL_M.test(w)) return "de los";
+          return FEMENINAS.test(w) ? "de la" : "del";
+        };
+        const minus = (t) => t.split(/(\s+|[-/()])/).map((w) => SIGLAS.has(w.toUpperCase()) && /^[A-Za-z]+$/.test(w) ? w.toUpperCase() : w.toLowerCase()).join("");
+        function textoFalta(n) {
+          const t = String(n == null ? "" : n).trim().replace(/\s+/g, " ");
+          if (!t || /[a-záéíóúñü]/.test(t) || /^(FT|CE|PM|DF)$/i.test(t)) return t;
+          let x = t;
+          for (const [re, por] of ABREV) x = x.replace(re, por);
+          x = minus(x.trim().replace(/\s+/g, " "));
+          const m = /^checklist\s+(.+)$/i.exec(x);
+          if (m) return `checklist ${deArticulo(m[1])} ${m[1]}`;
+          if (x.toLowerCase() === "checklist") return "checklist";
+          if (/^(balanceo|estanqueidad)\b/i.test(x)) return x;
+          return `ficha ${deArticulo(x)} ${x}`;
+        }
+        const RE_NOMBRE_SALA = /^(sala|aseos?|vest[ií]bulo|almac[eé]n|cuarto|oficina|despacho|vestuarios?|pasillo|circulaci[oó]n|escalera|lounge|guardarropa|cocina|office|capilla|recepci[oó]n|taller|local|zona|hall|archivo|comedor|gimnasio|enfermer[ií]a|palco|restaurante|bar|tienda|museo|cpd|dormitorio|habitaci[oó]n|ba[ñn]o|wc|aula|laboratorio|consulta|lavander[ií]a|vestidor|camerino|auditorio|biblioteca|distribuidor|cabina|centro|mec[aá]nica|basuras|terraza|cubierta|patio|parking|garaje|espacio|[aá]rea|areas|despensa|economato|cafeter[ií]a|bodega|sala\s+t[eé]cnica)(\b|[\s.\-]|$)/i;
+        const RE_CODIGO_SALA = /^(?:N\d{2}-)?(?:[A-Z]{1,2}\d{0,2}\.[A-Z]{2,4}\.\d{2,}[A-Z]?|\d{2}[.,][A-Z]{2,4}[.,]\d{2,}[A-Z]?|[A-Z]{2,4}-[A-Z]{2,4}\.\d{2,})$/;
+        const RE_SIGUE = /\s(de|del|y|la|el|los|las|para|con)$/i;
+        const RE_PALABRAS = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ .]{1,40}$/;
+        const PAR_SALA = 0.015;
+        const RADIO_SALA = 0.04;
+        const sinPlanta = (c) => String(c || "").replace(/^N\d{2}-/i, "");
+        const limpiarSala = (t) => String(t || "").replace(/(^|\s|·\s?)N\d{2}-(?=[A-Z0-9]{1,4}[.,][A-Z]{2,4}[.,]\d)/gi, "$1");
+        const esNombreSala = (t) => RE_NOMBRE_SALA.test(String(t || "").trim()) && String(t).trim().length <= 60;
+        const esCodigoSala = (t) => RE_CODIGO_SALA.test(String(t || "").trim().toUpperCase());
+        function rotulosSala(textos) {
+          const ts = (textos || []).filter((t) => t && typeof t.texto === "string").map((t) => ({ texto: t.texto.trim().replace(/\s+/g, " "), x: Number(t.x) || 0, y: Number(t.y) || 0 }));
+          const nombres = [];
+          const codigos = [];
+          const comidos = /* @__PURE__ */ new Set();
+          for (let i = 0; i < ts.length; i++) {
+            const t = ts[i];
+            if (comidos.has(i)) continue;
+            if (esCodigoSala(t.texto)) {
+              codigos.push({ ...t, texto: t.texto.toUpperCase() });
+              continue;
+            }
+            if (!esNombreSala(t.texto)) continue;
+            let texto = t.texto;
+            if (RE_SIGUE.test(texto)) {
+              const j = ts.findIndex((o, k) => k !== i && RE_PALABRAS.test(o.texto) && o.y > t.y && Math.hypot(o.x - t.x, o.y - t.y) < PAR_SALA);
+              if (j >= 0) {
+                texto = `${texto} ${ts[j].texto}`;
+                comidos.add(j);
+                nombres.forEach((n, k) => {
+                  if (n.i === j) nombres.splice(k, 1);
+                });
+              }
+            }
+            nombres.push({ texto, x: t.x, y: t.y, i });
+          }
+          const usados = /* @__PURE__ */ new Set();
+          const salida = [];
+          for (const n of nombres) {
+            let mejor = -1;
+            let d = PAR_SALA;
+            codigos.forEach((c, k) => {
+              const dd = Math.hypot(c.x - n.x, c.y - n.y);
+              if (!usados.has(k) && dd <= d) {
+                d = dd;
+                mejor = k;
+              }
+            });
+            if (mejor >= 0) usados.add(mejor);
+            salida.push({ texto: mejor >= 0 ? `${n.texto} \xB7 ${codigos[mejor].texto}` : n.texto, x: n.x, y: n.y });
+          }
+          const nombreDe = /* @__PURE__ */ new Map();
+          for (const r of salida) {
+            const i = r.texto.lastIndexOf(" \xB7 ");
+            if (i > 0) nombreDe.set(sinPlanta(r.texto.slice(i + 3)), r.texto.slice(0, i));
+          }
+          for (const t of ts) {
+            const m = /^(.*?)\s*[·\-–:]?\s*((?:N\d{2}-)?[A-Z0-9]{1,4}[.,][A-Z]{2,4}[.,]\d{2,}[A-Z]?)\s*$/i.exec(t.texto);
+            if (m && m[1] && esNombreSala(m[1]) && !nombreDe.has(sinPlanta(m[2].toUpperCase()))) nombreDe.set(sinPlanta(m[2].toUpperCase()), m[1].trim());
+          }
+          codigos.forEach((c, k) => {
+            if (usados.has(k)) return;
+            const cod = sinPlanta(c.texto);
+            const nombre = nombreDe.get(cod);
+            salida.push({ ...c, texto: nombre ? `${nombre} \xB7 ${cod}` : cod });
+          });
+          for (const r of salida) r.texto = limpiarSala(r.texto);
+          const vistos = /* @__PURE__ */ new Set();
+          return salida.filter((r) => {
+            const k = `${r.texto}|${Math.round(r.x * 200)}|${Math.round(r.y * 200)}`;
+            if (vistos.has(k)) return false;
+            vistos.add(k);
+            return true;
+          }).map((r) => ({ texto: r.texto.slice(0, 120), x: Math.round(r.x * 1e4) / 1e4, y: Math.round(r.y * 1e4) / 1e4 }));
+        }
+        function salaCercana(rotulos, x, y, radio = RADIO_SALA) {
+          let mejor = null;
+          let d = radio;
+          for (const r of rotulos || []) {
+            const dd = Math.hypot(r.x - x, r.y - y);
+            if (dd <= d) {
+              d = dd;
+              mejor = r;
+            }
+          }
+          return mejor ? limpiarSala(mejor.texto) : null;
+        }
+        function ponerSalas(marcas, rotulos) {
+          return (marcas || []).map((m) => {
+            const sala = salaCercana(rotulos, m.x, m.y);
+            return sala ? { ...m, sala } : m;
+          });
+        }
+        function limpiarMarcas(marcas) {
+          const vistos = /* @__PURE__ */ new Set();
+          const salida = [];
+          for (const m of Array.isArray(marcas) ? marcas : []) {
+            if (!m || typeof m.equipoId !== "string" || vistos.has(m.equipoId)) continue;
+            const x = Number(m.x);
+            const y = Number(m.y);
+            if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 1 || y < 0 || y > 1) continue;
+            vistos.add(m.equipoId);
+            salida.push({
+              equipoId: m.equipoId,
+              tag: String(m.tag || "").slice(0, 120),
+              x: Math.round(x * 1e4) / 1e4,
+              y: Math.round(y * 1e4) / 1e4,
+              ...m.mano ? { mano: true } : {},
+              ...m.sala ? { sala: String(m.sala).slice(0, 120) } : {}
+            });
+          }
+          return salida;
+        }
+        const API = {
+          clave,
+          claveSuelta,
+          claveCasado,
+          esEquipoDelPlano,
+          casar,
+          cruce,
+          palabrasDe,
+          reconocer,
+          empezado,
+          estadoEnPlano,
+          estados,
+          colorear,
+          acciones,
+          tipoLlano,
+          ICONOS,
+          iconoDe,
+          leyendaIconos,
+          conjuntoEnPlanos,
+          llevaBalanceo,
+          TEXTO_ACCION,
+          limpiarMarcas,
+          rotulosSala,
+          salaCercana,
+          ponerSalas,
+          esNombreSala,
+          esCodigoSala,
+          limpiarSala,
+          textoFalta,
+          COLORES,
+          ORDEN_COLOR,
+          RADIO_SALA
+        };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.PLANO_EQUIPOS = API;
+      })();
+    }
+  });
+
+  // shared/commissioning/filaMovil.js
+  var require_filaMovil = __commonJS({
+    "shared/commissioning/filaMovil.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const llano = (v) => String(v ?? "").trim();
+        const clave = (v) => llano(v).toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[\s_-]+/g, "-");
+        const PAPEL_DELANTE = /^U[EI][\s_-]+/i;
+        const PAPEL_DETRAS = /[\s_-]+U[EI]$/i;
+        function sinPapel(tag, planta) {
+          let t = llano(tag).replace(PAPEL_DELANTE, "").replace(PAPEL_DETRAS, "");
+          const p = llano(planta);
+          if (p) {
+            const re = new RegExp(`^${p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\s_-]+`, "i");
+            const sin = t.replace(re, "");
+            if (sin) t = sin;
+          }
+          return t;
+        }
+        function nombreConjunto(unidades, planta) {
+          const us = (unidades || []).filter((u) => u && llano(u.tag));
+          if (us.length !== 2) return null;
+          if (!us.every((u) => PAPEL_DELANTE.test(llano(u.tag)) || PAPEL_DETRAS.test(llano(u.tag)))) return null;
+          const nombres = us.map((u) => sinPapel(u.tag, planta));
+          if (!nombres[0] || clave(nombres[0]) !== clave(nombres[1])) return null;
+          return nombres[0];
+        }
+        const esCodigoLocal = (v) => /^[A-Z]{1,2}\d{0,2}\.[A-Z]{2,4}\.\d{2,}$/i.test(llano(v));
+        function salaGrisDe(u = {}) {
+          const g = llano(u.salaGris);
+          const estado = llano(u.salaGrisEstado);
+          if (!g || estado !== "asignada" && estado !== "por confirmar") return null;
+          const n = llano(u.salaGrisNombre);
+          const texto = n ? `${g} \xB7 ${n}` : g;
+          return estado === "asignada" ? texto : `${texto} (por confirmar)`;
+        }
+        function salaVisibleDe(u = {}) {
+          const gris = salaGrisDe(u);
+          if (gris) return gris;
+          const s = llano(u.sala);
+          return s && !esCodigoLocal(s) ? s : null;
+        }
+        function localDe(unidades) {
+          const us = (unidades || []).filter(Boolean);
+          const dondeEsta = (u2) => salaVisibleDe(u2);
+          const interiores = new Set(us.filter((u2) => u2.papel === "UI" && dondeEsta(u2)).map(dondeEsta));
+          if (interiores.size > 1) return null;
+          const orden = [...us.filter((u2) => u2.papel === "UI"), ...us.filter((u2) => u2.papel !== "UI")];
+          const u = orden.find((x) => dondeEsta(x));
+          return u ? dondeEsta(u) : null;
+        }
+        const pideBalanceo = (f) => f.ensayoRequerido === "balanceo" || f.ensayoRequerido === "ambos";
+        function llevaPlanoBocas(f = {}) {
+          return f.medicion ? Boolean(f.medicion.plano) : pideBalanceo(f) || /UTA|climatiz|recuper|fan.?coil|extrac|ventil/i.test(f.grupo || "");
+        }
+        const serieDe = (u = {}) => {
+          const s = llano(u.numSerie);
+          return s && !/^(-|—|n\/?a|sin.*)$/i.test(s) ? s : null;
+        };
+        function seriesTexto(unidades) {
+          const us = (unidades || []).filter(Boolean);
+          if (!us.some(serieDe)) return null;
+          if (us.length === 1) return serieDe(us[0]);
+          return us.map((u) => `${u.papel || ""} ${serieDe(u) || "sin n\xBA"}`.trim()).join(" \xB7 ");
+        }
+        const API = { sinPapel, nombreConjunto, esCodigoLocal, salaGrisDe, salaVisibleDe, localDe, llevaPlanoBocas, serieDe, seriesTexto };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.FILA_MOVIL_CX = API;
+      })();
+    }
+  });
+
+  // package.json
+  var require_package = __commonJS({
+    "package.json"(exports, module) {
+      module.exports = {
+        name: "vidaire-obras",
+        version: "0.1.0",
+        description: "Vidaire Obras \u2014 estudios, presupuestos y gestion de obra",
+        main: "electron/main.js",
+        license: "UNLICENSED",
+        private: true,
+        scripts: {
+          start: "env -u ELECTRON_RUN_AS_NODE electron .",
+          test: "node --test test/",
+          contraste: "node scripts/contraste.js",
+          tokens: "node scripts/generarTokens.js",
+          comprobar: "npm test && npm run contraste && npm run carga && npm run probar:app && npm run probar:vivo",
+          carga: "node scripts/comprobarCarga.js",
+          "auditar:ncr": "node scripts/auditarNcr.js",
+          "probar:app": "env -u ELECTRON_RUN_AS_NODE electron scripts/probarApp.js",
+          oferta: "node scripts/verOferta.js",
+          "dist:mac": "env -u ELECTRON_RUN_AS_NODE electron-builder --mac",
+          "dist:win": "env -u ELECTRON_RUN_AS_NODE electron-builder --win",
+          capturas: "env -u ELECTRON_RUN_AS_NODE electron scripts/capturas.js",
+          pantalla: "env -u ELECTRON_RUN_AS_NODE electron scripts/enPantalla.js",
+          vivo: "env -u ELECTRON_RUN_AS_NODE electron scripts/enVivo.js",
+          "probar:vivo": "env -u ELECTRON_RUN_AS_NODE electron scripts/comprobarEnVivo.js",
+          "albaranes:prueba": "node scripts/albaranesDePrueba.js",
+          demo: "env -u ELECTRON_RUN_AS_NODE electron scripts/demoCampNou.js",
+          "demo:montar": "env -u ELECTRON_RUN_AS_NODE electron scripts/demoCampNou.js --montar && npm run demo:capturas",
+          "demo:capturas": "env -u ELECTRON_RUN_AS_NODE electron scripts/demoCampNou.js --capturas",
+          ipad: "node ipad/construir.js",
+          "ipad:servir": "node ipad/construir.js && node ipad/servir.js",
+          "ipad:probar": "node ipad/probar-motor.js",
+          "ipad:ios": "node ipad/construir.js && npx cap sync ios",
+          web: "node web/construir.js",
+          "web:servir": "node web/construir.js && node web/servir.js",
+          "web:publicar": "node web/construir.js && npx vercel deploy web/dist --prod",
+          "cxobra:construir": "node cxobra/construir.js"
+        },
+        dependencies: {
+          "@capacitor/android": "^8.5.3",
+          "@kenjiuno/msgreader": "^1.28.0",
+          "pdf-lib": "^1.17.1",
+          "pdfjs-dist": "^6.4.299"
+        },
+        devDependencies: {
+          "@capacitor/cli": "^8.5.3",
+          "@capacitor/core": "^8.5.3",
+          "@capacitor/filesystem": "^8.1.4",
+          "@capacitor/ios": "^8.5.3",
+          "@noble/hashes": "^2.4.0",
+          buffer: "^6.0.3",
+          electron: "^44.4.1",
+          "electron-builder": "^25.1.8",
+          esbuild: "^0.28.2",
+          fflate: "^0.8.3",
+          "sql.js": "^1.14.2"
+        },
+        build: {
+          appId: "com.vidaire.obras",
+          productName: "Vidaire Obras",
+          files: [
+            "electron/**/*",
+            "renderer/**/*",
+            "shared/**/*",
+            "marca/**/*",
+            "package.json",
+            "!node_modules/pdfjs-dist/{build,types,image_decoders,cmaps,iccs,wasm,standard_fonts}/**",
+            "!node_modules/pdfjs-dist/**/*.{map,d.mts}",
+            "!node_modules/pdfjs-dist/legacy/build/{pdf.min.mjs,pdf.worker.min.mjs,pdf.sandbox*}",
+            "!node_modules/pdfjs-dist/web/{pdf_viewer.mjs,images/**}",
+            "!node_modules/@napi-rs/**"
+          ],
+          extraResources: [
+            {
+              from: "build",
+              to: ".",
+              filter: [
+                "nube.json"
+              ]
+            }
+          ],
+          mac: {
+            target: "dmg",
+            category: "public.app-category.business",
+            icon: "build/icon.icns",
+            extendInfo: {
+              NSAppleEventsUsageDescription: "Vidaire Obras usa tu programa de correo (Outlook o Mail) para leer la bandeja, archivar correos en las obras y preparar borradores con los PDF adjuntos. Nunca env\xEDa nada sin que lo revises."
+            }
+          },
+          win: {
+            target: "nsis",
+            icon: "build/icon.png"
+          }
+        }
+      };
+    }
+  });
+
+  // ipad/electronFalso.js
+  var require_electronFalso = __commonJS({
+    "ipad/electronFalso.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var canales = /* @__PURE__ */ new Map();
+      var adaptadores = {
+        abrirArchivo: null,
+        // ({ filtros, varios }) → [{ nombre, datos }]
+        guardarArchivo: null,
+        // ({ nombre, datos, tipo }) → ruta o null
+        imprimirPdf: null,
+        // ({ html, apaisado }) → Uint8Array
+        abrirRuta: null
+        // (ruta) → void
+      };
+      function instalarAdaptadores(nuevos) {
+        Object.assign(adaptadores, nuevos);
+      }
+      function exigir(nombre) {
+        throw new Error(
+          `Esto todav\xEDa no est\xE1 en el iPad: ${nombre}.
+
+En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
+        );
+      }
+      var ipcMain = {
+        handle(canal, fn) {
+          canales.set(canal, fn);
+        },
+        removeHandler(canal) {
+          canales.delete(canal);
+        }
+      };
+      var ipcRenderer = {
+        /** El mismo `invoke` de siempre, pero sin cruzar a ningún sitio. */
+        async invoke(canal, ...args) {
+          const fn = canales.get(canal);
+          if (!fn) throw new Error(`Canal desconocido: ${canal}`);
+          return fn({ sender: null }, ...args);
+        },
+        /* Los avisos que el proceso principal manda a la pantalla («abre el aviso de
+           mantenimiento»): aquí van de la ventana de mentira al oyente, sin cruzar. */
+        on(canal, fn) {
+          if (!oyentes.has(canal)) oyentes.set(canal, []);
+          oyentes.get(canal).push(fn);
+        },
+        /* El preload limpia antes de volver a escuchar, para no apilar oyentes. */
+        removeAllListeners(canal) {
+          oyentes.delete(canal);
+        },
+        send() {
+        }
+      };
+      var oyentes = /* @__PURE__ */ new Map();
+      var ventanaFalsa = {
+        isDestroyed: () => false,
+        focus() {
+        },
+        webContents: {
+          send(canal, ...args) {
+            for (const fn of oyentes.get(canal) || []) fn({ sender: null }, ...args);
+          }
+        }
+      };
+      var contextBridge = {
+        /** En el escritorio aísla dos mundos; aquí solo hay uno. */
+        exposeInMainWorld(nombre, objeto) {
+          globalThis[nombre] = objeto;
+        }
+      };
+      var dialog = {
+        async showOpenDialog(_padre, opciones = {}) {
+          if (!adaptadores.abrirArchivo) exigir("elegir un archivo");
+          const elegidos = await adaptadores.abrirArchivo(opciones);
+          return elegidos?.length ? { canceled: false, filePaths: elegidos.map((f) => f.ruta || f.nombre) } : { canceled: true, filePaths: [] };
+        },
+        async showSaveDialog(_padre, opciones = {}) {
+          if (!adaptadores.guardarArchivo) exigir("guardar un archivo");
+          const ruta = await adaptadores.guardarArchivo(opciones);
+          return ruta ? { canceled: false, filePath: ruta } : { canceled: true, filePath: void 0 };
+        },
+        async showMessageBox(_padre, opciones = {}) {
+          return { response: 0, checkboxChecked: false, ...opciones.respuesta };
+        }
+      };
+      var shell = {
+        openPath: (ruta) => adaptadores.abrirRuta?.(ruta),
+        showItemInFolder: (ruta) => adaptadores.abrirRuta?.(ruta),
+        openExternal: (url) => globalThis.open?.(url, "_blank")
+      };
+      var BrowserWindow = class {
+        constructor() {
+          this._html = "";
+          this.webContents = {
+            printToPDF: async (opciones = {}) => {
+              if (!adaptadores.imprimirPdf) exigir("imprimir un PDF");
+              return adaptadores.imprimirPdf({ html: this._html, apaisado: !!opciones.landscape });
+            },
+            on() {
+            },
+            executeJavaScript: async () => null,
+            send() {
+            }
+          };
+        }
+        async loadFile(ruta) {
+          const fs = require_fs();
+          this._html = fs.readFileSync(ruta, "utf8");
+        }
+        async loadURL(url) {
+          this._html = url.startsWith("data:") ? decodeURIComponent(url.split(",")[1] || "") : "";
+        }
+        setContentSize() {
+        }
+        isDestroyed() {
+          return false;
+        }
+        destroy() {
+        }
+        close() {
+        }
+        static getFocusedWindow() {
+          return null;
+        }
+        static fromWebContents() {
+          return null;
+        }
+        static getAllWindows() {
+          return [];
+        }
+      };
+      var app = {
+        getPath: () => "/datos",
+        getName: () => "Vidaire Obras",
+        getVersion: () => require_package().version,
+        relaunch() {
+        },
+        exit() {
+        },
+        quit() {
+        },
+        whenReady: async () => void 0,
+        on() {
+        }
+      };
+      module.exports = {
+        app,
+        ipcMain,
+        ipcRenderer,
+        contextBridge,
+        dialog,
+        shell,
+        BrowserWindow,
+        nativeImage: { createFromDataURL: () => null },
+        /* Sin notificaciones del sistema: los avisos del BOE y de mantenimiento se
+           quedan en la alerta de la pantalla y en el inicio. Sin esto, el primer
+           aviso nuevo tumbaba la comprobación entera. */
+        Notification: class {
+          static isSupported() {
+            return false;
+          }
+          show() {
+          }
+          on() {
+          }
+        },
+        /* El escritorio cifra con esto los permisos de la nube; el iPad no lo usa: los
+           guarda en el Llavero a través de `nubeIpad` (ipad/nube.js). */
+        safeStorage: { isEncryptionAvailable: () => false, encryptString: (t) => t, decryptString: (t) => String(t) },
+        /* Lo pone el arranque: el Llavero y la ventana de inicio de sesión del sistema. */
+        nubeIpad: null,
+        /* «Recordarme en este equipo»: el testigo en el Llavero (ipad/nube.js). */
+        almacenSesion: null,
+        instalarAdaptadores,
+        canales,
+        ventanaFalsa
+      };
+    }
+  });
+
+  // shared/commissioning/localizacionPlano.js
+  var require_localizacionPlano = __commonJS({
+    "shared/commissioning/localizacionPlano.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var TEAL_LP = "#178276";
+      var AZUL_LP = "#1f63c6";
+      var MAX_LADO_LP = 0.3;
+      var MARGEN_LP = 0.04;
+      var MIN_LADO_LP = 0.12;
+      var ASPECTO_LP = 4 / 3;
+      var numLP = (v) => {
+        if (v === null || v === void 0 || v === "") return null;
+        const n = Number(v);
+        return Number.isFinite(n) ? n : null;
+      };
+      var escLP = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+      var leerLP = (t, d) => {
+        if (Array.isArray(t)) return t;
+        try {
+          return t ? JSON.parse(t) : d;
+        } catch {
+          return d;
+        }
+      };
+      function ubicar(unidades, planos) {
+        const fuera = [];
+        for (const u of unidades) {
+          for (const p of planos) {
+            const m = leerLP(p.marcas, []).find((x2) => x2 && x2.equipoId === u.id && numLP(x2.x) !== null && numLP(x2.y) !== null);
+            if (!m) continue;
+            const x = Math.min(1, Math.max(0, numLP(m.x)));
+            const y = Math.min(1, Math.max(0, numLP(m.y)));
+            fuera.push({ ...u, planoId: p.id, x, y, sala: m.sala || null });
+            break;
+          }
+        }
+        return fuera;
+      }
+      function agruparPuntos(puntos, W, H, maxLado = MAX_LADO_LP) {
+        const L = Math.max(W, H);
+        const px = (p) => ({ x: p.x * W / L, y: p.y * H / L });
+        const dist = (a, b) => {
+          const A = px(a);
+          const B = px(b);
+          return Math.hypot(A.x - B.x, A.y - B.y);
+        };
+        let resto = [...puntos];
+        const grupos = [];
+        while (resto.length) {
+          let semilla = resto[0];
+          let mejor = Infinity;
+          for (const p of resto) {
+            const s = resto.reduce((a, q) => a + dist(p, q), 0);
+            if (s < mejor - 1e-12) {
+              mejor = s;
+              semilla = p;
+            }
+          }
+          const grupo = [semilla];
+          const caja = { x0: px(semilla).x, x1: px(semilla).x, y0: px(semilla).y, y1: px(semilla).y };
+          const otros = resto.filter((p) => p !== semilla).sort((a, b) => dist(a, semilla) - dist(b, semilla));
+          for (const p of otros) {
+            const q = px(p);
+            const n = { x0: Math.min(caja.x0, q.x), x1: Math.max(caja.x1, q.x), y0: Math.min(caja.y0, q.y), y1: Math.max(caja.y1, q.y) };
+            if (n.x1 - n.x0 <= maxLado && n.y1 - n.y0 <= maxLado) {
+              grupo.push(p);
+              Object.assign(caja, n);
+            }
+          }
+          grupos.push(grupo);
+          resto = resto.filter((p) => !grupo.includes(p));
+        }
+        return grupos;
+      }
+      function ventana(puntos, W, H, { margen = MARGEN_LP, minLado = MIN_LADO_LP, aspecto = ASPECTO_LP } = {}) {
+        const L = Math.max(W, H);
+        const xs = puntos.map((p) => p.x * W);
+        const ys = puntos.map((p) => p.y * H);
+        const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+        const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+        let w = Math.max(Math.max(...xs) - Math.min(...xs) + 2 * margen * L, minLado * L);
+        let h = Math.max(Math.max(...ys) - Math.min(...ys) + 2 * margen * L, minLado * L / aspecto);
+        if (w / h < aspecto) w = h * aspecto;
+        else h = w / aspecto;
+        if (w > W) {
+          w = W;
+        }
+        if (h > H) {
+          h = H;
+        }
+        let x = Math.min(Math.max(0, cx - w / 2), W - w);
+        let y = Math.min(Math.max(0, cy - h / 2), H - h);
+        x = Math.max(0, x);
+        y = Math.max(0, y);
+        return { x: x / W, y: y / H, w: w / W, h: h / H };
+      }
+      function recortes({ unidades = [], planos = [], objetivoId = null, ...opciones } = {}) {
+        const lista = (unidades || []).filter((u) => u && u.id);
+        if (!lista.length || !(planos || []).length) return [];
+        const conjunto = lista.length > 1;
+        const objetivo = objetivoId || lista[0].id;
+        const puestos = ubicar(lista, planos);
+        const fuera = [];
+        for (const p of planos) {
+          const aqui = puestos.filter((u) => u.planoId === p.id);
+          if (!aqui.length) continue;
+          const W = numLP(p.ancho) > 0 ? numLP(p.ancho) : 1e3;
+          const H = numLP(p.alto) > 0 ? numLP(p.alto) : 1e3;
+          for (const grupo of agruparPuntos(aqui, W, H, opciones.maxLado)) {
+            const r = ventana(grupo, W, H, opciones);
+            const propio = grupo.find((u) => u.id === objetivo) || null;
+            fuera.push({
+              planoId: p.id,
+              planta: p.planta || null,
+              nombre: p.nombre || null,
+              ancho: W,
+              alto: H,
+              recorte: r,
+              marcas: grupo.map((u) => ({
+                id: u.id,
+                tag: u.tag || "",
+                etiqueta: conjunto && u.rotulo || u.tag || "",
+                x: (u.x - r.x) / r.w,
+                y: (u.y - r.y) / r.h,
+                propio: u.id === objetivo
+              })),
+              sala: propio && propio.sala || (grupo.find((u) => u.sala) || {}).sala || null,
+              propio: Boolean(propio)
+            });
+          }
+        }
+        return fuera.sort((a, b) => Number(b.propio) - Number(a.propio) || String(a.planta || "").localeCompare(String(b.planta || ""), "es", { numeric: true }));
+      }
+      function pie(r, { sala = null } = {}) {
+        const planta = r.planta ? `Planta ${r.planta}` : r.nombre || null;
+        const unidades = r.marcas.length > 1 ? r.marcas.map((m) => String(m.etiqueta || "")).sort((a, b) => a.localeCompare(b, "es", { numeric: true })).join(", ") : null;
+        return ["Localizaci\xF3n en plano", planta, sala || r.sala, unidades].filter(Boolean).join(" \xB7 ");
+      }
+      function svg(r, { href, imagenRecortada = false, anchoPx = 1200 } = {}) {
+        const vw = Math.max(1, r.recorte.w * r.ancho);
+        const vh = Math.max(1, r.recorte.h * r.alto);
+        const img = imagenRecortada ? `<image href="${escLP(href)}" x="0" y="0" width="${vw.toFixed(1)}" height="${vh.toFixed(1)}" preserveAspectRatio="none"/>` : `<image href="${escLP(href)}" x="${(-r.recorte.x * r.ancho).toFixed(1)}" y="${(-r.recorte.y * r.alto).toFixed(1)}" width="${r.ancho}" height="${r.alto}" preserveAspectRatio="none"/>`;
+        const k = Math.max(vw, vh);
+        const radio = k * 0.018;
+        const letra = k * 0.03;
+        const marcas = [...r.marcas].sort((a, b) => Number(a.propio) - Number(b.propio)).map((m) => {
+          const cx = m.x * vw;
+          const cy = m.y * vh;
+          const color = m.propio ? TEAL_LP : AZUL_LP;
+          const rr = m.propio ? radio * 1.35 : radio;
+          return `<g><circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${(rr * 1.9).toFixed(1)}" fill="${color}" fill-opacity="0.16" stroke="${color}" stroke-width="${(k * 4e-3).toFixed(1)}"/>
+<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${(rr * 0.55).toFixed(1)}" fill="${color}"/>
+<text x="${(cx + rr * 2.2).toFixed(1)}" y="${(cy - rr * 1.2).toFixed(1)}" font-family="-apple-system, Helvetica, Arial, sans-serif" font-size="${letra.toFixed(1)}" font-weight="700" fill="${color}" stroke="#ffffff" stroke-width="${(letra * 0.22).toFixed(1)}" paint-order="stroke">${escLP(m.etiqueta)}</text></g>`;
+        }).join("");
+        return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${vw.toFixed(1)} ${vh.toFixed(1)}" width="${anchoPx}" height="${Math.round(anchoPx * vh / vw)}"><rect width="100%" height="100%" fill="#ffffff"/>${img}${marcas}<rect x="0" y="0" width="${vw.toFixed(1)}" height="${vh.toFixed(1)}" fill="none" stroke="${TEAL_LP}" stroke-width="${(k * 4e-3).toFixed(1)}"/></svg>`;
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.LOCALIZACION_PLANO = API;
+      })({ recortes, pie, svg, ubicar, agruparPuntos, ventana, TEAL: TEAL_LP, AZUL: AZUL_LP, MAX_LADO: MAX_LADO_LP });
+    }
+  });
+
+  // electron/data/planoEquipos.js
+  var require_planoEquipos2 = __commonJS({
+    "electron/data/planoEquipos.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var P = require_planoEquipos();
+      var FM = require_filaMovil();
+      var CX = require_commissioning();
+      var alcance = require_alcance();
+      var { puede } = require_roles();
+      var MAX_IMAGEN = 16 * 1024 * 1024;
+      var RE_IMAGEN = /^data:image\/(png|jpeg|jpg|webp);base64,[A-Za-z0-9+/=]+$/;
+      var llano = (v) => String(v ?? "").trim();
+      var dimension = (v) => {
+        const n = Math.round(Number(v));
+        return Number.isFinite(n) && n > 0 && n < 1e5 ? n : null;
+      };
+      var leerJson = (t, d) => {
+        try {
+          return t ? JSON.parse(t) : d;
+        } catch {
+          return d;
+        }
+      };
+      function obraVisible(repo, ses, obraId) {
+        if (!obraId) return null;
+        const f = alcance.filtro("obras", ses, {});
+        return repo.db.prepare(`SELECT * FROM obras WHERE (${f.where}) AND id = ?`).get(...f.params, obraId) || null;
+      }
+      var sesionDeLectura = (ses) => puede(ses.rol, "commissioning", "ver") ? ses : { ...ses, rol: "administrador" };
+      var LADO_MOVIL = 2500;
+      var MAX_IMAGEN_MOVIL = 4 * 1024 * 1024;
+      function imagenParaMovil(d, ancho, alto) {
+        if (typeof d.imagenMovil === "string" && d.imagenMovil.length <= MAX_IMAGEN_MOVIL && RE_IMAGEN.test(d.imagenMovil)) return d.imagenMovil;
+        if (ancho && alto && Math.max(ancho, alto) <= LADO_MOVIL && d.imagen.length <= MAX_IMAGEN_MOVIL) return null;
+        try {
+          const { nativeImage } = require_electronFalso();
+          if (!nativeImage || typeof nativeImage.createFromDataURL !== "function") return null;
+          const img = nativeImage.createFromDataURL(d.imagen);
+          const t = img.getSize();
+          if (!t.width || !t.height) return null;
+          const k = Math.min(1, LADO_MOVIL / Math.max(t.width, t.height));
+          const peq = img.resize({ width: Math.round(t.width * k), height: Math.round(t.height * k), quality: "best" });
+          return `data:image/jpeg;base64,${peq.toJPEG(72).toString("base64")}`;
+        } catch {
+          return null;
+        }
+      }
+      var salasParaPintar = (rotulos) => leerJson(rotulos, []).map((r) => ({ t: String(r.texto || "").split(" \xB7 ")[0], x: r.x, y: r.y })).filter((r) => r.t && !P.esCodigoSala(r.t));
+      var ordenPlanta = (a, b) => String(a || "~").localeCompare(String(b || "~"), "es", { numeric: true });
+      function salaDe(e, marca) {
+        const gris = FM.salaGrisDe(e);
+        if (gris) return { sala: gris, fuente: "base" };
+        const s = llano(e.sala);
+        if (s && !FM.esCodigoLocal(s) && !P.esCodigoSala(s)) return { sala: s, fuente: "base" };
+        const rotulo = marca && llano(marca.sala) ? P.limpiarSala(llano(marca.sala)) : "";
+        if (rotulo && !FM.esCodigoLocal(rotulo)) return { sala: rotulo, fuente: "plano" };
+        return { sala: null, fuente: null };
+      }
+      function marcarFichasConDato(repo, ses, obraId, t) {
+        let ids;
+        try {
+          ids = new Set(repo.listar("fichasPM", ses, { condicion: "obraId = ? AND equipoId IS NOT NULL AND (medidosRellenos > 0 OR estado IN ('completa','firmada'))", params: [obraId] }).map((f) => f.equipoId));
+        } catch {
+          return;
+        }
+        const marcar = (u) => {
+          if (u && ids.has(u.id)) u.fichaConDato = true;
+        };
+        for (const u of t.filas || []) marcar(u);
+        for (const c of t.conjuntos || []) {
+          marcar(c);
+          for (const m of c.miembros || []) marcar(m);
+        }
+      }
+      function listar(repo, ses, obraId) {
+        if (!obraVisible(repo, ses, obraId)) return null;
+        const lec = sesionDeLectura(ses);
+        const conCx = puede(ses.rol, "commissioning", "ver");
+        const puedeEditar = puede(ses.rol, "commissioning", "editar");
+        const filas = repo.listar("planosEquipos", lec, { condicion: "obraId = ?", params: [obraId] });
+        const t = CX.tabla(repo, lec, obraId) || { filas: [], conjuntos: [] };
+        marcarFichasConDato(repo, lec, obraId, t);
+        const filasEq = (t.filas || []).filter(P.esEquipoDelPlano);
+        const est = P.estados(t, { puedeEditar });
+        const botones = (e) => conCx ? e.acciones : [];
+        const datosDe = (f, e) => ({ tipo: e.tipo, icono: e.icono, miembros: e.miembros, marca: e.marca || null, modelo: e.modelo || null, acciones: botones(e), puedeEditar });
+        const planoDe = new Map(filas.map((p) => [p.planta || "", p]));
+        const marcaDe = /* @__PURE__ */ new Map();
+        for (const p of filas) for (const m of leerJson(p.marcas, [])) marcaDe.set(m.equipoId, { ...m, planoId: p.id, planta: p.planta || "" });
+        const nombres = /* @__PURE__ */ new Set([...filasEq.map((f) => llano(f.planta)), ...filas.map((p) => p.planta || "")]);
+        const plantas = [...nombres].sort(ordenPlanta).map((planta) => {
+          const p = planoDe.get(planta) || null;
+          const equipos = filasEq.filter((f) => llano(f.planta) === planta).map((f) => {
+            const e = est.get(f.id);
+            const m = marcaDe.get(f.id);
+            const enEste = m && p && m.planoId === p.id ? m : null;
+            const { sala, fuente } = salaDe(f, enEste);
+            return {
+              id: f.id,
+              tag: f.tag,
+              familia: f.familia || null,
+              papel: e.papel,
+              conjunto: e.conjunto,
+              color: e.color,
+              falta: e.falta,
+              sala,
+              salaFuente: fuente,
+              ...datosDe(f, e),
+              x: enEste ? enEste.x : null,
+              y: enEste ? enEste.y : null,
+              mano: Boolean(enEste && enEste.mano)
+            };
+          }).sort((a, b) => P.ORDEN_COLOR.indexOf(a.color) - P.ORDEN_COLOR.indexOf(b.color) || String(a.tag).localeCompare(String(b.tag), "es", { numeric: true }));
+          if (p) {
+            const ya = new Set(equipos.map((x) => x.id));
+            for (const m of leerJson(p.marcas, [])) {
+              const f = filasEq.find((x) => x.id === m.equipoId);
+              if (!f || ya.has(f.id)) continue;
+              const e = est.get(f.id);
+              const { sala, fuente } = salaDe(f, m);
+              equipos.push({ id: f.id, tag: f.tag, familia: f.familia || null, papel: e.papel, conjunto: e.conjunto, color: e.color, falta: e.falta, sala, salaFuente: fuente, ...datosDe(f, e), x: m.x, y: m.y, mano: Boolean(m.mano) });
+            }
+          }
+          const cuentas = { verde: 0, azul: 0, rojo: 0, sinSala: 0, enPlano: 0, sinUbicar: 0 };
+          for (const q of equipos) {
+            cuentas[q.color] += 1;
+            if (!q.sala) cuentas.sinSala += 1;
+            if (q.x !== null) cuentas.enPlano += 1;
+          }
+          const sinUbicar = p ? equipos.filter((q) => q.x === null).map((q) => ({ id: q.id, tag: q.tag, familia: q.familia, sala: q.sala, icono: q.icono })).sort((a, b) => String(a.tag).localeCompare(String(b.tag), "es", { numeric: true })) : [];
+          cuentas.sinUbicar = sinUbicar.length;
+          return {
+            planta: planta || null,
+            equipos,
+            cuentas,
+            sinUbicar,
+            plano: p ? { id: p.id, nombre: p.nombre, ancho: p.ancho, alto: p.alto, modificadoEn: p.modificadoEn, salas: salasParaPintar(p.rotulos) } : null
+          };
+        });
+        for (const pl of plantas) {
+          for (const q of pl.equipos) {
+            if (!q.miembros) continue;
+            const r = P.conjuntoEnPlanos(plantas, q.id, pl.planta || "");
+            q.miembros = r.length ? r : null;
+          }
+        }
+        const planos = filas.sort((a, b) => ordenPlanta(a.planta, b.planta)).map((p) => {
+          const { marcas, cuentas } = P.colorear(leerJson(p.marcas, []), t);
+          const pl = plantas.find((x) => x.plano && x.plano.id === p.id);
+          const sinPoner = pl ? pl.equipos.filter((q) => q.x === null).map((q) => ({ id: q.id, tag: q.tag, color: q.color, sala: q.sala })) : [];
+          const salaPor = new Map((pl ? pl.equipos : []).map((q) => [q.id, q.sala]));
+          return { id: p.id, planta: p.planta, nombre: p.nombre, ancho: p.ancho, alto: p.alto, marcas: marcas.map((m) => ({ ...m, sala: salaPor.get(m.equipoId) || m.sala || null })), cuentas, sinPoner, modificadoEn: p.modificadoEn };
+        });
+        const iconos = {};
+        for (const k of Object.keys(P.ICONOS)) iconos[k] = P.ICONOS[k];
+        return { plantas, planos, iconos, colores: P.COLORES, puedeEditar, conCommissioning: conCx };
+      }
+      function imagen(repo, ses, id) {
+        const p = repo.leer("planosEquipos", ses, llano(id));
+        return p ? { id: p.id, imagen: p.imagen, imagenMovil: p.imagenMovil || null, ancho: p.ancho, alto: p.alto } : null;
+      }
+      function comprobarImagen(img) {
+        if (typeof img !== "string" || !img) return "Falta la imagen del plano.";
+        if (img.length > MAX_IMAGEN) return "El plano es demasiado grande (m\xE1s de 16 MB).";
+        if (!RE_IMAGEN.test(img)) return "Eso no es una imagen (PNG, JPEG o WebP).";
+        return null;
+      }
+      function guardar(repo, ses, obraId, d = {}) {
+        if (!obraVisible(repo, ses, obraId)) return { ok: false, error: "No se encuentra la obra." };
+        const error = comprobarImagen(d.imagen);
+        if (error) return { ok: false, error };
+        const equipos = repo.listar("equiposObra", ses, { condicion: "obraId = ?", params: [obraId] });
+        const r = Array.isArray(d.textos) ? P.reconocer(d.textos, equipos) : { marcas: d.marcas || [], planta: null, noEncontrados: [] };
+        const planta = llano(d.planta).slice(0, 40) || r.planta || null;
+        if (!planta) {
+          return { ok: false, error: "No se ha reconocido ning\xFAn equipo de la obra en ese plano y no se sabe de qu\xE9 planta es. Escribe la planta y vuelve a subirlo." };
+        }
+        const rotulos = Array.isArray(d.textos) ? P.rotulosSala(d.textos) : [];
+        const esEquipo = new Set(equipos.filter(P.esEquipoDelPlano).map((e) => e.id));
+        const marcas = P.limpiarMarcas(P.ponerSalas(r.marcas, rotulos)).filter((m) => esEquipo.has(m.equipoId));
+        const nombre = llano(d.nombre).slice(0, 120) || `Planta ${planta}`;
+        const viejo = repo.listar("planosEquipos", ses, { condicion: "obraId = ? AND planta = ?", params: [obraId, planta], limite: 1 })[0];
+        const ancho = dimension(d.ancho);
+        const alto = dimension(d.alto);
+        const datos = { planta, nombre, imagen: d.imagen, imagenMovil: imagenParaMovil(d, ancho, alto), ancho, alto, marcas: JSON.stringify(marcas), rotulos: JSON.stringify(rotulos) };
+        let id;
+        if (viejo) {
+          repo.modificar("planosEquipos", ses, viejo.id, datos);
+          id = viejo.id;
+        } else id = repo.crear("planosEquipos", ses, { obraId, ...datos });
+        const dePlanta = equipos.filter((e) => P.esEquipoDelPlano(e) && String(e.planta || "") === planta);
+        return {
+          ok: true,
+          id,
+          planta,
+          reconocidos: marcas.length,
+          sustituye: Boolean(viejo),
+          deLaPlanta: dePlanta.length,
+          rotulosSala: rotulos.length,
+          conSala: marcas.filter((m) => m.sala).length,
+          noEncontrados: dePlanta.filter((e) => !marcas.some((m) => m.equipoId === e.id)).map((e) => e.tag)
+        };
+      }
+      function colocar(repo, ses, id, equipoId, x, y) {
+        const p = repo.leer("planosEquipos", ses, llano(id));
+        if (!p) return { ok: false, error: "No se encuentra el plano." };
+        const eq = repo.leer("equiposObra", ses, llano(equipoId));
+        if (!eq || eq.obraId !== p.obraId) return { ok: false, error: "Ese equipo no es de esta obra." };
+        if (x !== null && x !== void 0 && !P.esEquipoDelPlano(eq)) return { ok: false, error: "En el plano solo van equipos (ni compuertas, ni v\xE1lvulas, ni cuadros)." };
+        const otras = leerJson(p.marcas, []).filter((m) => m.equipoId !== eq.id);
+        let marcas = otras;
+        let sala = null;
+        if (x !== null && x !== void 0) {
+          sala = P.salaCercana(leerJson(p.rotulos, []), Number(x), Number(y));
+          marcas = P.limpiarMarcas([...otras, { equipoId: eq.id, tag: eq.tag, x, y, mano: true, ...sala ? { sala } : {} }]);
+        }
+        repo.modificar("planosEquipos", ses, p.id, { marcas: JSON.stringify(marcas) });
+        return { ok: true, sala };
+      }
+      function localizacion(repo, ses, equipoId) {
+        const LP = require_localizacionPlano();
+        let e;
+        try {
+          e = repo.leer("equiposObra", ses, llano(equipoId));
+        } catch {
+          return [];
+        }
+        if (!e || !obraVisible(repo, ses, e.obraId)) return [];
+        const planos = repo.db.prepare("SELECT id, planta, nombre, ancho, alto, marcas FROM planosEquipos WHERE obraId = ? ORDER BY planta").all(e.obraId).map((p) => ({ ...p, marcas: leerJson(p.marcas, []) }));
+        if (!planos.some((p) => p.marcas.length)) return [];
+        const CJ = require_conjuntos();
+        const equipos = repo.db.prepare("SELECT id, tag, equipoAsociado, plantillaPM, denominacion FROM equiposObra WHERE obraId = ?").all(e.obraId);
+        const linea = CJ.agrupar(equipos).find((l) => l.unidades.some((u) => u.id === e.id));
+        const unidades = (linea ? linea.unidades : [{ ...e, rotulo: null }]).map((u) => ({ id: u.id, tag: u.tag, rotulo: u.rotulo || null }));
+        const sala = salaDe(e, null).sala;
+        return LP.recortes({ unidades, planos, objetivoId: e.id }).map((r, n) => ({
+          n,
+          ...r,
+          pie: LP.pie(r, { sala: r.propio ? sala || r.sala : r.sala })
+        }));
+      }
+      var LADO_RECORTE = 1600;
+      function imagenRecorte(repo, ses, r, cache = /* @__PURE__ */ new Map()) {
+        if (!r || !r.planoId) return null;
+        let fila = cache.get(r.planoId);
+        if (fila === void 0) {
+          fila = repo.db.prepare("SELECT p.imagen, p.imagenMovil, p.obraId FROM planosEquipos p WHERE p.id = ?").get(r.planoId) || null;
+          if (fila && !obraVisible(repo, ses, fila.obraId)) fila = null;
+          cache.set(r.planoId, fila);
+        }
+        if (!fila) return null;
+        try {
+          const { nativeImage } = require_electronFalso();
+          if (nativeImage && typeof nativeImage.createFromDataURL === "function") {
+            const clave = `img:${r.planoId}`;
+            let img = cache.get(clave);
+            if (!img) {
+              img = nativeImage.createFromDataURL(fila.imagen);
+              cache.set(clave, img);
+            }
+            const t = img.getSize();
+            if (t.width && t.height) {
+              const rect = {
+                x: Math.round(r.recorte.x * t.width),
+                y: Math.round(r.recorte.y * t.height),
+                width: Math.max(1, Math.round(r.recorte.w * t.width)),
+                height: Math.max(1, Math.round(r.recorte.h * t.height))
+              };
+              rect.width = Math.min(rect.width, t.width - rect.x);
+              rect.height = Math.min(rect.height, t.height - rect.y);
+              let trozo = img.crop(rect);
+              const k = Math.min(1, LADO_RECORTE / Math.max(rect.width, rect.height));
+              if (k < 1) trozo = trozo.resize({ width: Math.round(rect.width * k), height: Math.round(rect.height * k), quality: "best" });
+              const bytes = trozo.toJPEG(82);
+              if (bytes && bytes.length) return { bytes, tipo: "image/jpeg", recorte: null, dataUrl: `data:image/jpeg;base64,${bytes.toString("base64")}` };
+            }
+          }
+        } catch {
+        }
+        const url = String(fila.imagenMovil || fila.imagen || "");
+        const m = /^data:(image\/[a-z+]+);base64,(.*)$/s.exec(url);
+        if (!m) return null;
+        return { bytes: Buffer.from(m[2], "base64"), tipo: m[1] === "image/jpg" ? "image/jpeg" : m[1], recorte: r.recorte, dataUrl: url };
+      }
+      function svgRecorte(repo, ses, r, cache) {
+        const LP = require_localizacionPlano();
+        const img = imagenRecorte(repo, ses, r, cache);
+        if (!img) return null;
+        return LP.svg(r, { href: img.dataUrl, imagenRecortada: !img.recorte });
+      }
+      function fotosLocalizacion(repo, ses, equipoId) {
+        const cache = /* @__PURE__ */ new Map();
+        const fuera = [];
+        for (const r of localizacion(repo, ses, equipoId)) {
+          const img = imagenRecorte(repo, ses, r, cache);
+          if (!img) continue;
+          fuera.push({ bytes: img.bytes, recorte: img.recorte, marcas: r.marcas, entero: true, localizacion: true, pie: r.pie });
+        }
+        return fuera;
+      }
+      function borrar(repo, ses, id) {
+        const p = repo.leer("planosEquipos", ses, llano(id));
+        if (!p) return { ok: false, error: "No se encuentra el plano." };
+        repo.borrar("planosEquipos", ses, p.id);
+        return { ok: true };
+      }
+      module.exports = { LADO_MOVIL, listar, imagen, guardar, colocar, borrar, salaDe, localizacion, imagenRecorte, svgRecorte, fotosLocalizacion };
+    }
+  });
+
   // shared/commissioning/importarTabla.js
   var require_importarTabla = __commonJS({
     "shared/commissioning/importarTabla.js"(exports, module) {
@@ -44752,6 +46121,15 @@ ${subtitulo}`, c[5]] : c.slice())]);
         return { equipo, obra, familia: fam, partes, conservadas, cabeceraObra: cabeceraDe(cfg), tolerancias: F.tolerancias(cfg || {}) };
       }
       var TIPOS_IMAGEN = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".gif": "image/gif", ".bmp": "image/bmp", ".webp": "image/webp" };
+      function fotosDeUnidad(repo, sesion, equipoId) {
+        let filas = [];
+        try {
+          filas = repo.listar("fotosEquipo", sesion, { condicion: "equipoId = ?", params: [equipoId], orden: "creadoEn" });
+        } catch {
+          return [];
+        }
+        return filas.filter((f) => f.ruta).map((f) => ({ ruta: f.ruta, nombre: [f.pie || "Foto", f.hora].filter(Boolean).join(" \xB7 ") }));
+      }
       function imagenesDe(fotos = []) {
         const fuera = {};
         for (const f of fotos) {
@@ -44930,7 +46308,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         }) : todas;
         const partes = propias.map((p) => {
           const titulo = p.clave && p.clave.startsWith("circuito:") ? llano(d.equipo.circuito) : p.clave && p.clave.startsWith("refrigerante:") ? p.clave.slice("refrigerante:".length) : p.porUnidad && p.unidadTag || d.equipo.tag;
-          return { ...p, titulo: rotulo ? `${rotulo} \xB7 ${titulo}` : titulo };
+          return { ...p, titulo: rotulo && !(p.porUnidad && p.unidadTag) ? `${rotulo} \xB7 ${titulo}` : titulo };
         });
         const imagenes = Object.assign({}, ...partes.filter((p) => p.evaluacion).map((p) => imagenesDe(p.evaluacion.datos.fotos)));
         const { anexos, noUnidos } = anexosDossier(repo, sesion, d);
@@ -44967,6 +46345,33 @@ ${subtitulo}`, c[5]] : c.slice())]);
           estq.evaluacion = null;
           estq.cubierta = pruebas.length === 1 ? `En la prueba ${pruebas[0].codigo}` : `En ${pruebas.length} pruebas del m\xF3vil`;
           estq.cubiertaCerrada = pruebas.every((pe) => pe.resultado === "correcta" && pe.estado === "visto");
+        }
+        const tomaPropia = partes.find((p) => p.porUnidad && p.unidadId === d.equipo.id);
+        if (tomaPropia) {
+          const fotosU = fotosDeUnidad(repo, sesion, d.equipo.id);
+          if (fotosU.length) {
+            const titulo = tomaPropia.unidadTag || d.equipo.tag;
+            extras.push({
+              nombre: `Fotograf\xEDas \xB7 ${titulo}`,
+              estado: fotosU.length === 1 ? "1 foto" : `${fotosU.length} fotos`,
+              resultado: null,
+              html: fichaHtml.hojaFotos(titulo, fotosU, { obra: d.obra, equipo: d.equipo, imagenes: imagenesDe(fotosU) })
+            });
+          }
+        }
+        try {
+          const PEQ = require_planoEquipos2();
+          const cache = /* @__PURE__ */ new Map();
+          const figuras = PEQ.localizacion(repo, sesion, d.equipo.id).map((r) => ({ svg: PEQ.svgRecorte(repo, sesion, r, cache), pie: r.pie })).filter((f) => f.svg);
+          if (figuras.length) {
+            extras.unshift({
+              nombre: "Localizaci\xF3n en plano",
+              estado: figuras.length === 1 ? "1 recorte" : `${figuras.length} recortes`,
+              resultado: null,
+              html: fichaHtml.hojaLocalizacion(d.equipo.tag, figuras, { obra: d.obra, equipo: d.equipo })
+            });
+          }
+        } catch {
         }
         const html = fichaHtml.dossier(d.equipo, partes, {
           obra: d.obra,
@@ -45593,6 +46998,44 @@ ${subtitulo}`, c[5]] : c.slice())]);
           return { ok: false, error: e.message };
         }
       }
+      function ponerNumSerie(repo, sesion, equipoId, numSerie) {
+        if (!puede(sesion.rol, "commissioning", "editar")) return { ok: false, error: NO_EDITA };
+        const eq = equipoId ? repo.leer("equiposObra", sesion, equipoId) : null;
+        if (!eq) return { ok: false, error: "No se encuentra el equipo." };
+        const serie = String(numSerie ?? "").replace(/\s+/g, " ").trim().slice(0, 80);
+        if (String(eq.numSerie || "").trim() !== serie) {
+          try {
+            repo.modificar("equiposObra", sesion, eq.id, { numSerie: serie || null });
+          } catch (e) {
+            return { ok: false, error: e.message };
+          }
+        }
+        let fichas = 0;
+        if (serie) {
+          const cat = catalogoDe(repo, sesion);
+          const filas = repo.listar("fichasPM", sesion, { condicion: "obraId = ? AND clave = ?", params: [eq.obraId, `equipo:${eq.id}`] });
+          for (const fila of filas) {
+            if (leerJson(fila.firmas, []).length) continue;
+            const def = defDeFila(cat, fila, false) || cat.vigentes.get(fila.plantilla);
+            const puntos = def ? F.puntosDe(def).filter((p) => p.origen === "numSerie") : [];
+            if (!puntos.length) continue;
+            const datos = leerJson(fila.datos, {});
+            datos.valores = datos.valores || {};
+            let cambia = false;
+            for (const p of puntos) {
+              const v = datos.valores[p.codigo];
+              if (v && String(v.v ?? "").trim() === serie) continue;
+              datos.valores[p.codigo] = { ...v || {}, v: serie, o: "manual" };
+              cambia = true;
+            }
+            if (cambia) {
+              repo.modificar("fichasPM", sesion, fila.id, { datos: JSON.stringify(datos) });
+              fichas += 1;
+            }
+          }
+        }
+        return { ok: true, equipoId: eq.id, numSerie: serie || null, fichas };
+      }
       module.exports = {
         fundirConjuntos,
         fundirConjuntosSinFallar,
@@ -45610,6 +47053,8 @@ ${subtitulo}`, c[5]] : c.slice())]);
         firmarConjunto,
         lineaDe,
         dossier,
+        fotosDeUnidad,
+        ponerNumSerie,
         htmlFicha,
         htmlPlantilla,
         htmlDossier,
@@ -46780,79 +48225,6 @@ ${subtitulo}`, c[5]] : c.slice())]);
           if (typeof module !== "undefined" && module.exports) module.exports = API;
           if (typeof window !== "undefined") window.INFORME_SERVICIO_TECNICO = API;
         })({ pendiente, elegir, lineas, cuentas, html, hojas });
-      })();
-    }
-  });
-
-  // shared/commissioning/filaMovil.js
-  var require_filaMovil = __commonJS({
-    "shared/commissioning/filaMovil.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function() {
-        const llano = (v) => String(v ?? "").trim();
-        const clave = (v) => llano(v).toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[\s_-]+/g, "-");
-        const PAPEL_DELANTE = /^U[EI][\s_-]+/i;
-        const PAPEL_DETRAS = /[\s_-]+U[EI]$/i;
-        function sinPapel(tag, planta) {
-          let t = llano(tag).replace(PAPEL_DELANTE, "").replace(PAPEL_DETRAS, "");
-          const p = llano(planta);
-          if (p) {
-            const re = new RegExp(`^${p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\s_-]+`, "i");
-            const sin = t.replace(re, "");
-            if (sin) t = sin;
-          }
-          return t;
-        }
-        function nombreConjunto(unidades, planta) {
-          const us = (unidades || []).filter((u) => u && llano(u.tag));
-          if (us.length !== 2) return null;
-          if (!us.every((u) => PAPEL_DELANTE.test(llano(u.tag)) || PAPEL_DETRAS.test(llano(u.tag)))) return null;
-          const nombres = us.map((u) => sinPapel(u.tag, planta));
-          if (!nombres[0] || clave(nombres[0]) !== clave(nombres[1])) return null;
-          return nombres[0];
-        }
-        const esCodigoLocal = (v) => /^[A-Z]{1,2}\d{0,2}\.[A-Z]{2,4}\.\d{2,}$/i.test(llano(v));
-        function salaGrisDe(u = {}) {
-          const g = llano(u.salaGris);
-          const estado = llano(u.salaGrisEstado);
-          if (!g || estado !== "asignada" && estado !== "por confirmar") return null;
-          const n = llano(u.salaGrisNombre);
-          const texto = n ? `${g} \xB7 ${n}` : g;
-          return estado === "asignada" ? texto : `${texto} (por confirmar)`;
-        }
-        function salaVisibleDe(u = {}) {
-          const gris = salaGrisDe(u);
-          if (gris) return gris;
-          const s = llano(u.sala);
-          return s && !esCodigoLocal(s) ? s : null;
-        }
-        function localDe(unidades) {
-          const us = (unidades || []).filter(Boolean);
-          const dondeEsta = (u2) => salaVisibleDe(u2);
-          const interiores = new Set(us.filter((u2) => u2.papel === "UI" && dondeEsta(u2)).map(dondeEsta));
-          if (interiores.size > 1) return null;
-          const orden = [...us.filter((u2) => u2.papel === "UI"), ...us.filter((u2) => u2.papel !== "UI")];
-          const u = orden.find((x) => dondeEsta(x));
-          return u ? dondeEsta(u) : null;
-        }
-        const pideBalanceo = (f) => f.ensayoRequerido === "balanceo" || f.ensayoRequerido === "ambos";
-        function llevaPlanoBocas(f = {}) {
-          return f.medicion ? Boolean(f.medicion.plano) : pideBalanceo(f) || /UTA|climatiz|recuper|fan.?coil|extrac|ventil/i.test(f.grupo || "");
-        }
-        const serieDe = (u = {}) => {
-          const s = llano(u.numSerie);
-          return s && !/^(-|—|n\/?a|sin.*)$/i.test(s) ? s : null;
-        };
-        function seriesTexto(unidades) {
-          const us = (unidades || []).filter(Boolean);
-          if (!us.some(serieDe)) return null;
-          if (us.length === 1) return serieDe(us[0]);
-          return us.map((u) => `${u.papel || ""} ${serieDe(u) || "sin n\xBA"}`.trim()).join(" \xB7 ");
-        }
-        const API = { sinPapel, nombreConjunto, esCodigoLocal, salaGrisDe, salaVisibleDe, localDe, llevaPlanoBocas, serieDe, seriesTexto };
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.FILA_MOVIL_CX = API;
       })();
     }
   });
@@ -88954,7 +90326,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     "shared/movil/informePdf.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
-      var { PDFDocument, StandardFonts, rgb } = require_cjs();
+      var { PDFDocument, StandardFonts, rgb, pushGraphicsState, popGraphicsState, rectangle, clip, endPath } = require_cjs();
       var A4 = [595.28, 841.89];
       var MARGEN = 40;
       var VERDE = rgb(23 / 255, 130 / 255, 118 / 255);
@@ -89230,29 +90602,79 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           y -= 18;
           const col = (ANCHO - 14) / 2;
           const ALTO_MAX = 230;
-          for (let i = 0; i < fotos.length; i += 2) {
+          const ALTO_ENTERO = 330;
+          const AZUL = rgb(31 / 255, 99 / 255, 198 / 255);
+          const metidas = /* @__PURE__ */ new Map();
+          const meter = async (bytes) => {
+            if (!bytes) return null;
+            if (metidas.has(bytes)) return metidas.get(bytes);
+            let img = null;
+            try {
+              if (esJpeg(bytes)) img = await pdf.embedJpg(bytes);
+              else if (esPng(bytes)) img = await pdf.embedPng(bytes);
+            } catch {
+              img = null;
+            }
+            metidas.set(bytes, img);
+            return img;
+          };
+          const filasFotos = [];
+          for (let i = 0; i < fotos.length; ) {
+            if (fotos[i] && fotos[i].entero) {
+              filasFotos.push([fotos[i]]);
+              i += 1;
+              continue;
+            }
+            const par = [fotos[i]];
+            if (fotos[i + 1] && !fotos[i + 1].entero) par.push(fotos[i + 1]);
+            filasFotos.push(par);
+            i += par.length;
+          }
+          for (const fila of filasFotos) {
             const par = [];
-            for (const f of fotos.slice(i, i + 2)) {
-              let img = null;
-              try {
-                if (esJpeg(f.bytes)) img = await pdf.embedJpg(f.bytes);
-                else if (esPng(f.bytes)) img = await pdf.embedPng(f.bytes);
-              } catch {
-                img = null;
-              }
-              const esc = img ? Math.min(col / img.width, ALTO_MAX / img.height) : 0;
-              par.push({ f, img, w: img ? img.width * esc : col, h: img ? img.height * esc : 60, pie: partir(limpio(f.pie || ""), normal, 8.5, col) });
+            for (const f of fila) {
+              const img = await meter(f.bytes);
+              const anchoCol = f.entero ? ANCHO : col;
+              const r = f.recorte && f.recorte.w > 0 && f.recorte.h > 0 ? f.recorte : { x: 0, y: 0, w: 1, h: 1 };
+              const vw = img ? img.width * r.w : 0;
+              const vh = img ? img.height * r.h : 0;
+              const esc = img ? Math.min(anchoCol / vw, (f.entero ? ALTO_ENTERO : ALTO_MAX) / vh) : 0;
+              par.push({ f, img, r, esc, w: img ? vw * esc : anchoCol, h: img ? vh * esc : 60, pie: partir(limpio(f.pie || ""), f.localizacion ? negrita : normal, 8.5, anchoCol) });
             }
             const alto = Math.max(...par.map((p) => p.h + p.pie.length * 10.5 + 10));
             sitio(alto);
             par.forEach((p, j) => {
               const x = MARGEN + j * (col + 14);
-              if (p.img) pagina.drawImage(p.img, { x, y: y - p.h, width: p.w, height: p.h });
+              if (p.img && (p.f.recorte || p.f.marcas)) {
+                const W = p.img.width * p.esc;
+                const H = p.img.height * p.esc;
+                pagina.pushOperators(pushGraphicsState(), rectangle(x, y - p.h, p.w, p.h), clip(), endPath());
+                pagina.drawImage(p.img, { x: x - p.r.x * W, y: y + p.r.y * H - H, width: W, height: H });
+                pagina.pushOperators(popGraphicsState());
+                pagina.drawRectangle({ x, y: y - p.h, width: p.w, height: p.h, borderColor: VERDE, borderWidth: 0.8 });
+                const marcas = [...p.f.marcas || []].filter((m) => typeof m.x === "number" && typeof m.y === "number" && m.x >= 0 && m.x <= 1 && m.y >= 0 && m.y <= 1).sort((a, b) => Number(Boolean(a.propio)) - Number(Boolean(b.propio)));
+                for (const m of marcas) {
+                  const cx = x + m.x * p.w;
+                  const cy = y - m.y * p.h;
+                  const color = m.propio ? VERDE : AZUL;
+                  const rr = m.propio ? 9 : 7;
+                  pagina.drawCircle({ x: cx, y: cy, size: rr, color, opacity: 0.16, borderColor: color, borderWidth: m.propio ? 1.8 : 1.2 });
+                  pagina.drawCircle({ x: cx, y: cy, size: m.propio ? 2.4 : 1.8, color });
+                  const et = limpio(m.etiqueta || "");
+                  if (et) {
+                    const tam = m.propio ? 8 : 7;
+                    const tw = negrita.widthOfTextAtSize(et, tam);
+                    const tx = Math.min(cx + rr + 2, x + p.w - tw - 3);
+                    pagina.drawRectangle({ x: tx - 1.5, y: cy + 2, width: tw + 3, height: tam + 2, color: rgb(1, 1, 1), opacity: 0.85 });
+                    pagina.drawText(et, { x: tx, y: cy + 3.5, size: tam, font: negrita, color });
+                  }
+                }
+              } else if (p.img) pagina.drawImage(p.img, { x, y: y - p.h, width: p.w, height: p.h });
               else {
                 pagina.drawRectangle({ x, y: y - p.h, width: p.w, height: p.h, color: FONDO });
                 pagina.drawText("Foto en un formato que no se puede meter en el PDF", { x: x + 8, y: y - p.h / 2, size: 8, font: normal, color: GRIS });
               }
-              p.pie.forEach((l, n) => pagina.drawText(l, { x, y: y - p.h - 12 - n * 10.5, size: 8.5, font: normal, color: GRIS }));
+              p.pie.forEach((l, n) => pagina.drawText(l, { x, y: y - p.h - 12 - n * 10.5, size: 8.5, font: p.f.localizacion ? negrita : normal, color: p.f.localizacion ? VERDE : GRIS }));
             });
             y -= alto + 8;
           }
@@ -89586,6 +91008,50 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
+  // electron/data/unirPdf.js
+  var require_unirPdf = __commonJS({
+    "electron/data/unirPdf.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var fs = require_fs();
+      var path = require_path();
+      var { PDFDocument } = require_cjs();
+      var MAX_BYTES = 40 * 1024 * 1024;
+      async function unirPdf(base, anexos = []) {
+        const unidos = [];
+        const fallidos = [];
+        if (!anexos.length) return { pdf: base, unidos, fallidos };
+        const doc = await PDFDocument.load(base);
+        for (const a of anexos) {
+          const nombre = a.nombre || path.basename(a.ruta || "");
+          try {
+            const st = fs.statSync(a.ruta);
+            if (!st.isFile()) throw new Error("no es un archivo");
+            if (st.size > MAX_BYTES) throw new Error("pasa de 40 MB");
+            const otro = await PDFDocument.load(fs.readFileSync(a.ruta));
+            const paginas = await doc.copyPages(otro, otro.getPageIndices());
+            for (const p of paginas) doc.addPage(p);
+            unidos.push({ nombre, paginas: paginas.length });
+          } catch (e) {
+            fallidos.push({ nombre, motivo: e.code === "ENOENT" ? "no est\xE1 en su sitio" : e.message });
+          }
+        }
+        return { pdf: await doc.save(), unidos, fallidos };
+      }
+      async function unirBytes(partes = [], titulo = "") {
+        const doc = await PDFDocument.create();
+        for (const b of partes) {
+          const otro = await PDFDocument.load(b);
+          for (const p of await doc.copyPages(otro, otro.getPageIndices())) doc.addPage(p);
+        }
+        if (!doc.getPageCount()) return null;
+        if (titulo) doc.setTitle(titulo);
+        return doc.save();
+      }
+      module.exports = { unirPdf, unirBytes };
+    }
+  });
+
   // electron/movil/rutasFichas.js
   var require_rutasFichas = __commonJS({
     "electron/movil/rutasFichas.js"(exports, module) {
@@ -89603,6 +91069,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
       var ME = require_pruebasEstanqueidad();
       var { informePdf } = require_informePdf();
       var { hojaExcelPdf } = require_hojaExcelPdf();
+      var PEQ = require_planoEquipos2();
       var X = require_fichaExcel();
       var { puede } = require_roles();
       var PERMISOS_FICHAS = {
@@ -89837,6 +91304,52 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           const us = [{ papel: papel(eq.tag), numSerie: eq.numSerie }, { papel: papel(otro.tag), numSerie: otro.numSerie }].sort((a, b) => a.papel === "UE" ? -1 : b.papel === "UE" ? 1 : 0);
           return FMOV.seriesTexto(us);
         }
+        function tomasVrf(ses, equipoId) {
+          const linea = FPM.lineaDe(repo, ses, equipoId);
+          if (!linea || (linea.unidades || []).length < 2) return { linea, tomas: [] };
+          const d = FPM.dossier(repo, ses, linea.unidades[0].id);
+          return { linea, tomas: (d && d.partes || []).filter((p) => p.porUnidad && p.unidadId && p.clave && p.plantilla) };
+        }
+        function fotosUnidadVrf(ses, ref) {
+          const m = /^equipo:(.+)$/.exec(llano(ref && ref.clave));
+          if (!m) return [];
+          try {
+            const t = tomasVrf(ses, m[1]).tomas.find((p) => p.clave === llano(ref.clave) && p.plantilla === llano(ref.plantilla));
+            return t ? FPM.fotosDeUnidad(repo, ses, t.unidadId) : [];
+          } catch {
+            return [];
+          }
+        }
+        function fotosLocalizacion(ses, ref) {
+          const m = /^equipo:(.+)$/.exec(llano(ref && ref.clave));
+          if (!m) return [];
+          try {
+            return PEQ.fotosLocalizacion(repo, ses, m[1]);
+          } catch {
+            return [];
+          }
+        }
+        async function pdfTomasVrf(ses, equipoId, opciones = {}) {
+          const { linea, tomas } = tomasVrf(ses, equipoId);
+          if (!tomas.length) return { error: "Este equipo no es un VRF con unidades interiores." };
+          const eq = repo.leer("equiposObra", ses, linea.unidades[0].id) || {};
+          const partes = [];
+          for (const t of tomas) {
+            const ref = { clave: t.clave, plantilla: t.plantilla };
+            let bytes = null;
+            const h = await pdfFichaHoja(ses, eq.obraId, ref, opciones);
+            if (h) bytes = h.bytes;
+            else {
+              const r = docFicha(ses, eq.obraId, ref);
+              if (r.error) continue;
+              bytes = await informePdf(r.doc);
+            }
+            partes.push(bytes);
+          }
+          const todo = await require_unirPdf().unirBytes(partes, `${eq.tag || ""} \xB7 tomas de datos UE y UIs`);
+          if (!todo) return { error: "No hay ninguna toma de datos que imprimir." };
+          return { bytes: todo, nombre: `${nombreSeguro(`${eq.tag || equipoId} - tomas de datos UE y UIs`)}.pdf` };
+        }
         function docFicha(ses, obraId, ref) {
           const f = FPM.ficha(repo, ses, obraId, ref);
           if (!f || f.ok === false) return { error: f && f.error || "No se encuentra la obra." };
@@ -89899,7 +91412,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           if (ev.datos.observaciones) bloques.push({ titulo: "Observaciones", texto: ev.datos.observaciones });
           if (ev.faltan.length) bloques.push({ titulo: "Lo que falta", texto: ev.faltan.join(" \xB7 ") });
           if (ev.avisos.length) bloques.push({ titulo: "Avisos", texto: ev.avisos.join(" \xB7 ") });
-          const fotos = ev.datos.fotos.map((x) => ({ bytes: bytesDe(x.ruta), pie: x.nombre || path.basename(x.ruta) }));
+          const fotos = [...fotosLocalizacion(ses, ref), ...[...ev.datos.fotos, ...fotosUnidadVrf(ses, ref)].map((x) => ({ bytes: bytesDe(x.ruta), pie: x.nombre || path.basename(x.ruta) }))];
           const cab = ev.datos.cabecera;
           return {
             nombre: `${nombreSeguro([eq.sala, f.titulo, f.plantilla.nombre].filter(Boolean).join(" - "))}.pdf`,
@@ -90158,7 +91671,8 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             fechaEnsayo: /^\d{4}-\d{2}-\d{2}/.test(opciones.fechaEnsayo || "") ? opciones.fechaEnsayo : null
           });
           if (!r) return null;
-          const fotos = sinMedidos ? [] : (f.evaluacion.datos.fotos || []).map((x) => ({ bytes: bytesDe(x.ruta), pie: x.nombre || path.basename(x.ruta) }));
+          const fotos = sinMedidos ? [] : [...f.evaluacion.datos.fotos || [], ...fotosUnidadVrf(ses, ref)].map((x) => ({ bytes: bytesDe(x.ruta), pie: x.nombre || path.basename(x.ruta) })).filter((x) => x.bytes);
+          if (!sinMedidos) fotos.unshift(...fotosLocalizacion(ses, ref));
           const anexoPdf = fotos.length ? await informePdf({ titulo: `Anexo \xB7 Fotos \xB7 ${f.titulo || ""}`, fecha: ahoraEs(), fotos, pie: `Anexo de ${f.plantilla.nombre} \xB7 ${f.titulo || ""}` }) : null;
           const firmas = sinMedidos ? [] : FIR.paraPdf(FIR.firmasDeClave(repo, ses, obraId, ref.clave));
           const bytes = await hojaExcelPdf({ hojas: [{ disp: X.disposicion(r.m, r.opciones), marca: r.opciones.marca }], imagen: imagenLibro, anexoPdf, titulo: f.plantilla.nombre, firmas });
@@ -90218,6 +91732,11 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             const h = await pdfBalanceoHoja(ses, llano(query.equipo), { sinObservaciones });
             if (h) return enHoja(h);
             r = docBalanceo(ses, llano(query.equipo));
+          } else if (tipo === "vrf") {
+            if (!puede(ses.rol, "commissioning", "ver")) return [403, { ok: false, error: "Tu rol no ve el commissioning." }];
+            const h = await pdfTomasVrf(ses, llano(query.equipo), { sinObservaciones });
+            if (h.error) return [404, { ok: false, error: h.error }];
+            return enHoja(h);
           } else if (tipo === "cronometro") {
             if (!puede(ses.rol, "commissioning", "ver")) return [403, { ok: false, error: "Tu rol no ve el commissioning." }];
             r = docCronometro(ses, llano(query.equipo));
@@ -90243,1020 +91762,6 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // shared/commissioning/planoEquipos.js
-  var require_planoEquipos = __commonJS({
-    "shared/commissioning/planoEquipos.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function() {
-        const MAX_PALABRAS = 8;
-        const CERCA = 0.015;
-        const clave = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-        const claveSuelta = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().split(/[^A-Z0-9]+/).map((x) => x.replace(/(^|[A-Z])0+(?=\d)/g, "$1")).join("");
-        const RE_NO_EQUIPO = /^(?:C\.?C\.?F|CRF|CF|CORTA\s?FUEGOS?|COMPUERTAS?|DAMPERS?|DMP|VAV|V[23]V|VALV(?:ULAS?)?|VAL|VS|VM|CGBT|CUADRO)(?=$|[\s._\-/\d])/i;
-        const RE_FAMILIA_NO_EQUIPO = /^(ELEC_|CONTROL_|HOSP_|TELE_|GAS_|PCI_(?!BOMBEO))/;
-        function esEquipoDelPlano(e) {
-          if (!e) return false;
-          const tag = String(e.tag || "").trim();
-          if (clave(tag).length < 2) return false;
-          if (RE_NO_EQUIPO.test(tag)) return false;
-          if (RE_FAMILIA_NO_EQUIPO.test(String(e.familia || "").trim())) return false;
-          return true;
-        }
-        const claveCasado = (t) => claveSuelta(t);
-        function casar(tagsPlano, equipos) {
-          const delListado = (equipos || []).filter(esEquipoDelPlano);
-          const porClave = /* @__PURE__ */ new Map();
-          for (const e of delListado) {
-            for (const k of /* @__PURE__ */ new Set([clave(e.tag), claveCasado(e.tag)])) {
-              if (!k) continue;
-              if (!porClave.has(k)) porClave.set(k, []);
-              porClave.get(k).push(e);
-            }
-          }
-          const casados = [];
-          const vistos = /* @__PURE__ */ new Set();
-          const sobran = [];
-          const sobranVistos = /* @__PURE__ */ new Set();
-          for (const t of tagsPlano || []) {
-            const tag = String(t || "").trim();
-            if (!tag || RE_NO_EQUIPO.test(tag)) continue;
-            const casan = porClave.get(clave(tag)) || porClave.get(claveCasado(tag));
-            if (!casan) {
-              if (!sobranVistos.has(claveCasado(tag))) {
-                sobranVistos.add(claveCasado(tag));
-                sobran.push(tag);
-              }
-              continue;
-            }
-            for (const e of casan) {
-              if (vistos.has(e.id)) continue;
-              vistos.add(e.id);
-              casados.push({ equipoId: e.id, tag: e.tag, tagPlano: tag });
-            }
-          }
-          return { casados, sinUbicar: delListado.filter((e) => !vistos.has(e.id)), sobranEnPlano: sobran };
-        }
-        function cruce(equiposPlanta, marcas) {
-          const conMarca = new Set((marcas || []).map((m) => m.equipoId));
-          const delListado = (equiposPlanta || []).filter(esEquipoDelPlano);
-          return {
-            casados: delListado.filter((e) => conMarca.has(e.id)),
-            sinUbicar: delListado.filter((e) => !conMarca.has(e.id))
-          };
-        }
-        function palabrasDe(textos) {
-          const salida = [];
-          for (const t of textos || []) {
-            if (!t || typeof t.texto !== "string") continue;
-            const trozos = t.texto.split(/\s+/).filter(Boolean);
-            trozos.forEach((p, i) => salida.push({ p, k: clave(p), s: claveSuelta(p), x: Number(t.x) || 0, y: Number(t.y) || 0, mismo: i > 0 }));
-          }
-          return salida;
-        }
-        function reconocer(textos, equipos) {
-          const porClave = /* @__PURE__ */ new Map();
-          const porSuelta = /* @__PURE__ */ new Map();
-          for (const e of equipos || []) {
-            if (!esEquipoDelPlano(e)) continue;
-            const k = clave(e.tag);
-            if (k.length < 4) continue;
-            if (!porClave.has(k)) porClave.set(k, []);
-            porClave.get(k).push(e);
-            const s = claveSuelta(e.tag);
-            if (!porSuelta.has(s)) porSuelta.set(s, []);
-            porSuelta.get(s).push(e);
-          }
-          const palabras = palabrasDe(textos);
-          const usadas = new Uint8Array(palabras.length);
-          const marcas = [];
-          const vistos = /* @__PURE__ */ new Set();
-          for (let i = 0; i < palabras.length; i++) {
-            if (usadas[i] || !palabras[i].k) continue;
-            let hasta = i;
-            const ks = [palabras[i].k];
-            const ss = [palabras[i].s];
-            for (let j = i + 1; j < palabras.length && j - i < MAX_PALABRAS; j++) {
-              const a = palabras[j - 1];
-              const b = palabras[j];
-              if (usadas[j]) break;
-              if (!b.mismo && Math.hypot(a.x - b.x, a.y - b.y) > CERCA) break;
-              ks.push(b.k);
-              ss.push(b.s);
-              hasta = j;
-            }
-            for (let fin = hasta; fin >= i; fin--) {
-              const k = ks.slice(0, fin - i + 1).join("");
-              const casan = porClave.get(k) || porSuelta.get(ss.slice(0, fin - i + 1).join(""));
-              if (!casan) continue;
-              let sx = 0;
-              let sy = 0;
-              for (let n = i; n <= fin; n++) {
-                sx += palabras[n].x;
-                sy += palabras[n].y;
-                usadas[n] = 1;
-              }
-              const x = Math.round(sx / (fin - i + 1) * 1e4) / 1e4;
-              const y = Math.round(sy / (fin - i + 1) * 1e4) / 1e4;
-              for (const e of casan) {
-                if (vistos.has(e.id)) continue;
-                vistos.add(e.id);
-                marcas.push({ equipoId: e.id, tag: e.tag, x, y });
-              }
-              break;
-            }
-          }
-          const cuenta = /* @__PURE__ */ new Map();
-          for (const m of marcas) {
-            const e = (equipos || []).find((q) => q.id === m.equipoId);
-            const p = e && e.planta ? String(e.planta) : null;
-            if (p) cuenta.set(p, (cuenta.get(p) || 0) + 1);
-          }
-          const planta = [...cuenta.entries()].sort((a, b) => b[1] - a[1])[0];
-          const deLaPlanta = planta ? (equipos || []).filter((e) => esEquipoDelPlano(e) && String(e.planta || "") === planta[0]) : [];
-          const noEncontrados = deLaPlanta.filter((e) => !vistos.has(e.id)).map((e) => ({ id: e.id, tag: e.tag }));
-          return { marcas, planta: planta ? planta[0] : null, noEncontrados, reconocidos: marcas.length };
-        }
-        const COLORES = {
-          verde: { nombre: "Hecho", largo: "Commissioning completo", hex: "#1a7f4b" },
-          azul: { nombre: "Falta documento", largo: "Empezado, falta alg\xFAn documento", hex: "#1f63c6" },
-          rojo: { nombre: "Sin empezar", largo: "No se ha empezado", hex: "#c8303a" }
-        };
-        const ORDEN_COLOR = ["verde", "azul", "rojo"];
-        const BALANCEO_HECHO = /* @__PURE__ */ new Set(["apto", "aptoSinBocas", "noApto"]);
-        const ESTANQ_HECHA = /* @__PURE__ */ new Set(["apta", "noApta"]);
-        const hayDato = (v) => {
-          const t = String(v ?? "").trim().toLowerCase();
-          return t !== "" && t !== "pendiente" && t !== "\u2014" && t !== "-";
-        };
-        function empezado(u) {
-          if (!u) return false;
-          if (u.instalacionVerificadaEn || u.estado === "enMarcha" || u.estado === "recepcionado") return true;
-          if (u.estadoPM && u.estadoPM !== "pendiente") return true;
-          if (hayDato(u.docFichaPM) || hayDato(u.docBalanceo) || hayDato(u.docEstanqueidad)) return true;
-          if (BALANCEO_HECHO.has(u.balanceoEstado) || ESTANQ_HECHA.has(u.estanqueidadEstado)) return true;
-          if (u.fechaEnvioDF) return true;
-          if (u.fichaConDato) return true;
-          const f = u.pmFichas;
-          if (f && (f.completas > 0 || f.checklist === "hecho")) return true;
-          return false;
-        }
-        function estadoEnPlano(unidad, linea) {
-          const l = linea || unidad;
-          if (!l) return "rojo";
-          if (l.completo) return "verde";
-          const miembros = Array.isArray(l.miembros) && l.miembros.length ? l.miembros : [l];
-          return miembros.some(empezado) || unidad && empezado(unidad) ? "azul" : "rojo";
-        }
-        function lineasPorUnidad(tabla) {
-          const lineaDe = /* @__PURE__ */ new Map();
-          for (const c of tabla && tabla.conjuntos || []) {
-            for (const m of c.miembros || [c]) lineaDe.set(m.id, c);
-          }
-          return lineaDe;
-        }
-        const TIPO_LLANO = {
-          TROX_UTA: "Climatizador (UTA)",
-          CARRIER_ROOFTOPS: "Rooftop",
-          CARRIER_CHILLERS: "Enfriadora o bomba de calor",
-          AIRLAN_FANCOIL: "Fan coil",
-          AIRLAN_HRU: "Recuperador de calor",
-          PANASONIC_VRF: "Unidad de VRF",
-          PANASONIC_SPLIT: "Split",
-          PANASONIC_CRACS: "Equipo de precisi\xF3n (CRAC)",
-          WILO_GP: "Grupo de presi\xF3n",
-          WILO_PUMPS: "Bomba",
-          SP_VENTILACION: "Ventilador",
-          SP_PARKING: "Ventilador de parking",
-          SP_PRESURIZACION: "Ventilador de presurizaci\xF3n"
-        };
-        const TEXTO_ACCION = { datos: "Rellenar datos que faltan", checklist: "Checklist", balanceo: "Balanceo", estanqueidad: "Estanqueidad" };
-        function controlCx() {
-          return typeof __require !== "undefined" ? require_control() : typeof window !== "undefined" ? window.CONTROL_CX : null;
-        }
-        function fichasCx() {
-          return typeof __require !== "undefined" ? require_fichas() : typeof window !== "undefined" ? window.FICHAS_PM : null;
-        }
-        const T = 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
-        const CUERPO = 'class="cuerpo" stroke="currentColor" stroke-width="2" stroke-linejoin="round"';
-        const ICONOS = {
-          splitInt: { nombre: "Split interior (pared)", svg: `<rect ${CUERPO} x="2" y="5" width="20" height="10" rx="3"/><path ${T} d="M5 12h14M7 18l-1 3M12 18v3M17 18l1 3"/>` },
-          splitExt: { nombre: "Split exterior", svg: `<rect ${CUERPO} x="3" y="3" width="18" height="18" rx="3"/><circle ${T} cx="12" cy="12" r="5.5"/><path class="lleno" d="M12 12C10 9 10.5 6.5 12 6.5S14 9 12 12ZM12 12c3 .5 4.5 2.5 3.5 3.7S12.500 15 12 12ZM12 12c-3 .5-4.500 2.500-3.500 3.700S11.500 15 12 12Z"/>` },
-          vrfInt: { nombre: "VRF interior (casete)", svg: `<rect ${CUERPO} x="3" y="3" width="18" height="18" rx="2"/><rect ${T} x="8" y="8" width="8" height="8"/><path ${T} d="M3 3l5 5M21 3l-5 5M3 21l5-5M21 21l-5-5"/>` },
-          vrfExt: { nombre: "VRF exterior", svg: `<rect ${CUERPO} x="1.5" y="4" width="21" height="16" rx="3"/><circle ${T} cx="7.5" cy="12" r="4"/><circle ${T} cx="16.5" cy="12" r="4"/><circle class="lleno" cx="7.5" cy="12" r="1.300"/><circle class="lleno" cx="16.5" cy="12" r="1.300"/>` },
-          fancoil: { nombre: "Fan coil", svg: `<rect ${CUERPO} x="2" y="6" width="20" height="12" rx="2"/><path ${T} d="M5 12l2-3 2 6 2-6 2 6 2-6 2 3"/>` },
-          uta: { nombre: "UTA (climatizador)", svg: `<rect ${CUERPO} x="1.5" y="6" width="21" height="12" rx="1.500"/><path ${T} d="M8 6v12M15.500 6v12"/><circle ${T} cx="11.750" cy="12" r="2.200"/><path ${T} d="M3.500 12h2.500M17.500 9l3 6M20.500 9l-3 6"/>` },
-          hru: { nombre: "Recuperador de calor (HRU)", svg: `<rect ${CUERPO} x="1.5" y="5" width="21" height="14" rx="2"/><path ${T} d="M12 5.500l6.500 6.500-6.500 6.500L5.500 12z"/><path ${T} d="M1.500 12H5M19 12h3.500"/>` },
-          rooftop: { nombre: "Rooftop", svg: `<rect ${CUERPO} x="2.500" y="10" width="19" height="10" rx="1.500"/><path ${T} d="M6 10l3-5.500h6l3 5.500"/><circle ${T} cx="12" cy="15" r="2.500"/>` },
-          crac: { nombre: "CRAC (precisi\xF3n)", svg: `<rect ${CUERPO} x="4" y="2" width="16" height="20" rx="2"/><path ${T} d="M12 6v12M6.800 9l10.400 6M6.800 15l10.400-6"/>` },
-          chiller: { nombre: "Enfriadora o bomba de calor", svg: `<rect ${CUERPO} x="1.500" y="4" width="21" height="16" rx="2"/><path ${T} d="M4.500 10c1.750-2 3.500-2 5.250 0s3.500 2 5.250 0 2.500-1.500 4.500 0M4.500 15c1.750-2 3.500-2 5.250 0s3.500 2 5.250 0 2.500-1.500 4.500 0"/>` },
-          bomba: { nombre: "Bomba o grupo de presi\xF3n", svg: `<circle ${CUERPO} cx="11" cy="14" r="7.500"/><path class="lleno" d="M8.500 10.500l6.500 3.500-6.500 3.500z"/><path ${T} d="M11 6.500V3h10"/>` },
-          ventilador: { nombre: "Ventilador o extractor", svg: `<circle ${CUERPO} cx="12" cy="12" r="9.500"/><path class="lleno" d="M12 12C9.500 8 10.500 4.500 12 4.500S14.500 8 12 12Z"/><path class="lleno" d="M12 12C9.500 8 10.500 4.500 12 4.500S14.500 8 12 12Z" transform="rotate(120 12 12)"/><path class="lleno" d="M12 12C9.500 8 10.500 4.500 12 4.500S14.500 8 12 12Z" transform="rotate(240 12 12)"/>` },
-          agua: { nombre: "Agua (AFS, ADE, fluxores, ACS)", svg: `<path ${CUERPO} d="M12 2.500S5 10.500 5 15a7 7 0 0 0 14 0c0-4.500-7-12.500-7-12.500z"/><path ${T} d="M8.500 15a3.500 3.500 0 0 0 3 3.400"/>` },
-          generico: { nombre: "Otro equipo", svg: `<rect ${CUERPO} x="2" y="2" width="20" height="20" rx="3"/><rect class="lleno" x="8" y="8" width="8" height="8" rx="1"/>` }
-        };
-        const ICONO_DE_FAMILIA = {
-          PANASONIC_SPLIT: "splitInt",
-          PANASONIC_VRF: "vrfInt",
-          AIRLAN_FANCOIL: "fancoil",
-          TROX_UTA: "uta",
-          AIRLAN_HRU: "hru",
-          CARRIER_ROOFTOPS: "rooftop",
-          PANASONIC_CRACS: "crac",
-          CARRIER_CHILLERS: "chiller",
-          WILO_PUMPS: "bomba",
-          WILO_GP: "bomba",
-          PCI_BOMBEO: "bomba",
-          SP_VENTILACION: "ventilador",
-          SP_PRESURIZACION: "ventilador",
-          SP_PARKING: "ventilador",
-          FONT_ACS: "agua"
-        };
-        const esExteriorTag = (tag) => /^UE([\s_-]|\d|$)/i.test(String(tag || "").trim());
-        function iconoDe(u) {
-          const fam = String(u && u.familia || "").trim();
-          const ext = u && u.papel === "UE" || esExteriorTag(u && u.tag);
-          let id = ICONO_DE_FAMILIA[fam];
-          if (id === "splitInt" && ext) id = "splitExt";
-          if (id === "vrfInt" && ext) id = "vrfExt";
-          if (id) return id;
-          const t = String(u && u.tag || "").trim();
-          if (/^(AFS|ADE|FLX|FLUX)/i.test(t)) return "agua";
-          return "generico";
-        }
-        const ORDEN_ICONOS = ["uta", "hru", "fancoil", "splitInt", "splitExt", "vrfInt", "vrfExt", "rooftop", "crac", "chiller", "bomba", "ventilador", "agua", "generico"];
-        function leyendaIconos(equipos) {
-          const usados = new Set((equipos || []).map((e) => e.icono || iconoDe(e)));
-          return ORDEN_ICONOS.filter((k) => usados.has(k)).map((k) => ({ id: k, nombre: ICONOS[k].nombre }));
-        }
-        function conjuntoEnPlanos(plantas, id, plantaActual) {
-          const todos = [];
-          for (const p of plantas || []) for (const e of p.equipos || []) todos.push({ e, planta: p.planta || "" });
-          const base = todos.find((t) => t.e.id === id);
-          const miembros = base && base.e.miembros;
-          if (!Array.isArray(miembros) || miembros.length < 2) return [];
-          return miembros.map((m) => {
-            const aqui = todos.find((t) => t.e.id === m.id && t.planta === (plantaActual || "") && t.e.x !== null && t.e.x !== void 0);
-            const alguna = aqui || todos.find((t) => t.e.id === m.id && t.e.x !== null && t.e.x !== void 0);
-            const donde = alguna || todos.find((t) => t.e.id === m.id);
-            return { id: m.id, tag: m.tag, papel: m.papel, planta: donde ? donde.planta : null, aqui: Boolean(aqui), enPlano: Boolean(alguna), x: alguna ? alguna.e.x : null, y: alguna ? alguna.e.y : null };
-          });
-        }
-        function tipoLlano(u) {
-          const fam = String(u && u.familia || "").trim();
-          if (!fam) return null;
-          if (TIPO_LLANO[fam]) return TIPO_LLANO[fam];
-          let nombre = fam;
-          try {
-            const PC = typeof __require !== "undefined" ? require_plantillasCliente() : window.PLANTILLAS_CLIENTE;
-            const f = PC && PC.FAMILIAS.find((x) => x.codigo === fam);
-            if (f && f.nombrePdf) nombre = f.nombrePdf;
-          } catch {
-          }
-          const t = nombre.replace(/_/g, " ").toLowerCase();
-          return t.charAt(0).toUpperCase() + t.slice(1);
-        }
-        function llevaBalanceo(u) {
-          const C = controlCx();
-          const med = u && u.medicion !== void 0 ? u.medicion : null;
-          if (med) return Boolean(med.plano);
-          const req = C ? C.ensayoCorregido(u && u.familia, u && u.ensayoRequerido) : u && u.ensayoRequerido;
-          return req === "balanceo" || req === "ambos";
-        }
-        function acciones(unidad, linea, { color = "rojo", puedeEditar = true } = {}) {
-          const u = unidad || {};
-          const C = controlCx();
-          const salida = [];
-          const conFamilia = Boolean(String(u.familia || "").trim());
-          if (conFamilia && puedeEditar && color !== "verde") salida.push("datos");
-          if (conFamilia) salida.push("checklist");
-          if (llevaBalanceo(u)) salida.push("balanceo");
-          const l = linea || u;
-          if (C && C.pideEstanqueidad(Array.isArray(l.miembros) && l.miembros.length ? l : u)) salida.push("estanqueidad");
-          return salida.map((id) => ({ id, texto: TEXTO_ACCION[id] }));
-        }
-        function estados(tabla, { puedeEditar = true } = {}) {
-          const lineaDe = lineasPorUnidad(tabla);
-          const out = /* @__PURE__ */ new Map();
-          for (const u of tabla && tabla.filas || []) {
-            const l = lineaDe.get(u.id) || u;
-            const enConjunto = l.clase === "par" || l.clase === "sistema";
-            out.set(u.id, {
-              color: estadoEnPlano(u, l),
-              papel: enConjunto ? l.exterior && l.exterior.id === u.id ? "UE" : "UI" : null,
-              conjunto: enConjunto ? l.tag || null : null,
-              lineaId: l.id || u.id,
-              falta: l.completo ? [] : (l.falta || []).map(textoFalta),
-              tipo: tipoLlano(u),
-              icono: iconoDe({ familia: u.familia, tag: u.tag, papel: enConjunto ? l.exterior && l.exterior.id === u.id ? "UE" : "UI" : null }),
-              miembros: enConjunto && Array.isArray(l.miembros) && l.miembros.length > 1 ? l.miembros.map((m) => ({ id: m.id, tag: m.tag, papel: l.exterior && l.exterior.id === m.id || esExteriorTag(m.tag) ? "UE" : "UI" })) : null,
-              marca: u.marca || null,
-              modelo: u.modelo || null,
-              acciones: acciones(u, l, { color: estadoEnPlano(u, l), puedeEditar })
-            });
-          }
-          return out;
-        }
-        function colorear(marcas, tabla) {
-          const filas = new Map((tabla && tabla.filas || []).map((f) => [f.id, f]));
-          const est = estados(tabla);
-          const cuentas = { verde: 0, azul: 0, rojo: 0 };
-          const salida = [];
-          for (const m of marcas || []) {
-            const u = filas.get(m.equipoId);
-            if (!u || !esEquipoDelPlano(u)) continue;
-            const e = est.get(u.id);
-            cuentas[e.color] += 1;
-            salida.push({ ...m, tag: u.tag, ...e });
-          }
-          return { marcas: salida, cuentas };
-        }
-        const SIGLAS = /* @__PURE__ */ new Set(["FT", "CE", "PM", "UTA", "UTAS", "VRF", "CRAC", "BT", "SAI", "BMS", "ACS", "ICT", "IT", "UI", "UE", "VE", "PCI", "BIE", "CPD", "DF"]);
-        const ABREV = [[/\bUD\.\s*/gi, "unidad "], [/\bREC\.\s*/gi, "recuperaci\xF3n "], [/\bVENT\.\s*/gi, "ventilador "], [/\bESTANQ\.\s*/gi, "estanqueidad "], [/\bBOMBA CALOR\b/gi, "BOMBA DE CALOR"], [/\bESTATICO\b/gi, "EST\xC1TICO"]];
-        const FEMENINAS = /^(uta|bomba|batería|central|extinción|instalación|llamada|recarga|fotovoltaica|estanqueidad|unidad|sala|enfriadora|ficha|caja)$/;
-        const PLURAL_F = /^(bombas|baterías|unidades|rejillas)$/;
-        const PLURAL_M = /^(extintores|rociadores|conductos|difusores|gases|bie|ventiladores|equipos)$/;
-        const deArticulo = (frase) => {
-          const w = frase.split(/[\s\-/]/)[0].toLowerCase();
-          if (PLURAL_F.test(w)) return "de las";
-          if (PLURAL_M.test(w)) return "de los";
-          return FEMENINAS.test(w) ? "de la" : "del";
-        };
-        const minus = (t) => t.split(/(\s+|[-/()])/).map((w) => SIGLAS.has(w.toUpperCase()) && /^[A-Za-z]+$/.test(w) ? w.toUpperCase() : w.toLowerCase()).join("");
-        function textoFalta(n) {
-          const t = String(n == null ? "" : n).trim().replace(/\s+/g, " ");
-          if (!t || /[a-záéíóúñü]/.test(t) || /^(FT|CE|PM|DF)$/i.test(t)) return t;
-          let x = t;
-          for (const [re, por] of ABREV) x = x.replace(re, por);
-          x = minus(x.trim().replace(/\s+/g, " "));
-          const m = /^checklist\s+(.+)$/i.exec(x);
-          if (m) return `checklist ${deArticulo(m[1])} ${m[1]}`;
-          if (x.toLowerCase() === "checklist") return "checklist";
-          if (/^(balanceo|estanqueidad)\b/i.test(x)) return x;
-          return `ficha ${deArticulo(x)} ${x}`;
-        }
-        const RE_NOMBRE_SALA = /^(sala|aseos?|vest[ií]bulo|almac[eé]n|cuarto|oficina|despacho|vestuarios?|pasillo|circulaci[oó]n|escalera|lounge|guardarropa|cocina|office|capilla|recepci[oó]n|taller|local|zona|hall|archivo|comedor|gimnasio|enfermer[ií]a|palco|restaurante|bar|tienda|museo|cpd|dormitorio|habitaci[oó]n|ba[ñn]o|wc|aula|laboratorio|consulta|lavander[ií]a|vestidor|camerino|auditorio|biblioteca|distribuidor|cabina|centro|mec[aá]nica|basuras|terraza|cubierta|patio|parking|garaje|espacio|[aá]rea|areas|despensa|economato|cafeter[ií]a|bodega|sala\s+t[eé]cnica)(\b|[\s.\-]|$)/i;
-        const RE_CODIGO_SALA = /^(?:N\d{2}-)?(?:[A-Z]{1,2}\d{0,2}\.[A-Z]{2,4}\.\d{2,}[A-Z]?|\d{2}[.,][A-Z]{2,4}[.,]\d{2,}[A-Z]?|[A-Z]{2,4}-[A-Z]{2,4}\.\d{2,})$/;
-        const RE_SIGUE = /\s(de|del|y|la|el|los|las|para|con)$/i;
-        const RE_PALABRAS = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ .]{1,40}$/;
-        const PAR_SALA = 0.015;
-        const RADIO_SALA = 0.04;
-        const sinPlanta = (c) => String(c || "").replace(/^N\d{2}-/i, "");
-        const limpiarSala = (t) => String(t || "").replace(/(^|\s|·\s?)N\d{2}-(?=[A-Z0-9]{1,4}[.,][A-Z]{2,4}[.,]\d)/gi, "$1");
-        const esNombreSala = (t) => RE_NOMBRE_SALA.test(String(t || "").trim()) && String(t).trim().length <= 60;
-        const esCodigoSala = (t) => RE_CODIGO_SALA.test(String(t || "").trim().toUpperCase());
-        function rotulosSala(textos) {
-          const ts = (textos || []).filter((t) => t && typeof t.texto === "string").map((t) => ({ texto: t.texto.trim().replace(/\s+/g, " "), x: Number(t.x) || 0, y: Number(t.y) || 0 }));
-          const nombres = [];
-          const codigos = [];
-          const comidos = /* @__PURE__ */ new Set();
-          for (let i = 0; i < ts.length; i++) {
-            const t = ts[i];
-            if (comidos.has(i)) continue;
-            if (esCodigoSala(t.texto)) {
-              codigos.push({ ...t, texto: t.texto.toUpperCase() });
-              continue;
-            }
-            if (!esNombreSala(t.texto)) continue;
-            let texto = t.texto;
-            if (RE_SIGUE.test(texto)) {
-              const j = ts.findIndex((o, k) => k !== i && RE_PALABRAS.test(o.texto) && o.y > t.y && Math.hypot(o.x - t.x, o.y - t.y) < PAR_SALA);
-              if (j >= 0) {
-                texto = `${texto} ${ts[j].texto}`;
-                comidos.add(j);
-                nombres.forEach((n, k) => {
-                  if (n.i === j) nombres.splice(k, 1);
-                });
-              }
-            }
-            nombres.push({ texto, x: t.x, y: t.y, i });
-          }
-          const usados = /* @__PURE__ */ new Set();
-          const salida = [];
-          for (const n of nombres) {
-            let mejor = -1;
-            let d = PAR_SALA;
-            codigos.forEach((c, k) => {
-              const dd = Math.hypot(c.x - n.x, c.y - n.y);
-              if (!usados.has(k) && dd <= d) {
-                d = dd;
-                mejor = k;
-              }
-            });
-            if (mejor >= 0) usados.add(mejor);
-            salida.push({ texto: mejor >= 0 ? `${n.texto} \xB7 ${codigos[mejor].texto}` : n.texto, x: n.x, y: n.y });
-          }
-          const nombreDe = /* @__PURE__ */ new Map();
-          for (const r of salida) {
-            const i = r.texto.lastIndexOf(" \xB7 ");
-            if (i > 0) nombreDe.set(sinPlanta(r.texto.slice(i + 3)), r.texto.slice(0, i));
-          }
-          for (const t of ts) {
-            const m = /^(.*?)\s*[·\-–:]?\s*((?:N\d{2}-)?[A-Z0-9]{1,4}[.,][A-Z]{2,4}[.,]\d{2,}[A-Z]?)\s*$/i.exec(t.texto);
-            if (m && m[1] && esNombreSala(m[1]) && !nombreDe.has(sinPlanta(m[2].toUpperCase()))) nombreDe.set(sinPlanta(m[2].toUpperCase()), m[1].trim());
-          }
-          codigos.forEach((c, k) => {
-            if (usados.has(k)) return;
-            const cod = sinPlanta(c.texto);
-            const nombre = nombreDe.get(cod);
-            salida.push({ ...c, texto: nombre ? `${nombre} \xB7 ${cod}` : cod });
-          });
-          for (const r of salida) r.texto = limpiarSala(r.texto);
-          const vistos = /* @__PURE__ */ new Set();
-          return salida.filter((r) => {
-            const k = `${r.texto}|${Math.round(r.x * 200)}|${Math.round(r.y * 200)}`;
-            if (vistos.has(k)) return false;
-            vistos.add(k);
-            return true;
-          }).map((r) => ({ texto: r.texto.slice(0, 120), x: Math.round(r.x * 1e4) / 1e4, y: Math.round(r.y * 1e4) / 1e4 }));
-        }
-        function salaCercana(rotulos, x, y, radio = RADIO_SALA) {
-          let mejor = null;
-          let d = radio;
-          for (const r of rotulos || []) {
-            const dd = Math.hypot(r.x - x, r.y - y);
-            if (dd <= d) {
-              d = dd;
-              mejor = r;
-            }
-          }
-          return mejor ? limpiarSala(mejor.texto) : null;
-        }
-        function ponerSalas(marcas, rotulos) {
-          return (marcas || []).map((m) => {
-            const sala = salaCercana(rotulos, m.x, m.y);
-            return sala ? { ...m, sala } : m;
-          });
-        }
-        function limpiarMarcas(marcas) {
-          const vistos = /* @__PURE__ */ new Set();
-          const salida = [];
-          for (const m of Array.isArray(marcas) ? marcas : []) {
-            if (!m || typeof m.equipoId !== "string" || vistos.has(m.equipoId)) continue;
-            const x = Number(m.x);
-            const y = Number(m.y);
-            if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 1 || y < 0 || y > 1) continue;
-            vistos.add(m.equipoId);
-            salida.push({
-              equipoId: m.equipoId,
-              tag: String(m.tag || "").slice(0, 120),
-              x: Math.round(x * 1e4) / 1e4,
-              y: Math.round(y * 1e4) / 1e4,
-              ...m.mano ? { mano: true } : {},
-              ...m.sala ? { sala: String(m.sala).slice(0, 120) } : {}
-            });
-          }
-          return salida;
-        }
-        const API = {
-          clave,
-          claveSuelta,
-          claveCasado,
-          esEquipoDelPlano,
-          casar,
-          cruce,
-          palabrasDe,
-          reconocer,
-          empezado,
-          estadoEnPlano,
-          estados,
-          colorear,
-          acciones,
-          tipoLlano,
-          ICONOS,
-          iconoDe,
-          leyendaIconos,
-          conjuntoEnPlanos,
-          llevaBalanceo,
-          TEXTO_ACCION,
-          limpiarMarcas,
-          rotulosSala,
-          salaCercana,
-          ponerSalas,
-          esNombreSala,
-          esCodigoSala,
-          limpiarSala,
-          textoFalta,
-          COLORES,
-          ORDEN_COLOR,
-          RADIO_SALA
-        };
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.PLANO_EQUIPOS = API;
-      })();
-    }
-  });
-
-  // package.json
-  var require_package = __commonJS({
-    "package.json"(exports, module) {
-      module.exports = {
-        name: "vidaire-obras",
-        version: "0.1.0",
-        description: "Vidaire Obras \u2014 estudios, presupuestos y gestion de obra",
-        main: "electron/main.js",
-        license: "UNLICENSED",
-        private: true,
-        scripts: {
-          start: "env -u ELECTRON_RUN_AS_NODE electron .",
-          test: "node --test test/",
-          contraste: "node scripts/contraste.js",
-          tokens: "node scripts/generarTokens.js",
-          comprobar: "npm test && npm run contraste && npm run carga && npm run probar:app && npm run probar:vivo",
-          carga: "node scripts/comprobarCarga.js",
-          "auditar:ncr": "node scripts/auditarNcr.js",
-          "probar:app": "env -u ELECTRON_RUN_AS_NODE electron scripts/probarApp.js",
-          oferta: "node scripts/verOferta.js",
-          "dist:mac": "env -u ELECTRON_RUN_AS_NODE electron-builder --mac",
-          "dist:win": "env -u ELECTRON_RUN_AS_NODE electron-builder --win",
-          capturas: "env -u ELECTRON_RUN_AS_NODE electron scripts/capturas.js",
-          pantalla: "env -u ELECTRON_RUN_AS_NODE electron scripts/enPantalla.js",
-          vivo: "env -u ELECTRON_RUN_AS_NODE electron scripts/enVivo.js",
-          "probar:vivo": "env -u ELECTRON_RUN_AS_NODE electron scripts/comprobarEnVivo.js",
-          "albaranes:prueba": "node scripts/albaranesDePrueba.js",
-          demo: "env -u ELECTRON_RUN_AS_NODE electron scripts/demoCampNou.js",
-          "demo:montar": "env -u ELECTRON_RUN_AS_NODE electron scripts/demoCampNou.js --montar && npm run demo:capturas",
-          "demo:capturas": "env -u ELECTRON_RUN_AS_NODE electron scripts/demoCampNou.js --capturas",
-          ipad: "node ipad/construir.js",
-          "ipad:servir": "node ipad/construir.js && node ipad/servir.js",
-          "ipad:probar": "node ipad/probar-motor.js",
-          "ipad:ios": "node ipad/construir.js && npx cap sync ios",
-          web: "node web/construir.js",
-          "web:servir": "node web/construir.js && node web/servir.js",
-          "web:publicar": "node web/construir.js && npx vercel deploy web/dist --prod",
-          "cxobra:construir": "node cxobra/construir.js"
-        },
-        dependencies: {
-          "@capacitor/android": "^8.5.3",
-          "@kenjiuno/msgreader": "^1.28.0",
-          "pdf-lib": "^1.17.1",
-          "pdfjs-dist": "^6.4.299"
-        },
-        devDependencies: {
-          "@capacitor/cli": "^8.5.3",
-          "@capacitor/core": "^8.5.3",
-          "@capacitor/filesystem": "^8.1.4",
-          "@capacitor/ios": "^8.5.3",
-          "@noble/hashes": "^2.4.0",
-          buffer: "^6.0.3",
-          electron: "^44.4.1",
-          "electron-builder": "^25.1.8",
-          esbuild: "^0.28.2",
-          fflate: "^0.8.3",
-          "sql.js": "^1.14.2"
-        },
-        build: {
-          appId: "com.vidaire.obras",
-          productName: "Vidaire Obras",
-          files: [
-            "electron/**/*",
-            "renderer/**/*",
-            "shared/**/*",
-            "marca/**/*",
-            "package.json",
-            "!node_modules/pdfjs-dist/{build,types,image_decoders,cmaps,iccs,wasm,standard_fonts}/**",
-            "!node_modules/pdfjs-dist/**/*.{map,d.mts}",
-            "!node_modules/pdfjs-dist/legacy/build/{pdf.min.mjs,pdf.worker.min.mjs,pdf.sandbox*}",
-            "!node_modules/pdfjs-dist/web/{pdf_viewer.mjs,images/**}",
-            "!node_modules/@napi-rs/**"
-          ],
-          extraResources: [
-            {
-              from: "build",
-              to: ".",
-              filter: [
-                "nube.json"
-              ]
-            }
-          ],
-          mac: {
-            target: "dmg",
-            category: "public.app-category.business",
-            icon: "build/icon.icns",
-            extendInfo: {
-              NSAppleEventsUsageDescription: "Vidaire Obras usa tu programa de correo (Outlook o Mail) para leer la bandeja, archivar correos en las obras y preparar borradores con los PDF adjuntos. Nunca env\xEDa nada sin que lo revises."
-            }
-          },
-          win: {
-            target: "nsis",
-            icon: "build/icon.png"
-          }
-        }
-      };
-    }
-  });
-
-  // ipad/electronFalso.js
-  var require_electronFalso = __commonJS({
-    "ipad/electronFalso.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var canales = /* @__PURE__ */ new Map();
-      var adaptadores = {
-        abrirArchivo: null,
-        // ({ filtros, varios }) → [{ nombre, datos }]
-        guardarArchivo: null,
-        // ({ nombre, datos, tipo }) → ruta o null
-        imprimirPdf: null,
-        // ({ html, apaisado }) → Uint8Array
-        abrirRuta: null
-        // (ruta) → void
-      };
-      function instalarAdaptadores(nuevos) {
-        Object.assign(adaptadores, nuevos);
-      }
-      function exigir(nombre) {
-        throw new Error(
-          `Esto todav\xEDa no est\xE1 en el iPad: ${nombre}.
-
-En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
-        );
-      }
-      var ipcMain = {
-        handle(canal, fn) {
-          canales.set(canal, fn);
-        },
-        removeHandler(canal) {
-          canales.delete(canal);
-        }
-      };
-      var ipcRenderer = {
-        /** El mismo `invoke` de siempre, pero sin cruzar a ningún sitio. */
-        async invoke(canal, ...args) {
-          const fn = canales.get(canal);
-          if (!fn) throw new Error(`Canal desconocido: ${canal}`);
-          return fn({ sender: null }, ...args);
-        },
-        /* Los avisos que el proceso principal manda a la pantalla («abre el aviso de
-           mantenimiento»): aquí van de la ventana de mentira al oyente, sin cruzar. */
-        on(canal, fn) {
-          if (!oyentes.has(canal)) oyentes.set(canal, []);
-          oyentes.get(canal).push(fn);
-        },
-        /* El preload limpia antes de volver a escuchar, para no apilar oyentes. */
-        removeAllListeners(canal) {
-          oyentes.delete(canal);
-        },
-        send() {
-        }
-      };
-      var oyentes = /* @__PURE__ */ new Map();
-      var ventanaFalsa = {
-        isDestroyed: () => false,
-        focus() {
-        },
-        webContents: {
-          send(canal, ...args) {
-            for (const fn of oyentes.get(canal) || []) fn({ sender: null }, ...args);
-          }
-        }
-      };
-      var contextBridge = {
-        /** En el escritorio aísla dos mundos; aquí solo hay uno. */
-        exposeInMainWorld(nombre, objeto) {
-          globalThis[nombre] = objeto;
-        }
-      };
-      var dialog = {
-        async showOpenDialog(_padre, opciones = {}) {
-          if (!adaptadores.abrirArchivo) exigir("elegir un archivo");
-          const elegidos = await adaptadores.abrirArchivo(opciones);
-          return elegidos?.length ? { canceled: false, filePaths: elegidos.map((f) => f.ruta || f.nombre) } : { canceled: true, filePaths: [] };
-        },
-        async showSaveDialog(_padre, opciones = {}) {
-          if (!adaptadores.guardarArchivo) exigir("guardar un archivo");
-          const ruta = await adaptadores.guardarArchivo(opciones);
-          return ruta ? { canceled: false, filePath: ruta } : { canceled: true, filePath: void 0 };
-        },
-        async showMessageBox(_padre, opciones = {}) {
-          return { response: 0, checkboxChecked: false, ...opciones.respuesta };
-        }
-      };
-      var shell = {
-        openPath: (ruta) => adaptadores.abrirRuta?.(ruta),
-        showItemInFolder: (ruta) => adaptadores.abrirRuta?.(ruta),
-        openExternal: (url) => globalThis.open?.(url, "_blank")
-      };
-      var BrowserWindow = class {
-        constructor() {
-          this._html = "";
-          this.webContents = {
-            printToPDF: async (opciones = {}) => {
-              if (!adaptadores.imprimirPdf) exigir("imprimir un PDF");
-              return adaptadores.imprimirPdf({ html: this._html, apaisado: !!opciones.landscape });
-            },
-            on() {
-            },
-            executeJavaScript: async () => null,
-            send() {
-            }
-          };
-        }
-        async loadFile(ruta) {
-          const fs = require_fs();
-          this._html = fs.readFileSync(ruta, "utf8");
-        }
-        async loadURL(url) {
-          this._html = url.startsWith("data:") ? decodeURIComponent(url.split(",")[1] || "") : "";
-        }
-        setContentSize() {
-        }
-        isDestroyed() {
-          return false;
-        }
-        destroy() {
-        }
-        close() {
-        }
-        static getFocusedWindow() {
-          return null;
-        }
-        static fromWebContents() {
-          return null;
-        }
-        static getAllWindows() {
-          return [];
-        }
-      };
-      var app = {
-        getPath: () => "/datos",
-        getName: () => "Vidaire Obras",
-        getVersion: () => require_package().version,
-        relaunch() {
-        },
-        exit() {
-        },
-        quit() {
-        },
-        whenReady: async () => void 0,
-        on() {
-        }
-      };
-      module.exports = {
-        app,
-        ipcMain,
-        ipcRenderer,
-        contextBridge,
-        dialog,
-        shell,
-        BrowserWindow,
-        nativeImage: { createFromDataURL: () => null },
-        /* Sin notificaciones del sistema: los avisos del BOE y de mantenimiento se
-           quedan en la alerta de la pantalla y en el inicio. Sin esto, el primer
-           aviso nuevo tumbaba la comprobación entera. */
-        Notification: class {
-          static isSupported() {
-            return false;
-          }
-          show() {
-          }
-          on() {
-          }
-        },
-        /* El escritorio cifra con esto los permisos de la nube; el iPad no lo usa: los
-           guarda en el Llavero a través de `nubeIpad` (ipad/nube.js). */
-        safeStorage: { isEncryptionAvailable: () => false, encryptString: (t) => t, decryptString: (t) => String(t) },
-        /* Lo pone el arranque: el Llavero y la ventana de inicio de sesión del sistema. */
-        nubeIpad: null,
-        /* «Recordarme en este equipo»: el testigo en el Llavero (ipad/nube.js). */
-        almacenSesion: null,
-        instalarAdaptadores,
-        canales,
-        ventanaFalsa
-      };
-    }
-  });
-
-  // electron/data/planoEquipos.js
-  var require_planoEquipos2 = __commonJS({
-    "electron/data/planoEquipos.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var P = require_planoEquipos();
-      var FM = require_filaMovil();
-      var CX = require_commissioning();
-      var alcance = require_alcance();
-      var { puede } = require_roles();
-      var MAX_IMAGEN = 16 * 1024 * 1024;
-      var RE_IMAGEN = /^data:image\/(png|jpeg|jpg|webp);base64,[A-Za-z0-9+/=]+$/;
-      var llano = (v) => String(v ?? "").trim();
-      var dimension = (v) => {
-        const n = Math.round(Number(v));
-        return Number.isFinite(n) && n > 0 && n < 1e5 ? n : null;
-      };
-      var leerJson = (t, d) => {
-        try {
-          return t ? JSON.parse(t) : d;
-        } catch {
-          return d;
-        }
-      };
-      function obraVisible(repo, ses, obraId) {
-        if (!obraId) return null;
-        const f = alcance.filtro("obras", ses, {});
-        return repo.db.prepare(`SELECT * FROM obras WHERE (${f.where}) AND id = ?`).get(...f.params, obraId) || null;
-      }
-      var sesionDeLectura = (ses) => puede(ses.rol, "commissioning", "ver") ? ses : { ...ses, rol: "administrador" };
-      var LADO_MOVIL = 2500;
-      var MAX_IMAGEN_MOVIL = 4 * 1024 * 1024;
-      function imagenParaMovil(d, ancho, alto) {
-        if (typeof d.imagenMovil === "string" && d.imagenMovil.length <= MAX_IMAGEN_MOVIL && RE_IMAGEN.test(d.imagenMovil)) return d.imagenMovil;
-        if (ancho && alto && Math.max(ancho, alto) <= LADO_MOVIL && d.imagen.length <= MAX_IMAGEN_MOVIL) return null;
-        try {
-          const { nativeImage } = require_electronFalso();
-          if (!nativeImage || typeof nativeImage.createFromDataURL !== "function") return null;
-          const img = nativeImage.createFromDataURL(d.imagen);
-          const t = img.getSize();
-          if (!t.width || !t.height) return null;
-          const k = Math.min(1, LADO_MOVIL / Math.max(t.width, t.height));
-          const peq = img.resize({ width: Math.round(t.width * k), height: Math.round(t.height * k), quality: "best" });
-          return `data:image/jpeg;base64,${peq.toJPEG(72).toString("base64")}`;
-        } catch {
-          return null;
-        }
-      }
-      var salasParaPintar = (rotulos) => leerJson(rotulos, []).map((r) => ({ t: String(r.texto || "").split(" \xB7 ")[0], x: r.x, y: r.y })).filter((r) => r.t && !P.esCodigoSala(r.t));
-      var ordenPlanta = (a, b) => String(a || "~").localeCompare(String(b || "~"), "es", { numeric: true });
-      function salaDe(e, marca) {
-        const gris = FM.salaGrisDe(e);
-        if (gris) return { sala: gris, fuente: "base" };
-        const s = llano(e.sala);
-        if (s && !FM.esCodigoLocal(s) && !P.esCodigoSala(s)) return { sala: s, fuente: "base" };
-        const rotulo = marca && llano(marca.sala) ? P.limpiarSala(llano(marca.sala)) : "";
-        if (rotulo && !FM.esCodigoLocal(rotulo)) return { sala: rotulo, fuente: "plano" };
-        return { sala: null, fuente: null };
-      }
-      function marcarFichasConDato(repo, ses, obraId, t) {
-        let ids;
-        try {
-          ids = new Set(repo.listar("fichasPM", ses, { condicion: "obraId = ? AND equipoId IS NOT NULL AND (medidosRellenos > 0 OR estado IN ('completa','firmada'))", params: [obraId] }).map((f) => f.equipoId));
-        } catch {
-          return;
-        }
-        const marcar = (u) => {
-          if (u && ids.has(u.id)) u.fichaConDato = true;
-        };
-        for (const u of t.filas || []) marcar(u);
-        for (const c of t.conjuntos || []) {
-          marcar(c);
-          for (const m of c.miembros || []) marcar(m);
-        }
-      }
-      function listar(repo, ses, obraId) {
-        if (!obraVisible(repo, ses, obraId)) return null;
-        const lec = sesionDeLectura(ses);
-        const conCx = puede(ses.rol, "commissioning", "ver");
-        const puedeEditar = puede(ses.rol, "commissioning", "editar");
-        const filas = repo.listar("planosEquipos", lec, { condicion: "obraId = ?", params: [obraId] });
-        const t = CX.tabla(repo, lec, obraId) || { filas: [], conjuntos: [] };
-        marcarFichasConDato(repo, lec, obraId, t);
-        const filasEq = (t.filas || []).filter(P.esEquipoDelPlano);
-        const est = P.estados(t, { puedeEditar });
-        const botones = (e) => conCx ? e.acciones : [];
-        const datosDe = (f, e) => ({ tipo: e.tipo, icono: e.icono, miembros: e.miembros, marca: e.marca || null, modelo: e.modelo || null, acciones: botones(e), puedeEditar });
-        const planoDe = new Map(filas.map((p) => [p.planta || "", p]));
-        const marcaDe = /* @__PURE__ */ new Map();
-        for (const p of filas) for (const m of leerJson(p.marcas, [])) marcaDe.set(m.equipoId, { ...m, planoId: p.id, planta: p.planta || "" });
-        const nombres = /* @__PURE__ */ new Set([...filasEq.map((f) => llano(f.planta)), ...filas.map((p) => p.planta || "")]);
-        const plantas = [...nombres].sort(ordenPlanta).map((planta) => {
-          const p = planoDe.get(planta) || null;
-          const equipos = filasEq.filter((f) => llano(f.planta) === planta).map((f) => {
-            const e = est.get(f.id);
-            const m = marcaDe.get(f.id);
-            const enEste = m && p && m.planoId === p.id ? m : null;
-            const { sala, fuente } = salaDe(f, enEste);
-            return {
-              id: f.id,
-              tag: f.tag,
-              familia: f.familia || null,
-              papel: e.papel,
-              conjunto: e.conjunto,
-              color: e.color,
-              falta: e.falta,
-              sala,
-              salaFuente: fuente,
-              ...datosDe(f, e),
-              x: enEste ? enEste.x : null,
-              y: enEste ? enEste.y : null,
-              mano: Boolean(enEste && enEste.mano)
-            };
-          }).sort((a, b) => P.ORDEN_COLOR.indexOf(a.color) - P.ORDEN_COLOR.indexOf(b.color) || String(a.tag).localeCompare(String(b.tag), "es", { numeric: true }));
-          if (p) {
-            const ya = new Set(equipos.map((x) => x.id));
-            for (const m of leerJson(p.marcas, [])) {
-              const f = filasEq.find((x) => x.id === m.equipoId);
-              if (!f || ya.has(f.id)) continue;
-              const e = est.get(f.id);
-              const { sala, fuente } = salaDe(f, m);
-              equipos.push({ id: f.id, tag: f.tag, familia: f.familia || null, papel: e.papel, conjunto: e.conjunto, color: e.color, falta: e.falta, sala, salaFuente: fuente, ...datosDe(f, e), x: m.x, y: m.y, mano: Boolean(m.mano) });
-            }
-          }
-          const cuentas = { verde: 0, azul: 0, rojo: 0, sinSala: 0, enPlano: 0, sinUbicar: 0 };
-          for (const q of equipos) {
-            cuentas[q.color] += 1;
-            if (!q.sala) cuentas.sinSala += 1;
-            if (q.x !== null) cuentas.enPlano += 1;
-          }
-          const sinUbicar = p ? equipos.filter((q) => q.x === null).map((q) => ({ id: q.id, tag: q.tag, familia: q.familia, sala: q.sala, icono: q.icono })).sort((a, b) => String(a.tag).localeCompare(String(b.tag), "es", { numeric: true })) : [];
-          cuentas.sinUbicar = sinUbicar.length;
-          return {
-            planta: planta || null,
-            equipos,
-            cuentas,
-            sinUbicar,
-            plano: p ? { id: p.id, nombre: p.nombre, ancho: p.ancho, alto: p.alto, modificadoEn: p.modificadoEn, salas: salasParaPintar(p.rotulos) } : null
-          };
-        });
-        for (const pl of plantas) {
-          for (const q of pl.equipos) {
-            if (!q.miembros) continue;
-            const r = P.conjuntoEnPlanos(plantas, q.id, pl.planta || "");
-            q.miembros = r.length ? r : null;
-          }
-        }
-        const planos = filas.sort((a, b) => ordenPlanta(a.planta, b.planta)).map((p) => {
-          const { marcas, cuentas } = P.colorear(leerJson(p.marcas, []), t);
-          const pl = plantas.find((x) => x.plano && x.plano.id === p.id);
-          const sinPoner = pl ? pl.equipos.filter((q) => q.x === null).map((q) => ({ id: q.id, tag: q.tag, color: q.color, sala: q.sala })) : [];
-          const salaPor = new Map((pl ? pl.equipos : []).map((q) => [q.id, q.sala]));
-          return { id: p.id, planta: p.planta, nombre: p.nombre, ancho: p.ancho, alto: p.alto, marcas: marcas.map((m) => ({ ...m, sala: salaPor.get(m.equipoId) || m.sala || null })), cuentas, sinPoner, modificadoEn: p.modificadoEn };
-        });
-        const iconos = {};
-        for (const k of Object.keys(P.ICONOS)) iconos[k] = P.ICONOS[k];
-        return { plantas, planos, iconos, colores: P.COLORES, puedeEditar, conCommissioning: conCx };
-      }
-      function imagen(repo, ses, id) {
-        const p = repo.leer("planosEquipos", ses, llano(id));
-        return p ? { id: p.id, imagen: p.imagen, imagenMovil: p.imagenMovil || null, ancho: p.ancho, alto: p.alto } : null;
-      }
-      function comprobarImagen(img) {
-        if (typeof img !== "string" || !img) return "Falta la imagen del plano.";
-        if (img.length > MAX_IMAGEN) return "El plano es demasiado grande (m\xE1s de 16 MB).";
-        if (!RE_IMAGEN.test(img)) return "Eso no es una imagen (PNG, JPEG o WebP).";
-        return null;
-      }
-      function guardar(repo, ses, obraId, d = {}) {
-        if (!obraVisible(repo, ses, obraId)) return { ok: false, error: "No se encuentra la obra." };
-        const error = comprobarImagen(d.imagen);
-        if (error) return { ok: false, error };
-        const equipos = repo.listar("equiposObra", ses, { condicion: "obraId = ?", params: [obraId] });
-        const r = Array.isArray(d.textos) ? P.reconocer(d.textos, equipos) : { marcas: d.marcas || [], planta: null, noEncontrados: [] };
-        const planta = llano(d.planta).slice(0, 40) || r.planta || null;
-        if (!planta) {
-          return { ok: false, error: "No se ha reconocido ning\xFAn equipo de la obra en ese plano y no se sabe de qu\xE9 planta es. Escribe la planta y vuelve a subirlo." };
-        }
-        const rotulos = Array.isArray(d.textos) ? P.rotulosSala(d.textos) : [];
-        const esEquipo = new Set(equipos.filter(P.esEquipoDelPlano).map((e) => e.id));
-        const marcas = P.limpiarMarcas(P.ponerSalas(r.marcas, rotulos)).filter((m) => esEquipo.has(m.equipoId));
-        const nombre = llano(d.nombre).slice(0, 120) || `Planta ${planta}`;
-        const viejo = repo.listar("planosEquipos", ses, { condicion: "obraId = ? AND planta = ?", params: [obraId, planta], limite: 1 })[0];
-        const ancho = dimension(d.ancho);
-        const alto = dimension(d.alto);
-        const datos = { planta, nombre, imagen: d.imagen, imagenMovil: imagenParaMovil(d, ancho, alto), ancho, alto, marcas: JSON.stringify(marcas), rotulos: JSON.stringify(rotulos) };
-        let id;
-        if (viejo) {
-          repo.modificar("planosEquipos", ses, viejo.id, datos);
-          id = viejo.id;
-        } else id = repo.crear("planosEquipos", ses, { obraId, ...datos });
-        const dePlanta = equipos.filter((e) => P.esEquipoDelPlano(e) && String(e.planta || "") === planta);
-        return {
-          ok: true,
-          id,
-          planta,
-          reconocidos: marcas.length,
-          sustituye: Boolean(viejo),
-          deLaPlanta: dePlanta.length,
-          rotulosSala: rotulos.length,
-          conSala: marcas.filter((m) => m.sala).length,
-          noEncontrados: dePlanta.filter((e) => !marcas.some((m) => m.equipoId === e.id)).map((e) => e.tag)
-        };
-      }
-      function colocar(repo, ses, id, equipoId, x, y) {
-        const p = repo.leer("planosEquipos", ses, llano(id));
-        if (!p) return { ok: false, error: "No se encuentra el plano." };
-        const eq = repo.leer("equiposObra", ses, llano(equipoId));
-        if (!eq || eq.obraId !== p.obraId) return { ok: false, error: "Ese equipo no es de esta obra." };
-        if (x !== null && x !== void 0 && !P.esEquipoDelPlano(eq)) return { ok: false, error: "En el plano solo van equipos (ni compuertas, ni v\xE1lvulas, ni cuadros)." };
-        const otras = leerJson(p.marcas, []).filter((m) => m.equipoId !== eq.id);
-        let marcas = otras;
-        let sala = null;
-        if (x !== null && x !== void 0) {
-          sala = P.salaCercana(leerJson(p.rotulos, []), Number(x), Number(y));
-          marcas = P.limpiarMarcas([...otras, { equipoId: eq.id, tag: eq.tag, x, y, mano: true, ...sala ? { sala } : {} }]);
-        }
-        repo.modificar("planosEquipos", ses, p.id, { marcas: JSON.stringify(marcas) });
-        return { ok: true, sala };
-      }
-      function borrar(repo, ses, id) {
-        const p = repo.leer("planosEquipos", ses, llano(id));
-        if (!p) return { ok: false, error: "No se encuentra el plano." };
-        repo.borrar("planosEquipos", ses, p.id);
-        return { ok: true };
-      }
-      module.exports = { LADO_MOVIL, listar, imagen, guardar, colocar, borrar, salaDe };
-    }
-  });
-
   // electron/movil/rutasPlanoEquipos.js
   var require_rutasPlanoEquipos = __commonJS({
     "electron/movil/rutasPlanoEquipos.js"(exports, module) {
@@ -91266,8 +91771,24 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
       var PERMISOS_PLANO_EQUIPOS = {
         /* 29-oct (JC): lo ve todo el enrolado en la obra (el alcance lo pone el repositorio). */
         "GET api/plano-equipos": [["planoEquipos", "ver"]],
-        "GET api/plano-equipos/imagen": [["planoEquipos", "ver"]]
+        "GET api/plano-equipos/imagen": [["planoEquipos", "ver"]],
+        /* La localización de un equipo en el plano (29-oct): sale en su ficha, entre sus fotos. */
+        "GET api/plano-equipos/localizacion": [["commissioning", "ver"]]
       };
+      function localizacionDe(repo, ses, equipoId) {
+        try {
+          return PE.localizacion(repo, ses, equipoId).map((r) => ({
+            n: r.n,
+            pie: r.pie,
+            planta: r.planta,
+            sala: r.sala,
+            unidades: r.marcas.map((m) => m.etiqueta),
+            url: `api/plano-equipos/localizacion?id=${encodeURIComponent(equipoId)}&n=${r.n}`
+          }));
+        } catch {
+          return [];
+        }
+      }
       function crearRutasPlanoEquipos({ repo }) {
         function lista({ ses, query }) {
           const d = PE.listar(repo, ses, String(query.obra || ""));
@@ -91281,9 +91802,16 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           if (!m) return [415, { ok: false, error: "La imagen del plano no se puede ense\xF1ar." }];
           return { bytes: Buffer.from(m[2], "base64"), tipo: m[1] === "image/jpg" ? "image/jpeg" : m[1] };
         }
-        return { "GET api/plano-equipos": lista, "GET api/plano-equipos/imagen": imagen };
+        function localizacion({ ses, query }) {
+          const r = PE.localizacion(repo, ses, String(query.id || "")).find((x) => String(x.n) === String(query.n ?? 0));
+          if (!r) return [404, { ok: false, error: "Este equipo no est\xE1 colocado en ning\xFAn plano." }];
+          const svg = PE.svgRecorte(repo, ses, r);
+          if (!svg) return [404, { ok: false, error: "El plano no tiene imagen." }];
+          return { bytes: Buffer.from(svg, "utf8"), tipo: "image/svg+xml" };
+        }
+        return { "GET api/plano-equipos": lista, "GET api/plano-equipos/imagen": imagen, "GET api/plano-equipos/localizacion": localizacion };
       }
-      module.exports = { crearRutasPlanoEquipos, PERMISOS_PLANO_EQUIPOS };
+      module.exports = { crearRutasPlanoEquipos, PERMISOS_PLANO_EQUIPOS, localizacionDe };
     }
   });
 
@@ -91381,6 +91909,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         "POST api/cronometro": [["commissioning", "editar"]],
         "POST api/cronometro/parte": [["partesTrabajo", "crear"]],
         "POST api/equipo/instalacion": [["commissioning", "editar"]],
+        "POST api/equipo/serie": [["commissioning", "editar"]],
         "POST api/equipo/fotos": [["commissioning", "editar"]],
         "POST api/equipo/fotos/quitar": [["commissioning", "editar"]],
         "GET api/equipo/foto": [["commissioning", "ver"]],
@@ -91621,6 +92150,8 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
                 };
               })
             })),
+            /* La localización en plano (29-oct-2026, JC), delante de las fotos: rutasPlanoEquipos.js. */
+            localizacion: require_rutasPlanoEquipos().localizacionDe(repo, ses, d.equipo.id),
             fotos: fotosDelEquipo(ses, d.equipo, linea, dosier),
             fichasConFotos: fichasDelEquipo(d.equipo, dosier),
             /* Las firmas del cliente y del jefe de obra (las del conjunto, si es un split o un VRF). */
@@ -91726,6 +92257,13 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           const e = json();
           return CX.verificarInstalacion(repo, ses, [llano(e.equipoId)], { verificada: e.verificada !== false });
         }
+        function equipoSerie({ ses, json }) {
+          const e = json();
+          const r = FPM.ponerNumSerie(repo, ses, llano(e.equipoId), e.numSerie);
+          if (!r.ok) return r;
+          const vuelta = llano(e.volver) || r.equipoId;
+          return { ...equipo({ ses, query: { id: vuelta } }), ok: true, numSerie: r.numSerie, serieDe: r.equipoId };
+        }
         function equipoMedida({ ses, json }) {
           const e = json();
           const em = llano(e.equipoMedida);
@@ -91763,11 +92301,11 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         };
         function fotosDelEquipo(ses, eq, linea, dos) {
           const unidades = linea && linea.clase !== "suelto" && linea.miembros.length ? linea.miembros : [eq];
-          const varias = unidades.length > 1;
+          const vrf = Boolean(linea && linea.clase === "sistema" && unidades.length > 1);
           const fuera = [];
           for (const u of unidades) {
             for (const f of fotosDe(ses, u.id)) {
-              fuera.push({ ...f, origen: "equipo", equipoId: u.id, unidad: varias ? linea.exterior && u.id === linea.exterior.id ? "UE" : linea.clase === "par" ? "UI" : F.rotuloUi(u.tag) : null, ficha: null, url: `api/equipo/foto?id=${encodeURIComponent(f.id)}` });
+              fuera.push({ ...f, origen: "equipo", equipoId: u.id, unidad: vrf ? linea.exterior && u.id === linea.exterior.id ? "UE" : F.rotuloUi(u.tag) : null, ficha: null, url: `api/equipo/foto?id=${encodeURIComponent(f.id)}` });
             }
           }
           const vistas = /* @__PURE__ */ new Set();
@@ -91781,7 +92319,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
               if (!x) return;
               const [pie, hora] = partirPie(x.nombre);
               const q = new URLSearchParams({ obra: eq.obraId, clave: p.clave, plantilla: p.plantilla, i: String(i) });
-              fuera.push({ id: `${k}|${i}`, pie: pie === "Foto" ? "" : pie, hora, origen: "ficha", equipoId: p.porUnidad ? p.unidadId || null : null, unidad: p.unidadTag ? F.rotuloUi(p.unidadTag) : null, ficha: p.nombre || "Ficha", url: `api/ficha/foto?${q}` });
+              fuera.push({ id: `${k}|${i}`, pie: pie === "Foto" ? "" : pie, hora, origen: "ficha", equipoId: p.porUnidad ? p.unidadId || null : null, unidad: vrf && p.unidadTag ? F.rotuloUi(p.unidadTag) : null, ficha: p.nombre || "Ficha", url: `api/ficha/foto?${q}` });
             });
           }
           return fuera;
@@ -92183,6 +92721,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           "POST api/cronometro": cronometroAccion,
           "POST api/cronometro/parte": cronometroParte,
           "POST api/equipo/instalacion": equipoInstalacion,
+          "POST api/equipo/serie": equipoSerie,
           "POST api/equipo/fotos": equipoFotos,
           "POST api/equipo/fotos/quitar": equipoFotoQuitar,
           "GET api/equipo/foto": equipoFoto,
