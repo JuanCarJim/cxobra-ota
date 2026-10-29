@@ -10017,7 +10017,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261029.1123" : "0";
+      var VERSION = true ? "20261029.1222" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -68406,9 +68406,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         return [...f.tecnico ? [] : ["firma t\xE9cnico"], ...f.segunda ? [] : ["2\xAA firma"]];
       }
       function franjaDeLinea({ miembros, completo, firmas, medidas }) {
-        const ms = miembros || [];
-        const iniciado = (medidas || 0) > 0 || ms.some((m) => m.pmFichas && m.pmFichas.iniciadas > 0 || m.bloqueadoPor || m.revalidarTras);
-        return franjaEstado({ iniciado, faltaDoc: !completo, faltaFirma: firmasQueFaltan(firmas).length > 0 });
+        return franjaEstado({ iniciado: true, faltaDoc: !completo, faltaFirma: firmasQueFaltan(firmas).length > 0 });
       }
       module.exports = { franjaEstado, franjaDeLinea, firmasQueFaltan };
     }

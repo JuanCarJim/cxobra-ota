@@ -711,7 +711,7 @@
     const v = visita;
     const r = abierta.reparacion;
     $app.innerHTML = `
-      <button class="volver" data-rp="volver-ficha">‹ ${esc(r.equipo ? r.equipo.tag : r.codigo)}</button>
+      <div class="barra-editor"><button class="volver" data-rp="visita-lista">‹ Reparaciones</button><button class="volver" data-rp="volver-ficha">Ficha ${esc(r.equipo ? r.equipo.tag : r.codigo)}</button></div>
       <h2>Visita</h2>
       <label>Día<input type="date" data-rp-v="fecha" value="${esc(v.fecha)}" max="${hoy()}"></label>
       <h2>Técnicos</h2>
@@ -740,12 +740,19 @@
   function visitaVacia(v) {
     return !v.resultado && !String(v.hecho).trim() && !v.tecnicos.some((t) => String(t.horas).trim());
   }
-  function volverDeVisita() {
-    if (!visita || visitaVacia(visita)) { visita = null; persistirCambios(); pintarFicha(); return; }
+  // aLista: sale de la visita directamente al listado de reparaciones, con la
+  // visita añadida y guardada igual que al volver a la ficha.
+  function volverDeVisita(aLista = false) {
+    const salir = () => { if (aLista) { alSalirDeFicha(); cambios = null; lista(); } else pintarFicha(); };
+    if (!visita || visitaVacia(visita)) { visita = null; persistirCambios(); salir(); return; }
     const falta = faltaEnVisita(visita);
-    if (falta && !window.confirm(`${falta}\n\n¿Volver a la ficha sin añadir la visita?`)) return;
-    if (falta) { visita = null; persistirCambios(); pintarFicha(); return; }
-    anotarVisita();
+    if (falta && !window.confirm(`${falta}\n\n¿Salir sin añadir la visita?`)) return;
+    if (falta) { visita = null; persistirCambios(); salir(); return; }
+    if (!aLista) { anotarVisita(); return; }
+    cambios.visita = visita;
+    visita = null;
+    persistirCambios();
+    salir();
   }
   function faltaEnVisita(v) {
     if (!v.resultado) return 'Falta decir cómo ha quedado.';
@@ -804,6 +811,7 @@
     else if (a === 'visita' || a === 'editar-visita') nuevaVisita();
     else if (a === 'quitar-visita') { cambios.visita = null; persistirCambios(); const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
     else if (a === 'volver-ficha') volverDeVisita();
+    else if (a === 'visita-lista') volverDeVisita(true);
     else if (a === 'otro-tecnico') { visita.tecnicos.push({ operario: '', empresa: visita.tecnicos[0].empresa, categoria: 'operario', horas: visita.tecnicos[0].horas }); persistirCambios(); pintarVisita(); }
     else if (a === 'quitar-tecnico') { visita.tecnicos.splice(Number(b.dataset.i), 1); persistirCambios(); pintarVisita(); }
     else if (a === 'anotar-visita') anotarVisita();
