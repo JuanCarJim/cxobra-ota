@@ -10017,7 +10017,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261029.1100" : "0";
+      var VERSION = true ? "20261029.1115" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -17451,6 +17451,7 @@ globalThis.CX_VARIANTE="cxobra";
           let resultado = null;
           let algoEscrito = false;
           let masQuePlaca = false;
+          let enObra = false;
           let datosPrueba = false;
           let sinConfirmar = 0;
           const sinTol = /* @__PURE__ */ new Set();
@@ -17465,6 +17466,7 @@ globalThis.CX_VARIANTE="cxobra";
               if (v && v.o !== "equipo" && v.o !== "plantilla") algoEscrito = true;
               if (v && v.o !== "equipo" && v.o !== "plantilla" && !(s.tipo === "datos" && v.o === "importacion")) masQuePlaca = true;
               if (v && v.o === "prueba") datosPrueba = true;
+              if (v && v.o !== "equipo" && v.o !== "plantilla" && v.o !== "importacion") enObra = true;
               const ob = esObligatorio(p);
               const fila = { ...punto, obligatorio: ob, origen: v ? v.o : null };
               if (s.tipo === "parametros") {
@@ -17547,6 +17549,7 @@ globalThis.CX_VARIANTE="cxobra";
                 const ev = evaluarBocasFicha(d.bocas[c], tol, sistema ? sistema.v : null);
                 sec.circuitos[c] = ev;
                 if (d.bocas[c].length) algoEscrito = true;
+                if (d.bocas[c].some((b) => b && b.o !== "importacion")) enObra = true;
                 if (d.bocas[c].some((b) => b.o === "prueba")) datosPrueba = true;
                 obligatorios += ev.bocas;
                 rellenos += ev.medidas;
@@ -17623,6 +17626,7 @@ globalThis.CX_VARIANTE="cxobra";
             resultado,
             datosPrueba,
             medidosPrueba,
+            enObra,
             sinConfirmar,
             completa,
             estado,
@@ -18033,7 +18037,8 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
               resultado: ficha ? ficha.resultado : null,
               medidos: ficha ? ficha.medidos : null,
               datosPrueba: ficha ? Boolean(ficha.datosPrueba) : false,
-              medidosPrueba: ficha ? ficha.medidosPrueba || 0 : 0
+              medidosPrueba: ficha ? ficha.medidosPrueba || 0 : 0,
+              enObra: ficha ? Boolean(ficha.enObra) : false
             };
           });
           const n = lista.length;
@@ -60634,7 +60639,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         const fichas = /* @__PURE__ */ new Map();
         for (const fila of filasFichas(repo, sesion, obraId)) {
           const r = evaluarFila(fila, cat, cfg, { repo, sesion });
-          if (r) fichas.set(`${fila.clave}|${fila.plantilla}`, { id: fila.id, estado: F.estadoVisible(r.ev.estado, r.ev.medidos, F.bocasSinMedir(r.ev)), resultado: r.ev.resultado, medidos: r.ev.medidos && r.ev.medidos.rellenos, fusionada: F.fichaFundida(fila) });
+          if (r) fichas.set(`${fila.clave}|${fila.plantilla}`, { id: fila.id, estado: F.estadoVisible(r.ev.estado, r.ev.medidos, F.bocasSinMedir(r.ev)), resultado: r.ev.resultado, medidos: r.ev.medidos && r.ev.medidos.rellenos, enObra: r.ev.enObra, fusionada: F.fichaFundida(fila) });
         }
         const buscar = (clave, plantilla) => fichas.get(`${clave}|${plantilla}`) || null;
         const deLaObra = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
@@ -60649,8 +60654,9 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
             faltan: pm.fichas.filter((x) => x.estado !== "completa" && x.estado !== "firmada").map((x) => ({ nombre: x.nombre, clase: x.clase, estado: x.estado })),
             /* 'noAplica' | 'hecho' | 'pendiente': cuenta para la documentación completa. */
             checklist: F.estadoChecklist(pm),
-            /* Para la franja de la tarjeta: fichas con algún dato medido (o ya hechas); la placa sola no cuenta. */
-            iniciadas: pm.fichas.filter((x) => x.estado === "completa" || x.estado === "firmada" || x.medidos > 0).length
+            /* Para la franja de la tarjeta: fichas con algún dato tomado en obra (o firmadas).
+               Lo importado del SharePoint no cuenta (29-oct, JC: salía en equipos «sin verificar»). */
+            iniciadas: pm.fichas.filter((x) => x.estado === "firmada" || x.enObra).length
           });
         }
         return out;
