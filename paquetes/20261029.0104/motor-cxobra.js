@@ -5642,6 +5642,10 @@ globalThis.CX_VARIANTE="cxobra";
         tmpdir: () => "/tmp",
         homedir: () => "/datos",
         platform: () => "ios",
+        /* 29-oct: «Exportar el paquete del móvil» firma el origen con el nombre del
+           equipo; en la web daba «hostname is not a function». */
+        hostname: () => globalThis.enWeb ? "web" : "ipad",
+        networkInterfaces: () => ({}),
         EOL: "\n"
       };
       var archivos2 = /* @__PURE__ */ new Map();
@@ -5708,9 +5712,15 @@ globalThis.CX_VARIANTE="cxobra";
             descargar(path.basename(ruta), archivos2.get(ruta), tipoPorExtension(ruta));
           }
         },
-        copyFileSync(origen, destino) {
+        copyFileSync(origen, destino, modo = 0) {
+          if (modo & 1 && archivos2.has(normalizar(destino))) {
+            const e = new Error(`Ya existe: ${normalizar(destino)}`);
+            e.code = "EEXIST";
+            throw e;
+          }
           archivos2.set(normalizar(destino), fs.readFileSync(origen));
         },
+        constants: { F_OK: 0, R_OK: 4, W_OK: 2, X_OK: 1, COPYFILE_EXCL: 1 },
         /*
          * Las versiones con callback. El backend las usa para borrar temporales
          * (el HTML que se imprime a PDF, la foto reducida del termómetro) dentro de
@@ -5727,6 +5737,48 @@ globalThis.CX_VARIANTE="cxobra";
           archivos2.delete(normalizar(p));
           if (typeof cb === "function") queueMicrotask(() => cb(null));
         },
+        /*
+         * PARIDAD CON EL ESCRITORIO (29-oct-2026, JC: «es muy importante que el
+         * escritorio y la web sean iguales»). El motor también usa estas, y sin
+         * ellas la web enseñaba «fs.renameSync is not a function» (el vigía de la
+         * documentación guarda en .tmp y renombra) o no podía leer la huella de una
+         * prueba de un conflicto (lee a trozos con openSync/readSync).
+         * test/paridadWebEscritorio.test.js comprueba que no falte ninguna.
+         */
+        renameSync(origen, destino) {
+          const de = normalizar(origen);
+          if (!archivos2.has(de)) {
+            const e = new Error(`No existe el archivo: ${de}`);
+            e.code = "ENOENT";
+            throw e;
+          }
+          archivos2.set(normalizar(destino), archivos2.get(de));
+          archivos2.delete(de);
+        },
+        chmodSync: () => void 0,
+        realpathSync: (p) => normalizar(p),
+        lstatSync: (p) => fs.statSync(p),
+        mkdtempSync: (prefijo) => `${normalizar(prefijo)}${Math.random().toString(36).slice(2, 8)}`,
+        /* Leer a trozos: un «descriptor» es la ruta del archivo en memoria. */
+        openSync(p) {
+          const ruta = normalizar(p);
+          if (!archivos2.has(ruta)) {
+            falta(ruta);
+            const e = new Error(`No existe el archivo: ${ruta}`);
+            e.code = "ENOENT";
+            throw e;
+          }
+          return { ruta, pos: 0 };
+        },
+        readSync(fd, destino, desde = 0, cuantos = destino.length, posicion = null) {
+          const datos = archivos2.get(fd.ruta) || new Uint8Array();
+          const inicio = posicion === null || posicion === void 0 ? fd.pos : posicion;
+          const trozo = datos.subarray(inicio, Math.min(datos.length, inicio + cuantos));
+          destino.set(trozo, desde);
+          if (posicion === null || posicion === void 0) fd.pos = inicio + trozo.length;
+          return trozo.length;
+        },
+        closeSync: () => void 0,
         createReadStream() {
           throw new Error("No hay flujos de archivo en el iPad");
         },
@@ -6056,7 +6108,7 @@ globalThis.CX_VARIANTE="cxobra";
          * Reclamaciones al cliente (sin pantalla propia).
          */
         avisosReclamacion: "Avisos del tajo (reclamables)",
-        qhse: "QHSE (inspecciones y controles)",
+        qhse: "Plan QHSE",
         /* Quién de las subcontratas viene cada día (fichado con su tarjeta QR desde
            el móvil del encargado) contra lo previsto. */
         partes: "Personal en obra",
@@ -6188,7 +6240,7 @@ globalThis.CX_VARIANTE="cxobra";
       };
       var BLOC = ["ver", "crear", "editar", "borrar"];
       var HORAS = ["ver", "crear", "editar", "borrar"];
-      var SIN_PANTALLA = /* @__PURE__ */ new Set(["avisosReclamacion", "qhse", "tarifasSubcontrata", "inventarioCampo", "notas", "dedicaciones", "horasObra", "notasTraspaso", "columnas", "correos", "encargosDelineacion", "oportunidadesEstudios", "ordenesMant"]);
+      var SIN_PANTALLA = /* @__PURE__ */ new Set(["avisosReclamacion", "tarifasSubcontrata", "inventarioCampo", "notas", "dedicaciones", "horasObra", "notasTraspaso", "columnas", "correos", "encargosDelineacion", "oportunidadesEstudios", "ordenesMant"]);
       var VERBOS = ["ver", "crear", "editar", "borrar", "aprobar", "exportar", "traspasar"];
       var TODO = ["ver", "crear", "editar", "borrar", "exportar"];
       var SOLO_VER = ["ver"];
@@ -6511,6 +6563,7 @@ globalThis.CX_VARIANTE="cxobra";
           home: [
             { bloque: "traspasosPendientes", ancho: "completo", titulo: "Adjudicado sin jefe de obra" },
             { bloque: "avisosPartes", ancho: "completo", titulo: "Partes de incidencia sin ver" },
+            { bloque: "avisosQhse", ancho: "completo", titulo: "QHSE: vencido y NC abiertas" },
             { bloque: "avisosEstanqueidad", ancho: "completo", titulo: "Pruebas de estanqueidad sin ver" },
             { bloque: "avisosConflictos", ancho: "completo", titulo: "Conflictos: pr\xF3ximo paso vencido" },
             { bloque: "avisosNormativa", ancho: "completo", titulo: "Cambios de normativa en el BOE" },
@@ -6673,6 +6726,7 @@ globalThis.CX_VARIANTE="cxobra";
             { bloque: "tramitesOficiales", ancho: "completo", titulo: "Tr\xE1mites oficiales" },
             { bloque: "personalHoy", ancho: "completo", titulo: "Personal de hoy: previsto y fichado" },
             { bloque: "avisosPartes", ancho: "completo", titulo: "Partes de incidencia sin ver" },
+            { bloque: "avisosQhse", ancho: "completo", titulo: "QHSE: vencido y NC abiertas" },
             { bloque: "avisosEstanqueidad", ancho: "completo", titulo: "Pruebas de estanqueidad sin ver" },
             { bloque: "avisosConflictos", ancho: "completo", titulo: "Conflictos: pr\xF3ximo paso vencido" },
             { bloque: "avisosIncidencias", ancho: "completo", titulo: "Incidencias: terminadas por revisar y vencidas" },
@@ -7226,6 +7280,7 @@ globalThis.CX_VARIANTE="cxobra";
           "ofertasQueVencen",
           "traspasosPendientes",
           "avisosPartes",
+          "avisosQhse",
           "avisosEstanqueidad",
           "avisosEstadoEquipos",
           "avisosConflictos",
@@ -7293,13 +7348,14 @@ globalThis.CX_VARIANTE="cxobra";
         const jefeObra = {
           /* Los trámites oficiales (opción A · Compacto, 22-oct): en todas las fases, justo después de lo primero de cada una. */
           porFase: {
-            arranque: ["documentacionEquipos", "tramitesOficiales", "personalHoy", "comprasPendientes", "certificacionesMes", "avisosNormativa", "avisosConflictos"],
+            arranque: ["documentacionEquipos", "tramitesOficiales", "avisosQhse", "personalHoy", "comprasPendientes", "certificacionesMes", "avisosNormativa", "avisosConflictos"],
             montaje: [
               "personalHoy",
               "tramitesOficiales",
               "comprasPendientes",
               "avisosIncidencias",
               "avisosPartes",
+              "avisosQhse",
               "alertasDesviacion",
               "certificacionesMes",
               "documentacionEquipos",
@@ -7426,7 +7482,7 @@ globalThis.CX_VARIANTE="cxobra";
         /* 26-oct: lo que puede reclamarse al cliente (esperas, accesos denegados…). */
         { id: "avisos", nombre: "Reclamables", modulo: "avisosReclamacion" },
         /* 28-oct: inspección del sitio, control de subcontratas y reunión CAE (qhse.js). */
-        { id: "qhse", nombre: "QHSE", modulo: "qhse" },
+        { id: "qhse", nombre: "Plan QHSE", modulo: "qhse" },
         { id: "ncr", nombre: "NCR", modulo: "ncr", soloVer: true },
         /* Las reparaciones de equipos: las abre el jefe de obra, las hace el encargado. */
         { id: "reparaciones", nombre: "Reparaciones", modulo: "incidencias", soloVer: true },
@@ -7461,10 +7517,10 @@ globalThis.CX_VARIANTE="cxobra";
         /* 22-oct (JC): el Director de Proyectos, con «Departamentos» (DEPARTAMENTOS_DIRECTOR) en vez de «Mi trabajo». */
         jefeProyectos: { director: true, trabajo: ["obras", "alcance", "tareas", "actas", "compras", "costsPlan", "certificaciones", "legalizaciones", "informeSemanal", "reporteDireccion", "presupuestos", "proyectos"], consulta: ["estadisticas", "ncr", "ppi", "conflictos", "clientes", "proveedores", "personas", "vacaciones"] },
         jefeGrupo: { trabajo: ["obras", "alcance", "tareas", "actas", "informeSemanal", "reporteDireccion", "costsPlan", "certificaciones", "compras", "legalizaciones"], consulta: ["pedidos", "commissioning", "ncr", "ppi", "conflictos", "estadisticas", "vacaciones"] },
-        jefeObra: { trabajo: ["obras", "planosObra", "tareas", "actas", "costsPlan", "compras", "pedidos", "certificaciones", "commissioning", "legalizaciones", "ppi", "ncr", "partesIncidencia", "partesTrabajo"], consulta: ["calculo", "pruebasEstanqueidad", "balanceo", "proveedores", "vacaciones"] },
+        jefeObra: { trabajo: ["obras", "planosObra", "tareas", "actas", "costsPlan", "compras", "pedidos", "certificaciones", "commissioning", "legalizaciones", "ppi", "ncr", "partesIncidencia", "qhse", "partesTrabajo"], consulta: ["calculo", "pruebasEstanqueidad", "balanceo", "proveedores", "vacaciones"] },
         /* De momento, la misma que el jefe de obra (ver RESTRICCIONES_JEFE_PRODUCCION). */
-        jefeProduccion: { trabajo: ["obras", "planosObra", "tareas", "actas", "costsPlan", "compras", "pedidos", "certificaciones", "commissioning", "legalizaciones", "ppi", "ncr", "partesIncidencia", "partesTrabajo"], consulta: ["calculo", "pruebasEstanqueidad", "balanceo", "proveedores", "vacaciones"] },
-        encargadoObra: { trabajo: ["tareas", "pedidos", "partes", "partesIncidencia", "partesTrabajo", "ppi", "ncr", "pruebasEstanqueidad"], consulta: ["obras", "commissioning", "vacaciones"] },
+        jefeProduccion: { trabajo: ["obras", "planosObra", "tareas", "actas", "costsPlan", "compras", "pedidos", "certificaciones", "commissioning", "legalizaciones", "ppi", "ncr", "partesIncidencia", "qhse", "partesTrabajo"], consulta: ["calculo", "pruebasEstanqueidad", "balanceo", "proveedores", "vacaciones"] },
+        encargadoObra: { trabajo: ["tareas", "pedidos", "partes", "partesIncidencia", "qhse", "partesTrabajo", "ppi", "ncr", "pruebasEstanqueidad"], consulta: ["obras", "commissioning", "vacaciones"] },
         jefeCommissioning: { trabajo: ["commissioning", "balanceo", "pruebasEstanqueidad", "ncr", "ppi"], consulta: ["calculo", "obras", "tareas", "vacaciones", "informeSemanal", "reporteDireccion", "mantenimiento"] },
         contractSupport: { trabajo: ["certificaciones", "compras", "pedidos", "conflictos", "ncr"], consulta: ["tareas", "clientes", "proveedores", "trazabilidad", "vacaciones"] },
         jefeMantenimiento: { trabajo: ["mantenimiento", "incidencias"], consulta: ["commissioning", "obras", "ncr", "vacaciones"] },
@@ -7499,7 +7555,10 @@ globalThis.CX_VARIANTE="cxobra";
           { nombre: "Econ\xF3mico", modulos: ["presupuestoObra", "costsPlan", "analisisProyecto", "planEconomica", "certificaciones", "estadisticas"] },
           { nombre: "Contrato y cliente", modulos: ["variantes", "actas", "conflictos"] },
           { nombre: "Calidad y commissioning", modulos: ["commissioning", "puntosControl", "balanceo", "pruebasEstanqueidad", "ppi", "incidencias", "legalizaciones"] },
+          /* 29-oct: el plan QHSE de la obra (calendario, registros y NC), junto a los partes. */
           { nombre: "Seguridad", modulos: ["partesIncidencia"] },
+          /* 29-oct (JC: «falta QHSE en la barra lateral»): entrada propia, junto a Seguridad. */
+          { nombre: "QHSE", modulos: ["qhse"] },
           { nombre: "Informes", modulos: ["informeSemanal", "reporteDireccion", "trazabilidad"] }
         ]
       };
@@ -9402,7 +9461,7 @@ globalThis.CX_VARIANTE="cxobra";
           "sesionesPlanInc",
           "tareasObra"
         ],
-        reparaciones: ["incidencias", "incidenciaComentarios", "incidenciaPartes", "incidenciaHoras", "equiposObra", "ncrEmpresas", "ncrConfig", "sesionesPlanInc", "tareasObra"],
+        reparaciones: ["incidencias", "incidenciaComentarios", "incidenciaPartes", "incidenciaHoras", "equiposObra", "firmasEquipo", "ncrEmpresas", "ncrConfig", "sesionesPlanInc", "tareasObra"],
         partes: ["partesIncidencia", "parteIncidenciaLineas"],
         /* 26-oct: los avisos del tajo que pueden reclamarse (esperas, accesos…), sus
            líneas de empresa y operarios y lo que el jefe de obra contesta. Con lo
@@ -9781,7 +9840,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261028.2253" : "0";
+      var VERSION = true ? "20261029.0104" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -16868,6 +16927,15 @@ globalThis.CX_VARIANTE="cxobra";
             ...c.cabecera && typeof c.cabecera === "object" ? { cabecera: Object.fromEntries(["fechaEnsayo", "realizadoPor"].filter((k) => hayValorFx(c.cabecera[k])).map((k) => [k, llanoFx(c.cabecera[k])])) } : {},
             ...hayValorFx(c.observaciones) ? { observaciones: String(c.observaciones).slice(0, 4e3) } : {}
           }));
+          if (e.fusionada && typeof e.fusionada === "object" && hayValorFx(e.fusionada.con)) {
+            base.fusionada = {
+              con: llanoFx(e.fusionada.con),
+              en: hayValorFx(e.fusionada.en) ? llanoFx(e.fusionada.en) : null,
+              ...hayValorFx(e.fusionada.conClave) ? { conClave: llanoFx(e.fusionada.conClave) } : {},
+              puntos: Number.isInteger(e.fusionada.puntos) && e.fusionada.puntos > 0 ? e.fusionada.puntos : 0,
+              ...hayValorFx(e.fusionada.por) ? { por: llanoFx(e.fusionada.por) } : {}
+            };
+          }
           return base;
         }
         function quitarPrueba(ficha) {
@@ -17209,6 +17277,19 @@ globalThis.CX_VARIANTE="cxobra";
         const esConjuntoUnico = (familia) => Boolean(familia && FAMILIAS_CONJUNTO.has(familia.codigo));
         const RANGO_FICHA = { firmada: 4, completa: 3, pendiente: 2, sinEmpezar: 1 };
         const rangoFicha = (f) => f ? RANGO_FICHA[f.estado] || 1 : 0;
+        function fichaFundida(f) {
+          if (!f) return false;
+          if (f.fusionada) return true;
+          let d = f.datos;
+          if (typeof d === "string") {
+            try {
+              d = JSON.parse(d);
+            } catch {
+              return false;
+            }
+          }
+          return Boolean(d && d.fusionada && d.fusionada.con);
+        }
         function esExteriorFx(u, familia, indice) {
           const pm = u.plantillaPM || plantillaPorDefecto(u, familia, indice);
           return /EXTERIOR/.test(sinAcentosFx((indice.get(pm) || {}).nombre || pm || ""));
@@ -17253,6 +17334,7 @@ globalThis.CX_VARIANTE="cxobra";
             for (const r of rs) {
               const k = `${r.clave}|${r.plantilla}`;
               if (!r.clave || !r.plantilla || usadas.has(k) || !busca(r)) continue;
+              if (fichaFundida(busca(r))) continue;
               usadas.add(k);
               conservadas.push({
                 ...r,
@@ -21566,6 +21648,27 @@ globalThis.CX_VARIANTE="cxobra";
      modificadoEn    TEXT NOT NULL
    )`,
         /*
+         * LAS FOTOS Y ADJUNTOS DE QHSE (JC, 29-oct): la foto que exige cada NC y lo
+         * que se adjunta a un registro (el acta del CSS, la hoja de asistencia
+         * firmada). En la base y no en una carpeta porque el registro se rellena
+         * también en el teléfono sin conexión y tiene que viajar con él (paquete y
+         * cx_filas). `contenido` en base64, ya reducida en el móvil (JPEG ~1200 px).
+         * `ref` es el punto («lugar.5»), «nc:<ref>» para la foto del cierre o
+         * «registro».
+         */
+        `CREATE TABLE IF NOT EXISTS qhseAdjuntos (
+     id              TEXT PRIMARY KEY,
+     obraId          TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     controlId       TEXT NOT NULL,
+     ref             TEXT,
+     nombre          TEXT,
+     tipo            TEXT NOT NULL DEFAULT 'image/jpeg',
+     contenido       TEXT NOT NULL,
+     creadoPor       TEXT,
+     creadoEn        TEXT NOT NULL,
+     modificadoEn    TEXT NOT NULL
+   )`,
+        /*
          * LOS AVISOS DEL TAJO (JC, 26-oct; electron/data/reclamacionAvisos.js). Lo
          * que el encargado ve en obra y puede reclamarse —una espera por falta de
          * medios de elevación, un acceso denegado, otro gremio sin terminar—: el
@@ -21802,6 +21905,7 @@ globalThis.CX_VARIANTE="cxobra";
         `CREATE INDEX IF NOT EXISTS idx_reclamaciones_obra ON reclamaciones (obraId, estado)`,
         `CREATE INDEX IF NOT EXISTS idx_recAvisos_obra ON reclamacionAvisos (obraId, estado, fecha)`,
         `CREATE INDEX IF NOT EXISTS idx_qhse_obra ON qhseControles (obraId, plantilla, semana)`,
+        `CREATE INDEX IF NOT EXISTS idx_qhse_adj ON qhseAdjuntos (controlId)`,
         `CREATE INDEX IF NOT EXISTS idx_recAvisoLin_aviso ON reclamacionAvisoLineas (avisoId)`,
         `CREATE INDEX IF NOT EXISTS idx_recAvisoCom_aviso ON reclamacionAvisoComentarios (avisoId)`,
         `CREATE INDEX IF NOT EXISTS idx_recl_apartados    ON reclamacionApartados (reclamacionId, numero)`,
@@ -21883,6 +21987,9 @@ globalThis.CX_VARIANTE="cxobra";
       var COLUMNAS_A\u00D1ADIDAS = [
         /* La auditoría (22-oct-2026): desde dónde y el eslabón de la cadena de hashes (electron/db/auditoria.js). */
         ...require_auditoria2().COLUMNAS_HISTORIAL,
+        /* La firma de cada reparación (29-oct): la fila de firmasEquipo es de esa reparación, no del equipo. */
+        ["firmasEquipo", "incidenciaId", "TEXT"],
+        ["firmasEquipo", "cargo", "TEXT"],
         /* Cómo quedó la reparación en esa entrada de la Conversación (19-oct): noReparada, pendienteMaterial… */
         ["incidenciaComentarios", "resultado", "TEXT"],
         /* Quién va a cada sesión de la planificación (16-oct): su agenda. */
@@ -22127,6 +22234,11 @@ globalThis.CX_VARIANTE="cxobra";
         /* Cada cuántos minutos busca la app documentación nueva en la lista o la
            carpeta de SharePoint (en blanco: 30; 0: desactivada). */
         ["configCommissioning", "busquedaDocsMin", "INTEGER"],
+        /* LAS RUTAS DEL SHAREPOINT QUE VIO LA ÚLTIMA PASADA (29-oct, web = escritorio):
+           la lista o la carpeta viven en el Mac; sin esto el buscador de
+           Documentación de la web veía 137 documentos y el escritorio 1.311.
+           JSON con las rutas relativas (pdf, Word, Excel); solo se reescribe si cambia. */
+        ["configCommissioning", "indiceDocs", "TEXT"],
         /* EL GAS DEL EQUIPO, para el control de fugas F-gas (24-oct). Vacíos, se
            leen de las notas («R-410A 12,5 kg»), como en las legalizaciones. */
         ["equiposObra", "refrigerante", "TEXT"],
@@ -22273,6 +22385,11 @@ globalThis.CX_VARIANTE="cxobra";
         /* La medición de obra por plantas o zonas (25-oct-2026, JC): 'obra'; nula,
            la de Estudios, que en obra no se toca. */
         ["mediciones", "fase", "TEXT"],
+        /* La planta y la zona de cada línea de medición, como dos columnas más de la
+           tabla (JC, 29-oct-2026): de ahí sale la «Localització» del SP 136 y lo que
+           se elige al generarlo. Vacías, valen los títulos de la medición. */
+        ["mediciones", "planta", "TEXT"],
+        ["mediciones", "zona", "TEXT"],
         /* Los PLAZOS QUE IMPONE EL CLIENTE y los RETRASOS EN DÍAS (26-oct-2026, JC;
            reglas en shared/reclamaciones/plazos.js). `naturaleza`: 'reclamacion' |
            'plazoLimak' (no suma a ningún total). La propuesta del detector va aparte
@@ -25772,7 +25889,9 @@ globalThis.CX_VARIANTE="cxobra";
             ancho: m.ancho,
             alto: m.alto,
             formula: m.formula,
-            signo: m.signo
+            signo: m.signo,
+            ...m.planta ? { planta: m.planta } : {},
+            ...m.zona ? { zona: m.zona } : {}
           });
         }
         const descompuestos = /* @__PURE__ */ new Map();
@@ -25902,7 +26021,18 @@ globalThis.CX_VARIANTE="cxobra";
         return id;
       }
       var SIN_RASTRO = /* @__PURE__ */ new Set(["modificadoEn", "orden", "padreId", "presupuestoId"]);
-      var firmaMedicion = (l) => JSON.stringify((l || []).map((m) => [m.comentario || null, m.uds ?? null, m.largo ?? null, m.ancho ?? null, m.alto ?? null, m.formula || null, m.signo ?? 1]));
+      var firmaMedicion = (l) => JSON.stringify((l || []).map((m) => [
+        m.comentario || null,
+        m.uds ?? null,
+        m.largo ?? null,
+        m.ancho ?? null,
+        m.alto ?? null,
+        m.formula || null,
+        m.signo ?? 1,
+        ...m.planta || m.zona ? [m.planta || null, m.zona || null] : []
+      ]));
+      var plantaDe = (m) => m && m.planta !== void 0 && m.planta !== null && String(m.planta).trim() || null;
+      var zonaDe = (m) => m && m.zona !== void 0 && m.zona !== null && String(m.zona).trim() || null;
       var firmaDescompuesto = (l) => JSON.stringify((l || []).map((d) => [
         d.naturaleza || "material",
         d.codigo || null,
@@ -25925,8 +26055,8 @@ globalThis.CX_VARIANTE="cxobra";
       function sincronizarLineas(db, presupuestoId, arbol, sesion) {
         const vivos = /* @__PURE__ */ new Set();
         const insMedicion = db.prepare(
-          `INSERT INTO mediciones (id, lineaId, orden, comentario, uds, largo, ancho, alto, formula, signo, creadoEn, modificadoEn, fase)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`
+          `INSERT INTO mediciones (id, lineaId, orden, comentario, uds, largo, ancho, alto, formula, signo, creadoEn, modificadoEn, fase, planta, zona)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
         );
         const insDescompuesto = db.prepare(
           `INSERT INTO descompuestos (id, lineaId, orden, naturaleza, codigo, resumen, unidad, rendimiento, precio, esPorcentaje, porcentaje, creadoEn, modificadoEn)
@@ -25981,7 +26111,9 @@ globalThis.CX_VARIANTE="cxobra";
                   m.signo ?? 1,
                   ahora,
                   ahora,
-                  null
+                  null,
+                  plantaDe(m),
+                  zonaDe(m)
                 );
               }
               for (const [j, m] of (n.medicionObra || []).entries()) {
@@ -25998,7 +26130,9 @@ globalThis.CX_VARIANTE="cxobra";
                   m.signo ?? 1,
                   ahora,
                   ahora,
-                  "obra"
+                  "obra",
+                  plantaDe(m),
+                  zonaDe(m)
                 );
               }
               delDescompuesto.run(id);
@@ -26051,8 +26185,8 @@ globalThis.CX_VARIANTE="cxobra";
             const ahora = (/* @__PURE__ */ new Date()).toISOString();
             for (const [j, m] of (n.medicion || []).entries()) {
               db.prepare(
-                `INSERT INTO mediciones (id, lineaId, orden, comentario, uds, largo, ancho, alto, formula, signo, creadoEn, modificadoEn)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`
+                `INSERT INTO mediciones (id, lineaId, orden, comentario, uds, largo, ancho, alto, formula, signo, creadoEn, modificadoEn, planta, zona)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
               ).run(
                 nuevoId(),
                 id,
@@ -26065,13 +26199,15 @@ globalThis.CX_VARIANTE="cxobra";
                 m.formula || null,
                 m.signo ?? 1,
                 ahora,
-                ahora
+                ahora,
+                plantaDe(m),
+                zonaDe(m)
               );
             }
             for (const [j, m] of (n.medicionObra || []).entries()) {
               db.prepare(
-                `INSERT INTO mediciones (id, lineaId, orden, comentario, uds, largo, ancho, alto, formula, signo, creadoEn, modificadoEn, fase)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'obra')`
+                `INSERT INTO mediciones (id, lineaId, orden, comentario, uds, largo, ancho, alto, formula, signo, creadoEn, modificadoEn, fase, planta, zona)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'obra',?,?)`
               ).run(
                 nuevoId(),
                 id,
@@ -26084,7 +26220,9 @@ globalThis.CX_VARIANTE="cxobra";
                 m.formula || null,
                 m.signo ?? 1,
                 ahora,
-                ahora
+                ahora,
+                plantaDe(m),
+                zonaDe(m)
               );
             }
             for (const [j, d] of (n.descompuesto || []).entries()) {
@@ -27051,11 +27189,14 @@ globalThis.CX_VARIANTE="cxobra";
         let tipo;
         if (esPM) tipo = "PM";
         else if (balEst) tipo = balEst;
-        else if (T("ESQUEMA") || T("ESQ ELECT") || T("DESPIECE") || T("SPL_") || T("TEST REPORT") || T("LEAK TEST") || T("ELECTRIC TEST") || T("LAYOUT") || T("SELECCION") || T("SELECCI\xD3N") || T("PLANO") || T("CURVAS") || T("ALBARAN") || T("ALBAR\xC1N") || T("BALANCING") || T("CERTIFICADO DE FABRICA") || T("PE_") || T("PLANTILLA") || T("PRESUPUESTO") || T("OFERTA") || T("FACTURA") || T("ACTA") || T("VISITA") || T("INFORME SEMANAL")) {
+        else if (T("ESQUEMA") || T("ESQ ELECT") || T("DESPIECE") || T("SPL_") || T("TEST REPORT") || T("LEAK TEST") || T("ELECTRIC TEST") || T("LAYOUT") || T("SELECCION") || T("SELECCI\xD3N") || T("PLANO") || T("CURVAS") || T("ALBARAN") || T("ALBAR\xC1N") || T("BALANCING") || T("CERTIFICADO DE FABRICA") || T("CERTIFICADO DE F\xC1BRICA") || T("PE_") || T("PLANTILLA") || T("PRESUPUESTO") || T("OFERTA") || T("FACTURA") || T("ACTA") || T("VISITA") || T("INFORME SEMANAL")) {
           return null;
         } else if (T("DECLARACION") || T("DECLARACI\xD3N") || T("DECL_") || T("DECLARATION") || T("CONFORMIT") || T("CONFORMIDAD") || T("MARCADO CE") || /* «CE_…» o «…/CE/…», pero no el «CE_» de «maintenance_manual». Y la
            «DoC» (Declaration of Conformity) de Carrier y Panasonic. */
-        /(^|[^A-Z])CE_/.test(U) || T("/CE/") || /^DOC[_ -]/.test(nombre) || /,DOC\./.test(nombre) || T("/CERTIFICADOS/") || T("MANUFACTURER") || T("STATEMENT")) tipo = "CE";
+        /(^|[^A-Z])CE_/.test(U) || T("/CE/") || /^DOC[_ -]/.test(nombre) || /,DOC\./.test(nombre) || T("/CERTIFICADOS/") || T("MANUFACTURER") || T("STATEMENT") || /* «Cert_S-15MF3.pdf», «CERT_U-6LE2E8.pdf», «Cert CE_…»: el certificado del
+           fabricante (marcado CE) del modelo. Solo si el NOMBRE EMPIEZA así: los
+           «CERTIFICADO SP136 …» son otra cosa. Y el DoP / la ETA en que se apoya. */
+        /^CERT[_ -]/.test(nombre) || /(^|[^A-Z])DOP([^A-Z]|$)/.test(nombre) || /(^|[^A-Z0-9])ETA[_ -]?[0-9]/.test(nombre)) tipo = "CE";
         else if (T("MANUAL") || T("INSTALACION") || T("INSTALACI\xD3N") || T("IOM") || T("INSTRUCCION") || T("OPERATING") || T("MAINTENANCE") || T("MANTENIMIENTO") || T("ASSEMBLY")) tipo = "MI";
         else tipo = "FT";
         const n = norm(nombre);
@@ -33527,6 +33668,8 @@ ${subtitulo}`, c[5]] : c.slice())]);
                 estilo: m.estilos[x.st] || "",
                 bg: x.bg || null,
                 clase: x.clase || "",
+                rolFirma: x.rolFirma || null,
+                rotuloFirma: x.rotuloFirma || null,
                 html: x.html !== void 0 ? x.html : null,
                 txt: x.html !== void 0 ? null : x.f ? "" : x.txt,
                 lleno: Boolean(x.lleno)
@@ -33615,8 +33758,11 @@ ${subtitulo}`, c[5]] : c.slice())]);
               for (const x of rotFirma) {
                 const caja = m.filas[r + 1] && celdaEn(m.filas[r + 1], x.c);
                 if (caja) {
-                  caja.html = fuente.firma(ROT_JEFE.test(x.txt) ? "JEFE" : "DF");
+                  const rolFirma = ROT_JEFE.test(x.txt) ? "JEFE" : "DF";
+                  caja.html = fuente.firma(rolFirma);
                   caja.clase = "xlFirma";
+                  caja.rolFirma = rolFirma;
+                  x.rotuloFirma = rolFirma;
                 }
               }
               continue;
@@ -41320,11 +41466,11 @@ ${subtitulo}`, c[5]] : c.slice())]);
         dentro: "#1B7F3B",
         alto: "#C62828",
         bajo: "#C62828",
-        sinFactor: "#A15C00",
-        sinProyecto: "#A15C00",
-        aRevisar: "#A15C00",
-        sinTolerancia: "#A15C00",
-        medido: "#A15C00",
+        sinFactor: "#14507F",
+        sinProyecto: "#14507F",
+        aRevisar: "#14507F",
+        sinTolerancia: "#14507F",
+        medido: "#14507F",
         sinMedir: "#5F6B73"
       };
       function planoSvgBocas({ imagen = null, ancho = 1600, alto = 900, puntos = [], estados = {} } = {}) {
@@ -45206,9 +45352,22 @@ ${subtitulo}`, c[5]] : c.slice())]);
         const plantaDe = (r) => r.planta || r.equipo && r.equipo.planta || "";
         const zonaDe = (r) => r.zona || r.equipo && r.equipo.zona || "";
         const equipoTexto = (e) => e ? [e.tag, e.denominacion || [e.marca, e.modelo].filter(Boolean).join(" ")].filter(Boolean).join(" \xB7 ") : "";
+        const sinFirmar = (r) => r.firmada === false;
         function estadoHtml(r) {
           const res = resultadoDe(r);
-          return `<span class="estadoRep${res ? " aviso" : ""}">${esc(res || ESTADO_TEXTO[r.estado] || r.estado)}</span>`;
+          const pendiente = !res && sinFirmar(r) && r.estado === "cerrada";
+          return `<span class="estadoRep${res || pendiente ? " aviso" : ""}">${esc(res || (pendiente ? "Pendiente de firma" : ESTADO_TEXTO[r.estado] || r.estado))}</span>`;
+        }
+        function firmasHtml(r) {
+          const hechas = new Map((r.firmas || []).map((f) => [f.rol, f]));
+          const casilla = (rol, rotulo) => {
+            const f = hechas.get(rol);
+            return `<div class="casillaFirma${f ? "" : " vacia"}"><p class="rotuloFirma">${esc(rotulo)}</p>
+      <div class="trazoFirma">${f && f.imagen ? `<img src="${esc(f.imagen)}" alt="Firma de ${esc(f.nombre)}">` : ""}</div>
+      <p class="nombreFirma">${f ? esc(f.nombre) : "Sin firmar"}${f && f.cargo ? ` \xB7 ${esc(f.cargo)}` : ""}</p>
+      <p class="fechaFirma">${f ? esc(fechaEs(f.fecha)) : ""}</p></div>`;
+          };
+          return `<section class="firmasRep"><h3>Firmas</h3><div class="rejillaFirmasRep">${casilla("jefeObra", "T\xE9cnico responsable")}${casilla("cliente", "Segunda firma")}</div></section>`;
         }
         function indicadores(reps) {
           const equipos = new Set(reps.map((r) => r.equipoId || r.equipo && r.equipo.tag).filter(Boolean)).size;
@@ -45219,6 +45378,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
             { que: "Equipos", valor: num(equipos, 0) },
             { que: "Visitas", valor: num(visitas, 0) },
             { que: "Horas", valor: num(reps.reduce((a, r) => a + totalHoras(r), 0)), nota: "apuntadas en las visitas" },
+            { que: "Firmadas", valor: `${num(reps.filter((r) => r.firmada).length, 0)} de ${num(reps.length, 0)}`, nota: "por el t\xE9cnico responsable", clase: reps.every((r) => r.firmada) ? void 0 : "mal" },
             sinResolver ? { que: "Sin resolver del todo", valor: num(sinResolver, 0), nota: "pendientes de material o de terceros", clase: "mal" } : null
           ]);
         }
@@ -45270,6 +45430,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         <tbody>${visitas.map((v) => `<tr><td class="fecha">${esc(fechaEs(v.fecha))}</td><td>${esc(v.tecnicos.join(", "))}</td><td>${esc(v.empresas.join(", "))}</td><td class="num">${num(v.horas)}</td></tr>`).join("")}</tbody>
       </table></section>` : ""}
     ${obs.length ? `<section class="relato"><h3>Observaciones</h3><ul class="observaciones">${obs.map((c) => `<li><span class="cuando">${esc(fechaEs(c.creadoEn || c.cuando))}${c.persona ? ` \xB7 ${esc(c.persona)}` : ""}</span> ${esc(c.texto).replace(/\n/g, "<br>")}</li>`).join("")}</ul></section>` : ""}
+    ${r.firmada === void 0 && !(r.firmas || []).length ? "" : firmasHtml(r)}
     ${antes.length || despues.length ? `<section class="fotosInforme"><h3>Fotos</h3><div class="rejillaFotosRep">${rejillaFotos}</div></section>` : ""}
   </section>`;
         }
@@ -45293,6 +45454,179 @@ ${subtitulo}`, c[5]] : c.slice())]);
           if (typeof window !== "undefined") window.INFORME_REPARACIONES = API;
         })({ html, cuerpo, elegir, visitasDe, observacionesDe, fechaHecha });
       })();
+    }
+  });
+
+  // electron/data/firmasEquipo.js
+  var require_firmasEquipo = __commonJS({
+    "electron/data/firmasEquipo.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var ROLES = {
+        cliente: "El cliente",
+        jefeObra: "T\xE9cnico responsable"
+      };
+      var CARGOS = {
+        Cliente: "Cliente",
+        DF: "Direcci\xF3n Facultativa (DF)",
+        DEO: "Direcci\xF3n de Ejecuci\xF3n (DEO)"
+      };
+      var rotuloCargo = (cargo) => CARGOS[cargo] || llanoCargo(cargo) || CARGOS.Cliente;
+      function llanoCargo(v) {
+        return String(v ?? "").trim().slice(0, 60);
+      }
+      var MAX_IMAGEN = 400 * 1024;
+      var llano = (v) => String(v ?? "").trim();
+      var sinAcentos = (v) => llano(v).toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+      function filasDe(repo, sesion, equipoIds) {
+        const ids = [...new Set((equipoIds || []).filter(Boolean))];
+        if (!ids.length) return [];
+        return repo.listar("firmasEquipo", sesion, { condicion: `equipoId IN (${ids.map(() => "?").join(",")}) AND COALESCE(incidenciaId, '') = ''`, params: ids, orden: "modificadoEn" });
+      }
+      var cargoDe = (f) => f.rol === "cliente" ? llanoCargo(f.cargo) || "Cliente" : null;
+      var publica = (f) => ({
+        id: f.id,
+        equipoId: f.equipoId,
+        rol: f.rol,
+        rotulo: f.rol === "cliente" ? rotuloCargo(cargoDe(f)) : ROLES[f.rol] || f.rol,
+        cargo: cargoDe(f),
+        nombre: f.nombre || "",
+        fecha: f.fecha || "",
+        imagen: f.imagen
+      });
+      function firmasDeEquipos(repo, sesion, equipoIds) {
+        const r = { cliente: null, jefeObra: null };
+        for (const f of filasDe(repo, sesion, equipoIds)) if (f.rol in r) r[f.rol] = publica(f);
+        return r;
+      }
+      function unidadesDelConjunto(repo, sesion, equipo) {
+        if (!equipo) return [];
+        const todos = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [equipo.obraId] });
+        const linea = require_conjuntos().agrupar(todos).find((l) => (l.unidades || []).some((u) => u.id === equipo.id));
+        const ids = linea ? linea.unidades.map((u) => u.id) : [equipo.id];
+        return [equipo.id, ...ids.filter((x) => x !== equipo.id)];
+      }
+      function firmasDeEquipo(repo, sesion, equipoId) {
+        const eq = repo.leer("equiposObra", sesion, llano(equipoId));
+        if (!eq) return { cliente: null, jefeObra: null };
+        return firmasDeEquipos(repo, sesion, unidadesDelConjunto(repo, sesion, eq));
+      }
+      function firmasDeClave(repo, sesion, obraId, clave) {
+        const m = /^(equipo|refrigerante):(.+)$/.exec(llano(clave));
+        if (!m) return { cliente: null, jefeObra: null };
+        if (m[1] === "equipo") return firmasDeEquipo(repo, sesion, m[2]);
+        const equipos = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
+        const ue = equipos.find((e) => sinAcentos(e.tag) === m[2]);
+        if (ue) return firmasDeEquipo(repo, sesion, ue.id);
+        return firmasDeEquipos(repo, sesion, equipos.filter((e) => sinAcentos(e.equipoAsociado) === m[2]).map((e) => e.id));
+      }
+      function bytesDeImagen(dataUrl) {
+        const m = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl || ""));
+        return m ? Buffer.from(m[1], "base64") : null;
+      }
+      function paraPdf(firmas) {
+        return ["jefeObra", "cliente"].map((rol) => {
+          const f = firmas && firmas[rol];
+          if (!f) return null;
+          const cargo = rol === "cliente" ? llanoCargo(f.cargo) || "Cliente" : null;
+          return { rol, rotulo: rol === "cliente" ? rotuloCargo(cargo) : ROLES[rol], cargo, nombre: f.nombre, fecha: f.fecha, imagen: bytesDeImagen(f.imagen) };
+        }).filter(Boolean);
+      }
+      function firmar(repo, sesion, equipoId, { rol, nombre, imagen, quitar, cargo } = {}) {
+        const eq = repo.leer("equiposObra", sesion, llano(equipoId));
+        if (!eq) return { ok: false, error: "No se encuentra el equipo." };
+        if (!(rol in ROLES)) return { ok: false, error: "Esa firma no existe." };
+        const ids = unidadesDelConjunto(repo, sesion, eq);
+        const previas = filasDe(repo, sesion, ids).filter((f) => f.rol === rol);
+        if (quitar) {
+          for (const f of previas) repo.borrar("firmasEquipo", sesion, f.id, { verbo: "editar" });
+          return { ok: true, firmas: firmasDeEquipos(repo, sesion, ids) };
+        }
+        let n = llano(nombre).slice(0, 80);
+        if (!n && rol === "jefeObra" && sesion) {
+          let yo = null;
+          try {
+            yo = sesion.personaId && repo.db ? repo.db.prepare("SELECT nombre FROM personas WHERE id = ?").get(sesion.personaId) : null;
+          } catch {
+          }
+          n = llano(yo && yo.nombre || sesion.nombre).slice(0, 80);
+        }
+        if (!n) return { ok: false, error: "Falta el nombre de quien firma." };
+        const c = rol === "cliente" ? llanoCargo(cargo) || "Cliente" : null;
+        const img = llano(imagen);
+        if (!bytesDeImagen(img)) return { ok: false, error: "No llega la firma." };
+        if (img.length > MAX_IMAGEN) return { ok: false, error: "La firma es demasiado grande." };
+        const fecha = (/* @__PURE__ */ new Date()).toISOString();
+        const ultima = previas[previas.length - 1];
+        if (ultima) {
+          repo.modificar("firmasEquipo", sesion, ultima.id, { nombre: n, cargo: c, imagen: img, fecha, equipoId: eq.id });
+          for (const f of previas.slice(0, -1)) repo.borrar("firmasEquipo", sesion, f.id, { verbo: "editar" });
+        } else {
+          repo.crear("firmasEquipo", sesion, { obraId: eq.obraId, equipoId: eq.id, rol, nombre: n, cargo: c, imagen: img, fecha }, { verbo: "editar" });
+        }
+        return { ok: true, firmas: firmasDeEquipos(repo, sesion, ids) };
+      }
+      module.exports = { ROLES, CARGOS, rotuloCargo, firmar, firmasDeEquipo, firmasDeEquipos, firmasDeClave, paraPdf, bytesDeImagen, unidadesDelConjunto };
+    }
+  });
+
+  // electron/data/firmasReparacion.js
+  var require_firmasReparacion = __commonJS({
+    "electron/data/firmasReparacion.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var FIR = require_firmasEquipo();
+      var { puede } = require_roles();
+      var ROTULOS = { jefeObra: "T\xE9cnico responsable", cliente: "Segunda firma" };
+      var CARGOS = ["Cliente", "DF", "DEO", "Otro"];
+      var llano = (v) => String(v ?? "").trim();
+      var publica = (f) => ({ id: f.id, incidenciaId: f.incidenciaId, equipoId: f.equipoId, rol: f.rol, rotulo: ROTULOS[f.rol] || f.rol, nombre: f.nombre || "", cargo: f.rol === "cliente" ? f.cargo || "" : "", fecha: f.fecha || "", imagen: f.imagen });
+      function nombreDe(repo, sesion) {
+        const p = repo.db.prepare("SELECT nombre FROM personas WHERE id = ?").get(sesion.personaId);
+        return llano(p && p.nombre || sesion.nombre);
+      }
+      function filas(repo, sesion, incidenciaId) {
+        return repo.listar("firmasEquipo", sesion, { condicion: "incidenciaId = ?", params: [llano(incidenciaId)], orden: "modificadoEn" });
+      }
+      function firmasDe(repo, sesion, incidenciaId) {
+        const r = { cliente: null, jefeObra: null };
+        for (const f of filas(repo, sesion, incidenciaId)) if (f.rol in r && llano(f.nombre)) r[f.rol] = publica(f);
+        return r;
+      }
+      var firmada = (firmas) => Boolean(firmas && firmas.jefeObra && llano(firmas.jefeObra.nombre) && FIR.bytesDeImagen(firmas.jefeObra.imagen));
+      function firmar(repo, sesion, incidenciaId, { rol, nombre, cargo, imagen, quitar } = {}) {
+        if (!puede(sesion.rol, "incidencias", "editar")) return { ok: false, error: "Tu rol no puede firmar la reparaci\xF3n." };
+        const i = repo.leer("incidencias", sesion, llano(incidenciaId));
+        if (!i) return { ok: false, error: "No se encuentra la reparaci\xF3n." };
+        if (!i.equipoId) return { ok: false, error: "Solo se firman las reparaciones de un equipo." };
+        if (i.estado === "cerrada" || i.estado === "anulada") return { ok: false, error: "La reparaci\xF3n est\xE1 cerrada: para cambiar la firma, que el jefe de obra la devuelva." };
+        if (!(rol in FIR.ROLES)) return { ok: false, error: "Esa firma no existe." };
+        const previas = filas(repo, sesion, i.id).filter((f) => f.rol === rol);
+        if (quitar) {
+          for (const f of previas) repo.borrar("firmasEquipo", sesion, f.id, { verbo: "editar" });
+          return { ok: true, firmas: firmasDe(repo, sesion, i.id), firmada: firmada(firmasDe(repo, sesion, i.id)) };
+        }
+        let n = llano(nombre).slice(0, 80);
+        if (!n && rol === "jefeObra") n = nombreDe(repo, sesion).slice(0, 80);
+        if (!n) return { ok: false, error: "Falta el nombre de quien firma." };
+        const car = rol === "cliente" ? llano(cargo).slice(0, 60) : "";
+        if (rol === "cliente" && (!car || car === "Otro")) return { ok: false, error: "Falta el cargo de la segunda firma: Cliente, DF, DEO u Otro (escrito)." };
+        const img = llano(imagen);
+        if (!FIR.bytesDeImagen(img)) return { ok: false, error: "No llega la firma." };
+        if (img.length > 400 * 1024) return { ok: false, error: "La firma es demasiado grande." };
+        const fecha = (/* @__PURE__ */ new Date()).toISOString();
+        const ultima = previas[previas.length - 1];
+        if (ultima) {
+          repo.modificar("firmasEquipo", sesion, ultima.id, { nombre: n, cargo: car, imagen: img, fecha });
+          for (const f of previas.slice(0, -1)) repo.borrar("firmasEquipo", sesion, f.id, { verbo: "editar" });
+        } else {
+          repo.crear("firmasEquipo", sesion, { obraId: i.obraId, equipoId: i.equipoId, incidenciaId: i.id, rol, nombre: n, cargo: car, imagen: img, fecha }, { verbo: "editar" });
+        }
+        const firmas = firmasDe(repo, sesion, i.id);
+        return { ok: true, firmas, firmada: firmada(firmas) };
+      }
+      var paraInforme = (firmas) => ["jefeObra", "cliente"].map((r) => firmas && firmas[r] ? { rol: r, rotulo: ROTULOS[r], nombre: firmas[r].nombre, cargo: firmas[r].cargo || "", fecha: firmas[r].fecha, imagen: firmas[r].imagen } : null).filter(Boolean);
+      module.exports = { nombreDe, ROTULOS, CARGOS, firmasDe, firmada, firmar, paraInforme };
     }
   });
 
@@ -50350,6 +50684,4450 @@ ${linea}` : linea;
     }
   });
 
+  // shared/compras/pedidosProyecto.js
+  var require_pedidosProyecto = __commonJS({
+    "shared/compras/pedidosProyecto.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var t = (v) => v === null || v === void 0 ? "" : String(v).trim();
+      var num = (v) => {
+        const x = Number(String(v ?? "").replace(",", "."));
+        return Number.isFinite(x) ? x : 0;
+      };
+      var r2 = (x) => Math.round(x * 100) / 100;
+      var norm = (s) => t(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, "");
+      var VACIAS = /* @__PURE__ */ new Set(["PARA", "CON", "SIN", "TIPO", "MODELO", "MARCA", "SERIE", "UNIDAD", "SUMINISTRO", "INSTALACION", "MONTAJE", "INCLUSO", "TOTALMENTE", "INSTALADO", "INSTALADA", "SEGUN", "DESDE", "HASTA", "ENTRE"]);
+      var palabras = (s) => t(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().split(/[^A-Z0-9]+/).filter((w) => w.length >= 4 && !/\d/.test(w) && !VACIAS.has(w));
+      var ESTADOS = {
+        coincide: "Coincide",
+        cantidadDistinta: "Cantidad distinta",
+        modeloDistinto: "Modelo distinto",
+        noEnProyecto: "No est\xE1 en proyecto"
+      };
+      var igual = (a, b) => Math.abs(a - b) <= Math.max(0.01, Math.abs(b) * 5e-3);
+      function lineasDePedidos(pedidos = []) {
+        const out = [];
+        for (const p of pedidos) {
+          if (!p || p.estado === "anulado" || t(p.fechaAnulacion)) continue;
+          const lineas = Array.isArray(p.lineas) ? p.lineas : [];
+          lineas.forEach((l, i) => {
+            const cantidad = num(l.cantidad);
+            if (!t(l.descripcion) && !t(l.modelo)) return;
+            let precio = l.precio === void 0 || l.precio === null || l.precio === "" ? null : num(l.precio);
+            if (precio === null && lineas.length === 1 && num(p.importe) > 0 && cantidad > 0) precio = r2(num(p.importe) / cantidad);
+            out.push({
+              clave: `pedido:${p.id}:${i}`,
+              origen: "pedido",
+              docId: p.id,
+              doc: t(p.codigo) || t(p.numero) || t(p.id),
+              proveedor: t(p.proveedorNombre || p.proveedor),
+              linea: i,
+              descripcion: t(l.descripcion),
+              referencia: t(l.referencia),
+              unidad: t(l.unidad) || "ud",
+              marca: t(l.marca),
+              modelo: t(l.modelo),
+              cantidad,
+              precio,
+              partidaCodigo: t(l.partidaCodigo),
+              ce: t(l.docCE || l.ce)
+            });
+          });
+        }
+        return out;
+      }
+      function lineasDeAdjudicaciones(adjudicadas = []) {
+        const out = [];
+        for (const a of adjudicadas) {
+          (a.lineas || []).forEach((l, i) => {
+            if (!t(l.marca) && !t(l.modelo)) return;
+            out.push({
+              clave: `adjudicacion:${a.id}:${t(l.partidaCodigo) || i}`,
+              origen: "comparativo",
+              docId: a.id,
+              doc: t(a.numero) || `Comparativo ${t(a.grupo) || ""}`.trim(),
+              proveedor: t(a.proveedor),
+              linea: i,
+              descripcion: t(l.descripcion),
+              referencia: "",
+              unidad: t(l.unidad) || "ud",
+              marca: t(l.marca),
+              modelo: t(l.modelo),
+              cantidad: num(l.cantidad),
+              precio: l.precio === null || l.precio === void 0 ? null : num(l.precio),
+              partidaCodigo: t(l.partidaCodigo),
+              ce: t(l.docCE)
+            });
+          });
+        }
+        return out;
+      }
+      var textoPartida = (p) => `${t(p.resumen)} ${t(p.descripcion)}`;
+      var cacheNorm = /* @__PURE__ */ new WeakMap();
+      var cachePalabras = /* @__PURE__ */ new WeakMap();
+      var normPartida = (p) => {
+        if (!p || typeof p !== "object") return norm(textoPartida(p));
+        let v = cacheNorm.get(p);
+        if (v === void 0) {
+          v = norm(textoPartida(p));
+          cacheNorm.set(p, v);
+        }
+        return v;
+      };
+      var palabrasPartida = (p) => {
+        let v = cachePalabras.get(p);
+        if (v === void 0) {
+          v = new Set(palabras(textoPartida(p)));
+          cachePalabras.set(p, v);
+        }
+        return v;
+      };
+      function llevaModelo(p, modelo) {
+        const m = norm(modelo);
+        if (m.length < 3 || !/\d/.test(m) && m.length < 5) return false;
+        return normPartida(p).includes(m);
+      }
+      function partidaDe(linea, partidas) {
+        const cod = t(linea.partidaCodigo) || t(linea.referencia);
+        if (cod) {
+          const p = partidas.find((x) => t(x.codigo) === cod);
+          if (p) return { partida: p, por: "codigo" };
+        }
+        if (t(linea.modelo)) {
+          const conModelo = partidas.filter((x) => llevaModelo(x, linea.modelo));
+          if (conModelo.length) {
+            const marca = norm(linea.marca);
+            const conMarca = marca ? conModelo.filter((x) => normPartida(x).includes(marca)) : [];
+            const l = conMarca.length ? conMarca : conModelo;
+            const p = l.slice().sort((a, b) => Math.abs(num(a.cantidad) - linea.cantidad) - Math.abs(num(b.cantidad) - linea.cantidad))[0];
+            return { partida: p, por: "modelo" };
+          }
+        }
+        const pal = [...new Set(palabras(linea.descripcion))];
+        if (pal.length >= 2) {
+          let mejor = null;
+          let nota = 0;
+          for (const p of partidas) {
+            const tx = palabrasPartida(p);
+            const n = pal.filter((w) => tx.has(w)).length / pal.length;
+            if (n > nota) {
+              nota = n;
+              mejor = p;
+            }
+          }
+          if (mejor && nota >= 2 / 3) return { partida: mejor, por: "descripcion" };
+        }
+        return null;
+      }
+      function cruzar({ pedidos = [], adjudicadas = [], partidas = [] } = {}, opciones = {}) {
+        const ps = partidas.filter((p) => !t(p.tipo) || t(p.tipo) === "partida");
+        const lineas = [...lineasDePedidos(pedidos), ...lineasDeAdjudicaciones(adjudicadas)].map((l) => {
+          const m = partidaDe(l, ps);
+          const p = m ? m.partida : null;
+          let estado = "noEnProyecto";
+          if (p) {
+            const mismoModelo = !t(l.modelo) ? m.por === "codigo" : llevaModelo(p, l.modelo);
+            estado = mismoModelo ? "coincide" : "modeloDistinto";
+          }
+          return {
+            ...l,
+            estado,
+            por: m ? m.por : null,
+            partida: p ? { id: p.id, codigo: t(p.codigo), resumen: t(p.resumen), unidad: t(p.unidad), cantidad: num(p.cantidad), cantidadObra: p.cantidadObra === null || p.cantidadObra === void 0 || p.cantidadObra === "" ? null : num(p.cantidadObra) } : null,
+            diferencia: 0,
+            propuesta: null
+          };
+        });
+        const porPartida = /* @__PURE__ */ new Map();
+        for (const l of lineas.filter((x) => x.estado === "coincide")) {
+          if (!porPartida.has(l.partida.id)) porPartida.set(l.partida.id, []);
+          porPartida.get(l.partida.id).push(l);
+        }
+        for (const grupo of porPartida.values()) {
+          const pedido = r2(grupo.reduce((a, x) => a + x.cantidad, 0));
+          const proyecto = grupo[0].partida.cantidad;
+          if (igual(pedido, proyecto)) continue;
+          for (const l of grupo) {
+            l.estado = "cantidadDistinta";
+            l.diferencia = r2(pedido - proyecto);
+            l.totalPedido = pedido;
+          }
+          const ult = grupo[grupo.length - 1];
+          ult.propuesta = {
+            tipo: "medicion",
+            partidaId: ult.partida.id,
+            cantidadObra: pedido,
+            texto: `Med Obra de ${ult.partida.codigo || "la partida"} = ${String(pedido).replace(".", ",")} ${ult.partida.unidad || ult.unidad} (proyecto ${String(proyecto).replace(".", ",")})`
+          };
+        }
+        for (const l of lineas) {
+          if (l.estado !== "modeloDistinto" && l.estado !== "noEnProyecto") continue;
+          const fuera = typeof opciones.fueraDeAlcance === "function" ? opciones.fueraDeAlcance(l) : null;
+          if (fuera) {
+            l.fueraDeAlcance = fuera;
+            continue;
+          }
+          const nombre = [l.marca, l.modelo].filter(Boolean).join(" ");
+          const resumen2 = `${l.descripcion || "Equipo"}${nombre && !norm(l.descripcion).includes(norm(nombre)) ? ` ${nombre}` : ""}`.slice(0, 200);
+          l.propuesta = {
+            tipo: "partida",
+            resumen: resumen2,
+            unidad: l.unidad || "ud",
+            cantidad: l.cantidad,
+            precioCoste: l.precio === null ? 0 : l.precio,
+            sinPrecio: l.precio === null,
+            coste: l.precio === null ? 0 : r2(l.precio * l.cantidad),
+            sustituye: l.estado === "modeloDistinto" ? l.partida.id : null,
+            texto: `Partida nueva \xAB${resumen2}\xBB: ${String(l.cantidad).replace(".", ",")} ${l.unidad || "ud"}${l.precio === null ? " (sin precio por l\xEDnea en el pedido)" : ` a ${String(l.precio).replace(".", ",")} \u20AC`}${l.estado === "modeloDistinto" ? ` en lugar de ${l.partida.codigo || "la partida de proyecto"}` : ""}`
+          };
+        }
+        const cuenta = (e) => lineas.filter((l) => l.estado === e).length;
+        const resumen = {
+          lineas: lineas.length,
+          coincide: cuenta("coincide"),
+          cantidadDistinta: cuenta("cantidadDistinta"),
+          modeloDistinto: cuenta("modeloDistinto"),
+          noEnProyecto: cuenta("noEnProyecto"),
+          propuestas: lineas.filter((l) => l.propuesta).length,
+          fueraDeAlcance: lineas.filter((l) => l.fueraDeAlcance).length,
+          costePropuesto: r2(lineas.reduce((a, l) => a + (l.propuesta && l.propuesta.coste ? l.propuesta.coste : 0), 0))
+        };
+        return { lineas, resumen };
+      }
+      function paraCertificados(lineas = []) {
+        return lineas.map((l) => ({ clave: l.clave, doc: l.doc, origen: l.origen, descripcion: l.descripcion, marca: l.marca, modelo: l.modelo, cantidad: l.cantidad, ce: l.ce, ...l.partida && l.partida.id ? { partidaId: l.partida.id } : {} }));
+      }
+      module.exports = { ESTADOS, norm, palabras, llevaModelo, partidaDe, lineasDePedidos, lineasDeAdjudicaciones, cruzar, paraCertificados };
+    }
+  });
+
+  // shared/obra/costeDesdeCompras.js
+  var require_costeDesdeCompras = __commonJS({
+    "shared/obra/costeDesdeCompras.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var PP = require_pedidosProyecto();
+      var BIB = require_biblioteca();
+      var t = (v) => v === null || v === void 0 ? "" : String(v).trim();
+      var num = (v) => {
+        const x = Number(String(v ?? "").replace(",", "."));
+        return Number.isFinite(x) ? x : 0;
+      };
+      var esNum = (v) => v !== null && v !== void 0 && v !== "" && Number.isFinite(Number(v));
+      var r2 = (x) => Math.round(x * 100) / 100;
+      var r3 = (x) => Math.round(x * 1e3) / 1e3;
+      var COMPONENTE_POR_TIPO = {
+        manoObraMontaje: "obrSubcontrata",
+        alquilerMedios: "obrAuxiliares",
+        portes: "obrTransporte"
+      };
+      var componenteDe = (tipo) => COMPONENTE_POR_TIPO[tipo] || "obrMaterial";
+      var CAPITULO = {
+        codigo: "CO",
+        resumen: "COSTE DE OBRA FUERA DE ESTUDIOS \xB7 pedidos y certificaciones de subcontratas"
+      };
+      function concepto(descripcion) {
+        return t(descripcion).replace(/\[[^\]]*\]/g, " ").replace(/^[A-Z]{2,3}-N\d{2}[\w-]*(\s\d{1,2})?(\s\(\d+\))?\s+(?=\S)/i, "").replace(/\s+/g, " ").trim();
+      }
+      var esContratoSubcontrata = (p) => /^CTR-/i.test(t(p.codigo)) || /contrato de subcontrata/i.test(t(p.observaciones));
+      var normModelo = (s) => t(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
+      function tokensModelo(texto) {
+        return [...new Set((normModelo(texto).match(/[A-Z0-9][A-Z0-9\-/.]{3,}/g) || []).map((x) => x.replace(/[^A-Z0-9]/g, "")).filter((tk) => tk.length >= 5 && /[A-Z]/.test(tk) && /\d/.test(tk) && !/^\d+X\d+/.test(tk) && !/^(N|DN|D|PN|SDR|EI|IP|RAL|F\d|L|M|E)\d/.test(tk)))];
+      }
+      function indiceModelos(partidas) {
+        const idx = /* @__PURE__ */ new Map();
+        for (const p of partidas) {
+          for (const tk of tokensModelo(`${t(p.resumen)} ${t(p.descripcion)}`)) {
+            if (!idx.has(tk)) idx.set(tk, /* @__PURE__ */ new Set());
+            idx.get(tk).add(p);
+          }
+        }
+        for (const [tk, s] of idx) if (s.size !== 1) idx.delete(tk);
+        return idx;
+      }
+      function partidaPorModelo(idx, descripcion) {
+        const palabras = normModelo(descripcion).split(/[^A-Z0-9]+/).filter(Boolean);
+        const hallada = /* @__PURE__ */ new Set();
+        for (const [tk, s] of idx) {
+          if (palabras.some((w) => w === tk || w.startsWith(tk) && /[A-Z]/.test(w[tk.length]))) for (const p of s) hallada.add(p);
+        }
+        return hallada.size === 1 ? [...hallada][0] : null;
+      }
+      function medidaYUnitario(cantidad, importe, unidad) {
+        if (!(cantidad > 0)) return { cantidad: 1, unidad: "PA", unitario: r2(importe), alzada: true };
+        const u = r2(importe / cantidad);
+        const dif = Math.abs(u * cantidad - importe);
+        if (dif > 1 && dif > Math.abs(importe) * 5e-3) return { cantidad: 1, unidad: "PA", unitario: r2(importe), alzada: true };
+        return { cantidad: r3(cantidad), unidad: t(unidad) || "ud", unitario: u, alzada: false };
+      }
+      function planificar({ partidas = [], pedidos = [], certificaciones = [], certificadasCliente = /* @__PURE__ */ new Set(), decididas = /* @__PURE__ */ new Set(), nacidas = /* @__PURE__ */ new Set() } = {}) {
+        const deProyecto = partidas.filter((p) => (!t(p.tipo) || p.tipo === "partida") && !nacidas.has(p.id));
+        const porId = new Map(deProyecto.map((p) => [p.id, p]));
+        const avisos = [];
+        const act = /* @__PURE__ */ new Map();
+        const tocar = (p) => {
+          if (!act.has(p.id)) act.set(p.id, { lineaId: p.id, codigo: t(p.codigo), resumen: t(p.resumen), motivos: [] });
+          return act.get(p.id);
+        };
+        const grupos = /* @__PURE__ */ new Map();
+        const agrupar = (clave, base) => {
+          if (!grupos.has(clave)) grupos.set(clave, { ...base, cantidad: 0, importe: 0, fuentes: [], claves: [] });
+          return grupos.get(clave);
+        };
+        let totalCertificado = 0;
+        const subPorLinea = /* @__PURE__ */ new Map();
+        for (const c of certificaciones) {
+          const sub = t(c.subcontrata) || "Subcontrata";
+          for (const p of c.partidas || []) {
+            const imp = esNum(p.origenImporte) ? num(p.origenImporte) : esNum(p.origen) && esNum(p.precio) ? num(p.origen) * num(p.precio) : null;
+            if (imp === null || !esNum(p.origen)) {
+              avisos.push(`${sub} \xB7 ${t(p.codigoSub)} ${t(p.resumen)}: sin cantidad a origen; no entra en el coste.`);
+              continue;
+            }
+            totalCertificado += imp;
+            const linea = p.lineaApp && p.lineaApp.id ? porId.get(p.lineaApp.id) : null;
+            if (linea) {
+              const s = subPorLinea.get(linea.id) || { origen: 0, importe: 0, subs: /* @__PURE__ */ new Set(), linea };
+              s.origen += num(p.origen);
+              s.importe += imp;
+              s.subs.add(`${sub} ${t(p.codigoSub)}`.trim());
+              subPorLinea.set(linea.id, s);
+            } else {
+              if (p.lineaApp && p.lineaApp.id) avisos.push(`${sub} \xB7 ${t(p.codigoSub)}: la partida ${t(p.lineaApp.codigo)} no est\xE1 en el Costs Plan; va como partida nueva.`);
+              const g = agrupar(`cert|${sub}|${t(p.codigoSub)}|${t(p.resumen)}`, {
+                origen: "certificacion",
+                proveedor: sub,
+                resumen: `${t(p.resumen)} \xB7 ${sub}`,
+                unidad: t(p.unidad) || "ud",
+                componente: "obrSubcontrata"
+              });
+              g.cantidad += num(p.origen);
+              g.importe += imp;
+              g.fuentes.push(`Certificaci\xF3n ${sub}${c.periodo ? ` ${c.periodo}` : ""} \xB7 ${t(p.codigoSub)}`);
+            }
+          }
+          const adm = c.administracion;
+          if (adm && esNum(adm.total) && num(adm.total) > 0) {
+            const horas = esNum(adm.totalHoras) ? num(adm.totalHoras) : (adm.lineas || []).reduce((a, l) => a + num(l.horas), 0);
+            totalCertificado += num(adm.total);
+            const g = agrupar(`adm|${sub}`, {
+              origen: "administracion",
+              proveedor: sub,
+              resumen: `Trabajos por administraci\xF3n (horas) \xB7 ${sub}`,
+              unidad: "h",
+              componente: "obrSubcontrata"
+            });
+            g.cantidad += horas;
+            g.importe += num(adm.total);
+            g.fuentes.push(`Administraci\xF3n ${sub}${adm.referencia ? ` \xB7 ${t(adm.referencia)}` : ""}${esNum(adm.precioHora) ? ` a ${adm.precioHora} \u20AC/h` : ""}`);
+            if (adm.avisoPrecio) avisos.push(`${sub} \xB7 administraci\xF3n: ${t(adm.avisoPrecio)}`);
+          }
+        }
+        for (const s of subPorLinea.values()) {
+          const a = tocar(s.linea);
+          const precio = s.origen > 0 ? r2(s.importe / s.origen) : 0;
+          a.obrSubcontrata = precio;
+          a.importeSubcontrata = r2(s.importe);
+          if (certificadasCliente.has(s.linea.id)) {
+            a.motivos.push(`Subcontrata (${[...s.subs].join(", ")}) a ${precio} \u20AC; Med Obra: la de la certificaci\xF3n al cliente.`);
+          } else {
+            a.cantidadObra = r3(s.origen);
+            a.motivos.push(`Med Obra = ${r3(s.origen)} certificado a origen y subcontrata a ${precio} \u20AC (${[...s.subs].join(", ")}).`);
+          }
+        }
+        const nombreClave = (n) => normModelo(n).replace(/[^A-Z0-9 ]/g, " ").split(/\s+/).find((w) => w.length >= 4) || "";
+        const conCoste = certificaciones.filter((c) => (c.partidas || []).some((x) => esNum(x.origen) && num(x.origen) > 0) || c.administracion && num(c.administracion.total) > 0);
+        const certificadas = new Set(conCoste.map((c) => t(c.proveedorIdApp)).filter(Boolean));
+        const nombresCertificados = new Set(conCoste.map((c) => nombreClave(c.subcontrata)).filter(Boolean));
+        const cubiertoPorCertificacion = (p) => !esContratoSubcontrata(p) && (t(p.proveedorId) && certificadas.has(t(p.proveedorId)) || nombresCertificados.has(nombreClave(p.proveedorNombre || p.proveedor)));
+        let totalCubierto = 0;
+        for (const p of pedidos) {
+          if (t(p.fechaAnulacion) || p.estado === "anulado" || !cubiertoPorCertificacion(p)) continue;
+          const lineas = Array.isArray(p.lineas) ? p.lineas : [];
+          const imp = lineas.length ? r2(lineas.reduce((a, l) => a + num(l.cantidad) * num(l.precio), 0)) : r2(num(p.importe));
+          if (!imp) continue;
+          totalCubierto += imp;
+          avisos.push(`${t(p.codigo)} (${t(p.proveedorNombre || p.proveedor)}, ${imp} \u20AC): la subcontrata ya tiene su certificaci\xF3n a origen cargada; el pedido no se suma para no pagarlo dos veces.`);
+        }
+        const vivos = pedidos.filter((p) => !t(p.fechaAnulacion) && p.estado !== "anulado" && !esContratoSubcontrata(p) && !cubiertoPorCertificacion(p));
+        const contratos = pedidos.filter((p) => esContratoSubcontrata(p)).length;
+        const cruce = PP.cruzar({ pedidos: vivos, partidas: deProyecto });
+        const modelos = indiceModelos(deProyecto);
+        const proveedorDe = new Map(vivos.map((p) => [p.id, t(p.proveedorNombre || p.proveedor) || "Proveedor"]));
+        let totalPedido = 0;
+        const materialPorLinea = /* @__PURE__ */ new Map();
+        const propuestas = [];
+        for (const l of cruce.lineas) {
+          if (decididas.has(l.clave)) continue;
+          const importe = l.precio === null ? 0 : r2(l.precio * l.cantidad);
+          totalPedido += importe;
+          const conPartida = l.partida && (l.estado === "coincide" || l.estado === "cantidadDistinta") ? l.partida : null;
+          const deModelo = conPartida ? null : partidaPorModelo(modelos, l.descripcion);
+          if (conPartida || deModelo) {
+            const pa = conPartida || deModelo;
+            const m = materialPorLinea.get(pa.id) || { cantidad: 0, importe: 0, claves: [] };
+            m.cantidad += l.cantidad;
+            m.importe += importe;
+            m.claves.push(deModelo ? { ...l, estado: "modelo" } : l);
+            materialPorLinea.set(pa.id, m);
+            continue;
+          }
+          const nombre = concepto(l.descripcion) || "Material sin descripci\xF3n";
+          const clase = BIB.clasificar(nombre, l.unidad);
+          const prov = proveedorDe.get(l.docId) || l.proveedor || "Proveedor";
+          const g = agrupar(`ped|${PP.norm(nombre)}|${PP.norm(l.unidad || "ud")}`, {
+            origen: "pedido",
+            proveedores: /* @__PURE__ */ new Set(),
+            resumen: nombre.slice(0, 200),
+            concepto: nombre,
+            unidad: l.unidad || "ud",
+            componente: componenteDe(clase.tipo),
+            tipo: clase.tipo || null
+          });
+          g.cantidad += l.cantidad;
+          g.importe += importe;
+          g.claves.push(l);
+          g.proveedores.add(prov);
+          if (!g.fuentes.includes(`${l.doc} ${prov}`)) g.fuentes.push(`${l.doc} ${prov}`);
+          if (l.precio === null) avisos.push(`${l.doc} l\xEDnea ${l.linea + 1} (${nombre}): sin precio; entra con coste 0.`);
+        }
+        for (const p of vivos) {
+          const lineas = Array.isArray(p.lineas) ? p.lineas : [];
+          const sumaLineas = r2(lineas.reduce((a, l) => a + num(l.cantidad) * num(l.precio), 0));
+          if (!lineas.length && num(p.importe) > 0) {
+            const clave = `pedido:${p.id}:total`;
+            if (decididas.has(clave)) continue;
+            totalPedido += num(p.importe);
+            const prov = proveedorDe.get(p.id);
+            const nombre = concepto(t(p.alcance).replace(/·\s*Entrega:.*$/i, "")) || concepto(p.titulo) || "Pedido sin desglose";
+            const clase = BIB.clasificar(nombre, "ud");
+            const g = agrupar(`sinlineas|${p.id}`, {
+              origen: "pedidoSinLineas",
+              proveedor: prov,
+              resumen: `${nombre} \xB7 ${prov} (${t(p.codigo)}, sin desglose)`.slice(0, 200),
+              concepto: nombre,
+              unidad: "PA",
+              componente: p.tipoProveedor === "subcontrata" || !clase.tipo ? "obrSubcontrata" : componenteDe(clase.tipo),
+              tipo: clase.tipo || null
+            });
+            g.cantidad += 1;
+            g.importe += num(p.importe);
+            g.claves.push({ clave, docId: p.id, doc: t(p.codigo), origen: "pedido", linea: -1, cantidad: 1, precio: num(p.importe), descripcion: nombre });
+            g.fuentes.push(t(p.codigo));
+          } else if (lineas.length && esNum(p.importe) && Math.abs(num(p.importe) - sumaLineas) > 1) {
+            avisos.push(`${t(p.codigo)} (${proveedorDe.get(p.id)}): el pedido dice ${r2(num(p.importe))} \u20AC y sus l\xEDneas suman ${sumaLineas} \u20AC; entra lo de las l\xEDneas.`);
+          }
+        }
+        for (const [id, m] of materialPorLinea) {
+          const p = porId.get(id);
+          const a = tocar(p);
+          if (!esNum(a.cantidadObra) && !certificadasCliente.has(id)) a.cantidadObra = r3(m.cantidad);
+          const alCliente = certificadasCliente instanceof Map ? certificadasCliente.get(id) : null;
+          const base = esNum(a.cantidadObra) ? num(a.cantidadObra) : esNum(alCliente) ? num(alCliente) : num(p.cantidad);
+          const medida = base > 0 ? base : m.cantidad;
+          a.obrMaterial = medida > 0 ? r2(m.importe / medida) : 0;
+          a.importeMaterial = r2(m.importe);
+          a.motivos.push(`Material pedido ${r2(m.importe)} \u20AC (${[...new Set(m.claves.map((l) => l.doc))].join(", ")}) \xF7 ${r3(medida)} = ${a.obrMaterial} \u20AC.`);
+          for (const l of m.claves) {
+            propuestas.push({ clave: l.clave, origen: l.origen, docId: l.docId, doc: l.doc, tipo: "medicion", lineaId: id, cantidad: l.cantidad, precioCoste: l.precio, estadoCruce: l.estado, descripcion: l.descripcion });
+          }
+        }
+        const nuevas = [];
+        for (const g of grupos.values()) {
+          const mu = medidaYUnitario(g.cantidad, r2(g.importe), g.unidad);
+          const base = g.concepto || g.resumen;
+          const desc = BIB.describir({ resumen: base, unidad: g.unidad });
+          const cap = BIB.capituloDe({ disciplina: desc.disciplina, subdisciplina: desc.subdisciplina, tipo: g.tipo || desc.tipo });
+          const provs = g.proveedores ? [...g.proveedores] : [];
+          const deQuien = provs.length === 1 ? ` \xB7 ${provs[0]}` : provs.length > 1 ? ` \xB7 ${provs.length} proveedores` : "";
+          const resumen2 = `${g.resumen}${deQuien}${mu.alzada && g.unidad !== "PA" && g.cantidad > 0 ? ` (${r3(g.cantidad)} ${g.unidad})` : ""}`.slice(0, 240);
+          const fuentes = [...new Set(g.fuentes)];
+          nuevas.push({
+            resumen: resumen2,
+            unidad: mu.unidad,
+            cantidadObra: mu.cantidad,
+            componente: g.componente,
+            unitario: mu.unitario,
+            importe: r2(g.importe),
+            alzada: mu.alzada,
+            origen: g.origen,
+            proveedor: g.proveedor || provs.join(", "),
+            disciplina: desc.disciplina || "otros",
+            subdisciplina: desc.subdisciplina || null,
+            tipo: desc.tipo || null,
+            capitulo: cap.capitulo,
+            subcapitulo: cap.subcapitulo,
+            nombreCapitulo: cap.nombreCapitulo,
+            nombreSubcapitulo: cap.nombreSubcapitulo,
+            orden: BIB.ordenCapitulo(cap.capitulo, cap.subcapitulo),
+            descripcion: [desc.descripcion, `Coste de obra (sin venta): ${fuentes.slice(0, 12).join(", ")}${fuentes.length > 12 ? ` y ${fuentes.length - 12} m\xE1s` : ""}.`].filter(Boolean).join("\n\n"),
+            claves: g.claves
+          });
+        }
+        nuevas.sort((a, b) => a.orden - b.orden || b.importe - a.importe || a.resumen.localeCompare(b.resumen));
+        const subcaps = [];
+        for (const n of nuevas) {
+          const k = `${n.capitulo}.${n.subcapitulo}`;
+          let s = subcaps.find((x) => x.clave === k);
+          if (!s) {
+            s = { clave: k, codigo: `${CAPITULO.codigo}.${String(subcaps.length + 1).padStart(2, "0")}`, resumen: `${n.nombreCapitulo} \xB7 ${n.nombreSubcapitulo}`.toUpperCase(), disciplina: n.capitulo === "varios" ? null : n.disciplina, partidas: 0 };
+            subcaps.push(s);
+          }
+          s.partidas += 1;
+          n.subcapituloCodigo = s.codigo;
+          n.codigo = `${s.codigo}.${String(s.partidas).padStart(3, "0")}`;
+          for (const l of n.claves) {
+            propuestas.push({ clave: l.clave, origen: l.origen || "pedido", docId: l.docId, doc: l.doc, tipo: "partida", codigoNueva: n.codigo, cantidad: l.cantidad, precioCoste: l.precio, estadoCruce: l.estado || null, descripcion: l.descripcion });
+          }
+        }
+        const actualizaciones = [...act.values()];
+        const importeNuevas = r2(nuevas.reduce((a, n) => a + n.unitario * n.cantidadObra, 0));
+        const resumen = {
+          pedidos: vivos.length,
+          contratosSubcontrata: contratos,
+          lineasPedido: cruce.lineas.length,
+          totalPedido: r2(totalPedido),
+          totalCertificado: r2(totalCertificado),
+          cubiertoPorCertificacion: r2(totalCubierto),
+          partidasActualizadas: actualizaciones.length,
+          partidasNuevas: nuevas.length,
+          subcapitulos: subcaps.length,
+          importeNuevas,
+          importeEnPartidas: r2(actualizaciones.reduce((a, x) => a + (x.importeMaterial || 0) + (x.importeSubcontrata || 0), 0))
+        };
+        resumen.cuadre = r2(resumen.totalPedido + resumen.totalCertificado - resumen.importeNuevas - resumen.importeEnPartidas);
+        return { capitulo: CAPITULO, subcapitulos: subcaps, actualizaciones, nuevas, propuestas, avisos, resumen };
+      }
+      module.exports = { planificar, concepto, esContratoSubcontrata, medidaYUnitario, componenteDe, tokensModelo, indiceModelos, partidaPorModelo, CAPITULO };
+    }
+  });
+
+  // shared/obra/costeFinal.js
+  var require_costeFinal = __commonJS({
+    "shared/obra/costeFinal.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var _modeloCf = typeof __require !== "undefined" ? require_modelo() : window.MODELO;
+      (function() {
+        const COMP_CF = ["material", "auxiliares", "transporte", "manoObra", "subcontrata"];
+        const esNumCf = (v) => v !== null && v !== void 0 && v !== "" && Number.isFinite(Number(v));
+        const eurCf = (v) => _modeloCf.euros(v);
+        const preCf = (v) => _modeloCf.precio(v);
+        const medCf = (v) => _modeloCf.medida(v);
+        function costeEstudioCf(n, { esCosteCap } = {}) {
+          const f = n.fases && n.fases.estudio;
+          if (f && f.rellena) return { unitario: f.unitario, comp: { ...f.componentes }, origen: "estudio" };
+          const pc = n.precioCoste;
+          if (esNumCf(pc) && Number(pc) > 0) return { unitario: preCf(pc), comp: { sinDesglose: Number(pc) }, origen: "estudio" };
+          if (esCosteCap && esNumCf(n.precio) && Number(n.precio) > 0) {
+            return { unitario: preCf(n.precio), comp: { sinDesglose: Number(n.precio) }, origen: "estudio" };
+          }
+          return null;
+        }
+        function costeActualCf(n, real, inicial) {
+          const c = real && real.comparativo;
+          if (c && esNumCf(c.precio)) {
+            const u = preCf(c.precio);
+            const sum = esNumCf(c.precioSuministro) ? Math.min(preCf(c.precioSuministro), u) : 0;
+            return { unitario: u, comp: { material: sum, subcontrata: preCf(u - sum) }, origen: "comparativo", proveedor: c.proveedor || null };
+          }
+          const fo = n.fases && n.fases.obra;
+          if (fo && fo.rellena) return { unitario: fo.unitario, comp: { ...fo.componentes }, origen: "obra" };
+          return inicial;
+        }
+        function repartirCf(cant, coste, total) {
+          const salida = {};
+          if (!coste) return salida;
+          let suma = 0;
+          let mayor = null;
+          for (const [k, v] of Object.entries(coste.comp)) {
+            if (!esNumCf(v) || Number(v) === 0) continue;
+            salida[k] = eurCf(cant * Number(v));
+            suma += salida[k];
+            if (mayor === null || Math.abs(salida[k]) > Math.abs(salida[mayor])) mayor = k;
+          }
+          if (mayor !== null) salida[mayor] = eurCf(salida[mayor] + (total - eurCf(suma)));
+          else if (total) salida.sinDesglose = total;
+          return salida;
+        }
+        function partidaCf(n, real = {}, { esCosteCap = false } = {}) {
+          const cantidad = medCf(n.cantidad);
+          const medCertificada = real && esNumCf(real.medCertificada) ? medCf(real.medCertificada) : null;
+          const tecleada = esNumCf(n.cantidadObra) ? medCf(n.cantidadObra) : null;
+          const medObra = medCertificada !== null ? medCertificada : tecleada;
+          const origenMed = medCertificada !== null ? "certificada" : tecleada !== null ? "obra" : null;
+          const inicial = costeEstudioCf(n, { esCosteCap });
+          const actual = costeActualCf(n, real, inicial);
+          const cantFinal = medObra === null ? cantidad : Math.max(cantidad, medObra);
+          const importeInicial = inicial ? eurCf(cantidad * inicial.unitario) : null;
+          const importeActualizado = actual ? eurCf(cantidad * actual.unitario) : null;
+          const importeReal = actual && medObra !== null ? eurCf(medObra * actual.unitario) : null;
+          const estimacionFinal = actual ? eurCf(cantFinal * actual.unitario) : null;
+          const trabajado = actual && medCertificada !== null ? eurCf(medCertificada * actual.unitario) : actual ? 0 : null;
+          const venta = eurCf(n.importe || 0);
+          const ventaTrabajada = medCertificada !== null ? Math.min(venta, eurCf(medCertificada * (Number(n.precio) || 0))) : 0;
+          const margenFinal = estimacionFinal === null ? null : eurCf(venta - estimacionFinal);
+          return {
+            cantidad,
+            medObra,
+            origenMed,
+            medCertificada,
+            cantFinal,
+            sobreCertificada: medCertificada !== null && medCertificada > cantidad,
+            costeUnitario: actual ? actual.unitario : null,
+            origenCoste: actual ? actual.origen : null,
+            proveedor: actual && actual.proveedor ? actual.proveedor : null,
+            costeComparativo: actual && actual.origen === "comparativo" ? actual.unitario : null,
+            importeInicial,
+            importeActualizado,
+            importeReal,
+            estimacionFinal,
+            trabajado,
+            venta,
+            ventaTrabajada,
+            margenFinal,
+            perdida: margenFinal !== null && margenFinal < -5e-3,
+            desvio: estimacionFinal !== null && importeInicial !== null ? eurCf(estimacionFinal - importeInicial) : null,
+            componentes: {
+              inicial: inicial ? repartirCf(cantidad, inicial, importeInicial) : {},
+              actualizado: actual ? repartirCf(cantidad, actual, importeActualizado) : {},
+              prevision: actual ? repartirCf(cantFinal, actual, estimacionFinal) : {},
+              trabajado: actual && medCertificada !== null ? repartirCf(medCertificada, actual, trabajado) : {}
+            }
+          };
+        }
+        const CLAVES_SUMA_CF = ["importeInicial", "importeActualizado", "importeReal", "estimacionFinal", "trabajado", "venta", "ventaTrabajada", "margenFinal", "desvio"];
+        function bloqueCosteCf(costeId, nombre) {
+          const t = `${costeId || ""} ${nombre || ""}`;
+          if (/financ/i.test(t)) return "financiero";
+          if (/puestaEnMarcha|puesta en marcha|post.?venta/i.test(t)) return "postVenta";
+          return "indirecto";
+        }
+        function anotar(arbol, reales = {}) {
+          const porLinea = reales && reales.porLinea || {};
+          const recorrer = (nodos, ctx) => (nodos || []).map((n) => {
+            const esCosteCap = ctx.coste || n.clase === "coste";
+            const bloque = esCosteCap ? ctx.bloque || bloqueCosteCf(n.costeId, n.resumen) : null;
+            if (n.tipo === "capitulo") {
+              const hijos = recorrer(n.hijos, { coste: esCosteCap, bloque });
+              const real2 = {};
+              for (const k of CLAVES_SUMA_CF) {
+                const vs = hijos.map((h) => h.real && h.real[k]).filter((v) => v !== null && v !== void 0);
+                real2[k] = vs.length ? eurCf(vs.reduce((a, v) => a + v, 0)) : null;
+              }
+              real2.perdida = real2.margenFinal !== null && real2.margenFinal < -5e-3;
+              return { ...n, hijos, real: real2, bloqueCoste: bloque };
+            }
+            const real = partidaCf(n, porLinea[n.id] || {}, { esCosteCap });
+            return { ...n, real, bloqueCoste: bloque };
+          });
+          return recorrer(arbol, { coste: false, bloque: null });
+        }
+        const FILAS_CF = [
+          { id: "material", concepto: "Coste Material", comps: ["material"] },
+          { id: "auxiliares", concepto: "Costes Accesorios", comps: ["auxiliares"] },
+          { id: "transporte", concepto: "Costes Gr\xFAa", comps: ["transporte"] },
+          { id: "manoObra", concepto: "Costes MO", comps: ["manoObra"] },
+          { id: "subcontrata", concepto: "Costes Subcont", comps: ["subcontrata", "sinDesglose"] },
+          { id: "bolsasReservadas", concepto: "Bolsas Reservadas", sinDato: "Sin dato: la base no lleva bolsas de pedidos" },
+          { id: "bolsasUtilizadas", concepto: "Bolsas Utilizadas", sinDato: "Sin dato: la base no lleva bolsas de pedidos" }
+        ];
+        const COLS_CF = ["inicial", "actualizado", "prevision", "trabajado"];
+        function partidasCf(arbol, salida = []) {
+          for (const n of arbol || []) {
+            if (n.tipo === "capitulo") partidasCf(n.hijos, salida);
+            else salida.push(n);
+          }
+          return salida;
+        }
+        const pctCf = (a, b) => esNumCf(a) && esNumCf(b) && Math.abs(b) > 5e-3 ? _modeloCf.redondear(a / b * 100, 1) : null;
+        function mesesCf(ini, fin) {
+          if (!ini || !fin) return null;
+          const [a1, m1, d1] = String(ini).slice(0, 10).split("-").map(Number);
+          const [a2, m2, d2] = String(fin).slice(0, 10).split("-").map(Number);
+          if (![a1, m1, d1, a2, m2, d2].every(Number.isFinite)) return null;
+          const m = (a2 - a1) * 12 + (m2 - m1) - (d2 < d1 ? 1 : 0);
+          return m >= 0 ? m : null;
+        }
+        const restaCf = (a, b) => a === null || b === null ? null : eurCf(a - b);
+        function resumen(arbolAnotado, cabecera = {}) {
+          const todas = partidasCf(arbolAnotado);
+          const directas = todas.filter((p) => !p.bloqueCoste);
+          const indirectas = todas.filter((p) => p.bloqueCoste);
+          const sumaComp = (col, comps) => {
+            let hay = false;
+            let t = 0;
+            for (const p of directas) {
+              for (const comp of comps) {
+                const v = p.real.componentes[col][comp];
+                if (v !== void 0) {
+                  hay = true;
+                  t += v;
+                }
+              }
+            }
+            return hay ? eurCf(t) : null;
+          };
+          const hayCosteDirecto = directas.some((p) => p.real.estimacionFinal !== null);
+          const filas = [];
+          const total = { inicial: 0, actualizado: 0, prevision: 0, trabajado: 0 };
+          for (const f of FILAS_CF) {
+            if (f.sinDato) {
+              filas.push({ id: f.id, concepto: f.concepto, valores: { inicial: null, actualizado: null, prevision: null, trabajado: null }, pct: null, nota: f.sinDato });
+              continue;
+            }
+            const valores = {};
+            for (const c of COLS_CF) valores[c] = sumaComp(c, f.comps);
+            if (valores.trabajado === null && valores.prevision !== null) valores.trabajado = 0;
+            for (const c of COLS_CF) total[c] += valores[c] || 0;
+            filas.push({ id: f.id, concepto: f.concepto, valores, pct: pctCf(valores.trabajado, valores.prevision) });
+          }
+          const totalCD = {};
+          for (const c of COLS_CF) totalCD[c] = hayCosteDirecto || directas.some((p) => p.real.importeInicial !== null) ? eurCf(total[c]) : null;
+          const pctTrabajado = pctCf(totalCD.trabajado, totalCD.prevision);
+          const bloque = (id) => {
+            const ps = indirectas.filter((p) => p.bloqueCoste === id);
+            const s = (k) => {
+              const vs = ps.map((p) => p.real[k]).filter((v2) => v2 !== null);
+              return vs.length ? eurCf(vs.reduce((a, v2) => a + v2, 0)) : null;
+            };
+            const v = { inicial: s("importeInicial"), actualizado: s("importeActualizado"), prevision: s("estimacionFinal") };
+            v.trabajado = v.prevision === null ? null : eurCf(v.prevision * ((pctTrabajado || 0) / 100));
+            return v;
+          };
+          const ind = [
+            { id: "financiero", concepto: "Gastos Financieros" },
+            { id: "postVenta", concepto: "Post Venta" },
+            { id: "indirecto", concepto: "Coste Indirecto" }
+          ].map((x) => {
+            const valores = bloque(x.id);
+            return { ...x, valores, pct: pctCf(valores.trabajado, valores.prevision) };
+          });
+          const totalCostes = {};
+          for (const c of COLS_CF) {
+            const partes = [totalCD[c], ...ind.map((x) => x.valores[c])].filter((v) => v !== null);
+            totalCostes[c] = partes.length ? eurCf(partes.reduce((a, v) => a + v, 0)) : null;
+          }
+          const ventaTotal = eurCf(todas.reduce((a, p) => a + (p.real.venta || 0), 0));
+          const ventaTrabajada = eurCf(todas.reduce((a, p) => a + (p.real.ventaTrabajada || 0), 0));
+          const venta = { inicial: ventaTotal, actualizado: ventaTotal, prevision: ventaTotal, trabajado: ventaTrabajada };
+          const margen = {};
+          const pctMargen = {};
+          for (const c of COLS_CF) {
+            margen[c] = totalCostes[c] === null ? null : eurCf(venta[c] - totalCostes[c]);
+            pctMargen[c] = margen[c] === null ? null : pctCf(margen[c], venta[c]);
+          }
+          const mejoraCD = restaCf(totalCD.inicial, totalCD.prevision);
+          const mejoraAbs = restaCf(margen.prevision, margen.inicial);
+          const objetivoObra = esNumCf(cabecera.objetivoCompras) && Number(cabecera.objetivoCompras) > 0 ? eurCf(cabecera.objetivoCompras) : null;
+          const objetivo = objetivoObra !== null ? objetivoObra : totalCD.inicial;
+          const mejoraObj = restaCf(objetivo, totalCD.prevision);
+          const sinDatoBase = [
+            "Bolsas Reservadas y Utilizadas (no hay bolsas de pedidos en la base)",
+            "Mejora respecto a Navision (sin ERP enlazado)",
+            ...ind.filter((x) => x.valores.prevision === null).map((x) => `${x.concepto} (sin cap\xEDtulo de coste en el Costs Plan)`),
+            ...totalCD.prevision === null ? ["el coste directo (ninguna partida del Costs Plan tiene coste)"] : []
+          ];
+          const sinCoste = directas.filter((p) => p.real.estimacionFinal === null);
+          const sobre = todas.filter((p) => p.real.sobreCertificada);
+          const perdidas = todas.filter((p) => p.real.perdida);
+          const conComparativo = todas.filter((p) => p.real.origenCoste === "comparativo").length;
+          const certificadas = todas.filter((p) => p.real.medCertificada !== null).length;
+          const observaciones = [
+            sinCoste.length ? `${sinCoste.length} de ${directas.length} partidas sin coste (ni estudios, ni comparativo, ni Costs Plan): no entran en el coste.` : null,
+            `${conComparativo} partidas con coste de comparativo adjudicado; ${certificadas} con medici\xF3n certificada.`,
+            sobre.length ? `${sobre.length} certificadas por encima de la medici\xF3n de estudios: se prev\xE9n a lo certificado.` : null,
+            perdidas.length ? `${perdidas.length} partidas con previsi\xF3n por encima de su venta.` : null,
+            objetivoObra === null && objetivo !== null ? "La obra no tiene objetivo de compras: el Coste Directo Objetivo es el coste directo de estudios." : null
+          ].filter(Boolean);
+          return {
+            datos: {
+              codigo: cabecera.codigo || "",
+              nombre: cabecera.nombre || "",
+              cliente: cabecera.cliente || "",
+              responsable: cabecera.responsable || "",
+              fechaInicio: cabecera.fechaInicio || null,
+              fechaFin: cabecera.fechaFin || null,
+              meses: mesesCf(cabecera.fechaInicio, cabecera.fechaFin)
+            },
+            replanteo: {
+              costeDirectoObjetivo: objetivo,
+              origenObjetivo: objetivoObra !== null ? "obra" : objetivo !== null ? "estudio" : null,
+              mejoraNavision: null,
+              mejoraActual: mejoraObj,
+              mejoraActualPct: pctCf(mejoraObj, objetivo),
+              mejoraAbsoluta: mejoraAbs,
+              mejoraAbsolutaPct: pctCf(mejoraAbs, ventaTotal)
+            },
+            sinDatoBase,
+            filas,
+            totalCD: { valores: totalCD, pct: pctTrabajado },
+            indirectos: ind,
+            totalCostes: { valores: totalCostes, pct: pctCf(totalCostes.trabajado, totalCostes.prevision) },
+            margen: { valores: margen },
+            venta: { valores: venta, pct: pctCf(ventaTrabajada, ventaTotal) },
+            pctMargen: { valores: pctMargen },
+            mejoraCD: { valor: mejoraCD, pct: pctCf(mejoraCD, totalCD.inicial) },
+            observaciones,
+            cuentas: { partidas: todas.length, directas: directas.length, sinCoste: sinCoste.length, sobreCertificadas: sobre.length, perdidas: perdidas.length, conComparativo, certificadas }
+          };
+        }
+        const escCf = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+        const numCf = (v, d = 2) => v === null || v === void 0 ? "\u2014" : new Intl.NumberFormat("es-ES", { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: "always" }).format(Number(v) || 0);
+        const eurTxtCf = (v) => v === null || v === void 0 ? "\u2014" : `${numCf(v)} \u20AC`;
+        const pctTxtCf = (v) => v === null || v === void 0 ? "\u2014" : `${numCf(v, 1)} %`;
+        const fechaCf = (d) => d ? String(d).slice(0, 10).split("-").reverse().join("/") : "\u2014";
+        const FORMULA_CF = "Importe real = Med Obra \xD7 coste unitario. Previsi\xF3n cierre = max(medici\xF3n de estudios, Med Obra) \xD7 coste unitario. Coste unitario: el del comparativo adjudicado; si no hay, el de la fase obra del Costs Plan; si no, el de estudios. Med Obra: lo certificado a origen al cliente; sin certificar, la tecleada por el jefe de obra. La venta es siempre la de estudios.";
+        const ESTILO_CF = `<style>
+.costeFinal .costeFinalArriba { display: flex; gap: 18px; align-items: flex-start; }
+.costeFinal .costeFinalArriba > table { flex: 1 1 0; }
+.costeFinal table.hoja { border-collapse: collapse; width: 100%; font-size: 11px; margin: 0 0 8px; font-variant-numeric: tabular-nums; }
+.costeFinal table.hoja th { background: none; color: #00666b; font-weight: 600; text-align: left; border-bottom: 1.5px solid #00666b; padding: 3px 6px; }
+.costeFinal table.hoja td { padding: 2px 6px; border-bottom: 1px solid #e3e8e8; }
+.costeFinal .num { text-align: right; white-space: nowrap; }
+.costeFinal td.etq { color: #5b6b6b; }
+.costeFinal tr.subtotal td, .costeFinal tfoot td { font-weight: 600; }
+.costeFinal tfoot tr:first-child td { border-top: 1.5px solid #00666b; }
+.costeFinal tr.sinDato td, .costeFinal td.sinDato { color: #8a9696; }
+.costeFinal .nota { font-size: 10px; color: #5b6b6b; margin: 4px 0; }
+</style>`;
+        function html(r, { conEstilo = false } = {}) {
+          const celda = (v, titulo = "") => `<td class="num${v === null || v === void 0 ? " sinDato" : ""}"${titulo ? ` title="${escCf(titulo)}"` : ""}>${eurTxtCf(v)}</td>`;
+          const fila = (concepto, v, pct, clase = "", titulo = "", titulos = {}) => `<tr class="${clase}"${titulo ? ` title="${escCf(titulo)}"` : ""}>
+      <td>${escCf(concepto)}</td>${COLS_CF.map((c) => celda(v[c], titulos[c])).join("")}<td class="num${pct === null || pct === void 0 ? " sinDato" : ""}">${pctTxtCf(pct)}</td></tr>`;
+          const plazo = r.datos.fechaInicio || r.datos.fechaFin ? `${fechaCf(r.datos.fechaInicio)} \u2013 ${fechaCf(r.datos.fechaFin)}${r.datos.meses !== null && r.datos.meses !== void 0 ? ` \xB7 ${r.datos.meses} meses` : ""}` : "\u2014";
+          const rp = r.replanteo;
+          const dato = (etq, v) => `<tr><td class="etq">${etq}</td><td>${escCf(v) || "\u2014"}</td></tr>`;
+          const tituloObj = rp.origenObjetivo === "obra" ? "Objetivo de compras de la obra (coste de estudios \xD7 coeficiente de compras)" : rp.origenObjetivo === "estudio" ? "La obra no tiene objetivo de compras: coste directo de estudios" : "Sin coste directo en la base";
+          const pm = r.pctMargen.valores;
+          const titulosMargen = Object.fromEntries(COLS_CF.map((c) => [c, pm[c] === null ? "" : `${pctTxtCf(pm[c])} sobre la venta`]));
+          return `${conEstilo ? ESTILO_CF : ""}<div class="costeFinal">
+  <div class="costeFinalArriba">
+  <table class="hoja costeFinalDatos">
+    <thead><tr><th colspan="2">Datos</th></tr></thead>
+    <tbody>
+      ${dato("Num. de Proyecto", r.datos.codigo)}
+      ${dato("Nombre", r.datos.nombre)}
+      ${dato("Cliente", r.datos.cliente)}
+      ${dato("Responsable", r.datos.responsable)}
+      ${dato("Plazo de ejecuci\xF3n", plazo === "\u2014" ? "" : plazo)}
+    </tbody>
+  </table>
+  <table class="hoja costeFinalReplanteo">
+    <thead><tr><th>Replanteo econ\xF3mico</th><th class="num">Importe</th><th class="num">%</th></tr></thead>
+    <tbody>
+      <tr><td class="etq">Coste Directo Objetivo</td>${celda(rp.costeDirectoObjetivo, tituloObj)}<td></td></tr>
+      <tr><td class="etq">Mejora respecto a Navision</td>${celda(rp.mejoraNavision, "Sin dato: no hay ERP (Navision) enlazado")}<td class="num sinDato">\u2014</td></tr>
+      <tr><td class="etq">Mejora Actual CD/Obj</td>${celda(rp.mejoraActual, "Coste Directo Objetivo \u2212 coste directo a previsi\xF3n de cierre")}<td class="num${rp.mejoraActualPct === null || rp.mejoraActualPct === void 0 ? " sinDato" : ""}">${pctTxtCf(rp.mejoraActualPct)}</td></tr>
+      <tr><td class="etq">Mejora Absoluta</td>${celda(rp.mejoraAbsoluta, "Margen a previsi\xF3n de cierre \u2212 margen inicial; % sobre la venta")}<td class="num${rp.mejoraAbsolutaPct === null || rp.mejoraAbsolutaPct === void 0 ? " sinDato" : ""}">${pctTxtCf(rp.mejoraAbsolutaPct)}</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <table class="hoja costeFinalTabla" data-sin-caja>
+    <thead><tr><th>Resumen econ\xF3mico del proyecto</th><th class="num">Inicial</th><th class="num">Actualizado</th><th class="num">Previsi\xF3n cierre</th><th class="num">Trabajado</th><th class="num">%</th></tr></thead>
+    <tbody>
+      ${r.filas.map((f) => fila(f.concepto, f.valores, f.pct, f.nota ? "sinDato" : "", f.nota || "")).join("")}
+      ${fila("TOTAL COSTES DIRECTOS", r.totalCD.valores, r.totalCD.pct, "subtotal")}
+      ${r.indirectos.map((f) => fila(f.concepto, f.valores, f.pct, f.valores.prevision === null ? "sinDato" : "", f.valores.prevision === null ? "Sin dato: el Costs Plan no tiene cap\xEDtulo de coste para esta fila" : "")).join("")}
+    </tbody>
+    <tfoot>
+      ${fila("TOTAL COSTES", r.totalCostes.valores, r.totalCostes.pct)}
+      ${fila("Margen Bruto", r.margen.valores, pm.prevision, "", "% = margen a previsi\xF3n de cierre sobre la venta", titulosMargen)}
+      ${fila("VENTA TOTAL", r.venta.valores, r.venta.pct, "", "% = venta trabajada sobre la venta total")}
+    </tfoot>
+  </table>
+  ${r.sinDatoBase && r.sinDatoBase.length ? `<p class="nota costeFinalSinDato"><strong>Sin dato en la base (sale \xAB\u2014\xBB).</strong> ${r.sinDatoBase.map(escCf).join("; ")}.</p>` : ""}
+  <p class="nota costeFinalObs"><strong>Observaciones.</strong> ${r.observaciones.map(escCf).join(" ")}</p>
+  <p class="nota costeFinalFormula">${escCf(FORMULA_CF)}</p>
+</div>`;
+        }
+        const API_CF = { COMPONENTES: COMP_CF, FORMULA: FORMULA_CF, partida: partidaCf, anotar, resumen, html, bloqueCoste: bloqueCosteCf };
+        if (typeof module !== "undefined" && module.exports) module.exports = API_CF;
+        if (typeof window !== "undefined") window.COSTE_FINAL = API_CF;
+      })();
+    }
+  });
+
+  // shared/presupuesto/versiones.js
+  var require_versiones = __commonJS({
+    "shared/presupuesto/versiones.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var _modeloVersiones = typeof __require !== "undefined" ? require_modelo() : window.MODELO;
+      var _textoVersiones = typeof __require !== "undefined" ? require_texto() : window.TEXTO;
+      var ESTADOS_VERSION = {
+        BORRADOR: "borrador",
+        // se está trabajando en ella
+        EMITIDA: "emitida",
+        // se le ha mandado al cliente: NO se toca nunca más
+        APROBADA: "aprobada",
+        // la buena: es la que se traspasa a obra
+        ADJUDICADA: "adjudicada",
+        DESCARTADA: "descartada"
+      };
+      var ETIQUETA_ESTADO = {
+        borrador: { texto: "Borrador", clase: "", que: "Se est\xE1 trabajando en ella. Se puede tocar." },
+        emitida: { texto: "Emitida", clase: "info", que: "Se le ha mandado al cliente. No se toca: si hay que cambiar algo, se crea otra." },
+        aprobada: { texto: "Aprobada", clase: "bien", que: "Es la buena. Es la que se traspasa a obra y contra la que se certifica." },
+        adjudicada: { texto: "Adjudicada", clase: "bien", que: "El cliente la ha adjudicado." },
+        descartada: { texto: "Descartada", clase: "mal", que: "Se dej\xF3 de lado, pero se guarda: es parte de la conversaci\xF3n con el cliente." }
+      };
+      function crear({ presupuesto, arbol, numero, nombre, motivo, personaId, estado }) {
+        const calculado = _modeloVersiones.calcularArbol(arbol);
+        const pem = _modeloVersiones.ejecucionMaterial(calculado);
+        const desglose = _modeloVersiones.desglosePEM(calculado);
+        const cierre = _modeloVersiones.cierreEconomico(pem, presupuesto);
+        return {
+          presupuestoId: presupuesto.id,
+          numero,
+          nombre: nombre || `Versi\xF3n ${numero}`,
+          motivo: motivo || null,
+          estado: estado || ESTADOS_VERSION.BORRADOR,
+          /* Las cifras se guardan aparte del árbol para poder listar versiones sin
+             abrir ni deserializar nada. */
+          pem,
+          costeDirecto: desglose.directo,
+          costeEstudio: desglose.coste,
+          total: cierre.total,
+          partidas: _modeloVersiones.partidas(calculado).length,
+          /* Se guarda YA CALCULADO: es lo que van a querer quien la compare y quien
+             la abra, y recalcular cada vez cuesta lo mismo y se puede olvidar. */
+          arbol: JSON.stringify(calculado),
+          creadoPor: personaId || null,
+          creadoEn: (/* @__PURE__ */ new Date()).toISOString()
+        };
+      }
+      function arbolDe(version) {
+        if (!version) return [];
+        try {
+          return typeof version.arbol === "string" ? JSON.parse(version.arbol) : version.arbol || [];
+        } catch {
+          return [];
+        }
+      }
+      function indexar(arbol) {
+        const m = /* @__PURE__ */ new Map();
+        for (const p of _modeloVersiones.partidas(arbol)) {
+          m.set(String(p.codigo), {
+            codigo: p.codigo,
+            resumen: p.resumen || "",
+            unidad: p.unidad || "",
+            cantidad: _modeloVersiones.medida(p.cantidad),
+            precio: _modeloVersiones.precio(p.precio),
+            importe: _modeloVersiones.euros(p.importe),
+            descripcion: p.descripcion || "",
+            disciplina: p.disciplina || "",
+            capitulo: (p.camino || []).map((c) => c.codigo).join(" \u203A ")
+          });
+        }
+        return m;
+      }
+      var CAMPOS = [
+        { id: "resumen", etiqueta: "Resumen" },
+        { id: "unidad", etiqueta: "Unidad" },
+        { id: "cantidad", etiqueta: "Medici\xF3n", numerico: true },
+        { id: "precio", etiqueta: "Precio", numerico: true },
+        { id: "descripcion", etiqueta: "Descripci\xF3n" },
+        { id: "disciplina", etiqueta: "Disciplina" }
+      ];
+      function compararVersiones(arbolAntes, arbolDespues) {
+        const antes = indexar(arbolAntes);
+        const despues = indexar(arbolDespues);
+        const altas = [];
+        const bajas = [];
+        const cambios = [];
+        for (const [codigo, b] of despues) {
+          const a = antes.get(codigo);
+          if (!a) {
+            altas.push(b);
+            continue;
+          }
+          const diferencias = [];
+          for (const campo of CAMPOS) {
+            const va = a[campo.id];
+            const vb = b[campo.id];
+            const iguales = campo.numerico ? _modeloVersiones.iguales(va, vb) : String(va) === String(vb);
+            if (!iguales) diferencias.push({ campo: campo.id, etiqueta: campo.etiqueta, antes: va, despues: vb });
+          }
+          if (diferencias.length) {
+            cambios.push({
+              codigo,
+              resumen: b.resumen,
+              capitulo: b.capitulo,
+              diferencias,
+              importeAntes: a.importe,
+              importeDespues: b.importe,
+              efecto: _modeloVersiones.euros(b.importe - a.importe)
+            });
+          }
+        }
+        for (const [codigo, a] of antes) {
+          if (!despues.has(codigo)) bajas.push(a);
+        }
+        const suma = (l, campo = "importe") => _modeloVersiones.euros(l.reduce((acc, x) => acc + (x[campo] || 0), 0));
+        const pemAntes = _modeloVersiones.ejecucionMaterial(arbolAntes);
+        const pemDespues = _modeloVersiones.ejecucionMaterial(arbolDespues);
+        return {
+          altas,
+          bajas,
+          cambios,
+          efectoAltas: suma(altas),
+          efectoBajas: _modeloVersiones.euros(-suma(bajas)),
+          efectoCambios: suma(cambios, "efecto"),
+          pemAntes,
+          pemDespues,
+          diferencia: _modeloVersiones.euros(pemDespues - pemAntes),
+          porcentaje: pemAntes > 0 ? _modeloVersiones.redondear((pemDespues - pemAntes) / pemAntes * 100, 2) : 0,
+          /* Sin cambios de ninguno de los tres tipos, las versiones son iguales. */
+          sinCambios: altas.length === 0 && bajas.length === 0 && cambios.length === 0
+        };
+      }
+      function resumirCambios(c) {
+        if (c.sinCambios) return "Sin cambios respecto a la versi\xF3n anterior.";
+        const trozos = [];
+        if (c.altas.length) trozos.push(`${_textoVersiones.plural(c.altas.length, "partida nueva", "partidas nuevas")}`);
+        if (c.bajas.length) trozos.push(_textoVersiones.plural(c.bajas.length, "partida eliminada", "partidas eliminadas"));
+        if (c.cambios.length) trozos.push(_textoVersiones.plural(c.cambios.length, "partida modificada", "partidas modificadas"));
+        const signo = c.diferencia > 0 ? "+" : "";
+        return `${trozos.join(", ")}. Efecto: ${signo}${_textoVersiones.numero(c.diferencia, 2)} \u20AC (${signo}${_textoVersiones.numero(c.porcentaje, 1)} %).`;
+      }
+      function cambiosPorImpacto(c, cuantos = 10) {
+        const todos = [
+          ...c.altas.map((p) => ({ tipo: "alta", codigo: p.codigo, resumen: p.resumen, efecto: p.importe })),
+          ...c.bajas.map((p) => ({ tipo: "baja", codigo: p.codigo, resumen: p.resumen, efecto: -p.importe })),
+          ...c.cambios.map((p) => ({
+            tipo: "cambio",
+            codigo: p.codigo,
+            resumen: p.resumen,
+            efecto: p.efecto,
+            diferencias: p.diferencias
+          }))
+        ];
+        return todos.sort((a, b) => Math.abs(b.efecto) - Math.abs(a.efecto)).slice(0, cuantos);
+      }
+      function marcarDefinitiva(versiones, id, { personaId = null, ahora = null } = {}) {
+        const lista = versiones || [];
+        const elegida = lista.find((v) => v.id === id);
+        if (!elegida) return { versiones: lista, cambiada: null, motivo: "Esa versi\xF3n no existe." };
+        const cuando = ahora || (/* @__PURE__ */ new Date()).toISOString();
+        const antes = lista.find((v) => v.estado === ESTADOS_VERSION.APROBADA && v.id !== id) || null;
+        const salida = lista.map((v) => {
+          if (v.id === id) {
+            return { ...v, estado: ESTADOS_VERSION.APROBADA, aprobadaPor: personaId, aprobadaEn: cuando };
+          }
+          if (v.estado === ESTADOS_VERSION.APROBADA) {
+            return { ...v, estado: ESTADOS_VERSION.EMITIDA, aprobadaPor: null, aprobadaEn: null };
+          }
+          return v;
+        });
+        return {
+          versiones: salida,
+          cambiada: elegida,
+          anterior: antes,
+          motivo: antes ? `\xAB${elegida.nombre}\xBB pasa a ser la definitiva, en lugar de \xAB${antes.nombre}\xBB.` : `\xAB${elegida.nombre}\xBB queda como la definitiva.`
+        };
+      }
+      function definitivaDe(versiones) {
+        return (versiones || []).find((v) => v.estado === ESTADOS_VERSION.APROBADA) || null;
+      }
+      function siguienteNumero(versiones) {
+        return (versiones || []).reduce((max, v) => Math.max(max, Number(v.numero) || 0), 0) + 1;
+      }
+      function aplicarDescuento(arbol, porcentaje) {
+        const pct = Number(porcentaje) || 0;
+        const factor = 1 - pct / 100;
+        const COMPONENTES = ["material", "auxiliares", "transporte", "manoObra", "subcontrata"];
+        const copiar = (nodos) => (nodos || []).map((n) => {
+          if (n.hijos) return { ...n, hijos: copiar(n.hijos) };
+          const salida = { ...n };
+          const base = n.precioBase !== void 0 && n.precioBase !== null ? n.precioBase : n.precio;
+          if (base !== null && base !== void 0) {
+            salida.precioBase = base;
+            salida.precio = _modeloVersiones.euros(base * factor);
+          }
+          if (n.costes && (n.costes.venta || n.costes.ventaBase)) {
+            const ventaBase = n.costes.ventaBase || n.costes.venta;
+            const venta = {};
+            for (const c of COMPONENTES) {
+              const v = Number(ventaBase[c]);
+              if (Number.isFinite(v) && v !== 0) venta[c] = _modeloVersiones.euros(v * factor);
+            }
+            salida.costes = { ...n.costes, ventaBase, venta };
+          }
+          salida.descuentoComercial = pct || null;
+          return salida;
+        });
+        return copiar(arbol);
+      }
+      function efectoDelDescuento(arbol, porcentaje, presupuesto = {}) {
+        const pct = Number(porcentaje) || 0;
+        const base = _modeloVersiones.calcularArbol(aplicarDescuento(arbol, 0));
+        const conDto = _modeloVersiones.calcularArbol(aplicarDescuento(arbol, pct));
+        const antes = _modeloVersiones.ejecucionMaterial(base);
+        const despues = _modeloVersiones.ejecucionMaterial(conDto);
+        let coste = 0;
+        let conCostes = 0;
+        for (const partida of _modeloVersiones.partidas(base)) {
+          const f = _modeloVersiones.calcularFases(partida);
+          if (f.estudio.rellena) {
+            coste += f.estudio.importe;
+            conCostes += 1;
+          }
+        }
+        const hayCostes = conCostes > 0;
+        const margenAntes = hayCostes && antes > 0 ? (antes - coste) / antes * 100 : null;
+        const margenDespues = hayCostes && despues > 0 ? (despues - coste) / despues * 100 : null;
+        const avisos = [];
+        if (pct > 0) {
+          avisos.push({
+            gravedad: "aviso",
+            texto: `El descuento sale entero del margen: son ${_modeloVersiones.textoEuros(antes - despues)} \u20AC menos de beneficio, no de coste.`
+          });
+          if (!hayCostes) {
+            avisos.push({
+              gravedad: "aviso",
+              texto: "Ninguna partida tiene su coste de estudio escrito, as\xED que no se puede saber qu\xE9 margen queda. Con el coste puesto, esta pantalla lo dir\xEDa."
+            });
+          } else if (despues < coste) {
+            avisos.push({
+              gravedad: "mal",
+              texto: `Con ese descuento se vende por debajo de coste: ${_modeloVersiones.textoEuros(despues)} \u20AC frente a ${_modeloVersiones.textoEuros(coste)} \u20AC de coste.`
+            });
+          } else if (margenDespues !== null && margenDespues < 5) {
+            avisos.push({
+              gravedad: "mal",
+              texto: `El margen se queda en el ${_modeloVersiones.redondear(margenDespues, 1)} %. Por debajo del 5 % una obra no aguanta ni un imprevisto.`
+            });
+          }
+        }
+        return {
+          porcentaje: pct,
+          antes: _modeloVersiones.euros(antes),
+          despues: _modeloVersiones.euros(despues),
+          rebaja: _modeloVersiones.euros(antes - despues),
+          coste: hayCostes ? _modeloVersiones.euros(coste) : null,
+          partidasConCoste: conCostes,
+          margenAntes: margenAntes === null ? null : _modeloVersiones.redondear(margenAntes, 1),
+          margenDespues: margenDespues === null ? null : _modeloVersiones.redondear(margenDespues, 1),
+          avisos,
+          arbol: conDto
+        };
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.VERSIONES = API;
+      })({
+        crear,
+        arbolDe,
+        comparar: compararVersiones,
+        resumirCambios,
+        cambiosPorImpacto,
+        ESTADOS_VERSION,
+        ETIQUETA_ESTADO,
+        marcarDefinitiva,
+        definitivaDe,
+        aplicarDescuento,
+        efectoDelDescuento,
+        siguienteNumero
+      });
+    }
+  });
+
+  // shared/traspaso.js
+  var require_traspaso = __commonJS({
+    "shared/traspaso.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var _modeloTraspaso = typeof __require !== "undefined" ? require_modelo() : window.MODELO;
+      var _versionesTraspaso = typeof __require !== "undefined" ? require_versiones() : window.VERSIONES;
+      var _textoTraspaso = typeof __require !== "undefined" ? require_texto() : window.TEXTO;
+      var COMPONENTES_COMPRABLES = ["material", "transporte", "subcontrata"];
+      function aplicarCoeficiente(costes, coeficiente, r) {
+        if (!costes || !costes.estudio || !(coeficiente > 0) || coeficiente === 1) return costes;
+        const objetivo = { ...costes.estudio };
+        for (const c of COMPONENTES_COMPRABLES) {
+          const v = objetivo[c];
+          if (v === null || v === void 0 || v === "") continue;
+          objetivo[c] = _modeloTraspaso.redondear(Number(v) * coeficiente, 4);
+        }
+        return { ...costes, estudio: objetivo };
+      }
+      function preparar({ proyecto, presupuesto, arbol, descartes, ofertas, coeficienteCompras, versiones }) {
+        const M = _modeloTraspaso;
+        const calculado = M.calcularArbol(arbol || []);
+        const partidas = M.partidas(calculado);
+        const desglose = M.desglosePEM(calculado);
+        const cierre = M.cierreEconomico(desglose.total, presupuesto || {});
+        const avisos = [];
+        if (!proyecto || proyecto.estado !== "adjudicado") {
+          avisos.push({
+            gravedad: "bloqueante",
+            clave: "NO_ADJUDICADO",
+            mensaje: "El proyecto no est\xE1 adjudicado.",
+            porque: "Traspasar a obra lo que todav\xEDa no se ha ganado crea una obra fantasma que descuadra las estad\xEDsticas."
+          });
+        }
+        if (proyecto && proyecto.obraId) {
+          avisos.push({
+            gravedad: "bloqueante",
+            clave: "YA_TRASPASADO",
+            mensaje: "Este proyecto ya tiene obra.",
+            porque: "Traspasarlo dos veces duplicar\xEDa la cartera y el trabajo."
+          });
+        }
+        if (!partidas.length) {
+          avisos.push({ gravedad: "bloqueante", clave: "SIN_PARTIDAS", mensaje: "El presupuesto no tiene ninguna partida." });
+        }
+        if (Array.isArray(versiones) && versiones.length) {
+          const definitiva = _versionesTraspaso.definitivaDe(versiones);
+          if (!definitiva) {
+            avisos.push({
+              gravedad: "bloqueante",
+              clave: "SIN_VERSION_APROBADA",
+              mensaje: `Hay ${_textoTraspaso.plural(versiones.length, "versi\xF3n de este presupuesto", "versiones de este presupuesto")} y ninguna est\xE1 marcada como aprobada.`,
+              porque: "A obra tiene que llegar la que firm\xF3 el cliente, no la \xFAltima que alguien toc\xF3. Si no, los precios no coinciden con el contrato el d\xEDa de la primera certificaci\xF3n."
+            });
+          } else {
+            avisos.push({
+              gravedad: "info",
+              clave: "VERSION_APROBADA",
+              mensaje: `Se traspasa \xAB${definitiva.nombre}\xBB, que es la versi\xF3n aprobada.`,
+              porque: definitiva.descuentoComercial ? `Lleva un descuento comercial del ${definitiva.descuentoComercial} % aplicado l\xEDnea a l\xEDnea.` : "Las dem\xE1s versiones se quedan guardadas: son la conversaci\xF3n que se tuvo con el cliente."
+            });
+          }
+        }
+        const sinDescripcion = partidas.filter((p) => !p.descripcion || p.descripcion.trim().length < 40);
+        if (sinDescripcion.length) {
+          avisos.push({
+            gravedad: "aviso",
+            clave: "SIN_DESCRIPCION",
+            mensaje: `${_textoTraspaso.plural(sinDescripcion.length, "partida llega", "partidas llegan")} a obra sin una descripci\xF3n que delimite su alcance.`,
+            porque: "Lo que no est\xE1 escrito en la partida es lo que en obra se discute como extra.",
+            partidas: sinDescripcion.map((p) => p.codigo)
+          });
+        }
+        const sinMedicion = partidas.filter((p) => !Array.isArray(p.medicion) || !p.medicion.length);
+        if (sinMedicion.length) {
+          avisos.push({
+            gravedad: "aviso",
+            clave: "SIN_MEDICION_DETALLADA",
+            mensaje: `${_textoTraspaso.plural(sinMedicion.length, "partida lleva", "partidas llevan")} la cantidad a mano, sin medici\xF3n detallada.`,
+            porque: "Sin las l\xEDneas, al certificar no hay de d\xF3nde sacar de d\xF3nde sal\xEDa cada metro."
+          });
+        }
+        const sinObjetivo = partidas.filter((p) => !p.fases || !p.fases.estudio.rellena);
+        if (sinObjetivo.length) {
+          avisos.push({
+            gravedad: "aviso",
+            clave: "SIN_OBJETIVO",
+            mensaje: `${_textoTraspaso.plural(sinObjetivo.length, "partida no tiene", "partidas no tienen")} coste de estudio: el jefe de obra las recibe sin objetivo.`,
+            porque: "Sin objetivo no hay contra qu\xE9 comparar lo que se compre, y el Costs Plan no dice nada."
+          });
+        }
+        const sinPaquete = partidas.filter((p) => !p.grupo && !M.esCoste(p) && !(p.camino || []).some(M.esCoste));
+        if (sinPaquete.length) {
+          avisos.push({
+            gravedad: "sugerencia",
+            clave: "SIN_PAQUETE",
+            mensaje: `${_textoTraspaso.plural(sinPaquete.length, "partida", "partidas")} sin paquete de compra asignado.`,
+            porque: "En obra se comprar\xE1n una a una y sin comparativo."
+          });
+        }
+        return {
+          proyecto,
+          presupuesto,
+          resumen: {
+            partidas: partidas.length,
+            capitulos: contarCapitulos(calculado),
+            venta: desglose.total,
+            objetivo: objetivoDe(calculado, coeficienteCompras),
+            total: cierre.total,
+            coeficienteCompras: coeficienteCompras || 1
+          },
+          /* Lo que se arrastra, contado para poder enseñarlo. */
+          arrastra: {
+            descripciones: partidas.filter((p) => p.descripcion && p.descripcion.trim()).length,
+            lineasDeMedicion: partidas.reduce((a, p) => a + (p.medicion || []).length, 0),
+            paquetes: new Set(partidas.map((p) => p.grupo).filter(Boolean)).size,
+            exclusionesPactadas: (descartes || []).filter((d) => d.motivo && d.motivo.trim()).length,
+            ofertasRecibidas: (ofertas || []).length
+          },
+          avisos,
+          sePuede: !avisos.some((a) => a.gravedad === "bloqueante")
+        };
+      }
+      function contarCapitulos(arbol) {
+        let n = 0;
+        (function contar(nodos) {
+          for (const x of nodos || []) if (x.tipo === "capitulo") {
+            n++;
+            contar(x.hijos);
+          }
+        })(arbol);
+        return n;
+      }
+      function objetivoDe(arbol, coeficiente) {
+        const M = _modeloTraspaso;
+        let total = 0;
+        for (const p of M.partidas(arbol)) {
+          if (!p.fases || !p.fases.estudio.rellena) continue;
+          const conCoef = aplicarCoeficiente({ estudio: p.fases.estudio.componentes }, coeficiente);
+          total += M.euros(M.medida(p.cantidad) * M.unitarioFase(conCoef.estudio));
+        }
+        return M.euros(total);
+      }
+      function ejecutar({ proyecto, presupuesto, arbol, descartes, coeficienteCompras, personaId, recibidaPor }) {
+        const M = _modeloTraspaso;
+        const ahora = (/* @__PURE__ */ new Date()).toISOString();
+        const sinId = ({ id, lineaId, presupuestoId, padreId, ...resto }) => resto;
+        const copiar = (nodos) => (nodos || []).map((n) => {
+          if (n.tipo === M.TIPOS.CAPITULO) {
+            return { ...sinId(n), hijos: copiar(n.hijos || []) };
+          }
+          const medicion = Array.isArray(n.medicion) ? n.medicion.map((l) => sinId(l)) : null;
+          const costes = n.costes ? aplicarCoeficiente(
+            { estudio: { ...n.costes.estudio || {} }, venta: { ...n.costes.venta || {} } },
+            coeficienteCompras
+          ) : void 0;
+          return {
+            ...sinId(n),
+            medicion,
+            descompuesto: Array.isArray(n.descompuesto) ? n.descompuesto.map((d) => sinId(d)) : null,
+            costes,
+            /*
+             * La VENTA queda congelada con lo que se ofertó. Es lo que el cliente
+             * firmó: lo que la cambia es una orden de cambio, no una edición.
+             */
+            ventaCongelada: true,
+            /* Y la fase de obra nace vacía: todavía no se ha comprado nada. */
+            origen: { presupuestoId: presupuesto && presupuesto.id, codigo: n.codigo }
+          };
+        });
+        const costsPlan = copiar(arbol);
+        const calculadoAntes = M.calcularArbol(arbol);
+        const calculadoDespues = M.calcularArbol(costsPlan);
+        const exclusiones = (descartes || []).filter((d) => d.motivo && d.motivo.trim()).map((d) => ({
+          concepto: d.titulo || d.id,
+          motivo: d.motivo.trim(),
+          decididoPor: d.personaId || null,
+          cuando: d.creadoEn || null,
+          /* Queda dicho que esto viajó con la oferta, no que se decidió en obra. */
+          pactadaEnLaOferta: true
+        }));
+        const obra = {
+          proyectoId: proyecto.id,
+          codigo: proyecto.codigo,
+          nombre: proyecto.nombre,
+          clienteId: proyecto.clienteId,
+          emplazamiento: proyecto.emplazamiento,
+          /*
+           * LA OBRA NACE SIN JEFE DE OBRA, y eso es el modelo, no un hueco.
+           *
+           * El traspaso es entre jefes de departamento: Estudios se la entrega al
+           * jefe de Proyectos, y es él quien nombra jefe de grupo, jefe de obra y
+           * encargados. Dejar que Estudios eligiera al jefe de obra pondría esa
+           * decisión en el sitio equivocado, y un nombre puesto a ojo se queda
+           * puesto.
+           */
+          recibidaPor: recibidaPor || null,
+          jefeGrupoId: null,
+          jefeObraId: null,
+          encargadosIds: null,
+          estado: "sinAsignar",
+          importeVenta: M.ejecucionMaterial(calculadoAntes),
+          objetivoCompras: objetivoDe(calculadoDespues, 1),
+          // el coeficiente ya está dentro
+          coeficienteCompras: coeficienteCompras || 1,
+          exclusiones,
+          creadoEn: ahora,
+          creadoPor: personaId || null
+        };
+        return {
+          obra,
+          costsPlan,
+          exclusiones,
+          traza: {
+            proyectoId: proyecto.id,
+            presupuestoId: presupuesto && presupuesto.id,
+            cuando: ahora,
+            /* Quién la entrega y quién la recibe: los dos jefes de departamento. */
+            quien: personaId || null,
+            recibidaPor: recibidaPor || null,
+            coeficienteCompras: coeficienteCompras || 1,
+            partidas: M.partidas(calculadoDespues).length,
+            importeVenta: obra.importeVenta,
+            objetivoCompras: obra.objetivoCompras
+          },
+          verificacion: verificar(arbol, costsPlan)
+        };
+      }
+      function verificar(arbolAntes, arbolDespues) {
+        const M = _modeloTraspaso;
+        const antes = M.calcularArbol(arbolAntes || []);
+        const despues = M.calcularArbol(arbolDespues || []);
+        const indexar = (arbol) => {
+          const m = /* @__PURE__ */ new Map();
+          for (const p of M.partidas(arbol)) m.set(String(p.codigo), p);
+          return m;
+        };
+        const a = indexar(antes);
+        const b = indexar(despues);
+        const faltan = [];
+        const sobran = [];
+        const diferencias = [];
+        for (const [codigo, pa] of a) {
+          const pb = b.get(codigo);
+          if (!pb) {
+            faltan.push(codigo);
+            continue;
+          }
+          if (!M.iguales(pa.cantidad, pb.cantidad)) {
+            diferencias.push({ codigo, que: "medici\xF3n", antes: pa.cantidad, despues: pb.cantidad });
+          }
+          if ((pa.descripcion || "") !== (pb.descripcion || "")) {
+            diferencias.push({ codigo, que: "descripci\xF3n" });
+          }
+          const lineasA = (pa.medicion || []).length;
+          const lineasB = (pb.medicion || []).length;
+          if (lineasA !== lineasB) {
+            diferencias.push({ codigo, que: "l\xEDneas de medici\xF3n", antes: lineasA, despues: lineasB });
+          }
+          const ventaA = pa.fases && pa.fases.venta.rellena ? pa.fases.venta.unitario : M.precio(pa.precio);
+          const ventaB = pb.fases && pb.fases.venta.rellena ? pb.fases.venta.unitario : M.precio(pb.precio);
+          if (!M.iguales(ventaA, ventaB)) {
+            diferencias.push({ codigo, que: "precio de venta", antes: ventaA, despues: ventaB });
+          }
+        }
+        for (const codigo of b.keys()) if (!a.has(codigo)) sobran.push(codigo);
+        const ventaAntes = M.ejecucionMaterial(antes);
+        const ventaDespues = M.ejecucionMaterial(despues);
+        return {
+          partidasAntes: a.size,
+          partidasDespues: b.size,
+          faltan,
+          sobran,
+          diferencias,
+          ventaAntes,
+          ventaDespues,
+          diferenciaImporte: M.euros(ventaDespues - ventaAntes),
+          /* Cuadra cuando no falta nada, no sobra nada, no hay diferencias y el
+             importe de venta es el mismo al céntimo. */
+          cuadra: faltan.length === 0 && sobran.length === 0 && diferencias.length === 0 && M.iguales(ventaAntes, ventaDespues)
+        };
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.TRASPASO = API;
+      })({ preparar, ejecutar, verificar, aplicarCoeficiente, objetivoDe, COMPONENTES_COMPRABLES });
+    }
+  });
+
+  // shared/cargaObra.js
+  var require_cargaObra = __commonJS({
+    "shared/cargaObra.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var _textoCO = typeof __require !== "undefined" ? require_texto() : window.TEXTO;
+      var redondearCO = (v, d = 0) => {
+        const f = Math.pow(10, d);
+        return Math.round((Number(v) || 0) * f) / f;
+      };
+      function diasEntreCO(desde, hasta) {
+        if (!desde || !hasta) return null;
+        const n = (s) => Date.UTC(...String(s).split("-").map((x, i) => i === 1 ? Number(x) - 1 : Number(x)));
+        return Math.round((n(hasta) - n(desde)) / 864e5);
+      }
+      function mesDe(iso) {
+        return String(iso || "").slice(0, 7);
+      }
+      function sumarMeses(mes, n) {
+        const [a, m] = String(mes).split("-").map(Number);
+        const total = a * 12 + (m - 1) + n;
+        return `${Math.floor(total / 12)}-${String(total % 12 + 1).padStart(2, "0")}`;
+      }
+      var TRAMO = 0.2;
+      var FASES_OBRA = {
+        sinFechas: {
+          id: "sinFechas",
+          nombre: "Sin fechas",
+          peso: 1,
+          que: "No se sabe cu\xE1ndo empieza ni cu\xE1ndo acaba."
+        },
+        porEmpezar: {
+          id: "porEmpezar",
+          nombre: "Por empezar",
+          peso: 0.5,
+          que: "Todav\xEDa no ha arrancado."
+        },
+        arranque: {
+          id: "arranque",
+          nombre: "Arrancando",
+          peso: 2,
+          que: "Replanteo, compras y los industriales entrando. Se lleva el doble de tiempo."
+        },
+        ejecucion: {
+          id: "ejecucion",
+          nombre: "En ejecuci\xF3n",
+          peso: 1,
+          que: "El tramo largo: producci\xF3n y certificaciones."
+        },
+        remate: {
+          id: "remate",
+          nombre: "Rematando",
+          peso: 2,
+          que: "Pruebas, repasos y documentaci\xF3n. Se lleva el doble de tiempo."
+        },
+        pasada: {
+          id: "pasada",
+          nombre: "Pasada de fecha",
+          peso: 2.5,
+          que: "Deber\xEDa haber acabado. Es la que m\xE1s tiempo come y la que peor se lleva."
+        }
+      };
+      function faseDe(obra, hoy) {
+        const ini = obra.fechaInicio;
+        const fin = obra.fechaFin;
+        if (!ini || !fin) return FASES_OBRA.sinFechas;
+        const total = diasEntreCO(ini, fin);
+        if (!(total > 0)) return FASES_OBRA.sinFechas;
+        const pasados = diasEntreCO(ini, hoy);
+        if (pasados < 0) return FASES_OBRA.porEmpezar;
+        if (pasados > total) return FASES_OBRA.pasada;
+        const avance = pasados / total;
+        if (avance <= TRAMO) return FASES_OBRA.arranque;
+        if (avance >= 1 - TRAMO) return FASES_OBRA.remate;
+        return FASES_OBRA.ejecucion;
+      }
+      function avanceDe(obra, hoy) {
+        const total = diasEntreCO(obra.fechaInicio, obra.fechaFin);
+        if (!(total > 0)) return null;
+        const pasados = diasEntreCO(obra.fechaInicio, hoy);
+        return Math.max(0, Math.min(100, Math.round(pasados / total * 100)));
+      }
+      function vivoDe(obra, hoy) {
+        const importe = Number(obra.importeVenta) || 0;
+        const cert = obra.certificado;
+        if (cert !== null && cert !== void 0 && cert !== "" && Number.isFinite(Number(cert))) {
+          return Math.max(0, redondearCO(importe - Number(obra.certificado)));
+        }
+        const avance = avanceDe(obra, hoy);
+        if (avance === null) return importe;
+        return Math.max(0, redondearCO(importe * (1 - avance / 100)));
+      }
+      var PUESTOS_OBRA = {
+        jefeGrupo: {
+          id: "jefeGrupo",
+          rol: "jefeGrupo",
+          nombre: "Jefes de grupo",
+          campo: "jefeGrupoId",
+          /* Un jefe de grupo no está en la obra todos los días: coordina. Aguanta
+             más obras, pero se le acumulan las de sus jefes de obra. */
+          maximo: 8,
+          que: "Coordina varias obras y responde de su grupo."
+        },
+        jefeObra: {
+          id: "jefeObra",
+          rol: "jefeObra",
+          nombre: "Jefes de obra",
+          campo: "jefeObraId",
+          maximo: 4,
+          que: "Lleva la obra: compras, certificaciones y plazo."
+        },
+        encargado: {
+          id: "encargado",
+          rol: "encargadoObra",
+          nombre: "Encargados",
+          campo: "encargadosIds",
+          lista: true,
+          /*
+           * UNO. Un encargado está en la obra, no la coordina desde una oficina.
+           * Dos ya es ir corriendo entre dos sitios y tres es mentira.
+           */
+          maximo: 1,
+          que: "Est\xE1 en el tajo. No puede estar en dos sitios a la vez."
+        }
+      };
+      var ABIERTAS_CO = ["sinAsignar", "enCurso"];
+      function estaEn(obra, puesto, personaId) {
+        if (personaId === null || personaId === void 0 || personaId === "") return false;
+        if (puesto.lista) {
+          const ids = Array.isArray(obra[puesto.campo]) ? obra[puesto.campo] : String(obra[puesto.campo] || "").split(",").filter(Boolean);
+          return ids.includes(personaId);
+        }
+        return obra[puesto.campo] === personaId;
+      }
+      function cargaDeObra(persona, obras, { hoy, puesto } = {}) {
+        const p = puesto || PUESTOS_OBRA[persona.rol === "encargadoObra" ? "encargado" : persona.rol] || PUESTOS_OBRA.jefeObra;
+        const suyas = (obras || []).filter((o) => ABIERTAS_CO.includes(o.estado) && estaEn(o, p, persona.id)).map((o) => ({
+          obra: o,
+          fase: faseDe(o, hoy),
+          avance: avanceDe(o, hoy),
+          vivo: vivoDe(o, hoy)
+        })).sort((a, b) => String(a.obra.fechaFin || "9").localeCompare(String(b.obra.fechaFin || "9")));
+        const enFase = (id) => suyas.filter((x) => x.fase.id === id);
+        const peso = redondearCO(suyas.reduce((s, x) => s + x.fase.peso, 0), 1);
+        return {
+          persona,
+          puesto: p,
+          obras: suyas,
+          cuantas: suyas.length,
+          peso,
+          arrancando: enFase("arranque").length + enFase("porEmpezar").length,
+          rematando: enFase("remate").length,
+          pasadas: enFase("pasada").length,
+          sinFechas: enFase("sinFechas").length,
+          vivo: redondearCO(suyas.reduce((s, x) => s + x.vivo, 0)),
+          importeTotal: redondearCO(suyas.reduce((s, x) => s + (Number(x.obra.importeVenta) || 0), 0)),
+          emplazamientos: [...new Set(suyas.map((x) => x.obra.emplazamiento).filter(Boolean))],
+          tension: tensionDeObra(suyas, p)
+        };
+      }
+      function tensionDeObra(suyas, puesto) {
+        const pasadas = suyas.filter((x) => x.fase.id === "pasada");
+        if (pasadas.length) {
+          return {
+            nivel: "vencido",
+            porque: `${_textoCO.plural(pasadas.length, "obra pasada de fecha", "obras pasadas de fecha")}.`
+          };
+        }
+        if (puesto.maximo === 1 && suyas.length > 1) {
+          return {
+            nivel: "vencido",
+            porque: `${suyas.length} obras a la vez. Un encargado est\xE1 en el tajo: no puede estar en dos sitios.`
+          };
+        }
+        const criticas = suyas.filter((x) => x.fase.id === "arranque" || x.fase.id === "remate");
+        if (criticas.length >= 2) {
+          const arranque = criticas.filter((x) => x.fase.id === "arranque").length;
+          const remate = criticas.length - arranque;
+          const dice = arranque && remate ? `${arranque} arrancando y ${remate} rematando a la vez` : arranque ? `${arranque} obras arrancando a la vez` : `${remate} obras rematando a la vez`;
+          return {
+            nivel: "apretado",
+            porque: `${dice}. Son los dos momentos que se llevan el doble de tiempo.`
+          };
+        }
+        if (suyas.length > puesto.maximo) {
+          return {
+            nivel: "apretado",
+            porque: `${_textoCO.plural(suyas.length, "obra a la vez", "obras a la vez")}, por encima de ${puesto.maximo}.`
+          };
+        }
+        if (!suyas.length) return { nivel: "libre", porque: "Sin obras asignadas." };
+        if (suyas.length < puesto.maximo) {
+          return {
+            nivel: "normal",
+            porque: `${_textoCO.plural(suyas.length, "obra", "obras")}, ${criticas.length ? "una en momento cr\xEDtico" : "ninguna en momento cr\xEDtico"}.`
+          };
+        }
+        return { nivel: "normal", porque: `${_textoCO.plural(suyas.length, "obra", "obras")}.` };
+      }
+      var ORDEN_CO = { vencido: 0, apretado: 1, normal: 2, libre: 3 };
+      function panelDeObra({ personas = [], obras = [], hoy } = {}) {
+        const abiertas = obras.filter((o) => ABIERTAS_CO.includes(o.estado));
+        const porPuesto = Object.values(PUESTOS_OBRA).map((puesto) => ({
+          puesto,
+          personas: personas.filter((p) => p.activo !== false && (p.rol === puesto.rol || abiertas.some((o) => estaEn(o, puesto, p.id)))).map((p) => cargaDeObra(p, obras, { hoy, puesto })).sort((a, b) => ORDEN_CO[a.tension.nivel] - ORDEN_CO[b.tension.nivel] || b.peso - a.peso || String(a.persona.nombre).localeCompare(String(b.persona.nombre), "es"))
+        }));
+        const conFase = abiertas.map((o) => ({
+          obra: o,
+          fase: faseDe(o, hoy),
+          avance: avanceDe(o, hoy),
+          vivo: vivoDe(o, hoy),
+          sinJefe: !o.jefeObraId,
+          sinEncargado: !String(o.encargadosIds || "").replace(/,/g, "").length && !(Array.isArray(o.encargadosIds) && o.encargadosIds.length)
+        }));
+        return {
+          hoy,
+          obras: conFase.sort((a, b) => {
+            if (a.sinJefe !== b.sinJefe) return a.sinJefe ? -1 : 1;
+            return String(a.obra.fechaFin || "9").localeCompare(String(b.obra.fechaFin || "9"));
+          }),
+          porPuesto,
+          totales: {
+            obras: abiertas.length,
+            sinJefe: conFase.filter((x) => x.sinJefe).length,
+            sinEncargado: conFase.filter((x) => x.sinEncargado).length,
+            pasadas: conFase.filter((x) => x.fase.id === "pasada").length,
+            vivo: redondearCO(conFase.reduce((s, x) => s + x.vivo, 0))
+          },
+          avisos: avisosDeObra(conFase, porPuesto)
+        };
+      }
+      function avisosDeObra(obras, porPuesto) {
+        const avisos = [];
+        const sinJefe = obras.filter((x) => x.sinJefe);
+        if (sinJefe.length) {
+          avisos.push({
+            gravedad: "mal",
+            id: "sinJefe",
+            obraIds: sinJefe.map((x) => x.obra.id),
+            texto: `${_textoCO.plural(sinJefe.length, "obra no tiene jefe de obra", "obras no tienen jefe de obra")}. Una obra sin jefe no est\xE1 en el trabajo de nadie.`
+          });
+        }
+        const sinEncargado = obras.filter((x) => !x.sinJefe && x.sinEncargado && ["arranque", "ejecucion", "remate"].includes(x.fase.id));
+        if (sinEncargado.length) {
+          avisos.push({
+            gravedad: "aviso",
+            id: "sinEncargado",
+            obraIds: sinEncargado.map((x) => x.obra.id),
+            texto: `${_textoCO.plural(sinEncargado.length, "obra en marcha no tiene encargado", "obras en marcha no tienen encargado")}. El jefe de obra acaba haciendo de encargado y deja de hacer lo suyo.`
+          });
+        }
+        const sinFechas = obras.filter((x) => x.fase.id === "sinFechas");
+        if (sinFechas.length) {
+          avisos.push({
+            gravedad: "aviso",
+            id: "sinFechas",
+            obraIds: sinFechas.map((x) => x.obra.id),
+            texto: `${_textoCO.plural(sinFechas.length, "obra no tiene fechas", "obras no tienen fechas")}. Sin fechas no se sabe en qu\xE9 momento est\xE1 ni cu\xE1nto pesa.`
+          });
+        }
+        for (const grupo of porPuesto) {
+          const apretados = grupo.personas.filter((c) => c.tension.nivel === "vencido" || c.tension.nivel === "apretado");
+          const libres = grupo.personas.filter((c) => c.tension.nivel === "libre");
+          if (apretados.length && libres.length) {
+            avisos.push({
+              gravedad: "sugerencia",
+              id: `desequilibrio-${grupo.puesto.id}`,
+              puesto: grupo.puesto.id,
+              texto: `${apretados.map((c) => c.persona.nombre.split(" ")[0]).join(", ")} ${apretados.length === 1 ? "va" : "van"} apretado y ${libres.map((c) => c.persona.nombre.split(" ")[0]).join(", ")} no ${libres.length === 1 ? "tiene" : "tienen"} ninguna obra.`
+            });
+          }
+        }
+        return avisos;
+      }
+      function efectoDeDarleLaObra(carga, obra, { hoy } = {}) {
+        const fase = faseDe(obra, hoy);
+        const nuevas = [...carga.obras, { obra, fase, avance: avanceDe(obra, hoy), vivo: vivoDe(obra, hoy) }];
+        const t = tensionDeObra(nuevas, carga.puesto);
+        if (carga.puesto.maximo === 1 && nuevas.length > 1) {
+          return { nivel: "vencido", texto: `Ya est\xE1 en ${carga.obras[0].obra.codigo}. Un encargado no est\xE1 en dos sitios.` };
+        }
+        return {
+          nivel: t.nivel,
+          texto: `Le quedar\xEDan ${_textoCO.plural(nuevas.length, "obra", "obras")}: ${t.porque.toLowerCase()}`
+        };
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.CARGA_OBRA = API;
+      })({
+        FASES_OBRA,
+        PUESTOS_OBRA,
+        ABIERTAS_CO,
+        TRAMO,
+        faseDe,
+        avanceDe,
+        vivoDe,
+        cargaDeObra,
+        tensionDeObra,
+        panelDeObra,
+        efectoDeDarleLaObra,
+        diasEntre: diasEntreCO,
+        mesDe,
+        sumarMeses
+      });
+    }
+  });
+
+  // shared/graficosObra.js
+  var require_graficosObra = __commonJS({
+    "shared/graficosObra.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var _cargaGO = typeof __require !== "undefined" ? require_cargaObra() : window.CARGA_OBRA;
+      var redondearGO = (v) => Math.round((Number(v) || 0) * 100) / 100;
+      var pctGO = (parte, todo) => todo > 0 ? Math.round(parte / todo * 100) : null;
+      function dineroPorObra(obras, hoy) {
+        return (obras || []).map((obra) => {
+          const venta = redondearGO(obra.importeVenta);
+          const real = Number.isFinite(Number(obra.certificado)) && obra.certificado !== null && obra.certificado !== void 0;
+          const porEjecutar = _cargaGO.vivoDe(obra, hoy);
+          const certificado = real ? redondearGO(obra.certificado) : Math.max(0, redondearGO(venta - porEjecutar));
+          const pctCertificado = pctGO(certificado, venta);
+          const pctPlazo = _cargaGO.avanceDe(obra, hoy);
+          return {
+            obra,
+            venta,
+            certificado,
+            porEjecutar,
+            estimado: !real,
+            pctCertificado,
+            pctPlazo,
+            desfase: real && pctPlazo !== null && pctCertificado !== null ? pctPlazo - pctCertificado : null
+          };
+        }).sort((a, b) => b.venta - a.venta);
+      }
+      function cargaPorJefe(obras, personas, hoy) {
+        const nombre = (id) => ((personas || []).find((p) => p.id === id) || {}).nombre || "(sin nombre)";
+        const mapa = /* @__PURE__ */ new Map();
+        for (const o of obras || []) {
+          const id = o.jefeObraId || null;
+          if (!mapa.has(id)) mapa.set(id, { id, nombre: id ? nombre(id) : "Sin jefe de obra", obras: 0, vivo: 0 });
+          const f = mapa.get(id);
+          f.obras += 1;
+          f.vivo = redondearGO(f.vivo + _cargaGO.vivoDe(o, hoy));
+        }
+        return [...mapa.values()].sort((a, b) => {
+          if (!a.id !== !b.id) return a.id ? -1 : 1;
+          return b.vivo - a.vivo || String(a.nombre).localeCompare(String(b.nombre), "es");
+        });
+      }
+      function certificadoPorMes(obras, hoy, n = 12) {
+        const ultimo = _cargaGO.mesDe(hoy);
+        const meses = Array.from({ length: n }, (_, i) => _cargaGO.sumarMeses(ultimo, i - n + 1));
+        const suma = new Map(meses.map((m) => [m, 0]));
+        let hay = false;
+        for (const o of obras || []) {
+          for (const c of o.certificadoMeses || []) {
+            if (!suma.has(c.periodo)) continue;
+            suma.set(c.periodo, redondearGO(suma.get(c.periodo) + (Number(c.importe) || 0)));
+            hay = true;
+          }
+        }
+        return { hay, meses: meses.map((mes) => ({ mes, importe: suma.get(mes) })) };
+      }
+      function totalesDinero(filas) {
+        const t = (filas || []).reduce((a, f) => ({
+          venta: a.venta + f.venta,
+          certificado: a.certificado + f.certificado,
+          porEjecutar: a.porEjecutar + f.porEjecutar,
+          estimadas: a.estimadas + (f.estimado ? 1 : 0)
+        }), { venta: 0, certificado: 0, porEjecutar: 0, estimadas: 0 });
+        return {
+          venta: redondearGO(t.venta),
+          certificado: redondearGO(t.certificado),
+          porEjecutar: redondearGO(t.porEjecutar),
+          estimadas: t.estimadas,
+          pctCertificado: pctGO(t.certificado, t.venta)
+        };
+      }
+      function graficosDeObra({ obras = [], personas = [], hoy } = {}) {
+        const dinero = dineroPorObra(obras, hoy);
+        return {
+          vacio: !obras.length,
+          dinero,
+          totales: totalesDinero(dinero),
+          carga: cargaPorJefe(obras, personas, hoy),
+          meses: certificadoPorMes(obras, hoy)
+        };
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.GRAFICOS_OBRA = API;
+      })({ dineroPorObra, cargaPorJefe, certificadoPorMes, totalesDinero, graficosDeObra });
+    }
+  });
+
+  // shared/contrato.js
+  var require_contrato = __commonJS({
+    "shared/contrato.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function iniciarContrato() {
+        const TIPOS_ADENDA = Object.freeze(["dise\xF1o", "precios", "reclamaci\xF3n", "alcance", "plazo"]);
+        const ESTADOS_ADENDA = Object.freeze(["borrador", "enviada", "firmada", "rechazada"]);
+        const num = (v) => {
+          if (v === null || v === void 0 || v === "") return null;
+          const t = String(v).trim();
+          const n = typeof v === "number" ? v : Number(t.includes(",") ? t.replace(/\./g, "").replace(",", ".") : t);
+          return Number.isFinite(n) ? n : null;
+        };
+        const euros = (v) => Math.round(v * 100) / 100;
+        const dia = (v) => v ? String(v).slice(0, 10) : null;
+        function ordenNumero(numero) {
+          const m = /(\d+)/.exec(String(numero || ""));
+          return m ? Number(m[1]) : Number.MAX_SAFE_INTEGER;
+        }
+        const porNumero = (a, b) => ordenNumero(a.numero) - ordenNumero(b.numero) || String(a.numero || "").localeCompare(String(b.numero || ""), "es", { numeric: true });
+        function resumen(contrato = {}, adendas = [], fases = []) {
+          const original = num(contrato && contrato.importeOriginal) || 0;
+          const lista = [...adendas || []].sort(porNumero);
+          const firmadas = lista.filter((a) => a.estado === "firmada");
+          const pendientes = lista.filter((a) => a.estado === "borrador" || a.estado === "enviada");
+          let acumulado = original;
+          const filas = lista.map((a) => {
+            const imp = num(a.importe);
+            const cuenta = a.estado === "firmada";
+            if (cuenta && imp !== null) acumulado = euros(acumulado + imp);
+            return { ...a, importe: imp, cuenta, revisado: cuenta ? acumulado : null };
+          });
+          const sumaFirmadas = euros(firmadas.reduce((s, a) => s + (num(a.importe) || 0), 0));
+          const importeVigente = euros(original + sumaFirmadas);
+          const conFin = firmadas.filter((a) => dia(a.nuevaFechaFin)).sort((a, b) => String(dia(a.fechaFirma) || "").localeCompare(String(dia(b.fechaFirma) || "")) || porNumero(a, b));
+          const ultimaFin = conFin.length ? conFin[conFin.length - 1] : null;
+          const finVigente = ultimaFin ? dia(ultimaFin.nuevaFechaFin) : dia(contrato && contrato.fechaFinOriginal);
+          const diasAmpliacion = firmadas.reduce((s, a) => s + (num(a.diasAmpliacion) || 0), 0);
+          const porTipo = {};
+          for (const a of firmadas) {
+            const t = a.tipo || "sin tipo";
+            porTipo[t] = euros((porTipo[t] || 0) + (num(a.importe) || 0));
+          }
+          const tope = num(contrato && contrato.penalizacionTopePct);
+          const diaria = num(contrato && contrato.penalizacionDiariaPct);
+          return {
+            importeOriginal: original,
+            sumaFirmadas,
+            importeVigente,
+            pctAmpliacion: original ? (importeVigente - original) / original : null,
+            fechaFinOriginal: dia(contrato && contrato.fechaFinOriginal),
+            finVigente,
+            adendaFin: ultimaFin ? ultimaFin.numero : null,
+            diasAmpliacion,
+            firmadas: firmadas.length,
+            pendientes: pendientes.length,
+            importePendiente: euros(pendientes.reduce((s, a) => s + (num(a.importe) || 0), 0)),
+            porTipo,
+            filas,
+            /* Lo que puede costar el retraso: el % diario y su tope, sobre lo vigente. */
+            penalizacionDiaria: diaria !== null ? euros(importeVigente * diaria / 100) : null,
+            penalizacionTope: tope !== null ? euros(importeVigente * tope / 100) : null,
+            retencion: num(contrato && contrato.retencionPct) !== null ? euros(importeVigente * num(contrato.retencionPct) / 100) : null,
+            fases: (fases || []).map((f) => ({ ...f, importeBoq: num(f.importeBoq) })),
+            importeFases: euros((fases || []).reduce((s, f) => s + (num(f.importeBoq) || 0), 0))
+          };
+        }
+        function descuadre(calculado, esperado) {
+          const c = num(calculado);
+          const e = num(esperado);
+          if (c === null || e === null) return null;
+          const d = euros(e - c);
+          return Math.abs(d) < 5e-3 ? null : d;
+        }
+        function precioVigente(precios = [], { faseId = null, fecha = null } = {}) {
+          const hasta = dia(fecha);
+          const vale = (p) => !hasta || !dia(p.vigenteDesde) || dia(p.vigenteDesde) <= hasta;
+          const orden = (a, b) => String(dia(a.vigenteDesde) || "").localeCompare(String(dia(b.vigenteDesde) || "")) || String(a.creadoEn || "").localeCompare(String(b.creadoEn || ""));
+          const propios = faseId ? precios.filter((p) => p.faseId === faseId && vale(p)).sort(orden) : [];
+          const grupo = propios.length ? propios : precios.filter((p) => !p.faseId && vale(p)).sort(orden);
+          return grupo.length ? grupo[grupo.length - 1] : null;
+        }
+        function historiaPorPartida(precios = []) {
+          const grupos = {};
+          for (const p of precios) (grupos[p.partidaId] = grupos[p.partidaId] || []).push(p);
+          const out = {};
+          for (const [id, lista] of Object.entries(grupos)) {
+            lista.sort((a, b) => (a.adendaId ? 1 : 0) - (b.adendaId ? 1 : 0) || String(dia(a.vigenteDesde) || "").localeCompare(String(dia(b.vigenteDesde) || "")));
+            const base = lista.find((p) => !p.adendaId) || lista[0];
+            const o = num(base.precioUnitario);
+            out[id] = {
+              n: lista.length,
+              original: o,
+              precios: lista.map((p) => ({ ...p, difPct: o ? (num(p.precioUnitario) - o) / o : null }))
+            };
+          }
+          return out;
+        }
+        function partidasPorAdenda(precios = []) {
+          const vistos = {};
+          for (const p of precios) {
+            if (!p.adendaId) continue;
+            (vistos[p.adendaId] = vistos[p.adendaId] || /* @__PURE__ */ new Set()).add(p.partidaId);
+          }
+          return Object.fromEntries(Object.entries(vistos).map(([k, s]) => [k, s.size]));
+        }
+        function finDePeriodo(periodo) {
+          const m = /^(\d{4})-(\d{2})$/.exec(String(periodo || ""));
+          if (!m) return null;
+          const d = new Date(Date.UTC(Number(m[1]), Number(m[2]), 0));
+          return d.toISOString().slice(0, 10);
+        }
+        const CAPITULO_OPCIONAL = /OPCIONAL|ADICIONAL/i;
+        function cifrasPresupuesto(partidas = [], capitulo = null) {
+          let base = 0;
+          let opcionales = 0;
+          let n = 0;
+          const cap = capitulo ? String(capitulo).trim() : null;
+          for (const p of partidas) {
+            const camino = p.camino || [];
+            if (cap && !camino.some((c) => c.codigo === cap) && p.codigo !== cap) continue;
+            const imp = num(p.importe) ?? (num(p.cantidad) || 0) * (num(p.precio) || 0);
+            if (camino.some((c) => CAPITULO_OPCIONAL.test(String(c.resumen || "")))) opcionales += imp;
+            else base += imp;
+            n += 1;
+          }
+          return { partidas: n, base: euros(base), opcionales: euros(opcionales), total: euros(base + opcionales) };
+        }
+        function cuadreFase(fase = {}, cifras = null) {
+          const firmado = num(fase.importeBoq);
+          const definitivo = num(fase.importeDefinitivo);
+          const fuente = fase.fuenteDefinitivo ? `\xAB${String(fase.fuenteDefinitivo).trim()}\xBB` : "el Excel del presupuesto";
+          const out = {
+            firmado,
+            definitivo,
+            base: null,
+            opcionales: null,
+            diferencia: null,
+            sobreFirmado: definitivo !== null && firmado !== null ? euros(definitivo - firmado) : null
+          };
+          if (!fase.presupuestoId) {
+            return { ...out, estado: "sinPresupuesto", texto: `No est\xE1 en la app: hay que importar ${fuente}.` };
+          }
+          if (!cifras || !cifras.partidas) {
+            return { ...out, estado: "sinCargar", texto: "El presupuesto enlazado no tiene partidas de esta fase." };
+          }
+          out.base = cifras.base;
+          out.opcionales = cifras.opcionales;
+          const extra = cifras.opcionales ? ` Los opcionales (${cifras.opcionales.toLocaleString("es-ES", { minimumFractionDigits: 2 })} \u20AC) van aparte.` : "";
+          const contra = definitivo !== null ? definitivo : firmado;
+          if (contra === null) {
+            return { ...out, estado: "sinDefinitivo", texto: `Falta apuntar cu\xE1nto suma ${fuente}.${extra}` };
+          }
+          out.diferencia = euros(cifras.base - contra);
+          const tolerancia = Math.max(1, Math.abs(contra) * 1e-4);
+          const que = definitivo !== null ? "el definitivo" : "el BOQ firmado (no hay definitivo)";
+          if (Math.abs(out.diferencia) <= tolerancia) {
+            const red = Math.abs(out.diferencia) >= 5e-3 ? ` (redondeos: ${out.diferencia.toLocaleString("es-ES", { minimumFractionDigits: 2 })} \u20AC)` : "";
+            return { ...out, estado: "cuadra", texto: `La base cuadra con ${que}${red}.${extra}` };
+          }
+          return {
+            ...out,
+            estado: "difiere",
+            texto: `La base se va ${out.diferencia.toLocaleString("es-ES", { minimumFractionDigits: 2 })} \u20AC de ${que}: falta o sobra algo al importar.${extra}`
+          };
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.CONTRATO = API;
+        })({
+          TIPOS_ADENDA,
+          ESTADOS_ADENDA,
+          resumen,
+          descuadre,
+          ordenNumero,
+          precioVigente,
+          historiaPorPartida,
+          partidasPorAdenda,
+          finDePeriodo,
+          cifrasPresupuesto,
+          cuadreFase
+        });
+      })();
+    }
+  });
+
+  // electron/data/traspaso.js
+  var require_traspaso2 = __commonJS({
+    "electron/data/traspaso.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var traspaso = require_traspaso();
+      var roles = require_roles();
+      var graficos = require_graficosObra();
+      var { recortar } = require_alcance();
+      var presupuestos = require_presupuestos();
+      var { nuevoId } = require_repositorio();
+      var TRASPASABLES = ["adjudicado"];
+      var ROLES_QUE_RECIBEN = ["jefeProyectos"];
+      var listaDe = (txt) => String(txt || "").split(",").filter(Boolean);
+      var aLista = (ids) => ids && ids.length ? `,${ids.join(",")},` : null;
+      function deFilaObra(f) {
+        if (!f) return null;
+        return {
+          id: f.id,
+          proyectoId: f.proyectoId,
+          presupuestoId: f.presupuestoId || null,
+          codigo: f.codigo,
+          nombre: f.nombre,
+          clienteId: f.clienteId || null,
+          emplazamiento: f.emplazamiento || null,
+          recibidaPor: f.recibidaPor || null,
+          jefeGrupoId: f.jefeGrupoId || null,
+          jefeObraId: f.jefeObraId || null,
+          /* Los otros jefes de obra (22-oct): mismo acceso que el principal. */
+          jefesObraIds: listaDe(f.jefesObraIds),
+          jefeProduccionId: f.jefeProduccionId || null,
+          encargadosIds: listaDe(f.encargadosIds),
+          tecnicosIds: listaDe(f.tecnicosIds),
+          estado: f.estado,
+          importeVenta: Number(f.importeVenta) || 0,
+          objetivoCompras: Number(f.objetivoCompras) || 0,
+          coeficienteCompras: Number(f.coeficienteCompras) || 1,
+          fechaInicio: f.fechaInicio || null,
+          fechaFin: f.fechaFin || null,
+          creadoEn: f.creadoEn,
+          creadoPor: f.creadoPor || null
+        };
+      }
+      function listarObras(repo, sesion) {
+        const obras = repo.listar("obras", sesion, { orden: "creadoEn DESC" }).map((f) => conContrato(repo.db, f)).map((f) => recortar(deFilaObra(f), sesion && sesion.rol));
+        if (!obras.length || !roles.puede(sesion && sesion.rol, "certificaciones", "ver")) return obras;
+        return conCertificado(repo.db, obras);
+      }
+      function conContrato(db, obra) {
+        if (!obra || !obra.proyectoId) return obra;
+        const vacio = (v) => v === null || v === void 0 || v === "" || Number(v) === 0;
+        if (!vacio(obra.importeVenta) && obra.fechaInicio && obra.fechaFin) return obra;
+        const fuera = { ...obra };
+        let c = null;
+        try {
+          c = db.prepare("SELECT * FROM contratos WHERE proyectoId = ? ORDER BY creadoEn LIMIT 1").get(obra.proyectoId);
+        } catch {
+        }
+        if (c) {
+          const adendas = db.prepare("SELECT * FROM adendas WHERE contratoId = ?").all(c.id);
+          const r = require_contrato().resumen(c, adendas, []);
+          if (vacio(fuera.importeVenta) && r.importeVigente) {
+            fuera.importeVenta = r.importeVigente;
+            fuera.importeDelContrato = true;
+          }
+          if (!fuera.fechaInicio && c.fechaInicio) fuera.fechaInicio = c.fechaInicio;
+          if (!fuera.fechaFin && r.finVigente) fuera.fechaFin = r.finVigente;
+        }
+        if (!fuera.fechaInicio || !fuera.fechaFin) {
+          let h = [];
+          try {
+            h = db.prepare("SELECT campo, valor FROM hojaAlcance WHERE proyectoId = ? AND campo IN ('fechaInicioPrevista','fechaFinPrevista')").all(obra.proyectoId);
+          } catch {
+          }
+          const v = Object.fromEntries(h.map((x) => [x.campo, x.valor]));
+          if (!fuera.fechaInicio && v.fechaInicioPrevista) fuera.fechaInicio = v.fechaInicioPrevista;
+          if (!fuera.fechaFin && v.fechaFinPrevista) fuera.fechaFin = v.fechaFinPrevista;
+        }
+        return fuera;
+      }
+      function conCertificado(db, obras) {
+        if (!obras.length) return obras;
+        const ids = obras.map((o) => o.id);
+        const filas = db.prepare(
+          `SELECT obraId, numero, periodo, resumen FROM certificaciones
+      WHERE estado <> 'borrador' AND resumen IS NOT NULL
+        AND obraId IN (${ids.map(() => "?").join(",")})
+      ORDER BY obraId, numero`
+        ).all(...ids);
+        const porObra = /* @__PURE__ */ new Map();
+        for (const f of filas) {
+          let r = null;
+          try {
+            r = JSON.parse(f.resumen);
+          } catch {
+            continue;
+          }
+          if (!r || !r.origen) continue;
+          if (!porObra.has(f.obraId)) porObra.set(f.obraId, { certificado: 0, meses: [] });
+          const o = porObra.get(f.obraId);
+          o.certificado = Number(r.origen.baseImponible) || 0;
+          o.meses.push({ periodo: f.periodo, importe: Number(r.periodo && r.periodo.baseImponible) || 0 });
+        }
+        return obras.map((o) => porObra.has(o.id) ? { ...o, certificado: porObra.get(o.id).certificado, certificadoMeses: porObra.get(o.id).meses } : o);
+      }
+      function departamento(repo, sesion) {
+        if (!roles.puede(sesion && sesion.rol, "obras", "ver")) return { error: "No puedes ver las obras." };
+        const suyas = repo.listar("obras", sesion, { condicion: "estado IN ('sinAsignar','enCurso')" });
+        const obras = conCertificado(repo.db, suyas.map(deFilaObra)).map((o) => ({
+          id: o.id,
+          codigo: o.codigo,
+          nombre: o.nombre,
+          estado: o.estado,
+          jefeObraId: o.jefeObraId,
+          jefesObraIds: o.jefesObraIds || null,
+          jefeGrupoId: o.jefeGrupoId,
+          importeVenta: o.importeVenta,
+          fechaInicio: o.fechaInicio,
+          fechaFin: o.fechaFin,
+          certificado: o.certificado,
+          certificadoMeses: o.certificadoMeses
+        }));
+        const personas = repo.db.prepare("SELECT id, nombre, rol, activo FROM personas").all().map((p) => ({ ...p, activo: p.activo !== 0 }));
+        const g = graficos.graficosDeObra({ obras, personas, hoy: require_fecha().hoyLocal() });
+        if (roles.campoVetado(sesion.rol, "importeVenta")) {
+          return {
+            vacio: g.vacio,
+            dinero: [],
+            totales: null,
+            meses: { hay: false, meses: [] },
+            carga: g.carga.map(({ id, nombre, obras: n }) => ({ id, nombre, obras: n }))
+          };
+        }
+        return g;
+      }
+      function obraDeProyecto(repo, sesion, proyectoId) {
+        const filas = repo.listar("obras", sesion, {
+          condicion: "proyectoId = ?",
+          params: [proyectoId],
+          limite: 1
+        });
+        return filas.length ? recortar(deFilaObra(filas[0]), sesion && sesion.rol) : null;
+      }
+      function yaTieneObra(repo, proyectoId) {
+        const fila = repo.db.prepare("SELECT id, codigo, creadoEn FROM obras WHERE proyectoId = ? LIMIT 1").get(proyectoId);
+        return fila || null;
+      }
+      function deFilaNota(f) {
+        return {
+          id: f.id,
+          proyectoId: f.proyectoId,
+          codigo: f.codigo,
+          tipo: f.tipo,
+          texto: f.texto || "",
+          autor: f.autor || null,
+          creadoEn: f.creadoEn,
+          modificadoEn: f.modificadoEn
+        };
+      }
+      function paraTraspasar(repo, sesion, proyectoId) {
+        const proyecto = repo.leer("proyectos", sesion, proyectoId);
+        if (!proyecto) return { error: "Ese proyecto no existe, o no es de los que puedes ver." };
+        const presupuesto = repo.db.prepare("SELECT * FROM presupuestos WHERE proyectoId = ? ORDER BY creadoEn LIMIT 1").get(proyectoId);
+        if (!presupuesto) {
+          return { error: `\xAB${proyecto.nombre}\xBB no tiene presupuesto montado: no hay nada que traspasar.` };
+        }
+        const cliente = proyecto.clienteId ? (repo.db.prepare("SELECT nombre FROM clientes WHERE id = ?").get(proyecto.clienteId) || {}).nombre : null;
+        return {
+          proyecto: { ...proyecto, cliente },
+          presupuesto,
+          arbol: presupuestos.armarArbol(repo.db, presupuesto.id),
+          descartes: repo.db.prepare("SELECT avisoId AS id, motivo, creadoEn FROM avisosDescartados WHERE presupuestoId = ?").all(presupuesto.id),
+          notas: listarNotas(repo, sesion, proyectoId),
+          /* La conversación del traspaso todavía no tiene canal propio. */
+          mensajes: [],
+          obra: obraDeProyecto(repo, sesion, proyectoId)
+        };
+      }
+      function listarNotas(repo, sesion, proyectoId) {
+        return repo.listar("notasTraspaso", sesion, {
+          condicion: "proyectoId = ?",
+          params: [proyectoId],
+          orden: "codigo, tipo"
+        }).map(deFilaNota);
+      }
+      function guardarNota(repo, sesion, { proyectoId, codigo, tipo, texto } = {}) {
+        if (!proyectoId || !codigo || !tipo) return { error: "Falta el proyecto, el cap\xEDtulo o el tipo de nota." };
+        const previas = repo.listar("notasTraspaso", sesion, {
+          condicion: "proyectoId = ? AND codigo = ? AND tipo = ?",
+          params: [proyectoId, codigo, tipo],
+          limite: 1
+        });
+        const limpio = String(texto ?? "").trim();
+        if (previas.length) {
+          if (!limpio) {
+            repo.borrar("notasTraspaso", sesion, previas[0].id);
+            return null;
+          }
+          repo.modificar("notasTraspaso", sesion, previas[0].id, { texto: limpio });
+          return deFilaNota(repo.leer("notasTraspaso", sesion, previas[0].id));
+        }
+        if (!limpio) return null;
+        const id = repo.crear("notasTraspaso", sesion, {
+          proyectoId,
+          codigo,
+          tipo,
+          texto: limpio,
+          autor: sesion.personaId
+        });
+        return deFilaNota(repo.leer("notasTraspaso", sesion, id));
+      }
+      function traspasar(repo, sesion, {
+        proyectoId,
+        presupuestoId,
+        recibidaPor,
+        coeficienteCompras = 1,
+        descartes = []
+      } = {}) {
+        if (!roles.puede(sesion.rol, "presupuestos", "traspasar")) {
+          return { error: "Tu rol no traspasa proyectos a obra. Lo hace el jefe de Estudios." };
+        }
+        const proyecto = repo.leer("proyectos", sesion, proyectoId);
+        if (!proyecto) return { error: "Ese proyecto no existe, o no es de los que puedes ver." };
+        const yaHay = yaTieneObra(repo, proyectoId);
+        if (yaHay) {
+          return {
+            error: `Este proyecto ya se traspas\xF3 el ${String(yaHay.creadoEn).slice(0, 10)}. Un segundo traspaso deja dos obras con el mismo proyecto detr\xE1s, y dos sitios donde certificar.`,
+            obra: { id: yaHay.id, codigo: yaHay.codigo, creadoEn: yaHay.creadoEn }
+          };
+        }
+        if (!TRASPASABLES.includes(proyecto.estado)) {
+          return {
+            error: `Un proyecto \xAB${proyecto.estado}\xBB no se traspasa: primero hay que adjudicarlo. Traspasar lo que no est\xE1 ganado crea una obra que no existe.`
+          };
+        }
+        if (!recibidaPor) {
+          return { error: "Hace falta a qui\xE9n se le entrega: el jefe del departamento de Proyectos." };
+        }
+        const jefe = repo.leer("personas", sesion, recibidaPor);
+        if (!jefe) return { error: "Esa persona no existe." };
+        if (jefe.activo === 0 || jefe.activo === false) {
+          return { error: `${jefe.nombre} est\xE1 de baja.` };
+        }
+        if (!ROLES_QUE_RECIBEN.includes(jefe.rol)) {
+          return {
+            error: `${jefe.nombre} no puede recibir obras. El traspaso es al jefe del departamento de Proyectos, que despu\xE9s nombra jefe de grupo, jefe de obra y encargados.`
+          };
+        }
+        const presupuesto = repo.leer("presupuestos", sesion, presupuestoId);
+        if (!presupuesto) return { error: "Ese presupuesto no existe, o no es de los que puedes ver." };
+        const arbol = presupuestos.armarArbol(repo.db, presupuestoId);
+        if (!arbol.length) {
+          return { error: "El presupuesto est\xE1 vac\xEDo: no hay nada que traspasar." };
+        }
+        const plan = traspaso.ejecutar({
+          proyecto,
+          presupuesto,
+          arbol,
+          descartes,
+          coeficienteCompras,
+          personaId: sesion.personaId,
+          recibidaPor
+        });
+        const db = repo.db;
+        const obraId = nuevoId();
+        const costsPlanId = nuevoId();
+        db.exec("BEGIN");
+        try {
+          repo.crear("presupuestos", sesion, {
+            id: costsPlanId,
+            proyectoId: proyecto.id,
+            nombre: `Costs Plan \xB7 ${proyecto.nombre}`,
+            fase: "obra",
+            modoCostes: presupuesto.modoCostes || "agregado",
+            obraIdVinculada: obraId,
+            /*
+             * EL CIERRE DE LA OFERTA viaja con ella. Sin esto el Costs Plan nacía
+             * con los de por defecto —13, 6, sin baja— y la certificación cobraba
+             * sin la baja que se le había hecho al cliente.
+             */
+            ...Object.fromEntries(["gastosGenerales", "beneficioIndustrial", "baja", "iva"].filter((k) => presupuesto[k] !== null && presupuesto[k] !== void 0).map((k) => [k, presupuesto[k]]))
+          });
+          presupuestos.guardarArbol(db, costsPlanId, plan.costsPlan, sesion);
+          repo.crear("obras", sesion, {
+            id: obraId,
+            proyectoId: plan.obra.proyectoId,
+            presupuestoId: costsPlanId,
+            codigo: plan.obra.codigo,
+            nombre: plan.obra.nombre,
+            clienteId: plan.obra.clienteId || null,
+            emplazamiento: plan.obra.emplazamiento || null,
+            recibidaPor: plan.obra.recibidaPor,
+            jefeGrupoId: null,
+            jefeObraId: null,
+            encargadosIds: null,
+            estado: plan.obra.estado,
+            importeVenta: plan.obra.importeVenta,
+            objetivoCompras: plan.obra.objetivoCompras,
+            coeficienteCompras: plan.obra.coeficienteCompras,
+            creadoPor: sesion.personaId
+          });
+          for (const e of plan.exclusiones || []) {
+            repo.crear("exclusionesObra", sesion, {
+              obraId,
+              concepto: e.concepto,
+              motivo: e.motivo,
+              decididoPor: e.decididoPor || null,
+              cuando: e.cuando || null
+            });
+          }
+          repo.modificar("proyectos", sesion, proyectoId, { estado: "enObra" });
+          db.exec("COMMIT");
+          const releido = presupuestos.armarArbol(db, costsPlanId);
+          const comprobacion = traspaso.verificar(plan.costsPlan, releido);
+          return {
+            obra: { ...deFilaObra({ ...plan.obra, id: obraId, presupuestoId: costsPlanId }) },
+            costsPlanId,
+            exclusiones: (plan.exclusiones || []).length,
+            comprobacion
+          };
+        } catch (e) {
+          db.exec("ROLLBACK");
+          return {
+            error: `El traspaso no se ha hecho y no se ha escrito nada: ${e && e.message || e}`
+          };
+        }
+      }
+      var PUESTOS = {
+        jefeGrupoId: { roles: ["jefeGrupo"], etiqueta: "jefe de grupo" },
+        jefeObraId: { roles: ["jefeObra"], etiqueta: "jefe de obra" },
+        /* Los otros jefes de obra (22-oct, JC: «una obra puede tener varios jefes
+           de obra»): mismo acceso que el principal (shared/jefesObra.js). */
+        jefesObraIds: { roles: ["jefeObra"], etiqueta: "jefe de obra", lista: true },
+        /* Opcional (16-oct): lo nombra el jefe de obra si la obra tiene la figura. */
+        jefeProduccionId: { roles: ["jefeProduccion"], etiqueta: "jefe de producci\xF3n" },
+        encargadosIds: { roles: ["encargadoObra", "operario"], etiqueta: "encargado u operario", lista: true },
+        /* El resto del equipo de oficina de la obra (16-oct, Personal › Equipo):
+           contract supports y el de commissioning. Van en `tecnicosIds`, que el
+           alcance ya cuenta como colaboradores de la obra. Los jefes de obra de
+           apoyo pasaron a `jefesObraIds` el 22-oct. */
+        tecnicosIds: { roles: ["contractSupport", "jefeCommissioning"], etiqueta: "contract support o jefe de commissioning", lista: true }
+      };
+      var PUESTOS_EQUIPO = [
+        { id: "jefeGrupo", campo: "jefeGrupoId", roles: ["jefeGrupo"], etiqueta: "Jefe de grupo" },
+        { id: "jefeObra", campo: "jefeObraId", roles: ["jefeObra"], etiqueta: "Jefe de obra" },
+        { id: "jefeObraApoyo", campo: "jefesObraIds", roles: ["jefeObra"], etiqueta: "Otros jefes de obra", lista: true },
+        { id: "jefeProduccion", campo: "jefeProduccionId", roles: ["jefeProduccion"], etiqueta: "Jefe de producci\xF3n" },
+        { id: "contractSupport", campo: "tecnicosIds", roles: ["contractSupport"], etiqueta: "Contract support", lista: true },
+        { id: "commissioning", campo: "tecnicosIds", roles: ["jefeCommissioning"], etiqueta: "Commissioning", lista: true },
+        { id: "encargado", campo: "encargadosIds", roles: ["encargadoObra"], etiqueta: "Encargados", lista: true },
+        { id: "operario", campo: "encargadosIds", roles: ["operario"], etiqueta: "Operarios", lista: true }
+      ];
+      function equipoDeObra(repo, sesion, obraId) {
+        const obra = obraId ? repo.leer("obras", sesion, obraId) : null;
+        if (!obra) return { error: "Esa obra no existe, o no es de las que puedes ver." };
+        const gente = repo.db.prepare("SELECT id, nombre, email, rol, activo FROM personas ORDER BY nombre").all();
+        const porId = new Map(gente.map((p) => [p.id, p]));
+        const persona = (id) => {
+          const p = porId.get(id);
+          return p ? { id: p.id, nombre: p.nombre, email: p.email || "", rol: p.rol, activo: p.activo !== 0 } : { id, nombre: id, email: "", rol: null, activo: false };
+        };
+        const puestos = PUESTOS_EQUIPO.map((pu) => {
+          const ids = pu.lista ? listaDe(obra[pu.campo]) : [obra[pu.campo]].filter(Boolean);
+          const asignados = ids.map(persona).filter((p) => pu.roles.includes(p.rol) || !PUESTOS_EQUIPO.some((o) => o.campo === pu.campo && o.roles.includes(p.rol)) && PUESTOS_EQUIPO.find((o) => o.campo === pu.campo) === pu);
+          const ya = new Set(asignados.map((p) => p.id));
+          const candidatos = gente.filter((p) => p.activo !== 0 && pu.roles.includes(p.rol) && !ya.has(p.id)).map((p) => ({ id: p.id, nombre: p.nombre }));
+          return { id: pu.id, campo: pu.campo, etiqueta: pu.etiqueta, lista: Boolean(pu.lista), asignados, candidatos };
+        });
+        return {
+          obra: { id: obra.id, codigo: obra.codigo, nombre: obra.nombre },
+          puedeEditar: roles.puede(sesion && sesion.rol, "obras", "editar"),
+          puestos,
+          total: new Set(puestos.flatMap((p) => p.asignados.map((a) => a.id))).size
+        };
+      }
+      function cambiarEquipo(repo, sesion, obraId, { puesto, personaId, quitar } = {}) {
+        const pu = PUESTOS_EQUIPO.find((p) => p.id === puesto);
+        if (!pu) return { error: "Ese puesto no existe." };
+        if (!roles.puede(sesion && sesion.rol, "obras", "editar")) {
+          return { error: "El equipo de la obra lo ponen el jefe de proyectos, el de grupo o el jefe de obra." };
+        }
+        const obra = repo.leer("obras", sesion, obraId);
+        if (!obra) return { error: "Esa obra no existe, o no es de las que puedes ver." };
+        if (!pu.lista) {
+          const r2 = asignarEquipo(repo, sesion, obraId, { [pu.campo]: quitar ? null : personaId });
+          return r2 && r2.error ? r2 : equipoDeObra(repo, sesion, obraId);
+        }
+        const ids = listaDe(obra[pu.campo]);
+        const nuevos = quitar ? ids.filter((x) => x !== personaId) : ids.includes(personaId) ? ids : [...ids, personaId];
+        const r = asignarEquipo(repo, sesion, obraId, { [pu.campo]: nuevos });
+        return r && r.error ? r : equipoDeObra(repo, sesion, obraId);
+      }
+      function asignarEquipo(repo, sesion, obraId, cambios = {}) {
+        const obra = repo.leer("obras", sesion, obraId);
+        if (!obra) return { error: "Esa obra no existe, o no es de las que puedes ver." };
+        const fila = {};
+        for (const [campo, puesto] of Object.entries(PUESTOS)) {
+          if (cambios[campo] === void 0) continue;
+          if (puesto.lista) {
+            const ids = [].concat(cambios[campo] || []).filter(Boolean);
+            for (const id2 of ids) {
+              const mal = comprobarPersona(repo, sesion, id2, puesto);
+              if (mal) return mal;
+            }
+            fila[campo] = aLista(ids);
+            continue;
+          }
+          const id = cambios[campo] || null;
+          if (id) {
+            const mal = comprobarPersona(repo, sesion, id, puesto);
+            if (mal) return mal;
+          }
+          fila[campo] = id;
+        }
+        if (!Object.keys(fila).length) return deFilaObra(obra);
+        let principal = fila.jefeObraId !== void 0 ? fila.jefeObraId : obra.jefeObraId;
+        let otros = listaDe(fila.jefesObraIds !== void 0 ? fila.jefesObraIds : obra.jefesObraIds);
+        if (!principal && otros.length && fila.jefeObraId !== void 0) {
+          principal = otros[0];
+          fila.jefeObraId = principal;
+        }
+        if (principal && otros.includes(principal)) {
+          otros = otros.filter((x) => x !== principal);
+          fila.jefesObraIds = aLista(otros);
+        }
+        const jefeFinal = principal || otros[0] || null;
+        if (obra.estado === "sinAsignar" && jefeFinal) fila.estado = "enCurso";
+        if (obra.estado === "enCurso" && !jefeFinal) fila.estado = "sinAsignar";
+        repo.modificar("obras", sesion, obraId, fila);
+        return deFilaObra(repo.leer("obras", sesion, obraId));
+      }
+      function comprobarPersona(repo, sesion, id, puesto) {
+        const p = repo.db.prepare("SELECT id, nombre, rol, activo FROM personas WHERE id = ?").get(id);
+        if (!p) return { error: "Esa persona no existe." };
+        if (p.activo === 0 || p.activo === false) return { error: `${p.nombre} est\xE1 de baja.` };
+        if (!puesto.roles.includes(p.rol)) {
+          return { error: `${p.nombre} no es ${puesto.etiqueta}.` };
+        }
+        return null;
+      }
+      function sinAsignar(repo, sesion) {
+        return repo.listar("obras", sesion, {
+          condicion: "estado = 'sinAsignar'",
+          orden: "creadoEn DESC"
+        }).map(deFilaObra);
+      }
+      module.exports = {
+        TRASPASABLES,
+        listarObras,
+        departamento,
+        obraDeProyecto,
+        yaTieneObra,
+        traspasar,
+        asignarEquipo,
+        sinAsignar,
+        PUESTOS,
+        ROLES_QUE_RECIBEN,
+        equipoDeObra,
+        cambiarEquipo,
+        PUESTOS_EQUIPO,
+        listarNotas,
+        guardarNota,
+        deFilaObra,
+        paraTraspasar,
+        conContrato
+      };
+    }
+  });
+
+  // electron/data/costeFinal.js
+  var require_costeFinal2 = __commonJS({
+    "electron/data/costeFinal.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var modelo = require_modelo();
+      var { armarArbol } = require_presupuestos();
+      var COSTE_FINAL = require_costeFinal();
+      var { puede, campoVetado } = require_roles();
+      function medicionesCertificadas(db, obraId) {
+        const filas = db.prepare(
+          `SELECT l.lineaId, l.cantidad, l.aOrigen FROM lineasCertificacion l
+       JOIN certificaciones c ON c.id = l.certificacionId
+      WHERE c.obraId = ? AND c.estado <> 'borrador' ORDER BY c.numero`
+        ).all(obraId);
+        const fuera = {};
+        for (const l of filas) {
+          if (l.cantidad !== null && l.cantidad !== void 0) fuera[l.lineaId] = modelo.medida((fuera[l.lineaId] || 0) + Number(l.cantidad));
+          else if (l.aOrigen !== null && l.aOrigen !== void 0) fuera[l.lineaId] = modelo.medida(Number(l.aOrigen));
+        }
+        return fuera;
+      }
+      function presupuestosDeLaObra(db, obra, presupuestoId) {
+        const ids = [presupuestoId, obra && obra.presupuestoId];
+        if (obra) {
+          ids.push(...db.prepare("SELECT id FROM presupuestos WHERE obraIdVinculada = ?").all(obra.id).map((r) => r.id));
+          if (obra.proyectoId) ids.push(...db.prepare("SELECT id FROM presupuestos WHERE proyectoId = ?").all(obra.proyectoId).map((r) => r.id));
+        }
+        return [...new Set(ids.filter(Boolean))];
+      }
+      function comparativoAdjudicado(db, obra, presupuestoId) {
+        const pres = presupuestosDeLaObra(db, obra, presupuestoId);
+        if (!pres.length) return {};
+        const marcas = pres.map(() => "?").join(",");
+        const adjs = db.prepare(
+          `SELECT a.ofertaId, a.proveedorId, a.creadoEn, pr.nombre AS proveedor
+       FROM adjudicaciones a
+       JOIN peticionesOferta p ON p.id = a.peticionId
+       LEFT JOIN proveedores pr ON pr.id = a.proveedorId
+      WHERE (p.presupuestoId IN (${marcas})${obra ? " OR p.obraId = ?" : ""})
+        AND a.ofertaId IS NOT NULL AND a.estado <> 'anulada'
+      ORDER BY a.creadoEn`
+        ).all(...pres, ...obra ? [obra.id] : []);
+        const lineas = db.prepare("SELECT partidaCodigo, precio, precioSuministro, incluye FROM lineasOfertaProveedor WHERE ofertaId = ?");
+        const fuera = {};
+        for (const a of adjs) {
+          for (const l of lineas.all(a.ofertaId)) {
+            if (l.incluye === 0 || l.precio === null || l.precio === void 0) {
+              delete fuera[l.partidaCodigo];
+              continue;
+            }
+            fuera[String(l.partidaCodigo)] = { precio: Number(l.precio), precioSuministro: l.precioSuministro, proveedor: a.proveedor || null, proveedorId: a.proveedorId };
+          }
+        }
+        return fuera;
+      }
+      function realesDe(db, presupuestoId) {
+        const p = db.prepare("SELECT id, fase, proyectoId FROM presupuestos WHERE id = ?").get(presupuestoId);
+        if (!p || p.fase !== "obra") return { porLinea: {} };
+        const obra = db.prepare("SELECT * FROM obras WHERE presupuestoId = ? LIMIT 1").get(presupuestoId) || (p.proyectoId ? db.prepare("SELECT * FROM obras WHERE proyectoId = ? LIMIT 1").get(p.proyectoId) : null);
+        const med = obra ? medicionesCertificadas(db, obra.id) : {};
+        const comp = comparativoAdjudicado(db, obra, presupuestoId);
+        const porLinea = {};
+        for (const l of db.prepare("SELECT id, codigo FROM lineas WHERE presupuestoId = ? AND tipo <> 'capitulo'").all(presupuestoId)) {
+          const r = {};
+          if (med[l.id] !== void 0) r.medCertificada = med[l.id];
+          if (l.codigo && comp[String(l.codigo)]) r.comparativo = comp[String(l.codigo)];
+          if (Object.keys(r).length) porLinea[l.id] = r;
+        }
+        return { porLinea, obraId: obra ? obra.id : null, cabecera: obra ? cabeceraDe(db, obra) : null };
+      }
+      function cabeceraDe(db, obraBase) {
+        let obra = obraBase;
+        try {
+          obra = require_traspaso2().conContrato(db, obraBase) || obraBase;
+        } catch {
+        }
+        const proyecto = obra.proyectoId ? db.prepare("SELECT clienteId FROM proyectos WHERE id = ?").get(obra.proyectoId) : null;
+        const clienteId = obra.clienteId || proyecto && proyecto.clienteId || null;
+        const cliente = clienteId ? db.prepare("SELECT nombre FROM clientes WHERE id = ?").get(clienteId) : null;
+        let contraparte = "";
+        if (!cliente && obra.proyectoId) {
+          try {
+            const c = db.prepare("SELECT contraparte FROM contratos WHERE proyectoId = ? ORDER BY creadoEn LIMIT 1").get(obra.proyectoId);
+            contraparte = c && c.contraparte || "";
+          } catch {
+          }
+        }
+        const jefe = obra.jefeObraId ? db.prepare("SELECT nombre FROM personas WHERE id = ?").get(obra.jefeObraId) : null;
+        return {
+          codigo: obra.codigo,
+          nombre: obra.nombre,
+          cliente: cliente ? cliente.nombre : contraparte,
+          responsable: jefe ? jefe.nombre : "",
+          fechaInicio: obra.fechaInicio,
+          fechaFin: obra.fechaFin,
+          /* El Coste Directo Objetivo del replanteo: el coste de estudios × coeficiente de compras. */
+          objetivoCompras: obra.objetivoCompras === null || obra.objetivoCompras === void 0 ? null : Number(obra.objetivoCompras)
+        };
+      }
+      function lineaCertificada(db, lineaId) {
+        return Boolean(db.prepare(
+          `SELECT 1 FROM lineasCertificacion l JOIN certificaciones c ON c.id = l.certificacionId
+      WHERE l.lineaId = ? AND c.estado <> 'borrador' LIMIT 1`
+        ).get(lineaId));
+      }
+      function resumenObra(repo, sesion, obraOId) {
+        const db = repo.db;
+        const obra = typeof obraOId === "string" ? db.prepare("SELECT * FROM obras WHERE id = ?").get(obraOId) : obraOId;
+        if (!obra || !obra.presupuestoId) return null;
+        if (sesion && (campoVetado(sesion.rol, "precioCoste") || !puede(sesion.rol, "costsPlan", "ver"))) return null;
+        const arbol = modelo.calcularArbol(armarArbol(db, obra.presupuestoId));
+        const anotado = COSTE_FINAL.anotar(arbol, realesDe(db, obra.presupuestoId));
+        return COSTE_FINAL.resumen(anotado, cabeceraDe(db, obra));
+      }
+      module.exports = { realesDe, medicionesCertificadas, comparativoAdjudicado, lineaCertificada, resumenObra };
+    }
+  });
+
+  // shared/importe.js
+  var require_importe = __commonJS({
+    "shared/importe.js"(exports, module) {
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        "use strict";
+        function leerImporte(v) {
+          if (v === null || v === void 0) return null;
+          if (typeof v === "number") return Number.isFinite(v) ? v : null;
+          let s = String(v).trim().replace(/€|eur(os)?/gi, "").replace(/\s/g, "");
+          if (s === "") return null;
+          if (!/^[+-]?[0-9.,]+$/.test(s) || !/[0-9]/.test(s)) return null;
+          const signo = s[0] === "-" ? "-" : "";
+          s = s.replace(/^[+-]/, "");
+          const coma = s.lastIndexOf(",");
+          const punto = s.lastIndexOf(".");
+          if (coma >= 0 && punto >= 0) {
+            if (coma > punto) s = s.replace(/\./g, "").replace(",", ".");
+            else s = s.replace(/,/g, "");
+          } else if (coma >= 0) {
+            s = s.match(/,/g).length > 1 ? s.replace(/,/g, "") : s.replace(",", ".");
+          } else if (punto >= 0) {
+            const grupos = s.split(".");
+            const miles = grupos.length > 2 || /^[1-9]\d{0,2}$/.test(grupos[0]) && grupos[1].length === 3;
+            if (miles) s = grupos.join("");
+          }
+          const n = Number(signo + s);
+          return Number.isFinite(n) ? n : null;
+        }
+        const API = { leerImporte };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.IMPORTE = API;
+      })();
+    }
+  });
+
+  // shared/obra/certIndustriales.js
+  var require_certIndustriales = __commonJS({
+    "shared/obra/certIndustriales.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var _mCi = typeof __require !== "undefined" ? require_modelo() : window.MODELO;
+      var FILAS_POR_PAGINA_CI = 18;
+      var FILAS_ULTIMA_PAGINA_CI = 11;
+      var PAPEL_CI = { ancho: 297, alto: 210, margen: 10, altoPagina: 188 };
+      var CASILLA_FIRMA_CI = { x: 297 - 10 - 80, y: 210 - 10 - 188, ancho: 80, alto: 28 };
+      var IVAS_CI = {
+        isp: { texto: "Inversi\xF3n del sujeto pasivo", iva: 0, inversion: true },
+        21: { texto: "IVA (21 %)", iva: 21 },
+        10: { texto: "IVA (10 %)", iva: 10 },
+        0: { texto: "Exenta de IVA", iva: 0, exenta: true }
+      };
+      var numCi = (v) => (typeof window !== "undefined" && window.IMPORTE ? window.IMPORTE : require_importe()).leerImporte(v);
+      var pctCi = (parte, total) => total > 0 ? _mCi.redondear(parte / total * 100, 1) : null;
+      var ALCANCES_CI = {
+        suministro: { texto: "Suministro", corto: "Sum." },
+        montaje: { texto: "Montaje", corto: "Mont." },
+        ambos: { texto: "Suministro y montaje", corto: "S+M" }
+      };
+      var alcanceCi = (v) => ALCANCES_CI[String(v || "")] ? String(v) : null;
+      var SEGUIMIENTOS_CI = {
+        recibida: { texto: "Recibida", orden: 1 },
+        enRevision: { texto: "En revisi\xF3n", orden: 2 },
+        enviada: { texto: "Enviada", orden: 3, soloEmitida: true },
+        aprobada: { texto: "Aprobada", orden: 4, soloEmitida: true, aprueba: true },
+        coupa: { texto: "Subida a Coupa", orden: 5, soloEmitida: true, aprueba: true },
+        rechazada: { texto: "Rechazada", orden: 0, aprueba: true }
+      };
+      var aprobadaCi = (s) => s === "aprobada" || s === "coupa";
+      var DIAS_SIN_APROBAR_CI = 30;
+      function diasEntreCi(desde, hasta) {
+        const a = Date.parse(String(desde || "").slice(0, 10));
+        const b = Date.parse(String(hasta || "").slice(0, 10));
+        return Number.isFinite(a) && Number.isFinite(b) ? Math.floor((b - a) / 864e5) : null;
+      }
+      function sinAprobarCi(certs = [], hoy, limite = DIAS_SIN_APROBAR_CI) {
+        return certs.map((c) => {
+          if (!c || aprobadaCi(c.seguimiento)) return null;
+          let hist = c.historialSeguimiento;
+          if (typeof hist === "string") {
+            try {
+              hist = JSON.parse(hist || "[]");
+            } catch {
+              hist = [];
+            }
+          }
+          const rec = (Array.isArray(hist) ? hist : []).find((h) => h && h.estado === "recibida");
+          const desde = rec && rec.en || c.creadoEn;
+          const dias = diasEntreCi(desde, hoy);
+          return dias !== null && dias > limite ? { cert: c, dias, desde: String(desde).slice(0, 10) } : null;
+        }).filter(Boolean).sort((a, b) => b.dias - a.dias);
+      }
+      var claveLineaCi = (i) => `L${i + 1}`;
+      function lineasPedidoCi(pedido = {}, precios = {}, alcances = {}) {
+        let lineas = pedido.lineas;
+        if (typeof lineas === "string") {
+          try {
+            lineas = JSON.parse(lineas);
+          } catch {
+            lineas = [];
+          }
+        }
+        if (!Array.isArray(lineas)) lineas = [];
+        return lineas.map((l, i) => {
+          const clave = claveLineaCi(i);
+          const cantidad = _mCi.medida(numCi(l && l.cantidad) || 0);
+          const puesto = numCi(precios && precios[clave]);
+          const delPedido = numCi(l && l.precio);
+          const precio = puesto !== null ? puesto : delPedido;
+          return {
+            clave,
+            pos: i + 1,
+            descripcion: l && l.descripcion || "",
+            unidad: l && l.unidad || "",
+            codigo: l && (l.boq || l.referencia) || "",
+            medicionEstudios: numCi(l && l.medicionEstudios),
+            /* El precio del industrial, tal cual lo pone (hasta 4 decimales: Keran factura a 12,995 €/m):
+               redondearlo a 2 cambiaría su importe y la hoja ya no cuadraría con su proforma. */
+            cantidad,
+            precio: precio === null ? null : _mCi.redondear(precio, 4),
+            precioPuesto: puesto !== null,
+            /* El precio del contrato (la línea del pedido); si el de la certificación no es este, es contradictorio. */
+            precioContrato: delPedido === null ? null : _mCi.redondear(delPedido, 4),
+            alcance: alcanceCi(alcances && alcances[clave]) || alcanceCi(l && l.alcance),
+            importeContrato: _mCi.euros(cantidad * (precio || 0))
+          };
+        });
+      }
+      function calcularHojaCi({ pedido = {}, origen = {}, anterior = {}, precios = {}, alcances = {}, extras = [], extrasAnterior = 0 } = {}) {
+        const avisos = [];
+        const filas = lineasPedidoCi(pedido, precios, alcances).map((l) => {
+          const ant = _mCi.medida(numCi(anterior[l.clave]) || 0);
+          const ori = numCi(origen[l.clave]) === null ? ant : _mCi.medida(numCi(origen[l.clave]));
+          const p = l.precio || 0;
+          const importeAnterior = _mCi.euros(ant * p);
+          const importeOrigen = _mCi.euros(ori * p);
+          if (l.precio === null && ori) avisos.push({ clave: l.clave, texto: `L\xEDnea ${l.pos} sin precio: ponlo en la hoja.` });
+          if (ori > l.cantidad + 1e-9) avisos.push({ clave: l.clave, texto: `L\xEDnea ${l.pos}: se certifica m\xE1s de lo pedido (${_mCi.textoEuros(ori)} de ${_mCi.textoEuros(l.cantidad)}).` });
+          if (ori < -1e-9) avisos.push({ clave: l.clave, texto: `L\xEDnea ${l.pos}: a origen en negativo.` });
+          if (l.medicionEstudios !== null && ori > l.medicionEstudios + 1e-9) {
+            avisos.push({ clave: l.clave, tipo: "estudios", texto: `L\xEDnea ${l.pos}: a origen (${_mCi.textoEuros(ori)}) supera la medici\xF3n de estudios (${_mCi.textoEuros(l.medicionEstudios)}).` });
+          }
+          return {
+            ...l,
+            anterior: ant,
+            origen: ori,
+            mes: _mCi.medida(ori - ant),
+            importeAnterior,
+            importeOrigen,
+            importeMes: _mCi.euros(importeOrigen - importeAnterior),
+            pendiente: _mCi.medida(l.cantidad - ori),
+            importePendiente: _mCi.euros(l.importeContrato - importeOrigen),
+            pctAnterior: pctCi(ant, l.cantidad),
+            pctMes: pctCi(ori - ant, l.cantidad),
+            pctOrigen: pctCi(ori, l.cantidad)
+          };
+        });
+        const lista = extrasCi(extras);
+        const totales = conExtrasCi(totalesFilasCi(filas), lista, extrasAnterior);
+        if (totales.origenLineas > totales.contrato + 5e-3 && totales.contrato > 0) {
+          avisos.push({ tipo: "contrato", texto: `Lo certificado a origen (${_mCi.textoEuros(totales.origenLineas)} \u20AC) supera el contrato (${_mCi.textoEuros(totales.contrato)} \u20AC) en ${_mCi.textoEuros(_mCi.euros(totales.origenLineas - totales.contrato))} \u20AC.` });
+        }
+        return { pedido, filas, extras: lista, totales, avisos };
+      }
+      function extrasCi(lista) {
+        let l = lista;
+        if (typeof l === "string") {
+          try {
+            l = JSON.parse(l || "[]");
+          } catch {
+            l = [];
+          }
+        }
+        if (!Array.isArray(l)) return [];
+        return l.map((e) => {
+          e = e || {};
+          const horas = numCi(e.horas);
+          const ph = numCi(e.precioHora ?? e.precio_hora);
+          const cant = numCi(e.cantidad);
+          const pr = numCi(e.precio);
+          const tipo = e.tipo === "extra" ? "extra" : horas !== null ? "horas" : e.tipo || "extra";
+          const importe = horas !== null && ph !== null ? _mCi.euros(horas * ph) : cant !== null && pr !== null ? _mCi.euros(cant * pr) : _mCi.euros(numCi(e.importe) || 0);
+          return {
+            tipo,
+            concepto: String(e.concepto || e.operario || e.motivo || (tipo === "horas" ? "Administraci\xF3n" : "Extra")).trim(),
+            horas,
+            precioHora: ph,
+            cantidad: cant,
+            precio: pr,
+            parte: e.parte ? String(e.parte) : "",
+            importe,
+            aceptada: e.aceptada !== false
+          };
+        });
+      }
+      function conExtrasCi(t, lista, extrasAnterior = 0) {
+        const mesE = _mCi.euros(lista.filter((e) => e.aceptada).reduce((a, e) => a + e.importe, 0));
+        const antE = _mCi.euros(Number(extrasAnterior) || 0);
+        const origenLineas = t.origen;
+        const out = { ...t, origenLineas, extras: { anterior: antE, mes: mesE, origen: _mCi.euros(antE + mesE) } };
+        out.anterior = _mCi.euros(t.anterior + antE);
+        out.mes = _mCi.euros(t.mes + mesE);
+        out.origen = _mCi.euros(out.anterior + out.mes);
+        return out;
+      }
+      function totalesFilasCi(filas) {
+        const s = (k) => _mCi.euros(filas.reduce((a, f) => a + (Number(f[k]) || 0), 0));
+        const contrato = s("importeContrato");
+        const anterior = s("importeAnterior");
+        const origen = s("importeOrigen");
+        const mes = _mCi.euros(origen - anterior);
+        return {
+          contrato,
+          anterior,
+          mes,
+          origen,
+          pendiente: _mCi.euros(contrato - origen),
+          pctAnterior: pctCi(anterior, contrato),
+          pctMes: pctCi(mes, contrato),
+          pctOrigen: pctCi(origen, contrato)
+        };
+      }
+      function liquidacionCi(base, { iva = "isp", retencion = 0, descuentos = [] } = {}) {
+        const r = IVAS_CI[String(iva)] || IVAS_CI.isp;
+        const importeIva = _mCi.euros(base * (r.iva || 0) / 100);
+        const ret = _mCi.euros(base * (Number(retencion) || 0) / 100);
+        const desc = descuentosCi(descuentos);
+        const totalDescuentos = _mCi.euros(desc.reduce((a, d) => a + d.importe, 0));
+        return {
+          base: _mCi.euros(base),
+          iva: importeIva,
+          textoIva: r.texto,
+          inversion: Boolean(r.inversion),
+          exenta: Boolean(r.exenta),
+          retencion: ret,
+          pctRetencion: Number(retencion) || 0,
+          descuentos: desc,
+          totalDescuentos,
+          liquido: _mCi.euros(base + importeIva - ret - totalDescuentos)
+        };
+      }
+      function descuentosCi(lista) {
+        let l = lista;
+        if (typeof l === "string") {
+          try {
+            l = JSON.parse(l || "[]");
+          } catch {
+            l = [];
+          }
+        }
+        if (!Array.isArray(l)) return [];
+        return l.map((d) => ({ concepto: String(d && d.concepto || "Descuento").trim() || "Descuento", importe: _mCi.euros(Math.abs(Number(d && d.importe) || 0)) })).filter((d) => d.importe > 0);
+      }
+      function resumenCi(hojas = []) {
+        const pedidos = hojas.map((h) => {
+          const t = h.totales;
+          return {
+            pedidoId: h.pedido.id,
+            codigo: h.pedido.codigo,
+            titulo: h.pedido.titulo || "",
+            contratado: t.contrato,
+            anterior: t.anterior,
+            mes: t.mes,
+            origen: t.origen,
+            pendiente: t.pendiente,
+            pctAnterior: t.pctAnterior,
+            pctMes: t.pctMes,
+            pctOrigen: t.pctOrigen
+          };
+        });
+        const s = (k) => _mCi.euros(pedidos.reduce((a, p) => a + p[k], 0));
+        const total = { codigo: "TOTAL", titulo: "", contratado: s("contratado"), anterior: s("anterior"), mes: s("mes"), origen: s("origen"), pendiente: s("pendiente") };
+        total.pctAnterior = pctCi(total.anterior, total.contratado);
+        total.pctMes = pctCi(total.mes, total.contratado);
+        total.pctOrigen = pctCi(total.origen, total.contratado);
+        return { pedidos, total };
+      }
+      var escCi = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+      var eurCi = (v) => v === null || v === void 0 ? "" : _mCi.textoEuros(v);
+      var canCi = (v) => v === null || v === void 0 || v === 0 ? "" : _mCi.textoEuros(v);
+      var pctTxtCi = (v) => v === null || v === void 0 ? "" : `${String(v).replace(".", ",")} %`;
+      function barrasSvgCi(filas, { papel = false, ancho = papel ? 560 : 900, titulo = "" } = {}) {
+        const etiqueta = 92;
+        const cifras = papel ? 175 : 210;
+        const largo = ancho - etiqueta - cifras - 12;
+        const alto = papel ? 32 : 22;
+        const medio = Math.round((alto - 8) / 2) + 4;
+        const top = titulo ? 34 : 22;
+        const escala = Math.max(1, ...filas.map((f) => Math.max(f.contratado || 0, f.origen || 0)));
+        const tinta = papel ? "#000" : "currentColor";
+        const relleno = { ant: "url(#tramaAntCi)", mes: "#1A1A1A", pen: "#fff" };
+        const clase = { ant: "bAntCi", mes: "bMesCi", pen: "bPenCi" };
+        const seg = (k, x, w, y, h = alto - 8) => w > 0.2 ? `<rect class="${clase[k]}" x="${x.toFixed(1)}" y="${y}" width="${w.toFixed(1)}" height="${h}"${papel ? ` fill="${relleno[k]}" stroke="#000" stroke-width="0.6"` : ""}/>` : "";
+        const cuerpo = filas.map((f, i) => {
+          const y = top + i * alto + (f.esTotal ? 6 : 0);
+          const w = (v) => Math.max(0, v || 0) / escala * largo;
+          const wa = w(f.anterior);
+          const wm = w(f.mes);
+          const wp = w(f.pendiente);
+          return `<g>
+      ${f.esTotal ? `<line x1="0" x2="${ancho}" y1="${y - 4}" y2="${y - 4}" stroke="${tinta}" stroke-width="0.8"/>` : ""}
+      <text x="0" y="${y + medio}" font-size="10.5" font-weight="700" fill="${tinta}">${escCi(f.codigo)}</text>
+      ${seg("ant", etiqueta, wa, y)}${seg("mes", etiqueta + wa, wm, y)}${seg("pen", etiqueta + wa + wm, wp, y)}
+      <text x="${etiqueta + largo + 8}" y="${y + medio}" font-size="9.5" fill="${tinta}"${f.esTotal ? ' font-weight="700"' : ""}>${eurCi(f.origen)} de ${eurCi(f.contratado)} \u20AC \xB7 ${pctTxtCi(f.pctOrigen) || "0 %"}</text>
+    </g>`;
+        }).join("");
+        const yLeyenda = titulo ? 16 : 4;
+        const leyenda = [["ant", "Anterior"], ["mes", "Este mes"], ["pen", "Pendiente"]].map(([k, t], i) => `<g transform="translate(${etiqueta + i * 96},${yLeyenda})">${seg(k, 0, 14, 0, 10)}<text x="19" y="9" font-size="9.5" fill="${tinta}">${t}</text></g>`).join("");
+        const total = top + filas.length * alto + (filas.some((f) => f.esTotal) ? 10 : 4);
+        const defs = papel ? `<defs><pattern id="tramaAntCi" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="4" height="4" fill="#fff"/><line x1="0" y1="0" x2="0" y2="4" stroke="#000" stroke-width="1.4"/></pattern></defs>` : "";
+        return `<svg class="barrasCi" viewBox="0 0 ${ancho} ${total}" width="100%" role="img" aria-label="${escCi(titulo || "Certificado")}: anterior, este mes y pendiente" xmlns="http://www.w3.org/2000/svg">${defs}${titulo ? `<text x="0" y="11" font-size="10.5" font-weight="700" fill="${tinta}">${escCi(titulo)}</text>` : ""}${leyenda}${cuerpo}</svg>`;
+      }
+      function graficoPedidoCi(h, opciones = {}) {
+        const t = h.totales;
+        return barrasSvgCi(
+          [{ codigo: h.pedido.codigo, contratado: t.contrato, anterior: t.anterior, mes: t.mes, pendiente: t.pendiente, origen: t.origen, pctOrigen: t.pctOrigen }],
+          { titulo: `Pedido ${h.pedido.codigo}`, ...opciones }
+        );
+      }
+      function graficoTotalCi(resumen, opciones = {}) {
+        return barrasSvgCi([...resumen.pedidos, { ...resumen.total, esTotal: true }], { titulo: "Total del industrial, por pedido", ...opciones });
+      }
+      var MESES_CI = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
+      function nombreMesCi(periodo) {
+        const m = /^(\d{4})-(\d{2})$/.exec(String(periodo || ""));
+        return m ? `${MESES_CI[Number(m[2]) - 1]} ${m[1]}` : String(periodo || "");
+      }
+      function fechaEnLetraCi(fecha) {
+        const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(fecha || ""));
+        return m ? `${Number(m[3])} DE ${MESES_CI[Number(m[2]) - 1]} DE ${m[1]}` : String(fecha || "");
+      }
+      function casillaFirmaCi(firma) {
+        if (!firma) {
+          return `<div class="firmaCi vacia"><div class="rotuloFirmaCi">EL JEFE DE OBRA</div>
+      <div class="huecoFirmaCi">Se firma al emitir</div></div>`;
+        }
+        const cuando = String(firma.fecha || "");
+        const sello = cuando ? `${cuando.slice(0, 10).replace(/-/g, ".")} ${cuando.slice(11, 19)}` : "";
+        return `<div class="firmaCi"><div class="rotuloFirmaCi">EL JEFE DE OBRA</div>
+    <div class="selloCi">
+      <div class="trazoCi">${firma.imagen ? `<img src="${escCi(firma.imagen)}" alt="Firma">` : `<span class="nombreTrazoCi">${escCi(firma.nombre)}</span>`}</div>
+      <div class="textoSelloCi">Firmado por<br><strong>${escCi(firma.nombre)}</strong><br>${escCi(firma.cargo || "Jefe de obra")}<br>Fecha: ${escCi(sello)}</div>
+    </div></div>`;
+      }
+      function cabeceraCi({ logoHtml, obra, proyecto, proveedor, numero, periodo, pedido, numeroPedido, pagina }) {
+        const nombreObra = `${obra.codigo || ""}${obra.nombre ? ` \xB7 ${obra.nombre}` : ""}`;
+        return `<table class="isoHoja"><tbody><tr>
+      <td class="isoLogo">${logoHtml}</td>
+      <td class="isoTitulo">CERTIFICACI\xD3N DE OBRA (MEDICI\xD3N)</td>
+      <td class="isoCodigo"><div>PRODUCCI\xD3N</div><div><strong>DTM.CERTM.01</strong></div><div>Fecha aplicaci\xF3n: 15/05/2015</div></td>
+    </tr></tbody></table>
+    <div class="datosCi">
+      <div class="datosHoja">
+        <div><span>Proyecto:</span> ${escCi(proyecto || obra.nombre || "")}</div>
+        <div><span>Obra:</span> ${escCi(nombreObra)}</div>
+        <div><span>Industrial:</span> ${escCi(proveedor.razonSocial || proveedor.nombre || "")}${proveedor.cif ? ` \xB7 CIF ${escCi(proveedor.cif)}` : ""}</div>
+        <div class="nHoja">CERTIFICACI\xD3N DE OBRA N\xBA ${escCi(numero)} \xB7 ${escCi(nombreMesCi(periodo))}${pedido ? ` \xB7 ${escCi(pedido.titulo || "")}${numeroPedido ? ` (n\xBA ${escCi(numeroPedido)} del pedido)` : ""}` : ""} \xB7 ${escCi(pagina)}</div>
+      </div>
+      ${pedido ? `<div class="pedidoCi"><span>N\xBA DE PEDIDO</span><strong>${escCi(pedido.codigo)}</strong>${pedido.numPedidoProveedor ? `<em>su ref. ${escCi(pedido.numPedidoProveedor)}</em>` : ""}</div>` : ""}
+    </div>`;
+      }
+      var theadCi = `<thead>
+    <tr class="bloques"><th colspan="8" class="kContrato">CONTRATO</th><th colspan="3" class="kActual">CERTIFICADO MES ACTUAL</th>
+      <th colspan="3" class="kAnterior">CERTIFICADO ANTERIOR</th><th colspan="3" class="kOrigen">CERTIFICADO A ORIGEN</th></tr>
+    <tr class="columnas"><th>Pos</th><th>C\xF3digo</th><th>NatC</th><th>Ud</th><th>Resumen</th>
+      <th class="n">CanPres</th><th class="n">Pres</th><th class="n">ImpPres</th>
+      <th class="n b">Cant</th><th class="n">% Avance</th><th class="n">Total</th>
+      <th class="n b">Cant</th><th class="n">% Avance</th><th class="n">Total</th>
+      <th class="n b">Cant</th><th class="n">% Avance</th><th class="n">Total</th></tr>
+  </thead>`;
+      function resumenLibroCi(t, numero, liq) {
+        return `<div class="resumenCi">
+      <div class="bandaResumen">RESUMEN</div>
+      <table class="cierreHoja"><tbody>
+        <tr><td>TOTAL CONTRATO</td><td class="n">${eurCi(t.contrato)} \u20AC</td></tr>
+        <tr><td>TOTAL CERTIFICACI\xD3N ORIGEN</td><td class="n">${eurCi(t.origen)} \u20AC</td></tr>
+        <tr><td>TOTAL CERTIFICACI\xD3N ANTERIOR</td><td class="n">${eurCi(t.anterior)} \u20AC</td></tr>
+      </tbody></table>
+      <div class="bandaTotal"><span>TOTAL CERTIFICACI\xD3N N\xBA ${escCi(numero)} ACTUAL</span><strong>${eurCi(t.mes)} \u20AC</strong></div>
+      <table class="cierreHoja liquidacionCi"><tbody>
+        <tr><td>${escCi(liq.textoIva)}</td><td class="n">${liq.inversion ? "sin IVA (art. 84.Uno.2.\xBA.f LIVA)" : liq.exenta ? "" : `${eurCi(liq.iva)} \u20AC`}</td></tr>
+        ${liq.pctRetencion ? `<tr><td>Retenci\xF3n (${pctTxtCi(liq.pctRetencion)})</td><td class="n">\u2212${eurCi(liq.retencion)} \u20AC</td></tr>` : ""}
+        ${(liq.descuentos || []).map((d) => `<tr><td>${escCi(d.concepto)}</td><td class="n">\u2212${eurCi(d.importe)} \u20AC</td></tr>`).join("")}
+        <tr class="fuerte"><td>L\xEDquido a pagar este mes</td><td class="n">${eurCi(liq.liquido)} \u20AC</td></tr>
+      </tbody></table>
+    </div>`;
+      }
+      function extrasHtmlCi(h, pos) {
+        const lista = h.extras || [];
+        const t = h.totales;
+        if (!lista.length && !(t.extras && t.extras.anterior)) return "";
+        const filas = lista.map((e, i) => `<tr class="extraCi${e.aceptada ? "" : " sinAceptarCi"}"><td class="n pos">${pos + i + 1}</td><td class="cod">${e.tipo === "horas" ? "ADM" : "EXT"}</td>
+      <td>${e.tipo === "horas" ? "Horas" : "Extra"}</td><td>${e.tipo === "horas" ? "h" : ""}</td>
+      <td class="desc">${escCi(e.concepto)}${e.parte ? ` \xB7 parte ${escCi(e.parte)}` : ""}${e.aceptada ? "" : " \xB7 pendiente de aceptar (no suma)"}</td>
+      <td class="n"></td><td class="n"></td><td class="n"></td>
+      <td class="n b">${canCi(e.horas !== null ? e.horas : e.cantidad)}</td><td class="n p"></td><td class="n">${e.aceptada ? eurCi(e.importe) : ""}</td>
+      <td class="b"></td><td></td><td></td><td class="b"></td><td></td><td></td></tr>`).join("");
+        const antes = t.extras && t.extras.anterior ? `<tr class="extraCi"><td></td><td class="cod">ADM</td><td></td><td></td><td class="desc">Administraci\xF3n y extras de meses anteriores</td><td></td><td></td><td></td>
+       <td class="b"></td><td></td><td></td><td class="n b"></td><td></td><td class="n">${eurCi(t.extras.anterior)}</td><td class="b"></td><td></td><td class="n">${eurCi(t.extras.anterior)}</td></tr>` : "";
+        return antes + filas;
+      }
+      function trozosCi(filas) {
+        const trozos = [];
+        let resto = filas.slice();
+        while (resto.length > FILAS_ULTIMA_PAGINA_CI) {
+          const n = Math.min(FILAS_POR_PAGINA_CI, resto.length - (resto.length <= FILAS_POR_PAGINA_CI ? 1 : 0));
+          trozos.push(resto.slice(0, n));
+          resto = resto.slice(n);
+        }
+        trozos.push(resto);
+        return trozos;
+      }
+      function logoDeHojaCi(obra, logo) {
+        let P = null;
+        try {
+          P = typeof __require === "function" ? require_papel() : typeof window !== "undefined" ? window.PAPEL : null;
+        } catch {
+          P = typeof window !== "undefined" ? window.PAPEL : null;
+        }
+        const m = P && P.marcaDeObra ? P.marcaDeObra(obra) : void 0;
+        if (m === null) return '<div class="logoHoja"></div>';
+        const svg = m && m.esLogo ? m.svg : logo;
+        return svg ? `<div class="logoHoja" data-marca="${m ? m.clave : ""}">${svg}</div>` : '<div class="logoHoja logoTexto">Vidaire Cx</div>';
+      }
+      function documentoHtmlCi({
+        obra = {},
+        proyecto = "",
+        proveedor = {},
+        periodo = "",
+        numero = "",
+        hojas = [],
+        firma = null,
+        logo = "",
+        retencion = 0,
+        iva = "isp",
+        fecha = "",
+        borrador = false,
+        descuentos = []
+      } = {}) {
+        const logoHtml = logoDeHojaCi(obra, logo);
+        const marca = borrador ? '<div class="marcaBorradorCi">BORRADOR</div>' : "";
+        const paginas = [];
+        paginas.push(`<section class="caratulaHoja caratulaCi">
+      ${logoHtml}
+      <dl class="datosCaratula"><dt>Proyecto</dt><dd>${escCi(proyecto || obra.nombre || "")}</dd>
+        <dt>Obra</dt><dd>${escCi(`${obra.codigo || ""}${obra.nombre ? ` \xB7 ${obra.nombre}` : ""}`)}</dd>
+        <dt>Industrial</dt><dd>${escCi(proveedor.razonSocial || proveedor.nombre || "")}${proveedor.cif ? ` \xB7 CIF ${escCi(proveedor.cif)}` : ""}</dd>
+        <dt>${hojas.length === 1 ? "Pedido" : "Pedidos"}</dt><dd class="pedidosCaratulaCi">${hojas.map((h) => escCi(h.pedido.codigo)).join(" \xB7 ")}</dd></dl>
+      <h1 class="numeroCaratula">CERTIFICACI\xD3N N\xBA ${escCi(numero)}</h1>
+      <p class="fechaCaratula">${escCi(nombreMesCi(periodo))}${fecha ? ` \xB7 ${escCi(fechaEnLetraCi(fecha))}` : ""}</p>
+      ${marca}
+    </section>`);
+        hojas.forEach((h) => {
+          const trozos = trozosCi(h.filas);
+          const liq = liquidacionCi(h.totales.mes, { iva, retencion, descuentos: hojas.length === 1 ? descuentos : [] });
+          let pos = 0;
+          trozos.forEach((filas, ti) => {
+            const ultima = ti === trozos.length - 1;
+            const cuerpo = filas.map((f) => {
+              pos += 1;
+              return `<tr><td class="n pos">${pos}</td><td class="cod">${escCi(f.codigo)}</td><td>${f.alcance ? ALCANCES_CI[f.alcance].corto : "Partida"}</td><td>${escCi(f.unidad)}</td>
+          <td class="desc">${escCi(f.descripcion)}</td>
+          <td class="n">${canCi(f.cantidad)}</td><td class="n">${eurCi(f.precio)}</td><td class="n">${eurCi(f.importeContrato)}</td>
+          <td class="n b">${canCi(f.mes)}</td><td class="n p">${f.mes ? pctTxtCi(f.pctMes) : ""}</td><td class="n">${f.importeMes ? eurCi(f.importeMes) : ""}</td>
+          <td class="n b">${canCi(f.anterior)}</td><td class="n p">${f.anterior ? pctTxtCi(f.pctAnterior) : ""}</td><td class="n">${f.importeAnterior ? eurCi(f.importeAnterior) : ""}</td>
+          <td class="n b">${canCi(f.origen)}</td><td class="n p">${f.origen ? pctTxtCi(f.pctOrigen) : ""}</td><td class="n">${f.importeOrigen ? eurCi(f.importeOrigen) : ""}</td></tr>`;
+            }).join("");
+            const t = h.totales;
+            const ex = ultima ? extrasHtmlCi(h, pos) : "";
+            paginas.push(`<section class="paginaCi">${marca}
+        ${cabeceraCi({
+              logoHtml,
+              obra,
+              proyecto,
+              proveedor,
+              numero,
+              periodo,
+              pedido: h.pedido,
+              numeroPedido: h.numeroPedido,
+              pagina: `hoja ${ti + 1} de ${trozos.length}`
+            })}
+        <table class="hojaCert">${theadCi}
+          <tbody>${cuerpo || (h.extras && h.extras.length ? "" : '<tr><td colspan="17" class="p">El pedido no tiene l\xEDneas.</td></tr>')}${ex}</tbody>
+          ${ultima ? `<tfoot><tr class="total"><td colspan="5">TOTAL PEDIDO ${escCi(h.pedido.codigo)}</td><td></td><td></td><td class="n">${eurCi(t.contrato)}</td>
+            <td class="b"></td><td class="n">${pctTxtCi(t.pctMes)}</td><td class="n">${eurCi(t.mes)}</td>
+            <td class="b"></td><td class="n">${pctTxtCi(t.pctAnterior)}</td><td class="n">${eurCi(t.anterior)}</td>
+            <td class="b"></td><td class="n">${pctTxtCi(t.pctOrigen)}</td><td class="n">${eurCi(t.origen)}</td></tr></tfoot>` : ""}
+        </table>
+        ${ultima ? `<div class="pieCi">
+            <div class="graficoCi">${graficoPedidoCi(h, { papel: true, ancho: 440 })}</div>
+            ${resumenLibroCi(t, numero, liq)}
+          </div>` : '<p class="sigueCi">Sigue en la hoja siguiente\u2026</p>'}
+        ${casillaFirmaCi(firma)}
+      </section>`);
+          });
+        });
+        if (hojas.length >= 2) {
+          const res = resumenCi(hojas);
+          const liq = liquidacionCi(res.total.mes, { iva, retencion, descuentos });
+          paginas.push(`<section class="paginaCi">${marca}
+      ${cabeceraCi({ logoHtml, obra, proyecto, proveedor, numero, periodo, pedido: null, pagina: `resumen de ${hojas.length} pedidos` })}
+      <table class="hojaCert resumenPedidosCi">
+        <thead><tr class="bloques"><th colspan="3" class="kContrato">CONTRATO</th><th colspan="2" class="kActual">CERTIFICADO MES ACTUAL</th>
+          <th colspan="2" class="kAnterior">CERTIFICADO ANTERIOR</th><th colspan="2" class="kOrigen">CERTIFICADO A ORIGEN</th></tr>
+          <tr class="columnas"><th>N\xBA de pedido</th><th>Resumen</th><th class="n">ImpPres</th><th class="n b">% Avance</th><th class="n">Total</th>
+          <th class="n b">% Avance</th><th class="n">Total</th><th class="n b">% Avance</th><th class="n">Total</th></tr></thead>
+        <tbody>${res.pedidos.map((p) => `<tr><td class="cod"><strong>${escCi(p.codigo)}</strong></td><td class="desc">${escCi(p.titulo)}</td><td class="n">${eurCi(p.contratado)}</td>
+          <td class="n b p">${pctTxtCi(p.pctMes)}</td><td class="n">${eurCi(p.mes)}</td><td class="n b p">${pctTxtCi(p.pctAnterior)}</td><td class="n">${eurCi(p.anterior)}</td>
+          <td class="n b p">${pctTxtCi(p.pctOrigen)}</td><td class="n">${eurCi(p.origen)}</td></tr>`).join("")}</tbody>
+        <tfoot><tr class="total"><td colspan="2">TOTAL</td><td class="n">${eurCi(res.total.contratado)}</td>
+          <td class="n b">${pctTxtCi(res.total.pctMes)}</td><td class="n">${eurCi(res.total.mes)}</td><td class="n b">${pctTxtCi(res.total.pctAnterior)}</td><td class="n">${eurCi(res.total.anterior)}</td>
+          <td class="n b">${pctTxtCi(res.total.pctOrigen)}</td><td class="n">${eurCi(res.total.origen)}</td></tr></tfoot>
+      </table>
+      <div class="graficoTotalCi">${graficoTotalCi(res, { papel: true, ancho: 760 })}</div>
+      <div class="pieCi pieTotalCi">
+        ${resumenLibroCi({ contrato: res.total.contratado, origen: res.total.origen, anterior: res.total.anterior, mes: res.total.mes }, numero, liq)}
+      </div>
+      ${casillaFirmaCi(firma)}
+    </section>`);
+        }
+        return paginas.join("\n");
+      }
+      function paginasCi(hojas = []) {
+        return 1 + hojas.reduce((a, h) => a + trozosCi(h.filas).length, 0) + (hojas.length >= 2 ? 1 : 0);
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.CERT_INDUSTRIALES = API;
+      })({
+        lineasPedido: lineasPedidoCi,
+        calcularHoja: calcularHojaCi,
+        totalesFilas: totalesFilasCi,
+        liquidacion: liquidacionCi,
+        descuentos: descuentosCi,
+        extras: extrasCi,
+        resumen: resumenCi,
+        barrasSvg: barrasSvgCi,
+        graficoPedido: graficoPedidoCi,
+        graficoTotal: graficoTotalCi,
+        documentoHtml: documentoHtmlCi,
+        paginas: paginasCi,
+        trozos: trozosCi,
+        nombreMes: nombreMesCi,
+        claveLinea: claveLineaCi,
+        ALCANCES: ALCANCES_CI,
+        alcance: alcanceCi,
+        SEGUIMIENTOS: SEGUIMIENTOS_CI,
+        aprobada: aprobadaCi,
+        sinAprobar: sinAprobarCi,
+        diasEntre: diasEntreCi,
+        DIAS_SIN_APROBAR: DIAS_SIN_APROBAR_CI,
+        FILAS_POR_PAGINA: FILAS_POR_PAGINA_CI,
+        FILAS_ULTIMA_PAGINA: FILAS_ULTIMA_PAGINA_CI,
+        CASILLA_FIRMA: CASILLA_FIRMA_CI,
+        PAPEL: PAPEL_CI,
+        IVAS: IVAS_CI
+      });
+    }
+  });
+
+  // electron/data/certIndustriales.js
+  var require_certIndustriales2 = __commonJS({
+    "electron/data/certIndustriales.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var CI = require_certIndustriales();
+      var { puede, campoVetado } = require_roles();
+      var { leerImporte } = require_importe();
+      var obraVisible = (repo, sesion, obraId) => obraId ? repo.leer("obras", sesion, obraId) : null;
+      var leerJson = (t) => {
+        try {
+          const v = JSON.parse(t || "{}");
+          return v && typeof v === "object" && !Array.isArray(v) ? v : {};
+        } catch {
+          return {};
+        }
+      };
+      var mesDeHoy = () => require_fecha().hoyLocal().slice(0, 7);
+      var esMes = (p) => /^\d{4}-(0[1-9]|1[0-2])$/.test(String(p || ""));
+      var puedeEditar = (sesion) => puede(sesion.rol, "certificaciones", "editar");
+      var puedeEmitir = (sesion, obra) => puedeEditar(sesion) && (require_jefesObra().esJefeDeObra(obra, sesion.personaId) || sesion.rol === "administrador");
+      var puedeAprobar = (sesion, obra) => !campoVetado(sesion.rol, "precioProveedor") && (puedeEditar(sesion) && require_jefesObra().esJefeDeObra(obra, sesion.personaId) || puede(sesion.rol, "certificaciones", "aprobar") || sesion.rol === "administrador");
+      var verboAprobar = (sesion) => puede(sesion.rol, "certificaciones", "aprobar") ? "aprobar" : "editar";
+      var hoyCi = () => require_fecha().hoyLocal();
+      var SIN_PRECIOS = "Tu rol no ve los precios de proveedor: las certificaciones de los industriales no son para ti.";
+      function nombrePersona(db, id) {
+        if (!id) return null;
+        const p = db.prepare("SELECT id, nombre FROM personas WHERE id = ?").get(id);
+        return p || null;
+      }
+      function pedidosDe(db, obraId) {
+        return db.prepare(`SELECT id, codigo, titulo, lineas, proveedorId, numPedidoProveedor, importe FROM pedidosCompra
+    WHERE obraId = ? AND proveedorId IS NOT NULL AND fechaAnulacion IS NULL ORDER BY codigo`).all(obraId);
+      }
+      function hojaDelMes(pedido, certs, periodo) {
+        const suyas = certs.filter((c) => c.pedidoId === pedido.id).sort((a, b) => a.periodo.localeCompare(b.periodo));
+        const delMes = suyas.find((c) => c.periodo === periodo) || null;
+        const antes = suyas.filter((c) => c.periodo < periodo);
+        const previa = antes.filter((c) => c.estado === "emitida").pop() || null;
+        const sinEmitir = antes.filter((c) => c.estado !== "emitida");
+        const precios = { ...leerJson(previa && previa.precios), ...leerJson(delMes && delMes.precios) };
+        const conAlcance = antes.filter((c) => c.alcances).pop() || null;
+        const alcances = { ...leerJson(conAlcance && conAlcance.alcances), ...leerJson(delMes && delMes.alcances) };
+        const extrasAnterior = antes.filter((c) => c.estado === "emitida").reduce((a, c) => a + CI.extras(c.extras).filter((e) => e.aceptada).reduce((b, e) => b + e.importe, 0), 0);
+        const anterior = previa ? leerJson(previa.origen) : leerJson(delMes && delMes.anteriorInicial);
+        const hoja = CI.calcularHoja({
+          pedido,
+          origen: leerJson(delMes && delMes.origen),
+          anterior,
+          precios,
+          alcances,
+          extras: delMes && delMes.extras,
+          extrasAnterior
+        });
+        hoja.cert = delMes;
+        hoja.numeroPedido = delMes ? delMes.numero : antes.filter((c) => c.estado === "emitida").length + 1;
+        if (sinEmitir.length) hoja.avisos.unshift({ texto: `El pedido tiene sin emitir la de ${sinEmitir.map((c) => CI.nombreMes(c.periodo).toLowerCase()).join(", ")}: no cuenta como anterior.` });
+        return hoja;
+      }
+      function panel(repo, sesion, obraId, periodo = null) {
+        const obra = obraVisible(repo, sesion, obraId);
+        if (!obra) return null;
+        if (campoVetado(sesion.rol, "precioProveedor")) return { ok: false, error: SIN_PRECIOS };
+        const mes = esMes(periodo) ? periodo : mesDeHoy();
+        const db = repo.db;
+        const certs = repo.listar("certIndustriales", sesion, { condicion: "obraId = ?", params: [obraId], orden: "periodo" });
+        const pedidos = pedidosDe(db, obraId);
+        const provs = new Map(db.prepare("SELECT id, nombre, razonSocial, cif FROM proveedores").all().map((p) => [p.id, p]));
+        const contra = contradictoriosDe(repo, sesion, obraId);
+        const eqs = repo.listar("certSubEquivalencias", sesion, { condicion: "obraId = ?", params: [obraId], orden: "codigoSub" });
+        const porProv = /* @__PURE__ */ new Map();
+        for (const p of pedidos) {
+          if (!porProv.has(p.proveedorId)) porProv.set(p.proveedorId, []);
+          const h = hojaDelMes(p, certs, mes);
+          marcarContradictorios(h, contra);
+          porProv.get(p.proveedorId).push(h);
+        }
+        const industriales = [...porProv.entries()].map(([proveedorId, hojas]) => {
+          const deEl = certs.filter((c) => c.proveedorId === proveedorId);
+          const delMes = hojas.filter((h) => h.cert);
+          const meses2 = new Set(deEl.filter((c) => c.periodo < mes && c.estado === "emitida").map((c) => c.periodo));
+          const ultima = deEl.slice().sort((a, b) => b.periodo.localeCompare(a.periodo))[0] || null;
+          const ref = delMes[0] && delMes[0].cert || ultima;
+          const firmada = delMes.find((h) => h.cert.estado === "emitida");
+          return {
+            proveedor: provs.get(proveedorId) || { id: proveedorId, nombre: "\xBF?" },
+            numero: meses2.size + 1,
+            hojas,
+            resumen: CI.resumen(hojas),
+            resumenMes: CI.resumen(delMes),
+            estado: !delMes.length ? "sin" : delMes.every((h) => h.cert.estado === "emitida") ? "emitida" : "borrador",
+            retencion: ref ? Number(ref.retencion) || 0 : 0,
+            iva: ref ? ref.iva || "isp" : "isp",
+            descuentos: CI.descuentos(ref && ref.descuentos),
+            seguimiento: estadoSeguimiento(delMes),
+            equivalencias: eqs.filter((e) => e.proveedorId === proveedorId),
+            contradictorios: contra.filter((x) => x.proveedorId === proveedorId),
+            firma: firmada ? { ...nombrePersona(db, firmada.cert.firmadaPor) || {}, fecha: firmada.cert.firmadaEn } : null,
+            avisos: hojas.flatMap((h) => h.avisos.map((a) => ({ ...a, pedido: h.pedido.codigo })))
+          };
+        }).sort((a, b) => String(a.proveedor.nombre).localeCompare(String(b.proveedor.nombre), "es"));
+        const meses = [.../* @__PURE__ */ new Set([mesDeHoy(), mes, ...certs.map((c) => c.periodo)])].sort().reverse();
+        const sinAprobar = CI.sinAprobar(certs, hoyCi()).map(({ cert, dias, desde }) => ({
+          certId: cert.id,
+          proveedorId: cert.proveedorId,
+          proveedor: (provs.get(cert.proveedorId) || {}).nombre || "\xBF?",
+          periodo: cert.periodo,
+          numero: cert.numero,
+          pedido: (pedidos.find((p) => p.id === cert.pedidoId) || {}).codigo || "",
+          seguimiento: cert.seguimiento || null,
+          dias,
+          desde
+        }));
+        return {
+          ok: true,
+          obra: { id: obra.id, codigo: obra.codigo, nombre: obra.nombre, estado: obra.estado },
+          periodo: mes,
+          meses,
+          industriales,
+          nCertificaciones: certs.length,
+          jefeObra: nombrePersona(db, obra.jefeObraId),
+          puedeEditar: puedeEditar(sesion) && obra.estado !== "cerrada",
+          puedeEmitir: puedeEmitir(sesion, obra) && obra.estado !== "cerrada",
+          puedeAprobar: puedeAprobar(sesion, obra),
+          sinAprobar,
+          contradictoriosPendientes: contra.filter((x) => x.estado === "pendiente").length
+        };
+      }
+      function estadoSeguimiento(hojasDelMes) {
+        const conCert = hojasDelMes.filter((h) => h.cert);
+        if (!conCert.length) return null;
+        const S = CI.SEGUIMIENTOS;
+        if (conCert.some((h) => h.cert.seguimiento === "rechazada")) return "rechazada";
+        if (!conCert.every((h) => S[h.cert.seguimiento])) return null;
+        return conCert.map((h) => h.cert.seguimiento).sort((a, b) => S[a].orden - S[b].orden)[0];
+      }
+      function pedidoDeLaObra(repo, obraId, pedidoId) {
+        return pedidosDe(repo.db, obraId).find((p) => p.id === pedidoId) || null;
+      }
+      function guardar(repo, sesion, obraId, pedidoId, periodo, cambios = []) {
+        const obra = obraVisible(repo, sesion, obraId);
+        if (!obra) return { ok: false, error: "No se encuentra la obra." };
+        if (!puedeEditar(sesion) || campoVetado(sesion.rol, "precioProveedor")) return { ok: false, error: "Tu rol no puede certificar a los industriales." };
+        if (obra.estado === "cerrada") return { ok: false, error: "La obra est\xE1 cerrada: ya no se certifica." };
+        if (!esMes(periodo)) return { ok: false, error: "El mes va como AAAA-MM." };
+        const pedido = pedidoDeLaObra(repo, obraId, pedidoId);
+        if (!pedido) return { ok: false, error: "El pedido no es de esta obra, est\xE1 anulado o no tiene industrial." };
+        const certs = repo.listar("certIndustriales", sesion, { condicion: "obraId = ?", params: [obraId] });
+        const hoja = hojaDelMes(pedido, certs, periodo);
+        if (hoja.cert && hoja.cert.estado === "emitida") return { ok: false, error: `La del pedido ${pedido.codigo} de ${CI.nombreMes(periodo).toLowerCase()} ya est\xE1 emitida y firmada.` };
+        if (certs.some((c) => c.pedidoId === pedidoId && c.periodo > periodo && c.estado === "emitida")) {
+          return { ok: false, error: "Ese pedido ya tiene emitida una certificaci\xF3n de un mes posterior." };
+        }
+        const origen = leerJson(hoja.cert && hoja.cert.origen);
+        const precios = leerJson(hoja.cert && hoja.cert.precios);
+        const alcances = leerJson(hoja.cert && hoja.cert.alcances);
+        const claves = new Set(hoja.filas.map((f) => f.clave));
+        const anterior = new Map(hoja.filas.map((f) => [f.clave, f.anterior]));
+        const num = (v) => {
+          const n = leerImporte(v);
+          return n === null ? NaN : n;
+        };
+        for (const c of Array.isArray(cambios) ? cambios : []) {
+          if (!c || !claves.has(c.clave)) return { ok: false, error: "Una l\xEDnea no es del pedido." };
+          if ("alcance" in c) {
+            const a = c.alcance === null || c.alcance === "" ? null : CI.alcance(c.alcance);
+            if (c.alcance && !a) return { ok: false, error: "El alcance es suministro, montaje o ambos." };
+            if (a) alcances[c.clave] = a;
+            else delete alcances[c.clave];
+          }
+          for (const k of ["origen", "mes", "precio"]) {
+            if (!(k in c)) continue;
+            const vacio = c[k] === null || c[k] === void 0 || String(c[k]).trim() === "";
+            const n = vacio ? null : num(c[k]);
+            if (!vacio && Number.isNaN(n)) return { ok: false, error: `No se entiende \xAB${c[k]}\xBB.` };
+            if (k === "precio") {
+              if (vacio) delete precios[c.clave];
+              else if (n < 0) return { ok: false, error: "El precio no puede ser negativo." };
+              else precios[c.clave] = n;
+            } else if (vacio) delete origen[c.clave];
+            else origen[c.clave] = k === "mes" ? Math.round((anterior.get(c.clave) + n) * 1e6) / 1e6 : n;
+          }
+        }
+        const datos = { origen: JSON.stringify(origen), precios: JSON.stringify(precios), alcances: Object.keys(alcances).length ? JSON.stringify(alcances) : null };
+        if (hoja.cert) {
+          repo.modificar("certIndustriales", sesion, hoja.cert.id, datos);
+          sincronizarContradictorios(repo, sesion, obraId, pedido, periodo);
+          return { ok: true, id: hoja.cert.id };
+        }
+        const suyas = certs.filter((c) => c.proveedorId === pedido.proveedorId).sort((a, b) => (a.periodo === periodo ? -1 : 0) - (b.periodo === periodo ? -1 : 0) || b.periodo.localeCompare(a.periodo));
+        const ref = suyas[0];
+        const id = repo.crear("certIndustriales", sesion, {
+          obraId,
+          pedidoId,
+          proveedorId: pedido.proveedorId,
+          periodo,
+          numero: hoja.numeroPedido,
+          estado: "borrador",
+          ...datos,
+          retencion: ref ? Number(ref.retencion) || 0 : 0,
+          iva: ref ? ref.iva || "isp" : "isp",
+          creadoPor: sesion.personaId
+        }, { verbo: "editar" });
+        sincronizarContradictorios(repo, sesion, obraId, pedido, periodo);
+        return { ok: true, id };
+      }
+      function guardarExtras(repo, sesion, obraId, pedidoId, periodo, extras = []) {
+        const obra = obraVisible(repo, sesion, obraId);
+        if (!obra) return { ok: false, error: "No se encuentra la obra." };
+        if (!puedeEditar(sesion) || campoVetado(sesion.rol, "precioProveedor")) return { ok: false, error: "Tu rol no puede certificar a los subcontratistas." };
+        if (obra.estado === "cerrada") return { ok: false, error: "La obra est\xE1 cerrada: ya no se certifica." };
+        if (!esMes(periodo)) return { ok: false, error: "El mes va como AAAA-MM." };
+        const pedido = pedidoDeLaObra(repo, obraId, pedidoId);
+        if (!pedido) return { ok: false, error: "El pedido no es de esta obra, est\xE1 anulado o no tiene subcontrata." };
+        const certs = repo.listar("certIndustriales", sesion, { condicion: "obraId = ?", params: [obraId] });
+        const hoja = hojaDelMes(pedido, certs, periodo);
+        if (hoja.cert && hoja.cert.estado === "emitida") return { ok: false, error: "Esa certificaci\xF3n ya est\xE1 emitida y firmada." };
+        const num = (v) => v === null || v === void 0 || String(v).trim() === "" ? null : leerImporte(v) ?? NaN;
+        const limpias = [];
+        for (const e of Array.isArray(extras) ? extras : []) {
+          const campos = { horas: num(e.horas), precioHora: num(e.precioHora), cantidad: num(e.cantidad), precio: num(e.precio), importe: num(e.importe) };
+          if (Object.values(campos).some((v) => v !== null && !Number.isFinite(v))) return { ok: false, error: "Una l\xEDnea de extras tiene un n\xFAmero que no se entiende." };
+          limpias.push({ tipo: e.tipo === "extra" ? "extra" : "horas", concepto: String(e.concepto || "").trim(), parte: e.parte ? String(e.parte) : "", ...campos, aceptada: e.aceptada !== false });
+        }
+        const datos = { extras: JSON.stringify(limpias) };
+        if (hoja.cert) {
+          repo.modificar("certIndustriales", sesion, hoja.cert.id, datos);
+          return { ok: true, id: hoja.cert.id };
+        }
+        const ref = certs.filter((c) => c.proveedorId === pedido.proveedorId).sort((a, b) => b.periodo.localeCompare(a.periodo))[0];
+        const id = repo.crear("certIndustriales", sesion, {
+          obraId,
+          pedidoId,
+          proveedorId: pedido.proveedorId,
+          periodo,
+          numero: hoja.numeroPedido,
+          estado: "borrador",
+          origen: "{}",
+          precios: "{}",
+          ...datos,
+          retencion: ref ? Number(ref.retencion) || 0 : 0,
+          iva: ref ? ref.iva || "isp" : "isp",
+          creadoPor: sesion.personaId
+        }, { verbo: "editar" });
+        return { ok: true, id };
+      }
+      function condiciones(repo, sesion, obraId, proveedorId, periodo, { retencion = void 0, iva = void 0, descuentos = void 0 } = {}) {
+        const obra = obraVisible(repo, sesion, obraId);
+        if (!obra) return { ok: false, error: "No se encuentra la obra." };
+        if (!puedeEditar(sesion)) return { ok: false, error: "Tu rol no puede certificar a los industriales." };
+        const cambios = {};
+        if (retencion !== void 0) {
+          const r = Number(String(retencion).replace(",", "."));
+          if (!Number.isFinite(r) || r < 0 || r > 20) return { ok: false, error: "La retenci\xF3n va de 0 a 20 %." };
+          cambios.retencion = r;
+        }
+        if (iva !== void 0) {
+          if (!CI.IVAS[String(iva)]) return { ok: false, error: "IVA: inversi\xF3n del sujeto pasivo, 21, 10 o exenta." };
+          cambios.iva = String(iva);
+        }
+        if (descuentos !== void 0) {
+          const lista = (Array.isArray(descuentos) ? descuentos : []).map((d) => ({
+            concepto: String(d && d.concepto || "").trim(),
+            importe: typeof (d && d.importe) === "number" ? d.importe : Number(String((d && d.importe) ?? "").replace(/\./g, "").replace(",", "."))
+          }));
+          if (lista.some((d) => !Number.isFinite(d.importe) || d.importe < 0)) return { ok: false, error: "Un descuento no tiene un importe v\xE1lido." };
+          cambios.descuentos = JSON.stringify(CI.descuentos(lista));
+        }
+        const abiertas = repo.listar("certIndustriales", sesion, { condicion: "obraId = ? AND proveedorId = ? AND periodo = ? AND estado = ?", params: [obraId, proveedorId, periodo, "borrador"] });
+        if (!abiertas.length) return { ok: false, error: "Mide algo de alg\xFAn pedido este mes antes de poner la retenci\xF3n o el IVA." };
+        for (const c of abiertas) repo.modificar("certIndustriales", sesion, c.id, cambios);
+        return { ok: true };
+      }
+      function emitir(repo, sesion, obraId, proveedorId, periodo) {
+        const obra = obraVisible(repo, sesion, obraId);
+        if (!obra) return { ok: false, error: "No se encuentra la obra." };
+        if (!puedeEmitir(sesion, obra)) return { ok: false, error: "La emite y la firma el jefe de obra de esta obra." };
+        const p = panel(repo, sesion, obraId, periodo);
+        const ind = p && p.industriales && p.industriales.find((i) => i.proveedor.id === proveedorId);
+        if (!ind) return { ok: false, error: "No se encuentra el industrial en esta obra." };
+        const abiertas = ind.hojas.filter((h) => h.cert && h.cert.estado === "borrador");
+        if (!abiertas.length) return { ok: false, error: "No hay nada en borrador de este industrial este mes." };
+        for (const h of abiertas) {
+          if (h.avisos.some((a) => /sin emitir/.test(a.texto))) return { ok: false, error: `El pedido ${h.pedido.codigo} tiene un mes anterior sin emitir: em\xEDtelo antes.` };
+          const sinPrecio = h.filas.find((f) => f.precio === null && f.origen);
+          if (sinPrecio) return { ok: false, error: `Pedido ${h.pedido.codigo}, l\xEDnea ${sinPrecio.pos}: certificada y sin precio.` };
+          const contra = h.filas.find((f) => f.contradictorio && f.contradictorio.estado === "pendiente");
+          if (contra) return { ok: false, error: `Pedido ${h.pedido.codigo}, l\xEDnea ${contra.pos}: precio contradictorio (${contra.precio} frente a ${contra.precioContrato} del contrato) pendiente de aprobar o rechazar.` };
+        }
+        const firmante = require_jefesObra().esJefeDeObra(obra, sesion.personaId) ? sesion.personaId : obra.jefeObraId || sesion.personaId;
+        const ahora = (/* @__PURE__ */ new Date()).toISOString();
+        for (const h of abiertas) repo.modificar("certIndustriales", sesion, h.cert.id, { estado: "emitida", firmadaPor: firmante, firmadaEn: ahora });
+        return { ok: true, hojas: abiertas.length };
+      }
+      function reabrir(repo, sesion, obraId, proveedorId, periodo) {
+        const obra = obraVisible(repo, sesion, obraId);
+        if (!obra) return { ok: false, error: "No se encuentra la obra." };
+        if (!puedeEmitir(sesion, obra)) return { ok: false, error: "La reabre el jefe de obra de esta obra." };
+        const certs = repo.listar("certIndustriales", sesion, { condicion: "obraId = ? AND proveedorId = ?", params: [obraId, proveedorId] });
+        const delMes = certs.filter((c) => c.periodo === periodo && c.estado === "emitida");
+        if (!delMes.length) return { ok: false, error: "No hay nada emitido de ese mes." };
+        if (certs.some((c) => c.periodo > periodo && delMes.some((d) => d.pedidoId === c.pedidoId))) return { ok: false, error: "Hay meses posteriores certificados: no se puede reabrir." };
+        for (const c of delMes) repo.modificar("certIndustriales", sesion, c.id, { estado: "borrador", firmadaPor: null, firmadaEn: null, seguimiento: null, seguimientoEn: null });
+        return { ok: true };
+      }
+      function documento(repo, sesion, obraId, proveedorId, periodo) {
+        const p = panel(repo, sesion, obraId, periodo);
+        if (!p || p.ok === false) return null;
+        const ind = p.industriales.find((i) => i.proveedor.id === proveedorId);
+        if (!ind) return null;
+        const hojas = ind.hojas.filter((h) => h.cert);
+        if (!hojas.length) return null;
+        const obra = repo.db.prepare("SELECT id, codigo, nombre, proyectoId FROM obras WHERE id = ?").get(obraId);
+        const proyecto = obra.proyectoId ? (repo.db.prepare("SELECT nombre FROM proyectos WHERE id = ?").get(obra.proyectoId) || {}).nombre : "";
+        const prov = repo.db.prepare("SELECT id, nombre, razonSocial, cif FROM proveedores WHERE id = ?").get(proveedorId) || ind.proveedor;
+        return {
+          obra,
+          proyecto: proyecto || "",
+          proveedor: prov,
+          periodo: p.periodo,
+          numero: ind.numero,
+          hojas,
+          retencion: ind.retencion,
+          iva: ind.iva,
+          descuentos: ind.descuentos,
+          borrador: ind.estado !== "emitida",
+          firmante: ind.firma
+        };
+      }
+      function documentosDelMes(repo, sesion, obraId, periodo) {
+        const p = panel(repo, sesion, obraId, periodo);
+        if (!p || p.ok === false) return [];
+        return p.industriales.map((i) => documento(repo, sesion, obraId, i.proveedor.id, p.periodo)).filter(Boolean);
+      }
+      function seguimiento(repo, sesion, obraId, proveedorId, periodo, valor) {
+        const obra = obraVisible(repo, sesion, obraId);
+        if (!obra) return { ok: false, error: "No se encuentra la obra." };
+        if (campoVetado(sesion.rol, "precioProveedor")) return { ok: false, error: "Tu rol no puede certificar a los subcontratistas." };
+        const S = CI.SEGUIMIENTOS;
+        if (valor !== null && !S[valor]) return { ok: false, error: `El seguimiento es uno de: ${Object.values(S).map((x) => x.texto.toLowerCase()).join(", ")}.` };
+        const def = valor ? S[valor] : null;
+        if (def && def.aprueba ? !puedeAprobar(sesion, obra) : !puedeEditar(sesion)) {
+          return { ok: false, error: def && def.aprueba ? `\xAB${def.texto}\xBB lo decide el jefe de obra o quien aprueba certificaciones.` : "Tu rol no puede certificar a los subcontratistas." };
+        }
+        const delMes = repo.listar("certIndustriales", sesion, { condicion: "obraId = ? AND proveedorId = ? AND periodo = ?", params: [obraId, proveedorId, periodo] });
+        if (!delMes.length) return { ok: false, error: "Esa subcontrata no tiene certificaci\xF3n ese mes." };
+        const objetivo = def && def.soloEmitida ? delMes.filter((c) => c.estado === "emitida") : delMes;
+        if (def && def.soloEmitida && (!objetivo.length || objetivo.length < delMes.length)) {
+          return { ok: false, error: `Solo se marca \xAB${def.texto.toLowerCase()}\xBB una certificaci\xF3n emitida y firmada.` };
+        }
+        if (valor === "coupa" && objetivo.some((c) => !CI.aprobada(c.seguimiento))) return { ok: false, error: "A Coupa se sube una certificaci\xF3n ya aprobada." };
+        if (valor === "aprobada") {
+          const ids = new Set(objetivo.map((c) => c.pedidoId));
+          const pend = contradictoriosDe(repo, sesion, obraId).filter((x) => x.estado === "pendiente" && ids.has(x.pedidoId));
+          if (pend.length) return { ok: false, error: `Hay ${pend.length === 1 ? "un precio contradictorio pendiente" : `${pend.length} precios contradictorios pendientes`}: apru\xE9balos o rech\xE1zalos antes.` };
+        }
+        const ahora = (/* @__PURE__ */ new Date()).toISOString();
+        const verbo = def && def.aprueba ? verboAprobar(sesion) : "editar";
+        for (const c of objetivo) {
+          let hist = [];
+          try {
+            hist = JSON.parse(c.historialSeguimiento || "[]");
+          } catch {
+            hist = [];
+          }
+          if (!Array.isArray(hist)) hist = [];
+          hist.push({ estado: valor, en: ahora, por: sesion.personaId || null });
+          repo.modificar("certIndustriales", sesion, c.id, { seguimiento: valor, seguimientoEn: valor ? ahora : null, historialSeguimiento: JSON.stringify(hist) }, { verbo });
+        }
+        return { ok: true };
+      }
+      var mismoPrecio = (a, b) => Math.abs(Number(a) - Number(b)) < 1e-6;
+      function contradictoriosDe(repo, sesion, obraId) {
+        return repo.listar("certSubContradictorios", sesion, { condicion: "obraId = ?", params: [obraId], orden: "creadoEn" }).sort((a, b) => (a.estado === "pendiente" ? 0 : 1) - (b.estado === "pendiente" ? 0 : 1));
+      }
+      function marcarContradictorios(hoja, contra) {
+        for (const f of hoja.filas) {
+          if (f.precioContrato === null || f.precio === null || mismoPrecio(f.precio, f.precioContrato)) {
+            f.contradictorio = null;
+            continue;
+          }
+          const suyos = contra.filter((x) => x.pedidoId === hoja.pedido.id && x.clave === f.clave && mismoPrecio(x.precioCertificado, f.precio));
+          f.contradictorio = suyos.find((x) => x.estado === "pendiente") || suyos.find((x) => x.estado === "aprobado") || suyos.pop() || null;
+        }
+        return hoja;
+      }
+      function sincronizarContradictorios(repo, sesion, obraId, pedido, periodo) {
+        const certs = repo.listar("certIndustriales", sesion, { condicion: "obraId = ?", params: [obraId] });
+        const hoja = hojaDelMes(pedido, certs, periodo);
+        if (!hoja.cert) return [];
+        const todos = contradictoriosDe(repo, sesion, obraId).filter((x) => x.pedidoId === pedido.id);
+        const nuevos = [];
+        for (const f of hoja.filas) {
+          const deLinea = todos.filter((x) => x.clave === f.clave);
+          const contradice = f.precioContrato !== null && f.precio !== null && !mismoPrecio(f.precio, f.precioContrato);
+          for (const x of deLinea.filter((y) => y.estado === "pendiente" && y.certId === hoja.cert.id && (!contradice || !mismoPrecio(y.precioCertificado, f.precio)))) {
+            repo.borrar("certSubContradictorios", sesion, x.id, { verbo: "editar" });
+          }
+          if (!contradice) continue;
+          if (deLinea.some((y) => (y.estado === "aprobado" || y.estado === "pendiente") && mismoPrecio(y.precioCertificado, f.precio))) continue;
+          nuevos.push(repo.crear("certSubContradictorios", sesion, {
+            obraId,
+            certId: hoja.cert.id,
+            pedidoId: pedido.id,
+            proveedorId: pedido.proveedorId,
+            periodo,
+            clave: f.clave,
+            codigo: f.codigo || null,
+            descripcion: f.descripcion || null,
+            precioContrato: f.precioContrato,
+            precioCertificado: f.precio,
+            estado: "pendiente",
+            creadoPor: sesion.personaId || null
+          }, { verbo: "editar" }));
+        }
+        return nuevos;
+      }
+      function resolverContradictorio(repo, sesion, id, decision, motivo = "") {
+        const x = repo.leer("certSubContradictorios", sesion, id);
+        if (!x) return { ok: false, error: "No se encuentra el precio contradictorio." };
+        const obra = obraVisible(repo, sesion, x.obraId);
+        if (!obra) return { ok: false, error: "No se encuentra la obra." };
+        if (!puedeAprobar(sesion, obra)) return { ok: false, error: "Un precio contradictorio lo aprueba o lo rechaza el jefe de obra o quien aprueba certificaciones." };
+        if (decision !== "aprobado" && decision !== "rechazado") return { ok: false, error: "Se aprueba o se rechaza." };
+        if (x.estado !== "pendiente") return { ok: false, error: `Ya est\xE1 ${x.estado}.` };
+        const verbo = verboAprobar(sesion);
+        if (decision === "rechazado") {
+          const cert = x.certId ? repo.leer("certIndustriales", sesion, x.certId) : null;
+          if (cert && cert.estado === "emitida") return { ok: false, error: "La certificaci\xF3n ya est\xE1 emitida: re\xE1brela para rechazar el precio." };
+          if (cert) {
+            const precios = leerJson(cert.precios);
+            precios[x.clave] = x.precioContrato;
+            repo.modificar("certIndustriales", sesion, cert.id, { precios: JSON.stringify(precios) }, { verbo });
+          }
+        }
+        repo.modificar("certSubContradictorios", sesion, id, {
+          estado: decision,
+          motivo: String(motivo || "").trim() || null,
+          resueltoPor: sesion.personaId || null,
+          resueltoEn: (/* @__PURE__ */ new Date()).toISOString()
+        }, { verbo });
+        return { ok: true };
+      }
+      var normCodigo = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      function equivalencias(repo, sesion, obraId, proveedorId = null) {
+        const obra = obraVisible(repo, sesion, obraId);
+        if (!obra) return [];
+        return repo.listar("certSubEquivalencias", sesion, {
+          condicion: proveedorId ? "obraId = ? AND proveedorId = ?" : "obraId = ?",
+          params: proveedorId ? [obraId, proveedorId] : [obraId],
+          orden: "codigoSub"
+        });
+      }
+      function guardarEquivalencia(repo, sesion, obraId, { proveedorId, codigoSub, partida, descripcion = null } = {}) {
+        const obra = obraVisible(repo, sesion, obraId);
+        if (!obra) return { ok: false, error: "No se encuentra la obra." };
+        if (!puedeEditar(sesion) || campoVetado(sesion.rol, "precioProveedor")) return { ok: false, error: "Tu rol no puede certificar a los subcontratistas." };
+        const cs = String(codigoSub || "").trim();
+        const pa = String(partida || "").trim();
+        if (!proveedorId || !cs || !pa) return { ok: false, error: "Falta la subcontrata, su c\xF3digo o nuestra partida." };
+        const ya = equivalencias(repo, sesion, obraId, proveedorId).find((e) => normCodigo(e.codigoSub) === normCodigo(cs));
+        const datos = { codigoSub: cs, partida: pa, descripcion: descripcion ? String(descripcion).trim() : null };
+        if (ya) {
+          repo.modificar("certSubEquivalencias", sesion, ya.id, datos);
+          return { ok: true, id: ya.id };
+        }
+        const id = repo.crear("certSubEquivalencias", sesion, { obraId, proveedorId, ...datos, creadoPor: sesion.personaId || null }, { verbo: "editar" });
+        return { ok: true, id };
+      }
+      function borrarEquivalencia(repo, sesion, id) {
+        const e = repo.leer("certSubEquivalencias", sesion, id);
+        if (!e) return { ok: false, error: "No se encuentra la equivalencia." };
+        if (!puedeEditar(sesion) || campoVetado(sesion.rol, "precioProveedor")) return { ok: false, error: "Tu rol no puede certificar a los subcontratistas." };
+        repo.borrar("certSubEquivalencias", sesion, id, { verbo: "editar" });
+        return { ok: true };
+      }
+      function mapaEquivalencias(repo, sesion, obraId, proveedorId) {
+        return new Map(repo.listar("certSubEquivalencias", sesion, { condicion: "obraId = ? AND proveedorId = ?", params: [obraId, proveedorId] }).map((e) => [normCodigo(e.codigoSub), e.partida]));
+      }
+      function filaDeLinea(hoja, l, eq) {
+        if (l.pos) return hoja.filas.find((x) => x.pos === Number(l.pos)) || null;
+        const suyo = l.codigoSub ?? l.codigo;
+        if (!suyo) return null;
+        const partida = eq.get(normCodigo(suyo));
+        if (partida) {
+          const f = hoja.filas.find((x) => normCodigo(x.codigo) === normCodigo(partida));
+          if (f) return f;
+        }
+        return hoja.filas.find((x) => normCodigo(x.codigo) === normCodigo(suyo)) || null;
+      }
+      function margen(repo, sesion, obraId, periodo = null) {
+        const p = panel(repo, sesion, obraId, periodo);
+        if (!p || p.ok === false) return p;
+        const db = repo.db;
+        const cliente = db.prepare(`SELECT id, numero, periodo FROM certificaciones WHERE obraId = ? AND estado != 'descartada'
+    AND (periodo IS NULL OR periodo <= ?) ORDER BY numero DESC LIMIT 1`).get(obraId, p.periodo);
+        const venta = /* @__PURE__ */ new Map();
+        if (cliente) {
+          for (const l of db.prepare("SELECT codigo, resumen, aOrigen, precio FROM lineasCertificacion WHERE certificacionId = ?").all(cliente.id)) {
+            const k = String(l.codigo || "").trim();
+            if (!k) continue;
+            const v = venta.get(k) || { codigo: k, resumen: l.resumen || "", venta: 0, coste: 0, subcontratas: /* @__PURE__ */ new Set() };
+            v.venta = require_modelo().euros(v.venta + (Number(l.aOrigen) || 0) * (Number(l.precio) || 0));
+            venta.set(k, v);
+          }
+        }
+        const M = require_modelo();
+        const filas = new Map(venta);
+        for (const ind of p.industriales) {
+          for (const h of ind.hojas) {
+            for (const f of h.filas) {
+              const k = String(f.codigo || "").trim();
+              if (!k || !f.importeOrigen) continue;
+              const v = filas.get(k) || { codigo: k, resumen: f.descripcion || "", venta: 0, coste: 0, subcontratas: /* @__PURE__ */ new Set() };
+              v.coste = M.euros(v.coste + f.importeOrigen);
+              v.subcontratas.add(ind.proveedor.nombre);
+              filas.set(k, v);
+            }
+          }
+        }
+        let costeExtras = 0;
+        for (const ind of p.industriales) for (const h of ind.hojas) costeExtras = M.euros(costeExtras + (h.totales.extras ? h.totales.extras.origen : 0));
+        if (costeExtras) filas.set("ADM/EXT", { codigo: "ADM/EXT", resumen: "Administraci\xF3n por horas y extras fuera de contrato", venta: 0, coste: costeExtras, subcontratas: /* @__PURE__ */ new Set() });
+        const partidas = [...filas.values()].filter((v) => v.venta || v.coste).map((v) => {
+          const enlazada = v.venta > 0;
+          return {
+            codigo: v.codigo,
+            resumen: v.resumen,
+            venta: enlazada ? v.venta : null,
+            coste: v.coste,
+            sinVenta: !enlazada,
+            margen: enlazada ? M.euros(v.venta - v.coste) : null,
+            pctMargen: enlazada ? Math.round((v.venta - v.coste) / v.venta * 1e3) / 10 : null,
+            subcontratas: [...v.subcontratas]
+          };
+        }).sort((a, b) => a.codigo.localeCompare(b.codigo, "es", { numeric: true }));
+        const sum = (k) => M.euros(partidas.reduce((a, x) => a + (x[k] || 0), 0));
+        const enlazadas = partidas.filter((x) => !x.sinVenta);
+        const total = { venta: sum("venta"), coste: sum("coste"), costeSinVenta: M.euros(partidas.filter((x) => x.sinVenta).reduce((a, x) => a + x.coste, 0)) };
+        total.margen = enlazadas.length ? M.euros(total.venta - enlazadas.reduce((a, x) => a + x.coste, 0)) : null;
+        total.pctMargen = enlazadas.length && total.venta > 0 ? Math.round(total.margen / total.venta * 1e3) / 10 : null;
+        return { ok: true, periodo: p.periodo, certCliente: cliente ? { numero: cliente.numero, periodo: cliente.periodo } : null, partidas, total };
+      }
+      function columnasSubcontrata(db) {
+        const cols = new Set(db.prepare("PRAGMA table_info(pedidosCompra)").all().map((c) => c.name));
+        const r = {};
+        if (cols.has("categoria")) r.categoria = "subcontrata";
+        if (cols.has("tipoProveedor")) r.tipoProveedor = "subcontrata";
+        return r;
+      }
+      function importar(repo, sesion, obraId, datos) {
+        const obra = obraVisible(repo, sesion, obraId);
+        if (!obra) return { ok: false, error: "No se encuentra la obra." };
+        if (!puedeEditar(sesion) || campoVetado(sesion.rol, "precioProveedor")) return { ok: false, error: "Tu rol no puede certificar a los subcontratistas." };
+        if (obra.estado === "cerrada") return { ok: false, error: "La obra est\xE1 cerrada." };
+        const lista = Array.isArray(datos) ? datos : datos && (datos.certificaciones || datos.subcontratas) || null;
+        if (!Array.isArray(lista)) return { ok: false, error: "El JSON no trae \xABcertificaciones\xBB." };
+        const db = repo.db;
+        const norm = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        const provs = db.prepare("SELECT id, nombre, razonSocial, cif FROM proveedores").all();
+        const num = leerImporte;
+        const res = { ok: true, creadas: 0, existentes: 0, proveedoresCreados: 0, pedidosMarco: 0, sinCasar: [], avisos: [] };
+        const ordenadas = lista.map((c, i) => ({ c: c || {}, i })).sort((a, b) => String(a.c.periodo || a.c.mes || "").localeCompare(String(b.c.periodo || b.c.mes || "")) || a.i - b.i);
+        for (const { c } of ordenadas) {
+          const quien = c.subcontrata || c.industrial || c.proveedor || "";
+          const F = c.formatoCertIndustriales || null;
+          const periodo = String(c.periodo || c.mes || "");
+          const numero = parseInt(c.numero ?? c.n, 10);
+          const clave = String(c.clave || `${norm(quien)}#${Number.isFinite(numero) ? numero : periodo}`);
+          const etiqueta = `${quien || "\xBF?"} ${Number.isFinite(numero) ? `n\xBA ${numero}` : periodo}`;
+          const administracion = c.administracion && Array.isArray(c.administracion.lineas) ? c.administracion : null;
+          const hayLineas = F && Array.isArray(F.lineasPedido) && F.lineasPedido.length || Array.isArray(c.lineas) && c.lineas.length || administracion || Array.isArray(c.extras) && c.extras.length;
+          if (c.leido === false || !hayLineas) {
+            res.sinCasar.push({ cert: etiqueta, motivo: c.motivoNoLeido || "sin l\xEDneas que importar" });
+            continue;
+          }
+          if (!esMes(periodo)) {
+            res.sinCasar.push({ cert: etiqueta, motivo: "falta el mes" });
+            continue;
+          }
+          if (norm(quien).length < 2 || /^\(/.test(String(quien))) {
+            res.sinCasar.push({ cert: etiqueta, motivo: "subcontrata sin identificar" });
+            continue;
+          }
+          let prov = c.proveedorIdApp && provs.find((p) => p.id === c.proveedorIdApp) || provs.find((p) => p.cif && c.cif && norm(p.cif) === norm(c.cif) || p.cif && norm(p.cif) === norm(quien) || norm(p.nombre) === norm(quien) || norm(p.razonSocial) === norm(quien)) || provs.find((p) => norm(quien).length > 3 && norm(p.nombre).length > 3 && (norm(p.nombre).includes(norm(quien)) || norm(quien).includes(norm(p.nombre))));
+          if (!prov) {
+            let id;
+            try {
+              id = repo.crear("proveedores", sesion, { nombre: String(quien).trim(), cif: c.cif || null }, { verbo: "crear" });
+            } catch (e) {
+              res.sinCasar.push({ cert: etiqueta, motivo: "la subcontrata no existe y tu rol no puede darla de alta" });
+              continue;
+            }
+            prov = { id, nombre: quien, cif: c.cif || null };
+            provs.push(prov);
+            res.proveedoresCreados += 1;
+          }
+          const eq = mapaEquivalencias(repo, sesion, obraId, prov.id);
+          const certs = repo.listar("certIndustriales", sesion, { condicion: "obraId = ?", params: [obraId] });
+          let pedido = c.pedido ? pedidosDe(db, obraId).find((p) => p.proveedorId === prov.id && (norm(p.codigo) === norm(c.pedido) || norm(p.numPedidoProveedor) === norm(c.pedido))) : null;
+          if (!pedido && !c.pedido && !hayLineasPedido(c, F)) {
+            const suyos = pedidosDe(db, obraId).filter((p) => p.proveedorId === prov.id);
+            if (suyos.length === 1) pedido = suyos[0];
+          }
+          if (!pedido) {
+            pedido = db.prepare("SELECT id, codigo, titulo, lineas, proveedorId, numPedidoProveedor, importe FROM pedidosCompra WHERE obraId = ? AND numPedidoProveedor = ? AND fechaAnulacion IS NULL").get(obraId, `IMP:${clave}`);
+            if (!pedido && c.pedido && !hayLineasPedido(c, F)) {
+              res.sinCasar.push({ cert: etiqueta, motivo: `pedido ${c.pedido} no encontrado` });
+              continue;
+            }
+          }
+          if (pedido && certs.some((x) => x.pedidoId === pedido.id && (x.periodo === periodo || Number.isFinite(numero) && x.numero === numero && x.claveImport === clave))) {
+            res.existentes += 1;
+            continue;
+          }
+          if (!pedido) {
+            const lineasP = (F && F.lineasPedido ? F.lineasPedido : c.lineasPedido || []).map((l, k) => {
+              const par = (c.partidas || [])[k];
+              const est = par && par.lineaApp ? num(par.lineaApp.medicionEstudios) : null;
+              const nuestra = eq.get(normCodigo(l.codigo)) || eq.get(normCodigo(l.boq));
+              return {
+                descripcion: l.descripcion,
+                unidad: l.unidad,
+                cantidad: l.cantidad,
+                precio: l.precio,
+                boq: nuestra || l.boq || l.codigo,
+                referencia: l.codigo,
+                ...CI.alcance(l.alcance) ? { alcance: CI.alcance(l.alcance) } : {},
+                ...est !== null ? { medicionEstudios: est } : {}
+              };
+            });
+            const n = (db.prepare("SELECT COALESCE(MAX(numero),0) n FROM pedidosCompra WHERE obraId = ?").get(obraId).n || 0) + 1;
+            const importe = lineasP.reduce((a, l) => a + (Number(l.cantidad) || 0) * (Number(l.precio) || 0), 0);
+            const id = repo.crear("pedidosCompra", sesion, {
+              obraId,
+              codigo: `CTR-${String(n).padStart(4, "0")}`,
+              numero: n,
+              proveedorId: prov.id,
+              titulo: String(c.titulo || `Contrato ${quien}${c.disciplina ? ` \xB7 ${c.disciplina}` : ""}`).slice(0, 200),
+              lineas: JSON.stringify(lineasP),
+              numPedidoProveedor: `IMP:${clave}`,
+              importe: Math.round(importe * 100) / 100,
+              observaciones: "Contrato de subcontrata cargado con la certificaci\xF3n (sin pedido de compra).",
+              creadoPor: sesion.personaId,
+              /* Un contrato de subcontrata es gasto de subcontrata (si no, el gasto por categoría lo deja sin clasificar).
+                 Las columnas las pone el módulo de pedidos categorizados: solo se rellenan si ya existen en la base. */
+              ...columnasSubcontrata(db)
+            }, { verbo: "editar" });
+            pedido = { id, codigo: `CTR-${String(n).padStart(4, "0")}`, titulo: "", lineas: JSON.stringify(lineasP), proveedorId: prov.id };
+            res.pedidosMarco += 1;
+          }
+          const hoja = hojaDelMes(pedido, certs, periodo);
+          const origen = {};
+          const precios = {};
+          const alcances = {};
+          if (F && F.origen) {
+            for (const [k, v] of Object.entries(F.origen)) if (hoja.filas.some((f) => f.clave === k) && num(v) !== null) origen[k] = num(v);
+            for (const [k, v] of Object.entries(F.precios || {})) {
+              const f = hoja.filas.find((x) => x.clave === k);
+              if (f && num(v) !== null && num(v) !== f.precio) precios[k] = num(v);
+            }
+          }
+          for (const l of Array.isArray(c.lineas) ? c.lineas : []) {
+            const f = filaDeLinea(hoja, l, eq);
+            if (!f) {
+              res.avisos.push(`${etiqueta}: una l\xEDnea no casa con el pedido (${l.pos || l.codigoSub || l.codigo || "\xBF?"}); si es un c\xF3digo suyo, a\xF1ade su equivalencia.`);
+              continue;
+            }
+            if (CI.alcance(l.alcance)) alcances[f.clave] = CI.alcance(l.alcance);
+            const a = num(l.aOrigen ?? l.origen);
+            const m = num(l.mes);
+            if (a !== null) origen[f.clave] = a;
+            else if (m !== null) origen[f.clave] = Math.round((f.anterior + m) * 1e6) / 1e6;
+            const pr = num(l.precio);
+            if (pr !== null && pr >= 0 && pr !== f.precio) precios[f.clave] = pr;
+          }
+          const anteriorInicial = {};
+          const yaEmitida = certs.some((x) => x.pedidoId === pedido.id && x.periodo < periodo && x.estado === "emitida");
+          if (!yaEmitida) {
+            (Array.isArray(c.partidas) ? c.partidas : []).forEach((par, k) => {
+              if (!par) return;
+              const partida = par.codigoSub ? eq.get(normCodigo(par.codigoSub)) : null;
+              const f = partida && hoja.filas.find((x) => normCodigo(x.codigo) === normCodigo(partida)) || hoja.filas[k];
+              if (!f) return;
+              const a = num(par.origen);
+              const m = num(par.mes);
+              if (a === null) return;
+              const ant = Math.round((a - (m === null ? 0 : m)) * 1e6) / 1e6;
+              if (ant > 0) anteriorInicial[f.clave] = ant;
+            });
+            for (const l of Array.isArray(c.lineas) ? c.lineas : []) {
+              const f = filaDeLinea(hoja, l, eq);
+              const an = f ? num(l.anterior) : null;
+              if (an !== null && an > 0) anteriorInicial[f.clave] = an;
+            }
+          }
+          const extras = (Array.isArray(c.extras) ? c.extras : []).slice();
+          if (administracion) {
+            for (const l of administracion.lineas) {
+              extras.push({
+                tipo: "horas",
+                concepto: l.operario || l.motivo || administracion.referencia || "Administraci\xF3n",
+                horas: l.horas,
+                precioHora: l.precioHora ?? administracion.precioHora,
+                parte: l.parte,
+                importe: l.importe
+              });
+            }
+          }
+          const crudo = String(c.estado || F && F.estado || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z]/g, "");
+          const SEG = { recibida: "recibida", enrevision: "enRevision", revision: "enRevision", enviada: "enviada", aprobada: "aprobada", rechazada: "rechazada", coupa: "coupa", subidaacoupa: "coupa", encoupa: "coupa" };
+          const seg = SEG[crudo] || (crudo ? null : "recibida");
+          const emitida = crudo === "emitida" || seg && CI.SEGUIMIENTOS[seg].soloEmitida || false;
+          const ret = num(c.retencion ?? (F && F.retencion));
+          const iva = String(c.iva ?? (F && F.iva));
+          repo.crear("certIndustriales", sesion, {
+            obraId,
+            pedidoId: pedido.id,
+            proveedorId: prov.id,
+            periodo,
+            numero: Number.isFinite(numero) ? numero : hoja.numeroPedido,
+            estado: emitida ? "emitida" : "borrador",
+            origen: JSON.stringify(origen),
+            precios: JSON.stringify(precios),
+            retencion: ret !== null && ret >= 0 && ret <= 20 ? ret : 0,
+            iva: CI.IVAS[iva] ? iva : "isp",
+            descuentos: JSON.stringify(CI.descuentos(c.descuentos)),
+            extras: JSON.stringify(extras.map((e) => ({ ...e }))),
+            seguimiento: seg,
+            seguimientoEn: seg ? (/* @__PURE__ */ new Date()).toISOString() : null,
+            historialSeguimiento: seg ? JSON.stringify([{ estado: seg, en: (/* @__PURE__ */ new Date()).toISOString(), por: sesion.personaId || null, importada: true }]) : null,
+            claveImport: clave,
+            anteriorInicial: Object.keys(anteriorInicial).length ? JSON.stringify(anteriorInicial) : null,
+            alcances: Object.keys(alcances).length ? JSON.stringify(alcances) : null,
+            notas: [c.estadoTexto, declaradoTexto(c, num), c.adjunto && `Adjunto: ${c.adjunto}`, c.prueba && c.prueba.webLink && `Correo: ${c.prueba.webLink}`].filter(Boolean).join(" \xB7 ") || null,
+            firmadaEn: emitida ? (/* @__PURE__ */ new Date()).toISOString() : null,
+            creadoPor: sesion.personaId
+          }, { verbo: "editar" });
+          res.creadas += 1;
+          const contra = sincronizarContradictorios(repo, sesion, obraId, pedido, periodo);
+          if (contra.length) res.avisos.push(`${etiqueta}: ${contra.length === 1 ? "un precio no es" : `${contra.length} precios no son`} el del contrato: pendiente${contra.length === 1 ? "" : "s"} de aprobar en \xABPrecios contradictorios\xBB.`);
+          res.contradictorios = (res.contradictorios || 0) + contra.length;
+          const nueva = hojaDelMes(pedido, repo.listar("certIndustriales", sesion, { condicion: "obraId = ?", params: [obraId] }), periodo);
+          for (const a of nueva.avisos.filter((x) => x.tipo)) res.avisos.push(`${etiqueta}: ${a.texto}`);
+          const tm = num(c.totalMes);
+          const to = num(c.totalOrigenDeclarado);
+          const t = nueva.totales;
+          const soloHoras = !nueva.filas.length;
+          const mesLineas = t ? soloHoras ? t.mes : Math.round((t.mes - (t.extras ? t.extras.mes : 0)) * 100) / 100 : 0;
+          const origenLineas = t ? t.origenLineas : 0;
+          if (t && tm !== null && Math.abs(mesLineas - tm) > 0.01) res.avisos.push(`${etiqueta}: el mes de las partidas sale ${require_modelo().textoEuros(mesLineas)} \u20AC y su proforma dice ${require_modelo().textoEuros(tm)} \u20AC.`);
+          if (t && to !== null && Math.abs(origenLineas - to) > 0.01) res.avisos.push(`${etiqueta}: a origen las partidas suman ${require_modelo().textoEuros(origenLineas)} \u20AC y su proforma dice ${require_modelo().textoEuros(to)} \u20AC.`);
+        }
+        return res;
+      }
+      function declaradoTexto(c, num) {
+        const tm = num(c.totalMes);
+        const to = num(c.totalOrigenDeclarado);
+        const partes = [tm !== null && `mes ${require_modelo().textoEuros(tm)} \u20AC`, to !== null && `a origen ${require_modelo().textoEuros(to)} \u20AC`].filter(Boolean);
+        return partes.length ? `Su proforma: ${partes.join(", ")}` : null;
+      }
+      var hayLineasPedido = (c, F) => Boolean(F && Array.isArray(F.lineasPedido) && F.lineasPedido.length || Array.isArray(c.lineasPedido) && c.lineasPedido.length);
+      module.exports = {
+        panel,
+        guardar,
+        guardarExtras,
+        condiciones,
+        emitir,
+        reabrir,
+        documento,
+        documentosDelMes,
+        seguimiento,
+        margen,
+        importar,
+        equivalencias,
+        guardarEquivalencia,
+        borrarEquivalencia,
+        contradictoriosDe,
+        resolverContradictorio,
+        sincronizarContradictorios,
+        hojaDelMes,
+        pedidosDe,
+        puedeEditar,
+        puedeEmitir,
+        puedeAprobar,
+        leerJson,
+        mesDeHoy
+      };
+      require_costeDesdeCompras2().enganchar(module.exports, ["guardar", "guardarExtras", "emitir", "reabrir", "importar"], "obra");
+    }
+  });
+
+  // electron/data/costeDesdeCompras.js
+  var require_costeDesdeCompras2 = __commonJS({
+    "electron/data/costeDesdeCompras.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var CDC = require_costeDesdeCompras();
+      var { medicionesCertificadas } = require_costeFinal2();
+      var { nuevoId } = require_repositorio();
+      var historial = require_historial();
+      var t = (v) => v === null || v === void 0 ? "" : String(v).trim();
+      var leerJson = (s, d) => {
+        try {
+          return s ? JSON.parse(s) : d;
+        } catch {
+          return d;
+        }
+      };
+      var INTOCABLES = [
+        "tipo",
+        "padreId",
+        "codigo",
+        "resumen",
+        "descripcion",
+        "descripcionProvisional",
+        "unidad",
+        "cantidad",
+        "precio",
+        "precioCoste",
+        "disciplina",
+        "subdisciplina",
+        "estMaterial",
+        "estAuxiliares",
+        "estTransporte",
+        "estManoObra",
+        "estSubcontrata",
+        "ventMaterial",
+        "ventAuxiliares",
+        "ventTransporte",
+        "ventManoObra",
+        "ventSubcontrata"
+      ];
+      var huella = (filas) => JSON.stringify(filas.map((f) => INTOCABLES.map((c) => f[c] ?? null)));
+      function costsPlanDe(db, obra) {
+        if (obra.presupuestoId) {
+          const p2 = db.prepare("SELECT id FROM presupuestos WHERE id = ? AND fase = 'obra'").get(obra.presupuestoId);
+          if (p2) return p2.id;
+        }
+        const p = db.prepare("SELECT id FROM presupuestos WHERE (obraIdVinculada = ? OR obraId = ?) AND fase = 'obra' ORDER BY creadoEn LIMIT 1").get(obra.id, obra.id);
+        return p ? p.id : null;
+      }
+      var MARCA = "Coste de obra desde compras (tarea d0552d75)";
+      var CLAVE_RASTRO = "coste:linea:";
+      var CAMPOS_OBRA = ["cantidadObra", "obrSubcontrata", "obrMaterial"];
+      var normCodigo = (v) => t(v).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      var tablaExiste = (db, n) => !!db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(n);
+      function certificacionesDeBd(db, obraId, partidas = null) {
+        if (!tablaExiste(db, "certIndustriales")) return [];
+        const CI = require_certIndustriales2();
+        const CIS = require_certIndustriales();
+        const certs = db.prepare("SELECT * FROM certIndustriales WHERE obraId = ?").all(obraId);
+        if (!certs.length) return [];
+        const obra = db.prepare("SELECT * FROM obras WHERE id = ?").get(obraId);
+        const cp = obra ? costsPlanDe(db, obra) : null;
+        const lista = partidas || (cp ? db.prepare("SELECT id, padreId, codigo, resumen FROM lineas WHERE presupuestoId = ? AND tipo = 'partida'").all(cp) : []);
+        const porCodigo = /* @__PURE__ */ new Map();
+        for (const p of lista) {
+          const k = normCodigo(p.codigo);
+          if (!porCodigo.has(k)) porCodigo.set(k, []);
+          porCodigo.get(k).push(p);
+        }
+        const equivalencias = tablaExiste(db, "certSubEquivalencias") ? db.prepare("SELECT proveedorId, codigoSub, partida FROM certSubEquivalencias WHERE obraId = ?").all(obraId) : [];
+        const codigoPadre = new Map(db.prepare("SELECT id, codigo FROM lineas WHERE presupuestoId = ?").all(cp || "").map((r) => [r.id, t(r.codigo)]));
+        const padreDe = new Map(lista.map((x) => [x.id, x.padreId]));
+        const ramaDe = (x) => {
+          const c = codigoPadre.get(x.padreId !== void 0 ? x.padreId : padreDe.get(x.id)) || "";
+          return c.includes(".") ? c.slice(0, c.lastIndexOf(".")) : "";
+        };
+        const partidaDe = (proveedorId, f) => {
+          const eq = equivalencias.find((e) => e.proveedorId === proveedorId && normCodigo(e.codigoSub) === normCodigo(f.codigo));
+          const cands = porCodigo.get(normCodigo(eq ? eq.partida : f.codigo)) || [];
+          if (cands.length <= 1) return cands[0] || null;
+          const palabra = normCodigo(t(f.descripcion).split(/\s+/)[0]);
+          const finas = palabra.length >= 2 ? cands.filter((c) => normCodigo(c.resumen).includes(palabra)) : [];
+          return finas.length === 1 ? finas[0] : null;
+        };
+        const pedidos = db.prepare(`SELECT p.id, p.codigo, p.titulo, p.lineas, p.proveedorId, p.numPedidoProveedor, p.importe, pr.nombre AS proveedorNombre
+    FROM pedidosCompra p LEFT JOIN proveedores pr ON pr.id = p.proveedorId WHERE p.obraId = ? AND p.fechaAnulacion IS NULL ORDER BY p.codigo`).all(obraId);
+        const out = [];
+        for (const p of pedidos) {
+          const suyas = certs.filter((c) => c.pedidoId === p.id);
+          if (!suyas.length) continue;
+          const ultimo = suyas.map((c) => c.periodo).sort().pop();
+          const hoja = CI.hojaDelMes(p, certs, ultimo);
+          const sub = t(p.proveedorNombre) || "Subcontrata";
+          const elegidas = hoja.filas.map((f) => partidaDe(p.proveedorId, f));
+          const ramas = new Set(elegidas.filter(Boolean).map((x) => ramaDe(x)).filter(Boolean));
+          const partidasCert = hoja.filas.map((f, i) => {
+            let pa = elegidas[i];
+            if (!pa && ramas.size) {
+              const cands = (porCodigo.get(normCodigo(f.codigo)) || []).filter((c) => ramas.has(ramaDe(c)));
+              if (cands.length === 1) pa = cands[0];
+            }
+            return {
+              codigoSub: t(f.codigo) || `L${f.pos}`,
+              resumen: t(f.descripcion),
+              unidad: t(f.unidad) || "ud",
+              precio: f.precio,
+              origen: f.origen > 0 ? f.origen : null,
+              origenImporte: f.origen > 0 ? f.importeOrigen : null,
+              lineaApp: pa ? { id: pa.id, codigo: pa.codigo } : null
+            };
+          }).filter((x) => x.origen !== null || /nuevo/i.test(x.resumen));
+          const extras = suyas.flatMap((c) => CIS.extras(c.extras)).filter((e) => e.aceptada && e.importe);
+          const total = Math.round(extras.reduce((a, e) => a + e.importe, 0) * 100) / 100;
+          const horas = extras.reduce((a, e) => a + (Number(e.horas) || 0), 0);
+          const precios = [...new Set(extras.map((e) => e.precioHora).filter((x) => x !== null && x !== void 0))];
+          out.push({
+            subcontrata: sub,
+            proveedorIdApp: p.proveedorId,
+            periodo: ultimo,
+            contrato: t(p.codigo),
+            titulo: `${t(p.codigo)} \xB7 ${t(p.titulo)}`,
+            partidas: partidasCert,
+            administracion: total > 0 ? { total, totalHoras: horas, precioHora: precios.length === 1 ? precios[0] : null, referencia: t(p.codigo), lineas: extras } : null
+          });
+        }
+        return out;
+      }
+      function leer(db, obraId, certificaciones = null) {
+        const obra = db.prepare("SELECT * FROM obras WHERE id = ?").get(obraId);
+        if (!obra) throw new Error("Esa obra no existe.");
+        const presupuestoId = costsPlanDe(db, obra);
+        if (!presupuestoId) throw new Error("La obra no tiene Costs Plan.");
+        const partidas = db.prepare("SELECT id, padreId, tipo, codigo, resumen, descripcion, unidad, cantidad, cantidadObra FROM lineas WHERE presupuestoId = ? AND tipo = 'partida'").all(presupuestoId);
+        if (!Array.isArray(certificaciones)) certificaciones = certificacionesDeBd(db, obraId, partidas);
+        const pedidos = db.prepare(`SELECT p.*, pr.nombre AS proveedorNombre FROM pedidosCompra p
+    LEFT JOIN proveedores pr ON pr.id = p.proveedorId WHERE p.obraId = ? ORDER BY p.numero`).all(obraId).map((p) => ({ ...p, lineas: leerJson(p.lineas, []) }));
+        const decididasFilas = db.prepare("SELECT clave, estado, tipo, lineaId, datos FROM propuestasPedido WHERE obraId = ?").all(obraId).filter((d) => !t(d.datos).includes(MARCA));
+        const decididas = new Set(decididasFilas.map((d) => d.clave));
+        const nacidas = new Set(decididasFilas.filter((d) => d.estado === "aceptada" && d.tipo === "partida" && d.lineaId).map((d) => d.lineaId));
+        const yaCo = db.prepare("SELECT id FROM lineas WHERE presupuestoId = ? AND padreId IS NULL AND codigo = ? AND tipo = 'capitulo'").get(presupuestoId, CDC.CAPITULO.codigo);
+        if (yaCo) for (const id of idsDelArbol(db, yaCo.id)) nacidas.add(id);
+        const certificadasCliente = new Map(Object.entries(medicionesCertificadas(db, obraId)));
+        const plan = CDC.planificar({ partidas, pedidos, certificaciones, certificadasCliente, decididas, nacidas });
+        return { obra, presupuestoId, plan, certificaciones, capituloExistente: yaCo ? yaCo.id : null };
+      }
+      function idsDelArbol(db, raizId) {
+        const fila = db.prepare("SELECT presupuestoId FROM lineas WHERE id = ?").get(raizId);
+        if (!fila) return [];
+        const hijos = /* @__PURE__ */ new Map();
+        for (const r of db.prepare("SELECT id, padreId FROM lineas WHERE presupuestoId = ?").all(fila.presupuestoId)) {
+          if (!hijos.has(r.padreId)) hijos.set(r.padreId, []);
+          hijos.get(r.padreId).push(r.id);
+        }
+        const out = [];
+        const pila = [raizId];
+        while (pila.length) {
+          const id = pila.pop();
+          out.push(id);
+          for (const h of hijos.get(id) || []) pila.push(h);
+        }
+        return out;
+      }
+      function aplicar(db, sesion, obraId, certificaciones = null) {
+        const L = leer(db, obraId, certificaciones);
+        if (L.capituloExistente) return { ok: false, error: `El Costs Plan ya tiene el cap\xEDtulo ${CDC.CAPITULO.codigo}: no se carga dos veces.`, ...L };
+        return escribir(db, sesion, obraId, L);
+      }
+      function reconstruir(db, sesion, obraId, certificaciones = null) {
+        return escribir(db, sesion, obraId, leer(db, obraId, certificaciones));
+      }
+      function rastroPrevio(db, obraId, presupuestoId, capituloId) {
+        const rastro = /* @__PURE__ */ new Map();
+        for (const r of db.prepare("SELECT id, clave, lineaId, datos FROM propuestasPedido WHERE obraId = ? AND clave LIKE ?").all(obraId, `${CLAVE_RASTRO}%`)) {
+          const d = leerJson(r.datos, {});
+          rastro.set(r.lineaId, { id: r.id, antes: d.antes || {}, puesto: d.puesto || {} });
+        }
+        if (rastro.size || !capituloId) return rastro;
+        const cap = db.prepare("SELECT creadoEn FROM lineas WHERE id = ?").get(capituloId);
+        if (!cap) return rastro;
+        const t0 = new Date(Date.parse(cap.creadoEn) - 12e4).toISOString();
+        const t1 = new Date(Date.parse(cap.creadoEn) + 12e4).toISOString();
+        const filas = db.prepare(`SELECT h.registroId, h.campo, h.valorAntes, h.valorDespues FROM historial h JOIN lineas l ON l.id = h.registroId
+    WHERE h.entidad = 'lineas' AND l.presupuestoId = ? AND h.campo IN (${CAMPOS_OBRA.map(() => "?").join(",")}) AND h.creadoEn BETWEEN ? AND ? ORDER BY h.creadoEn`).all(presupuestoId, ...CAMPOS_OBRA, t0, t1);
+        for (const f of filas) {
+          const r = rastro.get(f.registroId) || { id: null, antes: {}, puesto: {} };
+          if (!(f.campo in r.antes)) r.antes[f.campo] = f.valorAntes === null || f.valorAntes === "" ? null : Number(f.valorAntes);
+          r.puesto[f.campo] = f.valorDespues === null || f.valorDespues === "" ? null : Number(f.valorDespues);
+          rastro.set(f.registroId, r);
+        }
+        return rastro;
+      }
+      var igual = (a, b) => String(a ?? "") === String(b ?? "");
+      function escribir(db, sesion, obraId, L) {
+        const { presupuestoId, plan } = L;
+        const ahora = (/* @__PURE__ */ new Date()).toISOString();
+        const quien = sesion && sesion.personaId ? sesion.personaId : null;
+        const deEstudios = () => db.prepare(`SELECT * FROM lineas WHERE presupuestoId = ? AND codigo IS NOT NULL AND (codigo <> ? AND codigo NOT LIKE ?) ORDER BY id`).all(presupuestoId, CDC.CAPITULO.codigo, `${CDC.CAPITULO.codigo}.%`);
+        const coIds = new Set(L.capituloExistente ? idsDelArbol(db, L.capituloExistente) : []);
+        const antes = huella(deEstudios().filter((f) => !coIds.has(f.id)));
+        const cambios = { partidasProyecto: 0, creadas: 0, cambiadas: 0, quitadas: 0, propuestas: 0 };
+        const editar = (id, campo, valorAntes, valor) => {
+          db.prepare(`UPDATE lineas SET ${campo} = ?, modificadoEn = ? WHERE id = ?`).run(valor, ahora, id);
+          historial.anotar(db, sesion, "lineas", id, "editar", campo, valorAntes, valor);
+        };
+        db.exec("SAVEPOINT coste_desde_compras");
+        try {
+          const fila = db.prepare("SELECT * FROM lineas WHERE id = ?");
+          const rastro = rastroPrevio(db, obraId, presupuestoId, L.capituloExistente);
+          const nuevoRastro = /* @__PURE__ */ new Map();
+          const porLinea = new Map(plan.actualizaciones.map((a) => [a.lineaId, a]));
+          for (const id of /* @__PURE__ */ new Set([...rastro.keys(), ...porLinea.keys()])) {
+            const f = fila.get(id);
+            if (!f) continue;
+            const previo = rastro.get(id) || { antes: {}, puesto: {} };
+            const a = porLinea.get(id) || {};
+            const r = { antes: {}, puesto: {} };
+            let tocada = false;
+            for (const campo of CAMPOS_OBRA) {
+              const mio = campo in previo.puesto && igual(f[campo], previo.puesto[campo]);
+              const base = mio ? previo.antes[campo] ?? null : f[campo];
+              if (a[campo] !== void 0) {
+                r.antes[campo] = base;
+                r.puesto[campo] = a[campo];
+                if (!igual(f[campo], a[campo])) {
+                  editar(id, campo, f[campo], a[campo]);
+                  tocada = true;
+                }
+              } else if (mio && !igual(f[campo], base)) {
+                editar(id, campo, f[campo], base);
+                tocada = true;
+              }
+            }
+            if (tocada) cambios.partidasProyecto += 1;
+            if (Object.keys(r.puesto).length) nuevoRastro.set(id, r);
+          }
+          const ins = db.prepare(`INSERT INTO lineas (id, presupuestoId, padreId, orden, tipo, codigo, resumen, descripcion, descripcionProvisional, unidad,
+      disciplina, subdisciplina, cantidadObra, obrMaterial, obrAuxiliares, obrTransporte, obrManoObra, obrSubcontrata, creadoEn, modificadoEn)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+          let capId = L.capituloExistente;
+          if (!capId) {
+            const orden = (db.prepare("SELECT MAX(orden) AS m FROM lineas WHERE presupuestoId = ? AND padreId IS NULL").get(presupuestoId).m ?? -1) + 1;
+            capId = nuevoId();
+            ins.run(
+              capId,
+              presupuestoId,
+              null,
+              orden,
+              "capitulo",
+              plan.capitulo.codigo,
+              plan.capitulo.resumen,
+              null,
+              0,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              ahora,
+              ahora
+            );
+            historial.anotar(db, sesion, "lineas", capId, "crear", null, null, plan.capitulo.resumen);
+          }
+          const existentes = db.prepare("SELECT * FROM lineas WHERE padreId IN (SELECT id FROM lineas WHERE padreId = ?) OR padreId = ?").all(capId, capId);
+          const subsViejos = new Map(existentes.filter((x) => x.padreId === capId && x.tipo === "capitulo").map((x) => [x.resumen, x]));
+          const partidasViejas = /* @__PURE__ */ new Map();
+          for (const x of existentes.filter((y) => y.tipo === "partida")) partidasViejas.set(`${x.resumen}|${x.unidad}`, x);
+          const usadas = /* @__PURE__ */ new Set();
+          const ajustar = (x, valores) => {
+            let cambio = false;
+            for (const [campo, v] of Object.entries(valores)) {
+              if (igual(x[campo], v)) continue;
+              db.prepare(`UPDATE lineas SET ${campo} = ?, modificadoEn = ? WHERE id = ?`).run(v, ahora, x.id);
+              if (!["orden", "padreId"].includes(campo)) historial.anotar(db, sesion, "lineas", x.id, "editar", campo, x[campo], v);
+              cambio = true;
+            }
+            return cambio;
+          };
+          const subIds = /* @__PURE__ */ new Map();
+          plan.subcapitulos.forEach((s, i) => {
+            const viejo = subsViejos.get(s.resumen);
+            if (viejo) {
+              usadas.add(viejo.id);
+              ajustar(viejo, { codigo: s.codigo, orden: i, disciplina: s.disciplina });
+              subIds.set(s.codigo, viejo.id);
+              return;
+            }
+            const id = nuevoId();
+            subIds.set(s.codigo, id);
+            ins.run(id, presupuestoId, capId, i, "capitulo", s.codigo, s.resumen, null, 0, null, s.disciplina, null, null, null, null, null, null, null, ahora, ahora);
+          });
+          const idPorCodigo = /* @__PURE__ */ new Map();
+          const porSub = /* @__PURE__ */ new Map();
+          for (const n of plan.nuevas) {
+            const i = porSub.get(n.subcapituloCodigo) || 0;
+            porSub.set(n.subcapituloCodigo, i + 1);
+            const comp = { obrMaterial: null, obrAuxiliares: null, obrTransporte: null, obrManoObra: null, obrSubcontrata: null, [n.componente]: n.unitario };
+            const valores = {
+              padreId: subIds.get(n.subcapituloCodigo),
+              orden: i,
+              codigo: n.codigo,
+              descripcion: n.descripcion,
+              disciplina: n.disciplina === "otros" ? null : n.disciplina,
+              subdisciplina: n.subdisciplina,
+              cantidadObra: n.cantidadObra,
+              ...comp
+            };
+            const viejo = partidasViejas.get(`${n.resumen}|${n.unidad}`);
+            if (viejo && !usadas.has(viejo.id)) {
+              usadas.add(viejo.id);
+              idPorCodigo.set(n.codigo, viejo.id);
+              if (ajustar(viejo, valores)) cambios.cambiadas += 1;
+              continue;
+            }
+            const id = nuevoId();
+            idPorCodigo.set(n.codigo, id);
+            ins.run(
+              id,
+              presupuestoId,
+              valores.padreId,
+              i,
+              "partida",
+              n.codigo,
+              n.resumen,
+              n.descripcion,
+              1,
+              n.unidad,
+              valores.disciplina,
+              n.subdisciplina,
+              n.cantidadObra,
+              comp.obrMaterial,
+              comp.obrAuxiliares,
+              comp.obrTransporte,
+              comp.obrManoObra,
+              comp.obrSubcontrata,
+              ahora,
+              ahora
+            );
+            historial.anotar(db, sesion, "lineas", id, "crear", null, null, `${n.codigo} ${n.resumen}`);
+            cambios.creadas += 1;
+          }
+          for (const x of existentes.filter((y) => y.tipo === "partida" && !usadas.has(y.id))) {
+            db.prepare("DELETE FROM lineas WHERE id = ?").run(x.id);
+            historial.anotar(db, sesion, "lineas", x.id, "borrar", null, `${x.codigo} ${x.resumen}`, null);
+            cambios.quitadas += 1;
+          }
+          for (const x of existentes.filter((y) => y.tipo === "capitulo" && !usadas.has(y.id) && ![...subIds.values()].includes(y.id))) {
+            db.prepare("DELETE FROM lineas WHERE id = ?").run(x.id);
+          }
+          const previas = new Map(db.prepare("SELECT * FROM propuestasPedido WHERE obraId = ?").all(obraId).filter((r) => t(r.datos).includes(MARCA)).map((r) => [r.clave, r]));
+          const quedan = /* @__PURE__ */ new Set();
+          const pp = db.prepare(`INSERT INTO propuestasPedido (id, obraId, clave, origen, docId, doc, estado, tipo, lineaId, cantidad, precioCoste, datos, decididoPor, decididoEn, creadoEn, modificadoEn)
+      VALUES (?,?,?,?,?,?,'aceptada',?,?,?,?,?,?,?,?,?)`);
+          const guardar = (clave, v) => {
+            quedan.add(clave);
+            const r = previas.get(clave);
+            if (r) {
+              if (igual(r.lineaId, v.lineaId) && igual(r.cantidad, v.cantidad) && igual(r.precioCoste, v.precioCoste) && igual(r.datos, v.datos) && igual(r.tipo, v.tipo)) return;
+              db.prepare("UPDATE propuestasPedido SET tipo = ?, lineaId = ?, cantidad = ?, precioCoste = ?, datos = ?, docId = ?, doc = ?, modificadoEn = ? WHERE id = ?").run(v.tipo, v.lineaId, v.cantidad, v.precioCoste, v.datos, v.docId, v.doc, ahora, r.id);
+            } else if (db.prepare("SELECT 1 FROM propuestasPedido WHERE obraId = ? AND clave = ?").get(obraId, clave)) {
+              return;
+            } else {
+              pp.run(nuevoId(), obraId, clave, v.origen, v.docId, v.doc, v.tipo, v.lineaId, v.cantidad, v.precioCoste, v.datos, quien, ahora, ahora, ahora);
+            }
+            cambios.propuestas += 1;
+          };
+          for (const p of plan.propuestas) {
+            if (!t(p.clave).startsWith("pedido:")) continue;
+            const lineaId = p.tipo === "partida" ? idPorCodigo.get(p.codigoNueva) : p.lineaId;
+            guardar(p.clave, {
+              origen: p.origen || "pedido",
+              docId: p.docId || null,
+              doc: p.doc || null,
+              tipo: p.tipo,
+              lineaId: lineaId || null,
+              cantidad: p.cantidad ?? null,
+              precioCoste: p.precioCoste ?? null,
+              datos: JSON.stringify({ estado: p.estadoCruce, descripcion: p.descripcion, texto: `${MARCA}${p.codigoNueva ? `: ${p.codigoNueva}` : ""}` })
+            });
+          }
+          for (const [lineaId, r] of nuevoRastro) {
+            guardar(`${CLAVE_RASTRO}${lineaId}`, {
+              origen: "coste",
+              docId: null,
+              doc: null,
+              tipo: "rastro",
+              lineaId,
+              cantidad: null,
+              precioCoste: null,
+              datos: JSON.stringify({ antes: r.antes, puesto: r.puesto, texto: `${MARCA}: lo que hab\xEDa antes en la partida` })
+            });
+          }
+          for (const [clave, r] of previas) {
+            if (quedan.has(clave)) continue;
+            db.prepare("DELETE FROM propuestasPedido WHERE id = ?").run(r.id);
+            cambios.propuestas += 1;
+          }
+          const coAhora = new Set(idsDelArbol(db, capId));
+          if (huella(deEstudios().filter((f) => !coIds.has(f.id) && !coAhora.has(f.id))) !== antes) throw new Error("Se iba a tocar un campo de Estudios: no se escribe nada.");
+          db.exec("RELEASE coste_desde_compras");
+          const propuestas = db.prepare("SELECT COUNT(*) AS n FROM propuestasPedido WHERE obraId = ? AND clave LIKE 'pedido:%' AND datos LIKE ?").get(obraId, `%${MARCA}%`).n;
+          return { ok: true, presupuestoId, capituloId: capId, propuestas, cambios, resumen: plan.resumen, avisos: plan.avisos };
+        } catch (e) {
+          db.exec("ROLLBACK TO coste_desde_compras");
+          db.exec("RELEASE coste_desde_compras");
+          throw e;
+        }
+      }
+      function alGuardar(db, sesion, { obraId = null, pedidoId = null } = {}) {
+        try {
+          let obra = obraId;
+          if (!obra && pedidoId) {
+            const p = db.prepare("SELECT obraId FROM pedidosCompra WHERE id = ?").get(pedidoId);
+            obra = p && p.obraId;
+          }
+          if (!obra) return null;
+          const o = db.prepare("SELECT * FROM obras WHERE id = ?").get(obra);
+          const cp = o ? costsPlanDe(db, o) : null;
+          if (!cp) return null;
+          const co = db.prepare("SELECT id FROM lineas WHERE presupuestoId = ? AND padreId IS NULL AND codigo = ? AND tipo = 'capitulo'").get(cp, CDC.CAPITULO.codigo);
+          if (!co) return null;
+          return reconstruir(db, sesion, obra);
+        } catch (e) {
+          if (/not open|closed/i.test(e.message)) return null;
+          console.error("[coste desde compras] no se ha podido rehacer:", e.message);
+          return { ok: false, error: e.message };
+        }
+      }
+      var ESPERA_MS = 1500;
+      var pendientes = /* @__PURE__ */ new Map();
+      function programar(db, sesion, obraId) {
+        if (!obraId) return;
+        const previo = pendientes.get(obraId);
+        if (previo) clearTimeout(previo.temporizador);
+        const temporizador = setTimeout(() => {
+          pendientes.delete(obraId);
+          alGuardar(db, sesion, { obraId });
+        }, ESPERA_MS);
+        if (temporizador.unref) temporizador.unref();
+        pendientes.set(obraId, { db, sesion, temporizador });
+      }
+      function rehacerPendientes() {
+        const hechos = [];
+        for (const [obraId, p] of pendientes) {
+          clearTimeout(p.temporizador);
+          pendientes.delete(obraId);
+          hechos.push(alGuardar(p.db, p.sesion, { obraId }));
+        }
+        return hechos;
+      }
+      function enganchar(modulo, nombres, cual, condicion = () => true) {
+        for (const n of nombres) {
+          const fn = modulo[n];
+          if (typeof fn !== "function" || fn.conCosteDesdeCompras) continue;
+          const envuelta = function(repo, sesion, x, ...resto) {
+            let obraId = cual === "obra" ? x : null;
+            if (cual === "pedido" && repo && repo.db) {
+              try {
+                const p = repo.db.prepare("SELECT obraId FROM pedidosCompra WHERE id = ?").get(x);
+                obraId = p ? p.obraId : null;
+              } catch {
+                obraId = null;
+              }
+            }
+            const r = fn.call(this, repo, sesion, x, ...resto);
+            if (r && r.ok && obraId && repo && repo.db && condicion(x, ...resto)) programar(repo.db, sesion, obraId);
+            return r;
+          };
+          envuelta.conCosteDesdeCompras = true;
+          modulo[n] = envuelta;
+        }
+        return modulo;
+      }
+      module.exports = { leer, aplicar, reconstruir, alGuardar, programar, rehacerPendientes, enganchar, certificacionesDeBd, INTOCABLES, MARCA };
+    }
+  });
+
   // electron/data/pedidos.js
   var require_pedidos2 = __commonJS({
     "electron/data/pedidos.js"(exports, module) {
@@ -50993,6 +55771,8 @@ ${linea}` : linea;
         /* Para la conciliación del almacén (electron/data/conciliacionInventario.js). */
         crearDocumento
       };
+      require_costeDesdeCompras2().enganchar(module.exports, ["crear"], "obra");
+      require_costeDesdeCompras2().enganchar(module.exports, ["guardar", "anular", "borrar", "confirmar"], "pedido");
     }
   });
 
@@ -53738,6 +58518,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
       var CONV = require_conversacion();
       var DOC = require_documento();
       var INF = require_informeReparaciones();
+      var FR = require_firmasReparacion();
       var IST = require_informeServicioTecnico();
       var N = require_motor();
       var { limpiarCoste } = require_partesIncidencia2();
@@ -53976,6 +58757,10 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           zonas: datos.zonas,
           plantas: datos.plantas,
           verDinero: datos.verDinero,
+          yoNombre: FR.nombreDe(repo, sesion),
+          firmas: i.equipoId ? FR.firmasDe(repo, sesion, id) : null,
+          cargosFirma: FR.CARGOS,
+          firmada: i.equipoId ? FR.firmada(FR.firmasDe(repo, sesion, id)) : null,
           puede: { ...datos.puede, encargo: puedeEncargo(sesion, i) }
         };
       }
@@ -54132,6 +58917,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         const r = M.cambiarEstado(i, estado, { verbos: verbos(sesion), quien: sesion.personaId, hoy: hoy(), comentario });
         if (r.error) return { ok: false, error: r.error };
         if (!Object.keys(r.cambios).length) return { ok: true, igual: true };
+        if (estado === "cerrada" && i.equipoId && !FR.firmada(FR.firmasDe(repo, sesion, id))) return { ok: false, error: "Falta la firma del t\xE9cnico responsable: firma la reparaci\xF3n antes de cerrarla." };
         repo.db.exec("BEGIN");
         try {
           repo.modificar("incidencias", sesion, id, r.cambios);
@@ -54515,6 +59301,10 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         const nombreArchivo = `${f.obra.codigo} ${i.codigo} incidencia${f.verDinero ? " (valorada)" : ""}.pdf`.replace(/[\\/:*?"<>|]/g, "-");
         return { html, nombreArchivo, fotosOmitidas: fotos.filter((x) => !x.src).length };
       }
+      function firmasDeInforme(repo, sesion, r) {
+        const f = FR.firmasDe(repo, sesion, r.id);
+        return { firmas: FR.paraInforme(f), firmada: FR.firmada(f) };
+      }
       function informeReparaciones(repo, sesion, obraId, { desde = "", hasta = "", ids = null, rutas = null } = {}) {
         if (!puede(sesion.rol, "incidencias", "exportar")) return { error: "Tu rol no puede sacar el informe." };
         const d = obra(repo, sesion, obraId);
@@ -54524,7 +59314,8 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         const reparaciones = elegidas.map((r) => ({
           ...r,
           comentarios: repo.listar("incidenciaComentarios", sesion, { condicion: "incidenciaId = ?", params: [r.id], orden: "creadoEn" }).map((c) => ({ ...c, persona: nombre.get(c.personaId) || null })),
-          fotos: (r.fotos || []).map((f) => ({ ...fotoEmbebida(f, rutas), momento: f.momento || null })).filter((e) => e.src)
+          fotos: (r.fotos || []).map((f) => ({ ...fotoEmbebida(f, rutas), momento: f.momento || null })).filter((e) => e.src),
+          ...firmasDeInforme(repo, sesion, r)
         }));
         const periodo = desde || hasta ? `Reparaciones hechas ${desde ? `del ${desde.split("-").reverse().join("/")} ` : ""}${hasta ? `al ${hasta.split("-").reverse().join("/")}` : "hasta hoy"}` : "Todas las reparaciones hechas";
         const html = INF.html({ obra: d.obra, reparaciones, periodo, hoy: hoy() });
@@ -54544,7 +59335,8 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         const reparaciones = elegidas.map((r) => conAnexo ? {
           ...r,
           comentarios: repo.listar("incidenciaComentarios", sesion, { condicion: "incidenciaId = ?", params: [r.id], orden: "creadoEn" }).map((c) => ({ ...c, persona: nombre.get(c.personaId) || null })),
-          fotos: (r.fotos || []).map((f2) => ({ ...fotoEmbebida(f2, rutas), momento: f2.momento || null })).filter((e) => e.src)
+          fotos: (r.fotos || []).map((f2) => ({ ...fotoEmbebida(f2, rutas), momento: f2.momento || null })).filter((e) => e.src),
+          ...firmasDeInforme(repo, sesion, r)
         } : r);
         const o = repo.db.prepare("SELECT clienteId, proyectoId, emplazamiento, jefeObraId FROM obras WHERE id = ?").get(obraId) || {};
         const clienteId = o.clienteId || (o.proyectoId ? (repo.db.prepare("SELECT clienteId FROM proyectos WHERE id = ?").get(o.proyectoId) || {}).clienteId : null);
@@ -54707,6 +59499,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         return { mias, porRevisar, vencidas, activas, activosPorObra, aprueba };
       }
       module.exports = {
+        firmarReparacion: (repo, sesion, id, datos) => FR.firmar(repo, sesion, id, datos),
         obra,
         ficha,
         crear,
@@ -57023,17 +61816,25 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         };
         const cambiosPlan = plan.modelos.length + plan.equipos.length;
         const igual = anterior && cambiosPlan === 0 && informeIgual(anterior, informe);
-        if (!igual) repo.modificar("configCommissioning", sesion, cfg.id, { ultimoEnlace: JSON.stringify(informe) });
+        const indice = indiceDocsDe(rutas);
+        const cambiosCfg = {};
+        if (!igual) cambiosCfg.ultimoEnlace = JSON.stringify(informe);
+        if (indice !== (cfg.indiceDocs || null)) cambiosCfg.indiceDocs = indice;
+        if (Object.keys(cambiosCfg).length) repo.modificar("configCommissioning", sesion, cfg.id, cambiosCfg);
         return {
           ok: true,
           ...informe,
           /* La última pasada que quedó escrita (si esta no escribió, la anterior). */
           cuandoEscrita: igual ? anterior.cuando : informe.cuando,
           sinCambios: Boolean(igual),
-          filasNube: cambiosPlan + (igual ? 0 : 1),
+          filasNube: cambiosPlan + (Object.keys(cambiosCfg).length ? 1 : 0),
           /* Para el vigía: qué documentos hay (sus rutas), y así decir cuáles son nuevos. */
           rutasDocumentos: rutasDocumentos(rutas, config)
         };
+      }
+      function indiceDocsDe(rutas) {
+        const lista = [...new Set((rutas || []).map((x) => typeof x === "string" ? x : x && (x.ruta || x.rel)).filter((r) => r && /\.(pdf|docx?|xlsx?)$/i.test(r)))].sort();
+        return lista.length ? JSON.stringify(lista) : null;
       }
       function informeIgual(a, b) {
         const sin = (x) => {
@@ -57724,6 +62525,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         return { hecho: true, creado: false, id: p.id };
       }
       function crearPrimerAdministrador(db, { nombre, email, clave } = {}) {
+        if (typeof process !== "undefined" && false) {
+          return { ok: false, error: "En la web no se crean usuarios: los datos bajan del ordenador de la oficina. Entra con tu usuario de siempre." };
+        }
         if (hayCuentas(db)) return { ok: false, error: "Ya hay un administrador: entra con tu usuario." };
         const correo = String(email || "").trim().toLowerCase();
         if (!String(nombre || "").trim()) return { ok: false, error: "Hace falta el nombre." };
@@ -60084,42 +64888,6 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // shared/importe.js
-  var require_importe = __commonJS({
-    "shared/importe.js"(exports, module) {
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function() {
-        "use strict";
-        function leerImporte(v) {
-          if (v === null || v === void 0) return null;
-          if (typeof v === "number") return Number.isFinite(v) ? v : null;
-          let s = String(v).trim().replace(/€|eur(os)?/gi, "").replace(/\s/g, "");
-          if (s === "") return null;
-          if (!/^[+-]?[0-9.,]+$/.test(s) || !/[0-9]/.test(s)) return null;
-          const signo = s[0] === "-" ? "-" : "";
-          s = s.replace(/^[+-]/, "");
-          const coma = s.lastIndexOf(",");
-          const punto = s.lastIndexOf(".");
-          if (coma >= 0 && punto >= 0) {
-            if (coma > punto) s = s.replace(/\./g, "").replace(",", ".");
-            else s = s.replace(/,/g, "");
-          } else if (coma >= 0) {
-            s = s.match(/,/g).length > 1 ? s.replace(/,/g, "") : s.replace(",", ".");
-          } else if (punto >= 0) {
-            const grupos = s.split(".");
-            const miles = grupos.length > 2 || /^[1-9]\d{0,2}$/.test(grupos[0]) && grupos[1].length === 3;
-            if (miles) s = grupos.join("");
-          }
-          const n = Number(signo + s);
-          return Number.isFinite(n) ? n : null;
-        }
-        const API = { leerImporte };
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.IMPORTE = API;
-      })();
-    }
-  });
-
   // electron/data/inventarioCampo.js
   var require_inventarioCampo = __commonJS({
     "electron/data/inventarioCampo.js"(exports, module) {
@@ -60877,89 +65645,6 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         return true;
       }
       module.exports = { listar, crear, guardar, marcarTarea, borrar, deFila, aFila };
-    }
-  });
-
-  // electron/data/firmasEquipo.js
-  var require_firmasEquipo = __commonJS({
-    "electron/data/firmasEquipo.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var ROLES = {
-        cliente: "El cliente",
-        jefeObra: "El jefe de obra"
-      };
-      var MAX_IMAGEN = 400 * 1024;
-      var llano = (v) => String(v ?? "").trim();
-      var sinAcentos = (v) => llano(v).toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-      function filasDe(repo, sesion, equipoIds) {
-        const ids = [...new Set((equipoIds || []).filter(Boolean))];
-        if (!ids.length) return [];
-        return repo.listar("firmasEquipo", sesion, { condicion: `equipoId IN (${ids.map(() => "?").join(",")})`, params: ids, orden: "modificadoEn" });
-      }
-      var publica = (f) => ({ id: f.id, equipoId: f.equipoId, rol: f.rol, rotulo: ROLES[f.rol] || f.rol, nombre: f.nombre || "", fecha: f.fecha || "", imagen: f.imagen });
-      function firmasDeEquipos(repo, sesion, equipoIds) {
-        const r = { cliente: null, jefeObra: null };
-        for (const f of filasDe(repo, sesion, equipoIds)) if (f.rol in r) r[f.rol] = publica(f);
-        return r;
-      }
-      function unidadesDelConjunto(repo, sesion, equipo) {
-        if (!equipo) return [];
-        const todos = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [equipo.obraId] });
-        const linea = require_conjuntos().agrupar(todos).find((l) => (l.unidades || []).some((u) => u.id === equipo.id));
-        const ids = linea ? linea.unidades.map((u) => u.id) : [equipo.id];
-        return [equipo.id, ...ids.filter((x) => x !== equipo.id)];
-      }
-      function firmasDeEquipo(repo, sesion, equipoId) {
-        const eq = repo.leer("equiposObra", sesion, llano(equipoId));
-        if (!eq) return { cliente: null, jefeObra: null };
-        return firmasDeEquipos(repo, sesion, unidadesDelConjunto(repo, sesion, eq));
-      }
-      function firmasDeClave(repo, sesion, obraId, clave) {
-        const m = /^(equipo|refrigerante):(.+)$/.exec(llano(clave));
-        if (!m) return { cliente: null, jefeObra: null };
-        if (m[1] === "equipo") return firmasDeEquipo(repo, sesion, m[2]);
-        const equipos = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
-        const ue = equipos.find((e) => sinAcentos(e.tag) === m[2]);
-        if (ue) return firmasDeEquipo(repo, sesion, ue.id);
-        return firmasDeEquipos(repo, sesion, equipos.filter((e) => sinAcentos(e.equipoAsociado) === m[2]).map((e) => e.id));
-      }
-      function bytesDeImagen(dataUrl) {
-        const m = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl || ""));
-        return m ? Buffer.from(m[1], "base64") : null;
-      }
-      function paraPdf(firmas) {
-        return ["jefeObra", "cliente"].map((rol) => {
-          const f = firmas && firmas[rol];
-          return f ? { rotulo: ROLES[rol], nombre: f.nombre, fecha: f.fecha, imagen: bytesDeImagen(f.imagen) } : null;
-        }).filter(Boolean);
-      }
-      function firmar(repo, sesion, equipoId, { rol, nombre, imagen, quitar } = {}) {
-        const eq = repo.leer("equiposObra", sesion, llano(equipoId));
-        if (!eq) return { ok: false, error: "No se encuentra el equipo." };
-        if (!(rol in ROLES)) return { ok: false, error: "Esa firma no existe." };
-        const ids = unidadesDelConjunto(repo, sesion, eq);
-        const previas = filasDe(repo, sesion, ids).filter((f) => f.rol === rol);
-        if (quitar) {
-          for (const f of previas) repo.borrar("firmasEquipo", sesion, f.id, { verbo: "editar" });
-          return { ok: true, firmas: firmasDeEquipos(repo, sesion, ids) };
-        }
-        const n = llano(nombre).slice(0, 80);
-        if (!n) return { ok: false, error: "Falta el nombre de quien firma." };
-        const img = llano(imagen);
-        if (!bytesDeImagen(img)) return { ok: false, error: "No llega la firma." };
-        if (img.length > MAX_IMAGEN) return { ok: false, error: "La firma es demasiado grande." };
-        const fecha = (/* @__PURE__ */ new Date()).toISOString();
-        const ultima = previas[previas.length - 1];
-        if (ultima) {
-          repo.modificar("firmasEquipo", sesion, ultima.id, { nombre: n, imagen: img, fecha, equipoId: eq.id });
-          for (const f of previas.slice(0, -1)) repo.borrar("firmasEquipo", sesion, f.id, { verbo: "editar" });
-        } else {
-          repo.crear("firmasEquipo", sesion, { obraId: eq.obraId, equipoId: eq.id, rol, nombre: n, imagen: img, fecha }, { verbo: "editar" });
-        }
-        return { ok: true, firmas: firmasDeEquipos(repo, sesion, ids) };
-      }
-      module.exports = { ROLES, firmar, firmasDeEquipo, firmasDeEquipos, firmasDeClave, paraPdf, bytesDeImagen, unidadesDelConjunto };
     }
   });
 
@@ -83597,6 +88282,20 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         };
         const propias = [];
         let fondoUltima = null;
+        const conFirma = (firmas || []).filter((f) => f && typeof f === "object");
+        const trazos = /* @__PURE__ */ new Map();
+        for (const f of conFirma) {
+          try {
+            if (f.imagen && f.imagen[0] === 137) trazos.set(f, await pdf.embedPng(f.imagen));
+          } catch {
+          }
+        }
+        const ROL_CAJA = { JEFE: ["jefeObra", "El jefe de obra"], DF: ["cliente", "El cliente"] };
+        const firmaDeCaja = (rolFirma) => {
+          const [rol, rotulo] = ROL_CAJA[rolFirma] || [];
+          return rol ? conFirma.find((f) => trazos.has(f) && (f.rol === rol || !f.rol && f.rotulo === rotulo)) || null : null;
+        };
+        const estampadas = /* @__PURE__ */ new Set();
         for (const hoja of hojas) {
           const { anchos, filas, imagenes } = hoja.disp;
           const xs = [0];
@@ -83608,10 +88307,12 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             if (c.bg) e.fondo = color(c.bg);
             const html = c.html !== null && c.html !== void 0 ? c.html : null;
             if (html && /^\s*<strong>/i.test(html)) e.negrita = true;
-            const texto = limpiar(aTexto(html !== null ? html : c.txt ?? "").replace(/^\s+|\s+$/g, ""));
+            const firma = c.rolFirma ? firmaDeCaja(c.rolFirma) : null;
+            const otra = c.rotuloFirma === "DF" ? firmaDeCaja("DF") : null;
+            const texto = firma ? "" : otra && otra.cargo ? limpio(String(otra.rotulo || otra.cargo).toUpperCase()) : limpiar(aTexto(html !== null ? html : c.txt ?? "").replace(/^\s+|\s+$/g, ""));
             const fuente = F[e.negrita && e.cursiva ? "bi" : e.negrita ? "b" : e.cursiva ? "i" : "n"];
             const ajustar = e.ajustar || c.lleno && texto.length > 0 || texto.includes("\n");
-            celdas.push({ ...c, r, e, texto, fuente, ajustar });
+            celdas.push({ ...c, r, e, texto, fuente, ajustar, firma });
           }));
           const altos = filas.map((f) => f.alto);
           for (const c of celdas) {
@@ -83679,6 +88380,24 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
               y -= altoL;
             }
           }
+          for (const c of celdas) {
+            if (!c.firma) continue;
+            const img = trazos.get(c.firma);
+            const top = Y(ys[c.r]);
+            const bot = Y(ys[Math.min(c.r + c.rs, altos.length)]);
+            const izq = X(xs[c.a]);
+            const ancho = (xs[c.b + 1] - xs[c.a]) * z;
+            const tamPie = Math.max(5.5, Math.min(7.5, (top - bot) * 0.2));
+            const pie = limpio(pieFirma(c.firma));
+            const altoTrazo = Math.max(4, top - bot - tamPie - 5);
+            const esc = Math.min((ancho - 8) / img.width, altoTrazo / img.height);
+            const w = img.width * esc;
+            pagina.drawImage(img, { x: izq + (ancho - w) / 2, y: bot + tamPie + 3, width: w, height: img.height * esc });
+            let p = pie;
+            while (p.length > 4 && F.n.widthOfTextAtSize(p, tamPie) > ancho - 6) p = `${p.slice(0, -2)}\u2026`;
+            pagina.drawText(p, { x: izq + (ancho - F.n.widthOfTextAtSize(p, tamPie)) / 2, y: bot + 1.5, size: tamPie, font: F.n, color: rgb(0.2, 0.2, 0.2) });
+            estampadas.add(c.firma);
+          }
           for (const im of imagenes || []) {
             const img = await incrustar(im.fichero);
             if (!img) continue;
@@ -83700,8 +88419,8 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             });
           }
         }
-        const conFirma = (firmas || []).filter((f) => f && typeof f === "object");
-        if (conFirma.length) await pintarFirmas(pdf, F, limpio, conFirma, fondoUltima, propias);
+        const sueltas = conFirma.filter((f) => !estampadas.has(f));
+        if (sueltas.length) await pintarFirmas(pdf, F, limpio, sueltas, fondoUltima, propias);
         if (!sinPie) propias.forEach((p, i) => {
           const t = `P\xE1gina ${i + 1} de ${propias.length}`;
           p.drawText(limpio(t), { x: A4[0] - MARGEN - F.n.widthOfTextAtSize(t, 7), y: MARGEN / 2, size: 7, font: F.n, color: rgb(0.45, 0.45, 0.45) });
@@ -83745,10 +88464,13 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             const esc = Math.min((col - 12) / img.width, 40 / img.height);
             pagina.drawImage(img, { x: x + 6, y: y - 56, width: img.width * esc, height: img.height * esc });
           }
-          const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(f.fecha || ""));
-          const pie = [f.nombre, m ? `${m[3]}/${m[2]}/${m[1]}` : null].filter(Boolean).join(" \xB7 ");
+          const pie = pieFirma(f);
           if (pie) pagina.drawText(limpio(pie).slice(0, 60), { x: x + 6, y: y - 66, size: 7.5, font: F.n, color: gris });
         }
+      }
+      function pieFirma(f) {
+        const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(f.fecha || ""));
+        return [f.nombre, f.cargo || null, m ? `${m[3]}/${m[2]}/${m[1]}` : null].filter(Boolean).join(" \xB7 ");
       }
       module.exports = { hojaExcelPdf, leerEstilo, aTexto };
     }
@@ -83974,11 +88696,12 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         function conFirmas(rotulos, firmas) {
           const hechas = FIR.paraPdf(firmas);
           if (!hechas.length) return rotulos;
-          const jefe = hechas.find((f) => f.rotulo === FIR.ROLES.jefeObra);
-          const cliente = hechas.find((f) => f.rotulo === FIR.ROLES.cliente);
-          const lista = rotulos.map((r) => r === FIR.ROLES.jefeObra && jefe ? jefe : r);
+          const jefe = hechas.find((f) => f.rol === "jefeObra");
+          const otra = hechas.find((f) => f.rol === "cliente");
+          const esJefe = (r) => r === "El jefe de obra" || r === FIR.ROLES.jefeObra;
+          const lista = rotulos.map((r) => esJefe(r) && jefe ? jefe : r);
           if (jefe && !lista.includes(jefe)) lista.push(jefe);
-          lista.push(cliente || FIR.ROLES.cliente);
+          lista.push(otra || FIR.ROLES.cliente);
           return lista;
         }
         function docFicha(ses, obraId, ref) {
@@ -84647,6 +89370,344 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
+  // package.json
+  var require_package = __commonJS({
+    "package.json"(exports, module) {
+      module.exports = {
+        name: "vidaire-obras",
+        version: "0.1.0",
+        description: "Vidaire Obras \u2014 estudios, presupuestos y gestion de obra",
+        main: "electron/main.js",
+        license: "UNLICENSED",
+        private: true,
+        scripts: {
+          start: "env -u ELECTRON_RUN_AS_NODE electron .",
+          test: "node --test test/",
+          contraste: "node scripts/contraste.js",
+          tokens: "node scripts/generarTokens.js",
+          comprobar: "npm test && npm run contraste && npm run carga && npm run probar:app && npm run probar:vivo",
+          carga: "node scripts/comprobarCarga.js",
+          "auditar:ncr": "node scripts/auditarNcr.js",
+          "probar:app": "env -u ELECTRON_RUN_AS_NODE electron scripts/probarApp.js",
+          oferta: "node scripts/verOferta.js",
+          "dist:mac": "env -u ELECTRON_RUN_AS_NODE electron-builder --mac",
+          "dist:win": "env -u ELECTRON_RUN_AS_NODE electron-builder --win",
+          capturas: "env -u ELECTRON_RUN_AS_NODE electron scripts/capturas.js",
+          pantalla: "env -u ELECTRON_RUN_AS_NODE electron scripts/enPantalla.js",
+          vivo: "env -u ELECTRON_RUN_AS_NODE electron scripts/enVivo.js",
+          "probar:vivo": "env -u ELECTRON_RUN_AS_NODE electron scripts/comprobarEnVivo.js",
+          "albaranes:prueba": "node scripts/albaranesDePrueba.js",
+          demo: "env -u ELECTRON_RUN_AS_NODE electron scripts/demoCampNou.js",
+          "demo:montar": "env -u ELECTRON_RUN_AS_NODE electron scripts/demoCampNou.js --montar && npm run demo:capturas",
+          "demo:capturas": "env -u ELECTRON_RUN_AS_NODE electron scripts/demoCampNou.js --capturas",
+          ipad: "node ipad/construir.js",
+          "ipad:servir": "node ipad/construir.js && node ipad/servir.js",
+          "ipad:probar": "node ipad/probar-motor.js",
+          "ipad:ios": "node ipad/construir.js && npx cap sync ios",
+          web: "node web/construir.js",
+          "web:servir": "node web/construir.js && node web/servir.js",
+          "web:publicar": "node web/construir.js && npx vercel deploy web/dist --prod",
+          "cxobra:construir": "node cxobra/construir.js"
+        },
+        dependencies: {
+          "@capacitor/android": "^8.5.3",
+          "@kenjiuno/msgreader": "^1.28.0",
+          "pdf-lib": "^1.17.1",
+          "pdfjs-dist": "^6.4.299"
+        },
+        devDependencies: {
+          "@capacitor/cli": "^8.5.3",
+          "@capacitor/core": "^8.5.3",
+          "@capacitor/filesystem": "^8.1.4",
+          "@capacitor/ios": "^8.5.3",
+          "@noble/hashes": "^2.4.0",
+          buffer: "^6.0.3",
+          electron: "^44.4.1",
+          "electron-builder": "^25.1.8",
+          esbuild: "^0.28.2",
+          fflate: "^0.8.3",
+          "sql.js": "^1.14.2"
+        },
+        build: {
+          appId: "com.vidaire.obras",
+          productName: "Vidaire Obras",
+          files: [
+            "electron/**/*",
+            "renderer/**/*",
+            "shared/**/*",
+            "marca/**/*",
+            "package.json",
+            "!node_modules/pdfjs-dist/{build,types,image_decoders,cmaps,iccs,wasm,standard_fonts}/**",
+            "!node_modules/pdfjs-dist/**/*.{map,d.mts}",
+            "!node_modules/pdfjs-dist/legacy/build/{pdf.min.mjs,pdf.worker.min.mjs,pdf.sandbox*}",
+            "!node_modules/pdfjs-dist/web/{pdf_viewer.mjs,images/**}",
+            "!node_modules/@napi-rs/**"
+          ],
+          extraResources: [
+            {
+              from: "build",
+              to: ".",
+              filter: [
+                "nube.json"
+              ]
+            }
+          ],
+          mac: {
+            target: "dmg",
+            category: "public.app-category.business",
+            icon: "build/icon.icns",
+            extendInfo: {
+              NSAppleEventsUsageDescription: "Vidaire Obras usa tu programa de correo (Outlook o Mail) para leer la bandeja, archivar correos en las obras y preparar borradores con los PDF adjuntos. Nunca env\xEDa nada sin que lo revises."
+            }
+          },
+          win: {
+            target: "nsis",
+            icon: "build/icon.png"
+          }
+        }
+      };
+    }
+  });
+
+  // ipad/electronFalso.js
+  var require_electronFalso = __commonJS({
+    "ipad/electronFalso.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var canales = /* @__PURE__ */ new Map();
+      var adaptadores = {
+        abrirArchivo: null,
+        // ({ filtros, varios }) → [{ nombre, datos }]
+        guardarArchivo: null,
+        // ({ nombre, datos, tipo }) → ruta o null
+        imprimirPdf: null,
+        // ({ html, apaisado }) → Uint8Array
+        abrirRuta: null
+        // (ruta) → void
+      };
+      function instalarAdaptadores(nuevos) {
+        Object.assign(adaptadores, nuevos);
+      }
+      function exigir(nombre) {
+        throw new Error(
+          `Esto todav\xEDa no est\xE1 en el iPad: ${nombre}.
+
+En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
+        );
+      }
+      var ipcMain = {
+        handle(canal, fn) {
+          canales.set(canal, fn);
+        },
+        removeHandler(canal) {
+          canales.delete(canal);
+        }
+      };
+      var ipcRenderer = {
+        /** El mismo `invoke` de siempre, pero sin cruzar a ningún sitio. */
+        async invoke(canal, ...args) {
+          const fn = canales.get(canal);
+          if (!fn) throw new Error(`Canal desconocido: ${canal}`);
+          return fn({ sender: null }, ...args);
+        },
+        /* Los avisos que el proceso principal manda a la pantalla («abre el aviso de
+           mantenimiento»): aquí van de la ventana de mentira al oyente, sin cruzar. */
+        on(canal, fn) {
+          if (!oyentes.has(canal)) oyentes.set(canal, []);
+          oyentes.get(canal).push(fn);
+        },
+        /* El preload limpia antes de volver a escuchar, para no apilar oyentes. */
+        removeAllListeners(canal) {
+          oyentes.delete(canal);
+        },
+        send() {
+        }
+      };
+      var oyentes = /* @__PURE__ */ new Map();
+      var ventanaFalsa = {
+        isDestroyed: () => false,
+        focus() {
+        },
+        webContents: {
+          send(canal, ...args) {
+            for (const fn of oyentes.get(canal) || []) fn({ sender: null }, ...args);
+          }
+        }
+      };
+      var contextBridge = {
+        /** En el escritorio aísla dos mundos; aquí solo hay uno. */
+        exposeInMainWorld(nombre, objeto) {
+          globalThis[nombre] = objeto;
+        }
+      };
+      var dialog = {
+        async showOpenDialog(_padre, opciones = {}) {
+          if (!adaptadores.abrirArchivo) exigir("elegir un archivo");
+          const elegidos = await adaptadores.abrirArchivo(opciones);
+          return elegidos?.length ? { canceled: false, filePaths: elegidos.map((f) => f.ruta || f.nombre) } : { canceled: true, filePaths: [] };
+        },
+        async showSaveDialog(_padre, opciones = {}) {
+          if (!adaptadores.guardarArchivo) exigir("guardar un archivo");
+          const ruta = await adaptadores.guardarArchivo(opciones);
+          return ruta ? { canceled: false, filePath: ruta } : { canceled: true, filePath: void 0 };
+        },
+        async showMessageBox(_padre, opciones = {}) {
+          return { response: 0, checkboxChecked: false, ...opciones.respuesta };
+        }
+      };
+      var shell = {
+        openPath: (ruta) => adaptadores.abrirRuta?.(ruta),
+        showItemInFolder: (ruta) => adaptadores.abrirRuta?.(ruta),
+        openExternal: (url) => globalThis.open?.(url, "_blank")
+      };
+      var BrowserWindow = class {
+        constructor() {
+          this._html = "";
+          this.webContents = {
+            printToPDF: async (opciones = {}) => {
+              if (!adaptadores.imprimirPdf) exigir("imprimir un PDF");
+              return adaptadores.imprimirPdf({ html: this._html, apaisado: !!opciones.landscape });
+            },
+            on() {
+            },
+            executeJavaScript: async () => null,
+            send() {
+            }
+          };
+        }
+        async loadFile(ruta) {
+          const fs = require_fs();
+          this._html = fs.readFileSync(ruta, "utf8");
+        }
+        async loadURL(url) {
+          this._html = url.startsWith("data:") ? decodeURIComponent(url.split(",")[1] || "") : "";
+        }
+        setContentSize() {
+        }
+        isDestroyed() {
+          return false;
+        }
+        destroy() {
+        }
+        close() {
+        }
+        static getFocusedWindow() {
+          return null;
+        }
+        static fromWebContents() {
+          return null;
+        }
+        static getAllWindows() {
+          return [];
+        }
+      };
+      var app = {
+        getPath: () => "/datos",
+        getName: () => "Vidaire Obras",
+        getVersion: () => require_package().version,
+        relaunch() {
+        },
+        exit() {
+        },
+        quit() {
+        },
+        whenReady: async () => void 0,
+        on() {
+        }
+      };
+      module.exports = {
+        app,
+        ipcMain,
+        ipcRenderer,
+        contextBridge,
+        dialog,
+        shell,
+        BrowserWindow,
+        nativeImage: { createFromDataURL: () => null },
+        /* Sin notificaciones del sistema: los avisos del BOE y de mantenimiento se
+           quedan en la alerta de la pantalla y en el inicio. Sin esto, el primer
+           aviso nuevo tumbaba la comprobación entera. */
+        Notification: class {
+          static isSupported() {
+            return false;
+          }
+          show() {
+          }
+          on() {
+          }
+        },
+        /* El escritorio cifra con esto los permisos de la nube; el iPad no lo usa: los
+           guarda en el Llavero a través de `nubeIpad` (ipad/nube.js). */
+        safeStorage: { isEncryptionAvailable: () => false, encryptString: (t) => t, decryptString: (t) => String(t) },
+        /* Lo pone el arranque: el Llavero y la ventana de inicio de sesión del sistema. */
+        nubeIpad: null,
+        /* «Recordarme en este equipo»: el testigo en el Llavero (ipad/nube.js). */
+        almacenSesion: null,
+        instalarAdaptadores,
+        canales,
+        ventanaFalsa
+      };
+    }
+  });
+
+  // shared/sync/fotosNube.js
+  var require_fotosNube = __commonJS({
+    "shared/sync/fotosNube.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var CUBO = "cx-fotos";
+      var TIPOS = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".heic": "image/heic", ".heif": "image/heif", ".gif": "image/gif" };
+      var ext = (r) => {
+        const m = /\.[A-Za-z0-9]+$/.exec(String(r || ""));
+        return m ? m[0].toLowerCase() : "";
+      };
+      var limpio = (s) => String(s || "").replace(/[^A-Za-z0-9._-]/g, "_");
+      var conexion = null;
+      function ponerConexion(c) {
+        conexion = c && c.nube ? { nube: c.nube, espacio: c.espacio || "principal" } : null;
+      }
+      var hayNube = () => Boolean(conexion);
+      var conexionActual = () => conexion;
+      function nombreUnico(nombre) {
+        const sello = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        return `${sello}-${limpio(nombre) || "foto.jpg"}`;
+      }
+      var claveDe = (espacio, obraId, nombre) => `${limpio(espacio)}/${limpio(obraId)}/${limpio(nombre)}`;
+      var rutaBajada = (carpeta, clave) => `${carpeta}/nube/${limpio(String(clave).split("/").slice(1).join("_"))}`;
+      async function subir(obraId, nombre, bytes) {
+        if (!conexion) throw new Error("Sin conexi\xF3n con la nube.");
+        const tipo = TIPOS[ext(nombre)];
+        if (!tipo) throw new Error(`\xAB${nombre}\xBB no es una foto que se pueda subir (JPG, PNG, WEBP, HEIC o GIF).`);
+        const clave = claveDe(conexion.espacio, obraId, nombre);
+        await conexion.nube.subirArchivo(CUBO, clave, bytes, tipo);
+        return clave;
+      }
+      async function bajar(clave) {
+        if (!conexion) throw new Error("Sin conexi\xF3n con la nube.");
+        return conexion.nube.bajarArchivo(CUBO, clave);
+      }
+      async function localizar(f, { fs, carpeta }) {
+        if (!f) return null;
+        for (const r of [f.ruta, f.origen]) if (typeof r === "string" && r && fs.existsSync(r)) return r;
+        if (!f.nube) return null;
+        const aqui = rutaBajada(carpeta, f.nube);
+        if (fs.existsSync(aqui)) return aqui;
+        try {
+          const bytes = await bajar(f.nube);
+          try {
+            fs.mkdirSync(`${carpeta}/nube`, { recursive: true });
+          } catch {
+          }
+          fs.writeFileSync(aqui, bytes);
+          return aqui;
+        } catch {
+          return null;
+        }
+      }
+      module.exports = { ponerConexion, hayNube, conexionActual, nombreUnico, claveDe, rutaBajada, subir, bajar, localizar, TIPOS, CUBO };
+    }
+  });
+
   // electron/movil/rutasObra.js
   var require_rutasObra = __commonJS({
     "electron/movil/rutasObra.js"(exports, module) {
@@ -85096,7 +90157,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           const e = json();
           let r;
           try {
-            r = FIR.firmar(repo, ses, llano(e.equipoId), { rol: llano(e.rol), nombre: e.nombre, imagen: e.imagen, quitar: Boolean(e.quitar) });
+            r = FIR.firmar(repo, ses, llano(e.equipoId), { rol: llano(e.rol), nombre: e.nombre, imagen: e.imagen, cargo: e.cargo, quitar: Boolean(e.quitar) });
           } catch {
             return { ok: false, error: "Tu rol no puede firmar este equipo." };
           }
@@ -85322,13 +90383,23 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           }
           return a;
         }
-        function ncrFoto({ ses, query }) {
+        const localizarFoto = async (f) => {
+          let userData = carpeta;
+          try {
+            userData = require_electronFalso().app.getPath("userData");
+          } catch {
+          }
+          return require_fotosNube().localizar(f, { fs, carpeta: userData });
+        };
+        async function ncrFoto({ ses, query }) {
           const f = NCR.foto(repo, ses, llano(query.id), Number(query.i));
-          if (!f || !f.ruta) return [404, { ok: false, error: "No est\xE1 esa foto." }];
-          const tipo = TIPO_DE_EXT[path.extname(f.ruta).toLowerCase()];
+          if (!f || !f.ruta && !f.nube) return [404, { ok: false, error: "No est\xE1 esa foto." }];
+          const ruta = await localizarFoto(f);
+          if (!ruta) return [404, { ok: false, error: "La foto ya no est\xE1 en su carpeta." }];
+          const tipo = TIPO_DE_EXT[path.extname(ruta).toLowerCase()];
           if (!tipo) return [415, { ok: false, error: "Esa foto no se puede ense\xF1ar en el m\xF3vil." }];
           try {
-            return { bytes: fs.readFileSync(f.ruta), tipo };
+            return { bytes: fs.readFileSync(ruta), tipo };
           } catch {
             return [404, { ok: false, error: "La foto ya no est\xE1 en su carpeta." }];
           }
@@ -85460,6 +90531,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       var path = require_path();
       var crypto2 = require_crypto();
       var INC = require_incidencias();
+      var FR = require_firmasReparacion();
       var M = require_motor4();
       var { puede } = require_roles();
       var PERMISOS_REPARACIONES = {
@@ -85471,6 +90543,8 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         "POST api/reparacion/estado": [["incidencias", "editar"]],
         "POST api/reparacion/comentar": [["incidencias", "crear"]],
         "POST api/reparacion/foto": [["incidencias", "editar"]],
+        /* 29-oct: la firma de cada reparación (técnico responsable y segunda firma). */
+        "POST api/reparacion/firma": [["incidencias", "editar"]],
         "GET api/reparacion/foto": [["incidencias", "ver"]]
       };
       var RESULTADOS = {
@@ -85573,6 +90647,11 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
             zonas: d.zonas,
             plantas: d.plantas,
             pasos,
+            /* 29-oct: las firmas de la reparación (el técnico responsable es quien tiene la sesión). */
+            firmas: d.firmas,
+            firmada: d.firmada,
+            yoNombre: FR.nombreDe(repo, ses),
+            cargosFirma: FR.CARGOS,
             /* 16-oct: las fotos del antes y del después, también con la reparación cerrada. */
             puede: { datos: Boolean(d.puede.encargo && verbos.editar && M.ESTADOS[i.estado].activa), visita: verbos.editar && M.ESTADOS[i.estado].activa, foto: verbos.editar, nota: puede(ses.rol, "incidencias", "crear") }
           };
@@ -85628,6 +90707,10 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           const e = json();
           return INC.cambiarEstado(repo, ses, llano(e.id), llano(e.estado), { comentario: llano(e.comentario) });
         }
+        function firma({ ses, json }) {
+          const e = json();
+          return INC.firmarReparacion(repo, ses, llano(e.id), { rol: llano(e.rol), nombre: e.nombre, cargo: e.cargo, imagen: e.imagen, quitar: Boolean(e.quitar) });
+        }
         function comentar({ ses, json }) {
           const e = json();
           return INC.comentar(repo, ses, llano(e.id), e.texto, "comentario");
@@ -85654,13 +90737,23 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           }
           return a;
         }
-        function foto({ ses, query }) {
+        const localizarFoto = async (f) => {
+          let userData = carpeta;
+          try {
+            userData = require_electronFalso().app.getPath("userData");
+          } catch {
+          }
+          return require_fotosNube().localizar(f, { fs, carpeta: userData });
+        };
+        async function foto({ ses, query }) {
           const f = INC.foto(repo, ses, llano(query.id), Number(query.i));
-          if (!f || !f.ruta) return [404, { ok: false, error: "No est\xE1 esa foto." }];
-          const tipo = TIPO_DE_EXT[path.extname(f.ruta).toLowerCase()];
+          if (!f || !f.ruta && !f.nube) return [404, { ok: false, error: "No est\xE1 esa foto." }];
+          const ruta = await localizarFoto(f);
+          if (!ruta) return [404, { ok: false, error: "La foto ya no est\xE1 en su carpeta." }];
+          const tipo = TIPO_DE_EXT[path.extname(ruta).toLowerCase()];
           if (!tipo) return [415, { ok: false, error: "Esa foto no se puede ense\xF1ar en el m\xF3vil." }];
           try {
-            return { bytes: fs.readFileSync(f.ruta), tipo };
+            return { bytes: fs.readFileSync(ruta), tipo };
           } catch {
             return [404, { ok: false, error: "La foto ya no est\xE1 en su carpeta." }];
           }
@@ -85673,6 +90766,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           "POST api/reparacion/datos": datos,
           "POST api/reparacion/estado": estado,
           "POST api/reparacion/comentar": comentar,
+          "POST api/reparacion/firma": firma,
           "POST api/reparacion/foto": fotoNueva,
           "GET api/reparacion/foto": foto
         };
@@ -85901,7 +90995,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           ["difusion", "Rejillas y difusores", "punto", "#7c3aed"]
         ] },
         electricidad: { nombre: "Electricidad", capas: [
-          ["bandejas", "Bandejas", "trazo", "#b45309"],
+          ["bandejas", "Bandejas", "trazo", "#2B6CB0"],
           ["cable", "Cable", "trazo", "#be123c"],
           ["luz", "Puntos de luz", "punto", "#6FA0CF"],
           ["tomas", "Tomas de corriente", "punto", "#2563eb"],
@@ -88078,193 +93172,6 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
     }
   });
 
-  // shared/contrato.js
-  var require_contrato = __commonJS({
-    "shared/contrato.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function iniciarContrato() {
-        const TIPOS_ADENDA = Object.freeze(["dise\xF1o", "precios", "reclamaci\xF3n", "alcance", "plazo"]);
-        const ESTADOS_ADENDA = Object.freeze(["borrador", "enviada", "firmada", "rechazada"]);
-        const num = (v) => {
-          if (v === null || v === void 0 || v === "") return null;
-          const t = String(v).trim();
-          const n = typeof v === "number" ? v : Number(t.includes(",") ? t.replace(/\./g, "").replace(",", ".") : t);
-          return Number.isFinite(n) ? n : null;
-        };
-        const euros = (v) => Math.round(v * 100) / 100;
-        const dia = (v) => v ? String(v).slice(0, 10) : null;
-        function ordenNumero(numero) {
-          const m = /(\d+)/.exec(String(numero || ""));
-          return m ? Number(m[1]) : Number.MAX_SAFE_INTEGER;
-        }
-        const porNumero = (a, b) => ordenNumero(a.numero) - ordenNumero(b.numero) || String(a.numero || "").localeCompare(String(b.numero || ""), "es", { numeric: true });
-        function resumen(contrato = {}, adendas = [], fases = []) {
-          const original = num(contrato && contrato.importeOriginal) || 0;
-          const lista = [...adendas || []].sort(porNumero);
-          const firmadas = lista.filter((a) => a.estado === "firmada");
-          const pendientes = lista.filter((a) => a.estado === "borrador" || a.estado === "enviada");
-          let acumulado = original;
-          const filas = lista.map((a) => {
-            const imp = num(a.importe);
-            const cuenta = a.estado === "firmada";
-            if (cuenta && imp !== null) acumulado = euros(acumulado + imp);
-            return { ...a, importe: imp, cuenta, revisado: cuenta ? acumulado : null };
-          });
-          const sumaFirmadas = euros(firmadas.reduce((s, a) => s + (num(a.importe) || 0), 0));
-          const importeVigente = euros(original + sumaFirmadas);
-          const conFin = firmadas.filter((a) => dia(a.nuevaFechaFin)).sort((a, b) => String(dia(a.fechaFirma) || "").localeCompare(String(dia(b.fechaFirma) || "")) || porNumero(a, b));
-          const ultimaFin = conFin.length ? conFin[conFin.length - 1] : null;
-          const finVigente = ultimaFin ? dia(ultimaFin.nuevaFechaFin) : dia(contrato && contrato.fechaFinOriginal);
-          const diasAmpliacion = firmadas.reduce((s, a) => s + (num(a.diasAmpliacion) || 0), 0);
-          const porTipo = {};
-          for (const a of firmadas) {
-            const t = a.tipo || "sin tipo";
-            porTipo[t] = euros((porTipo[t] || 0) + (num(a.importe) || 0));
-          }
-          const tope = num(contrato && contrato.penalizacionTopePct);
-          const diaria = num(contrato && contrato.penalizacionDiariaPct);
-          return {
-            importeOriginal: original,
-            sumaFirmadas,
-            importeVigente,
-            pctAmpliacion: original ? (importeVigente - original) / original : null,
-            fechaFinOriginal: dia(contrato && contrato.fechaFinOriginal),
-            finVigente,
-            adendaFin: ultimaFin ? ultimaFin.numero : null,
-            diasAmpliacion,
-            firmadas: firmadas.length,
-            pendientes: pendientes.length,
-            importePendiente: euros(pendientes.reduce((s, a) => s + (num(a.importe) || 0), 0)),
-            porTipo,
-            filas,
-            /* Lo que puede costar el retraso: el % diario y su tope, sobre lo vigente. */
-            penalizacionDiaria: diaria !== null ? euros(importeVigente * diaria / 100) : null,
-            penalizacionTope: tope !== null ? euros(importeVigente * tope / 100) : null,
-            retencion: num(contrato && contrato.retencionPct) !== null ? euros(importeVigente * num(contrato.retencionPct) / 100) : null,
-            fases: (fases || []).map((f) => ({ ...f, importeBoq: num(f.importeBoq) })),
-            importeFases: euros((fases || []).reduce((s, f) => s + (num(f.importeBoq) || 0), 0))
-          };
-        }
-        function descuadre(calculado, esperado) {
-          const c = num(calculado);
-          const e = num(esperado);
-          if (c === null || e === null) return null;
-          const d = euros(e - c);
-          return Math.abs(d) < 5e-3 ? null : d;
-        }
-        function precioVigente(precios = [], { faseId = null, fecha = null } = {}) {
-          const hasta = dia(fecha);
-          const vale = (p) => !hasta || !dia(p.vigenteDesde) || dia(p.vigenteDesde) <= hasta;
-          const orden = (a, b) => String(dia(a.vigenteDesde) || "").localeCompare(String(dia(b.vigenteDesde) || "")) || String(a.creadoEn || "").localeCompare(String(b.creadoEn || ""));
-          const propios = faseId ? precios.filter((p) => p.faseId === faseId && vale(p)).sort(orden) : [];
-          const grupo = propios.length ? propios : precios.filter((p) => !p.faseId && vale(p)).sort(orden);
-          return grupo.length ? grupo[grupo.length - 1] : null;
-        }
-        function historiaPorPartida(precios = []) {
-          const grupos = {};
-          for (const p of precios) (grupos[p.partidaId] = grupos[p.partidaId] || []).push(p);
-          const out = {};
-          for (const [id, lista] of Object.entries(grupos)) {
-            lista.sort((a, b) => (a.adendaId ? 1 : 0) - (b.adendaId ? 1 : 0) || String(dia(a.vigenteDesde) || "").localeCompare(String(dia(b.vigenteDesde) || "")));
-            const base = lista.find((p) => !p.adendaId) || lista[0];
-            const o = num(base.precioUnitario);
-            out[id] = {
-              n: lista.length,
-              original: o,
-              precios: lista.map((p) => ({ ...p, difPct: o ? (num(p.precioUnitario) - o) / o : null }))
-            };
-          }
-          return out;
-        }
-        function partidasPorAdenda(precios = []) {
-          const vistos = {};
-          for (const p of precios) {
-            if (!p.adendaId) continue;
-            (vistos[p.adendaId] = vistos[p.adendaId] || /* @__PURE__ */ new Set()).add(p.partidaId);
-          }
-          return Object.fromEntries(Object.entries(vistos).map(([k, s]) => [k, s.size]));
-        }
-        function finDePeriodo(periodo) {
-          const m = /^(\d{4})-(\d{2})$/.exec(String(periodo || ""));
-          if (!m) return null;
-          const d = new Date(Date.UTC(Number(m[1]), Number(m[2]), 0));
-          return d.toISOString().slice(0, 10);
-        }
-        const CAPITULO_OPCIONAL = /OPCIONAL|ADICIONAL/i;
-        function cifrasPresupuesto(partidas = [], capitulo = null) {
-          let base = 0;
-          let opcionales = 0;
-          let n = 0;
-          const cap = capitulo ? String(capitulo).trim() : null;
-          for (const p of partidas) {
-            const camino = p.camino || [];
-            if (cap && !camino.some((c) => c.codigo === cap) && p.codigo !== cap) continue;
-            const imp = num(p.importe) ?? (num(p.cantidad) || 0) * (num(p.precio) || 0);
-            if (camino.some((c) => CAPITULO_OPCIONAL.test(String(c.resumen || "")))) opcionales += imp;
-            else base += imp;
-            n += 1;
-          }
-          return { partidas: n, base: euros(base), opcionales: euros(opcionales), total: euros(base + opcionales) };
-        }
-        function cuadreFase(fase = {}, cifras = null) {
-          const firmado = num(fase.importeBoq);
-          const definitivo = num(fase.importeDefinitivo);
-          const fuente = fase.fuenteDefinitivo ? `\xAB${String(fase.fuenteDefinitivo).trim()}\xBB` : "el Excel del presupuesto";
-          const out = {
-            firmado,
-            definitivo,
-            base: null,
-            opcionales: null,
-            diferencia: null,
-            sobreFirmado: definitivo !== null && firmado !== null ? euros(definitivo - firmado) : null
-          };
-          if (!fase.presupuestoId) {
-            return { ...out, estado: "sinPresupuesto", texto: `No est\xE1 en la app: hay que importar ${fuente}.` };
-          }
-          if (!cifras || !cifras.partidas) {
-            return { ...out, estado: "sinCargar", texto: "El presupuesto enlazado no tiene partidas de esta fase." };
-          }
-          out.base = cifras.base;
-          out.opcionales = cifras.opcionales;
-          const extra = cifras.opcionales ? ` Los opcionales (${cifras.opcionales.toLocaleString("es-ES", { minimumFractionDigits: 2 })} \u20AC) van aparte.` : "";
-          const contra = definitivo !== null ? definitivo : firmado;
-          if (contra === null) {
-            return { ...out, estado: "sinDefinitivo", texto: `Falta apuntar cu\xE1nto suma ${fuente}.${extra}` };
-          }
-          out.diferencia = euros(cifras.base - contra);
-          const tolerancia = Math.max(1, Math.abs(contra) * 1e-4);
-          const que = definitivo !== null ? "el definitivo" : "el BOQ firmado (no hay definitivo)";
-          if (Math.abs(out.diferencia) <= tolerancia) {
-            const red = Math.abs(out.diferencia) >= 5e-3 ? ` (redondeos: ${out.diferencia.toLocaleString("es-ES", { minimumFractionDigits: 2 })} \u20AC)` : "";
-            return { ...out, estado: "cuadra", texto: `La base cuadra con ${que}${red}.${extra}` };
-          }
-          return {
-            ...out,
-            estado: "difiere",
-            texto: `La base se va ${out.diferencia.toLocaleString("es-ES", { minimumFractionDigits: 2 })} \u20AC de ${que}: falta o sobra algo al importar.${extra}`
-          };
-        }
-        (function exportar(API) {
-          if (typeof module !== "undefined" && module.exports) module.exports = API;
-          if (typeof window !== "undefined") window.CONTRATO = API;
-        })({
-          TIPOS_ADENDA,
-          ESTADOS_ADENDA,
-          resumen,
-          descuadre,
-          ordenNumero,
-          precioVigente,
-          historiaPorPartida,
-          partidasPorAdenda,
-          finDePeriodo,
-          cifrasPresupuesto,
-          cuadreFase
-        });
-      })();
-    }
-  });
-
   // electron/data/contratos.js
   var require_contratos = __commonJS({
     "electron/data/contratos.js"(exports, module) {
@@ -89048,531 +93955,6 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.FORMULA_CANTIDAD = API;
       })({ leerCasilla: leerCasillaFc, calcular: calcularFc, textoDeFormula: textoDeFormulaFc, VARIABLES_FORMULA: VARIABLES_FORMULA_FC, AYUDA_FORMULA: AYUDA_FORMULA_FC, LISTA_VARIABLES: LISTA_VARIABLES_FC });
-    }
-  });
-
-  // shared/obra/certIndustriales.js
-  var require_certIndustriales = __commonJS({
-    "shared/obra/certIndustriales.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var _mCi = typeof __require !== "undefined" ? require_modelo() : window.MODELO;
-      var FILAS_POR_PAGINA_CI = 18;
-      var FILAS_ULTIMA_PAGINA_CI = 11;
-      var PAPEL_CI = { ancho: 297, alto: 210, margen: 10, altoPagina: 188 };
-      var CASILLA_FIRMA_CI = { x: 297 - 10 - 80, y: 210 - 10 - 188, ancho: 80, alto: 28 };
-      var IVAS_CI = {
-        isp: { texto: "Inversi\xF3n del sujeto pasivo", iva: 0, inversion: true },
-        21: { texto: "IVA (21 %)", iva: 21 },
-        10: { texto: "IVA (10 %)", iva: 10 },
-        0: { texto: "Exenta de IVA", iva: 0, exenta: true }
-      };
-      var numCi = (v) => (typeof window !== "undefined" && window.IMPORTE ? window.IMPORTE : require_importe()).leerImporte(v);
-      var pctCi = (parte, total) => total > 0 ? _mCi.redondear(parte / total * 100, 1) : null;
-      var ALCANCES_CI = {
-        suministro: { texto: "Suministro", corto: "Sum." },
-        montaje: { texto: "Montaje", corto: "Mont." },
-        ambos: { texto: "Suministro y montaje", corto: "S+M" }
-      };
-      var alcanceCi = (v) => ALCANCES_CI[String(v || "")] ? String(v) : null;
-      var SEGUIMIENTOS_CI = {
-        recibida: { texto: "Recibida", orden: 1 },
-        enRevision: { texto: "En revisi\xF3n", orden: 2 },
-        enviada: { texto: "Enviada", orden: 3, soloEmitida: true },
-        aprobada: { texto: "Aprobada", orden: 4, soloEmitida: true, aprueba: true },
-        coupa: { texto: "Subida a Coupa", orden: 5, soloEmitida: true, aprueba: true },
-        rechazada: { texto: "Rechazada", orden: 0, aprueba: true }
-      };
-      var aprobadaCi = (s) => s === "aprobada" || s === "coupa";
-      var DIAS_SIN_APROBAR_CI = 30;
-      function diasEntreCi(desde, hasta) {
-        const a = Date.parse(String(desde || "").slice(0, 10));
-        const b = Date.parse(String(hasta || "").slice(0, 10));
-        return Number.isFinite(a) && Number.isFinite(b) ? Math.floor((b - a) / 864e5) : null;
-      }
-      function sinAprobarCi(certs = [], hoy, limite = DIAS_SIN_APROBAR_CI) {
-        return certs.map((c) => {
-          if (!c || aprobadaCi(c.seguimiento)) return null;
-          let hist = c.historialSeguimiento;
-          if (typeof hist === "string") {
-            try {
-              hist = JSON.parse(hist || "[]");
-            } catch {
-              hist = [];
-            }
-          }
-          const rec = (Array.isArray(hist) ? hist : []).find((h) => h && h.estado === "recibida");
-          const desde = rec && rec.en || c.creadoEn;
-          const dias = diasEntreCi(desde, hoy);
-          return dias !== null && dias > limite ? { cert: c, dias, desde: String(desde).slice(0, 10) } : null;
-        }).filter(Boolean).sort((a, b) => b.dias - a.dias);
-      }
-      var claveLineaCi = (i) => `L${i + 1}`;
-      function lineasPedidoCi(pedido = {}, precios = {}, alcances = {}) {
-        let lineas = pedido.lineas;
-        if (typeof lineas === "string") {
-          try {
-            lineas = JSON.parse(lineas);
-          } catch {
-            lineas = [];
-          }
-        }
-        if (!Array.isArray(lineas)) lineas = [];
-        return lineas.map((l, i) => {
-          const clave = claveLineaCi(i);
-          const cantidad = _mCi.medida(numCi(l && l.cantidad) || 0);
-          const puesto = numCi(precios && precios[clave]);
-          const delPedido = numCi(l && l.precio);
-          const precio = puesto !== null ? puesto : delPedido;
-          return {
-            clave,
-            pos: i + 1,
-            descripcion: l && l.descripcion || "",
-            unidad: l && l.unidad || "",
-            codigo: l && (l.boq || l.referencia) || "",
-            medicionEstudios: numCi(l && l.medicionEstudios),
-            /* El precio del industrial, tal cual lo pone (hasta 4 decimales: Keran factura a 12,995 €/m):
-               redondearlo a 2 cambiaría su importe y la hoja ya no cuadraría con su proforma. */
-            cantidad,
-            precio: precio === null ? null : _mCi.redondear(precio, 4),
-            precioPuesto: puesto !== null,
-            /* El precio del contrato (la línea del pedido); si el de la certificación no es este, es contradictorio. */
-            precioContrato: delPedido === null ? null : _mCi.redondear(delPedido, 4),
-            alcance: alcanceCi(alcances && alcances[clave]) || alcanceCi(l && l.alcance),
-            importeContrato: _mCi.euros(cantidad * (precio || 0))
-          };
-        });
-      }
-      function calcularHojaCi({ pedido = {}, origen = {}, anterior = {}, precios = {}, alcances = {}, extras = [], extrasAnterior = 0 } = {}) {
-        const avisos = [];
-        const filas = lineasPedidoCi(pedido, precios, alcances).map((l) => {
-          const ant = _mCi.medida(numCi(anterior[l.clave]) || 0);
-          const ori = numCi(origen[l.clave]) === null ? ant : _mCi.medida(numCi(origen[l.clave]));
-          const p = l.precio || 0;
-          const importeAnterior = _mCi.euros(ant * p);
-          const importeOrigen = _mCi.euros(ori * p);
-          if (l.precio === null && ori) avisos.push({ clave: l.clave, texto: `L\xEDnea ${l.pos} sin precio: ponlo en la hoja.` });
-          if (ori > l.cantidad + 1e-9) avisos.push({ clave: l.clave, texto: `L\xEDnea ${l.pos}: se certifica m\xE1s de lo pedido (${_mCi.textoEuros(ori)} de ${_mCi.textoEuros(l.cantidad)}).` });
-          if (ori < -1e-9) avisos.push({ clave: l.clave, texto: `L\xEDnea ${l.pos}: a origen en negativo.` });
-          if (l.medicionEstudios !== null && ori > l.medicionEstudios + 1e-9) {
-            avisos.push({ clave: l.clave, tipo: "estudios", texto: `L\xEDnea ${l.pos}: a origen (${_mCi.textoEuros(ori)}) supera la medici\xF3n de estudios (${_mCi.textoEuros(l.medicionEstudios)}).` });
-          }
-          return {
-            ...l,
-            anterior: ant,
-            origen: ori,
-            mes: _mCi.medida(ori - ant),
-            importeAnterior,
-            importeOrigen,
-            importeMes: _mCi.euros(importeOrigen - importeAnterior),
-            pendiente: _mCi.medida(l.cantidad - ori),
-            importePendiente: _mCi.euros(l.importeContrato - importeOrigen),
-            pctAnterior: pctCi(ant, l.cantidad),
-            pctMes: pctCi(ori - ant, l.cantidad),
-            pctOrigen: pctCi(ori, l.cantidad)
-          };
-        });
-        const lista = extrasCi(extras);
-        const totales = conExtrasCi(totalesFilasCi(filas), lista, extrasAnterior);
-        if (totales.origenLineas > totales.contrato + 5e-3 && totales.contrato > 0) {
-          avisos.push({ tipo: "contrato", texto: `Lo certificado a origen (${_mCi.textoEuros(totales.origenLineas)} \u20AC) supera el contrato (${_mCi.textoEuros(totales.contrato)} \u20AC) en ${_mCi.textoEuros(_mCi.euros(totales.origenLineas - totales.contrato))} \u20AC.` });
-        }
-        return { pedido, filas, extras: lista, totales, avisos };
-      }
-      function extrasCi(lista) {
-        let l = lista;
-        if (typeof l === "string") {
-          try {
-            l = JSON.parse(l || "[]");
-          } catch {
-            l = [];
-          }
-        }
-        if (!Array.isArray(l)) return [];
-        return l.map((e) => {
-          e = e || {};
-          const horas = numCi(e.horas);
-          const ph = numCi(e.precioHora ?? e.precio_hora);
-          const cant = numCi(e.cantidad);
-          const pr = numCi(e.precio);
-          const tipo = e.tipo === "extra" ? "extra" : horas !== null ? "horas" : e.tipo || "extra";
-          const importe = horas !== null && ph !== null ? _mCi.euros(horas * ph) : cant !== null && pr !== null ? _mCi.euros(cant * pr) : _mCi.euros(numCi(e.importe) || 0);
-          return {
-            tipo,
-            concepto: String(e.concepto || e.operario || e.motivo || (tipo === "horas" ? "Administraci\xF3n" : "Extra")).trim(),
-            horas,
-            precioHora: ph,
-            cantidad: cant,
-            precio: pr,
-            parte: e.parte ? String(e.parte) : "",
-            importe,
-            aceptada: e.aceptada !== false
-          };
-        });
-      }
-      function conExtrasCi(t, lista, extrasAnterior = 0) {
-        const mesE = _mCi.euros(lista.filter((e) => e.aceptada).reduce((a, e) => a + e.importe, 0));
-        const antE = _mCi.euros(Number(extrasAnterior) || 0);
-        const origenLineas = t.origen;
-        const out = { ...t, origenLineas, extras: { anterior: antE, mes: mesE, origen: _mCi.euros(antE + mesE) } };
-        out.anterior = _mCi.euros(t.anterior + antE);
-        out.mes = _mCi.euros(t.mes + mesE);
-        out.origen = _mCi.euros(out.anterior + out.mes);
-        return out;
-      }
-      function totalesFilasCi(filas) {
-        const s = (k) => _mCi.euros(filas.reduce((a, f) => a + (Number(f[k]) || 0), 0));
-        const contrato = s("importeContrato");
-        const anterior = s("importeAnterior");
-        const origen = s("importeOrigen");
-        const mes = _mCi.euros(origen - anterior);
-        return {
-          contrato,
-          anterior,
-          mes,
-          origen,
-          pendiente: _mCi.euros(contrato - origen),
-          pctAnterior: pctCi(anterior, contrato),
-          pctMes: pctCi(mes, contrato),
-          pctOrigen: pctCi(origen, contrato)
-        };
-      }
-      function liquidacionCi(base, { iva = "isp", retencion = 0, descuentos = [] } = {}) {
-        const r = IVAS_CI[String(iva)] || IVAS_CI.isp;
-        const importeIva = _mCi.euros(base * (r.iva || 0) / 100);
-        const ret = _mCi.euros(base * (Number(retencion) || 0) / 100);
-        const desc = descuentosCi(descuentos);
-        const totalDescuentos = _mCi.euros(desc.reduce((a, d) => a + d.importe, 0));
-        return {
-          base: _mCi.euros(base),
-          iva: importeIva,
-          textoIva: r.texto,
-          inversion: Boolean(r.inversion),
-          exenta: Boolean(r.exenta),
-          retencion: ret,
-          pctRetencion: Number(retencion) || 0,
-          descuentos: desc,
-          totalDescuentos,
-          liquido: _mCi.euros(base + importeIva - ret - totalDescuentos)
-        };
-      }
-      function descuentosCi(lista) {
-        let l = lista;
-        if (typeof l === "string") {
-          try {
-            l = JSON.parse(l || "[]");
-          } catch {
-            l = [];
-          }
-        }
-        if (!Array.isArray(l)) return [];
-        return l.map((d) => ({ concepto: String(d && d.concepto || "Descuento").trim() || "Descuento", importe: _mCi.euros(Math.abs(Number(d && d.importe) || 0)) })).filter((d) => d.importe > 0);
-      }
-      function resumenCi(hojas = []) {
-        const pedidos = hojas.map((h) => {
-          const t = h.totales;
-          return {
-            pedidoId: h.pedido.id,
-            codigo: h.pedido.codigo,
-            titulo: h.pedido.titulo || "",
-            contratado: t.contrato,
-            anterior: t.anterior,
-            mes: t.mes,
-            origen: t.origen,
-            pendiente: t.pendiente,
-            pctAnterior: t.pctAnterior,
-            pctMes: t.pctMes,
-            pctOrigen: t.pctOrigen
-          };
-        });
-        const s = (k) => _mCi.euros(pedidos.reduce((a, p) => a + p[k], 0));
-        const total = { codigo: "TOTAL", titulo: "", contratado: s("contratado"), anterior: s("anterior"), mes: s("mes"), origen: s("origen"), pendiente: s("pendiente") };
-        total.pctAnterior = pctCi(total.anterior, total.contratado);
-        total.pctMes = pctCi(total.mes, total.contratado);
-        total.pctOrigen = pctCi(total.origen, total.contratado);
-        return { pedidos, total };
-      }
-      var escCi = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-      var eurCi = (v) => v === null || v === void 0 ? "" : _mCi.textoEuros(v);
-      var canCi = (v) => v === null || v === void 0 || v === 0 ? "" : _mCi.textoEuros(v);
-      var pctTxtCi = (v) => v === null || v === void 0 ? "" : `${String(v).replace(".", ",")} %`;
-      function barrasSvgCi(filas, { papel = false, ancho = papel ? 560 : 900, titulo = "" } = {}) {
-        const etiqueta = 92;
-        const cifras = papel ? 175 : 210;
-        const largo = ancho - etiqueta - cifras - 12;
-        const alto = papel ? 32 : 22;
-        const medio = Math.round((alto - 8) / 2) + 4;
-        const top = titulo ? 34 : 22;
-        const escala = Math.max(1, ...filas.map((f) => Math.max(f.contratado || 0, f.origen || 0)));
-        const tinta = papel ? "#000" : "currentColor";
-        const relleno = { ant: "url(#tramaAntCi)", mes: "#1A1A1A", pen: "#fff" };
-        const clase = { ant: "bAntCi", mes: "bMesCi", pen: "bPenCi" };
-        const seg = (k, x, w, y, h = alto - 8) => w > 0.2 ? `<rect class="${clase[k]}" x="${x.toFixed(1)}" y="${y}" width="${w.toFixed(1)}" height="${h}"${papel ? ` fill="${relleno[k]}" stroke="#000" stroke-width="0.6"` : ""}/>` : "";
-        const cuerpo = filas.map((f, i) => {
-          const y = top + i * alto + (f.esTotal ? 6 : 0);
-          const w = (v) => Math.max(0, v || 0) / escala * largo;
-          const wa = w(f.anterior);
-          const wm = w(f.mes);
-          const wp = w(f.pendiente);
-          return `<g>
-      ${f.esTotal ? `<line x1="0" x2="${ancho}" y1="${y - 4}" y2="${y - 4}" stroke="${tinta}" stroke-width="0.8"/>` : ""}
-      <text x="0" y="${y + medio}" font-size="10.5" font-weight="700" fill="${tinta}">${escCi(f.codigo)}</text>
-      ${seg("ant", etiqueta, wa, y)}${seg("mes", etiqueta + wa, wm, y)}${seg("pen", etiqueta + wa + wm, wp, y)}
-      <text x="${etiqueta + largo + 8}" y="${y + medio}" font-size="9.5" fill="${tinta}"${f.esTotal ? ' font-weight="700"' : ""}>${eurCi(f.origen)} de ${eurCi(f.contratado)} \u20AC \xB7 ${pctTxtCi(f.pctOrigen) || "0 %"}</text>
-    </g>`;
-        }).join("");
-        const yLeyenda = titulo ? 16 : 4;
-        const leyenda = [["ant", "Anterior"], ["mes", "Este mes"], ["pen", "Pendiente"]].map(([k, t], i) => `<g transform="translate(${etiqueta + i * 96},${yLeyenda})">${seg(k, 0, 14, 0, 10)}<text x="19" y="9" font-size="9.5" fill="${tinta}">${t}</text></g>`).join("");
-        const total = top + filas.length * alto + (filas.some((f) => f.esTotal) ? 10 : 4);
-        const defs = papel ? `<defs><pattern id="tramaAntCi" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-      <rect width="4" height="4" fill="#fff"/><line x1="0" y1="0" x2="0" y2="4" stroke="#000" stroke-width="1.4"/></pattern></defs>` : "";
-        return `<svg class="barrasCi" viewBox="0 0 ${ancho} ${total}" width="100%" role="img" aria-label="${escCi(titulo || "Certificado")}: anterior, este mes y pendiente" xmlns="http://www.w3.org/2000/svg">${defs}${titulo ? `<text x="0" y="11" font-size="10.5" font-weight="700" fill="${tinta}">${escCi(titulo)}</text>` : ""}${leyenda}${cuerpo}</svg>`;
-      }
-      function graficoPedidoCi(h, opciones = {}) {
-        const t = h.totales;
-        return barrasSvgCi(
-          [{ codigo: h.pedido.codigo, contratado: t.contrato, anterior: t.anterior, mes: t.mes, pendiente: t.pendiente, origen: t.origen, pctOrigen: t.pctOrigen }],
-          { titulo: `Pedido ${h.pedido.codigo}`, ...opciones }
-        );
-      }
-      function graficoTotalCi(resumen, opciones = {}) {
-        return barrasSvgCi([...resumen.pedidos, { ...resumen.total, esTotal: true }], { titulo: "Total del industrial, por pedido", ...opciones });
-      }
-      var MESES_CI = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
-      function nombreMesCi(periodo) {
-        const m = /^(\d{4})-(\d{2})$/.exec(String(periodo || ""));
-        return m ? `${MESES_CI[Number(m[2]) - 1]} ${m[1]}` : String(periodo || "");
-      }
-      function fechaEnLetraCi(fecha) {
-        const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(fecha || ""));
-        return m ? `${Number(m[3])} DE ${MESES_CI[Number(m[2]) - 1]} DE ${m[1]}` : String(fecha || "");
-      }
-      function casillaFirmaCi(firma) {
-        if (!firma) {
-          return `<div class="firmaCi vacia"><div class="rotuloFirmaCi">EL JEFE DE OBRA</div>
-      <div class="huecoFirmaCi">Se firma al emitir</div></div>`;
-        }
-        const cuando = String(firma.fecha || "");
-        const sello = cuando ? `${cuando.slice(0, 10).replace(/-/g, ".")} ${cuando.slice(11, 19)}` : "";
-        return `<div class="firmaCi"><div class="rotuloFirmaCi">EL JEFE DE OBRA</div>
-    <div class="selloCi">
-      <div class="trazoCi">${firma.imagen ? `<img src="${escCi(firma.imagen)}" alt="Firma">` : `<span class="nombreTrazoCi">${escCi(firma.nombre)}</span>`}</div>
-      <div class="textoSelloCi">Firmado por<br><strong>${escCi(firma.nombre)}</strong><br>${escCi(firma.cargo || "Jefe de obra")}<br>Fecha: ${escCi(sello)}</div>
-    </div></div>`;
-      }
-      function cabeceraCi({ logoHtml, obra, proyecto, proveedor, numero, periodo, pedido, numeroPedido, pagina }) {
-        const nombreObra = `${obra.codigo || ""}${obra.nombre ? ` \xB7 ${obra.nombre}` : ""}`;
-        return `<table class="isoHoja"><tbody><tr>
-      <td class="isoLogo">${logoHtml}</td>
-      <td class="isoTitulo">CERTIFICACI\xD3N DE OBRA (MEDICI\xD3N)</td>
-      <td class="isoCodigo"><div>PRODUCCI\xD3N</div><div><strong>DTM.CERTM.01</strong></div><div>Fecha aplicaci\xF3n: 15/05/2015</div></td>
-    </tr></tbody></table>
-    <div class="datosCi">
-      <div class="datosHoja">
-        <div><span>Proyecto:</span> ${escCi(proyecto || obra.nombre || "")}</div>
-        <div><span>Obra:</span> ${escCi(nombreObra)}</div>
-        <div><span>Industrial:</span> ${escCi(proveedor.razonSocial || proveedor.nombre || "")}${proveedor.cif ? ` \xB7 CIF ${escCi(proveedor.cif)}` : ""}</div>
-        <div class="nHoja">CERTIFICACI\xD3N DE OBRA N\xBA ${escCi(numero)} \xB7 ${escCi(nombreMesCi(periodo))}${pedido ? ` \xB7 ${escCi(pedido.titulo || "")}${numeroPedido ? ` (n\xBA ${escCi(numeroPedido)} del pedido)` : ""}` : ""} \xB7 ${escCi(pagina)}</div>
-      </div>
-      ${pedido ? `<div class="pedidoCi"><span>N\xBA DE PEDIDO</span><strong>${escCi(pedido.codigo)}</strong>${pedido.numPedidoProveedor ? `<em>su ref. ${escCi(pedido.numPedidoProveedor)}</em>` : ""}</div>` : ""}
-    </div>`;
-      }
-      var theadCi = `<thead>
-    <tr class="bloques"><th colspan="8" class="kContrato">CONTRATO</th><th colspan="3" class="kActual">CERTIFICADO MES ACTUAL</th>
-      <th colspan="3" class="kAnterior">CERTIFICADO ANTERIOR</th><th colspan="3" class="kOrigen">CERTIFICADO A ORIGEN</th></tr>
-    <tr class="columnas"><th>Pos</th><th>C\xF3digo</th><th>NatC</th><th>Ud</th><th>Resumen</th>
-      <th class="n">CanPres</th><th class="n">Pres</th><th class="n">ImpPres</th>
-      <th class="n b">Cant</th><th class="n">% Avance</th><th class="n">Total</th>
-      <th class="n b">Cant</th><th class="n">% Avance</th><th class="n">Total</th>
-      <th class="n b">Cant</th><th class="n">% Avance</th><th class="n">Total</th></tr>
-  </thead>`;
-      function resumenLibroCi(t, numero, liq) {
-        return `<div class="resumenCi">
-      <div class="bandaResumen">RESUMEN</div>
-      <table class="cierreHoja"><tbody>
-        <tr><td>TOTAL CONTRATO</td><td class="n">${eurCi(t.contrato)} \u20AC</td></tr>
-        <tr><td>TOTAL CERTIFICACI\xD3N ORIGEN</td><td class="n">${eurCi(t.origen)} \u20AC</td></tr>
-        <tr><td>TOTAL CERTIFICACI\xD3N ANTERIOR</td><td class="n">${eurCi(t.anterior)} \u20AC</td></tr>
-      </tbody></table>
-      <div class="bandaTotal"><span>TOTAL CERTIFICACI\xD3N N\xBA ${escCi(numero)} ACTUAL</span><strong>${eurCi(t.mes)} \u20AC</strong></div>
-      <table class="cierreHoja liquidacionCi"><tbody>
-        <tr><td>${escCi(liq.textoIva)}</td><td class="n">${liq.inversion ? "sin IVA (art. 84.Uno.2.\xBA.f LIVA)" : liq.exenta ? "" : `${eurCi(liq.iva)} \u20AC`}</td></tr>
-        ${liq.pctRetencion ? `<tr><td>Retenci\xF3n (${pctTxtCi(liq.pctRetencion)})</td><td class="n">\u2212${eurCi(liq.retencion)} \u20AC</td></tr>` : ""}
-        ${(liq.descuentos || []).map((d) => `<tr><td>${escCi(d.concepto)}</td><td class="n">\u2212${eurCi(d.importe)} \u20AC</td></tr>`).join("")}
-        <tr class="fuerte"><td>L\xEDquido a pagar este mes</td><td class="n">${eurCi(liq.liquido)} \u20AC</td></tr>
-      </tbody></table>
-    </div>`;
-      }
-      function extrasHtmlCi(h, pos) {
-        const lista = h.extras || [];
-        const t = h.totales;
-        if (!lista.length && !(t.extras && t.extras.anterior)) return "";
-        const filas = lista.map((e, i) => `<tr class="extraCi${e.aceptada ? "" : " sinAceptarCi"}"><td class="n pos">${pos + i + 1}</td><td class="cod">${e.tipo === "horas" ? "ADM" : "EXT"}</td>
-      <td>${e.tipo === "horas" ? "Horas" : "Extra"}</td><td>${e.tipo === "horas" ? "h" : ""}</td>
-      <td class="desc">${escCi(e.concepto)}${e.parte ? ` \xB7 parte ${escCi(e.parte)}` : ""}${e.aceptada ? "" : " \xB7 pendiente de aceptar (no suma)"}</td>
-      <td class="n"></td><td class="n"></td><td class="n"></td>
-      <td class="n b">${canCi(e.horas !== null ? e.horas : e.cantidad)}</td><td class="n p"></td><td class="n">${e.aceptada ? eurCi(e.importe) : ""}</td>
-      <td class="b"></td><td></td><td></td><td class="b"></td><td></td><td></td></tr>`).join("");
-        const antes = t.extras && t.extras.anterior ? `<tr class="extraCi"><td></td><td class="cod">ADM</td><td></td><td></td><td class="desc">Administraci\xF3n y extras de meses anteriores</td><td></td><td></td><td></td>
-       <td class="b"></td><td></td><td></td><td class="n b"></td><td></td><td class="n">${eurCi(t.extras.anterior)}</td><td class="b"></td><td></td><td class="n">${eurCi(t.extras.anterior)}</td></tr>` : "";
-        return antes + filas;
-      }
-      function trozosCi(filas) {
-        const trozos = [];
-        let resto = filas.slice();
-        while (resto.length > FILAS_ULTIMA_PAGINA_CI) {
-          const n = Math.min(FILAS_POR_PAGINA_CI, resto.length - (resto.length <= FILAS_POR_PAGINA_CI ? 1 : 0));
-          trozos.push(resto.slice(0, n));
-          resto = resto.slice(n);
-        }
-        trozos.push(resto);
-        return trozos;
-      }
-      function logoDeHojaCi(obra, logo) {
-        let P = null;
-        try {
-          P = typeof __require === "function" ? require_papel() : typeof window !== "undefined" ? window.PAPEL : null;
-        } catch {
-          P = typeof window !== "undefined" ? window.PAPEL : null;
-        }
-        const m = P && P.marcaDeObra ? P.marcaDeObra(obra) : void 0;
-        if (m === null) return '<div class="logoHoja"></div>';
-        const svg = m && m.esLogo ? m.svg : logo;
-        return svg ? `<div class="logoHoja" data-marca="${m ? m.clave : ""}">${svg}</div>` : '<div class="logoHoja logoTexto">Vidaire Cx</div>';
-      }
-      function documentoHtmlCi({
-        obra = {},
-        proyecto = "",
-        proveedor = {},
-        periodo = "",
-        numero = "",
-        hojas = [],
-        firma = null,
-        logo = "",
-        retencion = 0,
-        iva = "isp",
-        fecha = "",
-        borrador = false,
-        descuentos = []
-      } = {}) {
-        const logoHtml = logoDeHojaCi(obra, logo);
-        const marca = borrador ? '<div class="marcaBorradorCi">BORRADOR</div>' : "";
-        const paginas = [];
-        paginas.push(`<section class="caratulaHoja caratulaCi">
-      ${logoHtml}
-      <dl class="datosCaratula"><dt>Proyecto</dt><dd>${escCi(proyecto || obra.nombre || "")}</dd>
-        <dt>Obra</dt><dd>${escCi(`${obra.codigo || ""}${obra.nombre ? ` \xB7 ${obra.nombre}` : ""}`)}</dd>
-        <dt>Industrial</dt><dd>${escCi(proveedor.razonSocial || proveedor.nombre || "")}${proveedor.cif ? ` \xB7 CIF ${escCi(proveedor.cif)}` : ""}</dd>
-        <dt>${hojas.length === 1 ? "Pedido" : "Pedidos"}</dt><dd class="pedidosCaratulaCi">${hojas.map((h) => escCi(h.pedido.codigo)).join(" \xB7 ")}</dd></dl>
-      <h1 class="numeroCaratula">CERTIFICACI\xD3N N\xBA ${escCi(numero)}</h1>
-      <p class="fechaCaratula">${escCi(nombreMesCi(periodo))}${fecha ? ` \xB7 ${escCi(fechaEnLetraCi(fecha))}` : ""}</p>
-      ${marca}
-    </section>`);
-        hojas.forEach((h) => {
-          const trozos = trozosCi(h.filas);
-          const liq = liquidacionCi(h.totales.mes, { iva, retencion, descuentos: hojas.length === 1 ? descuentos : [] });
-          let pos = 0;
-          trozos.forEach((filas, ti) => {
-            const ultima = ti === trozos.length - 1;
-            const cuerpo = filas.map((f) => {
-              pos += 1;
-              return `<tr><td class="n pos">${pos}</td><td class="cod">${escCi(f.codigo)}</td><td>${f.alcance ? ALCANCES_CI[f.alcance].corto : "Partida"}</td><td>${escCi(f.unidad)}</td>
-          <td class="desc">${escCi(f.descripcion)}</td>
-          <td class="n">${canCi(f.cantidad)}</td><td class="n">${eurCi(f.precio)}</td><td class="n">${eurCi(f.importeContrato)}</td>
-          <td class="n b">${canCi(f.mes)}</td><td class="n p">${f.mes ? pctTxtCi(f.pctMes) : ""}</td><td class="n">${f.importeMes ? eurCi(f.importeMes) : ""}</td>
-          <td class="n b">${canCi(f.anterior)}</td><td class="n p">${f.anterior ? pctTxtCi(f.pctAnterior) : ""}</td><td class="n">${f.importeAnterior ? eurCi(f.importeAnterior) : ""}</td>
-          <td class="n b">${canCi(f.origen)}</td><td class="n p">${f.origen ? pctTxtCi(f.pctOrigen) : ""}</td><td class="n">${f.importeOrigen ? eurCi(f.importeOrigen) : ""}</td></tr>`;
-            }).join("");
-            const t = h.totales;
-            const ex = ultima ? extrasHtmlCi(h, pos) : "";
-            paginas.push(`<section class="paginaCi">${marca}
-        ${cabeceraCi({
-              logoHtml,
-              obra,
-              proyecto,
-              proveedor,
-              numero,
-              periodo,
-              pedido: h.pedido,
-              numeroPedido: h.numeroPedido,
-              pagina: `hoja ${ti + 1} de ${trozos.length}`
-            })}
-        <table class="hojaCert">${theadCi}
-          <tbody>${cuerpo || (h.extras && h.extras.length ? "" : '<tr><td colspan="17" class="p">El pedido no tiene l\xEDneas.</td></tr>')}${ex}</tbody>
-          ${ultima ? `<tfoot><tr class="total"><td colspan="5">TOTAL PEDIDO ${escCi(h.pedido.codigo)}</td><td></td><td></td><td class="n">${eurCi(t.contrato)}</td>
-            <td class="b"></td><td class="n">${pctTxtCi(t.pctMes)}</td><td class="n">${eurCi(t.mes)}</td>
-            <td class="b"></td><td class="n">${pctTxtCi(t.pctAnterior)}</td><td class="n">${eurCi(t.anterior)}</td>
-            <td class="b"></td><td class="n">${pctTxtCi(t.pctOrigen)}</td><td class="n">${eurCi(t.origen)}</td></tr></tfoot>` : ""}
-        </table>
-        ${ultima ? `<div class="pieCi">
-            <div class="graficoCi">${graficoPedidoCi(h, { papel: true, ancho: 440 })}</div>
-            ${resumenLibroCi(t, numero, liq)}
-          </div>` : '<p class="sigueCi">Sigue en la hoja siguiente\u2026</p>'}
-        ${casillaFirmaCi(firma)}
-      </section>`);
-          });
-        });
-        if (hojas.length >= 2) {
-          const res = resumenCi(hojas);
-          const liq = liquidacionCi(res.total.mes, { iva, retencion, descuentos });
-          paginas.push(`<section class="paginaCi">${marca}
-      ${cabeceraCi({ logoHtml, obra, proyecto, proveedor, numero, periodo, pedido: null, pagina: `resumen de ${hojas.length} pedidos` })}
-      <table class="hojaCert resumenPedidosCi">
-        <thead><tr class="bloques"><th colspan="3" class="kContrato">CONTRATO</th><th colspan="2" class="kActual">CERTIFICADO MES ACTUAL</th>
-          <th colspan="2" class="kAnterior">CERTIFICADO ANTERIOR</th><th colspan="2" class="kOrigen">CERTIFICADO A ORIGEN</th></tr>
-          <tr class="columnas"><th>N\xBA de pedido</th><th>Resumen</th><th class="n">ImpPres</th><th class="n b">% Avance</th><th class="n">Total</th>
-          <th class="n b">% Avance</th><th class="n">Total</th><th class="n b">% Avance</th><th class="n">Total</th></tr></thead>
-        <tbody>${res.pedidos.map((p) => `<tr><td class="cod"><strong>${escCi(p.codigo)}</strong></td><td class="desc">${escCi(p.titulo)}</td><td class="n">${eurCi(p.contratado)}</td>
-          <td class="n b p">${pctTxtCi(p.pctMes)}</td><td class="n">${eurCi(p.mes)}</td><td class="n b p">${pctTxtCi(p.pctAnterior)}</td><td class="n">${eurCi(p.anterior)}</td>
-          <td class="n b p">${pctTxtCi(p.pctOrigen)}</td><td class="n">${eurCi(p.origen)}</td></tr>`).join("")}</tbody>
-        <tfoot><tr class="total"><td colspan="2">TOTAL</td><td class="n">${eurCi(res.total.contratado)}</td>
-          <td class="n b">${pctTxtCi(res.total.pctMes)}</td><td class="n">${eurCi(res.total.mes)}</td><td class="n b">${pctTxtCi(res.total.pctAnterior)}</td><td class="n">${eurCi(res.total.anterior)}</td>
-          <td class="n b">${pctTxtCi(res.total.pctOrigen)}</td><td class="n">${eurCi(res.total.origen)}</td></tr></tfoot>
-      </table>
-      <div class="graficoTotalCi">${graficoTotalCi(res, { papel: true, ancho: 760 })}</div>
-      <div class="pieCi pieTotalCi">
-        ${resumenLibroCi({ contrato: res.total.contratado, origen: res.total.origen, anterior: res.total.anterior, mes: res.total.mes }, numero, liq)}
-      </div>
-      ${casillaFirmaCi(firma)}
-    </section>`);
-        }
-        return paginas.join("\n");
-      }
-      function paginasCi(hojas = []) {
-        return 1 + hojas.reduce((a, h) => a + trozosCi(h.filas).length, 0) + (hojas.length >= 2 ? 1 : 0);
-      }
-      (function exportar(API) {
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.CERT_INDUSTRIALES = API;
-      })({
-        lineasPedido: lineasPedidoCi,
-        calcularHoja: calcularHojaCi,
-        totalesFilas: totalesFilasCi,
-        liquidacion: liquidacionCi,
-        descuentos: descuentosCi,
-        extras: extrasCi,
-        resumen: resumenCi,
-        barrasSvg: barrasSvgCi,
-        graficoPedido: graficoPedidoCi,
-        graficoTotal: graficoTotalCi,
-        documentoHtml: documentoHtmlCi,
-        paginas: paginasCi,
-        trozos: trozosCi,
-        nombreMes: nombreMesCi,
-        claveLinea: claveLineaCi,
-        ALCANCES: ALCANCES_CI,
-        alcance: alcanceCi,
-        SEGUIMIENTOS: SEGUIMIENTOS_CI,
-        aprobada: aprobadaCi,
-        sinAprobar: sinAprobarCi,
-        diasEntre: diasEntreCi,
-        DIAS_SIN_APROBAR: DIAS_SIN_APROBAR_CI,
-        FILAS_POR_PAGINA: FILAS_POR_PAGINA_CI,
-        FILAS_ULTIMA_PAGINA: FILAS_ULTIMA_PAGINA_CI,
-        CASILLA_FIRMA: CASILLA_FIRMA_CI,
-        PAPEL: PAPEL_CI,
-        IVAS: IVAS_CI
-      });
     }
   });
 
@@ -93857,6 +98239,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
       var { nuevoId } = require_repositorio();
       var M = require_mantenimiento();
       var INC = require_incidencias();
+      var FR = require_firmasReparacion();
       var MI = require_motor4();
       var INF = require_informes2();
       var SIN_PERMISO = "Tu rol no tiene las \xF3rdenes de trabajo de mantenimiento.";
@@ -94242,10 +98625,10 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           throw e;
         }
         let incidencia = null;
-        if (r.cerrarIncidencia) incidencia = cerrarIncidencia(repo, sesion, r.cerrarIncidencia, o.codigo);
+        if (r.cerrarIncidencia) incidencia = cerrarIncidencia(repo, sesion, r.cerrarIncidencia, o.codigo, o);
         return { ok: true, registros: r.registros.length, incidencia, coste: r.cambios.costeMant };
       }
-      function cerrarIncidencia(repo, sesion, incidenciaId, codigo) {
+      function cerrarIncidencia(repo, sesion, incidenciaId, codigo, orden = null) {
         if (!puede(sesion.rol, "incidencias", "editar")) return { estado: null, aviso: "La incidencia la tiene que cerrar quien la lleva." };
         const i = repo.leer("incidencias", sesion, incidenciaId);
         if (!i) return { estado: null, aviso: "No se encuentra la incidencia." };
@@ -94262,6 +98645,12 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
             t = { ok: true };
           }
           if (!t.ok) return { estado: i.estado, aviso: t.error };
+        }
+        if (orden && orden.firma && orden.firmadoPor && i.equipoId && !FR.firmada(FR.firmasDe(repo, sesion, incidenciaId))) {
+          try {
+            FR.firmar(repo, sesion, incidenciaId, { rol: "jefeObra", nombre: orden.firmadoPor, imagen: orden.firma });
+          } catch {
+          }
         }
         if (puede(sesion.rol, "incidencias", "aprobar")) {
           const c = INC.cambiarEstado(repo, sesion, incidenciaId, "cerrada", { comentario });
@@ -94471,314 +98860,6 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         documentoLibro,
         documentoFgas
       };
-    }
-  });
-
-  // shared/cargaObra.js
-  var require_cargaObra = __commonJS({
-    "shared/cargaObra.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var _textoCO = typeof __require !== "undefined" ? require_texto() : window.TEXTO;
-      var redondearCO = (v, d = 0) => {
-        const f = Math.pow(10, d);
-        return Math.round((Number(v) || 0) * f) / f;
-      };
-      function diasEntreCO(desde, hasta) {
-        if (!desde || !hasta) return null;
-        const n = (s) => Date.UTC(...String(s).split("-").map((x, i) => i === 1 ? Number(x) - 1 : Number(x)));
-        return Math.round((n(hasta) - n(desde)) / 864e5);
-      }
-      function mesDe(iso) {
-        return String(iso || "").slice(0, 7);
-      }
-      function sumarMeses(mes, n) {
-        const [a, m] = String(mes).split("-").map(Number);
-        const total = a * 12 + (m - 1) + n;
-        return `${Math.floor(total / 12)}-${String(total % 12 + 1).padStart(2, "0")}`;
-      }
-      var TRAMO = 0.2;
-      var FASES_OBRA = {
-        sinFechas: {
-          id: "sinFechas",
-          nombre: "Sin fechas",
-          peso: 1,
-          que: "No se sabe cu\xE1ndo empieza ni cu\xE1ndo acaba."
-        },
-        porEmpezar: {
-          id: "porEmpezar",
-          nombre: "Por empezar",
-          peso: 0.5,
-          que: "Todav\xEDa no ha arrancado."
-        },
-        arranque: {
-          id: "arranque",
-          nombre: "Arrancando",
-          peso: 2,
-          que: "Replanteo, compras y los industriales entrando. Se lleva el doble de tiempo."
-        },
-        ejecucion: {
-          id: "ejecucion",
-          nombre: "En ejecuci\xF3n",
-          peso: 1,
-          que: "El tramo largo: producci\xF3n y certificaciones."
-        },
-        remate: {
-          id: "remate",
-          nombre: "Rematando",
-          peso: 2,
-          que: "Pruebas, repasos y documentaci\xF3n. Se lleva el doble de tiempo."
-        },
-        pasada: {
-          id: "pasada",
-          nombre: "Pasada de fecha",
-          peso: 2.5,
-          que: "Deber\xEDa haber acabado. Es la que m\xE1s tiempo come y la que peor se lleva."
-        }
-      };
-      function faseDe(obra, hoy) {
-        const ini = obra.fechaInicio;
-        const fin = obra.fechaFin;
-        if (!ini || !fin) return FASES_OBRA.sinFechas;
-        const total = diasEntreCO(ini, fin);
-        if (!(total > 0)) return FASES_OBRA.sinFechas;
-        const pasados = diasEntreCO(ini, hoy);
-        if (pasados < 0) return FASES_OBRA.porEmpezar;
-        if (pasados > total) return FASES_OBRA.pasada;
-        const avance = pasados / total;
-        if (avance <= TRAMO) return FASES_OBRA.arranque;
-        if (avance >= 1 - TRAMO) return FASES_OBRA.remate;
-        return FASES_OBRA.ejecucion;
-      }
-      function avanceDe(obra, hoy) {
-        const total = diasEntreCO(obra.fechaInicio, obra.fechaFin);
-        if (!(total > 0)) return null;
-        const pasados = diasEntreCO(obra.fechaInicio, hoy);
-        return Math.max(0, Math.min(100, Math.round(pasados / total * 100)));
-      }
-      function vivoDe(obra, hoy) {
-        const importe = Number(obra.importeVenta) || 0;
-        const cert = obra.certificado;
-        if (cert !== null && cert !== void 0 && cert !== "" && Number.isFinite(Number(cert))) {
-          return Math.max(0, redondearCO(importe - Number(obra.certificado)));
-        }
-        const avance = avanceDe(obra, hoy);
-        if (avance === null) return importe;
-        return Math.max(0, redondearCO(importe * (1 - avance / 100)));
-      }
-      var PUESTOS_OBRA = {
-        jefeGrupo: {
-          id: "jefeGrupo",
-          rol: "jefeGrupo",
-          nombre: "Jefes de grupo",
-          campo: "jefeGrupoId",
-          /* Un jefe de grupo no está en la obra todos los días: coordina. Aguanta
-             más obras, pero se le acumulan las de sus jefes de obra. */
-          maximo: 8,
-          que: "Coordina varias obras y responde de su grupo."
-        },
-        jefeObra: {
-          id: "jefeObra",
-          rol: "jefeObra",
-          nombre: "Jefes de obra",
-          campo: "jefeObraId",
-          maximo: 4,
-          que: "Lleva la obra: compras, certificaciones y plazo."
-        },
-        encargado: {
-          id: "encargado",
-          rol: "encargadoObra",
-          nombre: "Encargados",
-          campo: "encargadosIds",
-          lista: true,
-          /*
-           * UNO. Un encargado está en la obra, no la coordina desde una oficina.
-           * Dos ya es ir corriendo entre dos sitios y tres es mentira.
-           */
-          maximo: 1,
-          que: "Est\xE1 en el tajo. No puede estar en dos sitios a la vez."
-        }
-      };
-      var ABIERTAS_CO = ["sinAsignar", "enCurso"];
-      function estaEn(obra, puesto, personaId) {
-        if (personaId === null || personaId === void 0 || personaId === "") return false;
-        if (puesto.lista) {
-          const ids = Array.isArray(obra[puesto.campo]) ? obra[puesto.campo] : String(obra[puesto.campo] || "").split(",").filter(Boolean);
-          return ids.includes(personaId);
-        }
-        return obra[puesto.campo] === personaId;
-      }
-      function cargaDeObra(persona, obras, { hoy, puesto } = {}) {
-        const p = puesto || PUESTOS_OBRA[persona.rol === "encargadoObra" ? "encargado" : persona.rol] || PUESTOS_OBRA.jefeObra;
-        const suyas = (obras || []).filter((o) => ABIERTAS_CO.includes(o.estado) && estaEn(o, p, persona.id)).map((o) => ({
-          obra: o,
-          fase: faseDe(o, hoy),
-          avance: avanceDe(o, hoy),
-          vivo: vivoDe(o, hoy)
-        })).sort((a, b) => String(a.obra.fechaFin || "9").localeCompare(String(b.obra.fechaFin || "9")));
-        const enFase = (id) => suyas.filter((x) => x.fase.id === id);
-        const peso = redondearCO(suyas.reduce((s, x) => s + x.fase.peso, 0), 1);
-        return {
-          persona,
-          puesto: p,
-          obras: suyas,
-          cuantas: suyas.length,
-          peso,
-          arrancando: enFase("arranque").length + enFase("porEmpezar").length,
-          rematando: enFase("remate").length,
-          pasadas: enFase("pasada").length,
-          sinFechas: enFase("sinFechas").length,
-          vivo: redondearCO(suyas.reduce((s, x) => s + x.vivo, 0)),
-          importeTotal: redondearCO(suyas.reduce((s, x) => s + (Number(x.obra.importeVenta) || 0), 0)),
-          emplazamientos: [...new Set(suyas.map((x) => x.obra.emplazamiento).filter(Boolean))],
-          tension: tensionDeObra(suyas, p)
-        };
-      }
-      function tensionDeObra(suyas, puesto) {
-        const pasadas = suyas.filter((x) => x.fase.id === "pasada");
-        if (pasadas.length) {
-          return {
-            nivel: "vencido",
-            porque: `${_textoCO.plural(pasadas.length, "obra pasada de fecha", "obras pasadas de fecha")}.`
-          };
-        }
-        if (puesto.maximo === 1 && suyas.length > 1) {
-          return {
-            nivel: "vencido",
-            porque: `${suyas.length} obras a la vez. Un encargado est\xE1 en el tajo: no puede estar en dos sitios.`
-          };
-        }
-        const criticas = suyas.filter((x) => x.fase.id === "arranque" || x.fase.id === "remate");
-        if (criticas.length >= 2) {
-          const arranque = criticas.filter((x) => x.fase.id === "arranque").length;
-          const remate = criticas.length - arranque;
-          const dice = arranque && remate ? `${arranque} arrancando y ${remate} rematando a la vez` : arranque ? `${arranque} obras arrancando a la vez` : `${remate} obras rematando a la vez`;
-          return {
-            nivel: "apretado",
-            porque: `${dice}. Son los dos momentos que se llevan el doble de tiempo.`
-          };
-        }
-        if (suyas.length > puesto.maximo) {
-          return {
-            nivel: "apretado",
-            porque: `${_textoCO.plural(suyas.length, "obra a la vez", "obras a la vez")}, por encima de ${puesto.maximo}.`
-          };
-        }
-        if (!suyas.length) return { nivel: "libre", porque: "Sin obras asignadas." };
-        if (suyas.length < puesto.maximo) {
-          return {
-            nivel: "normal",
-            porque: `${_textoCO.plural(suyas.length, "obra", "obras")}, ${criticas.length ? "una en momento cr\xEDtico" : "ninguna en momento cr\xEDtico"}.`
-          };
-        }
-        return { nivel: "normal", porque: `${_textoCO.plural(suyas.length, "obra", "obras")}.` };
-      }
-      var ORDEN_CO = { vencido: 0, apretado: 1, normal: 2, libre: 3 };
-      function panelDeObra({ personas = [], obras = [], hoy } = {}) {
-        const abiertas = obras.filter((o) => ABIERTAS_CO.includes(o.estado));
-        const porPuesto = Object.values(PUESTOS_OBRA).map((puesto) => ({
-          puesto,
-          personas: personas.filter((p) => p.activo !== false && (p.rol === puesto.rol || abiertas.some((o) => estaEn(o, puesto, p.id)))).map((p) => cargaDeObra(p, obras, { hoy, puesto })).sort((a, b) => ORDEN_CO[a.tension.nivel] - ORDEN_CO[b.tension.nivel] || b.peso - a.peso || String(a.persona.nombre).localeCompare(String(b.persona.nombre), "es"))
-        }));
-        const conFase = abiertas.map((o) => ({
-          obra: o,
-          fase: faseDe(o, hoy),
-          avance: avanceDe(o, hoy),
-          vivo: vivoDe(o, hoy),
-          sinJefe: !o.jefeObraId,
-          sinEncargado: !String(o.encargadosIds || "").replace(/,/g, "").length && !(Array.isArray(o.encargadosIds) && o.encargadosIds.length)
-        }));
-        return {
-          hoy,
-          obras: conFase.sort((a, b) => {
-            if (a.sinJefe !== b.sinJefe) return a.sinJefe ? -1 : 1;
-            return String(a.obra.fechaFin || "9").localeCompare(String(b.obra.fechaFin || "9"));
-          }),
-          porPuesto,
-          totales: {
-            obras: abiertas.length,
-            sinJefe: conFase.filter((x) => x.sinJefe).length,
-            sinEncargado: conFase.filter((x) => x.sinEncargado).length,
-            pasadas: conFase.filter((x) => x.fase.id === "pasada").length,
-            vivo: redondearCO(conFase.reduce((s, x) => s + x.vivo, 0))
-          },
-          avisos: avisosDeObra(conFase, porPuesto)
-        };
-      }
-      function avisosDeObra(obras, porPuesto) {
-        const avisos = [];
-        const sinJefe = obras.filter((x) => x.sinJefe);
-        if (sinJefe.length) {
-          avisos.push({
-            gravedad: "mal",
-            id: "sinJefe",
-            obraIds: sinJefe.map((x) => x.obra.id),
-            texto: `${_textoCO.plural(sinJefe.length, "obra no tiene jefe de obra", "obras no tienen jefe de obra")}. Una obra sin jefe no est\xE1 en el trabajo de nadie.`
-          });
-        }
-        const sinEncargado = obras.filter((x) => !x.sinJefe && x.sinEncargado && ["arranque", "ejecucion", "remate"].includes(x.fase.id));
-        if (sinEncargado.length) {
-          avisos.push({
-            gravedad: "aviso",
-            id: "sinEncargado",
-            obraIds: sinEncargado.map((x) => x.obra.id),
-            texto: `${_textoCO.plural(sinEncargado.length, "obra en marcha no tiene encargado", "obras en marcha no tienen encargado")}. El jefe de obra acaba haciendo de encargado y deja de hacer lo suyo.`
-          });
-        }
-        const sinFechas = obras.filter((x) => x.fase.id === "sinFechas");
-        if (sinFechas.length) {
-          avisos.push({
-            gravedad: "aviso",
-            id: "sinFechas",
-            obraIds: sinFechas.map((x) => x.obra.id),
-            texto: `${_textoCO.plural(sinFechas.length, "obra no tiene fechas", "obras no tienen fechas")}. Sin fechas no se sabe en qu\xE9 momento est\xE1 ni cu\xE1nto pesa.`
-          });
-        }
-        for (const grupo of porPuesto) {
-          const apretados = grupo.personas.filter((c) => c.tension.nivel === "vencido" || c.tension.nivel === "apretado");
-          const libres = grupo.personas.filter((c) => c.tension.nivel === "libre");
-          if (apretados.length && libres.length) {
-            avisos.push({
-              gravedad: "sugerencia",
-              id: `desequilibrio-${grupo.puesto.id}`,
-              puesto: grupo.puesto.id,
-              texto: `${apretados.map((c) => c.persona.nombre.split(" ")[0]).join(", ")} ${apretados.length === 1 ? "va" : "van"} apretado y ${libres.map((c) => c.persona.nombre.split(" ")[0]).join(", ")} no ${libres.length === 1 ? "tiene" : "tienen"} ninguna obra.`
-            });
-          }
-        }
-        return avisos;
-      }
-      function efectoDeDarleLaObra(carga, obra, { hoy } = {}) {
-        const fase = faseDe(obra, hoy);
-        const nuevas = [...carga.obras, { obra, fase, avance: avanceDe(obra, hoy), vivo: vivoDe(obra, hoy) }];
-        const t = tensionDeObra(nuevas, carga.puesto);
-        if (carga.puesto.maximo === 1 && nuevas.length > 1) {
-          return { nivel: "vencido", texto: `Ya est\xE1 en ${carga.obras[0].obra.codigo}. Un encargado no est\xE1 en dos sitios.` };
-        }
-        return {
-          nivel: t.nivel,
-          texto: `Le quedar\xEDan ${_textoCO.plural(nuevas.length, "obra", "obras")}: ${t.porque.toLowerCase()}`
-        };
-      }
-      (function exportar(API) {
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.CARGA_OBRA = API;
-      })({
-        FASES_OBRA,
-        PUESTOS_OBRA,
-        ABIERTAS_CO,
-        TRAMO,
-        faseDe,
-        avanceDe,
-        vivoDe,
-        cargaDeObra,
-        tensionDeObra,
-        panelDeObra,
-        efectoDeDarleLaObra,
-        diasEntre: diasEntreCO,
-        mesDe,
-        sumarMeses
-      });
     }
   });
 
@@ -103990,6 +108071,21 @@ ${correo.texto || ""}`);
             automatico: [
               { que: "Valoraci\xF3n de lo robado: venta y coste seg\xFAn la oferta adjudicada o el banco de precios", cuando: "Al dar el parte", editable: true, como: "Lo que escribe el jefe de obra manda." },
               { que: "PDF del parte", cuando: "Al exportar", editable: false }
+            ]
+          },
+          {
+            area: "Obra \xB7 Seguridad e incidencias",
+            titulo: "Plan QHSE",
+            dondeEsta: "Obra \u203A Seguridad \u203A Plan QHSE",
+            cubre: ["qhse"],
+            queHace: "El calendario QHSE de la obra (readiness, inspecciones, inducciones, subcontratas, HoP y CSS) con sus registros y sus NC hasta cerrarlas.",
+            automatico: [
+              { que: "Calendario de actividades y vencimientos a partir de las fechas de inicio y fin de la obra", cuando: "Al abrir la obra", editable: "parcial", como: "La frecuencia de la inspecci\xF3n del sitio y lo que no aplica se ajustan en el plan." },
+              { que: "Una inspecci\xF3n de subcontrata por subcontrata en obra, o una al mes si est\xE1 desde el inicio", cuando: "Siempre", editable: false },
+              { que: "Cabecera de cada registro con la obra, la ubicaci\xF3n, la fecha, la hora y los contratistas en obra", cuando: "Al abrir un registro", editable: true },
+              { que: "Una NC con su fila de seguimiento por cada punto que no cumple, con plazo de 7 o 31 d\xEDas", cuando: "Al marcar NC", editable: true },
+              { que: "Avisos de lo vencido y de las NC del CSS sin cerrar antes de su pr\xF3xima visita", cuando: "Siempre", editable: false },
+              { que: "PDF del registro con la tabla de su plantilla", cuando: "Al exportar", editable: false }
             ]
           },
           /* ═══════════════════════════════════════════════ MANTENIMIENTO ═══ */
@@ -116695,7 +120791,7 @@ ${l}`;
       var import_buffer_global10 = __toESM(require_buffer_global());
       var RESP_SI = [
         { id: "si", nombre: "S\xED", bien: true },
-        { id: "nc", nombre: "No cumple", mal: true },
+        { id: "nc", nombre: "NC", mal: true },
         { id: "na", nombre: "N/A" }
       ];
       var RESP_CONTROL = [
@@ -116703,304 +120799,587 @@ ${l}`;
         { id: "nc", nombre: "No aceptable", mal: true },
         { id: "na", nombre: "N/A" }
       ];
+      var RESP_CHECK = [
+        { id: "si", nombre: "Check", bien: true },
+        { id: "nc", nombre: "NC", mal: true },
+        { id: "na", nombre: "N/A" }
+      ];
       var RESP_CAE = [
         { id: "si", nombre: "Tratado", bien: true },
         { id: "nc", nombre: "Pendiente", mal: true },
         { id: "na", nombre: "No procede" }
       ];
-      var sec = (id, nombre, items) => ({ id, nombre, items });
+      var RESP_AUDIT = [
+        { id: "si", nombre: "Conforme", bien: true },
+        { id: "nc", nombre: "NC", mal: true },
+        { id: "na", nombre: "N/A" }
+      ];
+      var sec = (id, nombre, items, extra = {}) => ({ id, nombre, items, ...extra });
+      var campo = (clave, nombre, extra = {}) => ({ clave, nombre, ...extra });
       var INSPECCION_SECCIONES = [
-        sec("info", "Imagen corporativa e informaci\xF3n", [
-          "Cartel de obra, imagen corporativa y avisos obligatorios expuestos",
-          "Informaci\xF3n de salud, seguridad y medio ambiente a la vista del personal"
+        sec("info", "Imagen Corporativa / Informaci\xF3n", [
+          "Montaje del recinto, se\xF1alizaci\xF3n, limpieza, vestimenta del personal, actitud, pol\xEDticas, seguros, notificaci\xF3n reglamentaria, inducci\xF3n, primeros auxilios."
         ]),
-        sec("riesgos", "Evaluaci\xF3n de riesgos y declaraciones de m\xE9todo", [
-          "Evaluaciones de riesgos de las tareas en curso disponibles y conocidas",
-          "Seguridad en el trabajo: an\xE1lisis de peligros hecho para cada actividad",
-          "Declaraciones de m\xE9todo (procedimientos de trabajo) aprobadas y en obra",
-          "El personal conoce y aplica lo que dicen las declaraciones de m\xE9todo"
+        sec("riesgos", "Evaluaci\xF3n de Riesgos / Seguridad en el Trabajo / An\xE1lisis de Peligros / Declaraciones de M\xE9todos", [
+          "Ejemplares disponibles en el recinto (espec\xEDficos para la actividad) y autorizados.",
+          "Controles identificados y cumplidos. Evidencia de que el Contratista Principal ha revisado la documentaci\xF3n antes de comenzar el trabajo.",
+          "Evidencia de comunicaci\xF3n: los trabajadores de las subcontratas y propios recibieron la evaluaci\xF3n de riesgos."
         ]),
         sec("altura", "Trabajos en altura", [
-          "Protecci\xF3n colectiva frente a ca\xEDdas (barandillas, redes, plataformas)",
-          "Andamios, torres y escaleras en buen estado, inspeccionados y se\xF1alizados"
+          "La prevenci\xF3n de ca\xEDdas de altura o de materiales es adecuada (por ejemplo, plataformas de trabajo con protecci\xF3n de bordes adecuada o arneses de seguridad).",
+          "Las escaleras y las plataformas est\xE1n en buen estado y libres de defectos."
         ]),
         sec("izado", "Medios o procedimientos de izado o elevaci\xF3n", [
-          "Plan de izado, medios certificados y zona de maniobra acotada"
+          "Si las operaciones de elevaci\xF3n est\xE1n en curso, las etiquetas de equipos son legibles e intactas, marcadas y v\xE1lidas para todos los equipos de elevaci\xF3n."
         ]),
         sec("ruido", "Ruido", [
-          "Evaluaci\xF3n de ruido y medidas de control aplicadas",
-          "Protecci\xF3n auditiva disponible y usada donde se exige"
+          "Si se est\xE1n llevando a cabo operaciones ruidosas, se est\xE1 usando protecci\xF3n auditiva y se ha evaluado.",
+          "Se han adoptado medidas para evitar actividades que generen molestias legales en t\xE9rminos de contaminaci\xF3n ac\xFAstica."
         ]),
         sec("vibracion", "Vibraci\xF3n", [
-          "Evaluaci\xF3n de vibraciones de las herramientas y control del tiempo de exposici\xF3n",
-          "Rotaci\xF3n del personal o herramientas de baja vibraci\xF3n"
+          "Si utiliza equipos que pueden causar vibraciones mano-brazo, los trabajadores conocen y cumplen con los tiempos de descanso.",
+          "Se han adoptado medidas para evitar que las actividades generen molestias legales en t\xE9rminos de vibraciones."
         ]),
         sec("manual", "Manipulaci\xF3n manual", [
-          "Manipulaci\xF3n manual de cargas evaluada y con ayudas mec\xE1nicas"
+          "Si los operarios est\xE1n levantando objetos pesados, tiene una evaluaci\xF3n del riesgo que se est\xE1 cubriendo la actividad."
         ]),
         sec("permisos", "Sistemas de permisos", [
-          "Permisos de trabajo (caliente, espacios confinados, altura, el\xE9ctricos) emitidos y vigentes"
+          "Son permisos para trabajo en caliente, espacio confinado, permiso para excavar, permiso para cargar, el\xE9ctricos, en altura, productos qu\xEDmicos peligrosos, etc."
         ]),
         sec("residuos", "Materiales de desecho", [
-          "Residuos segregados en contenedores identificados",
-          "Retirada de residuos por gestor autorizado, con documentaci\xF3n",
-          "Sin acumulaci\xF3n de escombro ni de material sobrante"
+          "Si los residuos se est\xE1n retirando del sitio, verifique que los documentos de transferencia de desechos y de porte est\xE9n en su lugar.",
+          "Licencia de transportista de residuos registrada en el archivo y copia de la licencia de la estaci\xF3n de transferencia disponible.",
+          "Los residuos correctos se depositan en el contenedor correcto y los contenedores se etiquetan."
         ]),
         sec("contaminacion", "Prevenci\xF3n de la contaminaci\xF3n", [
-          "Productos peligrosos almacenados con cubeto y se\xF1alizados",
-          "Vertidos evitados: sin lavado de \xFAtiles ni derrames al terreno o a la red"
+          "En relaci\xF3n con la actividad seleccionada, se cuentan con los permisos/licencias/consentimientos necesarios (por ejemplo, drenaje).",
+          "El almacenamiento de petr\xF3leo / di\xE9sel est\xE1 en contenedores adecuados y no hay evidencia de derrames significativos, kits de derrames y plan de respuesta a emergencias disponibles."
         ]),
         sec("ambiente", "Impacto ambiental", [
-          "Control de polvo, humos y emisiones",
-          "Control del ruido hacia el entorno y los vecinos",
-          "Protecci\xF3n de \xE1rboles, zonas verdes y servicios afectados"
+          "\xBFExisten disposiciones adecuadas para reciclar materiales?",
+          "Tener las consideraciones y licencias apropiadas para proteger la vida silvestre (aves que anidan en \xE1rboles o en el suelo, murci\xE9lagos, tejones), etc.",
+          "\xBFSe han tomado las consideraciones adecuadas para prevenir las molestias p\xFAblicas o privadas (polvo, ruido, iluminaci\xF3n), etc.?"
         ]),
         sec("lugar", "Lugar de trabajo", [
-          "Acceso y salida de la obra seguros y se\xF1alizados",
-          "Seguridad del recinto (vallado, control de accesos)",
-          "Servicio de limpieza",
-          "Supresi\xF3n de polvo y barro",
-          "Gesti\xF3n del tr\xE1fico y separaci\xF3n de veh\xEDculos y peatones",
-          "Iluminaci\xF3n suficiente",
-          "Bienestar en el lugar de trabajo",
-          "Itinerarios peatonales libres y se\xF1alizados",
-          "Obras temporales (apeos, apuntalamientos) comprobadas",
-          "Excavaciones protegidas, entibadas o se\xF1alizadas"
+          "Acceso y egreso (adecuado, seguro, planificado y mantenido).",
+          "Seguridad del sitio (recinto, sitio, adecuadamente cercado y se\xF1alizado para evitar intrusos).",
+          "Servicio de limpieza (sitio ordenado y mantenido a un nivel aceptable: resbalones, tropiezos y ca\xEDdas).",
+          "Supresi\xF3n de polvo / barro (el polvo y el barro son un problema y al estar adecuadamente controlados, los trabajos de corte utilizan supresi\xF3n de polvo).",
+          "Gesti\xF3n del tr\xE1fico del sitio (se\xF1ales, estacionamiento, cercas, plan de tr\xE1fico).",
+          "Iluminaci\xF3n (adecuada para las operaciones en la obra, incluida la iluminaci\xF3n de tareas).",
+          "Bienestar (limpio y ordenado, las instalaciones de cocina est\xE1n limpias, se proporciona agua potable y es adecuada para el n\xFAmero de trabajadores).",
+          "Itinerarios peatonales (peatones adecuadamente provistos, protecci\xF3n p\xFAblica adecuada).",
+          "Obras temporales (protecci\xF3n de cubiertas, cimbras, encofrados, apuntalamientos) dise\xF1adas e inspeccionadas.",
+          "Excavaciones (dise\xF1adas, cercadas, que proporcionan un acceso seguro y se\xF1alizadas)."
         ]),
         sec("personal", "Personal", [
-          "Equipos de protecci\xF3n individual adecuados y en uso",
-          "Todos han recibido la inducci\xF3n de obra",
-          "Competencia y formaci\xF3n del personal para su tarea",
-          "Charlas de seguridad (toolbox talk) al d\xEDa",
-          "Comportamientos seguros observados"
+          "Equipo de protecci\xF3n personal (EPI) correcto (obligatorio seg\xFAn lo identificado por la evaluaci\xF3n de riesgos / seguridad laboral / an\xE1lisis de peligros).",
+          "Evidencia de inducci\xF3n: registros de verificaci\xF3n.",
+          "Evidencia de competencial.",
+          "Evidencia de la \xFAltima charla de toolbox / charla de equipo y evaluaci\xF3n de riesgos / seguridad laboral / sesiones informativas de an\xE1lisis de peligros.",
+          "Conductuales (actitud, conocimiento de la tarea, pulcritud, equipamiento, vestimenta, etc.)."
         ]),
         sec("planta", "Planta y equipo", [
-          "Inspecciones de herramientas",
-          "Inspecciones legales de equipos",
-          "Bandejas de goteo bajo equipos y dep\xF3sitos",
-          "Kit antiderrames disponible",
-          "Repostaje controlado",
-          "Certificados de elevaci\xF3n en vigor",
-          "Estado de los equipos de elevaci\xF3n",
-          "Equipos el\xE9ctricos port\xE1tiles revisados",
-          "Hojas diarias de revisi\xF3n de la maquinaria"
+          "Inspecciones de herramientas / equipos (diarias y semanales) realizadas por el operador / usuarios.",
+          "Evidencia de las inspecciones legales que se est\xE1n llevando a cabo para instalaciones m\xF3viles y fijas (por ejemplo, compresores, el\xE9ctricos, mec\xE1nicos y de gas).",
+          "Bandejas de goteo colocadas cuando se realizan tareas de filtrado (aceite y di\xE9sel).",
+          "Disponibilidad y ubicaci\xF3n del kit de emergencia para derrames.",
+          "Operaciones de repostaje controladas.",
+          "\xBFEst\xE1n archivados y actualizados los certificados de examen completos (por ejemplo, de 6 a 12 meses) para todos los equipos y accesorios de elevaci\xF3n?",
+          "Condiciones generales de los equipos de elevaci\xF3n (comprobaci\xF3n de da\xF1os, uso incorrecto, etc.)",
+          "\xBFSe han probado equipos el\xE9ctricos port\xE1tiles? Estado general (cables, transformadores, cajas de ara\xF1a, herramientas manuales), etc.",
+          "Se completan las hojas diarias del operador de la planta y, cuando se observan defectos, se realizan las reparaciones."
         ]),
         sec("materiales", "Materiales", [
-          "Almacenamiento ordenado y estable",
-          "Hojas de datos de seguridad de los productos a mano",
-          "Controles para sustancias peligrosas aplicados"
+          "Almacenamiento de materiales (seguro, evitar p\xE9rdidas, da\xF1os o contaminaci\xF3n, colapsos).",
+          "Si es peligroso, las hojas de datos de seguridad y las evaluaciones est\xE1n disponibles e informadas para el personal.",
+          "Se est\xE1n cumpliendo los controles seg\xFAn las fichas de datos de seguridad y las evaluaciones."
         ]),
-        sec("pantalla", "Pantalla visual", [
-          "Evaluaci\xF3n de puestos con pantalla de visualizaci\xF3n"
+        sec("pantalla", "Pantalla visual Usuarios", [
+          "Se ha llevado a cabo una evaluaci\xF3n."
         ]),
         sec("bienestar", "Bienestar", [
-          "Instalaciones sanitarias, vestuarios y comedor en buen estado",
-          "Iluminaci\xF3n, calefacci\xF3n y ventilaci\xF3n",
-          "Limpieza de las instalaciones",
-          "Agua potable y vasos",
-          "Agua caliente y jab\xF3n",
-          "Informaci\xF3n publicada en las instalaciones"
+          "\xBFHay suficientes instalaciones para las personas de la zona?",
+          "\xBFLa iluminaci\xF3n, la calefacci\xF3n y la ventilaci\xF3n son adecuadas en todas las instalaciones?",
+          "\xBFSe han limpiado las instalaciones y se han retirado los residuos?",
+          "\xBFHay vasos para beber y agua disponibles?",
+          "Est\xE1n disponibles agua caliente / tibia y jab\xF3n y toalla / secador de manos.",
+          "\xBFSe ha publicado la informaci\xF3n apropiada (por ejemplo, primeros auxilios, ruta al hospital, detalles de contacto de emergencia y reglas del sitio, carteles y pol\xEDticas, etc.)?"
         ]),
         sec("fuego", "Fuego", [
-          "Evaluaci\xF3n de riesgo de incendio y extintores revisados",
-          "V\xEDas de escape de incendio libres y se\xF1alizadas",
-          "Evaluaciones y simulacros al d\xEDa",
-          "Medidas de prevenci\xF3n de incendios (trabajos en caliente, almacenes)"
+          "Equipos de evaluaci\xF3n de riesgos de incendio y de extinci\xF3n de incendios adecuados, suficientes y probados.",
+          "Escape de incendio (v\xEDas de escape de incendios, obstrucciones de personas discapacitadas, iluminaci\xF3n, etc.).",
+          "Evaluaci\xF3n(es) (materiales reci\xE9n instalados, gasolina, disolventes, cilindros, etc.)",
+          "Prevenci\xF3n de incendios, (sistemas de permisos, remoci\xF3n de escombros, el\xE9ctricos y de prueba, tabaquismo, etc.)"
         ])
       ];
       var CONTROL_SECCIONES = [
-        sec("epi", "Protecci\xF3n personal", [
+        sec("epi", "PROTECCI\xD3N PERSONAL", [
           "Protecci\xF3n de la cabeza",
-          "Protecci\xF3n auditiva",
+          "Protecciones auditivas",
           "Gafas de seguridad",
           "Pantalla facial",
           "Protecci\xF3n respiratoria",
-          "Arn\xE9s de seguridad",
-          "Ropa de trabajo",
+          "Arn\xE9s",
+          "Ropa de protecci\xF3n",
           "Zapatos de seguridad",
           "Guantes"
         ]),
-        sec("instalaciones", "Estado de las instalaciones", [
-          "Orden y limpieza de las instalaciones",
-          "Se\xF1alizaci\xF3n de seguridad",
-          "Extintores y medios contra incendios",
-          "Botiqu\xEDn y medios de primeros auxilios"
+        sec("instalaciones", "ESTADO DE LAS INSTALACIONES", [
+          "El estado de las instalaciones es correcto y no presenta riesgos para los trabajadores",
+          "Se mantiene el orden y limpieza",
+          "Se observa correcta se\xF1alizaci\xF3n de emergencia y presencia de extintores correctamente se\xF1alizados",
+          "Las salidas de emergencia est\xE1n correctamente se\xF1alizadas, libre de obst\xE1culos y las luces de emergencia est\xE1n en buen estado de funcionamiento"
         ]),
-        sec("altura", "Trabajos en altura", [
-          "Protecciones colectivas",
-          "L\xEDneas de vida y puntos de anclaje",
-          "Arneses revisados",
-          "Plataformas elevadoras con formaci\xF3n y revisi\xF3n",
-          "Acotado de la zona inferior",
-          "Plan de rescate"
+        sec("altura", "TRABAJOS EN ALTURA", [
+          "Medidas presentes para evitar riesgo de ca\xEDda en altura (barandillas, l\xEDneas de vida\u2026)",
+          "Se\xF1alizaci\xF3n uso obligatorio de arn\xE9s",
+          "Equipos de Protecci\xF3n anti-ca\xEDdas correctamente utilizados (arn\xE9s) cundo hay riesgo de ca\xEDda en altura",
+          "Zona delimitada en caso necesario",
+          "Uso de escaleras correcto",
+          "Uso de andamios/plataformas elevadoras correcto"
         ]),
-        sec("electricos", "Trabajos el\xE9ctricos", [
-          "Cuadros el\xE9ctricos cerrados y se\xF1alizados",
-          "Cables y alargaderas en buen estado",
-          "Protecciones diferenciales",
-          "Herramientas con doble aislamiento",
-          "Bloqueo y etiquetado (consignaci\xF3n)",
-          "Personal autorizado para trabajos el\xE9ctricos",
-          "Iluminaci\xF3n port\xE1til a tensi\xF3n de seguridad"
+        sec("electricos", "TRABAJOS EL\xC9CTRICOS", [
+          "Uso adecuado de EPIs (guantes aislantes y gafas o pantalla) y herramientas aisladas",
+          "Bloqueo y se\xF1alizaci\xF3n de la fuente de energ\xEDa (diferencial de cuadro el\xE9ctrico o similar)",
+          "Equipos el\xE9ctricos y herramientas manuales en buen estado y correctamente calibrados (Pinza Amperim\xE9trica o similar)",
+          "Protecci\xF3n/tapas de cajas y enchufes, cables recogidos, protecci\xF3n y aislamiento de los equipos",
+          "Equipos con toma de tierra",
+          "Equipos de soldadura en buen estado",
+          "Interruptores en buen estado y con toma a tierra",
+          "cables y alargadores en buen estado"
         ]),
-        sec("permisos", "Permisos", [
+        sec("permisos", "PERMISOS", [
           "Espacios confinados",
           "Trabajos en altura",
-          "Trabajos en caliente",
-          "Trabajos el\xE9ctricos de riesgo",
-          "Otros permisos"
+          "Trabajos en caliente (corte y soldadura)",
+          "Trabajos el\xE9ctricos de riesgo (trabajos en tensi\xF3n)",
+          "Otros Permisos de trabajo"
         ]),
-        sec("excavaciones", "Excavaciones y zanjas", [
-          "Entibaci\xF3n o talud adecuado",
-          "Accesos y salidas seguras",
-          "Acopios y maquinaria alejados del borde"
+        sec("excavaciones", "EXCAVACIONES Y ZANJAS", [
+          "Inclinaci\xF3n, forma de acceder y apuntalamiento de las paredes",
+          "Forma de salir de la zanja r\xE1pida",
+          "Se\xF1alizaciones / barreras de seguridad"
         ]),
-        sec("andamios", "Andamios y escaleras", [
-          "Andamio montado por personal competente",
-          "Tarjeta de inspecci\xF3n al d\xEDa",
-          "Plataformas completas y con rodapi\xE9",
-          "Barandillas",
-          "Arriostramiento y apoyos",
-          "Escaleras de mano en buen estado",
-          "Escaleras bien atadas y apoyadas"
+        sec("andamios", "ANDAMIOS/ESCALERAS", [
+          "Escaleras de mano en buen estado y correcto uso",
+          "Calzado de las escaleras/andamio adecuado",
+          "Los andamios son estables y seguros y correcto uso",
+          "Barandillas en andamios",
+          "Acceso a las plataformas mediante escaleras",
+          "Escaleras correctamente colocadas/fijas",
+          "Las plataformas de los andamios son adecuadas"
         ]),
-        sec("gas", "Bombonas de gas", [
-          "Almacenadas en vertical y atadas",
-          "V\xE1lvulas y mangueras en buen estado",
-          "Antirretorno y cuando no se usan, capuch\xF3n"
+        sec("gas", "BOMBONAS DE GAS", [
+          "Colocadas correctamente",
+          "Todas las bombonas que no est\xE9n en uso est\xE1n correctamente guardadas",
+          "Las bombonas de ox\xEDgenos y las de gas combustible est\xE1n separadas"
         ]),
-        sec("cargas", "Cargas y cargas suspendidas", [
-          "Medios de elevaci\xF3n certificados",
-          "Eslingas y accesorios en buen estado",
-          "Zona de maniobra acotada",
-          "Se\xF1alista cualificado"
+        sec("cargas", "CARGAS / CARGAS SUSPENDIDAS", [
+          "Levantamiento correcto de la carga (gr\xFAas, pluma\u2026)",
+          "No hay personal trabajando por debajo",
+          "Cintas y cables usados para el levantamiento en buen estado",
+          "Uso de carros para transporte de cargas"
         ]),
-        sec("combustible", "Contenedores de combustible", [
-          "Recipientes homologados e identificados",
-          "Cubeto de retenci\xF3n",
-          "Kit antiderrames cerca"
+        sec("combustible", "CONTENEDORES DE COMBUSTIBLE", [
+          "Contenedores homologados y correctamente etiquetados",
+          "Almacenamiento de combustible en \xE1reas destinas a ello",
+          "Zonas de almacenamiento de combustible ventiladas y se\xF1alizadas"
         ]),
-        sec("vehiculos", "Veh\xEDculos y equipos m\xF3viles", [
-          "Revisi\xF3n diaria y documentaci\xF3n",
-          "Se\xF1ales ac\xFAsticas y luminosas",
-          "Operador con formaci\xF3n y autorizaci\xF3n"
+        sec("vehiculos", "VEH\xCDCULOS Y EQUIPOS M\xD3VILES (plataformas...)", [
+          "Veh\xEDculos en buen estado",
+          "Las llaves de los veh\xEDculos y equipos est\xE1n guardadas",
+          "El mantenimiento del veh\xEDculo / equipo es adecuado"
         ]),
-        sec("superficies", "Superficies de trabajo", [
-          "Suelos limpios, sin obst\xE1culos ni huecos",
-          "Huecos y bordes protegidos",
-          "Iluminaci\xF3n suficiente"
+        sec("superficies", "SUPERFICIES DE TRABAJO", [
+          "Superficie antideslizante en suelos y rampas",
+          "Se\xF1alizaci\xF3n en zonas de ca\xEDda",
+          "Escaleras con barandilla"
         ]),
-        sec("residuos", "Orden y eliminaci\xF3n de residuos", [
-          "Orden en el tajo",
-          "Residuos separados y en contenedores",
-          "Retirada regular del escombro"
+        sec("residuos", "ORDEN /ELIMINACI\xD3N DE RESIDUOS", [
+          "Se trabaja con orden y limpieza",
+          "Basura eliminada diariamente",
+          "Separaci\xF3n de residuos en origen"
         ]),
-        sec("amianto", "Amianto", [
-          "Sin materiales con amianto sin identificar ni tratar"
+        sec("amianto", "AMIANTO", [
+          "Hay presencia de amianto en el edificio y se hacen las mediciones adecuadas"
         ]),
-        sec("limpieza", "Trabajos de limpieza", [
-          "Productos qu\xEDmicos etiquetados",
-          "Fichas de seguridad disponibles",
-          "Protecci\xF3n adecuada del personal",
-          "Se\xF1alizaci\xF3n de suelo mojado",
-          "Equipos de limpieza en buen estado",
-          "Almacenamiento ordenado",
-          "Formaci\xF3n del personal"
+        sec("limpieza", "TRABAJOS DE LIMPIEZA", [
+          "Dispone de ropa de trabajo y calzado adecuado",
+          "Los carros de limpieza son adecuados para transportar los productos y cubos",
+          "Los botes de productos de limpieza llevan etiquetas identificativas",
+          "Llevan o tienen al alcance se\xF1ales de advertencia de suelo mojado",
+          "Tienen todas las fichas de seguridad de los productos y conocen adecuadamente sus caracter\xEDsticas y formas de uso",
+          "Tienen salas adecuadas para almacenar los productos de limpieza",
+          "Tienen salas adecuadas para cambiarse de ropa con taquillas o similar"
         ]),
-        sec("otros", "Otros", ["Otros aspectos observados"])
+        sec("otros", "OTROS", ["OTROS"])
       ];
-      var CAE_SECCIONES = [
-        sec("orden", "Puntos del orden del d\xEDa", [
-          "Accesos y evacuaci\xF3n de la obra",
-          "Documentaci\xF3n en obra (plan de seguridad, apertura, seguros, formaci\xF3n)",
-          "Trabajos que se van a realizar en la obra",
-          "Procedimiento de acceso a la obra",
-          "Equipos de protecci\xF3n individual",
-          "Protecciones colectivas",
-          "Medios auxiliares (andamios, plataformas, escaleras)",
-          "Maquinaria",
-          "Prevenci\xF3n de incendios",
-          "Riesgo el\xE9ctrico",
-          "Iluminaci\xF3n",
-          "Se\xF1alizaci\xF3n",
-          "Organizaci\xF3n de la obra e interferencias entre empresas",
-          "Veh\xEDculos en la v\xEDa p\xFAblica",
-          "Orden y limpieza",
-          "Higiene y bienestar",
-          "Recurso preventivo",
-          "Accidentes e incidentes: comunicaci\xF3n e investigaci\xF3n",
-          "Prohibici\xF3n de fumar",
-          "Riesgo grave e inminente: derecho a paralizar",
-          "Comunicaciones entre empresas",
-          "Emergencias y evacuaci\xF3n",
-          "Movimiento de materiales y acopios"
+      var READINESS_SECCIONES = [
+        sec("nombramientos", "NOMBRAMIENTOS Y NOTIFICACIONES REGLAMENTARIAS", [
+          "Nombramiento por el cliente",
+          "Notificaciones reglamentarias y aprobaciones o licencias de control de construcci\xF3n.",
+          "Notificaci\xF3n del Proyecto a las autoridades pertinentes."
+        ]),
+        sec("equipo", "EQUIPO DE ENTREGA DEL SITE", [
+          "Direcci\xF3n de obra competente para supervisar el alcance de las obras.",
+          "Contratistas aprobados por CBRE designados para ejecutar las obras del proyecto.",
+          "Permiso de trabajo y personas autorizadas designadas",
+          "Personas designadas para primeros auxilios."
+        ]),
+        sec("coordinacion", "COORDINACI\xD3N DE PROYECTO", [
+          "Se estableci\xF3 comunicaci\xF3n con las partes interesadas, incluidas reuniones previas al inicio con el cliente, el dise\xF1ador principal/coordinador, los contratistas y el equipo de FM.",
+          "Plan de Fase de Construcci\xF3n (aprobado y emitido)",
+          "Requisitos de inspecci\xF3n, pruebas y puesta en servicio.",
+          "Auditor\xEDa(s) de proyecto planificada(s)"
+        ]),
+        sec("informacion", "INFORMACI\xD3N Y DOCUMENTACI\xD3N SOBRE SALUD Y SEGURIDAD", [
+          "Informaci\xF3n previa a la construcci\xF3n disponible para todos los interesados.",
+          "Todos los planos de dise\xF1o final relevantes emitidos a los contratistas.",
+          "Evaluaci\xF3n de Riesgos y Plan de Emergencias del cliente.",
+          "Evaluaci\xF3n de Impacto Ambiental.",
+          "Inducci\xF3n en site",
+          "Expediente de gesti\xF3n de seguridad del sitio",
+          "Evaluaciones de riesgos y m\xE9todos de trabajo (todas las actividades, lista de verificaci\xF3n RAMS completada)."
+        ]),
+        sec("sitio", "ESTABLECIMIENTO DEL SITIO", [
+          "Suministros de servicios p\xFAblicos temporales.",
+          "Instalaciones de bienestar que cumplen con las normas del sitio.",
+          "Sitio f\xEDsico y protecci\xF3n de seguridad.",
+          "Proceso de control de acceso",
+          "Se\xF1alizaci\xF3n y notificaciones del proyecto (avisos legales, licencias, seguros, etc.)",
+          "Se han establecido disposiciones de emergencia espec\xEDficas para cada lugar.",
+          "\xC1reas para almacenamiento y preparaci\xF3n de equipos, materiales y materiales peligrosos.",
+          "Instalaciones de residuos / reciclaje y servicios de manipulaci\xF3n de residuos autorizados.",
+          "Log\xEDstica para entregas y gesti\xF3n de equipos m\xF3viles.",
+          "Disposiciones homologadas para instalaciones temporales (andamios, energ\xEDa temporal, etc)",
+          "Equipo de protecci\xF3n individual / Equipo de protecci\xF3n respiratoria adecuado y compatible."
         ])
       ];
-      var campo = (clave, nombre, extra = {}) => ({ clave, nombre, ...extra });
+      var CAE_SECCIONES = [
+        sec("orden", "PUNTOS TRATADOS EN EL ORDEN DEL D\xCDA", [
+          "Accesos a obra. Recorridos de evacuaci\xF3n.",
+          "Documentaci\xF3n en obra.",
+          "Trabajos en obra.",
+          "Procedimiento de acceso a obra de personal, maquinaria y medios auxiliares.",
+          "EPI\xB4S generales y espec\xEDficos.",
+          "Protecciones colectivas.",
+          "Medios auxiliares.",
+          "Maquinaria.",
+          "Prevenci\xF3n y lucha contra incendios.",
+          "Riesgo el\xE9ctrico.",
+          "Iluminaci\xF3n.",
+          "Se\xF1alizaci\xF3n.",
+          "Organizaci\xF3n de trabajos. Interferencias.",
+          "Operaciones con veh\xEDculos en v\xEDa p\xFAblica.",
+          "Orden y limpieza.",
+          "Instalaciones de higiene y bienestar.",
+          "Presencia de Recurso Preventivo en obra.",
+          "Accidentes. Comunicaci\xF3n y control.",
+          "Prohibici\xF3n de fumar.",
+          "Actuaci\xF3n en caso de riesgo grave e inminente.",
+          "Comunicaciones.",
+          "Actuaci\xF3n en caso de emergencias y evacuaci\xF3n.",
+          "Movimiento de materiales y acopios."
+        ])
+      ];
+      var AUDIT = [
+        [
+          "IRMS-PJ-01. Governance: Has there been suitable and sufficient governance and oversight throughout project in accordance with CBRE procedures?",
+          "- Playbook specific to in-country requirements.\n- Licences to work, Formal notification/approval, Building Control approvals.\n- Relevant subject matter experts consulted (where applicable).",
+          "Minor",
+          false
+        ],
+        [
+          "IRMS-PJ-02. CBRE Competence: Does the Project site team have the necessary competence for the project?",
+          "- CBRE Project team are competent and experienced for the scope of the project.\n- Professional qualifications and training current (e.g. SMSTS for UK, OSHA 30 for US).\n- CBRE site supervision is appropriate for the scale and scope of works.",
+          "Major",
+          false
+        ],
+        [
+          "IRMS-PJ-03. Readiness: Is there evidence that Project Readiness Review and Pre-start meetings have been performed?",
+          "- Project Readiness Review completed as appropriate to the location, scale and scope of the project.\n- Pre-Start meeting(s) held and documented, with evidence of implementation of outstanding actions.\n- Pre-Start Meeting Minutes Template available in the playbook.",
+          "Minor",
+          false
+        ],
+        [
+          "IRMS-PJ-04. Site Boundary and Access Control. Are controls in place to prevent unauthorised access to the project area?",
+          "- Consider clients, public and third parties\n- Clearly defined boundaries to provide security, segregation and access control.\n- Type of fence, barrier, hoarding or barricade suitable for the situation?",
+          "Major",
+          false
+        ],
+        [
+          "IRMS-PJ-05. Health and Safety Information. Is all relevant HSE related information and hazard warning signage displayed?",
+          "- Clear and branded signage and information displayed (e.g. Contacts and escalation, site rules, notifications, Life Saving Rules, emergency information, etc.)\n- Hazard warnings, legal and regulatory information, insurance, licences & permits, daily work schedule.",
+          "Major",
+          false
+        ],
+        [
+          "IRMS-PJ-06. Welfare Facilities. Are welfare facilities available and suitable for the project?",
+          "- Consider the type and nature of project, volume of people, storage requirements, segregated area, drinking water, washrooms, washing and drying facilities, etc.\n- Do they meet regulatory specifications where they exist?",
+          "Major",
+          false
+        ],
+        [
+          "IRMS-PJ-07. Emergency Arrangements. Have project specific emergency plans been developed and implemented?",
+          "- Are they project specific, include First aid, Fire (risk assessment, alarms, evacuation including assembly points & routes, etc.), rescue plans, spills, business continuity, etc.\n- Consider abnormal situations, natural and environmental factors such as seasonal change, weather conditions, floods, etc.\n- Consideration of task specific emergency plans for higher-risk activities.\n- Cross reference information in Plan for Health and Safety (CPP)",
+          "Major",
+          false
+        ],
+        [
+          "IRMS-PJ-08. Contractor Selection: Are contractors selected from approved supplier list and have company certifications, licences and insurance to cover the scope of services they provide.",
+          "- Work package suppliers and contractors fully reviewed and recorded on CBRE vetting system (e.g. My Supplier/Avetta/GRMS, ISN, Supplier Shield).\n- Evidence that appropriate certifications, licences and insurancs are available to deliver the scope of works.",
+          "Major",
+          false
+        ],
+        [
+          "IRMS-PJ-09. Contractor Competency. Do contractors employees have the relevant competency, licences and authorisation to perform their work?",
+          "- Appointed individuals competent and experienced in their scope of work.\n- Appropriate certifications, licences and authorisation available to deliver the scope of works.",
+          "Major",
+          false
+        ],
+        [
+          "IRMS-PJ-10. Site Inductions. Have all site personnel completed the project specific site induction?",
+          "- Project specific and relevant content\n- Evidence of completion available for all individuals",
+          "Major",
+          false
+        ],
+        [
+          "IRMS-PJ-11. Site Records. Is the site safety management file/binder established, populated with relevant information, and up to date?",
+          "- Site Safety Management File/Binder available and indexed\n- Populated with pre-construction information, Plan for Health and Safety (CPP), and relevant site information\n- Records up to date, including induction records, equipment records, worker competence records and registers for temporary works and permit control.",
+          "Minor",
+          false
+        ],
+        [
+          "IRMS-PJ-12. Safe Systems of Work (SSOW): Are contractor risk assessment and method statements suitable and sufficient for the project scope of works?",
+          "- Project specific, dated, appropriate for all identified risk groups, hazards, risks and appropriate control measures\n- CBRE reviewed, documented and addressed (RAMS checklist)\n- Evidence of communication",
+          "Major",
+          false
+        ],
+        [
+          "IRMS-PJ-13. substances: Are hazardous substances identified and appropriate controls in place?",
+          "- Safety Data Sheets & hazardous substance assessments completed\n- storage, segregation, signage,ventilation, PPE\n- consider emergency arrangements (first aid, showers, fire fighting equiment, spill protection, etc).",
+          "Major",
+          false
+        ],
+        [
+          "IRMS-PJ-14. Site Management Meetings. Are site coordination meetings thorough and effective?",
+          "- Effective site management meetings held and recorded, including processes to coordinate works, manage conflicts and deviations to the project programme / schedule / work plan.\n- actions tracked and completed.\n- all stakeholders represented.",
+          "Minor",
+          false
+        ],
+        [
+          "IRMS-PJ-15. High-Risk Works. Are high-risk works identified, assessed and controlled?",
+          "- Identified in Plan for Health and Safety (CPP), reviewed and updated as risks change.\n- Risk controls thoroughly assessed and implemented correctly within clearly designated areas.\n- Permit to Work processes properly implemented and effective, including appointment of competent issuers.\n- High-risk activities monitored by site management.",
+          "Major",
+          true
+        ],
+        [
+          "IRMS-PJ-16. Contractor monitoring. Are contractors regularly monitored to ensure compliance with controls?",
+          "- Periodic formal inspections.\n- Sampling checks completed.\n- Feedback of suppliers performance and compliance provided.\n- Evidence of actions tracked and completed satisfactorily.",
+          "Minor",
+          false
+        ],
+        [
+          "IRMS-PJ-17. Waste Management. Has waste been considered as part of the planning process and is it being managed correctly?",
+          "- Plan for Health and Safety (CPP) details requirements\n- all waste types identified and assessed, handled, stored, labelled, segregated and disposed of correctly (waste management plan / waste hierarchy of control)\n- Waste Stream Duty of Care documentation up to date (carrier/broker licences, transfer/consignment notes, storage and permit licences)\n- Records retained",
+          "Major",
+          false
+        ],
+        [
+          "IRMS-PJ-18. QHSE events: Is there a process for reporting QHSE events and is it being followed?",
+          "- Hazard spotting / observations.\n- Accidents, incidents (inc. business interuption).\n- Regulatory visits, notices, client complaints.\n- Communication and escalation.\n- Process for escalation, recordin and investigation.",
+          "Minor",
+          false
+        ],
+        [
+          "IRMS-PJ-19. Quality Assurance: Are appropriate controls in place to conduct and record quality checks throughout the project lifecyle?",
+          "- Plan and checklist for expected handover information (drawings, records, specific training requirements, commissioning certificates, O&Ms etc).\n- Consider de-commissioning, inspection and test plan, commissioning, snagging (where applicable).\n- Quality checking process to ensure that delivery meets the stated project technical requirements.",
+          "Minor",
+          true
+        ]
+      ];
+      var AUDIT_SECCIONES = [
+        sec("irms", "IRMS Project Management Audit", AUDIT.map((a) => a[0]), {
+          guias: AUDIT.map((a) => a[1]),
+          gravedad: AUDIT.map((a) => a[2]),
+          sinNa: AUDIT.map((a) => !a[3])
+        })
+      ];
+      var PLAZO_NC = { Major: 7, Minor: 31 };
       var PLANTILLAS = {
         inspeccionObra: {
           id: "inspeccionObra",
           nombre: "Inspecci\xF3n del sitio",
-          largo: "Inspecci\xF3n del lugar de trabajo de obra",
-          formulario: "PJM/HSE v1.1",
+          largo: "Inspecci\xF3n del sitio",
+          formulario: "PJM / HSE / FORMULARIO EST\xC1NDAR / VERSI\xD3N 1.1",
           periodicidad: "semanal",
           respuestas: RESP_SI,
+          columnas: ["Elemento, Comprobaci\xF3n, Registros", "Comentarios", "S\xCD", "NC*", "N/A*"],
           cabecera: [
             campo("proyecto", "Nombre del proyecto", { auto: "obra" }),
             campo("principal", "Contratista principal", { auto: "principal" }),
             campo("ubicacion", "Ubicaci\xF3n", { auto: "ubicacion" }),
-            campo("contratistas", "Contratistas en el sitio", { auto: "contratistas", largo: true }),
-            campo("actividades", "Actividades del lugar de trabajo que se inspeccionan", { auto: "actividades", largo: true })
+            campo("contratistas", "Contratistas (in situ)", { auto: "contratistas", largo: true }),
+            campo("fecha", "Fecha", { tipo: "fecha", auto: "hoy" }),
+            campo("hora", "Tiempo (24HRS)", { tipo: "hora", auto: "hora" }),
+            /* A mano (29-oct, JC); las de la planificación se ofrecen para tocarlas. */
+            campo("actividades", "Actividades del lugar de trabajo (obra) que se inspeccionan", { largo: true, sugerencia: "actividades" })
           ],
           secciones: INSPECCION_SECCIONES,
-          firma: "Completado por"
+          plan: true,
+          firma: "Completado por",
+          firmaCampos: [["nombre", "Nombre"], ["cargo", "Posici\xF3n"], ["fecha", "Fecha"]]
         },
         controlContratista: {
           id: "controlContratista",
           nombre: "Control de subcontrata",
-          largo: "Control de trabajos de contratistas y obras",
-          formulario: "12-00.648.GWS-SHQ Rev 01",
+          largo: "Control de trabajos de Contratistas y Obras",
+          formulario: "12-00.648.GWS-SHQ Rev. 01",
           periodicidad: "semanal",
           respuestas: RESP_CONTROL,
+          columnas: ["CATEGOR\xCDA", "COMENTARIOS/PLAN DE ACCI\xD3N", "ACEPTABLE", "NO ACEPTABLE", "N/A"],
           cabecera: [
             campo("contratista", "Contratista", { auto: "contratista", contratista: true }),
             campo("localizacion", "Localizaci\xF3n", { auto: "ubicacion" }),
-            campo("actividad", "Obra o actividad revisada", { auto: "actividadesContratista", largo: true }),
+            campo("actividad", "Obra o Actividad Revisada", { auto: "actividadesContratista", largo: true }),
             campo("evaluador", "Evaluado por", { auto: "persona" }),
+            campo("fecha", "Fecha", { tipo: "fecha", auto: "hoy" }),
             campo("informe", "Informe", { opciones: ["Semanal", "Mensual"], defecto: "Semanal" })
           ],
           secciones: CONTROL_SECCIONES,
-          firma: "Evaluado por"
+          plan: true,
+          planTitulo: "Acciones correctivas",
+          firma: "Evaluado por",
+          firmaCampos: [["nombre", "Nombre"], ["cargo", "Cargo"]]
+        },
+        certificadoInstruccion: {
+          id: "certificadoInstruccion",
+          nombre: "Certificado de instrucciones",
+          largo: "Certificado de instrucciones de obra",
+          formulario: "CBRE | Espa\xF1a | HSE | Formato | F-06 PG-20",
+          periodicidad: "semanal",
+          respuestas: RESP_SI,
+          cabecera: [
+            campo("obra", "OBRA (Site works)", { auto: "obra" }),
+            campo("promotor", "PROMOTOR (Client)", { auto: "cliente" }),
+            campo("situacion", "SITUACI\xD3N (Location)", { auto: "ubicacion" }),
+            campo("municipio", "MUNICIPIO (Town)"),
+            campo("impartidaPor", "Instrucciones impartidas por D/D\xF1a.", { auto: "persona" }),
+            campo("temas", "Tratando los siguientes temas", { largo: true, sugerencia: "actividades" }),
+            campo("fecha", "Fecha", { tipo: "fecha", auto: "hoy" })
+          ],
+          texto: "El personal abajo relacionado declara haber recibido por parte de la empresa CBRE GWS ESPA\xD1A SL instrucciones de Prevenci\xF3n de Riesgos Laborales impartida por D/D\xF1a. {impartidaPor} tratando los siguientes temas: {temas}",
+          asistentes: true,
+          asistenteFirma: true,
+          secciones: [],
+          plan: false,
+          firma: "Persona que imparte las instrucciones",
+          firmaCampos: [["nombre", "Fdo. (Nombre y apellidos)"], ["cargo", "Cargo"], ["fecha", "Fecha"]]
+        },
+        readinessReview: {
+          id: "readinessReview",
+          nombre: "Readiness review",
+          largo: "IRMS - Revisi\xF3n preparaci\xF3n del proyecto",
+          formulario: "CBRE | GWS IRMS | LOCAL SPAIN | QHSE | PROJ001 | RPP-IRMS",
+          periodicidad: "inicio",
+          respuestas: RESP_CHECK,
+          columnas: ["", "Comentarios", "Check", "NC", "N/A"],
+          texto: "Este documento facilita la puesta en marcha de un proyecto para preparar el inicio seguro de las obras. Todos los puntos son relevantes para la mayor\xEDa de los proyectos; sin embargo, puede haber excepciones seg\xFAn la escala del proyecto o el alcance de la actividad. (Los recuadros grises indican cu\xE1ndo un punto es siempre aplicable). Conserve una copia de esta revisi\xF3n en el archivo/carpeta de Gesti\xF3n de Seguridad en la Obra",
+          cabecera: [
+            campo("proyecto", "Nombre de Proyecto / Direcci\xF3n de la obra", { auto: "obraYDireccion" }),
+            campo("wo", "WO"),
+            campo("realizadoPor", "Realizado por", { auto: "persona" }),
+            campo("fecha", "Fecha", { tipo: "fecha", auto: "hoy" })
+          ],
+          secciones: READINESS_SECCIONES,
+          plan: true,
+          firma: "Realizado por",
+          firmaCampos: [["nombre", "Nombre"], ["cargo", "Cargo"]]
         },
         reunionCAE: {
           id: "reunionCAE",
           nombre: "Reuni\xF3n CAE",
-          largo: "Acta de la reuni\xF3n de coordinaci\xF3n de seguridad y salud (CAE)",
-          formulario: "CAE \xB7 Ley 31/95, RD 171/2004, RD 1627/97",
+          largo: "Acta de Reuni\xF3n de Coordinaci\xF3n de Seguridad y Salud",
+          formulario: "CBRE | GWS SPAIN | QHSE | Form \xB7 Documento de Coordinaci\xF3n de Actividades Empresariales",
           periodicidad: "puntual",
           respuestas: RESP_CAE,
+          columnas: ["PUNTOS TRATADOS EN EL ORDEN DEL D\xCDA", "Desarrollo / observaciones", "Tratado", "Pendiente", "No procede"],
           cabecera: [
             campo("obra", "Obra", { auto: "obra" }),
             campo("ubicacion", "Ubicaci\xF3n", { auto: "ubicacion" }),
             campo("cliente", "Cliente", { auto: "cliente" }),
             campo("contratista", "Contratista", { auto: "contratista", contratista: true }),
-            campo("coordinador", "Coordinador de seguridad y salud"),
-            campo("inicio", "Inicio de la ejecuci\xF3n", { tipo: "fecha", auto: "inicio" })
+            campo("coordinador", "Coordinador de Seguridad y Salud"),
+            campo("inicio", "Inicio Ejecuci\xF3n", { tipo: "fecha", auto: "inicio" })
           ],
+          texto: "En cumplimiento de la normativa vigente: art. 14,15 y 24.3 de la Ley 31/95 de Prevenci\xF3n de Riesgos Laborales, desarrollado reglamentariamente mediante el RD 171/2004 y el Anexo IV y art. 10 y 11 del RD 1627/97 sobre disposiciones m\xEDnimas de Seguridad y Salud en obras de construcci\xF3n, se procede a realizar Reuni\xF3n de Coordinaci\xF3n de Actividades Empresariales en materia de Seguridad y Salud con todas las empresas subcontratistas existentes en obra en la fecha de realizaci\xF3n de la misma.",
           asistentes: true,
+          asistenteFirma: true,
+          notaAsistentes: "Insertar acta de asistencia (foto con las firmas)",
           secciones: CAE_SECCIONES,
-          firma: "Redactado por"
+          plan: true,
+          firma: "Redactado por",
+          firmaCampos: [["nombre", "Nombre"], ["cargo", "Cargo"]]
+        },
+        hopAudit: {
+          id: "hopAudit",
+          nombre: "Auditor\xEDa HoP",
+          largo: "IRMS Project Management Audit",
+          formulario: "IRMS Project Management Audit",
+          periodicidad: "puntual",
+          respuestas: RESP_AUDIT,
+          columnas: ["Question", "Notes", "Conforme", "Finding (Major = 7 days, Minor = 31 days)", "N/A"],
+          cabecera: [
+            campo("proyecto", "Project", { auto: "obra" }),
+            campo("ubicacion", "Location", { auto: "ubicacion" }),
+            campo("auditor", "Auditor", { auto: "persona" }),
+            campo("fecha", "Date", { tipo: "fecha", auto: "hoy" })
+          ],
+          secciones: AUDIT_SECCIONES,
+          plan: true,
+          firma: "Auditor",
+          firmaCampos: [["nombre", "Nombre"], ["cargo", "Cargo"]]
+        },
+        registro: {
+          id: "registro",
+          nombre: "Registro",
+          largo: "Registro de la actividad",
+          formulario: "Registro QHSE de obra",
+          periodicidad: "puntual",
+          respuestas: RESP_SI,
+          cabecera: [
+            campo("obra", "Obra", { auto: "obra" }),
+            campo("fecha", "Fecha", { tipo: "fecha", auto: "hoy" }),
+            campo("realizadoPor", "Realizado por", { auto: "persona" }),
+            campo("observaciones", "Observaciones", { largo: true })
+          ],
+          secciones: [],
+          plan: true,
+          planTitulo: "No conformidades",
+          firma: "Realizado por",
+          firmaCampos: [["nombre", "Nombre"], ["cargo", "Cargo"]]
         }
       };
-      var ORDEN = ["inspeccionObra", "controlContratista", "reunionCAE"];
+      var ORDEN = ["inspeccionObra", "controlContratista", "certificadoInstruccion", "readinessReview", "reunionCAE", "hopAudit", "registro"];
       function puntos(plantillaId) {
         const p = PLANTILLAS[plantillaId];
         if (!p) return [];
         const out = [];
-        for (const s of p.secciones) s.items.forEach((texto, i) => out.push({ id: `${s.id}.${i}`, seccion: s.id, seccionNombre: s.nombre, texto }));
+        for (const s of p.secciones) {
+          s.items.forEach((texto, i) => out.push({
+            id: `${s.id}.${i}`,
+            seccion: s.id,
+            seccionNombre: s.nombre,
+            texto,
+            ...s.guias ? { guia: s.guias[i] } : {},
+            ...s.gravedad ? { gravedad: s.gravedad[i] } : {},
+            ...s.sinNa && s.sinNa[i] ? { sinNa: true } : {}
+          }));
+        }
         return out;
       }
-      module.exports = { PLANTILLAS, ORDEN, puntos, RESP_SI, RESP_CONTROL, RESP_CAE };
+      module.exports = { PLANTILLAS, ORDEN, puntos, PLAZO_NC, RESP_SI, RESP_CONTROL, RESP_CAE, RESP_CHECK, RESP_AUDIT };
     }
   });
 
@@ -117009,7 +121388,7 @@ ${l}`;
     "shared/qhse/motor.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
-      var { PLANTILLAS, puntos } = require_plantillas();
+      var { PLANTILLAS, puntos, PLAZO_NC } = require_plantillas();
       var { lunesDe, sumarDias } = require_agenda();
       var llano = (v) => String(v ?? "").trim();
       var dia = (v) => llano(v).slice(0, 10);
@@ -117075,21 +121454,25 @@ ${l}`;
           actividades
         };
       }
-      function autorrelleno(plantillaId, { obra = {}, cliente = "", persona = "", contexto = { contratistas: [], actividades: [] }, contratista = null } = {}) {
+      function autorrelleno(plantillaId, { obra = {}, cliente = "", persona = "", contexto = { contratistas: [], actividades: [] }, contratista = null, hoy = "", hora = "" } = {}) {
         const p = PLANTILLAS[plantillaId];
         if (!p) return {};
         const con = contratista || null;
+        const ahora = /* @__PURE__ */ new Date();
         const fuente = {
           obra: [llano(obra.codigo), llano(obra.nombre)].filter(Boolean).join(" \xB7 "),
+          obraYDireccion: [[llano(obra.codigo), llano(obra.nombre)].filter(Boolean).join(" \xB7 "), llano(obra.emplazamiento)].filter(Boolean).join(" / "),
+          hoy: dia(hoy) || `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, "0")}-${String(ahora.getDate()).padStart(2, "0")}`,
+          hora: llano(hora) || `${String(ahora.getHours()).padStart(2, "0")}:${String(ahora.getMinutes()).padStart(2, "0")}`,
           ubicacion: llano(obra.emplazamiento),
           cliente: llano(cliente),
           inicio: dia(obra.fechaInicio),
           persona: llano(persona),
           principal: "Vidaire",
-          contratistas: lista(contexto.contratistas.map((c) => c.nombre)),
-          actividades: contexto.actividades.join("; "),
+          contratistas: lista((contexto.contratistas || []).map((c) => c.nombre)),
+          actividades: (contexto.actividades || []).join("; "),
           contratista: con ? llano(con.nombre) : "",
-          actividadesContratista: contexto.actividades.join("; ")
+          actividadesContratista: (contexto.actividades || []).join("; ")
         };
         const out = {};
         for (const c of p.cabecera) {
@@ -117099,15 +121482,58 @@ ${l}`;
         }
         return out;
       }
+      function sugerencias(plantillaId, { contexto = {} } = {}) {
+        const p = PLANTILLAS[plantillaId];
+        const out = {};
+        if (!p) return out;
+        const fuente = { actividades: (contexto.actividades || []).join("; ") };
+        for (const c of p.cabecera) if (c.sugerencia && fuente[c.sugerencia]) out[c.clave] = fuente[c.sugerencia];
+        return out;
+      }
       function vacio(plantillaId, opciones = {}) {
         const p = PLANTILLAS[plantillaId];
+        const cab = autorrelleno(plantillaId, opciones);
         return {
-          cabecera: autorrelleno(plantillaId, opciones),
+          cabecera: cab,
           respuestas: {},
           plan: [],
           asistentes: p && p.asistentes ? [] : void 0,
-          firma: { nombre: llano(opciones.persona), cargo: "" }
+          firma: { nombre: llano(opciones.persona), cargo: "", fecha: cab.fecha || "" },
+          actividad: llano(opciones.actividad) || void 0,
+          observaciones: "",
+          adjuntos: [],
+          harbour: { subido: false, fecha: "" }
         };
+      }
+      var sumaDias = (f, n) => new Date(Date.parse(`${f}T12:00:00Z`) + n * 864e5).toISOString().slice(0, 10);
+      function sincronizarPlan(plantillaId, datos, { hoy = "" } = {}) {
+        const d = datos || {};
+        const r = d.respuestas || {};
+        const plan = Array.isArray(d.plan) ? d.plan.map((a) => ({ ...a })) : [];
+        const fechaBase = dia(d.cabecera && d.cabecera.fecha) || dia(hoy) || ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
+        const ids = /* @__PURE__ */ new Set();
+        for (const pt of puntos(plantillaId)) {
+          const v = r[pt.id];
+          if (!v || v.r !== "nc") continue;
+          ids.add(pt.id);
+          let fila = plan.find((a) => a.ref === pt.id);
+          if (!fila) {
+            const gravedad = pt.gravedad || "";
+            const plazo = PLAZO_NC[gravedad] || 0;
+            fila = { ref: pt.id, problema: "", responsable: "", medida: "", fecha: plazo ? sumaDias(fechaBase, plazo) : "", gravedad, estado: "abierta" };
+            plan.push(fila);
+          }
+          fila.punto = `${pt.seccionNombre} \xB7 ${pt.texto}`.slice(0, 400);
+          if (!llano(fila.problema) && llano(v.c)) fila.problema = llano(v.c);
+          if (!fila.estado) fila.estado = "abierta";
+        }
+        const puntosIds = new Set(puntos(plantillaId).map((p) => p.id));
+        const limpio = plan.filter((a) => !(a.ref && puntosIds.has(a.ref) && !ids.has(a.ref) && a.estado !== "cerrada" && !llano(a.medida) && !llano(a.responsable)));
+        for (const a of limpio) if (!a.estado) a.estado = "abierta";
+        return { ...d, plan: limpio };
+      }
+      function ncDe(datos) {
+        return (datos && datos.plan || []).filter((a) => llano(a.problema) || llano(a.medida) || a.ref);
       }
       function resumen(plantillaId, datos) {
         const todos = puntos(plantillaId);
@@ -117132,22 +121558,681 @@ ${l}`;
         for (const [id, v] of Object.entries(datos.respuestas || {})) {
           if (v && v.r && !validos.has(v.r)) return { ok: false, error: `Respuesta no v\xE1lida en \xAB${id}\xBB.` };
         }
+        for (const pt of puntos(plantillaId)) {
+          const v = (datos.respuestas || {})[pt.id];
+          if (pt.sinNa && v && v.r === "na") return { ok: false, error: `\xAB${pt.texto.slice(0, 60)}\xBB no admite N/A.` };
+        }
         if (!cerrar) return { ok: true };
         const res = resumen(plantillaId, datos);
         if (res.sinResponder) return { ok: false, error: `Faltan ${res.sinResponder} punto${res.sinResponder === 1 ? "" : "s"} por contestar (marca N/A los que no apliquen).` };
-        if (res.nc && !(datos.plan || []).some((a) => llano(a.problema) || llano(a.medida))) {
-          return { ok: false, error: "Hay puntos que no cumplen: apunta al menos una acci\xF3n en el plan de acci\xF3n." };
+        for (const pt of puntos(plantillaId)) {
+          const v = (datos.respuestas || {})[pt.id];
+          if (!v || v.r !== "nc") continue;
+          if (!llano(v.c)) return { ok: false, error: `La NC de \xAB${pt.texto.slice(0, 60)}\xBB necesita un comentario.` };
+          if (!Array.isArray(v.f) || !v.f.length) return { ok: false, error: `La NC de \xAB${pt.texto.slice(0, 60)}\xBB necesita una foto.` };
         }
         if (!llano(datos.firma && datos.firma.nombre)) return { ok: false, error: `Falta qui\xE9n lo completa (${p.firma}).` };
         if (p.asistentes && !(datos.asistentes || []).some((a) => llano(a.nombre))) return { ok: false, error: "Apunta al menos un asistente." };
         return { ok: true };
       }
       function codigo(plantillaId, fecha, obraCodigo, n = 1) {
-        const pre = { inspeccionObra: "INS", controlContratista: "CTR", reunionCAE: "CAE" }[plantillaId] || "QHS";
+        const pre = {
+          inspeccionObra: "INS",
+          controlContratista: "CTR",
+          reunionCAE: "CAE",
+          certificadoInstruccion: "CIN",
+          readinessReview: "RDY",
+          hopAudit: "HOP",
+          registro: "REG"
+        }[plantillaId] || "QHS";
         const { clave } = semanaDe(fecha);
         return [pre, clave, llano(obraCodigo).replace(/\s+/g, ""), n > 1 ? String(n) : ""].filter(Boolean).join("-");
       }
-      module.exports = { semanaDe, pendienteSemana, contextoSemana, autorrelleno, vacio, resumen, noCumplen, validar, codigo };
+      module.exports = { semanaDe, pendienteSemana, contextoSemana, autorrelleno, sugerencias, vacio, resumen, noCumplen, validar, codigo, sincronizarPlan, ncDe };
+    }
+  });
+
+  // shared/qhse/planObra.js
+  var require_planObra = __commonJS({
+    "shared/qhse/planObra.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var llano = (v) => String(v ?? "").trim();
+      var esFecha = (v) => /^\d{4}-\d{2}-\d{2}$/.test(llano(v).slice(0, 10));
+      var dia = (v) => llano(v).slice(0, 10);
+      var masDias = (f, n) => new Date(Date.parse(`${f}T12:00:00Z`) + n * 864e5).toISOString().slice(0, 10);
+      var entre = (a, b) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 864e5);
+      function masMeses(f, n) {
+        const [a, m, d] = f.split("-").map(Number);
+        const t = new Date(Date.UTC(a, m - 1 + n, 1, 12));
+        const ult = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth() + 1, 0, 12)).getUTCDate();
+        return new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), Math.min(d, ult), 12)).toISOString().slice(0, 10);
+      }
+      function lunes(f) {
+        const d = (/* @__PURE__ */ new Date(`${f}T12:00:00Z`)).getUTCDay();
+        return masDias(f, -((d + 6) % 7));
+      }
+      function claveSemana(f) {
+        const l = lunes(f);
+        const jueves = /* @__PURE__ */ new Date(`${masDias(l, 3)}T00:00:00Z`);
+        const anio = jueves.getUTCFullYear();
+        const n = Math.floor((jueves.getTime() - Date.UTC(anio, 0, 1)) / 864e5 / 7) + 1;
+        return `${anio}-W${String(n).padStart(2, "0")}`;
+      }
+      var PJM = ["jefeObra", "jefeProduccion", "jefeProyectos", "administrador"];
+      var PJM_Y_ENCARGADO = [...PJM, "encargadoObra"];
+      var ACTIVIDADES = [
+        {
+          id: "readiness",
+          n: 1,
+          nombre: "Project readiness review",
+          plantilla: "readinessReview",
+          frecuencia: "inicio",
+          regla: "Debe realizarse al inicio de la obra y siempre dentro de los 10 primeros dias desde el inicio",
+          harbour: false,
+          registro: "IRMS - Revisi\xF3n preparaci\xF3n del proyecto",
+          raci: "PjM R \xB7 HoP I \xB7 CAE I",
+          rellena: PJM
+        },
+        {
+          id: "inspeccionObra",
+          n: 2,
+          nombre: "Inspecci\xF3n de obra",
+          plantilla: "registro",
+          frecuencia: "mensual",
+          regla: "Al menos una al mes a partir del primer mes",
+          harbour: true,
+          registro: "Registro de la inspecci\xF3n",
+          raci: "PjM R \xB7 HoP I \xB7 CAE I",
+          rellena: PJM
+        },
+        {
+          id: "lugarTrabajo",
+          n: 3,
+          nombre: "Inspecci\xF3n lugar de trabajo",
+          plantilla: "inspeccionObra",
+          frecuencia: "semanal",
+          ajustable: true,
+          regla: "Seg\xFAn duraci\xF3n de obra, si la obra posee un gran tama\xF1o puede realizarse por sectores",
+          harbour: true,
+          registro: "Inspecci\xF3n del sitio (PJM/HSE v1.1)",
+          raci: "PjM R \xB7 HoP I \xB7 CAE I",
+          rellena: PJM_Y_ENCARGADO
+        },
+        {
+          id: "equipos",
+          n: 4,
+          nombre: "Inspecci\xF3n equipos de trabajo",
+          plantilla: "registro",
+          frecuencia: "semanal",
+          regla: "Semanalmente",
+          harbour: true,
+          registro: "Registro de la inspecci\xF3n de equipos",
+          raci: "PjM R \xB7 HoP I \xB7 CAE I",
+          rellena: PJM_Y_ENCARGADO
+        },
+        {
+          id: "induccionInicial",
+          n: null,
+          nombre: "Inducci\xF3n inicial CSS",
+          plantilla: "reunionCAE",
+          frecuencia: "diaInicio",
+          regla: "Puede usarse la plantilla Normas primera reuni\xF3n inducci\xF3n CAE propia de CBRE o la que proporcione el CSS",
+          harbour: true,
+          registro: "Acta de Reuni\xF3n de Coordinaci\xF3n de Seguridad y Salud",
+          raci: "CSS R \xB7 PjM R/I",
+          rellena: PJM_Y_ENCARGADO
+        },
+        {
+          id: "induccion",
+          n: 5,
+          nombre: "Inducci\xF3n Seguridad y Salud",
+          plantilla: "certificadoInstruccion",
+          frecuencia: "semanal",
+          regla: "Semanalmente, no mas de 15 minutos, centradas en las tareas de la semana",
+          harbour: true,
+          registro: "Certificado de instrucciones de obra (F-06 PG-20)",
+          raci: "PjM R \xB7 HoP I \xB7 CAE I",
+          rellena: PJM_Y_ENCARGADO
+        },
+        {
+          id: "subcontratas",
+          n: null,
+          nombre: "Inspecciones de Subcontratas",
+          plantilla: "controlContratista",
+          frecuencia: "subcontrata",
+          regla: "Durante la ejecuci\xF3n de la obra al menos una vez en el periodo de la ejecucion de sus trabajos. Si es una subcontrata que permanece en obra desde el inicio, al menos una vez al mes",
+          harbour: true,
+          registro: "Control de trabajos de Contratistas y Obras",
+          raci: "PjM R \xB7 HoP I \xB7 CAE I",
+          rellena: PJM_Y_ENCARGADO
+        },
+        {
+          id: "hop",
+          n: 6,
+          nombre: "Auditoria HoP",
+          plantilla: "hopAudit",
+          frecuencia: "proyecto",
+          regla: "Al menos uno por proyecto y alcanzar mensualmente el 10% de los proyectos asignados",
+          harbour: true,
+          registro: "IRMS Project Management Audit",
+          seguimientoNc: true,
+          raci: "Director R \xB7 HoP R",
+          rellena: ["jefeProyectos", "administrador"]
+        },
+        {
+          id: "css",
+          n: 7,
+          nombre: "Visita CSS",
+          plantilla: "registro",
+          frecuencia: "demanda",
+          regla: "Seg\xFAn plan del CSS. Probablemente no se sepa con antelaci\xF3n",
+          harbour: null,
+          registro: "Acta del CSS",
+          seguimientoNc: true,
+          nota: "Subsanar las NC anotadas en las actas del CSS si las hubiese antes de su siguiente visita",
+          raci: "CSS R \xB7 PjM C",
+          rellena: PJM
+        }
+      ];
+      var ACT = Object.fromEntries(ACTIVIDADES.map((a) => [a.id, a]));
+      var POR_PLANTILLA = {
+        inspeccionObra: "lugarTrabajo",
+        controlContratista: "subcontratas",
+        reunionCAE: "induccionInicial",
+        certificadoInstruccion: "induccion",
+        readinessReview: "readiness",
+        hopAudit: "hop"
+      };
+      var actividadDe = (reg) => llano(reg && reg.actividad) || POR_PLANTILLA[reg && reg.plantilla] || "";
+      var puedeRellenar = (rol, actividadId) => !!(ACT[actividadId] && ACT[actividadId].rellena.includes(rol));
+      function semanas(inicio, fin) {
+        if (!esFecha(inicio) || !esFecha(fin) || fin < inicio) return [];
+        const out = [];
+        for (let l = lunes(inicio); l <= fin; l = masDias(l, 7)) {
+          const desde = l < inicio ? inicio : l;
+          const d = masDias(l, 6);
+          const hasta = d > fin ? fin : d;
+          out.push({ clave: claveSemana(l), lunes: l, desde, hasta });
+        }
+        const dias = (p) => entre(p.desde, p.hasta) + 1;
+        if (out.length > 1 && dias(out[0]) < 3) {
+          out[1].desde = out[0].desde;
+          out[1].claves = [out[0].clave, out[1].clave];
+          out.shift();
+        }
+        if (out.length > 1 && dias(out[out.length - 1]) < 3) {
+          const u = out.pop();
+          const p = out[out.length - 1];
+          p.hasta = u.hasta;
+          p.claves = [...p.claves || [p.clave], u.clave];
+        }
+        return out.map((p, i) => ({ ...p, n: i + 1, claves: p.claves || [p.clave] }));
+      }
+      function bloquesSemanas(inicio, fin, cada = 1) {
+        const s = semanas(inicio, fin);
+        if (cada <= 1) return s;
+        const out = [];
+        for (let i = 0; i < s.length; i += cada) {
+          const g = s.slice(i, i + cada);
+          out.push({ clave: g[0].clave, desde: g[0].desde, hasta: g[g.length - 1].hasta, claves: g.flatMap((x) => x.claves), n: out.length + 1 });
+        }
+        return out;
+      }
+      function meses(inicio, fin) {
+        if (!esFecha(inicio) || !esFecha(fin) || fin < inicio) return [];
+        const out = [];
+        for (let n = 0; ; n += 1) {
+          const desde = masMeses(inicio, n);
+          if (desde > fin) break;
+          const sig = masDias(masMeses(inicio, n + 1), -1);
+          out.push({ clave: `M${n + 1}`, desde, hasta: sig > fin ? fin : sig });
+        }
+        if (out.length > 1 && entre(out[out.length - 1].desde, out[out.length - 1].hasta) + 1 < 7) {
+          const u = out.pop();
+          out[out.length - 1].hasta = u.hasta;
+        }
+        return out.map((p, i) => ({ ...p, n: i + 1 }));
+      }
+      function obligaciones({ obra = {}, subcontratas = [], config = {} } = {}) {
+        const inicio = dia(obra.fechaInicio);
+        const fin = dia(obra.fechaFin);
+        if (!esFecha(inicio)) return [];
+        const finOk = esFecha(fin) && fin >= inicio ? fin : null;
+        const out = [];
+        const pon = (actividad, p, extra = {}) => out.push({
+          id: `${actividad}|${p.clave}${extra.proveedorId ? `|${extra.proveedorId}` : ""}`,
+          actividad,
+          clave: p.clave,
+          desde: p.desde,
+          hasta: p.hasta,
+          vence: p.vence || p.hasta,
+          ...extra
+        });
+        const dia10 = masDias(inicio, 9);
+        pon("readiness", { clave: "inicio", desde: inicio, hasta: finOk && finOk < dia10 ? finOk : dia10 });
+        pon("induccionInicial", { clave: "inicio", desde: inicio, hasta: inicio });
+        if (!finOk) return out;
+        for (const m of meses(inicio, finOk)) pon("inspeccionObra", m);
+        const fr = (config.frecuencias || {}).lugarTrabajo || "semanal";
+        const bloques = fr === "mensual" ? meses(inicio, finOk) : bloquesSemanas(inicio, finOk, fr === "quincenal" ? 2 : 1);
+        for (const b of bloques) pon("lugarTrabajo", b);
+        for (const s of semanas(inicio, finOk)) {
+          pon("equipos", s);
+          pon("induccion", s);
+        }
+        const primeraSemana = masDias(inicio, 6);
+        for (const sc of subcontratas) {
+          if (!sc || !sc.id) continue;
+          let d = dia(sc.desde);
+          let h = dia(sc.hasta);
+          if (!esFecha(d)) d = inicio;
+          if (!esFecha(h)) h = finOk;
+          if (d < inicio) d = inicio;
+          if (h > finOk) h = finOk;
+          if (h < d) continue;
+          const extra = { proveedorId: sc.id, nombre: llano(sc.nombre) };
+          if (d <= primeraSemana) {
+            for (const m of meses(inicio, h)) pon("subcontratas", m, extra);
+          } else {
+            pon("subcontratas", { clave: "periodo", desde: d, hasta: h }, extra);
+          }
+        }
+        pon("hop", { clave: "proyecto", desde: inicio, hasta: finOk });
+        return out;
+      }
+      var ESTADOS = {
+        hecha: "Hecha",
+        pendiente: "Pendiente",
+        vencida: "Vencida",
+        na: "No aplica"
+      };
+      function estados(obligs, registros = [], { hoy, config = {} } = {}) {
+        const h = dia(hoy) || ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
+        const na = new Set(config.noAplica || []);
+        const usados = /* @__PURE__ */ new Set();
+        const regs = (registros || []).filter((r) => r && r.estado !== "anulado" && r.estado !== "config").map((r) => ({ ...r, _act: actividadDe(r), _f: dia(r.fecha) })).sort((a, b) => a._f.localeCompare(b._f));
+        return obligs.map((o) => {
+          const cabe = (r) => !usados.has(r.id) && r._act === o.actividad && (!o.proveedorId || r.proveedorId === o.proveedorId) && r._f <= o.hasta && (r._f >= o.desde || o.actividad === "readiness" || o.actividad === "induccionInicial");
+          const hecho = regs.find((r) => r.estado === "hecho" && cabe(r));
+          const borr = hecho ? null : regs.find((r) => r.estado !== "hecho" && cabe(r));
+          const reg = hecho || borr;
+          if (reg) usados.add(reg.id);
+          let estado;
+          if (hecho) estado = "hecha";
+          else if (na.has(o.id) || na.has(o.actividad)) estado = "na";
+          else if (h > o.vence) estado = "vencida";
+          else estado = "pendiente";
+          return {
+            ...o,
+            estado,
+            registroId: reg ? reg.id : null,
+            fechaRegistro: reg && reg._f >= o.desde ? reg._f : null,
+            enCurso: !!borr && estado !== "hecha",
+            futura: estado === "pendiente" && h < o.desde,
+            ...estado !== "hecha" && estado !== "na" ? { dias: entre(h, o.vence) } : {}
+          };
+        });
+      }
+      function tocaSemana(lista, hoy) {
+        const h = dia(hoy);
+        const dom = masDias(lunes(h), 6);
+        return lista.filter((o) => (o.estado === "pendiente" || o.estado === "vencida") && o.desde <= dom).sort((a, b) => a.vence.localeCompare(b.vence));
+      }
+      function coberturaHop({ obras = [], auditorias = [], mes }) {
+        const m = llano(mes).slice(0, 7);
+        const desde = `${m}-01`;
+        const hasta = masDias(masMeses(desde, 1), -1);
+        const enMarcha = obras.filter((o) => esFecha(o.fechaInicio) && dia(o.fechaInicio) <= hasta && (!esFecha(o.fechaFin) || dia(o.fechaFin) >= desde));
+        const ids = new Set(enMarcha.map((o) => o.id));
+        const auditadas = new Set(auditorias.filter((a) => ids.has(a.obraId) && dia(a.fecha) >= desde && dia(a.fecha) <= hasta).map((a) => a.obraId));
+        const objetivo = enMarcha.length ? Math.max(1, Math.ceil(enMarcha.length * 0.1)) : 0;
+        return { mes: m, obras: enMarcha.length, objetivo, hechas: auditadas.size, falta: Math.max(0, objetivo - auditadas.size) };
+      }
+      var ncAbiertas = (reg) => (reg && reg.datos && reg.datos.plan || []).filter((a) => a && a.estado !== "cerrada" && (llano(a.problema) || llano(a.medida) || a.ref));
+      function avisos({ lista = [], registros = [], config = {}, hoy, hop = null } = {}) {
+        const h = dia(hoy);
+        const out = [];
+        const venc = /* @__PURE__ */ new Map();
+        for (const o of lista) if (o.estado === "vencida") {
+          const v = venc.get(o.actividad) || [];
+          v.push(o);
+          venc.set(o.actividad, v);
+        }
+        for (const [act, vs] of venc) {
+          const ult = vs[vs.length - 1];
+          out.push({
+            tipo: "vencida",
+            nivel: "alto",
+            actividad: act,
+            ref: ult.id,
+            texto: `${ACT[act] ? ACT[act].nombre : act}: ${vs.length === 1 ? "1 vencida" : `${vs.length} vencidas`} (la \xFAltima venci\xF3 el ${ult.vence}).`
+          });
+        }
+        const proxima = dia(config.proximaVisitaCss);
+        for (const r of registros || []) {
+          if (!r || r.estado === "config" || r.estado === "anulado") continue;
+          const act = actividadDe(r);
+          for (const a of ncAbiertas(r)) {
+            if (act === "css") {
+              const quedan = esFecha(proxima) ? entre(h, proxima) : null;
+              out.push({
+                tipo: "ncCss",
+                nivel: quedan !== null && quedan <= 7 ? "alto" : "medio",
+                actividad: "css",
+                ref: r.id,
+                texto: `NC del CSS sin subsanar: ${llano(a.problema) || llano(a.punto) || "sin descripci\xF3n"}${quedan === null ? " (sin fecha de la siguiente visita)" : quedan < 0 ? ` (la visita era el ${proxima})` : ` (siguiente visita el ${proxima})`}.`
+              });
+            } else if (esFecha(a.fecha) && a.fecha < h) {
+              out.push({
+                tipo: "ncPlazo",
+                nivel: "alto",
+                actividad: act,
+                ref: r.id,
+                texto: `NC fuera de plazo (${a.fecha}): ${llano(a.problema) || llano(a.punto) || "sin descripci\xF3n"}.`
+              });
+            }
+          }
+        }
+        if (hop && hop.falta > 0) {
+          out.push({
+            tipo: "hop",
+            nivel: "medio",
+            actividad: "hop",
+            ref: hop.mes,
+            texto: `HoP: ${hop.hechas} de ${hop.objetivo} auditor\xEDas del mes ${hop.mes} (10 % de ${hop.obras} obras en marcha).`
+          });
+        }
+        return out;
+      }
+      function rejilla(lista, { inicio, fin, modo = "semanas", desde: vDesde, hasta: vHasta } = {}) {
+        let cols;
+        if (modo === "dias") {
+          const d0 = esFecha(vDesde) ? vDesde : inicio;
+          const d1 = esFecha(vHasta) ? vHasta : masDias(d0, 34);
+          cols = [];
+          for (let d = d0; d <= d1 && d <= fin; d = masDias(d, 1)) cols.push({ clave: d, desde: d, hasta: d, n: entre(inicio, d) + 1 });
+        } else {
+          cols = semanas(inicio, fin);
+        }
+        const filas = [];
+        const fila = (clave, actividad, nombre) => {
+          let f = filas.find((x) => x.clave === clave);
+          if (!f) {
+            f = { clave, actividad, nombre, celdas: cols.map(() => null) };
+            filas.push(f);
+          }
+          return f;
+        };
+        for (const a of ACTIVIDADES) if (a.id !== "subcontratas") fila(a.id, a.id, a.nombre);
+        const col = (f) => cols.findIndex((c) => f >= c.desde && f <= c.hasta);
+        for (const o of lista) {
+          const f = o.actividad === "subcontratas" ? fila(`subcontratas|${o.proveedorId}`, "subcontratas", `Inspecci\xF3n de subcontrata \xB7 ${o.nombre || o.proveedorId}`) : fila(o.actividad, o.actividad, ACT[o.actividad] ? ACT[o.actividad].nombre : o.actividad);
+          const marca = o.fechaRegistro || o.vence;
+          const i = col(marca);
+          cols.forEach((c, k) => {
+            if (c.hasta < o.desde || c.desde > o.hasta) return;
+            if (k === i) f.celdas[k] = { ...o, marca: true };
+            else if (!f.celdas[k]) f.celdas[k] = { tramo: true, estado: o.estado, id: o.id };
+          });
+        }
+        const orden = (f) => ACTIVIDADES.findIndex((a) => a.id === f.actividad);
+        filas.sort((a, b) => orden(a) - orden(b) || a.nombre.localeCompare(b.nombre, "es"));
+        return { columnas: cols, filas };
+      }
+      module.exports = {
+        ACTIVIDADES,
+        ACT,
+        ESTADOS,
+        POR_PLANTILLA,
+        actividadDe,
+        puedeRellenar,
+        semanas,
+        meses,
+        bloquesSemanas,
+        obligaciones,
+        estados,
+        tocaSemana,
+        coberturaHop,
+        ncAbiertas,
+        avisos,
+        rejilla,
+        masMeses,
+        masDias,
+        lunes,
+        claveSemana
+      };
+    }
+  });
+
+  // shared/qhse/informePdf.js
+  var require_informePdf2 = __commonJS({
+    "shared/qhse/informePdf.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var { PDFDocument, StandardFonts, rgb } = require_cjs();
+      var { PLANTILLAS, puntos } = require_plantillas();
+      var { partir, crearLimpiador } = require_informePdf();
+      var A4 = [595.28, 841.89];
+      var MARGEN = 36;
+      var TEAL = rgb(23 / 255, 130 / 255, 118 / 255);
+      var TINTA = rgb(0.12, 0.16, 0.18);
+      var GRIS = rgb(0.42, 0.45, 0.47);
+      var LINEA = rgb(0.75, 0.8, 0.8);
+      var FONDO = rgb(0.92, 0.96, 0.95);
+      var llano = (v) => String(v ?? "").trim();
+      var esp = (v) => {
+        const t = llano(v);
+        return /^\d{4}-\d{2}-\d{2}$/.test(t) ? t.split("-").reverse().join("/") : t;
+      };
+      function base64aBytes(b64) {
+        if (typeof Buffer !== "undefined") return new Uint8Array(Buffer.from(b64, "base64"));
+        const bin = atob(b64);
+        const out = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i += 1) out[i] = bin.charCodeAt(i);
+        return out;
+      }
+      async function informeQhsePdf(reg) {
+        const p = PLANTILLAS[reg.plantilla] || PLANTILLAS.registro;
+        const d = reg.datos || {};
+        const doc = await PDFDocument.create();
+        const normal = await doc.embedFont(StandardFonts.Helvetica);
+        const negrita = await doc.embedFont(StandardFonts.HelveticaBold);
+        const limpio = crearLimpiador(normal);
+        const ancho = A4[0] - MARGEN * 2;
+        let pag;
+        let y;
+        const paginas = [];
+        const nueva = () => {
+          pag = doc.addPage(A4);
+          paginas.push(pag);
+          y = A4[1] - MARGEN;
+          pag.drawText(limpio(p.formulario || ""), { x: MARGEN, y: y - 8, size: 7, font: normal, color: GRIS });
+          y -= 16;
+        };
+        const sitio = (h) => {
+          if (y - h < MARGEN + 18) nueva();
+        };
+        const texto = (t, x, yy, { tam = 8, f = normal, color = TINTA } = {}) => pag.drawText(limpio(t), { x, y: yy, size: tam, font: f, color });
+        const lineas = (t, tam, w2, f = normal) => partir(limpio(t), f, tam, w2);
+        function fila(celdas2, anchos, { tam = 7.5, f = normal, fondo = null, centrar = [], color = TINTA, minimo = 0 } = {}) {
+          const ls = celdas2.map((c, i) => c && c.imagen ? [] : lineas(c || "", tam, anchos[i] - 6, Array.isArray(f) ? f[i] : f));
+          const altoImg = Math.max(0, ...celdas2.map((c) => c && c.imagen ? 26 : 0));
+          const h = Math.max(minimo, altoImg + 6, ...ls.map((l) => l.length * (tam + 2) + 6));
+          sitio(h);
+          let x = MARGEN;
+          celdas2.forEach((c, i) => {
+            if (fondo) pag.drawRectangle({ x, y: y - h, width: anchos[i], height: h, color: fondo });
+            pag.drawRectangle({ x, y: y - h, width: anchos[i], height: h, borderColor: LINEA, borderWidth: 0.5 });
+            if (c && c.imagen) {
+              const im = c.imagen;
+              const esc = Math.min((anchos[i] - 6) / im.width, 24 / im.height);
+              pag.drawImage(im, { x: x + 3, y: y - h + 3, width: im.width * esc, height: im.height * esc });
+            } else {
+              const ff = Array.isArray(f) ? f[i] : f;
+              ls[i].forEach((l, k) => {
+                const w2 = ff.widthOfTextAtSize(l, tam);
+                const xx = centrar.includes(i) ? x + (anchos[i] - w2) / 2 : x + 3;
+                pag.drawText(l, { x: xx, y: y - 3 - tam - k * (tam + 2), size: tam, font: ff, color: Array.isArray(color) ? color[i] : color });
+              });
+            }
+            x += anchos[i];
+          });
+          y -= h;
+          return h;
+        }
+        const titulo = (t) => {
+          sitio(26);
+          y -= 8;
+          texto(t, MARGEN, y - 10, { tam: 10, f: negrita, color: TEAL });
+          y -= 14;
+          pag.drawLine({ start: { x: MARGEN, y }, end: { x: MARGEN + ancho, y }, thickness: 1, color: TEAL });
+          y -= 4;
+        };
+        nueva();
+        texto(p.largo || p.nombre, MARGEN, y - 14, { tam: 15, f: negrita, color: TEAL });
+        y -= 22;
+        texto(`${reg.codigo || ""}${reg.estado === "hecho" ? "" : "  \xB7  BORRADOR"}`, MARGEN, y - 8, { tam: 8, color: GRIS });
+        y -= 16;
+        const cab = d.cabecera || {};
+        for (const c of p.cabecera) {
+          let v = esp(cab[c.clave]);
+          if (c.clave === "hora" && !v) v = llano(d.hora);
+          fila([c.nombre, v], [ancho * 0.34, ancho * 0.66], { f: [negrita, normal], fondo: null });
+        }
+        if (p.texto) {
+          const t = p.texto.replace(/\{(\w+)\}/g, (_, k) => esp(cab[k]) || "________");
+          y -= 6;
+          for (const l of lineas(t, 8, ancho)) {
+            sitio(11);
+            texto(l, MARGEN, y - 9);
+            y -= 11;
+          }
+        }
+        const pts = puntos(reg.plantilla);
+        if (pts.length) {
+          titulo(p.columnas && p.columnas[0] ? p.columnas[0] : "Puntos");
+          const cols = p.columnas || ["Elemento", "Comentarios", p.respuestas[0].nombre, p.respuestas[1].nombre, p.respuestas[2].nombre];
+          const an2 = [ancho * 0.47, ancho * 0.29, ancho * 0.08, ancho * 0.08, ancho * 0.08];
+          fila(cols, an2, { f: negrita, color: TEAL, centrar: [2, 3, 4], tam: 7 });
+          const r = d.respuestas || {};
+          let sec = null;
+          for (const pt of pts) {
+            if (pt.seccion !== sec) {
+              sec = pt.seccion;
+              fila([pt.seccionNombre, "", "", "", ""], an2, { f: negrita, fondo: FONDO });
+            }
+            const v = r[pt.id] || {};
+            const marca = (id) => v.r === id ? "X" : "";
+            const txt = pt.guia ? `${pt.texto}  ${pt.guia.replace(/\n/g, " ")}` : pt.texto;
+            const com = [llano(v.c), pt.gravedad && v.r === "nc" ? `(${pt.gravedad})` : ""].filter(Boolean).join(" ");
+            fila([txt, com, marca("si"), marca("nc"), marca("na")], an2, { centrar: [2, 3, 4], f: [normal, normal, negrita, negrita, negrita] });
+          }
+          if (reg.plantilla === "inspeccionObra") {
+            y -= 3;
+            sitio(10);
+            texto("* NC = No cumple \xB7 N/A = No aplica", MARGEN, y - 8, { tam: 6.5, color: GRIS });
+            y -= 10;
+          }
+        }
+        if (llano(d.observaciones)) {
+          titulo("Observaciones");
+          for (const l of lineas(d.observaciones, 8, ancho)) {
+            sitio(11);
+            texto(l, MARGEN, y - 9);
+            y -= 11;
+          }
+        }
+        if (p.asistentes) {
+          titulo("Asistentes");
+          if (p.notaAsistentes) {
+            sitio(11);
+            texto(p.notaAsistentes, MARGEN, y - 8, { tam: 7, color: GRIS });
+            y -= 11;
+          }
+          const an2 = [ancho * 0.3, ancho * 0.14, ancho * 0.24, ancho * 0.18, ancho * 0.14];
+          fila(["NOMBRE Y APELLIDOS", "DNI", "EMPRESA", "FIRMA", "FECHA"], an2, { f: negrita, color: TEAL, tam: 7 });
+          for (const a of d.asistentes || []) {
+            let firma = "";
+            if (a.trazo) {
+              try {
+                firma = { imagen: await doc.embedPng(base64aBytes(a.trazo.replace(/^data:image\/png;base64,/, ""))) };
+              } catch {
+                firma = "";
+              }
+            }
+            fila([a.nombre, a.dni, a.empresa, firma, esp(a.fecha || cab.fecha)], an2, { minimo: firma ? 30 : 0 });
+          }
+        }
+        if (p.plan) {
+          const plan = (d.plan || []).filter((a) => llano(a.problema) || llano(a.medida) || a.ref);
+          titulo(p.planTitulo || "PLAN DE ACCI\xD3N");
+          const an2 = [ancho * 0.3, ancho * 0.16, ancho * 0.3, ancho * 0.12, ancho * 0.12];
+          fila(["PROBLEMA OBSERVADO / COMENTARIO", "PERSONA RESPONSABLE", "MEDIDAS CORRECTIVAS QUE DEBEN ADOPTARSE", "FECHAS (INICIAL Y FECHA)", "ESTADO"], an2, { f: negrita, color: TEAL, tam: 6.5 });
+          if (!plan.length) fila(["Sin NC.", "", "", "", ""], an2, { color: GRIS });
+          for (const a of plan) {
+            const prob = [llano(a.punto), llano(a.problema)].filter(Boolean).join(" \u2014 ");
+            const est = a.estado === "cerrada" ? `Cerrada ${a.cerradaEn || ""}${a.cierre ? `: ${a.cierre}` : ""}` : "Abierta";
+            fila([prob, a.responsable, a.medida, [esp(cab.fecha || reg.fecha), esp(a.fecha)].filter(Boolean).join(" / "), est], an2);
+          }
+        }
+        const fi = d.firma || {};
+        titulo(p.firma || "Completado por");
+        const campos = p.firmaCampos || [["nombre", "Nombre"], ["cargo", "Cargo"]];
+        const celdas = [];
+        const an = [];
+        for (const [k, n] of campos) {
+          celdas.push(`${n}: ${esp(fi[k]) || (k === "fecha" ? esp(cab.fecha) : "")}`);
+          an.push(0);
+        }
+        celdas.push("Firma:");
+        an.push(0);
+        const w = ancho / celdas.length;
+        fila(celdas, an.map(() => w), { minimo: 30 });
+        const hb = d.harbour || {};
+        if (hb.subido) {
+          sitio(12);
+          y -= 4;
+          texto(`Subido a Harbour${hb.fecha ? ` el ${esp(hb.fecha)}` : ""}.`, MARGEN, y - 8, { tam: 7, color: GRIS });
+          y -= 12;
+        }
+        const fotos = (reg.adjuntos || []).filter((a) => a.contenido && /^image\/(jpeg|png)$/.test(a.tipo || ""));
+        if (fotos.length) {
+          nueva();
+          titulo("Fotos");
+          const porId = new Map(pts.map((x) => [x.id, x]));
+          const cw = (ancho - 12) / 2;
+          let col = 0;
+          let filaAlto = 0;
+          for (const f of fotos) {
+            let im;
+            try {
+              im = f.tipo === "image/png" ? await doc.embedPng(base64aBytes(f.contenido)) : await doc.embedJpg(base64aBytes(f.contenido));
+            } catch {
+              continue;
+            }
+            const esc = Math.min(cw / im.width, 200 / im.height);
+            const h = im.height * esc + 26;
+            if (col === 0) sitio(h);
+            const x = MARGEN + col * (cw + 12);
+            pag.drawImage(im, { x, y: y - im.height * esc, width: im.width * esc, height: im.height * esc });
+            const ref = String(f.ref || "").replace(/^nc:/, "");
+            const pt = porId.get(ref);
+            const pie = pt ? `${pt.seccionNombre} \xB7 ${pt.texto}` : f.nombre || "";
+            partir(limpio(pie), normal, 6.5, cw).slice(0, 2).forEach((l, k) => pag.drawText(l, { x, y: y - im.height * esc - 9 - k * 8, size: 6.5, font: normal, color: GRIS }));
+            filaAlto = Math.max(filaAlto, h);
+            col += 1;
+            if (col === 2) {
+              col = 0;
+              y -= filaAlto + 8;
+              filaAlto = 0;
+            }
+          }
+        }
+        paginas.forEach((pg, i) => pg.drawText(limpio(`${reg.codigo || ""} \xB7 ${i + 1}/${paginas.length}`), { x: MARGEN, y: MARGEN - 16, size: 6.5, font: normal, color: GRIS }));
+        return doc.save();
+      }
+      module.exports = { informeQhsePdf };
     }
   });
 
@@ -117159,11 +122244,15 @@ ${l}`;
       var { puede } = require_roles();
       var { PLANTILLAS, ORDEN } = require_plantillas();
       var M = require_motor7();
+      var PL = require_planObra();
       var { hoyLocal } = require_fecha();
       var MOD = "qhse";
       var llano = (v) => String(v ?? "").trim();
       var no = (error) => ({ ok: false, error });
-      var MAX_DATOS = 400 * 1024;
+      var esFecha = (v) => /^\d{4}-\d{2}-\d{2}$/.test(llano(v));
+      var MAX_DATOS = 700 * 1024;
+      var MAX_ADJUNTO = 700 * 1024;
+      var TIPOS_ADJ = /* @__PURE__ */ new Set(["image/jpeg", "image/png", "application/pdf"]);
       var nombreDe = (repo, id) => id ? (repo.db.prepare("SELECT nombre FROM personas WHERE id = ?").get(id) || {}).nombre || null : null;
       var existe = (repo, t) => Boolean(repo.db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(t));
       var filas = (repo, t, obraId) => existe(repo, t) ? repo.db.prepare(`SELECT * FROM "${t}" WHERE obraId = ?`).all(obraId) : [];
@@ -117195,6 +122284,28 @@ ${l}`;
         const ya = new Set(ctx.contratistas.map((c) => c.id).filter(Boolean));
         return { ...ctx, subcontratas: [...ctx.contratistas.filter((c) => c.id), ...todas.filter((s) => !ya.has(s.id))] };
       }
+      function presencia(repo, obraId) {
+        let lista = [];
+        try {
+          lista = require_personal2().subcontratasDe(repo, obraId);
+        } catch {
+          lista = [];
+        }
+        const por = new Map(lista.map((s) => [s.id, { id: s.id, nombre: s.nombre, desde: null, hasta: null }]));
+        const toca = (id, d, h) => {
+          const s = por.get(id);
+          if (!s) return;
+          if (esFecha(d) && (!s.desde || d < s.desde)) s.desde = d;
+          if (esFecha(h) && (!s.hasta || h > s.hasta)) s.hasta = h;
+        };
+        for (const p of filas(repo, "personalPrevisto", obraId)) toca(p.proveedorId, llano(p.fecha).slice(0, 10), llano(p.fecha).slice(0, 10));
+        const caps = new Map(filas(repo, "ganttCapitulos", obraId).map((c) => [c.capituloId, c]));
+        for (const r of filas(repo, "ganttRecursos", obraId)) {
+          const c = caps.get(r.capituloId);
+          if (c) toca(r.proveedorId, llano(c.inicio).slice(0, 10), llano(c.fin).slice(0, 10));
+        }
+        return [...por.values()];
+      }
       function clienteDe(repo, obra) {
         try {
           return obra.clienteId ? (repo.db.prepare("SELECT nombre FROM clientes WHERE id = ?").get(obra.clienteId) || {}).nombre || "" : "";
@@ -117202,10 +122313,13 @@ ${l}`;
           return "";
         }
       }
+      var esRegistro = (c) => c && c.plantilla !== "planObra" && c.estado !== "config";
       function resumenFila(repo, c, obras) {
         const d = jsonDe(c.datos);
         const p = PLANTILLAS[c.plantilla] || {};
         const o = obras.get(c.obraId) || {};
+        const act = PL.actividadDe({ actividad: d.actividad, plantilla: c.plantilla });
+        const ncs = M.ncDe(d);
         return {
           id: c.id,
           codigo: c.codigo,
@@ -117213,29 +122327,132 @@ ${l}`;
           obra: o.codigo || "",
           plantilla: c.plantilla,
           nombre: p.nombre || c.plantilla,
+          actividad: act,
+          actividadNombre: PL.ACT[act] ? PL.ACT[act].nombre : "",
           fecha: c.fecha,
           semana: c.semana,
           contratista: c.contratista || "",
+          proveedorId: c.proveedorId || null,
           estado: c.estado,
           noCumplen: c.noCumplen || 0,
           resumen: M.resumen(c.plantilla, d),
           quien: nombreDe(repo, c.creadoPor),
           creadoPor: c.creadoPor,
-          terminadoEn: c.terminadoEn || null
+          terminadoEn: c.terminadoEn || null,
+          ncAbiertas: ncs.filter((a) => a.estado !== "cerrada").length,
+          ncCerradas: ncs.filter((a) => a.estado === "cerrada").length,
+          harbour: d.harbour && d.harbour.subido ? d.harbour.fecha || true : false,
+          vaHarbour: PL.ACT[act] ? PL.ACT[act].harbour : null
         };
+      }
+      function filaConfig(repo, ses, obraId) {
+        return repo.listar("qhseControles", ses, { condicion: "obraId = ? AND plantilla = 'planObra'", params: [obraId], limite: 1 })[0] || null;
+      }
+      function configDe(repo, ses, obraId) {
+        const f = filaConfig(repo, ses, obraId);
+        const d = f ? jsonDe(f.datos) : {};
+        return { frecuencias: d.frecuencias || {}, noAplica: Array.isArray(d.noAplica) ? d.noAplica : [], proximaVisitaCss: d.proximaVisitaCss || "" };
+      }
+      function guardarConfig(repo, ses, e = {}) {
+        if (!puede(ses.rol, MOD, "crear") || !PL.puedeRellenar(ses.rol, "readiness")) return no("Solo el jefe de obra ajusta el plan QHSE.");
+        const obra = e.obraId ? repo.leer("obras", ses, llano(e.obraId)) : null;
+        if (!obra) return no("No se encuentra la obra (o no es de las tuyas).");
+        const actual = configDe(repo, ses, obra.id);
+        const fr = llano(e.frecuencias && e.frecuencias.lugarTrabajo);
+        const sig = {
+          frecuencias: { ...actual.frecuencias, ...["semanal", "quincenal", "mensual"].includes(fr) ? { lugarTrabajo: fr } : {} },
+          noAplica: Array.isArray(e.noAplica) ? e.noAplica.map((x) => llano(x).slice(0, 120)).filter(Boolean).slice(0, 400) : actual.noAplica,
+          proximaVisitaCss: e.proximaVisitaCss === void 0 ? actual.proximaVisitaCss : esFecha(e.proximaVisitaCss) ? e.proximaVisitaCss : ""
+        };
+        const f = filaConfig(repo, ses, obra.id);
+        if (f) repo.modificar("qhseControles", ses, f.id, { datos: JSON.stringify(sig) }, { verbo: "crear" });
+        else {
+          repo.crear("qhseControles", ses, {
+            obraId: obra.id,
+            plantilla: "planObra",
+            codigo: `PLAN-${llano(obra.codigo).replace(/\s+/g, "")}`,
+            fecha: hoyLocal(),
+            semana: "plan",
+            datos: JSON.stringify(sig),
+            noCumplen: 0,
+            estado: "config",
+            origen: "escritorio",
+            creadoPor: ses.personaId
+          });
+        }
+        return { ok: true, config: sig };
+      }
+      function registrosDe(repo, ses, obraId) {
+        return repo.listar("qhseControles", ses, { condicion: "obraId = ?", params: [obraId], orden: "fecha, creadoEn" }).filter(esRegistro).map((c) => ({ ...c, datos: jsonDe(c.datos), actividad: PL.actividadDe({ actividad: jsonDe(c.datos).actividad, plantilla: c.plantilla }) }));
+      }
+      function hopDe(repo, obra, hoy) {
+        if (!obra.recibidaPor) return null;
+        const obras = repo.db.prepare("SELECT id, fechaInicio, fechaFin FROM obras WHERE recibidaPor = ? AND estado <> ?").all(obra.recibidaPor, "cerrada");
+        if (!obras.length) return null;
+        const ids = obras.map((o) => o.id);
+        const auditorias = repo.db.prepare(`SELECT obraId, fecha FROM qhseControles WHERE plantilla = 'hopAudit' AND estado = 'hecho' AND obraId IN (${ids.map(() => "?").join(",")})`).all(...ids);
+        return { ...PL.coberturaHop({ obras, auditorias, mes: hoy.slice(0, 7) }), hop: nombreDe(repo, obra.recibidaPor) };
+      }
+      function plan(repo, ses, { obraId, hoy = hoyLocal(), modo = "semanas", desde = null } = {}) {
+        if (!puede(ses.rol, MOD, "ver")) return no("Tu rol no ve el plan QHSE.");
+        const obra = obraId ? repo.leer("obras", ses, llano(obraId)) : null;
+        if (!obra) return no("No se encuentra la obra (o no es de las tuyas).");
+        const config = configDe(repo, ses, obra.id);
+        const registros = registrosDe(repo, ses, obra.id);
+        const inicio = llano(obra.fechaInicio).slice(0, 10);
+        const fin = llano(obra.fechaFin).slice(0, 10);
+        const subcontratas = presencia(repo, obra.id);
+        const lista = PL.estados(PL.obligaciones({ obra, subcontratas, config }), registros, { hoy, config });
+        const hop = hopDe(repo, obra, hoy);
+        const mapa = /* @__PURE__ */ new Map([[obra.id, obra]]);
+        const puedeCrear = puede(ses.rol, MOD, "crear");
+        return {
+          ok: true,
+          hoy,
+          obra: { id: obra.id, codigo: obra.codigo, nombre: obra.nombre, emplazamiento: obra.emplazamiento || "", fechaInicio: inicio || null, fechaFin: fin || null },
+          sinFechas: !esFecha(inicio) || !esFecha(fin),
+          actividades: PL.ACTIVIDADES.map((a) => ({ ...a, puedeRellenar: puedeCrear && PL.puedeRellenar(ses.rol, a.id) })),
+          lista,
+          rejilla: esFecha(inicio) && esFecha(fin) ? PL.rejilla(lista, { inicio, fin, modo, desde }) : { columnas: [], filas: [] },
+          avisos: PL.avisos({ lista, registros, config, hoy, hop }),
+          hop,
+          config,
+          subcontratas,
+          registros: registros.map((c) => resumenFila(repo, { ...c, datos: JSON.stringify(c.datos) }, mapa)).reverse(),
+          puede: { crear: puedeCrear, ajustar: puedeCrear && PL.puedeRellenar(ses.rol, "readiness"), exportar: puede(ses.rol, MOD, "exportar") }
+        };
+      }
+      function avisos(repo, ses, { hoy = hoyLocal() } = {}) {
+        if (!puede(ses.rol, MOD, "ver")) return [];
+        const out = [];
+        for (const o of repo.listar("obras", ses, { orden: "codigo" }).filter((x) => x.estado !== "cerrada")) {
+          const p = plan(repo, ses, { obraId: o.id, hoy });
+          if (p.ok) for (const a of p.avisos) out.push({ ...a, obraId: o.id, obra: o.codigo });
+        }
+        return out;
       }
       function paraMovil(repo, ses, { hoy = hoyLocal() } = {}) {
         const puedeCrear = puede(ses.rol, MOD, "crear");
         const formularios = ORDEN.map((id) => PLANTILLAS[id]);
-        if (!puede(ses.rol, MOD, "ver")) return { formularios, obras: [], controles: [], puede: { crear: false }, hoy };
+        const actividades = PL.ACTIVIDADES.map((a) => ({
+          id: a.id,
+          nombre: a.nombre,
+          plantilla: a.plantilla,
+          regla: a.regla,
+          harbour: a.harbour,
+          puedeRellenar: puedeCrear && PL.puedeRellenar(ses.rol, a.id)
+        }));
+        if (!puede(ses.rol, MOD, "ver")) return { formularios, actividades, obras: [], controles: [], puede: { crear: false }, hoy };
         const todas = repo.listar("obras", ses, { orden: "codigo" });
         const mapa = new Map(todas.map((o) => [o.id, o]));
         const abiertas = todas.filter((o) => o.estado !== "cerrada");
-        const controles = repo.listar("qhseControles", ses, { orden: "fecha DESC, creadoEn DESC", limite: 400 }).filter((c) => mapa.has(c.obraId));
+        const controles = repo.listar("qhseControles", ses, { orden: "fecha DESC, creadoEn DESC", limite: 400 }).filter((c) => mapa.has(c.obraId) && esRegistro(c));
+        const persona = ses.nombre || nombreDe(repo, ses.personaId) || "";
         const obras = abiertas.map((o) => {
           const ctx = contexto(repo, o.id, hoy);
           const cliente = clienteDe(repo, o);
           const hechos = controles.filter((c) => c.obraId === o.id);
+          const p = plan(repo, ses, { obraId: o.id, hoy });
           return {
             id: o.id,
             codigo: o.codigo,
@@ -117244,78 +122461,156 @@ ${l}`;
             subcontratas: ctx.subcontratas,
             actividades: ctx.actividades,
             /* El formulario en blanco de cada tipo, con la cabecera ya rellena. */
-            inicial: Object.fromEntries(ORDEN.map((id) => [id, M.vacio(id, { obra: o, cliente, persona: ses.nombre || nombreDe(repo, ses.personaId) || "", contexto: ctx })])),
-            toca: M.pendienteSemana("inspeccionObra", hoy, hechos)
+            inicial: Object.fromEntries(ORDEN.map((id) => [id, M.vacio(id, { obra: o, cliente, persona, contexto: ctx, hoy })])),
+            sugerencias: Object.fromEntries(ORDEN.map((id) => [id, M.sugerencias(id, { contexto: ctx })])),
+            toca: M.pendienteSemana("inspeccionObra", hoy, hechos),
+            /* Lo que toca esta semana según el plan QHSE (pendiente o vencido). */
+            plan: p.ok ? PL.tocaSemana(p.lista, hoy).map((x) => ({
+              id: x.id,
+              actividad: x.actividad,
+              nombre: (PL.ACT[x.actividad] || {}).nombre || x.actividad,
+              plantilla: (PL.ACT[x.actividad] || {}).plantilla,
+              proveedorId: x.proveedorId || null,
+              contratista: x.nombre || "",
+              desde: x.desde,
+              vence: x.vence,
+              estado: x.estado,
+              enCurso: x.enCurso,
+              registroId: x.registroId,
+              puedeRellenar: puedeCrear && PL.puedeRellenar(ses.rol, x.actividad)
+            })) : [],
+            avisos: p.ok ? p.avisos : []
           };
         });
         return {
           formularios,
+          actividades,
           obras,
           hoy,
           puede: { crear: puedeCrear },
           controles: controles.slice(0, 120).map((c) => resumenFila(repo, c, mapa))
         };
       }
-      function abrir(repo, ses, id) {
+      function abrir(repo, ses, id, { conContenido = true } = {}) {
         if (!puede(ses.rol, MOD, "ver")) return no("Tu rol no ve estos formularios.");
         const c = repo.leer("qhseControles", ses, id);
-        if (!c) return no("No se encuentra el formulario.");
-        return { ok: true, id: c.id, codigo: c.codigo, obraId: c.obraId, plantilla: c.plantilla, fecha: c.fecha, estado: c.estado, proveedorId: c.proveedorId || null, datos: jsonDe(c.datos) };
+        if (!c || !esRegistro(c)) return no("No se encuentra el formulario.");
+        const datos = jsonDe(c.datos);
+        const act = PL.actividadDe({ actividad: datos.actividad, plantilla: c.plantilla });
+        const adjuntos = repo.listar("qhseAdjuntos", ses, { condicion: "controlId = ?", params: [c.id], orden: "creadoEn" }).map((a) => ({ id: a.id, ref: a.ref, nombre: a.nombre, tipo: a.tipo, ...conContenido ? { contenido: a.contenido } : {} }));
+        return {
+          ok: true,
+          id: c.id,
+          codigo: c.codigo,
+          obraId: c.obraId,
+          plantilla: c.plantilla,
+          fecha: c.fecha,
+          estado: c.estado,
+          proveedorId: c.proveedorId || null,
+          datos,
+          actividad: act,
+          adjuntos,
+          quien: nombreDe(repo, c.creadoPor),
+          puede: { rellenar: puede(ses.rol, MOD, "crear") && PL.puedeRellenar(ses.rol, act) }
+        };
       }
+      var recorta = (v, n) => llano(v).slice(0, n);
+      var firmaTrazo = (v) => /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(llano(v)) && llano(v).length < 6e4 ? llano(v) : "";
       function limpiaDatos(plantilla, d) {
         const p = PLANTILLAS[plantilla];
         const cab = {};
-        for (const c of p.cabecera) cab[c.clave] = llano((d.cabecera || {})[c.clave]).slice(0, 1e3);
+        for (const c of p.cabecera) cab[c.clave] = recorta((d.cabecera || {})[c.clave], 1e3);
         const resp = {};
         const validos = new Set(p.respuestas.map((x) => x.id));
         for (const [id, v] of Object.entries(d.respuestas || {})) {
           if (!v || typeof v !== "object") continue;
           const r = validos.has(v.r) ? v.r : null;
-          const c = llano(v.c).slice(0, 1e3);
-          if (r || c) resp[String(id).slice(0, 40)] = { r, c };
+          const c = recorta(v.c, 1e3);
+          const f = (Array.isArray(v.f) ? v.f : []).map((x) => recorta(x, 60)).filter(Boolean).slice(0, 10);
+          if (r || c || f.length) resp[String(id).slice(0, 40)] = { r, c, ...f.length ? { f } : {} };
         }
-        const plan = (Array.isArray(d.plan) ? d.plan : []).slice(0, 60).map((a) => ({
-          problema: llano(a && a.problema).slice(0, 1e3),
-          responsable: llano(a && a.responsable).slice(0, 200),
-          medida: llano(a && a.medida).slice(0, 1e3),
-          fecha: llano(a && a.fecha).slice(0, 10),
-          ref: llano(a && a.ref).slice(0, 40)
-        })).filter((a) => a.problema || a.medida);
-        const asistentes = p.asistentes ? (Array.isArray(d.asistentes) ? d.asistentes : []).slice(0, 80).map((a) => ({ nombre: llano(a && a.nombre).slice(0, 200), dni: llano(a && a.dni).slice(0, 30), empresa: llano(a && a.empresa).slice(0, 200) })).filter((a) => a.nombre) : void 0;
-        const firma = { nombre: llano(d.firma && d.firma.nombre).slice(0, 200), cargo: llano(d.firma && d.firma.cargo).slice(0, 200) };
-        const hora = llano(d.hora).slice(0, 5);
-        return { cabecera: cab, respuestas: resp, plan, ...asistentes ? { asistentes } : {}, firma, ...hora ? { hora } : {} };
+        const plan2 = (Array.isArray(d.plan) ? d.plan : []).slice(0, 80).map((a) => ({
+          problema: recorta(a && a.problema, 1e3),
+          responsable: recorta(a && a.responsable, 200),
+          medida: recorta(a && a.medida, 1e3),
+          fecha: recorta(a && a.fecha, 10),
+          ref: recorta(a && a.ref, 40),
+          punto: recorta(a && a.punto, 400),
+          gravedad: ["Major", "Minor"].includes(a && a.gravedad) ? a.gravedad : "",
+          estado: a && a.estado === "cerrada" ? "cerrada" : "abierta",
+          cerradaEn: recorta(a && a.cerradaEn, 10),
+          cierre: recorta(a && a.cierre, 1e3),
+          cerradaPor: recorta(a && a.cerradaPor, 200)
+        })).filter((a) => a.problema || a.medida || a.ref);
+        const asistentes = p.asistentes ? (Array.isArray(d.asistentes) ? d.asistentes : []).slice(0, 80).map((a) => ({
+          nombre: recorta(a && a.nombre, 200),
+          dni: recorta(a && a.dni, 30),
+          empresa: recorta(a && a.empresa, 200),
+          ...p.asistenteFirma ? { fecha: recorta(a && a.fecha, 10), trazo: firmaTrazo(a && a.trazo) } : {}
+        })).filter((a) => a.nombre) : void 0;
+        const firma = { nombre: recorta(d.firma && d.firma.nombre, 200), cargo: recorta(d.firma && d.firma.cargo, 200), fecha: recorta(d.firma && d.firma.fecha, 10) };
+        const hora = recorta(d.hora, 5);
+        const adjuntos = (Array.isArray(d.adjuntos) ? d.adjuntos : []).map((x) => recorta(x, 60)).filter(Boolean).slice(0, 30);
+        const harbour2 = { subido: Boolean(d.harbour && d.harbour.subido), fecha: recorta(d.harbour && d.harbour.fecha, 10) };
+        return {
+          cabecera: cab,
+          respuestas: resp,
+          plan: plan2,
+          ...asistentes ? { asistentes } : {},
+          firma,
+          ...hora ? { hora } : {},
+          ...d.actividad && PL.ACT[d.actividad] ? { actividad: d.actividad } : {},
+          observaciones: recorta(d.observaciones, 4e3),
+          adjuntos,
+          harbour: harbour2
+        };
+      }
+      function actividadPedida(plantilla, e) {
+        const a = llano(e.actividad || e.datos && e.datos.actividad);
+        if (PL.ACT[a]) return a;
+        return PL.POR_PLANTILLA[plantilla] || null;
       }
       function guardar(repo, ses, e = {}) {
         if (!puede(ses.rol, MOD, "crear")) return no("Tu rol no puede rellenar estos formularios.");
         const plantilla = llano(e.plantilla);
         if (!PLANTILLAS[plantilla]) return no("No existe ese formulario.");
         if (JSON.stringify(e.datos || {}).length > MAX_DATOS) return no("El formulario es demasiado grande.");
-        const datos = limpiaDatos(plantilla, e.datos || {});
+        const actividad = actividadPedida(plantilla, e);
+        if (actividad && !PL.puedeRellenar(ses.rol, actividad)) return no(`Seg\xFAn el RACI del plan QHSE, \xAB${PL.ACT[actividad].nombre}\xBB no la rellena tu rol.`);
+        const hoy = hoyLocal();
+        let datos = limpiaDatos(plantilla, { ...e.datos || {}, ...actividad ? { actividad } : {} });
+        datos = M.sincronizarPlan(plantilla, datos, { hoy });
         const terminar = Boolean(e.terminar);
         const v = M.validar(plantilla, datos, { cerrar: terminar });
         if (!v.ok) return v;
-        const nc = M.resumen(plantilla, datos).nc;
-        const contratista = llano(datos.cabecera.contratista).slice(0, 200) || null;
+        const nc2 = M.resumen(plantilla, datos).nc;
+        const contratista = recorta(datos.cabecera.contratista, 200) || null;
         let proveedorId = llano(e.proveedorId) || null;
         if (proveedorId && !repo.db.prepare("SELECT 1 FROM proveedores WHERE id = ?").get(proveedorId)) proveedorId = null;
         const ahora = (/* @__PURE__ */ new Date()).toISOString();
+        const fechaCab = esFecha(datos.cabecera.fecha) ? datos.cabecera.fecha : null;
         if (e.id) {
           const c = repo.leer("qhseControles", ses, llano(e.id));
-          if (!c) return no("No se encuentra el formulario (o no es de tus obras).");
+          if (!c || !esRegistro(c)) return no("No se encuentra el formulario (o no es de tus obras).");
           if (c.estado === "hecho") return no("Ese formulario ya est\xE1 terminado.");
+          const previo = jsonDe(c.datos);
+          for (const a of datos.plan) {
+            const v0 = (previo.plan || []).find((x) => x.ref && x.ref === a.ref);
+            if (v0 && v0.estado === "cerrada" && a.estado !== "cerrada") Object.assign(a, { estado: "cerrada", cerradaEn: v0.cerradaEn, cierre: v0.cierre, cerradaPor: v0.cerradaPor });
+          }
           repo.modificar("qhseControles", ses, c.id, {
             datos: JSON.stringify(datos),
-            noCumplen: nc,
+            noCumplen: nc2,
             contratista,
             proveedorId,
+            ...fechaCab ? { fecha: fechaCab, semana: M.semanaDe(fechaCab).clave } : {},
             ...terminar ? { estado: "hecho", terminadoEn: ahora } : {}
           }, { verbo: "crear" });
-          return { ok: true, id: c.id, codigo: c.codigo, estado: terminar ? "hecho" : "borrador", noCumplen: nc };
+          return { ok: true, id: c.id, codigo: c.codigo, estado: terminar ? "hecho" : "borrador", noCumplen: nc2, plan: datos.plan };
         }
         const obra = e.obraId ? repo.leer("obras", ses, llano(e.obraId)) : null;
         if (!obra) return no("No se encuentra la obra (o no es de las tuyas).");
-        const fecha = /^\d{4}-\d{2}-\d{2}$/.test(llano(e.fecha)) ? llano(e.fecha) : hoyLocal();
+        const fecha = fechaCab || (esFecha(e.fecha) ? llano(e.fecha) : hoy);
         const { clave } = M.semanaDe(fecha);
         const previos = repo.db.prepare("SELECT COUNT(*) n FROM qhseControles WHERE obraId = ? AND plantilla = ? AND semana = ?").get(obra.id, plantilla, clave).n;
         const codigo = M.codigo(plantilla, fecha, obra.codigo, previos + 1);
@@ -117328,15 +122623,110 @@ ${l}`;
           proveedorId,
           contratista,
           datos: JSON.stringify(datos),
-          noCumplen: nc,
+          noCumplen: nc2,
           estado: terminar ? "hecho" : "borrador",
           origen: e.origen === "escritorio" ? "escritorio" : "movil",
           creadoPor: ses.personaId,
           terminadoEn: terminar ? ahora : null
         });
-        return { ok: true, id, codigo, estado: terminar ? "hecho" : "borrador", noCumplen: nc };
+        return { ok: true, id, codigo, estado: terminar ? "hecho" : "borrador", noCumplen: nc2, plan: datos.plan };
       }
-      module.exports = { paraMovil, abrir, guardar, contexto };
+      function tocarTerminado(repo, ses, id, cambia) {
+        if (!puede(ses.rol, MOD, "crear")) return no("Tu rol no puede tocar estos registros.");
+        const c = repo.leer("qhseControles", ses, llano(id));
+        if (!c || !esRegistro(c)) return no("No se encuentra el registro.");
+        const d = jsonDe(c.datos);
+        const act = PL.actividadDe({ actividad: d.actividad, plantilla: c.plantilla });
+        if (act && !PL.puedeRellenar(ses.rol, act)) return no("Seg\xFAn el RACI del plan QHSE, este registro no lo lleva tu rol.");
+        const r = cambia(d);
+        if (r && r.ok === false) return r;
+        repo.modificar("qhseControles", ses, c.id, { datos: JSON.stringify(d) }, { verbo: "crear" });
+        return { ok: true, id: c.id, datos: d };
+      }
+      function harbour(repo, ses, { id, subido, fecha } = {}) {
+        return tocarTerminado(repo, ses, id, (d) => {
+          d.harbour = { subido: Boolean(subido), fecha: subido ? esFecha(fecha) ? fecha : hoyLocal() : "" };
+        });
+      }
+      function nc(repo, ses, { id, i, ref, responsable, medida, fecha, cerrar, reabrir, cierre } = {}) {
+        return tocarTerminado(repo, ses, id, (d) => {
+          const plan2 = Array.isArray(d.plan) ? d.plan : [];
+          const a = ref ? plan2.find((x) => x.ref === ref) : plan2[Number(i)];
+          if (!a) return no("No se encuentra esa NC.");
+          if (responsable !== void 0) a.responsable = recorta(responsable, 200);
+          if (medida !== void 0) a.medida = recorta(medida, 1e3);
+          if (fecha !== void 0) a.fecha = esFecha(fecha) ? fecha : "";
+          if (cierre !== void 0) a.cierre = recorta(cierre, 1e3);
+          if (cerrar) {
+            if (!llano(a.cierre) && !llano(a.medida)) return no("Para cerrar la NC, apunta c\xF3mo se ha subsanado.");
+            a.estado = "cerrada";
+            a.cerradaEn = hoyLocal();
+            a.cerradaPor = ses.nombre || nombreDe(repo, ses.personaId) || "";
+          }
+          if (reabrir) {
+            a.estado = "abierta";
+            a.cerradaEn = "";
+            a.cerradaPor = "";
+          }
+          d.plan = plan2;
+          return null;
+        });
+      }
+      function adjunto(repo, ses, { controlId, ref, nombre, tipo, contenido, id: idCli } = {}) {
+        if (!puede(ses.rol, MOD, "crear")) return no("Tu rol no puede a\xF1adir fotos aqu\xED.");
+        const c = repo.leer("qhseControles", ses, llano(controlId));
+        if (!c || !esRegistro(c)) return no("Guarda primero el formulario.");
+        const t = llano(tipo) || "image/jpeg";
+        if (!TIPOS_ADJ.has(t)) return no("Solo fotos (JPEG o PNG) o PDF.");
+        const b = llano(contenido).replace(/^data:[^;]+;base64,/, "");
+        if (!b || !/^[A-Za-z0-9+/=]+$/.test(b)) return no("El adjunto ha llegado vac\xEDo.");
+        if (b.length > MAX_ADJUNTO) return no("La foto es demasiado grande.");
+        if (/^[A-Za-z0-9_-]{6,60}$/.test(llano(idCli)) && repo.db.prepare("SELECT 1 FROM qhseAdjuntos WHERE id = ?").get(llano(idCli))) return { ok: true, id: llano(idCli) };
+        const id = repo.crear("qhseAdjuntos", ses, {
+          .../^[A-Za-z0-9_-]{6,60}$/.test(llano(idCli)) ? { id: llano(idCli) } : {},
+          obraId: c.obraId,
+          controlId: c.id,
+          ref: recorta(ref, 60) || "registro",
+          nombre: recorta(nombre, 200) || "foto.jpg",
+          tipo: t,
+          contenido: b,
+          creadoPor: ses.personaId
+        });
+        return { ok: true, id };
+      }
+      function quitarAdjunto(repo, ses, id) {
+        if (!puede(ses.rol, MOD, "crear")) return no("Tu rol no puede quitar fotos.");
+        const a = repo.leer("qhseAdjuntos", ses, llano(id));
+        if (!a) return no("No se encuentra la foto.");
+        const c = repo.leer("qhseControles", ses, a.controlId);
+        if (c && c.estado === "hecho") return no("El registro ya est\xE1 terminado.");
+        repo.borrar("qhseAdjuntos", ses, a.id, { verbo: "crear" });
+        return { ok: true };
+      }
+      async function informe(repo, ses, id) {
+        const r = abrir(repo, ses, id);
+        if (!r.ok) return r;
+        const obra = repo.leer("obras", ses, r.obraId) || {};
+        const { informeQhsePdf } = require_informePdf2();
+        const bytes = await informeQhsePdf({ ...r, obra });
+        return { ok: true, bytes, nombre: `${r.codigo}.pdf`, tipo: "application/pdf" };
+      }
+      module.exports = {
+        paraMovil,
+        abrir,
+        guardar,
+        contexto,
+        presencia,
+        plan,
+        avisos,
+        configDe,
+        guardarConfig,
+        harbour,
+        nc,
+        adjunto,
+        quitarAdjunto,
+        informe
+      };
     }
   });
 
@@ -117349,14 +122739,32 @@ ${l}`;
       var PERMISOS_QHSE = {
         "GET api/qhse": [["qhse", "ver"]],
         "GET api/qhse/abrir": [["qhse", "ver"]],
-        "POST api/qhse/guardar": [["qhse", "crear"]]
+        "POST api/qhse/guardar": [["qhse", "crear"]],
+        /* 29-oct: el plan de la obra, las fotos de las NC, su seguimiento, Harbour y el informe. */
+        "GET api/qhse/plan": [["qhse", "ver"]],
+        "GET api/qhse/pdf": [["qhse", "ver"]],
+        "POST api/qhse/adjunto": [["qhse", "crear"]],
+        "POST api/qhse/quitarAdjunto": [["qhse", "crear"]],
+        "POST api/qhse/nc": [["qhse", "crear"]],
+        "POST api/qhse/harbour": [["qhse", "crear"]],
+        "POST api/qhse/config": [["qhse", "crear"]]
       };
       var llano = (v) => String(v ?? "").trim();
       function crearRutasQhse({ repo }) {
         return {
           "GET api/qhse": ({ ses }) => ({ ok: true, ...Q.paraMovil(repo, ses), yo: ses.personaId }),
           "GET api/qhse/abrir": ({ ses, query }) => Q.abrir(repo, ses, llano(query && query.id)),
-          "POST api/qhse/guardar": ({ ses, json }) => Q.guardar(repo, ses, json())
+          "POST api/qhse/guardar": ({ ses, json }) => Q.guardar(repo, ses, json()),
+          "GET api/qhse/plan": ({ ses, query }) => Q.plan(repo, ses, { obraId: llano(query && query.obra), modo: llano(query && query.modo) || "semanas" }),
+          "GET api/qhse/pdf": async ({ ses, query }) => {
+            const r = await Q.informe(repo, ses, llano(query && query.id));
+            return r.ok ? { bytes: r.bytes, tipo: r.tipo, nombre: r.nombre } : r;
+          },
+          "POST api/qhse/adjunto": ({ ses, json }) => Q.adjunto(repo, ses, json()),
+          "POST api/qhse/quitarAdjunto": ({ ses, json }) => Q.quitarAdjunto(repo, ses, llano(json().id)),
+          "POST api/qhse/nc": ({ ses, json }) => Q.nc(repo, ses, json()),
+          "POST api/qhse/harbour": ({ ses, json }) => Q.harbour(repo, ses, json()),
+          "POST api/qhse/config": ({ ses, json }) => Q.guardarConfig(repo, ses, json())
         };
       }
       module.exports = { crearRutasQhse, PERMISOS_QHSE };

@@ -670,8 +670,8 @@
         <button class="boton secundario" data-av="hoja-foto" data-camara="1"><i class="ic ic-camara"></i>Foto</button>
         <button class="boton secundario" data-av="hoja-foto" data-camara="0">Galería</button>
       </div>
-      <button class="boton grande" data-av="guardar-marca">Guardar</button>
-      ${trazo ? `<button class="boton secundario grande" data-av="guardar-seguir">Guardar y seguir con otro diámetro</button>
+      <button class="boton grande" data-av="guardar-marca">Terminar marca</button>
+      ${trazo ? `<button class="boton secundario grande" data-av="guardar-seguir">Terminar y seguir con otro diámetro</button>
         <p class="nota">Guarda este tramo y empieza otro desde su último punto, en la misma capa: para cuando el recorrido cambia de diámetro o de sección.</p>` : ''}
       <button class="boton cancelar" data-av="cerrar-hoja">Cancelar</button>
     </div>`;

@@ -187,7 +187,7 @@
       if (!b) { if (ev.target === d) cerrarVisor(); return; }
       const a = b.dataset.visor;
       if (a === 'cerrar') cerrarVisor();
-      else if (a === 'quitar') { cerrarVisor(); quitar(); }
+      else if (a === 'quitar') { if (!window.confirm('¿Quitar esta foto?')) return; cerrarVisor(); quitar(); }
       else if (a === 'camara' || a === 'galeria') {
         const [archivo] = await elegirFotos(a === 'camara');
         if (!archivo) return;

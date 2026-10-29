@@ -49,6 +49,14 @@
       .qh .pie { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0; }
       .qh .plan-fila { padding: 10px 0; border-bottom: 1px solid var(--panel3); }
       .qh .plan-fila input, .qh .plan-fila textarea { width: 100%; margin-bottom: 6px; }
+      .qh .avisos p { margin: 6px 0; padding-left: 8px; border-left: 3px solid var(--acento-fuerte); font-size: 15px; }
+      .qh .avisos p.alto { border-left-color: #1f5fa8; font-weight: 600; }
+      .qh td .boton { min-height: 40px; padding: 4px 12px; border-radius: 999px; }
+      .qh .estado-v { color: #1f5fa8; font-weight: 700; }
+      .qh .fotos { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+      .qh .fotos figure { margin: 0; position: relative; }
+      .qh .fotos img { width: 96px; height: 96px; object-fit: cover; border-radius: 8px; }
+      .qh .fotos button { position: absolute; top: 2px; right: 2px; min-height: 28px; border-radius: 999px; border: none; background: rgba(0,0,0,.55); color: #fff; }
       .qh .guardado { font-size: 14px; color: var(--textoSuave); }
     `;
     document.head.appendChild(s);
@@ -123,6 +131,17 @@
     pintarLista();
   }
 
+  /* Una fila por actividad (y subcontrata): la más antigua; las demás, contadas. */
+  function agrupa(plan) {
+    const m = new Map();
+    plan.forEach((x, i) => {
+      const k = `${x.actividad}|${x.proveedorId || x.contratista || ''}`;
+      const g = m.get(k);
+      if (g) g.mas += 1; else m.set(k, { x, i, mas: 0 });
+    });
+    return [...m.values()];
+  }
+
   function pintarLista() {
     const o = obra();
     if (!o) { $app.innerHTML = '<p class="vacio">No tienes obras abiertas.</p>'; return; }
@@ -131,9 +150,15 @@
     const semana = `${fechaEs(o.semana.desde)} al ${fechaEs(o.semana.hasta)}`;
     $app.innerHTML = `<div class="qh">
       <div class="toca ${o.toca ? '' : 'hecho'}">
-        <strong>${o.toca ? 'Esta semana toca la inspección del sitio' : 'La inspección del sitio de esta semana ya está'}</strong>
+        <strong>Esta semana</strong>
         <p class="nota">Semana del ${esc(semana)}${o.actividades.length ? ` · en obra: ${esc(o.actividades.slice(0, 4).join('; '))}${o.actividades.length > 4 ? '…' : ''}` : ''}</p>
       </div>
+      ${(o.plan || []).length ? `<table><thead><tr><th>Toca</th><th>Vence</th><th></th></tr></thead><tbody>
+        ${agrupa(o.plan).map(({ x, i, mas }) => `<tr><td><strong>${esc(x.nombre)}</strong>${x.contratista ? `<br><small>${esc(x.contratista)}</small>` : ''}${mas ? `<br><small>y ${mas} más vencida${mas === 1 ? '' : 's'}</small>` : ''}</td>
+          <td class="${x.estado === 'vencida' ? 'estado-v' : ''}">${esc(fechaEs(x.vence))}${x.estado === 'vencida' ? '<br><small>vencida</small>' : ''}</td>
+          <td>${puede && x.puedeRellenar ? `<button class="boton" data-qh="toca" data-i="${i}">Rellenar</button>` : ''}</td></tr>`).join('')}
+      </tbody></table>` : '<p class="nota">Nada pendiente del plan esta semana.</p>'}
+      ${(o.avisos || []).length ? `<h2>Avisos <span class="cuenta">${o.avisos.length}</span></h2><div class="avisos">${o.avisos.map((x) => `<p class="${esc(x.nivel || '')}">${esc(x.texto)}</p>`).join('')}</div>` : ''}
       ${puede ? `<div class="tipos">${(datos.formularios || []).map((p) => `<button class="boton ${p.id === 'inspeccionObra' && o.toca ? '' : 'secundario'}" data-qh="nuevo" data-p="${esc(p.id)}">${esc(p.nombre)}</button>`).join('')}</div>` : '<p class="nota">Tu rol puede ver estos formularios, pero no rellenarlos.</p>'}
       <h2>Formularios de ${esc(o.codigo)} <span class="cuenta">${suyos.length}</span></h2>
       ${suyos.length ? `<table><thead><tr><th>Código</th><th>Fecha</th><th>Estado</th><th>No cumple</th></tr></thead><tbody>
@@ -146,12 +171,14 @@
 
   /* ═══════════════════════════════════ 2. El formulario */
 
-  function nuevo(pid) {
+  function nuevo(pid, extra = {}) {
     const o = obra();
     const p = plantilla(pid);
     if (!o || !p) return;
     const base = JSON.parse(JSON.stringify(o.inicial[pid]));
-    form = { id: null, clave: AG ? AG.nuevoId() : `m${Date.now().toString(36)}`, obraId: o.id, plantilla: pid, fecha: datos.hoy, estado: 'borrador', proveedorId: null, datos: base };
+    if (extra.actividad) base.actividad = extra.actividad;
+    if (extra.contratista) { base.cabecera = base.cabecera || {}; base.cabecera.contratista = extra.contratista; }
+    form = { id: null, clave: AG ? AG.nuevoId() : `m${Date.now().toString(36)}`, obraId: o.id, plantilla: pid, fecha: datos.hoy, estado: 'borrador', proveedorId: extra.proveedorId || null, datos: base, adjuntos: [] };
     estadoGuardado = '';
     pintarForm();
   }
@@ -160,7 +187,7 @@
     try {
       const r = await CX().pedir(`api/qhse/abrir?id=${encodeURIComponent(id)}`);
       if (!r.ok) throw new Error(r.error);
-      form = { id: r.id, clave: r.id, obraId: r.obraId, plantilla: r.plantilla, fecha: r.fecha, estado: r.estado, proveedorId: r.proveedorId, datos: r.datos };
+      form = { id: r.id, clave: r.id, obraId: r.obraId, plantilla: r.plantilla, fecha: r.fecha, estado: r.estado, proveedorId: r.proveedorId, datos: r.datos, adjuntos: r.adjuntos || [] };
       /* Lo escrito en este teléfono que aún no llegó manda sobre lo del ordenador. */
       const b = r.estado === 'hecho' ? null : borradorDe(r.obraId, r.id);
       if (b) { form.datos = b.datos; form.proveedorId = b.proveedorId; form.clave = b.clave || r.id; }
@@ -207,16 +234,19 @@
       ${p.asistentes ? asistentes(dis) : ''}
       ${p.secciones.map((s, si) => `<details ${si === 0 && !cerrado ? 'open' : ''}><summary><span>${esc(s.nombre)}</span><span class="cuenta" data-qh-cuenta="${esc(s.id)}">${conteo(s)}</span></summary>
         ${s.items.map((t, i) => punto(p, s, t, i, dis)).join('')}</details>`).join('')}
-      <h2>Plan de acción</h2>
+      <h2>${esc(p.planTitulo || 'Plan de acción')}</h2>
       <div data-qh-plan>${plan(dis)}</div>
-      ${cerrado ? '' : '<button class="boton secundario" data-qh="plan-nc">Traer los puntos que no cumplen</button> <button class="boton secundario" data-qh="plan-mas">+ Añadir acción</button>'}
+      ${cerrado ? '' : `${p.secciones.length ? '<button class="boton secundario" data-qh="plan-nc">Traer los puntos que no cumplen</button> ' : ''}<button class="boton secundario" data-qh="plan-mas">${p.secciones.length ? '+ Añadir acción' : '+ Añadir NC'}</button>`}
+      <h2>Fotos</h2>
+      <div class="fotos" data-qh-fotos>${fotos()}</div>
+      ${cerrado ? '' : '<label class="boton secundario" style="width:fit-content;border-radius:999px">Añadir foto<input type="file" accept="image/*" capture="environment" data-qh-foto hidden></label>'}
       <h2>${esc(p.firma)}</h2>
       <div class="campos">
         <label>Nombre<input data-qh-firma="nombre" value="${esc(f.firma.nombre)}" ${dis}></label>
         <label>Cargo<input data-qh-firma="cargo" value="${esc(f.firma.cargo)}" ${dis}></label>
       </div>
       <div class="pie">
-        ${cerrado ? '' : '<button class="boton secundario" data-qh="guardar">Guardar borrador</button><button class="boton" data-qh="terminar">Terminar</button>'}
+        ${cerrado ? '' : '<button class="boton" data-qh="terminar">Terminar</button>'}
         <span class="guardado" data-qh-estado>${esc(estadoGuardado)}</span>
       </div>
     </div>`;
@@ -251,6 +281,41 @@
       ${dis ? '' : `<button class="enlace" data-qh="plan-quitar" data-i="${i}">Quitar</button>`}</div>`).join('');
   }
 
+  function fotos() {
+    const l = (form && form.adjuntos) || [];
+    if (!l.length) return '<p class="nota">Sin fotos.</p>';
+    return l.map((a) => `<figure>${a.contenido ? `<img alt="${esc(a.nombre)}" src="data:${esc(a.tipo)};base64,${a.contenido}">` : `<small>${esc(a.nombre)}</small>`}${form.estado === 'hecho' ? '' : `<button type="button" data-qh="foto-quitar" data-id="${esc(a.id)}" aria-label="Quitar foto">×</button>`}</figure>`).join('');
+  }
+  const repintarFotos = () => { const c = $app.querySelector('[data-qh-fotos]'); if (c) c.innerHTML = fotos(); };
+
+  /* La foto se reduce a 1200 px en JPEG antes de subir (una del iPhone pasa de 4 MB a unos 200 KB). */
+  async function reducirFoto(archivo) {
+    const url = URL.createObjectURL(archivo);
+    try {
+      const img = await new Promise((ok, mal) => { const i = new Image(); i.onload = () => ok(i); i.onerror = mal; i.src = url; });
+      const k = Math.min(1, 1200 / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      return c.toDataURL('image/jpeg', 0.8).replace(/^data:[^;]+;base64,/, '');
+    } finally { URL.revokeObjectURL(url); }
+  }
+
+  async function subirFoto(archivo) {
+    if (!form) return;
+    try {
+      /* La foto cuelga de un registro: si aún no está en el ordenador, se guarda primero. */
+      sucio = true;
+      await volcar();
+      if (!form.id) throw new Error('Sin conexión: guarda el registro con conexión y añade la foto después.');
+      const contenido = await reducirFoto(archivo);
+      const r = await CX().postJson('api/qhse/adjunto', { controlId: form.id, ref: 'registro', nombre: 'foto.jpg', tipo: 'image/jpeg', contenido });
+      if (!r.ok) throw new Error(r.error);
+      form.adjuntos.push({ id: r.id, ref: 'registro', nombre: 'foto.jpg', tipo: 'image/jpeg', contenido });
+      repintarFotos();
+    } catch (e) { aviso(e.message); }
+  }
+
   function repintarPlan() { const c = $app.querySelector('[data-qh-plan]'); if (c) c.innerHTML = plan(''); }
 
   /* ═══════════════════════════════════ Guardar */
@@ -273,7 +338,7 @@
     guardando = guardando.then(async () => {
       try {
         const r = await CX().postJson('api/qhse/guardar', {
-          id: f.id, obraId: f.obraId, plantilla: f.plantilla, fecha: f.fecha, proveedorId: f.proveedorId, datos: f.datos, terminar,
+          id: f.id, obraId: f.obraId, plantilla: f.plantilla, fecha: f.fecha, proveedorId: f.proveedorId, actividad: f.datos && f.datos.actividad, datos: f.datos, terminar,
         });
         if (!r.ok) throw new Error(r.error);
         f.id = r.id;
@@ -315,6 +380,10 @@
     if (a === 'lista') lista();
     else if (a === 'nuevo') { if (datos) nuevo(b.dataset.p); }
     else if (a === 'abrir') abrir(b.dataset.id);
+    else if (a === 'toca') {
+      const o = obra(); const x = o && o.plan[Number(b.dataset.i)];
+      if (x && datos) nuevo(x.plantilla || 'registro', { actividad: x.actividad, contratista: x.contratista, proveedorId: x.proveedorId });
+    }
     else if (!form) return;
     else if (a === 'resp') {
       const id = b.dataset.p;
@@ -338,8 +407,21 @@
       });
       repintarPlan(); programar();
     } else if (a === 'as-mas') { form.datos.asistentes.push({ nombre: '', dni: '', empresa: '' }); pintarForm(); programar(); }
+    else if (a === 'foto-quitar') {
+      CX().postJson('api/qhse/quitarAdjunto', { id: b.dataset.id }).then((r) => {
+        if (!r.ok) throw new Error(r.error);
+        form.adjuntos = form.adjuntos.filter((x) => x.id !== b.dataset.id); repintarFotos();
+      }).catch((e) => aviso(e.message));
+    }
     else if (a === 'guardar') { sucio = true; volcar().then((r) => { if (r) aviso('Guardado.', 'bien'); }); }
     else if (a === 'terminar') terminar(b);
+  });
+
+  $app.addEventListener('change', (ev) => {
+    const t = ev.target;
+    if (!activa() || !form || !t.matches || !t.matches('[data-qh-foto]')) return;
+    const f = t.files && t.files[0]; t.value = '';
+    if (f) subirFoto(f);
   });
 
   const recoger = (ev) => {
@@ -362,7 +444,9 @@
   $app.addEventListener('change', recoger);
 
   window.addEventListener('hashchange', () => { if (activa()) lista(); else if (form) volcar(); });
-  window.addEventListener('pagehide', () => { if (form) { if (sucio) apuntar(form); volcar(); } });
+  /* Al irse de la app (gesto, bloquear, otra app, cerrar): una última vez. */
+  const alIrse = () => { if (form) { if (sucio) apuntar(form); volcar(); } };
+  if (AG) AG.alSalir(alIrse); else window.addEventListener('pagehide', alIrse);
 
   /* La cola manda lo que quedó en el teléfono aunque QHSE no esté abierta;
      nunca el formulario que se está escribiendo (ese lo manda esta pantalla). */
@@ -370,7 +454,7 @@
     COLA.registrar(PREF, async (clave, b) => {
       if (form && claveDe(form) === clave) return false;
       if (!b || !b.plantilla || !b.obraId) { AG.olvidar(clave); return true; }
-      const r = await CX().postJson('api/qhse/guardar', { id: b.id || null, obraId: b.obraId, plantilla: b.plantilla, fecha: b.fecha, proveedorId: b.proveedorId, datos: b.datos, terminar: false });
+      const r = await CX().postJson('api/qhse/guardar', { id: b.id || null, obraId: b.obraId, plantilla: b.plantilla, fecha: b.fecha, proveedorId: b.proveedorId, actividad: b.datos && b.datos.actividad, datos: b.datos, terminar: false });
       if (r && r.ok) { AG.olvidar(clave); return true; }
       /* Un «no» del ordenador (ya terminado, sin permiso…): no se reintenta para siempre. */
       if (r && r.ok === false && /terminado|no se encuentra|tu rol/i.test(String(r.error || ''))) { AG.olvidar(clave); return true; }

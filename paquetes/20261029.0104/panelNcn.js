@@ -68,10 +68,12 @@
     const g = utasDeHoy(plan);
     if (!g.length) return '';
     const total = g.reduce((n, x) => n + x.equipos.length, 0);
-    return `<section class="ag-bloque" data-bloque-ini="utas">
-        <h2 class="titulo-grupo ag-titulo">UTAs hoy <span>${num(total, cifra)}</span></h2>
-        ${g.map((x) => `<div class="ag-fila"><div class="ag-que"><b>${esc(x.tarea)}</b> · ${x.equipos.map((e) => enlace(e, esc)).join(', ')}</div>
+    const P = raiz && raiz.CX && raiz.CX.plegable;
+    return `<section class="ag-bloque" data-bloque-ini="utas" data-plg-caja="utas">
+        <h2 class="titulo-grupo ag-titulo plg-h">${P ? P.cabecera('utas', 'UTAs hoy', num(total, cifra)) : `UTAs hoy <span>${num(total, cifra)}</span>`}</h2>
+        <div class="plg-cuerpo">${g.map((x) => `<div class="ag-fila"><div class="ag-que"><b>${esc(x.tarea)}</b> · ${x.equipos.map((e) => enlace(e, esc)).join(', ')}</div>
           <span class="ag-cuenta">${num(x.equipos.filter((e) => e.hecho).length, cifra)}/${num(x.equipos.length, cifra)}</span></div>`).join('')}
+        </div>
       </section>`;
   }
 
@@ -80,11 +82,13 @@
     const g = puestosEnMarcha(cx);
     if (!g.length) return '';
     const total = g.reduce((n, x) => n + x.equipos.length, 0);
-    return `<section class="ag-bloque" data-bloque-ini="marcha">
-        <h2 class="titulo-grupo ag-titulo">Puestos en marcha <span>${num(total, cifra)}</span></h2>
-        ${g.map((x) => `<details class="ag-atras"><summary>${esc(x.tipo)} · ${num(x.equipos.length, cifra)}</summary>
+    const P = raiz && raiz.CX && raiz.CX.plegable;
+    return `<section class="ag-bloque" data-bloque-ini="marcha" data-plg-caja="marcha">
+        <h2 class="titulo-grupo ag-titulo plg-h">${P ? P.cabecera('marcha', 'Puestos en marcha', num(total, cifra)) : `Puestos en marcha <span>${num(total, cifra)}</span>`}</h2>
+        <div class="plg-cuerpo">${g.map((x) => `<details class="ag-atras"><summary>${esc(x.tipo)} · ${num(x.equipos.length, cifra)}</summary>
           <div class="ag-fila"><div class="ag-que">${x.equipos.slice(0, MAX_FILAS).map((e) => enlace(e, esc, e.planta)).join(', ')}${x.equipos.length > MAX_FILAS ? ` y ${num(x.equipos.length - MAX_FILAS, cifra)} más` : ''}</div></div>
         </details>`).join('')}
+        </div>
       </section>`;
   }
 
