@@ -10017,7 +10017,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261029.1159" : "0";
+      var VERSION = true ? "20261029.1338" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -41504,7 +41504,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
           return { rol, rotulo: rol === "cliente" ? rotuloCargo(cargo) : ROLES[rol], cargo, nombre: f.nombre, fecha: f.fecha, imagen: bytesDeImagen(f.imagen) };
         }).filter(Boolean);
       }
-      function firmar(repo, sesion, equipoId, { rol, nombre, imagen, quitar, cargo } = {}) {
+      function firmar(repo, sesion, equipoId, { rol, nombre, imagen, quitar, cargo, usarGuardada } = {}) {
         const eq = repo.leer("equiposObra", sesion, llano(equipoId));
         if (!eq) return { ok: false, error: "No se encuentra el equipo." };
         if (!(rol in ROLES)) return { ok: false, error: "Esa firma no existe." };
@@ -41525,12 +41525,12 @@ ${subtitulo}`, c[5]] : c.slice())]);
         }
         if (!n) return { ok: false, error: "Falta el nombre de quien firma." };
         const c = rol === "cliente" ? llanoCargo(cargo) || "Cliente" : null;
-        const img = llano(imagen);
-        if (!bytesDeImagen(img)) return { ok: false, error: "No llega la firma." };
-        if (img.length > MAX_IMAGEN) return { ok: false, error: "La firma es demasiado grande." };
+        const elegida = imagenAFirmar(repo, sesion, { rol, nombre: n, imagen, usarGuardada });
+        if (elegida.error) return { ok: false, error: elegida.error };
+        const img = elegida.imagen;
         const ahora = (/* @__PURE__ */ new Date()).toISOString();
         const fecha = rol === "jefeObra" && fechaDelTrabajo(repo, sesion, ids) || ahora;
-        const trazoEn = rol === "jefeObra" ? ahora : null;
+        const trazoEn = rol === "jefeObra" && !elegida.deGuardada ? ahora : null;
         const ultima = previas[previas.length - 1];
         if (ultima) {
           repo.modificar("firmasEquipo", sesion, ultima.id, { nombre: n, cargo: c, imagen: img, fecha, trazoEn, equipoId: eq.id });
@@ -41539,6 +41539,19 @@ ${subtitulo}`, c[5]] : c.slice())]);
           repo.crear("firmasEquipo", sesion, { obraId: eq.obraId, equipoId: eq.id, rol, nombre: n, cargo: c, imagen: img, fecha, trazoEn }, { verbo: "editar" });
         }
         return { ok: true, firmas: firmasDeEquipos(repo, sesion, ids) };
+      }
+      function imagenAFirmar(repo, sesion, { rol, nombre, imagen, usarGuardada }) {
+        if (usarGuardada) {
+          if (rol !== "jefeObra") return { error: "La firma guardada solo vale para el t\xE9cnico responsable." };
+          const g = firmaPropia(repo, sesion);
+          if (!g) return { error: "No tienes una firma guardada: firma a mano." };
+          if (!mismoNombre(g.nombre, nombre)) return { error: `La firma guardada es de ${g.nombre}: para otra persona hay que firmar a mano.` };
+          return { imagen: g.imagen, deGuardada: true };
+        }
+        const img = llano(imagen);
+        if (!bytesDeImagen(img)) return { error: "No llega la firma." };
+        if (img.length > MAX_IMAGEN) return { error: "La firma es demasiado grande." };
+        return { imagen: img, deGuardada: false };
       }
       var ISO_DIA = /^\d{4}-\d{2}-\d{2}/;
       var mismoNombre = (a, b) => Boolean(sinAcentos(a)) && sinAcentos(a) === sinAcentos(b);
@@ -41581,10 +41594,22 @@ ${subtitulo}`, c[5]] : c.slice())]);
       function firmaGuardada(repo, nombre) {
         if (!sinAcentos(nombre) || !repo.db) return null;
         const filas = repo.db.prepare(`SELECT nombre, imagen FROM firmasEquipo
-    WHERE rol = 'jefeObra' AND COALESCE(incidenciaId, '') = ''
+    WHERE rol = 'jefeObra'
     ORDER BY COALESCE(trazoEn, '') DESC, modificadoEn DESC`).all();
         const f = filas.find((x) => mismoNombre(x.nombre, nombre) && bytesDeImagen(x.imagen));
         return f ? { nombre: f.nombre, imagen: f.imagen } : null;
+      }
+      function nombreDeSesion(repo, sesion) {
+        if (!sesion) return "";
+        let yo = null;
+        try {
+          yo = sesion.personaId && repo.db ? repo.db.prepare("SELECT nombre FROM personas WHERE id = ?").get(sesion.personaId) : null;
+        } catch {
+        }
+        return llano(yo && yo.nombre || sesion.nombre);
+      }
+      function firmaPropia(repo, sesion) {
+        return firmaGuardada(repo, nombreDeSesion(repo, sesion));
       }
       function ponerFirmaTecnico(repo, sesion, equipoId, { nombre = null } = {}) {
         const eq = repo.leer("equiposObra", sesion, llano(equipoId));
@@ -41605,7 +41630,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         repo.crear("firmasEquipo", sesion, { obraId: eq.obraId, equipoId: eq.id, rol: "jefeObra", nombre: g.nombre, cargo: null, imagen: g.imagen, fecha }, { verbo: "editar" });
         return { ok: true, hecho: "puesta" };
       }
-      module.exports = { ROLES, CARGOS, rotuloCargo, firmar, firmasDeEquipo, firmasDeEquipos, equiposConFirmas, firmasDeClave, paraPdf, bytesDeImagen, unidadesDelConjunto, fechaDelTrabajo, firmaGuardada, ponerFirmaTecnico };
+      module.exports = { ROLES, CARGOS, rotuloCargo, firmar, firmasDeEquipo, firmasDeEquipos, equiposConFirmas, firmasDeClave, paraPdf, bytesDeImagen, unidadesDelConjunto, fechaDelTrabajo, firmaGuardada, firmaPropia, nombreDeSesion, imagenAFirmar, ponerFirmaTecnico };
     }
   });
 
@@ -41633,7 +41658,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         return r;
       }
       var firmada = (firmas) => Boolean(firmas && firmas.jefeObra && llano(firmas.jefeObra.nombre) && FIR.bytesDeImagen(firmas.jefeObra.imagen));
-      function firmar(repo, sesion, incidenciaId, { rol, nombre, cargo, imagen, quitar } = {}) {
+      function firmar(repo, sesion, incidenciaId, { rol, nombre, cargo, imagen, quitar, usarGuardada } = {}) {
         if (!puede(sesion.rol, "incidencias", "editar")) return { ok: false, error: "Tu rol no puede firmar la reparaci\xF3n." };
         const i = repo.leer("incidencias", sesion, llano(incidenciaId));
         if (!i) return { ok: false, error: "No se encuentra la reparaci\xF3n." };
@@ -41650,16 +41675,17 @@ ${subtitulo}`, c[5]] : c.slice())]);
         if (!n) return { ok: false, error: "Falta el nombre de quien firma." };
         const car = rol === "cliente" ? llano(cargo).slice(0, 60) : "";
         if (rol === "cliente" && (!car || car === "Otro")) return { ok: false, error: "Falta el cargo de la segunda firma: Cliente, DF, DEO u Otro (escrito)." };
-        const img = llano(imagen);
-        if (!FIR.bytesDeImagen(img)) return { ok: false, error: "No llega la firma." };
-        if (img.length > 400 * 1024) return { ok: false, error: "La firma es demasiado grande." };
+        const elegida = FIR.imagenAFirmar(repo, sesion, { rol, nombre: n, imagen, usarGuardada });
+        if (elegida.error) return { ok: false, error: elegida.error };
+        const img = elegida.imagen;
         const fecha = (/* @__PURE__ */ new Date()).toISOString();
+        const trazoEn = rol === "jefeObra" && !elegida.deGuardada ? fecha : null;
         const ultima = previas[previas.length - 1];
         if (ultima) {
-          repo.modificar("firmasEquipo", sesion, ultima.id, { nombre: n, cargo: car, imagen: img, fecha });
+          repo.modificar("firmasEquipo", sesion, ultima.id, { nombre: n, cargo: car, imagen: img, fecha, trazoEn });
           for (const f of previas.slice(0, -1)) repo.borrar("firmasEquipo", sesion, f.id, { verbo: "editar" });
         } else {
-          repo.crear("firmasEquipo", sesion, { obraId: i.obraId, equipoId: i.equipoId, incidenciaId: i.id, rol, nombre: n, cargo: car, imagen: img, fecha }, { verbo: "editar" });
+          repo.crear("firmasEquipo", sesion, { obraId: i.obraId, equipoId: i.equipoId, incidenciaId: i.id, rol, nombre: n, cargo: car, imagen: img, fecha, trazoEn }, { verbo: "editar" });
         }
         const firmas = firmasDe(repo, sesion, i.id);
         return { ok: true, firmas, firmada: firmada(firmas) };
@@ -68406,9 +68432,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         return [...f.tecnico ? [] : ["firma t\xE9cnico"], ...f.segunda ? [] : ["2\xAA firma"]];
       }
       function franjaDeLinea({ miembros, completo, firmas, medidas }) {
-        const ms = miembros || [];
-        const iniciado = (medidas || 0) > 0 || ms.some((m) => m.pmFichas && m.pmFichas.iniciadas > 0 || m.bloqueadoPor || m.revalidarTras);
-        return franjaEstado({ iniciado, faltaDoc: !completo, faltaFirma: firmasQueFaltan(firmas).length > 0 });
+        return franjaEstado({ iniciado: true, faltaDoc: !completo, faltaFirma: firmasQueFaltan(firmas).length > 0 });
       }
       module.exports = { franjaEstado, franjaDeLinea, firmasQueFaltan };
     }
@@ -92651,7 +92675,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           const e = json();
           let r;
           try {
-            r = FIR.firmar(repo, ses, llano(e.equipoId), { rol: llano(e.rol), nombre: e.nombre, imagen: e.imagen, cargo: e.cargo, quitar: Boolean(e.quitar) });
+            r = FIR.firmar(repo, ses, llano(e.equipoId), { rol: llano(e.rol), nombre: e.nombre, imagen: e.imagen, cargo: e.cargo, quitar: Boolean(e.quitar), usarGuardada: Boolean(e.usarGuardada) });
           } catch {
             return { ok: false, error: "Tu rol no puede firmar este equipo." };
           }
@@ -93206,7 +93230,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         }
         function firma({ ses, json }) {
           const e = json();
-          return INC.firmarReparacion(repo, ses, llano(e.id), { rol: llano(e.rol), nombre: e.nombre, cargo: e.cargo, imagen: e.imagen, quitar: Boolean(e.quitar) });
+          return INC.firmarReparacion(repo, ses, llano(e.id), { rol: llano(e.rol), nombre: e.nombre, cargo: e.cargo, imagen: e.imagen, quitar: Boolean(e.quitar), usarGuardada: Boolean(e.usarGuardada) });
         }
         function comentar({ ses, json }) {
           const e = json();
@@ -125481,6 +125505,8 @@ ${l}`;
         "POST api/formulario": [["pedidos", "ver"]],
         "POST api/albaran": [["pedidos", "crear"]],
         "GET api/personal": [["partes", "ver"]],
+        /* La firma guardada de quien tiene la sesión: la puede pedir cualquiera que firme algo (29-oct). */
+        "GET api/firma/guardada": [["commissioning", "editar"], ["incidencias", "editar"], ["ordenesMant", "editar"], ["qhse", "editar"], ["ncr", "crear"], ["pruebasEstanqueidad", "crear"], ["partesIncidencia", "crear"], ["pedidos", "crear"]],
         /* Fichar con la tarjeta QR lo hace también el operario (el suyo); fichar a
            mano y dar de alta a alguien, el encargado o el jefe de obra (editar). */
         "POST api/qr": [["partes", "crear"]],
@@ -125640,6 +125666,10 @@ ${l}`;
             return r;
           },
           /* ── El personal: la foto de la tarjeta del operario, y lo de hoy. */
+          "GET api/firma/guardada": ({ ses }) => {
+            const g = require_firmasEquipo().firmaPropia(repo, ses);
+            return { ok: true, firma: g ? { nombre: g.nombre, imagen: g.imagen } : null };
+          },
           "GET api/personal": ({ ses, quien }) => ({ ...PER.hoyEnObras(repo, ses), quien }),
           "POST api/qr": async ({ ses, cuerpo, tipo }) => {
             if (!TIPOS_FOTO.has(tipo) || tipo === "application/pdf") return [415, { ok: false, error: "Tiene que ser una foto (jpg, png o heic)." }];

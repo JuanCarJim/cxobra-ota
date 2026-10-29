@@ -423,10 +423,12 @@
     trazadoRep = false;
     let ultimo = null;
     const punto = (ev) => { const r = cv.getBoundingClientRect(); return { x: ((ev.clientX - r.left) / r.width) * cv.width, y: ((ev.clientY - r.top) / r.height) * cv.height }; };
-    cv.addEventListener('pointerdown', (ev) => { ev.preventDefault(); try { cv.setPointerCapture(ev.pointerId); } catch { /* sin captura */ } ultimo = punto(ev); cx.beginPath(); cx.arc(ultimo.x, ultimo.y, 1.5, 0, Math.PI * 2); cx.fillStyle = cx.strokeStyle; cx.fill(); trazadoRep = true; });
+    cv.addEventListener('pointerdown', (ev) => { ev.preventDefault(); if (cv.dataset.guardada) return; try { cv.setPointerCapture(ev.pointerId); } catch { /* sin captura */ } ultimo = punto(ev); cx.beginPath(); cx.arc(ultimo.x, ultimo.y, 1.5, 0, Math.PI * 2); cx.fillStyle = cx.strokeStyle; cx.fill(); trazadoRep = true; });
     cv.addEventListener('pointermove', (ev) => { if (!ultimo) return; ev.preventDefault(); const p = punto(ev); cx.beginPath(); cx.moveTo(ultimo.x, ultimo.y); cx.lineTo(p.x, p.y); cx.stroke(); ultimo = p; });
     const fin = () => { ultimo = null; };
     cv.addEventListener('pointerup', fin); cv.addEventListener('pointercancel', fin); cv.addEventListener('pointerleave', fin);
+    /* Su firma ya hecha, puesta (solo el técnico responsable): «Firmar» la acepta sin trazar. */
+    if (window.CX_FIRMA) window.CX_FIRMA.aplicar(cv, firmando, { pintado: () => trazadoRep }).then((puesta) => { if (puesta) trazadoRep = true; });
   }
   async function guardarFirmaRep(boton, quitar = false) {
     if (!abierta || !firmando) return;
@@ -440,11 +442,13 @@
       if (falta) { C.aviso(falta); return; }
       if (!trazadoRep || !cv) { C.aviso('Firme en el recuadro antes de guardar.'); return; }
     }
+    const propia = quitar || !FD ? {} : FD.alFirmar(cv, nombre);
+    if (propia.error) { C.aviso(propia.error); return; }
     boton.disabled = true;
     try {
       const id = abierta.reparacion.id;
       const r = await C.postJson('api/reparacion/firma', quitar ? { id, rol: firmando, quitar: true }
-        : { id, rol: firmando, nombre: nombre.trim(), cargo, imagen: cv.toDataURL('image/png') });
+        : { id, rol: firmando, nombre: nombre.trim(), cargo, ...(propia.usarGuardada ? { usarGuardada: true } : { imagen: cv.toDataURL('image/png') }) });
       if (!r.ok) throw new Error(r.error);
       abierta.firmas = r.firmas; abierta.firmada = r.firmada;
       C.aviso(quitar ? 'Firma quitada' : 'Firma guardada', 'bien');
@@ -818,7 +822,7 @@
     else if (a === 'firmar') { firmando = b.dataset.rol; const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); const l = $app.querySelector('.firma-lienzo'); if (l && l.scrollIntoView) l.scrollIntoView({ block: 'center' }); }
     else if (a === 'guardar-firma') guardarFirmaRep(b);
     else if (a === 'quitar-firma') guardarFirmaRep(b, true);
-    else if (a === 'limpiar-firma') { const cv = $app.querySelector('[data-firma-lienzo]'); if (cv) { cv.getContext('2d').clearRect(0, 0, cv.width, cv.height); trazadoRep = false; } }
+    else if (a === 'limpiar-firma') { const cv = $app.querySelector('[data-firma-lienzo]'); if (cv) { cv.getContext('2d').clearRect(0, 0, cv.width, cv.height); if (window.CX_FIRMA) window.CX_FIRMA.soltar(cv); trazadoRep = false; } }
     else if (a === 'cancelar-firma') { firmando = null; const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
   });
   /* Planta, zona u operario de la ficha: se guarda al elegirlo (no es de lo que espera al «Guardar»). */

@@ -339,11 +339,16 @@
     }
     let dibujando = false;
     const punto = (ev) => { const r = lienzo.getBoundingClientRect(); return [(ev.clientX - r.left) * (lienzo.width / r.width), (ev.clientY - r.top) * (lienzo.height / r.height)]; };
-    lienzo.addEventListener('pointerdown', (ev) => { ev.preventDefault(); dibujando = true; lienzo.setPointerCapture(ev.pointerId); ctx.beginPath(); ctx.moveTo(...punto(ev)); });
+    lienzo.addEventListener('pointerdown', (ev) => { ev.preventDefault(); if (lienzo.dataset.guardada) return; dibujando = true; lienzo.setPointerCapture(ev.pointerId); ctx.beginPath(); ctx.moveTo(...punto(ev)); });
     lienzo.addEventListener('pointermove', (ev) => { if (!dibujando) return; ev.preventDefault(); ctx.lineTo(...punto(ev)); ctx.stroke(); });
     const fin = () => { if (!dibujando) return; dibujando = false; borrador.firma = lienzo.toDataURL('image/png'); apuntar(); };
     lienzo.addEventListener('pointerup', fin);
     lienzo.addEventListener('pointercancel', fin);
+    /* Su firma ya hecha (JC, 29-oct): puesta si firma él y aún no hay trazo; «Borrar la firma» deja firmar a mano. */
+    const FDx = window.CX_FIRMA;
+    if (FDx && !borrador.firma && !lienzo.dataset.guardada && FDx.nombreSesion && String(borrador.firmadoPor || '').trim() === FDx.nombreSesion()) {
+      FDx.aplicar(lienzo, 'jefeObra', { pintado: () => Boolean(borrador.firma) }).then((puesta) => { if (puesta) { borrador.firma = lienzo.toDataURL('image/png'); apuntar(); } });
+    }
   }
 
   const recogerBorrador = () => ({
@@ -402,6 +407,9 @@
     const faltan = borrador.checklist.filter((v) => !v).length;
     if (faltan) { C.aviso(`Faltan ${faltan} comprobaciones por contestar.`, 'aviso'); return; }
     if (!borrador.firma) { C.aviso('Firma con el dedo antes de terminarla.', 'aviso'); return; }
+    const cvF = $app.querySelector('[data-mt-firma]');
+    const propia = window.CX_FIRMA && cvF ? window.CX_FIRMA.alFirmar(cvF, borrador.firmadoPor) : {};
+    if (propia.error) { C.aviso(propia.error, 'aviso'); return; }
     if (!window.confirm('¿Dar la orden por terminada? Queda pendiente de cierre en la oficina.')) return;
     boton.disabled = true;
     try {
@@ -505,7 +513,7 @@
       borrador.firma = null;
       apuntar();
       const l = $app.querySelector('[data-mt-firma]');
-      if (l && l.getContext) l.getContext('2d').clearRect(0, 0, l.width, l.height);
+      if (l && l.getContext) { l.getContext('2d').clearRect(0, 0, l.width, l.height); if (window.CX_FIRMA) window.CX_FIRMA.soltar(l); }
     }
   });
   const recoger = (ev) => {
