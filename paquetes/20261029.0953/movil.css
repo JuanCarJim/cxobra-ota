@@ -1256,6 +1256,19 @@ main, #app { min-width: 0; max-width: 100%; }
 #app .fila-dato > * { min-width: 0; }
 #app input, #app select, #app textarea, #app .campos > *, #app .fila-botones > * { min-width: 0; max-width: 100%; }
 
+/* ═══════════════ 29-oct: al ancho del iPhone también en la app (JC)
+   La causa de verdad era la ampliación del iPhone al tocar un campo de menos de
+   16 px (index.html, maximum-scale=1). Además: */
+/* «Siguiente: CONTROLES - PUESTA EN MARCHA ›» se cortaba por los dos lados:
+   .boton es flex centrado y ahí no hay «…». Bloque de una línea con «…». */
+.pasos-pie { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: stretch; }
+.pasos-pie > :only-child { grid-column: 1 / -1; }
+#app .pasos-pie .boton { display: block; width: 100%; line-height: 28px; text-align: center; }
+#app .pasos-pie .boton.secundario { width: auto; padding-left: 14px; padding-right: 14px; }
+/* El aviso de abajo: en teal oscuro, nunca negro, y el texto baja de línea. */
+.toast { background: var(--acento-fuerte); color: #FFFFFF; max-width: min(560px, calc(100vw - 32px)); overflow-wrap: anywhere; }
+.toast::before { background: #FFFFFF; }
+
 /* ═══════════════ Reparaciones: filtros y sala */
 .filtros-rp { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
 .chip-filtro {
@@ -1787,3 +1800,14 @@ body { background: var(--fondo-pagina); }
 .visor-foto-ui .fila-botones .boton { flex: 1; margin: 0; }
 .fila-ui .ui-datos .sub { flex-basis: 100%; }
 .fila-ui .sin-serie { font-style: italic; }
+
+/* EL Nº DE SERIE SE ESCRIBE DESDE LA FICHA (JC, 29-oct): el valor se pulsa y
+   sale un campo a 16 px (el iPhone no amplía la pantalla) con Guardar. */
+.serie-boton { padding: 0; font: inherit; color: var(--acento); text-decoration: underline dotted; text-underline-offset: 3px; text-align: left; }
+.num-serie .serie-boton .sin-serie, .fila-ui .serie-boton .sin-serie { font-style: italic; }
+.serie-edita { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; max-width: 100%; }
+#app .serie-edita input.serie-campo[type="text"], .serie-edita .serie-campo { font-size: 16px; min-width: 0; width: 12em; max-width: 100%; padding: 6px 8px; border: 1px solid var(--acento); border-radius: 8px; background: var(--fondo, #fff); color: inherit; }
+.serie-edita .serie-ok { margin: 0; padding: 6px 12px; min-height: 36px; width: auto; font-size: 14px; }
+.serie-edita .serie-no { font-size: 14px; padding: 4px 2px; }
+.fila-ui .ui-datos .sub { white-space: normal; overflow: visible; }
+.fila-ui .serie-boton { white-space: nowrap; }

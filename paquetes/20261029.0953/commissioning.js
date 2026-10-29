@@ -175,10 +175,80 @@
     return e.serie ? `<div class="sub serie">Nº serie <span class="cifra">${esc(e.serie)}</span></div>` : '';
   }
   /* En la pantalla del equipo, cada unidad en su línea, también la que no lo tiene. */
-  function htmlNumSerie(e, cj) {
-    const us = cj && cj.unidades && cj.unidades.length > 1 ? cj.unidades : [{ tag: e.tag, numSerie: e.numSerie }];
+  function htmlNumSerie(e, cj, puede) {
+    const us = cj && cj.unidades && cj.unidades.length > 1 ? cj.unidades : [{ id: e.id, tag: e.tag, numSerie: e.numSerie }];
     return `<dl class="num-serie">${us.map((u) => `<dt>Nº serie${us.length > 1 ? ` <em>${esc(u.papel || '')}</em>` : ''}</dt>
-      <dd class="${u.numSerie ? 'cifra' : 'aviso'}">${esc(u.numSerie || 'Sin nº de serie')}${us.length > 1 ? ` <small>${esc(u.tag)}</small>` : ''}</dd>`).join('')}</dl>`;
+      <dd class="${u.numSerie ? 'cifra' : 'aviso'}">${valorSerie(u, puede)}${us.length > 1 ? ` <small>${esc(u.tag)}</small>` : ''}</dd>`).join('')}</dl>`;
+  }
+  /* ESCRIBIR EL Nº DE SERIE DESDE LA FICHA (29-oct-2026, JC: «desde ahí poder
+     meter numeros de serie»): el valor (o «Sin nº de serie») se pulsa y sale un
+     campo a 16 px (el iPhone no amplía). Se guarda en el equipo y en su toma
+     (fichasPM.ponerNumSerie). Sin conexión queda en el móvil
+     (`cx.borrador.serie.<equipo>`) y la cola lo manda sola. */
+  function valorSerie(u, puede, prefijo = '') {
+    const pendiente = AG && u.id ? AG.leer(`serie.${u.id}`) : null;
+    const v = pendiente ? pendiente.numSerie : u.numSerie;
+    const texto = v ? `${prefijo}${esc(v)}` : '<span class="sin-serie">Sin nº de serie</span>';
+    if (!puede || !u.id) return texto;
+    return `<button type="button" class="enlace serie-boton" data-cx="serie" data-equipo="${esc(u.id)}" data-valor="${esc(v || '')}" aria-label="Escribir el nº de serie de ${esc(u.tag || '')}">${texto}</button>${pendiente ? ` ${marcaAG('movil')}` : ''}`;
+  }
+  function abrirSerie(b) {
+    const caja = document.createElement('span');
+    caja.className = 'serie-edita';
+    caja.innerHTML = `<input type="text" class="serie-campo" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="80" placeholder="Nº de serie" value="${esc(b.dataset.valor || '')}" data-equipo="${esc(b.dataset.equipo)}" aria-label="Nº de serie"><button type="button" class="boton serie-ok" data-cx="serie-guardar">Guardar</button><button type="button" class="enlace serie-no" data-cx="serie-cancelar">Cancelar</button>`;
+    b.replaceWith(caja);
+    const ins = caja.querySelector('input');
+    ins.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') { ev.preventDefault(); guardarSerie(caja); } else if (ev.key === 'Escape') { ev.preventDefault(); repintarConScroll(); }
+    });
+    ins.focus();
+    try { ins.setSelectionRange(ins.value.length, ins.value.length); } catch { /* nada */ }
+  }
+  function repintarConScroll() { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
+  /* El nº de serie nuevo, ya en lo que la pantalla tiene en memoria (sin esperar a la red). */
+  function serieEnPantalla(equipoId, numSerie) {
+    if (!ficha) return;
+    if (ficha.equipo && ficha.equipo.id === equipoId) ficha.equipo.numSerie = numSerie || null;
+    for (const u of (ficha.conjunto && ficha.conjunto.unidades) || []) if (u.id === equipoId) u.numSerie = numSerie || null;
+  }
+  async function mandarSerie(cuerpo) {
+    const r = await C.postJson('api/equipo/serie', cuerpo);
+    if (!r.ok) { if (AG) AG.olvidar(`serie.${cuerpo.equipoId}`); throw new Error(r.error || 'No se ha guardado el nº de serie.'); }
+    if (AG) AG.olvidar(`serie.${cuerpo.equipoId}`);
+    return r;
+  }
+  async function guardarSerie(caja) {
+    const ins = caja.querySelector('input');
+    const equipoId = ins.dataset.equipo;
+    const numSerie = ins.value.replace(/\s+/g, ' ').trim();
+    const cuerpo = { equipoId, numSerie, volver: ficha ? ficha.equipo.id : equipoId };
+    /* Primero en el móvil: si no hay red o se cierra la app, no se pierde. */
+    if (AG) AG.guardar(`serie.${equipoId}`, cuerpo);
+    serieEnPantalla(equipoId, numSerie);
+    ins.blur();
+    repintarConScroll();
+    try {
+      const r = await mandarSerie(cuerpo);
+      if (ficha && r.equipo && ficha.equipo.id === r.equipo.id) ficha = r;
+      if (activa() && !hoja) repintarConScroll();
+      if (fichasEq && ficha) refrescarEquipo(ficha.equipo.id);
+    } catch (e) {
+      if (AG && AG.sinRed(e)) { AG.guardar(`serie.${equipoId}`, cuerpo); C.aviso('Sin conexión: el nº de serie queda en el móvil y se mandará solo.'); if (COLA) COLA.masTarde(); repintarConScroll(); } else C.aviso(e.message);
+    }
+  }
+  async function enviarSeriePendiente(clave, b) {
+    if (!b || !b.equipoId) { if (AG) AG.olvidar(clave); return true; }
+    try {
+      const r = await mandarSerie({ equipoId: b.equipoId, numSerie: b.numSerie, volver: b.volver });
+      if (ficha && r.equipo && ficha.equipo.id === r.equipo.id) {
+        ficha = r;
+        if (activa() && !hoja && !escribiendoEnApp()) repintarConScroll();
+      }
+      return true;
+    } catch (e) {
+      /* Un «no» del servidor (permiso, equipo borrado) ya se ha olvidado; sin red, se reintenta. */
+      return !(AG && AG.sinRed(e));
+    }
   }
 
   /* EL NÚMERO DE CADA GRUPO DICE LO HECHO (28-oct-2026, JC: «pon como estaban
@@ -738,7 +808,7 @@
       ${htmlTomaDatos()}
       ${htmlConservadas()}`
       : `${htmlNotaConjunto(f.conjunto)}
-      ${htmlNumSerie(e, f.conjunto)}
+      ${htmlNumSerie(e, f.conjunto, puede)}
       ${htmlFichas('equipo', 'Fichas del equipo')}
       ${htmlUnidadesInteriores(f, puede)}
       ${htmlFotosEquipo(f, puede)}
@@ -1143,12 +1213,13 @@
           : puede ? `<button type="button" class="miniatura-ui hueco" data-cx="foto-equipo" data-equipo="${esc(x.unidadId)}" data-pie="${esc(pieFotoUi(x.unidadTag))}" aria-label="Hacer la foto de ${esc(corto(x))}"><i class="ic ic-camara"></i></button>`
           : '<span class="miniatura-ui hueco apagada"></span>';
         return `<li class="fila-ui">
-          <div class="ui-datos"><strong>${esc(corto(x))}</strong>${chipFicha(x.estado, x.resultado, x.medidos, x.bocasSinMedir)}<span class="sub">${esc(x.unidadSala || 'Sin sala')} · ${(() => { const u = (cj.unidades || []).find((y) => y.id === x.unidadId); return u && u.numSerie ? `Nº serie ${esc(u.numSerie)}` : '<span class="sin-serie">Sin nº de serie</span>'; })()}</span></div>
-          <button type="button" class="boton secundario ui-toma" data-cx="hoja" data-i="${i}">${hecha(x) ? 'Ver toma' : 'Toma de datos'}</button>
+          <div class="ui-datos"><strong>${esc(corto(x))}</strong>${chipFicha(x.estado, x.resultado, x.medidos, x.bocasSinMedir)}<span class="sub">${esc(x.unidadSala || 'Sin sala')} · ${valorSerie((cj.unidades || []).find((y) => y.id === x.unidadId) || { id: x.unidadId, tag: x.unidadTag }, puede, 'Nº serie ')}</span></div>
+          <button type="button" class="boton secundario ui-toma" data-cx="hoja" data-i="${i}">${hecha(x) ? 'Ver datos' : 'Toma de datos'}</button>
           ${mini}
         </li>`;
       }).join('')}</ul>
       ${abierta && ue ? `<p class="nota">Ud. exterior asociada: <button type="button" class="enlace" data-cx="equipo" data-id="${esc(ue.id)}">${esc(ue.tag)}</button></p>` : ''}
+      ${abierta ? '' : `<div class="ver-hoja"><button type="button" class="enlace" data-cx="pdf-uis">Ver hoja de la UE y las UIs</button><span class="chip ${completas === todas.length ? 'bien' : 'aviso'}">${completas === todas.length ? 'Definitiva' : 'Borrador'}</span></div>`}
     </section>`;
   }
   /* La foto de una UI en grande, con rehacer, otra foto y quitar. */
@@ -2463,14 +2534,10 @@
 
   async function terminarHoja() {
     /*
-     * VRF (29-oct-2026, JC: «la foto se coge al terminar de tomar datos»): al
-     * terminar la toma de una UI sin foto, se abre la cámara YA (dentro del
-     * toque: después de esperar al guardado iOS no la dejaría abrir). La foto
-     * queda ligada a esa UI y su fila vuelve con la miniatura.
+     * Terminar vuelve al equipo y NADA MÁS (29-oct-2026, JC: «al pulsar el
+     * botón terminar y volver a equipo que no abra la cámara»). La foto de una
+     * UI se hace solo desde el hueco con la cámara de su fila.
      */
-    const ui = hoja.fotoUi && hoja.f && hoja.f.editable && ficha && !fotoDeUi(ficha, hoja.fotoUi.equipoId) ? hoja.fotoUi : null;
-    const eligiendo = ui ? C.elegirFoto(true) : null;
-    if (eligiendo) eligiendo.then((archivo) => { if (archivo) guardarFotoEquipo(archivo, ui.equipoId, pieFotoUi(ui.tag)); });
     if (hoja.cambiada && hoja.f.editable && !(await guardarHoja())) {
       /* Sin red sí se sale: queda en el teléfono y se manda solo. */
       if (hoja._estado !== 'sinRed') return;
@@ -2941,6 +3008,10 @@
     else if (que === 'crono-quitar' && ficha) { const g = leerCuadrilla(); if (g.length > 1) { g.splice(Number(b.dataset.i), 1); cuadrillaLocal.cambiada = true; cuadrillaLocal.estado = 'guardando'; repintarCrono(); cuadrillaPronto(); } }
     else if (que === 'crono-parte' && ficha) parteCrono(b);
     else if (que === 'crono-pdf' && ficha) compartirPdf(`api/informe?tipo=cronometro&equipo=${encodeURIComponent(ficha.equipo.id)}`, `${ficha.equipo.tag} - tiempo de medida (interno).pdf`, b);
+    else if (que === 'serie' && ficha) abrirSerie(b);
+    else if (que === 'serie-guardar' && ficha) guardarSerie(b.closest('.serie-edita'));
+    else if (que === 'serie-cancelar' && ficha) repintarConScroll();
+    else if (que === 'pdf-uis' && ficha) compartirPdf(`api/informe?tipo=vrf&equipo=${encodeURIComponent(ficha.equipo.id)}`, `${ficha.equipo.tag} - tomas de datos UE y UIs.pdf`, b);
     else if (que === 'pdf-balanceo' && ficha) compartirPdf(`api/informe?tipo=balanceo&equipo=${encodeURIComponent(ficha.equipo.id)}`, `${ficha.equipo.tag} - balanceo.pdf`, b);
   });
   /* Sí / No / N/A: un toque marca, otro toque en la misma desmarca. */
@@ -3068,6 +3139,7 @@
     COLA.registrar('ficha.', enviarBorradorFicha);
     COLA.registrar('fotoEquipo.', enviarFotoEquipoPendiente);
     COLA.registrar('boca.', enviarBocaPendiente);
+    COLA.registrar('serie.', enviarSeriePendiente);
   }
   if (activa()) cargarLista();
 })();

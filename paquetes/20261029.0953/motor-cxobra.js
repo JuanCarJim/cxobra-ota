@@ -10017,7 +10017,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261029.0926" : "0";
+      var VERSION = true ? "20261029.0953" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -16922,6 +16922,13 @@ globalThis.CX_VARIANTE="cxobra";
           return Number.isFinite(n) ? n : null;
         };
         const iguales = (a, b) => a !== null && b !== null && Math.abs(a - b) < 1e-9;
+        const UNIDADES_CAUDAL = /^\s*(m³|m3)\s*\/\s*h\s*$|^\s*l(itros)?\s*\/\s*(s|h|min)\s*$/i;
+        function juzgaDesviacion(punto) {
+          if (!punto) return false;
+          if (punto.caudal === true) return true;
+          if (/^caudal/i.test(String(punto.codigo || punto.id || ""))) return true;
+          return UNIDADES_CAUDAL.test(String(punto.unidad || ""));
+        }
         function desviacion(medido, referencia) {
           const m = numR(medido);
           const r = numR(referencia);
@@ -17003,6 +17010,7 @@ globalThis.CX_VARIANTE="cxobra";
         })({
           NORMA_BALANCEO,
           CRITERIO_JC,
+          juzgaDesviacion,
           desviacion,
           dentro,
           esDescope,
@@ -17090,7 +17098,7 @@ globalThis.CX_VARIANTE="cxobra";
           return Math.round(v * f) / f;
         };
         const igualesFx = (a, b) => a !== null && b !== null && Math.abs(a - b) < 1e-9;
-        const esCaudalFx = (punto) => /^caudal/.test(String(punto && punto.codigo || ""));
+        const esCaudalFx = (punto) => reglasFx.juzgaDesviacion(punto);
         const hayValorFx = (v) => v !== null && v !== void 0 && llanoFx(v) !== "";
         function tolerancias(config = {}) {
           const t = { ...TOLERANCIAS_DEFECTO };
@@ -17168,16 +17176,19 @@ globalThis.CX_VARIANTE="cxobra";
               alternativa = { fuente: "fabricante", ref: f, desv: redFx(dF) };
             }
           }
-          const desv = reglasFx.desviacion(m, ref);
           const tolPropia = typeof punto.tolerancia === "number" && punto.tolerancia >= 0 ? punto.tolerancia : null;
+          const juzga = esCaudalFx(puntoDef) || tolPropia !== null;
+          const desv = juzga ? reglasFx.desviacion(m, ref) : null;
           const cualTol = punto.tolerancia === "boca" ? "boca" : "total";
-          const limite = criterio ? null : tolPropia !== null ? tolPropia : tol[cualTol] ?? null;
+          const limite = criterio || !juzga ? null : tolPropia !== null ? tolPropia : tol[cualTol] ?? null;
           let resultado = null;
           let copiado = false;
           let sinTolerancia = null;
           const deFoto = valor.o === "fotoIncidencia" && m !== null;
           if (deFoto && !valor.revisado) {
             resultado = "aRevisar";
+          } else if (!juzga && !criterio) {
+            resultado = null;
           } else if (m !== null && ref !== null && igualesFx(m, ref) && fuente !== "norma") {
             copiado = true;
             resultado = valor.revisado ? "apto" : "aRevisar";
@@ -17215,7 +17226,7 @@ globalThis.CX_VARIANTE="cxobra";
           return null;
         }
         function evaluarBocasFicha(filas = [], tol = TOLERANCIAS_DEFECTO, proyectoSistema = null) {
-          const puntoBoca = { resultado: true, tolerancia: "boca" };
+          const puntoBoca = { resultado: true, tolerancia: "boca", caudal: true };
           const evaluadas = (filas || []).map((b) => ({
             ...b,
             ...evaluarParametro(puntoBoca, { p: b.p, m: b.m, revisado: b.revisado }, tol)
@@ -17227,7 +17238,7 @@ globalThis.CX_VARIANTE="cxobra";
           const refTotal = numFx(proyectoSistema) ?? sumP;
           let total = null;
           if (conProyecto.length && medidas.length === conProyecto.length) {
-            total = evaluarParametro({ resultado: true, tolerancia: "total" }, { p: refTotal, m: sumM }, tol);
+            total = evaluarParametro({ resultado: true, tolerancia: "total", caudal: true }, { p: refTotal, m: sumM }, tol);
             if (total.copiado && !medidas.every((b) => b.copiado)) {
               total = { ...total, copiado: false, resultado: "apto" };
             }
@@ -31746,8 +31757,8 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         { id: "caudalRetorno", nombre: "Caudal de retorno / extracci\xF3n", unidad: "m\xB3/h", circuito: "retorno", tolerancia: "total" },
         { id: "presionImpulsion", nombre: "Presi\xF3n disponible impulsi\xF3n", unidad: "Pa", circuito: "impulsion" },
         { id: "presionRetorno", nombre: "Presi\xF3n disponible retorno", unidad: "Pa", circuito: "retorno" },
-        { id: "tempImpulsion", nombre: "Temperatura de impulsi\xF3n", unidad: "\xB0C", absoluta: 1 },
-        { id: "tempRetorno", nombre: "Temperatura de retorno", unidad: "\xB0C", absoluta: 1 },
+        { id: "tempImpulsion", nombre: "Temperatura de impulsi\xF3n", unidad: "\xB0C" },
+        { id: "tempRetorno", nombre: "Temperatura de retorno", unidad: "\xB0C" },
         { id: "tempExterior", nombre: "Temperatura exterior", unidad: "\xB0C" },
         { id: "tempAguaEntrada", nombre: "Temperatura de entrada de agua fr\xEDa", unidad: "\xB0C" },
         { id: "tempAguaSalida", nombre: "Temperatura de salida de agua fr\xEDa", unidad: "\xB0C" },
@@ -32083,10 +32094,7 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
           const x = numBal(hoja.medido[m.id]);
           let estado = null;
           let d = null;
-          if (m.absoluta && x !== null && p !== null) {
-            d = x - p;
-            estado = Math.abs(d) <= m.absoluta + 1e-9 ? "ok" : d > 0 ? "alto" : "bajo";
-          } else if (m.tolerancia && x !== null && p !== null) {
+          if (m.tolerancia && _reglasBal.juzgaDesviacion({ unidad: m.unidad, caudal: true }) && x !== null && p !== null) {
             d = desviacion(x, p);
             const limite = tol[m.tolerancia] ?? null;
             estado = d === null || limite === null ? null : _reglasBal.dentro(d, limite) ? "ok" : d > 0 ? "alto" : "bajo";
@@ -35526,10 +35534,21 @@ ${subtitulo}`, c[5]] : c.slice())]);
           const hojas = partes.filter((p) => p.evaluacion && p.plantillaDef).map((p) => hojaFicha(p.evaluacion, p.plantillaDef, { ...ctx, equipo, titulo: p.titulo || equipo.tag }));
           return [portada, ...hojas, ...extras.map((x) => x.html || "")].join("");
         }
+        function hojaFotos(titulo, fotos = [], ctx = {}) {
+          const eq = ctx.equipo || {};
+          return `<article class="hojaPM fotosUnidad">
+    <header class="cab"><div class="logo">${logoFh(ctx.obra)}</div><h1>FOTOGRAF\xCDAS</h1></header>
+    <table class="datos cabecera">
+      <tr><th>Referencia / TAG</th><td><strong>${escFh(titulo || eq.tag || "")}</strong></td><th>Planta / sala</th><td>${escFh([eq.planta, eq.sala].filter(Boolean).join(" / "))}</td></tr>
+      <tr><th>Marca / modelo</th><td>${escFh([eq.marca, eq.modelo].filter(Boolean).join(" / "))}</td><th>N\xBA serie</th><td>${escFh(eq.numSerie || "")}</td></tr>
+    </table>
+    <section class="sec"><h3>FOTOGRAF\xCDAS</h3>${seccionFotos(fotos, ctx.imagenes, false)}</section>
+  </article>`;
+        }
         (function exportar(API) {
           if (typeof module !== "undefined" && module.exports) module.exports = API;
           if (typeof window !== "undefined") window.FICHA_HTML = API;
-        })({ hojaFicha, hojaBalanceo, dossier, numero: numFh, porcentaje: pctFh, fecha: fechaFh });
+        })({ hojaFicha, hojaBalanceo, hojaFotos, dossier, numero: numFh, porcentaje: pctFh, fecha: fechaFh });
       })();
     }
   });
@@ -44744,6 +44763,15 @@ ${subtitulo}`, c[5]] : c.slice())]);
         return { equipo, obra, familia: fam, partes, conservadas, cabeceraObra: cabeceraDe(cfg), tolerancias: F.tolerancias(cfg || {}) };
       }
       var TIPOS_IMAGEN = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".gif": "image/gif", ".bmp": "image/bmp", ".webp": "image/webp" };
+      function fotosDeUnidad(repo, sesion, equipoId) {
+        let filas = [];
+        try {
+          filas = repo.listar("fotosEquipo", sesion, { condicion: "equipoId = ?", params: [equipoId], orden: "creadoEn" });
+        } catch {
+          return [];
+        }
+        return filas.filter((f) => f.ruta).map((f) => ({ ruta: f.ruta, nombre: [f.pie || "Foto", f.hora].filter(Boolean).join(" \xB7 ") }));
+      }
       function imagenesDe(fotos = []) {
         const fuera = {};
         for (const f of fotos) {
@@ -44922,7 +44950,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         }) : todas;
         const partes = propias.map((p) => {
           const titulo = p.clave && p.clave.startsWith("circuito:") ? llano(d.equipo.circuito) : p.clave && p.clave.startsWith("refrigerante:") ? p.clave.slice("refrigerante:".length) : p.porUnidad && p.unidadTag || d.equipo.tag;
-          return { ...p, titulo: rotulo ? `${rotulo} \xB7 ${titulo}` : titulo };
+          return { ...p, titulo: rotulo && !(p.porUnidad && p.unidadTag) ? `${rotulo} \xB7 ${titulo}` : titulo };
         });
         const imagenes = Object.assign({}, ...partes.filter((p) => p.evaluacion).map((p) => imagenesDe(p.evaluacion.datos.fotos)));
         const { anexos, noUnidos } = anexosDossier(repo, sesion, d);
@@ -44959,6 +44987,19 @@ ${subtitulo}`, c[5]] : c.slice())]);
           estq.evaluacion = null;
           estq.cubierta = pruebas.length === 1 ? `En la prueba ${pruebas[0].codigo}` : `En ${pruebas.length} pruebas del m\xF3vil`;
           estq.cubiertaCerrada = pruebas.every((pe) => pe.resultado === "correcta" && pe.estado === "visto");
+        }
+        const tomaPropia = partes.find((p) => p.porUnidad && p.unidadId === d.equipo.id);
+        if (tomaPropia) {
+          const fotosU = fotosDeUnidad(repo, sesion, d.equipo.id);
+          if (fotosU.length) {
+            const titulo = tomaPropia.unidadTag || d.equipo.tag;
+            extras.push({
+              nombre: `Fotograf\xEDas \xB7 ${titulo}`,
+              estado: fotosU.length === 1 ? "1 foto" : `${fotosU.length} fotos`,
+              resultado: null,
+              html: fichaHtml.hojaFotos(titulo, fotosU, { obra: d.obra, equipo: d.equipo, imagenes: imagenesDe(fotosU) })
+            });
+          }
         }
         const html = fichaHtml.dossier(d.equipo, partes, {
           obra: d.obra,
@@ -45585,6 +45626,44 @@ ${subtitulo}`, c[5]] : c.slice())]);
           return { ok: false, error: e.message };
         }
       }
+      function ponerNumSerie(repo, sesion, equipoId, numSerie) {
+        if (!puede(sesion.rol, "commissioning", "editar")) return { ok: false, error: NO_EDITA };
+        const eq = equipoId ? repo.leer("equiposObra", sesion, equipoId) : null;
+        if (!eq) return { ok: false, error: "No se encuentra el equipo." };
+        const serie = String(numSerie ?? "").replace(/\s+/g, " ").trim().slice(0, 80);
+        if (String(eq.numSerie || "").trim() !== serie) {
+          try {
+            repo.modificar("equiposObra", sesion, eq.id, { numSerie: serie || null });
+          } catch (e) {
+            return { ok: false, error: e.message };
+          }
+        }
+        let fichas = 0;
+        if (serie) {
+          const cat = catalogoDe(repo, sesion);
+          const filas = repo.listar("fichasPM", sesion, { condicion: "obraId = ? AND clave = ?", params: [eq.obraId, `equipo:${eq.id}`] });
+          for (const fila of filas) {
+            if (leerJson(fila.firmas, []).length) continue;
+            const def = defDeFila(cat, fila, false) || cat.vigentes.get(fila.plantilla);
+            const puntos = def ? F.puntosDe(def).filter((p) => p.origen === "numSerie") : [];
+            if (!puntos.length) continue;
+            const datos = leerJson(fila.datos, {});
+            datos.valores = datos.valores || {};
+            let cambia = false;
+            for (const p of puntos) {
+              const v = datos.valores[p.codigo];
+              if (v && String(v.v ?? "").trim() === serie) continue;
+              datos.valores[p.codigo] = { ...v || {}, v: serie, o: "manual" };
+              cambia = true;
+            }
+            if (cambia) {
+              repo.modificar("fichasPM", sesion, fila.id, { datos: JSON.stringify(datos) });
+              fichas += 1;
+            }
+          }
+        }
+        return { ok: true, equipoId: eq.id, numSerie: serie || null, fichas };
+      }
       module.exports = {
         fundirConjuntos,
         fundirConjuntosSinFallar,
@@ -45602,6 +45681,8 @@ ${subtitulo}`, c[5]] : c.slice())]);
         firmarConjunto,
         lineaDe,
         dossier,
+        fotosDeUnidad,
+        ponerNumSerie,
         htmlFicha,
         htmlPlantilla,
         htmlDossier,
@@ -89578,6 +89659,50 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
+  // electron/data/unirPdf.js
+  var require_unirPdf = __commonJS({
+    "electron/data/unirPdf.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var fs = require_fs();
+      var path = require_path();
+      var { PDFDocument } = require_cjs();
+      var MAX_BYTES = 40 * 1024 * 1024;
+      async function unirPdf(base, anexos = []) {
+        const unidos = [];
+        const fallidos = [];
+        if (!anexos.length) return { pdf: base, unidos, fallidos };
+        const doc = await PDFDocument.load(base);
+        for (const a of anexos) {
+          const nombre = a.nombre || path.basename(a.ruta || "");
+          try {
+            const st = fs.statSync(a.ruta);
+            if (!st.isFile()) throw new Error("no es un archivo");
+            if (st.size > MAX_BYTES) throw new Error("pasa de 40 MB");
+            const otro = await PDFDocument.load(fs.readFileSync(a.ruta));
+            const paginas = await doc.copyPages(otro, otro.getPageIndices());
+            for (const p of paginas) doc.addPage(p);
+            unidos.push({ nombre, paginas: paginas.length });
+          } catch (e) {
+            fallidos.push({ nombre, motivo: e.code === "ENOENT" ? "no est\xE1 en su sitio" : e.message });
+          }
+        }
+        return { pdf: await doc.save(), unidos, fallidos };
+      }
+      async function unirBytes(partes = [], titulo = "") {
+        const doc = await PDFDocument.create();
+        for (const b of partes) {
+          const otro = await PDFDocument.load(b);
+          for (const p of await doc.copyPages(otro, otro.getPageIndices())) doc.addPage(p);
+        }
+        if (!doc.getPageCount()) return null;
+        if (titulo) doc.setTitle(titulo);
+        return doc.save();
+      }
+      module.exports = { unirPdf, unirBytes };
+    }
+  });
+
   // electron/movil/rutasFichas.js
   var require_rutasFichas = __commonJS({
     "electron/movil/rutasFichas.js"(exports, module) {
@@ -89829,6 +89954,43 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           const us = [{ papel: papel(eq.tag), numSerie: eq.numSerie }, { papel: papel(otro.tag), numSerie: otro.numSerie }].sort((a, b) => a.papel === "UE" ? -1 : b.papel === "UE" ? 1 : 0);
           return FMOV.seriesTexto(us);
         }
+        function tomasVrf(ses, equipoId) {
+          const linea = FPM.lineaDe(repo, ses, equipoId);
+          if (!linea || (linea.unidades || []).length < 2) return { linea, tomas: [] };
+          const d = FPM.dossier(repo, ses, linea.unidades[0].id);
+          return { linea, tomas: (d && d.partes || []).filter((p) => p.porUnidad && p.unidadId && p.clave && p.plantilla) };
+        }
+        function fotosUnidadVrf(ses, ref) {
+          const m = /^equipo:(.+)$/.exec(llano(ref && ref.clave));
+          if (!m) return [];
+          try {
+            const t = tomasVrf(ses, m[1]).tomas.find((p) => p.clave === llano(ref.clave) && p.plantilla === llano(ref.plantilla));
+            return t ? FPM.fotosDeUnidad(repo, ses, t.unidadId) : [];
+          } catch {
+            return [];
+          }
+        }
+        async function pdfTomasVrf(ses, equipoId, opciones = {}) {
+          const { linea, tomas } = tomasVrf(ses, equipoId);
+          if (!tomas.length) return { error: "Este equipo no es un VRF con unidades interiores." };
+          const eq = repo.leer("equiposObra", ses, linea.unidades[0].id) || {};
+          const partes = [];
+          for (const t of tomas) {
+            const ref = { clave: t.clave, plantilla: t.plantilla };
+            let bytes = null;
+            const h = await pdfFichaHoja(ses, eq.obraId, ref, opciones);
+            if (h) bytes = h.bytes;
+            else {
+              const r = docFicha(ses, eq.obraId, ref);
+              if (r.error) continue;
+              bytes = await informePdf(r.doc);
+            }
+            partes.push(bytes);
+          }
+          const todo = await require_unirPdf().unirBytes(partes, `${eq.tag || ""} \xB7 tomas de datos UE y UIs`);
+          if (!todo) return { error: "No hay ninguna toma de datos que imprimir." };
+          return { bytes: todo, nombre: `${nombreSeguro(`${eq.tag || equipoId} - tomas de datos UE y UIs`)}.pdf` };
+        }
         function docFicha(ses, obraId, ref) {
           const f = FPM.ficha(repo, ses, obraId, ref);
           if (!f || f.ok === false) return { error: f && f.error || "No se encuentra la obra." };
@@ -89891,7 +90053,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           if (ev.datos.observaciones) bloques.push({ titulo: "Observaciones", texto: ev.datos.observaciones });
           if (ev.faltan.length) bloques.push({ titulo: "Lo que falta", texto: ev.faltan.join(" \xB7 ") });
           if (ev.avisos.length) bloques.push({ titulo: "Avisos", texto: ev.avisos.join(" \xB7 ") });
-          const fotos = ev.datos.fotos.map((x) => ({ bytes: bytesDe(x.ruta), pie: x.nombre || path.basename(x.ruta) }));
+          const fotos = [...ev.datos.fotos, ...fotosUnidadVrf(ses, ref)].map((x) => ({ bytes: bytesDe(x.ruta), pie: x.nombre || path.basename(x.ruta) }));
           const cab = ev.datos.cabecera;
           return {
             nombre: `${nombreSeguro([eq.sala, f.titulo, f.plantilla.nombre].filter(Boolean).join(" - "))}.pdf`,
@@ -90150,7 +90312,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             fechaEnsayo: /^\d{4}-\d{2}-\d{2}/.test(opciones.fechaEnsayo || "") ? opciones.fechaEnsayo : null
           });
           if (!r) return null;
-          const fotos = sinMedidos ? [] : (f.evaluacion.datos.fotos || []).map((x) => ({ bytes: bytesDe(x.ruta), pie: x.nombre || path.basename(x.ruta) }));
+          const fotos = sinMedidos ? [] : [...f.evaluacion.datos.fotos || [], ...fotosUnidadVrf(ses, ref)].map((x) => ({ bytes: bytesDe(x.ruta), pie: x.nombre || path.basename(x.ruta) })).filter((x) => x.bytes);
           const anexoPdf = fotos.length ? await informePdf({ titulo: `Anexo \xB7 Fotos \xB7 ${f.titulo || ""}`, fecha: ahoraEs(), fotos, pie: `Anexo de ${f.plantilla.nombre} \xB7 ${f.titulo || ""}` }) : null;
           const firmas = sinMedidos ? [] : FIR.paraPdf(FIR.firmasDeClave(repo, ses, obraId, ref.clave));
           const bytes = await hojaExcelPdf({ hojas: [{ disp: X.disposicion(r.m, r.opciones), marca: r.opciones.marca }], imagen: imagenLibro, anexoPdf, titulo: f.plantilla.nombre, firmas });
@@ -90210,6 +90372,11 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             const h = await pdfBalanceoHoja(ses, llano(query.equipo), { sinObservaciones });
             if (h) return enHoja(h);
             r = docBalanceo(ses, llano(query.equipo));
+          } else if (tipo === "vrf") {
+            if (!puede(ses.rol, "commissioning", "ver")) return [403, { ok: false, error: "Tu rol no ve el commissioning." }];
+            const h = await pdfTomasVrf(ses, llano(query.equipo), { sinObservaciones });
+            if (h.error) return [404, { ok: false, error: h.error }];
+            return enHoja(h);
           } else if (tipo === "cronometro") {
             if (!puede(ses.rol, "commissioning", "ver")) return [403, { ok: false, error: "Tu rol no ve el commissioning." }];
             r = docCronometro(ses, llano(query.equipo));
@@ -91373,6 +91540,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         "POST api/cronometro": [["commissioning", "editar"]],
         "POST api/cronometro/parte": [["partesTrabajo", "crear"]],
         "POST api/equipo/instalacion": [["commissioning", "editar"]],
+        "POST api/equipo/serie": [["commissioning", "editar"]],
         "POST api/equipo/fotos": [["commissioning", "editar"]],
         "POST api/equipo/fotos/quitar": [["commissioning", "editar"]],
         "GET api/equipo/foto": [["commissioning", "ver"]],
@@ -91717,6 +91885,13 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         function equipoInstalacion({ ses, json }) {
           const e = json();
           return CX.verificarInstalacion(repo, ses, [llano(e.equipoId)], { verificada: e.verificada !== false });
+        }
+        function equipoSerie({ ses, json }) {
+          const e = json();
+          const r = FPM.ponerNumSerie(repo, ses, llano(e.equipoId), e.numSerie);
+          if (!r.ok) return r;
+          const vuelta = llano(e.volver) || r.equipoId;
+          return { ...equipo({ ses, query: { id: vuelta } }), ok: true, numSerie: r.numSerie, serieDe: r.equipoId };
         }
         function equipoMedida({ ses, json }) {
           const e = json();
@@ -92175,6 +92350,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           "POST api/cronometro": cronometroAccion,
           "POST api/cronometro/parte": cronometroParte,
           "POST api/equipo/instalacion": equipoInstalacion,
+          "POST api/equipo/serie": equipoSerie,
           "POST api/equipo/fotos": equipoFotos,
           "POST api/equipo/fotos/quitar": equipoFotoQuitar,
           "GET api/equipo/foto": equipoFoto,
