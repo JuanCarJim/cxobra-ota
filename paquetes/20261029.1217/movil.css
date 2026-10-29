@@ -1845,8 +1845,4 @@ body { background: var(--fondo-pagina); }
 .buscar-borrar { position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; min-height: 44px; padding: 0; margin: 0;
   border: 0; background: none; box-shadow: none; color: var(--acento-fuerte); font-size: 16px; line-height: 1; border-radius: 50%; cursor: pointer; }
 .buscar-borrar[hidden] { display: none; }
-.buscar-modo { flex: none; display: inline-flex; align-items: stretch; min-height: 44px; padding: 3px; margin: 0; border: 1px solid var(--rejilla); border-radius: 10px;
-  background: var(--panel3); box-shadow: none; cursor: pointer; }
-.buscar-modo span { display: flex; align-items: center; padding: 0 7px; font-size: 12px; font-weight: 600; color: var(--textoSuave); border-radius: 7px; }
-.buscar-modo span.activa { background: var(--acento-suave); color: var(--acento-fuerte); }
 #app .buscar-caja .buscar { margin: 0; padding-right: 46px; }
