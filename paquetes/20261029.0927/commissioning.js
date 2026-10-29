@@ -167,6 +167,20 @@
     return `<strong class="cifra">${esc(e.tag)}</strong>`;
   }
 
+  /* EL Nº DE SERIE (29-oct-2026, JC: «ponme los números de serie en los
+     equipos en Vidaire Cx también»): el de cada unidad, «UE … · UI …»
+     (shared/commissioning/filaMovil.js › seriesTexto; lo escribe la ruta,
+     que ya lo trae limpio). Sin ninguno, nada. */
+  function serieFila(e) {
+    return e.serie ? `<div class="sub serie">Nº serie <span class="cifra">${esc(e.serie)}</span></div>` : '';
+  }
+  /* En la pantalla del equipo, cada unidad en su línea, también la que no lo tiene. */
+  function htmlNumSerie(e, cj) {
+    const us = cj && cj.unidades && cj.unidades.length > 1 ? cj.unidades : [{ tag: e.tag, numSerie: e.numSerie }];
+    return `<dl class="num-serie">${us.map((u) => `<dt>Nº serie${us.length > 1 ? ` <em>${esc(u.papel || '')}</em>` : ''}</dt>
+      <dd class="${u.numSerie ? 'cifra' : 'aviso'}">${esc(u.numSerie || 'Sin nº de serie')}${us.length > 1 ? ` <small>${esc(u.tag)}</small>` : ''}</dd>`).join('')}</dl>`;
+  }
+
   /* EL NÚMERO DE CADA GRUPO DICE LO HECHO (28-oct-2026, JC: «pon como estaban
      pero el número ese que aparece en el extremo como total lo pones como
      X/total»). La barra es la de siempre (título a la izquierda, número a la
@@ -264,6 +278,7 @@
           <div class="sub">${[NOMBRE_CLASE[e.clase], e.planta, e.local, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean)
             /* Cada trozo entero: a 390 px se parte entre trozos, no en «U-|71PZH3E5». */
             .map((x) => `<span class="trozo">${esc(x)}</span>`).join(' · ') || 'Sin datos'}</div>
+          ${serieFila(e)}
           ${e.bocas ? `<div class="progreso" aria-label="${e.medidas} de ${e.bocas} bocas medidas"><i style="width:${Math.round((e.medidas / e.bocas) * 100)}%"></i></div>
           <div class="sub">${cifra(e.medidas)} de ${cifra(e.bocas)} bocas medidas</div>` : e.conPlano === false ? '' : '<div class="sub">Sin plano de bocas</div>'}
           ${e.falta && e.falta.length && !e.completo ? `<div class="sub aviso">Falta: ${esc(e.falta.join(', '))}</div>` : ''}
@@ -723,7 +738,9 @@
       ${htmlTomaDatos()}
       ${htmlConservadas()}`
       : `${htmlNotaConjunto(f.conjunto)}
+      ${htmlNumSerie(e, f.conjunto)}
       ${htmlFichas('equipo', 'Fichas del equipo')}
+      ${htmlUnidadesInteriores(f, puede)}
       ${htmlFotosEquipo(f, puede)}
       ${checklist(f.checklist, f.medicion, puede)}`;
     const sub = [e.planta, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
@@ -1078,6 +1095,130 @@
         <button class="boton secundario" data-cx="foto-equipo" data-pie="" data-galeria="1">De la galería</button>
       </div>` : ''}`;
   }
+  /*
+   * LAS UNIDADES INTERIORES DEL VRF (29-oct-2026, JC: «una tarjeta con las
+   * unidades interiores ahí y poder asociarle toma de datos a cada una y foto.
+   * La foto se coge al terminar de tomar datos y sale miniatura ahí, y la toma
+   * de datos con un botón antes de la miniatura de la foto»). Entre «Fichas del
+   * equipo» y «Fotos del equipo»: una fila por UI con su TAG corto, su sala, el
+   * estado de su toma, el botón y, a la derecha, la miniatura de su foto (o el
+   * hueco con la cámara). La foto es una foto del equipo de ESA UI (fotosEquipo
+   * con su id), con la misma cola sin conexión que las demás.
+   * Abierta una UI: solo su fila, y el enlace a su unidad exterior.
+   */
+  /* «Placa · UI 01»: el TAG corto de la UI en el pie (el largo ya lo lleva la unidad de la foto). */
+  const rotuloUi = (tag) => { const m = /(?:^|[\s·-])UI\s*0*(\d+)\s*$/i.exec(String(tag || '')); return m ? `UI ${m[1].padStart(2, '0')}` : String(tag || ''); };
+  const pieFotoUi = (tag) => ['Placa', rotuloUi(tag)].filter(Boolean).join(' · ');
+  /* La foto de una UI: la que sigue en el teléfono sin subir (la más nueva) o la del servidor. */
+  function fotoDeUi(f, equipoId) {
+    if (COLA && AG) {
+      const ks = COLA.claves(`fotoEquipo.${equipoId}.`).sort();
+      for (let n = ks.length - 1; n >= 0; n--) {
+        const b = AG.leer(ks[n]);
+        const x = ((b && b.fotos) || []).find((y) => y && y.local);
+        if (x) return { local: x.local, clave: ks[n], pie: x.pie || '' };
+      }
+    }
+    const u = ((f && f.conjunto && f.conjunto.unidades) || []).find((y) => y.id === equipoId);
+    return u && u.foto ? u.foto : null;
+  }
+  function htmlUnidadesInteriores(f, puede) {
+    const cj = f.conjunto;
+    if (!cj || !fichasEq || fichasEq.ok === false) return '';
+    const todas = (fichasEq.fichas || []).map((x, i) => [x, i]).filter(([x]) => !x.conservada && x.papel === 'UI' && x.unidadId);
+    if (!todas.length) return '';
+    const abierta = todas.some(([x]) => x.unidadId === f.equipo.id);
+    const filas = abierta ? todas.filter(([x]) => x.unidadId === f.equipo.id) : todas;
+    const hecha = (x) => ['completa', 'firmada'].includes(estadoVisible(x.estado, x.medidos, x.bocasSinMedir));
+    const completas = todas.filter(([x]) => hecha(x)).length;
+    const ue = (cj.unidades || []).find((u) => u.papel === 'UE');
+    const corto = (x) => rotuloUi(x.unidadTag) || 'UI';
+    return `<section id="unidades-interiores" data-plegable>
+      <h2>Unidades interiores <span class="cuenta">${abierta ? `${corto(filas[0][0])} de ${todas.length}` : `${completas} de ${todas.length} UIs completas`}</span></h2>
+      <ul class="lista-ios filas-ui">${filas.map(([x, i]) => {
+        const foto = fotoDeUi(f, x.unidadId);
+        const img = foto ? (foto.local ? `<img data-local="${esc(foto.local)}" alt="Foto ${esc(corto(x))}">` : `<img data-src="${esc(foto.url)}" alt="Foto ${esc(corto(x))}">`) : '';
+        const mini = foto
+          ? `<button type="button" class="miniatura-ui${foto.local ? ' en-movil' : ''}" data-cx="foto-ui-grande" data-equipo="${esc(x.unidadId)}" aria-label="Ver la foto de ${esc(corto(x))}">${img}</button>`
+          : puede ? `<button type="button" class="miniatura-ui hueco" data-cx="foto-equipo" data-equipo="${esc(x.unidadId)}" data-pie="${esc(pieFotoUi(x.unidadTag))}" aria-label="Hacer la foto de ${esc(corto(x))}"><i class="ic ic-camara"></i></button>`
+          : '<span class="miniatura-ui hueco apagada"></span>';
+        return `<li class="fila-ui">
+          <div class="ui-datos"><strong>${esc(corto(x))}</strong>${chipFicha(x.estado, x.resultado, x.medidos, x.bocasSinMedir)}<span class="sub">${esc(x.unidadSala || 'Sin sala')} · ${(() => { const u = (cj.unidades || []).find((y) => y.id === x.unidadId); return u && u.numSerie ? `Nº serie ${esc(u.numSerie)}` : '<span class="sin-serie">Sin nº de serie</span>'; })()}</span></div>
+          <button type="button" class="boton secundario ui-toma" data-cx="hoja" data-i="${i}">${hecha(x) ? 'Ver datos' : 'Toma de datos'}</button>
+          ${mini}
+        </li>`;
+      }).join('')}</ul>
+      ${abierta && ue ? `<p class="nota">Ud. exterior asociada: <button type="button" class="enlace" data-cx="equipo" data-id="${esc(ue.id)}">${esc(ue.tag)}</button></p>` : ''}
+    </section>`;
+  }
+  /* La foto de una UI en grande, con rehacer, otra foto y quitar. */
+  function fotoUiGrande(equipoId) {
+    const foto = fotoDeUi(ficha, equipoId);
+    if (!foto) return;
+    const fila = ((fichasEq && fichasEq.fichas) || []).find((x) => x.unidadId === equipoId && x.papel === 'UI');
+    const tag = fila ? fila.unidadTag : '';
+    cerrarFotoUi();
+    const capa = document.createElement('div');
+    capa.className = 'visor-foto-ui';
+    capa.id = 'visor-foto-ui';
+    capa.innerHTML = `<div class="visor-cabeza"><strong>${esc(tag || 'Foto')}</strong><button type="button" class="enlace" data-ui-visor="cerrar">Cerrar</button></div>
+      ${foto.local ? `<img data-local="${esc(foto.local)}" alt="${esc(tag)}">` : `<img data-src="${esc(foto.url)}" alt="${esc(tag)}">`}
+      ${foto.local ? '<p class="nota">Solo en el móvil: se subirá sola al volver la conexión.</p>' : ''}
+      ${ficha && ficha.puedeMedir ? `<div class="fila-botones">
+        <button type="button" class="boton secundario" data-ui-visor="rehacer"><i class="ic ic-camara"></i>Rehacer</button>
+        <button type="button" class="boton secundario" data-ui-visor="otra"><i class="ic ic-camara"></i>Otra foto</button>
+        <button type="button" class="boton secundario mal" data-ui-visor="quitar">Quitar</button>
+      </div>` : ''}`;
+    document.body.appendChild(capa);
+    document.body.classList.add('sin-scroll');
+    C.cargarImagenes(capa);
+    cargarFotosLocales(capa);
+    capa.addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-ui-visor]');
+      if (!b) return;
+      const que = b.dataset.uiVisor;
+      if (que === 'cerrar') { cerrarFotoUi(); return; }
+      if (que === 'otra') {
+        C.elegirFoto(true).then((a) => { if (a) guardarFotoEquipo(a, equipoId, ['Otra', rotuloUi(tag)].filter(Boolean).join(' · ')); });
+        cerrarFotoUi();
+        return;
+      }
+      if (que === 'rehacer') {
+        /* La nueva primero; la vieja se quita solo cuando la nueva ya está a salvo. */
+        C.elegirFoto(true).then((a) => {
+          if (!a) return;
+          if (foto.local) { quitarFotoUiLocal(foto); guardarFotoEquipo(a, equipoId, pieFotoUi(tag)); return; }
+          guardarFotoEquipo(a, equipoId, pieFotoUi(tag), null, { despues: () => quitarFotoUiServidor(foto.id, true) });
+        });
+        cerrarFotoUi();
+        return;
+      }
+      if (que === 'quitar') {
+        if (!window.confirm(`¿Quitar la foto de ${tag || 'esta unidad'}?`)) return;
+        cerrarFotoUi();
+        if (foto.local) { quitarFotoUiLocal(foto); if (activa() && ficha && !hoja) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); } }
+        else quitarFotoUiServidor(foto.id);
+      }
+    });
+  }
+  function cerrarFotoUi() {
+    const v = document.getElementById('visor-foto-ui');
+    if (v) { v.remove(); document.body.classList.remove('sin-scroll'); }
+  }
+  function quitarFotoUiLocal(foto) {
+    if (!AG || !foto.clave || fotosEquipoEnCurso.has(foto.clave)) return;
+    AG.borrar(foto.clave);
+    if (foto.local) AG.borrarFoto(foto.local);
+  }
+  async function quitarFotoUiServidor(id, callado = false) {
+    try {
+      const r = await C.postJson('api/equipo/fotos/quitar', { id, vista: ficha ? ficha.equipo.id : '' });
+      if (!r.ok) throw new Error(r.error);
+      if (ficha && r.equipo && r.equipo.id === ficha.equipo.id) ficha = r;
+      if (activa() && ficha && !hoja) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
+    } catch (e) { if (!callado) C.aviso(e.message); }
+  }
+
   /* Las miniaturas de las fotos que siguen en el teléfono (IndexedDB). */
   function cargarFotosLocales(raiz) {
     if (!AG) return;
@@ -1103,33 +1244,43 @@
     if (!ficha) return;
     const archivo = await C.elegirFoto(!boton.dataset.galeria);
     if (!archivo || !ficha) return;
-    const equipoId = ficha.equipo.id;
+    /* data-equipo: la foto de una UI hecha desde la pantalla de su UE (VRF). */
+    const equipoId = boton.dataset.equipo || ficha.equipo.id;
     const pie = boton.dataset.pie === 'Otra' ? '' : boton.dataset.pie;
+    return guardarFotoEquipo(archivo, equipoId, pie, boton);
+  }
+  /* Guarda la foto en el teléfono, la sube y la une al equipo (o a la UI de un VRF). */
+  async function guardarFotoEquipo(archivo, equipoId, pie, boton = null, { despues = null } = {}) {
+    if (!ficha) return;
+    const vista = ficha.equipo.id;
     const clave = `fotoEquipo.${equipoId}.${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
     const foto = AG ? await AG.fotoNueva(archivo, { id: null, pie, hora: ahoraEs() }) : { id: null, pie, hora: ahoraEs(), archivo };
     const apuntar = () => { if (AG) AG.guardar(clave, { equipoId, fotos: AG.fotosParaGuardar([foto]) }); };
     apuntar();
     fotosEquipoEnCurso.add(clave);
-    boton.disabled = true;
+    if (boton) boton.disabled = true;
+    /* Ya en el teléfono: la miniatura sale aunque no haya red. */
+    if (activa() && ficha && ficha.equipo.id === vista && !hoja && equipoId !== vista) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
     try {
-      const r = await mandarFotoEquipo(equipoId, foto, apuntar);
+      const r = await mandarFotoEquipo(equipoId, foto, apuntar, vista);
       if (AG) AG.borrar(clave); else if (foto.url) URL.revokeObjectURL(foto.url);
-      if (ficha && ficha.equipo.id === equipoId) ficha = r;
-      if (!activa() || !ficha || ficha.equipo.id !== equipoId) return;
+      if (ficha && ficha.equipo.id === vista) ficha = r;
+      if (despues) await despues();
+      if (!activa() || !ficha || ficha.equipo.id !== vista || hoja) return;
       const y = window.scrollY;
       pintarFicha();
       window.scrollTo(0, y);
     } catch (e) {
-      boton.disabled = false;
+      if (boton) boton.disabled = false;
       if (AG && AG.sinRed(e)) {
         C.aviso('Sin conexión: la foto queda guardada en el móvil y se subirá sola.');
         if (COLA) COLA.masTarde();
-        if (activa() && ficha && ficha.equipo.id === equipoId && !hoja) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
+        if (activa() && ficha && ficha.equipo.id === vista && !hoja) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
       } else C.aviso(e.message);
     } finally { fotosEquipoEnCurso.delete(clave); }
   }
   /* Sube la foto (desde el teléfono si hace falta) y la une al equipo. */
-  async function mandarFotoEquipo(equipoId, foto, apuntar = () => {}) {
+  async function mandarFotoEquipo(equipoId, foto, apuntar = () => {}, vista = null) {
     const subir = async () => {
       const blob = foto.archivo || (AG && foto.local ? await AG.leerFoto(foto.local) : null);
       if (!blob) throw new Error('La foto ya no está en el teléfono: vuelve a hacerla.');
@@ -1138,7 +1289,7 @@
       apuntar();
     };
     if (!foto.id) await subir();
-    const unir = () => C.postJson('api/equipo/fotos', { equipoId, fotos: [{ id: foto.id, pie: foto.pie, hora: foto.hora }] });
+    const unir = () => C.postJson('api/equipo/fotos', { equipoId, ...(vista ? { vista } : {}), fotos: [{ id: foto.id, pie: foto.pie, hora: foto.hora }] });
     let r = await unir();
     /* El ordenador olvidó la foto en espera (app cerrada): se vuelve a subir desde el teléfono. */
     if (!r.ok && /ya no está/i.test(String(r.error || ''))) { foto.id = null; await subir(); r = await unir(); }
@@ -1536,7 +1687,7 @@
     if (!fichasEq) return `<section id="fichas-equipo"><h2>${esc(titulo)}</h2><p class="cargando">Cargando las fichas…</p></section>`;
     if (fichasEq.ok === false) return `<section id="fichas-equipo"><h2>${esc(titulo)}</h2><p class="nota aviso">${esc(fichasEq.error)}</p></section>`;
     /* Se conserva el índice de cada ficha en la lista completa: data-i lo usa abrirHoja. */
-    const fs = (fichasEq.fichas || []).map((x, i) => [x, i]).filter(([x]) => !x.conservada && pestanaDeFicha(x) === pestana);
+    const fs = (fichasEq.fichas || []).map((x, i) => [x, i]).filter(([x]) => !x.conservada && x.papel !== 'UI' && pestanaDeFicha(x) === pestana);
     if (!fs.length && pestana === 'balanceo') return '';
     /* El balanceo, una fila más: abre las bocas del plano y la hoja. */
     const filaBal = pestana === 'equipo' && ficha && tieneBalanceo(ficha) ? htmlFilaBalanceo(ficha) : '';
@@ -1640,6 +1791,7 @@
       tomas.delete(claveToma(x));
       viva.nombre = x.nombre;
       hoja = viva;
+      hoja.fotoUi = x.papel === 'UI' && x.unidadId ? { equipoId: x.unidadId, tag: x.unidadTag || '' } : null;
       pintarHoja();
       window.scrollTo(0, 0);
       return;
@@ -1650,6 +1802,7 @@
       const r = await C.pedir(`api/ficha?${new URLSearchParams(ref)}`);
       if (!r.ok) throw new Error(r.error);
       hoja = await recuperarBorrador(nuevaHoja(ref, x.nombre, r));
+      hoja.fotoUi = x.papel === 'UI' && x.unidadId ? { equipoId: x.unidadId, tag: x.unidadTag || '' } : null;
       pintarHoja();
       window.scrollTo(0, 0);
     } catch (e) {
@@ -1669,7 +1822,20 @@
   const cabDe = (k) => (hoja.cabecera[k] !== undefined ? hoja.cabecera[k] : hoja.f.cabecera[k]);
 
   const BOTONES_RESP = { siNoNa: [['si', 'Sí'], ['no', 'No'], ['na', 'N/A']], siNo: [['si', 'Sí'], ['no', 'No']], okNoOk: [['ok', 'OK'], ['noOk', 'NO OK']] };
-  const claseResp = (k) => `activa ${k === 'no' || k === 'noOk' ? 'mal' : k === 'na' ? 'neutra' : 'bien'}`;
+  /* El color del botón marcado: la misma regla que el PDF (reglasCx.tonoRespuesta,
+     29-oct-2026). Rojo solo lo NO conforme: el «No» de un punto de chequeo, el
+     «NO OK» y el «Sí» de una fuga. Un dato de la instalación («Asociado a red
+     de conductos») es una respuesta, sin rojo ni verde. */
+  const tonoResp = (p, k, tipoSeccion) => {
+    if (k === 'noOk') return 'mal';
+    if (k === 'ok') return 'bien';
+    if (k === 'na') return 'neutra';
+    if (p && p.tipo === 'siNo' && /fuga/i.test(String(p.codigo || ''))) return k === 'si' ? 'mal' : 'bien';
+    const deChequeo = tipoSeccion ? tipoSeccion === 'checklist' : !(p && p.tipo === 'siNo');
+    if (!deChequeo) return 'neutra';
+    return k === 'no' ? 'mal' : 'bien';
+  };
+  const claseResp = (k, p, tipoSeccion) => `activa ${tonoResp(p, k, tipoSeccion)}`;
 
   /*
    * LA HOJA DENSA, como la hoja del PDF (15-oct-2026, JC: «no me gustan nada
@@ -1682,12 +1848,12 @@
   const unidadDe = (p) => (p.unidad ? ` <span class="tenue">${esc(p.unidad)}</span>` : '');
 
   /* Solo el campo, sin etiqueta: para las filas y las rejillas. */
-  function inputPunto(p, ed, aria) {
+  function inputPunto(p, ed, aria, tipoSeccion) {
     const dis = ed ? '' : 'disabled';
     const v = valorDe(p);
     const a = `aria-label="${esc(aria || p.etiqueta)}"`;
     if (BOTONES_RESP[p.tipo]) {
-      return `<div class="respuestas mini">${BOTONES_RESP[p.tipo].map(([k, n]) => `<button type="button" ${dis} class="${v === k ? claseResp(k) : ''}" data-h-resp="${k}" data-h-punto="${esc(p.codigo)}">${n}</button>`).join('')}</div>`;
+      return `<div class="respuestas mini">${BOTONES_RESP[p.tipo].map(([k, n]) => `<button type="button" ${dis} class="${v === k ? claseResp(k, p, tipoSeccion) : ''}" data-h-resp="${k}" data-h-punto="${esc(p.codigo)}">${n}</button>`).join('')}</div>`;
     }
     if (p.tipo === 'numero') return `<input class="cifra corto" inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis} ${a} value="${esc(coma(v))}" data-h-punto="${esc(p.codigo)}" data-h-k="v" data-h-num>`;
     if (p.tipo === 'fecha') return `<input type="date" ${dis} ${a} value="${esc(String(v || '').slice(0, 10))}" data-h-punto="${esc(p.codigo)}" data-h-k="v">`;
@@ -1705,7 +1871,7 @@
     if (s.tipo === 'parametros') return filaParametro(p, ed);
     const num = s.tipo === 'checklist' ? `<span class="num">${esc(numCheck(p.numero || p.codigo))}</span>` : '';
     const clase = BOTONES_RESP[p.tipo] ? 'fd resp' : `fd${p.tipo === 'numero' ? ' n' : ''}`;
-    return `<div class="${clase}"><span class="et">${num}${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}</span>${inputPunto(p, ed)}</div>`;
+    return `<div class="${clase}"><span class="et">${num}${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}</span>${inputPunto(p, ed, null, s.tipo)}</div>`;
   }
 
   const casillaParametro = (p, k, n, dis) => `<input class="cifra${k === 'm' ? ' medido' : ''}" inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis}
@@ -1933,7 +2099,7 @@
       </section>`;
     const FALTAN_VISTOS = porPasos ? 6 : 30;
     $app.innerHTML = `
-      ${tagFijo(ficha ? ficha.equipo.tag : (f.titulo || 'Equipo'), h.nombre || f.plantilla.nombre, 'volver-equipo',
+      ${tagFijo(h.fotoUi && h.fotoUi.tag ? h.fotoUi.tag : ficha ? ficha.equipo.tag : (f.titulo || 'Equipo'), h.nombre || f.plantilla.nombre, 'volver-equipo',
         `${chipFicha(f.estado, f.resultado, f.medidos, f.bocasSinMedir)}${f.medidos && f.medidos.obligatorios ? ` <span class="chip neutra">${f.medidos.rellenos}/${f.medidos.obligatorios}</span>` : ''}`)}
       <div class="densa">
       ${ed ? '' : `<p class="nota aviso">${f.firmada ? 'La ficha está firmada: ya no se cambia.' : 'Tu rol puede ver la ficha, pero no rellenarla.'}</p>`}
@@ -2296,6 +2462,15 @@
   }
 
   async function terminarHoja() {
+    /*
+     * VRF (29-oct-2026, JC: «la foto se coge al terminar de tomar datos»): al
+     * terminar la toma de una UI sin foto, se abre la cámara YA (dentro del
+     * toque: después de esperar al guardado iOS no la dejaría abrir). La foto
+     * queda ligada a esa UI y su fila vuelve con la miniatura.
+     */
+    const ui = hoja.fotoUi && hoja.f && hoja.f.editable && ficha && !fotoDeUi(ficha, hoja.fotoUi.equipoId) ? hoja.fotoUi : null;
+    const eligiendo = ui ? C.elegirFoto(true) : null;
+    if (eligiendo) eligiendo.then((archivo) => { if (archivo) guardarFotoEquipo(archivo, ui.equipoId, pieFotoUi(ui.tag)); });
     if (hoja.cambiada && hoja.f.editable && !(await guardarHoja())) {
       /* Sin red sí se sale: queda en el teléfono y se manda solo. */
       if (hoja._estado !== 'sinRed') return;
@@ -2331,7 +2506,9 @@
   const CLASES_SIN_TOMA = new Set(['checklist', 'balanceo']);
   const fichasToma = () => (fichasEq && fichasEq.ok !== false ? (fichasEq.fichas || []) : [])
     .map((x, i) => [x, i])
-    .filter(([x]) => x.plantilla && !x.conservada && pestanaDeFicha(x) === 'equipo' && !CLASES_SIN_TOMA.has(x.clase) && x.estado !== 'firmada');
+    .filter(([x]) => x.plantilla && !x.conservada && pestanaDeFicha(x) === 'equipo' && !CLASES_SIN_TOMA.has(x.clase) && x.estado !== 'firmada'
+      /* VRF (29-oct): cada unidad tiene su toma; aquí solo la de la unidad abierta. */
+      && !(x.porUnidad && x.unidadId && ficha && x.unidadId !== ficha.equipo.id));
 
   /* Las funciones de la hoja leen `hoja`: se pinta cada ficha de la toma como si lo fuera. */
   function conHoja(h, fn) {
@@ -2750,6 +2927,7 @@
     else if (que === 'avisar-modelo') avisarModelo();
     else if (que === 'verificar-instalacion' && ficha) verificarInstalacion(b);
     else if (que === 'foto-equipo') fotoEquipo(b);
+    else if (que === 'foto-ui-grande' && ficha) fotoUiGrande(b.dataset.equipo);
     else if (que === 'firmar' && ficha) abrirFirma(b.dataset.rol);
     else if (que === 'cancelar-firma' && ficha) cerrarFirma({ olvidar: true });
     else if (que === 'limpiar-firma' && ficha) { const cv = $app.querySelector('[data-firma-lienzo]'); if (cv) { cv.getContext('2d').clearRect(0, 0, cv.width, cv.height); trazado = false; firmaSinPintar = null; apuntarFirma(); } }
@@ -2782,12 +2960,14 @@
   /* Un toque en Sí / No / N/A de la ficha `h`: marca, o desmarca si ya lo estaba. */
   function tocarResp(h, b) {
     const p = b.dataset.hPunto;
-    const guardado = (h.f.secciones.flatMap((s) => s.puntos).find((x) => x.codigo === p) || {}).valor;
+    const sec = h.f.secciones.find((s) => (s.puntos || []).some((x) => x.codigo === p));
+    const punto = sec ? sec.puntos.find((x) => x.codigo === p) : null;
+    const guardado = (punto || {}).valor;
     const actual = h.valores[p] && 'v' in h.valores[p] ? h.valores[p].v : guardado;
     const nuevo = actual === b.dataset.hResp ? null : b.dataset.hResp;
     h.valores[p] = { v: nuevo };
     for (const x of b.parentElement.children) x.className = '';
-    if (nuevo) b.className = b.parentElement.classList.contains('segmento') ? 'activa' : `activa ${nuevo === 'no' || nuevo === 'noOk' ? 'mal' : nuevo === 'na' ? 'neutra' : 'bien'}`;
+    if (nuevo) b.className = b.parentElement.classList.contains('segmento') ? 'activa' : claseResp(nuevo, punto, sec && sec.tipo);
     return nuevo;
   }
   /*
