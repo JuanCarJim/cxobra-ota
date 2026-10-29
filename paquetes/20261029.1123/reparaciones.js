@@ -731,14 +731,31 @@
       <label>Qué se ha hecho<textarea rows="3" data-rp-v="hecho" placeholder="Lo que se ha revisado o cambiado">${esc(v.hecho)}</textarea></label>
       <label>Cómo ha quedado</label>
       <div class="segmentado">${RESULTADOS.map(([id, n]) => `<button data-rp-resultado="${id}" class="${v.resultado === id ? 'activa' : ''}">${n}</button>`).join('')}</div>
-      <button class="boton grande" data-rp="anotar-visita">Añadir a la ficha</button>
-      <p class="nota">Lo que apuntas se guarda en el móvil al momento; al añadirla a la ficha, se guarda sola.</p>`;
+      <p class="nota">Al volver a la ficha, la visita se añade y se guarda sola.</p>`;
   }
 
+  /* Sin botón «Añadir a la ficha» (29-oct, JC: «sobra»): al volver, la visita
+     se añade sola. Si no se ha escrito nada, se vuelve sin más; si está a
+     medias, se avisa de lo que falta y se puede salir sin añadirla. */
+  function visitaVacia(v) {
+    return !v.resultado && !String(v.hecho).trim() && !v.tecnicos.some((t) => String(t.horas).trim());
+  }
+  function volverDeVisita() {
+    if (!visita || visitaVacia(visita)) { visita = null; persistirCambios(); pintarFicha(); return; }
+    const falta = faltaEnVisita(visita);
+    if (falta && !window.confirm(`${falta}\n\n¿Volver a la ficha sin añadir la visita?`)) return;
+    if (falta) { visita = null; persistirCambios(); pintarFicha(); return; }
+    anotarVisita();
+  }
+  function faltaEnVisita(v) {
+    if (!v.resultado) return 'Falta decir cómo ha quedado.';
+    const conHoras = v.tecnicos.filter((t) => String(t.operario).trim() || String(t.horas).trim());
+    if (v.resultado !== 'noRealizada' && !conHoras.length) return 'Falta al menos un técnico con sus horas.';
+    return null;
+  }
   function anotarVisita() {
-    if (!visita.resultado) { C.aviso('Di cómo ha quedado.', 'aviso'); return; }
-    const conHoras = visita.tecnicos.filter((t) => String(t.operario).trim() || String(t.horas).trim());
-    if (visita.resultado !== 'noRealizada' && !conHoras.length) { C.aviso('Apunta al menos un técnico con sus horas.', 'aviso'); return; }
+    const falta = faltaEnVisita(visita);
+    if (falta) { C.aviso(falta, 'aviso'); return; }
     cambios.visita = visita;
     visita = null;
     persistirCambios();
@@ -786,7 +803,7 @@
     else if (a === 'paso') elegirPaso(b.dataset.estado);
     else if (a === 'visita' || a === 'editar-visita') nuevaVisita();
     else if (a === 'quitar-visita') { cambios.visita = null; persistirCambios(); const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
-    else if (a === 'volver-ficha') { visita = null; persistirCambios(); pintarFicha(); }
+    else if (a === 'volver-ficha') volverDeVisita();
     else if (a === 'otro-tecnico') { visita.tecnicos.push({ operario: '', empresa: visita.tecnicos[0].empresa, categoria: 'operario', horas: visita.tecnicos[0].horas }); persistirCambios(); pintarVisita(); }
     else if (a === 'quitar-tecnico') { visita.tecnicos.splice(Number(b.dataset.i), 1); persistirCambios(); pintarVisita(); }
     else if (a === 'anotar-visita') anotarVisita();

@@ -26,6 +26,16 @@
      cuando está apagada y relleno cuando está activa. Lo de dentro del
      relleno se dibuja con el color de la barra para que se lea. */
   const HUECO = 'style="stroke:var(--barra-solida)"';
+  /* CON EL TECLADO ABIERTO el iPhone desplaza la vista hacia arriba: la
+     cabecera se iba y la hora pisaba las tarjetas (29-oct, JC, al buscar).
+     La cabecera baja lo que se ha desplazado la vista, siempre arriba. */
+  if (window.visualViewport) {
+    const vv = window.visualViewport;
+    const ajustar = () => document.documentElement.style.setProperty('--vv-arriba', `${Math.max(0, Math.round(vv.offsetTop))}px`);
+    vv.addEventListener('resize', ajustar);
+    vv.addEventListener('scroll', ajustar);
+    ajustar();
+  }
   const icono = (off, on) => svg(`<g class="off">${off}</g><g class="on">${on}</g>`);
 
   /* Cuatro pestañas, dos a cada lado del botón de añadir: [0][1] [ + ] [2][3]. */

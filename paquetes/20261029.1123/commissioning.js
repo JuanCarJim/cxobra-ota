@@ -515,7 +515,6 @@
   };
   const nombreEstado = (v) => NOMBRE_ESTADO[v] || v;
 
-  function checklist(k, med, puede = false) {
   /*
    * INCIDENCIAS DEL EQUIPO (29-oct, JC): con una incidencia abierta no se toman datos
    * (la regla manda el servidor; aquí solo se explica y se ocultan los controles),
@@ -568,6 +567,7 @@
     location.hash = 'reparaciones';
   }
 
+  function checklist(k, med, puede = false) {
     if (!k) return '';
     /* Sin fila «Ensayo» (16-oct, JC): el balanceo y la estanqueidad salen solo
        si el equipo los lleva. Un split o una enfriadora no llevan balanceo de bocas. */
@@ -822,9 +822,9 @@
     const f = ficha;
     const e = f.equipo;
     const puede = f.puedeMedir;
-    if (pestanaEq === 'balanceo' && !tieneBalanceo(f)) pestanaEq = 'equipo';
     /* Con una incidencia abierta: se ven las hojas y se hacen fotos, pero no se toman datos. */
     const puedeToma = puede && !bloqueosDe(f).length;
+    if (pestanaEq === 'balanceo' && !tieneBalanceo(f)) pestanaEq = 'equipo';
     const seg = document.getElementById('segmentos');
     if (seg) seg.hidden = true;
     const med = f.medicion || {};
@@ -863,14 +863,14 @@
      */
     const cuerpo = pestanaEq === 'balanceo' ? balanceo()
       : pestanaEq === 'fichas' ? `${htmlNotaConjunto(f.conjunto)}
-      ${htmlFichas('equipo', 'Fichas del equipo')}
       ${htmlIncidenciaEquipo(f)}
+      ${htmlFichas('equipo', 'Fichas del equipo')}
       ${htmlTomaDatos()}
       ${htmlConservadas()}`
       : `${htmlNotaConjunto(f.conjunto)}
       ${htmlNumSerie(e, f.conjunto, puede)}
-      ${htmlFichas('equipo', 'Fichas del equipo')}
       ${htmlIncidenciaEquipo(f)}
+      ${htmlFichas('equipo', 'Fichas del equipo')}
       ${htmlUnidadesInteriores(f, puede)}
       ${htmlFotosEquipo(f, puede)}
       ${checklist(f.checklist, f.medicion, puede)}`;
@@ -2259,8 +2259,8 @@
         <button class="boton secundario" data-cx="foto" data-camara="0">De la galería</button>
       </div>` : ''}
       ${htmlLoQueFalta(f, porPasos ? pasos : null, FALTAN_VISTOS)}
-      ${f.avisos.length ? `<p class="nota aviso">${esc(f.avisos.join(' · '))}</p>` : ''}
       ${f.bloqueo ? `<p class="nota inc-aviso bloqueo-inc">Bloqueado por <button type="button" class="enlace" data-cx="ir-incidencia" data-id="${esc(f.bloqueo.id)}">${esc(f.bloqueo.codigo)}${f.bloqueo.titulo ? ` · ${esc(f.bloqueo.titulo)}` : ''}</button>: la hoja solo se puede ver.</p>` : ''}
+      ${f.avisos.length ? `<p class="nota aviso">${esc(f.avisos.join(' · '))}</p>` : ''}
       <div class="barra-hoja">
         <button class="boton grande secundario" data-cx="pdf-hoja"><i class="ic ic-doc"></i>Informe PDF</button>
         <button class="boton grande secundario" data-cx="pdf-hoja-obra"><i class="ic ic-doc"></i>PDF para obra</button>
@@ -3058,10 +3058,10 @@
     else if (que === 'boca-siguiente' && ficha) bocaVecina(1);
     else if (que === 'boca-anterior' && ficha) bocaVecina(-1);
     else if (que === 'avisar-modelo') avisarModelo();
-    else if (que === 'verificar-instalacion' && ficha) verificarInstalacion(b);
     else if (que === 'crear-incidencia') crearIncidencia();
     else if (que === 'validar-tras-inc' && ficha) validarTrasIncidencia(b);
     else if (que === 'ir-incidencia') irIncidencia(b.dataset.id);
+    else if (que === 'verificar-instalacion' && ficha) verificarInstalacion(b);
     else if (que === 'foto-equipo') fotoEquipo(b);
     else if (que === 'foto-ui-grande' && ficha) fotoUiGrande(b.dataset.equipo);
     else if (que === 'firmar' && ficha) abrirFirma(b.dataset.rol);
