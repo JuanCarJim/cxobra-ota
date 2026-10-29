@@ -294,7 +294,7 @@
   }
 
   async function abrir(id, { conservar = false } = {}) {
-    visita = null;
+    visita = null; if (!conservar) firmando = null;
     let enCurso = null;
     if (!conservar) {
       cambios = nuevosCambios();
@@ -356,6 +356,88 @@
     el.textContent = texto;
   };
 
+  /*
+   * LA FIRMA DE LA REPARACIÓN (29-oct): el técnico responsable (quien tiene la
+   * sesión, su nombre puesto solo) y una segunda firma (nombre a mano y cargo).
+   * Se guarda en la tabla de firmas del equipo atada a esta reparación
+   * (api/reparacion/firma). Sin la del técnico no se puede cerrar.
+   */
+  let firmando = null; /* 'jefeObra' | 'cliente' mientras se firma */
+  let trazadoRep = false;
+  const ROTULO_FIRMA = { jefeObra: 'Técnico responsable', cliente: 'Segunda firma' };
+  function htmlFirmasRep() {
+    const fs = abierta.firmas || {};
+    const puedeFirmar = abierta.puede && abierta.puede.nota && ['abierta', 'enCurso', 'terminada'].includes(abierta.reparacion.estado);
+    const fila = (rol) => {
+      const f = fs[rol];
+      const fecha = f && f.fecha ? fechaEs(f.fecha) : '';
+      const valor = f
+        ? `<span class="firma-hecha"><img src="${esc(f.imagen)}" alt="Firma de ${esc(f.nombre)}"><span class="tenue">${esc([f.nombre, f.cargo, fecha].filter(Boolean).join(' · '))}</span></span>${puedeFirmar ? ` <button class="enlace" data-rp="firmar" data-rol="${rol}">Volver a firmar</button>` : ''}`
+        : (puedeFirmar ? `<button class="enlace" data-rp="firmar" data-rol="${rol}">Firmar</button>` : '<span class="no">Sin firmar</span>');
+      return `<div class="fd firma-fd"><span class="et">${ROTULO_FIRMA[rol]}</span><span class="firma-valor">${valor}</span></div>`;
+    };
+    return `<h2>Firma del equipo</h2><section class="grupo">${fila('jefeObra')}${fila('cliente')}</section>
+      ${abierta.firmada ? '' : '<p class="nota aviso">Sin la firma del técnico responsable la reparación no se puede cerrar.</p>'}
+      ${firmando ? htmlLienzoRep() : ''}`;
+  }
+  function htmlLienzoRep() {
+    const previa = (abierta.firmas || {})[firmando];
+    /* Los campos, del componente común (firmaDoble.js): el técnico con el nombre de la sesión; la otra, nombre y cargo. */
+    const FD = window.CX_FIRMA;
+    const campos = FD ? FD.htmlCampos(firmando, { previa: previa || (firmando === 'jefeObra' ? { nombre: abierta.yoNombre || '' } : null) })
+      : `<label class="campo"><span>Nombre de quien firma</span><input type="text" maxlength="80" data-firma-nombre value="${esc(previa ? previa.nombre : (firmando === 'jefeObra' ? (abierta.yoNombre || '') : ''))}"></label>`;
+    return `<section class="firma-lienzo" data-firma="${firmando}">
+      <h3 class="banda">${ROTULO_FIRMA[firmando]}</h3>
+      ${campos}
+      <canvas width="600" height="200" data-firma-lienzo aria-label="Firme aquí con el dedo"></canvas>
+      <p class="nota">Firme dentro del recuadro con el dedo.</p>
+      <div class="fila-botones">
+        <button class="boton" data-rp="guardar-firma">Firmar</button>
+        <button class="boton secundario" data-rp="limpiar-firma">Borrar trazo</button>
+        <button class="boton secundario" data-rp="cancelar-firma">Cancelar</button>
+        ${previa ? '<button class="enlace mal" data-rp="quitar-firma">Quitar la firma guardada</button>' : ''}
+      </div>
+    </section>`;
+  }
+  function prepararLienzoRep() {
+    const cv = $app.querySelector('[data-firma-lienzo]');
+    if (!cv) return;
+    if (window.CX_FIRMA) window.CX_FIRMA.enlazar($app.querySelector('.firma-lienzo'));
+    const cx = cv.getContext('2d');
+    cx.lineWidth = 3; cx.lineCap = 'round'; cx.lineJoin = 'round'; cx.strokeStyle = '#0F5F56';
+    trazadoRep = false;
+    let ultimo = null;
+    const punto = (ev) => { const r = cv.getBoundingClientRect(); return { x: ((ev.clientX - r.left) / r.width) * cv.width, y: ((ev.clientY - r.top) / r.height) * cv.height }; };
+    cv.addEventListener('pointerdown', (ev) => { ev.preventDefault(); try { cv.setPointerCapture(ev.pointerId); } catch { /* sin captura */ } ultimo = punto(ev); cx.beginPath(); cx.arc(ultimo.x, ultimo.y, 1.5, 0, Math.PI * 2); cx.fillStyle = cx.strokeStyle; cx.fill(); trazadoRep = true; });
+    cv.addEventListener('pointermove', (ev) => { if (!ultimo) return; ev.preventDefault(); const p = punto(ev); cx.beginPath(); cx.moveTo(ultimo.x, ultimo.y); cx.lineTo(p.x, p.y); cx.stroke(); ultimo = p; });
+    const fin = () => { ultimo = null; };
+    cv.addEventListener('pointerup', fin); cv.addEventListener('pointercancel', fin); cv.addEventListener('pointerleave', fin);
+  }
+  async function guardarFirmaRep(boton, quitar = false) {
+    if (!abierta || !firmando) return;
+    const FD = window.CX_FIRMA;
+    const raiz = $app.querySelector('.firma-lienzo');
+    const leido = FD ? FD.leer(raiz) : { nombre: (($app.querySelector('[data-firma-nombre]') || {}).value || '').trim(), cargo: '' };
+    const nombre = leido.nombre; const cargo = leido.cargo || '';
+    const cv = $app.querySelector('[data-firma-lienzo]');
+    if (!quitar) {
+      const falta = FD ? FD.falta(firmando, leido) : (nombre.trim() ? null : 'Falta el nombre de quien firma.');
+      if (falta) { C.aviso(falta); return; }
+      if (!trazadoRep || !cv) { C.aviso('Firme en el recuadro antes de guardar.'); return; }
+    }
+    boton.disabled = true;
+    try {
+      const id = abierta.reparacion.id;
+      const r = await C.postJson('api/reparacion/firma', quitar ? { id, rol: firmando, quitar: true }
+        : { id, rol: firmando, nombre: nombre.trim(), cargo, imagen: cv.toDataURL('image/png') });
+      if (!r.ok) throw new Error(r.error);
+      abierta.firmas = r.firmas; abierta.firmada = r.firmada;
+      C.aviso(quitar ? 'Firma quitada' : 'Firma guardada', 'bien');
+      firmando = null;
+      const y = window.scrollY; pintarFicha(); window.scrollTo(0, y);
+    } catch (e) { C.aviso(e.message); boton.disabled = false; }
+  }
+
   function pintarFicha() {
     const { reparacion: r, porOperario, comentarios, pasos, puede } = abierta;
     const dato = (nombre, valor) => (valor ? `<div class="fila-dato"><span>${esc(nombre)}</span><strong>${esc(valor)}</strong></div>` : '');
@@ -402,12 +484,14 @@
           ${v.hecho ? `<p class="texto-ficha">${esc(v.hecho)}</p>` : ''}
           <div class="fila-botones"><button class="boton secundario" data-rp="editar-visita">Cambiar</button><button class="boton secundario" data-rp="quitar-visita">Quitar</button></div>
         </section>` : '<button class="boton secundario" data-rp="visita"><i class="ic ic-check"></i>Apuntar visita: técnicos y horas</button>'}` : ''}
+      ${htmlFirmasRep()}
       ${pasos.length ? `<h2>Estado</h2><div class="segmentado pasos-rp">${pasos.map((p) => `<button type="button" data-rp="paso" data-estado="${esc(p.id)}" class="${cambios.estado === p.id ? 'activa' : ''}" aria-pressed="${cambios.estado === p.id}">${esc(NOMBRE_PASO(p))}</button>`).join('')}</div>
         ${cambios.estado ? `<p class="nota">Pasará a «${esc(NOMBRE_PASO(pasos.find((p) => p.id === cambios.estado)))}»${cambios.motivo ? `: ${esc(cambios.motivo)}` : ''}.</p>` : ''}` : ''}
       <h2>Lo que se ha hecho</h2>
       ${puede.nota ? `<textarea rows="3" data-rp-nota placeholder="Escribe una nota; se guarda sola">${esc(cambios.nota)}</textarea>` : ''}
       ${comentarios.length ? `<ul class="historial">${[...comentarios].reverse().map((c) => `<li><span class="sub">${fechaEs(c.cuando)}${c.persona ? ` · ${esc(c.persona)}` : ''}</span> ${c.tipo === 'estado' ? `<em>${esc(c.texto)}</em>` : esc(c.texto)}</li>`).join('')}</ul>` : '<p class="vacio">Todavía nada.</p>'}`;
     C.cargarImagenes($app);
+    if (firmando) prepararLienzoRep();
   }
 
   /*
@@ -691,6 +775,11 @@
     else if (a === 'otro-tecnico') { visita.tecnicos.push({ operario: '', empresa: visita.tecnicos[0].empresa, categoria: 'operario', horas: visita.tecnicos[0].horas }); persistirCambios(); pintarVisita(); }
     else if (a === 'quitar-tecnico') { visita.tecnicos.splice(Number(b.dataset.i), 1); persistirCambios(); pintarVisita(); }
     else if (a === 'anotar-visita') anotarVisita();
+    else if (a === 'firmar') { firmando = b.dataset.rol; const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); const l = $app.querySelector('.firma-lienzo'); if (l && l.scrollIntoView) l.scrollIntoView({ block: 'center' }); }
+    else if (a === 'guardar-firma') guardarFirmaRep(b);
+    else if (a === 'quitar-firma') guardarFirmaRep(b, true);
+    else if (a === 'limpiar-firma') { const cv = $app.querySelector('[data-firma-lienzo]'); if (cv) { cv.getContext('2d').clearRect(0, 0, cv.width, cv.height); trazadoRep = false; } }
+    else if (a === 'cancelar-firma') { firmando = null; const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
   });
   /* Planta, zona u operario de la ficha: se guarda al elegirlo (no es de lo que espera al «Guardar»). */
   async function guardarDato(campo) {

@@ -171,16 +171,18 @@ body {
 .hoja h3 { margin: 0 0 2px; font-family: var(--fuente-titular); font-weight: 700; font-size: 22px; letter-spacing: -.02em; color: var(--texto); }
 .hoja .sub { margin: 0 0 14px; font-size: 14px; color: var(--textoTenue); }
 .hoja ul { list-style: none; margin: 0; padding: 0; }
+.rejilla-anadir { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+@media (min-width: 560px) { .rejilla-anadir { grid-template-columns: repeat(4, 1fr); } }
 .accion-rapida {
-  width: 100%; display: flex; align-items: center; gap: 14px; padding: 10px 0; min-height: 62px;
-  background: none; border: 0; font: inherit; color: var(--texto); text-align: left; cursor: pointer;
+  width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 8px;
+  padding: 12px 6px 10px; min-height: 44px; background: #F6FAF9; border: 0; border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, .06); font: inherit; color: var(--texto); text-align: center; cursor: pointer;
 }
 .accion-rapida:disabled { opacity: .45; }
 .accion-rapida:active { opacity: .6; }
-.accion-rapida .ico { width: 44px; height: 44px; flex: none; border-radius: 14px; display: flex; align-items: center; justify-content: center; background: var(--acento-suave); color: var(--acento); }
-.accion-rapida .ico svg { width: 22px; height: 22px; }
-.accion-rapida b { display: block; font-size: 16px; font-weight: 600; }
-.accion-rapida small { display: block; font-size: 13px; color: var(--textoTenue); }
+.accion-rapida .ico { width: 48px; height: 48px; flex: none; border-radius: 14px; display: flex; align-items: center; justify-content: center; background: var(--acento-suave); color: var(--acento); }
+.accion-rapida .ico svg { width: 24px; height: 24px; }
+.accion-rapida b { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 13px; line-height: 1.2; font-weight: 600; }
 .hoja .boton.cancelar { width: 100%; margin-top: 12px; background: var(--panel3); color: var(--texto); }
 
 main { padding: 16px 20px 40px; max-width: 640px; margin: 0 auto; }
@@ -379,7 +381,7 @@ main > label { margin-top: 14px; }
 }
 .toast::before { content: ''; width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--acento-vivo); }
 .toast.mal::before { background: #FF6B6B; }
-.toast.aviso::before { background: #FFB547; }
+.toast.aviso::before { background: #6AA9E9; }
 .toast.bien::before { background: #5BD08A; }
 
 /* ═══════════════ Entrar (acceso.js): el formulario tapa la página hasta que entra. */
@@ -717,6 +719,9 @@ details.grupo-lista[open] > summary { margin-bottom: 6px; }
 .sync-pastilla.girando::before { animation: sync-latido 1s ease-in-out infinite; }
 @keyframes sync-latido { 50% { opacity: .25; } }
 .barra-fila .sync-pastilla + .quien { max-width: 30%; }
+.lista-conflictos { list-style: none; margin: 0; padding: 0 18px 8px; font-size: 14px; }
+.lista-conflictos li { padding: 8px 0; border-top: 1px solid var(--rejillaSuave); }
+#cx-conflictos .boton { margin: 4px 18px 14px; }
 .grupo-plegable { margin-top: 18px; }
 .grupo-plegable > summary { cursor: pointer; padding: 10px 4px; font-size: 15px; font-weight: 600; color: var(--acento); list-style: none; }
 .grupo-plegable > summary::-webkit-details-marker { display: none; }
@@ -1620,21 +1625,21 @@ button.avisoFlotCerrar { min-height: 32px; width: 32px; padding: 0; border: 0; b
 @media (hover: hover) { [data-aviso-texto] { cursor: help; } }
 
 /* ═══════════════ TARJETAS Y PESTAÑAS MODERNAS (28-oct-2026, JC)
-   Un solo sitio para toda la app móvil: bloques blancos sobre un fondo de
-   página gris muy claro, esquinas de 16 px, sombra pequeña y suave y un borde
+   Un solo sitio para toda la app móvil: bloques blancos sobre fondo de
+   página blanco (JC, 29-oct: nada de gris), esquinas de 16 px, sombra pequeña y suave y un borde
    apenas visible. Las cabeceras de bloque (banda teal clara) se recortan con el
    redondeo (overflow: hidden). Todo sale de estas variables: para cambiar el
    aspecto de la app entera basta tocarlas. */
 :root {
-  --fondo-pagina: #F3F5F6;
+  --fondo-pagina: #FFFFFF;
   --radio-bloque: 16px;
   --radio-kpi: 12px;
-  --sombra-bloque: 0 2px 8px rgba(0, 0, 0, .07);
-  --borde-bloque: 1px solid rgba(15, 23, 42, .05);
+  --sombra-bloque: 0 2px 8px rgba(0, 0, 0, .08);
+  --borde-bloque: 1px solid rgba(15, 23, 42, .04);
   --pest-activa-fondo: var(--acento-suave);
 }
 body { background: var(--fondo-pagina); }
-.barra { background: rgba(243, 245, 246, .88); border-bottom: 0; }
+.barra { background: rgba(255, 255, 255, .92); border-bottom: 0; }
 #app.densa { --radio-tarjeta: var(--radio-bloque); --sombra: var(--sombra-bloque); }
 
 /* El selector «Inicio / Mis tareas»: texto sin caja; la activa en teal con pastilla suave. */

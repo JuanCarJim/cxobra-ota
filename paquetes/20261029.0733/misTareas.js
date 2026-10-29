@@ -215,7 +215,8 @@
   }
 
   const contestadas = () => (borrador ? borrador.checklist.filter((v) => v).length : 0);
-  const progresoTexto = () => (abierta && abierta.orden.estado === 'enCurso' ? `${contestadas()}/${abierta.orden.checklist.length}` : '');
+  /* Sin comprobaciones no hay «0/0» que contar (JC, 29-oct). */
+  const progresoTexto = () => (abierta && abierta.orden.estado === 'enCurso' && abierta.orden.checklist.length ? `${contestadas()}/${abierta.orden.checklist.length}` : '');
   const progresoPct = () => (abierta && abierta.orden.checklist.length ? (contestadas() / abierta.orden.checklist.length) * 100 : 0);
 
   /* ── Subsecciones de la ficha: una pantalla de iPhone cada una, nunca lista infinita.

@@ -30,6 +30,10 @@
   let lista = null;
   let ficha = null;
   let pilaEquipos = []; /* las unidades por las que se ha pasado, para volver */
+  /* Llegar desde el plano de equipos (29-oct, JC): al terminar se vuelve al plano, con su zoom y su sitio. */
+  let origenPlano = false; /* se entró al equipo desde el plano */
+  let directoPlano = false; /* … directo a una pantalla (datos, balanceo): su «atrás» es el plano */
+  let hojaDirecta = false; /* … directo a una hoja (checklist, estanqueidad, balanceo): al salir de ella, el plano */
   let yLista = 0;       /* dónde estaba la lista al abrir un equipo */
   let fichasEq = null; /* las fichas que necesita el equipo abierto */
   let hoja = null;     /* la ficha que se está rellenando */
@@ -68,6 +72,7 @@
   async function cargarLista() {
     guardarTodoYa();
     ficha = null; hoja = null; pilaEquipos = [];
+    origenPlano = false; directoPlano = false; hojaDirecta = false;
     bocaAbierta = null; grandeId = null;
     document.body.classList.remove('sin-scroll');
     /* Desde una cifra del Inicio: la lista llega ya filtrada. */
@@ -96,7 +101,7 @@
     ['todos', 'Todos', () => true],
     ['faltaDoc', 'Falta doc.', (e) => !e.completo && e.envio !== 'enviada' && !e.docCompleta],
     ['faltaBalanceo', 'Falta balanceo', (e) => !e.completo && e.envio === 'faltaEnsayo' && (!e.ensayoFalta || e.ensayoFalta.includes('balanceo'))],
-    ['faltaEstanqueidad', 'Falta estanqueidad', (e) => !e.completo && e.envio === 'faltaEnsayo' && (e.ensayoFalta || []).includes('estanqueidad')],
+    ['faltaEstanqueidad', 'Falta estanqueidad', (e) => !e.completo && (e.ensayoFalta || []).includes('estanqueidad')],
     /* Una sola regla: la de shared/commissioning/control.js (papeles + fichas + ensayo). */
     ['completos', 'Completos', (e) => e.completo],
     ['soloDoc', 'Doc. completa', (e) => e.docCompleta && !e.completo],
@@ -197,11 +202,11 @@
         : null,
       t.enMarcha !== undefined ? { id: 'enMarcha', et: 'En marcha', n: t.enMarcha, tono: 'bien', barra: pct(t.enMarcha), pie: `${pct(t.enMarcha)} % puestos en marcha` } : null,
       { id: 'completos', et: 'Completos', n: t.completos, tono: 'bien', barra: pct(t.completos), pie: `${pct(t.completos)} % del total` },
-      { id: 'soloDoc', et: 'Doc. completa', n: t.soloDoc || 0, tono: 'neutro', pie: 'falta el ensayo' },
-      { id: 'faltaDoc', et: 'Falta doc.', n: t.faltaDocumentacion || 0, tono: 'falta', pie: 'papeles por subir' },
-      { id: 'faltaFichas', et: 'Falta ficha', n: t.faltaFichas || 0, tono: 'falta', pie: 'fichas por rellenar' },
-      { id: 'faltaBalanceo', et: 'Falta balanceo', n: t.faltaBalanceo || 0, tono: 'falta', pie: 'bocas por medir' },
-      { id: 'faltaEstanqueidad', et: 'Falta estanq.', n: t.faltaEstanqueidadEnvio || 0, tono: 'falta', pie: 'prueba por hacer' },
+      { id: 'soloDoc', et: 'Doc. lista', n: t.soloDoc || 0, tono: 'neutro', pie: 'falta el ensayo' },
+      { id: 'faltaDoc', et: 'Sin doc.', n: t.faltaDocumentacion || 0, tono: 'falta', pie: 'papeles por subir' },
+      { id: 'faltaFichas', et: 'Sin ficha', n: t.faltaFichas || 0, tono: 'falta', pie: 'fichas por rellenar' },
+      { id: 'faltaBalanceo', et: 'Balanceo', n: t.faltaBalanceo || 0, tono: 'falta', pie: 'equipos por medir' },
+      { id: 'faltaEstanqueidad', et: 'Estanq.', n: (window.KPI_CX ? window.KPI_CX.faltaEstanqueidad(t) : t.faltaEstanqueidadEnvio || 0), tono: 'falta', pie: 'prueba por hacer' },
     ].filter(Boolean);
     return `<div class="kpis-cx" role="tablist" aria-label="Resumen del commissioning">${celdas.map((c) => {
       const tono = c.tono === 'falta' && !c.n ? 'bien' : c.tono;
@@ -267,6 +272,53 @@
 
   /* ═══════════════════════════════════ 2. La ficha */
 
+  /* Vuelta al plano de equipos tal y como se dejó (planoEquipos.js guarda la vista). */
+  function volverAlPlano() {
+    origenPlano = false; directoPlano = false; hojaDirecta = false;
+    ficha = null; hoja = null; fichasEq = null; pilaEquipos = [];
+    document.body.classList.remove('sin-scroll');
+    if (window.CX_PLANO_EQUIPOS) window.CX_PLANO_EQUIPOS.volver($app); else cargarLista();
+  }
+
+  /*
+   * IR DESDE EL PLANO A LO QUE EL EQUIPO NECESITA (29-oct, JC). El plano dice
+   * qué botones salen (shared/commissioning/planoEquipos.js, con las reglas de
+   * siempre); aquí cada uno abre la pantalla que ya existía, sin formularios
+   * nuevos: «datos» (la toma de datos de las fichas, con lo que falta a la
+   * vista), «checklist» y «estanqueidad» (su hoja), «balanceo» (como el botón
+   * del equipo) y «equipo» (la ficha completa).
+   */
+  async function irA(id, accion) {
+    origenPlano = true; directoPlano = accion !== 'equipo'; hojaDirecta = false;
+    ficha = null; fichasEq = null;
+    await abrir(id);
+    if (!ficha || ficha.equipo.id !== id || accion === 'equipo') return;
+    await cargarFichas(id);
+    if (!ficha || ficha.equipo.id !== id) return;
+    const fs = (fichasEq && fichasEq.fichas) || [];
+    const buscar = (clases) => fs.findIndex((x) => clases.includes(x.clase) && !x.conservada && x.plantilla);
+    if (accion === 'balanceo') {
+      const i = hojaUnicaBalanceo();
+      if (i >= 0) { balDirecto = true; hojaDirecta = true; abrirHoja(i); return; }
+      pestanaEq = 'balanceo'; pintarFicha(); window.scrollTo(0, 0);
+    } else if (accion === 'checklist' || accion === 'estanqueidad') {
+      const i = buscar(accion === 'checklist' ? ['checklist'] : ['estanqRefrigerante', 'estanqAgua']);
+      if (i >= 0) { hojaDirecta = true; abrirHoja(i); return; }
+      C.aviso(accion === 'checklist' ? 'Este equipo aún no tiene el checklist.' : 'Este equipo aún no tiene la ficha de estanqueidad.');
+    } else if (accion === 'datos') {
+      document.body.classList.remove('sin-scroll');
+      pestanaEq = 'fichas'; pintarFicha(); window.scrollTo(0, 0);
+      await cargarTomas(id);
+      /* Al primer dato que falta. */
+      setTimeout(() => {
+        const campos = [...document.querySelectorAll('#toma-datos input, #toma-datos select, #toma-datos textarea')];
+        const vacio = campos.find((c) => c.type !== 'hidden' && c.type !== 'checkbox' && !c.disabled && !String(c.value || '').trim());
+        if (vacio) vacio.scrollIntoView({ block: 'center' });
+      }, 120);
+    }
+  }
+  window.CX_COMMISSIONING_IR = (id, accion) => irA(id, accion);
+
   async function abrir(id, { quieto = false } = {}) {
     /* quieto: se repinta el mismo equipo (llegó algo de la oficina) sin moverse de donde estaba. */
     const y = window.scrollY;
@@ -286,7 +338,7 @@
         if (ficha && ficha.equipo.id === r.equipo.id) ficha = r;
         return;
       }
-      if (!ficha || ficha.equipo.id !== r.equipo.id) { pestanaEq = 'equipo'; circuitoBal = 'impulsion'; firmando = firmaAMedias(r.equipo.id); }
+      if (!ficha || ficha.equipo.id !== r.equipo.id) { pestanaEq = 'equipo'; circuitoBal = 'impulsion'; balDirecto = false; firmando = firmaAMedias(r.equipo.id); }
       ficha = r;
       hoja = null;
       fichasEq = null;
@@ -400,7 +452,16 @@
    * split o un VRF, para todo el conjunto) y salen en los PDF del checklist,
    * la ficha de PM, el balanceo y la estanqueidad. Volver a firmar sustituye.
    */
-  const ROTULO_FIRMA = { jefeObra: 'Firma del jefe de obra', cliente: 'Firma del cliente' };
+  /* Los campos de las dos firmas son la pieza común renderer/movil/firmaDoble.js:
+     técnico responsable (quien ha entrado) y la otra con su cargo (Cliente, DF, DEO, otro). */
+  const FD = window.CX_FIRMA || { /* sin la pieza (pruebas que cargan solo este fichero) */
+    rotulo: (r) => (r === 'jefeObra' ? 'Técnico responsable' : 'Firma de conformidad'),
+    textoHecha: (f) => (f ? [f.nombre, f.cargo].filter(Boolean).join(' · ') : ''),
+    htmlCampos: () => '<input type="text" data-firma-nombre>', enlazar: () => {},
+    leer: (r) => ({ nombre: (((r && r.querySelector('[data-firma-nombre]')) || {}).value || '').trim(), cargo: null }),
+    falta: (rol, c) => (c.nombre ? null : 'Falta el nombre de quien firma.'),
+  };
+  const ROTULO_FIRMA = { jefeObra: FD.rotulo('jefeObra'), cliente: FD.rotulo('cliente') };
   let firmando = null; /* 'jefeObra' | 'cliente' mientras se firma */
   let trazado = false;
   let firmaSinPintar = null; /* la firma a medias recuperada, mientras se pinta en el lienzo */
@@ -410,7 +471,7 @@
       const f = fs[rol];
       const fecha = f && f.fecha ? String(f.fecha).slice(0, 10).split('-').reverse().join('/') : '';
       const valor = f
-        ? `<span class="firma-hecha"><img src="${esc(f.imagen)}" alt="Firma de ${esc(f.nombre)}"><span class="tenue">${esc([f.nombre, fecha].filter(Boolean).join(' · '))}</span></span>${puede ? ` <button class="enlace" data-cx="firmar" data-rol="${rol}">Volver a firmar</button>` : ''}`
+        ? `<span class="firma-hecha"><img src="${esc(f.imagen)}" alt="Firma de ${esc(f.nombre)}"><span class="tenue">${esc(FD.textoHecha(f) || fecha)}</span></span>${puede ? ` <button class="enlace" data-cx="firmar" data-rol="${rol}">Volver a firmar</button>` : ''}`
         : (puede ? `<button class="enlace" data-cx="firmar" data-rol="${rol}">Firmar</button>` : '<span class="no">Sin firmar</span>');
       return `<div class="fd firma-fd"><span class="et">${ROTULO_FIRMA[rol]}</span><span class="firma-valor">${valor}</span></div>`;
     }).join('');
@@ -418,11 +479,9 @@
   function htmlLienzoFirma() {
     const previa = ((ficha && ficha.firmas) || {})[firmando];
     const medias = AG && ficha ? AG.leer(claveFirma(ficha.equipo.id, firmando)) : null;
-    const nombre = medias && medias.nombre ? medias.nombre : (previa ? previa.nombre : '');
     return `<section class="firma-lienzo" data-firma="${firmando}">
       <h3 class="banda">${ROTULO_FIRMA[firmando]}</h3>
-      <label class="campo"><span>Nombre de quien firma</span>
-        <input type="text" maxlength="80" data-firma-nombre value="${esc(nombre)}" placeholder="${firmando === 'cliente' ? 'Nombre y empresa del cliente' : 'Nombre del jefe de obra'}" autocomplete="name"></label>
+      ${FD.htmlCampos(firmando, { previa, medias })}
       <canvas width="600" height="200" data-firma-lienzo aria-label="Firme aquí con el dedo"></canvas>
       <p class="nota">Firme dentro del recuadro con el dedo. ${marcaAG(AG && ficha && AG.leer(claveFirma(ficha.equipo.id, firmando)) ? 'movil' : '')}</p>
       <div class="fila-botones">
@@ -436,6 +495,7 @@
   function prepararLienzo() {
     const cv = $app.querySelector('[data-firma-lienzo]');
     if (!cv) return;
+    FD.enlazar($app.querySelector('.firma-lienzo'));
     const cx = cv.getContext('2d');
     cx.lineWidth = 3; cx.lineCap = 'round'; cx.lineJoin = 'round'; cx.strokeStyle = '#0F5F56';
     trazado = false;
@@ -477,11 +537,11 @@
   function apuntarFirma() {
     if (!AG || !ficha || !firmando) return;
     const cv = $app.querySelector('[data-firma-lienzo]');
-    const nombre = ($app.querySelector('[data-firma-nombre]') || {}).value || '';
+    const { nombre, cargo } = FD.leer($app.querySelector('.firma-lienzo'));
     let imagen = null;
     try { imagen = firmaSinPintar || (trazado && cv ? cv.toDataURL('image/png') : null); } catch { /* sin lienzo */ }
     if (!imagen && !nombre.trim()) { AG.olvidar(claveFirma(ficha.equipo.id, firmando)); return; }
-    AG.guardar(claveFirma(ficha.equipo.id, firmando), { nombre, imagen });
+    AG.guardar(claveFirma(ficha.equipo.id, firmando), { nombre, cargo, imagen });
     const m = $app.querySelector('.firma-lienzo .autoguardado');
     if (m) { m.className = 'autoguardado movil'; m.textContent = TEXTO_AG.movil; }
   }
@@ -502,17 +562,19 @@
   }
   async function guardarFirma(boton, quitar = false) {
     if (!ficha || !firmando) return;
-    const nombre = ($app.querySelector('[data-firma-nombre]') || {}).value || '';
+    const campos = FD.leer($app.querySelector('.firma-lienzo'));
+    const { nombre, cargo } = campos;
     const cv = $app.querySelector('[data-firma-lienzo]');
     if (!quitar) {
-      if (!nombre.trim()) { C.aviso('Falta el nombre de quien firma.'); return; }
+      const f = FD.falta(firmando, campos);
+      if (f) { C.aviso(f); return; }
       if (!trazado || !cv) { C.aviso('Firme en el recuadro antes de guardar.'); return; }
     }
     boton.disabled = true;
     try {
       const r = await C.postJson('api/equipo/firma', quitar
         ? { equipoId: ficha.equipo.id, rol: firmando, quitar: true }
-        : { equipoId: ficha.equipo.id, rol: firmando, nombre: nombre.trim(), imagen: cv.toDataURL('image/png') });
+        : { equipoId: ficha.equipo.id, rol: firmando, nombre: nombre.trim(), cargo: firmando === 'cliente' ? cargo : undefined, imagen: cv.toDataURL('image/png') });
       if (!r.ok) throw new Error(r.error);
       ficha.firmas = r.firmas;
       C.aviso(quitar ? 'Firma quitada' : 'Firma guardada', 'bien');
@@ -557,6 +619,19 @@
   let circuitoBal = 'impulsion'; /* en el balanceo: 'impulsion' | 'retorno' */
   const esRetorno = (b) => b.circuito === 'retorno';
   const pestanaDeFicha = (x) => (x.clase === 'balanceo' ? 'balanceo' : 'equipo');
+  let balDirecto = false; /* la hoja de balanceo se abrió directamente: al salir, al equipo */
+  /* Hay bocas que medir en el teléfono: un plano subido sin bocas dibujadas no
+     enseña nada en la pantalla del balanceo (ni plano ni lista), así que cuenta
+     como sin plano. */
+  const hayBocas = (f) => (f && f.planos ? f.planos : []).some((p) => (p.bocas || []).length);
+  /* Índice de la única hoja de balanceo (con plantilla) si el equipo no tiene bocas que medir; si no, -1.
+     Con bocas la pantalla del balanceo es trabajo de verdad (el plano y su lista de bocas),
+     no un paso intermedio: se queda (JC, 29-oct). */
+  function hojaUnicaBalanceo() {
+    if (!ficha || !fichasEq || fichasEq.ok === false || hayBocas(ficha)) return -1;
+    const hs = (fichasEq.fichas || []).map((x, i) => [x, i]).filter(([x]) => !x.conservada && x.clase === 'balanceo');
+    return hs.length === 1 && hs[0][0].plantilla ? hs[0][1] : -1;
+  }
   function tieneBalanceo(f) {
     /* Lo que se mide de su familia manda (15-oct-2026): un split no enseña un
        balanceo vacío y un fan coil de conductos sí lo enseña. Un plano que ya
@@ -1344,7 +1419,15 @@
     completa: ['info', 'Completa'], firmada: ['bien', 'Firmada'],
   };
   const RESULTADO = { apto: ['bien', 'APTO'], aRevisar: ['aviso', 'A REVISAR'], noApto: ['mal', 'NO APTO'] };
-  const chipFicha = (estado, resultado) => {
+  /* «A medias» sin un solo dato relleno se contradice (JC, 29-oct): sin datos, «Sin empezar». */
+  /* Y al revés (JC, 29-oct): «2 de 2 datos» y «A medias» se contradicen: entera, «Completa». */
+  const estadoVisible = (estado, medidos, bocasSinMedir) => {
+    if (estado !== 'pendiente' || !medidos) return estado;
+    if (!medidos.rellenos) return 'sinEmpezar';
+    return medidos.obligatorios && medidos.rellenos >= medidos.obligatorios && !(bocasSinMedir || []).length ? 'completa' : estado;
+  };
+  const chipFicha = (estado0, resultado, medidos, bocasSinMedir) => {
+    const estado = estadoVisible(estado0, medidos, bocasSinMedir);
     const [c, n] = ESTADO_FICHA[estado] || ['neutra', estado || ''];
     const r = resultado && RESULTADO[resultado];
     return `<span class="chip ${c}">${esc(n)}</span>${r ? ` <span class="chip ${r[0]}">${esc(r[1])}</span>` : ''}`;
@@ -1364,7 +1447,7 @@
         ? `Falta el caudal medido total de la UTA: ${lista}. Va aparte de las bocas del plano`
         : `Falta el caudal medido de ${sin.length === 1 ? 'la fila' : `${sin.length} filas`}: ${lista}`;
     }
-    return x.medidos ? `${x.medidos.rellenos} de ${x.medidos.obligatorios} datos` : null;
+    return x.medidos && x.medidos.obligatorios ? `${x.medidos.rellenos} de ${x.medidos.obligatorios} datos` : null;
   }
 
   function htmlFichas(pestana = 'equipo', titulo = 'Fichas del equipo') {
@@ -1388,7 +1471,7 @@
           <div class="sub">${esc(x.motivo || 'Falta elegir la plantilla')} Se elige en el ordenador (Puesta en marcha).</div>
         </div></li>` : `
         <li><button class="fila-ios" data-cx="hoja" data-i="${i}">
-          <div class="fila-principal"><strong>${esc(x.nombre)}</strong><span>${chipFicha(x.estado, x.resultado)}</span></div>
+          <div class="fila-principal"><strong>${esc(x.nombre)}</strong><span>${chipFicha(x.estado, x.resultado, x.medidos, x.bocasSinMedir)}</span></div>
           <div class="sub">${esc([CLASE_FICHA[x.clase] || x.clase, x.motivo, textoMedidos(x), x.fotos ? `${x.fotos} foto${x.fotos === 1 ? '' : 's'}` : null].filter(Boolean).join(' · '))}</div>
         </button></li>`)).join('')}${filaBal}</ul>` : `<p class="vacio">${esc(vacio)}</p>`}
       ${notaMed}
@@ -1404,21 +1487,38 @@
       <p class="nota">Se hicieron antes de juntar el conjunto: se conservan y se pueden leer; no cuentan para «completo».</p>
       <ul class="lista-ios">${cs.map(([x, i]) => `
         <li><button class="fila-ios" data-cx="hoja" data-i="${i}">
-          <div class="fila-principal"><strong>${esc(x.nombre)}</strong><span>${chipFicha(x.estado, x.resultado)}</span></div>
+          <div class="fila-principal"><strong>${esc(x.nombre)}</strong><span>${chipFicha(x.estado, x.resultado, x.medidos, x.bocasSinMedir)}</span></div>
           <div class="sub">${esc([x.unidadTag, CLASE_FICHA[x.clase] || x.clase, textoMedidos(x)].filter(Boolean).join(' · '))}</div>
         </button></li>`).join('')}</ul>
     </section>`;
+  }
+
+  /*
+   * EL CHIP DE LA FILA DEL BALANCEO DICE LO MISMO QUE SU SUBTÍTULO (JC, 29-oct:
+   * «que no pasen esas incoherencias»). La fila junta las bocas del plano y la
+   * hoja: antes el chip era solo el de la hoja, y salía «Completa» con «3 de 10
+   * bocas medidas» debajo o «Sin empezar» con todas medidas.
+   */
+  function chipFilaBalanceo(nBocas, medidas, fuera, hoja) {
+    if (fuera) return `<span class="chip mal">${fuera} fuera</span>`;
+    const est = hoja ? estadoVisible(hoja.estado, hoja.medidos, hoja.bocasSinMedir) : null;
+    const hojaSin = !hoja || est === 'sinEmpezar' || est === 'sinFicha';
+    if (nBocas && medidas < nBocas) {
+      return !medidas && hojaSin ? chipFicha('sinEmpezar') : chipFicha('pendiente');
+    }
+    if (hoja) return nBocas && hojaSin ? chipFicha('pendiente') : chipFicha(hoja.estado, hoja.resultado, hoja.medidos, hoja.bocasSinMedir);
+    return nBocas ? '<span class="chip bien">Medido</span>' : '';
   }
 
   function htmlFilaBalanceo(f) {
     const bocas = f.planos.flatMap((p) => p.bocas);
     const medidas = bocas.filter((b) => b.caudal !== null && b.caudal !== undefined).length;
     const fuera = bocas.filter((b) => b.estado === 'alto' || b.estado === 'bajo').length;
-    const hoja = ((fichasEq && fichasEq.fichas) || []).find((x) => x.clase === 'balanceo');
-    const chip = fuera ? `<span class="chip mal">${fuera} fuera</span>`
-      : hoja ? chipFicha(hoja.estado, hoja.resultado)
-      : bocas.length && medidas === bocas.length ? '<span class="chip bien">Medido</span>' : '';
-    const sub = bocas.length ? `${medidas} de ${bocas.length} bocas medidas` : 'Sin plano de bocas';
+    const hoja = ((fichasEq && fichasEq.fichas) || []).find((x) => x.clase === 'balanceo' && !x.conservada);
+    const chip = chipFilaBalanceo(bocas.length, medidas, fuera, hoja);
+    /* Sin bocas, lo que dice la fila es lo de su hoja (que es lo que abre). */
+    const sub = bocas.length ? `${medidas} de ${bocas.length} bocas medidas`
+      : ['Sin plano de bocas', hoja ? textoMedidos(hoja) : null].filter(Boolean).join(' · ');
     const med = f.medicion || {};
     const extra = med.velocidad ? `a velocidad ${med.velocidad}` : (bocas.length ? null : (med.texto || null));
     return `
@@ -1470,7 +1570,12 @@
       hoja = await recuperarBorrador(nuevaHoja(ref, x.nombre, r));
       pintarHoja();
       window.scrollTo(0, 0);
-    } catch (e) { C.aviso(e.message); pintarFicha(); } finally { abriendoHoja -= 1; }
+    } catch (e) {
+      C.aviso(e.message);
+      /* No se abrió: si venía directa del equipo, se queda en el equipo (no en el balanceo). */
+      if (balDirecto) { balDirecto = false; pestanaEq = 'equipo'; }
+      pintarFicha();
+    } finally { abriendoHoja -= 1; }
   }
 
   /* Lo que se ve: lo tecleado ahora si lo hay; si no, lo guardado. */
@@ -1747,7 +1852,7 @@
     const FALTAN_VISTOS = porPasos ? 6 : 30;
     $app.innerHTML = `
       ${tagFijo(ficha ? ficha.equipo.tag : (f.titulo || 'Equipo'), h.nombre || f.plantilla.nombre, 'volver-equipo',
-        `${chipFicha(f.estado, f.resultado)}${f.medidos ? ` <span class="chip neutra">${f.medidos.rellenos}/${f.medidos.obligatorios}</span>` : ''}`)}
+        `${chipFicha(f.estado, f.resultado, f.medidos, f.bocasSinMedir)}${f.medidos && f.medidos.obligatorios ? ` <span class="chip neutra">${f.medidos.rellenos}/${f.medidos.obligatorios}</span>` : ''}`)}
       <div class="densa">
       ${ed ? '' : `<p class="nota aviso">${f.firmada ? 'La ficha está firmada: ya no se cambia.' : 'Tu rol puede ver la ficha, pero no rellenarla.'}</p>`}
       ${porPasos ? `<nav class="pasos-hoja" role="tablist" aria-label="Apartados de la hoja">
@@ -2230,7 +2335,7 @@
       const ed = t.f.editable;
       const m = t.f.medidos;
       return `<div class="toma-grupo" data-toma="${esc(claveToma(x))}">
-        <h3 class="banda">${esc(x.nombre)}${m ? ` <span class="tenue">${m.rellenos} de ${m.obligatorios}</span>` : ''} ${abrirla}</h3>
+        <h3 class="banda">${esc(x.nombre)}${m && m.obligatorios ? ` <span class="tenue">${m.rellenos} de ${m.obligatorios}</span>` : ''} ${abrirla}</h3>
         ${ed ? '' : `<p class="nota">${t.f.firmada ? 'Firmada: ya no se cambia.' : 'Tu rol puede ver la ficha, pero no rellenarla.'}</p>`}
         <section class="hoja-tabla rejilla-datos toma-tabla">${conHoja(t, () => ps.map(([s, p]) => filaToma(s, p, ed)).join(''))}</section>
       </div>`;
@@ -2272,6 +2377,8 @@
   function salirHoja() {
     if (hoja && hoja.cambiada) autoguardar(hoja, { forzar: true });
     hoja = null;
+    if (hojaDirecta && origenPlano) { volverAlPlano(); return; }
+    if (balDirecto) { balDirecto = false; pestanaEq = 'equipo'; }
     pintarFicha();
     if (!fichasEq && ficha) cargarFichas(ficha.equipo.id);
     else if (ficha) cargarTomas(ficha.equipo.id);
@@ -2500,11 +2607,17 @@
     else if (que === 'plano-equipos' && window.CX_PLANO_EQUIPOS) { ficha = null; window.CX_PLANO_EQUIPOS.abrir($app); }
     /* 16-oct (JC): la franja del TAG vuelve SIEMPRE a la pantalla anterior:
        si se llegó desde otra unidad del conjunto (UI → UE-DAS), a esa unidad. */
-    else if (que === 'atras') { const prev = pilaEquipos.pop(); if (prev) abrir(prev, { atras: true }); else { const y = yLista; cargarLista().then(() => window.scrollTo(0, y)); } }
+    else if (que === 'atras') { const prev = pilaEquipos.pop(); if (prev) abrir(prev, { atras: true }); else if (origenPlano) volverAlPlano(); else { const y = yLista; cargarLista().then(() => window.scrollTo(0, y)); } }
     else if (que === 'equipo') { if (!ficha) yLista = window.scrollY; if (ficha && ficha.equipo.id !== b.dataset.id) pilaEquipos.push(ficha.equipo.id); abrir(b.dataset.id); }
-    else if (que === 'ver-balanceo' && ficha) { pestanaEq = 'balanceo'; pintarFicha(); window.scrollTo(0, 0); }
+    else if (que === 'ver-balanceo' && ficha) {
+      /* Una sola hoja de balanceo y sin plano de bocas: se abre la hoja directamente (JC, 29-oct: «¿por qué otra vez?»). */
+      const i = hojaUnicaBalanceo();
+      if (i >= 0) { balDirecto = true; abrirHoja(i); return; }
+      pestanaEq = 'balanceo'; pintarFicha(); window.scrollTo(0, 0);
+    }
     /* Ya no hay botón: la subpantalla (toma de datos y guardadas antes) queda para quien la invoque. */
     else if (que === 'ver-fichas' && ficha) { document.body.classList.remove('sin-scroll'); pestanaEq = 'fichas'; pintarFicha(); window.scrollTo(0, 0); if (fichasEq) cargarTomas(ficha.equipo.id); }
+    else if (que === 'ficha-equipo' && ficha && directoPlano && origenPlano) volverAlPlano();
     else if (que === 'ficha-equipo' && ficha) { document.body.classList.remove('sin-scroll'); pestanaEq = 'equipo'; pintarFicha(); window.scrollTo(0, 0); }
     else if (que === 'hoja') abrirHoja(Number(b.dataset.i));
     else if (que === 'volver-equipo') salirHoja();

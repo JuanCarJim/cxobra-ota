@@ -1,0 +1,90 @@
+'use strict';
+/*
+ * LAS DOS FIRMAS DE UN PAPEL, PIEZA COMÚN DEL MÓVIL (JC, 29-oct-2026):
+ * «en las puestas en marcha, checklists… poner en el campo del técnico
+ * responsable el que ha rellenado los datos por haber loggeado con su cuenta,
+ * pero el otro campo, poner para recoger nombre y apellidos y firma y si es
+ * cliente, DF, DEO…».
+ *
+ *   · jefeObra = TÉCNICO RESPONSABLE: el nombre sale solo, el de quien ha
+ *     entrado en Cx (se puede corregir), más su firma.
+ *   · cliente  = LA OTRA FIRMA: nombre y apellidos a mano, la firma y el
+ *     cargo: Cliente, Dirección Facultativa (DF), DEO u Otro (texto libre).
+ *
+ * Solo pinta y lee los campos; el lienzo, el guardado y la ruta los pone
+ * quien la usa (commissioning.js con api/equipo/firma; reparaciones igual).
+ *
+ *   const FD = window.CX_FIRMA;
+ *   FD.htmlCampos(rol, { previa, medias })  → nombre (+ cargo si es la otra)
+ *   FD.enlazar(raiz)                        → «Otro» abre el texto libre
+ *   FD.leer(raiz)                           → { nombre, cargo }
+ *   FD.rotulo(rol)                          → «Técnico responsable» / «Firma de conformidad»
+ *   FD.textoHecha(firma)                    → «Nombre · DF · 29/10/2026»
+ *   FD.CARGOS                               → [['Cliente','Cliente'], ['DF', …], ['DEO', …]]
+ *
+ * Lo que se manda a la ruta: { rol, nombre, cargo, imagen }. Las firmas
+ * viejas sin cargo se leen como Cliente.
+ */
+(function firmaDoble() {
+  const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const CARGOS = [['Cliente', 'Cliente'], ['DF', 'Dirección Facultativa (DF)'], ['DEO', 'Dirección de Ejecución (DEO)']];
+  const ROTULOS = { jefeObra: 'Técnico responsable', cliente: 'Firma de conformidad' };
+  const conocido = (c) => CARGOS.some(([v]) => v === c);
+
+  function nombreSesion() {
+    try { const s = window.ACCESO_MOVIL && window.ACCESO_MOVIL.sesion(); return (s && s.nombre) || ''; } catch { return ''; }
+  }
+  const fechaCorta = (iso) => (iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : '');
+
+  /** Los campos de texto de una firma: el nombre y, en la otra firma, el cargo. */
+  function htmlCampos(rol, { previa = null, medias = null } = {}) {
+    const tecnico = rol === 'jefeObra';
+    const nombre = (medias && medias.nombre) || (previa && previa.nombre) || (tecnico ? nombreSesion() : '');
+    const nom = `<label class="campo"><span>${tecnico ? 'Técnico responsable (quien ha tomado los datos)' : 'Nombre y apellidos de quien firma'}</span>
+        <input type="text" maxlength="80" data-firma-nombre value="${esc(nombre)}" placeholder="${tecnico ? 'Tu nombre' : 'Nombre y apellidos'}" autocomplete="name"></label>`;
+    if (tecnico) return nom;
+    const cargo = (medias && medias.cargo) || (previa && previa.cargo) || '';
+    const sel = cargo ? (conocido(cargo) ? cargo : 'otro') : '';
+    const opciones = ['<option value="">Elegir…</option>', ...CARGOS.map(([v, t]) => `<option value="${v}"${sel === v ? ' selected' : ''}>${esc(t)}</option>`),
+      `<option value="otro"${sel === 'otro' ? ' selected' : ''}>Otro</option>`].join('');
+    return `${nom}
+      <label class="campo"><span>Firma como</span>
+        <select data-firma-cargo>${opciones}</select></label>
+      <label class="campo" data-firma-otro-campo${sel === 'otro' ? '' : ' hidden'}><span>¿Quién es? (empresa o cargo)</span>
+        <input type="text" maxlength="60" data-firma-otro value="${esc(sel === 'otro' ? cargo : '')}" placeholder="Por ejemplo: Propiedad, Mantenedor, Coordinador SyS"></label>`;
+  }
+
+  /** «Otro» enseña el texto libre. */
+  function enlazar(raiz) {
+    const s = raiz && raiz.querySelector('[data-firma-cargo]');
+    if (!s || s.dataset.enlazado) return;
+    s.dataset.enlazado = '1';
+    s.addEventListener('change', () => {
+      const c = raiz.querySelector('[data-firma-otro-campo]');
+      if (c) c.hidden = s.value !== 'otro';
+      if (s.value === 'otro') { const i = raiz.querySelector('[data-firma-otro]'); if (i) i.focus(); }
+    });
+  }
+
+  /** { nombre, cargo } tal como están en pantalla (cargo null si no hay desplegable). */
+  function leer(raiz) {
+    const q = (sel) => (raiz && raiz.querySelector(sel)) || null;
+    const nombre = ((q('[data-firma-nombre]') || {}).value || '').trim();
+    const s = q('[data-firma-cargo]');
+    if (!s) return { nombre, cargo: null };
+    const cargo = s.value === 'otro' ? ((q('[data-firma-otro]') || {}).value || '').trim() : s.value;
+    return { nombre, cargo };
+  }
+
+  /** Qué falta antes de guardar (null si nada). */
+  function falta(rol, { nombre, cargo }) {
+    if (!nombre) return rol === 'jefeObra' ? 'Falta el nombre del técnico responsable.' : 'Falta el nombre y apellidos de quien firma.';
+    if (rol !== 'jefeObra' && !cargo) return 'Elige si firma como Cliente, DF, DEO u Otro.';
+    return null;
+  }
+
+  const rotulo = (rol) => ROTULOS[rol] || rol;
+  const textoHecha = (f) => (f ? [f.nombre, f.rol === 'cliente' ? (f.cargo || 'Cliente') : null, fechaCorta(f.fecha)].filter(Boolean).join(' · ') : '');
+
+  window.CX_FIRMA = { CARGOS, htmlCampos, enlazar, leer, falta, rotulo, textoHecha, nombreSesion };
+})();
