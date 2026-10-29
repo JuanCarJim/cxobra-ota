@@ -48,6 +48,12 @@
   let vista = null; /* cómo estaba el plano al irse a una ficha, para volver igual */
   let propio = false; /* sección «Plano de equipos» (sin Commissioning) */
   let verSinUbicar = false; /* franja gris «Sin ubicar en el plano» abierta */
+  /* Materiales instalados (29-oct, JC): compuertas, difusores, rejillas… con nº de serie y ficha técnica. */
+  let capasOff = new Set(); /* capas apagadas (equipos, compuertas, difusores…) */
+  let mat = null; /* el material tocado */
+  let lista = 'equipos'; /* la lista de abajo: equipos o materiales */
+  let filtro = '';
+  const ESTADO_MAT = { sinDatos: 'Sin datos', conFicha: 'Con ficha', conIncidencia: 'Con incidencia' };
   try { planta = sessionStorage.getItem('cx.planoEquipos.planta'); } catch { /* sin almacén */ }
 
   const ESTILO = `
@@ -122,6 +128,31 @@
   .pe-sin-ubicar .pe-grises{display:flex;flex-wrap:wrap;gap:4px;max-height:118px;overflow:auto;margin-top:4px}
   .pe-sin-ubicar .pe-grises button{min-height:32px;border:1px solid var(--borde,#c9d3d6);background:var(--fondo,#f3f5f6);color:var(--textoTenue,#567);border-radius:999px;padding:2px 10px;font-size:12.5px}
   .pe-lista tr.sin-ubicar td{color:var(--textoTenue,#567)}
+  /* Materiales: marcas pequeñas por estado (gris sin datos · teal con ficha · rojo con incidencia), forma por capa. */
+  .pe-mat{position:absolute;transform:translate(-50%,-50%);width:10px;height:10px;min-height:0;padding:0;margin:0;border:1.5px solid #fff;border-radius:50%;background:var(--textoTenue,#567);box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+  .pe-mat::after{content:'';position:absolute;inset:-9px}
+  .pe-mat.conFicha{background:var(--acento,#178276)} .pe-mat.conIncidencia{background:var(--mal)}
+  .pe-mat.compuertas{border-radius:1px;transform:translate(-50%,-50%) rotate(45deg)} .pe-mat.vav{border-radius:2px} .pe-mat.rejillas{border-radius:2px;width:13px;height:8px}
+  .pe-mat.elegida{outline:3px solid var(--pe-azul);outline-offset:2px;z-index:3}
+  .pe-mat.apagada{opacity:.15}
+  .pe-mat span{display:none;position:absolute;left:12px;top:-5px;white-space:nowrap;font-size:9px;font-weight:600;color:#3d5560;background:rgba(255,255,255,.78);padding:0 2px;border-radius:2px}
+  .pe-lienzo.con-salas .pe-mat span{display:block} .pe-mat.compuertas span{transform:rotate(-45deg)}
+  .pe-capas{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin:0 0 6px;-webkit-overflow-scrolling:touch}
+  .pe-capas button{flex:none;min-height:34px;border:1px solid var(--borde,#c9d3d6);background:var(--superficie,#fff);color:var(--texto,#123);border-radius:999px;padding:3px 10px;font-size:13px}
+  .pe-capas button[aria-pressed="true"]{background:var(--acento-suave,#E6F4F0);border-color:var(--acento,#178276)}
+  .pe-capas button[aria-pressed="false"]{opacity:.5;text-decoration:line-through}
+  .pe-punto.sinDatos{background:var(--textoTenue,#567);border-radius:50%} .pe-punto.conFicha{background:var(--acento,#178276);border-radius:50%} .pe-punto.conIncidencia{background:var(--mal);border-radius:50%}
+  .pe-pestanas{display:flex;gap:6px;align-items:center;margin:8px 0 6px}
+  .pe-pestanas button{min-height:36px;margin:0;border:1px solid var(--borde,#c9d3d6);background:var(--superficie,#fff);color:var(--texto,#123);border-radius:999px;padding:3px 12px;font-size:13.5px;width:auto}
+  .pe-pestanas button.activa{background:var(--acento,#178276);border-color:var(--acento,#178276);color:#fff}
+  .pe-buscar{width:100%;box-sizing:border-box;min-height:40px;margin:0 0 6px;font-size:15px}
+  .pe-ficha{width:100%;border-collapse:collapse;margin-top:6px;font-size:13.5px}
+  .pe-ficha th{text-align:left;font-weight:400;color:var(--textoTenue,#567);padding:2px 8px 2px 0;width:40%;vertical-align:top}
+  .pe-ficha td{padding:2px 0;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+  .pe-enlaces{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;font-size:15px}
+  .pe-enlaces a{font-weight:600;min-height:32px;display:inline-flex;align-items:center}
+  .pe-serie{display:flex;gap:6px;margin-top:8px} .pe-serie input{flex:1;min-width:0;min-height:42px;font-size:15px} .pe-serie button{width:auto;min-height:42px;margin:0;padding:0 14px}
+  .pe-entregable{font-size:13px;margin:0 0 6px}
   @media (min-width:900px){
     .pe-cuerpo{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:12px;align-items:start}
     .pe-marco{height:calc(100vh - 250px)}
@@ -251,12 +282,41 @@
       ${datos.conCommissioning ? `<button class="enlace mas" data-pe-accion="equipo">Ver la ficha completa</button>` : (datos.puedeEditar === false ? '<div class="sub tenue">Solo lectura.</div>' : '')}`;
   }
 
+  const casaMat = (m, q) => !q || [m.tag, m.codigo, m.sala, m.numSerie, m.tipoNombre, m.modelo].some((v) => String(v || '').toLowerCase().includes(q));
+  const materialElegido = () => {
+    const p = plantaActual();
+    return mat && p ? (p.materiales || []).find((x) => x.id === mat) : null;
+  };
+  const enlaceFicha = (e, texto) => (e && e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">${texto} ↗</a>` : '');
+
+  /* La hoja de un material: qué es, nº de serie, características y su ficha técnica. */
+  function hojaMaterial(m) {
+    return `<div class="fila-principal"><strong class="cifra">${esc(m.tag)}</strong>
+        <span class="chip"><i class="pe-punto ${esc(m.estado)}"></i> ${esc(ESTADO_MAT[m.estado] || '')}</span>
+        <button class="cierra" data-pe-cerrar aria-label="Cerrar">×</button></div>
+      <div class="sub">${esc(m.tipoNombre)} · ${esc(m.sala || 'sin sala')}</div>
+      <table class="pe-ficha">${(m.filas || []).filter(([k]) => k !== 'Tipo' && k !== 'Sala').map(([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join('')}</table>
+      ${m.incidencia ? `<div class="falta">Incidencia: ${esc(m.incidencia)}</div>` : ''}
+      <div class="pe-enlaces">${enlaceFicha(m.fichaTecnica, 'Ficha técnica') || '<span class="tenue">Sin ficha técnica</span>'}${enlaceFicha(m.marcadoCE, 'Marcado CE')}</div>
+      ${datos.puedeEditar ? `<div class="pe-serie"><input data-pe-serie value="${esc(m.numSerie || '')}" placeholder="Nº de serie" autocapitalize="characters"><button class="boton" data-pe-guardar-serie="${esc(m.id)}">Guardar</button></div>` : ''}`;
+  }
+
+  function listaMateriales(p, q) {
+    const fs = (p.materiales || []).filter((m) => !capasOff.has(m.capa) && casaMat(m, q));
+    const tope = 300;
+    return `<div class="pe-lista"><table><thead><tr><th>Material</th><th>Sala</th><th>Estado</th></tr></thead><tbody>
+      ${fs.slice(0, tope).map((m) => `<tr data-pe-fila-mat="${esc(m.id)}" class="${m.id === mat ? 'elegida' : ''}"><td>${esc(m.tag)}<br><span class="tenue">${esc(m.tipoNombre)}</span></td><td>${m.sala ? esc(m.sala) : '<span class="tenue">sin sala</span>'}</td><td class="estado"><i class="pe-punto ${esc(m.estado)}"></i> ${esc(ESTADO_MAT[m.estado] || '')}</td></tr>`).join('') || '<tr><td colspan="3" class="tenue">Ningún material así.</td></tr>'}
+      ${fs.length > tope ? `<tr><td colspan="3" class="tenue">${cifra(fs.length - tope)} más: afina con el buscador o las capas.</td></tr>` : ''}
+      </tbody></table></div>`;
+  }
+
   function mostrarHoja() {
     const h = $raiz && $raiz.querySelector('[data-pe-hoja]');
     if (!h) return;
     const p = plantaActual();
-    h.innerHTML = p ? hojaHtml(p) : '';
-    h.hidden = !equipoElegido();
+    const m = materialElegido();
+    h.innerHTML = m ? hojaMaterial(m) : (p ? hojaHtml(p) : '');
+    h.hidden = !equipoElegido() && !m;
     ajustarMarco();
   }
 
@@ -282,6 +342,7 @@
 
   function elegir(id, { centrarla = false } = {}) {
     elegida = id === elegida ? null : id;
+    if (mat) { mat = null; for (const el of $raiz.querySelectorAll('[data-pe-mat]')) el.classList.remove('elegida'); }
     marcarElegida();
     mostrarHoja();
     if (elegida && centrarla) centrar(elegida);
@@ -309,13 +370,19 @@
     planta = p.planta || '';
     try { sessionStorage.setItem('cx.planoEquipos.planta', planta); } catch { /* nada */ }
     const c = p.cuentas;
-    const visibles = p.equipos.filter((m) => !ocultos.has(m.color));
-    const enPlano = visibles.filter((m) => m.x !== null);
+    const qq = filtro.trim().toLowerCase();
+    const visibles = p.equipos.filter((m) => !ocultos.has(m.color) && (!qq || [m.tag, m.sala].some((v) => String(v || '').toLowerCase().includes(qq))));
+    const enPlano = capasOff.has('equipos') ? [] : visibles.filter((m) => m.x !== null);
     const enConjunto = idsDelConjunto();
+    const q = filtro.trim().toLowerCase();
+    const mats = (p.materiales || []).filter((m) => m.x !== null && !capasOff.has(m.capa));
+    const cuentasCapa = p.capas || {};
+    const capas = ((datos && datos.capas) || []).filter((k) => cuentasCapa[k.id]);
     const plano = p.plano ? `<div class="pe-visor"><div class="pe-marco" data-pe-marco>
         <div class="pe-lienzo${zoom >= ZOOM_SALAS ? ' con-salas' : ''}" data-pe-lienzo style="width:${zoom * 100}%">
           <img data-src="api/plano-equipos/imagen?id=${encodeURIComponent(p.plano.id)}" alt="Plano ${esc(p.plano.nombre)}" draggable="false">
           ${(p.plano.salas || []).map((r) => `<span class="pe-sala" style="left:${r.x * 100}%;top:${r.y * 100}%">${esc(r.t)}</span>`).join('')}
+          ${mats.map((m) => `<button class="pe-mat ${esc(m.capa)} ${esc(m.estado)}${m.id === mat ? ' elegida' : ''}${q && !casaMat(m, q) ? ' apagada' : ''}" style="left:${m.x * 100}%;top:${m.y * 100}%" data-pe-mat="${esc(m.id)}" aria-label="${esc(`${m.tag}, ${m.tipoNombre}, ${m.sala || 'sin sala'}`)}"><span>${esc(m.tag)}</span></button>`).join('')}
           ${enPlano.map((x) => `<button class="marca-boca ${x.color === 'verde' ? 'bien' : x.color === 'rojo' ? 'mal' : 'azul'}${enConjunto.has(x.id) ? ' elegida' : ''}" style="left:${x.x * 100}%;top:${x.y * 100}%" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${x.sala || 'sin sala'}: ${NOMBRE[x.color]}`)}">${simbolo(x.icono)}<span class="rotulo-boca">${esc(x.tag)}</span></button>`).join('')}
         </div>
       </div>
@@ -323,7 +390,8 @@
       : `<div class="pe-sin-plano"><b>La planta ${esc(etiqueta(p))} aún no tiene plano de equipos.</b><br>Lo sube la oficina desde Commissioning › Plano. Mientras, la lista dice la sala y el estado de cada equipo.</div>`;
     $raiz.innerHTML = `
       ${cabeza()}
-      <div class="pe-plantas" role="tablist">${plantas().map((q) => `<button role="tab" data-pe-planta="${esc(q.planta || '')}" aria-selected="${q === p}" class="${q === p ? 'activa' : ''}">${esc(etiqueta(q))}<small>${cifra(q.equipos.length)}</small></button>`).join('')}</div>
+      <div class="pe-plantas" role="tablist">${plantas().map((x) => `<button role="tab" data-pe-planta="${esc(x.planta || '')}" aria-selected="${x === p}" class="${x === p ? 'activa' : ''}">${esc(etiqueta(x))}<small>${cifra(x.equipos.length)}${(x.materiales || []).length ? ` + ${cifra(x.materiales.length)}` : ''}</small></button>`).join('')}</div>
+      ${capas.length > 1 ? `<div class="pe-capas" role="group" aria-label="Capas">${capas.map((k) => `<button data-pe-capa="${esc(k.id)}" aria-pressed="${!capasOff.has(k.id)}">${esc(k.nombre)} <b>${cifra(cuentasCapa[k.id])}</b></button>`).join('')}</div>` : ''}
       <div class="pe-leyenda" role="group" aria-label="Colores">${ORDEN.map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}"><i class="pe-punto pe-${k}"></i>${esc(NOMBRE[k])} <b>${cifra(c[k] || 0)}</b></button>`).join('')}
         <p class="nota">sin sala ${cifra(c.sinSala)}${p.plano ? ` · en el plano ${cifra(c.enPlano)} de ${cifra(p.equipos.length)}` : ''}</p></div>
       ${p.plano ? leyendaIconos(p) : ''}
@@ -333,10 +401,13 @@
         <div>${plano}</div>
         <div class="pe-lado">
           <div class="pe-hoja" data-pe-hoja hidden></div>
-          ${equipoElegido() ? '' : `<p class="nota pe-ayuda">${p.plano ? 'Pellizca para acercar, arrastra para moverte y toca un equipo.' : 'Toca un equipo de la lista para ver qué le falta.'}</p>`}
-          <div class="pe-lista"><table><thead><tr><th>Equipo</th><th>Sala</th><th>Estado</th></tr></thead><tbody>
+          ${equipoElegido() || materialElegido() ? '' : `<p class="nota pe-ayuda">${p.plano ? `Pellizca para acercar, arrastra para moverte y toca un equipo${(p.materiales || []).length ? ' o un material' : ''}.` : 'Toca un equipo de la lista para ver qué le falta.'}</p>`}
+          ${(p.materiales || []).length ? `<div class="pe-pestanas" role="tablist"><button data-pe-lista="equipos" class="${lista === 'equipos' ? 'activa' : ''}">Equipos ${cifra(p.equipos.length)}</button><button data-pe-lista="materiales" class="${lista === 'materiales' ? 'activa' : ''}">Materiales ${cifra(p.materiales.length)}</button></div>
+          <input type="search" class="pe-buscar" data-pe-buscar placeholder="Buscar TAG, sala o nº de serie" value="${esc(filtro)}">
+          <p class="nota pe-entregable"><a href="api/plano-equipos/entregable?obra=${encodeURIComponent(C.obraId())}&planta=${encodeURIComponent(p.planta || '')}" target="_blank" rel="noopener">Entregable a mantenimiento (planta ${esc(etiqueta(p))}) ↗</a></p>` : ''}
+          ${lista === 'materiales' && (p.materiales || []).length ? listaMateriales(p, q) : `<div class="pe-lista"><table><thead><tr><th>Equipo</th><th>Sala</th><th>Estado</th></tr></thead><tbody>
           ${visibles.map((e) => `<tr data-pe-fila="${esc(e.id)}" class="${e.id === elegida ? 'elegida' : ''}${p.plano && e.x === null ? ' sin-ubicar' : ''}"><td>${e.papel ? `<em class="tenue">${esc(e.papel)}</em> ` : ''}${esc(e.tag)}</td><td>${e.sala ? esc(e.sala) : '<span class="tenue">sin sala</span>'}</td><td class="estado">${p.plano && e.x === null ? '<i class="pe-punto pe-gris"></i> Sin ubicar' : `<i class="pe-punto pe-${e.color}"></i> ${esc(NOMBRE[e.color])}`}</td></tr>`).join('') || '<tr><td colspan="3" class="tenue">Ningún equipo con esos colores.</td></tr>'}
-          </tbody></table></div>
+          </tbody></table></div>`}
         </div>
       </div>`;
     C.cargarImagenes($raiz);
@@ -459,7 +530,7 @@
     if (marco) { try { marco.releasePointerCapture(ev.pointerId); } catch { /* ya soltado */ } }
     if (dedos.size === 0) {
       /* Doble toque en un hueco del plano: acerca (o, si ya está muy cerca, vuelve a entero). */
-      if (eraEspera && marco && !(ev.target.closest && ev.target.closest('[data-pe-marca],[data-pe-zoom]'))) {
+      if (eraEspera && marco && !(ev.target.closest && ev.target.closest('[data-pe-marca],[data-pe-mat],[data-pe-zoom]'))) {
         const ahora = performance.now();
         const [px, py] = dentro(marco, ev);
         if (ultimoToque && ahora - ultimoToque.t < 300 && Math.hypot(px - ultimoToque.x, py - ultimoToque.y) < 40) {
@@ -519,6 +590,28 @@
     if (marco.getBoundingClientRect().top < 0 || marco.getBoundingClientRect().bottom > window.innerHeight) marco.scrollIntoView({ block: 'center' });
   }
 
+  function centrarMat(id) {
+    const p = plantaActual();
+    const m = p && (p.materiales || []).find((x) => x.id === id && x.x !== null);
+    if (!m) return;
+    if (zoom < 3) ponerZoom(3);
+    const [marco, lienzo] = marcoYLienzo();
+    if (!marco || !lienzo) return;
+    marco.scrollLeft = m.x * lienzo.offsetWidth - marco.clientWidth / 2;
+    marco.scrollTop = m.y * lienzo.offsetHeight - marco.clientHeight / 2;
+    if (marco.getBoundingClientRect().top < 0 || marco.getBoundingClientRect().bottom > window.innerHeight) marco.scrollIntoView({ block: 'center' });
+  }
+
+  /* El buscador filtra la lista y apaga en el plano lo que no casa. */
+  document.addEventListener('input', (ev) => {
+    if (!$raiz || !ev.target.matches || !ev.target.matches('[data-pe-buscar]') || !$raiz.contains(ev.target)) return;
+    filtro = ev.target.value;
+    const pos = ev.target.selectionStart;
+    repintarQuieto();
+    const b = $raiz.querySelector('[data-pe-buscar]');
+    if (b) { b.focus(); try { b.setSelectionRange(pos, pos); } catch { /* nada */ } }
+  });
+
   /* Se guarda cómo está el plano y se va a la pantalla de siempre del equipo. */
   function irAlEquipo(accion) {
     const e = equipoElegido();
@@ -542,7 +635,7 @@
   document.addEventListener('click', (ev) => {
     if (!$raiz || !$raiz.contains(ev.target) || !datos) return;
     const pl = ev.target.closest('[data-pe-planta]');
-    if (pl) { planta = pl.dataset.pePlanta; elegida = null; zoom = 1; pintar(); return; }
+    if (pl) { planta = pl.dataset.pePlanta; elegida = null; mat = null; zoom = 1; pintar(); return; }
     const co = ev.target.closest('[data-pe-color]');
     if (co) { const k = co.dataset.peColor; if (ocultos.has(k)) ocultos.delete(k); else ocultos.add(k); repintarQuieto(); return; }
     const z = ev.target.closest('[data-pe-zoom]');
@@ -561,7 +654,32 @@
       irAZoom(v === 0 ? 1 : zoom * (v > 0 ? 1.6 : 1 / 1.6), cx, cy);
       return;
     }
-    if (ev.target.closest('[data-pe-cerrar]')) { elegida = null; marcarElegida(); mostrarHoja(); return; }
+    if (ev.target.closest('[data-pe-cerrar]')) { elegida = null; mat = null; for (const el of $raiz.querySelectorAll('[data-pe-mat]')) el.classList.remove('elegida'); marcarElegida(); mostrarHoja(); return; }
+    const capa = ev.target.closest('[data-pe-capa]');
+    if (capa) { const k = capa.dataset.peCapa; if (capasOff.has(k)) capasOff.delete(k); else capasOff.add(k); repintarQuieto(); return; }
+    const li = ev.target.closest('[data-pe-lista]');
+    if (li) { lista = li.dataset.peLista; repintarQuieto(); return; }
+    const gs = ev.target.closest('[data-pe-guardar-serie]');
+    if (gs) {
+      const inp = $raiz.querySelector('[data-pe-serie]');
+      gs.disabled = true;
+      C.postJson('api/materiales', { id: gs.dataset.peGuardarSerie, numSerie: inp ? inp.value.trim() : '' })
+        .then(async (r) => { if (r && r.ok === false) throw new Error(r.error); C.aviso('Nº de serie guardado.', 'bien'); await cargar(); repintarQuieto(); })
+        .catch((e) => { gs.disabled = false; C.aviso(e.message); });
+      return;
+    }
+    const mm = ev.target.closest('[data-pe-mat]') || ev.target.closest('[data-pe-fila-mat]');
+    if (mm) {
+      const id = mm.dataset.peMat || mm.dataset.peFilaMat;
+      mat = id === mat ? null : id;
+      elegida = null;
+      marcarElegida();
+      for (const el of $raiz.querySelectorAll('[data-pe-mat]')) el.classList.toggle('elegida', el.dataset.peMat === mat);
+      for (const el of $raiz.querySelectorAll('[data-pe-fila-mat]')) el.classList.toggle('elegida', el.dataset.peFilaMat === mat);
+      mostrarHoja();
+      if (mat && mm.dataset.peFilaMat) centrarMat(mat);
+      return;
+    }
     const ver = ev.target.closest('[data-pe-ver]');
     if (ver) {
       const q = plantas().find((x) => x.equipos.some((y) => y.id === ver.dataset.peVer && y.x !== null));

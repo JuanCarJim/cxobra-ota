@@ -39,12 +39,27 @@
       .qh summary { padding: 12px 4px; font-weight: 600; font-size: 17px; color: var(--acento-fuerte); display: flex; justify-content: space-between; gap: 8px; }
       .qh .punto { padding: 10px 4px; border-top: 1px solid var(--panel3); }
       .qh .punto p { margin: 0 0 8px; font-size: 17px; }
-      .qh .resp { display: flex; gap: 8px; flex-wrap: wrap; }
-      .qh .resp button { min-height: 44px; min-width: 76px; border-radius: 999px; border: 2px solid var(--acento-suave); background: none; color: var(--texto); font-size: 16px; font-weight: 600; padding: 4px 14px; }
-      .qh .resp button[aria-pressed="true"] { border-color: var(--acento-fuerte); background: var(--acento-suave); color: var(--acento-fuerte); }
-      .qh .resp button.mal[aria-pressed="true"] { border-color: var(--mal, #b3261e); color: var(--mal, #b3261e); background: none; }
+      .qh .punto { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; column-gap: 10px; row-gap: 2px; }
+      .qh .punto p { margin: 0; flex: 1 1 170px; font-size: 16px; }
+      .qh .punto input.com { flex: 1 0 100%; }
+      /* Aceptable / No aceptable / N/A: el segmentado pequeño de 1ce9c0f (.segmentado.pasos-rp), en una línea. */
+      #app .qh .segmentado.resp { margin: 2px 0; flex: 0 0 auto; }
+      #app .qh .segmentado.resp button { min-height: 44px; padding: 0 11px; font-size: 13.5px; }
+      #app .qh .segmentado.resp button[aria-pressed="true"] { background: var(--acento); color: #FFFFFF; }
+      #app .qh .segmentado.resp button.mal[aria-pressed="true"] { background: #F6D9D6; color: #8F1F18; }
+      #app .qh .segmentado.resp button.na[aria-pressed="true"] { background: #CAD1D3; color: #2F3A3C; }
+      .qh .todo-ok { display: flex; margin: 6px 4px; }
+      #app .qh .todo-ok.boton.secundario { min-height: 32px; padding: 3px 12px; font-size: 13px; margin: 6px 4px; }
+      #app.densa .qh h2 { width: fit-content; max-width: 100%; border-radius: 16px; padding: 4px 14px; }
+      .qh .campos { align-items: start; }
+      .qh .campos > label { margin: 0; }
+      .qh .campos input, .qh .campos select { height: 44px; min-width: 0; max-width: 100%; box-sizing: border-box; text-align: left; -webkit-appearance: none; appearance: none; display: block; margin-top: 4px; }
+      .qh .campos textarea { grid-column: 1 / -1; display: block; margin-top: 4px; }
+      .qh .campos label:has(textarea) { grid-column: 1 / -1; }
+      .qh .campos input[type="date"], .qh .campos input[type="time"] { padding: 0 12px; line-height: 44px; }
+      .qh .campos input::-webkit-date-and-time-value { text-align: left; min-height: 1.2em; }
+      .qh { padding-bottom: calc(var(--hueco-barra, 104px) + 24px + env(safe-area-inset-bottom)); }
       .qh .punto input.com { width: 100%; margin-top: 8px; }
-      .qh .campos label { display: block; margin: 10px 0; }
       .qh .campos input, .qh .campos select, .qh .campos textarea { width: 100%; }
       .qh .pie { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0; }
       .qh .plan-fila { padding: 10px 0; border-bottom: 1px solid var(--panel3); }
@@ -78,6 +93,19 @@
   const claveDe = (f) => `${PREF}${f.obraId}|${f.clave}`;
   const aBorrador = (f) => ({ id: f.id, clave: f.clave, obraId: f.obraId, plantilla: f.plantilla, fecha: f.fecha, proveedorId: f.proveedorId, datos: f.datos });
   function apuntar(f) { if (AG && f && f.estado !== 'hecho') AG.guardar(claveDe(f), aBorrador(f)); }
+  /*
+   * LA COPIA HASTA LA NUBE (29-oct-2026, JC rellenó un control en el iPhone y
+   * no llegó a ningún sitio). Que el motor del teléfono conteste «guardado» no
+   * basta: si iOS cierra la app antes de volcar su base, la fila se pierde y el
+   * borrador ya se había borrado. Ahora, al guardar, queda una copia
+   * (`qhseNube.<obra>|<clave>`) que no se reabre como borrador; la cola
+   * pregunta si la nube ya la tiene (api/qhse/enNube) y solo entonces la
+   * borra. Si la fila ya no está en el teléfono, la vuelve a crear con el
+   * mismo id. Sin sincronización (el ordenador por wifi), se borra al momento.
+   */
+  const PREF_NUBE = 'qhseNube.';
+  const claveNube = (f) => `${PREF_NUBE}${f.obraId}|${f.clave}`;
+  function copiaNube(f, terminado) { if (AG && f && f.id) AG.guardar(claveNube(f), { ...aBorrador(f), terminar: Boolean(terminado) }); }
   /* Lo que quedó en el teléfono de esta obra sin llegar al ordenador. */
   function borradorDe(obraId, id = null) {
     if (!AG || !COLA) return null;
@@ -178,6 +206,7 @@
     const base = JSON.parse(JSON.stringify(o.inicial[pid]));
     if (extra.actividad) base.actividad = extra.actividad;
     if (extra.contratista) { base.cabecera = base.cabecera || {}; base.cabecera.contratista = extra.contratista; }
+    if (!base.hora) { const t = new Date(); base.hora = `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`; }
     form = { id: null, clave: AG ? AG.nuevoId() : `m${Date.now().toString(36)}`, obraId: o.id, plantilla: pid, fecha: datos.hoy, estado: 'borrador', proveedorId: extra.proveedorId || null, datos: base, adjuntos: [] };
     estadoGuardado = '';
     pintarForm();
@@ -215,24 +244,25 @@
     const f = form.datos;
     const cerrado = form.estado === 'hecho';
     const dis = cerrado ? 'disabled' : '';
-    const subs = (o.subcontratas || []);
+    const subs = [...new Set([...(o.subcontratas || []).map((x) => x.nombre), ...(o.empresas || [])].filter(Boolean))].map((nombre) => ({ nombre }));
     $app.innerHTML = `<div class="qh">
       <button class="volver" data-qh="lista">‹ QHSE</button>
       <h2>${esc(p.largo)}</h2>
-      <p class="nota">${esc(o.codigo)} · ${esc(p.formulario)} · ${esc(fechaEs(form.fecha))}${cerrado ? ' · Terminado' : ''}</p>
+      <p class="nota">${esc(p.formulario)} · ${esc(fechaEs(form.fecha))}${cerrado ? ' · Terminado' : ''}</p>
       <div class="campos">
         ${p.cabecera.map((c) => {
     const v = f.cabecera[c.clave] || '';
     if (c.opciones) return `<label>${esc(c.nombre)}<select data-qh-cab="${esc(c.clave)}" ${dis}>${c.opciones.map((x) => `<option ${x === v ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select></label>`;
     if (c.contratista) return `<label>${esc(c.nombre)}<input data-qh-cab="${esc(c.clave)}" value="${esc(v)}" list="qh-subs" autocomplete="off" ${dis}></label>`;
     if (c.largo) return `<label>${esc(c.nombre)}<textarea rows="2" data-qh-cab="${esc(c.clave)}" ${dis}>${esc(v)}</textarea></label>`;
-    return `<label>${esc(c.nombre)}<input ${c.tipo === 'fecha' ? 'type="date"' : ''} data-qh-cab="${esc(c.clave)}" value="${esc(v)}" ${dis}></label>`;
+    return `<label>${esc(c.nombre)}<input ${c.tipo === 'fecha' ? 'type="date" lang="es"' : ''} data-qh-cab="${esc(c.clave)}" value="${esc(v)}" ${dis}></label>`;
   }).join('')}
-        <label>Hora<input type="time" data-qh-hora value="${esc(f.hora || '')}" ${dis}></label>
+        <label>Hora<input type="time" lang="es" data-qh-hora value="${esc(f.hora || '')}" ${dis}></label>
         <datalist id="qh-subs">${subs.map((s) => `<option value="${esc(s.nombre)}"></option>`).join('')}</datalist>
       </div>
       ${p.asistentes ? asistentes(dis) : ''}
       ${p.secciones.map((s, si) => `<details ${si === 0 && !cerrado ? 'open' : ''}><summary><span>${esc(s.nombre)}</span><span class="cuenta" data-qh-cuenta="${esc(s.id)}">${conteo(s)}</span></summary>
+        ${cerrado ? '' : `<button type="button" class="boton secundario todo-ok" data-qh="todo-ok" data-s="${esc(s.id)}">Todo aceptable</button>`}
         ${s.items.map((t, i) => punto(p, s, t, i, dis)).join('')}</details>`).join('')}
       <h2>${esc(p.planTitulo || 'Plan de acción')}</h2>
       <div data-qh-plan>${cerrado ? seguimiento() : plan(dis)}</div>
@@ -246,6 +276,7 @@
         <label>Nombre<input data-qh-firma="nombre" value="${esc(f.firma.nombre)}" ${dis}></label>
         <label>Cargo<input data-qh-firma="cargo" value="${esc(f.firma.cargo)}" ${dis}></label>
       </div>
+      ${f.firma.imagen ? `<p class="nota">Firmado con tu firma guardada:</p><img class="firma-guardada" alt="Firma" src="${esc(f.firma.imagen)}" style="max-height:56px">` : (cerrado ? '' : '<p class="nota">Al terminar se pone tu firma guardada (la de los demás documentos).</p>')}
       <div class="pie">
         ${cerrado ? '' : '<button class="boton" data-qh="terminar">Terminar</button>'}
         <span class="guardado" data-qh-estado>${esc(estadoGuardado)}</span>
@@ -259,7 +290,7 @@
     const mostrarCom = r.r === 'nc' || r.c;
     return `<div class="punto" data-qh-punto="${esc(id)}">
       <p>${esc(texto)}</p>
-      <div class="resp">${p.respuestas.map((x) => `<button type="button" class="${x.mal ? 'mal' : ''}" data-qh="resp" data-p="${esc(id)}" data-v="${esc(x.id)}" aria-pressed="${r.r === x.id}" ${dis}>${esc(x.nombre)}</button>`).join('')}</div>
+      <div class="segmentado pasos-rp resp">${p.respuestas.map((x) => `<button type="button" class="${x.mal ? 'mal' : x.id === 'na' ? 'na' : ''}" data-qh="resp" data-p="${esc(id)}" data-v="${esc(x.id)}" aria-pressed="${r.r === x.id}" ${dis}>${esc(x.nombre)}</button>`).join('')}</div>
       <input class="com" data-qh-com="${esc(id)}" value="${esc(r.c || '')}" placeholder="Comentario${r.r === 'nc' ? ' (qué pasa)' : ''}" ${mostrarCom ? '' : 'hidden'} ${dis}>
     </div>`;
   }
@@ -368,13 +399,15 @@
     guardando = guardando.then(async () => {
       try {
         const r = await CX().postJson('api/qhse/guardar', {
-          id: f.id, obraId: f.obraId, plantilla: f.plantilla, fecha: f.fecha, proveedorId: f.proveedorId, actividad: f.datos && f.datos.actividad, datos: f.datos, terminar,
+          id: f.id, clave: f.clave, obraId: f.obraId, plantilla: f.plantilla, fecha: f.fecha, proveedorId: f.proveedorId, actividad: f.datos && f.datos.actividad, datos: f.datos, terminar,
         });
         if (!r.ok) throw new Error(r.error);
         f.id = r.id;
         if (terminar) f.estado = 'hecho';
         /* Llegó: el borrador del teléfono sobra, salvo que se haya seguido escribiendo. */
         if (AG) { if (terminar || !(sucio && form === f)) AG.olvidar(claveDe(f)); else apuntar(f); }
+        copiaNube(f, terminar || f.estado === 'hecho');
+        if (COLA) COLA.masTarde(5000);
         estadoGuardado = terminar ? `Terminado · ${r.codigo}` : 'Guardado';
         const e = $app.querySelector('[data-qh-estado]'); if (e && form === f) e.textContent = estadoGuardado;
         return r;
@@ -415,7 +448,20 @@
       if (x && datos) nuevo(x.plantilla || 'registro', { actividad: x.actividad, contratista: x.contratista, proveedorId: x.proveedorId });
     }
     else if (!form) return;
-    else if (a === 'resp') {
+    else if (a === 'todo-ok') {
+      const sec = plantilla(form.plantilla).secciones.find((x) => x.id === b.dataset.s);
+      if (!sec) return;
+      sec.items.forEach((_, i) => {
+        const id = `${sec.id}.${i}`;
+        const r = form.datos.respuestas[id] || (form.datos.respuestas[id] = { r: null, c: '' });
+        if (r.r) return;
+        r.r = 'si';
+        const fila = $app.querySelector(`[data-qh-punto="${id}"]`);
+        if (fila) fila.querySelectorAll('.resp button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.v === 'si')));
+      });
+      const cu = $app.querySelector(`[data-qh-cuenta="${sec.id}"]`); if (cu) cu.textContent = conteo(sec);
+      programar();
+    } else if (a === 'resp') {
       const id = b.dataset.p;
       const r = form.datos.respuestas[id] || (form.datos.respuestas[id] = { r: null, c: '' });
       r.r = r.r === b.dataset.v ? null : b.dataset.v;
@@ -498,10 +544,25 @@
     COLA.registrar(PREF, async (clave, b) => {
       if (form && claveDe(form) === clave) return false;
       if (!b || !b.plantilla || !b.obraId) { AG.olvidar(clave); return true; }
-      const r = await CX().postJson('api/qhse/guardar', { id: b.id || null, obraId: b.obraId, plantilla: b.plantilla, fecha: b.fecha, proveedorId: b.proveedorId, actividad: b.datos && b.datos.actividad, datos: b.datos, terminar: false });
-      if (r && r.ok) { AG.olvidar(clave); return true; }
-      /* Un «no» del ordenador (ya terminado, sin permiso…): no se reintenta para siempre. */
-      if (r && r.ok === false && /terminado|no se encuentra|tu rol/i.test(String(r.error || ''))) { AG.olvidar(clave); return true; }
+      const r = await CX().postJson('api/qhse/guardar', { id: b.id || null, clave: b.clave, obraId: b.obraId, plantilla: b.plantilla, fecha: b.fecha, proveedorId: b.proveedorId, actividad: b.datos && b.datos.actividad, datos: b.datos, terminar: false });
+      if (r && r.ok) { AG.olvidar(clave); copiaNube({ ...b, id: r.id }, false); return true; }
+      /* Un «no» del ordenador (ya terminado, sin permiso…): no se reintenta para siempre.
+         «No se encuentra» ya no se tira: con el id del teléfono se vuelve a crear. */
+      if (r && r.ok === false && /terminado|tu rol|no se encuentra la obra/i.test(String(r.error || ''))) { AG.olvidar(clave); return true; }
+      return false;
+    });
+    COLA.registrar(PREF_NUBE, async (clave, b) => {
+      if (!b || !b.id || !b.obraId || !b.plantilla) { AG.olvidar(clave); return true; }
+      const r = await CX().pedir(`api/qhse/enNube?id=${encodeURIComponent(b.id)}`);
+      if (!r || r.ok === false) { if (r && /tu rol|no es de tus obras/i.test(String(r.error || ''))) { AG.olvidar(clave); return true; } return false; }
+      /* Ya está en la nube, o esta base no sincroniza (el ordenador la guarda). */
+      if (r.enNube !== false) { AG.olvidar(clave); return true; }
+      if (!r.existe) {
+        /* La base del teléfono la perdió: se vuelve a crear con el mismo id. */
+        await CX().postJson('api/qhse/guardar', { id: b.id, clave: b.clave, obraId: b.obraId, plantilla: b.plantilla, fecha: b.fecha, proveedorId: b.proveedorId, actividad: b.datos && b.datos.actividad, datos: b.datos, terminar: Boolean(b.terminar) });
+      }
+      /* Que suba ya; la copia sigue hasta que la nube la tenga. */
+      try { if (window.cxObra && window.cxObra.sync && window.cxObra.sync.ahora) window.cxObra.sync.ahora(); } catch { /* sin nube */ }
       return false;
     });
   }

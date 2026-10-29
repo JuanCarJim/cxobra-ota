@@ -535,7 +535,7 @@
   /* Los estados llegan como códigos ('enMarcha', 'aptoSinBocas'): se dicen con palabras. */
   const NOMBRE_ESTADO = {
     pendiente: 'Pendiente', programada: 'Programada', enProceso: 'En proceso', enMarcha: 'En marcha', hecha: 'Hecha',
-    conReservas: 'Con reservas', apto: 'Apto', aptoSinBocas: 'Apto (sin bocas)', noApto: 'No apto', noAplica: 'No aplica',
+    conReservas: 'Con reservas', pendienteFichaPM: 'Pendiente de ficha PM', faltaHojaFabricante: 'Falta hoja del fabricante', apto: 'Apto', aptoSinBocas: 'Apto (sin bocas)', noApto: 'No apto', noAplica: 'No aplica',
   };
   const nombreEstado = (v) => NOMBRE_ESTADO[v] || v;
 
@@ -615,11 +615,42 @@
         ${fila('Ficha PM', si(k.fichaPM))}
         ${pideBal ? fila('Balanceo', `<strong>${esc(nombreEstado(k.balanceoEstado || 'pendiente'))}</strong>`) : ''}
         ${pideEst ? fila('Estanqueidad', `<strong>${esc(nombreEstado(est))}</strong>`) : ''}
-        ${fila('Puesta en marcha', `<strong>${esc(k.estadoPM ? nombreEstado(k.estadoPM) : '—')}</strong>`)}
+        ${fila('Puesta en marcha', `<strong class="${TONO_PM[k.estadoPM] || ''}">${esc(k.estadoPM ? nombreEstado(k.estadoPM) : '—')}</strong>`)}
+        ${htmlFechasEquipo(k, puede, fila)}
         ${htmlFirmas(puede)}
       </section>
       ${firmando ? htmlLienzoFirma() : ''}
       ${htmlIncidenciasEquipo(k.incidencias || [])}`;
+  }
+
+  /* «En marcha» solo con la ficha PM hecha y la hoja del fabricante en el
+     SharePoint (29-oct, JC); sin amarillo: el aviso, en azul. */
+  const TONO_PM = { enMarcha: 'ok', faltaHojaFabricante: 'aviso', conReservas: 'aviso' };
+  /* La fecha de puesta en marcha (para el mantenimiento) y la garantía, que
+     cuenta desde la entrega a DF (29-oct, JC). Las corrige quien edita la ficha. */
+  /* En la app del teléfono (Vidaire Cx, sin el Mac) lo escrito en el equipo
+     no sube a la nube (equiposObra no está en paquete.js › TABLAS_VUELTA): ahí
+     se ve, no se corrige; se corrige en la web o en el escritorio. */
+  const enTelefono = () => { try { const s = window.ACCESO_MOVIL && window.ACCESO_MOVIL.sesion(); return Boolean(s && s.local); } catch { return false; } };
+  function htmlFechasEquipo(k, puedeFicha, fila) {
+    const puede = puedeFicha && !enTelefono();
+    const fpm = k.fechaPuestaMarcha ? String(k.fechaPuestaMarcha).slice(0, 10) : '';
+    const g = k.garantia || { texto: 'Garantía: sin empezar (pendiente de entrega a DF)' };
+    const textoG = esc(String(g.texto || '').replace(/^Garantía:\s*/, ''));
+    const anios = k.garantiaAnios ?? '';
+    return `${fila('Fecha de puesta en marcha', puede
+      ? `<input type="date" class="fecha-eq" data-cx-fechas="fechaPuestaMarcha" value="${esc(fpm)}" aria-label="Fecha de puesta en marcha">`
+      : `<strong>${fpm ? fechaCorta(fpm) : '—'}</strong>`)}
+      ${fila('Garantía', `<span class="garantia-eq"><span class="${g.estado === 'sinEmpezar' ? 'tenue' : g.estado === 'vencida' ? 'aviso' : ''}">${textoG}</span>${puede
+        ? ` <input type="number" class="anios-eq" inputmode="decimal" min="0" max="50" step="0.5" data-cx-fechas="garantiaAnios" value="${esc(String(anios))}" placeholder="años" aria-label="Años de garantía"> <span class="tenue">años</span>`
+        : (anios ? ` <span class="tenue">· ${esc(String(anios))} años</span>` : '')}</span>`)}`;
+  }
+  async function guardarFechasEquipo(campo, valor) {
+    try {
+      const r = await C.postJson('api/equipo/fechas', { equipoId: ficha.equipo.id, [campo]: valor === '' ? null : valor });
+      if (!r.ok) throw new Error(r.error);
+      await abrir(ficha.equipo.id, { quieto: true });
+    } catch (e) { C.aviso(e.message); }
   }
 
   /*
@@ -3001,6 +3032,7 @@
 
   $app.addEventListener('change', (ev) => {
     if (!activa() || hoja || !ficha) return;
+    if (ev.target.hasAttribute('data-cx-fechas')) { guardarFechasEquipo(ev.target.dataset.cxFechas, ev.target.value.trim()); return; }
     if (ev.target.hasAttribute('data-crono-campo')) {
       leerCuadrilla();
       cuadrillaLocal.estado = 'guardando';

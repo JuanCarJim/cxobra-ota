@@ -874,6 +874,10 @@ input.mal { box-shadow: 0 0 0 2px var(--mal-fondo) !important; }
 .fd > strong, .fd > .tenue, .fd > .ok, .fd > .no { text-align: right; font-size: 14px; }
 .fd .ok { color: var(--bien); font-weight: 700; }
 .fd .no { color: var(--mal); font-weight: 700; }
+.fd .aviso { color: var(--aviso); font-weight: 700; }
+.fd .fecha-eq { justify-self: end; font-size: 14px; padding: 4px 6px; }
+.fd .garantia-eq { text-align: right; font-size: 14px; }
+.fd .anios-eq { width: 56px; font-size: 14px; padding: 4px 6px; text-align: right; }
 .rejilla-datos > .fd:first-child { border-top: 0; }
 
 /* Sí / No / N/A pequeños, pegados a la derecha de la fila. */
