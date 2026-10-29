@@ -1549,8 +1549,10 @@ main, #app { min-width: 0; max-width: 100%; }
 .firma-hecha .tenue { white-space: normal; overflow-wrap: anywhere; }
 .estado-eq > .fd .enlace { white-space: normal; text-align: right; }
 .firma-valor { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-.firma-hecha { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; min-width: 0; max-width: 100%; }
-.firma-hecha img { height: 64px; width: auto; max-width: 220px; background: #fff; border: 0; object-fit: contain; }
+/* La firma pequeña a la izquierda del nombre, en la misma fila (29-oct, JC). */
+.firma-hecha { display: inline-flex; align-items: center; gap: 8px; flex-wrap: nowrap; justify-content: flex-end; min-width: 0; max-width: 100%; }
+.firma-hecha img { flex: none; height: 34px; width: auto; max-width: 90px; background: #fff; border: 0; object-fit: contain; }
+.firma-hecha .tenue { min-width: 0; }
 .firma-lienzo { margin: 8px 0 12px; }
 .firma-lienzo .campo { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; font-size: 13px; color: var(--textoSuave); }
 .firma-lienzo input { font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid var(--borde); border-radius: 8px; background: var(--panel); color: var(--texto); }
