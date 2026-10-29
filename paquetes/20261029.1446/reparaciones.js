@@ -387,12 +387,14 @@
       const f = fs[rol];
       const fecha = f && f.fecha ? fechaEs(f.fecha) : '';
       const valor = f
-        ? `<span class="firma-hecha"><img src="${esc(f.imagen)}" alt="Firma de ${esc(f.nombre)}"><span class="tenue">${esc([f.nombre, f.cargo, fecha].filter(Boolean).join(' · '))}</span></span>${puedeFirmar ? ` <button class="enlace" data-rp="firmar" data-rol="${rol}">Volver a firmar</button>` : ''}`
-        : (puedeFirmar ? `<button class="enlace" data-rp="firmar" data-rol="${rol}">Firmar</button>` : '<span class="no">Sin firmar</span>');
+        ? `<span class="firma-hecha"><img src="${esc(f.imagen)}" alt="Firma de ${esc(f.nombre)}"><span class="tenue">${esc([f.nombre, f.cargo, fecha].filter(Boolean).join(' · '))}</span></span>${puedeFirmar ? ` <button class="boton secundario" data-rp="firmar" data-rol="${rol}">Volver a firmar</button>` : ''}`
+        : (puedeFirmar ? `<button class="boton secundario" data-rp="firmar" data-rol="${rol}"><i class="ic ic-firma"></i>Firmar</button>` : '<span class="no">Sin firmar</span>');
       return `<div class="fd firma-fd"><span class="et">${ROTULO_FIRMA[rol]}</span><span class="firma-valor">${valor}</span></div>`;
     };
-    return `<h2>Firma del equipo</h2><section class="grupo">${fila('jefeObra')}${fila('cliente')}</section>
-      ${abierta.firmada ? '' : '<p class="nota aviso">Sin la firma del técnico responsable la reparación no se puede cerrar.</p>'}
+    return `<h2>Firma del equipo</h2><section class="firmas-rep">${fila('jefeObra')}${fila('cliente')}</section>
+      ${abierta.firmada ? '' : abierta.firmaCierre
+    ? `<p class="nota">Al cerrarla se pone sola la firma de ${esc(abierta.firmaCierre.nombre)} (jefe de obra) y queda cerrada: no hace falta firmar.</p>`
+    : '<p class="nota aviso">El jefe de obra no tiene firma guardada: sin la firma del técnico responsable la reparación no se puede cerrar.</p>'}
       ${firmando ? htmlLienzoRep() : ''}`;
   }
   function htmlLienzoRep() {
@@ -423,10 +425,12 @@
     trazadoRep = false;
     let ultimo = null;
     const punto = (ev) => { const r = cv.getBoundingClientRect(); return { x: ((ev.clientX - r.left) / r.width) * cv.width, y: ((ev.clientY - r.top) / r.height) * cv.height }; };
-    cv.addEventListener('pointerdown', (ev) => { ev.preventDefault(); try { cv.setPointerCapture(ev.pointerId); } catch { /* sin captura */ } ultimo = punto(ev); cx.beginPath(); cx.arc(ultimo.x, ultimo.y, 1.5, 0, Math.PI * 2); cx.fillStyle = cx.strokeStyle; cx.fill(); trazadoRep = true; });
+    cv.addEventListener('pointerdown', (ev) => { ev.preventDefault(); if (cv.dataset.guardada) return; try { cv.setPointerCapture(ev.pointerId); } catch { /* sin captura */ } ultimo = punto(ev); cx.beginPath(); cx.arc(ultimo.x, ultimo.y, 1.5, 0, Math.PI * 2); cx.fillStyle = cx.strokeStyle; cx.fill(); trazadoRep = true; });
     cv.addEventListener('pointermove', (ev) => { if (!ultimo) return; ev.preventDefault(); const p = punto(ev); cx.beginPath(); cx.moveTo(ultimo.x, ultimo.y); cx.lineTo(p.x, p.y); cx.stroke(); ultimo = p; });
     const fin = () => { ultimo = null; };
     cv.addEventListener('pointerup', fin); cv.addEventListener('pointercancel', fin); cv.addEventListener('pointerleave', fin);
+    /* Su firma ya hecha, puesta (solo el técnico responsable): «Firmar» la acepta sin trazar. */
+    if (window.CX_FIRMA) window.CX_FIRMA.aplicar(cv, firmando, { pintado: () => trazadoRep }).then((puesta) => { if (puesta) trazadoRep = true; });
   }
   async function guardarFirmaRep(boton, quitar = false) {
     if (!abierta || !firmando) return;
@@ -440,11 +444,13 @@
       if (falta) { C.aviso(falta); return; }
       if (!trazadoRep || !cv) { C.aviso('Firme en el recuadro antes de guardar.'); return; }
     }
+    const propia = quitar || !FD ? {} : FD.alFirmar(cv, nombre);
+    if (propia.error) { C.aviso(propia.error); return; }
     boton.disabled = true;
     try {
       const id = abierta.reparacion.id;
       const r = await C.postJson('api/reparacion/firma', quitar ? { id, rol: firmando, quitar: true }
-        : { id, rol: firmando, nombre: nombre.trim(), cargo, imagen: cv.toDataURL('image/png') });
+        : { id, rol: firmando, nombre: nombre.trim(), cargo, ...(propia.usarGuardada ? { usarGuardada: true } : { imagen: cv.toDataURL('image/png') }) });
       if (!r.ok) throw new Error(r.error);
       abierta.firmas = r.firmas; abierta.firmada = r.firmada;
       C.aviso(quitar ? 'Firma quitada' : 'Firma guardada', 'bien');
@@ -490,7 +496,7 @@
           ${nuevas.length ? '<p class="nota">Toca una foto sin guardar para quitarla.</p>' : ''}
           ${puede.foto ? `<div class="fila-botones">
             <button class="boton secundario" data-rp="camara" data-momento="${m}"><i class="ic ic-camara"></i>Hacer foto</button>
-            <button class="boton secundario" data-rp="galeria" data-momento="${m}">De la galería</button>
+            <button class="boton secundario" data-rp="galeria" data-momento="${m}"><i class="ic ic-galeria"></i>De la galería</button>
           </div>` : ''}`;
       }).join('')}
       ${puede.visita ? `<h2>Visita</h2>${v ? `<section class="grupo visita-pendiente">
@@ -666,7 +672,11 @@
         const ahora = await C.pedir(`api/reparacion?id=${encodeURIComponent(id)}`);
         if (!ahora.ok || ahora.reparacion.estado !== c.estado) {
           const r = await C.postJson('api/reparacion/estado', { id, estado: c.estado, comentario: c.motivo });
-          if (!r.ok) throw new Error(r.error);
+          /* Si el servidor lo rechaza (no es la red), el cambio de estado no se reintenta solo
+             en cada pantalla (29-oct, JC: el aviso le perseguía por Inicio y Mis tareas). */
+          if (!r.ok) { c.estado = null; c.motivo = ''; persistirCambios(id, c); throw new Error(r.error); }
+          /* Cerrada con la firma guardada del jefe de obra, puesta por el servidor (29-oct). */
+          if (r.firmadaPor) C.aviso(`Cerrada con la firma de ${r.firmadaPor} (jefe de obra).`, 'bien');
         }
         c.estado = null; c.motivo = '';
         persistirCambios(id, c);
@@ -687,7 +697,10 @@
       const red = AG.sinRed(e);
       persistirCambios(id, c);
       if (c === cambios) { estadoBarra = red ? 'sinRed' : 'error'; refrescarBarra(); }
-      if (!red || !silencioso) C.aviso(red ? 'Sin conexión: queda guardado en el móvil y se guardará en cuanto haya red.' : `No se ha guardado todo: ${e.message}`);
+      /* El aviso, solo con la ficha en pantalla: fuera de ella no persigue por otras pantallas
+         (lo pendiente sigue en el teléfono y su barra lo cuenta al volver). */
+      const enPantalla = activa() && abierta && abierta.reparacion.id === id;
+      if (enPantalla && (!red || !silencioso)) C.aviso(red ? 'Sin conexión: queda guardado en el móvil y se guardará en cuanto haya red.' : `No se ha guardado todo: ${e.message}`);
       if (abierta && abierta.reparacion.id === id) await recargar(id);
       return false;
     } finally {
@@ -818,7 +831,7 @@
     else if (a === 'firmar') { firmando = b.dataset.rol; const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); const l = $app.querySelector('.firma-lienzo'); if (l && l.scrollIntoView) l.scrollIntoView({ block: 'center' }); }
     else if (a === 'guardar-firma') guardarFirmaRep(b);
     else if (a === 'quitar-firma') guardarFirmaRep(b, true);
-    else if (a === 'limpiar-firma') { const cv = $app.querySelector('[data-firma-lienzo]'); if (cv) { cv.getContext('2d').clearRect(0, 0, cv.width, cv.height); trazadoRep = false; } }
+    else if (a === 'limpiar-firma') { const cv = $app.querySelector('[data-firma-lienzo]'); if (cv) { cv.getContext('2d').clearRect(0, 0, cv.width, cv.height); if (window.CX_FIRMA) window.CX_FIRMA.soltar(cv); trazadoRep = false; } }
     else if (a === 'cancelar-firma') { firmando = null; const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
   });
   /* Planta, zona u operario de la ficha: se guarda al elegirlo (no es de lo que espera al «Guardar»). */

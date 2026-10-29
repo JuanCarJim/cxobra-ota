@@ -653,7 +653,7 @@
     trazado = false;
     let ultimo = null;
     const punto = (ev) => { const r = cv.getBoundingClientRect(); return { x: ((ev.clientX - r.left) / r.width) * cv.width, y: ((ev.clientY - r.top) / r.height) * cv.height }; };
-    cv.addEventListener('pointerdown', (ev) => { ev.preventDefault(); try { cv.setPointerCapture(ev.pointerId); } catch { /* sin captura */ } ultimo = punto(ev); cx.beginPath(); cx.arc(ultimo.x, ultimo.y, 1.5, 0, Math.PI * 2); cx.fillStyle = cx.strokeStyle; cx.fill(); trazado = true; });
+    cv.addEventListener('pointerdown', (ev) => { ev.preventDefault(); if (cv.dataset.guardada) return; try { cv.setPointerCapture(ev.pointerId); } catch { /* sin captura */ } ultimo = punto(ev); cx.beginPath(); cx.arc(ultimo.x, ultimo.y, 1.5, 0, Math.PI * 2); cx.fillStyle = cx.strokeStyle; cx.fill(); trazado = true; });
     cv.addEventListener('pointermove', (ev) => {
       if (!ultimo) return;
       ev.preventDefault();
@@ -674,6 +674,8 @@
     cv.addEventListener('pointerup', fin);
     cv.addEventListener('pointercancel', fin);
     cv.addEventListener('pointerleave', fin);
+    /* Su firma ya hecha, puesta (solo el técnico responsable y si no hay nada a medias). */
+    if (!(b && b.imagen)) FD.aplicar(cv, firmando, { pintado: () => trazado }).then((puesta) => { if (puesta) trazado = true; });
   }
   /*
    * LA FIRMA A MEDIAS NO SE PIERDE (JC, 28-oct): el nombre y el trazo se
@@ -722,11 +724,13 @@
       if (f) { C.aviso(f); return; }
       if (!trazado || !cv) { C.aviso('Firme en el recuadro antes de guardar.'); return; }
     }
+    const propia = quitar ? {} : FD.alFirmar(cv, nombre);
+    if (propia.error) { C.aviso(propia.error); return; }
     boton.disabled = true;
     try {
       const r = await C.postJson('api/equipo/firma', quitar
         ? { equipoId: ficha.equipo.id, rol: firmando, quitar: true }
-        : { equipoId: ficha.equipo.id, rol: firmando, nombre: nombre.trim(), cargo: firmando === 'cliente' ? cargo : undefined, imagen: cv.toDataURL('image/png') });
+        : { equipoId: ficha.equipo.id, rol: firmando, nombre: nombre.trim(), cargo: firmando === 'cliente' ? cargo : undefined, ...(propia.usarGuardada ? { usarGuardada: true } : { imagen: cv.toDataURL('image/png') }) });
       if (!r.ok) throw new Error(r.error);
       ficha.firmas = r.firmas;
       C.aviso(quitar ? 'Firma quitada' : 'Firma guardada', 'bien');
@@ -3066,7 +3070,7 @@
     else if (que === 'foto-ui-grande' && ficha) fotoUiGrande(b.dataset.equipo);
     else if (que === 'firmar' && ficha) abrirFirma(b.dataset.rol);
     else if (que === 'cancelar-firma' && ficha) cerrarFirma({ olvidar: true });
-    else if (que === 'limpiar-firma' && ficha) { const cv = $app.querySelector('[data-firma-lienzo]'); if (cv) { cv.getContext('2d').clearRect(0, 0, cv.width, cv.height); trazado = false; firmaSinPintar = null; apuntarFirma(); } }
+    else if (que === 'limpiar-firma' && ficha) { const cv = $app.querySelector('[data-firma-lienzo]'); if (cv) { cv.getContext('2d').clearRect(0, 0, cv.width, cv.height); FD.soltar(cv); trazado = false; firmaSinPintar = null; apuntarFirma(); } }
     else if (que === 'guardar-firma' && ficha) guardarFirma(b);
     else if (que === 'quitar-firma' && ficha) guardarFirma(b, true);
     else if (que === 'quitar-foto-equipo') quitarFotoEquipo(b);

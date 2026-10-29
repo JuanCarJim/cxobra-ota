@@ -83,8 +83,66 @@
     return null;
   }
 
+  /*
+   * MI FIRMA YA HECHA (JC, 29-oct): «mi firma, que ya la he hecho hoy, es la
+   * que tiene que figurar en todos los documentos que yo tenga que firmar».
+   * El servidor devuelve la firma guardada de quien tiene la sesión (su último
+   * trazo de técnico responsable; api/firma/guardada). Si hay, el lienzo del
+   * TÉCNICO RESPONSABLE sale con ella puesta y «Firmar» la acepta sin trazar.
+   * «Borrar trazo» la quita y deja firmar a mano. Nunca en la casilla de otra
+   * persona (la otra firma, el cliente, DF…): ahí el lienzo sale vacío.
+   *
+   *   FD.aplicar(cv, rol, { pintado })  → Promise<boolean>: ¿la puso?
+   *   FD.soltar(cv)                     → «Borrar trazo»: ya no es la guardada
+   *   FD.alFirmar(cv, nombre)           → { usarGuardada: true } | { error } | {}
+   */
+  let guardadaCache = null;
+  async function guardada() {
+    try {
+      const C = window.CX;
+      const r = C && C.pedir ? await C.pedir('api/firma/guardada') : null;
+      guardadaCache = r && r.ok && r.firma ? r.firma : null;
+    } catch { /* sin red: la última que se vio */ }
+    return guardadaCache;
+  }
+  const sinAcentos = (v) => String(v ?? '').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  function cargarImagen(src) {
+    return new Promise((ok) => {
+      if (typeof Image === 'undefined') { ok(null); return; }
+      const img = new Image();
+      img.onload = () => ok(img); img.onerror = () => ok(null);
+      img.src = src;
+    });
+  }
+  async function aplicar(cv, rol, { pintado = () => false } = {}) {
+    if (!cv || rol !== 'jefeObra') return false;
+    const g = await guardada();
+    if (!g || !cv.isConnected || pintado()) return false;
+    const img = await cargarImagen(g.imagen);
+    if (!img || !cv.isConnected || pintado()) return false;
+    try { cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); } catch { return false; }
+    cv.dataset.guardada = sinAcentos(g.nombre);
+    const nota = cv.closest('.firma-lienzo') && cv.closest('.firma-lienzo').querySelector('.nota');
+    if (nota && !nota.querySelector('[data-firma-guardada]')) {
+      nota.insertAdjacentHTML('afterbegin', `<strong data-firma-guardada>Tu firma ya está puesta: pulsa «Firmar». Para firmar a mano, «Borrar trazo». </strong>`);
+    }
+    return true;
+  }
+  function soltar(cv) {
+    if (!cv) return;
+    delete cv.dataset.guardada;
+    const a = cv.closest('.firma-lienzo') && cv.closest('.firma-lienzo').querySelector('[data-firma-guardada]');
+    if (a) a.remove();
+  }
+  function alFirmar(cv, nombre) {
+    const g = cv && cv.dataset.guardada;
+    if (!g) return {};
+    if (g !== sinAcentos(nombre)) return { error: 'Esa firma guardada es de otra persona: pulsa «Borrar trazo» y firma a mano.' };
+    return { usarGuardada: true };
+  }
+
   const rotulo = (rol) => ROTULOS[rol] || rol;
   const textoHecha = (f) => (f ? [f.nombre, f.rol === 'cliente' ? (f.cargo || 'Cliente') : null, fechaCorta(f.fecha)].filter(Boolean).join(' · ') : '');
 
-  window.CX_FIRMA = { CARGOS, htmlCampos, enlazar, leer, falta, rotulo, textoHecha, nombreSesion };
+  window.CX_FIRMA = { CARGOS, htmlCampos, enlazar, leer, falta, rotulo, textoHecha, nombreSesion, aplicar, soltar, alFirmar };
 })();
