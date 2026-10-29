@@ -67,6 +67,25 @@
       secciones: [['qhse', 'QHSE'], ['plano', 'Plano de equipos'], ['bloc', 'Notas'], ['albaranes', 'Albaranes'], ['inventario', 'Inventario'], ['personal', 'Personal'], ['cuenta', 'Cuenta']] },
     /* 29-oct (JC): «QHSE es una cosa aparte, no es una incidencia»: sección propia (como «Seguridad» en la web), la primera de «Más». */
   ];
+  /*
+   * 29-oct (JC): el jefe de obra y el de producción (shared/roles.js, mismas
+   * secciones) llevan QHSE en la barra, en el sitio de «Avance»; el avance
+   * sigue en «Más». Los demás roles, como estaban.
+   */
+  const PESTANA_QHSE = { id: 'qhse', nombre: 'QHSE',
+    icono: icono('<path d="M12 3.5 5 6.2v5.3c0 4.3 3 7.6 7 9 4-1.4 7-4.7 7-9V6.2z"/><path d="M8.8 12.2l2.2 2.2 4.2-4.4"/>',
+      `<path d="M12 3.5 5 6.2v5.3c0 4.3 3 7.6 7 9 4-1.4 7-4.7 7-9V6.2z" fill="currentColor"/><path d="M8.8 12.2l2.2 2.2 4.2-4.4" ${HUECO} stroke-width="2"/>`),
+    secciones: [['qhse', 'QHSE']] };
+  const QHSE_EN_BARRA = new Set(['jefeObra', 'jefeProduccion']);
+  function pestanasDe(rol) {
+    if (!QHSE_EN_BARRA.has(rol)) return PESTANAS;
+    return PESTANAS.map((p) => {
+      if (p.id === 'avance') return PESTANA_QHSE;
+      if (p.id === 'mas') return { ...p, secciones: [['avance', 'Avance'], ...p.secciones.filter(([id]) => id !== 'qhse')] };
+      return p;
+    });
+  }
+  const pestanas = () => pestanasDe((sesion() || {}).rol);
   const MAS = svg('<path d="M12 5v14M5 12h14" stroke-width="2.6"/>');
 
   /*
@@ -97,7 +116,7 @@
     { seccion: 'avisos', nombre: 'Algo reclamable', ayuda: 'Esperas, accesos denegados, sin grúa…', obra: true, pasos: ['[data-at="nuevo"]'],
       icono: svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>') },
     /* 28-oct: la inspección del sitio de cada semana (qhse.js). */
-    { seccion: 'qhse', nombre: 'Inspección del sitio', ayuda: 'QHSE: la de esta semana, control de subcontratas, CAE', obra: true, pasos: ['[data-qh="nuevo"][data-p="inspeccionObra"]'],
+    { seccion: 'qhse', nombre: 'Inspección del sitio', ayuda: 'QHSE: la de esta semana, control de subcontratas, CAE', obra: true, pasos: ['[data-qh="tipo"][data-p="inspeccionObra"]', '[data-qh="nuevo"][data-p="inspeccionObra"]'],
       icono: svg('<path d="M9 4.5h6M9 4.5A1.5 1.5 0 0 0 7.5 6H6a1.5 1.5 0 0 0-1.5 1.5v11A1.5 1.5 0 0 0 6 20h12a1.5 1.5 0 0 0 1.5-1.5v-11A1.5 1.5 0 0 0 18 6h-1.5A1.5 1.5 0 0 0 15 4.5"/><path d="M8.5 13l2.5 2.5 4.5-5"/>') },
   ];
 
@@ -113,7 +132,7 @@
   const sesion = () => (window.ACCESO_MOVIL && window.ACCESO_MOVIL.sesion()) || null;
   const permitidas = () => { const s = sesion(); return s ? ['inicio', ...(s.secciones || []), 'cuenta'] : []; };
   const seccion = () => location.hash.slice(1);
-  const pestanaDe = (s) => PESTANAS.find((p) => p.secciones.some(([id]) => id === s)) || null;
+  const pestanaDe = (s) => pestanas().find((p) => p.secciones.some(([id]) => id === s)) || null;
 
   /* ═══════════════════════════════════ Pedir al ordenador */
 
@@ -541,7 +560,8 @@
       const centro = accionesDisponibles().length
         ? '<div class="barra-centro"><button type="button" class="boton-anadir" id="boton-anadir" aria-label="Añadir" aria-haspopup="dialog">' + MAS + '</button><span>Añadir</span></div>'
         : '';
-      abajo.innerHTML = `<div class="barra-pastilla">${PESTANAS.slice(0, 2).map(boton).join('')}${centro}${PESTANAS.slice(2).map(boton).join('')}</div>`;
+      const lista = pestanas();
+      abajo.innerHTML = `<div class="barra-pastilla">${lista.slice(0, 2).map(boton).join('')}${centro}${lista.slice(2).map(boton).join('')}</div>`;
       const b = document.getElementById('boton-anadir');
       if (b) b.onclick = abrirHoja;
       abajo.hidden = !sesion();
@@ -913,6 +933,8 @@
     if (enviar) enviar.onclick = () => window.cxObra.enviarOficina().then((r) => { if (r && r.error) aviso(r.error); else if (r && r.ok) { aviso(r.texto, 'bien'); cuenta(); } });
     const vistos = document.getElementById('cx-conflictos-vistos');
     if (vistos) vistos.onclick = () => { sincro().conflictosVistos(); cuenta(); };
+    const noSuben = document.getElementById('cx-nosuben-vistos');
+    if (noSuben) noSuben.onclick = () => { sincro().descartesVistos(); cuenta(); };
     const ya = document.getElementById('cx-sync-ya');
     if (ya) ya.onclick = async () => {
       ya.disabled = true;
@@ -1003,7 +1025,25 @@
         <div class="fila-dato"><span>Aviso al momento</span><strong>${e.tiempoReal ? 'Conectado' : 'Cada 30 segundos'}</strong></div>
         ${e.error && e.estado === 'error' ? `<div class="fila-dato"><span>Error</span><strong>${esc(e.error)}</strong></div>` : ''}
       </section>
-      ${conflictosSync(e)}`;
+      ${conflictosSync(e)}
+      ${noSubeSync(e)}`;
+  }
+
+  /* Lo que este usuario no puede cambiar en la nube (cx_permisos; el operario
+     en la ficha del equipo, la solo consulta) o que la nube rechazó 6 veces:
+     no se reintenta sin fin; se dice aquí y se queda en este teléfono. */
+  function noSubeSync(e) {
+    const s = sincro();
+    if (!s || !s.descartes || (!e.descartadas && !e.bloqueadas)) return '';
+    const filas = [...s.descartes(), ...s.bloqueos()].slice(0, 30).map((d) => `<li><strong>${esc(d.tabla)}</strong> <span class="tenue">${esc(d.id)}</span></li>`).join('');
+    return `
+      <section class="grupo" id="cx-nosuben">
+        ${e.descartadas ? `<div class="fila-dato"><span>Cambios que tu usuario no puede enviar</span><strong>${e.descartadas}</strong></div>` : ''}
+        ${e.bloqueadas ? `<div class="fila-dato"><span>La oficina no los acepta (se reintenta si los cambias)</span><strong>${e.bloqueadas}</strong></div>` : ''}
+        <ul class="lista-conflictos">${filas}</ul>
+        <p class="nota">Se quedan solo en este teléfono. Si hace falta, pide a tu jefe de obra que los haga.</p>
+        ${e.descartadas ? '<button class="boton secundario" id="cx-nosuben-vistos">Entendido</button>' : ''}
+      </section>`;
   }
 
   /* Lo que perdió al mezclar un cambio de aquí con otro de la oficina en la

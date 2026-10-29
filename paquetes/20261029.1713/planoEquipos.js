@@ -277,6 +277,7 @@
       <div class="sub">${que ? `${esc(que)} · ` : ''}${esc(e.sala || 'sin sala')}${p.planta ? ` · ${esc(p.planta)}` : ''}</div>
       ${e.miembros && e.miembros.length > 1 ? conjuntoHtml(e) : (rol ? `<div class="sub">${rol}</div>` : '')}
       ${falta ? `<div class="falta">${falta}</div>` : ''}
+      ${(e.documentos || []).length ? `<div class="pe-enlaces">${e.documentos.map(enlaceDoc).join('')}</div>` : ''}
       ${p.plano && e.x === null ? '<div class="sub tenue">No está en el plano.</div>' : ''}
       ${acc.length ? `<div class="pe-acciones">${acc.map((a) => `<button class="boton${a.id === 'datos' ? '' : ' secundario'}" data-pe-accion="${esc(a.id)}">${esc(a.texto)}</button>`).join('')}</div>` : ''}
       ${datos.conCommissioning ? `<button class="enlace mas" data-pe-accion="equipo">Ver la ficha completa</button>` : (datos.puedeEditar === false ? '<div class="sub tenue">Solo lectura.</div>' : '')}`;
@@ -287,7 +288,9 @@
     const p = plantaActual();
     return mat && p ? (p.materiales || []).find((x) => x.id === mat) : null;
   };
-  const enlaceFicha = (e, texto) => (e && e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">${texto} ↗</a>` : '');
+  /* Solo el hipervínculo con su nombre legible, nunca la dirección en texto (29-oct, JC). */
+  const enlaceFicha = (e, texto) => (e && e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">${texto}: ${esc(e.nombre)}${e.nivel === 'tipo' ? ' (del tipo)' : ''} ↗</a>` : '');
+  const enlaceDoc = (d) => `<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.etiqueta)}: ${esc(d.nombre)} ↗</a>`;
 
   /* La hoja de un material: qué es, nº de serie, características y su ficha técnica. */
   function hojaMaterial(m) {

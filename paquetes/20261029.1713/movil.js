@@ -247,7 +247,7 @@
       if (form) pintarFormulario();
       return;
     }
-    $app.innerHTML = '<div class="leyendo"><div class="giro"></div><p>Leyendo el albarán…</p><small>La foto se lee en el ordenador de la obra.</small></div>';
+    $app.innerHTML = '<div class="leyendo"><div class="giro"></div><p>Leyendo el albarán…</p><small>La foto se lee en este teléfono: no sale a ningún sitio.</small></div>';
     try {
       const r = await subirFoto(archivo, true);
       if (r.ok === false) throw new Error(r.error);
