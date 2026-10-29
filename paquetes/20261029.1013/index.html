@@ -2,7 +2,13 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<!-- maximum-scale=1 (29-oct): el iPhone amplía la página al tocar un campo con
+     letra de menos de 16 px (las lecturas de la toma de datos van a 14-15 px) y
+     no la devuelve a su tamaño: desde ahí todo salía cortado por la derecha y
+     la cabecera se metía bajo la hora. Con esto no amplía al escribir; en
+     Safari se sigue pudiendo ampliar con dos dedos. -->
+
 <meta name="robots" content="noindex">
 <title>Vidaire Cx</title>
 <!-- CX OBRA: la app del móvil de la obra. Barra flotante abajo
