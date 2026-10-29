@@ -933,6 +933,8 @@
     if (enviar) enviar.onclick = () => window.cxObra.enviarOficina().then((r) => { if (r && r.error) aviso(r.error); else if (r && r.ok) { aviso(r.texto, 'bien'); cuenta(); } });
     const vistos = document.getElementById('cx-conflictos-vistos');
     if (vistos) vistos.onclick = () => { sincro().conflictosVistos(); cuenta(); };
+    const noSuben = document.getElementById('cx-nosuben-vistos');
+    if (noSuben) noSuben.onclick = () => { sincro().descartesVistos(); cuenta(); };
     const ya = document.getElementById('cx-sync-ya');
     if (ya) ya.onclick = async () => {
       ya.disabled = true;
@@ -1023,7 +1025,25 @@
         <div class="fila-dato"><span>Aviso al momento</span><strong>${e.tiempoReal ? 'Conectado' : 'Cada 30 segundos'}</strong></div>
         ${e.error && e.estado === 'error' ? `<div class="fila-dato"><span>Error</span><strong>${esc(e.error)}</strong></div>` : ''}
       </section>
-      ${conflictosSync(e)}`;
+      ${conflictosSync(e)}
+      ${noSubeSync(e)}`;
+  }
+
+  /* Lo que este usuario no puede cambiar en la nube (cx_permisos; el operario
+     en la ficha del equipo, la solo consulta) o que la nube rechazó 6 veces:
+     no se reintenta sin fin; se dice aquí y se queda en este teléfono. */
+  function noSubeSync(e) {
+    const s = sincro();
+    if (!s || !s.descartes || (!e.descartadas && !e.bloqueadas)) return '';
+    const filas = [...s.descartes(), ...s.bloqueos()].slice(0, 30).map((d) => `<li><strong>${esc(d.tabla)}</strong> <span class="tenue">${esc(d.id)}</span></li>`).join('');
+    return `
+      <section class="grupo" id="cx-nosuben">
+        ${e.descartadas ? `<div class="fila-dato"><span>Cambios que tu usuario no puede enviar</span><strong>${e.descartadas}</strong></div>` : ''}
+        ${e.bloqueadas ? `<div class="fila-dato"><span>La oficina no los acepta (se reintenta si los cambias)</span><strong>${e.bloqueadas}</strong></div>` : ''}
+        <ul class="lista-conflictos">${filas}</ul>
+        <p class="nota">Se quedan solo en este teléfono. Si hace falta, pide a tu jefe de obra que los haga.</p>
+        ${e.descartadas ? '<button class="boton secundario" id="cx-nosuben-vistos">Entendido</button>' : ''}
+      </section>`;
   }
 
   /* Lo que perdió al mezclar un cambio de aquí con otro de la oficina en la

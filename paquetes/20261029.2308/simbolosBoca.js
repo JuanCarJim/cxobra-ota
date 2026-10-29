@@ -166,4 +166,4 @@ function planoSvgBocas({ imagen = null, ancho = 1600, alto = 900, puntos = [], e
 (function exportar(API) {
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
   if (typeof window !== 'undefined') window.SIMBOLOS_BOCA = API;
-})({ FAMILIAS: FAMILIAS_BOCA, familia: familiaBoca, svg: svgBoca, planoSvg: planoSvgBocas, COLOR_ESTADO: COLOR_ESTADO_BOCA });
+})({ FAMILIAS: FAMILIAS_BOCA, familia: familiaBoca, svg: svgBoca, trazos: trazosBoca, planoSvg: planoSvgBocas, COLOR_ESTADO: COLOR_ESTADO_BOCA });

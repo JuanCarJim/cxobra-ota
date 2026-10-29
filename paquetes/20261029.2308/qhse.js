@@ -52,6 +52,24 @@
       .qh .qh-lista .est { font-size: 12.5px; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
       .qh .qh-lista .est.borrador { background: var(--aviso-fondo); color: var(--aviso); }
       .qh .qh-lista .est.cerrado { background: var(--bien-fondo); color: var(--bien); }
+      .qh .qh-asis .fila-as { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px 0; border-bottom: 1px solid var(--panel3); position: relative; }
+      .qh .qh-asis .fila-as .nom { grid-column: 1 / -1; padding-right: 36px; }
+      .qh .qh-asis input { height: 40px; font-size: 16px; min-width: 0; box-sizing: border-box; }
+      .qh .qh-asis .fi { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; }
+      .qh .qh-asis .fi img { height: 40px; max-width: 160px; object-fit: contain; border-bottom: 1px solid var(--acento-suave); }
+      #app .qh .qh-asis .fi .boton { min-height: 34px; padding: 4px 14px; border-radius: 999px; width: fit-content; font-size: 14px; }
+      .qh .qh-asis .quitar { position: absolute; top: 10px; right: 2px; width: 32px; height: 36px; border: none; background: none; color: var(--textoTenue); font-size: 22px; }
+      .qh .acciones-as { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+      #app .qh .acciones-as .boton, #app .qh .propuestos .boton { width: fit-content; border-radius: 999px; }
+      .qh .propuestos { display: flex; flex-wrap: wrap; gap: 6px; }
+      .qh [data-qh-hojas] img { width: 120px; height: 160px; }
+      .qh-firmar { position: fixed; inset: 0; z-index: 1000; background: rgba(15, 61, 110, .35); display: flex; align-items: flex-end; }
+      .qh-firmar .hoja-firma { background: var(--panel); width: 100%; box-sizing: border-box; padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); border-radius: 18px 18px 0 0; display: flex; flex-direction: column; gap: 8px; }
+      .qh-firmar input { height: 44px; font-size: 17px; width: 100%; box-sizing: border-box; min-width: 0; }
+      .qh-firmar .dos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .qh-firmar canvas { width: 100%; height: 200px; border: 1px dashed var(--acento); border-radius: 12px; background: #FFFFFF; touch-action: none; }
+      .qh-firmar .botones { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+      .qh-firmar .boton { width: fit-content; border-radius: 999px; }
       .qh details { border-bottom: 1px solid var(--panel3); }
       .qh summary { padding: 12px 4px; font-weight: 600; font-size: 17px; color: var(--acento-fuerte); display: flex; justify-content: space-between; gap: 8px; }
       .qh .punto { padding: 10px 4px; border-top: 1px solid var(--panel3); }
@@ -145,6 +163,71 @@
   const obra = () => obras().find((o) => o.id === (form ? form.obraId : obraElegida())) || obras()[0] || null;
   const plantilla = (id) => (datos.formularios || []).find((p) => p.id === id);
   window.addEventListener('movil:obra', () => { if (activa() && !form && datos) pintarLista(); });
+
+  /* ═══ ASISTENCIA-PURO (sin DOM: test/qhseAsistencia.test.js lo ejecuta) */
+  /* El rectángulo del papel: filas y columnas claras; si sale menos del 40 % de la foto, la foto entera. */
+  function recorteHoja(lum, w, h) {
+    const orden = Array.from(lum).sort((a, b) => a - b);
+    const claro = orden[Math.floor(orden.length * 0.9)] || 255;
+    const umbral = claro * 0.72;
+    const filaClara = (y) => { let n = 0; for (let x = 0; x < w; x++) if (lum[y * w + x] >= umbral) n++; return n / w >= 0.5; };
+    let y0 = 0; while (y0 < h && !filaClara(y0)) y0++;
+    let y1 = h - 1; while (y1 > y0 && !filaClara(y1)) y1--;
+    const colClara = (x) => { let n = 0; for (let y = y0; y <= y1; y++) if (lum[y * w + x] >= umbral) n++; return n / Math.max(1, y1 - y0 + 1) >= 0.5; };
+    let x0 = 0; while (x0 < w && !colClara(x0)) x0++;
+    let x1 = w - 1; while (x1 > x0 && !colClara(x1)) x1--;
+    const r = { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+    if (r.w <= 0 || r.h <= 0 || r.w * r.h < 0.4 * w * h) return { x: 0, y: 0, w, h };
+    return r;
+  }
+  const NO_NOMBRE = /\b(nombre|apellidos?|dni|nif|nie|empresa|firma|fecha|hora|asistentes?|asistencia|charla|formacion|tema|ponente|lugar|duracion|obra|hoja|registro|pagina|page|total|observaciones)\b/;
+  const plano = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim();
+  function distancia(a, b) {
+    const m = Array.from({ length: b.length + 1 }, (_, j) => j);
+    for (let i = 1; i <= a.length; i++) {
+      let prev = m[0]; m[0] = i;
+      for (let j = 1; j <= b.length; j++) { const t = m[j]; m[j] = Math.min(m[j] + 1, m[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = t; }
+    }
+    return m[b.length];
+  }
+  /* ¿El texto leído es esta persona? Parecido de todo el nombre, o sus palabras dentro de lo leído. */
+  function esLaPersona(conocido, leido) {
+    const a = plano(conocido); const b = plano(leido);
+    if (!a || !b) return false;
+    if (distancia(a, b) <= Math.max(1, Math.floor(a.length * 0.15))) return true;
+    const pb = b.split(' ');
+    const pa = a.split(' ').filter((x) => x.length > 2);
+    return pa.length >= 2 && pa.every((x) => pb.some((y) => distancia(x, y) <= (x.length > 5 ? 1 : 0)));
+  }
+  /*
+   * Nombres que se leen en la hoja: renglones de 2 a 5 palabras de letras, sin
+   * las palabras de la cabecera. Si se parecen a un operario de la obra, se
+   * propone ese nombre (con su empresa); si no, lo leído tal cual. Nunca se
+   * inventa: o es lo que pone la hoja, o es alguien de la obra que se le parece.
+   */
+  function nombresDeHoja(lineas, conocidas = [], ya = []) {
+    const tengo = new Set(ya.map(plano).filter(Boolean));
+    const out = [];
+    for (const l0 of lineas || []) {
+      const l = String(l0 || '').replace(/^\s*\d{1,3}\s*[.)\-]?\s+/, '');
+      const dni = (l.match(/\b([XYZ]?\d{7,8}[A-Z])\b/i) || [])[1] || '';
+      const trozo = l.split(/[|[\]{}_]|\s{3,}|\d/)[0];
+      const palabras = trozo.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ' -]/g, ' ').split(/\s+/).filter((w) => w.length >= 2);
+      if (palabras.length < 2 || palabras.length > 5) continue;
+      const leido = palabras.join(' ');
+      if (NO_NOMBRE.test(plano(leido))) continue;
+      /* Un nombre lleva mayúscula inicial en casi todas sus palabras. */
+      if (palabras.filter((w) => /^[A-ZÁÉÍÓÚÜÑ]/.test(w)).length < palabras.length - 1) continue;
+      const c = conocidas.find((p) => esLaPersona(p.nombre, leido));
+      const nombre = c ? c.nombre : palabras.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+      const k = plano(nombre);
+      if (tengo.has(k)) continue;
+      tengo.add(k);
+      out.push({ nombre, empresa: c ? c.empresa || '' : '', dni: dni.toUpperCase(), conocido: Boolean(c), leido });
+    }
+    return out.slice(0, 40);
+  }
+  /* ═══ FIN-ASISTENCIA-PURO */
 
   /* ═══════════════════════════════════ 1. La lista */
 
@@ -298,14 +381,14 @@
         <label>Hora<input type="time" lang="es" data-qh-hora value="${esc(f.hora || '')}" ${dis}></label>
         <datalist id="qh-subs">${subs.map((s) => `<option value="${esc(s.nombre)}"></option>`).join('')}</datalist>
       </div>
-      ${p.asistentes ? asistentes(dis) : ''}
+      ${p.asistentes ? `<div data-qh-asistentes>${asistentes(dis)}</div>` : ''}
       ${p.secciones.map((s, si) => `<details ${si === 0 && !cerrado ? 'open' : ''}><summary><span>${esc(s.nombre)}</span><span class="cuenta" data-qh-cuenta="${esc(s.id)}">${conteo(s)}</span></summary>
         ${cerrado ? '' : `<button type="button" class="boton secundario todo-ok" data-qh="todo-ok" data-s="${esc(s.id)}">Todo aceptable</button>`}
         ${s.items.map((t, i) => punto(p, s, t, i, dis)).join('')}</details>`).join('')}
-      <h2>${esc(p.planTitulo || 'Plan de acción')}</h2>
-      <div data-qh-plan>${cerrado ? seguimiento() : plan(dis)}</div>
+      ${p.plan === false ? '' : `<h2>${esc(p.planTitulo || 'Plan de acción')}</h2>
+      <div data-qh-plan>${cerrado ? seguimiento() : plan(dis)}</div>`}
       ${cerrado && form.harbour ? `<label class="harbour"><input type="checkbox" data-qh-harbour ${f.harbour && f.harbour.subido ? 'checked' : ''} ${form.puedeSeguir ? '' : 'disabled'}> Subido a Harbour${f.harbour && f.harbour.fecha ? ` el ${esc(fechaEs(f.harbour.fecha))}` : ''}</label>` : ''}
-      ${cerrado ? '' : `${p.secciones.length ? '<button class="boton secundario" data-qh="plan-nc">Traer los puntos que no cumplen</button> ' : ''}<button class="boton secundario" data-qh="plan-mas">${p.secciones.length ? '+ Añadir acción' : '+ Añadir NC'}</button>`}
+      ${cerrado || p.plan === false ? '' : `${p.secciones.length ? '<button class="boton secundario" data-qh="plan-nc">Traer los puntos que no cumplen</button> ' : ''}<button class="boton secundario" data-qh="plan-mas">${p.secciones.length ? '+ Añadir acción' : '+ Añadir NC'}</button>`}
       <h2>Fotos</h2>
       <div class="fotos" data-qh-fotos>${fotos()}</div>
       ${cerrado ? '' : '<label class="boton secundario" style="width:fit-content;border-radius:999px">Añadir foto<input type="file" accept="image/*" capture="environment" data-qh-foto hidden></label>'}
@@ -333,11 +416,190 @@
     </div>`;
   }
 
+  /*
+   * ASISTENCIA (29-oct, JC): «que pongan nombres y firma de asistentes y que se
+   * puedan escanear hojas de asistencia». Cada asistente firma en el móvil, uno
+   * tras otro (se pasa el teléfono); el nombre se sugiere de los operarios de
+   * la obra. La hoja de papel firmada se escanea y va detrás en el PDF; el OCR
+   * del propio teléfono solo propone nombres que hay que confirmar.
+   */
   function asistentes(dis) {
+    const p = plantilla(form.plantilla);
     const a = form.datos.asistentes || [];
-    return `<h2>Asistentes</h2><table><thead><tr><th>Nombre y apellidos</th><th>DNI</th><th>Empresa</th></tr></thead><tbody>
-      ${a.map((x, i) => `<tr><td><input data-qh-as="${i}" data-c="nombre" value="${esc(x.nombre)}" ${dis}></td><td><input data-qh-as="${i}" data-c="dni" value="${esc(x.dni)}" ${dis}></td><td><input data-qh-as="${i}" data-c="empresa" value="${esc(x.empresa)}" list="qh-subs" ${dis}></td></tr>`).join('')}
-    </tbody></table>${dis ? '' : '<button class="boton secundario" data-qh="as-mas">+ Asistente</button>'}`;
+    const firma = p.asistenteFirma;
+    const personas = (obra() && obra().personas) || [];
+    return `<h2>Asistentes <span class="cuenta">${a.filter((x) => x.nombre).length}</span></h2>
+      <datalist id="qh-personas">${personas.map((x) => `<option value="${esc(x.nombre)}">${esc(x.empresa)}</option>`).join('')}</datalist>
+      <div class="qh-asis">${a.map((x, i) => `<div class="fila-as">
+        <input class="nom" data-qh-as="${i}" data-c="nombre" value="${esc(x.nombre)}" placeholder="Nombre y apellidos" list="qh-personas" autocomplete="off" ${dis}>
+        <input data-qh-as="${i}" data-c="empresa" value="${esc(x.empresa)}" placeholder="Empresa" list="qh-subs" autocomplete="off" ${dis}>
+        <input data-qh-as="${i}" data-c="dni" value="${esc(x.dni)}" placeholder="DNI (opcional)" ${dis}>
+        ${firma ? `<span class="fi">${x.trazo ? `<img alt="Firma de ${esc(x.nombre)}" src="${esc(x.trazo)}">` : '<small>Sin firma</small>'}${dis ? '' : `<button type="button" class="boton secundario" data-qh="as-firmar" data-i="${i}">${x.trazo ? 'Repetir' : 'Firmar'}</button>`}</span>` : ''}
+        ${dis ? '' : `<button type="button" class="quitar" data-qh="as-quitar" data-i="${i}" aria-label="Quitar asistente">×</button>`}
+      </div>`).join('') || '<p class="nota">Todavía no hay asistentes.</p>'}</div>
+      ${dis ? '' : `<div class="acciones-as">${firma ? '<button class="boton" data-qh="as-pasar">Pasar el móvil para firmar</button>' : ''}<button class="boton secundario" data-qh="as-mas">+ Asistente</button></div>`}
+      ${p.escanearAsistencia ? `<h2>Hoja de asistencia en papel <span class="cuenta" data-qh-hojas-n>${hojasEscaneadas().length}</span></h2>
+        <div class="fotos" data-qh-hojas>${hojasHtml()}</div>
+        ${dis ? '' : '<label class="boton secundario" style="width:fit-content;border-radius:999px">Escanear hoja de asistencia<input type="file" accept="image/*" capture="environment" data-qh-hoja hidden></label>'}
+        <div data-qh-ocr></div>` : ''}`;
+  }
+  const hojasEscaneadas = () => ((form && form.adjuntos) || []).filter((a) => a.ref === 'asistencia');
+  function hojasHtml() {
+    const l = hojasEscaneadas();
+    if (!l.length) return '<p class="nota">Si se firmó en papel, escanéala: va detrás en el PDF.</p>';
+    return l.map((a) => `<figure>${a.contenido ? `<img alt="Hoja de asistencia" src="data:${esc(a.tipo)};base64,${a.contenido}">` : `<small>${esc(a.nombre)}</small>`}${form.estado === 'hecho' ? '' : `<button type="button" data-qh="foto-quitar" data-id="${esc(a.id)}" aria-label="Quitar hoja">×</button>`}</figure>`).join('');
+  }
+  function repintarAsistentes() {
+    const c = $app.querySelector('[data-qh-asistentes]');
+    if (c) c.innerHTML = asistentes(form.estado === 'hecho' ? 'disabled' : '');
+  }
+
+  /* ── La firma de cada asistente, en un lienzo a pantalla completa. */
+  let firmando = null;
+  function abrirFirma(i, pasar) {
+    const lista = form.datos.asistentes;
+    /* Al pasar el móvil, primero los apuntados que aún no han firmado; luego, uno nuevo. */
+    if (pasar) { const k = lista.findIndex((x) => x.nombre && !x.trazo); i = k >= 0 ? k : null; }
+    const x = i === null || i === undefined ? { nombre: '', empresa: '', dni: '' } : lista[i];
+    cerrarFirma();
+    const capa = document.createElement('div');
+    capa.className = 'qh-firmar';
+    capa.innerHTML = `<div class="hoja-firma">
+      <p class="nota">${pasar ? 'Pasa el móvil: cada asistente escribe su nombre y firma.' : 'Firma del asistente'}</p>
+      <input data-f="nombre" value="${esc(x.nombre)}" placeholder="Nombre y apellidos" list="qh-personas" autocomplete="off">
+      <div class="dos"><input data-f="empresa" value="${esc(x.empresa)}" placeholder="Empresa" list="qh-subs" autocomplete="off"><input data-f="dni" value="${esc(x.dni)}" placeholder="DNI (opcional)"></div>
+      <canvas aria-label="Firma"></canvas>
+      <div class="botones"><button type="button" class="boton secundario" data-ff="borrar">Borrar</button><button type="button" class="boton secundario" data-ff="cerrar">${pasar ? 'Terminar' : 'Cancelar'}</button><button type="button" class="boton" data-ff="guardar">${pasar ? 'Guardar y siguiente' : 'Guardar firma'}</button></div>
+    </div>`;
+    document.body.appendChild(capa);
+    const cv = capa.querySelector('canvas');
+    const r = cv.getBoundingClientRect();
+    const k = window.devicePixelRatio || 1;
+    cv.width = Math.round(r.width * k); cv.height = Math.round(r.height * k);
+    const g = cv.getContext('2d');
+    g.scale(k, k); g.lineWidth = 2.4; g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = '#0F3D6E';
+    let pinta = false; let trazado = false; let ult = null;
+    const punto = (ev) => { const b = cv.getBoundingClientRect(); return [ev.clientX - b.left, ev.clientY - b.top]; };
+    cv.addEventListener('pointerdown', (ev) => { ev.preventDefault(); cv.setPointerCapture && cv.setPointerCapture(ev.pointerId); pinta = true; ult = punto(ev); g.beginPath(); g.arc(ult[0], ult[1], 1.1, 0, Math.PI * 2); g.fillStyle = g.strokeStyle; g.fill(); trazado = true; });
+    cv.addEventListener('pointermove', (ev) => { if (!pinta) return; ev.preventDefault(); const q = punto(ev); g.beginPath(); g.moveTo(ult[0], ult[1]); g.lineTo(q[0], q[1]); g.stroke(); ult = q; trazado = true; });
+    const fin = () => { pinta = false; };
+    cv.addEventListener('pointerup', fin); cv.addEventListener('pointercancel', fin); cv.addEventListener('pointerleave', fin);
+    const nombre = capa.querySelector('[data-f="nombre"]');
+    nombre.addEventListener('change', () => {
+      const emp = capa.querySelector('[data-f="empresa"]');
+      const c = ((obra() && obra().personas) || []).find((p) => p.nombre === nombre.value);
+      if (c && c.empresa && !emp.value) emp.value = c.empresa;
+    });
+    firmando = { capa, i, pasar, vacio: () => !trazado, borrar: () => { g.clearRect(0, 0, cv.width, cv.height); trazado = false; }, cv };
+    if (!x.nombre) setTimeout(() => nombre.focus(), 50);
+  }
+  function cerrarFirma() { if (firmando) { firmando.capa.remove(); firmando = null; } }
+  /* El trazo en PNG pequeño (el servidor acepta hasta 60 000 caracteres). */
+  function trazoDe(cv) {
+    for (const ancho of [360, 280, 200]) {
+      const c = document.createElement('canvas');
+      c.width = ancho; c.height = Math.round(ancho * cv.height / cv.width);
+      c.getContext('2d').drawImage(cv, 0, 0, c.width, c.height);
+      const u = c.toDataURL('image/png');
+      if (u.length < 60000) return u;
+    }
+    return null;
+  }
+  function guardarFirma() {
+    const f = firmando;
+    if (!f) return;
+    const v = (k) => f.capa.querySelector(`[data-f="${k}"]`).value.trim();
+    if (!v('nombre')) { aviso('Escribe el nombre de quien firma.'); return; }
+    if (f.vacio()) { aviso('Falta la firma.'); return; }
+    const trazo = trazoDe(f.cv);
+    if (!trazo) { aviso('La firma no se ha podido guardar; bórrala y repítela.'); return; }
+    const lista = form.datos.asistentes;
+    const fila = { nombre: v('nombre'), empresa: v('empresa'), dni: v('dni'), trazo, fecha: form.datos.cabecera.fecha || datos.hoy };
+    if (f.i === null || f.i === undefined) {
+      /* Si ya estaba apuntado con ese nombre, firma su fila. */
+      const k = lista.findIndex((x) => !x.trazo && x.nombre && x.nombre.toLowerCase() === fila.nombre.toLowerCase());
+      if (k >= 0) lista[k] = { ...lista[k], ...fila }; else lista.push(fila);
+    } else lista[f.i] = { ...lista[f.i], ...fila };
+    /* Quitar filas vacías que se hubieran añadido a mano. */
+    form.datos.asistentes = lista.filter((x) => x.nombre || x.trazo || x.empresa || x.dni);
+    sucio = true; apuntar(form); programar();
+    repintarAsistentes();
+    if (f.pasar) { aviso(`Firmado: ${fila.nombre}. Siguiente.`, 'bien'); abrirFirma(null, true); } else cerrarFirma();
+  }
+
+  /* ── La hoja de papel: recorte del papel, gris y contraste (que se lea), y OCR que solo sugiere. */
+  async function documento(archivo) {
+    const bmp = await createImageBitmap(archivo, { imageOrientation: 'from-image' });
+    /* Una copia pequeña para encontrar el papel. */
+    const kp = Math.min(1, 240 / Math.max(bmp.width, bmp.height));
+    const p = document.createElement('canvas');
+    p.width = Math.max(1, Math.round(bmp.width * kp)); p.height = Math.max(1, Math.round(bmp.height * kp));
+    const gp = p.getContext('2d'); gp.drawImage(bmp, 0, 0, p.width, p.height);
+    const px = gp.getImageData(0, 0, p.width, p.height).data;
+    const lum = new Uint8ClampedArray(p.width * p.height);
+    for (let i = 0; i < lum.length; i++) lum[i] = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2];
+    const r = recorteHoja(lum, p.width, p.height);
+    const sx = r.x / kp; const sy = r.y / kp; const sw = r.w / kp; const sh = r.h / kp;
+    const k = Math.min(1, 1600 / Math.max(sw, sh));
+    const c = document.createElement('canvas');
+    c.width = Math.round(sw * k); c.height = Math.round(sh * k);
+    const g = c.getContext('2d');
+    g.drawImage(bmp, sx, sy, sw, sh, 0, 0, c.width, c.height);
+    if (bmp.close) bmp.close();
+    /* Gris y contraste: el papel blanco, la tinta oscura. */
+    const im = g.getImageData(0, 0, c.width, c.height);
+    const d = im.data;
+    const hist = new Uint32Array(256);
+    for (let i = 0; i < d.length; i += 4) hist[Math.round(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2])]++;
+    const total = d.length / 4; let acc = 0; let bajo = 0; let alto = 255;
+    for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc <= total * 0.02) bajo = v; if (acc <= total * 0.9) alto = v; }
+    const rango = Math.max(40, alto - bajo);
+    for (let i = 0; i < d.length; i += 4) {
+      const l = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      const v = Math.max(0, Math.min(255, ((l - bajo) * 255) / rango));
+      d[i] = d[i + 1] = d[i + 2] = v;
+    }
+    g.putImageData(im, 0, 0);
+    let calidad = 0.8; let url = c.toDataURL('image/jpeg', calidad);
+    while (url.length > 650000 && calidad > 0.4) { calidad -= 0.15; url = c.toDataURL('image/jpeg', calidad); }
+    const blob = await new Promise((ok) => c.toBlob(ok, 'image/jpeg', calidad));
+    return { contenido: url.replace(/^data:[^;]+;base64,/, ''), blob };
+  }
+
+  async function escanearHoja(archivo) {
+    if (!form) return;
+    try {
+      if (form.estado !== 'hecho') { sucio = true; await volcar(); }
+      if (!form.id) throw new Error('Sin conexión: guarda el formulario con conexión y escanea la hoja después.');
+      let hoja;
+      try { hoja = await documento(archivo); } catch { hoja = { contenido: await reducirFoto(archivo), blob: archivo }; }
+      const r = await CX().postJson('api/qhse/adjunto', { controlId: form.id, ref: 'asistencia', nombre: 'hoja-asistencia.jpg', tipo: 'image/jpeg', contenido: hoja.contenido });
+      if (!r.ok) throw new Error(r.error);
+      form.adjuntos.push({ id: r.id, ref: 'asistencia', nombre: 'hoja-asistencia.jpg', tipo: 'image/jpeg', contenido: hoja.contenido });
+      repintarHojas();
+      aviso('Hoja escaneada y guardada.', 'bien');
+      leerNombres(hoja.blob);
+    } catch (e) { aviso(e.message); }
+  }
+  function repintarHojas() {
+    const c = $app.querySelector('[data-qh-hojas]'); if (c) c.innerHTML = hojasHtml();
+    const n = $app.querySelector('[data-qh-hojas-n]'); if (n) n.textContent = String(hojasEscaneadas().length);
+  }
+  let propuestos = [];
+  async function leerNombres(blob) {
+    const caja = $app.querySelector('[data-qh-ocr]');
+    if (!caja || !window.OCR_PLACA || !window.OCR_PLACA.disponible() || !blob) return;
+    caja.innerHTML = '<p class="nota">Leyendo los nombres de la hoja…</p>';
+    try {
+      const { pasadas } = await window.OCR_PLACA.leer(blob);
+      const ya = (form.datos.asistentes || []).map((x) => x.nombre);
+      propuestos = nombresDeHoja((pasadas || [])[0] || [], (obra() && obra().personas) || [], ya);
+      const c = $app.querySelector('[data-qh-ocr]');
+      if (!c) return;
+      c.innerHTML = propuestos.length
+        ? `<p class="nota">Leído en la hoja (compruébalo antes de añadir):</p><div class="propuestos">${propuestos.map((x, i) => `<button type="button" class="boton secundario" data-qh="as-ocr" data-i="${i}">+ ${esc(x.nombre)}${x.empresa ? ` <small>${esc(x.empresa)}</small>` : ''}</button>`).join('')}</div>`
+        : '<p class="nota">No se han podido leer nombres en la hoja; apúntalos a mano.</p>';
+    } catch { const c = $app.querySelector('[data-qh-ocr]'); if (c) c.innerHTML = ''; }
   }
 
   /* Registro terminado: cada NC se cierra desde aquí (cómo se subsanó, foto si se quiere);
@@ -382,7 +644,7 @@
   }
 
   function fotos() {
-    const l = (form && form.adjuntos) || [];
+    const l = ((form && form.adjuntos) || []).filter((a) => a.ref !== 'asistencia');
     if (!l.length) return '<p class="nota">Sin fotos.</p>';
     return l.map((a) => `<figure>${a.contenido ? `<img alt="${esc(a.nombre)}" src="data:${esc(a.tipo)};base64,${a.contenido}">` : `<small>${esc(a.nombre)}</small>`}${form.estado === 'hecho' ? '' : `<button type="button" data-qh="foto-quitar" data-id="${esc(a.id)}" aria-label="Quitar foto">×</button>`}</figure>`).join('');
   }
@@ -521,11 +783,18 @@
         if (r.r === 'nc' && !ya.has(id)) form.datos.plan.push({ ref: id, problema: `${t}${r.c ? ` — ${r.c}` : ''}`, responsable: '', medida: '', fecha: '' });
       });
       repintarPlan(); programar();
-    } else if (a === 'as-mas') { form.datos.asistentes.push({ nombre: '', dni: '', empresa: '' }); pintarForm(); programar(); }
+    } else if (a === 'as-mas') { form.datos.asistentes.push({ nombre: '', dni: '', empresa: '' }); repintarAsistentes(); programar(); }
+    else if (a === 'as-quitar') { form.datos.asistentes.splice(Number(b.dataset.i), 1); sucio = true; repintarAsistentes(); programar(); }
+    else if (a === 'as-firmar') abrirFirma(Number(b.dataset.i), false);
+    else if (a === 'as-pasar') abrirFirma(null, true);
+    else if (a === 'as-ocr') {
+      const x = propuestos[Number(b.dataset.i)];
+      if (x) { form.datos.asistentes.push({ nombre: x.nombre, empresa: x.empresa, dni: x.dni }); propuestos.splice(Number(b.dataset.i), 1); sucio = true; programar(); repintarAsistentes(); }
+    }
     else if (a === 'foto-quitar') {
       CX().postJson('api/qhse/quitarAdjunto', { id: b.dataset.id }).then((r) => {
         if (!r.ok) throw new Error(r.error);
-        form.adjuntos = form.adjuntos.filter((x) => x.id !== b.dataset.id); repintarFotos();
+        form.adjuntos = form.adjuntos.filter((x) => x.id !== b.dataset.id); repintarFotos(); repintarHojas();
       }).catch((e) => aviso(e.message));
     }
     else if (a === 'nc-cerrar') {
@@ -548,6 +817,11 @@
       if (f) subirFoto(f, `nc:${i}`);
       return;
     }
+    if (activa() && form && t.matches && t.matches('[data-qh-hoja]')) {
+      const f = t.files && t.files[0]; t.value = '';
+      if (f) escanearHoja(f);
+      return;
+    }
     if (!activa() || !form || !t.matches || !t.matches('[data-qh-foto]')) return;
     const f = t.files && t.files[0]; t.value = '';
     if (f) subirFoto(f);
@@ -565,10 +839,26 @@
     else if (d.qhFirma) form.datos.firma[d.qhFirma] = t.value;
     else if (d.qhCom) { const r = form.datos.respuestas[d.qhCom] || (form.datos.respuestas[d.qhCom] = { r: null, c: '' }); r.c = t.value; }
     else if (d.qhPlan !== undefined) { const x = form.datos.plan[Number(d.qhPlan)]; if (x) x[d.c] = t.value; }
-    else if (d.qhAs !== undefined) { const x = form.datos.asistentes[Number(d.qhAs)]; if (x) x[d.c] = t.value; }
+    else if (d.qhAs !== undefined) {
+      const x = form.datos.asistentes[Number(d.qhAs)];
+      if (x) x[d.c] = t.value;
+      /* Un operario de la obra: su empresa, sola. */
+      if (x && d.c === 'nombre' && !x.empresa) {
+        const c = ((obra() && obra().personas) || []).find((p) => p.nombre === t.value);
+        const emp = $app.querySelector(`[data-qh-as="${d.qhAs}"][data-c="empresa"]`);
+        if (c && c.empresa) { x.empresa = c.empresa; if (emp) emp.value = c.empresa; }
+      }
+    }
     else return;
     programar();
   };
+  document.addEventListener('click', (ev) => {
+    const b = ev.target.closest && ev.target.closest('[data-ff]');
+    if (!b || !firmando) return;
+    if (b.dataset.ff === 'borrar') firmando.borrar();
+    else if (b.dataset.ff === 'cerrar') cerrarFirma();
+    else if (b.dataset.ff === 'guardar') guardarFirma();
+  });
   $app.addEventListener('input', recoger);
   $app.addEventListener('change', recoger);
 

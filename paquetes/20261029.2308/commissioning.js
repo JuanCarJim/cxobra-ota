@@ -684,12 +684,11 @@
   const TONO_PM = { enMarcha: 'ok', faltaHojaFabricante: 'aviso', conReservas: 'aviso' };
   /* La fecha de puesta en marcha (para el mantenimiento) y la garantía, que
      cuenta desde la entrega a DF (29-oct, JC). Las corrige quien edita la ficha. */
-  /* En la app del teléfono (Vidaire Cx, sin el Mac) lo escrito en el equipo
-     no sube a la nube (equiposObra no está en paquete.js › TABLAS_VUELTA): ahí
-     se ve, no se corrige; se corrige en la web o en el escritorio. */
-  const enTelefono = () => { try { const s = window.ACCESO_MOVIL && window.ACCESO_MOVIL.sesion(); return Boolean(s && s.local); } catch { return false; } };
+  /* Desde el 29-oct también en la app del teléfono (Vidaire Cx, sin el Mac):
+     la fecha y la garantía son campos de obra del equipo (paquete.js ›
+     CAMPOS_VUELTA) y suben a la nube por cx_filas (migración 0014). */
   function htmlFechasEquipo(k, puedeFicha, fila) {
-    const puede = puedeFicha && !enTelefono();
+    const puede = puedeFicha;
     const fpm = k.fechaPuestaMarcha ? String(k.fechaPuestaMarcha).slice(0, 10) : '';
     const g = k.garantia || { texto: 'Garantía: sin empezar (pendiente de entrega a DF)' };
     const textoG = esc(String(g.texto || '').replace(/^Garantía:\s*/, ''));
