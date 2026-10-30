@@ -33,7 +33,7 @@
 
   const NOMBRE = { verde: 'Hecho', azul: 'Falta documento', rojo: 'Sin empezar' };
   const ORDEN = ['verde', 'azul', 'rojo'];
-  const ZOOM_MAX = 8;
+  const ZOOM_MAX = 30; /* 30-oct, JC: «hay que poder ampliar más» */
   const ZOOM_SALAS = 3; /* desde aquí se leen los nombres de sala encima del plano */
   /* El dibujo de cada familia viene del servidor (shared/commissioning/planoEquipos.js: ICONOS),
      así es el mismo en escritorio, web y móvil, también sin conexión. */
@@ -78,11 +78,20 @@
   .pe-lienzo .marca-boca.azul{color:var(--pe-azul)}
   .pe-lienzo .marca-boca.azul .simbolo-boca .cuerpo{fill:color-mix(in srgb,var(--pe-azul) 22%,#fff)}
   .pe-lienzo .marca-boca.azul .rotulo-boca{background:var(--pe-azul)}
-  .pe-lienzo .marca-boca .simbolo-boca{height:20px;width:20px;border-radius:5px}
+  .pe-lienzo .marca-boca{width:max(7px,var(--wp,0px));aspect-ratio:1;height:auto;line-height:0;z-index:2}
+  .pe-lienzo .marca-boca::after{width:calc(100% + 16px);height:calc(100% + 16px)}
+  .pe-lienzo .marca-boca .simbolo-boca{display:block;height:100%;width:100%;border-radius:0;overflow:visible;filter:drop-shadow(0 0 1px #fff)}
+  .pe-lienzo .marca-boca .simbolo-boca *{vector-effect:non-scaling-stroke;stroke-width:1.2px}
+  #app .pe-lienzo .marca-boca .rotulo-boca{display:none}
+  #app .pe-lienzo.con-salas .marca-boca.con-tag .rotulo-boca{display:block}
   /* La etiqueta sin color de estado: el estado se lee en el icono y en la leyenda. */
   #app .pe-lienzo .marca-boca .rotulo-boca{background:rgba(255,255,255,.74);color:#0b4f48;padding:0 3px;font-weight:700;text-shadow:0 0 2px #fff}
-  .pe-lienzo .marca-boca.elegida{z-index:3}
-  .pe-lienzo .marca-boca.elegida .simbolo-boca{outline:3px solid var(--acento,#178276);outline-offset:2px}
+  .pe-lienzo .marca-boca.elegida{width:max(28px,calc(var(--wp,0px) * 1.6));z-index:8;opacity:1!important}
+  .pe-lienzo .marca-boca.elegida .simbolo-boca{outline:none;transform:none;filter:drop-shadow(0 0 1.5px var(--acento,#178276)) drop-shadow(0 0 5px color-mix(in srgb,var(--acento,#178276) 55%,transparent))}
+  .pe-lienzo .marca-boca.elegida .simbolo-boca *{stroke-width:3px}
+  .pe-lienzo .marca-boca.elegida .simbolo-boca path,.pe-lienzo .marca-boca.elegida .simbolo-boca rect{stroke:var(--acento,#178276)}
+  #app .pe-lienzo .marca-boca.elegida .rotulo-boca{display:block;z-index:9;font-size:12px;color:#fff;background:var(--acento,#178276);text-shadow:none;padding:1px 5px;border-radius:3px;margin-left:8px}
+  .pe-lienzo:has(.marca-boca.elegida) .marca-boca:not(.elegida),.pe-lienzo:has(.pe-mat.elegida) .marca-boca{opacity:.6}
   .pe-iconos{display:flex;flex-wrap:wrap;gap:4px 12px;margin:0 0 8px;font-size:12px;color:var(--textoTenue,#567)}
   .pe-iconos span{display:inline-flex;align-items:center;gap:4px}
   .pe-iconos svg{height:16px;width:16px;color:var(--acento,#178276)}
@@ -129,14 +138,35 @@
   .pe-sin-ubicar .pe-grises button{min-height:32px;border:1px solid var(--borde,#c9d3d6);background:var(--fondo,#f3f5f6);color:var(--textoTenue,#567);border-radius:999px;padding:2px 10px;font-size:12.5px}
   .pe-lista tr.sin-ubicar td{color:var(--textoTenue,#567)}
   /* Materiales: marcas pequeñas por estado (gris sin datos · teal con ficha · rojo con incidencia), forma por capa. */
-  .pe-mat{position:absolute;transform:translate(-50%,-50%);width:10px;height:10px;min-height:0;padding:0;margin:0;border:1.5px solid #fff;border-radius:50%;background:var(--textoTenue,#567);box-shadow:0 0 0 1px rgba(0,0,0,.25)}
-  .pe-mat::after{content:'';position:absolute;inset:-9px}
-  .pe-mat.conFicha{background:var(--acento,#178276)} .pe-mat.conIncidencia{background:var(--mal)}
-  .pe-mat.compuertas{border-radius:1px;transform:translate(-50%,-50%) rotate(45deg)} .pe-mat.vav{border-radius:2px} .pe-mat.rejillas{border-radius:2px;width:13px;height:8px}
-  .pe-mat.elegida{outline:3px solid var(--pe-azul);outline-offset:2px;z-index:3}
+  /* Materiales con la FORMA del elemento (29-oct, JC): difusor redondo, lineal alargado, rejilla con lamas…
+     Color por estado: gris sin datos · teal con ficha · rojo con incidencia. Crecen un poco al acercar (--pe-esc). */
+  .pe-mat{position:absolute;transform:translate(-50%,-50%) rotate(var(--giro,0deg));width:max(var(--minw,4px),var(--wp,0px));height:auto;aspect-ratio:var(--ar,1);min-height:0;min-width:0;padding:0;margin:0;border:0;background:none;color:var(--textoTenue,#567);line-height:0}
+  .pe-mat svg{display:block;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 0 1px #fff)}
+  .pe-mat svg *{vector-effect:non-scaling-stroke;stroke-width:1px}
+  .pe-lienzo.con-salas .pe-mat svg *{stroke-width:1.5px}
+  .pe-mat svg .cuerpo{fill:color-mix(in srgb,currentColor 14%,#fff)}
+  .pe-mat::after{content:'';position:absolute;inset:-8px}
+  .pe-mat.conFicha{color:var(--acento,#178276)} .pe-mat.conIncidencia{color:var(--mal)}
+  /* El tocado, resaltado (30-oct, JC): más grande, teal, con halo y su TAG siempre; los demás, más tenues. */
+  .pe-mat.elegida{color:var(--acento,#178276);width:max(calc(var(--minw,4px) * 4),calc(var(--wp,0px) * 1.6));z-index:6;opacity:1!important}
+  .pe-mat.elegida svg{filter:drop-shadow(0 0 1.5px var(--acento,#178276)) drop-shadow(0 0 5px color-mix(in srgb,var(--acento,#178276) 55%,transparent))}
+  .pe-mat.elegida svg *{stroke-width:3px;stroke:var(--acento,#178276)}
+  @keyframes pe-pulso{0%{transform:scale(.8);opacity:1}100%{transform:scale(1.8);opacity:0}}
+  .pe-mat.elegida span{display:block;z-index:7;font-size:12px;font-weight:700;color:#fff;background:var(--acento,#178276);padding:1px 5px;border-radius:3px;margin-left:8px}
+  .pe-lienzo:has(.pe-mat.elegida) .pe-mat:not(.elegida){opacity:.6}
   .pe-mat.apagada{opacity:.15}
-  .pe-mat span{display:none;position:absolute;left:12px;top:-5px;white-space:nowrap;font-size:9px;font-weight:600;color:#3d5560;background:rgba(255,255,255,.78);padding:0 2px;border-radius:2px}
-  .pe-lienzo.con-salas .pe-mat span{display:block} .pe-mat.compuertas span{transform:rotate(-45deg)}
+  .pe-mat span{display:none;position:absolute;left:100%;top:50%;margin-left:3px;transform:translateY(-50%) rotate(calc(-1 * var(--giro,0deg)));line-height:1.1;white-space:nowrap;font-size:9px;font-weight:600;color:#3d5560;background:rgba(255,255,255,.78);padding:0 2px;border-radius:2px}
+  .pe-lienzo.con-salas .pe-mat.con-tag span{display:block}
+  .pe-formas{display:flex;flex-wrap:wrap;gap:4px 12px;margin:0 0 8px;font-size:12px;color:var(--textoTenue,#567)}
+  .pe-formas span{display:inline-flex;align-items:center;gap:4px}
+  .pe-formas svg{height:14px;width:auto;max-width:34px;color:var(--acento,#178276)}
+  .pe-formas svg .cuerpo{fill:#fff}
+  .pe-lista td .pe-sala-cod,.pe-sala-cod{display:block;font-size:11.5px;color:var(--textoTenue,#567);white-space:nowrap}
+  .pe-bloque{margin-top:8px;padding-top:6px;border-top:1px solid var(--borde,#e3e8ea)}
+  .pe-bloque h4{margin:0 0 3px;font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--acento,#178276)}
+  .pe-cad{font-size:11.5px;color:var(--textoTenue,#567);margin-top:2px}
+  .pe-vacio{color:var(--textoTenue,#567);opacity:.7}
+  .pe-serie input::placeholder{color:var(--textoTenue,#567);opacity:.55}
   .pe-capas{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin:0 0 6px;-webkit-overflow-scrolling:touch}
   .pe-capas button{flex:none;min-height:34px;border:1px solid var(--borde,#c9d3d6);background:var(--superficie,#fff);color:var(--texto,#123);border-radius:999px;padding:3px 10px;font-size:13px}
   .pe-capas button[aria-pressed="true"]{background:var(--acento-suave,#E6F4F0);border-color:var(--acento,#178276)}
@@ -274,7 +304,8 @@
     return `<div class="fila-principal"><strong class="cifra">${e.papel ? `<em>${esc(e.papel)}</em> ` : ''}${esc(e.tag)}</strong>
         <span class="chip"><i class="pe-punto pe-${e.color}"></i> ${esc(NOMBRE[e.color])}</span>
         <button class="cierra" data-pe-cerrar aria-label="Cerrar">×</button></div>
-      <div class="sub">${que ? `${esc(que)} · ` : ''}${esc(e.sala || 'sin sala')}${p.planta ? ` · ${esc(p.planta)}` : ''}</div>
+      <div class="sub">${que ? esc(que) : ''}</div>
+      <div class="sub">${salaHtml(e.sala)}${p.planta ? ` <span class="tenue">· ${esc(p.planta)}</span>` : ''}</div>
       ${e.miembros && e.miembros.length > 1 ? conjuntoHtml(e) : (rol ? `<div class="sub">${rol}</div>` : '')}
       ${falta ? `<div class="falta">${falta}</div>` : ''}
       ${(e.documentos || []).length ? `<div class="pe-enlaces">${e.documentos.map(enlaceDoc).join('')}</div>` : ''}
@@ -291,24 +322,84 @@
   /* Solo el hipervínculo con su nombre legible, nunca la dirección en texto (29-oct, JC). */
   const enlaceFicha = (e, texto) => (e && e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">${texto}: ${esc(e.nombre)}${e.nivel === 'tipo' ? ' (del tipo)' : ''} ↗</a>` : '');
   const enlaceDoc = (d) => `<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.etiqueta)}: ${esc(d.nombre)} ↗</a>`;
+  /* Formas y sala compartidas con el escritorio (shared/commissioning/formasPlano.js). */
+  const FP = () => window.FORMAS_PLANO || null;
+  const VACIO = '<span class="pe-vacio">—</span>';
+  /* «Cuarto Eléctrico · P3.STE.0007» → el nombre en una línea y el código gris debajo. */
+  function salaHtml(sala, vacio = 'sin sala') {
+    if (!sala) return `<span class="tenue">${esc(vacio)}</span>`;
+    const f = FP();
+    const s = f ? f.partirSala(sala) : { nombre: sala, codigo: '' };
+    return `${s.nombre ? esc(s.nombre) : ''}${s.codigo ? `<span class="pe-sala-cod cifra">${esc(s.codigo)}</span>` : ''}`;
+  }
+  const escMarcas = () => Math.min(3, 0.4 * Math.pow(Math.max(1, zoom), 0.8));
+  /* «3 equipos · 669 materiales», sin los ceros: el contador de la pestaña dice lo mismo. */
+  function cuentaTexto(nEq, nMat) {
+    const t = [];
+    if (nEq) t.push(`${cifra(nEq)} equipo${nEq === 1 ? '' : 's'}`);
+    if (nMat) t.push(`${cifra(nMat)} material${nMat === 1 ? '' : 'es'}`);
+    return t.join(' · ') || 'vacía';
+  }
+  /* 30-oct: cada material mide lo suyo en el plano (tamaño real a la escala estimada), con un mínimo de MIN_PX. */
+  const MIN_PX = 4;
+  const escalas = new Map();
+  function escalaDe(p) {
+    const f = FP();
+    if (!f || !p || !p.plano) return 0;
+    const k = `${p.plano.id}|${(p.materiales || []).length}`;
+    if (!escalas.has(k)) escalas.set(k, f.escalaPlano(p.plano, p.materiales || []).mmPorPx);
+    return escalas.get(k);
+  }
+  /* Los equipos, a su tamaño típico en planta (formasPlano.cajaEquipo), con un mínimo de MIN_PX_EQ. */
+  const MIN_PX_EQ = 7;
+  function cajaEq(e, p) {
+    const f = FP();
+    if (!f || !f.cajaEquipo || !p || !p.plano) return { wf: 0, ar: 1 };
+    return f.cajaEquipo(e.icono || 'generico', p.plano, escalaDe(p));
+  }
+  function marcaMaterial(m, q, p) {
+    const f = FP();
+    const fm = f ? f.formaMaterial(m) : null;
+    const c = f && p && p.plano ? f.cajaEnPlano(m, p.plano, escalaDe(p)) : { wf: 0, ar: 1 };
+    const st = `left:${m.x * 100}%;top:${m.y * 100}%;--wp:${(c.wf * 100).toFixed(4)}%;--ar:${c.ar.toFixed(3)};--minw:${(MIN_PX * Math.max(1, c.ar)).toFixed(1)}px${fm ? `;--giro:${fm.giro || 0}deg` : ''}`;
+    return `<button class="pe-mat ${esc(m.capa)} ${esc(m.estado)}${m.id === mat ? ' elegida' : ''}${q && !casaMat(m, q) ? ' apagada' : ''}" style="${st}" data-pe-mat="${esc(m.id)}" aria-label="${esc(`${m.tag}, ${m.tipoNombre}, ${m.sala || 'sin sala'}`)}">${f ? f.svgMaterial(m) : ''}<span>${esc(m.tag)}</span></button>`;
+  }
+  function leyendaFormas(p) {
+    const f = FP();
+    const mats = (p.materiales || []).filter((m) => m.x !== null);
+    if (!f || !mats.length) return '';
+    return `<div class="pe-formas" role="group" aria-label="Formas">${f.leyendaFormas(mats).map((x) => `<span>${f.svgForma(x.forma)}${esc(x.nombre)} <b>${cifra(x.n)}</b></span>`).join('')}</div>`;
+  }
 
-  /* La hoja de un material: qué es, nº de serie, características y su ficha técnica. */
+  /* La hoja de un material (29-oct, JC): TAG grande con tipo y estado; luego Identificación,
+     Fabricante, Documentos y Estado. Lo vacío es «—» en gris, nunca un texto que parezca un valor. */
   function hojaMaterial(m) {
-    return `<div class="fila-principal"><strong class="cifra">${esc(m.tag)}</strong>
+    const f = FP();
+    const fm = f ? f.formaMaterial(m) : null;
+    const fila = (k, v) => `<tr><th>${esc(k)}</th><td>${v}</td></tr>`;
+    const val = (v) => (v === null || v === undefined || v === '' ? VACIO : esc(v));
+    const car = Object.entries(m.caracteristicas || {}).filter(([, v]) => v !== null && v !== '');
+    const docs = [enlaceFicha(m.fichaTecnica, 'Ficha técnica'), enlaceFicha(m.marcadoCE, 'Marcado CE')].filter(Boolean).join('');
+    return `<div class="fila-principal"><strong class="cifra" style="font-size:17px">${esc(m.tag)}</strong>
         <span class="chip"><i class="pe-punto ${esc(m.estado)}"></i> ${esc(ESTADO_MAT[m.estado] || '')}</span>
         <button class="cierra" data-pe-cerrar aria-label="Cerrar">×</button></div>
-      <div class="sub">${esc(m.tipoNombre)} · ${esc(m.sala || 'sin sala')}</div>
-      <table class="pe-ficha">${(m.filas || []).filter(([k]) => k !== 'Tipo' && k !== 'Sala').map(([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join('')}</table>
-      ${m.incidencia ? `<div class="falta">Incidencia: ${esc(m.incidencia)}</div>` : ''}
-      <div class="pe-enlaces">${enlaceFicha(m.fichaTecnica, 'Ficha técnica') || '<span class="tenue">Sin ficha técnica</span>'}${enlaceFicha(m.marcadoCE, 'Marcado CE')}</div>
-      ${datos.puedeEditar ? `<div class="pe-serie"><input data-pe-serie value="${esc(m.numSerie || '')}" placeholder="Nº de serie" autocapitalize="characters"><button class="boton" data-pe-guardar-serie="${esc(m.id)}">Guardar</button></div>` : ''}`;
+      <div class="sub">${esc(m.tipoNombre)}${fm ? ` · <span class="tenue">en el plano: ${esc(fm.nombre)}</span>` : ''}</div>
+      ${m.codigo ? `<div class="pe-cad cifra">Código CAD ${esc(m.codigo)}</div>` : ''}
+      <div class="pe-bloque"><h4>Identificación</h4><table class="pe-ficha">
+        ${fila('Sala', salaHtml(m.sala))}${fila('Nº de serie', val(m.numSerie))}</table>
+        ${datos.puedeEditar ? `<div class="pe-serie"><input data-pe-serie value="${esc(m.numSerie || '')}" placeholder="—" aria-label="Nº de serie (de la placa)" autocapitalize="characters"><button class="boton" data-pe-guardar-serie="${esc(m.id)}">Guardar</button></div>` : ''}</div>
+      <div class="pe-bloque"><h4>Fabricante</h4><table class="pe-ficha">
+        ${fila('Marca', val(m.marca))}${fila('Modelo', val(m.modelo))}${car.map(([k, v]) => fila(k, esc(v))).join('')}</table></div>
+      <div class="pe-bloque"><h4>Documentos</h4><div class="pe-enlaces">${docs || '<span class="tenue">Sin ficha técnica.</span>'}</div></div>
+      <div class="pe-bloque"><h4>Estado e incidencias</h4><table class="pe-ficha">
+        ${fila('Sirve a', m.sirveA ? `<b class="cifra">${esc(m.sirveA)}</b>` : VACIO)}${fila('Incidencia', m.incidencia ? `<span style="color:var(--mal)">${esc(m.incidencia)}</span>` : '<span class="tenue">Ninguna</span>')}</table></div>`;
   }
 
   function listaMateriales(p, q) {
     const fs = (p.materiales || []).filter((m) => !capasOff.has(m.capa) && casaMat(m, q));
     const tope = 300;
     return `<div class="pe-lista"><table><thead><tr><th>Material</th><th>Sala</th><th>Estado</th></tr></thead><tbody>
-      ${fs.slice(0, tope).map((m) => `<tr data-pe-fila-mat="${esc(m.id)}" class="${m.id === mat ? 'elegida' : ''}"><td>${esc(m.tag)}<br><span class="tenue">${esc(m.tipoNombre)}</span></td><td>${m.sala ? esc(m.sala) : '<span class="tenue">sin sala</span>'}</td><td class="estado"><i class="pe-punto ${esc(m.estado)}"></i> ${esc(ESTADO_MAT[m.estado] || '')}</td></tr>`).join('') || '<tr><td colspan="3" class="tenue">Ningún material así.</td></tr>'}
+      ${fs.slice(0, tope).map((m) => `<tr data-pe-fila-mat="${esc(m.id)}" class="${m.id === mat ? 'elegida' : ''}"><td>${esc(m.tag)}<br><span class="tenue">${esc(m.tipoNombre)}</span></td><td>${salaHtml(m.sala)}</td><td class="estado"><i class="pe-punto ${esc(m.estado)}"></i> ${esc(ESTADO_MAT[m.estado] || '')}</td></tr>`).join('') || '<tr><td colspan="3" class="tenue">Ningún material así.</td></tr>'}
       ${fs.length > tope ? `<tr><td colspan="3" class="tenue">${cifra(fs.length - tope)} más: afina con el buscador o las capas.</td></tr>` : ''}
       </tbody></table></div>`;
   }
@@ -371,6 +462,8 @@
       return;
     }
     planta = p.planta || '';
+    /* Una planta sin equipos y con materiales abre la lista de materiales: «Equipos 0» no dice nada. */
+    if (!p.equipos.length && (p.materiales || []).length) lista = 'materiales';
     try { sessionStorage.setItem('cx.planoEquipos.planta', planta); } catch { /* nada */ }
     const c = p.cuentas;
     const qq = filtro.trim().toLowerCase();
@@ -382,22 +475,23 @@
     const cuentasCapa = p.capas || {};
     const capas = ((datos && datos.capas) || []).filter((k) => cuentasCapa[k.id]);
     const plano = p.plano ? `<div class="pe-visor"><div class="pe-marco" data-pe-marco>
-        <div class="pe-lienzo${zoom >= ZOOM_SALAS ? ' con-salas' : ''}" data-pe-lienzo style="width:${zoom * 100}%">
+        <div class="pe-lienzo${zoom >= ZOOM_SALAS ? ' con-salas' : ''}" data-pe-lienzo style="width:${zoom * 100}%;--pe-esc:${escMarcas()}">
           <img data-src="api/plano-equipos/imagen?id=${encodeURIComponent(p.plano.id)}" alt="Plano ${esc(p.plano.nombre)}" draggable="false">
           ${(p.plano.salas || []).map((r) => `<span class="pe-sala" style="left:${r.x * 100}%;top:${r.y * 100}%">${esc(r.t)}</span>`).join('')}
-          ${mats.map((m) => `<button class="pe-mat ${esc(m.capa)} ${esc(m.estado)}${m.id === mat ? ' elegida' : ''}${q && !casaMat(m, q) ? ' apagada' : ''}" style="left:${m.x * 100}%;top:${m.y * 100}%" data-pe-mat="${esc(m.id)}" aria-label="${esc(`${m.tag}, ${m.tipoNombre}, ${m.sala || 'sin sala'}`)}"><span>${esc(m.tag)}</span></button>`).join('')}
-          ${enPlano.map((x) => `<button class="marca-boca ${x.color === 'verde' ? 'bien' : x.color === 'rojo' ? 'mal' : 'azul'}${enConjunto.has(x.id) ? ' elegida' : ''}" style="left:${x.x * 100}%;top:${x.y * 100}%" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${x.sala || 'sin sala'}: ${NOMBRE[x.color]}`)}">${simbolo(x.icono)}<span class="rotulo-boca">${esc(x.tag)}</span></button>`).join('')}
+          ${mats.map((m) => marcaMaterial(m, q, p)).join('')}
+          ${enPlano.map((x) => `<button class="marca-boca ${x.color === 'verde' ? 'bien' : x.color === 'rojo' ? 'mal' : 'azul'}${enConjunto.has(x.id) ? ' elegida' : ''}" style="left:${x.x * 100}%;top:${x.y * 100}%;--wp:${(cajaEq(x, p).wf * 100).toFixed(4)}%" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${x.sala || 'sin sala'}: ${NOMBRE[x.color]}`)}">${simbolo(x.icono)}<span class="rotulo-boca">${esc(x.tag)}</span></button>`).join('')}
         </div>
       </div>
       <div class="pe-zoom"><button class="boton secundario" data-pe-zoom="-1" aria-label="Alejar">−</button><button class="boton secundario" data-pe-zoom="0">Entero</button><button class="boton secundario" data-pe-zoom="1" aria-label="Acercar">+</button></div></div>`
       : `<div class="pe-sin-plano"><b>La planta ${esc(etiqueta(p))} aún no tiene plano de equipos.</b><br>Lo sube la oficina desde Commissioning › Plano. Mientras, la lista dice la sala y el estado de cada equipo.</div>`;
     $raiz.innerHTML = `
       ${cabeza()}
-      <div class="pe-plantas" role="tablist">${plantas().map((x) => `<button role="tab" data-pe-planta="${esc(x.planta || '')}" aria-selected="${x === p}" class="${x === p ? 'activa' : ''}">${esc(etiqueta(x))}<small>${cifra(x.equipos.length)}${(x.materiales || []).length ? ` + ${cifra(x.materiales.length)}` : ''}</small></button>`).join('')}</div>
+      <div class="pe-plantas" role="tablist">${plantas().map((x) => `<button role="tab" data-pe-planta="${esc(x.planta || '')}" aria-selected="${x === p}" class="${x === p ? 'activa' : ''}">${esc(etiqueta(x))}<small>${cuentaTexto(x.equipos.length, (x.materiales || []).length)}</small></button>`).join('')}</div>
       ${capas.length > 1 ? `<div class="pe-capas" role="group" aria-label="Capas">${capas.map((k) => `<button data-pe-capa="${esc(k.id)}" aria-pressed="${!capasOff.has(k.id)}">${esc(k.nombre)} <b>${cifra(cuentasCapa[k.id])}</b></button>`).join('')}</div>` : ''}
-      <div class="pe-leyenda" role="group" aria-label="Colores">${ORDEN.map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}"><i class="pe-punto pe-${k}"></i>${esc(NOMBRE[k])} <b>${cifra(c[k] || 0)}</b></button>`).join('')}
-        <p class="nota">sin sala ${cifra(c.sinSala)}${p.plano ? ` · en el plano ${cifra(c.enPlano)} de ${cifra(p.equipos.length)}` : ''}</p></div>
-      ${p.plano ? leyendaIconos(p) : ''}
+      ${p.equipos.length ? `<div class="pe-leyenda" role="group" aria-label="Colores">${ORDEN.map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}"><i class="pe-punto pe-${k}"></i>${esc(NOMBRE[k])} <b>${cifra(c[k] || 0)}</b></button>`).join('')}
+        <p class="nota">sin sala ${cifra(c.sinSala)}${p.plano ? ` · en el plano ${cifra(c.enPlano)} de ${cifra(p.equipos.length)}` : ''}</p></div>` : ''}
+      ${p.plano && p.equipos.length ? leyendaIconos(p) : ''}
+      ${p.plano ? leyendaFormas(p) : ''}
       ${p.plano && (p.sinUbicar || []).length ? `<details class="pe-sin-ubicar" data-pe-sin-ubicar${verSinUbicar ? ' open' : ''}><summary><i class="pe-punto pe-gris"></i>Sin ubicar en el plano · ${cifra(p.sinUbicar.length)}</summary>
         <div class="pe-grises">${p.sinUbicar.map((g) => `<button data-pe-fila="${esc(g.id)}" aria-label="${esc(`${g.tag}: en el listado de esta planta y no en su plano`)}">${esc(g.tag)}</button>`).join('')}</div></details>` : ''}
       <div class="pe-cuerpo">
@@ -405,16 +499,17 @@
         <div class="pe-lado">
           <div class="pe-hoja" data-pe-hoja hidden></div>
           ${equipoElegido() || materialElegido() ? '' : `<p class="nota pe-ayuda">${p.plano ? `Pellizca para acercar, arrastra para moverte y toca un equipo${(p.materiales || []).length ? ' o un material' : ''}.` : 'Toca un equipo de la lista para ver qué le falta.'}</p>`}
-          ${(p.materiales || []).length ? `<div class="pe-pestanas" role="tablist"><button data-pe-lista="equipos" class="${lista === 'equipos' ? 'activa' : ''}">Equipos ${cifra(p.equipos.length)}</button><button data-pe-lista="materiales" class="${lista === 'materiales' ? 'activa' : ''}">Materiales ${cifra(p.materiales.length)}</button></div>
+          ${(p.materiales || []).length ? `<div class="pe-pestanas" role="tablist"><button data-pe-lista="equipos" class="${lista === 'equipos' ? 'activa' : ''}"${p.equipos.length ? '' : ' disabled'}>Equipos ${cifra(p.equipos.length)}</button><button data-pe-lista="materiales" class="${lista === 'materiales' ? 'activa' : ''}">Materiales ${cifra(p.materiales.length)}</button></div>
           <input type="search" class="pe-buscar" data-pe-buscar placeholder="Buscar TAG, sala o nº de serie" value="${esc(filtro)}">
           <p class="nota pe-entregable"><a href="api/plano-equipos/entregable?obra=${encodeURIComponent(C.obraId())}&planta=${encodeURIComponent(p.planta || '')}" target="_blank" rel="noopener">Entregable a mantenimiento (planta ${esc(etiqueta(p))}) ↗</a></p>` : ''}
           ${lista === 'materiales' && (p.materiales || []).length ? listaMateriales(p, q) : `<div class="pe-lista"><table><thead><tr><th>Equipo</th><th>Sala</th><th>Estado</th></tr></thead><tbody>
-          ${visibles.map((e) => `<tr data-pe-fila="${esc(e.id)}" class="${e.id === elegida ? 'elegida' : ''}${p.plano && e.x === null ? ' sin-ubicar' : ''}"><td>${e.papel ? `<em class="tenue">${esc(e.papel)}</em> ` : ''}${esc(e.tag)}</td><td>${e.sala ? esc(e.sala) : '<span class="tenue">sin sala</span>'}</td><td class="estado">${p.plano && e.x === null ? '<i class="pe-punto pe-gris"></i> Sin ubicar' : `<i class="pe-punto pe-${e.color}"></i> ${esc(NOMBRE[e.color])}`}</td></tr>`).join('') || '<tr><td colspan="3" class="tenue">Ningún equipo con esos colores.</td></tr>'}
+          ${visibles.map((e) => `<tr data-pe-fila="${esc(e.id)}" class="${e.id === elegida ? 'elegida' : ''}${p.plano && e.x === null ? ' sin-ubicar' : ''}"><td>${e.papel ? `<em class="tenue">${esc(e.papel)}</em> ` : ''}${esc(e.tag)}</td><td>${salaHtml(e.sala)}</td><td class="estado">${p.plano && e.x === null ? '<i class="pe-punto pe-gris"></i> Sin ubicar' : `<i class="pe-punto pe-${e.color}"></i> ${esc(NOMBRE[e.color])}`}</td></tr>`).join('') || '<tr><td colspan="3" class="tenue">Ningún equipo con esos colores.</td></tr>'}
           </tbody></table></div>`}
         </div>
       </div>`;
     C.cargarImagenes($raiz);
     mostrarHoja();
+    colocarTags($raiz.querySelector('[data-pe-lienzo]'));
     const fila = $raiz.querySelector('.pe-plantas');
     const act = fila && fila.querySelector('.activa');
     if (act) fila.scrollLeft = act.offsetLeft - fila.clientWidth / 2 + act.offsetWidth / 2;
@@ -427,6 +522,36 @@
 
   const marcoYLienzo = () => [$raiz && $raiz.querySelector('[data-pe-marco]'), $raiz && $raiz.querySelector('[data-pe-lienzo]')];
 
+  /* Los TAG desde ZOOM_SALAS y solo los que no chocan (vistaPlano.etiquetasSinChoque, como el escritorio). */
+  function colocarTags(lienzo) {
+    const V = window.VISTA_PLANO; const f = FP(); const p = plantaActual();
+    if (!lienzo) return;
+    const botones = [...lienzo.querySelectorAll('[data-pe-mat]')];
+    const botonesEq = [...lienzo.querySelectorAll('[data-pe-marca]')];
+    if (!V || !f || !p || !p.plano || zoom < ZOOM_SALAS) { for (const b of [...botones, ...botonesEq]) b.classList.remove('con-tag'); return; }
+    const lw = lienzo.offsetWidth; const lh = lienzo.offsetHeight || lw;
+    const porId = new Map((p.materiales || []).map((m) => [m.id, m]));
+    const cajas = [];
+    for (const b of botones) {
+      const m = porId.get(b.dataset.peMat);
+      if (!m || m.x === null || b.classList.contains('apagada')) continue;
+      const c = f.cajaEnPlano(m, p.plano, escalaDe(p));
+      const sw = Math.max(MIN_PX * Math.max(1, c.ar), c.wf * lw);
+      cajas.push({ id: m.id, x: m.x * lw + sw / 2 + 3, y: m.y * lh - 6, w: String(m.tag || '').length * 5.6 + 4, h: 12, pri: m.id === mat ? 0 : m.estado === 'conIncidencia' ? 1 : m.estado === 'conFicha' ? 2 : 3 });
+    }
+    const porEq = new Map((p.equipos || []).map((e) => [e.id, e]));
+    for (const b of botonesEq) {
+      const e = porEq.get(b.dataset.peMarca);
+      if (!e || e.x === null) continue;
+      const sw = Math.max(MIN_PX_EQ, cajaEq(e, p).wf * lw);
+      cajas.push({ id: `eq:${e.id}`, x: e.x * lw + sw / 2 + 3, y: e.y * lh - 6, w: String(e.tag || '').length * 5.6 + 4, h: 12, pri: b.classList.contains('elegida') ? 0 : 1.5 });
+    }
+    cajas.sort((a, b) => a.pri - b.pri);
+    const ver = V.etiquetasSinChoque(cajas);
+    for (const b of botones) b.classList.toggle('con-tag', ver.has(b.dataset.peMat));
+    for (const b of botonesEq) b.classList.toggle('con-tag', ver.has(`eq:${b.dataset.peMarca}`));
+  }
+
   /* Cambia el zoom dejando quieto el punto (px, py del marco) que está bajo los dedos. */
   function ponerZoom(nuevo, px, py) {
     const [marco, lienzo] = marcoYLienzo();
@@ -438,7 +563,9 @@
     const fy = (marco.scrollTop + py) / (lienzo.offsetHeight || 1);
     zoom = nuevo;
     lienzo.style.width = `${zoom * 100}%`;
+    lienzo.style.setProperty('--pe-esc', String(escMarcas()));
     lienzo.classList.toggle('con-salas', zoom >= ZOOM_SALAS);
+    colocarTags(lienzo);
     marco.scrollLeft = fx * lienzo.offsetWidth - px;
     marco.scrollTop = fy * lienzo.offsetHeight - py;
   }

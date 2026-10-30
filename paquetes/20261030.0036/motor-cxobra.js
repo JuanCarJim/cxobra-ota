@@ -10061,7 +10061,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261029.1713" : "0";
+      var VERSION = true ? "20261030.0036" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -58542,7 +58542,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
       (function exportar(API) {
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.SIMBOLOS_BOCA = API;
-      })({ FAMILIAS: FAMILIAS_BOCA, familia: familiaBoca, svg: svgBoca, planoSvg: planoSvgBocas, COLOR_ESTADO: COLOR_ESTADO_BOCA });
+      })({ FAMILIAS: FAMILIAS_BOCA, familia: familiaBoca, svg: svgBoca, trazos: trazosBoca, planoSvg: planoSvgBocas, COLOR_ESTADO: COLOR_ESTADO_BOCA });
     }
   });
 
@@ -59069,6 +59069,8 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           if (id) return id;
           const t = String(u && u.tag || "").trim();
           if (/^(AFS|ADE|FLX|FLUX)/i.test(t)) return "agua";
+          const d = equipoDeRotulo(t.split(" ")[0]) || equipoDeRotulo(t);
+          if (d) return d.icono;
           return "generico";
         }
         const ORDEN_ICONOS = ["uta", "hru", "fancoil", "splitInt", "splitExt", "vrfInt", "vrfExt", "rooftop", "crac", "chiller", "bomba", "ventilador", "agua", "generico"];
@@ -59321,7 +59323,120 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           }
           return fuera;
         }
+        const DETECTABLES = [
+          { re: /^UICO[-_ ]?(\d{1,3})-?$/i, icono: "vrfInt", tipo: "Unidad interior VRF de conductos", modelo: (m) => `UICO-${m[1].padStart(2, "0")}` },
+          { re: /^HRU[-_ ]?(\d{1,2})-?$/i, icono: "hru", tipo: "Recuperador de calor (HRU)", modelo: (m) => `HRU-${m[1]}` },
+          { re: /^EX[-_ ]?(N\d{2}|S\d)[-_ ](.+)$/i, icono: "ventilador", tipo: "Extractor", tag: (m) => `EX-${m[1].toUpperCase()}-${m[2].trim().replace(/\s+/g, " ")}` },
+          { re: /^UI[-_ ]((?:[PSM]\d\.[A-Z]{3}\.\d{3,4})|(?:N\d{2}|S\d)[-_ ].+)$/i, icono: "vrfInt", tipo: "Unidad interior", tag: (m) => `UI-${m[1].trim()}` },
+          { re: /^UE[-_ ]((?:N\d{2}|S\d)[-_ ].+)$/i, icono: "vrfExt", tipo: "Unidad exterior", tag: (m) => `UE-${m[1].trim()}` },
+          { re: /^HRU[-_ ]((?:N\d{2}|S\d)[-_ ].+)$/i, icono: "hru", tipo: "Recuperador de calor (HRU)", tag: (m) => `HRU-${m[1].trim()}` },
+          { re: /^(?:UTA|AHU|CLM)[-_ ]?((?:N\d{2}|S\d)?[-_ ]?\d[\w.-]*)$/i, icono: "uta", tipo: "Climatizador (UTA)", tag: (m) => m[0].trim() },
+          { re: /^(?:FC|FCU|AFC)[-_ ]((?:N\d{2}|S\d)[-_ ]?[\w. -]+)$/i, icono: "fancoil", tipo: "Fan coil", tag: (m) => m[0].trim() }
+        ];
+        function equipoDeRotulo(texto) {
+          const t = String(texto || "").trim();
+          if (t.length < 4 || t.length > 60) return null;
+          for (const d of DETECTABLES) {
+            const m = d.re.exec(t);
+            if (!m) continue;
+            const r = { icono: d.icono, tipo: d.tipo };
+            if (d.modelo) r.modelo = d.modelo(m);
+            else r.tag = d.tag(m).replace(/^EXN/i, "EX-N");
+            return r;
+          }
+          return null;
+        }
+        const CERCA_YA = 4e-3;
+        function detectarEquipos(textos, equipos = [], marcas = []) {
+          const yaListado = new Set((equipos || []).map((e) => claveSuelta(e.tag)).filter((k) => k.length >= 4));
+          const vistos = /* @__PURE__ */ new Set();
+          const propios = [];
+          const porModelo = [];
+          const repetidos = [];
+          const lista = (textos || []).filter((t) => t && typeof t.texto === "string");
+          const sinNumero = (tag) => !/\d/.test(String(tag).replace(/^[A-Z]+[-_ ]?(?:N\d{2}|S\d)[-_ ]?/i, ""));
+          for (let i = 0; i < lista.length; i++) {
+            const t = lista[i];
+            let texto = t.texto;
+            let d = equipoDeRotulo(texto);
+            if (!d) continue;
+            let sx = Number(t.x);
+            let sy = Number(t.y);
+            let n = 1;
+            while (d.tag && sinNumero(d.tag) && i + 1 < lista.length && texto.length < 60 && Math.hypot(lista[i + 1].x - lista[i].x, lista[i + 1].y - lista[i].y) <= CERCA) {
+              i += 1;
+              texto = `${texto} ${lista[i].texto.trim()}`;
+              sx += Number(lista[i].x);
+              sy += Number(lista[i].y);
+              n += 1;
+              d = equipoDeRotulo(texto) || d;
+            }
+            const x = Math.round(sx / n * 1e4) / 1e4;
+            const y = Math.round(sy / n * 1e4) / 1e4;
+            if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+            if ((marcas || []).some((m) => Math.hypot(m.x - x, m.y - y) < CERCA_YA)) continue;
+            if (d.modelo) {
+              porModelo.push({ modelo: d.modelo, tipo: d.tipo, icono: d.icono, x, y });
+              continue;
+            }
+            const k = claveSuelta(d.tag);
+            if (yaListado.has(k)) continue;
+            if (vistos.has(k)) {
+              repetidos.push({ tag: d.tag, x, y });
+              continue;
+            }
+            vistos.add(k);
+            propios.push({ tag: d.tag, tipo: d.tipo, icono: d.icono, x, y });
+          }
+          return { propios, porModelo, repetidos };
+        }
+        const CERCA_MISMO = 6e-3;
+        function numerarPorModelo(detectados, planta, existentes = []) {
+          const usados = /* @__PURE__ */ new Set();
+          const numeros = /* @__PURE__ */ new Map();
+          const base = (modelo) => `${modelo} ${planta}-`;
+          for (const e of existentes || []) {
+            for (const d of detectados || []) {
+              const b = base(d.modelo);
+              if (!String(e.tag || "").startsWith(b)) continue;
+              const n = Number(String(e.tag).slice(b.length));
+              if (Number.isFinite(n)) {
+                if (!numeros.has(d.modelo)) numeros.set(d.modelo, /* @__PURE__ */ new Set());
+                numeros.get(d.modelo).add(n);
+              }
+            }
+          }
+          return (detectados || []).map((d) => {
+            const b = base(d.modelo);
+            const cerca = (existentes || []).filter((e) => !usados.has(e.id) && String(e.tag || "").startsWith(b) && e.x !== null && e.x !== void 0).map((e) => ({ e, dist: Math.hypot(e.x - d.x, e.y - d.y) })).filter((c) => c.dist < CERCA_MISMO).sort((p, q) => p.dist - q.dist)[0];
+            if (cerca) {
+              usados.add(cerca.e.id);
+              return { ...d, tag: cerca.e.tag, equipoId: cerca.e.id };
+            }
+            const ns = numeros.get(d.modelo) || /* @__PURE__ */ new Set();
+            let n = 1;
+            while (ns.has(n)) n += 1;
+            ns.add(n);
+            numeros.set(d.modelo, ns);
+            return { ...d, tag: `${b}${String(n).padStart(2, "0")}`, equipoId: null };
+          });
+        }
+        function familiaPara(icono, equipos = []) {
+          const cuenta = /* @__PURE__ */ new Map();
+          for (const e of equipos || []) {
+            const f = String(e.familia || "").trim();
+            if (!f || ICONO_DE_FAMILIA[f] !== (icono === "vrfExt" ? "vrfInt" : icono)) continue;
+            cuenta.set(f, (cuenta.get(f) || 0) + 1);
+          }
+          const mejor = [...cuenta.entries()].sort((a, b) => b[1] - a[1])[0];
+          return mejor ? mejor[0] : null;
+        }
         const API = {
+          equipoDeRotulo,
+          detectarEquipos,
+          numerarPorModelo,
+          familiaPara,
+          CERCA_MISMO,
           plantaDelNombre,
           nombreDocumento,
           documentosEquipo,
@@ -61283,9 +61398,12 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           return { ok: false, error: "No se ha reconocido ning\xFAn equipo de la obra en ese plano y no se sabe de qu\xE9 planta es. Escribe la planta y vuelve a subirlo." };
         }
         const rotulos = Array.isArray(d.textos) ? P.rotulosSala(d.textos) : [];
+        const viejoAntes = repo.listar("planosEquipos", ses, { condicion: "obraId = ? AND planta = ?", params: [obraId, planta], limite: 1 })[0];
+        const detectados = equiposAlSubir(repo, ses, obraId, planta, d, equipos, r.marcas, viejoAntes);
+        if (detectados) r.marcas.push(...detectados.marcas);
         const esEquipo = new Set(equipos.filter(P.esEquipoDelPlano).map((e) => e.id));
         const nombre = llano(d.nombre).slice(0, 120) || `Planta ${planta}`;
-        const viejo = repo.listar("planosEquipos", ses, { condicion: "obraId = ? AND planta = ?", params: [obraId, planta], limite: 1 })[0];
+        const viejo = viejoAntes;
         const reconocidas = new Set(r.marcas.map((m) => m.equipoId));
         const aMano = viejo ? leerJson(viejo.marcas, []).filter((m) => m && m.mano && !reconocidas.has(m.equipoId)) : [];
         const marcas = P.limpiarMarcas([...P.ponerSalas(r.marcas, rotulos), ...aMano]).filter((m) => esEquipo.has(m.equipoId));
@@ -61309,8 +61427,44 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           rotulosSala: rotulos.length,
           conSala: marcas.filter((m) => m.sala).length,
           noEncontrados: dePlanta.filter((e) => !marcas.some((m) => m.equipoId === e.id)).map((e) => e.tag),
-          materiales: materialesAlSubir(repo, ses, obraId, planta, id, d.textos)
+          materiales: materialesAlSubir(repo, ses, obraId, planta, id, d.textos),
+          detectados: detectados ? detectados.resumen : null
         };
+      }
+      var NOTA_DETECTADO = "Detectado en plano";
+      function equiposAlSubir(repo, ses, obraId, planta, d, equipos, marcasYa, viejo) {
+        if (!Array.isArray(d.textos) || !d.textos.length || !planta) return null;
+        if (!puede(ses.rol, "commissioning", "editar")) return null;
+        const det = P.detectarEquipos(d.textos, equipos, marcasYa);
+        if (!det.propios.length && !det.porModelo.length) return null;
+        const marcasViejas = new Map((viejo ? leerJson(viejo.marcas, []) : []).map((m) => [m.equipoId, m]));
+        const existentes = equipos.map((e) => {
+          const m = marcasViejas.get(e.id);
+          return { id: e.id, tag: e.tag, x: m ? m.x : null, y: m ? m.y : null };
+        });
+        const lista = [...det.propios.map((x) => ({ ...x, equipoId: null })), ...P.numerarPorModelo(det.porModelo, planta, existentes)];
+        const nombrePlano = llano(d.nombre).slice(0, 120) || `planta ${planta}`;
+        const marcas = [];
+        let creados = 0;
+        let reutilizados = 0;
+        for (const x of lista) {
+          let id = x.equipoId;
+          if (id) reutilizados += 1;
+          else {
+            const r = CX.crearEquipo(repo, ses, obraId, {
+              tag: x.tag,
+              planta,
+              familia: P.familiaPara(x.icono, equipos) || "",
+              denominacion: x.modelo ? `${x.tipo} (${x.modelo} en el plano)` : x.tipo,
+              notas: `${NOTA_DETECTADO} ${nombrePlano}: sin datos de placa; marca, modelo y n\xBA de serie, de la ficha t\xE9cnica o del presupuesto.`
+            }, { tolerante: true, emparejar: false, equipos });
+            if (!r || !r.ok) continue;
+            id = r.id;
+            creados += 1;
+          }
+          marcas.push({ equipoId: id, tag: x.tag, x: x.x, y: x.y, plano: true });
+        }
+        return { marcas, resumen: { creados, reutilizados, repetidos: det.repetidos.map((r) => r.tag) } };
       }
       function materialesAlSubir(repo, ses, obraId, planta, planoId, textos) {
         if (!Array.isArray(textos) || !textos.length) return null;
@@ -61426,7 +61580,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         repo.borrar("planosEquipos", ses, p.id);
         return { ok: true };
       }
-      module.exports = { LADO_MOVIL, listar, imagen, guardar, colocar, borrar, salaDe, localizacion, imagenRecorte, svgRecorte, fotosLocalizacion };
+      module.exports = { LADO_MOVIL, NOTA_DETECTADO, equiposAlSubir, listar, imagen, guardar, colocar, borrar, salaDe, localizacion, imagenRecorte, svgRecorte, fotosLocalizacion };
     }
   });
 
