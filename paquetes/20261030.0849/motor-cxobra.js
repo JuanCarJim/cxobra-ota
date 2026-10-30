@@ -9753,7 +9753,10 @@ globalThis.CX_VARIANTE="cxobra";
           "refrigerante",
           "cargaKg",
           /* 30-oct: la entrega a la DF (de ella cuenta la garantía), sin el Mac (0020). */
-          "fechaEnvioDF"
+          "fechaEnvioDF",
+          /* 30-oct: los días de uso y cuándo se apuntaron (0021). */
+          "diasUso",
+          "diasUsoFecha"
         ]
       };
       var FUERA = /^(importe|precio|coste|tarifaOficial|tarifaOperario|tarifaHora|iban|cuenta|banco|hashClave)/i;
@@ -10063,7 +10066,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261030.0835" : "0";
+      var VERSION = true ? "20261030.0849" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -13217,6 +13220,11 @@ globalThis.CX_VARIANTE="cxobra";
       var hoyLocal = () => ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
       var fechaVisible = (iso) => iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "";
       function garantiaDe(e, hoy = hoyLocal()) {
+        const g = garantiaSola(e, hoy);
+        const u = e && e.diasUso !== void 0 && e.diasUso !== null && e.diasUso !== "" ? usoDe(e, hoy) : null;
+        return u && u.textoGarantia ? { ...g, usoAntesEntrega: u.antesEntrega, textoUso: u.textoGarantia } : g;
+      }
+      function garantiaSola(e, hoy) {
         const inicio = fechaISO(e && e.fechaEnvioDF);
         const n = Number(e && e.garantiaAnios);
         const anios = Number.isFinite(n) && n > 0 ? n : null;
@@ -13226,10 +13234,41 @@ globalThis.CX_VARIANTE="cxobra";
         const estado = fin < hoy ? "vencida" : "vigente";
         return { estado, inicio, fin, anios, texto: `Garant\xEDa: ${fechaVisible(inicio)} \u2192 ${fechaVisible(fin)}${estado === "vencida" ? " (vencida)" : ""}` };
       }
+      var DIA_MS = 864e5;
+      var MAX_DIAS_USO = 36500;
+      var diasEntre = (desde, hasta) => Math.round((Date.parse(`${hasta}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`)) / DIA_MS);
+      var restarDias = (iso, n) => new Date(Date.parse(`${iso}T00:00:00Z`) - n * DIA_MS).toISOString().slice(0, 10);
+      function leerDiasUso(v) {
+        const s = v === null || v === void 0 ? "" : String(v).trim().replace(",", ".");
+        if (s === "") return null;
+        const n = Number(s);
+        if (!Number.isFinite(n) || n < 0 || n > MAX_DIAS_USO || Math.round(n) !== n) return { error: `\xAB${v}\xBB no son unos d\xEDas de uso (un n\xFAmero entero entre 0 y ${MAX_DIAS_USO}).` };
+        return n;
+      }
+      function sugerenciaDiasUso(fechaPuestaMarcha, hoy = hoyLocal()) {
+        const f = fechaISO(fechaPuestaMarcha);
+        if (!f) return null;
+        const n = diasEntre(f, hoy);
+        return n >= 0 ? n : null;
+      }
+      function usoDe(e, hoy = hoyLocal()) {
+        const x = e || {};
+        const n = Number(x.diasUso);
+        const dias = x.diasUso !== null && x.diasUso !== void 0 && x.diasUso !== "" && Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
+        const fecha = dias === null ? null : fechaISO(x.diasUsoFecha) || hoy;
+        const inicio = dias === null ? null : restarDias(fecha, dias);
+        const entrega = fechaISO(x.fechaEnvioDF);
+        const antesEntrega = dias === null ? null : !entrega || entrega >= fecha ? dias : Math.max(0, dias - diasEntre(entrega, fecha));
+        const sugerencia = dias === null ? sugerenciaDiasUso(x.fechaPuestaMarcha, hoy) : null;
+        const d = (k) => `${k} ${k === 1 ? "d\xEDa" : "d\xEDas"}`;
+        const texto = dias === null ? null : `${d(dias)} de uso (a ${fechaVisible(fecha)})`;
+        const textoGarantia = dias === null ? null : entrega ? `${d(antesEntrega)} de uso antes de la entrega` : `${d(antesEntrega)} de uso, a\xFAn sin entregar a DF`;
+        return { dias, fecha, inicio, antesEntrega, entregado: Boolean(entrega), sugerencia, texto, textoGarantia };
+      }
       (function exportar(API) {
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.GARANTIA_CX = API;
-      })({ garantiaDe, sumarAnios, fechaVisible, fechaISO });
+      })({ garantiaDe, sumarAnios, fechaVisible, fechaISO, leerDiasUso, sugerenciaDiasUso, usoDe, MAX_DIAS_USO });
     }
   });
 
@@ -18520,6 +18559,12 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         if (!e || Object.prototype.hasOwnProperty.call(e, "estadoPMGuardado")) return e;
         return { ...e, estadoPMGuardado: e.estadoPM || null, estadoPM: estadoPMDerivado(e) };
       }
+      function usoConjunto(miembros) {
+        const con = (miembros || []).filter((m2) => m2 && m2.diasUso !== null && m2.diasUso !== void 0 && m2.diasUso !== "");
+        if (!con.length) return {};
+        const m = con.reduce((a, b) => Number(b.diasUso) > Number(a.diasUso) ? b : a);
+        return { diasUso: Number(m.diasUso), diasUsoFecha: m.diasUsoFecha || null };
+      }
       function fechaPuestaMarchaDe(e) {
         const guardada = String(e && e.fechaPuestaMarcha || "").trim().slice(0, 10);
         if (guardada) return guardada;
@@ -18788,8 +18833,10 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
           bloqueadoPor,
           revalidarTras,
           /* La garantía del conjunto: desde el envío que lo completa (29-oct, JC). */
-          garantia: garantiaCx.garantiaDe({ fechaEnvioDF, garantiaAnios: miembros.map((m) => Number(m.garantiaAnios) || 0).reduce((x, y) => Math.max(x, y), 0) || null }),
+          garantia: garantiaCx.garantiaDe({ fechaEnvioDF, garantiaAnios: miembros.map((m) => Number(m.garantiaAnios) || 0).reduce((x, y) => Math.max(x, y), 0) || null, ...usoConjunto(miembros) }),
           fechaPuestaMarcha: miembros.map((m) => m.fechaPuestaMarcha).filter(Boolean).sort().pop() || null,
+          /* Los días de uso del conjunto (30-oct): los de la unidad que más lleva. */
+          ...usoConjunto(miembros),
           ensayoFalta: ensayosQueFaltan({ ensayo, ensayoRequerido, balanceoEstado, estanqueidadEstado }),
           /* Qué unidad trae cada incidencia, para decirlo en la ficha. */
           incidenciasPorUnidad: miembros.map((m) => ({ tag: m.tag, incidencias: extras.includes(m) ? m.incidencias.filter((c) => c !== "exteriorSinInteriores") : m.incidencias })).filter((m) => m.incidencias.length)
@@ -23278,6 +23325,10 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         ["equiposObra", "fechaPuestaMarcha", "TEXT"],
         /* Los años de garantía (29-oct-2026): cuentan desde la entrega a DF. */
         ["equiposObra", "garantiaAnios", "REAL"],
+        /* Los días de uso (30-oct-2026, JC): los que lleva funcionando, a mano, y el día
+           en que se apuntaron (shared/commissioning/garantia.js › usoDe). */
+        ["equiposObra", "diasUso", "INTEGER"],
+        ["equiposObra", "diasUsoFecha", "TEXT"],
         ["equiposObra", "tipoMantenimiento", "TEXT"],
         ["equiposObra", "vidaUtilAnios", "REAL"],
         ["configCommissioning", "potenciaTermicaKw", "REAL"],
@@ -33948,10 +33999,14 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         const incidencias = [];
         const fechaMal = ["fechaFabricacion", "fechaInstalacion", "fechaPuestaMarcha"].some((c) => e[c] && !fecha(e[c]));
         if (fechaMal) incidencias.push("fechaMal");
-        if (!f.instalacion && !f.puestaMarcha) incidencias.push("sinFechas");
+        if (!f.instalacion && !f.puestaMarcha && !(e.diasUso !== null && e.diasUso !== void 0 && e.diasUso !== "")) incidencias.push("sinFechas");
         if (!tipo) incidencias.push("sinTipo");
         if (f.instalacion && f.puestaMarcha && f.puestaMarcha < f.instalacion) incidencias.push("marchaAntesQueMontaje");
-        const servicio = f.puestaMarcha || f.instalacion || null;
+        const nUso = Number(e.diasUso);
+        const conUso = e.diasUso !== null && e.diasUso !== void 0 && e.diasUso !== "" && Number.isFinite(nUso) && nUso >= 0;
+        const inicioUso = conUso ? sumarDiasIso(fecha(e.diasUsoFecha) || hoy, -Math.round(nUso)) : null;
+        const servicio = inicioUso || f.puestaMarcha || f.instalacion || null;
+        const servicioDesde = inicioUso ? "diasUso" : f.puestaMarcha ? "puestaMarcha" : f.instalacion ? "instalacion" : null;
         const finVentana = sumarMesesIso(hoy, 12);
         const hechos = ordenarHechasMant(registros.map((r) => ({ ...r, fecha: fecha(r.fecha) })).filter((r) => r.fecha));
         const operaciones = (tipo ? tipo.operaciones : []).map((o) => {
@@ -34003,6 +34058,8 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
           fechaInstalacion: f.instalacion,
           fechaPuestaMarcha: f.puestaMarcha,
           servicio,
+          servicioDesde,
+          diasUso: conUso ? Math.round(nUso) : null,
           tipo: tipo ? tipo.id : null,
           tipoNombre: tipo ? tipo.nombre : null,
           disciplina: tipo ? tipo.disciplina : null,
@@ -57558,7 +57615,12 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             estado,
             dentro: suyos.filter((f) => f.estado === "dentro").length,
             fuera: suyos.filter((f) => f.estado === "alto" || f.estado === "bajo").length,
-            aRevisar: filas.filter((f) => f.circuito === id && f.sinAtribuir).length
+            aRevisar: filas.filter((f) => f.circuito === id && f.sinAtribuir).length,
+            /* Lo de proyecto de las «a revisar» (fuera de la suma): para decir cuánto queda fuera. */
+            disenoRevisar: (() => {
+              const r = filas.filter((f) => f.circuito === id && f.sinAtribuir && numDif(f.caudalDiseno) !== null);
+              return r.length ? redDif(r.reduce((a, f) => a + numDif(f.caudalDiseno), 0), 1) : null;
+            })()
           };
         }
         return { filas, circuitos, tolerancias: tol, sinPosicion: filas.filter((f) => f.sinPosicion).length, aRevisar: filas.filter((f) => f.sinAtribuir).length };
@@ -59596,10 +59658,27 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
       }
       function garantia(u, linea, hoy = hoyLocal()) {
         const enConjunto = linea && Array.isArray(linea.miembros) && linea.miembros.length > 1;
-        const base = enConjunto ? { fechaEnvioDF: linea.fechaEnvioDF || null, garantiaAnios: linea.miembros.map((m) => Number(m.garantiaAnios) || 0).reduce((x, y) => Math.max(x, y), 0) || null } : { fechaEnvioDF: u && u.fechaEnvioDF || null, garantiaAnios: u && u.garantiaAnios };
+        const base = enConjunto ? {
+          fechaEnvioDF: linea.fechaEnvioDF || null,
+          garantiaAnios: linea.miembros.map((m) => Number(m.garantiaAnios) || 0).reduce((x, y) => Math.max(x, y), 0) || null,
+          diasUso: linea.diasUso ?? null,
+          diasUsoFecha: linea.diasUsoFecha || null
+        } : { fechaEnvioDF: u && u.fechaEnvioDF || null, garantiaAnios: u && u.garantiaAnios, diasUso: u ? u.diasUso ?? null : null, diasUsoFecha: u && u.diasUsoFecha || null };
         const g = G.garantiaDe(base, hoy);
         const duracion = aniosTexto(g.anios);
-        const sal = { desde: g.inicio, hasta: g.fin, desdeTexto: fecha(g.inicio), hastaTexto: fecha(g.fin), anios: g.anios, duracion, quedanDias: null, conjunto: enConjunto ? linea.tag || null : null };
+        const sal = {
+          desde: g.inicio,
+          hasta: g.fin,
+          desdeTexto: fecha(g.inicio),
+          hastaTexto: fecha(g.fin),
+          anios: g.anios,
+          duracion,
+          quedanDias: null,
+          conjunto: enConjunto ? linea.tag || null : null,
+          /* Los días de uso antes de la entrega a DF (30-oct): aparte, no mueven la garantía. */
+          usoAntesEntrega: g.usoAntesEntrega ?? null,
+          textoUso: g.textoUso || null
+        };
         if (g.estado === "sinEmpezar") return { ...sal, estado: "sinEntregaDF", tono: "gris", resumen: "Pendiente de entrega a DF" };
         if (g.estado === "sinAnios") return { ...sal, estado: "sinDuracion", tono: "gris", resumen: "Duraci\xF3n sin dato" };
         const quedan = diasEntre(hoy, g.fin);
@@ -59675,6 +59754,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             ["Desde", g.desdeTexto ? v(`${g.desdeTexto} (entrega a DF${g.conjunto ? " del conjunto" : ""})`) : v("Pendiente de entrega a DF", "gris")],
             ["Hasta", g.hastaTexto ? v(g.hastaTexto) : v(null)],
             ["Duraci\xF3n", g.duracion ? v(g.duracion) : v("Duraci\xF3n sin dato", "gris")],
+            ["D\xEDas de uso", g.textoUso ? v(g.textoUso, "info") : v("Sin dato", "gris")],
             ...g.estado === "vigente" || g.estado === "caducada" ? [["Estado", v(g.resumen, g.tono)]] : []
           ] });
         }
@@ -66252,6 +66332,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           checklist: "Checklist",
           ensayos: "Ensayos",
           entrega: "Entrega",
+          diasUso: "D\xEDas de uso antes de la entrega",
           // 7 · incidencias
           incidencias: "7 \xB7 Incidencias de identificaci\xF3n",
           observaciones: "Observaciones",
@@ -66374,6 +66455,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           checklist: "Checklist",
           ensayos: "Tests",
           entrega: "Handover",
+          diasUso: "Days in use before handover",
           incidencias: "7 \xB7 Identification issues",
           observaciones: "Remarks",
           sinIncidencias: "No equipment has identification issues.",
@@ -66490,6 +66572,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           checklist: "Checkliste",
           ensayos: "Pr\xFCfungen",
           entrega: "\xDCbergabe",
+          diasUso: "Betriebstage vor der \xDCbergabe",
           incidencias: "7 \xB7 M\xE4ngel bei der Identifikation",
           observaciones: "Bemerkungen",
           sinIncidencias: "Kein Ger\xE4t hat M\xE4ngel bei der Identifikation.",
@@ -66606,6 +66689,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           checklist: "Checklist",
           ensayos: "Essais",
           entrega: "Remise",
+          diasUso: "Jours d\u2019utilisation avant la remise",
           incidencias: "7 \xB7 Anomalies d\u2019identification",
           observaciones: "Observations",
           sinIncidencias: "Aucun \xE9quipement ne pr\xE9sente d\u2019anomalie d\u2019identification.",
@@ -66811,6 +66895,8 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
     </table>` : `<p class="notaDoc">${esc(L("sinPruebas"))}</p>`}`;
           const balEq = (f) => f.balanceoEstado === "apto" ? SI : f.balanceoEstado === "aptoSinBocas" ? '<span class="info">\u2713*</span>' : f.balanceoEstado === "noApto" ? MAL : NO;
           const estEq = (f) => f.estanqueidadEstado === "apta" ? SI : f.estanqueidadEstado === "noApta" ? MAL : NO;
+          const GCX = typeof __require !== "undefined" ? require_garantia() : window.GARANTIA_CX;
+          const usoAntes = (f) => GCX && f && f.diasUso !== null && f.diasUso !== void 0 && f.diasUso !== "" ? GCX.usoDe(f, hoy).antesEntrega : null;
           const claseEnv = (e) => e === "enviada" ? "bien" : e === "lista" ? "info" : "no";
           const relacion = `
     <h3>${esc(L("relacion"))}</h3>
@@ -66818,18 +66904,20 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
       <th>${esc(L("marca"))} / ${esc(L("modelo"))}</th><th>${esc(L("numSerie"))}</th><th class="c">${esc(L("enMarcha"))}</th>
       <th class="c">${esc(L("fichaTecnica"))}</th><th class="c">${esc(L("marcadoCE"))}</th><th class="c">${esc(L("manual"))}</th>
       <th class="c">${esc(L("fichaPM"))}</th><th class="c">${esc(L("checklist"))}</th><th class="c">${esc(L("balanceo"))}</th>
-      <th class="c">${esc(L("estanqueidad"))}</th><th>${esc(L("entrega"))}</th></tr></thead>
+      <th class="c">${esc(L("estanqueidad"))}</th><th>${esc(L("entrega"))}</th><th class="n">${esc(L("diasUso"))}</th></tr></thead>
     <tbody>${filas.map((f) => `<tr><td class="tag">${esc(f.tag || "\u2014")}</td><td>${esc(f.descripcion || f.denominacion || "")}</td>
       <td>${esc(f.planta || "")}</td><td>${esc([f.marca, f.modelo].filter(Boolean).join(" / "))}</td><td>${esc(f.numSerie || "")}</td>
       <td class="c">${marca(f.estadoPM === "enMarcha" || f.estadoPM === "hecha")}</td><td class="c">${marca(f.ft)}</td>
       <td class="c">${marca(f.ce)}</td><td class="c">${marca(f.manual)}</td><td class="c">${marca(f.fichaPM)}</td>
       <td class="c">${marcaTri(f.checklist)}</td><td class="c">${balEq(f)}</td><td class="c">${estEq(f)}</td>
-      <td class="${claseEnv(f.envio)}">${esc(L(`env_${ES[`env_${f.envio}`] ? f.envio : "faltaDocumentacion"}`))}</td></tr>`).join("")}</tbody>
+      <td class="${claseEnv(f.envio)}">${esc(L(`env_${ES[`env_${f.envio}`] ? f.envio : "faltaDocumentacion"}`))}</td>
+      <td class="n">${usoAntes(f) === null ? "" : F.num(usoAntes(f))}</td></tr>`).join("")}</tbody>
     <tfoot><tr><td colspan="5">${esc(L("total"))} \xB7 ${F.num(filas.length)}</td>
       <td class="c">${F.num(t.enMarcha)}</td><td class="c">${F.num(filas.filter((f) => f.ft).length)}</td>
       <td class="c">${F.num(filas.filter((f) => f.ce).length)}</td><td class="c">${F.num(filas.filter((f) => f.manual).length)}</td>
       <td class="c">${F.num(filas.filter((f) => f.fichaPM).length)}</td><td class="c">${F.num(t.checklistHechos)}</td>
-      <td class="c">${F.num(t.balanceos)}</td><td class="c">${F.num(t.estanqueidades)}</td><td>${F.num(t.enviadas)} ${esc(L("env_enviada").toLowerCase())}</td></tr></tfoot>
+      <td class="c">${F.num(t.balanceos)}</td><td class="c">${F.num(t.estanqueidades)}</td><td>${F.num(t.enviadas)} ${esc(L("env_enviada").toLowerCase())}</td>
+      <td class="n">${F.num(filas.reduce((a, f) => a + (usoAntes(f) || 0), 0))}</td></tr></tfoot>
     </table>
     <p class="notaDoc">${esc(L("leyenda"))} \xB7 \u2713* ${esc(L("bal_aptoSinBocas"))}</p>`;
           const conInc = filas.filter((f) => (f.incidencias || []).length);
@@ -67275,6 +67363,13 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           const n = s === "" ? null : Number(s);
           if (n !== null && (!Number.isFinite(n) || n <= 0 || n > 50)) return { ok: false, error: `\xAB${entrada.garantiaAnios}\xBB no son unos a\xF1os de garant\xEDa.` };
           cambios.garantiaAnios = n;
+        }
+        if (entrada.diasUso !== void 0) {
+          const GCX = require_garantia();
+          const n = GCX.leerDiasUso(entrada.diasUso);
+          if (n && n.error) return { ok: false, error: n.error };
+          cambios.diasUso = n;
+          cambios.diasUsoFecha = n === null ? null : GCX.fechaISO(entrada.diasUsoFecha) || require_fecha().hoyLocal();
         }
         if (!Object.keys(cambios).length) return { ok: false, error: "No hay nada que cambiar." };
         const ids = [id, ...companerasDe(equiposDe(repo, sesion, actual.obraId), id).map((c) => c.id)];
@@ -95746,6 +95841,9 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         "POST api/cronometro/parte": [["partesTrabajo", "crear"]],
         "POST api/equipo/instalacion": [["commissioning", "editar"]],
         "POST api/equipo/revalidar": [["commissioning", "editar"]],
+        /* La fecha de puesta en marcha, los años de garantía y los días de uso. Faltaba
+           (30-oct-2026): sin ella el manejador contestaba «No existe.» y no se guardaba. */
+        "POST api/equipo/fechas": [["commissioning", "editar"]],
         "POST api/equipo/serie": [["commissioning", "editar"]],
         /* Confirmar o descartar el nº de serie leído de la foto de la placa (29-oct-2026). */
         "POST api/equipo/placa": [["commissioning", "editar"]],
@@ -95980,7 +96078,13 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
               fechaPuestaMarcha: (linea && linea.clase !== "suelto" ? linea.fechaPuestaMarcha : fila.fechaPuestaMarcha) || null,
               fechaEnvioDF: (linea && linea.clase !== "suelto" ? linea.fechaEnvioDF : fila.fechaEnvioDF) || null,
               garantiaAnios: fila.garantiaAnios ?? null,
-              garantia: (linea && linea.clase !== "suelto" ? linea.garantia : fila.garantia) || null
+              garantia: (linea && linea.clase !== "suelto" ? linea.garantia : fila.garantia) || null,
+              /* Los días de uso (30-oct, JC) y su propuesta desde la puesta en marcha. */
+              uso: require_garantia().usoDe({
+                ...linea && linea.clase !== "suelto" ? { diasUso: linea.diasUso, diasUsoFecha: linea.diasUsoFecha } : { diasUso: fila.diasUso, diasUsoFecha: fila.diasUsoFecha },
+                fechaEnvioDF: (linea && linea.clase !== "suelto" ? linea.fechaEnvioDF : fila.fechaEnvioDF) || null,
+                fechaPuestaMarcha: (linea && linea.clase !== "suelto" ? linea.fechaPuestaMarcha : fila.fechaPuestaMarcha) || null
+              })
             } : null,
             /* Qué se mide de este equipo (plantillasCliente.js › MEDICIONES): decide
                si sale la fila del balanceo y con qué nombre. */
@@ -96148,6 +96252,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           const entrada = {};
           if ("fechaPuestaMarcha" in e) entrada.fechaPuestaMarcha = e.fechaPuestaMarcha;
           if ("garantiaAnios" in e) entrada.garantiaAnios = e.garantiaAnios;
+          if ("diasUso" in e) entrada.diasUso = e.diasUso;
           return CX.guardarFechasEquipo(repo, ses, llano(e.equipoId), entrada);
         }
         function equipoRevalidar({ ses, json }) {
