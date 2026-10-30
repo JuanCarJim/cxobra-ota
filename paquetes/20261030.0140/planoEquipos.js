@@ -86,10 +86,11 @@
   #app .pe-lienzo.con-salas .marca-boca.con-tag .rotulo-boca{display:block}
   /* La etiqueta sin color de estado: el estado se lee en el icono y en la leyenda. */
   #app .pe-lienzo .marca-boca .rotulo-boca{background:rgba(255,255,255,.74);color:#0b4f48;padding:0 3px;font-weight:700;text-shadow:0 0 2px #fff}
+  .pe-lienzo .marca-boca.revisar .simbolo-boca{outline:1.5px dashed currentColor;outline-offset:2px}
   .pe-lienzo .marca-boca.elegida{width:max(28px,calc(var(--wp,0px) * 1.6));z-index:8;opacity:1!important}
-  .pe-lienzo .marca-boca.elegida .simbolo-boca *{stroke-width:2px}
-  .pe-lienzo .marca-boca.elegida::before{content:'';position:absolute;inset:-6px;border-radius:50%;border:2px solid var(--acento,#178276);animation:pe-pulso 1.6s ease-out infinite;pointer-events:none}
-  @media (prefers-reduced-motion:reduce){.pe-lienzo .marca-boca.elegida::before{animation:none}}
+  .pe-lienzo .marca-boca.elegida .simbolo-boca{outline:none;transform:none;filter:drop-shadow(0 0 1.5px var(--acento,#178276)) drop-shadow(0 0 5px color-mix(in srgb,var(--acento,#178276) 55%,transparent))}
+  .pe-lienzo .marca-boca.elegida .simbolo-boca *{stroke-width:3px}
+  .pe-lienzo .marca-boca.elegida .simbolo-boca path,.pe-lienzo .marca-boca.elegida .simbolo-boca rect{stroke:var(--acento,#178276)}
   #app .pe-lienzo .marca-boca.elegida .rotulo-boca{display:block;z-index:9;font-size:12px;color:#fff;background:var(--acento,#178276);text-shadow:none;padding:1px 5px;border-radius:3px;margin-left:8px}
   .pe-lienzo:has(.marca-boca.elegida) .marca-boca:not(.elegida),.pe-lienzo:has(.pe-mat.elegida) .marca-boca{opacity:.6}
   .pe-iconos{display:flex;flex-wrap:wrap;gap:4px 12px;margin:0 0 8px;font-size:12px;color:var(--textoTenue,#567)}
@@ -149,10 +150,9 @@
   .pe-mat.conFicha{color:var(--acento,#178276)} .pe-mat.conIncidencia{color:var(--mal)}
   /* El tocado, resaltado (30-oct, JC): más grande, teal, con halo y su TAG siempre; los demás, más tenues. */
   .pe-mat.elegida{color:var(--acento,#178276);width:max(calc(var(--minw,4px) * 4),calc(var(--wp,0px) * 1.6));z-index:6;opacity:1!important}
-  .pe-mat.elegida svg *{stroke-width:2px}
-  .pe-mat.elegida::before{content:'';position:absolute;inset:-6px;border-radius:50%;border:2px solid currentColor;animation:pe-pulso 1.6s ease-out infinite;pointer-events:none}
+  .pe-mat.elegida svg{filter:drop-shadow(0 0 1.5px var(--acento,#178276)) drop-shadow(0 0 5px color-mix(in srgb,var(--acento,#178276) 55%,transparent))}
+  .pe-mat.elegida svg *{stroke-width:3px;stroke:var(--acento,#178276)}
   @keyframes pe-pulso{0%{transform:scale(.8);opacity:1}100%{transform:scale(1.8);opacity:0}}
-  @media (prefers-reduced-motion:reduce){.pe-mat.elegida::before{animation:none}}
   .pe-mat.elegida span{display:block;z-index:7;font-size:12px;font-weight:700;color:#fff;background:var(--acento,#178276);padding:1px 5px;border-radius:3px;margin-left:8px}
   .pe-lienzo:has(.pe-mat.elegida) .pe-mat:not(.elegida){opacity:.6}
   .pe-mat.apagada{opacity:.15}
@@ -167,6 +167,11 @@
   .pe-bloque h4{margin:0 0 3px;font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--acento,#178276)}
   .pe-cad{font-size:11.5px;color:var(--textoTenue,#567);margin-top:2px}
   .pe-vacio{color:var(--textoTenue,#567);opacity:.7}
+  .pe-tono-bien{color:var(--bien);font-weight:600}.pe-tono-info{color:var(--pe-azul);font-weight:600}
+  .pe-vida .pe-ficha{width:100%;border-collapse:collapse;font-size:13px}
+  .pe-vida .pe-ficha th{text-align:left;font-weight:400;color:var(--textoTenue,#567);width:32%;padding:1px 8px 1px 0;vertical-align:top}
+  .pe-vida .pe-ficha td{padding:1px 0;font-variant-numeric:tabular-nums}
+  .pe-vida .pe-entrega-df{font:inherit;font-size:14px;padding:2px 4px;min-height:30px}
   .pe-serie input::placeholder{color:var(--textoTenue,#567);opacity:.55}
   .pe-capas{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin:0 0 6px;-webkit-overflow-scrolling:touch}
   .pe-capas button{flex:none;min-height:34px;border:1px solid var(--borde,#c9d3d6);background:var(--superficie,#fff);color:var(--texto,#123);border-radius:999px;padding:3px 10px;font-size:13px}
@@ -294,6 +299,31 @@
     return `<div class="pe-conjunto">${filas.join('')}</div>`;
   }
 
+  /* Puesta en marcha, garantía y certificación, ya escritas por el servidor
+   * (shared/commissioning/vidaEquipo.js: bloquesFicha). */
+  function vidaHtml(e) {
+    const celda = (c) => (!c || !c.texto ? VACIO
+      : c.tono === 'gris' ? `<span class="pe-vacio">${esc(c.texto)}</span>`
+        : c.tono ? `<span class="pe-tono-${c.tono}">${esc(c.texto)}</span>` : esc(c.texto));
+    return ((e.vida && e.vida.bloques) || []).map((b) => `<div class="pe-bloque pe-vida"><h4>${esc(b.titulo)}</h4><table class="pe-ficha">${b.id === 'garantia' ? entregaDFHtml(e) : ''}${b.filas.map(([k, c]) => `<tr><th>${esc(k)}</th><td>${celda(c)}</td></tr>`).join('')}</table></div>`).join('');
+  }
+  /* La entrega a la DF, editable por quien edita la puesta en marcha (30-oct, sin
+     el Mac): se guarda en el teléfono y sube a la nube (paquete.js › CAMPOS_VUELTA). */
+  function entregaDFHtml(e) {
+    const d = e.vida && e.vida.entregaDF;
+    if (!d || !d.editable) return '';
+    const hoy = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    return `<tr><th>Entrega a DF</th><td><input type="date" class="pe-entrega-df" data-pe-entrega-df="${esc(e.id)}" value="${esc(d.fecha || '')}" max="${hoy}" aria-label="Fecha de entrega a la DF">${d.fecha ? ` <button class="enlace" data-pe-entrega-df-quitar="${esc(e.id)}">Quitar</button>` : ''}</td></tr>`;
+  }
+  async function guardarEntregaDF(id, fecha) {
+    try {
+      const r = await C.postJson('api/plano-equipos/entrega-df', { equipoId: id, fecha });
+      if (!r || r.ok === false) throw new Error((r && r.error) || 'No se ha guardado.');
+      C.aviso(fecha ? 'Entrega a la DF guardada.' : 'Entrega a la DF quitada.', 'bien');
+      await cargar(); repintarQuieto();
+    } catch (err) { C.aviso(err.message); await cargar().then(repintarQuieto).catch(() => {}); }
+  }
+
   function hojaHtml(p) {
     const e = equipoElegido();
     if (!e) return '';
@@ -311,6 +341,7 @@
       ${falta ? `<div class="falta">${falta}</div>` : ''}
       ${(e.documentos || []).length ? `<div class="pe-enlaces">${e.documentos.map(enlaceDoc).join('')}</div>` : ''}
       ${p.plano && e.x === null ? '<div class="sub tenue">No está en el plano.</div>' : ''}
+      ${vidaHtml(e)}
       ${acc.length ? `<div class="pe-acciones">${acc.map((a) => `<button class="boton${a.id === 'datos' ? '' : ' secundario'}" data-pe-accion="${esc(a.id)}">${esc(a.texto)}</button>`).join('')}</div>` : ''}
       ${datos.conCommissioning ? `<button class="enlace mas" data-pe-accion="equipo">Ver la ficha completa</button>` : (datos.puedeEditar === false ? '<div class="sub tenue">Solo lectura.</div>' : '')}`;
   }
@@ -356,6 +387,8 @@
   function cajaEq(e, p) {
     const f = FP();
     if (!f || !f.cajaEquipo || !p || !p.plano) return { wf: 0, ar: 1 };
+    /* Con el símbolo del dibujo (30-oct), su tamaño. */
+    if (e.w > 0 && e.h > 0 && p.plano.ancho > 0 && p.plano.alto > 0) return { wf: Math.max(e.w, (e.h * p.plano.alto) / p.plano.ancho), ar: 1 };
     return f.cajaEquipo(e.icono || 'generico', p.plano, escalaDe(p));
   }
   function marcaMaterial(m, q, p) {
@@ -480,7 +513,7 @@
           <img data-src="api/plano-equipos/imagen?id=${encodeURIComponent(p.plano.id)}" alt="Plano ${esc(p.plano.nombre)}" draggable="false">
           ${(p.plano.salas || []).map((r) => `<span class="pe-sala" style="left:${r.x * 100}%;top:${r.y * 100}%">${esc(r.t)}</span>`).join('')}
           ${mats.map((m) => marcaMaterial(m, q, p)).join('')}
-          ${enPlano.map((x) => `<button class="marca-boca ${x.color === 'verde' ? 'bien' : x.color === 'rojo' ? 'mal' : 'azul'}${enConjunto.has(x.id) ? ' elegida' : ''}" style="left:${x.x * 100}%;top:${x.y * 100}%;--wp:${(cajaEq(x, p).wf * 100).toFixed(4)}%" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${x.sala || 'sin sala'}: ${NOMBRE[x.color]}`)}">${simbolo(x.icono)}<span class="rotulo-boca">${esc(x.tag)}</span></button>`).join('')}
+          ${enPlano.map((x) => `<button class="marca-boca ${x.color === 'verde' ? 'bien' : x.color === 'rojo' ? 'mal' : 'azul'}${enConjunto.has(x.id) ? ' elegida' : ''}${x.revisar ? ' revisar' : ''}" style="left:${x.x * 100}%;top:${x.y * 100}%;--wp:${(cajaEq(x, p).wf * 100).toFixed(4)}%" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${x.sala || 'sin sala'}: ${NOMBRE[x.color]}${x.revisar ? '; revisar ubicación' : ''}`)}">${simbolo(x.icono)}<span class="rotulo-boca">${esc(x.tag)}</span></button>`).join('')}
         </div>
       </div>
       <div class="pe-zoom"><button class="boton secundario" data-pe-zoom="-1" aria-label="Alejar">−</button><button class="boton secundario" data-pe-zoom="0">Entero</button><button class="boton secundario" data-pe-zoom="1" aria-label="Acercar">+</button></div></div>`
@@ -495,6 +528,8 @@
       ${p.plano ? leyendaFormas(p) : ''}
       ${p.plano && (p.sinUbicar || []).length ? `<details class="pe-sin-ubicar" data-pe-sin-ubicar${verSinUbicar ? ' open' : ''}><summary><i class="pe-punto pe-gris"></i>Sin ubicar en el plano · ${cifra(p.sinUbicar.length)}</summary>
         <div class="pe-grises">${p.sinUbicar.map((g) => `<button data-pe-fila="${esc(g.id)}" aria-label="${esc(`${g.tag}: en el listado de esta planta y no en su plano`)}">${esc(g.tag)}</button>`).join('')}</div></details>` : ''}
+      ${p.plano && p.equipos.some((x) => x.revisar) ? `<details class="pe-sin-ubicar pe-revisar"><summary><i class="pe-punto pe-gris"></i>Revisar ubicación · ${cifra(p.equipos.filter((x) => x.revisar).length)}</summary>
+        <div class="pe-grises">${p.equipos.filter((x) => x.revisar).map((g) => `<button data-pe-fila="${esc(g.id)}" aria-label="${esc(`${g.tag}: ${g.motivo || 'revisar ubicación'}`)}">${esc(g.tag)}</button>`).join('')}</div></details>` : ''}
       <div class="pe-cuerpo">
         <div>${plano}</div>
         <div class="pe-lado">
@@ -763,8 +798,16 @@
     if (tragarClick && enMarco(ev)) { ev.stopPropagation(); ev.preventDefault(); tragarClick = false; }
   }, true);
 
+  document.addEventListener('change', (ev) => {
+    if (!$raiz || !$raiz.contains(ev.target) || !datos) return;
+    const df = ev.target.closest('[data-pe-entrega-df]');
+    if (df && df.value) guardarEntregaDF(df.dataset.peEntregaDf, df.value);
+  });
+
   document.addEventListener('click', (ev) => {
     if (!$raiz || !$raiz.contains(ev.target) || !datos) return;
+    const dq = ev.target.closest('[data-pe-entrega-df-quitar]');
+    if (dq) { guardarEntregaDF(dq.dataset.peEntregaDfQuitar, null); return; }
     const pl = ev.target.closest('[data-pe-planta]');
     if (pl) { planta = pl.dataset.pePlanta; elegida = null; mat = null; zoom = 1; pintar(); return; }
     const co = ev.target.closest('[data-pe-color]');
