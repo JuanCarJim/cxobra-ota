@@ -809,13 +809,14 @@
     leer: (r) => ({ nombre: (((r && r.querySelector('[data-firma-nombre]')) || {}).value || '').trim(), cargo: null }),
     falta: (rol, c) => (c.nombre ? null : 'Falta el nombre de quien firma.'),
   };
-  const ROTULO_FIRMA = { jefeObra: FD.rotulo('jefeObra'), cliente: FD.rotulo('cliente') };
+  const PAPELES_FIRMA = ['jefeObra', 'cliente', 'firmaCliente', 'mantenimiento']; /* las dos últimas: Cliente y Mantenimiento (30-oct) */
+  const ROTULO_FIRMA = { jefeObra: FD.rotulo('jefeObra'), cliente: FD.rotulo('cliente'), firmaCliente: 'Cliente', mantenimiento: 'Mantenimiento' };
   let firmando = null; /* 'jefeObra' | 'cliente' mientras se firma */
   let trazado = false;
   let firmaSinPintar = null; /* la firma a medias recuperada, mientras se pinta en el lienzo */
   function htmlFirmas(puede) {
     const fs = (ficha && ficha.firmas) || {};
-    return ['jefeObra', 'cliente'].map((rol) => {
+    return PAPELES_FIRMA.map((rol) => {
       const f = fs[rol];
       const fecha = f && f.fecha ? String(f.fecha).slice(0, 10).split('-').reverse().join('/') : '';
       const valor = f
@@ -882,7 +883,7 @@
   const claveFirma = (equipoId, rol) => `firma.${equipoId}.${rol}`;
   function firmaAMedias(equipoId) {
     if (!AG) return null;
-    return ['jefeObra', 'cliente'].find((rol) => AG.leer(claveFirma(equipoId, rol))) || null;
+    return PAPELES_FIRMA.find((rol) => AG.leer(claveFirma(equipoId, rol))) || null;
   }
   function apuntarFirma() {
     if (!AG || !ficha || !firmando) return;
@@ -1054,6 +1055,7 @@
         <h2>${esc(p.nombre)} <span class="cuenta">${p.bocas.length} boca${p.bocas.length === 1 ? '' : 's'}${circ ? ` de ${circ === 'retorno' ? esc(nombreRet.toLowerCase()) : 'impulsión'}` : ''}</span></h2>
         ${htmlPlano(p, circ ? delCircuito : null)}
         <ul class="bocas">${p.bocas.map((b) => htmlBoca(p, b, puedeToma, f.tolerancias)).join('')}</ul>`).join('') : sinPlano()}
+      ${window.BOCA_MANUAL_MOVIL ? window.BOCA_MANUAL_MOVIL.boton(f, circ, nombreRet, puedeToma) : ''}
       ${bloqueosDe(f).length ? htmlIncidenciaEquipo(f) : (puede || !f.planos.length ? '' : '<p class="nota">Tu rol puede ver las medidas, pero no tomarlas.</p>')}
       ${f.planos.length ? '<button class="boton secundario" data-cx="pdf-balanceo"><i class="ic ic-doc"></i>Informe del balanceo (PDF)</button>' : ''}
       ${htmlFichas('balanceo', 'Hoja de balanceo')}`;
@@ -1740,7 +1742,7 @@
               value="${qLeido ? comaD(b.caudalMedido, 1) : ''}" aria-label="${esc(rotulo)} en ${esc(b.nombre)}"></label>`;
     return `<li class="boca ${clase}" data-boca="${esc(clave)}" ${vivo}>
       <div class="boca-cabeza"><strong>${esc(b.nombre)}</strong><span class="sub">${esc(b.circuito === 'retorno' ? 'Retorno' : 'Impulsión')} · ${esc(b.tipo || '')}</span>${botonInstrumento(p, b, bal ? 'balometro' : enQ ? 'anemQ' : 'anemV', puede)}</div>
-      ${b.sinPosicion || b.sinAtribuir || b.desdeCaptura || b.caudalDudoso ? `<div class="boca-marcas">${b.sinPosicion ? '<span class="marca-sin-posicion">sin posición: falta el PDF del plano</span>' : ''}${b.sinAtribuir ? `<span class="marca-revisar">a revisar · ${esc(b.sinAtribuir)}</span>` : ''}${b.desdeCaptura ? '<span class="marca-revisar">posición desde captura, a revisar</span>' : ''}${b.caudalDudoso ? `<span class="marca-revisar">${esc(b.caudalDudoso)}</span>` : ''}</div>` : ''}
+      ${b.manual || b.sinPosicion || b.sinAtribuir || b.desdeCaptura || b.caudalDudoso ? `<div class="boca-marcas">${window.BOCA_MANUAL_MOVIL ? window.BOCA_MANUAL_MOVIL.marca(p, b, puede) : ''}${b.sinPosicion && !b.manual ? '<span class="marca-sin-posicion">sin posición: falta el PDF del plano</span>' : ''}${b.sinAtribuir ? `<span class="marca-revisar">a revisar · ${esc(b.sinAtribuir)}</span>` : ''}${b.desdeCaptura ? '<span class="marca-revisar">posición desde captura, a revisar</span>' : ''}${b.caudalDudoso ? `<span class="marca-revisar">${esc(b.caudalDudoso)}</span>` : ''}</div>` : ''}
       ${bal
         ? casillaQ('Q balómetro (m³/h)')
         : `<div class="lecturas">${[0, 1, 2, 3].map((i) => `<label>M${i + 1} <small class="unidad-m">${unidadM}</small>
@@ -1751,6 +1753,7 @@
           value="${b[k] === null || b[k] === undefined ? '' : comaD(b[k], 1)}" aria-label="${rot} en ${esc(b.nombre)}, en grados"></label>`).join('')}
         ${b.temperatura === null || b.temperatura === undefined ? '' : `<span class="t-sin-modo">Tª ${comaD(b.temperatura, 1)} °C · modo sin indicar</span>`}</div>
       ${bal ? '' : `<div data-vivo="formula">${formula}</div>`}
+      ${window.BOCA_MANUAL_MOVIL && window.BOCA_MANUAL_MOVIL.medidas ? window.BOCA_MANUAL_MOVIL.medidas(p, b, puede) : ''}
       <div class="boca-cifras">
         <div><span>Q medido</span><b data-vivo="q">${cifra(b.caudal)}</b></div>
         <div><span>Q proyecto</span><b>${cifra(b.caudalDiseno)}</b></div>
@@ -2445,6 +2448,7 @@
       ${tagFijo(h.fotoUi && h.fotoUi.tag ? h.fotoUi.tag : ficha ? ficha.equipo.tag : (f.titulo || 'Equipo'), h.nombre || f.plantilla.nombre, 'volver-equipo',
         `${chipFicha(f.estado, f.resultado, f.medidos, f.bocasSinMedir)}${f.medidos && f.medidos.obligatorios ? ` <span class="chip neutra">${f.medidos.rellenos}/${f.medidos.obligatorios}</span>` : ''}`)}
       <div class="densa">
+      ${f.plantilla.codigo === 'BALANCEO_CAUDALES' ? '' : barraMini(equipoDeFicha(h.ref), trabajoDeFicha(h.ref), ed && !(ficha && bloqueosDe(ficha).length))}
       ${ed ? '' : `<p class="nota aviso">${f.firmada ? 'La ficha está firmada: ya no se cambia.' : 'Tu rol puede ver la ficha, pero no rellenarla.'}</p>`}
       ${porPasos ? `<nav class="pasos-hoja" role="tablist" aria-label="Apartados de la hoja">
         ${pasos.map((p, i) => `<button role="tab" class="${i === actual ? 'activa' : ''}" aria-selected="${i === actual}" data-cx="paso-hoja" data-paso="${i}"><span class="t">${esc(p.titulo)}</span><span class="marca">${marcaPaso(p)}</span></button>`).join('')}
@@ -2940,6 +2944,7 @@
       const m = t.f.medidos;
       return `<div class="toma-grupo" data-toma="${esc(claveToma(x))}">
         <h3 class="banda">${esc(x.nombre)}${m && m.obligatorios ? ` <span class="tenue">${m.rellenos} de ${m.obligatorios}</span>` : ''} ${abrirla}</h3>
+        ${t.f.plantilla && t.f.plantilla.codigo === 'BALANCEO_CAUDALES' ? '' : barraMini(equipoDeFicha(x), trabajoDeFicha(x), ed && !(ficha && bloqueosDe(ficha).length))}
         ${ed ? '' : `<p class="nota">${t.f.firmada ? 'Firmada: ya no se cambia.' : 'Tu rol puede ver la ficha, pero no rellenarla.'}</p>`}
         <section class="hoja-tabla rejilla-datos toma-tabla">${conHoja(t, () => ps.map(([s, p]) => filaToma(s, p, ed)).join(''))}</section>
       </div>`;
@@ -3039,6 +3044,13 @@
       .crono-cifras span.verde { background: var(--bien-fondo); color: var(--bien); }
       .crono-cifras span.falta { background: var(--aviso-fondo); color: var(--aviso); }
       .crono-bocas { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--textoSuave); margin: 4px 0; }
+      .cm { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 2px 0 8px; font-size: 13px; }
+      .cm-et { color: var(--acento); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .3px; }
+      .cm-t { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--acento-fuerte); min-width: 58px; }
+      .cm-b { width: fit-content; border: 0; border-radius: 999px; padding: 0 14px; min-height: 32px; font-size: 13px; background: var(--acento-suave); color: var(--acento-fuerte); }
+      .cm-b.verde { background: var(--bien); color: #fff; } .cm-b.azul { background: #1F5FA8; color: #fff; }
+      .cm-fin, .cm-hp, .cm-op { color: var(--textoSuave); font-variant-numeric: tabular-nums; }
+      .cm-op select { min-height: 30px; border: 1px solid var(--borde); border-radius: 8px; background: var(--panel); color: var(--texto); font-size: 13px; }
       .crono-bocas input { width: 80px; min-height: 36px; border: 1px solid var(--borde); border-radius: 8px; padding: 2px 6px; font-size: 15px; }`;
     document.head.appendChild(st);
   }
@@ -3182,6 +3194,118 @@
       C.aviso(r.yaEstaba ? `Ya estaba en el parte ${r.codigo}` : `Parte ${r.codigo} abierto con las horas`, 'bien');
     } catch (e) { C.aviso(e.message); boton.disabled = false; }
   }
+
+  /* ═══════════ El cronómetro discreto de cada ficha (30-oct-2026)
+   * JC: «el temporizador de la medición lo ponemos para todos los equipos».
+   * Una barra de una línea en la cabecera de cada ficha (checklist, puesta en
+   * marcha, estanqueidad…): reloj en teal, Empezar en verde, Terminar en azul.
+   * Es el mismo cronómetro (shared/commissioning/cronometro.js) con otro
+   * `trabajo`: f:<plantilla>:<clave>. Se guarda en la hoja del equipo, así que
+   * sobrevive a cerrar la app y a quedarse sin red como el del balanceo. */
+  const cronosMini = new Map(); /* trabajo → { cargando, d (lo que devuelve api/cronometro), operarios } */
+  const trabajoDeFicha = (ref) => `f:${ref.plantilla}:${ref.clave}`;
+  const equipoDeFicha = (ref) => { const m = ref && /^equipo:(.+)$/.exec(String(ref.clave || '')); return m ? m[1] : null; };
+  const claveMini = (equipoId, trabajo) => `${equipoId}|${trabajo}`;
+
+  function htmlCronoMini(equipoId, trabajo, editable) {
+    if (!equipoId || !trabajo) return '';
+    estiloCrono();
+    const k = claveMini(equipoId, trabajo);
+    let e = cronosMini.get(k);
+    if (!e) { e = { cargando: true }; cronosMini.set(k, e); cargarCronoMini(equipoId, trabajo); }
+    const d = e.d && e.d.ok ? e.d : null;
+    if (!d) return `<div class="cm" data-crono-mini="${esc(k)}"><span class="cm-et">Cronómetro</span><span class="cm-t">${e.error ? '—' : '…'}</span></div>`;
+    const c = d.cronometro;
+    const ed = editable && d.puede.medir;
+    const vivo = c.enMarcha ? `data-crono-inicio-mini="${esc(c.inicioTramo)}" data-crono-cerrados="${c.msCerrados}"` : '';
+    const ops = e.operarios !== undefined ? e.operarios : Math.max(0, (c.cuadrilla || []).filter((p) => p.rol === 'operario').length);
+    return `<div class="cm" data-crono-mini="${esc(k)}">
+      <span class="cm-et">Cronómetro</span>
+      <span class="cm-t" ${vivo}>${hms(c.duracionMs)}</span>
+      ${ed ? (c.enMarcha ? '<button class="cm-b" data-cm="pausar">Pausar</button>'
+        : `<button class="cm-b verde" data-cm="empezar">${c.vacio ? 'Empezar' : 'Seguir'}</button>`) : ''}
+      ${ed && !c.vacio && !c.terminado ? '<button class="cm-b azul" data-cm="terminar">Terminar</button>' : ''}
+      ${c.terminado ? '<span class="cm-fin">terminado</span>' : ''}
+      ${ed && c.vacio ? `<label class="cm-op">con <select data-cm-op aria-label="Operarios con quien mide">${[0, 1, 2, 3].map((n) => `<option value="${n}" ${n === ops ? 'selected' : ''}>${n}</option>`).join('')}</select> operario${ops === 1 ? '' : 's'}</label>` : ''}
+      ${!c.vacio ? `<span class="cm-hp">${comaCr(c.horasPersona, 2)} h-persona</span>` : ''}
+    </div>`;
+  }
+
+  async function cargarCronoMini(equipoId, trabajo) {
+    const k = claveMini(equipoId, trabajo);
+    const e = cronosMini.get(k) || {};
+    try {
+      const d = await C.pedir(`api/cronometro?equipo=${encodeURIComponent(equipoId)}&trabajo=${encodeURIComponent(trabajo)}`);
+      cronosMini.set(k, { ...e, d, cargando: false, error: d && d.ok ? null : (d && d.error) || 'error' });
+    } catch (err) { cronosMini.set(k, { ...e, cargando: false, error: err.message }); }
+    repintarCronoMini(k);
+  }
+
+  function repintarCronoMini(k) {
+    if (!activa()) return;
+    const [equipoId, ...resto] = k.split('|');
+    const trabajo = resto.join('|');
+    $app.querySelectorAll('[data-crono-mini]').forEach((el) => {
+      if (el.dataset.cronoMini !== k) return;
+      const ed = el.dataset.cmEd === '1';
+      const t = document.createElement('div');
+      t.innerHTML = htmlCronoMini(equipoId, trabajo, ed);
+      const nuevo = t.firstElementChild;
+      if (nuevo) { nuevo.dataset.cmEd = el.dataset.cmEd || '0'; el.replaceWith(nuevo); }
+    });
+  }
+
+  /* El marcador de la barra: lleva si se puede tocar (la ficha editable y sin incidencia que bloquee). */
+  function barraMini(equipoId, trabajo, editable) {
+    return htmlCronoMini(equipoId, trabajo, editable).replace('<div class="cm" ', `<div class="cm" data-cm-ed="${editable ? 1 : 0}" `);
+  }
+
+  async function accionMini(el, accion) {
+    const barra = el.closest('[data-crono-mini]');
+    if (!barra) return;
+    const k = barra.dataset.cronoMini;
+    const [equipoId, ...resto] = k.split('|');
+    const trabajo = resto.join('|');
+    const e = cronosMini.get(k) || {};
+    if (accion === 'terminar' && !window.confirm('¿Terminar el cronómetro de este trabajo?')) return;
+    el.disabled = true;
+    try {
+      const cuerpo = { equipoId, trabajo, accion };
+      if (accion === 'empezar' && e.operarios !== undefined && e.d && e.d.ok) {
+        const base = (e.d.cronometro.cuadrilla || []).filter((p) => p.rol !== 'operario');
+        const ops = Array.from({ length: e.operarios }, (_, i) => ({ nombre: `Operario ${i + 1}`, rol: 'operario', empresa: null }));
+        cuerpo.cuadrilla = [...(base.length ? base : [{ nombre: 'Yo', rol: 'oficial', empresa: null }]), ...ops];
+      }
+      const r = await C.postJson('api/cronometro', cuerpo);
+      if (!r.ok) throw new Error(r.error);
+      e.d.cronometro = r.cronometro;
+      cronosMini.set(k, e);
+      repintarCronoMini(k);
+      C.aviso({ empezar: 'Cronómetro en marcha', pausar: 'En pausa', terminar: `Terminado: ${hms(r.cronometro.duracionMs)}` }[accion], 'bien');
+    } catch (err) { el.disabled = false; C.aviso(err.message); }
+  }
+
+  $app.addEventListener('click', (ev) => {
+    const b = ev.target.closest && ev.target.closest('[data-cm]');
+    if (!b || !activa()) return;
+    accionMini(b, b.dataset.cm);
+  });
+  $app.addEventListener('change', (ev) => {
+    const sel = ev.target.closest && ev.target.closest('[data-cm-op]');
+    if (!sel || !activa()) return;
+    const barra = sel.closest('[data-crono-mini]');
+    if (!barra) return;
+    const e = cronosMini.get(barra.dataset.cronoMini);
+    if (e) e.operarios = Number(sel.value);
+  });
+  /* El reloj de cada barra cuenta solo con la hora guardada; no guarda nada. */
+  const relojMini = setInterval(() => {
+    if (!activa()) return;
+    $app.querySelectorAll('[data-crono-inicio-mini]').forEach((x) => {
+      x.textContent = hms((Number(x.dataset.cronoCerrados) || 0) + Date.now() - Date.parse(x.dataset.cronoInicioMini));
+    });
+  }, 1000);
+  if (relojMini && relojMini.unref) relojMini.unref(); /* en node (pruebas) no mantiene el proceso vivo */
 
   /* «Usar» la propuesta de días de uso: solo se guarda al pulsarlo (30-oct). */
   $app.addEventListener('click', (ev) => {
@@ -3431,6 +3555,13 @@
   /* Al irse de la app (gesto de inicio, bloquear, cerrar): lo pendiente, una última vez. */
   if (AG) AG.alSalir(() => { guardarTodoYa(); });
   /* Lo que quedó en el teléfono sin mandar (sin red, app cerrada): la cola lo manda al volver. */
+  /* «+ Boca» (bocaManual.js): la ficha abierta y cómo repintarla con lo guardado. */
+  if (window.BOCA_MANUAL_MOVIL) {
+    window.BOCA_MANUAL_MOVIL.enganchar({
+      ficha: () => ficha,
+      poner: (r) => { if (!r || !r.equipo || (ficha && ficha.equipo.id !== r.equipo.id)) return; ficha = r; if (activa() && pestanaEq === 'balanceo') { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); } },
+    });
+  }
   if (COLA) {
     COLA.registrar('ficha.', enviarBorradorFicha);
     COLA.registrar('fotoEquipo.', enviarFotoEquipoPendiente);
