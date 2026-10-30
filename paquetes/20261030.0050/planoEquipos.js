@@ -33,7 +33,7 @@
 
   const NOMBRE = { verde: 'Hecho', azul: 'Falta documento', rojo: 'Sin empezar' };
   const ORDEN = ['verde', 'azul', 'rojo'];
-  const ZOOM_MAX = 8;
+  const ZOOM_MAX = 30; /* 30-oct, JC: «hay que poder ampliar más» */
   const ZOOM_SALAS = 3; /* desde aquí se leen los nombres de sala encima del plano */
   /* El dibujo de cada familia viene del servidor (shared/commissioning/planoEquipos.js: ICONOS),
      así es el mismo en escritorio, web y móvil, también sin conexión. */
@@ -78,11 +78,20 @@
   .pe-lienzo .marca-boca.azul{color:var(--pe-azul)}
   .pe-lienzo .marca-boca.azul .simbolo-boca .cuerpo{fill:color-mix(in srgb,var(--pe-azul) 22%,#fff)}
   .pe-lienzo .marca-boca.azul .rotulo-boca{background:var(--pe-azul)}
-  .pe-lienzo .marca-boca .simbolo-boca{height:20px;width:20px;border-radius:5px}
+  .pe-lienzo .marca-boca{width:max(7px,var(--wp,0px));aspect-ratio:1;height:auto;line-height:0;z-index:2}
+  .pe-lienzo .marca-boca::after{width:calc(100% + 16px);height:calc(100% + 16px)}
+  .pe-lienzo .marca-boca .simbolo-boca{display:block;height:100%;width:100%;border-radius:0;overflow:visible;filter:drop-shadow(0 0 1px #fff)}
+  .pe-lienzo .marca-boca .simbolo-boca *{vector-effect:non-scaling-stroke;stroke-width:1.2px}
+  #app .pe-lienzo .marca-boca .rotulo-boca{display:none}
+  #app .pe-lienzo.con-salas .marca-boca.con-tag .rotulo-boca{display:block}
   /* La etiqueta sin color de estado: el estado se lee en el icono y en la leyenda. */
   #app .pe-lienzo .marca-boca .rotulo-boca{background:rgba(255,255,255,.74);color:#0b4f48;padding:0 3px;font-weight:700;text-shadow:0 0 2px #fff}
-  .pe-lienzo .marca-boca.elegida{z-index:3}
-  .pe-lienzo .marca-boca.elegida .simbolo-boca{outline:3px solid var(--acento,#178276);outline-offset:2px}
+  .pe-lienzo .marca-boca.elegida{width:max(28px,calc(var(--wp,0px) * 1.6));z-index:8;opacity:1!important}
+  .pe-lienzo .marca-boca.elegida .simbolo-boca{outline:none;transform:none;filter:drop-shadow(0 0 1.5px var(--acento,#178276)) drop-shadow(0 0 5px color-mix(in srgb,var(--acento,#178276) 55%,transparent))}
+  .pe-lienzo .marca-boca.elegida .simbolo-boca *{stroke-width:3px}
+  .pe-lienzo .marca-boca.elegida .simbolo-boca path,.pe-lienzo .marca-boca.elegida .simbolo-boca rect{stroke:var(--acento,#178276)}
+  #app .pe-lienzo .marca-boca.elegida .rotulo-boca{display:block;z-index:9;font-size:12px;color:#fff;background:var(--acento,#178276);text-shadow:none;padding:1px 5px;border-radius:3px;margin-left:8px}
+  .pe-lienzo:has(.marca-boca.elegida) .marca-boca:not(.elegida),.pe-lienzo:has(.pe-mat.elegida) .marca-boca{opacity:.6}
   .pe-iconos{display:flex;flex-wrap:wrap;gap:4px 12px;margin:0 0 8px;font-size:12px;color:var(--textoTenue,#567)}
   .pe-iconos span{display:inline-flex;align-items:center;gap:4px}
   .pe-iconos svg{height:16px;width:16px;color:var(--acento,#178276)}
@@ -131,17 +140,23 @@
   /* Materiales: marcas pequeñas por estado (gris sin datos · teal con ficha · rojo con incidencia), forma por capa. */
   /* Materiales con la FORMA del elemento (29-oct, JC): difusor redondo, lineal alargado, rejilla con lamas…
      Color por estado: gris sin datos · teal con ficha · rojo con incidencia. Crecen un poco al acercar (--pe-esc). */
-  .pe-mat{position:absolute;transform:translate(-50%,-50%) rotate(var(--giro,0deg));width:calc(var(--w,13px) * var(--pe-esc,1));height:calc(var(--h,13px) * var(--pe-esc,1));min-height:0;min-width:0;padding:0;margin:0;border:0;background:none;color:var(--textoTenue,#567);line-height:0}
+  .pe-mat{position:absolute;transform:translate(-50%,-50%) rotate(var(--giro,0deg));width:max(var(--minw,4px),var(--wp,0px));height:auto;aspect-ratio:var(--ar,1);min-height:0;min-width:0;padding:0;margin:0;border:0;background:none;color:var(--textoTenue,#567);line-height:0}
   .pe-mat svg{display:block;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 0 1px #fff)}
   .pe-mat svg *{vector-effect:non-scaling-stroke;stroke-width:1px}
   .pe-lienzo.con-salas .pe-mat svg *{stroke-width:1.5px}
   .pe-mat svg .cuerpo{fill:color-mix(in srgb,currentColor 14%,#fff)}
   .pe-mat::after{content:'';position:absolute;inset:-8px}
   .pe-mat.conFicha{color:var(--acento,#178276)} .pe-mat.conIncidencia{color:var(--mal)}
-  .pe-mat.elegida{outline:3px solid var(--pe-azul);outline-offset:3px;z-index:3}
+  /* El tocado, resaltado (30-oct, JC): más grande, teal, con halo y su TAG siempre; los demás, más tenues. */
+  .pe-mat.elegida{color:var(--acento,#178276);width:max(calc(var(--minw,4px) * 4),calc(var(--wp,0px) * 1.6));z-index:6;opacity:1!important}
+  .pe-mat.elegida svg{filter:drop-shadow(0 0 1.5px var(--acento,#178276)) drop-shadow(0 0 5px color-mix(in srgb,var(--acento,#178276) 55%,transparent))}
+  .pe-mat.elegida svg *{stroke-width:3px;stroke:var(--acento,#178276)}
+  @keyframes pe-pulso{0%{transform:scale(.8);opacity:1}100%{transform:scale(1.8);opacity:0}}
+  .pe-mat.elegida span{display:block;z-index:7;font-size:12px;font-weight:700;color:#fff;background:var(--acento,#178276);padding:1px 5px;border-radius:3px;margin-left:8px}
+  .pe-lienzo:has(.pe-mat.elegida) .pe-mat:not(.elegida){opacity:.6}
   .pe-mat.apagada{opacity:.15}
   .pe-mat span{display:none;position:absolute;left:100%;top:50%;margin-left:3px;transform:translateY(-50%) rotate(calc(-1 * var(--giro,0deg)));line-height:1.1;white-space:nowrap;font-size:9px;font-weight:600;color:#3d5560;background:rgba(255,255,255,.78);padding:0 2px;border-radius:2px}
-  .pe-lienzo.con-salas .pe-mat span{display:block}
+  .pe-lienzo.con-salas .pe-mat.con-tag span{display:block}
   .pe-formas{display:flex;flex-wrap:wrap;gap:4px 12px;margin:0 0 8px;font-size:12px;color:var(--textoTenue,#567)}
   .pe-formas span{display:inline-flex;align-items:center;gap:4px}
   .pe-formas svg{height:14px;width:auto;max-width:34px;color:var(--acento,#178276)}
@@ -151,6 +166,10 @@
   .pe-bloque h4{margin:0 0 3px;font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--acento,#178276)}
   .pe-cad{font-size:11.5px;color:var(--textoTenue,#567);margin-top:2px}
   .pe-vacio{color:var(--textoTenue,#567);opacity:.7}
+  .pe-tono-bien{color:var(--bien);font-weight:600}.pe-tono-info{color:var(--pe-azul);font-weight:600}
+  .pe-vida .pe-ficha{width:100%;border-collapse:collapse;font-size:13px}
+  .pe-vida .pe-ficha th{text-align:left;font-weight:400;color:var(--textoTenue,#567);width:32%;padding:1px 8px 1px 0;vertical-align:top}
+  .pe-vida .pe-ficha td{padding:1px 0;font-variant-numeric:tabular-nums}
   .pe-serie input::placeholder{color:var(--textoTenue,#567);opacity:.55}
   .pe-capas{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin:0 0 6px;-webkit-overflow-scrolling:touch}
   .pe-capas button{flex:none;min-height:34px;border:1px solid var(--borde,#c9d3d6);background:var(--superficie,#fff);color:var(--texto,#123);border-radius:999px;padding:3px 10px;font-size:13px}
@@ -278,6 +297,15 @@
     return `<div class="pe-conjunto">${filas.join('')}</div>`;
   }
 
+  /* Puesta en marcha, garantía y certificación, ya escritas por el servidor
+   * (shared/commissioning/vidaEquipo.js: bloquesFicha). */
+  function vidaHtml(e) {
+    const celda = (c) => (!c || !c.texto ? VACIO
+      : c.tono === 'gris' ? `<span class="pe-vacio">${esc(c.texto)}</span>`
+        : c.tono ? `<span class="pe-tono-${c.tono}">${esc(c.texto)}</span>` : esc(c.texto));
+    return ((e.vida && e.vida.bloques) || []).map((b) => `<div class="pe-bloque pe-vida"><h4>${esc(b.titulo)}</h4><table class="pe-ficha">${b.filas.map(([k, c]) => `<tr><th>${esc(k)}</th><td>${celda(c)}</td></tr>`).join('')}</table></div>`).join('');
+  }
+
   function hojaHtml(p) {
     const e = equipoElegido();
     if (!e) return '';
@@ -295,6 +323,7 @@
       ${falta ? `<div class="falta">${falta}</div>` : ''}
       ${(e.documentos || []).length ? `<div class="pe-enlaces">${e.documentos.map(enlaceDoc).join('')}</div>` : ''}
       ${p.plano && e.x === null ? '<div class="sub tenue">No está en el plano.</div>' : ''}
+      ${vidaHtml(e)}
       ${acc.length ? `<div class="pe-acciones">${acc.map((a) => `<button class="boton${a.id === 'datos' ? '' : ' secundario'}" data-pe-accion="${esc(a.id)}">${esc(a.texto)}</button>`).join('')}</div>` : ''}
       ${datos.conCommissioning ? `<button class="enlace mas" data-pe-accion="equipo">Ver la ficha completa</button>` : (datos.puedeEditar === false ? '<div class="sub tenue">Solo lectura.</div>' : '')}`;
   }
@@ -325,10 +354,28 @@
     if (nMat) t.push(`${cifra(nMat)} material${nMat === 1 ? '' : 'es'}`);
     return t.join(' · ') || 'vacía';
   }
-  function marcaMaterial(m, q) {
+  /* 30-oct: cada material mide lo suyo en el plano (tamaño real a la escala estimada), con un mínimo de MIN_PX. */
+  const MIN_PX = 4;
+  const escalas = new Map();
+  function escalaDe(p) {
+    const f = FP();
+    if (!f || !p || !p.plano) return 0;
+    const k = `${p.plano.id}|${(p.materiales || []).length}`;
+    if (!escalas.has(k)) escalas.set(k, f.escalaPlano(p.plano, p.materiales || []).mmPorPx);
+    return escalas.get(k);
+  }
+  /* Los equipos, a su tamaño típico en planta (formasPlano.cajaEquipo), con un mínimo de MIN_PX_EQ. */
+  const MIN_PX_EQ = 7;
+  function cajaEq(e, p) {
+    const f = FP();
+    if (!f || !f.cajaEquipo || !p || !p.plano) return { wf: 0, ar: 1 };
+    return f.cajaEquipo(e.icono || 'generico', p.plano, escalaDe(p));
+  }
+  function marcaMaterial(m, q, p) {
     const f = FP();
     const fm = f ? f.formaMaterial(m) : null;
-    const st = `left:${m.x * 100}%;top:${m.y * 100}%${fm ? `;--w:${fm.w}px;--h:${fm.h}px;--giro:${fm.giro || 0}deg` : ''}`;
+    const c = f && p && p.plano ? f.cajaEnPlano(m, p.plano, escalaDe(p)) : { wf: 0, ar: 1 };
+    const st = `left:${m.x * 100}%;top:${m.y * 100}%;--wp:${(c.wf * 100).toFixed(4)}%;--ar:${c.ar.toFixed(3)};--minw:${(MIN_PX * Math.max(1, c.ar)).toFixed(1)}px${fm ? `;--giro:${fm.giro || 0}deg` : ''}`;
     return `<button class="pe-mat ${esc(m.capa)} ${esc(m.estado)}${m.id === mat ? ' elegida' : ''}${q && !casaMat(m, q) ? ' apagada' : ''}" style="${st}" data-pe-mat="${esc(m.id)}" aria-label="${esc(`${m.tag}, ${m.tipoNombre}, ${m.sala || 'sin sala'}`)}">${f ? f.svgMaterial(m) : ''}<span>${esc(m.tag)}</span></button>`;
   }
   function leyendaFormas(p) {
@@ -445,8 +492,8 @@
         <div class="pe-lienzo${zoom >= ZOOM_SALAS ? ' con-salas' : ''}" data-pe-lienzo style="width:${zoom * 100}%;--pe-esc:${escMarcas()}">
           <img data-src="api/plano-equipos/imagen?id=${encodeURIComponent(p.plano.id)}" alt="Plano ${esc(p.plano.nombre)}" draggable="false">
           ${(p.plano.salas || []).map((r) => `<span class="pe-sala" style="left:${r.x * 100}%;top:${r.y * 100}%">${esc(r.t)}</span>`).join('')}
-          ${mats.map((m) => marcaMaterial(m, q)).join('')}
-          ${enPlano.map((x) => `<button class="marca-boca ${x.color === 'verde' ? 'bien' : x.color === 'rojo' ? 'mal' : 'azul'}${enConjunto.has(x.id) ? ' elegida' : ''}" style="left:${x.x * 100}%;top:${x.y * 100}%" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${x.sala || 'sin sala'}: ${NOMBRE[x.color]}`)}">${simbolo(x.icono)}<span class="rotulo-boca">${esc(x.tag)}</span></button>`).join('')}
+          ${mats.map((m) => marcaMaterial(m, q, p)).join('')}
+          ${enPlano.map((x) => `<button class="marca-boca ${x.color === 'verde' ? 'bien' : x.color === 'rojo' ? 'mal' : 'azul'}${enConjunto.has(x.id) ? ' elegida' : ''}" style="left:${x.x * 100}%;top:${x.y * 100}%;--wp:${(cajaEq(x, p).wf * 100).toFixed(4)}%" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${x.sala || 'sin sala'}: ${NOMBRE[x.color]}`)}">${simbolo(x.icono)}<span class="rotulo-boca">${esc(x.tag)}</span></button>`).join('')}
         </div>
       </div>
       <div class="pe-zoom"><button class="boton secundario" data-pe-zoom="-1" aria-label="Alejar">−</button><button class="boton secundario" data-pe-zoom="0">Entero</button><button class="boton secundario" data-pe-zoom="1" aria-label="Acercar">+</button></div></div>`
@@ -476,6 +523,7 @@
       </div>`;
     C.cargarImagenes($raiz);
     mostrarHoja();
+    colocarTags($raiz.querySelector('[data-pe-lienzo]'));
     const fila = $raiz.querySelector('.pe-plantas');
     const act = fila && fila.querySelector('.activa');
     if (act) fila.scrollLeft = act.offsetLeft - fila.clientWidth / 2 + act.offsetWidth / 2;
@@ -487,6 +535,36 @@
   }
 
   const marcoYLienzo = () => [$raiz && $raiz.querySelector('[data-pe-marco]'), $raiz && $raiz.querySelector('[data-pe-lienzo]')];
+
+  /* Los TAG desde ZOOM_SALAS y solo los que no chocan (vistaPlano.etiquetasSinChoque, como el escritorio). */
+  function colocarTags(lienzo) {
+    const V = window.VISTA_PLANO; const f = FP(); const p = plantaActual();
+    if (!lienzo) return;
+    const botones = [...lienzo.querySelectorAll('[data-pe-mat]')];
+    const botonesEq = [...lienzo.querySelectorAll('[data-pe-marca]')];
+    if (!V || !f || !p || !p.plano || zoom < ZOOM_SALAS) { for (const b of [...botones, ...botonesEq]) b.classList.remove('con-tag'); return; }
+    const lw = lienzo.offsetWidth; const lh = lienzo.offsetHeight || lw;
+    const porId = new Map((p.materiales || []).map((m) => [m.id, m]));
+    const cajas = [];
+    for (const b of botones) {
+      const m = porId.get(b.dataset.peMat);
+      if (!m || m.x === null || b.classList.contains('apagada')) continue;
+      const c = f.cajaEnPlano(m, p.plano, escalaDe(p));
+      const sw = Math.max(MIN_PX * Math.max(1, c.ar), c.wf * lw);
+      cajas.push({ id: m.id, x: m.x * lw + sw / 2 + 3, y: m.y * lh - 6, w: String(m.tag || '').length * 5.6 + 4, h: 12, pri: m.id === mat ? 0 : m.estado === 'conIncidencia' ? 1 : m.estado === 'conFicha' ? 2 : 3 });
+    }
+    const porEq = new Map((p.equipos || []).map((e) => [e.id, e]));
+    for (const b of botonesEq) {
+      const e = porEq.get(b.dataset.peMarca);
+      if (!e || e.x === null) continue;
+      const sw = Math.max(MIN_PX_EQ, cajaEq(e, p).wf * lw);
+      cajas.push({ id: `eq:${e.id}`, x: e.x * lw + sw / 2 + 3, y: e.y * lh - 6, w: String(e.tag || '').length * 5.6 + 4, h: 12, pri: b.classList.contains('elegida') ? 0 : 1.5 });
+    }
+    cajas.sort((a, b) => a.pri - b.pri);
+    const ver = V.etiquetasSinChoque(cajas);
+    for (const b of botones) b.classList.toggle('con-tag', ver.has(b.dataset.peMat));
+    for (const b of botonesEq) b.classList.toggle('con-tag', ver.has(`eq:${b.dataset.peMarca}`));
+  }
 
   /* Cambia el zoom dejando quieto el punto (px, py del marco) que está bajo los dedos. */
   function ponerZoom(nuevo, px, py) {
@@ -501,6 +579,7 @@
     lienzo.style.width = `${zoom * 100}%`;
     lienzo.style.setProperty('--pe-esc', String(escMarcas()));
     lienzo.classList.toggle('con-salas', zoom >= ZOOM_SALAS);
+    colocarTags(lienzo);
     marco.scrollLeft = fx * lienzo.offsetWidth - px;
     marco.scrollTop = fy * lienzo.offsetHeight - py;
   }

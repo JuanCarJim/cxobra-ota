@@ -145,6 +145,113 @@ function formaMaterial(m) {
   };
 }
 
+/*
+ * EL TAMAÑO REAL (30-oct, coordinador tras mirar la N60 al 676 %: «las formas
+ * siguen siendo enormes respecto al plano; tienen que ir en coordenadas del
+ * plano, con su tamaño real aproximado»). La cara de cada elemento en mm,
+ * ancho × alto en la orientación del dibujo, cuando el plano no da la medida.
+ */
+const REAL_MM = {
+  rotacional: [600, 600], rotacionalR: [600, 600], cuadrado: [600, 600], conos: [450, 450],
+  lineal: [1200, 100], tobera: [250, 250], extraccion: [300, 300], generico: [400, 400],
+  rejillaH: [400, 200], rejaRetorno: [600, 300], rejillaV: [1000, 500], rejillaP: [400, 200],
+  compuertaCF: [400, 300], compuertaRegulacion: [400, 300], compuertaSobrepresion: [300, 200],
+  vav: [900, 350], filtro: [600, 600], detector: [100, 100], valvula: [200, 120], actuador: [150, 150], sonda: [80, 110],
+};
+const CARA_REDONDA = new Set(['rotacional', 'rotacionalR', 'cuadrado', 'conos']);
+
+/**
+ * El tamaño real aproximado de un material en mm: { w, h } en la orientación
+ * del dibujo. «400x200» se toma tal cual; «Ø160» es el cuello (la cara de un
+ * difusor rotacional es mayor); en un lineal, la longitud.
+ */
+function tamanoReal(m) {
+  const forma = formaDe(m);
+  const def = definicion(forma);
+  const [bw, bh] = REAL_MM[def.id] || REAL_MM[forma] || REAL_MM.generico;
+  const car = (m && m.caracteristicas) || {};
+  if (def.id === 'lineal') {
+    const lon = leerMedida(car.Longitud || car.Medida);
+    const l = lon && (lon.a ? Math.max(lon.a, lon.b) : lon.d);
+    return { w: limitar(l || bw, 300, 6000), h: bh };
+  }
+  const med = leerMedida(car.Medida || car.Cuello || car.DN);
+  if (med && med.a && med.b) {
+    const largo = Math.max(med.a, med.b); const corto = Math.min(med.a, med.b);
+    return bw >= bh ? { w: largo, h: corto } : { w: corto, h: largo };
+  }
+  if (med && med.d) {
+    if (CARA_REDONDA.has(def.id)) { const c = Math.max(bw, med.d * 2.5); return { w: c, h: c }; }
+    if (def.id === 'tobera') { const c = Math.max(150, med.d * 1.3); return { w: c, h: c }; }
+    const k = limitar(med.d / 250, 0.6, 2);
+    return { w: Math.round(bw * k), h: Math.round(bh * k) };
+  }
+  return { w: bw, h: bh };
+}
+
+/*
+ * LA ESCALA DEL PLANO en mm por píxel de la imagen. La imagen no trae la
+ * escala, así que se estima con lo que hay dentro: los difusores de un techo
+ * van a unos 3,8 m unos de otros (la mediana de la distancia al vecino más
+ * cercano); sin difusores, cualquier terminal a unos 2,2 m. En la N60 de Nou
+ * Camp Nou las dos cuentas dan 73 y 76 mm/px, coherente con una hoja A0 a
+ * 1:300. Si un plano trae `mmPorPx` (una cota medida), manda esa.
+ */
+const ESPACIO_DIFUSORES_MM = 3800;
+const ESPACIO_TERMINALES_MM = 2200;
+
+function medianaVecino(puntos) {
+  if (puntos.length < 2) return 0;
+  const d = puntos.map((a) => {
+    let min = Infinity;
+    for (const b of puntos) if (b !== a) { const k = Math.hypot(a[0] - b[0], a[1] - b[1]); if (k > 0 && k < min) min = k; }
+    return min;
+  }).filter(Number.isFinite).sort((a, b) => a - b);
+  return d.length ? d[d.length >> 1] : 0;
+}
+
+/** { mmPorPx, origen } de un plano { ancho, alto, mmPorPx? } con sus materiales colocados. */
+function escalaPlano(plano, materiales) {
+  if (!plano || !(plano.ancho > 0)) return { mmPorPx: 0, origen: 'sin plano' };
+  if (Number(plano.mmPorPx) > 0) return { mmPorPx: Number(plano.mmPorPx), origen: 'cota' };
+  const alto = plano.alto > 0 ? plano.alto : plano.ancho;
+  const pts = (materiales || []).filter((m) => m && m.x !== null && m.x !== undefined && m.y !== null && m.y !== undefined)
+    .map((m) => [Number(m.x) * plano.ancho, Number(m.y) * alto, String(m.tipo || '')]);
+  const dif = pts.filter((p) => /^difusor/.test(p[2]));
+  if (dif.length >= 8) { const md = medianaVecino(dif); if (md > 0) return { mmPorPx: ESPACIO_DIFUSORES_MM / md, origen: 'difusores' }; }
+  if (pts.length >= 8) { const md = medianaVecino(pts); if (md > 0) return { mmPorPx: ESPACIO_TERMINALES_MM / md, origen: 'terminales' }; }
+  /* Sin nada que medir: una hoja A1 (841 mm) a 1:100. */
+  return { mmPorPx: (841 * 100) / plano.ancho, origen: 'supuesta' };
+}
+
+/**
+ * La caja de un material EN EL PLANO: ancho como fracción del ancho del plano
+ * (wf) y la proporción ancho/alto (ar). Así crece igual que el plano al acercar.
+ */
+function cajaEnPlano(m, plano, mmPorPx) {
+  const r = tamanoReal(m);
+  const wf = plano && plano.ancho > 0 && mmPorPx > 0 ? r.w / mmPorPx / plano.ancho : 0;
+  return { wf, ar: r.w / r.h, wmm: r.w, hmm: r.h };
+}
+
+/*
+ * LOS EQUIPOS A SU TAMAÑO (30-oct, JC: «hay que poder ampliar más y reducir el
+ * tamaño de los iconos»). Un lado típico en mm de cada clase de icono
+ * (planoEquipos.ICONOS), visto en planta: una unidad interior de conductos
+ * ronda 0,8 m, un recuperador 1,4 m, un extractor de baño 0,45 m, una UTA 3 m.
+ * El icono es cuadrado, así que basta un lado.
+ */
+const EQUIPO_MM = {
+  uta: 3000, hru: 1400, fancoil: 800, vrfInt: 800, splitInt: 900, vrfExt: 1300, splitExt: 900,
+  rooftop: 2500, crac: 1200, chiller: 4000, bomba: 600, ventilador: 450, agua: 500, generico: 600,
+};
+/** La caja de un equipo en el plano: { wf, ar: 1, mm } (wf, fracción del ancho del plano). */
+function cajaEquipo(icono, plano, mmPorPx) {
+  const mm = EQUIPO_MM[icono] || EQUIPO_MM.generico;
+  const wf = plano && plano.ancho > 0 && mmPorPx > 0 ? mm / mmPorPx / plano.ancho : 0;
+  return { wf, ar: 1, mm };
+}
+
 /** El SVG de un material (se estira a w × h sin engordar el trazo). */
 function svgMaterial(m, { clase = 'peForma' } = {}) {
   const f = formaMaterial(m);
@@ -178,7 +285,7 @@ function partirSala(sala) {
   return { nombre: t, codigo: '' };
 }
 
-const API = { PROPIAS, prefijo, formaDe, definicion, leerMedida, formaMaterial, svgMaterial, svgForma, leyendaFormas, partirSala };
+const API = { PROPIAS, REAL_MM, EQUIPO_MM, cajaEquipo, prefijo, formaDe, definicion, leerMedida, formaMaterial, tamanoReal, escalaPlano, cajaEnPlano, svgMaterial, svgForma, leyendaFormas, partirSala };
 if (typeof module !== 'undefined' && module.exports) module.exports = API;
 if (typeof window !== 'undefined') window.FORMAS_PLANO = API;
 })();

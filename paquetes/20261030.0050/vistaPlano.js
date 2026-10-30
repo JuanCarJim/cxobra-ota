@@ -25,6 +25,8 @@
 (function () {
 const ZOOM_MIN = 1;
 const ZOOM_TOPE = 12;
+/* El zoom de la pantalla (30-oct, JC: «hay que poder ampliar más»): hasta ×30. Más allá del nítido (zoomMaximo) se avisa. */
+const ZOOM_MAX = 30;
 /* Cuánto se puede ampliar por encima del tamaño real de la imagen. */
 const SOBRE_REAL = 2;
 const ARRASTRE_MIN = 6;
@@ -90,12 +92,63 @@ function factorRueda(deltaY, { ctrl = false, modo = 0 } = {}) {
   return Math.exp(-limitar(px, -400, 400) * (ctrl ? 0.01 : 0.0018));
 }
 
-/** El zoom máximo útil: hasta SOBRE_REAL veces el tamaño real de la imagen (lado en px), nunca menos de 4. */
+/** El zoom NÍTIDO máximo: hasta SOBRE_REAL veces el tamaño real de la imagen (lado en px), nunca menos de 4. */
 function zoomMaximo(anchoImagen, marco, densidad = 1) {
   const base = anchoBase(marco.W, marco.H, marco.ratio);
   if (!(anchoImagen > 0) || !(base > 0)) return 8;
   const real = anchoImagen / (base * (Number(densidad) > 0 ? Number(densidad) : 1));
   return limitar(real * SOBRE_REAL, 4, ZOOM_TOPE);
+}
+
+/*
+ * ENCUADRAR (30-oct): «Entero» deja lo dibujado (la caja de los elementos
+ * colocados, con un margen) encajado y centrado en el marco, en vez de la
+ * hoja entera con su blanco alrededor.
+ */
+/** La caja (0..1) de unos puntos { x, y } con un margen; null si hay menos de dos. */
+function cajaDe(puntos, margen = 0.06) {
+  const ps = (puntos || []).filter((p) => p && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y)) && p.x !== null && p.y !== null);
+  if (ps.length < 2) return null;
+  let x0 = 1; let y0 = 1; let x1 = 0; let y1 = 0;
+  for (const p of ps) { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y); }
+  const mx = Math.max(0.02, (x1 - x0) * margen); const my = Math.max(0.02, (y1 - y0) * margen);
+  return { x0: limitar(x0 - mx, 0, 1), y0: limitar(y0 - my, 0, 1), x1: limitar(x1 + mx, 0, 1), y1: limitar(y1 + my, 0, 1) };
+}
+
+/** La vista con la caja encajada entera y centrada en el marco. Sin caja, el plano entero. */
+function encuadre(caja, marco, max = ZOOM_TOPE) {
+  if (!caja) return { zoom: 1, sl: 0, st: 0 };
+  const g1 = geometria(1, marco);
+  const bw = Math.max(1e-6, caja.x1 - caja.x0) * g1.lw; const bh = Math.max(1e-6, caja.y1 - caja.y0) * g1.lh;
+  const zoom = limitarZoom(Math.min(marco.W / bw, marco.H / bh), max);
+  return centrarEn({ zoom }, (caja.x0 + caja.x1) / 2, (caja.y0 + caja.y1) / 2, marco, { zoomMin: zoom, max });
+}
+
+/*
+ * LAS ETIQUETAS SIN PISARSE (30-oct): de una lista { id, x, y, w, h } en px
+ * del lienzo, por orden de prioridad, se quedan las que no chocan con una ya
+ * puesta. Devuelve el Set de ids que se enseñan.
+ */
+function etiquetasSinChoque(cajas, celda = 80) {
+  const rejilla = new Map();
+  const puestas = new Set();
+  const clave = (i, j) => `${i},${j}`;
+  for (const c of cajas || []) {
+    const i0 = Math.floor(c.x / celda); const i1 = Math.floor((c.x + c.w) / celda);
+    const j0 = Math.floor(c.y / celda); const j1 = Math.floor((c.y + c.h) / celda);
+    let choca = false;
+    for (let i = i0; i <= i1 && !choca; i++) {
+      for (let j = j0; j <= j1 && !choca; j++) {
+        for (const o of rejilla.get(clave(i, j)) || []) {
+          if (c.x < o.x + o.w && o.x < c.x + c.w && c.y < o.y + o.h && o.y < c.y + c.h) { choca = true; break; }
+        }
+      }
+    }
+    if (choca) continue;
+    puestas.add(c.id);
+    for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) { const k = clave(i, j); if (!rejilla.has(k)) rejilla.set(k, []); rejilla.get(k).push(c); }
+  }
+  return puestas;
 }
 
 /**
@@ -168,11 +221,12 @@ function gestos(marco, op) {
   return {
     irA,
     centrar: (fx, fy, opciones) => poner(centrarEn(vista(), fx, fy, medidas(), { max: op.max(), ...opciones })),
+    encuadrar: (caja) => poner(encuadre(caja, medidas(), op.max())),
     quitar: () => { for (const [n, f, o] of oyentes) marco.removeEventListener(n, f, o); },
   };
 }
 
-const API = { ZOOM_MIN, ZOOM_TOPE, limitarZoom, anchoBase, geometria, limitarScroll, puntoEn, zoomEnPunto, centrarEn, factorRueda, zoomMaximo, gestos };
+const API = { ZOOM_MIN, ZOOM_TOPE, ZOOM_MAX, limitarZoom, anchoBase, geometria, limitarScroll, puntoEn, zoomEnPunto, centrarEn, factorRueda, zoomMaximo, cajaDe, encuadre, etiquetasSinChoque, gestos };
 if (typeof module !== 'undefined' && module.exports) module.exports = API;
 if (typeof window !== 'undefined') window.VISTA_PLANO = API;
 })();
