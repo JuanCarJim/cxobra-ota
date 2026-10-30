@@ -9751,7 +9751,9 @@ globalThis.CX_VARIANTE="cxobra";
           "revalidadoEn",
           "revalidadoPor",
           "refrigerante",
-          "cargaKg"
+          "cargaKg",
+          /* 30-oct: la entrega a la DF (de ella cuenta la garantía), sin el Mac (0020). */
+          "fechaEnvioDF"
         ]
       };
       var FUERA = /^(importe|precio|coste|tarifaOficial|tarifaOperario|tarifaHora|iban|cuenta|banco|hashClave)/i;
@@ -10061,7 +10063,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261030.0036" : "0";
+      var VERSION = true ? "20261030.0546" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -58932,6 +58934,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
               hasta = j;
             }
             for (let fin = hasta; fin >= i; fin--) {
+              if (fin > i && !palabras[fin].k) continue;
               const k = ks.slice(0, fin - i + 1).join("");
               const casan = porClave.get(k) || porSuelta.get(ss.slice(0, fin - i + 1).join(""));
               if (!casan) continue;
@@ -59277,6 +59280,11 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             return sala ? { ...m, sala } : m;
           });
         }
+        const fraccion = (v, conCero) => {
+          const n = Number(v);
+          return v !== null && v !== void 0 && Number.isFinite(n) && (conCero ? n >= 0 : n > 0) && n <= 1;
+        };
+        const redondo5 = (v) => Math.round(Number(v) * 1e5) / 1e5;
         function limpiarMarcas(marcas) {
           const vistos = /* @__PURE__ */ new Set();
           const salida = [];
@@ -59292,7 +59300,11 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
               x: Math.round(x * 1e4) / 1e4,
               y: Math.round(y * 1e4) / 1e4,
               ...m.mano ? { mano: true } : {},
-              ...m.sala ? { sala: String(m.sala).slice(0, 120) } : {}
+              ...m.sala ? { sala: String(m.sala).slice(0, 120) } : {},
+              /* El símbolo del dibujo (30-oct): su tamaño, el sitio del rótulo y si hay que revisarlo. */
+              ...fraccion(m.w) && fraccion(m.h) ? { w: redondo5(m.w), h: redondo5(m.h) } : {},
+              ...fraccion(m.rx, true) && fraccion(m.ry, true) ? { rx: Math.round(m.rx * 1e4) / 1e4, ry: Math.round(m.ry * 1e4) / 1e4 } : {},
+              ...m.revisar && !m.mano ? { revisar: true, motivo: String(m.motivo || "revisar ubicaci\xF3n").slice(0, 80) } : {}
             });
           }
           return salida;
@@ -59431,7 +59443,37 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           const mejor = [...cuenta.entries()].sort((a, b) => b[1] - a[1])[0];
           return mejor ? mejor[0] : null;
         }
+        const CERCA_ROTULO = 0.012;
+        function alSimbolo(marcas, textos) {
+          const conGeo = (textos || []).filter((t) => t && t.s !== void 0);
+          if (!conGeo.length) return marcas || [];
+          return (marcas || []).map((m) => {
+            if (!m || m.mano) return m;
+            const rx = m.rx ?? m.x;
+            const ry = m.ry ?? m.y;
+            let mejor = null;
+            let dist = CERCA_ROTULO;
+            for (const t of conGeo) {
+              const d = Math.hypot(Number(t.x) - rx, Number(t.y) - ry);
+              if (d < dist) {
+                dist = d;
+                mejor = t;
+              }
+            }
+            const base = { ...m, rx, ry };
+            delete base.revisar;
+            delete base.motivo;
+            if (!mejor || !Array.isArray(mejor.s) || mejor.s.length < 4) return { ...base, revisar: true, motivo: "no se encuentra su s\xEDmbolo en el dibujo" };
+            const [x, y, w, h, ok] = mejor.s;
+            if (!ok) return { ...base, revisar: true, motivo: mejor.m || "s\xEDmbolo dudoso" };
+            return { ...base, x, y, w, h };
+          });
+        }
+        const sitioRotulo = (m) => m ? { x: m.rx ?? m.x, y: m.ry ?? m.y } : { x: null, y: null };
         const API = {
+          alSimbolo,
+          sitioRotulo,
+          CERCA_ROTULO,
           equipoDeRotulo,
           detectarEquipos,
           numerarPorModelo,
@@ -59474,6 +59516,368 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         };
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.PLANO_EQUIPOS = API;
+      })();
+    }
+  });
+
+  // shared/commissioning/vidaEquipo.js
+  var require_vidaEquipo = __commonJS({
+    "shared/commissioning/vidaEquipo.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var G = typeof __require !== "undefined" ? require_garantia() : window.GARANTIA_CX;
+      var ROLES = typeof __require !== "undefined" ? require_roles() : window.ROLES;
+      var controlCx = () => typeof __require !== "undefined" ? require_control() : window.CONTROL_CX;
+      var DIA = 864e5;
+      var diasEntre = (desde, hasta) => Math.round((Date.parse(`${hasta}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`)) / DIA);
+      var hoyLocal = () => ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
+      var fecha = (iso) => iso ? G.fechaVisible(iso) : null;
+      var aniosTexto = (n) => n ? `${String(n).replace(".", ",")} ${Number(n) === 1 ? "a\xF1o" : "a\xF1os"}` : null;
+      var ESTADO_PM = {
+        enMarcha: { etiqueta: "En marcha", tono: "bien" },
+        faltaHojaFabricante: { etiqueta: "Ficha PM hecha \xB7 falta la hoja del fabricante en SharePoint", tono: "info" },
+        conReservas: { etiqueta: "Ficha PM con reservas (no apto)", tono: "info" },
+        pendienteFichaPM: { etiqueta: "Pendiente de ficha PM", tono: "gris" }
+      };
+      function puestaEnMarcha(u) {
+        const C = controlCx();
+        const e = u || {};
+        const estado = ESTADO_PM[e.estadoPM] ? e.estadoPM : C ? C.estadoPMDerivado(e) : "pendienteFichaPM";
+        const f = String((C ? C.fechaPuestaMarchaDe(e) : e.fechaPuestaMarcha) || e.fechaPuestaMarcha || "").slice(0, 10) || null;
+        return { estado, ...ESTADO_PM[estado], fecha: f, fechaTexto: fecha(f) };
+      }
+      function garantia(u, linea, hoy = hoyLocal()) {
+        const enConjunto = linea && Array.isArray(linea.miembros) && linea.miembros.length > 1;
+        const base = enConjunto ? { fechaEnvioDF: linea.fechaEnvioDF || null, garantiaAnios: linea.miembros.map((m) => Number(m.garantiaAnios) || 0).reduce((x, y) => Math.max(x, y), 0) || null } : { fechaEnvioDF: u && u.fechaEnvioDF || null, garantiaAnios: u && u.garantiaAnios };
+        const g = G.garantiaDe(base, hoy);
+        const duracion = aniosTexto(g.anios);
+        const sal = { desde: g.inicio, hasta: g.fin, desdeTexto: fecha(g.inicio), hastaTexto: fecha(g.fin), anios: g.anios, duracion, quedanDias: null, conjunto: enConjunto ? linea.tag || null : null };
+        if (g.estado === "sinEmpezar") return { ...sal, estado: "sinEntregaDF", tono: "gris", resumen: "Pendiente de entrega a DF" };
+        if (g.estado === "sinAnios") return { ...sal, estado: "sinDuracion", tono: "gris", resumen: "Duraci\xF3n sin dato" };
+        const quedan = diasEntre(hoy, g.fin);
+        if (g.estado === "vencida") return { ...sal, estado: "caducada", tono: "gris", quedanDias: quedan, resumen: `Caducada hace ${-quedan} ${-quedan === 1 ? "d\xEDa" : "d\xEDas"}` };
+        return { ...sal, estado: "vigente", tono: "bien", quedanDias: quedan, resumen: `Vigente \xB7 quedan ${quedan} ${quedan === 1 ? "d\xEDa" : "d\xEDas"}` };
+      }
+      var veCertificacion = (rol, { entregable = false } = {}) => !entregable && Boolean(ROLES && ROLES.puede(rol, "certificaciones", "ver"));
+      var norm = (t) => ` ${String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim()} `;
+      var casable = (t) => {
+        const n = norm(t).trim();
+        return n.length >= 4 && /\d/.test(n) ? n : null;
+      };
+      function partidaDe(u, partidas) {
+        const lista = partidas || [];
+        for (const [por, valor] of [["tag", u && u.tag], ["modelo", u && u.modelo]]) {
+          const c = casable(valor);
+          if (!c) continue;
+          const hit = lista.filter((p) => norm(`${p.codigo || ""} ${p.resumen || ""} ${p.descripcion || ""}`).includes(` ${c} `));
+          if (hit.length === 1) return { partida: hit[0], por, varias: [] };
+          if (hit.length > 1) return { partida: null, por, varias: hit };
+        }
+        return { partida: null, por: null, varias: [] };
+      }
+      var redondo = (n) => Math.round(Number(n) * 1e3) / 1e3;
+      var cifra = (n) => String(redondo(n)).replace(".", ",");
+      function certificadoPorPartida(lineas) {
+        const out = {};
+        for (const l of lineas || []) {
+          if (!l || l.certificacionEstado === "borrador") continue;
+          const a = out[l.lineaId] || (out[l.lineaId] = { cantidad: 0, ultima: null });
+          a.cantidad = redondo(a.cantidad + (Number(l.cantidad) || 0));
+          if (!a.ultima || Number(l.certificacionNumero) > a.ultima.numero) a.ultima = { numero: Number(l.certificacionNumero), estado: l.certificacionEstado, periodo: l.periodo || null };
+        }
+        return out;
+      }
+      function certificacion(u, datos) {
+        const { partidas = [], porPartida = {} } = datos || {};
+        const { partida, por, varias } = partidaDe(u, partidas);
+        if (!partida) {
+          if (varias.length) return { estado: "variasPartidas", tono: "gris", resumen: `Su ${por === "tag" ? "TAG" : "modelo"} sale en ${varias.length} partidas: ${varias.slice(0, 3).map((p2) => p2.codigo).join(", ")}${varias.length > 3 ? "\u2026" : ""}`, partida: null };
+          return { estado: "sinPartida", tono: "gris", resumen: "Sin partida del Costs Plan con su TAG o su modelo", partida: null };
+        }
+        const total = Number(partida.cantidad) || 0;
+        const hecho = porPartida[partida.lineaId] || { cantidad: 0, ultima: null };
+        const pct = total > 0 ? Math.round(hecho.cantidad / total * 1e3) / 10 : null;
+        const p = { codigo: partida.codigo || "", resumen: partida.resumen || "", por };
+        const ud = partida.unidad ? ` ${partida.unidad}` : "";
+        const base = { partida: p, cantidad: hecho.cantidad, total, unidad: partida.unidad || null, pct, ultima: hecho.ultima };
+        if (!hecho.cantidad) return { ...base, estado: "sinCertificar", tono: "gris", resumen: "Sin certificar" };
+        if (total > 0 && hecho.cantidad >= total - 1e-9) return { ...base, estado: "certificada", tono: "bien", resumen: `Certificada (${cifra(hecho.cantidad)} de ${cifra(total)}${ud})` };
+        return { ...base, estado: "parcial", tono: "info", resumen: `Certificada en parte: ${cifra(hecho.cantidad)} de ${cifra(total)}${ud}${pct !== null ? ` (${String(pct).replace(".", ",")} %)` : ""}` };
+      }
+      function fichaVida(u, linea, { rol, hoy, datosCertificacion = null, entregable = false } = {}) {
+        const out = { puestaMarcha: puestaEnMarcha(u), garantia: garantia(u, linea, hoy || hoyLocal()) };
+        if (veCertificacion(rol, { entregable }) && datosCertificacion) out.certificacion = certificacion(u, datosCertificacion);
+        return out;
+      }
+      var ESTADO_CERT_TXT = { borrador: "borrador", emitida: "emitida", aprobada: "aprobada" };
+      function bloquesFicha(vida) {
+        if (!vida) return [];
+        const v = (texto, tono = null) => ({ texto: texto || null, tono: texto ? tono : null });
+        const pm = vida.puestaMarcha;
+        const g = vida.garantia;
+        const out = [];
+        if (pm) {
+          out.push({ id: "puestaMarcha", titulo: "Puesta en marcha", filas: [
+            ["Fecha", pm.fechaTexto ? v(pm.fechaTexto) : v("Sin fecha de ficha PM", "gris")],
+            ["Estado", v(pm.etiqueta, pm.tono)]
+          ] });
+        }
+        if (g) {
+          out.push({ id: "garantia", titulo: "Garant\xEDa", filas: [
+            ["Desde", g.desdeTexto ? v(`${g.desdeTexto} (entrega a DF${g.conjunto ? " del conjunto" : ""})`) : v("Pendiente de entrega a DF", "gris")],
+            ["Hasta", g.hastaTexto ? v(g.hastaTexto) : v(null)],
+            ["Duraci\xF3n", g.duracion ? v(g.duracion) : v("Duraci\xF3n sin dato", "gris")],
+            ...g.estado === "vigente" || g.estado === "caducada" ? [["Estado", v(g.resumen, g.tono)]] : []
+          ] });
+        }
+        const c = vida.certificacion;
+        if (c) {
+          const filas = [];
+          if (c.partida) filas.push(["Partida", v(`${c.partida.codigo}${c.partida.resumen ? ` \xB7 ${c.partida.resumen.slice(0, 70)}` : ""}`)]);
+          filas.push(["Estado", v(c.resumen, c.tono)]);
+          if (c.ultima) filas.push(["\xDAltima", v(`Certificaci\xF3n n\xBA ${c.ultima.numero} (${ESTADO_CERT_TXT[c.ultima.estado] || c.ultima.estado})${c.ultima.periodo ? ` \xB7 ${c.ultima.periodo}` : ""}`)]);
+          out.push({ id: "certificacion", titulo: "Certificaci\xF3n", filas });
+        }
+        return out;
+      }
+      function codigosCasables(equipos) {
+        const out = /* @__PURE__ */ new Set();
+        for (const u of equipos || []) for (const v of [u && u.tag, u && u.modelo]) {
+          const c = casable(v);
+          if (c) out.add(c);
+        }
+        return [...out];
+      }
+      var API = { codigosCasables, puestaEnMarcha, garantia, veCertificacion, partidaDe, certificadoPorPartida, certificacion, fichaVida, bloquesFicha, ESTADO_PM };
+      if (typeof module !== "undefined" && module.exports) module.exports = API;
+      if (typeof window !== "undefined") window.VIDA_EQUIPO = API;
+    }
+  });
+
+  // shared/commissioning/equiposPresupuesto.js
+  var require_equiposPresupuesto = __commonJS({
+    "shared/commissioning/equiposPresupuesto.js"(exports, module) {
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        "use strict";
+        const sinAcentosEP = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
+        const claveEP = (s) => sinAcentosEP(s).replace(/[^A-Z0-9]/g, "");
+        const textoPartidaEP = (p) => `${p.resumen || ""} ${p.descripcion || ""}`.replace(/\s+/g, " ").trim();
+        const TIPOS_EP = [
+          { icono: "hru", tipo: "Recuperador de calor", re: /RECUPERADOR(ES)?\b|\bHRU\b|\bERV\b/ },
+          { icono: "uta", tipo: "Climatizador (UTA)", re: /CLIMATIZADOR|UNIDAD(ES)? DE TRATAMIENTO DE AIRE|\bUTAS?\b|\bAHU\b/ },
+          { icono: "fancoil", tipo: "Fan coil", re: /FAN[- ]?COILS?|FANCOILS?|VENTILOCONVECTOR/ },
+          { icono: "rooftop", tipo: "Rooftop", re: /ROOF[- ]?TOP|EQUIPO COMPACTO DE CUBIERTA/ },
+          { icono: "chiller", tipo: "Enfriadora", re: /ENFRIADORA|CHILLER|PLANTA DE AGUA FRIA/ },
+          { icono: "vrfExt", tipo: "Unidad exterior", re: /UNIDAD(ES)? EXTERIOR(ES)?|CONDENSADORA|UNIDAD(ES)? CONDENSADORA|OUTDOOR UNIT/ },
+          { icono: "vrfInt", tipo: "Unidad interior", re: /UNIDAD(ES)? INTERIOR(ES)?|CASSETTE|EVAPORADORA|SPLIT DE (PARED|TECHO|SUELO)|UNIDAD(ES)? DE CONDUCTOS|INDOOR UNIT|\bDUCT(ED)?\b/ },
+          { icono: "ventilador", tipo: "Extractor", re: /EXTRACTOR(ES)?|VENTILADOR(ES)?|CAJAS? DE (VENTILACION|EXTRACCION)|UNIDAD(ES)? DE VENTILACION/ },
+          { icono: "bomba", tipo: "Bomba", re: /(ELECTRO)?BOMBA(S)?(?! DE CALOR)\b|GRUPO DE PRESION|CIRCULADOR(ES)?/ }
+        ];
+        const RE_NO_SUMINISTRO = /^(MONTAJE|INSTALACION|COLOCACION|CONEXIONADO|CONEXION|SOPORTE|SOPORTACION|ESTRUCTURA|BANCADA|PRUEBAS?|PUESTA EN MARCHA|DESMONTAJE|RETIRADA|AYUDAS?|TRASLADO|IZADO|ELEVACION|LEGALIZACION|MANO DE OBRA|CABLEADO|LINEA|TUBERIA|CONDUCTO|AISLAMIENTO|REJILLA|COMPUERTA|CUADRO|CONTROL|SONDA|TERMOSTATO|MANDO|VALVULA|ANTIVIBRATORIO|FILTRO|PLENUM|BATERIA|KIT|ACCESORIO|DESAGUE|BANDEJA|LIMPIEZA|MANTENIMIENTO|REPARACION|REVISION|AJUSTE|EQUILIBRADO|GOMA|REJA|PUENTE|VACIO|CRUZAR|TGOM|JUNTA|MANGUITO|TAPA|SILENCIADOR|PRESOSTATO|MANOMETR|TERMOMETR|SUBCONTRATACION|SP-|ANTIVIBRADOR|PIE|SOPORTES)/;
+        const RE_SIN_EQUIPO = /SOLO INSTALACION|SOLO MONTAJE|SIN SUMINISTRO|MANO DE OBRA|\(MO\)/;
+        const RE_ACCESORIO_EP = /CONTROLLER|REMOTE|MANDO|SENSOR|GATEWAY|INTERFACE|ADAPTADOR|ADAPTOR|PASARELA|PANEL|SONDA|TERMOSTATO|THERMOSTAT|KIT\b/;
+        const RE_UNIDAD_EP = /^(UD|UDS|U|UN|UNID|UNIDAD|UNIDADES|PZA|PZ|EQ|UDS\.)\.?$/;
+        const MARCAS_EP = [
+          "DAIKIN",
+          "MITSUBISHI ELECTRIC",
+          "MITSUBISHI HEAVY",
+          "MITSUBISHI",
+          "TOSHIBA",
+          "LG",
+          "SAMSUNG",
+          "HITACHI",
+          "FUJITSU",
+          "PANASONIC",
+          "CARRIER",
+          "TRANE",
+          "CLIVET",
+          "CIAT",
+          "AERMEC",
+          "LENNOX",
+          "YORK",
+          "JOHNSON CONTROLS",
+          "SWEGON",
+          "FLAKT",
+          "SYSTEMAIR",
+          "SOLER & PALAU",
+          "SOLER Y PALAU",
+          "S&P",
+          "SODECA",
+          "CASALS",
+          "ZEHNDER",
+          "TROX",
+          "WOLF",
+          "AIRLAN",
+          "TERMOVEN",
+          "KOOLAIR",
+          "HOVAL",
+          "MENERGA",
+          "GRUNDFOS",
+          "WILO",
+          "EBARA",
+          "SEDICAL",
+          "BAXI",
+          "VAILLANT",
+          "SAUNIER DUVAL",
+          "ROCA",
+          "FERROLI",
+          "GREE",
+          "MIDEA",
+          "HISENSE",
+          "HAIER",
+          "KAYSUN",
+          "TECNA",
+          "TEKNOVENT",
+          "CLIVENT",
+          "NOVOVENT",
+          "AIRWELL",
+          "EUROFRED"
+        ];
+        function marcaDeTexto(texto) {
+          const t = sinAcentosEP(texto);
+          const m = /\bMARCA[:\s]+([A-Z0-9&][A-Z0-9&.\- ]{1,30}?)(?=\s*(?:,|;|\.|\(|\bMODELO\b|\bMOD\b|\bREF|\bSERIE\b|\bO SIMILAR\b|\bTIPO\b|$))/.exec(t);
+          if (m && m[1].trim().length >= 2) return m[1].trim();
+          for (const f of MARCAS_EP) {
+            const re = new RegExp(`(^|[^A-Z0-9])${f.replace(/[.*+?^${}()|[\]\\&]/g, (c) => c === "&" ? "&" : `\\${c}`)}($|[^A-Z0-9])`);
+            if (re.test(t)) return f;
+          }
+          return "";
+        }
+        const RE_CODIGO_EP = /\b([A-Z]{1,6}[-/]?\d{1,5}[A-Z0-9]*(?:[-/][A-Z0-9]{1,6})*)\b/g;
+        const RE_NO_CODIGO_EP = /^(DN|PN|UNE|EN|ISO|RITE|IP|CE|KW|W|KG|MM|CM|M|DB|DBA|PA|KPA|MCA|V|HZ|M3H|L|LS|IT|CTE|DB-HS|HS|R|TIPO|NUM|N|NO|PH|ART|CAP|CH|CO|RAL|PED|OC|IDA|RPM|F)\d/;
+        const RE_CODIGO_DIGITO_EP = /\b(\d{1,4}[A-Z]{2,}[A-Z0-9]*(?:[-/][A-Z0-9]{1,6})*)\b/g;
+        function codigosDeTexto(resumen, descripcion = "") {
+          const salida = [];
+          const vistos = /* @__PURE__ */ new Set();
+          const poner = (c) => {
+            const k = claveEP(c);
+            if (k.length < 4 || vistos.has(k) || RE_NO_CODIGO_EP.test(k) || !/[A-Z]{2}/.test(k)) return;
+            vistos.add(k);
+            salida.push(c);
+          };
+          for (const t of [sinAcentosEP(resumen), sinAcentosEP(descripcion)]) {
+            const ref = /\b(?:MODELO|MOD\.?|REF\.?|REFERENCIA)[:\s]+([A-Z0-9][A-Z0-9\-./]{2,24})/.exec(t);
+            if (ref) poner(ref[1].replace(/[.,;]+$/, ""));
+          }
+          const r = sinAcentosEP(resumen);
+          for (const m of r.matchAll(RE_CODIGO_EP)) poner(m[1]);
+          for (const m of r.matchAll(RE_CODIGO_DIGITO_EP)) poner(m[1]);
+          return salida;
+        }
+        function tipoDeTexto(texto) {
+          const t = sinAcentosEP(texto);
+          for (const d of TIPOS_EP) if (d.re.test(t)) return d;
+          return null;
+        }
+        function partidasDeEquipo({ base = null, actual = null } = {}, M) {
+          const MOD = M || (typeof __require !== "undefined" ? require_modelo() : window.MODELO);
+          const deBase = /* @__PURE__ */ new Map();
+          for (const p of base && actual ? MOD.partidas(base) : []) deBase.set(String(p.codigo), textoPartidaEP(p));
+          const salida = [];
+          for (const p of MOD.partidas(actual || base || [])) {
+            const texto = textoPartidaEP(p);
+            const resumen = sinAcentosEP(p.resumen || texto).trim();
+            if (!texto || RE_NO_SUMINISTRO.test(resumen) && !/SUMINISTRO/.test(resumen) || RE_SIN_EQUIPO.test(sinAcentosEP(texto))) continue;
+            const u = sinAcentosEP(p.unidad).trim();
+            if (u && !RE_UNIDAD_EP.test(u)) continue;
+            const cant = Number(p.cantidadObra ?? p.cantidad);
+            if (cant === 0) continue;
+            const codigos = codigosDeTexto(p.resumen || "", p.descripcion || "");
+            const cabeza = sinAcentosEP(p.descripcion || "").replace(/^(SUMINISTRO|SUM\.)(\s+(E|Y)\s+(INSTALACION|MONTAJE|COLOCACION))?\s+(DE\s+)?/, "").slice(0, 70);
+            const d = tipoDeTexto(p.resumen || "") || (!RE_ACCESORIO_EP.test(sinAcentosEP(p.resumen)) && (codigos.length || marcaDeTexto(p.resumen || "")) ? tipoDeTexto(cabeza) : null);
+            if (!d) continue;
+            const original = deBase.get(String(p.codigo));
+            const origen = base && actual && original !== void 0 && sinAcentosEP(original) !== sinAcentosEP(texto) ? "cambio aprobado" : "presupuesto";
+            salida.push({
+              codigo: String(p.codigo || ""),
+              resumen: String(p.resumen || "").slice(0, 200),
+              icono: d.icono,
+              tipo: d.tipo,
+              marca: marcaDeTexto(texto),
+              modelo: codigos[0] || "",
+              codigos,
+              cantidad: Number.isFinite(cant) ? cant : null,
+              origen
+            });
+          }
+          return salida;
+        }
+        function rotulosDePartidas(textos, partidas) {
+          const porCodigo = /* @__PURE__ */ new Map();
+          for (const p of partidas || []) for (const c of p.codigos || []) {
+            const k = claveEP(c);
+            if (k.length < 4) continue;
+            if (!porCodigo.has(k)) porCodigo.set(k, []);
+            porCodigo.get(k).push(p);
+          }
+          if (!porCodigo.size) return [];
+          const salida = [];
+          for (const t of textos || []) {
+            if (!t || typeof t.texto !== "string") continue;
+            const s = t.texto.trim();
+            if (s.length < 4 || s.length > 30) continue;
+            const ps = porCodigo.get(claveEP(s));
+            if (!ps || ps.length !== 1) continue;
+            const p = ps[0];
+            salida.push({ modelo: s.toUpperCase(), tipo: p.tipo, icono: p.icono, x: Number(t.x), y: Number(t.y), codigo: p.codigo });
+          }
+          return salida;
+        }
+        function casarRotulo(rotulo, partidas) {
+          const lista = partidas || [];
+          const escrito = [rotulo && rotulo.modelo, rotulo && rotulo.texto].map(claveEP).filter((k) => k.length >= 4);
+          if (rotulo && rotulo.codigo) {
+            const p = lista.find((q) => q.codigo === rotulo.codigo);
+            if (p) return { partida: p, motivo: "modelo del plano" };
+          }
+          for (const k of escrito) {
+            const ps = lista.filter((p) => (p.codigos || []).some((c) => claveEP(c) === k));
+            if (ps.length === 1) return { partida: ps[0], motivo: "modelo del plano" };
+            if (ps.length > 1) return { partida: null, motivo: "varias partidas, revisar" };
+          }
+          const icono = rotulo && rotulo.icono;
+          const mismoTipo = lista.filter((p) => p.icono === icono || icono === "splitInt" && p.icono === "vrfInt" || icono === "splitExt" && p.icono === "vrfExt");
+          if (mismoTipo.length === 1) return { partida: mismoTipo[0], motivo: "\xFAnica partida de su tipo" };
+          if (mismoTipo.length > 1) return { partida: null, motivo: "varias partidas, revisar" };
+          return { partida: null, motivo: "sin partida, revisar" };
+        }
+        const marcaNotaEP = (codigo) => `[partida ${codigo}]`;
+        const RE_NOTA_PARTIDA = /\[partida ([^\]]+)\]/;
+        const partidaDeNotas = (notas) => {
+          const m = RE_NOTA_PARTIDA.exec(String(notas || ""));
+          return m ? m[1] : null;
+        };
+        function diferencias(partidas, cuentas) {
+          const salida = [];
+          for (const p of partidas || []) {
+            const n = cuentas.get(p.codigo) || 0;
+            if (!n || p.cantidad === null) continue;
+            const dif = n - p.cantidad;
+            if (Math.abs(dif) < 1e-9) continue;
+            salida.push({ codigo: p.codigo, resumen: p.resumen, enPlano: n, medicion: p.cantidad, diferencia: Math.round(dif * 100) / 100 });
+          }
+          return salida;
+        }
+        function textoDiferencia(d) {
+          const s = d.diferencia > 0 ? `+${d.diferencia}` : String(d.diferencia);
+          return `${d.codigo} \xB7 en planos ${d.enPlano}, medici\xF3n ${d.medicion} (${s})`;
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.EQUIPOS_PRESUPUESTO = API;
+        })({
+          partidasDeEquipo,
+          rotulosDePartidas,
+          casarRotulo,
+          diferencias,
+          textoDiferencia,
+          marcaDeTexto,
+          codigosDeTexto,
+          tipoDeTexto,
+          marcaNota: marcaNotaEP,
+          partidaDeNotas
+        });
       })();
     }
   });
@@ -61204,8 +61608,10 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var P = require_planoEquipos();
+      var VE = require_vidaEquipo();
       var FM = require_filaMovil();
       var CX = require_commissioning();
+      var EP = require_equiposPresupuesto();
       var alcance = require_alcance();
       var { puede } = require_roles();
       var MAX_IMAGEN = 16 * 1024 * 1024;
@@ -61246,6 +61652,10 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           return null;
         }
       }
+      var simboloDe = (m) => m ? {
+        ...m.w && m.h ? { w: m.w, h: m.h } : {},
+        ...m.revisar ? { revisar: true, motivo: m.motivo || "revisar ubicaci\xF3n" } : {}
+      } : {};
       var salasParaPintar = (rotulos) => leerJson(rotulos, []).map((r) => ({ t: String(r.texto || "").split(" \xB7 ")[0], x: r.x, y: r.y })).filter((r) => r.t && !P.esCodigoSala(r.t));
       var ordenPlanta = (a, b) => String(a || "~").localeCompare(String(b || "~"), "es", { numeric: true });
       function salaDe(e, marca) {
@@ -61273,6 +61683,20 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           for (const m of c.miembros || []) marcar(m);
         }
       }
+      function certificacionDeObra(repo, obraId) {
+        try {
+          const obra = repo.db.prepare("SELECT presupuestoId FROM obras WHERE id = ?").get(obraId);
+          if (!obra || !obra.presupuestoId) return null;
+          const partidas = repo.db.prepare("SELECT id AS lineaId, codigo, resumen, descripcion, cantidad, unidad FROM lineas WHERE presupuestoId = ? AND tipo = 'partida'").all(obra.presupuestoId);
+          const lineas = repo.db.prepare(
+            `SELECT l.lineaId, l.cantidad, x.numero AS certificacionNumero, x.estado AS certificacionEstado, x.periodo
+         FROM lineasCertificacion l JOIN certificaciones x ON x.id = l.certificacionId WHERE x.obraId = ?`
+          ).all(obraId);
+          return { partidas, porPartida: VE.certificadoPorPartida(lineas) };
+        } catch {
+          return null;
+        }
+      }
       function listar(repo, ses, obraId) {
         if (!obraVisible(repo, ses, obraId)) return null;
         const lec = sesionDeLectura(ses);
@@ -61296,7 +61720,20 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
             return () => [];
           }
         })();
-        const datosDe = (f, e) => ({ tipo: e.tipo, icono: e.icono, miembros: e.miembros, marca: e.marca || null, modelo: e.modelo || null, documentos: papelesDe(f.id), acciones: botones(e), puedeEditar });
+        const lineaDe = /* @__PURE__ */ new Map();
+        for (const c of t.conjuntos || []) for (const m of c.miembros || [c]) lineaDe.set(m.id, c);
+        const datosCert = VE.veCertificacion(ses.rol) ? certificacionDeObra(repo, obraId) : null;
+        const vidaDe = (f) => {
+          const v = VE.fichaVida(f, lineaDe.get(f.id) || null, { rol: ses.rol, datosCertificacion: datosCert });
+          const l = lineaDe.get(f.id) || f;
+          const entregaDF = {
+            fecha: l.fechaEnvioDF ? String(l.fechaEnvioDF).slice(0, 10) : null,
+            envio: l.envio || null,
+            editable: puedeEditar && (l.envio === "lista" || l.envio === "enviada")
+          };
+          return { ...v, entregaDF, bloques: VE.bloquesFicha(v) };
+        };
+        const datosDe = (f, e) => ({ tipo: e.tipo, icono: e.icono, miembros: e.miembros, marca: e.marca || null, modelo: e.modelo || null, documentos: papelesDe(f.id), acciones: botones(e), puedeEditar, vida: vidaDe(f) });
         const planoDe = new Map(filas.map((p) => [p.planta || "", p]));
         const marcaDe = /* @__PURE__ */ new Map();
         for (const p of filas) for (const m of leerJson(p.marcas, [])) marcaDe.set(m.equipoId, { ...m, planoId: p.id, planta: p.planta || "" });
@@ -61323,7 +61760,8 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
               ...datosDe(f, e),
               x: enEste ? enEste.x : null,
               y: enEste ? enEste.y : null,
-              mano: Boolean(enEste && enEste.mano)
+              mano: Boolean(enEste && enEste.mano),
+              ...simboloDe(enEste)
             };
           }).sort((a, b) => P.ORDEN_COLOR.indexOf(a.color) - P.ORDEN_COLOR.indexOf(b.color) || String(a.tag).localeCompare(String(b.tag), "es", { numeric: true }));
           if (p) {
@@ -61333,14 +61771,15 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
               if (!f || ya.has(f.id)) continue;
               const e = est.get(f.id);
               const { sala, fuente } = salaDe(f, m);
-              equipos.push({ id: f.id, tag: f.tag, familia: f.familia || null, papel: e.papel, conjunto: e.conjunto, color: e.color, falta: e.falta, sala, salaFuente: fuente, ...datosDe(f, e), x: m.x, y: m.y, mano: Boolean(m.mano) });
+              equipos.push({ id: f.id, tag: f.tag, familia: f.familia || null, papel: e.papel, conjunto: e.conjunto, color: e.color, falta: e.falta, sala, salaFuente: fuente, ...datosDe(f, e), x: m.x, y: m.y, mano: Boolean(m.mano), ...simboloDe(m) });
             }
           }
-          const cuentas = { verde: 0, azul: 0, rojo: 0, sinSala: 0, enPlano: 0, sinUbicar: 0 };
+          const cuentas = { verde: 0, azul: 0, rojo: 0, sinSala: 0, enPlano: 0, sinUbicar: 0, revisar: 0 };
           for (const q of equipos) {
             cuentas[q.color] += 1;
             if (!q.sala) cuentas.sinSala += 1;
             if (q.x !== null) cuentas.enPlano += 1;
+            if (q.revisar) cuentas.revisar += 1;
           }
           const sinUbicar = p ? equipos.filter((q) => q.x === null).map((q) => ({ id: q.id, tag: q.tag, familia: q.familia, sala: q.sala, icono: q.icono })).sort((a, b) => String(a.tag).localeCompare(String(b.tag), "es", { numeric: true })) : [];
           cuentas.sinUbicar = sinUbicar.length;
@@ -61401,6 +61840,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         const viejoAntes = repo.listar("planosEquipos", ses, { condicion: "obraId = ? AND planta = ?", params: [obraId, planta], limite: 1 })[0];
         const detectados = equiposAlSubir(repo, ses, obraId, planta, d, equipos, r.marcas, viejoAntes);
         if (detectados) r.marcas.push(...detectados.marcas);
+        r.marcas = P.alSimbolo(r.marcas, d.textos);
         const esEquipo = new Set(equipos.filter(P.esEquipoDelPlano).map((e) => e.id));
         const nombre = llano(d.nombre).slice(0, 120) || `Planta ${planta}`;
         const viejo = viejoAntes;
@@ -61427,6 +61867,8 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           rotulosSala: rotulos.length,
           conSala: marcas.filter((m) => m.sala).length,
           noEncontrados: dePlanta.filter((e) => !marcas.some((m) => m.equipoId === e.id)).map((e) => e.tag),
+          alSimbolo: marcas.filter((m) => m.w).length,
+          revisar: marcas.filter((m) => m.revisar).map((m) => ({ tag: m.tag, motivo: m.motivo })),
           materiales: materialesAlSubir(repo, ses, obraId, planta, id, d.textos),
           detectados: detectados ? detectados.resumen : null
         };
@@ -61436,27 +61878,46 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         if (!Array.isArray(d.textos) || !d.textos.length || !planta) return null;
         if (!puede(ses.rol, "commissioning", "editar")) return null;
         const det = P.detectarEquipos(d.textos, equipos, marcasYa);
+        const partidas = partidasDeObra(repo, ses, obraId);
+        const yaVistos = [...marcasYa || [], ...det.propios, ...det.porModelo];
+        const dePartida = EP.rotulosDePartidas(d.textos, partidas).filter((x) => Number.isFinite(x.x) && !yaVistos.some((m) => Math.hypot(m.x - x.x, m.y - x.y) < 4e-3));
+        det.porModelo.push(...dePartida);
         if (!det.propios.length && !det.porModelo.length) return null;
         const marcasViejas = new Map((viejo ? leerJson(viejo.marcas, []) : []).map((m) => [m.equipoId, m]));
         const existentes = equipos.map((e) => {
           const m = marcasViejas.get(e.id);
-          return { id: e.id, tag: e.tag, x: m ? m.x : null, y: m ? m.y : null };
+          return { id: e.id, tag: e.tag, ...m ? P.sitioRotulo(m) : { x: null, y: null } };
         });
         const lista = [...det.propios.map((x) => ({ ...x, equipoId: null })), ...P.numerarPorModelo(det.porModelo, planta, existentes)];
         const nombrePlano = llano(d.nombre).slice(0, 120) || `planta ${planta}`;
+        const porId = new Map(equipos.map((e) => [e.id, e]));
         const marcas = [];
         let creados = 0;
         let reutilizados = 0;
+        const pres = { partidas: partidas.length, casados: 0, sinPartida: [], diferencias: [] };
         for (const x of lista) {
+          const c = partidas.length ? EP.casarRotulo(x, partidas) : { partida: null, motivo: "la obra no tiene partidas de equipos" };
+          const pt = c.partida;
+          if (pt) pres.casados += 1;
+          else if (partidas.length) pres.sinPartida.push(`${x.tag}: ${c.motivo}`);
           let id = x.equipoId;
-          if (id) reutilizados += 1;
-          else {
+          if (id) {
+            reutilizados += 1;
+            const e = porId.get(id);
+            if (pt && e && !llano(e.marca) && !llano(e.modelo) && (pt.marca || pt.modelo)) {
+              const notas = EP.partidaDeNotas(e.notas) ? e.notas : `${llano(e.notas)} ${EP.marcaNota(pt.codigo)}`.trim();
+              repo.modificar("equiposObra", ses, id, { marca: pt.marca || null, modelo: pt.modelo || null, notas });
+            }
+          } else {
+            const notaPartida = pt ? ` Del presupuesto: ${EP.marcaNota(pt.codigo)} ${pt.resumen.slice(0, 80)} (${c.motivo}${pt.origen === "cambio aprobado" ? ", cambio aprobado" : ""}).` : partidas.length ? ` ${c.motivo === "varias partidas, revisar" ? "Varias partidas posibles" : "Sin partida"} en el presupuesto: revisar.` : "";
             const r = CX.crearEquipo(repo, ses, obraId, {
               tag: x.tag,
               planta,
               familia: P.familiaPara(x.icono, equipos) || "",
-              denominacion: x.modelo ? `${x.tipo} (${x.modelo} en el plano)` : x.tipo,
-              notas: `${NOTA_DETECTADO} ${nombrePlano}: sin datos de placa; marca, modelo y n\xBA de serie, de la ficha t\xE9cnica o del presupuesto.`
+              denominacion: pt ? `${pt.tipo}${pt.marca ? ` ${pt.marca}` : ""}${pt.modelo ? ` ${pt.modelo}` : ""}`.slice(0, 200) : x.modelo ? `${x.tipo} (${x.modelo} en el plano)` : x.tipo,
+              ...pt && pt.marca ? { marca: pt.marca } : {},
+              ...pt && pt.modelo ? { modelo: pt.modelo } : {},
+              notas: `${NOTA_DETECTADO} ${nombrePlano}: sin datos de placa; ${pt ? "n\xBA de serie, de la ficha t\xE9cnica." : "marca, modelo y n\xBA de serie, de la ficha t\xE9cnica o del presupuesto."}${notaPartida}`
             }, { tolerante: true, emparejar: false, equipos });
             if (!r || !r.ok) continue;
             id = r.id;
@@ -61464,7 +61925,32 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           }
           marcas.push({ equipoId: id, tag: x.tag, x: x.x, y: x.y, plano: true });
         }
-        return { marcas, resumen: { creados, reutilizados, repetidos: det.repetidos.map((r) => r.tag) } };
+        if (partidas.length) {
+          const cuentas = /* @__PURE__ */ new Map();
+          for (const e of repo.listar("equiposObra", ses, { condicion: "obraId = ?", params: [obraId] })) {
+            const k = EP.partidaDeNotas(e.notas);
+            if (k) cuentas.set(k, (cuentas.get(k) || 0) + 1);
+          }
+          pres.diferencias = EP.diferencias(partidas, cuentas).map((x) => ({ ...x, texto: EP.textoDiferencia(x) }));
+        }
+        return { marcas, resumen: { creados, reutilizados, repetidos: det.repetidos.map((r) => r.tag), presupuesto: partidas.length ? pres : null } };
+      }
+      function partidasDeObra(repo, ses, obraId) {
+        try {
+          const obra = repo.leer("obras", sesionDeLectura(ses), obraId) || obraVisible(repo, ses, obraId);
+          if (!obra || !obra.presupuestoId) return [];
+          const datosVersiones = require_versiones2();
+          const versionesPres = require_versiones();
+          const modeloPres = require_modelo();
+          const { armarArbol } = require_presupuestos();
+          const lista = datosVersiones.listar(repo.db, obra.presupuestoId);
+          const definitiva = versionesPres.definitivaDe(lista);
+          const base = lista.length && definitiva ? versionesPres.arbolDe(lista[0]) : null;
+          const actual = definitiva ? versionesPres.arbolDe(definitiva) : modeloPres.calcularArbol(armarArbol(repo.db, obra.presupuestoId));
+          return EP.partidasDeEquipo({ base, actual }, modeloPres);
+        } catch {
+          return [];
+        }
       }
       function materialesAlSubir(repo, ses, obraId, planta, planoId, textos) {
         if (!Array.isArray(textos) || !textos.length) return null;
@@ -61580,7 +62066,22 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         repo.borrar("planosEquipos", ses, p.id);
         return { ok: true };
       }
-      module.exports = { LADO_MOVIL, NOTA_DETECTADO, equiposAlSubir, listar, imagen, guardar, colocar, borrar, salaDe, localizacion, imagenRecorte, svgRecorte, fotosLocalizacion };
+      module.exports = {
+        partidasDeObra,
+        LADO_MOVIL,
+        NOTA_DETECTADO,
+        equiposAlSubir,
+        listar,
+        imagen,
+        guardar,
+        colocar,
+        borrar,
+        salaDe,
+        localizacion,
+        imagenRecorte,
+        svgRecorte,
+        fotosLocalizacion
+      };
     }
   });
 
@@ -66860,9 +67361,17 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         if (creados || completados) fundirFichasDe(repo, sesion, obraId);
         return { ok: true, creados, completados, saltados, errores, ...pares };
       }
+      function fechaEntregaValida(fecha) {
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(fecha || ""));
+        if (!m) return false;
+        const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+        return d.getUTCFullYear() === +m[1] && d.getUTCMonth() === +m[2] - 1 && d.getUTCDate() === +m[3] && fecha <= require_fecha().hoyLocal();
+      }
       function marcarEnviado(repo, sesion, id, fecha = null) {
+        if (!sesion || !puede(sesion.rol, "commissioning", "editar")) return { ok: false, error: "Tu rol no puede cambiar la entrega a la DF." };
         const actual = repo.leer("equiposObra", sesion, id);
         if (!actual) return { ok: false, error: "No se encuentra el equipo." };
+        if (fecha !== null && fecha !== "" && !fechaEntregaValida(fecha)) return { ok: false, error: "La fecha de entrega a la DF no es v\xE1lida (un d\xEDa de hoy o anterior)." };
         if (fecha === null) {
           const todas = [actual, ...companerasDe(equiposDe(repo, sesion, actual.obraId), id)];
           for (const e of todas) if (e.fechaEnvioDF) repo.modificar("equiposObra", sesion, e.id, { fechaEnvioDF: null });
@@ -66870,7 +67379,8 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         }
         const t = tabla(repo, sesion, actual.obraId);
         const linea = control.conjuntoDeEquipo(t.conjuntos, id) || t.filas.find((f) => f.id === id);
-        if (!control.puedeEnviarse(linea)) {
+        const yaEnviada = Boolean(fecha) && linea && linea.envio === "enviada";
+        if (!yaEnviada && !control.puedeEnviarse(linea)) {
           return { ok: false, error: `No est\xE1 listo para enviar: falta ${linea.falta.join(", ")}.` };
         }
         const dia = fecha || require_fecha().hoyLocal();
@@ -67622,6 +68132,511 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         return { completado: true, obras: db.prepare("SELECT COUNT(*) AS n FROM obras").get().n, flujoDeshecho: aMedias.length, ...r };
       }
       module.exports = { sembrarSiVacia, completarEjemplos, presupuestoDeEjemplo };
+    }
+  });
+
+  // marca/colores.js
+  var require_colores = __commonJS({
+    "marca/colores.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var MARCA = {
+        // El verde de CBRE. Es EL color: cabeceras, titulares, totales.
+        verde: { hex: "#003F2D", nombre: "CBRE Green", pantone: "3435 C", procedencia: "confirmado" },
+        // El verde vivo. Acento, NUNCA fondo de texto largo ni superficie grande.
+        verdeAcento: { hex: "#17E88F", nombre: "Accent Green", pantone: "7479 C", procedencia: "confirmado" },
+        // Verde casi negro. Barra lateral y bloque del logo, modo oscuro, pies de documento.
+        verdeOscuro: { hex: "#012A2D", nombre: "Dark Green", pantone: "627 C", procedencia: "confirmado" },
+        grisOscuro: { hex: "#435254", nombre: "Dark Grey", pantone: "431 C", procedencia: "confirmado" },
+        grisClaro: { hex: "#CAD1D3", nombre: "Light Grey", pantone: "428 C", procedencia: "confirmado" },
+        /*
+         * El blanco es un token porque hace falta un blanco QUE NO CAMBIE con el
+         * tema: el texto sobre el verde CBRE y sobre el pie de las tablas es blanco
+         * en los dos temas. Usar `--panel` ahí rompería el modo oscuro, donde
+         * `--panel` vale #012A2D.
+         */
+        blanco: { hex: "#FFFFFF", nombre: "Blanco", pantone: "\u2014", procedencia: "no es de marca" }
+      };
+      var AMPLIADA = {
+        celadon: { hex: "#80BBAD", tinte: "#C0D4CB", nombre: "Celadon", procedencia: "confirmado" },
+        wheat: { hex: "#DBD99A", tinte: "#EFECD2", nombre: "Wheat", procedencia: "confirmado" },
+        cement: { hex: "#7F8480", tinte: "#CBCDCB", nombre: "Cement", procedencia: "tinte confirmado, base inferida" },
+        sage: { hex: "#538184", tinte: "#96B3B6", nombre: "Sage", procedencia: "tinte confirmado, base inferida" },
+        midnight: { hex: "#032842", tinte: "#778F9C", nombre: "Midnight", procedencia: "tinte confirmado, base inferida" }
+      };
+      var ESTADO = {
+        bien: { hex: "#003F2D", fondo: "#DFF0E8" },
+        aviso: { hex: "#14507F", fondo: "#E1ECF6" },
+        mal: { hex: "#9C2B2B", fondo: "#F7DEDE" },
+        info: { hex: "#0B4A63", fondo: "#DCEAF1" }
+      };
+      var ESTADO_OSCURO = {
+        bien: { hex: "#5FD39E", fondo: "#0C3F31" },
+        aviso: { hex: "#8DBBEA", fondo: "#14273B" },
+        mal: { hex: "#FF9E92", fondo: "#4A1F1F" },
+        info: { hex: "#8CC6E0", fondo: "#0E3445" }
+      };
+      var DISCIPLINAS = {
+        electricidad: "#003F2D",
+        climatizacion: "#538184",
+        fontaneria: "#80BBAD",
+        pci: "#9C2B2B",
+        control: "#032842",
+        gases: "#DBD99A",
+        ventilacion: "#96B3B6",
+        otros: "#7F8480"
+      };
+      var INTERFAZ = {
+        claro: {
+          papel: "#F4F6F5",
+          panel: "#FFFFFF",
+          panel2: "#EEF2F0",
+          panel3: "#E3EAE7",
+          rejilla: "#CAD1D3",
+          rejillaSuave: "#E1E6E7",
+          borde: "#7F8480",
+          texto: "#1A1A1A",
+          textoSuave: "#435254",
+          /* 4,75:1 sobre el papel. El anterior (#6B7674) daba 4,33 y no llegaba a
+             AA, justo en el texto que explica POR QUÉ salta un aviso. */
+          textoTenue: "#63706D",
+          seleccion: "#DFF0E8",
+          /*
+           * LA BANDA DE CAPÍTULO tiene que existir en los dos temas.
+           * Antes se usaba directamente el celadon tinte de marca, que es un color
+           * claro, también en modo oscuro: la banda salía blanquecina con texto casi
+           * blanco encima (1,35:1) y el cursor no se veía (1,04:1).
+           */
+          bandaCapitulo: "#C0D4CB",
+          bandaCapitulo2: "#E3EAE7",
+          /*
+           * LOS BLOQUES IMPORTANTES DEL INICIO: un pastel sacado del celadon, muy
+           * rebajado, para que destaquen sin parecer un aviso. La cabecera va un
+           * punto más cargada que el cuerpo, como la banda de los demás bloques.
+           */
+          destacado: "#EDF5F1",
+          destacadoCabeza: "#D6E9E1",
+          destacadoBorde: "#A9CFC2",
+          /*
+           * EL FOCO NO PUEDE SER EL VERDE ACENTO EN TEMA CLARO.
+           * #17E88F sobre papel da 1,49:1 — el anillo de «dónde estoy» era
+           * invisible en toda la aplicación. En claro manda el verde CBRE (11,06:1);
+           * en oscuro sí funciona el acento.
+           */
+          foco: "#003F2D",
+          /* Sobre el verde de la barra lateral, donde no vale ningún gris normal. */
+          sobreVerdeTexto: "#D2E0DB",
+          sobreVerdeLinea: "#1A5443",
+          sobreVerdeHover: "#0A4B36",
+          menuActivo: "#04533A",
+          /* El verde CBRE como TEXTO (cabeceras de tabla, rótulos). En oscuro el
+             verde de marca sobre el panel daba 1,28:1: ahí va un verde claro. */
+          verdeTexto: "#003F2D",
+          /* El texto sobre un relleno de estado (contador «hecho», insignias). */
+          sobreEstado: "#FFFFFF"
+        },
+        oscuro: {
+          papel: "#001E19",
+          panel: "#012A2D",
+          panel2: "#043534",
+          panel3: "#0A413E",
+          rejilla: "#1C4A45",
+          rejillaSuave: "#143B37",
+          borde: "#628680",
+          texto: "#EAF1EE",
+          textoSuave: "#A9BDB7",
+          textoTenue: "#7E918C",
+          seleccion: "#0C4A38",
+          bandaCapitulo: "#124C42",
+          bandaCapitulo2: "#0A413E",
+          /* En oscuro el cuerpo no se aclara: el texto tenue ya va justo sobre el
+             panel (4,61:1) y cualquier teal más claro lo bajaba de AA (3,87:1).
+             Aquí el bloque importante lo marcan la cabecera y el borde. */
+          destacado: "#012A2D",
+          destacadoCabeza: "#0D4A47",
+          destacadoBorde: "#2A6A62",
+          foco: "#17E88F",
+          sobreVerdeTexto: "#D2E0DB",
+          sobreVerdeLinea: "#1A5443",
+          sobreVerdeHover: "#0A4B36",
+          menuActivo: "#04533A",
+          verdeTexto: "#8FD1BE",
+          sobreEstado: "#001E19"
+        }
+      };
+      var PILA_SISTEMA = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
+      var FUENTES = {
+        /*
+         * TITULARES.
+         *
+         * CBRE compone con Financier Display, un serif. Si está instalada, se usa.
+         * Si no —que es lo normal—, el respaldo NO es otro serif: es la pila del
+         * sistema.
+         *
+         * El motivo es que el respaldo real de un serif en Mac y en Windows es
+         * Georgia o Times, y ninguna de las dos se parece a Financier: son tipos de
+         * otra época y le dan a la aplicación un aire de documento de Word. Una
+         * herramienta de trabajo compuesta en San Francisco o en Segoe se ve actual
+         * y, sobre todo, se ve intencionada.
+         *
+         * Georgia además compone cifras de estilo antiguo por defecto, lo que hacía
+         * bailar las cifras grandes del inicio.
+         */
+        titular: `'Financier Display', ${PILA_SISTEMA}`,
+        /* Texto e interfaz. Calibre cuando CBRE ceda licencia. */
+        texto: `'Calibre', ${PILA_SISTEMA}`,
+        /* Números: TABULAR SIEMPRE. Una columna de importes que baila es un error. */
+        cifra: "'SF Mono', 'Segoe UI Mono', 'Roboto Mono', ui-monospace, monospace"
+      };
+      var ESCALA = {
+        micro: "10.5px",
+        // rótulos de columna, unidades
+        menor: "11.5px",
+        // apoyo, pies, motivos
+        base: "12.5px",
+        // texto e interfaz
+        medio: "14px",
+        // títulos de bloque
+        mayor: "18px",
+        // título de pantalla
+        cifra: "24px"
+        // las cifras grandes de los indicadores
+      };
+      module.exports = { MARCA, AMPLIADA, ESTADO, ESTADO_OSCURO, DISCIPLINAS, INTERFAZ, FUENTES, ESCALA };
+    }
+  });
+
+  // electron/data/entregablePlano.js
+  var require_entregablePlano = __commonJS({
+    "electron/data/entregablePlano.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var PE = require_planoEquipos2();
+      var M = require_materialesInstalados();
+      var { MARCA, AMPLIADA, ESTADO, INTERFAZ, FUENTES } = require_colores();
+      var esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+      var llano = (v) => String(v ?? "").trim();
+      var fecha = (v) => {
+        const s = llano(v).slice(0, 10);
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+        return m ? `${m[3]}/${m[2]}/${m[1]}` : s;
+      };
+      var idSeguro = (v) => llano(v).replace(/[^A-Za-z0-9_-]/g, "_");
+      var COLOR_CAPA = {
+        equipos: MARCA.verde.hex,
+        compuertas: AMPLIADA.sage.hex,
+        vav: AMPLIADA.midnight.hex,
+        difusores: ESTADO.info.hex,
+        rejillas: ESTADO.aviso.hex,
+        valvulas: MARCA.verdeOscuro.hex,
+        detectores: MARCA.grisOscuro.hex,
+        actuadores: AMPLIADA.sage.hex,
+        sondas: ESTADO.info.hex,
+        otros: AMPLIADA.cement.hex
+      };
+      function datosEquipos(repo, obraId) {
+        const cols = new Set(repo.db.prepare("SELECT name FROM pragma_table_info('equiposObra')").all().map((c) => c.name));
+        const pide = ["id", "numSerie", "fechaInstalacion", "fechaPuestaMarcha", "garantiaAnios", "fechaFabricacion", "potencia", "denominacion"].filter((c) => cols.has(c));
+        const eq = new Map(repo.db.prepare(`SELECT ${pide.join(", ")} FROM equiposObra WHERE obraId = ?`).all(obraId).map((e) => [e.id, e]));
+        const rep = /* @__PURE__ */ new Map();
+        try {
+          for (const i of repo.db.prepare("SELECT equipoId, titulo, estado, fechaApertura, fechaCierre FROM incidencias WHERE obraId = ? AND equipoId IS NOT NULL AND estado != 'anulada' ORDER BY fechaApertura").all(obraId)) {
+            if (!rep.has(i.equipoId)) rep.set(i.equipoId, []);
+            rep.get(i.equipoId).push(i);
+          }
+        } catch {
+        }
+        return { eq, rep };
+      }
+      var ESTADO_REP = { abierta: "abierta", enCurso: "en curso", terminada: "terminada", cerrada: "cerrada" };
+      function puntosDePlanta(pl, extra) {
+        const puntos = [];
+        let n = 0;
+        for (const e of pl.equipos) {
+          n += 1;
+          const d = extra.eq.get(e.id) || {};
+          const filas = [
+            ["Tipo", e.familia || e.tipo],
+            ["Sala", e.sala],
+            ["Marca", e.marca],
+            ["Modelo", e.modelo],
+            ["N\xBA de serie", d.numSerie],
+            ["Instalaci\xF3n", fecha(d.fechaInstalacion)],
+            ["Puesta en marcha", fecha(d.fechaPuestaMarcha)],
+            ["Garant\xEDa", d.garantiaAnios ? `${String(d.garantiaAnios).replace(".", ",")} a\xF1os` : null]
+          ].filter(([, v]) => llano(v));
+          puntos.push({ n, capa: "equipos", tag: e.tag, nombre: e.familia || "Equipo", x: e.x, y: e.y, filas, ficha: null, ce: null, documentos: e.documentos || [], reparaciones: extra.rep.get(e.id) || [], estado: e.color });
+        }
+        for (const m of pl.materiales || []) {
+          n += 1;
+          puntos.push({ n, capa: m.capa, tag: m.tag, nombre: m.tipoNombre, x: m.x, y: m.y, filas: m.filas.filter(([k]) => k !== "Tipo"), ficha: m.fichaTecnica, ce: m.marcadoCE, reparaciones: [], incidencia: m.incidencia, estado: m.estado });
+        }
+        return puntos;
+      }
+      function seccionPlanta(pl, img, puntos, idP) {
+        const enPlano = puntos.filter((p) => p.x !== null && p.x !== void 0);
+        const porCapa = {};
+        for (const p of puntos) porCapa[p.capa] = (porCapa[p.capa] || 0) + 1;
+        const porTipo = {};
+        for (const p of puntos) porTipo[`${p.capa}|${p.nombre}`] = (porTipo[`${p.capa}|${p.nombre}`] || 0) + 1;
+        const leyenda = Object.entries(porTipo).sort().map(([k, c]) => {
+          const [capa, nombre] = k.split("|");
+          return `<span class="ley"><i style="background:${COLOR_CAPA[capa] || COLOR_CAPA.otros}"></i>${esc(nombre)} <b>${c}</b></span>`;
+        }).join("");
+        const capas = M.CAPAS.filter((c) => porCapa[c.id]).map((c) => `<label class="capa"><input type="checkbox" checked data-capa="${c.id}" data-p="${idP}"> ${esc(c.nombre)} <b>${porCapa[c.id]}</b></label>`).join("");
+        const marcas = enPlano.map((p) => `<a class="mk c-${p.capa}${p.capa === "equipos" ? " eq" : ""}" href="#f-${idP}-${p.n}" title="${esc(`${p.tag} \xB7 ${p.nombre}`)}" style="left:${(p.x * 100).toFixed(3)}%;top:${(p.y * 100).toFixed(3)}%;background:${COLOR_CAPA[p.capa] || COLOR_CAPA.otros}">${p.n}</a>`).join("");
+        const plano = img ? `<div class="marco" id="m-${idP}"><div class="lienzo" style="aspect-ratio:${pl.plano.ancho || 1}/${pl.plano.alto || 1}"><img src="${img}" alt="Plano ${esc(pl.planta)}">${marcas}</div></div>` : '<p class="nota">Esta planta no tiene plano cargado: solo su lista.</p>';
+        const filas = puntos.map((p) => {
+          const datos = p.filas.map(([k, v]) => `<span class="dt"><em>${esc(k)}</em> ${esc(v)}</span>`).join("");
+          const a = (url, texto) => `<a class="doc" href="${esc(url)}" target="_blank" rel="noopener">${esc(texto)} \u2197</a>`;
+          const docs = p.capa === "equipos" ? (p.documentos || []).map((d) => a(d.url, `${d.etiqueta}: ${d.nombre}`)).join(" \xB7 ") || '<span class="tenue">Sin ficha t\xE9cnica</span>' : [
+            p.ficha ? `${a(p.ficha.url, `Ficha t\xE9cnica: ${p.ficha.nombre}`)}${p.ficha.nivel === "tipo" ? '<span class="tenue"> (del tipo)</span>' : ""}` : '<span class="tenue">Sin ficha t\xE9cnica</span>',
+            p.ce ? a(p.ce.url, `Marcado CE: ${p.ce.nombre}`) : ""
+          ].filter(Boolean).join(" \xB7 ");
+          const rep = p.reparaciones.length ? `<div class="rep"><em>Reparaciones</em> ${p.reparaciones.map((r) => `${fecha(r.fechaApertura)} ${esc(r.titulo)} (${esc(ESTADO_REP[r.estado] || r.estado)}${r.fechaCierre ? ` ${fecha(r.fechaCierre)}` : ""})`).join(" \xB7 ")}</div>` : "";
+          const inc = p.incidencia ? `<div class="rep mal"><em>Incidencia</em> ${esc(p.incidencia)}</div>` : "";
+          return `<tr id="f-${idP}-${p.n}" class="c-${p.capa}"><td class="n"><span class="bola" style="background:${COLOR_CAPA[p.capa] || COLOR_CAPA.otros}">${p.n}</span></td><td class="tag">${esc(p.tag)}<div class="tenue">${esc(p.nombre)}</div></td><td>${datos}${rep}${inc}</td><td class="docs">${docs}</td><td class="vuelta">${p.x !== null && p.x !== void 0 && img ? `<a href="#m-${idP}">\u2191 plano</a>` : '<span class="tenue">sin ubicar</span>'}</td></tr>`;
+        }).join("");
+        return `<section class="planta" id="p-${idP}">
+  <h2>Planta ${esc(pl.planta || "sin planta")}${pl.plano ? ` <span class="tenue">\xB7 ${esc(pl.plano.nombre)}</span>` : ""}</h2>
+  <div class="barra no-imp">${capas}<span class="zoom"><button type="button" data-z="-1" data-p="${idP}">\u2212</button><button type="button" data-z="1" data-p="${idP}">+</button></span></div>
+  <div class="leyenda">${leyenda}</div>
+  ${plano}
+  <h3 class="salto">Fichas \xB7 planta ${esc(pl.planta || "")} <span class="tenue">(${puntos.length})</span></h3>
+  <table class="fichas"><thead><tr><th>N\xBA</th><th>TAG</th><th>Datos</th><th>Documentos</th><th></th></tr></thead><tbody>${filas}</tbody></table>
+</section>`;
+      }
+      function html(repo, ses, obraId, { planta = null } = {}) {
+        const d = PE.listar(repo, ses, obraId);
+        for (const pl of d && d.plantas || []) for (const e of pl.equipos || []) {
+          if (e.vida && e.vida.certificacion) {
+            const { certificacion, ...resto } = e.vida;
+            e.vida = { ...resto, bloques: (resto.bloques || []).filter((b) => b.id !== "certificacion") };
+          }
+        }
+        if (!d) return { ok: false, error: "No se encuentra la obra." };
+        const obra = repo.db.prepare("SELECT * FROM obras WHERE id = ?").get(obraId) || {};
+        let plantas = d.plantas.filter((p) => p.equipos.length || (p.materiales || []).length);
+        if (planta) plantas = plantas.filter((p) => String(p.planta || "") === String(planta));
+        if (!plantas.length) return { ok: false, error: planta ? `La planta ${planta} no tiene equipos ni materiales.` : "La obra no tiene equipos ni materiales en planos." };
+        const extra = datosEquipos(repo, obraId);
+        const cuentas = {};
+        const secciones = plantas.map((pl) => {
+          const idP = idSeguro(pl.planta || "SP");
+          let img = null;
+          if (pl.plano) {
+            const i = PE.imagen(repo, ses, pl.plano.id);
+            img = i ? i.imagen : null;
+          }
+          const puntos = puntosDePlanta(pl, extra);
+          cuentas[pl.planta || ""] = { equipos: pl.equipos.length, materiales: (pl.materiales || []).length };
+          return seccionPlanta(pl, img, puntos, idP);
+        }).join("\n");
+        const indice = plantas.length > 1 ? `<nav class="indice no-imp-no">${plantas.map((pl) => `<a href="#p-${idSeguro(pl.planta || "SP")}">Planta ${esc(pl.planta || "\u2014")} <span class="tenue">${pl.equipos.length} eq. \xB7 ${(pl.materiales || []).length} mat.</span></a>`).join("")}</nav>` : "";
+        const hoy = require_fecha().hoyLocal();
+        const titulo = `${obra.codigo || ""} \xB7 Planos de mantenimiento${planta ? ` \xB7 planta ${planta}` : ""}`;
+        const I = INTERFAZ.claro;
+        const doc = `<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(titulo)}</title>
+<style>
+:root{--verde:${MARCA.verde.hex};--texto:${I.texto};--suave:${I.textoSuave};--tenue:${I.textoTenue};--rejilla:${I.rejilla};--panel:${I.panel};--papel:${I.papel};--mal:${ESTADO.mal.hex};--malFondo:${ESTADO.mal.fondo}}
+*{box-sizing:border-box}
+body{margin:0;padding:16px;font:13px/1.4 ${FUENTES.texto};color:var(--texto);background:var(--panel)}
+h1{font:600 20px/1.2 ${FUENTES.titular};color:var(--verde);margin:0 0 2px}
+h2{font:600 16px/1.2 ${FUENTES.titular};color:var(--verde);margin:18px 0 6px;border-bottom:1px solid var(--verde);padding-bottom:3px}
+h3{font-size:13px;color:var(--verde);margin:14px 0 4px}
+.tenue{color:var(--tenue);font-weight:400}
+.cab{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.indice{display:flex;flex-wrap:wrap;gap:4px 14px;margin:6px 0}
+.indice a{color:var(--verde);text-decoration:none;font-weight:600}
+.barra{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:4px 0;width:fit-content}
+.capa{border:1px solid var(--rejilla);border-radius:999px;padding:1px 8px;font-size:12px;cursor:pointer;white-space:nowrap}
+.zoom button{border:1px solid var(--rejilla);background:var(--panel);border-radius:3px;width:26px;height:22px;margin-left:2px;cursor:pointer;color:var(--verde);font-weight:700}
+.leyenda{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:12px;margin:4px 0}
+.ley i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+.marco{overflow:auto;border:1px solid var(--rejilla);max-height:80vh}
+.lienzo{position:relative;width:100%}
+.lienzo img{display:block;width:100%;height:100%}
+.mk{position:absolute;transform:translate(-50%,-50%);min-width:13px;height:13px;padding:0 2px;border-radius:7px;color:${I.sobreEstado};font:600 8px/13px ${FUENTES.cifra};text-align:center;text-decoration:none;opacity:.92}
+.mk.eq{border-radius:2px;min-width:16px;height:15px;font-size:9px;line-height:15px}
+.mk:hover,.mk:focus{opacity:1;outline:2px solid var(--verde);z-index:2}
+.oculta{display:none!important}
+table.fichas{border-collapse:collapse;width:100%;font-size:12px}
+.fichas th{text-align:left;color:var(--verde);border-bottom:1px solid var(--verde);font-weight:600;padding:3px 6px}
+.fichas td{border-bottom:1px solid var(--rejilla);padding:3px 6px;vertical-align:top}
+.fichas tr:target{background:${ESTADO.bien.fondo}}
+.fichas .n{width:34px}.fichas .tag{white-space:nowrap;font-weight:600}
+.bola{display:inline-block;min-width:22px;padding:0 3px;border-radius:9px;color:${I.sobreEstado};text-align:center;font:600 11px/18px ${FUENTES.cifra}}
+.dt{display:inline-block;margin-right:12px;white-space:nowrap}.dt em,.rep em{font-style:normal;color:var(--tenue);margin-right:3px}
+.rep{margin-top:2px}.rep.mal{color:var(--mal)}
+.doc{color:var(--verde);font-weight:600;white-space:nowrap}
+.vuelta a{color:var(--suave);white-space:nowrap}
+.nota{color:var(--tenue)}
+@media print{
+  body{padding:0}.no-imp{display:none}
+  .marco{max-height:none;overflow:visible;border:0;page-break-after:always}
+  .planta{page-break-before:always}.planta:first-of-type{page-break-before:auto}
+  /* El plano entero en UNA hoja A3 (277 mm \xFAtiles menos cabecera y leyenda): manda la altura. */
+  .marco{page-break-inside:avoid}
+  .lienzo{width:auto!important;height:228mm;max-width:100%;margin:0 auto}
+  .fichas tr{page-break-inside:avoid}
+}
+@page{size:A3 landscape;margin:10mm}
+</style></head><body>
+<div class="cab">${require_papel().logoObra(obra, { alto: "9mm" })}<h1>${esc(obra.nombre || "Obra")}</h1><span class="tenue">${esc(obra.codigo || "")} \xB7 Planos de equipos y materiales instalados para mantenimiento \xB7 ${fecha(hoy)}</span></div>
+<p class="tenue">Cada n\xFAmero del plano lleva a su ficha; cada ficha, a su ficha t\xE9cnica y de vuelta al plano. Funciona sin conexi\xF3n salvo los enlaces a los documentos del fabricante.</p>
+${indice}
+${secciones}
+<script>
+document.addEventListener('change',function(e){var c=e.target;if(!c.dataset||!c.dataset.capa)return;var s=document.getElementById('p-'+c.dataset.p);
+s.querySelectorAll('.c-'+c.dataset.capa).forEach(function(n){n.classList.toggle('oculta',!c.checked)});});
+document.addEventListener('click',function(e){var b=e.target.closest('[data-z]');if(!b)return;var l=document.querySelector('#m-'+b.dataset.p+' .lienzo');if(!l)return;
+var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>0?1.5:1/1.5)));l.style.width=w+'%';});
+<\/script>
+</body></html>`;
+        const nombre = `${obra.codigo || "obra"}-mantenimiento${planta ? `-${planta}` : ""}-${hoy}`.replace(/[^\w.-]+/g, "_");
+        return { ok: true, html: doc, nombre, cuentas };
+      }
+      async function pdf(htmlTexto, ruta) {
+        const fs = require_fs();
+        const os = require_os();
+        const path = require_path();
+        const { BrowserWindow } = require_electronFalso();
+        const tmp = path.join(os.tmpdir(), `entregable-${Date.now()}.html`);
+        fs.writeFileSync(tmp, htmlTexto);
+        const w = new BrowserWindow({ show: false, width: 1600, height: 1100, webPreferences: { javascript: false, offscreen: true } });
+        try {
+          await w.loadFile(tmp);
+          const buf = await w.webContents.printToPDF({ pageSize: "A3", landscape: true, printBackground: true, margins: { marginType: "custom", top: 0.4, bottom: 0.4, left: 0.4, right: 0.4 } });
+          fs.writeFileSync(ruta, buf);
+          return { ok: true, ruta, bytes: buf.length };
+        } finally {
+          w.destroy();
+          fs.rmSync(tmp, { force: true });
+        }
+      }
+      module.exports = { html, pdf, COLOR_CAPA };
+    }
+  });
+
+  // electron/movil/rutasPlanoEquipos.js
+  var require_rutasPlanoEquipos = __commonJS({
+    "electron/movil/rutasPlanoEquipos.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var PE = require_planoEquipos2();
+      var PERMISOS_PLANO_EQUIPOS = {
+        /* 29-oct (JC): lo ve todo el enrolado en la obra (el alcance lo pone el repositorio). */
+        "GET api/plano-equipos": [["planoEquipos", "ver"]],
+        "GET api/plano-equipos/imagen": [["planoEquipos", "ver"]],
+        /* La localización de un equipo en el plano (29-oct): sale en su ficha, entre sus fotos. */
+        "GET api/plano-equipos/localizacion": [["commissioning", "ver"]],
+        /* Los materiales instalados (29-oct): apuntar el nº de serie o la ficha en obra, y el
+           entregable a mantenimiento (HTML autónomo del plano con sus fichas). */
+        "POST api/materiales": [["planoEquipos", "editar"]],
+        "POST api/materiales/alta": [["planoEquipos", "crear"]],
+        "GET api/plano-equipos/entregable": [["planoEquipos", "ver"]],
+        /* La entrega a la DF desde la ficha del plano (30-oct, sin el Mac): quien edita la puesta en marcha. */
+        "POST api/plano-equipos/entrega-df": [["commissioning", "editar"]]
+      };
+      var VE = require_vidaEquipo();
+      var nubeCertificacion = null;
+      var recuerdoCert = /* @__PURE__ */ new Map();
+      var VIGENCIA_CERT = 2 * 60 * 1e3;
+      function usarNubeCertificacion(fn) {
+        nubeCertificacion = typeof fn === "function" ? fn : null;
+        recuerdoCert.clear();
+      }
+      async function certificacionDeLaNube(ses, obraId, d, { plazo = 6e3 } = {}) {
+        if (!nubeCertificacion || !VE.veCertificacion(ses.rol)) return;
+        const equipos = d.plantas.flatMap((p) => p.equipos || []);
+        if (!equipos.length || equipos.some((e) => e.vida && e.vida.certificacion && e.vida.certificacion.estado !== "sinPartida")) return;
+        const k = `${ses.personaId}|${obraId}`;
+        let datos = (recuerdoCert.get(k) || {}).t > Date.now() - VIGENCIA_CERT ? recuerdoCert.get(k).datos : null;
+        if (!datos) {
+          try {
+            const r = await Promise.race([nubeCertificacion(obraId, VE.codigosCasables(equipos)), new Promise((_, no) => setTimeout(() => no(new Error("La nube tarda")), plazo))]);
+            if (!r || !Array.isArray(r.partidas)) return;
+            datos = { partidas: r.partidas, porPartida: VE.certificadoPorPartida(r.lineas || []) };
+            recuerdoCert.set(k, { t: Date.now(), datos });
+          } catch {
+            return;
+          }
+        }
+        for (const e of equipos) {
+          if (!e.vida) continue;
+          e.vida = { ...e.vida, certificacion: VE.certificacion(e, datos) };
+          e.vida.bloques = VE.bloquesFicha(e.vida);
+        }
+      }
+      function localizacionDe(repo, ses, equipoId) {
+        try {
+          return PE.localizacion(repo, ses, equipoId).map((r) => ({
+            n: r.n,
+            pie: r.pie,
+            planta: r.planta,
+            sala: r.sala,
+            unidades: r.marcas.map((m) => m.etiqueta),
+            url: `api/plano-equipos/localizacion?id=${encodeURIComponent(equipoId)}&n=${r.n}`
+          }));
+        } catch {
+          return [];
+        }
+      }
+      function crearRutasPlanoEquipos({ repo }) {
+        async function lista({ ses, query }) {
+          const d = PE.listar(repo, ses, String(query.obra || ""));
+          if (!d) return { ok: false, error: "No se encuentra la obra." };
+          await certificacionDeLaNube(ses, String(query.obra || ""), d);
+          return { ok: true, plantas: d.plantas, planos: d.planos, iconos: d.iconos, colores: d.colores, puedeEditar: d.puedeEditar, conCommissioning: d.conCommissioning, capas: d.capas, tiposMaterial: d.tiposMaterial };
+        }
+        function imagen({ ses, query }) {
+          const img = PE.imagen(repo, ses, String(query.id || ""));
+          if (!img) return [404, { ok: false, error: "No se encuentra el plano." }];
+          const m = /^data:(image\/[a-z+]+);base64,(.*)$/s.exec(String(img.imagenMovil || img.imagen || ""));
+          if (!m) return [415, { ok: false, error: "La imagen del plano no se puede ense\xF1ar." }];
+          return { bytes: Buffer.from(m[2], "base64"), tipo: m[1] === "image/jpg" ? "image/jpeg" : m[1] };
+        }
+        function localizacion({ ses, query }) {
+          const r = PE.localizacion(repo, ses, String(query.id || "")).find((x) => String(x.n) === String(query.n ?? 0));
+          if (!r) return [404, { ok: false, error: "Este equipo no est\xE1 colocado en ning\xFAn plano." }];
+          const svg = PE.svgRecorte(repo, ses, r);
+          if (!svg) return [404, { ok: false, error: "El plano no tiene imagen." }];
+          return { bytes: Buffer.from(svg, "utf8"), tipo: "image/svg+xml" };
+        }
+        const MI = require_materialesInstalados2();
+        function material({ ses, json }) {
+          const d = json || {};
+          if (d.borrar) return MI.borrar(repo, ses, String(d.id || ""));
+          return MI.guardar(repo, ses, String(d.id || ""), d);
+        }
+        function materialAlta({ ses, json }) {
+          const d = json || {};
+          return MI.alta(repo, ses, String(d.obra || ""), d);
+        }
+        function entregable({ ses, query }) {
+          const EP = require_entregablePlano();
+          const r = EP.html(repo, ses, String(query.obra || ""), { planta: query.planta ? String(query.planta) : null });
+          if (!r.ok) return [404, r];
+          return { bytes: Buffer.from(r.html, "utf8"), tipo: "text/html; charset=utf-8" };
+        }
+        function entregaDF({ ses, json }) {
+          const d = (typeof json === "function" ? json() : json) || {};
+          const fecha = d.fecha === null || d.fecha === void 0 ? null : String(d.fecha);
+          return require_commissioning().marcarEnviado(repo, ses, String(d.equipoId || ""), fecha);
+        }
+        return {
+          "POST api/plano-equipos/entrega-df": entregaDF,
+          "POST api/materiales": material,
+          "POST api/materiales/alta": materialAlta,
+          "GET api/plano-equipos/entregable": entregable,
+          "GET api/plano-equipos": lista,
+          "GET api/plano-equipos/imagen": imagen,
+          "GET api/plano-equipos/localizacion": localizacion
+        };
+      }
+      module.exports = { crearRutasPlanoEquipos, PERMISOS_PLANO_EQUIPOS, localizacionDe, usarNubeCertificacion, certificacionDeLaNube };
     }
   });
 
@@ -94580,466 +95595,6 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         };
       }
       module.exports = { crearRutasFichas, PERMISOS_FICHAS };
-    }
-  });
-
-  // marca/colores.js
-  var require_colores = __commonJS({
-    "marca/colores.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var MARCA = {
-        // El verde de CBRE. Es EL color: cabeceras, titulares, totales.
-        verde: { hex: "#003F2D", nombre: "CBRE Green", pantone: "3435 C", procedencia: "confirmado" },
-        // El verde vivo. Acento, NUNCA fondo de texto largo ni superficie grande.
-        verdeAcento: { hex: "#17E88F", nombre: "Accent Green", pantone: "7479 C", procedencia: "confirmado" },
-        // Verde casi negro. Barra lateral y bloque del logo, modo oscuro, pies de documento.
-        verdeOscuro: { hex: "#012A2D", nombre: "Dark Green", pantone: "627 C", procedencia: "confirmado" },
-        grisOscuro: { hex: "#435254", nombre: "Dark Grey", pantone: "431 C", procedencia: "confirmado" },
-        grisClaro: { hex: "#CAD1D3", nombre: "Light Grey", pantone: "428 C", procedencia: "confirmado" },
-        /*
-         * El blanco es un token porque hace falta un blanco QUE NO CAMBIE con el
-         * tema: el texto sobre el verde CBRE y sobre el pie de las tablas es blanco
-         * en los dos temas. Usar `--panel` ahí rompería el modo oscuro, donde
-         * `--panel` vale #012A2D.
-         */
-        blanco: { hex: "#FFFFFF", nombre: "Blanco", pantone: "\u2014", procedencia: "no es de marca" }
-      };
-      var AMPLIADA = {
-        celadon: { hex: "#80BBAD", tinte: "#C0D4CB", nombre: "Celadon", procedencia: "confirmado" },
-        wheat: { hex: "#DBD99A", tinte: "#EFECD2", nombre: "Wheat", procedencia: "confirmado" },
-        cement: { hex: "#7F8480", tinte: "#CBCDCB", nombre: "Cement", procedencia: "tinte confirmado, base inferida" },
-        sage: { hex: "#538184", tinte: "#96B3B6", nombre: "Sage", procedencia: "tinte confirmado, base inferida" },
-        midnight: { hex: "#032842", tinte: "#778F9C", nombre: "Midnight", procedencia: "tinte confirmado, base inferida" }
-      };
-      var ESTADO = {
-        bien: { hex: "#003F2D", fondo: "#DFF0E8" },
-        aviso: { hex: "#14507F", fondo: "#E1ECF6" },
-        mal: { hex: "#9C2B2B", fondo: "#F7DEDE" },
-        info: { hex: "#0B4A63", fondo: "#DCEAF1" }
-      };
-      var ESTADO_OSCURO = {
-        bien: { hex: "#5FD39E", fondo: "#0C3F31" },
-        aviso: { hex: "#8DBBEA", fondo: "#14273B" },
-        mal: { hex: "#FF9E92", fondo: "#4A1F1F" },
-        info: { hex: "#8CC6E0", fondo: "#0E3445" }
-      };
-      var DISCIPLINAS = {
-        electricidad: "#003F2D",
-        climatizacion: "#538184",
-        fontaneria: "#80BBAD",
-        pci: "#9C2B2B",
-        control: "#032842",
-        gases: "#DBD99A",
-        ventilacion: "#96B3B6",
-        otros: "#7F8480"
-      };
-      var INTERFAZ = {
-        claro: {
-          papel: "#F4F6F5",
-          panel: "#FFFFFF",
-          panel2: "#EEF2F0",
-          panel3: "#E3EAE7",
-          rejilla: "#CAD1D3",
-          rejillaSuave: "#E1E6E7",
-          borde: "#7F8480",
-          texto: "#1A1A1A",
-          textoSuave: "#435254",
-          /* 4,75:1 sobre el papel. El anterior (#6B7674) daba 4,33 y no llegaba a
-             AA, justo en el texto que explica POR QUÉ salta un aviso. */
-          textoTenue: "#63706D",
-          seleccion: "#DFF0E8",
-          /*
-           * LA BANDA DE CAPÍTULO tiene que existir en los dos temas.
-           * Antes se usaba directamente el celadon tinte de marca, que es un color
-           * claro, también en modo oscuro: la banda salía blanquecina con texto casi
-           * blanco encima (1,35:1) y el cursor no se veía (1,04:1).
-           */
-          bandaCapitulo: "#C0D4CB",
-          bandaCapitulo2: "#E3EAE7",
-          /*
-           * LOS BLOQUES IMPORTANTES DEL INICIO: un pastel sacado del celadon, muy
-           * rebajado, para que destaquen sin parecer un aviso. La cabecera va un
-           * punto más cargada que el cuerpo, como la banda de los demás bloques.
-           */
-          destacado: "#EDF5F1",
-          destacadoCabeza: "#D6E9E1",
-          destacadoBorde: "#A9CFC2",
-          /*
-           * EL FOCO NO PUEDE SER EL VERDE ACENTO EN TEMA CLARO.
-           * #17E88F sobre papel da 1,49:1 — el anillo de «dónde estoy» era
-           * invisible en toda la aplicación. En claro manda el verde CBRE (11,06:1);
-           * en oscuro sí funciona el acento.
-           */
-          foco: "#003F2D",
-          /* Sobre el verde de la barra lateral, donde no vale ningún gris normal. */
-          sobreVerdeTexto: "#D2E0DB",
-          sobreVerdeLinea: "#1A5443",
-          sobreVerdeHover: "#0A4B36",
-          menuActivo: "#04533A",
-          /* El verde CBRE como TEXTO (cabeceras de tabla, rótulos). En oscuro el
-             verde de marca sobre el panel daba 1,28:1: ahí va un verde claro. */
-          verdeTexto: "#003F2D",
-          /* El texto sobre un relleno de estado (contador «hecho», insignias). */
-          sobreEstado: "#FFFFFF"
-        },
-        oscuro: {
-          papel: "#001E19",
-          panel: "#012A2D",
-          panel2: "#043534",
-          panel3: "#0A413E",
-          rejilla: "#1C4A45",
-          rejillaSuave: "#143B37",
-          borde: "#628680",
-          texto: "#EAF1EE",
-          textoSuave: "#A9BDB7",
-          textoTenue: "#7E918C",
-          seleccion: "#0C4A38",
-          bandaCapitulo: "#124C42",
-          bandaCapitulo2: "#0A413E",
-          /* En oscuro el cuerpo no se aclara: el texto tenue ya va justo sobre el
-             panel (4,61:1) y cualquier teal más claro lo bajaba de AA (3,87:1).
-             Aquí el bloque importante lo marcan la cabecera y el borde. */
-          destacado: "#012A2D",
-          destacadoCabeza: "#0D4A47",
-          destacadoBorde: "#2A6A62",
-          foco: "#17E88F",
-          sobreVerdeTexto: "#D2E0DB",
-          sobreVerdeLinea: "#1A5443",
-          sobreVerdeHover: "#0A4B36",
-          menuActivo: "#04533A",
-          verdeTexto: "#8FD1BE",
-          sobreEstado: "#001E19"
-        }
-      };
-      var PILA_SISTEMA = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
-      var FUENTES = {
-        /*
-         * TITULARES.
-         *
-         * CBRE compone con Financier Display, un serif. Si está instalada, se usa.
-         * Si no —que es lo normal—, el respaldo NO es otro serif: es la pila del
-         * sistema.
-         *
-         * El motivo es que el respaldo real de un serif en Mac y en Windows es
-         * Georgia o Times, y ninguna de las dos se parece a Financier: son tipos de
-         * otra época y le dan a la aplicación un aire de documento de Word. Una
-         * herramienta de trabajo compuesta en San Francisco o en Segoe se ve actual
-         * y, sobre todo, se ve intencionada.
-         *
-         * Georgia además compone cifras de estilo antiguo por defecto, lo que hacía
-         * bailar las cifras grandes del inicio.
-         */
-        titular: `'Financier Display', ${PILA_SISTEMA}`,
-        /* Texto e interfaz. Calibre cuando CBRE ceda licencia. */
-        texto: `'Calibre', ${PILA_SISTEMA}`,
-        /* Números: TABULAR SIEMPRE. Una columna de importes que baila es un error. */
-        cifra: "'SF Mono', 'Segoe UI Mono', 'Roboto Mono', ui-monospace, monospace"
-      };
-      var ESCALA = {
-        micro: "10.5px",
-        // rótulos de columna, unidades
-        menor: "11.5px",
-        // apoyo, pies, motivos
-        base: "12.5px",
-        // texto e interfaz
-        medio: "14px",
-        // títulos de bloque
-        mayor: "18px",
-        // título de pantalla
-        cifra: "24px"
-        // las cifras grandes de los indicadores
-      };
-      module.exports = { MARCA, AMPLIADA, ESTADO, ESTADO_OSCURO, DISCIPLINAS, INTERFAZ, FUENTES, ESCALA };
-    }
-  });
-
-  // electron/data/entregablePlano.js
-  var require_entregablePlano = __commonJS({
-    "electron/data/entregablePlano.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var PE = require_planoEquipos2();
-      var M = require_materialesInstalados();
-      var { MARCA, AMPLIADA, ESTADO, INTERFAZ, FUENTES } = require_colores();
-      var esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-      var llano = (v) => String(v ?? "").trim();
-      var fecha = (v) => {
-        const s = llano(v).slice(0, 10);
-        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
-        return m ? `${m[3]}/${m[2]}/${m[1]}` : s;
-      };
-      var idSeguro = (v) => llano(v).replace(/[^A-Za-z0-9_-]/g, "_");
-      var COLOR_CAPA = {
-        equipos: MARCA.verde.hex,
-        compuertas: AMPLIADA.sage.hex,
-        vav: AMPLIADA.midnight.hex,
-        difusores: ESTADO.info.hex,
-        rejillas: ESTADO.aviso.hex,
-        valvulas: MARCA.verdeOscuro.hex,
-        detectores: MARCA.grisOscuro.hex,
-        actuadores: AMPLIADA.sage.hex,
-        sondas: ESTADO.info.hex,
-        otros: AMPLIADA.cement.hex
-      };
-      function datosEquipos(repo, obraId) {
-        const cols = new Set(repo.db.prepare("SELECT name FROM pragma_table_info('equiposObra')").all().map((c) => c.name));
-        const pide = ["id", "numSerie", "fechaInstalacion", "fechaPuestaMarcha", "garantiaAnios", "fechaFabricacion", "potencia", "denominacion"].filter((c) => cols.has(c));
-        const eq = new Map(repo.db.prepare(`SELECT ${pide.join(", ")} FROM equiposObra WHERE obraId = ?`).all(obraId).map((e) => [e.id, e]));
-        const rep = /* @__PURE__ */ new Map();
-        try {
-          for (const i of repo.db.prepare("SELECT equipoId, titulo, estado, fechaApertura, fechaCierre FROM incidencias WHERE obraId = ? AND equipoId IS NOT NULL AND estado != 'anulada' ORDER BY fechaApertura").all(obraId)) {
-            if (!rep.has(i.equipoId)) rep.set(i.equipoId, []);
-            rep.get(i.equipoId).push(i);
-          }
-        } catch {
-        }
-        return { eq, rep };
-      }
-      var ESTADO_REP = { abierta: "abierta", enCurso: "en curso", terminada: "terminada", cerrada: "cerrada" };
-      function puntosDePlanta(pl, extra) {
-        const puntos = [];
-        let n = 0;
-        for (const e of pl.equipos) {
-          n += 1;
-          const d = extra.eq.get(e.id) || {};
-          const filas = [
-            ["Tipo", e.familia || e.tipo],
-            ["Sala", e.sala],
-            ["Marca", e.marca],
-            ["Modelo", e.modelo],
-            ["N\xBA de serie", d.numSerie],
-            ["Instalaci\xF3n", fecha(d.fechaInstalacion)],
-            ["Puesta en marcha", fecha(d.fechaPuestaMarcha)],
-            ["Garant\xEDa", d.garantiaAnios ? `${String(d.garantiaAnios).replace(".", ",")} a\xF1os` : null]
-          ].filter(([, v]) => llano(v));
-          puntos.push({ n, capa: "equipos", tag: e.tag, nombre: e.familia || "Equipo", x: e.x, y: e.y, filas, ficha: null, ce: null, documentos: e.documentos || [], reparaciones: extra.rep.get(e.id) || [], estado: e.color });
-        }
-        for (const m of pl.materiales || []) {
-          n += 1;
-          puntos.push({ n, capa: m.capa, tag: m.tag, nombre: m.tipoNombre, x: m.x, y: m.y, filas: m.filas.filter(([k]) => k !== "Tipo"), ficha: m.fichaTecnica, ce: m.marcadoCE, reparaciones: [], incidencia: m.incidencia, estado: m.estado });
-        }
-        return puntos;
-      }
-      function seccionPlanta(pl, img, puntos, idP) {
-        const enPlano = puntos.filter((p) => p.x !== null && p.x !== void 0);
-        const porCapa = {};
-        for (const p of puntos) porCapa[p.capa] = (porCapa[p.capa] || 0) + 1;
-        const porTipo = {};
-        for (const p of puntos) porTipo[`${p.capa}|${p.nombre}`] = (porTipo[`${p.capa}|${p.nombre}`] || 0) + 1;
-        const leyenda = Object.entries(porTipo).sort().map(([k, c]) => {
-          const [capa, nombre] = k.split("|");
-          return `<span class="ley"><i style="background:${COLOR_CAPA[capa] || COLOR_CAPA.otros}"></i>${esc(nombre)} <b>${c}</b></span>`;
-        }).join("");
-        const capas = M.CAPAS.filter((c) => porCapa[c.id]).map((c) => `<label class="capa"><input type="checkbox" checked data-capa="${c.id}" data-p="${idP}"> ${esc(c.nombre)} <b>${porCapa[c.id]}</b></label>`).join("");
-        const marcas = enPlano.map((p) => `<a class="mk c-${p.capa}${p.capa === "equipos" ? " eq" : ""}" href="#f-${idP}-${p.n}" title="${esc(`${p.tag} \xB7 ${p.nombre}`)}" style="left:${(p.x * 100).toFixed(3)}%;top:${(p.y * 100).toFixed(3)}%;background:${COLOR_CAPA[p.capa] || COLOR_CAPA.otros}">${p.n}</a>`).join("");
-        const plano = img ? `<div class="marco" id="m-${idP}"><div class="lienzo" style="aspect-ratio:${pl.plano.ancho || 1}/${pl.plano.alto || 1}"><img src="${img}" alt="Plano ${esc(pl.planta)}">${marcas}</div></div>` : '<p class="nota">Esta planta no tiene plano cargado: solo su lista.</p>';
-        const filas = puntos.map((p) => {
-          const datos = p.filas.map(([k, v]) => `<span class="dt"><em>${esc(k)}</em> ${esc(v)}</span>`).join("");
-          const a = (url, texto) => `<a class="doc" href="${esc(url)}" target="_blank" rel="noopener">${esc(texto)} \u2197</a>`;
-          const docs = p.capa === "equipos" ? (p.documentos || []).map((d) => a(d.url, `${d.etiqueta}: ${d.nombre}`)).join(" \xB7 ") || '<span class="tenue">Sin ficha t\xE9cnica</span>' : [
-            p.ficha ? `${a(p.ficha.url, `Ficha t\xE9cnica: ${p.ficha.nombre}`)}${p.ficha.nivel === "tipo" ? '<span class="tenue"> (del tipo)</span>' : ""}` : '<span class="tenue">Sin ficha t\xE9cnica</span>',
-            p.ce ? a(p.ce.url, `Marcado CE: ${p.ce.nombre}`) : ""
-          ].filter(Boolean).join(" \xB7 ");
-          const rep = p.reparaciones.length ? `<div class="rep"><em>Reparaciones</em> ${p.reparaciones.map((r) => `${fecha(r.fechaApertura)} ${esc(r.titulo)} (${esc(ESTADO_REP[r.estado] || r.estado)}${r.fechaCierre ? ` ${fecha(r.fechaCierre)}` : ""})`).join(" \xB7 ")}</div>` : "";
-          const inc = p.incidencia ? `<div class="rep mal"><em>Incidencia</em> ${esc(p.incidencia)}</div>` : "";
-          return `<tr id="f-${idP}-${p.n}" class="c-${p.capa}"><td class="n"><span class="bola" style="background:${COLOR_CAPA[p.capa] || COLOR_CAPA.otros}">${p.n}</span></td><td class="tag">${esc(p.tag)}<div class="tenue">${esc(p.nombre)}</div></td><td>${datos}${rep}${inc}</td><td class="docs">${docs}</td><td class="vuelta">${p.x !== null && p.x !== void 0 && img ? `<a href="#m-${idP}">\u2191 plano</a>` : '<span class="tenue">sin ubicar</span>'}</td></tr>`;
-        }).join("");
-        return `<section class="planta" id="p-${idP}">
-  <h2>Planta ${esc(pl.planta || "sin planta")}${pl.plano ? ` <span class="tenue">\xB7 ${esc(pl.plano.nombre)}</span>` : ""}</h2>
-  <div class="barra no-imp">${capas}<span class="zoom"><button type="button" data-z="-1" data-p="${idP}">\u2212</button><button type="button" data-z="1" data-p="${idP}">+</button></span></div>
-  <div class="leyenda">${leyenda}</div>
-  ${plano}
-  <h3 class="salto">Fichas \xB7 planta ${esc(pl.planta || "")} <span class="tenue">(${puntos.length})</span></h3>
-  <table class="fichas"><thead><tr><th>N\xBA</th><th>TAG</th><th>Datos</th><th>Documentos</th><th></th></tr></thead><tbody>${filas}</tbody></table>
-</section>`;
-      }
-      function html(repo, ses, obraId, { planta = null } = {}) {
-        const d = PE.listar(repo, ses, obraId);
-        if (!d) return { ok: false, error: "No se encuentra la obra." };
-        const obra = repo.db.prepare("SELECT * FROM obras WHERE id = ?").get(obraId) || {};
-        let plantas = d.plantas.filter((p) => p.equipos.length || (p.materiales || []).length);
-        if (planta) plantas = plantas.filter((p) => String(p.planta || "") === String(planta));
-        if (!plantas.length) return { ok: false, error: planta ? `La planta ${planta} no tiene equipos ni materiales.` : "La obra no tiene equipos ni materiales en planos." };
-        const extra = datosEquipos(repo, obraId);
-        const cuentas = {};
-        const secciones = plantas.map((pl) => {
-          const idP = idSeguro(pl.planta || "SP");
-          let img = null;
-          if (pl.plano) {
-            const i = PE.imagen(repo, ses, pl.plano.id);
-            img = i ? i.imagen : null;
-          }
-          const puntos = puntosDePlanta(pl, extra);
-          cuentas[pl.planta || ""] = { equipos: pl.equipos.length, materiales: (pl.materiales || []).length };
-          return seccionPlanta(pl, img, puntos, idP);
-        }).join("\n");
-        const indice = plantas.length > 1 ? `<nav class="indice no-imp-no">${plantas.map((pl) => `<a href="#p-${idSeguro(pl.planta || "SP")}">Planta ${esc(pl.planta || "\u2014")} <span class="tenue">${pl.equipos.length} eq. \xB7 ${(pl.materiales || []).length} mat.</span></a>`).join("")}</nav>` : "";
-        const hoy = require_fecha().hoyLocal();
-        const titulo = `${obra.codigo || ""} \xB7 Planos de mantenimiento${planta ? ` \xB7 planta ${planta}` : ""}`;
-        const I = INTERFAZ.claro;
-        const doc = `<!doctype html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(titulo)}</title>
-<style>
-:root{--verde:${MARCA.verde.hex};--texto:${I.texto};--suave:${I.textoSuave};--tenue:${I.textoTenue};--rejilla:${I.rejilla};--panel:${I.panel};--papel:${I.papel};--mal:${ESTADO.mal.hex};--malFondo:${ESTADO.mal.fondo}}
-*{box-sizing:border-box}
-body{margin:0;padding:16px;font:13px/1.4 ${FUENTES.texto};color:var(--texto);background:var(--panel)}
-h1{font:600 20px/1.2 ${FUENTES.titular};color:var(--verde);margin:0 0 2px}
-h2{font:600 16px/1.2 ${FUENTES.titular};color:var(--verde);margin:18px 0 6px;border-bottom:1px solid var(--verde);padding-bottom:3px}
-h3{font-size:13px;color:var(--verde);margin:14px 0 4px}
-.tenue{color:var(--tenue);font-weight:400}
-.cab{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
-.indice{display:flex;flex-wrap:wrap;gap:4px 14px;margin:6px 0}
-.indice a{color:var(--verde);text-decoration:none;font-weight:600}
-.barra{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:4px 0;width:fit-content}
-.capa{border:1px solid var(--rejilla);border-radius:999px;padding:1px 8px;font-size:12px;cursor:pointer;white-space:nowrap}
-.zoom button{border:1px solid var(--rejilla);background:var(--panel);border-radius:3px;width:26px;height:22px;margin-left:2px;cursor:pointer;color:var(--verde);font-weight:700}
-.leyenda{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:12px;margin:4px 0}
-.ley i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:-1px}
-.marco{overflow:auto;border:1px solid var(--rejilla);max-height:80vh}
-.lienzo{position:relative;width:100%}
-.lienzo img{display:block;width:100%;height:100%}
-.mk{position:absolute;transform:translate(-50%,-50%);min-width:13px;height:13px;padding:0 2px;border-radius:7px;color:${I.sobreEstado};font:600 8px/13px ${FUENTES.cifra};text-align:center;text-decoration:none;opacity:.92}
-.mk.eq{border-radius:2px;min-width:16px;height:15px;font-size:9px;line-height:15px}
-.mk:hover,.mk:focus{opacity:1;outline:2px solid var(--verde);z-index:2}
-.oculta{display:none!important}
-table.fichas{border-collapse:collapse;width:100%;font-size:12px}
-.fichas th{text-align:left;color:var(--verde);border-bottom:1px solid var(--verde);font-weight:600;padding:3px 6px}
-.fichas td{border-bottom:1px solid var(--rejilla);padding:3px 6px;vertical-align:top}
-.fichas tr:target{background:${ESTADO.bien.fondo}}
-.fichas .n{width:34px}.fichas .tag{white-space:nowrap;font-weight:600}
-.bola{display:inline-block;min-width:22px;padding:0 3px;border-radius:9px;color:${I.sobreEstado};text-align:center;font:600 11px/18px ${FUENTES.cifra}}
-.dt{display:inline-block;margin-right:12px;white-space:nowrap}.dt em,.rep em{font-style:normal;color:var(--tenue);margin-right:3px}
-.rep{margin-top:2px}.rep.mal{color:var(--mal)}
-.doc{color:var(--verde);font-weight:600;white-space:nowrap}
-.vuelta a{color:var(--suave);white-space:nowrap}
-.nota{color:var(--tenue)}
-@media print{
-  body{padding:0}.no-imp{display:none}
-  .marco{max-height:none;overflow:visible;border:0;page-break-after:always}
-  .planta{page-break-before:always}.planta:first-of-type{page-break-before:auto}
-  /* El plano entero en UNA hoja A3 (277 mm \xFAtiles menos cabecera y leyenda): manda la altura. */
-  .marco{page-break-inside:avoid}
-  .lienzo{width:auto!important;height:228mm;max-width:100%;margin:0 auto}
-  .fichas tr{page-break-inside:avoid}
-}
-@page{size:A3 landscape;margin:10mm}
-</style></head><body>
-<div class="cab">${require_papel().logoObra(obra, { alto: "9mm" })}<h1>${esc(obra.nombre || "Obra")}</h1><span class="tenue">${esc(obra.codigo || "")} \xB7 Planos de equipos y materiales instalados para mantenimiento \xB7 ${fecha(hoy)}</span></div>
-<p class="tenue">Cada n\xFAmero del plano lleva a su ficha; cada ficha, a su ficha t\xE9cnica y de vuelta al plano. Funciona sin conexi\xF3n salvo los enlaces a los documentos del fabricante.</p>
-${indice}
-${secciones}
-<script>
-document.addEventListener('change',function(e){var c=e.target;if(!c.dataset||!c.dataset.capa)return;var s=document.getElementById('p-'+c.dataset.p);
-s.querySelectorAll('.c-'+c.dataset.capa).forEach(function(n){n.classList.toggle('oculta',!c.checked)});});
-document.addEventListener('click',function(e){var b=e.target.closest('[data-z]');if(!b)return;var l=document.querySelector('#m-'+b.dataset.p+' .lienzo');if(!l)return;
-var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>0?1.5:1/1.5)));l.style.width=w+'%';});
-<\/script>
-</body></html>`;
-        const nombre = `${obra.codigo || "obra"}-mantenimiento${planta ? `-${planta}` : ""}-${hoy}`.replace(/[^\w.-]+/g, "_");
-        return { ok: true, html: doc, nombre, cuentas };
-      }
-      async function pdf(htmlTexto, ruta) {
-        const fs = require_fs();
-        const os = require_os();
-        const path = require_path();
-        const { BrowserWindow } = require_electronFalso();
-        const tmp = path.join(os.tmpdir(), `entregable-${Date.now()}.html`);
-        fs.writeFileSync(tmp, htmlTexto);
-        const w = new BrowserWindow({ show: false, width: 1600, height: 1100, webPreferences: { javascript: false, offscreen: true } });
-        try {
-          await w.loadFile(tmp);
-          const buf = await w.webContents.printToPDF({ pageSize: "A3", landscape: true, printBackground: true, margins: { marginType: "custom", top: 0.4, bottom: 0.4, left: 0.4, right: 0.4 } });
-          fs.writeFileSync(ruta, buf);
-          return { ok: true, ruta, bytes: buf.length };
-        } finally {
-          w.destroy();
-          fs.rmSync(tmp, { force: true });
-        }
-      }
-      module.exports = { html, pdf, COLOR_CAPA };
-    }
-  });
-
-  // electron/movil/rutasPlanoEquipos.js
-  var require_rutasPlanoEquipos = __commonJS({
-    "electron/movil/rutasPlanoEquipos.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var PE = require_planoEquipos2();
-      var PERMISOS_PLANO_EQUIPOS = {
-        /* 29-oct (JC): lo ve todo el enrolado en la obra (el alcance lo pone el repositorio). */
-        "GET api/plano-equipos": [["planoEquipos", "ver"]],
-        "GET api/plano-equipos/imagen": [["planoEquipos", "ver"]],
-        /* La localización de un equipo en el plano (29-oct): sale en su ficha, entre sus fotos. */
-        "GET api/plano-equipos/localizacion": [["commissioning", "ver"]],
-        /* Los materiales instalados (29-oct): apuntar el nº de serie o la ficha en obra, y el
-           entregable a mantenimiento (HTML autónomo del plano con sus fichas). */
-        "POST api/materiales": [["planoEquipos", "editar"]],
-        "POST api/materiales/alta": [["planoEquipos", "crear"]],
-        "GET api/plano-equipos/entregable": [["planoEquipos", "ver"]]
-      };
-      function localizacionDe(repo, ses, equipoId) {
-        try {
-          return PE.localizacion(repo, ses, equipoId).map((r) => ({
-            n: r.n,
-            pie: r.pie,
-            planta: r.planta,
-            sala: r.sala,
-            unidades: r.marcas.map((m) => m.etiqueta),
-            url: `api/plano-equipos/localizacion?id=${encodeURIComponent(equipoId)}&n=${r.n}`
-          }));
-        } catch {
-          return [];
-        }
-      }
-      function crearRutasPlanoEquipos({ repo }) {
-        function lista({ ses, query }) {
-          const d = PE.listar(repo, ses, String(query.obra || ""));
-          if (!d) return { ok: false, error: "No se encuentra la obra." };
-          return { ok: true, plantas: d.plantas, planos: d.planos, iconos: d.iconos, colores: d.colores, puedeEditar: d.puedeEditar, conCommissioning: d.conCommissioning, capas: d.capas, tiposMaterial: d.tiposMaterial };
-        }
-        function imagen({ ses, query }) {
-          const img = PE.imagen(repo, ses, String(query.id || ""));
-          if (!img) return [404, { ok: false, error: "No se encuentra el plano." }];
-          const m = /^data:(image\/[a-z+]+);base64,(.*)$/s.exec(String(img.imagenMovil || img.imagen || ""));
-          if (!m) return [415, { ok: false, error: "La imagen del plano no se puede ense\xF1ar." }];
-          return { bytes: Buffer.from(m[2], "base64"), tipo: m[1] === "image/jpg" ? "image/jpeg" : m[1] };
-        }
-        function localizacion({ ses, query }) {
-          const r = PE.localizacion(repo, ses, String(query.id || "")).find((x) => String(x.n) === String(query.n ?? 0));
-          if (!r) return [404, { ok: false, error: "Este equipo no est\xE1 colocado en ning\xFAn plano." }];
-          const svg = PE.svgRecorte(repo, ses, r);
-          if (!svg) return [404, { ok: false, error: "El plano no tiene imagen." }];
-          return { bytes: Buffer.from(svg, "utf8"), tipo: "image/svg+xml" };
-        }
-        const MI = require_materialesInstalados2();
-        function material({ ses, json }) {
-          const d = json || {};
-          if (d.borrar) return MI.borrar(repo, ses, String(d.id || ""));
-          return MI.guardar(repo, ses, String(d.id || ""), d);
-        }
-        function materialAlta({ ses, json }) {
-          const d = json || {};
-          return MI.alta(repo, ses, String(d.obra || ""), d);
-        }
-        function entregable({ ses, query }) {
-          const EP = require_entregablePlano();
-          const r = EP.html(repo, ses, String(query.obra || ""), { planta: query.planta ? String(query.planta) : null });
-          if (!r.ok) return [404, r];
-          return { bytes: Buffer.from(r.html, "utf8"), tipo: "text/html; charset=utf-8" };
-        }
-        return {
-          "POST api/materiales": material,
-          "POST api/materiales/alta": materialAlta,
-          "GET api/plano-equipos/entregable": entregable,
-          "GET api/plano-equipos": lista,
-          "GET api/plano-equipos/imagen": imagen,
-          "GET api/plano-equipos/localizacion": localizacion
-        };
-      }
-      module.exports = { crearRutasPlanoEquipos, PERMISOS_PLANO_EQUIPOS, localizacionDe };
     }
   });
 
@@ -129428,6 +129983,7 @@ ${l}`;
         }
       }
     });
+    require_rutasPlanoEquipos().usarNubeCertificacion((obra, codigos) => oficina().ejemplo || !syncCx.yo() ? Promise.reject(new Error("Sin nube.")) : syncCx.nube.rpc("cx_certificacion_equipos", { p_obra: obra, p_codigos: codigos }));
     const entrarEnLaNube = async (correo, clave) => {
       let r;
       try {
