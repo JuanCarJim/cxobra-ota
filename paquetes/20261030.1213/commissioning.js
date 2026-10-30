@@ -573,7 +573,67 @@
       </div>
       ${rev ? `<div class="sub"><span class="marca-revisar">${rev} a revisar</span> fuera de la suma${c.disenoRevisar ? ` (${cifra(c.disenoRevisar)} m³/h de proyecto)` : ''}: no se pueden atribuir al equipo con seguridad. Suma de las atribuidas: ${cifra(c.disenoPuntos)} m³/h en ${c.puntos || 0}.</div>` : ''}
       ${c.faltan ? `<div class="sub">Faltan ${c.faltan} boca${c.faltan === 1 ? '' : 's'} atribuida${c.faltan === 1 ? '' : 's'} por medir.</div>` : ''}
+      <div class="sub">Tª frío ${c.tFrio || 0}/${c.puntos || 0} · Tª calor ${c.tCalor || 0}/${c.puntos || 0} · completas ${c.completas || 0}/${c.puntos || 0} (caudal y las dos Tª)</div>
     </div>`;
+  }
+
+  /*
+   * LA MEDICIÓN EN EL CONDUCTO PRINCIPAL (30-oct-2026, JC): sección (ancho ×
+   * alto o Ø, mm), la velocidad de varios puntos (m/s) y Q = S × v̄ × 3600; o
+   * el caudal que da el anemómetro, que manda. Es el caudal medido del equipo
+   * de la hoja de balanceo (el mismo que lee la ficha de puesta en marcha).
+   */
+  function htmlConducto(f, red, nombre, puede) {
+    const c = f.conducto && f.conducto[red];
+    if (!c) return '';
+    const dis = puede ? '' : 'disabled';
+    const v = (x, d = 0) => (x === null || x === undefined ? '' : comaD(x, d));
+    const circ = c.forma === 'circ';
+    const apuntado = c.origen === 'apuntado';
+    const campo = (k, rot, val, d = 0) => `<label>${rot}<input inputmode="decimal" autocomplete="off" ${dis} data-cond="${k}" value="${v(val, d)}" aria-label="${esc(nombre)}: ${esc(rot)}"></label>`;
+    return `<div class="conducto-principal" data-conducto="${red}">
+      <div class="fila-principal"><strong>Conducto principal · ${esc(nombre)}</strong>
+        ${c.etiquetas && c.etiquetas.length ? c.etiquetas.map((e) => `<span class="marca-revisar">${esc(e)}</span>`).join('') : ''}</div>
+      <div class="segmentado" role="tablist" aria-label="Sección">${[['rect', 'Rectangular'], ['circ', 'Circular']].map(([id, n]) => `<button type="button" ${dis} data-cx="conducto-forma" data-red="${red}" data-forma="${id}" class="${(circ ? 'circ' : 'rect') === id ? 'activa' : ''}" aria-selected="${(circ ? 'circ' : 'rect') === id}">${n}</button>`).join('')}</div>
+      <div class="campos-conducto">
+        ${circ ? campo('diametro', 'Ø (mm)', c.diametro) : `${campo('ancho', 'Ancho (mm)', c.ancho)}${campo('alto', 'Alto (mm)', c.alto)}`}
+        ${campo('velocidades', 'Velocidades (m/s, separadas por espacios)', null)}
+        ${campo('caudal', 'Q del aparato (m³/h, manda)', apuntado ? c.caudalMedido : null)}
+        ${campo('tFrio', 'Tª frío (°C)', c.tFrio, 1)}${campo('tCalor', 'Tª calor (°C)', c.tCalor, 1)}
+      </div>
+      ${c.velocidades && c.velocidades.length ? `<div class="sub">Puntos: ${c.velocidades.map((x) => comaD(x, 1)).join(' · ')} → v̄ ${v(c.velocidad, 2)} m/s</div>` : ''}
+      <div class="cifras-total">
+        <div><span>S × v̄ × 3600</span><b>${cifra(c.caudal)}</b><em>m³/h</em></div>
+        <div><span>Medido equipo</span><b>${cifra(c.caudalMedido)}</b><em>${c.origen === 'seccion' ? 'bruto, sin factor' : apuntado ? 'del aparato' : 'm³/h'}</em></div>
+        <div><span>Nominal</span><b>${cifra(c.nominal)}</b><em>${c.origenNominal === 'fabrica' ? 'ficha técnica' : c.origenNominal === 'proyecto' ? 'proyecto' : 'sin dato'}</em></div>
+        <div><span>Bocas (proyecto)</span><b>${cifra(c.sumaBocas)}</b><em>${c.veces ? `× ${comaD(c.veces, 1)}` : 'm³/h'}</em></div>
+      </div>
+      ${(c.avisos || []).map((a) => `<p class="nota ${a.gravedad === 'info' ? '' : 'aviso'}">${esc(a.texto)}</p>`).join('')}
+      ${c.fecha || c.autor ? `<div class="sub">${esc([c.fecha, c.autor].filter(Boolean).join(' · '))}</div>` : ''}
+      ${puede ? `<button type="button" class="boton secundario" data-cx="conducto-guardar" data-red="${red}">Guardar conducto principal</button>` : ''}
+    </div>`;
+  }
+
+  async function guardarConducto(b, extra = {}) {
+    const red = b.dataset.red;
+    const caja = $app.querySelector(`[data-conducto="${CSS.escape(red)}"]`);
+    const cuerpo = { equipoId: ficha.equipo.id, red, ...extra };
+    if (caja && !extra.forma) {
+      for (const i of caja.querySelectorAll('input[data-cond]')) {
+        const k = i.dataset.cond;
+        const val = i.value.trim();
+        if (k === 'velocidades') { if (val) cuerpo.velocidades = val.replace(/,/g, '.').split(/[\s;]+/).filter(Boolean); continue; }
+        if (k === 'caudal') { if (val !== i.defaultValue.trim()) cuerpo.caudal = val.replace(/\./g, '').replace(',', '.'); continue; }
+        if (val !== i.defaultValue.trim()) cuerpo[k] = val.replace(',', '.');
+      }
+    }
+    b.disabled = true;
+    try {
+      const r = await C.postJson('api/equipo/conducto', cuerpo);
+      if (!r.ok) throw new Error(r.error);
+      ficha = r;
+      if (activa()) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
+    } catch (e) { C.aviso(e.message); b.disabled = false; }
   }
 
   /*
@@ -749,13 +809,14 @@
     leer: (r) => ({ nombre: (((r && r.querySelector('[data-firma-nombre]')) || {}).value || '').trim(), cargo: null }),
     falta: (rol, c) => (c.nombre ? null : 'Falta el nombre de quien firma.'),
   };
-  const ROTULO_FIRMA = { jefeObra: FD.rotulo('jefeObra'), cliente: FD.rotulo('cliente') };
+  const PAPELES_FIRMA = ['jefeObra', 'cliente', 'firmaCliente', 'mantenimiento']; /* las dos últimas: Cliente y Mantenimiento (30-oct) */
+  const ROTULO_FIRMA = { jefeObra: FD.rotulo('jefeObra'), cliente: FD.rotulo('cliente'), firmaCliente: 'Cliente', mantenimiento: 'Mantenimiento' };
   let firmando = null; /* 'jefeObra' | 'cliente' mientras se firma */
   let trazado = false;
   let firmaSinPintar = null; /* la firma a medias recuperada, mientras se pinta en el lienzo */
   function htmlFirmas(puede) {
     const fs = (ficha && ficha.firmas) || {};
-    return ['jefeObra', 'cliente'].map((rol) => {
+    return PAPELES_FIRMA.map((rol) => {
       const f = fs[rol];
       const fecha = f && f.fecha ? String(f.fecha).slice(0, 10).split('-').reverse().join('/') : '';
       const valor = f
@@ -822,7 +883,7 @@
   const claveFirma = (equipoId, rol) => `firma.${equipoId}.${rol}`;
   function firmaAMedias(equipoId) {
     if (!AG) return null;
-    return ['jefeObra', 'cliente'].find((rol) => AG.leer(claveFirma(equipoId, rol))) || null;
+    return PAPELES_FIRMA.find((rol) => AG.leer(claveFirma(equipoId, rol))) || null;
   }
   function apuntarFirma() {
     if (!AG || !ficha || !firmando) return;
@@ -987,11 +1048,14 @@
       ${htmlCrono()}
       ${circ !== 'retorno' ? totalCircuito(f.circuitos && f.circuitos.impulsion, 'Impulsión', f.tolerancias) : ''}
       ${circ !== 'impulsion' ? totalCircuito(f.circuitos && f.circuitos.retorno, nombreRet, f.tolerancias) : ''}
+      ${circ !== 'retorno' ? htmlConducto(f, 'impulsion', 'Impulsión', puedeToma) : ''}
+      ${circ !== 'impulsion' && (nRet || !todas.length) ? htmlConducto(f, 'retorno', nombreRet, puedeToma) : ''}
       ${med.velocidad ? `<p class="nota">Una medida por boca, con el equipo a velocidad ${esc(med.velocidad)}.</p>` : ''}
       ${f.planos.length ? planosVistos.map((p) => `
         <h2>${esc(p.nombre)} <span class="cuenta">${p.bocas.length} boca${p.bocas.length === 1 ? '' : 's'}${circ ? ` de ${circ === 'retorno' ? esc(nombreRet.toLowerCase()) : 'impulsión'}` : ''}</span></h2>
         ${htmlPlano(p, circ ? delCircuito : null)}
         <ul class="bocas">${p.bocas.map((b) => htmlBoca(p, b, puedeToma, f.tolerancias)).join('')}</ul>`).join('') : sinPlano()}
+      ${window.BOCA_MANUAL_MOVIL ? window.BOCA_MANUAL_MOVIL.boton(f, circ, nombreRet, puedeToma) : ''}
       ${bloqueosDe(f).length ? htmlIncidenciaEquipo(f) : (puede || !f.planos.length ? '' : '<p class="nota">Tu rol puede ver las medidas, pero no tomarlas.</p>')}
       ${f.planos.length ? '<button class="boton secundario" data-cx="pdf-balanceo"><i class="ic ic-doc"></i>Informe del balanceo (PDF)</button>' : ''}
       ${htmlFichas('balanceo', 'Hoja de balanceo')}`;
@@ -1678,16 +1742,18 @@
               value="${qLeido ? comaD(b.caudalMedido, 1) : ''}" aria-label="${esc(rotulo)} en ${esc(b.nombre)}"></label>`;
     return `<li class="boca ${clase}" data-boca="${esc(clave)}" ${vivo}>
       <div class="boca-cabeza"><strong>${esc(b.nombre)}</strong><span class="sub">${esc(b.circuito === 'retorno' ? 'Retorno' : 'Impulsión')} · ${esc(b.tipo || '')}</span>${botonInstrumento(p, b, bal ? 'balometro' : enQ ? 'anemQ' : 'anemV', puede)}</div>
-      ${b.sinPosicion || b.sinAtribuir || b.desdeCaptura || b.caudalDudoso ? `<div class="boca-marcas">${b.sinPosicion ? '<span class="marca-sin-posicion">sin posición: falta el PDF del plano</span>' : ''}${b.sinAtribuir ? `<span class="marca-revisar">a revisar · ${esc(b.sinAtribuir)}</span>` : ''}${b.desdeCaptura ? '<span class="marca-revisar">posición desde captura, a revisar</span>' : ''}${b.caudalDudoso ? `<span class="marca-revisar">${esc(b.caudalDudoso)}</span>` : ''}</div>` : ''}
+      ${b.manual || b.sinPosicion || b.sinAtribuir || b.desdeCaptura || b.caudalDudoso ? `<div class="boca-marcas">${window.BOCA_MANUAL_MOVIL ? window.BOCA_MANUAL_MOVIL.marca(p, b, puede) : ''}${b.sinPosicion && !b.manual ? '<span class="marca-sin-posicion">sin posición: falta el PDF del plano</span>' : ''}${b.sinAtribuir ? `<span class="marca-revisar">a revisar · ${esc(b.sinAtribuir)}</span>` : ''}${b.desdeCaptura ? '<span class="marca-revisar">posición desde captura, a revisar</span>' : ''}${b.caudalDudoso ? `<span class="marca-revisar">${esc(b.caudalDudoso)}</span>` : ''}</div>` : ''}
       ${bal
         ? casillaQ('Q balómetro (m³/h)')
         : `<div class="lecturas">${[0, 1, 2, 3].map((i) => `<label>M${i + 1} <small class="unidad-m">${unidadM}</small>
             <input inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis} ${datos} data-m="${i}"
               value="${lect[i] === undefined ? '' : comaD(lect[i], enQ ? 1 : 2)}" aria-label="Lectura M${i + 1} en ${unidadM} en ${esc(b.nombre)}"></label>`).join('')}</div>`}
-      <label class="t-boca">Tª (°C)
-        <input inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis} ${datos} data-t="1"
-          value="${b.temperatura === null || b.temperatura === undefined ? '' : comaD(b.temperatura, 1)}" aria-label="Temperatura en ${esc(b.nombre)}, en grados"></label>
+      <div class="t-bocas">${[['tFrio', 'Tª frío'], ['tCalor', 'Tª calor']].map(([k, rot]) => `<label class="t-boca">${rot} (°C)
+        <input inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis} ${datos} data-t="${k}"
+          value="${b[k] === null || b[k] === undefined ? '' : comaD(b[k], 1)}" aria-label="${rot} en ${esc(b.nombre)}, en grados"></label>`).join('')}
+        ${b.temperatura === null || b.temperatura === undefined ? '' : `<span class="t-sin-modo">Tª ${comaD(b.temperatura, 1)} °C · modo sin indicar</span>`}</div>
       ${bal ? '' : `<div data-vivo="formula">${formula}</div>`}
+      ${window.BOCA_MANUAL_MOVIL && window.BOCA_MANUAL_MOVIL.medidas ? window.BOCA_MANUAL_MOVIL.medidas(p, b, puede) : ''}
       <div class="boca-cifras">
         <div><span>Q medido</span><b data-vivo="q">${cifra(b.caudal)}</b></div>
         <div><span>Q proyecto</span><b>${cifra(b.caudalDiseno)}</b></div>
@@ -1764,8 +1830,8 @@
     const mIns = ins.filter((x) => x.dataset.m !== undefined);
     if (qIn) c.caudalMedido = qIn.value.trim();
     if (mIns.length) c.lecturas = mIns.map((x) => x.value.trim()).filter((v) => v !== '');
-    const tIn = ins.find((x) => x.dataset.t);
-    if (tIn) c.temperatura = tIn.value.trim();
+    /* Tª frío y Tª calor (30-oct); la de antes («sin indicar») no se manda: se queda como está. */
+    for (const tIn of ins.filter((x) => x.dataset.t)) c[tIn.dataset.t === '1' ? 'temperatura' : tIn.dataset.t] = tIn.value.trim();
     return c;
   }
 
@@ -1813,7 +1879,7 @@
    * tecleado y la cola la manda sola. Se borra cuando el servidor la guarda.
    */
   const claveBorradorBoca = (plano, punto) => `boca.${plano}|${punto}`;
-  const claveCasilla = (x) => (x.dataset.q ? 'q' : x.dataset.t ? 't' : `m${x.dataset.m}`);
+  const claveCasilla = (x) => (x.dataset.q ? 'q' : x.dataset.t ? `t${x.dataset.t}` : `m${x.dataset.m}`);
   function apuntarBoca(li) {
     if (!AG) return;
     const ins = casillas(li);
@@ -3204,6 +3270,8 @@
       irABoca(b.dataset.boca);
     }
     else if (que === 'plano-grande' && ficha) planoGrande(b);
+    else if (que === 'conducto-guardar' && ficha) guardarConducto(b);
+    else if (que === 'conducto-forma' && ficha) guardarConducto(b, { forma: b.dataset.forma });
     else if (que === 'circuito-bal' && ficha) {
       if (circuitoBal === b.dataset.circuito) return;
       cerrarHojaBoca();
@@ -3366,6 +3434,13 @@
   /* Al irse de la app (gesto de inicio, bloquear, cerrar): lo pendiente, una última vez. */
   if (AG) AG.alSalir(() => { guardarTodoYa(); });
   /* Lo que quedó en el teléfono sin mandar (sin red, app cerrada): la cola lo manda al volver. */
+  /* «+ Boca» (bocaManual.js): la ficha abierta y cómo repintarla con lo guardado. */
+  if (window.BOCA_MANUAL_MOVIL) {
+    window.BOCA_MANUAL_MOVIL.enganchar({
+      ficha: () => ficha,
+      poner: (r) => { if (!r || !r.equipo || (ficha && ficha.equipo.id !== r.equipo.id)) return; ficha = r; if (activa() && pestanaEq === 'balanceo') { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); } },
+    });
+  }
   if (COLA) {
     COLA.registrar('ficha.', enviarBorradorFicha);
     COLA.registrar('fotoEquipo.', enviarFotoEquipoPendiente);
