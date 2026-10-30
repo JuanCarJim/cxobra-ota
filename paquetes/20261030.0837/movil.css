@@ -613,6 +613,8 @@ a.fila-dato strong { color: var(--acento); font-weight: 600; }
 /* Las bocas del otro circuito (impulsión/retorno) se ven con el mismo contraste
    (JC, 30-oct: «faltan rejas de retorno por poner»): solo el rótulo lleva un borde punteado. */
 .marca-boca.otro-circuito .rotulo-boca { outline: 1px dashed #fff; outline-offset: -2px; }
+/* Bocas de otra máquina en el mismo dibujo (la UTA en la hoja de un fancoil, 30-oct): atenuadas y sin tocar. */
+.marca-boca.ajena { opacity: .3; pointer-events: none; z-index: 0; }
 .marca-boca::after { content: ''; position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; transform: translate(-50%, -50%); } /* dedo: 44 px */
 .plano-bocas figcaption { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; min-width: 0; padding: 8px 12px; font-size: 12.5px; color: var(--textoTenue); }
 .plano-bocas .leyenda i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 4px 0 8px; vertical-align: -1px; background: #8A8F94; }

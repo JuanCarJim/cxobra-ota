@@ -10063,7 +10063,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261030.0733" : "0";
+      var VERSION = true ? "20261030.0837" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -13373,8 +13373,25 @@ globalThis.CX_VARIANTE="cxobra";
               param("t_entrada_agua_frio", "T\xAA entrada agua fr\xEDo", "\xB0C", OBL),
               param("t_salida_agua_frio", "T\xAA salida agua fr\xEDo", "\xB0C", OBL),
               param("t_entrada_agua_calor", "T\xAA entrada agua calor", "\xB0C", OPC),
-              param("t_salida_agua_calor", "T\xAA salida agua calor", "\xB0C", OPC)
+              param("t_salida_agua_calor", "T\xAA salida agua calor", "\xB0C", OPC),
+              /* v2 (30-oct, JC en obra con la UTA-N20-HUB 01: «¿dónde apunto las
+                 temperaturas de los fluidos que entran a la UTA? Y presiones de
+                 entrada y salida»): las presiones del agua de las baterías, junto a sus
+                 temperaturas. Se anotan (manómetro), no se comparan con proyecto, y
+                 el libro de CBRE no las trae: fichaExcel.js les añade su fila al final
+                 de esta tabla. */
+              ...presionesAguaBaterias()
             ] }
+          ];
+        }
+        const PRESION_AGUA_BATERIAS_CODIGOS = ["p_entrada_agua_frio", "p_salida_agua_frio", "p_entrada_agua_calor", "p_salida_agua_calor"];
+        function presionesAguaBaterias() {
+          const anotado = { sinReferencia: true, fueraDelLibro: true, fueraDelMapa: true };
+          return [
+            param("p_entrada_agua_frio", "Presi\xF3n entrada agua fr\xEDo", "bar", OBL, false, anotado),
+            param("p_salida_agua_frio", "Presi\xF3n salida agua fr\xEDo", "bar", OBL, false, anotado),
+            param("p_entrada_agua_calor", "Presi\xF3n entrada agua calor", "bar", OPC, false, anotado),
+            param("p_salida_agua_calor", "Presi\xF3n salida agua calor", "bar", OPC, false, anotado)
           ];
         }
         function temperaturasRecuperador() {
@@ -15484,15 +15501,16 @@ globalThis.CX_VARIANTE="cxobra";
         ];
         const PLANTILLAS = [
           /* ─────────────────────────── Fichas de puesta en marcha (20) */
-          ficha("UTA", "UTA", "UNIDAD DE TRATAMIENTO DE AIRE", seccionesUTA()),
-          ficha("CLIMATIZADOR_REC_ESTATICO", "CLIMATIZADOR REC. ESTATICO", "CLIMATIZADOR CON RECUPERADOR EST\xC1TICO", [
+          /* v2 (30-oct): las presiones del agua de las baterías (seccionesUTA). */
+          { ...ficha("UTA", "UTA", "UNIDAD DE TRATAMIENTO DE AIRE", seccionesUTA()), version: 2 },
+          { ...ficha("CLIMATIZADOR_REC_ESTATICO", "CLIMATIZADOR REC. ESTATICO", "CLIMATIZADOR CON RECUPERADOR EST\xC1TICO", [
             ...seccionesUTA(),
             { titulo: "RECUPERADOR EST\xC1TICO", tipo: "parametros", puntos: temperaturasRecuperador(), calculados: [EFICIENCIA_TERMICA] }
-          ]),
-          ficha("CLIMATIZADOR_REC_ROTATIVO", "CLIMATIZADOR REC. ROTATIVO", "CLIMATIZADOR CON RECUPERADOR ROTATIVO", [
+          ]), version: 2 },
+          { ...ficha("CLIMATIZADOR_REC_ROTATIVO", "CLIMATIZADOR REC. ROTATIVO", "CLIMATIZADOR CON RECUPERADOR ROTATIVO", [
             ...seccionesUTA(),
             { titulo: "RECUPERADOR ROTATIVO", tipo: "parametros", puntos: temperaturasRecuperador(), calculados: [EFICIENCIA_TERMICA] }
-          ]),
+          ]), version: 2 },
           { ...ficha("FAN_COIL_AGUA", "FAN-COIL AGUA", "FAN-COIL (AGUA)", [
             datosFisicosFancoil(),
             caudalesTresVelocidades(),
@@ -16987,6 +17005,7 @@ globalThis.CX_VARIANTE="cxobra";
           HUMEDAD_TERMOSTATO_CODIGOS,
           CONSIGNA_PRODUCCION_CODIGOS,
           VENTILADOR_CODIGOS,
+          PRESION_AGUA_BATERIAS_CODIGOS,
           /** ¿Lleva esta plantilla (objeto) la línea de consigna / máxima / mínima del termostato? */
           llevaTermostato: (pl) => Boolean(pl) && (pl.secciones || []).some((s) => (s.puntos || []).some((x) => x.codigo === TERMOSTATO_CODIGOS[0]))
         });
@@ -57539,7 +57558,12 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             estado,
             dentro: suyos.filter((f) => f.estado === "dentro").length,
             fuera: suyos.filter((f) => f.estado === "alto" || f.estado === "bajo").length,
-            aRevisar: filas.filter((f) => f.circuito === id && f.sinAtribuir).length
+            aRevisar: filas.filter((f) => f.circuito === id && f.sinAtribuir).length,
+            /* Lo de proyecto de las «a revisar» (fuera de la suma): para decir cuánto queda fuera. */
+            disenoRevisar: (() => {
+              const r = filas.filter((f) => f.circuito === id && f.sinAtribuir && numDif(f.caudalDiseno) !== null);
+              return r.length ? redDif(r.reduce((a, f) => a + numDif(f.caudalDiseno), 0), 1) : null;
+            })()
           };
         }
         return { filas, circuitos, tolerancias: tol, sinPosicion: filas.filter((f) => f.sinPosicion).length, aRevisar: filas.filter((f) => f.sinAtribuir).length };
@@ -57958,6 +57982,10 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         if (unicos.length > 1) return { ambiguo: unicos.map((x) => x.id) };
         return null;
       }
+      function avisoCaudalDudosoDif(nota) {
+        const m = /caudal de proyecto[^·]*dudoso[^·]*/i.exec(String(nota || ""));
+        return m ? m[0].trim() : null;
+      }
       (function exportar(API) {
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.DIFUSORES = API;
@@ -58018,7 +58046,8 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         origenTabla: origenTablaDif,
         fichaAk: fichaAkDif,
         recuentoCatalogo: recuentoCatalogoDif,
-        buscarAk: buscarAkDif
+        buscarAk: buscarAkDif,
+        avisoCaudalDudoso: avisoCaudalDudosoDif
       });
     }
   });
@@ -58169,6 +58198,10 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
       function configObra(repo, sesion, obraId) {
         return repo.listar("configCommissioning", sesion, { condicion: "obraId = ?", params: [obraId], limite: 1 })[0] || null;
       }
+      function ajenasDe(repo, sesion, plano, equipoId) {
+        if (!plano.imagenId) return [];
+        return repo.listar("planosDifusores", sesion, { condicion: "obraId = ? AND equipoId <> ? AND imagenId IS NOT NULL AND (imagenId = ? OR nombre = ?)", params: [plano.obraId, equipoId, plano.imagenId, plano.nombre] }).flatMap((o) => D.normalizarPuntos(leerJsonDif(o.puntos, [])).filter((p) => !p.sinPosicion && p.x !== null && p.y !== null && p.x !== void 0 && p.y !== void 0).map((p) => ({ id: `${o.id}:${p.id}`, nombre: p.nombre, tipo: p.tipo, x: p.x, y: p.y })));
+      }
       function planosDe(repo, sesion, equipoId) {
         return repo.listar("planosDifusores", sesion, { condicion: "equipoId = ?", params: [equipoId], orden: "orden, creadoEn" }).map((p) => ({
           id: p.id,
@@ -58178,7 +58211,8 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           ancho: p.ancho,
           alto: p.alto,
           modificadoEn: p.modificadoEn,
-          puntos: D.normalizarPuntos(leerJsonDif(p.puntos, []))
+          puntos: D.normalizarPuntos(leerJsonDif(p.puntos, [])),
+          ajenas: ajenasDe(repo, sesion, p, equipoId)
         }));
       }
       function disenoDe(repo, sesion, equipo) {
@@ -95028,7 +95062,9 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
                 resultado: p.resultado || null,
                 desv: p.desv ?? null,
                 /* Caudales de aire: «medido en equipo» o «suma de N bocas» (JC, 16-oct). */
-                origen: RG.redDeBocas(f.plantilla.codigo, p.codigo) && p.m !== null && p.m !== void 0 ? RG.origenCaudal(p.origenMedido, p.nBocas) : null
+                origen: RG.redDeBocas(f.plantilla.codigo, p.codigo) && p.m !== null && p.m !== void 0 ? RG.origenCaudal(p.origenMedido, p.nBocas) : null,
+                /* Lo que vino de un documento (los PDF del SharePoint), no tomado en obra (30-oct). */
+                deDocumento: p.origen === "importacion"
               })),
               circuitos: s.circuitos ? Object.fromEntries(Object.entries(s.circuitos).map(([c, v]) => [c, { bocas: v.bocas, medidas: v.medidas }])) : void 0
             })),
@@ -95961,6 +95997,8 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
               imagen: Boolean(p.imagenId),
               ancho: p.ancho || null,
               alto: p.alto || null,
+              /* Bocas de otra máquina en el mismo dibujo (la UTA en la hoja de un fancoil): solo para verlas atenuadas. */
+              ajenas: p.ajenas || [],
               bocas: p.puntos.map((x) => {
                 const e = evaluada.get(x.id) || {};
                 return {
@@ -95973,6 +96011,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
                   sinPosicion: Boolean(x.sinPosicion),
                   sinAtribuir: x.sinAtribuir || null,
                   desdeCaptura: /posición desde captura/.test(String(x.nota || "")),
+                  caudalDudoso: MDIF.avisoCaudalDudoso(x.nota),
                   tipo: e.tipoNombre,
                   velocidad: x.velocidad,
                   lecturas: e.lecturasLista || [],

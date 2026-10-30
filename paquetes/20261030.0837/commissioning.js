@@ -546,7 +546,11 @@
   }
 
   function totalCircuito(c, nombre, tol) {
-    if (!c || c.estado === 'sinPuntos') return '';
+    if (!c) return '';
+    const rev = c.aRevisar || 0;
+    /* Todas las bocas «a revisar» (30-oct, HUB 02A: 44 de 45): no hay suma de
+       bocas que juzgar, pero sí bocas que medir y el proyecto del equipo. */
+    if (c.estado === 'sinPuntos' && !rev) return '';
     /* El total contra lo mismo que la hoja de balanceo (el resumen lo dice). */
     const diseno = c.disenoReferencia ?? c.disenoPuntos ?? c.disenoEquipo ?? null;
     const p = c.desviacion === null || c.desviacion === undefined ? null : pct(c.suma, diseno);
@@ -556,14 +560,19 @@
     const tolT = tol && tol.total ? tol.total : 0.1;
     const yaPasa = c.estado === 'incompleto' && diseno && c.suma !== null && c.suma !== undefined && c.suma > diseno * (1 + tolT);
     const claseTotal = yaPasa ? 'alto' : clase;
+    /* Con bocas «a revisar», la suma de las atribuidas es solo un trozo: el
+       proyecto que se enseña es el del equipo y la suma va debajo, dicha. */
+    const proyecto = rev && c.disenoEquipo !== null && c.disenoEquipo !== undefined ? c.disenoEquipo : diseno;
+    const todas = (c.puntos || 0) + rev;
     return `<div class="total-circuito ${claseTotal}">
-      <div class="fila-principal"><strong>${esc(nombre)}</strong><span class="chip ${claseTotal}">${p === null ? `${c.medidos}/${c.puntos} medidas` : `${p} %`}</span></div>
+      <div class="fila-principal"><strong>${esc(nombre)}</strong><span class="chip ${claseTotal}">${p === null ? `${c.medidos || 0}/${todas} medidas` : `${p} %`}</span></div>
       <div class="cifras-total">
         <div><span>Medido</span><b>${cifra(c.suma)}</b><em>m³/h</em></div>
-        <div><span>Proyecto</span><b>${cifra(diseno)}</b><em>m³/h</em></div>
-        <div><span>Bocas</span><b>${cifra(c.medidos)}/${cifra(c.puntos)}</b></div>
+        <div><span>${rev && proyecto === c.disenoEquipo ? 'Proyecto equipo' : 'Proyecto'}</span><b>${cifra(proyecto)}</b><em>m³/h</em></div>
+        <div><span>Bocas</span><b>${cifra(c.medidos || 0)}/${cifra(todas)}</b></div>
       </div>
-      ${c.faltan ? `<div class="sub">Faltan ${c.faltan} boca${c.faltan === 1 ? '' : 's'} por medir.</div>` : ''}
+      ${rev ? `<div class="sub"><span class="marca-revisar">${rev} a revisar</span> fuera de la suma${c.disenoRevisar ? ` (${cifra(c.disenoRevisar)} m³/h de proyecto)` : ''}: no se pueden atribuir al equipo con seguridad. Suma de las atribuidas: ${cifra(c.disenoPuntos)} m³/h en ${c.puntos || 0}.</div>` : ''}
+      ${c.faltan ? `<div class="sub">Faltan ${c.faltan} boca${c.faltan === 1 ? '' : 's'} atribuida${c.faltan === 1 ? '' : 's'} por medir.</div>` : ''}
     </div>`;
   }
 
@@ -1023,6 +1032,7 @@
         <img data-src="api/equipo/plano?id=${encodeURIComponent(p.id)}" alt="Plano ${esc(p.nombre)}">
         ${conSitio.map((b) => { const otro = delCircuito && !delCircuito(b); return `<button class="marca-boca ${claseMarca(b.estado)}${esRetorno(b) ? ' ret' : ''}${otro ? ' otro-circuito' : ''}" style="left:${(b.x * 100).toFixed(2)}%;top:${(b.y * 100).toFixed(2)}%"
           data-cx="ir-boca" data-boca="${esc(claveBoca(p.id, b.id))}"${otro ? ` data-circuito="${esRetorno(b) ? 'retorno' : 'impulsion'}"` : ''} aria-label="Ir a la boca ${esc(b.nombre)}">${simbolo(b)}<span class="rotulo-boca">${esc(b.nombre)}</span></button>`; }).join('')}
+        ${(p.ajenas || []).map((b) => `<span class="marca-boca ajena" aria-hidden="true" style="left:${(b.x * 100).toFixed(2)}%;top:${(b.y * 100).toFixed(2)}%">${simbolo({ tipoId: b.tipo })}<span class="rotulo-boca">${esc(b.nombre)}</span></span>`).join('')}
       </div></div>
       <figcaption><span class="leyenda"><i class="neutra"></i>Sin medir <i class="bien"></i>Dentro <i class="mal"></i>Por debajo <i class="alto"></i>Por encima</span>
         <span class="zoom-botones"><button class="enlace" data-cx="zoom-menos" aria-label="Alejar">−</button><button class="enlace" data-cx="zoom-mas" aria-label="Acercar">+</button>
@@ -1651,7 +1661,7 @@
               value="${qLeido ? comaD(b.caudalMedido, 1) : ''}" aria-label="${esc(rotulo)} en ${esc(b.nombre)}"></label>`;
     return `<li class="boca ${clase}" data-boca="${esc(clave)}" ${vivo}>
       <div class="boca-cabeza"><strong>${esc(b.nombre)}</strong><span class="sub">${esc(b.circuito === 'retorno' ? 'Retorno' : 'Impulsión')} · ${esc(b.tipo || '')}</span>${botonInstrumento(p, b, bal ? 'balometro' : enQ ? 'anemQ' : 'anemV', puede)}</div>
-      ${b.sinPosicion || b.sinAtribuir || b.desdeCaptura ? `<div class="boca-marcas">${b.sinPosicion ? '<span class="marca-sin-posicion">sin posición: falta el PDF del plano</span>' : ''}${b.sinAtribuir ? `<span class="marca-revisar">a revisar · ${esc(b.sinAtribuir)}</span>` : ''}${b.desdeCaptura ? '<span class="marca-revisar">posición desde captura, a revisar</span>' : ''}</div>` : ''}
+      ${b.sinPosicion || b.sinAtribuir || b.desdeCaptura || b.caudalDudoso ? `<div class="boca-marcas">${b.sinPosicion ? '<span class="marca-sin-posicion">sin posición: falta el PDF del plano</span>' : ''}${b.sinAtribuir ? `<span class="marca-revisar">a revisar · ${esc(b.sinAtribuir)}</span>` : ''}${b.desdeCaptura ? '<span class="marca-revisar">posición desde captura, a revisar</span>' : ''}${b.caudalDudoso ? `<span class="marca-revisar">${esc(b.caudalDudoso)}</span>` : ''}</div>` : ''}
       ${bal
         ? casillaQ('Q balómetro (m³/h)')
         : `<div class="lecturas">${[0, 1, 2, 3].map((i) => `<label>M${i + 1} <small class="unidad-m">${unidadM}</small>
@@ -2776,7 +2786,11 @@
       for (const p of s.puntos || []) {
         const v = s.tipo === 'parametros' ? p.m : p.valor;
         const vacio = v === null || v === undefined || v === '';
-        if (t.vistos.has(p.codigo) || (vacio && (p.obligatorio || s.tipo === 'parametros'))) r.push([s, p]);
+        /* Un medido que vino de un documento (el PDF del SharePoint) no está
+           tomado en obra: sale también, con su valor, para confirmarlo o
+           cambiarlo (30-oct, JC no encontraba las Tª del agua de la UTA HUB 01). */
+        const deDoc = s.tipo === 'parametros' && p.deDocumento && !vacio;
+        if (t.vistos.has(p.codigo) || deDoc || (vacio && (p.obligatorio || s.tipo === 'parametros'))) r.push([s, p]);
       }
     }
     return r;
@@ -2824,7 +2838,8 @@
     /* Un parámetro: solo la casilla Medido; el de proyecto, a la vista para comparar. */
     const ref = valorDe(p, 'p');
     const proy = ref !== null && ref !== undefined && ref !== '' ? ` <span class="tenue">proy. ${esc(coma(ref))}</span>` : '';
-    return `<div class="fd n"><span class="et">${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}${proy}${desvParametro(p)}</span>${casillaParametro(p, 'm', 'Medido', ed ? '' : 'disabled')}</div>`;
+    const doc = p.deDocumento && p.m !== null && p.m !== undefined ? ' <span class="tenue">· del PDF, confírmalo</span>' : '';
+    return `<div class="fd n"><span class="et">${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}${proy}${doc}${desvParametro(p)}</span>${casillaParametro(p, 'm', 'Medido', ed ? '' : 'disabled')}</div>`;
   }
 
   function htmlTomaDatos() {
