@@ -881,6 +881,11 @@ input.mal { box-shadow: 0 0 0 2px var(--mal-fondo) !important; }
 .fd .fecha-eq { justify-self: end; font-size: 14px; padding: 4px 6px; }
 .fd .garantia-eq { text-align: right; font-size: 14px; }
 .fd .anios-eq { width: 56px; font-size: 14px; padding: 4px 6px; text-align: right; }
+/* Los días de uso (30-oct): azul el dato que cuenta, gris la propuesta. */
+.fd .dias-uso-eq { text-align: right; font-size: 14px; }
+.fd .dias-eq { width: 72px; }
+.fd .uso-garantia { color: var(--acento); font-size: 13px; }
+.fd .dias-uso-eq .enlace { border: 0; background: none; padding: 0 2px; color: var(--acento); font-weight: 700; font-size: 14px; min-height: 0; }
 .rejilla-datos > .fd:first-child { border-top: 0; }
 
 /* Sí / No / N/A pequeños, pegados a la derecha de la fila. */

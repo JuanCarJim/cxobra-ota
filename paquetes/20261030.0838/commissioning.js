@@ -546,7 +546,11 @@
   }
 
   function totalCircuito(c, nombre, tol) {
-    if (!c || c.estado === 'sinPuntos') return '';
+    if (!c) return '';
+    const rev = c.aRevisar || 0;
+    /* Todas las bocas «a revisar» (30-oct, HUB 02A: 44 de 45): no hay suma de
+       bocas que juzgar, pero sí bocas que medir y el proyecto del equipo. */
+    if (c.estado === 'sinPuntos' && !rev) return '';
     /* El total contra lo mismo que la hoja de balanceo (el resumen lo dice). */
     const diseno = c.disenoReferencia ?? c.disenoPuntos ?? c.disenoEquipo ?? null;
     const p = c.desviacion === null || c.desviacion === undefined ? null : pct(c.suma, diseno);
@@ -556,14 +560,19 @@
     const tolT = tol && tol.total ? tol.total : 0.1;
     const yaPasa = c.estado === 'incompleto' && diseno && c.suma !== null && c.suma !== undefined && c.suma > diseno * (1 + tolT);
     const claseTotal = yaPasa ? 'alto' : clase;
+    /* Con bocas «a revisar», la suma de las atribuidas es solo un trozo: el
+       proyecto que se enseña es el del equipo y la suma va debajo, dicha. */
+    const proyecto = rev && c.disenoEquipo !== null && c.disenoEquipo !== undefined ? c.disenoEquipo : diseno;
+    const todas = (c.puntos || 0) + rev;
     return `<div class="total-circuito ${claseTotal}">
-      <div class="fila-principal"><strong>${esc(nombre)}</strong><span class="chip ${claseTotal}">${p === null ? `${c.medidos}/${c.puntos} medidas` : `${p} %`}</span></div>
+      <div class="fila-principal"><strong>${esc(nombre)}</strong><span class="chip ${claseTotal}">${p === null ? `${c.medidos || 0}/${todas} medidas` : `${p} %`}</span></div>
       <div class="cifras-total">
         <div><span>Medido</span><b>${cifra(c.suma)}</b><em>m³/h</em></div>
-        <div><span>Proyecto</span><b>${cifra(diseno)}</b><em>m³/h</em></div>
-        <div><span>Bocas</span><b>${cifra(c.medidos)}/${cifra(c.puntos)}</b></div>
+        <div><span>${rev && proyecto === c.disenoEquipo ? 'Proyecto equipo' : 'Proyecto'}</span><b>${cifra(proyecto)}</b><em>m³/h</em></div>
+        <div><span>Bocas</span><b>${cifra(c.medidos || 0)}/${cifra(todas)}</b></div>
       </div>
-      ${c.faltan ? `<div class="sub">Faltan ${c.faltan} boca${c.faltan === 1 ? '' : 's'} por medir.</div>` : ''}
+      ${rev ? `<div class="sub"><span class="marca-revisar">${rev} a revisar</span> fuera de la suma${c.disenoRevisar ? ` (${cifra(c.disenoRevisar)} m³/h de proyecto)` : ''}: no se pueden atribuir al equipo con seguridad. Suma de las atribuidas: ${cifra(c.disenoPuntos)} m³/h en ${c.puntos || 0}.</div>` : ''}
+      ${c.faltan ? `<div class="sub">Faltan ${c.faltan} boca${c.faltan === 1 ? '' : 's'} atribuida${c.faltan === 1 ? '' : 's'} por medir.</div>` : ''}
     </div>`;
   }
 
@@ -698,7 +707,24 @@
       : `<strong>${fpm ? fechaCorta(fpm) : '—'}</strong>`)}
       ${fila('Garantía', `<span class="garantia-eq"><span class="${g.estado === 'sinEmpezar' ? 'tenue' : g.estado === 'vencida' ? 'aviso' : ''}">${textoG}</span>${puede
         ? ` <input type="number" class="anios-eq" inputmode="decimal" min="0" max="50" step="0.5" data-cx-fechas="garantiaAnios" value="${esc(String(anios))}" placeholder="años" aria-label="Años de garantía"> <span class="tenue">años</span>`
-        : (anios ? ` <span class="tenue">· ${esc(String(anios))} años</span>` : '')}</span>`)}`;
+        : (anios ? ` <span class="tenue">· ${esc(String(anios))} años</span>` : '')}${k.uso && k.uso.textoGarantia
+        ? `<br><span class="uso-garantia">${esc(k.uso.textoGarantia)}</span>` : ''}</span>`)}
+      ${htmlDiasUso(k, puede, fila)}`;
+  }
+  /* LOS DÍAS DE USO (30-oct-2026, JC): los que lleva funcionando el equipo, a
+     mano. Sin apuntar y con fecha de puesta en marcha, se propone los días de
+     esa fecha a hoy y solo se guarda al pulsar «Usar». Cuentan para el
+     mantenimiento y se ven junto a la garantía (shared/commissioning/garantia.js › usoDe). */
+  function htmlDiasUso(k, puede, fila) {
+    const u = k.uso || {};
+    const dias = u.dias ?? '';
+    const propuesta = u.dias === null || u.dias === undefined ? u.sugerencia : null;
+    const valor = puede
+      ? `<span class="dias-uso-eq"><input type="number" class="anios-eq dias-eq" inputmode="numeric" min="0" max="36500" step="1" data-cx-fechas="diasUso" value="${esc(String(dias))}" placeholder="${propuesta !== null && propuesta !== undefined ? esc(String(propuesta)) : 'días'}" aria-label="Días de uso"> <span class="tenue">días</span>${propuesta !== null && propuesta !== undefined
+        ? `<br><span class="tenue">Propuesta: ${esc(String(propuesta))} desde la puesta en marcha</span> <button type="button" class="enlace" data-cx-usar-dias="${esc(String(propuesta))}">Usar</button>` : ''}${u.fecha
+        ? `<br><span class="tenue">apuntados el ${fechaCorta(u.fecha)}</span>` : ''}</span>`
+      : `<strong class="${u.dias === null || u.dias === undefined ? 'tenue' : ''}">${u.dias === null || u.dias === undefined ? 'Sin dato' : esc(u.texto || `${u.dias} días`)}</strong>`;
+    return fila('Días de uso', valor);
   }
   async function guardarFechasEquipo(campo, valor) {
     try {
@@ -1652,7 +1678,7 @@
               value="${qLeido ? comaD(b.caudalMedido, 1) : ''}" aria-label="${esc(rotulo)} en ${esc(b.nombre)}"></label>`;
     return `<li class="boca ${clase}" data-boca="${esc(clave)}" ${vivo}>
       <div class="boca-cabeza"><strong>${esc(b.nombre)}</strong><span class="sub">${esc(b.circuito === 'retorno' ? 'Retorno' : 'Impulsión')} · ${esc(b.tipo || '')}</span>${botonInstrumento(p, b, bal ? 'balometro' : enQ ? 'anemQ' : 'anemV', puede)}</div>
-      ${b.sinPosicion || b.sinAtribuir || b.desdeCaptura ? `<div class="boca-marcas">${b.sinPosicion ? '<span class="marca-sin-posicion">sin posición: falta el PDF del plano</span>' : ''}${b.sinAtribuir ? `<span class="marca-revisar">a revisar · ${esc(b.sinAtribuir)}</span>` : ''}${b.desdeCaptura ? '<span class="marca-revisar">posición desde captura, a revisar</span>' : ''}</div>` : ''}
+      ${b.sinPosicion || b.sinAtribuir || b.desdeCaptura || b.caudalDudoso ? `<div class="boca-marcas">${b.sinPosicion ? '<span class="marca-sin-posicion">sin posición: falta el PDF del plano</span>' : ''}${b.sinAtribuir ? `<span class="marca-revisar">a revisar · ${esc(b.sinAtribuir)}</span>` : ''}${b.desdeCaptura ? '<span class="marca-revisar">posición desde captura, a revisar</span>' : ''}${b.caudalDudoso ? `<span class="marca-revisar">${esc(b.caudalDudoso)}</span>` : ''}</div>` : ''}
       ${bal
         ? casillaQ('Q balómetro (m³/h)')
         : `<div class="lecturas">${[0, 1, 2, 3].map((i) => `<label>M${i + 1} <small class="unidad-m">${unidadM}</small>
@@ -2777,7 +2803,11 @@
       for (const p of s.puntos || []) {
         const v = s.tipo === 'parametros' ? p.m : p.valor;
         const vacio = v === null || v === undefined || v === '';
-        if (t.vistos.has(p.codigo) || (vacio && (p.obligatorio || s.tipo === 'parametros'))) r.push([s, p]);
+        /* Un medido que vino de un documento (el PDF del SharePoint) no está
+           tomado en obra: sale también, con su valor, para confirmarlo o
+           cambiarlo (30-oct, JC no encontraba las Tª del agua de la UTA HUB 01). */
+        const deDoc = s.tipo === 'parametros' && p.deDocumento && !vacio;
+        if (t.vistos.has(p.codigo) || deDoc || (vacio && (p.obligatorio || s.tipo === 'parametros'))) r.push([s, p]);
       }
     }
     return r;
@@ -2825,7 +2855,8 @@
     /* Un parámetro: solo la casilla Medido; el de proyecto, a la vista para comparar. */
     const ref = valorDe(p, 'p');
     const proy = ref !== null && ref !== undefined && ref !== '' ? ` <span class="tenue">proy. ${esc(coma(ref))}</span>` : '';
-    return `<div class="fd n"><span class="et">${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}${proy}${desvParametro(p)}</span>${casillaParametro(p, 'm', 'Medido', ed ? '' : 'disabled')}</div>`;
+    const doc = p.deDocumento && p.m !== null && p.m !== undefined ? ' <span class="tenue">· del PDF, confírmalo</span>' : '';
+    return `<div class="fd n"><span class="et">${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}${proy}${doc}${desvParametro(p)}</span>${casillaParametro(p, 'm', 'Medido', ed ? '' : 'disabled')}</div>`;
   }
 
   function htmlTomaDatos() {
@@ -3088,6 +3119,15 @@
       C.aviso(r.yaEstaba ? `Ya estaba en el parte ${r.codigo}` : `Parte ${r.codigo} abierto con las horas`, 'bien');
     } catch (e) { C.aviso(e.message); boton.disabled = false; }
   }
+
+  /* «Usar» la propuesta de días de uso: solo se guarda al pulsarlo (30-oct). */
+  $app.addEventListener('click', (ev) => {
+    if (!activa() || hoja || !ficha) return;
+    const b = ev.target.closest && ev.target.closest('[data-cx-usar-dias]');
+    if (!b) return;
+    b.disabled = true;
+    guardarFechasEquipo('diasUso', b.dataset.cxUsarDias);
+  });
 
   $app.addEventListener('change', (ev) => {
     if (!activa() || hoja || !ficha) return;
