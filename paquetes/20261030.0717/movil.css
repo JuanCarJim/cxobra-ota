@@ -1889,3 +1889,10 @@ body { background: var(--fondo-pagina); }
   border: 1px solid var(--acento); border-radius: 999px; background: none; }
 #app .segmentado.pasos-rp button { flex: 0 0 auto; padding: 5px 14px; border-radius: 999px; font-size: 13.5px; color: var(--acento-fuerte); }
 #app .segmentado.pasos-rp button[aria-pressed=true] { background: var(--acento); color: #FFFFFF; font-weight: 600; }
+
+/* Bocas sacadas del texto del plano (30-oct): sin sitio y, si no se pueden
+   atribuir al equipo con seguridad, «a revisar». Píldoras ajustadas, teal y azul. */
+.boca-marcas { display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0 4px; }
+.boca-marcas span { width: fit-content; border-radius: 999px; padding: 1px 8px; font-size: 12px; }
+.marca-sin-posicion { color: var(--acento-fuerte); background: var(--acento-suave); }
+.marca-revisar { color: #1F5F99; background: #E8F0F8; }
