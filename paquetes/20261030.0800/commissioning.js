@@ -1023,6 +1023,7 @@
         <img data-src="api/equipo/plano?id=${encodeURIComponent(p.id)}" alt="Plano ${esc(p.nombre)}">
         ${conSitio.map((b) => { const otro = delCircuito && !delCircuito(b); return `<button class="marca-boca ${claseMarca(b.estado)}${esRetorno(b) ? ' ret' : ''}${otro ? ' otro-circuito' : ''}" style="left:${(b.x * 100).toFixed(2)}%;top:${(b.y * 100).toFixed(2)}%"
           data-cx="ir-boca" data-boca="${esc(claveBoca(p.id, b.id))}"${otro ? ` data-circuito="${esRetorno(b) ? 'retorno' : 'impulsion'}"` : ''} aria-label="Ir a la boca ${esc(b.nombre)}">${simbolo(b)}<span class="rotulo-boca">${esc(b.nombre)}</span></button>`; }).join('')}
+        ${(p.ajenas || []).map((b) => `<span class="marca-boca ajena" aria-hidden="true" style="left:${(b.x * 100).toFixed(2)}%;top:${(b.y * 100).toFixed(2)}%">${simbolo({ tipoId: b.tipo })}<span class="rotulo-boca">${esc(b.nombre)}</span></span>`).join('')}
       </div></div>
       <figcaption><span class="leyenda"><i class="neutra"></i>Sin medir <i class="bien"></i>Dentro <i class="mal"></i>Por debajo <i class="alto"></i>Por encima</span>
         <span class="zoom-botones"><button class="enlace" data-cx="zoom-menos" aria-label="Alejar">−</button><button class="enlace" data-cx="zoom-mas" aria-label="Acercar">+</button>
@@ -1651,6 +1652,7 @@
               value="${qLeido ? comaD(b.caudalMedido, 1) : ''}" aria-label="${esc(rotulo)} en ${esc(b.nombre)}"></label>`;
     return `<li class="boca ${clase}" data-boca="${esc(clave)}" ${vivo}>
       <div class="boca-cabeza"><strong>${esc(b.nombre)}</strong><span class="sub">${esc(b.circuito === 'retorno' ? 'Retorno' : 'Impulsión')} · ${esc(b.tipo || '')}</span>${botonInstrumento(p, b, bal ? 'balometro' : enQ ? 'anemQ' : 'anemV', puede)}</div>
+      ${b.sinPosicion || b.sinAtribuir || b.desdeCaptura ? `<div class="boca-marcas">${b.sinPosicion ? '<span class="marca-sin-posicion">sin posición: falta el PDF del plano</span>' : ''}${b.sinAtribuir ? `<span class="marca-revisar">a revisar · ${esc(b.sinAtribuir)}</span>` : ''}${b.desdeCaptura ? '<span class="marca-revisar">posición desde captura, a revisar</span>' : ''}</div>` : ''}
       ${bal
         ? casillaQ('Q balómetro (m³/h)')
         : `<div class="lecturas">${[0, 1, 2, 3].map((i) => `<label>M${i + 1} <small class="unidad-m">${unidadM}</small>

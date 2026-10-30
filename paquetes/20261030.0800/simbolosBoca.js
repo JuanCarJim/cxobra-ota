@@ -140,7 +140,8 @@ function planoSvgBocas({ imagen = null, ancho = 1600, alto = 900, puntos = [], e
   const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const h = Math.max(W, H) * 0.024;
   const fs = h * 0.62;
-  const marcas = puntos.map((p) => {
+  /* Las bocas sin posición (sacadas del texto del plano) no se dibujan. */
+  const marcas = puntos.filter((p) => !p.sinPosicion && p.x !== null && p.x !== undefined && p.y !== null && p.y !== undefined).map((p) => {
     const familia = familiaBoca(p.tipo);
     const f = FAMILIAS_BOCA[familia];
     const e = estados[p.id] || {};

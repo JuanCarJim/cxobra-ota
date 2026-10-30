@@ -610,8 +610,11 @@ a.fila-dato strong { color: var(--acento); font-weight: 600; }
 .marca-boca.bien .rotulo-boca { background: var(--bien); }
 .marca-boca.mal .rotulo-boca { background: var(--mal); }
 .marca-boca.alto .rotulo-boca { background: var(--alto); }
-/* Las bocas del otro circuito (impulsión/retorno) se ven, apagadas. */
-.marca-boca.otro-circuito { opacity: .45; }
+/* Las bocas del otro circuito (impulsión/retorno) se ven con el mismo contraste
+   (JC, 30-oct: «faltan rejas de retorno por poner»): solo el rótulo lleva un borde punteado. */
+.marca-boca.otro-circuito .rotulo-boca { outline: 1px dashed #fff; outline-offset: -2px; }
+/* Bocas de otra máquina en el mismo dibujo (la UTA en la hoja de un fancoil, 30-oct): atenuadas y sin tocar. */
+.marca-boca.ajena { opacity: .3; pointer-events: none; z-index: 0; }
 .marca-boca::after { content: ''; position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; transform: translate(-50%, -50%); } /* dedo: 44 px */
 .plano-bocas figcaption { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; min-width: 0; padding: 8px 12px; font-size: 12.5px; color: var(--textoTenue); }
 .plano-bocas .leyenda i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 4px 0 8px; vertical-align: -1px; background: #8A8F94; }
@@ -1889,3 +1892,10 @@ body { background: var(--fondo-pagina); }
   border: 1px solid var(--acento); border-radius: 999px; background: none; }
 #app .segmentado.pasos-rp button { flex: 0 0 auto; padding: 5px 14px; border-radius: 999px; font-size: 13.5px; color: var(--acento-fuerte); }
 #app .segmentado.pasos-rp button[aria-pressed=true] { background: var(--acento); color: #FFFFFF; font-weight: 600; }
+
+/* Bocas sacadas del texto del plano (30-oct): sin sitio y, si no se pueden
+   atribuir al equipo con seguridad, «a revisar». Píldoras ajustadas, teal y azul. */
+.boca-marcas { display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0 4px; }
+.boca-marcas span { width: fit-content; border-radius: 999px; padding: 1px 8px; font-size: 12px; }
+.marca-sin-posicion { color: var(--acento-fuerte); background: var(--acento-suave); }
+.marca-revisar { color: #1F5F99; background: #E8F0F8; }
