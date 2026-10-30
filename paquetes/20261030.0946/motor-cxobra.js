@@ -10066,7 +10066,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261030.0838" : "0";
+      var VERSION = true ? "20261030.0946" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -10745,12 +10745,91 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
+  // shared/sync/fusionListas.js
+  var require_fusionListas = __commonJS({
+    "shared/sync/fusionListas.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var SEP = "";
+      function listaConId(v) {
+        if (typeof v !== "string" || v[0] !== "[") return null;
+        let a;
+        try {
+          a = JSON.parse(v);
+        } catch {
+          return null;
+        }
+        if (!Array.isArray(a) || !a.length) return Array.isArray(a) ? a : null;
+        return a.every((x) => x && typeof x === "object" && !Array.isArray(x) && x.id !== void 0 && x.id !== null && x.id !== "") ? a : null;
+      }
+      var claveDe = (columna, id) => `${columna}${SEP}${String(id)}`;
+      function huellasLista(columna, lista, huella) {
+        const h = {};
+        for (const x of lista) h[claveDe(columna, x.id)] = huella(x);
+        return h;
+      }
+      function fusionarLista({ columna, base, local, remoto, aquiMasNuevo, huella }) {
+        const conflictos = [];
+        const deL = new Map(local.map((x) => [String(x.id), x]));
+        const deR = new Map(remoto.map((x) => [String(x.id), x]));
+        const enBase = (id) => base ? base[claveDe(columna, id)] || null : null;
+        const elegir = (id) => {
+          const l = deL.get(id);
+          const r = deR.get(id);
+          const hb = enBase(id);
+          if (l && r) {
+            const hl = huella(l);
+            const hr = huella(r);
+            if (hl === hr) return l;
+            const cambioAqui = !hb || hl !== hb;
+            const cambioNube = !hb || hr !== hb;
+            if (cambioAqui && !cambioNube) return l;
+            if (cambioNube && !cambioAqui) return r;
+            const gana = aquiMasNuevo ? "aqui" : "nube";
+            conflictos.push({ campo: `${columna}[${id}]`, gana, valorQueGana: gana === "aqui" ? l : r, valorQuePierde: gana === "aqui" ? r : l });
+            return gana === "aqui" ? l : r;
+          }
+          const x = l || r;
+          if (hb && huella(x) === hb) return null;
+          return x;
+        };
+        const lista = [];
+        const puestos = /* @__PURE__ */ new Set();
+        for (const x of local) {
+          const id = String(x.id);
+          if (puestos.has(id)) continue;
+          puestos.add(id);
+          const v = elegir(id);
+          if (v) lista.push(v);
+        }
+        let anterior = null;
+        for (const x of remoto) {
+          const id = String(x.id);
+          if (puestos.has(id)) {
+            anterior = id;
+            continue;
+          }
+          puestos.add(id);
+          const v = elegir(id);
+          if (!v) continue;
+          const i = anterior === null ? -1 : lista.findIndex((y) => String(y.id) === anterior);
+          if (i < 0) lista.push(v);
+          else lista.splice(i + 1, 0, v);
+          anterior = id;
+        }
+        return { lista, conflictos };
+      }
+      module.exports = { SEP, listaConId, huellasLista, fusionarLista, claveDe };
+    }
+  });
+
   // shared/sync/fusion.js
   var require_fusion = __commonJS({
     "shared/sync/fusion.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var FIJAS = /* @__PURE__ */ new Set(["id", "modificadoEn", "creadoEn"]);
+      var FL = require_fusionListas();
       function huella(v) {
         const s = v === void 0 ? "null" : JSON.stringify(v);
         let h = 2166136261;
@@ -10776,6 +10855,8 @@ globalThis.CX_VARIANTE="cxobra";
           h[c] = huella(v);
           const o = objeto(v);
           if (o) for (const [k, x] of Object.entries(o)) h[`${c}\0${k}`] = huella(x);
+          const l = o ? null : FL.listaConId(v);
+          if (l) Object.assign(h, FL.huellasLista(c, l, huella));
         }
         return h;
       }
@@ -10801,6 +10882,15 @@ globalThis.CX_VARIANTE="cxobra";
           const l = local[c];
           const r = remoto[c];
           if (!(c in remoto)) continue;
+          const ll = FL.listaConId(l);
+          const lr = ll ? FL.listaConId(r) : null;
+          if (ll && lr) {
+            if (huella(l) === huella(r)) continue;
+            const m = FL.fusionarLista({ columna: c, base, local: ll, remoto: lr, aquiMasNuevo, huella });
+            conflictos.push(...m.conflictos);
+            fila[c] = JSON.stringify(m.lista);
+            continue;
+          }
           const ol = objeto(l);
           const or = objeto(r);
           if (ol && or) {
@@ -10832,6 +10922,8 @@ globalThis.CX_VARIANTE="cxobra";
       var PQ2 = require_paquete();
       var F = require_frontera();
       var FU = require_fusion();
+      var FL = require_fusionListas();
+      var TABLAS_LISTA = /* @__PURE__ */ new Set(["planosDifusores"]);
       var SOLAPE = 50;
       var MAX_LOTE = 15e5;
       var POR_PAGINA = 1e3;
@@ -11034,6 +11126,7 @@ globalThis.CX_VARIANTE="cxobra";
             if (archivos2) await archivos2.alSubir(fila);
             filas.push({ fila, mod: e.mod });
           }
+          await mezclarListasAntesDeSubir(filas);
           for (const l of lapidas) {
             filas.push({ fila: { espacio, tabla: l.tabla, id: String(l.id), obras: null, persona_id: modo === "movil" && l.tabla === "notas" ? personaId : null, datos: {}, modificado_en: sello, borrado: true, dispositivo }, lapida: true });
           }
@@ -11091,6 +11184,70 @@ globalThis.CX_VARIANTE="cxobra";
           ponerEstado("ultimaSubida", sello);
           cambiarEstado({ ultimaSubida: sello });
           return { subidas, lapidas: lapidas.length, rechazadas };
+        }
+        async function mezclarListasAntesDeSubir(filas) {
+          const candidatas = filas.filter((x) => TABLAS_LISTA.has(x.fila.tabla));
+          if (!candidatas.length) return;
+          let nubeFilas;
+          try {
+            nubeFilas = /* @__PURE__ */ new Map();
+            for (const t of new Set(candidatas.map((x) => x.fila.tabla))) {
+              const ids = candidatas.filter((x) => x.fila.tabla === t).map((x) => x.fila.id);
+              for (let i = 0; i < ids.length; i += 60) {
+                const trozo = ids.slice(i, i + 60).map((x) => `"${String(x).replace(/"/g, "")}"`).join(",");
+                const r = await nube.leer("cx_filas", `select=tabla,id,datos,modificado_en,borrado&espacio=eq.${encodeURIComponent(espacio)}&tabla=eq.${encodeURIComponent(t)}&id=in.(${encodeURIComponent(trozo)})`);
+                for (const f of r || []) nubeFilas.set(F.clave(f.tabla, f.id), f);
+              }
+            }
+          } catch (e) {
+            if (e.sinRed) throw e;
+            registro(`No se pudo releer la nube antes de subir las bocas: ${e.message}`);
+            return;
+          }
+          const visto = vistos();
+          const tocadas = /* @__PURE__ */ new Set();
+          const meter = db.prepare("INSERT INTO _syncConflictos (tabla, id, campo, gana, valorQueGana, valorQuePierde, cuando) VALUES (?, ?, ?, ?, ?, ?, ?)");
+          for (const x of candidatas) {
+            const { tabla, id } = x.fila;
+            const n = nubeFilas.get(F.clave(tabla, id));
+            if (!n || n.borrado || !n.datos) continue;
+            const modNube = String(n.modificado_en || "");
+            if (modNube && visto.get(F.clave(tabla, id)) === modNube) continue;
+            const base = leerBase(tabla, id);
+            const sello = ahora().toISOString();
+            const cambiadas = {};
+            const conflictos = [];
+            for (const [c, v] of Object.entries(x.fila.datos)) {
+              const ll = FL.listaConId(v);
+              const lr = ll ? FL.listaConId(n.datos[c]) : null;
+              if (!ll || !lr || FU.huella(v) === FU.huella(n.datos[c])) continue;
+              const m = FL.fusionarLista({ columna: c, base, local: ll, remoto: lr, aquiMasNuevo: String(x.mod) > modNube, huella: FU.huella });
+              conflictos.push(...m.conflictos);
+              const nuevo = JSON.stringify(m.lista);
+              if (nuevo !== v) cambiadas[c] = nuevo;
+            }
+            for (const c of conflictos) meter.run(tabla, String(id), c.campo, c.gana, JSON.stringify(c.valorQueGana), JSON.stringify(c.valorQuePierde), sello);
+            if (conflictos.length) registro(`Bocas en conflicto en ${tabla}/${id}: ${conflictos.map((c) => c.campo).join(", ")} (lo que pierde queda guardado).`);
+            if (!Object.keys(cambiadas).length) continue;
+            const mod = sello > String(x.mod) && sello > modNube ? sello : `${[String(x.mod), modNube].sort().pop()}1`;
+            const cols = Object.keys(cambiadas);
+            const r = db.prepare(`UPDATE "${tabla}" SET ${cols.map((c) => `"${c}" = ?`).join(", ")}, "modificadoEn" = ? WHERE id = ? AND modificadoEn = ?`).run(...cols.map((c) => cambiadas[c]), mod, id, String(x.mod));
+            if (!r.changes) continue;
+            Object.assign(x.fila.datos, cambiadas);
+            if ("modificadoEn" in x.fila.datos) x.fila.datos.modificadoEn = mod;
+            x.fila.modificado_en = mod;
+            x.mod = mod;
+            tocadas.add(tabla);
+            registro(`Bocas de ${tabla}/${id} mezcladas con la nube antes de subir.`);
+          }
+          if (tocadas.size) {
+            cambiarEstado({ conflictos: conflictosSinVer() });
+            try {
+              alCambiar([...tocadas]);
+            } catch (e) {
+              registro(`alCambiar: ${e.message}`);
+            }
+          }
         }
         function lotes(lista) {
           const out = [];
@@ -13234,10 +13391,10 @@ globalThis.CX_VARIANTE="cxobra";
         const estado = fin < hoy ? "vencida" : "vigente";
         return { estado, inicio, fin, anios, texto: `Garant\xEDa: ${fechaVisible(inicio)} \u2192 ${fechaVisible(fin)}${estado === "vencida" ? " (vencida)" : ""}` };
       }
-      var DIA_MS = 864e5;
+      var GARANTIA_DIA_MS = 864e5;
       var MAX_DIAS_USO = 36500;
-      var diasEntre = (desde, hasta) => Math.round((Date.parse(`${hasta}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`)) / DIA_MS);
-      var restarDias = (iso, n) => new Date(Date.parse(`${iso}T00:00:00Z`) - n * DIA_MS).toISOString().slice(0, 10);
+      var diasEntreGarantia = (desde, hasta) => Math.round((Date.parse(`${hasta}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`)) / GARANTIA_DIA_MS);
+      var restarDiasGarantia = (iso, n) => new Date(Date.parse(`${iso}T00:00:00Z`) - n * GARANTIA_DIA_MS).toISOString().slice(0, 10);
       function leerDiasUso(v) {
         const s = v === null || v === void 0 ? "" : String(v).trim().replace(",", ".");
         if (s === "") return null;
@@ -13248,7 +13405,7 @@ globalThis.CX_VARIANTE="cxobra";
       function sugerenciaDiasUso(fechaPuestaMarcha, hoy = hoyLocal()) {
         const f = fechaISO(fechaPuestaMarcha);
         if (!f) return null;
-        const n = diasEntre(f, hoy);
+        const n = diasEntreGarantia(f, hoy);
         return n >= 0 ? n : null;
       }
       function usoDe(e, hoy = hoyLocal()) {
@@ -13256,9 +13413,9 @@ globalThis.CX_VARIANTE="cxobra";
         const n = Number(x.diasUso);
         const dias = x.diasUso !== null && x.diasUso !== void 0 && x.diasUso !== "" && Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
         const fecha = dias === null ? null : fechaISO(x.diasUsoFecha) || hoy;
-        const inicio = dias === null ? null : restarDias(fecha, dias);
+        const inicio = dias === null ? null : restarDiasGarantia(fecha, dias);
         const entrega = fechaISO(x.fechaEnvioDF);
-        const antesEntrega = dias === null ? null : !entrega || entrega >= fecha ? dias : Math.max(0, dias - diasEntre(entrega, fecha));
+        const antesEntrega = dias === null ? null : !entrega || entrega >= fecha ? dias : Math.max(0, dias - diasEntreGarantia(entrega, fecha));
         const sugerencia = dias === null ? sugerenciaDiasUso(x.fechaPuestaMarcha, hoy) : null;
         const d = (k) => `${k} ${k === 1 ? "d\xEDa" : "d\xEDas"}`;
         const texto = dias === null ? null : `${d(dias)} de uso (a ${fechaVisible(fecha)})`;
@@ -32118,6 +32275,108 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         if (!(a > 0 && h > 0 && v > 0)) return null;
         return Math.round(a / 100 * (h / 100) * v * 3600);
       }
+      var REDES_CONDUCTO = { impulsion: "caudalImpulsion", retorno: "caudalRetorno" };
+      var EXCESO_CONDUCTO = 0.5;
+      var gradosBal = (v) => {
+        const n = numBal(v);
+        return n !== null && n >= -50 && n <= 150 ? Math.round(n * 10) / 10 : null;
+      };
+      function normalizarConducto(c) {
+        if (!c || typeof c !== "object") return null;
+        const r = {};
+        for (const k of ["ancho", "alto", "diametro"]) {
+          const n = numBal(c[k]);
+          if (n !== null && n > 0 && n < 1e4) r[k] = n;
+        }
+        r.forma = c.forma === "circ" || c.forma === "rect" ? c.forma : r.diametro && !(r.ancho && r.alto) ? "circ" : "rect";
+        const vs = Array.isArray(c.velocidades) ? c.velocidades : String(c.velocidades || "").split(/[;\s]+/);
+        r.velocidades = vs.map((v) => typeof v === "number" ? v : leerNumeroFicha(v)).filter((v) => v !== null && v > 0 && v < 100).slice(0, 30);
+        for (const k of ["tFrio", "tCalor", "temperatura"]) {
+          const t = gradosBal(c[k]);
+          if (t !== null) r[k] = t;
+        }
+        if (/^\d{4}-\d{2}-\d{2}$/.test(String(c.fecha || ""))) r.fecha = c.fecha;
+        if (c.autor) r.autor = String(c.autor).trim().slice(0, 80);
+        if (c.nota) r.nota = String(c.nota).trim().slice(0, 300);
+        const algo = r.ancho || r.alto || r.diametro || r.velocidades.length || r.tFrio !== void 0 || r.tCalor !== void 0 || r.temperatura !== void 0 || r.fecha || r.autor || r.nota;
+        return algo ? r : null;
+      }
+      function caudalConducto(c = {}) {
+        if (!c) return { area: null, velocidad: null, caudal: null };
+        const area = c.forma === "circ" ? numBal(c.diametro) > 0 ? Math.PI * (c.diametro / 2e3) ** 2 : null : numBal(c.ancho) > 0 && numBal(c.alto) > 0 ? c.ancho / 1e3 * (c.alto / 1e3) : null;
+        const vs = Array.isArray(c.velocidades) ? c.velocidades.filter((v) => numBal(v) > 0) : [];
+        const velocidad = vs.length ? vs.reduce((a, v) => a + v, 0) / vs.length : null;
+        return {
+          area: area === null ? null : redBal(area, 4),
+          velocidad: velocidad === null ? null : redBal(velocidad, 2),
+          caudal: area !== null && velocidad !== null ? Math.round(area * velocidad * 3600) : null
+        };
+      }
+      function aplicarConducto(hojaEntrada, red, cambios = {}, equipo = {}) {
+        const hoja = normalizarHoja(hojaEntrada, equipo);
+        const magnitud = REDES_CONDUCTO[red];
+        if (!magnitud) return { ok: false, error: "El conducto principal es de impulsi\xF3n o de retorno." };
+        const previa = hoja.conductoPrincipal && hoja.conductoPrincipal[red] || null;
+        const antes = caudalConducto(previa).caudal;
+        const nueva = normalizarConducto({ ...previa || {}, ...cambios, velocidades: cambios.velocidades !== void 0 ? cambios.velocidades : previa ? previa.velocidades : [] });
+        const despues = caudalConducto(nueva).caudal;
+        const medido = { ...hoja.medido };
+        const actual = numBal(medido[magnitud]);
+        if (Object.prototype.hasOwnProperty.call(cambios, "caudal")) {
+          const q = numBal(typeof cambios.caudal === "number" ? cambios.caudal : leerNumeroFicha(cambios.caudal));
+          if (q !== null && q > 0) medido[magnitud] = q;
+          else if (despues !== null) medido[magnitud] = despues;
+          else delete medido[magnitud];
+        } else if (actual === null || antes !== null && actual === antes) {
+          if (despues !== null) medido[magnitud] = despues;
+          else if (actual !== null && actual === antes) delete medido[magnitud];
+        }
+        const conducto = { ...hoja.conductoPrincipal || {} };
+        if (nueva) conducto[red] = nueva;
+        else delete conducto[red];
+        return { ok: true, hoja: normalizarHoja({ ...hoja, medido, conductoPrincipal: conducto }, equipo) };
+      }
+      function evaluarConducto(c, { nombre = "", medido = null, fabrica = null, proyecto = null, sumaBocas = null, sumaMedido = null } = {}) {
+        const k = caudalConducto(c);
+        const q = numBal(medido);
+        const origen = q === null ? null : k.caudal !== null && q === k.caudal ? "seccion" : "apuntado";
+        const nominal = fabrica !== null ? fabrica : proyecto;
+        const origenNominal = fabrica !== null ? "fabrica" : proyecto !== null ? "proyecto" : null;
+        const dNominal = desviacion(q, nominal);
+        const veces = q !== null && sumaBocas ? redBal(q / sumaBocas, 1) : null;
+        const avisos = [];
+        const etiquetas = [];
+        const de = `${nombre}, conducto principal`;
+        if (origen === "seccion") {
+          avisos.push({ gravedad: "info", texto: `${de}: ${cifraBal(q)} m\xB3/h es secci\xF3n \xD7 velocidad en bruto, sin factor. Si el anem\xF3metro da su caudal, ap\xFAntalo: manda ese.` });
+        }
+        if (q !== null && nominal !== null && q > nominal * (1 + EXCESO_CONDUCTO)) {
+          etiquetas.push("comprobar secci\xF3n o punto de medida");
+          avisos.push({ gravedad: "aviso", texto: `${de}: ${cifraBal(q)} m\xB3/h es un ${cifraBal(dNominal * 100)} % m\xE1s que el nominal (${cifraBal(nominal)} m\xB3/h, ${origenNominal === "fabrica" ? "de la ficha t\xE9cnica" : "el de proyecto del equipo: no hay ficha t\xE9cnica"}). Comprobar secci\xF3n o punto de medida.` });
+        } else if (q !== null && nominal === null && sumaBocas && q > sumaBocas * (1 + EXCESO_CONDUCTO)) {
+          etiquetas.push("comprobar secci\xF3n o punto de medida");
+        }
+        if (q !== null && sumaBocas && q > sumaBocas * (1 + EXCESO_CONDUCTO)) {
+          avisos.push({ gravedad: "aviso", texto: `${de}: el medido (${cifraBal(q)} m\xB3/h) es unas ${cifraBal(veces, 1)} veces la suma de proyecto de las bocas (${cifraBal(sumaBocas)} m\xB3/h).` });
+        }
+        if (q !== null && fabrica === null && !etiquetas.length) {
+          avisos.push({ gravedad: "info", texto: `${de}: el equipo no tiene el caudal nominal de su ficha t\xE9cnica en la hoja.` });
+        }
+        return {
+          ...c,
+          ...k,
+          caudalMedido: q,
+          origen,
+          nominal,
+          origenNominal,
+          desviacionNominal: dNominal === null ? null : redBal(dNominal, 4),
+          sumaBocas,
+          sumaMedido,
+          veces,
+          etiquetas,
+          avisos
+        };
+      }
       var TIPOS_EQUIPO = {
         uta: { nombre: "Climatizadora (UTA)", circuitos: ["impulsion", "retorno"] },
         recuperador: { nombre: "Recuperador de calor", circuitos: ["impulsion", "retorno"] },
@@ -32246,6 +32505,10 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
             }
             const tb = numBal(b.temperatura);
             if (tb !== null && tb >= -50 && tb <= 150) r.temperatura = Math.round(tb * 10) / 10;
+            for (const k of ["tFrio", "tCalor"]) {
+              const t = gradosBal(b[k]);
+              if (t !== null) r[k] = t;
+            }
             const porSeccion = caudalDeSeccion(r);
             if (porSeccion !== null && r.caudalMedido === null) r.caudalMedido = porSeccion;
             if (b.nombre) r.nombre = String(b.nombre).slice(0, 40);
@@ -32266,7 +32529,16 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
           },
           fechaMedicion: /^\d{4}-\d{2}-\d{2}$/.test(String(h.fechaMedicion || "")) ? h.fechaMedicion : null,
           instrumentos: [...new Set((Array.isArray(h.instrumentos) ? h.instrumentos : []).filter((id) => typeof id === "string" && id.trim()).map((id) => id.trim().slice(0, 60)))].slice(0, 20),
-          circuitos: Object.fromEntries(Object.keys(CIRCUITOS).map((id) => [id, circuito(id, h.circuitos && h.circuitos[id])]))
+          circuitos: Object.fromEntries(Object.keys(CIRCUITOS).map((id) => [id, circuito(id, h.circuitos && h.circuitos[id])])),
+          /* El conducto principal (30-oct): solo las filas que llevan algo. */
+          ...(() => {
+            const cp = {};
+            for (const red of Object.keys(REDES_CONDUCTO)) {
+              const c = normalizarConducto(h.conductoPrincipal && h.conductoPrincipal[red]);
+              if (c) cp[red] = c;
+            }
+            return Object.keys(cp).length ? { conductoPrincipal: cp } : {};
+          })()
         };
       }
       function ajustarBocas(circuito, numero, { forzar = false } = {}) {
@@ -32446,6 +32718,8 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
             alto: numBal(b.alto),
             velocidad: numBal(b.velocidad),
             temperatura: numBal(b.temperatura),
+            tFrio: numBal(b.tFrio),
+            tCalor: numBal(b.tCalor),
             desviacion: d === null ? null : redBal(d, 4),
             estado: d === null ? numBal(b.caudalMedido) === null ? "sinMedir" : "sinProyecto" : estadoBocaBal(b.caudalMedido, proyecto[i].valor, d, tolBoca, b.revisado)
           };
@@ -32472,6 +32746,8 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
             alto: null,
             velocidad: numBal(f.velocidad),
             temperatura: numBal(f.temperatura),
+            tFrio: numBal(f.tFrio),
+            tCalor: numBal(f.tCalor),
             factor: numBal(f.factor),
             modoFactor: f.modoFactor || null,
             metodo: f.metodo || null,
@@ -32564,6 +32840,25 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
             avisos.push({ gravedad: "aviso", texto: `${nombre}: el equipo mueve ${cifraBal(medidoEquipo)} m\xB3/h y a las bocas llegan ${cifraBal(sumaMedido)} m\xB3/h. Un ${cifraBal((medidoEquipo - sumaMedido) / medidoEquipo * 100)} % se pierde por el camino: buscar fugas o una boca sin contar.` });
           }
           for (const a of perdida.avisos) avisos.push({ ...a, texto: `${nombre}: ${a.texto}` });
+          const cpFila = hoja.conductoPrincipal && hoja.conductoPrincipal[id];
+          const conducto = cpFila ? evaluarConducto(cpFila, {
+            nombre,
+            medido: medidoEquipo,
+            fabrica: fabricaEquipo,
+            proyecto: proyectoEquipo,
+            sumaBocas: sumaProyecto,
+            sumaMedido
+          }) : null;
+          if (conducto) avisos.push(...conducto.avisos);
+          const rotulos = bocas.filter((b) => b.caudalProyecto !== null && b.caudalProyecto !== void 0 && b.origenProyecto !== "repartido");
+          const sumaPlano = rotulos.length === bocas.length && rotulos.length ? rotulos.reduce((a, b) => a + b.caudalProyecto, 0) : null;
+          const dPlano = fabricaEquipo !== null ? desviacion(sumaPlano, fabricaEquipo) : null;
+          const planoNoCuadra = dPlano !== null && Math.abs(dPlano) > (tol.total || 0.1);
+          if (planoNoCuadra) {
+            avisos.push({ gravedad: "aviso", texto: `${nombre}: el plano no cuadra con la FT. Sus ${bocas.length} bocas rotulan ${cifraBal(sumaPlano)} m\xB3/h y la ficha t\xE9cnica del fabricante da ${cifraBal(fabricaEquipo)} m\xB3/h (${dPlano > 0 ? "+" : "\u2212"}${cifraBal(Math.abs(dPlano) * 100)} %). Manda la FT: no se cambia ning\xFAn caudal.` });
+          }
+          const tFrio = cuentan.filter((b) => b.tFrio !== null && b.tFrio !== void 0).length;
+          const tCalor = cuentan.filter((b) => b.tCalor !== null && b.tCalor !== void 0).length;
           return {
             id,
             nombre,
@@ -32594,7 +32889,14 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
             aRevisar: cuentan.filter((b) => b.estado === "aRevisar").length,
             /* Las que no se pueden atribuir al equipo con seguridad: fuera de las sumas. */
             sinAtribuir: bocas.length - cuentan.length,
-            todasMedidas
+            todasMedidas,
+            conducto,
+            sumaPlano,
+            planoNoCuadra,
+            /* «Tª frío 0/11 · Tª calor 0/11»; completa = caudal (o lecturas sin Ak) y las dos Tª. */
+            tFrio,
+            tCalor,
+            completas: cuentan.filter((b) => (b.caudalMedido !== null || b.estado === "sinFactor") && b.tFrio !== null && b.tFrio !== void 0 && b.tCalor !== null && b.tCalor !== void 0).length
           };
         });
         const algoMedido = circuitos.some((c) => c.medidas || c.totalMedido !== null);
@@ -32990,7 +33292,12 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         aplicarLeido,
         aplicarDifusores,
         redDePlano,
-        aplicarRed
+        aplicarRed,
+        REDES_CONDUCTO,
+        normalizarConducto,
+        caudalConducto,
+        aplicarConducto,
+        evaluarConducto
       });
     }
   });
@@ -57368,6 +57675,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         const qd = numDif(p.caudalDiseno);
         const qm = numDif(p.caudalMedido);
         const tm = numDif(p.temperatura);
+        const tf = numDif(p.tFrio);
+        const tc = numDif(p.tCalor);
+        const grados = (x) => x !== null && x >= -50 && x <= 150 ? Math.round(x * 10) / 10 : null;
         return {
           id: String(p.id || `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`),
           nombre: String(p.nombre || "").trim().slice(0, 40) || `D${indice + 1}`,
@@ -57404,10 +57714,37 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           /* La Tª del aire en esa boca, en °C, con una cifra decimal (23-oct-2026,
              JC: «un campo para apuntar la temperatura en cada difusor»). Solo se
              apunta y se enseña: no entra en ningún cálculo ni se juzga. */
-          temperatura: tm !== null && tm >= -50 && tm <= 150 ? Math.round(tm * 10) / 10 : null,
+          temperatura: grados(tm),
+          /* Tª FRÍO Y Tª CALOR (30-oct-2026, JC): las dos en todas las bocas, sea
+             difusor o reja, de impulsión o de retorno. La `temperatura` de antes se
+             conserva tal cual, como «modo sin indicar»: ni se borra ni se mueve. */
+          tFrio: grados(tf),
+          tCalor: grados(tc),
           nota: String(p.nota || "").slice(0, 300),
           /* El modelo de proyecto de la obra del que sale (tipo, tamaño y caudal de proyecto). */
-          modeloId: p.modeloId ? String(p.modeloId).slice(0, 40) : null
+          modeloId: p.modeloId ? String(p.modeloId).slice(0, 40) : null,
+          /* AÑADIDA EN OBRA (30-oct-2026): la boca que pone JC a mano desde el móvil.
+             Las pasadas automáticas no la borran ni la mueven (bocaManual.js › proteger). */
+          origen: p.origen === "manual" ? "manual" : null,
+          manual: p.origen === "manual" ? manualDif(p.manual) : null,
+          /* MEDIDA EN OBRA (30-oct-2026): si en obra se mide otro tamaño, aquí queda
+             el del rótulo del plano (bocaManual.js › cambiarMedidas); null = el del plano. */
+          medidaPlano: p.medidaPlano && typeof p.medidaPlano === "object" ? { largo: medidaDif(p.medidaPlano.largo), alto: medidaDif(p.medidaPlano.alto), tamano: p.medidaPlano.tamano ? String(p.medidaPlano.tamano).slice(0, 20) : null, tipo: p.medidaPlano.tipo ? String(p.medidaPlano.tipo).slice(0, 60) : null } : null,
+          /* De dónde sale un Ak puesto a mano (ficha, página): sin fuente no se acepta (bocaManual.js › ponerAk). */
+          akFuente: ak !== null && ak > 0 && p.akFuente ? String(p.akFuente).trim().slice(0, 160) || null : null
+        };
+      }
+      function manualDif(m) {
+        if (!m || typeof m !== "object") m = {};
+        const t = (v, n) => String(v === null || v === void 0 ? "" : v).trim().slice(0, n);
+        return {
+          sistema: ["impulsion", "retorno", "extraccion"].includes(m.sistema) ? m.sistema : "impulsion",
+          clase: m.clase === "reja" ? "reja" : "difusor",
+          modelo: t(m.modelo, 40) || null,
+          nota: t(m.nota, 200),
+          fecha: t(m.fecha, 30) || null,
+          autor: t(m.autor, 80) || null,
+          posibleDuplicado: t(m.posibleDuplicado, 200) || null
         };
       }
       function medidaDif(v) {
@@ -57460,6 +57797,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           const v = akTablaDif(t.tabla, p.largo, p.alto, p.tamano);
           return { modo, valor: v, origen: v ? "tabla" : null };
         }
+        if (p.medidaPlano && typeof p.medidaPlano === "object") return { modo, valor: null, origen: null };
         return { modo, valor: t.modo === "ak" ? t.ak : null, origen: t.modo === "ak" && t.ak ? "catalogo" : null };
       }
       var visiblesDif = () => Object.entries(TIPOS_DIF).filter(([, x]) => !x.oculto);
@@ -57620,10 +57958,22 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             disenoRevisar: (() => {
               const r = filas.filter((f) => f.circuito === id && f.sinAtribuir && numDif(f.caudalDiseno) !== null);
               return r.length ? redDif(r.reduce((a, f) => a + numDif(f.caudalDiseno), 0), 1) : null;
-            })()
+            })(),
+            /* «Tª frío 0/11 · Tª calor 0/11»: una boca está completa con caudal y las dos Tª. */
+            tFrio: suyos.filter((f) => f.tFrio !== null).length,
+            tCalor: suyos.filter((f) => f.tCalor !== null).length,
+            completas: suyos.filter((f) => bocaCompletaDif(f)).length
           };
         }
         return { filas, circuitos, tolerancias: tol, sinPosicion: filas.filter((f) => f.sinPosicion).length, aRevisar: filas.filter((f) => f.sinAtribuir).length };
+      }
+      function bocaCompletaDif(f = {}) {
+        const medida = f.caudal !== null && f.caudal !== void 0 ? true : f.estado === "sinFactor";
+        return Boolean(medida) && numDif(f.tFrio) !== null && numDif(f.tCalor) !== null;
+      }
+      function textoTemperaturasDif(c = {}) {
+        const n = c.puntos || 0;
+        return `T\xAA fr\xEDo ${c.tFrio || 0}/${n} \xB7 T\xAA calor ${c.tCalor || 0}/${n}`;
       }
       function siguienteNombreDif(puntos = [], circuito = "impulsion") {
         const letra = circuito === "retorno" ? "R" : "D";
@@ -58104,7 +58454,418 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         fichaAk: fichaAkDif,
         recuentoCatalogo: recuentoCatalogoDif,
         buscarAk: buscarAkDif,
-        avisoCaudalDudoso: avisoCaudalDudosoDif
+        avisoCaudalDudoso: avisoCaudalDudosoDif,
+        bocaCompleta: bocaCompletaDif,
+        textoTemperaturas: textoTemperaturasDif
+      });
+    }
+  });
+
+  // shared/commissioning/bocaManual.js
+  var require_bocaManual = __commonJS({
+    "shared/commissioning/bocaManual.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function bocaManual(raiz, fabrica) {
+        const API = fabrica(typeof __require !== "undefined" ? require_difusores() : raiz.DIFUSORES);
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.BOCA_MANUAL = API;
+      })(typeof window !== "undefined" ? window : globalThis, (D) => {
+        const SISTEMAS = { impulsion: "Impulsi\xF3n", retorno: "Retorno", extraccion: "Extracci\xF3n" };
+        const CLASES = { difusor: "Difusor", reja: "Reja" };
+        const ETIQUETA = "a\xF1adida en obra";
+        const RADIO_DUPLICADO = 0.02;
+        const CODIGO = /\b[A-Z]{2,3}_\d{2}_[A-Z0-9]{3,5}\b/;
+        const circuitoDe = (sistema) => sistema === "impulsion" ? "impulsion" : "retorno";
+        const texto = (v, n) => String(v === null || v === void 0 ? "" : v).trim().slice(0, n);
+        const esManual = (p) => Boolean(p && p.origen === "manual");
+        const conSitio = (p) => p && !p.sinPosicion && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y)) && p.x !== null && p.y !== null;
+        function normalizarManual(m) {
+          if (!m || typeof m !== "object") m = {};
+          return {
+            sistema: SISTEMAS[m.sistema] ? m.sistema : "impulsion",
+            clase: CLASES[m.clase] ? m.clase : "difusor",
+            modelo: texto(m.modelo, 40) || null,
+            nota: texto(m.nota, 200),
+            fecha: texto(m.fecha, 30) || null,
+            autor: texto(m.autor, 80) || null,
+            posibleDuplicado: texto(m.posibleDuplicado, 200) || null
+          };
+        }
+        function codigoDe(p) {
+          if (!p) return null;
+          if (esManual(p) && p.manual && p.manual.modelo) return p.manual.modelo;
+          const m = CODIGO.exec(String(p.nota || ""));
+          return m ? m[0] : null;
+        }
+        function modelosDeHoja(puntos = []) {
+          const porCodigo = /* @__PURE__ */ new Map();
+          for (const crudo of puntos) {
+            const p = D.normalizarPunto(crudo);
+            const codigo = codigoDe(p);
+            if (!codigo || porCodigo.has(codigo)) continue;
+            const t = D.tipo(p.tipo);
+            const f = D.factor(p);
+            porCodigo.set(codigo, {
+              codigo,
+              tipo: p.tipo,
+              tipoNombre: t.nombre,
+              circuito: t.circuito,
+              clase: /^(DL|DR|DF|DIF|D)_/.test(codigo) ? "difusor" : /^(RR|RJ|RT|RA|RI|RET|EXT|RE)_/.test(codigo) ? "reja" : null,
+              largo: p.largo,
+              alto: p.alto,
+              tamano: p.tamano,
+              ak: f.valor !== null && f.origen !== null ? f.valor : null,
+              akDe: f.valor === null ? null : f.origen === "punto" ? "ficha" : "catalogo",
+              akPropio: p.ak,
+              modo: p.modo,
+              cuantas: 0
+            });
+          }
+          for (const crudo of puntos) {
+            const c = codigoDe(crudo);
+            if (c && porCodigo.has(c)) porCodigo.get(c).cuantas += 1;
+          }
+          return [...porCodigo.values()].sort((a, b) => a.codigo.localeCompare(b.codigo, "es", { numeric: true }));
+        }
+        function tipoEnCircuito(tipoId, circuito) {
+          const t = D.TIPOS[tipoId];
+          if (t && t.circuito === circuito) return tipoId;
+          const gemelo = String(tipoId || "").replace(/-(imp|ext)$/, circuito === "impulsion" ? "-imp" : "-ext");
+          return D.TIPOS[gemelo] && D.TIPOS[gemelo].circuito === circuito ? gemelo : null;
+        }
+        const tipoAMano = (clase, circuito) => clase === "reja" ? circuito === "impulsion" ? "rejillaRectImp" : "rejillaRectRet" : circuito === "impulsion" ? "propioImp" : "propioRet";
+        function camposDe(datos = {}, puntos = []) {
+          const manual = normalizarManual({ ...datos, nota: datos.nota });
+          const circuito = circuitoDe(manual.sistema);
+          const largo = D.num(datos.largo);
+          const alto = D.num(datos.alto);
+          const qp = D.num(datos.caudalProyecto);
+          const campos = { tipo: null, modo: "ak", ak: null, k: null, largo: null, alto: null, tamano: null };
+          const modelo = manual.modelo;
+          const deHoja = modelo ? modelosDeHoja(puntos).find((m) => m.codigo.toUpperCase() === modelo.toUpperCase()) : null;
+          if (deHoja) {
+            const tipo = tipoEnCircuito(deHoja.tipo, circuito);
+            if (!datos.clase && deHoja.clase) manual.clase = deHoja.clase;
+            if (tipo) Object.assign(campos, { tipo, modo: deHoja.modo, ak: deHoja.akDe === "ficha" ? deHoja.akPropio : null, largo: deHoja.largo, alto: deHoja.alto, tamano: deHoja.tamano });
+            else campos.tipo = tipoAMano(manual.clase, circuito);
+          } else if (modelo) {
+            const r = D.buscarAk({ texto: modelo, circuito });
+            if (r && r.tipo && !r.ambiguo) {
+              const tipo = tipoEnCircuito(r.tipo, circuito);
+              if (tipo) Object.assign(campos, { tipo, largo: r.tamano && r.tamano.largo, alto: r.tamano && r.tamano.alto, tamano: r.tamano && r.tamano.tamano });
+            }
+          }
+          if (!campos.tipo) campos.tipo = tipoAMano(manual.clase, circuito);
+          if (largo !== null && largo > 0) campos.largo = largo;
+          if (alto !== null && alto > 0) campos.alto = alto;
+          if ((largo !== null || alto !== null) && !deHoja) campos.tamano = null;
+          return {
+            ...campos,
+            caudalDiseno: qp !== null && qp >= 0 ? qp : null,
+            sala: texto(datos.sala, 40) || null,
+            manual,
+            nota: notaDe(manual)
+          };
+        }
+        function notaDe(manual) {
+          const m = normalizarManual(manual);
+          return ["A\xF1adida en obra", m.modelo, m.posibleDuplicado ? "posible duplicado" : null, m.nota].filter(Boolean).join(" \xB7 ").slice(0, 300);
+        }
+        function crear(datos = {}, { todas = [], x = null, y = null, fecha = null, autor = null, id = null } = {}) {
+          const c = camposDe(datos, todas);
+          const circuito = circuitoDe(c.manual.sistema);
+          c.manual.fecha = fecha || (/* @__PURE__ */ new Date()).toISOString();
+          c.manual.autor = texto(autor, 80) || null;
+          const sitio = Number.isFinite(Number(x)) && Number.isFinite(Number(y)) && x !== null && y !== null;
+          return D.normalizarPunto({
+            ...c,
+            ...id ? { id } : {},
+            nombre: D.siguienteNombre(todas.map((p) => D.normalizarPunto(p)), circuito),
+            x: sitio ? Math.min(1, Math.max(0, Number(x))) : null,
+            y: sitio ? Math.min(1, Math.max(0, Number(y))) : null,
+            sinPosicion: !sitio,
+            origen: "manual"
+          });
+        }
+        function editar(punto, datos = {}, { todas = [], x, y } = {}) {
+          if (!esManual(punto)) return { ok: false, error: "Solo se cambian aqu\xED las bocas a\xF1adidas en obra." };
+          const antes = normalizarManual(punto.manual);
+          const c = camposDe({ ...antes, ...datos }, todas.filter((p) => p.id !== punto.id));
+          c.manual = { ...c.manual, fecha: antes.fecha, autor: antes.autor, posibleDuplicado: antes.posibleDuplicado };
+          c.nota = notaDe(c.manual);
+          const sitio = {};
+          if (x !== void 0 || y !== void 0) {
+            const hay = x !== null && y !== null && Number.isFinite(Number(x)) && Number.isFinite(Number(y));
+            Object.assign(sitio, hay ? { x: Number(x), y: Number(y), sinPosicion: false } : { x: null, y: null, sinPosicion: true });
+          }
+          let nombre = punto.nombre;
+          const circ = circuitoDe(c.manual.sistema);
+          if (D.tipo(punto.tipo).circuito !== circ) nombre = D.siguienteNombre(todas.filter((p) => p.id !== punto.id).map((p) => D.normalizarPunto(p)), circ);
+          return { ok: true, punto: D.normalizarPunto({ ...punto, ...c, ...sitio, nombre, origen: "manual" }) };
+        }
+        function tieneLecturas(p = {}) {
+          return D.num(p.velocidad) !== null || D.num(p.caudalMedido) !== null || D.num(p.tFrio) !== null || D.num(p.tCalor) !== null || D.num(p.temperatura) !== null || Boolean(String(p.lecturas || "").trim()) || Boolean(String(p.lecturasCaudal || "").trim());
+        }
+        function quitar(puntos = [], puntoId, { confirmar = false } = {}) {
+          const p = puntos.find((x) => x && x.id === puntoId);
+          if (!p) return { ok: false, error: "No se encuentra esa boca." };
+          if (!esManual(p)) return { ok: false, error: "Solo se pueden quitar aqu\xED las bocas a\xF1adidas en obra." };
+          if (tieneLecturas(p) && !confirmar) return { ok: false, pideConfirmar: true, error: `${p.nombre} tiene lecturas apuntadas: confirma para quitarla con ellas.` };
+          return { ok: true, puntos: puntos.filter((x) => x !== p) };
+        }
+        function proteger(antes = [], despues = [], { fecha = null } = {}) {
+          const avisos = [];
+          const manualesAntes = antes.filter(esManual);
+          if (!manualesAntes.length) return { puntos: despues, avisos };
+          const idsAntes = new Set(antes.map((p) => p && p.id));
+          const porId = new Map(manualesAntes.map((p) => [p.id, p]));
+          let salida = despues.map((p) => {
+            const viejo = p && porId.get(p.id);
+            if (!viejo) return p;
+            const sitio = { x: viejo.x, y: viejo.y, sinPosicion: Boolean(viejo.sinPosicion) };
+            if (p.x !== sitio.x || p.y !== sitio.y || Boolean(p.sinPosicion) !== sitio.sinPosicion || !esManual(p)) {
+              if (p.x !== sitio.x || p.y !== sitio.y || Boolean(p.sinPosicion) !== sitio.sinPosicion) avisos.push(`${viejo.nombre}: boca a\xF1adida en obra, se queda en su sitio.`);
+              return { ...p, ...sitio, origen: "manual", manual: viejo.manual, nota: viejo.nota };
+            }
+            return p;
+          });
+          const presentes = new Set(salida.map((p) => p && p.id));
+          for (const p of manualesAntes) if (!presentes.has(p.id)) {
+            salida.push(p);
+            avisos.push(`${p.nombre}: boca a\xF1adida en obra, no se quita.`);
+          }
+          const manuales = salida.filter(esManual);
+          const circ = (p) => D.tipo(p.tipo).circuito;
+          salida = salida.filter((p) => {
+            if (!p || esManual(p) || idsAntes.has(p.id) || !conSitio(p)) return true;
+            const m = manuales.find((q) => conSitio(q) && circ(q) === circ(p) && Math.hypot(Number(q.x) - Number(p.x), Number(q.y) - Number(p.y)) <= RADIO_DUPLICADO);
+            if (!m) return true;
+            const codigo = codigoDe(p);
+            const motivo = `posible duplicado: una pasada encontr\xF3 ${codigo || p.nombre || "otra boca"}${p.caudalDiseno !== null && p.caudalDiseno !== void 0 ? ` (${p.caudalDiseno} m\xB3/h)` : ""} en el mismo sitio${fecha ? ` el ${fecha}` : ""}`;
+            m.manual = { ...normalizarManual(m.manual), posibleDuplicado: motivo };
+            m.nota = notaDe(m.manual);
+            avisos.push(`${m.nombre}: ${motivo}; no se duplica.`);
+            return false;
+          });
+          return { puntos: salida, avisos };
+        }
+        const coma = (v) => String(v).replace(".", ",");
+        const medida = (v) => {
+          const n = D.num(v);
+          return n !== null && n > 0 ? Math.round(n) : null;
+        };
+        const tamanoDe = (p) => p && p.largo && p.alto ? `${p.largo}\xD7${p.alto}` : p && p.tamano ? String(p.tamano) : "";
+        const esFicha = (fuente) => /(^|[\s_(])PD[\s_-]/.test(String(fuente || ""));
+        function akDeBoca(p) {
+          const r = akDeBocaSolo(p);
+          const n = D.normalizarPunto(p || {});
+          const tb = D.tipo(n.tipo).tabla ? D.TABLAS[D.tipo(n.tipo).tabla] : null;
+          return { ...r, porLargoAlto: !tb || tb.forma !== "lista" };
+        }
+        function akDeBocaSolo(p) {
+          const n = D.normalizarPunto(p || {});
+          const t = D.tipo(n.tipo);
+          const f = D.factor(n);
+          const tam = tamanoDe(n);
+          const nombre = `${t.nombre || t.modelo || n.tipo}${tam ? ` ${tam}` : ""}`;
+          if (f.modo === "k") {
+            if (!f.valor) return { valor: null, tamano: tam, fuente: null, deFicha: false, texto: `k sin dato (${nombre}): sin \xE9l no hay caudal.` };
+            return { valor: f.valor, tamano: tam, fuente: null, deFicha: false, texto: `k ${coma(f.valor)} (${nombre}, ${f.origen === "punto" ? "puesto a mano" : "cat\xE1logo"})` };
+          }
+          if (f.origen === "punto") {
+            if (n.akFuente) return { valor: f.valor, tamano: tam, fuente: n.akFuente, deFicha: true, texto: `Ak ${coma(f.valor)} m\xB2 (${nombre}, a mano de: ${n.akFuente})` };
+            return { valor: f.valor, tamano: tam, fuente: "a mano", deFicha: false, texto: `Ak ${coma(f.valor)} m\xB2 (${nombre}, puesto a mano: no sale de la ficha t\xE9cnica)` };
+          }
+          if (f.origen === "tabla") {
+            const fuente = D.fuenteTabla(t.tabla);
+            const ficha = esFicha(fuente);
+            return { valor: f.valor, tamano: tam, fuente, deFicha: ficha, texto: `Ak ${coma(f.valor)} m\xB2 (${nombre}, ${ficha ? "FT" : "no es la ficha t\xE9cnica:"} ${fuente})` };
+          }
+          if (f.origen === "catalogo") return { valor: f.valor, tamano: tam, fuente: "cat\xE1logo de ejemplo", deFicha: false, texto: `Ak ${coma(f.valor)} m\xB2 (${nombre}, valor de ejemplo del cat\xE1logo: no es de ficha t\xE9cnica)` };
+          if (t.tabla && D.TABLAS[t.tabla]) {
+            const tb = D.TABLAS[t.tabla];
+            const fuente = D.fuenteTabla(t.tabla);
+            const porque = !tam ? "falta el tama\xF1o (largo \xD7 alto)" : tb.magnitud === "Ageo" ? "la ficha solo da el \xE1rea geom\xE9trica, no el Ak" : tb.sinAk ? "el fabricante no da Ak para este modelo" : tb.forma === "lista" ? `la ficha no trae el tama\xF1o ${tam}` : `la ficha no trae ${tam} (largos ${tb.largos.join(", ")} \xD7 altos ${tb.altos.join(", ")} mm)`;
+            return { valor: null, tamano: tam, fuente, deFicha: esFicha(fuente), texto: `Ak sin dato (${nombre}): ${porque}. Fuente: ${fuente}. Sin Ak no hay caudal.` };
+          }
+          if (n.medidaPlano) return { valor: null, tamano: tam, fuente: null, deFicha: false, texto: `Ak sin dato para esa medida (${nombre}): el cat\xE1logo solo trae un valor de ejemplo, no la ficha t\xE9cnica. Mete el Ak de la ficha a mano con su fuente. Sin Ak no hay caudal.` };
+          return { valor: null, tamano: tam, fuente: null, deFicha: false, texto: `Ak sin dato (${nombre}): no hay ficha t\xE9cnica de este modelo. Sin Ak no hay caudal.` };
+        }
+        function cambiarMedidas(p, { largo, alto } = {}) {
+          if (!p) return { ok: false, error: "No se encuentra esa boca." };
+          const l = medida(largo);
+          const h = medida(alto);
+          if (largo !== void 0 && largo !== null && String(largo).trim() !== "" && l === null || alto !== void 0 && alto !== null && String(alto).trim() !== "" && h === null) return { ok: false, error: "Las medidas van en mm, n\xFAmeros mayores que 0." };
+          if (l === null || h === null) return { ok: false, error: "Pon el largo y el alto (mm)." };
+          if (l > 5e3 || h > 5e3) return { ok: false, error: "M\xE1s de 5 m: revisa las medidas (van en mm)." };
+          const antes = { largo: medida(p.largo), alto: medida(p.alto) };
+          if (antes.largo === l && antes.alto === h) return { ok: true, punto: p, cambiado: false, avisos: [] };
+          const plano = p.medidaPlano && (p.medidaPlano.largo || p.medidaPlano.alto) ? p.medidaPlano : antes.largo || antes.alto ? { largo: antes.largo, alto: antes.alto, tamano: p.tamano || null } : null;
+          const vuelveAlPlano = plano && plano.largo === l && plano.alto === h;
+          const avisos = [];
+          const sigue = { ...p, largo: l, alto: h, medidaPlano: vuelveAlPlano ? null : plano || { largo: null, alto: null, tamano: null } };
+          if (D.num(p.ak) && (p.modo || D.tipo(p.tipo).modo) !== "k") {
+            sigue.ak = null;
+            avisos.push(`Se quita el Ak a mano (${coma(p.ak)}), era del tama\xF1o ${antes.largo || "?"}\xD7${antes.alto || "?"}.`);
+          }
+          return { ok: true, punto: D.normalizarPunto(sigue), cambiado: true, avisos };
+        }
+        const CAMPOS_PLANO = ["largo", "alto", "tamano", "tipo"];
+        const CAMPOS_OBRA = ["tipo", "modo", "largo", "alto", "tamano", "ak", "akFuente", "medidaPlano"];
+        const vacio = (v) => v === null || v === void 0 || String(v).trim() === "";
+        const igualPlano = (a, b) => CAMPOS_PLANO.every((k) => String(vacio(a[k]) ? "" : a[k]) === String(vacio(b[k]) ? "" : b[k]));
+        const planoDe = (p) => ({ largo: medida(p.largo), alto: medida(p.alto), tamano: vacio(p.tamano) ? null : String(p.tamano), tipo: p.tipo || null });
+        function formaMedida(p) {
+          const t = D.tipo(p && p.tipo || "");
+          const tb = t.tabla ? D.TABLAS[t.tabla] : null;
+          if (/^(PL\d+)$/.test(t.tabla || "") || /lineal/i.test(`${t.nombre || ""} ${t.modelo || ""}`)) return "lineal";
+          if (tb && tb.forma === "lista") return "nominal";
+          return "largoAlto";
+        }
+        function cambiarBoca(p, c = {}) {
+          if (!p) return { ok: false, error: "No se encuentra esa boca." };
+          const avisos = [];
+          const sigue = { ...p };
+          if (c.tipo !== void 0 && c.tipo !== p.tipo) {
+            if (!D.TIPOS[c.tipo]) return { ok: false, error: "Ese modelo no est\xE1 en el cat\xE1logo." };
+            sigue.tipo = c.tipo;
+            sigue.modo = D.TIPOS[c.tipo].modo || "ak";
+          }
+          for (const k of ["largo", "alto"]) {
+            if (c[k] === void 0) continue;
+            if (vacio(c[k])) {
+              sigue[k] = null;
+              continue;
+            }
+            const n = medida(c[k]);
+            if (n === null) return { ok: false, error: "Las medidas van en mm, n\xFAmeros mayores que 0." };
+            if (n > 6e3) return { ok: false, error: "M\xE1s de 6 m: revisa las medidas (van en mm)." };
+            sigue[k] = n;
+          }
+          if (c.tamano !== void 0) {
+            const t = String(c.tamano ?? "").trim().replace(/^LN\s*/i, "");
+            if (t && /^\d+([.,]\d+)?$/.test(t)) {
+              const n = medida(t.replace(",", "."));
+              if (!n || n > 6e3) return { ok: false, error: "La longitud va en mm (hasta 6000)." };
+              sigue.tamano = String(n);
+            } else sigue.tamano = t ? t.slice(0, 20) : null;
+          }
+          const cambiaTam = !igualPlano(planoDe(p), planoDe(sigue));
+          if (c.ak !== void 0) {
+            const v = vacio(c.ak) ? null : D.num(String(c.ak).replace(",", "."));
+            if (v === null) {
+              sigue.ak = null;
+              sigue.akFuente = null;
+            } else {
+              if (!(v > 0) || v > 5) return { ok: false, error: "El Ak va en m\xB2 (por ejemplo 0,019)." };
+              const fuente = String(c.akFuente ?? p.akFuente ?? "").trim();
+              if (!fuente) return { ok: false, error: "Pon de d\xF3nde sale el Ak (ficha t\xE9cnica y p\xE1gina): sin fuente no se usa." };
+              sigue.ak = v;
+              sigue.akFuente = fuente.slice(0, 160);
+              sigue.modo = "ak";
+            }
+          } else if (cambiaTam && D.num(p.ak) && (p.modo || D.tipo(p.tipo).modo) !== "k") {
+            sigue.ak = null;
+            sigue.akFuente = null;
+            avisos.push(`Se quita el Ak a mano (${coma(p.ak)}), era de otro modelo o tama\xF1o.`);
+          }
+          if (cambiaTam && !esManual(p)) {
+            const ref = p.medidaPlano ? { ...p.medidaPlano, tipo: p.medidaPlano.tipo || p.tipo } : planoDe(p);
+            sigue.medidaPlano = igualPlano(ref, planoDe(sigue)) ? null : ref;
+          }
+          const punto = D.normalizarPunto(sigue);
+          const cambiado = JSON.stringify(punto) !== JSON.stringify(D.normalizarPunto(p));
+          return { ok: true, punto, cambiado, avisos, enObra: Boolean(punto.medidaPlano) };
+        }
+        function textoObra(p) {
+          const mp = p && p.medidaPlano;
+          if (!mp) return "";
+          const cambioModelo = mp.tipo && mp.tipo !== p.tipo;
+          const tam = mp.largo && mp.alto ? `${mp.largo}\xD7${mp.alto}` : mp.tamano ? `${mp.tamano}` : "";
+          const nombre = cambioModelo ? D.tipo(mp.tipo).nombre || mp.tipo : "";
+          return `${cambioModelo ? "modelo comprobado en obra" : "medida en obra"} \xB7 plano: ${[nombre, tam].filter(Boolean).join(" ") || "sin medida"}`;
+        }
+        function mismoRotulo(p, puntos = []) {
+          const clave = D.claveTamanoPunto(p);
+          return puntos.filter((x) => x && !esManual(x) && x.tipo === p.tipo && D.claveTamanoPunto(x) === clave);
+        }
+        function marcarObra(antes = [], despues = []) {
+          const porId = new Map(antes.filter(Boolean).map((q) => [q.id, q]));
+          return despues.map((p) => {
+            const q = p && porId.get(p.id);
+            if (!q || esManual(p)) return p;
+            if (!q.medidaPlano && !p.medidaPlano && !igualPlano(planoDe(q), planoDe(p))) return { ...p, medidaPlano: planoDe(q) };
+            if (p.medidaPlano && igualPlano({ ...p.medidaPlano, tipo: p.medidaPlano.tipo || q.tipo }, planoDe(p))) return { ...p, medidaPlano: null };
+            return p;
+          });
+        }
+        function protegerObra(antes = [], despues = []) {
+          const avisos = [];
+          const enObra = antes.filter((q) => q && q.medidaPlano);
+          if (!enObra.length) return { puntos: despues, avisos };
+          const salida = despues.slice();
+          const usados = /* @__PURE__ */ new Set();
+          const ids = new Map(salida.map((p, i) => [p && p.id, i]));
+          const circ = (x) => D.tipo(x.tipo).circuito;
+          for (const q of enObra) {
+            let i = ids.has(q.id) ? ids.get(q.id) : -1;
+            if (i < 0 && conSitio(q)) {
+              let mejor = Infinity;
+              salida.forEach((p2, j) => {
+                if (!p2 || usados.has(j) || p2.medidaPlano || !conSitio(p2) || circ(p2) !== circ(q) || porIdAntes(antes, p2.id)) return;
+                const d = Math.hypot(Number(p2.x) - Number(q.x), Number(p2.y) - Number(q.y));
+                if (d <= RADIO_DUPLICADO && d < mejor) {
+                  mejor = d;
+                  i = j;
+                }
+              });
+            }
+            if (i < 0) continue;
+            usados.add(i);
+            const p = salida[i];
+            const obra = {};
+            for (const k of CAMPOS_OBRA) obra[k] = q[k] === void 0 ? null : q[k];
+            const delPlano = planoDe(p);
+            const ref = igualPlano(delPlano, planoDe(q)) ? q.medidaPlano : delPlano;
+            obra.medidaPlano = igualPlano({ ...ref, tipo: ref.tipo || q.tipo }, planoDe(q)) ? null : ref;
+            const cambia = CAMPOS_OBRA.some((k) => JSON.stringify(p[k] ?? null) !== JSON.stringify(obra[k] ?? null));
+            if (cambia) {
+              salida[i] = { ...p, ...obra };
+              if (!igualPlano(planoDe(p), planoDe(q))) avisos.push(`${q.nombre}: ${textoObra(q).split(" \xB7 ")[0]}, se respeta.`);
+            }
+          }
+          return { puntos: salida, avisos };
+        }
+        function porIdAntes(antes, id) {
+          return antes.some((q) => q && q.id === id);
+        }
+        return {
+          SISTEMAS,
+          CLASES,
+          ETIQUETA,
+          RADIO_DUPLICADO,
+          circuitoDe,
+          esManual,
+          normalizarManual,
+          codigoDe,
+          modelosDeHoja,
+          camposDe,
+          notaDe,
+          crear,
+          editar,
+          quitar,
+          tieneLecturas,
+          proteger,
+          akDeBoca,
+          cambiarMedidas,
+          formaMedida,
+          cambiarBoca,
+          textoObra,
+          mismoRotulo,
+          marcarObra,
+          protegerObra
+        };
       });
     }
   });
@@ -58236,6 +58997,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var D = require_difusores();
+      var BM = require_bocaManual();
       var fichas = require_fichas();
       var { puede } = require_roles();
       var BP = require_bocasPresupuesto();
@@ -58376,13 +59138,26 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         const cambios = {};
         if (datos.nombre !== void 0) cambios.nombre = String(datos.nombre || "").trim().slice(0, 80) || plano.nombre;
         let puntos;
+        let avisos = [];
         if (datos.puntos !== void 0) {
           puntos = D.normalizarPuntos(datos.puntos);
+          const guardados = D.normalizarPuntos(leerJsonDif(plano.puntos, []));
+          if (!datos.tocarManuales) {
+            const r = BM.proteger(guardados, puntos);
+            puntos = D.normalizarPuntos(r.puntos);
+            avisos = r.avisos;
+          }
+          if (datos.aMano) puntos = D.normalizarPuntos(BM.marcarObra(guardados, puntos));
+          else {
+            const o = BM.protegerObra(guardados, puntos);
+            puntos = D.normalizarPuntos(o.puntos);
+            avisos = avisos.concat(o.avisos);
+          }
           const texto = JSON.stringify(puntos);
           if (texto !== plano.puntos) cambios.puntos = texto;
         }
         if (Object.keys(cambios).length) repo.modificar("planosDifusores", sesion, planoId, cambios);
-        return { ok: true, puntos: puntos || D.normalizarPuntos(leerJsonDif(plano.puntos, [])) };
+        return { ok: true, puntos: puntos || D.normalizarPuntos(leerJsonDif(plano.puntos, [])), ...avisos.length ? { avisos } : {} };
       }
       function soltarImagen(repo, sesion, imagenId) {
         if (!imagenId || !repo.leer("imagenesPlanoDif", sesion, imagenId)) return;
@@ -67597,6 +68372,15 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         else repo.crear("hojasBalanceo", sesion, { obraId: equipo.obraId, equipoId, datos: texto });
         return { ok: true, hoja };
       }
+      function guardarConductoPrincipal(repo, sesion, equipoId, red, cambios = {}, { autor = null } = {}) {
+        const actual = hojaBalanceo(repo, sesion, equipoId);
+        if (!actual) return { ok: false, error: "No se encuentra el equipo." };
+        const c = { ...cambios };
+        if (autor && !c.autor && !(actual.hoja.conductoPrincipal && actual.hoja.conductoPrincipal[red] && actual.hoja.conductoPrincipal[red].autor)) c.autor = autor;
+        const r = balanceo.aplicarConducto(actual.hoja, red, c, actual.equipo);
+        if (!r.ok) return r;
+        return guardarHojaBalanceo(repo, sesion, equipoId, r.hoja);
+      }
       var leerJson = (texto) => {
         try {
           return texto ? JSON.parse(texto) : null;
@@ -67899,6 +68683,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         crearModelosQueFaltan,
         hojaBalanceo,
         guardarHojaBalanceo,
+        guardarConductoPrincipal,
         panelBalanceo,
         guardarRedAgua,
         borrarRedAgua,
@@ -95743,6 +96528,198 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
     }
   });
 
+  // electron/movil/rutasBocaManual.js
+  var require_rutasBocaManual = __commonJS({
+    "electron/movil/rutasBocaManual.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var DIF = require_difusores2();
+      var INC = require_incidencias();
+      var BM = require_bocaManual();
+      var PERMISOS_BOCA_MANUAL = {
+        "GET api/boca-manual/modelos": [["commissioning", "ver"]],
+        "POST api/boca-manual": [["commissioning", "editar"]],
+        "POST api/boca-manual/quitar": [["commissioning", "editar"]],
+        /* Las medidas de CUALQUIER boca (no solo de las manuales): el Ak sale de ellas. */
+        "POST api/boca-medidas": [["commissioning", "editar"]],
+        "GET api/boca-medidas/catalogo": [["commissioning", "ver"]],
+        /* Poner en el plano una boca que estaba sin posición. */
+        "POST api/boca-colocar": [["commissioning", "editar"]]
+      };
+      var llano = (v) => String(v ?? "").trim();
+      var leer = (t) => {
+        try {
+          const v = JSON.parse(t || "[]");
+          return Array.isArray(v) ? v : [];
+        } catch {
+          return [];
+        }
+      };
+      var ID_BUENO = /^[A-Za-z0-9_-]{4,40}$/;
+      function crearRutasBocaManual({ repo, equipo }) {
+        function delEquipo(ses, equipoId) {
+          const d = DIF.difusoresEquipo(repo, ses, equipoId);
+          if (!d) return null;
+          const planos = d.planos.map((p) => ({ ...p, crudo: repo.leer("planosDifusores", ses, p.id) })).filter((p) => p.crudo);
+          return { d, planos, todas: planos.flatMap((p) => leer(p.crudo.puntos)) };
+        }
+        function modelos({ ses, query }) {
+          const r = delEquipo(ses, llano(query.equipo));
+          if (!r) return { ok: false, error: "No se encuentra el equipo." };
+          return { ok: true, modelos: BM.modelosDeHoja(r.todas) };
+        }
+        function guardar(ses, planoId, puntos) {
+          return DIF.guardarPlano(repo, ses, planoId, { puntos, tocarManuales: true, aMano: true });
+        }
+        function crearOCambiar({ ses, quien, json }) {
+          const e = json();
+          const equipoId = llano(e.equipoId);
+          const r = delEquipo(ses, equipoId);
+          if (!r) return { ok: false, error: "No se encuentra el equipo." };
+          const cerrado = INC.bloqueoParaTomar(repo, r.d.equipo.obraId, r.d.equipo.id);
+          if (cerrado) return cerrado;
+          const datos = {};
+          for (const k of ["sistema", "clase", "modelo", "largo", "alto", "caudalProyecto", "sala", "nota"]) if (e[k] !== void 0) datos[k] = typeof e[k] === "string" ? e[k].trim() : e[k];
+          if (typeof datos.caudalProyecto === "string") datos.caudalProyecto = datos.caudalProyecto.replace(",", ".") || null;
+          const sitio = e.sinPosicion ? { x: null, y: null } : e.x !== void 0 && e.y !== void 0 ? { x: e.x, y: e.y } : {};
+          const puntoId = llano(e.puntoId) || (ID_BUENO.test(llano(e.id)) ? llano(e.id) : "");
+          const donde = puntoId ? r.planos.find((p) => leer(p.crudo.puntos).some((x) => x && x.id === puntoId)) : null;
+          if (donde) {
+            const puntos2 = leer(donde.crudo.puntos);
+            const i = puntos2.findIndex((x) => x && x.id === puntoId);
+            const c = BM.editar(puntos2[i], datos, { todas: r.todas, ...sitio });
+            if (!c.ok) return c;
+            puntos2[i] = c.punto;
+            const g2 = guardar(ses, donde.id, puntos2);
+            if (!g2.ok) return g2;
+            return { ok: true, puntoId, ...equipo({ ses, quien, query: { id: equipoId } }) };
+          }
+          if (llano(e.puntoId)) return { ok: false, error: "No se encuentra esa boca." };
+          let planoId = llano(e.planoId);
+          if (planoId && !r.planos.some((p) => p.id === planoId)) return { ok: false, error: "Ese plano no es de este equipo." };
+          if (!planoId) planoId = (sitio.x !== void 0 && sitio.x !== null ? r.planos.find((p) => p.imagenId) : null)?.id || r.planos[0] && r.planos[0].id || "";
+          const conSitio = sitio.x !== void 0 && sitio.x !== null;
+          if (conSitio && !(r.planos.find((p) => p.id === planoId) || {}).imagenId) return { ok: false, error: "Ese plano no tiene dibujo: a\xF1\xE1dela sin posici\xF3n." };
+          if (!planoId) {
+            const n = DIF.crearPlano(repo, ses, equipoId, { sinDibujo: true, nombre: "Bocas a\xF1adidas en obra", puntos: [] });
+            if (!n.ok) return n;
+            planoId = n.id;
+          }
+          const plano = repo.leer("planosDifusores", ses, planoId);
+          const puntos = leer(plano && plano.puntos);
+          const nueva = BM.crear(datos, { todas: r.todas, ...conSitio ? sitio : {}, autor: quien, id: puntoId || null });
+          puntos.push(nueva);
+          const g = guardar(ses, planoId, puntos);
+          if (!g.ok) return g;
+          return { ok: true, puntoId: nueva.id, nombre: nueva.nombre, ...equipo({ ses, quien, query: { id: equipoId } }) };
+        }
+        function quitar({ ses, quien, json }) {
+          const e = json();
+          const plano = repo.leer("planosDifusores", ses, llano(e.planoId));
+          if (!plano) return { ok: false, error: "No se encuentra el plano." };
+          const cerrado = INC.bloqueoParaTomar(repo, plano.obraId, plano.equipoId);
+          if (cerrado) return cerrado;
+          const q = BM.quitar(leer(plano.puntos), llano(e.puntoId), { confirmar: e.confirmar === true });
+          if (!q.ok) {
+            if (/No se encuentra/.test(q.error || "")) return { ok: true, ...equipo({ ses, quien, query: { id: plano.equipoId } }) };
+            return q;
+          }
+          const g = guardar(ses, plano.id, q.puntos);
+          if (!g.ok) return g;
+          return { ok: true, ...equipo({ ses, quien, query: { id: plano.equipoId } }) };
+        }
+        function medidas({ ses, quien, json }) {
+          const e = json();
+          const plano = repo.leer("planosDifusores", ses, llano(e.planoId));
+          if (!plano) return { ok: false, error: "No se encuentra el plano." };
+          const cerrado = INC.bloqueoParaTomar(repo, plano.obraId, plano.equipoId);
+          if (cerrado) return cerrado;
+          const puntos = leer(plano.puntos);
+          const i = puntos.findIndex((x) => x && x.id === llano(e.puntoId));
+          if (i < 0) return { ok: false, error: "No se encuentra esa boca." };
+          const cambios = {};
+          for (const k of ["tipo", "largo", "alto", "tamano", "ak", "akFuente"]) if (e[k] !== void 0) cambios[k] = e[k];
+          const soloLA = Object.keys(cambios).every((k) => k === "largo" || k === "alto");
+          const c = soloLA ? BM.cambiarMedidas(puntos[i], cambios) : BM.cambiarBoca(puntos[i], cambios);
+          if (!c.ok) return c;
+          const original = puntos[i];
+          let n = 0;
+          if (e.todas === true) {
+            const r = delEquipo(ses, plano.equipoId);
+            for (const pl of r ? r.planos : []) {
+              const lista = pl.id === plano.id ? puntos : leer(pl.crudo.puntos);
+              const iguales = new Set(BM.mismoRotulo(original, lista).map((x) => x.id));
+              let toca = false;
+              lista.forEach((x, j) => {
+                if (!iguales.has(x.id)) return;
+                const cx = soloLA ? BM.cambiarMedidas(x, cambios) : BM.cambiarBoca(x, cambios);
+                if (cx.ok && cx.cambiado) {
+                  lista[j] = cx.punto;
+                  toca = true;
+                  n++;
+                }
+              });
+              if (toca && pl.id !== plano.id) {
+                const g = guardar(ses, pl.id, lista);
+                if (!g.ok) return g;
+              }
+            }
+          } else if (c.cambiado) {
+            puntos[i] = c.punto;
+            n = 1;
+          }
+          if (n) {
+            const g = guardar(ses, plano.id, puntos);
+            if (!g.ok) return g;
+          }
+          const avisos = [...c.avisos || [], ...e.todas === true && n > 1 ? [`Cambiadas ${n} bocas del mismo r\xF3tulo.`] : []];
+          return { ok: true, avisos, cambiadas: n, akOrigen: BM.akDeBoca(c.punto).texto, ...equipo({ ses, quien, query: { id: plano.equipoId } }) };
+        }
+        let catalogo = null;
+        function cascada() {
+          if (!catalogo) {
+            const D = require_difusores();
+            catalogo = D.marcas().map((marca) => ({ marca, modelos: D.modelos(marca).map((modelo) => ({ modelo, variantes: D.variantes(marca, modelo).map((v) => ({
+              id: v.id,
+              variante: v.variante,
+              circuito: v.circuito,
+              forma: BM.formaMedida({ tipo: v.id }),
+              tamanos: D.TIPOS[v.id] && D.TIPOS[v.id].tabla ? D.tamanos(v.id).map((x) => [x.clave, x.texto]) : []
+            })) })) }));
+          }
+          return { ok: true, marcas: catalogo };
+        }
+        function colocar({ ses, quien, json }) {
+          const e = json();
+          const plano = repo.leer("planosDifusores", ses, llano(e.planoId));
+          if (!plano) return { ok: false, error: "No se encuentra el plano." };
+          if (!plano.imagenId) return { ok: false, error: "Ese plano no tiene dibujo." };
+          const cerrado = INC.bloqueoParaTomar(repo, plano.obraId, plano.equipoId);
+          if (cerrado) return cerrado;
+          const x = Number(e.x);
+          const y = Number(e.y);
+          if (!(x >= 0 && x <= 1 && y >= 0 && y <= 1)) return { ok: false, error: "Toca dentro del plano." };
+          const puntos = leer(plano.puntos);
+          const i = puntos.findIndex((p) => p && p.id === llano(e.puntoId));
+          if (i < 0) return { ok: false, error: "Esa boca no est\xE1 en este plano." };
+          puntos[i] = { ...puntos[i], x, y, sinPosicion: false };
+          const g = guardar(ses, plano.id, puntos);
+          if (!g.ok) return g;
+          return { ok: true, ...equipo({ ses, quien, query: { id: plano.equipoId } }) };
+        }
+        return {
+          "POST api/boca-medidas": medidas,
+          "GET api/boca-medidas/catalogo": cascada,
+          "POST api/boca-colocar": colocar,
+          "GET api/boca-manual/modelos": modelos,
+          "POST api/boca-manual": crearOCambiar,
+          "POST api/boca-manual/quitar": quitar
+        };
+      }
+      module.exports = { crearRutasBocaManual, PERMISOS_BOCA_MANUAL };
+    }
+  });
+
   // shared/sync/fotosNube.js
   var require_fotosNube = __commonJS({
     "shared/sync/fotosNube.js"(exports, module) {
@@ -95829,12 +96806,16 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
       var { puede } = require_roles();
       var { crearRutasFichas, PERMISOS_FICHAS } = require_rutasFichas();
       var { crearRutasPlanoEquipos, PERMISOS_PLANO_EQUIPOS } = require_rutasPlanoEquipos();
+      var { crearRutasBocaManual, PERMISOS_BOCA_MANUAL } = require_rutasBocaManual();
+      var BMAK = require_bocaManual();
       var PERMISOS_OBRA = {
         "GET api/obras": [["obras", "ver"]],
         "GET api/commissioning": [["commissioning", "ver"]],
         "GET api/equipo": [["commissioning", "ver"]],
         "POST api/boca": [["commissioning", "editar"]],
         "POST api/equipo/medida": [["commissioning", "editar"]],
+        /* La medición en el conducto principal de la UTA (30-oct-2026, JC). */
+        "POST api/equipo/conducto": [["commissioning", "editar"]],
         /* El cronómetro de cuadrilla del balanceo (23-oct-2026); pasarlo a un parte, quien abre partes. */
         "GET api/cronometro": [["commissioning", "ver"]],
         "POST api/cronometro": [["commissioning", "editar"]],
@@ -95875,7 +96856,9 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         /* Las fichas de commissioning y los informes en PDF (rutasFichas.js). */
         ...PERMISOS_FICHAS,
         /* El plano de equipos por plantas con sus colores (rutasPlanoEquipos.js, 28-oct). */
-        ...PERMISOS_PLANO_EQUIPOS
+        ...PERMISOS_PLANO_EQUIPOS,
+        /* Las bocas añadidas a mano en obra (rutasBocaManual.js, 30-oct). */
+        ...PERMISOS_BOCA_MANUAL
       };
       var llano = (v) => String(v ?? "").trim();
       var { hoyLocal: hoy } = require_fecha();
@@ -95957,9 +96940,9 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
               completo: l.completo,
               docCompleta: Boolean(l.docCompleta),
               estadoPM: l.estadoPM || null,
-              instalada: l.instalada !== false,
               bloqueadoPor: bloqueoLigero(l.bloqueadoPor),
               revalidarTras: l.revalidarTras || null,
+              instalada: l.instalada !== false,
               unidades: l.miembros.map((m) => ({ id: m.id, tag: m.tag, papel: m.id === ext.id && l.clase !== "suelto" ? "UE" : "UI", modelo: m.modelo || null, planta: m.planta || null, codSala: m.codSala || null, numSerie: FMOV.serieDe(m) }))
             };
           }).map((c, i) => {
@@ -96118,6 +97101,8 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
                   lectura: e.lectura || null,
                   caudalMedido: x.caudalMedido ?? null,
                   temperatura: x.temperatura ?? null,
+                  tFrio: x.tFrio ?? null,
+                  tCalor: x.tCalor ?? null,
                   metodo: e.metodo || null,
                   equipoMedida: e.equipoMedida || null,
                   equipoElegido: x.equipoMedida || null,
@@ -96129,7 +97114,22 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
                   caudal: e.caudal,
                   caudalDiseno: x.caudalDiseno,
                   desviacion: e.desviacion,
-                  estado: e.estado
+                  estado: e.estado,
+                  /* Añadida en obra (rutasBocaManual.js): lo apuntado, para verla y cambiarla. */
+                  manual: x.origen === "manual" ? { ...x.manual || {}, sala: x.sala || null, largo: x.largo || null, alto: x.alto || null } : null,
+                  /* Medidas y de dónde sale el Ak (bocaManual.js › akDeBoca, 30-oct): para cualquier boca. */
+                  largo: x.largo || null,
+                  alto: x.alto || null,
+                  medidaPlano: x.medidaPlano || null,
+                  akOrigen: BMAK.akDeBoca(x).texto,
+                  medidasLA: BMAK.akDeBoca(x).porLargoAlto,
+                  /* Modelo y medidas comprobados en obra (bocaManual.js › cambiarBoca): la toma los cambia. */
+                  tamano: x.tamano || null,
+                  akMano: x.ak || null,
+                  akFuente: x.akFuente || null,
+                  forma: BMAK.formaMedida(x),
+                  textoObra: BMAK.textoObra(x),
+                  iguales: BMAK.mismoRotulo(x, d.planos.flatMap((q) => q.puntos)).length
                 };
               })
             })),
@@ -96153,10 +97153,12 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
             diseno: d.diseno,
             tolerancias: d.tolerancias,
             circuitos: d.resumen.circuitos,
+            /* La medición en el conducto principal (30-oct): las dos filas evaluadas. */
+            conducto: conductoDe(ses, d),
             puedeMedir: d.puedeEditar,
-            /* El cronómetro de cuadrilla: horas, bocas y (a quien ve dinero) el coste. */
             /* Incidencias del equipo (29-oct, JC): las abiertas que lo bloquean, la marca de revalidar y si se puede abrir una. */
             incidenciaEquipo: incidenciaEquipo(ses, d.equipo, linea, fila),
+            /* El cronómetro de cuadrilla: horas, bocas y (a quien ve dinero) el coste. */
             cronometro: (() => {
               try {
                 const c = CRONO.leer(repo, ses, d.equipo.id, { quien: { nombre: quien } });
@@ -96172,10 +97174,10 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         }
         function cronometroAccion({ ses, quien, json }) {
           const e = json();
-          return CRONO.accion(repo, ses, llano(e.equipoId), { accion: e.accion, cuadrilla: e.cuadrilla, bocasAMano: e.bocasAMano }, { quien: { nombre: quien } });
           const eq = repo.leer("equiposObra", ses, llano(e.equipoId));
           const cerrado = eq ? INC.bloqueoParaTomar(repo, eq.obraId, eq.id) : null;
           if (cerrado) return cerrado;
+          return CRONO.accion(repo, ses, llano(e.equipoId), { accion: e.accion, cuadrilla: e.cuadrilla, bocasAMano: e.bocasAMano }, { quien: { nombre: quien } });
         }
         function cronometroParte({ ses, json }) {
           const e = json();
@@ -96186,13 +97188,13 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           const planoId = llano(e.planoId);
           const plano = repo.leer("planosDifusores", ses, planoId);
           if (!plano) return { ok: false, error: "No se encuentra el plano." };
+          const cerrado = INC.bloqueoParaTomar(repo, plano.obraId, plano.equipoId);
+          if (cerrado) return cerrado;
           let puntos = [];
           try {
             puntos = JSON.parse(plano.puntos || "[]");
           } catch {
           }
-          const cerrado = INC.bloqueoParaTomar(repo, plano.obraId, plano.equipoId);
-          if (cerrado) return cerrado;
           const i = puntos.findIndex((p) => p && String(p.id) === llano(e.puntoId));
           if (i < 0) return { ok: false, error: "No se encuentra esa boca." };
           const cifra = (x) => {
@@ -96233,10 +97235,11 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
             if (q !== null && (!Number.isFinite(q) || q < 0 || q > 1e5)) return { ok: false, error: "El caudal del bal\xF3metro tiene que estar entre 0 y 100.000 m\xB3/h." };
             cambio.caudalMedido = q;
           }
-          if (e.temperatura !== void 0) {
-            const t = cifra(e.temperatura);
+          for (const k of ["temperatura", "tFrio", "tCalor"]) {
+            if (e[k] === void 0) continue;
+            const t = cifra(e[k]);
             if (t !== null && (!Number.isFinite(t) || t < -50 || t > 150)) return { ok: false, error: "La temperatura tiene que estar entre -50 y 150 \xB0C." };
-            cambio.temperatura = t === null ? null : Math.round(t * 10) / 10;
+            cambio[k] = t === null ? null : Math.round(t * 10) / 10;
           }
           puntos[i] = { ...puntos[i], ...cambio };
           const r = DIF.guardarPlano(repo, ses, planoId, { puntos });
@@ -96259,13 +97262,6 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           const e = json();
           return CX.validarTrasIncidencia(repo, ses, llano(e.equipoId));
         }
-        function equipoSerie({ ses, json }) {
-          const e = json();
-          const r = FPM.ponerNumSerie(repo, ses, llano(e.equipoId), e.numSerie);
-          if (!r.ok) return r;
-          const vuelta = llano(e.volver) || r.equipoId;
-          return { ...equipo({ ses, query: { id: vuelta } }), ok: true, numSerie: r.numSerie, serieDe: r.equipoId };
-        }
         function placaDe(ses, equipoId) {
           try {
             const eq = repo.leer("equiposObra", ses, equipoId);
@@ -96283,6 +97279,53 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           const vista = llano(e.vista) && repo.leer("equiposObra", ses, llano(e.vista)) ? llano(e.vista) : r.equipoId;
           return { ...equipo({ ses, quien, query: { id: vista } }), ok: true, numSerie: r.numSerie || null, lectura: r.estado || null };
         }
+        function equipoSerie({ ses, json }) {
+          const e = json();
+          const r = FPM.ponerNumSerie(repo, ses, llano(e.equipoId), e.numSerie);
+          if (!r.ok) return r;
+          const vuelta = llano(e.volver) || r.equipoId;
+          return { ...equipo({ ses, query: { id: vuelta } }), ok: true, numSerie: r.numSerie, serieDe: r.equipoId };
+        }
+        function conductoDe(ses, d) {
+          try {
+            const hb = CX.hojaBalanceo(repo, ses, d.equipo.id);
+            if (!hb) return null;
+            const BAL = require_balanceo();
+            const out = {};
+            for (const [red, mag] of Object.entries(BAL.REDES_CONDUCTO)) {
+              const c = hb.hoja.conductoPrincipal && hb.hoja.conductoPrincipal[red] || {};
+              const res = d.resumen.circuitos[red] || {};
+              const proyecto = MDIF.num(hb.hoja.proyecto[mag]) ?? MDIF.num(d.diseno && d.diseno[red] && d.diseno[red].valor);
+              out[red] = BAL.evaluarConducto(BAL.normalizarConducto(c) || { forma: "rect", velocidades: [] }, {
+                nombre: red === "impulsion" ? "Impulsi\xF3n" : "Retorno / extracci\xF3n",
+                medido: hb.hoja.medido[mag] ?? null,
+                fabrica: MDIF.num(hb.hoja.fabrica[mag]),
+                proyecto,
+                sumaBocas: res.disenoPuntos ?? null,
+                sumaMedido: res.suma ?? null
+              });
+            }
+            return out;
+          } catch {
+            return null;
+          }
+        }
+        function equipoConducto({ ses, quien, json }) {
+          const e = json();
+          const red = llano(e.red);
+          if (red !== "impulsion" && red !== "retorno") return { ok: false, error: "El conducto principal es de impulsi\xF3n o de retorno." };
+          const eq = repo.leer("equiposObra", ses, llano(e.equipoId));
+          if (!eq) return { ok: false, error: "No se encuentra el equipo." };
+          const cerrado = INC.bloqueoParaTomar(repo, eq.obraId, eq.id);
+          if (cerrado) return cerrado;
+          const cambios = {};
+          for (const k of ["forma", "ancho", "alto", "diametro", "tFrio", "tCalor", "fecha", "caudal"]) if (e[k] !== void 0) cambios[k] = e[k];
+          if (e.velocidades !== void 0) cambios.velocidades = Array.isArray(e.velocidades) ? e.velocidades : String(e.velocidades);
+          if (!cambios.fecha && (cambios.velocidades !== void 0 || cambios.caudal !== void 0)) cambios.fecha = hoy();
+          const r = CX.guardarConductoPrincipal(repo, ses, eq.id, red, cambios, { autor: quien || null });
+          if (!r.ok) return r;
+          return { ok: true, ...equipo({ ses, quien, query: { id: eq.id } }) };
+        }
         function equipoMedida({ ses, json }) {
           const e = json();
           const em = llano(e.equipoMedida);
@@ -96292,9 +97335,9 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           const poner = (x) => ({ ...x, equipoMedida: em, ...le !== void 0 ? { lectura: le } : {} });
           const d = DIF.difusoresEquipo(repo, ses, llano(e.equipoId));
           if (!d) return { ok: false, error: "No se encuentra el equipo." };
+          const cerrado = INC.bloqueoParaTomar(repo, d.equipo.obraId, d.equipo.id);
+          if (cerrado) return cerrado;
           for (const p of d.planos) {
-            const cerrado = INC.bloqueoParaTomar(repo, d.equipo.obraId, d.equipo.id);
-            if (cerrado) return cerrado;
             const plano = repo.leer("planosDifusores", ses, p.id);
             if (!plano) continue;
             let puntos = [];
@@ -96739,14 +97782,15 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           "GET api/equipo": equipo,
           "POST api/boca": boca,
           "POST api/equipo/medida": equipoMedida,
+          "POST api/equipo/conducto": equipoConducto,
           "GET api/cronometro": cronometro,
           "POST api/cronometro": cronometroAccion,
           "POST api/cronometro/parte": cronometroParte,
           "POST api/equipo/instalacion": equipoInstalacion,
+          "POST api/equipo/revalidar": equipoRevalidar,
           "POST api/equipo/fechas": equipoFechas,
           "POST api/equipo/serie": equipoSerie,
           "POST api/equipo/placa": equipoPlaca,
-          "POST api/equipo/revalidar": equipoRevalidar,
           "POST api/equipo/fotos": equipoFotos,
           "POST api/equipo/fotos/quitar": equipoFotoQuitar,
           "GET api/equipo/foto": equipoFoto,
@@ -96770,7 +97814,8 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           "POST api/bloc/borrar": blocBorrar,
           "GET api/bloc/foto": blocFoto,
           ...crearRutasFichas({ repo, carpeta, fotosPedidas, soltar }),
-          ...crearRutasPlanoEquipos({ repo })
+          ...crearRutasPlanoEquipos({ repo }),
+          ...crearRutasBocaManual({ repo, equipo })
         };
       }
       module.exports = { crearRutasObra, PERMISOS_OBRA };
