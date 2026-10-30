@@ -575,6 +575,8 @@ a.fila-dato strong { color: var(--acento); font-weight: 600; }
 .lecturas label, .boca-cifras > div { min-width: 0; }
 .lecturas input, .q-balometro input { display: block; width: 100%; min-width: 0; box-sizing: border-box; margin-top: 2px; font-size: 17px; padding: 8px 6px; text-align: center; font-variant-numeric: tabular-nums; }
 .q-balometro { margin-top: 8px; }
+.t-bocas { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: flex-end; }
+.t-sin-modo { font-size: 11.5px; color: var(--textoTenue); padding-bottom: 6px; }
 .t-boca { display: block; margin-top: 8px; font-size: 11.5px; color: var(--textoTenue); }
 .t-boca input { display: block; width: 6em; min-width: 0; box-sizing: border-box; margin-top: 2px; font-size: 17px; padding: 8px 6px; text-align: center; font-variant-numeric: tabular-nums; }
 .formula { margin-top: 6px; font-size: 12.5px; color: var(--textoTenue); font-variant-numeric: tabular-nums; }
@@ -881,6 +883,11 @@ input.mal { box-shadow: 0 0 0 2px var(--mal-fondo) !important; }
 .fd .fecha-eq { justify-self: end; font-size: 14px; padding: 4px 6px; }
 .fd .garantia-eq { text-align: right; font-size: 14px; }
 .fd .anios-eq { width: 56px; font-size: 14px; padding: 4px 6px; text-align: right; }
+/* Los días de uso (30-oct): azul el dato que cuenta, gris la propuesta. */
+.fd .dias-uso-eq { text-align: right; font-size: 14px; }
+.fd .dias-eq { width: 72px; }
+.fd .uso-garantia { color: var(--acento); font-size: 13px; }
+.fd .dias-uso-eq .enlace { border: 0; background: none; padding: 0 2px; color: var(--acento); font-weight: 700; font-size: 14px; min-height: 0; }
 .rejilla-datos > .fd:first-child { border-top: 0; }
 
 /* Sí / No / N/A pequeños, pegados a la derecha de la fila. */
@@ -1899,3 +1906,14 @@ body { background: var(--fondo-pagina); }
 .boca-marcas span { width: fit-content; border-radius: 999px; padding: 1px 8px; font-size: 12px; }
 .marca-sin-posicion { color: var(--acento-fuerte); background: var(--acento-suave); }
 .marca-revisar { color: #1F5F99; background: #E8F0F8; }
+
+/* La medición en el conducto principal (30-oct-2026): como el total del circuito, sin caja propia. */
+.conducto-principal { padding: 8px 12px; margin: 6px 0; border-top: 1px solid var(--rejilla); border-bottom: 1px solid var(--rejilla); }
+.conducto-principal .fila-principal { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.conducto-principal .segmentado { margin: 6px 0; width: fit-content; }
+.conducto-principal .cifras-total { grid-template-columns: repeat(2, 1fr); }
+.conducto-principal .cifras-total b { font-size: 18px; }
+.campos-conducto { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 10px; }
+.campos-conducto label { font-size: 11.5px; color: var(--textoTenue); }
+.campos-conducto input { display: block; width: 100%; box-sizing: border-box; margin-top: 2px; font-size: 16px; padding: 6px; font-variant-numeric: tabular-nums; }
+.campos-conducto label:nth-child(3) { grid-column: 1 / -1; }

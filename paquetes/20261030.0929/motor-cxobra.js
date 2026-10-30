@@ -9753,7 +9753,10 @@ globalThis.CX_VARIANTE="cxobra";
           "refrigerante",
           "cargaKg",
           /* 30-oct: la entrega a la DF (de ella cuenta la garantía), sin el Mac (0020). */
-          "fechaEnvioDF"
+          "fechaEnvioDF",
+          /* 30-oct: los días de uso y cuándo se apuntaron (0021). */
+          "diasUso",
+          "diasUsoFecha"
         ]
       };
       var FUERA = /^(importe|precio|coste|tarifaOficial|tarifaOperario|tarifaHora|iban|cuenta|banco|hashClave)/i;
@@ -10063,7 +10066,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261030.0837" : "0";
+      var VERSION = true ? "20261030.0929" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -13217,6 +13220,11 @@ globalThis.CX_VARIANTE="cxobra";
       var hoyLocal = () => ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
       var fechaVisible = (iso) => iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "";
       function garantiaDe(e, hoy = hoyLocal()) {
+        const g = garantiaSola(e, hoy);
+        const u = e && e.diasUso !== void 0 && e.diasUso !== null && e.diasUso !== "" ? usoDe(e, hoy) : null;
+        return u && u.textoGarantia ? { ...g, usoAntesEntrega: u.antesEntrega, textoUso: u.textoGarantia } : g;
+      }
+      function garantiaSola(e, hoy) {
         const inicio = fechaISO(e && e.fechaEnvioDF);
         const n = Number(e && e.garantiaAnios);
         const anios = Number.isFinite(n) && n > 0 ? n : null;
@@ -13226,10 +13234,41 @@ globalThis.CX_VARIANTE="cxobra";
         const estado = fin < hoy ? "vencida" : "vigente";
         return { estado, inicio, fin, anios, texto: `Garant\xEDa: ${fechaVisible(inicio)} \u2192 ${fechaVisible(fin)}${estado === "vencida" ? " (vencida)" : ""}` };
       }
+      var GARANTIA_DIA_MS = 864e5;
+      var MAX_DIAS_USO = 36500;
+      var diasEntreGarantia = (desde, hasta) => Math.round((Date.parse(`${hasta}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`)) / GARANTIA_DIA_MS);
+      var restarDiasGarantia = (iso, n) => new Date(Date.parse(`${iso}T00:00:00Z`) - n * GARANTIA_DIA_MS).toISOString().slice(0, 10);
+      function leerDiasUso(v) {
+        const s = v === null || v === void 0 ? "" : String(v).trim().replace(",", ".");
+        if (s === "") return null;
+        const n = Number(s);
+        if (!Number.isFinite(n) || n < 0 || n > MAX_DIAS_USO || Math.round(n) !== n) return { error: `\xAB${v}\xBB no son unos d\xEDas de uso (un n\xFAmero entero entre 0 y ${MAX_DIAS_USO}).` };
+        return n;
+      }
+      function sugerenciaDiasUso(fechaPuestaMarcha, hoy = hoyLocal()) {
+        const f = fechaISO(fechaPuestaMarcha);
+        if (!f) return null;
+        const n = diasEntreGarantia(f, hoy);
+        return n >= 0 ? n : null;
+      }
+      function usoDe(e, hoy = hoyLocal()) {
+        const x = e || {};
+        const n = Number(x.diasUso);
+        const dias = x.diasUso !== null && x.diasUso !== void 0 && x.diasUso !== "" && Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
+        const fecha = dias === null ? null : fechaISO(x.diasUsoFecha) || hoy;
+        const inicio = dias === null ? null : restarDiasGarantia(fecha, dias);
+        const entrega = fechaISO(x.fechaEnvioDF);
+        const antesEntrega = dias === null ? null : !entrega || entrega >= fecha ? dias : Math.max(0, dias - diasEntreGarantia(entrega, fecha));
+        const sugerencia = dias === null ? sugerenciaDiasUso(x.fechaPuestaMarcha, hoy) : null;
+        const d = (k) => `${k} ${k === 1 ? "d\xEDa" : "d\xEDas"}`;
+        const texto = dias === null ? null : `${d(dias)} de uso (a ${fechaVisible(fecha)})`;
+        const textoGarantia = dias === null ? null : entrega ? `${d(antesEntrega)} de uso antes de la entrega` : `${d(antesEntrega)} de uso, a\xFAn sin entregar a DF`;
+        return { dias, fecha, inicio, antesEntrega, entregado: Boolean(entrega), sugerencia, texto, textoGarantia };
+      }
       (function exportar(API) {
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.GARANTIA_CX = API;
-      })({ garantiaDe, sumarAnios, fechaVisible, fechaISO });
+      })({ garantiaDe, sumarAnios, fechaVisible, fechaISO, leerDiasUso, sugerenciaDiasUso, usoDe, MAX_DIAS_USO });
     }
   });
 
@@ -18520,6 +18559,12 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         if (!e || Object.prototype.hasOwnProperty.call(e, "estadoPMGuardado")) return e;
         return { ...e, estadoPMGuardado: e.estadoPM || null, estadoPM: estadoPMDerivado(e) };
       }
+      function usoConjunto(miembros) {
+        const con = (miembros || []).filter((m2) => m2 && m2.diasUso !== null && m2.diasUso !== void 0 && m2.diasUso !== "");
+        if (!con.length) return {};
+        const m = con.reduce((a, b) => Number(b.diasUso) > Number(a.diasUso) ? b : a);
+        return { diasUso: Number(m.diasUso), diasUsoFecha: m.diasUsoFecha || null };
+      }
       function fechaPuestaMarchaDe(e) {
         const guardada = String(e && e.fechaPuestaMarcha || "").trim().slice(0, 10);
         if (guardada) return guardada;
@@ -18788,8 +18833,10 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
           bloqueadoPor,
           revalidarTras,
           /* La garantía del conjunto: desde el envío que lo completa (29-oct, JC). */
-          garantia: garantiaCx.garantiaDe({ fechaEnvioDF, garantiaAnios: miembros.map((m) => Number(m.garantiaAnios) || 0).reduce((x, y) => Math.max(x, y), 0) || null }),
+          garantia: garantiaCx.garantiaDe({ fechaEnvioDF, garantiaAnios: miembros.map((m) => Number(m.garantiaAnios) || 0).reduce((x, y) => Math.max(x, y), 0) || null, ...usoConjunto(miembros) }),
           fechaPuestaMarcha: miembros.map((m) => m.fechaPuestaMarcha).filter(Boolean).sort().pop() || null,
+          /* Los días de uso del conjunto (30-oct): los de la unidad que más lleva. */
+          ...usoConjunto(miembros),
           ensayoFalta: ensayosQueFaltan({ ensayo, ensayoRequerido, balanceoEstado, estanqueidadEstado }),
           /* Qué unidad trae cada incidencia, para decirlo en la ficha. */
           incidenciasPorUnidad: miembros.map((m) => ({ tag: m.tag, incidencias: extras.includes(m) ? m.incidencias.filter((c) => c !== "exteriorSinInteriores") : m.incidencias })).filter((m) => m.incidencias.length)
@@ -23278,6 +23325,10 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         ["equiposObra", "fechaPuestaMarcha", "TEXT"],
         /* Los años de garantía (29-oct-2026): cuentan desde la entrega a DF. */
         ["equiposObra", "garantiaAnios", "REAL"],
+        /* Los días de uso (30-oct-2026, JC): los que lleva funcionando, a mano, y el día
+           en que se apuntaron (shared/commissioning/garantia.js › usoDe). */
+        ["equiposObra", "diasUso", "INTEGER"],
+        ["equiposObra", "diasUsoFecha", "TEXT"],
         ["equiposObra", "tipoMantenimiento", "TEXT"],
         ["equiposObra", "vidaUtilAnios", "REAL"],
         ["configCommissioning", "potenciaTermicaKw", "REAL"],
@@ -32067,6 +32118,108 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         if (!(a > 0 && h > 0 && v > 0)) return null;
         return Math.round(a / 100 * (h / 100) * v * 3600);
       }
+      var REDES_CONDUCTO = { impulsion: "caudalImpulsion", retorno: "caudalRetorno" };
+      var EXCESO_CONDUCTO = 0.5;
+      var gradosBal = (v) => {
+        const n = numBal(v);
+        return n !== null && n >= -50 && n <= 150 ? Math.round(n * 10) / 10 : null;
+      };
+      function normalizarConducto(c) {
+        if (!c || typeof c !== "object") return null;
+        const r = {};
+        for (const k of ["ancho", "alto", "diametro"]) {
+          const n = numBal(c[k]);
+          if (n !== null && n > 0 && n < 1e4) r[k] = n;
+        }
+        r.forma = c.forma === "circ" || c.forma === "rect" ? c.forma : r.diametro && !(r.ancho && r.alto) ? "circ" : "rect";
+        const vs = Array.isArray(c.velocidades) ? c.velocidades : String(c.velocidades || "").split(/[;\s]+/);
+        r.velocidades = vs.map((v) => typeof v === "number" ? v : leerNumeroFicha(v)).filter((v) => v !== null && v > 0 && v < 100).slice(0, 30);
+        for (const k of ["tFrio", "tCalor", "temperatura"]) {
+          const t = gradosBal(c[k]);
+          if (t !== null) r[k] = t;
+        }
+        if (/^\d{4}-\d{2}-\d{2}$/.test(String(c.fecha || ""))) r.fecha = c.fecha;
+        if (c.autor) r.autor = String(c.autor).trim().slice(0, 80);
+        if (c.nota) r.nota = String(c.nota).trim().slice(0, 300);
+        const algo = r.ancho || r.alto || r.diametro || r.velocidades.length || r.tFrio !== void 0 || r.tCalor !== void 0 || r.temperatura !== void 0 || r.fecha || r.autor || r.nota;
+        return algo ? r : null;
+      }
+      function caudalConducto(c = {}) {
+        if (!c) return { area: null, velocidad: null, caudal: null };
+        const area = c.forma === "circ" ? numBal(c.diametro) > 0 ? Math.PI * (c.diametro / 2e3) ** 2 : null : numBal(c.ancho) > 0 && numBal(c.alto) > 0 ? c.ancho / 1e3 * (c.alto / 1e3) : null;
+        const vs = Array.isArray(c.velocidades) ? c.velocidades.filter((v) => numBal(v) > 0) : [];
+        const velocidad = vs.length ? vs.reduce((a, v) => a + v, 0) / vs.length : null;
+        return {
+          area: area === null ? null : redBal(area, 4),
+          velocidad: velocidad === null ? null : redBal(velocidad, 2),
+          caudal: area !== null && velocidad !== null ? Math.round(area * velocidad * 3600) : null
+        };
+      }
+      function aplicarConducto(hojaEntrada, red, cambios = {}, equipo = {}) {
+        const hoja = normalizarHoja(hojaEntrada, equipo);
+        const magnitud = REDES_CONDUCTO[red];
+        if (!magnitud) return { ok: false, error: "El conducto principal es de impulsi\xF3n o de retorno." };
+        const previa = hoja.conductoPrincipal && hoja.conductoPrincipal[red] || null;
+        const antes = caudalConducto(previa).caudal;
+        const nueva = normalizarConducto({ ...previa || {}, ...cambios, velocidades: cambios.velocidades !== void 0 ? cambios.velocidades : previa ? previa.velocidades : [] });
+        const despues = caudalConducto(nueva).caudal;
+        const medido = { ...hoja.medido };
+        const actual = numBal(medido[magnitud]);
+        if (Object.prototype.hasOwnProperty.call(cambios, "caudal")) {
+          const q = numBal(typeof cambios.caudal === "number" ? cambios.caudal : leerNumeroFicha(cambios.caudal));
+          if (q !== null && q > 0) medido[magnitud] = q;
+          else if (despues !== null) medido[magnitud] = despues;
+          else delete medido[magnitud];
+        } else if (actual === null || antes !== null && actual === antes) {
+          if (despues !== null) medido[magnitud] = despues;
+          else if (actual !== null && actual === antes) delete medido[magnitud];
+        }
+        const conducto = { ...hoja.conductoPrincipal || {} };
+        if (nueva) conducto[red] = nueva;
+        else delete conducto[red];
+        return { ok: true, hoja: normalizarHoja({ ...hoja, medido, conductoPrincipal: conducto }, equipo) };
+      }
+      function evaluarConducto(c, { nombre = "", medido = null, fabrica = null, proyecto = null, sumaBocas = null, sumaMedido = null } = {}) {
+        const k = caudalConducto(c);
+        const q = numBal(medido);
+        const origen = q === null ? null : k.caudal !== null && q === k.caudal ? "seccion" : "apuntado";
+        const nominal = fabrica !== null ? fabrica : proyecto;
+        const origenNominal = fabrica !== null ? "fabrica" : proyecto !== null ? "proyecto" : null;
+        const dNominal = desviacion(q, nominal);
+        const veces = q !== null && sumaBocas ? redBal(q / sumaBocas, 1) : null;
+        const avisos = [];
+        const etiquetas = [];
+        const de = `${nombre}, conducto principal`;
+        if (origen === "seccion") {
+          avisos.push({ gravedad: "info", texto: `${de}: ${cifraBal(q)} m\xB3/h es secci\xF3n \xD7 velocidad en bruto, sin factor. Si el anem\xF3metro da su caudal, ap\xFAntalo: manda ese.` });
+        }
+        if (q !== null && nominal !== null && q > nominal * (1 + EXCESO_CONDUCTO)) {
+          etiquetas.push("comprobar secci\xF3n o punto de medida");
+          avisos.push({ gravedad: "aviso", texto: `${de}: ${cifraBal(q)} m\xB3/h es un ${cifraBal(dNominal * 100)} % m\xE1s que el nominal (${cifraBal(nominal)} m\xB3/h, ${origenNominal === "fabrica" ? "de la ficha t\xE9cnica" : "el de proyecto del equipo: no hay ficha t\xE9cnica"}). Comprobar secci\xF3n o punto de medida.` });
+        } else if (q !== null && nominal === null && sumaBocas && q > sumaBocas * (1 + EXCESO_CONDUCTO)) {
+          etiquetas.push("comprobar secci\xF3n o punto de medida");
+        }
+        if (q !== null && sumaBocas && q > sumaBocas * (1 + EXCESO_CONDUCTO)) {
+          avisos.push({ gravedad: "aviso", texto: `${de}: el medido (${cifraBal(q)} m\xB3/h) es unas ${cifraBal(veces, 1)} veces la suma de proyecto de las bocas (${cifraBal(sumaBocas)} m\xB3/h).` });
+        }
+        if (q !== null && fabrica === null && !etiquetas.length) {
+          avisos.push({ gravedad: "info", texto: `${de}: el equipo no tiene el caudal nominal de su ficha t\xE9cnica en la hoja.` });
+        }
+        return {
+          ...c,
+          ...k,
+          caudalMedido: q,
+          origen,
+          nominal,
+          origenNominal,
+          desviacionNominal: dNominal === null ? null : redBal(dNominal, 4),
+          sumaBocas,
+          sumaMedido,
+          veces,
+          etiquetas,
+          avisos
+        };
+      }
       var TIPOS_EQUIPO = {
         uta: { nombre: "Climatizadora (UTA)", circuitos: ["impulsion", "retorno"] },
         recuperador: { nombre: "Recuperador de calor", circuitos: ["impulsion", "retorno"] },
@@ -32195,6 +32348,10 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
             }
             const tb = numBal(b.temperatura);
             if (tb !== null && tb >= -50 && tb <= 150) r.temperatura = Math.round(tb * 10) / 10;
+            for (const k of ["tFrio", "tCalor"]) {
+              const t = gradosBal(b[k]);
+              if (t !== null) r[k] = t;
+            }
             const porSeccion = caudalDeSeccion(r);
             if (porSeccion !== null && r.caudalMedido === null) r.caudalMedido = porSeccion;
             if (b.nombre) r.nombre = String(b.nombre).slice(0, 40);
@@ -32215,7 +32372,16 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
           },
           fechaMedicion: /^\d{4}-\d{2}-\d{2}$/.test(String(h.fechaMedicion || "")) ? h.fechaMedicion : null,
           instrumentos: [...new Set((Array.isArray(h.instrumentos) ? h.instrumentos : []).filter((id) => typeof id === "string" && id.trim()).map((id) => id.trim().slice(0, 60)))].slice(0, 20),
-          circuitos: Object.fromEntries(Object.keys(CIRCUITOS).map((id) => [id, circuito(id, h.circuitos && h.circuitos[id])]))
+          circuitos: Object.fromEntries(Object.keys(CIRCUITOS).map((id) => [id, circuito(id, h.circuitos && h.circuitos[id])])),
+          /* El conducto principal (30-oct): solo las filas que llevan algo. */
+          ...(() => {
+            const cp = {};
+            for (const red of Object.keys(REDES_CONDUCTO)) {
+              const c = normalizarConducto(h.conductoPrincipal && h.conductoPrincipal[red]);
+              if (c) cp[red] = c;
+            }
+            return Object.keys(cp).length ? { conductoPrincipal: cp } : {};
+          })()
         };
       }
       function ajustarBocas(circuito, numero, { forzar = false } = {}) {
@@ -32395,6 +32561,8 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
             alto: numBal(b.alto),
             velocidad: numBal(b.velocidad),
             temperatura: numBal(b.temperatura),
+            tFrio: numBal(b.tFrio),
+            tCalor: numBal(b.tCalor),
             desviacion: d === null ? null : redBal(d, 4),
             estado: d === null ? numBal(b.caudalMedido) === null ? "sinMedir" : "sinProyecto" : estadoBocaBal(b.caudalMedido, proyecto[i].valor, d, tolBoca, b.revisado)
           };
@@ -32421,6 +32589,8 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
             alto: null,
             velocidad: numBal(f.velocidad),
             temperatura: numBal(f.temperatura),
+            tFrio: numBal(f.tFrio),
+            tCalor: numBal(f.tCalor),
             factor: numBal(f.factor),
             modoFactor: f.modoFactor || null,
             metodo: f.metodo || null,
@@ -32513,6 +32683,25 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
             avisos.push({ gravedad: "aviso", texto: `${nombre}: el equipo mueve ${cifraBal(medidoEquipo)} m\xB3/h y a las bocas llegan ${cifraBal(sumaMedido)} m\xB3/h. Un ${cifraBal((medidoEquipo - sumaMedido) / medidoEquipo * 100)} % se pierde por el camino: buscar fugas o una boca sin contar.` });
           }
           for (const a of perdida.avisos) avisos.push({ ...a, texto: `${nombre}: ${a.texto}` });
+          const cpFila = hoja.conductoPrincipal && hoja.conductoPrincipal[id];
+          const conducto = cpFila ? evaluarConducto(cpFila, {
+            nombre,
+            medido: medidoEquipo,
+            fabrica: fabricaEquipo,
+            proyecto: proyectoEquipo,
+            sumaBocas: sumaProyecto,
+            sumaMedido
+          }) : null;
+          if (conducto) avisos.push(...conducto.avisos);
+          const rotulos = bocas.filter((b) => b.caudalProyecto !== null && b.caudalProyecto !== void 0 && b.origenProyecto !== "repartido");
+          const sumaPlano = rotulos.length === bocas.length && rotulos.length ? rotulos.reduce((a, b) => a + b.caudalProyecto, 0) : null;
+          const dPlano = fabricaEquipo !== null ? desviacion(sumaPlano, fabricaEquipo) : null;
+          const planoNoCuadra = dPlano !== null && Math.abs(dPlano) > (tol.total || 0.1);
+          if (planoNoCuadra) {
+            avisos.push({ gravedad: "aviso", texto: `${nombre}: el plano no cuadra con la FT. Sus ${bocas.length} bocas rotulan ${cifraBal(sumaPlano)} m\xB3/h y la ficha t\xE9cnica del fabricante da ${cifraBal(fabricaEquipo)} m\xB3/h (${dPlano > 0 ? "+" : "\u2212"}${cifraBal(Math.abs(dPlano) * 100)} %). Manda la FT: no se cambia ning\xFAn caudal.` });
+          }
+          const tFrio = cuentan.filter((b) => b.tFrio !== null && b.tFrio !== void 0).length;
+          const tCalor = cuentan.filter((b) => b.tCalor !== null && b.tCalor !== void 0).length;
           return {
             id,
             nombre,
@@ -32543,7 +32732,14 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
             aRevisar: cuentan.filter((b) => b.estado === "aRevisar").length,
             /* Las que no se pueden atribuir al equipo con seguridad: fuera de las sumas. */
             sinAtribuir: bocas.length - cuentan.length,
-            todasMedidas
+            todasMedidas,
+            conducto,
+            sumaPlano,
+            planoNoCuadra,
+            /* «Tª frío 0/11 · Tª calor 0/11»; completa = caudal (o lecturas sin Ak) y las dos Tª. */
+            tFrio,
+            tCalor,
+            completas: cuentan.filter((b) => (b.caudalMedido !== null || b.estado === "sinFactor") && b.tFrio !== null && b.tFrio !== void 0 && b.tCalor !== null && b.tCalor !== void 0).length
           };
         });
         const algoMedido = circuitos.some((c) => c.medidas || c.totalMedido !== null);
@@ -32939,7 +33135,12 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         aplicarLeido,
         aplicarDifusores,
         redDePlano,
-        aplicarRed
+        aplicarRed,
+        REDES_CONDUCTO,
+        normalizarConducto,
+        caudalConducto,
+        aplicarConducto,
+        evaluarConducto
       });
     }
   });
@@ -33948,10 +34149,14 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         const incidencias = [];
         const fechaMal = ["fechaFabricacion", "fechaInstalacion", "fechaPuestaMarcha"].some((c) => e[c] && !fecha(e[c]));
         if (fechaMal) incidencias.push("fechaMal");
-        if (!f.instalacion && !f.puestaMarcha) incidencias.push("sinFechas");
+        if (!f.instalacion && !f.puestaMarcha && !(e.diasUso !== null && e.diasUso !== void 0 && e.diasUso !== "")) incidencias.push("sinFechas");
         if (!tipo) incidencias.push("sinTipo");
         if (f.instalacion && f.puestaMarcha && f.puestaMarcha < f.instalacion) incidencias.push("marchaAntesQueMontaje");
-        const servicio = f.puestaMarcha || f.instalacion || null;
+        const nUso = Number(e.diasUso);
+        const conUso = e.diasUso !== null && e.diasUso !== void 0 && e.diasUso !== "" && Number.isFinite(nUso) && nUso >= 0;
+        const inicioUso = conUso ? sumarDiasIso(fecha(e.diasUsoFecha) || hoy, -Math.round(nUso)) : null;
+        const servicio = inicioUso || f.puestaMarcha || f.instalacion || null;
+        const servicioDesde = inicioUso ? "diasUso" : f.puestaMarcha ? "puestaMarcha" : f.instalacion ? "instalacion" : null;
         const finVentana = sumarMesesIso(hoy, 12);
         const hechos = ordenarHechasMant(registros.map((r) => ({ ...r, fecha: fecha(r.fecha) })).filter((r) => r.fecha));
         const operaciones = (tipo ? tipo.operaciones : []).map((o) => {
@@ -34003,6 +34208,8 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
           fechaInstalacion: f.instalacion,
           fechaPuestaMarcha: f.puestaMarcha,
           servicio,
+          servicioDesde,
+          diasUso: conUso ? Math.round(nUso) : null,
           tipo: tipo ? tipo.id : null,
           tipoNombre: tipo ? tipo.nombre : null,
           disciplina: tipo ? tipo.disciplina : null,
@@ -57311,6 +57518,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         const qd = numDif(p.caudalDiseno);
         const qm = numDif(p.caudalMedido);
         const tm = numDif(p.temperatura);
+        const tf = numDif(p.tFrio);
+        const tc = numDif(p.tCalor);
+        const grados = (x) => x !== null && x >= -50 && x <= 150 ? Math.round(x * 10) / 10 : null;
         return {
           id: String(p.id || `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`),
           nombre: String(p.nombre || "").trim().slice(0, 40) || `D${indice + 1}`,
@@ -57347,7 +57557,12 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           /* La Tª del aire en esa boca, en °C, con una cifra decimal (23-oct-2026,
              JC: «un campo para apuntar la temperatura en cada difusor»). Solo se
              apunta y se enseña: no entra en ningún cálculo ni se juzga. */
-          temperatura: tm !== null && tm >= -50 && tm <= 150 ? Math.round(tm * 10) / 10 : null,
+          temperatura: grados(tm),
+          /* Tª FRÍO Y Tª CALOR (30-oct-2026, JC): las dos en todas las bocas, sea
+             difusor o reja, de impulsión o de retorno. La `temperatura` de antes se
+             conserva tal cual, como «modo sin indicar»: ni se borra ni se mueve. */
+          tFrio: grados(tf),
+          tCalor: grados(tc),
           nota: String(p.nota || "").slice(0, 300),
           /* El modelo de proyecto de la obra del que sale (tipo, tamaño y caudal de proyecto). */
           modeloId: p.modeloId ? String(p.modeloId).slice(0, 40) : null
@@ -57563,10 +57778,22 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             disenoRevisar: (() => {
               const r = filas.filter((f) => f.circuito === id && f.sinAtribuir && numDif(f.caudalDiseno) !== null);
               return r.length ? redDif(r.reduce((a, f) => a + numDif(f.caudalDiseno), 0), 1) : null;
-            })()
+            })(),
+            /* «Tª frío 0/11 · Tª calor 0/11»: una boca está completa con caudal y las dos Tª. */
+            tFrio: suyos.filter((f) => f.tFrio !== null).length,
+            tCalor: suyos.filter((f) => f.tCalor !== null).length,
+            completas: suyos.filter((f) => bocaCompletaDif(f)).length
           };
         }
         return { filas, circuitos, tolerancias: tol, sinPosicion: filas.filter((f) => f.sinPosicion).length, aRevisar: filas.filter((f) => f.sinAtribuir).length };
+      }
+      function bocaCompletaDif(f = {}) {
+        const medida = f.caudal !== null && f.caudal !== void 0 ? true : f.estado === "sinFactor";
+        return Boolean(medida) && numDif(f.tFrio) !== null && numDif(f.tCalor) !== null;
+      }
+      function textoTemperaturasDif(c = {}) {
+        const n = c.puntos || 0;
+        return `T\xAA fr\xEDo ${c.tFrio || 0}/${n} \xB7 T\xAA calor ${c.tCalor || 0}/${n}`;
       }
       function siguienteNombreDif(puntos = [], circuito = "impulsion") {
         const letra = circuito === "retorno" ? "R" : "D";
@@ -58047,7 +58274,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         fichaAk: fichaAkDif,
         recuentoCatalogo: recuentoCatalogoDif,
         buscarAk: buscarAkDif,
-        avisoCaudalDudoso: avisoCaudalDudosoDif
+        avisoCaudalDudoso: avisoCaudalDudosoDif,
+        bocaCompleta: bocaCompletaDif,
+        textoTemperaturas: textoTemperaturasDif
       });
     }
   });
@@ -59601,10 +59830,27 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
       }
       function garantia(u, linea, hoy = hoyLocal()) {
         const enConjunto = linea && Array.isArray(linea.miembros) && linea.miembros.length > 1;
-        const base = enConjunto ? { fechaEnvioDF: linea.fechaEnvioDF || null, garantiaAnios: linea.miembros.map((m) => Number(m.garantiaAnios) || 0).reduce((x, y) => Math.max(x, y), 0) || null } : { fechaEnvioDF: u && u.fechaEnvioDF || null, garantiaAnios: u && u.garantiaAnios };
+        const base = enConjunto ? {
+          fechaEnvioDF: linea.fechaEnvioDF || null,
+          garantiaAnios: linea.miembros.map((m) => Number(m.garantiaAnios) || 0).reduce((x, y) => Math.max(x, y), 0) || null,
+          diasUso: linea.diasUso ?? null,
+          diasUsoFecha: linea.diasUsoFecha || null
+        } : { fechaEnvioDF: u && u.fechaEnvioDF || null, garantiaAnios: u && u.garantiaAnios, diasUso: u ? u.diasUso ?? null : null, diasUsoFecha: u && u.diasUsoFecha || null };
         const g = G.garantiaDe(base, hoy);
         const duracion = aniosTexto(g.anios);
-        const sal = { desde: g.inicio, hasta: g.fin, desdeTexto: fecha(g.inicio), hastaTexto: fecha(g.fin), anios: g.anios, duracion, quedanDias: null, conjunto: enConjunto ? linea.tag || null : null };
+        const sal = {
+          desde: g.inicio,
+          hasta: g.fin,
+          desdeTexto: fecha(g.inicio),
+          hastaTexto: fecha(g.fin),
+          anios: g.anios,
+          duracion,
+          quedanDias: null,
+          conjunto: enConjunto ? linea.tag || null : null,
+          /* Los días de uso antes de la entrega a DF (30-oct): aparte, no mueven la garantía. */
+          usoAntesEntrega: g.usoAntesEntrega ?? null,
+          textoUso: g.textoUso || null
+        };
         if (g.estado === "sinEmpezar") return { ...sal, estado: "sinEntregaDF", tono: "gris", resumen: "Pendiente de entrega a DF" };
         if (g.estado === "sinAnios") return { ...sal, estado: "sinDuracion", tono: "gris", resumen: "Duraci\xF3n sin dato" };
         const quedan = diasEntre(hoy, g.fin);
@@ -59680,6 +59926,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             ["Desde", g.desdeTexto ? v(`${g.desdeTexto} (entrega a DF${g.conjunto ? " del conjunto" : ""})`) : v("Pendiente de entrega a DF", "gris")],
             ["Hasta", g.hastaTexto ? v(g.hastaTexto) : v(null)],
             ["Duraci\xF3n", g.duracion ? v(g.duracion) : v("Duraci\xF3n sin dato", "gris")],
+            ["D\xEDas de uso", g.textoUso ? v(g.textoUso, "info") : v("Sin dato", "gris")],
             ...g.estado === "vigente" || g.estado === "caducada" ? [["Estado", v(g.resumen, g.tono)]] : []
           ] });
         }
@@ -66257,6 +66504,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           checklist: "Checklist",
           ensayos: "Ensayos",
           entrega: "Entrega",
+          diasUso: "D\xEDas de uso antes de la entrega",
           // 7 · incidencias
           incidencias: "7 \xB7 Incidencias de identificaci\xF3n",
           observaciones: "Observaciones",
@@ -66379,6 +66627,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           checklist: "Checklist",
           ensayos: "Tests",
           entrega: "Handover",
+          diasUso: "Days in use before handover",
           incidencias: "7 \xB7 Identification issues",
           observaciones: "Remarks",
           sinIncidencias: "No equipment has identification issues.",
@@ -66495,6 +66744,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           checklist: "Checkliste",
           ensayos: "Pr\xFCfungen",
           entrega: "\xDCbergabe",
+          diasUso: "Betriebstage vor der \xDCbergabe",
           incidencias: "7 \xB7 M\xE4ngel bei der Identifikation",
           observaciones: "Bemerkungen",
           sinIncidencias: "Kein Ger\xE4t hat M\xE4ngel bei der Identifikation.",
@@ -66611,6 +66861,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           checklist: "Checklist",
           ensayos: "Essais",
           entrega: "Remise",
+          diasUso: "Jours d\u2019utilisation avant la remise",
           incidencias: "7 \xB7 Anomalies d\u2019identification",
           observaciones: "Observations",
           sinIncidencias: "Aucun \xE9quipement ne pr\xE9sente d\u2019anomalie d\u2019identification.",
@@ -66816,6 +67067,8 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
     </table>` : `<p class="notaDoc">${esc(L("sinPruebas"))}</p>`}`;
           const balEq = (f) => f.balanceoEstado === "apto" ? SI : f.balanceoEstado === "aptoSinBocas" ? '<span class="info">\u2713*</span>' : f.balanceoEstado === "noApto" ? MAL : NO;
           const estEq = (f) => f.estanqueidadEstado === "apta" ? SI : f.estanqueidadEstado === "noApta" ? MAL : NO;
+          const GCX = typeof __require !== "undefined" ? require_garantia() : window.GARANTIA_CX;
+          const usoAntes = (f) => GCX && f && f.diasUso !== null && f.diasUso !== void 0 && f.diasUso !== "" ? GCX.usoDe(f, hoy).antesEntrega : null;
           const claseEnv = (e) => e === "enviada" ? "bien" : e === "lista" ? "info" : "no";
           const relacion = `
     <h3>${esc(L("relacion"))}</h3>
@@ -66823,18 +67076,20 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
       <th>${esc(L("marca"))} / ${esc(L("modelo"))}</th><th>${esc(L("numSerie"))}</th><th class="c">${esc(L("enMarcha"))}</th>
       <th class="c">${esc(L("fichaTecnica"))}</th><th class="c">${esc(L("marcadoCE"))}</th><th class="c">${esc(L("manual"))}</th>
       <th class="c">${esc(L("fichaPM"))}</th><th class="c">${esc(L("checklist"))}</th><th class="c">${esc(L("balanceo"))}</th>
-      <th class="c">${esc(L("estanqueidad"))}</th><th>${esc(L("entrega"))}</th></tr></thead>
+      <th class="c">${esc(L("estanqueidad"))}</th><th>${esc(L("entrega"))}</th><th class="n">${esc(L("diasUso"))}</th></tr></thead>
     <tbody>${filas.map((f) => `<tr><td class="tag">${esc(f.tag || "\u2014")}</td><td>${esc(f.descripcion || f.denominacion || "")}</td>
       <td>${esc(f.planta || "")}</td><td>${esc([f.marca, f.modelo].filter(Boolean).join(" / "))}</td><td>${esc(f.numSerie || "")}</td>
       <td class="c">${marca(f.estadoPM === "enMarcha" || f.estadoPM === "hecha")}</td><td class="c">${marca(f.ft)}</td>
       <td class="c">${marca(f.ce)}</td><td class="c">${marca(f.manual)}</td><td class="c">${marca(f.fichaPM)}</td>
       <td class="c">${marcaTri(f.checklist)}</td><td class="c">${balEq(f)}</td><td class="c">${estEq(f)}</td>
-      <td class="${claseEnv(f.envio)}">${esc(L(`env_${ES[`env_${f.envio}`] ? f.envio : "faltaDocumentacion"}`))}</td></tr>`).join("")}</tbody>
+      <td class="${claseEnv(f.envio)}">${esc(L(`env_${ES[`env_${f.envio}`] ? f.envio : "faltaDocumentacion"}`))}</td>
+      <td class="n">${usoAntes(f) === null ? "" : F.num(usoAntes(f))}</td></tr>`).join("")}</tbody>
     <tfoot><tr><td colspan="5">${esc(L("total"))} \xB7 ${F.num(filas.length)}</td>
       <td class="c">${F.num(t.enMarcha)}</td><td class="c">${F.num(filas.filter((f) => f.ft).length)}</td>
       <td class="c">${F.num(filas.filter((f) => f.ce).length)}</td><td class="c">${F.num(filas.filter((f) => f.manual).length)}</td>
       <td class="c">${F.num(filas.filter((f) => f.fichaPM).length)}</td><td class="c">${F.num(t.checklistHechos)}</td>
-      <td class="c">${F.num(t.balanceos)}</td><td class="c">${F.num(t.estanqueidades)}</td><td>${F.num(t.enviadas)} ${esc(L("env_enviada").toLowerCase())}</td></tr></tfoot>
+      <td class="c">${F.num(t.balanceos)}</td><td class="c">${F.num(t.estanqueidades)}</td><td>${F.num(t.enviadas)} ${esc(L("env_enviada").toLowerCase())}</td>
+      <td class="n">${F.num(filas.reduce((a, f) => a + (usoAntes(f) || 0), 0))}</td></tr></tfoot>
     </table>
     <p class="notaDoc">${esc(L("leyenda"))} \xB7 \u2713* ${esc(L("bal_aptoSinBocas"))}</p>`;
           const conInc = filas.filter((f) => (f.incidencias || []).length);
@@ -67281,6 +67536,13 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           if (n !== null && (!Number.isFinite(n) || n <= 0 || n > 50)) return { ok: false, error: `\xAB${entrada.garantiaAnios}\xBB no son unos a\xF1os de garant\xEDa.` };
           cambios.garantiaAnios = n;
         }
+        if (entrada.diasUso !== void 0) {
+          const GCX = require_garantia();
+          const n = GCX.leerDiasUso(entrada.diasUso);
+          if (n && n.error) return { ok: false, error: n.error };
+          cambios.diasUso = n;
+          cambios.diasUsoFecha = n === null ? null : GCX.fechaISO(entrada.diasUsoFecha) || require_fecha().hoyLocal();
+        }
         if (!Object.keys(cambios).length) return { ok: false, error: "No hay nada que cambiar." };
         const ids = [id, ...companerasDe(equiposDe(repo, sesion, actual.obraId), id).map((c) => c.id)];
         const db = repo.db;
@@ -67506,6 +67768,15 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         if (fila) repo.modificar("hojasBalanceo", sesion, fila.id, { datos: texto });
         else repo.crear("hojasBalanceo", sesion, { obraId: equipo.obraId, equipoId, datos: texto });
         return { ok: true, hoja };
+      }
+      function guardarConductoPrincipal(repo, sesion, equipoId, red, cambios = {}, { autor = null } = {}) {
+        const actual = hojaBalanceo(repo, sesion, equipoId);
+        if (!actual) return { ok: false, error: "No se encuentra el equipo." };
+        const c = { ...cambios };
+        if (autor && !c.autor && !(actual.hoja.conductoPrincipal && actual.hoja.conductoPrincipal[red] && actual.hoja.conductoPrincipal[red].autor)) c.autor = autor;
+        const r = balanceo.aplicarConducto(actual.hoja, red, c, actual.equipo);
+        if (!r.ok) return r;
+        return guardarHojaBalanceo(repo, sesion, equipoId, r.hoja);
       }
       var leerJson = (texto) => {
         try {
@@ -67809,6 +68080,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         crearModelosQueFaltan,
         hojaBalanceo,
         guardarHojaBalanceo,
+        guardarConductoPrincipal,
         panelBalanceo,
         guardarRedAgua,
         borrarRedAgua,
@@ -95745,12 +96017,17 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         "GET api/equipo": [["commissioning", "ver"]],
         "POST api/boca": [["commissioning", "editar"]],
         "POST api/equipo/medida": [["commissioning", "editar"]],
+        /* La medición en el conducto principal de la UTA (30-oct-2026, JC). */
+        "POST api/equipo/conducto": [["commissioning", "editar"]],
         /* El cronómetro de cuadrilla del balanceo (23-oct-2026); pasarlo a un parte, quien abre partes. */
         "GET api/cronometro": [["commissioning", "ver"]],
         "POST api/cronometro": [["commissioning", "editar"]],
         "POST api/cronometro/parte": [["partesTrabajo", "crear"]],
         "POST api/equipo/instalacion": [["commissioning", "editar"]],
         "POST api/equipo/revalidar": [["commissioning", "editar"]],
+        /* La fecha de puesta en marcha, los años de garantía y los días de uso. Faltaba
+           (30-oct-2026): sin ella el manejador contestaba «No existe.» y no se guardaba. */
+        "POST api/equipo/fechas": [["commissioning", "editar"]],
         "POST api/equipo/serie": [["commissioning", "editar"]],
         /* Confirmar o descartar el nº de serie leído de la foto de la placa (29-oct-2026). */
         "POST api/equipo/placa": [["commissioning", "editar"]],
@@ -95864,9 +96141,9 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
               completo: l.completo,
               docCompleta: Boolean(l.docCompleta),
               estadoPM: l.estadoPM || null,
-              instalada: l.instalada !== false,
               bloqueadoPor: bloqueoLigero(l.bloqueadoPor),
               revalidarTras: l.revalidarTras || null,
+              instalada: l.instalada !== false,
               unidades: l.miembros.map((m) => ({ id: m.id, tag: m.tag, papel: m.id === ext.id && l.clase !== "suelto" ? "UE" : "UI", modelo: m.modelo || null, planta: m.planta || null, codSala: m.codSala || null, numSerie: FMOV.serieDe(m) }))
             };
           }).map((c, i) => {
@@ -95985,7 +96262,13 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
               fechaPuestaMarcha: (linea && linea.clase !== "suelto" ? linea.fechaPuestaMarcha : fila.fechaPuestaMarcha) || null,
               fechaEnvioDF: (linea && linea.clase !== "suelto" ? linea.fechaEnvioDF : fila.fechaEnvioDF) || null,
               garantiaAnios: fila.garantiaAnios ?? null,
-              garantia: (linea && linea.clase !== "suelto" ? linea.garantia : fila.garantia) || null
+              garantia: (linea && linea.clase !== "suelto" ? linea.garantia : fila.garantia) || null,
+              /* Los días de uso (30-oct, JC) y su propuesta desde la puesta en marcha. */
+              uso: require_garantia().usoDe({
+                ...linea && linea.clase !== "suelto" ? { diasUso: linea.diasUso, diasUsoFecha: linea.diasUsoFecha } : { diasUso: fila.diasUso, diasUsoFecha: fila.diasUsoFecha },
+                fechaEnvioDF: (linea && linea.clase !== "suelto" ? linea.fechaEnvioDF : fila.fechaEnvioDF) || null,
+                fechaPuestaMarcha: (linea && linea.clase !== "suelto" ? linea.fechaPuestaMarcha : fila.fechaPuestaMarcha) || null
+              })
             } : null,
             /* Qué se mide de este equipo (plantillasCliente.js › MEDICIONES): decide
                si sale la fila del balanceo y con qué nombre. */
@@ -96019,6 +96302,8 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
                   lectura: e.lectura || null,
                   caudalMedido: x.caudalMedido ?? null,
                   temperatura: x.temperatura ?? null,
+                  tFrio: x.tFrio ?? null,
+                  tCalor: x.tCalor ?? null,
                   metodo: e.metodo || null,
                   equipoMedida: e.equipoMedida || null,
                   equipoElegido: x.equipoMedida || null,
@@ -96054,10 +96339,12 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
             diseno: d.diseno,
             tolerancias: d.tolerancias,
             circuitos: d.resumen.circuitos,
+            /* La medición en el conducto principal (30-oct): las dos filas evaluadas. */
+            conducto: conductoDe(ses, d),
             puedeMedir: d.puedeEditar,
-            /* El cronómetro de cuadrilla: horas, bocas y (a quien ve dinero) el coste. */
             /* Incidencias del equipo (29-oct, JC): las abiertas que lo bloquean, la marca de revalidar y si se puede abrir una. */
             incidenciaEquipo: incidenciaEquipo(ses, d.equipo, linea, fila),
+            /* El cronómetro de cuadrilla: horas, bocas y (a quien ve dinero) el coste. */
             cronometro: (() => {
               try {
                 const c = CRONO.leer(repo, ses, d.equipo.id, { quien: { nombre: quien } });
@@ -96073,10 +96360,10 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         }
         function cronometroAccion({ ses, quien, json }) {
           const e = json();
-          return CRONO.accion(repo, ses, llano(e.equipoId), { accion: e.accion, cuadrilla: e.cuadrilla, bocasAMano: e.bocasAMano }, { quien: { nombre: quien } });
           const eq = repo.leer("equiposObra", ses, llano(e.equipoId));
           const cerrado = eq ? INC.bloqueoParaTomar(repo, eq.obraId, eq.id) : null;
           if (cerrado) return cerrado;
+          return CRONO.accion(repo, ses, llano(e.equipoId), { accion: e.accion, cuadrilla: e.cuadrilla, bocasAMano: e.bocasAMano }, { quien: { nombre: quien } });
         }
         function cronometroParte({ ses, json }) {
           const e = json();
@@ -96087,13 +96374,13 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           const planoId = llano(e.planoId);
           const plano = repo.leer("planosDifusores", ses, planoId);
           if (!plano) return { ok: false, error: "No se encuentra el plano." };
+          const cerrado = INC.bloqueoParaTomar(repo, plano.obraId, plano.equipoId);
+          if (cerrado) return cerrado;
           let puntos = [];
           try {
             puntos = JSON.parse(plano.puntos || "[]");
           } catch {
           }
-          const cerrado = INC.bloqueoParaTomar(repo, plano.obraId, plano.equipoId);
-          if (cerrado) return cerrado;
           const i = puntos.findIndex((p) => p && String(p.id) === llano(e.puntoId));
           if (i < 0) return { ok: false, error: "No se encuentra esa boca." };
           const cifra = (x) => {
@@ -96134,10 +96421,11 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
             if (q !== null && (!Number.isFinite(q) || q < 0 || q > 1e5)) return { ok: false, error: "El caudal del bal\xF3metro tiene que estar entre 0 y 100.000 m\xB3/h." };
             cambio.caudalMedido = q;
           }
-          if (e.temperatura !== void 0) {
-            const t = cifra(e.temperatura);
+          for (const k of ["temperatura", "tFrio", "tCalor"]) {
+            if (e[k] === void 0) continue;
+            const t = cifra(e[k]);
             if (t !== null && (!Number.isFinite(t) || t < -50 || t > 150)) return { ok: false, error: "La temperatura tiene que estar entre -50 y 150 \xB0C." };
-            cambio.temperatura = t === null ? null : Math.round(t * 10) / 10;
+            cambio[k] = t === null ? null : Math.round(t * 10) / 10;
           }
           puntos[i] = { ...puntos[i], ...cambio };
           const r = DIF.guardarPlano(repo, ses, planoId, { puntos });
@@ -96153,18 +96441,12 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           const entrada = {};
           if ("fechaPuestaMarcha" in e) entrada.fechaPuestaMarcha = e.fechaPuestaMarcha;
           if ("garantiaAnios" in e) entrada.garantiaAnios = e.garantiaAnios;
+          if ("diasUso" in e) entrada.diasUso = e.diasUso;
           return CX.guardarFechasEquipo(repo, ses, llano(e.equipoId), entrada);
         }
         function equipoRevalidar({ ses, json }) {
           const e = json();
           return CX.validarTrasIncidencia(repo, ses, llano(e.equipoId));
-        }
-        function equipoSerie({ ses, json }) {
-          const e = json();
-          const r = FPM.ponerNumSerie(repo, ses, llano(e.equipoId), e.numSerie);
-          if (!r.ok) return r;
-          const vuelta = llano(e.volver) || r.equipoId;
-          return { ...equipo({ ses, query: { id: vuelta } }), ok: true, numSerie: r.numSerie, serieDe: r.equipoId };
         }
         function placaDe(ses, equipoId) {
           try {
@@ -96183,6 +96465,53 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           const vista = llano(e.vista) && repo.leer("equiposObra", ses, llano(e.vista)) ? llano(e.vista) : r.equipoId;
           return { ...equipo({ ses, quien, query: { id: vista } }), ok: true, numSerie: r.numSerie || null, lectura: r.estado || null };
         }
+        function equipoSerie({ ses, json }) {
+          const e = json();
+          const r = FPM.ponerNumSerie(repo, ses, llano(e.equipoId), e.numSerie);
+          if (!r.ok) return r;
+          const vuelta = llano(e.volver) || r.equipoId;
+          return { ...equipo({ ses, query: { id: vuelta } }), ok: true, numSerie: r.numSerie, serieDe: r.equipoId };
+        }
+        function conductoDe(ses, d) {
+          try {
+            const hb = CX.hojaBalanceo(repo, ses, d.equipo.id);
+            if (!hb) return null;
+            const BAL = require_balanceo();
+            const out = {};
+            for (const [red, mag] of Object.entries(BAL.REDES_CONDUCTO)) {
+              const c = hb.hoja.conductoPrincipal && hb.hoja.conductoPrincipal[red] || {};
+              const res = d.resumen.circuitos[red] || {};
+              const proyecto = MDIF.num(hb.hoja.proyecto[mag]) ?? MDIF.num(d.diseno && d.diseno[red] && d.diseno[red].valor);
+              out[red] = BAL.evaluarConducto(BAL.normalizarConducto(c) || { forma: "rect", velocidades: [] }, {
+                nombre: red === "impulsion" ? "Impulsi\xF3n" : "Retorno / extracci\xF3n",
+                medido: hb.hoja.medido[mag] ?? null,
+                fabrica: MDIF.num(hb.hoja.fabrica[mag]),
+                proyecto,
+                sumaBocas: res.disenoPuntos ?? null,
+                sumaMedido: res.suma ?? null
+              });
+            }
+            return out;
+          } catch {
+            return null;
+          }
+        }
+        function equipoConducto({ ses, quien, json }) {
+          const e = json();
+          const red = llano(e.red);
+          if (red !== "impulsion" && red !== "retorno") return { ok: false, error: "El conducto principal es de impulsi\xF3n o de retorno." };
+          const eq = repo.leer("equiposObra", ses, llano(e.equipoId));
+          if (!eq) return { ok: false, error: "No se encuentra el equipo." };
+          const cerrado = INC.bloqueoParaTomar(repo, eq.obraId, eq.id);
+          if (cerrado) return cerrado;
+          const cambios = {};
+          for (const k of ["forma", "ancho", "alto", "diametro", "tFrio", "tCalor", "fecha", "caudal"]) if (e[k] !== void 0) cambios[k] = e[k];
+          if (e.velocidades !== void 0) cambios.velocidades = Array.isArray(e.velocidades) ? e.velocidades : String(e.velocidades);
+          if (!cambios.fecha && (cambios.velocidades !== void 0 || cambios.caudal !== void 0)) cambios.fecha = hoy();
+          const r = CX.guardarConductoPrincipal(repo, ses, eq.id, red, cambios, { autor: quien || null });
+          if (!r.ok) return r;
+          return { ok: true, ...equipo({ ses, quien, query: { id: eq.id } }) };
+        }
         function equipoMedida({ ses, json }) {
           const e = json();
           const em = llano(e.equipoMedida);
@@ -96192,9 +96521,9 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           const poner = (x) => ({ ...x, equipoMedida: em, ...le !== void 0 ? { lectura: le } : {} });
           const d = DIF.difusoresEquipo(repo, ses, llano(e.equipoId));
           if (!d) return { ok: false, error: "No se encuentra el equipo." };
+          const cerrado = INC.bloqueoParaTomar(repo, d.equipo.obraId, d.equipo.id);
+          if (cerrado) return cerrado;
           for (const p of d.planos) {
-            const cerrado = INC.bloqueoParaTomar(repo, d.equipo.obraId, d.equipo.id);
-            if (cerrado) return cerrado;
             const plano = repo.leer("planosDifusores", ses, p.id);
             if (!plano) continue;
             let puntos = [];
@@ -96639,14 +96968,15 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           "GET api/equipo": equipo,
           "POST api/boca": boca,
           "POST api/equipo/medida": equipoMedida,
+          "POST api/equipo/conducto": equipoConducto,
           "GET api/cronometro": cronometro,
           "POST api/cronometro": cronometroAccion,
           "POST api/cronometro/parte": cronometroParte,
           "POST api/equipo/instalacion": equipoInstalacion,
+          "POST api/equipo/revalidar": equipoRevalidar,
           "POST api/equipo/fechas": equipoFechas,
           "POST api/equipo/serie": equipoSerie,
           "POST api/equipo/placa": equipoPlaca,
-          "POST api/equipo/revalidar": equipoRevalidar,
           "POST api/equipo/fotos": equipoFotos,
           "POST api/equipo/fotos/quitar": equipoFotoQuitar,
           "GET api/equipo/foto": equipoFoto,
