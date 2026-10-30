@@ -10063,7 +10063,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261030.0140" : "0";
+      var VERSION = true ? "20261030.0733" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -32411,7 +32411,11 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
             lecturas: Array.isArray(f.lecturasLista) ? f.lecturasLista : [],
             puntoId: f.id || null,
             desviacion: d === null ? null : redBal(d, 4),
-            estado
+            estado,
+            /* De una hoja sacada del texto del plano (30-oct-2026): sin sitio en el
+               dibujo todavía, o «a revisar» (no se sabe si es de este equipo: fuera de la suma). */
+            sinPosicion: Boolean(f.sinPosicion),
+            sinAtribuir: f.sinAtribuir || null
           };
         });
       }
@@ -32457,15 +32461,16 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         const circuitos = tipo.circuitos.map((id) => {
           const bocas = plano ? bocasDelPlano(plano, id, tol.boca) : evaluarBocas(hoja, id, tol.boca);
           const perdida = plano ? { total: null, partidas: [], avisos: [], supuestos: [] } : perdidaCircuito(hoja, id);
+          const cuentan = bocas.filter((b) => !b.sinAtribuir);
           const magnitud = id === "impulsion" ? "caudalImpulsion" : "caudalRetorno";
-          const conCaudal = bocas.filter((b) => b.caudalMedido !== null);
-          const medidas = bocas.filter((b) => b.caudalMedido !== null || b.estado === "sinFactor");
+          const conCaudal = cuentan.filter((b) => b.caudalMedido !== null);
+          const medidas = cuentan.filter((b) => b.caudalMedido !== null || b.estado === "sinFactor");
           const sumaMedido = conCaudal.length ? conCaudal.reduce((s, b) => s + b.caudalMedido, 0) : null;
-          const sumaProyecto = bocas.reduce((s, b) => s + (b.caudalProyecto || 0), 0) || null;
+          const sumaProyecto = cuentan.reduce((s, b) => s + (b.caudalProyecto || 0), 0) || null;
           const proyectoEquipo = numBal(proyectoEf[magnitud]);
           const medidoEquipo = numBal(hoja.medido[magnitud]);
           const fabricaEquipo = numBal(hoja.fabrica[magnitud]);
-          const todasMedidas = bocas.length > 0 && conCaudal.length === bocas.length;
+          const todasMedidas = cuentan.length > 0 && conCaudal.length === cuentan.length;
           const referenciaTotal = proyectoEquipo !== null ? proyectoEquipo : sumaProyecto;
           const totalMedido = medidoEquipo !== null ? medidoEquipo : todasMedidas ? sumaMedido : null;
           const dTotal = desviacion(totalMedido, referenciaTotal);
@@ -32473,13 +32478,13 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
           if (fabricaEquipo !== null && proyectoEquipo !== null && fabricaEquipo < proyectoEquipo * (1 - (tol.total ?? 0))) {
             avisos.push({ gravedad: "mal", texto: `${nombre}: la ficha t\xE9cnica da ${cifraBal(fabricaEquipo)} m\xB3/h y el proyecto pide ${cifraBal(proyectoEquipo)} m\xB3/h. Con este equipo no se llega por mucho que se regule.` });
           }
-          if (plano && proyectoEquipo !== null && sumaProyecto !== null && bocas.every((b) => b.origenProyecto === "plano") && Math.abs(sumaProyecto - proyectoEquipo) / proyectoEquipo > (tol.total ?? 0) + 1e-9) {
+          if (plano && proyectoEquipo !== null && sumaProyecto !== null && cuentan.every((b) => b.origenProyecto === "plano") && Math.abs(sumaProyecto - proyectoEquipo) / proyectoEquipo > (tol.total ?? 0) + 1e-9) {
             avisos.push({ gravedad: "aviso", texto: `${nombre}: las bocas del plano suman ${cifraBal(sumaProyecto)} m\xB3/h de proyecto y el equipo ${cifraBal(proyectoEquipo)} m\xB3/h. O faltan bocas en el plano o uno de los dos n\xFAmeros est\xE1 mal.` });
           } else if (!plano && proyectoEquipo !== null && sumaProyecto !== null && bocas.every((b) => b.origenProyecto === "dado") && Math.abs(sumaProyecto - proyectoEquipo) / proyectoEquipo > (tol.total ?? 0) + 1e-9) {
             avisos.push({ gravedad: "aviso", texto: `${nombre}: las bocas suman ${cifraBal(sumaProyecto)} m\xB3/h de proyecto y el equipo ${cifraBal(proyectoEquipo)} m\xB3/h. Uno de los dos n\xFAmeros del proyecto est\xE1 mal.` });
           }
-          if (plano && bocas.some((b) => b.estado === "sinFactor")) {
-            const n = bocas.filter((b) => b.estado === "sinFactor").length;
+          if (plano && cuentan.some((b) => b.estado === "sinFactor")) {
+            const n = cuentan.filter((b) => b.estado === "sinFactor").length;
             avisos.push({ gravedad: "aviso", texto: `${nombre}: ${_textoBal.plural(n, "boca tiene", "bocas tienen")} la velocidad pero no el Ak de su modelo: sin \xE9l no sale el caudal.` });
           }
           if (bocas.some((b) => b.origenProyecto === "repartido")) {
@@ -32514,9 +32519,11 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
             })(),
             veredictoBocas: todasMedidas ? _reglasBal.veredicto({ medido: sumaMedido, referencia: sumaProyecto, limite: tol.total }) : medidas.length ? "pendiente" : null,
             medidas: medidas.length,
-            sinAk: bocas.filter((b) => b.estado === "sinFactor").length,
-            fuera: bocas.filter((b) => b.estado === "alto" || b.estado === "bajo").length,
-            aRevisar: bocas.filter((b) => b.estado === "aRevisar").length,
+            sinAk: cuentan.filter((b) => b.estado === "sinFactor").length,
+            fuera: cuentan.filter((b) => b.estado === "alto" || b.estado === "bajo").length,
+            aRevisar: cuentan.filter((b) => b.estado === "aRevisar").length,
+            /* Las que no se pueden atribuir al equipo con seguridad: fuera de las sumas. */
+            sinAtribuir: bocas.length - cuentan.length,
             todasMedidas
           };
         });
@@ -57288,8 +57295,17 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         return {
           id: String(p.id || `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`),
           nombre: String(p.nombre || "").trim().slice(0, 40) || `D${indice + 1}`,
-          x: entre01Dif(p.x),
-          y: entre01Dif(p.y),
+          /* SIN POSICIÓN (30-oct-2026): la boca sale del texto del plano y no hay
+             dibujo; no se pinta sobre ninguna lámina hasta que llega el PDF y se
+             casa por código y caudal. Nunca se le inventa un sitio: x/y = null. */
+          x: p.sinPosicion ? null : entre01Dif(p.x),
+          y: p.sinPosicion ? null : entre01Dif(p.y),
+          sinPosicion: Boolean(p.sinPosicion),
+          /* La sala del plano, si la trae el texto (null = no se sabe). */
+          sala: p.sala ? String(p.sala).trim().slice(0, 40) || null : null,
+          /* A REVISAR: no se puede atribuir con seguridad al equipo (el plano trae
+             otros sistemas). Se enseña con su motivo y no entra en las sumas. */
+          sinAtribuir: p.sinAtribuir ? String(p.sinAtribuir).trim().slice(0, 200) || "a revisar" : null,
           tipo: t.id,
           modo,
           ak: ak !== null && ak > 0 ? ak : null,
@@ -57489,7 +57505,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         const filas = puntos.map((p, i) => evaluarPuntoDif(normalizarPuntoDif(p, i), tol.boca));
         const circuitos = {};
         for (const id of ["impulsion", "retorno"]) {
-          const suyos = filas.filter((f) => f.circuito === id);
+          const suyos = filas.filter((f) => f.circuito === id && !f.sinAtribuir);
           const conCaudal = suyos.filter((f) => f.caudal !== null);
           const suma = conCaudal.length ? redDif(conCaudal.reduce((a, f) => a + f.caudal, 0), 1) : null;
           const disenoPuntos = suyos.every((f) => numDif(f.caudalDiseno) !== null) && suyos.length ? redDif(suyos.reduce((a, f) => a + numDif(f.caudalDiseno), 0), 1) : null;
@@ -57522,10 +57538,11 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             desviacionEquipo: completo ? desviacionDif(suma, disenoEquipo) : null,
             estado,
             dentro: suyos.filter((f) => f.estado === "dentro").length,
-            fuera: suyos.filter((f) => f.estado === "alto" || f.estado === "bajo").length
+            fuera: suyos.filter((f) => f.estado === "alto" || f.estado === "bajo").length,
+            aRevisar: filas.filter((f) => f.circuito === id && f.sinAtribuir).length
           };
         }
-        return { filas, circuitos, tolerancias: tol };
+        return { filas, circuitos, tolerancias: tol, sinPosicion: filas.filter((f) => f.sinPosicion).length, aRevisar: filas.filter((f) => f.sinAtribuir).length };
       }
       function siguienteNombreDif(puntos = [], circuito = "impulsion") {
         const letra = circuito === "retorno" ? "R" : "D";
@@ -57695,14 +57712,14 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         const n = /^\d{1,3}(\.\d{3})+$/.test(crudo) ? Number(crudo.replace(/\./g, "")) : Number(crudo.replace(",", "."));
         return Number.isFinite(n) && n > 0 && n < 1e5 ? n : null;
       }
-      function reconocerBocasDif(textos, { modelos = [], existentes = [], recuento = null, excluir = [] } = {}) {
+      function reconocerBocasDif(textos, { modelos = [], existentes = [], recuento = null, excluir = [], sinTabla = false } = {}) {
         const avisos = [];
         const descartadas = [];
         const exteriores = [];
         const otros = [];
         const cortes = [];
         const fuera = new Set((excluir || []).map((r) => String(r).toUpperCase()));
-        const tabla = { ...recuentoTablaDif(textos), ...recuento || {} };
+        const tabla = sinTabla ? {} : { ...recuentoTablaDif(textos), ...recuento || {} };
         const porRef = new Map((modelos || []).map((m) => [String(m.ref || "").replace(/[\s_.-]/g, "").toUpperCase(), m]));
         const etiquetas = [];
         const caudales = [];
@@ -58240,11 +58257,13 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         if (!puede(sesion.rol, "commissioning", "crear")) {
           return { ok: false, error: "Tu rol puede ver el commissioning de esta obra, pero no a\xF1adir planos." };
         }
-        const error = comprobarImagen(datos.imagen);
+        const sinDibujo = datos.sinDibujo === true;
+        if (sinDibujo && (datos.puntos || []).some((p) => !p || !p.sinPosicion)) return { ok: false, error: "Un plano sin dibujo solo lleva bocas sin posici\xF3n." };
+        const error = sinDibujo ? null : comprobarImagen(datos.imagen);
         if (error) return { ok: false, error };
         const existentes = planosDe(repo, sesion, equipoId);
         const nombre = String(datos.nombre || "").trim().slice(0, 80) || `Plano ${existentes.length + 1}`;
-        const imagenId = repo.crear("imagenesPlanoDif", sesion, { obraId: equipo.obraId, imagen: datos.imagen });
+        const imagenId = sinDibujo ? null : repo.crear("imagenesPlanoDif", sesion, { obraId: equipo.obraId, imagen: datos.imagen });
         const id = repo.crear("planosDifusores", sesion, {
           obraId: equipo.obraId,
           equipoId,
@@ -58524,7 +58543,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
         const h = Math.max(W, H) * 0.024;
         const fs = h * 0.62;
-        const marcas = puntos.map((p) => {
+        const marcas = puntos.filter((p) => !p.sinPosicion && p.x !== null && p.x !== void 0 && p.y !== null && p.y !== void 0).map((p) => {
           const familia = familiaBoca(p.tipo);
           const f = FAMILIAS_BOCA[familia];
           const e = estados[p.id] || {};
@@ -95949,8 +95968,11 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
                   nombre: x.nombre,
                   circuito: e.circuito,
                   tipoId: x.tipo || null,
-                  x: MDIF.num(x.x),
-                  y: MDIF.num(x.y),
+                  x: x.sinPosicion ? null : MDIF.num(x.x),
+                  y: x.sinPosicion ? null : MDIF.num(x.y),
+                  sinPosicion: Boolean(x.sinPosicion),
+                  sinAtribuir: x.sinAtribuir || null,
+                  desdeCaptura: /posición desde captura/.test(String(x.nota || "")),
                   tipo: e.tipoNombre,
                   velocidad: x.velocidad,
                   lecturas: e.lecturasLista || [],
