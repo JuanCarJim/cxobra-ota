@@ -106,5 +106,43 @@
     return typeof Worker !== 'undefined' && typeof WebAssembly !== 'undefined' && typeof createImageBitmap === 'function';
   }
 
-  window.OCR_PLACA = { leer, disponible };
+  /*
+   * EL ALBARÁN DEL PROVEEDOR (29-oct, JC: «Que puedan crearlos también y/o
+   * escanearlos»): el mismo OCR, una pasada a 2400 px, devuelto como los
+   * trozos de Vision ({ t, x, y, w, h } de 0 a 1, arriba a la izquierda) para
+   * que shared/compras/albaranes.js › filasDeTrozos lo lea igual. Cada renglón
+   * se parte donde hay un hueco ancho entre palabras: así quedan las columnas
+   * (descripción, cantidad, unidad) como celdas, igual que con Vision.
+   */
+  async function trozos(blob, { base = '' } = {}) {
+    if (!disponible()) throw new Error('Este navegador no puede leer fotos.');
+    const w = await elWorker(base);
+    const c = await lienzo(blob, 2400);
+    const { data } = await w.recognize(c, {}, { text: true, blocks: true });
+    const W = c.width || 1;
+    const H = c.height || 1;
+    const salida = [];
+    const renglones = [];
+    for (const b of data.blocks || []) for (const p of b.paragraphs || []) for (const l of p.lines || []) renglones.push(l.words || []);
+    for (const palabras of renglones) {
+      const ps = palabras.filter((x) => x && String(x.text || '').trim() && x.bbox).sort((a, b) => a.bbox.x0 - b.bbox.x0);
+      let actual = null;
+      for (const p of ps) {
+        const alto = Math.max(1, p.bbox.y1 - p.bbox.y0);
+        if (actual && p.bbox.x0 - actual.x1 <= alto * 1.2) {
+          actual.t += ` ${p.text.trim()}`;
+          actual.x1 = Math.max(actual.x1, p.bbox.x1);
+          actual.y0 = Math.min(actual.y0, p.bbox.y0);
+          actual.y1 = Math.max(actual.y1, p.bbox.y1);
+        } else {
+          if (actual) salida.push(actual);
+          actual = { t: p.text.trim(), x0: p.bbox.x0, x1: p.bbox.x1, y0: p.bbox.y0, y1: p.bbox.y1 };
+        }
+      }
+      if (actual) salida.push(actual);
+    }
+    return salida.map((s) => ({ t: s.t, x: s.x0 / W, y: s.y0 / H, w: (s.x1 - s.x0) / W, h: Math.max(1, s.y1 - s.y0) / H }));
+  }
+
+  window.OCR_PLACA = { leer, disponible, trozos };
 })();
