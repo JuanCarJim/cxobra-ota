@@ -7679,12 +7679,12 @@ globalThis.CX_VARIANTE="cxobra";
         comercial: { trabajo: ["clientes", "licitaciones", "presupuestos"], consulta: ["proyectos", "estadisticas", "vacaciones"] },
         /* 22-oct (JC): el Director de Proyectos, con «Departamentos» (DEPARTAMENTOS_DIRECTOR) en vez de «Mi trabajo». */
         jefeProyectos: { director: true, trabajo: ["obras", "alcance", "tareas", "actas", "compras", "costsPlan", "certificaciones", "legalizaciones", "informeSemanal", "reporteDireccion", "presupuestos", "proyectos"], consulta: ["estadisticas", "ncr", "ppi", "conflictos", "clientes", "proveedores", "personas", "vacaciones"] },
-        jefeGrupo: { trabajo: ["obras", "alcance", "tareas", "actas", "informeSemanal", "reporteDireccion", "costsPlan", "certificaciones", "compras", "legalizaciones"], consulta: ["pedidos", "commissioning", "ncr", "ppi", "conflictos", "estadisticas", "vacaciones"] },
+        jefeGrupo: { trabajo: ["obras", "alcance", "tareas", "actas", "informeSemanal", "reporteDireccion", "costsPlan", "certificaciones", "compras", "legalizaciones"], consulta: ["pedidos", "commissioning", "documentacion", "ncr", "ppi", "conflictos", "estadisticas", "vacaciones"] },
         jefeObra: { trabajo: ["obras", "planosObra", "tareas", "actas", "costsPlan", "compras", "pedidos", "certificaciones", "commissioning", "legalizaciones", "ppi", "ncr", "partesIncidencia", "qhse", "partesTrabajo"], consulta: ["calculo", "pruebasEstanqueidad", "balanceo", "proveedores", "vacaciones"] },
         /* De momento, la misma que el jefe de obra (ver RESTRICCIONES_JEFE_PRODUCCION). */
         jefeProduccion: { trabajo: ["obras", "planosObra", "tareas", "actas", "costsPlan", "compras", "pedidos", "certificaciones", "commissioning", "legalizaciones", "ppi", "ncr", "partesIncidencia", "qhse", "partesTrabajo"], consulta: ["calculo", "pruebasEstanqueidad", "balanceo", "proveedores", "vacaciones"] },
-        encargadoObra: { trabajo: ["tareas", "pedidos", "partes", "partesIncidencia", "qhse", "partesTrabajo", "ppi", "ncr", "pruebasEstanqueidad"], consulta: ["obras", "commissioning", "vacaciones"] },
-        jefeCommissioning: { trabajo: ["commissioning", "balanceo", "pruebasEstanqueidad", "ncr", "ppi"], consulta: ["calculo", "obras", "tareas", "vacaciones", "informeSemanal", "reporteDireccion", "mantenimiento"] },
+        encargadoObra: { trabajo: ["tareas", "pedidos", "partes", "partesIncidencia", "qhse", "partesTrabajo", "ppi", "ncr", "pruebasEstanqueidad"], consulta: ["obras", "commissioning", "documentacion", "vacaciones"] },
+        jefeCommissioning: { trabajo: ["commissioning", "documentacion", "balanceo", "pruebasEstanqueidad", "ncr", "ppi"], consulta: ["calculo", "obras", "tareas", "vacaciones", "informeSemanal", "reporteDireccion", "mantenimiento"] },
         contractSupport: { trabajo: ["certificaciones", "compras", "pedidos", "conflictos", "ncr"], consulta: ["tareas", "clientes", "proveedores", "trazabilidad", "vacaciones"] },
         jefeMantenimiento: { trabajo: ["mantenimiento", "incidencias"], consulta: ["commissioning", "obras", "ncr", "vacaciones"] },
         /* 24-oct (JC): Mantenimiento es un departamento aparte. Las órdenes viven en la pestaña de «Mantenimiento». */
@@ -7715,7 +7715,9 @@ globalThis.CX_VARIANTE="cxobra";
          * partes de incidencia (robos, tajos parados, daños) siguen aparte.
          */
         jefeObra: [
-          { nombre: "Proyecto", modulos: ["obras", "documentacionProyecto", "alcance", "planosObra", "nube", "calculo", "proyectos"] },
+          { nombre: "Proyecto", modulos: ["obras", "alcance", "planosObra", "nube", "calculo", "proyectos"] },
+          /* 30-oct (JC): toda la documentación de la obra junta: fichas, checklists, planos, pruebas, balanceos, fabricantes, informes. */
+          { nombre: "Documentaci\xF3n", modulos: ["documentacion", "documentacionProyecto"] },
           { nombre: "Planificaci\xF3n y producci\xF3n", modulos: ["gantt", "avanceObra", "tareas", "partes", "partesTrabajo", "vacaciones"] },
           { nombre: "Compras", modulos: ["planCompras", "comparativos", "pedidos", "proveedores"] },
           { nombre: "Econ\xF3mico", modulos: ["presupuestoObra", "costsPlan", "analisisProyecto", "planEconomica", "certificaciones", "estadisticas"] },
@@ -7733,6 +7735,8 @@ globalThis.CX_VARIANTE="cxobra";
       var ATAJOS_OBRA = {
         /* 22-oct (JC): la biblioteca de modelos del proyecto según el presupuesto, y el buscador de documentos. */
         documentacionProyecto: { modulo: "alcance", etiqueta: "Documentaci\xF3n del proyecto" },
+        /* 30-oct (JC): el registro de todo lo documental de la obra, por tipo; sin dinero, también para el encargado. */
+        documentacion: { modulo: "commissioning", etiqueta: "Documentaci\xF3n de la obra" },
         presupuestoObra: { modulo: "presupuestos", etiqueta: "Presupuesto de obra" },
         variantes: { modulo: "costsPlan", etiqueta: "Variantes y OC" },
         analisisProyecto: { modulo: "costsPlan", etiqueta: "An\xE1lisis del proyecto" },
@@ -10066,7 +10070,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261030.0946" : "0";
+      var VERSION = true ? "20261102.0932" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -10823,6 +10827,268 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
+  // shared/commissioning/cronometro.js
+  var require_cronometro = __commonJS({
+    "shared/commissioning/cronometro.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const ROLES_CUADRILLA = { oficial: "T\xE9cnico / oficial", operario: "Operario" };
+        const MAX_TRAMOS = 200;
+        const MAX_PERSONAS = 12;
+        const llano = (v) => String(v ?? "").trim();
+        const redondear = (n, d = 2) => Math.round((Number(n) + Number.EPSILON) * 10 ** d) / 10 ** d;
+        const esHora = (v) => typeof v === "string" && !Number.isNaN(Date.parse(v));
+        const ms = (v) => Date.parse(v);
+        const normalizarNombre = (s) => llano(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ");
+        function persona(p) {
+          if (!p || typeof p !== "object") return null;
+          const nombre = llano(p.nombre).replace(/\s+/g, " ").slice(0, 120);
+          if (!nombre) return null;
+          return {
+            nombre,
+            personalId: p.personalId ? llano(p.personalId).slice(0, 60) : null,
+            rol: ROLES_CUADRILLA[p.rol] ? p.rol : "operario",
+            empresa: llano(p.empresa).slice(0, 120) || null
+          };
+        }
+        function personas(lista) {
+          const fuera = [];
+          const vistas = /* @__PURE__ */ new Set();
+          for (const x of Array.isArray(lista) ? lista : []) {
+            const p = persona(x);
+            if (!p) continue;
+            const k = p.personalId || normalizarNombre(p.nombre);
+            if (vistas.has(k)) continue;
+            vistas.add(k);
+            fuera.push(p);
+            if (fuera.length >= MAX_PERSONAS) break;
+          }
+          return fuera;
+        }
+        const ids = (l) => [...new Set((Array.isArray(l) ? l : []).filter((x) => typeof x === "string" && x).map((x) => x.slice(0, 60)))].slice(0, 2e3);
+        function normalizar(c) {
+          const e = c && typeof c === "object" ? c : {};
+          const tramos = (Array.isArray(e.tramos) ? e.tramos : []).filter((t) => t && esHora(t.inicio)).slice(0, MAX_TRAMOS).map((t) => ({
+            inicio: new Date(ms(t.inicio)).toISOString(),
+            fin: esHora(t.fin) && ms(t.fin) >= ms(t.inicio) ? new Date(ms(t.fin)).toISOString() : null,
+            personas: personas(t.personas)
+          }));
+          for (let i = 0; i < tramos.length - 1; i++) if (!tramos[i].fin) tramos[i].fin = tramos[i + 1].inicio;
+          const bam = Number(e.bocasAMano);
+          return {
+            tramos,
+            cuadrilla: personas(e.cuadrilla),
+            bocasPrevias: ids(e.bocasPrevias),
+            bocasMedidas: Array.isArray(e.bocasMedidas) ? ids(e.bocasMedidas) : null,
+            bocasAMano: e.bocasAMano !== null && e.bocasAMano !== void 0 && e.bocasAMano !== "" && Number.isFinite(bam) && bam >= 0 ? Math.round(bam) : null,
+            terminado: esHora(e.terminado) ? new Date(ms(e.terminado)).toISOString() : null,
+            parteId: e.parteId ? llano(e.parteId).slice(0, 60) : null,
+            parteCodigo: e.parteCodigo ? llano(e.parteCodigo).slice(0, 30) : null
+          };
+        }
+        const vacio = (c) => !c || !c.tramos.length;
+        const abierto = (c) => Boolean(c && c.tramos.length && !c.tramos[c.tramos.length - 1].fin);
+        function cuadrillaPorDefecto(quien = {}) {
+          return personas([
+            { nombre: quien.nombre || "Quien mide", personalId: quien.personaId || null, rol: "oficial", empresa: quien.empresa || null },
+            { nombre: "Operario 1", rol: "operario", empresa: quien.empresa || null }
+          ]);
+        }
+        const medidasAhora = (bocas = []) => bocas.filter((b) => b && b.medida).map((b) => String(b.id));
+        function aplicar(entrada, accion, { ahora = Date.now(), cuadrilla = void 0, bocas = [], bocasAMano = void 0, quien = {} } = {}) {
+          const c = normalizar(entrada);
+          const iso = new Date(ahora).toISOString();
+          if (!c.cuadrilla.length) c.cuadrilla = cuadrillaPorDefecto(quien);
+          if (cuadrilla !== void 0 && accion !== "bocas") {
+            const nueva = personas(cuadrilla);
+            if (!nueva.length) return { ok: false, error: "La cuadrilla necesita al menos una persona." };
+            c.cuadrilla = nueva;
+          }
+          const ultimo = c.tramos[c.tramos.length - 1];
+          if (accion === "empezar") {
+            if (abierto(c)) return { ok: false, error: "El cron\xF3metro ya est\xE1 en marcha." };
+            if (ultimo && ms(ultimo.fin) > ahora) return { ok: false, error: "La hora del tel\xE9fono va por detr\xE1s de la del \xFAltimo tramo: rev\xEDsala." };
+            if (!c.tramos.length) c.bocasPrevias = medidasAhora(bocas);
+            c.tramos.push({ inicio: iso, fin: null, personas: c.cuadrilla.map((p) => ({ ...p })) });
+            c.terminado = null;
+            c.bocasMedidas = null;
+            return { ok: true, cronometro: c };
+          }
+          if (accion === "pausar" || accion === "terminar") {
+            if (!abierto(c) && accion === "pausar") return { ok: false, error: "El cron\xF3metro no est\xE1 en marcha." };
+            if (!c.tramos.length) return { ok: false, error: "No se ha empezado todav\xEDa." };
+            if (abierto(c)) ultimo.fin = new Date(Math.max(ahora, ms(ultimo.inicio))).toISOString();
+            if (accion === "terminar") {
+              c.terminado = iso;
+              const previas = new Set(c.bocasPrevias);
+              c.bocasMedidas = medidasAhora(bocas).filter((id) => !previas.has(id));
+            }
+            return { ok: true, cronometro: c };
+          }
+          if (accion === "cuadrilla") {
+            if (cuadrilla === void 0) return { ok: false, error: "Falta la cuadrilla." };
+            if (abierto(c)) {
+              const inicio = ms(ultimo.inicio);
+              if (ahora - inicio < 6e4) ultimo.personas = c.cuadrilla.map((p) => ({ ...p }));
+              else {
+                ultimo.fin = iso;
+                c.tramos.push({ inicio: iso, fin: null, personas: c.cuadrilla.map((p) => ({ ...p })) });
+              }
+            }
+            return { ok: true, cronometro: c };
+          }
+          if (accion === "bocas") {
+            const n = bocasAMano === null || bocasAMano === "" || bocasAMano === void 0 ? null : Number(String(bocasAMano).replace(",", "."));
+            if (n !== null && (!Number.isFinite(n) || n < 0 || n > 5e3)) return { ok: false, error: "El n\xFAmero de bocas no es v\xE1lido." };
+            c.bocasAMano = n === null ? null : Math.round(n);
+            return { ok: true, cronometro: c };
+          }
+          if (accion === "reiniciar") {
+            if (c.parteId) return { ok: false, error: `Ya est\xE1 pasado al parte ${c.parteCodigo || ""}: no se borra.`.replace("  ", " ") };
+            return { ok: true, cronometro: normalizar({ cuadrilla: c.cuadrilla }) };
+          }
+          return { ok: false, error: "Acci\xF3n desconocida." };
+        }
+        function resumen(entrada, { ahora = Date.now(), bocas = [], tarifas = null, normalizarEmpresa = normalizarNombre } = {}) {
+          const c = normalizar(entrada);
+          let duracionMs = 0;
+          const porPersona = /* @__PURE__ */ new Map();
+          for (const t of c.tramos) {
+            const d = Math.max(0, (t.fin ? ms(t.fin) : ahora) - ms(t.inicio));
+            duracionMs += d;
+            for (const p of t.personas) {
+              const k = `${p.personalId || normalizarNombre(p.nombre)}|${p.rol}|${normalizarNombre(p.empresa)}`;
+              const x = porPersona.get(k) || { nombre: p.nombre, personalId: p.personalId, rol: p.rol, empresa: p.empresa, ms: 0 };
+              x.ms += d;
+              porPersona.set(k, x);
+            }
+          }
+          const personasH = [...porPersona.values()].map((p) => ({ nombre: p.nombre, personalId: p.personalId, rol: p.rol, rolNombre: ROLES_CUADRILLA[p.rol], empresa: p.empresa, horas: redondear(p.ms / 36e5, 3) }));
+          const horasPersona = redondear(personasH.reduce((s, p) => s + p.horas, 0), 3);
+          const previas = new Set(c.bocasPrevias);
+          const enEsteTiempo = new Set(c.bocasMedidas || medidasAhora(bocas).filter((id) => !previas.has(id)));
+          const deEste = bocas.filter((b) => enEsteTiempo.has(String(b.id)));
+          const rejas = deEste.filter((b) => b.retorno).length;
+          const contadas = enEsteTiempo.size;
+          const difusores = contadas - rejas;
+          const nBocas = c.bocasAMano !== null ? c.bocasAMano : contadas;
+          const horas = duracionMs / 36e5;
+          const fuera = {
+            vacio: vacio(c),
+            enMarcha: abierto(c),
+            terminado: c.terminado,
+            inicio: c.tramos.length ? c.tramos[0].inicio : null,
+            fin: c.tramos.length && !abierto(c) ? c.tramos[c.tramos.length - 1].fin : null,
+            inicioTramo: abierto(c) ? c.tramos[c.tramos.length - 1].inicio : null,
+            /* Lo que ya estaba cerrado: con inicioTramo, la pantalla cuenta sola sin preguntar. */
+            msCerrados: c.tramos.filter((t) => t.fin).reduce((s, t) => s + (ms(t.fin) - ms(t.inicio)), 0),
+            tramos: c.tramos.length,
+            cuadrilla: c.cuadrilla,
+            duracionMs,
+            duracionH: redondear(horas, 3),
+            horasPersona,
+            personas: personasH,
+            bocas: { difusores, rejas, contadas, aMano: c.bocasAMano, total: nBocas },
+            minPorBoca: nBocas > 0 && duracionMs > 0 ? redondear(duracionMs / 6e4 / nBocas, 1) : null,
+            minPersonaPorBoca: nBocas > 0 && horasPersona > 0 ? redondear(horasPersona * 60 / nBocas, 1) : null,
+            bocasHora: horas > 0 && nBocas > 0 ? redondear(nBocas / horas, 1) : null,
+            parteId: c.parteId,
+            parteCodigo: c.parteCodigo
+          };
+          if (tarifas) {
+            let coste = 0;
+            const sinTarifa = [];
+            for (const p of fuera.personas) {
+              const t = p.empresa && tarifas.get(normalizarEmpresa(p.empresa)) || {};
+              const bruto = p.rol === "oficial" ? t.oficial : t.operario;
+              const v = Number(bruto);
+              const tiene = bruto !== null && bruto !== void 0 && bruto !== "" && Number.isFinite(v);
+              p.tarifa = tiene ? v : null;
+              p.coste = tiene ? redondear(p.horas * v) : null;
+              if (tiene) coste += p.horas * v;
+              else sinTarifa.push(`${p.nombre} (${p.empresa || "sin empresa"}, ${p.rolNombre.toLowerCase()})`);
+            }
+            fuera.dinero = {
+              /* Con alguien sin tarifa el total no se da: sería menos de lo que es. */
+              coste: sinTarifa.length ? null : redondear(coste),
+              costeParcial: redondear(coste),
+              sinTarifa,
+              costePorBoca: !sinTarifa.length && nBocas > 0 ? redondear(coste / nBocas) : null
+            };
+          }
+          return fuera;
+        }
+        function duracionTexto(msTotal) {
+          const s = Math.max(0, Math.floor((Number(msTotal) || 0) / 1e3));
+          const h = Math.floor(s / 3600);
+          const m = Math.floor(s % 3600 / 60);
+          if (h) return `${h} h ${String(m).padStart(2, "0")} min`;
+          if (m) return `${m} min`;
+          return `${s} s`;
+        }
+        function lineasParte(entrada, { hoy = null } = {}) {
+          const c = normalizar(entrada);
+          const m = /* @__PURE__ */ new Map();
+          for (const t of c.tramos) {
+            if (!t.fin) continue;
+            const d = new Date(ms(t.inicio));
+            const fecha = new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+            const h = (ms(t.fin) - ms(t.inicio)) / 36e5;
+            for (const p of t.personas) {
+              const k = `${p.personalId || normalizarNombre(p.nombre)}|${p.rol}|${fecha}`;
+              const x = m.get(k) || { clase: "horas", operario: p.nombre, empresa: p.empresa || "Sin indicar", categoria: p.rol, fecha: hoy && fecha > hoy ? hoy : fecha, horas: 0 };
+              x.horas += h;
+              m.set(k, x);
+            }
+          }
+          return [...m.values()].map((x) => ({ ...x, horas: redondear(Math.min(24, x.horas), 2), notas: "Cron\xF3metro de cuadrilla del balanceo" })).filter((x) => x.horas > 0);
+        }
+        const TRABAJO_BALANCEO = "balanceo";
+        const trabajoLimpio = (t) => {
+          const s = llano(t || TRABAJO_BALANCEO).replace(/[^A-Za-z0-9:_.\-]/g, "_").slice(0, 90);
+          return s || TRABAJO_BALANCEO;
+        };
+        const claveDe = (trabajo) => {
+          const t = trabajoLimpio(trabajo);
+          return t === TRABAJO_BALANCEO ? "cronometro" : `cronometro:${t}`;
+        };
+        const esClave = (k) => k === "cronometro" || typeof k === "string" && k.startsWith("cronometro:");
+        const trabajoDeClave = (k) => k === "cronometro" ? TRABAJO_BALANCEO : String(k).slice("cronometro:".length);
+        const clavesDe = (datos) => Object.keys(datos && typeof datos === "object" ? datos : {}).filter(esClave);
+        const soloCronometros = (datos) => Boolean(datos && typeof datos === "object") && Object.keys(datos).length > 0 && Object.keys(datos).every(esClave);
+        function fusionar(a, b, { aMasNuevo = true } = {}) {
+          const ca = normalizar(a);
+          const cb = normalizar(b);
+          const nuevo = aMasNuevo ? ca : cb;
+          const viejo = aMasNuevo ? cb : ca;
+          const porInicio = /* @__PURE__ */ new Map();
+          for (const t of [...viejo.tramos, ...nuevo.tramos]) {
+            const x = porInicio.get(t.inicio);
+            if (!x) {
+              porInicio.set(t.inicio, { ...t });
+              continue;
+            }
+            if (t.fin && (!x.fin || ms(t.fin) > ms(x.fin))) x.fin = t.fin;
+            if (t.personas.length >= x.personas.length) x.personas = t.personas;
+          }
+          const tramos = [...porInicio.values()].sort((p, q) => ms(p.inicio) - ms(q.inicio));
+          const fusion = { ...nuevo, tramos };
+          if (fusion.terminado && tramos.length && ms(tramos[tramos.length - 1].inicio) > ms(fusion.terminado)) fusion.terminado = null;
+          if (!fusion.terminado && viejo.terminado && (!tramos.length || ms(tramos[tramos.length - 1].inicio) <= ms(viejo.terminado)) && !tramos.some((t) => !t.fin)) fusion.terminado = viejo.terminado;
+          if (!fusion.parteId && viejo.parteId) {
+            fusion.parteId = viejo.parteId;
+            fusion.parteCodigo = viejo.parteCodigo;
+          }
+          return normalizar(fusion);
+        }
+        const API = { ROLES_CUADRILLA, normalizar, aplicar, resumen, cuadrillaPorDefecto, duracionTexto, lineasParte, abierto, TRABAJO_BALANCEO, trabajoLimpio, claveDe, esClave, trabajoDeClave, clavesDe, soloCronometros, fusionar };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.CRONOMETRO_CX = API;
+      })();
+    }
+  });
+
   // shared/sync/fusion.js
   var require_fusion = __commonJS({
     "shared/sync/fusion.js"(exports, module) {
@@ -10830,6 +11096,7 @@ globalThis.CX_VARIANTE="cxobra";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var FIJAS = /* @__PURE__ */ new Set(["id", "modificadoEn", "creadoEn"]);
       var FL = require_fusionListas();
+      var CRONO = require_cronometro();
       function huella(v) {
         const s = v === void 0 ? "null" : JSON.stringify(v);
         let h = 2166136261;
@@ -10899,7 +11166,7 @@ globalThis.CX_VARIANTE="cxobra";
             const salida = {};
             for (const k of /* @__PURE__ */ new Set([...Object.keys(ol), ...Object.keys(or)])) {
               const hbk = base ? base[`${c}\0${k}`] || (hb ? huella(void 0) : null) : null;
-              const v = decidir(`${c}.${k}`, hbk, ol[k], or[k]);
+              const v = CRONO.esClave(k) && ol[k] && or[k] && typeof ol[k] === "object" && typeof or[k] === "object" && huella(ol[k]) !== huella(or[k]) && !(hbk && (huella(ol[k]) === hbk || huella(or[k]) === hbk)) ? CRONO.fusionar(ol[k], or[k], { aMasNuevo: aquiMasNuevo }) : decidir(`${c}.${k}`, hbk, ol[k], or[k]);
               if (v !== void 0) salida[k] = v;
             }
             fila[c] = JSON.stringify(salida);
@@ -10923,7 +11190,16 @@ globalThis.CX_VARIANTE="cxobra";
       var F = require_frontera();
       var FU = require_fusion();
       var FL = require_fusionListas();
-      var TABLAS_LISTA = /* @__PURE__ */ new Set(["planosDifusores"]);
+      var CRONO = require_cronometro();
+      var tryJson = (t) => {
+        try {
+          const o = JSON.parse(t);
+          return o && typeof o === "object" && !Array.isArray(o) ? o : null;
+        } catch {
+          return null;
+        }
+      };
+      var TABLAS_LISTA = /* @__PURE__ */ new Set(["planosDifusores", "hojasBalanceo"]);
       var SOLAPE = 50;
       var MAX_LOTE = 15e5;
       var POR_PAGINA = 1e3;
@@ -11218,6 +11494,28 @@ globalThis.CX_VARIANTE="cxobra";
             const cambiadas = {};
             const conflictos = [];
             for (const [c, v] of Object.entries(x.fila.datos)) {
+              if (tabla === "hojasBalanceo" && c === "datos") {
+                const dl = typeof v === "string" ? tryJson(v) : null;
+                const dr = typeof n.datos[c] === "string" ? tryJson(n.datos[c]) : null;
+                if (dl && dr) {
+                  let tocado = false;
+                  for (const k of CRONO.clavesDe(dr)) {
+                    if (!dl[k] || FU.huella(dl[k]) === FU.huella(dr[k])) {
+                      if (!dl[k]) {
+                        dl[k] = dr[k];
+                        tocado = true;
+                      }
+                      continue;
+                    }
+                    const hb = base ? base[`datos\0${k}`] : null;
+                    if (hb && FU.huella(dr[k]) === hb) continue;
+                    dl[k] = hb && FU.huella(dl[k]) === hb ? dr[k] : CRONO.fusionar(dl[k], dr[k], { aMasNuevo: String(x.mod) > modNube });
+                    tocado = true;
+                  }
+                  if (tocado) cambiadas[c] = JSON.stringify(dl);
+                }
+                continue;
+              }
               const ll = FL.listaConId(v);
               const lr = ll ? FL.listaConId(n.datos[c]) : null;
               if (!ll || !lr || FU.huella(v) === FU.huella(n.datos[c])) continue;
@@ -20011,12 +20309,13 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         /* LAS FIRMAS DEL EQUIPO (28-oct-2026): la del cliente y la del jefe de
            obra, hechas con el dedo en el móvil, que salen en los papeles del
            equipo (checklist, PM, balanceo, estanqueidad). Una por equipo y papel;
-           en un split o un VRF vale para todo el conjunto (data/firmasEquipo.js). */
+           en un split o un VRF vale para todo el conjunto (data/firmasEquipo.js).
+           30-oct: además «firmaCliente» y «mantenimiento», las dos casillas de la hoja. */
         `CREATE TABLE IF NOT EXISTS firmasEquipo (
      id                 TEXT PRIMARY KEY,
      obraId             TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
      equipoId           TEXT NOT NULL REFERENCES equiposObra(id) ON DELETE CASCADE,
-     rol                TEXT NOT NULL CHECK (rol IN ('cliente','jefeObra')),
+     rol                TEXT NOT NULL CHECK (rol IN ('cliente','jefeObra','firmaCliente','mantenimiento')),
      nombre             TEXT NOT NULL,
      imagen             TEXT NOT NULL,
      fecha              TEXT NOT NULL,
@@ -23943,7 +24242,7 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
           reconstruirTabla(db, tabla, sql);
         }
       }
-      var CHECKS_AMPLIADOS = [["ncr", "'enviadaRevision'"]];
+      var CHECKS_AMPLIADOS = [["ncr", "'enviadaRevision'"], ["firmasEquipo", "'mantenimiento'"]];
       function ampliarChecks(db) {
         for (const [tabla, valor] of CHECKS_AMPLIADOS) {
           const fila = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?").get(tabla);
@@ -35236,6 +35535,30 @@ ${subtitulo}`, c[5]] : c.slice())]);
             x.txt = x.txt.replace(/^(\d{2}) · /, (_, n) => `${Number(n) - d} \xB7 `).replace(/^(\d{2})\.(\d{2})(?=\s)/, (_, n, j) => `${Number(n) - d}.${Number(j)}`);
           }
         }
+        const FIRMAS_EXTRA = [["CLIENTE", "CLIENTE"], ["MANT", "MANTENIMIENTO"]];
+        let origExtra = 1e5;
+        function a\u00F1adirFirmasExtra(m, fila, rotulos, fuente) {
+          const cab = m.filas[fila];
+          const cajas = m.filas[fila + 1];
+          if (!cab || !cajas || rotulos.length < 2) return 0;
+          const filasCaja = (celdaEn(cajas, rotulos[0].c) || {}).rs || 3;
+          const nuevas = [];
+          nuevas.push({ alto: cab.alto, orig: origExtra++, clase: "", celdas: FIRMAS_EXTRA.map(([, rotulo], i) => ({ ...rotulos[i], txt: rotulo, f: false, rotuloFirma: null })) });
+          for (let k = 0; k < filasCaja; k++) {
+            const base = m.filas[fila + 1 + k];
+            nuevas.push({
+              alto: base ? base.alto : cab.alto,
+              orig: origExtra++,
+              clase: "",
+              celdas: k === 0 ? FIRMAS_EXTRA.map(([rol], i) => {
+                const caja = celdaEn(cajas, rotulos[i].c) || rotulos[i];
+                return { c: rotulos[i].c, cs: caja.cs, rs: filasCaja, st: caja.st, txt: "", f: false, html: fuente.firma(rol), clase: "xlFirma", rolFirma: rol };
+              }) : []
+            });
+          }
+          m.filas.splice(fila + 1 + filasCaja, 0, ...nuevas);
+          return nuevas.length;
+        }
         function rellenar(m, fuente) {
           let izq = "";
           let der = "";
@@ -35290,6 +35613,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
                   x.rotuloFirma = rolFirma;
                 }
               }
+              r += a\u00F1adirFirmasExtra(m, r, rotFirma, fuente);
               continue;
             }
             if (r === m.filas.length - 1 || /^Formato (CBRE|Vidaire)/.test((cs[0] || {}).txt || "")) {
@@ -35636,7 +35960,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
             },
             partirE: plantilla.clase === "balanceo" ? ["SECCI\xD3N\ncm", "V MEDIA\nm/s", "T\xAA\n(\xB0C)"] : null,
             fotos: () => blanco ? "" : fotosHtml(ev.datos.fotos || [], ctx.imagenes),
-            firma: (rol) => cajaFirma(!blanco && (ev.firmas || []).find((f) => f.rol === rol)),
+            firma: (rol) => cajaFirma(!blanco && ((rol === "CLIENTE" || rol === "MANT" ? ev.firmasConformidad : ev.firmas) || []).find((f) => f.rol === rol)),
             observaciones: () => {
               if (blanco || sinMedidos || ctx.sinObservaciones) return "";
               const partes = [];
@@ -35910,6 +36234,10 @@ ${subtitulo}`, c[5]] : c.slice())]);
             const mitad = Math.floor(nC / 2);
             f.push(fila(16, [celda(0, mitad, 1, 18, "JEFE DE OBRA"), celda(mitad, nC - mitad, 1, 18, "DIRECCI\xD3N FACULTATIVA")]));
             f.push(fila(16, [celda(0, mitad, 3, 19, "Nombre, firma y fecha"), celda(mitad, nC - mitad, 3, 19, "Nombre, firma y fecha")]));
+            f.push(fila(16, []), fila(16, []));
+            f.push(fila(16, [celda(0, mitad, 1, 18, "CLIENTE"), celda(mitad, nC - mitad, 1, 18, "MANTENIMIENTO")]));
+            f.push(fila(16, [celda(0, mitad, 3, 19, "Nombre, firma y fecha"), celda(mitad, nC - mitad, 3, 19, "Nombre, firma y fecha")]));
+            f.push(fila(16, []), fila(16, []));
             f.push(fila(16, [celda(0, 4, 1, 20, datos.formato || "")]));
             const m = {
               nombre: "VRF UI TABLA",
@@ -36116,7 +36444,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
           const tolFh = (v) => v === null || v === void 0 ? "SIN FIJAR" : `\xB1${numFh(v * 100, 1)} %`;
           const blanco = Boolean(ctx.enBlanco);
           const marca = "";
-          const firma = (rol) => (ev.firmas || []).find((f) => f.rol === rol);
+          const firma = (rol) => ((rol === "CLIENTE" || rol === "MANT" ? ev.firmasConformidad : ev.firmas) || []).find((f) => f.rol === rol);
           const cuadroFirma = (rol, rotulo) => {
             const f = firma(rol);
             return `<td><div class="rolFirma">${rotulo}</div>${f ? `<div class="firmante">${escFh(f.nombre)}</div><div class="fechaFirma">Firmado el ${fechaFh(f.fecha)}</div>` : '<div class="hueco">Nombre, firma y fecha</div>'}</td>`;
@@ -36150,7 +36478,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
     ${resultado}
     <p class="criterio">${escFh(plantilla.criterio || "")}
       ${(plantilla.clase === "fichaPM" || plantilla.clase === "balanceo") && usaToleranciasObraFh(ev) ? ` Tolerancias de la obra (fijadas por el jefe de obra): caudal total ${tolFh(ev.tolerancias.total)}, por boca ${tolFh(ev.tolerancias.boca)}.` : ""}</p>
-    <table class="firmas"><tr>${cuadroFirma("JEFE", "JEFE DE OBRA")}${firma("DF") || blanco ? cuadroFirma("DF", "DIRECCI\xD3N FACULTATIVA") : ""}</tr></table>
+    <table class="firmas"><tr>${cuadroFirma("JEFE", "JEFE DE OBRA")}${firma("DF") || blanco ? cuadroFirma("DF", "DIRECCI\xD3N FACULTATIVA") : ""}</tr><tr>${cuadroFirma("CLIENTE", "CLIENTE")}${cuadroFirma("MANT", "MANTENIMIENTO")}</tr></table>
     <footer class="pie">${escFh(plantilla.formato || "")} \xB7 plantilla ${escFh(plantilla.codigo)} v${plantilla.version || 1}${blanco ? " \xB7 modelo en blanco" : ""}</footer>
   </article>`;
         }
@@ -38619,6 +38947,403 @@ ${subtitulo}`, c[5]] : c.slice())]);
         resumenSemanal,
         resumenSemanalDocumento
       };
+    }
+  });
+
+  // shared/commissioning/conjuntos.js
+  var require_conjuntos = __commonJS({
+    "shared/commissioning/conjuntos.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var llanoCj = (s) => String(s ?? "").trim().toUpperCase().replace(/\s+/g, " ");
+      var claveCj = typeof __require === "function" ? require_sistemas().claveTag : typeof window !== "undefined" && window.SISTEMAS_CX ? window.SISTEMAS_CX.claveTag : llanoCj;
+      function esExterior(u) {
+        const pl = `${u.plantillaPM || ""} ${u.plantillaSugerida || ""}`;
+        if (/_UD_EXTERIOR\b/i.test(pl)) return true;
+        if (/_U[DI]_(INTERIOR|CONDUCTOS|CASSETTE|PARED|SUELO)/i.test(pl)) return false;
+        const t = llanoCj(u.tag);
+        return /(^|[\s-])UE([\s-]|$)/.test(t) || /UNIDAD EXTERIOR/.test(llanoCj(u.denominacion));
+      }
+      function rotuloUnidad(u, nInteriores) {
+        if (esExterior(u)) return "UE";
+        if (nInteriores <= 1) return "UI";
+        const m = /UI\s*0*(\d+)\s*$/i.exec(String(u.tag || ""));
+        return m ? `UI ${m[1].padStart(2, "0")}` : "UI";
+      }
+      var RANGO_RES = { apto: 1, aRevisar: 2, noApto: 3 };
+      var peorCj = (a, b) => (RANGO_RES[b] || 0) > (RANGO_RES[a] || 0) ? b : a;
+      function estadoConjunto(unidades) {
+        const vistas = /* @__PURE__ */ new Set();
+        const fichas = [];
+        for (const u of unidades) {
+          const pm = u.pm || { fichas: [] };
+          pm.fichas.forEach((f, i) => {
+            const k = f.clave && f.plantilla ? `${f.clave}|${f.plantilla}` : `${u.id}|${i}`;
+            if (vistas.has(k)) return;
+            vistas.add(k);
+            fichas.push({ ...f, unidadId: u.id, unidadIdx: i, unidad: u.rotulo });
+          });
+        }
+        const n = fichas.length;
+        const firmadas = fichas.filter((x) => x.estado === "firmada").length;
+        const completas = fichas.filter((x) => x.estado === "completa" || x.estado === "firmada").length;
+        let resultado = null;
+        for (const x of fichas) resultado = peorCj(resultado, x.resultado === "apto" ? null : x.resultado);
+        if (!resultado && n && completas === n) resultado = "apto";
+        let estado = "sinEmpezar";
+        if (n && firmadas === n) estado = "firmada";
+        else if (n && completas === n) estado = "completa";
+        else if (fichas.some((x) => x.estado !== "sinFicha" && x.estado !== "sinEmpezar")) estado = "pendiente";
+        return { fichas, total: n, completas, firmadas, estado, resultado };
+      }
+      function agrupar(filas = []) {
+        const porTag = /* @__PURE__ */ new Map();
+        for (const f of filas) if (f.tag) porTag.set(claveCj(f.tag), f);
+        const padre = new Map(filas.map((f) => [f.id, f.id]));
+        const raiz = (id) => {
+          let r = id;
+          while (padre.get(r) !== r) r = padre.get(r);
+          padre.set(id, r);
+          return r;
+        };
+        const unir = (a, b) => {
+          const ra = raiz(a.id);
+          const rb = raiz(b.id);
+          if (ra !== rb) padre.set(rb, ra);
+        };
+        const conInterior = /* @__PURE__ */ new Set();
+        for (const f of filas) {
+          const otro = f.equipoAsociado ? porTag.get(claveCj(f.equipoAsociado)) : null;
+          if (!otro || otro === f) continue;
+          if (esExterior(f) && !esExterior(otro)) conInterior.add(f.id);
+          if (esExterior(otro) && !esExterior(f)) conInterior.add(otro.id);
+        }
+        for (const f of filas) {
+          const otro = f.equipoAsociado ? porTag.get(claveCj(f.equipoAsociado)) : null;
+          if (otro && otro !== f) unir(f, otro);
+          const m = /^(.*\S)\s*\(\d+\)$/.exec(String(f.tag || ""));
+          const base = m ? porTag.get(claveCj(m[1])) : null;
+          if (base && base !== f && esExterior(f) && esExterior(base) && !conInterior.has(f.id)) unir(base, f);
+        }
+        const grupos = /* @__PURE__ */ new Map();
+        for (const f of filas) {
+          const r = raiz(f.id);
+          if (!grupos.has(r)) grupos.set(r, []);
+          grupos.get(r).push(f);
+        }
+        const lineas = [];
+        for (const g of grupos.values()) {
+          if (g.length === 1) {
+            lineas.push({ ...g[0], unidades: [{ ...g[0], rotulo: null }] });
+            continue;
+          }
+          const exteriores = g.filter(esExterior);
+          const interiores = g.filter((u) => !esExterior(u));
+          const orden = (a, b) => String(a.tag || "").localeCompare(String(b.tag || ""), "es", { numeric: true });
+          exteriores.sort(orden);
+          interiores.sort(orden);
+          const cabeza = interiores.length === 1 ? interiores[0] : exteriores[0] || interiores[0];
+          const unidades = (interiores.length === 1 ? [...interiores, ...exteriores] : [...exteriores, ...interiores]).map((u) => ({ ...u, rotulo: rotuloUnidad(u, interiores.length) }));
+          lineas.push({ ...cabeza, unidades, pm: estadoConjunto(unidades), ncrAbiertas: g.flatMap((u) => u.ncrAbiertas || []) });
+        }
+        const pos = new Map(filas.map((f, i) => [f.id, i]));
+        return lineas.sort((a, b) => pos.get(a.id) - pos.get(b.id));
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.CONJUNTOS_CX = API;
+      })({ agrupar, esExterior, estadoConjunto });
+    }
+  });
+
+  // electron/data/firmasEquipo.js
+  var require_firmasEquipo = __commonJS({
+    "electron/data/firmasEquipo.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var ROLES = {
+        cliente: "El cliente",
+        jefeObra: "T\xE9cnico responsable",
+        /* LAS DOS CASILLAS DE DESPUÉS (JC, 30-oct-2026): «en todas las fichas de
+           Puesta en Marcha y check list, dos casillas más de firmas, Cliente y
+           Mantenimiento». Como las otras: nombre, fecha y trazo; sin cargo. */
+        firmaCliente: "Cliente",
+        mantenimiento: "Mantenimiento"
+      };
+      var PAPELES = ["jefeObra", "cliente", "firmaCliente", "mantenimiento"];
+      var sinFirmas = () => ({ cliente: null, jefeObra: null, firmaCliente: null, mantenimiento: null });
+      var CARGOS = {
+        Cliente: "Cliente",
+        DF: "Direcci\xF3n Facultativa (DF)",
+        DEO: "Direcci\xF3n de Ejecuci\xF3n (DEO)"
+      };
+      var rotuloCargo = (cargo) => CARGOS[cargo] || llanoCargo(cargo) || CARGOS.Cliente;
+      function llanoCargo(v) {
+        return String(v ?? "").trim().slice(0, 60);
+      }
+      var MAX_IMAGEN = 400 * 1024;
+      var llano = (v) => String(v ?? "").trim();
+      var sinAcentos = (v) => llano(v).toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+      function filasDe(repo, sesion, equipoIds) {
+        const ids = [...new Set((equipoIds || []).filter(Boolean))];
+        if (!ids.length) return [];
+        return repo.listar("firmasEquipo", sesion, { condicion: `equipoId IN (${ids.map(() => "?").join(",")}) AND COALESCE(incidenciaId, '') = ''`, params: ids, orden: "modificadoEn" });
+      }
+      var cargoDe = (f) => f.rol === "cliente" ? llanoCargo(f.cargo) || "Cliente" : null;
+      var publica = (f) => ({
+        id: f.id,
+        equipoId: f.equipoId,
+        rol: f.rol,
+        rotulo: f.rol === "cliente" ? rotuloCargo(cargoDe(f)) : ROLES[f.rol] || f.rol,
+        cargo: cargoDe(f),
+        nombre: f.nombre || "",
+        fecha: f.fecha || "",
+        imagen: f.imagen
+      });
+      function firmasDeEquipos(repo, sesion, equipoIds) {
+        const r = sinFirmas();
+        for (const f of filasDe(repo, sesion, equipoIds)) if (f.rol in r) r[f.rol] = publica(f);
+        return r;
+      }
+      function equiposConFirmas(repo, sesion, equipoIds) {
+        const r = { jefeObra: /* @__PURE__ */ new Set(), cliente: /* @__PURE__ */ new Set(), firmaCliente: /* @__PURE__ */ new Set(), mantenimiento: /* @__PURE__ */ new Set() };
+        for (const f of filasDe(repo, sesion, equipoIds)) if (f.rol in r) r[f.rol].add(f.equipoId);
+        return r;
+      }
+      var conjuntosPorObra = /* @__PURE__ */ new WeakMap();
+      function indiceConjuntos(repo, sesion, obraId) {
+        let firma = null;
+        try {
+          const f = repo.db.prepare("SELECT COUNT(*) AS n, MAX(modificadoEn) AS m FROM equiposObra WHERE obraId = ?").get(obraId);
+          firma = `${sesion && sesion.personaId}|${sesion && sesion.rol}|${f.n}|${f.m}`;
+        } catch {
+          firma = null;
+        }
+        const porObra = conjuntosPorObra.get(repo) || /* @__PURE__ */ new Map();
+        const ya = porObra.get(obraId);
+        if (firma && ya && ya.firma === firma) return ya.indice;
+        const todos = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
+        const indice = /* @__PURE__ */ new Map();
+        for (const l of require_conjuntos().agrupar(todos)) {
+          const ids = (l.unidades || []).map((u) => u.id);
+          for (const id of ids) if (!indice.has(id)) indice.set(id, ids);
+        }
+        if (firma && repo && typeof repo === "object") {
+          porObra.set(obraId, { firma, indice });
+          conjuntosPorObra.set(repo, porObra);
+        }
+        return indice;
+      }
+      function unidadesDelConjunto(repo, sesion, equipo) {
+        if (!equipo) return [];
+        const ids = indiceConjuntos(repo, sesion, equipo.obraId).get(equipo.id) || [equipo.id];
+        return [equipo.id, ...ids.filter((x) => x !== equipo.id)];
+      }
+      function firmasDeEquipo(repo, sesion, equipoId) {
+        const eq = repo.leer("equiposObra", sesion, llano(equipoId));
+        if (!eq) return sinFirmas();
+        return firmasDeEquipos(repo, sesion, unidadesDelConjunto(repo, sesion, eq));
+      }
+      function firmasDeClave(repo, sesion, obraId, clave) {
+        const m = /^(equipo|refrigerante):(.+)$/.exec(llano(clave));
+        if (!m) return sinFirmas();
+        if (m[1] === "equipo") return firmasDeEquipo(repo, sesion, m[2]);
+        const { porTag, porAsociado } = indiceRefrigerante(repo, sesion, obraId);
+        const ue = porTag.get(m[2]);
+        if (ue) return firmasDeEquipo(repo, sesion, ue);
+        return firmasDeEquipos(repo, sesion, porAsociado.get(m[2]) || []);
+      }
+      var refrigerantePorObra = /* @__PURE__ */ new WeakMap();
+      function indiceRefrigerante(repo, sesion, obraId) {
+        let firma = null;
+        try {
+          const f = repo.db.prepare("SELECT COUNT(*) AS n, MAX(modificadoEn) AS m FROM equiposObra WHERE obraId = ?").get(obraId);
+          firma = `${sesion && sesion.personaId}|${sesion && sesion.rol}|${f.n}|${f.m}`;
+        } catch {
+          firma = null;
+        }
+        const porObra = refrigerantePorObra.get(repo) || /* @__PURE__ */ new Map();
+        const ya = porObra.get(obraId);
+        if (firma && ya && ya.firma === firma) return ya.indice;
+        const porTag = /* @__PURE__ */ new Map();
+        const porAsociado = /* @__PURE__ */ new Map();
+        for (const e of repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] })) {
+          const tag = sinAcentos(e.tag);
+          if (tag && !porTag.has(tag)) porTag.set(tag, e.id);
+          const asoc = sinAcentos(e.equipoAsociado);
+          if (asoc) porAsociado.set(asoc, [...porAsociado.get(asoc) || [], e.id]);
+        }
+        const indice = { porTag, porAsociado };
+        if (firma && repo && typeof repo === "object") {
+          porObra.set(obraId, { firma, indice });
+          refrigerantePorObra.set(repo, porObra);
+        }
+        return indice;
+      }
+      function bytesDeImagen(dataUrl) {
+        const m = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl || ""));
+        return m ? Buffer.from(m[1], "base64") : null;
+      }
+      function paraPdf(firmas) {
+        return PAPELES.map((rol) => {
+          const f = firmas && firmas[rol];
+          if (!f) return null;
+          const cargo = rol === "cliente" ? llanoCargo(f.cargo) || "Cliente" : null;
+          return { rol, rotulo: rol === "cliente" ? rotuloCargo(cargo) : ROLES[rol], cargo, nombre: f.nombre, fecha: f.fecha, imagen: bytesDeImagen(f.imagen) };
+        }).filter(Boolean);
+      }
+      function firmar(repo, sesion, equipoId, { rol, nombre, imagen, quitar, cargo, usarGuardada } = {}) {
+        const eq = repo.leer("equiposObra", sesion, llano(equipoId));
+        if (!eq) return { ok: false, error: "No se encuentra el equipo." };
+        if (!(rol in ROLES)) return { ok: false, error: "Esa firma no existe." };
+        const ids = unidadesDelConjunto(repo, sesion, eq);
+        const previas = filasDe(repo, sesion, ids).filter((f) => f.rol === rol);
+        if (quitar) {
+          for (const f of previas) repo.borrar("firmasEquipo", sesion, f.id, { verbo: "editar" });
+          return { ok: true, firmas: firmasDeEquipos(repo, sesion, ids) };
+        }
+        let n = llano(nombre).slice(0, 80);
+        if (!n && rol === "jefeObra" && sesion) {
+          let yo = null;
+          try {
+            yo = sesion.personaId && repo.db ? repo.db.prepare("SELECT nombre FROM personas WHERE id = ?").get(sesion.personaId) : null;
+          } catch {
+          }
+          n = llano(yo && yo.nombre || sesion.nombre).slice(0, 80);
+        }
+        if (!n) return { ok: false, error: "Falta el nombre de quien firma." };
+        const c = rol === "cliente" ? llanoCargo(cargo) || "Cliente" : null;
+        const elegida = imagenAFirmar(repo, sesion, { rol, nombre: n, imagen, usarGuardada });
+        if (elegida.error) return { ok: false, error: elegida.error };
+        const img = elegida.imagen;
+        const ahora = (/* @__PURE__ */ new Date()).toISOString();
+        const fecha = rol === "jefeObra" && fechaDelTrabajo(repo, sesion, ids) || ahora;
+        const trazoEn = rol === "jefeObra" && !elegida.deGuardada ? ahora : null;
+        const trazoPor = autorDelTrazo(sesion, trazoEn);
+        const ultima = previas[previas.length - 1];
+        if (ultima) {
+          repo.modificar("firmasEquipo", sesion, ultima.id, { nombre: n, cargo: c, imagen: img, fecha, trazoEn, trazoPor, equipoId: eq.id });
+          for (const f of previas.slice(0, -1)) repo.borrar("firmasEquipo", sesion, f.id, { verbo: "editar" });
+        } else {
+          repo.crear("firmasEquipo", sesion, { obraId: eq.obraId, equipoId: eq.id, rol, nombre: n, cargo: c, imagen: img, fecha, trazoEn, trazoPor }, { verbo: "editar" });
+        }
+        return { ok: true, firmas: firmasDeEquipos(repo, sesion, ids) };
+      }
+      function imagenAFirmar(repo, sesion, { rol, nombre, imagen, usarGuardada }) {
+        if (usarGuardada) {
+          if (rol !== "jefeObra") return { error: "La firma guardada solo vale para el t\xE9cnico responsable." };
+          const g = firmaPropia(repo, sesion);
+          if (!g) return { error: "No tienes una firma guardada: firma a mano." };
+          if (!mismoNombre(g.nombre, nombre)) return { error: `La firma guardada es de ${g.nombre}: para otra persona hay que firmar a mano.` };
+          return { imagen: g.imagen, deGuardada: true };
+        }
+        const img = llano(imagen);
+        if (!bytesDeImagen(img)) return { error: "No llega la firma." };
+        if (img.length > MAX_IMAGEN) return { error: "La firma es demasiado grande." };
+        return { imagen: img, deGuardada: false };
+      }
+      var ISO_DIA = /^\d{4}-\d{2}-\d{2}/;
+      var mismoNombre = (a, b) => Boolean(sinAcentos(a)) && sinAcentos(a) === sinAcentos(b);
+      var ORIGEN_SIN_TRABAJO = /* @__PURE__ */ new Set(["equipo", "plantilla", "importacion", "fichaTecnica", "proyecto", "prueba"]);
+      function hayTrabajo(estado, d) {
+        if (estado === "completa" || estado === "firmada") return true;
+        if (llano(d.observaciones) || Array.isArray(d.fotos) && d.fotos.length) return true;
+        if (Object.values(d.valores || {}).some((v) => v && typeof v === "object" && !ORIGEN_SIN_TRABAJO.has(v.o || "manual"))) return true;
+        return Object.values(d.bocas || {}).some((c) => Array.isArray(c) && c.some((b) => b && typeof b === "object" && b.o && !ORIGEN_SIN_TRABAJO.has(b.o)));
+      }
+      function fechaDelTrabajo(repo, sesion, equipoIds) {
+        const ids = [...new Set((equipoIds || []).filter(Boolean))];
+        if (!ids.length) return null;
+        let filas = [];
+        try {
+          filas = repo.listar("fichasPM", sesion, {
+            condicion: `equipoId IN (${ids.map(() => "?").join(",")}) AND estado NOT IN ('sinEmpezar', 'sinFicha')`,
+            params: ids
+          });
+        } catch {
+          return null;
+        }
+        let hecha = null;
+        let empezada = null;
+        for (const f of filas) {
+          let d = {};
+          try {
+            d = JSON.parse(f.datos || "{}") || {};
+          } catch {
+          }
+          const fe = (d.cabecera || {}).fechaEnsayo;
+          if (!ISO_DIA.test(String(fe || "")) && !hayTrabajo(f.estado, d)) continue;
+          const dia = ISO_DIA.test(String(fe || "")) ? String(fe).slice(0, 10) : String(f.modificadoEn || "").slice(0, 10);
+          if (!ISO_DIA.test(dia)) continue;
+          if (!empezada || dia > empezada) empezada = dia;
+          if ((f.estado === "completa" || f.estado === "firmada") && (!hecha || dia > hecha)) hecha = dia;
+        }
+        return hecha || empezada;
+      }
+      function autorDelTrazo(sesion, trazoEn) {
+        return trazoEn && sesion && sesion.personaId ? String(sesion.personaId) : null;
+      }
+      function quienPusoLaImagen(repo, filaId) {
+        try {
+          const h = repo.db.prepare(`SELECT personaId FROM historial WHERE entidad = 'firmasEquipo' AND registroId = ?
+      AND (accion = 'crear' OR campo = 'imagen') ORDER BY creadoEn DESC, rowid DESC LIMIT 1`).get(filaId);
+          return h && h.personaId ? String(h.personaId) : null;
+        } catch {
+          return null;
+        }
+      }
+      function firmaGuardada(repo, personaId) {
+        const id = llano(personaId);
+        if (!id || !repo.db) return null;
+        let p = null;
+        try {
+          p = repo.db.prepare("SELECT nombre FROM personas WHERE id = ?").get(id);
+        } catch {
+        }
+        const suNombre = llano(p && p.nombre);
+        if (!suNombre) return null;
+        const filas = repo.db.prepare(`SELECT id, nombre, imagen, trazoPor FROM firmasEquipo
+    WHERE rol = 'jefeObra' AND (trazoPor = ? OR trazoPor IS NULL OR trazoPor = '')
+    ORDER BY COALESCE(trazoEn, '') DESC, modificadoEn DESC`).all(id);
+        for (const f of filas) {
+          if (!mismoNombre(f.nombre, suNombre) || !bytesDeImagen(f.imagen)) continue;
+          if (f.trazoPor === id || quienPusoLaImagen(repo, f.id) === id) return { nombre: f.nombre, imagen: f.imagen };
+        }
+        return null;
+      }
+      function nombreDeSesion(repo, sesion) {
+        if (!sesion) return "";
+        let yo = null;
+        try {
+          yo = sesion.personaId && repo.db ? repo.db.prepare("SELECT nombre FROM personas WHERE id = ?").get(sesion.personaId) : null;
+        } catch {
+        }
+        return llano(yo && yo.nombre || sesion.nombre);
+      }
+      function firmaPropia(repo, sesion) {
+        return sesion && sesion.personaId ? firmaGuardada(repo, sesion.personaId) : null;
+      }
+      function ponerFirmaTecnico(repo, sesion, equipoId, { nombre = null } = {}) {
+        const eq = repo.leer("equiposObra", sesion, llano(equipoId));
+        if (!eq) return { ok: false, error: "No se encuentra el equipo." };
+        const ids = unidadesDelConjunto(repo, sesion, eq);
+        const fecha = fechaDelTrabajo(repo, sesion, ids);
+        if (!fecha) return { ok: true, hecho: "sinTrabajo" };
+        const previas = filasDe(repo, sesion, ids).filter((f) => f.rol === "jefeObra");
+        const ultima = previas[previas.length - 1];
+        if (ultima) {
+          if (llano(nombre) && !mismoNombre(ultima.nombre, nombre)) return { ok: true, hecho: "deOtro" };
+          if (String(ultima.fecha || "").slice(0, 10) === fecha) return { ok: true, hecho: "igual" };
+          repo.modificar("firmasEquipo", sesion, ultima.id, { fecha });
+          return { ok: true, hecho: "fecha" };
+        }
+        if (llano(nombre) && !mismoNombre(nombreDeSesion(repo, sesion), nombre)) return { ok: true, hecho: "responsableOtro" };
+        const g = firmaPropia(repo, sesion);
+        if (!g) return { ok: true, hecho: "sinFirmaGuardada" };
+        repo.crear("firmasEquipo", sesion, { obraId: eq.obraId, equipoId: eq.id, rol: "jefeObra", nombre: g.nombre, cargo: null, imagen: g.imagen, fecha }, { verbo: "editar" });
+        return { ok: true, hecho: "puesta" };
+      }
+      module.exports = { ROLES, PAPELES, CARGOS, rotuloCargo, firmar, firmasDeEquipo, firmasDeEquipos, equiposConFirmas, firmasDeClave, paraPdf, bytesDeImagen, unidadesDelConjunto, fechaDelTrabajo, firmaGuardada, firmaPropia, nombreDeSesion, imagenAFirmar, ponerFirmaTecnico, autorDelTrazo, quienPusoLaImagen };
     }
   });
 
@@ -41367,112 +42092,6 @@ ${subtitulo}`, c[5]] : c.slice())]);
     }
   });
 
-  // shared/commissioning/conjuntos.js
-  var require_conjuntos = __commonJS({
-    "shared/commissioning/conjuntos.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var llanoCj = (s) => String(s ?? "").trim().toUpperCase().replace(/\s+/g, " ");
-      var claveCj = typeof __require === "function" ? require_sistemas().claveTag : typeof window !== "undefined" && window.SISTEMAS_CX ? window.SISTEMAS_CX.claveTag : llanoCj;
-      function esExterior(u) {
-        const pl = `${u.plantillaPM || ""} ${u.plantillaSugerida || ""}`;
-        if (/_UD_EXTERIOR\b/i.test(pl)) return true;
-        if (/_U[DI]_(INTERIOR|CONDUCTOS|CASSETTE|PARED|SUELO)/i.test(pl)) return false;
-        const t = llanoCj(u.tag);
-        return /(^|[\s-])UE([\s-]|$)/.test(t) || /UNIDAD EXTERIOR/.test(llanoCj(u.denominacion));
-      }
-      function rotuloUnidad(u, nInteriores) {
-        if (esExterior(u)) return "UE";
-        if (nInteriores <= 1) return "UI";
-        const m = /UI\s*0*(\d+)\s*$/i.exec(String(u.tag || ""));
-        return m ? `UI ${m[1].padStart(2, "0")}` : "UI";
-      }
-      var RANGO_RES = { apto: 1, aRevisar: 2, noApto: 3 };
-      var peorCj = (a, b) => (RANGO_RES[b] || 0) > (RANGO_RES[a] || 0) ? b : a;
-      function estadoConjunto(unidades) {
-        const vistas = /* @__PURE__ */ new Set();
-        const fichas = [];
-        for (const u of unidades) {
-          const pm = u.pm || { fichas: [] };
-          pm.fichas.forEach((f, i) => {
-            const k = f.clave && f.plantilla ? `${f.clave}|${f.plantilla}` : `${u.id}|${i}`;
-            if (vistas.has(k)) return;
-            vistas.add(k);
-            fichas.push({ ...f, unidadId: u.id, unidadIdx: i, unidad: u.rotulo });
-          });
-        }
-        const n = fichas.length;
-        const firmadas = fichas.filter((x) => x.estado === "firmada").length;
-        const completas = fichas.filter((x) => x.estado === "completa" || x.estado === "firmada").length;
-        let resultado = null;
-        for (const x of fichas) resultado = peorCj(resultado, x.resultado === "apto" ? null : x.resultado);
-        if (!resultado && n && completas === n) resultado = "apto";
-        let estado = "sinEmpezar";
-        if (n && firmadas === n) estado = "firmada";
-        else if (n && completas === n) estado = "completa";
-        else if (fichas.some((x) => x.estado !== "sinFicha" && x.estado !== "sinEmpezar")) estado = "pendiente";
-        return { fichas, total: n, completas, firmadas, estado, resultado };
-      }
-      function agrupar(filas = []) {
-        const porTag = /* @__PURE__ */ new Map();
-        for (const f of filas) if (f.tag) porTag.set(claveCj(f.tag), f);
-        const padre = new Map(filas.map((f) => [f.id, f.id]));
-        const raiz = (id) => {
-          let r = id;
-          while (padre.get(r) !== r) r = padre.get(r);
-          padre.set(id, r);
-          return r;
-        };
-        const unir = (a, b) => {
-          const ra = raiz(a.id);
-          const rb = raiz(b.id);
-          if (ra !== rb) padre.set(rb, ra);
-        };
-        const conInterior = /* @__PURE__ */ new Set();
-        for (const f of filas) {
-          const otro = f.equipoAsociado ? porTag.get(claveCj(f.equipoAsociado)) : null;
-          if (!otro || otro === f) continue;
-          if (esExterior(f) && !esExterior(otro)) conInterior.add(f.id);
-          if (esExterior(otro) && !esExterior(f)) conInterior.add(otro.id);
-        }
-        for (const f of filas) {
-          const otro = f.equipoAsociado ? porTag.get(claveCj(f.equipoAsociado)) : null;
-          if (otro && otro !== f) unir(f, otro);
-          const m = /^(.*\S)\s*\(\d+\)$/.exec(String(f.tag || ""));
-          const base = m ? porTag.get(claveCj(m[1])) : null;
-          if (base && base !== f && esExterior(f) && esExterior(base) && !conInterior.has(f.id)) unir(base, f);
-        }
-        const grupos = /* @__PURE__ */ new Map();
-        for (const f of filas) {
-          const r = raiz(f.id);
-          if (!grupos.has(r)) grupos.set(r, []);
-          grupos.get(r).push(f);
-        }
-        const lineas = [];
-        for (const g of grupos.values()) {
-          if (g.length === 1) {
-            lineas.push({ ...g[0], unidades: [{ ...g[0], rotulo: null }] });
-            continue;
-          }
-          const exteriores = g.filter(esExterior);
-          const interiores = g.filter((u) => !esExterior(u));
-          const orden = (a, b) => String(a.tag || "").localeCompare(String(b.tag || ""), "es", { numeric: true });
-          exteriores.sort(orden);
-          interiores.sort(orden);
-          const cabeza = interiores.length === 1 ? interiores[0] : exteriores[0] || interiores[0];
-          const unidades = (interiores.length === 1 ? [...interiores, ...exteriores] : [...exteriores, ...interiores]).map((u) => ({ ...u, rotulo: rotuloUnidad(u, interiores.length) }));
-          lineas.push({ ...cabeza, unidades, pm: estadoConjunto(unidades), ncrAbiertas: g.flatMap((u) => u.ncrAbiertas || []) });
-        }
-        const pos = new Map(filas.map((f, i) => [f.id, i]));
-        return lineas.sort((a, b) => pos.get(a.id) - pos.get(b.id));
-      }
-      (function exportar(API) {
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.CONJUNTOS_CX = API;
-      })({ agrupar, esExterior, estadoConjunto });
-    }
-  });
-
   // shared/incidencias/motor.js
   var require_motor4 = __commonJS({
     "shared/incidencias/motor.js"(exports, module) {
@@ -42222,241 +42841,6 @@ ${subtitulo}`, c[5]] : c.slice())]);
           if (typeof window !== "undefined") window.INFORME_REPARACIONES = API;
         })({ html, cuerpo, hojaReparacion, elegir, visitasDe, observacionesDe, fechaHecha });
       })();
-    }
-  });
-
-  // electron/data/firmasEquipo.js
-  var require_firmasEquipo = __commonJS({
-    "electron/data/firmasEquipo.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var ROLES = {
-        cliente: "El cliente",
-        jefeObra: "T\xE9cnico responsable"
-      };
-      var CARGOS = {
-        Cliente: "Cliente",
-        DF: "Direcci\xF3n Facultativa (DF)",
-        DEO: "Direcci\xF3n de Ejecuci\xF3n (DEO)"
-      };
-      var rotuloCargo = (cargo) => CARGOS[cargo] || llanoCargo(cargo) || CARGOS.Cliente;
-      function llanoCargo(v) {
-        return String(v ?? "").trim().slice(0, 60);
-      }
-      var MAX_IMAGEN = 400 * 1024;
-      var llano = (v) => String(v ?? "").trim();
-      var sinAcentos = (v) => llano(v).toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-      function filasDe(repo, sesion, equipoIds) {
-        const ids = [...new Set((equipoIds || []).filter(Boolean))];
-        if (!ids.length) return [];
-        return repo.listar("firmasEquipo", sesion, { condicion: `equipoId IN (${ids.map(() => "?").join(",")}) AND COALESCE(incidenciaId, '') = ''`, params: ids, orden: "modificadoEn" });
-      }
-      var cargoDe = (f) => f.rol === "cliente" ? llanoCargo(f.cargo) || "Cliente" : null;
-      var publica = (f) => ({
-        id: f.id,
-        equipoId: f.equipoId,
-        rol: f.rol,
-        rotulo: f.rol === "cliente" ? rotuloCargo(cargoDe(f)) : ROLES[f.rol] || f.rol,
-        cargo: cargoDe(f),
-        nombre: f.nombre || "",
-        fecha: f.fecha || "",
-        imagen: f.imagen
-      });
-      function firmasDeEquipos(repo, sesion, equipoIds) {
-        const r = { cliente: null, jefeObra: null };
-        for (const f of filasDe(repo, sesion, equipoIds)) if (f.rol in r) r[f.rol] = publica(f);
-        return r;
-      }
-      function equiposConFirmas(repo, sesion, equipoIds) {
-        const r = { jefeObra: /* @__PURE__ */ new Set(), cliente: /* @__PURE__ */ new Set() };
-        for (const f of filasDe(repo, sesion, equipoIds)) if (f.rol in r) r[f.rol].add(f.equipoId);
-        return r;
-      }
-      function unidadesDelConjunto(repo, sesion, equipo) {
-        if (!equipo) return [];
-        const todos = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [equipo.obraId] });
-        const linea = require_conjuntos().agrupar(todos).find((l) => (l.unidades || []).some((u) => u.id === equipo.id));
-        const ids = linea ? linea.unidades.map((u) => u.id) : [equipo.id];
-        return [equipo.id, ...ids.filter((x) => x !== equipo.id)];
-      }
-      function firmasDeEquipo(repo, sesion, equipoId) {
-        const eq = repo.leer("equiposObra", sesion, llano(equipoId));
-        if (!eq) return { cliente: null, jefeObra: null };
-        return firmasDeEquipos(repo, sesion, unidadesDelConjunto(repo, sesion, eq));
-      }
-      function firmasDeClave(repo, sesion, obraId, clave) {
-        const m = /^(equipo|refrigerante):(.+)$/.exec(llano(clave));
-        if (!m) return { cliente: null, jefeObra: null };
-        if (m[1] === "equipo") return firmasDeEquipo(repo, sesion, m[2]);
-        const equipos = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
-        const ue = equipos.find((e) => sinAcentos(e.tag) === m[2]);
-        if (ue) return firmasDeEquipo(repo, sesion, ue.id);
-        return firmasDeEquipos(repo, sesion, equipos.filter((e) => sinAcentos(e.equipoAsociado) === m[2]).map((e) => e.id));
-      }
-      function bytesDeImagen(dataUrl) {
-        const m = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl || ""));
-        return m ? Buffer.from(m[1], "base64") : null;
-      }
-      function paraPdf(firmas) {
-        return ["jefeObra", "cliente"].map((rol) => {
-          const f = firmas && firmas[rol];
-          if (!f) return null;
-          const cargo = rol === "cliente" ? llanoCargo(f.cargo) || "Cliente" : null;
-          return { rol, rotulo: rol === "cliente" ? rotuloCargo(cargo) : ROLES[rol], cargo, nombre: f.nombre, fecha: f.fecha, imagen: bytesDeImagen(f.imagen) };
-        }).filter(Boolean);
-      }
-      function firmar(repo, sesion, equipoId, { rol, nombre, imagen, quitar, cargo, usarGuardada } = {}) {
-        const eq = repo.leer("equiposObra", sesion, llano(equipoId));
-        if (!eq) return { ok: false, error: "No se encuentra el equipo." };
-        if (!(rol in ROLES)) return { ok: false, error: "Esa firma no existe." };
-        const ids = unidadesDelConjunto(repo, sesion, eq);
-        const previas = filasDe(repo, sesion, ids).filter((f) => f.rol === rol);
-        if (quitar) {
-          for (const f of previas) repo.borrar("firmasEquipo", sesion, f.id, { verbo: "editar" });
-          return { ok: true, firmas: firmasDeEquipos(repo, sesion, ids) };
-        }
-        let n = llano(nombre).slice(0, 80);
-        if (!n && rol === "jefeObra" && sesion) {
-          let yo = null;
-          try {
-            yo = sesion.personaId && repo.db ? repo.db.prepare("SELECT nombre FROM personas WHERE id = ?").get(sesion.personaId) : null;
-          } catch {
-          }
-          n = llano(yo && yo.nombre || sesion.nombre).slice(0, 80);
-        }
-        if (!n) return { ok: false, error: "Falta el nombre de quien firma." };
-        const c = rol === "cliente" ? llanoCargo(cargo) || "Cliente" : null;
-        const elegida = imagenAFirmar(repo, sesion, { rol, nombre: n, imagen, usarGuardada });
-        if (elegida.error) return { ok: false, error: elegida.error };
-        const img = elegida.imagen;
-        const ahora = (/* @__PURE__ */ new Date()).toISOString();
-        const fecha = rol === "jefeObra" && fechaDelTrabajo(repo, sesion, ids) || ahora;
-        const trazoEn = rol === "jefeObra" && !elegida.deGuardada ? ahora : null;
-        const trazoPor = autorDelTrazo(sesion, trazoEn);
-        const ultima = previas[previas.length - 1];
-        if (ultima) {
-          repo.modificar("firmasEquipo", sesion, ultima.id, { nombre: n, cargo: c, imagen: img, fecha, trazoEn, trazoPor, equipoId: eq.id });
-          for (const f of previas.slice(0, -1)) repo.borrar("firmasEquipo", sesion, f.id, { verbo: "editar" });
-        } else {
-          repo.crear("firmasEquipo", sesion, { obraId: eq.obraId, equipoId: eq.id, rol, nombre: n, cargo: c, imagen: img, fecha, trazoEn, trazoPor }, { verbo: "editar" });
-        }
-        return { ok: true, firmas: firmasDeEquipos(repo, sesion, ids) };
-      }
-      function imagenAFirmar(repo, sesion, { rol, nombre, imagen, usarGuardada }) {
-        if (usarGuardada) {
-          if (rol !== "jefeObra") return { error: "La firma guardada solo vale para el t\xE9cnico responsable." };
-          const g = firmaPropia(repo, sesion);
-          if (!g) return { error: "No tienes una firma guardada: firma a mano." };
-          if (!mismoNombre(g.nombre, nombre)) return { error: `La firma guardada es de ${g.nombre}: para otra persona hay que firmar a mano.` };
-          return { imagen: g.imagen, deGuardada: true };
-        }
-        const img = llano(imagen);
-        if (!bytesDeImagen(img)) return { error: "No llega la firma." };
-        if (img.length > MAX_IMAGEN) return { error: "La firma es demasiado grande." };
-        return { imagen: img, deGuardada: false };
-      }
-      var ISO_DIA = /^\d{4}-\d{2}-\d{2}/;
-      var mismoNombre = (a, b) => Boolean(sinAcentos(a)) && sinAcentos(a) === sinAcentos(b);
-      var ORIGEN_SIN_TRABAJO = /* @__PURE__ */ new Set(["equipo", "plantilla", "importacion", "fichaTecnica", "proyecto", "prueba"]);
-      function hayTrabajo(estado, d) {
-        if (estado === "completa" || estado === "firmada") return true;
-        if (llano(d.observaciones) || Array.isArray(d.fotos) && d.fotos.length) return true;
-        if (Object.values(d.valores || {}).some((v) => v && typeof v === "object" && !ORIGEN_SIN_TRABAJO.has(v.o || "manual"))) return true;
-        return Object.values(d.bocas || {}).some((c) => Array.isArray(c) && c.some((b) => b && typeof b === "object" && b.o && !ORIGEN_SIN_TRABAJO.has(b.o)));
-      }
-      function fechaDelTrabajo(repo, sesion, equipoIds) {
-        const ids = [...new Set((equipoIds || []).filter(Boolean))];
-        if (!ids.length) return null;
-        let filas = [];
-        try {
-          filas = repo.listar("fichasPM", sesion, {
-            condicion: `equipoId IN (${ids.map(() => "?").join(",")}) AND estado NOT IN ('sinEmpezar', 'sinFicha')`,
-            params: ids
-          });
-        } catch {
-          return null;
-        }
-        let hecha = null;
-        let empezada = null;
-        for (const f of filas) {
-          let d = {};
-          try {
-            d = JSON.parse(f.datos || "{}") || {};
-          } catch {
-          }
-          const fe = (d.cabecera || {}).fechaEnsayo;
-          if (!ISO_DIA.test(String(fe || "")) && !hayTrabajo(f.estado, d)) continue;
-          const dia = ISO_DIA.test(String(fe || "")) ? String(fe).slice(0, 10) : String(f.modificadoEn || "").slice(0, 10);
-          if (!ISO_DIA.test(dia)) continue;
-          if (!empezada || dia > empezada) empezada = dia;
-          if ((f.estado === "completa" || f.estado === "firmada") && (!hecha || dia > hecha)) hecha = dia;
-        }
-        return hecha || empezada;
-      }
-      function autorDelTrazo(sesion, trazoEn) {
-        return trazoEn && sesion && sesion.personaId ? String(sesion.personaId) : null;
-      }
-      function quienPusoLaImagen(repo, filaId) {
-        try {
-          const h = repo.db.prepare(`SELECT personaId FROM historial WHERE entidad = 'firmasEquipo' AND registroId = ?
-      AND (accion = 'crear' OR campo = 'imagen') ORDER BY creadoEn DESC, rowid DESC LIMIT 1`).get(filaId);
-          return h && h.personaId ? String(h.personaId) : null;
-        } catch {
-          return null;
-        }
-      }
-      function firmaGuardada(repo, personaId) {
-        const id = llano(personaId);
-        if (!id || !repo.db) return null;
-        let p = null;
-        try {
-          p = repo.db.prepare("SELECT nombre FROM personas WHERE id = ?").get(id);
-        } catch {
-        }
-        const suNombre = llano(p && p.nombre);
-        if (!suNombre) return null;
-        const filas = repo.db.prepare(`SELECT id, nombre, imagen, trazoPor FROM firmasEquipo
-    WHERE rol = 'jefeObra' AND (trazoPor = ? OR trazoPor IS NULL OR trazoPor = '')
-    ORDER BY COALESCE(trazoEn, '') DESC, modificadoEn DESC`).all(id);
-        for (const f of filas) {
-          if (!mismoNombre(f.nombre, suNombre) || !bytesDeImagen(f.imagen)) continue;
-          if (f.trazoPor === id || quienPusoLaImagen(repo, f.id) === id) return { nombre: f.nombre, imagen: f.imagen };
-        }
-        return null;
-      }
-      function nombreDeSesion(repo, sesion) {
-        if (!sesion) return "";
-        let yo = null;
-        try {
-          yo = sesion.personaId && repo.db ? repo.db.prepare("SELECT nombre FROM personas WHERE id = ?").get(sesion.personaId) : null;
-        } catch {
-        }
-        return llano(yo && yo.nombre || sesion.nombre);
-      }
-      function firmaPropia(repo, sesion) {
-        return sesion && sesion.personaId ? firmaGuardada(repo, sesion.personaId) : null;
-      }
-      function ponerFirmaTecnico(repo, sesion, equipoId, { nombre = null } = {}) {
-        const eq = repo.leer("equiposObra", sesion, llano(equipoId));
-        if (!eq) return { ok: false, error: "No se encuentra el equipo." };
-        const ids = unidadesDelConjunto(repo, sesion, eq);
-        const fecha = fechaDelTrabajo(repo, sesion, ids);
-        if (!fecha) return { ok: true, hecho: "sinTrabajo" };
-        const previas = filasDe(repo, sesion, ids).filter((f) => f.rol === "jefeObra");
-        const ultima = previas[previas.length - 1];
-        if (ultima) {
-          if (llano(nombre) && !mismoNombre(ultima.nombre, nombre)) return { ok: true, hecho: "deOtro" };
-          if (String(ultima.fecha || "").slice(0, 10) === fecha) return { ok: true, hecho: "igual" };
-          repo.modificar("firmasEquipo", sesion, ultima.id, { fecha });
-          return { ok: true, hecho: "fecha" };
-        }
-        if (llano(nombre) && !mismoNombre(nombreDeSesion(repo, sesion), nombre)) return { ok: true, hecho: "responsableOtro" };
-        const g = firmaPropia(repo, sesion);
-        if (!g) return { ok: true, hecho: "sinFirmaGuardada" };
-        repo.crear("firmasEquipo", sesion, { obraId: eq.obraId, equipoId: eq.id, rol: "jefeObra", nombre: g.nombre, cargo: null, imagen: g.imagen, fecha }, { verbo: "editar" });
-        return { ok: true, hecho: "puesta" };
-      }
-      module.exports = { ROLES, CARGOS, rotuloCargo, firmar, firmasDeEquipo, firmasDeEquipos, equiposConFirmas, firmasDeClave, paraPdf, bytesDeImagen, unidadesDelConjunto, fechaDelTrabajo, firmaGuardada, firmaPropia, nombreDeSesion, imagenAFirmar, ponerFirmaTecnico, autorDelTrazo, quienPusoLaImagen };
     }
   });
 
@@ -57036,6 +57420,140 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
+  // shared/commissioning/factoresKTrox.js
+  var require_factoresKTrox = __commonJS({
+    "shared/commissioning/factoresKTrox.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const FABRICANTE = "TROX";
+        const DOCUMENTO = "Folleto TROX AK-Uni 07/2017 (PD_2017_07_AK-Uni_DE_es.pdf), adjunto al correo de Emilia Hernandez Trimi\xF1o (TROX Espa\xF1a) del 2-nov-2026";
+        const FORMULA = "q = K \xB7 \u221A\u0394p";
+        const TOLERANCIA_M3H = 0.25;
+        const crudas = [];
+        const fila = (plenum, familia, placa, tamanos, circuito, kLs, kM3h, pagina, difusor, extra = {}) => crudas.push({ plenum, familia, placa, tamanos, circuito, kLs, kM3h, pagina, difusor, ...extra });
+        const P4 = "AKUNI-4";
+        [
+          ["AK-Uni-001", ["300 \xD7 8"], 10.3, 36.9, ["300"], [[13.2, 47.7], [10.1, 36.5], [13.2, 47.7]]],
+          ["AK-Uni-002", ["400 \xD7 16"], 19.6, 70.7, ["400"], [[22.8, 82.1], [19.6, 70.7], [22.8, 82.1]]],
+          ["AK-Uni-003", ["500 \xD7 24"], 24.2, 87.1, ["500"], [[27.9, 100.5], [25.8, 92.7], [27.9, 100.5]]],
+          /* FD-Q 600/625 de la 004: el extracto solo trae 125,8 m³/h, sin l/s → no se carga. */
+          ["AK-Uni-004", ["600 \xD7 24", "625 \xD7 24"], 34.9, 125.8, ["600", "625"], [[40.4, 145.5], null, [40.4, 145.5]]]
+        ].forEach(([plenum, tVdw, ls, m3, tRed, [tdv, fd, tdf]]) => {
+          fila(plenum, "VDW", "Q", tVdw, "impulsion", ls, m3, P4, `VDW-Q ${tVdw.join(" / ")}`);
+          if (tdv) fila(plenum, "TDV-SA", "Q", tRed, "impulsion", tdv[0], tdv[1], P4, `TDV-SA-Q ${tRed.join("/")}`);
+          if (fd) fila(plenum, "FD", "Q", tRed, "impulsion", fd[0], fd[1], P4, `FD-Q ${tRed.join("/")}`);
+          if (tdf) fila(plenum, "TDF-SA", "Q", tRed, "impulsion", tdf[0], tdf[1], P4, `TDF-SA-Q ${tRed.join("/")}`);
+        });
+        fila("AK-Uni-005", "VDW", "Q", ["600 \xD7 48"], "impulsion", 43, 154.8, P4, "VDW-Q 600x48");
+        fila("AK-Uni-006", "VDW", "Q", ["625 \xD7 54"], "impulsion", 44.2, 158.9, P4, "VDW-Q 625x54");
+        fila("AK-Uni-007", "VDW", "Q", ["825 \xD7 72"], "impulsion", 72.8, 262.2, P4, "VDW-Q 825x72");
+        const P5 = "AKUNI-5";
+        [
+          ["AK-Uni-013", ["300 \xD7 8"], [9.4, 33.8], ["300"], [[13.2, 47.7], [10.2, 36.5], [13.2, 47.7]]],
+          ["AK-Uni-014", ["400 \xD7 16"], [19.6, 70.7], ["400"], [[22.8, 82.1], [19.6, 70.7], [22.8, 82.1]]],
+          ["AK-Uni-015", ["500 \xD7 24"], [23.1, 83], ["500"], [[27.9, 100.5], [26.2, 94.4], [27.9, 100.5]]],
+          ["AK-Uni-016", ["600 \xD7 24", "625 \xD7 24"], [34.5, 124.3], ["600", "625"], [[40.4, 145.5], [34.5, 124.3], [40.4, 145.5]]]
+        ].forEach(([plenum, tVdw, vdw, tRed, [tdv, fd, tdf]]) => {
+          fila(plenum, "VDW", "R", tVdw, "impulsion", vdw[0], vdw[1], P5, `VDW-R ${tVdw.join(" / ")}`);
+          fila(plenum, "TDV-SA", "R", tRed, "impulsion", tdv[0], tdv[1], P5, `TDV-SA-R ${tRed.join("/")}`);
+          fila(plenum, "FD", "R", tRed, "impulsion", fd[0], fd[1], P5, `FD-R ${tRed.join("/")}`);
+          fila(plenum, "TDF-SA", "R", tRed, "impulsion", tdf[0], tdf[1], P5, `TDF-SA-R ${tRed.join("/")}`);
+        });
+        fila("AK-Uni-017", "VDW", "R", ["600 \xD7 48"], "impulsion", 44, 158.3, P5, "VDW-R 600x48");
+        [
+          ["AK-Uni-028", "125", [3.5, 12.4], [4.7, 17.9]],
+          ["AK-Uni-029", "160", [5.2, 18.7], [7.3, 26.3]],
+          ["AK-Uni-030", "200", [7.1, 25.5], [12.2, 43.9]],
+          ["AK-Uni-031", "250", [12.9, 46.4], [19, 68.4]],
+          ["AK-Uni-032", "315", [22.8, 82], [28.6, 103]],
+          ["AK-Uni-033", "400", [34.5, 124.3], [37.3, 134.4]]
+        ].forEach(([plenum, tam, sin, con]) => {
+          fila(plenum, "RFD", null, [tam], "impulsion", sin[0], sin[1], P5, `RFD ${tam} sin tobera`, { tobera: false });
+          fila(plenum, "RFD", null, [tam], "impulsion", con[0], con[1], P5, `RFD ${tam} con tobera`, { tobera: true });
+        });
+        const P7 = "AKUNI-7";
+        [
+          ["AK-Uni-013", ["300 \xD7 8"], [9.3, 33.6], ["300"], [16.4, 59], [13, 46.7]],
+          ["AK-Uni-014", ["400 \xD7 16"], [17.9, 64.3], ["400"], [28.9, 104.2], [25.2, 90.6]],
+          ["AK-Uni-015", ["500 \xD7 24"], [25.3, 90.9], ["500"], [38.5, 138.7], [38.4, 138.1]],
+          ["AK-Uni-016", ["600 \xD7 24", "625 \xD7 24"], [42.2, 151.9], ["600", "625"], [52.3, 188.2], [57.7, 207.7]]
+        ].forEach(([plenum, tVdw, vdw, tRed, tdv, fd]) => {
+          fila(plenum, "VDW", "R", tVdw, "retorno", vdw[0], vdw[1], P7, `VDW-R ${tVdw.join(" / ")}`);
+          fila(plenum, "TDV", "R", tRed, "retorno", tdv[0], tdv[1], P7, `TDV-R ${tRed.join("/")}`);
+          fila(plenum, "FD", "R", tRed, "retorno", fd[0], fd[1], P7, `FD-R ${tRed.join("/")}`);
+        });
+        fila("AK-Uni-017", "VDW", "R", ["600 \xD7 48"], "retorno", 58.1, 209.1, P7, "VDW-R 600x48");
+        const NO_CARGADOS = [
+          { donde: "AKUNI-6 (entera)", motivo: "El extracto la da a la vez como \xABsegundo juego de impulsi\xF3n\xBB y como retorno de placa cuadrada; sus valores TDV 300 (16,4 / 59,0) coinciden con el retorno de AKUNI-7. Sin el pie de la tabla del PDF no se sabe con certeza si es impulsi\xF3n o retorno: no se carga (falta verificar en el PDF)." },
+          { donde: "AKUNI-4 \xB7 AK-Uni-004 FD-Q 600/625", motivo: "El extracto solo trae 125,8 m\xB3/h, sin el valor en l/s: no se puede comprobar." },
+          { donde: "AKUNI-4/5/6 \xB7 ADD-Q, ADD-R, ADLQ, DLQ, ADLR (AK-Uni-002, 008\u2013011, 019\u2013026)", motivo: "La cabecera agrupa cuatro modelos y las filas traen una o dos columnas: no se sabe a qu\xE9 modelo va cada valor." },
+          { donde: "AKUNI-4/5/7/8 \xB7 \xABotras combinaciones\xBB (conexi\xF3n < y >)", motivo: "Tabla aplanada: no se puede casar con certeza cada valor con su difusor y su conexi\xF3n." },
+          { donde: "Todas las columnas \xAB/0\xBB (placa sin deflectores)", motivo: "En el extracto no queda claro a qu\xE9 difusor corresponde cada \xAB/0\xBB: no se cargan." },
+          { donde: "Rejas de impulsi\xF3n y retorno", motivo: "Pendiente de TROX: no han llegado." }
+        ];
+        const registros = [];
+        for (const c of crudas) {
+          const dif = Math.abs(c.kLs * 3.6 - c.kM3h);
+          if (!(c.kLs > 0 && c.kM3h > 0) || dif > TOLERANCIA_M3H) {
+            NO_CARGADOS.push({ donde: `${c.pagina} \xB7 ${c.plenum} ${c.difusor}`, motivo: `No cuadra consigo misma: ${c.kLs} l/s \xD7 3,6 = ${(c.kLs * 3.6).toFixed(2)} m\xB3/h frente a ${c.kM3h} m\xB3/h del extracto.` });
+            continue;
+          }
+          registros.push(Object.freeze({
+            id: `${c.plenum}|${c.familia}|${c.placa || "-"}|${c.circuito}|${c.tamanos.join("/")}${c.tobera === void 0 ? "" : c.tobera ? "|tobera" : "|sinTobera"}`,
+            plenum: c.plenum,
+            familia: c.familia,
+            placa: c.placa,
+            difusor: c.difusor,
+            tamanos: c.tamanos,
+            circuito: c.circuito,
+            sinDeflectores: false,
+            conexion: null,
+            tobera: c.tobera === void 0 ? null : c.tobera,
+            kLs: c.kLs,
+            kM3h: c.kM3h,
+            magnitud: "K",
+            unidad: "l/s y m\xB3/h por \u221APa",
+            formula: FORMULA,
+            fabricante: FABRICANTE,
+            documento: DOCUMENTO,
+            pagina: c.pagina
+          }));
+        }
+        const POR_TABLA = {
+          VDW_Q: { familia: "VDW", placa: "Q" },
+          VDW_R: { familia: "VDW", placa: "R" },
+          TDV_Q: { familias: ["TDV-SA", "TDV"], placa: "Q" },
+          TDV_R: { familias: ["TDV-SA", "TDV"], placa: "R" },
+          TDF_Q: { familia: "TDF-SA", placa: "Q" },
+          TDF_R: { familia: "TDF-SA", placa: "R" }
+        };
+        const clave = (v) => v === null || v === void 0 ? "" : String(v).toLowerCase().replace(/\s+/g, "").replace(/x/g, "\xD7");
+        function buscar({ tabla = null, tamano = null, largo = null, alto = null, circuito = null } = {}) {
+          const m = POR_TABLA[tabla];
+          if (!m) return [];
+          const familias = m.familias || [m.familia];
+          const k = clave(tamano || (largo && alto ? `${largo}\xD7${alto}` : ""));
+          if (!k) return [];
+          return registros.filter((r) => familias.includes(r.familia) && r.placa === m.placa && (!circuito || r.circuito === circuito) && r.tamanos.some((t) => clave(t) === k));
+        }
+        function caudal(K, dp) {
+          const k = Number(K);
+          const d = Number(dp);
+          if (!(k > 0) || !(d >= 0) || !Number.isFinite(d)) return null;
+          return Math.round(k * Math.sqrt(d) * 10) / 10;
+        }
+        function texto(r) {
+          const n = (v) => String(v.toFixed(1)).replace(".", ",");
+          return `K ${r.plenum}: ${n(r.kM3h)} m\xB3/h (${n(r.kLs)} l/s) \xB7 ${FORMULA}`;
+        }
+        const API = { FABRICANTE, DOCUMENTO, FORMULA, REGISTROS: registros, NO_CARGADOS, POR_TABLA, buscar, caudal, texto };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.FACTORES_K_TROX = API;
+      })();
+    }
+  });
+
   // shared/commissioning/difusores.js
   var require_difusores = __commonJS({
     "shared/commissioning/difusores.js"(exports, module) {
@@ -57100,6 +57618,11 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
       var FICHA_PL50_DIF = "PURELINE50_PD_2026_06_29_DE_es.pdf (TROX PL50, PD-06/2026)";
       var HOJA_OBRA_DIF = "CONVERSION CAUDAL REJAS.xlsx (Drive de la obra, feb. 2026)";
       var FUENTE_TABLAS_DIF = `TROX: fichas de producto y tablas de selecci\xF3n r\xE1pida (${ADJUNTOS_DIF}); WG y TR2 de \xABCONVERSION CAUDAL REJAS.xlsx\xBB`;
+      var FUENTE_PL_AK_DIF = "TROX \u2014 correo de Emilia Hernandez Trimi\xF1o (TROX Espa\xF1a), 2-nov-2026, imagen \xAB\xC1REAS EFECTIVAS DIFUSORES LINEALES METRO LINEAL\xBB";
+      var AK_METRO_PL_DIF = {
+        PL35: [6636e-6, 0.0132, 0.0198, 0.0265],
+        PL50: [98e-4, 0.01945, 0.0292, 0.0389]
+      };
       var NOTA_PL_DIF = "Sin Ak: medir con bal\xF3metro. Las fichas de TROX de la PureLine (PD de 33 p\xE1gs. y selecci\xF3n r\xE1pida) no dan \xE1rea efectiva ni geom\xE9trica; si TROX lo da, se pone a mano.";
       var AVISO_SIN_AK_DIF = "sin Ak: medir con bal\xF3metro";
       var LN_PL_DIF = [600, 750, 900, 1050, 1200, 1350, 1500, 1650, 1800, 1950];
@@ -57588,6 +58111,23 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           valores: LN_PL_DIF.map(() => null)
         }
       };
+      for (const [modelo, porMetro] of Object.entries(AK_METRO_PL_DIF)) {
+        porMetro.forEach((akm, i) => {
+          TABLAS_DIF[`${modelo}_${i + 1}`] = {
+            forma: "porMetro",
+            fuente: FUENTE_PL_AK_DIF,
+            pagina: null,
+            magnitud: "Aeff",
+            origen: "fabricante",
+            fabricante: "TROX",
+            unidad: "m\xB2 por metro lineal",
+            akPorMetro: akm,
+            nota: `${modelo}-${i + 1} (${i + 1} v\xEDa${i ? "s" : ""}): ${akm} m\xB2 por metro lineal; Ak = ${akm} \xD7 longitud (m).`,
+            tamanos: LN_PL_DIF.map(String),
+            valores: LN_PL_DIF.map((l) => akPorMetroDif(akm, l))
+          };
+        });
+      }
       (function tiposTroxDif() {
         const poner = (id, x) => {
           if (!TIPOS_DIF[id]) TIPOS_DIF[id] = { marca: "TROX", modo: "ak", ak: null, k: null, ...x };
@@ -57612,12 +58152,18 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         for (const modelo of ["PL35", "PL50"]) {
           for (let n = 1; n <= 4; n++) {
             for (const [circuito, , nombreC, corto] of CIRCUITOS_DIF) {
-              poner(`trox-${modelo.toLowerCase()}-${n}-${corto}`, { modelo: `${modelo} (PureLine, lineal)`, variante: `${n} ranura${n > 1 ? "s" : ""} \xB7 ${nombreC}`, nombre: `TROX ${modelo}-${n} \xB7 ${nombreC}`, circuito, tabla: modelo });
+              poner(`trox-${modelo.toLowerCase()}-${n}-${corto}`, { modelo: `${modelo} (PureLine, lineal)`, variante: `${n} ranura${n > 1 ? "s" : ""} \xB7 ${nombreC}`, nombre: `TROX ${modelo}-${n} \xB7 ${nombreC}`, circuito, tabla: `${modelo}_${n}` });
             }
           }
         }
       })();
       var CAT_AK_DIF = typeof __require !== "undefined" ? require_catalogoAk() : window.CATALOGO_AK;
+      var FACTORES_K_DIF = typeof __require !== "undefined" ? require_factoresKTrox() : typeof window !== "undefined" ? window.FACTORES_K_TROX : null;
+      function factoresKPuntoDif(p) {
+        const t = tipoDif(p && p.tipo);
+        if (!FACTORES_K_DIF || !t.tabla) return [];
+        return FACTORES_K_DIF.buscar({ tabla: t.tabla, tamano: p.tamano, largo: p.largo, alto: p.alto, circuito: t.circuito });
+      }
       for (const [id, t] of Object.entries(CAT_AK_DIF.TABLAS)) if (!TABLAS_DIF[id]) TABLAS_DIF[id] = t;
       for (const [id, t] of Object.entries(CAT_AK_DIF.TIPOS)) if (!TIPOS_DIF[id]) TIPOS_DIF[id] = t;
       function numDif(v) {
@@ -57751,12 +58297,20 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         const n = numDif(v);
         return n !== null && n > 0 ? Math.round(n) : null;
       }
+      function akPorMetroDif(akm, longitudMm) {
+        const l = Number(longitudMm);
+        return akm > 0 && l > 0 ? Math.round(akm * l / 1e3 * 1e6) / 1e6 : null;
+      }
+      var TOLERANCIA_DISCREPANCIA_AK_DIF = 0.01;
       var claveTamanoDif = (v) => v === null || v === void 0 ? "" : String(v).toLowerCase().replace(/\s+/g, "").replace(/x/g, "\xD7");
       function valorTablaDif(tabla, { largo = null, alto = null, tamano = null } = {}) {
         const t = TABLAS_DIF[tabla];
         if (!t) return null;
         let v;
-        if (t.forma === "lista") {
+        if (t.forma === "porMetro") {
+          const l = numDif(tamano) || numDif(largo);
+          v = l ? akPorMetroDif(t.akPorMetro, l) : null;
+        } else if (t.forma === "lista") {
           const i = t.tamanos.findIndex((x) => claveTamanoDif(x) === claveTamanoDif(tamano));
           if (i < 0) return null;
           v = t.valores[i];
@@ -57792,7 +58346,11 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           return { modo, valor: t.modo === "k" ? t.k : null, origen: t.modo === "k" && t.k ? "catalogo" : null };
         }
         const propio = numDif(p.ak);
-        if (propio !== null && propio > 0) return { modo, valor: propio, origen: "punto" };
+        if (propio !== null && propio > 0) {
+          const deTabla = t.tabla ? akTablaDif(t.tabla, p.largo, p.alto, p.tamano) : null;
+          const discrepa = deTabla !== null && Math.abs(propio - deTabla) / deTabla > TOLERANCIA_DISCREPANCIA_AK_DIF;
+          return { modo, valor: propio, origen: "punto", akTabla: deTabla, discrepanciaAk: discrepa };
+        }
         if (t.tabla) {
           const v = akTablaDif(t.tabla, p.largo, p.alto, p.tamano);
           return { modo, valor: v, origen: v ? "tabla" : null };
@@ -57816,8 +58374,8 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         const t = TIPOS_DIF[tipoId];
         const tabla = t && t.tabla ? TABLAS_DIF[t.tabla] : null;
         if (!tabla) return [];
-        if (tabla.forma === "lista") {
-          return tabla.tamanos.map((tam, i) => ({ clave: tam, texto: tabla.sinAk ? `LN ${tam}` : tam, tamano: tam, largo: null, alto: null, area: tabla.valores[i] })).filter((x) => tabla.sinAk || typeof x.area === "number" && x.area > 0);
+        if (tabla.forma === "lista" || tabla.forma === "porMetro") {
+          return tabla.tamanos.map((tam, i) => ({ clave: tam, texto: tabla.sinAk || tabla.forma === "porMetro" ? `LN ${tam}` : tam, tamano: tam, largo: null, alto: null, area: tabla.valores[i] })).filter((x) => tabla.sinAk || typeof x.area === "number" && x.area > 0);
         }
         const salida = [];
         tabla.altos.forEach((h, f) => tabla.largos.forEach((l, c) => {
@@ -57897,6 +58455,11 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           factor: f.valor,
           modoFactor: f.modo,
           origenFactor: f.origen,
+          /* Ak a mano frente al de la tabla: los dos se guardan; nada se sobrescribe. */
+          akTabla: f.akTabla === void 0 ? null : f.akTabla,
+          discrepanciaAk: Boolean(f.discrepanciaAk),
+          /* Los K del plenum AK-Uni (q = K·√Δp), si el fabricante los da: solo informan. */
+          factoresK: factoresKPuntoDif(p),
           caudal,
           /* El equipo con que se mide (el elegido o el deducido). */
           equipoMedida: equipo,
@@ -58042,6 +58605,8 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           factor: f.valor,
           modoFactor: f.modo,
           origenFactor: f.origen,
+          akTabla: f.akTabla === void 0 ? null : f.akTabla,
+          discrepanciaAk: Boolean(f.discrepanciaAk),
           fuente: t.tabla ? fuenteTablaDif(t.tabla) : null,
           ejemplo: Boolean(t.ejemplo)
         };
@@ -58400,6 +58965,10 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         MODOS: MODOS_DIF,
         TIPOS: TIPOS_DIF,
         TIPO_DEFECTO: TIPO_DEFECTO_DIF,
+        FACTORES_K: FACTORES_K_DIF,
+        factoresKPunto: factoresKPuntoDif,
+        akPorMetro: akPorMetroDif,
+        TOLERANCIA_DISCREPANCIA_AK: TOLERANCIA_DISCREPANCIA_AK_DIF,
         NOTA_EJEMPLO: NOTA_EJEMPLO_DIF,
         TOLERANCIA_DEFECTO: TOLERANCIA_DEFECTO_DIF,
         TOLERANCIA_BOCA_DEFECTO: TOLERANCIA_BOCA_DEFECTO_DIF,
@@ -58661,7 +59230,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           const r = akDeBocaSolo(p);
           const n = D.normalizarPunto(p || {});
           const tb = D.tipo(n.tipo).tabla ? D.TABLAS[D.tipo(n.tipo).tabla] : null;
-          return { ...r, porLargoAlto: !tb || tb.forma !== "lista" };
+          return { ...r, porLargoAlto: !tb || tb.forma !== "lista" && tb.forma !== "porMetro" };
         }
         function akDeBocaSolo(p) {
           const n = D.normalizarPunto(p || {});
@@ -58674,11 +59243,16 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             return { valor: f.valor, tamano: tam, fuente: null, deFicha: false, texto: `k ${coma(f.valor)} (${nombre}, ${f.origen === "punto" ? "puesto a mano" : "cat\xE1logo"})` };
           }
           if (f.origen === "punto") {
-            if (n.akFuente) return { valor: f.valor, tamano: tam, fuente: n.akFuente, deFicha: true, texto: `Ak ${coma(f.valor)} m\xB2 (${nombre}, a mano de: ${n.akFuente})` };
-            return { valor: f.valor, tamano: tam, fuente: "a mano", deFicha: false, texto: `Ak ${coma(f.valor)} m\xB2 (${nombre}, puesto a mano: no sale de la ficha t\xE9cnica)` };
+            const otro = f.discrepanciaAk ? ` \xB7 DISCREPA de la tabla del fabricante: ${coma(f.akTabla)} m\xB2 (${D.fuenteTabla(t.tabla)})` : "";
+            if (n.akFuente) return { valor: f.valor, tamano: tam, fuente: n.akFuente, deFicha: true, akTabla: f.akTabla, discrepanciaAk: Boolean(f.discrepanciaAk), texto: `Ak ${coma(f.valor)} m\xB2 (${nombre}, a mano de: ${n.akFuente})${otro}` };
+            return { valor: f.valor, tamano: tam, fuente: "a mano", deFicha: false, akTabla: f.akTabla, discrepanciaAk: Boolean(f.discrepanciaAk), texto: `Ak ${coma(f.valor)} m\xB2 (${nombre}, puesto a mano: no sale de la ficha t\xE9cnica)${otro}` };
           }
           if (f.origen === "tabla") {
             const fuente = D.fuenteTabla(t.tabla);
+            const tbF = D.TABLAS[t.tabla] || {};
+            if (tbF.forma === "porMetro") {
+              return { valor: f.valor, tamano: tam, fuente, deFicha: true, texto: `Ak ${coma(f.valor)} m\xB2 (${nombre}, ${tbF.fabricante || "fabricante"}: ${coma(tbF.akPorMetro)} m\xB2/m \xD7 longitud; ${fuente})` };
+            }
             const ficha = esFicha(fuente);
             return { valor: f.valor, tamano: tam, fuente, deFicha: ficha, texto: `Ak ${coma(f.valor)} m\xB2 (${nombre}, ${ficha ? "FT" : "no es la ficha t\xE9cnica:"} ${fuente})` };
           }
@@ -58686,7 +59260,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           if (t.tabla && D.TABLAS[t.tabla]) {
             const tb = D.TABLAS[t.tabla];
             const fuente = D.fuenteTabla(t.tabla);
-            const porque = !tam ? "falta el tama\xF1o (largo \xD7 alto)" : tb.magnitud === "Ageo" ? "la ficha solo da el \xE1rea geom\xE9trica, no el Ak" : tb.sinAk ? "el fabricante no da Ak para este modelo" : tb.forma === "lista" ? `la ficha no trae el tama\xF1o ${tam}` : `la ficha no trae ${tam} (largos ${tb.largos.join(", ")} \xD7 altos ${tb.altos.join(", ")} mm)`;
+            const porque = !tam ? tb.forma === "porMetro" ? "falta la longitud" : "falta el tama\xF1o (largo \xD7 alto)" : tb.magnitud === "Ageo" ? "la ficha solo da el \xE1rea geom\xE9trica, no el Ak" : tb.sinAk ? "el fabricante no da Ak para este modelo" : tb.forma === "lista" ? `la ficha no trae el tama\xF1o ${tam}` : `la ficha no trae ${tam} (largos ${tb.largos.join(", ")} \xD7 altos ${tb.altos.join(", ")} mm)`;
             return { valor: null, tamano: tam, fuente, deFicha: esFicha(fuente), texto: `Ak sin dato (${nombre}): ${porque}. Fuente: ${fuente}. Sin Ak no hay caudal.` };
           }
           if (n.medidaPlano) return { valor: null, tamano: tam, fuente: null, deFicha: false, texto: `Ak sin dato para esa medida (${nombre}): el cat\xE1logo solo trae un valor de ejemplo, no la ficha t\xE9cnica. Mete el Ak de la ficha a mano con su fuente. Sin Ak no hay caudal.` };
@@ -58719,7 +59293,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         function formaMedida(p) {
           const t = D.tipo(p && p.tipo || "");
           const tb = t.tabla ? D.TABLAS[t.tabla] : null;
-          if (/^(PL\d+)$/.test(t.tabla || "") || /lineal/i.test(`${t.nombre || ""} ${t.modelo || ""}`)) return "lineal";
+          if (/^PL\d+(_\d)?$/.test(t.tabla || "") || /lineal/i.test(`${t.nombre || ""} ${t.modelo || ""}`)) return "lineal";
           if (tb && tb.forma === "lista") return "nominal";
           return "largoAlto";
         }
@@ -61067,6 +61641,85 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
     }
   });
 
+  // shared/compras/entregaEquipo.js
+  var require_entregaEquipo = __commonJS({
+    "shared/compras/entregaEquipo.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var llano = (v) => v === null || v === void 0 ? "" : String(v).trim();
+      var fechaIso = (v) => /^\d{4}-\d{2}-\d{2}/.test(llano(v)) ? llano(v).slice(0, 10) : null;
+      var fechaVisible = (iso) => iso ? iso.split("-").reverse().join("/") : null;
+      function leer(texto) {
+        let v = texto;
+        if (typeof v === "string") {
+          try {
+            v = JSON.parse(v || "[]");
+          } catch {
+            v = [];
+          }
+        }
+        if (!Array.isArray(v)) return [];
+        return v.filter((x) => x && typeof x === "object").map((x) => ({
+          pedido: llano(x.pedido) || null,
+          albaran: llano(x.albaran) || null,
+          fecha: fechaIso(x.fecha),
+          proveedor: llano(x.proveedor) || null,
+          referencia: llano(x.referencia) || null,
+          cantidad: Number.isFinite(Number(x.cantidad)) && llano(x.cantidad) !== "" ? Number(x.cantidad) : null,
+          archivo: llano(x.archivo) || null,
+          cargadoEn: llano(x.cargadoEn) || null
+        })).filter((x) => x.pedido || x.albaran);
+      }
+      var clave = (x) => `${llano(x.albaran).toUpperCase()}|${llano(x.pedido).toUpperCase()}`;
+      function fusionar(guardadas, nuevas) {
+        const antes = leer(guardadas);
+        const por = new Map(antes.map((x) => [clave(x), x]));
+        const out = [...antes];
+        let n = 0;
+        const diferencias = [];
+        for (const x of leer(nuevas)) {
+          const ya = por.get(clave(x));
+          if (ya) {
+            for (const k of ["fecha", "proveedor", "cantidad"]) {
+              if (ya[k] !== null && x[k] !== null && String(ya[k]) !== String(x[k])) diferencias.push({ campo: k, guardada: ya, leida: x });
+            }
+            continue;
+          }
+          por.set(clave(x), x);
+          out.push(x);
+          n += 1;
+        }
+        out.sort((a, b) => String(a.fecha || "9").localeCompare(String(b.fecha || "9")));
+        return { entradas: out, nuevas: n, diferencias };
+      }
+      function bloqueFicha(texto) {
+        const v = (t, tono = null) => ({ texto: t || null, tono: t ? tono : null });
+        const es = leer(texto);
+        const filas = [];
+        if (!es.length) {
+          filas.push(["N\xBA de pedido", v(null)]);
+          filas.push(["N\xBA de albar\xE1n", v("Sin albar\xE1n", "gris")]);
+          return { id: "albaran", titulo: "Pedido y albar\xE1n", filas };
+        }
+        const pedidos = [...new Set(es.map((x) => x.pedido).filter(Boolean))];
+        const proveedores = [...new Set(es.map((x) => x.proveedor).filter(Boolean))];
+        filas.push(["N\xBA de pedido", v(pedidos.join(" \xB7 ") || null)]);
+        if (proveedores.length) filas.push(["Proveedor", v(proveedores.join(" \xB7 "))]);
+        const conAlb = es.filter((x) => x.albaran);
+        if (!conAlb.length) filas.push(["N\xBA de albar\xE1n", v("Sin albar\xE1n", "gris")]);
+        conAlb.forEach((x, i) => {
+          const n = conAlb.length > 1 ? ` (${i + 1})` : "";
+          filas.push([`N\xBA de albar\xE1n${n}`, v(x.albaran)]);
+          filas.push([`Fecha de entrega${n}`, x.fecha ? v(fechaVisible(x.fecha)) : v("Sin fecha en el albar\xE1n", "gris")]);
+        });
+        return { id: "albaran", titulo: "Pedido y albar\xE1n", filas };
+      }
+      var API = { leer, fusionar, bloqueFicha };
+      if (typeof module !== "undefined" && module.exports) module.exports = API;
+      if (typeof window !== "undefined") window.ENTREGA_EQUIPO = API;
+    }
+  });
+
   // shared/commissioning/materialesInstalados.js
   var require_materialesInstalados = __commonJS({
     "shared/commissioning/materialesInstalados.js"(exports, module) {
@@ -62626,6 +63279,14 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         const lineaDe = /* @__PURE__ */ new Map();
         for (const c of t.conjuntos || []) for (const m of c.miembros || [c]) lineaDe.set(m.id, c);
         const datosCert = VE.veCertificacion(ses.rol) ? certificacionDeObra(repo, obraId) : null;
+        const EE = require_entregaEquipo();
+        const albaranesDe = (() => {
+          try {
+            return new Map(repo.db.prepare("SELECT id, albaranesEquipo FROM equiposObra WHERE obraId = ?").all(obraId).map((x) => [x.id, x.albaranesEquipo]));
+          } catch {
+            return /* @__PURE__ */ new Map();
+          }
+        })();
         const vidaDe = (f) => {
           const v = VE.fichaVida(f, lineaDe.get(f.id) || null, { rol: ses.rol, datosCertificacion: datosCert });
           const l = lineaDe.get(f.id) || f;
@@ -62634,7 +63295,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
             envio: l.envio || null,
             editable: puedeEditar && (l.envio === "lista" || l.envio === "enviada")
           };
-          return { ...v, entregaDF, bloques: VE.bloquesFicha(v) };
+          return { ...v, entregaDF, bloques: [EE.bloqueFicha(albaranesDe.get(f.id)), ...VE.bloquesFicha(v)] };
         };
         const datosDe = (f, e) => ({ tipo: e.tipo, icono: e.icono, miembros: e.miembros, marca: e.marca || null, modelo: e.modelo || null, documentos: papelesDe(f.id), acciones: botones(e), puedeEditar, vida: vidaDe(f) });
         const planoDe = new Map(filas.map((p) => [p.planta || "", p]));
@@ -64463,7 +65124,17 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         const firmas = leerJson(fila.firmas, []);
         let datos = leerJson(fila.datos, {});
         if (acceso) datos = datosConBalanceo(acceso.repo, acceso.sesion, def, datos, fila.clave);
-        return { def, firmas, ev: F.evaluar(def, datos, { config: cfg, firmas, instrumentos: cat.instrumentos }) };
+        const ev = F.evaluar(def, datos, { config: cfg, firmas, instrumentos: cat.instrumentos });
+        return { def, firmas, ev: acceso ? { ...ev, firmasConformidad: firmasDeConformidad(acceso.repo, acceso.sesion, fila) } : ev };
+      }
+      function firmasDeConformidad(repo, sesion, fila) {
+        let hechas = {};
+        try {
+          hechas = require_firmasEquipo().firmasDeClave(repo, sesion, fila.obraId, fila.clave);
+        } catch {
+          return [];
+        }
+        return [["firmaCliente", "CLIENTE"], ["mantenimiento", "MANT"]].map(([papel, rol]) => hechas[papel] ? { rol, nombre: hechas[papel].nombre, fecha: String(hechas[papel].fecha || "").slice(0, 10), imagen: hechas[papel].imagen } : null).filter(Boolean);
       }
       function sinMedidoDelBalanceo(datos) {
         if (datos && datos.cabecera && Array.isArray(datos.cabecera.deBalanceo)) {
@@ -64918,11 +65589,27 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         if (clase === "fichaPM") return resultado === "apto" ? ["estadoPM", "hecha"] : resultado === "noApto" ? ["estadoPM", "conReservas"] : null;
         return null;
       }
-      function firmar(repo, sesion, fichaId, { rol = "JEFE", nombre = null } = {}) {
+      var PAPEL_CONFORMIDAD = { CLIENTE: "firmaCliente", MANT: "mantenimiento" };
+      function firmarConformidad(repo, sesion, fila, rol, { nombre = null, imagen = null, quitar = false } = {}) {
+        const m = /^equipo:(.+)$/.exec(String(fila.clave || ""));
+        let equipoId = fila.equipoId || m && m[1] || null;
+        if (!equipoId) {
+          try {
+            const { afectados } = resolverClave(repo, sesion, fila.obraId, fila.clave);
+            equipoId = afectados && afectados[0] && afectados[0].id;
+          } catch {
+          }
+        }
+        if (!equipoId) return { ok: false, error: "Esta ficha no es de un equipo: la firma de Cliente y Mantenimiento se pone en el equipo." };
+        const r = require_firmasEquipo().firmar(repo, sesion, equipoId, quitar ? { rol: PAPEL_CONFORMIDAD[rol], quitar: true } : { rol: PAPEL_CONFORMIDAD[rol], nombre, imagen });
+        return r.ok ? { ok: true, firmas: r.firmas } : r;
+      }
+      function firmar(repo, sesion, fichaId, { rol = "JEFE", nombre = null, imagen = null } = {}) {
         rol = F.rolFirma(rol);
         if (!puede(sesion.rol, "commissioning", "editar")) return { ok: false, error: NO_EDITA };
         const fila = repo.leer("fichasPM", sesion, fichaId);
         if (!fila) return { ok: false, error: "No se encuentra la ficha." };
+        if (PAPEL_CONFORMIDAD[rol]) return firmarConformidad(repo, sesion, fila, rol, { nombre, imagen });
         if (!F.ROLES_FIRMA[rol]) return { ok: false, error: "Firma desconocida: solo firma el jefe de obra." };
         if (!esJefeDeObra(repo, sesion, fila.obraId)) return { ok: false, error: SOLO_JEFE_OBRA };
         const cat = catalogoDe(repo, sesion);
@@ -64956,6 +65643,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         if (!puede(sesion.rol, "commissioning", "editar")) return { ok: false, error: NO_EDITA };
         const fila = repo.leer("fichasPM", sesion, fichaId);
         if (!fila) return { ok: false, error: "No se encuentra la ficha." };
+        if (PAPEL_CONFORMIDAD[rol]) return firmarConformidad(repo, sesion, fila, rol, { quitar: true });
         const firmas = leerJson(fila.firmas, []);
         const f = firmas.find((x) => F.rolFirma(x.rol) === rol);
         if (!f) return { ok: false, error: "Esa firma no est\xE1." };
@@ -65070,7 +65758,8 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
       var RESULTADO_BAL = { apto: "apto", aptoSinBocas: "aRevisar", noApto: "noApto" };
       var RESULTADO_ESTANQ = { correcta: "apto", noSuperada: "noApto", sinTerminar: "aRevisar" };
       function balanceoEvaluado(repo, sesion, equipo) {
-        const fila = repo.listar("hojasBalanceo", sesion, { condicion: "equipoId = ?", params: [equipo.id], limite: 1 })[0];
+        let fila = repo.listar("hojasBalanceo", sesion, { condicion: "equipoId = ?", params: [equipo.id], limite: 1 })[0];
+        if (fila && require_cronometro().soloCronometros(leerJson(fila.datos, null))) fila = null;
         const DIF = require_difusores2();
         let dif = null;
         try {
@@ -65974,230 +66663,6 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
     }
   });
 
-  // shared/commissioning/cronometro.js
-  var require_cronometro = __commonJS({
-    "shared/commissioning/cronometro.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function() {
-        const ROLES_CUADRILLA = { oficial: "T\xE9cnico / oficial", operario: "Operario" };
-        const MAX_TRAMOS = 200;
-        const MAX_PERSONAS = 12;
-        const llano = (v) => String(v ?? "").trim();
-        const redondear = (n, d = 2) => Math.round((Number(n) + Number.EPSILON) * 10 ** d) / 10 ** d;
-        const esHora = (v) => typeof v === "string" && !Number.isNaN(Date.parse(v));
-        const ms = (v) => Date.parse(v);
-        const normalizarNombre = (s) => llano(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ");
-        function persona(p) {
-          if (!p || typeof p !== "object") return null;
-          const nombre = llano(p.nombre).replace(/\s+/g, " ").slice(0, 120);
-          if (!nombre) return null;
-          return {
-            nombre,
-            personalId: p.personalId ? llano(p.personalId).slice(0, 60) : null,
-            rol: ROLES_CUADRILLA[p.rol] ? p.rol : "operario",
-            empresa: llano(p.empresa).slice(0, 120) || null
-          };
-        }
-        function personas(lista) {
-          const fuera = [];
-          const vistas = /* @__PURE__ */ new Set();
-          for (const x of Array.isArray(lista) ? lista : []) {
-            const p = persona(x);
-            if (!p) continue;
-            const k = p.personalId || normalizarNombre(p.nombre);
-            if (vistas.has(k)) continue;
-            vistas.add(k);
-            fuera.push(p);
-            if (fuera.length >= MAX_PERSONAS) break;
-          }
-          return fuera;
-        }
-        const ids = (l) => [...new Set((Array.isArray(l) ? l : []).filter((x) => typeof x === "string" && x).map((x) => x.slice(0, 60)))].slice(0, 2e3);
-        function normalizar(c) {
-          const e = c && typeof c === "object" ? c : {};
-          const tramos = (Array.isArray(e.tramos) ? e.tramos : []).filter((t) => t && esHora(t.inicio)).slice(0, MAX_TRAMOS).map((t) => ({
-            inicio: new Date(ms(t.inicio)).toISOString(),
-            fin: esHora(t.fin) && ms(t.fin) >= ms(t.inicio) ? new Date(ms(t.fin)).toISOString() : null,
-            personas: personas(t.personas)
-          }));
-          for (let i = 0; i < tramos.length - 1; i++) if (!tramos[i].fin) tramos[i].fin = tramos[i + 1].inicio;
-          const bam = Number(e.bocasAMano);
-          return {
-            tramos,
-            cuadrilla: personas(e.cuadrilla),
-            bocasPrevias: ids(e.bocasPrevias),
-            bocasMedidas: Array.isArray(e.bocasMedidas) ? ids(e.bocasMedidas) : null,
-            bocasAMano: e.bocasAMano !== null && e.bocasAMano !== void 0 && e.bocasAMano !== "" && Number.isFinite(bam) && bam >= 0 ? Math.round(bam) : null,
-            terminado: esHora(e.terminado) ? new Date(ms(e.terminado)).toISOString() : null,
-            parteId: e.parteId ? llano(e.parteId).slice(0, 60) : null,
-            parteCodigo: e.parteCodigo ? llano(e.parteCodigo).slice(0, 30) : null
-          };
-        }
-        const vacio = (c) => !c || !c.tramos.length;
-        const abierto = (c) => Boolean(c && c.tramos.length && !c.tramos[c.tramos.length - 1].fin);
-        function cuadrillaPorDefecto(quien = {}) {
-          return personas([
-            { nombre: quien.nombre || "Quien mide", personalId: quien.personaId || null, rol: "oficial", empresa: quien.empresa || null },
-            { nombre: "Operario 1", rol: "operario", empresa: quien.empresa || null }
-          ]);
-        }
-        const medidasAhora = (bocas = []) => bocas.filter((b) => b && b.medida).map((b) => String(b.id));
-        function aplicar(entrada, accion, { ahora = Date.now(), cuadrilla = void 0, bocas = [], bocasAMano = void 0, quien = {} } = {}) {
-          const c = normalizar(entrada);
-          const iso = new Date(ahora).toISOString();
-          if (!c.cuadrilla.length) c.cuadrilla = cuadrillaPorDefecto(quien);
-          if (cuadrilla !== void 0 && accion !== "bocas") {
-            const nueva = personas(cuadrilla);
-            if (!nueva.length) return { ok: false, error: "La cuadrilla necesita al menos una persona." };
-            c.cuadrilla = nueva;
-          }
-          const ultimo = c.tramos[c.tramos.length - 1];
-          if (accion === "empezar") {
-            if (abierto(c)) return { ok: false, error: "El cron\xF3metro ya est\xE1 en marcha." };
-            if (ultimo && ms(ultimo.fin) > ahora) return { ok: false, error: "La hora del tel\xE9fono va por detr\xE1s de la del \xFAltimo tramo: rev\xEDsala." };
-            if (!c.tramos.length) c.bocasPrevias = medidasAhora(bocas);
-            c.tramos.push({ inicio: iso, fin: null, personas: c.cuadrilla.map((p) => ({ ...p })) });
-            c.terminado = null;
-            c.bocasMedidas = null;
-            return { ok: true, cronometro: c };
-          }
-          if (accion === "pausar" || accion === "terminar") {
-            if (!abierto(c) && accion === "pausar") return { ok: false, error: "El cron\xF3metro no est\xE1 en marcha." };
-            if (!c.tramos.length) return { ok: false, error: "No se ha empezado todav\xEDa." };
-            if (abierto(c)) ultimo.fin = new Date(Math.max(ahora, ms(ultimo.inicio))).toISOString();
-            if (accion === "terminar") {
-              c.terminado = iso;
-              const previas = new Set(c.bocasPrevias);
-              c.bocasMedidas = medidasAhora(bocas).filter((id) => !previas.has(id));
-            }
-            return { ok: true, cronometro: c };
-          }
-          if (accion === "cuadrilla") {
-            if (cuadrilla === void 0) return { ok: false, error: "Falta la cuadrilla." };
-            if (abierto(c)) {
-              const inicio = ms(ultimo.inicio);
-              if (ahora - inicio < 6e4) ultimo.personas = c.cuadrilla.map((p) => ({ ...p }));
-              else {
-                ultimo.fin = iso;
-                c.tramos.push({ inicio: iso, fin: null, personas: c.cuadrilla.map((p) => ({ ...p })) });
-              }
-            }
-            return { ok: true, cronometro: c };
-          }
-          if (accion === "bocas") {
-            const n = bocasAMano === null || bocasAMano === "" || bocasAMano === void 0 ? null : Number(String(bocasAMano).replace(",", "."));
-            if (n !== null && (!Number.isFinite(n) || n < 0 || n > 5e3)) return { ok: false, error: "El n\xFAmero de bocas no es v\xE1lido." };
-            c.bocasAMano = n === null ? null : Math.round(n);
-            return { ok: true, cronometro: c };
-          }
-          if (accion === "reiniciar") {
-            if (c.parteId) return { ok: false, error: `Ya est\xE1 pasado al parte ${c.parteCodigo || ""}: no se borra.`.replace("  ", " ") };
-            return { ok: true, cronometro: normalizar({ cuadrilla: c.cuadrilla }) };
-          }
-          return { ok: false, error: "Acci\xF3n desconocida." };
-        }
-        function resumen(entrada, { ahora = Date.now(), bocas = [], tarifas = null, normalizarEmpresa = normalizarNombre } = {}) {
-          const c = normalizar(entrada);
-          let duracionMs = 0;
-          const porPersona = /* @__PURE__ */ new Map();
-          for (const t of c.tramos) {
-            const d = Math.max(0, (t.fin ? ms(t.fin) : ahora) - ms(t.inicio));
-            duracionMs += d;
-            for (const p of t.personas) {
-              const k = `${p.personalId || normalizarNombre(p.nombre)}|${p.rol}|${normalizarNombre(p.empresa)}`;
-              const x = porPersona.get(k) || { nombre: p.nombre, personalId: p.personalId, rol: p.rol, empresa: p.empresa, ms: 0 };
-              x.ms += d;
-              porPersona.set(k, x);
-            }
-          }
-          const personasH = [...porPersona.values()].map((p) => ({ nombre: p.nombre, personalId: p.personalId, rol: p.rol, rolNombre: ROLES_CUADRILLA[p.rol], empresa: p.empresa, horas: redondear(p.ms / 36e5, 3) }));
-          const horasPersona = redondear(personasH.reduce((s, p) => s + p.horas, 0), 3);
-          const previas = new Set(c.bocasPrevias);
-          const enEsteTiempo = new Set(c.bocasMedidas || medidasAhora(bocas).filter((id) => !previas.has(id)));
-          const deEste = bocas.filter((b) => enEsteTiempo.has(String(b.id)));
-          const rejas = deEste.filter((b) => b.retorno).length;
-          const contadas = enEsteTiempo.size;
-          const difusores = contadas - rejas;
-          const nBocas = c.bocasAMano !== null ? c.bocasAMano : contadas;
-          const horas = duracionMs / 36e5;
-          const fuera = {
-            vacio: vacio(c),
-            enMarcha: abierto(c),
-            terminado: c.terminado,
-            inicio: c.tramos.length ? c.tramos[0].inicio : null,
-            fin: c.tramos.length && !abierto(c) ? c.tramos[c.tramos.length - 1].fin : null,
-            inicioTramo: abierto(c) ? c.tramos[c.tramos.length - 1].inicio : null,
-            /* Lo que ya estaba cerrado: con inicioTramo, la pantalla cuenta sola sin preguntar. */
-            msCerrados: c.tramos.filter((t) => t.fin).reduce((s, t) => s + (ms(t.fin) - ms(t.inicio)), 0),
-            tramos: c.tramos.length,
-            cuadrilla: c.cuadrilla,
-            duracionMs,
-            duracionH: redondear(horas, 3),
-            horasPersona,
-            personas: personasH,
-            bocas: { difusores, rejas, contadas, aMano: c.bocasAMano, total: nBocas },
-            minPorBoca: nBocas > 0 && duracionMs > 0 ? redondear(duracionMs / 6e4 / nBocas, 1) : null,
-            minPersonaPorBoca: nBocas > 0 && horasPersona > 0 ? redondear(horasPersona * 60 / nBocas, 1) : null,
-            bocasHora: horas > 0 && nBocas > 0 ? redondear(nBocas / horas, 1) : null,
-            parteId: c.parteId,
-            parteCodigo: c.parteCodigo
-          };
-          if (tarifas) {
-            let coste = 0;
-            const sinTarifa = [];
-            for (const p of fuera.personas) {
-              const t = p.empresa && tarifas.get(normalizarEmpresa(p.empresa)) || {};
-              const bruto = p.rol === "oficial" ? t.oficial : t.operario;
-              const v = Number(bruto);
-              const tiene = bruto !== null && bruto !== void 0 && bruto !== "" && Number.isFinite(v);
-              p.tarifa = tiene ? v : null;
-              p.coste = tiene ? redondear(p.horas * v) : null;
-              if (tiene) coste += p.horas * v;
-              else sinTarifa.push(`${p.nombre} (${p.empresa || "sin empresa"}, ${p.rolNombre.toLowerCase()})`);
-            }
-            fuera.dinero = {
-              /* Con alguien sin tarifa el total no se da: sería menos de lo que es. */
-              coste: sinTarifa.length ? null : redondear(coste),
-              costeParcial: redondear(coste),
-              sinTarifa,
-              costePorBoca: !sinTarifa.length && nBocas > 0 ? redondear(coste / nBocas) : null
-            };
-          }
-          return fuera;
-        }
-        function duracionTexto(msTotal) {
-          const s = Math.max(0, Math.floor((Number(msTotal) || 0) / 1e3));
-          const h = Math.floor(s / 3600);
-          const m = Math.floor(s % 3600 / 60);
-          if (h) return `${h} h ${String(m).padStart(2, "0")} min`;
-          if (m) return `${m} min`;
-          return `${s} s`;
-        }
-        function lineasParte(entrada, { hoy = null } = {}) {
-          const c = normalizar(entrada);
-          const m = /* @__PURE__ */ new Map();
-          for (const t of c.tramos) {
-            if (!t.fin) continue;
-            const d = new Date(ms(t.inicio));
-            const fecha = new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
-            const h = (ms(t.fin) - ms(t.inicio)) / 36e5;
-            for (const p of t.personas) {
-              const k = `${p.personalId || normalizarNombre(p.nombre)}|${p.rol}|${fecha}`;
-              const x = m.get(k) || { clase: "horas", operario: p.nombre, empresa: p.empresa || "Sin indicar", categoria: p.rol, fecha: hoy && fecha > hoy ? hoy : fecha, horas: 0 };
-              x.horas += h;
-              m.set(k, x);
-            }
-          }
-          return [...m.values()].map((x) => ({ ...x, horas: redondear(Math.min(24, x.horas), 2), notas: "Cron\xF3metro de cuadrilla del balanceo" })).filter((x) => x.horas > 0);
-        }
-        const API = { ROLES_CUADRILLA, normalizar, aplicar, resumen, cuadrillaPorDefecto, duracionTexto, lineasParte, abierto };
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.CRONOMETRO_CX = API;
-      })();
-    }
-  });
-
   // shared/obra/parteTrabajo.js
   var require_parteTrabajo = __commonJS({
     "shared/obra/parteTrabajo.js"(exports, module) {
@@ -66853,6 +67318,217 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
     }
   });
 
+  // shared/commissioning/tiemposMedicion.js
+  var require_tiemposMedicion = __commonJS({
+    "shared/commissioning/tiemposMedicion.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const TIPO_UTA = "UTAs";
+        const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+        const redondear = (n, d = 1) => Math.round((Number(n) + Number.EPSILON) * 10 ** d) / 10 ** d;
+        const coma = (n, d = 1) => n === null || n === void 0 ? "\u2014" : Number(n).toLocaleString("es-ES", { maximumFractionDigits: d });
+        const porTag = (a, b) => String(a.tag || "").localeCompare(String(b.tag || ""), "es", { numeric: true });
+        function duracionTexto(msTotal) {
+          const s = Math.max(0, Math.floor((Number(msTotal) || 0) / 1e3));
+          const h = Math.floor(s / 3600);
+          const m = Math.floor(s % 3600 / 60);
+          if (h) return `${h} h ${String(m).padStart(2, "0")} min`;
+          if (m) return `${m} min`;
+          return `${s} s`;
+        }
+        function componer(entrada) {
+          const equipos = (Array.isArray(entrada) ? entrada : []).map((e) => {
+            const trabajos = (e.trabajos || []).filter((t) => t && t.duracionMs > 0);
+            const bal = trabajos.find((t) => t.trabajo === "balanceo") || null;
+            const totalMs = trabajos.reduce((s, t) => s + t.duracionMs, 0);
+            return {
+              id: e.id,
+              tag: e.tag,
+              planta: e.planta || null,
+              tipo: e.tipo || "Sin tipolog\xEDa",
+              bocas: e.bocas || null,
+              trabajos,
+              sinDato: totalMs <= 0,
+              totalMs,
+              horasPersona: redondear(trabajos.reduce((s, t) => s + (t.horasPersona || 0), 0), 2),
+              balanceoMs: bal ? bal.duracionMs : null,
+              balanceoEnMarcha: Boolean(bal && bal.enMarcha),
+              bocasMedidas: bal ? bal.bocasMedidas : null,
+              minPorBoca: bal && bal.minPorBoca !== void 0 ? bal.minPorBoca : null
+            };
+          }).sort(porTag);
+          const utas = equipos.filter((e) => e.tipo === TIPO_UTA);
+          const conTiempo = utas.filter((e) => e.balanceoMs !== null).sort((a, b) => b.balanceoMs - a.balanceoMs);
+          const sinTiempo = utas.filter((e) => e.balanceoMs === null).sort(porTag);
+          const grupos = /* @__PURE__ */ new Map();
+          for (const e of equipos) {
+            const g = grupos.get(e.tipo) || { tipo: e.tipo, equipos: 0, conDato: 0, totalMs: 0 };
+            g.equipos += 1;
+            if (!e.sinDato) {
+              g.conDato += 1;
+              g.totalMs += e.totalMs;
+            }
+            grupos.set(e.tipo, g);
+          }
+          const tipos = [...grupos.values()].map((g) => ({ ...g, medioMs: g.conDato ? Math.round(g.totalMs / g.conDato) : null })).sort((a, b) => (b.medioMs === null) - (a.medioMs === null) || (a.medioMs === null ? String(a.tipo).localeCompare(String(b.tipo), "es") : b.medioMs - a.medioMs) * -1 || 0);
+          tipos.sort((a, b) => (a.medioMs === null) - (b.medioMs === null) || (b.medioMs || 0) - (a.medioMs || 0) || String(a.tipo).localeCompare(String(b.tipo), "es"));
+          return {
+            equipos,
+            utas: [...conTiempo, ...sinTiempo],
+            tipos,
+            resumen: {
+              equipos: equipos.length,
+              conDato: equipos.filter((e) => !e.sinDato).length,
+              utas: utas.length,
+              utasConDato: conTiempo.length,
+              totalMs: equipos.reduce((s, e) => s + e.totalMs, 0)
+            }
+          };
+        }
+        const bocasTxt = (b, k) => b && b.impulsion + b.retorno + b.sinPosicion > 0 ? String(b[k]) : "\u2014";
+        function barra(valor, max, clase, texto) {
+          if (valor === null || valor === void 0) return '<span class="tm-pista"><span class="tm-sindato">sin dato</span></span>';
+          const w = max > 0 ? Math.max(1.5, valor / max * 100) : 0;
+          return `<span class="tm-pista"><span class="tm-barra ${clase}" style="width:${redondear(w, 1)}%"></span><span class="tm-valor">${esc(texto)}</span></span>`;
+        }
+        function cabeceraCols(vista) {
+          return `<div class="tm-fila tm-cab" role="row">
+    <span role="columnheader">UTA</span>
+    <span role="columnheader">${vista === "minBoca" ? "Minutos por boca" : "Tiempo del balanceo"}</span>
+    <span role="columnheader" class="tm-num"><i class="tm-p verde"></i>Difusores imp.</span>
+    <span role="columnheader" class="tm-num"><i class="tm-p azul"></i>Rejas ret.</span>
+    <span role="columnheader" class="tm-num">Sin posici\xF3n</span>
+    <span role="columnheader" class="tm-num">Min/boca</span>
+  </div>`;
+        }
+        function htmlUtas(datos, vista = "tiempo") {
+          const utas = datos.utas;
+          if (!utas.length) return '<p class="tm-vacio">Esta obra no tiene UTAs.</p>';
+          const valorDe = (e) => vista === "minBoca" ? e.minPorBoca : e.balanceoMs;
+          const max = Math.max(0, ...utas.map((e) => valorDe(e) || 0));
+          const filas = utas.map((e) => {
+            const v = valorDe(e);
+            const txt = v === null || v === void 0 ? "" : vista === "minBoca" ? `${coma(v)} min/boca` : duracionTexto(v) + (e.balanceoEnMarcha ? " \xB7 en marcha" : "");
+            const detalle = `${e.tag}: ${e.balanceoMs === null ? "sin dato" : duracionTexto(e.balanceoMs)}${e.bocas ? ` \xB7 ${e.bocas.impulsion} difusores de impulsi\xF3n \xB7 ${e.bocas.retorno} rejas de retorno${e.bocas.sinPosicion ? ` \xB7 ${e.bocas.sinPosicion} sin posici\xF3n` : ""}` : ""}${e.minPorBoca !== null && e.minPorBoca !== void 0 ? ` \xB7 ${coma(e.minPorBoca)} min por boca (${e.bocasMedidas} medidas)` : ""}`;
+            return `<div class="tm-fila" role="row" title="${esc(detalle)}">
+      <span class="tm-tag" role="rowheader">${esc(e.tag || "\u2014")}${e.planta ? ` <small>${esc(e.planta)}</small>` : ""}</span>
+      <span role="cell">${barra(v === void 0 ? null : v, max, vista === "minBoca" ? "verde" : "teal", txt)}</span>
+      <span class="tm-num" role="cell">${bocasTxt(e.bocas, "impulsion")}</span>
+      <span class="tm-num" role="cell">${bocasTxt(e.bocas, "retorno")}</span>
+      <span class="tm-num tm-tenue" role="cell">${e.bocas && e.bocas.sinPosicion ? e.bocas.sinPosicion : "\u2014"}</span>
+      <span class="tm-num" role="cell">${e.minPorBoca === null || e.minPorBoca === void 0 ? "\u2014" : coma(e.minPorBoca)}</span>
+    </div>`;
+          }).join("");
+          return `<div class="tm-tabla" role="table" aria-label="Tiempo de balanceo por UTA">${cabeceraCols(vista)}${filas}</div>
+    <p class="tm-nota">Las bocas son las de la hoja de balanceo, con posici\xF3n en el plano; las \xABsin posici\xF3n\xBB van aparte. \xABMin/boca\xBB es el tiempo del balanceo entre las bocas medidas en ese tiempo. Gris: sin cron\xF3metro, no hay dato.</p>`;
+        }
+        function htmlTipos(datos) {
+          const tipos = datos.tipos;
+          if (!tipos.length) return '<p class="tm-vacio">Todav\xEDa no hay equipos.</p>';
+          const max = Math.max(0, ...tipos.map((t) => t.medioMs || 0));
+          const filas = tipos.map((t) => `<div class="tm-fila tm-tipo" role="row">
+      <span class="tm-tag" role="rowheader">${esc(t.tipo)}</span>
+      <span role="cell">${barra(t.medioMs, max, "azul", t.medioMs === null ? "" : `${duracionTexto(t.medioMs)} de media`)}</span>
+      <span class="tm-num" role="cell">${t.conDato}/${t.equipos}</span>
+      <span class="tm-num" role="cell">${t.conDato ? duracionTexto(t.totalMs) : "\u2014"}</span>
+    </div>`).join("");
+          return `<div class="tm-tabla" role="table" aria-label="Tiempo medio por equipo y tipo">
+    <div class="tm-fila tm-tipo tm-cab" role="row"><span role="columnheader">Tipo de equipo</span><span role="columnheader">Tiempo medio por equipo</span><span role="columnheader" class="tm-num">Con dato</span><span role="columnheader" class="tm-num">Total</span></div>
+    ${filas}</div>`;
+        }
+        function htmlDetalle(datos) {
+          const con = datos.equipos.filter((e) => !e.sinDato);
+          if (!con.length) return '<p class="tm-vacio">Todav\xEDa no hay ning\xFAn cron\xF3metro usado: se arranca desde la pantalla de medici\xF3n de cada equipo, en el m\xF3vil.</p>';
+          const filas = con.sort((a, b) => b.totalMs - a.totalMs).map((e) => `<tr>
+      <td>${esc(e.tag || "\u2014")}</td><td>${esc(e.tipo)}</td>
+      <td>${e.trabajos.map((t) => `${esc(t.nombre)} ${esc(duracionTexto(t.duracionMs))}`).join(" \xB7 ")}</td>
+      <td class="tm-num">${esc(duracionTexto(e.totalMs))}</td><td class="tm-num">${coma(e.horasPersona, 2)}</td></tr>`).join("");
+          return `<table class="tm-detalle"><thead><tr><th>Equipo</th><th>Tipo</th><th>Trabajos</th><th class="tm-num">Total</th><th class="tm-num">Horas-persona</th></tr></thead><tbody>${filas}</tbody></table>`;
+        }
+        const CSS = `
+.tm { --tm-teal: #0F766E; --tm-verde: #2E7D32; --tm-azul: #1F5FA8; --tm-gris: #E3E7EA; --tm-gris-t: #6B7780; --tm-tx: #1B2A2F; --tm-linea: #D5DCDF; color: var(--tm-tx); font-size: 13px; }
+@media (prefers-color-scheme: dark) { .tm.tm-auto { --tm-teal: #35B3A6; --tm-verde: #5FBF68; --tm-azul: #6FA8E8; --tm-gris: #2C3438; --tm-gris-t: #98A5AC; --tm-tx: #E6ECEE; --tm-linea: #3A444A; } }
+.tm h3 { margin: 18px 0 6px; font-size: 14px; font-weight: 600; color: var(--tm-teal); border-bottom: 2px solid var(--tm-teal); padding-bottom: 3px; background: none; }
+.tm-tabla { display: grid; }
+.tm-fila { display: grid; grid-template-columns: minmax(120px, 190px) minmax(180px, 1fr) 128px 96px 100px 76px; gap: 0 10px; align-items: center; padding: 3px 0; border-bottom: 1px solid var(--tm-linea); min-height: 26px; }
+.tm-fila.tm-tipo { grid-template-columns: minmax(150px, 230px) minmax(180px, 1fr) 90px 110px; }
+.tm-cab { color: var(--tm-teal); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .3px; border-bottom: 2px solid var(--tm-teal); }
+.tm-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tm-tenue { color: var(--tm-gris-t); }
+.tm-tag { font-weight: 600; } .tm-tag small { font-weight: 400; color: var(--tm-gris-t); margin-left: 4px; }
+.tm-pista { position: relative; display: flex; align-items: center; height: 18px; }
+.tm-barra { height: 14px; border-radius: 0 4px 4px 0; display: block; }
+.tm-barra.teal { background: var(--tm-teal); } .tm-barra.verde { background: var(--tm-verde); } .tm-barra.azul { background: var(--tm-azul); }
+.tm-valor { margin-left: 8px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tm-sindato { color: var(--tm-gris-t); background: var(--tm-gris); border-radius: 999px; padding: 0 10px; font-size: 12px; width: fit-content; }
+.tm-p { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; } .tm-p.verde { background: var(--tm-verde); } .tm-p.azul { background: var(--tm-azul); }
+.tm-nota, .tm-vacio { color: var(--tm-gris-t); font-size: 12px; margin: 8px 0; }
+.tm-detalle { border-collapse: collapse; width: 100%; } .tm-detalle th { text-align: left; color: var(--tm-teal); border-bottom: 2px solid var(--tm-teal); font-size: 11px; text-transform: uppercase; background: none; padding: 3px 6px; }
+.tm-detalle td { border-bottom: 1px solid var(--tm-linea); padding: 3px 6px; }
+.tm-detalle th.tm-num { text-align: right; }
+@media (max-width: 720px) { .tm-fila { grid-template-columns: 90px 1fr 54px 54px; } .tm-fila > :nth-child(5), .tm-fila > :nth-child(6) { display: none; } .tm-fila.tm-tipo { grid-template-columns: 110px 1fr 54px 80px; } .tm-fila.tm-tipo > :nth-child(5), .tm-fila.tm-tipo > :nth-child(6) { display: initial; } }
+`;
+        function html(datos, { vista = "tiempo" } = {}) {
+          return `<div class="tm tm-auto"><style>${CSS}</style>
+    <h3>${vista === "minBoca" ? "UTAs \xB7 minutos por boca" : "UTAs \xB7 tiempo del balanceo"}</h3>
+    ${htmlUtas(datos, vista)}
+    <h3>Tiempo medio por equipo, seg\xFAn el tipo</h3>
+    ${htmlTipos(datos)}
+    <h3>Detalle por equipo</h3>
+    ${htmlDetalle(datos)}</div>`;
+        }
+        function documento(datos, { obra = {}, fecha = "" } = {}) {
+          const r = datos.resumen;
+          return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Tiempos de medici\xF3n</title>
+    <style>body{font-family:-apple-system,Helvetica,Arial,sans-serif;margin:18px;background:#fff} h1{font-size:18px;margin:0 0 2px;color:#0F766E} .sub{color:#6B7780;font-size:12px;margin-bottom:6px}</style></head><body>
+    <h1>Tiempos de medici\xF3n por equipo</h1>
+    <div class="sub">${esc(obra.codigo || "")} ${esc(obra.nombre || "")} \xB7 ${esc(fecha)} \xB7 ${r.conDato} de ${r.equipos} equipos con cron\xF3metro \xB7 ${r.utasConDato} de ${r.utas} UTAs</div>
+    <div class="tm"><style>${CSS}</style>
+    <h3>UTAs \xB7 tiempo del balanceo</h3>${htmlUtas(datos, "tiempo")}
+    <h3>UTAs \xB7 minutos por boca</h3>${htmlUtas(datos, "minBoca")}
+    <h3>Tiempo medio por equipo, seg\xFAn el tipo</h3>${htmlTipos(datos)}
+    <h3>Detalle por equipo</h3>${htmlDetalle(datos)}</div></body></html>`;
+        }
+        function csv(datos) {
+          const c = (v) => {
+            const t = v === null || v === void 0 ? "" : String(v);
+            return /[;"\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+          };
+          const num = (n, d = 2) => n === null || n === void 0 ? "" : coma(n, d);
+          const min = (ms) => ms === null || ms === void 0 ? "" : num(ms / 6e4, 1);
+          const l = [];
+          l.push(["UTA", "Planta", "Balanceo (min)", "Difusores impulsi\xF3n", "Rejas retorno", "Sin posici\xF3n", "Bocas medidas", "Min por boca", "Total medici\xF3n (min)", "Estado"].map(c).join(";"));
+          for (const e of datos.utas) {
+            l.push([
+              e.tag,
+              e.planta,
+              min(e.balanceoMs),
+              e.bocas ? e.bocas.impulsion : "",
+              e.bocas ? e.bocas.retorno : "",
+              e.bocas ? e.bocas.sinPosicion : "",
+              e.bocasMedidas ?? "",
+              num(e.minPorBoca, 1),
+              min(e.sinDato ? null : e.totalMs),
+              e.balanceoMs === null ? "sin dato" : "medido"
+            ].map(c).join(";"));
+          }
+          l.push("");
+          l.push(["Tipo de equipo", "Equipos", "Con dato", "Tiempo medio por equipo (min)", "Total (min)"].map(c).join(";"));
+          for (const t of datos.tipos) l.push([t.tipo, t.equipos, t.conDato, min(t.medioMs), t.conDato ? min(t.totalMs) : ""].map(c).join(";"));
+          l.push("");
+          l.push(["Equipo", "Tipo", "Trabajo", "Tiempo (min)", "Horas-persona"].map(c).join(";"));
+          for (const e of datos.equipos.filter((x) => !x.sinDato)) for (const t of e.trabajos) l.push([e.tag, e.tipo, t.nombre, min(t.duracionMs), num(t.horasPersona, 2)].map(c).join(";"));
+          return `\uFEFF${l.join("\r\n")}\r
+`;
+        }
+        const API = { TIPO_UTA, componer, html, htmlUtas, htmlTipos, htmlDetalle, documento, csv, duracionTexto, CSS };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.TIEMPOS_MEDICION = API;
+      })();
+    }
+  });
+
   // electron/data/cronometroBalanceo.js
   var require_cronometroBalanceo = __commonJS({
     "electron/data/cronometroBalanceo.js"(exports, module) {
@@ -66870,6 +67546,8 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         }
       };
       var veDinero = (sesion) => puede(sesion.rol, "partesTrabajo", "aprobar");
+      var clave = (trabajo) => CR.claveDe(trabajo);
+      var esBalanceo = (trabajo) => CR.trabajoLimpio(trabajo) === CR.TRABAJO_BALANCEO;
       function filaHoja(repo, sesion, equipoId) {
         return repo.listar("hojasBalanceo", sesion, { condicion: "equipoId = ?", params: [equipoId], limite: 1 })[0] || null;
       }
@@ -66888,29 +67566,30 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
       function empresasObra(repo, obraId) {
         return repo.db.prepare("SELECT nombre FROM ncrEmpresas WHERE obraId = ? ORDER BY nombre").all(obraId).map((e) => e.nombre);
       }
-      function guardado(repo, sesion, equipoId) {
+      function guardado(repo, sesion, equipoId, trabajo = CR.TRABAJO_BALANCEO) {
         const fila = filaHoja(repo, sesion, equipoId);
         const datos = fila ? leerJson(fila.datos) : null;
-        return CR.normalizar(datos && datos.cronometro);
+        return CR.normalizar(datos && datos[clave(trabajo)]);
       }
-      function resumenEquipo(repo, sesion, equipo, { ahora = Date.now(), cron = null } = {}) {
-        const c = cron || guardado(repo, sesion, equipo.id);
+      function resumenEquipo(repo, sesion, equipo, { ahora = Date.now(), cron = null, trabajo = CR.TRABAJO_BALANCEO } = {}) {
+        const c = cron || guardado(repo, sesion, equipo.id, trabajo);
         const dinero = veDinero(sesion);
         const r = CR.resumen(c, {
           ahora,
-          bocas: bocasEquipo(repo, sesion, equipo.id),
+          bocas: esBalanceo(trabajo) ? bocasEquipo(repo, sesion, equipo.id) : [],
           tarifas: dinero ? tarifasDe(repo, equipo.obraId) : null,
           normalizarEmpresa: N.normalizar
         });
         return { ...r, veDinero: dinero };
       }
-      function leer(repo, sesion, equipoId, { ahora = Date.now(), quien = {} } = {}) {
+      function leer(repo, sesion, equipoId, { ahora = Date.now(), quien = {}, trabajo = CR.TRABAJO_BALANCEO } = {}) {
         const equipo = repo.leer("equiposObra", sesion, equipoId);
         if (!equipo) return { ok: false, error: "No se encuentra el equipo." };
-        const cronometro = resumenEquipo(repo, sesion, equipo, { ahora });
+        const cronometro = resumenEquipo(repo, sesion, equipo, { ahora, trabajo });
         if (!cronometro.cuadrilla.length) cronometro.cuadrilla = CR.cuadrillaPorDefecto({ nombre: quien.nombre, personaId: sesion.personaId });
         return {
           ok: true,
+          trabajo: CR.trabajoLimpio(trabajo),
           cronometro,
           empresas: empresasObra(repo, equipo.obraId),
           puede: {
@@ -66920,55 +67599,59 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         };
       }
       function accion(repo, sesion, equipoId, entrada = {}, { ahora = Date.now(), quien = {} } = {}) {
+        const trabajo = CR.trabajoLimpio(entrada.trabajo);
+        const bal = esBalanceo(trabajo);
         const equipo = repo.leer("equiposObra", sesion, equipoId);
         if (!equipo) return { ok: false, error: "No se encuentra el equipo." };
         if (!puede(sesion.rol, "commissioning", "editar")) return { ok: false, error: "Tu rol puede ver el balanceo, pero no llevar el cron\xF3metro." };
         const fila = filaHoja(repo, sesion, equipoId);
-        const datos = fila && leerJson(fila.datos) || BAL.normalizar(BAL.hojaVacia(equipo), equipo);
-        const r = CR.aplicar(datos.cronometro, String(entrada.accion || ""), {
+        const datos = fila && leerJson(fila.datos) || (bal ? BAL.normalizar(BAL.hojaVacia(equipo), equipo) : {});
+        const r = CR.aplicar(datos[clave(trabajo)], String(entrada.accion || ""), {
           ahora,
           cuadrilla: entrada.cuadrilla === void 0 ? void 0 : entrada.cuadrilla,
           bocasAMano: entrada.bocasAMano,
-          bocas: bocasEquipo(repo, sesion, equipoId),
+          bocas: bal ? bocasEquipo(repo, sesion, equipoId) : [],
           quien: { nombre: quien.nombre, personaId: sesion.personaId }
         });
         if (!r.ok) return r;
-        datos.cronometro = r.cronometro;
+        datos[clave(trabajo)] = r.cronometro;
         const texto = JSON.stringify(datos);
         if (fila) repo.modificar("hojasBalanceo", sesion, fila.id, { datos: texto });
         else repo.crear("hojasBalanceo", sesion, { obraId: equipo.obraId, equipoId, datos: texto });
-        return { ok: true, cronometro: resumenEquipo(repo, sesion, equipo, { ahora, cron: r.cronometro }) };
+        return { ok: true, trabajo, cronometro: resumenEquipo(repo, sesion, equipo, { ahora, cron: r.cronometro, trabajo }) };
       }
       function pasarAParte(repo, sesion, equipoId, entrada = {}, { ahora = Date.now() } = {}) {
         const equipo = repo.leer("equiposObra", sesion, equipoId);
         if (!equipo) return { ok: false, error: "No se encuentra el equipo." };
+        const trabajo = CR.trabajoLimpio(entrada.trabajo);
+        const bal = esBalanceo(trabajo);
         const fila = filaHoja(repo, sesion, equipoId);
         const datos = fila ? leerJson(fila.datos) : null;
-        const c = CR.normalizar(datos && datos.cronometro);
+        const c = CR.normalizar(datos && datos[clave(trabajo)]);
         if (!c.tramos.length) return { ok: false, error: "El cron\xF3metro no se ha usado en este equipo." };
         if (c.parteId) return { ok: true, id: c.parteId, codigo: c.parteCodigo, yaEstaba: true };
         if (CR.abierto(c)) return { ok: false, error: "Termina (o pausa) el cron\xF3metro antes de pasarlo a un parte." };
         const PT = require_partesTrabajo();
         const hoy = new Date(ahora - new Date(ahora).getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
-        const r = CR.resumen(c, { ahora, bocas: bocasEquipo(repo, sesion, equipoId) });
+        const r = CR.resumen(c, { ahora, bocas: bal ? bocasEquipo(repo, sesion, equipoId) : [] });
         const lineas = CR.lineasParte(c, { hoy });
         if (!lineas.length) return { ok: false, error: "No hay horas que pasar." };
         const b = r.bocas;
         const desc = [
-          `Medici\xF3n de balanceo de ${equipo.tag || "equipo"} con cron\xF3metro de cuadrilla.`,
+          `Medici\xF3n${bal ? " de balanceo" : ` (${nombreTrabajo(repo, sesion, equipo, trabajo)})`} de ${equipo.tag || "equipo"} con cron\xF3metro de cuadrilla.`,
           `Duraci\xF3n ${CR.duracionTexto(r.duracionMs)} \xB7 ${String(r.horasPersona).replace(".", ",")} horas-persona.`,
-          `Bocas medidas: ${b.total}${b.aMano !== null ? " (dicho a mano)" : ` (${b.difusores} difusores, ${b.rejas} rejas de retorno)`}${r.minPorBoca !== null ? ` \xB7 ${String(r.minPorBoca).replace(".", ",")} min por boca` : ""}.`
+          ...bal ? [`Bocas medidas: ${b.total}${b.aMano !== null ? " (dicho a mano)" : ` (${b.difusores} difusores, ${b.rejas} rejas de retorno)`}${r.minPorBoca !== null ? ` \xB7 ${String(r.minPorBoca).replace(".", ",")} min por boca` : ""}.`] : []
         ].join("\n");
         const fechaInicio = lineas.map((l) => l.fecha).sort()[0];
         const fechaFin = lineas.map((l) => l.fecha).sort().pop();
         const p = PT.crear(repo, sesion, equipo.obraId, {
-          titulo: `Medici\xF3n de balanceo \xB7 ${equipo.tag || "equipo"}`.slice(0, 200),
+          titulo: `Medici\xF3n${bal ? " de balanceo" : ` \xB7 ${nombreTrabajo(repo, sesion, equipo, trabajo)}`} \xB7 ${equipo.tag || "equipo"}`.slice(0, 200),
           fecha: fechaFin,
           fechaInicio,
           fechaFin,
           pideTipo: entrada.pideTipo || "nosotros",
           motivo: entrada.motivo || "imprevisto",
-          referencia: `Balanceo ${equipo.tag || ""} \xB7 cron\xF3metro`.trim(),
+          referencia: `${bal ? "Balanceo" : nombreTrabajo(repo, sesion, equipo, trabajo)} ${equipo.tag || ""} \xB7 cron\xF3metro`.trim(),
           descripcion: desc,
           zona: equipo.planta || null,
           lineas
@@ -66976,9 +67659,52 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         if (!p.ok) return p;
         c.parteId = p.id;
         c.parteCodigo = p.codigo;
-        datos.cronometro = c;
+        datos[clave(trabajo)] = c;
         repo.modificar("hojasBalanceo", sesion, fila.id, { datos: JSON.stringify(datos) });
         return { ok: true, id: p.id, codigo: p.codigo };
+      }
+      var CLASE_FICHA = { checklist: "Checklist", fichaPM: "Puesta en marcha", estanqAgua: "Estanqueidad", estanqRefrigerante: "Estanqueidad", balanceo: "Balanceo" };
+      function nombreTrabajo(repo, sesion, equipo, trabajo) {
+        if (esBalanceo(trabajo)) return "Balanceo";
+        const m = /^f:/.exec(trabajo);
+        if (!m) return "Medici\xF3n";
+        try {
+          const f = repo.listar("fichasPM", sesion, { condicion: "equipoId = ?", params: [equipo.id] }).find((x) => CR.trabajoLimpio(`f:${x.plantilla}:${x.clave}`) === trabajo);
+          if (f) return CLASE_FICHA[f.clase] || "Ficha";
+        } catch {
+        }
+        return "Ficha";
+      }
+      function tiempos(repo, sesion, obraId, { ahora = Date.now() } = {}) {
+        const TM = require_tiemposMedicion();
+        const control = require_control();
+        const equipos = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
+        const hojas = new Map(repo.listar("hojasBalanceo", sesion, { condicion: "obraId = ?", params: [obraId] }).map((h) => [h.equipoId, leerJson(h.datos)]));
+        const entrada = equipos.map((e) => {
+          const datos = hojas.get(e.id) || null;
+          const trabajos = CR.clavesDe(datos).map((k) => {
+            const t = CR.trabajoDeClave(k);
+            const r = CR.resumen(datos[k], { ahora, bocas: esBalanceo(t) ? bocasEquipo(repo, sesion, e.id) : [] });
+            return { trabajo: t, nombre: nombreTrabajo(repo, sesion, e, t), duracionMs: r.duracionMs, horasPersona: r.horasPersona, enMarcha: r.enMarcha, terminado: r.terminado, inicio: r.inicio, tramos: r.tramos, bocasMedidas: r.bocas.total, minPorBoca: r.minPorBoca, vacio: r.vacio };
+          }).filter((t) => !t.vacio);
+          let bocas = null;
+          try {
+            const d = require_difusores2().difusoresEquipo(repo, sesion, e.id);
+            if (d) {
+              const filas = d.resumen.filas;
+              const con = filas.filter((f) => !f.sinPosicion);
+              bocas = {
+                impulsion: con.filter((f) => f.circuito !== "retorno").length,
+                retorno: con.filter((f) => f.circuito === "retorno").length,
+                sinPosicion: filas.length - con.length
+              };
+            }
+          } catch {
+            bocas = null;
+          }
+          return { id: e.id, tag: e.tag, planta: e.planta || null, tipo: control.tipoDeEquipo(e), trabajos, bocas, tieneHoja: Boolean(datos) && !CR.soloCronometros(datos) };
+        });
+        return { ok: true, obraId, ...TM.componer(entrada) };
       }
       function hechosReclamacion(repo, sesion, obraId, { ahora = Date.now() } = {}) {
         const hojas = repo.listar("hojasBalanceo", sesion, { condicion: "obraId = ?", params: [obraId] });
@@ -67012,7 +67738,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         }
         return fuera.sort((a, b) => String(a.tag || "").localeCompare(String(b.tag || ""), "es", { numeric: true }));
       }
-      module.exports = { leer, accion, pasarAParte, resumenEquipo, hechosReclamacion, guardado, bocasEquipo };
+      module.exports = { leer, accion, pasarAParte, resumenEquipo, hechosReclamacion, guardado, bocasEquipo, tiempos, nombreTrabajo };
     }
   });
 
@@ -68322,8 +69048,19 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         for (const m of faltan) repo.crear("modelosEquipo", sesion, { obraId, ...m });
         return { ok: true, creados: faltan.length };
       }
-      function filaHoja(repo, sesion, equipoId) {
+      function filaHojaCruda(repo, sesion, equipoId) {
         return repo.listar("hojasBalanceo", sesion, { condicion: "equipoId = ?", params: [equipoId], limite: 1 })[0] || null;
+      }
+      var soloCrono = (fila) => {
+        try {
+          return Boolean(fila) && require_cronometro().soloCronometros(JSON.parse(fila.datos));
+        } catch {
+          return false;
+        }
+      };
+      function filaHoja(repo, sesion, equipoId) {
+        const f = filaHojaCruda(repo, sesion, equipoId);
+        return soloCrono(f) ? null : f;
       }
       function hojaBalanceo(repo, sesion, equipoId) {
         const equipo = repo.leer("equiposObra", sesion, equipoId);
@@ -68365,9 +69102,12 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         const cerrado = require_incidencias().bloqueoParaTomar(repo, equipo.obraId, equipo.id);
         if (cerrado) return cerrado;
         const hoja = balanceo.normalizar(datos, equipo);
-        const fila = filaHoja(repo, sesion, equipoId);
+        const fila = filaHojaCruda(repo, sesion, equipoId);
         const previo = fila ? leerJson(fila.datos) : null;
-        const texto = JSON.stringify(previo && previo.cronometro ? { ...hoja, cronometro: previo.cronometro } : hoja);
+        const CRT = require_cronometro();
+        const conservados = {};
+        for (const k of CRT.clavesDe(previo)) conservados[k] = previo[k];
+        const texto = JSON.stringify({ ...hoja, ...conservados });
         if (fila) repo.modificar("hojasBalanceo", sesion, fila.id, { datos: texto });
         else repo.crear("hojasBalanceo", sesion, { obraId: equipo.obraId, equipoId, datos: texto });
         return { ok: true, hoja };
@@ -68394,7 +69134,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         const t = require_fichas().toleranciasAplicadas(configDe(repo, sesion, obraId) || {});
         const tolerancias = { boca: t.boca, total: t.total, bocaPorDefecto: Boolean(t.bocaPorDefecto), totalPorDefecto: Boolean(t.totalPorDefecto) };
         const equipos = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
-        const hojas = new Map(repo.listar("hojasBalanceo", sesion, { condicion: "obraId = ?", params: [obraId] }).map((h) => [h.equipoId, h]));
+        const hojas = new Map(repo.listar("hojasBalanceo", sesion, { condicion: "obraId = ?", params: [obraId] }).filter((h) => !soloCrono(h)).map((h) => [h.equipoId, h]));
         const conBalanceo = equipos.filter((e) => hojas.has(e.id) || ["balanceo", "ambos"].includes(control.ensayoCorregido(e.familia, e.ensayoRequerido))).sort((a, b) => String(a.tag || "").localeCompare(String(b.tag || ""), "es", { numeric: true }));
         const planos = /* @__PURE__ */ new Map();
         for (const pl of repo.listar("planosDifusores", sesion, { condicion: "obraId = ?", params: [obraId], orden: "orden, creadoEn" })) {
@@ -95454,31 +96194,35 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         }
         const firmas = doc.firmas || [];
         if (firmas.length) {
-          sitio(78);
-          y -= 6;
-          const col = (ANCHO - (firmas.length - 1) * 12) / firmas.length;
-          for (let j = 0; j < firmas.length; j += 1) {
-            const f = firmas[j];
-            const x = MARGEN + j * (col + 12);
-            const rotulo = typeof f === "string" ? f : f && f.rotulo || "";
-            pagina.drawRectangle({ x, y: y - 64, width: col, height: 64, borderColor: LINEA, borderWidth: 0.8 });
-            pagina.drawText(limpio(rotulo), { x: x + 6, y: y - 12, size: 8, font: negrita, color: GRIS });
-            if (f && typeof f === "object") {
-              let img = null;
-              try {
-                if (f.imagen && esPng(f.imagen)) img = await pdf.embedPng(f.imagen);
-              } catch {
-                img = null;
+          const POR_FILA = 3;
+          for (let ini = 0; ini < firmas.length; ini += POR_FILA) {
+            const fila = firmas.slice(ini, ini + POR_FILA);
+            sitio(78);
+            y -= 6;
+            const col = (ANCHO - (POR_FILA - 1) * 12) / POR_FILA;
+            for (let j = 0; j < fila.length; j += 1) {
+              const f = fila[j];
+              const x = MARGEN + j * (col + 12);
+              const rotulo = typeof f === "string" ? f : f && f.rotulo || "";
+              pagina.drawRectangle({ x, y: y - 64, width: col, height: 64, borderColor: LINEA, borderWidth: 0.8 });
+              pagina.drawText(limpio(rotulo), { x: x + 6, y: y - 12, size: 8, font: negrita, color: GRIS });
+              if (f && typeof f === "object") {
+                let img = null;
+                try {
+                  if (f.imagen && esPng(f.imagen)) img = await pdf.embedPng(f.imagen);
+                } catch {
+                  img = null;
+                }
+                if (img) {
+                  const esc = Math.min((col - 12) / img.width, 34 / img.height);
+                  pagina.drawImage(img, { x: x + 6, y: y - 50, width: img.width * esc, height: img.height * esc });
+                }
+                const pie2 = [f.nombre, f.fecha ? fechaFirma(f.fecha) : null].filter(Boolean).join(" \xB7 ");
+                if (pie2) pagina.drawText(limpio(pie2).slice(0, 60), { x: x + 6, y: y - 60, size: 7.5, font: normal, color: GRIS });
               }
-              if (img) {
-                const esc = Math.min((col - 12) / img.width, 34 / img.height);
-                pagina.drawImage(img, { x: x + 6, y: y - 50, width: img.width * esc, height: img.height * esc });
-              }
-              const pie2 = [f.nombre, f.fecha ? fechaFirma(f.fecha) : null].filter(Boolean).join(" \xB7 ");
-              if (pie2) pagina.drawText(limpio(pie2).slice(0, 60), { x: x + 6, y: y - 60, size: 7.5, font: normal, color: GRIS });
             }
+            y -= 70;
           }
-          y -= 70;
         }
         if ((doc.anexos || []).some(Boolean)) await bloques(doc.anexos);
         const pie = limpio(doc.pie || "Hecho con Vidaire Cx en el tel\xE9fono");
@@ -95588,7 +96332,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           } catch {
           }
         }
-        const ROL_CAJA = { JEFE: ["jefeObra", "El jefe de obra"], DF: ["cliente", "El cliente"] };
+        const ROL_CAJA = { JEFE: ["jefeObra", "El jefe de obra"], DF: ["cliente", "El cliente"], CLIENTE: ["firmaCliente", "Cliente"], MANT: ["mantenimiento", "Mantenimiento"] };
         const firmaDeCaja = (rolFirma) => {
           const [rol, rotulo] = ROL_CAJA[rolFirma] || [];
           return rol ? conFirma.find((f) => trazos.has(f) && (f.rol === rol || !f.rol && f.rotulo === rotulo)) || null : null;
@@ -96052,13 +96796,13 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         };
         function conFirmas(rotulos, firmas) {
           const hechas = FIR.paraPdf(firmas);
-          if (!hechas.length) return rotulos;
           const jefe = hechas.find((f) => f.rol === "jefeObra");
           const otra = hechas.find((f) => f.rol === "cliente");
           const esJefe = (r) => r === "El jefe de obra" || r === FIR.ROLES.jefeObra;
           const lista = rotulos.map((r) => esJefe(r) && jefe ? jefe : r);
           if (jefe && !lista.includes(jefe)) lista.push(jefe);
-          lista.push(otra || FIR.ROLES.cliente);
+          lista.push(otra || "Conformidad (DF / DEO)");
+          lista.push(hechas.find((f) => f.rol === "firmaCliente") || FIR.ROLES.firmaCliente, hechas.find((f) => f.rol === "mantenimiento") || FIR.ROLES.mantenimiento);
           return lista;
         }
         function serieConPareja(ses, obraId, eq) {
@@ -96818,6 +97562,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         "POST api/equipo/conducto": [["commissioning", "editar"]],
         /* El cronómetro de cuadrilla del balanceo (23-oct-2026); pasarlo a un parte, quien abre partes. */
         "GET api/cronometro": [["commissioning", "ver"]],
+        "GET api/cronometro/tiempos": [["commissioning", "ver"]],
         "POST api/cronometro": [["commissioning", "editar"]],
         "POST api/cronometro/parte": [["partesTrabajo", "crear"]],
         "POST api/equipo/instalacion": [["commissioning", "editar"]],
@@ -97110,6 +97855,10 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
                   avisoSinAk: e.avisoSinAk || null,
                   modoFactor: e.modoFactor || null,
                   origenFactor: e.origenFactor || null,
+                  /* Ak a mano que no casa con la tabla del fabricante (se ven los dos) y los K del plenum AK-Uni (2-nov-2026). */
+                  akTabla: e.akTabla ?? null,
+                  discrepanciaAk: Boolean(e.discrepanciaAk),
+                  factoresK: (e.factoresK || []).map((r) => ({ texto: MDIF.FACTORES_K.texto(r), fuente: `${r.documento}, ${r.pagina}`, circuito: r.circuito, difusor: r.difusor })),
                   factor: e.factor,
                   caudal: e.caudal,
                   caudalDiseno: x.caudalDiseno,
@@ -97170,18 +97919,21 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           };
         }
         function cronometro({ ses, quien, query }) {
-          return CRONO.leer(repo, ses, llano(query.equipo), { quien: { nombre: quien } });
+          return CRONO.leer(repo, ses, llano(query.equipo), { quien: { nombre: quien }, trabajo: query.trabajo });
+        }
+        function cronometroTiempos({ ses, query }) {
+          return CRONO.tiempos(repo, ses, llano(query.obra));
         }
         function cronometroAccion({ ses, quien, json }) {
           const e = json();
           const eq = repo.leer("equiposObra", ses, llano(e.equipoId));
           const cerrado = eq ? INC.bloqueoParaTomar(repo, eq.obraId, eq.id) : null;
           if (cerrado) return cerrado;
-          return CRONO.accion(repo, ses, llano(e.equipoId), { accion: e.accion, cuadrilla: e.cuadrilla, bocasAMano: e.bocasAMano }, { quien: { nombre: quien } });
+          return CRONO.accion(repo, ses, llano(e.equipoId), { accion: e.accion, cuadrilla: e.cuadrilla, bocasAMano: e.bocasAMano, trabajo: e.trabajo }, { quien: { nombre: quien } });
         }
         function cronometroParte({ ses, json }) {
           const e = json();
-          return CRONO.pasarAParte(repo, ses, llano(e.equipoId), { pideTipo: e.pideTipo, motivo: e.motivo });
+          return CRONO.pasarAParte(repo, ses, llano(e.equipoId), { pideTipo: e.pideTipo, motivo: e.motivo, trabajo: e.trabajo });
         }
         function boca({ ses, json }) {
           const e = json();
@@ -97784,6 +98536,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           "POST api/equipo/medida": equipoMedida,
           "POST api/equipo/conducto": equipoConducto,
           "GET api/cronometro": cronometro,
+          "GET api/cronometro/tiempos": cronometroTiempos,
           "POST api/cronometro": cronometroAccion,
           "POST api/cronometro/parte": cronometroParte,
           "POST api/equipo/instalacion": equipoInstalacion,
@@ -109482,8 +110235,17 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         if (deActas.size) {
           for (const f of red.vista) if (deActas.has(f.id)) f.actas = deActas.get(f.id);
         }
+        let huerfanas = [];
+        try {
+          const vivas = new Set(obra.presupuestoId ? repo.db.prepare("SELECT id FROM lineas WHERE presupuestoId = ?").all(obra.presupuestoId).map((l) => l.id) : []);
+          if (vivas.size) {
+            huerfanas = repo.db.prepare("SELECT capituloId, inicio, fin, avance FROM ganttCapitulos WHERE obraId = ?").all(obra.id).filter((g) => g.capituloId && !vivas.has(g.capituloId)).map((g) => ({ capituloId: g.capituloId, inicio: g.inicio, fin: g.fin, avance: g.avance }));
+          }
+        } catch {
+        }
         return {
           hoy,
+          huerfanas,
           obra: {
             id: obra.id,
             codigo: obra.codigo,
@@ -114904,6 +115666,16 @@ ${correo.texto || ""}`);
               { que: "Los campos cr\xEDticos que se dejan vac\xEDos se convierten en \xABcondicionantes de la oferta\xBB en el PDF", cuando: "Al sacar el PDF", editable: "parcial", como: "Se quitan rellenando el campo." },
               { que: "Avisos de incoherencia (fecha de documentaci\xF3n final despu\xE9s del fin de obra, delineaci\xF3n prometida y no presupuestada\u2026) con arreglo de un clic", cuando: "Mientras se rellena", editable: true, como: "Se acepta el arreglo o se corrige a mano." },
               { que: "Importe y fin vigentes del contrato = original + adendas firmadas; % de ampliaci\xF3n", cuando: "Al firmar una adenda", editable: false, como: "Se calcula; se cambia la adenda." }
+            ]
+          },
+          {
+            area: "Estudios",
+            titulo: "Documentaci\xF3n de la obra",
+            dondeEsta: "Documentaci\xF3n \u203A Documentaci\xF3n de la obra",
+            cubre: ["documentacion"],
+            queHace: "Toda la documentaci\xF3n de la obra en una lista: fichas PM, checklists, planos, pruebas de estanqueidad, balanceos de caudales, puestas en marcha de fabricantes, fichas t\xE9cnicas, CE y manuales, informes y actas. Se filtra por tipo, equipo, sistema, planta y estado (firmado, hecho, pendiente, falta), con buscador, y cada fila abre su PDF. Lo de SharePoint solo se enlaza.",
+            automatico: [
+              { que: "La lista sale de lo que ya hay en la obra y marca lo que falta", cuando: "Cada vez que se abre", editable: false, como: "No se edita aqu\xED: cada fila lleva a su pantalla de origen." }
             ]
           },
           {

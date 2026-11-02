@@ -28,7 +28,8 @@
 (function firmaDoble() {
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const CARGOS = [['Cliente', 'Cliente'], ['DF', 'Dirección Facultativa (DF)'], ['DEO', 'Dirección de Ejecución (DEO)']];
-  const ROTULOS = { jefeObra: 'Técnico responsable', cliente: 'Firma de conformidad' };
+  /* firmaCliente y mantenimiento (30-oct): las dos casillas de después, solo nombre, fecha y trazo. */
+  const ROTULOS = { jefeObra: 'Técnico responsable', cliente: 'Firma de conformidad', firmaCliente: 'Cliente', mantenimiento: 'Mantenimiento' };
   const conocido = (c) => CARGOS.some(([v]) => v === c);
 
   function nombreSesion() {
@@ -42,7 +43,7 @@
     const nombre = (medias && medias.nombre) || (previa && previa.nombre) || (tecnico ? nombreSesion() : '');
     const nom = `<label class="campo"><span>${tecnico ? 'Técnico responsable (quien ha tomado los datos)' : 'Nombre y apellidos de quien firma'}</span>
         <input type="text" maxlength="80" data-firma-nombre value="${esc(nombre)}" placeholder="${tecnico ? 'Tu nombre' : 'Nombre y apellidos'}" autocomplete="name"></label>`;
-    if (tecnico) return nom;
+    if (tecnico || rol === 'firmaCliente' || rol === 'mantenimiento') return nom;
     const cargo = (medias && medias.cargo) || (previa && previa.cargo) || '';
     const sel = cargo ? (conocido(cargo) ? cargo : 'otro') : '';
     const opciones = ['<option value="">Elegir…</option>', ...CARGOS.map(([v, t]) => `<option value="${v}"${sel === v ? ' selected' : ''}>${esc(t)}</option>`),
@@ -79,7 +80,7 @@
   /** Qué falta antes de guardar (null si nada). */
   function falta(rol, { nombre, cargo }) {
     if (!nombre) return rol === 'jefeObra' ? 'Falta el nombre del técnico responsable.' : 'Falta el nombre y apellidos de quien firma.';
-    if (rol !== 'jefeObra' && !cargo) return 'Elige si firma como Cliente, DF, DEO u Otro.';
+    if (rol === 'cliente' && !cargo) return 'Elige si firma como Cliente, DF, DEO u Otro.';
     return null;
   }
 
