@@ -143,7 +143,8 @@
   }
 
   const rotulo = (rol) => ROTULOS[rol] || rol;
-  const textoHecha = (f) => (f ? [f.nombre, f.rol === 'cliente' ? (f.cargo || 'Cliente') : null, fechaCorta(f.fecha)].filter(Boolean).join(' · ') : '');
+  /* La fecha junto a la firma es la de la puesta en marcha (2-nov, JC); sin ella, la de la firma, marcada. */
+  const textoHecha = (f) => (f ? [f.nombre, f.rol === 'cliente' ? (f.cargo || 'Cliente') : null, f.fecha ? fechaCorta(f.fecha) + (f.fechaEsDeFirma ? ' (fecha de la firma)' : '') : ''].filter(Boolean).join(' · ') : '');
 
   window.CX_FIRMA = { CARGOS, htmlCampos, enlazar, leer, falta, rotulo, textoHecha, nombreSesion, aplicar, soltar, alFirmar };
 })();
