@@ -282,9 +282,12 @@
   }
 
   function leyendaIconos(p) {
-    const usados = [...new Set(p.equipos.filter((e) => e.x !== null).map((e) => e.icono || 'generico'))];
+    const puestos = p.equipos.filter((e) => e.x !== null);
+    const usados = [...new Set(puestos.map((e) => e.icono || 'generico'))];
     const ic = (datos && datos.iconos) || {};
-    return `<div class="pe-iconos" role="group" aria-label="Iconos">${usados.filter((k) => ic[k]).map((k) => `<span><svg viewBox="0 0 24 24" aria-hidden="true">${ic[k].svg}</svg>${esc(ic[k].nombre)}</span>`).join('')}</div>`;
+    /* Cuántos hay de cada tipo en el plano (2-nov, JC: los HRU no se contaban). */
+    const n = (k) => puestos.filter((e) => (e.icono || 'generico') === k).length;
+    return `<div class="pe-iconos" role="group" aria-label="Tipos de equipo">${usados.filter((k) => ic[k]).map((k) => `<span><svg viewBox="0 0 24 24" aria-hidden="true">${ic[k].svg}</svg>${esc(ic[k].nombre)} <b>${cifra(n(k))}</b></span>`).join('')}</div>`;
   }
 
   /* El conjunto en la ficha: UE y UI con su TAG; las que caen en otro plano o fuera de la vista, con «ver». */

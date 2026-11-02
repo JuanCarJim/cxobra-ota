@@ -740,7 +740,7 @@
         ${fila('Ficha PM', si(k.fichaPM))}
         ${pideBal ? fila('Balanceo', `<strong>${esc(nombreEstado(k.balanceoEstado || 'pendiente'))}</strong>`) : ''}
         ${pideEst ? fila('Estanqueidad', `<strong>${esc(nombreEstado(est))}</strong>`) : ''}
-        ${fila('Puesta en marcha', `<strong class="${TONO_PM[k.estadoPM] || ''}">${esc(k.estadoPM ? nombreEstado(k.estadoPM) : '—')}</strong>`)}
+        ${filaPuestaEnMarcha(k, fila)}
         ${htmlFechasEquipo(k, puede, fila)}
         ${htmlFirmas(puede)}
       </section>
@@ -748,6 +748,16 @@
       ${htmlIncidenciasEquipo(k.incidencias || [])}`;
   }
 
+  /* La misma regla que la planificación (2-nov, JC): ningún equipo «En marcha» si queda algo pendiente.
+     Con la ficha en marcha y pruebas pendientes sale el estado de la planificación (Pte. Plan, Planificada, En curso);
+     sin la hoja del fabricante, «Pte. Entrega Doc». */
+  const ESTADO_PLAN = { pte: 'Pte. Plan', planificada: 'Planificada', enCurso: 'En curso', pteDoc: 'Pte. Entrega Doc', enMarcha: 'En marcha' };
+  function filaPuestaEnMarcha(k, fila) {
+    const ver = k.estadoPlan && (k.estadoPM === 'enMarcha' || k.estadoPM === 'faltaHojaFabricante' || k.estadoPM === 'hecha')
+      ? ESTADO_PLAN[k.estadoPlan] : null;
+    const tono = k.estadoPlan === 'enMarcha' ? 'ok' : (ver ? 'aviso' : (TONO_PM[k.estadoPM] || ''));
+    return fila('Puesta en marcha', `<strong class="${tono}">${esc(ver || (k.estadoPM ? nombreEstado(k.estadoPM) : '—'))}</strong>`);
+  }
   /* «En marcha» solo con la ficha PM hecha y la hoja del fabricante en el
      SharePoint (29-oct, JC); sin amarillo: el aviso, en azul. */
   const TONO_PM = { enMarcha: 'ok', faltaHojaFabricante: 'aviso', conReservas: 'aviso' };
@@ -1742,7 +1752,7 @@
               value="${qLeido ? comaD(b.caudalMedido, 1) : ''}" aria-label="${esc(rotulo)} en ${esc(b.nombre)}"></label>`;
     return `<li class="boca ${clase}" data-boca="${esc(clave)}" ${vivo}>
       <div class="boca-cabeza"><strong>${esc(b.nombre)}</strong><span class="sub">${esc(b.circuito === 'retorno' ? 'Retorno' : 'Impulsión')} · ${esc(b.tipo || '')}</span>${botonInstrumento(p, b, bal ? 'balometro' : enQ ? 'anemQ' : 'anemV', puede)}</div>
-      ${b.manual || b.sinPosicion || b.sinAtribuir || b.desdeCaptura || b.caudalDudoso ? `<div class="boca-marcas">${window.BOCA_MANUAL_MOVIL ? window.BOCA_MANUAL_MOVIL.marca(p, b, puede) : ''}${b.sinPosicion && !b.manual ? '<span class="marca-sin-posicion">sin posición: falta el PDF del plano</span>' : ''}${b.sinAtribuir ? `<span class="marca-revisar">a revisar · ${esc(b.sinAtribuir)}</span>` : ''}${b.desdeCaptura ? '<span class="marca-revisar">posición desde captura, a revisar</span>' : ''}${b.caudalDudoso ? `<span class="marca-revisar">${esc(b.caudalDudoso)}</span>` : ''}</div>` : ''}
+      ${b.manual || b.sinPosicion || b.sinAtribuir || b.desdeCaptura || b.caudalDudoso || b.discrepanciaAk ? `<div class="boca-marcas">${b.discrepanciaAk ? `<span class="marca-revisar">Ak a mano ${comaD(b.factor, 4)} m² · la tabla del fabricante da ${comaD(b.akTabla, 4)} m²: revisar</span>` : ''}${window.BOCA_MANUAL_MOVIL ? window.BOCA_MANUAL_MOVIL.marca(p, b, puede) : ''}${b.sinPosicion && !b.manual ? '<span class="marca-sin-posicion">sin posición: falta el PDF del plano</span>' : ''}${b.sinAtribuir ? `<span class="marca-revisar">a revisar · ${esc(b.sinAtribuir)}</span>` : ''}${b.desdeCaptura ? '<span class="marca-revisar">posición desde captura, a revisar</span>' : ''}${b.caudalDudoso ? `<span class="marca-revisar">${esc(b.caudalDudoso)}</span>` : ''}</div>` : ''}
       ${bal
         ? casillaQ('Q balómetro (m³/h)')
         : `<div class="lecturas">${[0, 1, 2, 3].map((i) => `<label>M${i + 1} <small class="unidad-m">${unidadM}</small>
@@ -1762,6 +1772,7 @@
       </div>
       <p class="nota aviso" data-vivo="aviso" ${fuera ? '' : 'hidden'}>${fuera ? textoFuera(b.desviacion, tolB) : ''}</p>
       ${b.sinAk && b.metodo !== 'balometro' && b.metodo !== 'directo' ? '<p class="nota aviso">Sin Ak: apunta las velocidades (se guardan) o mide con balómetro; el caudal sale cuando se ponga el Ak.</p>' : ''}
+      ${(b.factoresK || []).map((k) => `<p class="nota" title="${esc(k.fuente)}">${esc(k.texto)} · plenum ${esc(k.difusor)}, ${k.circuito === 'retorno' ? 'retorno' : 'impulsión'}</p>`).join('')}
       ${b.caudalDiseno ? '' : '<p class="nota">Esta boca no tiene caudal de proyecto: sin él no se puede saber si va bien. Se pone en el plano (ordenador › Commissioning › Balanceo).</p>'}
     </li>`;
   }

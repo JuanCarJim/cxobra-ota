@@ -844,14 +844,30 @@
     const q = encodeURIComponent(o.id);
     const traer = (sec, ruta) => (ok.has(sec) ? pedir(ruta).catch(() => null) : Promise.resolve(null));
     const tocaPlan = ok.has('commissioning') || ok.has('reparaciones') || ok.has('ncr');
-    const [cx, pe, pi, ncr, rp, plan, dia, mt] = await Promise.all([
+    /* PLAZO DEL INICIO (2-nov-2026): el iPhone se quedó en «Cargando…» para
+       siempre con el NCN. Si a los 25 s no ha llegado todo, se dice y se ofrece
+       reintentar, en vez de dejar la pantalla esperando sin explicación. */
+    const PLAZO_INICIO = 25000;
+    let reloj = null;
+    const plazo = new Promise((ok2) => { reloj = setTimeout(() => ok2('plazo'), PLAZO_INICIO); });
+    const todo = await Promise.race([Promise.all([
       traer('commissioning', `api/commissioning?obra=${q}`), traer('estanqueidad', 'api/estanqueidad'),
       traer('partes', 'api/partes'), traer('ncr', `api/ncr?obra=${q}`), traer('reparaciones', `api/reparaciones?obra=${q}`),
       tocaPlan ? pedir(`api/mi-planificacion?obra=${q}`).catch(() => null) : null,
       pedir('api/mi-dia').catch(() => null),
       traer('misTareas', 'api/mistareas'),
-    ]);
+    ]), plazo]);
+    clearTimeout(reloj);
     if (seccion() !== 'inicio' || window.CX.obraId() !== o.id) return;
+    if (todo === 'plazo') {
+      app.innerHTML = `<div class="vacio"><p>El inicio de ${esc(o.codigo || 'la obra')} está tardando más de lo normal.</p>
+        <p>Tus datos siguen guardados en el teléfono. Puedes reintentar o ir a otra sección desde el menú.</p>
+        <button class="boton" id="ini-reintentar">Reintentar</button></div>`;
+      const b = document.getElementById('ini-reintentar');
+      if (b) b.addEventListener('click', () => inicio());
+      return;
+    }
+    const [cx, pe, pi, ncr, rp, plan, dia, mt] = todo;
     // Como la lista de Commissioning: si hay conjuntos (split = UE + UI), se cuenta por conjunto.
     const tc = cx && cx.ok && cx.totalesConjuntos && cx.totalesConjuntos.conjuntos ? cx.totalesConjuntos : null;
     const t = cx && cx.ok && cx.totales ? (tc ? { ...cx.totales, ...tc, equipos: tc.conjuntos } : cx.totales) : null;
