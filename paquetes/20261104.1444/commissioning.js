@@ -740,7 +740,7 @@
         ${fila('Ficha PM', si(k.fichaPM))}
         ${pideBal ? fila('Balanceo', `<strong>${esc(nombreEstado(k.balanceoEstado || 'pendiente'))}</strong>`) : ''}
         ${pideEst ? fila('Estanqueidad', `<strong>${esc(nombreEstado(est))}</strong>`) : ''}
-        ${fila('Puesta en marcha', `<strong class="${TONO_PM[k.estadoPM] || ''}">${esc(k.estadoPM ? nombreEstado(k.estadoPM) : '—')}</strong>`)}
+        ${filaPuestaEnMarcha(k, fila)}
         ${htmlFechasEquipo(k, puede, fila)}
         ${htmlFirmas(puede)}
       </section>
@@ -748,6 +748,16 @@
       ${htmlIncidenciasEquipo(k.incidencias || [])}`;
   }
 
+  /* La misma regla que la planificación (2-nov, JC): ningún equipo «En marcha» si queda algo pendiente.
+     Con la ficha en marcha y pruebas pendientes sale el estado de la planificación (Pte. Plan, Planificada, En curso);
+     sin la hoja del fabricante, «Pte. Entrega Doc». */
+  const ESTADO_PLAN = { pte: 'Pte. Plan', planificada: 'Planificada', enCurso: 'En curso', pteDoc: 'Pte. Entrega Doc', enMarcha: 'En marcha' };
+  function filaPuestaEnMarcha(k, fila) {
+    const ver = k.estadoPlan && (k.estadoPM === 'enMarcha' || k.estadoPM === 'faltaHojaFabricante' || k.estadoPM === 'hecha')
+      ? ESTADO_PLAN[k.estadoPlan] : null;
+    const tono = k.estadoPlan === 'enMarcha' ? 'ok' : (ver ? 'aviso' : (TONO_PM[k.estadoPM] || ''));
+    return fila('Puesta en marcha', `<strong class="${tono}">${esc(ver || (k.estadoPM ? nombreEstado(k.estadoPM) : '—'))}</strong>`);
+  }
   /* «En marcha» solo con la ficha PM hecha y la hoja del fabricante en el
      SharePoint (29-oct, JC); sin amarillo: el aviso, en azul. */
   const TONO_PM = { enMarcha: 'ok', faltaHojaFabricante: 'aviso', conReservas: 'aviso' };

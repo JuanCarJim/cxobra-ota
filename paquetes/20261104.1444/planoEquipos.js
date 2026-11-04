@@ -213,7 +213,16 @@
   const etiqueta = (p) => p.planta || 'Sin planta';
 
   async function cargar() {
-    datos = await C.pedir(`api/plano-equipos?obra=${encodeURIComponent(C.obraId())}`);
+    const previo = datos;
+    datos = await C.pedir(`api/plano-equipos?obra=${encodeURIComponent(C.obraId())}&ligero=1`);
+    /* Las fichas ya pedidas se conservan al recargar la lista. */
+    if (datos && datos.ok && previo && Array.isArray(previo.plantas)) {
+      const vistas = new Map(previo.plantas.flatMap((p) => p.equipos || []).filter((e) => e.fichaLista).map((e) => [e.id, e]));
+      for (const e of (datos.plantas || []).flatMap((p) => p.equipos || [])) {
+        const v = vistas.get(e.id);
+        if (v) { e.documentos = v.documentos; e.acciones = v.acciones; e.vida = v.vida; e.fichaLista = true; }
+      }
+    }
     if (!datos.ok) throw new Error(datos.error);
     if (!Array.isArray(datos.plantas)) datos.plantas = [];
   }
@@ -282,9 +291,12 @@
   }
 
   function leyendaIconos(p) {
-    const usados = [...new Set(p.equipos.filter((e) => e.x !== null).map((e) => e.icono || 'generico'))];
+    const puestos = p.equipos.filter((e) => e.x !== null);
+    const usados = [...new Set(puestos.map((e) => e.icono || 'generico'))];
     const ic = (datos && datos.iconos) || {};
-    return `<div class="pe-iconos" role="group" aria-label="Iconos">${usados.filter((k) => ic[k]).map((k) => `<span><svg viewBox="0 0 24 24" aria-hidden="true">${ic[k].svg}</svg>${esc(ic[k].nombre)}</span>`).join('')}</div>`;
+    /* Cuántos hay de cada tipo en el plano (2-nov, JC: los HRU no se contaban). */
+    const n = (k) => puestos.filter((e) => (e.icono || 'generico') === k).length;
+    return `<div class="pe-iconos" role="group" aria-label="Tipos de equipo">${usados.filter((k) => ic[k]).map((k) => `<span><svg viewBox="0 0 24 24" aria-hidden="true">${ic[k].svg}</svg>${esc(ic[k].nombre)} <b>${cifra(n(k))}</b></span>`).join('')}</div>`;
   }
 
   /* El conjunto en la ficha: UE y UI con su TAG; las que caen en otro plano o fuera de la vista, con «ver». */
@@ -446,6 +458,22 @@
     h.innerHTML = m ? hojaMaterial(m) : (p ? hojaHtml(p) : '');
     h.hidden = !equipoElegido() && !m;
     ajustarMarco();
+    pedirFicha();
+  }
+
+  /* La puesta en marcha, la garantía y los botones del equipo se piden al abrir su ficha (no van en la lista). */
+  function pedirFicha() {
+    const e = equipoElegido();
+    if (!e || e.fichaLista || e.fichaPidiendo || !datos || !datos.ligero) return;
+    e.fichaPidiendo = true;
+    C.pedir(`api/plano-equipos/ficha?obra=${encodeURIComponent(C.obraId())}&id=${encodeURIComponent(e.id)}`)
+      .then((r) => {
+        if (!r || r.ok === false) return;
+        e.documentos = r.documentos; e.acciones = r.acciones; e.vida = r.vida; e.fichaLista = true;
+        if (elegida === e.id) mostrarHoja();
+      })
+      .catch(() => {})
+      .finally(() => { e.fichaPidiendo = false; });
   }
 
   /* En el teléfono la hoja flota sobre la lista: el plano se queda con lo que queda libre
