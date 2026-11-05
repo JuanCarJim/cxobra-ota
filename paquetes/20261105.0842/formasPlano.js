@@ -242,7 +242,7 @@ function cajaEnPlano(m, plano, mmPorPx) {
  * El icono es cuadrado, así que basta un lado.
  */
 const EQUIPO_MM = {
-  uta: 3000, hru: 1400, fancoil: 800, vrfInt: 800, splitInt: 900, vrfExt: 1300, splitExt: 900,
+  uta: 3000, hru: 1400, fancoil: 800, vrfInt: 800, vrfConductos: 800, splitInt: 900, vrfExt: 1300, splitExt: 900,
   rooftop: 2500, crac: 1200, chiller: 4000, bomba: 600, ventilador: 450, agua: 500, generico: 600,
 };
 /** La caja de un equipo en el plano: { wf, ar: 1, mm } (wf, fracción del ancho del plano). */
