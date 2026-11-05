@@ -17,6 +17,7 @@ body.modo-mant #obra-movil-caja { display: none !important; }
 .mant-cilindro.fuera { opacity: .6; }
 .mant-barra-gas { height: 6px; border-radius: 3px; background: var(--panel3); overflow: hidden; margin-top: 8px; }
 .mant-barra-gas i { display: block; height: 100%; background: var(--acento); }
+.mant-cilindro small.mant-pct { margin-top: 4px; font-size: 14px; color: var(--textoSuave); }
 
 .mant-op { display: flex; gap: 12px; align-items: flex-start; padding: 12px 18px; }
 .mant-op + .mant-op { border-top: 1px solid var(--rejillaSuave); }

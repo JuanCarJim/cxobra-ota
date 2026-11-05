@@ -2246,7 +2246,24 @@
     /* Caudal de aire: de dónde sale el medido (lo tecleado ahora es del equipo). */
     const tecleado = hoja.valores[p.codigo] && hoja.valores[p.codigo].m !== undefined;
     const origen = p.origen ? ` <span class="tenue">· ${esc(tecleado ? 'medido en equipo' : p.origen)}</span>` : '';
-    return `<div class="pp"><span class="et">${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}${origen}${desv}</span>${casilla('p', 'Proyecto')}${casilla('f', 'Fabricante')}${casilla('m', 'Medido')}</div>`;
+    return `<div class="pp"><span class="et">${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}${origen}${desv}</span>${casilla('p', 'Proyecto')}${casilla('f', 'Fabricante')}${casilla('m', 'Medido')}</div>${notaFoto(p, ed, tecleado)}`;
+  }
+  /* LA Tª DEL TERMÓMETRO, TECLEADA POR EL TÉCNICO (5-nov-2026, JC eligió la D: el
+     móvil no lee la pantalla de siete segmentos —Tesseract falla, docs/ocr-termometro-prueba-1105.md—).
+     Bajo la fila: de qué foto sale lo medido, o lo que el vigía del escritorio
+     leyó (propuesta) con un toque para usarlo; y, en las de un split sin medido,
+     un aviso de que se teclea lo que marca el termómetro de la foto. */
+  function notaFoto(p, ed, tecleado) {
+    const cod = esc(p.codigo);
+    if (p.propuestaFoto && p.propuestaFoto.m !== undefined && p.propuestaFoto.m !== null) {
+      const l = p.propuestaFoto;
+      return `<div class="sub tenue nota-foto">La foto de ${esc(l.fi || 'una incidencia')} da ${esc(coma(l.m))}${ed ? ` <button type="button" class="enlace" data-h-usar-foto="${cod}" data-valor="${esc(l.m)}">Usar ${esc(coma(l.m))}</button>` : ''}</div>`;
+    }
+    if (p.fuenteMedido && !tecleado) return `<div class="sub tenue nota-foto">Leído de la foto de ${esc(p.fuenteMedido)} · mira la foto y corrígelo si no coincide</div>`;
+    if (ed && /^t_(salida|entrada)_frio$/.test(String(p.codigo)) && (valorDe(p, 'm') === null || valorDe(p, 'm') === undefined || valorDe(p, 'm') === '')) {
+      return '<div class="sub tenue nota-foto">Teclea lo que marca el termómetro en la foto de la incidencia.</div>';
+    }
+    return '';
   }
 
   /* Una sección: banda fina con su título y las filas debajo. */
@@ -3448,6 +3465,14 @@
   /* Sí / No / N/A: un toque marca, otro toque en la misma desmarca. */
   $app.addEventListener('click', (ev) => {
     if (!activa()) return;
+    const u = ev.target.closest('[data-h-usar-foto]');
+    if (u && hoja && !u.disabled) {
+      const cod = u.dataset.hUsarFoto;
+      hoja.valores[cod] = { ...(hoja.valores[cod] || {}), m: Number(u.dataset.valor) };
+      marcarCambiada();
+      pintarHoja();
+      return;
+    }
     const b = ev.target.closest('[data-h-resp]');
     if (!b || b.disabled) return;
     if (hoja) {
