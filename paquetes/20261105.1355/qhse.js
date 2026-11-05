@@ -82,7 +82,7 @@
       #app .qh .segmentado.resp button { min-height: 44px; padding: 0 11px; font-size: 13.5px; }
       #app .qh .segmentado.resp button[aria-pressed="true"] { background: var(--acento); color: #FFFFFF; }
       #app .qh .segmentado.resp button.mal[aria-pressed="true"] { background: #F6D9D6; color: #8F1F18; }
-      #app .qh .segmentado.resp button.na[aria-pressed="true"] { background: #CAD1D3; color: #2F3A3C; }
+      #app .qh .segmentado.resp button.na[aria-pressed="true"] { background: #DCEFEA; color: #075747; }
       .qh .todo-ok { display: flex; margin: 6px 4px; }
       #app .qh .todo-ok.boton.secundario { min-height: 32px; padding: 3px 12px; font-size: 13px; margin: 6px 4px; }
       #app.densa .qh h2 { width: fit-content; max-width: 100%; border-radius: 16px; padding: 4px 14px; }

@@ -69,8 +69,11 @@
   .pe-leyenda button[aria-pressed="false"]{opacity:.45}
   .pe-leyenda .nota{margin:0;font-size:12px}
   .pe-punto{display:inline-block;width:11px;height:11px;border-radius:2px;flex:none}
-  .pe-verde{background:var(--bien)}.pe-azul{background:var(--pe-azul)}.pe-rojo{background:var(--mal)}
+  .pe-verde{background:var(--bien)}.pe-azul{background:var(--pe-azul)}.pe-rojo{background:var(--vd-acento,#13957A)}
   #app{--pe-azul:#1F63C6}
+  /* 5-nov (bloques): «sin empezar» en teal; el rojo, solo para incidencias. */
+  .pe-marco .marca-boca.mal{color:var(--vd-acento,#13957A)}
+  .pe-marco .marca-boca.mal .simbolo-boca .cuerpo{fill:color-mix(in srgb,var(--vd-acento,#13957A) 18%,#fff)}
   .pe-cuerpo{display:block}
   .pe-marco{position:relative;overflow:hidden;height:52vh;border:1px solid var(--borde,#c9d3d6);border-radius:10px;background:#fff;touch-action:none;overscroll-behavior:contain;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   .pe-lienzo{position:relative}
