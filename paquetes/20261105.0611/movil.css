@@ -1693,9 +1693,10 @@ button.avisoFlotCerrar { min-height: 32px; width: 32px; padding: 0; border: 0; b
    aspecto de la app entera basta tocarlas. */
 :root {
   --fondo-pagina: #FFFFFF;
-  --radio-bloque: 16px;
-  --radio-kpi: 12px;
-  --sombra-bloque: 0 2px 8px rgba(0, 0, 0, .08);
+  --radio-bloque: 20px;
+  --radio-kpi: 14px;
+  --sombra-bloque: 0 1px 2px rgba(15, 23, 42, .06), 0 10px 24px -6px rgba(15, 23, 42, .18);
+  --sombra-campo: inset 0 1px 3px rgba(15, 23, 42, .10), inset 0 0 0 1px rgba(15, 23, 42, .02);
   --borde-bloque: 1px solid rgba(15, 23, 42, .04);
   --pest-activa-fondo: var(--acento-suave);
 }
@@ -1917,3 +1918,22 @@ body { background: var(--fondo-pagina); }
 .campos-conducto label { font-size: 11.5px; color: var(--textoTenue); }
 .campos-conducto input { display: block; width: 100%; box-sizing: border-box; margin-top: 2px; font-size: 16px; padding: 6px; font-variant-numeric: tabular-nums; }
 .campos-conducto label:nth-child(3) { grid-column: 1 / -1; }
+
+/* Campos con relieve (29-oct, JC: «un sombreado para dar aspecto 3D»): sombra interior suave,
+   esquinas redondeadas y, al enfocar, borde y anillo teal. Va al final para ganar a las
+   reglas de cada pantalla; las celdas de tablas (.hoja-tabla) conservan su borde fino. */
+#app input:not([type=checkbox]):not([type=radio]):not([type=range]), #app select, #app textarea,
+input:not([type=checkbox]):not([type=radio]):not([type=range]), select, textarea {
+  border-radius: 12px; box-shadow: var(--sombra-campo);
+}
+#app .hoja-tabla input, #app .hoja-tabla select, .hoja-tabla input, .hoja-tabla select, .densa .obs { border-radius: 8px; box-shadow: var(--sombra-campo); }
+#app input:focus, #app select:focus, #app textarea:focus, input:focus, select:focus, textarea:focus,
+.hoja-tabla input:focus, .hoja-tabla select:focus {
+  border-color: var(--acento); box-shadow: var(--sombra-campo), 0 0 0 3px var(--acento-suave);
+}
+input.mal { box-shadow: var(--sombra-campo), 0 0 0 3px var(--mal-fondo) !important; }
+
+/* La fila de secciones de Más (7 entradas) no cabe en el ancho: se desliza en horizontal y los botones no se encogen. */
+.segmentos { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; overscroll-behavior-x: contain; touch-action: pan-x; }
+.segmentos::-webkit-scrollbar { display: none; }
+.segmentos a { flex: 0 0 auto; white-space: nowrap; }

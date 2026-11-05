@@ -571,6 +571,7 @@
       const visibles = actual ? actual.secciones.filter(([id, , oculta]) => ok.has(id) && !oculta) : [];
       seg.hidden = visibles.length < 2;
       seg.innerHTML = visibles.map(([id, nombre]) => `<a href="#${id}" class="${id === s ? 'activa' : ''}" ${id === s ? 'aria-current="page"' : ''}>${esc(nombre)}</a>`).join('');
+      const act = seg.querySelector("a.activa"); if (act && act.scrollIntoView) act.scrollIntoView({ inline: "center", block: "nearest" });
     }
     const t = document.getElementById('titulo-seccion');
     /* En Inicio, el saludo hace de título (15-oct-2026, JC). */
@@ -692,7 +693,7 @@
       ${conDia ? `<span class="ag-dia">${esc(diaCorto(s.fecha))}</span>` : ''}
       <div class="ag-que"><b>${esc(tipoSesion(s))}</b> · ${items.join(', ') || 'sin equipos'}
         ${detalle || s.notas ? `<small>${esc([detalle, s.notas].filter(Boolean).join(' · '))}</small>` : ''}</div>
-      <span class="ag-cuenta">${cifra(s.hechos)}/${cifra(s.items.length)}</span>
+      ${s.items.length ? `<span class="ag-cuenta">${cifra(s.hechos)}/${cifra(s.items.length)}</span>` : ''}
     </div>`;
   }
   function filaDia(i, hoy) {
@@ -848,25 +849,50 @@
        siempre con el NCN. Si a los 25 s no ha llegado todo, se dice y se ofrece
        reintentar, en vez de dejar la pantalla esperando sin explicación. */
     const PLAZO_INICIO = 25000;
-    let reloj = null;
-    const plazo = new Promise((ok2) => { reloj = setTimeout(() => ok2('plazo'), PLAZO_INICIO); });
-    const todo = await Promise.race([Promise.all([
-      traer('commissioning', `api/commissioning?obra=${q}`), traer('estanqueidad', 'api/estanqueidad'),
-      traer('partes', 'api/partes'), traer('ncr', `api/ncr?obra=${q}`), traer('reparaciones', `api/reparaciones?obra=${q}`),
-      tocaPlan ? pedir(`api/mi-planificacion?obra=${q}`).catch(() => null) : null,
-      pedir('api/mi-dia').catch(() => null),
-      traer('misTareas', 'api/mistareas'),
-    ]), plazo]);
-    clearTimeout(reloj);
-    if (seccion() !== 'inicio' || window.CX.obraId() !== o.id) return;
-    if (todo === 'plazo') {
+    /* PINTAR SEGÚN LLEGUE (4-nov-2026, JC: «tiene que ir instantánea»): cada
+       petición pinta su bloque en cuanto responde, sin esperar a las 8. Cada
+       una tiene su propio plazo de 25 s; si vence, se da por vacía y el
+       aviso de «está tardando» solo sale si no ha llegado NADA. */
+    const CT = window.cxTiempos;
+    const t0 = CT ? CT.ahora() : 0;
+    const NOMBRES = ['commissioning', 'estanqueidad', 'partes', 'ncr', 'reparaciones', 'planificación', 'mi-dia', 'mistareas'];
+    const res = new Array(8).fill(null);
+    let faltan = 8;
+    let llegado = false;
+    const aviso = () => {
       app.innerHTML = `<div class="vacio"><p>El inicio de ${esc(o.codigo || 'la obra')} está tardando más de lo normal.</p>
         <p>Tus datos siguen guardados en el teléfono. Puedes reintentar o ir a otra sección desde el menú.</p>
         <button class="boton" id="ini-reintentar">Reintentar</button></div>`;
-      const b = document.getElementById('ini-reintentar');
-      if (b) b.addEventListener('click', () => inicio());
-      return;
-    }
+      const b2 = document.getElementById('ini-reintentar');
+      if (b2) b2.addEventListener('click', () => inicio());
+    };
+    const hecho = new Array(8).fill(false);
+    const vigente = () => seccion() === 'inicio' && window.CX.obraId() === o.id;
+    const peticiones = [
+      traer('commissioning', `api/commissioning?obra=${q}`), traer('estanqueidad', 'api/estanqueidad'),
+      traer('partes', 'api/partes'), traer('ncr', `api/ncr?obra=${q}`), traer('reparaciones', `api/reparaciones?obra=${q}`),
+      tocaPlan ? pedir(`api/mi-planificacion?obra=${q}`).catch(() => null) : Promise.resolve(null),
+      pedir('api/mi-dia').catch(() => null),
+      traer('misTareas', 'api/mistareas'),
+    ];
+    let pintando = false;
+    const llega = (i, v) => {
+      if (hecho[i]) return;
+      hecho[i] = true; res[i] = v; faltan -= 1;
+      if (CT) CT.marcar(`inicio: ${NOMBRES[i]}`, t0);
+      if (v !== null) llegado = true;
+      if (!vigente()) return;
+      /* Varias respuestas en el mismo instante se pintan de una vez. */
+      if (!pintando) { pintando = true; Promise.resolve().then(() => { pintando = false; if (vigente()) pintar(res, faltan); }); }
+    };
+    peticiones.forEach((pr, i) => { pr.then((v) => llega(i, v === undefined ? null : v)); });
+    const reloj = setTimeout(() => {
+      if (!vigente() || !faltan) return;
+      if (!llegado) { for (let i = 0; i < 8; i += 1) { if (!hecho[i]) { hecho[i] = true; faltan -= 1; } } aviso(); return; }
+      for (let i = 0; i < 8; i += 1) if (!hecho[i]) llega(i, null);
+    }, PLAZO_INICIO);
+    Promise.all(peticiones).then(() => { if (CT) CT.marcar('inicio: todo', t0); clearTimeout(reloj); }).catch(() => {});
+    function pintar(todo, restan) {
     const [cx, pe, pi, ncr, rp, plan, dia, mt] = todo;
     // Como la lista de Commissioning: si hay conjuntos (split = UE + UI), se cuenta por conjunto.
     const tc = cx && cx.ok && cx.totalesConjuntos && cx.totalesConjuntos.conjuntos ? cx.totalesConjuntos : null;
@@ -896,7 +922,8 @@
       ${hay.length > 1 ? `<div class="ver-bloques" role="group" aria-label="Qué bloques ver"><span>Ver</span>${hay
         .map(([id, nombre]) => `<button type="button" data-ver-bloque="${id}" aria-pressed="${!ocultos.has(id)}" class="${ocultos.has(id) ? '' : 'activa'}">${esc(nombre)}</button>`).join('')}</div>` : ''}
       ${hay.filter(([id]) => !ocultos.has(id)).map(([id]) => bloques[id]).join('')}
-      ${hay.length && hay.every(([id]) => ocultos.has(id)) ? '<p class="ag-vacio">Has quitado todos los bloques: toca uno arriba para verlo.</p>' : ''}`;
+      ${hay.length && !restan && hay.every(([id]) => ocultos.has(id)) ? '<p class="ag-vacio">Has quitado todos los bloques: toca uno arriba para verlo.</p>' : ''}
+      ${restan ? '<p class="cargando">Cargando…</p>' : ''}`;
     for (const b of app.querySelectorAll('[data-ver-bloque]')) {
       b.onclick = () => {
         const set = leerOcultos();
@@ -915,6 +942,7 @@
     for (const a of app.querySelectorAll('[data-ir-seg]')) a.onclick = () => { try { sessionStorage.setItem('cx.segmento', a.dataset.irSeg); } catch { /* nada */ } };
     /* «ncr:vencidas», «rp:revisar»…: la pestaña lo recoge al cargar (ncr.js, reparaciones.js). */
     for (const a of app.querySelectorAll('[data-ir-filtro]')) a.onclick = () => { try { const [k, v] = a.dataset.irFiltro.split(':'); sessionStorage.setItem(`${k}.filtro`, v); } catch { /* nada */ } };
+    }
   }
   window.addEventListener('movil:obra', () => { if (seccion() === 'inicio') inicio(); });
 
@@ -936,6 +964,7 @@
         : 'Los datos están en el ordenador de la oficina y se llega a él por la wifi: con el ordenador apagado o fuera de su red, la app no puede traer ni guardar nada.'}</p>
       ${yo.local && window.cxObra && window.cxObra.traerDatos ? conLaOficina() : ''}
       ${yo.local && !(window.cxObra && window.cxObra.salir) ? '' : '<button class="boton peligro" id="cx-salir">Salir</button>'}
+      ${window.cxTiempos ? `<details class="nota"><summary>Tiempos de arranque</summary><pre style="white-space:pre-wrap;font-size:11px">${esc(window.cxTiempos.texto())}</pre></details>` : ''}
       <p class="nota pie">Vidaire Cx${window.cxObra && window.cxObra.ota ? ` · versión ${esc(window.cxObra.ota.info().version)}${window.cxObra.ota.info().lista ? ` (la ${esc(window.cxObra.ota.info().lista)} entra al volver a abrir)` : ''}` : ''}</p>`;
     const b = document.getElementById('cx-salir');
     if (b) b.onclick = () => {

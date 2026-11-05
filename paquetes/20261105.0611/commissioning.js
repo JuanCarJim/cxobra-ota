@@ -565,7 +565,7 @@
     const proyecto = rev && c.disenoEquipo !== null && c.disenoEquipo !== undefined ? c.disenoEquipo : diseno;
     const todas = (c.puntos || 0) + rev;
     return `<div class="total-circuito ${claseTotal}">
-      <div class="fila-principal"><strong>${esc(nombre)}</strong><span class="chip ${claseTotal}">${p === null ? `${c.medidos || 0}/${todas} medidas` : `${p} %`}</span></div>
+      <div class="fila-principal"><strong>${esc(nombre)}</strong><span class="chip ${claseTotal}">${p === null ? (todas ? `${c.medidos || 0}/${todas} medidas` : 'Sin bocas') : `${p} %`}</span></div>
       <div class="cifras-total">
         <div><span>Medido</span><b>${cifra(c.suma)}</b><em>m³/h</em></div>
         <div><span>${rev && proyecto === c.disenoEquipo ? 'Proyecto equipo' : 'Proyecto'}</span><b>${cifra(proyecto)}</b><em>m³/h</em></div>
@@ -573,7 +573,7 @@
       </div>
       ${rev ? `<div class="sub"><span class="marca-revisar">${rev} a revisar</span> fuera de la suma${c.disenoRevisar ? ` (${cifra(c.disenoRevisar)} m³/h de proyecto)` : ''}: no se pueden atribuir al equipo con seguridad. Suma de las atribuidas: ${cifra(c.disenoPuntos)} m³/h en ${c.puntos || 0}.</div>` : ''}
       ${c.faltan ? `<div class="sub">Faltan ${c.faltan} boca${c.faltan === 1 ? '' : 's'} atribuida${c.faltan === 1 ? '' : 's'} por medir.</div>` : ''}
-      <div class="sub">Tª frío ${c.tFrio || 0}/${c.puntos || 0} · Tª calor ${c.tCalor || 0}/${c.puntos || 0} · completas ${c.completas || 0}/${c.puntos || 0} (caudal y las dos Tª)</div>
+      ${c.puntos ? `<div class="sub">Tª frío ${c.tFrio || 0}/${c.puntos} · Tª calor ${c.tCalor || 0}/${c.puntos} · completas ${c.completas || 0}/${c.puntos} (caudal y las dos Tª)</div>` : ''}
     </div>`;
   }
 
@@ -1387,7 +1387,7 @@
     return `<section id="fichas-equipo" data-plegable>
       <h2>Fichas del equipo <span class="cuenta">${ok ? nombres.length : ''}</span></h2>
       <ul class="lista-ios"><li><button class="fila-ios" data-cx="ver-fichas">
-        <div class="fila-principal"><strong>${ok && nombres.length ? `${hechas} de ${fs.length} hechas` : 'Abrir'}</strong><span>${chip}</span></div>
+        <div class="fila-principal"><strong>${ok && fs.length ? `${hechas} de ${fs.length} hechas` : ok && nombres.length ? 'Sin empezar' : 'Abrir'}</strong><span>${chip}</span></div>
         <div class="sub">${esc(sub)}</div>
       </button></li></ul>
     </section>`;
@@ -1483,7 +1483,7 @@
     const ue = (cj.unidades || []).find((u) => u.papel === 'UE');
     const corto = (x) => rotuloUi(x.unidadTag) || 'UI';
     return `<section id="unidades-interiores" data-plegable>
-      <h2>Unidades interiores <span class="cuenta">${abierta ? `${corto(filas[0][0])} de ${todas.length}` : `${completas} de ${todas.length} UIs completas`}</span></h2>
+      <h2>Unidades interiores <span class="cuenta">${abierta ? (todas.length > 1 ? `${corto(filas[0][0])} de ${todas.length}` : corto(filas[0][0])) : `${completas} de ${todas.length} UIs completas`}</span></h2>
       <ul class="lista-ios filas-ui">${filas.map(([x, i]) => {
         const foto = fotoDeUi(f, x.unidadId);
         const img = foto ? (foto.local ? `<img data-local="${esc(foto.local)}" alt="Foto ${esc(corto(x))}">` : `<img data-src="${esc(foto.url)}" alt="Foto ${esc(corto(x))}">`) : '';
