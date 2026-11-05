@@ -1086,6 +1086,7 @@
       ${htmlIncidenciaEquipo(f)}
       ${htmlFichas('equipo', 'Fichas del equipo')}
       ${htmlUnidadesInteriores(f, puede)}
+      ${htmlPrepararArchivo(f)}
       ${htmlFotosEquipo(f, puede)}
       ${checklist(f.checklist, f.medicion, puede)}`;
     const sub = [e.planta, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
@@ -1988,6 +1989,7 @@
   const RESULTADO = { apto: ['bien', 'APTO'], aRevisar: ['aviso', 'A REVISAR'], noApto: ['mal', 'NO APTO'] };
   /* «A medias» sin un solo dato relleno se contradice (JC, 29-oct): sin datos, «Sin empezar». */
   /* Y al revés (JC, 29-oct): «2 de 2 datos» y «A medias» se contradicen: entera, «Completa». */
+  /* La misma regla está en shared/commissioning/archivoPreparado.js, para «Preparar archivo» (y su ruta). */
   const estadoVisible = (estado, medidos, bocasSinMedir) => {
     if (estado !== 'pendiente' || !medidos) return estado;
     if (!medidos.rellenos) return 'sinEmpezar';
@@ -2038,6 +2040,50 @@
     const q = new URLSearchParams({ tipo: 'ficha', obra, clave: x.clave, plantilla: x.plantilla });
     const tag = ficha ? ficha.equipo.tag : '';
     await compartirPdf(`api/informe?${q}`, `${[tag, x.nombre].filter(Boolean).join(' - ')}${esDefinitiva(x) ? '' : ' (BORRADOR)'}.pdf`, b);
+  }
+
+  /*
+   * «PREPARAR ARCHIVO» (5-nov-2026, JC): con todas las hojas listas (Definitiva),
+   * un PDF con todas, en el orden de la lista, que el jefe de obra descarga en
+   * el ordenador o la web (Commissioning › Entregas) para mandarlo. Aquí solo
+   * se mira lo que ya está cargado: el PDF se hace al pulsar, nunca al abrir.
+   * Si falta algo, no hay botón: una línea discreta con lo que falta.
+   */
+  function estadoArchivo(f) {
+    if (!fichasEq || fichasEq.ok === false || !f || !window.ARCHIVO_PREPARADO) return null;
+    const lista = (f.planos || []).flatMap((p) => p.bocas || []);
+    const balanceo = tieneBalanceo(f);
+    const bocas = lista.length ? { total: lista.length, medidas: lista.filter((b) => b.caudal !== null && b.caudal !== undefined).length, fuera: lista.filter((b) => b.estado === 'alto' || b.estado === 'bajo').length } : null;
+    return { ...window.ARCHIVO_PREPARADO.listo(fichasEq.fichas || [], { balanceo, bocas }), balanceo, bocas };
+  }
+  function htmlPrepararArchivo(f) {
+    const est = estadoArchivo(f);
+    if (!est || !fichasEq.puedeEditar || !est.hojas.length) return '';
+    const hecho = fichasEq.archivo;
+    const yaHecho = hecho ? `<p class="nota archivo-hecho">Preparado el ${esc(C.fechaEs(hecho.creadoEn))}${hecho.creadoPorNombre ? ` por ${esc(hecho.creadoPorNombre)}` : ''} · ${hecho.hojas.length} hoja${hecho.hojas.length === 1 ? '' : 's'} · <button type="button" class="enlace" data-cx="ver-archivo" data-id="${esc(hecho.id)}">Ver</button></p>` : '';
+    if (!est.listo) {
+      const faltan = est.faltan.slice(0, 2).join(' · ') + (est.faltan.length > 2 ? ` · y ${est.faltan.length - 2} más` : '');
+      return `<section id="archivo-equipo">${yaHecho}<p class="nota">Para preparar el archivo falta: ${esc(faltan)}.</p></section>`;
+    }
+    return `<section id="archivo-equipo">
+      <button class="boton${hecho ? ' secundario' : ''}" data-cx="preparar-archivo"><i class="ic ic-doc"></i>${hecho ? 'Volver a preparar archivo' : 'Preparar archivo'}</button>
+      ${yaHecho || `<p class="nota">Las ${est.hojas.length} hojas en un PDF, en este orden, para descargarlo en el ordenador.</p>`}
+    </section>`;
+  }
+  async function prepararArchivo(b) {
+    const est = estadoArchivo(ficha);
+    if (!est || !est.listo) return;
+    b.disabled = true;
+    const texto = b.innerHTML;
+    b.textContent = 'Preparando…';
+    try {
+      const r = await C.postJson('api/equipo/preparar-archivo', { equipoId: ficha.equipo.id, balanceo: est.balanceo, bocas: est.bocas });
+      if (!r.ok) throw new Error(r.error);
+      fichasEq.archivo = r.archivo;
+      C.aviso(`Archivo preparado (${r.archivo.hojas.length} hojas): sube con la sincronización y el jefe de obra lo descarga en el ordenador.`, 'bien');
+      if (activa()) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
+      await compartirPdf(`api/equipo/archivo-preparado?id=${encodeURIComponent(r.archivo.id)}`, r.archivo.nombre);
+    } catch (e) { C.aviso(e.message); b.disabled = false; b.innerHTML = texto; }
   }
 
   function htmlFichas(pestana = 'equipo', titulo = 'Fichas del equipo') {
@@ -3447,6 +3493,8 @@
     else if (que === 'quitar-firma' && ficha) guardarFirma(b, true);
     else if (que === 'quitar-foto-equipo') quitarFotoEquipo(b);
     else if (que === 'ver-hoja') verHoja(b);
+    else if (que === 'preparar-archivo' && ficha) prepararArchivo(b);
+    else if (que === 'ver-archivo' && ficha) compartirPdf(`api/equipo/archivo-preparado?id=${encodeURIComponent(b.dataset.id)}`, (fichasEq && fichasEq.archivo && fichasEq.archivo.nombre) || 'Archivo.pdf', b);
     else if (que === 'nube-ahora' && window.cxObra && window.cxObra.sync) { b.disabled = true; window.cxObra.sync.ahora().finally(() => { if (ficha) abrir(ficha.equipo.id, { quieto: true }); }); }
     else if (que === 'crono' && ficha) accionCrono(b, b.dataset.accion);
     else if (que === 'crono-anadir' && ficha) { const g = leerCuadrilla(); g.push({ nombre: `Operario ${g.filter((p) => p.rol === 'operario').length + 1}`, rol: 'operario', empresa: (g[g.length - 1] || {}).empresa || null }); cuadrillaLocal.cambiada = true; cuadrillaLocal.estado = 'guardando'; repintarCrono(); cuadrillaPronto(); }
