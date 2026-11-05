@@ -212,10 +212,29 @@
   };
   const etiqueta = (p) => p.planta || 'Sin planta';
 
+  /* POR PLANTAS (RAPIDEZ-5, 5-nov-2026, JC: «navegar rápido»): llega entera
+     solo la planta que se ve; de las demás, lo que pinta el plano. La ficha de
+     sus equipos (papeles, botones, puesta en marcha) se pide al abrirlas. */
+  const urlPlano = (p) => `api/plano-equipos?obra=${encodeURIComponent(C.obraId())}&ligero=1&planta=${encodeURIComponent(p || '')}`; /* sin elegir, '' como plantaActual */
   async function cargar() {
-    datos = await C.pedir(`api/plano-equipos?obra=${encodeURIComponent(C.obraId())}`);
+    datos = await C.pedir(urlPlano(planta));
     if (!datos.ok) throw new Error(datos.error);
     if (!Array.isArray(datos.plantas)) datos.plantas = [];
+  }
+  let trayendo = null;
+  async function traerDetalle(nombre) {
+    if (trayendo === nombre) return;
+    trayendo = nombre;
+    const antes = datos;
+    try {
+      const r = await C.pedir(urlPlano(nombre));
+      if (!r.ok || datos !== antes) return;
+      const nueva = (r.plantas || []).find((x) => (x.planta || '') === nombre && x.detalle !== false);
+      const i = datos.plantas.findIndex((x) => (x.planta || '') === nombre);
+      if (!nueva || i < 0) return;
+      datos.plantas[i] = nueva;
+      if ($raiz && (planta || '') === nombre && elegida) mostrarHoja();
+    } catch { /* sin detalle: la hoja enseña lo que hay */ } finally { if (trayendo === nombre) trayendo = null; }
   }
 
   async function abrir($app) {
@@ -499,6 +518,7 @@
       return;
     }
     planta = p.planta || '';
+    if (p.detalle === false) traerDetalle(planta);
     /* Una planta sin equipos y con materiales abre la lista de materiales: «Equipos 0» no dice nada. */
     if (!p.equipos.length && (p.materiales || []).length) lista = 'materiales';
     try { sessionStorage.setItem('cx.planoEquipos.planta', planta); } catch { /* nada */ }

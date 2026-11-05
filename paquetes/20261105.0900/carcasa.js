@@ -1068,14 +1068,17 @@
     const n = e.pendientes || 0;
     const pend = n ? ` · ${cambios(n)}` : '';
     /* Sin «Entrar en la nube» (15-oct-2026, JC: «siempre conectado»): entra solo. */
+    /* El error de verdad, no «Conectando» (5-nov-2026, JC): si la última vuelta
+       falló, la pastilla lo dice mientras vuelve a intentarlo. */
+    const fallo = e.error ? String(e.error).replace(/\s+/g, ' ').trim().slice(0, 80) : '';
     if (!e.entrado || e.estado === 'sin-sesion') {
-      if (Date.now() - ARRANQUE < PACIENCIA) return ['', 'Conectando'];
+      if (Date.now() - ARRANQUE < PACIENCIA) return fallo ? ['error', fallo] : ['', 'Conectando'];
       return e.estado === 'sin-sesion' && e.entrado ? ['sin-sesion', 'Sin sesión'] : ['sin-red', `Solo en el móvil${pend}`];
     }
     if (e.estado === 'sin-red') return ['sin-red', `Sin conexión${pend}`];
-    if (e.estado === 'error') return ['error', `No sincroniza${pend}`];
+    if (e.estado === 'error') return ['error', fallo || `No sincroniza${pend}`];
     if (e.estado === 'al-dia') return n ? ['sin-red', cambios(n)] : ['al-dia', 'Sincronizado'];
-    return ['', 'Conectando'];
+    return fallo ? ['error', fallo] : ['', 'Conectando'];
   }
   let ultimaClase = null;
   function pastillaSync() {
@@ -1097,7 +1100,8 @@
     const [clase, texto] = textoSync(e);
     ultimaClase = clase;
     b.className = `sync-pastilla ${clase}`;
-    b.textContent = texto;
+    b.innerHTML = `<span class="sync-texto">${esc(texto)}</span>`;
+    b.title = texto;
     b.setAttribute('aria-label', `Sincronización con la oficina: ${texto}`);
   }
   window.addEventListener('cxobra:sync', () => {

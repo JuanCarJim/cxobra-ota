@@ -9914,7 +9914,9 @@ globalThis.CX_VARIANTE="cxobra";
           /* 28-oct: el plano de equipos de cada planta con sus marcas (solo ida). */
           "planosEquipos",
           /* 29-oct: los materiales instalados del plano (compuertas, difusores…). */
-          "materialesInstalados"
+          "materialesInstalados",
+          /* 5-nov: el plano de cada instalación de los mapas específicos (geotermia, ACS room). */
+          "planosInstalacion"
         ],
         /* 29-oct (JC): el plano lo ve todo el enrolado en la obra, aunque su rol no tenga
            Commissioning: con él, lo mínimo para pintar los colores (equipos, modelos,
@@ -10360,7 +10362,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261105.0819" : "0";
+      var VERSION = true ? "20261105.0900" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -10765,21 +10767,30 @@ globalThis.CX_VARIANTE="cxobra";
             else if (ses && ses.access_token) h.Authorization = `Bearer ${await token()}`;
           }
           let r;
+          let texto;
           const ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
-          const reloj = ctl ? setTimeout(() => ctl.abort(), plazo) : null;
+          let reloj = null;
+          const vencido = new Promise((_, no) => {
+            reloj = setTimeout(() => {
+              if (ctl) ctl.abort();
+              no(new Error(`sin respuesta en ${Math.round(plazo / 1e3)} s`));
+            }, plazo);
+          });
+          vencido.catch(() => {
+          });
           try {
-            r = await f(`${base}${ruta}`, {
+            r = await Promise.race([f(`${base}${ruta}`, {
               method: metodo,
               headers: h,
               body: cuerpo === void 0 ? void 0 : typeof cuerpo === "string" || cuerpo instanceof Uint8Array ? cuerpo : JSON.stringify(cuerpo),
               ...ctl ? { signal: ctl.signal } : {}
-            });
+            }), vencido]);
+            texto = await Promise.race([r.text(), vencido]);
           } catch (e) {
             throw new ErrorNube(`Sin conexi\xF3n con la nube (${e && e.message || e}).`, { sinRed: true });
           } finally {
-            if (reloj) clearTimeout(reloj);
+            clearTimeout(reloj);
           }
-          const texto = await r.text();
           let json = null;
           try {
             json = texto ? JSON.parse(texto) : null;
@@ -10878,14 +10889,28 @@ globalThis.CX_VARIANTE="cxobra";
             const h = { apikey: clave };
             if (esSecreta) h.Authorization = `Bearer ${clave}`;
             else if (ses) h.Authorization = `Bearer ${await token()}`;
+            const ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
+            let reloj = null;
+            const vencido = new Promise((_, no) => {
+              reloj = setTimeout(() => {
+                if (ctl) ctl.abort();
+                no(new Error("sin respuesta en 120 s"));
+              }, 12e4);
+            });
+            vencido.catch(() => {
+            });
             let r;
+            let bytes;
             try {
-              r = await f(`${base}/storage/v1/object/authenticated/${cubo}/${ruta.split("/").map(encodeURIComponent).join("/")}`, { headers: h });
+              r = await Promise.race([f(`${base}/storage/v1/object/authenticated/${cubo}/${ruta.split("/").map(encodeURIComponent).join("/")}`, { headers: h, ...ctl ? { signal: ctl.signal } : {} }), vencido]);
+              if (r.ok) bytes = await Promise.race([r.arrayBuffer(), vencido]);
             } catch (e) {
               throw new ErrorNube("Sin conexi\xF3n con la nube.", { sinRed: true });
+            } finally {
+              clearTimeout(reloj);
             }
             if (!r.ok) throw new ErrorNube(`No se pudo bajar ${ruta} (HTTP ${r.status}).`, { codigo: r.status });
-            return new Uint8Array(await r.arrayBuffer());
+            return new Uint8Array(bytes);
           },
           /* Una función de borde (supabase/functions/<nombre>): devuelve la respuesta cruda. */
           llamarFuncion: async (nombre, consulta = "", cuerpo, plazo = 12e4) => {
@@ -12524,7 +12549,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function crearTimbre({ url, clave, token = async () => null, alSonar, WebSocket: WS = globalThis.WebSocket, registro = () => {
-      }, tabla = "cx_filas" }) {
+      }, tabla = "cx_filas", filtro = null }) {
         if (!WS) return { arrancar() {
         }, parar() {
         }, conectado: () => false };
@@ -12563,7 +12588,13 @@ globalThis.CX_VARIANTE="cxobra";
               topic: TEMA,
               event: "phx_join",
               payload: {
-                config: { broadcast: { self: false }, presence: { key: "" }, postgres_changes: [{ event: "*", schema: "public", table: tabla }] },
+                config: {
+                  broadcast: { self: false },
+                  presence: { key: "" },
+                  /* Con filtro (p. ej. 'espacio=eq.web:abc'), Realtime solo mira y manda los
+                     cambios de ese espacio, no los de todos (5-nov-2026, cupo de Disk IO). */
+                  postgres_changes: [{ event: "*", schema: "public", table: tabla, ...filtro ? { filter: filtro } : {} }]
+                },
                 ...t ? { access_token: t } : {}
               }
             });
@@ -20806,6 +20837,26 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
      creadoEn           TEXT NOT NULL,
      modificadoEn       TEXT NOT NULL
    )`,
+        /*
+         * EL PLANO DE UNA INSTALACIÓN (5-nov, JC: «para Geotermia y ACS Room
+         * prepararemos también planos de sólo esas instalaciones para poner en ellos
+         * los equipos interactivos»). Uno por mapa específico de la obra
+         * (shared/commissioning/mapasEspecificos.js): la imagen del plano y las
+         * marcas [{ equipoId, tag, x, y }] en fracción del plano. El color sale del
+         * estado del equipo al verlo. No depende de la planta.
+         */
+        `CREATE TABLE IF NOT EXISTS planosInstalacion (
+     id                 TEXT PRIMARY KEY,
+     obraId             TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     mapa               TEXT NOT NULL,
+     nombre             TEXT NOT NULL,
+     imagen             TEXT NOT NULL,
+     ancho              INTEGER,
+     alto               INTEGER,
+     marcas             TEXT NOT NULL DEFAULT '[]',
+     creadoEn           TEXT NOT NULL,
+     modificadoEn       TEXT NOT NULL
+   )`,
         /* LOS MATERIALES INSTALADOS (29-oct, JC): compuertas, VAV, difusores,
            rejillas, válvulas, detectores, actuadores, sondas… No son equipos de
            commissioning: cada uno es una pieza en el plano de su planta (x, y en
@@ -24415,6 +24466,10 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
            Documentación de la web veía 137 documentos y el escritorio 1.311.
            JSON con las rutas relativas (pdf, Word, Excel); solo se reescribe si cambia. */
         ["configCommissioning", "indiceDocs", "TEXT"],
+        /* LOS MAPAS ESPECÍFICOS DE LA OBRA (5-nov, JC): JSON con los ids del catálogo
+           de shared/commissioning/mapasEspecificos.js (cocinas, geotermia, acsRoom,
+           escaleras). Vacío: la obra no tiene ninguno. */
+        ["configCommissioning", "mapasEspecificos", "TEXT"],
         /* EL GAS DEL EQUIPO, para el control de fugas F-gas (24-oct). Vacíos, se
            leen de las notas («R-410A 12,5 kg»), como en las legalizaciones. */
         ["equiposObra", "refrigerante", "TEXT"],
@@ -24548,6 +24603,12 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         ["reclamacionHechos", "certezaPrueba", "TEXT"],
         ["reclamacionHechos", "webLink", "TEXT"],
         ["reclamacionHechos", "categoriaOrigen", "TEXT"],
+        /* LAS CATEGORÍAS DEL CLAIM (JC, 5-nov-2026; shared/reclamaciones/categorias.js): la fijada a mano en
+           el hecho (la automática se calcula al pintar) y las creadas en la reclamación (JSON [{ clave, nombre,
+           palabras }]). Viajan en la fila (cx_filas.datos): la nube no necesita columna nueva. */
+        ["reclamacionHechos", "categoriaClaim", "TEXT"],
+        ["reclamacionHechos", "categoriaClaimManual", "INTEGER NOT NULL DEFAULT 0"],
+        ["reclamaciones", "categoriasClaim", "TEXT"],
         /* Avisos del tajo (28-oct-2026, tarea 52853fc3): el cronómetro de espera (HH:MM a HH:MM) y si se avisó a
            LIMAK en el momento (medio, a quién y a qué hora). Viajan en la fila (sincronización genérica de Cx Obra). */
         ["reclamacionAvisos", "esperaDesde", "TEXT"],
@@ -24875,6 +24936,7 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         ampliarChecks(db);
         pasarJefesDeApoyo(db);
         jcJefeDeObraEnNCN(db);
+        mapasEspecificosEnNCN(db);
         ensayoFijoPorFamilia(db);
         for (const sql of INDICES) db.prepare(sql).run();
         disparadoresDeEstado(db);
@@ -24925,6 +24987,27 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
             const otros = [...String(o.jefesObraIds || "").split(","), a.personaId].map((x) => x.trim()).filter((x) => x && x !== o.jefeObraId);
             db.prepare("UPDATE obras SET jefesObraIds = ?, modificadoEn = ? WHERE id = ?").run(textoLista(otros), ahora, o.id);
           }
+          apuntar.run(a.clave, ahora);
+        }
+      }
+      var MAPAS_UNA_VEZ = [
+        { clave: "2026-11-05-mapas-especificos-ncn", obraId: "NCN-mv8pro4u", mapas: ["cocinas", "geotermia", "acsRoom", "escaleras"] }
+      ];
+      function mapasEspecificosEnNCN(db) {
+        db.exec("CREATE TABLE IF NOT EXISTS _ajustesHechos (clave TEXT PRIMARY KEY, hechoEn TEXT NOT NULL)");
+        const hecho = db.prepare("SELECT 1 FROM _ajustesHechos WHERE clave = ?");
+        const apuntar = db.prepare("INSERT OR IGNORE INTO _ajustesHechos (clave, hechoEn) VALUES (?, ?)");
+        for (const a of MAPAS_UNA_VEZ) {
+          if (hecho.get(a.clave)) continue;
+          let c;
+          try {
+            c = db.prepare("SELECT id, mapasEspecificos FROM configCommissioning WHERE obraId = ?").get(a.obraId);
+          } catch {
+            continue;
+          }
+          if (!c) continue;
+          const ahora = (/* @__PURE__ */ new Date()).toISOString();
+          if (!c.mapasEspecificos) db.prepare("UPDATE configCommissioning SET mapasEspecificos = ?, modificadoEn = ? WHERE id = ?").run(JSON.stringify(a.mapas), ahora, c.id);
           apuntar.run(a.clave, ahora);
         }
       }
@@ -25008,6 +25091,7 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         planosDifusores: { porObra: "obraId" },
         planosEquipos: { porObra: "obraId" },
         materialesInstalados: { porObra: "obraId" },
+        planosInstalacion: { porObra: "obraId" },
         fotosEquipo: { porObra: "obraId" },
         firmasEquipo: { porObra: "obraId" },
         imagenesPlanoDif: { porObra: "obraId" },
@@ -25539,6 +25623,8 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         planosDifusores: "commissioning",
         planosEquipos: "planoEquipos",
         materialesInstalados: "planoEquipos",
+        /* 5-nov: el plano de una instalación (geotermia, ACS room…) es del mapa de commissioning. */
+        planosInstalacion: "commissioning",
         fotosEquipo: "commissioning",
         firmasEquipo: "commissioning",
         imagenesPlanoDif: "commissioning",
@@ -58415,6 +58501,36 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
+  // electron/data/recordado.js
+  var require_recordado = __commonJS({
+    "electron/data/recordado.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var DURA_MS = 2 * 60 * 1e3;
+      var TOPE = 300;
+      var porBase = /* @__PURE__ */ new WeakMap();
+      function recordar(repo, sesion, nombre, clave, calcular) {
+        const db = repo && repo.db;
+        if (!db || typeof db.cambiosTotales !== "function") return calcular();
+        const version = db.cambiosTotales();
+        let r = porBase.get(db);
+        if (!r || r.version !== version) {
+          r = { version, mapa: /* @__PURE__ */ new Map() };
+          porBase.set(db, r);
+        }
+        const k = `${nombre}|${clave}|${sesion && sesion.personaId}|${sesion && sesion.rol}`;
+        const c = r.mapa.get(k);
+        if (c && Date.now() - c.en < DURA_MS) return c.valor;
+        const valor = calcular();
+        if (db.cambiosTotales() !== version) return valor;
+        if (r.mapa.size >= TOPE) r.mapa.clear();
+        r.mapa.set(k, { en: Date.now(), valor });
+        return valor;
+      }
+      module.exports = { recordar };
+    }
+  });
+
   // shared/commissioning/catalogoAk.js
   var require_catalogoAk = __commonJS({
     "shared/commissioning/catalogoAk.js"(exports, module) {
@@ -60899,6 +61015,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         };
       }
       function difusoresEquipo(repo, sesion, equipoId) {
+        return require_recordado().recordar(repo, sesion, "difusoresEquipo", equipoId, () => difusoresEquipoSinRecordar(repo, sesion, equipoId));
+      }
+      function difusoresEquipoSinRecordar(repo, sesion, equipoId) {
         const equipo = repo.leer("equiposObra", sesion, equipoId);
         if (!equipo) return null;
         const planos = planosDe(repo, sesion, equipoId);
@@ -64802,13 +64921,13 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           return null;
         }
       }
-      function listar(repo, ses, obraId) {
+      function listar(repo, ses, obraId, { ligero = false, planta: pedida = null } = {}) {
         if (!obraVisible(repo, ses, obraId)) return null;
         const lec = sesionDeLectura(ses);
         const conCx = puede(ses.rol, "commissioning", "ver");
         const puedeEditar = puede(ses.rol, "commissioning", "editar");
         const filas = repo.listar("planosEquipos", lec, { condicion: "obraId = ?", params: [obraId] });
-        const t = CX.tabla(repo, lec, obraId) || { filas: [], conjuntos: [] };
+        const t = (CX.tablaParaLeer ? CX.tablaParaLeer(repo, lec, obraId) : CX.tabla(repo, lec, obraId)) || { filas: [], conjuntos: [] };
         marcarFichasConDato(repo, lec, obraId, t);
         const filasEq = (t.filas || []).filter(P.esEquipoDelPlano);
         const est = P.estados(t, { puedeEditar });
@@ -64846,7 +64965,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           };
           return { ...v, entregaDF, bloques: [EE.bloqueFicha(albaranesDe.get(f.id)), ...VE.bloquesFicha(v)] };
         };
-        const datosDe = (f, e) => ({ tipo: e.tipo, icono: e.icono, miembros: e.miembros, marca: e.marca || null, modelo: e.modelo || null, documentos: papelesDe(f.id), acciones: botones(e), puedeEditar, vida: vidaDe(f) });
+        const datosDe = (f, e, conDetalle2 = true) => conDetalle2 ? { tipo: e.tipo, icono: e.icono, miembros: e.miembros, marca: e.marca || null, modelo: e.modelo || null, documentos: papelesDe(f.id), acciones: botones(e), puedeEditar, vida: vidaDe(f) } : { tipo: e.tipo, icono: e.icono, miembros: e.miembros, marca: e.marca || null, modelo: e.modelo || null, puedeEditar };
         const certDe = /* @__PURE__ */ new Map();
         if (datosCert) {
           for (const f of filasEq) {
@@ -64863,8 +64982,11 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         const MI = require_materialesInstalados2();
         const materialesDe = MI.porPlanta(repo, ses, obraId);
         const nombres = /* @__PURE__ */ new Set([...filasEq.map((f) => llano(f.planta)), ...filas.map((p) => p.planta || ""), ...materialesDe.keys()]);
-        const plantas = [...nombres].sort(ordenPlanta).map((planta) => {
+        const ordenadas = [...nombres].sort(ordenPlanta);
+        const conDetalle = !ligero ? null : pedida !== null && nombres.has(pedida) ? pedida : ordenadas.find((x) => planoDe.has(x)) ?? ordenadas.find((x) => x) ?? ordenadas[0] ?? null;
+        const plantas = ordenadas.map((planta) => {
           const p = planoDe.get(planta) || null;
+          const detalle = !ligero || planta === conDetalle;
           const equipos = filasEq.filter((f) => llano(f.planta) === planta).map((f) => {
             const e = est.get(f.id);
             const m = marcaDe.get(f.id);
@@ -64880,7 +65002,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
               falta: e.falta,
               sala,
               salaFuente: fuente,
-              ...datosDe(f, e),
+              ...datosDe(f, e, detalle),
               cert: certDe.get(f.id) || null,
               x: enEste ? enEste.x : null,
               y: enEste ? enEste.y : null,
@@ -64895,7 +65017,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
               if (!f || ya.has(f.id)) continue;
               const e = est.get(f.id);
               const { sala, fuente } = salaDe(f, m);
-              equipos.push({ id: f.id, tag: f.tag, familia: f.familia || null, papel: e.papel, conjunto: e.conjunto, color: e.color, falta: e.falta, sala, salaFuente: fuente, ...datosDe(f, e), cert: certDe.get(f.id) || null, x: m.x, y: m.y, mano: Boolean(m.mano), ...simboloDe(m) });
+              equipos.push({ id: f.id, tag: f.tag, familia: f.familia || null, papel: e.papel, conjunto: e.conjunto, color: e.color, falta: e.falta, sala, salaFuente: fuente, ...datosDe(f, e, detalle), cert: certDe.get(f.id) || null, x: m.x, y: m.y, mano: Boolean(m.mano), ...simboloDe(m) });
             }
           }
           const cuentas = { verde: 0, azul: 0, rojo: 0, sinSala: 0, enPlano: 0, sinUbicar: 0, revisar: 0 };
@@ -64913,6 +65035,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           const capas = { equipos: equipos.length, ...M.cuentasPorCapa(materiales) };
           return {
             planta: planta || null,
+            ...ligero ? { detalle } : {},
             equipos,
             cuentas,
             sinUbicar,
@@ -66579,13 +66702,24 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         const tagDe = new Map(lista.map((e) => [e.id, e.tag]));
         return require_ncr().ncrActivasDe(repo.db, lista.map((e) => e.id)).map((x) => ({ codigo: x.codigo, tag: tagDe.get(x.equipoId), bloquea: Boolean(x.bloquea) }));
       }
+      var sembradas = /* @__PURE__ */ new WeakSet();
       function sembrarPlantillas(db) {
+        if (sembradas.has(db)) return;
+        sembradas.add(db);
+        let hay = null;
+        try {
+          hay = new Set(db.prepare("SELECT codigo, version FROM plantillasPM").all().map((f) => `${f.codigo}@${f.version}`));
+        } catch {
+          hay = null;
+        }
+        const faltan = hay ? catalogo.PLANTILLAS.filter((p) => !hay.has(`${p.codigo}@${p.version || 1}`)) : catalogo.PLANTILLAS;
+        if (!faltan.length) return;
         const ahora = (/* @__PURE__ */ new Date()).toISOString();
         const poner = db.prepare(
           `INSERT OR IGNORE INTO plantillasPM (id, codigo, version, nombre, clase, definicion, origen, creadoEn, modificadoEn)
      VALUES (?,?,?,?,?,?,?,?,?)`
         );
-        for (const p of catalogo.PLANTILLAS) {
+        for (const p of faltan) {
           poner.run(nuevoId(), p.codigo, p.version || 1, p.nombre, p.clase, JSON.stringify(p), "libro", ahora, ahora);
         }
       }
@@ -67355,6 +67489,9 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
       var RESULTADO_BAL = { apto: "apto", aptoSinBocas: "aRevisar", noApto: "noApto" };
       var RESULTADO_ESTANQ = { correcta: "apto", noSuperada: "noApto", sinTerminar: "aRevisar" };
       function balanceoEvaluado(repo, sesion, equipo) {
+        return require_recordado().recordar(repo, sesion, "balanceoEvaluado", equipo && equipo.id, () => balanceoEvaluadoSinRecordar(repo, sesion, equipo));
+      }
+      function balanceoEvaluadoSinRecordar(repo, sesion, equipo) {
         let fila = repo.listar("hojasBalanceo", sesion, { condicion: "equipoId = ?", params: [equipo.id], limite: 1 })[0];
         if (fila && require_cronometro().soloCronometros(leerJson(fila.datos, null))) fila = null;
         const DIF = require_difusores2();
@@ -71004,7 +71141,19 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           return { ok: false, error: err.message };
         }
       }
+      var recordadas = /* @__PURE__ */ new WeakMap();
+      function tablaParaLeer(repo, sesion, obraId) {
+        const db = repo && repo.db;
+        if (!db || typeof db.cambiosTotales !== "function") return tabla(repo, sesion, obraId);
+        const clave = `${obraId}|${sesion && sesion.personaId}|${sesion && sesion.rol}|${db.cambiosTotales()}`;
+        const r = recordadas.get(db);
+        if (r && r.clave === clave && Date.now() - r.en < 2 * 60 * 1e3) return r.valor;
+        const valor = tabla(repo, sesion, obraId);
+        recordadas.set(db, { clave: `${obraId}|${sesion && sesion.personaId}|${sesion && sesion.rol}|${db.cambiosTotales()}`, en: Date.now(), valor });
+        return valor;
+      }
       module.exports = {
+        tablaParaLeer,
         documentoParaAbrir,
         tabla,
         configurar,
@@ -71855,7 +72004,8 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
       }
       function crearRutasPlanoEquipos({ repo }) {
         async function lista({ ses, query }) {
-          const d = PE.listar(repo, ses, String(query.obra || ""));
+          const ligero = query.ligero === "1";
+          const d = PE.listar(repo, ses, String(query.obra || ""), { ligero, planta: ligero && query.planta !== void 0 ? String(query.planta) : null });
           if (!d) return { ok: false, error: "No se encuentra la obra." };
           await certificacionDeLaNube(ses, String(query.obra || ""), d);
           return { ok: true, plantas: d.plantas, planos: d.planos, iconos: d.iconos, colores: d.colores, puedeEditar: d.puedeEditar, conCommissioning: d.conCommissioning, capas: d.capas, tiposMaterial: d.tiposMaterial };
@@ -99245,7 +99395,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           return { ok: true, obras: lista.map((o) => ({ id: o.id, codigo: o.codigo, nombre: o.nombre })).sort((a, b) => String(a.codigo).localeCompare(String(b.codigo), "es", { numeric: true })) };
         }
         function commissioning({ ses, query }) {
-          const t = CX.tabla(repo, ses, String(query.obra || ""));
+          const t = CX.tablaParaLeer(repo, ses, String(query.obra || ""));
           if (!t) return { ok: false, error: "No se encuentra la obra." };
           const bocas = /* @__PURE__ */ new Map();
           for (const p of repo.listar("planosDifusores", ses, { condicion: "obraId = ?", params: [String(query.obra)] })) {
@@ -99373,7 +99523,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         function equipo({ ses, quien, query }) {
           const d = DIF.difusoresEquipo(repo, ses, String(query.id || ""));
           if (!d) return { ok: false, error: "No se encuentra el equipo." };
-          const t = CX.tabla(repo, ses, d.equipo.obraId);
+          const t = CX.tablaParaLeer(repo, ses, d.equipo.obraId);
           const fila = t ? t.filas.find((f) => f.id === d.equipo.id) : null;
           const evaluada = new Map(d.resumen.filas.map((f) => [f.id, f]));
           const linea = t && t.conjuntos ? t.conjuntos.find((l) => l.miembros.some((m) => m.id === d.equipo.id)) : null;
@@ -117174,6 +117324,249 @@ ${correo.texto || ""}`);
     }
   });
 
+  // shared/reclamaciones/categorias.js
+  var require_categorias2 = __commonJS({
+    "shared/reclamaciones/categorias.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const MT = () => typeof window !== "undefined" && window.RECLAMACIONES_MOTOR ? window.RECLAMACIONES_MOTOR : require_motor5();
+        const MV = () => typeof window !== "undefined" && window.RECLAMACIONES_MOTIVOS ? window.RECLAMACIONES_MOTIVOS : require_motivos();
+        const J = () => typeof window !== "undefined" && window.RECLAMACIONES_JERARQUIA ? window.RECLAMACIONES_JERARQUIA : require_jerarquia();
+        const SIN = "sinCategoria";
+        const NOMBRE_SIN = "Sin categor\xEDa";
+        const CATEGORIAS_CLIENTE = [
+          {
+            clave: "robos",
+            nombre: "Robos",
+            fuerte: true,
+            claves: ["robos"],
+            palabras: /\brob[oa]s?\b|\brobad|hurto|sustracci[oó]n|forzad|desaparecid|se lleva|theft|stolen/i
+          },
+          {
+            clave: "casetas",
+            nombre: "Casetas y medios auxiliares",
+            fuerte: true,
+            claves: [],
+            palabras: /caseta|oficina de obra|contenedor de obra|almac[eé]n externo|almacenaje|medios auxiliares|site office/i
+          },
+          {
+            clave: "sabados",
+            nombre: "S\xE1bados y fuera de horario",
+            fuerte: true,
+            claves: [],
+            palabras: /s[aá]bados?|domingo|festivo|fuera de horario|horas extra|turno de noche|overtime|weekend/i
+          },
+          {
+            clave: "pagos",
+            nombre: "Pagos, IPC y deducciones",
+            fuerte: true,
+            claves: [],
+            palabras: /\bipc\b|certificad[oa]s? #|certificaci[oó]n|facturas? (de obra )?sin|sin pagar|sin cobrar|retraso en el pago|deducci[oó]n|deducciones|retenci[oó]n|retenciones|multa|recortad/i
+          },
+          {
+            clave: "danos",
+            nombre: "Da\xF1os de terceros",
+            fuerte: true,
+            claves: [],
+            palabras: /da[nñ]ad|da[nñ]os?\b|destroz|golpead|rotur|sobrecalentamiento|damage/i
+          },
+          {
+            clave: "staff",
+            nombre: "Staff y prolongaci\xF3n",
+            fuerte: false,
+            claves: ["indirectos"],
+            palabras: /\bstaff\b|personal propio|costes? indirectos|indirectos de obra|alargamiento|prolongaci[oó]n|ampliaci[oó]n de plazo|prolongation/i
+          },
+          {
+            clave: "aceleracion",
+            nombre: "Aceleraci\xF3n",
+            fuerte: false,
+            claves: ["aceleracion"],
+            palabras: /aceleraci[oó]n|acelerar|adelanta|m[aá]s equipos|refuerzo|plazos impuestos|fija el \d|acceleration/i
+          },
+          {
+            clave: "izados",
+            nombre: "Izados, accesos y log\xEDstica",
+            fuerte: false,
+            claves: ["izados"],
+            palabras: /izad|montacargas|elevador|elevaci[oó]n|gr[uú]as?\b|plataforma|tijera|carretilla|manlift|subir (el )?material|subidas? a mano|acceso|accesos|log[ií]stica|pasillos? bloquead|camino bloqueado|cerrad[oa]|lifting|crane/i
+          },
+          {
+            clave: "permisos",
+            nombre: "Permisos y seguridad",
+            fuerte: true,
+            claves: [],
+            palabras: /permiso|\bq?hse\b|procedimiento de seguridad|precintad|polic[ií]a|\bcurso|\bformaci[oó]n|licencia/i
+          },
+          {
+            clave: "previos",
+            nombre: "Trabajos previos no hechos",
+            fuerte: false,
+            claves: [],
+            palabras: /trabajos previos|andamio|sin limpiar|sin pintar|no est[aá]n listas|sin preparar|sin terminar|red de seguridad|sin desmontar|huecos? sin abrir|sin registro/i
+          },
+          {
+            clave: "interferencias",
+            nombre: "Interferencias con otros gremios",
+            fuerte: false,
+            claves: ["coordinacion"],
+            palabras: /interferencia|otros gremios|otros industriales|electricistas|acabados|bandejas?|pladur|trasdosado|fuera de modelo|polvo|coordinaci[oó]n|\bpci\b/i
+          },
+          {
+            clave: "cambios",
+            nombre: "Cambios y retrabajos del cliente",
+            fuerte: false,
+            claves: ["cambiosDiseno"],
+            palabras: /cambio|cambiar|modificaci[oó]n|modificar|rehacer|retrabajo|retirar|mover|desmontar|desmontaje|reubica|volver a montar|sin preaviso|sin aviso|por su cuenta|reinstalar|ajustar|desplazar|quitar|sacar|vaciar|subir (los )?(servicios|conductos|tuber[ií]as)/i
+          },
+          {
+            clave: "diseno",
+            nombre: "Dise\xF1o",
+            fuerte: false,
+            claves: ["diseno"],
+            palabras: /dise[nñ]o|planos?\b|\brfi\b|\bbim\b|redise[nñ]|sin definir|selecci[oó]n|c[aá]lculo|esquema sin aprobar|design|drawing/i
+          },
+          {
+            clave: "retrasos",
+            nombre: "Retrasos del cliente",
+            fuerte: false,
+            claves: ["retrasos"],
+            palabras: /retraso|demora|tard[ií]a|tarde|esperando|espera\b|bloquead|parad[oa]|paraliza|sin fecha|sin frente|frentes?|delay/i
+          },
+          {
+            clave: "productividad",
+            nombre: "Baja productividad",
+            fuerte: false,
+            claves: ["productividad"],
+            palabras: /productividad|improductiv|horas perdidas|horas-hombre|tiempo perdido|a trozos|operarios? parados|personal parado|standby/i
+          },
+          {
+            clave: "contractual",
+            nombre: "Contractual",
+            fuerte: false,
+            claves: [],
+            palabras: /contractual|contrato|cl[aá]usula|tarifas? de niveles|\bloa\b/i
+          }
+        ];
+        function categoriasSubcontrata() {
+          return MV().ORDEN_SUBCONTRATA.filter((k) => k !== "otros").map((k) => ({
+            clave: k,
+            nombre: MV().MOTIVOS_SUBCONTRATA[k].nombre,
+            fuerte: k === "robos",
+            claves: MV().MOTIVOS_SUBCONTRATA[k].claves,
+            palabras: MV().MOTIVOS_SUBCONTRATA[k].palabras
+          }));
+        }
+        const sinAcentos = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+        const claveDe = (nombre) => sinAcentos(nombre).replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter(Boolean).map((w, i) => i ? w[0].toUpperCase() + w.slice(1) : w).join("").slice(0, 40);
+        function propiasDe(reclamacion = {}) {
+          let xs = reclamacion.categoriasClaim;
+          if (typeof xs === "string") {
+            try {
+              xs = JSON.parse(xs);
+            } catch (_) {
+              xs = [];
+            }
+          }
+          if (!Array.isArray(xs)) return [];
+          return xs.filter((x) => x && x.clave && x.nombre).map((x) => {
+            const ps = String(x.palabras || "").split(/[,;\n]/).map((p) => p.trim()).filter(Boolean).map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+            return {
+              clave: String(x.clave),
+              nombre: String(x.nombre),
+              propia: true,
+              fuerte: true,
+              claves: [],
+              palabrasTexto: x.palabras || "",
+              palabras: ps.length ? new RegExp(ps.join("|"), "i") : null
+            };
+          });
+        }
+        function categoriasDe(reclamacion = {}) {
+          const base = (reclamacion.parte || "cliente") === "subcontrata" ? categoriasSubcontrata() : CATEGORIAS_CLIENTE;
+          const propias = propiasDe(reclamacion);
+          const usadas = new Set(propias.map((c) => c.clave));
+          return [...propias, ...base.filter((c) => !usadas.has(c.clave))];
+        }
+        const nombreCategoria = (cats, k) => k === SIN || !k ? NOMBRE_SIN : (cats.find((c) => c.clave === k) || {}).nombre || NOMBRE_SIN;
+        const categoriaValida = (cats, k) => Boolean(k) && cats.some((c) => c.clave === k);
+        function categoriaDeHecho(hecho = {}, apartados = [], cats = CATEGORIAS_CLIENTE) {
+          if (Number(hecho.categoriaClaimManual) && categoriaValida(cats, hecho.categoriaClaim)) return { clave: hecho.categoriaClaim, auto: false };
+          const titulo = String(hecho.titulo || "");
+          const texto = [hecho.titulo, hecho.descripcion].filter(Boolean).join(" ");
+          const fuerte = cats.find((c) => c.fuerte && c.palabras && c.palabras.test(titulo));
+          if (fuerte) return { clave: fuerte.clave, auto: true };
+          const porId = new Map(apartados.map((a2) => [a2.id, a2]));
+          let a = porId.get(hecho.apartadoId);
+          let vueltas = 0;
+          while (a && vueltas++ < 10) {
+            const c = a.clave && cats.find((x) => x.claves.includes(a.clave)) || cats.find((x) => x.palabras && x.palabras.test(a.titulo || ""));
+            if (c) return { clave: c.clave, auto: true };
+            a = a.padreId ? porId.get(a.padreId) : null;
+          }
+          const porTexto = cats.find((c) => c.palabras && c.palabras.test(titulo)) || cats.find((c) => c.palabras && c.palabras.test(texto));
+          return { clave: porTexto ? porTexto.clave : SIN, auto: true };
+        }
+        function recuento({ hechos = [], apartados = [], reclamacion = {}, tarifas = [], renuncias = [] } = {}) {
+          const M = MT();
+          const cats = categoriasDe(reclamacion);
+          const filas = [...cats.map((c) => ({ clave: c.clave, nombre: c.nombre, propia: Boolean(c.propia) })), { clave: SIN, nombre: NOMBRE_SIN, propia: false }].map((f) => ({ ...f, validados: { n: 0, importe: 0 }, total: { n: 0, importe: 0 }, propuestos: { n: 0, importe: 0 } }));
+          const por = new Map(filas.map((f) => [f.clave, f]));
+          const r2 = (v) => Math.round((Number(v) || 0) * 100) / 100;
+          for (const h of hechos) {
+            if (h.estado === "descartado" || h.naturaleza === "plazoLimak" || J().soloDocumenta(h)) continue;
+            const importe = h.importe !== void 0 && h.importe !== null ? Number(h.importe) || 0 : M.importeHecho(h, tarifas).importe;
+            const computa = h.computa !== void 0 ? Boolean(h.computa) : M.computa(h, renuncias);
+            const k = h.categoriaCalc || categoriaDeHecho(h, apartados, cats).clave;
+            const f = por.get(k) || por.get(SIN);
+            if (h.estado === "propuesto" || computa) {
+              f.total.n += 1;
+              f.total.importe = r2(f.total.importe + importe);
+            }
+            if (h.estado === "propuesto") {
+              f.propuestos.n += 1;
+              f.propuestos.importe = r2(f.propuestos.importe + importe);
+            }
+            if (computa) {
+              f.validados.n += 1;
+              f.validados.importe = r2(f.validados.importe + importe);
+            }
+          }
+          const vivas = filas.filter((f) => f.total.n || f.validados.n);
+          const suma = (lado) => ({ n: vivas.reduce((s, f) => s + f[lado].n, 0), importe: r2(vivas.reduce((s, f) => s + f[lado].importe, 0)) });
+          return {
+            filas: vivas,
+            validados: suma("validados"),
+            total: suma("total"),
+            propuestos: suma("propuestos"),
+            sinCategoria: (por.get(SIN) || { total: { n: 0 } }).total.n
+          };
+        }
+        function anadirCategoria(reclamacion = {}, { nombre = "", palabras = "" } = {}) {
+          const n = String(nombre || "").trim();
+          if (!n) return { error: "La categor\xEDa necesita un nombre." };
+          const cats = categoriasDe(reclamacion);
+          if (cats.some((c) => sinAcentos(c.nombre) === sinAcentos(n))) return { error: "Ya hay una categor\xEDa con ese nombre." };
+          let clave = claveDe(n) || "categoria";
+          let i = 2;
+          const base = clave;
+          while (cats.some((c) => c.clave === clave) || clave === SIN) clave = `${base}${i++}`;
+          const propias = propiasDe(reclamacion).map((c) => ({ clave: c.clave, nombre: c.nombre, palabras: c.palabrasTexto || "" }));
+          return { lista: [...propias, { clave, nombre: n, palabras: String(palabras || "").trim() }], clave };
+        }
+        function quitarCategoria(reclamacion = {}, clave) {
+          const propias = propiasDe(reclamacion);
+          if (!propias.some((c) => c.clave === clave)) return { error: "Solo se pueden quitar las categor\xEDas creadas en la reclamaci\xF3n." };
+          return { lista: propias.filter((c) => c.clave !== clave).map((c) => ({ clave: c.clave, nombre: c.nombre, palabras: c.palabrasTexto || "" })) };
+        }
+        const API = { SIN, NOMBRE_SIN, CATEGORIAS_CLIENTE, categoriasDe, propiasDe, nombreCategoria, categoriaValida, categoriaDeHecho, recuento, anadirCategoria, quitarCategoria };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.RECLAMACIONES_CATEGORIAS = API;
+      })();
+    }
+  });
+
   // shared/reclamaciones/horasSubcontratas.js
   var require_horasSubcontratas = __commonJS({
     "shared/reclamaciones/horasSubcontratas.js"(exports, module) {
@@ -127962,6 +128355,7 @@ ${l}`;
       var M = require_motor5();
       var PL = require_plazos();
       var MV = require_motivos();
+      var CC = require_categorias2();
       var HS = require_horasSubcontratas();
       var QH = require_queHaceLaApp();
       var { puede, veReclamacionesReservadas } = require_roles();
@@ -128082,6 +128476,12 @@ ${l}`;
         }));
         const parte = r.parte || "cliente";
         for (const h of hechos) h.motivoCalc = MV.motivoDeHecho(h, apartados, parte);
+        const categorias = CC.categoriasDe(r);
+        for (const h of hechos) {
+          const c = CC.categoriaDeHecho(h, apartados, categorias);
+          h.categoriaCalc = c.clave;
+          h.categoriaAuto = c.auto;
+        }
         const conMotivo = hechosBase.map((h) => ({ ...h, motivo: MV.motivoDeHecho(h, apartados, parte) }));
         const v = verbos(ses);
         return {
@@ -128116,6 +128516,8 @@ ${l}`;
           })).sort((a, b) => (b.confianza || 0) - (a.confianza || 0)),
           parte,
           porMotivo: M.totalesPorMotivo({ hechos: conMotivo, tarifas, parte }),
+          categorias: categorias.map((c) => ({ clave: c.clave, nombre: c.nombre, propia: Boolean(c.propia), palabras: c.palabrasTexto || "" })),
+          porCategoria: CC.recuento({ hechos, apartados, reclamacion: r, tarifas, renuncias }),
           dobleCara: M.dobleCaraSinPreaviso({ hechos: hechosBase, tarifas }),
           pruebasPorMotivo: pruebasPorMotivo(conPruebas, conMotivo, parte),
           sinLigar: conPruebas.filter((p) => !p.hechosIds.length).length,
@@ -128157,7 +128559,8 @@ ${l}`;
         "mediosValidos",
         "notaNotificacion",
         "exclusiones",
-        "reservada"
+        "reservada",
+        "categoriasClaim"
       ];
       function limpiarRec(e = {}) {
         const c = {};
@@ -128166,7 +128569,18 @@ ${l}`;
           let v = e[k];
           if (["mediosValidos", "exclusiones"].includes(k)) v = v === null || v === "" ? null : typeof v === "string" ? v : JSON.stringify(v);
           else if (k === "reservada") v = [true, 1, "1", "si", "s\xED"].includes(v) ? 1 : 0;
-          else if (k === "preavisoDias") {
+          else if (k === "categoriasClaim") {
+            let xs = v;
+            if (typeof xs === "string") {
+              try {
+                xs = xs ? JSON.parse(xs) : [];
+              } catch (_) {
+                return { error: "Las categor\xEDas no se entienden." };
+              }
+            }
+            if (!Array.isArray(xs) || xs.some((x) => !x || !llano(x.clave) || !llano(x.nombre))) return { error: "Cada categor\xEDa necesita clave y nombre." };
+            v = xs.length ? JSON.stringify(xs.map((x) => ({ clave: llano(x.clave), nombre: llano(x.nombre), palabras: llano(x.palabras) || "" }))) : null;
+          } else if (k === "preavisoDias") {
             v = M.num(v);
             if (llano(e[k]) && v === null) return { error: "El plazo de preaviso no es un n\xFAmero de d\xEDas." };
           } else if (["periodoDesde", "periodoHasta", "plazoOriginal", "plazoVigente"].includes(k)) v = M.soloFecha(llano(v)) || null;
@@ -128353,7 +128767,9 @@ ${l}`;
         "motivo",
         "origenHecho",
         "zona",
-        "certezaPrueba"
+        "certezaPrueba",
+        /* La categoría del claim fijada a mano (5-nov-2026); vacía, vuelve a la automática. */
+        "categoriaClaim"
       ];
       function limpiarHecho(e = {}) {
         const d = {};
@@ -128387,6 +128803,10 @@ ${l}`;
           d.motivo = d.motivo || null;
           d.motivoManual = d.motivo ? 1 : 0;
         }
+        if (d.categoriaClaim !== void 0) {
+          d.categoriaClaim = d.categoriaClaim || null;
+          d.categoriaClaimManual = d.categoriaClaim ? 1 : 0;
+        }
         if (d.enlaceTipo && !M.ENLACES[d.enlaceTipo]) return { error: "Ese enlace no existe." };
         if (e.metodo !== void 0 && !d.metodo) d.metodo = "importe_directo";
         return { datos: d };
@@ -128410,6 +128830,7 @@ ${l}`;
           if (!ap || ap.reclamacionId !== recId) return no("Ese apartado no es de esta reclamaci\xF3n.");
         }
         if (datos.motivo && !MV.motivoValido(r.parte || "cliente", datos.motivo)) return no("Ese motivo no existe en esta reclamaci\xF3n.");
+        if (datos.categoriaClaim && !CC.categoriaValida(CC.categoriasDe(r), datos.categoriaClaim)) return no("Esa categor\xEDa no existe en esta reclamaci\xF3n.");
         let id = entrada.id;
         if (id) {
           const h2 = repo.leer("reclamacionHechos", ses, id);
@@ -133851,6 +134272,39 @@ ${l}`;
     });
     vigilarFaltas(alVerlas.alFaltar);
     const fetchReal = globalThis.fetch.bind(globalThis);
+    const CACHE_MS = 2 * 60 * 1e3;
+    const CACHE_MAX = 40;
+    const cacheGet = /* @__PURE__ */ new Map();
+    const cederUnFotograma = () => new Promise((listo) => {
+      let hecho = false;
+      const fin = () => {
+        if (!hecho) {
+          hecho = true;
+          listo();
+        }
+      };
+      setTimeout(fin, 50);
+      try {
+        requestAnimationFrame(() => setTimeout(fin, 0));
+      } catch {
+        fin();
+      }
+    });
+    const enVuelo = /* @__PURE__ */ new Map();
+    let cacheEscrituras = -1;
+    const cacheAlDia = () => {
+      const n = base.cambiosTotales();
+      if (n !== cacheEscrituras) {
+        if (globalThis.cxDepurar) console.log("[cach\xE9] escrituras", cacheEscrituras, "->", n);
+        cacheGet.clear();
+        cacheEscrituras = n;
+      }
+    };
+    window.addEventListener("cxobra:datos", (e) => {
+      if (globalThis.cxDepurar) console.log("[cach\xE9] datos", JSON.stringify(e.detail));
+      cacheGet.clear();
+    });
+    globalThis.cxCacheApi = { vaciar: () => cacheGet.clear(), tam: () => cacheGet.size };
     globalThis.fetch = async (entrada, opciones = {}) => {
       const texto = String(typeof entrada === "string" ? entrada : entrada && entrada.url || "");
       if (!texto.startsWith("api/")) return fetchReal(entrada, opciones);
@@ -133869,13 +134323,51 @@ ${l}`;
       } else if (b instanceof ArrayBuffer) cuerpo = new Uint8Array(b);
       else if (ArrayBuffer.isView(b)) cuerpo = new Uint8Array(b.buffer, b.byteOffset, b.byteLength);
       const t0 = performance.now();
-      const r = await alVerlas.atender({
-        metodo: String(opciones.method || "GET").toUpperCase(),
-        ruta: rutaApi,
-        query: Object.fromEntries(url.searchParams),
-        cabeceras,
-        cuerpo: Buffer.from(cuerpo)
-      });
+      const metodo = String(opciones.method || "GET").toUpperCase();
+      const clave = metodo === "GET" ? `${url.pathname}${url.search}|${cabeceras.authorization || ""}` : null;
+      cacheAlDia();
+      if (clave) {
+        const c = cacheGet.get(clave);
+        if (c && Date.now() - c.en < CACHE_MS) {
+          cacheGet.delete(clave);
+          cacheGet.set(clave, c);
+          try {
+            (globalThis.cxTiempos = globalThis.cxTiempos || []).push([rutaApi + " (cach\xE9)", Math.round(t0), 0]);
+            if (globalThis.cxTiempos.length > 200) globalThis.cxTiempos.shift();
+          } catch {
+          }
+          return new Response(c.texto, { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } });
+        }
+      }
+      if (clave && enVuelo.has(clave)) {
+        const r2 = await enVuelo.get(clave);
+        try {
+          (globalThis.cxTiempos = globalThis.cxTiempos || []).push([rutaApi + " (a la vez)", Math.round(t0), Math.round(performance.now() - t0)]);
+          if (globalThis.cxTiempos.length > 200) globalThis.cxTiempos.shift();
+        } catch {
+        }
+        if (r2.bytes) return new Response(r2.bytes, { status: r2.codigo, headers: { "Content-Type": r2.tipo || "application/octet-stream" } });
+        return new Response(JSON.stringify(r2.json), { status: r2.codigo, headers: { "Content-Type": "application/json; charset=utf-8" } });
+      }
+      let escriturasAntes = base.cambiosTotales();
+      const pendiente = (async () => {
+        if (clave) {
+          await cederUnFotograma();
+          escriturasAntes = base.cambiosTotales();
+        }
+        return alVerlas.atender({
+          metodo,
+          ruta: rutaApi,
+          query: Object.fromEntries(url.searchParams),
+          cabeceras,
+          cuerpo: Buffer.from(cuerpo)
+        });
+      })();
+      if (clave) {
+        enVuelo.set(clave, pendiente);
+        pendiente.then(() => enVuelo.delete(clave), () => enVuelo.delete(clave));
+      }
+      const r = await pendiente;
       tras();
       try {
         (globalThis.cxTiempos = globalThis.cxTiempos || []).push([rutaApi, Math.round(t0), Math.round(performance.now() - t0)]);
@@ -133883,7 +134375,13 @@ ${l}`;
       } catch {
       }
       if (r.bytes) return new Response(r.bytes, { status: r.codigo, headers: { "Content-Type": r.tipo || "application/octet-stream" } });
-      return new Response(JSON.stringify(r.json), { status: r.codigo, headers: { "Content-Type": "application/json; charset=utf-8" } });
+      const json = JSON.stringify(r.json);
+      if (globalThis.cxDepurar && base.cambiosTotales() !== escriturasAntes) console.log("[cach\xE9] escribe", metodo, rutaApi, base.cambiosTotales() - escriturasAntes);
+      if (clave && r.codigo === 200 && r.json && r.json.ok !== false && base.cambiosTotales() === escriturasAntes && escriturasAntes === cacheEscrituras) {
+        cacheGet.set(clave, { en: Date.now(), texto: json });
+        while (cacheGet.size > CACHE_MAX) cacheGet.delete(cacheGet.keys().next().value);
+      }
+      return new Response(json, { status: r.codigo, headers: { "Content-Type": "application/json; charset=utf-8" } });
     };
     const conNube = !oficina().ejemplo;
     let arrancada = false;

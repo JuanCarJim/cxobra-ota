@@ -789,6 +789,7 @@ details.grupo-lista[open] > summary { margin-bottom: 6px; }
 .sync-pastilla.sin-red { background: var(--aviso-fondo); color: var(--aviso); }
 .sync-pastilla.sin-sesion, .sync-pastilla.error { background: var(--mal-fondo); color: var(--mal); }
 .sync-pastilla.girando::before { animation: sync-latido 1s ease-in-out infinite; }
+.sync-pastilla .sync-texto { min-width: 0; max-width: 44vw; overflow: hidden; text-overflow: ellipsis; }
 @keyframes sync-latido { 50% { opacity: .25; } }
 .barra-fila .sync-pastilla + .quien { max-width: 30%; }
 .lista-conflictos { list-style: none; margin: 0; padding: 0 18px 8px; font-size: 14px; }
