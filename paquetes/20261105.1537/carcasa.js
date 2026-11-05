@@ -64,7 +64,7 @@
     { id: 'mas', nombre: 'Más',
       icono: icono('<rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/>',
         '<g fill="currentColor"><rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/></g>'),
-      secciones: [['qhse', 'QHSE'], ['plano', 'Plano de equipos'], ['bloc', 'Notas'], ['albaranes', 'Albaranes'], ['inventario', 'Inventario'], ['personal', 'Personal'], ['cuenta', 'Cuenta']] },
+      secciones: [['jornada', 'Jornada'], ['qhse', 'QHSE'], ['plano', 'Plano de equipos'], ['bloc', 'Notas'], ['albaranes', 'Albaranes'], ['inventario', 'Inventario'], ['personal', 'Personal'], ['cuenta', 'Cuenta']] },
     /* 29-oct (JC): «QHSE es una cosa aparte, no es una incidencia»: sección propia (como «Seguridad» en la web), la primera de «Más». */
   ];
   /*
@@ -96,6 +96,9 @@
    */
   /* Lo de commissioning, lo primero: es lo que más se hace en obra (18-oct). */
   const ACCIONES = [
+    /* 5-nov (JC): fichar desde el teléfono; la entrada ya se ficha sola al abrir Cx. */
+    { seccion: 'jornada', nombre: 'Fichar', ayuda: 'Entrada, salida o cambio de obra', obra: false, pasos: [],
+      icono: svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.2 2"/>') },
     { seccion: 'commissioning', nombre: 'Medir equipo', ayuda: 'Busca el equipo y mide boca a boca', obra: true, pasos: ['[data-cx-buscar]'],
       icono: svg('<path d="M4 15a8 8 0 1 1 16 0"/><path d="M12 15l4.5-4.5"/><circle cx="12" cy="15" r="1.4"/><path d="M4 19h16"/>') },
     { seccion: 'estanqueidad', nombre: 'Prueba de estanqueidad', ayuda: 'Con la foto del manómetro', obra: true, pasos: ['[data-pe="nuevo"]'],
@@ -124,10 +127,10 @@
   const TITULO = {
     inicio: 'Inicio', commissioning: 'Commissioning', partes: 'Partes', ncr: 'No conformidades', reparaciones: 'Reparaciones', avance: 'Avance de obra', albaranes: 'Albaranes',
     inventario: 'Inventario', bloc: 'Notas', personal: 'Personal', estanqueidad: 'Estanqueidad', cuenta: 'Cuenta',
-    misTareas: 'Mis tareas', avisos: 'Reclamables', qhse: 'QHSE', plano: 'Plano de equipos',
+    misTareas: 'Mis tareas', avisos: 'Reclamables', qhse: 'QHSE', plano: 'Plano de equipos', jornada: 'Jornada',
   };
   /* Las que no dependen de la obra elegida no enseñan el selector. */
-  const SIN_OBRA = new Set(['cuenta', 'albaranes']);
+  const SIN_OBRA = new Set(['cuenta', 'albaranes', 'jornada']);
 
   const sesion = () => (window.ACCESO_MOVIL && window.ACCESO_MOVIL.sesion()) || null;
   const permitidas = () => { const s = sesion(); return s ? ['inicio', ...(s.secciones || []), 'cuenta'] : []; };
