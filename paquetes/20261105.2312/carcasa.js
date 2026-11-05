@@ -64,7 +64,7 @@
     { id: 'mas', nombre: 'Más',
       icono: icono('<rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/>',
         '<g fill="currentColor"><rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/></g>'),
-      secciones: [['jornada', 'Jornada'], ['qhse', 'QHSE'], ['reportesQhse', 'Reportes QHSE'], ['plano', 'Plano de equipos'], ['bloc', 'Notas'], ['albaranes', 'Albaranes'], ['inventario', 'Inventario'], ['personal', 'Personal'], ['cuenta', 'Cuenta']] },
+      secciones: [['qhse', 'QHSE'], ['plano', 'Plano de equipos'], ['bloc', 'Notas'], ['albaranes', 'Albaranes'], ['inventario', 'Inventario'], ['personal', 'Personal'], ['cuenta', 'Cuenta']] },
     /* 29-oct (JC): «QHSE es una cosa aparte, no es una incidencia»: sección propia (como «Seguridad» en la web), la primera de «Más». */
   ];
   /*
@@ -75,14 +75,13 @@
   const PESTANA_QHSE = { id: 'qhse', nombre: 'QHSE',
     icono: icono('<path d="M12 3.5 5 6.2v5.3c0 4.3 3 7.6 7 9 4-1.4 7-4.7 7-9V6.2z"/><path d="M8.8 12.2l2.2 2.2 4.2-4.4"/>',
       `<path d="M12 3.5 5 6.2v5.3c0 4.3 3 7.6 7 9 4-1.4 7-4.7 7-9V6.2z" fill="currentColor"/><path d="M8.8 12.2l2.2 2.2 4.2-4.4" ${HUECO} stroke-width="2"/>`),
-    /* 5-nov: los Reportes QHSE (reportesQhse.js), junto al plan. */
-    secciones: [['qhse', 'Plan'], ['reportesQhse', 'Reportes']] };
+    secciones: [['qhse', 'QHSE']] };
   const QHSE_EN_BARRA = new Set(['jefeObra', 'jefeProduccion']);
   function pestanasDe(rol) {
     if (!QHSE_EN_BARRA.has(rol)) return PESTANAS;
     return PESTANAS.map((p) => {
       if (p.id === 'avance') return PESTANA_QHSE;
-      if (p.id === 'mas') return { ...p, secciones: [['avance', 'Avance'], ...p.secciones.filter(([id]) => id !== 'qhse' && id !== 'reportesQhse')] };
+      if (p.id === 'mas') return { ...p, secciones: [['avance', 'Avance'], ...p.secciones.filter(([id]) => id !== 'qhse')] };
       return p;
     });
   }
@@ -97,9 +96,6 @@
    */
   /* Lo de commissioning, lo primero: es lo que más se hace en obra (18-oct). */
   const ACCIONES = [
-    /* 5-nov (JC): fichar desde el teléfono; la entrada ya se ficha sola al abrir Cx. */
-    { seccion: 'jornada', nombre: 'Fichar', ayuda: 'Entrada, salida o cambio de obra', obra: false, pasos: [],
-      icono: svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.2 2"/>') },
     { seccion: 'commissioning', nombre: 'Medir equipo', ayuda: 'Busca el equipo y mide boca a boca', obra: true, pasos: ['[data-cx-buscar]'],
       icono: svg('<path d="M4 15a8 8 0 1 1 16 0"/><path d="M12 15l4.5-4.5"/><circle cx="12" cy="15" r="1.4"/><path d="M4 19h16"/>') },
     { seccion: 'estanqueidad', nombre: 'Prueba de estanqueidad', ayuda: 'Con la foto del manómetro', obra: true, pasos: ['[data-pe="nuevo"]'],
@@ -119,9 +115,6 @@
     /* 26-oct: esperas, accesos denegados, falta de medios… (avisosReclamables.js). */
     { seccion: 'avisos', nombre: 'Algo reclamable', ayuda: 'Esperas, accesos denegados, sin grúa…', obra: true, pasos: ['[data-at="nuevo"]'],
       icono: svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>') },
-    /* 5-nov (JC): el reporte QHSE en 20 s: cámara, categoría, ¿qué? y guardar (reportesQhse.js). */
-    { seccion: 'reportesQhse', nombre: 'Reporte QHSE', ayuda: 'Foto, qué y categoría: observación, incidente o inspección', obra: true, pasos: ['[data-rq="nuevo"]', '[data-rq="camara"]'],
-      icono: svg('<path d="M12 3.5 5 6.2v5.3c0 4.3 3 7.6 7 9 4-1.4 7-4.7 7-9V6.2z"/><path d="M12 8.5v4.5"/><circle cx="12" cy="16" r=".6" fill="currentColor"/>') },
     /* 28-oct: la inspección del sitio de cada semana (qhse.js). */
     { seccion: 'qhse', nombre: 'Inspección del sitio', ayuda: 'QHSE: la de esta semana, control de subcontratas, CAE', obra: true, pasos: ['[data-qh="tipo"][data-p="inspeccionObra"]', '[data-qh="nuevo"][data-p="inspeccionObra"]'],
       icono: svg('<path d="M9 4.5h6M9 4.5A1.5 1.5 0 0 0 7.5 6H6a1.5 1.5 0 0 0-1.5 1.5v11A1.5 1.5 0 0 0 6 20h12a1.5 1.5 0 0 0 1.5-1.5v-11A1.5 1.5 0 0 0 18 6h-1.5A1.5 1.5 0 0 0 15 4.5"/><path d="M8.5 13l2.5 2.5 4.5-5"/>') },
@@ -131,10 +124,10 @@
   const TITULO = {
     inicio: 'Inicio', commissioning: 'Commissioning', partes: 'Partes', ncr: 'No conformidades', reparaciones: 'Reparaciones', avance: 'Avance de obra', albaranes: 'Albaranes',
     inventario: 'Inventario', bloc: 'Notas', personal: 'Personal', estanqueidad: 'Estanqueidad', cuenta: 'Cuenta',
-    misTareas: 'Mis tareas', avisos: 'Reclamables', qhse: 'QHSE', reportesQhse: 'Reportes QHSE', plano: 'Plano de equipos', jornada: 'Jornada',
+    misTareas: 'Mis tareas', avisos: 'Reclamables', qhse: 'QHSE', plano: 'Plano de equipos',
   };
   /* Las que no dependen de la obra elegida no enseñan el selector. */
-  const SIN_OBRA = new Set(['cuenta', 'albaranes', 'jornada']);
+  const SIN_OBRA = new Set(['cuenta', 'albaranes']);
 
   const sesion = () => (window.ACCESO_MOVIL && window.ACCESO_MOVIL.sesion()) || null;
   const permitidas = () => { const s = sesion(); return s ? ['inicio', ...(s.secciones || []), 'cuenta'] : []; };
@@ -597,7 +590,7 @@
   /* ═══════════════════════════════════ El «+»: la hoja de Añadir */
 
   /* Nombre corto para la rejilla (dos líneas como mucho). */
-  const CORTO = { estanqueidad: 'Estanqueidad', albaranes: 'Albarán', avisos: 'Reclamable', qhse: 'Inspección QHSE', reportesQhse: 'Reporte QHSE', avance: 'Avance' };
+  const CORTO = { estanqueidad: 'Estanqueidad', albaranes: 'Albarán', avisos: 'Reclamable', qhse: 'Inspección QHSE', avance: 'Avance' };
 
   const accionesDisponibles = () => { const ok = new Set(permitidas()); return ACCIONES.filter((a) => ok.has(a.seccion)); };
 
@@ -1024,6 +1017,7 @@
         : 'Los datos están en el ordenador de la oficina y se llega a él por la wifi: con el ordenador apagado o fuera de su red, la app no puede traer ni guardar nada.'}</p>
       ${yo.local && window.cxObra && window.cxObra.traerDatos ? conLaOficina() : ''}
       ${yo.local && !(window.cxObra && window.cxObra.salir) ? '' : '<button class="boton peligro" id="cx-salir">Salir</button>'}
+      ${window.cxTiempos ? `<details class="nota"><summary>Tiempos de arranque</summary><pre style="white-space:pre-wrap;font-size:11px">${esc(window.cxTiempos.texto())}</pre></details>` : ''}
       <p class="nota pie">Vidaire Cx${window.cxObra && window.cxObra.ota ? ` · versión ${esc(window.cxObra.ota.info().version)}${window.cxObra.ota.info().lista ? ` (la ${esc(window.cxObra.ota.info().lista)} entra al volver a abrir)` : ''}` : ''}</p>`;
     const b = document.getElementById('cx-salir');
     if (b) b.onclick = () => {
@@ -1084,6 +1078,9 @@
     }
     if (e.estado === 'sin-red') return ['sin-red', `Sin conexión${pend}`];
     if (e.estado === 'error') return ['error', fallo || `No sincroniza${pend}`];
+    /* Lo pesado (firmas, imágenes de planos) sigue bajando detrás (motor.js, 5-nov-2026). */
+    const t = e.trayendo;
+    if (t && t.total && t.hechas < t.total) return ['', `Bajando ${Math.round((t.hechas / t.total) * 100)} %${pend}`];
     if (e.estado === 'al-dia') return n ? ['sin-red', cambios(n)] : ['al-dia', 'Sincronizado'];
     return fallo ? ['error', fallo] : ['', 'Conectando'];
   }

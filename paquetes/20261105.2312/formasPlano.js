@@ -26,42 +26,16 @@ const L = (pares) => pares.map(([x1, y1, x2, y2]) => `<line x1="${x1}" y1="${y1}
 
 /* Las formas propias de esta pantalla, en su caja ancho × alto. */
 const PROPIAS = {
-  compuertaCF: { nombre: 'Compuerta cortafuegos (CCF)', ancho: 24, alto: 16, rect: true,
+  compuertaCF: { nombre: 'Compuerta cortafuegos', ancho: 24, alto: 16, rect: true,
     trazos: `<rect class="cuerpo" x="1" y="1" width="22" height="14" rx="1"/>${L([[1, 15, 23, 1]])}<path class="lleno" d="M1 15L1 7.5L12 15Z"/>` },
-  compuertaRegulacion: { nombre: 'Compuerta de caudal constante (CRC)', ancho: 24, alto: 16, rect: true,
+  compuertaRegulacion: { nombre: 'Compuerta de regulación', ancho: 24, alto: 16, rect: true,
     trazos: `<rect class="cuerpo" x="1" y="1" width="22" height="14" rx="1"/>${L([[6, 13, 18, 3]])}<circle class="lleno" cx="12" cy="8" r="1.7"/>` },
-  compuertaSobrepresion: { nombre: 'Compuerta de sobrepresión (CCS)', ancho: 24, alto: 16, rect: true,
+  compuertaSobrepresion: { nombre: 'Compuerta de sobrepresión', ancho: 24, alto: 16, rect: true,
     trazos: `<rect class="cuerpo" x="1" y="1" width="22" height="14" rx="1"/>${L([[4, 12, 8, 4], [10, 12, 14, 4], [16, 12, 20, 4]])}` },
   vav: { nombre: 'Regulador VAV', ancho: 30, alto: 16, rect: true,
     trazos: `<rect class="cuerpo" x="7" y="1" width="22" height="14" rx="1"/><path d="M1 4.5h6M1 11.5h6"/>${L([[13, 12, 23, 4]])}<circle class="lleno" cx="18" cy="8" r="1.6"/>` },
   filtro: { nombre: 'Filtro', ancho: 24, alto: 16, rect: true,
     trazos: '<rect class="cuerpo" x="1" y="1" width="22" height="14" rx="1"/><path d="M4 3l3 10 3-10 3 10 3-10 3 10 3-10"/>' },
-  /* Tramos (5-nov): el de conducto, un trozo de conducto en planta con su
-     junta; el de tubería, la línea con el sentido del agua, como en el I52. */
-  conducto: { nombre: 'Tramo de conducto', ancho: 30, alto: 14, rect: true,
-    trazos: '<rect class="cuerpo" x="1" y="2" width="28" height="10"/><path d="M10 2v10M20 2v10"/>' },
-  tuberia: { nombre: 'Tramo de tubería', ancho: 30, alto: 14,
-    trazos: '<path class="cuerpo" d="M1 7h28"/><path class="lleno" d="M13 3.5L19 7L13 10.5Z"/>' },
-  /* Tomas y descargas (5-nov, leyenda del I76 O03: TAA toma de aire exterior, TAE descarga): la rejilla con la flecha hacia dentro o hacia fuera. */
-  tomaAire: { nombre: 'Toma de aire exterior (TAA)', ancho: 32, alto: 18, rect: true,
-    trazos: '<rect class="cuerpo" x="1" y="1" width="30" height="16" rx="1"/><path d="M4 5h11M4 9h11M4 13h11M29 9h-6"/><path class="lleno" d="M19 9l4-3v6Z"/>' },
-  descargaAire: { nombre: 'Descarga de aire (TAE)', ancho: 32, alto: 18, rect: true,
-    trazos: '<rect class="cuerpo" x="1" y="1" width="30" height="16" rx="1"/><path d="M4 5h11M4 9h11M4 13h11M19 9h6"/><path class="lleno" d="M29 9l-4-3v6Z"/>' },
-  /* Válvulas y accesorios de tubería, con la simbología de los planos de fontanería y clima (I52). */
-  valvulaCorte: { nombre: 'Válvula de corte', ancho: 24, alto: 18,
-    trazos: '<path class="cuerpo" d="M2 5L12 11L2 17Z"/><path class="cuerpo" d="M22 5L12 11L22 17Z"/><path d="M12 11V2M8.500 2h7"/>' },
-  valvulaEquilibrado: { nombre: 'Válvula de equilibrado', ancho: 24, alto: 18,
-    trazos: '<path class="cuerpo" d="M2 5L12 11L2 17Z"/><path class="cuerpo" d="M22 5L12 11L22 17Z"/><path d="M5 17L19 2"/><path class="lleno" d="M20 1l-4.200 1 3.200 3.200Z"/>' },
-  valvula2v: { nombre: 'Válvula motorizada de 2 vías', ancho: 24, alto: 20,
-    trazos: '<path class="cuerpo" d="M2 8L12 14L2 20Z"/><path class="cuerpo" d="M22 8L12 14L22 20Z"/><path d="M12 14V7"/><rect x="7.500" y="0.500" width="9" height="6.500" rx="1"/><path d="M9.500 5.500V2.500l2.500 2 2.500-2v3"/>' },
-  valvula3v: { nombre: 'Válvula motorizada de 3 vías', ancho: 24, alto: 26,
-    trazos: '<path class="cuerpo" d="M2 8L12 14L2 20Z"/><path class="cuerpo" d="M22 8L12 14L22 20Z"/><path class="cuerpo" d="M6.500 25.500L12 14L17.500 25.500Z"/><path d="M12 14V7"/><rect x="7.500" y="0.500" width="9" height="6.500" rx="1"/><path d="M9.500 5.500V2.500l2.500 2 2.500-2v3"/>' },
-  valvulaRetencion: { nombre: 'Válvula de retención', ancho: 24, alto: 16,
-    trazos: '<path d="M1 8h6M18 8h5"/><path class="cuerpo" d="M7 2L16.500 8L7 14Z"/><path d="M17.500 2v12"/>' },
-  purgador: { nombre: 'Purgador', ancho: 16, alto: 22,
-    trazos: '<path d="M8 22v-6"/><circle class="cuerpo" cx="8" cy="10.500" r="5.500"/><path d="M8 5V1.500M5 1.500h6M6 10.500h4"/>' },
-  filtroY: { nombre: 'Filtro de agua (en Y)', ancho: 24, alto: 16,
-    trazos: '<path d="M1 5h22"/><path class="cuerpo" d="M8 5l6 9.500h3.500L11.500 5Z"/><path d="M12 9l2.500 4"/>' },
   detector: { nombre: 'Detector', ancho: 22, alto: 22,
     trazos: '<circle class="cuerpo" cx="11" cy="11" r="9.5"/><circle cx="11" cy="11" r="5"/><circle class="lleno" cx="11" cy="11" r="1.8"/>' },
   valvula: { nombre: 'Válvula', ancho: 24, alto: 16,
@@ -81,8 +55,6 @@ const NOMBRE_BOCA = { rejillaV: 'Rejilla exterior (lamas)', rejillaP: 'Rejilla i
 /** El prefijo del código CAD o del TAG («DR_04_DD03» → DR; «N60-RR-014» → RR). */
 function prefijo(m) {
   const c = String((m && m.codigo) || '').toUpperCase();
-  const cad = c.match(/^([A-Z][A-Z0-9]{1,3})_\d{2}_/); /* V2V_04_0012: la cifra va dentro del prefijo */
-  if (cad) return cad[1];
   const a = c.match(/^([A-Z]{1,4})(?=[_\-\s.\d]|$)/);
   if (a) return a[1];
   const t = String((m && m.tag) || '').toUpperCase().split(/[-_\s]/).find((p) => /^[A-Z]{1,4}$/.test(p) && !/^N\d/.test(p));
@@ -104,6 +76,7 @@ function formaDe(m) {
       if (pre === 'DF' || pre === 'DIF' || pre === 'DT') return 'cuadrado';
       return 'rotacionalR';
     case 'difusorLineal': return 'lineal';
+    case 'tobera': return 'tobera';
     case 'rejilla':
       if (pre === 'RR' || pre === 'RET' || pre === 'RA') return 'rejaRetorno';
       if (pre === 'EXT') return 'extraccion';
@@ -113,19 +86,7 @@ function formaDe(m) {
     case 'compuertaCortafuegos': return 'compuertaCF';
     case 'compuertaRegulacion': return 'compuertaRegulacion';
     case 'compuertaSobrepresion': return 'compuertaSobrepresion';
-    case 'tomaAire': return pre === 'TAE' ? 'descargaAire' : 'tomaAire';
-    case 'tobera': return pre === 'BX' ? 'extraccion' : 'tobera';
-    case 'valvula':
-      if (pre === 'V2V' || pre === 'VMZ' || pre === 'VM') return 'valvula2v';
-      if (pre === 'V3V') return 'valvula3v';
-      if (pre === 'VEQ' || pre === 'VBL' || pre === 'VE') return 'valvulaEquilibrado';
-      if (pre === 'VRT' || pre === 'VR') return 'valvulaRetencion';
-      if (pre === 'PUR' || pre === 'PA') return 'purgador';
-      if (pre === 'VC' || pre === 'VCO' || pre === 'VBO' || pre === 'VMA') return 'valvulaCorte';
-      return 'valvula';
-    case 'filtro': return pre === 'FY' || pre === 'FAG' ? 'filtroY' : 'filtro';
-    case 'conducto': case 'tuberia':
-    case 'vav': case 'detector': case 'valvula': case 'actuador': case 'sonda': return tipo;
+    case 'vav': case 'filtro': case 'detector': case 'valvula': case 'actuador': case 'sonda': return tipo;
     default: return 'generico';
   }
 }
@@ -196,9 +157,6 @@ const REAL_MM = {
   rejillaH: [400, 200], rejaRetorno: [600, 300], rejillaV: [1000, 500], rejillaP: [400, 200],
   compuertaCF: [400, 300], compuertaRegulacion: [400, 300], compuertaSobrepresion: [300, 200],
   vav: [900, 350], filtro: [600, 600], detector: [100, 100], valvula: [200, 120], actuador: [150, 150], sonda: [80, 110],
-  conducto: [900, 420], tuberia: [600, 280],
-  tomaAire: [1000, 500], descargaAire: [1000, 500], valvulaCorte: [200, 150], valvulaEquilibrado: [220, 165], valvula2v: [200, 170],
-  valvula3v: [220, 240], valvulaRetencion: [200, 130], purgador: [80, 110], filtroY: [220, 150],
 };
 const CARA_REDONDA = new Set(['rotacional', 'rotacionalR', 'cuadrado', 'conos']);
 
@@ -284,7 +242,7 @@ function cajaEnPlano(m, plano, mmPorPx) {
  * El icono es cuadrado, así que basta un lado.
  */
 const EQUIPO_MM = {
-  uta: 3000, hru: 1400, bombaCalor: 3000, colector: 1200, deposito: 900, cajaVentilacion: 900, extintor: 350, fancoil: 800, vrfInt: 800, vrfConductos: 800, splitInt: 900, vrfExt: 1300, splitExt: 900,
+  uta: 3000, hru: 1400, fancoil: 800, vrfInt: 800, splitInt: 900, vrfExt: 1300, splitExt: 900,
   rooftop: 2500, crac: 1200, chiller: 4000, bomba: 600, ventilador: 450, agua: 500, generico: 600,
 };
 /** La caja de un equipo en el plano: { wf, ar: 1, mm } (wf, fracción del ancho del plano). */
