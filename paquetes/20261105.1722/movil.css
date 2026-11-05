@@ -1976,3 +1976,34 @@ input.mal { box-shadow: var(--sombra-campo), 0 0 0 3px var(--mal-fondo) !importa
 .segmentos { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; overscroll-behavior-x: contain; touch-action: pan-x; }
 .segmentos::-webkit-scrollbar { display: none; }
 .segmentos a { flex: 0 0 auto; white-space: nowrap; }
+
+/* Jornada (#jornada, 5-nov): tablas como Excel, cabecera sin fondo con texto y línea teal. */
+.jo-vistas { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 10px; }
+.jo-vistas button { border: 1px solid var(--acento); background: none; color: var(--acento); border-radius: 999px; padding: 5px 12px; font-size: 13px; font-weight: 600; width: fit-content; }
+.jo-vistas button.activa { background: var(--acento); color: #fff; }
+.jo-bloque { margin: 6px 0 12px; }
+.jo-linea { margin: 4px 0; font-size: 14px; }
+.jo-aviso { margin: 4px 0; font-size: 13px; color: #B3261E; }
+.jo-aviso.info { color: var(--teal, #006A71); }
+.jo-botones { margin: 10px 0; }
+.jo-buscar { width: 100%; box-sizing: border-box; padding: 9px 10px; font-size: 15px; border: 1px solid var(--rejilla); border-radius: 8px; }
+.jo-tabla { width: 100%; border-collapse: collapse; font-size: 13px; margin: 6px 0 12px; }
+.jo-tabla th { text-align: left; font-size: 12px; font-weight: 700; color: var(--acento); background: none; border-bottom: 1.5px solid var(--acento); padding: 4px 6px; }
+.jo-tabla td { border-bottom: 1px solid var(--rejillaSuave); padding: 4px 6px; vertical-align: top; }
+.jo-tabla .num { text-align: right; font-variant-numeric: tabular-nums; }
+.jo-tabla tfoot td { font-weight: 700; border-top: 1.5px solid var(--acento); border-bottom: 0; }
+.jo-tabla tr.finde td { color: #6B7C7A; }
+.jo-tabla tr.propuesta td { background: var(--acento-suave); }
+.jo-tabla td.jo-accion { text-align: right; white-space: nowrap; }
+.jo-tabla td.jo-accion input { width: 100%; box-sizing: border-box; margin-bottom: 4px; }
+.jo-et { display: inline-block; border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 600; width: fit-content; }
+.jo-et.bien { background: #E3F4EA; color: #1E7B45; }
+.jo-et.info { background: #E4EEF9; color: #1F5FA8; }
+.jo-et.aviso { background: #E6F4F2; color: #178276; }
+.jo-et.mal { background: #FBE7E6; color: #B3261E; }
+.jo-et.neutra { background: none; color: #46605D; border: 1px solid var(--rejilla); }
+.jo-mes { display: flex; align-items: center; gap: 12px; margin: 6px 0; }
+.jo-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.jo-form label { display: flex; flex-direction: column; font-size: 12px; color: var(--acento); gap: 3px; }
+.jo-form input, .jo-form select { padding: 7px 8px; font-size: 15px; border: 1px solid var(--rejilla); border-radius: 8px; }
+.jo-form .boton { grid-column: 1 / -1; }
