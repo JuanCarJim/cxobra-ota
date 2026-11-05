@@ -518,6 +518,8 @@
       pintarFicha();
       window.scrollTo(0, quieto ? y : 0);
       cargarFichas(id);
+      if (!quieto) incEq = null;
+      cargarIncidenciasEq(r);
     } catch (e) { C.aviso(e.message); cargarLista(); }
   }
 
@@ -716,26 +718,96 @@
     location.hash = 'reparaciones';
   }
 
-  /* Dos papeles distintos (5-nov-2026, JC: «la toma de datos está hecha y dice
-     que no está la ficha de puesta en marcha»): la FICHA PM es la de la app (la
-     toma de datos; en un split, la de la UI), k.fichaPMHecha; la HOJA PM es la
-     del fabricante en el SharePoint, k.fichaPM. Antes la fila «Ficha PM» pintaba
-     la hoja y salía ✗ con la ficha hecha. */
-  function fichaPMApp(k, si) {
-    const e = k.fichaPMHecha;
-    if (e === 'hecha') return si(true);
-    if (e === 'noApta') return '<strong class="aviso">Con reservas</strong>';
-    if (e === 'noAplica') return '<span class="tenue">No aplica</span>';
-    return si(false);
+  /*
+   * LA LÍNEA DE ESTADO Y LAS INCIDENCIAS DEL EQUIPO (5-nov-2026, JC, opción B):
+   * el teléfono sigue con sus pantallas de campo (Equipo · Balanceo · Fichas)
+   * y lleva, como la ficha del escritorio y la web, la misma línea de estado
+   * («PM ✓ · Balanceo pendiente · Estanqueidad ✓ · Listo para la DF») y una
+   * pantalla «Incidencias» con las reparaciones de este equipo y de su conjunto.
+   * Las reglas son las de shared/commissioning/fichaEquipo.js.
+   */
+  const FE = () => window.FICHA_EQUIPO_CX || null;
+  function estadoParaLinea(f) {
+    const k = f.checklist;
+    if (!k) return null;
+    /* El balanceo sale como en «Documentación y estado»: sin plano que medir y sin empezar, no se dice pendiente. */
+    let req = k.ensayoRequerido || 'ninguno';
+    const med = f.medicion;
+    if (med && !med.plano && (!k.balanceoEstado || k.balanceoEstado === 'pendiente')) req = req === 'ambos' ? 'estanqueidad' : req === 'balanceo' ? 'ninguno' : req;
+    const cj = f.conjunto;
+    return {
+      estadoPM: (cj && cj.estadoPM) || k.estadoPM, ensayoRequerido: req,
+      balanceoEstado: k.balanceoEstado, estanqueidadEstado: k.estanqueidadEstado,
+      envio: cj ? cj.envio : k.envio, falta: (cj ? cj.falta : k.falta) || [],
+    };
   }
+  function htmlLineaEstado(f) {
+    const fe = FE();
+    const datos = fe && estadoParaLinea(f);
+    const trozos = datos ? fe.lineaEstado(datos, { nombrePM: nombreEstado }) : [];
+    return trozos.length ? `<p class="linea-estado-eq">${trozos.map((t) => `<span class="chip ${esc(t.tono)}">${esc(t.texto)}</span>`).join('')}</p>` : '';
+  }
+
+  /* Las reparaciones de la obra se piden al abrir el equipo y se filtran aquí (las de sus unidades también). */
+  let incEq = null; /* { equipoId, ok, filas, error } */
+  const idsDelEquipo = (f) => [f.equipo.id, ...(((f.conjunto && f.conjunto.unidades) || []).map((u) => u.id))];
+  async function cargarIncidenciasEq(f) {
+    const id = f.equipo.id;
+    if (incEq && incEq.equipoId === id && (incEq.ok || incEq.cargando)) return;
+    incEq = { equipoId: id, cargando: true, filas: [] };
+    let r;
+    try { r = await C.pedir(`api/reparaciones?obra=${encodeURIComponent(C.obraId())}`); } catch (e) { r = { ok: false, error: e.message }; }
+    if (!ficha || ficha.equipo.id !== id) return;
+    const fe = FE();
+    incEq = r && r.ok && fe
+      ? { equipoId: id, ok: true, filas: fe.incidenciasDe(r.filas || [], idsDelEquipo(ficha), { activa: (i) => i.activa !== false }) }
+      : { equipoId: id, ok: false, error: (r && r.error) || 'No se pueden ver las reparaciones.', filas: [] };
+    if (!activa() || hoja || firmando || escribiendoEnApp()) return;
+    if (pestanaEq === 'incidencias') { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); return; }
+    const fila = document.getElementById('entrada-incidencias');
+    if (fila && pestanaEq === 'equipo') fila.outerHTML = htmlEntradaIncidencias();
+  }
+  /* La fila que lleva a la pantalla Incidencias, en la del equipo. */
+  function htmlEntradaIncidencias() {
+    const listo = incEq && ficha && incEq.equipoId === ficha.equipo.id && !incEq.cargando;
+    const filas = listo && incEq.ok ? incEq.filas : [];
+    const abiertas = filas.filter((i) => i.activa !== false).length;
+    const chip = listo && incEq.ok ? `<span class="chip ${abiertas ? 'mal' : filas.length ? 'bien' : 'neutra'}">${abiertas ? `${abiertas} abierta${abiertas === 1 ? '' : 's'}` : filas.length}</span>` : '';
+    const sub = !listo ? 'Buscando sus reparaciones…'
+      : !incEq.ok ? incEq.error
+      : !filas.length ? 'Sin reparaciones: este equipo no tiene ninguna incidencia.'
+      : filas.slice(0, 3).map((i) => i.codigo || i.titulo).filter(Boolean).join(' · ');
+    return `<section id="entrada-incidencias">
+      <ul class="lista-ios"><li><button class="fila-ios" data-cx="ver-incidencias">
+        <div class="fila-principal"><strong>Incidencias</strong><span>${chip}</span></div>
+        <div class="sub">${esc(sub)}</div>
+      </button></li></ul>
+    </section>`;
+  }
+  /* La pantalla Incidencias: las abiertas primero; cada una abre su reparación. */
+  function htmlPantallaIncidencias(f) {
+    const listo = incEq && incEq.equipoId === f.equipo.id && !incEq.cargando;
+    const varias = idsDelEquipo(f).length > 1;
+    const lista = !listo ? '<p class="cargando">Buscando sus reparaciones…</p>'
+      : !incEq.ok ? `<p class="nota aviso">${esc(incEq.error)}</p>`
+      : !incEq.filas.length ? '<p class="vacio">Sin reparaciones: este equipo no tiene ninguna incidencia.</p>'
+      : `<ul class="lista-ios">${incEq.filas.map((i) => `<li><button class="fila-ios" data-cx="ir-incidencia" data-id="${esc(i.id)}">
+          <div class="fila-principal"><strong>${esc(i.codigo || '—')}${i.titulo ? ` · ${esc(i.titulo)}` : ''}</strong><span class="chip ${i.activa !== false ? (i.estado === 'terminada' ? 'aviso' : 'mal') : 'bien'}">${esc(i.estadoNombre || i.estado || '')}</span></div>
+          <div class="sub">${[varias && i.equipo ? i.equipo.tag : '', i.fechaApertura ? fechaCorta(i.fechaApertura) : '', i.encargado || ''].filter(Boolean).map(esc).join(' · ')}</div>
+        </button></li>`).join('')}</ul>`;
+    const crear = f.incidenciaEquipo && f.incidenciaEquipo.puedeCrear
+      ? '<div class="fila-botones"><button type="button" class="boton" data-cx="crear-incidencia">Crear incidencia de este equipo</button></div>' : '';
+    /* Los bloqueos y el «Validado tras incidencia», sin su botón de crear (va abajo, con el nombre largo). */
+    const avisos = htmlIncidenciaEquipo({ ...f, incidenciaEquipo: f.incidenciaEquipo ? { ...f.incidenciaEquipo, puedeCrear: false } : null });
+    return `${avisos}${lista}${crear}`;
+  }
+
   function checklist(k, med, puede = false) {
     if (!k) return '';
     /* Sin fila «Ensayo» (16-oct, JC): el balanceo y la estanqueidad salen solo
        si el equipo los lleva. Un split o una enfriadora no llevan balanceo de bocas. */
     const req = k.ensayoRequerido || 'ninguno';
-    /* Lo que se enseña: lo decidido o, con la toma de datos hecha, «En proceso» (5-nov). */
-    const balVisto = k.balanceoVisto || k.balanceoEstado || 'pendiente';
-    const sinBal = med && !med.plano && balVisto === 'pendiente';
+    const sinBal = med && !med.plano && (!k.balanceoEstado || k.balanceoEstado === 'pendiente');
     const pideBal = (req === 'balanceo' || req === 'ambos') && !sinBal;
     const pideEst = req === 'estanqueidad' || req === 'ambos' || Boolean(k.estanqueidad);
     const si = (v) => (v ? '<span class="ok">✓</span>' : '<span class="no">✗</span>');
@@ -751,9 +823,8 @@
         ${fila('Ficha técnica', si(k.ft))}
         ${fila('Certificado CE', si(k.ce))}
         ${fila('Manual', si(k.manual))}
-        ${fila('Ficha PM', fichaPMApp(k, si))}
-        ${fila('Hoja PM fabricante', si(k.fichaPM))}
-        ${pideBal ? fila('Balanceo', `<strong>${esc(nombreEstado(balVisto))}</strong>`) : ''}
+        ${fila('Ficha PM', si(k.fichaPM))}
+        ${pideBal ? fila('Balanceo', `<strong>${esc(nombreEstado(k.balanceoEstado || 'pendiente'))}</strong>`) : ''}
         ${pideEst ? fila('Estanqueidad', `<strong>${esc(nombreEstado(est))}</strong>`) : ''}
         ${filaPuestaEnMarcha(k, fila)}
         ${htmlFechasEquipo(k, puede, fila)}
@@ -1091,23 +1162,26 @@
      * El conjunto (split, VRF) es un solo commissioning: no salen sus unidades.
      */
     const cuerpo = pestanaEq === 'balanceo' ? balanceo()
+      : pestanaEq === 'incidencias' ? `${htmlLineaEstado(f)}${htmlPantallaIncidencias(f)}`
       : pestanaEq === 'fichas' ? `${htmlNotaConjunto(f.conjunto)}
       ${htmlIncidenciaEquipo(f)}
       ${htmlFichas('equipo', 'Fichas del equipo')}
       ${htmlTomaDatos()}
       ${htmlConservadas()}`
-      : `${htmlNotaConjunto(f.conjunto)}
+      : `${htmlLineaEstado(f)}
+      ${htmlNotaConjunto(f.conjunto)}
       ${htmlNumSerie(e, f.conjunto, puede)}
       ${htmlIncidenciaEquipo(f)}
       ${htmlFichas('equipo', 'Fichas del equipo')}
+      ${htmlEntradaIncidencias()}
       ${htmlUnidadesInteriores(f, puede)}
-      ${htmlPrepararArchivo(f)}
       ${htmlFotosEquipo(f, puede)}
       ${checklist(f.checklist, f.medicion, puede)}`;
     const sub = [e.planta, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
     $app.innerHTML = `
       ${pestanaEq === 'balanceo' ? tagFijo(e.tag, tituloMedicion(f), 'ficha-equipo')
         : pestanaEq === 'fichas' ? tagFijo(e.tag, 'Fichas del equipo', 'ficha-equipo')
+        : pestanaEq === 'incidencias' ? tagFijo(e.tag, 'Incidencias', 'ficha-equipo')
         : tagFijo(e.tag, sub, 'atras')}
       <div class="densa">${cuerpo}</div>`;
     C.cargarImagenes($app);
@@ -1450,11 +1524,7 @@
     /* La localización en plano (29-oct-2026, JC): el recorte del plano, delante de las fotos hechas. */
     const loc = (f.localizacion || []).map((x) => `<li class="localizacion-plano"><img data-src="${esc(x.url)}" alt="Localización en plano">
         <div class="pie"><span>${esc(x.pie || 'Localización en plano')}</span></div></li>`).join('');
-    /* Sin símbolo en el dibujo, la marca está en el rótulo (5-nov-2026): no se pinta, se dice. */
-    const pc = f.localizacionPorConfirmar || [];
-    const porConfirmar = pc.length ? `<p class="nota localizacion-por-confirmar">Localización en plano por confirmar: ${esc(pc.map((u) => `${u.etiqueta}${u.planta ? ` (${u.planta})` : ''}`).join(', '))} — ${esc(pc[0].motivo)}.</p>` : '';
     return `<h2>Fotos del equipo <span class="cuenta">${total}</span></h2>
-      ${porConfirmar}
       ${enCola.length ? `<p class="nota">${marcaAG('sinRed')} ${enCola.length === 1 ? 'Una foto está' : `${enCola.length} fotos están`} solo en el móvil: se subirá${enCola.length === 1 ? '' : 'n'} sola${enCola.length === 1 ? '' : 's'} al volver la conexión.</p>` : ''}
       ${total || loc ? `<ul class="fotos-equipo">${loc}${fotos.map((x) => `<li><img data-src="${esc(x.url || `api/equipo/foto?id=${encodeURIComponent(x.id)}`)}" alt="${esc(x.pie || 'Foto')}">
         <div class="pie"><span>${pieDe(x)}</span>${marca(x)}${puede && (x.origen || 'equipo') === 'equipo' ? `<button class="enlace mal" data-cx="quitar-foto-equipo" data-id="${esc(x.id)}">Quitar</button>` : ''}</div></li>`).join('')}${enCola.map((x) => `<li class="en-movil"><img data-local="${esc(x.local)}" alt="${esc(x.pie || 'Foto')}">
@@ -2008,7 +2078,6 @@
   const RESULTADO = { apto: ['bien', 'APTO'], aRevisar: ['aviso', 'A REVISAR'], noApto: ['mal', 'NO APTO'] };
   /* «A medias» sin un solo dato relleno se contradice (JC, 29-oct): sin datos, «Sin empezar». */
   /* Y al revés (JC, 29-oct): «2 de 2 datos» y «A medias» se contradicen: entera, «Completa». */
-  /* La misma regla está en shared/commissioning/archivoPreparado.js, para «Preparar archivo» (y su ruta). */
   const estadoVisible = (estado, medidos, bocasSinMedir) => {
     if (estado !== 'pendiente' || !medidos) return estado;
     if (!medidos.rellenos) return 'sinEmpezar';
@@ -2059,50 +2128,6 @@
     const q = new URLSearchParams({ tipo: 'ficha', obra, clave: x.clave, plantilla: x.plantilla });
     const tag = ficha ? ficha.equipo.tag : '';
     await compartirPdf(`api/informe?${q}`, `${[tag, x.nombre].filter(Boolean).join(' - ')}${esDefinitiva(x) ? '' : ' (BORRADOR)'}.pdf`, b);
-  }
-
-  /*
-   * «PREPARAR ARCHIVO» (5-nov-2026, JC): con todas las hojas listas (Definitiva),
-   * un PDF con todas, en el orden de la lista, que el jefe de obra descarga en
-   * el ordenador o la web (Commissioning › Entregas) para mandarlo. Aquí solo
-   * se mira lo que ya está cargado: el PDF se hace al pulsar, nunca al abrir.
-   * Si falta algo, no hay botón: una línea discreta con lo que falta.
-   */
-  function estadoArchivo(f) {
-    if (!fichasEq || fichasEq.ok === false || !f || !window.ARCHIVO_PREPARADO) return null;
-    const lista = (f.planos || []).flatMap((p) => p.bocas || []);
-    const balanceo = tieneBalanceo(f);
-    const bocas = lista.length ? { total: lista.length, medidas: lista.filter((b) => b.caudal !== null && b.caudal !== undefined).length, fuera: lista.filter((b) => b.estado === 'alto' || b.estado === 'bajo').length } : null;
-    return { ...window.ARCHIVO_PREPARADO.listo(fichasEq.fichas || [], { balanceo, bocas }), balanceo, bocas };
-  }
-  function htmlPrepararArchivo(f) {
-    const est = estadoArchivo(f);
-    if (!est || !fichasEq.puedeEditar || !est.hojas.length) return '';
-    const hecho = fichasEq.archivo;
-    const yaHecho = hecho ? `<p class="nota archivo-hecho">Preparado el ${esc(C.fechaEs(hecho.creadoEn))}${hecho.creadoPorNombre ? ` por ${esc(hecho.creadoPorNombre)}` : ''} · ${hecho.hojas.length} hoja${hecho.hojas.length === 1 ? '' : 's'} · <button type="button" class="enlace" data-cx="ver-archivo" data-id="${esc(hecho.id)}">Ver</button></p>` : '';
-    if (!est.listo) {
-      const faltan = est.faltan.slice(0, 2).join(' · ') + (est.faltan.length > 2 ? ` · y ${est.faltan.length - 2} más` : '');
-      return `<section id="archivo-equipo">${yaHecho}<p class="nota">Para preparar el archivo falta: ${esc(faltan)}.</p></section>`;
-    }
-    return `<section id="archivo-equipo">
-      <button class="boton${hecho ? ' secundario' : ''}" data-cx="preparar-archivo"><i class="ic ic-doc"></i>${hecho ? 'Volver a preparar archivo' : 'Preparar archivo'}</button>
-      ${yaHecho || `<p class="nota">Las ${est.hojas.length} hojas en un PDF, en este orden, para descargarlo en el ordenador.</p>`}
-    </section>`;
-  }
-  async function prepararArchivo(b) {
-    const est = estadoArchivo(ficha);
-    if (!est || !est.listo) return;
-    b.disabled = true;
-    const texto = b.innerHTML;
-    b.textContent = 'Preparando…';
-    try {
-      const r = await C.postJson('api/equipo/preparar-archivo', { equipoId: ficha.equipo.id, balanceo: est.balanceo, bocas: est.bocas });
-      if (!r.ok) throw new Error(r.error);
-      fichasEq.archivo = r.archivo;
-      C.aviso(`Archivo preparado (${r.archivo.hojas.length} hojas): sube con la sincronización y el jefe de obra lo descarga en el ordenador.`, 'bien');
-      if (activa()) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
-      await compartirPdf(`api/equipo/archivo-preparado?id=${encodeURIComponent(r.archivo.id)}`, r.archivo.nombre);
-    } catch (e) { C.aviso(e.message); b.disabled = false; b.innerHTML = texto; }
   }
 
   function htmlFichas(pestana = 'equipo', titulo = 'Fichas del equipo') {
@@ -3451,6 +3476,7 @@
     }
     /* Ya no hay botón: la subpantalla (toma de datos y guardadas antes) queda para quien la invoque. */
     else if (que === 'ver-fichas' && ficha) { document.body.classList.remove('sin-scroll'); pestanaEq = 'fichas'; pintarFicha(); window.scrollTo(0, 0); if (fichasEq) cargarTomas(ficha.equipo.id); }
+    else if (que === 'ver-incidencias' && ficha) { document.body.classList.remove('sin-scroll'); pestanaEq = 'incidencias'; pintarFicha(); window.scrollTo(0, 0); cargarIncidenciasEq(ficha); }
     else if (que === 'ficha-equipo' && ficha && directoPlano && origenPlano) volverAlPlano();
     else if (que === 'ficha-equipo' && ficha) { document.body.classList.remove('sin-scroll'); pestanaEq = 'equipo'; pintarFicha(); window.scrollTo(0, 0); }
     else if (que === 'hoja') abrirHoja(Number(b.dataset.i));
@@ -3512,8 +3538,6 @@
     else if (que === 'quitar-firma' && ficha) guardarFirma(b, true);
     else if (que === 'quitar-foto-equipo') quitarFotoEquipo(b);
     else if (que === 'ver-hoja') verHoja(b);
-    else if (que === 'preparar-archivo' && ficha) prepararArchivo(b);
-    else if (que === 'ver-archivo' && ficha) compartirPdf(`api/equipo/archivo-preparado?id=${encodeURIComponent(b.dataset.id)}`, (fichasEq && fichasEq.archivo && fichasEq.archivo.nombre) || 'Archivo.pdf', b);
     else if (que === 'nube-ahora' && window.cxObra && window.cxObra.sync) { b.disabled = true; window.cxObra.sync.ahora().finally(() => { if (ficha) abrir(ficha.equipo.id, { quieto: true }); }); }
     else if (que === 'crono' && ficha) accionCrono(b, b.dataset.accion);
     else if (que === 'crono-anadir' && ficha) { const g = leerCuadrilla(); g.push({ nombre: `Operario ${g.filter((p) => p.rol === 'operario').length + 1}`, rol: 'operario', empresa: (g[g.length - 1] || {}).empresa || null }); cuadrillaLocal.cambiada = true; cuadrillaLocal.estado = 'guardando'; repintarCrono(); cuadrillaPronto(); }

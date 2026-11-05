@@ -29,10 +29,10 @@
   --marca-midnight-tinte: #778F9C;
 
   /* ── Interfaz (tema claro) ────────────────────────────────────── */
-  --papel: #F2FAF8;
+  --papel: #F4F6F5;
   --panel: #FFFFFF;
-  --panel2: #DCEFEA;
-  --panel3: #DCEFEA;
+  --panel2: #EEF2F0;
+  --panel3: #E3EAE7;
   /* Barras de pestañas: la principal en verde claro, la subbarra en azul-teal claro. */
   --barraPrincipal: #0E5A5A; --barraPrincipalTxt: #E3F4F2; --barraPrincipalBorde: #0A4545;
   --barraSub: #CFEDEA; --barraSub2: #E4F5F3; --barraSubTxt: #0B4A4A; --barraSubBorde: #A9D8D3; --barraSubAct: #17807C;
@@ -44,7 +44,7 @@
   --textoTenue: #63706D;
   --seleccion: #DFF0E8;
   --bandaCapitulo: #C0D4CB;
-  --bandaCapitulo2: #DCEFEA;
+  --bandaCapitulo2: #E3EAE7;
   /* Capítulos de las hojas (15-oct, JC: «un fondo mucho más oscuro y
      diferenciado»). El de primer nivel, verde CBRE con letra blanca; el
      subcapítulo, en el tono intermedio de antes. */
@@ -63,7 +63,7 @@
   --dtmOrigenTexto: var(--marca-verde);
   --dtmResumen: var(--capOscuro);
   --dtmResumenTexto: var(--capOscuroTexto);
-  --destacado: #DCEFEA;
+  --destacado: #EDF5F1;
   --destacadoCabeza: #D6E9E1;
   --destacadoBorde: #A9CFC2;
   --foco: #003F2D;
