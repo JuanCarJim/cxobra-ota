@@ -716,12 +716,26 @@
     location.hash = 'reparaciones';
   }
 
+  /* Dos papeles distintos (5-nov-2026, JC: «la toma de datos está hecha y dice
+     que no está la ficha de puesta en marcha»): la FICHA PM es la de la app (la
+     toma de datos; en un split, la de la UI), k.fichaPMHecha; la HOJA PM es la
+     del fabricante en el SharePoint, k.fichaPM. Antes la fila «Ficha PM» pintaba
+     la hoja y salía ✗ con la ficha hecha. */
+  function fichaPMApp(k, si) {
+    const e = k.fichaPMHecha;
+    if (e === 'hecha') return si(true);
+    if (e === 'noApta') return '<strong class="aviso">Con reservas</strong>';
+    if (e === 'noAplica') return '<span class="tenue">No aplica</span>';
+    return si(false);
+  }
   function checklist(k, med, puede = false) {
     if (!k) return '';
     /* Sin fila «Ensayo» (16-oct, JC): el balanceo y la estanqueidad salen solo
        si el equipo los lleva. Un split o una enfriadora no llevan balanceo de bocas. */
     const req = k.ensayoRequerido || 'ninguno';
-    const sinBal = med && !med.plano && (!k.balanceoEstado || k.balanceoEstado === 'pendiente');
+    /* Lo que se enseña: lo decidido o, con la toma de datos hecha, «En proceso» (5-nov). */
+    const balVisto = k.balanceoVisto || k.balanceoEstado || 'pendiente';
+    const sinBal = med && !med.plano && balVisto === 'pendiente';
     const pideBal = (req === 'balanceo' || req === 'ambos') && !sinBal;
     const pideEst = req === 'estanqueidad' || req === 'ambos' || Boolean(k.estanqueidad);
     const si = (v) => (v ? '<span class="ok">✓</span>' : '<span class="no">✗</span>');
@@ -737,8 +751,9 @@
         ${fila('Ficha técnica', si(k.ft))}
         ${fila('Certificado CE', si(k.ce))}
         ${fila('Manual', si(k.manual))}
-        ${fila('Ficha PM', si(k.fichaPM))}
-        ${pideBal ? fila('Balanceo', `<strong>${esc(nombreEstado(k.balanceoEstado || 'pendiente'))}</strong>`) : ''}
+        ${fila('Ficha PM', fichaPMApp(k, si))}
+        ${fila('Hoja PM fabricante', si(k.fichaPM))}
+        ${pideBal ? fila('Balanceo', `<strong>${esc(nombreEstado(balVisto))}</strong>`) : ''}
         ${pideEst ? fila('Estanqueidad', `<strong>${esc(nombreEstado(est))}</strong>`) : ''}
         ${filaPuestaEnMarcha(k, fila)}
         ${htmlFechasEquipo(k, puede, fila)}
@@ -1435,7 +1450,11 @@
     /* La localización en plano (29-oct-2026, JC): el recorte del plano, delante de las fotos hechas. */
     const loc = (f.localizacion || []).map((x) => `<li class="localizacion-plano"><img data-src="${esc(x.url)}" alt="Localización en plano">
         <div class="pie"><span>${esc(x.pie || 'Localización en plano')}</span></div></li>`).join('');
+    /* Sin símbolo en el dibujo, la marca está en el rótulo (5-nov-2026): no se pinta, se dice. */
+    const pc = f.localizacionPorConfirmar || [];
+    const porConfirmar = pc.length ? `<p class="nota localizacion-por-confirmar">Localización en plano por confirmar: ${esc(pc.map((u) => `${u.etiqueta}${u.planta ? ` (${u.planta})` : ''}`).join(', '))} — ${esc(pc[0].motivo)}.</p>` : '';
     return `<h2>Fotos del equipo <span class="cuenta">${total}</span></h2>
+      ${porConfirmar}
       ${enCola.length ? `<p class="nota">${marcaAG('sinRed')} ${enCola.length === 1 ? 'Una foto está' : `${enCola.length} fotos están`} solo en el móvil: se subirá${enCola.length === 1 ? '' : 'n'} sola${enCola.length === 1 ? '' : 's'} al volver la conexión.</p>` : ''}
       ${total || loc ? `<ul class="fotos-equipo">${loc}${fotos.map((x) => `<li><img data-src="${esc(x.url || `api/equipo/foto?id=${encodeURIComponent(x.id)}`)}" alt="${esc(x.pie || 'Foto')}">
         <div class="pie"><span>${pieDe(x)}</span>${marca(x)}${puede && (x.origen || 'equipo') === 'equipo' ? `<button class="enlace mal" data-cx="quitar-foto-equipo" data-id="${esc(x.id)}">Quitar</button>` : ''}</div></li>`).join('')}${enCola.map((x) => `<li class="en-movil"><img data-local="${esc(x.local)}" alt="${esc(x.pie || 'Foto')}">
