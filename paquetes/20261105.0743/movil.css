@@ -195,6 +195,12 @@ small, .sub { color: var(--textoTenue); font-size: 13px; }
 .nota.inc-aviso { color: var(--aviso); background: var(--aviso-fondo); padding: 10px 14px; border-radius: var(--radio); }
 .nota.inc-aviso .enlace { font-weight: 600; }
 .cargando { color: var(--textoTenue); text-align: center; padding: 48px 8px; }
+/* 5-nov (JC): mientras carga, solo el logo animado y centrado (la bolita de Cx
+   sube por la V, salta y bota). El texto «Cargando…» se queda para el lector de pantalla. */
+p.cargando { min-height: 70vh; display: flex; align-items: center; justify-content: center;
+  font-size: 0; color: transparent; padding: 0; }
+p.cargando::before { content: ''; display: block; width: 105px; height: 120px;
+  background: url('iconos/cargando.svg') center / contain no-repeat; }
 
 /* El estado vacío, igual en todas las listas (el EmptyState de CoachIn): un
    círculo gris con el icono y el texto debajo, centrado y con aire. */
@@ -204,6 +210,7 @@ small, .sub { color: var(--textoTenue); font-size: 13px; }
   background: var(--panel3) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A0A0A0' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 13.5 6 5.5h12l2.5 8v4a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5z'/%3E%3Cpath d='M3.5 13.5h5l1 2h5l1-2h5'/%3E%3C/svg%3E") center / 30px no-repeat;
 }
 .vacio p { margin: 0 0 14px; }
+.vacio .sub { font-size: 14px; font-weight: 400; color: var(--textoSuave); }
 .vacio.mal { color: var(--mal); }
 .vacio.mal::before {
   background: var(--mal-fondo) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C62828' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.5 2.8 19.5h18.4z'/%3E%3Cpath d='M12 10v4.5M12 17v.1'/%3E%3C/svg%3E") center / 32px no-repeat;
@@ -275,7 +282,7 @@ input, select, textarea {
 select { -webkit-appearance: none; appearance: none; padding-right: 36px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23767676' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3C/svg%3E");
   background-position: right 12px center; background-size: 18px; background-repeat: no-repeat; }
-input::placeholder, textarea::placeholder { color: #9A9A9A; }
+input::placeholder, textarea::placeholder { color: var(--textoSuave); }
 input:focus, select:focus, textarea:focus { outline: 0; background-color: var(--panel); border-color: var(--acento); box-shadow: 0 0 0 4px var(--acento-suave); }
 .notas { margin-top: 18px; }
 
@@ -323,7 +330,7 @@ li.aviso { color: var(--aviso); }
 .resultado .sub { color: var(--textoTenue); }
 .avisos { padding-left: 20px; font-size: 15px; }
 .tabla-resultado { width: 100%; border-collapse: collapse; margin: 14px 0; background: var(--panel); border-radius: var(--radio-tarjeta); box-shadow: var(--sombra); overflow: hidden; font-size: 14px; }
-.tabla-resultado th { text-align: left; font-size: 12px; color: var(--textoTenue); font-weight: 500; padding: 10px 12px; border-bottom: 1px solid var(--rejillaSuave); }
+.tabla-resultado th { text-align: left; font-size: 12px; color: var(--acento-fuerte); font-weight: 700; padding: 10px 12px; border-bottom: 1.5px solid var(--acento); }
 .tabla-resultado td { padding: 10px 12px; border-bottom: 1px solid var(--rejillaSuave); }
 .tabla-resultado tr:last-child td { border-bottom: 0; }
 .tabla-resultado td:nth-child(2), .tabla-resultado td:nth-child(3) { text-align: right; }
@@ -789,8 +796,8 @@ details.grupo-lista[open] > summary { margin-bottom: 6px; }
 .con-unidad { position: relative; display: block; }
 .con-unidad input { margin: 0; min-height: 56px; padding: 8px 46px 8px 10px; text-align: right; font-size: 22px; font-weight: 600;
   font-variant-numeric: tabular-nums; background: var(--panel); border-color: var(--acento); }
-.con-unidad i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--textoTenue); pointer-events: none; }
-.con-unidad.pequeno input { min-height: 40px; font-size: 16px; font-weight: 500; border-color: var(--borde); padding-right: 50px; }
+.con-unidad i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 14px; color: var(--textoSuave); pointer-events: none; }
+.con-unidad.pequeno input { min-height: 44px; font-size: 16px; font-weight: 500; border-color: var(--borde); padding-right: 50px; }
 .bal-metodo { padding: 10px 16px 14px; border-top: 1px solid var(--rejillaSuave); }
 .respuestas.segmento { gap: 0; margin-top: 6px; border: 1.5px solid var(--acento); border-radius: 12px; overflow: hidden; }
 .respuestas.segmento button { border: 0; border-radius: 0; min-height: 48px; font-size: 14px; color: var(--acento-fuerte); }
@@ -866,7 +873,7 @@ main:has(.densa) { max-width: 1040px; padding-top: 0; }
 .hoja-tabla input.cifra { text-align: right; font-variant-numeric: tabular-nums; }
 .hoja-tabla .et { font-size: 13.5px; line-height: 1.25; color: var(--texto); min-width: 0; }
 .hoja-tabla .et .tenue { color: var(--textoTenue); font-size: 12px; }
-.hoja-tabla .num { display: inline-block; min-width: 22px; color: var(--textoTenue); font-size: 12px; font-variant-numeric: tabular-nums; }
+.hoja-tabla .num { display: inline-block; min-width: 22px; color: var(--textoSuave); font-size: 13px; font-variant-numeric: tabular-nums; }
 .hoja-tabla .obligatorio { font-size: 12px; }
 input.mal { box-shadow: 0 0 0 2px var(--mal-fondo) !important; }
 
@@ -898,17 +905,17 @@ input.mal { box-shadow: 0 0 0 2px var(--mal-fondo) !important; }
 
 /* Parámetros: Proyecto | Fabricante | Medido una vez arriba, una fila por punto. */
 .pp { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, 68px); gap: 6px; align-items: center; padding: 3px 10px; min-height: 40px; border-top: 1px solid var(--rejillaSuave); }
-.pp.cab { min-height: 0; padding: 4px 10px; border-top: 0; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--textoTenue); background: var(--panel2); }
+.pp.cab { min-height: 0; padding: 4px 10px; border-top: 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--acento-fuerte); background: none; border-bottom: 1.5px solid var(--acento); }
 .pp.cab span { text-align: right; }
 .pp .et { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 4px; }
 .pp input { padding: 4px 6px; }
 .pp input.medido { border-color: var(--acento); border-width: 1.5px; }
-.pp .desv { flex-basis: 100%; font-size: 11.5px; font-weight: 600; color: var(--textoTenue); }
+.pp .desv { flex-basis: 100%; font-size: 13px; font-weight: 600; color: var(--textoSuave); }
 .pp .desv.bien { color: var(--bien); } .pp .desv.mal { color: var(--mal); } .pp .desv.aviso { color: var(--aviso); }
 
 /* Impulsión y retorno lado a lado (filtros: 3 etapas × 2). */
 .ir { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1.2fr); gap: 6px; align-items: center; padding: 3px 10px; min-height: 38px; border-top: 1px solid var(--rejillaSuave); }
-.ir.cab { min-height: 0; padding: 4px 10px; border-top: 0; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--textoTenue); background: var(--panel2); }
+.ir.cab { min-height: 0; padding: 4px 10px; border-top: 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--acento-fuerte); background: none; border-bottom: 1.5px solid var(--acento); }
 .ir .respuestas.mini button { min-width: 34px; padding: 0 4px; }
 
 /* La lista de fichas y el resto de la ficha del equipo, en filas finas. */
@@ -1214,7 +1221,7 @@ body:has(.tag-fijo) .obra-movil { display: none; }
 .av-cuenta { margin: 8px 0; padding: 6px 10px; border-left: 3px solid var(--acento); background: var(--panel2, var(--panel3)); font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .av-tabla { width: 100%; border-collapse: collapse; font-size: 13px; margin: 4px 0 12px; background: var(--panel); }
 .av-tabla th, .av-tabla td { border: 1px solid var(--rejilla); padding: 3px 6px; text-align: left; }
-.av-tabla th { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: var(--textoTenue); background: var(--panel3); }
+.av-tabla th { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--acento-fuerte); background: none; border-bottom: 1.5px solid var(--acento); }
 .av-tabla .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .av-tabla td i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
 .av-tabla tr.sin td { color: var(--textoSuave); background: var(--aviso-fondo, #E1ECF6); }
@@ -1693,9 +1700,10 @@ button.avisoFlotCerrar { min-height: 32px; width: 32px; padding: 0; border: 0; b
    aspecto de la app entera basta tocarlas. */
 :root {
   --fondo-pagina: #FFFFFF;
-  --radio-bloque: 16px;
-  --radio-kpi: 12px;
-  --sombra-bloque: 0 2px 8px rgba(0, 0, 0, .08);
+  --radio-bloque: 20px;
+  --radio-kpi: 14px;
+  --sombra-bloque: 0 1px 2px rgba(15, 23, 42, .06), 0 10px 24px -6px rgba(15, 23, 42, .18);
+  --sombra-campo: inset 0 1px 3px rgba(15, 23, 42, .10), inset 0 0 0 1px rgba(15, 23, 42, .02);
   --borde-bloque: 1px solid rgba(15, 23, 42, .04);
   --pest-activa-fondo: var(--acento-suave);
 }
@@ -1917,3 +1925,22 @@ body { background: var(--fondo-pagina); }
 .campos-conducto label { font-size: 11.5px; color: var(--textoTenue); }
 .campos-conducto input { display: block; width: 100%; box-sizing: border-box; margin-top: 2px; font-size: 16px; padding: 6px; font-variant-numeric: tabular-nums; }
 .campos-conducto label:nth-child(3) { grid-column: 1 / -1; }
+
+/* Campos con relieve (29-oct, JC: «un sombreado para dar aspecto 3D»): sombra interior suave,
+   esquinas redondeadas y, al enfocar, borde y anillo teal. Va al final para ganar a las
+   reglas de cada pantalla; las celdas de tablas (.hoja-tabla) conservan su borde fino. */
+#app input:not([type=checkbox]):not([type=radio]):not([type=range]), #app select, #app textarea,
+input:not([type=checkbox]):not([type=radio]):not([type=range]), select, textarea {
+  border-radius: 12px; box-shadow: var(--sombra-campo);
+}
+#app .hoja-tabla input, #app .hoja-tabla select, .hoja-tabla input, .hoja-tabla select, .densa .obs { border-radius: 8px; box-shadow: var(--sombra-campo); }
+#app input:focus, #app select:focus, #app textarea:focus, input:focus, select:focus, textarea:focus,
+.hoja-tabla input:focus, .hoja-tabla select:focus {
+  border-color: var(--acento); box-shadow: var(--sombra-campo), 0 0 0 3px var(--acento-suave);
+}
+input.mal { box-shadow: var(--sombra-campo), 0 0 0 3px var(--mal-fondo) !important; }
+
+/* La fila de secciones de Más (7 entradas) no cabe en el ancho: se desliza en horizontal y los botones no se encogen. */
+.segmentos { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; overscroll-behavior-x: contain; touch-action: pan-x; }
+.segmentos::-webkit-scrollbar { display: none; }
+.segmentos a { flex: 0 0 auto; white-space: nowrap; }
