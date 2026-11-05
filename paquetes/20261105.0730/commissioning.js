@@ -565,7 +565,7 @@
     const proyecto = rev && c.disenoEquipo !== null && c.disenoEquipo !== undefined ? c.disenoEquipo : diseno;
     const todas = (c.puntos || 0) + rev;
     return `<div class="total-circuito ${claseTotal}">
-      <div class="fila-principal"><strong>${esc(nombre)}</strong><span class="chip ${claseTotal}">${p === null ? `${c.medidos || 0}/${todas} medidas` : `${p} %`}</span></div>
+      <div class="fila-principal"><strong>${esc(nombre)}</strong><span class="chip ${claseTotal}">${p === null ? (todas ? `${c.medidos || 0}/${todas} medidas` : 'Sin bocas') : `${p} %`}</span></div>
       <div class="cifras-total">
         <div><span>Medido</span><b>${cifra(c.suma)}</b><em>m³/h</em></div>
         <div><span>${rev && proyecto === c.disenoEquipo ? 'Proyecto equipo' : 'Proyecto'}</span><b>${cifra(proyecto)}</b><em>m³/h</em></div>
@@ -573,7 +573,7 @@
       </div>
       ${rev ? `<div class="sub"><span class="marca-revisar">${rev} a revisar</span> fuera de la suma${c.disenoRevisar ? ` (${cifra(c.disenoRevisar)} m³/h de proyecto)` : ''}: no se pueden atribuir al equipo con seguridad. Suma de las atribuidas: ${cifra(c.disenoPuntos)} m³/h en ${c.puntos || 0}.</div>` : ''}
       ${c.faltan ? `<div class="sub">Faltan ${c.faltan} boca${c.faltan === 1 ? '' : 's'} atribuida${c.faltan === 1 ? '' : 's'} por medir.</div>` : ''}
-      <div class="sub">Tª frío ${c.tFrio || 0}/${c.puntos || 0} · Tª calor ${c.tCalor || 0}/${c.puntos || 0} · completas ${c.completas || 0}/${c.puntos || 0} (caudal y las dos Tª)</div>
+      ${c.puntos ? `<div class="sub">Tª frío ${c.tFrio || 0}/${c.puntos} · Tª calor ${c.tCalor || 0}/${c.puntos} · completas ${c.completas || 0}/${c.puntos} (caudal y las dos Tª)</div>` : ''}
     </div>`;
   }
 
@@ -1387,7 +1387,7 @@
     return `<section id="fichas-equipo" data-plegable>
       <h2>Fichas del equipo <span class="cuenta">${ok ? nombres.length : ''}</span></h2>
       <ul class="lista-ios"><li><button class="fila-ios" data-cx="ver-fichas">
-        <div class="fila-principal"><strong>${ok && nombres.length ? `${hechas} de ${fs.length} hechas` : 'Abrir'}</strong><span>${chip}</span></div>
+        <div class="fila-principal"><strong>${ok && fs.length ? `${hechas} de ${fs.length} hechas` : ok && nombres.length ? 'Sin empezar' : 'Abrir'}</strong><span>${chip}</span></div>
         <div class="sub">${esc(sub)}</div>
       </button></li></ul>
     </section>`;
@@ -1483,7 +1483,7 @@
     const ue = (cj.unidades || []).find((u) => u.papel === 'UE');
     const corto = (x) => rotuloUi(x.unidadTag) || 'UI';
     return `<section id="unidades-interiores" data-plegable>
-      <h2>Unidades interiores <span class="cuenta">${abierta ? `${corto(filas[0][0])} de ${todas.length}` : `${completas} de ${todas.length} UIs completas`}</span></h2>
+      <h2>Unidades interiores <span class="cuenta">${abierta ? (todas.length > 1 ? `${corto(filas[0][0])} de ${todas.length}` : corto(filas[0][0])) : `${completas} de ${todas.length} UIs completas`}</span></h2>
       <ul class="lista-ios filas-ui">${filas.map(([x, i]) => {
         const foto = fotoDeUi(f, x.unidadId);
         const img = foto ? (foto.local ? `<img data-local="${esc(foto.local)}" alt="Foto ${esc(corto(x))}">` : `<img data-src="${esc(foto.url)}" alt="Foto ${esc(corto(x))}">`) : '';
@@ -2246,7 +2246,24 @@
     /* Caudal de aire: de dónde sale el medido (lo tecleado ahora es del equipo). */
     const tecleado = hoja.valores[p.codigo] && hoja.valores[p.codigo].m !== undefined;
     const origen = p.origen ? ` <span class="tenue">· ${esc(tecleado ? 'medido en equipo' : p.origen)}</span>` : '';
-    return `<div class="pp"><span class="et">${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}${origen}${desv}</span>${casilla('p', 'Proyecto')}${casilla('f', 'Fabricante')}${casilla('m', 'Medido')}</div>`;
+    return `<div class="pp"><span class="et">${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}${origen}${desv}</span>${casilla('p', 'Proyecto')}${casilla('f', 'Fabricante')}${casilla('m', 'Medido')}</div>${notaFoto(p, ed, tecleado)}`;
+  }
+  /* LA Tª DEL TERMÓMETRO, TECLEADA POR EL TÉCNICO (5-nov-2026, JC eligió la D: el
+     móvil no lee la pantalla de siete segmentos —Tesseract falla, docs/ocr-termometro-prueba-1105.md—).
+     Bajo la fila: de qué foto sale lo medido, o lo que el vigía del escritorio
+     leyó (propuesta) con un toque para usarlo; y, en las de un split sin medido,
+     un aviso de que se teclea lo que marca el termómetro de la foto. */
+  function notaFoto(p, ed, tecleado) {
+    const cod = esc(p.codigo);
+    if (p.propuestaFoto && p.propuestaFoto.m !== undefined && p.propuestaFoto.m !== null) {
+      const l = p.propuestaFoto;
+      return `<div class="sub tenue nota-foto">La foto de ${esc(l.fi || 'una incidencia')} da ${esc(coma(l.m))}${ed ? ` <button type="button" class="enlace" data-h-usar-foto="${cod}" data-valor="${esc(l.m)}">Usar ${esc(coma(l.m))}</button>` : ''}</div>`;
+    }
+    if (p.fuenteMedido && !tecleado) return `<div class="sub tenue nota-foto">Leído de la foto de ${esc(p.fuenteMedido)} · mira la foto y corrígelo si no coincide</div>`;
+    if (ed && /^t_(salida|entrada)_frio$/.test(String(p.codigo)) && (valorDe(p, 'm') === null || valorDe(p, 'm') === undefined || valorDe(p, 'm') === '')) {
+      return '<div class="sub tenue nota-foto">Teclea lo que marca el termómetro en la foto de la incidencia.</div>';
+    }
+    return '';
   }
 
   /* Una sección: banda fina con su título y las filas debajo. */
@@ -3448,6 +3465,14 @@
   /* Sí / No / N/A: un toque marca, otro toque en la misma desmarca. */
   $app.addEventListener('click', (ev) => {
     if (!activa()) return;
+    const u = ev.target.closest('[data-h-usar-foto]');
+    if (u && hoja && !u.disabled) {
+      const cod = u.dataset.hUsarFoto;
+      hoja.valores[cod] = { ...(hoja.valores[cod] || {}), m: Number(u.dataset.valor) };
+      marcarCambiada();
+      pintarHoja();
+      return;
+    }
     const b = ev.target.closest('[data-h-resp]');
     if (!b || b.disabled) return;
     if (hoja) {

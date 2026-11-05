@@ -571,6 +571,7 @@
       const visibles = actual ? actual.secciones.filter(([id, , oculta]) => ok.has(id) && !oculta) : [];
       seg.hidden = visibles.length < 2;
       seg.innerHTML = visibles.map(([id, nombre]) => `<a href="#${id}" class="${id === s ? 'activa' : ''}" ${id === s ? 'aria-current="page"' : ''}>${esc(nombre)}</a>`).join('');
+      const act = seg.querySelector("a.activa"); if (act && act.scrollIntoView) act.scrollIntoView({ inline: "center", block: "nearest" });
     }
     const t = document.getElementById('titulo-seccion');
     /* En Inicio, el saludo hace de título (15-oct-2026, JC). */
@@ -692,7 +693,7 @@
       ${conDia ? `<span class="ag-dia">${esc(diaCorto(s.fecha))}</span>` : ''}
       <div class="ag-que"><b>${esc(tipoSesion(s))}</b> · ${items.join(', ') || 'sin equipos'}
         ${detalle || s.notas ? `<small>${esc([detalle, s.notas].filter(Boolean).join(' · '))}</small>` : ''}</div>
-      <span class="ag-cuenta">${cifra(s.hechos)}/${cifra(s.items.length)}</span>
+      ${s.items.length ? `<span class="ag-cuenta">${cifra(s.hechos)}/${cifra(s.items.length)}</span>` : ''}
     </div>`;
   }
   function filaDia(i, hoy) {

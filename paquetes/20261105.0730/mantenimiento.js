@@ -19,6 +19,8 @@
   const C = window.CX;
   if (!$app || !C) return;
   const { esc } = C;
+  /* El trazo de la firma: el color de texto de la marca (--texto, de marca/colores.js), no un hex a mano. */
+  const TINTA = () => getComputedStyle(document.documentElement).getPropertyValue('--texto').trim() || 'currentColor';
 
   /* El rol decide el modo: el jefe de mantenimiento va a Mantenimiento; el resto, a Obra (JC, 22-oct). */
   const ROLES_MANT = ['jefeMantenimiento'];
@@ -102,7 +104,7 @@
       lienzo.width = Math.round(r.width * dpr);
       lienzo.height = Math.round(r.height * dpr);
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
-      g.lineWidth = 2.2; g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = '#1A1A1A';
+      g.lineWidth = 2.2; g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = TINTA();
       for (const t of trazos) { g.beginPath(); t.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.stroke(); }
     };
     const punto = (ev) => { const r = lienzo.getBoundingClientRect(); return [Math.round(ev.clientX - r.left), Math.round(ev.clientY - r.top)]; };
@@ -118,7 +120,7 @@
       svg: () => {
         const r = lienzo.getBoundingClientRect();
         const ds = trazos.filter((t) => t.length > 1).map((t) => `<path d="${t.map(([x, y], i) => `${i ? 'L' : 'M'}${x} ${y}`).join('')}"/>`).join('');
-        return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${Math.round(r.width)} ${Math.round(r.height)}" fill="none" stroke="#1A1A1A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${ds}</svg>`;
+        return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${Math.round(r.width)} ${Math.round(r.height)}" fill="none" stroke="${TINTA()}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${ds}</svg>`;
       },
     };
   }
@@ -187,7 +189,7 @@
   /* ═══════════════════════════════════ Ruta de hoy */
 
   function sinDatos() {
-    return vacio(`<p>Aún no hay ruta en este móvil.</p><p style="font-size:14px;font-weight:400;color:var(--textoTenue)">Cuando la oficina te asigne visitas aparecerán aquí. Mientras tanto puedes ver cómo funciona con datos de ejemplo.</p>
+    return vacio(`<p>Aún no hay ruta en este móvil.</p><p class="sub">Cuando la oficina te asigne visitas aparecerán aquí. Mientras tanto puedes ver cómo funciona con datos de ejemplo.</p>
       <button class="boton" data-m="ejemplo">Ver un ejemplo</button>`);
   }
 
@@ -196,7 +198,7 @@
     const nube = conNube() ? await m.nube.estado() : null;
     if (!(await m.hayDatos())) {
       $app.innerHTML = nube && nube.conectado
-        ? vacio(`<p>Aún no te ha llegado ninguna ruta.</p><p style="font-size:14px;font-weight:400;color:var(--textoTenue)">${esc(textoNube(nube))}. Cuando la oficina te asigne visitas en Vidaire aparecerán aquí.</p>
+        ? vacio(`<p>Aún no te ha llegado ninguna ruta.</p><p class="sub">${esc(textoNube(nube))}. Cuando la oficina te asigne visitas en Vidaire aparecerán aquí.</p>
           <button class="boton secundario" data-m="nube-sync">Sincronizar ahora</button>`)
         : sinDatos();
       return;
@@ -456,7 +458,7 @@
   const pizarras = {};
 
   async function pFin([edificioId, i, o]) {
-    $app.innerHTML = `${vacio(`<p>Visita cerrada y firmada.</p><p style="font-size:14px;font-weight:400;color:var(--textoTenue)">${num(Number(i))} ${Number(i) === 1 ? 'intervención' : 'intervenciones'} del libro F-gas y ${num(Number(o))} ${Number(o) === 1 ? 'operación' : 'operaciones'} de IT 3.</p>`)}
+    $app.innerHTML = `${vacio(`<p>Visita cerrada y firmada.</p><p class="sub">${num(Number(i))} ${Number(i) === 1 ? 'intervención' : 'intervenciones'} del libro F-gas y ${num(Number(o))} ${Number(o) === 1 ? 'operación' : 'operaciones'} de IT 3.</p>`)}
       <div class="mant-botones"><button class="boton" data-m="ruta">Volver a la ruta</button></div>`;
     void edificioId;
   }
@@ -472,7 +474,7 @@
         const cap = Number(x.capacidad_kg ?? 0);
         const pct = cap ? Math.min(100, Math.round((x.kg / cap) * 100)) : null;
         return `<li><div class="fila-ios mant-cilindro" style="cursor:default"><span><strong>${esc(x.codigo)}</strong><small>${esc(x.refrigerante)}${x.origen ? ` · ${esc(x.origen)}` : ''}${x.lote ? ` · lote ${esc(x.lote)}` : ''}</small>
-          ${pct !== null ? `<div class="mant-barra-gas"><i style="width:${pct}%"></i></div>` : ''}</span><b>${kgT(x.kg)}${cap ? ` / ${kgT(cap)}` : ''} kg</b></div></li>`;
+          ${pct !== null ? `<div class="mant-barra-gas"><i style="width:${pct}%"></i></div><small class="mant-pct">${Math.round(pct)} % lleno</small>` : ''}</span><b>${kgT(x.kg)}${cap ? ` / ${kgT(cap)}` : ''} kg</b></div></li>`;
       }).join('')}</ul>` : '<p class="nota">Ninguno.</p>'}`;
     };
     $app.innerHTML = `${grupo('carga', 'Para cargar')}${grupo('recuperacion', 'Para recuperar')}
