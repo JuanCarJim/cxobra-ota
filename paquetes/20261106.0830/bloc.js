@@ -208,7 +208,7 @@
   }
 
   async function borrar(boton) {
-    if (!window.confirm('¿Borrar esta nota y sus fotos?')) return;
+    if (!(await C.confirmar('¿Borrar esta nota y sus fotos?', 'No se puede deshacer.', 'Sí, borrar'))) return;
     boton.disabled = true;
     try {
       const r = await C.postJson('api/bloc/borrar', { id: editando.id });

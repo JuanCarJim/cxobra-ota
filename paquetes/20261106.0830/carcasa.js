@@ -64,7 +64,7 @@
     { id: 'mas', nombre: 'Más',
       icono: icono('<rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/>',
         '<g fill="currentColor"><rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/></g>'),
-      secciones: [['qhse', 'QHSE'], ['plano', 'Plano de equipos'], ['bloc', 'Notas'], ['albaranes', 'Albaranes'], ['inventario', 'Inventario'], ['personal', 'Personal'], ['cuenta', 'Cuenta']] },
+      secciones: [['jornada', 'Jornada'], ['qhse', 'QHSE'], ['reportesQhse', 'Reportes QHSE'], ['plano', 'Plano de equipos'], ['bloc', 'Notas'], ['albaranes', 'Albaranes'], ['inventario', 'Inventario'], ['personal', 'Personal'], ['cuenta', 'Cuenta']] },
     /* 29-oct (JC): «QHSE es una cosa aparte, no es una incidencia»: sección propia (como «Seguridad» en la web), la primera de «Más». */
   ];
   /*
@@ -75,13 +75,14 @@
   const PESTANA_QHSE = { id: 'qhse', nombre: 'QHSE',
     icono: icono('<path d="M12 3.5 5 6.2v5.3c0 4.3 3 7.6 7 9 4-1.4 7-4.7 7-9V6.2z"/><path d="M8.8 12.2l2.2 2.2 4.2-4.4"/>',
       `<path d="M12 3.5 5 6.2v5.3c0 4.3 3 7.6 7 9 4-1.4 7-4.7 7-9V6.2z" fill="currentColor"/><path d="M8.8 12.2l2.2 2.2 4.2-4.4" ${HUECO} stroke-width="2"/>`),
-    secciones: [['qhse', 'QHSE']] };
+    /* 5-nov: los Reportes QHSE (reportesQhse.js), junto al plan. */
+    secciones: [['qhse', 'Plan'], ['reportesQhse', 'Reportes']] };
   const QHSE_EN_BARRA = new Set(['jefeObra', 'jefeProduccion']);
   function pestanasDe(rol) {
     if (!QHSE_EN_BARRA.has(rol)) return PESTANAS;
     return PESTANAS.map((p) => {
       if (p.id === 'avance') return PESTANA_QHSE;
-      if (p.id === 'mas') return { ...p, secciones: [['avance', 'Avance'], ...p.secciones.filter(([id]) => id !== 'qhse')] };
+      if (p.id === 'mas') return { ...p, secciones: [['avance', 'Avance'], ...p.secciones.filter(([id]) => id !== 'qhse' && id !== 'reportesQhse')] };
       return p;
     });
   }
@@ -96,6 +97,9 @@
    */
   /* Lo de commissioning, lo primero: es lo que más se hace en obra (18-oct). */
   const ACCIONES = [
+    /* 5-nov (JC): fichar desde el teléfono; la entrada ya se ficha sola al abrir Cx. */
+    { seccion: 'jornada', nombre: 'Fichar', ayuda: 'Entrada, salida o cambio de obra', obra: false, pasos: [],
+      icono: svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.2 2"/>') },
     { seccion: 'commissioning', nombre: 'Medir equipo', ayuda: 'Busca el equipo y mide boca a boca', obra: true, pasos: ['[data-cx-buscar]'],
       icono: svg('<path d="M4 15a8 8 0 1 1 16 0"/><path d="M12 15l4.5-4.5"/><circle cx="12" cy="15" r="1.4"/><path d="M4 19h16"/>') },
     { seccion: 'estanqueidad', nombre: 'Prueba de estanqueidad', ayuda: 'Con la foto del manómetro', obra: true, pasos: ['[data-pe="nuevo"]'],
@@ -115,6 +119,9 @@
     /* 26-oct: esperas, accesos denegados, falta de medios… (avisosReclamables.js). */
     { seccion: 'avisos', nombre: 'Algo reclamable', ayuda: 'Esperas, accesos denegados, sin grúa…', obra: true, pasos: ['[data-at="nuevo"]'],
       icono: svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>') },
+    /* 5-nov (JC): el reporte QHSE en 20 s: cámara, categoría, ¿qué? y guardar (reportesQhse.js). */
+    { seccion: 'reportesQhse', nombre: 'Reporte QHSE', ayuda: 'Foto, qué y categoría: observación, incidente o inspección', obra: true, pasos: ['[data-rq="nuevo"]', '[data-rq="camara"]'],
+      icono: svg('<path d="M12 3.5 5 6.2v5.3c0 4.3 3 7.6 7 9 4-1.4 7-4.7 7-9V6.2z"/><path d="M12 8.5v4.5"/><circle cx="12" cy="16" r=".6" fill="currentColor"/>') },
     /* 28-oct: la inspección del sitio de cada semana (qhse.js). */
     { seccion: 'qhse', nombre: 'Inspección del sitio', ayuda: 'QHSE: la de esta semana, control de subcontratas, CAE', obra: true, pasos: ['[data-qh="tipo"][data-p="inspeccionObra"]', '[data-qh="nuevo"][data-p="inspeccionObra"]'],
       icono: svg('<path d="M9 4.5h6M9 4.5A1.5 1.5 0 0 0 7.5 6H6a1.5 1.5 0 0 0-1.5 1.5v11A1.5 1.5 0 0 0 6 20h12a1.5 1.5 0 0 0 1.5-1.5v-11A1.5 1.5 0 0 0 18 6h-1.5A1.5 1.5 0 0 0 15 4.5"/><path d="M8.5 13l2.5 2.5 4.5-5"/>') },
@@ -124,10 +131,10 @@
   const TITULO = {
     inicio: 'Inicio', commissioning: 'Commissioning', partes: 'Partes', ncr: 'No conformidades', reparaciones: 'Reparaciones', avance: 'Avance de obra', albaranes: 'Albaranes',
     inventario: 'Inventario', bloc: 'Notas', personal: 'Personal', estanqueidad: 'Estanqueidad', cuenta: 'Cuenta',
-    misTareas: 'Mis tareas', avisos: 'Reclamables', qhse: 'QHSE', plano: 'Plano de equipos',
+    misTareas: 'Mis tareas', avisos: 'Reclamables', qhse: 'QHSE', reportesQhse: 'Reportes QHSE', plano: 'Plano de equipos', jornada: 'Jornada',
   };
   /* Las que no dependen de la obra elegida no enseñan el selector. */
-  const SIN_OBRA = new Set(['cuenta', 'albaranes']);
+  const SIN_OBRA = new Set(['cuenta', 'albaranes', 'jornada']);
 
   const sesion = () => (window.ACCESO_MOVIL && window.ACCESO_MOVIL.sesion()) || null;
   const permitidas = () => { const s = sesion(); return s ? ['inicio', ...(s.secciones || []), 'cuenta'] : []; };
@@ -459,7 +466,7 @@
     /* Ir a otra sección y pulsar sus botones (los atajos del Inicio); también lo
        usa Commissioning para abrir un parte ya relleno. */
     hacer: (a) => hacer(a),
-    cabeza, menu,
+    cabeza, menu, confirmar,
   };
 
   /*
@@ -531,6 +538,44 @@
     });
   }
 
+  /** Pregunta de sí / no con la hoja de abajo (sustituye al confirm nativo): true solo si pulsa el verbo. */
+  async function confirmar(titulo, sub = '', si = 'Sí', no = 'No, volver') {
+    const r = await menu({ titulo, sub, opciones: [{ id: 'si', nombre: si }, { id: 'no', nombre: no }] });
+    return r === 'si';
+  }
+
+  /* Tecla ± para los campos que admiten negativos (data-menos): el teclado decimal de iOS no trae «−». */
+  (function teclaMenos() {
+    let tecla = null; let campo = null;
+    const colocar = () => {
+      if (!tecla) return;
+      const vv = window.visualViewport;
+      tecla.style.top = `${(vv ? vv.offsetTop + vv.height : window.innerHeight) - 56}px`;
+    };
+    const quitar = () => { if (tecla) { tecla.remove(); tecla = null; } campo = null; };
+    document.addEventListener('focusin', (ev) => {
+      const t = ev.target;
+      if (!t || !t.matches || !t.matches('input[data-menos]') || t.disabled || t.readOnly) { quitar(); return; }
+      campo = t;
+      if (!tecla) {
+        tecla = document.createElement('button');
+        tecla.type = 'button'; tecla.className = 'tecla-menos'; tecla.textContent = '±';
+        tecla.setAttribute('aria-label', 'Cambiar el signo (más / menos)');
+        tecla.addEventListener('pointerdown', (e) => {
+          e.preventDefault();
+          if (!campo) return;
+          const v = campo.value.trim();
+          campo.value = /^[-−]/.test(v) ? v.replace(/^[-−]\s*/, '') : `-${v}`;
+          campo.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        document.body.appendChild(tecla);
+      }
+      colocar();
+    });
+    document.addEventListener('focusout', () => setTimeout(() => { if (!document.activeElement || !document.activeElement.matches('input[data-menos]')) quitar(); }, 150));
+    if (window.visualViewport) { window.visualViewport.addEventListener('resize', colocar); window.visualViewport.addEventListener('scroll', colocar); }
+  })();
+
   /* ═══════════════════════════════════ Las pestañas */
 
   function pintar() {
@@ -590,7 +635,7 @@
   /* ═══════════════════════════════════ El «+»: la hoja de Añadir */
 
   /* Nombre corto para la rejilla (dos líneas como mucho). */
-  const CORTO = { estanqueidad: 'Estanqueidad', albaranes: 'Albarán', avisos: 'Reclamable', qhse: 'Inspección QHSE', avance: 'Avance' };
+  const CORTO = { estanqueidad: 'Estanqueidad', albaranes: 'Albarán', avisos: 'Reclamable', qhse: 'Inspección QHSE', reportesQhse: 'Reporte QHSE', avance: 'Avance' };
 
   const accionesDisponibles = () => { const ok = new Set(permitidas()); return ACCIONES.filter((a) => ok.has(a.seccion)); };
 
@@ -832,7 +877,43 @@
     try { if (set.size) localStorage.setItem(claveOcultos(), JSON.stringify([...set])); else localStorage.removeItem(claveOcultos()); } catch { /* sin almacén: se ve todo */ }
   };
 
-  async function inicio() {
+  /*
+   * EL INICIO PINTA SEGÚN LLEGA (5-nov-2026, JC: «la app móvil tarda muchísimo
+   * en arrancar»). En Vidaire Cx el motor corre en el MISMO hilo que la
+   * pantalla: las 8 peticiones no van «en paralelo», se calculan una tras otra
+   * y, con el NCN en un iPhone, la planificación y el commissioning son
+   * decenas de segundos. Antes se esperaba a TODAS (y con un plazo de 25 s que
+   * acababa en «está tardando más de lo normal»), y además el inicio se pedía
+   * dos veces al abrir. Ahora:
+   *   · se pinta al momento lo último que se vio de esta obra (guardado en el
+   *     teléfono) con «Actualizando…», o el esqueleto de los bloques;
+   *   · las peticiones van de una en una, primero las ligeras, cediendo el
+   *     hilo entre ellas para que la pantalla responda y se repinte;
+   *   · cada bloque se pinta en cuanto tiene lo suyo;
+   *   · si ya hay un inicio en marcha para esta obra, no se pide otro.
+   */
+  let inicioEnCurso = null; /* { obra, promesa } */
+  let inicioDatos = null; /* { obra, r, completo }: lo último pedido, para repintar sin volver a pedir */
+  const claveInicioGuardado = (obra) => `${claveOcultos().replace('.ocultos.', '.ultimo.')}.${obra}`;
+  const leerInicioGuardado = (obra) => { try { return JSON.parse(localStorage.getItem(claveInicioGuardado(obra)) || 'null'); } catch { return null; } };
+  const guardarInicio = (obra, bloques) => { try { localStorage.setItem(claveInicioGuardado(obra), JSON.stringify({ en: Date.now(), bloques })); } catch { /* sin almacén o lleno */ } };
+  /* Ceder el hilo: que el navegador pinte y atienda toques antes de la siguiente petición. */
+  const ceder = () => new Promise((ok) => setTimeout(ok, 0));
+
+  function inicio() {
+    const o = window.CX && window.CX.obra ? window.CX.obra() : null;
+    /* Uno en marcha sin obra todavía (espera a obrasListas y luego la lee) o con
+       esta misma obra: se aprovecha. Antes salían dos rondas de 8 peticiones. */
+    if (inicioEnCurso && (!o || !inicioEnCurso.obra || inicioEnCurso.obra === o.id)) return inicioEnCurso.promesa;
+    const promesa = inicioPedir().finally(() => { if (inicioEnCurso && inicioEnCurso.promesa === promesa) inicioEnCurso = null; });
+    inicioEnCurso = { obra: o ? o.id : null, promesa };
+    return promesa;
+  }
+
+  /* De qué peticiones sale cada bloque. */
+  const DEPENDE_BLOQUE = { hoy: ['plan', 'dia'], semana: ['plan', 'dia'], utas: ['plan'], cx: ['cx', 'pe', 'ncr', 'rp'], marcha: ['cx'], pendiente: ['pi', 'mt'] };
+
+  async function inicioPedir() {
     const yo = sesion();
     const app = document.getElementById('app');
     if (!yo || !app) return;
@@ -841,59 +922,58 @@
     const o = window.CX.obra();
     const ok = new Set(permitidas());
     if (!o) { app.innerHTML = '<p class="vacio">No tienes ninguna obra abierta.</p>'; return; }
-    app.innerHTML = '<p class="cargando">Cargando…</p>';
     const q = encodeURIComponent(o.id);
-    const traer = (sec, ruta) => (ok.has(sec) ? pedir(ruta).catch(() => null) : Promise.resolve(null));
     const tocaPlan = ok.has('commissioning') || ok.has('reparaciones') || ok.has('ncr');
-    /* PLAZO DEL INICIO (2-nov-2026): el iPhone se quedó en «Cargando…» para
-       siempre con el NCN. Si a los 25 s no ha llegado todo, se dice y se ofrece
-       reintentar, en vez de dejar la pantalla esperando sin explicación. */
-    const PLAZO_INICIO = 25000;
-    /* PINTAR SEGÚN LLEGUE (4-nov-2026, JC: «tiene que ir instantánea»): cada
-       petición pinta su bloque en cuanto responde, sin esperar a las 8. Cada
-       una tiene su propio plazo de 25 s; si vence, se da por vacía y el
-       aviso de «está tardando» solo sale si no ha llegado NADA. */
-    const CT = window.cxTiempos;
-    const t0 = CT ? CT.ahora() : 0;
-    const NOMBRES = ['commissioning', 'estanqueidad', 'partes', 'ncr', 'reparaciones', 'planificación', 'mi-dia', 'mistareas'];
-    const res = new Array(8).fill(null);
-    let faltan = 8;
-    let llegado = false;
-    const aviso = () => {
-      app.innerHTML = `<div class="vacio"><p>El inicio de ${esc(o.codigo || 'la obra')} está tardando más de lo normal.</p>
-        <p>Tus datos siguen guardados en el teléfono. Puedes reintentar o ir a otra sección desde el menú.</p>
-        <button class="boton" id="ini-reintentar">Reintentar</button></div>`;
-      const b2 = document.getElementById('ini-reintentar');
-      if (b2) b2.addEventListener('click', () => inicio());
-    };
-    const hecho = new Array(8).fill(false);
-    const vigente = () => seccion() === 'inicio' && window.CX.obraId() === o.id;
-    const peticiones = [
-      traer('commissioning', `api/commissioning?obra=${q}`), traer('estanqueidad', 'api/estanqueidad'),
-      traer('partes', 'api/partes'), traer('ncr', `api/ncr?obra=${q}`), traer('reparaciones', `api/reparaciones?obra=${q}`),
-      tocaPlan ? pedir(`api/mi-planificacion?obra=${q}`).catch(() => null) : Promise.resolve(null),
-      pedir('api/mi-dia').catch(() => null),
-      traer('misTareas', 'api/mistareas'),
+    /* Lo que se pide, de lo más ligero a lo más pesado (medido con el NCN):
+       la planificación y el commissioning de toda la obra van los últimos. */
+    const PIDE = [
+      ['dia', 'misTareas_', 'api/mi-dia'],
+      ['mt', 'misTareas', 'api/mistareas'],
+      ['pi', 'partes', 'api/partes'],
+      ['pe', 'estanqueidad', 'api/estanqueidad'],
+      ['ncr', 'ncr', `api/ncr?obra=${q}`],
+      ['rp', 'reparaciones', `api/reparaciones?obra=${q}`],
+      ['plan', tocaPlan ? 'plan_' : null, `api/mi-planificacion?obra=${q}`],
+      ['cx', 'commissioning', `api/commissioning?obra=${q}`],
     ];
-    let pintando = false;
-    const llega = (i, v) => {
-      if (hecho[i]) return;
-      hecho[i] = true; res[i] = v; faltan -= 1;
-      if (CT) CT.marcar(`inicio: ${NOMBRES[i]}`, t0);
-      if (v !== null) llegado = true;
-      if (!vigente()) return;
-      /* Varias respuestas en el mismo instante se pintan de una vez. */
-      if (!pintando) { pintando = true; Promise.resolve().then(() => { pintando = false; if (vigente()) pintar(res, faltan); }); }
-    };
-    peticiones.forEach((pr, i) => { pr.then((v) => llega(i, v === undefined ? null : v)); });
-    const reloj = setTimeout(() => {
-      if (!vigente() || !faltan) return;
-      if (!llegado) { for (let i = 0; i < 8; i += 1) { if (!hecho[i]) { hecho[i] = true; faltan -= 1; } } aviso(); return; }
-      for (let i = 0; i < 8; i += 1) if (!hecho[i]) llega(i, null);
-    }, PLAZO_INICIO);
-    Promise.all(peticiones).then(() => { if (CT) CT.marcar('inicio: todo', t0); clearTimeout(reloj); }).catch(() => {});
-    function pintar(todo, restan) {
-    const [cx, pe, pi, ncr, rp, plan, dia, mt] = todo;
+    const r = {};
+    const pendientes = new Set();
+    for (const [k, sec] of PIDE) {
+      const siempre = sec === 'misTareas_' || sec === 'plan_';
+      if (siempre || (sec && ok.has(sec))) pendientes.add(k); else r[k] = null;
+    }
+    inicioDatos = { obra: o.id, r, pendientes };
+    /* Al momento: lo último que se vio aquí (si lo hay) mientras se pone al día. */
+    const guardado = leerInicioGuardado(o.id);
+    if (guardado && guardado.bloques) pintarInicio(o, guardado.bloques, { actualizando: true });
+    else pintarInicio(o, armarBloquesInicio(o, r, pendientes), { actualizando: true });
+    await ceder();
+    for (const [k, , ruta] of PIDE) {
+      if (!pendientes.has(k)) continue;
+      r[k] = await pedir(ruta).catch(() => null);
+      pendientes.delete(k);
+      if (window.CX.obraId() !== o.id) return;
+      /* Un bloque se repinta cuando ya tiene todo lo suyo (no en cada petición). */
+      const listos = Object.entries(DEPENDE_BLOQUE).some(([, deps]) => deps.includes(k) && deps.every((d) => !pendientes.has(d)));
+      if (listos || !pendientes.size) {
+        const bloques = armarBloquesInicio(o, r, pendientes);
+        const conGuardado = guardado && guardado.bloques && pendientes.size
+          ? Object.fromEntries(Object.entries(bloques).map(([id, h]) => [id, h === null && guardado.bloques[id] !== undefined ? guardado.bloques[id] : h]))
+          : bloques;
+        if (seccion() === 'inicio') pintarInicio(o, conGuardado, { actualizando: pendientes.size > 0 });
+        if (!pendientes.size) guardarInicio(o.id, bloques);
+      }
+      await ceder();
+    }
+  }
+
+  /**
+   * El HTML de cada bloque con lo que ya ha llegado. `null` = aún no se sabe
+   * (falta alguna de sus peticiones); '' = no hay nada que enseñar.
+   */
+  function armarBloquesInicio(o, r, pendientes) {
+    const falta = (id) => DEPENDE_BLOQUE[id].some((d) => pendientes.has(d));
+    const { cx, pe, pi, ncr, rp, plan, dia, mt } = r;
     // Como la lista de Commissioning: si hay conjuntos (split = UE + UI), se cuenta por conjunto.
     const tc = cx && cx.ok && cx.totalesConjuntos && cx.totalesConjuntos.conjuntos ? cx.totalesConjuntos : null;
     const t = cx && cx.ok && cx.totales ? (tc ? { ...cx.totales, ...tc, equipos: tc.conjuntos } : cx.totales) : null;
@@ -903,36 +983,55 @@
     /* Las órdenes de mantenimiento que me tocan (de todas mis obras). */
     const misOrdenes = mt && mt.ok && mt.tareas.length ? mt.tareas : null;
     const fila = (href, nombre, valor, aviso) => `<a class="fila-dato${aviso ? ' aviso' : ''}" href="#${href}"><span>${esc(nombre)}</span><strong>${valor} ›</strong></a>`;
-    /* El resumen (28-oct): commissioning, ensayos, NCR y reparaciones en cifras. */
-    const cxHtml = resumenObra({ t, bocas, pruebas, ncr: ncr && ncr.ok ? ncr.filas : null, rep: rp && rp.filas ? rp.filas : null, codigo: o.codigo });
-    /* Lo que queda fuera del resumen: lo mío (partes y órdenes de mantenimiento). */
-    const pendienteHtml = partes || misOrdenes ? `<section class="ag-bloque" data-bloque-ini="pendiente" data-plg-caja="pendiente">
+    const PN = window.CX.panelNcn; /* el panel de NCN (panelNcn.js) */
+    const ag = falta('hoy') ? null : bloquesAgenda(plan, dia, o.id, leerPlegados());
+    return {
+      hoy: ag ? ag.hoy : null,
+      utas: !PN ? '' : falta('utas') ? null : PN.htmlUtasHoy(plan, { esc, cifra }),
+      semana: ag ? ag.semana : null,
+      /* El resumen (28-oct): commissioning, ensayos, NCR y reparaciones en cifras. */
+      cx: falta('cx') ? null : resumenObra({ t, bocas, pruebas, ncr: ncr && ncr.ok ? ncr.filas : null, rep: rp && rp.filas ? rp.filas : null, codigo: o.codigo }),
+      marcha: !PN ? '' : falta('marcha') ? null : PN.htmlPuestosEnMarcha(cx, { esc, cifra }),
+      /* Lo que queda fuera del resumen: lo mío (partes y órdenes de mantenimiento). */
+      pendiente: falta('pendiente') ? null : partes || misOrdenes ? `<section class="ag-bloque" data-bloque-ini="pendiente" data-plg-caja="pendiente">
         <h2 class="titulo-grupo ag-titulo plg-h">${plegable.cabecera('pendiente', 'Pendiente')}</h2>
         <div class="grupo ini-pend plg-cuerpo">
         ${partes ? fila('partes', 'Partes abiertos', cifra(partes.length)) : ''}
         ${misOrdenes ? fila('misTareas', 'Mis tareas de mantenimiento', cifra(misOrdenes.length), misOrdenes.some((f) => f.atrasada)) : ''}
         </div>
-      </section>` : '';
-    const ag = bloquesAgenda(plan, dia, o.id, leerPlegados());
-    const PN = window.CX.panelNcn; /* el panel de NCN (panelNcn.js) */
-    const bloques = { hoy: ag.hoy, utas: PN ? PN.htmlUtasHoy(plan, { esc, cifra }) : '', semana: ag.semana, cx: cxHtml, marcha: PN ? PN.htmlPuestosEnMarcha(cx, { esc, cifra }) : '', pendiente: pendienteHtml };
-    const hay = BLOQUES_INICIO.filter(([id]) => bloques[id]);
+      </section>` : '',
+    };
+  }
+
+  /* Pinta los bloques; los que aún esperan datos, con su título y «Cargando…». */
+  function pintarInicio(o, bloques, { actualizando = false } = {}) {
+    const app = document.getElementById('app');
+    if (!app || seccion() !== 'inicio' || window.CX.obraId() !== o.id) return;
+    const nombreDe = Object.fromEntries(BLOQUES_INICIO);
+    const espera = (id) => `<section class="ag-bloque" data-bloque-ini="${id}"><h2 class="titulo-grupo ag-titulo">${esc(nombreDe[id] === 'Resumen' ? 'Resumen' : nombreDe[id])}</h2><p class="ag-vacio">Cargando…</p></section>`;
+    const html = Object.fromEntries(BLOQUES_INICIO.map(([id]) => [id, bloques[id] === null || bloques[id] === undefined ? espera(id) : bloques[id]]));
+    const hay = BLOQUES_INICIO.filter(([id]) => html[id]);
     const ocultos = leerOcultos();
+    const y = window.scrollY;
     app.innerHTML = `
+      ${actualizando ? '<p class="ini-actualizando" role="status">Actualizando…</p>' : ''}
       ${hay.length > 1 ? `<div class="ver-bloques" role="group" aria-label="Qué bloques ver"><span>Ver</span>${hay
         .map(([id, nombre]) => `<button type="button" data-ver-bloque="${id}" aria-pressed="${!ocultos.has(id)}" class="${ocultos.has(id) ? '' : 'activa'}">${esc(nombre)}</button>`).join('')}</div>` : ''}
-      ${hay.filter(([id]) => !ocultos.has(id)).map(([id]) => bloques[id]).join('')}
-      ${hay.length && !restan && hay.every(([id]) => ocultos.has(id)) ? '<p class="ag-vacio">Has quitado todos los bloques: toca uno arriba para verlo.</p>' : ''}
-      ${restan ? '<p class="cargando">Cargando…</p>' : ''}`;
+      ${hay.filter(([id]) => !ocultos.has(id)).map(([id]) => html[id]).join('')}
+      ${hay.length && hay.every(([id]) => ocultos.has(id)) ? '<p class="ag-vacio">Has quitado todos los bloques: toca uno arriba para verlo.</p>' : ''}`;
+    if (y) window.scrollTo(0, y);
     for (const b of app.querySelectorAll('[data-ver-bloque]')) {
       b.onclick = () => {
         const set = leerOcultos();
         if (set.has(b.dataset.verBloque)) set.delete(b.dataset.verBloque); else set.add(b.dataset.verBloque);
         guardarOcultos(set);
-        inicio();
+        /* Con lo ya pedido: quitar o poner un bloque no vuelve a pedir nada. */
+        if (inicioDatos && inicioDatos.obra === o.id) pintarInicio(o, armarBloquesInicio(o, inicioDatos.r, inicioDatos.pendientes), { actualizando: inicioDatos.pendientes.size > 0 });
+        else inicio();
       };
     }
     plegable.activar(app);
+    try { if (!actualizando) performance.mark('cx:inicio-pintado'); else performance.mark('cx:inicio-primero'); } catch { /* nada */ }
     for (const d of app.querySelectorAll('[data-plegar-atras]')) {
       d.ontoggle = () => { const set = leerPlegados(); if (d.open) set.add('atras'); else set.delete('atras'); guardarPlegados(set); };
     }
@@ -942,7 +1041,6 @@
     for (const a of app.querySelectorAll('[data-ir-seg]')) a.onclick = () => { try { sessionStorage.setItem('cx.segmento', a.dataset.irSeg); } catch { /* nada */ } };
     /* «ncr:vencidas», «rp:revisar»…: la pestaña lo recoge al cargar (ncr.js, reparaciones.js). */
     for (const a of app.querySelectorAll('[data-ir-filtro]')) a.onclick = () => { try { const [k, v] = a.dataset.irFiltro.split(':'); sessionStorage.setItem(`${k}.filtro`, v); } catch { /* nada */ } };
-    }
   }
   window.addEventListener('movil:obra', () => { if (seccion() === 'inicio') inicio(); });
 
@@ -1016,14 +1114,20 @@
     const n = e.pendientes || 0;
     const pend = n ? ` · ${cambios(n)}` : '';
     /* Sin «Entrar en la nube» (15-oct-2026, JC: «siempre conectado»): entra solo. */
+    /* El error de verdad, no «Conectando» (5-nov-2026, JC): si la última vuelta
+       falló, la pastilla lo dice mientras vuelve a intentarlo. */
+    const fallo = e.error ? String(e.error).replace(/\s+/g, ' ').trim().slice(0, 80) : '';
     if (!e.entrado || e.estado === 'sin-sesion') {
-      if (Date.now() - ARRANQUE < PACIENCIA) return ['', 'Conectando'];
+      if (Date.now() - ARRANQUE < PACIENCIA) return fallo ? ['error', fallo] : ['', 'Conectando'];
       return e.estado === 'sin-sesion' && e.entrado ? ['sin-sesion', 'Sin sesión'] : ['sin-red', `Solo en el móvil${pend}`];
     }
     if (e.estado === 'sin-red') return ['sin-red', `Sin conexión${pend}`];
-    if (e.estado === 'error') return ['error', `No sincroniza${pend}`];
+    if (e.estado === 'error') return ['error', fallo || `No sincroniza${pend}`];
+    /* Lo pesado (firmas, imágenes de planos) sigue bajando detrás (motor.js, 5-nov-2026). */
+    const t = e.trayendo;
+    if (t && t.total && t.hechas < t.total) return ['', `Bajando ${Math.round((t.hechas / t.total) * 100)} %${pend}`];
     if (e.estado === 'al-dia') return n ? ['sin-red', cambios(n)] : ['al-dia', 'Sincronizado'];
-    return ['', 'Conectando'];
+    return fallo ? ['error', fallo] : ['', 'Conectando'];
   }
   let ultimaClase = null;
   function pastillaSync() {
@@ -1045,7 +1149,8 @@
     const [clase, texto] = textoSync(e);
     ultimaClase = clase;
     b.className = `sync-pastilla ${clase}`;
-    b.textContent = texto;
+    b.innerHTML = `<span class="sync-texto">${esc(texto)}</span>`;
+    b.title = texto;
     b.setAttribute('aria-label', `Sincronización con la oficina: ${texto}`);
   }
   window.addEventListener('cxobra:sync', () => {

@@ -830,7 +830,7 @@
     else if (a === 'anotar-visita') anotarVisita();
     else if (a === 'firmar') { firmando = b.dataset.rol; const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); const l = $app.querySelector('.firma-lienzo'); if (l && l.scrollIntoView) l.scrollIntoView({ block: 'center' }); }
     else if (a === 'guardar-firma') guardarFirmaRep(b);
-    else if (a === 'quitar-firma') guardarFirmaRep(b, true);
+    else if (a === 'quitar-firma') C.confirmar('¿Quitar la firma guardada?', 'Tendrás que volver a firmar.', 'Sí, quitar').then((ok) => { if (ok) guardarFirmaRep(b, true); });
     else if (a === 'limpiar-firma') { const cv = $app.querySelector('[data-firma-lienzo]'); if (cv) { cv.getContext('2d').clearRect(0, 0, cv.width, cv.height); if (window.CX_FIRMA) window.CX_FIRMA.soltar(cv); trazadoRep = false; } }
     else if (a === 'cancelar-firma') { firmando = null; const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
   });

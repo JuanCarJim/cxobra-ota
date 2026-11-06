@@ -69,8 +69,11 @@
   .pe-leyenda button[aria-pressed="false"]{opacity:.45}
   .pe-leyenda .nota{margin:0;font-size:12px}
   .pe-punto{display:inline-block;width:11px;height:11px;border-radius:2px;flex:none}
-  .pe-verde{background:var(--bien)}.pe-azul{background:var(--pe-azul)}.pe-rojo{background:var(--mal)}
+  .pe-verde{background:var(--bien)}.pe-azul{background:var(--pe-azul)}.pe-rojo{background:var(--vd-acento,#13957A)}
   #app{--pe-azul:#1F63C6}
+  /* 5-nov (bloques): «sin empezar» en teal; el rojo, solo para incidencias. */
+  .pe-marco .marca-boca.mal{color:var(--vd-acento,#13957A)}
+  .pe-marco .marca-boca.mal .simbolo-boca .cuerpo{fill:color-mix(in srgb,var(--vd-acento,#13957A) 18%,#fff)}
   .pe-cuerpo{display:block}
   .pe-marco{position:relative;overflow:hidden;height:52vh;border:1px solid var(--borde,#c9d3d6);border-radius:10px;background:#fff;touch-action:none;overscroll-behavior:contain;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   .pe-lienzo{position:relative}
@@ -212,9 +215,26 @@
   };
   const etiqueta = (p) => p.planta || 'Sin planta';
 
+  /* POR PLANTA (5-nov-2026, JC): se pide solo la planta abierta entera; de las demás llegan sus
+     cuentas (`parcial`) y se piden al tocarlas. */
+  const url = (pl) => `api/plano-equipos?obra=${encodeURIComponent(C.obraId())}&ligero=1&porPlanta=1&planta=${encodeURIComponent(pl || '')}`;
+  const nEquipos = (x) => (x.parcial ? x.n.equipos : x.equipos.length);
+  const nMateriales = (x) => (x.parcial ? x.n.materiales : (x.materiales || []).length);
+
+  /** Trae entera una planta que llegó solo con sus cuentas. */
+  async function traerPlanta(nombre) {
+    const i = plantas().findIndex((x) => (x.planta || '') === (nombre || ''));
+    if (i < 0 || !plantas()[i].parcial) return;
+    $raiz.querySelector('.pe-plantas')?.classList.add('cargando');
+    const r = await C.pedir(url(nombre));
+    if (!r || !r.ok) throw new Error((r && r.error) || 'No se pudo abrir la planta.');
+    const nueva = (r.plantas || []).find((x) => (x.planta || '') === (nombre || '') && !x.parcial);
+    if (nueva && datos) datos.plantas[i] = nueva;
+  }
+
   async function cargar() {
     const previo = datos;
-    datos = await C.pedir(`api/plano-equipos?obra=${encodeURIComponent(C.obraId())}&ligero=1`);
+    datos = await C.pedir(url(planta));
     /* Las fichas ya pedidas se conservan al recargar la lista. */
     if (datos && datos.ok && previo && Array.isArray(previo.plantas)) {
       const vistas = new Map(previo.plantas.flatMap((p) => p.equipos || []).filter((e) => e.fichaLista).map((e) => [e.id, e]));
@@ -226,7 +246,6 @@
     if (!datos.ok) throw new Error(datos.error);
     if (!Array.isArray(datos.plantas)) datos.plantas = [];
   }
-
   async function abrir($app) {
     $raiz = $app;
     ponerEstilo();
@@ -548,7 +567,7 @@
       : `<div class="pe-sin-plano"><b>La planta ${esc(etiqueta(p))} aún no tiene plano de equipos.</b><br>Lo sube la oficina desde Commissioning › Plano. Mientras, la lista dice la sala y el estado de cada equipo.</div>`;
     $raiz.innerHTML = `
       ${cabeza()}
-      <div class="pe-plantas" role="tablist">${plantas().map((x) => `<button role="tab" data-pe-planta="${esc(x.planta || '')}" aria-selected="${x === p}" class="${x === p ? 'activa' : ''}">${esc(etiqueta(x))}<small>${cuentaTexto(x.equipos.length, (x.materiales || []).length)}</small></button>`).join('')}</div>
+      <div class="pe-plantas" role="tablist">${plantas().map((x) => `<button role="tab" data-pe-planta="${esc(x.planta || '')}" aria-selected="${x === p}" class="${x === p ? 'activa' : ''}">${esc(etiqueta(x))}<small>${cuentaTexto(nEquipos(x), nMateriales(x))}</small></button>`).join('')}</div>
       ${capas.length > 1 ? `<div class="pe-capas" role="group" aria-label="Capas">${capas.map((k) => `<button data-pe-capa="${esc(k.id)}" aria-pressed="${!capasOff.has(k.id)}">${esc(k.nombre)} <b>${cifra(cuentasCapa[k.id])}</b></button>`).join('')}</div>` : ''}
       ${p.equipos.length ? `<div class="pe-leyenda" role="group" aria-label="Colores">${ORDEN.map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}"><i class="pe-punto pe-${k}"></i>${esc(NOMBRE[k])} <b>${cifra(c[k] || 0)}</b></button>`).join('')}
         <p class="nota">sin sala ${cifra(c.sinSala)}${p.plano ? ` · en el plano ${cifra(c.enPlano)} de ${cifra(p.equipos.length)}` : ''}</p></div>` : ''}
@@ -837,7 +856,11 @@
     const dq = ev.target.closest('[data-pe-entrega-df-quitar]');
     if (dq) { guardarEntregaDF(dq.dataset.peEntregaDfQuitar, null); return; }
     const pl = ev.target.closest('[data-pe-planta]');
-    if (pl) { planta = pl.dataset.pePlanta; elegida = null; mat = null; zoom = 1; pintar(); return; }
+    if (pl) {
+      const nombre = pl.dataset.pePlanta;
+      traerPlanta(nombre).then(() => { planta = nombre; elegida = null; mat = null; zoom = 1; pintar(); }).catch((e) => C.aviso(e.message));
+      return;
+    }
     const co = ev.target.closest('[data-pe-color]');
     if (co) { const k = co.dataset.peColor; if (ocultos.has(k)) ocultos.delete(k); else ocultos.add(k); repintarQuieto(); return; }
     const z = ev.target.closest('[data-pe-zoom]');
@@ -884,8 +907,11 @@
     }
     const ver = ev.target.closest('[data-pe-ver]');
     if (ver) {
-      const q = plantas().find((x) => x.equipos.some((y) => y.id === ver.dataset.peVer && y.x !== null));
-      if (q && (q.planta || '') !== (planta || '')) { planta = q.planta || ''; elegida = ver.dataset.peVer; zoom = 1; pintar(); mostrarHoja(); asomar(elegida); }
+      const id = ver.dataset.peVer;
+      const q = plantas().find((x) => (x.parcial ? (x.enPlano || []).includes(id) : x.equipos.some((y) => y.id === id && y.x !== null)));
+      if (q && (q.planta || '') !== (planta || '')) {
+        traerPlanta(q.planta || '').then(() => { planta = q.planta || ''; elegida = id; zoom = 1; pintar(); mostrarHoja(); asomar(elegida); }).catch((e) => C.aviso(e.message));
+      }
       else centrar(ver.dataset.peVer);
       return;
     }
