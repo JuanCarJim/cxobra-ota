@@ -115,6 +115,7 @@
     ['faltaEnsayo', 'Falta ensayo', (e) => e.envio === 'faltaEnsayo'],
     ['enviadas', 'Mandados a la DF', (e) => e.envio === 'enviada'],
     ['sinVerificar', 'Instalación sin verificar', (e) => e.envio === 'sinVerificar'],
+    ['porConfirmar', 'Por confirmar', (e) => !!e.porConfirmar],
   ];
   let segmento = 'todos';
   const porPlanta = (a, b) => /^Sin (planta|zona)$/.test(a) - /^Sin (planta|zona)$/.test(b) || a.localeCompare(b, 'es', { numeric: true });
@@ -342,12 +343,18 @@
      regla de siempre (papeles + fichas + ensayo, shared/commissioning/control.js)
      que pinta el chip «Completo»: no hay otra. Los hechos van al final del grupo. */
   const hecho = (e) => !!e.completo;
+  /* El total del grupo, como los KPI (6-nov-2026, JC): solo los confirmados; los
+     por confirmar (de un plano o un pedido) van aparte, «+N». */
+  const extraPC = (n) => (n ? ` <small class="tenue" aria-label="${n} por confirmar">+${cifra(n)}</small>` : '');
   function cabeceraPlanta(fs, p) {
-    return `<span>${esc(p)}</span><b aria-label="${fs.filter(hecho).length} hechos de ${fs.length}">${cifra(fs.filter(hecho).length)}/${cifra(fs.length)}</b>`;
+    const cuentan = fs.filter((e) => !e.porConfirmar);
+    const hechos = cuentan.filter(hecho).length;
+    return `<span>${esc(p)}</span><b aria-label="${hechos} hechos de ${cuentan.length}">${cifra(hechos)}/${cifra(cuentan.length)}${extraPC(fs.length - cuentan.length)}</b>`;
   }
   function cabeceraGrupo(fs, g) {
-    const hechos = fs.filter(hecho).length;
-    return `<span>${esc(g)}</span><b class="contador" aria-label="${hechos} hechos de ${fs.length}">${cifra(hechos)}/${cifra(fs.length)}</b>`;
+    const cuentan = fs.filter((e) => !e.porConfirmar);
+    const hechos = cuentan.filter(hecho).length;
+    return `<span>${esc(g)}</span><b class="contador" aria-label="${hechos} hechos de ${cuentan.length}">${cifra(hechos)}/${cifra(cuentan.length)}${extraPC(fs.length - cuentan.length)}</b>`;
   }
 
   /* LOS KPI DE ARRIBA, COMO LOS DE VIDAIRE OBRAS (28-oct-2026, JC: «mejora la
@@ -375,6 +382,8 @@
       { id: 'faltaFichas', et: 'Sin ficha', n: t.faltaFichas || 0, tono: 'falta', pie: 'fichas por rellenar' },
       { id: 'faltaBalanceo', et: 'Balanceo', n: t.faltaBalanceo || 0, tono: 'falta', pie: 'equipos por medir' },
       { id: 'faltaEstanqueidad', et: 'Estanq.', n: (window.KPI_CX ? window.KPI_CX.faltaEstanqueidad(t) : t.faltaEstanqueidadEnvio || 0), tono: 'falta', pie: 'prueba por hacer' },
+      /* Los que salen de planos o pedidos sin nada que diga que existen: no cuentan arriba; aquí se ven y se miden. */
+      lista.porConfirmar ? { id: 'porConfirmar', et: 'Por confirmar', n: lista.porConfirmar, tono: 'neutro', pie: 'de planos o pedidos; no cuentan' } : null,
     ].filter(Boolean);
     return `<div class="kpis-cx" role="tablist" aria-label="Resumen del commissioning">${celdas.map((c) => {
       const tono = c.tono === 'falta' && !c.n ? 'bien' : c.tono;
@@ -384,6 +393,23 @@
         ${c.barra !== undefined ? `<i class="barra" aria-hidden="true"><i style="width:${c.barra}%"></i></i>` : ''}
         <span class="pie">${c.pie}</span><span class="ir" aria-hidden="true">›</span></button>`;
     }).join('')}</div>`;
+  }
+
+  /* LA COPIA DEL MÓVIL, DICHA (6-nov-2026, JC con «Sin conexión»: las familias
+     no cuadraban con lo de la oficina). Si la última vuelta con la nube no
+     acabó, las cifras son las que el teléfono tenía: se dice encima y desde
+     cuándo, para que nadie las tome por las de la oficina. */
+  function notaCopiaMovil() {
+    const s = typeof window !== 'undefined' && window.cxObra && window.cxObra.sync && window.cxObra.sync.activa ? window.cxObra.sync : null;
+    if (!s || typeof s.estado !== 'function') return '';
+    const e = s.estado() || {};
+    if (e.estado !== 'sin-red' && e.estado !== 'error') return '';
+    const d = e.ultimaBajada ? new Date(e.ultimaBajada) : null;
+    const cuando = d && !Number.isNaN(d.getTime())
+      ? ` (última vez al día: ${new Date().toDateString() === d.toDateString() ? 'hoy' : d.toLocaleDateString('es-ES')} a las ${d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })})`
+      : '';
+    const porque = e.estado === 'sin-red' ? (e.lenta ? 'La nube no contesta a tiempo' : 'Sin conexión') : 'No se ha podido hablar con la oficina';
+    return `<p class="nota aviso" data-cx-copia>${porque}: cifras de la copia de este móvil${esc(cuando)}; pueden no ser las de la oficina.</p>`;
   }
 
   /* Bajo los KPI ya no va «544 conjuntos con 778 unidades: … van en una línea
@@ -397,7 +423,9 @@
     const t = conj ? { ...(lista.totales || {}), ...(lista.totalesConjuntos || {}) } : (lista.totales || {});
     const q = filtro.trim().toLowerCase();
     const todos = (conj ? lista.conjuntos : lista.equipos) || [];
-    const [, , pasa] = SEGMENTOS.find(([id]) => id === segmento) || SEGMENTOS[0];
+    const [, , pasaSeg] = SEGMENTOS.find(([id]) => id === segmento) || SEGMENTOS[0];
+    /* Cada KPI filtra solo los confirmados, que son los que cuenta; «Todos» y «Por confirmar» enseñan los suyos. */
+    const pasa = segmento === 'todos' || segmento === 'porConfirmar' ? pasaSeg : (e) => !e.porConfirmar && pasaSeg(e);
     /* Los hechos, al final de su grupo (orden estable: lo demás no se mueve). */
     const equipos = todos.filter(pasa).filter((e) => !q || window.BUSCADOR_MOVIL.coincide(q, textosDe(e)))
       .sort((a, b) => hecho(a) - hecho(b));
@@ -414,6 +442,7 @@
       : (a, b) => sin(a) - sin(b) || a.localeCompare(b, 'es', { numeric: true }));
     const subPor = !hayPlanta && hayZona ? 'zona' : 'planta';
     $app.innerHTML = `
+      ${notaCopiaMovil()}
       ${kpisCx(t, conj)}
       ${window.BUSCADOR_MOVIL.campo({ placeholder: 'Buscar TAG, sala, planta, tipo o marca', valor: filtro, atributo: 'data-cx-buscar' })}
       <div class="agrupar" role="group" aria-label="Agrupar por"><span>Agrupar por</span>${opciones
@@ -430,7 +459,7 @@
             ${tagsFila(e)}
             ${chipEnvio(e.envio, e.completo, e.ensayoFalta)}
           </div>
-          <div class="sub">${[NOMBRE_CLASE[e.clase], e.planta, e.local, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean)
+          <div class="sub">${[e.porConfirmar ? 'Por confirmar' : null, NOMBRE_CLASE[e.clase], e.planta, e.local, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean)
             /* Cada trozo entero: a 390 px se parte entre trozos, no en «U-|71PZH3E5». */
             .map((x) => `<span class="trozo">${esc(x)}</span>`).join(' · ') || 'Sin datos'}</div>
           ${serieFila(e)}

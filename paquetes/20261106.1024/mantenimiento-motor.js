@@ -33,9 +33,9 @@
     mod
   ));
 
-  // ../claude-501/-Users-juancarlosjimenezlima/83916579-9654-4112-896b-2223502863df/scratchpad/nm/node_modules/sql.js/dist/sql-wasm-browser.js
+  // ../../../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/sql.js/dist/sql-wasm-browser.js
   var require_sql_wasm_browser = __commonJS({
-    "../claude-501/-Users-juancarlosjimenezlima/83916579-9654-4112-896b-2223502863df/scratchpad/nm/node_modules/sql.js/dist/sql-wasm-browser.js"(exports, module) {
+    "../../../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/sql.js/dist/sql-wasm-browser.js"(exports, module) {
       var initSqlJsPromise = void 0;
       var initSqlJs2 = function(moduleConfig) {
         if (initSqlJsPromise) {
