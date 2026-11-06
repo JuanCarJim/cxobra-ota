@@ -115,6 +115,7 @@
     ['faltaEnsayo', 'Falta ensayo', (e) => e.envio === 'faltaEnsayo'],
     ['enviadas', 'Mandados a la DF', (e) => e.envio === 'enviada'],
     ['sinVerificar', 'Instalación sin verificar', (e) => e.envio === 'sinVerificar'],
+    ['porConfirmar', 'Por confirmar', (e) => !!e.porConfirmar],
   ];
   let segmento = 'todos';
   const porPlanta = (a, b) => /^Sin (planta|zona)$/.test(a) - /^Sin (planta|zona)$/.test(b) || a.localeCompare(b, 'es', { numeric: true });
@@ -342,12 +343,18 @@
      regla de siempre (papeles + fichas + ensayo, shared/commissioning/control.js)
      que pinta el chip «Completo»: no hay otra. Los hechos van al final del grupo. */
   const hecho = (e) => !!e.completo;
+  /* El total del grupo, como los KPI (6-nov-2026, JC): solo los confirmados; los
+     por confirmar (de un plano o un pedido) van aparte, «+N». */
+  const extraPC = (n) => (n ? ` <small class="tenue" aria-label="${n} por confirmar">+${cifra(n)}</small>` : '');
   function cabeceraPlanta(fs, p) {
-    return `<span>${esc(p)}</span><b aria-label="${fs.filter(hecho).length} hechos de ${fs.length}">${cifra(fs.filter(hecho).length)}/${cifra(fs.length)}</b>`;
+    const cuentan = fs.filter((e) => !e.porConfirmar);
+    const hechos = cuentan.filter(hecho).length;
+    return `<span>${esc(p)}</span><b aria-label="${hechos} hechos de ${cuentan.length}">${cifra(hechos)}/${cifra(cuentan.length)}${extraPC(fs.length - cuentan.length)}</b>`;
   }
   function cabeceraGrupo(fs, g) {
-    const hechos = fs.filter(hecho).length;
-    return `<span>${esc(g)}</span><b class="contador" aria-label="${hechos} hechos de ${fs.length}">${cifra(hechos)}/${cifra(fs.length)}</b>`;
+    const cuentan = fs.filter((e) => !e.porConfirmar);
+    const hechos = cuentan.filter(hecho).length;
+    return `<span>${esc(g)}</span><b class="contador" aria-label="${hechos} hechos de ${cuentan.length}">${cifra(hechos)}/${cifra(cuentan.length)}${extraPC(fs.length - cuentan.length)}</b>`;
   }
 
   /* LOS KPI DE ARRIBA, COMO LOS DE VIDAIRE OBRAS (28-oct-2026, JC: «mejora la
@@ -375,6 +382,8 @@
       { id: 'faltaFichas', et: 'Sin ficha', n: t.faltaFichas || 0, tono: 'falta', pie: 'fichas por rellenar' },
       { id: 'faltaBalanceo', et: 'Balanceo', n: t.faltaBalanceo || 0, tono: 'falta', pie: 'equipos por medir' },
       { id: 'faltaEstanqueidad', et: 'Estanq.', n: (window.KPI_CX ? window.KPI_CX.faltaEstanqueidad(t) : t.faltaEstanqueidadEnvio || 0), tono: 'falta', pie: 'prueba por hacer' },
+      /* Los que salen de planos o pedidos sin nada que diga que existen: no cuentan arriba; aquí se ven y se miden. */
+      lista.porConfirmar ? { id: 'porConfirmar', et: 'Por confirmar', n: lista.porConfirmar, tono: 'neutro', pie: 'de planos o pedidos; no cuentan' } : null,
     ].filter(Boolean);
     return `<div class="kpis-cx" role="tablist" aria-label="Resumen del commissioning">${celdas.map((c) => {
       const tono = c.tono === 'falta' && !c.n ? 'bien' : c.tono;
@@ -384,6 +393,23 @@
         ${c.barra !== undefined ? `<i class="barra" aria-hidden="true"><i style="width:${c.barra}%"></i></i>` : ''}
         <span class="pie">${c.pie}</span><span class="ir" aria-hidden="true">›</span></button>`;
     }).join('')}</div>`;
+  }
+
+  /* LA COPIA DEL MÓVIL, DICHA (6-nov-2026, JC con «Sin conexión»: las familias
+     no cuadraban con lo de la oficina). Si la última vuelta con la nube no
+     acabó, las cifras son las que el teléfono tenía: se dice encima y desde
+     cuándo, para que nadie las tome por las de la oficina. */
+  function notaCopiaMovil() {
+    const s = typeof window !== 'undefined' && window.cxObra && window.cxObra.sync && window.cxObra.sync.activa ? window.cxObra.sync : null;
+    if (!s || typeof s.estado !== 'function') return '';
+    const e = s.estado() || {};
+    if (e.estado !== 'sin-red' && e.estado !== 'error') return '';
+    const d = e.ultimaBajada ? new Date(e.ultimaBajada) : null;
+    const cuando = d && !Number.isNaN(d.getTime())
+      ? ` (última vez al día: ${new Date().toDateString() === d.toDateString() ? 'hoy' : d.toLocaleDateString('es-ES')} a las ${d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })})`
+      : '';
+    const porque = e.estado === 'sin-red' ? (e.lenta ? 'La nube no contesta a tiempo' : 'Sin conexión') : 'No se ha podido hablar con la oficina';
+    return `<p class="nota aviso" data-cx-copia>${porque}: cifras de la copia de este móvil${esc(cuando)}; pueden no ser las de la oficina.</p>`;
   }
 
   /* Bajo los KPI ya no va «544 conjuntos con 778 unidades: … van en una línea
@@ -397,7 +423,9 @@
     const t = conj ? { ...(lista.totales || {}), ...(lista.totalesConjuntos || {}) } : (lista.totales || {});
     const q = filtro.trim().toLowerCase();
     const todos = (conj ? lista.conjuntos : lista.equipos) || [];
-    const [, , pasa] = SEGMENTOS.find(([id]) => id === segmento) || SEGMENTOS[0];
+    const [, , pasaSeg] = SEGMENTOS.find(([id]) => id === segmento) || SEGMENTOS[0];
+    /* Cada KPI filtra solo los confirmados, que son los que cuenta; «Todos» y «Por confirmar» enseñan los suyos. */
+    const pasa = segmento === 'todos' || segmento === 'porConfirmar' ? pasaSeg : (e) => !e.porConfirmar && pasaSeg(e);
     /* Los hechos, al final de su grupo (orden estable: lo demás no se mueve). */
     const equipos = todos.filter(pasa).filter((e) => !q || window.BUSCADOR_MOVIL.coincide(q, textosDe(e)))
       .sort((a, b) => hecho(a) - hecho(b));
@@ -414,6 +442,7 @@
       : (a, b) => sin(a) - sin(b) || a.localeCompare(b, 'es', { numeric: true }));
     const subPor = !hayPlanta && hayZona ? 'zona' : 'planta';
     $app.innerHTML = `
+      ${notaCopiaMovil()}
       ${kpisCx(t, conj)}
       ${window.BUSCADOR_MOVIL.campo({ placeholder: 'Buscar TAG, sala, planta, tipo o marca', valor: filtro, atributo: 'data-cx-buscar' })}
       <div class="agrupar" role="group" aria-label="Agrupar por"><span>Agrupar por</span>${opciones
@@ -430,7 +459,7 @@
             ${tagsFila(e)}
             ${chipEnvio(e.envio, e.completo, e.ensayoFalta)}
           </div>
-          <div class="sub">${[NOMBRE_CLASE[e.clase], e.planta, e.local, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean)
+          <div class="sub">${[e.porConfirmar ? 'Por confirmar' : null, NOMBRE_CLASE[e.clase], e.planta, e.local, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean)
             /* Cada trozo entero: a 390 px se parte entre trozos, no en «U-|71PZH3E5». */
             .map((x) => `<span class="trozo">${esc(x)}</span>`).join(' · ') || 'Sin datos'}</div>
           ${serieFila(e)}
@@ -802,12 +831,26 @@
     return `${avisos}${lista}${crear}`;
   }
 
+  /* Dos papeles distintos (5-nov-2026, JC: «la toma de datos está hecha y dice
+     que no está la ficha de puesta en marcha»): la FICHA PM es la de la app (la
+     toma de datos; en un split, la de la UI), k.fichaPMHecha; la HOJA PM es la
+     del fabricante en el SharePoint, k.fichaPM. Antes la fila «Ficha PM» pintaba
+     la hoja y salía ✗ con la ficha hecha. */
+  function fichaPMApp(k, si) {
+    const e = k.fichaPMHecha;
+    if (e === 'hecha') return si(true);
+    if (e === 'noApta') return '<strong class="aviso">Con reservas</strong>';
+    if (e === 'noAplica') return '<span class="tenue">No aplica</span>';
+    return si(false);
+  }
   function checklist(k, med, puede = false) {
     if (!k) return '';
     /* Sin fila «Ensayo» (16-oct, JC): el balanceo y la estanqueidad salen solo
        si el equipo los lleva. Un split o una enfriadora no llevan balanceo de bocas. */
     const req = k.ensayoRequerido || 'ninguno';
-    const sinBal = med && !med.plano && (!k.balanceoEstado || k.balanceoEstado === 'pendiente');
+    /* Lo que se enseña: lo decidido o, con la toma de datos hecha, «En proceso» (5-nov). */
+    const balVisto = k.balanceoVisto || k.balanceoEstado || 'pendiente';
+    const sinBal = med && !med.plano && balVisto === 'pendiente';
     const pideBal = (req === 'balanceo' || req === 'ambos') && !sinBal;
     const pideEst = req === 'estanqueidad' || req === 'ambos' || Boolean(k.estanqueidad);
     const si = (v) => (v ? '<span class="ok">✓</span>' : '<span class="no">✗</span>');
@@ -823,8 +866,9 @@
         ${fila('Ficha técnica', si(k.ft))}
         ${fila('Certificado CE', si(k.ce))}
         ${fila('Manual', si(k.manual))}
-        ${fila('Ficha PM', si(k.fichaPM))}
-        ${pideBal ? fila('Balanceo', `<strong>${esc(nombreEstado(k.balanceoEstado || 'pendiente'))}</strong>`) : ''}
+        ${fila('Ficha PM', fichaPMApp(k, si))}
+        ${fila('Hoja PM fabricante', si(k.fichaPM))}
+        ${pideBal ? fila('Balanceo', `<strong>${esc(nombreEstado(balVisto))}</strong>`) : ''}
         ${pideEst ? fila('Estanqueidad', `<strong>${esc(nombreEstado(est))}</strong>`) : ''}
         ${filaPuestaEnMarcha(k, fila)}
         ${htmlFechasEquipo(k, puede, fila)}
@@ -1175,6 +1219,7 @@
       ${htmlFichas('equipo', 'Fichas del equipo')}
       ${htmlEntradaIncidencias()}
       ${htmlUnidadesInteriores(f, puede)}
+      ${htmlPrepararArchivo(f)}
       ${htmlFotosEquipo(f, puede)}
       ${checklist(f.checklist, f.medicion, puede)}`;
     const sub = [e.planta, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
@@ -1524,7 +1569,11 @@
     /* La localización en plano (29-oct-2026, JC): el recorte del plano, delante de las fotos hechas. */
     const loc = (f.localizacion || []).map((x) => `<li class="localizacion-plano"><img data-src="${esc(x.url)}" alt="Localización en plano">
         <div class="pie"><span>${esc(x.pie || 'Localización en plano')}</span></div></li>`).join('');
+    /* Sin símbolo en el dibujo, la marca está en el rótulo (5-nov-2026): no se pinta, se dice. */
+    const pc = f.localizacionPorConfirmar || [];
+    const porConfirmar = pc.length ? `<p class="nota localizacion-por-confirmar">Localización en plano por confirmar: ${esc(pc.map((u) => `${u.etiqueta}${u.planta ? ` (${u.planta})` : ''}`).join(', '))} — ${esc(pc[0].motivo)}.</p>` : '';
     return `<h2>Fotos del equipo <span class="cuenta">${total}</span></h2>
+      ${porConfirmar}
       ${enCola.length ? `<p class="nota">${marcaAG('sinRed')} ${enCola.length === 1 ? 'Una foto está' : `${enCola.length} fotos están`} solo en el móvil: se subirá${enCola.length === 1 ? '' : 'n'} sola${enCola.length === 1 ? '' : 's'} al volver la conexión.</p>` : ''}
       ${total || loc ? `<ul class="fotos-equipo">${loc}${fotos.map((x) => `<li><img data-src="${esc(x.url || `api/equipo/foto?id=${encodeURIComponent(x.id)}`)}" alt="${esc(x.pie || 'Foto')}">
         <div class="pie"><span>${pieDe(x)}</span>${marca(x)}${puede && (x.origen || 'equipo') === 'equipo' ? `<button class="enlace mal" data-cx="quitar-foto-equipo" data-id="${esc(x.id)}">Quitar</button>` : ''}</div></li>`).join('')}${enCola.map((x) => `<li class="en-movil"><img data-local="${esc(x.local)}" alt="${esc(x.pie || 'Foto')}">
@@ -2078,6 +2127,7 @@
   const RESULTADO = { apto: ['bien', 'APTO'], aRevisar: ['aviso', 'A REVISAR'], noApto: ['mal', 'NO APTO'] };
   /* «A medias» sin un solo dato relleno se contradice (JC, 29-oct): sin datos, «Sin empezar». */
   /* Y al revés (JC, 29-oct): «2 de 2 datos» y «A medias» se contradicen: entera, «Completa». */
+  /* La misma regla está en shared/commissioning/archivoPreparado.js, para «Preparar archivo» (y su ruta). */
   const estadoVisible = (estado, medidos, bocasSinMedir) => {
     if (estado !== 'pendiente' || !medidos) return estado;
     if (!medidos.rellenos) return 'sinEmpezar';
@@ -2128,6 +2178,50 @@
     const q = new URLSearchParams({ tipo: 'ficha', obra, clave: x.clave, plantilla: x.plantilla });
     const tag = ficha ? ficha.equipo.tag : '';
     await compartirPdf(`api/informe?${q}`, `${[tag, x.nombre].filter(Boolean).join(' - ')}${esDefinitiva(x) ? '' : ' (BORRADOR)'}.pdf`, b);
+  }
+
+  /*
+   * «PREPARAR ARCHIVO» (5-nov-2026, JC): con todas las hojas listas (Definitiva),
+   * un PDF con todas, en el orden de la lista, que el jefe de obra descarga en
+   * el ordenador o la web (Commissioning › Entregas) para mandarlo. Aquí solo
+   * se mira lo que ya está cargado: el PDF se hace al pulsar, nunca al abrir.
+   * Si falta algo, no hay botón: una línea discreta con lo que falta.
+   */
+  function estadoArchivo(f) {
+    if (!fichasEq || fichasEq.ok === false || !f || !window.ARCHIVO_PREPARADO) return null;
+    const lista = (f.planos || []).flatMap((p) => p.bocas || []);
+    const balanceo = tieneBalanceo(f);
+    const bocas = lista.length ? { total: lista.length, medidas: lista.filter((b) => b.caudal !== null && b.caudal !== undefined).length, fuera: lista.filter((b) => b.estado === 'alto' || b.estado === 'bajo').length } : null;
+    return { ...window.ARCHIVO_PREPARADO.listo(fichasEq.fichas || [], { balanceo, bocas }), balanceo, bocas };
+  }
+  function htmlPrepararArchivo(f) {
+    const est = estadoArchivo(f);
+    if (!est || !fichasEq.puedeEditar || !est.hojas.length) return '';
+    const hecho = fichasEq.archivo;
+    const yaHecho = hecho ? `<p class="nota archivo-hecho">Preparado el ${esc(C.fechaEs(hecho.creadoEn))}${hecho.creadoPorNombre ? ` por ${esc(hecho.creadoPorNombre)}` : ''} · ${hecho.hojas.length} hoja${hecho.hojas.length === 1 ? '' : 's'} · <button type="button" class="enlace" data-cx="ver-archivo" data-id="${esc(hecho.id)}">Ver</button></p>` : '';
+    if (!est.listo) {
+      const faltan = est.faltan.slice(0, 2).join(' · ') + (est.faltan.length > 2 ? ` · y ${est.faltan.length - 2} más` : '');
+      return `<section id="archivo-equipo">${yaHecho}<p class="nota">Para preparar el archivo falta: ${esc(faltan)}.</p></section>`;
+    }
+    return `<section id="archivo-equipo">
+      <button class="boton${hecho ? ' secundario' : ''}" data-cx="preparar-archivo"><i class="ic ic-doc"></i>${hecho ? 'Volver a preparar archivo' : 'Preparar archivo'}</button>
+      ${yaHecho || `<p class="nota">Las ${est.hojas.length} hojas en un PDF, en este orden, para descargarlo en el ordenador.</p>`}
+    </section>`;
+  }
+  async function prepararArchivo(b) {
+    const est = estadoArchivo(ficha);
+    if (!est || !est.listo) return;
+    b.disabled = true;
+    const texto = b.innerHTML;
+    b.textContent = 'Preparando…';
+    try {
+      const r = await C.postJson('api/equipo/preparar-archivo', { equipoId: ficha.equipo.id, balanceo: est.balanceo, bocas: est.bocas });
+      if (!r.ok) throw new Error(r.error);
+      fichasEq.archivo = r.archivo;
+      C.aviso(`Archivo preparado (${r.archivo.hojas.length} hojas): sube con la sincronización y el jefe de obra lo descarga en el ordenador.`, 'bien');
+      if (activa()) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
+      await compartirPdf(`api/equipo/archivo-preparado?id=${encodeURIComponent(r.archivo.id)}`, r.archivo.nombre);
+    } catch (e) { C.aviso(e.message); b.disabled = false; b.innerHTML = texto; }
   }
 
   function htmlFichas(pestana = 'equipo', titulo = 'Fichas del equipo') {
@@ -3538,6 +3632,8 @@
     else if (que === 'quitar-firma' && ficha) C.confirmar('¿Quitar la firma guardada?', 'Tendrás que volver a firmar.', 'Sí, quitar').then((ok) => { if (ok) guardarFirma(b, true); });
     else if (que === 'quitar-foto-equipo') quitarFotoEquipo(b);
     else if (que === 'ver-hoja') verHoja(b);
+    else if (que === 'preparar-archivo' && ficha) prepararArchivo(b);
+    else if (que === 'ver-archivo' && ficha) compartirPdf(`api/equipo/archivo-preparado?id=${encodeURIComponent(b.dataset.id)}`, (fichasEq && fichasEq.archivo && fichasEq.archivo.nombre) || 'Archivo.pdf', b);
     else if (que === 'nube-ahora' && window.cxObra && window.cxObra.sync) { b.disabled = true; window.cxObra.sync.ahora().finally(() => { if (ficha) abrir(ficha.equipo.id, { quieto: true }); }); }
     else if (que === 'crono' && ficha) accionCrono(b, b.dataset.accion);
     else if (que === 'crono-anadir' && ficha) { const g = leerCuadrilla(); g.push({ nombre: `Operario ${g.filter((p) => p.rol === 'operario').length + 1}`, rol: 'operario', empresa: (g[g.length - 1] || {}).empresa || null }); cuadrillaLocal.cambiada = true; cuadrillaLocal.estado = 'guardando'; repintarCrono(); cuadrillaPronto(); }
