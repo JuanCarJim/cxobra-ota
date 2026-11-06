@@ -1121,7 +1121,10 @@
       if (Date.now() - ARRANQUE < PACIENCIA) return fallo ? ['error', fallo] : ['', 'Conectando'];
       return e.estado === 'sin-sesion' && e.entrado ? ['sin-sesion', 'Sin sesión'] : ['sin-red', `Solo en el móvil${pend}`];
     }
-    if (e.estado === 'sin-red') return ['sin-red', `Sin conexión${pend}`];
+    /* Con red pero sin respuesta de la nube a tiempo (6-nov-2026, JC veía «Sin
+       conexión» con cobertura): «Nube lenta». Sin red de verdad, lo de siempre. */
+    const sinRedDeVerdad = typeof navigator !== 'undefined' && navigator.onLine === false;
+    if (e.estado === 'sin-red') return ['sin-red', e.lenta && !sinRedDeVerdad ? `Nube lenta${pend}` : `Sin conexión${pend}`];
     if (e.estado === 'error') return ['error', fallo || `No sincroniza${pend}`];
     /* Lo pesado (firmas, imágenes de planos) sigue bajando detrás (motor.js, 5-nov-2026). */
     const t = e.trayendo;

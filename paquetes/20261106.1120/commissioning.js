@@ -395,6 +395,23 @@
     }).join('')}</div>`;
   }
 
+  /* LA COPIA DEL MÓVIL, DICHA (6-nov-2026, JC con «Sin conexión»: las familias
+     no cuadraban con lo de la oficina). Si la última vuelta con la nube no
+     acabó, las cifras son las que el teléfono tenía: se dice encima y desde
+     cuándo, para que nadie las tome por las de la oficina. */
+  function notaCopiaMovil() {
+    const s = typeof window !== 'undefined' && window.cxObra && window.cxObra.sync && window.cxObra.sync.activa ? window.cxObra.sync : null;
+    if (!s || typeof s.estado !== 'function') return '';
+    const e = s.estado() || {};
+    if (e.estado !== 'sin-red' && e.estado !== 'error') return '';
+    const d = e.ultimaBajada ? new Date(e.ultimaBajada) : null;
+    const cuando = d && !Number.isNaN(d.getTime())
+      ? ` (última vez al día: ${new Date().toDateString() === d.toDateString() ? 'hoy' : d.toLocaleDateString('es-ES')} a las ${d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })})`
+      : '';
+    const porque = e.estado === 'sin-red' ? (e.lenta ? 'La nube no contesta a tiempo' : 'Sin conexión') : 'No se ha podido hablar con la oficina';
+    return `<p class="nota aviso" data-cx-copia>${porque}: cifras de la copia de este móvil${esc(cuando)}; pueden no ser las de la oficina.</p>`;
+  }
+
   /* Bajo los KPI ya no va «544 conjuntos con 778 unidades: … van en una línea
      con su exterior» (28-oct-2026, JC: «ese texto fuera»); la de la instalación
      verificada se queda, que lleva el enlace «Ver cuáles». */
@@ -425,6 +442,7 @@
       : (a, b) => sin(a) - sin(b) || a.localeCompare(b, 'es', { numeric: true }));
     const subPor = !hayPlanta && hayZona ? 'zona' : 'planta';
     $app.innerHTML = `
+      ${notaCopiaMovil()}
       ${kpisCx(t, conj)}
       ${window.BUSCADOR_MOVIL.campo({ placeholder: 'Buscar TAG, sala, planta, tipo o marca', valor: filtro, atributo: 'data-cx-buscar' })}
       <div class="agrupar" role="group" aria-label="Agrupar por"><span>Agrupar por</span>${opciones
