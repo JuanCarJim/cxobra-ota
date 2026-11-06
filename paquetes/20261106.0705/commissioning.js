@@ -592,7 +592,7 @@
     const v = (x, d = 0) => (x === null || x === undefined ? '' : comaD(x, d));
     const circ = c.forma === 'circ';
     const apuntado = c.origen === 'apuntado';
-    const campo = (k, rot, val, d = 0) => `<label>${rot}<input inputmode="decimal" autocomplete="off" ${dis} data-cond="${k}" value="${v(val, d)}" aria-label="${esc(nombre)}: ${esc(rot)}"></label>`;
+    const campo = (k, rot, val, d = 0) => `<label>${rot}<input inputmode="decimal" ${k[0] === 't' ? 'data-menos' : ''} autocomplete="off" ${dis} data-cond="${k}" value="${v(val, d)}" aria-label="${esc(nombre)}: ${esc(rot)}"></label>`;
     return `<div class="conducto-principal" data-conducto="${red}">
       <div class="fila-principal"><strong>Conducto principal · ${esc(nombre)}</strong>
         ${c.etiquetas && c.etiquetas.length ? c.etiquetas.map((e) => `<span class="marca-revisar">${esc(e)}</span>`).join('') : ''}</div>
@@ -1613,7 +1613,7 @@
     document.body.classList.add('sin-scroll');
     C.cargarImagenes(capa);
     cargarFotosLocales(capa);
-    capa.addEventListener('click', (ev) => {
+    capa.addEventListener('click', async (ev) => {
       const b = ev.target.closest('[data-ui-visor]');
       if (!b) return;
       const que = b.dataset.uiVisor;
@@ -1634,7 +1634,7 @@
         return;
       }
       if (que === 'quitar') {
-        if (!window.confirm(`¿Quitar la foto de ${tag || 'esta unidad'}?`)) return;
+        if (!(await C.confirmar(`¿Quitar la foto de ${tag || 'esta unidad'}?`, '', 'Sí, quitar'))) return;
         cerrarFotoUi();
         if (foto.local) { quitarFotoUiLocal(foto); if (activa() && ficha && !hoja) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); } }
         else quitarFotoUiServidor(foto.id);
@@ -1770,7 +1770,7 @@
   }
 
   async function quitarFotoEquipo(boton) {
-    if (!window.confirm('¿Quitar esta foto del equipo?')) return;
+    if (!(await C.confirmar('¿Quitar esta foto del equipo?', '', 'Sí, quitar'))) return;
     try {
       const r = await C.postJson('api/equipo/fotos/quitar', { id: boton.dataset.id, vista: ficha ? ficha.equipo.id : '' });
       if (!r.ok) throw new Error(r.error);
@@ -1849,7 +1849,7 @@
             <input inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis} ${datos} data-m="${i}"
               value="${lect[i] === undefined ? '' : comaD(lect[i], enQ ? 1 : 2)}" aria-label="Lectura M${i + 1} en ${unidadM} en ${esc(b.nombre)}"></label>`).join('')}</div>`}
       <div class="t-bocas">${[['tFrio', 'Tª frío'], ['tCalor', 'Tª calor']].map(([k, rot]) => `<label class="t-boca">${rot} (°C)
-        <input inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis} ${datos} data-t="${k}"
+        <input inputmode="decimal" data-menos enterkeyhint="next" autocomplete="off" ${dis} ${datos} data-t="${k}"
           value="${b[k] === null || b[k] === undefined ? '' : comaD(b[k], 1)}" aria-label="${rot} en ${esc(b.nombre)}, en grados"></label>`).join('')}
         ${b.temperatura === null || b.temperatura === undefined ? '' : `<span class="t-sin-modo">Tª ${comaD(b.temperatura, 1)} °C · modo sin indicar</span>`}</div>
       ${bal ? '' : `<div data-vivo="formula">${formula}</div>`}
@@ -2302,7 +2302,7 @@
     if (BOTONES_RESP[p.tipo]) {
       return `<div class="respuestas mini">${BOTONES_RESP[p.tipo].map(([k, n]) => `<button type="button" ${dis} class="${v === k ? claseResp(k, p, tipoSeccion) : ''}" data-h-resp="${k}" data-h-punto="${esc(p.codigo)}">${n}</button>`).join('')}</div>`;
     }
-    if (p.tipo === 'numero') return `<input class="cifra corto" inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis} ${a} value="${esc(coma(v))}" data-h-punto="${esc(p.codigo)}" data-h-k="v" data-h-num>`;
+    if (p.tipo === 'numero') return `<input class="cifra corto" inputmode="decimal" data-menos enterkeyhint="next" autocomplete="off" ${dis} ${a} value="${esc(coma(v))}" data-h-punto="${esc(p.codigo)}" data-h-k="v" data-h-num>`;
     if (p.tipo === 'fecha') return `<input type="date" ${dis} ${a} value="${esc(String(v || '').slice(0, 10))}" data-h-punto="${esc(p.codigo)}" data-h-k="v">`;
     if (p.tipo === 'lista') return `<select ${dis} ${a} data-h-punto="${esc(p.codigo)}" data-h-k="v"><option value="">—</option>${(p.opciones || []).map((o) => `<option ${o === v ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
     return `<input autocomplete="off" enterkeyhint="next" ${dis} ${a} value="${esc(v ?? '')}" data-h-punto="${esc(p.codigo)}" data-h-k="v">`;
@@ -2321,7 +2321,7 @@
     return `<div class="${clase}"><span class="et">${num}${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}</span>${inputPunto(p, ed, null, s.tipo)}</div>`;
   }
 
-  const casillaParametro = (p, k, n, dis) => `<input class="cifra${k === 'm' ? ' medido' : ''}" inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis}
+  const casillaParametro = (p, k, n, dis) => `<input class="cifra${k === 'm' ? ' medido' : ''}" inputmode="decimal" data-menos enterkeyhint="next" autocomplete="off" ${dis}
       aria-label="${esc(`${p.etiqueta} · ${n}`)}" value="${esc(coma(valorDe(p, k)))}" data-h-punto="${esc(p.codigo)}" data-h-k="${k}">`;
   /* La desviación y el resultado de un parámetro, como los calcula el servidor. */
   function desvParametro(p) {
@@ -2416,7 +2416,7 @@
     const medida = (c, unidad) => {
       const p = pt(c);
       if (!p) return '<span></span>';
-      return `<span class="con-unidad"><input inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis} value="${esc(coma(valorDe(p)))}"
+      return `<span class="con-unidad"><input inputmode="decimal" data-menos enterkeyhint="next" autocomplete="off" ${dis} value="${esc(coma(valorDe(p)))}"
         data-h-punto="${esc(c)}" data-h-k="v" data-h-num aria-label="${esc(p.etiqueta)}"><i>${esc(p.unidad || unidad)}</i></span>`;
     };
     const metodo = pt('metodo_medida');
@@ -3535,7 +3535,7 @@
     else if (que === 'cancelar-firma' && ficha) cerrarFirma({ olvidar: true });
     else if (que === 'limpiar-firma' && ficha) { const cv = $app.querySelector('[data-firma-lienzo]'); if (cv) { cv.getContext('2d').clearRect(0, 0, cv.width, cv.height); FD.soltar(cv); trazado = false; firmaSinPintar = null; apuntarFirma(); } }
     else if (que === 'guardar-firma' && ficha) guardarFirma(b);
-    else if (que === 'quitar-firma' && ficha) guardarFirma(b, true);
+    else if (que === 'quitar-firma' && ficha) C.confirmar('¿Quitar la firma guardada?', 'Tendrás que volver a firmar.', 'Sí, quitar').then((ok) => { if (ok) guardarFirma(b, true); });
     else if (que === 'quitar-foto-equipo') quitarFotoEquipo(b);
     else if (que === 'ver-hoja') verHoja(b);
     else if (que === 'nube-ahora' && window.cxObra && window.cxObra.sync) { b.disabled = true; window.cxObra.sync.ahora().finally(() => { if (ficha) abrir(ficha.equipo.id, { quieto: true }); }); }

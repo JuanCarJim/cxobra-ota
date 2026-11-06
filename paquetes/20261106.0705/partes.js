@@ -509,7 +509,13 @@
       pintarForm();
     } else if (a === 'cambiar-tipo') pintarTipo();
     else if (a === 'linea') { form.lineas.push(lineaVacia(b.dataset.clase)); cambio(true); pintarForm(); }
-    else if (a === 'quitar-linea') { form.lineas.splice(Number(b.dataset.i), 1); cambio(true); pintarForm(); }
+    else if (a === 'quitar-linea') {
+      const i = Number(b.dataset.i); const l = form.lineas[i];
+      const quitar = () => { form.lineas.splice(i, 1); cambio(true); pintarForm(); };
+      if (l && (String(l.descripcion || '').trim() || String(l.cantidad || '').trim())) {
+        window.CX.confirmar(`¿Quitar «${String(l.descripcion || '').trim() || 'esta línea'}»?`, '', 'Sí, quitar').then((ok) => { if (ok) quitar(); });
+      } else quitar();
+    }
     else if (a === 'ver-foto') verFoto(Number(b.dataset.i));
     else if (a === 'foto') $camara.click();
     else if (a === 'galeria') $galeria.click();

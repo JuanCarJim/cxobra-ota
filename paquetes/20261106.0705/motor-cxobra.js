@@ -4089,7 +4089,7 @@ globalThis.CX_VARIANTE="cxobra";
         const contador = { escrituras: 0, datos: 0, alEscribir: (sql) => vigilarSql(sql) };
         const cache = /* @__PURE__ */ new Map();
         const cambios = { sucias: /* @__PURE__ */ new Map(), completa: false };
-        const marcar = (op, esquema, tabla, rowid) => {
+        const marcar2 = (op, esquema, tabla, rowid) => {
           if (esquema !== "main") return;
           if (tabla[0] !== "_") contador.datos++;
           let s = cambios.sucias.get(tabla);
@@ -4100,7 +4100,7 @@ globalThis.CX_VARIANTE="cxobra";
           s.add(rowid);
         };
         const conGancho = () => {
-          if (typeof db.updateHook === "function") db.updateHook(marcar);
+          if (typeof db.updateHook === "function") db.updateHook(marcar2);
         };
         conGancho();
         function vigilarSql(sql) {
@@ -6074,7 +6074,9 @@ globalThis.CX_VARIANTE="cxobra";
     "cxobra/fotosAlVerlas.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
-      function crearFotosAlVerlas2({ atender, carpetaNube, bajarYa }) {
+      var ESPERA_MAX = 1500;
+      var TARDE = /* @__PURE__ */ Symbol("tarde");
+      function crearFotosAlVerlas2({ atender, carpetaNube, bajarYa, espera = ESPERA_MAX }) {
         const prefijo = String(carpetaNube).replace(/\/?$/, "/");
         const faltas = /* @__PURE__ */ new Set();
         let avisos = 0;
@@ -6093,7 +6095,20 @@ globalThis.CX_VARIANTE="cxobra";
             faltas.clear();
             bajando = Promise.resolve(bajarYa(rutas)).catch(() => 0);
           }
-          const n = await bajando;
+          const esta = bajando;
+          const n = await Promise.race([esta, new Promise((ok) => setTimeout(() => ok(TARDE), espera))]);
+          if (n === TARDE) {
+            esta.then((m) => {
+              if (m) {
+                try {
+                  globalThis.dispatchEvent(new CustomEvent("cxobra:datos", { detail: ["fotos"] }));
+                } catch {
+                }
+              }
+            }).catch(() => {
+            });
+            return r;
+          }
           return n ? atender(peticion) : r;
         }
         return { alFaltar, atender: atenderConFotos };
@@ -10397,7 +10412,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261105.2249" : "0";
+      var VERSION = true ? "20261106.0705" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -11546,6 +11561,20 @@ globalThis.CX_VARIANTE="cxobra";
       var MAX_LOTE = 15e5;
       var POR_PAGINA = 1e3;
       var EN_VUELO = 4;
+      var TANDA = 150;
+      var TABLAS_DESPUES = /* @__PURE__ */ new Set([
+        "firmasEquipo",
+        "imagenesPlanoDif",
+        "planosEquipos",
+        "materialesInstalados",
+        "planosDifusores",
+        "planosAvance",
+        "fotosEquipo",
+        "qhseAdjuntos",
+        "documentosPersonal",
+        "pedidoDocumentos"
+      ]);
+      var PARTIR_DESDE = 300;
       var REINTENTO_RECHAZO = 10 * 60 * 1e3;
       var MAX_RECHAZOS = 6;
       function crearMotor({
@@ -11919,7 +11948,14 @@ globalThis.CX_VARIANTE="cxobra";
           }
           return m;
         }
+        let detras = null;
         async function bajar() {
+          if (detras) {
+            try {
+              await detras;
+            } catch {
+            }
+          }
           if (modo === "movil") {
             try {
               const a = await nube.leer("cx_accesos", `select=obra_id&espacio=eq.${encodeURIComponent(espacio)}`);
@@ -12031,62 +12067,52 @@ globalThis.CX_VARIANTE="cxobra";
           }
           let entradas = 0;
           const tocadas = /* @__PURE__ */ new Set();
-          if (hacenFalta.length) cambiarEstado({ trayendo: { hechas: 0, total: hacenFalta.length } });
-          const pedirTanda = (i) => {
-            const seqs = hacenFalta.slice(i, i + 40).map((r) => r.seq).join(",");
-            return nube.leer("cx_filas", `select=tabla,id,obras,persona_id,datos,modificado_en,borrado,seq,autor&espacio=eq.${encodeURIComponent(espacio)}&seq=in.(${seqs})`);
-          };
-          const enVuelo = /* @__PURE__ */ new Map();
-          const pedirHasta = (i) => {
-            for (let j = i; j < hacenFalta.length && j < i + 40 * EN_VUELO; j += 40) {
-              if (!enVuelo.has(j)) {
-                const p = pedirTanda(j);
-                p.catch(() => {
-                });
-                enVuelo.set(j, p);
+          const total = hacenFalta.length;
+          let hechas = 0;
+          if (total) cambiarEstado({ trayendo: { hechas: 0, total } });
+          async function traer(lista) {
+            const pedirTanda = (i) => {
+              const seqs = lista.slice(i, i + TANDA).map((r) => r.seq).join(",");
+              return nube.leer("cx_filas", `select=tabla,id,obras,persona_id,datos,modificado_en,borrado,seq,autor&espacio=eq.${encodeURIComponent(espacio)}&seq=in.(${seqs})`);
+            };
+            const enVuelo = /* @__PURE__ */ new Map();
+            const pedirHasta = (i) => {
+              for (let j = i; j < lista.length && j < i + TANDA * EN_VUELO; j += TANDA) {
+                if (!enVuelo.has(j)) {
+                  const p = pedirTanda(j);
+                  p.catch(() => {
+                  });
+                  enVuelo.set(j, p);
+                }
               }
-            }
-          };
-          for (let i = 0; i < hacenFalta.length; i += 40) {
-            pedirHasta(i);
-            const filas = await enVuelo.get(i);
-            enVuelo.delete(i);
-            if (archivos2) {
-              for (const f of filas || []) if (!f.borrado) await archivos2.alBajar(f);
-            }
-            const fusion = (filas || []).filter((f) => !f.borrado && aFusionar.has(F.clave(f.tabla, f.id)));
-            for (const f of fusion) {
-              if (fusionarFila(f)) {
-                tocadas.add(f.tabla);
-                entradas++;
+            };
+            for (let i = 0; i < lista.length; i += TANDA) {
+              pedirHasta(i);
+              const filas = await enVuelo.get(i);
+              enVuelo.delete(i);
+              if (archivos2) {
+                for (const f of filas || []) if (!f.borrado) await archivos2.alBajar(f);
               }
-            }
-            const r = aplicarFilas((filas || []).filter((f) => !fusion.includes(f)));
-            entradas += r.entradas;
-            for (const t of r.tablas) tocadas.add(t);
-            cambiarEstado({ trayendo: { hechas: Math.min(i + 40, hacenFalta.length), total: hacenFalta.length } });
-          }
-          if (hacenFalta.length) cambiarEstado({ trayendo: null });
-          for (let i = 0; i < aRellenar.length; i += 40) {
-            const seqs = aRellenar.slice(i, i + 40).map((r) => r.seq).join(",");
-            const filas = await nube.leer("cx_filas", `select=tabla,id,datos,modificado_en,borrado&espacio=eq.${encodeURIComponent(espacio)}&seq=in.(${seqs})`);
-            const n = rellenarColumnas(filas || [], columnasNuevas);
-            if (n.length) {
-              entradas += n.length;
-              for (const t of n) tocadas.add(t);
+              const fusion = (filas || []).filter((f) => !f.borrado && aFusionar.has(F.clave(f.tabla, f.id)));
+              for (const f of fusion) {
+                if (fusionarFila(f)) {
+                  tocadas.add(f.tabla);
+                  entradas++;
+                }
+              }
+              const r = aplicarFilas((filas || []).filter((f) => !fusion.includes(f)));
+              entradas += r.entradas;
+              for (const t of r.tablas) tocadas.add(t);
+              hechas += Math.min(TANDA, lista.length - i);
+              cambiarEstado({ trayendo: { hechas, total } });
             }
           }
-          ponerEstado("cursor", cursor);
-          if (!leerEstado("propiasRepasadas")) ponerEstado("propiasRepasadas", "1");
-          ponerEstado("tablasConocidas", conocidas);
-          ponerEstado("columnasConocidas", JSON.stringify(columnasAhora));
-          const sello = ahora().toISOString();
-          ponerEstado("ultimaBajada", sello);
-          if (entradas) {
-            ponerEstado("ultimoRecibido", sello);
-            cambiarEstado({ ultimoRecibido: sello });
-          }
-          cambiarEstado({ ultimaBajada: sello });
+          const partir = modo === "movil" && total >= PARTIR_DESDE;
+          const luego = partir ? hacenFalta.filter((r) => TABLAS_DESPUES.has(r.tabla)) : [];
+          const ya = luego.length ? hacenFalta.filter((r) => !TABLAS_DESPUES.has(r.tabla)) : hacenFalta;
+          await traer(ya);
+          if (!luego.length) return rematar();
+          cambiarEstado({ esencial: ahora().toISOString() });
           if (tocadas.size) {
             try {
               alCambiar([...tocadas]);
@@ -12094,8 +12120,59 @@ globalThis.CX_VARIANTE="cxobra";
               registro(`alCambiar: ${e.message}`);
             }
           }
-          return { entradas, tablas: [...tocadas] };
+          const ahoraVan = { entradas, tablas: [...tocadas], siguen: luego.length };
+          tocadas.clear();
+          detras = (async () => {
+            try {
+              await traer(luego);
+              await rematar();
+            } catch (e) {
+              cambiarEstado({ trayendo: null });
+              registro(`Bajada (lo pesado): ${e.message}`);
+              if (tocadas.size) {
+                try {
+                  alCambiar([...tocadas]);
+                } catch {
+                }
+              }
+            }
+          })().finally(() => {
+            detras = null;
+          });
+          return ahoraVan;
+          async function rematar() {
+            if (total) cambiarEstado({ trayendo: null });
+            for (let i = 0; i < aRellenar.length; i += 40) {
+              const seqs = aRellenar.slice(i, i + 40).map((r) => r.seq).join(",");
+              const filas = await nube.leer("cx_filas", `select=tabla,id,datos,modificado_en,borrado&espacio=eq.${encodeURIComponent(espacio)}&seq=in.(${seqs})`);
+              const n = rellenarColumnas(filas || [], columnasNuevas);
+              if (n.length) {
+                entradas += n.length;
+                for (const t of n) tocadas.add(t);
+              }
+            }
+            ponerEstado("cursor", cursor);
+            if (!leerEstado("propiasRepasadas")) ponerEstado("propiasRepasadas", "1");
+            ponerEstado("tablasConocidas", conocidas);
+            ponerEstado("columnasConocidas", JSON.stringify(columnasAhora));
+            const sello = ahora().toISOString();
+            ponerEstado("ultimaBajada", sello);
+            if (entradas) {
+              ponerEstado("ultimoRecibido", sello);
+              cambiarEstado({ ultimoRecibido: sello });
+            }
+            cambiarEstado({ ultimaBajada: sello });
+            if (tocadas.size) {
+              try {
+                alCambiar([...tocadas]);
+              } catch (e) {
+                registro(`alCambiar: ${e.message}`);
+              }
+            }
+            return { entradas, tablas: [...tocadas] };
+          }
         }
+        const seguirBajando = () => detras || Promise.resolve(null);
         function columnasLocales() {
           const r = {};
           for (const t of [...tablasLocales].filter((x) => /^[A-Za-z]+$/.test(x)).sort()) {
@@ -12318,6 +12395,7 @@ globalThis.CX_VARIANTE="cxobra";
           ciclo,
           subir,
           bajar,
+          seguirBajando,
           pendientes,
           aplicarFilas,
           bajarFotos,
@@ -12732,6 +12810,7 @@ globalThis.CX_VARIANTE="cxobra";
         },
         cada = 3e4,
         conTimbre = true,
+        conTimbreCada = 5 * 60 * 1e3,
         io = null
         /* las fotos: { existe, leer, escribir, carpeta } (archivos.js) */
       }) {
@@ -12790,7 +12869,10 @@ globalThis.CX_VARIANTE="cxobra";
             if (!montar()) return Promise.resolve(null);
             if (timbre) timbre.arrancar();
             clearInterval(reloj);
+            let ultima = Date.now();
             reloj = setInterval(() => {
+              if (timbre && timbre.conectado() && Date.now() - ultima < conTimbreCada) return;
+              ultima = Date.now();
               motor.ciclo();
             }, cada);
             return motor.ciclo();
@@ -12977,7 +13059,7 @@ globalThis.CX_VARIANTE="cxobra";
           }
         }, 2e3);
       }
-      function marcar(paso, desde) {
+      function marcar2(paso, desde) {
         const ms = Math.round(ahora() - desde);
         const antes = actual.pasos[paso];
         actual.pasos[paso] = antes === void 0 ? ms : ms;
@@ -12986,7 +13068,7 @@ globalThis.CX_VARIANTE="cxobra";
       }
       var ver = () => todas.map((a) => ({ en: a.en, pasos: { ...a.pasos } }));
       var texto = () => todas.slice().reverse().map((a) => `${a.en.slice(5, 16).replace("T", " ")}  ${Object.entries(a.pasos).map(([k, v]) => `${k} ${v} ms`).join(" \xB7 ")}`).join("\n");
-      var api = { ahora, marcar, ver, texto };
+      var api = { ahora, marcar: marcar2, ver, texto };
       globalThis.cxTiempos = api;
       module.exports = api;
     }
@@ -24598,6 +24680,12 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
         ["planosEquipos", "rotulos", "TEXT"],
         /* La copia ligera del plano que baja al móvil (≤2500 px, JPEG): electron/data/planoEquipos.js. */
         ["planosEquipos", "imagenMovil", "TEXT"],
+        /* LA VISIÓN CON IA (tarea [12], 5-nov): la lectura del plano por el Mac
+           (pendiente · leyendo · leido · error), cuándo y su resumen en JSON
+           (cuentas, lo dado de alta, lo que queda a revisión). electron/data/visionPlanos.js */
+        ["planosEquipos", "iaEstado", "TEXT"],
+        ["planosEquipos", "iaLeidoEn", "TEXT"],
+        ["planosEquipos", "iaResumen", "TEXT"],
         /* Los albaranes comparados con el pedido línea a línea. */
         ["pedidoDocumentos", "albaranId", "TEXT"],
         ["pedidosCompra", "fechaCierreDiferencias", "TEXT"],
@@ -25902,6 +25990,16 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
             return [];
           }
         }
+        const preparadas = /* @__PURE__ */ new Map();
+        function sentencia(sql) {
+          let st = preparadas.get(sql);
+          if (!st) {
+            if (preparadas.size >= 400) preparadas.clear();
+            st = db.prepare(sql);
+            preparadas.set(sql, st);
+          }
+          return st;
+        }
         function exigir(entidad, sesion, verbo) {
           const modulo = MODULO_DE[entidad];
           if (!modulo) throw new alcance.AlcanceNoDeclarado(entidad);
@@ -25918,7 +26016,7 @@ ${rotulo ? `[${rotulo}] ` : ""}${obsO}` : obsO).slice(0, 4e3);
           }
           if (orden) sql += ` ORDER BY ${orden}`;
           if (limite) sql += ` LIMIT ${Number(limite)}`;
-          return alcance.recortarLista(db.prepare(sql).all(...todos), sesion.rol);
+          return alcance.recortarLista(sentencia(sql).all(...todos), sesion.rol);
         }
         function leer(entidad, sesion, id) {
           const filas = listar(entidad, sesion, { condicion: "id = ?", params: [id], limite: 1 });
@@ -40206,6 +40304,43 @@ ${subtitulo}`, c[5]] : c.slice())]);
     }
   });
 
+  // electron/db/marcaCambios.js
+  var require_marcaCambios = __commonJS({
+    "electron/db/marcaCambios.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      function marcaDeCambios(db) {
+        try {
+          const v = db.prepare("PRAGMA data_version").get();
+          const c = db.prepare("SELECT total_changes() AS c").get();
+          const internas = Number(db.__escriturasInternas || 0);
+          const cambiosInternos = Number(db.__cambiosInternos || 0);
+          const propios = typeof db.cambiosTotales === "function" ? db.cambiosTotales() - internas : "";
+          if (!v || !c) return null;
+          return `${Object.values(v)[0]}|${c.c - cambiosInternos}|${propios}`;
+        } catch {
+          return null;
+        }
+      }
+      var recordados = /* @__PURE__ */ new WeakMap();
+      function recordar(repo, sesion, clave, calcular) {
+        const marca = repo && repo.db ? marcaDeCambios(repo.db) : null;
+        if (!marca || typeof repo !== "object") return calcular();
+        let m = recordados.get(repo);
+        if (!m || m.marca !== marca) {
+          m = { marca, valores: /* @__PURE__ */ new Map() };
+          recordados.set(repo, m);
+        }
+        const k = `${sesion && sesion.personaId}|${sesion && sesion.rol}|${JSON.stringify(sesion && sesion.soloObras || null)}|${clave}`;
+        if (m.valores.has(k)) return m.valores.get(k);
+        const v = calcular();
+        if (marcaDeCambios(repo.db) === marca) m.valores.set(k, v);
+        return v;
+      }
+      module.exports = { marcaDeCambios, recordar };
+    }
+  });
+
   // shared/commissioning/conjuntos.js
   var require_conjuntos = __commonJS({
     "shared/commissioning/conjuntos.js"(exports, module) {
@@ -40977,12 +41112,13 @@ ${subtitulo}`, c[5]] : c.slice())]);
         for (const f of filasDe(repo, sesion, equipoIds)) if (f.rol in r) r[f.rol].add(f.equipoId);
         return r;
       }
+      var { marcaDeCambios } = require_marcaCambios();
       var conjuntosPorObra = /* @__PURE__ */ new WeakMap();
       function indiceConjuntos(repo, sesion, obraId) {
         let firma = null;
         try {
-          const f = repo.db.prepare("SELECT COUNT(*) AS n, MAX(modificadoEn) AS m FROM equiposObra WHERE obraId = ?").get(obraId);
-          firma = `${sesion && sesion.personaId}|${sesion && sesion.rol}|${f.n}|${f.m}`;
+          const marca = marcaDeCambios(repo.db);
+          firma = marca && `${sesion && sesion.personaId}|${sesion && sesion.rol}|${marca}`;
         } catch {
           firma = null;
         }
@@ -41024,8 +41160,8 @@ ${subtitulo}`, c[5]] : c.slice())]);
       function indiceIntervencion(repo, sesion, obraId) {
         let firma = null;
         try {
-          const f = repo.db.prepare("SELECT COUNT(*) AS n, MAX(modificadoEn) AS m FROM sesionesPlanCx WHERE obraId = ?").get(obraId);
-          firma = `${sesion && sesion.personaId}|${sesion && sesion.rol}|${f.n}|${f.m}`;
+          const marca = marcaDeCambios(repo.db);
+          firma = marca && `${sesion && sesion.personaId}|${sesion && sesion.rol}|${marca}`;
         } catch {
           firma = null;
         }
@@ -41080,8 +41216,8 @@ ${subtitulo}`, c[5]] : c.slice())]);
       function indiceRefrigerante(repo, sesion, obraId) {
         let firma = null;
         try {
-          const f = repo.db.prepare("SELECT COUNT(*) AS n, MAX(modificadoEn) AS m FROM equiposObra WHERE obraId = ?").get(obraId);
-          firma = `${sesion && sesion.personaId}|${sesion && sesion.rol}|${f.n}|${f.m}`;
+          const marca = marcaDeCambios(repo.db);
+          firma = marca && `${sesion && sesion.personaId}|${sesion && sesion.rol}|${marca}`;
         } catch {
           firma = null;
         }
@@ -44039,6 +44175,3079 @@ ${subtitulo}`, c[5]] : c.slice())]);
     }
   });
 
+  // shared/commissioning/catalogoAk.js
+  var require_catalogoAk = __commonJS({
+    "shared/commissioning/catalogoAk.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const T2 = "TROX";
+        const NO_INDICA = "No indicado en la ficha del fabricante (Aeff = \xE1rea efectiva de descarga/entrada).";
+        const lista = (o) => ({ forma: "lista", magnitud: "Aeff", origen: "fabricante", metodo: NO_INDICA, correccion: null, ...o });
+        const matriz = (o) => ({ forma: "matriz", magnitud: "Aeff", origen: "fabricante", metodo: NO_INDICA, correccion: null, ...o });
+        function matrizDeModelo(modelo, largos, filas, extra) {
+          const altos = [];
+          const f = [];
+          for (const [h, modelos, vals] of filas) {
+            if (!modelos.includes(modelo)) continue;
+            altos.push(h);
+            f.push(vals);
+          }
+          return matriz({ ...extra, largos, altos, filas: f });
+        }
+        const tablas = {};
+        const tipos = {};
+        const ponTipo = (id, x) => {
+          tipos[id] = { modo: "ak", ak: null, k: null, ...x };
+        };
+        const URL_REJ = "https://cdn.trox.de/0ae9188da51728e7/3ff576a2ffa6/t_1_1_1_grilles_lin.pdf";
+        const FICHA_REJ = "TROX T 1.1.1 EN \xABGrilles / Linear grilles\xBB (rejillas lineales, datos aerodin\xE1micos)";
+        const L8 = [225, 325, 425, 525, 625, 825, 1025, 1225];
+        const N = null;
+        const A_GRUPO = ["AT", "VAT", "ASL", "SL", "TR", "TRS", "TRS-R", "TRS-K", "KS"];
+        const FILAS_IMP = [
+          [75, ["AH", "AF"], [6e-3, 9e-3, 0.011, 0.014, 0.017, 0.022, 0.028, 0.034]],
+          [75, ["VAT", "TRS", "TRS-R", "TRS-K"], [7e-3, 0.011, 0.014, 0.018, 0.021, 0.029, 0.036, 0.043]],
+          [125, A_GRUPO, [0.014, 0.021, 0.029, 0.036, 0.043, 0.057, 0.072, 0.086]],
+          [125, ["AH", "AF"], [0.011, 0.017, 0.022, 0.028, 0.034, 0.044, 0.055, 0.066]],
+          [125, ["AWT"], [0.01, 0.015, 0.02, 0.025, 0.031, 0.04, 0.05, 0.06]],
+          [225, A_GRUPO, [0.029, 0.043, 0.057, 0.072, 0.086, 0.114, 0.142, 0.172]],
+          [225, ["AH", "AF"], [N, 0.034, 0.044, 0.055, 0.066, 0.087, 0.108, 0.129]],
+          [225, ["AWT"], [N, 0.031, 0.04, 0.05, 0.06, 0.078, 0.097, 0.116]],
+          [325, ["AT", "VAT", "ASL", "SL", "TR", "TRS", "TRS-K"], [N, 0.064, 0.086, 0.108, 0.129, 0.172, 0.214, 0.256]],
+          [325, ["AH", "AF"], [N, N, 0.066, 0.081, 0.096, 0.129, 0.169, 0.193]],
+          [325, ["AWT"], [N, N, 0.06, 0.073, 0.086, 0.116, 0.152, 0.174]],
+          [425, ["AT", "VAT", "ASL", "SL", "TR"], [N, N, N, N, 0.172, 0.228, 0.285, 0.342]],
+          [425, ["AH", "AF"], [N, N, N, N, 0.129, 0.169, 0.214, 0.256]],
+          [525, ["AT", "VAT", "ASL", "SL", "TR"], [N, N, N, N, N, N, 0.355, 0.427]]
+        ];
+        const FILAS_RET = [
+          [75, ["AH", "AF"], [4e-3, 6e-3, 9e-3, 0.011, 0.013, 0.017, 0.021, 0.026]],
+          [75, ["AWT"], [3e-3, 5e-3, 8e-3, 0.01, 0.011, 0.015, 0.018, 0.023]],
+          [75, ["AT", "VAT", "TR", "TRS", "TRS-R", "KS"], [6e-3, 9e-3, 0.011, 0.014, 0.016, 0.022, 0.028, 0.033]],
+          [125, ["AH", "AF"], [9e-3, 0.013, 0.017, 0.021, 0.026, 0.033, 0.041, 0.049]],
+          [125, ["AWT"], [8e-3, 0.011, 0.015, 0.018, 0.023, 0.029, 0.036, 0.043]],
+          [125, ["AT", "VAT", "TR", "TRS", "TRS-R", "KS"], [0.011, 0.016, 0.022, 0.028, 0.033, 0.044, 0.055, 0.066]],
+          [125, ["ASL", "SL"], [0.013, 0.019, 0.026, 0.033, 0.04, 0.053, 0.066, 0.08]],
+          [225, ["AH", "AF"], [N, 0.026, 0.033, 0.041, 0.049, 0.066, 0.082, 0.09]],
+          [225, ["AWT"], [N, 0.023, 0.029, 0.036, 0.043, 0.057, 0.071, 0.078]],
+          [225, ["AT", "VAT", "TR", "TRS", "TRS-R", "KS"], [N, 0.033, 0.044, 0.055, 0.066, 0.09, 0.11, 0.134]],
+          [225, ["ASL", "SL"], [N, 0.04, 0.053, 0.066, 0.08, 0.105, 0.133, 0.16]],
+          [325, ["AH", "AF"], [N, N, 0.049, 0.06, 0.072, 0.095, 0.12, 0.14]],
+          [325, ["AWT"], [N, N, 0.043, 0.052, 0.063, 0.083, 0.104, 0.122]],
+          [325, ["AT", "VAT", "TR", "TRS", "TRS-R", "KS"], [N, N, 0.066, 0.083, 0.1, 0.134, 0.17, 0.2]],
+          [325, ["ASL", "SL"], [N, N, 0.08, 0.1, 0.12, 0.16, 0.2, 0.24]],
+          [425, ["AH", "AF"], [N, N, N, N, 0.095, 0.122, 0.155, 0.185]],
+          [425, ["AT", "VAT", "TR", "TRS", "TRS-R", "KS"], [N, N, N, N, 0.134, 0.18, 0.22, 0.27]],
+          [425, ["ASL", "SL"], [N, N, N, N, 0.16, 0.22, 0.27, 0.32]],
+          [525, ["AT", "VAT", "TR", "TRS", "TRS-R", "KS"], [N, N, N, N, N, N, 0.28, 0.34]],
+          [525, ["ASL", "SL"], [N, N, N, N, N, N, 0.33, 0.4]]
+        ];
+        const MODELOS_IMP = ["AT", "VAT", "ASL", "SL", "TR", "TRS", "TRS-R", "TRS-K", "KS", "AH", "AF", "AWT"];
+        const MODELOS_RET = ["AT", "VAT", "ASL", "SL", "TR", "TRS", "TRS-R", "KS", "AH", "AF", "AWT"];
+        const F_RET = { ASL: 1.6, AT: 1.6, VAT: 1.6, SL: 1.6, TR: 1.6, TRS: 1.6, AH: 1.9, AF: 1.9, AWT: 1.9 };
+        const METODO_REJ_IMP = "Pitot entre lamas con las lamas sin divergencia: Q = v \xD7 Aeff \xD7 3600. Anem\xF3metro de h\xE9lice (sonda \xD8109) recorriendo uniformemente toda la cara de la reja: Q = v \xD7 Aeff \xD7 1,33 \xD7 3600 (cat\xE1logo, p. 16).";
+        const METODO_REJ_RET = "Anem\xF3metro de h\xE9lice (sonda \xD8109) recorriendo uniformemente toda la cara de la reja: Q = v \xD7 Aeff \xD7 f \xD7 3600; f = 1,6 (ASL \xB7 AT \xB7 VAT \xB7 SL \xB7 TR \xB7 TRS) o 1,9 (AH \xB7 AF \xB7 AWT) (cat\xE1logo, p. 18).";
+        for (const m of MODELOS_IMP) {
+          const id = `REJ_${m.replace("-", "_")}_IMP`;
+          tablas[id] = matrizDeModelo(m, L8, FILAS_IMP, {
+            marca: T2,
+            modelo: m,
+            tipoBoca: "rejilla de impulsi\xF3n",
+            circuito: "impulsion",
+            fuente: FICHA_REJ,
+            pagina: 15,
+            url: URL_REJ,
+            metodo: METODO_REJ_IMP,
+            correccion: { valor: 1.33, texto: "Con anem\xF3metro de h\xE9lice sobre la cara: Q = v \xD7 Aeff \xD7 1,33 \xD7 3600 (p. 16)." }
+          });
+          ponTipo(`trox-rej-${m.toLowerCase()}-imp`, { marca: T2, modelo: `${m} (rejilla)`, variante: "Impulsi\xF3n", nombre: `TROX ${m} \xB7 impulsi\xF3n`, circuito: "impulsion", tabla: id, tipoBoca: "rejilla de impulsi\xF3n" });
+        }
+        for (const m of MODELOS_RET) {
+          const id = `REJ_${m.replace("-", "_")}_RET`;
+          const f = F_RET[m];
+          tablas[id] = matrizDeModelo(m, L8, FILAS_RET, {
+            marca: T2,
+            modelo: m,
+            tipoBoca: "rejilla de retorno / extracci\xF3n",
+            circuito: "retorno",
+            fuente: FICHA_REJ,
+            pagina: 18,
+            url: URL_REJ,
+            metodo: METODO_REJ_RET,
+            correccion: f ? { valor: f, texto: `Anem\xF3metro de h\xE9lice sobre la cara: Q = v \xD7 Aeff \xD7 ${String(f).replace(".", ",")} \xD7 3600 (p. 18).` } : null
+          });
+          ponTipo(`trox-rej-${m.toLowerCase()}-ret`, { marca: T2, modelo: `${m} (rejilla)`, variante: "Retorno / extracci\xF3n", nombre: `TROX ${m} \xB7 retorno`, circuito: "retorno", tabla: id, tipoBoca: "rejilla de retorno / extracci\xF3n" });
+        }
+        const URL_TR2X = "https://cdn.trox.de/eb494ea59de47d76/36646accebdf/TR2X_PD_2025_07_15_DE_en.pdf";
+        const FICHA_TR2X = "TROX TR2X, PD-07/2025 \u2013 CH/en";
+        const L6 = [225, 325, 425, 525, 625, 825];
+        const H4 = [75, 125, 225, 325];
+        const tr2x = (id, variante, circuito, pagina, filas) => {
+          tablas[id] = matriz({ marca: T2, modelo: "TR2X", tipoBoca: circuito === "impulsion" ? "rejilla de impulsi\xF3n" : "rejilla de retorno / extracci\xF3n", circuito, fuente: FICHA_TR2X, pagina, url: URL_TR2X, largos: L6, altos: H4, filas });
+          ponTipo(`trox-tr2x-${id.slice(5).toLowerCase()}`, { marca: T2, modelo: "TR2X (rejilla)", variante, nombre: `TROX TR2X \xB7 ${variante}`, circuito, tabla: id, tipoBoca: tablas[id].tipoBoca });
+        };
+        tr2x("TR2X_IMP_VH", "Impulsi\xF3n, lamas VH / HV", "impulsion", 8, [[7e-3, 0.011, 0.015, 0.019, 0.022, 0.03], [0.015, 0.022, 0.03, 0.037, 0.045, 0.06], [0.03, 0.045, 0.06, 0.075, 0.09, 0.12], [N, 0.067, 0.09, 0.112, 0.135, 0.18]]);
+        tr2x("TR2X_IMP_V", "Impulsi\xF3n, lamas V", "impulsion", 8, [[8e-3, 0.012, 0.015, 0.019, 0.023, 0.031], [0.015, 0.023, 0.031, 0.039, 0.046, 0.062], [0.031, 0.046, 0.062, 0.077, 0.093, 0.124], [N, 0.07, 0.093, 0.116, 0.139, 0.185]]);
+        tr2x("TR2X_IMP_H", "Impulsi\xF3n, lamas H", "impulsion", 8, [[8e-3, 0.012, 0.016, 0.02, 0.024, 0.032], [0.016, 0.024, 0.032, 0.04, 0.048, 0.064], [0.032, 0.048, 0.064, 0.08, 0.096, 0.128], [N, 0.072, 0.096, 0.12, 0.144, 0.192]]);
+        tr2x("TR2X_RET_V", "Retorno, lamas V", "retorno", 9, [[6e-3, 9e-3, 0.011, 0.014, 0.017, 0.023], [0.011, 0.017, 0.023, 0.028, 0.034, 0.045], [0.023, 0.034, 0.045, 0.057, 0.068, 0.091], [N, 0.051, 0.068, 0.085, 0.102, 0.136]]);
+        tr2x("TR2X_EXT_H", "Extracci\xF3n, lamas H", "retorno", 9, [[6e-3, 9e-3, 0.012, 0.015, 0.018, 0.023], [0.012, 0.018, 0.023, 0.029, 0.035, 0.047], [0.023, 0.035, 0.047, 0.059, 0.07, 0.094], [N, 0.053, 0.07, 0.088, 0.106, 0.141]]);
+        const L8_AE = [150, 200, 300, 400, 500, 600, 700, 800, 900, 1e3, 1100, 1200];
+        const H_AE = [100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600];
+        const AE_FILAS = [
+          [6e-3, 9e-3, 0.014, 0.019, 0.024, 0.029, 0.034, 0.039, 0.044, 0.049, 0.054, 0.059],
+          [0.01, 0.015, 0.023, 0.032, 0.04, 0.049, 0.057, 0.066, 0.074, 0.083, 0.092, 0.1],
+          [N, 0.021, 0.033, 0.045, 0.057, 0.069, 0.081, 0.093, 0.105, 0.117, 0.129, 0.141],
+          [N, N, 0.042, 0.057, 0.073, 0.088, 0.104, 0.12, 0.135, 0.15, 0.166, 0.181],
+          [N, N, 0.052, 0.071, 0.089, 0.108, 0.128, 0.142, 0.165, 0.184, 0.203, 0.222],
+          [N, N, N, 0.084, 0.106, 0.128, 0.151, 0.173, 0.195, 0.217, 0.24, 0.262],
+          [N, N, N, 0.096, 0.122, 0.148, 0.174, 0.2, 0.225, 0.251, 0.277, 0.303],
+          [N, N, N, N, 0.142, 0.168, 0.197, 0.226, 0.256, 0.285, 0.314, 0.343],
+          [N, N, N, N, 0.155, 0.188, 0.229, 0.253, 0.286, 0.319, 0.351, 0.385],
+          [N, N, N, N, N, 0.208, 0.248, 0.28, 0.316, 0.353, 0.388, 0.425],
+          [N, N, N, N, N, 0.227, 0.267, 0.306, 0.346, 0.386, 0.425, 0.464]
+        ];
+        const AP_FILAS = [
+          [4e-3, 5e-3, 7e-3, 0.01, 0.013, 0.019, 0.022, 0.024, 0.024, 0.028, 0.031, 0.034],
+          [6e-3, 8e-3, 0.013, 0.018, 0.023, 0.028, 0.033, 0.038, 0.043, 0.047, 0.052, 0.057],
+          [N, 0.011, 0.019, 0.026, 0.033, 0.04, 0.046, 0.053, 0.059, 0.066, 0.073, 0.082],
+          [N, N, 0.024, 0.032, 0.041, 0.05, 0.058, 0.066, 0.074, 0.083, 0.091, 0.102],
+          [N, N, 0.031, 0.041, 0.053, 0.063, 0.074, 0.084, 0.097, 0.108, 0.119, 0.13],
+          [N, N, N, 0.05, 0.063, 0.076, 0.088, 0.101, 0.113, 0.126, 0.139, 0.155],
+          [N, N, N, 0.058, 0.072, 0.086, 0.101, 0.115, 0.13, 0.148, 0.163, 0.178],
+          [N, N, N, N, 0.086, 0.103, 0.12, 0.137, 0.154, 0.176, 0.193, 0.211],
+          [N, N, N, N, 0.093, 0.113, 0.131, 0.15, 0.169, 0.188, 0.206, 0.225],
+          [N, N, N, N, N, 0.125, 0.146, 0.167, 0.188, 0.209, 0.23, 0.257],
+          [N, N, N, N, N, 0.13, 0.155, 0.178, 0.2, 0.222, 0.244, 0.274]
+        ];
+        tablas.AE = matriz({
+          marca: T2,
+          modelo: "AE",
+          tipoBoca: "rejilla de retorno / extracci\xF3n",
+          circuito: "retorno",
+          fuente: "TROX AE, PD-AE-3 (10/2020), \xABEffective inlet area AE/AEL\xBB",
+          pagina: 3,
+          url: "https://cdn.trox.de/e85109af6cacf67b/3d90d6bd01ba/PD-AE--10-2020-.pdf",
+          largos: L8_AE,
+          altos: H_AE,
+          filas: AE_FILAS,
+          nota: "Para la AE con regulaci\xF3n RC-AE, la ficha manda multiplicar todas las \xE1reas por 0,96."
+        });
+        tablas.AP = matriz({
+          marca: T2,
+          modelo: "AP",
+          tipoBoca: "rejilla de retorno / extracci\xF3n",
+          circuito: "retorno",
+          fuente: "TROX AP, PD-AP-3 (10/2020), \xABEffective inlet area AP/APL\xBB",
+          pagina: 3,
+          url: "https://cdn.trox.de/1f6a3f9e7b48b2cd/52a468d90665/PD-AP--10-2020-.pdf",
+          largos: L8_AE,
+          altos: H_AE,
+          filas: AP_FILAS,
+          nota: "Para la AP con regulaci\xF3n RC-AP, la ficha manda multiplicar todas las \xE1reas por 0,95."
+        });
+        ponTipo("trox-ae-ret", { marca: T2, modelo: "AE (rejilla de extracci\xF3n)", variante: "Extracci\xF3n \xB7 lamas fijas", nombre: "TROX AE \xB7 extracci\xF3n", circuito: "retorno", tabla: "AE", tipoBoca: "rejilla de retorno / extracci\xF3n" });
+        ponTipo("trox-ap-ret", { marca: T2, modelo: "AP (rejilla de retorno perforada)", variante: "Retorno \xB7 n\xFAcleo perforado", nombre: "TROX AP \xB7 retorno", circuito: "retorno", tabla: "AP", tipoBoca: "rejilla de retorno / extracci\xF3n" });
+        const difusor = (id, o, tamanos, valores, tipoId, tipo) => {
+          tablas[id] = lista({ marca: T2, tipoBoca: tipo.tipoBoca, circuito: "impulsion", tamanos, valores, ...o });
+          for (const [circuito, , nombreC, corto] of [["impulsion", "IMP", "impulsi\xF3n", "imp"], ["retorno", "EXT", "extracci\xF3n", "ext"]]) {
+            ponTipo(`${tipoId}-${corto}`, { marca: T2, modelo: tipo.modelo, variante: `${tipo.variante} \xB7 ${nombreC}`, nombre: `TROX ${tipo.nombre} \xB7 ${nombreC}`, circuito, tabla: id, tipoBoca: tipo.tipoBoca });
+          }
+        };
+        difusor("ADLQ", {
+          modelo: "ADLQ",
+          fuente: "TROX DLQ (02/2015, K1-1.4-39) y ADLQ, tabla de dimensiones (Aeff)",
+          pagina: 8,
+          url: "https://cdn.trox.de/18f187a9530f54a4/1819cee40332/DLQ--EN-.pdf",
+          nota: "Mismos valores en la ficha del ADLQ (https://cdn.trox.de/cf7d698fe4d477fd/ec5301891888/00261620_0.pdf)."
+        }, ["250", "300", "400", "500", "600", "625"], [95e-4, 0.0175, 0.037, 0.0675, 0.11, 0.123], "trox-adlq", { modelo: "ADLQ / DLQ (rotacional cuadrado)", variante: "Cuadrado", nombre: "ADLQ", tipoBoca: "difusor rotacional de techo" });
+        const ADLR = {
+          fuente: "TROX ADLR / ADLR-Q, \xABDimensions and weight\xBB, Aeff (2015)",
+          url: "https://cdn.trox.de/e3a4d348bdba225b/9c169ef4b577/2_16_adlr_adlr_q.pdf"
+        };
+        difusor("ADLR", { modelo: "ADLR", ...ADLR, pagina: 11 }, ["1", "2", "3", "4", "5", "6", "7", "8"], [66e-4, 0.0161, 0.0257, 0.0349, 0.0473, 0.0544, 0.0691, 0.0843], "trox-adlr", { modelo: "ADLR (rotacional circular)", variante: "Circular", nombre: "ADLR", tipoBoca: "difusor rotacional de techo" });
+        difusor("ADLR_Q", { modelo: "ADLR-Q", ...ADLR, pagina: 16, nota: "Mismo Aeff que el ADLR para el mismo tama\xF1o nominal (\u2026 \xD7 1 a \u2026 \xD7 8)." }, ["1", "2", "3", "4", "5", "6", "7", "8"], [66e-4, 0.0161, 0.0257, 0.0349, 0.0473, 0.0544, 0.0691, 0.0843], "trox-adlr-q", { modelo: "ADLR-Q (rotacional cuadrado)", variante: "Cuadrado", nombre: "ADLR-Q", tipoBoca: "difusor rotacional de techo" });
+        const TDV = { fuente: "TROX TDV-SilentAIR, \xABProduct details\xBB, Aeff", pagina: 17, url: "https://cdn.trox.de/a745226cd7f1d9a2/a72868883aef/TDV_2026_03_19_DE_en.pdf" };
+        difusor("TDV_Q", { modelo: "TDV-Q", ...TDV }, ["300", "400", "500", "600", "625"], [0.012, 0.021, 0.031, 0.044, 0.044], "trox-tdv-q", { modelo: "TDV-SilentAIR (cuadrado)", variante: "TDV-Q", nombre: "TDV-Q", tipoBoca: "difusor rotacional de techo" });
+        difusor("TDV_R", { modelo: "TDV-R", ...TDV }, ["300", "400", "500", "600", "625"], [0.012, 0.021, 0.031, 0.044, 0.044], "trox-tdv-r", { modelo: "TDV-SilentAIR (circular)", variante: "TDV-R", nombre: "TDV-R", tipoBoca: "difusor rotacional de techo" });
+        const TDF = { url: "https://cdn.trox.de/8ac3b4826391b810/b03445b03588/TDF-SilentAIR_PD_2026_06_09_DE_en.pdf" };
+        difusor("TDF_Q", { modelo: "TDF-Q", ...TDF, fuente: "TROX TDF-SilentAIR (PD-06/2026), TDF-Q, Aeff", pagina: 16, nota: "El mismo Aeff vale para las tres cotas \u25A1Q1 de cada tama\xF1o nominal." }, ["300", "400", "500", "600", "625"], [0.0108, 0.0193, 0.028, 0.04, 0.04], "trox-tdf-q", { modelo: "TDF-SilentAIR (cuadrado)", variante: "TDF-Q", nombre: "TDF-Q", tipoBoca: "difusor rotacional de techo" });
+        difusor("TDF_R", { modelo: "TDF-R", ...TDF, fuente: "TROX TDF-SilentAIR (PD-06/2026), TDF-R, Aeff", pagina: 17 }, ["300", "400", "500", "600", "625"], [88e-4, 0.018, 0.0251, 0.0295, 0.0295], "trox-tdf-r", { modelo: "TDF-SilentAIR (circular)", variante: "TDF-R", nombre: "TDF-R", tipoBoca: "difusor rotacional de techo" });
+        difusor("VD", { modelo: "VD", fuente: "TROX VD (02/2017), PD-VD-13: Aeff con descarga horizontal en torbellino", pagina: 13, url: "https://cdn.trox.de/d77ca5b7a0a7fd65/8d19263ac5ae/VD_PD_2026_03_19_DE_en.pdf", nota: "La ficha da adem\xE1s el Aeff con descarga vertical: 425 \u2192 0,0781; 600 \u2192 0,1819; 775 \u2192 0,3405; 1050 \u2192 0,6358." }, ["425", "600", "775", "1050"], [0.0307, 0.0685, 0.1242, 0.2247], "trox-vd", { modelo: "VD (rotacional de techo)", variante: "Descarga horizontal", nombre: "VD", tipoBoca: "difusor rotacional de techo" });
+        difusor("VDL", { modelo: "VDL", fuente: "TROX VDL (04/2019), PD-VDL-16, VDL-A / VDL-B", pagina: 16, url: "https://cdn.trox.de/a7196dc3aea3dd80/c11ef504831f/VDL_PD_2026_03_DE_en.pdf" }, ["315", "400", "630", "800"], [0.022, 0.031, 0.077, 0.106], "trox-vdl", { modelo: "VDL (rotacional de techo, grandes alturas)", variante: "VDL-A / VDL-B", nombre: "VDL", tipoBoca: "difusor rotacional de techo" });
+        const RFD_URL = "https://cdn.trox.de/3085ddeaf6f4fbdc/558f270067bb/Celing-swirl-diffusers-type-RFD.pdf";
+        const RFD_T = ["125", "160", "200", "250", "315", "400"];
+        difusor("RFD_K", { modelo: "RFD-K", fuente: "TROX RFD (02/2017), PD-RFD-22, RFD-Q-K / RFD-R-K", pagina: 22, url: RFD_URL }, RFD_T, [26e-4, 37e-4, 66e-4, 0.011, 0.0205, 0.028], "trox-rfd-k", { modelo: "RFD (rotacional con ranuras)", variante: "RFD-K (Q y R)", nombre: "RFD-K", tipoBoca: "difusor rotacional de techo" });
+        difusor("RFD_D_K", { modelo: "RFD-D-K", fuente: "TROX RFD (02/2017), PD-RFD-22, RFD-Q-D-K / RFD-R-D-K", pagina: 22, url: RFD_URL }, RFD_T, [34e-4, 6e-3, 92e-4, 0.015, 0.0265, 0.0355], "trox-rfd-dk", { modelo: "RFD (rotacional con ranuras)", variante: "RFD-D-K (Q y R)", nombre: "RFD-D-K", tipoBoca: "difusor rotacional de techo" });
+        const vsd = (id, o, largos, valores, tipoId, tipo, circuitos) => {
+          tablas[id] = lista({ marca: T2, tipoBoca: "difusor lineal de ranuras", circuito: "impulsion", tamanos: largos.map(String), valores, ...o });
+          for (const [circuito, corto, nombreC] of circuitos || [["impulsion", "imp", "impulsi\xF3n"]]) {
+            ponTipo(`${tipoId}-${corto}`, { marca: T2, modelo: tipo.modelo, variante: `${tipo.variante} \xB7 ${nombreC}`, nombre: `TROX ${tipo.nombre} \xB7 ${nombreC}`, circuito, tabla: id, tipoBoca: "difusor lineal de ranuras" });
+          }
+        };
+        const LV = [900, 1050, 1200, 1350, 1500];
+        const VSD35 = {
+          1: [[53e-4, 61e-4, 7e-3, 79e-4, 88e-4], [58e-4, 68e-4, 78e-4, 88e-4, 97e-4]],
+          2: [[0.0105, 0.0123, 0.014, 0.0158, 0.0175], [0.0117, 0.0136, 0.0156, 0.0175, 0.0194]],
+          3: [[0.0158, 0.0184, 0.021, 0.0237, 0.0263], [0.0175, 0.0204, 0.0233, 0.0262, 0.0292]],
+          4: [[0.021, 0.0245, 0.028, 0.0315, 0.035], [0.0233, 0.0272, 0.0311, 0.035, 0.0389]]
+        };
+        for (const n of [1, 2, 3, 4]) {
+          const base = { url: "https://cdn.trox.de/352f65431db9b817/455c7754e42d/TL_K1_2_1_04_VSD35_Varyset_DE_en.pdf", pagina: 11 };
+          vsd(
+            `VSD35_${n}`,
+            { modelo: `VSD35-${n}`, ...base, fuente: "TROX VSD35 Varyset (08/2015, K1-2.1-76), Aeff: descarga horizontal en un sentido y alternada horizontal", nota: "Longitud nominal en mm." },
+            LV,
+            VSD35[n][0],
+            `trox-vsd35-${n}-h`,
+            { modelo: `VSD35 (lineal de techo, ${n} ranura${n > 1 ? "s" : ""})`, variante: "Descarga horizontal", nombre: `VSD35-${n} horizontal` }
+          );
+          vsd(
+            `VSD35_${n}_WS`,
+            { modelo: `VSD35-${n}`, ...base, fuente: "TROX VSD35 Varyset (08/2015, K1-2.1-76), Aeff WS: descarga alternada inclinada", nota: "Longitud nominal en mm." },
+            LV,
+            VSD35[n][1],
+            `trox-vsd35-${n}-ws`,
+            { modelo: `VSD35 (lineal de techo, ${n} ranura${n > 1 ? "s" : ""})`, variante: "Descarga alternada inclinada (WS)", nombre: `VSD35-${n} inclinada (WS)` }
+          );
+        }
+        vsd(
+          "VSD35_3_AZ",
+          { modelo: "VSD35-3-AZ", fuente: "TROX VSD35-3-AZ (03/2017), PD-VSDAZ-16, Aeff: impulsi\xF3n inclinada en un sentido", pagina: 16, url: "https://cdn.trox.de/56e801096c23b97d/6c900f4843b4/VSD-35-3-AZ_PD_03_2017_DE_en.pdf", nota: "Longitud nominal en mm." },
+          [600, 750, 900, 1050, 1200],
+          [39e-4, 49e-4, 58e-4, 68e-4, 78e-4],
+          "trox-vsd35-3-az",
+          { modelo: "VSD35-3-AZ (lineal de pared)", variante: "Inclinada en un sentido", nombre: "VSD35-3-AZ" }
+        );
+        vsd(
+          "VSD50_1_LT",
+          { modelo: "VSD50-1-LT", fuente: "TROX VSD50-1-LT (06/2019), PD p. 13, Aeff", pagina: 13, url: "https://cdn.trox.de/e343de0da770c86f/6db42746093a/PD_2019_06_VSD50-1-LT_DE_en.pdf", nota: "Longitud nominal en mm. Solo se leen los dos tama\xF1os que dan valor en la ficha." },
+          [550, 1175],
+          [55e-4, 0.0118],
+          "trox-vsd50-1-lt",
+          { modelo: "VSD50-1-LT (lineal)", variante: "1 ranura", nombre: "VSD50-1-LT" }
+        );
+        const LB = "Lindab";
+        const NOTA_LB = "Lindab publica \xABFree area\xBB (\xE1rea libre, geom\xE9trica): se guarda como Ageo y NO se usa sola para el caudal. El Ak lo da el factor K1/K2/K3 de la propia ficha para su f\xF3rmula de selecci\xF3n, no un \xE1rea efectiva.";
+        const libre = (id, modelo, tipoBoca, tamanos, valores, fuente, pagina, url, circuito, variante) => {
+          tablas[id] = lista({ marca: LB, modelo, tipoBoca, circuito, magnitud: "Ageo", fuente, pagina, url, tamanos, valores, nota: NOTA_LB, metodo: "\xC1rea libre geom\xE9trica (Free area A), sin medida de caudal asociada: no sirve sola para Q = v \xD7 Ak." });
+          ponTipo(`lindab-${id.toLowerCase().replace(/_/g, "-")}`, { marca: LB, modelo, variante, nombre: `Lindab ${modelo} \xB7 ${variante}`, circuito, tabla: id, tipoBoca });
+        };
+        libre("PKAL", "PKAL (difusor de conos de techo)", "difusor de conos", ["125", "160", "200", "250"], [0.018, 0.023, 0.03, 0.043], "Lindab PKAL, hoja t\xE9cnica (Free area A)", 2, "https://www.lindab.com/globalassets/commerce/lindabwebproductsdoc/assets/production/nzdmyzdimzktnjnkmc00y2y3ltlkmtqtzgyynmm1nzjin2ew/5250385343615801170/pkal_global.pdf", "impulsion", "Impulsi\xF3n \xB7 \xD8d");
+        libre("PKA", "PKA (difusor de conos de techo)", "difusor de conos", ["125", "160", "200", "250", "315", "400"], [0.018, 0.023, 0.03, 0.043, 0.057, 0.075], "Lindab PKA, hoja t\xE9cnica (Free area A)", 2, "https://www.lindab.com/globalassets/commerce/lindabwebproductsdoc/assets/production/zgnlngi5zwytowm2nc00nte1lthmotmtnjuzmmzkzdc2ngy0/5250388152490838115/pka_global.pdf", "impulsion", "Impulsi\xF3n \xB7 \xD8d");
+        libre("LAD", "LAD (tobera de largo alcance)", "tobera", ["125", "160", "200", "250", "315", "400"], [29e-4, 71e-4, 95e-4, 0.0165, 0.0254, 0.0398], "Lindab LAD, hoja t\xE9cnica (Free area A)", 2, "https://www.lindab.com/globalassets/commerce/lindabwebproductsdoc/assets/production/nzm0odq3mtmtyjvlmc00y2vilwezodatnzvimdblmzzkywvk/5250167802524849262/lad_global.pdf", "impulsion", "Impulsi\xF3n \xB7 \xD8d");
+        libre("DAD", "DAD (tobera de largo alcance)", "tobera", ["160", "200", "250", "315"], [56e-4, 95e-4, 0.0154, 0.024], "Lindab LAD/DAD, tabla \xABCalculation factors\xBB (Free area A)", 6, "https://www.lindab.com/globalassets/commerce/lindabwebproductsdoc/assets/production/nzm0odq3mtmtyjvlmc00y2vilwezodatnzvimdblmzzkywvk/5250167802524849262/lad_global.pdf", "impulsion", "Impulsi\xF3n \xB7 \xD8d");
+        libre("FKD_V", "FKD (difusor de techo, descarga vertical)", "difusor rotacional de techo", ["160", "200", "250", "315", "355", "400", "450"], [0.0298, 0.0431, 0.0622, 0.091, 0.1108, 0.1349, 0.1637], "Lindab FKD, hoja t\xE9cnica (Free area A, vertical)", 2, "https://www.lindab.com/globalassets/commerce/lindabwebproductsdoc/assets/production/mjlimdvjmgutzdhjnc00ymq4lthingqtmdk1ogmxzwyyndzk/5250352475662073871/fkd_global.pdf", "impulsion", "Descarga vertical \xB7 \xD8d");
+        libre("FKD_H", "FKD (difusor de techo, descarga horizontal)", "difusor rotacional de techo", ["160", "200", "250", "315", "355", "400", "450"], [0.0304, 0.0456, 0.0684, 0.1041, 0.1293, 0.1606, 0.199], "Lindab FKD, hoja t\xE9cnica (Free area A, horizontal)", 2, "https://www.lindab.com/globalassets/commerce/lindabwebproductsdoc/assets/production/mjlimdvjmgutzdhjnc00ymq4lthingqtmdk1ogmxzwyyndzk/5250352475662073871/fkd_global.pdf", "impulsion", "Descarga horizontal \xB7 \xD8d");
+        const API = { TABLAS: tablas, TIPOS: tipos, MARCAS_CATALOGO: [T2, LB] };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.CATALOGO_AK = API;
+      })();
+    }
+  });
+
+  // shared/commissioning/factoresKTrox.js
+  var require_factoresKTrox = __commonJS({
+    "shared/commissioning/factoresKTrox.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const FABRICANTE = "TROX";
+        const DOCUMENTO = "Folleto TROX AK-Uni 07/2017 (PD_2017_07_AK-Uni_DE_es.pdf), adjunto al correo de Emilia Hernandez Trimi\xF1o (TROX Espa\xF1a) del 2-nov-2026";
+        const FORMULA = "q = K \xB7 \u221A\u0394p";
+        const TOLERANCIA_M3H = 0.25;
+        const crudas = [];
+        const fila = (plenum, familia, placa, tamanos, circuito, kLs, kM3h, pagina, difusor, extra = {}) => crudas.push({ plenum, familia, placa, tamanos, circuito, kLs, kM3h, pagina, difusor, ...extra });
+        const P4 = "AKUNI-4";
+        [
+          ["AK-Uni-001", ["300 \xD7 8"], 10.3, 36.9, ["300"], [[13.2, 47.7], [10.1, 36.5], [13.2, 47.7]]],
+          ["AK-Uni-002", ["400 \xD7 16"], 19.6, 70.7, ["400"], [[22.8, 82.1], [19.6, 70.7], [22.8, 82.1]]],
+          ["AK-Uni-003", ["500 \xD7 24"], 24.2, 87.1, ["500"], [[27.9, 100.5], [25.8, 92.7], [27.9, 100.5]]],
+          /* FD-Q 600/625 de la 004: el extracto solo trae 125,8 m³/h, sin l/s → no se carga. */
+          ["AK-Uni-004", ["600 \xD7 24", "625 \xD7 24"], 34.9, 125.8, ["600", "625"], [[40.4, 145.5], null, [40.4, 145.5]]]
+        ].forEach(([plenum, tVdw, ls, m3, tRed, [tdv, fd, tdf]]) => {
+          fila(plenum, "VDW", "Q", tVdw, "impulsion", ls, m3, P4, `VDW-Q ${tVdw.join(" / ")}`);
+          if (tdv) fila(plenum, "TDV-SA", "Q", tRed, "impulsion", tdv[0], tdv[1], P4, `TDV-SA-Q ${tRed.join("/")}`);
+          if (fd) fila(plenum, "FD", "Q", tRed, "impulsion", fd[0], fd[1], P4, `FD-Q ${tRed.join("/")}`);
+          if (tdf) fila(plenum, "TDF-SA", "Q", tRed, "impulsion", tdf[0], tdf[1], P4, `TDF-SA-Q ${tRed.join("/")}`);
+        });
+        fila("AK-Uni-005", "VDW", "Q", ["600 \xD7 48"], "impulsion", 43, 154.8, P4, "VDW-Q 600x48");
+        fila("AK-Uni-006", "VDW", "Q", ["625 \xD7 54"], "impulsion", 44.2, 158.9, P4, "VDW-Q 625x54");
+        fila("AK-Uni-007", "VDW", "Q", ["825 \xD7 72"], "impulsion", 72.8, 262.2, P4, "VDW-Q 825x72");
+        const P5 = "AKUNI-5";
+        [
+          ["AK-Uni-013", ["300 \xD7 8"], [9.4, 33.8], ["300"], [[13.2, 47.7], [10.2, 36.5], [13.2, 47.7]]],
+          ["AK-Uni-014", ["400 \xD7 16"], [19.6, 70.7], ["400"], [[22.8, 82.1], [19.6, 70.7], [22.8, 82.1]]],
+          ["AK-Uni-015", ["500 \xD7 24"], [23.1, 83], ["500"], [[27.9, 100.5], [26.2, 94.4], [27.9, 100.5]]],
+          ["AK-Uni-016", ["600 \xD7 24", "625 \xD7 24"], [34.5, 124.3], ["600", "625"], [[40.4, 145.5], [34.5, 124.3], [40.4, 145.5]]]
+        ].forEach(([plenum, tVdw, vdw, tRed, [tdv, fd, tdf]]) => {
+          fila(plenum, "VDW", "R", tVdw, "impulsion", vdw[0], vdw[1], P5, `VDW-R ${tVdw.join(" / ")}`);
+          fila(plenum, "TDV-SA", "R", tRed, "impulsion", tdv[0], tdv[1], P5, `TDV-SA-R ${tRed.join("/")}`);
+          fila(plenum, "FD", "R", tRed, "impulsion", fd[0], fd[1], P5, `FD-R ${tRed.join("/")}`);
+          fila(plenum, "TDF-SA", "R", tRed, "impulsion", tdf[0], tdf[1], P5, `TDF-SA-R ${tRed.join("/")}`);
+        });
+        fila("AK-Uni-017", "VDW", "R", ["600 \xD7 48"], "impulsion", 44, 158.3, P5, "VDW-R 600x48");
+        [
+          ["AK-Uni-028", "125", [3.5, 12.4], [4.7, 17.9]],
+          ["AK-Uni-029", "160", [5.2, 18.7], [7.3, 26.3]],
+          ["AK-Uni-030", "200", [7.1, 25.5], [12.2, 43.9]],
+          ["AK-Uni-031", "250", [12.9, 46.4], [19, 68.4]],
+          ["AK-Uni-032", "315", [22.8, 82], [28.6, 103]],
+          ["AK-Uni-033", "400", [34.5, 124.3], [37.3, 134.4]]
+        ].forEach(([plenum, tam, sin, con]) => {
+          fila(plenum, "RFD", null, [tam], "impulsion", sin[0], sin[1], P5, `RFD ${tam} sin tobera`, { tobera: false });
+          fila(plenum, "RFD", null, [tam], "impulsion", con[0], con[1], P5, `RFD ${tam} con tobera`, { tobera: true });
+        });
+        const P7 = "AKUNI-7";
+        [
+          ["AK-Uni-013", ["300 \xD7 8"], [9.3, 33.6], ["300"], [16.4, 59], [13, 46.7]],
+          ["AK-Uni-014", ["400 \xD7 16"], [17.9, 64.3], ["400"], [28.9, 104.2], [25.2, 90.6]],
+          ["AK-Uni-015", ["500 \xD7 24"], [25.3, 90.9], ["500"], [38.5, 138.7], [38.4, 138.1]],
+          ["AK-Uni-016", ["600 \xD7 24", "625 \xD7 24"], [42.2, 151.9], ["600", "625"], [52.3, 188.2], [57.7, 207.7]]
+        ].forEach(([plenum, tVdw, vdw, tRed, tdv, fd]) => {
+          fila(plenum, "VDW", "R", tVdw, "retorno", vdw[0], vdw[1], P7, `VDW-R ${tVdw.join(" / ")}`);
+          fila(plenum, "TDV", "R", tRed, "retorno", tdv[0], tdv[1], P7, `TDV-R ${tRed.join("/")}`);
+          fila(plenum, "FD", "R", tRed, "retorno", fd[0], fd[1], P7, `FD-R ${tRed.join("/")}`);
+        });
+        fila("AK-Uni-017", "VDW", "R", ["600 \xD7 48"], "retorno", 58.1, 209.1, P7, "VDW-R 600x48");
+        const NO_CARGADOS = [
+          { donde: "AKUNI-6 (entera)", motivo: "El extracto la da a la vez como \xABsegundo juego de impulsi\xF3n\xBB y como retorno de placa cuadrada; sus valores TDV 300 (16,4 / 59,0) coinciden con el retorno de AKUNI-7. Sin el pie de la tabla del PDF no se sabe con certeza si es impulsi\xF3n o retorno: no se carga (falta verificar en el PDF)." },
+          { donde: "AKUNI-4 \xB7 AK-Uni-004 FD-Q 600/625", motivo: "El extracto solo trae 125,8 m\xB3/h, sin el valor en l/s: no se puede comprobar." },
+          { donde: "AKUNI-4/5/6 \xB7 ADD-Q, ADD-R, ADLQ, DLQ, ADLR (AK-Uni-002, 008\u2013011, 019\u2013026)", motivo: "La cabecera agrupa cuatro modelos y las filas traen una o dos columnas: no se sabe a qu\xE9 modelo va cada valor." },
+          { donde: "AKUNI-4/5/7/8 \xB7 \xABotras combinaciones\xBB (conexi\xF3n < y >)", motivo: "Tabla aplanada: no se puede casar con certeza cada valor con su difusor y su conexi\xF3n." },
+          { donde: "Todas las columnas \xAB/0\xBB (placa sin deflectores)", motivo: "En el extracto no queda claro a qu\xE9 difusor corresponde cada \xAB/0\xBB: no se cargan." },
+          { donde: "Rejas de impulsi\xF3n y retorno", motivo: "Pendiente de TROX: no han llegado." }
+        ];
+        const registros = [];
+        for (const c of crudas) {
+          const dif = Math.abs(c.kLs * 3.6 - c.kM3h);
+          if (!(c.kLs > 0 && c.kM3h > 0) || dif > TOLERANCIA_M3H) {
+            NO_CARGADOS.push({ donde: `${c.pagina} \xB7 ${c.plenum} ${c.difusor}`, motivo: `No cuadra consigo misma: ${c.kLs} l/s \xD7 3,6 = ${(c.kLs * 3.6).toFixed(2)} m\xB3/h frente a ${c.kM3h} m\xB3/h del extracto.` });
+            continue;
+          }
+          registros.push(Object.freeze({
+            id: `${c.plenum}|${c.familia}|${c.placa || "-"}|${c.circuito}|${c.tamanos.join("/")}${c.tobera === void 0 ? "" : c.tobera ? "|tobera" : "|sinTobera"}`,
+            plenum: c.plenum,
+            familia: c.familia,
+            placa: c.placa,
+            difusor: c.difusor,
+            tamanos: c.tamanos,
+            circuito: c.circuito,
+            sinDeflectores: false,
+            conexion: null,
+            tobera: c.tobera === void 0 ? null : c.tobera,
+            kLs: c.kLs,
+            kM3h: c.kM3h,
+            magnitud: "K",
+            unidad: "l/s y m\xB3/h por \u221APa",
+            formula: FORMULA,
+            fabricante: FABRICANTE,
+            documento: DOCUMENTO,
+            pagina: c.pagina
+          }));
+        }
+        const POR_TABLA = {
+          VDW_Q: { familia: "VDW", placa: "Q" },
+          VDW_R: { familia: "VDW", placa: "R" },
+          TDV_Q: { familias: ["TDV-SA", "TDV"], placa: "Q" },
+          TDV_R: { familias: ["TDV-SA", "TDV"], placa: "R" },
+          TDF_Q: { familia: "TDF-SA", placa: "Q" },
+          TDF_R: { familia: "TDF-SA", placa: "R" }
+        };
+        const clave = (v) => v === null || v === void 0 ? "" : String(v).toLowerCase().replace(/\s+/g, "").replace(/x/g, "\xD7");
+        function buscar({ tabla = null, tamano = null, largo = null, alto = null, circuito = null } = {}) {
+          const m = POR_TABLA[tabla];
+          if (!m) return [];
+          const familias = m.familias || [m.familia];
+          const k = clave(tamano || (largo && alto ? `${largo}\xD7${alto}` : ""));
+          if (!k) return [];
+          return registros.filter((r) => familias.includes(r.familia) && r.placa === m.placa && (!circuito || r.circuito === circuito) && r.tamanos.some((t) => clave(t) === k));
+        }
+        function caudal(K, dp) {
+          const k = Number(K);
+          const d = Number(dp);
+          if (!(k > 0) || !(d >= 0) || !Number.isFinite(d)) return null;
+          return Math.round(k * Math.sqrt(d) * 10) / 10;
+        }
+        function texto(r) {
+          const n = (v) => String(v.toFixed(1)).replace(".", ",");
+          return `K ${r.plenum}: ${n(r.kM3h)} m\xB3/h (${n(r.kLs)} l/s) \xB7 ${FORMULA}`;
+        }
+        const API = { FABRICANTE, DOCUMENTO, FORMULA, REGISTROS: registros, NO_CARGADOS, POR_TABLA, buscar, caudal, texto };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.FACTORES_K_TROX = API;
+      })();
+    }
+  });
+
+  // shared/commissioning/difusores.js
+  var require_difusores = __commonJS({
+    "shared/commissioning/difusores.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var MODOS_DIF = {
+        ak: { id: "ak", nombre: "\xC1rea efectiva Ak", unidad: "m\xB2" },
+        k: { id: "k", nombre: "Factor k", unidad: "m\xB3/h por m/s" }
+      };
+      var NOTA_EJEMPLO_DIF = "Valores de ejemplo: comprobar con la ficha del fabricante.";
+      var REGLAS_DIF = typeof __require !== "undefined" ? require_reglasCx() : window.REGLAS_CX;
+      var TOLERANCIA_DEFECTO_DIF = REGLAS_DIF.CRITERIO_JC.total;
+      var TOLERANCIA_BOCA_DEFECTO_DIF = REGLAS_DIF.CRITERIO_JC.boca;
+      var MARCA_EJEMPLO_DIF = "Gen\xE9rico (ejemplo, comprobar)";
+      var TIPOS_DIF = {
+        rotacional600: { marca: MARCA_EJEMPLO_DIF, modelo: "Rotacional", variante: "600\xD7600 (24 ranuras)", nombre: "Difusor rotacional 600\xD7600 (24 ranuras)", circuito: "impulsion", modo: "ak", ak: 0.03, k: null, ejemplo: true },
+        rotacional400: { marca: MARCA_EJEMPLO_DIF, modelo: "Rotacional", variante: "400\xD7400 (16 ranuras)", nombre: "Difusor rotacional 400\xD7400 (16 ranuras)", circuito: "impulsion", modo: "ak", ak: 0.012, k: null, ejemplo: true },
+        cuadrado600: { marca: MARCA_EJEMPLO_DIF, modelo: "Cuadrado multidireccional", variante: "600\xD7600", nombre: "Difusor cuadrado multidireccional 600\xD7600", circuito: "impulsion", modo: "ak", ak: 0.04, k: null, ejemplo: true },
+        circularConos: { marca: MARCA_EJEMPLO_DIF, modelo: "Circular de conos", variante: "\xD8250", nombre: "Difusor circular de conos \xD8250", circuito: "impulsion", modo: "ak", ak: 0.025, k: null, ejemplo: true },
+        lineal2: { marca: MARCA_EJEMPLO_DIF, modelo: "Lineal", variante: "2 ranuras (por metro)", nombre: "Difusor lineal 2 ranuras (por metro)", circuito: "impulsion", modo: "ak", ak: 0.016, k: null, ejemplo: true },
+        rejillaImp: { marca: MARCA_EJEMPLO_DIF, modelo: "Rejilla de impulsi\xF3n", variante: "400\xD7200 doble deflexi\xF3n", nombre: "Rejilla de impulsi\xF3n 400\xD7200 doble deflexi\xF3n", circuito: "impulsion", modo: "ak", ak: 0.056, k: null, ejemplo: true },
+        tobera: { marca: MARCA_EJEMPLO_DIF, modelo: "Tobera de largo alcance", variante: "\xD8160", nombre: "Tobera de largo alcance \xD8160", circuito: "impulsion", modo: "k", ak: null, k: 36, ejemplo: true },
+        rejillaRet: { marca: MARCA_EJEMPLO_DIF, modelo: "Rejilla de retorno", variante: "600\xD7300 lamas fijas", nombre: "Rejilla de retorno 600\xD7300 lamas fijas", circuito: "retorno", modo: "ak", ak: 0.126, k: null, ejemplo: true },
+        bocaExt: { marca: MARCA_EJEMPLO_DIF, modelo: "Boca de extracci\xF3n", variante: "\xD8125 (v\xE1lvula)", nombre: "Boca de extracci\xF3n \xD8125 (v\xE1lvula)", circuito: "retorno", modo: "k", ak: null, k: 25, ejemplo: true },
+        /* Los dos de la hoja «CONVERSION CAUDAL REJAS.xlsx» que decía «con / sin
+           regulador»: sus números son los de la XGM-H-MO de la tabla de selección
+           rápida, pero de IMPULSIÓN (el «con regulador») y de EXTRACCIÓN (el «sin
+           regulador»). Se quedan para los puntos ya puestos; no se ofrecen. */
+        troxXgmReg: { marca: "TROX", modelo: "XGM (hoja antigua)", variante: "H-MO impulsi\xF3n (antes \xABcon regulador\xBB)", nombre: "TROX XGM-H-MO impulsi\xF3n, tabla r\xE1pida (antes \xABcon regulador\xBB)", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "XGM_REG", oculto: true },
+        troxXgm: { marca: "TROX", modelo: "XGM (hoja antigua)", variante: "H-MO extracci\xF3n (antes \xABsin regulador\xBB)", nombre: "TROX XGM-H-MO extracci\xF3n, tabla r\xE1pida (antes \xABsin regulador\xBB)", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "XGM", oculto: true },
+        troxWg: { marca: "TROX", modelo: "WG", variante: "Rejilla", nombre: "TROX WG", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "WG" },
+        troxTr2: { marca: "TROX", modelo: "TR2", variante: "Sin regulador", nombre: "TROX TR2 sin regulador", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "TR2" },
+        propioImp: { marca: "Otro", modelo: "Factor a mano", variante: "Impulsi\xF3n", nombre: "Otro de impulsi\xF3n (factor a mano)", circuito: "impulsion", modo: "ak", ak: null, k: null, propio: true },
+        propioRet: { marca: "Otro", modelo: "Factor a mano", variante: "Retorno", nombre: "Otro de retorno (factor a mano)", circuito: "retorno", modo: "ak", ak: null, k: null, propio: true },
+        /* La reja rectangular de un punto único de medida (Pitch 01 y 02: «se mide
+           en un único punto, con una reja rectangular»). Sin tamaño conocido, el Ak
+           se pone a mano o se mide con balómetro: nada de un Ak de ejemplo. */
+        rejillaRectImp: { marca: "Otro", modelo: "Reja rectangular", variante: "Impulsi\xF3n \xB7 Ak a mano", nombre: "Reja rectangular de impulsi\xF3n (Ak a mano)", circuito: "impulsion", modo: "ak", ak: null, k: null, propio: true },
+        rejillaRectRet: { marca: "Otro", modelo: "Reja rectangular", variante: "Retorno \xB7 Ak a mano", nombre: "Reja rectangular de retorno (Ak a mano)", circuito: "retorno", modo: "ak", ak: null, k: null, propio: true }
+      };
+      var TIPO_DEFECTO_DIF = "rotacional600";
+      var CIRCUITOS_DIF = [["impulsion", "IMP", "impulsi\xF3n", "imp"], ["retorno", "EXT", "extracci\xF3n", "ext"]];
+      var VARIANTES_XGM_DIF = [
+        ["H-MO", "Lamas horizontales m\xF3viles (H-MO)"],
+        ["V-MO", "Lamas verticales m\xF3viles (V-MO)"],
+        ["H-F0", "Lamas horizontales fijas 0\xB0 (H-F0)"],
+        ["H-F15", "Lamas horizontales fijas 15\xB0 (H-F15)"],
+        ["H-P0", "Lamas horizontales fijas 0\xB0, paso 16,7 (H-P0)"],
+        ["H-P15", "Lamas horizontales fijas 15\xB0, paso 16,7 (H-P15)"],
+        ["V-F0", "Lamas verticales fijas 0\xB0 (V-F0)"],
+        ["V-F15", "Lamas verticales fijas 15\xB0 (V-F15)"],
+        ["V-P0", "Lamas verticales fijas 0\xB0, paso 16,7 (V-P0)"],
+        ["V-P15", "Lamas verticales fijas 15\xB0, paso 16,7 (V-P15)"],
+        ["H-F45", "Lamas horizontales fijas 45\xB0 (H-F45)"],
+        ["V-F45", "Lamas verticales fijas 45\xB0 (V-F45)"]
+      ];
+      var ADJUNTOS_DIF = "correo del 13-oct-2026";
+      var FICHA_XGM_DIF = "XGM_PD_2026_09_02_DE_es.pdf (TROX X-GRILLE modular, PD-07/2026)";
+      var RAPIDA_XGM_DIF = "TABLA SELECCION RAPIDA XGM.pdf (TROX)";
+      var FICHA_VDW_DIF = "PD_2019_01_VDW_DE_es.pdf (TROX VDW, PD 01/2019)";
+      var FICHA_PL35_DIF = "PURELINE35_PD_2026_06_29_DE_es.pdf (TROX PL35, PD-06/2026)";
+      var FICHA_PL50_DIF = "PURELINE50_PD_2026_06_29_DE_es.pdf (TROX PL50, PD-06/2026)";
+      var HOJA_OBRA_DIF = "CONVERSION CAUDAL REJAS.xlsx (Drive de la obra, feb. 2026)";
+      var FUENTE_TABLAS_DIF = `TROX: fichas de producto y tablas de selecci\xF3n r\xE1pida (${ADJUNTOS_DIF}); WG y TR2 de \xABCONVERSION CAUDAL REJAS.xlsx\xBB`;
+      var FUENTE_PL_AK_DIF = "TROX \u2014 correo de Emilia Hernandez Trimi\xF1o (TROX Espa\xF1a), 2-nov-2026, imagen \xAB\xC1REAS EFECTIVAS DIFUSORES LINEALES METRO LINEAL\xBB";
+      var AK_METRO_PL_DIF = {
+        PL35: [6636e-6, 0.0132, 0.0198, 0.0265],
+        PL50: [98e-4, 0.01945, 0.0292, 0.0389]
+      };
+      var NOTA_PL_DIF = "Sin Ak: medir con bal\xF3metro. Las fichas de TROX de la PureLine (PD de 33 p\xE1gs. y selecci\xF3n r\xE1pida) no dan \xE1rea efectiva ni geom\xE9trica; si TROX lo da, se pone a mano.";
+      var AVISO_SIN_AK_DIF = "sin Ak: medir con bal\xF3metro";
+      var LN_PL_DIF = [600, 750, 900, 1050, 1200, 1350, 1500, 1650, 1800, 1950];
+      var TAMANOS_VDW_DIF = ["300 \xD7 8", "400 \xD7 16", "500 \xD7 24", "600 \xD7 24", "600 \xD7 48", "625 \xD7 24", "625 \xD7 54", "825 \xD7 72"];
+      var TABLAS_DIF = {
+        WG: {
+          fuente: HOJA_OBRA_DIF,
+          pagina: null,
+          magnitud: "Aeff",
+          nota: "Sin ficha de TROX en los adjuntos: comprobar con la ficha del fabricante.",
+          largos: [200, 400, 600, 800, 1e3, 1200, 1400, 1600, 1800, 2e3, 2200],
+          altos: [165, 330, 495, 660, 825, 990, 1155, 1320, 1485, 1650, 1815, 1980, 2145],
+          filas: [
+            [84e-4, 0.0169, 0.0253, 0.0338, 0.0422, 0.0506, 0.0591, 0.0675, 0.076, 0.0844, 0.0929],
+            [0.0253, 0.0506, 0.076, 0.1013, 0.1266, 0.1519, 0.1773, 0.2026, 0.2279, 0.2532, 0.2786],
+            [0.0422, 0.0844, 0.1266, 0.1688, 0.211, 0.2532, 0.2955, 0.3377, 0.3799, 0.4221, 0.4643],
+            [0.0591, 0.1182, 0.1773, 0.2364, 0.2955, 0.3545, 0.4136, 0.4727, 0.5318, 0.5909, 0.65],
+            [0.076, 0.1519, 0.2279, 0.3039, 0.3799, 0.4558, 0.5318, 0.6078, 0.6838, 0.7597, 0.8357],
+            [0.0929, 0.1857, 0.2786, 0.3714, 0.4643, 0.5571, 0.65, 0.7429, 0.8357, 0.9286, 1.0214],
+            [0.1097, 0.2195, 0.3292, 0.439, 0.5487, 0.6584, 0.7682, 0.8779, 0.9877, 1.0974, 1.2072],
+            [0.1266, 0.2532, 0.3799, 0.5065, 0.6331, 0.7597, 0.8864, 1.013, 1.1396, 1.2662, 1.3929],
+            [0.1435, 0.287, 0.4305, 0.574, 0.7175, 0.861, 1.0046, 1.1481, 1.2916, 1.4351, 1.5786],
+            [0.1604, 0.3208, 0.4812, 0.6416, 0.802, 0.9623, 1.1227, 1.2831, 1.4435, 1.6039, 1.7643],
+            [0.1773, 0.3545, 0.5318, 0.7091, 0.8864, 1.0636, 1.2409, 1.4182, 1.5955, 1.7727, 1.95],
+            [0.1942, 0.3883, 0.5825, 0.7766, 0.9708, 1.1649, 1.3591, 1.5533, 1.7474, 1.9416, 2.0387],
+            [0.211, 0.4221, 0.6331, 0.8442, 1.0552, 1.2662, 1.4773, 1.6883, 1.8994, 2.0049, 2.2159]
+          ]
+        },
+        XGM_REG: {
+          fuente: RAPIDA_XGM_DIF,
+          pagina: 1,
+          magnitud: "Aeff",
+          nota: "XGM-H-MO, \xE1rea efectiva para IMPULSI\xD3N (la hoja de la obra la llamaba \xABcon regulador\xBB).",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.015, 0.022, 0.029, 0.036, 0.043, 0.057, 0.07, 0.084],
+            [0.019, 0.028, 0.037, 0.046, 0.055, 0.073, 0.092, 0.11],
+            [0.027, 0.04, 0.053, 0.066, 0.079, 0.105, 0.131, 0.157],
+            [null, 0.059, 0.078, 0.097, 0.116, 0.154, 0.192, 0.23],
+            [null, null, 0.103, 0.127, 0.152, 0.202, 0.252, 0.302],
+            [null, null, null, 0.158, 0.189, 0.25, 0.313, 0.375]
+          ]
+        },
+        XGM: {
+          fuente: RAPIDA_XGM_DIF,
+          pagina: 1,
+          magnitud: "Aeff",
+          nota: "XGM-H-MO, \xE1rea efectiva para EXTRACCI\xD3N (la hoja de la obra la llamaba \xABsin regulador\xBB).",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.019, 0.028, 0.037, 0.045, 0.054, 0.072, 0.089, 0.107],
+            [0.027, 0.04, 0.053, 0.065, 0.077, 0.103, 0.127, 0.153],
+            [0.035, 0.051, 0.068, 0.084, 0.1, 0.133, 0.165, 0.198],
+            [null, 0.075, 0.098, 0.122, 0.146, 0.194, 0.241, 0.289],
+            [null, null, 0.13, 0.16, 0.192, 0.254, 0.317, 0.38],
+            [null, null, null, 0.198, 0.237, 0.314, 0.393, 0.471]
+          ]
+        },
+        TR2: {
+          fuente: HOJA_OBRA_DIF,
+          pagina: null,
+          magnitud: "Aeff",
+          nota: "Sin ficha de TROX en los adjuntos: comprobar con la ficha del fabricante.",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 225, 325, 425, 525],
+          filas: [
+            [8e-3, 0.012, 0.016, 0.02, 0.024, 0.032, 0.04, 0.048, 0.056, 0.064, 0.072, 0.08],
+            [0.016, 0.024, 0.032, 0.04, 0.048, 0.064, 0.08, 0.096, 0.112, 0.128, 0.144, 0.16],
+            [0.032, 0.048, 0.064, 0.08, 0.096, 0.128, 0.16, 0.192, 0.224, 0.256, 0.288, 0.319],
+            [null, 0.072, 0.096, 0.12, 0.144, 0.192, 0.24, 0.288, 0.335, 0.383, 0.431, 0.479],
+            [null, null, null, null, null, 0.256, 0.319, 0.383, 0.447, 0.511, 0.575, 0.639],
+            [null, null, null, null, null, null, 0.399, 0.479, 0.559, 0.639, 0.719, 0.799]
+          ]
+        },
+        XGM_H_F0_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 10,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [8e-3, 0.011, 0.015, 0.019, 0.022, 0.029, 0.036, 0.043, 0.05, 0.058, 0.065, 0.072],
+            [0.014, 0.021, 0.027, 0.034, 0.04, 0.053, 0.066, 0.079, 0.093, 0.106, 0.119, 0.132],
+            [0.019, 0.028, 0.037, 0.046, 0.055, 0.072, 0.09, 0.108, 0.126, 0.144, 0.162, 0.18],
+            [0.026, 0.039, 0.051, 0.064, 0.076, 0.101, 0.126, 0.152, 0.177, 0.202, 0.227, 0.252],
+            [null, 0.057, 0.076, 0.094, 0.113, 0.15, 0.187, 0.224, 0.261, 0.298, 0.334, 0.371],
+            [null, null, 0.1, 0.124, 0.149, 0.198, 0.247, 0.296, 0.345, 0.393, 0.442, 0.491],
+            [null, null, null, 0.155, 0.185, 0.246, 0.307, 0.368, 0.429, 0.489, 0.55, 0.611]
+          ]
+        },
+        XGM_H_F15_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 10,
+          magnitud: "Aeff",
+          erratas: [{ alto: 165, largo: 625, impreso: 5e-3, porque: "menor que sus vecinos (0,042 y 0,067): errata del PDF; sin valor" }],
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [7e-3, 0.011, 0.014, 0.017, 0.021, 0.027, 0.034, 0.041, 0.047, 0.054, 0.06, 0.067],
+            [0.013, 0.019, 0.025, 0.031, 0.037, 0.049, 0.061, 0.073, 0.086, 0.098, 0.11, 0.122],
+            [0.017, 0.026, 0.034, 0.042, null, 0.067, 0.083, 0.1, 0.116, 0.133, 0.149, 0.166],
+            [0.024, 0.036, 0.047, 0.059, 0.07, 0.093, 0.116, 0.139, 0.162, 0.185, 0.208, 0.231],
+            [null, 0.052, 0.069, 0.086, 0.103, 0.137, 0.171, 0.205, 0.239, 0.273, 0.307, 0.341],
+            [null, null, 0.091, 0.114, 0.136, 0.181, 0.226, 0.271, 0.316, 0.361, 0.406, 0.45],
+            [null, null, null, 0.141, 0.169, 0.225, 0.281, 0.337, 0.393, 0.448, 0.504, 0.56]
+          ]
+        },
+        XGM_H_F0_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 10,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.011, 0.015, 0.02, 0.025, 0.03, 0.039, 0.049, 0.059, 0.068, 0.078, 0.087, 0.097],
+            [0.019, 0.027, 0.036, 0.045, 0.053, 0.07, 0.088, 0.105, 0.122, 0.139, 0.156, 0.174],
+            [0.027, 0.039, 0.052, 0.065, 0.077, 0.101, 0.127, 0.151, 0.176, 0.201, 0.226, 0.251],
+            [0.035, 0.051, 0.067, 0.084, 0.1, 0.132, 0.165, 0.197, 0.23, 0.262, 0.295, 0.327],
+            [null, 0.075, 0.099, 0.122, 0.146, 0.194, 0.242, 0.29, 0.337, 0.385, 0.433, 0.481],
+            [null, null, 0.13, 0.16, 0.193, 0.256, 0.319, 0.382, 0.445, 0.508, 0.571, 0.634],
+            [null, null, null, 0.198, 0.239, 0.317, 0.396, 0.474, 0.553, 0.631, 0.709, 0.788]
+          ]
+        },
+        XGM_H_F15_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 10,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.011, 0.016, 0.02, 0.025, 0.03, 0.04, 0.05, 0.059, 0.069, 0.079, 0.088, 0.098],
+            [0.019, 0.027, 0.036, 0.044, 0.053, 0.07, 0.087, 0.105, 0.122, 0.139, 0.156, 0.173],
+            [0.027, 0.039, 0.052, 0.064, 0.076, 0.101, 0.125, 0.15, 0.175, 0.2, 0.224, 0.249],
+            [0.034, 0.051, 0.067, 0.083, 0.099, 0.131, 0.163, 0.195, 0.228, 0.26, 0.292, 0.324],
+            [null, 0.074, 0.097, 0.121, 0.145, 0.192, 0.239, 0.286, 0.333, 0.38, 0.428, 0.475],
+            [null, null, 0.128, 0.158, 0.19, 0.252, 0.315, 0.377, 0.439, 0.501, 0.563, 0.625],
+            [null, null, null, 0.195, 0.235, 0.312, 0.39, 0.468, 0.545, 0.622, 0.699, 0.776]
+          ]
+        },
+        XGM_H_P0_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 11,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.01, 0.014, 0.018, 0.023, 0.027, 0.036, 0.044, 0.053, 0.062, 0.07, 0.079, 0.088],
+            [0.016, 0.023, 0.031, 0.038, 0.045, 0.06, 0.074, 0.089, 0.104, 0.118, 0.133, 0.148],
+            [0.021, 0.031, 0.04, 0.05, 0.06, 0.079, 0.099, 0.118, 0.138, 0.156, 0.176, 0.196],
+            [0.028, 0.042, 0.055, 0.068, 0.081, 0.108, 0.135, 0.161, 0.188, 0.214, 0.241, 0.267],
+            [null, 0.06, 0.079, 0.098, 0.118, 0.156, 0.195, 0.233, 0.272, 0.31, 0.349, 0.387],
+            [null, null, 0.103, 0.129, 0.154, 0.204, 0.255, 0.305, 0.356, 0.406, 0.456, 0.507],
+            [null, null, null, 0.159, 0.19, 0.253, 0.315, 0.377, 0.44, 0.502, 0.564, 0.627]
+          ]
+        },
+        XGM_H_P15_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 11,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.01, 0.014, 0.018, 0.022, 0.027, 0.035, 0.044, 0.052, 0.061, 0.07, 0.078, 0.087],
+            [0.015, 0.023, 0.03, 0.037, 0.044, 0.058, 0.072, 0.086, 0.101, 0.115, 0.129, 0.143],
+            [0.02, 0.029, 0.039, 0.048, 0.057, 0.076, 0.095, 0.113, 0.132, 0.151, 0.169, 0.188],
+            [0.027, 0.04, 0.053, 0.065, 0.078, 0.103, 0.129, 0.154, 0.18, 0.205, 0.231, 0.256],
+            [null, 0.057, 0.075, 0.094, 0.112, 0.149, 0.186, 0.222, 0.259, 0.296, 0.333, 0.369],
+            [null, null, 0.098, 0.122, 0.146, 0.194, 0.242, 0.29, 0.338, 0.386, 0.434, 0.482],
+            [null, null, null, 0.151, 0.18, 0.239, 0.299, 0.358, 0.418, 0.477, 0.536, 0.595]
+          ]
+        },
+        XGM_H_P0_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 11,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.012, 0.017, 0.023, 0.028, 0.033, 0.044, 0.054, 0.065, 0.076, 0.086, 0.097, 0.108],
+            [0.02, 0.029, 0.037, 0.046, 0.055, 0.073, 0.091, 0.109, 0.127, 0.145, 0.163, 0.181],
+            [0.028, 0.04, 0.052, 0.065, 0.078, 0.103, 0.128, 0.153, 0.178, 0.204, 0.229, 0.254],
+            [0.035, 0.051, 0.067, 0.084, 0.1, 0.132, 0.165, 0.197, 0.229, 0.262, 0.294, 0.327],
+            [null, 0.074, 0.097, 0.121, 0.144, 0.191, 0.238, 0.285, 0.332, 0.379, 0.426, 0.473],
+            [null, null, 0.126, 0.159, 0.189, 0.25, 0.312, 0.373, 0.434, 0.496, 0.557, 0.619],
+            [null, null, null, 0.196, 0.233, 0.31, 0.385, 0.461, 0.537, 0.613, 0.689, 0.765]
+          ]
+        },
+        XGM_H_P15_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 11,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.012, 0.018, 0.023, 0.028, 0.034, 0.045, 0.056, 0.066, 0.077, 0.088, 0.099, 0.11],
+            [0.02, 0.029, 0.038, 0.047, 0.056, 0.074, 0.092, 0.11, 0.128, 0.146, 0.164, 0.182],
+            [0.028, 0.04, 0.053, 0.065, 0.078, 0.103, 0.128, 0.154, 0.179, 0.204, 0.229, 0.254],
+            [0.035, 0.051, 0.067, 0.083, 0.1, 0.132, 0.164, 0.197, 0.229, 0.261, 0.294, 0.326],
+            [null, 0.073, 0.097, 0.12, 0.143, 0.19, 0.237, 0.283, 0.33, 0.377, 0.424, 0.47],
+            [null, null, 0.127, 0.156, 0.187, 0.248, 0.309, 0.37, 0.431, 0.492, 0.553, 0.614],
+            [null, null, null, 0.193, 0.231, 0.306, 0.382, 0.457, 0.532, 0.608, 0.683, 0.759]
+          ]
+        },
+        XGM_V_F0_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 12,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.014, 0.02, 0.027, 0.034, 0.04, 0.053, 0.066, 0.079],
+            [0.019, 0.028, 0.037, 0.046, 0.055, 0.072, 0.09, 0.108],
+            [null, 0.039, 0.051, 0.064, 0.076, 0.101, 0.126, 0.151],
+            [null, null, 0.076, 0.094, 0.113, 0.15, 0.187, 0.223],
+            [null, null, null, 0.124, 0.149, 0.198, 0.246, 0.295],
+            [null, null, null, null, 0.185, 0.246, 0.306, 0.368]
+          ]
+        },
+        XGM_V_F15_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 12,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.013, 0.019, 0.025, 0.031, 0.037, 0.049, 0.061, 0.073],
+            [0.017, 0.026, 0.034, 0.042, 0.05, 0.067, 0.083, 0.1],
+            [null, 0.036, 0.047, 0.059, 0.07, 0.093, 0.116, 0.139],
+            [null, null, 0.069, 0.086, 0.103, 0.137, 0.171, 0.205],
+            [null, null, null, 0.114, 0.136, 0.181, 0.226, 0.271],
+            [null, null, null, null, 0.169, 0.225, 0.28, 0.337]
+          ]
+        },
+        XGM_V_F0_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 12,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.019, 0.026, 0.036, 0.044, 0.053, 0.07, 0.088, 0.105],
+            [0.025, 0.036, 0.048, 0.06, 0.072, 0.095, 0.119, 0.141],
+            [null, 0.051, 0.067, 0.084, 0.1, 0.132, 0.166, 0.196],
+            [null, null, 0.098, 0.122, 0.145, 0.193, 0.241, 0.289],
+            [null, null, null, 0.16, 0.193, 0.255, 0.318, 0.381],
+            [null, null, null, null, 0.239, 0.317, 0.395, 0.474]
+          ]
+        },
+        XGM_V_F15_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 12,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.019, 0.027, 0.036, 0.044, 0.053, 0.07, 0.087, 0.106],
+            [0.026, 0.038, 0.051, 0.063, 0.075, 0.1, 0.125, 0.149],
+            [null, 0.05, 0.067, 0.082, 0.099, 0.131, 0.163, 0.195],
+            [null, null, 0.097, 0.121, 0.145, 0.192, 0.239, 0.286],
+            [null, null, null, 0.158, 0.19, 0.252, 0.315, 0.377],
+            [null, null, null, null, 0.235, 0.312, 0.389, 0.467]
+          ]
+        },
+        XGM_V_P0_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 13,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.016, 0.023, 0.03, 0.038, 0.045, 0.06, 0.074, 0.089],
+            [0.021, 0.03, 0.04, 0.05, 0.06, 0.079, 0.098, 0.118],
+            [null, 0.041, 0.055, 0.068, 0.081, 0.108, 0.134, 0.161],
+            [null, null, 0.079, 0.098, 0.118, 0.156, 0.194, 0.233],
+            [null, null, null, 0.129, 0.154, 0.204, 0.255, 0.305],
+            [null, null, null, null, 0.19, 0.252, 0.315, 0.377]
+          ]
+        },
+        XGM_V_P15_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 13,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.015, 0.022, 0.03, 0.037, 0.044, 0.058, 0.072, 0.086],
+            [0.02, 0.029, 0.039, 0.048, 0.057, 0.076, 0.095, 0.114],
+            [null, 0.04, 0.052, 0.065, 0.078, 0.103, 0.129, 0.154],
+            [null, null, 0.075, 0.094, 0.112, 0.149, 0.185, 0.222],
+            [null, null, null, 0.122, 0.146, 0.194, 0.242, 0.29],
+            [null, null, null, null, 0.18, 0.239, 0.299, 0.358]
+          ]
+        },
+        XGM_V_P0_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 13,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.02, 0.029, 0.036, 0.046, 0.055, 0.073, 0.091, 0.109],
+            [0.027, 0.04, 0.052, 0.065, 0.078, 0.103, 0.128, 0.153],
+            [null, 0.05, 0.067, 0.084, 0.1, 0.132, 0.164, 0.197],
+            [null, null, 0.097, 0.121, 0.144, 0.191, 0.237, 0.285],
+            [null, null, null, 0.159, 0.189, 0.25, 0.312, 0.373],
+            [null, null, null, null, 0.233, 0.31, 0.385, 0.461]
+          ]
+        },
+        XGM_V_P15_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 13,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.022, 0.032, 0.043, 0.052, 0.063, 0.083, 0.103, 0.124],
+            [0.03, 0.045, 0.059, 0.072, 0.087, 0.114, 0.142, 0.17],
+            [null, 0.056, 0.075, 0.092, 0.11, 0.145, 0.181, 0.216],
+            [null, null, 0.106, 0.132, 0.158, 0.208, 0.259, 0.31],
+            [null, null, null, 0.17, 0.204, 0.27, 0.337, 0.403],
+            [null, null, null, null, 0.25, 0.332, 0.414, 0.497]
+          ]
+        },
+        XGM_H_MO_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 14,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.015, 0.022, 0.029, 0.036, 0.043, 0.057, 0.07, 0.084],
+            [0.02, 0.029, 0.039, 0.048, 0.057, 0.076, 0.094, 0.113],
+            [0.027, 0.04, 0.053, 0.066, 0.079, 0.105, 0.131, 0.157],
+            [null, 0.059, 0.078, 0.097, 0.116, 0.154, 0.192, 0.23],
+            [null, null, 0.102, 0.127, 0.152, 0.202, 0.252, 0.302],
+            [null, null, null, 0.158, 0.189, 0.251, 0.313, 0.375]
+          ]
+        },
+        XGM_H_MO_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 14,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.019, 0.028, 0.037, 0.045, 0.054, 0.072, 0.089, 0.107],
+            [0.027, 0.04, 0.053, 0.065, 0.077, 0.103, 0.127, 0.153],
+            [0.035, 0.051, 0.068, 0.084, 0.1, 0.133, 0.165, 0.198],
+            [null, 0.075, 0.098, 0.122, 0.146, 0.194, 0.241, 0.289],
+            [null, null, 0.128, 0.16, 0.192, 0.254, 0.317, 0.38],
+            [null, null, null, 0.197, 0.237, 0.314, 0.393, 0.471]
+          ]
+        },
+        XGM_V_MO_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 15,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.01, 0.014, 0.019, 0.023, 0.027, 0.036, 0.045, 0.053, 0.062, 0.071, 0.08, 0.088],
+            [0.016, 0.024, 0.031, 0.038, 0.046, 0.061, 0.075, 0.09, 0.105, 0.12, 0.135, 0.149],
+            [0.023, 0.033, 0.044, 0.054, 0.065, 0.086, 0.106, 0.127, 0.148, 0.169, 0.19, 0.211],
+            [0.029, 0.042, 0.056, 0.069, 0.083, 0.11, 0.137, 0.164, 0.191, 0.218, 0.245, 0.272],
+            [null, null, 0.081, 0.1, 0.12, 0.159, 0.198, 0.237, 0.276, 0.315, 0.354, 0.394],
+            [null, null, null, 0.131, 0.157, 0.208, 0.259, 0.311, 0.362, 0.413, 0.464, 0.516],
+            [null, null, null, null, 0.194, 0.257, 0.321, 0.384, 0.447, 0.511, 0.574, 0.638]
+          ]
+        },
+        XGM_V_MO_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 15,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.012, 0.017, 0.022, 0.027, 0.032, 0.042, 0.053, 0.063, 0.073, 0.084, 0.094, 0.104],
+            [0.019, 0.028, 0.037, 0.045, 0.054, 0.071, 0.089, 0.106, 0.124, 0.141, 0.159, 0.176],
+            [0.027, 0.039, 0.052, 0.064, 0.076, 0.1, 0.125, 0.15, 0.174, 0.199, 0.224, 0.248],
+            [0.034, 0.05, 0.066, 0.082, 0.098, 0.129, 0.161, 0.193, 0.224, 0.256, 0.288, 0.32],
+            [null, null, 0.095, 0.118, 0.141, 0.187, 0.233, 0.279, 0.325, 0.371, 0.417, 0.463],
+            [null, null, null, 0.155, 0.185, 0.245, 0.305, 0.365, 0.426, 0.486, 0.546, 0.606],
+            [null, null, null, null, 0.228, 0.301, 0.377, 0.452, 0.526, 0.601, 0.675, 0.75]
+          ]
+        },
+        XGM_H_F45_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 16,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.014, 0.023, 0.031, 0.04, 0.048, 0.065, 0.081, 0.098],
+            [0.02, 0.031, 0.043, 0.055, 0.066, 0.089, 0.113, 0.136],
+            [0.028, 0.045, 0.061, 0.077, 0.094, 0.126, 0.159, 0.192],
+            [null, 0.066, 0.091, 0.115, 0.139, 0.188, 0.237, 0.286],
+            [null, null, 0.12, 0.152, 0.185, 0.25, 0.315, 0.379],
+            [null, null, null, 0.188, 0.229, 0.31, 0.392, 0.473]
+          ]
+        },
+        XGM_V_F45_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 16,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [9e-3, 0.015, 0.02, 0.025, 0.03, 0.041, 0.051, 0.06],
+            [0.014, 0.023, 0.031, 0.04, 0.048, 0.065, 0.081, 0.098],
+            [0.02, 0.031, 0.043, 0.055, 0.066, 0.089, 0.113, 0.136],
+            [0.028, 0.045, 0.061, 0.077, 0.094, 0.126, 0.159, 0.192],
+            [null, 0.066, 0.091, 0.115, 0.139, 0.188, 0.237, 0.286],
+            [null, null, 0.12, 0.152, 0.185, 0.25, 0.315, 0.379],
+            [null, null, null, 0.188, 0.229, 0.31, 0.392, 0.473]
+          ]
+        },
+        XGM_P_R_AGEO: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 17,
+          magnitud: "Ageo",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [9e-3, 0.014, 0.018, 0.023, 0.027, 0.036, 0.046, 0.055],
+            [0.013, 0.019, 0.025, 0.032, 0.038, 0.051, 0.064, 0.077],
+            [0.018, 0.027, 0.036, 0.046, 0.055, 0.073, 0.091, 0.11],
+            [null, 0.041, 0.055, 0.068, 0.082, 0.11, 0.137, 0.165],
+            [null, null, 0.073, 0.091, 0.11, 0.146, 0.183, 0.22],
+            [null, null, null, 0.114, 0.137, 0.183, 0.229, 0.275]
+          ]
+        },
+        XGM_P_EG_AGEO: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 17,
+          magnitud: "Ageo",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.018, 0.027, 0.035, 0.044, 0.053, 0.071, 0.089, 0.107],
+            [0.025, 0.037, 0.05, 0.062, 0.075, 0.1, 0.125, 0.15],
+            [0.035, 0.053, 0.071, 0.089, 0.107, 0.143, 0.179, 0.215],
+            [null, 0.08, 0.107, 0.134, 0.161, 0.215, 0.268, 0.322],
+            [null, null, 0.142, 0.178, 0.214, 0.286, 0.358, 0.43],
+            [null, null, null, 0.223, 0.268, 0.358, 0.448, 0.538]
+          ]
+        },
+        /* VDW: «Detalles de producto», Aeff por tamaño (diámetro × nº de ranuras). */
+        VDW_Q: {
+          forma: "lista",
+          fuente: FICHA_VDW_DIF,
+          pagina: 19,
+          magnitud: "Aeff",
+          nota: "La ficha da un \xFAnico Aeff por tama\xF1o, sin distinguir impulsi\xF3n y retorno.",
+          tamanos: TAMANOS_VDW_DIF,
+          valores: [7e-3, 0.014, 0.021, 0.0295, 0.039, 0.0295, 0.047, 0.073]
+        },
+        VDW_R: {
+          forma: "lista",
+          fuente: FICHA_VDW_DIF,
+          pagina: 19,
+          magnitud: "Aeff",
+          nota: "La ficha da un \xFAnico Aeff por tama\xF1o, sin distinguir impulsi\xF3n y retorno. En circular no hay 625 \xD7 54 ni 825 \xD7 72.",
+          tamanos: TAMANOS_VDW_DIF.slice(0, 6),
+          valores: [7e-3, 0.014, 0.021, 0.0295, 0.039, 0.0295]
+        },
+        PL35: {
+          forma: "lista",
+          fuente: FICHA_PL35_DIF,
+          pagina: 8,
+          magnitud: "Aeff",
+          sinAk: true,
+          nota: NOTA_PL_DIF,
+          tamanos: LN_PL_DIF.map(String),
+          valores: LN_PL_DIF.map(() => null)
+        },
+        PL50: {
+          forma: "lista",
+          fuente: FICHA_PL50_DIF,
+          pagina: 7,
+          magnitud: "Aeff",
+          sinAk: true,
+          nota: NOTA_PL_DIF,
+          tamanos: LN_PL_DIF.map(String),
+          valores: LN_PL_DIF.map(() => null)
+        }
+      };
+      for (const [modelo, porMetro] of Object.entries(AK_METRO_PL_DIF)) {
+        porMetro.forEach((akm, i) => {
+          TABLAS_DIF[`${modelo}_${i + 1}`] = {
+            forma: "porMetro",
+            fuente: FUENTE_PL_AK_DIF,
+            pagina: null,
+            magnitud: "Aeff",
+            origen: "fabricante",
+            fabricante: "TROX",
+            unidad: "m\xB2 por metro lineal",
+            akPorMetro: akm,
+            nota: `${modelo}-${i + 1} (${i + 1} v\xEDa${i ? "s" : ""}): ${akm} m\xB2 por metro lineal; Ak = ${akm} \xD7 longitud (m).`,
+            tamanos: LN_PL_DIF.map(String),
+            valores: LN_PL_DIF.map((l) => akPorMetroDif(akm, l))
+          };
+        });
+      }
+      (function tiposTroxDif() {
+        const poner = (id, x) => {
+          if (!TIPOS_DIF[id]) TIPOS_DIF[id] = { marca: "TROX", modo: "ak", ak: null, k: null, ...x };
+        };
+        for (const [codigo, texto] of VARIANTES_XGM_DIF) {
+          for (const [circuito, suf, nombreC, corto] of CIRCUITOS_DIF) {
+            const tabla = `XGM_${codigo.replace("-", "_")}_${suf}`;
+            if (!TABLAS_DIF[tabla]) continue;
+            poner(`trox-xgm-${codigo.toLowerCase()}-${corto}`, { modelo: "XGM (X-GRILLE)", variante: `${texto} \xB7 ${nombreC}`, nombre: `TROX XGM ${codigo} \xB7 ${nombreC}`, circuito, tabla });
+          }
+        }
+        for (const [codigo, texto] of [["P-R", "Frontal perforado circular (P-R)"], ["P-EG", "Frontal perforado celos\xEDa (P-EG)"]]) {
+          for (const [circuito, , nombreC, corto] of CIRCUITOS_DIF) {
+            poner(`trox-xgm-${codigo.toLowerCase()}-${corto}`, { modelo: "XGM (X-GRILLE)", variante: `${texto} \xB7 ${nombreC}`, nombre: `TROX XGM ${codigo} \xB7 ${nombreC}`, circuito, tabla: `XGM_${codigo.replace("-", "_")}_AGEO` });
+          }
+        }
+        for (const [forma, texto] of [["Q", "Cuadrado (VDW-Q)"], ["R", "Circular (VDW-R)"]]) {
+          for (const [circuito, , nombreC, corto] of CIRCUITOS_DIF) {
+            poner(`trox-vdw-${forma.toLowerCase()}-${corto}`, { modelo: "VDW (rotacional)", variante: `${texto} \xB7 ${nombreC}`, nombre: `TROX VDW-${forma} \xB7 ${nombreC}`, circuito, tabla: `VDW_${forma}` });
+          }
+        }
+        for (const modelo of ["PL35", "PL50"]) {
+          for (let n = 1; n <= 4; n++) {
+            for (const [circuito, , nombreC, corto] of CIRCUITOS_DIF) {
+              poner(`trox-${modelo.toLowerCase()}-${n}-${corto}`, { modelo: `${modelo} (PureLine, lineal)`, variante: `${n} ranura${n > 1 ? "s" : ""} \xB7 ${nombreC}`, nombre: `TROX ${modelo}-${n} \xB7 ${nombreC}`, circuito, tabla: `${modelo}_${n}` });
+            }
+          }
+        }
+      })();
+      var CAT_AK_DIF = typeof __require !== "undefined" ? require_catalogoAk() : window.CATALOGO_AK;
+      var FACTORES_K_DIF = typeof __require !== "undefined" ? require_factoresKTrox() : typeof window !== "undefined" ? window.FACTORES_K_TROX : null;
+      function factoresKPuntoDif(p) {
+        const t = tipoDif(p && p.tipo);
+        if (!FACTORES_K_DIF || !t.tabla) return [];
+        return FACTORES_K_DIF.buscar({ tabla: t.tabla, tamano: p.tamano, largo: p.largo, alto: p.alto, circuito: t.circuito });
+      }
+      for (const [id, t] of Object.entries(CAT_AK_DIF.TABLAS)) if (!TABLAS_DIF[id]) TABLAS_DIF[id] = t;
+      for (const [id, t] of Object.entries(CAT_AK_DIF.TIPOS)) if (!TIPOS_DIF[id]) TIPOS_DIF[id] = t;
+      function numDif(v) {
+        if (v === null || v === void 0 || v === "") return null;
+        if (typeof v === "number") return Number.isFinite(v) ? v : null;
+        let t = String(v).trim().replace(/\s/g, "");
+        if (t.includes(",") && t.includes(".")) t = t.replace(/\./g, "");
+        t = t.replace(",", ".");
+        if (!t) return null;
+        const n = Number(t);
+        return Number.isFinite(n) ? n : null;
+      }
+      var redDif = (v, d = 1) => v === null ? null : Math.round(v * 10 ** d) / 10 ** d;
+      var entre01Dif = (v) => {
+        const n = numDif(v);
+        return n === null ? 0.5 : Math.min(1, Math.max(0, n));
+      };
+      function leerVelocidadesDif(texto) {
+        if (texto === null || texto === void 0) return { lecturas: [], media: null };
+        if (typeof texto === "number") return Number.isFinite(texto) && texto >= 0 ? { lecturas: [texto], media: texto } : { lecturas: [], media: null };
+        const trozos = String(texto).split(/[;\s/]+|,(?=\s)|\s*\|\s*/).map((t) => t.trim()).filter(Boolean);
+        const lecturas = trozos.map(numDif).filter((n) => n !== null && n >= 0);
+        if (!lecturas.length) return { lecturas: [], media: null };
+        const media = lecturas.reduce((a, b) => a + b, 0) / lecturas.length;
+        return { lecturas, media: redDif(media, 3) };
+      }
+      function tipoDif(id) {
+        return TIPOS_DIF[id] ? { id, ...TIPOS_DIF[id] } : { id: TIPO_DEFECTO_DIF, ...TIPOS_DIF[TIPO_DEFECTO_DIF] };
+      }
+      var EQUIPOS_MEDIDA_DIF = { anemometro: "Anem\xF3metro", balometro: "Bal\xF3metro" };
+      function equipoMedidaDif(p = {}) {
+        if (EQUIPOS_MEDIDA_DIF[p.equipoMedida]) return p.equipoMedida;
+        if (numDif(p.caudalMedido) !== null) return "balometro";
+        return numDif(p.velocidad) !== null ? "anemometro" : null;
+      }
+      function sinAkDif(p = {}) {
+        const f = factorDif(p);
+        return f.modo === "ak" && f.valor === null;
+      }
+      function equipoPropuestoDif(p = {}) {
+        return equipoMedidaDif(p) || (sinAkDif(p) ? "balometro" : null);
+      }
+      var LECTURAS_DIF = { velocidad: "Velocidad (m/s)", caudal: "Caudal (m\xB3/h)" };
+      function lecturaDif(p = {}) {
+        if (LECTURAS_DIF[p.lectura]) return p.lectura;
+        return numDif(p.caudalMedido) !== null ? "caudal" : "velocidad";
+      }
+      function normalizarPuntoDif(p = {}, indice = 0) {
+        if (!p || typeof p !== "object") p = {};
+        const t = tipoDif(p.tipo);
+        const modo = MODOS_DIF[p.modo] ? p.modo : t.modo;
+        const ak = numDif(p.ak);
+        const k = numDif(p.k);
+        const v = numDif(p.velocidad);
+        const qd = numDif(p.caudalDiseno);
+        const qm = numDif(p.caudalMedido);
+        const tm = numDif(p.temperatura);
+        const tf = numDif(p.tFrio);
+        const tc = numDif(p.tCalor);
+        const grados = (x) => x !== null && x >= -50 && x <= 150 ? Math.round(x * 10) / 10 : null;
+        return {
+          id: String(p.id || `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`),
+          nombre: String(p.nombre || "").trim().slice(0, 40) || `D${indice + 1}`,
+          /* SIN POSICIÓN (30-oct-2026): la boca sale del texto del plano y no hay
+             dibujo; no se pinta sobre ninguna lámina hasta que llega el PDF y se
+             casa por código y caudal. Nunca se le inventa un sitio: x/y = null. */
+          x: p.sinPosicion ? null : entre01Dif(p.x),
+          y: p.sinPosicion ? null : entre01Dif(p.y),
+          sinPosicion: Boolean(p.sinPosicion),
+          /* La sala del plano, si la trae el texto (null = no se sabe). */
+          sala: p.sala ? String(p.sala).trim().slice(0, 40) || null : null,
+          /* A REVISAR: no se puede atribuir con seguridad al equipo (el plano trae
+             otros sistemas). Se enseña con su motivo y no entra en las sumas. */
+          sinAtribuir: p.sinAtribuir ? String(p.sinAtribuir).trim().slice(0, 200) || "a revisar" : null,
+          tipo: t.id,
+          modo,
+          ak: ak !== null && ak > 0 ? ak : null,
+          k: k !== null && k > 0 ? k : null,
+          largo: medidaDif(p.largo),
+          alto: medidaDif(p.alto),
+          tamano: p.tamano === null || p.tamano === void 0 ? null : String(p.tamano).trim().slice(0, 20) || null,
+          lecturas: p.lecturas === null || p.lecturas === void 0 ? "" : String(p.lecturas).slice(0, 120),
+          velocidad: v !== null && v >= 0 ? v : null,
+          /* Con balómetro se lee el caudal directamente (m³/h): manda sobre v × Ak. */
+          caudalMedido: qm !== null && qm >= 0 ? qm : null,
+          /* Con qué se ha medido: 'anemometro' (M1–M4 × Ak) o 'balometro' (caudal
+             leído, sin Ak). null = sin decir: se deduce (con caudal leído, balómetro). */
+          equipoMedida: EQUIPOS_MEDIDA_DIF[p.equipoMedida] ? p.equipoMedida : null,
+          /* Con el anemómetro: qué se apunta ('velocidad' o 'caudal'); null = sin elegir. */
+          lectura: LECTURAS_DIF[p.lectura] ? p.lectura : null,
+          /* Las lecturas de caudal del anemómetro (M1–M4, m³/h); su media es caudalMedido. */
+          lecturasCaudal: p.lecturasCaudal === null || p.lecturasCaudal === void 0 ? "" : String(p.lecturasCaudal).slice(0, 120),
+          caudalDiseno: qd !== null && qd >= 0 ? qd : null,
+          /* La Tª del aire en esa boca, en °C, con una cifra decimal (23-oct-2026,
+             JC: «un campo para apuntar la temperatura en cada difusor»). Solo se
+             apunta y se enseña: no entra en ningún cálculo ni se juzga. */
+          temperatura: grados(tm),
+          /* Tª FRÍO Y Tª CALOR (30-oct-2026, JC): las dos en todas las bocas, sea
+             difusor o reja, de impulsión o de retorno. La `temperatura` de antes se
+             conserva tal cual, como «modo sin indicar»: ni se borra ni se mueve. */
+          tFrio: grados(tf),
+          tCalor: grados(tc),
+          nota: String(p.nota || "").slice(0, 300),
+          /* El modelo de proyecto de la obra del que sale (tipo, tamaño y caudal de proyecto). */
+          modeloId: p.modeloId ? String(p.modeloId).slice(0, 40) : null,
+          /* AÑADIDA EN OBRA (30-oct-2026): la boca que pone JC a mano desde el móvil.
+             Las pasadas automáticas no la borran ni la mueven (bocaManual.js › proteger). */
+          origen: p.origen === "manual" ? "manual" : null,
+          manual: p.origen === "manual" ? manualDif(p.manual) : null,
+          /* MEDIDA EN OBRA (30-oct-2026): si en obra se mide otro tamaño, aquí queda
+             el del rótulo del plano (bocaManual.js › cambiarMedidas); null = el del plano. */
+          medidaPlano: p.medidaPlano && typeof p.medidaPlano === "object" ? { largo: medidaDif(p.medidaPlano.largo), alto: medidaDif(p.medidaPlano.alto), tamano: p.medidaPlano.tamano ? String(p.medidaPlano.tamano).slice(0, 20) : null, tipo: p.medidaPlano.tipo ? String(p.medidaPlano.tipo).slice(0, 60) : null } : null,
+          /* De dónde sale un Ak puesto a mano (ficha, página): sin fuente no se acepta (bocaManual.js › ponerAk). */
+          akFuente: ak !== null && ak > 0 && p.akFuente ? String(p.akFuente).trim().slice(0, 160) || null : null
+        };
+      }
+      function manualDif(m) {
+        if (!m || typeof m !== "object") m = {};
+        const t = (v, n) => String(v === null || v === void 0 ? "" : v).trim().slice(0, n);
+        return {
+          sistema: ["impulsion", "retorno", "extraccion"].includes(m.sistema) ? m.sistema : "impulsion",
+          clase: m.clase === "reja" ? "reja" : "difusor",
+          modelo: t(m.modelo, 40) || null,
+          nota: t(m.nota, 200),
+          fecha: t(m.fecha, 30) || null,
+          autor: t(m.autor, 80) || null,
+          posibleDuplicado: t(m.posibleDuplicado, 200) || null
+        };
+      }
+      function medidaDif(v) {
+        const n = numDif(v);
+        return n !== null && n > 0 ? Math.round(n) : null;
+      }
+      function akPorMetroDif(akm, longitudMm) {
+        const l = Number(longitudMm);
+        return akm > 0 && l > 0 ? Math.round(akm * l / 1e3 * 1e6) / 1e6 : null;
+      }
+      var TOLERANCIA_DISCREPANCIA_AK_DIF = 0.01;
+      var claveTamanoDif = (v) => v === null || v === void 0 ? "" : String(v).toLowerCase().replace(/\s+/g, "").replace(/x/g, "\xD7");
+      function valorTablaDif(tabla, { largo = null, alto = null, tamano = null } = {}) {
+        const t = TABLAS_DIF[tabla];
+        if (!t) return null;
+        let v;
+        if (t.forma === "porMetro") {
+          const l = numDif(tamano) || numDif(largo);
+          v = l ? akPorMetroDif(t.akPorMetro, l) : null;
+        } else if (t.forma === "lista") {
+          const i = t.tamanos.findIndex((x) => claveTamanoDif(x) === claveTamanoDif(tamano));
+          if (i < 0) return null;
+          v = t.valores[i];
+        } else {
+          const c = t.largos.indexOf(medidaDif(largo));
+          const f = t.altos.indexOf(medidaDif(alto));
+          if (c < 0 || f < 0) return null;
+          v = t.filas[f][c];
+        }
+        return typeof v === "number" && v > 0 ? v : null;
+      }
+      function akTablaDif(tabla, largo, alto, tamano = null) {
+        const t = TABLAS_DIF[tabla];
+        if (!t || t.magnitud !== "Aeff") return null;
+        return valorTablaDif(tabla, { largo, alto, tamano });
+      }
+      function ageoTablaDif(tabla, largo, alto, tamano = null) {
+        const t = TABLAS_DIF[tabla];
+        if (!t || t.magnitud !== "Ageo") return null;
+        return valorTablaDif(tabla, { largo, alto, tamano });
+      }
+      function fuenteTablaDif(tabla) {
+        const t = TABLAS_DIF[tabla];
+        if (!t) return null;
+        return `${t.fuente}${t.pagina ? `, p. ${t.pagina}` : ""}`;
+      }
+      function factorDif(p) {
+        const t = tipoDif(p.tipo);
+        const modo = MODOS_DIF[p.modo] ? p.modo : t.modo;
+        if (modo === "k") {
+          const propio2 = numDif(p.k);
+          if (propio2 !== null && propio2 > 0) return { modo, valor: propio2, origen: "punto" };
+          return { modo, valor: t.modo === "k" ? t.k : null, origen: t.modo === "k" && t.k ? "catalogo" : null };
+        }
+        const propio = numDif(p.ak);
+        if (propio !== null && propio > 0) {
+          const deTabla = t.tabla ? akTablaDif(t.tabla, p.largo, p.alto, p.tamano) : null;
+          const discrepa = deTabla !== null && Math.abs(propio - deTabla) / deTabla > TOLERANCIA_DISCREPANCIA_AK_DIF;
+          return { modo, valor: propio, origen: "punto", akTabla: deTabla, discrepanciaAk: discrepa };
+        }
+        if (t.tabla) {
+          const v = akTablaDif(t.tabla, p.largo, p.alto, p.tamano);
+          return { modo, valor: v, origen: v ? "tabla" : null };
+        }
+        if (p.medidaPlano && typeof p.medidaPlano === "object") return { modo, valor: null, origen: null };
+        return { modo, valor: t.modo === "ak" ? t.ak : null, origen: t.modo === "ak" && t.ak ? "catalogo" : null };
+      }
+      var visiblesDif = () => Object.entries(TIPOS_DIF).filter(([, x]) => !x.oculto);
+      var unicosDif = (lista) => [...new Set(lista)];
+      function marcasDif() {
+        const m = unicosDif(visiblesDif().map(([, x]) => x.marca));
+        return m.sort((a, b) => a === "TROX" ? -1 : b === "TROX" ? 1 : 0);
+      }
+      function modelosDif(marca) {
+        return unicosDif(visiblesDif().filter(([, x]) => x.marca === marca).map(([, x]) => x.modelo));
+      }
+      function variantesDif(marca, modelo) {
+        return visiblesDif().filter(([, x]) => x.marca === marca && x.modelo === modelo).map(([id, x]) => ({ id, variante: x.variante, circuito: x.circuito }));
+      }
+      function tamanosDif(tipoId) {
+        const t = TIPOS_DIF[tipoId];
+        const tabla = t && t.tabla ? TABLAS_DIF[t.tabla] : null;
+        if (!tabla) return [];
+        if (tabla.forma === "lista" || tabla.forma === "porMetro") {
+          return tabla.tamanos.map((tam, i) => ({ clave: tam, texto: tabla.sinAk || tabla.forma === "porMetro" ? `LN ${tam}` : tam, tamano: tam, largo: null, alto: null, area: tabla.valores[i] })).filter((x) => tabla.sinAk || typeof x.area === "number" && x.area > 0);
+        }
+        const salida = [];
+        tabla.altos.forEach((h, f) => tabla.largos.forEach((l, c) => {
+          const v = tabla.filas[f][c];
+          if (typeof v === "number" && v > 0) salida.push({ clave: `${l}\xD7${h}`, texto: `${l} \xD7 ${h}`, tamano: null, largo: l, alto: h, area: v });
+        }));
+        return salida.sort((a, b) => a.largo - b.largo || a.alto - b.alto);
+      }
+      function claveTamanoPuntoDif(p) {
+        if (p && p.largo && p.alto) return `${p.largo}\xD7${p.alto}`;
+        return p && p.tamano ? p.tamano : "";
+      }
+      function mismoGrupoAkDif(p, tipo, clave) {
+        return p && p.tipo === tipo && claveTamanoPuntoDif(p) === (clave || "");
+      }
+      function aplicarAkPorGrupoDif(puntos, grupo = {}, ak = null) {
+        const v = numDif(ak);
+        const valor = v !== null && v > 0 ? v : null;
+        return (puntos || []).map((p) => mismoGrupoAkDif(p, grupo.tipo, grupo.clave) && (p.modo || tipoDif(p.tipo).modo) !== "k" ? { ...p, modo: "ak", ak: valor } : p);
+      }
+      function gruposAkDif(puntos) {
+        const m = /* @__PURE__ */ new Map();
+        for (const p of puntos || []) {
+          const clave = claveTamanoPuntoDif(p);
+          const id = `${p.tipo}|${clave}`;
+          const g = m.get(id) || { tipo: p.tipo, clave, tipoNombre: tipoDif(p.tipo).nombre, circuito: tipoDif(p.tipo).circuito, bocas: 0, sinAk: 0, aks: /* @__PURE__ */ new Set() };
+          g.bocas += 1;
+          const f = factorDif(p);
+          if (f.modo === "ak" && f.valor === null) g.sinAk += 1;
+          else if (f.modo === "ak") g.aks.add(f.valor);
+          m.set(id, g);
+        }
+        return [...m.values()].map((g) => ({ ...g, ak: g.aks.size === 1 ? [...g.aks][0] : null, aks: void 0 }));
+      }
+      function caudalDif({ velocidad, modo = "ak", ak = null, k = null } = {}) {
+        const v = numDif(velocidad);
+        if (v === null || v < 0) return null;
+        if (modo === "k") {
+          const f = numDif(k);
+          return f === null || f <= 0 ? null : redDif(f * v, 1);
+        }
+        const a = numDif(ak);
+        return a === null || a <= 0 ? null : redDif(v * a * 3600, 1);
+      }
+      function desviacionDif(medido, diseno) {
+        const d = REGLAS_DIF.desviacion(numDif(medido), numDif(diseno));
+        return d === null ? null : redDif(d, 4);
+      }
+      function juicioDif(desv, tol) {
+        const ok = REGLAS_DIF.dentro(desv, tol);
+        if (ok === null) return null;
+        return ok ? "dentro" : desv > 0 ? "alto" : "bajo";
+      }
+      function toleranciasDif(t = {}) {
+        const r = REGLAS_DIF.toleranciasAplicadas(t || {});
+        return { total: r.total, boca: r.boca, totalPorDefecto: Boolean(r.totalPorDefecto), bocaPorDefecto: Boolean(r.bocaPorDefecto) };
+      }
+      function evaluarPuntoDif(p, tolBoca = TOLERANCIA_BOCA_DEFECTO_DIF) {
+        const t = tipoDif(p.tipo);
+        const f = factorDif(p);
+        const equipo = equipoMedidaDif(p);
+        const lectura = equipo === "anemometro" ? lecturaDif(p) : null;
+        const qLeido = numDif(p.caudalMedido) !== null;
+        const directo = equipo === "balometro" || lectura === "caudal" || equipo !== "anemometro" && qLeido;
+        const caudal = directo ? qLeido ? redDif(numDif(p.caudalMedido), 1) : null : f.valor === null ? null : caudalDif({ velocidad: p.velocidad, modo: f.modo, ak: f.modo === "ak" ? f.valor : null, k: f.modo === "k" ? f.valor : null });
+        const desv = desviacionDif(caudal, p.caudalDiseno);
+        let estado;
+        if (directo ? !qLeido : numDif(p.velocidad) === null) estado = "sinMedir";
+        else if (!directo && f.valor === null) estado = "sinFactor";
+        else if (numDif(p.caudalDiseno) === null) estado = "medido";
+        else if (directo && REGLAS_DIF.veredicto({ medido: caudal, referencia: p.caudalDiseno, limite: tolBoca, revisado: Boolean(p.revisado) }) === "aRevisar") estado = "aRevisar";
+        else estado = juicioDif(desv, tolBoca);
+        return {
+          ...p,
+          circuito: t.circuito,
+          tipoNombre: t.nombre,
+          factor: f.valor,
+          modoFactor: f.modo,
+          origenFactor: f.origen,
+          /* Ak a mano frente al de la tabla: los dos se guardan; nada se sobrescribe. */
+          akTabla: f.akTabla === void 0 ? null : f.akTabla,
+          discrepanciaAk: Boolean(f.discrepanciaAk),
+          /* Los K del plenum AK-Uni (q = K·√Δp), si el fabricante los da: solo informan. */
+          factoresK: factoresKPuntoDif(p),
+          caudal,
+          /* El equipo con que se mide (el elegido o el deducido). */
+          equipoMedida: equipo,
+          /* Cómo sale el caudal: 'balometro' / 'directo' (caudal leído), 'anemometro' (v × factor) o null. */
+          metodo: estado === "sinMedir" ? null : equipo === "balometro" ? "balometro" : directo ? "directo" : "anemometro",
+          /* Con el anemómetro: 'velocidad' o 'caudal' (lo que se apunta en M1–M4). */
+          lectura,
+          lecturasLista: leerVelocidadesDif(p.lecturas).lecturas,
+          lecturasCaudalLista: leerVelocidadesDif(p.lecturasCaudal).lecturas,
+          desviacion: desv,
+          estado,
+          /* Sin Ak: el aviso y el aparato que se propone (no cambia lo medido). */
+          sinAk: f.modo === "ak" && f.valor === null,
+          avisoSinAk: f.modo === "ak" && f.valor === null ? AVISO_SIN_AK_DIF : null,
+          equipoPropuesto: equipo || (f.modo === "ak" && f.valor === null ? "balometro" : null)
+        };
+      }
+      function resumenDif({ puntos = [], diseno = {}, tolerancias = {} } = {}) {
+        const tol = toleranciasDif(tolerancias);
+        const filas = puntos.map((p, i) => evaluarPuntoDif(normalizarPuntoDif(p, i), tol.boca));
+        const circuitos = {};
+        for (const id of ["impulsion", "retorno"]) {
+          const suyos = filas.filter((f) => f.circuito === id && !f.sinAtribuir);
+          const conCaudal = suyos.filter((f) => f.caudal !== null);
+          const suma = conCaudal.length ? redDif(conCaudal.reduce((a, f) => a + f.caudal, 0), 1) : null;
+          const disenoPuntos = suyos.every((f) => numDif(f.caudalDiseno) !== null) && suyos.length ? redDif(suyos.reduce((a, f) => a + numDif(f.caudalDiseno), 0), 1) : null;
+          const disenoEquipo = numDif(diseno && diseno[id]);
+          const medidasN = suyos.filter((f) => f.estado !== "sinMedir").length;
+          const faltan = suyos.length - medidasN;
+          const sinCaudal = suyos.length - conCaudal.length;
+          const completo = suyos.length > 0 && sinCaudal === 0;
+          const disenoReferencia = disenoPuntos !== null ? disenoPuntos : disenoEquipo;
+          const desv = completo ? desviacionDif(suma, disenoReferencia) : null;
+          let estado;
+          if (!suyos.length) estado = "sinPuntos";
+          else if (!completo) estado = "incompleto";
+          else if (disenoReferencia === null) estado = "sinDiseno";
+          else estado = juicioDif(desv, tol.total);
+          circuitos[id] = {
+            id,
+            puntos: suyos.length,
+            medidos: medidasN,
+            faltan,
+            sinAk: suyos.filter((f) => f.estado === "sinFactor").length,
+            suma,
+            disenoEquipo,
+            disenoPuntos,
+            /* Contra qué se juzga el total: 'bocas' (lo normal) o 'equipo'. */
+            disenoReferencia,
+            referencia: disenoReferencia === null ? null : disenoPuntos !== null ? "bocas" : "equipo",
+            desviacion: desv,
+            /* El caudal del equipo, solo de referencia. */
+            desviacionEquipo: completo ? desviacionDif(suma, disenoEquipo) : null,
+            estado,
+            dentro: suyos.filter((f) => f.estado === "dentro").length,
+            fuera: suyos.filter((f) => f.estado === "alto" || f.estado === "bajo").length,
+            aRevisar: filas.filter((f) => f.circuito === id && f.sinAtribuir).length,
+            /* Lo de proyecto de las «a revisar» (fuera de la suma): para decir cuánto queda fuera. */
+            disenoRevisar: (() => {
+              const r = filas.filter((f) => f.circuito === id && f.sinAtribuir && numDif(f.caudalDiseno) !== null);
+              return r.length ? redDif(r.reduce((a, f) => a + numDif(f.caudalDiseno), 0), 1) : null;
+            })(),
+            /* «Tª frío 0/11 · Tª calor 0/11»: una boca está completa con caudal y las dos Tª. */
+            tFrio: suyos.filter((f) => f.tFrio !== null).length,
+            tCalor: suyos.filter((f) => f.tCalor !== null).length,
+            completas: suyos.filter((f) => bocaCompletaDif(f)).length
+          };
+        }
+        return { filas, circuitos, tolerancias: tol, sinPosicion: filas.filter((f) => f.sinPosicion).length, aRevisar: filas.filter((f) => f.sinAtribuir).length };
+      }
+      function bocaCompletaDif(f = {}) {
+        const medida = f.caudal !== null && f.caudal !== void 0 ? true : f.estado === "sinFactor";
+        return Boolean(medida) && numDif(f.tFrio) !== null && numDif(f.tCalor) !== null;
+      }
+      function textoTemperaturasDif(c = {}) {
+        const n = c.puntos || 0;
+        return `T\xAA fr\xEDo ${c.tFrio || 0}/${n} \xB7 T\xAA calor ${c.tCalor || 0}/${n}`;
+      }
+      function siguienteNombreDif(puntos = [], circuito = "impulsion") {
+        const letra = circuito === "retorno" ? "R" : "D";
+        const re = new RegExp(`^${letra}(\\d+)$`);
+        const max = puntos.reduce((m, p) => {
+          const r = re.exec(String(p.nombre || ""));
+          return r ? Math.max(m, Number(r[1])) : m;
+        }, 0);
+        return `${letra}${max + 1}`;
+      }
+      function normalizarModeloProyectoDif(m = {}, indice = 0) {
+        if (!m || typeof m !== "object") m = {};
+        const t = tipoDif(m.tipo);
+        const qp = numDif(m.caudalProyecto);
+        return {
+          id: String(m.id || `m${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`).slice(0, 40),
+          ref: String(m.ref || "").trim().slice(0, 30) || `${t.circuito === "retorno" ? "R" : "D"}-${String(indice + 1).padStart(2, "0")}`,
+          tipo: t.id,
+          largo: medidaDif(m.largo),
+          alto: medidaDif(m.alto),
+          tamano: m.tamano === null || m.tamano === void 0 ? null : String(m.tamano).trim().slice(0, 20) || null,
+          /* Ak a mano: para las tablas que no lo dan (PureLine) o un modelo sin tabla. */
+          ak: numDif(m.ak) !== null && numDif(m.ak) > 0 ? numDif(m.ak) : null,
+          caudalProyecto: qp !== null && qp >= 0 ? qp : null,
+          nota: String(m.nota || "").slice(0, 200),
+          /* De dónde sale: 'presupuesto', 'cambio aprobado' o 'manual' (y la partida que lo dio). */
+          origen: ["presupuesto", "cambio aprobado", "manual"].includes(m.origen) ? m.origen : "manual",
+          partida: m.partida && typeof m.partida === "object" ? { codigo: String(m.partida.codigo || "").slice(0, 40), resumen: String(m.partida.resumen || "").slice(0, 200) } : null
+        };
+      }
+      function normalizarModelosProyectoDif(lista) {
+        const vistos = /* @__PURE__ */ new Set();
+        const salida = [];
+        for (const m of Array.isArray(lista) ? lista.slice(0, 200) : []) {
+          if (!m || typeof m !== "object") continue;
+          const n = normalizarModeloProyectoDif(m, salida.length);
+          if (vistos.has(n.id)) continue;
+          vistos.add(n.id);
+          salida.push(n);
+        }
+        return salida;
+      }
+      function camposModeloDif(m) {
+        const t = tipoDif(m.tipo);
+        return {
+          tipo: m.tipo,
+          modo: t.modo === "k" ? "k" : "ak",
+          ak: m.ak,
+          k: null,
+          largo: m.largo,
+          alto: m.alto,
+          tamano: m.tamano,
+          caudalDiseno: m.caudalProyecto
+        };
+      }
+      function evaluarModeloDif(m) {
+        const t = tipoDif(m.tipo);
+        const f = factorDif({ ...normalizarPuntoDif(camposModeloDif(m)) });
+        return {
+          ...m,
+          circuito: t.circuito,
+          tipoNombre: t.nombre,
+          marca: t.marca,
+          modelo: t.modelo,
+          variante: t.variante,
+          factor: f.valor,
+          modoFactor: f.modo,
+          origenFactor: f.origen,
+          akTabla: f.akTabla === void 0 ? null : f.akTabla,
+          discrepanciaAk: Boolean(f.discrepanciaAk),
+          fuente: t.tabla ? fuenteTablaDif(t.tabla) : null,
+          ejemplo: Boolean(t.ejemplo)
+        };
+      }
+      function normalizarAsignacionDif(lista, modelos = null) {
+        const ids = modelos ? new Set(modelos.map((m) => m.id)) : null;
+        const vistos = /* @__PURE__ */ new Set();
+        const salida = [];
+        for (const a of Array.isArray(lista) ? lista : []) {
+          if (!a || typeof a !== "object" || !a.modeloId) continue;
+          const id = String(a.modeloId);
+          if (vistos.has(id) || ids && !ids.has(id)) continue;
+          const n = Math.round(numDif(a.cantidad) || 0);
+          if (n <= 0) continue;
+          vistos.add(id);
+          salida.push({ modeloId: id, cantidad: Math.min(200, n) });
+        }
+        return salida;
+      }
+      function aplicarModelosDif(puntos, modelos) {
+        const porId = new Map((modelos || []).map((m) => [m.id, m]));
+        return (puntos || []).map((p, i) => {
+          const m = p.modeloId ? porId.get(p.modeloId) : null;
+          return m ? normalizarPuntoDif({ ...p, ...camposModeloDif(m) }, i) : p;
+        });
+      }
+      function generarBocasDif(asignacion, modelos, existentes = []) {
+        const porId = new Map((modelos || []).map((m) => [m.id, m]));
+        const todas = [...existentes];
+        const nuevas = [];
+        const sobran = [];
+        for (const a of normalizarAsignacionDif(asignacion, modelos)) {
+          const m = porId.get(a.modeloId);
+          const tiene = existentes.filter((p) => p.modeloId === m.id).length;
+          if (tiene > a.cantidad) sobran.push({ modeloId: m.id, ref: m.ref, sobran: tiene - a.cantidad });
+          for (let i = tiene; i < a.cantidad; i++) {
+            const circuito = tipoDif(m.tipo).circuito;
+            const p = normalizarPuntoDif({ ...camposModeloDif(m), modeloId: m.id, nombre: siguienteNombreDif(todas, circuito) }, todas.length);
+            todas.push(p);
+            nuevas.push(p);
+          }
+        }
+        const asignados = new Set(normalizarAsignacionDif(asignacion, modelos).map((a) => a.modeloId));
+        for (const m of modelos || []) {
+          const tiene = existentes.filter((p) => p.modeloId === m.id).length;
+          if (tiene && !asignados.has(m.id)) sobran.push({ modeloId: m.id, ref: m.ref, sobran: tiene });
+        }
+        return { nuevas, sobran };
+      }
+      function colocarEnListaDif(puntos) {
+        return puntos.map((p, i) => ({ ...p, x: 0.05 + 0.1 * (i % 10), y: Math.min(0.95, 0.08 + 0.12 * Math.floor(i / 10)) }));
+      }
+      function normalizarPuntosDif(lista) {
+        const vistos = /* @__PURE__ */ new Set();
+        const salida = [];
+        for (const p of Array.isArray(lista) ? lista.slice(0, 400) : []) {
+          if (!p || typeof p !== "object") continue;
+          const n = normalizarPuntoDif(p, salida.length);
+          if (vistos.has(n.id)) continue;
+          vistos.add(n.id);
+          salida.push(n);
+        }
+        return salida;
+      }
+      var ETIQUETA_DIF = /^(DIF|DF|DL|DR|D|RJ|RE|RR|RT|RA|RI|RET|EXT|IMP|R)[-_. ]?(\d{1,3}[A-Z]?)$/i;
+      var RETORNO_DIF = /^(RJ|RE|RR|RT|RA|RI|RET|EXT|R)$/i;
+      var CAUDAL_DIF = /(\d{1,3}(?:\.\d{3})*(?:,\d+)?|\d+(?:[.,]\d+)?)\s*m\s*(?:3|³)\s*\/\s*h/i;
+      var CAUDAL_Q_DIF = /\bQ\s*[=:]\s*(\d+(?:[.,]\d+)?)/i;
+      var RADIO_DIF = 0.06;
+      var CODIGO_CAD_DIF = /^(DR|DL|DF|DIF|RR|RJ|RT|RA|RI|RET|EXT|IMP|RE)_(\d{1,2})_([0-9A-Z]{3,5})$/i;
+      var RETORNO_CAD_DIF = /^(RR|RJ|RT|RA|RI|RET|EXT)$/i;
+      var OTRO_SISTEMA_DIF = /\bVI-N\d+|\bELECT-/i;
+      var RADIO_OTRO_DIF = 0.09;
+      var RADIO_EXTERIOR_DIF = 0.12;
+      var CORTE_DIF = /(^|[_\s])(section|secci[oó]n|corte)([_\s]|\d|$)/i;
+      var CORTE_IZQ_DIF = 0.065;
+      var CORTE_DER_DIF = 0.1;
+      var CORTE_ALTO_DIF = 0.22;
+      function recuentoTablaDif(textos) {
+        const lista = (Array.isArray(textos) ? textos : []).map((t) => ({ x: Number(t && t.x), y: Number(t && t.y), t: String(t && t.texto || "").trim() })).filter((t) => Number.isFinite(t.x) && Number.isFinite(t.y) && t.t);
+        const enteros = lista.filter((t) => /^\d{1,3}$/.test(t.t));
+        const filas = [];
+        for (const c of lista) {
+          if (!CODIGO_CAD_DIF.test(c.t)) continue;
+          const n = enteros.filter((e) => e.x > c.x && e.x - c.x < 0.5 && Math.abs(e.y - c.y) < 4e-3).sort((p, q) => p.x - q.x)[0];
+          if (n) filas.push({ codigo: c.t.toUpperCase(), x: c.x, xn: n.x, n: Number(n.t) });
+        }
+        const salida = {};
+        for (const f of filas) {
+          const columna = filas.filter((g) => Math.abs(g.x - f.x) < 4e-3 && Math.abs(g.xn - f.xn) < 4e-3);
+          if (new Set(columna.map((g) => g.codigo)).size >= 2 && salida[f.codigo] === void 0) salida[f.codigo] = f.n;
+        }
+        return salida;
+      }
+      function numeroCaudalDif(t) {
+        const m = CAUDAL_DIF.exec(t) || CAUDAL_Q_DIF.exec(t);
+        if (!m) return null;
+        const crudo = m[1].replace(/\s/g, "");
+        const n = /^\d{1,3}(\.\d{3})+$/.test(crudo) ? Number(crudo.replace(/\./g, "")) : Number(crudo.replace(",", "."));
+        return Number.isFinite(n) && n > 0 && n < 1e5 ? n : null;
+      }
+      function reconocerBocasDif(textos, { modelos = [], existentes = [], recuento = null, excluir = [], sinTabla = false } = {}) {
+        const avisos = [];
+        const descartadas = [];
+        const exteriores = [];
+        const otros = [];
+        const cortes = [];
+        const fuera = new Set((excluir || []).map((r) => String(r).toUpperCase()));
+        const tabla = sinTabla ? {} : { ...recuentoTablaDif(textos), ...recuento || {} };
+        const porRef = new Map((modelos || []).map((m) => [String(m.ref || "").replace(/[\s_.-]/g, "").toUpperCase(), m]));
+        const etiquetas = [];
+        const caudales = [];
+        for (const t of Array.isArray(textos) ? textos : []) {
+          const x = Number(t && t.x);
+          const y = Number(t && t.y);
+          if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 1 || y < 0 || y > 1) continue;
+          const texto = String(t.texto || "").trim();
+          if (!texto) continue;
+          const q = numeroCaudalDif(texto);
+          if (q !== null) caudales.push({ x, y, q, usado: false });
+          if (OTRO_SISTEMA_DIF.test(texto)) otros.push({ x, y });
+          if (CORTE_DIF.test(texto)) cortes.push({ x, y });
+          const trozos = texto.split(/[\s;,()[\]]+/).filter(Boolean);
+          for (let i = 0; i < trozos.length; i++) {
+            const cad = CODIGO_CAD_DIF.exec(trozos[i]);
+            if (cad) {
+              const pref = cad[1].toUpperCase();
+              const codigo = trozos[i].toUpperCase();
+              if (pref === "RE") {
+                exteriores.push({ x, y });
+                break;
+              }
+              const modelo = porRef.get(codigo.replace(/[\s_.-]/g, "")) || null;
+              etiquetas.push({ x, y, ref: codigo, modelo, retorno: modelo ? tipoDif(modelo.tipo).circuito === "retorno" : RETORNO_CAD_DIF.test(pref), q, lineal: pref === "DL", cad: true });
+              break;
+            }
+            const hit = [trozos[i], trozos[i + 1] ? `${trozos[i]} ${trozos[i + 1]}` : null].filter(Boolean).map((limpio) => {
+              const modelo = porRef.get(limpio.replace(/[\s_.-]/g, "").toUpperCase()) || null;
+              const m = ETIQUETA_DIF.exec(limpio);
+              return modelo || m ? { limpio, modelo, m } : null;
+            }).find(Boolean);
+            if (!hit) continue;
+            const retorno = hit.modelo ? tipoDif(hit.modelo.tipo).circuito === "retorno" : RETORNO_DIF.test(hit.m[1]);
+            etiquetas.push({ x, y, ref: hit.limpio, modelo: hit.modelo, retorno, q });
+            break;
+          }
+        }
+        const enCorte = (e) => e.cad && cortes.some((c) => e.x >= c.x - CORTE_IZQ_DIF && e.x <= c.x + CORTE_DER_DIF && e.y < c.y && c.y - e.y <= CORTE_ALTO_DIF);
+        for (const e of etiquetas.filter(enCorte)) descartadas.push({ ref: e.ref, x: e.x, y: e.y, motivo: "r\xF3tulo de un corte (secci\xF3n), no del plano" });
+        etiquetas.splice(0, etiquetas.length, ...etiquetas.filter((e) => !enCorte(e)));
+        const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+        const pares = [];
+        etiquetas.forEach((e, i) => {
+          if (e.q === null) caudales.forEach((c, j) => {
+            const d = dist(e, c);
+            if (d <= RADIO_DIF) pares.push({ i, j, d });
+          });
+        });
+        pares.sort((a, b) => a.d - b.d);
+        const conCaudal = /* @__PURE__ */ new Set();
+        for (const p of pares) {
+          if (conCaudal.has(p.i) || caudales[p.j].usado) continue;
+          etiquetas[p.i].q = caudales[p.j].q;
+          caudales[p.j].usado = true;
+          conCaudal.add(p.i);
+          const e = etiquetas[p.i];
+          const c = caudales[p.j];
+          e.px = Math.min(1, Math.max(0, e.x + (e.x - c.x) * 0.8));
+          e.py = Math.min(1, Math.max(0, e.y + (e.y - c.y) * 0.8));
+        }
+        const aparte = (e) => e.cad && e.retorno && (fuera.has(e.ref) || otros.some((o) => dist(e, o) <= RADIO_OTRO_DIF) || exteriores.some((o) => dist(e, o) <= RADIO_EXTERIOR_DIF));
+        for (const e of etiquetas.filter(aparte)) descartadas.push({ ref: e.ref, x: e.x, y: e.y, motivo: "parece de otro sistema (cuarto o reja exterior al lado)" });
+        etiquetas.splice(0, etiquetas.length, ...etiquetas.filter((e) => !aparte(e)));
+        const lineales = {};
+        for (const e of etiquetas.filter((x) => x.lineal)) (lineales[e.ref] = lineales[e.ref] || []).push(e);
+        for (const [codigo, rotulos2] of Object.entries(lineales)) {
+          const total = tabla[codigo];
+          if (!Number.isInteger(total) || total <= rotulos2.length) {
+            avisos.push(`${codigo}: ${rotulos2.length} r\xF3tulos de difusor lineal y no se ha le\xEDdo la tabla de selecci\xF3n; cada r\xF3tulo suele se\xF1alar varias unidades, cu\xE9ntalas en el plano.`);
+            continue;
+          }
+          const extra = total - rotulos2.length;
+          for (let k = 0; k < extra; k++) {
+            const base = rotulos2[k % rotulos2.length];
+            const p = juntoADif(base.x, base.y, 1 + Math.floor(k / rotulos2.length));
+            etiquetas.push({ ...base, px: p.x, py: p.y, q: base.q, qDe: base, aprox: true });
+          }
+          avisos.push(`${codigo}: la tabla cuenta ${total} unidades lineales y el plano solo rotula ${rotulos2.length}; se han creado ${total} (las ${extra} a\xF1adidas, junto a su r\xF3tulo): col\xF3calas en su sitio.`);
+        }
+        const rotulados = {};
+        for (const e of etiquetas) if (!e.lineal && e.cad) rotulados[e.ref] = (rotulados[e.ref] || 0) + 1;
+        for (const [codigo, n] of Object.entries(rotulados)) {
+          if (Number.isInteger(tabla[codigo]) && tabla[codigo] !== n) avisos.push(`${codigo}: la tabla cuenta ${tabla[codigo]} y el plano rotula ${n}; revisa que est\xE9n todas.`);
+        }
+        etiquetas.sort((a, b) => Math.abs(a.y - b.y) > 0.02 ? a.y - b.y : a.x - b.x);
+        const todas = [...existentes || []];
+        const bocas = [];
+        const rotulos = etiquetas.map((e) => ({ ref: e.ref, x: e.x, y: e.y, cad: Boolean(e.cad), lineal: Boolean(e.lineal), aprox: Boolean(e.aprox) }));
+        for (const e of etiquetas) {
+          const circuito = e.retorno ? "retorno" : "impulsion";
+          const base = e.modelo ? { ...camposModeloDif(e.modelo), modeloId: e.modelo.id } : { tipo: circuito === "retorno" ? "rejillaRet" : TIPO_DEFECTO_DIF };
+          const p = normalizarPuntoDif({
+            ...base,
+            nombre: siguienteNombreDif(todas, circuito),
+            x: e.px ?? e.x,
+            y: e.py ?? e.y,
+            caudalDiseno: e.q !== null ? e.q : e.modelo ? e.modelo.caudalProyecto : null,
+            nota: `Del plano: ${e.ref}${e.lineal ? " (difusor lineal)" : ""}${e.aprox ? " \xB7 posici\xF3n aproximada: unidad de la tabla sin r\xF3tulo propio" : ""}`
+          }, todas.length);
+          todas.push(p);
+          bocas.push(p);
+        }
+        return { bocas, rotulos, sinCaudal: bocas.filter((b) => b.caudalDiseno === null).length, leidos: (textos || []).length, avisos, descartadas, recuento: tabla };
+      }
+      var PASO_JUNTO_DIF = 0.012;
+      function juntoADif(x, y, k = 1) {
+        const sx = x > 0.9 ? -1 : 1;
+        const sy = y > 0.9 ? -1 : 1;
+        const lim = (v) => Math.max(0, Math.min(1, v));
+        return { x: lim(x + sx * PASO_JUNTO_DIF * k), y: lim(y + sy * PASO_JUNTO_DIF * k) };
+      }
+      function zonasCorteDif(textos) {
+        const salida = [];
+        for (const t of Array.isArray(textos) ? textos : []) {
+          const x = Number(t && t.x);
+          const y = Number(t && t.y);
+          if (!Number.isFinite(x) || !Number.isFinite(y) || !CORTE_DIF.test(String(t && t.texto || ""))) continue;
+          salida.push({ x0: x - CORTE_IZQ_DIF, x1: x + CORTE_DER_DIF, y0: y - CORTE_ALTO_DIF, y1: y });
+        }
+        return salida;
+      }
+      function tipoBocaDif(id) {
+        const t = TIPOS_DIF[id];
+        if (!t) return null;
+        if (t.tipoBoca) return t.tipoBoca;
+        const tabla = t.tabla ? TABLAS_DIF[t.tabla] : null;
+        if (tabla && tabla.tipoBoca) return tabla.tipoBoca;
+        const m = String(t.modelo || "");
+        if (/^XGM|^WG|^TR2/.test(m)) return t.circuito === "retorno" ? "rejilla de retorno / extracci\xF3n" : "rejilla de impulsi\xF3n";
+        if (/^VDW/.test(m)) return "difusor rotacional de techo";
+        if (/^PL/.test(m)) return "difusor lineal de ranuras";
+        return t.propio || t.ejemplo ? "gen\xE9rico / a mano" : "otro";
+      }
+      function origenTablaDif(tablaId) {
+        const t = TABLAS_DIF[tablaId];
+        return t ? t.origen || "fabricante" : null;
+      }
+      function fichaAkDif(tipoId) {
+        const t = TIPOS_DIF[tipoId];
+        const tabla = t && t.tabla ? TABLAS_DIF[t.tabla] : null;
+        if (!tabla) return null;
+        return {
+          marca: t.marca,
+          modelo: t.modelo,
+          variante: t.variante,
+          tipoBoca: tipoBocaDif(tipoId),
+          magnitud: tabla.magnitud,
+          origen: tabla.origen || "fabricante",
+          metodo: tabla.metodo || "No indicado en la ficha del fabricante.",
+          correccion: tabla.correccion || null,
+          fuente: fuenteTablaDif(t.tabla),
+          url: tabla.url || null,
+          nota: tabla.nota || null
+        };
+      }
+      function recuentoCatalogoDif() {
+        const porMarca = {};
+        const porTipoBoca = {};
+        const porMarcaTipo = {};
+        for (const [id, t] of visiblesDif()) {
+          if (t.ejemplo || t.propio) continue;
+          const tabla = t.tabla ? TABLAS_DIF[t.tabla] : null;
+          const n = tamanosDif(id).filter((x) => typeof x.area === "number" && x.area > 0).length;
+          const m = porMarca[t.marca] = porMarca[t.marca] || { tipos: 0, tamanosConValor: 0 };
+          m.tipos += 1;
+          m.tamanosConValor += n;
+          const tb = tipoBocaDif(id);
+          const b = porTipoBoca[tb] = porTipoBoca[tb] || { tipos: 0, tamanosConValor: 0 };
+          b.tipos += 1;
+          b.tamanosConValor += n;
+          const k = `${t.marca} \xB7 ${tb}`;
+          const mt = porMarcaTipo[k] = porMarcaTipo[k] || { tipos: 0, tamanosConValor: 0, tablas: /* @__PURE__ */ new Set() };
+          mt.tipos += 1;
+          mt.tamanosConValor += n;
+          if (tabla) mt.tablas.add(t.tabla);
+        }
+        for (const k of Object.keys(porMarcaTipo)) porMarcaTipo[k] = { tipos: porMarcaTipo[k].tipos, tamanosConValor: porMarcaTipo[k].tamanosConValor, tablas: porMarcaTipo[k].tablas.size };
+        return { porMarca, porTipoBoca, porMarcaTipo };
+      }
+      var sinAcentosDif = (v) => String(v === null || v === void 0 ? "" : v).normalize("NFD").replace(/[̀-ͯ]/g, "");
+      var claveMarcaDif = (v) => sinAcentosDif(v).toLowerCase().replace(/[^a-z0-9]/g, "");
+      function codigosModeloDif(modelo) {
+        const base = String(modelo || "").replace(/\(.*$/, "");
+        return base.split(/[\/,]/).map((x) => x.trim().toUpperCase().replace(/\s+/g, "")).filter(Boolean);
+      }
+      function buscarAkDif({ texto = "", marca = "", modelo = "", circuito = null } = {}) {
+        const todo = sinAcentosDif(`${marca} ${modelo} ${texto}`).toUpperCase();
+        if (!todo.trim()) return null;
+        const compacto = claveMarcaDif(todo);
+        const palabras = new Set(todo.split(/[^A-Z0-9\-]+/).filter(Boolean));
+        for (const w of [...palabras]) if (w.includes("-")) {
+          for (const parte of w.split("-")) if (parte) palabras.add(parte);
+        }
+        if (!circuito) circuito = /IMPULS|SUMINISTRO|SUPPLY/.test(todo) ? "impulsion" : /RETORNO|EXTRAC|RETURN|EXTRACT/.test(todo) ? "retorno" : null;
+        const medidas = [...todo.matchAll(/(\d{2,4})\s*[X×]\s*(\d{1,4})/g)].map((m) => [Number(m[1]), Number(m[2])]);
+        const numeros = [...todo.matchAll(/(?:Ø|DIAM(?:ETRO)?\.?|NS|DN|LN|L=)?\s*(\d{2,4})(?!\d)/g)].map((m) => Number(m[1]));
+        const candidatos = [];
+        for (const [id, t] of visiblesDif()) {
+          if (t.ejemplo || t.propio || !t.tabla) continue;
+          if (!compacto.includes(claveMarcaDif(t.marca))) continue;
+          const cods = codigosModeloDif(t.modelo);
+          if (!cods.some((c) => palabras.has(c) || c.length > 3 && todo.replace(/\s+/g, "").includes(c))) continue;
+          candidatos.push(id);
+        }
+        const largo = (id) => Math.max(...codigosModeloDif(TIPOS_DIF[id].modelo).filter((c) => palabras.has(c) || todo.replace(/\s+/g, "").includes(c)).map((c) => c.length), 0);
+        const maxLargo = Math.max(0, ...candidatos.map(largo));
+        let finalistas = candidatos.filter((id) => largo(id) === maxLargo);
+        if (circuito) {
+          const f = finalistas.filter((id) => TIPOS_DIF[id].circuito === circuito);
+          if (f.length) finalistas = f;
+        }
+        const conSufijo = finalistas.filter((id) => {
+          const v = sinAcentosDif(TIPOS_DIF[id].variante).toUpperCase();
+          const m = v.match(/\b[A-Z0-9]+-([QR])\b/);
+          return m && (palabras.has(`${codigosModeloDif(TIPOS_DIF[id].modelo)[0]}-${m[1]}`) || palabras.has(m[1]));
+        });
+        if (conSufijo.length) finalistas = conSufijo;
+        const resueltos = [];
+        for (const id of finalistas) {
+          const tam = tamanosDif(id).filter((x) => typeof x.area === "number" && x.area > 0);
+          const aciertos = tam.filter((x) => {
+            if (x.largo && x.alto) return medidas.some(([a, b]) => a === x.largo && b === x.alto);
+            const k = claveTamanoDif(x.tamano);
+            if (medidas.some(([a, b]) => claveTamanoDif(`${a} \xD7 ${b}`) === k)) return true;
+            return !k.includes("\xD7") && numeros.includes(Number(k));
+          });
+          if (aciertos.length === 1) resueltos.push({ id, tam: aciertos[0] });
+        }
+        const unicos = [];
+        for (const r of resueltos) if (!unicos.some((u) => TIPOS_DIF[u.id].tabla === TIPOS_DIF[r.id].tabla && u.tam.clave === r.tam.clave)) unicos.push(r);
+        if (unicos.length === 1) {
+          const { id, tam } = unicos[0];
+          return { tipo: id, tamano: { clave: tam.clave, largo: tam.largo, alto: tam.alto, tamano: tam.tamano }, ak: tam.area, ficha: fichaAkDif(id) };
+        }
+        if (unicos.length > 1) return { ambiguo: unicos.map((x) => x.id) };
+        return null;
+      }
+      function avisoCaudalDudosoDif(nota) {
+        const m = /caudal de proyecto[^·]*dudoso[^·]*/i.exec(String(nota || ""));
+        return m ? m[0].trim() : null;
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.DIFUSORES = API;
+      })({
+        MODOS: MODOS_DIF,
+        TIPOS: TIPOS_DIF,
+        TIPO_DEFECTO: TIPO_DEFECTO_DIF,
+        FACTORES_K: FACTORES_K_DIF,
+        factoresKPunto: factoresKPuntoDif,
+        akPorMetro: akPorMetroDif,
+        TOLERANCIA_DISCREPANCIA_AK: TOLERANCIA_DISCREPANCIA_AK_DIF,
+        NOTA_EJEMPLO: NOTA_EJEMPLO_DIF,
+        TOLERANCIA_DEFECTO: TOLERANCIA_DEFECTO_DIF,
+        TOLERANCIA_BOCA_DEFECTO: TOLERANCIA_BOCA_DEFECTO_DIF,
+        num: numDif,
+        leerVelocidades: leerVelocidadesDif,
+        tipo: tipoDif,
+        normalizarPunto: normalizarPuntoDif,
+        normalizarPuntos: normalizarPuntosDif,
+        TABLAS: TABLAS_DIF,
+        FUENTE_TABLAS: FUENTE_TABLAS_DIF,
+        akTabla: akTablaDif,
+        ageoTabla: ageoTablaDif,
+        fuenteTabla: fuenteTablaDif,
+        valorTabla: valorTablaDif,
+        marcas: marcasDif,
+        modelos: modelosDif,
+        variantes: variantesDif,
+        tamanos: tamanosDif,
+        claveTamanoPunto: claveTamanoPuntoDif,
+        aplicarAkPorGrupo: aplicarAkPorGrupoDif,
+        gruposAk: gruposAkDif,
+        MARCA_EJEMPLO: MARCA_EJEMPLO_DIF,
+        factor: factorDif,
+        caudal: caudalDif,
+        desviacion: desviacionDif,
+        tolerancias: toleranciasDif,
+        EQUIPOS_MEDIDA: EQUIPOS_MEDIDA_DIF,
+        equipoMedida: equipoMedidaDif,
+        sinAk: sinAkDif,
+        equipoPropuesto: equipoPropuestoDif,
+        AVISO_SIN_AK: AVISO_SIN_AK_DIF,
+        LECTURAS: LECTURAS_DIF,
+        lectura: lecturaDif,
+        evaluarPunto: evaluarPuntoDif,
+        resumen: resumenDif,
+        siguienteNombre: siguienteNombreDif,
+        normalizarModeloProyecto: normalizarModeloProyectoDif,
+        normalizarModelosProyecto: normalizarModelosProyectoDif,
+        evaluarModelo: evaluarModeloDif,
+        normalizarAsignacion: normalizarAsignacionDif,
+        aplicarModelos: aplicarModelosDif,
+        generarBocas: generarBocasDif,
+        colocarEnLista: colocarEnListaDif,
+        reconocerBocas: reconocerBocasDif,
+        recuentoTabla: recuentoTablaDif,
+        caudalDeTexto: numeroCaudalDif,
+        zonasCorte: zonasCorteDif,
+        juntoA: juntoADif,
+        CODIGO_CAD: CODIGO_CAD_DIF,
+        tipoBoca: tipoBocaDif,
+        origenTabla: origenTablaDif,
+        fichaAk: fichaAkDif,
+        recuentoCatalogo: recuentoCatalogoDif,
+        buscarAk: buscarAkDif,
+        avisoCaudalDudoso: avisoCaudalDudosoDif,
+        bocaCompleta: bocaCompletaDif,
+        textoTemperaturas: textoTemperaturasDif
+      });
+    }
+  });
+
+  // shared/commissioning/bocaManual.js
+  var require_bocaManual = __commonJS({
+    "shared/commissioning/bocaManual.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function bocaManual(raiz, fabrica) {
+        const API = fabrica(typeof __require !== "undefined" ? require_difusores() : raiz.DIFUSORES);
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.BOCA_MANUAL = API;
+      })(typeof window !== "undefined" ? window : globalThis, (D) => {
+        const SISTEMAS = { impulsion: "Impulsi\xF3n", retorno: "Retorno", extraccion: "Extracci\xF3n" };
+        const CLASES = { difusor: "Difusor", reja: "Reja" };
+        const ETIQUETA = "a\xF1adida en obra";
+        const RADIO_DUPLICADO = 0.02;
+        const CODIGO = /\b[A-Z]{2,3}_\d{2}_[A-Z0-9]{3,5}\b/;
+        const circuitoDe = (sistema) => sistema === "impulsion" ? "impulsion" : "retorno";
+        const texto = (v, n) => String(v === null || v === void 0 ? "" : v).trim().slice(0, n);
+        const esManual = (p) => Boolean(p && p.origen === "manual");
+        const conSitio = (p) => p && !p.sinPosicion && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y)) && p.x !== null && p.y !== null;
+        function normalizarManual(m) {
+          if (!m || typeof m !== "object") m = {};
+          return {
+            sistema: SISTEMAS[m.sistema] ? m.sistema : "impulsion",
+            clase: CLASES[m.clase] ? m.clase : "difusor",
+            modelo: texto(m.modelo, 40) || null,
+            nota: texto(m.nota, 200),
+            fecha: texto(m.fecha, 30) || null,
+            autor: texto(m.autor, 80) || null,
+            posibleDuplicado: texto(m.posibleDuplicado, 200) || null
+          };
+        }
+        function codigoDe(p) {
+          if (!p) return null;
+          if (esManual(p) && p.manual && p.manual.modelo) return p.manual.modelo;
+          const m = CODIGO.exec(String(p.nota || ""));
+          return m ? m[0] : null;
+        }
+        function modelosDeHoja(puntos = []) {
+          const porCodigo = /* @__PURE__ */ new Map();
+          for (const crudo of puntos) {
+            const p = D.normalizarPunto(crudo);
+            const codigo = codigoDe(p);
+            if (!codigo || porCodigo.has(codigo)) continue;
+            const t = D.tipo(p.tipo);
+            const f = D.factor(p);
+            porCodigo.set(codigo, {
+              codigo,
+              tipo: p.tipo,
+              tipoNombre: t.nombre,
+              circuito: t.circuito,
+              clase: /^(DL|DR|DF|DIF|D)_/.test(codigo) ? "difusor" : /^(RR|RJ|RT|RA|RI|RET|EXT|RE)_/.test(codigo) ? "reja" : null,
+              largo: p.largo,
+              alto: p.alto,
+              tamano: p.tamano,
+              ak: f.valor !== null && f.origen !== null ? f.valor : null,
+              akDe: f.valor === null ? null : f.origen === "punto" ? "ficha" : "catalogo",
+              akPropio: p.ak,
+              modo: p.modo,
+              cuantas: 0
+            });
+          }
+          for (const crudo of puntos) {
+            const c = codigoDe(crudo);
+            if (c && porCodigo.has(c)) porCodigo.get(c).cuantas += 1;
+          }
+          return [...porCodigo.values()].sort((a, b) => a.codigo.localeCompare(b.codigo, "es", { numeric: true }));
+        }
+        function tipoEnCircuito(tipoId, circuito) {
+          const t = D.TIPOS[tipoId];
+          if (t && t.circuito === circuito) return tipoId;
+          const gemelo = String(tipoId || "").replace(/-(imp|ext)$/, circuito === "impulsion" ? "-imp" : "-ext");
+          return D.TIPOS[gemelo] && D.TIPOS[gemelo].circuito === circuito ? gemelo : null;
+        }
+        const tipoAMano = (clase, circuito) => clase === "reja" ? circuito === "impulsion" ? "rejillaRectImp" : "rejillaRectRet" : circuito === "impulsion" ? "propioImp" : "propioRet";
+        function camposDe(datos = {}, puntos = []) {
+          const manual = normalizarManual({ ...datos, nota: datos.nota });
+          const circuito = circuitoDe(manual.sistema);
+          const largo = D.num(datos.largo);
+          const alto = D.num(datos.alto);
+          const qp = D.num(datos.caudalProyecto);
+          const campos = { tipo: null, modo: "ak", ak: null, k: null, largo: null, alto: null, tamano: null };
+          const modelo = manual.modelo;
+          const deHoja = modelo ? modelosDeHoja(puntos).find((m) => m.codigo.toUpperCase() === modelo.toUpperCase()) : null;
+          if (deHoja) {
+            const tipo = tipoEnCircuito(deHoja.tipo, circuito);
+            if (!datos.clase && deHoja.clase) manual.clase = deHoja.clase;
+            if (tipo) Object.assign(campos, { tipo, modo: deHoja.modo, ak: deHoja.akDe === "ficha" ? deHoja.akPropio : null, largo: deHoja.largo, alto: deHoja.alto, tamano: deHoja.tamano });
+            else campos.tipo = tipoAMano(manual.clase, circuito);
+          } else if (modelo) {
+            const r = D.buscarAk({ texto: modelo, circuito });
+            if (r && r.tipo && !r.ambiguo) {
+              const tipo = tipoEnCircuito(r.tipo, circuito);
+              if (tipo) Object.assign(campos, { tipo, largo: r.tamano && r.tamano.largo, alto: r.tamano && r.tamano.alto, tamano: r.tamano && r.tamano.tamano });
+            }
+          }
+          if (!campos.tipo) campos.tipo = tipoAMano(manual.clase, circuito);
+          if (largo !== null && largo > 0) campos.largo = largo;
+          if (alto !== null && alto > 0) campos.alto = alto;
+          if ((largo !== null || alto !== null) && !deHoja) campos.tamano = null;
+          return {
+            ...campos,
+            caudalDiseno: qp !== null && qp >= 0 ? qp : null,
+            sala: texto(datos.sala, 40) || null,
+            manual,
+            nota: notaDe(manual)
+          };
+        }
+        function notaDe(manual) {
+          const m = normalizarManual(manual);
+          return ["A\xF1adida en obra", m.modelo, m.posibleDuplicado ? "posible duplicado" : null, m.nota].filter(Boolean).join(" \xB7 ").slice(0, 300);
+        }
+        function crear(datos = {}, { todas = [], x = null, y = null, fecha = null, autor = null, id = null } = {}) {
+          const c = camposDe(datos, todas);
+          const circuito = circuitoDe(c.manual.sistema);
+          c.manual.fecha = fecha || (/* @__PURE__ */ new Date()).toISOString();
+          c.manual.autor = texto(autor, 80) || null;
+          const sitio = Number.isFinite(Number(x)) && Number.isFinite(Number(y)) && x !== null && y !== null;
+          return D.normalizarPunto({
+            ...c,
+            ...id ? { id } : {},
+            nombre: D.siguienteNombre(todas.map((p) => D.normalizarPunto(p)), circuito),
+            x: sitio ? Math.min(1, Math.max(0, Number(x))) : null,
+            y: sitio ? Math.min(1, Math.max(0, Number(y))) : null,
+            sinPosicion: !sitio,
+            origen: "manual"
+          });
+        }
+        function editar(punto, datos = {}, { todas = [], x, y } = {}) {
+          if (!esManual(punto)) return { ok: false, error: "Solo se cambian aqu\xED las bocas a\xF1adidas en obra." };
+          const antes = normalizarManual(punto.manual);
+          const c = camposDe({ ...antes, ...datos }, todas.filter((p) => p.id !== punto.id));
+          c.manual = { ...c.manual, fecha: antes.fecha, autor: antes.autor, posibleDuplicado: antes.posibleDuplicado };
+          c.nota = notaDe(c.manual);
+          const sitio = {};
+          if (x !== void 0 || y !== void 0) {
+            const hay = x !== null && y !== null && Number.isFinite(Number(x)) && Number.isFinite(Number(y));
+            Object.assign(sitio, hay ? { x: Number(x), y: Number(y), sinPosicion: false } : { x: null, y: null, sinPosicion: true });
+          }
+          let nombre = punto.nombre;
+          const circ = circuitoDe(c.manual.sistema);
+          if (D.tipo(punto.tipo).circuito !== circ) nombre = D.siguienteNombre(todas.filter((p) => p.id !== punto.id).map((p) => D.normalizarPunto(p)), circ);
+          return { ok: true, punto: D.normalizarPunto({ ...punto, ...c, ...sitio, nombre, origen: "manual" }) };
+        }
+        function tieneLecturas(p = {}) {
+          return D.num(p.velocidad) !== null || D.num(p.caudalMedido) !== null || D.num(p.tFrio) !== null || D.num(p.tCalor) !== null || D.num(p.temperatura) !== null || Boolean(String(p.lecturas || "").trim()) || Boolean(String(p.lecturasCaudal || "").trim());
+        }
+        function quitar(puntos = [], puntoId, { confirmar = false } = {}) {
+          const p = puntos.find((x) => x && x.id === puntoId);
+          if (!p) return { ok: false, error: "No se encuentra esa boca." };
+          if (!esManual(p)) return { ok: false, error: "Solo se pueden quitar aqu\xED las bocas a\xF1adidas en obra." };
+          if (tieneLecturas(p) && !confirmar) return { ok: false, pideConfirmar: true, error: `${p.nombre} tiene lecturas apuntadas: confirma para quitarla con ellas.` };
+          return { ok: true, puntos: puntos.filter((x) => x !== p) };
+        }
+        function proteger(antes = [], despues = [], { fecha = null } = {}) {
+          const avisos = [];
+          const manualesAntes = antes.filter(esManual);
+          if (!manualesAntes.length) return { puntos: despues, avisos };
+          const idsAntes = new Set(antes.map((p) => p && p.id));
+          const porId = new Map(manualesAntes.map((p) => [p.id, p]));
+          let salida = despues.map((p) => {
+            const viejo = p && porId.get(p.id);
+            if (!viejo) return p;
+            const sitio = { x: viejo.x, y: viejo.y, sinPosicion: Boolean(viejo.sinPosicion) };
+            if (p.x !== sitio.x || p.y !== sitio.y || Boolean(p.sinPosicion) !== sitio.sinPosicion || !esManual(p)) {
+              if (p.x !== sitio.x || p.y !== sitio.y || Boolean(p.sinPosicion) !== sitio.sinPosicion) avisos.push(`${viejo.nombre}: boca a\xF1adida en obra, se queda en su sitio.`);
+              return { ...p, ...sitio, origen: "manual", manual: viejo.manual, nota: viejo.nota };
+            }
+            return p;
+          });
+          const presentes = new Set(salida.map((p) => p && p.id));
+          for (const p of manualesAntes) if (!presentes.has(p.id)) {
+            salida.push(p);
+            avisos.push(`${p.nombre}: boca a\xF1adida en obra, no se quita.`);
+          }
+          const manuales = salida.filter(esManual);
+          const circ = (p) => D.tipo(p.tipo).circuito;
+          salida = salida.filter((p) => {
+            if (!p || esManual(p) || idsAntes.has(p.id) || !conSitio(p)) return true;
+            const m = manuales.find((q) => conSitio(q) && circ(q) === circ(p) && Math.hypot(Number(q.x) - Number(p.x), Number(q.y) - Number(p.y)) <= RADIO_DUPLICADO);
+            if (!m) return true;
+            const codigo = codigoDe(p);
+            const motivo = `posible duplicado: una pasada encontr\xF3 ${codigo || p.nombre || "otra boca"}${p.caudalDiseno !== null && p.caudalDiseno !== void 0 ? ` (${p.caudalDiseno} m\xB3/h)` : ""} en el mismo sitio${fecha ? ` el ${fecha}` : ""}`;
+            m.manual = { ...normalizarManual(m.manual), posibleDuplicado: motivo };
+            m.nota = notaDe(m.manual);
+            avisos.push(`${m.nombre}: ${motivo}; no se duplica.`);
+            return false;
+          });
+          return { puntos: salida, avisos };
+        }
+        const coma = (v) => String(v).replace(".", ",");
+        const medida = (v) => {
+          const n = D.num(v);
+          return n !== null && n > 0 ? Math.round(n) : null;
+        };
+        const tamanoDe = (p) => p && p.largo && p.alto ? `${p.largo}\xD7${p.alto}` : p && p.tamano ? String(p.tamano) : "";
+        const esFicha = (fuente) => /(^|[\s_(])PD[\s_-]/.test(String(fuente || ""));
+        function akDeBoca(p) {
+          const r = akDeBocaSolo(p);
+          const n = D.normalizarPunto(p || {});
+          const tb = D.tipo(n.tipo).tabla ? D.TABLAS[D.tipo(n.tipo).tabla] : null;
+          return { ...r, porLargoAlto: !tb || tb.forma !== "lista" && tb.forma !== "porMetro" };
+        }
+        function akDeBocaSolo(p) {
+          const n = D.normalizarPunto(p || {});
+          const t = D.tipo(n.tipo);
+          const f = D.factor(n);
+          const tam = tamanoDe(n);
+          const nombre = `${t.nombre || t.modelo || n.tipo}${tam ? ` ${tam}` : ""}`;
+          if (f.modo === "k") {
+            if (!f.valor) return { valor: null, tamano: tam, fuente: null, deFicha: false, texto: `k sin dato (${nombre}): sin \xE9l no hay caudal.` };
+            return { valor: f.valor, tamano: tam, fuente: null, deFicha: false, texto: `k ${coma(f.valor)} (${nombre}, ${f.origen === "punto" ? "puesto a mano" : "cat\xE1logo"})` };
+          }
+          if (f.origen === "punto") {
+            const otro = f.discrepanciaAk ? ` \xB7 DISCREPA de la tabla del fabricante: ${coma(f.akTabla)} m\xB2 (${D.fuenteTabla(t.tabla)})` : "";
+            if (n.akFuente) return { valor: f.valor, tamano: tam, fuente: n.akFuente, deFicha: true, akTabla: f.akTabla, discrepanciaAk: Boolean(f.discrepanciaAk), texto: `Ak ${coma(f.valor)} m\xB2 (${nombre}, a mano de: ${n.akFuente})${otro}` };
+            return { valor: f.valor, tamano: tam, fuente: "a mano", deFicha: false, akTabla: f.akTabla, discrepanciaAk: Boolean(f.discrepanciaAk), texto: `Ak ${coma(f.valor)} m\xB2 (${nombre}, puesto a mano: no sale de la ficha t\xE9cnica)${otro}` };
+          }
+          if (f.origen === "tabla") {
+            const fuente = D.fuenteTabla(t.tabla);
+            const tbF = D.TABLAS[t.tabla] || {};
+            if (tbF.forma === "porMetro") {
+              return { valor: f.valor, tamano: tam, fuente, deFicha: true, texto: `Ak ${coma(f.valor)} m\xB2 (${nombre}, ${tbF.fabricante || "fabricante"}: ${coma(tbF.akPorMetro)} m\xB2/m \xD7 longitud; ${fuente})` };
+            }
+            const ficha = esFicha(fuente);
+            return { valor: f.valor, tamano: tam, fuente, deFicha: ficha, texto: `Ak ${coma(f.valor)} m\xB2 (${nombre}, ${ficha ? "FT" : "no es la ficha t\xE9cnica:"} ${fuente})` };
+          }
+          if (f.origen === "catalogo") return { valor: f.valor, tamano: tam, fuente: "cat\xE1logo de ejemplo", deFicha: false, texto: `Ak ${coma(f.valor)} m\xB2 (${nombre}, valor de ejemplo del cat\xE1logo: no es de ficha t\xE9cnica)` };
+          if (t.tabla && D.TABLAS[t.tabla]) {
+            const tb = D.TABLAS[t.tabla];
+            const fuente = D.fuenteTabla(t.tabla);
+            const porque = !tam ? tb.forma === "porMetro" ? "falta la longitud" : "falta el tama\xF1o (largo \xD7 alto)" : tb.magnitud === "Ageo" ? "la ficha solo da el \xE1rea geom\xE9trica, no el Ak" : tb.sinAk ? "el fabricante no da Ak para este modelo" : tb.forma === "lista" ? `la ficha no trae el tama\xF1o ${tam}` : `la ficha no trae ${tam} (largos ${tb.largos.join(", ")} \xD7 altos ${tb.altos.join(", ")} mm)`;
+            return { valor: null, tamano: tam, fuente, deFicha: esFicha(fuente), texto: `Ak sin dato (${nombre}): ${porque}. Fuente: ${fuente}. Sin Ak no hay caudal.` };
+          }
+          if (n.medidaPlano) return { valor: null, tamano: tam, fuente: null, deFicha: false, texto: `Ak sin dato para esa medida (${nombre}): el cat\xE1logo solo trae un valor de ejemplo, no la ficha t\xE9cnica. Mete el Ak de la ficha a mano con su fuente. Sin Ak no hay caudal.` };
+          return { valor: null, tamano: tam, fuente: null, deFicha: false, texto: `Ak sin dato (${nombre}): no hay ficha t\xE9cnica de este modelo. Sin Ak no hay caudal.` };
+        }
+        function cambiarMedidas(p, { largo, alto } = {}) {
+          if (!p) return { ok: false, error: "No se encuentra esa boca." };
+          const l = medida(largo);
+          const h = medida(alto);
+          if (largo !== void 0 && largo !== null && String(largo).trim() !== "" && l === null || alto !== void 0 && alto !== null && String(alto).trim() !== "" && h === null) return { ok: false, error: "Las medidas van en mm, n\xFAmeros mayores que 0." };
+          if (l === null || h === null) return { ok: false, error: "Pon el largo y el alto (mm)." };
+          if (l > 5e3 || h > 5e3) return { ok: false, error: "M\xE1s de 5 m: revisa las medidas (van en mm)." };
+          const antes = { largo: medida(p.largo), alto: medida(p.alto) };
+          if (antes.largo === l && antes.alto === h) return { ok: true, punto: p, cambiado: false, avisos: [] };
+          const plano = p.medidaPlano && (p.medidaPlano.largo || p.medidaPlano.alto) ? p.medidaPlano : antes.largo || antes.alto ? { largo: antes.largo, alto: antes.alto, tamano: p.tamano || null } : null;
+          const vuelveAlPlano = plano && plano.largo === l && plano.alto === h;
+          const avisos = [];
+          const sigue = { ...p, largo: l, alto: h, medidaPlano: vuelveAlPlano ? null : plano || { largo: null, alto: null, tamano: null } };
+          if (D.num(p.ak) && (p.modo || D.tipo(p.tipo).modo) !== "k") {
+            sigue.ak = null;
+            avisos.push(`Se quita el Ak a mano (${coma(p.ak)}), era del tama\xF1o ${antes.largo || "?"}\xD7${antes.alto || "?"}.`);
+          }
+          return { ok: true, punto: D.normalizarPunto(sigue), cambiado: true, avisos };
+        }
+        const CAMPOS_PLANO = ["largo", "alto", "tamano", "tipo"];
+        const CAMPOS_OBRA = ["tipo", "modo", "largo", "alto", "tamano", "ak", "akFuente", "medidaPlano"];
+        const vacio = (v) => v === null || v === void 0 || String(v).trim() === "";
+        const igualPlano = (a, b) => CAMPOS_PLANO.every((k) => String(vacio(a[k]) ? "" : a[k]) === String(vacio(b[k]) ? "" : b[k]));
+        const planoDe = (p) => ({ largo: medida(p.largo), alto: medida(p.alto), tamano: vacio(p.tamano) ? null : String(p.tamano), tipo: p.tipo || null });
+        function formaMedida(p) {
+          const t = D.tipo(p && p.tipo || "");
+          const tb = t.tabla ? D.TABLAS[t.tabla] : null;
+          if (/^PL\d+(_\d)?$/.test(t.tabla || "") || /lineal/i.test(`${t.nombre || ""} ${t.modelo || ""}`)) return "lineal";
+          if (tb && tb.forma === "lista") return "nominal";
+          return "largoAlto";
+        }
+        function cambiarBoca(p, c = {}) {
+          if (!p) return { ok: false, error: "No se encuentra esa boca." };
+          const avisos = [];
+          const sigue = { ...p };
+          if (c.tipo !== void 0 && c.tipo !== p.tipo) {
+            if (!D.TIPOS[c.tipo]) return { ok: false, error: "Ese modelo no est\xE1 en el cat\xE1logo." };
+            sigue.tipo = c.tipo;
+            sigue.modo = D.TIPOS[c.tipo].modo || "ak";
+          }
+          for (const k of ["largo", "alto"]) {
+            if (c[k] === void 0) continue;
+            if (vacio(c[k])) {
+              sigue[k] = null;
+              continue;
+            }
+            const n = medida(c[k]);
+            if (n === null) return { ok: false, error: "Las medidas van en mm, n\xFAmeros mayores que 0." };
+            if (n > 6e3) return { ok: false, error: "M\xE1s de 6 m: revisa las medidas (van en mm)." };
+            sigue[k] = n;
+          }
+          if (c.tamano !== void 0) {
+            const t = String(c.tamano ?? "").trim().replace(/^LN\s*/i, "");
+            if (t && /^\d+([.,]\d+)?$/.test(t)) {
+              const n = medida(t.replace(",", "."));
+              if (!n || n > 6e3) return { ok: false, error: "La longitud va en mm (hasta 6000)." };
+              sigue.tamano = String(n);
+            } else sigue.tamano = t ? t.slice(0, 20) : null;
+          }
+          const cambiaTam = !igualPlano(planoDe(p), planoDe(sigue));
+          if (c.ak !== void 0) {
+            const v = vacio(c.ak) ? null : D.num(String(c.ak).replace(",", "."));
+            if (v === null) {
+              sigue.ak = null;
+              sigue.akFuente = null;
+            } else {
+              if (!(v > 0) || v > 5) return { ok: false, error: "El Ak va en m\xB2 (por ejemplo 0,019)." };
+              const fuente = String(c.akFuente ?? p.akFuente ?? "").trim();
+              if (!fuente) return { ok: false, error: "Pon de d\xF3nde sale el Ak (ficha t\xE9cnica y p\xE1gina): sin fuente no se usa." };
+              sigue.ak = v;
+              sigue.akFuente = fuente.slice(0, 160);
+              sigue.modo = "ak";
+            }
+          } else if (cambiaTam && D.num(p.ak) && (p.modo || D.tipo(p.tipo).modo) !== "k") {
+            sigue.ak = null;
+            sigue.akFuente = null;
+            avisos.push(`Se quita el Ak a mano (${coma(p.ak)}), era de otro modelo o tama\xF1o.`);
+          }
+          if (cambiaTam && !esManual(p)) {
+            const ref = p.medidaPlano ? { ...p.medidaPlano, tipo: p.medidaPlano.tipo || p.tipo } : planoDe(p);
+            sigue.medidaPlano = igualPlano(ref, planoDe(sigue)) ? null : ref;
+          }
+          const punto = D.normalizarPunto(sigue);
+          const cambiado = JSON.stringify(punto) !== JSON.stringify(D.normalizarPunto(p));
+          return { ok: true, punto, cambiado, avisos, enObra: Boolean(punto.medidaPlano) };
+        }
+        function textoObra(p) {
+          const mp = p && p.medidaPlano;
+          if (!mp) return "";
+          const cambioModelo = mp.tipo && mp.tipo !== p.tipo;
+          const tam = mp.largo && mp.alto ? `${mp.largo}\xD7${mp.alto}` : mp.tamano ? `${mp.tamano}` : "";
+          const nombre = cambioModelo ? D.tipo(mp.tipo).nombre || mp.tipo : "";
+          return `${cambioModelo ? "modelo comprobado en obra" : "medida en obra"} \xB7 plano: ${[nombre, tam].filter(Boolean).join(" ") || "sin medida"}`;
+        }
+        function mismoRotulo(p, puntos = []) {
+          const clave = D.claveTamanoPunto(p);
+          return puntos.filter((x) => x && !esManual(x) && x.tipo === p.tipo && D.claveTamanoPunto(x) === clave);
+        }
+        function marcarObra(antes = [], despues = []) {
+          const porId = new Map(antes.filter(Boolean).map((q) => [q.id, q]));
+          return despues.map((p) => {
+            const q = p && porId.get(p.id);
+            if (!q || esManual(p)) return p;
+            if (!q.medidaPlano && !p.medidaPlano && !igualPlano(planoDe(q), planoDe(p))) return { ...p, medidaPlano: planoDe(q) };
+            if (p.medidaPlano && igualPlano({ ...p.medidaPlano, tipo: p.medidaPlano.tipo || q.tipo }, planoDe(p))) return { ...p, medidaPlano: null };
+            return p;
+          });
+        }
+        function protegerObra(antes = [], despues = []) {
+          const avisos = [];
+          const enObra = antes.filter((q) => q && q.medidaPlano);
+          if (!enObra.length) return { puntos: despues, avisos };
+          const salida = despues.slice();
+          const usados = /* @__PURE__ */ new Set();
+          const ids = new Map(salida.map((p, i) => [p && p.id, i]));
+          const circ = (x) => D.tipo(x.tipo).circuito;
+          for (const q of enObra) {
+            let i = ids.has(q.id) ? ids.get(q.id) : -1;
+            if (i < 0 && conSitio(q)) {
+              let mejor = Infinity;
+              salida.forEach((p2, j) => {
+                if (!p2 || usados.has(j) || p2.medidaPlano || !conSitio(p2) || circ(p2) !== circ(q) || porIdAntes(antes, p2.id)) return;
+                const d = Math.hypot(Number(p2.x) - Number(q.x), Number(p2.y) - Number(q.y));
+                if (d <= RADIO_DUPLICADO && d < mejor) {
+                  mejor = d;
+                  i = j;
+                }
+              });
+            }
+            if (i < 0) continue;
+            usados.add(i);
+            const p = salida[i];
+            const obra = {};
+            for (const k of CAMPOS_OBRA) obra[k] = q[k] === void 0 ? null : q[k];
+            const delPlano = planoDe(p);
+            const ref = igualPlano(delPlano, planoDe(q)) ? q.medidaPlano : delPlano;
+            obra.medidaPlano = igualPlano({ ...ref, tipo: ref.tipo || q.tipo }, planoDe(q)) ? null : ref;
+            const cambia = CAMPOS_OBRA.some((k) => JSON.stringify(p[k] ?? null) !== JSON.stringify(obra[k] ?? null));
+            if (cambia) {
+              salida[i] = { ...p, ...obra };
+              if (!igualPlano(planoDe(p), planoDe(q))) avisos.push(`${q.nombre}: ${textoObra(q).split(" \xB7 ")[0]}, se respeta.`);
+            }
+          }
+          return { puntos: salida, avisos };
+        }
+        function porIdAntes(antes, id) {
+          return antes.some((q) => q && q.id === id);
+        }
+        return {
+          SISTEMAS,
+          CLASES,
+          ETIQUETA,
+          RADIO_DUPLICADO,
+          circuitoDe,
+          esManual,
+          normalizarManual,
+          codigoDe,
+          modelosDeHoja,
+          camposDe,
+          notaDe,
+          crear,
+          editar,
+          quitar,
+          tieneLecturas,
+          proteger,
+          akDeBoca,
+          cambiarMedidas,
+          formaMedida,
+          cambiarBoca,
+          textoObra,
+          mismoRotulo,
+          marcarObra,
+          protegerObra
+        };
+      });
+    }
+  });
+
+  // shared/commissioning/bocasPresupuesto.js
+  var require_bocasPresupuesto = __commonJS({
+    "shared/commissioning/bocasPresupuesto.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var D = typeof __require !== "undefined" ? require_difusores() : window.DIFUSORES;
+      var M = typeof __require !== "undefined" ? require_modelo() : window.MODELO;
+      var PALABRAS = /DIFUSOR|REJILLA|TOBERA|ANEMOSTAT|VALVULA DE (EXTRACCION|IMPULSION)|BOCA DE|TOROIDAL|ROTACIONAL|LINEAL|PLENUM/;
+      var sinAcentos = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
+      var textoDe = (p) => `${p.resumen || ""} ${p.descripcion || ""}`.trim();
+      function esDifusion(p) {
+        return PALABRAS.test(sinAcentos(textoDe(p)));
+      }
+      function modelosDesdePresupuesto({ base = null, actual = null } = {}) {
+        const deBase = /* @__PURE__ */ new Map();
+        for (const p of base ? M.partidas(base) : []) deBase.set(String(p.codigo), textoDe(p));
+        const fuente = actual || base || [];
+        const salida = [];
+        const sinCasar = [];
+        for (const p of M.partidas(fuente)) {
+          if (!esDifusion(p)) continue;
+          const texto = textoDe(p);
+          const r = D.buscarAk({ texto });
+          const original = deBase.get(String(p.codigo));
+          const origenPartida = actual && base && (original === void 0 || sinAcentos(original) !== sinAcentos(texto)) ? "cambio aprobado" : "presupuesto";
+          const partida = { codigo: p.codigo, resumen: p.resumen || "", cantidad: Number(p.cantidadObra ?? p.cantidad) || null };
+          if (r && typeof r.tipo === "string" && r.ak) {
+            salida.push({
+              tipo: r.tipo,
+              largo: r.tamano.largo ?? null,
+              alto: r.tamano.alto ?? null,
+              tamano: r.tamano.tamano ?? null,
+              ak: null,
+              ref: String(p.codigo).slice(0, 30),
+              caudalProyecto: null,
+              nota: String(p.resumen || "").slice(0, 200),
+              origen: origenPartida,
+              partida,
+              akCatalogo: r.ak
+            });
+          } else {
+            sinCasar.push({ origen: "manual", partida, ambiguo: r && r.ambiguo ? r.ambiguo : null });
+          }
+        }
+        return { modelos: salida, sinCasar };
+      }
+      var API = { modelosDesdePresupuesto, esDifusion };
+      if (typeof module !== "undefined" && module.exports) module.exports = API;
+      if (typeof window !== "undefined") window.BOCAS_PRESUPUESTO = API;
+    }
+  });
+
+  // shared/presupuesto/versiones.js
+  var require_versiones = __commonJS({
+    "shared/presupuesto/versiones.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var _modeloVersiones = typeof __require !== "undefined" ? require_modelo() : window.MODELO;
+      var _textoVersiones = typeof __require !== "undefined" ? require_texto() : window.TEXTO;
+      var ESTADOS_VERSION = {
+        BORRADOR: "borrador",
+        // se está trabajando en ella
+        EMITIDA: "emitida",
+        // se le ha mandado al cliente: NO se toca nunca más
+        APROBADA: "aprobada",
+        // la buena: es la que se traspasa a obra
+        ADJUDICADA: "adjudicada",
+        DESCARTADA: "descartada"
+      };
+      var ETIQUETA_ESTADO = {
+        borrador: { texto: "Borrador", clase: "", que: "Se est\xE1 trabajando en ella. Se puede tocar." },
+        emitida: { texto: "Emitida", clase: "info", que: "Se le ha mandado al cliente. No se toca: si hay que cambiar algo, se crea otra." },
+        aprobada: { texto: "Aprobada", clase: "bien", que: "Es la buena. Es la que se traspasa a obra y contra la que se certifica." },
+        adjudicada: { texto: "Adjudicada", clase: "bien", que: "El cliente la ha adjudicado." },
+        descartada: { texto: "Descartada", clase: "mal", que: "Se dej\xF3 de lado, pero se guarda: es parte de la conversaci\xF3n con el cliente." }
+      };
+      function crear({ presupuesto, arbol, numero, nombre, motivo, personaId, estado }) {
+        const calculado = _modeloVersiones.calcularArbol(arbol);
+        const pem = _modeloVersiones.ejecucionMaterial(calculado);
+        const desglose = _modeloVersiones.desglosePEM(calculado);
+        const cierre = _modeloVersiones.cierreEconomico(pem, presupuesto);
+        return {
+          presupuestoId: presupuesto.id,
+          numero,
+          nombre: nombre || `Versi\xF3n ${numero}`,
+          motivo: motivo || null,
+          estado: estado || ESTADOS_VERSION.BORRADOR,
+          /* Las cifras se guardan aparte del árbol para poder listar versiones sin
+             abrir ni deserializar nada. */
+          pem,
+          costeDirecto: desglose.directo,
+          costeEstudio: desglose.coste,
+          total: cierre.total,
+          partidas: _modeloVersiones.partidas(calculado).length,
+          /* Se guarda YA CALCULADO: es lo que van a querer quien la compare y quien
+             la abra, y recalcular cada vez cuesta lo mismo y se puede olvidar. */
+          arbol: JSON.stringify(calculado),
+          creadoPor: personaId || null,
+          creadoEn: (/* @__PURE__ */ new Date()).toISOString()
+        };
+      }
+      function arbolDe(version) {
+        if (!version) return [];
+        try {
+          return typeof version.arbol === "string" ? JSON.parse(version.arbol) : version.arbol || [];
+        } catch {
+          return [];
+        }
+      }
+      function indexar(arbol) {
+        const m = /* @__PURE__ */ new Map();
+        for (const p of _modeloVersiones.partidas(arbol)) {
+          m.set(String(p.codigo), {
+            codigo: p.codigo,
+            resumen: p.resumen || "",
+            unidad: p.unidad || "",
+            cantidad: _modeloVersiones.medida(p.cantidad),
+            precio: _modeloVersiones.precio(p.precio),
+            importe: _modeloVersiones.euros(p.importe),
+            descripcion: p.descripcion || "",
+            disciplina: p.disciplina || "",
+            capitulo: (p.camino || []).map((c) => c.codigo).join(" \u203A ")
+          });
+        }
+        return m;
+      }
+      var CAMPOS = [
+        { id: "resumen", etiqueta: "Resumen" },
+        { id: "unidad", etiqueta: "Unidad" },
+        { id: "cantidad", etiqueta: "Medici\xF3n", numerico: true },
+        { id: "precio", etiqueta: "Precio", numerico: true },
+        { id: "descripcion", etiqueta: "Descripci\xF3n" },
+        { id: "disciplina", etiqueta: "Disciplina" }
+      ];
+      function compararVersiones(arbolAntes, arbolDespues) {
+        const antes = indexar(arbolAntes);
+        const despues = indexar(arbolDespues);
+        const altas = [];
+        const bajas = [];
+        const cambios = [];
+        for (const [codigo, b] of despues) {
+          const a = antes.get(codigo);
+          if (!a) {
+            altas.push(b);
+            continue;
+          }
+          const diferencias = [];
+          for (const campo of CAMPOS) {
+            const va = a[campo.id];
+            const vb = b[campo.id];
+            const iguales = campo.numerico ? _modeloVersiones.iguales(va, vb) : String(va) === String(vb);
+            if (!iguales) diferencias.push({ campo: campo.id, etiqueta: campo.etiqueta, antes: va, despues: vb });
+          }
+          if (diferencias.length) {
+            cambios.push({
+              codigo,
+              resumen: b.resumen,
+              capitulo: b.capitulo,
+              diferencias,
+              importeAntes: a.importe,
+              importeDespues: b.importe,
+              efecto: _modeloVersiones.euros(b.importe - a.importe)
+            });
+          }
+        }
+        for (const [codigo, a] of antes) {
+          if (!despues.has(codigo)) bajas.push(a);
+        }
+        const suma = (l, campo = "importe") => _modeloVersiones.euros(l.reduce((acc, x) => acc + (x[campo] || 0), 0));
+        const pemAntes = _modeloVersiones.ejecucionMaterial(arbolAntes);
+        const pemDespues = _modeloVersiones.ejecucionMaterial(arbolDespues);
+        return {
+          altas,
+          bajas,
+          cambios,
+          efectoAltas: suma(altas),
+          efectoBajas: _modeloVersiones.euros(-suma(bajas)),
+          efectoCambios: suma(cambios, "efecto"),
+          pemAntes,
+          pemDespues,
+          diferencia: _modeloVersiones.euros(pemDespues - pemAntes),
+          porcentaje: pemAntes > 0 ? _modeloVersiones.redondear((pemDespues - pemAntes) / pemAntes * 100, 2) : 0,
+          /* Sin cambios de ninguno de los tres tipos, las versiones son iguales. */
+          sinCambios: altas.length === 0 && bajas.length === 0 && cambios.length === 0
+        };
+      }
+      function resumirCambios(c) {
+        if (c.sinCambios) return "Sin cambios respecto a la versi\xF3n anterior.";
+        const trozos = [];
+        if (c.altas.length) trozos.push(`${_textoVersiones.plural(c.altas.length, "partida nueva", "partidas nuevas")}`);
+        if (c.bajas.length) trozos.push(_textoVersiones.plural(c.bajas.length, "partida eliminada", "partidas eliminadas"));
+        if (c.cambios.length) trozos.push(_textoVersiones.plural(c.cambios.length, "partida modificada", "partidas modificadas"));
+        const signo = c.diferencia > 0 ? "+" : "";
+        return `${trozos.join(", ")}. Efecto: ${signo}${_textoVersiones.numero(c.diferencia, 2)} \u20AC (${signo}${_textoVersiones.numero(c.porcentaje, 1)} %).`;
+      }
+      function cambiosPorImpacto(c, cuantos = 10) {
+        const todos = [
+          ...c.altas.map((p) => ({ tipo: "alta", codigo: p.codigo, resumen: p.resumen, efecto: p.importe })),
+          ...c.bajas.map((p) => ({ tipo: "baja", codigo: p.codigo, resumen: p.resumen, efecto: -p.importe })),
+          ...c.cambios.map((p) => ({
+            tipo: "cambio",
+            codigo: p.codigo,
+            resumen: p.resumen,
+            efecto: p.efecto,
+            diferencias: p.diferencias
+          }))
+        ];
+        return todos.sort((a, b) => Math.abs(b.efecto) - Math.abs(a.efecto)).slice(0, cuantos);
+      }
+      function marcarDefinitiva(versiones, id, { personaId = null, ahora = null } = {}) {
+        const lista = versiones || [];
+        const elegida = lista.find((v) => v.id === id);
+        if (!elegida) return { versiones: lista, cambiada: null, motivo: "Esa versi\xF3n no existe." };
+        const cuando = ahora || (/* @__PURE__ */ new Date()).toISOString();
+        const antes = lista.find((v) => v.estado === ESTADOS_VERSION.APROBADA && v.id !== id) || null;
+        const salida = lista.map((v) => {
+          if (v.id === id) {
+            return { ...v, estado: ESTADOS_VERSION.APROBADA, aprobadaPor: personaId, aprobadaEn: cuando };
+          }
+          if (v.estado === ESTADOS_VERSION.APROBADA) {
+            return { ...v, estado: ESTADOS_VERSION.EMITIDA, aprobadaPor: null, aprobadaEn: null };
+          }
+          return v;
+        });
+        return {
+          versiones: salida,
+          cambiada: elegida,
+          anterior: antes,
+          motivo: antes ? `\xAB${elegida.nombre}\xBB pasa a ser la definitiva, en lugar de \xAB${antes.nombre}\xBB.` : `\xAB${elegida.nombre}\xBB queda como la definitiva.`
+        };
+      }
+      function definitivaDe(versiones) {
+        return (versiones || []).find((v) => v.estado === ESTADOS_VERSION.APROBADA) || null;
+      }
+      function siguienteNumero(versiones) {
+        return (versiones || []).reduce((max, v) => Math.max(max, Number(v.numero) || 0), 0) + 1;
+      }
+      function aplicarDescuento(arbol, porcentaje) {
+        const pct = Number(porcentaje) || 0;
+        const factor = 1 - pct / 100;
+        const COMPONENTES = ["material", "auxiliares", "transporte", "manoObra", "subcontrata"];
+        const copiar = (nodos) => (nodos || []).map((n) => {
+          if (n.hijos) return { ...n, hijos: copiar(n.hijos) };
+          const salida = { ...n };
+          const base = n.precioBase !== void 0 && n.precioBase !== null ? n.precioBase : n.precio;
+          if (base !== null && base !== void 0) {
+            salida.precioBase = base;
+            salida.precio = _modeloVersiones.euros(base * factor);
+          }
+          if (n.costes && (n.costes.venta || n.costes.ventaBase)) {
+            const ventaBase = n.costes.ventaBase || n.costes.venta;
+            const venta = {};
+            for (const c of COMPONENTES) {
+              const v = Number(ventaBase[c]);
+              if (Number.isFinite(v) && v !== 0) venta[c] = _modeloVersiones.euros(v * factor);
+            }
+            salida.costes = { ...n.costes, ventaBase, venta };
+          }
+          salida.descuentoComercial = pct || null;
+          return salida;
+        });
+        return copiar(arbol);
+      }
+      function efectoDelDescuento(arbol, porcentaje, presupuesto = {}) {
+        const pct = Number(porcentaje) || 0;
+        const base = _modeloVersiones.calcularArbol(aplicarDescuento(arbol, 0));
+        const conDto = _modeloVersiones.calcularArbol(aplicarDescuento(arbol, pct));
+        const antes = _modeloVersiones.ejecucionMaterial(base);
+        const despues = _modeloVersiones.ejecucionMaterial(conDto);
+        let coste = 0;
+        let conCostes = 0;
+        for (const partida of _modeloVersiones.partidas(base)) {
+          const f = _modeloVersiones.calcularFases(partida);
+          if (f.estudio.rellena) {
+            coste += f.estudio.importe;
+            conCostes += 1;
+          }
+        }
+        const hayCostes = conCostes > 0;
+        const margenAntes = hayCostes && antes > 0 ? (antes - coste) / antes * 100 : null;
+        const margenDespues = hayCostes && despues > 0 ? (despues - coste) / despues * 100 : null;
+        const avisos = [];
+        if (pct > 0) {
+          avisos.push({
+            gravedad: "aviso",
+            texto: `El descuento sale entero del margen: son ${_modeloVersiones.textoEuros(antes - despues)} \u20AC menos de beneficio, no de coste.`
+          });
+          if (!hayCostes) {
+            avisos.push({
+              gravedad: "aviso",
+              texto: "Ninguna partida tiene su coste de estudio escrito, as\xED que no se puede saber qu\xE9 margen queda. Con el coste puesto, esta pantalla lo dir\xEDa."
+            });
+          } else if (despues < coste) {
+            avisos.push({
+              gravedad: "mal",
+              texto: `Con ese descuento se vende por debajo de coste: ${_modeloVersiones.textoEuros(despues)} \u20AC frente a ${_modeloVersiones.textoEuros(coste)} \u20AC de coste.`
+            });
+          } else if (margenDespues !== null && margenDespues < 5) {
+            avisos.push({
+              gravedad: "mal",
+              texto: `El margen se queda en el ${_modeloVersiones.redondear(margenDespues, 1)} %. Por debajo del 5 % una obra no aguanta ni un imprevisto.`
+            });
+          }
+        }
+        return {
+          porcentaje: pct,
+          antes: _modeloVersiones.euros(antes),
+          despues: _modeloVersiones.euros(despues),
+          rebaja: _modeloVersiones.euros(antes - despues),
+          coste: hayCostes ? _modeloVersiones.euros(coste) : null,
+          partidasConCoste: conCostes,
+          margenAntes: margenAntes === null ? null : _modeloVersiones.redondear(margenAntes, 1),
+          margenDespues: margenDespues === null ? null : _modeloVersiones.redondear(margenDespues, 1),
+          avisos,
+          arbol: conDto
+        };
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.VERSIONES = API;
+      })({
+        crear,
+        arbolDe,
+        comparar: compararVersiones,
+        resumirCambios,
+        cambiosPorImpacto,
+        ESTADOS_VERSION,
+        ETIQUETA_ESTADO,
+        marcarDefinitiva,
+        definitivaDe,
+        aplicarDescuento,
+        efectoDelDescuento,
+        siguienteNumero
+      });
+    }
+  });
+
+  // electron/data/versiones.js
+  var require_versiones2 = __commonJS({
+    "electron/data/versiones.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var modelo = require_modelo();
+      var versiones = require_versiones();
+      var { nuevoId } = require_repositorio();
+      var { armarArbol } = require_presupuestos();
+      function listar(db, presupuestoId) {
+        return db.prepare(
+          `SELECT id, presupuestoId, numero, nombre, motivo, estado, pem, costeDirecto, costeEstudio,
+            total, partidas, arbol, creadoPor, creadoEn
+       FROM versionesPresupuesto WHERE presupuestoId = ? ORDER BY numero`
+        ).all(presupuestoId);
+      }
+      function guardar(db, { presupuesto, arbol = null, nombre, motivo = null, personaId = null }) {
+        const base = arbol || armarArbol(db, presupuesto.id);
+        const ultimo = db.prepare("SELECT MAX(numero) AS n FROM versionesPresupuesto WHERE presupuestoId = ?").get(presupuesto.id);
+        const v = versiones.crear({
+          presupuesto,
+          arbol: modelo.calcularArbol(base),
+          numero: (ultimo && ultimo.n ? ultimo.n : 0) + 1,
+          nombre,
+          motivo,
+          personaId
+        });
+        const ahora = (/* @__PURE__ */ new Date()).toISOString();
+        const id = nuevoId();
+        db.prepare(
+          `INSERT INTO versionesPresupuesto
+       (id, presupuestoId, numero, nombre, motivo, estado, pem, costeDirecto, costeEstudio,
+        total, partidas, arbol, creadoPor, creadoEn, modificadoEn)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+        ).run(
+          id,
+          presupuesto.id,
+          v.numero,
+          v.nombre,
+          v.motivo,
+          v.estado,
+          v.pem,
+          v.costeDirecto,
+          v.costeEstudio,
+          v.total,
+          v.partidas,
+          v.arbol,
+          v.creadoPor,
+          ahora,
+          ahora
+        );
+        return { ok: true, numero: v.numero, version: { ...v, id, presupuestoId: presupuesto.id, creadoEn: ahora } };
+      }
+      function marcarDefinitiva(db, presupuestoId, id, personaId = null) {
+        const lista = listar(db, presupuestoId);
+        const r = versiones.marcarDefinitiva(lista, id, { personaId });
+        if (!r.cambiada) return { ok: false, motivo: r.motivo };
+        const ahora = (/* @__PURE__ */ new Date()).toISOString();
+        const poner = db.prepare("UPDATE versionesPresupuesto SET estado = ?, modificadoEn = ? WHERE id = ?");
+        for (const v of r.versiones) {
+          const antes = lista.find((x) => x.id === v.id);
+          if (antes && antes.estado !== v.estado) poner.run(v.estado, ahora, v.id);
+        }
+        return { ok: true, motivo: r.motivo, versiones: listar(db, presupuestoId) };
+      }
+      module.exports = { listar, guardar, marcarDefinitiva };
+    }
+  });
+
+  // electron/data/recordado.js
+  var require_recordado = __commonJS({
+    "electron/data/recordado.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var DURA_MS = 2 * 60 * 1e3;
+      var TOPE = 300;
+      var porBase = /* @__PURE__ */ new WeakMap();
+      function recordar(repo, sesion, nombre, clave, calcular) {
+        const db = repo && repo.db;
+        if (!db || typeof db.cambiosTotales !== "function") return calcular();
+        const version = db.cambiosTotales();
+        let r = porBase.get(db);
+        if (!r || r.version !== version) {
+          r = { version, mapa: /* @__PURE__ */ new Map() };
+          porBase.set(db, r);
+        }
+        const k = `${nombre}|${clave}|${sesion && sesion.personaId}|${sesion && sesion.rol}`;
+        const c = r.mapa.get(k);
+        if (c && Date.now() - c.en < DURA_MS) return c.valor;
+        const valor = calcular();
+        if (db.cambiosTotales() !== version) return valor;
+        if (r.mapa.size >= TOPE) r.mapa.clear();
+        r.mapa.set(k, { en: Date.now(), valor });
+        return valor;
+      }
+      module.exports = { recordar };
+    }
+  });
+
+  // electron/data/difusores.js
+  var require_difusores2 = __commonJS({
+    "electron/data/difusores.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var D = require_difusores();
+      var BM = require_bocaManual();
+      var fichas = require_fichas();
+      var { puede } = require_roles();
+      var BP = require_bocasPresupuesto();
+      var modeloPres = require_modelo();
+      var versionesPres = require_versiones();
+      var datosVersiones = require_versiones2();
+      var { armarArbol } = require_presupuestos();
+      var MAX_IMAGEN = 8 * 1024 * 1024;
+      var RE_IMAGEN = /^data:image\/(png|jpeg|jpg|webp|gif);base64,[A-Za-z0-9+/=]+$/;
+      var { recordar } = require_marcaCambios();
+      var leerJsonDif = (t, porDefecto) => {
+        try {
+          return t ? JSON.parse(t) : porDefecto;
+        } catch {
+          return porDefecto;
+        }
+      };
+      var memoObra = null;
+      function enMemoObra(fn) {
+        if (memoObra) return fn();
+        memoObra = /* @__PURE__ */ new Map();
+        try {
+          return fn();
+        } finally {
+          memoObra = null;
+        }
+      }
+      function deMemoObra(clave, leer) {
+        if (!memoObra) return leer();
+        if (!memoObra.has(clave)) memoObra.set(clave, leer());
+        return memoObra.get(clave);
+      }
+      var claveSesion = (sesion) => sesion ? `${sesion.personaId || sesion.id || ""}:${sesion.rol || ""}` : "";
+      function configObra(repo, sesion, obraId) {
+        const cfg = recordar(
+          repo,
+          sesion,
+          `configCommissioning|${obraId}`,
+          () => repo.listar("configCommissioning", sesion, { condicion: "obraId = ?", params: [obraId], limite: 1 })[0] || null
+        );
+        return cfg ? { ...cfg } : null;
+      }
+      function ajenasDe(repo, sesion, plano, equipoId) {
+        if (!plano.imagenId) return [];
+        return repo.listar("planosDifusores", sesion, { condicion: "obraId = ? AND equipoId <> ? AND imagenId IS NOT NULL AND (imagenId = ? OR nombre = ?)", params: [plano.obraId, equipoId, plano.imagenId, plano.nombre] }).flatMap((o) => D.normalizarPuntos(leerJsonDif(o.puntos, [])).filter((p) => !p.sinPosicion && p.x !== null && p.y !== null && p.x !== void 0 && p.y !== void 0).map((p) => ({ id: `${o.id}:${p.id}`, nombre: p.nombre, tipo: p.tipo, x: p.x, y: p.y })));
+      }
+      function planosDe(repo, sesion, equipoId) {
+        return repo.listar("planosDifusores", sesion, { condicion: "equipoId = ?", params: [equipoId], orden: "orden, creadoEn" }).map((p) => ({
+          id: p.id,
+          nombre: p.nombre,
+          orden: p.orden,
+          imagenId: p.imagenId || null,
+          ancho: p.ancho,
+          alto: p.alto,
+          modificadoEn: p.modificadoEn,
+          puntos: D.normalizarPuntos(leerJsonDif(p.puntos, [])),
+          ajenas: ajenasDe(repo, sesion, p, equipoId)
+        }));
+      }
+      function disenoDe(repo, sesion, equipo) {
+        const hoja = repo.listar("hojasBalanceo", sesion, { condicion: "equipoId = ?", params: [equipo.id], limite: 1 })[0];
+        const proyecto = hoja && (leerJsonDif(hoja.datos, {}) || {}).proyecto || {};
+        let ficha = {};
+        try {
+          const f = repo.listar("fichasPM", sesion, { condicion: "equipoId = ? AND plantilla = ?", params: [equipo.id, "BALANCEO_CAUDALES"], limite: 1 })[0];
+          const v = f && (leerJsonDif(f.datos, {}) || {}).valores || {};
+          const de = (k) => v[k] && typeof v[k] === "object" ? v[k].v : v[k];
+          ficha = { impulsion: de("caudal_proyecto_impulsion"), retorno: de("caudal_proyecto_retorno") };
+        } catch {
+          ficha = {};
+        }
+        const una = (propio, deHoja, deFicha, nominal) => {
+          if (D.num(propio) !== null) return { valor: D.num(propio), origen: "equipo" };
+          if (D.num(deHoja) !== null) return { valor: D.num(deHoja), origen: "hojaBalanceo" };
+          if (D.num(deFicha) !== null) return { valor: D.num(deFicha), origen: "fichaBalanceo" };
+          if (D.num(nominal) !== null) return { valor: D.num(nominal), origen: "nominal" };
+          return { valor: null, origen: null };
+        };
+        return {
+          impulsion: una(equipo.caudalDisenoImp, proyecto.caudalImpulsion, ficha.impulsion, equipo.caudalNominal),
+          retorno: una(equipo.caudalDisenoRet, proyecto.caudalRetorno, ficha.retorno, null)
+        };
+      }
+      function difusoresEquipo(repo, sesion, equipoId) {
+        return require_recordado().recordar(repo, sesion, "difusoresEquipo", equipoId, () => difusoresEquipoSinRecordar(repo, sesion, equipoId));
+      }
+      function difusoresEquipoSinRecordar(repo, sesion, equipoId) {
+        const equipo = repo.leer("equiposObra", sesion, equipoId);
+        if (!equipo) return null;
+        const planos = planosDe(repo, sesion, equipoId);
+        const t = fichas.tolerancias(configObra(repo, sesion, equipo.obraId) || {});
+        const tolerancias = { total: t.total, boca: t.boca };
+        const diseno = disenoDe(repo, sesion, equipo);
+        const puntos = planos.flatMap((p) => p.puntos);
+        const modelos = modelosObra(repo, sesion, equipo.obraId);
+        return {
+          equipo: {
+            id: equipo.id,
+            obraId: equipo.obraId,
+            tag: equipo.tag,
+            planta: equipo.planta,
+            marca: equipo.marca,
+            modelo: equipo.modelo,
+            grupo: equipo.grupo
+          },
+          planos,
+          modelos: modelos.map(D.evaluarModelo),
+          asignacion: D.normalizarAsignacion(leerJsonDif(equipo.modelosDif, []), modelos),
+          diseno,
+          tolerancias,
+          resumen: D.resumen({ puntos, diseno: { impulsion: diseno.impulsion.valor, retorno: diseno.retorno.valor }, tolerancias }),
+          puedeEditar: puede(sesion.rol, "commissioning", "editar"),
+          puedeCrear: puede(sesion.rol, "commissioning", "crear"),
+          puedeBorrar: puede(sesion.rol, "commissioning", "borrar")
+        };
+      }
+      function imagenPlano(repo, sesion, planoId) {
+        const plano = repo.leer("planosDifusores", sesion, planoId);
+        if (!plano || !plano.imagenId) return null;
+        const img = repo.leer("imagenesPlanoDif", sesion, plano.imagenId);
+        return img ? { id: img.id, imagen: img.imagen } : null;
+      }
+      function comprobarImagen(imagen) {
+        if (typeof imagen !== "string" || !imagen) return "Falta la imagen del plano.";
+        if (imagen.length > MAX_IMAGEN) return "La imagen es demasiado grande (m\xE1s de 8 MB): red\xFAcela o haz una captura del plano.";
+        if (!RE_IMAGEN.test(imagen)) return "Eso no es una imagen (PNG, JPEG, WebP o GIF).";
+        return null;
+      }
+      var dimension = (v) => {
+        const n = Math.round(Number(v));
+        return Number.isFinite(n) && n > 0 && n < 1e5 ? n : null;
+      };
+      function crearPlano(repo, sesion, equipoId, datos = {}) {
+        const equipo = repo.leer("equiposObra", sesion, equipoId);
+        if (!equipo) return { ok: false, error: "No se encuentra el equipo." };
+        if (!puede(sesion.rol, "commissioning", "crear")) {
+          return { ok: false, error: "Tu rol puede ver el commissioning de esta obra, pero no a\xF1adir planos." };
+        }
+        const sinDibujo = datos.sinDibujo === true;
+        if (sinDibujo && (datos.puntos || []).some((p) => !p || !p.sinPosicion)) return { ok: false, error: "Un plano sin dibujo solo lleva bocas sin posici\xF3n." };
+        const error = sinDibujo ? null : comprobarImagen(datos.imagen);
+        if (error) return { ok: false, error };
+        const existentes = planosDe(repo, sesion, equipoId);
+        const nombre = String(datos.nombre || "").trim().slice(0, 80) || `Plano ${existentes.length + 1}`;
+        const imagenId = sinDibujo ? null : repo.crear("imagenesPlanoDif", sesion, { obraId: equipo.obraId, imagen: datos.imagen });
+        const id = repo.crear("planosDifusores", sesion, {
+          obraId: equipo.obraId,
+          equipoId,
+          nombre,
+          orden: existentes.length ? Math.max(...existentes.map((p) => p.orden || 0)) + 1 : 0,
+          imagenId,
+          ancho: dimension(datos.ancho),
+          alto: dimension(datos.alto),
+          puntos: JSON.stringify(D.normalizarPuntos(datos.puntos || []))
+        });
+        return { ok: true, id };
+      }
+      function guardarPlano(repo, sesion, planoId, datos = {}) {
+        const plano = repo.leer("planosDifusores", sesion, planoId);
+        if (!plano) return { ok: false, error: "No se encuentra el plano." };
+        if (!puede(sesion.rol, "commissioning", "editar")) {
+          return { ok: false, error: "Tu rol puede ver el commissioning de esta obra, pero no cambiarlo." };
+        }
+        const cambios = {};
+        if (datos.nombre !== void 0) cambios.nombre = String(datos.nombre || "").trim().slice(0, 80) || plano.nombre;
+        let puntos;
+        let avisos = [];
+        if (datos.puntos !== void 0) {
+          puntos = D.normalizarPuntos(datos.puntos);
+          const guardados = D.normalizarPuntos(leerJsonDif(plano.puntos, []));
+          if (!datos.tocarManuales) {
+            const r = BM.proteger(guardados, puntos);
+            puntos = D.normalizarPuntos(r.puntos);
+            avisos = r.avisos;
+          }
+          if (datos.aMano) puntos = D.normalizarPuntos(BM.marcarObra(guardados, puntos));
+          else {
+            const o = BM.protegerObra(guardados, puntos);
+            puntos = D.normalizarPuntos(o.puntos);
+            avisos = avisos.concat(o.avisos);
+          }
+          const texto = JSON.stringify(puntos);
+          if (texto !== plano.puntos) cambios.puntos = texto;
+        }
+        if (Object.keys(cambios).length) repo.modificar("planosDifusores", sesion, planoId, cambios);
+        return { ok: true, puntos: puntos || D.normalizarPuntos(leerJsonDif(plano.puntos, [])), ...avisos.length ? { avisos } : {} };
+      }
+      function soltarImagen(repo, sesion, imagenId) {
+        if (!imagenId || !repo.leer("imagenesPlanoDif", sesion, imagenId)) return;
+        const usada = repo.db.prepare("SELECT 1 FROM planosDifusores WHERE imagenId = ? LIMIT 1").get(imagenId);
+        if (!usada) repo.db.prepare("DELETE FROM imagenesPlanoDif WHERE id = ?").run(imagenId);
+      }
+      function cambiarImagen(repo, sesion, planoId, datos = {}) {
+        const plano = repo.leer("planosDifusores", sesion, planoId);
+        if (!plano) return { ok: false, error: "No se encuentra el plano." };
+        if (!puede(sesion.rol, "commissioning", "editar") || !puede(sesion.rol, "commissioning", "crear")) {
+          return { ok: false, error: "Tu rol puede ver el commissioning de esta obra, pero no cambiarlo." };
+        }
+        const error = comprobarImagen(datos.imagen);
+        if (error) return { ok: false, error };
+        const imagenId = repo.crear("imagenesPlanoDif", sesion, { obraId: plano.obraId, imagen: datos.imagen });
+        repo.modificar("planosDifusores", sesion, planoId, { imagenId, ancho: dimension(datos.ancho), alto: dimension(datos.alto) });
+        soltarImagen(repo, sesion, plano.imagenId);
+        return { ok: true, imagenId };
+      }
+      function borrarPlano(repo, sesion, planoId) {
+        if (!puede(sesion.rol, "commissioning", "borrar")) {
+          return { ok: false, error: "Tu rol no puede borrar planos. Puedes quitar sus puntos uno a uno." };
+        }
+        const plano = repo.leer("planosDifusores", sesion, planoId);
+        if (!plano) return { ok: false, error: "No se encuentra el plano." };
+        repo.borrar("planosDifusores", sesion, planoId);
+        soltarImagen(repo, sesion, plano.imagenId);
+        return { ok: true };
+      }
+      function guardarDiseno(repo, sesion, equipoId, datos = {}) {
+        const equipo = repo.leer("equiposObra", sesion, equipoId);
+        if (!equipo) return { ok: false, error: "No se encuentra el equipo." };
+        if (!puede(sesion.rol, "commissioning", "editar")) {
+          return { ok: false, error: "Tu rol puede ver el commissioning de esta obra, pero no cambiarlo." };
+        }
+        const cambios = {};
+        for (const [clave, columna] of [["impulsion", "caudalDisenoImp"], ["retorno", "caudalDisenoRet"]]) {
+          if (datos[clave] === void 0) continue;
+          const n = D.num(datos[clave]);
+          if (n !== null && n < 0) return { ok: false, error: "Un caudal de dise\xF1o no puede ser negativo." };
+          cambios[columna] = n;
+        }
+        if (Object.keys(cambios).length) repo.modificar("equiposObra", sesion, equipoId, cambios);
+        return { ok: true };
+      }
+      function modelosObra(repo, sesion, obraId) {
+        return deMemoObra(`modelos|${claveSesion(sesion)}|${obraId}`, () => {
+          const cfg = configObra(repo, sesion, obraId);
+          return D.normalizarModelosProyecto(leerJsonDif(cfg && cfg.modelosDifusores, []));
+        });
+      }
+      var LISTA_DIF = "Bocas del proyecto";
+      function modelosDelPresupuesto(repo, sesion, obraId) {
+        const obra = repo.leer("obras", sesion, obraId);
+        if (!obra || !obra.presupuestoId) return { modelos: [], sinCasar: [], motivo: "La obra no tiene presupuesto." };
+        const lista = datosVersiones.listar(repo.db, obra.presupuestoId);
+        const definitiva = versionesPres.definitivaDe(lista);
+        const primera = lista.length ? lista[0] : null;
+        const base = primera ? versionesPres.arbolDe(primera) : null;
+        const actual = definitiva ? versionesPres.arbolDe(definitiva) : modeloPres.calcularArbol(armarArbol(repo.db, obra.presupuestoId));
+        return BP.modelosDesdePresupuesto({ base: base && base.length && definitiva ? base : null, actual });
+      }
+      function guardarModelos(repo, sesion, equipoId, datos = {}) {
+        const equipo = repo.leer("equiposObra", sesion, equipoId);
+        if (!equipo) return { ok: false, error: "No se encuentra el equipo." };
+        if (!puede(sesion.rol, "commissioning", "editar")) {
+          return { ok: false, error: "Tu rol puede ver el commissioning de esta obra, pero no cambiarlo." };
+        }
+        let modelos = modelosObra(repo, sesion, equipo.obraId);
+        let desdePresupuesto = null;
+        if (datos.desdePresupuesto) {
+          desdePresupuesto = modelosDelPresupuesto(repo, sesion, equipo.obraId);
+          const lote = [...modelos];
+          for (const n of desdePresupuesto.modelos) {
+            const i = lote.findIndex((m) => m.partida && m.partida.codigo === n.partida.codigo);
+            if (i >= 0) lote[i] = { ...lote[i], ...n, id: lote[i].id, ref: lote[i].ref };
+            else lote.push(n);
+          }
+          datos = { ...datos, modelos: lote };
+        }
+        if (datos.modelos !== void 0) {
+          modelos = D.normalizarModelosProyecto(datos.modelos);
+          const cfg = configObra(repo, sesion, equipo.obraId);
+          const texto = JSON.stringify(modelos);
+          if (cfg) repo.modificar("configCommissioning", sesion, cfg.id, { modelosDifusores: texto });
+          else repo.crear("configCommissioning", sesion, { obraId: equipo.obraId, modelosDifusores: texto });
+          const planos = repo.listar("planosDifusores", sesion, { condicion: "obraId = ?", params: [equipo.obraId] });
+          for (const pl of planos) {
+            const antes = D.normalizarPuntos(leerJsonDif(pl.puntos, []));
+            if (!antes.some((p) => p.modeloId)) continue;
+            const despues = JSON.stringify(D.aplicarModelos(antes, modelos));
+            if (despues !== JSON.stringify(antes)) repo.modificar("planosDifusores", sesion, pl.id, { puntos: despues });
+          }
+        }
+        let asignacion = D.normalizarAsignacion(leerJsonDif(equipo.modelosDif, []), modelos);
+        if (datos.asignacion !== void 0) {
+          asignacion = D.normalizarAsignacion(datos.asignacion, modelos);
+          repo.modificar("equiposObra", sesion, equipoId, { modelosDif: JSON.stringify(asignacion) });
+        }
+        let creadas = 0;
+        let sobran = [];
+        if (datos.crearBocas) {
+          if (!puede(sesion.rol, "commissioning", "crear")) {
+            return { ok: false, error: "Tu rol puede cambiar el commissioning, pero no crear bocas." };
+          }
+          const planos = planosDe(repo, sesion, equipoId);
+          const r = D.generarBocas(asignacion, modelos, planos.flatMap((p) => p.puntos));
+          sobran = r.sobran;
+          if (r.nuevas.length) {
+            let lista = planos.find((p) => p.nombre === LISTA_DIF && !p.imagenId);
+            if (!lista) {
+              const id = repo.crear("planosDifusores", sesion, {
+                obraId: equipo.obraId,
+                equipoId,
+                nombre: LISTA_DIF,
+                orden: planos.length ? Math.min(...planos.map((p) => p.orden || 0)) - 1 : 0,
+                imagenId: null,
+                ancho: null,
+                alto: null,
+                puntos: "[]"
+              });
+              lista = { id, puntos: [] };
+            }
+            const colocadas = D.colocarEnLista([...lista.puntos, ...r.nuevas]);
+            repo.modificar("planosDifusores", sesion, lista.id, { puntos: JSON.stringify(D.normalizarPuntos(colocadas)) });
+            creadas = r.nuevas.length;
+          }
+        }
+        return { ok: true, creadas, sobran, desdePresupuesto: desdePresupuesto && { propuestos: desdePresupuesto.modelos.length, sinCasar: desdePresupuesto.sinCasar } };
+      }
+      module.exports = {
+        guardarModelos,
+        difusoresEquipo,
+        imagenPlano,
+        crearPlano,
+        guardarPlano,
+        cambiarImagen,
+        borrarPlano,
+        guardarDiseno,
+        MAX_IMAGEN,
+        comprobarImagen,
+        enMemoObra,
+        deMemoObra,
+        claveSesion,
+        configObra
+      };
+    }
+  });
+
   // shared/incidencias/motor.js
   var require_motor4 = __commonJS({
     "shared/incidencias/motor.js"(exports, module) {
@@ -45771,7 +48980,18 @@ ${subtitulo}`, c[5]] : c.slice())]);
         kg: "Se mide el peso realmente montado, obtenido del despiece de proyecto.",
         pa: "Partida alzada de abono \xEDntegro: se abona una vez justificada su ejecuci\xF3n completa."
       };
+      var _normalizados = /* @__PURE__ */ new Map();
       function normalizar(texto) {
+        const k = String(texto === null || texto === void 0 ? "" : texto);
+        let v = _normalizados.get(k);
+        if (v === void 0) {
+          v = normalizarSinRecordar(k);
+          if (_normalizados.size > 5e4) _normalizados.clear();
+          _normalizados.set(k, v);
+        }
+        return v;
+      }
+      function normalizarSinRecordar(texto) {
         return String(texto === null || texto === void 0 ? "" : texto).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
       }
       var SIGLAS = /* @__PURE__ */ new Set([
@@ -47588,7 +50808,18 @@ ${subtitulo}`, c[5]] : c.slice())]);
         if (/^(pa|p\/a|partida alzada)$/.test(u)) return "pa";
         return u;
       }
+      var _clasificados = /* @__PURE__ */ new Map();
       function clasificar(resumen, unidad) {
+        const k = `${resumen === null || resumen === void 0 ? "" : resumen}${unidad === null || unidad === void 0 ? "" : unidad}`;
+        let v = _clasificados.get(k);
+        if (v === void 0) {
+          v = clasificarSinRecordar(resumen, unidad);
+          if (_clasificados.size > 5e4) _clasificados.clear();
+          _clasificados.set(k, v);
+        }
+        return { ...v };
+      }
+      function clasificarSinRecordar(resumen, unidad) {
         const texto = normalizar(resumen);
         if (!texto) return { ...DESCONOCIDA };
         for (const entrada of CATALOGO) {
@@ -48144,7 +51375,21 @@ ${subtitulo}`, c[5]] : c.slice())]);
           resto.replace(/[^\wáéíóúñü\s]/gi, " ").split(/\s+/).map((p) => p.trim()).filter((p) => p.length > 1 && !VACIAS.has(p) && !/^\d+$/.test(p))
         )].sort();
       }
+      var _firmas = /* @__PURE__ */ new Map();
       function firmar(partida) {
+        const k = `${partida && partida.resumen || ""}${partida && partida.unidad !== void 0 && partida.unidad !== null ? partida.unidad : ""}`;
+        let v = _firmas.get(k);
+        if (v === void 0) {
+          v = firmarSinRecordar(partida);
+          if (_firmas.size > 5e4) _firmas.clear();
+          _firmas.set(k, v);
+        }
+        const r = { ...v, clasificacion: v.clasificacion ? { ...v.clasificacion } : v.clasificacion };
+        if (v.atributos) r.atributos = { ...v.atributos };
+        if (v.claves) r.claves = [...v.claves];
+        return r;
+      }
+      function firmarSinRecordar(partida) {
         const resumen = partida && partida.resumen || "";
         const unidad = unidadNormalFirma(partida && partida.unidad);
         const clasificacion = _bibliotecaFirma.clasificar(resumen, partida && partida.unidad);
@@ -50913,291 +54158,6 @@ ${linea}` : linea;
         if (typeof module !== "undefined" && module.exports) module.exports = API_CF;
         if (typeof window !== "undefined") window.COSTE_FINAL = API_CF;
       })();
-    }
-  });
-
-  // shared/presupuesto/versiones.js
-  var require_versiones = __commonJS({
-    "shared/presupuesto/versiones.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var _modeloVersiones = typeof __require !== "undefined" ? require_modelo() : window.MODELO;
-      var _textoVersiones = typeof __require !== "undefined" ? require_texto() : window.TEXTO;
-      var ESTADOS_VERSION = {
-        BORRADOR: "borrador",
-        // se está trabajando en ella
-        EMITIDA: "emitida",
-        // se le ha mandado al cliente: NO se toca nunca más
-        APROBADA: "aprobada",
-        // la buena: es la que se traspasa a obra
-        ADJUDICADA: "adjudicada",
-        DESCARTADA: "descartada"
-      };
-      var ETIQUETA_ESTADO = {
-        borrador: { texto: "Borrador", clase: "", que: "Se est\xE1 trabajando en ella. Se puede tocar." },
-        emitida: { texto: "Emitida", clase: "info", que: "Se le ha mandado al cliente. No se toca: si hay que cambiar algo, se crea otra." },
-        aprobada: { texto: "Aprobada", clase: "bien", que: "Es la buena. Es la que se traspasa a obra y contra la que se certifica." },
-        adjudicada: { texto: "Adjudicada", clase: "bien", que: "El cliente la ha adjudicado." },
-        descartada: { texto: "Descartada", clase: "mal", que: "Se dej\xF3 de lado, pero se guarda: es parte de la conversaci\xF3n con el cliente." }
-      };
-      function crear({ presupuesto, arbol, numero, nombre, motivo, personaId, estado }) {
-        const calculado = _modeloVersiones.calcularArbol(arbol);
-        const pem = _modeloVersiones.ejecucionMaterial(calculado);
-        const desglose = _modeloVersiones.desglosePEM(calculado);
-        const cierre = _modeloVersiones.cierreEconomico(pem, presupuesto);
-        return {
-          presupuestoId: presupuesto.id,
-          numero,
-          nombre: nombre || `Versi\xF3n ${numero}`,
-          motivo: motivo || null,
-          estado: estado || ESTADOS_VERSION.BORRADOR,
-          /* Las cifras se guardan aparte del árbol para poder listar versiones sin
-             abrir ni deserializar nada. */
-          pem,
-          costeDirecto: desglose.directo,
-          costeEstudio: desglose.coste,
-          total: cierre.total,
-          partidas: _modeloVersiones.partidas(calculado).length,
-          /* Se guarda YA CALCULADO: es lo que van a querer quien la compare y quien
-             la abra, y recalcular cada vez cuesta lo mismo y se puede olvidar. */
-          arbol: JSON.stringify(calculado),
-          creadoPor: personaId || null,
-          creadoEn: (/* @__PURE__ */ new Date()).toISOString()
-        };
-      }
-      function arbolDe(version) {
-        if (!version) return [];
-        try {
-          return typeof version.arbol === "string" ? JSON.parse(version.arbol) : version.arbol || [];
-        } catch {
-          return [];
-        }
-      }
-      function indexar(arbol) {
-        const m = /* @__PURE__ */ new Map();
-        for (const p of _modeloVersiones.partidas(arbol)) {
-          m.set(String(p.codigo), {
-            codigo: p.codigo,
-            resumen: p.resumen || "",
-            unidad: p.unidad || "",
-            cantidad: _modeloVersiones.medida(p.cantidad),
-            precio: _modeloVersiones.precio(p.precio),
-            importe: _modeloVersiones.euros(p.importe),
-            descripcion: p.descripcion || "",
-            disciplina: p.disciplina || "",
-            capitulo: (p.camino || []).map((c) => c.codigo).join(" \u203A ")
-          });
-        }
-        return m;
-      }
-      var CAMPOS = [
-        { id: "resumen", etiqueta: "Resumen" },
-        { id: "unidad", etiqueta: "Unidad" },
-        { id: "cantidad", etiqueta: "Medici\xF3n", numerico: true },
-        { id: "precio", etiqueta: "Precio", numerico: true },
-        { id: "descripcion", etiqueta: "Descripci\xF3n" },
-        { id: "disciplina", etiqueta: "Disciplina" }
-      ];
-      function compararVersiones(arbolAntes, arbolDespues) {
-        const antes = indexar(arbolAntes);
-        const despues = indexar(arbolDespues);
-        const altas = [];
-        const bajas = [];
-        const cambios = [];
-        for (const [codigo, b] of despues) {
-          const a = antes.get(codigo);
-          if (!a) {
-            altas.push(b);
-            continue;
-          }
-          const diferencias = [];
-          for (const campo of CAMPOS) {
-            const va = a[campo.id];
-            const vb = b[campo.id];
-            const iguales = campo.numerico ? _modeloVersiones.iguales(va, vb) : String(va) === String(vb);
-            if (!iguales) diferencias.push({ campo: campo.id, etiqueta: campo.etiqueta, antes: va, despues: vb });
-          }
-          if (diferencias.length) {
-            cambios.push({
-              codigo,
-              resumen: b.resumen,
-              capitulo: b.capitulo,
-              diferencias,
-              importeAntes: a.importe,
-              importeDespues: b.importe,
-              efecto: _modeloVersiones.euros(b.importe - a.importe)
-            });
-          }
-        }
-        for (const [codigo, a] of antes) {
-          if (!despues.has(codigo)) bajas.push(a);
-        }
-        const suma = (l, campo = "importe") => _modeloVersiones.euros(l.reduce((acc, x) => acc + (x[campo] || 0), 0));
-        const pemAntes = _modeloVersiones.ejecucionMaterial(arbolAntes);
-        const pemDespues = _modeloVersiones.ejecucionMaterial(arbolDespues);
-        return {
-          altas,
-          bajas,
-          cambios,
-          efectoAltas: suma(altas),
-          efectoBajas: _modeloVersiones.euros(-suma(bajas)),
-          efectoCambios: suma(cambios, "efecto"),
-          pemAntes,
-          pemDespues,
-          diferencia: _modeloVersiones.euros(pemDespues - pemAntes),
-          porcentaje: pemAntes > 0 ? _modeloVersiones.redondear((pemDespues - pemAntes) / pemAntes * 100, 2) : 0,
-          /* Sin cambios de ninguno de los tres tipos, las versiones son iguales. */
-          sinCambios: altas.length === 0 && bajas.length === 0 && cambios.length === 0
-        };
-      }
-      function resumirCambios(c) {
-        if (c.sinCambios) return "Sin cambios respecto a la versi\xF3n anterior.";
-        const trozos = [];
-        if (c.altas.length) trozos.push(`${_textoVersiones.plural(c.altas.length, "partida nueva", "partidas nuevas")}`);
-        if (c.bajas.length) trozos.push(_textoVersiones.plural(c.bajas.length, "partida eliminada", "partidas eliminadas"));
-        if (c.cambios.length) trozos.push(_textoVersiones.plural(c.cambios.length, "partida modificada", "partidas modificadas"));
-        const signo = c.diferencia > 0 ? "+" : "";
-        return `${trozos.join(", ")}. Efecto: ${signo}${_textoVersiones.numero(c.diferencia, 2)} \u20AC (${signo}${_textoVersiones.numero(c.porcentaje, 1)} %).`;
-      }
-      function cambiosPorImpacto(c, cuantos = 10) {
-        const todos = [
-          ...c.altas.map((p) => ({ tipo: "alta", codigo: p.codigo, resumen: p.resumen, efecto: p.importe })),
-          ...c.bajas.map((p) => ({ tipo: "baja", codigo: p.codigo, resumen: p.resumen, efecto: -p.importe })),
-          ...c.cambios.map((p) => ({
-            tipo: "cambio",
-            codigo: p.codigo,
-            resumen: p.resumen,
-            efecto: p.efecto,
-            diferencias: p.diferencias
-          }))
-        ];
-        return todos.sort((a, b) => Math.abs(b.efecto) - Math.abs(a.efecto)).slice(0, cuantos);
-      }
-      function marcarDefinitiva(versiones, id, { personaId = null, ahora = null } = {}) {
-        const lista = versiones || [];
-        const elegida = lista.find((v) => v.id === id);
-        if (!elegida) return { versiones: lista, cambiada: null, motivo: "Esa versi\xF3n no existe." };
-        const cuando = ahora || (/* @__PURE__ */ new Date()).toISOString();
-        const antes = lista.find((v) => v.estado === ESTADOS_VERSION.APROBADA && v.id !== id) || null;
-        const salida = lista.map((v) => {
-          if (v.id === id) {
-            return { ...v, estado: ESTADOS_VERSION.APROBADA, aprobadaPor: personaId, aprobadaEn: cuando };
-          }
-          if (v.estado === ESTADOS_VERSION.APROBADA) {
-            return { ...v, estado: ESTADOS_VERSION.EMITIDA, aprobadaPor: null, aprobadaEn: null };
-          }
-          return v;
-        });
-        return {
-          versiones: salida,
-          cambiada: elegida,
-          anterior: antes,
-          motivo: antes ? `\xAB${elegida.nombre}\xBB pasa a ser la definitiva, en lugar de \xAB${antes.nombre}\xBB.` : `\xAB${elegida.nombre}\xBB queda como la definitiva.`
-        };
-      }
-      function definitivaDe(versiones) {
-        return (versiones || []).find((v) => v.estado === ESTADOS_VERSION.APROBADA) || null;
-      }
-      function siguienteNumero(versiones) {
-        return (versiones || []).reduce((max, v) => Math.max(max, Number(v.numero) || 0), 0) + 1;
-      }
-      function aplicarDescuento(arbol, porcentaje) {
-        const pct = Number(porcentaje) || 0;
-        const factor = 1 - pct / 100;
-        const COMPONENTES = ["material", "auxiliares", "transporte", "manoObra", "subcontrata"];
-        const copiar = (nodos) => (nodos || []).map((n) => {
-          if (n.hijos) return { ...n, hijos: copiar(n.hijos) };
-          const salida = { ...n };
-          const base = n.precioBase !== void 0 && n.precioBase !== null ? n.precioBase : n.precio;
-          if (base !== null && base !== void 0) {
-            salida.precioBase = base;
-            salida.precio = _modeloVersiones.euros(base * factor);
-          }
-          if (n.costes && (n.costes.venta || n.costes.ventaBase)) {
-            const ventaBase = n.costes.ventaBase || n.costes.venta;
-            const venta = {};
-            for (const c of COMPONENTES) {
-              const v = Number(ventaBase[c]);
-              if (Number.isFinite(v) && v !== 0) venta[c] = _modeloVersiones.euros(v * factor);
-            }
-            salida.costes = { ...n.costes, ventaBase, venta };
-          }
-          salida.descuentoComercial = pct || null;
-          return salida;
-        });
-        return copiar(arbol);
-      }
-      function efectoDelDescuento(arbol, porcentaje, presupuesto = {}) {
-        const pct = Number(porcentaje) || 0;
-        const base = _modeloVersiones.calcularArbol(aplicarDescuento(arbol, 0));
-        const conDto = _modeloVersiones.calcularArbol(aplicarDescuento(arbol, pct));
-        const antes = _modeloVersiones.ejecucionMaterial(base);
-        const despues = _modeloVersiones.ejecucionMaterial(conDto);
-        let coste = 0;
-        let conCostes = 0;
-        for (const partida of _modeloVersiones.partidas(base)) {
-          const f = _modeloVersiones.calcularFases(partida);
-          if (f.estudio.rellena) {
-            coste += f.estudio.importe;
-            conCostes += 1;
-          }
-        }
-        const hayCostes = conCostes > 0;
-        const margenAntes = hayCostes && antes > 0 ? (antes - coste) / antes * 100 : null;
-        const margenDespues = hayCostes && despues > 0 ? (despues - coste) / despues * 100 : null;
-        const avisos = [];
-        if (pct > 0) {
-          avisos.push({
-            gravedad: "aviso",
-            texto: `El descuento sale entero del margen: son ${_modeloVersiones.textoEuros(antes - despues)} \u20AC menos de beneficio, no de coste.`
-          });
-          if (!hayCostes) {
-            avisos.push({
-              gravedad: "aviso",
-              texto: "Ninguna partida tiene su coste de estudio escrito, as\xED que no se puede saber qu\xE9 margen queda. Con el coste puesto, esta pantalla lo dir\xEDa."
-            });
-          } else if (despues < coste) {
-            avisos.push({
-              gravedad: "mal",
-              texto: `Con ese descuento se vende por debajo de coste: ${_modeloVersiones.textoEuros(despues)} \u20AC frente a ${_modeloVersiones.textoEuros(coste)} \u20AC de coste.`
-            });
-          } else if (margenDespues !== null && margenDespues < 5) {
-            avisos.push({
-              gravedad: "mal",
-              texto: `El margen se queda en el ${_modeloVersiones.redondear(margenDespues, 1)} %. Por debajo del 5 % una obra no aguanta ni un imprevisto.`
-            });
-          }
-        }
-        return {
-          porcentaje: pct,
-          antes: _modeloVersiones.euros(antes),
-          despues: _modeloVersiones.euros(despues),
-          rebaja: _modeloVersiones.euros(antes - despues),
-          coste: hayCostes ? _modeloVersiones.euros(coste) : null,
-          partidasConCoste: conCostes,
-          margenAntes: margenAntes === null ? null : _modeloVersiones.redondear(margenAntes, 1),
-          margenDespues: margenDespues === null ? null : _modeloVersiones.redondear(margenDespues, 1),
-          avisos,
-          arbol: conDto
-        };
-      }
-      (function exportar(API) {
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.VERSIONES = API;
-      })({
-        crear,
-        arbolDe,
-        comparar: compararVersiones,
-        resumirCambios,
-        cambiosPorImpacto,
-        ESTADOS_VERSION,
-        ETIQUETA_ESTADO,
-        marcarDefinitiva,
-        definitivaDe,
-        aplicarDescuento,
-        efectoDelDescuento,
-        siguienteNumero
-      });
     }
   });
 
@@ -59162,2732 +62122,6 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // shared/commissioning/catalogoAk.js
-  var require_catalogoAk = __commonJS({
-    "shared/commissioning/catalogoAk.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function() {
-        const T2 = "TROX";
-        const NO_INDICA = "No indicado en la ficha del fabricante (Aeff = \xE1rea efectiva de descarga/entrada).";
-        const lista = (o) => ({ forma: "lista", magnitud: "Aeff", origen: "fabricante", metodo: NO_INDICA, correccion: null, ...o });
-        const matriz = (o) => ({ forma: "matriz", magnitud: "Aeff", origen: "fabricante", metodo: NO_INDICA, correccion: null, ...o });
-        function matrizDeModelo(modelo, largos, filas, extra) {
-          const altos = [];
-          const f = [];
-          for (const [h, modelos, vals] of filas) {
-            if (!modelos.includes(modelo)) continue;
-            altos.push(h);
-            f.push(vals);
-          }
-          return matriz({ ...extra, largos, altos, filas: f });
-        }
-        const tablas = {};
-        const tipos = {};
-        const ponTipo = (id, x) => {
-          tipos[id] = { modo: "ak", ak: null, k: null, ...x };
-        };
-        const URL_REJ = "https://cdn.trox.de/0ae9188da51728e7/3ff576a2ffa6/t_1_1_1_grilles_lin.pdf";
-        const FICHA_REJ = "TROX T 1.1.1 EN \xABGrilles / Linear grilles\xBB (rejillas lineales, datos aerodin\xE1micos)";
-        const L8 = [225, 325, 425, 525, 625, 825, 1025, 1225];
-        const N = null;
-        const A_GRUPO = ["AT", "VAT", "ASL", "SL", "TR", "TRS", "TRS-R", "TRS-K", "KS"];
-        const FILAS_IMP = [
-          [75, ["AH", "AF"], [6e-3, 9e-3, 0.011, 0.014, 0.017, 0.022, 0.028, 0.034]],
-          [75, ["VAT", "TRS", "TRS-R", "TRS-K"], [7e-3, 0.011, 0.014, 0.018, 0.021, 0.029, 0.036, 0.043]],
-          [125, A_GRUPO, [0.014, 0.021, 0.029, 0.036, 0.043, 0.057, 0.072, 0.086]],
-          [125, ["AH", "AF"], [0.011, 0.017, 0.022, 0.028, 0.034, 0.044, 0.055, 0.066]],
-          [125, ["AWT"], [0.01, 0.015, 0.02, 0.025, 0.031, 0.04, 0.05, 0.06]],
-          [225, A_GRUPO, [0.029, 0.043, 0.057, 0.072, 0.086, 0.114, 0.142, 0.172]],
-          [225, ["AH", "AF"], [N, 0.034, 0.044, 0.055, 0.066, 0.087, 0.108, 0.129]],
-          [225, ["AWT"], [N, 0.031, 0.04, 0.05, 0.06, 0.078, 0.097, 0.116]],
-          [325, ["AT", "VAT", "ASL", "SL", "TR", "TRS", "TRS-K"], [N, 0.064, 0.086, 0.108, 0.129, 0.172, 0.214, 0.256]],
-          [325, ["AH", "AF"], [N, N, 0.066, 0.081, 0.096, 0.129, 0.169, 0.193]],
-          [325, ["AWT"], [N, N, 0.06, 0.073, 0.086, 0.116, 0.152, 0.174]],
-          [425, ["AT", "VAT", "ASL", "SL", "TR"], [N, N, N, N, 0.172, 0.228, 0.285, 0.342]],
-          [425, ["AH", "AF"], [N, N, N, N, 0.129, 0.169, 0.214, 0.256]],
-          [525, ["AT", "VAT", "ASL", "SL", "TR"], [N, N, N, N, N, N, 0.355, 0.427]]
-        ];
-        const FILAS_RET = [
-          [75, ["AH", "AF"], [4e-3, 6e-3, 9e-3, 0.011, 0.013, 0.017, 0.021, 0.026]],
-          [75, ["AWT"], [3e-3, 5e-3, 8e-3, 0.01, 0.011, 0.015, 0.018, 0.023]],
-          [75, ["AT", "VAT", "TR", "TRS", "TRS-R", "KS"], [6e-3, 9e-3, 0.011, 0.014, 0.016, 0.022, 0.028, 0.033]],
-          [125, ["AH", "AF"], [9e-3, 0.013, 0.017, 0.021, 0.026, 0.033, 0.041, 0.049]],
-          [125, ["AWT"], [8e-3, 0.011, 0.015, 0.018, 0.023, 0.029, 0.036, 0.043]],
-          [125, ["AT", "VAT", "TR", "TRS", "TRS-R", "KS"], [0.011, 0.016, 0.022, 0.028, 0.033, 0.044, 0.055, 0.066]],
-          [125, ["ASL", "SL"], [0.013, 0.019, 0.026, 0.033, 0.04, 0.053, 0.066, 0.08]],
-          [225, ["AH", "AF"], [N, 0.026, 0.033, 0.041, 0.049, 0.066, 0.082, 0.09]],
-          [225, ["AWT"], [N, 0.023, 0.029, 0.036, 0.043, 0.057, 0.071, 0.078]],
-          [225, ["AT", "VAT", "TR", "TRS", "TRS-R", "KS"], [N, 0.033, 0.044, 0.055, 0.066, 0.09, 0.11, 0.134]],
-          [225, ["ASL", "SL"], [N, 0.04, 0.053, 0.066, 0.08, 0.105, 0.133, 0.16]],
-          [325, ["AH", "AF"], [N, N, 0.049, 0.06, 0.072, 0.095, 0.12, 0.14]],
-          [325, ["AWT"], [N, N, 0.043, 0.052, 0.063, 0.083, 0.104, 0.122]],
-          [325, ["AT", "VAT", "TR", "TRS", "TRS-R", "KS"], [N, N, 0.066, 0.083, 0.1, 0.134, 0.17, 0.2]],
-          [325, ["ASL", "SL"], [N, N, 0.08, 0.1, 0.12, 0.16, 0.2, 0.24]],
-          [425, ["AH", "AF"], [N, N, N, N, 0.095, 0.122, 0.155, 0.185]],
-          [425, ["AT", "VAT", "TR", "TRS", "TRS-R", "KS"], [N, N, N, N, 0.134, 0.18, 0.22, 0.27]],
-          [425, ["ASL", "SL"], [N, N, N, N, 0.16, 0.22, 0.27, 0.32]],
-          [525, ["AT", "VAT", "TR", "TRS", "TRS-R", "KS"], [N, N, N, N, N, N, 0.28, 0.34]],
-          [525, ["ASL", "SL"], [N, N, N, N, N, N, 0.33, 0.4]]
-        ];
-        const MODELOS_IMP = ["AT", "VAT", "ASL", "SL", "TR", "TRS", "TRS-R", "TRS-K", "KS", "AH", "AF", "AWT"];
-        const MODELOS_RET = ["AT", "VAT", "ASL", "SL", "TR", "TRS", "TRS-R", "KS", "AH", "AF", "AWT"];
-        const F_RET = { ASL: 1.6, AT: 1.6, VAT: 1.6, SL: 1.6, TR: 1.6, TRS: 1.6, AH: 1.9, AF: 1.9, AWT: 1.9 };
-        const METODO_REJ_IMP = "Pitot entre lamas con las lamas sin divergencia: Q = v \xD7 Aeff \xD7 3600. Anem\xF3metro de h\xE9lice (sonda \xD8109) recorriendo uniformemente toda la cara de la reja: Q = v \xD7 Aeff \xD7 1,33 \xD7 3600 (cat\xE1logo, p. 16).";
-        const METODO_REJ_RET = "Anem\xF3metro de h\xE9lice (sonda \xD8109) recorriendo uniformemente toda la cara de la reja: Q = v \xD7 Aeff \xD7 f \xD7 3600; f = 1,6 (ASL \xB7 AT \xB7 VAT \xB7 SL \xB7 TR \xB7 TRS) o 1,9 (AH \xB7 AF \xB7 AWT) (cat\xE1logo, p. 18).";
-        for (const m of MODELOS_IMP) {
-          const id = `REJ_${m.replace("-", "_")}_IMP`;
-          tablas[id] = matrizDeModelo(m, L8, FILAS_IMP, {
-            marca: T2,
-            modelo: m,
-            tipoBoca: "rejilla de impulsi\xF3n",
-            circuito: "impulsion",
-            fuente: FICHA_REJ,
-            pagina: 15,
-            url: URL_REJ,
-            metodo: METODO_REJ_IMP,
-            correccion: { valor: 1.33, texto: "Con anem\xF3metro de h\xE9lice sobre la cara: Q = v \xD7 Aeff \xD7 1,33 \xD7 3600 (p. 16)." }
-          });
-          ponTipo(`trox-rej-${m.toLowerCase()}-imp`, { marca: T2, modelo: `${m} (rejilla)`, variante: "Impulsi\xF3n", nombre: `TROX ${m} \xB7 impulsi\xF3n`, circuito: "impulsion", tabla: id, tipoBoca: "rejilla de impulsi\xF3n" });
-        }
-        for (const m of MODELOS_RET) {
-          const id = `REJ_${m.replace("-", "_")}_RET`;
-          const f = F_RET[m];
-          tablas[id] = matrizDeModelo(m, L8, FILAS_RET, {
-            marca: T2,
-            modelo: m,
-            tipoBoca: "rejilla de retorno / extracci\xF3n",
-            circuito: "retorno",
-            fuente: FICHA_REJ,
-            pagina: 18,
-            url: URL_REJ,
-            metodo: METODO_REJ_RET,
-            correccion: f ? { valor: f, texto: `Anem\xF3metro de h\xE9lice sobre la cara: Q = v \xD7 Aeff \xD7 ${String(f).replace(".", ",")} \xD7 3600 (p. 18).` } : null
-          });
-          ponTipo(`trox-rej-${m.toLowerCase()}-ret`, { marca: T2, modelo: `${m} (rejilla)`, variante: "Retorno / extracci\xF3n", nombre: `TROX ${m} \xB7 retorno`, circuito: "retorno", tabla: id, tipoBoca: "rejilla de retorno / extracci\xF3n" });
-        }
-        const URL_TR2X = "https://cdn.trox.de/eb494ea59de47d76/36646accebdf/TR2X_PD_2025_07_15_DE_en.pdf";
-        const FICHA_TR2X = "TROX TR2X, PD-07/2025 \u2013 CH/en";
-        const L6 = [225, 325, 425, 525, 625, 825];
-        const H4 = [75, 125, 225, 325];
-        const tr2x = (id, variante, circuito, pagina, filas) => {
-          tablas[id] = matriz({ marca: T2, modelo: "TR2X", tipoBoca: circuito === "impulsion" ? "rejilla de impulsi\xF3n" : "rejilla de retorno / extracci\xF3n", circuito, fuente: FICHA_TR2X, pagina, url: URL_TR2X, largos: L6, altos: H4, filas });
-          ponTipo(`trox-tr2x-${id.slice(5).toLowerCase()}`, { marca: T2, modelo: "TR2X (rejilla)", variante, nombre: `TROX TR2X \xB7 ${variante}`, circuito, tabla: id, tipoBoca: tablas[id].tipoBoca });
-        };
-        tr2x("TR2X_IMP_VH", "Impulsi\xF3n, lamas VH / HV", "impulsion", 8, [[7e-3, 0.011, 0.015, 0.019, 0.022, 0.03], [0.015, 0.022, 0.03, 0.037, 0.045, 0.06], [0.03, 0.045, 0.06, 0.075, 0.09, 0.12], [N, 0.067, 0.09, 0.112, 0.135, 0.18]]);
-        tr2x("TR2X_IMP_V", "Impulsi\xF3n, lamas V", "impulsion", 8, [[8e-3, 0.012, 0.015, 0.019, 0.023, 0.031], [0.015, 0.023, 0.031, 0.039, 0.046, 0.062], [0.031, 0.046, 0.062, 0.077, 0.093, 0.124], [N, 0.07, 0.093, 0.116, 0.139, 0.185]]);
-        tr2x("TR2X_IMP_H", "Impulsi\xF3n, lamas H", "impulsion", 8, [[8e-3, 0.012, 0.016, 0.02, 0.024, 0.032], [0.016, 0.024, 0.032, 0.04, 0.048, 0.064], [0.032, 0.048, 0.064, 0.08, 0.096, 0.128], [N, 0.072, 0.096, 0.12, 0.144, 0.192]]);
-        tr2x("TR2X_RET_V", "Retorno, lamas V", "retorno", 9, [[6e-3, 9e-3, 0.011, 0.014, 0.017, 0.023], [0.011, 0.017, 0.023, 0.028, 0.034, 0.045], [0.023, 0.034, 0.045, 0.057, 0.068, 0.091], [N, 0.051, 0.068, 0.085, 0.102, 0.136]]);
-        tr2x("TR2X_EXT_H", "Extracci\xF3n, lamas H", "retorno", 9, [[6e-3, 9e-3, 0.012, 0.015, 0.018, 0.023], [0.012, 0.018, 0.023, 0.029, 0.035, 0.047], [0.023, 0.035, 0.047, 0.059, 0.07, 0.094], [N, 0.053, 0.07, 0.088, 0.106, 0.141]]);
-        const L8_AE = [150, 200, 300, 400, 500, 600, 700, 800, 900, 1e3, 1100, 1200];
-        const H_AE = [100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600];
-        const AE_FILAS = [
-          [6e-3, 9e-3, 0.014, 0.019, 0.024, 0.029, 0.034, 0.039, 0.044, 0.049, 0.054, 0.059],
-          [0.01, 0.015, 0.023, 0.032, 0.04, 0.049, 0.057, 0.066, 0.074, 0.083, 0.092, 0.1],
-          [N, 0.021, 0.033, 0.045, 0.057, 0.069, 0.081, 0.093, 0.105, 0.117, 0.129, 0.141],
-          [N, N, 0.042, 0.057, 0.073, 0.088, 0.104, 0.12, 0.135, 0.15, 0.166, 0.181],
-          [N, N, 0.052, 0.071, 0.089, 0.108, 0.128, 0.142, 0.165, 0.184, 0.203, 0.222],
-          [N, N, N, 0.084, 0.106, 0.128, 0.151, 0.173, 0.195, 0.217, 0.24, 0.262],
-          [N, N, N, 0.096, 0.122, 0.148, 0.174, 0.2, 0.225, 0.251, 0.277, 0.303],
-          [N, N, N, N, 0.142, 0.168, 0.197, 0.226, 0.256, 0.285, 0.314, 0.343],
-          [N, N, N, N, 0.155, 0.188, 0.229, 0.253, 0.286, 0.319, 0.351, 0.385],
-          [N, N, N, N, N, 0.208, 0.248, 0.28, 0.316, 0.353, 0.388, 0.425],
-          [N, N, N, N, N, 0.227, 0.267, 0.306, 0.346, 0.386, 0.425, 0.464]
-        ];
-        const AP_FILAS = [
-          [4e-3, 5e-3, 7e-3, 0.01, 0.013, 0.019, 0.022, 0.024, 0.024, 0.028, 0.031, 0.034],
-          [6e-3, 8e-3, 0.013, 0.018, 0.023, 0.028, 0.033, 0.038, 0.043, 0.047, 0.052, 0.057],
-          [N, 0.011, 0.019, 0.026, 0.033, 0.04, 0.046, 0.053, 0.059, 0.066, 0.073, 0.082],
-          [N, N, 0.024, 0.032, 0.041, 0.05, 0.058, 0.066, 0.074, 0.083, 0.091, 0.102],
-          [N, N, 0.031, 0.041, 0.053, 0.063, 0.074, 0.084, 0.097, 0.108, 0.119, 0.13],
-          [N, N, N, 0.05, 0.063, 0.076, 0.088, 0.101, 0.113, 0.126, 0.139, 0.155],
-          [N, N, N, 0.058, 0.072, 0.086, 0.101, 0.115, 0.13, 0.148, 0.163, 0.178],
-          [N, N, N, N, 0.086, 0.103, 0.12, 0.137, 0.154, 0.176, 0.193, 0.211],
-          [N, N, N, N, 0.093, 0.113, 0.131, 0.15, 0.169, 0.188, 0.206, 0.225],
-          [N, N, N, N, N, 0.125, 0.146, 0.167, 0.188, 0.209, 0.23, 0.257],
-          [N, N, N, N, N, 0.13, 0.155, 0.178, 0.2, 0.222, 0.244, 0.274]
-        ];
-        tablas.AE = matriz({
-          marca: T2,
-          modelo: "AE",
-          tipoBoca: "rejilla de retorno / extracci\xF3n",
-          circuito: "retorno",
-          fuente: "TROX AE, PD-AE-3 (10/2020), \xABEffective inlet area AE/AEL\xBB",
-          pagina: 3,
-          url: "https://cdn.trox.de/e85109af6cacf67b/3d90d6bd01ba/PD-AE--10-2020-.pdf",
-          largos: L8_AE,
-          altos: H_AE,
-          filas: AE_FILAS,
-          nota: "Para la AE con regulaci\xF3n RC-AE, la ficha manda multiplicar todas las \xE1reas por 0,96."
-        });
-        tablas.AP = matriz({
-          marca: T2,
-          modelo: "AP",
-          tipoBoca: "rejilla de retorno / extracci\xF3n",
-          circuito: "retorno",
-          fuente: "TROX AP, PD-AP-3 (10/2020), \xABEffective inlet area AP/APL\xBB",
-          pagina: 3,
-          url: "https://cdn.trox.de/1f6a3f9e7b48b2cd/52a468d90665/PD-AP--10-2020-.pdf",
-          largos: L8_AE,
-          altos: H_AE,
-          filas: AP_FILAS,
-          nota: "Para la AP con regulaci\xF3n RC-AP, la ficha manda multiplicar todas las \xE1reas por 0,95."
-        });
-        ponTipo("trox-ae-ret", { marca: T2, modelo: "AE (rejilla de extracci\xF3n)", variante: "Extracci\xF3n \xB7 lamas fijas", nombre: "TROX AE \xB7 extracci\xF3n", circuito: "retorno", tabla: "AE", tipoBoca: "rejilla de retorno / extracci\xF3n" });
-        ponTipo("trox-ap-ret", { marca: T2, modelo: "AP (rejilla de retorno perforada)", variante: "Retorno \xB7 n\xFAcleo perforado", nombre: "TROX AP \xB7 retorno", circuito: "retorno", tabla: "AP", tipoBoca: "rejilla de retorno / extracci\xF3n" });
-        const difusor = (id, o, tamanos, valores, tipoId, tipo) => {
-          tablas[id] = lista({ marca: T2, tipoBoca: tipo.tipoBoca, circuito: "impulsion", tamanos, valores, ...o });
-          for (const [circuito, , nombreC, corto] of [["impulsion", "IMP", "impulsi\xF3n", "imp"], ["retorno", "EXT", "extracci\xF3n", "ext"]]) {
-            ponTipo(`${tipoId}-${corto}`, { marca: T2, modelo: tipo.modelo, variante: `${tipo.variante} \xB7 ${nombreC}`, nombre: `TROX ${tipo.nombre} \xB7 ${nombreC}`, circuito, tabla: id, tipoBoca: tipo.tipoBoca });
-          }
-        };
-        difusor("ADLQ", {
-          modelo: "ADLQ",
-          fuente: "TROX DLQ (02/2015, K1-1.4-39) y ADLQ, tabla de dimensiones (Aeff)",
-          pagina: 8,
-          url: "https://cdn.trox.de/18f187a9530f54a4/1819cee40332/DLQ--EN-.pdf",
-          nota: "Mismos valores en la ficha del ADLQ (https://cdn.trox.de/cf7d698fe4d477fd/ec5301891888/00261620_0.pdf)."
-        }, ["250", "300", "400", "500", "600", "625"], [95e-4, 0.0175, 0.037, 0.0675, 0.11, 0.123], "trox-adlq", { modelo: "ADLQ / DLQ (rotacional cuadrado)", variante: "Cuadrado", nombre: "ADLQ", tipoBoca: "difusor rotacional de techo" });
-        const ADLR = {
-          fuente: "TROX ADLR / ADLR-Q, \xABDimensions and weight\xBB, Aeff (2015)",
-          url: "https://cdn.trox.de/e3a4d348bdba225b/9c169ef4b577/2_16_adlr_adlr_q.pdf"
-        };
-        difusor("ADLR", { modelo: "ADLR", ...ADLR, pagina: 11 }, ["1", "2", "3", "4", "5", "6", "7", "8"], [66e-4, 0.0161, 0.0257, 0.0349, 0.0473, 0.0544, 0.0691, 0.0843], "trox-adlr", { modelo: "ADLR (rotacional circular)", variante: "Circular", nombre: "ADLR", tipoBoca: "difusor rotacional de techo" });
-        difusor("ADLR_Q", { modelo: "ADLR-Q", ...ADLR, pagina: 16, nota: "Mismo Aeff que el ADLR para el mismo tama\xF1o nominal (\u2026 \xD7 1 a \u2026 \xD7 8)." }, ["1", "2", "3", "4", "5", "6", "7", "8"], [66e-4, 0.0161, 0.0257, 0.0349, 0.0473, 0.0544, 0.0691, 0.0843], "trox-adlr-q", { modelo: "ADLR-Q (rotacional cuadrado)", variante: "Cuadrado", nombre: "ADLR-Q", tipoBoca: "difusor rotacional de techo" });
-        const TDV = { fuente: "TROX TDV-SilentAIR, \xABProduct details\xBB, Aeff", pagina: 17, url: "https://cdn.trox.de/a745226cd7f1d9a2/a72868883aef/TDV_2026_03_19_DE_en.pdf" };
-        difusor("TDV_Q", { modelo: "TDV-Q", ...TDV }, ["300", "400", "500", "600", "625"], [0.012, 0.021, 0.031, 0.044, 0.044], "trox-tdv-q", { modelo: "TDV-SilentAIR (cuadrado)", variante: "TDV-Q", nombre: "TDV-Q", tipoBoca: "difusor rotacional de techo" });
-        difusor("TDV_R", { modelo: "TDV-R", ...TDV }, ["300", "400", "500", "600", "625"], [0.012, 0.021, 0.031, 0.044, 0.044], "trox-tdv-r", { modelo: "TDV-SilentAIR (circular)", variante: "TDV-R", nombre: "TDV-R", tipoBoca: "difusor rotacional de techo" });
-        const TDF = { url: "https://cdn.trox.de/8ac3b4826391b810/b03445b03588/TDF-SilentAIR_PD_2026_06_09_DE_en.pdf" };
-        difusor("TDF_Q", { modelo: "TDF-Q", ...TDF, fuente: "TROX TDF-SilentAIR (PD-06/2026), TDF-Q, Aeff", pagina: 16, nota: "El mismo Aeff vale para las tres cotas \u25A1Q1 de cada tama\xF1o nominal." }, ["300", "400", "500", "600", "625"], [0.0108, 0.0193, 0.028, 0.04, 0.04], "trox-tdf-q", { modelo: "TDF-SilentAIR (cuadrado)", variante: "TDF-Q", nombre: "TDF-Q", tipoBoca: "difusor rotacional de techo" });
-        difusor("TDF_R", { modelo: "TDF-R", ...TDF, fuente: "TROX TDF-SilentAIR (PD-06/2026), TDF-R, Aeff", pagina: 17 }, ["300", "400", "500", "600", "625"], [88e-4, 0.018, 0.0251, 0.0295, 0.0295], "trox-tdf-r", { modelo: "TDF-SilentAIR (circular)", variante: "TDF-R", nombre: "TDF-R", tipoBoca: "difusor rotacional de techo" });
-        difusor("VD", { modelo: "VD", fuente: "TROX VD (02/2017), PD-VD-13: Aeff con descarga horizontal en torbellino", pagina: 13, url: "https://cdn.trox.de/d77ca5b7a0a7fd65/8d19263ac5ae/VD_PD_2026_03_19_DE_en.pdf", nota: "La ficha da adem\xE1s el Aeff con descarga vertical: 425 \u2192 0,0781; 600 \u2192 0,1819; 775 \u2192 0,3405; 1050 \u2192 0,6358." }, ["425", "600", "775", "1050"], [0.0307, 0.0685, 0.1242, 0.2247], "trox-vd", { modelo: "VD (rotacional de techo)", variante: "Descarga horizontal", nombre: "VD", tipoBoca: "difusor rotacional de techo" });
-        difusor("VDL", { modelo: "VDL", fuente: "TROX VDL (04/2019), PD-VDL-16, VDL-A / VDL-B", pagina: 16, url: "https://cdn.trox.de/a7196dc3aea3dd80/c11ef504831f/VDL_PD_2026_03_DE_en.pdf" }, ["315", "400", "630", "800"], [0.022, 0.031, 0.077, 0.106], "trox-vdl", { modelo: "VDL (rotacional de techo, grandes alturas)", variante: "VDL-A / VDL-B", nombre: "VDL", tipoBoca: "difusor rotacional de techo" });
-        const RFD_URL = "https://cdn.trox.de/3085ddeaf6f4fbdc/558f270067bb/Celing-swirl-diffusers-type-RFD.pdf";
-        const RFD_T = ["125", "160", "200", "250", "315", "400"];
-        difusor("RFD_K", { modelo: "RFD-K", fuente: "TROX RFD (02/2017), PD-RFD-22, RFD-Q-K / RFD-R-K", pagina: 22, url: RFD_URL }, RFD_T, [26e-4, 37e-4, 66e-4, 0.011, 0.0205, 0.028], "trox-rfd-k", { modelo: "RFD (rotacional con ranuras)", variante: "RFD-K (Q y R)", nombre: "RFD-K", tipoBoca: "difusor rotacional de techo" });
-        difusor("RFD_D_K", { modelo: "RFD-D-K", fuente: "TROX RFD (02/2017), PD-RFD-22, RFD-Q-D-K / RFD-R-D-K", pagina: 22, url: RFD_URL }, RFD_T, [34e-4, 6e-3, 92e-4, 0.015, 0.0265, 0.0355], "trox-rfd-dk", { modelo: "RFD (rotacional con ranuras)", variante: "RFD-D-K (Q y R)", nombre: "RFD-D-K", tipoBoca: "difusor rotacional de techo" });
-        const vsd = (id, o, largos, valores, tipoId, tipo, circuitos) => {
-          tablas[id] = lista({ marca: T2, tipoBoca: "difusor lineal de ranuras", circuito: "impulsion", tamanos: largos.map(String), valores, ...o });
-          for (const [circuito, corto, nombreC] of circuitos || [["impulsion", "imp", "impulsi\xF3n"]]) {
-            ponTipo(`${tipoId}-${corto}`, { marca: T2, modelo: tipo.modelo, variante: `${tipo.variante} \xB7 ${nombreC}`, nombre: `TROX ${tipo.nombre} \xB7 ${nombreC}`, circuito, tabla: id, tipoBoca: "difusor lineal de ranuras" });
-          }
-        };
-        const LV = [900, 1050, 1200, 1350, 1500];
-        const VSD35 = {
-          1: [[53e-4, 61e-4, 7e-3, 79e-4, 88e-4], [58e-4, 68e-4, 78e-4, 88e-4, 97e-4]],
-          2: [[0.0105, 0.0123, 0.014, 0.0158, 0.0175], [0.0117, 0.0136, 0.0156, 0.0175, 0.0194]],
-          3: [[0.0158, 0.0184, 0.021, 0.0237, 0.0263], [0.0175, 0.0204, 0.0233, 0.0262, 0.0292]],
-          4: [[0.021, 0.0245, 0.028, 0.0315, 0.035], [0.0233, 0.0272, 0.0311, 0.035, 0.0389]]
-        };
-        for (const n of [1, 2, 3, 4]) {
-          const base = { url: "https://cdn.trox.de/352f65431db9b817/455c7754e42d/TL_K1_2_1_04_VSD35_Varyset_DE_en.pdf", pagina: 11 };
-          vsd(
-            `VSD35_${n}`,
-            { modelo: `VSD35-${n}`, ...base, fuente: "TROX VSD35 Varyset (08/2015, K1-2.1-76), Aeff: descarga horizontal en un sentido y alternada horizontal", nota: "Longitud nominal en mm." },
-            LV,
-            VSD35[n][0],
-            `trox-vsd35-${n}-h`,
-            { modelo: `VSD35 (lineal de techo, ${n} ranura${n > 1 ? "s" : ""})`, variante: "Descarga horizontal", nombre: `VSD35-${n} horizontal` }
-          );
-          vsd(
-            `VSD35_${n}_WS`,
-            { modelo: `VSD35-${n}`, ...base, fuente: "TROX VSD35 Varyset (08/2015, K1-2.1-76), Aeff WS: descarga alternada inclinada", nota: "Longitud nominal en mm." },
-            LV,
-            VSD35[n][1],
-            `trox-vsd35-${n}-ws`,
-            { modelo: `VSD35 (lineal de techo, ${n} ranura${n > 1 ? "s" : ""})`, variante: "Descarga alternada inclinada (WS)", nombre: `VSD35-${n} inclinada (WS)` }
-          );
-        }
-        vsd(
-          "VSD35_3_AZ",
-          { modelo: "VSD35-3-AZ", fuente: "TROX VSD35-3-AZ (03/2017), PD-VSDAZ-16, Aeff: impulsi\xF3n inclinada en un sentido", pagina: 16, url: "https://cdn.trox.de/56e801096c23b97d/6c900f4843b4/VSD-35-3-AZ_PD_03_2017_DE_en.pdf", nota: "Longitud nominal en mm." },
-          [600, 750, 900, 1050, 1200],
-          [39e-4, 49e-4, 58e-4, 68e-4, 78e-4],
-          "trox-vsd35-3-az",
-          { modelo: "VSD35-3-AZ (lineal de pared)", variante: "Inclinada en un sentido", nombre: "VSD35-3-AZ" }
-        );
-        vsd(
-          "VSD50_1_LT",
-          { modelo: "VSD50-1-LT", fuente: "TROX VSD50-1-LT (06/2019), PD p. 13, Aeff", pagina: 13, url: "https://cdn.trox.de/e343de0da770c86f/6db42746093a/PD_2019_06_VSD50-1-LT_DE_en.pdf", nota: "Longitud nominal en mm. Solo se leen los dos tama\xF1os que dan valor en la ficha." },
-          [550, 1175],
-          [55e-4, 0.0118],
-          "trox-vsd50-1-lt",
-          { modelo: "VSD50-1-LT (lineal)", variante: "1 ranura", nombre: "VSD50-1-LT" }
-        );
-        const LB = "Lindab";
-        const NOTA_LB = "Lindab publica \xABFree area\xBB (\xE1rea libre, geom\xE9trica): se guarda como Ageo y NO se usa sola para el caudal. El Ak lo da el factor K1/K2/K3 de la propia ficha para su f\xF3rmula de selecci\xF3n, no un \xE1rea efectiva.";
-        const libre = (id, modelo, tipoBoca, tamanos, valores, fuente, pagina, url, circuito, variante) => {
-          tablas[id] = lista({ marca: LB, modelo, tipoBoca, circuito, magnitud: "Ageo", fuente, pagina, url, tamanos, valores, nota: NOTA_LB, metodo: "\xC1rea libre geom\xE9trica (Free area A), sin medida de caudal asociada: no sirve sola para Q = v \xD7 Ak." });
-          ponTipo(`lindab-${id.toLowerCase().replace(/_/g, "-")}`, { marca: LB, modelo, variante, nombre: `Lindab ${modelo} \xB7 ${variante}`, circuito, tabla: id, tipoBoca });
-        };
-        libre("PKAL", "PKAL (difusor de conos de techo)", "difusor de conos", ["125", "160", "200", "250"], [0.018, 0.023, 0.03, 0.043], "Lindab PKAL, hoja t\xE9cnica (Free area A)", 2, "https://www.lindab.com/globalassets/commerce/lindabwebproductsdoc/assets/production/nzdmyzdimzktnjnkmc00y2y3ltlkmtqtzgyynmm1nzjin2ew/5250385343615801170/pkal_global.pdf", "impulsion", "Impulsi\xF3n \xB7 \xD8d");
-        libre("PKA", "PKA (difusor de conos de techo)", "difusor de conos", ["125", "160", "200", "250", "315", "400"], [0.018, 0.023, 0.03, 0.043, 0.057, 0.075], "Lindab PKA, hoja t\xE9cnica (Free area A)", 2, "https://www.lindab.com/globalassets/commerce/lindabwebproductsdoc/assets/production/zgnlngi5zwytowm2nc00nte1lthmotmtnjuzmmzkzdc2ngy0/5250388152490838115/pka_global.pdf", "impulsion", "Impulsi\xF3n \xB7 \xD8d");
-        libre("LAD", "LAD (tobera de largo alcance)", "tobera", ["125", "160", "200", "250", "315", "400"], [29e-4, 71e-4, 95e-4, 0.0165, 0.0254, 0.0398], "Lindab LAD, hoja t\xE9cnica (Free area A)", 2, "https://www.lindab.com/globalassets/commerce/lindabwebproductsdoc/assets/production/nzm0odq3mtmtyjvlmc00y2vilwezodatnzvimdblmzzkywvk/5250167802524849262/lad_global.pdf", "impulsion", "Impulsi\xF3n \xB7 \xD8d");
-        libre("DAD", "DAD (tobera de largo alcance)", "tobera", ["160", "200", "250", "315"], [56e-4, 95e-4, 0.0154, 0.024], "Lindab LAD/DAD, tabla \xABCalculation factors\xBB (Free area A)", 6, "https://www.lindab.com/globalassets/commerce/lindabwebproductsdoc/assets/production/nzm0odq3mtmtyjvlmc00y2vilwezodatnzvimdblmzzkywvk/5250167802524849262/lad_global.pdf", "impulsion", "Impulsi\xF3n \xB7 \xD8d");
-        libre("FKD_V", "FKD (difusor de techo, descarga vertical)", "difusor rotacional de techo", ["160", "200", "250", "315", "355", "400", "450"], [0.0298, 0.0431, 0.0622, 0.091, 0.1108, 0.1349, 0.1637], "Lindab FKD, hoja t\xE9cnica (Free area A, vertical)", 2, "https://www.lindab.com/globalassets/commerce/lindabwebproductsdoc/assets/production/mjlimdvjmgutzdhjnc00ymq4lthingqtmdk1ogmxzwyyndzk/5250352475662073871/fkd_global.pdf", "impulsion", "Descarga vertical \xB7 \xD8d");
-        libre("FKD_H", "FKD (difusor de techo, descarga horizontal)", "difusor rotacional de techo", ["160", "200", "250", "315", "355", "400", "450"], [0.0304, 0.0456, 0.0684, 0.1041, 0.1293, 0.1606, 0.199], "Lindab FKD, hoja t\xE9cnica (Free area A, horizontal)", 2, "https://www.lindab.com/globalassets/commerce/lindabwebproductsdoc/assets/production/mjlimdvjmgutzdhjnc00ymq4lthingqtmdk1ogmxzwyyndzk/5250352475662073871/fkd_global.pdf", "impulsion", "Descarga horizontal \xB7 \xD8d");
-        const API = { TABLAS: tablas, TIPOS: tipos, MARCAS_CATALOGO: [T2, LB] };
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.CATALOGO_AK = API;
-      })();
-    }
-  });
-
-  // shared/commissioning/factoresKTrox.js
-  var require_factoresKTrox = __commonJS({
-    "shared/commissioning/factoresKTrox.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function() {
-        const FABRICANTE = "TROX";
-        const DOCUMENTO = "Folleto TROX AK-Uni 07/2017 (PD_2017_07_AK-Uni_DE_es.pdf), adjunto al correo de Emilia Hernandez Trimi\xF1o (TROX Espa\xF1a) del 2-nov-2026";
-        const FORMULA = "q = K \xB7 \u221A\u0394p";
-        const TOLERANCIA_M3H = 0.25;
-        const crudas = [];
-        const fila = (plenum, familia, placa, tamanos, circuito, kLs, kM3h, pagina, difusor, extra = {}) => crudas.push({ plenum, familia, placa, tamanos, circuito, kLs, kM3h, pagina, difusor, ...extra });
-        const P4 = "AKUNI-4";
-        [
-          ["AK-Uni-001", ["300 \xD7 8"], 10.3, 36.9, ["300"], [[13.2, 47.7], [10.1, 36.5], [13.2, 47.7]]],
-          ["AK-Uni-002", ["400 \xD7 16"], 19.6, 70.7, ["400"], [[22.8, 82.1], [19.6, 70.7], [22.8, 82.1]]],
-          ["AK-Uni-003", ["500 \xD7 24"], 24.2, 87.1, ["500"], [[27.9, 100.5], [25.8, 92.7], [27.9, 100.5]]],
-          /* FD-Q 600/625 de la 004: el extracto solo trae 125,8 m³/h, sin l/s → no se carga. */
-          ["AK-Uni-004", ["600 \xD7 24", "625 \xD7 24"], 34.9, 125.8, ["600", "625"], [[40.4, 145.5], null, [40.4, 145.5]]]
-        ].forEach(([plenum, tVdw, ls, m3, tRed, [tdv, fd, tdf]]) => {
-          fila(plenum, "VDW", "Q", tVdw, "impulsion", ls, m3, P4, `VDW-Q ${tVdw.join(" / ")}`);
-          if (tdv) fila(plenum, "TDV-SA", "Q", tRed, "impulsion", tdv[0], tdv[1], P4, `TDV-SA-Q ${tRed.join("/")}`);
-          if (fd) fila(plenum, "FD", "Q", tRed, "impulsion", fd[0], fd[1], P4, `FD-Q ${tRed.join("/")}`);
-          if (tdf) fila(plenum, "TDF-SA", "Q", tRed, "impulsion", tdf[0], tdf[1], P4, `TDF-SA-Q ${tRed.join("/")}`);
-        });
-        fila("AK-Uni-005", "VDW", "Q", ["600 \xD7 48"], "impulsion", 43, 154.8, P4, "VDW-Q 600x48");
-        fila("AK-Uni-006", "VDW", "Q", ["625 \xD7 54"], "impulsion", 44.2, 158.9, P4, "VDW-Q 625x54");
-        fila("AK-Uni-007", "VDW", "Q", ["825 \xD7 72"], "impulsion", 72.8, 262.2, P4, "VDW-Q 825x72");
-        const P5 = "AKUNI-5";
-        [
-          ["AK-Uni-013", ["300 \xD7 8"], [9.4, 33.8], ["300"], [[13.2, 47.7], [10.2, 36.5], [13.2, 47.7]]],
-          ["AK-Uni-014", ["400 \xD7 16"], [19.6, 70.7], ["400"], [[22.8, 82.1], [19.6, 70.7], [22.8, 82.1]]],
-          ["AK-Uni-015", ["500 \xD7 24"], [23.1, 83], ["500"], [[27.9, 100.5], [26.2, 94.4], [27.9, 100.5]]],
-          ["AK-Uni-016", ["600 \xD7 24", "625 \xD7 24"], [34.5, 124.3], ["600", "625"], [[40.4, 145.5], [34.5, 124.3], [40.4, 145.5]]]
-        ].forEach(([plenum, tVdw, vdw, tRed, [tdv, fd, tdf]]) => {
-          fila(plenum, "VDW", "R", tVdw, "impulsion", vdw[0], vdw[1], P5, `VDW-R ${tVdw.join(" / ")}`);
-          fila(plenum, "TDV-SA", "R", tRed, "impulsion", tdv[0], tdv[1], P5, `TDV-SA-R ${tRed.join("/")}`);
-          fila(plenum, "FD", "R", tRed, "impulsion", fd[0], fd[1], P5, `FD-R ${tRed.join("/")}`);
-          fila(plenum, "TDF-SA", "R", tRed, "impulsion", tdf[0], tdf[1], P5, `TDF-SA-R ${tRed.join("/")}`);
-        });
-        fila("AK-Uni-017", "VDW", "R", ["600 \xD7 48"], "impulsion", 44, 158.3, P5, "VDW-R 600x48");
-        [
-          ["AK-Uni-028", "125", [3.5, 12.4], [4.7, 17.9]],
-          ["AK-Uni-029", "160", [5.2, 18.7], [7.3, 26.3]],
-          ["AK-Uni-030", "200", [7.1, 25.5], [12.2, 43.9]],
-          ["AK-Uni-031", "250", [12.9, 46.4], [19, 68.4]],
-          ["AK-Uni-032", "315", [22.8, 82], [28.6, 103]],
-          ["AK-Uni-033", "400", [34.5, 124.3], [37.3, 134.4]]
-        ].forEach(([plenum, tam, sin, con]) => {
-          fila(plenum, "RFD", null, [tam], "impulsion", sin[0], sin[1], P5, `RFD ${tam} sin tobera`, { tobera: false });
-          fila(plenum, "RFD", null, [tam], "impulsion", con[0], con[1], P5, `RFD ${tam} con tobera`, { tobera: true });
-        });
-        const P7 = "AKUNI-7";
-        [
-          ["AK-Uni-013", ["300 \xD7 8"], [9.3, 33.6], ["300"], [16.4, 59], [13, 46.7]],
-          ["AK-Uni-014", ["400 \xD7 16"], [17.9, 64.3], ["400"], [28.9, 104.2], [25.2, 90.6]],
-          ["AK-Uni-015", ["500 \xD7 24"], [25.3, 90.9], ["500"], [38.5, 138.7], [38.4, 138.1]],
-          ["AK-Uni-016", ["600 \xD7 24", "625 \xD7 24"], [42.2, 151.9], ["600", "625"], [52.3, 188.2], [57.7, 207.7]]
-        ].forEach(([plenum, tVdw, vdw, tRed, tdv, fd]) => {
-          fila(plenum, "VDW", "R", tVdw, "retorno", vdw[0], vdw[1], P7, `VDW-R ${tVdw.join(" / ")}`);
-          fila(plenum, "TDV", "R", tRed, "retorno", tdv[0], tdv[1], P7, `TDV-R ${tRed.join("/")}`);
-          fila(plenum, "FD", "R", tRed, "retorno", fd[0], fd[1], P7, `FD-R ${tRed.join("/")}`);
-        });
-        fila("AK-Uni-017", "VDW", "R", ["600 \xD7 48"], "retorno", 58.1, 209.1, P7, "VDW-R 600x48");
-        const NO_CARGADOS = [
-          { donde: "AKUNI-6 (entera)", motivo: "El extracto la da a la vez como \xABsegundo juego de impulsi\xF3n\xBB y como retorno de placa cuadrada; sus valores TDV 300 (16,4 / 59,0) coinciden con el retorno de AKUNI-7. Sin el pie de la tabla del PDF no se sabe con certeza si es impulsi\xF3n o retorno: no se carga (falta verificar en el PDF)." },
-          { donde: "AKUNI-4 \xB7 AK-Uni-004 FD-Q 600/625", motivo: "El extracto solo trae 125,8 m\xB3/h, sin el valor en l/s: no se puede comprobar." },
-          { donde: "AKUNI-4/5/6 \xB7 ADD-Q, ADD-R, ADLQ, DLQ, ADLR (AK-Uni-002, 008\u2013011, 019\u2013026)", motivo: "La cabecera agrupa cuatro modelos y las filas traen una o dos columnas: no se sabe a qu\xE9 modelo va cada valor." },
-          { donde: "AKUNI-4/5/7/8 \xB7 \xABotras combinaciones\xBB (conexi\xF3n < y >)", motivo: "Tabla aplanada: no se puede casar con certeza cada valor con su difusor y su conexi\xF3n." },
-          { donde: "Todas las columnas \xAB/0\xBB (placa sin deflectores)", motivo: "En el extracto no queda claro a qu\xE9 difusor corresponde cada \xAB/0\xBB: no se cargan." },
-          { donde: "Rejas de impulsi\xF3n y retorno", motivo: "Pendiente de TROX: no han llegado." }
-        ];
-        const registros = [];
-        for (const c of crudas) {
-          const dif = Math.abs(c.kLs * 3.6 - c.kM3h);
-          if (!(c.kLs > 0 && c.kM3h > 0) || dif > TOLERANCIA_M3H) {
-            NO_CARGADOS.push({ donde: `${c.pagina} \xB7 ${c.plenum} ${c.difusor}`, motivo: `No cuadra consigo misma: ${c.kLs} l/s \xD7 3,6 = ${(c.kLs * 3.6).toFixed(2)} m\xB3/h frente a ${c.kM3h} m\xB3/h del extracto.` });
-            continue;
-          }
-          registros.push(Object.freeze({
-            id: `${c.plenum}|${c.familia}|${c.placa || "-"}|${c.circuito}|${c.tamanos.join("/")}${c.tobera === void 0 ? "" : c.tobera ? "|tobera" : "|sinTobera"}`,
-            plenum: c.plenum,
-            familia: c.familia,
-            placa: c.placa,
-            difusor: c.difusor,
-            tamanos: c.tamanos,
-            circuito: c.circuito,
-            sinDeflectores: false,
-            conexion: null,
-            tobera: c.tobera === void 0 ? null : c.tobera,
-            kLs: c.kLs,
-            kM3h: c.kM3h,
-            magnitud: "K",
-            unidad: "l/s y m\xB3/h por \u221APa",
-            formula: FORMULA,
-            fabricante: FABRICANTE,
-            documento: DOCUMENTO,
-            pagina: c.pagina
-          }));
-        }
-        const POR_TABLA = {
-          VDW_Q: { familia: "VDW", placa: "Q" },
-          VDW_R: { familia: "VDW", placa: "R" },
-          TDV_Q: { familias: ["TDV-SA", "TDV"], placa: "Q" },
-          TDV_R: { familias: ["TDV-SA", "TDV"], placa: "R" },
-          TDF_Q: { familia: "TDF-SA", placa: "Q" },
-          TDF_R: { familia: "TDF-SA", placa: "R" }
-        };
-        const clave = (v) => v === null || v === void 0 ? "" : String(v).toLowerCase().replace(/\s+/g, "").replace(/x/g, "\xD7");
-        function buscar({ tabla = null, tamano = null, largo = null, alto = null, circuito = null } = {}) {
-          const m = POR_TABLA[tabla];
-          if (!m) return [];
-          const familias = m.familias || [m.familia];
-          const k = clave(tamano || (largo && alto ? `${largo}\xD7${alto}` : ""));
-          if (!k) return [];
-          return registros.filter((r) => familias.includes(r.familia) && r.placa === m.placa && (!circuito || r.circuito === circuito) && r.tamanos.some((t) => clave(t) === k));
-        }
-        function caudal(K, dp) {
-          const k = Number(K);
-          const d = Number(dp);
-          if (!(k > 0) || !(d >= 0) || !Number.isFinite(d)) return null;
-          return Math.round(k * Math.sqrt(d) * 10) / 10;
-        }
-        function texto(r) {
-          const n = (v) => String(v.toFixed(1)).replace(".", ",");
-          return `K ${r.plenum}: ${n(r.kM3h)} m\xB3/h (${n(r.kLs)} l/s) \xB7 ${FORMULA}`;
-        }
-        const API = { FABRICANTE, DOCUMENTO, FORMULA, REGISTROS: registros, NO_CARGADOS, POR_TABLA, buscar, caudal, texto };
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.FACTORES_K_TROX = API;
-      })();
-    }
-  });
-
-  // shared/commissioning/difusores.js
-  var require_difusores = __commonJS({
-    "shared/commissioning/difusores.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var MODOS_DIF = {
-        ak: { id: "ak", nombre: "\xC1rea efectiva Ak", unidad: "m\xB2" },
-        k: { id: "k", nombre: "Factor k", unidad: "m\xB3/h por m/s" }
-      };
-      var NOTA_EJEMPLO_DIF = "Valores de ejemplo: comprobar con la ficha del fabricante.";
-      var REGLAS_DIF = typeof __require !== "undefined" ? require_reglasCx() : window.REGLAS_CX;
-      var TOLERANCIA_DEFECTO_DIF = REGLAS_DIF.CRITERIO_JC.total;
-      var TOLERANCIA_BOCA_DEFECTO_DIF = REGLAS_DIF.CRITERIO_JC.boca;
-      var MARCA_EJEMPLO_DIF = "Gen\xE9rico (ejemplo, comprobar)";
-      var TIPOS_DIF = {
-        rotacional600: { marca: MARCA_EJEMPLO_DIF, modelo: "Rotacional", variante: "600\xD7600 (24 ranuras)", nombre: "Difusor rotacional 600\xD7600 (24 ranuras)", circuito: "impulsion", modo: "ak", ak: 0.03, k: null, ejemplo: true },
-        rotacional400: { marca: MARCA_EJEMPLO_DIF, modelo: "Rotacional", variante: "400\xD7400 (16 ranuras)", nombre: "Difusor rotacional 400\xD7400 (16 ranuras)", circuito: "impulsion", modo: "ak", ak: 0.012, k: null, ejemplo: true },
-        cuadrado600: { marca: MARCA_EJEMPLO_DIF, modelo: "Cuadrado multidireccional", variante: "600\xD7600", nombre: "Difusor cuadrado multidireccional 600\xD7600", circuito: "impulsion", modo: "ak", ak: 0.04, k: null, ejemplo: true },
-        circularConos: { marca: MARCA_EJEMPLO_DIF, modelo: "Circular de conos", variante: "\xD8250", nombre: "Difusor circular de conos \xD8250", circuito: "impulsion", modo: "ak", ak: 0.025, k: null, ejemplo: true },
-        lineal2: { marca: MARCA_EJEMPLO_DIF, modelo: "Lineal", variante: "2 ranuras (por metro)", nombre: "Difusor lineal 2 ranuras (por metro)", circuito: "impulsion", modo: "ak", ak: 0.016, k: null, ejemplo: true },
-        rejillaImp: { marca: MARCA_EJEMPLO_DIF, modelo: "Rejilla de impulsi\xF3n", variante: "400\xD7200 doble deflexi\xF3n", nombre: "Rejilla de impulsi\xF3n 400\xD7200 doble deflexi\xF3n", circuito: "impulsion", modo: "ak", ak: 0.056, k: null, ejemplo: true },
-        tobera: { marca: MARCA_EJEMPLO_DIF, modelo: "Tobera de largo alcance", variante: "\xD8160", nombre: "Tobera de largo alcance \xD8160", circuito: "impulsion", modo: "k", ak: null, k: 36, ejemplo: true },
-        rejillaRet: { marca: MARCA_EJEMPLO_DIF, modelo: "Rejilla de retorno", variante: "600\xD7300 lamas fijas", nombre: "Rejilla de retorno 600\xD7300 lamas fijas", circuito: "retorno", modo: "ak", ak: 0.126, k: null, ejemplo: true },
-        bocaExt: { marca: MARCA_EJEMPLO_DIF, modelo: "Boca de extracci\xF3n", variante: "\xD8125 (v\xE1lvula)", nombre: "Boca de extracci\xF3n \xD8125 (v\xE1lvula)", circuito: "retorno", modo: "k", ak: null, k: 25, ejemplo: true },
-        /* Los dos de la hoja «CONVERSION CAUDAL REJAS.xlsx» que decía «con / sin
-           regulador»: sus números son los de la XGM-H-MO de la tabla de selección
-           rápida, pero de IMPULSIÓN (el «con regulador») y de EXTRACCIÓN (el «sin
-           regulador»). Se quedan para los puntos ya puestos; no se ofrecen. */
-        troxXgmReg: { marca: "TROX", modelo: "XGM (hoja antigua)", variante: "H-MO impulsi\xF3n (antes \xABcon regulador\xBB)", nombre: "TROX XGM-H-MO impulsi\xF3n, tabla r\xE1pida (antes \xABcon regulador\xBB)", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "XGM_REG", oculto: true },
-        troxXgm: { marca: "TROX", modelo: "XGM (hoja antigua)", variante: "H-MO extracci\xF3n (antes \xABsin regulador\xBB)", nombre: "TROX XGM-H-MO extracci\xF3n, tabla r\xE1pida (antes \xABsin regulador\xBB)", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "XGM", oculto: true },
-        troxWg: { marca: "TROX", modelo: "WG", variante: "Rejilla", nombre: "TROX WG", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "WG" },
-        troxTr2: { marca: "TROX", modelo: "TR2", variante: "Sin regulador", nombre: "TROX TR2 sin regulador", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "TR2" },
-        propioImp: { marca: "Otro", modelo: "Factor a mano", variante: "Impulsi\xF3n", nombre: "Otro de impulsi\xF3n (factor a mano)", circuito: "impulsion", modo: "ak", ak: null, k: null, propio: true },
-        propioRet: { marca: "Otro", modelo: "Factor a mano", variante: "Retorno", nombre: "Otro de retorno (factor a mano)", circuito: "retorno", modo: "ak", ak: null, k: null, propio: true },
-        /* La reja rectangular de un punto único de medida (Pitch 01 y 02: «se mide
-           en un único punto, con una reja rectangular»). Sin tamaño conocido, el Ak
-           se pone a mano o se mide con balómetro: nada de un Ak de ejemplo. */
-        rejillaRectImp: { marca: "Otro", modelo: "Reja rectangular", variante: "Impulsi\xF3n \xB7 Ak a mano", nombre: "Reja rectangular de impulsi\xF3n (Ak a mano)", circuito: "impulsion", modo: "ak", ak: null, k: null, propio: true },
-        rejillaRectRet: { marca: "Otro", modelo: "Reja rectangular", variante: "Retorno \xB7 Ak a mano", nombre: "Reja rectangular de retorno (Ak a mano)", circuito: "retorno", modo: "ak", ak: null, k: null, propio: true }
-      };
-      var TIPO_DEFECTO_DIF = "rotacional600";
-      var CIRCUITOS_DIF = [["impulsion", "IMP", "impulsi\xF3n", "imp"], ["retorno", "EXT", "extracci\xF3n", "ext"]];
-      var VARIANTES_XGM_DIF = [
-        ["H-MO", "Lamas horizontales m\xF3viles (H-MO)"],
-        ["V-MO", "Lamas verticales m\xF3viles (V-MO)"],
-        ["H-F0", "Lamas horizontales fijas 0\xB0 (H-F0)"],
-        ["H-F15", "Lamas horizontales fijas 15\xB0 (H-F15)"],
-        ["H-P0", "Lamas horizontales fijas 0\xB0, paso 16,7 (H-P0)"],
-        ["H-P15", "Lamas horizontales fijas 15\xB0, paso 16,7 (H-P15)"],
-        ["V-F0", "Lamas verticales fijas 0\xB0 (V-F0)"],
-        ["V-F15", "Lamas verticales fijas 15\xB0 (V-F15)"],
-        ["V-P0", "Lamas verticales fijas 0\xB0, paso 16,7 (V-P0)"],
-        ["V-P15", "Lamas verticales fijas 15\xB0, paso 16,7 (V-P15)"],
-        ["H-F45", "Lamas horizontales fijas 45\xB0 (H-F45)"],
-        ["V-F45", "Lamas verticales fijas 45\xB0 (V-F45)"]
-      ];
-      var ADJUNTOS_DIF = "correo del 13-oct-2026";
-      var FICHA_XGM_DIF = "XGM_PD_2026_09_02_DE_es.pdf (TROX X-GRILLE modular, PD-07/2026)";
-      var RAPIDA_XGM_DIF = "TABLA SELECCION RAPIDA XGM.pdf (TROX)";
-      var FICHA_VDW_DIF = "PD_2019_01_VDW_DE_es.pdf (TROX VDW, PD 01/2019)";
-      var FICHA_PL35_DIF = "PURELINE35_PD_2026_06_29_DE_es.pdf (TROX PL35, PD-06/2026)";
-      var FICHA_PL50_DIF = "PURELINE50_PD_2026_06_29_DE_es.pdf (TROX PL50, PD-06/2026)";
-      var HOJA_OBRA_DIF = "CONVERSION CAUDAL REJAS.xlsx (Drive de la obra, feb. 2026)";
-      var FUENTE_TABLAS_DIF = `TROX: fichas de producto y tablas de selecci\xF3n r\xE1pida (${ADJUNTOS_DIF}); WG y TR2 de \xABCONVERSION CAUDAL REJAS.xlsx\xBB`;
-      var FUENTE_PL_AK_DIF = "TROX \u2014 correo de Emilia Hernandez Trimi\xF1o (TROX Espa\xF1a), 2-nov-2026, imagen \xAB\xC1REAS EFECTIVAS DIFUSORES LINEALES METRO LINEAL\xBB";
-      var AK_METRO_PL_DIF = {
-        PL35: [6636e-6, 0.0132, 0.0198, 0.0265],
-        PL50: [98e-4, 0.01945, 0.0292, 0.0389]
-      };
-      var NOTA_PL_DIF = "Sin Ak: medir con bal\xF3metro. Las fichas de TROX de la PureLine (PD de 33 p\xE1gs. y selecci\xF3n r\xE1pida) no dan \xE1rea efectiva ni geom\xE9trica; si TROX lo da, se pone a mano.";
-      var AVISO_SIN_AK_DIF = "sin Ak: medir con bal\xF3metro";
-      var LN_PL_DIF = [600, 750, 900, 1050, 1200, 1350, 1500, 1650, 1800, 1950];
-      var TAMANOS_VDW_DIF = ["300 \xD7 8", "400 \xD7 16", "500 \xD7 24", "600 \xD7 24", "600 \xD7 48", "625 \xD7 24", "625 \xD7 54", "825 \xD7 72"];
-      var TABLAS_DIF = {
-        WG: {
-          fuente: HOJA_OBRA_DIF,
-          pagina: null,
-          magnitud: "Aeff",
-          nota: "Sin ficha de TROX en los adjuntos: comprobar con la ficha del fabricante.",
-          largos: [200, 400, 600, 800, 1e3, 1200, 1400, 1600, 1800, 2e3, 2200],
-          altos: [165, 330, 495, 660, 825, 990, 1155, 1320, 1485, 1650, 1815, 1980, 2145],
-          filas: [
-            [84e-4, 0.0169, 0.0253, 0.0338, 0.0422, 0.0506, 0.0591, 0.0675, 0.076, 0.0844, 0.0929],
-            [0.0253, 0.0506, 0.076, 0.1013, 0.1266, 0.1519, 0.1773, 0.2026, 0.2279, 0.2532, 0.2786],
-            [0.0422, 0.0844, 0.1266, 0.1688, 0.211, 0.2532, 0.2955, 0.3377, 0.3799, 0.4221, 0.4643],
-            [0.0591, 0.1182, 0.1773, 0.2364, 0.2955, 0.3545, 0.4136, 0.4727, 0.5318, 0.5909, 0.65],
-            [0.076, 0.1519, 0.2279, 0.3039, 0.3799, 0.4558, 0.5318, 0.6078, 0.6838, 0.7597, 0.8357],
-            [0.0929, 0.1857, 0.2786, 0.3714, 0.4643, 0.5571, 0.65, 0.7429, 0.8357, 0.9286, 1.0214],
-            [0.1097, 0.2195, 0.3292, 0.439, 0.5487, 0.6584, 0.7682, 0.8779, 0.9877, 1.0974, 1.2072],
-            [0.1266, 0.2532, 0.3799, 0.5065, 0.6331, 0.7597, 0.8864, 1.013, 1.1396, 1.2662, 1.3929],
-            [0.1435, 0.287, 0.4305, 0.574, 0.7175, 0.861, 1.0046, 1.1481, 1.2916, 1.4351, 1.5786],
-            [0.1604, 0.3208, 0.4812, 0.6416, 0.802, 0.9623, 1.1227, 1.2831, 1.4435, 1.6039, 1.7643],
-            [0.1773, 0.3545, 0.5318, 0.7091, 0.8864, 1.0636, 1.2409, 1.4182, 1.5955, 1.7727, 1.95],
-            [0.1942, 0.3883, 0.5825, 0.7766, 0.9708, 1.1649, 1.3591, 1.5533, 1.7474, 1.9416, 2.0387],
-            [0.211, 0.4221, 0.6331, 0.8442, 1.0552, 1.2662, 1.4773, 1.6883, 1.8994, 2.0049, 2.2159]
-          ]
-        },
-        XGM_REG: {
-          fuente: RAPIDA_XGM_DIF,
-          pagina: 1,
-          magnitud: "Aeff",
-          nota: "XGM-H-MO, \xE1rea efectiva para IMPULSI\xD3N (la hoja de la obra la llamaba \xABcon regulador\xBB).",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.015, 0.022, 0.029, 0.036, 0.043, 0.057, 0.07, 0.084],
-            [0.019, 0.028, 0.037, 0.046, 0.055, 0.073, 0.092, 0.11],
-            [0.027, 0.04, 0.053, 0.066, 0.079, 0.105, 0.131, 0.157],
-            [null, 0.059, 0.078, 0.097, 0.116, 0.154, 0.192, 0.23],
-            [null, null, 0.103, 0.127, 0.152, 0.202, 0.252, 0.302],
-            [null, null, null, 0.158, 0.189, 0.25, 0.313, 0.375]
-          ]
-        },
-        XGM: {
-          fuente: RAPIDA_XGM_DIF,
-          pagina: 1,
-          magnitud: "Aeff",
-          nota: "XGM-H-MO, \xE1rea efectiva para EXTRACCI\xD3N (la hoja de la obra la llamaba \xABsin regulador\xBB).",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.019, 0.028, 0.037, 0.045, 0.054, 0.072, 0.089, 0.107],
-            [0.027, 0.04, 0.053, 0.065, 0.077, 0.103, 0.127, 0.153],
-            [0.035, 0.051, 0.068, 0.084, 0.1, 0.133, 0.165, 0.198],
-            [null, 0.075, 0.098, 0.122, 0.146, 0.194, 0.241, 0.289],
-            [null, null, 0.13, 0.16, 0.192, 0.254, 0.317, 0.38],
-            [null, null, null, 0.198, 0.237, 0.314, 0.393, 0.471]
-          ]
-        },
-        TR2: {
-          fuente: HOJA_OBRA_DIF,
-          pagina: null,
-          magnitud: "Aeff",
-          nota: "Sin ficha de TROX en los adjuntos: comprobar con la ficha del fabricante.",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 225, 325, 425, 525],
-          filas: [
-            [8e-3, 0.012, 0.016, 0.02, 0.024, 0.032, 0.04, 0.048, 0.056, 0.064, 0.072, 0.08],
-            [0.016, 0.024, 0.032, 0.04, 0.048, 0.064, 0.08, 0.096, 0.112, 0.128, 0.144, 0.16],
-            [0.032, 0.048, 0.064, 0.08, 0.096, 0.128, 0.16, 0.192, 0.224, 0.256, 0.288, 0.319],
-            [null, 0.072, 0.096, 0.12, 0.144, 0.192, 0.24, 0.288, 0.335, 0.383, 0.431, 0.479],
-            [null, null, null, null, null, 0.256, 0.319, 0.383, 0.447, 0.511, 0.575, 0.639],
-            [null, null, null, null, null, null, 0.399, 0.479, 0.559, 0.639, 0.719, 0.799]
-          ]
-        },
-        XGM_H_F0_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 10,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [8e-3, 0.011, 0.015, 0.019, 0.022, 0.029, 0.036, 0.043, 0.05, 0.058, 0.065, 0.072],
-            [0.014, 0.021, 0.027, 0.034, 0.04, 0.053, 0.066, 0.079, 0.093, 0.106, 0.119, 0.132],
-            [0.019, 0.028, 0.037, 0.046, 0.055, 0.072, 0.09, 0.108, 0.126, 0.144, 0.162, 0.18],
-            [0.026, 0.039, 0.051, 0.064, 0.076, 0.101, 0.126, 0.152, 0.177, 0.202, 0.227, 0.252],
-            [null, 0.057, 0.076, 0.094, 0.113, 0.15, 0.187, 0.224, 0.261, 0.298, 0.334, 0.371],
-            [null, null, 0.1, 0.124, 0.149, 0.198, 0.247, 0.296, 0.345, 0.393, 0.442, 0.491],
-            [null, null, null, 0.155, 0.185, 0.246, 0.307, 0.368, 0.429, 0.489, 0.55, 0.611]
-          ]
-        },
-        XGM_H_F15_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 10,
-          magnitud: "Aeff",
-          erratas: [{ alto: 165, largo: 625, impreso: 5e-3, porque: "menor que sus vecinos (0,042 y 0,067): errata del PDF; sin valor" }],
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [7e-3, 0.011, 0.014, 0.017, 0.021, 0.027, 0.034, 0.041, 0.047, 0.054, 0.06, 0.067],
-            [0.013, 0.019, 0.025, 0.031, 0.037, 0.049, 0.061, 0.073, 0.086, 0.098, 0.11, 0.122],
-            [0.017, 0.026, 0.034, 0.042, null, 0.067, 0.083, 0.1, 0.116, 0.133, 0.149, 0.166],
-            [0.024, 0.036, 0.047, 0.059, 0.07, 0.093, 0.116, 0.139, 0.162, 0.185, 0.208, 0.231],
-            [null, 0.052, 0.069, 0.086, 0.103, 0.137, 0.171, 0.205, 0.239, 0.273, 0.307, 0.341],
-            [null, null, 0.091, 0.114, 0.136, 0.181, 0.226, 0.271, 0.316, 0.361, 0.406, 0.45],
-            [null, null, null, 0.141, 0.169, 0.225, 0.281, 0.337, 0.393, 0.448, 0.504, 0.56]
-          ]
-        },
-        XGM_H_F0_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 10,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.011, 0.015, 0.02, 0.025, 0.03, 0.039, 0.049, 0.059, 0.068, 0.078, 0.087, 0.097],
-            [0.019, 0.027, 0.036, 0.045, 0.053, 0.07, 0.088, 0.105, 0.122, 0.139, 0.156, 0.174],
-            [0.027, 0.039, 0.052, 0.065, 0.077, 0.101, 0.127, 0.151, 0.176, 0.201, 0.226, 0.251],
-            [0.035, 0.051, 0.067, 0.084, 0.1, 0.132, 0.165, 0.197, 0.23, 0.262, 0.295, 0.327],
-            [null, 0.075, 0.099, 0.122, 0.146, 0.194, 0.242, 0.29, 0.337, 0.385, 0.433, 0.481],
-            [null, null, 0.13, 0.16, 0.193, 0.256, 0.319, 0.382, 0.445, 0.508, 0.571, 0.634],
-            [null, null, null, 0.198, 0.239, 0.317, 0.396, 0.474, 0.553, 0.631, 0.709, 0.788]
-          ]
-        },
-        XGM_H_F15_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 10,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.011, 0.016, 0.02, 0.025, 0.03, 0.04, 0.05, 0.059, 0.069, 0.079, 0.088, 0.098],
-            [0.019, 0.027, 0.036, 0.044, 0.053, 0.07, 0.087, 0.105, 0.122, 0.139, 0.156, 0.173],
-            [0.027, 0.039, 0.052, 0.064, 0.076, 0.101, 0.125, 0.15, 0.175, 0.2, 0.224, 0.249],
-            [0.034, 0.051, 0.067, 0.083, 0.099, 0.131, 0.163, 0.195, 0.228, 0.26, 0.292, 0.324],
-            [null, 0.074, 0.097, 0.121, 0.145, 0.192, 0.239, 0.286, 0.333, 0.38, 0.428, 0.475],
-            [null, null, 0.128, 0.158, 0.19, 0.252, 0.315, 0.377, 0.439, 0.501, 0.563, 0.625],
-            [null, null, null, 0.195, 0.235, 0.312, 0.39, 0.468, 0.545, 0.622, 0.699, 0.776]
-          ]
-        },
-        XGM_H_P0_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 11,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.01, 0.014, 0.018, 0.023, 0.027, 0.036, 0.044, 0.053, 0.062, 0.07, 0.079, 0.088],
-            [0.016, 0.023, 0.031, 0.038, 0.045, 0.06, 0.074, 0.089, 0.104, 0.118, 0.133, 0.148],
-            [0.021, 0.031, 0.04, 0.05, 0.06, 0.079, 0.099, 0.118, 0.138, 0.156, 0.176, 0.196],
-            [0.028, 0.042, 0.055, 0.068, 0.081, 0.108, 0.135, 0.161, 0.188, 0.214, 0.241, 0.267],
-            [null, 0.06, 0.079, 0.098, 0.118, 0.156, 0.195, 0.233, 0.272, 0.31, 0.349, 0.387],
-            [null, null, 0.103, 0.129, 0.154, 0.204, 0.255, 0.305, 0.356, 0.406, 0.456, 0.507],
-            [null, null, null, 0.159, 0.19, 0.253, 0.315, 0.377, 0.44, 0.502, 0.564, 0.627]
-          ]
-        },
-        XGM_H_P15_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 11,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.01, 0.014, 0.018, 0.022, 0.027, 0.035, 0.044, 0.052, 0.061, 0.07, 0.078, 0.087],
-            [0.015, 0.023, 0.03, 0.037, 0.044, 0.058, 0.072, 0.086, 0.101, 0.115, 0.129, 0.143],
-            [0.02, 0.029, 0.039, 0.048, 0.057, 0.076, 0.095, 0.113, 0.132, 0.151, 0.169, 0.188],
-            [0.027, 0.04, 0.053, 0.065, 0.078, 0.103, 0.129, 0.154, 0.18, 0.205, 0.231, 0.256],
-            [null, 0.057, 0.075, 0.094, 0.112, 0.149, 0.186, 0.222, 0.259, 0.296, 0.333, 0.369],
-            [null, null, 0.098, 0.122, 0.146, 0.194, 0.242, 0.29, 0.338, 0.386, 0.434, 0.482],
-            [null, null, null, 0.151, 0.18, 0.239, 0.299, 0.358, 0.418, 0.477, 0.536, 0.595]
-          ]
-        },
-        XGM_H_P0_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 11,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.012, 0.017, 0.023, 0.028, 0.033, 0.044, 0.054, 0.065, 0.076, 0.086, 0.097, 0.108],
-            [0.02, 0.029, 0.037, 0.046, 0.055, 0.073, 0.091, 0.109, 0.127, 0.145, 0.163, 0.181],
-            [0.028, 0.04, 0.052, 0.065, 0.078, 0.103, 0.128, 0.153, 0.178, 0.204, 0.229, 0.254],
-            [0.035, 0.051, 0.067, 0.084, 0.1, 0.132, 0.165, 0.197, 0.229, 0.262, 0.294, 0.327],
-            [null, 0.074, 0.097, 0.121, 0.144, 0.191, 0.238, 0.285, 0.332, 0.379, 0.426, 0.473],
-            [null, null, 0.126, 0.159, 0.189, 0.25, 0.312, 0.373, 0.434, 0.496, 0.557, 0.619],
-            [null, null, null, 0.196, 0.233, 0.31, 0.385, 0.461, 0.537, 0.613, 0.689, 0.765]
-          ]
-        },
-        XGM_H_P15_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 11,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.012, 0.018, 0.023, 0.028, 0.034, 0.045, 0.056, 0.066, 0.077, 0.088, 0.099, 0.11],
-            [0.02, 0.029, 0.038, 0.047, 0.056, 0.074, 0.092, 0.11, 0.128, 0.146, 0.164, 0.182],
-            [0.028, 0.04, 0.053, 0.065, 0.078, 0.103, 0.128, 0.154, 0.179, 0.204, 0.229, 0.254],
-            [0.035, 0.051, 0.067, 0.083, 0.1, 0.132, 0.164, 0.197, 0.229, 0.261, 0.294, 0.326],
-            [null, 0.073, 0.097, 0.12, 0.143, 0.19, 0.237, 0.283, 0.33, 0.377, 0.424, 0.47],
-            [null, null, 0.127, 0.156, 0.187, 0.248, 0.309, 0.37, 0.431, 0.492, 0.553, 0.614],
-            [null, null, null, 0.193, 0.231, 0.306, 0.382, 0.457, 0.532, 0.608, 0.683, 0.759]
-          ]
-        },
-        XGM_V_F0_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 12,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.014, 0.02, 0.027, 0.034, 0.04, 0.053, 0.066, 0.079],
-            [0.019, 0.028, 0.037, 0.046, 0.055, 0.072, 0.09, 0.108],
-            [null, 0.039, 0.051, 0.064, 0.076, 0.101, 0.126, 0.151],
-            [null, null, 0.076, 0.094, 0.113, 0.15, 0.187, 0.223],
-            [null, null, null, 0.124, 0.149, 0.198, 0.246, 0.295],
-            [null, null, null, null, 0.185, 0.246, 0.306, 0.368]
-          ]
-        },
-        XGM_V_F15_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 12,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.013, 0.019, 0.025, 0.031, 0.037, 0.049, 0.061, 0.073],
-            [0.017, 0.026, 0.034, 0.042, 0.05, 0.067, 0.083, 0.1],
-            [null, 0.036, 0.047, 0.059, 0.07, 0.093, 0.116, 0.139],
-            [null, null, 0.069, 0.086, 0.103, 0.137, 0.171, 0.205],
-            [null, null, null, 0.114, 0.136, 0.181, 0.226, 0.271],
-            [null, null, null, null, 0.169, 0.225, 0.28, 0.337]
-          ]
-        },
-        XGM_V_F0_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 12,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.019, 0.026, 0.036, 0.044, 0.053, 0.07, 0.088, 0.105],
-            [0.025, 0.036, 0.048, 0.06, 0.072, 0.095, 0.119, 0.141],
-            [null, 0.051, 0.067, 0.084, 0.1, 0.132, 0.166, 0.196],
-            [null, null, 0.098, 0.122, 0.145, 0.193, 0.241, 0.289],
-            [null, null, null, 0.16, 0.193, 0.255, 0.318, 0.381],
-            [null, null, null, null, 0.239, 0.317, 0.395, 0.474]
-          ]
-        },
-        XGM_V_F15_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 12,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.019, 0.027, 0.036, 0.044, 0.053, 0.07, 0.087, 0.106],
-            [0.026, 0.038, 0.051, 0.063, 0.075, 0.1, 0.125, 0.149],
-            [null, 0.05, 0.067, 0.082, 0.099, 0.131, 0.163, 0.195],
-            [null, null, 0.097, 0.121, 0.145, 0.192, 0.239, 0.286],
-            [null, null, null, 0.158, 0.19, 0.252, 0.315, 0.377],
-            [null, null, null, null, 0.235, 0.312, 0.389, 0.467]
-          ]
-        },
-        XGM_V_P0_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 13,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.016, 0.023, 0.03, 0.038, 0.045, 0.06, 0.074, 0.089],
-            [0.021, 0.03, 0.04, 0.05, 0.06, 0.079, 0.098, 0.118],
-            [null, 0.041, 0.055, 0.068, 0.081, 0.108, 0.134, 0.161],
-            [null, null, 0.079, 0.098, 0.118, 0.156, 0.194, 0.233],
-            [null, null, null, 0.129, 0.154, 0.204, 0.255, 0.305],
-            [null, null, null, null, 0.19, 0.252, 0.315, 0.377]
-          ]
-        },
-        XGM_V_P15_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 13,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.015, 0.022, 0.03, 0.037, 0.044, 0.058, 0.072, 0.086],
-            [0.02, 0.029, 0.039, 0.048, 0.057, 0.076, 0.095, 0.114],
-            [null, 0.04, 0.052, 0.065, 0.078, 0.103, 0.129, 0.154],
-            [null, null, 0.075, 0.094, 0.112, 0.149, 0.185, 0.222],
-            [null, null, null, 0.122, 0.146, 0.194, 0.242, 0.29],
-            [null, null, null, null, 0.18, 0.239, 0.299, 0.358]
-          ]
-        },
-        XGM_V_P0_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 13,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.02, 0.029, 0.036, 0.046, 0.055, 0.073, 0.091, 0.109],
-            [0.027, 0.04, 0.052, 0.065, 0.078, 0.103, 0.128, 0.153],
-            [null, 0.05, 0.067, 0.084, 0.1, 0.132, 0.164, 0.197],
-            [null, null, 0.097, 0.121, 0.144, 0.191, 0.237, 0.285],
-            [null, null, null, 0.159, 0.189, 0.25, 0.312, 0.373],
-            [null, null, null, null, 0.233, 0.31, 0.385, 0.461]
-          ]
-        },
-        XGM_V_P15_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 13,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.022, 0.032, 0.043, 0.052, 0.063, 0.083, 0.103, 0.124],
-            [0.03, 0.045, 0.059, 0.072, 0.087, 0.114, 0.142, 0.17],
-            [null, 0.056, 0.075, 0.092, 0.11, 0.145, 0.181, 0.216],
-            [null, null, 0.106, 0.132, 0.158, 0.208, 0.259, 0.31],
-            [null, null, null, 0.17, 0.204, 0.27, 0.337, 0.403],
-            [null, null, null, null, 0.25, 0.332, 0.414, 0.497]
-          ]
-        },
-        XGM_H_MO_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 14,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.015, 0.022, 0.029, 0.036, 0.043, 0.057, 0.07, 0.084],
-            [0.02, 0.029, 0.039, 0.048, 0.057, 0.076, 0.094, 0.113],
-            [0.027, 0.04, 0.053, 0.066, 0.079, 0.105, 0.131, 0.157],
-            [null, 0.059, 0.078, 0.097, 0.116, 0.154, 0.192, 0.23],
-            [null, null, 0.102, 0.127, 0.152, 0.202, 0.252, 0.302],
-            [null, null, null, 0.158, 0.189, 0.251, 0.313, 0.375]
-          ]
-        },
-        XGM_H_MO_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 14,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.019, 0.028, 0.037, 0.045, 0.054, 0.072, 0.089, 0.107],
-            [0.027, 0.04, 0.053, 0.065, 0.077, 0.103, 0.127, 0.153],
-            [0.035, 0.051, 0.068, 0.084, 0.1, 0.133, 0.165, 0.198],
-            [null, 0.075, 0.098, 0.122, 0.146, 0.194, 0.241, 0.289],
-            [null, null, 0.128, 0.16, 0.192, 0.254, 0.317, 0.38],
-            [null, null, null, 0.197, 0.237, 0.314, 0.393, 0.471]
-          ]
-        },
-        XGM_V_MO_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 15,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.01, 0.014, 0.019, 0.023, 0.027, 0.036, 0.045, 0.053, 0.062, 0.071, 0.08, 0.088],
-            [0.016, 0.024, 0.031, 0.038, 0.046, 0.061, 0.075, 0.09, 0.105, 0.12, 0.135, 0.149],
-            [0.023, 0.033, 0.044, 0.054, 0.065, 0.086, 0.106, 0.127, 0.148, 0.169, 0.19, 0.211],
-            [0.029, 0.042, 0.056, 0.069, 0.083, 0.11, 0.137, 0.164, 0.191, 0.218, 0.245, 0.272],
-            [null, null, 0.081, 0.1, 0.12, 0.159, 0.198, 0.237, 0.276, 0.315, 0.354, 0.394],
-            [null, null, null, 0.131, 0.157, 0.208, 0.259, 0.311, 0.362, 0.413, 0.464, 0.516],
-            [null, null, null, null, 0.194, 0.257, 0.321, 0.384, 0.447, 0.511, 0.574, 0.638]
-          ]
-        },
-        XGM_V_MO_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 15,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.012, 0.017, 0.022, 0.027, 0.032, 0.042, 0.053, 0.063, 0.073, 0.084, 0.094, 0.104],
-            [0.019, 0.028, 0.037, 0.045, 0.054, 0.071, 0.089, 0.106, 0.124, 0.141, 0.159, 0.176],
-            [0.027, 0.039, 0.052, 0.064, 0.076, 0.1, 0.125, 0.15, 0.174, 0.199, 0.224, 0.248],
-            [0.034, 0.05, 0.066, 0.082, 0.098, 0.129, 0.161, 0.193, 0.224, 0.256, 0.288, 0.32],
-            [null, null, 0.095, 0.118, 0.141, 0.187, 0.233, 0.279, 0.325, 0.371, 0.417, 0.463],
-            [null, null, null, 0.155, 0.185, 0.245, 0.305, 0.365, 0.426, 0.486, 0.546, 0.606],
-            [null, null, null, null, 0.228, 0.301, 0.377, 0.452, 0.526, 0.601, 0.675, 0.75]
-          ]
-        },
-        XGM_H_F45_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 16,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.014, 0.023, 0.031, 0.04, 0.048, 0.065, 0.081, 0.098],
-            [0.02, 0.031, 0.043, 0.055, 0.066, 0.089, 0.113, 0.136],
-            [0.028, 0.045, 0.061, 0.077, 0.094, 0.126, 0.159, 0.192],
-            [null, 0.066, 0.091, 0.115, 0.139, 0.188, 0.237, 0.286],
-            [null, null, 0.12, 0.152, 0.185, 0.25, 0.315, 0.379],
-            [null, null, null, 0.188, 0.229, 0.31, 0.392, 0.473]
-          ]
-        },
-        XGM_V_F45_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 16,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [9e-3, 0.015, 0.02, 0.025, 0.03, 0.041, 0.051, 0.06],
-            [0.014, 0.023, 0.031, 0.04, 0.048, 0.065, 0.081, 0.098],
-            [0.02, 0.031, 0.043, 0.055, 0.066, 0.089, 0.113, 0.136],
-            [0.028, 0.045, 0.061, 0.077, 0.094, 0.126, 0.159, 0.192],
-            [null, 0.066, 0.091, 0.115, 0.139, 0.188, 0.237, 0.286],
-            [null, null, 0.12, 0.152, 0.185, 0.25, 0.315, 0.379],
-            [null, null, null, 0.188, 0.229, 0.31, 0.392, 0.473]
-          ]
-        },
-        XGM_P_R_AGEO: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 17,
-          magnitud: "Ageo",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [9e-3, 0.014, 0.018, 0.023, 0.027, 0.036, 0.046, 0.055],
-            [0.013, 0.019, 0.025, 0.032, 0.038, 0.051, 0.064, 0.077],
-            [0.018, 0.027, 0.036, 0.046, 0.055, 0.073, 0.091, 0.11],
-            [null, 0.041, 0.055, 0.068, 0.082, 0.11, 0.137, 0.165],
-            [null, null, 0.073, 0.091, 0.11, 0.146, 0.183, 0.22],
-            [null, null, null, 0.114, 0.137, 0.183, 0.229, 0.275]
-          ]
-        },
-        XGM_P_EG_AGEO: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 17,
-          magnitud: "Ageo",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.018, 0.027, 0.035, 0.044, 0.053, 0.071, 0.089, 0.107],
-            [0.025, 0.037, 0.05, 0.062, 0.075, 0.1, 0.125, 0.15],
-            [0.035, 0.053, 0.071, 0.089, 0.107, 0.143, 0.179, 0.215],
-            [null, 0.08, 0.107, 0.134, 0.161, 0.215, 0.268, 0.322],
-            [null, null, 0.142, 0.178, 0.214, 0.286, 0.358, 0.43],
-            [null, null, null, 0.223, 0.268, 0.358, 0.448, 0.538]
-          ]
-        },
-        /* VDW: «Detalles de producto», Aeff por tamaño (diámetro × nº de ranuras). */
-        VDW_Q: {
-          forma: "lista",
-          fuente: FICHA_VDW_DIF,
-          pagina: 19,
-          magnitud: "Aeff",
-          nota: "La ficha da un \xFAnico Aeff por tama\xF1o, sin distinguir impulsi\xF3n y retorno.",
-          tamanos: TAMANOS_VDW_DIF,
-          valores: [7e-3, 0.014, 0.021, 0.0295, 0.039, 0.0295, 0.047, 0.073]
-        },
-        VDW_R: {
-          forma: "lista",
-          fuente: FICHA_VDW_DIF,
-          pagina: 19,
-          magnitud: "Aeff",
-          nota: "La ficha da un \xFAnico Aeff por tama\xF1o, sin distinguir impulsi\xF3n y retorno. En circular no hay 625 \xD7 54 ni 825 \xD7 72.",
-          tamanos: TAMANOS_VDW_DIF.slice(0, 6),
-          valores: [7e-3, 0.014, 0.021, 0.0295, 0.039, 0.0295]
-        },
-        PL35: {
-          forma: "lista",
-          fuente: FICHA_PL35_DIF,
-          pagina: 8,
-          magnitud: "Aeff",
-          sinAk: true,
-          nota: NOTA_PL_DIF,
-          tamanos: LN_PL_DIF.map(String),
-          valores: LN_PL_DIF.map(() => null)
-        },
-        PL50: {
-          forma: "lista",
-          fuente: FICHA_PL50_DIF,
-          pagina: 7,
-          magnitud: "Aeff",
-          sinAk: true,
-          nota: NOTA_PL_DIF,
-          tamanos: LN_PL_DIF.map(String),
-          valores: LN_PL_DIF.map(() => null)
-        }
-      };
-      for (const [modelo, porMetro] of Object.entries(AK_METRO_PL_DIF)) {
-        porMetro.forEach((akm, i) => {
-          TABLAS_DIF[`${modelo}_${i + 1}`] = {
-            forma: "porMetro",
-            fuente: FUENTE_PL_AK_DIF,
-            pagina: null,
-            magnitud: "Aeff",
-            origen: "fabricante",
-            fabricante: "TROX",
-            unidad: "m\xB2 por metro lineal",
-            akPorMetro: akm,
-            nota: `${modelo}-${i + 1} (${i + 1} v\xEDa${i ? "s" : ""}): ${akm} m\xB2 por metro lineal; Ak = ${akm} \xD7 longitud (m).`,
-            tamanos: LN_PL_DIF.map(String),
-            valores: LN_PL_DIF.map((l) => akPorMetroDif(akm, l))
-          };
-        });
-      }
-      (function tiposTroxDif() {
-        const poner = (id, x) => {
-          if (!TIPOS_DIF[id]) TIPOS_DIF[id] = { marca: "TROX", modo: "ak", ak: null, k: null, ...x };
-        };
-        for (const [codigo, texto] of VARIANTES_XGM_DIF) {
-          for (const [circuito, suf, nombreC, corto] of CIRCUITOS_DIF) {
-            const tabla = `XGM_${codigo.replace("-", "_")}_${suf}`;
-            if (!TABLAS_DIF[tabla]) continue;
-            poner(`trox-xgm-${codigo.toLowerCase()}-${corto}`, { modelo: "XGM (X-GRILLE)", variante: `${texto} \xB7 ${nombreC}`, nombre: `TROX XGM ${codigo} \xB7 ${nombreC}`, circuito, tabla });
-          }
-        }
-        for (const [codigo, texto] of [["P-R", "Frontal perforado circular (P-R)"], ["P-EG", "Frontal perforado celos\xEDa (P-EG)"]]) {
-          for (const [circuito, , nombreC, corto] of CIRCUITOS_DIF) {
-            poner(`trox-xgm-${codigo.toLowerCase()}-${corto}`, { modelo: "XGM (X-GRILLE)", variante: `${texto} \xB7 ${nombreC}`, nombre: `TROX XGM ${codigo} \xB7 ${nombreC}`, circuito, tabla: `XGM_${codigo.replace("-", "_")}_AGEO` });
-          }
-        }
-        for (const [forma, texto] of [["Q", "Cuadrado (VDW-Q)"], ["R", "Circular (VDW-R)"]]) {
-          for (const [circuito, , nombreC, corto] of CIRCUITOS_DIF) {
-            poner(`trox-vdw-${forma.toLowerCase()}-${corto}`, { modelo: "VDW (rotacional)", variante: `${texto} \xB7 ${nombreC}`, nombre: `TROX VDW-${forma} \xB7 ${nombreC}`, circuito, tabla: `VDW_${forma}` });
-          }
-        }
-        for (const modelo of ["PL35", "PL50"]) {
-          for (let n = 1; n <= 4; n++) {
-            for (const [circuito, , nombreC, corto] of CIRCUITOS_DIF) {
-              poner(`trox-${modelo.toLowerCase()}-${n}-${corto}`, { modelo: `${modelo} (PureLine, lineal)`, variante: `${n} ranura${n > 1 ? "s" : ""} \xB7 ${nombreC}`, nombre: `TROX ${modelo}-${n} \xB7 ${nombreC}`, circuito, tabla: `${modelo}_${n}` });
-            }
-          }
-        }
-      })();
-      var CAT_AK_DIF = typeof __require !== "undefined" ? require_catalogoAk() : window.CATALOGO_AK;
-      var FACTORES_K_DIF = typeof __require !== "undefined" ? require_factoresKTrox() : typeof window !== "undefined" ? window.FACTORES_K_TROX : null;
-      function factoresKPuntoDif(p) {
-        const t = tipoDif(p && p.tipo);
-        if (!FACTORES_K_DIF || !t.tabla) return [];
-        return FACTORES_K_DIF.buscar({ tabla: t.tabla, tamano: p.tamano, largo: p.largo, alto: p.alto, circuito: t.circuito });
-      }
-      for (const [id, t] of Object.entries(CAT_AK_DIF.TABLAS)) if (!TABLAS_DIF[id]) TABLAS_DIF[id] = t;
-      for (const [id, t] of Object.entries(CAT_AK_DIF.TIPOS)) if (!TIPOS_DIF[id]) TIPOS_DIF[id] = t;
-      function numDif(v) {
-        if (v === null || v === void 0 || v === "") return null;
-        if (typeof v === "number") return Number.isFinite(v) ? v : null;
-        let t = String(v).trim().replace(/\s/g, "");
-        if (t.includes(",") && t.includes(".")) t = t.replace(/\./g, "");
-        t = t.replace(",", ".");
-        if (!t) return null;
-        const n = Number(t);
-        return Number.isFinite(n) ? n : null;
-      }
-      var redDif = (v, d = 1) => v === null ? null : Math.round(v * 10 ** d) / 10 ** d;
-      var entre01Dif = (v) => {
-        const n = numDif(v);
-        return n === null ? 0.5 : Math.min(1, Math.max(0, n));
-      };
-      function leerVelocidadesDif(texto) {
-        if (texto === null || texto === void 0) return { lecturas: [], media: null };
-        if (typeof texto === "number") return Number.isFinite(texto) && texto >= 0 ? { lecturas: [texto], media: texto } : { lecturas: [], media: null };
-        const trozos = String(texto).split(/[;\s/]+|,(?=\s)|\s*\|\s*/).map((t) => t.trim()).filter(Boolean);
-        const lecturas = trozos.map(numDif).filter((n) => n !== null && n >= 0);
-        if (!lecturas.length) return { lecturas: [], media: null };
-        const media = lecturas.reduce((a, b) => a + b, 0) / lecturas.length;
-        return { lecturas, media: redDif(media, 3) };
-      }
-      function tipoDif(id) {
-        return TIPOS_DIF[id] ? { id, ...TIPOS_DIF[id] } : { id: TIPO_DEFECTO_DIF, ...TIPOS_DIF[TIPO_DEFECTO_DIF] };
-      }
-      var EQUIPOS_MEDIDA_DIF = { anemometro: "Anem\xF3metro", balometro: "Bal\xF3metro" };
-      function equipoMedidaDif(p = {}) {
-        if (EQUIPOS_MEDIDA_DIF[p.equipoMedida]) return p.equipoMedida;
-        if (numDif(p.caudalMedido) !== null) return "balometro";
-        return numDif(p.velocidad) !== null ? "anemometro" : null;
-      }
-      function sinAkDif(p = {}) {
-        const f = factorDif(p);
-        return f.modo === "ak" && f.valor === null;
-      }
-      function equipoPropuestoDif(p = {}) {
-        return equipoMedidaDif(p) || (sinAkDif(p) ? "balometro" : null);
-      }
-      var LECTURAS_DIF = { velocidad: "Velocidad (m/s)", caudal: "Caudal (m\xB3/h)" };
-      function lecturaDif(p = {}) {
-        if (LECTURAS_DIF[p.lectura]) return p.lectura;
-        return numDif(p.caudalMedido) !== null ? "caudal" : "velocidad";
-      }
-      function normalizarPuntoDif(p = {}, indice = 0) {
-        if (!p || typeof p !== "object") p = {};
-        const t = tipoDif(p.tipo);
-        const modo = MODOS_DIF[p.modo] ? p.modo : t.modo;
-        const ak = numDif(p.ak);
-        const k = numDif(p.k);
-        const v = numDif(p.velocidad);
-        const qd = numDif(p.caudalDiseno);
-        const qm = numDif(p.caudalMedido);
-        const tm = numDif(p.temperatura);
-        const tf = numDif(p.tFrio);
-        const tc = numDif(p.tCalor);
-        const grados = (x) => x !== null && x >= -50 && x <= 150 ? Math.round(x * 10) / 10 : null;
-        return {
-          id: String(p.id || `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`),
-          nombre: String(p.nombre || "").trim().slice(0, 40) || `D${indice + 1}`,
-          /* SIN POSICIÓN (30-oct-2026): la boca sale del texto del plano y no hay
-             dibujo; no se pinta sobre ninguna lámina hasta que llega el PDF y se
-             casa por código y caudal. Nunca se le inventa un sitio: x/y = null. */
-          x: p.sinPosicion ? null : entre01Dif(p.x),
-          y: p.sinPosicion ? null : entre01Dif(p.y),
-          sinPosicion: Boolean(p.sinPosicion),
-          /* La sala del plano, si la trae el texto (null = no se sabe). */
-          sala: p.sala ? String(p.sala).trim().slice(0, 40) || null : null,
-          /* A REVISAR: no se puede atribuir con seguridad al equipo (el plano trae
-             otros sistemas). Se enseña con su motivo y no entra en las sumas. */
-          sinAtribuir: p.sinAtribuir ? String(p.sinAtribuir).trim().slice(0, 200) || "a revisar" : null,
-          tipo: t.id,
-          modo,
-          ak: ak !== null && ak > 0 ? ak : null,
-          k: k !== null && k > 0 ? k : null,
-          largo: medidaDif(p.largo),
-          alto: medidaDif(p.alto),
-          tamano: p.tamano === null || p.tamano === void 0 ? null : String(p.tamano).trim().slice(0, 20) || null,
-          lecturas: p.lecturas === null || p.lecturas === void 0 ? "" : String(p.lecturas).slice(0, 120),
-          velocidad: v !== null && v >= 0 ? v : null,
-          /* Con balómetro se lee el caudal directamente (m³/h): manda sobre v × Ak. */
-          caudalMedido: qm !== null && qm >= 0 ? qm : null,
-          /* Con qué se ha medido: 'anemometro' (M1–M4 × Ak) o 'balometro' (caudal
-             leído, sin Ak). null = sin decir: se deduce (con caudal leído, balómetro). */
-          equipoMedida: EQUIPOS_MEDIDA_DIF[p.equipoMedida] ? p.equipoMedida : null,
-          /* Con el anemómetro: qué se apunta ('velocidad' o 'caudal'); null = sin elegir. */
-          lectura: LECTURAS_DIF[p.lectura] ? p.lectura : null,
-          /* Las lecturas de caudal del anemómetro (M1–M4, m³/h); su media es caudalMedido. */
-          lecturasCaudal: p.lecturasCaudal === null || p.lecturasCaudal === void 0 ? "" : String(p.lecturasCaudal).slice(0, 120),
-          caudalDiseno: qd !== null && qd >= 0 ? qd : null,
-          /* La Tª del aire en esa boca, en °C, con una cifra decimal (23-oct-2026,
-             JC: «un campo para apuntar la temperatura en cada difusor»). Solo se
-             apunta y se enseña: no entra en ningún cálculo ni se juzga. */
-          temperatura: grados(tm),
-          /* Tª FRÍO Y Tª CALOR (30-oct-2026, JC): las dos en todas las bocas, sea
-             difusor o reja, de impulsión o de retorno. La `temperatura` de antes se
-             conserva tal cual, como «modo sin indicar»: ni se borra ni se mueve. */
-          tFrio: grados(tf),
-          tCalor: grados(tc),
-          nota: String(p.nota || "").slice(0, 300),
-          /* El modelo de proyecto de la obra del que sale (tipo, tamaño y caudal de proyecto). */
-          modeloId: p.modeloId ? String(p.modeloId).slice(0, 40) : null,
-          /* AÑADIDA EN OBRA (30-oct-2026): la boca que pone JC a mano desde el móvil.
-             Las pasadas automáticas no la borran ni la mueven (bocaManual.js › proteger). */
-          origen: p.origen === "manual" ? "manual" : null,
-          manual: p.origen === "manual" ? manualDif(p.manual) : null,
-          /* MEDIDA EN OBRA (30-oct-2026): si en obra se mide otro tamaño, aquí queda
-             el del rótulo del plano (bocaManual.js › cambiarMedidas); null = el del plano. */
-          medidaPlano: p.medidaPlano && typeof p.medidaPlano === "object" ? { largo: medidaDif(p.medidaPlano.largo), alto: medidaDif(p.medidaPlano.alto), tamano: p.medidaPlano.tamano ? String(p.medidaPlano.tamano).slice(0, 20) : null, tipo: p.medidaPlano.tipo ? String(p.medidaPlano.tipo).slice(0, 60) : null } : null,
-          /* De dónde sale un Ak puesto a mano (ficha, página): sin fuente no se acepta (bocaManual.js › ponerAk). */
-          akFuente: ak !== null && ak > 0 && p.akFuente ? String(p.akFuente).trim().slice(0, 160) || null : null
-        };
-      }
-      function manualDif(m) {
-        if (!m || typeof m !== "object") m = {};
-        const t = (v, n) => String(v === null || v === void 0 ? "" : v).trim().slice(0, n);
-        return {
-          sistema: ["impulsion", "retorno", "extraccion"].includes(m.sistema) ? m.sistema : "impulsion",
-          clase: m.clase === "reja" ? "reja" : "difusor",
-          modelo: t(m.modelo, 40) || null,
-          nota: t(m.nota, 200),
-          fecha: t(m.fecha, 30) || null,
-          autor: t(m.autor, 80) || null,
-          posibleDuplicado: t(m.posibleDuplicado, 200) || null
-        };
-      }
-      function medidaDif(v) {
-        const n = numDif(v);
-        return n !== null && n > 0 ? Math.round(n) : null;
-      }
-      function akPorMetroDif(akm, longitudMm) {
-        const l = Number(longitudMm);
-        return akm > 0 && l > 0 ? Math.round(akm * l / 1e3 * 1e6) / 1e6 : null;
-      }
-      var TOLERANCIA_DISCREPANCIA_AK_DIF = 0.01;
-      var claveTamanoDif = (v) => v === null || v === void 0 ? "" : String(v).toLowerCase().replace(/\s+/g, "").replace(/x/g, "\xD7");
-      function valorTablaDif(tabla, { largo = null, alto = null, tamano = null } = {}) {
-        const t = TABLAS_DIF[tabla];
-        if (!t) return null;
-        let v;
-        if (t.forma === "porMetro") {
-          const l = numDif(tamano) || numDif(largo);
-          v = l ? akPorMetroDif(t.akPorMetro, l) : null;
-        } else if (t.forma === "lista") {
-          const i = t.tamanos.findIndex((x) => claveTamanoDif(x) === claveTamanoDif(tamano));
-          if (i < 0) return null;
-          v = t.valores[i];
-        } else {
-          const c = t.largos.indexOf(medidaDif(largo));
-          const f = t.altos.indexOf(medidaDif(alto));
-          if (c < 0 || f < 0) return null;
-          v = t.filas[f][c];
-        }
-        return typeof v === "number" && v > 0 ? v : null;
-      }
-      function akTablaDif(tabla, largo, alto, tamano = null) {
-        const t = TABLAS_DIF[tabla];
-        if (!t || t.magnitud !== "Aeff") return null;
-        return valorTablaDif(tabla, { largo, alto, tamano });
-      }
-      function ageoTablaDif(tabla, largo, alto, tamano = null) {
-        const t = TABLAS_DIF[tabla];
-        if (!t || t.magnitud !== "Ageo") return null;
-        return valorTablaDif(tabla, { largo, alto, tamano });
-      }
-      function fuenteTablaDif(tabla) {
-        const t = TABLAS_DIF[tabla];
-        if (!t) return null;
-        return `${t.fuente}${t.pagina ? `, p. ${t.pagina}` : ""}`;
-      }
-      function factorDif(p) {
-        const t = tipoDif(p.tipo);
-        const modo = MODOS_DIF[p.modo] ? p.modo : t.modo;
-        if (modo === "k") {
-          const propio2 = numDif(p.k);
-          if (propio2 !== null && propio2 > 0) return { modo, valor: propio2, origen: "punto" };
-          return { modo, valor: t.modo === "k" ? t.k : null, origen: t.modo === "k" && t.k ? "catalogo" : null };
-        }
-        const propio = numDif(p.ak);
-        if (propio !== null && propio > 0) {
-          const deTabla = t.tabla ? akTablaDif(t.tabla, p.largo, p.alto, p.tamano) : null;
-          const discrepa = deTabla !== null && Math.abs(propio - deTabla) / deTabla > TOLERANCIA_DISCREPANCIA_AK_DIF;
-          return { modo, valor: propio, origen: "punto", akTabla: deTabla, discrepanciaAk: discrepa };
-        }
-        if (t.tabla) {
-          const v = akTablaDif(t.tabla, p.largo, p.alto, p.tamano);
-          return { modo, valor: v, origen: v ? "tabla" : null };
-        }
-        if (p.medidaPlano && typeof p.medidaPlano === "object") return { modo, valor: null, origen: null };
-        return { modo, valor: t.modo === "ak" ? t.ak : null, origen: t.modo === "ak" && t.ak ? "catalogo" : null };
-      }
-      var visiblesDif = () => Object.entries(TIPOS_DIF).filter(([, x]) => !x.oculto);
-      var unicosDif = (lista) => [...new Set(lista)];
-      function marcasDif() {
-        const m = unicosDif(visiblesDif().map(([, x]) => x.marca));
-        return m.sort((a, b) => a === "TROX" ? -1 : b === "TROX" ? 1 : 0);
-      }
-      function modelosDif(marca) {
-        return unicosDif(visiblesDif().filter(([, x]) => x.marca === marca).map(([, x]) => x.modelo));
-      }
-      function variantesDif(marca, modelo) {
-        return visiblesDif().filter(([, x]) => x.marca === marca && x.modelo === modelo).map(([id, x]) => ({ id, variante: x.variante, circuito: x.circuito }));
-      }
-      function tamanosDif(tipoId) {
-        const t = TIPOS_DIF[tipoId];
-        const tabla = t && t.tabla ? TABLAS_DIF[t.tabla] : null;
-        if (!tabla) return [];
-        if (tabla.forma === "lista" || tabla.forma === "porMetro") {
-          return tabla.tamanos.map((tam, i) => ({ clave: tam, texto: tabla.sinAk || tabla.forma === "porMetro" ? `LN ${tam}` : tam, tamano: tam, largo: null, alto: null, area: tabla.valores[i] })).filter((x) => tabla.sinAk || typeof x.area === "number" && x.area > 0);
-        }
-        const salida = [];
-        tabla.altos.forEach((h, f) => tabla.largos.forEach((l, c) => {
-          const v = tabla.filas[f][c];
-          if (typeof v === "number" && v > 0) salida.push({ clave: `${l}\xD7${h}`, texto: `${l} \xD7 ${h}`, tamano: null, largo: l, alto: h, area: v });
-        }));
-        return salida.sort((a, b) => a.largo - b.largo || a.alto - b.alto);
-      }
-      function claveTamanoPuntoDif(p) {
-        if (p && p.largo && p.alto) return `${p.largo}\xD7${p.alto}`;
-        return p && p.tamano ? p.tamano : "";
-      }
-      function mismoGrupoAkDif(p, tipo, clave) {
-        return p && p.tipo === tipo && claveTamanoPuntoDif(p) === (clave || "");
-      }
-      function aplicarAkPorGrupoDif(puntos, grupo = {}, ak = null) {
-        const v = numDif(ak);
-        const valor = v !== null && v > 0 ? v : null;
-        return (puntos || []).map((p) => mismoGrupoAkDif(p, grupo.tipo, grupo.clave) && (p.modo || tipoDif(p.tipo).modo) !== "k" ? { ...p, modo: "ak", ak: valor } : p);
-      }
-      function gruposAkDif(puntos) {
-        const m = /* @__PURE__ */ new Map();
-        for (const p of puntos || []) {
-          const clave = claveTamanoPuntoDif(p);
-          const id = `${p.tipo}|${clave}`;
-          const g = m.get(id) || { tipo: p.tipo, clave, tipoNombre: tipoDif(p.tipo).nombre, circuito: tipoDif(p.tipo).circuito, bocas: 0, sinAk: 0, aks: /* @__PURE__ */ new Set() };
-          g.bocas += 1;
-          const f = factorDif(p);
-          if (f.modo === "ak" && f.valor === null) g.sinAk += 1;
-          else if (f.modo === "ak") g.aks.add(f.valor);
-          m.set(id, g);
-        }
-        return [...m.values()].map((g) => ({ ...g, ak: g.aks.size === 1 ? [...g.aks][0] : null, aks: void 0 }));
-      }
-      function caudalDif({ velocidad, modo = "ak", ak = null, k = null } = {}) {
-        const v = numDif(velocidad);
-        if (v === null || v < 0) return null;
-        if (modo === "k") {
-          const f = numDif(k);
-          return f === null || f <= 0 ? null : redDif(f * v, 1);
-        }
-        const a = numDif(ak);
-        return a === null || a <= 0 ? null : redDif(v * a * 3600, 1);
-      }
-      function desviacionDif(medido, diseno) {
-        const d = REGLAS_DIF.desviacion(numDif(medido), numDif(diseno));
-        return d === null ? null : redDif(d, 4);
-      }
-      function juicioDif(desv, tol) {
-        const ok = REGLAS_DIF.dentro(desv, tol);
-        if (ok === null) return null;
-        return ok ? "dentro" : desv > 0 ? "alto" : "bajo";
-      }
-      function toleranciasDif(t = {}) {
-        const r = REGLAS_DIF.toleranciasAplicadas(t || {});
-        return { total: r.total, boca: r.boca, totalPorDefecto: Boolean(r.totalPorDefecto), bocaPorDefecto: Boolean(r.bocaPorDefecto) };
-      }
-      function evaluarPuntoDif(p, tolBoca = TOLERANCIA_BOCA_DEFECTO_DIF) {
-        const t = tipoDif(p.tipo);
-        const f = factorDif(p);
-        const equipo = equipoMedidaDif(p);
-        const lectura = equipo === "anemometro" ? lecturaDif(p) : null;
-        const qLeido = numDif(p.caudalMedido) !== null;
-        const directo = equipo === "balometro" || lectura === "caudal" || equipo !== "anemometro" && qLeido;
-        const caudal = directo ? qLeido ? redDif(numDif(p.caudalMedido), 1) : null : f.valor === null ? null : caudalDif({ velocidad: p.velocidad, modo: f.modo, ak: f.modo === "ak" ? f.valor : null, k: f.modo === "k" ? f.valor : null });
-        const desv = desviacionDif(caudal, p.caudalDiseno);
-        let estado;
-        if (directo ? !qLeido : numDif(p.velocidad) === null) estado = "sinMedir";
-        else if (!directo && f.valor === null) estado = "sinFactor";
-        else if (numDif(p.caudalDiseno) === null) estado = "medido";
-        else if (directo && REGLAS_DIF.veredicto({ medido: caudal, referencia: p.caudalDiseno, limite: tolBoca, revisado: Boolean(p.revisado) }) === "aRevisar") estado = "aRevisar";
-        else estado = juicioDif(desv, tolBoca);
-        return {
-          ...p,
-          circuito: t.circuito,
-          tipoNombre: t.nombre,
-          factor: f.valor,
-          modoFactor: f.modo,
-          origenFactor: f.origen,
-          /* Ak a mano frente al de la tabla: los dos se guardan; nada se sobrescribe. */
-          akTabla: f.akTabla === void 0 ? null : f.akTabla,
-          discrepanciaAk: Boolean(f.discrepanciaAk),
-          /* Los K del plenum AK-Uni (q = K·√Δp), si el fabricante los da: solo informan. */
-          factoresK: factoresKPuntoDif(p),
-          caudal,
-          /* El equipo con que se mide (el elegido o el deducido). */
-          equipoMedida: equipo,
-          /* Cómo sale el caudal: 'balometro' / 'directo' (caudal leído), 'anemometro' (v × factor) o null. */
-          metodo: estado === "sinMedir" ? null : equipo === "balometro" ? "balometro" : directo ? "directo" : "anemometro",
-          /* Con el anemómetro: 'velocidad' o 'caudal' (lo que se apunta en M1–M4). */
-          lectura,
-          lecturasLista: leerVelocidadesDif(p.lecturas).lecturas,
-          lecturasCaudalLista: leerVelocidadesDif(p.lecturasCaudal).lecturas,
-          desviacion: desv,
-          estado,
-          /* Sin Ak: el aviso y el aparato que se propone (no cambia lo medido). */
-          sinAk: f.modo === "ak" && f.valor === null,
-          avisoSinAk: f.modo === "ak" && f.valor === null ? AVISO_SIN_AK_DIF : null,
-          equipoPropuesto: equipo || (f.modo === "ak" && f.valor === null ? "balometro" : null)
-        };
-      }
-      function resumenDif({ puntos = [], diseno = {}, tolerancias = {} } = {}) {
-        const tol = toleranciasDif(tolerancias);
-        const filas = puntos.map((p, i) => evaluarPuntoDif(normalizarPuntoDif(p, i), tol.boca));
-        const circuitos = {};
-        for (const id of ["impulsion", "retorno"]) {
-          const suyos = filas.filter((f) => f.circuito === id && !f.sinAtribuir);
-          const conCaudal = suyos.filter((f) => f.caudal !== null);
-          const suma = conCaudal.length ? redDif(conCaudal.reduce((a, f) => a + f.caudal, 0), 1) : null;
-          const disenoPuntos = suyos.every((f) => numDif(f.caudalDiseno) !== null) && suyos.length ? redDif(suyos.reduce((a, f) => a + numDif(f.caudalDiseno), 0), 1) : null;
-          const disenoEquipo = numDif(diseno && diseno[id]);
-          const medidasN = suyos.filter((f) => f.estado !== "sinMedir").length;
-          const faltan = suyos.length - medidasN;
-          const sinCaudal = suyos.length - conCaudal.length;
-          const completo = suyos.length > 0 && sinCaudal === 0;
-          const disenoReferencia = disenoPuntos !== null ? disenoPuntos : disenoEquipo;
-          const desv = completo ? desviacionDif(suma, disenoReferencia) : null;
-          let estado;
-          if (!suyos.length) estado = "sinPuntos";
-          else if (!completo) estado = "incompleto";
-          else if (disenoReferencia === null) estado = "sinDiseno";
-          else estado = juicioDif(desv, tol.total);
-          circuitos[id] = {
-            id,
-            puntos: suyos.length,
-            medidos: medidasN,
-            faltan,
-            sinAk: suyos.filter((f) => f.estado === "sinFactor").length,
-            suma,
-            disenoEquipo,
-            disenoPuntos,
-            /* Contra qué se juzga el total: 'bocas' (lo normal) o 'equipo'. */
-            disenoReferencia,
-            referencia: disenoReferencia === null ? null : disenoPuntos !== null ? "bocas" : "equipo",
-            desviacion: desv,
-            /* El caudal del equipo, solo de referencia. */
-            desviacionEquipo: completo ? desviacionDif(suma, disenoEquipo) : null,
-            estado,
-            dentro: suyos.filter((f) => f.estado === "dentro").length,
-            fuera: suyos.filter((f) => f.estado === "alto" || f.estado === "bajo").length,
-            aRevisar: filas.filter((f) => f.circuito === id && f.sinAtribuir).length,
-            /* Lo de proyecto de las «a revisar» (fuera de la suma): para decir cuánto queda fuera. */
-            disenoRevisar: (() => {
-              const r = filas.filter((f) => f.circuito === id && f.sinAtribuir && numDif(f.caudalDiseno) !== null);
-              return r.length ? redDif(r.reduce((a, f) => a + numDif(f.caudalDiseno), 0), 1) : null;
-            })(),
-            /* «Tª frío 0/11 · Tª calor 0/11»: una boca está completa con caudal y las dos Tª. */
-            tFrio: suyos.filter((f) => f.tFrio !== null).length,
-            tCalor: suyos.filter((f) => f.tCalor !== null).length,
-            completas: suyos.filter((f) => bocaCompletaDif(f)).length
-          };
-        }
-        return { filas, circuitos, tolerancias: tol, sinPosicion: filas.filter((f) => f.sinPosicion).length, aRevisar: filas.filter((f) => f.sinAtribuir).length };
-      }
-      function bocaCompletaDif(f = {}) {
-        const medida = f.caudal !== null && f.caudal !== void 0 ? true : f.estado === "sinFactor";
-        return Boolean(medida) && numDif(f.tFrio) !== null && numDif(f.tCalor) !== null;
-      }
-      function textoTemperaturasDif(c = {}) {
-        const n = c.puntos || 0;
-        return `T\xAA fr\xEDo ${c.tFrio || 0}/${n} \xB7 T\xAA calor ${c.tCalor || 0}/${n}`;
-      }
-      function siguienteNombreDif(puntos = [], circuito = "impulsion") {
-        const letra = circuito === "retorno" ? "R" : "D";
-        const re = new RegExp(`^${letra}(\\d+)$`);
-        const max = puntos.reduce((m, p) => {
-          const r = re.exec(String(p.nombre || ""));
-          return r ? Math.max(m, Number(r[1])) : m;
-        }, 0);
-        return `${letra}${max + 1}`;
-      }
-      function normalizarModeloProyectoDif(m = {}, indice = 0) {
-        if (!m || typeof m !== "object") m = {};
-        const t = tipoDif(m.tipo);
-        const qp = numDif(m.caudalProyecto);
-        return {
-          id: String(m.id || `m${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`).slice(0, 40),
-          ref: String(m.ref || "").trim().slice(0, 30) || `${t.circuito === "retorno" ? "R" : "D"}-${String(indice + 1).padStart(2, "0")}`,
-          tipo: t.id,
-          largo: medidaDif(m.largo),
-          alto: medidaDif(m.alto),
-          tamano: m.tamano === null || m.tamano === void 0 ? null : String(m.tamano).trim().slice(0, 20) || null,
-          /* Ak a mano: para las tablas que no lo dan (PureLine) o un modelo sin tabla. */
-          ak: numDif(m.ak) !== null && numDif(m.ak) > 0 ? numDif(m.ak) : null,
-          caudalProyecto: qp !== null && qp >= 0 ? qp : null,
-          nota: String(m.nota || "").slice(0, 200),
-          /* De dónde sale: 'presupuesto', 'cambio aprobado' o 'manual' (y la partida que lo dio). */
-          origen: ["presupuesto", "cambio aprobado", "manual"].includes(m.origen) ? m.origen : "manual",
-          partida: m.partida && typeof m.partida === "object" ? { codigo: String(m.partida.codigo || "").slice(0, 40), resumen: String(m.partida.resumen || "").slice(0, 200) } : null
-        };
-      }
-      function normalizarModelosProyectoDif(lista) {
-        const vistos = /* @__PURE__ */ new Set();
-        const salida = [];
-        for (const m of Array.isArray(lista) ? lista.slice(0, 200) : []) {
-          if (!m || typeof m !== "object") continue;
-          const n = normalizarModeloProyectoDif(m, salida.length);
-          if (vistos.has(n.id)) continue;
-          vistos.add(n.id);
-          salida.push(n);
-        }
-        return salida;
-      }
-      function camposModeloDif(m) {
-        const t = tipoDif(m.tipo);
-        return {
-          tipo: m.tipo,
-          modo: t.modo === "k" ? "k" : "ak",
-          ak: m.ak,
-          k: null,
-          largo: m.largo,
-          alto: m.alto,
-          tamano: m.tamano,
-          caudalDiseno: m.caudalProyecto
-        };
-      }
-      function evaluarModeloDif(m) {
-        const t = tipoDif(m.tipo);
-        const f = factorDif({ ...normalizarPuntoDif(camposModeloDif(m)) });
-        return {
-          ...m,
-          circuito: t.circuito,
-          tipoNombre: t.nombre,
-          marca: t.marca,
-          modelo: t.modelo,
-          variante: t.variante,
-          factor: f.valor,
-          modoFactor: f.modo,
-          origenFactor: f.origen,
-          akTabla: f.akTabla === void 0 ? null : f.akTabla,
-          discrepanciaAk: Boolean(f.discrepanciaAk),
-          fuente: t.tabla ? fuenteTablaDif(t.tabla) : null,
-          ejemplo: Boolean(t.ejemplo)
-        };
-      }
-      function normalizarAsignacionDif(lista, modelos = null) {
-        const ids = modelos ? new Set(modelos.map((m) => m.id)) : null;
-        const vistos = /* @__PURE__ */ new Set();
-        const salida = [];
-        for (const a of Array.isArray(lista) ? lista : []) {
-          if (!a || typeof a !== "object" || !a.modeloId) continue;
-          const id = String(a.modeloId);
-          if (vistos.has(id) || ids && !ids.has(id)) continue;
-          const n = Math.round(numDif(a.cantidad) || 0);
-          if (n <= 0) continue;
-          vistos.add(id);
-          salida.push({ modeloId: id, cantidad: Math.min(200, n) });
-        }
-        return salida;
-      }
-      function aplicarModelosDif(puntos, modelos) {
-        const porId = new Map((modelos || []).map((m) => [m.id, m]));
-        return (puntos || []).map((p, i) => {
-          const m = p.modeloId ? porId.get(p.modeloId) : null;
-          return m ? normalizarPuntoDif({ ...p, ...camposModeloDif(m) }, i) : p;
-        });
-      }
-      function generarBocasDif(asignacion, modelos, existentes = []) {
-        const porId = new Map((modelos || []).map((m) => [m.id, m]));
-        const todas = [...existentes];
-        const nuevas = [];
-        const sobran = [];
-        for (const a of normalizarAsignacionDif(asignacion, modelos)) {
-          const m = porId.get(a.modeloId);
-          const tiene = existentes.filter((p) => p.modeloId === m.id).length;
-          if (tiene > a.cantidad) sobran.push({ modeloId: m.id, ref: m.ref, sobran: tiene - a.cantidad });
-          for (let i = tiene; i < a.cantidad; i++) {
-            const circuito = tipoDif(m.tipo).circuito;
-            const p = normalizarPuntoDif({ ...camposModeloDif(m), modeloId: m.id, nombre: siguienteNombreDif(todas, circuito) }, todas.length);
-            todas.push(p);
-            nuevas.push(p);
-          }
-        }
-        const asignados = new Set(normalizarAsignacionDif(asignacion, modelos).map((a) => a.modeloId));
-        for (const m of modelos || []) {
-          const tiene = existentes.filter((p) => p.modeloId === m.id).length;
-          if (tiene && !asignados.has(m.id)) sobran.push({ modeloId: m.id, ref: m.ref, sobran: tiene });
-        }
-        return { nuevas, sobran };
-      }
-      function colocarEnListaDif(puntos) {
-        return puntos.map((p, i) => ({ ...p, x: 0.05 + 0.1 * (i % 10), y: Math.min(0.95, 0.08 + 0.12 * Math.floor(i / 10)) }));
-      }
-      function normalizarPuntosDif(lista) {
-        const vistos = /* @__PURE__ */ new Set();
-        const salida = [];
-        for (const p of Array.isArray(lista) ? lista.slice(0, 400) : []) {
-          if (!p || typeof p !== "object") continue;
-          const n = normalizarPuntoDif(p, salida.length);
-          if (vistos.has(n.id)) continue;
-          vistos.add(n.id);
-          salida.push(n);
-        }
-        return salida;
-      }
-      var ETIQUETA_DIF = /^(DIF|DF|DL|DR|D|RJ|RE|RR|RT|RA|RI|RET|EXT|IMP|R)[-_. ]?(\d{1,3}[A-Z]?)$/i;
-      var RETORNO_DIF = /^(RJ|RE|RR|RT|RA|RI|RET|EXT|R)$/i;
-      var CAUDAL_DIF = /(\d{1,3}(?:\.\d{3})*(?:,\d+)?|\d+(?:[.,]\d+)?)\s*m\s*(?:3|³)\s*\/\s*h/i;
-      var CAUDAL_Q_DIF = /\bQ\s*[=:]\s*(\d+(?:[.,]\d+)?)/i;
-      var RADIO_DIF = 0.06;
-      var CODIGO_CAD_DIF = /^(DR|DL|DF|DIF|RR|RJ|RT|RA|RI|RET|EXT|IMP|RE)_(\d{1,2})_([0-9A-Z]{3,5})$/i;
-      var RETORNO_CAD_DIF = /^(RR|RJ|RT|RA|RI|RET|EXT)$/i;
-      var OTRO_SISTEMA_DIF = /\bVI-N\d+|\bELECT-/i;
-      var RADIO_OTRO_DIF = 0.09;
-      var RADIO_EXTERIOR_DIF = 0.12;
-      var CORTE_DIF = /(^|[_\s])(section|secci[oó]n|corte)([_\s]|\d|$)/i;
-      var CORTE_IZQ_DIF = 0.065;
-      var CORTE_DER_DIF = 0.1;
-      var CORTE_ALTO_DIF = 0.22;
-      function recuentoTablaDif(textos) {
-        const lista = (Array.isArray(textos) ? textos : []).map((t) => ({ x: Number(t && t.x), y: Number(t && t.y), t: String(t && t.texto || "").trim() })).filter((t) => Number.isFinite(t.x) && Number.isFinite(t.y) && t.t);
-        const enteros = lista.filter((t) => /^\d{1,3}$/.test(t.t));
-        const filas = [];
-        for (const c of lista) {
-          if (!CODIGO_CAD_DIF.test(c.t)) continue;
-          const n = enteros.filter((e) => e.x > c.x && e.x - c.x < 0.5 && Math.abs(e.y - c.y) < 4e-3).sort((p, q) => p.x - q.x)[0];
-          if (n) filas.push({ codigo: c.t.toUpperCase(), x: c.x, xn: n.x, n: Number(n.t) });
-        }
-        const salida = {};
-        for (const f of filas) {
-          const columna = filas.filter((g) => Math.abs(g.x - f.x) < 4e-3 && Math.abs(g.xn - f.xn) < 4e-3);
-          if (new Set(columna.map((g) => g.codigo)).size >= 2 && salida[f.codigo] === void 0) salida[f.codigo] = f.n;
-        }
-        return salida;
-      }
-      function numeroCaudalDif(t) {
-        const m = CAUDAL_DIF.exec(t) || CAUDAL_Q_DIF.exec(t);
-        if (!m) return null;
-        const crudo = m[1].replace(/\s/g, "");
-        const n = /^\d{1,3}(\.\d{3})+$/.test(crudo) ? Number(crudo.replace(/\./g, "")) : Number(crudo.replace(",", "."));
-        return Number.isFinite(n) && n > 0 && n < 1e5 ? n : null;
-      }
-      function reconocerBocasDif(textos, { modelos = [], existentes = [], recuento = null, excluir = [], sinTabla = false } = {}) {
-        const avisos = [];
-        const descartadas = [];
-        const exteriores = [];
-        const otros = [];
-        const cortes = [];
-        const fuera = new Set((excluir || []).map((r) => String(r).toUpperCase()));
-        const tabla = sinTabla ? {} : { ...recuentoTablaDif(textos), ...recuento || {} };
-        const porRef = new Map((modelos || []).map((m) => [String(m.ref || "").replace(/[\s_.-]/g, "").toUpperCase(), m]));
-        const etiquetas = [];
-        const caudales = [];
-        for (const t of Array.isArray(textos) ? textos : []) {
-          const x = Number(t && t.x);
-          const y = Number(t && t.y);
-          if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 1 || y < 0 || y > 1) continue;
-          const texto = String(t.texto || "").trim();
-          if (!texto) continue;
-          const q = numeroCaudalDif(texto);
-          if (q !== null) caudales.push({ x, y, q, usado: false });
-          if (OTRO_SISTEMA_DIF.test(texto)) otros.push({ x, y });
-          if (CORTE_DIF.test(texto)) cortes.push({ x, y });
-          const trozos = texto.split(/[\s;,()[\]]+/).filter(Boolean);
-          for (let i = 0; i < trozos.length; i++) {
-            const cad = CODIGO_CAD_DIF.exec(trozos[i]);
-            if (cad) {
-              const pref = cad[1].toUpperCase();
-              const codigo = trozos[i].toUpperCase();
-              if (pref === "RE") {
-                exteriores.push({ x, y });
-                break;
-              }
-              const modelo = porRef.get(codigo.replace(/[\s_.-]/g, "")) || null;
-              etiquetas.push({ x, y, ref: codigo, modelo, retorno: modelo ? tipoDif(modelo.tipo).circuito === "retorno" : RETORNO_CAD_DIF.test(pref), q, lineal: pref === "DL", cad: true });
-              break;
-            }
-            const hit = [trozos[i], trozos[i + 1] ? `${trozos[i]} ${trozos[i + 1]}` : null].filter(Boolean).map((limpio) => {
-              const modelo = porRef.get(limpio.replace(/[\s_.-]/g, "").toUpperCase()) || null;
-              const m = ETIQUETA_DIF.exec(limpio);
-              return modelo || m ? { limpio, modelo, m } : null;
-            }).find(Boolean);
-            if (!hit) continue;
-            const retorno = hit.modelo ? tipoDif(hit.modelo.tipo).circuito === "retorno" : RETORNO_DIF.test(hit.m[1]);
-            etiquetas.push({ x, y, ref: hit.limpio, modelo: hit.modelo, retorno, q });
-            break;
-          }
-        }
-        const enCorte = (e) => e.cad && cortes.some((c) => e.x >= c.x - CORTE_IZQ_DIF && e.x <= c.x + CORTE_DER_DIF && e.y < c.y && c.y - e.y <= CORTE_ALTO_DIF);
-        for (const e of etiquetas.filter(enCorte)) descartadas.push({ ref: e.ref, x: e.x, y: e.y, motivo: "r\xF3tulo de un corte (secci\xF3n), no del plano" });
-        etiquetas.splice(0, etiquetas.length, ...etiquetas.filter((e) => !enCorte(e)));
-        const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-        const pares = [];
-        etiquetas.forEach((e, i) => {
-          if (e.q === null) caudales.forEach((c, j) => {
-            const d = dist(e, c);
-            if (d <= RADIO_DIF) pares.push({ i, j, d });
-          });
-        });
-        pares.sort((a, b) => a.d - b.d);
-        const conCaudal = /* @__PURE__ */ new Set();
-        for (const p of pares) {
-          if (conCaudal.has(p.i) || caudales[p.j].usado) continue;
-          etiquetas[p.i].q = caudales[p.j].q;
-          caudales[p.j].usado = true;
-          conCaudal.add(p.i);
-          const e = etiquetas[p.i];
-          const c = caudales[p.j];
-          e.px = Math.min(1, Math.max(0, e.x + (e.x - c.x) * 0.8));
-          e.py = Math.min(1, Math.max(0, e.y + (e.y - c.y) * 0.8));
-        }
-        const aparte = (e) => e.cad && e.retorno && (fuera.has(e.ref) || otros.some((o) => dist(e, o) <= RADIO_OTRO_DIF) || exteriores.some((o) => dist(e, o) <= RADIO_EXTERIOR_DIF));
-        for (const e of etiquetas.filter(aparte)) descartadas.push({ ref: e.ref, x: e.x, y: e.y, motivo: "parece de otro sistema (cuarto o reja exterior al lado)" });
-        etiquetas.splice(0, etiquetas.length, ...etiquetas.filter((e) => !aparte(e)));
-        const lineales = {};
-        for (const e of etiquetas.filter((x) => x.lineal)) (lineales[e.ref] = lineales[e.ref] || []).push(e);
-        for (const [codigo, rotulos2] of Object.entries(lineales)) {
-          const total = tabla[codigo];
-          if (!Number.isInteger(total) || total <= rotulos2.length) {
-            avisos.push(`${codigo}: ${rotulos2.length} r\xF3tulos de difusor lineal y no se ha le\xEDdo la tabla de selecci\xF3n; cada r\xF3tulo suele se\xF1alar varias unidades, cu\xE9ntalas en el plano.`);
-            continue;
-          }
-          const extra = total - rotulos2.length;
-          for (let k = 0; k < extra; k++) {
-            const base = rotulos2[k % rotulos2.length];
-            const p = juntoADif(base.x, base.y, 1 + Math.floor(k / rotulos2.length));
-            etiquetas.push({ ...base, px: p.x, py: p.y, q: base.q, qDe: base, aprox: true });
-          }
-          avisos.push(`${codigo}: la tabla cuenta ${total} unidades lineales y el plano solo rotula ${rotulos2.length}; se han creado ${total} (las ${extra} a\xF1adidas, junto a su r\xF3tulo): col\xF3calas en su sitio.`);
-        }
-        const rotulados = {};
-        for (const e of etiquetas) if (!e.lineal && e.cad) rotulados[e.ref] = (rotulados[e.ref] || 0) + 1;
-        for (const [codigo, n] of Object.entries(rotulados)) {
-          if (Number.isInteger(tabla[codigo]) && tabla[codigo] !== n) avisos.push(`${codigo}: la tabla cuenta ${tabla[codigo]} y el plano rotula ${n}; revisa que est\xE9n todas.`);
-        }
-        etiquetas.sort((a, b) => Math.abs(a.y - b.y) > 0.02 ? a.y - b.y : a.x - b.x);
-        const todas = [...existentes || []];
-        const bocas = [];
-        const rotulos = etiquetas.map((e) => ({ ref: e.ref, x: e.x, y: e.y, cad: Boolean(e.cad), lineal: Boolean(e.lineal), aprox: Boolean(e.aprox) }));
-        for (const e of etiquetas) {
-          const circuito = e.retorno ? "retorno" : "impulsion";
-          const base = e.modelo ? { ...camposModeloDif(e.modelo), modeloId: e.modelo.id } : { tipo: circuito === "retorno" ? "rejillaRet" : TIPO_DEFECTO_DIF };
-          const p = normalizarPuntoDif({
-            ...base,
-            nombre: siguienteNombreDif(todas, circuito),
-            x: e.px ?? e.x,
-            y: e.py ?? e.y,
-            caudalDiseno: e.q !== null ? e.q : e.modelo ? e.modelo.caudalProyecto : null,
-            nota: `Del plano: ${e.ref}${e.lineal ? " (difusor lineal)" : ""}${e.aprox ? " \xB7 posici\xF3n aproximada: unidad de la tabla sin r\xF3tulo propio" : ""}`
-          }, todas.length);
-          todas.push(p);
-          bocas.push(p);
-        }
-        return { bocas, rotulos, sinCaudal: bocas.filter((b) => b.caudalDiseno === null).length, leidos: (textos || []).length, avisos, descartadas, recuento: tabla };
-      }
-      var PASO_JUNTO_DIF = 0.012;
-      function juntoADif(x, y, k = 1) {
-        const sx = x > 0.9 ? -1 : 1;
-        const sy = y > 0.9 ? -1 : 1;
-        const lim = (v) => Math.max(0, Math.min(1, v));
-        return { x: lim(x + sx * PASO_JUNTO_DIF * k), y: lim(y + sy * PASO_JUNTO_DIF * k) };
-      }
-      function zonasCorteDif(textos) {
-        const salida = [];
-        for (const t of Array.isArray(textos) ? textos : []) {
-          const x = Number(t && t.x);
-          const y = Number(t && t.y);
-          if (!Number.isFinite(x) || !Number.isFinite(y) || !CORTE_DIF.test(String(t && t.texto || ""))) continue;
-          salida.push({ x0: x - CORTE_IZQ_DIF, x1: x + CORTE_DER_DIF, y0: y - CORTE_ALTO_DIF, y1: y });
-        }
-        return salida;
-      }
-      function tipoBocaDif(id) {
-        const t = TIPOS_DIF[id];
-        if (!t) return null;
-        if (t.tipoBoca) return t.tipoBoca;
-        const tabla = t.tabla ? TABLAS_DIF[t.tabla] : null;
-        if (tabla && tabla.tipoBoca) return tabla.tipoBoca;
-        const m = String(t.modelo || "");
-        if (/^XGM|^WG|^TR2/.test(m)) return t.circuito === "retorno" ? "rejilla de retorno / extracci\xF3n" : "rejilla de impulsi\xF3n";
-        if (/^VDW/.test(m)) return "difusor rotacional de techo";
-        if (/^PL/.test(m)) return "difusor lineal de ranuras";
-        return t.propio || t.ejemplo ? "gen\xE9rico / a mano" : "otro";
-      }
-      function origenTablaDif(tablaId) {
-        const t = TABLAS_DIF[tablaId];
-        return t ? t.origen || "fabricante" : null;
-      }
-      function fichaAkDif(tipoId) {
-        const t = TIPOS_DIF[tipoId];
-        const tabla = t && t.tabla ? TABLAS_DIF[t.tabla] : null;
-        if (!tabla) return null;
-        return {
-          marca: t.marca,
-          modelo: t.modelo,
-          variante: t.variante,
-          tipoBoca: tipoBocaDif(tipoId),
-          magnitud: tabla.magnitud,
-          origen: tabla.origen || "fabricante",
-          metodo: tabla.metodo || "No indicado en la ficha del fabricante.",
-          correccion: tabla.correccion || null,
-          fuente: fuenteTablaDif(t.tabla),
-          url: tabla.url || null,
-          nota: tabla.nota || null
-        };
-      }
-      function recuentoCatalogoDif() {
-        const porMarca = {};
-        const porTipoBoca = {};
-        const porMarcaTipo = {};
-        for (const [id, t] of visiblesDif()) {
-          if (t.ejemplo || t.propio) continue;
-          const tabla = t.tabla ? TABLAS_DIF[t.tabla] : null;
-          const n = tamanosDif(id).filter((x) => typeof x.area === "number" && x.area > 0).length;
-          const m = porMarca[t.marca] = porMarca[t.marca] || { tipos: 0, tamanosConValor: 0 };
-          m.tipos += 1;
-          m.tamanosConValor += n;
-          const tb = tipoBocaDif(id);
-          const b = porTipoBoca[tb] = porTipoBoca[tb] || { tipos: 0, tamanosConValor: 0 };
-          b.tipos += 1;
-          b.tamanosConValor += n;
-          const k = `${t.marca} \xB7 ${tb}`;
-          const mt = porMarcaTipo[k] = porMarcaTipo[k] || { tipos: 0, tamanosConValor: 0, tablas: /* @__PURE__ */ new Set() };
-          mt.tipos += 1;
-          mt.tamanosConValor += n;
-          if (tabla) mt.tablas.add(t.tabla);
-        }
-        for (const k of Object.keys(porMarcaTipo)) porMarcaTipo[k] = { tipos: porMarcaTipo[k].tipos, tamanosConValor: porMarcaTipo[k].tamanosConValor, tablas: porMarcaTipo[k].tablas.size };
-        return { porMarca, porTipoBoca, porMarcaTipo };
-      }
-      var sinAcentosDif = (v) => String(v === null || v === void 0 ? "" : v).normalize("NFD").replace(/[̀-ͯ]/g, "");
-      var claveMarcaDif = (v) => sinAcentosDif(v).toLowerCase().replace(/[^a-z0-9]/g, "");
-      function codigosModeloDif(modelo) {
-        const base = String(modelo || "").replace(/\(.*$/, "");
-        return base.split(/[\/,]/).map((x) => x.trim().toUpperCase().replace(/\s+/g, "")).filter(Boolean);
-      }
-      function buscarAkDif({ texto = "", marca = "", modelo = "", circuito = null } = {}) {
-        const todo = sinAcentosDif(`${marca} ${modelo} ${texto}`).toUpperCase();
-        if (!todo.trim()) return null;
-        const compacto = claveMarcaDif(todo);
-        const palabras = new Set(todo.split(/[^A-Z0-9\-]+/).filter(Boolean));
-        for (const w of [...palabras]) if (w.includes("-")) {
-          for (const parte of w.split("-")) if (parte) palabras.add(parte);
-        }
-        if (!circuito) circuito = /IMPULS|SUMINISTRO|SUPPLY/.test(todo) ? "impulsion" : /RETORNO|EXTRAC|RETURN|EXTRACT/.test(todo) ? "retorno" : null;
-        const medidas = [...todo.matchAll(/(\d{2,4})\s*[X×]\s*(\d{1,4})/g)].map((m) => [Number(m[1]), Number(m[2])]);
-        const numeros = [...todo.matchAll(/(?:Ø|DIAM(?:ETRO)?\.?|NS|DN|LN|L=)?\s*(\d{2,4})(?!\d)/g)].map((m) => Number(m[1]));
-        const candidatos = [];
-        for (const [id, t] of visiblesDif()) {
-          if (t.ejemplo || t.propio || !t.tabla) continue;
-          if (!compacto.includes(claveMarcaDif(t.marca))) continue;
-          const cods = codigosModeloDif(t.modelo);
-          if (!cods.some((c) => palabras.has(c) || c.length > 3 && todo.replace(/\s+/g, "").includes(c))) continue;
-          candidatos.push(id);
-        }
-        const largo = (id) => Math.max(...codigosModeloDif(TIPOS_DIF[id].modelo).filter((c) => palabras.has(c) || todo.replace(/\s+/g, "").includes(c)).map((c) => c.length), 0);
-        const maxLargo = Math.max(0, ...candidatos.map(largo));
-        let finalistas = candidatos.filter((id) => largo(id) === maxLargo);
-        if (circuito) {
-          const f = finalistas.filter((id) => TIPOS_DIF[id].circuito === circuito);
-          if (f.length) finalistas = f;
-        }
-        const conSufijo = finalistas.filter((id) => {
-          const v = sinAcentosDif(TIPOS_DIF[id].variante).toUpperCase();
-          const m = v.match(/\b[A-Z0-9]+-([QR])\b/);
-          return m && (palabras.has(`${codigosModeloDif(TIPOS_DIF[id].modelo)[0]}-${m[1]}`) || palabras.has(m[1]));
-        });
-        if (conSufijo.length) finalistas = conSufijo;
-        const resueltos = [];
-        for (const id of finalistas) {
-          const tam = tamanosDif(id).filter((x) => typeof x.area === "number" && x.area > 0);
-          const aciertos = tam.filter((x) => {
-            if (x.largo && x.alto) return medidas.some(([a, b]) => a === x.largo && b === x.alto);
-            const k = claveTamanoDif(x.tamano);
-            if (medidas.some(([a, b]) => claveTamanoDif(`${a} \xD7 ${b}`) === k)) return true;
-            return !k.includes("\xD7") && numeros.includes(Number(k));
-          });
-          if (aciertos.length === 1) resueltos.push({ id, tam: aciertos[0] });
-        }
-        const unicos = [];
-        for (const r of resueltos) if (!unicos.some((u) => TIPOS_DIF[u.id].tabla === TIPOS_DIF[r.id].tabla && u.tam.clave === r.tam.clave)) unicos.push(r);
-        if (unicos.length === 1) {
-          const { id, tam } = unicos[0];
-          return { tipo: id, tamano: { clave: tam.clave, largo: tam.largo, alto: tam.alto, tamano: tam.tamano }, ak: tam.area, ficha: fichaAkDif(id) };
-        }
-        if (unicos.length > 1) return { ambiguo: unicos.map((x) => x.id) };
-        return null;
-      }
-      function avisoCaudalDudosoDif(nota) {
-        const m = /caudal de proyecto[^·]*dudoso[^·]*/i.exec(String(nota || ""));
-        return m ? m[0].trim() : null;
-      }
-      (function exportar(API) {
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.DIFUSORES = API;
-      })({
-        MODOS: MODOS_DIF,
-        TIPOS: TIPOS_DIF,
-        TIPO_DEFECTO: TIPO_DEFECTO_DIF,
-        FACTORES_K: FACTORES_K_DIF,
-        factoresKPunto: factoresKPuntoDif,
-        akPorMetro: akPorMetroDif,
-        TOLERANCIA_DISCREPANCIA_AK: TOLERANCIA_DISCREPANCIA_AK_DIF,
-        NOTA_EJEMPLO: NOTA_EJEMPLO_DIF,
-        TOLERANCIA_DEFECTO: TOLERANCIA_DEFECTO_DIF,
-        TOLERANCIA_BOCA_DEFECTO: TOLERANCIA_BOCA_DEFECTO_DIF,
-        num: numDif,
-        leerVelocidades: leerVelocidadesDif,
-        tipo: tipoDif,
-        normalizarPunto: normalizarPuntoDif,
-        normalizarPuntos: normalizarPuntosDif,
-        TABLAS: TABLAS_DIF,
-        FUENTE_TABLAS: FUENTE_TABLAS_DIF,
-        akTabla: akTablaDif,
-        ageoTabla: ageoTablaDif,
-        fuenteTabla: fuenteTablaDif,
-        valorTabla: valorTablaDif,
-        marcas: marcasDif,
-        modelos: modelosDif,
-        variantes: variantesDif,
-        tamanos: tamanosDif,
-        claveTamanoPunto: claveTamanoPuntoDif,
-        aplicarAkPorGrupo: aplicarAkPorGrupoDif,
-        gruposAk: gruposAkDif,
-        MARCA_EJEMPLO: MARCA_EJEMPLO_DIF,
-        factor: factorDif,
-        caudal: caudalDif,
-        desviacion: desviacionDif,
-        tolerancias: toleranciasDif,
-        EQUIPOS_MEDIDA: EQUIPOS_MEDIDA_DIF,
-        equipoMedida: equipoMedidaDif,
-        sinAk: sinAkDif,
-        equipoPropuesto: equipoPropuestoDif,
-        AVISO_SIN_AK: AVISO_SIN_AK_DIF,
-        LECTURAS: LECTURAS_DIF,
-        lectura: lecturaDif,
-        evaluarPunto: evaluarPuntoDif,
-        resumen: resumenDif,
-        siguienteNombre: siguienteNombreDif,
-        normalizarModeloProyecto: normalizarModeloProyectoDif,
-        normalizarModelosProyecto: normalizarModelosProyectoDif,
-        evaluarModelo: evaluarModeloDif,
-        normalizarAsignacion: normalizarAsignacionDif,
-        aplicarModelos: aplicarModelosDif,
-        generarBocas: generarBocasDif,
-        colocarEnLista: colocarEnListaDif,
-        reconocerBocas: reconocerBocasDif,
-        recuentoTabla: recuentoTablaDif,
-        caudalDeTexto: numeroCaudalDif,
-        zonasCorte: zonasCorteDif,
-        juntoA: juntoADif,
-        CODIGO_CAD: CODIGO_CAD_DIF,
-        tipoBoca: tipoBocaDif,
-        origenTabla: origenTablaDif,
-        fichaAk: fichaAkDif,
-        recuentoCatalogo: recuentoCatalogoDif,
-        buscarAk: buscarAkDif,
-        avisoCaudalDudoso: avisoCaudalDudosoDif,
-        bocaCompleta: bocaCompletaDif,
-        textoTemperaturas: textoTemperaturasDif
-      });
-    }
-  });
-
-  // shared/commissioning/bocaManual.js
-  var require_bocaManual = __commonJS({
-    "shared/commissioning/bocaManual.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function bocaManual(raiz, fabrica) {
-        const API = fabrica(typeof __require !== "undefined" ? require_difusores() : raiz.DIFUSORES);
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.BOCA_MANUAL = API;
-      })(typeof window !== "undefined" ? window : globalThis, (D) => {
-        const SISTEMAS = { impulsion: "Impulsi\xF3n", retorno: "Retorno", extraccion: "Extracci\xF3n" };
-        const CLASES = { difusor: "Difusor", reja: "Reja" };
-        const ETIQUETA = "a\xF1adida en obra";
-        const RADIO_DUPLICADO = 0.02;
-        const CODIGO = /\b[A-Z]{2,3}_\d{2}_[A-Z0-9]{3,5}\b/;
-        const circuitoDe = (sistema) => sistema === "impulsion" ? "impulsion" : "retorno";
-        const texto = (v, n) => String(v === null || v === void 0 ? "" : v).trim().slice(0, n);
-        const esManual = (p) => Boolean(p && p.origen === "manual");
-        const conSitio = (p) => p && !p.sinPosicion && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y)) && p.x !== null && p.y !== null;
-        function normalizarManual(m) {
-          if (!m || typeof m !== "object") m = {};
-          return {
-            sistema: SISTEMAS[m.sistema] ? m.sistema : "impulsion",
-            clase: CLASES[m.clase] ? m.clase : "difusor",
-            modelo: texto(m.modelo, 40) || null,
-            nota: texto(m.nota, 200),
-            fecha: texto(m.fecha, 30) || null,
-            autor: texto(m.autor, 80) || null,
-            posibleDuplicado: texto(m.posibleDuplicado, 200) || null
-          };
-        }
-        function codigoDe(p) {
-          if (!p) return null;
-          if (esManual(p) && p.manual && p.manual.modelo) return p.manual.modelo;
-          const m = CODIGO.exec(String(p.nota || ""));
-          return m ? m[0] : null;
-        }
-        function modelosDeHoja(puntos = []) {
-          const porCodigo = /* @__PURE__ */ new Map();
-          for (const crudo of puntos) {
-            const p = D.normalizarPunto(crudo);
-            const codigo = codigoDe(p);
-            if (!codigo || porCodigo.has(codigo)) continue;
-            const t = D.tipo(p.tipo);
-            const f = D.factor(p);
-            porCodigo.set(codigo, {
-              codigo,
-              tipo: p.tipo,
-              tipoNombre: t.nombre,
-              circuito: t.circuito,
-              clase: /^(DL|DR|DF|DIF|D)_/.test(codigo) ? "difusor" : /^(RR|RJ|RT|RA|RI|RET|EXT|RE)_/.test(codigo) ? "reja" : null,
-              largo: p.largo,
-              alto: p.alto,
-              tamano: p.tamano,
-              ak: f.valor !== null && f.origen !== null ? f.valor : null,
-              akDe: f.valor === null ? null : f.origen === "punto" ? "ficha" : "catalogo",
-              akPropio: p.ak,
-              modo: p.modo,
-              cuantas: 0
-            });
-          }
-          for (const crudo of puntos) {
-            const c = codigoDe(crudo);
-            if (c && porCodigo.has(c)) porCodigo.get(c).cuantas += 1;
-          }
-          return [...porCodigo.values()].sort((a, b) => a.codigo.localeCompare(b.codigo, "es", { numeric: true }));
-        }
-        function tipoEnCircuito(tipoId, circuito) {
-          const t = D.TIPOS[tipoId];
-          if (t && t.circuito === circuito) return tipoId;
-          const gemelo = String(tipoId || "").replace(/-(imp|ext)$/, circuito === "impulsion" ? "-imp" : "-ext");
-          return D.TIPOS[gemelo] && D.TIPOS[gemelo].circuito === circuito ? gemelo : null;
-        }
-        const tipoAMano = (clase, circuito) => clase === "reja" ? circuito === "impulsion" ? "rejillaRectImp" : "rejillaRectRet" : circuito === "impulsion" ? "propioImp" : "propioRet";
-        function camposDe(datos = {}, puntos = []) {
-          const manual = normalizarManual({ ...datos, nota: datos.nota });
-          const circuito = circuitoDe(manual.sistema);
-          const largo = D.num(datos.largo);
-          const alto = D.num(datos.alto);
-          const qp = D.num(datos.caudalProyecto);
-          const campos = { tipo: null, modo: "ak", ak: null, k: null, largo: null, alto: null, tamano: null };
-          const modelo = manual.modelo;
-          const deHoja = modelo ? modelosDeHoja(puntos).find((m) => m.codigo.toUpperCase() === modelo.toUpperCase()) : null;
-          if (deHoja) {
-            const tipo = tipoEnCircuito(deHoja.tipo, circuito);
-            if (!datos.clase && deHoja.clase) manual.clase = deHoja.clase;
-            if (tipo) Object.assign(campos, { tipo, modo: deHoja.modo, ak: deHoja.akDe === "ficha" ? deHoja.akPropio : null, largo: deHoja.largo, alto: deHoja.alto, tamano: deHoja.tamano });
-            else campos.tipo = tipoAMano(manual.clase, circuito);
-          } else if (modelo) {
-            const r = D.buscarAk({ texto: modelo, circuito });
-            if (r && r.tipo && !r.ambiguo) {
-              const tipo = tipoEnCircuito(r.tipo, circuito);
-              if (tipo) Object.assign(campos, { tipo, largo: r.tamano && r.tamano.largo, alto: r.tamano && r.tamano.alto, tamano: r.tamano && r.tamano.tamano });
-            }
-          }
-          if (!campos.tipo) campos.tipo = tipoAMano(manual.clase, circuito);
-          if (largo !== null && largo > 0) campos.largo = largo;
-          if (alto !== null && alto > 0) campos.alto = alto;
-          if ((largo !== null || alto !== null) && !deHoja) campos.tamano = null;
-          return {
-            ...campos,
-            caudalDiseno: qp !== null && qp >= 0 ? qp : null,
-            sala: texto(datos.sala, 40) || null,
-            manual,
-            nota: notaDe(manual)
-          };
-        }
-        function notaDe(manual) {
-          const m = normalizarManual(manual);
-          return ["A\xF1adida en obra", m.modelo, m.posibleDuplicado ? "posible duplicado" : null, m.nota].filter(Boolean).join(" \xB7 ").slice(0, 300);
-        }
-        function crear(datos = {}, { todas = [], x = null, y = null, fecha = null, autor = null, id = null } = {}) {
-          const c = camposDe(datos, todas);
-          const circuito = circuitoDe(c.manual.sistema);
-          c.manual.fecha = fecha || (/* @__PURE__ */ new Date()).toISOString();
-          c.manual.autor = texto(autor, 80) || null;
-          const sitio = Number.isFinite(Number(x)) && Number.isFinite(Number(y)) && x !== null && y !== null;
-          return D.normalizarPunto({
-            ...c,
-            ...id ? { id } : {},
-            nombre: D.siguienteNombre(todas.map((p) => D.normalizarPunto(p)), circuito),
-            x: sitio ? Math.min(1, Math.max(0, Number(x))) : null,
-            y: sitio ? Math.min(1, Math.max(0, Number(y))) : null,
-            sinPosicion: !sitio,
-            origen: "manual"
-          });
-        }
-        function editar(punto, datos = {}, { todas = [], x, y } = {}) {
-          if (!esManual(punto)) return { ok: false, error: "Solo se cambian aqu\xED las bocas a\xF1adidas en obra." };
-          const antes = normalizarManual(punto.manual);
-          const c = camposDe({ ...antes, ...datos }, todas.filter((p) => p.id !== punto.id));
-          c.manual = { ...c.manual, fecha: antes.fecha, autor: antes.autor, posibleDuplicado: antes.posibleDuplicado };
-          c.nota = notaDe(c.manual);
-          const sitio = {};
-          if (x !== void 0 || y !== void 0) {
-            const hay = x !== null && y !== null && Number.isFinite(Number(x)) && Number.isFinite(Number(y));
-            Object.assign(sitio, hay ? { x: Number(x), y: Number(y), sinPosicion: false } : { x: null, y: null, sinPosicion: true });
-          }
-          let nombre = punto.nombre;
-          const circ = circuitoDe(c.manual.sistema);
-          if (D.tipo(punto.tipo).circuito !== circ) nombre = D.siguienteNombre(todas.filter((p) => p.id !== punto.id).map((p) => D.normalizarPunto(p)), circ);
-          return { ok: true, punto: D.normalizarPunto({ ...punto, ...c, ...sitio, nombre, origen: "manual" }) };
-        }
-        function tieneLecturas(p = {}) {
-          return D.num(p.velocidad) !== null || D.num(p.caudalMedido) !== null || D.num(p.tFrio) !== null || D.num(p.tCalor) !== null || D.num(p.temperatura) !== null || Boolean(String(p.lecturas || "").trim()) || Boolean(String(p.lecturasCaudal || "").trim());
-        }
-        function quitar(puntos = [], puntoId, { confirmar = false } = {}) {
-          const p = puntos.find((x) => x && x.id === puntoId);
-          if (!p) return { ok: false, error: "No se encuentra esa boca." };
-          if (!esManual(p)) return { ok: false, error: "Solo se pueden quitar aqu\xED las bocas a\xF1adidas en obra." };
-          if (tieneLecturas(p) && !confirmar) return { ok: false, pideConfirmar: true, error: `${p.nombre} tiene lecturas apuntadas: confirma para quitarla con ellas.` };
-          return { ok: true, puntos: puntos.filter((x) => x !== p) };
-        }
-        function proteger(antes = [], despues = [], { fecha = null } = {}) {
-          const avisos = [];
-          const manualesAntes = antes.filter(esManual);
-          if (!manualesAntes.length) return { puntos: despues, avisos };
-          const idsAntes = new Set(antes.map((p) => p && p.id));
-          const porId = new Map(manualesAntes.map((p) => [p.id, p]));
-          let salida = despues.map((p) => {
-            const viejo = p && porId.get(p.id);
-            if (!viejo) return p;
-            const sitio = { x: viejo.x, y: viejo.y, sinPosicion: Boolean(viejo.sinPosicion) };
-            if (p.x !== sitio.x || p.y !== sitio.y || Boolean(p.sinPosicion) !== sitio.sinPosicion || !esManual(p)) {
-              if (p.x !== sitio.x || p.y !== sitio.y || Boolean(p.sinPosicion) !== sitio.sinPosicion) avisos.push(`${viejo.nombre}: boca a\xF1adida en obra, se queda en su sitio.`);
-              return { ...p, ...sitio, origen: "manual", manual: viejo.manual, nota: viejo.nota };
-            }
-            return p;
-          });
-          const presentes = new Set(salida.map((p) => p && p.id));
-          for (const p of manualesAntes) if (!presentes.has(p.id)) {
-            salida.push(p);
-            avisos.push(`${p.nombre}: boca a\xF1adida en obra, no se quita.`);
-          }
-          const manuales = salida.filter(esManual);
-          const circ = (p) => D.tipo(p.tipo).circuito;
-          salida = salida.filter((p) => {
-            if (!p || esManual(p) || idsAntes.has(p.id) || !conSitio(p)) return true;
-            const m = manuales.find((q) => conSitio(q) && circ(q) === circ(p) && Math.hypot(Number(q.x) - Number(p.x), Number(q.y) - Number(p.y)) <= RADIO_DUPLICADO);
-            if (!m) return true;
-            const codigo = codigoDe(p);
-            const motivo = `posible duplicado: una pasada encontr\xF3 ${codigo || p.nombre || "otra boca"}${p.caudalDiseno !== null && p.caudalDiseno !== void 0 ? ` (${p.caudalDiseno} m\xB3/h)` : ""} en el mismo sitio${fecha ? ` el ${fecha}` : ""}`;
-            m.manual = { ...normalizarManual(m.manual), posibleDuplicado: motivo };
-            m.nota = notaDe(m.manual);
-            avisos.push(`${m.nombre}: ${motivo}; no se duplica.`);
-            return false;
-          });
-          return { puntos: salida, avisos };
-        }
-        const coma = (v) => String(v).replace(".", ",");
-        const medida = (v) => {
-          const n = D.num(v);
-          return n !== null && n > 0 ? Math.round(n) : null;
-        };
-        const tamanoDe = (p) => p && p.largo && p.alto ? `${p.largo}\xD7${p.alto}` : p && p.tamano ? String(p.tamano) : "";
-        const esFicha = (fuente) => /(^|[\s_(])PD[\s_-]/.test(String(fuente || ""));
-        function akDeBoca(p) {
-          const r = akDeBocaSolo(p);
-          const n = D.normalizarPunto(p || {});
-          const tb = D.tipo(n.tipo).tabla ? D.TABLAS[D.tipo(n.tipo).tabla] : null;
-          return { ...r, porLargoAlto: !tb || tb.forma !== "lista" && tb.forma !== "porMetro" };
-        }
-        function akDeBocaSolo(p) {
-          const n = D.normalizarPunto(p || {});
-          const t = D.tipo(n.tipo);
-          const f = D.factor(n);
-          const tam = tamanoDe(n);
-          const nombre = `${t.nombre || t.modelo || n.tipo}${tam ? ` ${tam}` : ""}`;
-          if (f.modo === "k") {
-            if (!f.valor) return { valor: null, tamano: tam, fuente: null, deFicha: false, texto: `k sin dato (${nombre}): sin \xE9l no hay caudal.` };
-            return { valor: f.valor, tamano: tam, fuente: null, deFicha: false, texto: `k ${coma(f.valor)} (${nombre}, ${f.origen === "punto" ? "puesto a mano" : "cat\xE1logo"})` };
-          }
-          if (f.origen === "punto") {
-            const otro = f.discrepanciaAk ? ` \xB7 DISCREPA de la tabla del fabricante: ${coma(f.akTabla)} m\xB2 (${D.fuenteTabla(t.tabla)})` : "";
-            if (n.akFuente) return { valor: f.valor, tamano: tam, fuente: n.akFuente, deFicha: true, akTabla: f.akTabla, discrepanciaAk: Boolean(f.discrepanciaAk), texto: `Ak ${coma(f.valor)} m\xB2 (${nombre}, a mano de: ${n.akFuente})${otro}` };
-            return { valor: f.valor, tamano: tam, fuente: "a mano", deFicha: false, akTabla: f.akTabla, discrepanciaAk: Boolean(f.discrepanciaAk), texto: `Ak ${coma(f.valor)} m\xB2 (${nombre}, puesto a mano: no sale de la ficha t\xE9cnica)${otro}` };
-          }
-          if (f.origen === "tabla") {
-            const fuente = D.fuenteTabla(t.tabla);
-            const tbF = D.TABLAS[t.tabla] || {};
-            if (tbF.forma === "porMetro") {
-              return { valor: f.valor, tamano: tam, fuente, deFicha: true, texto: `Ak ${coma(f.valor)} m\xB2 (${nombre}, ${tbF.fabricante || "fabricante"}: ${coma(tbF.akPorMetro)} m\xB2/m \xD7 longitud; ${fuente})` };
-            }
-            const ficha = esFicha(fuente);
-            return { valor: f.valor, tamano: tam, fuente, deFicha: ficha, texto: `Ak ${coma(f.valor)} m\xB2 (${nombre}, ${ficha ? "FT" : "no es la ficha t\xE9cnica:"} ${fuente})` };
-          }
-          if (f.origen === "catalogo") return { valor: f.valor, tamano: tam, fuente: "cat\xE1logo de ejemplo", deFicha: false, texto: `Ak ${coma(f.valor)} m\xB2 (${nombre}, valor de ejemplo del cat\xE1logo: no es de ficha t\xE9cnica)` };
-          if (t.tabla && D.TABLAS[t.tabla]) {
-            const tb = D.TABLAS[t.tabla];
-            const fuente = D.fuenteTabla(t.tabla);
-            const porque = !tam ? tb.forma === "porMetro" ? "falta la longitud" : "falta el tama\xF1o (largo \xD7 alto)" : tb.magnitud === "Ageo" ? "la ficha solo da el \xE1rea geom\xE9trica, no el Ak" : tb.sinAk ? "el fabricante no da Ak para este modelo" : tb.forma === "lista" ? `la ficha no trae el tama\xF1o ${tam}` : `la ficha no trae ${tam} (largos ${tb.largos.join(", ")} \xD7 altos ${tb.altos.join(", ")} mm)`;
-            return { valor: null, tamano: tam, fuente, deFicha: esFicha(fuente), texto: `Ak sin dato (${nombre}): ${porque}. Fuente: ${fuente}. Sin Ak no hay caudal.` };
-          }
-          if (n.medidaPlano) return { valor: null, tamano: tam, fuente: null, deFicha: false, texto: `Ak sin dato para esa medida (${nombre}): el cat\xE1logo solo trae un valor de ejemplo, no la ficha t\xE9cnica. Mete el Ak de la ficha a mano con su fuente. Sin Ak no hay caudal.` };
-          return { valor: null, tamano: tam, fuente: null, deFicha: false, texto: `Ak sin dato (${nombre}): no hay ficha t\xE9cnica de este modelo. Sin Ak no hay caudal.` };
-        }
-        function cambiarMedidas(p, { largo, alto } = {}) {
-          if (!p) return { ok: false, error: "No se encuentra esa boca." };
-          const l = medida(largo);
-          const h = medida(alto);
-          if (largo !== void 0 && largo !== null && String(largo).trim() !== "" && l === null || alto !== void 0 && alto !== null && String(alto).trim() !== "" && h === null) return { ok: false, error: "Las medidas van en mm, n\xFAmeros mayores que 0." };
-          if (l === null || h === null) return { ok: false, error: "Pon el largo y el alto (mm)." };
-          if (l > 5e3 || h > 5e3) return { ok: false, error: "M\xE1s de 5 m: revisa las medidas (van en mm)." };
-          const antes = { largo: medida(p.largo), alto: medida(p.alto) };
-          if (antes.largo === l && antes.alto === h) return { ok: true, punto: p, cambiado: false, avisos: [] };
-          const plano = p.medidaPlano && (p.medidaPlano.largo || p.medidaPlano.alto) ? p.medidaPlano : antes.largo || antes.alto ? { largo: antes.largo, alto: antes.alto, tamano: p.tamano || null } : null;
-          const vuelveAlPlano = plano && plano.largo === l && plano.alto === h;
-          const avisos = [];
-          const sigue = { ...p, largo: l, alto: h, medidaPlano: vuelveAlPlano ? null : plano || { largo: null, alto: null, tamano: null } };
-          if (D.num(p.ak) && (p.modo || D.tipo(p.tipo).modo) !== "k") {
-            sigue.ak = null;
-            avisos.push(`Se quita el Ak a mano (${coma(p.ak)}), era del tama\xF1o ${antes.largo || "?"}\xD7${antes.alto || "?"}.`);
-          }
-          return { ok: true, punto: D.normalizarPunto(sigue), cambiado: true, avisos };
-        }
-        const CAMPOS_PLANO = ["largo", "alto", "tamano", "tipo"];
-        const CAMPOS_OBRA = ["tipo", "modo", "largo", "alto", "tamano", "ak", "akFuente", "medidaPlano"];
-        const vacio = (v) => v === null || v === void 0 || String(v).trim() === "";
-        const igualPlano = (a, b) => CAMPOS_PLANO.every((k) => String(vacio(a[k]) ? "" : a[k]) === String(vacio(b[k]) ? "" : b[k]));
-        const planoDe = (p) => ({ largo: medida(p.largo), alto: medida(p.alto), tamano: vacio(p.tamano) ? null : String(p.tamano), tipo: p.tipo || null });
-        function formaMedida(p) {
-          const t = D.tipo(p && p.tipo || "");
-          const tb = t.tabla ? D.TABLAS[t.tabla] : null;
-          if (/^PL\d+(_\d)?$/.test(t.tabla || "") || /lineal/i.test(`${t.nombre || ""} ${t.modelo || ""}`)) return "lineal";
-          if (tb && tb.forma === "lista") return "nominal";
-          return "largoAlto";
-        }
-        function cambiarBoca(p, c = {}) {
-          if (!p) return { ok: false, error: "No se encuentra esa boca." };
-          const avisos = [];
-          const sigue = { ...p };
-          if (c.tipo !== void 0 && c.tipo !== p.tipo) {
-            if (!D.TIPOS[c.tipo]) return { ok: false, error: "Ese modelo no est\xE1 en el cat\xE1logo." };
-            sigue.tipo = c.tipo;
-            sigue.modo = D.TIPOS[c.tipo].modo || "ak";
-          }
-          for (const k of ["largo", "alto"]) {
-            if (c[k] === void 0) continue;
-            if (vacio(c[k])) {
-              sigue[k] = null;
-              continue;
-            }
-            const n = medida(c[k]);
-            if (n === null) return { ok: false, error: "Las medidas van en mm, n\xFAmeros mayores que 0." };
-            if (n > 6e3) return { ok: false, error: "M\xE1s de 6 m: revisa las medidas (van en mm)." };
-            sigue[k] = n;
-          }
-          if (c.tamano !== void 0) {
-            const t = String(c.tamano ?? "").trim().replace(/^LN\s*/i, "");
-            if (t && /^\d+([.,]\d+)?$/.test(t)) {
-              const n = medida(t.replace(",", "."));
-              if (!n || n > 6e3) return { ok: false, error: "La longitud va en mm (hasta 6000)." };
-              sigue.tamano = String(n);
-            } else sigue.tamano = t ? t.slice(0, 20) : null;
-          }
-          const cambiaTam = !igualPlano(planoDe(p), planoDe(sigue));
-          if (c.ak !== void 0) {
-            const v = vacio(c.ak) ? null : D.num(String(c.ak).replace(",", "."));
-            if (v === null) {
-              sigue.ak = null;
-              sigue.akFuente = null;
-            } else {
-              if (!(v > 0) || v > 5) return { ok: false, error: "El Ak va en m\xB2 (por ejemplo 0,019)." };
-              const fuente = String(c.akFuente ?? p.akFuente ?? "").trim();
-              if (!fuente) return { ok: false, error: "Pon de d\xF3nde sale el Ak (ficha t\xE9cnica y p\xE1gina): sin fuente no se usa." };
-              sigue.ak = v;
-              sigue.akFuente = fuente.slice(0, 160);
-              sigue.modo = "ak";
-            }
-          } else if (cambiaTam && D.num(p.ak) && (p.modo || D.tipo(p.tipo).modo) !== "k") {
-            sigue.ak = null;
-            sigue.akFuente = null;
-            avisos.push(`Se quita el Ak a mano (${coma(p.ak)}), era de otro modelo o tama\xF1o.`);
-          }
-          if (cambiaTam && !esManual(p)) {
-            const ref = p.medidaPlano ? { ...p.medidaPlano, tipo: p.medidaPlano.tipo || p.tipo } : planoDe(p);
-            sigue.medidaPlano = igualPlano(ref, planoDe(sigue)) ? null : ref;
-          }
-          const punto = D.normalizarPunto(sigue);
-          const cambiado = JSON.stringify(punto) !== JSON.stringify(D.normalizarPunto(p));
-          return { ok: true, punto, cambiado, avisos, enObra: Boolean(punto.medidaPlano) };
-        }
-        function textoObra(p) {
-          const mp = p && p.medidaPlano;
-          if (!mp) return "";
-          const cambioModelo = mp.tipo && mp.tipo !== p.tipo;
-          const tam = mp.largo && mp.alto ? `${mp.largo}\xD7${mp.alto}` : mp.tamano ? `${mp.tamano}` : "";
-          const nombre = cambioModelo ? D.tipo(mp.tipo).nombre || mp.tipo : "";
-          return `${cambioModelo ? "modelo comprobado en obra" : "medida en obra"} \xB7 plano: ${[nombre, tam].filter(Boolean).join(" ") || "sin medida"}`;
-        }
-        function mismoRotulo(p, puntos = []) {
-          const clave = D.claveTamanoPunto(p);
-          return puntos.filter((x) => x && !esManual(x) && x.tipo === p.tipo && D.claveTamanoPunto(x) === clave);
-        }
-        function marcarObra(antes = [], despues = []) {
-          const porId = new Map(antes.filter(Boolean).map((q) => [q.id, q]));
-          return despues.map((p) => {
-            const q = p && porId.get(p.id);
-            if (!q || esManual(p)) return p;
-            if (!q.medidaPlano && !p.medidaPlano && !igualPlano(planoDe(q), planoDe(p))) return { ...p, medidaPlano: planoDe(q) };
-            if (p.medidaPlano && igualPlano({ ...p.medidaPlano, tipo: p.medidaPlano.tipo || q.tipo }, planoDe(p))) return { ...p, medidaPlano: null };
-            return p;
-          });
-        }
-        function protegerObra(antes = [], despues = []) {
-          const avisos = [];
-          const enObra = antes.filter((q) => q && q.medidaPlano);
-          if (!enObra.length) return { puntos: despues, avisos };
-          const salida = despues.slice();
-          const usados = /* @__PURE__ */ new Set();
-          const ids = new Map(salida.map((p, i) => [p && p.id, i]));
-          const circ = (x) => D.tipo(x.tipo).circuito;
-          for (const q of enObra) {
-            let i = ids.has(q.id) ? ids.get(q.id) : -1;
-            if (i < 0 && conSitio(q)) {
-              let mejor = Infinity;
-              salida.forEach((p2, j) => {
-                if (!p2 || usados.has(j) || p2.medidaPlano || !conSitio(p2) || circ(p2) !== circ(q) || porIdAntes(antes, p2.id)) return;
-                const d = Math.hypot(Number(p2.x) - Number(q.x), Number(p2.y) - Number(q.y));
-                if (d <= RADIO_DUPLICADO && d < mejor) {
-                  mejor = d;
-                  i = j;
-                }
-              });
-            }
-            if (i < 0) continue;
-            usados.add(i);
-            const p = salida[i];
-            const obra = {};
-            for (const k of CAMPOS_OBRA) obra[k] = q[k] === void 0 ? null : q[k];
-            const delPlano = planoDe(p);
-            const ref = igualPlano(delPlano, planoDe(q)) ? q.medidaPlano : delPlano;
-            obra.medidaPlano = igualPlano({ ...ref, tipo: ref.tipo || q.tipo }, planoDe(q)) ? null : ref;
-            const cambia = CAMPOS_OBRA.some((k) => JSON.stringify(p[k] ?? null) !== JSON.stringify(obra[k] ?? null));
-            if (cambia) {
-              salida[i] = { ...p, ...obra };
-              if (!igualPlano(planoDe(p), planoDe(q))) avisos.push(`${q.nombre}: ${textoObra(q).split(" \xB7 ")[0]}, se respeta.`);
-            }
-          }
-          return { puntos: salida, avisos };
-        }
-        function porIdAntes(antes, id) {
-          return antes.some((q) => q && q.id === id);
-        }
-        return {
-          SISTEMAS,
-          CLASES,
-          ETIQUETA,
-          RADIO_DUPLICADO,
-          circuitoDe,
-          esManual,
-          normalizarManual,
-          codigoDe,
-          modelosDeHoja,
-          camposDe,
-          notaDe,
-          crear,
-          editar,
-          quitar,
-          tieneLecturas,
-          proteger,
-          akDeBoca,
-          cambiarMedidas,
-          formaMedida,
-          cambiarBoca,
-          textoObra,
-          mismoRotulo,
-          marcarObra,
-          protegerObra
-        };
-      });
-    }
-  });
-
-  // shared/commissioning/bocasPresupuesto.js
-  var require_bocasPresupuesto = __commonJS({
-    "shared/commissioning/bocasPresupuesto.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var D = typeof __require !== "undefined" ? require_difusores() : window.DIFUSORES;
-      var M = typeof __require !== "undefined" ? require_modelo() : window.MODELO;
-      var PALABRAS = /DIFUSOR|REJILLA|TOBERA|ANEMOSTAT|VALVULA DE (EXTRACCION|IMPULSION)|BOCA DE|TOROIDAL|ROTACIONAL|LINEAL|PLENUM/;
-      var sinAcentos = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
-      var textoDe = (p) => `${p.resumen || ""} ${p.descripcion || ""}`.trim();
-      function esDifusion(p) {
-        return PALABRAS.test(sinAcentos(textoDe(p)));
-      }
-      function modelosDesdePresupuesto({ base = null, actual = null } = {}) {
-        const deBase = /* @__PURE__ */ new Map();
-        for (const p of base ? M.partidas(base) : []) deBase.set(String(p.codigo), textoDe(p));
-        const fuente = actual || base || [];
-        const salida = [];
-        const sinCasar = [];
-        for (const p of M.partidas(fuente)) {
-          if (!esDifusion(p)) continue;
-          const texto = textoDe(p);
-          const r = D.buscarAk({ texto });
-          const original = deBase.get(String(p.codigo));
-          const origenPartida = actual && base && (original === void 0 || sinAcentos(original) !== sinAcentos(texto)) ? "cambio aprobado" : "presupuesto";
-          const partida = { codigo: p.codigo, resumen: p.resumen || "", cantidad: Number(p.cantidadObra ?? p.cantidad) || null };
-          if (r && typeof r.tipo === "string" && r.ak) {
-            salida.push({
-              tipo: r.tipo,
-              largo: r.tamano.largo ?? null,
-              alto: r.tamano.alto ?? null,
-              tamano: r.tamano.tamano ?? null,
-              ak: null,
-              ref: String(p.codigo).slice(0, 30),
-              caudalProyecto: null,
-              nota: String(p.resumen || "").slice(0, 200),
-              origen: origenPartida,
-              partida,
-              akCatalogo: r.ak
-            });
-          } else {
-            sinCasar.push({ origen: "manual", partida, ambiguo: r && r.ambiguo ? r.ambiguo : null });
-          }
-        }
-        return { modelos: salida, sinCasar };
-      }
-      var API = { modelosDesdePresupuesto, esDifusion };
-      if (typeof module !== "undefined" && module.exports) module.exports = API;
-      if (typeof window !== "undefined") window.BOCAS_PRESUPUESTO = API;
-    }
-  });
-
-  // electron/data/versiones.js
-  var require_versiones2 = __commonJS({
-    "electron/data/versiones.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var modelo = require_modelo();
-      var versiones = require_versiones();
-      var { nuevoId } = require_repositorio();
-      var { armarArbol } = require_presupuestos();
-      function listar(db, presupuestoId) {
-        return db.prepare(
-          `SELECT id, presupuestoId, numero, nombre, motivo, estado, pem, costeDirecto, costeEstudio,
-            total, partidas, arbol, creadoPor, creadoEn
-       FROM versionesPresupuesto WHERE presupuestoId = ? ORDER BY numero`
-        ).all(presupuestoId);
-      }
-      function guardar(db, { presupuesto, arbol = null, nombre, motivo = null, personaId = null }) {
-        const base = arbol || armarArbol(db, presupuesto.id);
-        const ultimo = db.prepare("SELECT MAX(numero) AS n FROM versionesPresupuesto WHERE presupuestoId = ?").get(presupuesto.id);
-        const v = versiones.crear({
-          presupuesto,
-          arbol: modelo.calcularArbol(base),
-          numero: (ultimo && ultimo.n ? ultimo.n : 0) + 1,
-          nombre,
-          motivo,
-          personaId
-        });
-        const ahora = (/* @__PURE__ */ new Date()).toISOString();
-        const id = nuevoId();
-        db.prepare(
-          `INSERT INTO versionesPresupuesto
-       (id, presupuestoId, numero, nombre, motivo, estado, pem, costeDirecto, costeEstudio,
-        total, partidas, arbol, creadoPor, creadoEn, modificadoEn)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
-        ).run(
-          id,
-          presupuesto.id,
-          v.numero,
-          v.nombre,
-          v.motivo,
-          v.estado,
-          v.pem,
-          v.costeDirecto,
-          v.costeEstudio,
-          v.total,
-          v.partidas,
-          v.arbol,
-          v.creadoPor,
-          ahora,
-          ahora
-        );
-        return { ok: true, numero: v.numero, version: { ...v, id, presupuestoId: presupuesto.id, creadoEn: ahora } };
-      }
-      function marcarDefinitiva(db, presupuestoId, id, personaId = null) {
-        const lista = listar(db, presupuestoId);
-        const r = versiones.marcarDefinitiva(lista, id, { personaId });
-        if (!r.cambiada) return { ok: false, motivo: r.motivo };
-        const ahora = (/* @__PURE__ */ new Date()).toISOString();
-        const poner = db.prepare("UPDATE versionesPresupuesto SET estado = ?, modificadoEn = ? WHERE id = ?");
-        for (const v of r.versiones) {
-          const antes = lista.find((x) => x.id === v.id);
-          if (antes && antes.estado !== v.estado) poner.run(v.estado, ahora, v.id);
-        }
-        return { ok: true, motivo: r.motivo, versiones: listar(db, presupuestoId) };
-      }
-      module.exports = { listar, guardar, marcarDefinitiva };
-    }
-  });
-
-  // electron/data/difusores.js
-  var require_difusores2 = __commonJS({
-    "electron/data/difusores.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var D = require_difusores();
-      var BM = require_bocaManual();
-      var fichas = require_fichas();
-      var { puede } = require_roles();
-      var BP = require_bocasPresupuesto();
-      var modeloPres = require_modelo();
-      var versionesPres = require_versiones();
-      var datosVersiones = require_versiones2();
-      var { armarArbol } = require_presupuestos();
-      var MAX_IMAGEN = 8 * 1024 * 1024;
-      var RE_IMAGEN = /^data:image\/(png|jpeg|jpg|webp|gif);base64,[A-Za-z0-9+/=]+$/;
-      var leerJsonDif = (t, porDefecto) => {
-        try {
-          return t ? JSON.parse(t) : porDefecto;
-        } catch {
-          return porDefecto;
-        }
-      };
-      function configObra(repo, sesion, obraId) {
-        return repo.listar("configCommissioning", sesion, { condicion: "obraId = ?", params: [obraId], limite: 1 })[0] || null;
-      }
-      function ajenasDe(repo, sesion, plano, equipoId) {
-        if (!plano.imagenId) return [];
-        return repo.listar("planosDifusores", sesion, { condicion: "obraId = ? AND equipoId <> ? AND imagenId IS NOT NULL AND (imagenId = ? OR nombre = ?)", params: [plano.obraId, equipoId, plano.imagenId, plano.nombre] }).flatMap((o) => D.normalizarPuntos(leerJsonDif(o.puntos, [])).filter((p) => !p.sinPosicion && p.x !== null && p.y !== null && p.x !== void 0 && p.y !== void 0).map((p) => ({ id: `${o.id}:${p.id}`, nombre: p.nombre, tipo: p.tipo, x: p.x, y: p.y })));
-      }
-      function planosDe(repo, sesion, equipoId) {
-        return repo.listar("planosDifusores", sesion, { condicion: "equipoId = ?", params: [equipoId], orden: "orden, creadoEn" }).map((p) => ({
-          id: p.id,
-          nombre: p.nombre,
-          orden: p.orden,
-          imagenId: p.imagenId || null,
-          ancho: p.ancho,
-          alto: p.alto,
-          modificadoEn: p.modificadoEn,
-          puntos: D.normalizarPuntos(leerJsonDif(p.puntos, [])),
-          ajenas: ajenasDe(repo, sesion, p, equipoId)
-        }));
-      }
-      function disenoDe(repo, sesion, equipo) {
-        const hoja = repo.listar("hojasBalanceo", sesion, { condicion: "equipoId = ?", params: [equipo.id], limite: 1 })[0];
-        const proyecto = hoja && (leerJsonDif(hoja.datos, {}) || {}).proyecto || {};
-        let ficha = {};
-        try {
-          const f = repo.listar("fichasPM", sesion, { condicion: "equipoId = ? AND plantilla = ?", params: [equipo.id, "BALANCEO_CAUDALES"], limite: 1 })[0];
-          const v = f && (leerJsonDif(f.datos, {}) || {}).valores || {};
-          const de = (k) => v[k] && typeof v[k] === "object" ? v[k].v : v[k];
-          ficha = { impulsion: de("caudal_proyecto_impulsion"), retorno: de("caudal_proyecto_retorno") };
-        } catch {
-          ficha = {};
-        }
-        const una = (propio, deHoja, deFicha, nominal) => {
-          if (D.num(propio) !== null) return { valor: D.num(propio), origen: "equipo" };
-          if (D.num(deHoja) !== null) return { valor: D.num(deHoja), origen: "hojaBalanceo" };
-          if (D.num(deFicha) !== null) return { valor: D.num(deFicha), origen: "fichaBalanceo" };
-          if (D.num(nominal) !== null) return { valor: D.num(nominal), origen: "nominal" };
-          return { valor: null, origen: null };
-        };
-        return {
-          impulsion: una(equipo.caudalDisenoImp, proyecto.caudalImpulsion, ficha.impulsion, equipo.caudalNominal),
-          retorno: una(equipo.caudalDisenoRet, proyecto.caudalRetorno, ficha.retorno, null)
-        };
-      }
-      function difusoresEquipo(repo, sesion, equipoId) {
-        const equipo = repo.leer("equiposObra", sesion, equipoId);
-        if (!equipo) return null;
-        const planos = planosDe(repo, sesion, equipoId);
-        const t = fichas.tolerancias(configObra(repo, sesion, equipo.obraId) || {});
-        const tolerancias = { total: t.total, boca: t.boca };
-        const diseno = disenoDe(repo, sesion, equipo);
-        const puntos = planos.flatMap((p) => p.puntos);
-        const modelos = modelosObra(repo, sesion, equipo.obraId);
-        return {
-          equipo: {
-            id: equipo.id,
-            obraId: equipo.obraId,
-            tag: equipo.tag,
-            planta: equipo.planta,
-            marca: equipo.marca,
-            modelo: equipo.modelo,
-            grupo: equipo.grupo
-          },
-          planos,
-          modelos: modelos.map(D.evaluarModelo),
-          asignacion: D.normalizarAsignacion(leerJsonDif(equipo.modelosDif, []), modelos),
-          diseno,
-          tolerancias,
-          resumen: D.resumen({ puntos, diseno: { impulsion: diseno.impulsion.valor, retorno: diseno.retorno.valor }, tolerancias }),
-          puedeEditar: puede(sesion.rol, "commissioning", "editar"),
-          puedeCrear: puede(sesion.rol, "commissioning", "crear"),
-          puedeBorrar: puede(sesion.rol, "commissioning", "borrar")
-        };
-      }
-      function imagenPlano(repo, sesion, planoId) {
-        const plano = repo.leer("planosDifusores", sesion, planoId);
-        if (!plano || !plano.imagenId) return null;
-        const img = repo.leer("imagenesPlanoDif", sesion, plano.imagenId);
-        return img ? { id: img.id, imagen: img.imagen } : null;
-      }
-      function comprobarImagen(imagen) {
-        if (typeof imagen !== "string" || !imagen) return "Falta la imagen del plano.";
-        if (imagen.length > MAX_IMAGEN) return "La imagen es demasiado grande (m\xE1s de 8 MB): red\xFAcela o haz una captura del plano.";
-        if (!RE_IMAGEN.test(imagen)) return "Eso no es una imagen (PNG, JPEG, WebP o GIF).";
-        return null;
-      }
-      var dimension = (v) => {
-        const n = Math.round(Number(v));
-        return Number.isFinite(n) && n > 0 && n < 1e5 ? n : null;
-      };
-      function crearPlano(repo, sesion, equipoId, datos = {}) {
-        const equipo = repo.leer("equiposObra", sesion, equipoId);
-        if (!equipo) return { ok: false, error: "No se encuentra el equipo." };
-        if (!puede(sesion.rol, "commissioning", "crear")) {
-          return { ok: false, error: "Tu rol puede ver el commissioning de esta obra, pero no a\xF1adir planos." };
-        }
-        const sinDibujo = datos.sinDibujo === true;
-        if (sinDibujo && (datos.puntos || []).some((p) => !p || !p.sinPosicion)) return { ok: false, error: "Un plano sin dibujo solo lleva bocas sin posici\xF3n." };
-        const error = sinDibujo ? null : comprobarImagen(datos.imagen);
-        if (error) return { ok: false, error };
-        const existentes = planosDe(repo, sesion, equipoId);
-        const nombre = String(datos.nombre || "").trim().slice(0, 80) || `Plano ${existentes.length + 1}`;
-        const imagenId = sinDibujo ? null : repo.crear("imagenesPlanoDif", sesion, { obraId: equipo.obraId, imagen: datos.imagen });
-        const id = repo.crear("planosDifusores", sesion, {
-          obraId: equipo.obraId,
-          equipoId,
-          nombre,
-          orden: existentes.length ? Math.max(...existentes.map((p) => p.orden || 0)) + 1 : 0,
-          imagenId,
-          ancho: dimension(datos.ancho),
-          alto: dimension(datos.alto),
-          puntos: JSON.stringify(D.normalizarPuntos(datos.puntos || []))
-        });
-        return { ok: true, id };
-      }
-      function guardarPlano(repo, sesion, planoId, datos = {}) {
-        const plano = repo.leer("planosDifusores", sesion, planoId);
-        if (!plano) return { ok: false, error: "No se encuentra el plano." };
-        if (!puede(sesion.rol, "commissioning", "editar")) {
-          return { ok: false, error: "Tu rol puede ver el commissioning de esta obra, pero no cambiarlo." };
-        }
-        const cambios = {};
-        if (datos.nombre !== void 0) cambios.nombre = String(datos.nombre || "").trim().slice(0, 80) || plano.nombre;
-        let puntos;
-        let avisos = [];
-        if (datos.puntos !== void 0) {
-          puntos = D.normalizarPuntos(datos.puntos);
-          const guardados = D.normalizarPuntos(leerJsonDif(plano.puntos, []));
-          if (!datos.tocarManuales) {
-            const r = BM.proteger(guardados, puntos);
-            puntos = D.normalizarPuntos(r.puntos);
-            avisos = r.avisos;
-          }
-          if (datos.aMano) puntos = D.normalizarPuntos(BM.marcarObra(guardados, puntos));
-          else {
-            const o = BM.protegerObra(guardados, puntos);
-            puntos = D.normalizarPuntos(o.puntos);
-            avisos = avisos.concat(o.avisos);
-          }
-          const texto = JSON.stringify(puntos);
-          if (texto !== plano.puntos) cambios.puntos = texto;
-        }
-        if (Object.keys(cambios).length) repo.modificar("planosDifusores", sesion, planoId, cambios);
-        return { ok: true, puntos: puntos || D.normalizarPuntos(leerJsonDif(plano.puntos, [])), ...avisos.length ? { avisos } : {} };
-      }
-      function soltarImagen(repo, sesion, imagenId) {
-        if (!imagenId || !repo.leer("imagenesPlanoDif", sesion, imagenId)) return;
-        const usada = repo.db.prepare("SELECT 1 FROM planosDifusores WHERE imagenId = ? LIMIT 1").get(imagenId);
-        if (!usada) repo.db.prepare("DELETE FROM imagenesPlanoDif WHERE id = ?").run(imagenId);
-      }
-      function cambiarImagen(repo, sesion, planoId, datos = {}) {
-        const plano = repo.leer("planosDifusores", sesion, planoId);
-        if (!plano) return { ok: false, error: "No se encuentra el plano." };
-        if (!puede(sesion.rol, "commissioning", "editar") || !puede(sesion.rol, "commissioning", "crear")) {
-          return { ok: false, error: "Tu rol puede ver el commissioning de esta obra, pero no cambiarlo." };
-        }
-        const error = comprobarImagen(datos.imagen);
-        if (error) return { ok: false, error };
-        const imagenId = repo.crear("imagenesPlanoDif", sesion, { obraId: plano.obraId, imagen: datos.imagen });
-        repo.modificar("planosDifusores", sesion, planoId, { imagenId, ancho: dimension(datos.ancho), alto: dimension(datos.alto) });
-        soltarImagen(repo, sesion, plano.imagenId);
-        return { ok: true, imagenId };
-      }
-      function borrarPlano(repo, sesion, planoId) {
-        if (!puede(sesion.rol, "commissioning", "borrar")) {
-          return { ok: false, error: "Tu rol no puede borrar planos. Puedes quitar sus puntos uno a uno." };
-        }
-        const plano = repo.leer("planosDifusores", sesion, planoId);
-        if (!plano) return { ok: false, error: "No se encuentra el plano." };
-        repo.borrar("planosDifusores", sesion, planoId);
-        soltarImagen(repo, sesion, plano.imagenId);
-        return { ok: true };
-      }
-      function guardarDiseno(repo, sesion, equipoId, datos = {}) {
-        const equipo = repo.leer("equiposObra", sesion, equipoId);
-        if (!equipo) return { ok: false, error: "No se encuentra el equipo." };
-        if (!puede(sesion.rol, "commissioning", "editar")) {
-          return { ok: false, error: "Tu rol puede ver el commissioning de esta obra, pero no cambiarlo." };
-        }
-        const cambios = {};
-        for (const [clave, columna] of [["impulsion", "caudalDisenoImp"], ["retorno", "caudalDisenoRet"]]) {
-          if (datos[clave] === void 0) continue;
-          const n = D.num(datos[clave]);
-          if (n !== null && n < 0) return { ok: false, error: "Un caudal de dise\xF1o no puede ser negativo." };
-          cambios[columna] = n;
-        }
-        if (Object.keys(cambios).length) repo.modificar("equiposObra", sesion, equipoId, cambios);
-        return { ok: true };
-      }
-      function modelosObra(repo, sesion, obraId) {
-        const cfg = configObra(repo, sesion, obraId);
-        return D.normalizarModelosProyecto(leerJsonDif(cfg && cfg.modelosDifusores, []));
-      }
-      var LISTA_DIF = "Bocas del proyecto";
-      function modelosDelPresupuesto(repo, sesion, obraId) {
-        const obra = repo.leer("obras", sesion, obraId);
-        if (!obra || !obra.presupuestoId) return { modelos: [], sinCasar: [], motivo: "La obra no tiene presupuesto." };
-        const lista = datosVersiones.listar(repo.db, obra.presupuestoId);
-        const definitiva = versionesPres.definitivaDe(lista);
-        const primera = lista.length ? lista[0] : null;
-        const base = primera ? versionesPres.arbolDe(primera) : null;
-        const actual = definitiva ? versionesPres.arbolDe(definitiva) : modeloPres.calcularArbol(armarArbol(repo.db, obra.presupuestoId));
-        return BP.modelosDesdePresupuesto({ base: base && base.length && definitiva ? base : null, actual });
-      }
-      function guardarModelos(repo, sesion, equipoId, datos = {}) {
-        const equipo = repo.leer("equiposObra", sesion, equipoId);
-        if (!equipo) return { ok: false, error: "No se encuentra el equipo." };
-        if (!puede(sesion.rol, "commissioning", "editar")) {
-          return { ok: false, error: "Tu rol puede ver el commissioning de esta obra, pero no cambiarlo." };
-        }
-        let modelos = modelosObra(repo, sesion, equipo.obraId);
-        let desdePresupuesto = null;
-        if (datos.desdePresupuesto) {
-          desdePresupuesto = modelosDelPresupuesto(repo, sesion, equipo.obraId);
-          const lote = [...modelos];
-          for (const n of desdePresupuesto.modelos) {
-            const i = lote.findIndex((m) => m.partida && m.partida.codigo === n.partida.codigo);
-            if (i >= 0) lote[i] = { ...lote[i], ...n, id: lote[i].id, ref: lote[i].ref };
-            else lote.push(n);
-          }
-          datos = { ...datos, modelos: lote };
-        }
-        if (datos.modelos !== void 0) {
-          modelos = D.normalizarModelosProyecto(datos.modelos);
-          const cfg = configObra(repo, sesion, equipo.obraId);
-          const texto = JSON.stringify(modelos);
-          if (cfg) repo.modificar("configCommissioning", sesion, cfg.id, { modelosDifusores: texto });
-          else repo.crear("configCommissioning", sesion, { obraId: equipo.obraId, modelosDifusores: texto });
-          const planos = repo.listar("planosDifusores", sesion, { condicion: "obraId = ?", params: [equipo.obraId] });
-          for (const pl of planos) {
-            const antes = D.normalizarPuntos(leerJsonDif(pl.puntos, []));
-            if (!antes.some((p) => p.modeloId)) continue;
-            const despues = JSON.stringify(D.aplicarModelos(antes, modelos));
-            if (despues !== JSON.stringify(antes)) repo.modificar("planosDifusores", sesion, pl.id, { puntos: despues });
-          }
-        }
-        let asignacion = D.normalizarAsignacion(leerJsonDif(equipo.modelosDif, []), modelos);
-        if (datos.asignacion !== void 0) {
-          asignacion = D.normalizarAsignacion(datos.asignacion, modelos);
-          repo.modificar("equiposObra", sesion, equipoId, { modelosDif: JSON.stringify(asignacion) });
-        }
-        let creadas = 0;
-        let sobran = [];
-        if (datos.crearBocas) {
-          if (!puede(sesion.rol, "commissioning", "crear")) {
-            return { ok: false, error: "Tu rol puede cambiar el commissioning, pero no crear bocas." };
-          }
-          const planos = planosDe(repo, sesion, equipoId);
-          const r = D.generarBocas(asignacion, modelos, planos.flatMap((p) => p.puntos));
-          sobran = r.sobran;
-          if (r.nuevas.length) {
-            let lista = planos.find((p) => p.nombre === LISTA_DIF && !p.imagenId);
-            if (!lista) {
-              const id = repo.crear("planosDifusores", sesion, {
-                obraId: equipo.obraId,
-                equipoId,
-                nombre: LISTA_DIF,
-                orden: planos.length ? Math.min(...planos.map((p) => p.orden || 0)) - 1 : 0,
-                imagenId: null,
-                ancho: null,
-                alto: null,
-                puntos: "[]"
-              });
-              lista = { id, puntos: [] };
-            }
-            const colocadas = D.colocarEnLista([...lista.puntos, ...r.nuevas]);
-            repo.modificar("planosDifusores", sesion, lista.id, { puntos: JSON.stringify(D.normalizarPuntos(colocadas)) });
-            creadas = r.nuevas.length;
-          }
-        }
-        return { ok: true, creadas, sobran, desdePresupuesto: desdePresupuesto && { propuestos: desdePresupuesto.modelos.length, sinCasar: desdePresupuesto.sinCasar } };
-      }
-      module.exports = {
-        guardarModelos,
-        difusoresEquipo,
-        imagenPlano,
-        crearPlano,
-        guardarPlano,
-        cambiarImagen,
-        borrarPlano,
-        guardarDiseno,
-        MAX_IMAGEN,
-        comprobarImagen
-      };
-    }
-  });
-
   // shared/commissioning/simbolosBoca.js
   var require_simbolosBoca = __commonJS({
     "shared/commissioning/simbolosBoca.js"(exports, module) {
@@ -62553,18 +62787,29 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           const usados = new Set((equipos || []).map((e) => e.icono || iconoDe(e)));
           return ORDEN_ICONOS.filter((k) => usados.has(k)).map((k) => ({ id: k, nombre: ICONOS[k].nombre }));
         }
-        function conjuntoEnPlanos(plantas, id, plantaActual) {
-          const todos = [];
-          for (const p of plantas || []) for (const e of p.equipos || []) todos.push({ e, planta: p.planta || "" });
-          const base = todos.find((t) => t.e.id === id);
+        function conjuntoEnPlanos(plantas, id, plantaActual, indice = null) {
+          const porId = indice || indiceConjuntos(plantas);
+          const de = (k) => porId.get(k) || [];
+          const base = de(id)[0];
           const miembros = base && base.e.miembros;
           if (!Array.isArray(miembros) || miembros.length < 2) return [];
+          const puesto = (t) => t.e.x !== null && t.e.x !== void 0;
           return miembros.map((m) => {
-            const aqui = todos.find((t) => t.e.id === m.id && t.planta === (plantaActual || "") && t.e.x !== null && t.e.x !== void 0);
-            const alguna = aqui || todos.find((t) => t.e.id === m.id && t.e.x !== null && t.e.x !== void 0);
-            const donde = alguna || todos.find((t) => t.e.id === m.id);
+            const ts = de(m.id);
+            const aqui = ts.find((t) => t.planta === (plantaActual || "") && puesto(t));
+            const alguna = aqui || ts.find(puesto);
+            const donde = alguna || ts[0];
             return { id: m.id, tag: m.tag, papel: m.papel, planta: donde ? donde.planta : null, aqui: Boolean(aqui), enPlano: Boolean(alguna), x: alguna ? alguna.e.x : null, y: alguna ? alguna.e.y : null };
           });
+        }
+        function indiceConjuntos(plantas) {
+          const m = /* @__PURE__ */ new Map();
+          for (const p of plantas || []) for (const e of p.equipos || []) {
+            const l = m.get(e.id);
+            if (l) l.push({ e, planta: p.planta || "" });
+            else m.set(e.id, [{ e, planta: p.planta || "" }]);
+          }
+          return m;
         }
         function tipoLlano(u) {
           const fam = String(u && u.familia || "").trim();
@@ -62974,6 +63219,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           iconoDe,
           leyendaIconos,
           conjuntoEnPlanos,
+          indiceConjuntos,
           llevaBalanceo,
           TEXTO_ACCION,
           limpiarMarcas,
@@ -63078,7 +63324,13 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           if (!c) continue;
           textos ||= textosDe(lista);
           const aguja = ` ${c} `;
-          const hit = (textos.porPalabra.get(c.split(" ")[0]) || []).filter((i) => textos[i].includes(aguja)).map((i) => lista[i]);
+          let candidatas = null;
+          for (const w of new Set(c.split(" "))) {
+            const l = textos.porPalabra.get(w) || [];
+            if (!candidatas || l.length < candidatas.length) candidatas = l;
+            if (!l.length) break;
+          }
+          const hit = (candidatas || []).filter((i) => textos[i].includes(aguja)).map((i) => lista[i]);
           if (hit.length === 1) return { partida: hit[0], por, varias: [] };
           if (hit.length > 1) return { partida: null, por, varias: hit };
         }
@@ -63455,6 +63707,345 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
+  // shared/commissioning/equiposIA.js
+  var require_equiposIA = __commonJS({
+    "shared/commissioning/equiposIA.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const P = typeof module !== "undefined" && module.exports ? require_planoEquipos() : window.PLANO_EQUIPOS;
+        const TIPOS_IA = Object.keys(P.ICONOS);
+        const MISMO = { vrfExt: "vrfInt", splitExt: "splitInt" };
+        const base = (k) => MISMO[k] || k;
+        const CERCA_FUNDIR = 4e-3;
+        const CERCA_ACIERTO = 6e-3;
+        const CERCA_CORTADO = 0.02;
+        const norm = (t) => String(t || "").trim().replace(/\s+/g, " ").toUpperCase();
+        function aPagina(prop, manifiesto) {
+          const t = (manifiesto.teselas || []).find((z) => z.id === prop.tesela);
+          if (!t) return null;
+          const px = Number(prop.px);
+          const py = Number(prop.py);
+          if (!Number.isFinite(px) || !Number.isFinite(py) || px < 0 || py < 0 || px > t.px.w || py > t.px.h) return null;
+          const W = manifiesto.pagina.wPx;
+          const H = manifiesto.pagina.hPx;
+          return { x: (t.px.x + px) / W, y: (t.px.y + py) / H };
+        }
+        function validar(propuestas, manifiesto) {
+          const rechazadas = [];
+          const validas = [];
+          for (const p of propuestas || []) {
+            const sitio = aPagina(p, manifiesto);
+            if (!sitio || sitio.x < 0 || sitio.x > 1 || sitio.y < 0 || sitio.y > 1) {
+              rechazadas.push({ ...p, motivo: "fuera del plano" });
+              continue;
+            }
+            const tipo = String(p.tipo || "").trim();
+            if (!TIPOS_IA.includes(tipo)) {
+              rechazadas.push({ ...p, motivo: `tipo \xAB${tipo}\xBB no est\xE1 en la leyenda` });
+              continue;
+            }
+            const leido = norm(p.tag);
+            if (/(…|\.\.\.)$/.test(leido)) {
+              rechazadas.push({ ...p, motivo: `\xAB${leido}\xBB cortado por el borde de la tesela` });
+              continue;
+            }
+            const r = leido ? P.equipoDeRotulo(leido) : null;
+            if (leido && !r) {
+              rechazadas.push({ ...p, motivo: `\xAB${leido}\xBB no tiene forma de TAG de equipo` });
+              continue;
+            }
+            const v = { tipo, icono: r ? r.icono : tipo, x: sitio.x, y: sitio.y, teselas: [p.tesela] };
+            if (r && r.tag) v.tag = r.tag;
+            else if (r && r.modelo) v.modelo = r.modelo;
+            if (p.dudoso) {
+              v.dudoso = true;
+              v.revisar = true;
+              v.motivo = p.nota ? `la IA duda: ${String(p.nota).slice(0, 120)}` : "la IA duda (r\xF3tulo cortado o s\xEDmbolo poco claro)";
+            }
+            if (r && base(r.icono) !== base(tipo)) {
+              v.revisar = true;
+              v.motivo = `la IA lo ve como ${P.ICONOS[tipo].nombre}, el TAG dice ${P.ICONOS[r.icono] ? P.ICONOS[r.icono].nombre : r.tipo}`;
+            }
+            const igual = validas.find((o) => Math.hypot(o.x - v.x, o.y - v.y) <= CERCA_FUNDIR && (v.tag ? o.tag === v.tag : !o.tag && base(o.icono) === base(v.icono)));
+            if (igual) {
+              if (!igual.teselas.includes(p.tesela)) igual.teselas.push(p.tesela);
+              continue;
+            }
+            validas.push(v);
+          }
+          const porTag = /* @__PURE__ */ new Map();
+          for (const v of validas) if (v.tag) porTag.set(v.tag, [...porTag.get(v.tag) || [], v]);
+          for (const vs of porTag.values()) if (vs.length > 1) for (const v of vs) {
+            v.revisar = true;
+            v.motivo = `TAG repetido en ${vs.length} sitios del plano`;
+          }
+          return { validas, rechazadas };
+        }
+        function comparar(validas, cargados) {
+          const lista = (cargados || []).map((c, i) => ({ ...c, _i: i }));
+          const usados = /* @__PURE__ */ new Set();
+          const acierta = [];
+          const anade = [];
+          const discrepa = [];
+          const libre = (c) => !usados.has(c._i);
+          for (const v of validas.filter((z) => z.tag)) {
+            const k = P.claveSuelta(v.tag);
+            const c = lista.find((z) => libre(z) && P.claveSuelta(z.tag) === k);
+            if (!c) {
+              anade.push(v);
+              continue;
+            }
+            usados.add(c._i);
+            if (c.x === null || c.x === void 0) {
+              discrepa.push({ ia: v, cargado: c, motivo: "cargado sin ubicar; la IA lo ve en el plano" });
+              continue;
+            }
+            const d = Math.hypot(c.x - v.x, c.y - v.y);
+            if (d > CERCA_ACIERTO) discrepa.push({ ia: v, cargado: c, motivo: "la IA lo ve en otro sitio del plano" });
+            else if (base(c.icono) !== base(v.icono)) discrepa.push({ ia: v, cargado: c, motivo: "otro tipo de equipo" });
+            else acierta.push({ ia: v, cargado: c });
+          }
+          for (const v of validas.filter((z) => !z.tag)) {
+            let mejor = null;
+            let dm = CERCA_ACIERTO;
+            for (const c of lista) {
+              if (!libre(c) || c.x === null || c.x === void 0 || base(c.icono) !== base(v.icono)) continue;
+              const d = Math.hypot(c.x - v.x, c.y - v.y);
+              if (d <= dm) {
+                dm = d;
+                mejor = c;
+              }
+            }
+            if (mejor) {
+              usados.add(mejor._i);
+              acierta.push({ ia: v, cargado: mejor });
+            } else anade.push(v);
+          }
+          for (const v of anade) {
+            if (!v.tag) continue;
+            const k = P.claveSuelta(v.tag);
+            const otro = [...lista, ...validas].find((o) => o !== v && o.tag && o.x !== null && o.x !== void 0 && P.claveSuelta(o.tag) !== k && P.claveSuelta(o.tag).startsWith(k) && Math.hypot(o.x - v.x, o.y - v.y) <= CERCA_CORTADO);
+            if (otro) {
+              v.revisar = true;
+              v.motivo = `r\xF3tulo cortado: parece \xAB${otro.tag}\xBB`;
+            }
+          }
+          const noVista = lista.filter((c) => libre(c) && c.x !== null && c.x !== void 0);
+          return {
+            acierta,
+            anade,
+            discrepa,
+            noVista,
+            cuentas: { propuestos: validas.length, acierta: acierta.length, anade: anade.length, discrepa: discrepa.length, noVista: noVista.length, cargados: lista.length }
+          };
+        }
+        function porTipo(cmp, validas, cargados) {
+          const t = {};
+          const s = (k) => t[base(k || "generico")] ||= { ia: 0, cargados: 0, acierta: 0, anade: 0, discrepa: 0, noVista: 0 };
+          for (const v of validas) s(v.icono).ia += 1;
+          for (const c of cargados) s(c.icono).cargados += 1;
+          for (const a of cmp.acierta) s(a.ia.icono).acierta += 1;
+          for (const a of cmp.anade) s(a.icono).anade += 1;
+          for (const a of cmp.discrepa) s(a.ia.icono).discrepa += 1;
+          for (const a of cmp.noVista) s(a.icono).noVista += 1;
+          return t;
+        }
+        const API = { TIPOS_IA, aPagina, validar, comparar, porTipo, CERCA_FUNDIR, CERCA_ACIERTO };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.EQUIPOS_IA = API;
+      })();
+    }
+  });
+
+  // shared/commissioning/visionPlano.js
+  var require_visionPlano = __commonJS({
+    "shared/commissioning/visionPlano.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const P = typeof module !== "undefined" && module.exports ? require_planoEquipos() : window.PLANO_EQUIPOS;
+        const IA = typeof module !== "undefined" && module.exports ? require_equiposIA() : window.EQUIPOS_IA;
+        const LADO = 1e3;
+        const SOLAPE = 140;
+        const CERCA_SALA = 0.012;
+        const POR_LOTE = 4;
+        function teselas(W, H, { lado = LADO, solape = SOLAPE, tinta = null, minTinta = 4e-3 } = {}) {
+          const paso = lado - solape;
+          const out = [];
+          for (let y = 0; y < H; y += paso) {
+            for (let x = 0; x < W; x += paso) {
+              const w = Math.min(lado, W - x);
+              const h = Math.min(lado, H - y);
+              if (w < solape || h < solape) continue;
+              if (tinta && tinta(x, y, w, h) < minTinta) continue;
+              out.push({ id: `t${String(out.length + 1).padStart(3, "0")}`, px: { x, y, w, h } });
+            }
+            if (y + lado >= H) break;
+          }
+          return out;
+        }
+        const NOMBRES_TIPO = () => IA.TIPOS_IA.filter((k) => k !== "generico").map((k) => `${k} = ${P.ICONOS[k].nombre}`).join("; ");
+        function pregunta(ficheros) {
+          return [
+            "Eres delineante de instalaciones de climatizaci\xF3n. Te paso trozos (teselas) de un plano de planta.",
+            `Lee con la herramienta Read estas im\xE1genes, una a una: ${ficheros.map((f) => JSON.stringify(f.ruta)).join(", ")}.`,
+            `Sus nombres de tesela son, por orden: ${ficheros.map((f) => f.id).join(", ")}.`,
+            "En cada tesela busca:",
+            `1) EQUIPOS de climatizaci\xF3n o ventilaci\xF3n dibujados (s\xEDmbolo con su r\xF3tulo de TAG cerca, p. ej. \xABEX-N60-BASURAS-024\xBB, \xABUI-P3.COC.0007\xBB, \xABUICO-04\xBB, \xABHRU-2\xBB, \xABUTA-01\xBB, \xABFC-N10-3\xBB). Tipos posibles: ${NOMBRES_TIPO()}; generico = otro equipo.`,
+            "2) SALAS: r\xF3tulos de nombre de local (\xABCuarto de Basuras\xBB, \xABAseo PMR VIP\xBB, \xABSala IT\xBB) y/o su c\xF3digo (\xABP3.WCS.0047\xBB).",
+            "Para cada cosa, da el centro en P\xCDXELES de su tesela (px desde la izquierda, py desde arriba): del s\xEDmbolo para un equipo, del r\xF3tulo para una sala.",
+            'Copia el TAG tal como est\xE1 escrito, sin inventar. Si est\xE1 cortado por el borde, termina el tag en \xAB\u2026\xBB. Si dudas, pon "dudoso":true.',
+            "No cuentes difusores, rejillas, compuertas, v\xE1lvulas, cotas ni textos de leyenda o cajet\xEDn.",
+            "Responde SOLO con JSON, sin nada m\xE1s, con esta forma:",
+            '{"equipos":[{"tesela":"t001","tag":"\u2026" o null,"tipo":"ventilador","px":0,"py":0,"dudoso":false}],"salas":[{"tesela":"t001","nombre":"\u2026" o null,"codigo":"\u2026" o null,"px":0,"py":0}]}'
+          ].join("\n");
+        }
+        function primerJson(texto) {
+          const t = String(texto || "");
+          const i = t.indexOf("{");
+          const j = t.lastIndexOf("}");
+          if (i < 0 || j <= i) return null;
+          try {
+            return JSON.parse(t.slice(i, j + 1));
+          } catch {
+            return null;
+          }
+        }
+        const corto = (v, n) => {
+          const s = String(v ?? "").trim().replace(/\s+/g, " ");
+          return s ? s.slice(0, n) : null;
+        };
+        const num = (v) => {
+          const n = Number(v);
+          return Number.isFinite(n) ? n : null;
+        };
+        function interpretar(texto, idsLote) {
+          const j = primerJson(texto) || {};
+          const ids = new Set(idsLote || []);
+          const vale = (x) => x && ids.has(String(x.tesela)) && num(x.px) !== null && num(x.py) !== null;
+          const equipos = (Array.isArray(j.equipos) ? j.equipos : []).filter(vale).map((e) => ({
+            tesela: String(e.tesela),
+            tag: corto(e.tag, 60),
+            tipo: corto(e.tipo, 20) || "generico",
+            px: num(e.px),
+            py: num(e.py),
+            ...e.dudoso ? { dudoso: true } : {},
+            ...e.nota ? { nota: corto(e.nota, 120) } : {}
+          }));
+          const salas = (Array.isArray(j.salas) ? j.salas : []).filter(vale).map((s) => ({
+            tesela: String(s.tesela),
+            nombre: corto(s.nombre, 60),
+            codigo: corto(s.codigo, 30),
+            px: num(s.px),
+            py: num(s.py)
+          })).filter((s) => s.nombre || s.codigo);
+          return { equipos, salas };
+        }
+        const manifiesto = (W, H, ts) => ({ pagina: { wPx: W, hPx: H }, teselas: ts });
+        function salasAPagina(salas, man) {
+          const out = [];
+          for (const s of salas || []) {
+            const sitio = IA.aPagina({ tesela: s.tesela, px: s.px, py: s.py }, man);
+            if (!sitio) continue;
+            const codigo = s.codigo && P.esCodigoSala(s.codigo) ? P.limpiarSala(s.codigo.toUpperCase()) : null;
+            const nombre = s.nombre && (P.esNombreSala(s.nombre) || codigo) ? s.nombre : null;
+            if (!codigo && !nombre) continue;
+            const texto = P.limpiarSala(nombre && codigo ? `${nombre} \xB7 ${codigo}` : nombre || codigo);
+            const igual = out.find((o) => Math.hypot(o.x - sitio.x, o.y - sitio.y) < CERCA_SALA && (o.texto === texto || codigo && o.texto.endsWith(codigo)));
+            if (igual) {
+              if (texto.length > igual.texto.length) igual.texto = texto;
+              continue;
+            }
+            out.push({ texto: texto.slice(0, 120), x: Math.round(sitio.x * 1e4) / 1e4, y: Math.round(sitio.y * 1e4) / 1e4, ia: true });
+          }
+          return out;
+        }
+        function plan(validas, cargados, { tagsObra = /* @__PURE__ */ new Set(), rotulos = [], salasIA = [] } = {}) {
+          const cmp = IA.comparar(validas, cargados);
+          const altas = [];
+          const revisar = [];
+          const tagsVistos = /* @__PURE__ */ new Set();
+          for (const v of cmp.anade) {
+            const k = v.tag ? P.claveSuelta(v.tag) : null;
+            if (v.tag && !v.revisar && !tagsObra.has(k) && !tagsVistos.has(k)) {
+              tagsVistos.add(k);
+              altas.push(v);
+              continue;
+            }
+            if (v.tag && tagsObra.has(k)) {
+              revisar.push({ ...resumen(v), motivo: "ese TAG ya est\xE1 en la obra, en otra planta" });
+              continue;
+            }
+            revisar.push({ ...resumen(v), motivo: v.motivo || (v.tag ? "revisar" : "s\xEDmbolo sin TAG legible") });
+          }
+          for (const d of cmp.discrepa) revisar.push({ ...resumen(d.ia), tag: d.cargado.tag || d.ia.tag || null, motivo: d.motivo });
+          const salas = (salasIA || []).filter((s) => !(rotulos || []).some((r) => Math.hypot(r.x - s.x, r.y - s.y) < CERCA_SALA || mismoCodigo(r.texto, s.texto)));
+          return {
+            altas,
+            salas,
+            revisar: revisar.slice(0, 200),
+            cuentas: { ...cmp.cuentas, altas: altas.length, salas: salas.length, revisar: revisar.length }
+          };
+        }
+        const codigoDe = (t) => {
+          const i = String(t || "").lastIndexOf(" \xB7 ");
+          const c = i >= 0 ? t.slice(i + 3) : t;
+          return P.esCodigoSala(c) ? c : null;
+        };
+        const mismoCodigo = (a, b) => {
+          const x = codigoDe(a);
+          return Boolean(x) && x === codigoDe(b);
+        };
+        const resumen = (v) => ({ tag: v.tag || null, modelo: v.modelo || null, icono: v.icono, x: Math.round(v.x * 1e4) / 1e4, y: Math.round(v.y * 1e4) / 1e4 });
+        const ESTADOS = { pendiente: "En cola", leyendo: "Leyendo", leido: "Le\xEDdo", error: "No se pudo leer" };
+        function textoEstado(ia) {
+          if (!ia || !ia.iaEstado) return null;
+          const r = (() => {
+            try {
+              return ia.iaResumen ? JSON.parse(ia.iaResumen) : {};
+            } catch {
+              return {};
+            }
+          })();
+          if (ia.iaEstado === "pendiente") return "Visi\xF3n IA: en cola, se lee cuando el Mac est\xE9 encendido";
+          if (ia.iaEstado === "leyendo") return "Visi\xF3n IA: leyendo el plano\u2026";
+          if (ia.iaEstado === "error") return `Visi\xF3n IA: no se pudo leer${r.error ? ` (${String(r.error).slice(0, 80)})` : ""}; se reintenta sola`;
+          const c = r.cuentas || {};
+          const partes = [];
+          if (c.altas) partes.push(`${c.altas} equipo${c.altas === 1 ? "" : "s"} a\xF1adido${c.altas === 1 ? "" : "s"}`);
+          if (c.salas) partes.push(`${c.salas} sala${c.salas === 1 ? "" : "s"}`);
+          if (c.acierta) partes.push(`${c.acierta} confirmado${c.acierta === 1 ? "" : "s"}`);
+          if (c.revisar) partes.push(`${c.revisar} por revisar`);
+          const cuando = ia.iaLeidoEn ? ` el ${new Date(ia.iaLeidoEn).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}` : "";
+          return `Visi\xF3n IA: le\xEDdo${cuando}${partes.length ? ` \xB7 ${partes.join(" \xB7 ")}` : " \xB7 nada nuevo"}`;
+        }
+        function paraPantalla(fila) {
+          if (!fila || !fila.iaEstado) return null;
+          const r = (() => {
+            try {
+              return fila.iaResumen ? JSON.parse(fila.iaResumen) : {};
+            } catch {
+              return {};
+            }
+          })();
+          return {
+            estado: fila.iaEstado,
+            en: fila.iaLeidoEn || null,
+            texto: textoEstado(fila),
+            altas: (r.altas || []).slice(0, 50),
+            salas: (r.salas || []).slice(0, 50),
+            revisar: (r.revisar || []).slice(0, 50),
+            cuentas: r.cuentas || null
+          };
+        }
+        const API = { paraPantalla, LADO, SOLAPE, POR_LOTE, CERCA_SALA, ESTADOS, teselas, pregunta, interpretar, primerJson, manifiesto, salasAPagina, plan, textoEstado };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.VISION_PLANO = API;
+      })();
+    }
+  });
+
   // package.json
   var require_package = __commonJS({
     "package.json"(exports, module) {
@@ -63467,7 +64058,8 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         private: true,
         scripts: {
           start: "env -u ELECTRON_RUN_AS_NODE electron .",
-          test: "node --test test/",
+          test: "VIDAIRE_SIN_NUBE=1 node --test test/",
+          "test:nube": "node --test test/syncNube.test.js test/syncBalanceoAlMomento.test.js",
           prepare: "git config core.hooksPath .githooks || true",
           contraste: "node scripts/contraste.js",
           tokens: "node scripts/generarTokens.js",
@@ -65109,16 +65701,25 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           for (const m of materiales) sumar("material", String(m.planta || "\u2014"), m.tipo || "otro", m.codigo || "", m.x === null || m.x === void 0, m.nombre);
           return [...filas.values()].map(({ cod, ...f }) => ({ ...f, codigos: [...cod].map(([codigo, n]) => ({ codigo, n })).sort((a, b) => b.n - a.n || a.codigo.localeCompare(b.codigo)) })).sort((a, b) => ordenPlanta(a.planta, b.planta) || (a.clase === b.clase ? 0 : a.clase === "equipo" ? -1 : 1) || b.n - a.n);
         }
+        const textosPartida = /* @__PURE__ */ new WeakMap();
+        function textoPartida(p) {
+          let t = textosPartida.get(p);
+          if (!t || t.resumen !== p.resumen || t.descripcion !== p.descripcion) {
+            t = { resumen: p.resumen, descripcion: p.descripcion, corto: plano(p.resumen), largo: plano(`${p.resumen} ${p.descripcion || ""}`).replace(/[\s_]+/g, "-") };
+            textosPartida.set(p, t);
+          }
+          return t;
+        }
         function candidatas(fila, partidas) {
           const t = TIPOS_MED[fila.tipo];
           if (!t) return { todas: [], porCodigo: [] };
           const todas = (partidas || []).filter((p) => {
-            const s = plano(p.resumen);
+            const s = textoPartida(p).corto;
             return t.si.test(s) && !t.no.test(s) && !/^(PA|M|ML|M2|KG|H)\.?$/i.test(String(p.unidad || "").trim());
           });
           const codigos = (fila.codigos || []).map((c) => plano(c.codigo)).filter((c) => c && c !== "(SIN CODIGO)" && c.length >= 4);
           const porCodigo = codigos.length ? todas.filter((p) => {
-            const s = plano(`${p.resumen} ${p.descripcion || ""}`).replace(/[\s_]+/g, "-");
+            const s = textoPartida(p).largo;
             return codigos.some((c) => s.includes(c.replace(/[\s_]+/g, "-")));
           }) : [];
           return { todas, porCodigo };
@@ -65359,6 +65960,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
       var EP = require_equiposPresupuesto();
       var alcance = require_alcance();
       var { puede } = require_roles();
+      var VP = require_visionPlano();
       var MAX_IMAGEN = 16 * 1024 * 1024;
       var RE_IMAGEN = /^data:image\/(png|jpeg|jpg|webp);base64,[A-Za-z0-9+/=]+$/;
       var llano = (v) => String(v ?? "").trim();
@@ -65419,13 +66021,13 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         } catch {
           return;
         }
-        const marcar = (u) => {
+        const marcar2 = (u) => {
           if (u && ids.has(u.id)) u.fichaConDato = true;
         };
-        for (const u of t.filas || []) marcar(u);
+        for (const u of t.filas || []) marcar2(u);
         for (const c of t.conjuntos || []) {
-          marcar(c);
-          for (const m of c.miembros || []) marcar(m);
+          marcar2(c);
+          for (const m of c.miembros || []) marcar2(m);
         }
       }
       function certificacionDeObra(repo, obraId) {
@@ -65443,13 +66045,24 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           return null;
         }
       }
+      function plantaPorDefecto(plantas, nombre) {
+        const ps = plantas || [];
+        const n = String(nombre ?? "");
+        return ps.find((p) => (p.planta || "") === n) || ps.find((p) => p.plano) || ps.find((p) => p.planta) || ps[0] || null;
+      }
       function listar(repo, ses, obraId, opc = {}) {
+        if (!opc.ligero || opc.soloFicha || !repo || typeof repo !== "object" || !repo.db) return listarEntera(repo, ses, obraId, opc);
+        const { recordar } = require_marcaCambios();
+        const r = recordar(repo, ses, `planoEquipos|${obraId}|${JSON.stringify(opc)}`, () => listarEntera(repo, ses, obraId, opc));
+        return r ? structuredClone(r) : r;
+      }
+      function listarEntera(repo, ses, obraId, opc = {}) {
         if (!obraVisible(repo, ses, obraId)) return null;
         const lec = sesionDeLectura(ses);
         const conCx = puede(ses.rol, "commissioning", "ver");
         const puedeEditar = puede(ses.rol, "commissioning", "editar");
         const filas = repo.listar("planosEquipos", lec, { condicion: "obraId = ?", params: [obraId] });
-        const t = CX.tabla(repo, lec, obraId) || { filas: [], conjuntos: [] };
+        const t = CX.tablaRecordada(repo, lec, obraId) || { filas: [], conjuntos: [] };
         marcarFichasConDato(repo, lec, obraId, t);
         const filasEq = (t.filas || []).filter(P.esEquipoDelPlano);
         const est = P.estados(t, { puedeEditar });
@@ -65487,9 +66100,9 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           };
           return { ...v, entregaDF, bloques: [EE.bloqueFicha(albaranesDe.get(f.id)), ...VE.bloquesFicha(v)] };
         };
-        const datosDe = (f, e) => {
+        const datosDe = (f, e, entera = false) => {
           const base = { tipo: e.tipo, icono: e.icono, miembros: e.miembros, marca: e.marca || null, modelo: e.modelo || null, puedeEditar };
-          if (opc.ligero && opc.soloFicha !== f.id) return base;
+          if (!entera && opc.ligero && opc.soloFicha !== f.id) return base;
           return { ...base, documentos: papelesDe(f.id), acciones: botones(e), vida: vidaDe(f) };
         };
         const certDe = /* @__PURE__ */ new Map();
@@ -65563,17 +66176,18 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
             sinUbicar,
             materiales,
             capas,
-            plano: p ? { id: p.id, nombre: p.nombre, ancho: p.ancho, alto: p.alto, modificadoEn: p.modificadoEn, salas: salasParaPintar(p.rotulos) } : null
+            plano: p ? { id: p.id, nombre: p.nombre, ancho: p.ancho, alto: p.alto, modificadoEn: p.modificadoEn, salas: salasParaPintar(p.rotulos), ia: VP.paraPantalla(p) } : null
           };
         });
+        const indiceCj = P.indiceConjuntos(plantas);
         for (const pl of plantas) {
           for (const q of pl.equipos) {
             if (!q.miembros) continue;
-            const r = P.conjuntoEnPlanos(plantas, q.id, pl.planta || "");
+            const r = P.conjuntoEnPlanos(plantas, q.id, pl.planta || "", indiceCj);
             q.miembros = r.length ? r : null;
           }
         }
-        const planos = filas.sort((a, b) => ordenPlanta(a.planta, b.planta)).map((p) => {
+        const planos = opc.porPlanta ? [] : filas.sort((a, b) => ordenPlanta(a.planta, b.planta)).map((p) => {
           const { marcas, cuentas } = P.colorear(leerJson(p.marcas, []), t);
           const pl = plantas.find((x) => x.plano && x.plano.id === p.id);
           const sinPoner = pl ? pl.equipos.filter((q) => q.x === null).map((q) => ({ id: q.id, tag: q.tag, color: q.color, sala: q.sala })) : [];
@@ -65581,13 +66195,60 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           return { id: p.id, planta: p.planta, nombre: p.nombre, ancho: p.ancho, alto: p.alto, marcas: marcas.map((m) => ({ ...m, sala: salaPor.get(m.equipoId) || m.sala || null })), cuentas, sinPoner, modificadoEn: p.modificadoEn };
         });
         const medicion = VE.veCertificacion(ses.rol) ? medicionDelPlano(repo, obraId, plantas) : null;
+        if (opc.porPlanta) {
+          const pedida = plantaPorDefecto(plantas, opc.planta);
+          for (let i = 0; i < plantas.length; i += 1) {
+            const pl = plantas[i];
+            if (pl === pedida) continue;
+            plantas[i] = {
+              planta: pl.planta,
+              cuentas: pl.cuentas,
+              capas: pl.capas,
+              plano: pl.plano,
+              parcial: true,
+              n: { equipos: pl.equipos.length, materiales: pl.materiales.length },
+              enPlano: pl.equipos.filter((q) => q.x !== null).map((q) => q.id),
+              equipos: [],
+              materiales: [],
+              sinUbicar: []
+            };
+          }
+        }
         const iconos = {};
         for (const k of Object.keys(P.ICONOS)) iconos[k] = P.ICONOS[k];
         const MT = require_materialesInstalados();
         const tiposMaterial = Object.fromEntries(Object.entries(MT.TIPOS).map(([k, v]) => [k, { nombre: v.nombre, corto: v.corto, capa: v.capa, campos: v.campos }]));
+        if (opc.ligero && !opc.soloFicha) {
+          const porId = new Map(filasEq.map((f) => [f.id, f]));
+          recordarFichas(repo, ses, obraId, (id) => {
+            const f = porId.get(id);
+            const e = f && est.get(id);
+            if (!f || !e) return null;
+            const d = datosDe(f, e, true);
+            return { id, documentos: d.documentos || [], acciones: d.acciones || [], vida: d.vida || null };
+          });
+        }
         return { plantas, planos, iconos, colores: P.COLORES, puedeEditar, conCommissioning: conCx, capas: MT.CAPAS, tiposMaterial, medicion };
       }
+      var fichasRecordadas = /* @__PURE__ */ new WeakMap();
+      var claveFichas = (ses, obraId) => `${obraId}|${ses && ses.personaId}|${ses && ses.rol}|${JSON.stringify(ses && ses.soloObras || null)}`;
+      function recordarFichas(repo, ses, obraId, fichaDe) {
+        if (!repo || typeof repo !== "object" || !repo.db) return;
+        const marca = require_marcaCambios().marcaDeCambios(repo.db);
+        if (!marca) return;
+        const m = fichasRecordadas.get(repo) || /* @__PURE__ */ new Map();
+        m.set(claveFichas(ses, obraId), { marca, fichaDe });
+        fichasRecordadas.set(repo, m);
+      }
       function ficha(repo, ses, obraId, equipoId) {
+        const rec = repo && typeof repo === "object" && repo.db ? (fichasRecordadas.get(repo) || /* @__PURE__ */ new Map()).get(claveFichas(ses, obraId)) : null;
+        if (rec && rec.marca === require_marcaCambios().marcaDeCambios(repo.db)) {
+          try {
+            const d = rec.fichaDe(equipoId);
+            if (d) return d;
+          } catch {
+          }
+        }
         const r = listar(repo, ses, obraId, { ligero: true, soloFicha: equipoId });
         if (!r) return null;
         for (const pl of r.plantas) {
@@ -65664,7 +66325,19 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         const marcas = P.limpiarMarcas([...P.ponerSalas(r.marcas, rotulos), ...aMano]).filter((m) => esEquipo.has(m.equipoId));
         const ancho = dimension(d.ancho);
         const alto = dimension(d.alto);
-        const datos = { planta, nombre, imagen: d.imagen, imagenMovil: imagenParaMovil(d, ancho, alto), ancho, alto, marcas: JSON.stringify(marcas), rotulos: JSON.stringify(rotulos) };
+        const datos = {
+          planta,
+          nombre,
+          imagen: d.imagen,
+          imagenMovil: imagenParaMovil(d, ancho, alto),
+          ancho,
+          alto,
+          marcas: JSON.stringify(marcas),
+          rotulos: JSON.stringify(rotulos),
+          /* La visión con IA (tarea [12], 5-nov): todo plano guardado queda en cola para el Mac (electron/data/visionPlanos.js). */
+          iaEstado: "pendiente",
+          iaResumen: null
+        };
         let id;
         if (viejo) {
           repo.modificar("planosEquipos", ses, viejo.id, datos);
@@ -65680,6 +66353,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           conservadosAMano: aMano.length,
           deLaPlanta: dePlanta.length,
           rotulosSala: rotulos.length,
+          sinTextos: Array.isArray(d.textos) && !d.textos.length,
           conSala: marcas.filter((m) => m.sala).length,
           noEncontrados: dePlanta.filter((e) => !marcas.some((m) => m.equipoId === e.id)).map((e) => e.tag),
           alSimbolo: marcas.filter((m) => m.w).length,
@@ -67234,13 +67908,24 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         const tagDe = new Map(lista.map((e) => [e.id, e.tag]));
         return require_ncr().ncrActivasDe(repo.db, lista.map((e) => e.id)).map((x) => ({ codigo: x.codigo, tag: tagDe.get(x.equipoId), bloquea: Boolean(x.bloquea) }));
       }
+      var sembradas = /* @__PURE__ */ new WeakSet();
       function sembrarPlantillas(db) {
+        if (sembradas.has(db)) return;
+        sembradas.add(db);
+        let hay = null;
+        try {
+          hay = new Set(db.prepare("SELECT codigo, version FROM plantillasPM").all().map((f) => `${f.codigo}@${f.version}`));
+        } catch {
+          hay = null;
+        }
+        const faltan = hay ? catalogo.PLANTILLAS.filter((p) => !hay.has(`${p.codigo}@${p.version || 1}`)) : catalogo.PLANTILLAS;
+        if (!faltan.length) return;
         const ahora = (/* @__PURE__ */ new Date()).toISOString();
         const poner = db.prepare(
           `INSERT OR IGNORE INTO plantillasPM (id, codigo, version, nombre, clase, definicion, origen, creadoEn, modificadoEn)
      VALUES (?,?,?,?,?,?,?,?,?)`
         );
-        for (const p of catalogo.PLANTILLAS) {
+        for (const p of faltan) {
           poner.run(nuevoId(), p.codigo, p.version || 1, p.nombre, p.clase, JSON.stringify(p), "libro", ahora, ahora);
         }
       }
@@ -67331,7 +68016,13 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         return { ok: true, version };
       }
       function configDe(repo, sesion, obraId) {
-        return repo.listar("configCommissioning", sesion, { condicion: "obraId = ?", params: [obraId], limite: 1 })[0] || null;
+        const cfg = require_marcaCambios().recordar(
+          repo,
+          sesion,
+          `configCommissioning|${obraId}`,
+          () => repo.listar("configCommissioning", sesion, { condicion: "obraId = ?", params: [obraId], limite: 1 })[0] || null
+        );
+        return cfg ? { ...cfg } : null;
       }
       function cabeceraDe(cfg) {
         try {
@@ -67503,11 +68194,13 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         const cfg = configDe(repo, sesion, obraId);
         const fichas = /* @__PURE__ */ new Map();
         const fechaDe = /* @__PURE__ */ new Map();
-        for (const fila of filasFichas(repo, sesion, obraId)) {
-          const r = evaluarFila(fila, cat, cfg, { repo, sesion, sinConformidad: true });
-          if (r) fichas.set(`${fila.clave}|${fila.plantilla}`, { id: fila.id, estado: F.estadoVisible(r.ev.estado, r.ev.medidos, F.bocasSinMedir(r.ev)), resultado: r.ev.resultado, medidos: r.ev.medidos && r.ev.medidos.rellenos, enObra: r.ev.enObra, fusionada: F.fichaFundida(fila) });
-          if (fila.clase === "fichaPM") fechaDe.set(fila.id, fechaTrabajoFicha(fila));
-        }
+        require_difusores2().enMemoObra(() => {
+          for (const fila of filasFichas(repo, sesion, obraId)) {
+            const r = evaluarFila(fila, cat, cfg, { repo, sesion, sinConformidad: true });
+            if (r) fichas.set(`${fila.clave}|${fila.plantilla}`, { id: fila.id, estado: F.estadoVisible(r.ev.estado, r.ev.medidos, F.bocasSinMedir(r.ev)), resultado: r.ev.resultado, medidos: r.ev.medidos && r.ev.medidos.rellenos, enObra: r.ev.enObra, fusionada: F.fichaFundida(fila) });
+            if (fila.clase === "fichaPM") fechaDe.set(fila.id, fechaTrabajoFicha(fila));
+          }
+        });
         const buscar = (clave, plantilla) => fichas.get(`${clave}|${plantilla}`) || null;
         const deLaObra = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
         const lista = equipos || deLaObra;
@@ -67555,22 +68248,24 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         let conPrueba = 0;
         let aRevisar = 0;
         let medidosPrueba = 0;
-        for (const fila of filasFichas(repo, sesion, obraId)) {
-          const r = evaluarFila(fila, cat, cfg, { repo, sesion, sinConformidad: true });
-          if (!r) continue;
-          if (r.ev.datosPrueba) conPrueba += 1;
-          if (r.ev.sinConfirmar) aRevisar += 1;
-          medidosPrueba += r.ev.medidosPrueba || 0;
-          fichas.set(`${fila.clave}|${fila.plantilla}`, {
-            id: fila.id,
-            estado: r.ev.estado,
-            resultado: r.ev.resultado,
-            medidos: r.ev.medidos,
-            datosPrueba: r.ev.datosPrueba,
-            medidosPrueba: r.ev.medidosPrueba || 0,
-            fusionada: F.fichaFundida(fila)
-          });
-        }
+        require_difusores2().enMemoObra(() => {
+          for (const fila of filasFichas(repo, sesion, obraId)) {
+            const r = evaluarFila(fila, cat, cfg, { repo, sesion, sinConformidad: true });
+            if (!r) continue;
+            if (r.ev.datosPrueba) conPrueba += 1;
+            if (r.ev.sinConfirmar) aRevisar += 1;
+            medidosPrueba += r.ev.medidosPrueba || 0;
+            fichas.set(`${fila.clave}|${fila.plantilla}`, {
+              id: fila.id,
+              estado: r.ev.estado,
+              resultado: r.ev.resultado,
+              medidos: r.ev.medidos,
+              datosPrueba: r.ev.datosPrueba,
+              medidosPrueba: r.ev.medidosPrueba || 0,
+              fusionada: F.fichaFundida(fila)
+            });
+          }
+        });
         const buscar = (clave, plantilla) => fichas.get(`${clave}|${plantilla}`) || null;
         const ncrDe = /* @__PURE__ */ new Map();
         for (const x of require_ncr().ncrActivasDe(repo.db, equipos.map((e) => e.id))) {
@@ -68011,6 +68706,9 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
       var RESULTADO_BAL = { apto: "apto", aptoSinBocas: "aRevisar", noApto: "noApto" };
       var RESULTADO_ESTANQ = { correcta: "apto", noSuperada: "noApto", sinTerminar: "aRevisar" };
       function balanceoEvaluado(repo, sesion, equipo) {
+        return require_recordado().recordar(repo, sesion, "balanceoEvaluado", equipo && equipo.id, () => balanceoEvaluadoSinRecordar(repo, sesion, equipo));
+      }
+      function balanceoEvaluadoSinRecordar(repo, sesion, equipo) {
         let fila = repo.listar("hojasBalanceo", sesion, { condicion: "equipoId = ?", params: [equipo.id], limite: 1 })[0];
         if (fila && require_cronometro().soloCronometros(leerJson(fila.datos, null))) fila = null;
         const DIF = require_difusores2();
@@ -68025,7 +68723,8 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         const BAL = require_balanceo();
         const ev = BAL.evaluar(fila ? leerJson(fila.datos, {}) : {}, equipo, {
           tolerancias: F.toleranciasAplicadas(configDe(repo, sesion, equipo.obraId) || {}),
-          instrumentos: repo.listar("instrumentosMedida", sesion, { orden: "nombre, numSerie" }),
+          /* En la pasada de toda la obra se leen una vez (difusores.js › enMemoObra). */
+          instrumentos: DIF.deMemoObra(`instrumentos|${DIF.claveSesion(sesion)}`, () => repo.listar("instrumentosMedida", sesion, { orden: "nombre, numSerie" })),
           plano: filasPlano,
           diseno: dif ? { impulsion: dif.diseno.impulsion.valor, retorno: dif.diseno.retorno.valor } : {}
         });
@@ -70758,6 +71457,13 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           config: cfg ? { ...cfg, ultimoEnlace } : null
         };
       }
+      function tablaRecordada(repo, sesion, obraId) {
+        return require_marcaCambios().recordar(repo, sesion, `tablaCx|${obraId}`, () => tabla(repo, sesion, obraId));
+      }
+      function tablaCopia(repo, sesion, obraId) {
+        const t = tablaRecordada(repo, sesion, obraId);
+        return t && typeof structuredClone === "function" ? structuredClone(t) : t;
+      }
       function datosMapaEquipos(repo, sesion, obraId) {
         const obra = obraVisible(repo, sesion, obraId);
         if (!obra) return null;
@@ -71696,9 +72402,23 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           return { ok: false, error: err.message };
         }
       }
+      var recordadas = /* @__PURE__ */ new WeakMap();
+      function tablaParaLeer(repo, sesion, obraId) {
+        const db = repo && repo.db;
+        if (!db || typeof db.cambiosTotales !== "function") return tabla(repo, sesion, obraId);
+        const clave = `${obraId}|${sesion && sesion.personaId}|${sesion && sesion.rol}|${db.cambiosTotales()}`;
+        const r = recordadas.get(db);
+        if (r && r.clave === clave && Date.now() - r.en < 2 * 60 * 1e3) return r.valor;
+        const valor = tabla(repo, sesion, obraId);
+        recordadas.set(db, { clave: `${obraId}|${sesion && sesion.personaId}|${sesion && sesion.rol}|${db.cambiosTotales()}`, en: Date.now(), valor });
+        return valor;
+      }
       module.exports = {
+        tablaParaLeer,
         documentoParaAbrir,
         tabla,
+        tablaRecordada,
+        tablaCopia,
         configurar,
         datosMapaEquipos,
         crearEquipo,
@@ -72549,7 +73269,8 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
       function crearRutasPlanoEquipos({ repo }) {
         async function lista({ ses, query }) {
           const ligero = String(query.ligero || "") === "1";
-          const d = PE.listar(repo, ses, String(query.obra || ""), { ligero });
+          const porPlanta = String(query.porPlanta || "") === "1";
+          const d = PE.listar(repo, ses, String(query.obra || ""), { ligero, porPlanta, planta: query.planta ?? null });
           if (!d) return { ok: false, error: "No se encuentra la obra." };
           if (!ligero) await certificacionDeLaNube(ses, String(query.obra || ""), d);
           return { ok: true, ligero, plantas: d.plantas, planos: d.planos, iconos: d.iconos, colores: d.colores, puedeEditar: d.puedeEditar, conCommissioning: d.conCommissioning, capas: d.capas, tiposMaterial: d.tiposMaterial };
@@ -75073,6 +75794,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
       var modelo = require_modelo();
       var cert = require_certificacion();
       var { armarArbol } = require_presupuestos();
+      var { recordar } = require_marcaCambios();
       var historial = require_historial();
       var { puede, campoVetado } = require_roles();
       var llano = (v) => String(v ?? "").trim();
@@ -75087,6 +75809,9 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
       var verDinero = (sesion) => !campoVetado(sesion.rol, "precioProveedor") && !campoVetado(sesion.rol, "importeVenta");
       function partidasDeLaObra(repo, obra2) {
         if (!obra2.presupuestoId) return [];
+        return recordar(repo, null, `partidasDeLaObra|${obra2.presupuestoId}`, () => calcularPartidas(repo, obra2)).map((p) => ({ ...p }));
+      }
+      function calcularPartidas(repo, obra2) {
         const arbol = modelo.calcularArbol(armarArbol(repo.db, obra2.presupuestoId));
         const industrial = new Map(repo.db.prepare("SELECT id, proveedorId FROM lineas WHERE presupuestoId = ? AND proveedorId IS NOT NULL").all(obra2.presupuestoId).map((l) => [l.id, l.proveedorId]));
         return cert.partidasCertificables(arbol).filter((p) => !p.coste).map((p) => ({
@@ -99847,6 +100572,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
       var crypto2 = require_crypto();
       var alAzar = (n) => crypto2.randomBytes(n).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
       var CX = require_commissioning();
+      var { marcaDeCambios } = require_marcaCambios();
       var PMES = require_planificacionMes();
       function estadoPlanDe(repo, ses, equipo, fila) {
         try {
@@ -99949,8 +100675,23 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           const lista = repo.listar("obras", ses).filter((o) => o.estado !== "cerrada" && o.estado !== "anulada" && (!solo || solo.has(o.id)));
           return { ok: true, obras: lista.map((o) => ({ id: o.id, codigo: o.codigo, nombre: o.nombre })).sort((a, b) => String(a.codigo).localeCompare(String(b.codigo), "es", { numeric: true })) };
         }
+        const tablaCx = (ses, obraId) => CX.tablaRecordada(repo, ses, obraId);
+        const listas = /* @__PURE__ */ new Map();
         function commissioning({ ses, query }) {
-          const t = CX.tabla(repo, ses, String(query.obra || ""));
+          const marca = marcaDeCambios(repo.db);
+          const clave = `${String(query.obra || "")}|${ses.personaId}|${ses.rol}|${JSON.stringify(ses.soloObras || null)}`;
+          const ya = listas.get(clave);
+          if (marca && ya && ya.marca === marca) return ya.r;
+          const r = listaCommissioning({ ses, query });
+          const despues = marcaDeCambios(repo.db);
+          if (despues && r.ok) {
+            if (listas.size > 4) listas.clear();
+            listas.set(clave, { marca: despues, r });
+          }
+          return r;
+        }
+        function listaCommissioning({ ses, query }) {
+          const t = tablaCx(ses, String(query.obra || ""));
           if (!t) return { ok: false, error: "No se encuentra la obra." };
           const bocas = /* @__PURE__ */ new Map();
           for (const p of repo.listar("planosDifusores", ses, { condicion: "obraId = ?", params: [String(query.obra)] })) {
@@ -100078,7 +100819,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         function equipo({ ses, quien, query }) {
           const d = DIF.difusoresEquipo(repo, ses, String(query.id || ""));
           if (!d) return { ok: false, error: "No se encuentra el equipo." };
-          const t = CX.tabla(repo, ses, d.equipo.obraId);
+          const t = tablaCx(ses, d.equipo.obraId);
           const fila = t ? t.filas.find((f) => f.id === d.equipo.id) : null;
           const evaluada = new Map(d.resumen.filas.map((f) => [f.id, f]));
           const linea = t && t.conjuntos ? t.conjuntos.find((l) => l.miembros.some((m) => m.id === d.equipo.id)) : null;
@@ -104727,12 +105468,12 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
         const enc = medidoEncargado(repo, c.obraId, { hasta: finDePeriodo(c.periodo), unidades: new Map(a.filas.map((f) => [f.lineaId, f.unidad])) });
         const ids = validas.flatMap((x) => (enc.partidas[x.f.lineaId] || { pendientes: [] }).pendientes);
         const ahora = (/* @__PURE__ */ new Date()).toISOString();
-        const marcar = repo.db.prepare(
+        const marcar2 = repo.db.prepare(
           "UPDATE avanceMarcas SET estado = 'certificada', certificacionId = ?, modificadoEn = ? WHERE id = ? AND estado IN ('pendiente','vista')"
         );
         let marcadas = 0;
         enTransaccion(repo.db, () => {
-          for (const id of ids) marcadas += Number(marcar.run(c.id, ahora, id).changes) || 0;
+          for (const id of ids) marcadas += Number(marcar2.run(c.id, ahora, id).changes) || 0;
         });
         if (cambios.length || marcadas) {
           historial.anotar(
@@ -112988,7 +113729,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           }
           try {
             if (puede(sesion.rol, "commissioning", "ver")) {
-              const t = commissioning.tabla(repo, sesion, obra.id);
+              const t = commissioning.tablaCopia(repo, sesion, obra.id);
               const tc = t && t.totalesConjuntos;
               if (t && t.totales) {
                 cx = tc && tc.conjuntos ? { ...t.totales, ...tc, equipos: tc.conjuntos, unidades: tc.unidades, aReclamar: (t.aReclamar || []).length } : { ...t.totales, unidades: t.totales.equipos, aReclamar: (t.aReclamar || []).length };
@@ -135552,6 +136293,13 @@ ${l}`;
     }
     return mejor || activas[0] || null;
   }
+  var marcar = (n) => {
+    try {
+      performance.mark(`cx:${n}`);
+    } catch {
+    }
+  };
+  marcar("motor");
   async function arrancar() {
     const aviso = document.getElementById("arranqueCx");
     const decir = (t) => {
@@ -135597,6 +136345,7 @@ ${l}`;
     prepararEsquema(base);
     T.marcar("preparar esquema", t0);
     const repo = crearRepositorio(base);
+    marcar("esquema");
     let soltada = false;
     const syncCx = crearSyncCx({
       base,
@@ -135767,6 +136516,39 @@ ${l}`;
     });
     vigilarFaltas(alVerlas.alFaltar);
     const fetchReal = globalThis.fetch.bind(globalThis);
+    const CACHE_MS = 2 * 60 * 1e3;
+    const CACHE_MAX = 40;
+    const cacheGet = /* @__PURE__ */ new Map();
+    const cederUnFotograma = () => new Promise((listo) => {
+      let hecho = false;
+      const fin = () => {
+        if (!hecho) {
+          hecho = true;
+          listo();
+        }
+      };
+      setTimeout(fin, 50);
+      try {
+        requestAnimationFrame(() => setTimeout(fin, 0));
+      } catch {
+        fin();
+      }
+    });
+    const enVuelo = /* @__PURE__ */ new Map();
+    let cacheEscrituras = -1;
+    const cacheAlDia = () => {
+      const n = base.cambiosTotales();
+      if (n !== cacheEscrituras) {
+        if (globalThis.cxDepurar) console.log("[cach\xE9] escrituras", cacheEscrituras, "->", n);
+        cacheGet.clear();
+        cacheEscrituras = n;
+      }
+    };
+    window.addEventListener("cxobra:datos", (e) => {
+      if (globalThis.cxDepurar) console.log("[cach\xE9] datos", JSON.stringify(e.detail));
+      cacheGet.clear();
+    });
+    globalThis.cxCacheApi = { vaciar: () => cacheGet.clear(), tam: () => cacheGet.size };
     globalThis.fetch = async (entrada, opciones = {}) => {
       const texto = String(typeof entrada === "string" ? entrada : entrada && entrada.url || "");
       if (!texto.startsWith("api/")) return fetchReal(entrada, opciones);
@@ -135784,16 +136566,66 @@ ${l}`;
         if (!cabeceras["content-type"] && b.type) cabeceras["content-type"] = b.type;
       } else if (b instanceof ArrayBuffer) cuerpo = new Uint8Array(b);
       else if (ArrayBuffer.isView(b)) cuerpo = new Uint8Array(b.buffer, b.byteOffset, b.byteLength);
-      const r = await alVerlas.atender({
-        metodo: String(opciones.method || "GET").toUpperCase(),
-        ruta: rutaApi,
-        query: Object.fromEntries(url.searchParams),
-        cabeceras,
-        cuerpo: Buffer.from(cuerpo)
-      });
+      const t02 = performance.now();
+      const metodo = String(opciones.method || "GET").toUpperCase();
+      const clave = metodo === "GET" ? `${url.pathname}${url.search}|${cabeceras.authorization || ""}` : null;
+      cacheAlDia();
+      if (clave) {
+        const c = cacheGet.get(clave);
+        if (c && Date.now() - c.en < CACHE_MS) {
+          cacheGet.delete(clave);
+          cacheGet.set(clave, c);
+          try {
+            (globalThis.cxTiemposApi = globalThis.cxTiemposApi || []).push([rutaApi + " (cach\xE9)", Math.round(t02), 0]);
+            if (globalThis.cxTiemposApi.length > 200) globalThis.cxTiemposApi.shift();
+          } catch {
+          }
+          return new Response(c.texto, { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } });
+        }
+      }
+      if (clave && enVuelo.has(clave)) {
+        const r2 = await enVuelo.get(clave);
+        try {
+          (globalThis.cxTiemposApi = globalThis.cxTiemposApi || []).push([rutaApi + " (a la vez)", Math.round(t02), Math.round(performance.now() - t02)]);
+          if (globalThis.cxTiemposApi.length > 200) globalThis.cxTiemposApi.shift();
+        } catch {
+        }
+        if (r2.bytes) return new Response(r2.bytes, { status: r2.codigo, headers: { "Content-Type": r2.tipo || "application/octet-stream" } });
+        return new Response(JSON.stringify(r2.json), { status: r2.codigo, headers: { "Content-Type": "application/json; charset=utf-8" } });
+      }
+      let escriturasAntes = base.cambiosTotales();
+      const pendiente = (async () => {
+        if (clave) {
+          await cederUnFotograma();
+          escriturasAntes = base.cambiosTotales();
+        }
+        return alVerlas.atender({
+          metodo,
+          ruta: rutaApi,
+          query: Object.fromEntries(url.searchParams),
+          cabeceras,
+          cuerpo: Buffer.from(cuerpo)
+        });
+      })();
+      if (clave) {
+        enVuelo.set(clave, pendiente);
+        pendiente.then(() => enVuelo.delete(clave), () => enVuelo.delete(clave));
+      }
+      const r = await pendiente;
       tras();
+      try {
+        (globalThis.cxTiemposApi = globalThis.cxTiemposApi || []).push([rutaApi, Math.round(t02), Math.round(performance.now() - t02)]);
+        if (globalThis.cxTiemposApi.length > 200) globalThis.cxTiemposApi.shift();
+      } catch {
+      }
       if (r.bytes) return new Response(r.bytes, { status: r.codigo, headers: { "Content-Type": r.tipo || "application/octet-stream" } });
-      return new Response(JSON.stringify(r.json), { status: r.codigo, headers: { "Content-Type": "application/json; charset=utf-8" } });
+      const json = JSON.stringify(r.json);
+      if (globalThis.cxDepurar && base.cambiosTotales() !== escriturasAntes) console.log("[cach\xE9] escribe", metodo, rutaApi, base.cambiosTotales() - escriturasAntes);
+      if (clave && r.codigo === 200 && r.json && r.json.ok !== false && base.cambiosTotales() === escriturasAntes && escriturasAntes === cacheEscrituras) {
+        cacheGet.set(clave, { en: Date.now(), texto: json });
+        while (cacheGet.size > CACHE_MAX) cacheGet.delete(cacheGet.keys().next().value);
+      }
+      return new Response(json, { status: r.codigo, headers: { "Content-Type": "application/json; charset=utf-8" } });
     };
     const conNube = !oficina().ejemplo;
     let arrancada = false;
@@ -135843,7 +136675,9 @@ ${l}`;
       ev.cxDatos = true;
       window.dispatchEvent(ev);
     });
+    marcar("manejador");
     const yo = await (await globalThis.fetch("api/entrar", { method: "POST", body: "{}" })).json();
+    marcar("entrar");
     ponerLS(CLAVE_SESION, JSON.stringify({ token: "local", nombre: yo.nombre, rol: yo.rol, rolNombre: yo.rolNombre, secciones: yo.secciones, local: true }));
     const vuelta = () => {
       const o = oficina();
