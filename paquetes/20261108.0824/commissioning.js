@@ -1448,11 +1448,16 @@
   function bocaVecina(paso) {
     const claves = [...$app.querySelectorAll('.densa li[data-boca]')].map((x) => x.dataset.boca);
     const sig = claves[claves.indexOf(bocaAbierta) + paso];
-    if (sig) abrirHojaBoca(sig, { foco: true });
+    /* El foco pasa a la boca vecina solo si ya se estaba escribiendo (Intro); con ‹ › no se abre el teclado. */
+    const escribiendo = Boolean(document.activeElement && document.activeElement.dataset && document.activeElement.dataset.punto);
+    if (sig) abrirHojaBoca(sig, { foco: escribiendo });
   }
 
+  /* Tocar una boca del plano la abre SIN foco: el teclado del iPhone solo sale
+     cuando se toca una casilla (JC, 8-nov: el teclado tapaba el plano y la
+     pantalla saltaba). El foco automático era la causa. */
   function irABoca(clave) {
-    abrirHojaBoca(clave, { foco: true });
+    abrirHojaBoca(clave, { foco: false });
   }
 
   /* Tras repintar la ficha: el zoom de cada plano, la pantalla completa y la tarjeta abierta, como estaban. */

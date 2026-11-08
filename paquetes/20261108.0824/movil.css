@@ -115,12 +115,32 @@ body {
    contorno fino que se rellenan al activarse. El marco es transparente y no
    recibe toques: el contenido sigue por debajo, y la página deja abajo el
    hueco (--hueco-barra) para que la última fila no quede tapada. */
-:root { --barra-flotante: rgba(255, 255, 255, .8); --barra-solida: #FFFFFF; --barra-flotante-borde: rgba(255, 255, 255, .7); --hueco-barra: 104px; }
+:root { --barra-flotante: rgba(255, 255, 255, .8); --barra-solida: #FFFFFF; --barra-flotante-borde: rgba(255, 255, 255, .7); --hueco-barra: 150px; }
+body.sin-caja-iarvis { --hueco-barra: 104px; }
 .barra-inferior {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
   padding: 22px 16px max(env(safe-area-inset-bottom), 10px);
   background: transparent; pointer-events: none;
+  display: flex; flex-direction: column; align-items: stretch; gap: 8px;
 }
+.barra-pastilla { width: 100%; box-sizing: border-box; }
+/* LA CAJA DE IARVIS (8-nov, JC): estrecha, pegada encima de la barra, en todas las pantallas menos la suya. */
+.caja-iarvis {
+  pointer-events: auto; align-self: center; width: 100%; max-width: 560px; box-sizing: border-box; height: 38px;
+  display: flex; align-items: center; gap: 8px; padding: 0 14px; border-radius: 999px;
+  background: var(--barra-flotante); border: 1px solid var(--acento); color: var(--textoTenue); text-decoration: none; font-size: 14px;
+  -webkit-backdrop-filter: saturate(180%) blur(24px); backdrop-filter: saturate(180%) blur(24px);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, .12);
+  transition: width .18s, max-width .18s, padding .18s, opacity .18s;
+}
+.caja-iarvis .caja-texto { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Al bajar la pantalla: un botón redondo a la derecha, junto a la barra. */
+body.caja-chica .caja-iarvis { width: 38px; padding: 0; justify-content: center; align-self: flex-end; }
+body.caja-chica .caja-iarvis .caja-texto { display: none; }
+body.sin-caja-iarvis .caja-iarvis { display: none; }
+/* Con el teclado abierto o algo a pantalla completa (plano grande, firma, foto, PDF, entrar), ni caja ni barra. */
+body.teclado .barra-inferior, body.teclado-vv .barra-inferior,
+body:has(.plano-bocas.grande, .vista-pdf, .visor-foto, .visor-foto-ui, .bm-capa, .qh-firmar, .entrar-movil) .barra-inferior { display: none; }
 .barra-pastilla {
   pointer-events: auto; max-width: 560px; margin: 0 auto;
   display: flex; align-items: flex-start;
@@ -1479,6 +1499,30 @@ main, #app { min-width: 0; max-width: 100%; }
 /* ═══════════════ Inicio por bloques (22-oct, JC): «Hoy», «Esta semana», Commissioning y
    Pendiente, con una línea «Ver» para quitar y poner bloques. Filas de hoja, sin tarjetas
    ni huecos: cada bloque es un título gris de 1 línea y sus filas separadas por 1 px. */
+/* INICIO SEGÚN EL ROL (8-nov): filas finas, sin tarjetas; los colores son los de la app. */
+.ini-bloque { display: block; margin: 8px 0 0; padding: 0; color: var(--texto); text-decoration: none; }
+.ini-destacado { padding: 8px 12px; background: var(--acento-suave); }
+.ini-grande { font-size: 18px; font-weight: 650; line-height: 1.25; color: var(--acento-fuerte); font-variant-numeric: tabular-nums; }
+.ini-titulo { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 5px 12px; font-weight: 600; color: var(--acento-fuerte); }
+.ini-titulo .num { font-variant-numeric: tabular-nums; }
+.ini-fila { display: grid; grid-template-columns: 4px 1fr auto; gap: 8px; align-items: center; padding: 5px 12px; border-bottom: 1px solid var(--rejillaSuave); background: var(--panel); color: var(--texto); text-decoration: none; font-size: 14px; }
+.ini-fila .marca { align-self: stretch; border-radius: 2px; background: var(--aviso); }
+.ini-fila .marca.ok { background: var(--acento); }
+.ini-fila .eq { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ini-fila .eq small { display: block; font-size: 12px; color: var(--textoTenue); }
+.ini-fila .cuando { font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--aviso); }
+.ini-fila .cuando.t { color: var(--textoTenue); }
+.ini-mas > summary { cursor: pointer; padding: 4px 12px; color: var(--acento-fuerte); font-weight: 600; font-size: 13px; list-style: none; }
+.ini-destacado .ini-mas > summary { padding: 2px 0; }
+.ini-mas > summary::-webkit-details-marker { display: none; }
+.ini-avance { padding-bottom: 6px; }
+.ini-avance .tenue { padding: 2px 12px 0; }
+.barra-av { height: 8px; margin: 2px 12px; border-radius: 999px; background: var(--rejilla); overflow: hidden; }
+.barra-av i { display: block; height: 100%; border-radius: 999px; background: var(--acento); }
+.ini-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 12px 0; }
+.ini-kpi { display: block; padding: 6px 10px; border: 1px solid var(--rejilla); border-radius: 6px; color: var(--texto); text-decoration: none; }
+.ini-kpi b { display: block; font-size: 19px; font-variant-numeric: tabular-nums; color: var(--acento-fuerte); }
+.ini-kpi span { font-size: 12.5px; color: var(--textoTenue); }
 .ver-bloques { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: 6px 2px 2px; font-size: 12.5px; }
 .ver-bloques > span { color: var(--textoTenue); font-weight: 600; margin-right: 2px; }
 .ver-bloques button { min-height: 28px; padding: 2px 10px; border: 1px solid var(--borde); border-radius: 999px; background: var(--panel); color: var(--textoTenue); font: inherit; font-size: 12.5px; cursor: pointer; }

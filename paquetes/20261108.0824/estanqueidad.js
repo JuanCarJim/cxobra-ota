@@ -97,7 +97,17 @@
       $app.innerHTML = `<div class="vacio mal"><p>${esc(e.message)}</p><button class="boton" data-pe="lista">Reintentar</button></div>`;
       return;
     }
-    if (activa()) pintarLista();
+    if (!activa()) return;
+    /* Iarvis la dejó empezada («¿Hacemos ahora la prueba de estanqueidad?», 8-nov): se sigue con ella. */
+    let seguir = false;
+    try { seguir = sessionStorage.getItem('estanqueidad.seguir') === '1'; sessionStorage.removeItem('estanqueidad.seguir'); } catch { /* sin almacén */ }
+    const b = seguir && datos.puede && datos.puede.crear ? leerBorrador() : null;
+    if (b) {
+      form = b;
+      if (EM.INSTALACIONES[form.instalacion]) { pintarForm(); restaurarVistas(); } else { pintarInstalacion(); }
+      return;
+    }
+    pintarLista();
   }
 
   function pintarLista() {

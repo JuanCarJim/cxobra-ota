@@ -1,0 +1,102 @@
+/*
+ * 🧭 IARVIS: el chat (7-nov-2026). Un botón pequeño abajo a la derecha y un panel
+ * lateral. El mismo en el escritorio, la web y el móvil (renderer/iarvis.js).
+ * Teal, sin tarjetas: cada mensaje es una línea con su texto, no una caja.
+ */
+#iarvisBoton {
+  /* 8-nov (JC): más arriba; abajo del todo lo tapaba el Dock. */
+  position: fixed; right: 16px; bottom: 84px; z-index: 860;
+  height: 34px; padding: 0 12px 0 10px; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--marca-verde, #0f766e); background: var(--marca-verde, #0f766e); color: #fff;
+  font: 600 13px/1 inherit; cursor: pointer; box-shadow: var(--sombra, 0 2px 8px rgba(0,0,0,.15));
+}
+#iarvisBoton:hover { filter: brightness(1.08); }
+#iarvisBoton:focus-visible { outline: 2px solid var(--marca-acento, #14b8a6); outline-offset: 2px; }
+#iarvisBoton[hidden] { display: none; }
+#iarvisBoton .iaPunto { display: none; width: 8px; height: 8px; border-radius: 50%; background: #a7f3d0; }
+#iarvisBoton.conPunto .iaPunto { display: inline-block; }
+body.conIarvis #capaAvisos { bottom: 132px; }
+
+/* 8-nov (JC: «el chat hay que ajustarlo en tamaño»): ventana flotante abajo a la derecha, no una
+   columna de arriba abajo; la caja de escribir siempre a la vista. */
+.iaPanel {
+  position: fixed; right: 16px; bottom: 84px; z-index: 870;
+  width: min(380px, calc(100vw - 32px)); height: min(540px, calc(100vh - 116px));
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--papel, var(--panel, #fff)); color: var(--texto, #1f2937);
+  border: 1px solid var(--borde, #d1d5db); border-radius: 12px;
+  box-shadow: var(--sombra, 0 8px 28px rgba(0,0,0,.18));
+}
+.iaPanel[hidden] { display: none; }
+.iaCabecera { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 2px solid var(--marca-verde, #0f766e); }
+.iaCabecera { padding: 12px 14px; }
+.iaCabecera .iaMarca { width: 28px; height: 28px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--marca-verde, #0f766e); color: #fff; font: 700 14px/1 inherit; flex: none; }
+.iaCabecera .iaTitulo { display: flex; flex-direction: column; gap: 1px; margin-right: auto; min-width: 0; }
+.iaCabecera h2 { margin: 0; font-size: 15px; line-height: 1.1; color: var(--vd-acento-texto, var(--marca-verde, #0f766e)); }
+.iaCabecera .iaAviso { font-size: 11px; color: var(--textoSuave, #6b7280); }
+.iaCabecera .iaNueva { font-size: 16px; color: var(--vd-acento-texto, var(--marca-verde, #0f766e)); }
+.iaCabecera button { border: 0; background: transparent; font-size: 18px; cursor: pointer; color: inherit; padding: 2px 6px; }
+
+.iaLista { flex: 1; overflow-y: auto; padding: 8px 12px; display: flex; flex-direction: column; gap: 10px; }
+.iaVacio { color: var(--textoSuave, #6b7280); font-size: 13px; }
+.iaPregunta { align-self: flex-end; max-width: 85%; padding: 6px 10px; border-radius: 12px; background: color-mix(in srgb, var(--marca-verde, #0f766e) 12%, transparent); font-size: 13px; white-space: pre-wrap; }
+.iaRespuesta { max-width: 95%; font-size: 13px; line-height: 1.5; border-left: 2px solid var(--marca-verde, #0f766e); padding-left: 8px; }
+.iaRespuesta.iaEspera { color: var(--textoSuave, #6b7280); border-left-style: dashed; }
+.iaRespuesta .iaIr { border: 0; background: none; color: var(--vd-acento-texto, var(--marca-verde, #0f766e)); text-decoration: underline; cursor: pointer; padding: 0; font: inherit; }
+.iaPie { display: flex; gap: 6px; margin-top: 4px; font-size: 11px; color: var(--textoSuave, #6b7280); align-items: center; }
+.iaPie button { border: 1px solid var(--borde, #d1d5db); background: transparent; border-radius: 999px; padding: 1px 8px; cursor: pointer; font-size: 11px; color: inherit; }
+.iaPie button.elegida { background: var(--marca-verde, #0f766e); color: #fff; border-color: transparent; }
+.iaAdjuntos { font-size: 11px; color: var(--textoSuave, #6b7280); }
+.iaPropuesta { margin-top: 4px; font-size: 12px; }
+.iaPropuesta button { margin-left: 6px; border: 0; border-radius: 999px; padding: 2px 10px; background: var(--marca-verde, #0f766e); color: #fff; cursor: pointer; font-size: 12px; }
+
+.iaEntrada { border-top: 1px solid var(--borde, #d1d5db); padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
+.iaEntrada .iaFicheros { font-size: 11px; color: var(--textoSuave, #6b7280); }
+.iaEntrada .iaFila { display: flex; gap: 6px; align-items: flex-end; }
+.iaEntrada textarea { flex: 1; resize: none; min-height: 36px; max-height: 140px; padding: 7px 9px; border: 1px solid var(--borde, #d1d5db); border-radius: 10px; font: 13px/1.35 inherit; background: var(--panel, #fff); color: inherit; }
+.iaEntrada button { height: 34px; min-width: 34px; border-radius: 999px; border: 1px solid var(--borde, #d1d5db); background: transparent; cursor: pointer; color: inherit; font-size: 15px; }
+.iaEntrada button.iaMandar { background: var(--marca-verde, #0f766e); color: #fff; border-color: transparent; padding: 0 12px; font-size: 13px; font-weight: 600; }
+.iaEntrada button:disabled { opacity: .5; cursor: default; }
+
+/* 8-nov: se abre limpio — saludo y atajos; lo anterior, plegado. */
+.iaBienvenida { padding: 18px 2px 6px; }
+.iaBienvenida h3 { margin: 0 0 6px; font-size: 17px; color: var(--vd-acento-texto, var(--marca-verde, #0f766e)); }
+.iaBienvenida p { margin: 0 0 12px; font-size: 13px; line-height: 1.5; color: var(--textoSuave, #6b7280); }
+.iaSugerencias { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.iaSugerencia { border: 1px solid color-mix(in srgb, var(--marca-verde, #0f766e) 35%, transparent); background: transparent; color: var(--vd-acento-texto, var(--marca-verde, #0f766e)); border-radius: 999px; padding: 5px 12px; font: 13px/1.3 inherit; cursor: pointer; text-align: left; width: fit-content; }
+.iaSugerencia:hover { background: color-mix(in srgb, var(--marca-verde, #0f766e) 10%, transparent); }
+.iaAnteriores { font-size: 12px; color: var(--textoSuave, #6b7280); }
+.iaAnteriores > summary { cursor: pointer; padding: 4px 0; list-style: none; }
+.iaAnteriores > summary::before { content: '▸ '; }
+.iaAnteriores[open] > summary::before { content: '▾ '; }
+.iaAnteriores[open] { display: flex; flex-direction: column; gap: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--borde, #d1d5db); opacity: .85; }
+
+/* Texto con formato: párrafos, negritas y listas, sin asteriscos. */
+.iaRespuesta p { margin: 0 0 6px; }
+.iaRespuesta p:last-child { margin-bottom: 0; }
+.iaRespuesta ul { margin: 2px 0 6px; padding-left: 18px; }
+.iaRespuesta li { margin: 1px 0; }
+.iaRespuesta strong { font-weight: 650; }
+.iaPuntos { display: inline-flex; gap: 3px; margin-right: 4px; vertical-align: middle; }
+.iaPuntos i { width: 5px; height: 5px; border-radius: 50%; background: var(--marca-verde, #0f766e); animation: iaLatir 1s infinite ease-in-out; }
+.iaPuntos i:nth-child(2) { animation-delay: .15s; } .iaPuntos i:nth-child(3) { animation-delay: .3s; }
+@keyframes iaLatir { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+
+/* Lo que Iarvis saca de la app: el PDF (una línea, sin tarjeta) y los botones. */
+.iaPdf { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 6px 0; border-top: 1px solid var(--borde, #d1d5db); }
+.iaPdfIcono { flex: none; font: 700 10px/1 inherit; color: #fff; background: #b91c1c; border-radius: 4px; padding: 5px 4px; }
+.iaPdfNombre { flex: 1; min-width: 0; font-size: 12px; overflow-wrap: anywhere; display: flex; flex-direction: column; }
+.iaPdfNombre small { color: var(--textoSuave, #6b7280); font-size: 11px; }
+.iaPdf button, .iaAcciones button { border-radius: 999px; padding: 3px 11px; font: 600 12px/1.3 inherit; cursor: pointer; width: fit-content; }
+.iaBotonPrin { border: 1px solid transparent; background: var(--marca-verde, #0f766e); color: #fff; }
+.iaBotonSec, .iaPdf button:not(.iaBotonPrin) { border: 1px solid color-mix(in srgb, var(--marca-verde, #0f766e) 40%, transparent); background: transparent; color: var(--vd-acento-texto, var(--marca-verde, #0f766e)); }
+.iaAcciones { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.iaAcciones button:disabled { opacity: .5; cursor: default; }
+
+/* En el móvil: la pestaña ocupa la pantalla; el botón no flota. */
+.iaPanel.iaMovil { position: static; width: auto; height: 100%; border: 0; border-radius: 0; box-shadow: none; }
+/* 8-nov: en el teléfono las sugerencias caben en una línea o se parten sin deformar el botón. */
+.iaPanel.iaMovil { min-height: 60vh; }
+.iaMovil .iaSugerencia { max-width: 100%; border-radius: 14px; white-space: normal; min-height: 36px; }
+.iaMovil .iaAcciones button { min-height: 34px; }

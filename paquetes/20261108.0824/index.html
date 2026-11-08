@@ -33,7 +33,8 @@
 <link rel="stylesheet" href="tokens.css">
 <link rel="stylesheet" href="movil.css">
 <link rel="stylesheet" href="mantenimiento.css">
-<style>.arranque-cx{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#F2FAF8;color:#767676;font:15px -apple-system,system-ui,sans-serif;z-index:9999;padding:24px;text-align:center;white-space:pre-wrap}.arranque-cx.roto{background:#fff;color:#9C2B2B;font:13px ui-monospace,monospace;align-items:flex-start;text-align:left}</style>
+<link rel="stylesheet" href="iarvis.css">
+<style>.arranque-ipad,.arranque-cx{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#F4F6F5;z-index:9999}html[data-tema="oscuro"] .arranque-ipad,html[data-tema="oscuro"] .arranque-cx{background:#161618}.arq-v{stroke-dasharray:100;stroke-dashoffset:100;animation:arqTrazo 2.4s cubic-bezier(.65,0,.35,1) infinite}.arq-ok{transform-origin:90px 88px;transform:scale(0);animation:arqOk 2.4s ease-out infinite}.arq-aguja{transform-origin:90px 88px;animation:arqAguja 2.4s ease-in-out infinite}@keyframes arqAguja{0%,45%{transform:rotate(-40deg)}65%{transform:rotate(12deg)}78%,100%{transform:rotate(0)}}.arq-aro{transform-origin:60px 60px;animation:arqAro 2.4s ease-in-out infinite}@keyframes arqTrazo{0%{stroke-dashoffset:100}55%,80%{stroke-dashoffset:0}100%{stroke-dashoffset:-100}}@keyframes arqOk{0%,45%{transform:scale(0)}62%{transform:scale(1.15)}72%,85%{transform:scale(1)}100%{transform:scale(0)}}@keyframes arqAro{0%,100%{transform:scale(.94);opacity:.15}50%{transform:scale(1.04);opacity:.35}}@media (prefers-reduced-motion:reduce){.arq-v{animation:none;stroke-dashoffset:0}.arq-ok{animation:none;transform:scale(1)}.arq-aguja{animation:none}.arq-aro{animation:none}}.arq-aviso{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:min(560px,calc(100vw - 32px));padding:9px 14px;border-radius:10px;background:#fff;color:#435254;border:1px solid #D9E0DE;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.08);white-space:pre-wrap;word-break:break-word}.arq-aviso.arq-mal{border-color:#E3BDBD;color:#9C2B2B}.arq-reintentar{margin-left:6px;border:1px solid #13957A;color:#0E7C66;background:transparent;border-radius:8px;padding:3px 10px;font:inherit;cursor:pointer}</style>
 </head>
 <body>
   <header class="barra">
@@ -44,7 +45,7 @@
     <label class="obra-movil" id="obra-movil-caja" hidden><span>Obra</span><select id="obra-movil" aria-label="Obra"></select></label>
   </header>
   <nav class="segmentos" id="segmentos" aria-label="Secciones" hidden></nav>
-  <main id="app" class="densa" aria-live="polite"><p class="cargando"><span class="cx-carga" aria-hidden="true"><svg viewBox="-10 -40 140 160"><defs><linearGradient id="cx-carga-v" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9fd3c7"/><stop offset="1" stop-color="#3f7f72"/></linearGradient></defs><path d="M28 18 L60 98 L92 18" fill="none" stroke="url(#cx-carga-v)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="bola"><span class="giro"><svg viewBox="-11 -11 22 22"><circle cx="0" cy="0" r="11" fill="#3b5f5a"/><path d="M-5 0.5 L-1.5 4 L5.5 -3.5" fill="none" stroke="#5be3a6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span></span>Cargando…</p></main>
+  <main id="app" class="densa" aria-live="polite"></main>
   <script>
     /* 5-nov: el logo de carga en línea en cada p.cargando (ver movil.css, .cx-carga). */
     (function () {
@@ -112,7 +113,12 @@
 
 
 
-    <div id="arranqueCx" class="arranque-cx">Abriendo Vidaire Cx…</div>
+
+
+
+
+
+    <div id="arranqueCx" class="arranque-cx" aria-busy="true"><svg class="arq-svg" viewBox="0 0 120 120" width="112" height="112" role="img" aria-label="Vidaire" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="arqDeg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2F9FB5"/><stop offset=".55" stop-color="#13957A"/><stop offset="1" stop-color="#1A9E5C"/></linearGradient></defs><circle class="arq-aro" cx="60" cy="60" r="57" fill="none" stroke="#13957A" stroke-width="1" opacity=".25"/><path class="arq-v" d="M27 30 L52 84 Q60 98 68 84 L93 30" fill="none" stroke="url(#arqDeg)" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" pathLength="100"/><g class="arq-ok"><circle cx="90" cy="88" r="15" fill="#1B2A4A"/><circle cx="90" cy="88" r="11.59" fill="none" stroke="#4C262D" stroke-width="1.09" opacity=".8"/><path d="M90 75.05v2.05M90 98.91v2.05M77.05 88h2.05M100.91 88h2.05" fill="none" stroke="#4C262D" stroke-width="1.36" stroke-linecap="round"/><g class="arq-aguja"><g transform="rotate(35 90 88)"><path d="M90 77.09 L94.09 88 L85.91 88 Z" fill="#5B9BD5"/><path d="M90 98.91 L94.09 88 L85.91 88 Z" fill="#F4EAD9"/></g></g><circle cx="90" cy="88" r="1.77" fill="#1B2A4A" stroke="#4C262D" stroke-width="0.82"/></g></svg></div>
   <script src="scripts-pantalla.js"></script>
   <script src="motor-cxobra.js"></script>
 </body>
