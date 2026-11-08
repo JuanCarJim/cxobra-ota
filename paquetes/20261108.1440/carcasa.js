@@ -36,17 +36,9 @@
     vv.addEventListener('scroll', ajustar);
     ajustar();
   }
-  /* La caja de Iarvis y la barra se adaptan a la pantalla (8-nov, JC): al bajar con el dedo la caja
-     se encoge a un botón redondo y al subir vuelve; con el teclado abierto se ocultan las dos. */
+  /* La barra se adapta a la pantalla (8-nov, JC): con el teclado abierto se oculta. */
   (function adaptarBarra() {
     const B = document.body;
-    let ultimo = window.scrollY;
-    window.addEventListener('scroll', () => {
-      const y = window.scrollY; const d = y - ultimo;
-      if (Math.abs(d) < 8) return;
-      ultimo = y;
-      B.classList.toggle('caja-chica', d > 0 && y > 60);
-    }, { passive: true });
     const ESCRIBE = (el) => el && (el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable
       || (el.tagName === 'INPUT' && !['button', 'submit', 'checkbox', 'radio', 'file', 'range', 'color', 'reset', 'image'].includes(el.type)));
     document.addEventListener('focusin', (ev) => { if (ESCRIBE(ev.target)) B.classList.add('teclado'); });
@@ -84,7 +76,8 @@
     { id: 'mas', nombre: 'Más',
       icono: icono('<rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/>',
         '<g fill="currentColor"><rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/></g>'),
-      secciones: [['iarvis', '🧭 Iarvis'], ['jornada', 'Jornada'], ['qhse', 'QHSE'], ['reportesQhse', 'Reportes QHSE'], ['plano', 'Plano de equipos'], ['bloc', 'Notas'], ['albaranes', 'Albaranes'], ['inventario', 'Inventario'], ['personal', 'Personal'], ['cuenta', 'Cuenta']] },
+      /* 8-nov (JC): Iarvis ya no es una sección de «Más»: se abre con su brújula de la cabecera (botonIarvis). */
+      secciones: [['jornada', 'Jornada'], ['qhse', 'QHSE'], ['reportesQhse', 'Reportes QHSE'], ['plano', 'Plano de equipos'], ['bloc', 'Notas'], ['albaranes', 'Albaranes'], ['inventario', 'Inventario'], ['personal', 'Personal'], ['cuenta', 'Cuenta']] },
     /* 29-oct (JC): «QHSE es una cosa aparte, no es una incidencia»: sección propia (como «Seguridad» en la web), la primera de «Más». */
   ];
   /*
@@ -627,14 +620,11 @@
         ? '<div class="barra-centro"><button type="button" class="boton-anadir" id="boton-anadir" aria-label="Añadir" aria-haspopup="dialog">' + MAS + '</button><span>Añadir</span></div>'
         : '';
       const lista = pestanas();
-      /* 8-nov (JC): la caja de Iarvis va pegada encima de la barra en TODAS las pantallas (menos en la suya). */
-      abajo.innerHTML = `<a class="caja-iarvis" id="caja-iarvis" href="#iarvis" aria-label="Pregunta a Iarvis"><span aria-hidden="true">🧭</span><span class="caja-texto">Pregunta a Iarvis…</span></a><div class="barra-pastilla">${lista.slice(0, 2).map(boton).join('')}${centro}${lista.slice(2).map(boton).join('')}</div>`;
+      abajo.innerHTML = `<div class="barra-pastilla">${lista.slice(0, 2).map(boton).join('')}${centro}${lista.slice(2).map(boton).join('')}</div>`;
       const b = document.getElementById('boton-anadir');
       if (b) b.onclick = abrirHoja;
-      const ci = document.getElementById('caja-iarvis');
-      if (ci) ci.onclick = () => { esperar('#app .iaPanel textarea').then((t) => { if (t) t.focus(); }); };
-      document.body.classList.toggle('sin-caja-iarvis', s === 'iarvis');
-      document.body.classList.remove('caja-chica');
+      /* 8-nov (JC): «la pantalla de Iarvis tiene que ser SOLO el chat»: sin cabecera, secciones ni barra (movil.css, body.en-iarvis). */
+      document.body.classList.toggle('en-iarvis', s === 'iarvis');
       abajo.hidden = !sesion();
     }
     const seg = document.getElementById('segmentos');
@@ -656,6 +646,28 @@
     if (s === 'cuenta') cuenta();
     if (s === 'inicio') inicio();
     pastillaSync();
+    botonIarvis(s);
+  }
+
+  /* 8-nov (JC): el botón de Iarvis es PEQUEÑO, solo su brújula (shared/arranqueLogo.js › BRUJULA),
+     arriba en la cabecera junto al estado de la sincronización; en todas las pantallas menos en el chat.
+     Antes era una barra ancha «Pregunta a Iarvis…» encima de la de abajo, que estorbaba. */
+  function botonIarvis(s = seccion()) {
+    const fila = document.querySelector('.barra-fila');
+    if (!fila) return;
+    let b = document.getElementById('boton-iarvis');
+    if (!b) {
+      b = document.createElement('a');
+      b.id = 'boton-iarvis';
+      b.className = 'boton-iarvis';
+      b.href = '#iarvis';
+      b.title = 'Iarvis';
+      b.setAttribute('aria-label', 'Abrir Iarvis');
+      b.innerHTML = (window.ARRANQUE_LOGO && window.ARRANQUE_LOGO.BRUJULA) || '<span aria-hidden="true">🧭</span>';
+    }
+    const quien = document.getElementById('quien');
+    if (b.nextSibling !== quien) fila.insertBefore(b, quien);
+    b.hidden = !sesion() || s === 'iarvis';
   }
 
   /* ═══════════════════════════════════ El «+»: la hoja de Añadir */

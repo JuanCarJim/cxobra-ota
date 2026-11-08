@@ -25,6 +25,10 @@
 (function () {
   const ESPERA_SONDEO = 8000;
   const SONDEOS = 15;
+  /* 8-nov (JC): la conversación se borra sola tras 2 horas sin actividad: al abrir el chat pasado
+     ese tiempo, empieza vacía. Lo anterior sigue en la nube (para que Iarvis aprenda), no se enseña. */
+  const CHARLA = 'vidaire.iarvis.charla';
+  const CADUCA_MS = 2 * 60 * 60 * 1000;
   const NOMBRES_PANTALLA = {
     presupuestos: 'Presupuestos', presupuestoObra: 'Presupuesto de obra', medObra: 'Med Obra', certificaciones: 'Certificaciones',
     compras: 'Compras', comparativos: 'Comparativos', gantt: 'Gantt', commissioning: 'Commissioning', documentacion: 'Documentación',
@@ -33,7 +37,30 @@
   };
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-  const I = { panel: null, boton: null, lista: null, adaptador: null, ir: null, contexto: () => ({}), movil: false, ficheros: [], filas: [], ocupado: false, deEstaVez: new Set(), idsEstaVez: new Set(), verAnteriores: false, pdfs: {} };
+  const I = { panel: null, boton: null, lista: null, adaptador: null, ir: null, contexto: () => ({}), movil: false, ficheros: [], filas: [], ocupado: false, deEstaVez: new Set(), idsEstaVez: new Set(), verAnteriores: false, pdfs: {}, ultima: 0, volver: null };
+
+  function leerCharla() {
+    try {
+      const c = JSON.parse(localStorage.getItem(CHARLA) || 'null');
+      if (c && Number(c.ultima) && Date.now() - Number(c.ultima) < CADUCA_MS) return c;
+    } catch { /* sin almacenamiento */ }
+    return null;
+  }
+  function guardarCharla() {
+    try { localStorage.setItem(CHARLA, JSON.stringify({ ultima: I.ultima, ids: [...I.idsEstaVez].slice(-60) })); } catch { /* sin almacenamiento */ }
+  }
+  /** Hay actividad: la conversación sigue viva 2 horas más. */
+  function actividad() { I.ultima = Date.now(); guardarCharla(); }
+  /** Al abrir: pasadas 2 horas sin actividad, conversación vacía. */
+  function caducar() {
+    if (I.ultima && Date.now() - I.ultima < CADUCA_MS) return;
+    const c = leerCharla();
+    I.deEstaVez = new Set();
+    I.idsEstaVez = new Set(c && Array.isArray(c.ids) ? c.ids : []);
+    I.ultima = c ? Number(c.ultima) : 0;
+  }
+  /** Para las pruebas: el estado de la conversación de esta vez. */
+  const _charla = { leerCharla, caducar, actividad, CADUCA_MS };
 
   function adaptadorDelPuente() {
     const p = window.puente;
@@ -134,15 +161,10 @@
 
   function pintar() {
     if (!I.lista) return;
+    /* 8-nov (JC): solo la conversación de esta vez; lo de otras veces no se enseña (sigue en la nube). */
     const ahora = I.filas.filter((f) => I.deEstaVez.has(f) || (f.id && I.idsEstaVez.has(f.id)));
-    const antes = I.filas.filter((f) => !ahora.includes(f));
-    const anteriores = antes.length
-      ? `<details class="iaAnteriores"${I.verAnteriores ? ' open' : ''}><summary>Conversaciones anteriores (${antes.length})</summary>${[...antes].reverse().map(pintarFila).join('')}</details>`
-      : '';
     const bienvenida = ahora.length ? '' : `<div class="iaBienvenida"><h3>${saludo()}</h3><p>Pídeme lo que necesites de la obra: lo busco en la app y te lo doy. También te explico cómo se hace cualquier cosa.</p><div class="iaSugerencias">${sugerencias()}</div></div>`;
-    I.lista.innerHTML = `${anteriores}${bienvenida}${[...ahora].reverse().map(pintarFila).join('')}`;
-    const det = I.lista.querySelector('.iaAnteriores');
-    if (det) det.addEventListener('toggle', () => { I.verAnteriores = det.open; });
+    I.lista.innerHTML = `${bienvenida}${[...ahora].reverse().map(pintarFila).join('')}`;
     I.lista.scrollTop = I.lista.scrollHeight;
   }
 
@@ -171,6 +193,8 @@
     const pregunta = (typeof textoDado === 'string' ? textoDado : caja.value).trim();
     if (!pregunta || I.ocupado || !I.adaptador) return;
     I.ocupado = true;
+    caducar();
+    actividad();
     const botonMandar = I.panel.querySelector('.iaMandar');
     botonMandar.disabled = true;
     const adjuntos = I.ficheros.slice();
@@ -186,9 +210,10 @@
     let r;
     try {
       r = await I.adaptador.preguntar({ pregunta, pantalla: ctx.pantalla, obraId: ctx.obraId, obraNombre: ctx.obraNombre, mirando: ctx.mirando, idioma: ctx.idioma, adjuntos });
-    } catch { r = { estado: 'pendiente', respuesta: 'Iarvis te contestará en un rato. Tu pregunta queda guardada.' }; }
+    } catch { r = { estado: 'fallo', respuesta: 'Iarvis no ha podido contestar ahora. Vuelve a preguntármelo.' }; }
     Object.assign(provisional, r || {});
     if (provisional.id) I.idsEstaVez.add(provisional.id);
+    actividad();
     pintar();
     I.ocupado = false;
     botonMandar.disabled = false;
@@ -308,6 +333,7 @@
       try { r = await I.adaptador.hacer(a); } catch { r = { estado: 'fallo', respuesta: 'No he podido hacerlo ahora.' }; }
       Object.assign(provisional, r || {});
       if (provisional.id) I.idsEstaVez.add(provisional.id);
+      actividad();
       I.ocupado = false;
       pintar();
       return;
@@ -325,6 +351,7 @@
       try { r = await proponer({ obraId: a.obraId, desde: a.desde, hasta: a.hasta, periodo: a.periodo, aplicar: a.tipo === 'aplicar' }); } catch (e) { r = { estado: 'fallo', respuesta: 'No he podido hacerlo ahora.' }; }
       Object.assign(provisional, r || {});
       if (provisional.id) I.idsEstaVez.add(provisional.id);
+      actividad();
       I.ocupado = false;
       pintar();
     }
@@ -335,7 +362,10 @@
     p.className = `iaPanel${I.movil ? ' iaMovil' : ''}`;
     p.setAttribute('aria-label', 'Iarvis');
     p.innerHTML = `
-      <div class="iaCabecera"><span class="iaMarca" aria-hidden="true">I</span><div class="iaTitulo"><h2>Iarvis</h2><span class="iaAviso">Usa la app por ti · solo lo que tu puesto ve</span></div><button class="iaNueva" title="Empezar de cero" aria-label="Conversación nueva">＋</button>${I.movil ? '' : '<button class="iaCerrar" title="Cerrar (Esc)" aria-label="Cerrar">×</button>'}</div>
+      ${I.movil
+    /* 8-nov (JC): en el móvil, SOLO el chat: una cabecera mínima con «‹» para volver y «Iarvis». */
+    ? '<div class="iaCabecera"><button class="iaVolver" title="Volver" aria-label="Volver">‹</button><h2>Iarvis</h2></div>'
+    : '<div class="iaCabecera"><span class="iaMarca" aria-hidden="true">I</span><div class="iaTitulo"><h2>Iarvis</h2><span class="iaAviso">Usa la app por ti · solo lo que tu puesto ve</span></div><button class="iaNueva" title="Empezar de cero" aria-label="Conversación nueva">＋</button><button class="iaCerrar" title="Cerrar (Esc)" aria-label="Cerrar">×</button></div>'}
       <div class="iaLista" role="log" aria-live="polite"></div>
       <div class="iaEntrada">
         <div class="iaFicheros"></div>
@@ -362,7 +392,8 @@
     p.addEventListener('click', async (e) => {
       const sug = e.target.closest('[data-ia-sugerencia]');
       if (sug) { mandar(sug.getAttribute('data-ia-sugerencia')); return; }
-      if (e.target.closest('.iaNueva')) { I.deEstaVez = new Set(); I.idsEstaVez = new Set(); I.verAnteriores = false; pintar(); return; }
+      if (e.target.closest('.iaVolver')) { if (I.volver) I.volver(); else if (history.length > 1) history.back(); return; }
+      if (e.target.closest('.iaNueva')) { I.deEstaVez = new Set(); I.idsEstaVez = new Set(); I.ultima = 0; try { localStorage.removeItem(CHARLA); } catch { /* nada */ } pintar(); return; }
       const pdf = e.target.closest('[data-ia-pdf]');
       if (pdf) { abrirPdf(pdf.getAttribute('data-ia-pdf'), pdf.getAttribute('data-ruta'), false); return; }
       const carpeta = e.target.closest('[data-ia-pdf-carpeta]');
@@ -392,7 +423,7 @@
     if (!I.panel) return;
     I.panel.hidden = false;
     if (I.boton) { I.boton.hidden = true; I.boton.classList.remove('conPunto'); }
-    I.verAnteriores = false;
+    caducar();
     /* 8-nov: el saludo sale ya; el historial de la nube puede tardar y el panel se quedaba en blanco. */
     pintar();
     cargarHistorial();
@@ -423,16 +454,19 @@
   }
 
   /** Móvil: el panel dentro de su pestaña. */
-  function montarEn(elemento, { adaptador, ir, contexto } = {}) {
+  function montarEn(elemento, { adaptador, ir, contexto, volver } = {}) {
     I.movil = true;
     I.adaptador = adaptador;
     I.ir = ir || null;
+    I.volver = volver || null;
     I.contexto = contexto || (() => ({}));
     if (!I.panel) I.panel = construirPanel();
     elemento.replaceChildren(I.panel);
     I.panel.hidden = false;
+    caducar();
+    pintar();
     cargarHistorial();
   }
 
-  window.IARVIS = { instalar, montarEn, abrir, cerrar, estado: I };
+  window.IARVIS = { instalar, montarEn, abrir, cerrar, estado: I, _charla };
 })();

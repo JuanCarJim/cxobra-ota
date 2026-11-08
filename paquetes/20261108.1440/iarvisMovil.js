@@ -1,7 +1,7 @@
 'use strict';
 /*
  * 🧭 IARVIS EN EL MÓVIL (#iarvis, 7-nov-2026). La misma conversación que el escritorio y la
- * web (renderer/iarvis.js, montado aquí dentro de su pestaña, en «Más»), sobre la misma tabla
+ * web (renderer/iarvis.js, montado aquí a pantalla completa; se abre con la brújula de la cabecera), sobre la misma tabla
  * (ia_mensajes de cxobra-sync) con shared/ia/conversaciones.js.
  *
  * Dictado: el micrófono del teclado del iPhone (el panel lo dice en la caja de texto).
@@ -17,6 +17,13 @@
   const $app = document.getElementById('app');
   const activa = () => C.activa('iarvis');
   let adaptador = null;
+  /* 8-nov (JC): el chat es SOLO el chat; «‹» vuelve a la pantalla desde la que se abrió. */
+  let deDonde = '';
+  window.addEventListener('hashchange', (e) => {
+    const antes = String(e.oldURL || '').split('#')[1] || '';
+    if (location.hash === '#iarvis' && antes && antes !== 'iarvis') deDonde = antes;
+  });
+  const volver = () => { location.hash = `#${deDonde || 'inicio'}`; };
 
   function armar() {
     if (adaptador) return adaptador;
@@ -139,6 +146,7 @@
       ir: (destino) => { location.hash = `#${destino}`; },
       contexto: () => ({ pantalla: 'movil', obraId: C.obraId ? C.obraId() : null, obraNombre: obraNombre(), idioma: (navigator.language || 'es').slice(0, 2) }),
       movil: true,
+      volver,
     });
   }
 

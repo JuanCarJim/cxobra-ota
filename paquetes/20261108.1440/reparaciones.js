@@ -515,26 +515,8 @@
     if (firmando) prepararLienzoRep();
   }
 
-  /*
-   * La foto, hecha en el momento o de la galería, se reduce a 1600 px en JPEG
-   * (una del iPhone pasa de 3-5 MB a unos 300 KB: sube antes por 4G y entra en
-   * el PDF). Si el teléfono no sabe reducirla, va tal cual.
-   */
-  async function reducir(archivo) {
-    try {
-      const url = URL.createObjectURL(archivo);
-      const img = await new Promise((ok, mal) => { const i = new Image(); i.onload = () => ok(i); i.onerror = mal; i.src = url; });
-      const lado = Math.max(img.naturalWidth, img.naturalHeight);
-      const k = Math.min(1, 1600 / lado);
-      const lienzo = document.createElement('canvas');
-      lienzo.width = Math.round(img.naturalWidth * k); lienzo.height = Math.round(img.naturalHeight * k);
-      lienzo.getContext('2d').drawImage(img, 0, 0, lienzo.width, lienzo.height);
-      URL.revokeObjectURL(url);
-      const blob = await new Promise((ok) => lienzo.toBlob(ok, 'image/jpeg', 0.82));
-      if (!blob || (blob.size >= archivo.size && /jpe?g/i.test(archivo.type))) return archivo;
-      return new File([blob], `${String(archivo.name || 'foto').replace(/\.[^.]+$/, '')}.jpg`, { type: 'image/jpeg' });
-    } catch { return archivo; }
-  }
+  /* La foto se reduce a 1600 px en JPEG antes de subirla (autoguardado.js). */
+  const reducir = (archivo) => AG.reducirFoto(archivo);
 
   /* La foto: al teléfono al momento y, sin esperar a nadie, al servidor. */
   async function foto(camara = true, momento = 'antes') {
