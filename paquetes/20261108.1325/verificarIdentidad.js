@@ -6,8 +6,10 @@
  *   window.CX_VERIFICAR({ motivo }) → Promise<'biometria' | 'webauthn' | 'pin' | null>
  *
  * Por orden:
- *   1. Un plugin nativo de biometría de Capacitor, si la app lo trae (NativeBiometric o
- *      BiometricAuth). Hoy la app Cx no trae ninguno: entrará con la próxima compilación.
+ *   1. El plugin nativo «Biometria» de la app Cx (cxobra/nativo/BiometriaPlugin.swift, con
+ *      LocalAuthentication: Face ID o Touch ID de verdad). Si cancela o no le reconoce, no se
+ *      firma; solo si el aparato no tiene biometría se sigue al paso 2. (Por compatibilidad
+ *      también vale NativeBiometric o BiometricAuth, si algún día se instala uno de esos.)
  *   2. WebAuthn con el autenticador del propio aparato (Face ID / Touch ID / huella), con
  *      `userVerification: 'required'`, donde el navegador lo permita (Safari, Chrome, la web).
  *   3. Un PIN de 4–8 cifras de este teléfono: la primera vez se crea (dos veces), después se
@@ -25,8 +27,30 @@
   const b64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
   const deB64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 
+  /* El plugin propio de la app Cx: registrado en CxObraViewController.swift, sin paquete npm. */
+  function pluginBiometria(C) {
+    if (!C) return null;
+    if (typeof C.isPluginAvailable === 'function' && !C.isPluginAvailable('Biometria')) return null;
+    try { return C.registerPlugin ? C.registerPlugin('Biometria') : (C.Plugins && C.Plugins.Biometria) || null; } catch { return null; }
+  }
+
   async function nativa(motivo) {
-    const P = window.Capacitor && window.Capacitor.Plugins;
+    const C = window.Capacitor;
+    const B = pluginBiometria(C);
+    if (B) {
+      let d = null;
+      try { d = await B.disponible(); } catch { d = null; }
+      if (d && d.disponible) {
+        try {
+          const r = await B.verificar({ motivo });
+          return r && r.ok ? 'biometria' : false;
+        } catch (e) {
+          return e && e.code === 'no-disponible' ? null : false; /* canceló o no era él: no se firma */
+        }
+      }
+      /* Sin Face ID ni huella en este aparato: sigue al PIN. */
+    }
+    const P = C && C.Plugins;
     if (!P) return null;
     try {
       if (P.NativeBiometric) {
