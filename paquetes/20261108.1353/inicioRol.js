@@ -204,5 +204,7 @@
 
   const api = { ROLES_MI_DIA, tipoDeInicio, bloqueDelDia, atrasadas, avance, cifras, htmlDiaObra, htmlDiaMio, htmlAtrasadas, htmlAvance, htmlCifras, esc0 };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  /* Se carga ANTES que carcasa.js (que crea window.CX): se deja a mano y carcasa lo recoge. */
+  if (raiz) raiz.CXInicioRol = api;
   if (raiz && raiz.CX) raiz.CX.inicioRol = api;
 })(typeof window !== 'undefined' ? window : null);

@@ -770,7 +770,8 @@
    * La cuenta está en inicioRol.js; aquí solo se piden los datos del alcance del rol y se pinta.
    * La semana y lo puesto en marcha siguen en «Mis tareas», Commissioning y Avance.
    */
-  const IR = () => window.CX.inicioRol;
+  /* 8-nov: si el inicio se pintaba antes de cargar inicioRol.js, la app arrancaba con «IR().tipoDeInicio». */
+  const IR = () => window.CX.inicioRol || window.CXInicioRol;
   const esB = () => IR().tipoDeInicio((sesion() || {}).rol) === 'dia';
   const BLOQUES_INICIO = [['dia', 'Hoy'], ['atras', 'Atrasadas'], ['avance', 'Avance'], ['cifras', 'Resumen']];
 
