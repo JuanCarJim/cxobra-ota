@@ -11003,7 +11003,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261108.0824" : "0";
+      var VERSION = true ? "20261108.1317" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -15087,7 +15087,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function crearTimbre({ url, clave, token = async () => null, alSonar, WebSocket: WS = globalThis.WebSocket, registro = () => {
-      }, tabla = "cx_filas", filtro = null }) {
+      }, tabla = "cx_filas", filtro = null, ignorar = null }) {
         if (!WS) return { arrancar() {
         }, parar() {
         }, conectado: () => false };
@@ -15164,8 +15164,14 @@ globalThis.CX_VARIANTE="cxobra";
               registro("Timbre conectado.");
               alSonar("conectado");
             } else if (m.event === "phx_reply" && m.payload && m.payload.status === "error") registro(`Timbre: ${JSON.stringify(m.payload.response)}`);
-            else if (m.event === "postgres_changes") alSonar("cambio");
-            else if (m.event === "system" && m.payload && m.payload.status === "error") registro(`Timbre: ${m.payload.message}`);
+            else if (m.event === "postgres_changes") {
+              const r = m.payload && m.payload.data && m.payload.data.record;
+              try {
+                if (ignorar && r && ignorar(r)) return;
+              } catch {
+              }
+              alSonar("cambio");
+            } else if (m.event === "system" && m.payload && m.payload.status === "error") registro(`Timbre: ${m.payload.message}`);
           };
           ws.onclose = () => {
             unido = false;
@@ -15296,6 +15302,7 @@ globalThis.CX_VARIANTE="cxobra";
               token: () => nube.tokenParaTiempoReal(),
               WebSocket: WS,
               registro,
+              ignorar: (r) => r.dispositivo === dispositivo,
               alSonar: (que) => {
                 if (que === "conectado") motor.marcarTiempoReal(true);
                 motor.avisar(150);
@@ -127866,6 +127873,319 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
     }
   });
 
+  // shared/ia/dictado.js
+  var require_dictado = __commonJS({
+    "shared/ia/dictado.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function(raiz, fabrica) {
+        const API = fabrica();
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.IarvisDictado = API;
+      })(typeof globalThis !== "undefined" ? globalThis : exports, () => {
+        const llano = (v) => String(v ?? "").trim();
+        const normal = (v) => llano(v).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/³/g, "3").replace(/²/g, "2").replace(/[º°]/g, " grados ");
+        const UNIDADES = { cero: 0, uno: 1, una: 1, un: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9 };
+        const ESPECIALES = {
+          diez: 10,
+          once: 11,
+          doce: 12,
+          trece: 13,
+          catorce: 14,
+          quince: 15,
+          dieciseis: 16,
+          diecisiete: 17,
+          dieciocho: 18,
+          diecinueve: 19,
+          veinte: 20,
+          veintiuno: 21,
+          veintiun: 21,
+          veintiuna: 21,
+          veintidos: 22,
+          veintitres: 23,
+          veinticuatro: 24,
+          veinticinco: 25,
+          veintiseis: 26,
+          veintisiete: 27,
+          veintiocho: 28,
+          veintinueve: 29
+        };
+        const DECENAS = { treinta: 30, cuarenta: 40, cincuenta: 50, sesenta: 60, setenta: 70, ochenta: 80, noventa: 90 };
+        const CENTENAS = {
+          cien: 100,
+          ciento: 100,
+          doscientos: 200,
+          doscientas: 200,
+          trescientos: 300,
+          trescientas: 300,
+          cuatrocientos: 400,
+          cuatrocientas: 400,
+          quinientos: 500,
+          quinientas: 500,
+          seiscientos: 600,
+          seiscientas: 600,
+          setecientos: 700,
+          setecientas: 700,
+          ochocientos: 800,
+          ochocientas: 800,
+          novecientos: 900,
+          novecientas: 900
+        };
+        const valorPalabra = (p) => p in UNIDADES ? UNIDADES[p] : p in ESPECIALES ? ESPECIALES[p] : p in DECENAS ? DECENAS[p] : p in CENTENAS ? CENTENAS[p] : null;
+        const esNumeral = (p) => valorPalabra(p) !== null || p === "mil";
+        const ARTICULO = /* @__PURE__ */ new Set(["un", "una"]);
+        function entero(palabras) {
+          let total = 0;
+          let actual = 0;
+          let alguno = false;
+          for (let i = 0; i < palabras.length; i++) {
+            const p = palabras[i];
+            if (p === "y") continue;
+            if (p === "mil") {
+              total += (actual || 1) * 1e3;
+              actual = 0;
+              alguno = true;
+              continue;
+            }
+            const v = valorPalabra(p);
+            if (v === null) return null;
+            actual += v;
+            alguno = true;
+          }
+          return alguno ? total + actual : null;
+        }
+        function serie(tokens, i) {
+          const out = [];
+          let j = i;
+          const clase = (p) => p === "mil" ? "mil" : p in CENTENAS ? "c" : p in DECENAS ? "d" : p in ESPECIALES ? "e" : p in UNIDADES ? "u" : null;
+          const cabe = (prev, p) => {
+            if (!prev) return true;
+            const a = clase(prev);
+            const b = clase(p);
+            if (b === "mil") return a !== "mil";
+            if (a === "u" || a === "e" || a === "d") return false;
+            if (a === "c") return b !== "c";
+            return true;
+          };
+          while (j < tokens.length) {
+            const p = tokens[j];
+            const prev = out.filter((x) => x !== "y").pop();
+            if (esNumeral(p) && (out[out.length - 1] === "y" || cabe(prev, p))) {
+              out.push(p);
+              j++;
+              continue;
+            }
+            if (p === "y" && out.length && j + 1 < tokens.length && tokens[j + 1] in UNIDADES && out[out.length - 1] in DECENAS) {
+              out.push(p);
+              j++;
+              continue;
+            }
+            break;
+          }
+          return [j, out];
+        }
+        const PALABRA_UNIDAD = /^(metros?|m3|m|grados|bar|bares|milibares?|mbar|kilopascales?|kpa|pascales?|pa|litros?|amperios?|voltios?|kilovatios?|kw|vatios?|rpm|revoluciones|hercios?|hz|por|%)$/;
+        function numerosEnCifras(texto) {
+          const tokens = normal(texto).replace(/([0-9])([a-z%])/g, "$1 $2").split(/\s+/).filter(Boolean);
+          const out = [];
+          let i = 0;
+          while (i < tokens.length) {
+            const p = tokens[i];
+            const sigue = tokens[i + 1] || "";
+            if (ARTICULO.has(p) && !(sigue === "coma" || sigue === "mil" || sigue === "con" || PALABRA_UNIDAD.test(sigue) || sigue === "")) {
+              out.push(p);
+              i++;
+              continue;
+            }
+            if (p === "menos" && (esNumeral(sigue) || /^\d/.test(sigue))) {
+              out.push("-");
+              i++;
+              continue;
+            }
+            if (!esNumeral(p)) {
+              out.push(p);
+              i++;
+              continue;
+            }
+            const [fin, pal] = serie(tokens, i);
+            const n = entero(pal);
+            if (n === null) {
+              out.push(p);
+              i++;
+              continue;
+            }
+            let txt = String(n);
+            i = fin;
+            if ((tokens[i] === "coma" || tokens[i] === "con" || tokens[i] === "punto") && esNumeral(tokens[i + 1] || "")) {
+              let k = i + 1;
+              const digitos = [];
+              while (k < tokens.length && tokens[k] in UNIDADES && !ARTICULO.has(tokens[k])) {
+                digitos.push(UNIDADES[tokens[k]]);
+                k++;
+              }
+              if (digitos.length > 1 || digitos.length === 1 && !esNumeral(tokens[k] || "")) {
+                txt += `.${digitos.join("")}`;
+                i = k;
+              } else {
+                const [f2, p2] = serie(tokens, i + 1);
+                const d = entero(p2);
+                if (d !== null) {
+                  txt += `.${d}`;
+                  i = f2;
+                }
+              }
+            }
+            out.push(txt);
+          }
+          return out.join(" ").replace(/- (\d)/g, "-$1");
+        }
+        function cifra(v) {
+          let t = llano(v).replace(/\s/g, "");
+          if (!t) return null;
+          if (/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(t)) t = t.replace(/\./g, "").replace(",", ".");
+          else t = t.replace(",", ".");
+          if (!/^-?\d+(\.\d+)?$/.test(t)) return null;
+          const n = Number(t);
+          return Number.isFinite(n) ? n : null;
+        }
+        const MAGNITUDES = {
+          caudal: { unidad: "m\xB3/h", nombre: "caudal", duro: [0, 1e5], normal: [1, 6e4] },
+          velocidad: { unidad: "m/s", nombre: "velocidad", duro: [0, 40], normal: [0.2, 15] },
+          temperatura: { unidad: "\xB0C", nombre: "temperatura", duro: [-50, 150], normal: [5, 60] },
+          presion: { unidad: "bar", nombre: "presi\xF3n", duro: [-1, 400], normal: [0, 30] },
+          columna: { unidad: "m c.a.", nombre: "presi\xF3n", duro: [0, 2e3], normal: [0.5, 150] },
+          intensidad: { unidad: "A", nombre: "intensidad", duro: [0, 5e3], normal: [0.05, 630] },
+          tension: { unidad: "V", nombre: "tensi\xF3n", duro: [0, 1e3], normal: [12, 690] },
+          potencia: { unidad: "kW", nombre: "potencia", duro: [0, 2e4], normal: [0.01, 2e3] },
+          giro: { unidad: "rpm", nombre: "velocidad de giro", duro: [0, 1e5], normal: [100, 6e3] },
+          frecuencia: { unidad: "Hz", nombre: "frecuencia", duro: [0, 400], normal: [5, 60] },
+          humedad: { unidad: "%HR", nombre: "humedad", duro: [0, 100], normal: [10, 90] },
+          porcentaje: { unidad: "%", nombre: "porcentaje", duro: [0, 100], normal: [0, 100] }
+        };
+        const UNIDADES_HABLADAS = [
+          [/^(m3\s*\/\s*h|m3h|m3 h|metros? cubicos?( por hora| a la hora| hora)?|m3)\b/, "caudal", 1],
+          [/^(l\s*\/\s*s|litros? por segundo|litros? segundo)\b/, "caudal", 3.6],
+          [/^(l\s*\/\s*h|litros? por hora|litros? hora)\b/, "caudal", 1e-3],
+          [/^(m\s*\/\s*s|metros? por segundo|metros? segundo)\b/, "velocidad", 1],
+          [/^(grados( centigrados| celsius)?|c)\b/, "temperatura", 1],
+          [/^(mbar|milibares?|milibar)\b/, "presion", 1e-3],
+          [/^(kpa|kilopascales?)\b/, "presion", 0.01],
+          [/^(bar|bares)\b/, "presion", 1],
+          [/^(pa|pascales?)\b/, "presion", 1e-5],
+          [/^(m\s*c\.?\s*a\.?|mca|metros? (de )?columna( de agua)?)(?=\s|$|[,;.])/, "columna", 1],
+          [/^(kw|kilovatios?)\b/, "potencia", 1],
+          [/^(w|vatios?)\b/, "potencia", 1e-3],
+          [/^(amperios?|amp|a)\b/, "intensidad", 1],
+          [/^(voltios?|v)\b/, "tension", 1],
+          [/^(rpm|revoluciones( por minuto)?)\b/, "giro", 1],
+          [/^(hz|hercios?)\b/, "frecuencia", 1],
+          [/^(% ?hr|por ciento de humedad|de humedad)\b/, "humedad", 1],
+          [/^(%|por ciento)(?=\s|$|[,;.])/, "porcentaje", 1]
+        ];
+        const redondeo = (v) => Math.round(v * 1e3) / 1e3;
+        function leerMedida(texto) {
+          const t = numerosEnCifras(texto);
+          const re = /(^|[^\w.,-])(-?\d+(?:[.,]\d+)*)(?![\w])/g;
+          let m;
+          let sinUnidad = null;
+          while (m = re.exec(t)) {
+            const num = cifra(m[2]);
+            if (num === null) continue;
+            const tras = t.slice(m.index + m[0].length).replace(/^\s+/, "");
+            const antes = t.slice(0, m.index + m[1].length);
+            for (const [r, mag, f] of UNIDADES_HABLADAS) {
+              const u = tras.match(r);
+              if (u) return { valor: redondeo(num * f), unidad: MAGNITUDES[mag].unidad, magnitud: mag, antes, despues: tras.slice(u[0].length) };
+            }
+            if (!sinUnidad) sinUnidad = { valor: num, unidad: null, magnitud: null, antes, despues: tras };
+          }
+          return sinUnidad;
+        }
+        const RE_BOCA = /\b(?:boca|difusor|rejilla|punto de medida)\s*(?:n(?:umero|o|º)?\.?\s*)?(\d{1,3}[a-z]?)\b/;
+        const RE_PUNTO = /\b(?:punto|pregunta|item|apartado)\s+(\d{1,2}(?:\.\d{1,2})?)\b/;
+        const RE_CHECK = /\b(si|no|no aplica|n\/a|na|ok|correcto|bien|mal|no ok)\s*$/;
+        const RESPUESTAS = { si: "si", ok: "ok", correcto: "ok", bien: "ok", no: "no", mal: "no", "no ok": "no", "no aplica": "na", "n/a": "na", na: "na" };
+        function trozos(texto) {
+          return normal(texto).replace(/\s*(;|\by luego\b|\bluego\b|\bdespues\b|\by tambien\b|\bademas\b)\s*/g, " | ").replace(/\s*(,|\by)\s+(?=(?:la |el )?(?:boca|difusor|rejilla|punto|pregunta)\b)/g, " | ").replace(/\.\s+(?=[a-z])/g, " | ").split("|").map((s) => s.replace(/^[\s,.:]+|[\s,.:]+$/g, "")).filter(Boolean);
+        }
+        const QUITA_VERBO = /^(?:iarvis\s+)?(?:apunta(?:me)?|anota(?:me)?|guarda(?:me)?|pon(?:me)?|mete(?:me)?|registra|mide|he medido|medida|medidas|la medida|el valor)\b\s*(?:que\s+|de\s+|en\s+)?/;
+        function leerLote(texto, { quitar = "" } = {}) {
+          let t = normal(texto);
+          const q = normal(quitar);
+          if (q) t = t.split(q).join(" ");
+          const out = [];
+          let ultimaUnidad = null;
+          for (const s0 of trozos(t)) {
+            const s = s0.replace(QUITA_VERBO, "").replace(/\b(de|del|en) (la|el)\s*$/, "").trim();
+            if (!s) continue;
+            const sc = numerosEnCifras(s);
+            const b = sc.match(RE_BOCA);
+            const pu = sc.match(RE_PUNTO);
+            let resto = sc;
+            const ref = {};
+            if (b) {
+              ref.boca = b[1];
+              resto = resto.replace(b[0], " ");
+            } else if (pu) {
+              ref.punto = pu[1];
+              resto = resto.replace(pu[0], " ");
+            }
+            const ch = resto.trim().match(RE_CHECK);
+            const med = leerMedida(resto);
+            if (ref.punto && ch && !med) {
+              out.push({ ref, respuesta: RESPUESTAS[ch[1]] || null, texto: s0 });
+              continue;
+            }
+            if (!med) {
+              out.push({ ref, valor: null, texto: s0, error: "No oigo la cifra." });
+              continue;
+            }
+            if (med.magnitud) ultimaUnidad = { unidad: med.unidad, magnitud: med.magnitud };
+            const palabras = `${med.antes} ${med.despues}`.replace(/[:=,.]/g, " ").replace(/\b(de|del|la|el|los|las|a|es|son|esta|marca|da|vale|y|en)\b/g, " ").replace(/\s+/g, " ").trim();
+            if (!ref.boca && !ref.punto && palabras) ref.texto = palabras;
+            out.push({ ref, valor: med.valor, unidad: med.unidad, magnitud: med.magnitud, texto: s0 });
+          }
+          const unidadDelLote = out.find((m) => m.magnitud);
+          for (const m of out) {
+            if (m.valor !== null && m.valor !== void 0 && !m.magnitud && (unidadDelLote || ultimaUnidad)) {
+              const u = unidadDelLote || ultimaUnidad;
+              m.unidad = u.unidad;
+              m.magnitud = u.magnitud;
+              m.unidadSupuesta = true;
+            }
+          }
+          return out;
+        }
+        function magnitudDeUnidad(u) {
+          const t = normal(u).replace(/\s+/g, " ").trim();
+          if (!t) return null;
+          for (const [r, mag] of UNIDADES_HABLADAS) if (r.test(t)) return mag;
+          if (/^c$|grados/.test(t)) return "temperatura";
+          return null;
+        }
+        const es = (n) => String(Math.round(n * 1e3) / 1e3).replace(".", ",");
+        const frase = (m) => m.respuesta ? { si: "s\xED", no: "no", na: "no aplica", ok: "OK" }[m.respuesta] || m.respuesta : `${es(m.valor)} ${m.unidad || ""}`.trim();
+        function comprobar(m, { diseno = null, tolerancia = 15 } = {}) {
+          if (m.respuesta) return { ok: true, avisos: [] };
+          const def = MAGNITUDES[m.magnitud];
+          if (m.valor === null || m.valor === void 0 || !Number.isFinite(m.valor)) return { ok: false, error: "No oigo la cifra.", avisos: [] };
+          if (!def) return { ok: false, error: `Dime la unidad de ${es(m.valor)} (m\xB3/h, m/s, \xB0C, bar\u2026).`, avisos: [] };
+          if (m.valor < def.duro[0] || m.valor > def.duro[1]) return { ok: false, error: `${frase(m)} no puede ser: la ${def.nombre} va de ${es(def.duro[0])} a ${es(def.duro[1])} ${def.unidad}.`, avisos: [] };
+          const avisos = [];
+          if (m.valor < def.normal[0] || m.valor > def.normal[1]) avisos.push(`${frase(m)} est\xE1 fuera de lo normal (${def.nombre}: ${es(def.normal[0])}\u2013${es(def.normal[1])} ${def.unidad}).`);
+          const d = Number(diseno);
+          if (Number.isFinite(d) && d > 0 && m.magnitud === "caudal") {
+            const desv = (m.valor - d) / d * 100;
+            if (Math.abs(desv) > tolerancia) avisos.push(`${frase(m)} se desv\xEDa un ${es(Math.round(desv))} % del dise\xF1o (${es(d)} ${def.unidad}; tolerancia \xB1${es(tolerancia)} %).`);
+          }
+          if (m.unidadSupuesta) avisos.push(`A ${es(m.valor)} le pongo ${def.unidad}, como a las dem\xE1s.`);
+          return { ok: true, avisos };
+        }
+        return { numerosEnCifras, cifra, leerMedida, trozos, leerLote, comprobar, frase, magnitudDeUnidad, MAGNITUDES, normal };
+      });
+    }
+  });
+
   // shared/ia/catalogo.js
   var require_catalogo2 = __commonJS({
     "shared/ia/catalogo.js"(exports, module) {
@@ -128079,6 +128399,33 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
             escribe: true,
             confirmar: true,
             parametros: S({ destino: { type: "string", enum: ["ncr", "reparacion", "equipo", "nota"] }, codigo: txt("El c\xF3digo de la NCR o la reparaci\xF3n."), equipo: txt("El equipo, si va a un equipo.") }, ["destino"])
+          },
+          /* 8-nov (nota 1108-iarvis-medidas-firmas-motor): las medidas dictadas y la firma propia. */
+          {
+            id: "apuntarMedidas",
+            familia: "medir",
+            descripcion: "Apuntar medidas dictadas de un equipo: caudales o velocidades de cada boca del balanceo, T\xAA de impulsi\xF3n, presiones, intensidades, respuestas del checklist (s\xED/no/no aplica). Varias de una vez. Se lee en voz alta y se guarda solo tras \xABS\xED\xBB.",
+            modulo: "commissioning",
+            verbo: "editar",
+            escribe: true,
+            confirmar: true,
+            parametros: S({
+              equipo: txt("El equipo como lo dice la persona (\xABUTA-2\xBB, \xABsplit 2.14\xBB)."),
+              dictado: { type: "string", maxLength: 2e3, description: "Las medidas TAL CUAL las dict\xF3 la persona, con sus n\xFAmeros y unidades (\xABboca 3 trescientos veinte metros c\xFAbicos, boca 4 310\xBB). No conviertas nada." },
+              equipoId: txt("Interno: no lo pongas."),
+              previo: { type: "string", maxLength: 4e3, description: "Interno: no lo pongas." }
+            }, ["dictado"])
+          },
+          {
+            id: "firmarEquipo",
+            familia: "firmar",
+            descripcion: "Firmar el commissioning de un equipo como t\xE9cnico responsable con MI firma guardada (nunca la de otro). Pide confirmaci\xF3n y Face ID, huella o PIN.",
+            modulo: "commissioning",
+            verbo: "editar",
+            escribe: true,
+            confirmar: true,
+            verificar: true,
+            parametros: S({ equipo: txt("El equipo a firmar."), equipoId: txt("Interno: no lo pongas."), reto: txt("Interno: no lo pongas."), verificacion: txt("Interno: no lo pongas.") }, ["equipo"])
           }
         ];
         const POR_ID = new Map(CATALOGO.map((a) => [a.id, a]));
@@ -128118,16 +128465,19 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
             if (a.id === "irA") schema.properties.seccion.enum = secs;
             if (a.id === "formulario") schema.properties.que.enum = forms;
             if (a.id === "fotoA") schema.properties.destino.enum = fotos;
+            for (const k of INTERNOS) delete schema.properties[k];
             return { name: a.id, description: a.descripcion, input_schema: schema };
           });
         }
-        function desdeHerramienta(nombre, entrada) {
+        const INTERNOS = ["equipoId", "previo", "reto", "verificacion"];
+        function desdeHerramienta(nombre, entrada, { motor = false } = {}) {
           const a = POR_ID.get(llano(nombre));
           if (!a) return null;
           const e = entrada && typeof entrada === "object" ? entrada : {};
           const parametros = {};
           for (const [k, def] of Object.entries(a.parametros.properties)) {
             if (e[k] === void 0 || e[k] === null) continue;
+            if (motor && INTERNOS.includes(k)) continue;
             const v = String(e[k]).slice(0, def.maxLength || 400);
             if (def.enum && !def.enum.includes(v)) return null;
             parametros[k] = v;
@@ -128193,6 +128543,12 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
             if (hablaRep && inc) return { id: "fotoA", parametros: { destino: "reparacion", codigo: inc } };
             if (/\b(bloc|nota|notas|apunta\w*|guarda\w* en mi)\b/.test(t)) return { id: "fotoA", parametros: { destino: "nota" } };
           }
+          const med = medidasDe(pregunta, t);
+          if (med) return med;
+          if (RE_FIRMAR.test(t) && !/^firmas\b/.test(t) && !/\b(quien|cuantas|que|pendientes?)\b/.test(t)) {
+            const equipo = equipoDe(t) || llano(t.replace(RE_FIRMAR, "").replace(/^\s*(el |la |del |de la |de |en )?(commissioning |equipo |ficha )?(de |del |de la )?(el |la )?/, "").replace(/\b(con mi firma|por mi)\b.*$/, ""));
+            if (equipo) return { id: "firmarEquipo", parametros: { equipo } };
+          }
           if (/^(ficha\w*|quiero fichar|hazme el fichaje)\b/.test(t) || /\bficha\w* (la )?(entrada|salida)\b/.test(t)) {
             return { id: "fichar", parametros: { tipo: /\b(salida|salgo|me voy|termino|acabo)\b/.test(t) ? "salida" : "entrada" } };
           }
@@ -128256,6 +128612,28 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           }
           return null;
         }
+        const DICT = typeof __require === "function" && typeof module !== "undefined" ? require_dictado() : raiz.IarvisDictado;
+        const RE_EQUIPO = /\b(?:de|del|en|para|a)\s+(?:la\s+|el\s+|los\s+)?((?:uta|split|ud|ui|ue|fan ?coil|fancoil|bomba|grupo de presion|grupo|enfriadora|caldera|recuperador|climatizador|extractor|cassette|rooftop|vrv|vrf|cortina|equipo)s?[\s-]*[a-z0-9][\w-]*(?:\.\d+)?|[a-z]{1,5}-[\w-]+(?:\.\d+)?)/;
+        const RE_EQUIPO_SUELTO = /\b((?:uta|split|ud|ui|ue|fan ?coil|fancoil|bomba|enfriadora|caldera|recuperador|climatizador|extractor|cassette|rooftop|cortina)s?[\s-]*\d[\w-]*(?:\.\d+)?)/;
+        const equipoDe = (t) => {
+          const m = normal(t).match(RE_EQUIPO) || normal(t).match(RE_EQUIPO_SUELTO);
+          return m ? m[1].replace(/[.:]+$/, "") : null;
+        };
+        const RE_FIRMAR = /^(firma\w*|pon(me)? mi firma|ponle mi firma|firma por mi)\b\s*/;
+        const VERBO_MEDIR = /^(?:iarvis\s+)?(apunta\w*|anota\w*|guarda\w*|pon\w*|mete\w*|registra\w*|mide\w*|he medido|medidas?|toma de datos)\b/;
+        function medidasDe(pregunta, t) {
+          if (!DICT) return null;
+          const n = normal(pregunta);
+          const conBoca = /\b(boca|difusor|rejilla)\s*\d/.test(n);
+          const conPunto = /\bpunto\s+\d{1,2}\.\d{1,2}\s+(si|no|no aplica|ok)\b/.test(n);
+          if (!conBoca && !conPunto && !VERBO_MEDIR.test(t)) return null;
+          const equipo = equipoDe(pregunta);
+          const lote = DICT.leerLote(pregunta, { quitar: equipo || "" });
+          const buenas = lote.filter((m) => m.valor !== null && m.valor !== void 0 && m.magnitud || m.respuesta);
+          if (!buenas.length) return null;
+          if (!conBoca && !conPunto && !buenas.some((m) => m.magnitud && !m.unidadSupuesta)) return null;
+          return { id: "apuntarMedidas", parametros: { ...equipo ? { equipo } : {}, dictado: llano(pregunta).slice(0, 2e3) } };
+        }
         function pareceAccion(pregunta) {
           const t = limpio(pregunta);
           return Boolean(t) && VERBOS_ACCION.test(t) && t.split(" ").length <= 40;
@@ -128298,7 +128676,8 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           codigoNcr,
           codigoInc,
           normal,
-          limpio
+          limpio,
+          equipoDe
         };
       });
     }
@@ -128390,6 +128769,7 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
       var CTX = require_contexto();
       var A = require_acciones();
       var FM = require_filaMovil();
+      var DIC = require_dictado();
       var uuid = () => globalThis.crypto && globalThis.crypto.randomUUID ? globalThis.crypto.randomUUID() : `l-${Date.now()}-${Math.random().toString(16).slice(2)}`;
       var fila = (pregunta, extra) => ({ id: uuid(), pregunta, estado: "respondida", local: true, creado: (/* @__PURE__ */ new Date()).toISOString(), acciones: [], ...extra });
       var llano = (v) => String(v ?? "").trim();
@@ -128710,6 +129090,223 @@ ${lineas.join("\n")}${mas}`, acciones: [ir("albaranes", "Abrir Albaranes")] });
         if (!r.ok) return fila("S\xED, guardarla", { respuesta: r.error });
         return fila("S\xED, guardarla", { respuesta: `Guardada en ${destino}.`, acciones: abrir ? [abrir] : [], fotosGuardadas: localesDe(ctx.fotos) });
       }
+      async function equipoDeAccion(ctx, accion, pregunta) {
+        const p = accion.parametros;
+        let e = p.equipoId ? ctx.repo.leer("equiposObra", ctx.ses, llano(p.equipoId)) : null;
+        if (e) return { e };
+        const dicho = llano(p.equipo) || CAT.equipoDe(p.dictado || pregunta || "") || "";
+        if (!dicho) return { fila: fila(pregunta, { respuesta: "\xBFDe qu\xE9 equipo? D\xEDmelo con su TAG o su sala (\xABUTA-2\xBB, \xABsplit 2.14\xBB)." }) };
+        const c = A.entender(`abre ${dicho}`) || { intencion: "abrir", tipo: null, refs: CAT.limpio(dicho).split(" ").filter(Boolean) };
+        const r = ctx.candidatos(c);
+        if (r.error) return { fila: fila(pregunta, { respuesta: r.error }) };
+        if (!r.lista.length) return { fila: fila(pregunta, { respuesta: `No encuentro \xAB${dicho}\xBB en esta obra.` }) };
+        if (r.lista.length > 1) {
+          return { fila: fila(pregunta, {
+            respuesta: `\xBFCu\xE1l? Hay ${r.lista.length} que encajan con \xAB${dicho}\xBB:`,
+            acciones: r.lista.slice(0, MAX_LISTA).map((x) => ({ tipo: "hacer", hacer: "catalogo", id: accion.id, parametros: { ...p, equipoId: x.id }, obraId: ctx.obraId, texto: A.nombreDe(x, FM.salaVisibleDe(x) || "") }))
+          }) };
+        }
+        e = r.lista[0];
+        return { e };
+      }
+      var sinNumero = (v) => llano(v).replace(/^0+(?=\d)/, "");
+      var digitosDe = (v) => {
+        const m = llano(v).match(/\d+[a-z]?/i);
+        return m ? sinNumero(m[0].toLowerCase()) : null;
+      };
+      var PALABRAS_VACIAS = /* @__PURE__ */ new Set(["de", "del", "la", "el", "los", "las", "en", "y", "con", "por", "medida", "medido", "real", "valor"]);
+      var palabras = (v) => DIC.normal(v).replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w.length > 2 && !PALABRAS_VACIAS.has(w));
+      async function leerDestinos(ctx, e, { conFichas }) {
+        const eq = await pedir(ctx.llamar, "GET", "api/equipo", null, { id: e.id });
+        if (!eq.ok) return { error: eq.error };
+        const bocas = [];
+        for (const pl of eq.planos || []) for (const b of pl.bocas || []) bocas.push({ ...b, planoId: pl.id, plano: pl.nombre });
+        const puntos = [];
+        if (conFichas) {
+          const lasFichas = await pedir(ctx.llamar, "GET", "api/fichas", null, { equipo: e.id });
+          for (const f of lasFichas.ok && lasFichas.fichas || []) {
+            if (f.conservada || !f.plantilla) continue;
+            const h = await pedir(ctx.llamar, "GET", "api/ficha", null, { obra: e.obraId, clave: f.clave, plantilla: f.plantilla });
+            if (!h.ok || !Array.isArray(h.secciones)) continue;
+            for (const s of h.secciones) {
+              for (const pt of s.puntos || []) {
+                puntos.push({ ...pt, seccion: s.tipo, titulo: s.titulo, clave: f.clave, plantilla: f.plantilla, ficha: f.nombre, editable: h.editable !== false, firmada: Boolean(h.firmada) });
+              }
+            }
+          }
+        }
+        return { bocas, puntos, equipo: eq };
+      }
+      function destinoDe(m, { bocas, puntos }) {
+        if (m.ref.boca) {
+          const n = sinNumero(m.ref.boca.toLowerCase());
+          const l = bocas.filter((b2) => digitosDe(b2.nombre) === n);
+          if (!l.length) return { error: `no encuentro la boca ${m.ref.boca} en los planos de balanceo` };
+          if (l.length > 1) return { error: `hay ${l.length} bocas ${m.ref.boca} (${l.map((b2) => b2.plano).join(", ")}): \xE1brelo en el plano` };
+          const b = l[0];
+          const campo = m.magnitud === "caudal" ? "caudalMedido" : m.magnitud === "velocidad" ? "velocidad" : m.magnitud === "temperatura" ? /\bcalor\b/.test(DIC.normal(m.texto)) ? "tCalor" : "tFrio" : null;
+          if (!campo) return { error: `a una boca no se le apunta ${m.unidad}` };
+          return { tipo: "boca", boca: b, campo, antes: b[campo] ?? null, diseno: m.magnitud === "caudal" ? b.caudalDiseno : null, nombre: `${/^boca\b/i.test(b.nombre || "") ? "" : "Boca "}${b.nombre}${bocas.some((x) => x.planoId !== b.planoId) ? ` (${b.plano})` : ""}` };
+        }
+        if (m.ref.punto) {
+          const l = puntos.filter((p2) => llano(p2.numero) === m.ref.punto && ["siNoNa", "okNoOk", "siNo"].includes(p2.tipo));
+          if (!l.length) return { error: `no encuentro el punto ${m.ref.punto} del checklist` };
+          const p = l[0];
+          let v = m.respuesta;
+          if (p.tipo === "okNoOk") v = v === "no" ? "NO OK" : v === "si" || v === "ok" ? "OK" : null;
+          else if (p.tipo === "siNo" && v === "na") v = null;
+          else if (v === "ok") v = "si";
+          if (!v) return { error: `el punto ${m.ref.punto} no admite \xAB${DIC.frase(m)}\xBB` };
+          return { tipo: "punto", punto: p, valor: { v }, antes: p.valor ?? null, nombre: `${p.numero} ${corto(p.etiqueta, 50)}` };
+        }
+        if (!m.magnitud) return { error: "dime la unidad" };
+        const quiero = palabras(m.ref.texto || "");
+        const compatibles = puntos.filter((p) => (p.seccion === "parametros" || p.tipo === "numero") && DIC.magnitudDeUnidad(p.unidad) === m.magnitud);
+        if (!compatibles.length) return { error: `no hay en sus fichas un dato en ${m.unidad}` };
+        const puntua = (p) => {
+          const suyas = palabras(p.etiqueta);
+          return quiero.reduce((n, w) => n + (suyas.some((s) => s.startsWith(w.slice(0, 5)) || w.startsWith(s.slice(0, 5))) ? 1 : 0), 0);
+        };
+        const conNota = compatibles.map((p) => ({ p, n: puntua(p) })).sort((a, b) => b.n - a.n);
+        let elegido = null;
+        if (conNota[0].n > 0 && (conNota.length === 1 || conNota[1].n < conNota[0].n)) elegido = conNota[0].p;
+        else if (compatibles.length === 1) elegido = compatibles[0];
+        if (!elegido) return { error: `\xBFcu\xE1l de ${conNota.slice(0, 4).map((x) => `\xAB${x.p.etiqueta}\xBB`).join(", ")}? d\xEDmelo con su nombre` };
+        const enParam = elegido.seccion === "parametros";
+        return { tipo: "punto", punto: elegido, valor: enParam ? { m: m.valor } : { v: m.valor }, antes: enParam ? elegido.m ?? null : elegido.valor ?? null, diseno: enParam ? elegido.p : null, nombre: elegido.etiqueta };
+      }
+      var claveDestino = (d) => d.tipo === "boca" ? `b:${d.boca.planoId}:${d.boca.id}:${d.campo}` : `p:${d.punto.clave}:${d.punto.plantilla}:${d.punto.codigo}`;
+      var mismo = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+      async function apuntarMedidas(ctx, accion, pregunta) {
+        if (!ctx.obraId) return fila(pregunta, { respuesta: SIN_OBRA });
+        const p = accion.parametros;
+        const q = await equipoDeAccion(ctx, accion, pregunta);
+        if (q.fila) return q.fila;
+        const e = q.e;
+        if (e.obraId !== ctx.obraId) return fila(pregunta, { respuesta: "Ese equipo no es de la obra elegida." });
+        const lote = DIC.leerLote(p.dictado, { quitar: llano(p.equipo) || CAT.equipoDe(p.dictado) || "" }).slice(0, 30);
+        if (!lote.length) return fila(pregunta, { respuesta: "No oigo ninguna medida. D\xEDmela con su cifra y su unidad: \xABboca 3, 320 metros c\xFAbicos\xBB." });
+        const destinos = await leerDestinos(ctx, e, { conFichas: lote.some((m) => !m.ref.boca) });
+        if (destinos.error) return fila(pregunta, { respuesta: destinos.error });
+        const listas = [];
+        const fallos = [];
+        const avisos = [];
+        for (const m of lote) {
+          const c = DIC.comprobar(m);
+          if (!c.ok) {
+            fallos.push(`\xAB${m.texto}\xBB: ${c.error}`);
+            continue;
+          }
+          const d = destinoDe(m, destinos);
+          if (d.error) {
+            fallos.push(`\xAB${m.texto}\xBB: ${d.error}.`);
+            continue;
+          }
+          if (d.tipo === "punto" && (!d.punto.editable || d.punto.firmada)) {
+            fallos.push(`\xAB${m.texto}\xBB: la ficha ${d.punto.ficha} est\xE1 firmada o no la puedes cambiar.`);
+            continue;
+          }
+          const c2 = DIC.comprobar(m, { diseno: d.diseno });
+          for (const a of c2.avisos) avisos.push(`${d.nombre}: ${a}`);
+          listas.push({ m, d });
+        }
+        const nombreEq = A.nombreDe(e, FM.salaVisibleDe(e) || "");
+        if (!listas.length) return fila(pregunta, { respuesta: `No guardo nada de ${nombreEq}:
+${fallos.join("\n")}` });
+        const leida = listas.map(({ m, d }) => `${d.nombre}: ${DIC.frase(m)}${d.antes !== null && d.antes !== void 0 && d.antes !== "" ? ` (hab\xEDa ${String(d.antes).replace(".", ",")})` : ""}`).join("\n");
+        if (!ctx.confirmado) {
+          const previo2 = JSON.stringify(Object.fromEntries(listas.map(({ d }) => [claveDestino(d), d.antes ?? null]))).slice(0, 4e3);
+          return fila(pregunta, {
+            respuesta: `${nombreEq}:
+${leida}${avisos.length ? `
+\u26A0\uFE0F ${avisos.join("\n\u26A0\uFE0F ")}` : ""}${fallos.length ? `
+No lo guardo: ${fallos.join(" ")}` : ""}
+\xBFGuardo?`,
+            acciones: [botonSi({ id: accion.id, parametros: { ...p, equipoId: e.id, previo: previo2 } }, listas.length > 1 ? `S\xED, guardar las ${listas.length}` : "S\xED, guardar", { obraId: ctx.obraId })],
+            lectura: leida
+          });
+        }
+        let previo = {};
+        try {
+          previo = JSON.parse(p.previo || "{}") || {};
+        } catch {
+          previo = {};
+        }
+        const cambiadas = listas.filter(({ d }) => claveDestino(d) in previo && !mismo(previo[claveDestino(d)], d.antes));
+        if (cambiadas.length) return fila("S\xED, guardar", { respuesta: `No guardo: mientras tanto alguien ha cambiado ${cambiadas.map(({ d }) => `${d.nombre} (ahora ${d.antes ?? "vac\xEDo"})`).join(", ")}. Vuelve a dict\xE1rmelo si sigue valiendo.` });
+        const hechas = [];
+        const mal = [];
+        for (const { m, d } of listas.filter((x) => x.d.tipo === "boca")) {
+          const r = await pedir(ctx.llamar, "POST", "api/boca", { planoId: d.boca.planoId, puntoId: d.boca.id, [d.campo]: m.valor });
+          (r.ok ? hechas : mal).push(r.ok ? d.nombre : `${d.nombre}: ${r.error}`);
+        }
+        const porFicha = /* @__PURE__ */ new Map();
+        for (const x of listas.filter((y) => y.d.tipo === "punto")) {
+          const k = `${x.d.punto.clave}|${x.d.punto.plantilla}`;
+          if (!porFicha.has(k)) porFicha.set(k, []);
+          porFicha.get(k).push(x);
+        }
+        for (const grupo of porFicha.values()) {
+          const { clave, plantilla } = grupo[0].d.punto;
+          const valores = Object.fromEntries(grupo.map(({ d }) => [d.punto.codigo, d.valor]));
+          const r = await pedir(ctx.llamar, "POST", "api/ficha", { obraId: e.obraId, clave, plantilla, valores });
+          for (const { d } of grupo) (r.ok ? hechas : mal).push(r.ok ? d.nombre : `${d.nombre}: ${r.error}`);
+        }
+        const abrir = { tipo: "ir", destino: "commissioning", texto: `Abrir ${e.tag}`, equipoId: e.id, accionEquipo: listas.every((x) => x.d.tipo === "boca") ? "balanceo" : "datos" };
+        return fila("S\xED, guardar", {
+          respuesta: `${hechas.length ? `Guardado en ${nombreEq}: ${hechas.join(", ")}.` : "No se ha guardado nada."}${mal.length ? `
+No ha entrado: ${mal.join("; ")}` : ""}`,
+          acciones: [abrir]
+        });
+      }
+      var RETOS = /* @__PURE__ */ new Map();
+      var VIDA_RETO = 2 * 60 * 1e3;
+      var METODOS = /* @__PURE__ */ new Set(["biometria", "webauthn", "pin"]);
+      function nuevoReto(personaId, equipoId) {
+        const ahora = Date.now();
+        for (const [k, v] of RETOS) if (v.expira < ahora) RETOS.delete(k);
+        const reto = uuid();
+        RETOS.set(reto, { personaId, equipoId, expira: ahora + VIDA_RETO });
+        return reto;
+      }
+      function gastarReto(reto, personaId, equipoId) {
+        const r = RETOS.get(llano(reto));
+        if (!r) return false;
+        RETOS.delete(llano(reto));
+        return r.personaId === personaId && r.equipoId === equipoId && r.expira >= Date.now();
+      }
+      async function firmarEquipo(ctx, accion, pregunta) {
+        if (!ctx.obraId) return fila(pregunta, { respuesta: SIN_OBRA });
+        const p = accion.parametros;
+        const q = await equipoDeAccion(ctx, accion, pregunta);
+        if (q.fila) return q.fila;
+        const e = q.e;
+        if (e.obraId !== ctx.obraId) return fila(pregunta, { respuesta: "Ese equipo no es de la obra elegida." });
+        const g = await pedir(ctx.llamar, "GET", "api/firma/guardada");
+        if (!g.ok) return fila(pregunta, { respuesta: g.error });
+        const abrirFicha = { tipo: "ir", destino: "commissioning", texto: `Abrir ${e.tag}`, equipoId: e.id, accionEquipo: "equipo" };
+        if (!g.firma) {
+          return fila(pregunta, {
+            respuesta: `A\xFAn no tienes tu firma guardada. Te abro ${e.tag}: firma una vez a mano como t\xE9cnico responsable y se guarda; despu\xE9s ya puedo firmar yo con ella.`,
+            acciones: [abrirFicha],
+            abrirYa: abrirFicha
+          });
+        }
+        const eq = await pedir(ctx.llamar, "GET", "api/equipo", null, { id: e.id });
+        const previa = eq.ok && eq.firmas && eq.firmas.jefeObra;
+        if (!ctx.confirmado) {
+          const reto = nuevoReto(ctx.ses.personaId, e.id);
+          return fila(pregunta, {
+            respuesta: `\xBFFirmo el commissioning de ${A.nombreDe(e, FM.salaVisibleDe(e) || "")} como t\xE9cnico responsable, con tu firma guardada (${g.firma.nombre})?${previa ? ` Sustituye la que hay de ${previa.nombre || "otra persona"}.` : ""} Te pedir\xE9 Face ID, huella o PIN.`,
+            acciones: [botonSi({ id: accion.id, parametros: { equipo: p.equipo || e.tag, equipoId: e.id, reto } }, "S\xED, firmar", { obraId: ctx.obraId, verificar: "firma" })]
+          });
+        }
+        if (!METODOS.has(llano(p.verificacion))) return fila("S\xED, firmar", { respuesta: "Sin Face ID, huella o PIN no firmo." });
+        if (!gastarReto(p.reto, ctx.ses.personaId, e.id)) return fila("S\xED, firmar", { respuesta: "Esa confirmaci\xF3n ya no vale: p\xEDdemelo otra vez." });
+        const r = await pedir(ctx.llamar, "POST", "api/equipo/firma", { equipoId: e.id, rol: "jefeObra", usarGuardada: true });
+        if (!r.ok) return fila("S\xED, firmar", { respuesta: r.error });
+        return fila("S\xED, firmar", { respuesta: `Firmado ${e.tag} con tu firma (por Iarvis, verificado con ${{ biometria: "Face ID/huella", webauthn: "Face ID/huella", pin: "PIN" }[p.verificacion]}).`, acciones: [abrirFicha] });
+      }
       var EJECUTA = {
         irA,
         formulario,
@@ -128728,7 +129325,9 @@ ${lineas.join("\n")}${mas}`, acciones: [ir("albaranes", "Abrir Albaranes")] });
         estadoNcr,
         estadoReparacion,
         fichar,
-        fotoA
+        fotoA,
+        apuntarMedidas,
+        firmarEquipo
       };
       async function ejecutar(ctx, accion, pregunta) {
         const def = accion && CAT.POR_ID.get(accion.id);
@@ -129049,8 +129648,10 @@ ${corta.map((m) => `\xB7 ${m.titulo} (${m.fecha})`).join("\n")}`,
         const fotos = Array.isArray(d.fotos) ? d.fotos : [];
         if (!repo || !pregunta.trim()) return null;
         const conFoto = fotos.length > 0;
-        const c = A.entender(pregunta, { conFoto });
-        const g = !c || c.intencion === "abrir" ? CAT.entenderGeneral(pregunta, { conFoto }) : null;
+        const g0 = CAT.entenderGeneral(pregunta, { conFoto });
+        const prioritaria = Boolean(g0 && (g0.id === "apuntarMedidas" || g0.id === "firmarEquipo"));
+        const c = prioritaria ? null : A.entender(pregunta, { conFoto });
+        const g = prioritaria ? g0 : !c || c.intencion === "abrir" ? g0 : null;
         const parece = !c && !g && CAT.pareceAccion(pregunta);
         if (!c && !g && !parece) return null;
         const propio = [d.obraNombre || "", ...IP.propiasDe(repo, ses).map((o) => o.txt)].join(" | ");

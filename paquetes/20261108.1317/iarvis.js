@@ -288,6 +288,16 @@
     /* Iarvis que actúa (8-nov): marcar instalado, aprobar, guardar la foto como prueba… */
     if (a.tipo === 'hacer' && I.adaptador && I.adaptador.hacer) {
       if (I.ocupado) return;
+      /* 8-nov · la firma con Iarvis: antes, Face ID, huella o PIN en el teléfono (renderer/movil/verificarIdentidad.js). */
+      if (a.verificar) {
+        const metodo = typeof window.CX_VERIFICAR === 'function' ? await window.CX_VERIFICAR({ motivo: 'Confirma que eres tú para firmar' }) : null;
+        if (!metodo) {
+          const f = { id: null, pregunta: a.texto || 'Sí', estado: 'respondida', respuesta: 'Sin Face ID, huella o PIN no firmo.' };
+          I.filas = [f, ...I.filas]; I.deEstaVez.add(f); pintar();
+          return;
+        }
+        a = { ...a, parametros: { ...(a.parametros || {}), verificacion: metodo } };
+      }
       I.ocupado = true;
       if (boton) boton.disabled = true;
       const provisional = { id: null, pregunta: a.texto || 'Hecho', estado: 'respondiendo', respuesta: null };
