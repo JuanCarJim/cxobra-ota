@@ -56,6 +56,10 @@
       return;
     }
     if (activa() && !form && !abierta) pintarLista();
+    /* 8-nov · Iarvis («abre la NCR-0003»): la NCR que abrir, como commissioning y reparaciones. */
+    let ir = null;
+    try { ir = sessionStorage.getItem('cx.abrir'); if (ir) sessionStorage.removeItem('cx.abrir'); } catch { /* nada */ }
+    if (ir && activa() && datos && Array.isArray(datos.filas) && datos.filas.some((f) => f.id === ir)) abrir(ir);
   }
 
   function pintarLista() {
