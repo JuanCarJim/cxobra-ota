@@ -56,7 +56,8 @@ body.conIarvis #capaAvisos { bottom: 132px; }
 .iaEntrada .iaFila { display: flex; gap: 6px; align-items: flex-end; }
 .iaEntrada textarea { flex: 1; resize: none; min-height: 36px; max-height: 140px; padding: 7px 9px; border: 1px solid var(--borde, #d1d5db); border-radius: 10px; font: 13px/1.35 inherit; background: var(--panel, #fff); color: inherit; }
 .iaEntrada button { height: 34px; min-width: 34px; border-radius: 999px; border: 1px solid var(--borde, #d1d5db); background: transparent; cursor: pointer; color: inherit; font-size: 15px; }
-.iaEntrada button.iaMandar { background: var(--marca-verde, #0f766e); color: #fff; border-color: transparent; padding: 0 12px; font-size: 13px; font-weight: 600; }
+.iaEntrada button.iaMandar { background: var(--acento, var(--marca-verde, #0f766e)); color: #fff; border-color: transparent; padding: 0 12px; font-size: 13px; font-weight: 600; }
+.iaEntrada button.iaClip, .iaEntrada button.iaCamara { display: inline-flex; align-items: center; justify-content: center; padding: 0; color: var(--acento, var(--marca-verde, #0f766e)); }
 .iaEntrada button:disabled { opacity: .5; cursor: default; }
 
 /* 8-nov: se abre limpio — saludo y atajos; lo anterior, plegado. */
@@ -66,11 +67,6 @@ body.conIarvis #capaAvisos { bottom: 132px; }
 .iaSugerencias { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .iaSugerencia { border: 1px solid color-mix(in srgb, var(--marca-verde, #0f766e) 35%, transparent); background: transparent; color: var(--vd-acento-texto, var(--marca-verde, #0f766e)); border-radius: 999px; padding: 5px 12px; font: 13px/1.3 inherit; cursor: pointer; text-align: left; width: fit-content; }
 .iaSugerencia:hover { background: color-mix(in srgb, var(--marca-verde, #0f766e) 10%, transparent); }
-.iaAnteriores { font-size: 12px; color: var(--textoSuave, #6b7280); }
-.iaAnteriores > summary { cursor: pointer; padding: 4px 0; list-style: none; }
-.iaAnteriores > summary::before { content: '▸ '; }
-.iaAnteriores[open] > summary::before { content: '▾ '; }
-.iaAnteriores[open] { display: flex; flex-direction: column; gap: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--borde, #d1d5db); opacity: .85; }
 
 /* Texto con formato: párrafos, negritas y listas, sin asteriscos. */
 .iaRespuesta p { margin: 0 0 6px; }
@@ -94,9 +90,16 @@ body.conIarvis #capaAvisos { bottom: 132px; }
 .iaAcciones { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .iaAcciones button:disabled { opacity: .5; cursor: default; }
 
-/* En el móvil: la pestaña ocupa la pantalla; el botón no flota. */
-.iaPanel.iaMovil { position: static; width: auto; height: 100%; border: 0; border-radius: 0; box-shadow: none; }
-/* 8-nov: en el teléfono las sugerencias caben en una línea o se parten sin deformar el botón. */
-.iaPanel.iaMovil { min-height: 60vh; }
+/* En el móvil (8-nov, JC: «SOLO el chat»): toda la pantalla, cabecera mínima arriba, la caja abajo
+   y los mensajes en medio; la cabecera de la app la quita movil.css (body.en-iarvis). */
+.iaPanel.iaMovil { position: static; width: auto; border: 0; border-radius: 0; box-shadow: none;
+  height: 100vh; height: var(--vv-alto, 100dvh); padding: 0; box-sizing: border-box; }
+/* Zona segura: la cabecera baja de la barra de estado (hora y batería) y la caja pega abajo. */
+.iaMovil .iaCabecera { padding: calc(6px + env(safe-area-inset-top)) 8px 6px; gap: 4px; border-bottom-width: 1px; }
+body.en-iarvis { padding-bottom: 0; overflow: hidden; }
+.iaMovil .iaCabecera h2 { font-size: 17px; margin: 0 auto 0 0; padding: 0; background: transparent; border: 0; border-radius: 0; display: inline-flex; align-items: center; color: var(--acento, var(--marca-verde, #0f766e)); line-height: 1.1; }
+.iaMovil .iaCabecera .iaVolver { min-width: 36px; height: 36px; font-size: 26px; line-height: 1; color: var(--acento, var(--marca-verde, #0f766e)); }
+.iaMovil .iaEntrada { padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+body.teclado .iaMovil .iaEntrada, body.teclado-vv .iaMovil .iaEntrada { padding-bottom: 8px; }
 .iaMovil .iaSugerencia { max-width: 100%; border-radius: 14px; white-space: normal; min-height: 36px; }
 .iaMovil .iaAcciones button { min-height: 34px; }

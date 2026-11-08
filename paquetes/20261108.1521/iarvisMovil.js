@@ -1,7 +1,7 @@
 'use strict';
 /*
  * 🧭 IARVIS EN EL MÓVIL (#iarvis, 7-nov-2026). La misma conversación que el escritorio y la
- * web (renderer/iarvis.js, montado aquí dentro de su pestaña, en «Más»), sobre la misma tabla
+ * web (renderer/iarvis.js, montado aquí a pantalla completa; se abre con la brújula de la cabecera), sobre la misma tabla
  * (ia_mensajes de cxobra-sync) con shared/ia/conversaciones.js.
  *
  * Dictado: el micrófono del teclado del iPhone (el panel lo dice en la caja de texto).
@@ -17,6 +17,13 @@
   const $app = document.getElementById('app');
   const activa = () => C.activa('iarvis');
   let adaptador = null;
+  /* 8-nov (JC): el chat es SOLO el chat; «‹» vuelve a la pantalla desde la que se abrió. */
+  let deDonde = '';
+  window.addEventListener('hashchange', (e) => {
+    const antes = String(e.oldURL || '').split('#')[1] || '';
+    if (location.hash === '#iarvis' && antes && antes !== 'iarvis') deDonde = antes;
+  });
+  const volver = () => { location.hash = `#${deDonde || 'inicio'}`; };
 
   function armar() {
     if (adaptador) return adaptador;
@@ -37,7 +44,8 @@
         pregunta: d.pregunta,
         obraId: d.obraId || null,
         adjuntos: d.adjuntos || [],
-        contexto: { app: 'cx', pantalla: d.pantalla || '', ...(d.obraId ? { obra_id: String(d.obraId), obra: String(d.obraNombre || '').slice(0, 160) } : {}), ...(d.idioma ? { idioma: d.idioma } : {}) },
+        /* 8-nov: con los datos de la obra abierta (`datos_obra`) que ha sacado el teléfono (rutasPlanificacion.js). */
+        contexto: { app: 'cx', pantalla: d.pantalla || '', ...(d.obraId ? { obra_id: String(d.obraId), obra: String(d.obraNombre || '').slice(0, 160) } : {}), ...(d.idioma ? { idioma: d.idioma } : {}), ...(d.contexto && typeof d.contexto === 'object' ? { ...d.contexto, app: 'cx' } : {}) },
       });
     /* El motor de IA, solo para ELEGIR la acción (sin él, o sin desplegar: null, y se queda la
        respuesta de las reglas con las opciones más cercanas). */
@@ -50,10 +58,11 @@
     };
     adaptador = {
       preguntar: async (d) => {
+        let r = null;
         try {
           /* Las fotos del chat, ya en el teléfono (adjuntar): por si es «métela como prueba de…». */
           const fotos = (d.adjuntos || []).filter((x) => x && (x.fotoId || x.local)).map((x) => ({ fotoId: x.fotoId || null, local: x.local || null }));
-          const r = await C.postJson('api/iarvis/preguntar', { pregunta: d.pregunta, obraId: d.obraId || null, obraNombre: d.obraNombre || '', fotos });
+          r = await C.postJson('api/iarvis/preguntar', { pregunta: d.pregunta, obraId: d.obraId || null, obraNombre: d.obraNombre || '', fotos, pantalla: d.pantalla || '', idioma: d.idioma || '' });
           /* 8-nov · las reglas no lo entienden pero parece algo que hacer: se le pregunta al motor
              (edge function `iarvis`, modo «accion») qué acción del catálogo es. El servidor elige con
              el rol que lee de la nube; lo que vuelva se resuelve en el teléfono con confirmación. */
@@ -66,7 +75,7 @@
           }
           if (r && r.local && r.fila) { guardarLocal(r.fila); return r.fila; }
         } catch { /* sin motor local: a la nube, como antes */ }
-        return alNube({ ...d, adjuntos: (d.adjuntos || []).filter((x) => x && !x.soloLocal) });
+        return alNube({ ...d, contexto: r && r.contexto, adjuntos: (d.adjuntos || []).filter((x) => x && !x.soloLocal) });
       },
       /* 8-nov (nota 1108-iarvis-cx-acciones): el botón «hacer» de una respuesta (marcar instalado,
          aprobar, guardar la foto como prueba) lo hace el teléfono con su copia y el alcance del rol. */
@@ -139,6 +148,7 @@
       ir: (destino) => { location.hash = `#${destino}`; },
       contexto: () => ({ pantalla: 'movil', obraId: C.obraId ? C.obraId() : null, obraNombre: obraNombre(), idioma: (navigator.language || 'es').slice(0, 2) }),
       movil: true,
+      volver,
     });
   }
 

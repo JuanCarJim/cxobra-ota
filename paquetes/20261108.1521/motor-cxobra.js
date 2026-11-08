@@ -11007,7 +11007,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261108.1325" : "0";
+      var VERSION = true ? "20261108.1521" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -129917,6 +129917,220 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
     }
   });
 
+  // electron/data/iarvisDatosObra.js
+  var require_iarvisDatosObra = __commonJS({
+    "electron/data/iarvisDatosObra.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var { puede } = require_roles();
+      var { ESTADOS_PM_VISIBLES } = require_control();
+      var llano = (v) => String(v ?? "").trim();
+      var dia = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+      var mas = (m, k, n = 1) => {
+        m[k] = (m[k] || 0) + n;
+        return m;
+      };
+      var EJEMPLOS = 12;
+      function obraDe(repo, yo, obraId) {
+        if (!repo || !obraId) return null;
+        const solo = Array.isArray(yo.soloObras) ? new Set(yo.soloObras) : null;
+        if (solo && !solo.has(obraId)) return null;
+        try {
+          return (repo.listar("obras", yo) || []).find((o) => o.id === obraId) || null;
+        } catch {
+          return null;
+        }
+      }
+      function tomaDe(miembros) {
+        const est = miembros.map((m) => m.pmFichas && m.pmFichas.fichaPM || "pendiente");
+        if (est.every((x) => x === "noAplica")) return "noAplica";
+        if (est.some((x) => x === "pendiente")) return "pendiente";
+        if (est.some((x) => x === "noApta")) return "conReservas";
+        return "hecha";
+      }
+      function commissioning(repo, yo, obraId) {
+        if (!puede(yo.rol, "commissioning", "ver")) return null;
+        const t = require_commissioning().tablaRecordada(repo, yo, obraId, { incluirPorConfirmar: true });
+        if (!t) return null;
+        const todos = t.conjuntos || [];
+        const conf = todos.filter((l) => !l.miembros.every((m) => m.confianza === "porConfirmar"));
+        const toma = {};
+        const pm = {};
+        const plantas = {};
+        const ejemplos = [];
+        for (const l of conf) {
+          const tm = tomaDe(l.miembros);
+          mas(toma, tm);
+          mas(pm, ESTADOS_PM_VISIBLES[l.estadoPM] || l.estadoPM || "Sin estado");
+          const p = llano(l.planta) || "Sin planta";
+          const fila = plantas[p] || (plantas[p] = { equipos: 0, tomaHecha: 0, tomaPendiente: 0, enMarcha: 0 });
+          fila.equipos += 1;
+          if (tm === "pendiente") fila.tomaPendiente += 1;
+          if (tm === "hecha" || tm === "conReservas") fila.tomaHecha += 1;
+          if (l.estadoPM === "enMarcha") fila.enMarcha += 1;
+          if (tm === "pendiente" && ejemplos.length < EJEMPLOS) ejemplos.push(`${l.tag}${l.planta ? ` (${l.planta})` : ""}`);
+        }
+        const tc = t.totalesConjuntos || {};
+        return {
+          equipos: conf.length,
+          unidades: conf.reduce((n, l) => n + l.miembros.length, 0),
+          porConfirmar: todos.length - conf.length,
+          tomaDeDatos: { hecha: toma.hecha || 0, pendiente: toma.pendiente || 0, conReservas: toma.conReservas || 0, noAplica: toma.noAplica || 0 },
+          puestaEnMarcha: pm,
+          checklist: { hechos: tc.checklistHechos || 0, pendientes: tc.checklistPendientes || 0 },
+          documentacion: { completa: tc.docCompleta || 0, falta: tc.faltaDocumentacion || 0 },
+          pruebas: { pidenEstanqueidad: tc.pideEstanqueidad || 0, faltaEstanqueidad: tc.faltaEstanqueidad || 0, sinBalanceo: tc.sinBalanceo || 0 },
+          instalacion: { verificados: tc.instaladas || 0, sinVerificar: tc.sinVerificar || 0 },
+          conIncidencias: tc.conIncidencias || 0,
+          completos: tc.completos || 0,
+          mandadosDF: tc.enviadas || 0,
+          porPlanta: plantas,
+          tomaPendienteEjemplos: ejemplos
+        };
+      }
+      function incidencias(repo, yo, obraId) {
+        if (!puede(yo.rol, "incidencias", "ver")) return null;
+        const d = require_incidencias().obra(repo, yo, obraId);
+        if (!d) return null;
+        const porEstado = {};
+        const abiertas = [];
+        for (const f of d.filas) {
+          mas(porEstado, f.estado || "sin estado");
+          if (!["terminada", "cerrada", "anulada"].includes(f.estado) && abiertas.length < 8) {
+            abiertas.push(`${f.codigo || ""} ${llano(f.titulo).slice(0, 60)}${f.equipo && f.equipo.tag ? ` [${f.equipo.tag}]` : ""}`.trim());
+          }
+        }
+        return { cuantas: d.filas.length, porEstado, abiertas };
+      }
+      function planificacion(repo, yo, obraId, hoy) {
+        if (!puede(yo.rol, "commissioning", "ver")) return null;
+        const desde = dia(hoy);
+        const hasta = dia(new Date(hoy.getTime() + 14 * 864e5));
+        let ses = [];
+        try {
+          ses = repo.listar("sesionesPlanCx", yo, { condicion: "obraId = ? AND fecha >= ? AND fecha <= ?", params: [obraId, desde, hasta] });
+        } catch {
+          return null;
+        }
+        const items = /* @__PURE__ */ new Set();
+        for (const s of ses) {
+          try {
+            for (const i of JSON.parse(s.items || "[]")) items.add(String(i));
+          } catch {
+          }
+        }
+        const dias = [...new Set(ses.map((s) => s.fecha))].sort();
+        return { desde, hasta, intervenciones: ses.length, equipos: items.size, dias: dias.length, proxima: dias[0] || null };
+      }
+      function datosObra(repo, yo, obraId, { hoy = /* @__PURE__ */ new Date() } = {}) {
+        const o = obraDe(repo, yo, obraId);
+        if (!o) return null;
+        const fuera = { obra: `${o.codigo || ""} ${o.nombre || ""}`.trim(), fecha: dia(hoy) };
+        const tramo = (k, fn) => {
+          try {
+            const v = fn();
+            if (v) fuera[k] = v;
+          } catch {
+          }
+        };
+        tramo("commissioning", () => commissioning(repo, yo, obraId));
+        tramo("incidencias", () => incidencias(repo, yo, obraId));
+        tramo("planificacion14dias", () => planificacion(repo, yo, obraId, hoy));
+        return fuera;
+      }
+      module.exports = { datosObra, tomaDe };
+    }
+  });
+
+  // shared/ia/contexto.js
+  var require_contexto = __commonJS({
+    "shared/ia/contexto.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function(raiz, fabrica) {
+        const API = fabrica(raiz);
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.IarvisContexto = API;
+      })(typeof globalThis !== "undefined" ? globalThis : exports, (raiz) => {
+        const ROLES = typeof __require === "function" && typeof module !== "undefined" ? require_roles() : raiz.ROLES;
+        const PALABRAS_DINERO = /* @__PURE__ */ new Set(["precio", "precios", "coste", "costes", "costo", "importe", "importes", "margen", "beneficio", "tarifa", "tarifas", "baja", "euro", "euros", "eur", "venta", "ventas", "coef", "coefk", "presupuesto", "pec", "pem", "iva", "cobro", "pago", "pagos", "factura", "facturado", "total", "dinero", "objetivo", "cashflow", "tesoreria", "caja", "cobros", "sueldo", "sueldos", "salario", "salarios", "nomina", "nominas", "facturacion", "rentabilidad", "ingresos", "gastos"]);
+        const esCampoDinero = (k) => String(k).replace(/([a-z0-9])([A-Z])/g, "$1 $2").split(/[\s_\-.]+/).some((p) => PALABRAS_DINERO.has(p.toLowerCase()));
+        const TEXTO_DINERO = /(?:€|EUR)\s?-?\d[\d.,]*(?:\s?(?:M|k|mil|millones))?|-?\d[\d.,]*\s?(?:M|k|mil|millones)?\s?(?:€|EUR|euros?)(?![A-Za-z])/gi;
+        const OCULTO = "[oculto para tu rol]";
+        const MAX_BYTES = 4e3;
+        function rolSinDinero(rol) {
+          if (!ROLES || !ROLES.ROLES) return true;
+          const r = ROLES.ROLES.find((x) => x.id === rol);
+          if (!r) return true;
+          return r.camposVetados.length > 0;
+        }
+        const PALABRAS_EMPRESA = /* @__PURE__ */ new Set(["cashflow", "tesoreria", "caja", "sueldo", "sueldos", "salario", "salarios", "nomina", "nominas", "facturacion", "rentabilidad", "ingresos", "gastos", "financiero", "financieros", "financiacion", "deuda", "deudas", "banco", "bancos"]);
+        const esCampoEmpresa = (k) => String(k).replace(/([a-z0-9])([A-Z])/g, "$1 $2").split(/[\s_\-.]+/).some((p) => PALABRAS_EMPRESA.has(p.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")));
+        function veEmpresa(rol) {
+          const r = ROLES && ROLES.ROLES && ROLES.ROLES.find((x) => x.id === rol);
+          return !!(r && r.departamento === "direccion");
+        }
+        function recortarEmpresa(valor, prof = 0) {
+          if (prof > 8 || valor == null || typeof valor !== "object") return valor;
+          if (Array.isArray(valor)) return valor.map((v) => recortarEmpresa(v, prof + 1));
+          const fuera = {};
+          for (const [k, v] of Object.entries(valor)) {
+            if (!esCampoEmpresa(k)) fuera[k] = recortarEmpresa(v, prof + 1);
+          }
+          return fuera;
+        }
+        function recortarDinero(valor, rol, prof = 0) {
+          if (prof === 0 && !veEmpresa(rol)) valor = recortarEmpresa(valor);
+          if (!rolSinDinero(rol)) return valor;
+          if (prof > 6) return null;
+          if (typeof valor === "string") return valor.replace(TEXTO_DINERO, OCULTO);
+          if (Array.isArray(valor)) return valor.map((v) => recortarDinero(v, rol, prof + 1));
+          if (valor && typeof valor === "object") {
+            const fuera = {};
+            for (const [k, v] of Object.entries(valor)) {
+              if (ROLES && ROLES.campoVetado(rol, k)) continue;
+              if (esCampoDinero(k)) continue;
+              fuera[k] = recortarDinero(v, rol, prof + 1);
+            }
+            return fuera;
+          }
+          return valor;
+        }
+        function caber(ctx) {
+          let s = JSON.stringify(ctx);
+          if (s.length <= MAX_BYTES) return ctx;
+          if (ctx.datos_obra && typeof ctx.datos_obra === "object") {
+            const d = { ...ctx.datos_obra };
+            if (d.commissioning) d.commissioning = { ...d.commissioning, tomaPendienteEjemplos: void 0 };
+            if (d.incidencias) d.incidencias = { ...d.incidencias, abiertas: void 0 };
+            ctx = { ...ctx, datos_obra: d };
+            s = JSON.stringify(ctx);
+            if (s.length <= MAX_BYTES) return ctx;
+            if (d.commissioning) d.commissioning = { ...d.commissioning, porPlanta: void 0 };
+            s = JSON.stringify(ctx);
+            if (s.length <= MAX_BYTES) return ctx;
+          }
+          const mirando = typeof ctx.mirando === "string" ? ctx.mirando : JSON.stringify(ctx.mirando || "");
+          const sobra = s.length - MAX_BYTES + 40;
+          return { ...ctx, mirando: `${mirando.slice(0, Math.max(0, mirando.length - sobra))}\u2026 (recortado)` };
+        }
+        function armarContexto({ app = "obras", pantalla = "", rol = "", proyecto = null, mirando = null, idioma, datos = null } = {}) {
+          const ctx = {
+            app,
+            pantalla: String(pantalla || "").slice(0, 120),
+            rol: String(rol || ""),
+            ...proyecto && proyecto.id ? { obra_id: String(proyecto.id), obra: String(proyecto.nombre || "").slice(0, 160) } : {},
+            ...idioma ? { idioma } : {},
+            ...mirando != null ? { mirando: recortarDinero(mirando, rol) } : {},
+            ...datos && typeof datos === "object" ? { datos_obra: recortarDinero(datos, rol) } : {}
+          };
+          return caber(ctx);
+        }
+        return { armarContexto, recortarDinero, rolSinDinero, esCampoDinero, esCampoEmpresa, veEmpresa, OCULTO, MAX_BYTES };
+      });
+    }
+  });
+
   // electron/movil/rutasPlanificacion.js
   var require_rutasPlanificacion = __commonJS({
     "electron/movil/rutasPlanificacion.js"(exports, module) {
@@ -129931,6 +130145,8 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
       var { hoyLocal } = require_fecha();
       var AG = require_agenda();
       var IP = require_iarvisPlanificacion();
+      var { datosObra } = require_iarvisDatosObra();
+      var { armarContexto } = require_contexto();
       var PERMISOS_PLANIFICACION = {
         "POST api/iarvis/preguntar": [["*", "*"]],
         "POST api/iarvis/proponer": [["*", "*"]],
@@ -130080,7 +130296,16 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           "POST api/iarvis/preguntar": async ({ ses, json }) => {
             const d = json() || {};
             const fila = await IP.responderLocal(repo, ses, { pregunta: d.pregunta, obraId: d.obraId, obraNombre: d.obraNombre }, { abrir: ABRIR_EN_MOVIL, sinObra: "Elige primero la obra arriba y te lo miro." });
-            return fila ? { ok: true, local: true, fila } : { ok: true, local: false };
+            if (fila) return { ok: true, local: true, fila };
+            const obraId = d.obraId ? llano(d.obraId).slice(0, 80) : null;
+            let datos = null;
+            try {
+              datos = obraId ? datosObra(repo, ses, obraId) : null;
+            } catch {
+              datos = null;
+            }
+            const contexto = armarContexto({ app: "cx", pantalla: llano(d.pantalla).slice(0, 120) || "movil", rol: ses.rol, proyecto: datos ? { id: obraId, nombre: datos.obra } : null, datos, idioma: llano(d.idioma).slice(0, 5) || void 0 });
+            return { ok: true, local: false, contexto };
           },
           "POST api/iarvis/proponer": async ({ ses, json }) => {
             const d = json() || {};
@@ -131019,83 +131244,6 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           limpio,
           equipoDe
         };
-      });
-    }
-  });
-
-  // shared/ia/contexto.js
-  var require_contexto = __commonJS({
-    "shared/ia/contexto.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function(raiz, fabrica) {
-        const API = fabrica(raiz);
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.IarvisContexto = API;
-      })(typeof globalThis !== "undefined" ? globalThis : exports, (raiz) => {
-        const ROLES = typeof __require === "function" && typeof module !== "undefined" ? require_roles() : raiz.ROLES;
-        const PALABRAS_DINERO = /* @__PURE__ */ new Set(["precio", "precios", "coste", "costes", "costo", "importe", "importes", "margen", "beneficio", "tarifa", "tarifas", "baja", "euro", "euros", "eur", "venta", "ventas", "coef", "coefk", "presupuesto", "pec", "pem", "iva", "cobro", "pago", "pagos", "factura", "facturado", "total", "dinero", "objetivo", "cashflow", "tesoreria", "caja", "cobros", "sueldo", "sueldos", "salario", "salarios", "nomina", "nominas", "facturacion", "rentabilidad", "ingresos", "gastos"]);
-        const esCampoDinero = (k) => String(k).replace(/([a-z0-9])([A-Z])/g, "$1 $2").split(/[\s_\-.]+/).some((p) => PALABRAS_DINERO.has(p.toLowerCase()));
-        const TEXTO_DINERO = /(?:€|EUR)\s?-?\d[\d.,]*(?:\s?(?:M|k|mil|millones))?|-?\d[\d.,]*\s?(?:M|k|mil|millones)?\s?(?:€|EUR|euros?)(?![A-Za-z])/gi;
-        const OCULTO = "[oculto para tu rol]";
-        const MAX_BYTES = 4e3;
-        function rolSinDinero(rol) {
-          if (!ROLES || !ROLES.ROLES) return true;
-          const r = ROLES.ROLES.find((x) => x.id === rol);
-          if (!r) return true;
-          return r.camposVetados.length > 0;
-        }
-        const PALABRAS_EMPRESA = /* @__PURE__ */ new Set(["cashflow", "tesoreria", "caja", "sueldo", "sueldos", "salario", "salarios", "nomina", "nominas", "facturacion", "rentabilidad", "ingresos", "gastos", "financiero", "financieros", "financiacion", "deuda", "deudas", "banco", "bancos"]);
-        const esCampoEmpresa = (k) => String(k).replace(/([a-z0-9])([A-Z])/g, "$1 $2").split(/[\s_\-.]+/).some((p) => PALABRAS_EMPRESA.has(p.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")));
-        function veEmpresa(rol) {
-          const r = ROLES && ROLES.ROLES && ROLES.ROLES.find((x) => x.id === rol);
-          return !!(r && r.departamento === "direccion");
-        }
-        function recortarEmpresa(valor, prof = 0) {
-          if (prof > 8 || valor == null || typeof valor !== "object") return valor;
-          if (Array.isArray(valor)) return valor.map((v) => recortarEmpresa(v, prof + 1));
-          const fuera = {};
-          for (const [k, v] of Object.entries(valor)) {
-            if (!esCampoEmpresa(k)) fuera[k] = recortarEmpresa(v, prof + 1);
-          }
-          return fuera;
-        }
-        function recortarDinero(valor, rol, prof = 0) {
-          if (prof === 0 && !veEmpresa(rol)) valor = recortarEmpresa(valor);
-          if (!rolSinDinero(rol)) return valor;
-          if (prof > 6) return null;
-          if (typeof valor === "string") return valor.replace(TEXTO_DINERO, OCULTO);
-          if (Array.isArray(valor)) return valor.map((v) => recortarDinero(v, rol, prof + 1));
-          if (valor && typeof valor === "object") {
-            const fuera = {};
-            for (const [k, v] of Object.entries(valor)) {
-              if (ROLES && ROLES.campoVetado(rol, k)) continue;
-              if (esCampoDinero(k)) continue;
-              fuera[k] = recortarDinero(v, rol, prof + 1);
-            }
-            return fuera;
-          }
-          return valor;
-        }
-        function caber(ctx) {
-          let s = JSON.stringify(ctx);
-          if (s.length <= MAX_BYTES) return ctx;
-          const mirando = typeof ctx.mirando === "string" ? ctx.mirando : JSON.stringify(ctx.mirando || "");
-          const sobra = s.length - MAX_BYTES + 40;
-          return { ...ctx, mirando: `${mirando.slice(0, Math.max(0, mirando.length - sobra))}\u2026 (recortado)` };
-        }
-        function armarContexto({ app = "obras", pantalla = "", rol = "", proyecto = null, mirando = null, idioma } = {}) {
-          const ctx = {
-            app,
-            pantalla: String(pantalla || "").slice(0, 120),
-            rol: String(rol || ""),
-            ...proyecto && proyecto.id ? { obra_id: String(proyecto.id), obra: String(proyecto.nombre || "").slice(0, 160) } : {},
-            ...idioma ? { idioma } : {},
-            ...mirando != null ? { mirando: recortarDinero(mirando, rol) } : {}
-          };
-          return caber(ctx);
-        }
-        return { armarContexto, recortarDinero, rolSinDinero, esCampoDinero, esCampoEmpresa, veEmpresa, OCULTO, MAX_BYTES };
       });
     }
   });
@@ -153529,7 +153677,8 @@ ${l}`;
       })(typeof globalThis !== "undefined" ? globalThis : exports, function() {
         const ID = "arranqueIpad";
         const COLOR_ARO = "#4C262D";
-        const SVG = '<svg class="arq-svg" viewBox="0 0 120 120" width="112" height="112" role="img" aria-label="Vidaire" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="arqDeg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2F9FB5"/><stop offset=".55" stop-color="#13957A"/><stop offset="1" stop-color="#1A9E5C"/></linearGradient></defs><circle class="arq-aro" cx="60" cy="60" r="57" fill="none" stroke="#13957A" stroke-width="1" opacity=".25"/><path class="arq-v" d="M27 30 L52 84 Q60 98 68 84 L93 30" fill="none" stroke="url(#arqDeg)" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" pathLength="100"/><g class="arq-ok"><circle cx="90" cy="88" r="15" fill="#1B2A4A"/><circle cx="90" cy="88" r="11.59" fill="none" stroke="' + COLOR_ARO + '" stroke-width="1.09" opacity=".8"/><path d="M90 75.05v2.05M90 98.91v2.05M77.05 88h2.05M100.91 88h2.05" fill="none" stroke="' + COLOR_ARO + '" stroke-width="1.36" stroke-linecap="round"/><g class="arq-aguja"><g transform="rotate(35 90 88)"><path d="M90 77.09 L94.09 88 L85.91 88 Z" fill="#5B9BD5"/><path d="M90 98.91 L94.09 88 L85.91 88 Z" fill="#F4EAD9"/></g></g><circle cx="90" cy="88" r="1.77" fill="#1B2A4A" stroke="' + COLOR_ARO + '" stroke-width="0.82"/></g></svg>';
+        const SVG = '<svg class="arq-svg" viewBox="0 0 120 120" width="112" height="112" role="img" aria-label="Vidaire" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="arqDeg" gradientUnits="userSpaceOnUse" x1="60" y1="90.5" x2="60" y2="31.9"><stop offset="0" stop-color="#003F2D"/><stop offset=".55" stop-color="#538184"/><stop offset="1" stop-color="#80BBAD"/></linearGradient><filter id="arqSombra" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="1.9" stdDeviation="2.3" flood-color="#012A2D" flood-opacity=".3"/></filter><filter id="arqSuave" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.4"/></filter></defs><circle class="arq-aro" cx="60" cy="60" r="57" fill="none" stroke="#80BBAD" stroke-width="1" opacity=".5"/><g filter="url(#arqSombra)"><path class="arq-v" d="M27.9 31.9 L60 90.5 L92.1 31.9" fill="none" stroke="url(#arqDeg)" stroke-width="18.3" stroke-linecap="round" stroke-linejoin="round"/></g><path d="M27.9 31.9 L60 90.5 L92.1 31.9" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" transform="translate(-1.6 -1.6)" filter="url(#arqSuave)"/><g class="arq-brujula"><circle cx="90" cy="88" r="15" fill="#1B2A4A"/><circle cx="90" cy="88" r="11.59" fill="none" stroke="' + COLOR_ARO + '" stroke-width="1.09" opacity=".8"/><path d="M90 75.05v2.05M90 98.91v2.05M77.05 88h2.05M100.91 88h2.05" fill="none" stroke="' + COLOR_ARO + '" stroke-width="1.36" stroke-linecap="round"/><g class="arq-aguja"><g transform="rotate(35 90 88)"><path d="M90 77.09 L94.09 88 L85.91 88 Z" fill="#5B9BD5"/><path d="M90 98.91 L94.09 88 L85.91 88 Z" fill="#F4EAD9"/></g></g><circle cx="90" cy="88" r="1.77" fill="#1B2A4A" stroke="' + COLOR_ARO + '" stroke-width="0.82"/></g></svg>';
+        const BRUJULA = '<svg class="arq-brujula-sola" viewBox="74 72 32 32" width="34" height="34" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><circle cx="90" cy="88" r="15" fill="#1B2A4A"/><circle cx="90" cy="88" r="11.59" fill="none" stroke="' + COLOR_ARO + '" stroke-width="1.09" opacity=".8"/><path d="M90 75.05v2.05M90 98.91v2.05M77.05 88h2.05M100.91 88h2.05" fill="none" stroke="' + COLOR_ARO + '" stroke-width="1.36" stroke-linecap="round"/><g transform="rotate(35 90 88)"><path d="M90 77.09 L94.09 88 L85.91 88 Z" fill="#5B9BD5"/><path d="M90 98.91 L94.09 88 L85.91 88 Z" fill="#F4EAD9"/></g><circle cx="90" cy="88" r="1.77" fill="#1B2A4A" stroke="' + COLOR_ARO + '" stroke-width="0.82"/></svg>';
         const CSS = '.arranque-ipad,.arranque-cx{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#F4F6F5;z-index:9999}html[data-tema="oscuro"] .arranque-ipad,html[data-tema="oscuro"] .arranque-cx{background:#161618}.arq-aguja{transform-origin:90px 88px;animation:arqAguja 2.4s ease-in-out infinite}@keyframes arqAguja{0%{transform:rotate(-40deg)}35%{transform:rotate(18deg)}55%{transform:rotate(-8deg)}70%,100%{transform:rotate(0)}}@media (prefers-reduced-motion:reduce){.arq-aguja{animation:none}}.arq-aviso{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:min(560px,calc(100vw - 32px));padding:9px 14px;border-radius:10px;background:#fff;color:#435254;border:1px solid #D9E0DE;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.08);white-space:pre-wrap;word-break:break-word}.arq-aviso.arq-mal{border-color:#E3BDBD;color:#9C2B2B}.arq-reintentar{margin-left:6px;border:1px solid #13957A;color:#0E7C66;background:transparent;border-radius:8px;padding:3px 10px;font:inherit;cursor:pointer}';
         const html = (id = ID, clase = "arranque-ipad") => `<div id="${id}" class="${clase}" aria-busy="true">${SVG}</div>`;
         const estilo = () => `<style>${CSS}</style>`;
@@ -153594,7 +153743,7 @@ ${l}`;
           });
           obs.observe(document.documentElement, { childList: true, subtree: true });
         }
-        return { ID, SVG, CSS, html, estilo, montar, avisar, quitar, quitarCuandoLista };
+        return { ID, SVG, BRUJULA, CSS, html, estilo, montar, avisar, quitar, quitarCuandoLista };
       });
     }
   });

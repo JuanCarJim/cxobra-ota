@@ -28,6 +28,9 @@
   const CAMPOS = 'id,pregunta,respuesta,estado,valoracion,creado,adjuntos,propuesta,modelo';
   const SIN_RED = 'Sin conexión: tu pregunta queda guardada y Iarvis te contestará en cuanto haya red.';
   const MAS_TARDE = 'Iarvis te contestará en un rato. Tu pregunta queda guardada.';
+  /* 8-nov (JC: «Iarvis tiene que responder AL MOMENTO»): la cola es SOLO para cuando no hay red.
+     Cualquier otro fallo se dice en el acto, sin prometer una respuesta que no va a llegar. */
+  const NO_PUDO = 'Iarvis no ha podido contestar ahora. Vuelve a preguntármelo.';
 
   const uuid = () => (globalThis.crypto && globalThis.crypto.randomUUID ? globalThis.crypto.randomUUID()
     : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => { const r = (Math.random() * 16) | 0; return (c === 'x' ? r : (r & 3) | 8).toString(16); }));
@@ -49,10 +52,12 @@
         const r = await nube.llamarFuncion('iarvis', '', JSON.stringify({ id, persona_id: personaId, espacio }), plazoRespuesta);
         const j = await r.json().catch(() => null);
         if (j && j.estado) return { id, estado: j.estado, respuesta: j.respuesta || (j.estado === 'pendiente' ? MAS_TARDE : null) };
-        /* La función no está desplegada (404) o falló: la pregunta sigue guardada. */
-        return { id, estado: 'pendiente', respuesta: MAS_TARDE };
-      } catch {
-        return { id, estado: 'pendiente', respuesta: MAS_TARDE };
+        /* La función no está desplegada (404) o no ha contestado nada que se entienda. */
+        return { id, estado: 'fallo', respuesta: NO_PUDO };
+      } catch (e) {
+        /* Sin red a mitad: la fila ya está en la nube, pendiente; el chat la sondea. */
+        if (e && e.sinRed) return { id, estado: 'pendiente', respuesta: SIN_RED };
+        return { id, estado: 'fallo', respuesta: NO_PUDO };
       }
     }
 
@@ -70,9 +75,11 @@
       } catch (e) {
         if (e && e.sinRed) { ponerCola([...leerCola(), fila]); return { id: fila.id, estado: 'pendiente', respuesta: SIN_RED, enCola: true }; }
         /* Una obra que no es suya (RLS) o un contexto demasiado grande: se intenta sin ellos. */
-        try { await nube.meter(TABLA, [{ ...fila, obra_id: null, contexto: { app, pantalla: contexto.pantalla || '' } }]); } catch {
-          ponerCola([...leerCola(), fila]);
-          return { id: fila.id, estado: 'pendiente', respuesta: MAS_TARDE, enCola: true };
+        try { await nube.meter(TABLA, [{ ...fila, obra_id: null, contexto: { app, pantalla: contexto.pantalla || '' } }]); } catch (e2) {
+          if (e2 && e2.sinRed) { ponerCola([...leerCola(), fila]); return { id: fila.id, estado: 'pendiente', respuesta: SIN_RED, enCola: true }; }
+          /* Antes esto iba a la cola y el móvil decía «te contestará en un rato» sin llamar nunca a la
+             función (8-nov: faltaba el permiso de meter el `id`, supabase/cxobra-sync/0050). */
+          return { id: fila.id, estado: 'fallo', respuesta: NO_PUDO };
         }
       }
       return contestar(fila.id);
