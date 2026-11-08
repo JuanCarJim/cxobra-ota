@@ -36,6 +36,26 @@
     vv.addEventListener('scroll', ajustar);
     ajustar();
   }
+  /* La caja de Iarvis y la barra se adaptan a la pantalla (8-nov, JC): al bajar con el dedo la caja
+     se encoge a un botón redondo y al subir vuelve; con el teclado abierto se ocultan las dos. */
+  (function adaptarBarra() {
+    const B = document.body;
+    let ultimo = window.scrollY;
+    window.addEventListener('scroll', () => {
+      const y = window.scrollY; const d = y - ultimo;
+      if (Math.abs(d) < 8) return;
+      ultimo = y;
+      B.classList.toggle('caja-chica', d > 0 && y > 60);
+    }, { passive: true });
+    const ESCRIBE = (el) => el && (el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable
+      || (el.tagName === 'INPUT' && !['button', 'submit', 'checkbox', 'radio', 'file', 'range', 'color', 'reset', 'image'].includes(el.type)));
+    document.addEventListener('focusin', (ev) => { if (ESCRIBE(ev.target)) B.classList.add('teclado'); });
+    document.addEventListener('focusout', () => setTimeout(() => { if (!ESCRIBE(document.activeElement)) B.classList.remove('teclado'); }, 120));
+    if (window.visualViewport) {
+      const vv = window.visualViewport;
+      vv.addEventListener('resize', () => { if (vv.height > window.innerHeight - 120) B.classList.remove('teclado-vv'); else B.classList.add('teclado-vv'); });
+    }
+  })();
   const icono = (off, on) => svg(`<g class="off">${off}</g><g class="on">${on}</g>`);
 
   /* Cuatro pestañas, dos a cada lado del botón de añadir: [0][1] [ + ] [2][3]. */
@@ -607,9 +627,14 @@
         ? '<div class="barra-centro"><button type="button" class="boton-anadir" id="boton-anadir" aria-label="Añadir" aria-haspopup="dialog">' + MAS + '</button><span>Añadir</span></div>'
         : '';
       const lista = pestanas();
-      abajo.innerHTML = `<div class="barra-pastilla">${lista.slice(0, 2).map(boton).join('')}${centro}${lista.slice(2).map(boton).join('')}</div>`;
+      /* 8-nov (JC): la caja de Iarvis va pegada encima de la barra en TODAS las pantallas (menos en la suya). */
+      abajo.innerHTML = `<a class="caja-iarvis" id="caja-iarvis" href="#iarvis" aria-label="Pregunta a Iarvis"><span aria-hidden="true">🧭</span><span class="caja-texto">Pregunta a Iarvis…</span></a><div class="barra-pastilla">${lista.slice(0, 2).map(boton).join('')}${centro}${lista.slice(2).map(boton).join('')}</div>`;
       const b = document.getElementById('boton-anadir');
       if (b) b.onclick = abrirHoja;
+      const ci = document.getElementById('caja-iarvis');
+      if (ci) ci.onclick = () => { esperar('#app .iaPanel textarea').then((t) => { if (t) t.focus(); }); };
+      document.body.classList.toggle('sin-caja-iarvis', s === 'iarvis');
+      document.body.classList.remove('caja-chica');
       abajo.hidden = !sesion();
     }
     const seg = document.getElementById('segmentos');
@@ -704,6 +729,8 @@
       if (el.matches('input, textarea, select')) { el.focus(); el.scrollIntoView({ block: 'center' }); } else el.click();
     }
   }
+  /* 8-nov · Iarvis («hazme un parte»): el mismo camino que el «+», sin pasar por la hoja. */
+  window.CX_ACCION_RAPIDA = (a) => hacer(a);
 
   /* ═══════════════════════════════════ Inicio
      La primera pantalla: la obra elegida, cómo va su commissioning y lo
@@ -718,15 +745,9 @@
    * Cada TAG abre su ficha. Lo de días anteriores sin terminar va plegado al
    * pie de «Hoy», sin empujar nada. Filas densas, sin tarjetas.
    */
-  const NOMBRE_TIPO = { tarea: 'Tarea', ncr: 'NC' };
   const DIA_CORTO = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
   const diaCorto = (f) => { const d = new Date(`${f}T12:00:00`); return `${DIA_CORTO[d.getDay()]} ${f.slice(8, 10)}/${f.slice(5, 7)}`; };
-  const ORDEN_FRANJA = { 'Mañana': 0, 'Todo el día': 1, 'Tarde': 2 };
   const tipoSesion = (s) => s.tarea || (s.ambito === 'commissioning' ? 'Commissioning' : 'Incidencias');
-  /* El mismo orden que la agenda del escritorio: día, franja y texto. */
-  const ordenSesiones = (a, b) => a.fecha.localeCompare(b.fecha) || (ORDEN_FRANJA[a.franja] ?? 3) - (ORDEN_FRANJA[b.franja] ?? 3)
-    || tipoSesion(a).localeCompare(tipoSesion(b), 'es') || String((a.items[0] || {}).texto || '').localeCompare(String((b.items[0] || {}).texto || ''), 'es', { numeric: true });
-
   function filaSesion(s, conDia) {
     const items = s.items.map((i) => {
       const t = esc(i.tag || i.texto);
@@ -742,160 +763,30 @@
       ${s.items.length ? `<span class="ag-cuenta">${cifra(s.hechos)}/${cifra(s.items.length)}</span>` : ''}
     </div>`;
   }
-  function filaDia(i, hoy) {
-    const dentro = `<span class="ag-dia${i.vencida ? ' vencida' : ''}">${i.vencida ? esc(diaCorto(i.fecha)) : esc(NOMBRE_TIPO[i.tipo] || '')}</span>
-      <div class="ag-que"><b>${esc(i.texto)}</b>${i.sub || i.obra ? `<small>${esc([i.vencida ? NOMBRE_TIPO[i.tipo] : '', i.obra, i.sub].filter(Boolean).join(' · '))}</small>` : ''}</div>`;
-    return i.abrir
-      ? `<a class="ag-fila" href="#${esc(i.abrir.seccion)}" data-ir-abrir="${esc(i.abrir.id)}">${dentro}</a>`
-      : `<div class="ag-fila">${dentro}</div>`;
-  }
-
-  /** Los bloques «Hoy» y «Esta semana»: { hoy, semana } en HTML (vacíos si no hay datos). */
-  function bloquesAgenda(plan, dia, obraIdActual, plegados = new Set()) {
-    const planOk = plan && plan.ok;
-    const diaOk = dia && dia.ok;
-    if (!planOk && !diaOk) return { hoy: '', semana: '', nHoy: 0, nSemana: 0 };
-    const hoy = planOk ? plan.hoy : dia.hoy;
-    const sesiones = (planOk ? plan.sesiones : []).slice().sort(ordenSesiones);
-    const items = (diaOk ? dia.items : []).filter((i) => !obraIdActual || !i.obraId || i.obraId === obraIdActual);
-    const deHoy = sesiones.filter((s) => s.fecha === hoy);
-    const atrasadas = sesiones.filter((s) => s.fecha < hoy);
-    const finSemana = planOk && plan.semanaHasta ? plan.semanaHasta : null;
-    const semana = sesiones.filter((s) => s.fecha > hoy && (!finSemana || s.fecha <= finSemana));
-    const itemsHoy = items.filter((i) => !i.vencida);
-    const vencidos = items.filter((i) => i.vencida);
-    const nAtras = atrasadas.length + vencidos.length;
-    const nHoy = deHoy.length + itemsHoy.length;
-    const pie = nAtras ? `<details class="ag-atras" data-plegar-atras${plegados.has('atras') ? ' open' : ''}>
-        <summary>${cifra(nAtras)} sin terminar de días anteriores</summary>
-        ${atrasadas.map((s) => filaSesion(s, true)).join('')}${vencidos.map((i) => filaDia(i, hoy)).join('')}
-      </details>` : '';
-    const cab = (id, texto, resumen) => `<h2 class="titulo-grupo ag-titulo plg-h">${plegable.cabecera(id, texto, resumen)}</h2>`;
-    const htmlHoy = `<section class="ag-bloque" data-bloque-ini="hoy" data-plg-caja="hoy">
-        ${cab('hoy', 'Hoy', `${esc(diaCorto(hoy))}${nHoy ? ` · ${cifra(nHoy)}` : ''}${nAtras ? ` · ${cifra(nAtras)} atrasadas` : ''}`)}
-        <div class="ag-cuerpo plg-cuerpo">
-        ${deHoy.map((s) => filaSesion(s, false)).join('')}${itemsHoy.map((i) => filaDia(i, hoy)).join('')}
-        ${nHoy ? '' : '<p class="ag-vacio">Hoy no hay nada planificado.</p>'}
-        ${pie}
-        </div>
-      </section>`;
-    const htmlSemana = `<section class="ag-bloque" data-bloque-ini="semana" data-plg-caja="semana">
-        ${cab('semana', planOk && plan.semanaQueViene ? 'Esta semana y la que viene' : 'Esta semana', semana.length ? cifra(semana.length) : '')}
-        <div class="ag-cuerpo plg-cuerpo">
-        ${semana.map((s) => filaSesion(s, true)).join('') || '<p class="ag-vacio">Nada más planificado esta semana.</p>'}
-        </div>
-      </section>`;
-    return { hoy: htmlHoy, semana: htmlSemana, nHoy, nSemana: semana.length };
-  }
-
   /*
-   * QUÉ BLOQUES VER (22-oct, JC): una línea de casillas arriba; lo que cada
-   * persona quita se recuerda para ella en este teléfono. Se guarda lo oculto,
-   * no lo visible, para que un bloque nuevo salga sin tocar nada.
+   * EL INICIO SEGÚN EL ROL (8-nov, JC: «no le veo mucho sentido» a Ver Hoy/Semana/Resumen…).
+   * Quien lleva la obra ve «Mi obra» (el día, las atrasadas, el avance, incidencias y pruebas);
+   * quien la ejecuta, «Mi día» (el día, lo que le toca y sus atrasadas, sin cifras de la obra).
+   * La cuenta está en inicioRol.js; aquí solo se piden los datos del alcance del rol y se pinta.
+   * La semana y lo puesto en marcha siguen en «Mis tareas», Commissioning y Avance.
    */
-  /* 28-oct (JC): «en lugar de commissioning, un resumen de commissioning,
-     incidencias, reparaciones… escueto». El id sigue siendo 'cx' para que
-     quien lo había quitado lo siga teniendo quitado. */
-  const BLOQUES_INICIO = [['hoy', 'Hoy'], ['utas', 'UTAs hoy'], ['semana', 'Semana'], ['cx', 'Resumen'], ['marcha', 'En marcha'], ['pendiente', 'Pendiente']];
-
-  /*
-   * RESUMEN DE LA OBRA (28-oct, JC; tarea ca2a4a48): una fila por área con 2-4
-   * cifras grandes, cada una lleva a su pestaña ya filtrada. Sin tarjetas: el
-   * nombre del área en teal y las cifras debajo, en el color de lo que dicen
-   * (verde lo hecho, ámbar lo que falta, rojo lo vencido, gris si es cero).
-   * Recibe lo ya pedido por el Inicio (nada nuevo al servidor):
-   *   r.t        totales de commissioning (por conjunto si los hay)
-   *   r.bocas    [medidas, totales]
-   *   r.pruebas  pruebas de estanqueidad de la obra (o null)
-   *   r.ncr      filas de NCR (o null) · r.rep filas de reparaciones (o null)
-   * Una celda: [etiqueta, valor, tono, href, { seg | filtro }, sub].
-   */
-  function resumenObra(r) {
-    const t = r.t;
-    const celda = ([etq, v, tono, href, ir = {}, sub]) => {
-      const n = Number(v) || 0;
-      const attr = ir.seg ? ` data-ir-seg="${esc(ir.seg)}"` : ir.filtro ? ` data-ir-filtro="${esc(ir.filtro)}"` : '';
-      return `<a class="res-cifra ${n ? tono : 'cero'}" href="#${href}"${attr}><b>${cifra(n)}</b><span>${esc(etq)}${sub ? ` <i>${esc(sub)}</i>` : ''}</span></a>`;
-    };
-    const fila = (nombre, extra, celdas) => (celdas.length ? `<div class="res-area" data-plg-caja="res-${esc(nombre)}">
-        <div class="res-nombre plg-h">${plegable.cabecera(`res-${nombre}`, esc(nombre), extra ? esc(extra) : '')}</div>
-        <div class="res-cifras plg-cuerpo n${celdas.length}">${celdas.map(celda).join('')}</div></div>` : '');
-    const filas = [];
-    if (t) {
-      filas.push(fila('Commissioning', `${cifra(t.equipos)} equipos${t.unidades && t.unidades !== t.equipos ? ` · ${cifra(t.unidades)} unid.` : ''}`, [
-        ['Completos', t.completos, 'bien', 'commissioning', { seg: 'completos' }],
-        ...(t.enMarcha !== undefined ? [['En marcha', t.enMarcha, 'info', 'commissioning', { seg: 'enMarcha' }]] : []),
-        ['Falta doc.', t.faltaDocumentacion, 'aviso', 'commissioning', { seg: 'faltaDoc' }],
-        ['Falta ficha', t.faltaFichas, 'aviso', 'commissioning', { seg: 'faltaFichas' }],
-      ]));
-      const mal = r.pruebas ? r.pruebas.filter((p) => p.resultado !== 'correcta').length : 0;
-      const sinMedir = r.bocas && r.bocas[1] ? r.bocas[1] - r.bocas[0] : null;
-      filas.push(fila('Ensayos', '', [
-        ['Falta balanceo', t.faltaBalanceo ?? t.faltaEnsayo, 'aviso', 'commissioning', { seg: t.faltaBalanceo !== undefined ? 'faltaBalanceo' : 'faltaEnsayo' }],
-        ...(t.pideEstanqueidad ? [['Falta estanq.', (typeof window !== 'undefined' && window.KPI_CX ? window.KPI_CX.faltaEstanqueidad(t) : t.faltaEstanqueidad), 'aviso', 'estanqueidad', {}, `de ${cifra(t.pideEstanqueidad)}`]] : []),
-        ...(mal ? [['Estanq. mal', mal, 'mal', 'estanqueidad']] : []),
-        ...(sinMedir !== null ? [['Bocas sin medir', sinMedir, 'aviso', 'commissioning', { seg: 'todos' }, `de ${cifra(r.bocas[1])}`]] : []),
-      ]));
-    }
-    if (r.ncr) {
-      /* Las de la lista de NCR por defecto: abiertas y nuestras (ncr.js). */
-      const ab = r.ncr.filter((f) => f.activa && f.alcance === 'nuestra');
-      filas.push(fila('Incidencias (NCR)', '', [
-        ['Abiertas', ab.length, 'info', 'ncr', { filtro: 'ncr:abiertas' }],
-        ['Vencidas', ab.filter((f) => f.vencida).length, 'mal', 'ncr', { filtro: 'ncr:vencidas' }],
-        ['Urgentes (A)', ab.filter((f) => f.prioridad === 'A').length, 'mal', 'ncr', { filtro: 'ncr:urgentes' }],
-      ]));
-    }
-    if (r.rep) {
-      /* Pendientes: abiertas sin terminar; por revisar: terminadas que esperan al jefe de obra. */
-      const ab = r.rep.filter((f) => f.activa);
-      filas.push(fila('Reparaciones', '', [
-        ['Pendientes', ab.filter((f) => f.estado !== 'terminada').length, 'info', 'reparaciones', { filtro: 'rp:pendientes' }],
-        ['Vencidas', ab.filter((f) => f.vencida).length, 'mal', 'reparaciones', { filtro: 'rp:vencidas' }],
-        ['Por revisar', ab.filter((f) => f.estado === 'terminada').length, 'aviso', 'reparaciones', { filtro: 'rp:revisar' }],
-      ]));
-    }
-    const cuerpo = filas.join('');
-    return cuerpo ? `<section class="ag-bloque" data-bloque-ini="cx" data-plg-caja="cx">
-        <h2 class="titulo-grupo ag-titulo plg-h">${plegable.cabecera('cx', 'Resumen', esc(r.codigo || ''))}</h2>
-        <div class="res-obra plg-cuerpo">${cuerpo}</div>
-      </section>` : '';
-  }
-  /* fin resumenObra */
-  const claveOcultos = () => { const s = sesion() || {}; return `cx.inicio.ocultos.${s.email || s.nombre || 'anonimo'}.${s.rol || ''}`; };
-  /* Bloques plegados con un toque en su título (recordado por persona; 'atras' = lo atrasado desplegado). */
-  const clavePlegados = () => claveOcultos().replace('.ocultos.', '.plegados.');
-  const leerPlegados = () => {
-    try { const v = JSON.parse(localStorage.getItem(clavePlegados()) || '[]'); return new Set(Array.isArray(v) ? v.map(String) : []); } catch { return new Set(); }
-  };
-  const guardarPlegados = (set) => {
-    try { if (set.size) localStorage.setItem(clavePlegados(), JSON.stringify([...set])); else localStorage.removeItem(clavePlegados()); } catch { /* sin almacén */ }
-  };
-  const leerOcultos = () => {
-    try { const v = JSON.parse(localStorage.getItem(claveOcultos()) || '[]'); return new Set(Array.isArray(v) ? v.map(String) : []); } catch { return new Set(); }
-  };
-  const guardarOcultos = (set) => {
-    try { if (set.size) localStorage.setItem(claveOcultos(), JSON.stringify([...set])); else localStorage.removeItem(claveOcultos()); } catch { /* sin almacén: se ve todo */ }
-  };
+  const IR = () => window.CX.inicioRol;
+  const esB = () => IR().tipoDeInicio((sesion() || {}).rol) === 'dia';
+  const BLOQUES_INICIO = [['dia', 'Hoy'], ['atras', 'Atrasadas'], ['avance', 'Avance'], ['cifras', 'Resumen']];
 
   /*
    * EL INICIO PINTA SEGÚN LLEGA (5-nov-2026, JC: «la app móvil tarda muchísimo
    * en arrancar»). En Vidaire Cx el motor corre en el MISMO hilo que la
-   * pantalla: las 8 peticiones no van «en paralelo», se calculan una tras otra
-   * y, con el NCN en un iPhone, la planificación y el commissioning son
-   * decenas de segundos. Antes se esperaba a TODAS (y con un plazo de 25 s que
-   * acababa en «está tardando más de lo normal»), y además el inicio se pedía
-   * dos veces al abrir. Ahora:
-   *   · se pinta al momento lo último que se vio de esta obra (guardado en el
-   *     teléfono) con «Actualizando…», o el esqueleto de los bloques;
-   *   · las peticiones van de una en una, primero las ligeras, cediendo el
-   *     hilo entre ellas para que la pantalla responda y se repinte;
+   * pantalla: las peticiones se calculan una tras otra, y con el NCN en un
+   * iPhone la planificación y el commissioning son decenas de segundos. Así:
+   *   · se pinta al momento lo último que se vio de esta obra con «Actualizando…»;
+   *   · las peticiones van de una en una, primero las ligeras, cediendo el hilo;
    *   · cada bloque se pinta en cuanto tiene lo suyo;
-   *   · si ya hay un inicio en marcha para esta obra, no se pide otro.
+   *   · «Mi día» no pide commissioning completo, ni NCR, ni estanqueidad: no los enseña.
    */
   let inicioEnCurso = null; /* { obra, promesa } */
-  let inicioDatos = null; /* { obra, r, completo }: lo último pedido, para repintar sin volver a pedir */
-  const claveInicioGuardado = (obra) => `${claveOcultos().replace('.ocultos.', '.ultimo.')}.${obra}`;
+  let inicioDatos = null; /* { obra, r, pendientes } */
+  const claveInicioGuardado = (obra) => `cx.inicio.v2.${(sesion() || {}).email || (sesion() || {}).nombre || 'anonimo'}.${(sesion() || {}).rol || ''}.${obra}`;
   const leerInicioGuardado = (obra) => { try { return JSON.parse(localStorage.getItem(claveInicioGuardado(obra)) || 'null'); } catch { return null; } };
   const guardarInicio = (obra, bloques) => { try { localStorage.setItem(claveInicioGuardado(obra), JSON.stringify({ en: Date.now(), bloques })); } catch { /* sin almacén o lleno */ } };
   /* Ceder el hilo: que el navegador pinte y atienda toques antes de la siguiente petición. */
@@ -903,8 +794,6 @@
 
   function inicio() {
     const o = window.CX && window.CX.obra ? window.CX.obra() : null;
-    /* Uno en marcha sin obra todavía (espera a obrasListas y luego la lee) o con
-       esta misma obra: se aprovecha. Antes salían dos rondas de 8 peticiones. */
     if (inicioEnCurso && (!o || !inicioEnCurso.obra || inicioEnCurso.obra === o.id)) return inicioEnCurso.promesa;
     const promesa = inicioPedir().finally(() => { if (inicioEnCurso && inicioEnCurso.promesa === promesa) inicioEnCurso = null; });
     inicioEnCurso = { obra: o ? o.id : null, promesa };
@@ -912,7 +801,8 @@
   }
 
   /* De qué peticiones sale cada bloque. */
-  const DEPENDE_BLOQUE = { hoy: ['plan', 'dia'], semana: ['plan', 'dia'], utas: ['plan'], cx: ['cx', 'pe', 'ncr', 'rp'], marcha: ['cx'], pendiente: ['pi', 'mt'] };
+  const DEPENDE_BLOQUE = { dia: ['plan', 'dia'], atras: ['plan', 'dia'], avance: ['cx'], cifras: ['cx', 'ncr'] };
+  const bloquesDe = () => (esB() ? ['dia', 'atras'] : ['dia', 'atras', 'avance', 'cifras']);
 
   async function inicioPedir() {
     const yo = sesion();
@@ -925,17 +815,13 @@
     if (!o) { app.innerHTML = '<p class="vacio">No tienes ninguna obra abierta.</p>'; return; }
     const q = encodeURIComponent(o.id);
     const tocaPlan = ok.has('commissioning') || ok.has('reparaciones') || ok.has('ncr');
-    /* Lo que se pide, de lo más ligero a lo más pesado (medido con el NCN):
-       la planificación y el commissioning de toda la obra van los últimos. */
+    const mando = !esB();
+    /* Lo que se pide, de lo más ligero a lo más pesado: commissioning de toda la obra el último. */
     const PIDE = [
       ['dia', 'misTareas_', 'api/mi-dia'],
-      ['mt', 'misTareas', 'api/mistareas'],
-      ['pi', 'partes', 'api/partes'],
-      ['pe', 'estanqueidad', 'api/estanqueidad'],
-      ['ncr', 'ncr', `api/ncr?obra=${q}`],
-      ['rp', 'reparaciones', `api/reparaciones?obra=${q}`],
+      ['ncr', mando ? 'ncr' : null, `api/ncr?obra=${q}`],
       ['plan', tocaPlan ? 'plan_' : null, `api/mi-planificacion?obra=${q}`],
-      ['cx', 'commissioning', `api/commissioning?obra=${q}`],
+      ['cx', mando ? 'commissioning' : null, `api/commissioning?obra=${q}`],
     ];
     const r = {};
     const pendientes = new Set();
@@ -974,33 +860,18 @@
    */
   function armarBloquesInicio(o, r, pendientes) {
     const falta = (id) => DEPENDE_BLOQUE[id].some((d) => pendientes.has(d));
-    const { cx, pe, pi, ncr, rp, plan, dia, mt } = r;
-    // Como la lista de Commissioning: si hay conjuntos (split = UE + UI), se cuenta por conjunto.
-    const tc = cx && cx.ok && cx.totalesConjuntos && cx.totalesConjuntos.conjuntos ? cx.totalesConjuntos : null;
-    const t = cx && cx.ok && cx.totales ? (tc ? { ...cx.totales, ...tc, equipos: tc.conjuntos } : cx.totales) : null;
-    const bocas = cx && cx.equipos ? cx.equipos.reduce((a, e) => [a[0] + (e.medidas || 0), a[1] + (e.bocas || 0)], [0, 0]) : [0, 0];
-    const pruebas = pe && pe.recientes ? pe.recientes.filter((p) => p.obraId === o.id) : null;
-    const partes = pi && pi.recientes ? pi.recientes.filter((p) => p.obraId === o.id && p.estado !== 'cerrado') : null;
-    /* Las órdenes de mantenimiento que me tocan (de todas mis obras). */
-    const misOrdenes = mt && mt.ok && mt.tareas.length ? mt.tareas : null;
-    const fila = (href, nombre, valor, aviso) => `<a class="fila-dato${aviso ? ' aviso' : ''}" href="#${href}"><span>${esc(nombre)}</span><strong>${valor} ›</strong></a>`;
-    const PN = window.CX.panelNcn; /* el panel de NCN (panelNcn.js) */
-    const ag = falta('hoy') ? null : bloquesAgenda(plan, dia, o.id, leerPlegados());
+    const h = { esc, cifra, filaSesion };
+    const I = IR();
+    const dia = falta('dia') ? null : I.bloqueDelDia(r.plan, r.dia, o.id);
+    const atras = falta('atras') ? null : I.atrasadas(r.plan, r.dia, o.id);
+    if (esB()) {
+      return { dia: dia && (dia.hoy ? I.htmlDiaMio(dia, h) : ''), atras: atras && I.htmlAtrasadas(atras, h, 'Atrasadas tuyas') };
+    }
     return {
-      hoy: ag ? ag.hoy : null,
-      utas: !PN ? '' : falta('utas') ? null : PN.htmlUtasHoy(plan, { esc, cifra }),
-      semana: ag ? ag.semana : null,
-      /* El resumen (28-oct): commissioning, ensayos, NCR y reparaciones en cifras. */
-      cx: falta('cx') ? null : resumenObra({ t, bocas, pruebas, ncr: ncr && ncr.ok ? ncr.filas : null, rep: rp && rp.filas ? rp.filas : null, codigo: o.codigo }),
-      marcha: !PN ? '' : falta('marcha') ? null : PN.htmlPuestosEnMarcha(cx, { esc, cifra }),
-      /* Lo que queda fuera del resumen: lo mío (partes y órdenes de mantenimiento). */
-      pendiente: falta('pendiente') ? null : partes || misOrdenes ? `<section class="ag-bloque" data-bloque-ini="pendiente" data-plg-caja="pendiente">
-        <h2 class="titulo-grupo ag-titulo plg-h">${plegable.cabecera('pendiente', 'Pendiente')}</h2>
-        <div class="grupo ini-pend plg-cuerpo">
-        ${partes ? fila('partes', 'Partes abiertos', cifra(partes.length)) : ''}
-        ${misOrdenes ? fila('misTareas', 'Mis tareas de mantenimiento', cifra(misOrdenes.length), misOrdenes.some((f) => f.atrasada)) : ''}
-        </div>
-      </section>` : '',
+      dia: dia && (dia.hoy ? I.htmlDiaObra(dia, h) : ''),
+      atras: atras && I.htmlAtrasadas(atras, h, 'Atrasadas'),
+      avance: falta('avance') ? null : I.htmlAvance(I.avance(r.cx), h),
+      cifras: falta('cifras') ? null : I.htmlCifras(I.cifras({ cx: r.cx, ncr: r.ncr }), h),
     };
   }
 
@@ -1009,38 +880,17 @@
     const app = document.getElementById('app');
     if (!app || seccion() !== 'inicio' || window.CX.obraId() !== o.id) return;
     const nombreDe = Object.fromEntries(BLOQUES_INICIO);
-    const espera = (id) => `<section class="ag-bloque" data-bloque-ini="${id}"><h2 class="titulo-grupo ag-titulo">${esc(nombreDe[id] === 'Resumen' ? 'Resumen' : nombreDe[id])}</h2><p class="ag-vacio">Cargando…</p></section>`;
-    const html = Object.fromEntries(BLOQUES_INICIO.map(([id]) => [id, bloques[id] === null || bloques[id] === undefined ? espera(id) : bloques[id]]));
-    const hay = BLOQUES_INICIO.filter(([id]) => html[id]);
-    const ocultos = leerOcultos();
+    const espera = (id) => `<section class="ini-bloque" data-bloque-ini="${id}"><div class="ini-titulo"><span>${esc(nombreDe[id])}</span></div><p class="ag-vacio">Cargando…</p></section>`;
     const y = window.scrollY;
     app.innerHTML = `
       ${actualizando ? '<p class="ini-actualizando" role="status">Actualizando…</p>' : ''}
-      ${hay.length > 1 ? `<div class="ver-bloques" role="group" aria-label="Qué bloques ver"><span>Ver</span>${hay
-        .map(([id, nombre]) => `<button type="button" data-ver-bloque="${id}" aria-pressed="${!ocultos.has(id)}" class="${ocultos.has(id) ? '' : 'activa'}">${esc(nombre)}</button>`).join('')}</div>` : ''}
-      ${hay.filter(([id]) => !ocultos.has(id)).map(([id]) => html[id]).join('')}
-      ${hay.length && hay.every(([id]) => ocultos.has(id)) ? '<p class="ag-vacio">Has quitado todos los bloques: toca uno arriba para verlo.</p>' : ''}`;
+      ${bloquesDe().map((id) => (bloques[id] === null || bloques[id] === undefined ? espera(id) : bloques[id])).join('')}`;
     if (y) window.scrollTo(0, y);
-    for (const b of app.querySelectorAll('[data-ver-bloque]')) {
-      b.onclick = () => {
-        const set = leerOcultos();
-        if (set.has(b.dataset.verBloque)) set.delete(b.dataset.verBloque); else set.add(b.dataset.verBloque);
-        guardarOcultos(set);
-        /* Con lo ya pedido: quitar o poner un bloque no vuelve a pedir nada. */
-        if (inicioDatos && inicioDatos.obra === o.id) pintarInicio(o, armarBloquesInicio(o, inicioDatos.r, inicioDatos.pendientes), { actualizando: inicioDatos.pendientes.size > 0 });
-        else inicio();
-      };
-    }
-    plegable.activar(app);
     try { if (!actualizando) performance.mark('cx:inicio-pintado'); else performance.mark('cx:inicio-primero'); } catch { /* nada */ }
-    for (const d of app.querySelectorAll('[data-plegar-atras]')) {
-      d.ontoggle = () => { const set = leerPlegados(); if (d.open) set.add('atras'); else set.delete('atras'); guardarPlegados(set); };
-    }
-    /* Sin botón «Añadir…»: ya está el + de la barra (15-oct, JC). */
-    /* Un TAG de «Hoy» o «Esta semana» abre su ficha: el módulo lo recoge al cargar. */
+    /* Un equipo abre su ficha: el módulo lo recoge al cargar. */
     for (const a of app.querySelectorAll('[data-ir-abrir]')) a.onclick = () => { try { sessionStorage.setItem('cx.abrir', a.dataset.irAbrir); } catch { /* nada */ } };
     for (const a of app.querySelectorAll('[data-ir-seg]')) a.onclick = () => { try { sessionStorage.setItem('cx.segmento', a.dataset.irSeg); } catch { /* nada */ } };
-    /* «ncr:vencidas», «rp:revisar»…: la pestaña lo recoge al cargar (ncr.js, reparaciones.js). */
+    /* «ncr:abiertas»: la pestaña lo recoge al cargar (ncr.js). */
     for (const a of app.querySelectorAll('[data-ir-filtro]')) a.onclick = () => { try { const [k, v] = a.dataset.irFiltro.split(':'); sessionStorage.setItem(`${k}.filtro`, v); } catch { /* nada */ } };
   }
   window.addEventListener('movil:obra', () => { if (seccion() === 'inicio') inicio(); });

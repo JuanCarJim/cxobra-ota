@@ -30,6 +30,7 @@
   const C = window.CX;
   if (!C) return;
   const { esc, cifra } = C;
+  const FA = window.CX_PLANO_FALTAS; /* marcar lo que falta (planoFaltas.js) */
 
   const NOMBRE = { verde: 'Hecho', azul: 'Falta documento', rojo: 'Sin empezar' };
   const ORDEN = ['verde', 'azul', 'rojo'];
@@ -555,20 +556,22 @@
     const mats = (p.materiales || []).filter((m) => m.x !== null && !capasOff.has(m.capa));
     const cuentasCapa = p.capas || {};
     const capas = ((datos && datos.capas) || []).filter((k) => cuentasCapa[k.id]);
-    const plano = p.plano ? `<div class="pe-visor"><div class="pe-marco" data-pe-marco>
+    const chipFaltas = FA.chip(p);
+    const plano = p.plano ? `<div class="pe-visor"><div class="pe-marco${FA.marcando() ? ' fa-activo' : ''}" data-pe-marco>
         <div class="pe-lienzo${zoom >= ZOOM_SALAS ? ' con-salas' : ''}" data-pe-lienzo style="width:${zoom * 100}%;--pe-esc:${escMarcas()}">
           <img data-src="api/plano-equipos/imagen?id=${encodeURIComponent(p.plano.id)}" alt="Plano ${esc(p.plano.nombre)}" draggable="false">
           ${(p.plano.salas || []).map((r) => `<span class="pe-sala" style="left:${r.x * 100}%;top:${r.y * 100}%">${esc(r.t)}</span>`).join('')}
           ${mats.map((m) => marcaMaterial(m, q, p)).join('')}
+          ${FA.marcas(p)}
           ${enPlano.map((x) => `<button class="marca-boca ${x.color === 'verde' ? 'bien' : x.color === 'rojo' ? 'mal' : 'azul'}${enConjunto.has(x.id) ? ' elegida' : ''}${x.revisar ? ' revisar' : ''}" style="left:${x.x * 100}%;top:${x.y * 100}%;--wp:${(cajaEq(x, p).wf * 100).toFixed(4)}%" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${x.sala || 'sin sala'}: ${NOMBRE[x.color]}${x.revisar ? '; revisar ubicación' : ''}`)}">${simbolo(x.icono)}<span class="rotulo-boca">${esc(x.tag)}</span></button>`).join('')}
         </div>
       </div>
-      <div class="pe-zoom"><button class="boton secundario" data-pe-zoom="-1" aria-label="Alejar">−</button><button class="boton secundario" data-pe-zoom="0">Entero</button><button class="boton secundario" data-pe-zoom="1" aria-label="Acercar">+</button></div></div>`
+      <div class="pe-zoom"><button class="boton secundario" data-pe-zoom="-1" aria-label="Alejar">−</button><button class="boton secundario" data-pe-zoom="0">Entero</button><button class="boton secundario" data-pe-zoom="1" aria-label="Acercar">+</button></div>${FA.mando(p)}</div>`
       : `<div class="pe-sin-plano"><b>La planta ${esc(etiqueta(p))} aún no tiene plano de equipos.</b><br>Lo sube la oficina desde Commissioning › Plano. Mientras, la lista dice la sala y el estado de cada equipo.</div>`;
     $raiz.innerHTML = `
       ${cabeza()}
       <div class="pe-plantas" role="tablist">${plantas().map((x) => `<button role="tab" data-pe-planta="${esc(x.planta || '')}" aria-selected="${x === p}" class="${x === p ? 'activa' : ''}">${esc(etiqueta(x))}<small>${cuentaTexto(nEquipos(x), nMateriales(x))}</small></button>`).join('')}</div>
-      ${capas.length > 1 ? `<div class="pe-capas" role="group" aria-label="Capas">${capas.map((k) => `<button data-pe-capa="${esc(k.id)}" aria-pressed="${!capasOff.has(k.id)}">${esc(k.nombre)} <b>${cifra(cuentasCapa[k.id])}</b></button>`).join('')}</div>` : ''}
+      ${capas.length > 1 || chipFaltas ? `<div class="pe-capas" role="group" aria-label="Capas">${capas.length > 1 ? capas.map((k) => `<button data-pe-capa="${esc(k.id)}" aria-pressed="${!capasOff.has(k.id)}">${esc(k.nombre)} <b>${cifra(cuentasCapa[k.id])}</b></button>`).join('') : ''}${chipFaltas}</div>` : ''}
       ${p.equipos.length ? `<div class="pe-leyenda" role="group" aria-label="Colores">${ORDEN.map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}"><i class="pe-punto pe-${k}"></i>${esc(NOMBRE[k])} <b>${cifra(c[k] || 0)}</b></button>`).join('')}
         <p class="nota">sin sala ${cifra(c.sinSala)}${p.plano ? ` · en el plano ${cifra(c.enPlano)} de ${cifra(p.equipos.length)}` : ''}</p></div>` : ''}
       ${p.plano && p.equipos.length ? leyendaIconos(p) : ''}
@@ -742,8 +745,21 @@
     dedos.delete(ev.pointerId);
     if (marco) { try { marco.releasePointerCapture(ev.pointerId); } catch { /* ya soltado */ } }
     if (dedos.size === 0) {
+      /* Marcando (8-nov): el toque dice el sitio, aunque caiga encima de otra marca; arrastrar y pellizcar siguen moviendo el plano. */
+      if (eraEspera && marco && FA.marcando()) {
+        const caja = marco.querySelector('[data-pe-lienzo]').getBoundingClientRect();
+        const x = (ev.clientX - caja.left) / caja.width;
+        const y = (ev.clientY - caja.top) / caja.height;
+        gesto = null;
+        ultimoToque = null;
+        tragarClick = true;
+        setTimeout(() => { tragarClick = false; }, 350);
+        /* Fuera del dibujo (el hueco bajo un plano apaisado) no es un sitio: sigue esperando. */
+        if (x >= 0 && x <= 1 && y >= 0 && y <= 1) FA.tocado(x, y);
+        return;
+      }
       /* Doble toque en un hueco del plano: acerca (o, si ya está muy cerca, vuelve a entero). */
-      if (eraEspera && marco && !(ev.target.closest && ev.target.closest('[data-pe-marca],[data-pe-mat],[data-pe-zoom]'))) {
+      if (eraEspera && marco && !(ev.target.closest && ev.target.closest('[data-pe-marca],[data-pe-mat],[data-pe-zoom],[data-fa-ver]'))) {
         const ahora = performance.now();
         const [px, py] = dentro(marco, ev);
         if (ultimoToque && ahora - ultimoToque.t < 300 && Math.hypot(px - ultimoToque.x, py - ultimoToque.y) < 40) {
@@ -853,6 +869,7 @@
 
   document.addEventListener('click', (ev) => {
     if (!$raiz || !$raiz.contains(ev.target) || !datos) return;
+    if (FA.clic(ev)) return;
     const dq = ev.target.closest('[data-pe-entrega-df-quitar]');
     if (dq) { guardarEntregaDF(dq.dataset.peEntregaDfQuitar, null); return; }
     const pl = ev.target.closest('[data-pe-planta]');
@@ -921,6 +938,14 @@
     if (mk) { elegir(mk.dataset.peMarca); return; }
     const fi = ev.target.closest('[data-pe-fila]');
     if (fi) { elegir(fi.dataset.peFila, { centrarla: true }); }
+  });
+
+  FA.conectar({
+    datos: () => datos,
+    planta: () => plantaActual(),
+    repintar: () => repintarQuieto(),
+    recargar: async () => { await cargar(); repintarQuieto(); },
+    abrirEquipo: (id) => elegir(id, { centrarla: true }),
   });
 
   /* Sección propia «Más › Plano de equipos» (quien no tiene Commissioning). */
