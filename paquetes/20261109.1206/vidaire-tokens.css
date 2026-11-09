@@ -1,0 +1,497 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   FAMILIA VIDAIRE — el sistema de interfaz común (Obras, Gestor, Cx)
+   Dirección «B + C», elegida por JC el 22-oct: la elegancia de la B (blanco, aire, letra del sistema,
+   cifras grandes en los indicadores, control segmentado y píldora para lo elegido) con la utilidad
+   de la C (⌘K arriba, título y pestañas en una línea, cifras tabulares, una línea por fila).
+
+   Reglas que van con estas variables:
+     · sin tarjetas ni sombras: separa la línea de 1 px (--vd-linea), no la caja;
+     · la barra lateral NO tiene fondo propio: --vd-lateral = --vd-fondo y una línea de 1 px;
+       su barra de desplazamiento no se ve hasta pasar el ratón, y entonces fina (--vd-scroll);
+     · un solo acento (teal, el del logo de Vidaire); verde, ámbar y rojo solo para estados;
+     · la densidad de trabajo no se toca: filas de tabla de --vd-fila (28 px).
+
+   Cada app lo copia tal cual (o lo enlaza) y mapea sus variables a estas. Tema: atributo
+   data-tema="oscuro" en <html> (sin atributo, o «claro», es el claro). Las variables empiezan
+   por --vd- para no chocar con las que ya tiene cada app.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Colores con significado propio (móvil Cx): el lienzo de firma y de planos va siempre en blanco con
+     trazo marino, también en oscuro; velo y visor de cámara; avisos del toast. */
+  --vd-lienzo: #FFFFFF; --vd-trazo: #1F2D4E; --vd-sobre-imagen: #FFFFFF; --vd-velo: rgba(0, 0, 0, .55); --vd-visor: #0F1626;
+  --vd-toast-bien: #B5DEC2; --vd-toast-aviso: #E4C590; --vd-toast-mal: #F2B8A6;
+  /* ── Letra: la del sistema (SF Pro en Mac/iPad, Segoe UI en Windows). Cifras siempre tabulares. */
+  --vd-fuente: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  --vd-fuente-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --vd-t: 13px;           /* texto de trabajo */
+  --vd-t-peq: 12px;       /* cabeceras de tabla, pies, etiquetas */
+  --vd-t-min: 11px;       /* contadores, insignias */
+  --vd-h1: 22px;          /* título de pantalla (en una línea con las pestañas) */
+  --vd-h2: 15px;          /* título de bloque o de tabla */
+  --vd-cifra: 32px;       /* cifra grande de un indicador */
+  --vd-cifra-peq: 20px;   /* cifra de indicador en franja densa */
+  --vd-peso-titulo: 700;
+  --vd-interletra-titulo: -0.025em;
+
+  /* ── Espacios (base 4) */
+  --vd-e1: 4px; --vd-e2: 8px; --vd-e3: 12px; --vd-e4: 16px; --vd-e5: 24px; --vd-e6: 32px; --vd-e7: 48px;
+  --vd-pad-x: 32px;       /* margen lateral del contenido */
+
+  /* ── Alturas */
+  --vd-cab-alto: 52px;    /* cabecera de la ventana (migas, ⌘K, acciones) */
+  --vd-nav-alto: 30px;    /* opción de la barra lateral */
+  --vd-fila: 28px;        /* fila de tabla de trabajo: una línea */
+  --vd-control: 28px;     /* botones, campos, control segmentado */
+  --vd-lateral-ancho: 240px;
+
+  /* ── Radios: casi rectos en lo de trabajo, redondos en lo que se elige */
+  --vd-radio-peq: 4px;    /* celdas, insignias */
+  --vd-radio-tabla: 6px;  /* franja de cabecera y fila marcada de las tablas */
+  --vd-radio: 8px;        /* botones, campos, opción de la barra lateral */
+  --vd-radio-seg: 9px;    /* control segmentado (por fuera; por dentro 7px) */
+  --vd-pildora: 999px;    /* subpestañas, filtros */
+  /* ── Tarjetas (28-oct, JC: modernas como en el móvil): esquina de 13 px, sombra pequeña y suave,
+     borde casi invisible. Las usan los indicadores (.bandaCx, .kpis > .kpi, .franjaPm), los diálogos y las fichas
+     flotantes. Las tablas y las listas NO son tarjetas. Una banda de color dentro sigue el redondeo (overflow:hidden). */
+  --vd-radio-tarjeta: 13px;
+  --vd-sombra-tarjeta: 0 2px 8px rgba(0, 0, 0, 0.07);
+  --vd-sombra-tarjeta-alta: 0 4px 14px rgba(0, 0, 0, 0.10);
+  --vd-borde-tarjeta: var(--vd-linea-fila);
+  --vd-fondo-tarjeta: #FFFFFF;
+
+  /* ── Barra de desplazamiento */
+  --vd-scroll: 6px;
+
+  /* ── Color · claro */
+  --vd-fondo: #FFFFFF;
+  --vd-lateral: #FFFFFF;
+  --vd-texto: #1D1D1F;
+  --vd-texto-2: #4A4A50;
+  --vd-texto-3: #6E6E73;
+  --vd-linea: #E6E6EA;
+  --vd-linea-fila: #EFEFF2;
+  --vd-linea-fuerte: #D1D1D6;
+  --vd-vertical: #F2FAF8;
+  --vd-sel: #DCEFEA;          /* elegido sin acento (subpestaña, hover fuerte) */
+  --vd-sel-suave: #F2FAF8;    /* hover, fondo del segmentado, ⌘K */
+  --vd-barra: #C7C7CC;        /* pulgar de la barra de desplazamiento */
+  --vd-acento: #13957A;       /* teal Vidaire: opción elegida, botón principal */
+  --vd-acento-relleno: #0E7C66; /* acento como fondo con texto blanco encima (AA 5,13:1) */
+  --vd-acento-texto: #0E7C66; /* acento como texto (enlaces, cifra destacada) */
+  --vd-acento-suave: #E6F4F0; /* fondo muy leve de lo seleccionado en una tabla */
+  --vd-sobre-acento: #FFFFFF;
+  --vd-verde: #1A9E5C;
+  --vd-ambar: #2B6CB0;
+  --vd-rojo: #E5484D;
+  --vd-foco: rgba(19, 149, 122, 0.35);
+  /* Gravedad de los avisos flotantes (22-oct). Importante = azul suave; grave = rojo suave.
+     Fondo del panel, fondo de cada aviso, borde y texto (todo el texto ≥ 6,7:1 sobre su fondo). */
+  --vd-aviso-panel: #EAF2FA; --vd-aviso-item: #D6E6F5; --vd-aviso-borde: #6FA0CF; --vd-aviso-texto: #0F3F66;
+  --vd-grave-panel: #FDEEEE; --vd-grave-item: #FADADA; --vd-grave-borde: #D98C8C; --vd-grave-texto: #8A2323;
+
+  /* ── Niveles de una tabla jerárquica (22-oct, JC: «el capítulo con el fondo de la fila en teal, los
+     subcapítulos el teal difuminado a más claro, y las partidas en blanco»). Nivel 1 = capítulo;
+     2, 3 y 4 = subcapítulos, cada vez más claros; la partida no lleva fondo (--vd-fondo).
+     Texto ≥ 4,5:1 sobre su fondo en los dos temas (test/nivelesTabla.test.js lo comprueba). */
+  --vd-nivel-1-fondo: #0E7C66; --vd-nivel-1-texto: #FFFFFF;
+  --vd-nivel-2-fondo: #A8DCCD; --vd-nivel-2-texto: #064A3D;
+  --vd-nivel-3-fondo: #D2EEE6; --vd-nivel-3-texto: #075747;
+  --vd-nivel-4-fondo: #E8F6F2; --vd-nivel-4-texto: #08604E;
+
+  /* ── Barra de subsecciones (22-oct, JC: «en teal para que se vean mejor, en una barra horizontal, y un
+     teal claro para que tampoco destaque muchísimo»). La elegida, algo más intensa y con raya teal. */
+  --vd-sub-fondo: #E6F4F0; --vd-sub-texto: #075747;
+  --vd-sub2-fondo: #F2FAF8; --vd-sub2-activa-fondo: #E6F4F0;
+  --vd-sub-activa-fondo: #C7E8DE; --vd-sub-activa-texto: #053F34; --vd-sub-raya: #0E7C66;
+
+  /* ── Contadores (22-oct, JC: «una pequeña franja superior de color suavecito para que se entienda que
+     es una tarjeta»). La franja dice qué significa la cifra: teal neutro, verde bien, rojo mal, ámbar
+     aviso. Solo decora (no lleva texto); la cifra va en el color de texto de su gravedad (≥ 4,5:1). */
+  --vd-franja-neutra: #9FD6C7; --vd-franja-bien: #A3D9B9; --vd-franja-mal: #EDB1B3; --vd-franja-aviso: #9EC3E6;
+  --vd-bien-texto: #146B41;
+
+  /* ── Cabecera de tabla (22-oct, JC, sobre la de Obra › Pruebas de estanqueidad: «me encanta esas tablas así
+     con ese formato de cabecera, aplícalo a todas las tablas»). Sin fondo de color: el de la tabla, opaco para
+     que la cabecera pegajosa no se transparente al desplazar; texto teal seminegrita y una línea teal debajo.
+     Sale de los acentos de cada tema: #0E7C66 sobre blanco 5,1:1 y #4FD6B4 sobre #161618 10:1 (AA). */
+  --vd-tabla-cab-fondo: var(--vd-fondo); --vd-tabla-cab-texto: var(--vd-acento-texto); --vd-tabla-cab-linea: var(--vd-acento);
+}
+
+:root[data-tema='oscuro'] {
+  --vd-sombra-tarjeta: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --vd-sombra-tarjeta-alta: 0 4px 14px rgba(0, 0, 0, 0.45);
+  --vd-borde-tarjeta: #26262A;
+  --vd-fondo-tarjeta: #1C1C1F;
+  --vd-fondo: #161618;
+  --vd-lateral: #161618;
+  --vd-texto: #F2F2F4;
+  --vd-texto-2: #BDBDC3;
+  --vd-texto-3: #85858C;
+  --vd-linea: #2C2C30;
+  --vd-linea-fila: #222225;
+  --vd-linea-fuerte: #3E3E43;
+  --vd-vertical: #1E1E21;
+  --vd-sel: #2E2E32;
+  --vd-sel-suave: #212124;
+  --vd-barra: #4A4A50;
+  --vd-acento: #2EC4A0;
+  --vd-acento-relleno: #2EC4A0;
+  --vd-acento-texto: #4FD6B4;
+  --vd-acento-suave: #13302A;
+  --vd-sobre-acento: #04231C;
+  --vd-verde: #3DD68C;
+  --vd-ambar: #7FB2E5;
+  --vd-rojo: #FF6369;
+  --vd-foco: rgba(46, 196, 160, 0.4);
+  --vd-aviso-panel: #0F2133; --vd-aviso-item: #14304A; --vd-aviso-borde: #2F5F8F; --vd-aviso-texto: #A9CBEC;
+  --vd-grave-panel: #2E1A1B; --vd-grave-item: #3E2022; --vd-grave-borde: #7A3C3E; --vd-grave-texto: #FFC9C3;
+  --vd-nivel-1-fondo: #1E7A68; --vd-nivel-1-texto: #FFFFFF;
+  --vd-nivel-2-fondo: #185C50; --vd-nivel-2-texto: #E6FAF4;
+  --vd-nivel-3-fondo: #164A41; --vd-nivel-3-texto: #D2F4EA;
+  --vd-nivel-4-fondo: #13392F; --vd-nivel-4-texto: #BDEBDD;
+  --vd-sub-fondo: #13302A; --vd-sub-texto: #A9E3D3;
+  --vd-sub2-fondo: #0F2622; --vd-sub2-activa-fondo: #13302A;
+  --vd-sub-activa-fondo: #1C4A40; --vd-sub-activa-texto: #E6FAF4; --vd-sub-raya: #2EC4A0;
+  --vd-franja-neutra: #2B7A68; --vd-franja-bien: #2F7A53; --vd-franja-mal: #8C4548; --vd-franja-aviso: #3B6E9E;
+  --vd-bien-texto: #8FE3B6;
+}
+
+/* ── Paleta «Arena» (8-nov, JC: la de las presentaciones, «me encanta») ──────────────────────────
+   Encendida en toda la app: data-paleta="arena" en <html> (renderer/index.html, el mismo para la web).
+   8-nov tarde (JC: «el fondo tiene que ser color claro, no el azul oscuro; la barra lateral tiene que
+   tener también los colores»): el contenido va en CLARO —crema de fondo, pizarra de texto— y la barra
+   lateral en ARENA CLARO (#f2e0c4, el tono de las píldoras de título) con letra azul pizarra, y la
+   cabecera superior en pizarra (la única franja oscura: ancla la marca y separa el contenido).
+   Títulos, rótulos, cabeceras de tabla, códigos y cifras destacadas en AZUL PIZARRA #2b3a55 (nada de
+   marrón). Lo activo lleva marca NARANJA #ff7a33 (raya de 2-3 px) y fondo arena #e9bf86 con letra
+   pizarra; el naranja como letra, oscurecido (#a33f0b). Acentos de apoyo: azul medio #36608f
+   (informativo) y salvia #4d6a4f (bien/hecho). Sin tarjetas, líneas pizarra al 12 %.
+   Contraste (AA >= 4,5:1; test/paletaArena.test.js): pizarra/crema 12,6 · azul pizarra/crema 10,2 ·
+   azul medio/crema 5,8 · salvia/crema 5,4 · alerta/crema 5,7 · pizarra sobre arena 8,3 ·
+   pizarra sobre naranja 5,4 · azul pizarra/barra lateral 9,1 · crema/cabecera 11,9. */
+:root[data-paleta], [data-paleta] {
+  --vd-arena-fondo: #f7f1e6;      /* crema claro: el fondo del contenido */
+  --vd-arena-fondo-2: #ede2cd;    /* zonas destacadas: el día de hoy, subtotales, pie */
+  --vd-arena-cebra: #f2eadb;      /* fila par de una hoja */
+  --vd-arena-texto: #262b38;      /* pizarra */
+  --vd-arena-tenue: #5c5850;
+  --vd-arena-linea: rgba(38, 43, 56, .12);
+  --vd-arena-acento: #2b3a55;     /* azul pizarra: títulos, rótulos, cabeceras de tabla, códigos y cifras destacadas (10,2:1 sobre crema) */
+  --vd-arena-azul: #36608f;       /* azul medio: subsecciones y estados informativos (5,8:1 sobre crema) */
+  --vd-arena-salvia: #4d6a4f;     /* verde salvia apagado: estados bien / hecho (5,4:1 sobre crema) */
+  --vd-arena-arena: #e9bf86;      /* arena de JC: de fondo (lo elegido, el botón principal) con letra pizarra */
+  --vd-arena-realce: #ff7a33;     /* naranja: solo lo que pide atención, de fondo con letra pizarra */
+  --vd-arena-alerta: #a33f0b;     /* el naranja como letra sobre crema */
+  --vd-arena-alerta-fondo: #ffe3d3;
+  --vd-arena-pildora: #f2e0c4;    /* arena al 35 % sobre crema */
+  --vd-arena-crema: #f4ead9;
+  /* La barra lateral y la cabecera. */
+  --vd-arena-lateral: #262b38;    /* la cabecera superior sigue en pizarra */
+  --vd-arena-barra: #f2e0c4;      /* la barra lateral: arena claro, el tono de las píldoras de título */
+  --vd-arena-barra-2: #e8d2ab;    /* su fila al pasar el ratón */
+  --vd-arena-barra-tenue: #4f4a42;
+  --vd-arena-barra-linea: rgba(38, 43, 56, .16);
+  --vd-arena-lateral-2: #343a49;
+  --vd-arena-lateral-texto: #f4ead9;
+  --vd-arena-lateral-tenue: #aba59b;
+  --vd-arena-lateral-linea: rgba(244, 234, 217, .14);
+  /* Papeles que cambian de una paleta a otra (las propuestas Vidaire los redefinen). */
+  --vd-arena-barra-texto: var(--vd-arena-acento);        /* letra de la barra lateral */
+  --vd-arena-barra-activo: var(--vd-arena-arena);        /* fondo de lo activo en la barra lateral */
+  --vd-arena-barra-activo-texto: var(--vd-arena-texto);  /* su letra */
+  --vd-arena-marca: var(--vd-arena-realce);              /* la raya de lo activo (barra lateral y pestañas) */
+  --vd-arena-cab-acento: var(--vd-arena-arena);          /* lo elegido dentro de la cabecera */
+  --vd-arena-lateral-fuerte: rgba(244, 234, 217, .24);   /* borde de control en la cabecera */
+  --vd-arena-cab-foco: rgba(233, 191, 134, .4);
+  --vd-arena-barra-fuerte: rgba(38, 43, 56, .28);        /* borde de control en la barra lateral */
+  --vd-arena-barra-pulgar: rgba(38, 43, 56, .35);
+  --vd-arena-barra-foco: rgba(43, 58, 85, .35);
+
+  /* La paleta --vd-* de la casa, en Arena. */
+  --vd-fondo: var(--vd-arena-fondo); --vd-lateral: var(--vd-arena-barra); --vd-fondo-tarjeta: var(--vd-arena-fondo);
+  --vd-texto: var(--vd-arena-texto); --vd-texto-2: var(--vd-arena-tenue); --vd-texto-3: var(--vd-arena-tenue);
+  --vd-linea: var(--vd-arena-linea); --vd-linea-fila: var(--vd-arena-linea); --vd-linea-fuerte: rgba(38, 43, 56, .24);
+  --vd-borde-tarjeta: var(--vd-arena-linea);
+  --vd-vertical: var(--vd-arena-cebra); --vd-sel: var(--vd-arena-fondo-2); --vd-sel-suave: var(--vd-arena-cebra);
+  --vd-barra: rgba(38, 43, 56, .28);
+  --vd-acento: var(--vd-arena-acento); --vd-acento-relleno: var(--vd-arena-arena); --vd-acento-texto: var(--vd-arena-acento);
+  --vd-acento-suave: var(--vd-arena-pildora); --vd-sobre-acento: var(--vd-arena-texto);
+  --vd-verde: var(--vd-arena-salvia); --vd-ambar: var(--vd-arena-acento); --vd-bien-texto: var(--vd-arena-salvia);
+  --vd-rojo: var(--vd-arena-alerta); --vd-foco: rgba(43, 58, 85, .35);
+  --vd-aviso-panel: var(--vd-arena-cebra); --vd-aviso-item: var(--vd-arena-pildora); --vd-aviso-borde: var(--vd-arena-arena); --vd-aviso-texto: var(--vd-arena-texto);
+  --vd-grave-panel: #fff1e8; --vd-grave-item: var(--vd-arena-alerta-fondo); --vd-grave-borde: var(--vd-arena-realce); --vd-grave-texto: var(--vd-arena-texto);
+  --vd-nivel-1-fondo: var(--vd-arena-acento); --vd-nivel-1-texto: var(--vd-arena-crema);
+  --vd-nivel-2-fondo: var(--vd-arena-arena); --vd-nivel-2-texto: var(--vd-arena-texto);
+  --vd-nivel-3-fondo: var(--vd-arena-pildora); --vd-nivel-3-texto: var(--vd-arena-texto);
+  --vd-nivel-4-fondo: var(--vd-arena-fondo-2); --vd-nivel-4-texto: var(--vd-arena-texto);
+  --vd-sub-fondo: var(--vd-arena-fondo-2); --vd-sub-texto: var(--vd-arena-texto);
+  --vd-sub2-fondo: var(--vd-arena-cebra); --vd-sub2-activa-fondo: var(--vd-arena-fondo-2);
+  --vd-sub-activa-fondo: var(--vd-arena-arena); --vd-sub-activa-texto: var(--vd-arena-texto); --vd-sub-raya: var(--vd-arena-realce);
+  --vd-franja-neutra: var(--vd-arena-arena); --vd-franja-bien: var(--vd-arena-salvia); --vd-franja-mal: var(--vd-arena-realce); --vd-franja-aviso: var(--vd-arena-azul);
+  --vd-tabla-cab-fondo: var(--vd-arena-fondo); --vd-tabla-cab-texto: var(--vd-arena-acento); --vd-tabla-cab-linea: var(--vd-arena-acento);
+
+  /* Las variables antiguas del escritorio (renderer/tokens.css), para que las hojas que aún las usan
+     se pinten en Arena sin tocar cada pantalla. --marca-verde (bandas y botones llenos) pasa a pizarra
+     y --blanco (su letra) a crema. */
+  --papel: var(--vd-arena-fondo); --panel: var(--vd-arena-fondo);
+  --panel2: var(--vd-arena-cebra); --panel3: var(--vd-arena-fondo-2);
+  --rejilla: var(--vd-arena-linea); --rejillaSuave: var(--vd-arena-linea); --borde: rgba(38, 43, 56, .24);
+  --texto: var(--vd-arena-texto); --textoSuave: var(--vd-arena-tenue); --textoTenue: var(--vd-arena-tenue);
+  --seleccion: var(--vd-arena-pildora); --bandaCapitulo: var(--vd-arena-fondo-2); --bandaCapitulo2: var(--vd-arena-cebra);
+  --marca-verde: var(--vd-arena-acento); --marca-acento: var(--vd-arena-arena); --marca-celadon: var(--vd-arena-arena);
+  --blanco: var(--vd-arena-crema);
+  --foco: var(--vd-arena-acento); --verdeTexto: var(--vd-arena-acento); --sobreEstado: var(--vd-arena-texto);
+  --bien: var(--vd-arena-salvia); --bien-fondo: var(--vd-arena-pildora);
+  --info: var(--vd-arena-azul); --info-fondo: var(--vd-arena-pildora);
+  --aviso: var(--vd-arena-acento); --aviso-fondo: var(--vd-arena-pildora);
+  --mal: var(--vd-arena-alerta); --mal-fondo: var(--vd-arena-alerta-fondo);
+  background: var(--vd-arena-fondo); color: var(--vd-arena-texto);
+}
+
+/* La barra lateral y la cabecera, en pizarra: los mismos tokens, redefinidos dentro (las reglas de
+   renderer/interfaz.css y barraLateral.css beben de ellos). Lo elegido, en arena con letra pizarra;
+   los iconos, en crema tenue. */
+[data-paleta] .centro > .cabecera {
+  --vd-fondo: var(--vd-arena-lateral); --vd-lateral: var(--vd-arena-lateral);
+  --vd-texto: var(--vd-arena-lateral-texto); --vd-texto-2: var(--vd-arena-lateral-texto); --vd-texto-3: var(--vd-arena-lateral-tenue);
+  --vd-linea: var(--vd-arena-lateral-linea); --vd-linea-fila: var(--vd-arena-lateral-linea); --vd-linea-fuerte: var(--vd-arena-lateral-fuerte);
+  --vd-sel: var(--vd-arena-lateral-2); --vd-sel-suave: var(--vd-arena-lateral-2); --vd-barra: var(--vd-arena-lateral-tenue);
+  --vd-acento: var(--vd-arena-cab-acento); --vd-acento-relleno: var(--vd-arena-cab-acento); --vd-acento-texto: var(--vd-arena-cab-acento);
+  --vd-sobre-acento: var(--vd-arena-lateral); --vd-foco: var(--vd-arena-cab-foco);
+  --texto: var(--vd-arena-lateral-texto); --textoSuave: var(--vd-arena-lateral-tenue); --textoTenue: var(--vd-arena-lateral-tenue);
+  --papel: var(--vd-arena-lateral); --panel: var(--vd-arena-lateral); --borde: var(--vd-arena-lateral-fuerte);
+  --blanco: var(--vd-arena-lateral-texto); --sobreVerdeTexto: var(--vd-arena-lateral-texto);
+  --sobreVerdeHover: var(--vd-arena-lateral-2); --sobreVerdeLinea: var(--vd-arena-lateral-linea);
+  --marca-celadon: var(--vd-arena-lateral-tenue); --marca-acento: var(--vd-arena-cab-acento);
+  background: var(--vd-arena-lateral); color: var(--vd-arena-lateral-texto);
+}
+/* La barra lateral, en arena claro con letra azul pizarra (8-nov tarde, JC: «el fondo de la barra
+   lateral como ese fondo arena»). Lo activo: arena intenso, letra pizarra en negrita y marca naranja. */
+[data-paleta] .app > .lateral {
+  --vd-fondo: var(--vd-arena-barra); --vd-lateral: var(--vd-arena-barra);
+  --vd-texto: var(--vd-arena-barra-texto); --vd-texto-2: var(--vd-arena-barra-texto); --vd-texto-3: var(--vd-arena-barra-tenue);
+  --vd-linea: var(--vd-arena-barra-linea); --vd-linea-fila: var(--vd-arena-barra-linea); --vd-linea-fuerte: var(--vd-arena-barra-fuerte);
+  --vd-sel: var(--vd-arena-barra-2); --vd-sel-suave: var(--vd-arena-barra-2); --vd-barra: var(--vd-arena-barra-pulgar);
+  --vd-acento: var(--vd-arena-barra-texto); --vd-acento-relleno: var(--vd-arena-barra-activo); --vd-acento-texto: var(--vd-arena-barra-texto);
+  --vd-sobre-acento: var(--vd-arena-barra-activo-texto); --vd-foco: var(--vd-arena-barra-foco);
+  --texto: var(--vd-arena-barra-texto); --textoSuave: var(--vd-arena-barra-tenue); --textoTenue: var(--vd-arena-barra-tenue);
+  --papel: var(--vd-arena-barra); --panel: var(--vd-arena-barra); --borde: var(--vd-arena-barra-fuerte);
+  --blanco: var(--vd-arena-barra-texto); --sobreVerdeTexto: var(--vd-arena-barra-texto);
+  --sobreVerdeHover: var(--vd-arena-barra-2); --sobreVerdeLinea: var(--vd-arena-barra-linea);
+  --marca-celadon: var(--vd-arena-barra-tenue); --marca-acento: var(--vd-arena-marca);
+  --vd-nav-alto: 27px; /* que la barra del Director de Proyectos quepa sin scroll en 900 px */
+  background: var(--vd-arena-barra); color: var(--vd-arena-barra-texto);
+}
+[data-paleta] .app > .lateral .menu :is(a.activo, a.entradaSeccion.seccionActiva) { font-weight: 700; box-shadow: inset 3px 0 0 var(--vd-arena-marca); }
+[data-paleta] .app > .lateral .menu a.subLateral.activa { font-weight: 700; box-shadow: inset 3px 0 0 var(--vd-arena-marca); }
+[data-paleta] .lateral .menu a .icono { color: var(--vd-arena-barra-tenue); }
+[data-paleta] .lateral .menu :is(a.activo, a.entradaSeccion.seccionActiva) .icono { color: var(--vd-arena-barra-activo-texto); }
+[data-paleta] .lateral .menu a.subLateral.activa { background: var(--vd-arena-barra-activo); color: var(--vd-arena-barra-activo-texto); }
+
+/* En Arena, lo que pide atención va en etiqueta naranja con letra pizarra (5,4:1) y el resto de
+   etiquetas son píldoras arena (arena al 35 %, letra azul pizarra). */
+[data-paleta] .etiqueta.mal { background: var(--vd-arena-realce); color: var(--vd-arena-texto); }
+[data-paleta] .etiqueta.aviso, [data-paleta] .etiqueta.neutra { background: var(--vd-arena-pildora); color: var(--vd-arena-acento); }
+[data-paleta] .etiqueta.info { background: var(--vd-arena-pildora); color: var(--vd-arena-azul); }
+[data-paleta] .etiqueta.bien { background: var(--vd-arena-pildora); color: var(--vd-arena-salvia); }
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════════
+   LAS TRES PROPUESTAS «VIDAIRE» (8-nov, JC: «los colores corporativos de Vidaire deben de ser el Azul
+   Marino, Granate y Arena» y «me haces propuestas y elegimos»). Las tres con los mismos colores de
+   marca, neutros y estados; cambian el reparto del color y las formas. Se eligen en Mi espacio ›
+   Perfil › Colores (data-paleta="vidaire-a" | "vidaire-b" | "vidaire-c"). Cuando JC elija, se deja solo
+   esa, renombrada a «vidaire». Guía viva: marca/diseno/guia.html. Contraste: test/paletaVidaire.test.js.
+
+   Marca · Marino #1F2D4E (títulos, cabeceras de tabla, capítulos) · Granate #7B2232 (acento: lo activo,
+   la acción principal) · Arena #E4C590 (lo elegido, superficies cálidas; siempre con letra marino).
+   Neutros · Crema #FAF6EE (fondo) · Crema 2 #F0E8D9 (subtotal, pie) · Cebra #F5EFE4 · Tinta #1C2333 ·
+   Gris cálido #5B5750 (texto secundario) · Línea tinta al 12 %.
+   Estados (texto / fondo) · Éxito #2E6B45 / #E2EFE4 · Aviso #8A5300 / #FBEACB · Error #B3301A / #FBE1DA
+   (bermellón: tira a naranja; el granate tira a vino y nunca va solo en un aviso) · Info #2A5C8F / #E1EBF5.
+   Proporción 60/30/10: crema y neutros ~60 %, marino (o arena en la C) ~30 %, granate ≤ 10 %.
+   ═══════════════════════════════════════════════════════════════════════════════════════════════ */
+:root[data-paleta^="vidaire"], [data-paleta^="vidaire"] {
+  --vd-marino: #1F2D4E; --vd-marino-2: #2C3B5E; --vd-marino-tinte: #E6E9F0;
+  --vd-granate: #7B2232; --vd-granate-oscuro: #5E1A27; --vd-granate-tinte: #F4E4E6;
+  --vd-arena: #E4C590; --vd-arena-tinte: #F1E3C8;
+  --vd-crema: #FAF6EE; --vd-crema-2: #F0E8D9; --vd-cebra: #F5EFE4;
+  --vd-tinta: #1C2333; --vd-gris-calido: #5B5750;
+  --vd-exito: #2E6B45; --vd-exito-fondo: #E2EFE4;
+  --vd-aviso: #8A5300; --vd-aviso-fondo: #FBEACB;
+  --vd-error: #B3301A; --vd-error-fondo: #FBE1DA; --vd-error-fuerte: #F2B8A6;
+  --vd-info: #2A5C8F; --vd-info-fondo: #E1EBF5;
+
+  /* Los papeles de la paleta cálida (los que leen todas las hojas), en Vidaire. */
+  --vd-arena-fondo: var(--vd-crema); --vd-arena-fondo-2: var(--vd-crema-2); --vd-arena-cebra: var(--vd-cebra);
+  --vd-arena-texto: var(--vd-tinta); --vd-arena-tenue: var(--vd-gris-calido);
+  --vd-arena-linea: rgba(28, 35, 51, .12);
+  --vd-arena-acento: var(--vd-marino); --vd-arena-azul: var(--vd-info); --vd-arena-salvia: var(--vd-exito);
+  --vd-arena-arena: var(--vd-arena); --vd-arena-pildora: var(--vd-arena-tinte); --vd-arena-crema: var(--vd-crema);
+  --vd-arena-realce: var(--vd-error-fuerte); --vd-arena-alerta: var(--vd-error); --vd-arena-alerta-fondo: var(--vd-error-fondo);
+  --vd-arena-marca: var(--vd-granate);
+  --vd-ambar: var(--vd-aviso);
+  --aviso: var(--vd-aviso); --aviso-fondo: var(--vd-aviso-fondo); --bien-fondo: var(--vd-exito-fondo); --info-fondo: var(--vd-info-fondo);
+  --vd-foco: rgba(123, 34, 50, .45);
+  --foco: var(--vd-granate);
+
+  /* Capítulos y subcapítulos (8-nov, JC: «azules más suaves para capítulos y subcapítulos, en toda la
+     app»). Azules derivados del marino, siempre con letra marino (≥ 9,8:1). Nivel 1 un poco más intenso,
+     nivel 2 más claro, 3 y 4 casi blancos; la partida, sin fondo. Lo leen TODAS las tablas jerárquicas por
+     los tokens --vd-nivel-N (interfaz.css §13: presupuesto, Med Obra, certificaciones, costes, Gantt,
+     comparativos, mantenimiento, equipos…) y por las bandas viejas (--capOscuro, --bandaCapitulo…). */
+  --vd-capitulo-1: #DFE6F0; --vd-capitulo-2: #EEF2F7; --vd-capitulo-3: #F4F6FA; --vd-capitulo-texto: #1F2D4E;
+  --vd-nivel-1-fondo: var(--vd-capitulo-1); --vd-nivel-1-texto: var(--vd-capitulo-texto);
+  --vd-nivel-2-fondo: var(--vd-capitulo-2); --vd-nivel-2-texto: var(--vd-capitulo-texto);
+  --vd-nivel-3-fondo: var(--vd-capitulo-3); --vd-nivel-3-texto: var(--vd-capitulo-texto);
+  --vd-nivel-4-fondo: var(--vd-capitulo-3); --vd-nivel-4-texto: var(--vd-capitulo-texto);
+  --bandaCapitulo: var(--vd-capitulo-1); --bandaCapitulo2: var(--vd-capitulo-2);
+
+  /* Tipografía: la del sistema (Financier y Calibre no se pueden empaquetar). Cifras tabulares siempre. */
+  --vp-fuente-titulo: var(--vd-fuente);
+  --vp-peso-titulo: 600; --vp-peso-th: 600; --vp-peso-activo: 600;
+
+  /* Componentes (cada propuesta los redefine). */
+  --vp-radio: 4px; --vp-radio-boton: 4px; --vp-radio-pestana: 0; --vp-radio-pildora: 4px; --vp-radio-sec: 0;
+  --vp-principal-fondo: var(--vd-marino); --vp-principal-texto: var(--vd-crema); --vp-principal-hover: #14203A;
+  --vp-sec-fondo-boton: transparent; --vp-sec-borde: rgba(28, 35, 51, .32); --vp-sec-texto: var(--vd-marino); --vp-sec-hover: var(--vd-crema-2);
+  --vp-pestana-fondo: transparent; --vp-pestana-texto: var(--vd-marino); --vp-pestana-raya: var(--vd-granate); --vp-pestana-hover: transparent;
+  --vp-th-texto: var(--vd-marino); --vp-th-linea: 1px solid var(--vd-marino); --vp-th-mayus: none; --vp-th-tam: 12px; --vp-th-interletra: 0;
+  --vp-titsec-fondo: transparent; --vp-titsec-texto: var(--vd-marino); --vp-titsec-linea: 0; --vp-titsec-mayus: uppercase;
+  --vp-fila-sel: var(--vd-arena-tinte); --vp-fila-sel-raya: var(--vd-granate);
+}
+
+/* ── A · SOBRIA. Mucho crema; marino en títulos y cabeceras; granate SOLO en lo activo (raya de 2-3 px) y
+   en el foco. Cabecera y barra lateral claras. Esquinas casi rectas (4 px), botón principal marino lleno,
+   el resto con borde fino; pestañas subrayadas; títulos 600; cabecera de tabla 600 con línea de 1 px. */
+:root[data-paleta="vidaire-a"], [data-paleta="vidaire-a"] {
+  --vd-arena-lateral: #FAF6EE; --vd-arena-lateral-2: #F0E8D9; --vd-arena-lateral-texto: #1F2D4E; --vd-arena-lateral-tenue: #5B5750;
+  --vd-arena-lateral-linea: rgba(28, 35, 51, .12); --vd-arena-lateral-fuerte: rgba(28, 35, 51, .28);
+  --vd-arena-cab-acento: #7B2232; --vd-arena-cab-foco: rgba(123, 34, 50, .35);
+  --vd-arena-barra: #F3ECDF; --vd-arena-barra-2: #EAE0CE; --vd-arena-barra-tenue: #5B5750; --vd-arena-barra-texto: #1F2D4E;
+  --vd-arena-barra-linea: rgba(28, 35, 51, .12); --vd-arena-barra-fuerte: rgba(28, 35, 51, .28);
+  --vd-arena-barra-activo: #FDFBF7; --vd-arena-barra-activo-texto: #7B2232;
+  --vd-arena-arena: #F1E3C8; /* capítulos de 2.º nivel y lo elegido: arena suave, no a plena */
+  --vd-acento-relleno: #1F2D4E; --vd-sobre-acento: #FAF6EE;
+  --vd-radio: 4px; --vd-radio-peq: 2px; --vd-radio-tabla: 0px; --vd-pildora: 4px; --vd-radio-seg: 4px;
+}
+/* ── B · MARINO FUERTE. Cabecera y barra lateral en marino (el marco), contenido crema, acento granate
+   lleno en la acción principal. Esquinas de 8 px, botones llenos (el secundario, en tinte marino sin
+   borde), pestañas en píldora marino; títulos 700; cabecera de tabla 700 con línea de 2 px. */
+:root[data-paleta="vidaire-b"], [data-paleta="vidaire-b"] {
+  --vd-arena-lateral: #1F2D4E; --vd-arena-lateral-2: #2C3B5E; --vd-arena-lateral-texto: #F1EBDD; --vd-arena-lateral-tenue: #AEB6C6;
+  --vd-arena-lateral-linea: rgba(241, 235, 221, .14); --vd-arena-lateral-fuerte: rgba(241, 235, 221, .3);
+  --vd-arena-cab-acento: #E4C590; --vd-arena-cab-foco: rgba(228, 197, 144, .45);
+  --vd-arena-barra: #1F2D4E; --vd-arena-barra-2: #2C3B5E; --vd-arena-barra-tenue: #AEB6C6; --vd-arena-barra-texto: #F1EBDD;
+  --vd-arena-barra-linea: rgba(241, 235, 221, .14); --vd-arena-barra-fuerte: rgba(241, 235, 221, .3);
+  --vd-arena-barra-pulgar: rgba(241, 235, 221, .3); --vd-arena-barra-foco: rgba(228, 197, 144, .45);
+  --vd-arena-barra-activo: #E4C590; --vd-arena-barra-activo-texto: #1F2D4E;
+  --vd-capitulo-1: #D3DCEA; --vd-capitulo-2: #E6ECF4; /* B, con el marco marino, un punto más de azul */
+  --vd-acento-relleno: #7B2232; --vd-sobre-acento: #FAF6EE;
+  --vd-radio: 8px; --vd-radio-peq: 4px; --vd-radio-tabla: 6px; --vd-pildora: 999px; --vd-radio-seg: 9px;
+  --vp-peso-titulo: 700; --vp-peso-th: 700; --vp-peso-activo: 600;
+  --vp-radio: 8px; --vp-radio-boton: 8px; --vp-radio-pestana: 999px; --vp-radio-pildora: 999px; --vp-radio-sec: 8px;
+  --vp-principal-fondo: #7B2232; --vp-principal-texto: #FAF6EE; --vp-principal-hover: #5E1A27;
+  --vp-sec-fondo-boton: #E6E9F0; --vp-sec-borde: transparent; --vp-sec-texto: #1F2D4E; --vp-sec-hover: #D6DBE6;
+  --vp-pestana-fondo: #1F2D4E; --vp-pestana-texto: #FAF6EE; --vp-pestana-raya: transparent; --vp-pestana-hover: #E6E9F0;
+  --vp-th-linea: 2px solid var(--vd-marino);
+  --vp-titsec-fondo: #1F2D4E; --vp-titsec-texto: #FAF6EE;
+}
+/* ── C · ARENA CÁLIDA. Barra lateral arena, cabecera crema con raya granate, títulos marino en letra
+   con serifa (la del sistema: New York en el Mac). El granate, más presente: botón principal y pestaña
+   elegida llenos de granate; el secundario con borde granate. Botones y pestañas en píldora, esquinas
+   de 10 px; cabecera de tabla en versalitas pequeñas con línea granate. */
+:root[data-paleta="vidaire-c"], [data-paleta="vidaire-c"] {
+  --vd-arena-lateral: #FAF6EE; --vd-arena-lateral-2: #F0E8D9; --vd-arena-lateral-texto: #1F2D4E; --vd-arena-lateral-tenue: #5B5750;
+  --vd-arena-lateral-linea: rgba(28, 35, 51, .12); --vd-arena-lateral-fuerte: rgba(28, 35, 51, .28);
+  --vd-arena-cab-acento: #7B2232; --vd-arena-cab-foco: rgba(123, 34, 50, .35);
+  --vd-arena-barra: #EFD9B4; --vd-arena-barra-2: #E6CB9C; --vd-arena-barra-tenue: #4F4A42; --vd-arena-barra-texto: #1F2D4E;
+  --vd-arena-barra-linea: rgba(28, 35, 51, .14); --vd-arena-barra-fuerte: rgba(28, 35, 51, .3);
+  --vd-arena-barra-activo: #7B2232; --vd-arena-barra-activo-texto: #FAF6EE;
+  --vd-acento-relleno: #7B2232; --vd-sobre-acento: #FAF6EE;
+  --vd-radio: 10px; --vd-radio-peq: 6px; --vd-radio-tabla: 8px; --vd-pildora: 999px; --vd-radio-seg: 999px;
+  --vp-fuente-titulo: ui-serif, 'New York', 'Iowan Old Style', Georgia, serif;
+  --vp-peso-titulo: 600; --vp-peso-th: 700; --vp-peso-activo: 600;
+  --vp-radio: 10px; --vp-radio-boton: 999px; --vp-radio-pestana: 999px; --vp-radio-pildora: 999px; --vp-radio-sec: 999px;
+  --vp-principal-fondo: #7B2232; --vp-principal-texto: #FAF6EE; --vp-principal-hover: #5E1A27;
+  --vp-sec-fondo-boton: transparent; --vp-sec-borde: #7B2232; --vp-sec-texto: #7B2232; --vp-sec-hover: #F4E4E6;
+  --vp-pestana-fondo: #7B2232; --vp-pestana-texto: #FAF6EE; --vp-pestana-raya: transparent; --vp-pestana-hover: #F4E4E6;
+  --vp-th-mayus: uppercase; --vp-th-tam: 11px; --vp-th-interletra: .05em; --vp-th-linea: 1.5px solid var(--vd-granate);
+  --vp-titsec-fondo: #F1E3C8; --vp-titsec-texto: #1F2D4E; --vp-titsec-mayus: none;
+}
+
+/* ── VIDAIRE (la final, 8-nov; JC: «me flipa la foto 1 y la 2 y esos botones granate, un mix sería
+   idílico»). La barra lateral marino de B (el único fondo marino; la cabecera, crema), contenido crema y denso, con lo de C
+   (títulos con serifa del sistema, azules suaves de capítulo, píldora activa granate). En la barra
+   marina el activo va lleno de granate con letra crema (9,9:1) y una raya arena a la izquierda, porque
+   granate y marino se parecen en luminosidad y la raya es lo que lo separa sin depender del tono.
+   Botón principal y pestaña elegida: granate lleno. Secundario («Cancelar»): con borde, sin relleno. */
+:root[data-paleta="vidaire"], [data-paleta="vidaire"] {
+  /* Caudal por encima del de proyecto (morado, JC 25-oct): estado propio del móvil. */
+  --vd-alto: #6A1B9A; --vd-alto-fondo: #F3E8F9;
+  /* La cabecera de arriba, sin marino (JC, 8-nov: «sobrecarga mucho; el fondo azul solo para la barra
+     lateral»): crema como el contenido, título marino con serifa y una línea fina debajo. */
+  --vd-arena-lateral: #FAF6EE; --vd-arena-lateral-2: #F0E8D9; --vd-arena-lateral-texto: #1F2D4E; --vd-arena-lateral-tenue: #5B5750;
+  --vd-arena-lateral-linea: rgba(28, 35, 51, .14); --vd-arena-lateral-fuerte: rgba(28, 35, 51, .28);
+  --vd-arena-cab-acento: #7B2232; --vd-arena-cab-foco: rgba(123, 34, 50, .35);
+  --vd-arena-barra: #1F2D4E; --vd-arena-barra-2: #2C3B5E; --vd-arena-barra-tenue: #AEB6C6; --vd-arena-barra-texto: #F1EBDD;
+  --vd-arena-barra-linea: rgba(241, 235, 221, .14); --vd-arena-barra-fuerte: rgba(241, 235, 221, .3);
+  --vd-arena-barra-pulgar: rgba(241, 235, 221, .3); --vd-arena-barra-foco: rgba(228, 197, 144, .45);
+  --vd-arena-barra-activo: #7B2232; --vd-arena-barra-activo-texto: #FAF6EE; --vd-arena-marca: #E4C590;
+  --vd-acento-relleno: #7B2232; --vd-sobre-acento: #FAF6EE;
+  --vd-radio: 8px; --vd-radio-peq: 4px; --vd-radio-tabla: 6px; --vd-pildora: 999px; --vd-radio-seg: 999px;
+  --vp-fuente-titulo: ui-serif, 'New York', 'Iowan Old Style', Georgia, serif;
+  --vp-peso-titulo: 600; --vp-peso-th: 700; --vp-peso-activo: 600;
+  --vp-radio: 8px; --vp-radio-boton: 8px; --vp-radio-pestana: 999px; --vp-radio-pildora: 999px; --vp-radio-sec: 8px;
+  --vp-principal-fondo: #7B2232; --vp-principal-texto: #FAF6EE; --vp-principal-hover: #5E1A27;
+  --vp-sec-fondo-boton: transparent; --vp-sec-borde: #6B7590; --vp-sec-texto: #1F2D4E; --vp-sec-hover: #E6E9F0;
+  --vp-pestana-fondo: #7B2232; --vp-pestana-texto: #FAF6EE; --vp-pestana-raya: transparent; --vp-pestana-hover: #E6E9F0;
+  --vp-th-linea: 2px solid var(--vd-marino);
+  /* 8-nov, JC: los títulos de bloque («ESTA SEMANA»…) sin fondo, en texto marino; el fondo marino, SOLO la barra lateral. */
+  --vp-titsec-fondo: transparent; --vp-titsec-texto: #1F2D4E;
+  /* 8-nov, JC: los botones de apuntar o registrar (clase .apuntar) en marino, no en granate. */
+  --vp-apuntar-fondo: #1F2D4E; --vp-apuntar-texto: #FAF6EE; --vp-apuntar-hover: #14203A;
+}
+
+/* ── Vidaire en OSCURO (8-nov, JC: «adapta el tema oscuro a la paleta Vidaire»). ───────────────────────
+   Antes el bloque común de paleta pisaba los tokens del tema y el oscuro salía claro. Aquí, con más
+   especificidad (0,3,0), se redefinen los colores base y todo lo que bebe de ellos se oscurece solo:
+   fondo marino noche, letra crema, el marino como letra pasa a azul claro y el granate a rosa vino.
+   La barra lateral sigue en marino #1F2D4E; el botón principal y la pestaña, granate lleno con crema.
+   Contraste AA: test/paletaVidaireOscuro.test.js. */
+:root[data-tema='oscuro'][data-paleta="vidaire"], [data-tema='oscuro'][data-paleta="vidaire"] {
+  --vd-alto: #D2A8F0; --vd-alto-fondo: #2B1A3A;
+  --vd-crema: #141B2D; --vd-crema-2: #1E2742; --vd-cebra: #18203A;
+  --vd-tinta: #EDE6D8; --vd-gris-calido: #B3AC9F;
+  --vd-marino: #B8C4E0; --vd-marino-2: #9FB0D6; --vd-marino-tinte: #24304F;
+  --vd-granate: #E8A3AE; --vd-granate-oscuro: #F2C2CA; --vd-granate-tinte: #3A2028;
+  --vd-arena-tinte: #362E20;
+  --vd-exito: #8FD1A6; --vd-exito-fondo: #17301F;
+  --vd-aviso: #F0B862; --vd-aviso-fondo: #33260F;
+  --vd-error: #FF9A85; --vd-error-fondo: #3A1A14; --vd-error-fuerte: #E8A3AE;
+  --vd-info: #93BDEB; --vd-info-fondo: #142A42;
+  --vd-arena-linea: rgba(237, 230, 216, .12); --vd-linea-fuerte: rgba(237, 230, 216, .28); --borde: rgba(237, 230, 216, .28);
+  --vd-grave-panel: #2A1A1E;
+  --vd-capitulo-1: #26324F; --vd-capitulo-2: #1E2843; --vd-capitulo-3: #19223A; --vd-capitulo-texto: #DCE3F2;
+  /* La cabecera de arriba: del color del contenido, letra azul claro. */
+  --vd-arena-lateral: #141B2D; --vd-arena-lateral-2: #1E2742; --vd-arena-lateral-texto: #DCE3F2; --vd-arena-lateral-tenue: #B3AC9F;
+  --vd-arena-lateral-linea: rgba(237, 230, 216, .14); --vd-arena-lateral-fuerte: rgba(237, 230, 216, .3);
+  --vd-arena-cab-acento: #E8A3AE; --vd-arena-cab-foco: rgba(232, 163, 174, .35);
+  /* La barra lateral, la de siempre (marino); un pelo de borde para separarla del fondo noche. */
+  --vd-arena-barra: #1F2D4E; --vd-arena-barra-2: #2C3B5E;
+  --vp-sec-borde: #8A93AB; --vp-sec-texto: #DCE3F2; --vp-sec-hover: #24304F; --vp-pestana-hover: #24304F;
+  --vp-titsec-texto: #DCE3F2;
+  --vp-apuntar-fondo: #2C3B5E; --vp-apuntar-texto: #FAF6EE; --vp-apuntar-hover: #3A4D7A;
+  --vd-foco: rgba(232, 163, 174, .45);
+  color-scheme: dark;
+}
+/* Lo que en las piezas va con un rgba de tinta (pensado para crema), en claro sobre el fondo noche. */
+[data-tema='oscuro'][data-paleta="vidaire"] #lienzo :is(input:not([type=checkbox]):not([type=radio]), select, textarea),
+[data-tema='oscuro'][data-paleta="vidaire"] :is(dialog, .modal) :is(input:not([type=checkbox]):not([type=radio]), select, textarea) { border-color: rgba(237, 230, 216, .45); background-color: #1A2238; color: var(--vd-tinta); }
+[data-tema='oscuro'][data-paleta="vidaire"] :is(button, .boton):disabled, [data-tema='oscuro'][data-paleta="vidaire"] :is(button, .boton)[aria-disabled="true"] { border-color: rgba(237, 230, 216, .14) !important; }
+[data-tema='oscuro'][data-paleta="vidaire"] input[type='checkbox']:not(.ncCasilla):checked { background: #2C3B5E; border-color: var(--vd-marino); }
+[data-tema='oscuro'][data-paleta="vidaire"] input[type='checkbox']:not(.ncCasilla)::before { background: var(--vd-tinta); }
+[data-tema='oscuro'][data-paleta="vidaire"] .app > .lateral { box-shadow: inset -1px 0 0 rgba(237, 230, 216, .1); }
+/* El segmento «Viendo: Estudio · Venta · Obra» del presupuesto lleva letra blanca fija (presupuestoFijas.css:24): fondo marino 2. */
+[data-tema='oscuro'][data-paleta="vidaire"] .pantallaPresupuesto .vistasP > .vistas > .chip.activo { background: #2C3B5E !important; }
+

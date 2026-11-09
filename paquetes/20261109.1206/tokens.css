@@ -1,0 +1,182 @@
+/* ═══════════════════════════════════════════════════════════════════
+   GENERADO POR scripts/generarTokens.js — NO EDITAR A MANO.
+   Los colores viven en marca/colores.js. Cambia allí y vuelve a generar:
+       node scripts/generarTokens.js
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* El alto de la pila de avisos flotantes: lo pone avisos.js. */
+  --altoAvisos: 0px;
+  /* ── Marca CBRE ───────────────────────────────────────────────── */
+  --marca-verde: #003F2D;
+  --marca-acento: #17E88F;
+  --marca-verde-oscuro: #012A2D;
+  --marca-gris-oscuro: #435254;
+  --marca-gris-claro: #CAD1D3;
+  /* Un blanco que NO cambia con el tema: el texto sobre el verde CBRE y sobre
+     el pie de las tablas es blanco en claro y en oscuro. La variable --panel
+     no sirve ahi: en tema oscuro vale #012A2D. */
+  --blanco: #FFFFFF;
+  --marca-celadon: #80BBAD;
+  --marca-celadon-tinte: #C0D4CB;
+  --marca-wheat: #DBD99A;
+  --marca-wheat-tinte: #EFECD2;
+  --marca-cement: #7F8480;
+  --marca-cement-tinte: #CBCDCB;
+  --marca-sage: #538184;
+  --marca-sage-tinte: #96B3B6;
+  --marca-midnight: #032842;
+  --marca-midnight-tinte: #778F9C;
+
+  /* ── Interfaz (tema claro) ────────────────────────────────────── */
+  --papel: #F2FAF8;
+  --panel: #FFFFFF;
+  --panel2: #DCEFEA;
+  --panel3: #DCEFEA;
+  /* Barras de pestañas: la principal en verde claro, la subbarra en azul-teal claro. */
+  --barraPrincipal: #0E5A5A; --barraPrincipalTxt: #E3F4F2; --barraPrincipalBorde: #0A4545;
+  --barraSub: #CFEDEA; --barraSub2: #E4F5F3; --barraSubTxt: #0B4A4A; --barraSubBorde: #A9D8D3; --barraSubAct: #17807C;
+  --rejilla: #CAD1D3;
+  --rejillaSuave: #E1E6E7;
+  --borde: #7F8480;
+  --texto: #1A1A1A;
+  --textoSuave: #435254;
+  --textoTenue: #63706D;
+  --seleccion: #DFF0E8;
+  --bandaCapitulo: #C0D4CB;
+  --bandaCapitulo2: #DCEFEA;
+  /* Capítulos de las hojas (15-oct, JC: «un fondo mucho más oscuro y
+     diferenciado»). El de primer nivel, verde CBRE con letra blanca; el
+     subcapítulo, en el tono intermedio de antes. */
+  --capOscuro: #003F2D;
+  --capOscuroTexto: #FFFFFF;
+  --capMedio: #C0D4CB;
+  --capMedioTexto: #003F2D;
+  /* Bloques del libro DTM.CERT. */
+  --dtmContrato: var(--panel);
+  --dtmContratoTexto: var(--marca-verde);
+  --dtmActual: var(--panel);
+  --dtmActualTexto: var(--marca-verde);
+  --dtmAnterior: var(--panel);
+  --dtmAnteriorTexto: var(--marca-verde);
+  --dtmOrigen: var(--panel);
+  --dtmOrigenTexto: var(--marca-verde);
+  --dtmResumen: var(--capOscuro);
+  --dtmResumenTexto: var(--capOscuroTexto);
+  --destacado: #DCEFEA;
+  --destacadoCabeza: #D6E9E1;
+  --destacadoBorde: #A9CFC2;
+  --foco: #003F2D;
+  --sobreVerdeTexto: #D2E0DB;
+  --sobreVerdeLinea: #1A5443;
+  --sobreVerdeHover: #0A4B36;
+  --menuActivo: #04533A;
+  /* (18-oct) El verde CBRE como TEXTO y el texto sobre un relleno de estado. */
+  --verdeTexto: #003F2D;
+  --sobreEstado: #FFFFFF;
+
+  /* ── Estado ───────────────────────────────────────────────────── */
+  --bien: #003F2D;
+  --bien-fondo: #DFF0E8;
+  --aviso: #14507F;
+  --aviso-fondo: #E1ECF6;
+  --mal: #9C2B2B;
+  --mal-fondo: #F7DEDE;
+  --info: #0B4A63;
+  --info-fondo: #DCEAF1;
+
+  /* ── Disciplinas ──────────────────────────────────────────────── */
+  --disciplina-electricidad: #003F2D;
+  --disciplina-climatizacion: #538184;
+  --disciplina-fontaneria: #80BBAD;
+  --disciplina-pci: #9C2B2B;
+  --disciplina-control: #032842;
+  --disciplina-gases: #DBD99A;
+  --disciplina-ventilacion: #96B3B6;
+  --disciplina-otros: #7F8480;
+
+  /* ── Tipografía ───────────────────────────────────────────────── */
+  --fuente-titular: 'Financier Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --fuente-texto: 'Calibre', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --fuente-cifra: 'SF Mono', 'Segoe UI Mono', 'Roboto Mono', ui-monospace, monospace;
+
+  /* ── Escala tipográfica ───────────────────────────────────────────
+     Seis tamaños, no diez. Ver marca/colores.js.                     */
+  --letra-micro: 10.5px;
+  --letra-menor: 11.5px;
+  --letra-base: 12.5px;
+  --letra-medio: 14px;
+  --letra-mayor: 18px;
+  --letra-cifra: 24px;
+
+  /* ── Forma y ritmo ────────────────────────────────────────────────
+     Esquinas casi rectas y alturas cortas: esto es una hoja de trabajo,
+     no un panel de marketing. 27 px de fila es lo que permite ver
+     unas 30 partidas sin desplazarse en un portátil.                   */
+  --radio: 7px;
+  --radio-s: 4px;
+  /* 10-oct (Juan Carlos: «moderna, minimalista, tarjetas redondeadas, con franjas»):
+     los bloques del inicio y las cifras son tarjetas redondeadas; las celdas siguen rectas. */
+  --radio-tarjeta: 14px;
+  --alto-fila: 27px;
+  --alto-cabecera: 30px;
+  --barra-lateral: 236px;
+
+  /* Casi sin sombra: lo que separa es la línea. */
+  --sombra: 0 1px 2px rgba(0, 63, 45, 0.05), 0 6px 18px rgba(0, 63, 45, 0.06);
+  --sombra-alta: 0 12px 30px rgba(1, 42, 45, 0.16);
+}
+
+:root[data-tema='oscuro'] {
+  --papel: #001E19;
+  --panel: #012A2D;
+  --panel2: #043534;
+  --panel3: #0A413E;
+  --barraPrincipal: #0E5A5A; --barraPrincipalTxt: #E3F4F2; --barraPrincipalBorde: #0A4545;
+  --barraSub: #0F4A4C; --barraSub2: #0B3A3C; --barraSubTxt: #D7F0ED; --barraSubBorde: #1F6B6B; --barraSubAct: #1B7F7B;
+  --rejilla: #1C4A45;
+  --rejillaSuave: #143B37;
+  --borde: #628680;
+  --texto: #EAF1EE;
+  --textoSuave: #A9BDB7;
+  --textoTenue: #7E918C;
+  --seleccion: #0C4A38;
+  --bandaCapitulo: #124C42;
+  --bandaCapitulo2: #0A413E;
+  --capOscuro: #2A6A62;
+  --capOscuroTexto: #FFFFFF;
+  --capMedio: #124C42;
+  --capMedioTexto: #EAF1EE;
+  --dtmContrato: var(--panel);
+  --dtmContratoTexto: var(--texto);
+  --dtmActual: var(--panel);
+  --dtmActualTexto: var(--texto);
+  --dtmAnterior: var(--panel);
+  --dtmAnteriorTexto: var(--texto);
+  --dtmOrigen: var(--panel);
+  --dtmOrigenTexto: var(--texto);
+  --dtmResumen: var(--capOscuro);
+  --dtmResumenTexto: var(--capOscuroTexto);
+  --destacado: #012A2D;
+  --destacadoCabeza: #0D4A47;
+  --destacadoBorde: #2A6A62;
+  --foco: #17E88F;
+  --sobreVerdeTexto: #D2E0DB;
+  --sobreVerdeLinea: #1A5443;
+  --sobreVerdeHover: #0A4B36;
+  --menuActivo: #04533A;
+  --verdeTexto: #8FD1BE;
+  --sobreEstado: #001E19;
+  /* (18-oct) Los estados en oscuro (ESTADO_OSCURO de marca/colores.js): los de
+     claro daban 1,28:1 (bien) y 2,04:1 (mal) sobre el panel. */
+  --bien: #5FD39E;
+  --bien-fondo: #0C3F31;
+  --aviso: #8DBBEA;
+  --aviso-fondo: #14273B;
+  --mal: #FF9E92;
+  --mal-fondo: #4A1F1F;
+  --info: #8CC6E0;
+  --info-fondo: #0E3445;
+  --sombra: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --sombra-alta: 0 14px 34px rgba(0, 0, 0, 0.6);
+}

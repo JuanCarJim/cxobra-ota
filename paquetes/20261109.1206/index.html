@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<!-- maximum-scale=1 (29-oct): el iPhone amplía la página al tocar un campo con
+     letra de menos de 16 px (las lecturas de la toma de datos van a 14-15 px) y
+     no la devuelve a su tamaño: desde ahí todo salía cortado por la derecha y
+     la cabecera se metía bajo la hora. Con esto no amplía al escribir; en
+     Safari se sigue pudiendo ampliar con dos dedos. -->
+
+<meta name="robots" content="noindex">
+<title>Vidaire Cx</title>
+<!-- CX OBRA: la app del móvil de la obra. Barra flotante abajo según el rol
+     (Inicio · X · [+] · Y · Más, barraRol.js) y, dentro de cada una, sus
+     secciones arriba; la obra se elige una vez en la cabecera y vale
+     para todas (carcasa.js). Cada sección es un script que se activa con su
+     dirección: #commissioning, #partes, #ncr, #albaranes, #inventario, #bloc,
+     #personal, #estanqueidad y #cuenta.
+     La sirve la app del ordenador por la wifi (electron/movil/servidor.js), y
+     las direcciones son relativas porque todo cuelga de /m/<llave>/. acceso.js
+     va el primero: pide el correo y la contraseña y deja solo las secciones
+     del rol (el ordenador lo vuelve a comprobar en cada petición).
+     Instalable (PWA): Safari › Compartir › Añadir a pantalla de inicio. -->
+<link rel="apple-touch-icon" href="iconos/icono-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="iconos/icono-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="iconos/icono-192.png">
+<meta name="theme-color" content="#FAF6EE"><meta name="color-scheme" content="only light"><!-- el script de abajo lo cambia solo si se pide el oscuro -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Vidaire Cx">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="vidaire-tokens.css">
+<script>
+/* La paleta Vidaire y su tema (9-nov): antes de pintar, para que no parpadee. SIEMPRE claro/arena como el escritorio
+   (JC, 9-nov): el oscuro solo si se pide a propósito (?tema=oscuro o lo guardado); el tema del teléfono NO cuenta. */
+(function () {
+  var r = document.documentElement; r.setAttribute('data-paleta', 'vidaire');
+  var t = ''; try { t = (/[?&]tema=(claro|oscuro)/.exec(location.search) || [])[1] || localStorage.getItem('cx-tema') || ''; } catch (e) {}
+  r.style.colorScheme = 'light';
+  if (t === 'oscuro') { r.setAttribute('data-tema', 'oscuro'); r.style.colorScheme = 'dark'; var m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', '#141B2D'); }
+})();
+</script>
+<link rel="stylesheet" href="movil.css">
+<link rel="stylesheet" href="mantenimiento.css">
+<link rel="stylesheet" href="iarvis.css">
+<link rel="stylesheet" href="kpiFranja.css">
+<style>.arranque-ipad,.arranque-cx{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#F4F6F5;z-index:9999}html[data-tema="oscuro"] .arranque-ipad,html[data-tema="oscuro"] .arranque-cx{background:#161618}.arq-aguja{transform-origin:90px 88px;animation:arqAguja 2.4s ease-in-out infinite}@keyframes arqAguja{0%{transform:rotate(-40deg)}35%{transform:rotate(18deg)}55%{transform:rotate(-8deg)}70%,100%{transform:rotate(0)}}@media (prefers-reduced-motion:reduce){.arq-aguja{animation:none}}.arq-aviso{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:min(560px,calc(100vw - 32px));padding:9px 14px;border-radius:10px;background:#fff;color:#435254;border:1px solid #D9E0DE;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.08);white-space:pre-wrap;word-break:break-word}.arq-aviso.arq-mal{border-color:#E3BDBD;color:#9C2B2B}.arq-reintentar{margin-left:6px;border:1px solid #13957A;color:#0E7C66;background:transparent;border-radius:8px;padding:3px 10px;font:inherit;cursor:pointer}</style>
+</head>
+<body>
+  <header class="barra">
+    <div class="barra-fila">
+      <h1 id="titulo-seccion">Vidaire Cx</h1>
+      <div class="quien" id="quien"></div>
+    </div>
+    <label class="obra-movil" id="obra-movil-caja" hidden><span>Obra</span><select id="obra-movil" aria-label="Obra"></select></label>
+  </header>
+  <nav class="segmentos" id="segmentos" aria-label="Secciones" hidden></nav>
+  <main id="app" class="densa" aria-live="polite"></main>
+  <script>
+    /* 8-nov (JC): el logo de carga dentro de las pantallas es EL MISMO del arranque
+       (shared/arranqueLogo.js: la V gruesa del icono y la brújula, solo la aguja se mueve).
+       Se mete en línea en cada p.cargando (ver movil.css, .cx-carga); el SVG y su CSS
+       salen de window.ARRANQUE_LOGO (arranqueLogo.js, el primer script), nunca de una copia. */
+    (function () {
+      function logo() {
+        var A = window.ARRANQUE_LOGO;
+        if (!A) return '';
+        if (!document.getElementById('arqEstilo')) {
+          var s = document.createElement('style');
+          s.id = 'arqEstilo';
+          s.textContent = A.CSS;
+          (document.head || document.documentElement).appendChild(s);
+        }
+        return '<span class="cx-carga" aria-hidden="true">' + A.SVG + '</span>';
+      }
+      function poner(raiz) {
+        var ps = raiz && raiz.querySelectorAll ? raiz.querySelectorAll('p.cargando') : [];
+        for (var i = 0; i < ps.length; i++) {
+          if (ps[i].querySelector('.cx-carga')) continue;
+          var l = logo();
+          if (l) ps[i].insertAdjacentHTML('afterbegin', l);
+        }
+      }
+      window.cxLogoCarga = logo;
+      new MutationObserver(function (cambios) {
+        for (var i = 0; i < cambios.length; i++) for (var j = 0; j < cambios[i].addedNodes.length; j++) {
+          var n = cambios[i].addedNodes[j];
+          if (n.nodeType !== 1) continue;
+          if (n.matches && n.matches('p.cargando')) poner(n.parentNode); else poner(n);
+        }
+      }).observe(document.body, { childList: true, subtree: true });
+    })();
+  </script>
+  <input type="file" id="camara" accept="image/*,application/pdf" capture="environment" hidden>
+  <input type="file" id="galeria" accept="image/*,application/pdf" multiple hidden>
+  <input type="file" id="camara-qr" accept="image/*" capture="environment" hidden>
+  <input type="file" id="camara-parte" accept="image/*" capture="environment" hidden>
+  <input type="file" id="galeria-parte" accept="image/*" multiple hidden>
+  <input type="file" id="camara-prueba" accept="image/*" capture="environment" hidden>
+  <input type="file" id="galeria-prueba" accept="image/*" multiple hidden>
+  <nav class="barra-inferior" id="barra-inferior" aria-label="Pestañas"></nav>
+  <!-- 8-nov: Face ID, huella o PIN para ENTRAR (bloqueo.js), antes que acceso.js y que cualquier sección. -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="arranqueCx" class="arranque-cx" aria-busy="true"><svg class="arq-svg" viewBox="0 0 120 120" width="112" height="112" role="img" aria-label="Vidaire" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="arqDeg" gradientUnits="userSpaceOnUse" x1="60" y1="90.5" x2="60" y2="31.9"><stop offset="0" stop-color="#003F2D"/><stop offset=".55" stop-color="#538184"/><stop offset="1" stop-color="#80BBAD"/></linearGradient><filter id="arqSombra" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="1.9" stdDeviation="2.3" flood-color="#012A2D" flood-opacity=".3"/></filter><filter id="arqSuave" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.4"/></filter></defs><circle class="arq-aro" cx="60" cy="60" r="57" fill="none" stroke="#80BBAD" stroke-width="1" opacity=".5"/><g filter="url(#arqSombra)"><path class="arq-v" d="M27.9 31.9 L60 90.5 L92.1 31.9" fill="none" stroke="url(#arqDeg)" stroke-width="18.3" stroke-linecap="round" stroke-linejoin="round"/></g><path d="M27.9 31.9 L60 90.5 L92.1 31.9" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" transform="translate(-1.6 -1.6)" filter="url(#arqSuave)"/><g class="arq-brujula"><circle cx="90" cy="88" r="15" fill="#1B2A4A"/><circle cx="90" cy="88" r="11.59" fill="none" stroke="#4C262D" stroke-width="1.09" opacity=".8"/><path d="M90 75.05v2.05M90 98.91v2.05M77.05 88h2.05M100.91 88h2.05" fill="none" stroke="#4C262D" stroke-width="1.36" stroke-linecap="round"/><g class="arq-aguja"><g transform="rotate(35 90 88)"><path d="M90 77.09 L94.09 88 L85.91 88 Z" fill="#5B9BD5"/><path d="M90 98.91 L94.09 88 L85.91 88 Z" fill="#F4EAD9"/></g></g><circle cx="90" cy="88" r="1.77" fill="#1B2A4A" stroke="#4C262D" stroke-width="0.82"/></g></svg></div>
+  <script src="scripts-pantalla.js"></script>
+  <script src="motor-cxobra.js"></script>
+</body>
+</html>
