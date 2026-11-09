@@ -48,7 +48,7 @@
     let i = document.getElementById(id);
     if (!i) {
       i = document.createElement('input');
-      i.type = 'file'; i.id = id; i.hidden = true; i.accept = captura ? 'image/*' : 'image/*,application/pdf';
+      i.type = 'file'; i.id = id; i.hidden = true; if (!captura) i.multiple = true; i.accept = captura ? 'image/*' : 'image/*,application/pdf';
       if (captura) i.setAttribute('capture', 'environment');
       document.body.appendChild(i);
     }
@@ -445,9 +445,9 @@
   $app.addEventListener('change', recoger);
   for (const input of [$camara, $galeria]) {
     input.addEventListener('change', () => {
-      const a = input.files && input.files[0];
+      const archivos = Array.from(input.files || []);
       input.value = '';
-      archivo(a);
+      window.AUTOGUARDADO.porLotes(archivos, archivo, 'Guardando');
     });
   }
 

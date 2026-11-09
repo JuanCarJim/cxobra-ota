@@ -102,13 +102,14 @@
 
   /* Cada foto empieza a subir en cuanto se hace: al pulsar Guardar ya está arriba. */
   async function anadirFoto(destino, camara = true) {
-    const a = await CX().elegirFoto(camara);
-    if (!a) return false;
-    const l = await aligerar(a);
-    if (!l) { aviso('No se ha podido leer la foto.'); return false; }
-    const f = { vista: l.vista, subida: CX().subirFoto(l.blob).catch((e) => { aviso(e.message); return null; }) };
-    destino.push(f);
-    return true;
+    const archivos = await window.AUTOGUARDADO.elegirFotos(camara);
+    if (!archivos.length) return false;
+    const r = await window.AUTOGUARDADO.porLotes(archivos, async (a) => {
+      const l = await aligerar(a);
+      if (!l) throw new Error('No se ha podido leer la foto.');
+      destino.push({ vista: l.vista, subida: CX().subirFoto(l.blob).catch((e) => { aviso(e.message); return null; }) });
+    }, 'Subiendo');
+    return r.hechas > 0;
   }
   const idsDe = async (fotos) => (await Promise.all(fotos.map((f) => f.subida))).filter(Boolean);
 

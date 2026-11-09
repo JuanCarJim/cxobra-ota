@@ -25,7 +25,8 @@
    */
   const PESTANAS = {
     inicio: { nombre: 'Inicio', secciones: [['inicio', 'Inicio'], ['misTareas', 'Mis tareas']] },
-    commissioning: { nombre: 'Commissioning', secciones: [['commissioning', 'Equipos'], ['estanqueidad', 'Estanqueidad', true]] },
+    /* 9-nov (JC): «En lugar de Commissioning pon Cx». */
+    commissioning: { nombre: 'Cx', secciones: [['commissioning', 'Equipos'], ['estanqueidad', 'Estanqueidad', true]] },
     /* Lo mismo que Commissioning, con el nombre que usa el técnico: lo que mide son equipos. */
     equipos: { nombre: 'Equipos', secciones: [['commissioning', 'Equipos'], ['estanqueidad', 'Estanqueidad', true]] },
     avance: { nombre: 'Avance', secciones: [['avance', 'Avance']] },

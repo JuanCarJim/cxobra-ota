@@ -140,13 +140,13 @@ body:has(.plano-bocas.grande, .vista-pdf, .visor-foto, .visor-foto-ui, .bm-capa,
   box-shadow: 0 6px 14px rgba(15, 23, 42, .14), 0 1px 3px rgba(15, 23, 42, .06);
 }
 .barra-inferior a {
-  flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 3px;
+  flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 3px;
   color: var(--textoTenue); text-decoration: none; font-size: 10.5px; font-weight: 500; letter-spacing: -.005em;
   -webkit-tap-highlight-color: transparent;
 }
 .barra-inferior a span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-/* «Commissioning» es la palabra larga: su pestaña, algo más ancha, para que no se corte. */
-.barra-inferior a:first-child { flex: 1.4; }
+/* 9-nov (JC): todas las pestañas del mismo ancho (y el hueco de relleno) para que el «+» quede en el centro. */
+.barra-inferior .pestana-hueco { flex: 1 1 0; min-width: 0; }
 .barra-inferior a svg { width: 24px; height: 24px; }
 .barra-inferior a .on { display: none; }
 .barra-inferior a.activa { color: var(--acento); font-weight: 700; }
@@ -1363,11 +1363,9 @@ main, #app { min-width: 0; max-width: 100%; }
 .faltan-hoja .enlace { padding: 0; color: inherit; font-weight: 600; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); text-underline-offset: 2px; }
 /* Propuesta 4: «Avisar con un parte» dentro del aviso del modelo. */
 .nota.aviso .enlace { padding: 0; color: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
-/* Barra inferior: «Commissioning» e «Incidencias» enteras (antes se ensanchaba Inicio). */
+/* Barra inferior: letra algo más pequeña para que «Reclamables» y «Reparaciones» quepan enteras;
+   9-nov (JC): todas las pestañas del mismo ancho, para que el «+» quede en el centro. */
 .barra-inferior a { font-size: 10px; letter-spacing: -.02em; }
-.barra-inferior a:first-child { flex: 1; }
-.barra-inferior a.pestana-commissioning { flex: 1.6; }
-.barra-inferior a.pestana-reclamables, .barra-inferior a.pestana-reparaciones { flex: 1.5; }
 .barra-centro { width: 64px; }
 .barra-pastilla { padding-left: 4px; padding-right: 4px; }
 /* Seis cifras: 3 + 3 en el teléfono, una fila en el iPad; nunca una suelta abajo. */

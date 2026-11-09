@@ -1736,12 +1736,12 @@
   const fotosEquipoEnCurso = new Set();
   async function fotoEquipo(boton) {
     if (!ficha) return;
-    const archivo = await C.elegirFoto(!boton.dataset.galeria);
-    if (!archivo || !ficha) return;
+    const archivos = await AG.elegirFotos(!boton.dataset.galeria);
+    if (!archivos.length || !ficha) return;
     /* data-equipo: la foto de una UI hecha desde la pantalla de su UE (VRF). */
     const equipoId = boton.dataset.equipo || ficha.equipo.id;
     const pie = boton.dataset.pie === 'Otra' ? '' : boton.dataset.pie;
-    return guardarFotoEquipo(archivo, equipoId, pie, boton);
+    await AG.porLotes(archivos, (archivo) => guardarFotoEquipo(archivo, equipoId, pie, boton), 'Subiendo');
   }
   /* Guarda la foto en el teléfono, la sube y la une al equipo (o a la UI de un VRF). */
   async function guardarFotoEquipo(archivo, equipoId, pie, boton = null, { despues = null } = {}) {
@@ -2740,12 +2740,16 @@
    * el teléfono y se sube sola después; la ficha no la pierde.
    */
   async function fotoHoja(camara) {
-    const archivo = await C.elegirFoto(camara);
-    if (!archivo || !hoja) return;
+    const archivos = await AG.elegirFotos(camara);
+    if (!archivos.length || !hoja) return;
     const h = hoja;
-    const x = AG ? await AG.fotoNueva(archivo, { id: null, pie: '', hora: ahoraEs(), t: Date.now() })
-      : { id: null, pie: '', hora: ahoraEs(), t: Date.now(), archivo, url: URL.createObjectURL(archivo) };
-    h.nuevas.push(x);
+    const nuevas = [];
+    await AG.porLotes(archivos, async (archivo) => {
+      const x = AG ? await AG.fotoNueva(archivo, { id: null, pie: '', hora: ahoraEs(), t: Date.now() })
+        : { id: null, pie: '', hora: ahoraEs(), t: Date.now(), archivo, url: URL.createObjectURL(archivo) };
+      h.nuevas.push(x);
+      nuevas.push(x);
+    }, 'Guardando');
     cambio(h);
     if (hoja === h && activa()) {
       const y = window.scrollY;
@@ -2754,7 +2758,8 @@
       const pies = $app.querySelectorAll('[data-h-pie]');
       if (pies.length) pies[pies.length - 1].focus();
     }
-    try { await subirFotoNueva(x); escribirBorrador(h); } catch { /* se sube al guardar */ }
+    for (const x of nuevas) { try { await subirFotoNueva(x); } catch { /* se sube al guardar */ } }
+    try { escribirBorrador(h); } catch { /* nada */ }
   }
   async function subirFotoNueva(x) {
     if (x.id) return x.id;

@@ -534,9 +534,14 @@
 
   for (const input of [$camara, $galeria]) {
     input.addEventListener('change', () => {
-      const archivo = input.files && input.files[0];
+      const archivos = Array.from(input.files || []);
       input.value = '';
-      fotoNueva(archivo);
+      /* Varias de golpe: la primera abre el albarán y las demás se suman como otras hojas. */
+      (async () => {
+        const hacer = async (a) => { await fotoNueva(a); };
+        if (AG && AG.porLotes && archivos.length > 1) await AG.porLotes(archivos, hacer, 'Subiendo');
+        else for (const a of archivos) await hacer(a);
+      })();
     });
   }
 

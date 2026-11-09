@@ -60,7 +60,7 @@
     I.ultima = c ? Number(c.ultima) : 0;
   }
   /** Para las pruebas: el estado de la conversación de esta vez. */
-  const _charla = { leerCharla, caducar, actividad, CADUCA_MS };
+  const _charla = { leerCharla, caducar, actividad, CADUCA_MS, pintarPropuestas: (f) => pintarPropuestas(f) };
 
   function adaptadorDelPuente() {
     const p = window.puente;
@@ -117,8 +117,36 @@
     return `${pdfs}${botones ? `<div class="iaAcciones">${botones}</div>` : ''}`;
   }
 
+  /*
+   * 9-nov (JC): mientras contesta, la brújula de Iarvis latiendo y un verbo que rota cada
+   * ~1,7 s en el idioma de la app (shared/ia/verbosEspera.js); si está haciendo algo concreto
+   * («Leyendo la placa…», «Buscando la UTA-01…»), dice eso. Con prefers-reduced-motion no se
+   * mueve (iarvis.css): solo el verbo.
+   */
+  const idiomaApp = () => { try { return (I.contexto && (I.contexto() || {}).idioma) || document.documentElement.lang || 'es'; } catch { return 'es'; } };
+  function verboDe(f, n = 0) {
+    const E = window.IARVIS_ESPERA;
+    if (!E) return 'Pensando…';
+    const fijo = E.haciendo(idiomaApp(), f && f.haciendo);
+    if (fijo) return fijo;
+    const l = E.verbos(idiomaApp());
+    return l[n % l.length];
+  }
+  function pintarPensando(f) {
+    const brujula = (window.ARRANQUE_LOGO && window.ARRANQUE_LOGO.BRUJULA) || '<span aria-hidden="true">🧭</span>';
+    return `<div class="iaRespuesta iaEspera iaPensando" role="status" aria-live="polite"><span class="iaBrujulaViva" aria-hidden="true">${brujula}</span><span class="iaVerbo" data-ia-verbo="${f && f.haciendo ? 'fijo' : 'rota'}">${esc(verboDe(f, 0))}</span></div>`;
+  }
+  let vueltaVerbo = 0;
+  /* Sin temporizador (el banco de carga de pantallaCarga.test.js), el verbo se queda quieto. */
+  if (typeof setInterval === 'function') setInterval(() => {
+    const vivos = document.querySelectorAll('.iaVerbo[data-ia-verbo="rota"]');
+    if (!vivos.length) return;
+    vueltaVerbo += 1;
+    for (const v of vivos) v.textContent = verboDe(null, vueltaVerbo);
+  }, (window.IARVIS_ESPERA && window.IARVIS_ESPERA.CADA) || 1700);
+
   function pintarRespuesta(f) {
-    if (!f.respuesta) return `<div class="iaRespuesta iaEspera"><span class="iaPuntos"><i></i><i></i><i></i></span> Mirándolo en la app…</div>`;
+    if (!f.respuesta) return pintarPensando(f);
     const espera = f.estado === 'pendiente' || f.estado === 'respondiendo';
     const valorable = f.estado === 'respondida' && f.id;
     const pie = valorable ? `<div class="iaPie">
@@ -130,7 +158,8 @@
   function pintarPropuestas(f) {
     const A = window.IarvisAdjuntos;
     const adj = Array.isArray(f.adjuntos) ? f.adjuntos : [];
-    if (!A || !adj.length) return '';
+    /* 9-nov: si la respuesta ya hace algo con las fotos (la tarjeta de la ficha), sin nota aparte. */
+    if (!A || !adj.length || f.fotosEnTarjeta) return '';
     return adj.map((a) => {
       const d = A.proponerDestino(a.tipo);
       if (d.estado === 'importa') return `<div class="iaPropuesta">«${esc(a.nombre)}»: ${esc(d.accion)}.<button data-ia-confirmar="${esc(d.pantalla)}">Confirmar</button></div>`;
@@ -203,7 +232,8 @@
     I.ficheros = [];
     pintarFicheros();
     caja.value = '';
-    const provisional = { id: null, pregunta, adjuntos, estado: 'respondiendo', respuesta: null };
+    const nFotos = adjuntos.filter((a) => /^image\//.test(String(a.tipo || a.mime || '')) || /\.(jpe?g|png|heic|heif|webp)$/i.test(String(a.nombre || ''))).length;
+    const provisional = { id: null, pregunta, adjuntos, estado: 'respondiendo', respuesta: null, haciendo: window.IARVIS_ESPERA ? window.IARVIS_ESPERA.adivinar(pregunta, { fotos: nFotos }) : null };
     I.filas = [provisional, ...I.filas];
     I.deEstaVez.add(provisional);
     pintar();

@@ -25,7 +25,7 @@
 <link rel="apple-touch-icon" href="iconos/icono-180.png">
 <link rel="icon" type="image/png" sizes="32x32" href="iconos/icono-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="iconos/icono-192.png">
-<meta name="theme-color" content="#FAF6EE"><!-- el script de abajo lo cambia en oscuro -->
+<meta name="theme-color" content="#FAF6EE"><meta name="color-scheme" content="only light"><!-- el script de abajo lo cambia solo si se pide el oscuro -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -33,13 +33,13 @@
 <link rel="stylesheet" href="tokens.css">
 <link rel="stylesheet" href="vidaire-tokens.css">
 <script>
-/* La paleta Vidaire y su tema (9-nov): antes de pintar, para que no parpadee. Claro u oscuro: ?tema= en la
-   dirección, lo guardado, o el del teléfono. */
+/* La paleta Vidaire y su tema (9-nov): antes de pintar, para que no parpadee. SIEMPRE claro/arena como el escritorio
+   (JC, 9-nov): el oscuro solo si se pide a propósito (?tema=oscuro o lo guardado); el tema del teléfono NO cuenta. */
 (function () {
   var r = document.documentElement; r.setAttribute('data-paleta', 'vidaire');
   var t = ''; try { t = (/[?&]tema=(claro|oscuro)/.exec(location.search) || [])[1] || localStorage.getItem('cx-tema') || ''; } catch (e) {}
-  if (!t) t = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'oscuro' : 'claro';
-  if (t === 'oscuro') { r.setAttribute('data-tema', 'oscuro'); var m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', '#141B2D'); }
+  r.style.colorScheme = 'light';
+  if (t === 'oscuro') { r.setAttribute('data-tema', 'oscuro'); r.style.colorScheme = 'dark'; var m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', '#141B2D'); }
 })();
 </script>
 <link rel="stylesheet" href="movil.css">
@@ -94,14 +94,15 @@
     })();
   </script>
   <input type="file" id="camara" accept="image/*,application/pdf" capture="environment" hidden>
-  <input type="file" id="galeria" accept="image/*,application/pdf" hidden>
+  <input type="file" id="galeria" accept="image/*,application/pdf" multiple hidden>
   <input type="file" id="camara-qr" accept="image/*" capture="environment" hidden>
   <input type="file" id="camara-parte" accept="image/*" capture="environment" hidden>
   <input type="file" id="galeria-parte" accept="image/*" multiple hidden>
   <input type="file" id="camara-prueba" accept="image/*" capture="environment" hidden>
-  <input type="file" id="galeria-prueba" accept="image/*" hidden>
+  <input type="file" id="galeria-prueba" accept="image/*" multiple hidden>
   <nav class="barra-inferior" id="barra-inferior" aria-label="Pestañas"></nav>
   <!-- 8-nov: Face ID, huella o PIN para ENTRAR (bloqueo.js), antes que acceso.js y que cualquier sección. -->
+
 
 
 

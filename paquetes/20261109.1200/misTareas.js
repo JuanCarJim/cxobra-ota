@@ -457,7 +457,11 @@
   }
 
   async function foto(camara) {
-    const archivo = await C.elegirFoto(camara);
+    const archivos = await AG.elegirFotos(camara);
+    if (!archivos.length || !abierta) return;
+    await AG.porLotes(archivos, fotoUna, 'Subiendo');
+  }
+  async function fotoUna(archivo) {
     if (!archivo || !abierta) return;
     const ordenId = abierta.orden.id;
     /* La foto, en el teléfono antes de subirla: sin red se sube sola después. */
