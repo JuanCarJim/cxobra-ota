@@ -121,6 +121,14 @@
     </div>`;
   }
 
+  /* Sin planos de avance pero con los de planta o de UTA (NCN): se dice, para que no parezca que no hay planos. */
+  function otrosTexto() {
+    const o = datos.otrosPlanos;
+    if (!o || (!o.plantas && !o.bocas)) return '';
+    const p = [o.plantas ? `${o.plantas} plano${o.plantas > 1 ? 's' : ''} de planta` : '', o.bocas ? `${o.bocas} plano${o.bocas > 1 ? 's' : ''} de UTA` : ''].filter(Boolean).join(' y ');
+    return ` La obra tiene ${p} (en Commissioning), pero no son planos de avance.`;
+  }
+
   function pintarLista() {
     const tabs = [['planos', `Planos ${datos.planos.length}`], ['material', `Fuera de ppto ${materiales.filter((m) => m.estado === 'pendiente').length || ''}`.trim()]];
     if (pendientes) tabs.push(['revisar', `Por revisar ${pendientes.length}`]);
@@ -132,7 +140,7 @@
             <div class="fila-principal"><strong>${esc(p.nombre)}</strong><span class="sub">${esc(p.planta)}</span></div>
             <div class="sub">${esc((PL.DISCIPLINAS[p.disciplina] || PL.DISCIPLINAS.otra).nombre)} · ${p.capas.map((c) => esc(c.nombre)).join(', ')}${p.escala ? '' : ' · <strong class="mal">sin escala: no mide</strong>'}</div>
           </button></li>`).join('')}</ul>`
-        : '<p class="vacio">Todavía no hay planos. Los sube el jefe de obra desde el ordenador (Documentación › Planos). Aquí sale solo la versión vigente de cada plano.</p>';
+        : `<p class="vacio">Todavía no hay planos de avance. Los sube el jefe de obra desde el ordenador (Documentación › Planos). Aquí sale solo la versión vigente de cada plano.${otrosTexto()}</p>`;
     } else if (pestana === 'material') {
       cuerpo = `${datos.puede.crear ? '<button class="boton grande" data-av="material-nuevo">＋ Material no previsto</button>' : ''}
         <p class="nota">Lo que has tenido que poner y no estaba en el presupuesto. El jefe de obra lo acepta y entra como coste y como posible orden de cambio.</p>
