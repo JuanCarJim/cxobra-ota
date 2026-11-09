@@ -30,10 +30,10 @@
   const CHARLA = 'vidaire.iarvis.charla';
   const CADUCA_MS = 2 * 60 * 60 * 1000;
   const NOMBRES_PANTALLA = {
-    presupuestos: 'Presupuestos', presupuestoObra: 'Presupuesto de obra', medObra: 'Med Obra', certificaciones: 'Certificaciones',
+    presupuestos: 'Presupuestos', presupuestoObra: 'Presupuesto de obra', medObra: 'Medición real de obra', certificaciones: 'Certificaciones',
     compras: 'Compras', comparativos: 'Comparativos', gantt: 'Gantt', commissioning: 'Commissioning', documentacion: 'Documentación',
     balanceo: 'Balanceo', reclamaciones: 'Reclamaciones', incidencias: 'Incidencias', partes: 'Partes', actas: 'Actas', tareas: 'Tareas',
-    pedidos: 'Pedidos', documentacionProyecto: 'Documentación del proyecto', planosObra: 'Planos', facturasProveedor: 'Facturas',
+    pedidos: 'Pedidos', documentacionProyecto: 'Documentos del proyecto', planosObra: 'Planos', facturasProveedor: 'Facturas',
   };
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -460,6 +460,8 @@
   function abrir() {
     if (!I.panel) return;
     I.panel.hidden = false;
+    /* 9-nov (JC): el panel empuja el contenido en vez de tapar lo que hay debajo (iarvis.css › body.iaAbierto). */
+    if (!I.movil) document.body.classList.add('iaAbierto');
     /* 8-nov: el botón vive en la cabecera y no se esconde; solo se le quita el punto. */
     if (I.boton) { I.boton.classList.remove('conPunto'); I.boton.setAttribute('aria-expanded', 'true'); }
     caducar();
@@ -472,6 +474,7 @@
   function cerrar() {
     if (I.movil || !I.panel) return;
     I.panel.hidden = true;
+    document.body.classList.remove('iaAbierto');
     if (I.boton) I.boton.setAttribute('aria-expanded', 'false');
   }
 

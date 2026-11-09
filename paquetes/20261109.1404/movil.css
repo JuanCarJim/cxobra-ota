@@ -194,6 +194,9 @@ body:has(.plano-bocas.grande, .vista-pdf, .visor-foto, .visor-foto-ui, .bm-capa,
 .accion-rapida .ico { width: 48px; height: 48px; flex: none; border-radius: 14px; display: flex; align-items: center; justify-content: center; background: var(--acento-suave); color: var(--acento); }
 .accion-rapida .ico svg { width: 24px; height: 24px; }
 .accion-rapida b { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 13px; line-height: 1.2; font-weight: 600; }
+.hoja .ver-todas { display: block; width: 100%; min-height: 44px; margin-top: 8px; padding: 8px; background: none; border: 0; font: inherit; font-size: 15px; font-weight: 600; color: var(--acento-fuerte); text-align: center; cursor: pointer; }
+.hoja .rejilla-anadir.resto { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--rejilla); max-height: 40vh; overflow-y: auto; }
+.hoja .rejilla-anadir.resto[hidden], .hoja .ver-todas[hidden] { display: none; }
 .hoja .boton.cancelar { width: 100%; margin-top: 12px; background: var(--panel3); color: var(--texto); }
 
 main { padding: 16px 20px 40px; max-width: 640px; margin: 0 auto; }
@@ -209,11 +212,16 @@ small, .sub { color: var(--textoTenue); font-size: 13px; }
 /* Mientras carga, solo el logo animado y centrado. El texto «Cargando…» se queda
    para el lector de pantalla. 8-nov (JC): el logo es el del arranque
    (shared/arranqueLogo.js, lo mete index.html en cada p.cargando): la V gruesa del
-   icono quieta y la brújula, donde lo único animado es la aguja. */
-p.cargando { min-height: 70vh; display: flex; align-items: center; justify-content: center;
+   icono quieta y la brújula orbitando. 9-nov (JC): grande, ocupando el hueco libre
+   entre la cabecera y la barra de abajo. Solo si es lo único de la pantalla: dentro
+   de una ficha o con botones al lado se queda pequeño y no empuja lo demás. */
+p.cargando { min-height: calc(100vh - 190px); min-height: calc(100dvh - 190px);
+  display: flex; align-items: center; justify-content: center;
   font-size: 0; color: transparent; padding: 0; }
-.cx-carga { display: block; flex: none; width: 96px; height: 96px; }
-.cx-carga > svg { display: block; width: 96px; height: 96px; }
+.cx-carga { display: block; flex: none; }
+body:has(#app > p.cargando:only-child) { padding-bottom: 0; } /* la barra de abajo flota: sin esto, la carga tendría scroll */
+p.cargando:not(#app > :only-child) { min-height: 0; padding: 14px 0; }
+p.cargando:not(#app > :only-child) .arq-atomo { --arq-lado: 96px; }
 
 /* El estado vacío, igual en todas las listas (el EmptyState de CoachIn): un
    círculo gris con el icono y el texto debajo, centrado y con aire. */

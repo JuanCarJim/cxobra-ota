@@ -158,7 +158,7 @@
 }
 
 /* ── Paleta «Arena» (8-nov, JC: la de las presentaciones, «me encanta») ──────────────────────────
-   Encendida en toda la app: data-paleta="arena" en <html> (renderer/index.html, el mismo para la web).
+   Base de todas las paletas con data-paleta (9-nov: la opción «Arena» se quitó; <html> lleva data-paleta="vidaire", que redefine estos tokens).
    8-nov tarde (JC: «el fondo tiene que ser color claro, no el azul oscuro; la barra lateral tiene que
    tener también los colores»): el contenido va en CLARO —crema de fondo, pizarra de texto— y la barra
    lateral en ARENA CLARO (#f2e0c4, el tono de las píldoras de título) con letra azul pizarra, y la
@@ -425,27 +425,33 @@
    (títulos con serifa del sistema, azules suaves de capítulo, píldora activa granate). En la barra
    marina el activo va lleno de granate con letra crema (9,9:1) y una raya arena a la izquierda, porque
    granate y marino se parecen en luminosidad y la raya es lo que lo separa sin depender del tono.
-   Botón principal y pestaña elegida: granate lleno. Secundario («Cancelar»): con borde, sin relleno. */
+   Botón principal y pestaña elegida: granate lleno. Secundario («Cancelar»): con borde, sin relleno.
+   9-nov, JC: «que predomine el azul marino y el granate tenga menos protagonismo»: barra lateral arena,
+   y lo activo, el botón principal y la pestaña elegida, en marino. El tema oscuro conserva lo anterior. */
 :root[data-paleta="vidaire"], [data-paleta="vidaire"] {
+  /* 9-nov, JC: «que predomine el azul marino»: lo elegido (pestañas, pasos, ítems de la disposición) en marino, no en granate. */
+  --vd-activa-texto: #1F2D4E; --vd-activa-suave: #E6E9F0;
   /* Caudal por encima del de proyecto (morado, JC 25-oct): estado propio del móvil. */
   --vd-alto: #6A1B9A; --vd-alto-fondo: #F3E8F9;
   /* La cabecera de arriba, sin marino (JC, 8-nov: «sobrecarga mucho; el fondo azul solo para la barra
      lateral»): crema como el contenido, título marino con serifa y una línea fina debajo. */
   --vd-arena-lateral: #FAF6EE; --vd-arena-lateral-2: #F0E8D9; --vd-arena-lateral-texto: #1F2D4E; --vd-arena-lateral-tenue: #5B5750;
   --vd-arena-lateral-linea: rgba(28, 35, 51, .14); --vd-arena-lateral-fuerte: rgba(28, 35, 51, .28);
-  --vd-arena-cab-acento: #7B2232; --vd-arena-cab-foco: rgba(123, 34, 50, .35);
-  --vd-arena-barra: #1F2D4E; --vd-arena-barra-2: #2C3B5E; --vd-arena-barra-tenue: #AEB6C6; --vd-arena-barra-texto: #F1EBDD;
-  --vd-arena-barra-linea: rgba(241, 235, 221, .14); --vd-arena-barra-fuerte: rgba(241, 235, 221, .3);
-  --vd-arena-barra-pulgar: rgba(241, 235, 221, .3); --vd-arena-barra-foco: rgba(228, 197, 144, .45);
-  --vd-arena-barra-activo: #7B2232; --vd-arena-barra-activo-texto: #FAF6EE; --vd-arena-marca: #E4C590;
-  --vd-acento-relleno: #7B2232; --vd-sobre-acento: #FAF6EE;
+  --vd-arena-cab-acento: #1F2D4E; --vd-arena-cab-foco: rgba(31, 45, 78, .35);
+  /* 9-nov, JC: barra lateral en arena «como el resto»; manda el marino y el granate queda de detalle. */
+  /* 10-nov, JC: «que sea el mismo color (el más clarito)»: la barra usa el token del fondo de la pantalla, sin escalón. */
+  --vd-arena-barra: #F4EDDF; --vd-arena-barra-2: #E6D4B0; --vd-arena-barra-tenue: #4F4A42; --vd-arena-barra-texto: #1F2D4E;
+  --vd-arena-barra-linea: rgba(28, 35, 51, .14); --vd-arena-barra-fuerte: rgba(28, 35, 51, .3);
+  --vd-arena-barra-pulgar: rgba(28, 35, 51, .3); --vd-arena-barra-foco: rgba(31, 45, 78, .35);
+  --vd-arena-barra-activo: #1F2D4E; --vd-arena-barra-activo-texto: #FAF6EE; --vd-arena-marca: #1F2D4E;
+  --vd-acento-relleno: #1F2D4E; --vd-sobre-acento: #FAF6EE;
   --vd-radio: 8px; --vd-radio-peq: 4px; --vd-radio-tabla: 6px; --vd-pildora: 999px; --vd-radio-seg: 999px;
   --vp-fuente-titulo: ui-serif, 'New York', 'Iowan Old Style', Georgia, serif;
   --vp-peso-titulo: 600; --vp-peso-th: 700; --vp-peso-activo: 600;
   --vp-radio: 8px; --vp-radio-boton: 8px; --vp-radio-pestana: 999px; --vp-radio-pildora: 999px; --vp-radio-sec: 8px;
-  --vp-principal-fondo: #7B2232; --vp-principal-texto: #FAF6EE; --vp-principal-hover: #5E1A27;
+  --vp-principal-fondo: #1F2D4E; --vp-principal-texto: #FAF6EE; --vp-principal-hover: #14203A;
   --vp-sec-fondo-boton: transparent; --vp-sec-borde: #6B7590; --vp-sec-texto: #1F2D4E; --vp-sec-hover: #E6E9F0;
-  --vp-pestana-fondo: #7B2232; --vp-pestana-texto: #FAF6EE; --vp-pestana-raya: transparent; --vp-pestana-hover: #E6E9F0;
+  --vp-pestana-fondo: #1F2D4E; --vp-pestana-texto: #FAF6EE; --vp-pestana-raya: transparent; --vp-pestana-hover: #E6E9F0;
   --vp-th-linea: 2px solid var(--vd-marino);
   /* 8-nov, JC: los títulos de bloque («ESTA SEMANA»…) sin fondo, en texto marino; el fondo marino, SOLO la barra lateral. */
   --vp-titsec-fondo: transparent; --vp-titsec-texto: #1F2D4E;
@@ -460,6 +466,7 @@
    La barra lateral sigue en marino #1F2D4E; el botón principal y la pestaña, granate lleno con crema.
    Contraste AA: test/paletaVidaireOscuro.test.js. */
 :root[data-tema='oscuro'][data-paleta="vidaire"], [data-tema='oscuro'][data-paleta="vidaire"] {
+  --vd-activa-texto: var(--vd-granate); --vd-activa-suave: var(--vd-sel-suave);
   --vd-alto: #D2A8F0; --vd-alto-fondo: #2B1A3A;
   --vd-crema: #141B2D; --vd-crema-2: #1E2742; --vd-cebra: #18203A;
   --vd-tinta: #EDE6D8; --vd-gris-calido: #B3AC9F;
@@ -478,7 +485,12 @@
   --vd-arena-lateral-linea: rgba(237, 230, 216, .14); --vd-arena-lateral-fuerte: rgba(237, 230, 216, .3);
   --vd-arena-cab-acento: #E8A3AE; --vd-arena-cab-foco: rgba(232, 163, 174, .35);
   /* La barra lateral, la de siempre (marino); un pelo de borde para separarla del fondo noche. */
-  --vd-arena-barra: #1F2D4E; --vd-arena-barra-2: #2C3B5E;
+  --vd-arena-barra: #1F2D4E; --vd-arena-barra-2: #2C3B5E; --vd-arena-barra-tenue: #AEB6C6; --vd-arena-barra-texto: #F1EBDD;
+  --vd-arena-barra-linea: rgba(241, 235, 221, .14); --vd-arena-barra-fuerte: rgba(241, 235, 221, .3);
+  --vd-arena-barra-pulgar: rgba(241, 235, 221, .3); --vd-arena-barra-foco: rgba(228, 197, 144, .45);
+  --vd-arena-barra-activo: #7B2232; --vd-arena-barra-activo-texto: #FAF6EE; --vd-arena-marca: #E4C590;
+  --vd-acento-relleno: #7B2232;
+  --vp-principal-fondo: #7B2232; --vp-principal-hover: #5E1A27; --vp-pestana-fondo: #7B2232;
   --vp-sec-borde: #8A93AB; --vp-sec-texto: #DCE3F2; --vp-sec-hover: #24304F; --vp-pestana-hover: #24304F;
   --vp-titsec-texto: #DCE3F2;
   --vp-apuntar-fondo: #2C3B5E; --vp-apuntar-texto: #FAF6EE; --vp-apuntar-hover: #3A4D7A;

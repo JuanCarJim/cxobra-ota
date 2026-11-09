@@ -6360,7 +6360,7 @@ globalThis.CX_VARIANTE="cxobra";
          * Sin tablas propias: cada cifra se ve con el permiso de su módulo.
          */
         informeSemanal: "Informe semanal",
-        costsPlan: "Costs Plan",
+        costsPlan: "Control de costes",
         certificaciones: "Certificaciones",
         /*
          * EL AVANCE DE OBRA (16-oct, JC: «esto sí que es la clave de todo»): el
@@ -6537,7 +6537,7 @@ globalThis.CX_VARIANTE="cxobra";
          * persona, obra y fechas, y en PDF y Excel. Es de los jefes; cada uno ve
          * los cambios de lo que ya ve —el alcance es el de siempre—.
          */
-        trazabilidad: "Auditor\xEDa",
+        trazabilidad: "Historial de cambios",
         /*
          * El reparto es del JEFE de Estudios, no del departamento entero: es donde
          * se decide a quién le toca cada petición. Un técnico no tiene nada que
@@ -6977,7 +6977,7 @@ globalThis.CX_VARIANTE="cxobra";
             { bloque: "avisosNcr", ancho: "completo", titulo: "No conformidades: vencidas y equipos bloqueados" },
             { bloque: "avisosIncidencias", ancho: "completo", titulo: "Incidencias de equipos" },
             { bloque: "obrasEnCurso", ancho: "completo", titulo: "Obras en curso" },
-            { bloque: "alertasDesviacion", ancho: "mitad", titulo: "Desv\xEDos sobre Costs Plan" },
+            { bloque: "alertasDesviacion", ancho: "mitad", titulo: "Desv\xEDos sobre control de costes" },
             { bloque: "certificacionesMes", ancho: "mitad", titulo: "Certificaci\xF3n del mes" },
             { bloque: "cargaEquipo", ancho: "completo", titulo: "Carga de cada jefe de obra" },
             /* Lo de cada uno: lo tienen todos los roles, y va el último. */
@@ -7053,7 +7053,7 @@ globalThis.CX_VARIANTE="cxobra";
           id: "jefeObra",
           nombre: "Jefe de Obra",
           departamento: "proyectos",
-          descripcion: "Sus obras. Recibe el presupuesto adjudicado y vive del Costs Plan.",
+          descripcion: "Sus obras. Recibe el presupuesto adjudicado y vive del control de costes.",
           alcance: "propio",
           permisos: {
             notas: BLOC,
@@ -7140,7 +7140,7 @@ globalThis.CX_VARIANTE="cxobra";
             { bloque: "avisosConflictos", ancho: "completo", titulo: "Conflictos: pr\xF3ximo paso vencido" },
             { bloque: "avisosIncidencias", ancho: "completo", titulo: "Incidencias: terminadas por revisar y vencidas" },
             { bloque: "avisosNcr", ancho: "completo", titulo: "No conformidades: vencidas y equipos bloqueados" },
-            { bloque: "costsPlanResumen", ancho: "dos-tercios", titulo: "Costs Plan: previsto contra gastado" },
+            { bloque: "costsPlanResumen", ancho: "dos-tercios", titulo: "Control de costes: previsto contra gastado" },
             { bloque: "misPlazos", ancho: "un-tercio", titulo: "Hitos de las pr\xF3ximas dos semanas" },
             { bloque: "comprasPendientes", ancho: "mitad", titulo: "Pedidos: sin confirmar, retrasados y por llegar" },
             { bloque: "certificacionesMes", ancho: "mitad", titulo: "Mi certificaci\xF3n del mes" },
@@ -8119,7 +8119,7 @@ globalThis.CX_VARIANTE="cxobra";
         { id: "inventario", nombre: "Inventario", modulo: "inventarioCampo", soloVer: true },
         { id: "bloc", nombre: "Bloc", modulo: "notas" },
         /* 5-nov: fichar, ver la jornada y pedir días (renderer/movil/jornada.js). Todo rol. */
-        { id: "jornada", nombre: "Jornada", modulo: "jornada" },
+        { id: "jornada", nombre: "Mi jornada", modulo: "jornada" },
         { id: "personal", nombre: "Personal", modulo: "partes" },
         { id: "estanqueidad", nombre: "Pruebas", modulo: "pruebasEstanqueidad" }
       ];
@@ -8194,7 +8194,7 @@ globalThis.CX_VARIANTE="cxobra";
          * en el orden en que vive la obra, de firmar a entregar, y la Documentación
          * al final. «Medir y certificar» junta la Med Obra, los m² de conductos y la
          * certificación; «Cierre y entrega», legalizaciones, entregas a la DF y el
-         * cierre. Balanceo, estanqueidad y NCR van dentro de Commissioning
+         * cierre. Balanceo y estanqueidad van dentro de Commissioning
          * (shared/barraLateral.js DENTRO_DE_OTRA): solo salen sueltos a quien no lo
          * tiene (el operario). El Informe semanal no es de una obra: va fuera, en
          * «Consulta» (FUERA_DE_OBRA). 3-nov: las vacaciones, en Mi espacio.
@@ -8202,7 +8202,7 @@ globalThis.CX_VARIANTE="cxobra";
         jefeObra: [
           { nombre: "Proyecto", modulos: ["obras", "alcance", "desglosePresupuesto", "calculo"] },
           { nombre: "Contrato y cliente", modulos: ["contrato", "variantes", "actas", "conflictos"] },
-          { nombre: "Presupuesto y costes", modulos: ["presupuestoObra", "costsPlan", "estadisticas"] },
+          { nombre: "Presupuesto", modulos: ["presupuestoObra", "estadisticas"] },
           { nombre: "Planificaci\xF3n", modulos: ["gantt", "planEconomica", "tareas"] },
           /* Albaranes, inventario y facturas de proveedor, cada uno con su entrada (antes, escondidos en Pedidos y Certificaciones). */
           { nombre: "Compras", modulos: ["planCompras", "comparativos", "pedidos", "albaranes", "inventario", "facturasProveedor", "proveedores"] },
@@ -8210,10 +8210,12 @@ globalThis.CX_VARIANTE="cxobra";
              los registros, solicitudes de vacaciones, todo lo de HR». Todo RRHH en una pantalla con sus pestañas
              (renderer/personalPantalla.js); Producción se queda con lo de producción. */
           /* 5-nov (portal de subcontratas): las subcontratas de la obra, su certificación y las inducciones son pestañas de Personal. */
-          { nombre: "Personal", modulos: ["partes"] },
-          { nombre: "Producci\xF3n", modulos: ["partesTrabajo"] },
-          /* 5-nov (JC): «esto debe de estar dentro de las certificaciones»: el avance de obra, con lo que se mide y se certifica. */
-          { nombre: "Medir y certificar", modulos: ["avanceObra", "medObra", "m2Conductos", "certificaciones"] },
+          /* 9-nov (JC): «En la de personal tienen que ir las vacaciones por ejemplo». Horas, Jornada (el registro del art. 34.9 ET:
+             fichar y pedir días, no un ajuste) y Vacaciones vienen de Mi espacio; siguen siendo las de cada uno (HERRAMIENTAS_EN_SECCION). */
+          { nombre: "Personal", modulos: ["partes", "parte", "miJornada", "misVacaciones"] },
+          /* 9-nov (JC): «En producción es donde tiene que estar el avance de la obra, las certificaciones, costes...».
+             Quien no tiene permiso de dinero sigue sin ver Med Obra, certificaciones ni costes: lo recorta barraDeRol. */
+          { nombre: "Producci\xF3n", modulos: ["partesTrabajo", "avanceObra", "medObra", "m2Conductos", "certificaciones", "costsPlan"] },
           { nombre: "Calidad y commissioning", modulos: ["commissioning", "balanceo", "pruebasEstanqueidad", "ncr", "puntosControl", "ppi", "incidencias"] },
           { nombre: "Seguridad y QHSE", modulos: ["qhse", "partesIncidencia"] },
           { nombre: "Cierre y entrega", modulos: ["legalizaciones", "entregasDF", "cierreObra"] },
@@ -8226,29 +8228,43 @@ globalThis.CX_VARIANTE="cxobra";
       for (const r of ROLES_CON_BARRA_DE_OBRA) SECCIONES_OBRA[r] = SECCIONES_OBRA.jefeObra;
       var FUERA_DE_OBRA = ["informeSemanal", "proyectos", "trazabilidad"];
       var CUBIERTO_POR_ATAJOS = { compras: ["planCompras", "comparativos"], presupuestos: ["presupuestoObra"] };
-      var HERRAMIENTAS_EN_SECCION = ["nube"];
+      function herramientaPersonalVisible(idRol, id, barra) {
+        if (barra && barra.director && ["agenda", "parte"].includes(id)) return false;
+        if (id === "misTareas" && !(puede(idRol, "tareas", "ver") || puede(idRol, "actas", "ver"))) return false;
+        if (id === "misVacaciones" && !puede(idRol, "vacaciones", "ver")) return false;
+        if (id === "miJornada" && !puede(idRol, "jornada", "ver")) return false;
+        return true;
+      }
+      var HERRAMIENTAS_EN_SECCION = {
+        nube: () => true,
+        parte: () => true,
+        miJornada: (idRol) => puede(idRol, "jornada", "ver"),
+        misVacaciones: (idRol) => puede(idRol, "vacaciones", "ver")
+      };
+      var HERRAMIENTAS_SOLO_MI_ESPACIO_DIRECTOR = ["parte", "miJornada", "misVacaciones"];
+      var herramientaEnSeccion = (idRol, m) => Boolean(HERRAMIENTAS_EN_SECCION[m] && HERRAMIENTAS_EN_SECCION[m](idRol));
       var ATAJOS_OBRA = {
         /* 22-oct (JC): la biblioteca de modelos del proyecto según el presupuesto, y el buscador de documentos. */
-        documentacionProyecto: { modulo: "alcance", etiqueta: "Documentaci\xF3n del proyecto" },
+        documentacionProyecto: { modulo: "alcance", etiqueta: "Documentos del proyecto" },
         /* 30-oct (JC): el registro de todo lo documental de la obra, por tipo; sin dinero, también para el encargado. */
-        documentacion: { modulo: "commissioning", etiqueta: "Documentaci\xF3n de la obra" },
+        documentacion: { modulo: "commissioning", etiqueta: "Documentos de la obra" },
         presupuestoObra: { modulo: "presupuestos", etiqueta: "Presupuesto de obra" },
-        variantes: { modulo: "costsPlan", etiqueta: "Variantes y OC" },
+        variantes: { modulo: "costsPlan", etiqueta: "Variantes y \xF3rdenes de cambio" },
         analisisProyecto: { modulo: "costsPlan", etiqueta: "An\xE1lisis del proyecto" },
         /* 2-nov: «Puntos BMS», que es lo que son (la lista para el integrador). */
-        puntosControl: { modulo: "commissioning", etiqueta: "Puntos BMS" },
+        puntosControl: { modulo: "commissioning", etiqueta: "Puntos de control (BMS)" },
         /* 2-nov (JC): plantillas de control (secuencias, puntos E/S, ST/SCL/Schneider, simulador). Se abre desde Puntos de control: Calidad ya tiene siete. */
         controlPlc: { modulo: "commissioning", etiqueta: "Control / PLC" },
         /* 2-nov (revisión de la navegación): puertas nuevas a lo que ya existía escondido. */
         contrato: { modulo: "alcance", etiqueta: "Contrato" },
-        medObra: { modulo: "presupuestos", etiqueta: "Med Obra" },
+        medObra: { modulo: "presupuestos", etiqueta: "Medici\xF3n real de obra" },
         albaranes: { modulo: "pedidos", etiqueta: "Albaranes" },
         inventario: { modulo: "pedidos", etiqueta: "Inventario" },
         facturasProveedor: { modulo: "certificaciones", etiqueta: "Facturas de proveedor" },
         entregasDF: { modulo: "commissioning", etiqueta: "Entregas a la DF y acta" },
         cierreObra: { modulo: "certificaciones", etiqueta: "Cierre de la obra" },
         /* 2-nov (JC): equipos, materiales y puntos BMS que salen solos del presupuesto de la obra. */
-        desglosePresupuesto: { modulo: "alcance", etiqueta: "Equipos y materiales" },
+        desglosePresupuesto: { modulo: "alcance", etiqueta: "Desglose del presupuesto" },
         informeReparaciones: { modulo: "incidencias", etiqueta: "Informe de reparaciones" },
         planCompras: { modulo: "compras", etiqueta: "Plan de compras" },
         comparativos: { modulo: "compras", etiqueta: "Comparativos" },
@@ -8355,14 +8371,14 @@ globalThis.CX_VARIANTE="cxobra";
           const departamentosDirector = DEPARTAMENTOS_DIRECTOR.filter((d) => visibles.includes(d.necesita)).map((d) => ({ id: d.id, nombre: d.nombre, vistas: d.vistas.map(([id, etiqueta]) => ({ id, etiqueta, href: `dir:${d.id}:${id}` })) }));
           const secciones = SECCIONES_OBRA.jefeObra.map((s) => ({
             nombre: s.nombre,
-            modulos: s.modulos.filter((m) => HERRAMIENTAS_EN_SECCION.includes(m) || ve(m))
+            modulos: s.modulos.filter((m) => !HERRAMIENTAS_SOLO_MI_ESPACIO_DIRECTOR.includes(m) && (herramientaEnSeccion(idRol, m) || ve(m)))
           })).filter((s) => s.modulos.length);
           return { trabajo, consulta: [], director: true, departamentosDirector, seccionesObra: secciones };
         }
         if (SECCIONES_OBRA[idRol]) {
           const secciones = SECCIONES_OBRA[idRol].map((s) => ({
             nombre: s.nombre,
-            modulos: s.modulos.filter((m) => HERRAMIENTAS_EN_SECCION.includes(m) || ve(m))
+            modulos: s.modulos.filter((m) => herramientaEnSeccion(idRol, m) || ve(m))
           })).filter((s) => s.modulos.length);
           const enSecciones = new Set(secciones.flatMap((s) => s.modulos));
           const cubierto = (m) => (CUBIERTO_POR_ATAJOS[m] || []).some((a) => enSecciones.has(a));
@@ -8378,35 +8394,38 @@ globalThis.CX_VARIANTE="cxobra";
         return { trabajo, consulta, empresa: true, accesos: Boolean(b.accesos), departamentos };
       }
       var CATEGORIAS_BARRA = {
-        diaADia: { nombre: "D\xEDa a d\xEDa", secciones: ["Mi espacio", "Producci\xF3n", "Planificaci\xF3n", "Personal"] },
-        dinero: { nombre: "Dinero y contrato", secciones: ["Medir y certificar", "Presupuesto y costes", "Compras", "Contrato y cliente"] },
+        obra: { nombre: "Obra", secciones: ["Producci\xF3n", "Planificaci\xF3n", "Personal", "Compras"] },
+        contrato: { nombre: "Contrato y presupuesto", secciones: ["Presupuesto", "Contrato y cliente"] },
         calidad: { nombre: "Calidad y seguridad", secciones: ["Calidad y commissioning", "Seguridad y QHSE", "Cierre y entrega", "Equipos"] },
         documentos: { nombre: "Documentos y consulta", secciones: ["Documentaci\xF3n", "Informes de la obra", "Proyecto", "Consulta", "Normativa (BOE)"] }
       };
       var MODULOS_DE_DINERO = ["presupuestos", "costsPlan", "certificaciones"];
-      var SIN_DINERO_VA_A = { "Medir y certificar": "diaADia", Compras: "diaADia", "Presupuesto y costes": "documentos", "Contrato y cliente": "documentos" };
-      var ORDEN_MANDO = { categorias: ["dinero", "diaADia", "documentos", "calidad"], secciones: {
-        dinero: ["Presupuesto y costes", "Medir y certificar", "Contrato y cliente", "Compras"],
+      var SIN_DINERO_VA_A = { Presupuesto: "documentos", "Contrato y cliente": "documentos" };
+      var ORDEN_MANDO = { categorias: ["contrato", "obra", "documentos", "calidad"], secciones: {
+        contrato: ["Presupuesto", "Contrato y cliente"],
+        obra: ["Producci\xF3n", "Compras", "Planificaci\xF3n", "Personal"],
         documentos: ["Informes de la obra", "Consulta", "Proyecto", "Documentaci\xF3n"]
       } };
-      var ORDEN_TAJO = { categorias: ["diaADia", "calidad", "documentos"], secciones: {
-        diaADia: ["Producci\xF3n", "Personal", "Planificaci\xF3n", "Medir y certificar", "Compras", "Mi espacio"],
+      var ORDEN_TAJO = { categorias: ["obra", "calidad", "documentos"], secciones: {
+        obra: ["Producci\xF3n", "Personal", "Planificaci\xF3n", "Compras"],
         calidad: ["Seguridad y QHSE", "Calidad y commissioning", "Cierre y entrega"]
       } };
       var ORDEN_CATEGORIAS_POR_ROL = {
         jefeProyectos: { ...ORDEN_MANDO, categorias: ["departamentos", ...ORDEN_MANDO.categorias] },
         jefeDepartamento: ORDEN_MANDO,
         jefeGrupo: ORDEN_MANDO,
-        jefeObra: { categorias: ["diaADia", "dinero", "calidad", "documentos"], secciones: {} },
-        jefeProduccion: { categorias: ["diaADia", "dinero", "calidad", "documentos"], secciones: {} },
+        jefeObra: { categorias: ["obra", "contrato", "calidad", "documentos"], secciones: {} },
+        jefeProduccion: { categorias: ["obra", "contrato", "calidad", "documentos"], secciones: {} },
         encargadoObra: ORDEN_TAJO,
         operario: ORDEN_TAJO,
-        jefeCommissioning: { categorias: ["calidad", "documentos", "diaADia", "dinero"], secciones: {
+        jefeCommissioning: { categorias: ["calidad", "documentos", "obra", "contrato"], secciones: {
           calidad: ["Calidad y commissioning", "Cierre y entrega", "Seguridad y QHSE"],
-          documentos: ["Documentaci\xF3n", "Proyecto", "Informes de la obra", "Contrato y cliente", "Compras", "Consulta"]
+          documentos: ["Documentaci\xF3n", "Proyecto", "Informes de la obra", "Contrato y cliente", "Consulta"],
+          obra: ["Compras", "Producci\xF3n", "Personal", "Planificaci\xF3n"]
         } },
-        contractSupport: { categorias: ["dinero", "documentos", "calidad", "diaADia"], secciones: {
-          dinero: ["Compras", "Medir y certificar", "Contrato y cliente", "Presupuesto y costes"]
+        contractSupport: { categorias: ["contrato", "obra", "documentos", "calidad"], secciones: {
+          contrato: ["Contrato y cliente", "Presupuesto"],
+          obra: ["Compras", "Producci\xF3n", "Personal", "Planificaci\xF3n"]
         } }
       };
       function categoriasDeRol(idRol) {
@@ -8417,8 +8436,8 @@ globalThis.CX_VARIANTE="cxobra";
         const cats = {};
         for (const [id, c] of Object.entries(CATEGORIAS_BARRA)) cats[id] = { id, nombre: c.nombre, secciones: [...c.secciones] };
         if (!conDinero) {
-          for (const s of cats.dinero.secciones) cats[SIN_DINERO_VA_A[s] || "documentos"].secciones.push(s);
-          delete cats.dinero;
+          for (const s of cats.contrato.secciones) cats[SIN_DINERO_VA_A[s] || "documentos"].secciones.push(s);
+          delete cats.contrato;
         }
         if (b.director) cats.departamentos = { id: "departamentos", nombre: "Departamentos", secciones: [...DEPARTAMENTOS_DIRECTOR.map((d) => d.nombre), ATAJOS_OBRA.ayudaDireccion.etiqueta] };
         const ids = [...orden.categorias, ...Object.keys(cats)].filter((id, i, l) => cats[id] && l.indexOf(id) === i);
@@ -8493,6 +8512,7 @@ globalThis.CX_VARIANTE="cxobra";
         seccionesMovil,
         entraEnEscritorio,
         gestionaAccesos,
+        herramientaPersonalVisible,
         BARRAS_POR_ROL,
         SECCIONES_OBRA,
         ROLES_CON_BARRA_DE_OBRA,
@@ -11061,7 +11081,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261109.1217" : "0";
+      var VERSION = true ? "20261109.1404" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -13199,6 +13219,8 @@ globalThis.CX_VARIANTE="cxobra";
         materialesInstalados: { porObra: "obraId" },
         planosInstalacion: { porObra: "obraId" },
         equiposNoDuplicados: { porObra: "obraId" },
+        crucesIfc: { porObra: "obraId" },
+        plantasIfc: { porObra: "obraId" },
         fotosEquipo: { porObra: "obraId" },
         archivosPreparados: { porObra: "obraId" },
         firmasEquipo: { porObra: "obraId" },
@@ -13223,6 +13245,7 @@ globalThis.CX_VARIANTE="cxobra";
         reclamacionHechoPruebas: { porObra: "obraId" },
         reclamacionHilos: { porObra: "obraId" },
         reclamacionCorreos: { porObra: "obraId" },
+        reclamacionCorreoMovimientos: { porObra: "obraId" },
         reclamacionTarifas: { porObra: "obraId" },
         reclamacionClausulas: { porObra: "obraId" },
         reclamacionHechoClausulas: { porObra: "obraId" },
@@ -13588,7 +13611,8 @@ globalThis.CX_VARIANTE="cxobra";
           "reclamacionClausulas",
           "reclamacionRenuncias",
           "reclamacionDefensa",
-          "reclamacionAvisos"
+          "reclamacionAvisos",
+          "reclamacionCorreoMovimientos"
         ].map((e) => [e, (t) => `(${t}reclamacionId IS NULL OR ${t}reclamacionId NOT IN ${RESERVADA})`])),
         /* El correo completo: solo si lo cita alguna prueba de una reclamación que no es reservada. */
         reclamacionCorreos: (t) => `${t}id IN (SELECT correoId FROM reclamacionPruebas WHERE correoId IS NOT NULL AND reclamacionId NOT IN ${RESERVADA})`,
@@ -24050,6 +24074,36 @@ ${obsO}` : obsO).slice(0, 4e3);
      creadoEn           TEXT NOT NULL,
      modificadoEn       TEXT NOT NULL
    )`,
+        /* EL CRUCE CON EL MODELO IFC (9-nov-2026, JC): el resultado de comparar la sala de cada equipo con la del IFC,
+           una fila por obra. Solo equipos y salas (JSON en `resultado`), nunca la geometría; el fichero no sale del
+           navegador. No toca equiposObra. Por obra, con el permiso de commissioning (repositorio.MODULO_DE). */
+        `CREATE TABLE IF NOT EXISTS crucesIfc (
+     id                 TEXT PRIMARY KEY,
+     obraId             TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     esquema            TEXT,
+     nElementos         INTEGER NOT NULL DEFAULT 0,
+     ficheros           TEXT NOT NULL DEFAULT '[]',
+     resultado          TEXT NOT NULL DEFAULT '{}',
+     personaId          TEXT,
+     creadoEn           TEXT NOT NULL,
+     modificadoEn       TEXT NOT NULL
+   )`,
+        /* Las plantas del modelo IFC (9-nov-2026): SVG simplificado y marcas, una fila por planta (nunca la geometría
+           cruda). Solo se dibuja: no toca equiposObra ni planosEquipos. */
+        `CREATE TABLE IF NOT EXISTS plantasIfc (
+     id                 TEXT PRIMARY KEY,
+     obraId             TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     nombre             TEXT NOT NULL,
+     cota               REAL,
+     ancho              INTEGER NOT NULL DEFAULT 0,
+     alto               INTEGER NOT NULL DEFAULT 0,
+     conContorno        INTEGER NOT NULL DEFAULT 0,
+     svg                TEXT NOT NULL DEFAULT '',
+     marcas             TEXT NOT NULL DEFAULT '[]',
+     medidas            TEXT NOT NULL DEFAULT '{}',
+     creadoEn           TEXT NOT NULL,
+     modificadoEn       TEXT NOT NULL
+   )`,
         /* LOS MATERIALES INSTALADOS (29-oct, JC): compuertas, VAV, difusores,
            rejillas, válvulas, detectores, actuadores, sondas… No son equipos de
            commissioning: cada uno es una pieza en el plano de su planta (x, y en
@@ -26738,6 +26792,8 @@ ${obsO}` : obsO).slice(0, 4e3);
      decididaPor   TEXT REFERENCES personas(id),
      actaId        TEXT,
      capituloId    TEXT,
+     diasPlazo     INTEGER,
+     plazoAplicadoEn TEXT,
      creadoPor     TEXT REFERENCES personas(id),
      creadoEn      TEXT NOT NULL,
      modificadoEn  TEXT NOT NULL,
@@ -27147,6 +27203,37 @@ ${obsO}` : obsO).slice(0, 4e3);
      creadoEn          TEXT NOT NULL,
      modificadoEn      TEXT NOT NULL,
      UNIQUE (hechoId, pruebaId)
+   )`,
+        /* LO QUE SE HACE CON CADA CORREO DEL CLAIM (9-nov-2026, JC: «toma de datos para poder
+           valorar ahí lo que hacemos con ese correo»; electron/data/reclamacionesCorreoToma.js).
+           Una fila por operación, con quién y cuándo EN LA FILA: el historial de lo escrito en
+           la web de una persona no vuelve al escritorio, y esta tabla sí viaja por el espejo.
+           Guarda cómo estaba el correo antes (enlaceAntes, propuestaAntes) para poder
+           deshacer: nunca se pierde la relación. Sin claves ajenas a hechos y pruebas, para
+           que un hecho borrado no se lleve el rastro. */
+        `CREATE TABLE IF NOT EXISTS reclamacionCorreoMovimientos (
+     id                    TEXT PRIMARY KEY,
+     obraId                TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     reclamacionId         TEXT NOT NULL REFERENCES reclamaciones(id) ON DELETE CASCADE,
+     pruebaId              TEXT NOT NULL,
+     hechoOrigenId         TEXT NOT NULL,
+     tipo                  TEXT NOT NULL,
+     claseAntes            TEXT,
+     claseDespues          TEXT,
+     estadoAntes           TEXT,
+     enlaceAntes           TEXT,
+     propuestaAntes        TEXT,
+     destinoReclamacionId  TEXT,
+     destinoHechoId        TEXT,
+     destinoPruebaId       TEXT,
+     pruebaCreada          INTEGER NOT NULL DEFAULT 0,
+     enlaceCreado          INTEGER NOT NULL DEFAULT 0,
+     hechoCreadoId         TEXT,
+     creadoPor             TEXT,
+     deshechoPor           TEXT,
+     deshechoEn            TEXT,
+     creadoEn              TEXT NOT NULL,
+     modificadoEn          TEXT NOT NULL
    )`,
         /* LOS HILOS DE CORREO de la reclamación y su resumen (28-oct-2026, Pruebas ›
            Cargar correos; shared/reclamaciones/hilosCorreo.js). `clave` = el asunto
@@ -27801,6 +27888,8 @@ ${obsO}` : obsO).slice(0, 4e3);
         `CREATE INDEX IF NOT EXISTS idx_recl_hechopruebas ON reclamacionHechoPruebas (pruebaId)`,
         `CREATE INDEX IF NOT EXISTS idx_recl_hilos        ON reclamacionHilos (reclamacionId, desde)`,
         `CREATE INDEX IF NOT EXISTS idx_recl_correos      ON reclamacionCorreos (obraId, fecha)`,
+        `CREATE INDEX IF NOT EXISTS idx_recl_correoMov    ON reclamacionCorreoMovimientos (pruebaId, creadoEn)`,
+        `CREATE INDEX IF NOT EXISTS idx_recl_correoMovD   ON reclamacionCorreoMovimientos (destinoPruebaId)`,
         `CREATE INDEX IF NOT EXISTS idx_ncr_obra           ON ncr (obraId, estado, fechaPrevista)`,
         `CREATE INDEX IF NOT EXISTS idx_ncr_externo        ON ncr (obraId, codExterno)`,
         `CREATE INDEX IF NOT EXISTS idx_ncrequipos_ncr     ON ncrEquipos (ncrId)`,
@@ -27957,6 +28046,9 @@ ${obsO}` : obsO).slice(0, 4e3);
         ["notas", "adjuntos", "TEXT"],
         /* El día de la nota en la agenda del bloc (AAAA-MM-DD), opcional. */
         ["notas", "fecha", "TEXT"],
+        /* Marcar una nota entera como hecha y su categoría (9-nov); las columnas suben solas al espejo. */
+        ["notas", "hecha", "INTEGER"],
+        ["notas", "categoria", "TEXT"],
         /* Los partes de incidencia se asignan a quien los lleva, con su fecha límite. */
         ["partesIncidencia", "responsableId", "TEXT"],
         ["partesIncidencia", "fechaLimite", "TEXT"],
@@ -28296,6 +28388,9 @@ ${obsO}` : obsO).slice(0, 4e3);
         /* La adenda que trae una orden de cambio aceptada o un acta que mueve el final (C5). */
         ["adendas", "ordenCambioId", "TEXT"],
         ["adendas", "actaId", "TEXT"],
+        /* Los días de plazo que trae una orden de cambio y cuándo se movió el fin de obra por ellos. */
+        ["ordenesCambio", "diasPlazo", "INTEGER"],
+        ["ordenesCambio", "plazoAplicadoEn", "TEXT"],
         /* Los campos de la punchlist de origen (NUMERO, Name, Fecha modificada, los
            tres estados y FECHA ACCION), para que la tabla de NCR tenga las mismas
            columnas que su Excel. */
@@ -28325,6 +28420,10 @@ ${obsO}` : obsO).slice(0, 4e3);
         ["reclamacionPruebas", "nube", "TEXT"],
         /* El correo completo de la prueba (reclamacionCorreos, 5-nov-2026). */
         ["reclamacionPruebas", "correoId", "TEXT"],
+        /* La nota que escribe la persona sobre un correo del claim (9-nov-2026): nunca un script ni un agente. */
+        ["reclamacionPruebas", "notaPersona", "TEXT"],
+        ["reclamacionPruebas", "notaPor", "TEXT"],
+        ["reclamacionPruebas", "notaEn", "TEXT"],
         /* Dónde está el original del correo para traer sus adjuntos en SOLO LECTURA (5-nov-2026):
            JSON {driveId,itemId} del .msg en SharePoint o {mensajeId} del buzón (shared/reclamaciones/adjuntosCorreo.js). */
         ["reclamacionCorreos", "refOrigen", "TEXT"],
@@ -28398,6 +28497,13 @@ ${obsO}` : obsO).slice(0, 4e3);
         ["pedidosCompra", "pdfRuta", "TEXT"],
         ["pedidosCompra", "pdfHuella", "TEXT"],
         ["pedidosCompra", "origenImportacion", "TEXT"],
+        /* Lo leído de la confirmación del proveedor (JSON; 9-nov-2026): orden de venta,
+           fechas, contactos, diferencias y si está «por confirmar». SIN dinero.
+           La misma lectura CON dinero va en importeConfirmacionLeida: el prefijo es el
+           contrato con el recorte del teléfono y de la nube, que quitan la columna
+           entera a quien no ve precios. */
+        ["pedidosCompra", "confirmacionLeida", "TEXT"],
+        ["pedidosCompra", "importeConfirmacionLeida", "TEXT"],
         ["pedidosConfig", "rutaCertificacion", "TEXT"],
         ["pedidosConfig", "reglasPdf", "TEXT"],
         /* La medición de obra por plantas o zonas (25-oct-2026, JC): 'obra'; nula,
@@ -28887,6 +28993,9 @@ ${obsO}` : obsO).slice(0, 4e3);
         "ganttEnlaces",
         "sesionesPlanCx",
         "sesionesPlanInc",
+        /* Las copias del modelo IFC se sustituyen en cada carga: quien puede cargar puede rehacerlas (electron/data/modelosIfc.js). */
+        "crucesIfc",
+        "plantasIfc",
         /* «Volver al valor calculado» de un punto de control es borrar su ajuste. */
         "puntosControlAjustes",
         /* Deshacer lo probado de un punto del BMS es borrar su fila. */
@@ -28941,6 +29050,9 @@ ${obsO}` : obsO).slice(0, 4e3);
         planosInstalacion: "commissioning",
         /* 5-nov: los grupos de la pestaña «Dudosos» que alguien dijo que no son duplicados. */
         equiposNoDuplicados: "commissioning",
+        /* 9-nov: el resultado del cruce de salas con el IFC (una fila por obra). */
+        crucesIfc: "commissioning",
+        plantasIfc: "commissioning",
         fotosEquipo: "commissioning",
         /* 5-nov: el PDF con todas las hojas de un equipo, preparado en el móvil para el jefe de obra. */
         archivosPreparados: "commissioning",
@@ -28969,6 +29081,7 @@ ${obsO}` : obsO).slice(0, 4e3);
         reclamacionHechoPruebas: "reclamaciones",
         reclamacionHilos: "reclamaciones",
         reclamacionCorreos: "reclamaciones",
+        reclamacionCorreoMovimientos: "reclamaciones",
         reclamacionTarifas: "reclamaciones",
         reclamacionClausulas: "reclamaciones",
         reclamacionHechoClausulas: "reclamaciones",
@@ -31098,7 +31211,7 @@ ${obsO}` : obsO).slice(0, 4e3);
           }).join("");
           const papel = typeof __require !== "undefined" ? require_papel() : typeof window !== "undefined" ? window.PAPEL : null;
           const logo = papel ? papel.logoObra(resultado.obra || null, { alto: "8mm", clase: "logoTrazas" }) : "";
-          return `${logo}<h1>Auditor\xEDa: qui\xE9n cambi\xF3 qu\xE9</h1>
+          return `${logo}<h1>Historial de cambios: qui\xE9n cambi\xF3 qu\xE9</h1>
     <p class="filtro">${filtro}</p>
     <table class="trazas">
       <thead><tr>${CABECERA.map((c) => `<th>${escH(c)}</th>`).join("")}</tr></thead>
@@ -40198,12 +40311,106 @@ ${obsO}` : obsO).slice(0, 4e3);
     }
   });
 
+  // shared/commissioning/ifcSalas.js
+  var require_ifcSalas = __commonJS({
+    "shared/commissioning/ifcSalas.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var D = require_equiposDudosos();
+      var MIN_DENTRO = 0.6;
+      var MOTIVO = {
+        sinPosicion: "el modelo no da su posici\xF3n",
+        sinPlanta: "el modelo no dice su planta",
+        sinEspacios: "no hay recintos (IfcSpace) de esa planta",
+        noCuadra: "los recintos de esa planta no cuadran con este modelo",
+        fuera: "fuera de los recintos del modelo",
+        varias: "varios recintos posibles"
+      };
+      function clavesPlanta(p) {
+        if (!p) return [];
+        const textos = typeof p === "string" ? [p] : [p.nombre, p.largo];
+        const c = /* @__PURE__ */ new Set();
+        for (const t of textos.filter(Boolean)) {
+          c.add(D.plantaNorm(t));
+          const m = /^\s*([A-Za-z]{0,6}-?\d{1,2})\s*[-–—:·]/.exec(String(t));
+          if (m) c.add(D.plantaNorm(m[1]));
+        }
+        c.delete("");
+        return [...c];
+      }
+      function area(pts) {
+        let s = 0;
+        for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) s += pts[j][0] * pts[i][1] - pts[i][0] * pts[j][1];
+        return Math.abs(s) / 2;
+      }
+      function dentro(x, y, pts) {
+        let d = false;
+        for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+          const [xi, yi] = pts[i], [xj, yj] = pts[j];
+          if (yi > y !== yj > y && x < (xj - xi) * (y - yi) / (yj - yi) + xi) d = !d;
+        }
+        return d;
+      }
+      function recinto(c) {
+        const xs = c.puntos.map((p) => p[0]), ys = c.puntos.map((p) => p[1]);
+        return { codigo: c.codigo || c.nombre, nombre: c.nombre && c.nombre !== c.codigo ? c.nombre : null, puntos: c.puntos, area: area(c.puntos), x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+      }
+      var quienContiene = (l, x, y) => l.filter((s) => x >= s.x0 && x <= s.x1 && y >= s.y0 && y <= s.y1 && dentro(x, y, s.puntos)).sort((a, b) => a.area - b.area);
+      function asignarSalasPorEspacios(elementos = [], dibujos = []) {
+        const porPlanta = /* @__PURE__ */ new Map();
+        for (const d of dibujos) {
+          for (const c of d && d.contornos || []) {
+            if (!c.espacio || !(c.codigo || c.nombre) || !c.puntos || c.puntos.length < 3) continue;
+            const s = recinto(c);
+            for (const k of clavesPlanta(c.planta)) {
+              if (!porPlanta.has(k)) porPlanta.set(k, []);
+              porPlanta.get(k).push(s);
+            }
+          }
+        }
+        const espaciosDe = (el) => [...new Set(clavesPlanta(el.planta).flatMap((k) => porPlanta.get(k) || []))];
+        const cuenta = /* @__PURE__ */ new Map();
+        const nombrePlanta = (el) => el.planta && (el.planta.nombre || el.planta.largo) || "";
+        for (const el of elementos) {
+          if (!el.pos) continue;
+          const l = espaciosDe(el);
+          if (!l.length) continue;
+          const k = nombrePlanta(el);
+          if (!cuenta.has(k)) cuenta.set(k, { total: 0, dentro: 0 });
+          const c = cuenta.get(k);
+          c.total += 1;
+          if (quienContiene(l, el.pos[0], el.pos[1]).length) c.dentro += 1;
+        }
+        return elementos.map((el) => {
+          const { salaPos, ...resto } = el;
+          return { ...resto, salaPos: salaDe(el) };
+        });
+        function salaDe(el) {
+          if (!el.planta) return { motivo: MOTIVO.sinPlanta };
+          if (!el.pos) return { motivo: MOTIVO.sinPosicion };
+          const l = espaciosDe(el);
+          if (!l.length) return { motivo: MOTIVO.sinEspacios };
+          const c = cuenta.get(nombrePlanta(el));
+          if (c.dentro / c.total < MIN_DENTRO) return { motivo: MOTIVO.noCuadra };
+          const hay = quienContiene(l, el.pos[0], el.pos[1]);
+          if (!hay.length) return { motivo: MOTIVO.fuera };
+          const otro = hay.find((s) => s.codigo !== hay[0].codigo);
+          if (otro && otro.area <= hay[0].area * 1.05) return { motivo: MOTIVO.varias };
+          return { codigo: hay[0].codigo, nombre: hay[0].nombre, fuente: "ifcspace" };
+        }
+      }
+      var puedeIrAlPlano = (salaPos) => !salaPos || salaPos.motivo === MOTIVO.sinEspacios || salaPos.motivo === MOTIVO.noCuadra;
+      module.exports = { asignarSalasPorEspacios, clavesPlanta, puedeIrAlPlano, MOTIVO, MIN_DENTRO };
+    }
+  });
+
   // shared/commissioning/ifcEquipos.js
   var require_ifcEquipos = __commonJS({
     "shared/commissioning/ifcEquipos.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var D = require_equiposDudosos();
+      var S = require_ifcSalas();
       var CLASES_EQUIPO = /* @__PURE__ */ new Set([
         "IFCUNITARYEQUIPMENT",
         "IFCFAN",
@@ -40333,73 +40540,227 @@ ${obsO}` : obsO).slice(0, 4e3);
       var PROP_MODELO = /^(ModelReference|ModelLabel|Model|Modelo|ArticleNumber|ProductCode)$/i;
       var PROP_FABRICANTE = /^(Manufacturer|Fabricante|Marca)$/i;
       var PROP_TAG = /^(Tag|TAG|Mark|Marca de equipo|Identificador|Código|Codigo|Reference)$/i;
-      function leerIfc(textoIfc) {
-        const E = entidades(textoIfc);
-        const esquema = (/FILE_SCHEMA\s*\(\s*\(\s*'([^']+)'/i.exec(String(textoIfc || "")) || [])[1] || null;
+      var PROP_SALA = /^(room|space|sala|espacio|recinto)(\s*[:_-]?\s*(name|number|nombre|numero|número|n[oº]|c[oó]digo))?$/i;
+      var PROP_MARCA = /^(Mark|Marca|Marca de equipo|Etiqueta|Tag|Identificador|C[oó]digo|Reference)$/i;
+      var PROP_UTIL = (n) => PROP_MODELO.test(n) || PROP_FABRICANTE.test(n) || PROP_TAG.test(n) || PROP_SALA.test(n) || PROP_MARCA.test(n);
+      var CLASES_ESPACIO = /* @__PURE__ */ new Set(["IFCPROJECT", "IFCSITE", "IFCBUILDING", "IFCBUILDINGSTOREY", "IFCSPACE"]);
+      var CLASES_MATERIAL = /* @__PURE__ */ new Set([
+        "IFCFLOWSEGMENT",
+        "IFCDUCTSEGMENT",
+        "IFCPIPESEGMENT",
+        "IFCCABLECARRIERSEGMENT",
+        "IFCFLOWFITTING",
+        "IFCDUCTFITTING",
+        "IFCPIPEFITTING",
+        "IFCVALVE",
+        "IFCFLOWINSTRUMENT",
+        "IFCDUCTSILENCER",
+        "IFCFILTER",
+        "IFCSANITARYTERMINAL",
+        "IFCWASTETERMINAL",
+        "IFCFIRESUPPRESSIONTERMINAL"
+      ]);
+      var CLASES_CONTORNO = /* @__PURE__ */ new Set(["IFCWALL", "IFCWALLSTANDARDCASE"]);
+      var CLASES_REL = /* @__PURE__ */ new Set(["IFCRELCONTAINEDINSPATIALSTRUCTURE", "IFCRELAGGREGATES", "IFCRELDEFINESBYPROPERTIES", "IFCRELDEFINESBYTYPE"]);
+      var sirve = (c) => CLASES_EQUIPO.has(c) || CLASES_ESPACIO.has(c) || c === "IFCPROPERTYSET" || c === "IFCPROPERTYSINGLEVALUE" || /(TYPE|STYLE)$/.test(c);
+      function crearCortador(alSentencia) {
+        let resto = "", dentro = false;
+        return {
+          trozo(pedazo) {
+            const t = resto + pedazo;
+            let inicio = 0;
+            for (let k = resto.length; k < t.length; k++) {
+              const c = t.charCodeAt(k);
+              if (c === 39) dentro = !dentro;
+              else if (c === 59 && !dentro) {
+                alSentencia(t.slice(inicio, k));
+                inicio = k + 1;
+              }
+            }
+            resto = t.slice(inicio);
+          },
+          fin() {
+            if (resto.trim()) alSentencia(resto);
+            resto = "";
+          }
+        };
+      }
+      function crearLectorIfc({ soloUtiles = false, geometria = null } = {}) {
+        const E = /* @__PURE__ */ new Map();
         const contenedor = /* @__PURE__ */ new Map();
         const padre = /* @__PURE__ */ new Map();
         const psets = /* @__PURE__ */ new Map();
         const tipoDe = /* @__PURE__ */ new Map();
-        for (const e of E.values()) {
-          if (e.clase === "IFCRELCONTAINEDINSPATIALSTRUCTURE") for (const r of refs(e.a[4])) contenedor.set(r, ref(e.a[5]));
-          else if (e.clase === "IFCRELAGGREGATES") for (const r of refs(e.a[5])) padre.set(r, ref(e.a[4]));
-          else if (e.clase === "IFCRELDEFINESBYPROPERTIES") for (const r of refs(e.a[4])) {
+        let esquema = null;
+        function relacion(clase, a) {
+          if (clase === "IFCRELCONTAINEDINSPATIALSTRUCTURE") for (const r of refs(a[4])) contenedor.set(r, ref(a[5]));
+          else if (clase === "IFCRELAGGREGATES") for (const r of refs(a[5])) padre.set(r, ref(a[4]));
+          else if (clase === "IFCRELDEFINESBYPROPERTIES") for (const r of refs(a[4])) {
             if (!psets.has(r)) psets.set(r, []);
-            psets.get(r).push(ref(e.a[5]));
+            psets.get(r).push(ref(a[5]));
           }
-          else if (e.clase === "IFCRELDEFINESBYTYPE") for (const r of refs(e.a[4])) tipoDe.set(r, ref(e.a[5]));
+          else if (clase === "IFCRELDEFINESBYTYPE") for (const r of refs(a[4])) tipoDe.set(r, ref(a[5]));
         }
-        const propsDe = (ids) => {
-          const P = {};
-          for (const pid of ids) {
-            const ps = E.get(pid);
-            if (!ps || ps.clase !== "IFCPROPERTYSET") continue;
-            for (const r of refs(ps.a[4])) {
-              const p = E.get(r);
-              if (p && p.clase === "IFCPROPERTYSINGLEVALUE" && texto(p.a[0])) P[texto(p.a[0])] = texto(p.a[2]);
-            }
+        function sentencia(bruta) {
+          const s = bruta.trim();
+          if (s[0] !== "#") {
+            if (!esquema && /^FILE_SCHEMA/i.test(s)) esquema = (/FILE_SCHEMA\s*\(\s*\(\s*'([^']+)'/i.exec(s) || [])[1] || null;
+            return;
           }
-          return P;
-        };
-        const busca = (P, re) => {
-          for (const [k, v] of Object.entries(P)) if (re.test(k) && v) return v;
-          return null;
-        };
-        const elementos = [];
-        for (const e of E.values()) {
-          if (!CLASES_EQUIPO.has(e.clase)) continue;
-          const tipoId = tipoDe.get(e.id);
-          const tipo = tipoId ? E.get(tipoId) : null;
-          const P = { ...tipo ? propsDe(refs(tipo.a[5])) : {}, ...propsDe(psets.get(e.id) || []) };
-          let espacio = null, planta = null, s = contenedor.get(e.id), vueltas = 0;
-          while (s != null && vueltas++ < 10) {
-            const x = E.get(s);
-            if (!x) break;
-            if (x.clase === "IFCSPACE" && !espacio) espacio = { nombre: texto(x.a[2]), largo: texto(x.a[7]) };
-            if (x.clase === "IFCBUILDINGSTOREY") {
-              planta = { nombre: texto(x.a[2]), largo: texto(x.a[7]), cota: typeof x.a[9] === "number" ? x.a[9] : null };
-              break;
-            }
-            s = padre.get(s);
+          const h = /^#(\d+)\s*=\s*([A-Z][A-Z0-9_]*)\s*\(/i.exec(s);
+          if (!h || s[s.length - 1] !== ")") return;
+          const clase = h[2].toUpperCase();
+          const esRel = CLASES_REL.has(clase);
+          const paraPlano = Boolean(geometria) && (CLASES_MATERIAL.has(clase) || CLASES_CONTORNO.has(clase));
+          if (geometria && !esRel && !paraPlano && !sirve(clase)) {
+            if (geometria.quiere(clase)) geometria.guardar(Number(h[1]), clase, atributos(s.slice(h[0].length, -1) + ")"));
+            return;
           }
-          elementos.push({
-            guid: texto(e.a[0]),
-            clase: e.clase,
-            nombre: texto(e.a[2]),
-            tipo: texto(e.a[4]) || (tipo ? texto(tipo.a[2]) : null),
-            tag: texto(e.a[7]) || busca(P, PROP_TAG),
-            planta,
-            espacio,
-            modelo: busca(P, PROP_MODELO),
-            fabricante: busca(P, PROP_FABRICANTE),
-            pset: P
-          });
+          if (!esRel && !paraPlano && !sirve(clase)) return;
+          const cuerpo = s.slice(h[0].length, -1);
+          if (soloUtiles && clase === "IFCPROPERTYSINGLEVALUE") {
+            const n = /^\s*'((?:[^']|'')*)'/.exec(cuerpo);
+            if (!n || !PROP_UTIL(cadena(n[1]).trim())) return;
+          }
+          const a = atributos(cuerpo + ")");
+          if (esRel) relacion(clase, a);
+          else E.set(Number(h[1]), { id: Number(h[1]), clase, a });
         }
-        return { esquema, elementos };
+        const cortador = crearCortador(sentencia);
+        function fin() {
+          cortador.fin();
+          const propsDe = (ids) => {
+            const P = {};
+            for (const pid of ids) {
+              const ps = E.get(pid);
+              if (!ps || ps.clase !== "IFCPROPERTYSET") continue;
+              for (const r of refs(ps.a[4])) {
+                const p = E.get(r);
+                if (p && p.clase === "IFCPROPERTYSINGLEVALUE" && texto(p.a[0])) P[texto(p.a[0])] = texto(p.a[2]);
+              }
+            }
+            return P;
+          };
+          const busca = (P, re) => {
+            for (const [k, v] of Object.entries(P)) if (re.test(k) && v) return v;
+            return null;
+          };
+          const marcaDe = (P) => {
+            for (const [k, v] of Object.entries(P)) if (PROP_MARCA.test(k) && v && /[A-Za-z]/.test(v) && /\d/.test(v)) return v;
+            return null;
+          };
+          const dondeEsta = (e) => {
+            let espacio = null, planta = null, s = contenedor.has(e.id) ? contenedor.get(e.id) : padre.get(e.id), vueltas = 0;
+            while (s != null && vueltas++ < 10) {
+              const x = E.get(s);
+              if (x && x.clase === "IFCSPACE" && !espacio) espacio = { nombre: texto(x.a[2]), largo: texto(x.a[7]) };
+              if (x && x.clase === "IFCBUILDINGSTOREY") {
+                planta = { nombre: texto(x.a[2]), largo: texto(x.a[7]), cota: typeof x.a[9] === "number" ? x.a[9] : null };
+                break;
+              }
+              s = padre.get(s);
+            }
+            return { espacio, planta };
+          };
+          const conGeo = (e) => geometria ? { colocacion: ref(e.a[5]), forma: ref(e.a[6]) } : {};
+          const elementos = [], materiales = [], contornos = [];
+          for (const e of E.values()) {
+            if (geometria && e.clase === "IFCSPACE") {
+              const d = dondeEsta(e);
+              contornos.push({ clase: e.clase, nombre: texto(e.a[2]), largo: texto(e.a[7]), planta: d.planta, ...conGeo(e) });
+              continue;
+            }
+            if (CLASES_CONTORNO.has(e.clase)) {
+              contornos.push({ clase: e.clase, nombre: null, planta: dondeEsta(e).planta, ...conGeo(e) });
+              continue;
+            }
+            const esMaterial = CLASES_MATERIAL.has(e.clase);
+            if (!esMaterial && !CLASES_EQUIPO.has(e.clase)) continue;
+            const tipoId = tipoDe.get(e.id);
+            const tipo = tipoId ? E.get(tipoId) : null;
+            const P = { ...tipo ? propsDe(refs(tipo.a[5])) : {}, ...propsDe(psets.get(e.id) || []) };
+            const { espacio, planta } = dondeEsta(e);
+            if (esMaterial) {
+              materiales.push({ guid: texto(e.a[0]), clase: e.clase, nombre: texto(e.a[2]), tipo: texto(e.a[4]) || (tipo ? texto(tipo.a[2]) : null), claseTipo: tipo ? tipo.clase : null, tag: texto(e.a[7]) || busca(P, PROP_TAG), planta, espacio, ...conGeo(e) });
+              continue;
+            }
+            elementos.push({
+              guid: texto(e.a[0]),
+              clase: e.clase,
+              nombre: texto(e.a[2]),
+              tipo: texto(e.a[4]) || (tipo ? texto(tipo.a[2]) : null),
+              tag: texto(e.a[7]) || busca(P, PROP_TAG),
+              marca: marcaDe(P),
+              planta,
+              espacio,
+              salaProp: busca(P, PROP_SALA),
+              modelo: busca(P, PROP_MODELO),
+              fabricante: busca(P, PROP_FABRICANTE),
+              pset: P,
+              ...conGeo(e)
+            });
+          }
+          if (geometria) return { esquema, elementos, materiales, contornos };
+          return { esquema, elementos };
+        }
+        return { trozo: cortador.trozo, fin };
+      }
+      function leerIfc(textoIfc) {
+        const L = crearLectorIfc();
+        L.trozo(String(textoIfc || ""));
+        return L.fin();
       }
       var sala = (s) => String(s || "").toUpperCase().replace(/\s+/g, "").trim();
       var salaEquipo = (e) => [e.salaGris, e.sala, e.codSala].map(sala).filter(Boolean);
-      var plantasIfc = (el) => el.planta ? [el.planta.nombre, el.planta.largo].filter(Boolean).map(D.plantaNorm) : [];
+      var plantasIfc = (el) => S.clavesPlanta(el.planta);
+      var FAMILIA_ACCESORIO = /* @__PURE__ */ new Set(["AIG", "PIA", "MEC", "DIF", "AVC", "DMP", "THM", "DFT", "PRG", "FLT", "VAL", "PIF", "EXJ"]);
+      var FAMILIA_MAQUINA = { EXU: "exterior", INU: "interior", FCU: "fancoil", AHU: "uta", UTA: "uta", HRU: "recuperador", FAN: "ventilador", PMP: "bomba", CHL: "enfriadora", RTU: "rooftop", CRC: "crac" };
+      var CLASE_ACCESORIO = /* @__PURE__ */ new Set(["IFCAIRTERMINAL", "IFCAIRTERMINALBOX", "IFCDAMPER", "IFCFLOWCONTROLLER", "IFCDISTRIBUTIONCONTROLELEMENT", "IFCCONTROLLER", "IFCSENSOR", "IFCACTUATOR", "IFCALARM"]);
+      var CLASE_MAQUINA = { IFCCHILLER: "enfriadora", IFCPUMP: "bomba", IFCFAN: "ventilador", IFCAIRTOAIRHEATRECOVERY: "recuperador" };
+      var PALABRA_ACCESORIO = /\b(rejas?|rejillas?|difusor(es)?|compuertas?|v[aá]lvulas?|termostatos?|sondas?|sensor(es)?|filtros?|juntas?|toberas?|grilles?|diffusers?|dampers?|valves?|thermostats?)\b/i;
+      var PALABRAS_GRUPO = [
+        ["exterior", /(^|[\s_.-])UE($|[\s_.-])|unidad(es)? exterior|outdoor|condensadora/i],
+        ["interior", /(^|[\s_.-])UI($|[\s_.-])|unidad(es)? interior|indoor|cassette|casete/i],
+        ["crac", /(^|[\s_.-])CRACS?($|[\s_.-])/i],
+        ["fancoil", /fan.?coil/i],
+        ["recuperador", /recuperador|heat.?recovery|(^|[\s_.-])HRU($|[\s_.-])/i],
+        ["uta", /(^|[\s_.-])(UTAS?|AHU)($|[\s_.-])|climatizador|air.?handling/i],
+        ["grupoPresion", /grupos?.{0,3}presi[oó]n|booster|(^|[\s_.-])WILO_GP($|[\s_.-])/i],
+        ["bomba", /bomba|pump/i],
+        ["enfriadora", /enfriadora|chiller/i],
+        ["rooftop", /roof.?top/i],
+        ["ventilador", /ventilador|extractor|ventilaci[oó]n|presurizaci[oó]n|(^|[\s_.-])SP_PARKING($|[\s_.-])/i],
+        ["interior", /split|VRF/i]
+      ];
+      var grupoPorPalabras = (t) => (PALABRAS_GRUPO.find(([, re]) => re.test(t)) || [null])[0];
+      function tipoElemento(el) {
+        const t = [el.nombre, el.tipo].filter(Boolean).join(" ");
+        const fam = (/^[A-Z0-9]{2,5}_([A-Z]{3})_/.exec(String(el.nombre || "")) || [])[1];
+        if (FAMILIA_ACCESORIO.has(fam)) return { categoria: "accesorio", grupo: null };
+        if (FAMILIA_MAQUINA[fam]) return { categoria: "maquina", grupo: FAMILIA_MAQUINA[fam] };
+        if (CLASE_ACCESORIO.has(el.clase) || PALABRA_ACCESORIO.test(t)) return { categoria: "accesorio", grupo: null };
+        const g = CLASE_MAQUINA[el.clase] || grupoPorPalabras(t);
+        return g ? { categoria: "maquina", grupo: g } : { categoria: "otro", grupo: null };
+      }
+      var grupoEquipo = (e) => grupoPorPalabras([e.tag, e.familia, e.tipo, e.descripcion].filter(Boolean).join(" "));
+      var gruposCompatibles = (a, b) => Boolean(a && b) && (a === b || a === "interior" && b === "crac" || a === "crac" && b === "interior");
+      var soloId = (t) => /^\s*\d+\s*$/.test(String(t ?? ""));
+      var mixto = (k) => /[A-Z]/.test(k) && /\d/.test(k);
+      function codigosDeNombre(nombre) {
+        const out = /* @__PURE__ */ new Set();
+        for (const s of String(nombre || "").split(":")) {
+          if (!s.trim() || soloId(s)) continue;
+          const k = D.kEstricta(s);
+          if (!k) continue;
+          if (mixto(k)) out.add(k);
+          const t = k.split(".");
+          for (let i = 0; i < t.length; i++) for (let j = i + 3; j <= t.length; j++) {
+            const sub = t.slice(i, j).join(".");
+            if (mixto(sub)) out.add(sub);
+          }
+        }
+        return [...out].sort((a, b) => b.length - a.length);
+      }
       var salasIfc = (el) => el.espacio ? [el.espacio.nombre, el.espacio.largo].filter(Boolean).map(sala) : [];
       function cruzarConIfc(equipos = [], elementos = [], { hoy = (/* @__PURE__ */ new Date()).toISOString(), fuera = () => false } = {}) {
         const vivos = equipos.filter((e) => !fuera(e) && (e.duplicadoDe == null || e.duplicadoDe === ""));
@@ -40417,7 +40778,8 @@ ${obsO}` : obsO).slice(0, 4e3);
         const pendientes = [];
         for (const el of elementos) {
           let e = null, motivo = null;
-          for (const [campo, t] of [["Tag", el.tag], ["Name", el.nombre]]) {
+          for (const [campo, t] of [["Tag", el.tag], ["Mark", el.marca], ["Name", el.nombre]]) {
+            if (soloId(t)) continue;
             const k = D.kEstricta(t);
             const x = k ? porTag.get(k) : null;
             if (x && !usados.has(x.id)) {
@@ -40429,18 +40791,1298 @@ ${obsO}` : obsO).slice(0, 4e3);
           if (e) casar(el, e, motivo);
           else pendientes.push(el);
         }
+        const codigos = new Map(pendientes.map((el) => [el, codigosDeNombre(el.nombre).filter((k) => porTag.has(k))]));
+        const veces = /* @__PURE__ */ new Map();
+        for (const l of codigos.values()) for (const k of l) veces.set(k, (veces.get(k) || 0) + 1);
+        const quedan = [];
         for (const el of pendientes) {
+          const k = codigos.get(el).find((c) => veces.get(c) === 1 && !usados.has(porTag.get(c).id));
+          if (k) casar(el, porTag.get(k), "c\xF3digo de obra en el Name del IFC");
+          else quedan.push(el);
+        }
+        const porPlanta = /* @__PURE__ */ new Map();
+        for (const e of vivos) {
+          const p = D.plantaNorm(e.planta);
+          if (!porPlanta.has(p)) porPlanta.set(p, []);
+          porPlanta.get(p).push(e);
+        }
+        for (const el of quedan) {
           const pl = plantasIfc(el), sa = salasIfc(el);
           let c = [];
           if (pl.length && sa.length && el.modelo) {
-            c = vivos.filter((e) => !usados.has(e.id) && pl.includes(D.plantaNorm(e.planta)) && salaEquipo(e).some((s) => sa.includes(s)) && e.modelo && D.modeloCompatible(e.modelo, el.modelo));
+            c = [...new Set(pl)].flatMap((p) => porPlanta.get(p) || []).filter((e) => !usados.has(e.id) && salaEquipo(e).some((s) => sa.includes(s)) && e.modelo && D.modeloCompatible(e.modelo, el.modelo));
           }
           if (c.length === 1) casar(el, c[0], "misma planta, espacio y modelo");
           else sinEquipo.push({ ...el, candidatos: c.length });
         }
         return { casados, sinEquipo, sinIfc: vivos.filter((e) => !usados.has(e.id)).map((e) => e.id) };
       }
-      module.exports = { leerIfc, cruzarConIfc, entidades, atributos, cadena, CLASES_EQUIPO };
+      function casarProbables(equipos = [], cruce = {}, { fuera = () => false } = {}) {
+        const usados = new Set((cruce.casados || []).map((c) => c.equipoId));
+        const libres = equipos.filter((e) => !fuera(e) && (e.duplicadoDe == null || e.duplicadoDe === "") && !usados.has(e.id));
+        const candidatos = /* @__PURE__ */ new Map(), porEquipo = /* @__PURE__ */ new Map();
+        for (const el of cruce.sinEquipo || []) {
+          const { categoria, grupo } = tipoElemento(el);
+          const s = salaDeElemento(el);
+          const pl = plantasIfc(el);
+          if (categoria !== "maquina" || !s || !pl.length) continue;
+          const claves = [s.codigo, s.nombre].filter(Boolean).map(sala);
+          const c = libres.filter((e) => pl.includes(D.plantaNorm(e.planta)) && salaEquipo(e).some((x) => claves.includes(x)) && gruposCompatibles(grupo, grupoEquipo(e)) && (!e.modelo || !el.modelo || D.modeloCompatible(e.modelo, el.modelo)));
+          candidatos.set(el, c);
+          for (const e of c) porEquipo.set(e.id, (porEquipo.get(e.id) || 0) + 1);
+        }
+        const probables = [];
+        for (const [el, c] of candidatos) {
+          if (c.length !== 1 || porEquipo.get(c[0].id) !== 1) continue;
+          el.probable = { equipoId: c[0].id, tag: c[0].tag };
+          probables.push({ equipoId: c[0].id, tag: c[0].tag, guid: el.guid, porConfirmar: true, motivo: "misma planta y sala, y tipo compatible" });
+        }
+        return probables;
+      }
+      var ORDEN_ESTADO = { difiere: 0, sinSalaApp: 1, sinSalaIfc: 2, coincide: 3 };
+      function salaDeElemento(el) {
+        if (el.espacio && (el.espacio.nombre || el.espacio.largo)) return { codigo: el.espacio.nombre || el.espacio.largo, nombre: el.espacio.nombre && el.espacio.largo ? el.espacio.largo : null };
+        if (el.salaProp) return { codigo: el.salaProp, nombre: null };
+        return el.salaPos && el.salaPos.codigo ? { codigo: el.salaPos.codigo, nombre: el.salaPos.nombre || null, fuente: el.salaPos.fuente } : null;
+      }
+      function compararSalas(equipos = [], elementos = [], cruce = {}, { tope = 1500 } = {}) {
+        const eq = new Map(equipos.map((e) => [e.id, e]));
+        const elDe = new Map(elementos.map((el) => [el.guid, el]));
+        const dePlanta = (el) => el && el.planta ? el.planta.nombre || el.planta.largo || null : null;
+        const salaApp = (e) => e.salaGris || e.sala || e.codSala || null;
+        const filas = (cruce.casados || []).map((c) => {
+          const e = eq.get(c.equipoId) || {};
+          const el = elDe.get(c.guid) || {};
+          const ifc = salaDeElemento(el);
+          const app = salaApp(e);
+          const claves = ifc ? [ifc.codigo, ifc.nombre, el.salaProp].filter(Boolean).map(sala) : [];
+          let estado, coincideCon = null;
+          if (!ifc) estado = "sinSalaIfc";
+          else if (!app) estado = "sinSalaApp";
+          else if (claves.includes(sala(app))) estado = "coincide";
+          else {
+            estado = "difiere";
+            const otra = [e.salaGris, e.sala, e.codSala].find((s) => s && sala(s) !== sala(app) && claves.includes(sala(s)));
+            if (otra) coincideCon = otra;
+          }
+          return {
+            equipoId: c.equipoId,
+            tag: e.tag || c.tag || null,
+            planta: e.planta || null,
+            salaApp: app,
+            salaAppNombre: e.salaGrisNombre || null,
+            salaIfc: ifc ? ifc.codigo : null,
+            salaIfcNombre: ifc ? ifc.nombre : null,
+            plantaIfc: dePlanta(el),
+            estado,
+            coincideCon,
+            motivo: c.motivo,
+            guid: c.guid,
+            fichero: el.fichero || null,
+            salaFuente: ifc ? ifc.fuente || null : null
+          };
+        });
+        filas.sort((a, b) => ORDEN_ESTADO[a.estado] - ORDEN_ESTADO[b.estado] || String(a.tag).localeCompare(String(b.tag), "es", { numeric: true }));
+        const sinEquipo = cruce.sinEquipo || [];
+        const RANGO = { maquina: 0, otro: 4, accesorio: 8 };
+        const categoria = new Map(sinEquipo.map((el) => [el, tipoElemento(el).categoria]));
+        const peso = (el) => RANGO[categoria.get(el)] + (salaDeElemento(el) ? 0 : 2) + (el.tag ? 0 : 1);
+        const sinEquipoRecortado = [...sinEquipo].sort((a, b) => peso(a) - peso(b)).slice(0, tope).map((el) => {
+          const ifc = salaDeElemento(el);
+          return { guid: el.guid, clase: el.clase, nombre: el.nombre, tag: el.tag, planta: dePlanta(el), salaIfc: ifc ? ifc.codigo : null, salaIfcNombre: ifc ? ifc.nombre : null, fichero: el.fichero || null, salaFuente: ifc ? ifc.fuente || null : null, categoria: categoria.get(el), motivo: el.probable ? `por confirmar: podr\xEDa ser ${el.probable.tag}` : null };
+        });
+        const posible = new Map((cruce.probables || []).map((p) => [p.equipoId, elDe.get(p.guid)]));
+        const sinIfc = (cruce.sinIfc || []).map((id) => {
+          const e = eq.get(id) || {};
+          return { equipoId: id, tag: e.tag || null, planta: e.planta || null, salaApp: salaApp(e), salaAppNombre: e.salaGrisNombre || null, motivo: posible.has(id) ? `por confirmar: podr\xEDa ser ${(posible.get(id) || {}).nombre || "un elemento del modelo"}` : null };
+        });
+        sinIfc.sort((a, b) => String(a.tag).localeCompare(String(b.tag), "es", { numeric: true }));
+        const cuenta = { difiere: 0, sinSalaApp: 0, sinSalaIfc: 0, coincide: 0 };
+        for (const f of filas) cuenta[f.estado]++;
+        return { filas, sinEquipo: sinEquipoRecortado, sinEquipoTotal: sinEquipo.length, sinIfc, cuenta };
+      }
+      var SIN_ID = (el) => el.tag && el.nombre && el.nombre.endsWith(`:${el.tag}`);
+      function compactarCruce(r) {
+        if (!r || !Array.isArray(r.sinEquipo)) return r;
+        const d = [], pos = /* @__PURE__ */ new Map();
+        const i = (t) => {
+          if (t == null || t === "") return 0;
+          if (!pos.has(t)) {
+            d.push(t);
+            pos.set(t, d.length);
+          }
+          return pos.get(t);
+        };
+        const f = r.sinEquipo.map((el) => [
+          el.guid,
+          el.tag ?? null,
+          SIN_ID(el) ? -i(el.nombre.slice(0, -(String(el.tag).length + 1))) : i(el.nombre),
+          i(el.clase),
+          i(el.planta),
+          i(el.salaIfc),
+          i(el.salaIfcNombre),
+          i(el.fichero),
+          i(el.salaFuente),
+          i(el.categoria),
+          i(el.motivo)
+        ]);
+        return { ...r, sinEquipo: { v: 1, d, f } };
+      }
+      function expandirCruce(r) {
+        if (!r || !r.sinEquipo || Array.isArray(r.sinEquipo)) return r;
+        const { d, f } = r.sinEquipo;
+        const de = (i) => i ? d[Math.abs(i) - 1] : null;
+        return { ...r, sinEquipo: f.map(([guid, tag, n, clase, planta, salaIfc, salaIfcNombre, fichero, salaFuente, categoria, motivo]) => ({
+          guid,
+          clase: de(clase),
+          nombre: n < 0 ? `${de(n)}:${tag}` : de(n),
+          tag,
+          planta: de(planta),
+          salaIfc: de(salaIfc),
+          salaIfcNombre: de(salaIfcNombre),
+          fichero: de(fichero),
+          salaFuente: de(salaFuente),
+          categoria: de(categoria),
+          motivo: de(motivo)
+        })) };
+      }
+      module.exports = { leerIfc, crearLectorIfc, crearCortador, cruzarConIfc, casarProbables, compararSalas, salaDeElemento, tipoElemento, codigosDeNombre, compactarCruce, expandirCruce, entidades, atributos, cadena, CLASES_EQUIPO };
+    }
+  });
+
+  // shared/commissioning/planoEquipos.js
+  var require_planoEquipos = __commonJS({
+    "shared/commissioning/planoEquipos.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const MAX_PALABRAS = 8;
+        const CERCA = 0.015;
+        const clave = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+        const claveSuelta = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().split(/[^A-Z0-9]+/).map((x) => x.replace(/(^|[A-Z])0+(?=\d)/g, "$1")).join("");
+        const RE_NO_EQUIPO = /^(?:C\.?C\.?F|CRF|CF|CORTA\s?FUEGOS?|COMPUERTAS?|DAMPERS?|DMP|VAV|V[23]V|VALV(?:ULAS?)?|VAL|VS|VM|CGBT|CUADRO)(?=$|[\s._\-/\d])/i;
+        const RE_FAMILIA_NO_EQUIPO = /^(ELEC_|CONTROL_|HOSP_|TELE_|GAS_|PCI_(?!BOMBEO))/;
+        function esEquipoDelPlano(e) {
+          if (!e) return false;
+          const tag = String(e.tag || "").trim();
+          if (clave(tag).length < 2) return false;
+          if (RE_NO_EQUIPO.test(tag)) return false;
+          if (RE_FAMILIA_NO_EQUIPO.test(String(e.familia || "").trim())) return false;
+          return true;
+        }
+        const claveCasado = (t) => claveSuelta(t);
+        function casar(tagsPlano, equipos) {
+          const delListado = (equipos || []).filter(esEquipoDelPlano);
+          const porClave = /* @__PURE__ */ new Map();
+          for (const e of delListado) {
+            for (const k of /* @__PURE__ */ new Set([clave(e.tag), claveCasado(e.tag)])) {
+              if (!k) continue;
+              if (!porClave.has(k)) porClave.set(k, []);
+              porClave.get(k).push(e);
+            }
+          }
+          const casados = [];
+          const vistos = /* @__PURE__ */ new Set();
+          const sobran = [];
+          const sobranVistos = /* @__PURE__ */ new Set();
+          for (const t of tagsPlano || []) {
+            const tag = String(t || "").trim();
+            if (!tag || RE_NO_EQUIPO.test(tag)) continue;
+            const casan = porClave.get(clave(tag)) || porClave.get(claveCasado(tag));
+            if (!casan) {
+              if (!sobranVistos.has(claveCasado(tag))) {
+                sobranVistos.add(claveCasado(tag));
+                sobran.push(tag);
+              }
+              continue;
+            }
+            for (const e of casan) {
+              if (vistos.has(e.id)) continue;
+              vistos.add(e.id);
+              casados.push({ equipoId: e.id, tag: e.tag, tagPlano: tag });
+            }
+          }
+          return { casados, sinUbicar: delListado.filter((e) => !vistos.has(e.id)), sobranEnPlano: sobran };
+        }
+        function cruce(equiposPlanta, marcas) {
+          const conMarca = new Set((marcas || []).map((m) => m.equipoId));
+          const delListado = (equiposPlanta || []).filter(esEquipoDelPlano);
+          return {
+            casados: delListado.filter((e) => conMarca.has(e.id)),
+            sinUbicar: delListado.filter((e) => !conMarca.has(e.id))
+          };
+        }
+        function palabrasDe(textos) {
+          const salida = [];
+          for (const t of textos || []) {
+            if (!t || typeof t.texto !== "string") continue;
+            const trozos = t.texto.split(/\s+/).filter(Boolean);
+            trozos.forEach((p, i) => salida.push({ p, k: clave(p), s: claveSuelta(p), x: Number(t.x) || 0, y: Number(t.y) || 0, mismo: i > 0 }));
+          }
+          return salida;
+        }
+        function reconocer(textos, equipos) {
+          const porClave = /* @__PURE__ */ new Map();
+          const porSuelta = /* @__PURE__ */ new Map();
+          for (const e of equipos || []) {
+            if (!esEquipoDelPlano(e)) continue;
+            const k = clave(e.tag);
+            if (k.length < 4) continue;
+            if (!porClave.has(k)) porClave.set(k, []);
+            porClave.get(k).push(e);
+            const s = claveSuelta(e.tag);
+            if (!porSuelta.has(s)) porSuelta.set(s, []);
+            porSuelta.get(s).push(e);
+          }
+          const palabras = palabrasDe(textos);
+          const usadas = new Uint8Array(palabras.length);
+          const marcas = [];
+          const vistos = /* @__PURE__ */ new Set();
+          for (let i = 0; i < palabras.length; i++) {
+            if (usadas[i] || !palabras[i].k) continue;
+            let hasta = i;
+            const ks = [palabras[i].k];
+            const ss = [palabras[i].s];
+            for (let j = i + 1; j < palabras.length && j - i < MAX_PALABRAS; j++) {
+              const a = palabras[j - 1];
+              const b = palabras[j];
+              if (usadas[j]) break;
+              if (!b.mismo && Math.hypot(a.x - b.x, a.y - b.y) > CERCA) break;
+              ks.push(b.k);
+              ss.push(b.s);
+              hasta = j;
+            }
+            for (let fin = hasta; fin >= i; fin--) {
+              if (fin > i && !palabras[fin].k) continue;
+              const k = ks.slice(0, fin - i + 1).join("");
+              const casan = porClave.get(k) || porSuelta.get(ss.slice(0, fin - i + 1).join(""));
+              if (!casan) continue;
+              let sx = 0;
+              let sy = 0;
+              for (let n = i; n <= fin; n++) {
+                sx += palabras[n].x;
+                sy += palabras[n].y;
+                usadas[n] = 1;
+              }
+              const x = Math.round(sx / (fin - i + 1) * 1e4) / 1e4;
+              const y = Math.round(sy / (fin - i + 1) * 1e4) / 1e4;
+              const libre = casan.find((e) => !vistos.has(e.id));
+              if (libre) {
+                vistos.add(libre.id);
+                marcas.push({ equipoId: libre.id, tag: libre.tag, x, y });
+              }
+              break;
+            }
+          }
+          const plantaDe = (ms) => {
+            const cuenta = /* @__PURE__ */ new Map();
+            for (const m of ms) {
+              const e = (equipos || []).find((q) => q.id === m.equipoId);
+              const p = e && e.planta ? String(e.planta) : null;
+              if (p) cuenta.set(p, (cuenta.get(p) || 0) + 1);
+            }
+            return [...cuenta.entries()].sort((a, b) => b[1] - a[1])[0];
+          };
+          let planta = plantaDe(marcas);
+          if (planta) porCodigoDeSala(palabras, usadas, equipos, planta[0], vistos, marcas);
+          for (const grupo of porClave.values()) {
+            if (grupo.length < 2) continue;
+            const puesta = marcas.find((m) => grupo.some((e) => e.id === m.equipoId));
+            if (!puesta) continue;
+            for (const e of grupo) {
+              if (vistos.has(e.id)) continue;
+              vistos.add(e.id);
+              marcas.push({ equipoId: e.id, tag: e.tag, x: puesta.x, y: puesta.y });
+            }
+          }
+          planta = plantaDe(marcas);
+          const deLaPlanta = planta ? (equipos || []).filter((e) => esEquipoDelPlano(e) && String(e.planta || "") === planta[0]) : [];
+          const noEncontrados = deLaPlanta.filter((e) => !vistos.has(e.id)).map((e) => ({ id: e.id, tag: e.tag }));
+          return { marcas, planta: planta ? planta[0] : null, noEncontrados, reconocidos: marcas.length };
+        }
+        const RE_SOLO_CODIGO = /^(?:(N\d{2}|S\d)[-_ ])?([PSM]\d\.[A-Z]{3}\.\d{3,4})((?:_[A-Z]{1,4})?)$/i;
+        const RE_TAG_PLANTA_CODIGO = /^[A-Z]{2,4}[-_ ]?(N\d{2}|S\d)[-_ ]([PSM]\d\.[A-Z]{3}\.\d{3,4}(?:_[A-Z]{1,4})?)$/i;
+        const RE_UI_SALA = /^UI[-_ ]([PSM]\d\.[A-Z]{3}\.\d{3,4})$/i;
+        const CERCA_SALA_UI = 0.015;
+        function porCodigoDeSala(palabras, usadas, equipos, planta, vistos, marcas) {
+          const porCodigo = /* @__PURE__ */ new Map();
+          for (const e of equipos || []) {
+            if (!esEquipoDelPlano(e) || String(e.planta || "") !== planta) continue;
+            const m = RE_TAG_PLANTA_CODIGO.exec(String(e.tag || "").trim());
+            if (!m || m[1].toUpperCase() !== planta.toUpperCase()) continue;
+            const k = claveSuelta(m[2]);
+            if (!porCodigo.has(k)) porCodigo.set(k, []);
+            porCodigo.get(k).push(e);
+          }
+          if (!porCodigo.size) return;
+          const uis = [];
+          palabras.forEach((w) => {
+            const m = RE_UI_SALA.exec(w.p);
+            if (m) uis.push({ sala: m[1].toUpperCase(), x: w.x, y: w.y });
+          });
+          palabras.forEach((w, i) => {
+            if (usadas[i] || w.mismo || palabras[i + 1] && palabras[i + 1].mismo) return;
+            const m = RE_SOLO_CODIGO.exec(w.p);
+            if (!m || m[1] && m[1].toUpperCase() !== planta.toUpperCase()) return;
+            if (palabras.some((o) => !o.mismo && o !== w && Math.abs(o.x - w.x) < 4e-3 && w.y - o.y > 0 && w.y - o.y < 25e-4 && esNombreSala(o.p) && !RE_SOLO_CODIGO.test(o.p))) return;
+            const sala = m[2].toUpperCase();
+            const sufijo = (m[3] || "").toUpperCase();
+            let ui = null;
+            let d = CERCA_SALA_UI;
+            for (const u of uis) {
+              const dd = Math.hypot(u.x - w.x, u.y - w.y);
+              if (dd < d) {
+                d = dd;
+                ui = u;
+              }
+            }
+            let k = claveSuelta(sala + sufijo);
+            let dudoso = null;
+            if (ui && ui.sala !== sala && ui.sala.slice(0, 6) === sala.slice(0, 6)) {
+              k = claveSuelta(ui.sala + sufijo);
+              dudoso = `el plano pone \xAB${w.p}\xBB en la sala ${ui.sala}`;
+            }
+            const libre = (porCodigo.get(k) || []).find((e) => !vistos.has(e.id));
+            if (!libre) return;
+            vistos.add(libre.id);
+            usadas[i] = 1;
+            marcas.push({ equipoId: libre.id, tag: libre.tag, x: w.x, y: w.y, ...dudoso ? { dudoso } : {} });
+          });
+        }
+        const COLORES = {
+          verde: { nombre: "Hecho", largo: "Commissioning completo", hex: "#1a7f4b" },
+          azul: { nombre: "Falta documento", largo: "Empezado, falta alg\xFAn documento", hex: "#1f63c6" },
+          rojo: { nombre: "Sin empezar", largo: "No se ha empezado", hex: "#c8303a" }
+        };
+        const ORDEN_COLOR = ["verde", "azul", "rojo"];
+        const BALANCEO_HECHO = /* @__PURE__ */ new Set(["apto", "aptoSinBocas", "noApto"]);
+        const ESTANQ_HECHA = /* @__PURE__ */ new Set(["apta", "noApta"]);
+        const hayDato = (v) => {
+          const t = String(v ?? "").trim().toLowerCase();
+          return t !== "" && t !== "pendiente" && t !== "\u2014" && t !== "-";
+        };
+        function empezado(u) {
+          if (!u) return false;
+          if (u.instalacionVerificadaEn || u.estado === "enMarcha" || u.estado === "recepcionado") return true;
+          const pmGuardado = Object.prototype.hasOwnProperty.call(u, "estadoPMGuardado") ? u.estadoPMGuardado : u.estadoPM;
+          if (pmGuardado && pmGuardado !== "pendiente") return true;
+          if (hayDato(u.docFichaPM) || hayDato(u.docBalanceo) || hayDato(u.docEstanqueidad)) return true;
+          if (BALANCEO_HECHO.has(u.balanceoEstado) || ESTANQ_HECHA.has(u.estanqueidadEstado)) return true;
+          if (u.fechaEnvioDF) return true;
+          if (u.fichaConDato) return true;
+          const f = u.pmFichas;
+          if (f && (f.completas > 0 || f.checklist === "hecho")) return true;
+          return false;
+        }
+        function estadoEnPlano(unidad, linea) {
+          const l = linea || unidad;
+          if (!l) return "rojo";
+          if (l.completo) return "verde";
+          const miembros = Array.isArray(l.miembros) && l.miembros.length ? l.miembros : [l];
+          return miembros.some(empezado) || unidad && empezado(unidad) ? "azul" : "rojo";
+        }
+        function lineasPorUnidad(tabla) {
+          const lineaDe = /* @__PURE__ */ new Map();
+          for (const c of tabla && tabla.conjuntos || []) {
+            for (const m of c.miembros || [c]) lineaDe.set(m.id, c);
+          }
+          return lineaDe;
+        }
+        const TIPO_LLANO = {
+          TROX_UTA: "Climatizador (UTA)",
+          CARRIER_ROOFTOPS: "Rooftop",
+          CARRIER_CHILLERS: "Enfriadora o bomba de calor",
+          AIRLAN_FANCOIL: "Fan coil",
+          AIRLAN_HRU: "Recuperador de calor",
+          PANASONIC_VRF: "Unidad de VRF",
+          PANASONIC_SPLIT: "Split",
+          PANASONIC_CRACS: "Equipo de precisi\xF3n (CRAC)",
+          WILO_GP: "Grupo de presi\xF3n",
+          WILO_PUMPS: "Bomba",
+          SP_VENTILACION: "Ventilador",
+          SP_PARKING: "Ventilador de parking",
+          SP_PRESURIZACION: "Ventilador de presurizaci\xF3n"
+        };
+        const TEXTO_ACCION = { datos: "Rellenar datos que faltan", checklist: "Checklist", balanceo: "Balanceo", estanqueidad: "Estanqueidad" };
+        function controlCx() {
+          return typeof __require !== "undefined" ? require_control() : typeof window !== "undefined" ? window.CONTROL_CX : null;
+        }
+        function fichasCx() {
+          return typeof __require !== "undefined" ? require_fichas() : typeof window !== "undefined" ? window.FICHAS_PM : null;
+        }
+        const T2 = 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
+        const CUERPO = 'class="cuerpo" stroke="currentColor" stroke-width="2" stroke-linejoin="round"';
+        const ASPA = "M12 12C9.500 8 10.500 4.500 12 4.500S14.500 8 12 12Z";
+        const aspas = (cx, cy, k) => `<g transform="translate(${cx} ${cy}) scale(${k}) translate(-12 -12)">${[0, 120, 240].map((g) => `<path class="lleno" d="${ASPA}"${g ? ` transform="rotate(${g} 12 12)"` : ""}/>`).join("")}</g>`;
+        const ICONOS = {
+          splitInt: { nombre: "Split interior (pared)", svg: `<rect ${CUERPO} x="2" y="5" width="20" height="10" rx="3"/><path ${T2} d="M5 12h14M7 18l-1 3M12 18v3M17 18l1 3"/>` },
+          splitExt: { nombre: "Split exterior", svg: `<rect ${CUERPO} x="3" y="3" width="18" height="18" rx="3"/><circle ${T2} cx="12" cy="12" r="5.5"/><path class="lleno" d="M12 12C10 9 10.5 6.5 12 6.5S14 9 12 12ZM12 12c3 .5 4.5 2.5 3.5 3.7S12.500 15 12 12ZM12 12c-3 .5-4.500 2.500-3.500 3.700S11.500 15 12 12Z"/>` },
+          vrfInt: { nombre: "VRF interior (casete)", svg: `<rect ${CUERPO} x="3" y="3" width="18" height="18" rx="2"/><rect ${T2} x="8" y="8" width="8" height="8"/><path ${T2} d="M3 3l5 5M21 3l-5 5M3 21l5-5M21 21l-5-5"/>` },
+          /* Unidad de conductos (5-nov, JC: «este símbolo para fan coils es
+             malísimo»): como en la simbología HVAC de los planos, caja alargada con el
+             ventilador dentro (círculo con aspas) y las bocas de conducto de retorno e
+             impulsión en los extremos. Nada de flechas. */
+          vrfConductos: { nombre: "VRF interior (conductos)", svg: `<rect ${CUERPO} x="4.500" y="6.500" width="15" height="11" rx="1.500"/><path ${T2} d="M4.500 8.500H1.500v7h3M19.500 8.500h3v7h-3"/><circle ${T2} cx="12" cy="12" r="3.800"/>${aspas(12, 12, 0.42)}` },
+          vrfExt: { nombre: "VRF exterior", svg: `<rect ${CUERPO} x="1.5" y="4" width="21" height="16" rx="3"/><circle ${T2} cx="7.5" cy="12" r="4"/><circle ${T2} cx="16.5" cy="12" r="4"/><circle class="lleno" cx="7.5" cy="12" r="1.300"/><circle class="lleno" cx="16.5" cy="12" r="1.300"/>` },
+          /* Fan coil de agua: la misma caja con bocas, el ventilador a un lado y la
+             batería (el serpentín) al otro, para no confundirlo con la de conductos VRF. */
+          fancoil: { nombre: "Fan coil", svg: `<rect ${CUERPO} x="4.500" y="6.500" width="15" height="11" rx="1.500"/><path ${T2} d="M4.500 8.500H1.500v7h3M19.500 8.500h3v7h-3"/><circle ${T2} cx="9.300" cy="12" r="3.300"/>${aspas(9.3, 12, 0.36)}<path ${T2} d="M14.500 8.700l2.800 1.100-2.800 1.100 2.800 1.100-2.800 1.100 2.800 1.100-2.800 1.100"/>` },
+          uta: { nombre: "UTA (climatizador)", svg: `<rect ${CUERPO} x="1.5" y="6" width="21" height="12" rx="1.500"/><path ${T2} d="M8 6v12M15.500 6v12"/><circle ${T2} cx="11.750" cy="12" r="2.200"/><path ${T2} d="M3.500 12h2.500M17.500 9l3 6M20.500 9l-3 6"/>` },
+          hru: { nombre: "Recuperador de calor (HRU)", svg: `<rect ${CUERPO} x="1.5" y="5" width="21" height="14" rx="2"/><path ${T2} d="M12 5.500l6.500 6.500-6.500 6.500L5.500 12z"/><path ${T2} d="M1.500 12H5M19 12h3.500"/>` },
+          rooftop: { nombre: "Rooftop", svg: `<rect ${CUERPO} x="2.500" y="10" width="19" height="10" rx="1.500"/><path ${T2} d="M6 10l3-5.500h6l3 5.500"/><circle ${T2} cx="12" cy="15" r="2.500"/>` },
+          crac: { nombre: "CRAC (precisi\xF3n)", svg: `<rect ${CUERPO} x="4" y="2" width="16" height="20" rx="2"/><path ${T2} d="M12 6v12M6.800 9l10.400 6M6.800 15l10.400-6"/>` },
+          chiller: { nombre: "Enfriadora", svg: `<rect ${CUERPO} x="1.500" y="4" width="21" height="16" rx="2"/><path ${T2} d="M4.500 10c1.750-2 3.500-2 5.250 0s3.500 2 5.250 0 2.500-1.500 4.500 0M4.500 15c1.750-2 3.500-2 5.250 0s3.500 2 5.250 0 2.500-1.500 4.500 0"/>` },
+          /* Bomba de calor (BCA aerotérmica, BCG geotérmica): la caja con su ventilador y el calor que sale. */
+          bombaCalor: { nombre: "Bomba de calor", svg: `<rect ${CUERPO} x="1.500" y="4" width="21" height="16" rx="2"/><circle ${T2} cx="8" cy="12" r="4.300"/>${aspas(8, 12, 0.42)}<path ${T2} d="M14.500 8.500l2.500 3.500-2.500 3.500M18 8.500l2.500 3.500-2.500 3.500"/>` },
+          colector: { nombre: "Colector", svg: `<rect ${CUERPO} x="2" y="7" width="20" height="5" rx="2.500"/><path ${T2} d="M6 12v7M12 12v7M18 12v7M4 19h4M10 19h4M16 19h4"/>` },
+          deposito: { nombre: "Dep\xF3sito o acumulador", svg: `<path ${CUERPO} d="M6 5a6 2.500 0 0 1 12 0v14a6 2.500 0 0 1-12 0Z"/><path ${T2} d="M6 5a6 2.500 0 0 0 12 0"/>` },
+          extintor: { nombre: "Extintor", svg: `<rect ${CUERPO} x="7.500" y="8" width="9" height="14" rx="3"/><path ${T2} d="M12 8V4.500h3.500l3 2M12 4.500H9M10 2.500h4"/>` },
+          bomba: { nombre: "Bomba o grupo de presi\xF3n", svg: `<circle ${CUERPO} cx="11" cy="14" r="7.500"/><path class="lleno" d="M8.500 10.500l6.500 3.500-6.500 3.500z"/><path ${T2} d="M11 6.500V3h10"/>` },
+          /* Con su boca (5-nov, «bloques como los de AutoCAD»): la voluta, el círculo con la salida tangente. */
+          ventilador: { nombre: "Ventilador o extractor", svg: `<path ${CUERPO} d="M10 4H21.500V9.800H17.700A8 8 0 1 1 10 4Z"/>${aspas(10, 12, 0.5)}` },
+          cajaVentilacion: { nombre: "Caja de ventilaci\xF3n", svg: `<rect ${CUERPO} x="3" y="5" width="18" height="14" rx="1"/><path ${T2} d="M3 9H1M3 15H1M21 9h2M21 15h2"/><circle ${T2} cx="12" cy="12" r="4.300"/>${aspas(12, 12, 0.45)}` },
+          agua: { nombre: "Agua (AFS, ADE, fluxores, ACS)", svg: `<path ${CUERPO} d="M12 2.500S5 10.500 5 15a7 7 0 0 0 14 0c0-4.500-7-12.500-7-12.500z"/><path ${T2} d="M8.500 15a3.500 3.500 0 0 0 3 3.400"/>` },
+          generico: { nombre: "Otro equipo", svg: `<rect ${CUERPO} x="2" y="2" width="20" height="20" rx="3"/><rect class="lleno" x="8" y="8" width="8" height="8" rx="1"/>` }
+        };
+        const ICONO_DE_FAMILIA = {
+          PANASONIC_SPLIT: "splitInt",
+          PANASONIC_VRF: "vrfInt",
+          AIRLAN_FANCOIL: "fancoil",
+          TROX_UTA: "uta",
+          AIRLAN_HRU: "hru",
+          CARRIER_ROOFTOPS: "rooftop",
+          PANASONIC_CRACS: "crac",
+          CARRIER_CHILLERS: "chiller",
+          WILO_PUMPS: "bomba",
+          WILO_GP: "bomba",
+          PCI_BOMBEO: "bomba",
+          SP_VENTILACION: "ventilador",
+          SP_PRESURIZACION: "ventilador",
+          SP_PARKING: "ventilador",
+          FONT_ACS: "agua"
+        };
+        const ICONO_DE_TAG = [
+          [/^BC[AGH]?(?:[-_ ]|\d|$)/i, "bombaCalor"],
+          [/^(?:ENF|CH|EAA)(?:[-_ ]|\d|$)/i, "chiller"],
+          [/^(?:COL|CLT)(?:[-_ ]|\d|$)/i, "colector"],
+          [/^(?:DEP|ACU|ACS[-_ ]DEP)(?:[-_ ]|\d|$)/i, "deposito"],
+          [/^(?:CV|CXV|CAJA)(?:[-_ ]|\d|$)/i, "cajaVentilacion"],
+          [/^(?:EXTINTOR|EXT[-_ ]?(?:PQS|CO2|ABC))/i, "extintor"],
+          [/^(?:VTR|VEN|EX|VI)(?:[-_ ]|\d|$)/i, "ventilador"],
+          [/^(?:B|BOM|GP)[-_ ]?\d/i, "bomba"]
+        ];
+        const esExteriorTag = (tag) => /^UE([\s_-]|\d|$)/i.test(String(tag || "").trim());
+        const RE_MODELO_CONDUCTOS = /^S-?\d+M[FEM]\d/i;
+        const RE_MODELO_CASETE = /^S-?\d+M[UYLD]\d/i;
+        function esDeConductos(u) {
+          const modelo = String(u && u.modelo || "").trim();
+          if (RE_MODELO_CONDUCTOS.test(modelo)) return true;
+          if (RE_MODELO_CASETE.test(modelo)) return false;
+          const den = String(u && u.denominacion || "");
+          if (/CONDUCTOS?\b|\bDUCT(ED)?\b/i.test(den)) return true;
+          if (/CAS+ET+E/i.test(den)) return false;
+          if (/^UICO(?:[-_ ]|\d|$)/i.test(String(u && u.tag || "").trim())) return true;
+          return null;
+        }
+        function iconoDe(u) {
+          const fam = String(u && u.familia || "").trim();
+          const ext = u && u.papel === "UE" || esExteriorTag(u && u.tag) || /^U-\d/i.test(String(u && u.modelo || "").trim());
+          let id = ICONO_DE_FAMILIA[fam];
+          if (id === "splitInt" && ext) id = "splitExt";
+          if (id === "vrfInt" && ext) id = "vrfExt";
+          if (id === "vrfInt" && esDeConductos(u)) id = "vrfConductos";
+          if (id) return id;
+          const t = String(u && u.tag || "").trim();
+          if (/^(AFS|ADE|FLX|FLUX)/i.test(t)) return "agua";
+          const d = equipoDeRotulo(t.split(" ")[0]) || equipoDeRotulo(t);
+          if (d) return d.icono;
+          for (const [re, icono] of ICONO_DE_TAG) if (re.test(t)) return icono;
+          return "generico";
+        }
+        const ORDEN_ICONOS = ["uta", "hru", "fancoil", "splitInt", "splitExt", "vrfConductos", "vrfInt", "vrfExt", "rooftop", "crac", "chiller", "bombaCalor", "bomba", "colector", "deposito", "cajaVentilacion", "ventilador", "extintor", "agua", "generico"];
+        function leyendaIconos(equipos) {
+          const usados = new Set((equipos || []).map((e) => e.icono || iconoDe(e)));
+          return ORDEN_ICONOS.filter((k) => usados.has(k)).map((k) => ({ id: k, nombre: ICONOS[k].nombre }));
+        }
+        function conjuntoEnPlanos(plantas, id, plantaActual, indice = null) {
+          const porId = indice || indiceConjuntos(plantas);
+          const de = (k) => porId.get(k) || [];
+          const base = de(id)[0];
+          const miembros = base && base.e.miembros;
+          if (!Array.isArray(miembros) || miembros.length < 2) return [];
+          const puesto = (t) => t.e.x !== null && t.e.x !== void 0;
+          return miembros.map((m) => {
+            const ts = de(m.id);
+            const aqui = ts.find((t) => t.planta === (plantaActual || "") && puesto(t));
+            const alguna = aqui || ts.find(puesto);
+            const donde = alguna || ts[0];
+            return { id: m.id, tag: m.tag, papel: m.papel, planta: donde ? donde.planta : null, aqui: Boolean(aqui), enPlano: Boolean(alguna), x: alguna ? alguna.e.x : null, y: alguna ? alguna.e.y : null };
+          });
+        }
+        function indiceConjuntos(plantas) {
+          const m = /* @__PURE__ */ new Map();
+          for (const p of plantas || []) for (const e of p.equipos || []) {
+            const l = m.get(e.id);
+            if (l) l.push({ e, planta: p.planta || "" });
+            else m.set(e.id, [{ e, planta: p.planta || "" }]);
+          }
+          return m;
+        }
+        function tipoLlano(u) {
+          const fam = String(u && u.familia || "").trim();
+          if (!fam) return null;
+          if (TIPO_LLANO[fam]) return TIPO_LLANO[fam];
+          let nombre = fam;
+          try {
+            const PC = typeof __require !== "undefined" ? require_plantillasCliente() : window.PLANTILLAS_CLIENTE;
+            const f = PC && PC.FAMILIAS.find((x) => x.codigo === fam);
+            if (f && f.nombrePdf) nombre = f.nombrePdf;
+          } catch {
+          }
+          const t = nombre.replace(/_/g, " ").toLowerCase();
+          return t.charAt(0).toUpperCase() + t.slice(1);
+        }
+        function llevaBalanceo(u) {
+          const C = controlCx();
+          const med = u && u.medicion !== void 0 ? u.medicion : null;
+          if (med) return Boolean(med.plano);
+          const req = C ? C.ensayoCorregido(u && u.familia, u && u.ensayoRequerido) : u && u.ensayoRequerido;
+          return req === "balanceo" || req === "ambos";
+        }
+        function acciones(unidad, linea, { color = "rojo", puedeEditar = true } = {}) {
+          const u = unidad || {};
+          const C = controlCx();
+          const salida = [];
+          const conFamilia = Boolean(String(u.familia || "").trim());
+          if (conFamilia && puedeEditar && color !== "verde") salida.push("datos");
+          if (conFamilia) salida.push("checklist");
+          if (llevaBalanceo(u)) salida.push("balanceo");
+          const l = linea || u;
+          if (C && C.pideEstanqueidad(Array.isArray(l.miembros) && l.miembros.length ? l : u)) salida.push("estanqueidad");
+          return salida.map((id) => ({ id, texto: TEXTO_ACCION[id] }));
+        }
+        function estados(tabla, { puedeEditar = true } = {}) {
+          const lineaDe = lineasPorUnidad(tabla);
+          const out = /* @__PURE__ */ new Map();
+          for (const u of tabla && tabla.filas || []) {
+            const l = lineaDe.get(u.id) || u;
+            const enConjunto = l.clase === "par" || l.clase === "sistema";
+            out.set(u.id, {
+              color: estadoEnPlano(u, l),
+              papel: enConjunto ? l.exterior && l.exterior.id === u.id ? "UE" : "UI" : null,
+              conjunto: enConjunto ? l.tag || null : null,
+              lineaId: l.id || u.id,
+              falta: l.completo ? [] : (l.falta || []).map(textoFalta),
+              tipo: tipoLlano(u),
+              icono: iconoDe({ familia: u.familia, tag: u.tag, modelo: u.modelo, denominacion: u.denominacion, papel: enConjunto ? l.exterior && l.exterior.id === u.id ? "UE" : "UI" : null }),
+              miembros: enConjunto && Array.isArray(l.miembros) && l.miembros.length > 1 ? l.miembros.map((m) => ({ id: m.id, tag: m.tag, papel: l.exterior && l.exterior.id === m.id || esExteriorTag(m.tag) ? "UE" : "UI" })) : null,
+              marca: u.marca || null,
+              modelo: u.modelo || null,
+              acciones: acciones(u, l, { color: estadoEnPlano(u, l), puedeEditar })
+            });
+          }
+          return out;
+        }
+        function colorear(marcas, tabla) {
+          const filas = new Map((tabla && tabla.filas || []).map((f) => [f.id, f]));
+          const est = estados(tabla);
+          const cuentas = { verde: 0, azul: 0, rojo: 0 };
+          const salida = [];
+          for (const m of marcas || []) {
+            const u = filas.get(m.equipoId);
+            if (!u || !esEquipoDelPlano(u)) continue;
+            const e = est.get(u.id);
+            cuentas[e.color] += 1;
+            salida.push({ ...m, tag: u.tag, ...e });
+          }
+          return { marcas: salida, cuentas };
+        }
+        const SIGLAS = /* @__PURE__ */ new Set(["FT", "CE", "PM", "UTA", "UTAS", "VRF", "CRAC", "BT", "SAI", "BMS", "ACS", "ICT", "IT", "UI", "UE", "VE", "PCI", "BIE", "CPD", "DF"]);
+        const ABREV = [[/\bUD\.\s*/gi, "unidad "], [/\bREC\.\s*/gi, "recuperaci\xF3n "], [/\bVENT\.\s*/gi, "ventilador "], [/\bESTANQ\.\s*/gi, "estanqueidad "], [/\bBOMBA CALOR\b/gi, "BOMBA DE CALOR"], [/\bESTATICO\b/gi, "EST\xC1TICO"]];
+        const FEMENINAS = /^(uta|bomba|batería|central|extinción|instalación|llamada|recarga|fotovoltaica|estanqueidad|unidad|sala|enfriadora|ficha|caja)$/;
+        const PLURAL_F = /^(bombas|baterías|unidades|rejillas)$/;
+        const PLURAL_M = /^(extintores|rociadores|conductos|difusores|gases|bie|ventiladores|equipos)$/;
+        const deArticulo = (frase) => {
+          const w = frase.split(/[\s\-/]/)[0].toLowerCase();
+          if (PLURAL_F.test(w)) return "de las";
+          if (PLURAL_M.test(w)) return "de los";
+          return FEMENINAS.test(w) ? "de la" : "del";
+        };
+        const minus = (t) => t.split(/(\s+|[-/()])/).map((w) => SIGLAS.has(w.toUpperCase()) && /^[A-Za-z]+$/.test(w) ? w.toUpperCase() : w.toLowerCase()).join("");
+        function textoFalta(n) {
+          const t = String(n == null ? "" : n).trim().replace(/\s+/g, " ");
+          if (!t || /[a-záéíóúñü]/.test(t) || /^(FT|CE|PM|DF)$/i.test(t)) return t;
+          let x = t;
+          for (const [re, por] of ABREV) x = x.replace(re, por);
+          x = minus(x.trim().replace(/\s+/g, " "));
+          const m = /^checklist\s+(.+)$/i.exec(x);
+          if (m) return `checklist ${deArticulo(m[1])} ${m[1]}`;
+          if (x.toLowerCase() === "checklist") return "checklist";
+          if (/^(balanceo|estanqueidad)\b/i.test(x)) return x;
+          return `ficha ${deArticulo(x)} ${x}`;
+        }
+        const RE_NOMBRE_SALA = /^(sala|aseos?|vest[ií]bulo|almac[eé]n|cuarto|oficina|despacho|vestuarios?|pasillo|circulaci[oó]n|escalera|lounge|guardarropa|cocina|office|capilla|recepci[oó]n|taller|local|zona|hall|archivo|comedor|gimnasio|enfermer[ií]a|palco|restaurante|bar|tienda|museo|cpd|dormitorio|habitaci[oó]n|ba[ñn]o|wc|aula|laboratorio|consulta|lavander[ií]a|vestidor|camerino|auditorio|biblioteca|distribuidor|cabina|centro|mec[aá]nica|basuras|terraza|cubierta|patio|parking|garaje|espacio|[aá]rea|areas|despensa|economato|cafeter[ií]a|bodega|sala\s+t[eé]cnica)(\b|[\s.\-]|$)/i;
+        const RE_CODIGO_SALA = /^(?:N\d{2}-)?(?:[A-Z]{1,2}\d{0,2}\.[A-Z]{2,4}\.\d{2,}[A-Z]?|\d{2}[.,][A-Z]{2,4}[.,]\d{2,}[A-Z]?|[A-Z]{2,4}-[A-Z]{2,4}\.\d{2,})$/;
+        const RE_SIGUE = /\s(de|del|y|la|el|los|las|para|con)$/i;
+        const RE_PALABRAS = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ .]{1,40}$/;
+        const PAR_SALA = 0.015;
+        const RADIO_SALA = 0.04;
+        const sinPlanta = (c) => String(c || "").replace(/^N\d{2}-/i, "");
+        const limpiarSala = (t) => String(t || "").replace(/(^|\s|·\s?)N\d{2}-(?=[A-Z0-9]{1,4}[.,][A-Z]{2,4}[.,]\d)/gi, "$1");
+        const esNombreSala = (t) => RE_NOMBRE_SALA.test(String(t || "").trim()) && String(t).trim().length <= 60;
+        const esCodigoSala = (t) => RE_CODIGO_SALA.test(String(t || "").trim().toUpperCase());
+        function rotulosSala(textos) {
+          const ts = (textos || []).filter((t) => t && typeof t.texto === "string").map((t) => ({ texto: t.texto.trim().replace(/\s+/g, " "), x: Number(t.x) || 0, y: Number(t.y) || 0 }));
+          const nombres = [];
+          const codigos = [];
+          const comidos = /* @__PURE__ */ new Set();
+          for (let i = 0; i < ts.length; i++) {
+            const t = ts[i];
+            if (comidos.has(i)) continue;
+            if (esCodigoSala(t.texto)) {
+              codigos.push({ ...t, texto: t.texto.toUpperCase() });
+              continue;
+            }
+            if (!esNombreSala(t.texto)) continue;
+            let texto = t.texto;
+            if (RE_SIGUE.test(texto)) {
+              const j = ts.findIndex((o, k) => k !== i && RE_PALABRAS.test(o.texto) && o.y > t.y && Math.hypot(o.x - t.x, o.y - t.y) < PAR_SALA);
+              if (j >= 0) {
+                texto = `${texto} ${ts[j].texto}`;
+                comidos.add(j);
+                nombres.forEach((n, k) => {
+                  if (n.i === j) nombres.splice(k, 1);
+                });
+              }
+            }
+            nombres.push({ texto, x: t.x, y: t.y, i });
+          }
+          const usados = /* @__PURE__ */ new Set();
+          const salida = [];
+          for (const n of nombres) {
+            let mejor = -1;
+            let d = PAR_SALA;
+            codigos.forEach((c, k) => {
+              const dd = Math.hypot(c.x - n.x, c.y - n.y);
+              if (!usados.has(k) && dd <= d) {
+                d = dd;
+                mejor = k;
+              }
+            });
+            if (mejor >= 0) usados.add(mejor);
+            salida.push({ texto: mejor >= 0 ? `${n.texto} \xB7 ${codigos[mejor].texto}` : n.texto, x: n.x, y: n.y });
+          }
+          const nombreDe = /* @__PURE__ */ new Map();
+          for (const r of salida) {
+            const i = r.texto.lastIndexOf(" \xB7 ");
+            if (i > 0) nombreDe.set(sinPlanta(r.texto.slice(i + 3)), r.texto.slice(0, i));
+          }
+          for (const t of ts) {
+            const m = /^(.*?)\s*[·\-–:]?\s*((?:N\d{2}-)?[A-Z0-9]{1,4}[.,][A-Z]{2,4}[.,]\d{2,}[A-Z]?)\s*$/i.exec(t.texto);
+            if (m && m[1] && esNombreSala(m[1]) && !nombreDe.has(sinPlanta(m[2].toUpperCase()))) nombreDe.set(sinPlanta(m[2].toUpperCase()), m[1].trim());
+          }
+          codigos.forEach((c, k) => {
+            if (usados.has(k)) return;
+            const cod = sinPlanta(c.texto);
+            const nombre = nombreDe.get(cod);
+            salida.push({ ...c, texto: nombre ? `${nombre} \xB7 ${cod}` : cod });
+          });
+          for (const r of salida) r.texto = limpiarSala(r.texto);
+          const vistos = /* @__PURE__ */ new Set();
+          return salida.filter((r) => {
+            const k = `${r.texto}|${Math.round(r.x * 200)}|${Math.round(r.y * 200)}`;
+            if (vistos.has(k)) return false;
+            vistos.add(k);
+            return true;
+          }).map((r) => ({ texto: r.texto.slice(0, 120), x: Math.round(r.x * 1e4) / 1e4, y: Math.round(r.y * 1e4) / 1e4 }));
+        }
+        function salaCercana(rotulos, x, y, radio = RADIO_SALA) {
+          let mejor = null;
+          let d = radio;
+          for (const r of rotulos || []) {
+            const dd = Math.hypot(r.x - x, r.y - y);
+            if (dd <= d) {
+              d = dd;
+              mejor = r;
+            }
+          }
+          return mejor ? limpiarSala(mejor.texto) : null;
+        }
+        function ponerSalas(marcas, rotulos) {
+          return (marcas || []).map((m) => {
+            const sala = salaCercana(rotulos, m.x, m.y);
+            return sala ? { ...m, sala } : m;
+          });
+        }
+        const fraccion = (v, conCero) => {
+          const n = Number(v);
+          return v !== null && v !== void 0 && Number.isFinite(n) && (conCero ? n >= 0 : n > 0) && n <= 1;
+        };
+        const redondo5 = (v) => Math.round(Number(v) * 1e5) / 1e5;
+        function limpiarMarcas(marcas) {
+          const vistos = /* @__PURE__ */ new Set();
+          const salida = [];
+          for (const m of Array.isArray(marcas) ? marcas : []) {
+            if (!m || typeof m.equipoId !== "string" || vistos.has(m.equipoId)) continue;
+            const x = Number(m.x);
+            const y = Number(m.y);
+            if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 1 || y < 0 || y > 1) continue;
+            vistos.add(m.equipoId);
+            salida.push({
+              equipoId: m.equipoId,
+              tag: String(m.tag || "").slice(0, 120),
+              x: Math.round(x * 1e4) / 1e4,
+              y: Math.round(y * 1e4) / 1e4,
+              ...m.mano ? { mano: true } : {},
+              ...m.sala ? { sala: String(m.sala).slice(0, 120) } : {},
+              /* El símbolo del dibujo (30-oct): su tamaño, el sitio del rótulo y si hay que revisarlo. */
+              ...fraccion(m.w) && fraccion(m.h) ? { w: redondo5(m.w), h: redondo5(m.h) } : {},
+              ...fraccion(m.rx, true) && fraccion(m.ry, true) ? { rx: Math.round(m.rx * 1e4) / 1e4, ry: Math.round(m.ry * 1e4) / 1e4 } : {},
+              ...m.revisar && !m.mano ? { revisar: true, motivo: String(m.motivo || "revisar ubicaci\xF3n").slice(0, 80) } : {},
+              /* 5-nov: el equipo que la revisión nueva ya no trae se queda donde estaba, marcado; nunca se borra. */
+              ...m.noSale ? { noSale: String(m.noSale).slice(0, 40), revisar: true, motivo: String(m.motivo || `ya no sale en ${m.noSale}`).slice(0, 80) } : {}
+            });
+          }
+          return salida;
+        }
+        function plantaDelNombre(nombre) {
+          const m = /_ER_(\d{2}|[SB]\d)_/i.exec(String(nombre || ""));
+          if (!m) return "";
+          return /^\d/.test(m[1]) ? `N${m[1]}` : `S${m[1].slice(1)}`;
+        }
+        const PAPELES_EQUIPO = [["ft", "Ficha t\xE9cnica", "docFichaTecnica"], ["ce", "Marcado CE", "docMarcadoCE"], ["mi", "Manual", "docManual"]];
+        function nombreDocumento(url) {
+          const u = String(url || "").split(/[?#]/)[0].replace(/\/+$/, "");
+          let f = u.slice(u.lastIndexOf("/") + 1);
+          try {
+            f = decodeURIComponent(f);
+          } catch {
+          }
+          return f.replace(/\.[a-z0-9]{2,5}$/i, "").replace(/[_\s]+/g, " ").trim();
+        }
+        function documentosEquipo(e, modelo) {
+          const web = (v) => /^https?:\/\//i.test(String(v || "").trim()) ? String(v).trim() : "";
+          const fuera = [];
+          for (const [clase, etiqueta, campo] of PAPELES_EQUIPO) {
+            const propio = web(e && e[campo]);
+            const url = propio || web(modelo && modelo[campo]);
+            if (!url) continue;
+            fuera.push({ clase, etiqueta, nombre: nombreDocumento(url) || etiqueta, url, nivel: propio ? "equipo" : "modelo" });
+          }
+          return fuera;
+        }
+        const DETECTABLES = [
+          { re: /^UICO[-_ ]?(\d{1,3})-?$/i, icono: "vrfConductos", tipo: "Unidad interior VRF de conductos", modelo: (m) => `UICO-${m[1].padStart(2, "0")}` },
+          { re: /^HRU[-_ ]?(\d{1,2})-?$/i, icono: "hru", tipo: "Recuperador de calor (HRU)", modelo: (m) => `HRU-${m[1]}` },
+          { re: /^EX[-_ ]?(N\d{2}|S\d)[-_ ](.+)$/i, icono: "ventilador", tipo: "Extractor", tag: (m) => `EX-${m[1].toUpperCase()}-${m[2].trim().replace(/\s+/g, " ")}` },
+          /* Ventilador de impulsión (2-nov): «VI-N60-CUART-ELECT-LT19» se quedaba fuera. */
+          { re: /^VI[-_ ]?(N\d{2}|S\d)[-_ ](.+)$/i, icono: "ventilador", tipo: "Ventilador de impulsi\xF3n", tag: (m) => `VI-${m[1].toUpperCase()}-${m[2].trim().replace(/\s+/g, " ")}` },
+          { re: /^UI[-_ ]((?:[PSM]\d\.[A-Z]{3}\.\d{3,4})|(?:N\d{2}|S\d)[-_ ].+)$/i, icono: "vrfInt", tipo: "Unidad interior", tag: (m) => `UI-${m[1].trim()}` },
+          { re: /^UE[-_ ]((?:N\d{2}|S\d)[-_ ].+)$/i, icono: "vrfExt", tipo: "Unidad exterior", tag: (m) => `UE-${m[1].trim()}` },
+          { re: /^HRU[-_ ]((?:N\d{2}|S\d)[-_ ].+)$/i, icono: "hru", tipo: "Recuperador de calor (HRU)", tag: (m) => `HRU-${m[1].trim()}` },
+          { re: /^(?:UTA|AHU|CLM)[-_ ]?((?:N\d{2}|S\d)?[-_ ]?\d[\w.-]*)$/i, icono: "uta", tipo: "Climatizador (UTA)", tag: (m) => m[0].trim() },
+          { re: /^(?:FC|FCU|AFC)[-_ ]((?:N\d{2}|S\d)[-_ ]?[\w. -]+)$/i, icono: "fancoil", tipo: "Fan coil", tag: (m) => m[0].trim() }
+        ];
+        function equipoDeRotulo(texto) {
+          const t = String(texto || "").trim();
+          if (t.length < 4 || t.length > 60) return null;
+          for (const d of DETECTABLES) {
+            const m = d.re.exec(t);
+            if (!m) continue;
+            const r = { icono: d.icono, tipo: d.tipo };
+            if (d.modelo) r.modelo = d.modelo(m);
+            else r.tag = d.tag(m).replace(/^EXN/i, "EX-N");
+            return r;
+          }
+          return null;
+        }
+        const CERCA_YA = 4e-3;
+        function sinRepetir(texto) {
+          const p = String(texto || "").trim().split(/\s+/);
+          const k0 = claveSuelta(p[0]);
+          if (p.length < 2 || k0.length < 4) return p.join(" ");
+          const j = p.findIndex((w, n) => n > 0 && claveSuelta(w) === k0);
+          return (j > 0 ? p.slice(0, j) : p).join(" ");
+        }
+        function detectarEquipos(textos, equipos = [], marcas = []) {
+          const deObra = /* @__PURE__ */ new Map();
+          for (const e of equipos || []) {
+            const k = claveSuelta(e.tag);
+            if (k.length >= 4 && !deObra.has(k)) deObra.set(k, e);
+          }
+          const colocados = new Set((marcas || []).map((m) => m && m.equipoId).filter(Boolean));
+          const vistos = /* @__PURE__ */ new Set();
+          const propios = [];
+          const porModelo = [];
+          const repetidos = [];
+          const enObra = [];
+          const lista = (textos || []).filter((t) => t && typeof t.texto === "string");
+          const sinNumero = (tag) => !/\d/.test(String(tag).replace(/^[A-Z]+[-_ ]?(?:N\d{2}|S\d)[-_ ]?/i, ""));
+          const sigue = (texto, siguiente) => {
+            const s = String(siguiente || "").trim();
+            if (!s) return false;
+            const r = equipoDeRotulo(s);
+            if (r && r.tag) return false;
+            return !claveSuelta(texto).includes(claveSuelta(s));
+          };
+          for (let i = 0; i < lista.length; i++) {
+            const t = lista[i];
+            let texto = sinRepetir(t.texto);
+            let d = equipoDeRotulo(texto);
+            if (!d) continue;
+            let sx = Number(t.x);
+            let sy = Number(t.y);
+            let n = 1;
+            while (d.tag && sinNumero(d.tag) && i + 1 < lista.length && texto.length < 60 && Math.hypot(lista[i + 1].x - lista[i].x, lista[i + 1].y - lista[i].y) <= CERCA && sigue(texto, lista[i + 1].texto)) {
+              i += 1;
+              texto = sinRepetir(`${texto} ${lista[i].texto.trim()}`);
+              sx += Number(lista[i].x);
+              sy += Number(lista[i].y);
+              n += 1;
+              d = equipoDeRotulo(texto) || d;
+            }
+            const x = Math.round(sx / n * 1e4) / 1e4;
+            const y = Math.round(sy / n * 1e4) / 1e4;
+            if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+            if ((marcas || []).some((m) => Math.hypot(m.x - x, m.y - y) < CERCA_YA)) continue;
+            if (d.modelo) {
+              porModelo.push({ modelo: d.modelo, tipo: d.tipo, icono: d.icono, x, y });
+              continue;
+            }
+            const k = claveSuelta(d.tag);
+            const ya = deObra.get(k);
+            if (ya) {
+              if (esEquipoDelPlano(ya) && !colocados.has(ya.id)) {
+                colocados.add(ya.id);
+                enObra.push({ tag: ya.tag, equipoId: ya.id, tipo: d.tipo, icono: d.icono, x, y });
+              }
+              continue;
+            }
+            if (vistos.has(k)) {
+              repetidos.push({ tag: d.tag, x, y });
+              continue;
+            }
+            vistos.add(k);
+            propios.push({ tag: d.tag, tipo: d.tipo, icono: d.icono, x, y });
+          }
+          return { propios, porModelo, repetidos, enObra };
+        }
+        function paresUeUi(equipos = []) {
+          const grupos = /* @__PURE__ */ new Map();
+          for (const e of equipos || []) {
+            const m = /^U([EI])(.{3,})$/.exec(claveSuelta(e.tag));
+            if (!m) continue;
+            if (!grupos.has(m[2])) grupos.set(m[2], { E: [], I: [] });
+            grupos.get(m[2])[m[1]].push(e);
+          }
+          const pares = [];
+          for (const g of grupos.values()) {
+            if (g.E.length !== 1 || g.I.length !== 1) continue;
+            const [exterior] = g.E;
+            const [interior] = g.I;
+            if (String(exterior.equipoAsociado || "").trim() || String(interior.equipoAsociado || "").trim()) continue;
+            pares.push({ exterior, interior });
+          }
+          return pares;
+        }
+        const CERCA_MISMO = 6e-3;
+        function numerarPorModelo(detectados, planta, existentes = []) {
+          const usados = /* @__PURE__ */ new Set();
+          const numeros = /* @__PURE__ */ new Map();
+          const base = (modelo) => `${modelo} ${planta}-`;
+          for (const e of existentes || []) {
+            for (const d of detectados || []) {
+              const b = base(d.modelo);
+              if (!String(e.tag || "").startsWith(b)) continue;
+              const n = Number(String(e.tag).slice(b.length));
+              if (Number.isFinite(n)) {
+                if (!numeros.has(d.modelo)) numeros.set(d.modelo, /* @__PURE__ */ new Set());
+                numeros.get(d.modelo).add(n);
+              }
+            }
+          }
+          return (detectados || []).map((d) => {
+            const b = base(d.modelo);
+            const cerca = (existentes || []).filter((e) => !usados.has(e.id) && String(e.tag || "").startsWith(b) && e.x !== null && e.x !== void 0).map((e) => ({ e, dist: Math.hypot(e.x - d.x, e.y - d.y) })).filter((c) => c.dist < CERCA_MISMO).sort((p, q) => p.dist - q.dist)[0];
+            if (cerca) {
+              usados.add(cerca.e.id);
+              return { ...d, tag: cerca.e.tag, equipoId: cerca.e.id };
+            }
+            const ns = numeros.get(d.modelo) || /* @__PURE__ */ new Set();
+            let n = 1;
+            while (ns.has(n)) n += 1;
+            ns.add(n);
+            numeros.set(d.modelo, ns);
+            return { ...d, tag: `${b}${String(n).padStart(2, "0")}`, equipoId: null };
+          });
+        }
+        function familiaPara(icono, equipos = []) {
+          const cuenta = /* @__PURE__ */ new Map();
+          for (const e of equipos || []) {
+            const f = String(e.familia || "").trim();
+            if (!f || ICONO_DE_FAMILIA[f] !== (icono === "vrfExt" || icono === "vrfConductos" ? "vrfInt" : icono)) continue;
+            cuenta.set(f, (cuenta.get(f) || 0) + 1);
+          }
+          const mejor = [...cuenta.entries()].sort((a, b) => b[1] - a[1])[0];
+          return mejor ? mejor[0] : null;
+        }
+        const CERCA_ROTULO = 0.012;
+        function alSimbolo(marcas, textos) {
+          const conGeo = (textos || []).filter((t) => t && t.s !== void 0);
+          if (!conGeo.length) return marcas || [];
+          return (marcas || []).map((m) => {
+            if (!m || m.mano) return m;
+            const rx = m.rx ?? m.x;
+            const ry = m.ry ?? m.y;
+            let mejor = null;
+            let dist = CERCA_ROTULO;
+            for (const t of conGeo) {
+              const d = Math.hypot(Number(t.x) - rx, Number(t.y) - ry);
+              if (d < dist) {
+                dist = d;
+                mejor = t;
+              }
+            }
+            const base = { ...m, rx, ry };
+            delete base.revisar;
+            delete base.motivo;
+            delete base.dudoso;
+            if (!mejor || !Array.isArray(mejor.s) || mejor.s.length < 4) return { ...base, revisar: true, motivo: m.dudoso || "no se encuentra su s\xEDmbolo en el dibujo" };
+            const [x, y, w, h, ok] = mejor.s;
+            if (!ok) return { ...base, revisar: true, motivo: m.dudoso || mejor.m || "s\xEDmbolo dudoso" };
+            if (m.dudoso) return { ...base, x, y, w, h, revisar: true, motivo: m.dudoso };
+            return { ...base, x, y, w, h };
+          });
+        }
+        const CERCA_MISMO_TAG = 0.03;
+        const claveTag = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9.]/g, "");
+        function bloquesDeLamina(marcas, textos) {
+          const porTag = /* @__PURE__ */ new Map();
+          for (const t of textos || []) {
+            if (!t || !Array.isArray(t.s) || t.s.length < 5) continue;
+            const k = claveTag(t.texto);
+            if (!k) continue;
+            if (!porTag.has(k)) porTag.set(k, []);
+            porTag.get(k).push(t);
+          }
+          let cambiadas = 0;
+          const salida = (marcas || []).map((m) => {
+            if (!m || m.mano || m.dudoso || !m.tag) return m;
+            const lista = porTag.get(claveTag(m.tag));
+            if (!lista) return m;
+            let mejor = null;
+            let dist = CERCA_MISMO_TAG;
+            for (const t of lista) {
+              const d = Math.min(Math.hypot(t.s[0] - m.x, t.s[1] - m.y), Math.hypot(Number(t.x) - m.x, Number(t.y) - m.y));
+              if (d < dist) {
+                dist = d;
+                mejor = t;
+              }
+            }
+            if (!mejor || !mejor.s[4]) return m;
+            const [x, y, w, h] = mejor.s;
+            if (m.x === x && m.y === y && m.w === w && m.h === h && !m.revisar) return m;
+            const n = { ...m, rx: Number(mejor.x), ry: Number(mejor.y), x, y, w, h };
+            delete n.revisar;
+            delete n.motivo;
+            cambiadas += 1;
+            return n;
+          });
+          return { marcas: salida, cambiadas };
+        }
+        const sitioRotulo = (m) => m ? { x: m.rx ?? m.x, y: m.ry ?? m.y } : { x: null, y: null };
+        const API = {
+          alSimbolo,
+          bloquesDeLamina,
+          claveTag,
+          CERCA_MISMO_TAG,
+          sitioRotulo,
+          CERCA_ROTULO,
+          equipoDeRotulo,
+          detectarEquipos,
+          sinRepetir,
+          paresUeUi,
+          numerarPorModelo,
+          familiaPara,
+          CERCA_MISMO,
+          plantaDelNombre,
+          nombreDocumento,
+          documentosEquipo,
+          clave,
+          claveSuelta,
+          claveCasado,
+          esEquipoDelPlano,
+          casar,
+          cruce,
+          palabrasDe,
+          reconocer,
+          empezado,
+          estadoEnPlano,
+          estados,
+          colorear,
+          acciones,
+          tipoLlano,
+          ICONOS,
+          iconoDe,
+          esDeConductos,
+          leyendaIconos,
+          conjuntoEnPlanos,
+          indiceConjuntos,
+          llevaBalanceo,
+          TEXTO_ACCION,
+          limpiarMarcas,
+          rotulosSala,
+          salaCercana,
+          ponerSalas,
+          esNombreSala,
+          esCodigoSala,
+          limpiarSala,
+          textoFalta,
+          COLORES,
+          ORDEN_COLOR,
+          RADIO_SALA
+        };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.PLANO_EQUIPOS = API;
+      })();
+    }
+  });
+
+  // shared/commissioning/salaGrisPosicion.js
+  var require_salaGrisPosicion = __commonJS({
+    "shared/commissioning/salaGrisPosicion.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var P = require_planoEquipos();
+      var ESTADOS = /* @__PURE__ */ new Set(["asignada", "por confirmar"]);
+      var llano = (v) => String(v ?? "").trim();
+      function partirRotulo(texto) {
+        const t = llano(texto);
+        const i = t.lastIndexOf(" \xB7 ");
+        const codigo = i > 0 ? t.slice(i + 3).trim() : t;
+        if (!P.esCodigoSala(codigo)) return null;
+        return { codigo: codigo.toUpperCase().replace(/,/g, "."), nombre: i > 0 ? t.slice(0, i).trim() : null };
+      }
+      function proponer(marcas, rotulos) {
+        const locales = (rotulos || []).map((r) => ({ ...partirRotulo(r.texto), x: r.x, y: r.y })).filter((r) => r.codigo);
+        const salida = [];
+        for (const m of marcas || []) {
+          if (!m || !m.equipoId) continue;
+          if (!(m.w && m.h) || m.revisar) continue;
+          const ordenados = locales.map((l) => ({ l, d: Math.hypot(l.x - m.x, l.y - m.y) })).filter((o) => o.d <= P.RADIO_SALA).sort((a, b) => a.d - b.d);
+          if (!ordenados.length) continue;
+          const mejor = ordenados[0];
+          const otro = ordenados.find((o) => o.l.codigo !== mejor.l.codigo);
+          const claro = !otro || otro.d > mejor.d * 1.5 + 4e-3;
+          let nombre = mejor.l.nombre;
+          if (!nombre) {
+            const c = locales.find((l) => l.codigo === mejor.l.codigo && l.nombre);
+            nombre = c ? c.nombre : null;
+          }
+          salida.push({
+            equipoId: m.equipoId,
+            tag: m.tag || "",
+            salaGris: mejor.l.codigo,
+            salaGrisNombre: nombre,
+            estado: claro ? "asignada" : "por confirmar",
+            motivo: !claro ? `tambi\xE9n cerca ${otro.l.codigo}` : "recinto que contiene el s\xEDmbolo"
+          });
+        }
+        return salida;
+      }
+      function decidir(e, p) {
+        const actual = { g: llano(e.salaGris), n: llano(e.salaGrisNombre), st: llano(e.salaGrisEstado) };
+        if (!ESTADOS.has(p.estado) || !p.salaGris) return { motivo: "propuesta sin sala o estado no v\xE1lido" };
+        if (actual.st === "asignada" && actual.g && actual.g !== p.salaGris) return { motivo: `ya asignada a ${actual.g}; el plano da ${p.salaGris}` };
+        if (actual.st === "asignada" && p.estado !== "asignada") return { motivo: "ya asignada; no se rebaja" };
+        const nombre = p.salaGrisNombre || (actual.g === p.salaGris ? actual.n : "") || null;
+        if (actual.g === p.salaGris && actual.st === p.estado && (actual.n || null) === nombre) return { motivo: "igual" };
+        return { cambios: { salaGris: p.salaGris, salaGrisNombre: nombre, salaGrisEstado: p.estado } };
+      }
+      module.exports = { proponer, decidir, partirRotulo };
+    }
+  });
+
+  // shared/commissioning/ifcSalasPlano.js
+  var require_ifcSalasPlano = __commonJS({
+    "shared/commissioning/ifcSalasPlano.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var P = require_planoEquipos();
+      var SG = require_salaGrisPosicion();
+      var { clavesPlanta, puedeIrAlPlano } = require_ifcSalas();
+      var MIN_PUNTOS = 4;
+      var MIN_FRACCION = 0.6;
+      var TOL_M = 1.5;
+      var MIN_SEPARACION = 5;
+      var MIN_ANCHO = 2;
+      var MIN_LARGO = 5;
+      var MAX_PUNTOS = 60;
+      var pareja = (z, w, espejo) => {
+        const [ax, ay] = espejo ? [z[0], -z[1]] : z;
+        return { z: [ax, ay], w };
+      };
+      var divide = ([a, b], [c, d]) => {
+        const n = c * c + d * d;
+        return [(a * c + b * d) / n, (b * c - a * d) / n];
+      };
+      var multiplica = ([a, b], [c, d]) => [a * c - b * d, a * d + b * c];
+      var aplica = (T2, z) => {
+        const m = multiplica(T2.a, T2.espejo ? [z[0], -z[1]] : z);
+        return [m[0] + T2.b[0], m[1] + T2.b[1]];
+      };
+      var error = (T2, p) => {
+        const v = aplica(T2, p.z);
+        return Math.hypot(v[0] - p.w[0], v[1] - p.w[1]) / Math.hypot(...T2.a);
+      };
+      function ajuste(puntos, espejo) {
+        const q = puntos.map((p) => pareja(p.z, p.w, espejo));
+        const media = (k) => [q.reduce((s, p) => s + p[k][0], 0) / q.length, q.reduce((s, p) => s + p[k][1], 0) / q.length];
+        const zm = media("z"), wm = media("w");
+        let num = [0, 0], den = 0;
+        for (const p of q) {
+          const dz = [p.z[0] - zm[0], p.z[1] - zm[1]], dw = [p.w[0] - wm[0], p.w[1] - wm[1]];
+          const m = multiplica([dz[0], -dz[1]], dw);
+          num = [num[0] + m[0], num[1] + m[1]];
+          den += dz[0] * dz[0] + dz[1] * dz[1];
+        }
+        if (den < 1e-9) return null;
+        const a = [num[0] / den, num[1] / den];
+        if (Math.hypot(...a) < 1e-9) return null;
+        const am = multiplica(a, zm);
+        return { a, b: [wm[0] - am[0], wm[1] - am[1]], espejo };
+      }
+      function extension(puntos) {
+        const n = puntos.length, mx = puntos.reduce((s, p) => s + p.z[0], 0) / n, my = puntos.reduce((s, p) => s + p.z[1], 0) / n;
+        let a = 0, b = 0, c = 0;
+        for (const p of puntos) {
+          const x = p.z[0] - mx, y = p.z[1] - my;
+          a += x * x;
+          b += x * y;
+          c += y * y;
+        }
+        a /= n;
+        b /= n;
+        c /= n;
+        const r = Math.sqrt(((a - c) / 2) ** 2 + b * b), t = (a + c) / 2;
+        return { largo: Math.sqrt(Math.max(t + r, 0)), ancho: Math.sqrt(Math.max(t - r, 0)) };
+      }
+      function alinear(puntos = []) {
+        if (puntos.length < MIN_PUNTOS) return { ok: false, motivo: `${puntos.length} ${puntos.length === 1 ? "equipo casado" : "equipos casados"} con plano en esa planta; hacen falta ${MIN_PUNTOS}` };
+        const paso = Math.max(1, Math.floor(puntos.length / MAX_PUNTOS));
+        const base = puntos.filter((_, i) => i % paso === 0);
+        let mejor = null;
+        for (let i = 0; i < base.length; i++) {
+          for (let j = i + 1; j < base.length; j++) {
+            if (Math.hypot(base[i].z[0] - base[j].z[0], base[i].z[1] - base[j].z[1]) < MIN_SEPARACION) continue;
+            for (const espejo of [false, true]) {
+              const p = pareja(base[i].z, base[i].w, espejo), q = pareja(base[j].z, base[j].w, espejo);
+              const a = divide([q.w[0] - p.w[0], q.w[1] - p.w[1]], [q.z[0] - p.z[0], q.z[1] - p.z[1]]);
+              const m = multiplica(a, p.z);
+              const T3 = { a, b: [p.w[0] - m[0], p.w[1] - m[1]], espejo };
+              const dentro = puntos.filter((x) => error(T3, x) <= TOL_M);
+              if (dentro.length < 2) continue;
+              const suma = dentro.reduce((s, x) => s + error(T3, x), 0);
+              if (!mejor || dentro.length > mejor.dentro.length || dentro.length === mejor.dentro.length && suma < mejor.suma) mejor = { dentro, suma };
+            }
+          }
+        }
+        if (!mejor) return { ok: false, motivo: "los puntos de control est\xE1n demasiado juntos" };
+        const candidatos = [ajuste(mejor.dentro, false), ajuste(mejor.dentro, true)].filter(Boolean).map((T3) => ({ T: T3, rms: Math.sqrt(mejor.dentro.reduce((s, x) => s + error(T3, x) ** 2, 0) / mejor.dentro.length) })).sort((a, b) => a.rms - b.rms);
+        if (!candidatos.length) return { ok: false, motivo: "no se puede calcular la alineaci\xF3n" };
+        const { T: T2, rms } = candidatos[0];
+        const inliers = puntos.filter((x) => error(T2, x) <= TOL_M);
+        const { ancho, largo } = extension(inliers);
+        const res = { T: T2, inliers: inliers.length, total: puntos.length, residuo: Math.round(rms * 100) / 100 };
+        const fallo = (motivo) => ({ ok: false, motivo, ...res });
+        if (inliers.length < MIN_PUNTOS) return fallo(`solo ${inliers.length} de ${puntos.length} puntos de control encajan`);
+        if (inliers.length / puntos.length < MIN_FRACCION) return fallo(`solo encajan ${inliers.length} de ${puntos.length} puntos de control`);
+        if (rms > TOL_M) return fallo(`el plano se aparta ${res.residuo} m del modelo`);
+        if (ancho < MIN_ANCHO || largo < MIN_LARGO) return fallo("los puntos de control est\xE1n en l\xEDnea o demasiado juntos");
+        return { ok: true, ...res };
+      }
+      var parse = (v) => {
+        if (Array.isArray(v)) return v;
+        try {
+          return JSON.parse(v || "[]") || [];
+        } catch {
+          return [];
+        }
+      };
+      var forma = (c) => String(c).toUpperCase().replace(/[A-Z]/g, "A").replace(/\d/g, "9");
+      function rotulosDeSala(rotulos, formas) {
+        const l = parse(rotulos).filter((r) => r && Number.isFinite(r.x) && Number.isFinite(r.y) && SG.partirRotulo(r.texto));
+        return formas && formas.size ? l.filter((r) => formas.has(forma(SG.partirRotulo(r.texto).codigo))) : l;
+      }
+      function formasDeLaObra(equipos = []) {
+        const n = /* @__PURE__ */ new Map();
+        for (const e of equipos) if (e.salaGris && P.esCodigoSala(e.salaGris)) {
+          const f = forma(e.salaGris);
+          n.set(f, (n.get(f) || 0) + 1);
+        }
+        const total = [...n.values()].reduce((s, x) => s + x, 0);
+        return total >= 10 ? new Set([...n].filter(([, x]) => x / total >= 0.05).map(([f]) => f)) : null;
+      }
+      function salasDesdePlanos({ elementos = [], casados = [], planos = [], equipos = [] } = {}) {
+        const porGuid = new Map(elementos.map((el) => [el.guid, el]));
+        const elementoDe = new Map(casados.map((c) => [c.equipoId, porGuid.get(c.guid)]).filter(([, el]) => el));
+        const formas = formasDeLaObra(equipos);
+        const plantas = /* @__PURE__ */ new Map();
+        for (const el of elementos) for (const k of clavesPlanta(el.planta)) {
+          if (!plantas.has(k)) plantas.set(k, []);
+          plantas.get(k).push(el);
+        }
+        const nuevas = /* @__PURE__ */ new Map(), resumen = [], sinPlano = /* @__PURE__ */ new Map();
+        for (const [clave, delModelo] of plantas) {
+          const pendientes = delModelo.filter((el) => el.pos && !el.espacio && !el.salaProp && puedeIrAlPlano(el.salaPos) && !nuevas.has(el.guid));
+          if (!pendientes.length) continue;
+          const suyos = planos.filter((p) => clavesPlanta(p.planta).includes(clave) && p.ancho > 0 && p.alto > 0);
+          if (!suyos.length) {
+            sinPlano.set(clave, pendientes);
+            continue;
+          }
+          let mejor = null;
+          for (const pl2 of suyos) {
+            const puntos = parse(pl2.marcas).filter((m) => m && m.equipoId && m.w && m.h && !m.revisar && elementoDe.has(m.equipoId)).map((m) => ({ el: elementoDe.get(m.equipoId), m })).filter(({ el }) => el.pos && clavesPlanta(el.planta).includes(clave)).map(({ el, m }) => ({ z: [el.pos[0], el.pos[1]], w: [m.x * pl2.ancho, m.y * pl2.alto] }));
+            const al2 = alinear(puntos);
+            if (!mejor || al2.ok && !mejor.al.ok || al2.ok === mejor.al.ok && (al2.inliers || 0) > (mejor.al.inliers || 0)) mejor = { pl: pl2, al: al2 };
+          }
+          const { pl, al } = mejor;
+          if (!al.ok) {
+            pendientes.forEach((el) => nuevas.set(el.guid, { motivo: `sin alinear con el plano: ${al.motivo}` }));
+            resumen.push({ planta: clave, ok: false, motivo: al.motivo, inliers: al.inliers || 0, residuo: al.residuo ?? null });
+            continue;
+          }
+          const rotulos = rotulosDeSala(pl.rotulos, formas);
+          if (!rotulos.length) {
+            pendientes.forEach((el) => nuevas.set(el.guid, { motivo: "el plano no tiene c\xF3digos de sala" }));
+            resumen.push({ planta: clave, ok: false, motivo: "el plano no tiene c\xF3digos de sala", inliers: al.inliers, residuo: al.residuo });
+            continue;
+          }
+          const marcas = pendientes.map((el) => {
+            const w = aplica(al.T, el.pos);
+            return { equipoId: el.guid, tag: el.tag, x: w[0] / pl.ancho, y: w[1] / pl.alto, w: 1, h: 1 };
+          }).filter((m) => m.x >= 0 && m.x <= 1 && m.y >= 0 && m.y <= 1);
+          const propuestas = new Map(SG.proponer(marcas, rotulos).map((x) => [x.equipoId, x]));
+          let conSala = 0;
+          for (const el of pendientes) {
+            const x = propuestas.get(el.guid);
+            if (x && x.estado === "asignada") {
+              conSala += 1;
+              nuevas.set(el.guid, { codigo: x.salaGris, nombre: x.salaGrisNombre, fuente: "plano" });
+            } else nuevas.set(el.guid, { motivo: x ? "dos c\xF3digos de sala igual de cerca en el plano" : "ning\xFAn c\xF3digo de sala cerca en el plano" });
+          }
+          resumen.push({ planta: clave, ok: true, inliers: al.inliers, residuo: al.residuo, conSala, pendientes: pendientes.length });
+        }
+        for (const [clave, lista] of sinPlano) {
+          const faltan = lista.filter((el) => !nuevas.has(el.guid));
+          if (!faltan.length) continue;
+          faltan.forEach((el) => nuevas.set(el.guid, { motivo: "no hay plano de esa planta" }));
+          resumen.push({ planta: clave, ok: false, motivo: "no hay plano de esa planta" });
+        }
+        return { elementos: elementos.map((el) => nuevas.has(el.guid) ? { ...el, salaPos: nuevas.get(el.guid) } : el), resumen };
+      }
+      module.exports = { alinear, aplica, salasDesdePlanos };
     }
   });
 
@@ -40879,6 +42521,7 @@ ${obsO}` : obsO).slice(0, 4e3);
       var import_buffer_global10 = __toESM(require_buffer_global());
       var O = require_origenEquipo();
       var IFC = require_ifcEquipos();
+      var SP = require_ifcSalasPlano();
       var { puede } = require_roles();
       var { permitido } = require_repositorio();
       var puedeDecidir = (ses) => !!ses && permitido("equiposObra", ses.rol, "editar");
@@ -41050,10 +42693,7 @@ ${obsO}` : obsO).slice(0, 4e3);
         if (!obraVisible(repo, ses, obraId)) return { ok: false, error: "No ves esta obra." };
         if (escribir && !puedeDecidir(ses)) return { ok: false, error: "Tu rol no puede decidir sobre los equipos." };
         const { esquema, elementos } = IFC.leerIfc(textoIfc);
-        const equipos = repo.listar("equiposObra", ses, { condicion: "obraId = ?", params: [obraId] });
-        const orden = { confirmado: 0, porConfirmar: 1 };
-        const enOrden = equipos.map((e) => [e, orden[O.confianzaDe(e)] ?? 2]).sort((a, b) => a[1] - b[1]).map((x) => x[0]);
-        const R = IFC.cruzarConIfc(enOrden, elementos, { fuera: (e) => O.confianzaDe(e) === "noEsEquipo" });
+        const { equipos, R } = casarConModelo(repo, ses, obraId, elementos);
         if (escribir) {
           for (const c of R.casados) {
             const e = equipos.find((x) => x.id === c.equipoId);
@@ -41062,6 +42702,70 @@ ${obsO}` : obsO).slice(0, 4e3);
         }
         return { ok: true, esquema, elementos: elementos.length, casados: R.casados, sinEquipo: R.sinEquipo, sinIfc: R.sinIfc.length };
       }
+      function casarConModelo(repo, ses, obraId, elementosIfc) {
+        const equipos = repo.listar("equiposObra", ses, { condicion: "obraId = ?", params: [obraId] });
+        const orden = { confirmado: 0, porConfirmar: 1 };
+        const enOrden = equipos.map((e) => [e, orden[O.confianzaDe(e)] ?? 2]).sort((a, b) => a[1] - b[1]).map((x) => x[0]);
+        const fuera = (e) => O.confianzaDe(e) === "noEsEquipo";
+        const R = IFC.cruzarConIfc(enOrden, elementosIfc, { fuera });
+        const { elementos, resumen: alineacion } = SP.salasDesdePlanos({ elementos: elementosIfc, casados: R.casados, planos: planosSinImagen(repo, ses, obraId), equipos });
+        const conSala = new Map(elementos.map((el) => [el.guid, el]));
+        R.sinEquipo = R.sinEquipo.map((el) => ({ ...el, salaPos: (conSala.get(el.guid) || el).salaPos }));
+        R.probables = IFC.casarProbables(enOrden, R, { fuera });
+        return { equipos, R, elementos, alineacion };
+      }
+      function planosSinImagen(repo, ses, obraId) {
+        if (!permitido("planosEquipos", ses.rol, "ver")) return [];
+        return repo.db.prepare("SELECT planta, ancho, alto, marcas, rotulos FROM planosEquipos WHERE obraId = ?").all(obraId);
+      }
+      function resumenCruce(elementos, R) {
+        const casados = R.casados.length, porConfirmar = (R.probables || []).length;
+        const r = { casados, porConfirmar, conSala: 0, sinCasar: elementos.length - casados - porConfirmar, maquinas: 0, accesorios: 0, otros: 0 };
+        const motivos = /* @__PURE__ */ new Map();
+        for (const el of elementos) {
+          const c = IFC.tipoElemento(el).categoria;
+          r[{ maquina: "maquinas", accesorio: "accesorios", otro: "otros" }[c]] += 1;
+          if (IFC.salaDeElemento(el)) r.conSala += 1;
+          else {
+            const m = el.salaPos && el.salaPos.motivo || "el modelo no da su posici\xF3n";
+            motivos.set(m, (motivos.get(m) || 0) + 1);
+          }
+        }
+        r.sinSala = [...motivos].map(([motivo, n]) => ({ motivo, n })).sort((a, b) => b.n - a.n);
+        return r;
+      }
+      function guardarCruceIfc(repo, ses, obraId, { esquema = null, elementos: leidos = [], modelos = [], registro = [] } = {}) {
+        const ya = repo.listar("crucesIfc", ses, { condicion: "obraId = ?", params: [obraId], limite: 1 })[0];
+        if (!modelos.length) {
+          if (ya) repo.borrar("crucesIfc", ses, ya.id);
+          return { resultado: { nElementos: 0, ficheros: [], filas: [], sinEquipo: [], sinEquipoTotal: 0, sinIfc: [] }, R: null, comparado: null };
+        }
+        const { equipos, R, elementos, alineacion } = casarConModelo(repo, ses, obraId, leidos);
+        const comparado = IFC.compararSalas(equipos, elementos, R, { tope: Infinity });
+        const ficheros = registro.map((m) => m.nombre);
+        const resultado = { esquema, nElementos: elementos.length, ficheros, cruzadoEn: (/* @__PURE__ */ new Date()).toISOString(), ...comparado, resumen: resumenCruce(elementos, R), alineacion };
+        let errorGuardado = null;
+        try {
+          const datos = { esquema, nElementos: elementos.length, ficheros: JSON.stringify(registro), resultado: JSON.stringify(IFC.compactarCruce(resultado)), personaId: ses.personaId || null };
+          if (ya) repo.modificar("crucesIfc", ses, ya.id, datos);
+          else repo.crear("crucesIfc", ses, { obraId, ...datos });
+        } catch (e) {
+          errorGuardado = e && e.message ? e.message : String(e);
+        }
+        return { resultado, R, comparado, errorGuardado };
+      }
+      function ultimoCruceIfc(repo, ses, obraId) {
+        if (!obraVisible(repo, ses, obraId)) return { ok: false, error: "No ves esta obra." };
+        const f = repo.listar("crucesIfc", ses, { condicion: "obraId = ?", params: [obraId], limite: 1 })[0];
+        if (!f) return { ok: true, cruce: null };
+        let resultado = null;
+        try {
+          resultado = IFC.expandirCruce(JSON.parse(f.resultado));
+        } catch {
+          resultado = null;
+        }
+        return { ok: true, cruce: resultado && { ...resultado, guardado: true, guardadoEn: f.modificadoEn || f.creadoEn } };
+      }
       function altaDeScript(repo, ses, { origen, fuente = null, aplicar = true } = {}, datos = {}) {
         const { obraId, ...resto } = datos;
         const r = alta(repo, ses, obraId, resto, { origen, fuente, crudo: true, aplicar });
@@ -41069,7 +42773,7 @@ ${obsO}` : obsO).slice(0, 4e3);
         else if (r.accion === "enlazar") console.log(`  \xB7 ${resto.tag || "(sin TAG)"}: ya exist\xEDa como ${r.tag} (${r.motivo}): se le enlaza la fuente.`);
         return r.id || null;
       }
-      module.exports = { evidencias, resumen, quienCuenta, confirmar, esElMismo, noEsElMismo, alta, altaDeScript, migrar, cruzarIfc, puedeDecidir };
+      module.exports = { evidencias, resumen, quienCuenta, confirmar, esElMismo, noEsElMismo, alta, altaDeScript, migrar, cruzarIfc, guardarCruceIfc, ultimoCruceIfc, puedeDecidir, obraVisible };
     }
   });
 
@@ -62496,6 +64200,8 @@ ${linea}` : linea;
         fila.categoriaTexto = CAT.TEXTO[cat.id];
         fila.tipoProveedor = fila.tipoProveedor || CAT.tipoDeCategoria(cat.id);
         fila.fecha = CAT.fechaDe(fila);
+        fila.confirmacionLeida = importe && leerJson(p.importeConfirmacionLeida, null) || leerJson(p.confirmacionLeida, null);
+        delete fila.importeConfirmacionLeida;
         if (!importe) {
           delete fila.importe;
           fila.lineas = fila.lineas.map(({ precio, ...l }) => l);
@@ -62538,7 +64244,7 @@ ${linea}` : linea;
           `SELECT h.accion, h.campo, h.valorAntes, h.valorDespues, h.creadoEn, pe.nombre AS persona
        FROM historial h LEFT JOIN personas pe ON pe.id = h.personaId
       WHERE h.entidad = 'pedidosCompra' AND h.registroId = ? ORDER BY h.creadoEn DESC LIMIT 200`
-        ).all(id).filter((h) => datos.verImporte || h.campo !== "importe");
+        ).all(id).filter((h) => !/confirmacionLeida$/i.test(h.campo) && (datos.verImporte || h.campo !== "importe"));
         return {
           pedido: fila,
           plazoProveedor: datos.plazos.find((x) => x.proveedorId === p.proveedorId) || null,
@@ -62836,6 +64542,13 @@ ${linea}` : linea;
         if (a.error) return { ok: false, error: a.error };
         return { ok: true, id: crearDocumento(repo, sesion, p, "otro", a, { notas: datos.notas }) };
       }
+      function anadirDocumentoConfirmacion(repo, sesion, id, archivo2, fecha) {
+        const { p, error } = cambiable(repo, sesion, id);
+        if (error) return { ok: false, error };
+        const a = archivoValido(archivo2);
+        if (a.error) return { ok: false, error: a.error };
+        return { ok: true, id: crearDocumento(repo, sesion, p, "confirmacion", a, { fecha }) };
+      }
       function anadirCorreo(repo, sesion, id, archivo2, datos = {}) {
         if (!puede(sesion.rol, "pedidos", "crear")) return { ok: false, error: "Tu rol no puede a\xF1adir papeles al pedido." };
         const p = repo.leer("pedidosCompra", sesion, id);
@@ -63016,6 +64729,7 @@ ${linea}` : linea;
         confirmar,
         registrarAlbaran,
         anadirDocumento,
+        anadirDocumentoConfirmacion,
         anadirCorreo,
         guardarDocumento,
         quitarDocumento,
@@ -66025,7 +67739,7 @@ ${linea}` : linea;
             "Falta doc.",
             "Falta balanceo",
             "Falta estanqueidad",
-            "A reclamar"
+            "Papeles por pedir"
           ];
           const filas = q.filas.map((f) => [
             f.codigo,
@@ -81267,8 +82981,8 @@ ${linea}` : linea;
           },
           {
             area: "Estudios",
-            titulo: "Documentaci\xF3n de la obra",
-            dondeEsta: "Documentaci\xF3n \u203A Documentaci\xF3n de la obra",
+            titulo: "Documentos de la obra",
+            dondeEsta: "Documentaci\xF3n \u203A Documentos de la obra",
             cubre: ["documentacion"],
             queHace: "Toda la documentaci\xF3n de la obra en una lista: fichas PM, checklists, planos, pruebas de estanqueidad, balanceos de caudales, puestas en marcha de fabricantes, fichas t\xE9cnicas, CE y manuales, informes y actas. Se filtra por tipo, equipo, sistema, planta y estado (firmado, hecho, pendiente, falta), con buscador, y cada fila abre su PDF. Lo de SharePoint solo se enlaza.",
             automatico: [
@@ -81277,8 +82991,8 @@ ${linea}` : linea;
           },
           {
             area: "Estudios",
-            titulo: "Documentaci\xF3n del proyecto",
-            dondeEsta: "Documentaci\xF3n \u203A Documentaci\xF3n del proyecto",
+            titulo: "Documentos del proyecto",
+            dondeEsta: "Documentaci\xF3n \u203A Documentos del proyecto",
             cubre: ["documentacionProyecto"],
             queHace: "La biblioteca de modelos de la obra: legalizaciones, certificados, protocolos de commissioning, calidad, seguridad, contrato, gesti\xF3n de obra y entrega final, por tipo, con su porqu\xE9, su estado y su PDF. \xABBuscar documento\u2026\xBB busca en todos los documentos de la app y a\xF1ade el que falte.",
             automatico: [
@@ -81288,10 +83002,10 @@ ${linea}` : linea;
           },
           {
             area: "Obra \xB7 Econ\xF3mico",
-            titulo: "Equipos y materiales del presupuesto",
-            dondeEsta: "Proyecto \u203A Equipos y materiales",
+            titulo: "Desglose del presupuesto",
+            dondeEsta: "Proyecto \u203A Desglose del presupuesto",
             cubre: ["desglosePresupuesto"],
-            queHace: "Del presupuesto de la obra (Costs Plan / Med Obra) saca solos el listado de equipos por planta y tipo, el de materiales por familia y los puntos BMS de unos y otros; lo cruza con Commissioning, lo certificado y los pedidos.",
+            queHace: "Del presupuesto de la obra (control de costes / Med Obra) saca solos el listado de equipos por planta y tipo, el de materiales por familia y los puntos BMS de unos y otros; lo cruza con Commissioning, lo certificado y los pedidos.",
             automatico: [
               { que: "Cada partida se clasifica en equipo, material o mano de obra / otros (con el tipo de m\xE1quina y la familia de compra)", cuando: "Cada vez que se abre", editable: false, como: "Lo dudoso sale en \xABDudas\xBB; se corrige en el presupuesto." },
               { que: "Equipos del presupuesto contra los de Commissioning: casados, faltan, sobran, duplicados y previstos \xABSIN TAG \xB7 partida\xBB", cuando: "Cada vez que se abre", editable: "parcial", como: "\xABCrear en Commissioning\xBB da de alta los previstos (con confirmaci\xF3n); nunca inventa un TAG." },
@@ -81302,7 +83016,7 @@ ${linea}` : linea;
           {
             area: "Estudios",
             titulo: "Presupuestos",
-            dondeEsta: "Estudios \u203A Presupuestos \xB7 Presupuesto y costes \u203A Presupuesto de obra \xB7 Medir y certificar \u203A Med Obra",
+            dondeEsta: "Estudios \u203A Presupuestos \xB7 Presupuesto \u203A Presupuesto de obra \xB7 Producci\xF3n \u203A Med Obra",
             cubre: ["presupuestos", "presupuestoObra", "medObra"],
             queHace: "El presupuesto como en Presto: cap\xEDtulos, partidas, descompuestos y mediciones; importa y exporta BC3, Excel y PDF, y saca la oferta.",
             automatico: [
@@ -81334,7 +83048,7 @@ ${linea}` : linea;
           {
             area: "Commissioning",
             titulo: "Control / PLC",
-            dondeEsta: "Calidad y commissioning \u203A Puntos BMS \u203A Control / PLC",
+            dondeEsta: "Calidad y commissioning \u203A Puntos de control (BMS) \u203A Control / PLC",
             cubre: ["controlPlc"],
             queHace: "Plantillas de control de los equipos de la obra (enfriadoras y calderas, bombas, UTAs, grupos de presi\xF3n, aparcamientos por CO y puntos BMS): secuencia, lista E/S con objetos BACnet, c\xF3digo para el PLC (Schneider Machine Expert y PLCopen XML, ST neutro IEC 61131-3 o Siemens SCL), puntos para EBO y un simulador. El c\xF3digo es un borrador que revisa un t\xE9cnico; la app no se conecta a ning\xFAn PLC.",
             automatico: [
@@ -81345,7 +83059,7 @@ ${linea}` : linea;
           {
             area: "Estudios",
             titulo: "Puntos de control",
-            dondeEsta: "Estudios \u203A presupuesto \u203A Puntos \xB7 Calidad y commissioning \u203A Puntos BMS",
+            dondeEsta: "Estudios \u203A presupuesto \u203A Puntos \xB7 Calidad y commissioning \u203A Puntos de control (BMS)",
             cubre: ["puntosControl"],
             queHace: "La lista de puntos para el integrador, con la tabla de entrega de siempre (ED, SD, EA, SA, Com.), el cableado y la comparaci\xF3n con la lista del proyecto.",
             automatico: [
@@ -81411,7 +83125,7 @@ ${linea}` : linea;
             cubre: [],
             queHace: "Pasa a la obra todo lo que se estudi\xF3, no solo el total.",
             automatico: [
-              { que: "Crea la obra, copia el Costs Plan (con el coeficiente de compras aplicado), las exclusiones pactadas, el estado del proyecto y las notas", cuando: "Al traspasar", editable: true, como: "Todo es editable en obra salvo la venta, que queda congelada." },
+              { que: "Crea la obra, copia el control de costes (con el coeficiente de compras aplicado), las exclusiones pactadas, el estado del proyecto y las notas", cuando: "Al traspasar", editable: true, como: "Todo es editable en obra salvo la venta, que queda congelada." },
               { que: "Lo de Estudios en la obra se ve pero no se edita", cuando: "Despu\xE9s del traspaso", editable: false }
             ]
           },
@@ -81439,8 +83153,8 @@ ${linea}` : linea;
           },
           {
             area: "Obra \xB7 Econ\xF3mico",
-            titulo: "Costs Plan",
-            dondeEsta: "Presupuesto y costes \u203A Costs Plan \xB7 An\xE1lisis del proyecto",
+            titulo: "Control de costes",
+            dondeEsta: "Producci\xF3n \u203A Control de costes \xB7 An\xE1lisis del proyecto",
             cubre: ["costsPlan", "analisisProyecto"],
             queHace: "Previsto, comprometido, gastado y a fin de obra, cap\xEDtulo a cap\xEDtulo; la hoja 2.09a de CBRE.",
             automatico: [
@@ -81452,7 +83166,7 @@ ${linea}` : linea;
           {
             area: "Obra \xB7 Econ\xF3mico",
             titulo: "Variantes y \xF3rdenes de cambio",
-            dondeEsta: "Contrato y cliente \u203A Variantes y OC",
+            dondeEsta: "Contrato y cliente \u203A Variantes y \xF3rdenes de cambio",
             cubre: ["variantes"],
             queHace: "Las adendas firmadas y las \xF3rdenes de cambio.",
             automatico: [
@@ -81477,14 +83191,14 @@ ${linea}` : linea;
           {
             area: "Obra \xB7 Econ\xF3mico",
             titulo: "Certificaciones",
-            dondeEsta: "Medir y certificar \u203A Certificaciones \xB7 Compras \u203A Facturas de proveedor \xB7 Cierre y entrega \u203A Cierre de la obra",
+            dondeEsta: "Producci\xF3n \u203A Certificaciones \xB7 Compras \u203A Facturas de proveedor \xB7 Cierre y entrega \u203A Cierre de la obra",
             cubre: ["certificaciones", "facturasProveedor", "cierreObra"],
             queHace: "Lo que se cobra al cliente cada mes, y lo que se certifica a cada industrial por pedido (libro DTM.CERT).",
             automatico: [
               { que: "ANTERIOR = suma de las certificaciones de antes; A ORIGEN = anterior + actual", cuando: "Siempre", editable: false },
               { que: "Cap\xEDtulos de coste certificados al mismo % que la obra directa", cuando: "Mientras nadie teclee otra cosa", editable: true, como: "Lo tecleado manda." },
               { que: "Cantidad desde el % de avance (o al rev\xE9s), seg\xFAn el modo", cuando: "Al teclear", editable: true },
-              { que: "Lectura de la certificaci\xF3n del industrial (Excel o PDF) casada con el Costs Plan", cuando: "Al importarla", editable: true, como: "Se elige la columna y se corrige el borrador." },
+              { que: "Lectura de la certificaci\xF3n del industrial (Excel o PDF) casada con el control de costes", cuando: "Al importarla", editable: true, como: "Se elige la columna y se corrige el borrador." },
               { que: "Precios congelados al emitir", cuando: "Al emitir", editable: false, como: "Lo que haya que corregir va en la siguiente, en negativo." },
               { que: "PDF de industrial con una hoja por pedido, gr\xE1ficos y firma estampada del jefe de obra con campo de firma", cuando: "Al sacar el PDF", editable: false },
               { que: "Previsi\xF3n de 15 meses de certificaci\xF3n en el panel de empresa", cuando: "Siempre", editable: false }
@@ -81493,7 +83207,7 @@ ${linea}` : linea;
           {
             area: "Obra \xB7 Planificaci\xF3n",
             titulo: "m\xB2 de conductos",
-            dondeEsta: "Medir y certificar \u203A m\xB2 de conductos",
+            dondeEsta: "Producci\xF3n \u203A m\xB2 de conductos",
             cubre: ["m2Conductos"],
             queHace: "La plantilla de m\xB2 de chapa de conductos rectangulares seg\xFAn UNE 100716, pieza a pieza, para certificar los conductos de la obra.",
             automatico: [
@@ -81505,7 +83219,7 @@ ${linea}` : linea;
           {
             area: "Obra \xB7 Planificaci\xF3n",
             titulo: "Avance de obra",
-            dondeEsta: "Medir y certificar \u203A Avance de obra (y la tablet del encargado) \xB7 Documentaci\xF3n \u203A Planos",
+            dondeEsta: "Producci\xF3n \u203A Avance de obra (y la tablet del encargado) \xB7 Documentaci\xF3n \u203A Planos",
             cubre: ["avanceObra", "planosObra"],
             queHace: "El encargado marca en el plano lo ejecutado cada d\xEDa (trazos, zonas y puntos) con nota y foto; al jefe de obra le llega para revisarlo.",
             automatico: [
@@ -81544,9 +83258,9 @@ ${linea}` : linea;
             titulo: "Diagrama de Gantt",
             dondeEsta: "Planificaci\xF3n \u203A Diagrama de Gantt",
             cubre: ["gantt"],
-            queHace: "Una barra por paquete del Costs Plan; se arrastra, se estira o se teclean las fechas.",
+            queHace: "Una barra por paquete del control de costes; se arrastra, se estira o se teclean las fechas.",
             automatico: [
-              { que: "Una barra por cada subcap\xEDtulo final del Costs Plan", cuando: "Al abrir la obra", editable: true, como: "Fechas y avance se cambian arrastrando o tecleando." },
+              { que: "Una barra por cada subcap\xEDtulo final del control de costes", cuando: "Al abrir la obra", editable: true, como: "Fechas y avance se cambian arrastrando o tecleando." },
               { que: "Cap\xEDtulo sin fechas propias toma las de la obra (barra discontinua)", cuando: "Mientras no se le den", editable: true },
               { que: "L\xEDnea base: el plazo del Gantt de Estudios o, si no se hizo, las primeras fechas que se le dieron", cuando: "Al poner fechas la primera vez", editable: false },
               { que: "El plazo que se planific\xF3 en Estudios (presupuesto \u203A Gantt\u2026) es el plan de la obra mientras no se retoque", cuando: "Al traspasar a obra", editable: true, como: "Se retoca en el Gantt de la obra; en Estudios queda de solo lectura." },
@@ -81568,7 +83282,7 @@ ${linea}` : linea;
             titulo: "Informe semanal",
             dondeEsta: "Empresa \u203A Informes \u203A Informe semanal",
             cubre: ["informeSemanal"],
-            queHace: "Una fila por obra con commissioning, certificaci\xF3n, Costs Plan, mantenimiento y NCR.",
+            queHace: "Una fila por obra con commissioning, certificaci\xF3n, control de costes, mantenimiento y NCR.",
             automatico: [
               { que: "Todas las cifras, sacadas de cada m\xF3dulo", cuando: "Siempre", editable: false },
               { que: "PDF y borrador de correo los lunes (nunca se env\xEDa solo)", cuando: "Los lunes", editable: true, como: "El borrador se cambia antes de mandarlo." },
@@ -81640,7 +83354,7 @@ ${linea}` : linea;
             area: "Obra \xB7 Planificaci\xF3n",
             titulo: "Personal en obra",
             dondeEsta: "Personal \u203A Personal en obra (pesta\xF1as: Personal en obra, Fichajes y registros, Horas extra, Vacaciones, Solicitudes, Documentaci\xF3n PRL/CAE, Operarios, Equipo de obra)",
-            cubre: ["partes"],
+            cubre: ["partes", "parte", "miJornada"],
             queHace: "Previsto frente a real por subcontrata y d\xEDa, con fichaje por QR y documentaci\xF3n PRL/CAE.",
             automatico: [
               { que: "C\xF3digo QR de 16 caracteres por operario", cuando: "Al darlo de alta", editable: false },
@@ -81651,8 +83365,8 @@ ${linea}` : linea;
           {
             area: "Obra \xB7 Planificaci\xF3n",
             titulo: "Vacaciones y ausencias",
-            dondeEsta: "Personal \u203A Vacaciones y Personal \u203A Solicitudes (las del equipo); Mi espacio \u203A Vacaciones (las tuyas)",
-            cubre: ["vacaciones"],
+            dondeEsta: "Personal \u203A Vacaciones (las tuyas); las del equipo, en las pesta\xF1as Vacaciones y Solicitudes de la pantalla Personal",
+            cubre: ["vacaciones", "misVacaciones"],
             queHace: "Calendario de ausencias de CBRE y de subcontratas.",
             automatico: [
               { que: "Aviso de solape: faltan 2 o m\xE1s y al menos un tercio de una empresa u obra", cuando: "Siempre", editable: false }
@@ -81784,7 +83498,7 @@ ${linea}` : linea;
           {
             area: "Calidad",
             titulo: "No conformidades (NCR)",
-            dondeEsta: "Calidad y commissioning \u203A Commissioning \u203A NCR",
+            dondeEsta: "Calidad y commissioning \u203A No conformidades",
             cubre: ["ncr"],
             queHace: "El libro de NCR sin el Excel: alta, plazos, cierre, informes y punchlist.",
             automatico: [
@@ -81880,8 +83594,8 @@ ${linea}` : linea;
           },
           {
             area: "Toda la app",
-            titulo: "Auditor\xEDa",
-            dondeEsta: "Gesti\xF3n \u203A Auditor\xEDa; pesta\xF1a \xABHistorial\xBB de cada ficha",
+            titulo: "Historial de cambios",
+            dondeEsta: "Gesti\xF3n \u203A Historial de cambios; pesta\xF1a \xABHistorial\xBB de cada ficha",
             cubre: ["trazabilidad"],
             queHace: "Qui\xE9n cambi\xF3 qu\xE9, de qu\xE9 a qu\xE9, cu\xE1ndo y desde d\xF3nde; las versiones de cada ficha para comparar y restaurar; en Excel y PDF.",
             automatico: [
@@ -82063,7 +83777,7 @@ ${linea}` : linea;
             sustituye: "Microsoft Project (Plan 5)",
             licencia: "msProjectP5",
             horasAnuales: 40,
-            hipotesis: "El Gantt sale del Costs Plan y la planificaci\xF3n econ\xF3mica de \xE9l: ~1 h/semana de pasar fechas e importes entre Project y Excel, 40 semanas."
+            hipotesis: "El Gantt sale del control de costes y la planificaci\xF3n econ\xF3mica de \xE9l: ~1 h/semana de pasar fechas e importes entre Project y Excel, 40 semanas."
           },
           {
             id: "presupuestos",
@@ -82075,8 +83789,8 @@ ${linea}` : linea;
           },
           {
             id: "costsPlan",
-            que: "Costs Plan, desv\xEDo y plan de compras",
-            sustituye: "Libros Excel del Costs Plan y del comparativo",
+            que: "Control de costes, desv\xEDo y plan de compras",
+            sustituye: "Libros Excel del control de costes y del comparativo",
             licencia: null,
             fuente: "Excel sigue en Microsoft 365: no hay licencia que ahorrar, solo horas.",
             horasAnuales: 96,
@@ -82303,7 +84017,7 @@ ${linea}` : linea;
             que: "Facturas de proveedor imputadas",
             unidad: "facturas",
             minutos: 5,
-            hipotesis: "Imputar la factura a su cap\xEDtulo del Costs Plan: ~5 min por factura."
+            hipotesis: "Imputar la factura a su cap\xEDtulo del control de costes: ~5 min por factura."
           },
           {
             id: "ncr",
@@ -82729,7 +84443,7 @@ ${linea}` : linea;
         const FASES_AHORRO = [
           /* POR OBRA Y MES: lo que se ahorra cada mes que la obra está viva. */
           { id: "compras", bloque: "obra", nombre: "Compras de obra", lineas: [
-            { rol: "jefeObra", h: 8, que: "Comprometido, gastado y desv\xEDo del Costs Plan desde pedidos, albaranes y facturas (96 h/a\xF1o)." },
+            { rol: "jefeObra", h: 8, que: "Comprometido, gastado y desv\xEDo del control de costes desde pedidos, albaranes y facturas (96 h/a\xF1o)." },
             { rol: "encargadoObra", h: 1, que: "Albaranes casados con su pedido (~5 min cada uno)." }
           ] },
           { id: "obra", bloque: "obra", nombre: "Obra", lineas: [
@@ -82751,7 +84465,7 @@ ${linea}` : linea;
           { id: "grupo", bloque: "obra", nombre: "Jefe de grupo", lineas: [
             { rol: "jefeGrupo", sub: "avance", dedicacion: true, h: 6, confirmar: true, que: "Avance y plazos de todas sus obras en un panel, sin pedir a cada jefe de obra el informe ni el Gantt al d\xEDa." },
             { rol: "jefeGrupo", sub: "certificacion", dedicacion: true, h: 6, confirmar: true, que: "Certificaciones y cuadro econ\xF3mico de cada obra revisados en la app, sin pedir el Excel ni cuadrarlo a mano." },
-            { rol: "jefeGrupo", sub: "desvios", dedicacion: true, h: 4, confirmar: true, que: "Desviaciones del Costs Plan y NCR abiertas de todas sus obras juntas, sin pedirlas por correo." },
+            { rol: "jefeGrupo", sub: "desvios", dedicacion: true, h: 4, confirmar: true, que: "Desviaciones del control de costes y NCR abiertas de todas sus obras juntas, sin pedirlas por correo." },
             { rol: "jefeGrupo", sub: "iarvis", dedicacion: true, h: 4, confirmar: true, que: "El informe semanal de su grupo y los encargos a sus jefes de obra se los pide a Iarvis: no recorre obra por obra ni escribe el correo (~1 h por semana)." },
             /* 6-nov (rumbo «Vidaire Obras para los mandos»): el informe del grupo, solo. */
             { rol: "jefeGrupo", sub: "informeGrupo", dedicacion: true, h: 6, confirmar: true, que: "Informe semanal de todo su grupo hecho solo: sus 5-8 obras en una tabla (tambi\xE9n las que no tienen jefe de obra) con plazo, certificado, coste, NCR y conflictos, y el lunes el PDF y el correo a su director preparados. Antes juntaba el informe de cada jefe de obra y lo pasaba a uno (~1,5 h por semana)." }
@@ -93477,7 +95191,7 @@ ${linea}` : linea;
         if (!venta) return { ok: true, nada: true };
         const contrato = contratoDeObra(db, orden.obraId);
         if (!contrato) return { ok: true, nada: true, sinContrato: true };
-        const existente = db.prepare("SELECT * FROM adendas WHERE ordenCambioId = ?").get(orden.id);
+        const existente = db.prepare("SELECT * FROM adendas WHERE ordenCambioId = ? AND tipo = 'alcance'").get(orden.id);
         const fecha = dia(orden.decididaEn) || hoy();
         return guardar(db, sesion, contrato, existente, {
           concepto: `${orden.numero} \xB7 ${orden.titulo}`,
@@ -93513,7 +95227,29 @@ ${linea}` : linea;
         });
         return { ...r, texto: `${texto} ${r.numero}` };
       }
-      module.exports = { adendaDeOrden, plazoDeActa, contratoDeObra, siguienteNumero };
+      function plazoDeOrden(db, sesion, orden) {
+        const dias = Math.round(Number(orden && orden.diasPlazo) || 0);
+        if (!orden || orden.estado !== "aprobada" || dias <= 0) return { ok: true, nada: true };
+        const contrato = contratoDeObra(db, orden.obraId);
+        if (!contrato) return { ok: true, nada: true, sinContrato: true };
+        const existente = db.prepare("SELECT * FROM adendas WHERE ordenCambioId = ? AND tipo = 'plazo'").get(orden.id);
+        if (existente && existente.estado !== "borrador") return { ok: true, nada: true };
+        const otras = db.prepare("SELECT * FROM adendas WHERE contratoId = ?").all(contrato.id).filter((a) => !existente || a.id !== existente.id);
+        const finVigente = K.resumen(contrato, otras, []).finVigente;
+        const nueva = finVigente ? new Date(Date.parse(`${finVigente}T12:00:00Z`) + dias * 864e5).toISOString().slice(0, 10) : null;
+        const r = guardar(db, sesion, contrato, existente, {
+          concepto: `Ampliaci\xF3n de plazo de ${orden.numero} \xB7 ${orden.titulo}`,
+          tipo: "plazo",
+          diasAmpliacion: dias,
+          ...nueva ? { nuevaFechaFin: nueva } : {},
+          ...existente ? {} : { fecha: hoy(), estado: "borrador" },
+          ordenCambioId: orden.id,
+          actaId: orden.actaId || null,
+          notas: `La orden de cambio ${orden.numero} suma ${dias} d\xEDas de plazo. El plazo del contrato cambia cuando se firme.`
+        });
+        return { ...r, dias, texto: `${orden.numero} suma ${dias} d\xEDas de plazo: adenda de plazo ${r.numero} en borrador` };
+      }
+      module.exports = { adendaDeOrden, plazoDeOrden, plazoDeActa, contratoDeObra, siguienteNumero };
     }
   });
 
@@ -93997,6 +95733,7 @@ ${linea}` : linea;
       var r2 = (x) => Math.round((Number(x) || 0) * 100) / 100;
       var deActa = (f) => f && { ...f, asistentes: json(f.asistentes, []), puntos: json(f.puntos, []), resultado: json(f.resultado, []) };
       var deOrden = (f) => f && { ...f, lineas: json(f.lineas, []) };
+      var diasDe = (v) => Math.min(3650, Math.max(0, Math.round(Number(v) || 0)));
       var esNuevo = (p) => Boolean(p && p.id);
       var sinDinero = (rol) => campoVetado(rol, "importeVenta");
       function recortarOrden(o, rol) {
@@ -94610,12 +96347,11 @@ ${linea}` : linea;
         if (estado !== "aprobada") return { ok: true, orden: { ...o, estado } };
         const imp = imputar(repo, sesion, { ...o, estado });
         if (!imp.ok) return imp;
-        const adenda = require_contratoDesdeObra().adendaDeOrden(
-          repo.db,
-          sesion,
-          deOrden(repo.leer("ordenesCambio", sesion, ordenId))
-        );
-        return { ok: true, orden: { ...o, estado, capituloId: imp.capituloId || o.capituloId }, imputada: imp, adenda };
+        const CDO = require_contratoDesdeObra();
+        const aprobada = deOrden(repo.leer("ordenesCambio", sesion, ordenId));
+        const adenda = CDO.adendaDeOrden(repo.db, sesion, aprobada);
+        const plazo = CDO.plazoDeOrden(repo.db, sesion, aprobada);
+        return { ok: true, orden: { ...o, estado, capituloId: imp.capituloId || o.capituloId }, imputada: imp, adenda, plazo };
       }
       function cerrarActa(repo, sesion, id) {
         if (!puede(sesion.rol, "actas", "editar")) return { ok: false, error: SIN_PERMISO };
@@ -94749,7 +96485,8 @@ ${linea}` : linea;
             coste,
             estado: "propuesta",
             actaId: entrada.actaId || null,
-            creadoPor: sesion.personaId
+            creadoPor: sesion.personaId,
+            diasPlazo: diasDe(entrada.diasPlazo) || null
           });
           return { ok: true, id, numero };
         };
@@ -94764,6 +96501,7 @@ ${linea}` : linea;
         const c = {};
         if (cambios.titulo !== void 0) c.titulo = llano(cambios.titulo) || o.titulo;
         if (cambios.descripcion !== void 0) c.descripcion = llano(cambios.descripcion) || null;
+        if (cambios.diasPlazo !== void 0) c.diasPlazo = diasDe(cambios.diasPlazo) || null;
         if (cambios.lineas !== void 0) {
           const limpias = limpiarLineas(cambios.lineas);
           const ob = repo.leer("obras", sesion, o.obraId);
@@ -94783,6 +96521,33 @@ ${linea}` : linea;
             require_contratoDesdeObra().adendaDeOrden(repo.db, sesion, nueva);
           }
           return { ok: true, orden: recortarOrden(deOrden(repo.leer("ordenesCambio", sesion, id)), sesion.rol) };
+        });
+      }
+      function moverFinPorOrden(repo, sesion, ordenId, { previa = false } = {}) {
+        if (!puede(sesion.rol, "actas", "aprobar")) return { ok: false, error: "Mover el fin de obra por una orden de cambio lo confirma el jefe de obra." };
+        const o = deOrden(repo.leer("ordenesCambio", sesion, ordenId));
+        if (!o) return { ok: false, error: "No se encuentra la orden de cambio." };
+        const dias = diasDe(o.diasPlazo);
+        if (o.estado !== "aprobada" || !dias) return { ok: false, error: `${o.numero} no trae d\xEDas de plazo aprobados.` };
+        if (o.plazoAplicadoEn) return { ok: false, error: `${o.numero} ya movi\xF3 el fin de obra (${String(o.plazoAplicadoEn).slice(0, 10)}).` };
+        const CP = require_costsPlan();
+        const ultima = CP.tareasGantt(repo, sesion, o.obraId).filter((t) => t.fin).reduce((m, t) => !m || t.fin > m.fin ? t : m, null);
+        if (!ultima) return { ok: false, error: "La obra no tiene tareas con fecha en el Gantt." };
+        const fin = new Date(Date.parse(`${String(ultima.fin).slice(0, 10)}T12:00:00Z`) + dias * 864e5).toISOString().slice(0, 10);
+        return enTransaccion(repo, () => {
+          const r = CP.cambiarFechaGantt(repo, sesion, o.obraId, { id: ultima.id, fin }, { previa });
+          if (!r.ok) return r;
+          if (!previa) repo.modificar("ordenesCambio", sesion, ordenId, { plazoAplicadoEn: (/* @__PURE__ */ new Date()).toISOString() });
+          return {
+            ok: true,
+            previa,
+            dias,
+            tarea: ultima.nombre,
+            antes: r.antes,
+            despues: r.despues,
+            movidas: r.movidas || 0,
+            texto: `${o.numero}: el fin de obra pasa del ${r.antes.fin} al ${r.despues.fin} (+${dias} d\xEDas, \xAB${ultima.nombre}\xBB).`
+          };
         });
       }
       var aprobarOrden = (repo, sesion, id) => enTransaccion(repo, () => decidir(repo, sesion, id, "aprobada"));
@@ -94845,6 +96610,7 @@ ${linea}` : linea;
         crearOrden,
         guardarOrden,
         aprobarOrden,
+        moverFinPorOrden,
         rechazarOrden,
         imputar,
         sincronizarLinea,
@@ -126410,904 +128176,6 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // shared/commissioning/planoEquipos.js
-  var require_planoEquipos = __commonJS({
-    "shared/commissioning/planoEquipos.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function() {
-        const MAX_PALABRAS = 8;
-        const CERCA = 0.015;
-        const clave = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-        const claveSuelta = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().split(/[^A-Z0-9]+/).map((x) => x.replace(/(^|[A-Z])0+(?=\d)/g, "$1")).join("");
-        const RE_NO_EQUIPO = /^(?:C\.?C\.?F|CRF|CF|CORTA\s?FUEGOS?|COMPUERTAS?|DAMPERS?|DMP|VAV|V[23]V|VALV(?:ULAS?)?|VAL|VS|VM|CGBT|CUADRO)(?=$|[\s._\-/\d])/i;
-        const RE_FAMILIA_NO_EQUIPO = /^(ELEC_|CONTROL_|HOSP_|TELE_|GAS_|PCI_(?!BOMBEO))/;
-        function esEquipoDelPlano(e) {
-          if (!e) return false;
-          const tag = String(e.tag || "").trim();
-          if (clave(tag).length < 2) return false;
-          if (RE_NO_EQUIPO.test(tag)) return false;
-          if (RE_FAMILIA_NO_EQUIPO.test(String(e.familia || "").trim())) return false;
-          return true;
-        }
-        const claveCasado = (t) => claveSuelta(t);
-        function casar(tagsPlano, equipos) {
-          const delListado = (equipos || []).filter(esEquipoDelPlano);
-          const porClave = /* @__PURE__ */ new Map();
-          for (const e of delListado) {
-            for (const k of /* @__PURE__ */ new Set([clave(e.tag), claveCasado(e.tag)])) {
-              if (!k) continue;
-              if (!porClave.has(k)) porClave.set(k, []);
-              porClave.get(k).push(e);
-            }
-          }
-          const casados = [];
-          const vistos = /* @__PURE__ */ new Set();
-          const sobran = [];
-          const sobranVistos = /* @__PURE__ */ new Set();
-          for (const t of tagsPlano || []) {
-            const tag = String(t || "").trim();
-            if (!tag || RE_NO_EQUIPO.test(tag)) continue;
-            const casan = porClave.get(clave(tag)) || porClave.get(claveCasado(tag));
-            if (!casan) {
-              if (!sobranVistos.has(claveCasado(tag))) {
-                sobranVistos.add(claveCasado(tag));
-                sobran.push(tag);
-              }
-              continue;
-            }
-            for (const e of casan) {
-              if (vistos.has(e.id)) continue;
-              vistos.add(e.id);
-              casados.push({ equipoId: e.id, tag: e.tag, tagPlano: tag });
-            }
-          }
-          return { casados, sinUbicar: delListado.filter((e) => !vistos.has(e.id)), sobranEnPlano: sobran };
-        }
-        function cruce(equiposPlanta, marcas) {
-          const conMarca = new Set((marcas || []).map((m) => m.equipoId));
-          const delListado = (equiposPlanta || []).filter(esEquipoDelPlano);
-          return {
-            casados: delListado.filter((e) => conMarca.has(e.id)),
-            sinUbicar: delListado.filter((e) => !conMarca.has(e.id))
-          };
-        }
-        function palabrasDe(textos) {
-          const salida = [];
-          for (const t of textos || []) {
-            if (!t || typeof t.texto !== "string") continue;
-            const trozos = t.texto.split(/\s+/).filter(Boolean);
-            trozos.forEach((p, i) => salida.push({ p, k: clave(p), s: claveSuelta(p), x: Number(t.x) || 0, y: Number(t.y) || 0, mismo: i > 0 }));
-          }
-          return salida;
-        }
-        function reconocer(textos, equipos) {
-          const porClave = /* @__PURE__ */ new Map();
-          const porSuelta = /* @__PURE__ */ new Map();
-          for (const e of equipos || []) {
-            if (!esEquipoDelPlano(e)) continue;
-            const k = clave(e.tag);
-            if (k.length < 4) continue;
-            if (!porClave.has(k)) porClave.set(k, []);
-            porClave.get(k).push(e);
-            const s = claveSuelta(e.tag);
-            if (!porSuelta.has(s)) porSuelta.set(s, []);
-            porSuelta.get(s).push(e);
-          }
-          const palabras = palabrasDe(textos);
-          const usadas = new Uint8Array(palabras.length);
-          const marcas = [];
-          const vistos = /* @__PURE__ */ new Set();
-          for (let i = 0; i < palabras.length; i++) {
-            if (usadas[i] || !palabras[i].k) continue;
-            let hasta = i;
-            const ks = [palabras[i].k];
-            const ss = [palabras[i].s];
-            for (let j = i + 1; j < palabras.length && j - i < MAX_PALABRAS; j++) {
-              const a = palabras[j - 1];
-              const b = palabras[j];
-              if (usadas[j]) break;
-              if (!b.mismo && Math.hypot(a.x - b.x, a.y - b.y) > CERCA) break;
-              ks.push(b.k);
-              ss.push(b.s);
-              hasta = j;
-            }
-            for (let fin = hasta; fin >= i; fin--) {
-              if (fin > i && !palabras[fin].k) continue;
-              const k = ks.slice(0, fin - i + 1).join("");
-              const casan = porClave.get(k) || porSuelta.get(ss.slice(0, fin - i + 1).join(""));
-              if (!casan) continue;
-              let sx = 0;
-              let sy = 0;
-              for (let n = i; n <= fin; n++) {
-                sx += palabras[n].x;
-                sy += palabras[n].y;
-                usadas[n] = 1;
-              }
-              const x = Math.round(sx / (fin - i + 1) * 1e4) / 1e4;
-              const y = Math.round(sy / (fin - i + 1) * 1e4) / 1e4;
-              const libre = casan.find((e) => !vistos.has(e.id));
-              if (libre) {
-                vistos.add(libre.id);
-                marcas.push({ equipoId: libre.id, tag: libre.tag, x, y });
-              }
-              break;
-            }
-          }
-          const plantaDe = (ms) => {
-            const cuenta = /* @__PURE__ */ new Map();
-            for (const m of ms) {
-              const e = (equipos || []).find((q) => q.id === m.equipoId);
-              const p = e && e.planta ? String(e.planta) : null;
-              if (p) cuenta.set(p, (cuenta.get(p) || 0) + 1);
-            }
-            return [...cuenta.entries()].sort((a, b) => b[1] - a[1])[0];
-          };
-          let planta = plantaDe(marcas);
-          if (planta) porCodigoDeSala(palabras, usadas, equipos, planta[0], vistos, marcas);
-          for (const grupo of porClave.values()) {
-            if (grupo.length < 2) continue;
-            const puesta = marcas.find((m) => grupo.some((e) => e.id === m.equipoId));
-            if (!puesta) continue;
-            for (const e of grupo) {
-              if (vistos.has(e.id)) continue;
-              vistos.add(e.id);
-              marcas.push({ equipoId: e.id, tag: e.tag, x: puesta.x, y: puesta.y });
-            }
-          }
-          planta = plantaDe(marcas);
-          const deLaPlanta = planta ? (equipos || []).filter((e) => esEquipoDelPlano(e) && String(e.planta || "") === planta[0]) : [];
-          const noEncontrados = deLaPlanta.filter((e) => !vistos.has(e.id)).map((e) => ({ id: e.id, tag: e.tag }));
-          return { marcas, planta: planta ? planta[0] : null, noEncontrados, reconocidos: marcas.length };
-        }
-        const RE_SOLO_CODIGO = /^(?:(N\d{2}|S\d)[-_ ])?([PSM]\d\.[A-Z]{3}\.\d{3,4})((?:_[A-Z]{1,4})?)$/i;
-        const RE_TAG_PLANTA_CODIGO = /^[A-Z]{2,4}[-_ ]?(N\d{2}|S\d)[-_ ]([PSM]\d\.[A-Z]{3}\.\d{3,4}(?:_[A-Z]{1,4})?)$/i;
-        const RE_UI_SALA = /^UI[-_ ]([PSM]\d\.[A-Z]{3}\.\d{3,4})$/i;
-        const CERCA_SALA_UI = 0.015;
-        function porCodigoDeSala(palabras, usadas, equipos, planta, vistos, marcas) {
-          const porCodigo = /* @__PURE__ */ new Map();
-          for (const e of equipos || []) {
-            if (!esEquipoDelPlano(e) || String(e.planta || "") !== planta) continue;
-            const m = RE_TAG_PLANTA_CODIGO.exec(String(e.tag || "").trim());
-            if (!m || m[1].toUpperCase() !== planta.toUpperCase()) continue;
-            const k = claveSuelta(m[2]);
-            if (!porCodigo.has(k)) porCodigo.set(k, []);
-            porCodigo.get(k).push(e);
-          }
-          if (!porCodigo.size) return;
-          const uis = [];
-          palabras.forEach((w) => {
-            const m = RE_UI_SALA.exec(w.p);
-            if (m) uis.push({ sala: m[1].toUpperCase(), x: w.x, y: w.y });
-          });
-          palabras.forEach((w, i) => {
-            if (usadas[i] || w.mismo || palabras[i + 1] && palabras[i + 1].mismo) return;
-            const m = RE_SOLO_CODIGO.exec(w.p);
-            if (!m || m[1] && m[1].toUpperCase() !== planta.toUpperCase()) return;
-            if (palabras.some((o) => !o.mismo && o !== w && Math.abs(o.x - w.x) < 4e-3 && w.y - o.y > 0 && w.y - o.y < 25e-4 && esNombreSala(o.p) && !RE_SOLO_CODIGO.test(o.p))) return;
-            const sala = m[2].toUpperCase();
-            const sufijo = (m[3] || "").toUpperCase();
-            let ui = null;
-            let d = CERCA_SALA_UI;
-            for (const u of uis) {
-              const dd = Math.hypot(u.x - w.x, u.y - w.y);
-              if (dd < d) {
-                d = dd;
-                ui = u;
-              }
-            }
-            let k = claveSuelta(sala + sufijo);
-            let dudoso = null;
-            if (ui && ui.sala !== sala && ui.sala.slice(0, 6) === sala.slice(0, 6)) {
-              k = claveSuelta(ui.sala + sufijo);
-              dudoso = `el plano pone \xAB${w.p}\xBB en la sala ${ui.sala}`;
-            }
-            const libre = (porCodigo.get(k) || []).find((e) => !vistos.has(e.id));
-            if (!libre) return;
-            vistos.add(libre.id);
-            usadas[i] = 1;
-            marcas.push({ equipoId: libre.id, tag: libre.tag, x: w.x, y: w.y, ...dudoso ? { dudoso } : {} });
-          });
-        }
-        const COLORES = {
-          verde: { nombre: "Hecho", largo: "Commissioning completo", hex: "#1a7f4b" },
-          azul: { nombre: "Falta documento", largo: "Empezado, falta alg\xFAn documento", hex: "#1f63c6" },
-          rojo: { nombre: "Sin empezar", largo: "No se ha empezado", hex: "#c8303a" }
-        };
-        const ORDEN_COLOR = ["verde", "azul", "rojo"];
-        const BALANCEO_HECHO = /* @__PURE__ */ new Set(["apto", "aptoSinBocas", "noApto"]);
-        const ESTANQ_HECHA = /* @__PURE__ */ new Set(["apta", "noApta"]);
-        const hayDato = (v) => {
-          const t = String(v ?? "").trim().toLowerCase();
-          return t !== "" && t !== "pendiente" && t !== "\u2014" && t !== "-";
-        };
-        function empezado(u) {
-          if (!u) return false;
-          if (u.instalacionVerificadaEn || u.estado === "enMarcha" || u.estado === "recepcionado") return true;
-          const pmGuardado = Object.prototype.hasOwnProperty.call(u, "estadoPMGuardado") ? u.estadoPMGuardado : u.estadoPM;
-          if (pmGuardado && pmGuardado !== "pendiente") return true;
-          if (hayDato(u.docFichaPM) || hayDato(u.docBalanceo) || hayDato(u.docEstanqueidad)) return true;
-          if (BALANCEO_HECHO.has(u.balanceoEstado) || ESTANQ_HECHA.has(u.estanqueidadEstado)) return true;
-          if (u.fechaEnvioDF) return true;
-          if (u.fichaConDato) return true;
-          const f = u.pmFichas;
-          if (f && (f.completas > 0 || f.checklist === "hecho")) return true;
-          return false;
-        }
-        function estadoEnPlano(unidad, linea) {
-          const l = linea || unidad;
-          if (!l) return "rojo";
-          if (l.completo) return "verde";
-          const miembros = Array.isArray(l.miembros) && l.miembros.length ? l.miembros : [l];
-          return miembros.some(empezado) || unidad && empezado(unidad) ? "azul" : "rojo";
-        }
-        function lineasPorUnidad(tabla) {
-          const lineaDe = /* @__PURE__ */ new Map();
-          for (const c of tabla && tabla.conjuntos || []) {
-            for (const m of c.miembros || [c]) lineaDe.set(m.id, c);
-          }
-          return lineaDe;
-        }
-        const TIPO_LLANO = {
-          TROX_UTA: "Climatizador (UTA)",
-          CARRIER_ROOFTOPS: "Rooftop",
-          CARRIER_CHILLERS: "Enfriadora o bomba de calor",
-          AIRLAN_FANCOIL: "Fan coil",
-          AIRLAN_HRU: "Recuperador de calor",
-          PANASONIC_VRF: "Unidad de VRF",
-          PANASONIC_SPLIT: "Split",
-          PANASONIC_CRACS: "Equipo de precisi\xF3n (CRAC)",
-          WILO_GP: "Grupo de presi\xF3n",
-          WILO_PUMPS: "Bomba",
-          SP_VENTILACION: "Ventilador",
-          SP_PARKING: "Ventilador de parking",
-          SP_PRESURIZACION: "Ventilador de presurizaci\xF3n"
-        };
-        const TEXTO_ACCION = { datos: "Rellenar datos que faltan", checklist: "Checklist", balanceo: "Balanceo", estanqueidad: "Estanqueidad" };
-        function controlCx() {
-          return typeof __require !== "undefined" ? require_control() : typeof window !== "undefined" ? window.CONTROL_CX : null;
-        }
-        function fichasCx() {
-          return typeof __require !== "undefined" ? require_fichas() : typeof window !== "undefined" ? window.FICHAS_PM : null;
-        }
-        const T2 = 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
-        const CUERPO = 'class="cuerpo" stroke="currentColor" stroke-width="2" stroke-linejoin="round"';
-        const ASPA = "M12 12C9.500 8 10.500 4.500 12 4.500S14.500 8 12 12Z";
-        const aspas = (cx, cy, k) => `<g transform="translate(${cx} ${cy}) scale(${k}) translate(-12 -12)">${[0, 120, 240].map((g) => `<path class="lleno" d="${ASPA}"${g ? ` transform="rotate(${g} 12 12)"` : ""}/>`).join("")}</g>`;
-        const ICONOS = {
-          splitInt: { nombre: "Split interior (pared)", svg: `<rect ${CUERPO} x="2" y="5" width="20" height="10" rx="3"/><path ${T2} d="M5 12h14M7 18l-1 3M12 18v3M17 18l1 3"/>` },
-          splitExt: { nombre: "Split exterior", svg: `<rect ${CUERPO} x="3" y="3" width="18" height="18" rx="3"/><circle ${T2} cx="12" cy="12" r="5.5"/><path class="lleno" d="M12 12C10 9 10.5 6.5 12 6.5S14 9 12 12ZM12 12c3 .5 4.5 2.5 3.5 3.7S12.500 15 12 12ZM12 12c-3 .5-4.500 2.500-3.500 3.700S11.500 15 12 12Z"/>` },
-          vrfInt: { nombre: "VRF interior (casete)", svg: `<rect ${CUERPO} x="3" y="3" width="18" height="18" rx="2"/><rect ${T2} x="8" y="8" width="8" height="8"/><path ${T2} d="M3 3l5 5M21 3l-5 5M3 21l5-5M21 21l-5-5"/>` },
-          /* Unidad de conductos (5-nov, JC: «este símbolo para fan coils es
-             malísimo»): como en la simbología HVAC de los planos, caja alargada con el
-             ventilador dentro (círculo con aspas) y las bocas de conducto de retorno e
-             impulsión en los extremos. Nada de flechas. */
-          vrfConductos: { nombre: "VRF interior (conductos)", svg: `<rect ${CUERPO} x="4.500" y="6.500" width="15" height="11" rx="1.500"/><path ${T2} d="M4.500 8.500H1.500v7h3M19.500 8.500h3v7h-3"/><circle ${T2} cx="12" cy="12" r="3.800"/>${aspas(12, 12, 0.42)}` },
-          vrfExt: { nombre: "VRF exterior", svg: `<rect ${CUERPO} x="1.5" y="4" width="21" height="16" rx="3"/><circle ${T2} cx="7.5" cy="12" r="4"/><circle ${T2} cx="16.5" cy="12" r="4"/><circle class="lleno" cx="7.5" cy="12" r="1.300"/><circle class="lleno" cx="16.5" cy="12" r="1.300"/>` },
-          /* Fan coil de agua: la misma caja con bocas, el ventilador a un lado y la
-             batería (el serpentín) al otro, para no confundirlo con la de conductos VRF. */
-          fancoil: { nombre: "Fan coil", svg: `<rect ${CUERPO} x="4.500" y="6.500" width="15" height="11" rx="1.500"/><path ${T2} d="M4.500 8.500H1.500v7h3M19.500 8.500h3v7h-3"/><circle ${T2} cx="9.300" cy="12" r="3.300"/>${aspas(9.3, 12, 0.36)}<path ${T2} d="M14.500 8.700l2.800 1.100-2.800 1.100 2.800 1.100-2.800 1.100 2.800 1.100-2.800 1.100"/>` },
-          uta: { nombre: "UTA (climatizador)", svg: `<rect ${CUERPO} x="1.5" y="6" width="21" height="12" rx="1.500"/><path ${T2} d="M8 6v12M15.500 6v12"/><circle ${T2} cx="11.750" cy="12" r="2.200"/><path ${T2} d="M3.500 12h2.500M17.500 9l3 6M20.500 9l-3 6"/>` },
-          hru: { nombre: "Recuperador de calor (HRU)", svg: `<rect ${CUERPO} x="1.5" y="5" width="21" height="14" rx="2"/><path ${T2} d="M12 5.500l6.500 6.500-6.500 6.500L5.500 12z"/><path ${T2} d="M1.500 12H5M19 12h3.500"/>` },
-          rooftop: { nombre: "Rooftop", svg: `<rect ${CUERPO} x="2.500" y="10" width="19" height="10" rx="1.500"/><path ${T2} d="M6 10l3-5.500h6l3 5.500"/><circle ${T2} cx="12" cy="15" r="2.500"/>` },
-          crac: { nombre: "CRAC (precisi\xF3n)", svg: `<rect ${CUERPO} x="4" y="2" width="16" height="20" rx="2"/><path ${T2} d="M12 6v12M6.800 9l10.400 6M6.800 15l10.400-6"/>` },
-          chiller: { nombre: "Enfriadora", svg: `<rect ${CUERPO} x="1.500" y="4" width="21" height="16" rx="2"/><path ${T2} d="M4.500 10c1.750-2 3.500-2 5.250 0s3.500 2 5.250 0 2.500-1.500 4.500 0M4.500 15c1.750-2 3.500-2 5.250 0s3.500 2 5.250 0 2.500-1.500 4.500 0"/>` },
-          /* Bomba de calor (BCA aerotérmica, BCG geotérmica): la caja con su ventilador y el calor que sale. */
-          bombaCalor: { nombre: "Bomba de calor", svg: `<rect ${CUERPO} x="1.500" y="4" width="21" height="16" rx="2"/><circle ${T2} cx="8" cy="12" r="4.300"/>${aspas(8, 12, 0.42)}<path ${T2} d="M14.500 8.500l2.500 3.500-2.500 3.500M18 8.500l2.500 3.500-2.500 3.500"/>` },
-          colector: { nombre: "Colector", svg: `<rect ${CUERPO} x="2" y="7" width="20" height="5" rx="2.500"/><path ${T2} d="M6 12v7M12 12v7M18 12v7M4 19h4M10 19h4M16 19h4"/>` },
-          deposito: { nombre: "Dep\xF3sito o acumulador", svg: `<path ${CUERPO} d="M6 5a6 2.500 0 0 1 12 0v14a6 2.500 0 0 1-12 0Z"/><path ${T2} d="M6 5a6 2.500 0 0 0 12 0"/>` },
-          extintor: { nombre: "Extintor", svg: `<rect ${CUERPO} x="7.500" y="8" width="9" height="14" rx="3"/><path ${T2} d="M12 8V4.500h3.500l3 2M12 4.500H9M10 2.500h4"/>` },
-          bomba: { nombre: "Bomba o grupo de presi\xF3n", svg: `<circle ${CUERPO} cx="11" cy="14" r="7.500"/><path class="lleno" d="M8.500 10.500l6.500 3.500-6.500 3.500z"/><path ${T2} d="M11 6.500V3h10"/>` },
-          /* Con su boca (5-nov, «bloques como los de AutoCAD»): la voluta, el círculo con la salida tangente. */
-          ventilador: { nombre: "Ventilador o extractor", svg: `<path ${CUERPO} d="M10 4H21.500V9.800H17.700A8 8 0 1 1 10 4Z"/>${aspas(10, 12, 0.5)}` },
-          cajaVentilacion: { nombre: "Caja de ventilaci\xF3n", svg: `<rect ${CUERPO} x="3" y="5" width="18" height="14" rx="1"/><path ${T2} d="M3 9H1M3 15H1M21 9h2M21 15h2"/><circle ${T2} cx="12" cy="12" r="4.300"/>${aspas(12, 12, 0.45)}` },
-          agua: { nombre: "Agua (AFS, ADE, fluxores, ACS)", svg: `<path ${CUERPO} d="M12 2.500S5 10.500 5 15a7 7 0 0 0 14 0c0-4.500-7-12.500-7-12.500z"/><path ${T2} d="M8.500 15a3.500 3.500 0 0 0 3 3.400"/>` },
-          generico: { nombre: "Otro equipo", svg: `<rect ${CUERPO} x="2" y="2" width="20" height="20" rx="3"/><rect class="lleno" x="8" y="8" width="8" height="8" rx="1"/>` }
-        };
-        const ICONO_DE_FAMILIA = {
-          PANASONIC_SPLIT: "splitInt",
-          PANASONIC_VRF: "vrfInt",
-          AIRLAN_FANCOIL: "fancoil",
-          TROX_UTA: "uta",
-          AIRLAN_HRU: "hru",
-          CARRIER_ROOFTOPS: "rooftop",
-          PANASONIC_CRACS: "crac",
-          CARRIER_CHILLERS: "chiller",
-          WILO_PUMPS: "bomba",
-          WILO_GP: "bomba",
-          PCI_BOMBEO: "bomba",
-          SP_VENTILACION: "ventilador",
-          SP_PRESURIZACION: "ventilador",
-          SP_PARKING: "ventilador",
-          FONT_ACS: "agua"
-        };
-        const ICONO_DE_TAG = [
-          [/^BC[AGH]?(?:[-_ ]|\d|$)/i, "bombaCalor"],
-          [/^(?:ENF|CH|EAA)(?:[-_ ]|\d|$)/i, "chiller"],
-          [/^(?:COL|CLT)(?:[-_ ]|\d|$)/i, "colector"],
-          [/^(?:DEP|ACU|ACS[-_ ]DEP)(?:[-_ ]|\d|$)/i, "deposito"],
-          [/^(?:CV|CXV|CAJA)(?:[-_ ]|\d|$)/i, "cajaVentilacion"],
-          [/^(?:EXTINTOR|EXT[-_ ]?(?:PQS|CO2|ABC))/i, "extintor"],
-          [/^(?:VTR|VEN|EX|VI)(?:[-_ ]|\d|$)/i, "ventilador"],
-          [/^(?:B|BOM|GP)[-_ ]?\d/i, "bomba"]
-        ];
-        const esExteriorTag = (tag) => /^UE([\s_-]|\d|$)/i.test(String(tag || "").trim());
-        const RE_MODELO_CONDUCTOS = /^S-?\d+M[FEM]\d/i;
-        const RE_MODELO_CASETE = /^S-?\d+M[UYLD]\d/i;
-        function esDeConductos(u) {
-          const modelo = String(u && u.modelo || "").trim();
-          if (RE_MODELO_CONDUCTOS.test(modelo)) return true;
-          if (RE_MODELO_CASETE.test(modelo)) return false;
-          const den = String(u && u.denominacion || "");
-          if (/CONDUCTOS?\b|\bDUCT(ED)?\b/i.test(den)) return true;
-          if (/CAS+ET+E/i.test(den)) return false;
-          if (/^UICO(?:[-_ ]|\d|$)/i.test(String(u && u.tag || "").trim())) return true;
-          return null;
-        }
-        function iconoDe(u) {
-          const fam = String(u && u.familia || "").trim();
-          const ext = u && u.papel === "UE" || esExteriorTag(u && u.tag) || /^U-\d/i.test(String(u && u.modelo || "").trim());
-          let id = ICONO_DE_FAMILIA[fam];
-          if (id === "splitInt" && ext) id = "splitExt";
-          if (id === "vrfInt" && ext) id = "vrfExt";
-          if (id === "vrfInt" && esDeConductos(u)) id = "vrfConductos";
-          if (id) return id;
-          const t = String(u && u.tag || "").trim();
-          if (/^(AFS|ADE|FLX|FLUX)/i.test(t)) return "agua";
-          const d = equipoDeRotulo(t.split(" ")[0]) || equipoDeRotulo(t);
-          if (d) return d.icono;
-          for (const [re, icono] of ICONO_DE_TAG) if (re.test(t)) return icono;
-          return "generico";
-        }
-        const ORDEN_ICONOS = ["uta", "hru", "fancoil", "splitInt", "splitExt", "vrfConductos", "vrfInt", "vrfExt", "rooftop", "crac", "chiller", "bombaCalor", "bomba", "colector", "deposito", "cajaVentilacion", "ventilador", "extintor", "agua", "generico"];
-        function leyendaIconos(equipos) {
-          const usados = new Set((equipos || []).map((e) => e.icono || iconoDe(e)));
-          return ORDEN_ICONOS.filter((k) => usados.has(k)).map((k) => ({ id: k, nombre: ICONOS[k].nombre }));
-        }
-        function conjuntoEnPlanos(plantas, id, plantaActual, indice = null) {
-          const porId = indice || indiceConjuntos(plantas);
-          const de = (k) => porId.get(k) || [];
-          const base = de(id)[0];
-          const miembros = base && base.e.miembros;
-          if (!Array.isArray(miembros) || miembros.length < 2) return [];
-          const puesto = (t) => t.e.x !== null && t.e.x !== void 0;
-          return miembros.map((m) => {
-            const ts = de(m.id);
-            const aqui = ts.find((t) => t.planta === (plantaActual || "") && puesto(t));
-            const alguna = aqui || ts.find(puesto);
-            const donde = alguna || ts[0];
-            return { id: m.id, tag: m.tag, papel: m.papel, planta: donde ? donde.planta : null, aqui: Boolean(aqui), enPlano: Boolean(alguna), x: alguna ? alguna.e.x : null, y: alguna ? alguna.e.y : null };
-          });
-        }
-        function indiceConjuntos(plantas) {
-          const m = /* @__PURE__ */ new Map();
-          for (const p of plantas || []) for (const e of p.equipos || []) {
-            const l = m.get(e.id);
-            if (l) l.push({ e, planta: p.planta || "" });
-            else m.set(e.id, [{ e, planta: p.planta || "" }]);
-          }
-          return m;
-        }
-        function tipoLlano(u) {
-          const fam = String(u && u.familia || "").trim();
-          if (!fam) return null;
-          if (TIPO_LLANO[fam]) return TIPO_LLANO[fam];
-          let nombre = fam;
-          try {
-            const PC = typeof __require !== "undefined" ? require_plantillasCliente() : window.PLANTILLAS_CLIENTE;
-            const f = PC && PC.FAMILIAS.find((x) => x.codigo === fam);
-            if (f && f.nombrePdf) nombre = f.nombrePdf;
-          } catch {
-          }
-          const t = nombre.replace(/_/g, " ").toLowerCase();
-          return t.charAt(0).toUpperCase() + t.slice(1);
-        }
-        function llevaBalanceo(u) {
-          const C = controlCx();
-          const med = u && u.medicion !== void 0 ? u.medicion : null;
-          if (med) return Boolean(med.plano);
-          const req = C ? C.ensayoCorregido(u && u.familia, u && u.ensayoRequerido) : u && u.ensayoRequerido;
-          return req === "balanceo" || req === "ambos";
-        }
-        function acciones(unidad, linea, { color = "rojo", puedeEditar = true } = {}) {
-          const u = unidad || {};
-          const C = controlCx();
-          const salida = [];
-          const conFamilia = Boolean(String(u.familia || "").trim());
-          if (conFamilia && puedeEditar && color !== "verde") salida.push("datos");
-          if (conFamilia) salida.push("checklist");
-          if (llevaBalanceo(u)) salida.push("balanceo");
-          const l = linea || u;
-          if (C && C.pideEstanqueidad(Array.isArray(l.miembros) && l.miembros.length ? l : u)) salida.push("estanqueidad");
-          return salida.map((id) => ({ id, texto: TEXTO_ACCION[id] }));
-        }
-        function estados(tabla, { puedeEditar = true } = {}) {
-          const lineaDe = lineasPorUnidad(tabla);
-          const out = /* @__PURE__ */ new Map();
-          for (const u of tabla && tabla.filas || []) {
-            const l = lineaDe.get(u.id) || u;
-            const enConjunto = l.clase === "par" || l.clase === "sistema";
-            out.set(u.id, {
-              color: estadoEnPlano(u, l),
-              papel: enConjunto ? l.exterior && l.exterior.id === u.id ? "UE" : "UI" : null,
-              conjunto: enConjunto ? l.tag || null : null,
-              lineaId: l.id || u.id,
-              falta: l.completo ? [] : (l.falta || []).map(textoFalta),
-              tipo: tipoLlano(u),
-              icono: iconoDe({ familia: u.familia, tag: u.tag, modelo: u.modelo, denominacion: u.denominacion, papel: enConjunto ? l.exterior && l.exterior.id === u.id ? "UE" : "UI" : null }),
-              miembros: enConjunto && Array.isArray(l.miembros) && l.miembros.length > 1 ? l.miembros.map((m) => ({ id: m.id, tag: m.tag, papel: l.exterior && l.exterior.id === m.id || esExteriorTag(m.tag) ? "UE" : "UI" })) : null,
-              marca: u.marca || null,
-              modelo: u.modelo || null,
-              acciones: acciones(u, l, { color: estadoEnPlano(u, l), puedeEditar })
-            });
-          }
-          return out;
-        }
-        function colorear(marcas, tabla) {
-          const filas = new Map((tabla && tabla.filas || []).map((f) => [f.id, f]));
-          const est = estados(tabla);
-          const cuentas = { verde: 0, azul: 0, rojo: 0 };
-          const salida = [];
-          for (const m of marcas || []) {
-            const u = filas.get(m.equipoId);
-            if (!u || !esEquipoDelPlano(u)) continue;
-            const e = est.get(u.id);
-            cuentas[e.color] += 1;
-            salida.push({ ...m, tag: u.tag, ...e });
-          }
-          return { marcas: salida, cuentas };
-        }
-        const SIGLAS = /* @__PURE__ */ new Set(["FT", "CE", "PM", "UTA", "UTAS", "VRF", "CRAC", "BT", "SAI", "BMS", "ACS", "ICT", "IT", "UI", "UE", "VE", "PCI", "BIE", "CPD", "DF"]);
-        const ABREV = [[/\bUD\.\s*/gi, "unidad "], [/\bREC\.\s*/gi, "recuperaci\xF3n "], [/\bVENT\.\s*/gi, "ventilador "], [/\bESTANQ\.\s*/gi, "estanqueidad "], [/\bBOMBA CALOR\b/gi, "BOMBA DE CALOR"], [/\bESTATICO\b/gi, "EST\xC1TICO"]];
-        const FEMENINAS = /^(uta|bomba|batería|central|extinción|instalación|llamada|recarga|fotovoltaica|estanqueidad|unidad|sala|enfriadora|ficha|caja)$/;
-        const PLURAL_F = /^(bombas|baterías|unidades|rejillas)$/;
-        const PLURAL_M = /^(extintores|rociadores|conductos|difusores|gases|bie|ventiladores|equipos)$/;
-        const deArticulo = (frase) => {
-          const w = frase.split(/[\s\-/]/)[0].toLowerCase();
-          if (PLURAL_F.test(w)) return "de las";
-          if (PLURAL_M.test(w)) return "de los";
-          return FEMENINAS.test(w) ? "de la" : "del";
-        };
-        const minus = (t) => t.split(/(\s+|[-/()])/).map((w) => SIGLAS.has(w.toUpperCase()) && /^[A-Za-z]+$/.test(w) ? w.toUpperCase() : w.toLowerCase()).join("");
-        function textoFalta(n) {
-          const t = String(n == null ? "" : n).trim().replace(/\s+/g, " ");
-          if (!t || /[a-záéíóúñü]/.test(t) || /^(FT|CE|PM|DF)$/i.test(t)) return t;
-          let x = t;
-          for (const [re, por] of ABREV) x = x.replace(re, por);
-          x = minus(x.trim().replace(/\s+/g, " "));
-          const m = /^checklist\s+(.+)$/i.exec(x);
-          if (m) return `checklist ${deArticulo(m[1])} ${m[1]}`;
-          if (x.toLowerCase() === "checklist") return "checklist";
-          if (/^(balanceo|estanqueidad)\b/i.test(x)) return x;
-          return `ficha ${deArticulo(x)} ${x}`;
-        }
-        const RE_NOMBRE_SALA = /^(sala|aseos?|vest[ií]bulo|almac[eé]n|cuarto|oficina|despacho|vestuarios?|pasillo|circulaci[oó]n|escalera|lounge|guardarropa|cocina|office|capilla|recepci[oó]n|taller|local|zona|hall|archivo|comedor|gimnasio|enfermer[ií]a|palco|restaurante|bar|tienda|museo|cpd|dormitorio|habitaci[oó]n|ba[ñn]o|wc|aula|laboratorio|consulta|lavander[ií]a|vestidor|camerino|auditorio|biblioteca|distribuidor|cabina|centro|mec[aá]nica|basuras|terraza|cubierta|patio|parking|garaje|espacio|[aá]rea|areas|despensa|economato|cafeter[ií]a|bodega|sala\s+t[eé]cnica)(\b|[\s.\-]|$)/i;
-        const RE_CODIGO_SALA = /^(?:N\d{2}-)?(?:[A-Z]{1,2}\d{0,2}\.[A-Z]{2,4}\.\d{2,}[A-Z]?|\d{2}[.,][A-Z]{2,4}[.,]\d{2,}[A-Z]?|[A-Z]{2,4}-[A-Z]{2,4}\.\d{2,})$/;
-        const RE_SIGUE = /\s(de|del|y|la|el|los|las|para|con)$/i;
-        const RE_PALABRAS = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ .]{1,40}$/;
-        const PAR_SALA = 0.015;
-        const RADIO_SALA = 0.04;
-        const sinPlanta = (c) => String(c || "").replace(/^N\d{2}-/i, "");
-        const limpiarSala = (t) => String(t || "").replace(/(^|\s|·\s?)N\d{2}-(?=[A-Z0-9]{1,4}[.,][A-Z]{2,4}[.,]\d)/gi, "$1");
-        const esNombreSala = (t) => RE_NOMBRE_SALA.test(String(t || "").trim()) && String(t).trim().length <= 60;
-        const esCodigoSala = (t) => RE_CODIGO_SALA.test(String(t || "").trim().toUpperCase());
-        function rotulosSala(textos) {
-          const ts = (textos || []).filter((t) => t && typeof t.texto === "string").map((t) => ({ texto: t.texto.trim().replace(/\s+/g, " "), x: Number(t.x) || 0, y: Number(t.y) || 0 }));
-          const nombres = [];
-          const codigos = [];
-          const comidos = /* @__PURE__ */ new Set();
-          for (let i = 0; i < ts.length; i++) {
-            const t = ts[i];
-            if (comidos.has(i)) continue;
-            if (esCodigoSala(t.texto)) {
-              codigos.push({ ...t, texto: t.texto.toUpperCase() });
-              continue;
-            }
-            if (!esNombreSala(t.texto)) continue;
-            let texto = t.texto;
-            if (RE_SIGUE.test(texto)) {
-              const j = ts.findIndex((o, k) => k !== i && RE_PALABRAS.test(o.texto) && o.y > t.y && Math.hypot(o.x - t.x, o.y - t.y) < PAR_SALA);
-              if (j >= 0) {
-                texto = `${texto} ${ts[j].texto}`;
-                comidos.add(j);
-                nombres.forEach((n, k) => {
-                  if (n.i === j) nombres.splice(k, 1);
-                });
-              }
-            }
-            nombres.push({ texto, x: t.x, y: t.y, i });
-          }
-          const usados = /* @__PURE__ */ new Set();
-          const salida = [];
-          for (const n of nombres) {
-            let mejor = -1;
-            let d = PAR_SALA;
-            codigos.forEach((c, k) => {
-              const dd = Math.hypot(c.x - n.x, c.y - n.y);
-              if (!usados.has(k) && dd <= d) {
-                d = dd;
-                mejor = k;
-              }
-            });
-            if (mejor >= 0) usados.add(mejor);
-            salida.push({ texto: mejor >= 0 ? `${n.texto} \xB7 ${codigos[mejor].texto}` : n.texto, x: n.x, y: n.y });
-          }
-          const nombreDe = /* @__PURE__ */ new Map();
-          for (const r of salida) {
-            const i = r.texto.lastIndexOf(" \xB7 ");
-            if (i > 0) nombreDe.set(sinPlanta(r.texto.slice(i + 3)), r.texto.slice(0, i));
-          }
-          for (const t of ts) {
-            const m = /^(.*?)\s*[·\-–:]?\s*((?:N\d{2}-)?[A-Z0-9]{1,4}[.,][A-Z]{2,4}[.,]\d{2,}[A-Z]?)\s*$/i.exec(t.texto);
-            if (m && m[1] && esNombreSala(m[1]) && !nombreDe.has(sinPlanta(m[2].toUpperCase()))) nombreDe.set(sinPlanta(m[2].toUpperCase()), m[1].trim());
-          }
-          codigos.forEach((c, k) => {
-            if (usados.has(k)) return;
-            const cod = sinPlanta(c.texto);
-            const nombre = nombreDe.get(cod);
-            salida.push({ ...c, texto: nombre ? `${nombre} \xB7 ${cod}` : cod });
-          });
-          for (const r of salida) r.texto = limpiarSala(r.texto);
-          const vistos = /* @__PURE__ */ new Set();
-          return salida.filter((r) => {
-            const k = `${r.texto}|${Math.round(r.x * 200)}|${Math.round(r.y * 200)}`;
-            if (vistos.has(k)) return false;
-            vistos.add(k);
-            return true;
-          }).map((r) => ({ texto: r.texto.slice(0, 120), x: Math.round(r.x * 1e4) / 1e4, y: Math.round(r.y * 1e4) / 1e4 }));
-        }
-        function salaCercana(rotulos, x, y, radio = RADIO_SALA) {
-          let mejor = null;
-          let d = radio;
-          for (const r of rotulos || []) {
-            const dd = Math.hypot(r.x - x, r.y - y);
-            if (dd <= d) {
-              d = dd;
-              mejor = r;
-            }
-          }
-          return mejor ? limpiarSala(mejor.texto) : null;
-        }
-        function ponerSalas(marcas, rotulos) {
-          return (marcas || []).map((m) => {
-            const sala = salaCercana(rotulos, m.x, m.y);
-            return sala ? { ...m, sala } : m;
-          });
-        }
-        const fraccion = (v, conCero) => {
-          const n = Number(v);
-          return v !== null && v !== void 0 && Number.isFinite(n) && (conCero ? n >= 0 : n > 0) && n <= 1;
-        };
-        const redondo5 = (v) => Math.round(Number(v) * 1e5) / 1e5;
-        function limpiarMarcas(marcas) {
-          const vistos = /* @__PURE__ */ new Set();
-          const salida = [];
-          for (const m of Array.isArray(marcas) ? marcas : []) {
-            if (!m || typeof m.equipoId !== "string" || vistos.has(m.equipoId)) continue;
-            const x = Number(m.x);
-            const y = Number(m.y);
-            if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 1 || y < 0 || y > 1) continue;
-            vistos.add(m.equipoId);
-            salida.push({
-              equipoId: m.equipoId,
-              tag: String(m.tag || "").slice(0, 120),
-              x: Math.round(x * 1e4) / 1e4,
-              y: Math.round(y * 1e4) / 1e4,
-              ...m.mano ? { mano: true } : {},
-              ...m.sala ? { sala: String(m.sala).slice(0, 120) } : {},
-              /* El símbolo del dibujo (30-oct): su tamaño, el sitio del rótulo y si hay que revisarlo. */
-              ...fraccion(m.w) && fraccion(m.h) ? { w: redondo5(m.w), h: redondo5(m.h) } : {},
-              ...fraccion(m.rx, true) && fraccion(m.ry, true) ? { rx: Math.round(m.rx * 1e4) / 1e4, ry: Math.round(m.ry * 1e4) / 1e4 } : {},
-              ...m.revisar && !m.mano ? { revisar: true, motivo: String(m.motivo || "revisar ubicaci\xF3n").slice(0, 80) } : {},
-              /* 5-nov: el equipo que la revisión nueva ya no trae se queda donde estaba, marcado; nunca se borra. */
-              ...m.noSale ? { noSale: String(m.noSale).slice(0, 40), revisar: true, motivo: String(m.motivo || `ya no sale en ${m.noSale}`).slice(0, 80) } : {}
-            });
-          }
-          return salida;
-        }
-        function plantaDelNombre(nombre) {
-          const m = /_ER_(\d{2}|[SB]\d)_/i.exec(String(nombre || ""));
-          if (!m) return "";
-          return /^\d/.test(m[1]) ? `N${m[1]}` : `S${m[1].slice(1)}`;
-        }
-        const PAPELES_EQUIPO = [["ft", "Ficha t\xE9cnica", "docFichaTecnica"], ["ce", "Marcado CE", "docMarcadoCE"], ["mi", "Manual", "docManual"]];
-        function nombreDocumento(url) {
-          const u = String(url || "").split(/[?#]/)[0].replace(/\/+$/, "");
-          let f = u.slice(u.lastIndexOf("/") + 1);
-          try {
-            f = decodeURIComponent(f);
-          } catch {
-          }
-          return f.replace(/\.[a-z0-9]{2,5}$/i, "").replace(/[_\s]+/g, " ").trim();
-        }
-        function documentosEquipo(e, modelo) {
-          const web = (v) => /^https?:\/\//i.test(String(v || "").trim()) ? String(v).trim() : "";
-          const fuera = [];
-          for (const [clase, etiqueta, campo] of PAPELES_EQUIPO) {
-            const propio = web(e && e[campo]);
-            const url = propio || web(modelo && modelo[campo]);
-            if (!url) continue;
-            fuera.push({ clase, etiqueta, nombre: nombreDocumento(url) || etiqueta, url, nivel: propio ? "equipo" : "modelo" });
-          }
-          return fuera;
-        }
-        const DETECTABLES = [
-          { re: /^UICO[-_ ]?(\d{1,3})-?$/i, icono: "vrfConductos", tipo: "Unidad interior VRF de conductos", modelo: (m) => `UICO-${m[1].padStart(2, "0")}` },
-          { re: /^HRU[-_ ]?(\d{1,2})-?$/i, icono: "hru", tipo: "Recuperador de calor (HRU)", modelo: (m) => `HRU-${m[1]}` },
-          { re: /^EX[-_ ]?(N\d{2}|S\d)[-_ ](.+)$/i, icono: "ventilador", tipo: "Extractor", tag: (m) => `EX-${m[1].toUpperCase()}-${m[2].trim().replace(/\s+/g, " ")}` },
-          /* Ventilador de impulsión (2-nov): «VI-N60-CUART-ELECT-LT19» se quedaba fuera. */
-          { re: /^VI[-_ ]?(N\d{2}|S\d)[-_ ](.+)$/i, icono: "ventilador", tipo: "Ventilador de impulsi\xF3n", tag: (m) => `VI-${m[1].toUpperCase()}-${m[2].trim().replace(/\s+/g, " ")}` },
-          { re: /^UI[-_ ]((?:[PSM]\d\.[A-Z]{3}\.\d{3,4})|(?:N\d{2}|S\d)[-_ ].+)$/i, icono: "vrfInt", tipo: "Unidad interior", tag: (m) => `UI-${m[1].trim()}` },
-          { re: /^UE[-_ ]((?:N\d{2}|S\d)[-_ ].+)$/i, icono: "vrfExt", tipo: "Unidad exterior", tag: (m) => `UE-${m[1].trim()}` },
-          { re: /^HRU[-_ ]((?:N\d{2}|S\d)[-_ ].+)$/i, icono: "hru", tipo: "Recuperador de calor (HRU)", tag: (m) => `HRU-${m[1].trim()}` },
-          { re: /^(?:UTA|AHU|CLM)[-_ ]?((?:N\d{2}|S\d)?[-_ ]?\d[\w.-]*)$/i, icono: "uta", tipo: "Climatizador (UTA)", tag: (m) => m[0].trim() },
-          { re: /^(?:FC|FCU|AFC)[-_ ]((?:N\d{2}|S\d)[-_ ]?[\w. -]+)$/i, icono: "fancoil", tipo: "Fan coil", tag: (m) => m[0].trim() }
-        ];
-        function equipoDeRotulo(texto) {
-          const t = String(texto || "").trim();
-          if (t.length < 4 || t.length > 60) return null;
-          for (const d of DETECTABLES) {
-            const m = d.re.exec(t);
-            if (!m) continue;
-            const r = { icono: d.icono, tipo: d.tipo };
-            if (d.modelo) r.modelo = d.modelo(m);
-            else r.tag = d.tag(m).replace(/^EXN/i, "EX-N");
-            return r;
-          }
-          return null;
-        }
-        const CERCA_YA = 4e-3;
-        function sinRepetir(texto) {
-          const p = String(texto || "").trim().split(/\s+/);
-          const k0 = claveSuelta(p[0]);
-          if (p.length < 2 || k0.length < 4) return p.join(" ");
-          const j = p.findIndex((w, n) => n > 0 && claveSuelta(w) === k0);
-          return (j > 0 ? p.slice(0, j) : p).join(" ");
-        }
-        function detectarEquipos(textos, equipos = [], marcas = []) {
-          const deObra = /* @__PURE__ */ new Map();
-          for (const e of equipos || []) {
-            const k = claveSuelta(e.tag);
-            if (k.length >= 4 && !deObra.has(k)) deObra.set(k, e);
-          }
-          const colocados = new Set((marcas || []).map((m) => m && m.equipoId).filter(Boolean));
-          const vistos = /* @__PURE__ */ new Set();
-          const propios = [];
-          const porModelo = [];
-          const repetidos = [];
-          const enObra = [];
-          const lista = (textos || []).filter((t) => t && typeof t.texto === "string");
-          const sinNumero = (tag) => !/\d/.test(String(tag).replace(/^[A-Z]+[-_ ]?(?:N\d{2}|S\d)[-_ ]?/i, ""));
-          const sigue = (texto, siguiente) => {
-            const s = String(siguiente || "").trim();
-            if (!s) return false;
-            const r = equipoDeRotulo(s);
-            if (r && r.tag) return false;
-            return !claveSuelta(texto).includes(claveSuelta(s));
-          };
-          for (let i = 0; i < lista.length; i++) {
-            const t = lista[i];
-            let texto = sinRepetir(t.texto);
-            let d = equipoDeRotulo(texto);
-            if (!d) continue;
-            let sx = Number(t.x);
-            let sy = Number(t.y);
-            let n = 1;
-            while (d.tag && sinNumero(d.tag) && i + 1 < lista.length && texto.length < 60 && Math.hypot(lista[i + 1].x - lista[i].x, lista[i + 1].y - lista[i].y) <= CERCA && sigue(texto, lista[i + 1].texto)) {
-              i += 1;
-              texto = sinRepetir(`${texto} ${lista[i].texto.trim()}`);
-              sx += Number(lista[i].x);
-              sy += Number(lista[i].y);
-              n += 1;
-              d = equipoDeRotulo(texto) || d;
-            }
-            const x = Math.round(sx / n * 1e4) / 1e4;
-            const y = Math.round(sy / n * 1e4) / 1e4;
-            if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
-            if ((marcas || []).some((m) => Math.hypot(m.x - x, m.y - y) < CERCA_YA)) continue;
-            if (d.modelo) {
-              porModelo.push({ modelo: d.modelo, tipo: d.tipo, icono: d.icono, x, y });
-              continue;
-            }
-            const k = claveSuelta(d.tag);
-            const ya = deObra.get(k);
-            if (ya) {
-              if (esEquipoDelPlano(ya) && !colocados.has(ya.id)) {
-                colocados.add(ya.id);
-                enObra.push({ tag: ya.tag, equipoId: ya.id, tipo: d.tipo, icono: d.icono, x, y });
-              }
-              continue;
-            }
-            if (vistos.has(k)) {
-              repetidos.push({ tag: d.tag, x, y });
-              continue;
-            }
-            vistos.add(k);
-            propios.push({ tag: d.tag, tipo: d.tipo, icono: d.icono, x, y });
-          }
-          return { propios, porModelo, repetidos, enObra };
-        }
-        function paresUeUi(equipos = []) {
-          const grupos = /* @__PURE__ */ new Map();
-          for (const e of equipos || []) {
-            const m = /^U([EI])(.{3,})$/.exec(claveSuelta(e.tag));
-            if (!m) continue;
-            if (!grupos.has(m[2])) grupos.set(m[2], { E: [], I: [] });
-            grupos.get(m[2])[m[1]].push(e);
-          }
-          const pares = [];
-          for (const g of grupos.values()) {
-            if (g.E.length !== 1 || g.I.length !== 1) continue;
-            const [exterior] = g.E;
-            const [interior] = g.I;
-            if (String(exterior.equipoAsociado || "").trim() || String(interior.equipoAsociado || "").trim()) continue;
-            pares.push({ exterior, interior });
-          }
-          return pares;
-        }
-        const CERCA_MISMO = 6e-3;
-        function numerarPorModelo(detectados, planta, existentes = []) {
-          const usados = /* @__PURE__ */ new Set();
-          const numeros = /* @__PURE__ */ new Map();
-          const base = (modelo) => `${modelo} ${planta}-`;
-          for (const e of existentes || []) {
-            for (const d of detectados || []) {
-              const b = base(d.modelo);
-              if (!String(e.tag || "").startsWith(b)) continue;
-              const n = Number(String(e.tag).slice(b.length));
-              if (Number.isFinite(n)) {
-                if (!numeros.has(d.modelo)) numeros.set(d.modelo, /* @__PURE__ */ new Set());
-                numeros.get(d.modelo).add(n);
-              }
-            }
-          }
-          return (detectados || []).map((d) => {
-            const b = base(d.modelo);
-            const cerca = (existentes || []).filter((e) => !usados.has(e.id) && String(e.tag || "").startsWith(b) && e.x !== null && e.x !== void 0).map((e) => ({ e, dist: Math.hypot(e.x - d.x, e.y - d.y) })).filter((c) => c.dist < CERCA_MISMO).sort((p, q) => p.dist - q.dist)[0];
-            if (cerca) {
-              usados.add(cerca.e.id);
-              return { ...d, tag: cerca.e.tag, equipoId: cerca.e.id };
-            }
-            const ns = numeros.get(d.modelo) || /* @__PURE__ */ new Set();
-            let n = 1;
-            while (ns.has(n)) n += 1;
-            ns.add(n);
-            numeros.set(d.modelo, ns);
-            return { ...d, tag: `${b}${String(n).padStart(2, "0")}`, equipoId: null };
-          });
-        }
-        function familiaPara(icono, equipos = []) {
-          const cuenta = /* @__PURE__ */ new Map();
-          for (const e of equipos || []) {
-            const f = String(e.familia || "").trim();
-            if (!f || ICONO_DE_FAMILIA[f] !== (icono === "vrfExt" || icono === "vrfConductos" ? "vrfInt" : icono)) continue;
-            cuenta.set(f, (cuenta.get(f) || 0) + 1);
-          }
-          const mejor = [...cuenta.entries()].sort((a, b) => b[1] - a[1])[0];
-          return mejor ? mejor[0] : null;
-        }
-        const CERCA_ROTULO = 0.012;
-        function alSimbolo(marcas, textos) {
-          const conGeo = (textos || []).filter((t) => t && t.s !== void 0);
-          if (!conGeo.length) return marcas || [];
-          return (marcas || []).map((m) => {
-            if (!m || m.mano) return m;
-            const rx = m.rx ?? m.x;
-            const ry = m.ry ?? m.y;
-            let mejor = null;
-            let dist = CERCA_ROTULO;
-            for (const t of conGeo) {
-              const d = Math.hypot(Number(t.x) - rx, Number(t.y) - ry);
-              if (d < dist) {
-                dist = d;
-                mejor = t;
-              }
-            }
-            const base = { ...m, rx, ry };
-            delete base.revisar;
-            delete base.motivo;
-            delete base.dudoso;
-            if (!mejor || !Array.isArray(mejor.s) || mejor.s.length < 4) return { ...base, revisar: true, motivo: m.dudoso || "no se encuentra su s\xEDmbolo en el dibujo" };
-            const [x, y, w, h, ok] = mejor.s;
-            if (!ok) return { ...base, revisar: true, motivo: m.dudoso || mejor.m || "s\xEDmbolo dudoso" };
-            if (m.dudoso) return { ...base, x, y, w, h, revisar: true, motivo: m.dudoso };
-            return { ...base, x, y, w, h };
-          });
-        }
-        const CERCA_MISMO_TAG = 0.03;
-        const claveTag = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9.]/g, "");
-        function bloquesDeLamina(marcas, textos) {
-          const porTag = /* @__PURE__ */ new Map();
-          for (const t of textos || []) {
-            if (!t || !Array.isArray(t.s) || t.s.length < 5) continue;
-            const k = claveTag(t.texto);
-            if (!k) continue;
-            if (!porTag.has(k)) porTag.set(k, []);
-            porTag.get(k).push(t);
-          }
-          let cambiadas = 0;
-          const salida = (marcas || []).map((m) => {
-            if (!m || m.mano || m.dudoso || !m.tag) return m;
-            const lista = porTag.get(claveTag(m.tag));
-            if (!lista) return m;
-            let mejor = null;
-            let dist = CERCA_MISMO_TAG;
-            for (const t of lista) {
-              const d = Math.min(Math.hypot(t.s[0] - m.x, t.s[1] - m.y), Math.hypot(Number(t.x) - m.x, Number(t.y) - m.y));
-              if (d < dist) {
-                dist = d;
-                mejor = t;
-              }
-            }
-            if (!mejor || !mejor.s[4]) return m;
-            const [x, y, w, h] = mejor.s;
-            if (m.x === x && m.y === y && m.w === w && m.h === h && !m.revisar) return m;
-            const n = { ...m, rx: Number(mejor.x), ry: Number(mejor.y), x, y, w, h };
-            delete n.revisar;
-            delete n.motivo;
-            cambiadas += 1;
-            return n;
-          });
-          return { marcas: salida, cambiadas };
-        }
-        const sitioRotulo = (m) => m ? { x: m.rx ?? m.x, y: m.ry ?? m.y } : { x: null, y: null };
-        const API = {
-          alSimbolo,
-          bloquesDeLamina,
-          claveTag,
-          CERCA_MISMO_TAG,
-          sitioRotulo,
-          CERCA_ROTULO,
-          equipoDeRotulo,
-          detectarEquipos,
-          sinRepetir,
-          paresUeUi,
-          numerarPorModelo,
-          familiaPara,
-          CERCA_MISMO,
-          plantaDelNombre,
-          nombreDocumento,
-          documentosEquipo,
-          clave,
-          claveSuelta,
-          claveCasado,
-          esEquipoDelPlano,
-          casar,
-          cruce,
-          palabrasDe,
-          reconocer,
-          empezado,
-          estadoEnPlano,
-          estados,
-          colorear,
-          acciones,
-          tipoLlano,
-          ICONOS,
-          iconoDe,
-          esDeConductos,
-          leyendaIconos,
-          conjuntoEnPlanos,
-          indiceConjuntos,
-          llevaBalanceo,
-          TEXTO_ACCION,
-          limpiarMarcas,
-          rotulosSala,
-          salaCercana,
-          ponerSalas,
-          esNombreSala,
-          esCodigoSala,
-          limpiarSala,
-          textoFalta,
-          COLORES,
-          ORDEN_COLOR,
-          RADIO_SALA
-        };
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.PLANO_EQUIPOS = API;
-      })();
-    }
-  });
-
   // shared/commissioning/vidaEquipo.js
   var require_vidaEquipo = __commonJS({
     "shared/commissioning/vidaEquipo.js"(exports, module) {
@@ -127930,61 +128798,6 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         fechaCorta,
         textoVersion
       };
-    }
-  });
-
-  // shared/commissioning/salaGrisPosicion.js
-  var require_salaGrisPosicion = __commonJS({
-    "shared/commissioning/salaGrisPosicion.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var P = require_planoEquipos();
-      var ESTADOS = /* @__PURE__ */ new Set(["asignada", "por confirmar"]);
-      var llano = (v) => String(v ?? "").trim();
-      function partirRotulo(texto) {
-        const t = llano(texto);
-        const i = t.lastIndexOf(" \xB7 ");
-        const codigo = i > 0 ? t.slice(i + 3).trim() : t;
-        if (!P.esCodigoSala(codigo)) return null;
-        return { codigo: codigo.toUpperCase().replace(/,/g, "."), nombre: i > 0 ? t.slice(0, i).trim() : null };
-      }
-      function proponer(marcas, rotulos) {
-        const locales = (rotulos || []).map((r) => ({ ...partirRotulo(r.texto), x: r.x, y: r.y })).filter((r) => r.codigo);
-        const salida = [];
-        for (const m of marcas || []) {
-          if (!m || !m.equipoId) continue;
-          if (!(m.w && m.h) || m.revisar) continue;
-          const ordenados = locales.map((l) => ({ l, d: Math.hypot(l.x - m.x, l.y - m.y) })).filter((o) => o.d <= P.RADIO_SALA).sort((a, b) => a.d - b.d);
-          if (!ordenados.length) continue;
-          const mejor = ordenados[0];
-          const otro = ordenados.find((o) => o.l.codigo !== mejor.l.codigo);
-          const claro = !otro || otro.d > mejor.d * 1.5 + 4e-3;
-          let nombre = mejor.l.nombre;
-          if (!nombre) {
-            const c = locales.find((l) => l.codigo === mejor.l.codigo && l.nombre);
-            nombre = c ? c.nombre : null;
-          }
-          salida.push({
-            equipoId: m.equipoId,
-            tag: m.tag || "",
-            salaGris: mejor.l.codigo,
-            salaGrisNombre: nombre,
-            estado: claro ? "asignada" : "por confirmar",
-            motivo: !claro ? `tambi\xE9n cerca ${otro.l.codigo}` : "recinto que contiene el s\xEDmbolo"
-          });
-        }
-        return salida;
-      }
-      function decidir(e, p) {
-        const actual = { g: llano(e.salaGris), n: llano(e.salaGrisNombre), st: llano(e.salaGrisEstado) };
-        if (!ESTADOS.has(p.estado) || !p.salaGris) return { motivo: "propuesta sin sala o estado no v\xE1lido" };
-        if (actual.st === "asignada" && actual.g && actual.g !== p.salaGris) return { motivo: `ya asignada a ${actual.g}; el plano da ${p.salaGris}` };
-        if (actual.st === "asignada" && p.estado !== "asignada") return { motivo: "ya asignada; no se rebaja" };
-        const nombre = p.salaGrisNombre || (actual.g === p.salaGris ? actual.n : "") || null;
-        if (actual.g === p.salaGris && actual.st === p.estado && (actual.n || null) === nombre) return { motivo: "igual" };
-        return { cambios: { salaGris: p.salaGris, salaGrisNombre: nombre, salaGrisEstado: p.estado } };
-      }
-      module.exports = { proponer, decidir, partirRotulo };
     }
   });
 
@@ -129282,6 +130095,184 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
+  // shared/obra/estadoEjecucionPlano.js
+  var require_estadoEjecucionPlano = __commonJS({
+    "shared/obra/estadoEjecucionPlano.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const ESTADOS = ["sinPedir", "pedido", "instalado", "certificado", "sinDato"];
+        const NOMBRES = { sinPedir: "Sin pedir", pedido: "Pedido, sin instalar", instalado: "Instalado", certificado: "Certificado", sinDato: "Sin dato de pedido" };
+        const CLASES = { sinPedir: "eoRojo", pedido: "eoAzul", instalado: "eoVerde", certificado: "eoCert", sinDato: "eoGris" };
+        const UMBRAL_COBERTURA = 0.9;
+        const MUESTRA_MINIMA = 10;
+        const MONTADOS = /* @__PURE__ */ new Set(["instalado", "enMarcha", "recepcionado"]);
+        const MOTIVOS = {
+          certificado: "La partida de este equipo est\xE1 certificada",
+          instalado: "Consta como instalado",
+          albaran: "Tiene albar\xE1n de entrega",
+          fuentePedido: "Dado de alta desde un pedido",
+          acopiado: "Acopiado en obra",
+          tagEnLinea: "Su TAG sale en una l\xEDnea de pedido",
+          modeloPedido: "Su modelo est\xE1 pedido en cantidad suficiente",
+          sinPedir: "Ning\xFAn pedido de la obra lleva su modelo",
+          cantidadParcial: "Su modelo est\xE1 pedido solo en parte: no se sabe qu\xE9 unidades",
+          lineaSinCantidad: "Su modelo sale en un pedido sin cantidad",
+          sinClave: "Sin modelo con el que buscarlo en los pedidos",
+          sinPedidos: "La obra no tiene pedidos con l\xEDneas registrados",
+          registroIncompleto: "El registro de pedidos de la obra est\xE1 incompleto: no consta que est\xE9 pedido, pero tampoco que no",
+          material: "Los materiales no llevan a\xFAn pedido ni instalaci\xF3n por unidad"
+        };
+        const texto = (v) => v === null || v === void 0 ? "" : String(v);
+        const norm = (s) => texto(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, "");
+        const lista = (v) => {
+          if (Array.isArray(v)) return v;
+          try {
+            const r = JSON.parse(texto(v) || "[]");
+            return Array.isArray(r) ? r : [];
+          } catch {
+            return [];
+          }
+        };
+        const objeto = (v) => {
+          if (v && typeof v === "object") return v;
+          try {
+            return JSON.parse(texto(v) || "null");
+          } catch {
+            return null;
+          }
+        };
+        function estado({ pedido, instalado, certificado } = {}) {
+          if (certificado) return "certificado";
+          if (instalado) return "instalado";
+          if (pedido === true) return "pedido";
+          if (pedido === false) return "sinPedir";
+          return "sinDato";
+        }
+        const estaInstalado = (e) => Boolean(e && (MONTADOS.has(e.estado) || texto(e.fechaInstalacion) || texto(e.instalacionVerificadaEn)));
+        const esCertificado = (cert) => Boolean(cert && cert.estado === "certificada");
+        const tieneAlbaran = (e) => lista(e && e.albaranesEquipo).length > 0;
+        const vieneDePedido = (e) => {
+          const f = objeto(e && e.fuenteAlta);
+          return Boolean(f && f.tipo === "pedido" || /"pedido"/.test(texto(e && e.fuentesEquipo)));
+        };
+        const claveModelo = (e) => {
+          const k = norm(e && e.modelo);
+          return k.length >= 5 && /\d/.test(k) ? k : null;
+        };
+        const claveTag = (e) => {
+          const k = norm(e && e.tag);
+          return k.length >= 5 && /\d/.test(k) ? k : null;
+        };
+        function indiceLineas(pedidos) {
+          const lineas = [];
+          for (const p of pedidos || []) {
+            if (!p || texto(p.fechaAnulacion)) continue;
+            for (const l of lista(p.lineas)) {
+              if (!l) continue;
+              lineas.push({ texto: `${norm(l.descripcion)} ${norm(l.referencia)}`, cantidad: Number(l.cantidad) || 0 });
+            }
+          }
+          return { lineas, todo: lineas.map((l) => l.texto).join("\n") };
+        }
+        const constaPedido = (e) => estaInstalado(e) || tieneAlbaran(e) || e.estado === "acopiado" || vieneDePedido(e);
+        function deObra(equipos, pedidos, { certificadoDe = null } = {}) {
+          const ind = indiceLineas(pedidos);
+          const vivos = (equipos || []).filter((e) => e && !e.duplicadoDe);
+          const unidades = /* @__PURE__ */ new Map();
+          for (const e of vivos) {
+            const k = claveModelo(e);
+            if (k) unidades.set(k, (unidades.get(k) || 0) + 1);
+          }
+          const enLineas = /* @__PURE__ */ new Map();
+          const buscar = (k) => {
+            if (!enLineas.has(k)) {
+              let n = 0;
+              let cantidad = 0;
+              for (const l of ind.lineas) if (l.texto.includes(k)) {
+                n += 1;
+                cantidad += l.cantidad;
+              }
+              enLineas.set(k, { n, cantidad });
+            }
+            return enLineas.get(k);
+          };
+          let muestra = 0;
+          let cubiertos = 0;
+          for (const e of vivos) {
+            const k = claveModelo(e);
+            if (!k || !constaPedido(e)) continue;
+            muestra += 1;
+            if (buscar(k).n > 0) cubiertos += 1;
+          }
+          const cobertura = muestra ? cubiertos / muestra : null;
+          const rojoFiable = ind.lineas.length > 0 && muestra >= MUESTRA_MINIMA && cobertura >= UMBRAL_COBERTURA;
+          const pedidoDe = (e) => {
+            if (tieneAlbaran(e)) return { pedido: true, motivo: "albaran" };
+            if (vieneDePedido(e)) return { pedido: true, motivo: "fuentePedido" };
+            if (e.estado === "acopiado") return { pedido: true, motivo: "acopiado" };
+            const tag = claveTag(e);
+            if (tag && ind.todo.includes(tag)) return { pedido: true, motivo: "tagEnLinea" };
+            const k = claveModelo(e);
+            if (!k) return { pedido: null, motivo: "sinClave" };
+            if (!ind.lineas.length) return { pedido: null, motivo: "sinPedidos" };
+            const h = buscar(k);
+            if (h.n > 0) {
+              if (h.cantidad <= 0) return { pedido: null, motivo: "lineaSinCantidad" };
+              return h.cantidad >= (unidades.get(k) || 1) ? { pedido: true, motivo: "modeloPedido" } : { pedido: null, motivo: "cantidadParcial" };
+            }
+            return rojoFiable ? { pedido: false, motivo: "sinPedir" } : { pedido: null, motivo: "registroIncompleto" };
+          };
+          const porId = /* @__PURE__ */ new Map();
+          for (const e of equipos || []) {
+            if (!e) continue;
+            const certificado = Boolean(certificadoDe && certificadoDe(e.id));
+            const instalado = estaInstalado(e);
+            const p = certificado || instalado ? { pedido: true, motivo: certificado ? "certificado" : "instalado" } : pedidoDe(e);
+            porId.set(e.id, { estado: estado({ pedido: p.pedido, instalado, certificado }), motivo: MOTIVOS[p.motivo] });
+          }
+          return { porId, resumen: { cobertura, muestra, cubiertos, umbral: UMBRAL_COBERTURA, muestraMinima: MUESTRA_MINIMA, rojoFiable, conLineas: ind.lineas.length } };
+        }
+        const deMaterial = () => ({ estado: "sinDato", motivo: MOTIVOS.material });
+        const SIN_DATO = { estado: "sinDato", motivo: MOTIVOS.sinClave };
+        function cuentas(elementos) {
+          const out = { sinPedir: 0, pedido: 0, instalado: 0, certificado: 0, sinDato: 0 };
+          for (const x of elementos || []) {
+            const k = x && x.estadoObra && x.estadoObra.estado;
+            out[ESTADOS.includes(k) ? k : "sinDato"] += 1;
+          }
+          return out;
+        }
+        function nota(resumen) {
+          if (!resumen || resumen.rojoFiable) return null;
+          if (!resumen.conLineas) return "Sin pedidos registrados en esta obra: lo no instalado sale en gris.";
+          if (resumen.muestra < resumen.muestraMinima) return "A\xFAn no hay equipos suficientes para comprobar el registro de pedidos: lo no localizado sale en gris.";
+          return `El registro de pedidos solo recoge el ${Math.round(resumen.cobertura * 100)} % de lo que se sabe pedido: lo no localizado sale en gris, no en rojo.`;
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.ESTADO_EJECUCION_PLANO = API;
+        })({
+          ESTADOS,
+          NOMBRES,
+          CLASES,
+          MOTIVOS,
+          UMBRAL_COBERTURA,
+          MUESTRA_MINIMA,
+          SIN_DATO,
+          estado,
+          estaInstalado,
+          esCertificado,
+          indiceLineas,
+          deObra,
+          deMaterial,
+          cuentas,
+          nota
+        });
+      })();
+    }
+  });
+
   // shared/commissioning/materialesInstalados.js
   var require_materialesInstalados = __commonJS({
     "shared/commissioning/materialesInstalados.js"(exports, module) {
@@ -129310,6 +130301,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         conducto: { nombre: "Conducto", corto: "CND", capa: "conductos", prefijos: [], campos: ["Sistema", "Aislamiento", "Medida"] },
         tuberia: { nombre: "Tuber\xEDa", corto: "TUB", capa: "tuberias", prefijos: [], campos: ["Sistema", "Material", "Aislamiento", "DN"] }
       };
+      var CAPAS_SOLO_OBRA = ["conductos", "tuberias"];
       var CAPAS_MAT = [
         { id: "equipos", nombre: "Equipos" },
         { id: "compuertas", nombre: "Compuertas" },
@@ -129483,6 +130475,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.MATERIALES_INSTALADOS = API;
       })({
+        CAPAS_SOLO_OBRA,
         TIPOS: TIPOS_MAT,
         CAPAS: CAPAS_MAT,
         ESTADOS: ESTADOS_MAT,
@@ -131275,6 +132268,22 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           return null;
         }
       }
+      function ejecucionDeObra(repo, obraId, certDe) {
+        const EP2 = require_estadoEjecucionPlano();
+        let equipos = [];
+        let pedidos = [];
+        try {
+          equipos = repo.db.prepare("SELECT id, tag, modelo, estado, fechaInstalacion, instalacionVerificadaEn, albaranesEquipo, fuenteAlta, fuentesEquipo, duplicadoDe FROM equiposObra WHERE obraId = ?").all(obraId);
+        } catch {
+          equipos = [];
+        }
+        try {
+          pedidos = repo.db.prepare("SELECT lineas, fechaAnulacion FROM pedidosCompra WHERE obraId = ?").all(obraId);
+        } catch {
+          pedidos = [];
+        }
+        return EP2.deObra(equipos, pedidos, { certificadoDe: (id) => EP2.esCertificado(certDe.get(id)) });
+      }
       function plantaPorDefecto(plantas, nombre) {
         const ps = plantas || [];
         const n = String(nombre ?? "");
@@ -131297,7 +132306,8 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         if (!obraVisible(repo, ses, obraId)) return null;
         const lec = sesionDeLectura(ses);
         const conCx = puede(ses.rol, "commissioning", "ver");
-        const puedeEditar = puede(ses.rol, "commissioning", "editar");
+        const modoObra = Boolean(opc.obra);
+        const puedeEditar = !modoObra && puede(ses.rol, "commissioning", "editar");
         const filas = repo.listar("planosEquipos", lec, { condicion: "obraId = ?", params: [obraId] });
         const t = CX.tablaRecordada(repo, lec, obraId, { incluirPorConfirmar: true }) || { filas: [], conjuntos: [] };
         marcarFichasConDato(repo, lec, obraId, t);
@@ -131318,7 +132328,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         })();
         const lineaDe = /* @__PURE__ */ new Map();
         for (const c of t.conjuntos || []) for (const m of c.miembros || [c]) lineaDe.set(m.id, c);
-        const datosCert = VE.veCertificacion(ses.rol) ? certificacionDeObra(repo, obraId) : null;
+        const datosCert = modoObra && VE.veCertificacion(ses.rol) ? certificacionDeObra(repo, obraId) : null;
         const EE = require_entregaEquipo();
         const albaranesDe = (() => {
           try {
@@ -131366,6 +132376,14 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         for (const p of filas) for (const m of leerJson(p.marcas, [])) marcaDe.set(m.equipoId, { ...m, planoId: p.id, planta: p.planta || "" });
         const MI = require_materialesInstalados2();
         const materialesDe = MI.porPlanta(repo, ses, obraId);
+        const soloObra = require_materialesInstalados().CAPAS_SOLO_OBRA;
+        if (!modoObra) {
+          for (const [k, lista] of [...materialesDe]) {
+            const quedan = lista.filter((m) => !soloObra.includes(m.capa));
+            if (quedan.length) materialesDe.set(k, quedan);
+            else materialesDe.delete(k);
+          }
+        }
         const faltasDe = require_faltasPlano2().porPlanta(repo, ses, obraId);
         const nombres = /* @__PURE__ */ new Set([...filasEq.map((f) => llano(f.planta)), ...filas.map((p) => p.planta || ""), ...materialesDe.keys()]);
         const ordenadas = [...nombres].sort(ordenPlanta);
@@ -131430,6 +132448,17 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             plano: p ? { id: p.id, nombre: p.nombre, ancho: p.ancho, alto: p.alto, modificadoEn: p.modificadoEn, salas: salasParaPintar(p.rotulos), ia: VIS.paraPantalla(p), version: metaVersion(p, true), anteriores: nAnteriores(repo, p.id) } : null
           };
         });
+        let ejecucion = null;
+        if (modoObra) {
+          const EP2 = require_estadoEjecucionPlano();
+          const { porId, resumen } = ejecucionDeObra(repo, obraId, certDe);
+          for (const pl of plantas) {
+            for (const q of pl.equipos) q.estadoObra = porId.get(q.id) || EP2.SIN_DATO;
+            for (const m of pl.materiales) m.estadoObra = EP2.deMaterial();
+            pl.cuentasObra = EP2.cuentas([...pl.equipos, ...pl.materiales]);
+          }
+          ejecucion = { ...resumen, nota: EP2.nota(resumen), veCertificado: VE.veCertificacion(ses.rol) };
+        }
         const indiceCj = P.indiceConjuntos(plantas);
         for (const pl of plantas) {
           for (const q of pl.equipos) {
@@ -131445,7 +132474,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           const salaPor = new Map((pl ? pl.equipos : []).map((q) => [q.id, q.sala]));
           return { id: p.id, planta: p.planta, nombre: p.nombre, ancho: p.ancho, alto: p.alto, marcas: marcas.map((m) => ({ ...m, sala: salaPor.get(m.equipoId) || m.sala || null })), cuentas, sinPoner, modificadoEn: p.modificadoEn };
         });
-        const medicion = VE.veCertificacion(ses.rol) ? medicionDelPlano(repo, obraId, plantas) : null;
+        const medicion = modoObra && VE.veCertificacion(ses.rol) ? medicionDelPlano(repo, obraId, plantas) : null;
         if (opc.porPlanta) {
           const pedida = plantaPorDefecto(plantas, opc.planta);
           for (let i = 0; i < plantas.length; i += 1) {
@@ -131454,6 +132483,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             plantas[i] = {
               planta: pl.planta,
               cuentas: pl.cuentas,
+              cuentasObra: pl.cuentasObra,
               capas: pl.capas,
               plano: pl.plano,
               parcial: true,
@@ -131469,10 +132499,10 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         const iconos = {};
         for (const k of Object.keys(P.ICONOS)) iconos[k] = P.ICONOS[k];
         const MT = require_materialesInstalados();
-        const tiposMaterial = Object.fromEntries(Object.entries(MT.TIPOS).map(([k, v]) => [k, { nombre: v.nombre, corto: v.corto, capa: v.capa, campos: v.campos }]));
+        const tiposMaterial = Object.fromEntries(Object.entries(MT.TIPOS).filter(([, v]) => modoObra || !soloObra.includes(v.capa)).map(([k, v]) => [k, { nombre: v.nombre, corto: v.corto, capa: v.capa, campos: v.campos }]));
         if (opc.ligero && !opc.soloFicha) {
           const porId = new Map(filasEq.map((f) => [f.id, f]));
-          recordarFichas(repo, ses, obraId, (id) => {
+          recordarFichas(repo, ses, obraId, modoObra, (id) => {
             const f = porId.get(id);
             const e = f && est.get(id);
             if (!f || !e) return null;
@@ -131480,20 +132510,21 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             return { id, documentos: d.documentos || [], acciones: d.acciones || [], vida: d.vida || null };
           });
         }
-        return { plantas, planos, iconos, colores: P.COLORES, puedeEditar, conCommissioning: conCx, capas: MT.CAPAS, tiposMaterial, medicion };
+        return { plantas, planos, iconos, colores: P.COLORES, puedeEditar, conCommissioning: conCx, capas: modoObra ? MT.CAPAS : MT.CAPAS.filter((k) => !soloObra.includes(k.id)), tiposMaterial, medicion, ejecucion };
       }
       var fichasRecordadas = /* @__PURE__ */ new WeakMap();
-      var claveFichas = (ses, obraId) => `${obraId}|${ses && ses.personaId}|${ses && ses.rol}|${JSON.stringify(ses && ses.soloObras || null)}`;
-      function recordarFichas(repo, ses, obraId, fichaDe) {
+      var claveFichas = (ses, obraId, modoObra) => `${modoObra ? "obra|" : ""}${obraId}|${ses && ses.personaId}|${ses && ses.rol}|${JSON.stringify(ses && ses.soloObras || null)}`;
+      function recordarFichas(repo, ses, obraId, modoObra, fichaDe) {
         if (!repo || typeof repo !== "object" || !repo.db) return;
         const marca = require_marcaCambios().marcaDeCambios(repo.db);
         if (!marca) return;
         const m = fichasRecordadas.get(repo) || /* @__PURE__ */ new Map();
-        m.set(claveFichas(ses, obraId), { marca, fichaDe });
+        m.set(claveFichas(ses, obraId, modoObra), { marca, fichaDe });
         fichasRecordadas.set(repo, m);
       }
-      function ficha(repo, ses, obraId, equipoId) {
-        const rec = repo && typeof repo === "object" && repo.db ? (fichasRecordadas.get(repo) || /* @__PURE__ */ new Map()).get(claveFichas(ses, obraId)) : null;
+      function ficha(repo, ses, obraId, equipoId, opc = {}) {
+        const modoObra = Boolean(opc.obra);
+        const rec = repo && typeof repo === "object" && repo.db ? (fichasRecordadas.get(repo) || /* @__PURE__ */ new Map()).get(claveFichas(ses, obraId, modoObra)) : null;
         if (rec && rec.marca === require_marcaCambios().marcaDeCambios(repo.db)) {
           try {
             const d = rec.fichaDe(equipoId);
@@ -131501,7 +132532,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           } catch {
           }
         }
-        const r = listar(repo, ses, obraId, { ligero: true, soloFicha: equipoId });
+        const r = listar(repo, ses, obraId, { ligero: true, soloFicha: equipoId, ...modoObra ? { obra: true } : {} });
         if (!r) return null;
         for (const pl of r.plantas) {
           const q = pl.equipos.find((x) => x.id === equipoId);
@@ -142089,7 +143120,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         { tipo: "proveedor", etiqueta: "Industrial" }
       ];
       var TIPOS_ANCLA = new Set(ANCLAS.map((a) => a.tipo));
-      function nuevaNota({ personaId, texto = "", ancla = null, fijada = false, ahora = null }) {
+      function nuevaNota({ personaId, texto = "", ancla = null, fijada = false, hecha = false, categoria = null, ahora = null }) {
         if (!personaId) return null;
         const cuando = ahora || (/* @__PURE__ */ new Date()).toISOString();
         return {
@@ -142103,6 +143134,8 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
            */
           ancla: ancla && TIPOS_ANCLA.has(ancla.tipo) && ancla.id ? { tipo: ancla.tipo, id: ancla.id, resumen: ancla.resumen || null } : null,
           fijada: Boolean(fijada),
+          hecha: Boolean(hecha),
+          categoria: limpiarCategoria(categoria),
           creadoEn: cuando,
           modificadoEn: cuando
         };
@@ -142155,12 +143188,52 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         const palabras = normNota(consulta).split(" ").filter(Boolean);
         if (!palabras.length) return [...notas || []];
         return (notas || []).filter((n) => {
-          const heno = normNota(`${n.texto} ${n.ancla && n.ancla.resumen || ""}`);
+          const heno = normNota(`${n.texto} ${n.ancla && n.ancla.resumen || ""} ${n.categoria || ""}`);
           return palabras.every((p) => heno.includes(p));
+        });
+      }
+      var LARGO_CATEGORIA = 40;
+      var SIN_CATEGORIA = "__sin__";
+      function limpiarCategoria(nombre, existentes = []) {
+        const t = String(nombre || "").replace(/\s+/g, " ").trim().slice(0, LARGO_CATEGORIA).trim();
+        if (!t) return null;
+        return existentes.find((c) => normNota(c) === normNota(t)) || t;
+      }
+      function categorias(notas) {
+        const vistas = /* @__PURE__ */ new Map();
+        for (const n of notas || []) {
+          if (!n.categoria) continue;
+          const clave = normNota(n.categoria);
+          if (!vistas.has(clave)) vistas.set(clave, { nombre: n.categoria, total: 0 });
+          vistas.get(clave).total += 1;
+        }
+        return [...vistas.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+      }
+      function filtrarNotas(notas, { categoria = "", verHechas = true } = {}) {
+        return (notas || []).filter((n) => {
+          if (!verHechas && n.hecha) return false;
+          if (!categoria) return true;
+          if (categoria === SIN_CATEGORIA) return !n.categoria;
+          return normNota(n.categoria) === normNota(categoria);
+        });
+      }
+      function agrupar(notas) {
+        const grupos = /* @__PURE__ */ new Map();
+        for (const n of notas || []) {
+          const clave = n.categoria ? normNota(n.categoria) : SIN_CATEGORIA;
+          if (!grupos.has(clave)) grupos.set(clave, { clave, nombre: n.categoria || "Sin categor\xEDa", notas: [], pendientes: 0 });
+          const g = grupos.get(clave);
+          g.notas.push(n);
+          if (!n.hecha) g.pendientes += 1;
+        }
+        return [...grupos.values()].sort((a, b) => {
+          if (a.clave === SIN_CATEGORIA !== (b.clave === SIN_CATEGORIA)) return a.clave === SIN_CATEGORIA ? 1 : -1;
+          return a.nombre.localeCompare(b.nombre, "es");
         });
       }
       function ordenar(notas) {
         return [...notas || []].sort((a, b) => {
+          if (Boolean(a.hecha) !== Boolean(b.hecha)) return a.hecha ? 1 : -1;
           if (Boolean(a.fijada) !== Boolean(b.fijada)) return a.fijada ? -1 : 1;
           return String(b.modificadoEn || "").localeCompare(String(a.modificadoEn || ""));
         });
@@ -142171,7 +143244,8 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
       }
       function resumenDelBloc(notas, personaId) {
         const mias = (notas || []).filter((n) => n.personaId === personaId);
-        const cuenta = mias.reduce(
+        const vivas = mias.filter((n) => !n.hecha);
+        const cuenta = vivas.reduce(
           (s, n) => {
             const t = tareas(n);
             return { total: s.total + t.total, pendientes: s.pendientes + t.pendientes };
@@ -142180,11 +143254,11 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         );
         return {
           notas: mias.length,
-          fijadas: mias.filter((n) => n.fijada).length,
+          fijadas: vivas.filter((n) => n.fijada).length,
           tareas: cuenta.total,
           pendientes: cuenta.pendientes,
           /* Las tres más recientes con algo pendiente: lo que hay que hacer hoy. */
-          conPendientes: ordenar(mias.filter((n) => tareas(n).pendientes > 0)).slice(0, 3)
+          conPendientes: ordenar(vivas.filter((n) => tareas(n).pendientes > 0)).slice(0, 3)
         };
       }
       function paraConversacion(nota) {
@@ -142210,6 +143284,12 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         tareas,
         titulo,
         avance,
+        LARGO_CATEGORIA,
+        SIN_CATEGORIA,
+        limpiarCategoria,
+        categorias,
+        agrupar,
+        filtrar: filtrarNotas,
         buscar: buscarNotas,
         ordenar,
         deAncla,
@@ -142401,6 +143481,25 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           }
           return m;
         }
+        function grupoDe(e) {
+          if (e.tipo === "sesion" && e.tarea) return e.tarea;
+          const t = TIPOS[e.tipo] || {};
+          return t.corto || t.etiqueta || "Otros";
+        }
+        function agruparDia(lista = []) {
+          const grupos = /* @__PURE__ */ new Map();
+          for (const e of lista) {
+            const etiqueta = grupoDe(e);
+            const clave = `${e.tipo}|${etiqueta}`;
+            if (!grupos.has(clave)) grupos.set(clave, { clave, etiqueta, tipo: e.tipo, eventos: [], total: 0, hechas: 0, retrasado: false });
+            const g = grupos.get(clave);
+            g.eventos.push(e);
+            g.total += 1;
+            if (e.hecha) g.hechas += 1;
+            if (e.retrasado) g.retrasado = true;
+          }
+          return [...grupos.values()];
+        }
         (function exportar(API) {
           if (typeof module !== "undefined" && module.exports) module.exports = API;
           if (typeof window !== "undefined") window.AGENDA = API;
@@ -142424,7 +143523,9 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           expandir,
           describirRegla,
           ordenarEventos,
-          porDia
+          porDia,
+          grupoDe,
+          agruparDia
         });
       })();
     }
@@ -142558,6 +143659,8 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           texto: f.texto || "",
           ancla: f.anclaTipo && f.anclaId ? { tipo: f.anclaTipo, id: f.anclaId, resumen: f.anclaResumen || null } : null,
           fijada: Boolean(f.fijada),
+          hecha: Boolean(f.hecha),
+          categoria: f.categoria || null,
           /* El día en la agenda del bloc, si se le ha puesto. */
           fecha: dia(f.fecha),
           adjuntos: require_notasAdjuntos().lista(f),
@@ -142572,6 +143675,8 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           anclaId: n.ancla ? n.ancla.id : null,
           anclaResumen: n.ancla ? n.ancla.resumen : null,
           fijada: n.fijada ? 1 : 0,
+          hecha: n.hecha ? 1 : 0,
+          categoria: n.categoria || null,
           fecha: dia(n.fecha)
         };
       }
@@ -142602,6 +143707,9 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           ...cambios.texto !== void 0 ? { texto: String(cambios.texto) } : {},
           ...cambios.ancla !== void 0 ? { ancla: cambios.ancla } : {},
           ...cambios.fijada !== void 0 ? { fijada: Boolean(cambios.fijada) } : {},
+          ...cambios.hecha !== void 0 ? { hecha: Boolean(cambios.hecha) } : {},
+          /* '' o null la deja sin categoría. */
+          ...cambios.categoria !== void 0 ? { categoria: notas.limpiarCategoria(cambios.categoria) } : {},
           /* null o '' quita la fecha; algo que no es un día, también. */
           ...cambios.fecha !== void 0 ? { fecha: dia(cambios.fecha) } : {}
         };
@@ -161479,7 +162587,7 @@ ${l}`;
         const tengo = new Set(actuales.map((e) => e[campo]));
         for (const x of quiero) if (!tengo.has(x)) repo.crear(tabla, ses, { obraId: hecho.obraId, hechoId: hecho.id, [campo]: x }, { verbo: "editar" });
       }
-      function guardarHecho(repo, ses, recId, entrada = {}) {
+      function guardarHecho(repo, ses, recId, entrada = {}, { soloPropuesto = false } = {}) {
         const verbo = entrada.id ? "editar" : "crear";
         const { r, error } = rec(repo, ses, recId, verbo);
         if (error) return no(error);
@@ -161498,7 +162606,7 @@ ${l}`;
           const reales = Object.fromEntries(Object.entries(datos).filter(([k, v]) => llano(h2[k]) !== llano(v)));
           if (Object.keys(reales).length) repo.modificar("reclamacionHechos", ses, id, reales);
         } else {
-          const valida = puede(ses.rol, MOD, "aprobar");
+          const valida = !soloPropuesto && puede(ses.rol, MOD, "aprobar");
           id = repo.crear("reclamacionHechos", ses, {
             obraId: r.obraId,
             reclamacionId: recId,
@@ -161587,7 +162695,9 @@ ${l}`;
               motivo: x.motivo,
               estado: "propuesto"
             }));
-            guardarPropuestos(repo, ses, h, [...antes.filter((x) => x.estado === "descartado"), ...nuevas]);
+            const traidos = antes.filter((x) => x.traido && x.estado === "propuesto");
+            const hay = new Set(traidos.map((x) => x.pruebaId));
+            guardarPropuestos(repo, ses, h, [...antes.filter((x) => x.estado === "descartado"), ...traidos, ...nuevas.filter((x) => !hay.has(x.pruebaId))]);
             total += nuevas.length;
             if (nuevas.length) con += 1;
           }
@@ -163427,6 +164537,27 @@ La dio: ${dadaPor}.` : ""}
 
 No cambia ning\xFAn importe hasta que se pase a la valoraci\xF3n.`, acciones: [ir] }, propio) : { respuesta: `No he podido guardarla: ${g && g.error || "error desconocido"}.`, acciones: [ir] };
       }
+      var llano = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      function expedienteNombrado(filas, pregunta) {
+        const t = llano(pregunta);
+        return filas.find((r) => r.sentido === "nosReclaman" && !r.estudio && (r.codigo && t.includes(llano(r.codigo)) || llano(r.contraparte).length >= 3 && t.includes(llano(r.contraparte)))) || null;
+      }
+      function respuestaExpediente(repo, yo, r, obraId) {
+        const f = D().ficha(repo, yo, r.id);
+        if (!f) return null;
+        const hechos = [...f.hechos || []].sort((a, b) => String(a.fecha || "").localeCompare(String(b.fecha || "")));
+        const validados = hechos.filter((h) => h.estado === "validado").length;
+        const fecha = (v) => v ? String(v).slice(0, 10).split("-").reverse().join("/") : "s/f";
+        const lista = hechos.map((h) => `- ${fecha(h.fecha)} \xB7 ${h.titulo}${h.estado === "validado" ? "" : " (propuesto)"}`).join("\n");
+        return {
+          respuesta: `**${r.codigo} \xB7 ${r.titulo}**: es un riesgo anotado, no una reclamaci\xF3n presentada. ${hechos.length} hechos, ${validados} validados.
+
+${lista}
+
+Importe: ${f.totales && f.totales.total > 0 ? `${f.totales.total} \u20AC` : "no consta"}.`,
+          acciones: [{ tipo: "ir", destino: "reclamaciones", vista: "hechos", obraId, recId: r.id, texto: "Abrir el expediente" }]
+        };
+      }
       function responderClaim(repo, yo, { pregunta, obraId, propio: propioFuera = "" }) {
         const dos = String(pregunta || "").split(/\?\s*(?=(?:y|i|and)\s+(?:la|lo|el|the one)\s+(?:de|del|d'|about|of)\b)/i);
         if (dos.length === 2 && dos[1].trim()) {
@@ -163439,6 +164570,11 @@ No cambia ning\xFAn importe hasta que se pase a la valoraci\xF3n.`, acciones: [i
 ${b.respuesta}`, acciones: a.acciones || [] };
         }
         const filas = claimsDe(repo, yo, obraId);
+        const expediente = expedienteNombrado(filas, pregunta);
+        if (expediente) {
+          const res2 = respuestaExpediente(repo, yo, expediente, obraId);
+          if (res2) return blindar(res2, [propioFuera, propioDeClaims(repo, yo, obraId)].filter(Boolean).join(" | "));
+        }
         let h = HERR.entenderClaim(pregunta, { contrapartes: [...new Set(filas.map((r) => r.contraparte).filter(Boolean))] });
         if (!h) return null;
         if (!veEstudioClaim(yo.rol)) return h.soloSiCasa ? null : { respuesta: NO_PUESTO, acciones: [] };
@@ -164004,14 +165140,14 @@ No cambia ning\xFAn importe hasta que se pase a la valoraci\xF3n.`,
           misTareas: { nombre: "Mis tareas", modulo: "ordenesMant", re: /\b(mis tareas|tareas|ordenes( de mantenimiento)?|mantenimiento)\b/ },
           commissioning: { nombre: "Commissioning", modulo: "commissioning", re: /\b(commissioning|comisionado|equipos)\b/ },
           estanqueidad: { nombre: "Pruebas", modulo: "pruebasEstanqueidad", re: /\b(estanqueidad|pruebas)\b/ },
-          partes: { nombre: "Partes", modulo: "partesIncidencia", re: /\bpartes?( de incidencia)?\b/ },
+          partes: { nombre: "Avisos", modulo: "partesIncidencia", re: /\b(partes?( de incidencia)?|avisos? de incidencia)\b/ },
           avisos: { nombre: "Reclamables", modulo: "avisosReclamacion", re: /\b(reclamables?|avisos?)\b/ },
           reportesQhse: { nombre: "Reportes QHSE", modulo: "reportesQhse", re: /\breportes?( qhse)?\b/ },
           qhse: { nombre: "Plan QHSE", modulo: "qhse", re: /\b(qhse|seguridad y salud|inspecciones?)\b/ },
           ncr: { nombre: "NCR", modulo: "ncr", re: /\b(ncrs?|no conformidad(es)?)\b/ },
           reparaciones: { nombre: "Reparaciones", modulo: "incidencias", re: /\b(reparacion(es)?|averias?)\b/ },
           avance: { nombre: "Avance", modulo: "avanceObra", re: /\bavance( de obra)?\b/ },
-          jornada: { nombre: "Jornada", modulo: "jornada", re: /\b(jornada|fichajes?|vacaciones|horas extra)\b/ },
+          jornada: { nombre: "Mi jornada", modulo: "jornada", re: /\b(jornada|fichajes?|vacaciones|horas extra)\b/ },
           plano: { nombre: "Plano de equipos", modulo: "planoEquipos", re: /\bplanos?( de equipos)?\b/ },
           bloc: { nombre: "Bloc", modulo: "notas", re: /\b(bloc|notas)\b/ },
           albaranes: { nombre: "Albaranes", modulo: "pedidos", re: /\balbaran(es)?\b/ },
@@ -164802,6 +165938,7 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           ["login.idioma", "Idioma", "Language", "Idioma", "Idioma", "Sprache", "Langue"],
           ["login.estudiosYObra", "Estudios y Obra", "Studies and Site Works", "Estudis i Obra", "Estudos e Obra", "Kalkulation und Bau", "\xC9tudes et Chantier"],
           /* Cabecera y barra lateral */
+          ["cab.buscar", "\xBFQu\xE9 quieres hacer?", "What do you want to do?", "Qu\xE8 vols fer?", "O que quer fazer?", "Was m\xF6chten Sie tun?", "Que voulez-vous faire ?"],
           ["cab.salir", "Salir", "Sign out", "Sortir", "Sair", "Abmelden", "Se d\xE9connecter"],
           ["cab.salirTitulo", "Salir y dejar el ordenador para otro", "Sign out and leave the computer for someone else", "Sortir i deixar l\u2019ordinador per a un altre", "Sair e deixar o computador para outra pessoa", "Abmelden und den Computer f\xFCr andere freigeben", "Se d\xE9connecter et laisser l\u2019ordinateur \xE0 quelqu\u2019un d\u2019autre"],
           ["cab.verComo", "Ver como", "View as", "Veure com", "Ver como", "Ansehen als", "Voir en tant que"],
@@ -164811,6 +165948,7 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           ["cab.abrirMenu", "Abrir el men\xFA", "Open the menu", "Obrir el men\xFA", "Abrir o menu", "Men\xFC \xF6ffnen", "Ouvrir le menu"],
           ["lat.cambiarClave", "Cambiar mi contrase\xF1a", "Change my password", "Canviar la meva contrasenya", "Alterar a minha palavra-passe", "Mein Passwort \xE4ndern", "Modifier mon mot de passe"],
           ["lat.vistaAdmin", "vista del administrador", "administrator view", "vista de l\u2019administrador", "vista do administrador", "Administratoransicht", "vue de l\u2019administrateur"],
+          ["lat.ajustes", "Ajustes", "Settings", "Ajustos", "Defini\xE7\xF5es", "Einstellungen", "R\xE9glages"],
           ["lat.idioma", "Idioma", "Language", "Idioma", "Idioma", "Sprache", "Langue"],
           ["lat.idiomaTitulo", "Idioma de la interfaz (se guarda en tu perfil)", "Interface language (saved in your profile)", "Idioma de la interf\xEDcie (es desa al teu perfil)", "Idioma da interface (guardado no seu perfil)", "Sprache der Oberfl\xE4che (wird in Ihrem Profil gespeichert)", "Langue de l\u2019interface (enregistr\xE9e dans votre profil)"],
           ["lat.conObra", "Obra {codigo}", "Site {codigo}", "Obra {codigo}", "Obra {codigo}", "Baustelle {codigo}", "Chantier {codigo}"],
@@ -164882,7 +166020,7 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           ["Biblioteca de partidas", "Item library", "Biblioteca de partides", "Biblioteca de artigos", "Positionsbibliothek", "Biblioth\xE8que de postes"],
           ["Obras", "Sites", "Obres", "Obras", "Baustellen", "Chantiers"],
           ["Informe semanal", "Weekly report", "Informe setmanal", "Relat\xF3rio semanal", "Wochenbericht", "Rapport hebdomadaire"],
-          ["Costs Plan", "Costs Plan", "Costs Plan", "Costs Plan", "Costs Plan", "Costs Plan"],
+          ["Control de costes", "Cost control", "Control de costos", "Controlo de custos", "Kostenkontrolle", "Contr\xF4le des co\xFBts"],
           ["Certificaciones", "Certifications", "Certificacions", "Certifica\xE7\xF5es", "Abrechnungen", "Situations de travaux"],
           ["Avance de obra", "Site progress", "Avan\xE7 d\u2019obra", "Avan\xE7o da obra", "Baufortschritt", "Avancement du chantier"],
           ["Compras y pedidos", "Purchasing and orders", "Compres i comandes", "Compras e encomendas", "Einkauf und Bestellungen", "Achats et commandes"],
@@ -164913,7 +166051,17 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           ["Personas y roles", "People and roles", "Persones i rols", "Pessoas e fun\xE7\xF5es", "Personen und Rollen", "Personnes et r\xF4les"],
           ["Estad\xEDsticas", "Statistics", "Estad\xEDstiques", "Estat\xEDsticas", "Statistiken", "Statistiques"],
           ["Licitaciones", "Tenders", "Licitacions", "Concursos", "Ausschreibungen", "Appels d\u2019offres"],
-          ["Auditor\xEDa", "Audit", "Auditoria", "Auditoria", "Audit", "Audit"],
+          ["Medici\xF3n real de obra", "Actual site measurement", "Mesurament real d\u2019obra", "Medi\xE7\xE3o real de obra", "Tats\xE4chliches Baustellenaufma\xDF", "M\xE9tr\xE9 r\xE9el de chantier"],
+          ["Mis horas", "My hours", "Les meves hores", "As minhas horas", "Meine Stunden", "Mes heures"],
+          ["Mi jornada", "My working day", "La meva jornada", "A minha jornada", "Mein Arbeitstag", "Ma journ\xE9e"],
+          ["Mis vacaciones", "My holidays", "Les meves vacances", "As minhas f\xE9rias", "Mein Urlaub", "Mes cong\xE9s"],
+          ["SharePoint y nube", "SharePoint and cloud", "SharePoint i n\xFAvol", "SharePoint e nuvem", "SharePoint und Cloud", "SharePoint et cloud"],
+          ["Equipos repetidos", "Duplicated equipment", "Equips repetits", "Equipamentos repetidos", "Doppelte Ger\xE4te", "\xC9quipements en double"],
+          ["Papeles por pedir al fabricante", "Papers to request from manufacturer", "Papers per demanar al fabricant", "Documentos a pedir ao fabricante", "Beim Hersteller anzufordernde Unterlagen", "Documents \xE0 demander au fabricant"],
+          ["Datos ya rellenos", "Data already filled in", "Dades ja emplenades", "Dados j\xE1 preenchidos", "Bereits ausgef\xFCllte Daten", "Donn\xE9es d\xE9j\xE0 renseign\xE9es"],
+          ["Ahorro respecto al presupuesto", "Savings against budget", "Estalvi respecte al pressupost", "Poupan\xE7a face ao or\xE7amento", "Einsparung gegen\xFCber Budget", "\xC9conomies par rapport au budget"],
+          ["De d\xF3nde sale cada dato", "Where each figure comes from", "D\u2019on surt cada dada", "De onde vem cada dado", "Woher jede Angabe stammt", "D\u2019o\xF9 vient chaque donn\xE9e"],
+          ["Historial de cambios", "Change history", "Historial de canvis", "Hist\xF3rico de altera\xE7\xF5es", "\xC4nderungsverlauf", "Historique des modifications"],
           ["Reparto del trabajo", "Work allocation", "Repartiment de la feina", "Distribui\xE7\xE3o do trabalho", "Arbeitsverteilung", "R\xE9partition du travail"],
           ["Encargos de delineaci\xF3n", "Drafting assignments", "Enc\xE0rrecs de delineaci\xF3", "Encomendas de desenho", "Zeichnungsauftr\xE4ge", "Commandes de dessin"],
           ["Oportunidades de Estudios", "Studies opportunities", "Oportunitats d\u2019Estudis", "Oportunidades de Estudos", "Kalkulationschancen", "Opportunit\xE9s des \xC9tudes"],
@@ -164926,13 +166074,13 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           ["Notas de traspaso", "Handover notes", "Notes de trasp\xE0s", "Notas de transi\xE7\xE3o", "\xDCbergabenotizen", "Notes de passation"],
           ["Columnas propias de la rejilla", "Custom grid columns", "Columnes pr\xF2pies de la graella", "Colunas pr\xF3prias da grelha", "Eigene Tabellenspalten", "Colonnes personnalis\xE9es de la grille"],
           ["Correos archivados", "Archived emails", "Correus arxivats", "E-mails arquivados", "Archivierte E-Mails", "E-mails archiv\xE9s"],
-          ["Documentaci\xF3n del proyecto", "Project documentation", "Documentaci\xF3 del projecte", "Documenta\xE7\xE3o do projeto", "Projektdokumentation", "Documentation du projet"],
-          ["Documentaci\xF3n de la obra", "Site documentation", "Documentaci\xF3 de l\u2019obra", "Documenta\xE7\xE3o da obra", "Baustellendokumentation", "Documentation du chantier"],
+          ["Documentos del proyecto", "Project documents", "Documents del projecte", "Documentos do projeto", "Projektdokumente", "Documents du projet"],
+          ["Documentos de la obra", "Site documents", "Documents de l\u2019obra", "Documentos da obra", "Baustellendokumente", "Documents de chantier"],
           ["Presupuesto de obra", "Site budget", "Pressupost d\u2019obra", "Or\xE7amento de obra", "Baubudget", "Budget du chantier"],
-          ["Variantes y OC", "Variants and change orders", "Variants i OC", "Variantes e OC", "Varianten und \xC4nderungsauftr\xE4ge", "Variantes et OM"],
+          ["Variantes y \xF3rdenes de cambio", "Variants and change orders", "Variants i ordres de canvi", "Variantes e ordens de altera\xE7\xE3o", "Varianten und \xC4nderungsauftr\xE4ge", "Variantes et ordres de modification"],
           ["An\xE1lisis del proyecto", "Project analysis", "An\xE0lisi del projecte", "An\xE1lise do projeto", "Projektanalyse", "Analyse du projet"],
           ["Control / PLC", "Control / PLC", "Control / PLC", "Controlo / PLC", "Steuerung / SPS", "Contr\xF4le / automate"],
-          ["Puntos BMS", "BMS points", "Punts BMS", "Pontos BMS", "GLT-Punkte", "Points GTB"],
+          ["Puntos de control (BMS)", "Control points (BMS)", "Punts de control (BMS)", "Pontos de controlo (BMS)", "Kontrollpunkte (GLT)", "Points de contr\xF4le (GTB)"],
           ["Contrato", "Contract", "Contracte", "Contrato", "Vertrag", "Contrat"],
           ["Med Obra", "Site measurement", "Mesurament d\u2019obra", "Medi\xE7\xE3o de obra", "Baustellenaufma\xDF", "M\xE9tr\xE9 de chantier"],
           ["Albaranes", "Delivery notes", "Albarans", "Guias de remessa", "Lieferscheine", "Bons de livraison"],
@@ -164940,7 +166088,7 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           ["Facturas de proveedor", "Supplier invoices", "Factures de prove\xEFdor", "Faturas de fornecedor", "Lieferantenrechnungen", "Factures fournisseur"],
           ["Entregas a la DF y acta", "Handovers to the DF and minutes", "Lliuraments a la DF i acta", "Entregas \xE0 DF e ata", "\xDCbergaben an die Bauleitung und Protokoll", "Remises \xE0 la MOE et proc\xE8s-verbal"],
           ["Cierre de la obra", "Site close-out", "Tancament de l\u2019obra", "Encerramento da obra", "Baustellenabschluss", "Cl\xF4ture du chantier"],
-          ["Equipos y materiales", "Equipment and materials", "Equips i materials", "Equipamentos e materiais", "Ger\xE4te und Materialien", "\xC9quipements et mat\xE9riaux"],
+          ["Desglose del presupuesto", "Budget breakdown", "Desglossament del pressupost", "Discrimina\xE7\xE3o do or\xE7amento", "Budgetaufschl\xFCsselung", "D\xE9tail du budget"],
           ["Informe de reparaciones", "Repairs report", "Informe de reparacions", "Relat\xF3rio de repara\xE7\xF5es", "Reparaturbericht", "Rapport de r\xE9parations"],
           ["Plan de compras", "Purchasing plan", "Pla de compres", "Plano de compras", "Einkaufsplan", "Plan d\u2019achats"],
           ["Comparativos", "Comparisons", "Comparatius", "Comparativos", "Preisvergleiche", "Comparatifs"],
@@ -164953,11 +166101,9 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           /* Secciones y carpetas del menú */
           ["Proyecto", "Project", "Projecte", "Projeto", "Projekt", "Projet"],
           ["Contrato y cliente", "Contract and client", "Contracte i client", "Contrato e cliente", "Vertrag und Kunde", "Contrat et client"],
-          ["Presupuesto y costes", "Budget and costs", "Pressupost i costos", "Or\xE7amento e custos", "Budget und Kosten", "Budget et co\xFBts"],
           ["Planificaci\xF3n", "Planning", "Planificaci\xF3", "Planeamento", "Planung", "Planification"],
           ["Compras", "Purchasing", "Compres", "Compras", "Einkauf", "Achats"],
           ["Producci\xF3n", "Production", "Producci\xF3", "Produ\xE7\xE3o", "Ausf\xFChrung", "Production"],
-          ["Medir y certificar", "Measure and certify", "Mesurar i certificar", "Medir e certificar", "Aufma\xDF und Abrechnung", "M\xE9trer et facturer"],
           ["Calidad y commissioning", "Quality and commissioning", "Qualitat i commissioning", "Qualidade e commissioning", "Qualit\xE4t und Commissioning", "Qualit\xE9 et commissioning"],
           ["Seguridad y QHSE", "Safety and QHSE", "Seguretat i QHSE", "Seguran\xE7a e QHSE", "Sicherheit und QHSE", "S\xE9curit\xE9 et QHSE"],
           ["Cierre y entrega", "Close-out and handover", "Tancament i lliurament", "Encerramento e entrega", "Abschluss und \xDCbergabe", "Cl\xF4ture et r\xE9ception"],
@@ -164971,8 +166117,8 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           ["Forecast", "Forecast", "Previsi\xF3", "Previs\xE3o", "Prognose", "Pr\xE9vision"],
           ["Gastos por departamento", "Expenses by department", "Despeses per departament", "Despesas por departamento", "Ausgaben nach Abteilung", "D\xE9penses par service"],
           /* 9-nov: las categorías de la barra lateral (shared/roles.js, CATEGORIAS_BARRA). */
-          ["D\xEDa a d\xEDa", "Day to day", "Dia a dia", "Dia a dia", "Tagesgesch\xE4ft", "Au quotidien"],
-          ["Dinero y contrato", "Money and contract", "Diners i contracte", "Dinheiro e contrato", "Geld und Vertrag", "Argent et contrat"],
+          ["Contrato y presupuesto", "Contract and budget", "Contracte i pressupost", "Contrato e or\xE7amento", "Vertrag und Budget", "Contrat et budget"],
+          ["Ajustes", "Settings", "Ajustos", "Defini\xE7\xF5es", "Einstellungen", "R\xE9glages"],
           ["Calidad y seguridad", "Quality and safety", "Qualitat i seguretat", "Qualidade e seguran\xE7a", "Qualit\xE4t und Sicherheit", "Qualit\xE9 et s\xE9curit\xE9"],
           ["Documentos y consulta", "Documents and reference", "Documents i consulta", "Documentos e consulta", "Dokumente und Nachschlagen", "Documents et consultation"],
           ["Departamentos", "Departments", "Departaments", "Departamentos", "Abteilungen", "Services"],
@@ -165075,7 +166221,7 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           ["No conformidades: vencidas y equipos bloqueados", "Non-conformities: overdue and blocked equipment", "No conformitats: ven\xE7udes i equips bloquejats", "N\xE3o conformidades: vencidas e equipamentos bloqueados", "Nichtkonformit\xE4ten: \xFCberf\xE4llig und gesperrte Ger\xE4te", "Non-conformit\xE9s : \xE9chues et \xE9quipements bloqu\xE9s"],
           ["Incidencias de equipos", "Equipment incidents", "Incid\xE8ncies d\u2019equips", "Incid\xEAncias de equipamentos", "Ger\xE4test\xF6rungen", "Incidents d\u2019\xE9quipements"],
           ["Obras en curso", "Sites in progress", "Obres en curs", "Obras em curso", "Laufende Baustellen", "Chantiers en cours"],
-          ["Desv\xEDos sobre Costs Plan", "Deviations from Costs Plan", "Desviacions sobre el Costs Plan", "Desvios face ao Costs Plan", "Abweichungen vom Costs Plan", "\xC9carts par rapport au Costs Plan"],
+          ["Desv\xEDos sobre control de costes", "Deviations from cost control", "Desviacions sobre el Costs Plan", "Desvios face ao Costs Plan", "Abweichungen vom Costs Plan", "\xC9carts par rapport au Costs Plan"],
           ["Certificaci\xF3n del mes", "This month\u2019s certification", "Certificaci\xF3 del mes", "Certifica\xE7\xE3o do m\xEAs", "Abrechnung des Monats", "Situation du mois"],
           ["Carga de cada jefe de grupo y de obra", "Workload per group and site manager", "C\xE0rrega de cada cap de grup i d\u2019obra", "Carga de cada chefe de grupo e diretor de obra", "Auslastung je Gruppenleiter und Bauleiter", "Charge de chaque chef de groupe et conducteur de travaux"],
           ["Carga de cada jefe de obra", "Workload per site manager", "C\xE0rrega de cada cap d\u2019obra", "Carga de cada diretor de obra", "Auslastung je Bauleiter", "Charge de chaque conducteur de travaux"],
@@ -165084,7 +166230,7 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           ["Tr\xE1mites oficiales", "Official procedures", "Tr\xE0mits oficials", "Tr\xE2mites oficiais", "Beh\xF6rdliche Verfahren", "D\xE9marches officielles"],
           ["Personal de hoy: previsto y fichado", "Today\u2019s staff: planned and clocked in", "Personal d\u2019avui: previst i fitxat", "Pessoal de hoje: previsto e registado", "Personal heute: geplant und eingestempelt", "Personnel du jour : pr\xE9vu et point\xE9"],
           ["Incidencias: terminadas por revisar y vencidas", "Incidents: finished to review and overdue", "Incid\xE8ncies: acabades per revisar i ven\xE7udes", "Incid\xEAncias: conclu\xEDdas por rever e vencidas", "St\xF6rungen: erledigt zur Pr\xFCfung und \xFCberf\xE4llig", "Incidents : termin\xE9s \xE0 v\xE9rifier et \xE9chus"],
-          ["Costs Plan: previsto contra gastado", "Costs Plan: planned vs. spent", "Costs Plan: previst contra gastat", "Costs Plan: previsto contra gasto", "Costs Plan: geplant gegen ausgegeben", "Costs Plan : pr\xE9vu contre d\xE9pens\xE9"],
+          ["Control de costes: previsto contra gastado", "cost control: planned vs. spent", "Costs Plan: previst contra gastat", "Costs Plan: previsto contra gasto", "Costs Plan: geplant gegen ausgegeben", "Costs Plan : pr\xE9vu contre d\xE9pens\xE9"],
           ["Pedidos: sin confirmar, retrasados y por llegar", "Orders: unconfirmed, delayed and incoming", "Comandes: sense confirmar, endarrerides i per arribar", "Encomendas: por confirmar, atrasadas e por chegar", "Bestellungen: unbest\xE4tigt, versp\xE4tet und unterwegs", "Commandes : non confirm\xE9es, en retard et \xE0 venir"],
           ["Mi certificaci\xF3n del mes", "My certification this month", "La meva certificaci\xF3 del mes", "A minha certifica\xE7\xE3o do m\xEAs", "Meine Abrechnung des Monats", "Ma situation du mois"],
           ["Equipos que han cambiado de estado", "Equipment that changed status", "Equips que han canviat d\u2019estat", "Equipamentos que mudaram de estado", "Ger\xE4te mit Statuswechsel", "\xC9quipements ayant chang\xE9 d\u2019\xE9tat"],
@@ -165109,7 +166255,7 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           ["Personal hoy: previsto y fichado", "Staff today: planned and clocked in", "Personal avui: previst i fitxat", "Pessoal hoje: previsto e registado", "Personal heute: geplant und eingestempelt", "Personnel aujourd\u2019hui : pr\xE9vu et point\xE9"],
           ["Normativa nueva (BOE)", "New regulations (BOE)", "Normativa nova (BOE)", "Normativa nova (BOE)", "Neue Vorschriften (BOE)", "Nouvelle r\xE9glementation (BOE)"],
           ["Conflictos con el pr\xF3ximo paso vencido", "Disputes with next step overdue", "Conflictes amb el proper pas ven\xE7ut", "Conflitos com o pr\xF3ximo passo vencido", "Streitf\xE4lle mit \xFCberf\xE4lligem n\xE4chstem Schritt", "Litiges dont la prochaine \xE9tape est \xE9chue"],
-          ["Lo que se tuerce del Costs Plan", "What is going off track in the Costs Plan", "El que es tor\xE7a del Costs Plan", "O que se desvia do Costs Plan", "Was im Costs Plan aus dem Ruder l\xE4uft", "Ce qui d\xE9rape dans le Costs Plan"],
+          ["Lo que se tuerce del control de costes", "What is going off track in the cost control", "El que es tor\xE7a del Costs Plan", "O que se desvia do Costs Plan", "Was im Costs Plan aus dem Ruder l\xE4uft", "Ce qui d\xE9rape dans le Costs Plan"],
           ["Las obras del departamento", "The department\u2019s sites", "Les obres del departament", "As obras do departamento", "Die Baustellen der Abteilung", "Les chantiers du service"],
           ["Cifras de la empresa", "Company figures", "Xifres de l\u2019empresa", "N\xFAmeros da empresa", "Unternehmenszahlen", "Chiffres de l\u2019entreprise"],
           ["Obras por fase", "Sites by phase", "Obres per fase", "Obras por fase", "Baustellen nach Phase", "Chantiers par phase"],
@@ -173850,10 +174996,17 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
       })(typeof globalThis !== "undefined" ? globalThis : exports, function() {
         const ID = "arranqueIpad";
         const COLOR_ARO = "#4C262D";
-        const SVG = '<svg class="arq-svg" viewBox="0 0 120 120" width="112" height="112" role="img" aria-label="Vidaire" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="arqDeg" gradientUnits="userSpaceOnUse" x1="60" y1="90.5" x2="60" y2="31.9"><stop offset="0" stop-color="#003F2D"/><stop offset=".55" stop-color="#538184"/><stop offset="1" stop-color="#80BBAD"/></linearGradient><filter id="arqSombra" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="1.9" stdDeviation="2.3" flood-color="#012A2D" flood-opacity=".3"/></filter><filter id="arqSuave" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.4"/></filter></defs><circle class="arq-aro" cx="60" cy="60" r="57" fill="none" stroke="#80BBAD" stroke-width="1" opacity=".5"/><g filter="url(#arqSombra)"><path class="arq-v" d="M27.9 31.9 L60 90.5 L92.1 31.9" fill="none" stroke="url(#arqDeg)" stroke-width="18.3" stroke-linecap="round" stroke-linejoin="round"/></g><path d="M27.9 31.9 L60 90.5 L92.1 31.9" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" transform="translate(-1.6 -1.6)" filter="url(#arqSuave)"/><g class="arq-brujula"><circle cx="90" cy="88" r="15" fill="#1B2A4A"/><circle cx="90" cy="88" r="11.59" fill="none" stroke="' + COLOR_ARO + '" stroke-width="1.09" opacity=".8"/><path d="M90 75.05v2.05M90 98.91v2.05M77.05 88h2.05M100.91 88h2.05" fill="none" stroke="' + COLOR_ARO + '" stroke-width="1.36" stroke-linecap="round"/><g class="arq-aguja"><g transform="rotate(35 90 88)"><path d="M90 77.09 L94.09 88 L85.91 88 Z" fill="#5B9BD5"/><path d="M90 98.91 L94.09 88 L85.91 88 Z" fill="#F4EAD9"/></g></g><circle cx="90" cy="88" r="1.77" fill="#1B2A4A" stroke="' + COLOR_ARO + '" stroke-width="0.82"/></g></svg>';
-        const BRUJULA = '<svg class="arq-brujula-sola" viewBox="74 72 32 32" width="34" height="34" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><circle cx="90" cy="88" r="15" fill="#1B2A4A"/><circle cx="90" cy="88" r="11.59" fill="none" stroke="' + COLOR_ARO + '" stroke-width="1.09" opacity=".8"/><path d="M90 75.05v2.05M90 98.91v2.05M77.05 88h2.05M100.91 88h2.05" fill="none" stroke="' + COLOR_ARO + '" stroke-width="1.36" stroke-linecap="round"/><g transform="rotate(35 90 88)"><path d="M90 77.09 L94.09 88 L85.91 88 Z" fill="#5B9BD5"/><path d="M90 98.91 L94.09 88 L85.91 88 Z" fill="#F4EAD9"/></g><circle cx="90" cy="88" r="1.77" fill="#1B2A4A" stroke="' + COLOR_ARO + '" stroke-width="0.82"/></svg>';
-        const CSS = '.arranque-ipad,.arranque-cx{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#F4F6F5;z-index:9999}html[data-tema="oscuro"] .arranque-ipad,html[data-tema="oscuro"] .arranque-cx{background:#161618}.arq-aguja{transform-origin:90px 88px;animation:arqAguja 2.4s ease-in-out infinite}@keyframes arqAguja{0%{transform:rotate(-40deg)}35%{transform:rotate(18deg)}55%{transform:rotate(-8deg)}70%,100%{transform:rotate(0)}}@media (prefers-reduced-motion:reduce){.arq-aguja{animation:none}}.arq-aviso{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:min(560px,calc(100vw - 32px));padding:9px 14px;border-radius:10px;background:#fff;color:#435254;border:1px solid #D9E0DE;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.08);white-space:pre-wrap;word-break:break-word}.arq-aviso.arq-mal{border-color:#E3BDBD;color:#9C2B2B}.arq-reintentar{margin-left:6px;border:1px solid #13957A;color:#0E7C66;background:transparent;border-radius:8px;padding:3px 10px;font:inherit;cursor:pointer}';
-        const html = (id = ID, clase = "arranque-ipad") => `<div id="${id}" class="${clase}" aria-busy="true">${SVG}</div>`;
+        const brujula = (atributos, viva) => `<svg ${atributos} viewBox="74 72 32 32" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><circle cx="90" cy="88" r="15" fill="#1B2A4A"/><circle cx="90" cy="88" r="11.59" fill="none" stroke="` + COLOR_ARO + '" stroke-width="1.09" opacity=".8"/><path d="M90 75.05v2.05M90 98.91v2.05M77.05 88h2.05M100.91 88h2.05" fill="none" stroke="' + COLOR_ARO + '" stroke-width="1.36" stroke-linecap="round"/>' + (viva ? '<g class="arq-aguja">' : "<g>") + '<g transform="rotate(35 90 88)"><path d="M90 77.09 L94.09 88 L85.91 88 Z" fill="#5B9BD5"/><path d="M90 98.91 L94.09 88 L85.91 88 Z" fill="#F4EAD9"/></g></g><circle cx="90" cy="88" r="1.77" fill="#1B2A4A" stroke="' + COLOR_ARO + '" stroke-width="0.82"/></svg>';
+        const capa = (dentro) => `<svg class="arq-capa" viewBox="0 0 240 240" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">${dentro}</svg>`;
+        const electron = (clase) => `<span class="arq-orbita ${clase}"><span class="arq-giro"><span class="arq-electron"><span class="arq-contra"><span class="arq-recto">` + brujula('class="arq-brujula"', true) + "</span></span></span></span></span>";
+        const LOGO = '<span class="arq-atomo" role="img" aria-label="Vidaire">' + electron("arq-detras") + capa(
+          /* 8-nov, JC: «la de antes me gustaba mucho más»: la V del icono de la app (scripts/generarIconoCxObra.js):
+             gruesa, degradado verde→sage→celadón, sombra y brillo. */
+          '<defs><linearGradient id="arqDeg" gradientUnits="userSpaceOnUse" x1="60" y1="90.5" x2="60" y2="31.9"><stop offset="0" stop-color="#003F2D"/><stop offset=".55" stop-color="#538184"/><stop offset="1" stop-color="#80BBAD"/></linearGradient><filter id="arqSombra" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="1.9" stdDeviation="2.3" flood-color="#012A2D" flood-opacity=".3"/></filter><filter id="arqSuave" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="1.4"/></filter></defs><g transform="translate(120 120) scale(1.3) translate(-60 -61)"><g filter="url(#arqSombra)"><path class="arq-v" d="M27.9 31.9 L60 90.5 L92.1 31.9" fill="none" stroke="url(#arqDeg)" stroke-width="18.3" stroke-linecap="round" stroke-linejoin="round"/></g><path d="M27.9 31.9 L60 90.5 L92.1 31.9" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" transform="translate(-1.6 -1.6)" filter="url(#arqSuave)"/></g>'
+        ) + electron("arq-delante") + "</span>";
+        const BRUJULA = brujula('class="arq-brujula-sola" width="34" height="34"', false);
+        const CSS = '.arranque-ipad,.arranque-cx{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#F4F6F5;z-index:9999}.arq-atomo{position:relative;display:block;flex:none;width:var(--arq-lado,min(90vw,62vh,560px));height:var(--arq-lado,min(90vw,62vh,560px))}.arq-capa{position:absolute;inset:0;display:block;width:100%;height:100%}.arq-orbita{position:absolute;inset:0;display:block;transform:rotate(-28deg) scaleY(.42)}.arq-giro{position:absolute;inset:0;display:block;animation:arqGiro 3s linear infinite}.arq-electron{position:absolute;left:90%;top:50%;display:block;width:19.2%;height:19.2%;margin:-9.6% 0 0 -9.6%}.arq-contra{display:block;width:100%;height:100%;animation:arqContra 3s linear infinite}.arq-recto{display:block;width:100%;height:100%;transform:scaleY(2.38095) rotate(28deg)}.arq-brujula{display:block;width:100%;height:100%}.arq-delante{animation:arqDelante 3s step-end infinite}.arq-detras{opacity:0;animation:arqDetras 3s step-end infinite}@keyframes arqGiro{to{transform:rotate(360deg)}}@keyframes arqContra{to{transform:rotate(-360deg)}}@keyframes arqDelante{0%{opacity:1}50%,100%{opacity:0}}@keyframes arqDetras{0%{opacity:0}50%,100%{opacity:1}}.arq-aguja{transform-box:fill-box;transform-origin:center;animation:arqAguja 2.4s ease-in-out infinite}@keyframes arqAguja{0%{transform:rotate(-40deg)}35%{transform:rotate(18deg)}55%{transform:rotate(-8deg)}70%,100%{transform:rotate(0)}}@media (prefers-reduced-motion:reduce){.arq-aguja,.arq-giro,.arq-contra,.arq-delante,.arq-detras{animation:none}}.arq-aviso{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:min(560px,calc(100vw - 32px));padding:9px 14px;border-radius:10px;background:#fff;color:#435254;border:1px solid #D9E0DE;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.08);white-space:pre-wrap;word-break:break-word}.arq-aviso.arq-mal{border-color:#E3BDBD;color:#9C2B2B}.arq-reintentar{margin-left:6px;border:1px solid #13957A;color:#0E7C66;background:transparent;border-radius:8px;padding:3px 10px;font:inherit;cursor:pointer}';
+        const html = (id = ID, clase = "arranque-ipad") => `<div id="${id}" class="${clase}" aria-busy="true">${LOGO}</div>`;
         const estilo = () => `<style>${CSS}</style>`;
         const hayDom = typeof document !== "undefined";
         function montar(id = ID, clase = "arranque-ipad") {
@@ -173870,7 +175023,7 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
             a.id = id;
             a.className = clase;
             a.setAttribute("aria-busy", "true");
-            a.innerHTML = SVG;
+            a.innerHTML = LOGO;
             (document.body || document.documentElement).append(a);
           }
           return a;
@@ -173916,7 +175069,7 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
           });
           obs.observe(document.documentElement, { childList: true, subtree: true });
         }
-        return { ID, SVG, BRUJULA, CSS, html, estilo, montar, avisar, quitar, quitarCuandoLista };
+        return { ID, LOGO, BRUJULA, CSS, html, estilo, montar, avisar, quitar, quitarCuandoLista };
       });
     }
   });

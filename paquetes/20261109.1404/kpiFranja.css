@@ -154,3 +154,14 @@
 #app :is(.kpi-cx, .resumen-fila > button, .resumen-fila > a, .ini-kpi):hover :is(.et, span) { text-decoration: underline; }
 #app :is(.kpi-cx.activa, .resumen-fila > button.activa) { background: transparent; box-shadow: inset 0 -2px 0 var(--acento-fuerte, #0E7C66); }
 #app :is(.kpi-cx.activa, .resumen-fila > button.activa) :is(.et, span, b) { color: var(--acento-fuerte, #0E7C66); }
+
+/* 9-nov (JC, «simplificar»): en Commissioning las cifras de Equipos (13) ya no parten en dos filas:
+   con muchas celdas, cada una apila cifra y rótulo y la franja se queda en una sola fila. */
+@media (min-width: 900px) {
+  :root body #pantallaCommissioning .bandaCx:not(.bandaQH):has(> :nth-child(9)) { flex-wrap: nowrap; }
+  :root body #pantallaCommissioning .bandaCx:not(.bandaQH):has(> :nth-child(9)) > .celdaBanda {
+    flex: 1 1 0; min-width: 0; flex-direction: column-reverse; justify-content: flex-end; align-items: flex-start; gap: 0; padding: 3px 6px;
+  }
+  :root body #pantallaCommissioning .bandaCx:not(.bandaQH):has(> :nth-child(9)) .etBanda { display: block; width: 100%; font-size: 10.5px; line-height: 1.15; white-space: normal; text-align: left; hyphens: auto; overflow-wrap: anywhere; }
+  :root body #pantallaCommissioning .bandaCx:not(.bandaQH):has(> :nth-child(9)) .txtBanda { display: block; width: 100%; min-width: 0; white-space: normal; text-align: left; }
+}
