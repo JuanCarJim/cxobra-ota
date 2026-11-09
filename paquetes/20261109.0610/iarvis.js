@@ -25,6 +25,10 @@
 (function () {
   const ESPERA_SONDEO = 8000;
   const SONDEOS = 15;
+  /* 8-nov (JC): la conversación se borra sola tras 2 horas sin actividad: al abrir el chat pasado
+     ese tiempo, empieza vacía. Lo anterior sigue en la nube (para que Iarvis aprenda), no se enseña. */
+  const CHARLA = 'vidaire.iarvis.charla';
+  const CADUCA_MS = 2 * 60 * 60 * 1000;
   const NOMBRES_PANTALLA = {
     presupuestos: 'Presupuestos', presupuestoObra: 'Presupuesto de obra', medObra: 'Med Obra', certificaciones: 'Certificaciones',
     compras: 'Compras', comparativos: 'Comparativos', gantt: 'Gantt', commissioning: 'Commissioning', documentacion: 'Documentación',
@@ -33,7 +37,30 @@
   };
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-  const I = { panel: null, boton: null, lista: null, adaptador: null, ir: null, contexto: () => ({}), movil: false, ficheros: [], filas: [], ocupado: false, deEstaVez: new Set(), idsEstaVez: new Set(), verAnteriores: false, pdfs: {} };
+  const I = { panel: null, boton: null, lista: null, adaptador: null, ir: null, contexto: () => ({}), movil: false, ficheros: [], filas: [], ocupado: false, deEstaVez: new Set(), idsEstaVez: new Set(), verAnteriores: false, pdfs: {}, ultima: 0, volver: null };
+
+  function leerCharla() {
+    try {
+      const c = JSON.parse(localStorage.getItem(CHARLA) || 'null');
+      if (c && Number(c.ultima) && Date.now() - Number(c.ultima) < CADUCA_MS) return c;
+    } catch { /* sin almacenamiento */ }
+    return null;
+  }
+  function guardarCharla() {
+    try { localStorage.setItem(CHARLA, JSON.stringify({ ultima: I.ultima, ids: [...I.idsEstaVez].slice(-60) })); } catch { /* sin almacenamiento */ }
+  }
+  /** Hay actividad: la conversación sigue viva 2 horas más. */
+  function actividad() { I.ultima = Date.now(); guardarCharla(); }
+  /** Al abrir: pasadas 2 horas sin actividad, conversación vacía. */
+  function caducar() {
+    if (I.ultima && Date.now() - I.ultima < CADUCA_MS) return;
+    const c = leerCharla();
+    I.deEstaVez = new Set();
+    I.idsEstaVez = new Set(c && Array.isArray(c.ids) ? c.ids : []);
+    I.ultima = c ? Number(c.ultima) : 0;
+  }
+  /** Para las pruebas: el estado de la conversación de esta vez. */
+  const _charla = { leerCharla, caducar, actividad, CADUCA_MS };
 
   function adaptadorDelPuente() {
     const p = window.puente;
@@ -41,6 +68,8 @@
     return {
       preguntar: (d) => p.iarvisPreguntar(d), historial: () => p.iarvisHistorial(), valorar: (id, v) => p.iarvisValorar(id, v),
       estado: (id) => p.iarvisEstado(id), adjuntar: (n, b, t) => p.iarvisAdjuntar(n, b, t),
+      /* 8-nov: el botón «hacer» (guardar la respuesta del claim) también en el escritorio. */
+      hacer: p.iarvisHacer ? (a) => p.iarvisHacer(a) : undefined,
     };
   }
 
@@ -134,15 +163,10 @@
 
   function pintar() {
     if (!I.lista) return;
+    /* 8-nov (JC): solo la conversación de esta vez; lo de otras veces no se enseña (sigue en la nube). */
     const ahora = I.filas.filter((f) => I.deEstaVez.has(f) || (f.id && I.idsEstaVez.has(f.id)));
-    const antes = I.filas.filter((f) => !ahora.includes(f));
-    const anteriores = antes.length
-      ? `<details class="iaAnteriores"${I.verAnteriores ? ' open' : ''}><summary>Conversaciones anteriores (${antes.length})</summary>${[...antes].reverse().map(pintarFila).join('')}</details>`
-      : '';
     const bienvenida = ahora.length ? '' : `<div class="iaBienvenida"><h3>${saludo()}</h3><p>Pídeme lo que necesites de la obra: lo busco en la app y te lo doy. También te explico cómo se hace cualquier cosa.</p><div class="iaSugerencias">${sugerencias()}</div></div>`;
-    I.lista.innerHTML = `${anteriores}${bienvenida}${[...ahora].reverse().map(pintarFila).join('')}`;
-    const det = I.lista.querySelector('.iaAnteriores');
-    if (det) det.addEventListener('toggle', () => { I.verAnteriores = det.open; });
+    I.lista.innerHTML = `${bienvenida}${[...ahora].reverse().map(pintarFila).join('')}`;
     I.lista.scrollTop = I.lista.scrollHeight;
   }
 
@@ -171,6 +195,8 @@
     const pregunta = (typeof textoDado === 'string' ? textoDado : caja.value).trim();
     if (!pregunta || I.ocupado || !I.adaptador) return;
     I.ocupado = true;
+    caducar();
+    actividad();
     const botonMandar = I.panel.querySelector('.iaMandar');
     botonMandar.disabled = true;
     const adjuntos = I.ficheros.slice();
@@ -186,9 +212,10 @@
     let r;
     try {
       r = await I.adaptador.preguntar({ pregunta, pantalla: ctx.pantalla, obraId: ctx.obraId, obraNombre: ctx.obraNombre, mirando: ctx.mirando, idioma: ctx.idioma, adjuntos });
-    } catch { r = { estado: 'pendiente', respuesta: 'Iarvis te contestará en un rato. Tu pregunta queda guardada.' }; }
+    } catch { r = { estado: 'fallo', respuesta: 'Iarvis no ha podido contestar ahora. Vuelve a preguntármelo.' }; }
     Object.assign(provisional, r || {});
     if (provisional.id) I.idsEstaVez.add(provisional.id);
+    actividad();
     pintar();
     I.ocupado = false;
     botonMandar.disabled = false;
@@ -281,6 +308,12 @@
         return;
       }
       if (a.vista && a.destino === 'commissioning' && window.PANTALLA_COMMISSIONING && window.PANTALLA_COMMISSIONING.prepararVista) window.PANTALLA_COMMISSIONING.prepararVista(a.vista, a.obraId);
+      /* 8-nov: «Abrir el estudio» del claim (electron/data/iarvisClaim.js). */
+      if (a.destino === 'reclamaciones' && window.PANTALLA_RECLAMACIONES && window.PANTALLA_RECLAMACIONES.estado) {
+        const E = window.PANTALLA_RECLAMACIONES.estado;
+        if (a.vista) E.vista = String(a.vista);
+        if (a.recId) { E.recId = String(a.recId); if (a.obraId) E.obraId = String(a.obraId); }
+      }
       if (I.ir) I.ir(a.destino);
       if (!I.movil) cerrar();
       return;
@@ -308,6 +341,7 @@
       try { r = await I.adaptador.hacer(a); } catch { r = { estado: 'fallo', respuesta: 'No he podido hacerlo ahora.' }; }
       Object.assign(provisional, r || {});
       if (provisional.id) I.idsEstaVez.add(provisional.id);
+      actividad();
       I.ocupado = false;
       pintar();
       return;
@@ -325,6 +359,7 @@
       try { r = await proponer({ obraId: a.obraId, desde: a.desde, hasta: a.hasta, periodo: a.periodo, aplicar: a.tipo === 'aplicar' }); } catch (e) { r = { estado: 'fallo', respuesta: 'No he podido hacerlo ahora.' }; }
       Object.assign(provisional, r || {});
       if (provisional.id) I.idsEstaVez.add(provisional.id);
+      actividad();
       I.ocupado = false;
       pintar();
     }
@@ -335,13 +370,16 @@
     p.className = `iaPanel${I.movil ? ' iaMovil' : ''}`;
     p.setAttribute('aria-label', 'Iarvis');
     p.innerHTML = `
-      <div class="iaCabecera"><span class="iaMarca" aria-hidden="true">I</span><div class="iaTitulo"><h2>Iarvis</h2><span class="iaAviso">Usa la app por ti · solo lo que tu puesto ve</span></div><button class="iaNueva" title="Empezar de cero" aria-label="Conversación nueva">＋</button>${I.movil ? '' : '<button class="iaCerrar" title="Cerrar (Esc)" aria-label="Cerrar">×</button>'}</div>
+      ${I.movil
+    /* 8-nov (JC): en el móvil, SOLO el chat: una cabecera mínima con «‹» para volver y «Iarvis». */
+    ? '<div class="iaCabecera"><button class="iaVolver" title="Volver" aria-label="Volver">‹</button><h2>Iarvis</h2></div>'
+    : '<div class="iaCabecera"><span class="iaMarca" aria-hidden="true">I</span><div class="iaTitulo"><h2>Iarvis</h2><span class="iaAviso">Usa la app por ti · solo lo que tu puesto ve</span></div><button class="iaNueva" title="Empezar de cero" aria-label="Conversación nueva">＋</button><button class="iaCerrar" title="Cerrar (Esc)" aria-label="Cerrar">×</button></div>'}
       <div class="iaLista" role="log" aria-live="polite"></div>
       <div class="iaEntrada">
         <div class="iaFicheros"></div>
         <div class="iaFila">
-          <button class="iaClip" title="Adjuntar un archivo" aria-label="Adjuntar">📎</button>
-          ${I.movil ? '<button class="iaCamara" title="Foto con la cámara" aria-label="Cámara">📷</button>' : ''}
+          <button class="iaClip" title="Adjuntar un archivo" aria-label="Adjuntar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5l-7.6 7.6a4.5 4.5 0 0 1-6.4-6.4l8-8a3 3 0 0 1 4.2 4.2l-8 8a1.5 1.5 0 0 1-2.1-2.1l7.3-7.3"/></svg></button>
+          ${I.movil ? '<button class="iaCamara" title="Foto con la cámara" aria-label="Cámara"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2.2l1.5-2h5.6l1.5 2h2.2A1.5 1.5 0 0 1 20 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z"/><circle cx="12" cy="12.5" r="3.5"/></svg></button>' : ''}
           <textarea rows="1" placeholder="${I.movil ? 'Escribe o pulsa el micrófono del teclado para dictar' : 'Pregunta a Iarvis… (Intro para mandar)'}"></textarea>
           <button class="iaMandar">Mandar</button>
         </div>
@@ -362,7 +400,8 @@
     p.addEventListener('click', async (e) => {
       const sug = e.target.closest('[data-ia-sugerencia]');
       if (sug) { mandar(sug.getAttribute('data-ia-sugerencia')); return; }
-      if (e.target.closest('.iaNueva')) { I.deEstaVez = new Set(); I.idsEstaVez = new Set(); I.verAnteriores = false; pintar(); return; }
+      if (e.target.closest('.iaVolver')) { if (I.volver) I.volver(); else if (history.length > 1) history.back(); return; }
+      if (e.target.closest('.iaNueva')) { I.deEstaVez = new Set(); I.idsEstaVez = new Set(); I.ultima = 0; try { localStorage.removeItem(CHARLA); } catch { /* nada */ } pintar(); return; }
       const pdf = e.target.closest('[data-ia-pdf]');
       if (pdf) { abrirPdf(pdf.getAttribute('data-ia-pdf'), pdf.getAttribute('data-ruta'), false); return; }
       const carpeta = e.target.closest('[data-ia-pdf-carpeta]');
@@ -391,8 +430,9 @@
   function abrir() {
     if (!I.panel) return;
     I.panel.hidden = false;
-    if (I.boton) { I.boton.hidden = true; I.boton.classList.remove('conPunto'); }
-    I.verAnteriores = false;
+    /* 8-nov: el botón vive en la cabecera y no se esconde; solo se le quita el punto. */
+    if (I.boton) { I.boton.classList.remove('conPunto'); I.boton.setAttribute('aria-expanded', 'true'); }
+    caducar();
     /* 8-nov: el saludo sale ya; el historial de la nube puede tardar y el panel se quedaba en blanco. */
     pintar();
     cargarHistorial();
@@ -402,37 +442,52 @@
   function cerrar() {
     if (I.movil || !I.panel) return;
     I.panel.hidden = true;
-    if (I.boton) I.boton.hidden = false;
+    if (I.boton) I.boton.setAttribute('aria-expanded', 'false');
   }
 
-  /** Escritorio y web: botón flotante + panel lateral. */
+  /** Escritorio y web: botón en la cabecera (flotante si no hay cabecera) + panel. */
   function instalar({ adaptador, ir, contexto } = {}) {
     I.adaptador = adaptador || adaptadorDelPuente();
     if (!I.adaptador || I.boton) return;
     I.ir = ir || null;
     I.contexto = contexto || (() => ({}));
+    /*
+     * 8-nov (JC): ya no es la píldora flotante «Iarvis» de abajo a la derecha:
+     * un botón pequeño y redondo con su brújula (shared/arranqueLogo.js › BRUJULA,
+     * la misma del móvil, renderer/movil/carcasa.js › botonIarvis) en la cabecera,
+     * junto al selector de rol. Pulsarlo abre o cierra el chat.
+     */
     I.boton = document.createElement('button');
     I.boton.id = 'iarvisBoton';
+    I.boton.type = 'button';
     I.boton.title = 'Hablar con Iarvis';
-    I.boton.innerHTML = '<span aria-hidden="true">🧭</span> Iarvis <span class="iaPunto"></span>';
-    I.boton.addEventListener('click', abrir);
+    I.boton.setAttribute('aria-label', 'Hablar con Iarvis');
+    I.boton.setAttribute('aria-expanded', 'false');
+    I.boton.innerHTML = `${(window.ARRANQUE_LOGO && window.ARRANQUE_LOGO.BRUJULA) || '<span aria-hidden="true">🧭</span>'}<span class="iaPunto"></span>`;
+    I.boton.addEventListener('click', () => (I.panel && !I.panel.hidden ? cerrar() : abrir()));
     I.panel = construirPanel();
     I.panel.hidden = true;
-    document.body.append(I.boton, I.panel);
-    document.body.classList.add('conIarvis');
+    const cab = document.querySelector('.cabecera .derecha');
+    if (cab) { I.boton.classList.add('enCabecera'); cab.prepend(I.boton); document.body.append(I.panel); } else {
+      document.body.append(I.boton, I.panel);
+      document.body.classList.add('conIarvis');
+    }
   }
 
   /** Móvil: el panel dentro de su pestaña. */
-  function montarEn(elemento, { adaptador, ir, contexto } = {}) {
+  function montarEn(elemento, { adaptador, ir, contexto, volver } = {}) {
     I.movil = true;
     I.adaptador = adaptador;
     I.ir = ir || null;
+    I.volver = volver || null;
     I.contexto = contexto || (() => ({}));
     if (!I.panel) I.panel = construirPanel();
     elemento.replaceChildren(I.panel);
     I.panel.hidden = false;
+    caducar();
+    pintar();
     cargarHistorial();
   }
 
-  window.IARVIS = { instalar, montarEn, abrir, cerrar, estado: I };
+  window.IARVIS = { instalar, montarEn, abrir, cerrar, estado: I, _charla };
 })();

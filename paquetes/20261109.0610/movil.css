@@ -116,7 +116,6 @@ body {
    recibe toques: el contenido sigue por debajo, y la página deja abajo el
    hueco (--hueco-barra) para que la última fila no quede tapada. */
 :root { --barra-flotante: rgba(255, 255, 255, .8); --barra-solida: #FFFFFF; --barra-flotante-borde: rgba(255, 255, 255, .7); --hueco-barra: 150px; }
-body.sin-caja-iarvis { --hueco-barra: 104px; }
 .barra-inferior {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
   padding: 22px 16px max(env(safe-area-inset-bottom), 10px);
@@ -124,21 +123,21 @@ body.sin-caja-iarvis { --hueco-barra: 104px; }
   display: flex; flex-direction: column; align-items: stretch; gap: 8px;
 }
 .barra-pastilla { width: 100%; box-sizing: border-box; }
-/* LA CAJA DE IARVIS (8-nov, JC): estrecha, pegada encima de la barra, en todas las pantallas menos la suya. */
-.caja-iarvis {
-  pointer-events: auto; align-self: center; width: 100%; max-width: 560px; box-sizing: border-box; height: 38px;
-  display: flex; align-items: center; gap: 8px; padding: 0 14px; border-radius: 999px;
-  background: var(--barra-flotante); border: 1px solid var(--acento); color: var(--textoTenue); text-decoration: none; font-size: 14px;
-  -webkit-backdrop-filter: saturate(180%) blur(24px); backdrop-filter: saturate(180%) blur(24px);
-  box-shadow: 0 4px 10px rgba(15, 23, 42, .12);
-  transition: width .18s, max-width .18s, padding .18s, opacity .18s;
-}
-.caja-iarvis .caja-texto { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* Al bajar la pantalla: un botón redondo a la derecha, junto a la barra. */
-body.caja-chica .caja-iarvis { width: 38px; padding: 0; justify-content: center; align-self: flex-end; }
-body.caja-chica .caja-iarvis .caja-texto { display: none; }
-body.sin-caja-iarvis .caja-iarvis { display: none; }
-/* Con el teclado abierto o algo a pantalla completa (plano grande, firma, foto, PDF, entrar), ni caja ni barra. */
+/* EL BOTÓN DE IARVIS (8-nov, JC): solo la brújula, 34 px, arriba en la cabecera junto a la
+   sincronización (carcasa.js › botonIarvis); en todas las pantallas menos en el chat. */
+.boton-iarvis { flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 50%; align-self: center; text-decoration: none;
+  -webkit-tap-highlight-color: transparent; }
+.boton-iarvis svg { display: block; width: 34px; height: 34px; }
+.boton-iarvis:active { transform: scale(.94); }
+.boton-iarvis:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+.boton-iarvis[hidden] { display: none; }
+/* EL CHAT DE IARVIS, SOLO EL CHAT (8-nov, JC): sin la cabecera de la app, sin la obra, sin las
+   secciones ni la barra de abajo. La cabecera mínima («‹ Iarvis») la pone renderer/iarvis.js. */
+body.en-iarvis .barra, body.en-iarvis #segmentos, body.en-iarvis .barra-inferior { display: none; }
+body.en-iarvis { --hueco-barra: 0px; }
+body.en-iarvis #app { padding: 0; }
+/* Con el teclado abierto o algo a pantalla completa (plano grande, firma, foto, PDF, entrar), sin barra. */
 body.teclado .barra-inferior, body.teclado-vv .barra-inferior,
 body:has(.plano-bocas.grande, .vista-pdf, .visor-foto, .visor-foto-ui, .bm-capa, .qh-firmar, .entrar-movil) .barra-inferior { display: none; }
 .barra-pastilla {
@@ -215,41 +214,14 @@ small, .sub { color: var(--textoTenue); font-size: 13px; }
 .nota.inc-aviso { color: var(--aviso); background: var(--aviso-fondo); padding: 10px 14px; border-radius: var(--radio); }
 .nota.inc-aviso .enlace { font-weight: 600; }
 .cargando { color: var(--textoTenue); text-align: center; padding: 48px 8px; }
-/* 5-nov (JC): mientras carga, solo el logo animado y centrado (la bolita de Cx
-   sube por la V, salta y bota). El texto «Cargando…» se queda para el lector de pantalla. */
+/* Mientras carga, solo el logo animado y centrado. El texto «Cargando…» se queda
+   para el lector de pantalla. 8-nov (JC): el logo es el del arranque
+   (shared/arranqueLogo.js, lo mete index.html en cada p.cargando): la V gruesa del
+   icono quieta y la brújula, donde lo único animado es la aguja. */
 p.cargando { min-height: 70vh; display: flex; align-items: center; justify-content: center;
   font-size: 0; color: transparent; padding: 0; }
-/* 5-nov (JC: «se queda pillada»): el logo va en línea (.cx-carga, lo mete
-   carcasa.js en cada p.cargando) y no como url(): la animación de un SVG metido
-   como imagen corre en el hilo principal, que el arranque tiene ocupado. Aquí
-   solo se mueven cajas HTML con transform, que WebKit anima en el compositor
-   aunque el JS esté calculando. Medidas en unidades del viewBox (-10 -40 140 160). */
-.cx-carga { position: relative; display: block; width: 140px; height: 160px; flex: none; transform: scale(.75); }
-.cx-carga > svg { position: absolute; inset: 0; width: 140px; height: 160px; }
-.cx-carga .bola { position: absolute; left: 10px; top: 40px; width: 0; height: 0;
-  will-change: transform; animation: cx-camino 2.6s infinite; }
-.cx-carga .giro { position: absolute; left: -11px; top: -11px; width: 22px; height: 22px;
-  will-change: transform; animation: cx-giro 2.6s infinite linear; }
-.cx-carga .giro svg { display: block; width: 22px; height: 22px; }
-@keyframes cx-camino {
-  0%   { transform: translate(86px, 86px); animation-timing-function: ease-in-out; }
-  30%  { transform: translate(110px, 25px); animation-timing-function: ease-out; }
-  36%  { transform: translate(93px, -1px); animation-timing-function: ease-out; }
-  46%  { transform: translate(72px, -32px); animation-timing-function: ease-in; }
-  56%  { transform: translate(60px, 77px); animation-timing-function: ease-out; }
-  63%  { transform: translate(60px, 56px); animation-timing-function: ease-in; }
-  69%  { transform: translate(60px, 77px); animation-timing-function: ease-out; }
-  73%  { transform: translate(60px, 70px); animation-timing-function: ease-in; }
-  77%  { transform: translate(60px, 77px); animation-timing-function: ease-out; }
-  86%  { transform: translate(94px, -4px); animation-timing-function: ease-in; }
-  92%  { transform: translate(110px, 25px); animation-timing-function: ease-in-out; }
-  100% { transform: translate(86px, 86px); }
-}
-@keyframes cx-giro {
-  0% { transform: rotate(0deg); } 36% { transform: rotate(360deg); } 56% { transform: rotate(720deg); }
-  77% { transform: rotate(720deg); } 86% { transform: rotate(900deg); } 100% { transform: rotate(1080deg); }
-}
-@media (prefers-reduced-motion: reduce) { .cx-carga .bola, .cx-carga .giro { animation: none; } .cx-carga .bola { transform: translate(86px, 86px); } }
+.cx-carga { display: block; flex: none; width: 96px; height: 96px; }
+.cx-carga > svg { display: block; width: 96px; height: 96px; }
 
 /* El estado vacío, igual en todas las listas (el EmptyState de CoachIn): un
    círculo gris con el icono y el texto debajo, centrado y con aire. */
