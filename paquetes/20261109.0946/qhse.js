@@ -32,17 +32,17 @@
       .qh th { text-align: left; font-size: 13px; font-weight: 600; color: var(--acento-fuerte); background: none; border-bottom: 2px solid var(--acento-fuerte); padding: 6px 4px; }
       .qh td { padding: 10px 4px; border-bottom: 1px solid var(--panel3); vertical-align: top; }
       .qh .toca { margin: 10px 0; padding: 8px 0; border-bottom: 2px solid var(--acento-suave); }
-      .qh .toca.hecho strong { color: var(--ok, #1a8a4a); }
+      .qh .toca.hecho strong { color: var(--bien); }
       .qh .tipos { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
       .qh .tipos .boton, .qh .pie .boton { width: fit-content; border-radius: 999px; }
       .qh .qh-tipos { display: flex; gap: 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; margin: 4px -4px 6px; padding: 2px 4px; }
       .qh .qh-tipos::-webkit-scrollbar { display: none; }
       .qh .qh-tipos button { flex: 0 0 auto; width: fit-content; white-space: nowrap; border-radius: 999px; border: 1px solid var(--acento-suave); background: var(--acento-suave); color: var(--acento-fuerte); font-size: 14px; padding: 7px 13px; min-height: 36px; }
-      .qh .qh-tipos button[aria-pressed="true"] { background: var(--acento); border-color: var(--acento); color: #FFFFFF; }
+      .qh .qh-tipos button[aria-pressed="true"] { background: var(--acento-relleno); border-color: var(--acento-relleno); color: var(--sobre-relleno); }
       #app .qh .qh-tipos small { color: inherit; opacity: .85; margin-left: 2px; font-size: 12px; }
       .qh .qh-resumen { font-size: 14px; margin: 2px 0 4px; color: var(--textoSuave); }
       .qh .qh-resumen .pend { color: var(--aviso); font-weight: 600; }
-      .qh .qh-resumen .nc, .qh .qh-lista .nc { color: #B4433A; font-weight: 600; }
+      .qh .qh-resumen .nc, .qh .qh-lista .nc { color: var(--mal); font-weight: 600; }
       .qh .qh-resumen .ok { color: var(--bien); }
       .qh .qh-cabeza { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
       #app .qh .qh-cabeza .boton { width: fit-content; border-radius: 999px; min-height: 36px; padding: 6px 16px; }
@@ -67,7 +67,7 @@
       .qh-firmar .hoja-firma { background: var(--panel); width: 100%; box-sizing: border-box; padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); border-radius: 18px 18px 0 0; display: flex; flex-direction: column; gap: 8px; }
       .qh-firmar input { height: 44px; font-size: 17px; width: 100%; box-sizing: border-box; min-width: 0; }
       .qh-firmar .dos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-      .qh-firmar canvas { width: 100%; height: 200px; border: 1px dashed var(--acento); border-radius: 12px; background: #FFFFFF; touch-action: none; }
+      .qh-firmar canvas { width: 100%; height: 200px; border: 1px dashed var(--acento); border-radius: 12px; background: var(--vd-lienzo); touch-action: none; }
       .qh-firmar .botones { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
       .qh-firmar .boton { width: fit-content; border-radius: 999px; }
       .qh details { border-bottom: 1px solid var(--panel3); }
@@ -80,9 +80,9 @@
       /* Aceptable / No aceptable / N/A: el segmentado pequeño de 1ce9c0f (.segmentado.pasos-rp), en una línea. */
       #app .qh .segmentado.resp { margin: 2px 0; flex: 0 0 auto; }
       #app .qh .segmentado.resp button { min-height: 44px; padding: 0 11px; font-size: 13.5px; }
-      #app .qh .segmentado.resp button[aria-pressed="true"] { background: var(--acento); color: #FFFFFF; }
-      #app .qh .segmentado.resp button.mal[aria-pressed="true"] { background: #F6D9D6; color: #8F1F18; }
-      #app .qh .segmentado.resp button.na[aria-pressed="true"] { background: #DCEFEA; color: #075747; }
+      #app .qh .segmentado.resp button[aria-pressed="true"] { background: var(--acento-relleno); color: var(--sobre-relleno); }
+      #app .qh .segmentado.resp button.mal[aria-pressed="true"] { background: var(--mal-fondo); color: var(--mal); }
+      #app .qh .segmentado.resp button.na[aria-pressed="true"] { background: var(--panel3); color: var(--acento-fuerte); }
       .qh .todo-ok { display: flex; margin: 6px 4px; }
       #app .qh .todo-ok.boton.secundario { min-height: 32px; padding: 3px 12px; font-size: 13px; margin: 6px 4px; }
       #app.densa .qh h2 { width: fit-content; max-width: 100%; border-radius: 16px; padding: 4px 14px; }
@@ -100,13 +100,13 @@
       .qh .plan-fila { padding: 10px 0; border-bottom: 1px solid var(--panel3); }
       .qh .plan-fila input, .qh .plan-fila textarea { width: 100%; margin-bottom: 6px; }
       .qh .avisos p { margin: 6px 0; padding-left: 8px; border-left: 3px solid var(--acento-fuerte); font-size: 15px; }
-      .qh .avisos p.alto { border-left-color: #1f5fa8; font-weight: 600; }
+      .qh .avisos p.alto { border-left-color: var(--info); font-weight: 600; }
       .qh td .boton { min-height: 40px; padding: 4px 12px; border-radius: 999px; }
-      .qh .estado-v { color: #1f5fa8; font-weight: 700; }
+      .qh .estado-v { color: var(--info); font-weight: 700; }
       .qh .fotos { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
       .qh .fotos figure { margin: 0; position: relative; }
       .qh .fotos img { width: 96px; height: 96px; object-fit: cover; border-radius: 8px; }
-      .qh .fotos button { position: absolute; top: 2px; right: 2px; min-height: 28px; border-radius: 999px; border: none; background: rgba(0,0,0,.55); color: #fff; }
+      .qh .fotos button { position: absolute; top: 2px; right: 2px; min-height: 28px; border-radius: 999px; border: none; background: rgba(0,0,0,.55); color: var(--vd-sobre-imagen); }
       .qh .guardado { font-size: 14px; color: var(--textoSuave); }
     `;
     document.head.appendChild(s);
@@ -391,7 +391,7 @@
       ${cerrado || p.plan === false ? '' : `${p.secciones.length ? '<button class="boton secundario" data-qh="plan-nc">Traer los puntos que no cumplen</button> ' : ''}<button class="boton secundario" data-qh="plan-mas">${p.secciones.length ? '+ Añadir acción' : '+ Añadir NC'}</button>`}
       <h2>Fotos</h2>
       <div class="fotos" data-qh-fotos>${fotos()}</div>
-      ${cerrado ? '' : '<label class="boton secundario" style="width:fit-content;border-radius:999px">Añadir foto<input type="file" accept="image/*" capture="environment" data-qh-foto hidden></label>'}
+      ${cerrado ? '' : '<label class="boton secundario" style="width:fit-content;border-radius:999px">Añadir foto<input type="file" accept="image/*" capture="environment" data-qh-foto hidden></label> <label class="boton secundario" style="width:fit-content;border-radius:999px">De la galería<input type="file" accept="image/*" multiple data-qh-foto hidden></label>'}
       <h2>${esc(p.firma)}</h2>
       <div class="campos">
         <label>Nombre<input data-qh-firma="nombre" value="${esc(f.firma.nombre)}" ${dis}></label>
@@ -440,7 +440,7 @@
       ${dis ? '' : `<div class="acciones-as">${firma ? '<button class="boton" data-qh="as-pasar">Pasar el móvil para firmar</button>' : ''}<button class="boton secundario" data-qh="as-mas">+ Asistente</button></div>`}
       ${p.escanearAsistencia ? `<h2>Hoja de asistencia en papel <span class="cuenta" data-qh-hojas-n>${hojasEscaneadas().length}</span></h2>
         <div class="fotos" data-qh-hojas>${hojasHtml()}</div>
-        ${dis ? '' : '<label class="boton secundario" style="width:fit-content;border-radius:999px">Escanear hoja de asistencia<input type="file" accept="image/*" capture="environment" data-qh-hoja hidden></label>'}
+        ${dis ? '' : '<label class="boton secundario" style="width:fit-content;border-radius:999px">Escanear hoja de asistencia<input type="file" accept="image/*" capture="environment" data-qh-hoja hidden></label> <label class="boton secundario" style="width:fit-content;border-radius:999px">Hojas de la galería<input type="file" accept="image/*" multiple data-qh-hoja hidden></label>'}
         <div data-qh-ocr></div>` : ''}`;
   }
   const hojasEscaneadas = () => ((form && form.adjuntos) || []).filter((a) => a.ref === 'asistencia');
@@ -477,7 +477,7 @@
     const k = window.devicePixelRatio || 1;
     cv.width = Math.round(r.width * k); cv.height = Math.round(r.height * k);
     const g = cv.getContext('2d');
-    g.scale(k, k); g.lineWidth = 2.4; g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = '#0F3D6E';
+    g.scale(k, k); g.lineWidth = 2.4; g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = (getComputedStyle(document.documentElement).getPropertyValue('--vd-trazo').trim() || 'black');
     let pinta = false; let trazado = false; let ult = null;
     const punto = (ev) => { const b = cv.getBoundingClientRect(); return [ev.clientX - b.left, ev.clientY - b.top]; };
     cv.addEventListener('pointerdown', (ev) => { ev.preventDefault(); cv.setPointerCapture && cv.setPointerCapture(ev.pointerId); pinta = true; ult = punto(ev); g.beginPath(); g.arc(ult[0], ult[1], 1.1, 0, Math.PI * 2); g.fillStyle = g.strokeStyle; g.fill(); trazado = true; });
@@ -615,7 +615,7 @@
         <p><span class="chip ${cerr ? 'bien' : 'aviso'}">${cerr ? `Cerrada ${esc(fechaEs(a.cerradaEn))}${a.cerradaPor ? ` · ${esc(a.cerradaPor)}` : ''}` : 'Abierta'}</span></p>
         ${cerr ? `${a.cierre ? `<p class="nota">${esc(a.cierre)}</p>` : ''}${form.puedeSeguir ? `<button class="boton secundario" data-qh="nc-reabrir" data-i="${a.i}">Reabrir</button>` : ''}`
           : (form.puedeSeguir ? `<input class="com" data-qh-cierre="${a.i}" value="${esc(a.cierre || '')}" placeholder="Cómo se ha subsanado">
-            <div class="acciones"><label class="boton secundario" style="width:fit-content;border-radius:999px">Foto<input type="file" accept="image/*" capture="environment" data-qh-fotonc="${a.i}" hidden></label>
+            <div class="acciones"><label class="boton secundario" style="width:fit-content;border-radius:999px">Foto<input type="file" accept="image/*" capture="environment" data-qh-fotonc="${a.i}" hidden></label> <label class="boton secundario" style="width:fit-content;border-radius:999px">Galería<input type="file" accept="image/*" multiple data-qh-fotonc="${a.i}" hidden></label>
             <button class="boton" data-qh="nc-cerrar" data-i="${a.i}">Cerrar NC</button></div>` : '')}
       </div>`;
     }).join('');
@@ -813,18 +813,18 @@
       return;
     }
     if (activa() && form && t.matches && t.matches('[data-qh-fotonc]')) {
-      const f = t.files && t.files[0]; const i = t.dataset.qhFotonc; t.value = '';
-      if (f) subirFoto(f, `nc:${i}`);
+      const fs = Array.from(t.files || []); const i = t.dataset.qhFotonc; t.value = '';
+      if (fs.length) window.AUTOGUARDADO.porLotes(fs, (f) => subirFoto(f, `nc:${i}`), 'Subiendo');
       return;
     }
     if (activa() && form && t.matches && t.matches('[data-qh-hoja]')) {
-      const f = t.files && t.files[0]; t.value = '';
-      if (f) escanearHoja(f);
+      const fs = Array.from(t.files || []); t.value = '';
+      if (fs.length) window.AUTOGUARDADO.porLotes(fs, escanearHoja, 'Escaneando');
       return;
     }
     if (!activa() || !form || !t.matches || !t.matches('[data-qh-foto]')) return;
-    const f = t.files && t.files[0]; t.value = '';
-    if (f) subirFoto(f);
+    const fs = Array.from(t.files || []); t.value = '';
+    if (fs.length) window.AUTOGUARDADO.porLotes(fs, (f) => subirFoto(f), 'Subiendo');
   });
 
   const recoger = (ev) => {

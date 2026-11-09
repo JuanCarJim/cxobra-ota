@@ -3,16 +3,15 @@
  * LA CARCASA DE CX OBRA: la barra de pestañas de abajo, las secciones de cada
  * pestaña arriba, la obra elegida y la pantalla de la cuenta.
  *
- *   · ABAJO, la barra flotante de Finanzas Pro: Inicio · Commissioning
- *     · [ + ] · Incidencias · Más. El «+» no es una pestaña: abre la hoja de
- *     Añadir (Nueva NCR, Nota rápida, Escanear albarán, Medir equipo, Prueba
- *     de estanqueidad, Parte, según el rol). Una pestaña sin ninguna sección
- *     para el rol no sale.
+ *   · ABAJO, la barra flotante de Finanzas Pro, según el rol (8-nov, opción B):
+ *     Inicio · X · [ + ] · Y · Más, con X e Y lo que más usa cada uno (barraRol.js).
+ *     El «+» no es una pestaña: abre la hoja de Añadir (Nueva NCR, Nota rápida,
+ *     Escanear albarán, Medir equipo, Prueba de estanqueidad, Parte, según el rol).
  *   · INICIO es la primera pantalla al entrar: la obra, cómo va el
  *     commissioning y lo que espera (partes, NCR, pruebas), con atajos.
- *   · ARRIBA, si la pestaña tiene más de una sección, un selector segmentado:
- *     Incidencias = Partes | NCR | Reparaciones; Más = Notas (el bloc) |
- *     Albaranes | Inventario | Personal | Cuenta.
+ *   · ARRIBA, si la pestaña tiene más de una sección, un selector segmentado
+ *     de dos como mucho: Inicio | Mis tareas, Plan | Reportes (QHSE).
+ *   · «MÁS» es una lista agrupada como la barra lateral del ordenador.
  *   · LA OBRA se elige una vez en la cabecera y vale para todas las secciones
  *     (se guarda en el teléfono). Al cambiarla se avisa con «movil:obra».
  *
@@ -53,55 +52,52 @@
   })();
   const icono = (off, on) => svg(`<g class="off">${off}</g><g class="on">${on}</g>`);
 
-  /* Cuatro pestañas, dos a cada lado del botón de añadir: [0][1] [ + ] [2][3]. */
-  const PESTANAS = [
-    { id: 'inicio', nombre: 'Inicio',
-      icono: icono('<path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/>',
-        '<path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z" fill="currentColor"/>'),
-      /* 24-oct: «Mis tareas», las órdenes de mantenimiento de quien lleva el teléfono. */
-      secciones: [['inicio', 'Inicio'], ['misTareas', 'Mis tareas']] },
-    { id: 'commissioning', nombre: 'Commissioning',
-      icono: icono('<path d="M4 15a8 8 0 1 1 16 0"/><path d="M12 15l4.5-4.5"/><circle cx="12" cy="15" r="1.4"/><path d="M4 19h16"/>',
-        `<path d="M4 15a8 8 0 1 1 16 0z" fill="currentColor"/><path d="M12 15l4.5-4.5" ${HUECO}/><path d="M4 19h16"/>`),
-      /* Sin subbarra (JC, 22-oct): Estanqueidad se abre desde Inicio y desde el «+», no como pestaña. */
-      secciones: [['commissioning', 'Equipos'], ['estanqueidad', 'Estanqueidad', true]] },
-    { id: 'incidencias', nombre: 'Incidencias',
-      icono: icono('<path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.5"/><circle cx="12" cy="17" r=".6" fill="currentColor"/>',
-        `<path d="M12 3.5 2.8 19.5h18.4z" fill="currentColor"/><path d="M12 10v4" ${HUECO} stroke-width="2.2"/><path d="M12 16.9v.1" ${HUECO} stroke-width="2.4"/>`),
-      /* 26-oct: «Reclamables», los avisos del tajo que pueden reclamarse (avisosReclamables.js). */
-      secciones: [['partes', 'Partes'], ['avisos', 'Reclamables'], ['ncr', 'NCR'], ['reparaciones', 'Reparaciones']] },
-    /* El avance de obra sobre planos (16-oct): el encargado marca lo hecho. */
-    { id: 'avance', nombre: 'Avance',
-      icono: icono('<rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M7 15.5l3.5-4 3 2.5L17 8.5"/>',
-        `<rect x="3.5" y="4" width="17" height="16" rx="2" fill="currentColor"/><path d="M7 15.5l3.5-4 3 2.5L17 8.5" ${HUECO} stroke-width="2"/>`),
-      secciones: [['avance', 'Avance']] },
-    /* El Bloc vive en «Más», el primero; las compras, detrás. */
-    { id: 'mas', nombre: 'Más',
-      icono: icono('<rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/>',
-        '<g fill="currentColor"><rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/></g>'),
-      /* 8-nov (JC): Iarvis ya no es una sección de «Más»: se abre con su brújula de la cabecera (botonIarvis). */
-      secciones: [['jornada', 'Jornada'], ['qhse', 'QHSE'], ['reportesQhse', 'Reportes QHSE'], ['plano', 'Plano de equipos'], ['bloc', 'Notas'], ['albaranes', 'Albaranes'], ['inventario', 'Inventario'], ['personal', 'Personal'], ['cuenta', 'Cuenta']] },
-    /* 29-oct (JC): «QHSE es una cosa aparte, no es una incidencia»: sección propia (como «Seguridad» en la web), la primera de «Más». */
-  ];
   /*
-   * 29-oct (JC): el jefe de obra y el de producción (shared/roles.js, mismas
-   * secciones) llevan QHSE en la barra, en el sitio de «Avance»; el avance
-   * sigue en «Más». Los demás roles, como estaban.
+   * LA BARRA DE ABAJO DEPENDE DEL ROL (8-nov, JC, opción B): [Inicio] [X] [+] [Y] [Más].
+   * Qué pestañas lleva cada rol y qué va en «Más» está en UNA tabla, barraRol.js
+   * (window.CXBarraRol); aquí solo los iconos y el pintado.
+   * Cada icono en sus dos formas, como en Finanzas Pro: de contorno apagado y relleno activo.
    */
-  const PESTANA_QHSE = { id: 'qhse', nombre: 'QHSE',
-    icono: icono('<path d="M12 3.5 5 6.2v5.3c0 4.3 3 7.6 7 9 4-1.4 7-4.7 7-9V6.2z"/><path d="M8.8 12.2l2.2 2.2 4.2-4.4"/>',
-      `<path d="M12 3.5 5 6.2v5.3c0 4.3 3 7.6 7 9 4-1.4 7-4.7 7-9V6.2z" fill="currentColor"/><path d="M8.8 12.2l2.2 2.2 4.2-4.4" ${HUECO} stroke-width="2"/>`),
-    /* 5-nov: los Reportes QHSE (reportesQhse.js), junto al plan. */
-    secciones: [['qhse', 'Plan'], ['reportesQhse', 'Reportes']] };
-  const QHSE_EN_BARRA = new Set(['jefeObra', 'jefeProduccion']);
-  function pestanasDe(rol) {
-    if (!QHSE_EN_BARRA.has(rol)) return PESTANAS;
-    return PESTANAS.map((p) => {
-      if (p.id === 'avance') return PESTANA_QHSE;
-      if (p.id === 'mas') return { ...p, secciones: [['avance', 'Avance'], ...p.secciones.filter(([id]) => id !== 'qhse' && id !== 'reportesQhse')] };
-      return p;
-    });
-  }
+  const trazo = (d) => `<path d="${d}"/>`;
+  const relleno = (d, extra = '') => `<path d="${d}" fill="currentColor"${extra ? ` ${extra}` : ''}/>`;
+  const D_CASA = 'M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z';
+  const D_TRIANGULO = 'M12 3.5 2.8 19.5h18.4z';
+  const D_ESCUDO = 'M12 3.5 5 6.2v5.3c0 4.3 3 7.6 7 9 4-1.4 7-4.7 7-9V6.2z';
+  const D_HOJA = 'M14 3.5H6.5A1.5 1.5 0 0 0 5 5v14a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19V8.5z';
+  const D_LLAVE = 'M14.5 6.5a3.5 3.5 0 0 0-4.6 4.6L4.5 16.5a1.4 1.4 0 0 0 2 2l5.4-5.4a3.5 3.5 0 0 0 4.6-4.6l-2.2 2.2-2-.4-.4-2z';
+  const RELOJ = icono('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+    `<circle cx="12" cy="12" r="8.5" fill="currentColor"/><path d="M12 7.5V12l3 2" ${HUECO} stroke-width="2"/>`);
+  const MEDIDOR = icono('<path d="M4 15a8 8 0 1 1 16 0"/><path d="M12 15l4.5-4.5"/><circle cx="12" cy="15" r="1.4"/><path d="M4 19h16"/>',
+    `<path d="M4 15a8 8 0 1 1 16 0z" fill="currentColor"/><path d="M12 15l4.5-4.5" ${HUECO}/><path d="M4 19h16"/>`);
+  const ICONO_PESTANA = {
+    inicio: icono(trazo(D_CASA), relleno(D_CASA)),
+    commissioning: MEDIDOR,
+    equipos: MEDIDOR,
+    avance: icono('<rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M7 15.5l3.5-4 3 2.5L17 8.5"/>',
+      `<rect x="3.5" y="4" width="17" height="16" rx="2" fill="currentColor"/><path d="M7 15.5l3.5-4 3 2.5L17 8.5" ${HUECO} stroke-width="2"/>`),
+    partes: icono(`${trazo(D_HOJA)}<path d="M14 3.5v5h5"/><path d="M12 11v4M12 17.5v.1"/>`,
+      `${relleno(D_HOJA)}<path d="M12 11v4M12 17.5v.1" ${HUECO} stroke-width="2.2"/>`),
+    ncr: icono(`${trazo(D_TRIANGULO)}<path d="M12 10v4.5"/><circle cx="12" cy="17" r=".6" fill="currentColor"/>`,
+      `${relleno(D_TRIANGULO)}<path d="M12 10v4" ${HUECO} stroke-width="2.2"/><path d="M12 16.9v.1" ${HUECO} stroke-width="2.4"/>`),
+    qhse: icono(`${trazo(D_ESCUDO)}<path d="M8.8 12.2l2.2 2.2 4.2-4.4"/>`,
+      `${relleno(D_ESCUDO)}<path d="M8.8 12.2l2.2 2.2 4.2-4.4" ${HUECO} stroke-width="2"/>`),
+    reclamables: RELOJ,
+    jornada: RELOJ,
+    reparaciones: icono(trazo(D_LLAVE), relleno(D_LLAVE)),
+    albaranes: icono('<path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><path d="M8 9h8M8 12h8M8 15h5"/>',
+      '<path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><path d="M8 9h8M8 12h8M8 15h5" stroke-width="2.4"/>'),
+    personal: icono('<circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0z"/>',
+      '<circle cx="12" cy="8" r="3.5" fill="currentColor"/><path d="M5 20a7 7 0 0 1 14 0z" fill="currentColor"/>'),
+    bloc: icono('<rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4"/>',
+      `<rect x="5" y="3.5" width="14" height="17" rx="2" fill="currentColor"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4" ${HUECO} stroke-width="2"/>`),
+    plano: icono('<path d="M4 6.5 9 4.5l6 2 5-2v13l-5 2-6-2-5 2z"/><path d="M9 4.5v13M15 6.5v13"/>',
+      `<path d="M4 6.5 9 4.5l6 2 5-2v13l-5 2-6-2-5 2z" fill="currentColor"/><path d="M9 4.5v13M15 6.5v13" ${HUECO}/>`),
+    mas: icono('<rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/>',
+      '<g fill="currentColor"><rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/></g>'),
+  };
+  const BR = () => window.CXBarraRol;
+  const secsSesion = () => ((sesion() || {}).secciones || []);
+  const pestanasDe = (rol) => BR().pestanasDe(rol, secsSesion()).map((p) => ({ ...p, icono: ICONO_PESTANA[p.id] || ICONO_PESTANA.mas }));
   const pestanas = () => pestanasDe((sesion() || {}).rol);
   const MAS = svg('<path d="M12 5v14M5 12h14" stroke-width="2.6"/>');
 
@@ -146,17 +142,17 @@
   /* El título de cada sección, arriba: corto, que en el iPhone quepa junto a la pastilla (18-oct). */
   const TITULO = {
     inicio: 'Inicio', commissioning: 'Commissioning', partes: 'Partes', ncr: 'No conformidades', reparaciones: 'Reparaciones', avance: 'Avance de obra', albaranes: 'Albaranes',
-    inventario: 'Inventario', bloc: 'Notas', personal: 'Personal', estanqueidad: 'Estanqueidad', cuenta: 'Cuenta',
+    inventario: 'Inventario', bloc: 'Notas', personal: 'Personal', estanqueidad: 'Estanqueidad', cuenta: 'Perfil',
     misTareas: 'Mis tareas', avisos: 'Reclamables', qhse: 'QHSE', reportesQhse: 'Reportes QHSE', plano: 'Plano de equipos', jornada: 'Jornada',
-    iarvis: 'Iarvis',
+    iarvis: 'Iarvis', mas: 'Más',
   };
   /* Las que no dependen de la obra elegida no enseñan el selector. */
-  const SIN_OBRA = new Set(['cuenta', 'albaranes', 'jornada']);
+  const SIN_OBRA = new Set(['cuenta', 'albaranes', 'jornada', 'mas']);
 
   const sesion = () => (window.ACCESO_MOVIL && window.ACCESO_MOVIL.sesion()) || null;
-  const permitidas = () => { const s = sesion(); return s ? ['inicio', ...(s.secciones || []), 'iarvis', 'cuenta'] : []; }; /* 7-nov: Iarvis, todo rol (iarvisMovil.js). */
+  const permitidas = () => { const s = sesion(); return s ? ['inicio', ...(s.secciones || []), 'iarvis', 'cuenta'].concat('mas') : []; }; /* 7-nov: Iarvis, todo rol (iarvisMovil.js). */
   const seccion = () => location.hash.slice(1);
-  const pestanaDe = (s) => pestanas().find((p) => p.secciones.some(([id]) => id === s)) || null;
+  const pestanaDe = (s) => { const p = BR().pestanaDeSeccion((sesion() || {}).rol, secsSesion(), s); return p ? pestanas().find((x) => x.id === p.id) || null : null; };
 
   /* ═══════════════════════════════════ Pedir al ordenador */
 
@@ -616,8 +612,8 @@
         const propias = visibles.filter(([, , oculta]) => !oculta);
         let destino = (propias[0] || visibles[0])[0];
         try { const u = localStorage.getItem(`movil.pestana.${p.id}`); if (u && propias.some(([id]) => id === u)) destino = u; } catch { /* nada */ }
-        if (actual === p && propias.some(([id]) => id === s)) destino = s;
-        return `<a href="#${destino}" class="pestana-${p.id}${actual === p ? ' activa' : ''}" ${actual === p ? 'aria-current="page"' : ''}>${p.icono}<span>${esc(p.nombre)}</span></a>`;
+        if ((actual && actual.id === p.id) && propias.some(([id]) => id === s)) destino = s;
+        return `<a href="#${destino}" class="pestana-${p.id}${(actual && actual.id === p.id) ? ' activa' : ''}" ${(actual && actual.id === p.id) ? 'aria-current="page"' : ''}>${p.icono}<span>${esc(p.nombre)}</span></a>`;
       };
       const centro = accionesDisponibles().length
         ? '<div class="barra-centro"><button type="button" class="boton-anadir" id="boton-anadir" aria-label="Añadir" aria-haspopup="dialog">' + MAS + '</button><span>Añadir</span></div>'
@@ -647,6 +643,7 @@
     if (caja) caja.hidden = !sesion() || SIN_OBRA.has(s) || !obras.length;
     if (actual) { try { localStorage.setItem(`movil.pestana.${actual.id}`, s); } catch { /* nada */ } }
     if (s === 'cuenta') cuenta();
+    if (s === 'mas') mas();
     if (s === 'inicio') inicio();
     pastillaSync();
     botonIarvis(s);
@@ -910,6 +907,22 @@
     for (const a of app.querySelectorAll('[data-ir-filtro]')) a.onclick = () => { try { const [k, v] = a.dataset.irFiltro.split(':'); sessionStorage.setItem(`${k}.filtro`, v); } catch { /* nada */ } };
   }
   window.addEventListener('movil:obra', () => { if (seccion() === 'inicio') inicio(); });
+
+  /* ═══════════════════════════════════ «Más» */
+
+  /* 8-nov (JC, opción B): una lista agrupada como la barra lateral del ordenador, con sus
+     grupos, nombres e iconos (barraRol.js › masDe). Lo que ya va abajo no se repite. */
+  function mas() {
+    const yo = sesion();
+    const app = document.getElementById('app');
+    if (!yo || !app) return;
+    const grupos = BR().masDe(yo.rol, secsSesion());
+    app.innerHTML = grupos.map((g) => `
+      <h2 class="mas-grupo"><span class="mas-ico" aria-hidden="true">${esc(g.icono)}</span>${esc(g.nombre)}</h2>
+      <ul class="mas-lista">${g.items.map((i) => `
+        <li><a href="#${esc(i.id)}" class="mas-fila" data-mas="${esc(i.id)}"><span class="mas-ico" aria-hidden="true">${esc(i.icono)}</span><span class="mas-nombre">${esc(i.nombre)}</span><span class="mas-flecha" aria-hidden="true">›</span></a></li>`).join('')}
+      </ul>`).join('') || '<div class="vacio"><p>Nada más para tu rol.</p></div>';
+  }
 
   /* ═══════════════════════════════════ La cuenta */
 

@@ -48,7 +48,7 @@
     let i = document.getElementById(id);
     if (!i) {
       i = document.createElement('input');
-      i.type = 'file'; i.id = id; i.hidden = true; i.accept = captura ? 'image/*' : 'image/*,application/pdf';
+      i.type = 'file'; i.id = id; i.hidden = true; if (!captura) i.multiple = true; i.accept = captura ? 'image/*' : 'image/*,application/pdf';
       if (captura) i.setAttribute('capture', 'environment');
       document.body.appendChild(i);
     }
@@ -65,7 +65,7 @@
       .at label, .at input, .at select, .at textarea, .at .nota { font-size: 18px; }
       .at h2 { font-size: 19px; }
       .at-opciones { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 8px 0 14px; }
-      .at-op { min-height: 64px; font-size: 17px; font-weight: 600; border-radius: 12px; border: 2px solid var(--acento-suave); background: var(--panel, #fff); color: var(--texto); padding: 8px; text-align: center; }
+      .at-op { min-height: 64px; font-size: 17px; font-weight: 600; border-radius: 12px; border: 2px solid var(--acento-suave); background: var(--panel); color: var(--texto); padding: 8px; text-align: center; }
       .at-op[aria-pressed="true"] { border-color: var(--acento-fuerte); background: var(--acento-suave); color: var(--acento-fuerte); }
       .at-op small { display: block; font-weight: 400; font-size: 13px; color: var(--textoSuave); }
       .at-tres { grid-template-columns: 1fr 1fr 1fr; }
@@ -445,9 +445,9 @@
   $app.addEventListener('change', recoger);
   for (const input of [$camara, $galeria]) {
     input.addEventListener('change', () => {
-      const a = input.files && input.files[0];
+      const archivos = Array.from(input.files || []);
       input.value = '';
-      archivo(a);
+      window.AUTOGUARDADO.porLotes(archivos, archivo, 'Guardando');
     });
   }
 

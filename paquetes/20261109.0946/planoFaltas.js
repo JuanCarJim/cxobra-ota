@@ -34,30 +34,30 @@
 
   const ESTILO = `
   .fa-marcar{position:absolute;left:8px;bottom:8px;z-index:5;min-height:44px;margin:0;padding:0 14px;font-size:14px;box-shadow:var(--sombra,0 1px 4px rgba(0,0,0,.18))}
-  .fa-aviso{position:absolute;left:8px;right:8px;bottom:8px;z-index:6;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 4px 4px 14px;border-radius:10px;font-size:14px;font-weight:600;color:#fff;background:var(--acento,#178276)}
-  .fa-aviso button{min-height:44px;border:0;background:none;color:#fff;font:inherit;padding:0 10px}
-  .pe-marco.fa-activo{cursor:crosshair;outline:2px solid var(--acento,#178276);outline-offset:-2px}
-  .fa-punto{position:absolute;transform:translate(-50%,-50%);width:26px;height:26px;min-width:0;min-height:0;padding:0;margin:0;border:2px solid #fff;border-radius:50% 50% 50% 4px;font-size:13px;font-weight:700;line-height:1;color:#fff;background:#B7791F;box-shadow:0 1px 3px rgba(0,0,0,.4);z-index:3}
-  .fa-punto.confirmada{background:var(--mal,#C62828)}
-  .fa-punto.resuelta{background:var(--bien,#2E7D32);opacity:.55}
+  .fa-aviso{position:absolute;left:8px;right:8px;bottom:8px;z-index:6;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 4px 4px 14px;border-radius:10px;font-size:14px;font-weight:600;color:var(--sobre-relleno);background:var(--acento-relleno)}
+  .fa-aviso button{min-height:44px;border:0;background:none;color:var(--sobre-relleno);font:inherit;padding:0 10px}
+  .pe-marco.fa-activo{cursor:crosshair;outline:2px solid var(--acento);outline-offset:-2px}
+  .fa-punto{position:absolute;transform:translate(-50%,-50%);width:26px;height:26px;min-width:0;min-height:0;padding:0;margin:0;border:2px solid var(--vd-lienzo);border-radius:50% 50% 50% 4px;font-size:13px;font-weight:700;line-height:1;color:var(--sobre-relleno);background:var(--aviso);box-shadow:0 1px 3px rgba(0,0,0,.4);z-index:3}
+  .fa-punto.confirmada{background:var(--mal)}
+  .fa-punto.resuelta{background:var(--bien);opacity:.55}
   .fa-hoja{max-height:86vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
   .fa-cabeza{display:flex;align-items:center;justify-content:space-between;gap:8px}
   .fa-cabeza h3{margin:0;font-size:19px}
-  .fa-cierra{min-width:44px;min-height:44px;border:0;background:none;font-size:22px;color:var(--textoTenue,#567)}
-  .fa-tipos{display:flex;gap:4px;margin:8px 0;padding:3px;border-radius:10px;background:var(--rejilla,#e6ecee)}
-  .fa-tipos button{flex:1;min-height:40px;border:0;border-radius:8px;background:none;font:inherit;font-size:14px;color:var(--texto,#123)}
-  .fa-tipos button[aria-pressed="true"]{background:var(--panel,#fff);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.12)}
-  .fa-hoja label{display:block;margin:10px 0 4px;font-size:13px;color:var(--textoTenue,#567)}
-  .fa-hoja textarea,.fa-hoja input[type=text]{width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--borde,#c9d3d6);border-radius:10px;font:inherit;font-size:16px;background:var(--panel,#fff);color:var(--texto,#123)}
+  .fa-cierra{min-width:44px;min-height:44px;border:0;background:none;font-size:22px;color:var(--textoTenue)}
+  .fa-tipos{display:flex;gap:4px;margin:8px 0;padding:3px;border-radius:10px;background:var(--rejilla)}
+  .fa-tipos button{flex:1;min-height:40px;border:0;border-radius:8px;background:none;font:inherit;font-size:14px;color:var(--texto)}
+  .fa-tipos button[aria-pressed="true"]{background:var(--panel);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+  .fa-hoja label{display:block;margin:10px 0 4px;font-size:13px;color:var(--textoTenue)}
+  .fa-hoja textarea,.fa-hoja input[type=text]{width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--borde);border-radius:10px;font:inherit;font-size:16px;background:var(--panel);color:var(--texto)}
   .fa-fotos{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
-  .fa-fotos button.fa-mini{position:relative;width:64px;height:64px;padding:0;border:0;border-radius:8px;overflow:hidden;background:var(--rejilla,#e6ecee)}
+  .fa-fotos button.fa-mini{position:relative;width:64px;height:64px;padding:0;border:0;border-radius:8px;overflow:hidden;background:var(--rejilla)}
   .fa-mini img{width:100%;height:100%;object-fit:cover;display:block}
-  .fa-mini span{position:absolute;left:0;right:0;bottom:0;font-size:10px;color:#fff;background:rgba(0,0,0,.55);text-align:center}
+  .fa-mini span{position:absolute;left:0;right:0;bottom:0;font-size:10px;color:var(--vd-sobre-imagen);background:rgba(0,0,0,.55);text-align:center}
   .fa-acciones{display:flex;gap:8px;margin-top:10px}
   .fa-acciones button{flex:1;min-height:44px;margin:0}
-  .fa-pie{margin:10px 0 0;font-size:13px;color:var(--textoTenue,#567)}
+  .fa-pie{margin:10px 0 0;font-size:13px;color:var(--textoTenue)}
   .fa-texto{margin:8px 0;font-size:16px;white-space:pre-wrap}
-  .fa-descartar{display:block;width:100%;min-height:44px;margin-top:6px;border:0;background:none;font:inherit;font-size:14px;color:var(--textoTenue,#567)}`;
+  .fa-descartar{display:block;width:100%;min-height:44px;margin-top:6px;border:0;background:none;font:inherit;font-size:14px;color:var(--textoTenue)}`;
   function ponerEstilo() {
     if (document.getElementById('fa-estilo')) return;
     const s = document.createElement('style');

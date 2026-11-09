@@ -547,7 +547,7 @@ body.bm-abierta { overflow: hidden; }
 .bm-capa { position: fixed; inset: 0; z-index: 9000; background: var(--panel); display: flex; flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
 .bm-cabeza { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--acento); }
 .bm-cabeza strong { font-size: 16px; }
-.bm-guardar { background: var(--acento); color: #fff; border: 0; border-radius: 999px; padding: 7px 16px; font: inherit; font-weight: 700; }
+.bm-guardar { background: var(--acento-relleno); color: var(--sobre-relleno); border: 0; border-radius: 999px; padding: 7px 16px; font: inherit; font-weight: 700; }
 .bm-guardar:disabled { opacity: .5; }
 .bm-plano-barra { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 16px 0; font-size: 13px; }
 .bm-plano-barra select { font: inherit; max-width: 60%; }

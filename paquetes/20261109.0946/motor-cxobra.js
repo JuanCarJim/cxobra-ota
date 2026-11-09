@@ -8367,6 +8367,56 @@ globalThis.CX_VARIANTE="cxobra";
         }));
         return { trabajo, consulta, empresa: true, accesos: Boolean(b.accesos), departamentos };
       }
+      var CATEGORIAS_BARRA = {
+        diaADia: { nombre: "D\xEDa a d\xEDa", secciones: ["Mi espacio", "Producci\xF3n", "Planificaci\xF3n", "Personal"] },
+        dinero: { nombre: "Dinero y contrato", secciones: ["Medir y certificar", "Presupuesto y costes", "Compras", "Contrato y cliente"] },
+        calidad: { nombre: "Calidad y seguridad", secciones: ["Calidad y commissioning", "Seguridad y QHSE", "Cierre y entrega", "Equipos"] },
+        documentos: { nombre: "Documentos y consulta", secciones: ["Documentaci\xF3n", "Informes de la obra", "Proyecto", "Consulta", "Normativa (BOE)"] }
+      };
+      var MODULOS_DE_DINERO = ["presupuestos", "costsPlan", "certificaciones"];
+      var SIN_DINERO_VA_A = { "Medir y certificar": "diaADia", Compras: "diaADia", "Presupuesto y costes": "documentos", "Contrato y cliente": "documentos" };
+      var ORDEN_MANDO = { categorias: ["dinero", "diaADia", "documentos", "calidad"], secciones: {
+        dinero: ["Presupuesto y costes", "Medir y certificar", "Contrato y cliente", "Compras"],
+        documentos: ["Informes de la obra", "Consulta", "Proyecto", "Documentaci\xF3n"]
+      } };
+      var ORDEN_TAJO = { categorias: ["diaADia", "calidad", "documentos"], secciones: {
+        diaADia: ["Producci\xF3n", "Personal", "Planificaci\xF3n", "Medir y certificar", "Compras", "Mi espacio"],
+        calidad: ["Seguridad y QHSE", "Calidad y commissioning", "Cierre y entrega"]
+      } };
+      var ORDEN_CATEGORIAS_POR_ROL = {
+        jefeProyectos: { ...ORDEN_MANDO, categorias: ["departamentos", ...ORDEN_MANDO.categorias] },
+        jefeDepartamento: ORDEN_MANDO,
+        jefeGrupo: ORDEN_MANDO,
+        jefeObra: { categorias: ["diaADia", "dinero", "calidad", "documentos"], secciones: {} },
+        jefeProduccion: { categorias: ["diaADia", "dinero", "calidad", "documentos"], secciones: {} },
+        encargadoObra: ORDEN_TAJO,
+        operario: ORDEN_TAJO,
+        jefeCommissioning: { categorias: ["calidad", "documentos", "diaADia", "dinero"], secciones: {
+          calidad: ["Calidad y commissioning", "Cierre y entrega", "Seguridad y QHSE"],
+          documentos: ["Documentaci\xF3n", "Proyecto", "Informes de la obra", "Contrato y cliente", "Compras", "Consulta"]
+        } },
+        contractSupport: { categorias: ["dinero", "documentos", "calidad", "diaADia"], secciones: {
+          dinero: ["Compras", "Medir y certificar", "Contrato y cliente", "Presupuesto y costes"]
+        } }
+      };
+      function categoriasDeRol(idRol) {
+        const b = BARRAS_POR_ROL[idRol];
+        if (!b || !(b.director || SECCIONES_OBRA[idRol])) return null;
+        const orden = ORDEN_CATEGORIAS_POR_ROL[idRol] || { categorias: Object.keys(CATEGORIAS_BARRA), secciones: {} };
+        const conDinero = MODULOS_DE_DINERO.some((m) => puede(idRol, m, "ver"));
+        const cats = {};
+        for (const [id, c] of Object.entries(CATEGORIAS_BARRA)) cats[id] = { id, nombre: c.nombre, secciones: [...c.secciones] };
+        if (!conDinero) {
+          for (const s of cats.dinero.secciones) cats[SIN_DINERO_VA_A[s] || "documentos"].secciones.push(s);
+          delete cats.dinero;
+        }
+        if (b.director) cats.departamentos = { id: "departamentos", nombre: "Departamentos", secciones: DEPARTAMENTOS_DIRECTOR.map((d) => d.nombre) };
+        const ids = [...orden.categorias, ...Object.keys(cats)].filter((id, i, l) => cats[id] && l.indexOf(id) === i);
+        return ids.map((id) => {
+          const pref = (orden.secciones[id] || []).filter((s) => cats[id].secciones.includes(s));
+          return { ...cats[id], secciones: [...pref, ...cats[id].secciones.filter((s) => !pref.includes(s))] };
+        });
+      }
       var PLANIFICAN = /* @__PURE__ */ new Set(["jefeObra", "jefeProduccion", "jefeGrupo", "jefeDepartamento", "jefeProyectos", "administrador"]);
       function planifica(idRol, ambito) {
         if (!puede(idRol, ambito, "ver")) return false;
@@ -8441,6 +8491,9 @@ globalThis.CX_VARIANTE="cxobra";
         AYUDA_EN_BARRA,
         veQueHaceLaApp,
         barraDeRol,
+        CATEGORIAS_BARRA,
+        MODULOS_DE_DINERO,
+        categoriasDeRol,
         PANEL_INICIO,
         panelInicio,
         inicioPorFase,
@@ -10996,7 +11049,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261109.0610" : "0";
+      var VERSION = true ? "20261109.0946" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -11341,6 +11394,26 @@ globalThis.CX_VARIANTE="cxobra";
         return { ok: true, compartido: false };
       }
       module.exports = { bienvenida, entrar, elegirFichero, leerPaquete, compartir };
+    }
+  });
+
+  // cxobra/marcaEjemplo.js
+  var require_marcaEjemplo = __commonJS({
+    "cxobra/marcaEjemplo.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      function queHacerConLaBase2({ demo = false, vacia, oficina: oficina2 = {}, soloEjemplo = false, yaVaciada = false }) {
+        if (vacia) return demo ? "sembrar" : "seguir";
+        if (oficina2.ejemplo) return "seguir";
+        if (oficina2.personaId) return demo ? "error" : "seguir";
+        if (soloEjemplo) return demo || yaVaciada ? "marcarEjemplo" : "vaciar";
+        return demo ? "error" : "seguir";
+      }
+      function esSoloEjemplo2(base) {
+        const r = base.prepare("SELECT COUNT(*) AS n, SUM(CASE WHEN lower(COALESCE(email, '')) LIKE '%@ejemplo.local' THEN 1 ELSE 0 END) AS e FROM personas").get();
+        return Boolean(r && r.n > 0 && r.n === r.e);
+      }
+      module.exports = { queHacerConLaBase: queHacerConLaBase2, esSoloEjemplo: esSoloEjemplo2 };
     }
   });
 
@@ -15183,7 +15256,7 @@ globalThis.CX_VARIANTE="cxobra";
                 if (ignorar && r && ignorar(r)) return;
               } catch {
               }
-              alSonar("cambio");
+              alSonar("cambio", r || null);
             } else if (m.event === "system" && m.payload && m.payload.status === "error") registro(`Timbre: ${m.payload.message}`);
           };
           ws.onclose = () => {
@@ -19169,6 +19242,96 @@ globalThis.CX_VARIANTE="cxobra";
             ])
           ]), { criterio: "S\xED = P (pass) \xB7 No = F (fail, detail it in the remarks) \xB7 NA = not applicable.", formato: "IT-SecuritySystems-07-Intercom-commissioning-form (GHESA, 6-nov-2026)", disciplina: "IT", libro: false })
         ];
+        const OSMOSIS_NORMA = "RD 3/2023 (calidad del agua de consumo) \xB7 CTE DB HS 4 \xB7 RITE IT 1.1.4.3 \xB7 UNE-EN 14743 (descalcificadores) \xB7 recomendaciones del fabricante de la membrana";
+        const TRATAMIENTO_AGUA = [
+          fichaNorma("OSMOSIS_TRATAMIENTO", "\xD3SMOSIS Y TRATAMIENTO DE AGUA", "\xD3SMOSIS INVERSA Y TRATAMIENTO DE AGUA", "Fontaner\xEDa", OSMOSIS_NORMA, [
+            { titulo: "DATOS F\xCDSICOS", tipo: "datos", puntos: [
+              ...identificacion(),
+              texto("circuito", "Circuito", { origen: "circuito" }),
+              lista("tipo_equipo", "Tipo de equipo", ["\xD3smosis inversa", "Descalcificador", "Filtraci\xF3n", "Dosificaci\xF3n", "Ozonificaci\xF3n", "Tren completo"]),
+              numPunto("num_membranas", "N\xBA de membranas"),
+              numPunto("caudal_nominal_permeado", "Caudal nominal de permeado", "l/h", { origen: "caudalNominal" }),
+              texto("uso_agua", "Uso del agua tratada"),
+              lista("prefiltracion", "Prefiltraci\xF3n", ["S\xED", "No"]),
+              lista("descalcificador", "Descalcificador previo", ["S\xED", "No"]),
+              lista("ozono", "Ozonificaci\xF3n", ["S\xED", "No"])
+            ] },
+            { titulo: "COMPROBACIONES", tipo: "comprobaciones", puntos: [
+              okNoOk("sentido_giro_bomba", "Sentido de giro de la bomba de alta presi\xF3n"),
+              okNoOk("prefiltros_limpios", "Prefiltros y cartuchos nuevos, sin colmatar"),
+              okNoOk("lavado_membranas", "Membranas lavadas de conservante antes de producir"),
+              okNoOk("presostatos", "Presostatos de baja y alta presi\xF3n probados (paro del equipo)"),
+              okNoOk("enclavamiento_falta_agua", "Paro por falta de agua de entrada"),
+              okNoOk("valvula_rechazo", "V\xE1lvula de rechazo y de recirculaci\xF3n ajustadas"),
+              okNoOk("descalcificador_regeneracion", "Descalcificador: regeneraci\xF3n probada y sal repuesta"),
+              okNoOk("dosificacion", "Bombas dosificadoras cebadas, con su producto y su caudal ajustado"),
+              okNoOk("desague_visible", "Rechazo y regeneraci\xF3n a desag\xFCe con ruptura de carga (sin conexi\xF3n directa)"),
+              okNoOk("antirretorno", "Antirretorno en la acometida de agua (UNE-EN 1717)"),
+              okNoOk("desinfeccion_inicial", "Desinfecci\xF3n inicial del equipo y de la red de permeado, con su certificado")
+            ] },
+            { titulo: "AGUA DE ENTRADA", tipo: "parametros", puntos: [
+              prueba("p_entrada_agua", "Presi\xF3n del agua de entrada", "bar", OBL, segun("Proyecto / m\xEDnimo del fabricante")),
+              prueba("dureza_entrada", "Dureza del agua de entrada", "\xB0f", OPC, segun("Proyecto: la dureza que sale del descalcificador")),
+              prueba("cloro_libre_entrada", "Cloro libre antes de las membranas", "mg/l", OPC, maximo(0.1, "Fabricante de la membrana: el cloro las destruye; sin cloro (carb\xF3n activo) antes de ellas")),
+              prueba("t_agua_entrada", "Temperatura del agua de entrada", "\xB0C", OPC, maximo(35, "Fabricante de la membrana: \u2264 35 \xB0C"))
+            ] },
+            { titulo: "\xD3SMOSIS INVERSA", tipo: "parametros", puntos: [
+              prueba("p_bomba", "Presi\xF3n de la bomba de alta presi\xF3n", "bar", OBL),
+              prueba("p_membrana", "Presi\xF3n de trabajo en la membrana", "bar", OBL),
+              prueba("p_concentrado", "Presi\xF3n del concentrado (rechazo)", "bar", OPC),
+              prueba("caudal_permeado", "Caudal de permeado", "l/h", OBL),
+              prueba("caudal_rechazo", "Caudal de rechazo", "l/h", OPC),
+              prueba("recuperacion", "Recuperaci\xF3n", "%", OPC),
+              prueba("cond_entrada", "Conductividad del agua de entrada", "\xB5S/cm", OPC),
+              prueba("cond_permeado", "Conductividad del permeado", "\xB5S/cm", OBL),
+              prueba("rechazo_sales", "Rechazo de sales", "%", OBL)
+            ] },
+            { titulo: "CALIDAD DEL AGUA TRATADA", tipo: "parametros", puntos: [
+              prueba("ph_tratada", "pH del agua tratada", "ud. pH", OPC, minimo(6.5, "RD 3/2023, anexo I: 6,5 \u2013 9,5 (aqu\xED se vigila el m\xEDnimo)")),
+              prueba("dureza_salida", "Dureza a la salida del descalcificador", "\xB0f", OPC),
+              prueba("cloro_residual", "Cloro residual libre en la red de agua tratada", "mg/l", OPC),
+              prueba("ozono_residual", "Ozono residual", "mg/l", OPC)
+            ] }
+          ]),
+          checklistNorma("CHECKLIST_OSMOSIS_TRATAMIENTO", "CHECKLIST \xD3SMOSIS Y TRATAMIENTO DE AGUA", "INSTALACI\xD3N Y PRECOMISIONADO \xB7 \xD3SMOSIS INVERSA Y TRATAMIENTO DE AGUA", "Fontaner\xEDa", OSMOSIS_NORMA, [
+            bloque("01", "RECEPCI\xD3N", [
+              ["01.01", "Equipo, membranas, filtros y descalcificador seg\xFAn proyecto, con marcado CE"],
+              ["01.02", "Materiales en contacto con el agua aptos para consumo humano"],
+              ["01.03", "Instalador habilitado y manual del fabricante entregado"]
+            ]),
+            bloque("02", "EMPLAZAMIENTO Y CONEXIONES", [
+              ["02.01", "Bancada nivelada, con espacio para cambiar membranas y cartuchos"],
+              ["02.02", "Acometida con llave de corte, filtro, man\xF3metro y antirretorno"],
+              ["02.03", "Desag\xFCe de rechazo y de regeneraci\xF3n con ruptura de carga"],
+              ["02.04", "Alimentaci\xF3n el\xE9ctrica y toma de tierra conformes"],
+              ["02.05", "Dep\xF3sito de permeado con tapa, respiradero con filtro y rebosadero conducido"]
+            ]),
+            bloque("03", "TREN DE TRATAMIENTO", [
+              ["03.01", "Prefiltros (sedimentos y carb\xF3n activo) montados en su orden"],
+              ["03.02", "Descalcificador conectado, con bypass y toma de muestras"],
+              ["03.03", "Membranas montadas en sus tubos de presi\xF3n con las juntas bien colocadas"],
+              ["03.04", "Bomba de alta presi\xF3n con protecci\xF3n por falta de agua y por presi\xF3n alta"],
+              ["03.05", "Dosificaci\xF3n (antiincrustante, hipoclorito o producto del proyecto) con dep\xF3sito y cubeta de retenci\xF3n"],
+              ["03.06", "Ozonificaci\xF3n (si la lleva): generador, inyector y destructor de ozono residual"]
+            ]),
+            bloque("04", "RED DE AGUA TRATADA", [
+              ["04.01", "Tuber\xEDas de permeado de material apto (PP, PVC, inoxidable) y etiquetadas"],
+              ["04.02", "Sin tramos ciegos; recirculaci\xF3n del permeado si el proyecto la pide"],
+              ["04.03", "Tomas de muestra a la entrada, al permeado y al rechazo"]
+            ]),
+            bloque("05", "PRUEBAS", [
+              ["05.01", "Prueba de estanqueidad de la red de agua tratada"],
+              ["05.02", "Presiones y caudales de la \xF3smosis medidos y anotados"],
+              ["05.03", "Conductividad de entrada y de permeado medidas (rechazo de sales)"],
+              ["05.04", "Desinfecci\xF3n inicial y primer an\xE1lisis del agua tratada"]
+            ]),
+            bloque("06", "MANTENIMIENTO Y DOCUMENTACI\xD3N", [
+              ["06.01", "Programa de mantenimiento: cartuchos, sal, productos y lavado qu\xEDmico de membranas"],
+              ["06.02", "Libro de registro abierto con las conductividades y presiones de arranque"],
+              ["06.03", "Planos \xABas built\xBB, esquema hidr\xE1ulico y manual de uso y mantenimiento"]
+            ])
+          ])
+        ];
         const PLANTILLAS = [
           /* ─────────────────────────── Fichas de puesta en marcha (20) */
           /* v2 (30-oct): las presiones del agua de las baterías (seccionesUTA). */
@@ -20168,7 +20331,8 @@ globalThis.CX_VARIANTE="cxobra";
           ...PCI,
           ...HOSPITAL,
           ...OTRAS,
-          ...IT
+          ...IT,
+          ...TRATAMIENTO_AGUA
         ];
         const MEDICIONES = {
           bocas: { titulo: "Balanceo de caudales", plano: true, texto: "Bocas de impulsi\xF3n y retorno sobre el plano", retorno: "Retorno" },
@@ -20682,6 +20846,21 @@ globalThis.CX_VARIANTE="cxobra";
             balanceo: false,
             estanqueidad: "no",
             medicion: "ninguna"
+          },
+          /* Ósmosis inversa y tratamiento de agua (5-nov-2026): ficha + checklist + estanqueidad del agua. */
+          {
+            codigo: "FONT_OSMOSIS",
+            nombre: "\xD3SMOSIS Y TRATAMIENTO DE AGUA",
+            nombrePdf: "Osmosis y tratamiento de agua",
+            disciplina: "Fontaner\xEDa",
+            alias: ["OSMOSIS INVERSA", "OSMOSIS", "TRATAMIENTO DE AGUA", "DESCALCIFICADOR", "OSMOSIS OZONIFICACION"],
+            pistas: /OSMOSIS|DESCALCIFICA|TRATAMIENTO (DE )?AGUA|OZONIFICA|EQUIPO DE DOSIFICACION|\bOSM[-_ ]?\d/.source,
+            prioridadPista: 2,
+            plantillas: ["OSMOSIS_TRATAMIENTO"],
+            anexos: [{ plantilla: "CHECKLIST_OSMOSIS_TRATAMIENTO" }, { plantilla: "ESTANQ_AGUA", enlace: "circuito" }],
+            balanceo: false,
+            estanqueidad: "agua",
+            medicion: "ninguna"
           }
         ];
         (function exportar(API) {
@@ -21011,7 +21190,9 @@ globalThis.CX_VARIANTE="cxobra";
           fichaTecnica: "Ficha t\xE9cnica del fabricante",
           /* Leído de la foto del termómetro de una incidencia (temperaturasFoto.js):
              queda A REVISAR hasta que una persona lo confirma. */
-          fotoIncidencia: "Le\xEDdo de la foto de una incidencia"
+          fotoIncidencia: "Le\xEDdo de la foto de una incidencia",
+          /* Leído de la placa de características por Iarvis (shared/commissioning/placaFicha.js), tras «Sí». */
+          placa: "Le\xEDdo de la placa"
         };
         const ROLES_FIRMA = {
           JEFE: "Jefe de obra"
@@ -79511,7 +79692,7 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         }
         const CSS = `
 .tm { --tm-teal: #0F766E; --tm-verde: #2E7D32; --tm-azul: #1F5FA8; --tm-gris: #E3E7EA; --tm-gris-t: #6B7780; --tm-tx: #1B2A2F; --tm-linea: #D5DCDF; color: var(--tm-tx); font-size: 13px; }
-@media (prefers-color-scheme: dark) { .tm.tm-auto { --tm-teal: #35B3A6; --tm-verde: #5FBF68; --tm-azul: #6FA8E8; --tm-gris: #2C3438; --tm-gris-t: #98A5AC; --tm-tx: #E6ECEE; --tm-linea: #3A444A; } }
+[data-tema='oscuro'] .tm.tm-auto { --tm-teal: #35B3A6; --tm-verde: #5FBF68; --tm-azul: #6FA8E8; --tm-gris: #2C3438; --tm-gris-t: #98A5AC; --tm-tx: #E6ECEE; --tm-linea: #3A444A; }
 .tm h3 { margin: 18px 0 6px; font-size: 14px; font-weight: 600; color: var(--tm-teal); border-bottom: 2px solid var(--tm-teal); padding-bottom: 3px; background: none; }
 .tm-tabla { display: grid; }
 .tm-fila { display: grid; grid-template-columns: minmax(120px, 190px) minmax(180px, 1fr) 128px 96px 100px 76px; gap: 0 10px; align-items: center; padding: 3px 0; border-bottom: 1px solid var(--tm-linea); min-height: 26px; }
@@ -109713,7 +109894,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
               continue;
             }
             if (v && typeof v === "object") {
-              valores[codigo] = { ...valores[codigo] || {}, ...v, o: "manual" };
+              valores[codigo] = { ...valores[codigo] || {}, ...v, o: v.o === "placa" ? "placa" : "manual" };
               if ("m" in v) {
                 delete valores[codigo].om;
                 delete valores[codigo].nBocas;
@@ -110644,6 +110825,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
            (30-oct-2026): sin ella el manejador contestaba «No existe.» y no se guardaba. */
         "POST api/equipo/fechas": [["commissioning", "editar"]],
         "POST api/equipo/serie": [["commissioning", "editar"]],
+        "POST api/equipo/identificacion": [["commissioning", "editar"]],
         /* Confirmar o descartar el nº de serie leído de la foto de la placa (29-oct-2026). */
         "POST api/equipo/placa": [["commissioning", "editar"]],
         "POST api/equipo/fotos": [["commissioning", "editar"]],
@@ -111155,6 +111337,19 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           const vuelta = llano(e.volver) || r.equipoId;
           return { ...equipo({ ses, query: { id: vuelta } }), ok: true, numSerie: r.numSerie, serieDe: r.equipoId };
         }
+        function equipoIdentificacion({ ses, json }) {
+          const e = json();
+          const id = llano(e.equipoId);
+          const actual = repo.leer("equiposObra", ses, id);
+          if (!actual) return { ok: false, error: "No se encuentra el equipo." };
+          const cambios = {};
+          for (const k of ["marca", "modelo"]) if (e[k] !== void 0 && llano(e[k])) cambios[k] = llano(e[k]).slice(0, 120);
+          if (e.caudalNominal !== void 0 && Number.isFinite(Number(e.caudalNominal)) && Number(e.caudalNominal) > 0) cambios.caudalNominal = Number(e.caudalNominal);
+          if (!Object.keys(cambios).length) return { ok: false, error: "No hay nada que guardar." };
+          const r = CX.guardarEquipo(repo, ses, id, cambios);
+          if (!r.ok) return r;
+          return { ok: true, equipoId: id, cambios };
+        }
         function conductoDe(ses, d) {
           try {
             const hb = CX.hojaBalanceo(repo, ses, d.equipo.id);
@@ -111660,6 +111855,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           "POST api/equipo/revalidar": equipoRevalidar,
           "POST api/equipo/fechas": equipoFechas,
           "POST api/equipo/serie": equipoSerie,
+          "POST api/equipo/identificacion": equipoIdentificacion,
           "POST api/equipo/placa": equipoPlaca,
           "POST api/equipo/fotos": equipoFotos,
           "POST api/equipo/fotos/quitar": equipoFotoQuitar,
@@ -132656,7 +132852,16 @@ ${correo.texto || ""}`);
             repetidos
           };
         }
-        const API = { ESTADOS, METODOS, LINEAS, valoracionDe, limpiar, limpiarLinea, citados, calcularLinea, hechosCubiertos, calcularTema, resumen };
+        function conciliacion(res, sumaHechos) {
+          const valoracion = redondear(res && res.total);
+          const hechosT = redondear(sumaHechos);
+          const diferencia = redondear(hechosT - valoracion);
+          const filas = res && res.filas || [];
+          const excluidos = redondear(filas.reduce((s, f) => s + (f.excluidos && f.excluidos.importe || 0), 0));
+          const ajustes = redondear(filas.reduce((s, f) => s + ((f.importeHechos || 0) - (f.excluidos && f.excluidos.importe || 0) - (f.importe || 0)), 0));
+          return { sumaHechos: hechosT, valoracion, diferencia, excluidos, ajustes, resto: redondear(diferencia - excluidos - ajustes) };
+        }
+        const API = { ESTADOS, METODOS, LINEAS, valoracionDe, limpiar, limpiarLinea, citados, calcularLinea, hechosCubiertos, calcularTema, resumen, conciliacion };
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.RECLAMACIONES_VALORACION = API;
       })();
@@ -148526,6 +148731,23 @@ No cambia ning\xFAn importe hasta que se pase a la valoraci\xF3n.`,
             confirmar: true,
             parametros: S({ destino: { type: "string", enum: ["ncr", "reparacion", "equipo", "nota"] }, codigo: txt("El c\xF3digo de la NCR o la reparaci\xF3n."), equipo: txt("El equipo, si va a un equipo.") }, ["destino"])
           },
+          /* 9-nov (JC): el encargado manda las fotos de un equipo, dice cuál es y lo que sabe; Iarvis lee la placa
+             (en el teléfono, sin red) y rellena la identificación de la ficha. Lo de la placa va «leído de la placa». */
+          {
+            id: "rellenarFicha",
+            familia: "medir",
+            descripcion: "Rellenar la ficha de un equipo (marca, modelo, n\xBA de serie, potencias, refrigerante\u2026) con las fotos de su placa y lo que dice la persona, y guardar las fotos en el equipo. Se ense\xF1a antes de guardar.",
+            modulo: "commissioning",
+            verbo: "editar",
+            escribe: true,
+            confirmar: true,
+            parametros: S({
+              equipo: txt("El equipo como lo dice la persona (\xABUTA-01\xBB)."),
+              dictado: { type: "string", maxLength: 2e3, description: "Lo que dijo la persona, tal cual." },
+              placa: { type: "string", maxLength: 4e3, description: "El texto le\xEDdo de la placa en el tel\xE9fono (renglones). Opcional." },
+              equipoId: txt("Interno: no lo pongas.")
+            }, ["equipo"])
+          },
           /* 8-nov (nota 1108-iarvis-medidas-firmas-motor): las medidas dictadas y la firma propia. */
           {
             id: "apuntarMedidas",
@@ -148670,6 +148892,12 @@ No cambia ning\xFAn importe hasta que se pase a la valoraci\xF3n.`,
             if (hablaNcr && ncr) return { id: "fotoA", parametros: { destino: "ncr", codigo: ncr } };
             if (hablaRep && inc) return { id: "fotoA", parametros: { destino: "reparacion", codigo: inc } };
             if (/\b(bloc|nota|notas|apunta\w*|guarda\w* en mi)\b/.test(t)) return { id: "fotoA", parametros: { destino: "nota" } };
+          }
+          if (conFoto && !/\bestanqueidad\b|\bprueba\b/.test(t) && !hablaNcr && !hablaRep) {
+            const eq = equipoDe(pregunta);
+            if (eq && /\b(esto|esta|este|aqui|aqui tienes|son|es)\b.*\b(es|son|va|van|de)\b|\bplaca\b|\bficha\b|\brellena\w*\b/.test(t)) {
+              return { id: "rellenarFicha", parametros: { equipo: eq, dictado: llano(pregunta).slice(0, 2e3) } };
+            }
           }
           const med = medidasDe(pregunta, t);
           if (med) return med;
@@ -149272,6 +149500,11 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           ["Facturaci\xF3n", "Invoicing", "Facturaci\xF3", "Fatura\xE7\xE3o", "Fakturierung", "Facturation"],
           ["Forecast", "Forecast", "Previsi\xF3", "Previs\xE3o", "Prognose", "Pr\xE9vision"],
           ["Gastos por departamento", "Expenses by department", "Despeses per departament", "Despesas por departamento", "Ausgaben nach Abteilung", "D\xE9penses par service"],
+          /* 9-nov: las categorías de la barra lateral (shared/roles.js, CATEGORIAS_BARRA). */
+          ["D\xEDa a d\xEDa", "Day to day", "Dia a dia", "Dia a dia", "Tagesgesch\xE4ft", "Au quotidien"],
+          ["Dinero y contrato", "Money and contract", "Diners i contracte", "Dinheiro e contrato", "Geld und Vertrag", "Argent et contrat"],
+          ["Calidad y seguridad", "Quality and safety", "Qualitat i seguretat", "Qualidade e seguran\xE7a", "Qualit\xE4t und Sicherheit", "Qualit\xE9 et s\xE9curit\xE9"],
+          ["Documentos y consulta", "Documents and reference", "Documents i consulta", "Documentos e consulta", "Dokumente und Nachschlagen", "Documents et consultation"],
           ["Departamentos", "Departments", "Departaments", "Departamentos", "Abteilungen", "Services"],
           ["Todos los departamentos", "All departments", "Tots els departaments", "Todos os departamentos", "Alle Abteilungen", "Tous les services"],
           ["Panel de Estudios", "Studies dashboard", "Tauler d\u2019Estudis", "Painel de Estudos", "\xDCbersicht Kalkulation", "Tableau de bord \xC9tudes"],
@@ -152102,6 +152335,131 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
     }
   });
 
+  // shared/commissioning/placaFicha.js
+  var require_placaFicha = __commonJS({
+    "shared/commissioning/placaFicha.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var PS = require_placaSerie();
+      var llano = (v) => String(v ?? "").trim();
+      var normal = (v) => llano(v).normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
+      var MARCAS = ["Daikin", "Mitsubishi Electric", "Mitsubishi Heavy", "Toshiba", "LG", "Samsung", "Panasonic", "Fujitsu", "Hitachi", "Carrier", "Trane", "York", "Lennox", "Ciat", "Clivet", "Aermec", "Swegon", "Systemair", "Trox", "Wolf", "Sabiana", "Hiref", "Climaveneta", "Rhoss", "Galletti", "Airwell", "Haier", "Gree", "Midea", "Baxi", "Saunier Duval", "Ferroli", "Viessmann", "Vaillant", "Grundfos", "Wilo", "Ebara", "S&P", "Soler & Palau", "Ziehl-Abegg", "ebm-papst", "Nicotra", "Salvador Escoda", "Hitecsa", "Keyter", "Sedical", "Johnson Controls", "Kaysun", "Mundoclima", "Airlan", "Termoven", "Koolair"];
+      var ORDEN_MARCAS = MARCAS.slice().sort((a, b) => b.length - a.length);
+      function marcaEn(texto) {
+        const t = ` ${normal(texto).replace(/[^A-Z0-9&-]+/g, " ")} `;
+        for (const m of ORDEN_MARCAS) if (t.includes(` ${normal(m).replace(/[^A-Z0-9&-]+/g, " ")} `)) return m;
+        return null;
+      }
+      var NUM = "(\\d{1,4}(?:[.,]\\d{1,3})?)";
+      var num = (s) => Number(String(s).replace(",", "."));
+      var REFRIGERANTES = /\b(R[- ]?(?:32|410A|407C|134A|513A|1234ZE|1234YF|290|744|454B|452B|22))\b/i;
+      var BUSCAR = {
+        modelo: (l) => {
+          const m = /\b(?:MODEL(?:O)?|MOD\.?|TYPE|TIPO)\s*(?:NO\.?|N[ºo°]\.?)?\s*[:.]?\s*([A-Z0-9][A-Z0-9\-/.]{2,30})/i.exec(l);
+          return m ? m[1].replace(/[.,]+$/, "") : null;
+        },
+        potenciaFrio: (l) => {
+          const m = new RegExp(`\\b(?:COOLING|FRIO|FR[I\xCD]O|REFRIG\\w*|CAPACIDAD\\s+FR\\w*|P\\.?\\s*FRIGORIFICA|CAP\\.?\\s*COOL\\w*)[^0-9]{0,24}${NUM}\\s*KW\\b`, "i").exec(l);
+          return m ? num(m[1]) : null;
+        },
+        potenciaCalor: (l) => {
+          const m = new RegExp(`\\b(?:HEATING|CALOR|CALEF\\w*|CAPACIDAD\\s+CAL\\w*|P\\.?\\s*CALORIFICA|CAP\\.?\\s*HEAT\\w*)[^0-9]{0,24}${NUM}\\s*KW\\b`, "i").exec(l);
+          return m ? num(m[1]) : null;
+        },
+        refrigerante: (l) => {
+          const m = REFRIGERANTES.exec(l);
+          return m ? m[1].toUpperCase().replace(/[- ]/, "") : null;
+        },
+        cargaKg: (l) => {
+          const m = new RegExp(`\\b(?:CHARGE|CARGA|REFRIGERANT\\s+CHARGE|FACTORY\\s+CHARGE)[^0-9]{0,20}${NUM}\\s*KG\\b`, "i").exec(l) || (REFRIGERANTES.test(l) ? new RegExp(`${NUM}\\s*KG\\b`, "i").exec(l) : null);
+          return m ? num(m[1]) : null;
+        },
+        tension: (l) => {
+          const m = /\b(\d{3})\s*(?:-\s*\d{3}\s*)?V\b/i.exec(l);
+          return m ? Number(m[1]) : null;
+        },
+        intensidad: (l) => {
+          const m = new RegExp(`\\b(?:RATED\\s+CURRENT|CORRIENTE|INTENSIDAD|I\\s*NOM|MAX\\.?\\s*CURRENT|AMP\\w*)[^0-9]{0,16}${NUM}\\s*A\\b`, "i").exec(l);
+          return m ? num(m[1]) : null;
+        },
+        caudal: (l) => {
+          const m = new RegExp(`${NUM}\\s*M\\s*[3\xB3]\\s*/\\s*H\\b`, "i").exec(l);
+          return m ? num(m[1]) : null;
+        }
+      };
+      var DICHO = {
+        modelo: (t) => {
+          const m = /\bmodelo\s+(?:es\s+)?([A-Z0-9][A-Z0-9\-/.]{1,30})/i.exec(t);
+          return m ? m[1].replace(/[.,]+$/, "") : null;
+        },
+        numSerie: (t) => {
+          const m = /\b(?:n(?:u|ú)mero de serie|n[ºo°]\s*(?:de\s+)?serie|serie|s\/n)\s+(?:es\s+)?([A-Z0-9][A-Z0-9\-/]{3,30})/i.exec(t);
+          return m ? m[1].replace(/[.,]+$/, "") : null;
+        },
+        potenciaFrio: (t) => {
+          const m = new RegExp(`${NUM}\\s*kw\\s+(?:de\\s+)?(?:frio|fr\xEDo|refrigeraci[o\xF3]n)`, "i").exec(t) || new RegExp(`(?:frio|fr\xEDo)\\s+(?:de\\s+)?${NUM}\\s*kw`, "i").exec(t);
+          return m ? num(m[1]) : null;
+        },
+        potenciaCalor: (t) => {
+          const m = new RegExp(`${NUM}\\s*kw\\s+(?:de\\s+)?(?:calor|calefacci[o\xF3]n)`, "i").exec(t) || new RegExp(`calor\\s+(?:de\\s+)?${NUM}\\s*kw`, "i").exec(t);
+          return m ? num(m[1]) : null;
+        },
+        refrigerante: BUSCAR.refrigerante,
+        caudal: BUSCAR.caudal
+      };
+      var CAMPOS = {
+        marca: { etiqueta: "Marca", punto: "marca" },
+        modelo: { etiqueta: "Modelo", punto: "modelo" },
+        numSerie: { etiqueta: "N\xBA de serie", punto: "num_serie" },
+        potenciaFrio: { etiqueta: "Potencia fr\xEDo", unidad: "kW", punto: "potencia_frio" },
+        potenciaCalor: { etiqueta: "Potencia calor", unidad: "kW", punto: "potencia_calor" },
+        refrigerante: { etiqueta: "Refrigerante", punto: "refrigerante" },
+        cargaKg: { etiqueta: "Carga de refrigerante", unidad: "kg", punto: "carga_refrigerante" },
+        tension: { etiqueta: "Tensi\xF3n", unidad: "V", punto: "tension" },
+        intensidad: { etiqueta: "Intensidad nominal", unidad: "A", punto: "intensidad_nominal" },
+        caudal: { etiqueta: "Caudal", unidad: "m\xB3/h", punto: "caudal" }
+      };
+      function leer({ placa = "", dictado = "", marca: marcaEquipo = null, modelo: modeloEquipo = null } = {}) {
+        const lineas = (Array.isArray(placa) ? placa : String(placa || "").split(/\r?\n/)).map(llano).filter(Boolean).slice(0, 80);
+        const campos = {};
+        const poner = (k, v, o) => {
+          if (v === null || v === void 0 || v === "" || Number.isNaN(v)) return;
+          campos[k] = { v, o, de: o === "placa" ? "le\xEDdo de la placa" : "dicho por ti" };
+        };
+        if (lineas.length) {
+          poner("marca", marcaEn(lineas.slice(0, 6).join(" ")) || marcaEn(lineas.join(" ")), "placa");
+          for (const [k, f] of Object.entries(BUSCAR)) {
+            if (campos[k]) continue;
+            for (const l of lineas) {
+              const v = f(l);
+              if (v !== null) {
+                poner(k, v, "placa");
+                break;
+              }
+            }
+          }
+          const s = PS.extraerNumeroSerie(lineas, { marca: campos.marca && campos.marca.v || marcaEquipo, modelo: campos.modelo && campos.modelo.v || modeloEquipo });
+          if (s && s.valor && (s.confianza === "alta" || s.confianza === "media")) poner("numSerie", s.valor, "placa");
+        }
+        const t = llano(dictado);
+        if (t) {
+          const m = marcaEn(t);
+          if (m) poner("marca", m, "manual");
+          for (const [k, f] of Object.entries(DICHO)) {
+            const v = f(t);
+            if (v !== null) poner(k, v, "manual");
+          }
+        }
+        return { campos, nada: !Object.keys(campos).length, esPlaca: lineas.length ? PS.pareceplaca(lineas) : false };
+      }
+      function renglon(k, c) {
+        const d = CAMPOS[k] || { etiqueta: k };
+        return `${d.etiqueta}: ${c.v}${d.unidad ? ` ${d.unidad}` : ""} (${c.de})`;
+      }
+      module.exports = { leer, renglon, marcaEn, CAMPOS, MARCAS };
+    }
+  });
+
   // electron/data/iarvisGeneral.js
   var require_iarvisGeneral = __commonJS({
     "electron/data/iarvisGeneral.js"(exports, module) {
@@ -152708,6 +153066,106 @@ No ha entrado: ${mal.join("; ")}` : ""}`,
         if (!r.ok) return fila("S\xED, firmar", { respuesta: r.error });
         return fila("S\xED, firmar", { respuesta: `Firmado ${e.tag} con tu firma (por Iarvis, verificado con ${{ biometria: "Face ID/huella", webauthn: "Face ID/huella", pin: "PIN" }[p.verificacion]}).`, acciones: [abrirFicha] });
       }
+      var PF = require_placaFicha();
+      var PUNTOS_PLACA = {
+        marca: ["marca"],
+        modelo: ["modelo"],
+        potenciaFrio: ["potencia_frio"],
+        potenciaCalor: ["potencia_calor"],
+        refrigerante: ["refrigerante"],
+        cargaKg: ["carga_refrigerante"],
+        tension: ["tension"],
+        caudal: ["caudal_nominal", "caudal"]
+      };
+      var CAMPO_EQUIPO = { marca: "marca", modelo: "modelo", caudal: "caudalNominal" };
+      async function rellenarFicha(ctx, accion, pregunta) {
+        if (!ctx.obraId) return fila(pregunta, { respuesta: SIN_OBRA });
+        const p = accion.parametros;
+        const q = await equipoDeAccion(ctx, accion, pregunta);
+        if (q.fila) return q.fila;
+        const e = q.e;
+        if (e.obraId !== ctx.obraId) return fila(pregunta, { respuesta: "Ese equipo no es de la obra elegida." });
+        const nombreEq = A.nombreDe(e, FM.salaVisibleDe(e) || "");
+        const ids = idsDe(ctx.fotos);
+        const dicho = llano(p.dictado || pregunta).replace(/\b(esto|este|esta)\s+es\s+(el|la|los|las)?\s*/i, "").replace(new RegExp(llano(p.equipo || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), " ");
+        const leido = PF.leer({ placa: p.placa, dictado: dicho, marca: e.marca, modelo: e.modelo });
+        const destinos = await leerDestinos(ctx, e, { conFichas: true });
+        if (destinos.error) return fila(pregunta, { respuesta: destinos.error });
+        const listas = [];
+        const sinSitio = [];
+        for (const [k, c] of Object.entries(leido.campos)) {
+          if (k === "numSerie") {
+            if (llano(e.numSerie) !== llano(c.v)) listas.push({ k, c, serie: true, antes: e.numSerie || null });
+            continue;
+          }
+          const codigos = PUNTOS_PLACA[k] || [];
+          const pt = destinos.puntos.find((x) => codigos.includes(x.codigo) && x.editable && !x.firmada);
+          const delEquipo = CAMPO_EQUIPO[k];
+          if (delEquipo && llano(e[delEquipo]) !== llano(c.v)) listas.push({ k, c, equipo: delEquipo, antes: e[delEquipo] ?? null });
+          if (!pt) {
+            if (!delEquipo) sinSitio.push(PF.CAMPOS[k] ? PF.CAMPOS[k].etiqueta : k);
+            continue;
+          }
+          const enParam = pt.seccion === "parametros";
+          const antes = enParam ? pt.p ?? null : pt.valor ?? null;
+          if (antes !== null && String(antes) === String(c.v)) continue;
+          listas.push({ k, c, pt, antes, enFicha: true, valor: enParam ? { p: c.v, o: c.o === "placa" ? "placa" : "manual" } : { v: c.v, o: c.o === "placa" ? "placa" : "manual" } });
+        }
+        if (!listas.length && !ids.length) {
+          return fila(pregunta, { respuesta: leido.nada ? `No leo ning\xFAn dato de ${nombreEq} en la foto ni en lo que dices. M\xE1ndame una foto de la placa m\xE1s de cerca, o d\xEDmelo (\xABmarca Daikin, 12 kW de fr\xEDo\xBB).` : `${nombreEq} ya tiene esos datos; no hay nada nuevo que guardar.${sinSitio.length ? ` (Su ficha no tiene sitio para: ${sinSitio.join(", ")}.)` : ""}` });
+        }
+        const renglones = listas.filter((x) => !(x.enFicha && CAMPO_EQUIPO[x.k])).map(({ k, c, antes }) => `${PF.renglon(k, c)}${antes !== null && antes !== void 0 && antes !== "" ? ` \xB7 hab\xEDa ${antes}` : ""}`);
+        if (!ctx.confirmado) {
+          return fila(pregunta, {
+            respuesta: `${nombreEq}:
+${ids.length ? `${ids.length === 1 ? "La foto" : `Las ${ids.length} fotos`} al equipo.
+` : ""}${renglones.join("\n")}${sinSitio.length ? `
+Su ficha no tiene sitio para: ${sinSitio.join(", ")}.` : ""}
+No pongo observaciones: esas las escribes t\xFA. \xBFLo guardo?`,
+            /* Cancelar: «descartar», no «rechazar» (en el móvil, «rechazar» es la revisión del instalado). */
+            acciones: [botonSi({ id: accion.id, parametros: { ...p, equipoId: e.id } }, "S\xED, guardar", { obraId: ctx.obraId, fotos: ctx.fotos }), { tipo: "hacer", hacer: "descartar", texto: "Cancelar" }],
+            /* Las fotos ya van en la tarjeta: sin la nota del adjunto («Iarvis la mira…», renderer/iarvis.js). */
+            fotosEnTarjeta: true,
+            lectura: renglones.join("\n")
+          });
+        }
+        const hechas = [];
+        const mal = [];
+        if (ids.length) {
+          const r = await pedir(ctx.llamar, "POST", "api/equipo/fotos", { equipoId: e.id, fotos: ids.map((id) => ({ id })) });
+          (r.ok ? hechas : mal).push(r.ok ? ids.length === 1 ? "la foto" : `${ids.length} fotos` : `fotos: ${r.error}`);
+        }
+        const serie = listas.find((x) => x.serie);
+        if (serie) {
+          const r = await pedir(ctx.llamar, "POST", "api/equipo/serie", { equipoId: e.id, numSerie: serie.c.v });
+          (r.ok ? hechas : mal).push(r.ok ? "n\xBA de serie" : `n\xBA de serie: ${r.error}`);
+        }
+        const ident = Object.fromEntries(listas.filter((x) => x.equipo).map((x) => [x.equipo, x.c.v]));
+        if (Object.keys(ident).length) {
+          const r = await pedir(ctx.llamar, "POST", "api/equipo/identificacion", { equipoId: e.id, ...ident });
+          for (const x of listas.filter((y) => y.equipo)) (r.ok ? hechas : mal).push(r.ok ? PF.CAMPOS[x.k].etiqueta.toLowerCase() : `${PF.CAMPOS[x.k].etiqueta}: ${r.error}`);
+        }
+        const porFicha = /* @__PURE__ */ new Map();
+        for (const x of listas.filter((y) => y.pt)) {
+          const k = `${x.pt.clave}|${x.pt.plantilla}`;
+          if (!porFicha.has(k)) porFicha.set(k, []);
+          porFicha.get(k).push(x);
+        }
+        for (const grupo of porFicha.values()) {
+          const { clave, plantilla } = grupo[0].pt;
+          const valores = Object.fromEntries(grupo.map((x) => [x.pt.codigo, x.valor]));
+          const r = await pedir(ctx.llamar, "POST", "api/ficha", { obraId: e.obraId, clave, plantilla, valores });
+          for (const x of grupo) if (!CAMPO_EQUIPO[x.k]) (r.ok ? hechas : mal).push(r.ok ? PF.CAMPOS[x.k].etiqueta.toLowerCase() : `${PF.CAMPOS[x.k].etiqueta}: ${r.error}`);
+        }
+        const abrir = { tipo: "ir", destino: "commissioning", texto: `Abrir ${e.tag}`, equipoId: e.id, obraId: e.obraId, accionEquipo: "datos" };
+        return fila("S\xED, guardar", {
+          respuesta: `${hechas.length ? `Guardado en ${nombreEq}: ${hechas.join(", ")}.` : "No se ha guardado nada."}${mal.length ? `
+No ha entrado: ${mal.join("; ")}` : ""}`,
+          acciones: [abrir],
+          fotosGuardadas: ids.length ? localesDe(ctx.fotos) : [],
+          fotosEnTarjeta: true
+        });
+      }
       var EJECUTA = {
         irA,
         formulario,
@@ -152728,7 +153186,8 @@ No ha entrado: ${mal.join("; ")}` : ""}`,
         fichar,
         fotoA,
         apuntarMedidas,
-        firmarEquipo
+        firmarEquipo,
+        rellenarFicha
       };
       async function ejecutar(ctx, accion, pregunta) {
         const def = accion && CAT.POR_ID.get(accion.id);
@@ -153069,7 +153528,8 @@ ${b.respuesta}`, acciones: [...a.acciones || [], ...b.acciones || []].slice(0, 4
           if (ids.length === 2 && ids.filter((x) => /^consultar/.test(x || "")).length === 1 && ids.some((x) => !x) && dos.every((x) => /\b(cuant[oa]s?|quant[eo]s?|how many|how much|que|cual|which|what)\b|\?/.test(CAT.normal(x)) || dos.indexOf(x) === 1)) return null;
         }
         const g0 = CAT.entenderGeneral(pregunta, { conFoto });
-        const prioritaria = Boolean(g0 && (g0.id === "apuntarMedidas" || g0.id === "firmarEquipo"));
+        const prioritaria = Boolean(g0 && (g0.id === "apuntarMedidas" || g0.id === "firmarEquipo" || g0.id === "rellenarFicha"));
+        if (g0 && g0.id === "rellenarFicha" && d.placa) g0.parametros = { ...g0.parametros, placa: (Array.isArray(d.placa) ? d.placa : String(d.placa).split(/\r?\n/)).map((x) => String(x).slice(0, 200)).slice(0, 80).join("\n") };
         let delClaim = false;
         try {
           delClaim = !g0 && Boolean(HERR.entenderClaim(pregunta));
@@ -153146,6 +153606,7 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
           if (a.confirmado !== true) return fila("Guardar la respuesta", { respuesta: "Falta confirmarlo.", acciones: [] });
           return fila("S\xED, guardarla como propuesta", require_iarvisClaim().confirmarRespuestaClaim(repo, ses, { ...a, obraId: llano(a.obraId), recId: llano(a.recId), temaId: llano(a.temaId), preguntaId: llano(a.preguntaId) }));
         }
+        if (que === "descartar") return fila("Cancelar", { respuesta: "Vale, no guardo nada.", acciones: [] });
         if (que === "instalado") return instalado(repo, ses, "Marcar instalado", llano(a.equipoId));
         if (que === "aprobar" || que === "rechazar") {
           const r = revisarInstalado(repo, ses, llano(a.marcaId), que === "aprobar");
@@ -153200,7 +153661,7 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
         return {
           "POST api/iarvis/preguntar": async (ctx) => {
             const d = ctx.json() || {};
-            const fila = await IA.responder(repo, ctx.ses, { pregunta: d.pregunta, obraId: d.obraId, obraNombre: d.obraNombre, fotos: d.fotos }, { llamar: como(ctx.ses, ctx.quien) });
+            const fila = await IA.responder(repo, ctx.ses, { pregunta: d.pregunta, obraId: d.obraId, obraNombre: d.obraNombre, fotos: d.fotos, placa: d.placa }, { llamar: como(ctx.ses, ctx.quien) });
             if (fila && !fila.sinResolver) return { ok: true, local: true, fila };
             const despues = preguntarDespues ? await preguntarDespues(ctx) : { ok: true, local: false };
             if (fila && !(despues && despues.local)) return { ok: true, local: true, fila };
@@ -158074,6 +158535,7 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
   var PQ = require_paquete();
   var puerta = require_puerta();
   var ota = require_ota2();
+  var { queHacerConLaBase, esSoloEjemplo } = require_marcaEjemplo();
   var { crearSyncCx, ponerMiFicha } = require_sync();
   var incrustados = require_incrustados();
   var T = require_tiempos();
@@ -158243,11 +158705,34 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
       return null;
     };
     const vacia = () => !base.prepare("SELECT COUNT(*) AS n FROM personas").get().n;
-    if (DEMO && (vacia() || !oficina().ejemplo)) {
-      if (!vacia()) throw new Error("Esta es la versi\xF3n de pruebas: solo abre la obra de ejemplo.");
+    const CLAVE_VACIADA = "cxobra.ejemploHuerfanoVaciado";
+    let yaVaciada = false;
+    try {
+      yaVaciada = Boolean(sessionStorage.getItem(CLAVE_VACIADA));
+    } catch {
+    }
+    const queHacer = queHacerConLaBase({ demo: DEMO, vacia: vacia(), oficina: oficina(), soloEjemplo: !vacia() && esSoloEjemplo(base), yaVaciada });
+    if (queHacer === "error") throw new Error("Esta es la versi\xF3n de pruebas: solo abre la obra de ejemplo.");
+    if (queHacer === "sembrar") {
       sembrarSiVacia(base);
       apuntarOficina({ ejemplo: true });
       await almacen.guardarYa(base);
+    }
+    if (queHacer === "marcarEjemplo") apuntarOficina({ ejemplo: true });
+    if (queHacer === "vaciar") {
+      try {
+        sessionStorage.setItem(CLAVE_VACIADA, "1");
+      } catch {
+      }
+      const limpia = await abrirBaseWasm({ datos: null, localizarWasm: (f) => f });
+      prepararEsquema(limpia);
+      soltada = true;
+      await almacen.guardarYa(limpia, { completa: true });
+      ponerLS(CLAVE_OFICINA, "{}");
+      ponerLS(CLAVE_PERSONA, "");
+      ota.arrancoBien();
+      location.reload();
+      return;
     }
     if (vacia()) {
       if (aviso) aviso.remove();

@@ -417,9 +417,10 @@
   $app.addEventListener('change', recoger);
   for (const input of [$camara, $galeria]) {
     input.addEventListener('change', () => {
-      const archivo = input.files && input.files[0];
+      const archivos = Array.from(input.files || []);
       input.value = '';
-      foto(archivo);
+      /* De la galería, varias a la vez; un fallo en una no pierde las demás. */
+      window.AUTOGUARDADO.porLotes(archivos, foto, 'Guardando');
     });
   }
 
