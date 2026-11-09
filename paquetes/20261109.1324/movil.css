@@ -209,11 +209,16 @@ small, .sub { color: var(--textoTenue); font-size: 13px; }
 /* Mientras carga, solo el logo animado y centrado. El texto «Cargando…» se queda
    para el lector de pantalla. 8-nov (JC): el logo es el del arranque
    (shared/arranqueLogo.js, lo mete index.html en cada p.cargando): la V gruesa del
-   icono quieta y la brújula, donde lo único animado es la aguja. */
-p.cargando { min-height: 70vh; display: flex; align-items: center; justify-content: center;
+   icono quieta y la brújula orbitando. 9-nov (JC): grande, ocupando el hueco libre
+   entre la cabecera y la barra de abajo. Solo si es lo único de la pantalla: dentro
+   de una ficha o con botones al lado se queda pequeño y no empuja lo demás. */
+p.cargando { min-height: calc(100vh - 190px); min-height: calc(100dvh - 190px);
+  display: flex; align-items: center; justify-content: center;
   font-size: 0; color: transparent; padding: 0; }
-.cx-carga { display: block; flex: none; width: 96px; height: 96px; }
-.cx-carga > svg { display: block; width: 96px; height: 96px; }
+.cx-carga { display: block; flex: none; }
+body:has(#app > p.cargando:only-child) { padding-bottom: 0; } /* la barra de abajo flota: sin esto, la carga tendría scroll */
+p.cargando:not(#app > :only-child) { min-height: 0; padding: 14px 0; }
+p.cargando:not(#app > :only-child) .arq-atomo { --arq-lado: 96px; }
 
 /* El estado vacío, igual en todas las listas (el EmptyState de CoachIn): un
    círculo gris con el icono y el texto debajo, centrado y con aire. */

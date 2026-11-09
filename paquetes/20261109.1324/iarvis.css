@@ -130,3 +130,16 @@ body.teclado .iaMovil .iaEntrada, body.teclado-vv .iaMovil .iaEntrada { padding-
 @media (prefers-reduced-motion: reduce) {
   .iaBrujulaViva { animation: none; }
 }
+
+/* 9-nov (JC: «se tapa la información con el chat de Iarvis, no puede ser»): con el panel abierto en una pantalla ancha,
+   el contenido se aparta (ancho del panel 380 + sus 16 de margen + 16 de aire); en una estrecha el panel va encima. */
+@media (min-width: 900px) {
+  body.iaAbierto .centro { padding-right: 412px; box-sizing: border-box; }
+}
+/* Con el panel abierto el contenido es más estrecho: el subtítulo baja a su propia línea para no abreviarse ni cortarse. */
+@media (min-width: 900px) and (max-width: 1750px) {
+  body.iaAbierto .centro > .cabecera { flex-wrap: wrap; row-gap: 2px; }
+  body.iaAbierto .centro > .cabecera h1 { max-width: none; }
+  body.iaAbierto .centro > .cabecera #subtitulo { order: 9; flex: 1 1 100%; white-space: normal; overflow: visible; }
+  body.iaAbierto .centro > .cabecera #subtitulo:empty { display: none; }
+}

@@ -96,13 +96,13 @@
     partes: { grupo: 'Seguridad y QHSE', nombre: 'Avisos de incidencia', icono: '⚠' },
     /* Lo reclamable va con los conflictos y el claim, en «Contrato y cliente». */
     avisos: { grupo: 'Contrato y cliente', nombre: 'Reclamables', icono: '⚖' },
-    avance: { grupo: 'Medir y certificar', nombre: 'Avance de obra', icono: '◩' },
+    avance: { grupo: 'Producción', nombre: 'Avance de obra', icono: '◩' },
     albaranes: { grupo: 'Compras', nombre: 'Albaranes', icono: '▨' },
     inventario: { grupo: 'Compras', nombre: 'Inventario', icono: '▨' },
     personal: { grupo: 'Personal', nombre: 'Personal en obra', icono: '♙' },
     bloc: { grupo: 'Mi espacio', nombre: 'Bloc', icono: '✎' },
-    jornada: { grupo: 'Mi espacio', nombre: 'Jornada', icono: '◴' },
-    cuenta: { grupo: 'Mi espacio', nombre: 'Perfil', icono: '◉' },
+    jornada: { grupo: 'Personal', nombre: 'Jornada', icono: '◴' },
+    cuenta: { grupo: 'Ajustes', nombre: 'Perfil', icono: '◉' },
   };
   /* Siempre se pueden abrir, tenga el rol las secciones que tenga. */
   const DE_TODOS = ['inicio', 'cuenta', 'mas'];
