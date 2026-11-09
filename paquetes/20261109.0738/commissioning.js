@@ -986,7 +986,7 @@
     if (!cv) return;
     FD.enlazar($app.querySelector('.firma-lienzo'));
     const cx = cv.getContext('2d');
-    cx.lineWidth = 3; cx.lineCap = 'round'; cx.lineJoin = 'round'; cx.strokeStyle = '#0F5F56';
+    cx.lineWidth = 3; cx.lineCap = 'round'; cx.lineJoin = 'round'; cx.strokeStyle = (getComputedStyle(document.documentElement).getPropertyValue('--vd-trazo').trim() || 'black');
     trazado = false;
     let ultimo = null;
     const punto = (ev) => { const r = cv.getBoundingClientRect(); return { x: ((ev.clientX - r.left) / r.width) * cv.width, y: ((ev.clientY - r.top) / r.height) * cv.height }; };
@@ -1254,7 +1254,7 @@
     const conSitio = (p.todas || p.bocas).filter((b) => b.x !== null && b.x !== undefined && b.y !== null && b.y !== undefined);
     if (!p.imagen || !conSitio.length) return '';
     return `<figure class="plano-bocas" data-plano-fig="${esc(p.id)}">
-      <div class="plano-marco"><div class="plano-lienzo">
+      <div class="plano-marco" data-paleta="vidaire"><div class="plano-lienzo">
         <img data-src="api/equipo/plano?id=${encodeURIComponent(p.id)}" alt="Plano ${esc(p.nombre)}">
         ${conSitio.map((b) => { const otro = delCircuito && !delCircuito(b); return `<button class="marca-boca ${claseMarca(b.estado)}${esRetorno(b) ? ' ret' : ''}${otro ? ' otro-circuito' : ''}" style="left:${(b.x * 100).toFixed(2)}%;top:${(b.y * 100).toFixed(2)}%"
           data-cx="ir-boca" data-boca="${esc(claveBoca(p.id, b.id))}"${otro ? ` data-circuito="${esRetorno(b) ? 'retorno' : 'impulsion'}"` : ''} aria-label="Ir a la boca ${esc(b.nombre)}">${simbolo(b)}<span class="rotulo-boca">${esc(b.nombre)}</span></button>`; }).join('')}
@@ -3245,8 +3245,8 @@
       .crono-tiempo { font-size: 30px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--acento-fuerte); letter-spacing: .5px; }
       .crono-botones { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
       .crono-botones .boton { width: fit-content; min-width: 104px; border-radius: 999px; padding: 0 18px; }
-      .crono-botones .boton.empezar { background: var(--bien); color: #fff; }
-      .crono-botones .boton.terminar { background: #1F5FA8; color: #fff; }
+      .crono-botones .boton.empezar { background: var(--bien); color: var(--sobre-estado); }
+      .crono-botones .boton.terminar { background: var(--info); color: var(--sobre-relleno); }
       .crono table { border-collapse: collapse; width: 100%; font-size: 14px; margin: 4px 0 6px; }
       .crono th { text-align: left; font-weight: 600; color: var(--acento); background: none; border-bottom: 2px solid var(--acento); padding: 4px 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .3px; }
       .crono td { border-bottom: 1px solid var(--rejilla); padding: 4px 6px; vertical-align: middle; }
@@ -3257,7 +3257,7 @@
       .crono-acciones .boton { width: fit-content; border-radius: 999px; padding: 0 16px; min-height: 40px; font-size: 15px; }
       .crono-cifras { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
       .crono-cifras span { width: fit-content; border-radius: 999px; padding: 3px 12px; background: var(--acento-suave); color: var(--acento-fuerte); font-size: 14px; font-variant-numeric: tabular-nums; }
-      .crono-cifras span.azul { background: #E8F0FA; color: #1F5FA8; }
+      .crono-cifras span.azul { background: var(--info-fondo); color: var(--info); }
       .crono-cifras span.verde { background: var(--bien-fondo); color: var(--bien); }
       .crono-cifras span.falta { background: var(--aviso-fondo); color: var(--aviso); }
       .crono-bocas { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--textoSuave); margin: 4px 0; }
@@ -3265,7 +3265,7 @@
       .cm-et { color: var(--acento); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .3px; }
       .cm-t { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--acento-fuerte); min-width: 58px; }
       .cm-b { width: fit-content; border: 0; border-radius: 999px; padding: 0 14px; min-height: 32px; font-size: 13px; background: var(--acento-suave); color: var(--acento-fuerte); }
-      .cm-b.verde { background: var(--bien); color: #fff; } .cm-b.azul { background: #1F5FA8; color: #fff; }
+      .cm-b.verde { background: var(--bien); color: var(--sobre-estado); } .cm-b.azul { background: var(--info); color: var(--sobre-relleno); }
       .cm-fin, .cm-hp, .cm-op { color: var(--textoSuave); font-variant-numeric: tabular-nums; }
       .cm-op select { min-height: 30px; border: 1px solid var(--borde); border-radius: 8px; background: var(--panel); color: var(--texto); font-size: 13px; }
       .crono-bocas input { width: 80px; min-height: 36px; border: 1px solid var(--borde); border-radius: 8px; padding: 2px 6px; font-size: 15px; }`;

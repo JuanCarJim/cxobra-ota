@@ -43,25 +43,25 @@
       .rq td.rq-cod { width: 30%; font-weight: 600; font-variant-numeric: tabular-nums; }
       .rq td .rq-sub { display: block; font-size: 13px; color: var(--texto-suave, var(--textoSuave)); }
       .rq .rq-est { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
-      .rq .rq-abierto { background: #DCEBF8; color: #1F4E86; }
+      .rq .rq-abierto { background: var(--info-fondo); color: var(--info); }
       .rq .rq-curso { background: var(--acento-suave); color: var(--acento-fuerte); }
-      .rq .rq-cerrado { background: #DFF1E6; color: #1A6B3C; }
+      .rq .rq-cerrado { background: var(--bien-fondo); color: var(--bien); }
       .rq .rq-kpis { display: flex; gap: 14px; margin: 8px 0 4px; font-size: 14px; color: var(--texto-suave, var(--textoSuave)); }
       .rq .rq-kpis b { font-size: 18px; color: var(--acento-fuerte); font-variant-numeric: tabular-nums; margin-right: 3px; }
       .rq .rq-tipos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 6px 0 10px; }
-      .rq .rq-tipos button { min-height: 44px; border-radius: 12px; border: 1px solid var(--acento-suave); background: #fff; color: var(--acento-fuerte); font-size: 14px; font-weight: 600; padding: 4px; }
-      .rq .rq-tipos button.activo { background: var(--acento-fuerte); color: #fff; border-color: var(--acento-fuerte); }
+      .rq .rq-tipos button { min-height: 44px; border-radius: 12px; border: 1px solid var(--acento-suave); background: var(--panel); color: var(--acento-fuerte); font-size: 14px; font-weight: 600; padding: 4px; }
+      .rq .rq-tipos button.activo { background: var(--acento-relleno); color: var(--sobre-relleno); border-color: var(--acento-relleno); }
       .rq .rq-fotos { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 8px; }
       .rq .rq-fotos img { width: 84px; height: 84px; object-fit: cover; border-radius: 10px; flex: none; }
-      .rq .rq-otra { flex: none; width: 84px; height: 84px; border-radius: 10px; border: 2px dashed var(--acento-fuerte); background: #fff; color: var(--acento-fuerte); font-size: 14px; font-weight: 600; }
+      .rq .rq-otra { flex: none; width: 84px; height: 84px; border-radius: 10px; border: 2px dashed var(--acento-fuerte); background: var(--panel); color: var(--acento-fuerte); font-size: 14px; font-weight: 600; }
       .rq textarea, .rq input, .rq select { width: 100%; box-sizing: border-box; font-size: 17px; }
       .rq .rq-pista { font-size: 13px; color: var(--texto-suave, var(--textoSuave)); margin: 3px 0 0; }
       .rq .rq-cats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin: 6px 0; }
-      .rq .rq-cats button { min-height: 40px; border-radius: 12px; border: 1px solid var(--acento-suave); background: #fff; color: var(--texto);
+      .rq .rq-cats button { min-height: 40px; border-radius: 12px; border: 1px solid var(--acento-suave); background: var(--panel); color: var(--texto);
         font-size: 15px; font-weight: 600; text-align: left; padding: 4px 10px; line-height: 1.15; }
-      .rq .rq-cats button.activo { background: var(--acento-fuerte); color: #fff; border-color: var(--acento-fuerte); }
+      .rq .rq-cats button.activo { background: var(--acento-relleno); color: var(--sobre-relleno); border-color: var(--acento-relleno); }
       .rq .rq-auto { font-size: 13px; color: var(--texto-suave, var(--textoSuave)); border-top: 1px solid var(--panel3); padding-top: 8px; margin-top: 10px; }
-      .rq .rq-pie { position: fixed; left: 0; right: 0; bottom: calc(var(--hueco-barra, 104px) + env(safe-area-inset-bottom, 0px) - 8px); padding: 8px 16px; background: #fff; z-index: 5; }
+      .rq .rq-pie { position: fixed; left: 0; right: 0; bottom: calc(var(--hueco-barra, 104px) + env(safe-area-inset-bottom, 0px) - 8px); padding: 8px 16px; background: var(--panel); z-index: 5; }
       .rq .rq-pie .boton { width: 100%; min-height: 54px; font-size: 18px; border-radius: 14px; }
       .rq .rq-campo { margin: 10px 0; }
       .rq .rq-campo label { display: block; font-size: 14px; font-weight: 600; color: var(--acento-fuerte); margin-bottom: 4px; }

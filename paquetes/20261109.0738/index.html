@@ -11,9 +11,9 @@
 
 <meta name="robots" content="noindex">
 <title>Vidaire Cx</title>
-<!-- CX OBRA: la app del móvil de la obra. Barra flotante abajo
-     (Commissioning · Incidencias · [+] · Compras · Más) y, dentro de cada
-     una, sus secciones arriba; la obra se elige una vez en la cabecera y vale
+<!-- CX OBRA: la app del móvil de la obra. Barra flotante abajo según el rol
+     (Inicio · X · [+] · Y · Más, barraRol.js) y, dentro de cada una, sus
+     secciones arriba; la obra se elige una vez en la cabecera y vale
      para todas (carcasa.js). Cada sección es un script que se activa con su
      dirección: #commissioning, #partes, #ncr, #albaranes, #inventario, #bloc,
      #personal, #estanqueidad y #cuenta.
@@ -25,12 +25,23 @@
 <link rel="apple-touch-icon" href="iconos/icono-180.png">
 <link rel="icon" type="image/png" sizes="32x32" href="iconos/icono-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="iconos/icono-192.png">
-<meta name="theme-color" content="#FFFFFF">
+<meta name="theme-color" content="#FAF6EE"><!-- el script de abajo lo cambia en oscuro -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Vidaire Cx">
 <link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="vidaire-tokens.css">
+<script>
+/* La paleta Vidaire y su tema (9-nov): antes de pintar, para que no parpadee. Claro u oscuro: ?tema= en la
+   dirección, lo guardado, o el del teléfono. */
+(function () {
+  var r = document.documentElement; r.setAttribute('data-paleta', 'vidaire');
+  var t = ''; try { t = (/[?&]tema=(claro|oscuro)/.exec(location.search) || [])[1] || localStorage.getItem('cx-tema') || ''; } catch (e) {}
+  if (!t) t = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'oscuro' : 'claro';
+  if (t === 'oscuro') { r.setAttribute('data-tema', 'oscuro'); var m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', '#141B2D'); }
+})();
+</script>
 <link rel="stylesheet" href="movil.css">
 <link rel="stylesheet" href="mantenimiento.css">
 <link rel="stylesheet" href="iarvis.css">
@@ -89,6 +100,9 @@
   <input type="file" id="camara-prueba" accept="image/*" capture="environment" hidden>
   <input type="file" id="galeria-prueba" accept="image/*" hidden>
   <nav class="barra-inferior" id="barra-inferior" aria-label="Pestañas"></nav>
+  <!-- 8-nov: Face ID, huella o PIN para ENTRAR (bloqueo.js), antes que acceso.js y que cualquier sección. -->
+
+
 
 
 

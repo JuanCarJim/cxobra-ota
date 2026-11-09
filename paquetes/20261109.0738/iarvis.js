@@ -68,6 +68,8 @@
     return {
       preguntar: (d) => p.iarvisPreguntar(d), historial: () => p.iarvisHistorial(), valorar: (id, v) => p.iarvisValorar(id, v),
       estado: (id) => p.iarvisEstado(id), adjuntar: (n, b, t) => p.iarvisAdjuntar(n, b, t),
+      /* 8-nov: el botón «hacer» (guardar la respuesta del claim) también en el escritorio. */
+      hacer: p.iarvisHacer ? (a) => p.iarvisHacer(a) : undefined,
     };
   }
 
@@ -306,6 +308,12 @@
         return;
       }
       if (a.vista && a.destino === 'commissioning' && window.PANTALLA_COMMISSIONING && window.PANTALLA_COMMISSIONING.prepararVista) window.PANTALLA_COMMISSIONING.prepararVista(a.vista, a.obraId);
+      /* 8-nov: «Abrir el estudio» del claim (electron/data/iarvisClaim.js). */
+      if (a.destino === 'reclamaciones' && window.PANTALLA_RECLAMACIONES && window.PANTALLA_RECLAMACIONES.estado) {
+        const E = window.PANTALLA_RECLAMACIONES.estado;
+        if (a.vista) E.vista = String(a.vista);
+        if (a.recId) { E.recId = String(a.recId); if (a.obraId) E.obraId = String(a.obraId); }
+      }
       if (I.ir) I.ir(a.destino);
       if (!I.movil) cerrar();
       return;
@@ -370,8 +378,8 @@
       <div class="iaEntrada">
         <div class="iaFicheros"></div>
         <div class="iaFila">
-          <button class="iaClip" title="Adjuntar un archivo" aria-label="Adjuntar">📎</button>
-          ${I.movil ? '<button class="iaCamara" title="Foto con la cámara" aria-label="Cámara">📷</button>' : ''}
+          <button class="iaClip" title="Adjuntar un archivo" aria-label="Adjuntar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5l-7.6 7.6a4.5 4.5 0 0 1-6.4-6.4l8-8a3 3 0 0 1 4.2 4.2l-8 8a1.5 1.5 0 0 1-2.1-2.1l7.3-7.3"/></svg></button>
+          ${I.movil ? '<button class="iaCamara" title="Foto con la cámara" aria-label="Cámara"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2.2l1.5-2h5.6l1.5 2h2.2A1.5 1.5 0 0 1 20 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z"/><circle cx="12" cy="12.5" r="3.5"/></svg></button>' : ''}
           <textarea rows="1" placeholder="${I.movil ? 'Escribe o pulsa el micrófono del teclado para dictar' : 'Pregunta a Iarvis… (Intro para mandar)'}"></textarea>
           <button class="iaMandar">Mandar</button>
         </div>
@@ -422,7 +430,8 @@
   function abrir() {
     if (!I.panel) return;
     I.panel.hidden = false;
-    if (I.boton) { I.boton.hidden = true; I.boton.classList.remove('conPunto'); }
+    /* 8-nov: el botón vive en la cabecera y no se esconde; solo se le quita el punto. */
+    if (I.boton) { I.boton.classList.remove('conPunto'); I.boton.setAttribute('aria-expanded', 'true'); }
     caducar();
     /* 8-nov: el saludo sale ya; el historial de la nube puede tardar y el panel se quedaba en blanco. */
     pintar();
@@ -433,24 +442,36 @@
   function cerrar() {
     if (I.movil || !I.panel) return;
     I.panel.hidden = true;
-    if (I.boton) I.boton.hidden = false;
+    if (I.boton) I.boton.setAttribute('aria-expanded', 'false');
   }
 
-  /** Escritorio y web: botón flotante + panel lateral. */
+  /** Escritorio y web: botón en la cabecera (flotante si no hay cabecera) + panel. */
   function instalar({ adaptador, ir, contexto } = {}) {
     I.adaptador = adaptador || adaptadorDelPuente();
     if (!I.adaptador || I.boton) return;
     I.ir = ir || null;
     I.contexto = contexto || (() => ({}));
+    /*
+     * 8-nov (JC): ya no es la píldora flotante «Iarvis» de abajo a la derecha:
+     * un botón pequeño y redondo con su brújula (shared/arranqueLogo.js › BRUJULA,
+     * la misma del móvil, renderer/movil/carcasa.js › botonIarvis) en la cabecera,
+     * junto al selector de rol. Pulsarlo abre o cierra el chat.
+     */
     I.boton = document.createElement('button');
     I.boton.id = 'iarvisBoton';
+    I.boton.type = 'button';
     I.boton.title = 'Hablar con Iarvis';
-    I.boton.innerHTML = '<span aria-hidden="true">🧭</span> Iarvis <span class="iaPunto"></span>';
-    I.boton.addEventListener('click', abrir);
+    I.boton.setAttribute('aria-label', 'Hablar con Iarvis');
+    I.boton.setAttribute('aria-expanded', 'false');
+    I.boton.innerHTML = `${(window.ARRANQUE_LOGO && window.ARRANQUE_LOGO.BRUJULA) || '<span aria-hidden="true">🧭</span>'}<span class="iaPunto"></span>`;
+    I.boton.addEventListener('click', () => (I.panel && !I.panel.hidden ? cerrar() : abrir()));
     I.panel = construirPanel();
     I.panel.hidden = true;
-    document.body.append(I.boton, I.panel);
-    document.body.classList.add('conIarvis');
+    const cab = document.querySelector('.cabecera .derecha');
+    if (cab) { I.boton.classList.add('enCabecera'); cab.prepend(I.boton); document.body.append(I.panel); } else {
+      document.body.append(I.boton, I.panel);
+      document.body.classList.add('conIarvis');
+    }
   }
 
   /** Móvil: el panel dentro de su pestaña. */

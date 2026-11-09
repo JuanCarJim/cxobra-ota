@@ -176,7 +176,7 @@
     d.setAttribute('role', 'dialog');
     d.setAttribute('aria-modal', 'true');
     d.setAttribute('aria-label', 'Foto');
-    d.innerHTML = `${url ? `<img src="${esc(url)}" alt="Foto en grande">` : '<p style="color:#fff">Esta foto no se puede enseñar en este teléfono.</p>'}
+    d.innerHTML = `${url ? `<img src="${esc(url)}" alt="Foto en grande">` : '<p style="color:var(--vd-sobre-imagen)">Esta foto no se puede enseñar en este teléfono.</p>'}
       <div class="visor-botones">
         ${reemplazar ? '<button type="button" data-visor="camara">Hacer otra</button><button type="button" data-visor="galeria">Otra de la galería</button>' : ''}
         ${quitar ? '<button type="button" data-visor="quitar">Quitar</button>' : ''}
@@ -227,7 +227,7 @@
 .visor-foto { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.92); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); }
 .visor-foto img { max-width: 100%; max-height: calc(100% - 72px); object-fit: contain; border-radius: 6px; }
 .visor-botones { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
-.visor-botones button { font: inherit; font-size: 15px; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.12); color: #fff; min-height: 44px; }
+.visor-botones button { font: inherit; font-size: 15px; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.12); color: var(--sobre-relleno); min-height: 44px; }
 .fotos img, .fotos .foto-sin-vista { cursor: zoom-in; }
 .foto-sin-vista { display: inline-flex; align-items: center; justify-content: center; width: 60px; height: 60px; border-radius: 6px; background: var(--panel3); color: var(--textoTenue); font-size: 11px; }`;
       document.head.appendChild(s);

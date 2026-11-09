@@ -44,7 +44,8 @@
         pregunta: d.pregunta,
         obraId: d.obraId || null,
         adjuntos: d.adjuntos || [],
-        contexto: { app: 'cx', pantalla: d.pantalla || '', ...(d.obraId ? { obra_id: String(d.obraId), obra: String(d.obraNombre || '').slice(0, 160) } : {}), ...(d.idioma ? { idioma: d.idioma } : {}) },
+        /* 8-nov: con los datos de la obra abierta (`datos_obra`) que ha sacado el teléfono (rutasPlanificacion.js). */
+        contexto: { app: 'cx', pantalla: d.pantalla || '', ...(d.obraId ? { obra_id: String(d.obraId), obra: String(d.obraNombre || '').slice(0, 160) } : {}), ...(d.idioma ? { idioma: d.idioma } : {}), ...(d.contexto && typeof d.contexto === 'object' ? { ...d.contexto, app: 'cx' } : {}) },
       });
     /* El motor de IA, solo para ELEGIR la acción (sin él, o sin desplegar: null, y se queda la
        respuesta de las reglas con las opciones más cercanas). */
@@ -57,10 +58,11 @@
     };
     adaptador = {
       preguntar: async (d) => {
+        let r = null;
         try {
           /* Las fotos del chat, ya en el teléfono (adjuntar): por si es «métela como prueba de…». */
           const fotos = (d.adjuntos || []).filter((x) => x && (x.fotoId || x.local)).map((x) => ({ fotoId: x.fotoId || null, local: x.local || null }));
-          const r = await C.postJson('api/iarvis/preguntar', { pregunta: d.pregunta, obraId: d.obraId || null, obraNombre: d.obraNombre || '', fotos });
+          r = await C.postJson('api/iarvis/preguntar', { pregunta: d.pregunta, obraId: d.obraId || null, obraNombre: d.obraNombre || '', fotos, pantalla: d.pantalla || '', idioma: d.idioma || '' });
           /* 8-nov · las reglas no lo entienden pero parece algo que hacer: se le pregunta al motor
              (edge function `iarvis`, modo «accion») qué acción del catálogo es. El servidor elige con
              el rol que lee de la nube; lo que vuelva se resuelve en el teléfono con confirmación. */
@@ -73,7 +75,7 @@
           }
           if (r && r.local && r.fila) { guardarLocal(r.fila); return r.fila; }
         } catch { /* sin motor local: a la nube, como antes */ }
-        return alNube({ ...d, adjuntos: (d.adjuntos || []).filter((x) => x && !x.soloLocal) });
+        return alNube({ ...d, contexto: r && r.contexto, adjuntos: (d.adjuntos || []).filter((x) => x && !x.soloLocal) });
       },
       /* 8-nov (nota 1108-iarvis-cx-acciones): el botón «hacer» de una respuesta (marcar instalado,
          aprobar, guardar la foto como prueba) lo hace el teléfono con su copia y el alcance del rol. */

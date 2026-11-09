@@ -110,7 +110,7 @@
       capa.className = 'hoja-verificar';
       capa.setAttribute('role', 'dialog');
       capa.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.35)';
-      capa.innerHTML = `<form style="background:var(--fondo,#fff);color:var(--texto,#222);padding:18px;border-radius:12px;max-width:300px;width:calc(100% - 32px)">
+      capa.innerHTML = `<form style="background:var(--panel);color:var(--texto);padding:18px;border-radius:12px;max-width:300px;width:calc(100% - 32px)">
         <p style="margin:0 0 10px">${titulo}</p>
         <input type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="8" style="width:100%;font-size:22px;letter-spacing:6px;padding:8px" aria-label="PIN">
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" class="enlace" data-no>Cancelar</button><button type="submit" class="boton">Aceptar</button></div>
@@ -140,6 +140,46 @@
     if (!valido(p)) return false;
     return (await huella(p, guardado.sal)) === guardado.h ? 'pin' : false;
   }
+
+  /*
+   * LAS PIEZAS SUELTAS (8-nov, nota 1108-cx-entrar): para la pantalla de bloqueo al ENTRAR en Cx
+   * (renderer/movil/bloqueo.js), que necesita distinguir «canceló» de «no le reconoce» y pinta el
+   * PIN en su propia pantalla. El PIN es el mismo que el de firmar con Iarvis.
+   *   biometria(motivo) → 'ok' | 'cancelado' | 'fallo' | 'no-disponible' | 'sin-plugin'
+   */
+  async function biometria(motivo) {
+    const B = pluginBiometria(window.Capacitor);
+    if (!B) return 'sin-plugin';
+    let d;
+    try { d = await B.disponible(); } catch { return 'sin-plugin'; } /* app anterior a la build 5 */
+    if (!d || !d.disponible) return 'no-disponible';
+    try {
+      const r = await B.verificar({ motivo });
+      return r && r.ok ? 'ok' : 'fallo';
+    } catch (e) {
+      const c = e && e.code;
+      return c === 'cancelado' || c === 'no-disponible' ? c : 'fallo';
+    }
+  }
+  const pinGuardado = () => { try { return JSON.parse(leer(CLAVE_PIN) || 'null'); } catch { return null; } };
+  window.CX_IDENTIDAD = {
+    biometria,
+    /* La app nativa (Capacitor en el iPhone o el Android), con o sin el plugin. */
+    nativa: () => { const C = window.Capacitor; try { return Boolean(C && (typeof C.isNativePlatform === 'function' ? C.isNativePlatform() : C.getPlatform && C.getPlatform() !== 'web')); } catch { return false; } },
+    pinValido: (p) => /^\d{4,8}$/.test(String(p || '')),
+    pinExiste: () => Boolean(pinGuardado()),
+    crearPin: async (p) => {
+      if (!/^\d{4,8}$/.test(String(p || '')) || !window.crypto || !crypto.subtle) return false;
+      const sal = b64(bytes(16));
+      escribir(CLAVE_PIN, JSON.stringify({ sal, h: await huella(String(p), sal) }));
+      return true;
+    },
+    comprobarPin: async (p) => {
+      const g = pinGuardado();
+      if (!g || !/^\d{4,8}$/.test(String(p || '')) || !window.crypto || !crypto.subtle) return false;
+      return (await huella(String(p), g.sal)) === g.h;
+    },
+  };
 
   window.CX_VERIFICAR = async ({ motivo = 'Confirma que eres tú para firmar' } = {}) => {
     for (const paso of [() => nativa(motivo), webauthn, pin]) {
