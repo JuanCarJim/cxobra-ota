@@ -156,6 +156,30 @@
     });
   }
 
+  /**
+   * Recorre TODOS los ficheros, uno a uno, con la misma función que ya se usaba
+   * para uno. Con más de uno enseña «Subiendo 3 de 7…»; si alguno falla sigue con
+   * los demás y al final avisa de cuáles. Devuelve { hechas, falladas: [nombres] }.
+   */
+  async function porLotes(archivos, guardar, verbo = 'Subiendo') {
+    const lista = Array.from(archivos || []).filter(Boolean);
+    const falladas = [];
+    let hechas = 0;
+    let t = null;
+    if (lista.length > 1) {
+      t = document.createElement('div');
+      t.className = 'toast bien progreso-fotos';
+      document.body.appendChild(t);
+    }
+    for (let n = 0; n < lista.length; n++) {
+      if (t) t.textContent = `${verbo} ${n + 1} de ${lista.length}…`;
+      try { await guardar(lista[n], n); hechas++; } catch (e) { falladas.push(lista[n].name || `foto ${n + 1}`); }
+    }
+    if (t) t.remove();
+    if (falladas.length) (window.CX && window.CX.aviso ? window.CX.aviso : () => {})(`No se han podido guardar ${falladas.length} de ${lista.length}: ${falladas.join(', ')}.`);
+    return { hechas, falladas };
+  }
+
   /*
    * VER UNA FOTO EN GRANDE (28-oct, JC): tocar una foto la abre a pantalla
    * completa. Si aún es del formulario (no está guardada en la ficha), con
@@ -258,6 +282,6 @@
   window.AUTOGUARDADO = {
     reducirFoto,
     guardar, leer, borrar, olvidar, guardarFoto, leerFoto, borrarFoto, fotoNueva, restaurarFotos, fotosParaGuardar,
-    marca, pintarMarca, sinRed, alSalir, TEXTO, elegirFotos, verFoto, cerrarVisor, nuevoId,
+    marca, pintarMarca, sinRed, alSalir, TEXTO, elegirFotos, porLotes, verFoto, cerrarVisor, nuevoId,
   };
 })();

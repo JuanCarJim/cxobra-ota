@@ -161,9 +161,22 @@
       return c === 'cancelado' || c === 'no-disponible' ? c : 'fallo';
     }
   }
+  /* Cómo se llama la biometría de este aparato, para los botones: «Face ID», «Touch ID» o «la huella». */
+  async function nombreBiometria() {
+    const C = window.Capacitor;
+    const android = (() => { try { return C && C.getPlatform && C.getPlatform() === 'android'; } catch { return false; } })();
+    const B = pluginBiometria(C);
+    let t = '';
+    if (B) { try { const d = await B.disponible(); t = String((d && d.tipo) || '').toLowerCase(); } catch { t = ''; } }
+    if (t === 'touchid') return 'Touch ID';
+    if (t === 'opticid') return 'Optic ID';
+    if (t === 'huella' || android) return 'la huella';
+    return 'Face ID';
+  }
   const pinGuardado = () => { try { return JSON.parse(leer(CLAVE_PIN) || 'null'); } catch { return null; } };
   window.CX_IDENTIDAD = {
     biometria,
+    nombreBiometria,
     /* La app nativa (Capacitor en el iPhone o el Android), con o sin el plugin. */
     nativa: () => { const C = window.Capacitor; try { return Boolean(C && (typeof C.isNativePlatform === 'function' ? C.isNativePlatform() : C.getPlatform && C.getPlatform() !== 'web')); } catch { return false; } },
     pinValido: (p) => /^\d{4,8}$/.test(String(p || '')),

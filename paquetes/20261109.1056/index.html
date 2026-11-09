@@ -25,7 +25,7 @@
 <link rel="apple-touch-icon" href="iconos/icono-180.png">
 <link rel="icon" type="image/png" sizes="32x32" href="iconos/icono-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="iconos/icono-192.png">
-<meta name="theme-color" content="#FAF6EE"><!-- el script de abajo lo cambia en oscuro -->
+<meta name="theme-color" content="#FAF6EE"><meta name="color-scheme" content="only light"><!-- el script de abajo lo cambia solo si se pide el oscuro -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -33,18 +33,19 @@
 <link rel="stylesheet" href="tokens.css">
 <link rel="stylesheet" href="vidaire-tokens.css">
 <script>
-/* La paleta Vidaire y su tema (9-nov): antes de pintar, para que no parpadee. Claro u oscuro: ?tema= en la
-   dirección, lo guardado, o el del teléfono. */
+/* La paleta Vidaire y su tema (9-nov): antes de pintar, para que no parpadee. SIEMPRE claro/arena como el escritorio
+   (JC, 9-nov): el oscuro solo si se pide a propósito (?tema=oscuro o lo guardado); el tema del teléfono NO cuenta. */
 (function () {
   var r = document.documentElement; r.setAttribute('data-paleta', 'vidaire');
   var t = ''; try { t = (/[?&]tema=(claro|oscuro)/.exec(location.search) || [])[1] || localStorage.getItem('cx-tema') || ''; } catch (e) {}
-  if (!t) t = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'oscuro' : 'claro';
-  if (t === 'oscuro') { r.setAttribute('data-tema', 'oscuro'); var m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', '#141B2D'); }
+  r.style.colorScheme = 'light';
+  if (t === 'oscuro') { r.setAttribute('data-tema', 'oscuro'); r.style.colorScheme = 'dark'; var m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', '#141B2D'); }
 })();
 </script>
 <link rel="stylesheet" href="movil.css">
 <link rel="stylesheet" href="mantenimiento.css">
 <link rel="stylesheet" href="iarvis.css">
+<link rel="stylesheet" href="kpiFranja.css">
 <style>.arranque-ipad,.arranque-cx{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#F4F6F5;z-index:9999}html[data-tema="oscuro"] .arranque-ipad,html[data-tema="oscuro"] .arranque-cx{background:#161618}.arq-aguja{transform-origin:90px 88px;animation:arqAguja 2.4s ease-in-out infinite}@keyframes arqAguja{0%{transform:rotate(-40deg)}35%{transform:rotate(18deg)}55%{transform:rotate(-8deg)}70%,100%{transform:rotate(0)}}@media (prefers-reduced-motion:reduce){.arq-aguja{animation:none}}.arq-aviso{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:min(560px,calc(100vw - 32px));padding:9px 14px;border-radius:10px;background:#fff;color:#435254;border:1px solid #D9E0DE;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.08);white-space:pre-wrap;word-break:break-word}.arq-aviso.arq-mal{border-color:#E3BDBD;color:#9C2B2B}.arq-reintentar{margin-left:6px;border:1px solid #13957A;color:#0E7C66;background:transparent;border-radius:8px;padding:3px 10px;font:inherit;cursor:pointer}</style>
 </head>
 <body>
@@ -93,14 +94,16 @@
     })();
   </script>
   <input type="file" id="camara" accept="image/*,application/pdf" capture="environment" hidden>
-  <input type="file" id="galeria" accept="image/*,application/pdf" hidden>
+  <input type="file" id="galeria" accept="image/*,application/pdf" multiple hidden>
   <input type="file" id="camara-qr" accept="image/*" capture="environment" hidden>
   <input type="file" id="camara-parte" accept="image/*" capture="environment" hidden>
   <input type="file" id="galeria-parte" accept="image/*" multiple hidden>
   <input type="file" id="camara-prueba" accept="image/*" capture="environment" hidden>
-  <input type="file" id="galeria-prueba" accept="image/*" hidden>
+  <input type="file" id="galeria-prueba" accept="image/*" multiple hidden>
   <nav class="barra-inferior" id="barra-inferior" aria-label="Pestañas"></nav>
   <!-- 8-nov: Face ID, huella o PIN para ENTRAR (bloqueo.js), antes que acceso.js y que cualquier sección. -->
+
+
 
 
 

@@ -7,8 +7,12 @@
  *   · Al abrir la app con la sesión ya guardada, y al volver de segundo plano tras más de
  *     5 minutos, tapa la página con una pantalla marino y arena (el logo, ningún dato) y pide
  *     Face ID o huella con el plugin nativo «Biometria» (cxobra/nativo/BiometriaPlugin.*).
- *   · Sin biometría (aparato sin ella, sin configurar, o app anterior a la build 5, sin el
- *     plugin): el PIN de este teléfono, el mismo que el de firmar con Iarvis; si no hay, se crea.
+ *   · 9-nov (JC: «Pin no, faceid y que no sea modo oscuro»): con biometría NUNCA se ve un campo
+ *     de PIN. Si se cancela o no reconoce: «Volver a intentar con Face ID» y, como último
+ *     recurso, un enlace pequeño «Entrar con el PIN». Sin biometría (aparato sin ella, sin
+ *     configurar, o app anterior a la build 5, sin el plugin) tampoco sale el campo de golpe:
+ *     se explica por qué y el PIN va tras el mismo enlace (el de firmar con Iarvis; si no hay, se crea).
+ *   · Siempre claro arena (memoria vidaire-sin-modo-oscuro), a pantalla completa.
  *   · En el navegador (sin Capacitor) no hay biometría: el PIN si ya hay uno; si no, basta el
  *     login de siempre. PENDIENTE: pasarlo a WebAuthn / passkeys.
  *   · Cancelar, o fallar 3 veces, deja la pantalla quieta con «Reintentar» y «Cerrar sesión»
@@ -72,14 +76,13 @@
 
   const ESTILO = `
   .cx-bloqueo {
-    --bq-fondo: var(--vd-marino); --bq-letra: var(--vd-arena);
-    --bq-tenue: var(--vd-arena-tinte); --bq-error: var(--vd-granate-tinte);
+    --bq-fondo: var(--vd-crema); --bq-letra: var(--vd-marino); --bq-tenue: var(--vd-gris-calido);
+    --bq-error: var(--vd-granate); --bq-boton: var(--vd-arena); --bq-boton-letra: var(--vd-tinta);
+    color-scheme: only light;
     position: fixed; inset: 0; z-index: 2147483000; display: flex; align-items: center; justify-content: center;
     background: var(--bq-fondo); color: var(--bq-letra); padding: max(24px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
     font-family: var(--fuente-texto, -apple-system, system-ui, sans-serif); text-align: center; visibility: visible !important;
   }
-  :root[data-tema='oscuro'] .cx-bloqueo { --bq-fondo: var(--vd-crema); --bq-tenue: var(--vd-gris-calido); --bq-error: var(--vd-granate); }
-  @media (prefers-color-scheme: dark) { :root:not([data-tema='claro']):not([data-tema='oscuro']) .cx-bloqueo { --bq-fondo: var(--vd-tinta); --bq-tenue: var(--vd-arena-tinte); --bq-error: var(--vd-granate-tinte); } }
   .cx-bloqueo .cx-bq-caja { width: 100%; max-width: 320px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
   .cx-bloqueo .cx-bq-logo { width: 84px; height: 84px; border-radius: 20px; }
   .cx-bloqueo h1 { margin: 4px 0 0; font-size: 26px; font-weight: 700; letter-spacing: -.02em; color: var(--bq-letra); }
@@ -87,13 +90,16 @@
   .cx-bloqueo .cx-bq-error { margin: 0; font-size: 14px; color: var(--bq-error); }
   .cx-bloqueo form { width: 100%; display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
   .cx-bloqueo input { width: 100%; font-size: 24px; letter-spacing: 8px; text-align: center; padding: 10px; border-radius: 12px;
-    border: 1px solid var(--bq-letra); background: transparent; color: var(--bq-letra); }
+    border: 1px solid var(--bq-letra); background: var(--vd-arena-tinte); color: var(--vd-tinta); }
   .cx-bloqueo button { width: 100%; min-height: 48px; border-radius: 12px; font-size: 17px; font-weight: 600; border: 1px solid var(--bq-letra); cursor: pointer; }
-  .cx-bloqueo .cx-bq-principal { background: var(--bq-letra); color: var(--bq-fondo); }
+  .cx-bloqueo .cx-bq-principal { background: var(--bq-boton); color: var(--bq-boton-letra); border-color: var(--bq-boton); }
   .cx-bloqueo .cx-bq-segundo { background: transparent; color: var(--bq-letra); }
+  .cx-bloqueo .cx-bq-enlace { width: auto; background: transparent; border: 0; color: var(--bq-letra); font-weight: 500; font-size: 14px; text-decoration: underline; min-height: 36px; margin-top: 4px; }
   .cx-bloqueo .cx-bq-salir { background: transparent; border: 0; color: var(--bq-tenue); font-weight: 500; font-size: 15px; text-decoration: underline; min-height: 40px; }
   html.cx-tapada body > :not(#cx-bloqueo) { visibility: hidden !important; }
-  html.cx-tapada, html.cx-tapada body { overflow: hidden !important; }
+  html.cx-tapada, html.cx-tapada body { overflow: hidden !important; background: var(--vd-crema) !important; color-scheme: only light; }
+  /* Sin franja blanca abajo (teclado, barra de accesorios, zona del indicador): la tapa baja más allá del borde. */
+  .cx-bloqueo { bottom: -50vh; padding-bottom: calc(50vh + max(24px, env(safe-area-inset-bottom))); }
   `;
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -117,7 +123,7 @@
   }
 
   /* modo: 'tapa' (solo el logo) · 'verificando' · 'pin' · 'crear-pin' · 'quieta' */
-  function pintar(modo, { nota = '', error = '' } = {}) {
+  function pintar(modo, { nota = '', error = '', textoReintentar = 'Reintentar', conPin = false } = {}) {
     document.documentElement.classList.add('cx-tapada');
     const c = capa();
     c.dataset.modo = modo;
@@ -138,7 +144,8 @@
     if (modo === 'quieta') {
       cuerpo = `<p class="cx-bq-nota">${esc(nota)}</p>
         ${error ? `<p class="cx-bq-error" role="alert">${esc(error)}</p>` : ''}
-        <button type="button" class="cx-bq-principal" data-bq-reintentar>Reintentar</button>
+        <button type="button" class="cx-bq-principal" data-bq-reintentar>${esc(textoReintentar)}</button>
+        ${conPin ? '<button type="button" class="cx-bq-enlace" data-bq-usar-pin>Entrar con el PIN</button>' : ''}
         <button type="button" class="cx-bq-salir" data-bq-salir>Cerrar sesión y entrar con usuario y contraseña</button>`;
     }
     c.innerHTML = `<div class="cx-bq-caja">${cabeza}${cuerpo}</div>`;
@@ -146,6 +153,8 @@
     if (reintentar) reintentar.addEventListener('click', () => verificar());
     const salir = c.querySelector('[data-bq-salir]');
     if (salir) salir.addEventListener('click', () => cerrarSesion());
+    const usarPin = c.querySelector('[data-bq-usar-pin]');
+    if (usarPin) usarPin.addEventListener('click', () => { if (!enCurso) { enCurso = true; porPin(); } });
     return c;
   }
 
@@ -157,7 +166,13 @@
 
   /* ═══════════════════════════════════ Verificar */
 
-  function quieta(nota, error) { enCurso = false; pintar('quieta', { nota, error }); }
+  let nombreBio = 'Face ID';
+  function quieta(nota, error) {
+    enCurso = false;
+    const id = ID();
+    const nativa = Boolean(id && id.nativa());
+    pintar('quieta', { nota, error, conPin: nativa, textoReintentar: nativa ? `Volver a intentar con ${nombreBio}` : 'Reintentar' });
+  }
 
   function pedirPin(crear, error) {
     return new Promise((resolver) => {
@@ -208,17 +223,19 @@
     enCurso = true;
     const id = ID();
     if (id && id.nativa()) {
-      pintar('verificando');
+      if (id.nombreBiometria) { try { nombreBio = await id.nombreBiometria(); } catch { /* se queda Face ID */ } }
+      pintar('verificando', { nota: `Entrando con ${nombreBio}…` });
       let fallos = 0;
       while (fallos < INTENTOS) {
         const r = await id.biometria('Entra en Vidaire Cx');
         if (r === 'ok') return desbloquear('biometria');
         if (r === 'cancelado') return quieta('Has cancelado. Sin verificar no se entra.', '');
-        if (r !== 'fallo') break; /* sin biometría o sin plugin (antes de la build 5): al PIN */
+        if (r === 'no-disponible') return quieta(`${nombreBio[0].toUpperCase()}${nombreBio.slice(1)} no está disponible en este teléfono.`, '');
+        if (r === 'sin-plugin') return quieta(`Esta versión de la app aún no trae ${nombreBio}: actualízala desde TestFlight.`, '');
         fallos += 1;
         pintar('verificando', { nota: `No te ha reconocido (${fallos} de ${INTENTOS}).` });
       }
-      if (fallos >= INTENTOS) return quieta('No te ha reconocido 3 veces.', '');
+      return quieta('No te ha reconocido 3 veces.', '');
     }
     return porPin();
   }

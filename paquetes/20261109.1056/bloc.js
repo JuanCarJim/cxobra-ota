@@ -117,11 +117,13 @@
   }
 
   async function foto(camara) {
-    const archivo = await C.elegirFoto(camara);
-    if (!archivo || !editando) return;
+    const archivos = await AG.elegirFotos(camara);
+    if (!archivos.length || !editando) return;
     const e = editando;
-    const x = AG ? await AG.fotoNueva(archivo, { id: null }) : { id: null, archivo, url: URL.createObjectURL(archivo) };
-    e.nuevas.push(x);
+    await AG.porLotes(archivos, async (archivo) => {
+      const x = AG ? await AG.fotoNueva(archivo, { id: null }) : { id: null, archivo, url: URL.createObjectURL(archivo) };
+      e.nuevas.push(x);
+    }, 'Guardando');
     cambio(e);
     if (e === editando) pintarEditor();
   }

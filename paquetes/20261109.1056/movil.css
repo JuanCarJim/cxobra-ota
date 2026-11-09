@@ -140,13 +140,13 @@ body:has(.plano-bocas.grande, .vista-pdf, .visor-foto, .visor-foto-ui, .bm-capa,
   box-shadow: 0 6px 14px rgba(15, 23, 42, .14), 0 1px 3px rgba(15, 23, 42, .06);
 }
 .barra-inferior a {
-  flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 3px;
+  flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 3px;
   color: var(--textoTenue); text-decoration: none; font-size: 10.5px; font-weight: 500; letter-spacing: -.005em;
   -webkit-tap-highlight-color: transparent;
 }
 .barra-inferior a span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-/* «Commissioning» es la palabra larga: su pestaña, algo más ancha, para que no se corte. */
-.barra-inferior a:first-child { flex: 1.4; }
+/* 9-nov (JC): todas las pestañas del mismo ancho (y el hueco de relleno) para que el «+» quede en el centro. */
+.barra-inferior .pestana-hueco { flex: 1 1 0; min-width: 0; }
 .barra-inferior a svg { width: 24px; height: 24px; }
 .barra-inferior a .on { display: none; }
 .barra-inferior a.activa { color: var(--acento); font-weight: 700; }
@@ -1363,11 +1363,9 @@ main, #app { min-width: 0; max-width: 100%; }
 .faltan-hoja .enlace { padding: 0; color: inherit; font-weight: 600; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); text-underline-offset: 2px; }
 /* Propuesta 4: «Avisar con un parte» dentro del aviso del modelo. */
 .nota.aviso .enlace { padding: 0; color: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
-/* Barra inferior: «Commissioning» e «Incidencias» enteras (antes se ensanchaba Inicio). */
+/* Barra inferior: letra algo más pequeña para que «Reclamables» y «Reparaciones» quepan enteras;
+   9-nov (JC): todas las pestañas del mismo ancho, para que el «+» quede en el centro. */
 .barra-inferior a { font-size: 10px; letter-spacing: -.02em; }
-.barra-inferior a:first-child { flex: 1; }
-.barra-inferior a.pestana-commissioning { flex: 1.6; }
-.barra-inferior a.pestana-reclamables, .barra-inferior a.pestana-reparaciones { flex: 1.5; }
 .barra-centro { width: 64px; }
 .barra-pastilla { padding-left: 4px; padding-right: 4px; }
 /* Seis cifras: 3 + 3 en el teléfono, una fila en el iPad; nunca una suelta abajo. */
@@ -1479,10 +1477,7 @@ main, #app { min-width: 0; max-width: 100%; }
 .ini-avance .tenue { padding: 2px 12px 0; }
 .barra-av { height: 8px; margin: 2px 12px; border-radius: 999px; background: var(--rejilla); overflow: hidden; }
 .barra-av i { display: block; height: 100%; border-radius: 999px; background: var(--acento); }
-.ini-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 12px 0; }
-.ini-kpi { display: block; padding: 6px 10px; border: 1px solid var(--rejilla); border-radius: 6px; color: var(--texto); text-decoration: none; }
-.ini-kpi b { display: block; font-size: 19px; font-variant-numeric: tabular-nums; color: var(--acento-fuerte); }
-.ini-kpi span { font-size: 12.5px; color: var(--textoTenue); }
+/* .ini-kpis: en renderer/kpiFranja.css (9-nov). */
 .ver-bloques { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: 6px 2px 2px; font-size: 12.5px; }
 .ver-bloques > span { color: var(--textoTenue); font-weight: 600; margin-right: 2px; }
 .ver-bloques button { min-height: 28px; padding: 2px 10px; border: 1px solid var(--borde); border-radius: 999px; background: var(--panel); color: var(--textoTenue); font: inherit; font-size: 12.5px; cursor: pointer; }
@@ -1666,28 +1661,7 @@ main, #app { min-width: 0; max-width: 100%; }
 [data-plegable].plegado > h2.plg-h { border-radius: var(--radio-bloque); }
 [data-plegable] > h2.plg-h .plg-cab { padding: 4px 10px; }
 
-/* ═══ KPI de Commissioning como los de Vidaire Obras (28-oct-2026, JC) ═══
-   Los de Conflictos del escritorio (renderer/tarjetas.css · .bandaCx): caja
-   clara con borde fino, filete de 2 px arriba (teal hecho, azul falta, gris
-   neutro), etiqueta en mayúsculas, cifra tabular, pie gris y barra fina. */
-#app .kpis-cx { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 4px 0 10px; }
-@media (min-width: 900px) { #app .kpis-cx { grid-template-columns: repeat(9, minmax(0, 1fr)); } }
-#app .kpi-cx {
-  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0;
-  padding: 7px 9px 7px; text-align: left; font: inherit; color: var(--texto); cursor: pointer;
-  background: var(--panel); border: 1px solid var(--rejilla); border-top: 2px solid var(--borde); border-radius: 8px; box-shadow: none;
-}
-#app .kpi-cx.bien { border-top-color: var(--acento); }
-#app .kpi-cx.falta { border-top-color: var(--info); }
-#app .kpi-cx .et { font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--textoTenue); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: calc(100% - 10px); }
-#app .kpi-cx b { display: block; font-size: 21px; font-weight: 600; line-height: 1.1; letter-spacing: -.01em; font-variant-numeric: tabular-nums; color: var(--texto); }
-#app .kpi-cx.falta b { color: var(--info); }
-#app .kpi-cx .pie { font-size: 10.5px; line-height: 1.2; color: var(--textoTenue); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-#app .kpi-cx .barra { display: block; width: 100%; height: 4px; margin: 2px 0 1px; border-radius: 2px; background: var(--panel3); overflow: hidden; }
-#app .kpi-cx .barra > i { display: block; height: 100%; border-radius: 2px; background: var(--acento); }
-#app .kpi-cx .ir { position: absolute; top: 5px; right: 7px; font-size: 13px; line-height: 1; color: var(--textoTenue); }
-#app .kpi-cx.activa { background: var(--acento-suave); border-color: var(--acento); border-top-color: var(--acento); }
-#app .kpi-cx.activa .et, #app .kpi-cx.activa .ir { color: var(--acento-fuerte); }
+/* Los KPI de Commissioning (.kpis-cx): su aspecto, en renderer/kpiFranja.css (9-nov). */
 
 /* ═══════════════ Los avisos flotantes (renderer/avisoFlotante.js + movil/avisosMovil.js, 28-oct)
    Como en Vidaire Obras: un indicador pequeño «⚠ N avisos» en lugar de la banda,
@@ -1807,29 +1781,7 @@ body { background: var(--fondo-pagina); }
 #app .cabeza-ficha h2 { border-radius: 0; }
 #app .ag-titulo { border-radius: 0; }
 
-/* Las cifras KPI de Commissioning (28-oct, arreglo): tarjeta compacta e igual para todas.
-   Sus clases genéricas (.barra = cabecera pegajosa de la app, .ir = fila de tres columnas,
-   .pie = pie de página centrado) chocaban con las reglas globales; se anulan aquí a mano.
-   Una sola franja de color arriba (::before) que sigue el redondeo; la seleccionada, con
-   borde teal fino y sin fondo entero. */
-#app .kpi-cx {
-  position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start;
-  gap: 2px; min-width: 0; min-height: 0; height: auto; padding: 12px 10px 9px; margin: 0;
-  background: var(--panel); border: var(--borde-bloque); border-radius: var(--radio-kpi); box-shadow: var(--sombra-bloque);
-}
-#app .kpi-cx::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--borde); }
-#app .kpi-cx.bien::before { background: var(--acento); }
-#app .kpi-cx.falta::before { background: var(--info); }
-#app .kpi-cx.activa { background: var(--panel); border-color: var(--acento); box-shadow: 0 0 0 1px var(--acento), var(--sombra-bloque); }
-#app .kpi-cx .et { width: calc(100% - 12px); }
-#app .kpi-cx .pie { margin: 0; padding: 0; text-align: left; width: 100%; font-size: 10.5px; }
-#app .kpi-cx .ir { display: block; position: absolute; top: 9px; right: 8px; min-height: 0; padding: 0; margin: 0; border: 0; background: none; gap: 0; }
-#app .kpi-cx .barra {
-  position: static; z-index: auto; display: block; width: 100%; height: 4px; min-height: 0; padding: 0; margin: 3px 0 2px;
-  border: 0; border-radius: 2px; background: var(--panel3); overflow: hidden; -webkit-backdrop-filter: none; backdrop-filter: none;
-}
-#app .kpi-cx .barra > i { display: block; height: 100%; min-height: 0; padding: 0; margin: 0; border: 0; border-radius: 2px; background: var(--acento); }
-#app .kpi-cx.falta .barra > i { background: var(--info); }
+/* Las cifras KPI de Commissioning: desde el 9-nov, en ../kpiFranja.css (franja compacta, sin cajas ni franjas de color). */
 
 /* ── Miniaturas de fotos de incidencias (28-oct, JC: en «Fotos del antes/después» no se veían).
    Cuadradas, esquinas redondeadas; mientras cargan se ve el hueco y, si no llegan, «Sin foto». */

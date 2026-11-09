@@ -391,7 +391,7 @@
       ${cerrado || p.plan === false ? '' : `${p.secciones.length ? '<button class="boton secundario" data-qh="plan-nc">Traer los puntos que no cumplen</button> ' : ''}<button class="boton secundario" data-qh="plan-mas">${p.secciones.length ? '+ Añadir acción' : '+ Añadir NC'}</button>`}
       <h2>Fotos</h2>
       <div class="fotos" data-qh-fotos>${fotos()}</div>
-      ${cerrado ? '' : '<label class="boton secundario" style="width:fit-content;border-radius:999px">Añadir foto<input type="file" accept="image/*" capture="environment" data-qh-foto hidden></label>'}
+      ${cerrado ? '' : '<label class="boton secundario" style="width:fit-content;border-radius:999px">Añadir foto<input type="file" accept="image/*" capture="environment" data-qh-foto hidden></label> <label class="boton secundario" style="width:fit-content;border-radius:999px">De la galería<input type="file" accept="image/*" multiple data-qh-foto hidden></label>'}
       <h2>${esc(p.firma)}</h2>
       <div class="campos">
         <label>Nombre<input data-qh-firma="nombre" value="${esc(f.firma.nombre)}" ${dis}></label>
@@ -440,7 +440,7 @@
       ${dis ? '' : `<div class="acciones-as">${firma ? '<button class="boton" data-qh="as-pasar">Pasar el móvil para firmar</button>' : ''}<button class="boton secundario" data-qh="as-mas">+ Asistente</button></div>`}
       ${p.escanearAsistencia ? `<h2>Hoja de asistencia en papel <span class="cuenta" data-qh-hojas-n>${hojasEscaneadas().length}</span></h2>
         <div class="fotos" data-qh-hojas>${hojasHtml()}</div>
-        ${dis ? '' : '<label class="boton secundario" style="width:fit-content;border-radius:999px">Escanear hoja de asistencia<input type="file" accept="image/*" capture="environment" data-qh-hoja hidden></label>'}
+        ${dis ? '' : '<label class="boton secundario" style="width:fit-content;border-radius:999px">Escanear hoja de asistencia<input type="file" accept="image/*" capture="environment" data-qh-hoja hidden></label> <label class="boton secundario" style="width:fit-content;border-radius:999px">Hojas de la galería<input type="file" accept="image/*" multiple data-qh-hoja hidden></label>'}
         <div data-qh-ocr></div>` : ''}`;
   }
   const hojasEscaneadas = () => ((form && form.adjuntos) || []).filter((a) => a.ref === 'asistencia');
@@ -615,7 +615,7 @@
         <p><span class="chip ${cerr ? 'bien' : 'aviso'}">${cerr ? `Cerrada ${esc(fechaEs(a.cerradaEn))}${a.cerradaPor ? ` · ${esc(a.cerradaPor)}` : ''}` : 'Abierta'}</span></p>
         ${cerr ? `${a.cierre ? `<p class="nota">${esc(a.cierre)}</p>` : ''}${form.puedeSeguir ? `<button class="boton secundario" data-qh="nc-reabrir" data-i="${a.i}">Reabrir</button>` : ''}`
           : (form.puedeSeguir ? `<input class="com" data-qh-cierre="${a.i}" value="${esc(a.cierre || '')}" placeholder="Cómo se ha subsanado">
-            <div class="acciones"><label class="boton secundario" style="width:fit-content;border-radius:999px">Foto<input type="file" accept="image/*" capture="environment" data-qh-fotonc="${a.i}" hidden></label>
+            <div class="acciones"><label class="boton secundario" style="width:fit-content;border-radius:999px">Foto<input type="file" accept="image/*" capture="environment" data-qh-fotonc="${a.i}" hidden></label> <label class="boton secundario" style="width:fit-content;border-radius:999px">Galería<input type="file" accept="image/*" multiple data-qh-fotonc="${a.i}" hidden></label>
             <button class="boton" data-qh="nc-cerrar" data-i="${a.i}">Cerrar NC</button></div>` : '')}
       </div>`;
     }).join('');
@@ -813,18 +813,18 @@
       return;
     }
     if (activa() && form && t.matches && t.matches('[data-qh-fotonc]')) {
-      const f = t.files && t.files[0]; const i = t.dataset.qhFotonc; t.value = '';
-      if (f) subirFoto(f, `nc:${i}`);
+      const fs = Array.from(t.files || []); const i = t.dataset.qhFotonc; t.value = '';
+      if (fs.length) window.AUTOGUARDADO.porLotes(fs, (f) => subirFoto(f, `nc:${i}`), 'Subiendo');
       return;
     }
     if (activa() && form && t.matches && t.matches('[data-qh-hoja]')) {
-      const f = t.files && t.files[0]; t.value = '';
-      if (f) escanearHoja(f);
+      const fs = Array.from(t.files || []); t.value = '';
+      if (fs.length) window.AUTOGUARDADO.porLotes(fs, escanearHoja, 'Escaneando');
       return;
     }
     if (!activa() || !form || !t.matches || !t.matches('[data-qh-foto]')) return;
-    const f = t.files && t.files[0]; t.value = '';
-    if (f) subirFoto(f);
+    const fs = Array.from(t.files || []); t.value = '';
+    if (fs.length) window.AUTOGUARDADO.porLotes(fs, (f) => subirFoto(f), 'Subiendo');
   });
 
   const recoger = (ev) => {

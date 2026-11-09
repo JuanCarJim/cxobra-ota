@@ -56,13 +56,35 @@
         return j && j.accion && j.accion.id ? j.accion : null;
       } catch { return null; }
     };
+    /* Los renglones de la placa de las fotos adjuntas (máx. 3 fotos, 25 s): '' si no toca o no se puede. */
+    const leerPlacas = async (pregunta, fotos) => {
+      try {
+        const E = window.IARVIS_ESPERA; const O = window.OCR_PLACA; const AGx = window.AUTOGUARDADO;
+        const adiv = E && E.adivinar(pregunta, { fotos: fotos.length });
+        if (!adiv || adiv.que !== 'leerPlaca' || !O || !O.disponible() || !AGx || !AGx.leerFoto) return '';
+        const vistos = new Set(); const lineas = [];
+        const trabajo = (async () => {
+          for (const f of fotos.filter((x) => x.local).slice(0, 3)) {
+            const b = await AGx.leerFoto(f.local);
+            if (!b) continue;
+            const { pasadas } = await O.leer(b);
+            for (const l of [].concat(...(pasadas || []))) { const t = String(l || '').trim(); if (t && !vistos.has(t)) { vistos.add(t); lineas.push(t); } }
+          }
+        })();
+        await Promise.race([trabajo, new Promise((ok) => setTimeout(ok, 25000))]);
+        return lineas.slice(0, 80).join('\n');
+      } catch { return ''; }
+    };
     adaptador = {
       preguntar: async (d) => {
         let r = null;
         try {
           /* Las fotos del chat, ya en el teléfono (adjuntar): por si es «métela como prueba de…». */
           const fotos = (d.adjuntos || []).filter((x) => x && (x.fotoId || x.local)).map((x) => ({ fotoId: x.fotoId || null, local: x.local || null }));
-          r = await C.postJson('api/iarvis/preguntar', { pregunta: d.pregunta, obraId: d.obraId || null, obraNombre: d.obraNombre || '', fotos, pantalla: d.pantalla || '', idioma: d.idioma || '' });
+          /* 9-nov · «esto es la UTA-01» + fotos: la placa se lee AQUÍ, en el teléfono y sin red
+             (renderer/ocrPlaca.js), y los renglones van con la pregunta para rellenar la ficha. */
+          const placa = await leerPlacas(d.pregunta, fotos);
+          r = await C.postJson('api/iarvis/preguntar', { pregunta: d.pregunta, obraId: d.obraId || null, obraNombre: d.obraNombre || '', fotos, pantalla: d.pantalla || '', idioma: d.idioma || '', ...(placa ? { placa } : {}) });
           /* 8-nov · las reglas no lo entienden pero parece algo que hacer: se le pregunta al motor
              (edge function `iarvis`, modo «accion») qué acción del catálogo es. El servidor elige con
              el rol que lee de la nube; lo que vuelva se resuelve en el teléfono con confirmación. */

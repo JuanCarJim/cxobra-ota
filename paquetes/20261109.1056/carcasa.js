@@ -141,7 +141,7 @@
 
   /* El título de cada sección, arriba: corto, que en el iPhone quepa junto a la pastilla (18-oct). */
   const TITULO = {
-    inicio: 'Inicio', commissioning: 'Commissioning', partes: 'Partes', ncr: 'No conformidades', reparaciones: 'Reparaciones', avance: 'Avance de obra', albaranes: 'Albaranes',
+    inicio: 'Inicio', commissioning: 'Cx', partes: 'Partes', ncr: 'No conformidades', reparaciones: 'Reparaciones', avance: 'Avance de obra', albaranes: 'Albaranes',
     inventario: 'Inventario', bloc: 'Notas', personal: 'Personal', estanqueidad: 'Estanqueidad', cuenta: 'Perfil',
     misTareas: 'Mis tareas', avisos: 'Reclamables', qhse: 'QHSE', reportesQhse: 'Reportes QHSE', plano: 'Plano de equipos', jornada: 'Jornada',
     iarvis: 'Iarvis', mas: 'Más',
@@ -618,8 +618,14 @@
       const centro = accionesDisponibles().length
         ? '<div class="barra-centro"><button type="button" class="boton-anadir" id="boton-anadir" aria-label="Añadir" aria-haspopup="dialog">' + MAS + '</button><span>Añadir</span></div>'
         : '';
-      const lista = pestanas();
-      abajo.innerHTML = `<div class="barra-pastilla">${lista.slice(0, 2).map(boton).join('')}${centro}${lista.slice(2).map(boton).join('')}</div>`;
+      /* 9-nov (JC): «que quede el + centrado»: las pestañas, todas del mismo ancho, mitad a cada
+         lado del «+»; si son impares, un hueco a la derecha mantiene el centro. */
+      const hechas = pestanas().map(boton).filter(Boolean);
+      const mitad = Math.ceil(hechas.length / 2);
+      const izquierda = hechas.slice(0, mitad);
+      const derecha = hechas.slice(mitad);
+      if (centro) while (derecha.length < izquierda.length) derecha.push('<span class="pestana-hueco" aria-hidden="true"></span>');
+      abajo.innerHTML = `<div class="barra-pastilla">${izquierda.join('')}${centro}${derecha.join('')}</div>`;
       const b = document.getElementById('boton-anadir');
       if (b) b.onclick = abrirHoja;
       /* 8-nov (JC): «la pantalla de Iarvis tiene que ser SOLO el chat»: sin cabecera, secciones ni barra (movil.css, body.en-iarvis). */

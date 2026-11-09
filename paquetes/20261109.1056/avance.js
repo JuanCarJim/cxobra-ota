@@ -290,10 +290,12 @@
   }
   async function fotoMaterial(camara) {
     const f = formMaterial;
-    const archivo = await C.elegirFoto(camara);
-    if (!archivo || !f) return;
-    const x = AG ? await AG.fotoNueva(archivo, { id: null }) : { id: null, archivo, url: URL.createObjectURL(archivo) };
-    f.nuevas.push(x);
+    const archivos = await AG.elegirFotos(camara);
+    if (!archivos.length || !f) return;
+    await AG.porLotes(archivos, async (archivo) => {
+      const x = AG ? await AG.fotoNueva(archivo, { id: null }) : { id: null, archivo, url: URL.createObjectURL(archivo) };
+      f.nuevas.push(x);
+    }, 'Guardando');
     cambioMaterial(f);
     if (f === formMaterial && activa()) pintarMaterial();
   }
@@ -693,9 +695,11 @@
 
   async function fotoHoja(camara) {
     const h = hoja;
-    const archivo = await C.elegirFoto(camara);
-    if (!archivo || !h) return;
-    h.nuevas.push(AG ? await AG.fotoNueva(archivo, { id: null }) : { id: null, archivo, url: URL.createObjectURL(archivo) });
+    const archivos = await AG.elegirFotos(camara);
+    if (!archivos.length || !h) return;
+    await AG.porLotes(archivos, async (archivo) => {
+      h.nuevas.push(AG ? await AG.fotoNueva(archivo, { id: null }) : { id: null, archivo, url: URL.createObjectURL(archivo) });
+    }, 'Guardando');
     if (hoja === h) repintarHoja();
   }
 

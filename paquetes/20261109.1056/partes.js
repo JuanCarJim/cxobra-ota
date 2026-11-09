@@ -553,7 +553,7 @@
     input.addEventListener('change', async () => {
       const archivos = Array.from(input.files || []);
       input.value = '';
-      for (const archivo of archivos) await foto(archivo);
+      await window.AUTOGUARDADO.porLotes(archivos, foto, 'Guardando');
     });
   }
 
