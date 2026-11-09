@@ -17,6 +17,16 @@
 #iarvisBoton .iaPunto { display: none; width: 8px; height: 8px; border-radius: 50%; background: #a7f3d0; }
 #iarvisBoton.conPunto .iaPunto { display: inline-block; }
 body.conIarvis #capaAvisos { bottom: 132px; }
+/* 8-nov (JC): en la cabecera, junto al desplegable del rol: pequeño, redondo y discreto, solo la brújula. */
+#iarvisBoton.enCabecera {
+  position: relative; right: auto; bottom: auto; z-index: auto; flex: none;
+  width: 28px; height: 28px; padding: 0; justify-content: center; gap: 0;
+  border: 0; border-radius: 50%; background: transparent; box-shadow: none;
+}
+#iarvisBoton.enCabecera:hover { filter: brightness(1.15); }
+#iarvisBoton.enCabecera[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--vd-acento, #0f766e); }
+#iarvisBoton.enCabecera svg { width: 26px; height: 26px; display: block; }
+#iarvisBoton.enCabecera .iaPunto { position: absolute; top: -1px; right: -1px; background: var(--vd-acento, #14b8a6); }
 
 /* 8-nov (JC: «el chat hay que ajustarlo en tamaño»): ventana flotante abajo a la derecha, no una
    columna de arriba abajo; la caja de escribir siempre a la vista. */
@@ -103,3 +113,6 @@ body.en-iarvis { padding-bottom: 0; overflow: hidden; }
 body.teclado .iaMovil .iaEntrada, body.teclado-vv .iaMovil .iaEntrada { padding-bottom: 8px; }
 .iaMovil .iaSugerencia { max-width: 100%; border-radius: 14px; white-space: normal; min-height: 36px; }
 .iaMovil .iaAcciones button { min-height: 34px; }
+
+/* 8-nov: en la fuente sans de la app la I mayúscula parece una l («larvis»): el título lleva remates. */
+.iaCabecera h2, .iaMovil .iaCabecera h2, .iaBienvenida h3 { font-family: Georgia, 'Times New Roman', serif; font-weight: 700; letter-spacing: 0.01em; }

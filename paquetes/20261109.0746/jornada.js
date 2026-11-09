@@ -269,6 +269,8 @@
   async function conectar() {
     const ses = window.ACCESO_MOVIL && window.ACCESO_MOVIL.sesion();
     if (!ses || !(ses.secciones || []).includes('jornada')) return false;
+    /* 8-nov: la entrada sola, nunca antes de Face ID, huella o PIN (bloqueo.js). */
+    if (window.CX_BLOQUEO) await window.CX_BLOQUEO.esperar();
     try {
       const r = await C.postJson('api/jornada/conectar', {});
       if (r && r.fichado) C.aviso('Entrada fichada al abrir Cx.', 'bien');

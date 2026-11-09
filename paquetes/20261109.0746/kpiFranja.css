@@ -1,0 +1,156 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   LOS KPI DE TODA LA APP: UNA FRANJA COMPACTA (9-nov-2026, JC con Compras ›
+   Pedidos: «No me convencen las tarjetas tan grandes que tenemos por la app»).
+   Se lee como la cabecera de una hoja de Excel: una sola fila baja (≈38 px),
+   sin caja, sin sombra y sin filete de color; el rótulo pequeño en gris y la
+   cifra al lado, a 17 px y tabular; separadores finos verticales; el pie sale
+   solo como tooltip (kpiFranja.js le pone el title). Si se puede pulsar, se
+   subraya y asoma el «›» al pasar. La cifra en alerta (retrasos, vencidos:
+   clase «mal» o tono-mal), en granate.
+
+   ES EL ÚNICO SITIO. Sustituye a tarjetas.css, a las dos secciones de KPI de
+   contadores.css y a los restos de estilos.css, sinTarjetas.css,
+   subsecciones.css, interfaz.css y los CSS de cada pantalla. Cubre los cuatro
+   marcados que hay, sin tocar su HTML:
+     · .kpis > .kpi            (.etiquetaKpi · .valor · .pie; button.kpi)
+     · .bandaCx > .celdaBanda  (.etBanda · .cifraBanda · .pieBanda · .barraBanda · .irBanda)
+     · .franjaPm > .cifraPm    (<b>N</b> texto <span class="cpPie">) — SUBSECCIONES.franja()
+     · móvil Cx: .kpis-cx > .kpi-cx, .resumen-fila > *, .ini-kpis > .ini-kpi
+   Fuera: .kpisControl (contadores de barra de herramientas) y la banda de
+   «Qué hace la app» (.bandaQH), que es un escaparate.
+   Se carga la última (renderer/index.html y renderer/movil/index.html).
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+  --kpiRotulo: var(--vd-texto-2, var(--textoTenue, #4A4A50));
+  --kpiCifra: var(--vd-texto, var(--texto, #1D1D1F));
+  --kpiSeparador: var(--vd-linea-fuerte, var(--rejilla, #D1D1D6));
+  --kpiAlerta: var(--vd-granate, #7B2232);
+  --kpiActiva: var(--foco, var(--vd-granate, #7B2232));
+  --kpiSelFondo: var(--vd-sel-suave, transparent);
+}
+:root[data-tema='oscuro'] { --kpiAlerta: var(--vd-granate, #E8A3AE); --kpiActiva: var(--vd-granate, #E8A3AE); }
+
+/* ── La franja ─────────────────────────────────────────────────────────── */
+:root body :is(.kpis:not(.kpisControl), .bandaCx:not(.bandaQH), .franjaPm) {
+  display: flex !important; flex-wrap: wrap; align-items: stretch; gap: 0;
+  grid-template-columns: none; grid-auto-flow: row;
+  margin: 4px 0 6px; padding: 0; min-height: 0;
+  background: transparent; border: 0; border-radius: 0; box-shadow: none; overflow: visible;
+}
+/* El bloque que solo envuelve la franja tampoco es caja. */
+:root body :is(.bloque, header):has(> :is(.kpis:not(.kpisControl), .franjaPm)):not(:has(table)) { background: transparent !important; box-shadow: none !important; }
+
+/* ── Cada KPI: rótulo y cifra en la misma línea ────────────────────────── */
+:root body :is(.kpis:not(.kpisControl) > .kpi, .bandaCx:not(.bandaQH) > .celdaBanda, .franjaPm > .cifraPm) {
+  position: relative; display: inline-flex; flex-direction: row; flex-wrap: nowrap; align-items: baseline; gap: 6px;
+  flex: 0 1 auto; min-width: 0; height: auto; min-height: 36px; box-sizing: border-box;
+  margin: 0; padding: 9px 16px 8px 14px;
+  background: transparent; color: var(--kpiRotulo);
+  border: 0; border-left: 1px solid var(--kpiSeparador); border-radius: 0; box-shadow: none; overflow: visible;
+  font: inherit; font-size: 11.5px; font-weight: 500; line-height: 1.2; text-align: left; text-decoration: none; white-space: nowrap;
+}
+:root body :is(.kpis:not(.kpisControl) > .kpi, .bandaCx:not(.bandaQH) > .celdaBanda, .franjaPm > .cifraPm):first-child { border-left: 0; padding-left: 0; }
+:root body :is(.kpis > .kpi, .bandaCx > .celdaBanda, .franjaPm > .cifraPm)::before { content: none !important; display: none !important; }
+
+/* El rótulo: pequeño y gris. */
+:root body :is(.kpis:not(.kpisControl) > .kpi .etiquetaKpi, .bandaCx:not(.bandaQH) .etBanda) {
+  order: 0; display: inline-flex; align-items: baseline; gap: 3px; margin: 0; padding: 0; min-width: 0;
+  font-size: 11.5px !important; font-weight: 500 !important; line-height: 1.2; letter-spacing: 0 !important; text-transform: none !important;
+  color: var(--kpiRotulo) !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bandaCx:not(.bandaQH) .txtBanda { overflow: hidden; text-overflow: ellipsis; }
+
+/* La cifra: 17 px, tabular, en el color del texto. */
+:root body :is(.kpis:not(.kpisControl) > .kpi .valor, .bandaCx:not(.bandaQH) .cifraBanda, .franjaPm > .cifraPm > b) {
+  order: 1; display: inline; margin: 0; padding: 0;
+  font-family: inherit; font-size: 17px !important; font-weight: 600; line-height: 1.2; letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums lining-nums; color: var(--kpiCifra); white-space: nowrap;
+}
+:root body .kpis .unidadKpi { font-size: 0.7em; color: var(--kpiRotulo); font-weight: 500; margin-left: 2px; }
+:root body .kpis:not(.kpisControl) > .kpi > :not(.etiquetaKpi):not(.valor):not(.pie) { order: 2; }
+:root body .kpi .valor.vacia, :root body .bandaCx .cifraBanda.vacia { color: var(--kpiRotulo); opacity: .6; font-weight: 400; }
+
+/* En alerta (retrasos, vencidos, lo que va mal): la cifra en granate. Lo demás, en el color del texto. */
+:root body :is(.kpis > .kpi .valor.mal, .kpis > .kpi:has(> .pie.mal) .valor,
+  .bandaCx > .celdaBanda:is(.tono-mal, [data-franja='mal']) .cifraBanda, .bandaCx .cifraBanda.mal,
+  .franjaPm > .cifraPm.mal > b) { color: var(--kpiAlerta) !important; }
+
+/* El pie y la barra de avance no se pintan: el pie va en el tooltip (kpiFranja.js). */
+:root body :is(.kpis:not(.kpisControl) > .kpi .pie, .bandaCx:not(.bandaQH) :is(.pieBanda, .barraBanda),
+  .franjaPm > .cifraPm > :is(.cpPie, small)) { display: none !important; }
+
+/* ── Pulsables: subrayado y «›» al pasar; la elegida, raya granate debajo ── */
+:root body :is(.kpis > button.kpi, .bandaCx:not(.bandaQH) > button.celdaBanda, .franjaPm > button.cifraPm) { cursor: pointer; }
+:root body .bandaCx:not(.bandaQH) .irBanda { order: 2; position: static; margin: 0 0 0 2px; font-size: 12px; line-height: 1; color: var(--kpiRotulo); opacity: 0; }
+:root body :is(.kpis > button.kpi, .franjaPm > button.cifraPm)::after {
+  content: '›'; order: 3; position: static; margin-left: 1px; font-size: 12px; line-height: 1; color: var(--kpiRotulo); opacity: 0;
+}
+:root body :is(.kpis > button.kpi, .bandaCx:not(.bandaQH) > button.celdaBanda, .franjaPm > button.cifraPm):hover {
+  background: var(--kpiSelFondo); border-color: var(--kpiSeparador); box-shadow: none; text-decoration: none;
+}
+:root body :is(.kpis > button.kpi:hover .etiquetaKpi, .bandaCx:not(.bandaQH) > button.celdaBanda:hover .txtBanda, .franjaPm > button.cifraPm:hover) {
+  text-decoration: underline; text-underline-offset: 2px;
+}
+:root body :is(.kpis > button.kpi, .franjaPm > button.cifraPm):hover::after,
+:root body .bandaCx:not(.bandaQH) > button.celdaBanda:hover .irBanda { opacity: 1; }
+:root body :is(.kpis > button.kpi, .bandaCx:not(.bandaQH) > button.celdaBanda, .franjaPm > button.cifraPm).activa {
+  background: transparent; border-color: var(--kpiSeparador); box-shadow: inset 0 -2px 0 var(--kpiActiva); font-weight: 500;
+}
+:root body :is(.kpis > button.kpi.activa .etiquetaKpi, .bandaCx:not(.bandaQH) > button.celdaBanda.activa .etBanda) { color: var(--kpiCifra) !important; }
+:root body :is(.kpis > button.kpi, .bandaCx:not(.bandaQH) > button.celdaBanda, .franjaPm > button.cifraPm):focus-visible { outline: 2px solid var(--kpiActiva); outline-offset: -2px; }
+/* Lo que no es una cifra dentro de una franja (el selector de obra de Incidencias) se queda en su sitio. */
+:root body .franjaPm > :not(.cifraPm) { align-self: center; margin-left: 12px; }
+
+/* Pantalla estrecha: la franja parte en filas; cada fila arranca sin separador. */
+@media (max-width: 700px) {
+  :root body :is(.kpis:not(.kpisControl) > .kpi, .bandaCx:not(.bandaQH) > .celdaBanda, .franjaPm > .cifraPm) { padding: 7px 12px 6px 10px; min-height: 32px; }
+}
+
+/* ═══ MÓVIL CX (renderer/movil): lo mismo, a dos filas si no cabe ═══════════
+   En el teléfono cada KPI apila el rótulo encima de la cifra para que quepan
+   cinco por fila; en el iPad, todos en una. Sin caja, separadores finos. */
+#app .kpis-cx, #app .ini-kpis {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; margin: 4px 0 8px; padding: 0;
+  background: transparent; border: 0; border-radius: 0; box-shadow: none; overflow: visible;
+}
+#app .ini-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 6px 12px 0; }
+@media (min-width: 900px) {
+  #app .kpis-cx, #app .ini-kpis { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+}
+#app :is(.kpis-cx > .kpi-cx, .ini-kpis > .ini-kpi) {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px;
+  min-width: 0; min-height: 38px; box-sizing: border-box; margin: 0; padding: 4px 6px 4px 8px;
+  background: transparent; color: var(--texto); font: inherit; text-align: left; text-decoration: none;
+  border: 0; border-left: 1px solid var(--rejilla, #D1D1D6); border-radius: 0; box-shadow: none;
+}
+/* La primera de cada fila, sin separador (5 por fila en el teléfono; 4 en el inicio). */
+#app .kpis-cx > :nth-child(5n+1), #app .ini-kpis > :nth-child(4n+1) { border-left: 0; padding-left: 0; }
+@media (min-width: 900px) {
+  #app :is(.kpis-cx, .ini-kpis) > :is(:nth-child(5n+1), :nth-child(4n+1)) { border-left: 1px solid var(--rejilla, #D1D1D6); padding-left: 8px; }
+  #app :is(.kpis-cx, .ini-kpis) > :first-child { border-left: 0; padding-left: 0; }
+}
+/* La fila de resumen (Inicio, Balanceo…) ya es una banda de casillas: solo se le quita la caja. */
+#app .resumen-fila { border: 0; border-radius: 0; background: transparent; box-shadow: none; overflow: visible; }
+#app .resumen-fila > * { background: transparent; box-shadow: none; min-height: 38px; }
+/* El rótulo, pequeño y gris, encima. */
+#app :is(.kpi-cx .et, .resumen-fila > * > span, .ini-kpi > span) {
+  order: 0; display: block; max-width: 100%; margin: 0;
+  font-size: 10.5px; font-weight: 500; line-height: 1.2; letter-spacing: 0; text-transform: none;
+  color: var(--textoTenue); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* La cifra, 17 px tabular. */
+#app :is(.kpi-cx b, .resumen-fila > * > b, .ini-kpi > b) {
+  order: 1; display: block; margin: 0; font-size: 17px !important; font-weight: 600; line-height: 1.15; letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums lining-nums; color: var(--texto);
+}
+/* En alerta, granate. */
+#app :is(.kpi-cx.mal b, .resumen-fila > .mal b, .ini-kpi.mal b) { color: var(--kpiAlerta); }
+/* Pie y barra, solo en el tooltip; el «›» asoma al tocar. */
+#app :is(.kpi-cx .pie, .kpi-cx .barra) { display: none; }
+#app :is(.kpi-cx, .ini-kpi)::before { content: none; display: none; }
+#app .kpi-cx .ir { position: absolute; top: 4px; right: 4px; font-size: 11px; color: var(--textoTenue); opacity: 0; }
+#app :is(.kpi-cx, .resumen-fila > button, .resumen-fila > a, .ini-kpi) { cursor: pointer; }
+#app :is(.kpi-cx, .resumen-fila > button, .resumen-fila > a, .ini-kpi):hover .ir { opacity: 1; }
+#app :is(.kpi-cx, .resumen-fila > button, .resumen-fila > a, .ini-kpi):hover :is(.et, span) { text-decoration: underline; }
+#app :is(.kpi-cx.activa, .resumen-fila > button.activa) { background: transparent; box-shadow: inset 0 -2px 0 var(--acento-fuerte, #0E7C66); }
+#app :is(.kpi-cx.activa, .resumen-fila > button.activa) :is(.et, span, b) { color: var(--acento-fuerte, #0E7C66); }

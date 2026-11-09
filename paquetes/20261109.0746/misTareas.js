@@ -107,13 +107,13 @@
       .lista-ot { margin: 4px 0 12px; padding-left: 22px; line-height: 1.45; }
       .lista-ot li { padding: 2px 0; }
       .lista-check-ot { list-style: none; margin: 4px 0 12px; padding: 0; }
-      .check-ot { display: flex; flex-direction: column; gap: 4px; padding: 8px 0; border-bottom: 1px solid var(--linea, #d9e3e3); }
+      .check-ot { display: flex; flex-direction: column; gap: 4px; padding: 8px 0; border-bottom: 1px solid var(--rejilla); }
       .check-ot.mal > span { color: var(--mal); font-weight: 600; }
       .check-ot-opciones { margin: 0; width: fit-content; }
       .campos-ot { display: grid; gap: 8px; margin: 4px 0 12px; }
       .campos-ot input { width: 100%; }
       #app textarea[data-mt-campo] { width: 100%; box-sizing: border-box; }
-      canvas[data-mt-firma] { display: block; width: 100%; max-width: 600px; aspect-ratio: 3 / 1; border: 1px solid var(--acento, #00796b); border-radius: 8px; background: #fff; touch-action: none; }
+      canvas[data-mt-firma] { display: block; width: 100%; max-width: 600px; aspect-ratio: 3 / 1; border: 1px solid var(--acento); border-radius: 8px; background: var(--vd-lienzo); touch-action: none; }
     `;
     document.head.append(st);
   }
@@ -331,7 +331,7 @@
     const lienzo = $app.querySelector('[data-mt-firma]');
     if (!lienzo || !lienzo.getContext) return;
     const ctx = lienzo.getContext('2d');
-    ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#0b3b3c';
+    ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = (getComputedStyle(document.documentElement).getPropertyValue('--vd-trazo').trim() || 'black');
     if (borrador.firma) {
       const img = new Image();
       img.onload = () => ctx.drawImage(img, 0, 0);

@@ -421,7 +421,7 @@
     if (!cv) return;
     if (window.CX_FIRMA) window.CX_FIRMA.enlazar($app.querySelector('.firma-lienzo'));
     const cx = cv.getContext('2d');
-    cx.lineWidth = 3; cx.lineCap = 'round'; cx.lineJoin = 'round'; cx.strokeStyle = '#0F5F56';
+    cx.lineWidth = 3; cx.lineCap = 'round'; cx.lineJoin = 'round'; cx.strokeStyle = (getComputedStyle(document.documentElement).getPropertyValue('--vd-trazo').trim() || 'black');
     trazadoRep = false;
     let ultimo = null;
     const punto = (ev) => { const r = cv.getBoundingClientRect(); return { x: ((ev.clientX - r.left) / r.width) * cv.width, y: ((ev.clientY - r.top) / r.height) * cv.height }; };

@@ -360,7 +360,7 @@
   function colores() {
     if (colorPor === 'capa') return (m) => m.color;
     const porDia = PL.coloresPorDia(visibles().map((m) => m.fecha));
-    return (m) => porDia[m.fecha] || '#5f6368';
+    return (m) => porDia[m.fecha] || 'var(--textoSuave)';
   }
 
   function leyenda() {
@@ -392,7 +392,7 @@
       ${leyenda()}
       ${marcando ? `<p class="nota">${c.tipo === 'punto' ? `Toca en el plano cada ${esc(c.nombre.toLowerCase())} hecho.` : c.tipo === 'trazo' ? `Toca punto a punto el recorrido de ${esc(c.nombre.toLowerCase())}${medidoDibujo !== null ? ` · <strong>${cant(medidoDibujo, 'm')}</strong>` : ''}` : `Toca las esquinas de la zona${medidoDibujo !== null ? ` · <strong>${cant(medidoDibujo, 'm2')}</strong>` : ''}`}</p>` : ''}
       ${marcando && dibujo.length && c.tipo !== 'punto' ? `<div class="campos"><button class="boton secundario" data-av="deshacer">Deshacer</button><button class="boton secundario" data-av="borrar-dibujo">Borrar</button><button class="boton" data-av="terminar">Terminar</button></div>` : ''}
-      <div class="av-lienzo ${marcando ? 'marcando' : ''}" data-av-lienzo>
+      <div class="av-lienzo ${marcando ? 'marcando' : ''}" data-av-lienzo data-paleta="vidaire">
         <div class="av-hoja-plano" style="width:${Math.round(zoom * 100)}%">
           <img src="${urlImagen}" alt="" draggable="false">
           <svg viewBox="0 0 ${plano.ancho || 1000} ${plano.alto || 1000}" preserveAspectRatio="none" data-av-svg></svg>
@@ -449,7 +449,7 @@
     return `<table class="av-tabla">
       <thead><tr><th>Partida</th><th class="num">Tramos</th><th class="num">Recorrido</th><th class="num">Cuenta</th></tr></thead>
       <tbody>${filas.map(([k, g]) => `<tr class="${k ? '' : 'sin'}">
-        <td><i style="background:${esc(k ? g.color : "#9aa0a6")}"></i>${k ? `<strong>${esc(g.m.medida || g.m.codigo)}</strong> <span class="sub">${g.m.medida ? esc(g.m.codigo) : ""} ${esc(String(g.m.resumen || '').slice(0, 40))}</span>` : '<strong>Sin partida</strong> <span class="sub">la pone el jefe de obra</span>'}</td>
+        <td><i style="background:${esc(k ? g.color : "var(--textoTenue)")}"></i>${k ? `<strong>${esc(g.m.medida || g.m.codigo)}</strong> <span class="sub">${g.m.medida ? esc(g.m.codigo) : ""} ${esc(String(g.m.resumen || '').slice(0, 40))}</span>` : '<strong>Sin partida</strong> <span class="sub">la pone el jefe de obra</span>'}</td>
         <td class="num">${g.marcas}</td>
         <td class="num">${g.m.tipo === 'trazo' ? cant(Math.round(g.recorrido * 100) / 100, 'm') : ''}</td>
         <td class="num">${k ? `${cant(Math.round(g.vale * 100) / 100, g.unidad)}${g.faltan ? ` <span class="mal" title="Sin contar: falta la sección, el peso o la escala">+${g.faltan}?</span>` : ''}` : '—'}</td>
@@ -470,7 +470,7 @@
       const col = color(m);
       const atenuada = m.estado === 'certificada' ? ' opacity=".45"' : '';
       if (m.tipo === 'punto' && m.puntos[0]) {
-        html += `<circle data-av-marca="${esc(m.id)}" cx="${m.puntos[0].x * W}" cy="${m.puntos[0].y * H}" r="${grosor * 2.4}" fill="${col}" stroke="#fff" stroke-width="${grosor / 2}"${atenuada}/>`;
+        html += `<circle data-av-marca="${esc(m.id)}" cx="${m.puntos[0].x * W}" cy="${m.puntos[0].y * H}" r="${grosor * 2.4}" fill="${col}" stroke="var(--vd-lienzo)" stroke-width="${grosor / 2}"${atenuada}/>`;
       } else if (m.tipo === 'zona') {
         html += `<polygon data-av-marca="${esc(m.id)}" points="${pts(m.puntos)}" fill="${col}" fill-opacity=".28" stroke="${col}" stroke-width="${grosor}"${atenuada}/>`;
       } else {
@@ -486,14 +486,14 @@
       const texto = etiquetaTramo(m);
       if (!q || !texto) continue;
       html += `<text x="${(q.x * W).toFixed(1)}" y="${(q.y * H - grosor * 2).toFixed(1)}" text-anchor="middle" font-size="${(grosor * 6).toFixed(1)}" font-weight="700"
-        font-family="-apple-system, system-ui, sans-serif" fill="${m.lineaId ? color(m) : '#5f6368'}" stroke="#fff" stroke-width="${(grosor * 1.6).toFixed(1)}" paint-order="stroke"
+        font-family="-apple-system, system-ui, sans-serif" fill="${m.lineaId ? color(m) : 'var(--textoSuave)'}" stroke="var(--vd-lienzo)" stroke-width="${(grosor * 1.6).toFixed(1)}" paint-order="stroke"
         stroke-linejoin="round" pointer-events="none">${esc(texto)}</text>`;
     }
     const c = capa(capaActiva);
     if (dibujo.length && c) {
       if (c.tipo === 'zona' && dibujo.length > 2) html += `<polygon points="${pts(dibujo)}" fill="${c.color}" fill-opacity=".2" stroke="${c.color}" stroke-width="${grosor}" stroke-dasharray="${grosor * 3}"/>`;
       else html += `<polyline points="${pts(dibujo)}" fill="none" stroke="${c.color}" stroke-width="${grosor * 1.6}" stroke-dasharray="${grosor * 3}" stroke-linecap="round"/>`;
-      for (const q of dibujo) html += `<circle cx="${q.x * W}" cy="${q.y * H}" r="${grosor * 1.4}" fill="#fff" stroke="${c.color}" stroke-width="${grosor / 1.5}"/>`;
+      for (const q of dibujo) html += `<circle cx="${q.x * W}" cy="${q.y * H}" r="${grosor * 1.4}" fill="var(--vd-lienzo)" stroke="${c.color}" stroke-width="${grosor / 1.5}"/>`;
     }
     svg.innerHTML = html;
   }
