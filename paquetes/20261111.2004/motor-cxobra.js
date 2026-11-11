@@ -50,9 +50,9 @@ globalThis.CX_VARIANTE="cxobra";
   ));
   var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-  // ../Vidaire_Obras/node_modules/base64-js/index.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/base64-js/index.js
   var require_base64_js = __commonJS({
-    "../Vidaire_Obras/node_modules/base64-js/index.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/base64-js/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       exports.byteLength = byteLength;
@@ -152,9 +152,9 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // ../Vidaire_Obras/node_modules/ieee754/index.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/ieee754/index.js
   var require_ieee754 = __commonJS({
-    "../Vidaire_Obras/node_modules/ieee754/index.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/ieee754/index.js"(exports) {
       var import_buffer_global10 = __toESM(require_buffer_global());
       exports.read = function(buffer, offset, isLE2, mLen, nBytes) {
         var e, m;
@@ -236,9 +236,9 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // ../Vidaire_Obras/node_modules/buffer/index.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/buffer/index.js
   var require_buffer = __commonJS({
-    "../Vidaire_Obras/node_modules/buffer/index.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/buffer/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var base64 = require_base64_js();
@@ -1850,9 +1850,9 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // ../Vidaire_Obras/node_modules/sql.js/dist/sql-wasm-browser.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/sql.js/dist/sql-wasm-browser.js
   var require_sql_wasm_browser = __commonJS({
-    "../Vidaire_Obras/node_modules/sql.js/dist/sql-wasm-browser.js"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/sql.js/dist/sql-wasm-browser.js"(exports, module) {
       var import_buffer_global10 = __toESM(require_buffer_global());
       var initSqlJsPromise = void 0;
       var initSqlJs = function(moduleConfig) {
@@ -4585,7 +4585,7 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@noble/hashes/utils.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/utils.js
   function isBytes(a) {
     return a instanceof Uint8Array || ArrayBuffer.isView(a) && a.constructor.name === "Uint8Array" && "BYTES_PER_ELEMENT" in a && a.BYTES_PER_ELEMENT === 1;
   }
@@ -4718,7 +4718,7 @@ globalThis.CX_VARIANTE="cxobra";
   }
   var import_buffer_global, atitle, aobject, aopts, isLE, swap32IfBE, oidNist;
   var init_utils = __esm({
-    "../Vidaire_Obras/node_modules/@noble/hashes/utils.js"() {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/utils.js"() {
       import_buffer_global = __toESM(require_buffer_global(), 1);
       atitle = (title) => title ? `"${title}" ` : "";
       aobject = (value, label) => {
@@ -4743,10 +4743,10 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@noble/hashes/hmac.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/hmac.js
   var import_buffer_global2, _HMAC, hmac;
   var init_hmac = __esm({
-    "../Vidaire_Obras/node_modules/@noble/hashes/hmac.js"() {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/hmac.js"() {
       import_buffer_global2 = __toESM(require_buffer_global(), 1);
       init_utils();
       _HMAC = class {
@@ -4827,7 +4827,7 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@noble/hashes/pbkdf2.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/pbkdf2.js
   function pbkdf2Init(hash, _password, _salt, _opts) {
     ahash(hash);
     const opts = checkOpts({ dkLen: 32, asyncTick: 10 }, _opts);
@@ -4903,14 +4903,14 @@ globalThis.CX_VARIANTE="cxobra";
   }
   var import_buffer_global3;
   var init_pbkdf2 = __esm({
-    "../Vidaire_Obras/node_modules/@noble/hashes/pbkdf2.js"() {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/pbkdf2.js"() {
       import_buffer_global3 = __toESM(require_buffer_global(), 1);
       init_hmac();
       init_utils();
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@noble/hashes/_u64.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/_u64.js
   function fromBig(n, le = false) {
     if (le)
       return { h: Number(n & U32_MASK64), l: Number(n >> _32n & U32_MASK64) };
@@ -4938,7 +4938,7 @@ globalThis.CX_VARIANTE="cxobra";
   }
   var import_buffer_global4, U32_MASK64, _32n, fromNumH, fromNumL, shrSH, shrSL, rotrSH, rotrSL, rotrBH, rotrBL, add3L, add3H, add4L, add4H, add5L, add5H;
   var init_u64 = __esm({
-    "../Vidaire_Obras/node_modules/@noble/hashes/_u64.js"() {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/_u64.js"() {
       import_buffer_global4 = __toESM(require_buffer_global(), 1);
       U32_MASK64 = /* @__PURE__ */ (() => BigInt(2 ** 32 - 1))();
       _32n = /* @__PURE__ */ BigInt(32);
@@ -4959,7 +4959,7 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@noble/hashes/_md.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/_md.js
   function Chi(a, b, c) {
     return a & b ^ ~a & c;
   }
@@ -4968,7 +4968,7 @@ globalThis.CX_VARIANTE="cxobra";
   }
   var import_buffer_global5, HashMD, SHA256_IV, SHA224_IV, SHA384_IV, SHA512_IV;
   var init_md = __esm({
-    "../Vidaire_Obras/node_modules/@noble/hashes/_md.js"() {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/_md.js"() {
       import_buffer_global5 = __toESM(require_buffer_global(), 1);
       init_u64();
       init_utils();
@@ -5126,7 +5126,7 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@noble/hashes/sha2.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/sha2.js
   var sha2_exports = {};
   __export(sha2_exports, {
     _SHA224: () => _SHA224,
@@ -5144,7 +5144,7 @@ globalThis.CX_VARIANTE="cxobra";
   });
   var import_buffer_global6, SHA256_K, SHA256_W, SHA2_32B, _SHA256, _SHA224, K512, SHA512_Kh, SHA512_Kl, SHA512_W_H, SHA512_W_L, SHA2_64B, _SHA512, _SHA384, T224_IV, T256_IV, _SHA512_224, _SHA512_256, sha256, sha224, sha512, sha384, sha512_256, sha512_224;
   var init_sha2 = __esm({
-    "../Vidaire_Obras/node_modules/@noble/hashes/sha2.js"() {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/sha2.js"() {
       import_buffer_global6 = __toESM(require_buffer_global(), 1);
       init_md();
       init_u64();
@@ -5619,7 +5619,7 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@noble/hashes/scrypt.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/scrypt.js
   var scrypt_exports = {};
   __export(scrypt_exports, {
     scrypt: () => scrypt,
@@ -5808,7 +5808,7 @@ globalThis.CX_VARIANTE="cxobra";
   }
   var import_buffer_global7, SCRYPT_DEFAULT_MAXMEM;
   var init_scrypt = __esm({
-    "../Vidaire_Obras/node_modules/@noble/hashes/scrypt.js"() {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@noble/hashes/scrypt.js"() {
       import_buffer_global7 = __toESM(require_buffer_global(), 1);
       init_pbkdf2();
       init_sha2();
@@ -6360,7 +6360,7 @@ globalThis.CX_VARIANTE="cxobra";
          * Sin tablas propias: cada cifra se ve con el permiso de su módulo.
          */
         informeSemanal: "Informe semanal",
-        costsPlan: "Costs Plan",
+        costsPlan: "Control de costes",
         certificaciones: "Certificaciones",
         /*
          * EL AVANCE DE OBRA (16-oct, JC: «esto sí que es la clave de todo»): el
@@ -6385,6 +6385,14 @@ globalThis.CX_VARIANTE="cxobra";
          * commissioning (mismos verbos, sin repetirlos rol a rol: ver abajo).
          */
         planoEquipos: "Plano de equipos",
+        /*
+         * LOS DOCUMENTOS DE LA OBRA, LOS QUE SEAN (10-nov, JC): cualquier archivo
+         * (planos, contratos, certificados, manuales, correos, actas…) subido con
+         * sus bytes a la obra, con versión, papelera y su copia en la nube (cubo
+         * cx-docs). Sin pantalla propia: es la pestaña «Archivos» de Documentos de
+         * la obra. Los verbos salen de los módulos de obra de cada rol (abajo).
+         */
+        documentos: "Documentos de la obra (archivos)",
         /*
          * EL BALANCEO DE CAUDALES de la obra entera: cada UTA y cada red de agua con
          * sus terminales, proyecto frente a medido. Las hojas viven en el
@@ -6537,7 +6545,7 @@ globalThis.CX_VARIANTE="cxobra";
          * persona, obra y fechas, y en PDF y Excel. Es de los jefes; cada uno ve
          * los cambios de lo que ya ve —el alcance es el de siempre—.
          */
-        trazabilidad: "Auditor\xEDa",
+        trazabilidad: "Historial de cambios",
         /*
          * El reparto es del JEFE de Estudios, no del departamento entero: es donde
          * se decide a quién le toca cada petición. Un técnico no tiene nada que
@@ -6626,6 +6634,7 @@ globalThis.CX_VARIANTE="cxobra";
       var SIN_PANTALLA = /* @__PURE__ */ new Set([
         "jornada",
         "planoEquipos",
+        "documentos",
         "avisosReclamacion",
         "tarifasSubcontrata",
         "inventarioCampo",
@@ -6977,7 +6986,7 @@ globalThis.CX_VARIANTE="cxobra";
             { bloque: "avisosNcr", ancho: "completo", titulo: "No conformidades: vencidas y equipos bloqueados" },
             { bloque: "avisosIncidencias", ancho: "completo", titulo: "Incidencias de equipos" },
             { bloque: "obrasEnCurso", ancho: "completo", titulo: "Obras en curso" },
-            { bloque: "alertasDesviacion", ancho: "mitad", titulo: "Desv\xEDos sobre Costs Plan" },
+            { bloque: "alertasDesviacion", ancho: "mitad", titulo: "Desv\xEDos sobre control de costes" },
             { bloque: "certificacionesMes", ancho: "mitad", titulo: "Certificaci\xF3n del mes" },
             { bloque: "cargaEquipo", ancho: "completo", titulo: "Carga de cada jefe de obra" },
             /* Lo de cada uno: lo tienen todos los roles, y va el último. */
@@ -7053,7 +7062,7 @@ globalThis.CX_VARIANTE="cxobra";
           id: "jefeObra",
           nombre: "Jefe de Obra",
           departamento: "proyectos",
-          descripcion: "Sus obras. Recibe el presupuesto adjudicado y vive del Costs Plan.",
+          descripcion: "Sus obras. Recibe el presupuesto adjudicado y vive del control de costes.",
           alcance: "propio",
           permisos: {
             notas: BLOC,
@@ -7140,7 +7149,7 @@ globalThis.CX_VARIANTE="cxobra";
             { bloque: "avisosConflictos", ancho: "completo", titulo: "Conflictos: pr\xF3ximo paso vencido" },
             { bloque: "avisosIncidencias", ancho: "completo", titulo: "Incidencias: terminadas por revisar y vencidas" },
             { bloque: "avisosNcr", ancho: "completo", titulo: "No conformidades: vencidas y equipos bloqueados" },
-            { bloque: "costsPlanResumen", ancho: "dos-tercios", titulo: "Costs Plan: previsto contra gastado" },
+            { bloque: "costsPlanResumen", ancho: "dos-tercios", titulo: "Control de costes: previsto contra gastado" },
             { bloque: "misPlazos", ancho: "un-tercio", titulo: "Hitos de las pr\xF3ximas dos semanas" },
             { bloque: "comprasPendientes", ancho: "mitad", titulo: "Pedidos: sin confirmar, retrasados y por llegar" },
             { bloque: "certificacionesMes", ancho: "mitad", titulo: "Mi certificaci\xF3n del mes" },
@@ -7991,6 +8000,19 @@ globalThis.CX_VARIANTE="cxobra";
         const cx = r.permisos.commissioning || [];
         r.permisos.planoEquipos = ["ver", ...["crear", "editar", "borrar"].filter((v) => cx.includes(v))];
       }
+      var MODULOS_DE_OBRA_DOCS = ["obras", "commissioning", "alcance", "avanceObra", "pedidos", "qhse", "certificaciones", "mantenimiento"];
+      for (const r of ROLES) {
+        if (r.permisos.documentos) continue;
+        if (r.id === "subcontrata" || r.id === "operarioSubcontrata" || r.soloLoSuyo) {
+          r.permisos.documentos = [];
+          continue;
+        }
+        const tiene = (mods, v) => mods.some((m) => (r.permisos[m] || []).includes(v));
+        if (!tiene(MODULOS_DE_OBRA_DOCS, "ver")) continue;
+        const escribe = ["crear", "editar"].some((v) => tiene(MODULOS_DE_OBRA_DOCS.filter((m) => m !== "alcance"), v));
+        const borra = tiene(["obras", "commissioning", "avanceObra", "pedidos"], "borrar");
+        r.permisos.documentos = ["ver", ...escribe ? ["crear", "editar"] : [], ...borra ? ["borrar"] : [], "exportar"];
+      }
       for (const r of ROLES) {
         if (r.permisos.inventarioCampo) continue;
         if (r.id === "operario") {
@@ -8119,7 +8141,7 @@ globalThis.CX_VARIANTE="cxobra";
         { id: "inventario", nombre: "Inventario", modulo: "inventarioCampo", soloVer: true },
         { id: "bloc", nombre: "Bloc", modulo: "notas" },
         /* 5-nov: fichar, ver la jornada y pedir días (renderer/movil/jornada.js). Todo rol. */
-        { id: "jornada", nombre: "Jornada", modulo: "jornada" },
+        { id: "jornada", nombre: "Mi jornada", modulo: "jornada" },
         { id: "personal", nombre: "Personal", modulo: "partes" },
         { id: "estanqueidad", nombre: "Pruebas", modulo: "pruebasEstanqueidad" }
       ];
@@ -8194,7 +8216,7 @@ globalThis.CX_VARIANTE="cxobra";
          * en el orden en que vive la obra, de firmar a entregar, y la Documentación
          * al final. «Medir y certificar» junta la Med Obra, los m² de conductos y la
          * certificación; «Cierre y entrega», legalizaciones, entregas a la DF y el
-         * cierre. Balanceo, estanqueidad y NCR van dentro de Commissioning
+         * cierre. Balanceo y estanqueidad van dentro de Commissioning
          * (shared/barraLateral.js DENTRO_DE_OTRA): solo salen sueltos a quien no lo
          * tiene (el operario). El Informe semanal no es de una obra: va fuera, en
          * «Consulta» (FUERA_DE_OBRA). 3-nov: las vacaciones, en Mi espacio.
@@ -8202,7 +8224,7 @@ globalThis.CX_VARIANTE="cxobra";
         jefeObra: [
           { nombre: "Proyecto", modulos: ["obras", "alcance", "desglosePresupuesto", "calculo"] },
           { nombre: "Contrato y cliente", modulos: ["contrato", "variantes", "actas", "conflictos"] },
-          { nombre: "Presupuesto y costes", modulos: ["presupuestoObra", "costsPlan", "estadisticas"] },
+          { nombre: "Presupuesto", modulos: ["presupuestoObra", "estadisticas"] },
           { nombre: "Planificaci\xF3n", modulos: ["gantt", "planEconomica", "tareas"] },
           /* Albaranes, inventario y facturas de proveedor, cada uno con su entrada (antes, escondidos en Pedidos y Certificaciones). */
           { nombre: "Compras", modulos: ["planCompras", "comparativos", "pedidos", "albaranes", "inventario", "facturasProveedor", "proveedores"] },
@@ -8210,10 +8232,12 @@ globalThis.CX_VARIANTE="cxobra";
              los registros, solicitudes de vacaciones, todo lo de HR». Todo RRHH en una pantalla con sus pestañas
              (renderer/personalPantalla.js); Producción se queda con lo de producción. */
           /* 5-nov (portal de subcontratas): las subcontratas de la obra, su certificación y las inducciones son pestañas de Personal. */
-          { nombre: "Personal", modulos: ["partes"] },
-          { nombre: "Producci\xF3n", modulos: ["partesTrabajo"] },
-          /* 5-nov (JC): «esto debe de estar dentro de las certificaciones»: el avance de obra, con lo que se mide y se certifica. */
-          { nombre: "Medir y certificar", modulos: ["avanceObra", "medObra", "m2Conductos", "certificaciones"] },
+          /* 9-nov (JC): «En la de personal tienen que ir las vacaciones por ejemplo». Horas, Jornada (el registro del art. 34.9 ET:
+             fichar y pedir días, no un ajuste) y Vacaciones vienen de Mi espacio; siguen siendo las de cada uno (HERRAMIENTAS_EN_SECCION). */
+          { nombre: "Personal", modulos: ["partes", "parte", "miJornada", "misVacaciones"] },
+          /* 9-nov (JC): «En producción es donde tiene que estar el avance de la obra, las certificaciones, costes...».
+             Quien no tiene permiso de dinero sigue sin ver Med Obra, certificaciones ni costes: lo recorta barraDeRol. */
+          { nombre: "Producci\xF3n", modulos: ["partesTrabajo", "avanceObra", "medObra", "m2Conductos", "certificaciones", "costsPlan"] },
           { nombre: "Calidad y commissioning", modulos: ["commissioning", "balanceo", "pruebasEstanqueidad", "ncr", "puntosControl", "ppi", "incidencias"] },
           { nombre: "Seguridad y QHSE", modulos: ["qhse", "partesIncidencia"] },
           { nombre: "Cierre y entrega", modulos: ["legalizaciones", "entregasDF", "cierreObra"] },
@@ -8226,29 +8250,43 @@ globalThis.CX_VARIANTE="cxobra";
       for (const r of ROLES_CON_BARRA_DE_OBRA) SECCIONES_OBRA[r] = SECCIONES_OBRA.jefeObra;
       var FUERA_DE_OBRA = ["informeSemanal", "proyectos", "trazabilidad"];
       var CUBIERTO_POR_ATAJOS = { compras: ["planCompras", "comparativos"], presupuestos: ["presupuestoObra"] };
-      var HERRAMIENTAS_EN_SECCION = ["nube"];
+      function herramientaPersonalVisible(idRol, id, barra) {
+        if (barra && barra.director && ["agenda", "parte"].includes(id)) return false;
+        if (id === "misTareas" && !(puede(idRol, "tareas", "ver") || puede(idRol, "actas", "ver"))) return false;
+        if (id === "misVacaciones" && !puede(idRol, "vacaciones", "ver")) return false;
+        if (id === "miJornada" && !puede(idRol, "jornada", "ver")) return false;
+        return true;
+      }
+      var HERRAMIENTAS_EN_SECCION = {
+        nube: () => true,
+        parte: () => true,
+        miJornada: (idRol) => puede(idRol, "jornada", "ver"),
+        misVacaciones: (idRol) => puede(idRol, "vacaciones", "ver")
+      };
+      var HERRAMIENTAS_SOLO_MI_ESPACIO_DIRECTOR = ["parte", "miJornada", "misVacaciones"];
+      var herramientaEnSeccion = (idRol, m) => Boolean(HERRAMIENTAS_EN_SECCION[m] && HERRAMIENTAS_EN_SECCION[m](idRol));
       var ATAJOS_OBRA = {
         /* 22-oct (JC): la biblioteca de modelos del proyecto según el presupuesto, y el buscador de documentos. */
-        documentacionProyecto: { modulo: "alcance", etiqueta: "Documentaci\xF3n del proyecto" },
+        documentacionProyecto: { modulo: "alcance", etiqueta: "Documentos del proyecto" },
         /* 30-oct (JC): el registro de todo lo documental de la obra, por tipo; sin dinero, también para el encargado. */
-        documentacion: { modulo: "commissioning", etiqueta: "Documentaci\xF3n de la obra" },
+        documentacion: { modulo: "commissioning", etiqueta: "Documentos de la obra" },
         presupuestoObra: { modulo: "presupuestos", etiqueta: "Presupuesto de obra" },
-        variantes: { modulo: "costsPlan", etiqueta: "Variantes y OC" },
+        variantes: { modulo: "costsPlan", etiqueta: "Variantes y \xF3rdenes de cambio" },
         analisisProyecto: { modulo: "costsPlan", etiqueta: "An\xE1lisis del proyecto" },
         /* 2-nov: «Puntos BMS», que es lo que son (la lista para el integrador). */
-        puntosControl: { modulo: "commissioning", etiqueta: "Puntos BMS" },
+        puntosControl: { modulo: "commissioning", etiqueta: "Puntos de control (BMS)" },
         /* 2-nov (JC): plantillas de control (secuencias, puntos E/S, ST/SCL/Schneider, simulador). Se abre desde Puntos de control: Calidad ya tiene siete. */
         controlPlc: { modulo: "commissioning", etiqueta: "Control / PLC" },
         /* 2-nov (revisión de la navegación): puertas nuevas a lo que ya existía escondido. */
         contrato: { modulo: "alcance", etiqueta: "Contrato" },
-        medObra: { modulo: "presupuestos", etiqueta: "Med Obra" },
+        medObra: { modulo: "presupuestos", etiqueta: "Medici\xF3n real de obra" },
         albaranes: { modulo: "pedidos", etiqueta: "Albaranes" },
         inventario: { modulo: "pedidos", etiqueta: "Inventario" },
         facturasProveedor: { modulo: "certificaciones", etiqueta: "Facturas de proveedor" },
         entregasDF: { modulo: "commissioning", etiqueta: "Entregas a la DF y acta" },
         cierreObra: { modulo: "certificaciones", etiqueta: "Cierre de la obra" },
         /* 2-nov (JC): equipos, materiales y puntos BMS que salen solos del presupuesto de la obra. */
-        desglosePresupuesto: { modulo: "alcance", etiqueta: "Equipos y materiales" },
+        desglosePresupuesto: { modulo: "alcance", etiqueta: "Desglose del presupuesto" },
         informeReparaciones: { modulo: "incidencias", etiqueta: "Informe de reparaciones" },
         planCompras: { modulo: "compras", etiqueta: "Plan de compras" },
         comparativos: { modulo: "compras", etiqueta: "Comparativos" },
@@ -8355,14 +8393,14 @@ globalThis.CX_VARIANTE="cxobra";
           const departamentosDirector = DEPARTAMENTOS_DIRECTOR.filter((d) => visibles.includes(d.necesita)).map((d) => ({ id: d.id, nombre: d.nombre, vistas: d.vistas.map(([id, etiqueta]) => ({ id, etiqueta, href: `dir:${d.id}:${id}` })) }));
           const secciones = SECCIONES_OBRA.jefeObra.map((s) => ({
             nombre: s.nombre,
-            modulos: s.modulos.filter((m) => HERRAMIENTAS_EN_SECCION.includes(m) || ve(m))
+            modulos: s.modulos.filter((m) => !HERRAMIENTAS_SOLO_MI_ESPACIO_DIRECTOR.includes(m) && (herramientaEnSeccion(idRol, m) || ve(m)))
           })).filter((s) => s.modulos.length);
           return { trabajo, consulta: [], director: true, departamentosDirector, seccionesObra: secciones };
         }
         if (SECCIONES_OBRA[idRol]) {
           const secciones = SECCIONES_OBRA[idRol].map((s) => ({
             nombre: s.nombre,
-            modulos: s.modulos.filter((m) => HERRAMIENTAS_EN_SECCION.includes(m) || ve(m))
+            modulos: s.modulos.filter((m) => herramientaEnSeccion(idRol, m) || ve(m))
           })).filter((s) => s.modulos.length);
           const enSecciones = new Set(secciones.flatMap((s) => s.modulos));
           const cubierto = (m) => (CUBIERTO_POR_ATAJOS[m] || []).some((a) => enSecciones.has(a));
@@ -8378,35 +8416,38 @@ globalThis.CX_VARIANTE="cxobra";
         return { trabajo, consulta, empresa: true, accesos: Boolean(b.accesos), departamentos };
       }
       var CATEGORIAS_BARRA = {
-        diaADia: { nombre: "D\xEDa a d\xEDa", secciones: ["Mi espacio", "Producci\xF3n", "Planificaci\xF3n", "Personal"] },
-        dinero: { nombre: "Dinero y contrato", secciones: ["Medir y certificar", "Presupuesto y costes", "Compras", "Contrato y cliente"] },
+        obra: { nombre: "Obra", secciones: ["Producci\xF3n", "Planificaci\xF3n", "Personal", "Compras"] },
+        contrato: { nombre: "Contrato y presupuesto", secciones: ["Presupuesto", "Contrato y cliente"] },
         calidad: { nombre: "Calidad y seguridad", secciones: ["Calidad y commissioning", "Seguridad y QHSE", "Cierre y entrega", "Equipos"] },
         documentos: { nombre: "Documentos y consulta", secciones: ["Documentaci\xF3n", "Informes de la obra", "Proyecto", "Consulta", "Normativa (BOE)"] }
       };
       var MODULOS_DE_DINERO = ["presupuestos", "costsPlan", "certificaciones"];
-      var SIN_DINERO_VA_A = { "Medir y certificar": "diaADia", Compras: "diaADia", "Presupuesto y costes": "documentos", "Contrato y cliente": "documentos" };
-      var ORDEN_MANDO = { categorias: ["dinero", "diaADia", "documentos", "calidad"], secciones: {
-        dinero: ["Presupuesto y costes", "Medir y certificar", "Contrato y cliente", "Compras"],
+      var SIN_DINERO_VA_A = { Presupuesto: "documentos", "Contrato y cliente": "documentos" };
+      var ORDEN_MANDO = { categorias: ["contrato", "obra", "documentos", "calidad"], secciones: {
+        contrato: ["Presupuesto", "Contrato y cliente"],
+        obra: ["Producci\xF3n", "Compras", "Planificaci\xF3n", "Personal"],
         documentos: ["Informes de la obra", "Consulta", "Proyecto", "Documentaci\xF3n"]
       } };
-      var ORDEN_TAJO = { categorias: ["diaADia", "calidad", "documentos"], secciones: {
-        diaADia: ["Producci\xF3n", "Personal", "Planificaci\xF3n", "Medir y certificar", "Compras", "Mi espacio"],
+      var ORDEN_TAJO = { categorias: ["obra", "calidad", "documentos"], secciones: {
+        obra: ["Producci\xF3n", "Personal", "Planificaci\xF3n", "Compras"],
         calidad: ["Seguridad y QHSE", "Calidad y commissioning", "Cierre y entrega"]
       } };
       var ORDEN_CATEGORIAS_POR_ROL = {
         jefeProyectos: { ...ORDEN_MANDO, categorias: ["departamentos", ...ORDEN_MANDO.categorias] },
         jefeDepartamento: ORDEN_MANDO,
         jefeGrupo: ORDEN_MANDO,
-        jefeObra: { categorias: ["diaADia", "dinero", "calidad", "documentos"], secciones: {} },
-        jefeProduccion: { categorias: ["diaADia", "dinero", "calidad", "documentos"], secciones: {} },
+        jefeObra: { categorias: ["obra", "contrato", "calidad", "documentos"], secciones: {} },
+        jefeProduccion: { categorias: ["obra", "contrato", "calidad", "documentos"], secciones: {} },
         encargadoObra: ORDEN_TAJO,
         operario: ORDEN_TAJO,
-        jefeCommissioning: { categorias: ["calidad", "documentos", "diaADia", "dinero"], secciones: {
+        jefeCommissioning: { categorias: ["calidad", "documentos", "obra", "contrato"], secciones: {
           calidad: ["Calidad y commissioning", "Cierre y entrega", "Seguridad y QHSE"],
-          documentos: ["Documentaci\xF3n", "Proyecto", "Informes de la obra", "Contrato y cliente", "Compras", "Consulta"]
+          documentos: ["Documentaci\xF3n", "Proyecto", "Informes de la obra", "Contrato y cliente", "Consulta"],
+          obra: ["Compras", "Producci\xF3n", "Personal", "Planificaci\xF3n"]
         } },
-        contractSupport: { categorias: ["dinero", "documentos", "calidad", "diaADia"], secciones: {
-          dinero: ["Compras", "Medir y certificar", "Contrato y cliente", "Presupuesto y costes"]
+        contractSupport: { categorias: ["contrato", "obra", "documentos", "calidad"], secciones: {
+          contrato: ["Contrato y cliente", "Presupuesto"],
+          obra: ["Compras", "Producci\xF3n", "Personal", "Planificaci\xF3n"]
         } }
       };
       function categoriasDeRol(idRol) {
@@ -8417,8 +8458,8 @@ globalThis.CX_VARIANTE="cxobra";
         const cats = {};
         for (const [id, c] of Object.entries(CATEGORIAS_BARRA)) cats[id] = { id, nombre: c.nombre, secciones: [...c.secciones] };
         if (!conDinero) {
-          for (const s of cats.dinero.secciones) cats[SIN_DINERO_VA_A[s] || "documentos"].secciones.push(s);
-          delete cats.dinero;
+          for (const s of cats.contrato.secciones) cats[SIN_DINERO_VA_A[s] || "documentos"].secciones.push(s);
+          delete cats.contrato;
         }
         if (b.director) cats.departamentos = { id: "departamentos", nombre: "Departamentos", secciones: [...DEPARTAMENTOS_DIRECTOR.map((d) => d.nombre), ATAJOS_OBRA.ayudaDireccion.etiqueta] };
         const ids = [...orden.categorias, ...Object.keys(cats)].filter((id, i, l) => cats[id] && l.indexOf(id) === i);
@@ -8493,6 +8534,7 @@ globalThis.CX_VARIANTE="cxobra";
         seccionesMovil,
         entraEnEscritorio,
         gestionaAccesos,
+        herramientaPersonalVisible,
         BARRAS_POR_ROL,
         SECCIONES_OBRA,
         ROLES_CON_BARRA_DE_OBRA,
@@ -10193,6 +10235,296 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
+  // shared/ia/adjuntos.js
+  var require_adjuntos = __commonJS({
+    "shared/ia/adjuntos.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function(fabrica) {
+        const API = fabrica();
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.IarvisAdjuntos = API;
+      })(() => {
+        const empieza = (b, firma, desde = 0) => firma.every((x, i) => b[desde + i] === x);
+        const ascii = (b, desde, n) => String.fromCharCode(...b.slice(desde, desde + n));
+        const ext = (nombre) => (String(nombre || "").toLowerCase().match(/\.([a-z0-9]+)$/) || [])[1] || "";
+        function cabecera(b, n = 2048) {
+          try {
+            return new TextDecoder("latin1").decode(b.slice(0, n));
+          } catch {
+            return ascii(b, 0, Math.min(n, b.length));
+          }
+        }
+        function nombresZip(b) {
+          const nombres = [];
+          for (let i = 0; i < b.length - 30 && nombres.length < 60; i++) {
+            if (b[i] === 80 && b[i + 1] === 75 && b[i + 2] === 3 && b[i + 3] === 4) {
+              const largo = b[i + 26] | b[i + 27] << 8;
+              nombres.push(ascii(b, i + 30, Math.min(largo, 200)));
+              i += 29 + largo;
+            }
+          }
+          return nombres;
+        }
+        function contiene(b, texto, desde = 0, hasta = b.length, ancho = 1) {
+          const c = [...texto].map((x) => x.charCodeAt(0));
+          const paso = c.length * ancho;
+          for (let i = Math.max(0, desde); i <= Math.min(b.length, hasta) - paso; i++) {
+            let ok = true;
+            for (let j = 0; j < c.length && ok; j++) {
+              if (b[i + j * ancho] !== c[j]) ok = false;
+              else if (ancho === 2 && b[i + j * 2 + 1] !== 0) ok = false;
+            }
+            if (ok) return true;
+          }
+          return false;
+        }
+        function llevaMacros(b, ole) {
+          if (ole) return contiene(b, "_VBA_PROJECT", 0, Math.min(b.length, 16 * 1024 * 1024), 2);
+          if (nombresZip(b).some((x) => /vbaProject\.bin$/i.test(x))) return true;
+          return contiene(b, "vbaProject.bin", Math.max(0, b.length - 512 * 1024));
+        }
+        const EJECUTABLES = [
+          [[127, 69, 76, 70], "ELF"],
+          [[254, 237, 250, 206], "Mach-O"],
+          [[254, 237, 250, 207], "Mach-O"],
+          [[206, 250, 237, 254], "Mach-O"],
+          [[207, 250, 237, 254], "Mach-O"],
+          [[202, 254, 186, 190], "Mach-O universal / Java"]
+        ];
+        function detectarTipo(bytes, nombre = "") {
+          const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
+          const e = ext(nombre);
+          const r = (tipo, mime, como) => ({ tipo, nombre, mime, como });
+          if (!b.length) return r("vacio", "application/octet-stream", "vac\xEDo");
+          if (empieza(b, [77, 90]) && b.length >= 64) {
+            const pe = b[60] | b[61] << 8 | b[62] << 16;
+            if (pe > 0 && pe < b.length - 4 && ascii(b, pe, 4) === "PE\0\0" || contiene(b, "This program cannot", 0, Math.min(b.length, 1024))) {
+              return r("ejecutable", "application/octet-stream", "firma Windows (MZ/PE)");
+            }
+          }
+          for (const [firma, como] of EJECUTABLES) if (empieza(b, firma)) return r("ejecutable", "application/octet-stream", `firma ${como}`);
+          if (b[0] === 35 && b[1] === 33) return r("ejecutable", "text/x-shellscript", "guion #!");
+          if (ascii(b, 0, 4) === "AC10") return r("dwg", "image/vnd.dwg", `firma ${ascii(b, 0, 6)}`);
+          if (empieza(b, [37, 80, 68, 70])) return r("pdf", "application/pdf", "firma %PDF");
+          if (empieza(b, [137, 80, 78, 71])) return r("imagen", "image/png", "firma PNG");
+          if (empieza(b, [255, 216, 255])) return r("imagen", "image/jpeg", "firma JPEG");
+          if (ascii(b, 0, 4) === "GIF8") return r("imagen", "image/gif", "firma GIF");
+          if (ascii(b, 0, 4) === "RIFF" && ascii(b, 8, 4) === "WEBP") return r("imagen", "image/webp", "firma WEBP");
+          if (ascii(b, 4, 8) === "ftypheic" || ascii(b, 4, 8) === "ftypheix" || ascii(b, 4, 8) === "ftypmif1") return r("imagen", "image/heic", "firma HEIC");
+          if (empieza(b, [208, 207, 17, 224, 161, 177, 26, 225])) {
+            const m = llevaMacros(b, true);
+            const conMacros = (x) => m ? { ...x, macros: true, como: `${x.como} + macros` } : x;
+            if (e === "msg") return r("correo-msg", "application/vnd.ms-outlook", "OLE2 + .msg");
+            if (e === "mpp") return r("project", "application/vnd.ms-project", "OLE2 + .mpp");
+            if (e === "xls") return conMacros(r("excel", "application/vnd.ms-excel", "OLE2 + .xls"));
+            if (e === "doc") return conMacros(r("word", "application/msword", "OLE2 + .doc"));
+            return conMacros(r("ole", "application/x-ole-storage", "OLE2"));
+          }
+          if (empieza(b, [80, 75, 3, 4])) {
+            const n = nombresZip(b);
+            const conMacros = (x) => llevaMacros(b, false) ? { ...x, macros: true, como: `${x.como} + vbaProject.bin` } : x;
+            if (n.some((x) => x.startsWith("xl/"))) return conMacros(r("excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "ZIP con xl/"));
+            if (n.some((x) => x.startsWith("word/"))) return conMacros(r("word", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "ZIP con word/"));
+            if (n.some((x) => x.startsWith("ppt/"))) return conMacros(r("powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation", "ZIP con ppt/"));
+            if (n.some((x) => /\.ifc$/i.test(x)) || e === "ifczip") return r("ifc", "application/x-step", "ZIP con .ifc");
+            return r("zip", "application/zip", "ZIP");
+          }
+          const t = cabecera(b);
+          if (/^ISO-10303-21;/.test(t.trimStart())) return r("ifc", "application/x-step", "cabecera ISO-10303-21");
+          if (/^~V\|/m.test(t) || e === "bc3" && /^~[A-Z]\|/m.test(t)) return r("bc3", "text/plain", "registro ~V| (FIEBDC-3)");
+          if (/<Project[\s>][\s\S]*schemas\.microsoft\.com\/project/i.test(t)) return r("project", "application/xml", "XML de MS Project");
+          if (/^(Received|From|Return-Path|Message-ID|MIME-Version|Date|Subject|To):/im.test(t.slice(0, 600)) && (e === "eml" || /^MIME-Version:/im.test(t))) return r("correo-eml", "message/rfc822", "cabeceras de correo");
+          const inicio = t.trimStart().slice(0, 400).toLowerCase();
+          if (/^(<!doctype html|<html[\s>]|<head[\s>]|<body[\s>]|<script[\s>])/.test(inicio)) return r("html", "text/html", "etiquetas HTML");
+          if (/^(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*(<!doctype svg[^>]*>\s*)?<svg[\s>]/.test(inicio) || e === "svg" && /<svg[\s>]/.test(t.slice(0, 2e3).toLowerCase())) return r("svg", "image/svg+xml", "etiqueta <svg>");
+          if (e === "csv" || e === "tsv") return r("csv", "text/csv", "texto separado");
+          if (e === "xml") return r("xml", "application/xml", "XML");
+          if (e === "txt") return r("texto", "text/plain", "texto");
+          return r("desconocido", "application/octet-stream", "sin firma conocida");
+        }
+        const DESTINOS = {
+          bc3: { pantalla: "presupuestos", accion: "Importarlo como presupuesto nuevo (o versi\xF3n) \u2014 la base de estudios no se toca", importador: "shared/presupuesto/bc3.js parsearBC3", estado: "importa" },
+          excel: { pantalla: "pedidos", accion: "Reconocer las columnas y llevarlo a su tabla (equipos \xABpor confirmar\xBB, mediciones, compras\u2026)", importador: "shared/importacion/reconocer.js", estado: "importa" },
+          csv: { pantalla: "pedidos", accion: "Conciliarlo en Pedidos (la conciliaci\xF3n de esa pantalla)", importador: "shared/compras/conciliacion.js leerCsv", estado: "importa" },
+          "correo-msg": { pantalla: "reclamaciones", accion: "Leer el correo y sus adjuntos y guardarlo como prueba del claim", importador: "electron/lectura/correoMsg.js (electron/data/reclamaciones.js)", estado: "importa" },
+          zip: { pantalla: "documentacion", accion: "Abrir el paquete y clasificar cada documento", importador: "electron/data/fuenteDocumentos.js", estado: "importa" },
+          pdf: { pantalla: "documentacion", accion: "Iarvis lo lee y lo resume; clasificarlo en la documentaci\xF3n de la obra", importador: "shared/importacion/pdf.js leerPdf + shared/importacion/clasificarDocumento.js", estado: "lee" },
+          imagen: { pantalla: "documentacion", accion: "Iarvis la mira (foto, plano escaneado) y dice qu\xE9 es", importador: null, estado: "lee" },
+          project: { pantalla: "gantt", accion: "Pasar las tareas y fechas al Gantt", importador: null, estado: "pendiente" },
+          ifc: { pantalla: "commissioning", accion: "Sacar los equipos del modelo, todos \xABpor confirmar\xBB", importador: null, estado: "pendiente" },
+          word: { pantalla: "documentacion", accion: "Guardarlo en la documentaci\xF3n", importador: null, estado: "pendiente" },
+          "correo-eml": { pantalla: "reclamaciones", accion: "Leer el correo y guardarlo en la documentaci\xF3n", importador: null, estado: "pendiente" }
+        };
+        const PENDIENTES = Object.entries(DESTINOS).filter(([, d]) => d.estado === "pendiente").map(([t]) => t);
+        function proponerDestino(tipo) {
+          return DESTINOS[tipo] || { pantalla: "documentacion", accion: "Guardarlo en la documentaci\xF3n", importador: null, estado: "pendiente" };
+        }
+        const LEE_CLAUDE = { pdf: "document", imagen: "image" };
+        return { detectarTipo, proponerDestino, nombresZip, llevaMacros, DESTINOS, PENDIENTES, LEE_CLAUDE };
+      });
+    }
+  });
+
+  // shared/documentos/reglas.js
+  var require_reglas = __commonJS({
+    "shared/documentos/reglas.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function(fabrica) {
+        const ADJ = typeof module !== "undefined" && module.exports ? require_adjuntos() : window.IarvisAdjuntos;
+        const API = fabrica(ADJ);
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.DOCUMENTOS_REGLAS = API;
+      })((ADJ) => {
+        const MAX_BYTES = 50 * 1024 * 1024;
+        const DIAS_PAPELERA = 30;
+        const BLOQUEADAS = /* @__PURE__ */ new Set([
+          "exe",
+          "msi",
+          "dmg",
+          "app",
+          "pkg",
+          "bat",
+          "cmd",
+          "ps1",
+          "sh",
+          "vbs",
+          "js",
+          "jar",
+          "scr",
+          "lnk",
+          "xlsm",
+          "docm",
+          "pptm",
+          /* Primos de los de arriba, que se ejecutan igual con doble clic. */
+          "com",
+          "msp",
+          "vbe",
+          "jse",
+          "wsf",
+          "wsh",
+          "hta",
+          "cpl",
+          "psm1",
+          "command",
+          "xlam",
+          "dotm",
+          "potm",
+          "ppsm",
+          "xltm"
+        ]);
+        const SOLO_DESCARGA = /* @__PURE__ */ new Set(["html", "htm", "xhtml", "svg", "svgz", "mht", "mhtml"]);
+        const CATEGORIAS = [
+          { id: "plano", nombre: "Plano" },
+          { id: "contrato", nombre: "Contrato" },
+          { id: "certificado", nombre: "Certificado" },
+          { id: "manual", nombre: "Manual" },
+          { id: "correo", nombre: "Correo" },
+          { id: "acta", nombre: "Acta" },
+          { id: "economico", nombre: "Econ\xF3mico" },
+          { id: "otro", nombre: "Otro" }
+        ];
+        const CATEGORIAS_CON_DINERO = ["contrato", "economico"];
+        const AMBITOS = [
+          { id: "obra", nombre: "Obra" },
+          { id: "zona", nombre: "Zona" },
+          { id: "equipo", nombre: "Equipo" },
+          { id: "tema", nombre: "Tema" },
+          { id: "subcontrata", nombre: "Subcontrata" },
+          { id: "reclamacion", nombre: "Reclamaci\xF3n" },
+          { id: "hecho", nombre: "Hecho" }
+        ];
+        const AMBITOS_DE_RECLAMACION = ["reclamacion", "hecho", "tema"];
+        const extension = (nombre) => (String(nombre || "").toLowerCase().match(/\.([a-z0-9]+)$/) || [])[1] || "";
+        const nombreLimpio = (nombre) => String(nombre || "").split(/[\\/]/).pop().replace(/[\u0000-\u001f]/g, "").trim().slice(0, 200);
+        function tamanoLegible(n) {
+          const b = Number(n) || 0;
+          if (b < 1024) return `${b} B`;
+          if (b < 1024 * 1024) return `${Math.round(b / 1024)} KB`;
+          return `${(b / 1024 / 1024).toFixed(b < 10 * 1024 * 1024 ? 1 : 0).replace(".", ",")} MB`;
+        }
+        function comprobarNombre(nombre, tamano) {
+          const n = nombreLimpio(nombre);
+          const e = extension(n);
+          if (!n) return { ok: false, error: "El archivo no tiene nombre." };
+          if (BLOQUEADAS.has(e)) {
+            return { ok: false, bloqueado: true, error: /m$/.test(e) && /^(xls|doc|ppt|xlt|dot|pot|pps)/.test(e) ? `\xAB${n}\xBB: los documentos de Office con macros (.${e}) no se admiten. Gu\xE1rdalo sin macros (.${e.slice(0, -1)}x) y s\xFAbelo.` : `\xAB${n}\xBB: los programas y guiones (.${e}) no se admiten en los documentos de la obra.` };
+          }
+          if (Number(tamano) > MAX_BYTES) {
+            return { ok: false, grande: true, error: `\xAB${n}\xBB pesa ${tamanoLegible(tamano)} y el tope es 50 MB. D\xE9jalo en el SharePoint y enl\xE1zalo aqu\xED con \xABEnlazar\u2026\xBB.` };
+          }
+          if (Number(tamano) === 0) return { ok: false, error: `\xAB${n}\xBB est\xE1 vac\xEDo.` };
+          return { ok: true, nombre: n, extension: e, soloDescarga: SOLO_DESCARGA.has(e) };
+        }
+        function comprobar(nombre, bytes) {
+          const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
+          const previo = comprobarNombre(nombre, b.length);
+          if (!previo.ok) return previo;
+          const t = ADJ.detectarTipo(b, previo.nombre);
+          if (t.tipo === "ejecutable") {
+            return { ok: false, bloqueado: true, error: `\xAB${previo.nombre}\xBB es un programa por dentro (${t.como}), aunque se llame .${previo.extension || "?"}. No se admite.` };
+          }
+          if (t.macros) {
+            return { ok: false, bloqueado: true, error: `\xAB${previo.nombre}\xBB lleva macros por dentro. Gu\xE1rdalo sin macros y s\xFAbelo.` };
+          }
+          const soloDescarga = previo.soloDescarga || t.tipo === "html" || t.tipo === "svg";
+          return {
+            ok: true,
+            nombre: previo.nombre,
+            extension: previo.extension,
+            tipoDeclarado: previo.extension || null,
+            tipoReal: t.tipo,
+            mime: soloDescarga ? "application/octet-stream" : t.mime,
+            soloDescarga,
+            categoria: categoriaSugerida(previo.nombre, t.tipo)
+          };
+        }
+        function categoriaSugerida(nombre, tipoReal) {
+          const n = String(nombre || "").toLowerCase();
+          if (tipoReal === "dwg" || tipoReal === "ifc" || /\b(plano|planta|alzado|secci[oó]n|esquema)\b/.test(n) || /\.(dwg|dxf|ifc|rvt)$/.test(n)) return "plano";
+          if (tipoReal === "correo-msg" || tipoReal === "correo-eml") return "correo";
+          if (/contrato|subcontrat|adenda/.test(n)) return "contrato";
+          if (/certificad|homologaci|declaraci[oó]n ce|marcado ce/.test(n)) return "certificado";
+          if (/manual|instrucciones|ficha t[eé]cnica|datasheet/.test(n)) return "manual";
+          if (/\bacta\b|actas/.test(n)) return "acta";
+          if (/factura|presupuesto|oferta|certificaci[oó]n|albar[aá]n|pedido/.test(n)) return "economico";
+          return "otro";
+        }
+        function restaurable(borradoEn, ahora = /* @__PURE__ */ new Date()) {
+          if (!borradoEn) return false;
+          return ahora - new Date(borradoEn) <= DIAS_PAPELERA * 24 * 3600 * 1e3;
+        }
+        function enlaceValido(url) {
+          try {
+            const u = new URL(String(url || "").trim());
+            return u.protocol === "https:";
+          } catch {
+            return false;
+          }
+        }
+        return {
+          MAX_BYTES,
+          DIAS_PAPELERA,
+          BLOQUEADAS,
+          SOLO_DESCARGA,
+          CATEGORIAS,
+          CATEGORIAS_CON_DINERO,
+          AMBITOS,
+          AMBITOS_DE_RECLAMACION,
+          extension,
+          nombreLimpio,
+          tamanoLegible,
+          comprobarNombre,
+          comprobar,
+          categoriaSugerida,
+          restaurable,
+          enlaceValido
+        };
+      });
+    }
+  });
+
   // ipad/shims/fs.js
   var require_fs = __commonJS({
     "ipad/shims/fs.js"(exports, module) {
@@ -10586,12 +10918,15 @@ globalThis.CX_VARIANTE="cxobra";
           /* 29-oct: los materiales instalados del plano (compuertas, difusores…). */
           "materialesInstalados",
           /* 5-nov: el plano de cada instalación de los mapas específicos (geotermia, ACS room). */
-          "planosInstalacion"
+          "planosInstalacion",
+          /* 10-nov: los documentos de la obra, solo de ida para consultarlos (no están en TABLAS_VUELTA);
+             armarIda recorta lo que el rol no ve. */
+          "documentos"
         ],
         /* 29-oct (JC): el plano lo ve todo el enrolado en la obra, aunque su rol no tenga
            Commissioning: con él, lo mínimo para pintar los colores (equipos, modelos,
            fichas y config). Quien tiene Commissioning ya lo trae todo. */
-        plano: ["planosEquipos", "materialesInstalados", "equiposObra", "modelosEquipo", "configCommissioning", "fichasPM"],
+        plano: ["planosEquipos", "materialesInstalados", "equiposObra", "modelosEquipo", "configCommissioning", "fichasPM", "documentos"],
         ncr: [
           "ncr",
           "ncrEquipos",
@@ -10824,6 +11159,15 @@ globalThis.CX_VARIANTE="cxobra";
           const usadas = new Set((tablas.planosDifusores || []).map((p) => p.imagenId).filter(Boolean));
           tablas.imagenesPlanoDif = tablas.imagenesPlanoDif.filter((i) => usadas.has(i.id));
           if (!tablas.imagenesPlanoDif.length) delete tablas.imagenesPlanoDif;
+        }
+        if (tablas.documentos) {
+          const REGD = require_reglas();
+          const sinDinero = ROLES.campoVetado(yo.rol, "precioCoste");
+          const sinClaim = !ROLES.puede(yo.rol, "reclamaciones", "ver");
+          const reservadas = existe(db, "reclamaciones") && !ROLES.veReclamacionesReservadas(yo.rol) ? new Set(db.prepare("SELECT id FROM reclamaciones WHERE reservada = 1").all().map((r) => r.id)) : /* @__PURE__ */ new Set();
+          const hechosReservados = reservadas.size && existe(db, "reclamacionHechos") ? new Set(db.prepare("SELECT id, reclamacionId FROM reclamacionHechos").all().filter((h) => reservadas.has(h.reclamacionId)).map((h) => h.id)) : /* @__PURE__ */ new Set();
+          tablas.documentos = tablas.documentos.filter((d) => !d.borradoEn && ROLES.puede(yo.rol, "documentos", "ver")).filter((d) => !(sinDinero && REGD.CATEGORIAS_CON_DINERO.includes(d.categoria))).filter((d) => !(sinClaim && REGD.AMBITOS_DE_RECLAMACION.includes(d.ambito))).filter((d) => !(d.ambito === "reclamacion" && reservadas.has(d.ambitoId))).filter((d) => !(d.ambito === "hecho" && hechosReservados.has(d.ambitoId))).map(({ texto, archivo, ...d }) => d);
+          if (!tablas.documentos.length) delete tablas.documentos;
         }
         if (tablas.planosEquipos) {
           tablas.planosEquipos = tablas.planosEquipos.map(({ imagenMovil, ...p }) => imagenMovil ? { ...p, imagen: imagenMovil } : p);
@@ -11061,7 +11405,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261109.1234" : "0";
+      var VERSION = true ? "20261111.2004" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -13202,6 +13546,7 @@ globalThis.CX_VARIANTE="cxobra";
         crucesIfc: { porObra: "obraId" },
         plantasIfc: { porObra: "obraId" },
         fotosEquipo: { porObra: "obraId" },
+        documentos: { porObra: "obraId" },
         archivosPreparados: { porObra: "obraId" },
         firmasEquipo: { porObra: "obraId" },
         imagenesPlanoDif: { porObra: "obraId" },
@@ -13225,6 +13570,7 @@ globalThis.CX_VARIANTE="cxobra";
         reclamacionHechoPruebas: { porObra: "obraId" },
         reclamacionHilos: { porObra: "obraId" },
         reclamacionCorreos: { porObra: "obraId" },
+        reclamacionCorreoMovimientos: { porObra: "obraId" },
         reclamacionTarifas: { porObra: "obraId" },
         reclamacionClausulas: { porObra: "obraId" },
         reclamacionHechoClausulas: { porObra: "obraId" },
@@ -13590,11 +13936,15 @@ globalThis.CX_VARIANTE="cxobra";
           "reclamacionClausulas",
           "reclamacionRenuncias",
           "reclamacionDefensa",
-          "reclamacionAvisos"
+          "reclamacionAvisos",
+          "reclamacionCorreoMovimientos"
         ].map((e) => [e, (t) => `(${t}reclamacionId IS NULL OR ${t}reclamacionId NOT IN ${RESERVADA})`])),
         /* El correo completo: solo si lo cita alguna prueba de una reclamación que no es reservada. */
         reclamacionCorreos: (t) => `${t}id IN (SELECT correoId FROM reclamacionPruebas WHERE correoId IS NOT NULL AND reclamacionId NOT IN ${RESERVADA})`,
-        ...Object.fromEntries(["reclamacionHechoPruebas", "reclamacionHechoClausulas"].map((e) => [e, (t) => `${t}hechoId NOT IN (SELECT id FROM reclamacionHechos WHERE reclamacionId IN ${RESERVADA})`]))
+        ...Object.fromEntries(["reclamacionHechoPruebas", "reclamacionHechoClausulas"].map((e) => [e, (t) => `${t}hechoId NOT IN (SELECT id FROM reclamacionHechos WHERE reclamacionId IN ${RESERVADA})`])),
+        /* 10-nov: el archivo colgado de una reclamación reservada o de uno de sus hechos. */
+        documentos: (t) => `NOT ((${t}ambito = 'reclamacion' AND IFNULL(${t}ambitoId, '') IN ${RESERVADA})
+    OR (${t}ambito = 'hecho' AND IFNULL(${t}ambitoId, '') IN (SELECT id FROM reclamacionHechos WHERE reclamacionId IN ${RESERVADA})))`
       };
       function sinReservadas(entidad, sesion, opciones, f) {
         const corte = POR_RESERVADA[entidad];
@@ -26770,6 +27120,8 @@ ${obsO}` : obsO).slice(0, 4e3);
      decididaPor   TEXT REFERENCES personas(id),
      actaId        TEXT,
      capituloId    TEXT,
+     diasPlazo     INTEGER,
+     plazoAplicadoEn TEXT,
      creadoPor     TEXT REFERENCES personas(id),
      creadoEn      TEXT NOT NULL,
      modificadoEn  TEXT NOT NULL,
@@ -27179,6 +27531,37 @@ ${obsO}` : obsO).slice(0, 4e3);
      creadoEn          TEXT NOT NULL,
      modificadoEn      TEXT NOT NULL,
      UNIQUE (hechoId, pruebaId)
+   )`,
+        /* LO QUE SE HACE CON CADA CORREO DEL CLAIM (9-nov-2026, JC: «toma de datos para poder
+           valorar ahí lo que hacemos con ese correo»; electron/data/reclamacionesCorreoToma.js).
+           Una fila por operación, con quién y cuándo EN LA FILA: el historial de lo escrito en
+           la web de una persona no vuelve al escritorio, y esta tabla sí viaja por el espejo.
+           Guarda cómo estaba el correo antes (enlaceAntes, propuestaAntes) para poder
+           deshacer: nunca se pierde la relación. Sin claves ajenas a hechos y pruebas, para
+           que un hecho borrado no se lleve el rastro. */
+        `CREATE TABLE IF NOT EXISTS reclamacionCorreoMovimientos (
+     id                    TEXT PRIMARY KEY,
+     obraId                TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     reclamacionId         TEXT NOT NULL REFERENCES reclamaciones(id) ON DELETE CASCADE,
+     pruebaId              TEXT NOT NULL,
+     hechoOrigenId         TEXT NOT NULL,
+     tipo                  TEXT NOT NULL,
+     claseAntes            TEXT,
+     claseDespues          TEXT,
+     estadoAntes           TEXT,
+     enlaceAntes           TEXT,
+     propuestaAntes        TEXT,
+     destinoReclamacionId  TEXT,
+     destinoHechoId        TEXT,
+     destinoPruebaId       TEXT,
+     pruebaCreada          INTEGER NOT NULL DEFAULT 0,
+     enlaceCreado          INTEGER NOT NULL DEFAULT 0,
+     hechoCreadoId         TEXT,
+     creadoPor             TEXT,
+     deshechoPor           TEXT,
+     deshechoEn            TEXT,
+     creadoEn              TEXT NOT NULL,
+     modificadoEn          TEXT NOT NULL
    )`,
         /* LOS HILOS DE CORREO de la reclamación y su resumen (28-oct-2026, Pruebas ›
            Cargar correos; shared/reclamaciones/hilosCorreo.js). `clave` = el asunto
@@ -27742,9 +28125,59 @@ ${obsO}` : obsO).slice(0, 4e3);
      creadoEn        TEXT NOT NULL,
      modificadoEn    TEXT NOT NULL,
      UNIQUE (induccionId, operarioId)
+   )`,
+        /* LOS DOCUMENTOS DE LA OBRA, LOS QUE SEAN (10-nov-2026, JC: «imprescindible»).
+           Un archivo cualquiera con sus bytes, colgado de la obra y, si se quiere, de
+           una zona, un equipo, un tema, una subcontrata, una reclamación o un hecho
+           (ambito + ambitoId). No es documentosProyecto (la biblioteca del proyecto,
+           con su lista cerrada de tipos): aquí entra lo que sea, salvo ejecutables.
+             tipoDeclarado  la extensión del nombre; tipoReal, lo que dicen los bytes
+                            (shared/ia/adjuntos.js › detectarTipo).
+             archivo        ruta relativa en la carpeta de la app; nube, la clave en
+                            el cubo cx-docs (<espacio>/<obra>/<id>.<ext>); enlace, si
+                            en vez de bytes es un enlace (SharePoint, > 50 MB).
+             miniatura      un JPEG pequeño (data:) que hace la pantalla al subirlo.
+             texto          lo que se pudo leer del archivo (≤ 4000), para buscar.
+             grupoId/version  el mismo nombre en el mismo sitio con otros bytes es la
+                            versión siguiente del mismo documento.
+             borradoEn/Por  la papelera: nunca se borra la fila; 30 días para sacarla. */
+        `CREATE TABLE IF NOT EXISTS documentos (
+     id                 TEXT PRIMARY KEY,
+     empresaId          TEXT,
+     proyectoId         TEXT,
+     obraId             TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     ambito             TEXT NOT NULL DEFAULT 'obra'
+                          CHECK (ambito IN ('obra', 'zona', 'equipo', 'tema', 'subcontrata', 'reclamacion', 'hecho')),
+     ambitoId           TEXT,
+     categoria          TEXT NOT NULL DEFAULT 'otro'
+                          CHECK (categoria IN ('plano', 'contrato', 'certificado', 'manual', 'correo', 'acta', 'economico', 'otro')),
+     nombre             TEXT NOT NULL,
+     extension          TEXT,
+     tipoDeclarado      TEXT,
+     tipoReal           TEXT,
+     mime               TEXT,
+     tamano             INTEGER NOT NULL DEFAULT 0,
+     sha256             TEXT,
+     soloDescarga       INTEGER NOT NULL DEFAULT 0,
+     archivo            TEXT,
+     nube               TEXT,
+     enlace             TEXT,
+     miniatura          TEXT,
+     texto              TEXT,
+     grupoId            TEXT NOT NULL,
+     version            INTEGER NOT NULL DEFAULT 1,
+     autorId            TEXT,
+     fecha              TEXT NOT NULL,
+     borradoEn          TEXT,
+     borradoPor         TEXT,
+     creadoEn           TEXT NOT NULL,
+     modificadoEn       TEXT NOT NULL
    )`
       ];
       var INDICES = [
+        `CREATE INDEX IF NOT EXISTS idx_documentos_obra   ON documentos (obraId, borradoEn, fecha)`,
+        `CREATE INDEX IF NOT EXISTS idx_documentos_sha    ON documentos (obraId, sha256)`,
+        `CREATE INDEX IF NOT EXISTS idx_documentos_grupo  ON documentos (grupoId, version)`,
         /* Las horas se leen siempre por presupuesto, y el resumen por cliente lee
            los de muchos de golpe. */
         `CREATE INDEX IF NOT EXISTS ix_dedicaciones_presupuesto
@@ -27833,6 +28266,8 @@ ${obsO}` : obsO).slice(0, 4e3);
         `CREATE INDEX IF NOT EXISTS idx_recl_hechopruebas ON reclamacionHechoPruebas (pruebaId)`,
         `CREATE INDEX IF NOT EXISTS idx_recl_hilos        ON reclamacionHilos (reclamacionId, desde)`,
         `CREATE INDEX IF NOT EXISTS idx_recl_correos      ON reclamacionCorreos (obraId, fecha)`,
+        `CREATE INDEX IF NOT EXISTS idx_recl_correoMov    ON reclamacionCorreoMovimientos (pruebaId, creadoEn)`,
+        `CREATE INDEX IF NOT EXISTS idx_recl_correoMovD   ON reclamacionCorreoMovimientos (destinoPruebaId)`,
         `CREATE INDEX IF NOT EXISTS idx_ncr_obra           ON ncr (obraId, estado, fechaPrevista)`,
         `CREATE INDEX IF NOT EXISTS idx_ncr_externo        ON ncr (obraId, codExterno)`,
         `CREATE INDEX IF NOT EXISTS idx_ncrequipos_ncr     ON ncrEquipos (ncrId)`,
@@ -27989,6 +28424,9 @@ ${obsO}` : obsO).slice(0, 4e3);
         ["notas", "adjuntos", "TEXT"],
         /* El día de la nota en la agenda del bloc (AAAA-MM-DD), opcional. */
         ["notas", "fecha", "TEXT"],
+        /* Marcar una nota entera como hecha y su categoría (9-nov); las columnas suben solas al espejo. */
+        ["notas", "hecha", "INTEGER"],
+        ["notas", "categoria", "TEXT"],
         /* Los partes de incidencia se asignan a quien los lleva, con su fecha límite. */
         ["partesIncidencia", "responsableId", "TEXT"],
         ["partesIncidencia", "fechaLimite", "TEXT"],
@@ -28328,6 +28766,9 @@ ${obsO}` : obsO).slice(0, 4e3);
         /* La adenda que trae una orden de cambio aceptada o un acta que mueve el final (C5). */
         ["adendas", "ordenCambioId", "TEXT"],
         ["adendas", "actaId", "TEXT"],
+        /* Los días de plazo que trae una orden de cambio y cuándo se movió el fin de obra por ellos. */
+        ["ordenesCambio", "diasPlazo", "INTEGER"],
+        ["ordenesCambio", "plazoAplicadoEn", "TEXT"],
         /* Los campos de la punchlist de origen (NUMERO, Name, Fecha modificada, los
            tres estados y FECHA ACCION), para que la tabla de NCR tenga las mismas
            columnas que su Excel. */
@@ -28357,6 +28798,10 @@ ${obsO}` : obsO).slice(0, 4e3);
         ["reclamacionPruebas", "nube", "TEXT"],
         /* El correo completo de la prueba (reclamacionCorreos, 5-nov-2026). */
         ["reclamacionPruebas", "correoId", "TEXT"],
+        /* La nota que escribe la persona sobre un correo del claim (9-nov-2026): nunca un script ni un agente. */
+        ["reclamacionPruebas", "notaPersona", "TEXT"],
+        ["reclamacionPruebas", "notaPor", "TEXT"],
+        ["reclamacionPruebas", "notaEn", "TEXT"],
         /* Dónde está el original del correo para traer sus adjuntos en SOLO LECTURA (5-nov-2026):
            JSON {driveId,itemId} del .msg en SharePoint o {mensajeId} del buzón (shared/reclamaciones/adjuntosCorreo.js). */
         ["reclamacionCorreos", "refOrigen", "TEXT"],
@@ -28430,6 +28875,13 @@ ${obsO}` : obsO).slice(0, 4e3);
         ["pedidosCompra", "pdfRuta", "TEXT"],
         ["pedidosCompra", "pdfHuella", "TEXT"],
         ["pedidosCompra", "origenImportacion", "TEXT"],
+        /* Lo leído de la confirmación del proveedor (JSON; 9-nov-2026): orden de venta,
+           fechas, contactos, diferencias y si está «por confirmar». SIN dinero.
+           La misma lectura CON dinero va en importeConfirmacionLeida: el prefijo es el
+           contrato con el recorte del teléfono y de la nube, que quitan la columna
+           entera a quien no ve precios. */
+        ["pedidosCompra", "confirmacionLeida", "TEXT"],
+        ["pedidosCompra", "importeConfirmacionLeida", "TEXT"],
         ["pedidosConfig", "rutaCertificacion", "TEXT"],
         ["pedidosConfig", "reglasPdf", "TEXT"],
         /* La medición de obra por plantas o zonas (25-oct-2026, JC): 'obra'; nula,
@@ -28492,6 +28944,18 @@ ${obsO}` : obsO).slice(0, 4e3);
         ["reclamacionHechos", "hijoOrden", "REAL"],
         ["reclamacionHechos", "hijoNota", "TEXT"],
         ["reclamacionHechos", "hijoSuma", "INTEGER"],
+        /* 10-nov (JC): un hecho enlazado sustenta ('favor') o va en contra ('contra') de su padre. */
+        ["reclamacionHechos", "hijoSentido", "TEXT"],
+        /* Coste directo y coste indirecto del hecho, por separado (10-nov-2026, JC; shared/reclamaciones/costesHecho.js). */
+        ["reclamacionHechos", "costes", "TEXT"],
+        /* 11-nov (JC): lo que nos ha COSTADO de verdad el hecho (p. ej. lo que cobra la subcontrata por las horas), aparte de lo que se reclama (importe). */
+        ["reclamacionHechos", "costeReal", "REAL"],
+        /* 11-nov (JC): de las horas de una subcontrata solo un % va al claim; se guarda el % y las horas/coste de origen para poder cambiarlo sin deriva. */
+        ["reclamacionHechos", "porcentajeClaim", "REAL"],
+        ["reclamacionHechos", "horasOrigen", "REAL"],
+        ["reclamacionHechos", "costeOrigen", "REAL"],
+        /* 10-nov (JC): número de hecho dentro de su reclamación, fijo y correlativo, para localizarlo fácil. */
+        ["reclamacionHechos", "numero", "INTEGER"],
         ["reclamacionHechos", "personasAfectadas", "REAL"],
         ["reclamacionHechos", "oculto", "INTEGER NOT NULL DEFAULT 0"],
         /* Qué justifica cada prueba ligada a un hecho: 'tiempo' | 'importe' | 'ambos'
@@ -28919,6 +29383,9 @@ ${obsO}` : obsO).slice(0, 4e3);
         "ganttEnlaces",
         "sesionesPlanCx",
         "sesionesPlanInc",
+        /* Las copias del modelo IFC se sustituyen en cada carga: quien puede cargar puede rehacerlas (electron/data/modelosIfc.js). */
+        "crucesIfc",
+        "plantasIfc",
         /* «Volver al valor calculado» de un punto de control es borrar su ajuste. */
         "puntosControlAjustes",
         /* Deshacer lo probado de un punto del BMS es borrar su fila. */
@@ -28977,6 +29444,8 @@ ${obsO}` : obsO).slice(0, 4e3);
         crucesIfc: "commissioning",
         plantasIfc: "commissioning",
         fotosEquipo: "commissioning",
+        /* 10-nov: los archivos de la obra, los que sean (electron/data/documentos.js). */
+        documentos: "documentos",
         /* 5-nov: el PDF con todas las hojas de un equipo, preparado en el móvil para el jefe de obra. */
         archivosPreparados: "commissioning",
         firmasEquipo: "commissioning",
@@ -29004,6 +29473,7 @@ ${obsO}` : obsO).slice(0, 4e3);
         reclamacionHechoPruebas: "reclamaciones",
         reclamacionHilos: "reclamaciones",
         reclamacionCorreos: "reclamaciones",
+        reclamacionCorreoMovimientos: "reclamaciones",
         reclamacionTarifas: "reclamaciones",
         reclamacionClausulas: "reclamaciones",
         reclamacionHechoClausulas: "reclamaciones",
@@ -31133,7 +31603,7 @@ ${obsO}` : obsO).slice(0, 4e3);
           }).join("");
           const papel = typeof __require !== "undefined" ? require_papel() : typeof window !== "undefined" ? window.PAPEL : null;
           const logo = papel ? papel.logoObra(resultado.obra || null, { alto: "8mm", clase: "logoTrazas" }) : "";
-          return `${logo}<h1>Auditor\xEDa: qui\xE9n cambi\xF3 qu\xE9</h1>
+          return `${logo}<h1>Historial de cambios: qui\xE9n cambi\xF3 qu\xE9</h1>
     <p class="filtro">${filtro}</p>
     <table class="trazas">
       <thead><tr>${CABECERA.map((c) => `<th>${escH(c)}</th>`).join("")}</tr></thead>
@@ -34444,9 +34914,9 @@ ${obsO}` : obsO).slice(0, 4e3);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/fflate/lib/browser.cjs
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/fflate/lib/browser.cjs
   var require_browser = __commonJS({
-    "../Vidaire_Obras/node_modules/fflate/lib/browser.cjs"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/fflate/lib/browser.cjs"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       exports.deflate = deflate;
@@ -40233,12 +40703,106 @@ ${obsO}` : obsO).slice(0, 4e3);
     }
   });
 
+  // shared/commissioning/ifcSalas.js
+  var require_ifcSalas = __commonJS({
+    "shared/commissioning/ifcSalas.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var D = require_equiposDudosos();
+      var MIN_DENTRO = 0.6;
+      var MOTIVO = {
+        sinPosicion: "el modelo no da su posici\xF3n",
+        sinPlanta: "el modelo no dice su planta",
+        sinEspacios: "no hay recintos (IfcSpace) de esa planta",
+        noCuadra: "los recintos de esa planta no cuadran con este modelo",
+        fuera: "fuera de los recintos del modelo",
+        varias: "varios recintos posibles"
+      };
+      function clavesPlanta(p) {
+        if (!p) return [];
+        const textos = typeof p === "string" ? [p] : [p.nombre, p.largo];
+        const c = /* @__PURE__ */ new Set();
+        for (const t of textos.filter(Boolean)) {
+          c.add(D.plantaNorm(t));
+          const m = /^\s*([A-Za-z]{0,6}-?\d{1,2})\s*[-–—:·]/.exec(String(t));
+          if (m) c.add(D.plantaNorm(m[1]));
+        }
+        c.delete("");
+        return [...c];
+      }
+      function area(pts) {
+        let s = 0;
+        for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) s += pts[j][0] * pts[i][1] - pts[i][0] * pts[j][1];
+        return Math.abs(s) / 2;
+      }
+      function dentro(x, y, pts) {
+        let d = false;
+        for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+          const [xi, yi] = pts[i], [xj, yj] = pts[j];
+          if (yi > y !== yj > y && x < (xj - xi) * (y - yi) / (yj - yi) + xi) d = !d;
+        }
+        return d;
+      }
+      function recinto(c) {
+        const xs = c.puntos.map((p) => p[0]), ys = c.puntos.map((p) => p[1]);
+        return { codigo: c.codigo || c.nombre, nombre: c.nombre && c.nombre !== c.codigo ? c.nombre : null, puntos: c.puntos, area: area(c.puntos), x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+      }
+      var quienContiene = (l, x, y) => l.filter((s) => x >= s.x0 && x <= s.x1 && y >= s.y0 && y <= s.y1 && dentro(x, y, s.puntos)).sort((a, b) => a.area - b.area);
+      function asignarSalasPorEspacios(elementos = [], dibujos = []) {
+        const porPlanta = /* @__PURE__ */ new Map();
+        for (const d of dibujos) {
+          for (const c of d && d.contornos || []) {
+            if (!c.espacio || !(c.codigo || c.nombre) || !c.puntos || c.puntos.length < 3) continue;
+            const s = recinto(c);
+            for (const k of clavesPlanta(c.planta)) {
+              if (!porPlanta.has(k)) porPlanta.set(k, []);
+              porPlanta.get(k).push(s);
+            }
+          }
+        }
+        const espaciosDe = (el) => [...new Set(clavesPlanta(el.planta).flatMap((k) => porPlanta.get(k) || []))];
+        const cuenta = /* @__PURE__ */ new Map();
+        const nombrePlanta = (el) => el.planta && (el.planta.nombre || el.planta.largo) || "";
+        for (const el of elementos) {
+          if (!el.pos) continue;
+          const l = espaciosDe(el);
+          if (!l.length) continue;
+          const k = nombrePlanta(el);
+          if (!cuenta.has(k)) cuenta.set(k, { total: 0, dentro: 0 });
+          const c = cuenta.get(k);
+          c.total += 1;
+          if (quienContiene(l, el.pos[0], el.pos[1]).length) c.dentro += 1;
+        }
+        return elementos.map((el) => {
+          const { salaPos, ...resto } = el;
+          return { ...resto, salaPos: salaDe(el) };
+        });
+        function salaDe(el) {
+          if (!el.planta) return { motivo: MOTIVO.sinPlanta };
+          if (!el.pos) return { motivo: MOTIVO.sinPosicion };
+          const l = espaciosDe(el);
+          if (!l.length) return { motivo: MOTIVO.sinEspacios };
+          const c = cuenta.get(nombrePlanta(el));
+          if (c.dentro / c.total < MIN_DENTRO) return { motivo: MOTIVO.noCuadra };
+          const hay = quienContiene(l, el.pos[0], el.pos[1]);
+          if (!hay.length) return { motivo: MOTIVO.fuera };
+          const otro = hay.find((s) => s.codigo !== hay[0].codigo);
+          if (otro && otro.area <= hay[0].area * 1.05) return { motivo: MOTIVO.varias };
+          return { codigo: hay[0].codigo, nombre: hay[0].nombre, fuente: "ifcspace" };
+        }
+      }
+      var puedeIrAlPlano = (salaPos) => !salaPos || salaPos.motivo === MOTIVO.sinEspacios || salaPos.motivo === MOTIVO.noCuadra;
+      module.exports = { asignarSalasPorEspacios, clavesPlanta, puedeIrAlPlano, MOTIVO, MIN_DENTRO };
+    }
+  });
+
   // shared/commissioning/ifcEquipos.js
   var require_ifcEquipos = __commonJS({
     "shared/commissioning/ifcEquipos.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var D = require_equiposDudosos();
+      var S = require_ifcSalas();
       var CLASES_EQUIPO = /* @__PURE__ */ new Set([
         "IFCUNITARYEQUIPMENT",
         "IFCFAN",
@@ -40369,7 +40933,8 @@ ${obsO}` : obsO).slice(0, 4e3);
       var PROP_FABRICANTE = /^(Manufacturer|Fabricante|Marca)$/i;
       var PROP_TAG = /^(Tag|TAG|Mark|Marca de equipo|Identificador|Código|Codigo|Reference)$/i;
       var PROP_SALA = /^(room|space|sala|espacio|recinto)(\s*[:_-]?\s*(name|number|nombre|numero|número|n[oº]|c[oó]digo))?$/i;
-      var PROP_UTIL = (n) => PROP_MODELO.test(n) || PROP_FABRICANTE.test(n) || PROP_TAG.test(n) || PROP_SALA.test(n);
+      var PROP_MARCA = /^(Mark|Marca|Marca de equipo|Etiqueta|Tag|Identificador|C[oó]digo|Reference)$/i;
+      var PROP_UTIL = (n) => PROP_MODELO.test(n) || PROP_FABRICANTE.test(n) || PROP_TAG.test(n) || PROP_SALA.test(n) || PROP_MARCA.test(n);
       var CLASES_ESPACIO = /* @__PURE__ */ new Set(["IFCPROJECT", "IFCSITE", "IFCBUILDING", "IFCBUILDINGSTOREY", "IFCSPACE"]);
       var CLASES_MATERIAL = /* @__PURE__ */ new Set([
         "IFCFLOWSEGMENT",
@@ -40472,6 +41037,10 @@ ${obsO}` : obsO).slice(0, 4e3);
             for (const [k, v] of Object.entries(P)) if (re.test(k) && v) return v;
             return null;
           };
+          const marcaDe = (P) => {
+            for (const [k, v] of Object.entries(P)) if (PROP_MARCA.test(k) && v && /[A-Za-z]/.test(v) && /\d/.test(v)) return v;
+            return null;
+          };
           const dondeEsta = (e) => {
             let espacio = null, planta = null, s = contenedor.has(e.id) ? contenedor.get(e.id) : padre.get(e.id), vueltas = 0;
             while (s != null && vueltas++ < 10) {
@@ -40513,6 +41082,7 @@ ${obsO}` : obsO).slice(0, 4e3);
               nombre: texto(e.a[2]),
               tipo: texto(e.a[4]) || (tipo ? texto(tipo.a[2]) : null),
               tag: texto(e.a[7]) || busca(P, PROP_TAG),
+              marca: marcaDe(P),
               planta,
               espacio,
               salaProp: busca(P, PROP_SALA),
@@ -40534,7 +41104,55 @@ ${obsO}` : obsO).slice(0, 4e3);
       }
       var sala = (s) => String(s || "").toUpperCase().replace(/\s+/g, "").trim();
       var salaEquipo = (e) => [e.salaGris, e.sala, e.codSala].map(sala).filter(Boolean);
-      var plantasIfc = (el) => el.planta ? [el.planta.nombre, el.planta.largo].filter(Boolean).map(D.plantaNorm) : [];
+      var plantasIfc = (el) => S.clavesPlanta(el.planta);
+      var FAMILIA_ACCESORIO = /* @__PURE__ */ new Set(["AIG", "PIA", "MEC", "DIF", "AVC", "DMP", "THM", "DFT", "PRG", "FLT", "VAL", "PIF", "EXJ"]);
+      var FAMILIA_MAQUINA = { EXU: "exterior", INU: "interior", FCU: "fancoil", AHU: "uta", UTA: "uta", HRU: "recuperador", FAN: "ventilador", PMP: "bomba", CHL: "enfriadora", RTU: "rooftop", CRC: "crac" };
+      var CLASE_ACCESORIO = /* @__PURE__ */ new Set(["IFCAIRTERMINAL", "IFCAIRTERMINALBOX", "IFCDAMPER", "IFCFLOWCONTROLLER", "IFCDISTRIBUTIONCONTROLELEMENT", "IFCCONTROLLER", "IFCSENSOR", "IFCACTUATOR", "IFCALARM"]);
+      var CLASE_MAQUINA = { IFCCHILLER: "enfriadora", IFCPUMP: "bomba", IFCFAN: "ventilador", IFCAIRTOAIRHEATRECOVERY: "recuperador" };
+      var PALABRA_ACCESORIO = /\b(rejas?|rejillas?|difusor(es)?|compuertas?|v[aá]lvulas?|termostatos?|sondas?|sensor(es)?|filtros?|juntas?|toberas?|grilles?|diffusers?|dampers?|valves?|thermostats?)\b/i;
+      var PALABRAS_GRUPO = [
+        ["exterior", /(^|[\s_.-])UE($|[\s_.-])|unidad(es)? exterior|outdoor|condensadora/i],
+        ["interior", /(^|[\s_.-])UI($|[\s_.-])|unidad(es)? interior|indoor|cassette|casete/i],
+        ["crac", /(^|[\s_.-])CRACS?($|[\s_.-])/i],
+        ["fancoil", /fan.?coil/i],
+        ["recuperador", /recuperador|heat.?recovery|(^|[\s_.-])HRU($|[\s_.-])/i],
+        ["uta", /(^|[\s_.-])(UTAS?|AHU)($|[\s_.-])|climatizador|air.?handling/i],
+        ["grupoPresion", /grupos?.{0,3}presi[oó]n|booster|(^|[\s_.-])WILO_GP($|[\s_.-])/i],
+        ["bomba", /bomba|pump/i],
+        ["enfriadora", /enfriadora|chiller/i],
+        ["rooftop", /roof.?top/i],
+        ["ventilador", /ventilador|extractor|ventilaci[oó]n|presurizaci[oó]n|(^|[\s_.-])SP_PARKING($|[\s_.-])/i],
+        ["interior", /split|VRF/i]
+      ];
+      var grupoPorPalabras = (t) => (PALABRAS_GRUPO.find(([, re]) => re.test(t)) || [null])[0];
+      function tipoElemento(el) {
+        const t = [el.nombre, el.tipo].filter(Boolean).join(" ");
+        const fam = (/^[A-Z0-9]{2,5}_([A-Z]{3})_/.exec(String(el.nombre || "")) || [])[1];
+        if (FAMILIA_ACCESORIO.has(fam)) return { categoria: "accesorio", grupo: null };
+        if (FAMILIA_MAQUINA[fam]) return { categoria: "maquina", grupo: FAMILIA_MAQUINA[fam] };
+        if (CLASE_ACCESORIO.has(el.clase) || PALABRA_ACCESORIO.test(t)) return { categoria: "accesorio", grupo: null };
+        const g = CLASE_MAQUINA[el.clase] || grupoPorPalabras(t);
+        return g ? { categoria: "maquina", grupo: g } : { categoria: "otro", grupo: null };
+      }
+      var grupoEquipo = (e) => grupoPorPalabras([e.tag, e.familia, e.tipo, e.descripcion].filter(Boolean).join(" "));
+      var gruposCompatibles = (a, b) => Boolean(a && b) && (a === b || a === "interior" && b === "crac" || a === "crac" && b === "interior");
+      var soloId = (t) => /^\s*\d+\s*$/.test(String(t ?? ""));
+      var mixto = (k) => /[A-Z]/.test(k) && /\d/.test(k);
+      function codigosDeNombre(nombre) {
+        const out = /* @__PURE__ */ new Set();
+        for (const s of String(nombre || "").split(":")) {
+          if (!s.trim() || soloId(s)) continue;
+          const k = D.kEstricta(s);
+          if (!k) continue;
+          if (mixto(k)) out.add(k);
+          const t = k.split(".");
+          for (let i = 0; i < t.length; i++) for (let j = i + 3; j <= t.length; j++) {
+            const sub = t.slice(i, j).join(".");
+            if (mixto(sub)) out.add(sub);
+          }
+        }
+        return [...out].sort((a, b) => b.length - a.length);
+      }
       var salasIfc = (el) => el.espacio ? [el.espacio.nombre, el.espacio.largo].filter(Boolean).map(sala) : [];
       function cruzarConIfc(equipos = [], elementos = [], { hoy = (/* @__PURE__ */ new Date()).toISOString(), fuera = () => false } = {}) {
         const vivos = equipos.filter((e) => !fuera(e) && (e.duplicadoDe == null || e.duplicadoDe === ""));
@@ -40552,7 +41170,8 @@ ${obsO}` : obsO).slice(0, 4e3);
         const pendientes = [];
         for (const el of elementos) {
           let e = null, motivo = null;
-          for (const [campo, t] of [["Tag", el.tag], ["Name", el.nombre]]) {
+          for (const [campo, t] of [["Tag", el.tag], ["Mark", el.marca], ["Name", el.nombre]]) {
+            if (soloId(t)) continue;
             const k = D.kEstricta(t);
             const x = k ? porTag.get(k) : null;
             if (x && !usados.has(x.id)) {
@@ -40564,13 +41183,22 @@ ${obsO}` : obsO).slice(0, 4e3);
           if (e) casar(el, e, motivo);
           else pendientes.push(el);
         }
+        const codigos = new Map(pendientes.map((el) => [el, codigosDeNombre(el.nombre).filter((k) => porTag.has(k))]));
+        const veces = /* @__PURE__ */ new Map();
+        for (const l of codigos.values()) for (const k of l) veces.set(k, (veces.get(k) || 0) + 1);
+        const quedan = [];
+        for (const el of pendientes) {
+          const k = codigos.get(el).find((c) => veces.get(c) === 1 && !usados.has(porTag.get(c).id));
+          if (k) casar(el, porTag.get(k), "c\xF3digo de obra en el Name del IFC");
+          else quedan.push(el);
+        }
         const porPlanta = /* @__PURE__ */ new Map();
         for (const e of vivos) {
           const p = D.plantaNorm(e.planta);
           if (!porPlanta.has(p)) porPlanta.set(p, []);
           porPlanta.get(p).push(e);
         }
-        for (const el of pendientes) {
+        for (const el of quedan) {
           const pl = plantasIfc(el), sa = salasIfc(el);
           let c = [];
           if (pl.length && sa.length && el.modelo) {
@@ -40581,10 +41209,33 @@ ${obsO}` : obsO).slice(0, 4e3);
         }
         return { casados, sinEquipo, sinIfc: vivos.filter((e) => !usados.has(e.id)).map((e) => e.id) };
       }
+      function casarProbables(equipos = [], cruce = {}, { fuera = () => false } = {}) {
+        const usados = new Set((cruce.casados || []).map((c) => c.equipoId));
+        const libres = equipos.filter((e) => !fuera(e) && (e.duplicadoDe == null || e.duplicadoDe === "") && !usados.has(e.id));
+        const candidatos = /* @__PURE__ */ new Map(), porEquipo = /* @__PURE__ */ new Map();
+        for (const el of cruce.sinEquipo || []) {
+          const { categoria, grupo } = tipoElemento(el);
+          const s = salaDeElemento(el);
+          const pl = plantasIfc(el);
+          if (categoria !== "maquina" || !s || !pl.length) continue;
+          const claves = [s.codigo, s.nombre].filter(Boolean).map(sala);
+          const c = libres.filter((e) => pl.includes(D.plantaNorm(e.planta)) && salaEquipo(e).some((x) => claves.includes(x)) && gruposCompatibles(grupo, grupoEquipo(e)) && (!e.modelo || !el.modelo || D.modeloCompatible(e.modelo, el.modelo)));
+          candidatos.set(el, c);
+          for (const e of c) porEquipo.set(e.id, (porEquipo.get(e.id) || 0) + 1);
+        }
+        const probables = [];
+        for (const [el, c] of candidatos) {
+          if (c.length !== 1 || porEquipo.get(c[0].id) !== 1) continue;
+          el.probable = { equipoId: c[0].id, tag: c[0].tag };
+          probables.push({ equipoId: c[0].id, tag: c[0].tag, guid: el.guid, porConfirmar: true, motivo: "misma planta y sala, y tipo compatible" });
+        }
+        return probables;
+      }
       var ORDEN_ESTADO = { difiere: 0, sinSalaApp: 1, sinSalaIfc: 2, coincide: 3 };
       function salaDeElemento(el) {
         if (el.espacio && (el.espacio.nombre || el.espacio.largo)) return { codigo: el.espacio.nombre || el.espacio.largo, nombre: el.espacio.nombre && el.espacio.largo ? el.espacio.largo : null };
-        return el.salaProp ? { codigo: el.salaProp, nombre: null } : null;
+        if (el.salaProp) return { codigo: el.salaProp, nombre: null };
+        return el.salaPos && el.salaPos.codigo ? { codigo: el.salaPos.codigo, nombre: el.salaPos.nombre || null, fuente: el.salaPos.fuente } : null;
       }
       function compararSalas(equipos = [], elementos = [], cruce = {}, { tope = 1500 } = {}) {
         const eq = new Map(equipos.map((e) => [e.id, e]));
@@ -40619,26 +41270,1232 @@ ${obsO}` : obsO).slice(0, 4e3);
             coincideCon,
             motivo: c.motivo,
             guid: c.guid,
-            fichero: el.fichero || null
+            fichero: el.fichero || null,
+            salaFuente: ifc ? ifc.fuente || null : null
           };
         });
         filas.sort((a, b) => ORDEN_ESTADO[a.estado] - ORDEN_ESTADO[b.estado] || String(a.tag).localeCompare(String(b.tag), "es", { numeric: true }));
         const sinEquipo = cruce.sinEquipo || [];
-        const peso = (el) => (salaDeElemento(el) ? 0 : 2) + (el.tag ? 0 : 1);
+        const RANGO = { maquina: 0, otro: 4, accesorio: 8 };
+        const categoria = new Map(sinEquipo.map((el) => [el, tipoElemento(el).categoria]));
+        const peso = (el) => RANGO[categoria.get(el)] + (salaDeElemento(el) ? 0 : 2) + (el.tag ? 0 : 1);
         const sinEquipoRecortado = [...sinEquipo].sort((a, b) => peso(a) - peso(b)).slice(0, tope).map((el) => {
           const ifc = salaDeElemento(el);
-          return { guid: el.guid, clase: el.clase, nombre: el.nombre, tag: el.tag, planta: dePlanta(el), salaIfc: ifc ? ifc.codigo : null, salaIfcNombre: ifc ? ifc.nombre : null, fichero: el.fichero || null };
+          return { guid: el.guid, clase: el.clase, nombre: el.nombre, tag: el.tag, planta: dePlanta(el), salaIfc: ifc ? ifc.codigo : null, salaIfcNombre: ifc ? ifc.nombre : null, fichero: el.fichero || null, salaFuente: ifc ? ifc.fuente || null : null, categoria: categoria.get(el), motivo: el.probable ? `por confirmar: podr\xEDa ser ${el.probable.tag}` : null };
         });
+        const posible = new Map((cruce.probables || []).map((p) => [p.equipoId, elDe.get(p.guid)]));
         const sinIfc = (cruce.sinIfc || []).map((id) => {
           const e = eq.get(id) || {};
-          return { equipoId: id, tag: e.tag || null, planta: e.planta || null, salaApp: salaApp(e), salaAppNombre: e.salaGrisNombre || null };
+          return { equipoId: id, tag: e.tag || null, planta: e.planta || null, salaApp: salaApp(e), salaAppNombre: e.salaGrisNombre || null, motivo: posible.has(id) ? `por confirmar: podr\xEDa ser ${(posible.get(id) || {}).nombre || "un elemento del modelo"}` : null };
         });
         sinIfc.sort((a, b) => String(a.tag).localeCompare(String(b.tag), "es", { numeric: true }));
         const cuenta = { difiere: 0, sinSalaApp: 0, sinSalaIfc: 0, coincide: 0 };
         for (const f of filas) cuenta[f.estado]++;
         return { filas, sinEquipo: sinEquipoRecortado, sinEquipoTotal: sinEquipo.length, sinIfc, cuenta };
       }
-      module.exports = { leerIfc, crearLectorIfc, crearCortador, cruzarConIfc, compararSalas, entidades, atributos, cadena, CLASES_EQUIPO };
+      var SIN_ID = (el) => el.tag && el.nombre && el.nombre.endsWith(`:${el.tag}`);
+      function compactarCruce(r) {
+        if (!r || !Array.isArray(r.sinEquipo)) return r;
+        const d = [], pos = /* @__PURE__ */ new Map();
+        const i = (t) => {
+          if (t == null || t === "") return 0;
+          if (!pos.has(t)) {
+            d.push(t);
+            pos.set(t, d.length);
+          }
+          return pos.get(t);
+        };
+        const f = r.sinEquipo.map((el) => [
+          el.guid,
+          el.tag ?? null,
+          SIN_ID(el) ? -i(el.nombre.slice(0, -(String(el.tag).length + 1))) : i(el.nombre),
+          i(el.clase),
+          i(el.planta),
+          i(el.salaIfc),
+          i(el.salaIfcNombre),
+          i(el.fichero),
+          i(el.salaFuente),
+          i(el.categoria),
+          i(el.motivo)
+        ]);
+        return { ...r, sinEquipo: { v: 1, d, f } };
+      }
+      function expandirCruce(r) {
+        if (!r || !r.sinEquipo || Array.isArray(r.sinEquipo)) return r;
+        const { d, f } = r.sinEquipo;
+        const de = (i) => i ? d[Math.abs(i) - 1] : null;
+        return { ...r, sinEquipo: f.map(([guid, tag, n, clase, planta, salaIfc, salaIfcNombre, fichero, salaFuente, categoria, motivo]) => ({
+          guid,
+          clase: de(clase),
+          nombre: n < 0 ? `${de(n)}:${tag}` : de(n),
+          tag,
+          planta: de(planta),
+          salaIfc: de(salaIfc),
+          salaIfcNombre: de(salaIfcNombre),
+          fichero: de(fichero),
+          salaFuente: de(salaFuente),
+          categoria: de(categoria),
+          motivo: de(motivo)
+        })) };
+      }
+      module.exports = { leerIfc, crearLectorIfc, crearCortador, cruzarConIfc, casarProbables, compararSalas, salaDeElemento, tipoElemento, codigosDeNombre, compactarCruce, expandirCruce, entidades, atributos, cadena, CLASES_EQUIPO };
+    }
+  });
+
+  // shared/commissioning/planoEquipos.js
+  var require_planoEquipos = __commonJS({
+    "shared/commissioning/planoEquipos.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const MAX_PALABRAS = 8;
+        const CERCA = 0.015;
+        const clave = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+        const claveSuelta = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().split(/[^A-Z0-9]+/).map((x) => x.replace(/(^|[A-Z])0+(?=\d)/g, "$1")).join("");
+        const RE_NO_EQUIPO = /^(?:C\.?C\.?F|CRF|CF|CORTA\s?FUEGOS?|COMPUERTAS?|DAMPERS?|DMP|VAV|V[23]V|VALV(?:ULAS?)?|VAL|VS|VM|CGBT|CUADRO)(?=$|[\s._\-/\d])/i;
+        const RE_FAMILIA_NO_EQUIPO = /^(ELEC_|CONTROL_|HOSP_|TELE_|GAS_|PCI_(?!BOMBEO))/;
+        function esEquipoDelPlano(e) {
+          if (!e) return false;
+          const tag = String(e.tag || "").trim();
+          if (clave(tag).length < 2) return false;
+          if (RE_NO_EQUIPO.test(tag)) return false;
+          if (RE_FAMILIA_NO_EQUIPO.test(String(e.familia || "").trim())) return false;
+          return true;
+        }
+        const claveCasado = (t) => claveSuelta(t);
+        function casar(tagsPlano, equipos) {
+          const delListado = (equipos || []).filter(esEquipoDelPlano);
+          const porClave = /* @__PURE__ */ new Map();
+          for (const e of delListado) {
+            for (const k of /* @__PURE__ */ new Set([clave(e.tag), claveCasado(e.tag)])) {
+              if (!k) continue;
+              if (!porClave.has(k)) porClave.set(k, []);
+              porClave.get(k).push(e);
+            }
+          }
+          const casados = [];
+          const vistos = /* @__PURE__ */ new Set();
+          const sobran = [];
+          const sobranVistos = /* @__PURE__ */ new Set();
+          for (const t of tagsPlano || []) {
+            const tag = String(t || "").trim();
+            if (!tag || RE_NO_EQUIPO.test(tag)) continue;
+            const casan = porClave.get(clave(tag)) || porClave.get(claveCasado(tag));
+            if (!casan) {
+              if (!sobranVistos.has(claveCasado(tag))) {
+                sobranVistos.add(claveCasado(tag));
+                sobran.push(tag);
+              }
+              continue;
+            }
+            for (const e of casan) {
+              if (vistos.has(e.id)) continue;
+              vistos.add(e.id);
+              casados.push({ equipoId: e.id, tag: e.tag, tagPlano: tag });
+            }
+          }
+          return { casados, sinUbicar: delListado.filter((e) => !vistos.has(e.id)), sobranEnPlano: sobran };
+        }
+        function cruce(equiposPlanta, marcas) {
+          const conMarca = new Set((marcas || []).map((m) => m.equipoId));
+          const delListado = (equiposPlanta || []).filter(esEquipoDelPlano);
+          return {
+            casados: delListado.filter((e) => conMarca.has(e.id)),
+            sinUbicar: delListado.filter((e) => !conMarca.has(e.id))
+          };
+        }
+        function palabrasDe(textos) {
+          const salida = [];
+          for (const t of textos || []) {
+            if (!t || typeof t.texto !== "string") continue;
+            const trozos = t.texto.split(/\s+/).filter(Boolean);
+            trozos.forEach((p, i) => salida.push({ p, k: clave(p), s: claveSuelta(p), x: Number(t.x) || 0, y: Number(t.y) || 0, mismo: i > 0 }));
+          }
+          return salida;
+        }
+        function reconocer(textos, equipos) {
+          const porClave = /* @__PURE__ */ new Map();
+          const porSuelta = /* @__PURE__ */ new Map();
+          for (const e of equipos || []) {
+            if (!esEquipoDelPlano(e)) continue;
+            const k = clave(e.tag);
+            if (k.length < 4) continue;
+            if (!porClave.has(k)) porClave.set(k, []);
+            porClave.get(k).push(e);
+            const s = claveSuelta(e.tag);
+            if (!porSuelta.has(s)) porSuelta.set(s, []);
+            porSuelta.get(s).push(e);
+          }
+          const palabras = palabrasDe(textos);
+          const usadas = new Uint8Array(palabras.length);
+          const marcas = [];
+          const vistos = /* @__PURE__ */ new Set();
+          for (let i = 0; i < palabras.length; i++) {
+            if (usadas[i] || !palabras[i].k) continue;
+            let hasta = i;
+            const ks = [palabras[i].k];
+            const ss = [palabras[i].s];
+            for (let j = i + 1; j < palabras.length && j - i < MAX_PALABRAS; j++) {
+              const a = palabras[j - 1];
+              const b = palabras[j];
+              if (usadas[j]) break;
+              if (!b.mismo && Math.hypot(a.x - b.x, a.y - b.y) > CERCA) break;
+              ks.push(b.k);
+              ss.push(b.s);
+              hasta = j;
+            }
+            for (let fin = hasta; fin >= i; fin--) {
+              if (fin > i && !palabras[fin].k) continue;
+              const k = ks.slice(0, fin - i + 1).join("");
+              const casan = porClave.get(k) || porSuelta.get(ss.slice(0, fin - i + 1).join(""));
+              if (!casan) continue;
+              let sx = 0;
+              let sy = 0;
+              for (let n = i; n <= fin; n++) {
+                sx += palabras[n].x;
+                sy += palabras[n].y;
+                usadas[n] = 1;
+              }
+              const x = Math.round(sx / (fin - i + 1) * 1e4) / 1e4;
+              const y = Math.round(sy / (fin - i + 1) * 1e4) / 1e4;
+              const libre = casan.find((e) => !vistos.has(e.id));
+              if (libre) {
+                vistos.add(libre.id);
+                marcas.push({ equipoId: libre.id, tag: libre.tag, x, y });
+              }
+              break;
+            }
+          }
+          const plantaDe = (ms) => {
+            const cuenta = /* @__PURE__ */ new Map();
+            for (const m of ms) {
+              const e = (equipos || []).find((q) => q.id === m.equipoId);
+              const p = e && e.planta ? String(e.planta) : null;
+              if (p) cuenta.set(p, (cuenta.get(p) || 0) + 1);
+            }
+            return [...cuenta.entries()].sort((a, b) => b[1] - a[1])[0];
+          };
+          let planta = plantaDe(marcas);
+          if (planta) porCodigoDeSala(palabras, usadas, equipos, planta[0], vistos, marcas);
+          for (const grupo of porClave.values()) {
+            if (grupo.length < 2) continue;
+            const puesta = marcas.find((m) => grupo.some((e) => e.id === m.equipoId));
+            if (!puesta) continue;
+            for (const e of grupo) {
+              if (vistos.has(e.id)) continue;
+              vistos.add(e.id);
+              marcas.push({ equipoId: e.id, tag: e.tag, x: puesta.x, y: puesta.y });
+            }
+          }
+          planta = plantaDe(marcas);
+          const deLaPlanta = planta ? (equipos || []).filter((e) => esEquipoDelPlano(e) && String(e.planta || "") === planta[0]) : [];
+          const noEncontrados = deLaPlanta.filter((e) => !vistos.has(e.id)).map((e) => ({ id: e.id, tag: e.tag }));
+          return { marcas, planta: planta ? planta[0] : null, noEncontrados, reconocidos: marcas.length };
+        }
+        const RE_SOLO_CODIGO = /^(?:(N\d{2}|S\d)[-_ ])?([PSM]\d\.[A-Z]{3}\.\d{3,4})((?:_[A-Z]{1,4})?)$/i;
+        const RE_TAG_PLANTA_CODIGO = /^[A-Z]{2,4}[-_ ]?(N\d{2}|S\d)[-_ ]([PSM]\d\.[A-Z]{3}\.\d{3,4}(?:_[A-Z]{1,4})?)$/i;
+        const RE_UI_SALA = /^UI[-_ ]([PSM]\d\.[A-Z]{3}\.\d{3,4})$/i;
+        const CERCA_SALA_UI = 0.015;
+        function porCodigoDeSala(palabras, usadas, equipos, planta, vistos, marcas) {
+          const porCodigo = /* @__PURE__ */ new Map();
+          for (const e of equipos || []) {
+            if (!esEquipoDelPlano(e) || String(e.planta || "") !== planta) continue;
+            const m = RE_TAG_PLANTA_CODIGO.exec(String(e.tag || "").trim());
+            if (!m || m[1].toUpperCase() !== planta.toUpperCase()) continue;
+            const k = claveSuelta(m[2]);
+            if (!porCodigo.has(k)) porCodigo.set(k, []);
+            porCodigo.get(k).push(e);
+          }
+          if (!porCodigo.size) return;
+          const uis = [];
+          palabras.forEach((w) => {
+            const m = RE_UI_SALA.exec(w.p);
+            if (m) uis.push({ sala: m[1].toUpperCase(), x: w.x, y: w.y });
+          });
+          palabras.forEach((w, i) => {
+            if (usadas[i] || w.mismo || palabras[i + 1] && palabras[i + 1].mismo) return;
+            const m = RE_SOLO_CODIGO.exec(w.p);
+            if (!m || m[1] && m[1].toUpperCase() !== planta.toUpperCase()) return;
+            if (palabras.some((o) => !o.mismo && o !== w && Math.abs(o.x - w.x) < 4e-3 && w.y - o.y > 0 && w.y - o.y < 25e-4 && esNombreSala(o.p) && !RE_SOLO_CODIGO.test(o.p))) return;
+            const sala = m[2].toUpperCase();
+            const sufijo = (m[3] || "").toUpperCase();
+            let ui = null;
+            let d = CERCA_SALA_UI;
+            for (const u of uis) {
+              const dd = Math.hypot(u.x - w.x, u.y - w.y);
+              if (dd < d) {
+                d = dd;
+                ui = u;
+              }
+            }
+            let k = claveSuelta(sala + sufijo);
+            let dudoso = null;
+            if (ui && ui.sala !== sala && ui.sala.slice(0, 6) === sala.slice(0, 6)) {
+              k = claveSuelta(ui.sala + sufijo);
+              dudoso = `el plano pone \xAB${w.p}\xBB en la sala ${ui.sala}`;
+            }
+            const libre = (porCodigo.get(k) || []).find((e) => !vistos.has(e.id));
+            if (!libre) return;
+            vistos.add(libre.id);
+            usadas[i] = 1;
+            marcas.push({ equipoId: libre.id, tag: libre.tag, x: w.x, y: w.y, ...dudoso ? { dudoso } : {} });
+          });
+        }
+        const COLORES = {
+          verde: { nombre: "Hecho", largo: "Commissioning completo", hex: "#1a7f4b" },
+          azul: { nombre: "Falta documento", largo: "Empezado, falta alg\xFAn documento", hex: "#1f63c6" },
+          rojo: { nombre: "Sin empezar", largo: "No se ha empezado", hex: "#c8303a" }
+        };
+        const ORDEN_COLOR = ["verde", "azul", "rojo"];
+        const BALANCEO_HECHO = /* @__PURE__ */ new Set(["apto", "aptoSinBocas", "noApto"]);
+        const ESTANQ_HECHA = /* @__PURE__ */ new Set(["apta", "noApta"]);
+        const hayDato = (v) => {
+          const t = String(v ?? "").trim().toLowerCase();
+          return t !== "" && t !== "pendiente" && t !== "\u2014" && t !== "-";
+        };
+        function empezado(u) {
+          if (!u) return false;
+          if (u.instalacionVerificadaEn || u.estado === "enMarcha" || u.estado === "recepcionado") return true;
+          const pmGuardado = Object.prototype.hasOwnProperty.call(u, "estadoPMGuardado") ? u.estadoPMGuardado : u.estadoPM;
+          if (pmGuardado && pmGuardado !== "pendiente") return true;
+          if (hayDato(u.docFichaPM) || hayDato(u.docBalanceo) || hayDato(u.docEstanqueidad)) return true;
+          if (BALANCEO_HECHO.has(u.balanceoEstado) || ESTANQ_HECHA.has(u.estanqueidadEstado)) return true;
+          if (u.fechaEnvioDF) return true;
+          if (u.fichaConDato) return true;
+          const f = u.pmFichas;
+          if (f && (f.completas > 0 || f.checklist === "hecho")) return true;
+          return false;
+        }
+        function estadoEnPlano(unidad, linea) {
+          const l = linea || unidad;
+          if (!l) return "rojo";
+          if (l.completo) return "verde";
+          const miembros = Array.isArray(l.miembros) && l.miembros.length ? l.miembros : [l];
+          return miembros.some(empezado) || unidad && empezado(unidad) ? "azul" : "rojo";
+        }
+        function lineasPorUnidad(tabla) {
+          const lineaDe = /* @__PURE__ */ new Map();
+          for (const c of tabla && tabla.conjuntos || []) {
+            for (const m of c.miembros || [c]) lineaDe.set(m.id, c);
+          }
+          return lineaDe;
+        }
+        const TIPO_LLANO = {
+          TROX_UTA: "Climatizador (UTA)",
+          CARRIER_ROOFTOPS: "Rooftop",
+          CARRIER_CHILLERS: "Enfriadora o bomba de calor",
+          AIRLAN_FANCOIL: "Fan coil",
+          AIRLAN_HRU: "Recuperador de calor",
+          PANASONIC_VRF: "Unidad de VRF",
+          PANASONIC_SPLIT: "Split",
+          PANASONIC_CRACS: "Equipo de precisi\xF3n (CRAC)",
+          WILO_GP: "Grupo de presi\xF3n",
+          WILO_PUMPS: "Bomba",
+          SP_VENTILACION: "Ventilador",
+          SP_PARKING: "Ventilador de parking",
+          SP_PRESURIZACION: "Ventilador de presurizaci\xF3n"
+        };
+        const TEXTO_ACCION = { datos: "Rellenar datos que faltan", checklist: "Checklist", balanceo: "Balanceo", estanqueidad: "Estanqueidad" };
+        function controlCx() {
+          return typeof __require !== "undefined" ? require_control() : typeof window !== "undefined" ? window.CONTROL_CX : null;
+        }
+        function fichasCx() {
+          return typeof __require !== "undefined" ? require_fichas() : typeof window !== "undefined" ? window.FICHAS_PM : null;
+        }
+        const T2 = 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
+        const CUERPO = 'class="cuerpo" stroke="currentColor" stroke-width="2" stroke-linejoin="round"';
+        const ASPA = "M12 12C9.500 8 10.500 4.500 12 4.500S14.500 8 12 12Z";
+        const aspas = (cx, cy, k) => `<g transform="translate(${cx} ${cy}) scale(${k}) translate(-12 -12)">${[0, 120, 240].map((g) => `<path class="lleno" d="${ASPA}"${g ? ` transform="rotate(${g} 12 12)"` : ""}/>`).join("")}</g>`;
+        const ICONOS = {
+          splitInt: { nombre: "Split interior (pared)", svg: `<rect ${CUERPO} x="2" y="5" width="20" height="10" rx="3"/><path ${T2} d="M5 12h14M7 18l-1 3M12 18v3M17 18l1 3"/>` },
+          splitExt: { nombre: "Split exterior", svg: `<rect ${CUERPO} x="3" y="3" width="18" height="18" rx="3"/><circle ${T2} cx="12" cy="12" r="5.5"/><path class="lleno" d="M12 12C10 9 10.5 6.5 12 6.5S14 9 12 12ZM12 12c3 .5 4.5 2.5 3.5 3.7S12.500 15 12 12ZM12 12c-3 .5-4.500 2.500-3.500 3.700S11.500 15 12 12Z"/>` },
+          vrfInt: { nombre: "VRF interior (casete)", svg: `<rect ${CUERPO} x="3" y="3" width="18" height="18" rx="2"/><rect ${T2} x="8" y="8" width="8" height="8"/><path ${T2} d="M3 3l5 5M21 3l-5 5M3 21l5-5M21 21l-5-5"/>` },
+          /* Unidad de conductos (5-nov, JC: «este símbolo para fan coils es
+             malísimo»): como en la simbología HVAC de los planos, caja alargada con el
+             ventilador dentro (círculo con aspas) y las bocas de conducto de retorno e
+             impulsión en los extremos. Nada de flechas. */
+          vrfConductos: { nombre: "VRF interior (conductos)", svg: `<rect ${CUERPO} x="4.500" y="6.500" width="15" height="11" rx="1.500"/><path ${T2} d="M4.500 8.500H1.500v7h3M19.500 8.500h3v7h-3"/><circle ${T2} cx="12" cy="12" r="3.800"/>${aspas(12, 12, 0.42)}` },
+          vrfExt: { nombre: "VRF exterior", svg: `<rect ${CUERPO} x="1.5" y="4" width="21" height="16" rx="3"/><circle ${T2} cx="7.5" cy="12" r="4"/><circle ${T2} cx="16.5" cy="12" r="4"/><circle class="lleno" cx="7.5" cy="12" r="1.300"/><circle class="lleno" cx="16.5" cy="12" r="1.300"/>` },
+          /* Fan coil de agua: la misma caja con bocas, el ventilador a un lado y la
+             batería (el serpentín) al otro, para no confundirlo con la de conductos VRF. */
+          fancoil: { nombre: "Fan coil", svg: `<rect ${CUERPO} x="4.500" y="6.500" width="15" height="11" rx="1.500"/><path ${T2} d="M4.500 8.500H1.500v7h3M19.500 8.500h3v7h-3"/><circle ${T2} cx="9.300" cy="12" r="3.300"/>${aspas(9.3, 12, 0.36)}<path ${T2} d="M14.500 8.700l2.800 1.100-2.800 1.100 2.800 1.100-2.800 1.100 2.800 1.100-2.800 1.100"/>` },
+          uta: { nombre: "UTA (climatizador)", svg: `<rect ${CUERPO} x="1.5" y="6" width="21" height="12" rx="1.500"/><path ${T2} d="M8 6v12M15.500 6v12"/><circle ${T2} cx="11.750" cy="12" r="2.200"/><path ${T2} d="M3.500 12h2.500M17.500 9l3 6M20.500 9l-3 6"/>` },
+          hru: { nombre: "Recuperador de calor (HRU)", svg: `<rect ${CUERPO} x="1.5" y="5" width="21" height="14" rx="2"/><path ${T2} d="M12 5.500l6.500 6.500-6.500 6.500L5.500 12z"/><path ${T2} d="M1.500 12H5M19 12h3.500"/>` },
+          rooftop: { nombre: "Rooftop", svg: `<rect ${CUERPO} x="2.500" y="10" width="19" height="10" rx="1.500"/><path ${T2} d="M6 10l3-5.500h6l3 5.500"/><circle ${T2} cx="12" cy="15" r="2.500"/>` },
+          crac: { nombre: "CRAC (precisi\xF3n)", svg: `<rect ${CUERPO} x="4" y="2" width="16" height="20" rx="2"/><path ${T2} d="M12 6v12M6.800 9l10.400 6M6.800 15l10.400-6"/>` },
+          chiller: { nombre: "Enfriadora", svg: `<rect ${CUERPO} x="1.500" y="4" width="21" height="16" rx="2"/><path ${T2} d="M4.500 10c1.750-2 3.500-2 5.250 0s3.500 2 5.250 0 2.500-1.500 4.500 0M4.500 15c1.750-2 3.500-2 5.250 0s3.500 2 5.250 0 2.500-1.500 4.500 0"/>` },
+          /* Bomba de calor (BCA aerotérmica, BCG geotérmica): la caja con su ventilador y el calor que sale. */
+          bombaCalor: { nombre: "Bomba de calor", svg: `<rect ${CUERPO} x="1.500" y="4" width="21" height="16" rx="2"/><circle ${T2} cx="8" cy="12" r="4.300"/>${aspas(8, 12, 0.42)}<path ${T2} d="M14.500 8.500l2.500 3.500-2.500 3.500M18 8.500l2.500 3.500-2.500 3.500"/>` },
+          colector: { nombre: "Colector", svg: `<rect ${CUERPO} x="2" y="7" width="20" height="5" rx="2.500"/><path ${T2} d="M6 12v7M12 12v7M18 12v7M4 19h4M10 19h4M16 19h4"/>` },
+          deposito: { nombre: "Dep\xF3sito o acumulador", svg: `<path ${CUERPO} d="M6 5a6 2.500 0 0 1 12 0v14a6 2.500 0 0 1-12 0Z"/><path ${T2} d="M6 5a6 2.500 0 0 0 12 0"/>` },
+          extintor: { nombre: "Extintor", svg: `<rect ${CUERPO} x="7.500" y="8" width="9" height="14" rx="3"/><path ${T2} d="M12 8V4.500h3.500l3 2M12 4.500H9M10 2.500h4"/>` },
+          bomba: { nombre: "Bomba o grupo de presi\xF3n", svg: `<circle ${CUERPO} cx="11" cy="14" r="7.500"/><path class="lleno" d="M8.500 10.500l6.500 3.500-6.500 3.500z"/><path ${T2} d="M11 6.500V3h10"/>` },
+          /* Con su boca (5-nov, «bloques como los de AutoCAD»): la voluta, el círculo con la salida tangente. */
+          ventilador: { nombre: "Ventilador o extractor", svg: `<path ${CUERPO} d="M10 4H21.500V9.800H17.700A8 8 0 1 1 10 4Z"/>${aspas(10, 12, 0.5)}` },
+          cajaVentilacion: { nombre: "Caja de ventilaci\xF3n", svg: `<rect ${CUERPO} x="3" y="5" width="18" height="14" rx="1"/><path ${T2} d="M3 9H1M3 15H1M21 9h2M21 15h2"/><circle ${T2} cx="12" cy="12" r="4.300"/>${aspas(12, 12, 0.45)}` },
+          agua: { nombre: "Agua (AFS, ADE, fluxores, ACS)", svg: `<path ${CUERPO} d="M12 2.500S5 10.500 5 15a7 7 0 0 0 14 0c0-4.500-7-12.500-7-12.500z"/><path ${T2} d="M8.500 15a3.500 3.500 0 0 0 3 3.400"/>` },
+          generico: { nombre: "Otro equipo", svg: `<rect ${CUERPO} x="2" y="2" width="20" height="20" rx="3"/><rect class="lleno" x="8" y="8" width="8" height="8" rx="1"/>` }
+        };
+        const ICONO_DE_FAMILIA = {
+          PANASONIC_SPLIT: "splitInt",
+          PANASONIC_VRF: "vrfInt",
+          AIRLAN_FANCOIL: "fancoil",
+          TROX_UTA: "uta",
+          AIRLAN_HRU: "hru",
+          CARRIER_ROOFTOPS: "rooftop",
+          PANASONIC_CRACS: "crac",
+          CARRIER_CHILLERS: "chiller",
+          WILO_PUMPS: "bomba",
+          WILO_GP: "bomba",
+          PCI_BOMBEO: "bomba",
+          SP_VENTILACION: "ventilador",
+          SP_PRESURIZACION: "ventilador",
+          SP_PARKING: "ventilador",
+          FONT_ACS: "agua"
+        };
+        const ICONO_DE_TAG = [
+          [/^BC[AGH]?(?:[-_ ]|\d|$)/i, "bombaCalor"],
+          [/^(?:ENF|CH|EAA)(?:[-_ ]|\d|$)/i, "chiller"],
+          [/^(?:COL|CLT)(?:[-_ ]|\d|$)/i, "colector"],
+          [/^(?:DEP|ACU|ACS[-_ ]DEP)(?:[-_ ]|\d|$)/i, "deposito"],
+          [/^(?:CV|CXV|CAJA)(?:[-_ ]|\d|$)/i, "cajaVentilacion"],
+          [/^(?:EXTINTOR|EXT[-_ ]?(?:PQS|CO2|ABC))/i, "extintor"],
+          [/^(?:VTR|VEN|EX|VI)(?:[-_ ]|\d|$)/i, "ventilador"],
+          [/^(?:B|BOM|GP)[-_ ]?\d/i, "bomba"]
+        ];
+        const esExteriorTag = (tag) => /^UE([\s_-]|\d|$)/i.test(String(tag || "").trim());
+        const RE_MODELO_CONDUCTOS = /^S-?\d+M[FEM]\d/i;
+        const RE_MODELO_CASETE = /^S-?\d+M[UYLD]\d/i;
+        function esDeConductos(u) {
+          const modelo = String(u && u.modelo || "").trim();
+          if (RE_MODELO_CONDUCTOS.test(modelo)) return true;
+          if (RE_MODELO_CASETE.test(modelo)) return false;
+          const den = String(u && u.denominacion || "");
+          if (/CONDUCTOS?\b|\bDUCT(ED)?\b/i.test(den)) return true;
+          if (/CAS+ET+E/i.test(den)) return false;
+          if (/^UICO(?:[-_ ]|\d|$)/i.test(String(u && u.tag || "").trim())) return true;
+          return null;
+        }
+        function iconoDe(u) {
+          const fam = String(u && u.familia || "").trim();
+          const ext = u && u.papel === "UE" || esExteriorTag(u && u.tag) || /^U-\d/i.test(String(u && u.modelo || "").trim());
+          let id = ICONO_DE_FAMILIA[fam];
+          if (id === "splitInt" && ext) id = "splitExt";
+          if (id === "vrfInt" && ext) id = "vrfExt";
+          if (id === "vrfInt" && esDeConductos(u)) id = "vrfConductos";
+          if (id) return id;
+          const t = String(u && u.tag || "").trim();
+          if (/^(AFS|ADE|FLX|FLUX)/i.test(t)) return "agua";
+          const d = equipoDeRotulo(t.split(" ")[0]) || equipoDeRotulo(t);
+          if (d) return d.icono;
+          for (const [re, icono] of ICONO_DE_TAG) if (re.test(t)) return icono;
+          return "generico";
+        }
+        const ORDEN_ICONOS = ["uta", "hru", "fancoil", "splitInt", "splitExt", "vrfConductos", "vrfInt", "vrfExt", "rooftop", "crac", "chiller", "bombaCalor", "bomba", "colector", "deposito", "cajaVentilacion", "ventilador", "extintor", "agua", "generico"];
+        function leyendaIconos(equipos) {
+          const usados = new Set((equipos || []).map((e) => e.icono || iconoDe(e)));
+          return ORDEN_ICONOS.filter((k) => usados.has(k)).map((k) => ({ id: k, nombre: ICONOS[k].nombre }));
+        }
+        function conjuntoEnPlanos(plantas, id, plantaActual, indice = null) {
+          const porId = indice || indiceConjuntos(plantas);
+          const de = (k) => porId.get(k) || [];
+          const base = de(id)[0];
+          const miembros = base && base.e.miembros;
+          if (!Array.isArray(miembros) || miembros.length < 2) return [];
+          const puesto = (t) => t.e.x !== null && t.e.x !== void 0;
+          return miembros.map((m) => {
+            const ts = de(m.id);
+            const aqui = ts.find((t) => t.planta === (plantaActual || "") && puesto(t));
+            const alguna = aqui || ts.find(puesto);
+            const donde = alguna || ts[0];
+            return { id: m.id, tag: m.tag, papel: m.papel, planta: donde ? donde.planta : null, aqui: Boolean(aqui), enPlano: Boolean(alguna), x: alguna ? alguna.e.x : null, y: alguna ? alguna.e.y : null };
+          });
+        }
+        function indiceConjuntos(plantas) {
+          const m = /* @__PURE__ */ new Map();
+          for (const p of plantas || []) for (const e of p.equipos || []) {
+            const l = m.get(e.id);
+            if (l) l.push({ e, planta: p.planta || "" });
+            else m.set(e.id, [{ e, planta: p.planta || "" }]);
+          }
+          return m;
+        }
+        function tipoLlano(u) {
+          const fam = String(u && u.familia || "").trim();
+          if (!fam) return null;
+          if (TIPO_LLANO[fam]) return TIPO_LLANO[fam];
+          let nombre = fam;
+          try {
+            const PC = typeof __require !== "undefined" ? require_plantillasCliente() : window.PLANTILLAS_CLIENTE;
+            const f = PC && PC.FAMILIAS.find((x) => x.codigo === fam);
+            if (f && f.nombrePdf) nombre = f.nombrePdf;
+          } catch {
+          }
+          const t = nombre.replace(/_/g, " ").toLowerCase();
+          return t.charAt(0).toUpperCase() + t.slice(1);
+        }
+        function llevaBalanceo(u) {
+          const C = controlCx();
+          const med = u && u.medicion !== void 0 ? u.medicion : null;
+          if (med) return Boolean(med.plano);
+          const req = C ? C.ensayoCorregido(u && u.familia, u && u.ensayoRequerido) : u && u.ensayoRequerido;
+          return req === "balanceo" || req === "ambos";
+        }
+        function acciones(unidad, linea, { color = "rojo", puedeEditar = true } = {}) {
+          const u = unidad || {};
+          const C = controlCx();
+          const salida = [];
+          const conFamilia = Boolean(String(u.familia || "").trim());
+          if (conFamilia && puedeEditar && color !== "verde") salida.push("datos");
+          if (conFamilia) salida.push("checklist");
+          if (llevaBalanceo(u)) salida.push("balanceo");
+          const l = linea || u;
+          if (C && C.pideEstanqueidad(Array.isArray(l.miembros) && l.miembros.length ? l : u)) salida.push("estanqueidad");
+          return salida.map((id) => ({ id, texto: TEXTO_ACCION[id] }));
+        }
+        function estados(tabla, { puedeEditar = true } = {}) {
+          const lineaDe = lineasPorUnidad(tabla);
+          const out = /* @__PURE__ */ new Map();
+          for (const u of tabla && tabla.filas || []) {
+            const l = lineaDe.get(u.id) || u;
+            const enConjunto = l.clase === "par" || l.clase === "sistema";
+            out.set(u.id, {
+              color: estadoEnPlano(u, l),
+              papel: enConjunto ? l.exterior && l.exterior.id === u.id ? "UE" : "UI" : null,
+              conjunto: enConjunto ? l.tag || null : null,
+              lineaId: l.id || u.id,
+              falta: l.completo ? [] : faltaSinRepetir((l.falta || []).map(textoFalta)),
+              tipo: tipoLlano(u),
+              icono: iconoDe({ familia: u.familia, tag: u.tag, modelo: u.modelo, denominacion: u.denominacion, papel: enConjunto ? l.exterior && l.exterior.id === u.id ? "UE" : "UI" : null }),
+              miembros: enConjunto && Array.isArray(l.miembros) && l.miembros.length > 1 ? l.miembros.map((m) => ({ id: m.id, tag: m.tag, papel: l.exterior && l.exterior.id === m.id || esExteriorTag(m.tag) ? "UE" : "UI" })) : null,
+              marca: u.marca || null,
+              modelo: u.modelo || null,
+              acciones: acciones(u, l, { color: estadoEnPlano(u, l), puedeEditar })
+            });
+          }
+          return out;
+        }
+        function colorear(marcas, tabla) {
+          const filas = new Map((tabla && tabla.filas || []).map((f) => [f.id, f]));
+          const est = estados(tabla);
+          const cuentas = { verde: 0, azul: 0, rojo: 0 };
+          const salida = [];
+          for (const m of marcas || []) {
+            const u = filas.get(m.equipoId);
+            if (!u || !esEquipoDelPlano(u)) continue;
+            const e = est.get(u.id);
+            cuentas[e.color] += 1;
+            salida.push({ ...m, tag: u.tag, ...e });
+          }
+          return { marcas: salida, cuentas };
+        }
+        const SIGLAS = /* @__PURE__ */ new Set(["FT", "CE", "PM", "UTA", "UTAS", "VRF", "CRAC", "BT", "SAI", "BMS", "ACS", "ICT", "IT", "UI", "UE", "VE", "PCI", "BIE", "CPD", "DF"]);
+        const ABREV = [[/\bUD\.\s*/gi, "unidad "], [/\bREC\.\s*/gi, "recuperaci\xF3n "], [/\bVENT\.\s*/gi, "ventilador "], [/\bESTANQ\.\s*/gi, "estanqueidad "], [/\bBOMBA CALOR\b/gi, "BOMBA DE CALOR"], [/\bESTATICO\b/gi, "EST\xC1TICO"]];
+        const FEMENINAS = /^(uta|bomba|batería|central|extinción|instalación|llamada|recarga|fotovoltaica|estanqueidad|unidad|sala|enfriadora|ficha|caja)$/;
+        const PLURAL_F = /^(bombas|baterías|unidades|rejillas)$/;
+        const PLURAL_M = /^(extintores|rociadores|conductos|difusores|gases|bie|ventiladores|equipos)$/;
+        const deArticulo = (frase) => {
+          const w = frase.split(/[\s\-/]/)[0].toLowerCase();
+          if (PLURAL_F.test(w)) return "de las";
+          if (PLURAL_M.test(w)) return "de los";
+          return FEMENINAS.test(w) ? "de la" : "del";
+        };
+        const minus = (t) => t.split(/(\s+|[-/()])/).map((w) => SIGLAS.has(w.toUpperCase()) && /^[A-Za-z]+$/.test(w) ? w.toUpperCase() : w.toLowerCase()).join("");
+        function textoFalta(n) {
+          const t = String(n == null ? "" : n).trim().replace(/\s+/g, " ");
+          if (!t || /[a-záéíóúñü]/.test(t) || /^(FT|CE|PM|DF)$/i.test(t)) return t;
+          let x = t;
+          for (const [re, por] of ABREV) x = x.replace(re, por);
+          x = minus(x.trim().replace(/\s+/g, " "));
+          const m = /^checklist\s+(.+)$/i.exec(x);
+          if (m) return `checklist ${deArticulo(m[1])} ${m[1]}`;
+          if (x.toLowerCase() === "checklist") return "checklist";
+          if (/^(balanceo|estanqueidad)\b/i.test(x)) return x;
+          return `ficha ${deArticulo(x)} ${x}`;
+        }
+        const sinTildes = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
+        const CONCEPTOS_GENERICOS = /* @__PURE__ */ new Set(["balanceo", "estanqueidad", "checklist"]);
+        function faltaSinRepetir(lista) {
+          const textos = (Array.isArray(lista) ? lista : []).filter((x) => x != null && String(x).trim());
+          const llanos = textos.map(sinTildes);
+          const vistos = /* @__PURE__ */ new Set();
+          const fuera = [];
+          textos.forEach((t, i) => {
+            const k = llanos[i];
+            if (vistos.has(k)) return;
+            if (CONCEPTOS_GENERICOS.has(k) && llanos.some((o) => o !== k && o.startsWith(`${k} `))) return;
+            vistos.add(k);
+            fuera.push(t);
+          });
+          return fuera;
+        }
+        const RE_NOMBRE_SALA = /^(sala|aseos?|vest[ií]bulo|almac[eé]n|cuarto|oficina|despacho|vestuarios?|pasillo|circulaci[oó]n|escalera|lounge|guardarropa|cocina|office|capilla|recepci[oó]n|taller|local|zona|hall|archivo|comedor|gimnasio|enfermer[ií]a|palco|restaurante|bar|tienda|museo|cpd|dormitorio|habitaci[oó]n|ba[ñn]o|wc|aula|laboratorio|consulta|lavander[ií]a|vestidor|camerino|auditorio|biblioteca|distribuidor|cabina|centro|mec[aá]nica|basuras|terraza|cubierta|patio|parking|garaje|espacio|[aá]rea|areas|despensa|economato|cafeter[ií]a|bodega|sala\s+t[eé]cnica)(\b|[\s.\-]|$)/i;
+        const RE_CODIGO_SALA = /^(?:N\d{2}-)?(?:[A-Z]{1,2}\d{0,2}\.[A-Z]{2,4}\.\d{2,}[A-Z]?|\d{2}[.,][A-Z]{2,4}[.,]\d{2,}[A-Z]?|[A-Z]{2,4}-[A-Z]{2,4}\.\d{2,})$/;
+        const RE_SIGUE = /\s(de|del|y|la|el|los|las|para|con)$/i;
+        const RE_PALABRAS = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ .]{1,40}$/;
+        const PAR_SALA = 0.015;
+        const RADIO_SALA = 0.04;
+        const sinPlanta = (c) => String(c || "").replace(/^N\d{2}-/i, "");
+        const limpiarSala = (t) => String(t || "").replace(/(^|\s|·\s?)N\d{2}-(?=[A-Z0-9]{1,4}[.,][A-Z]{2,4}[.,]\d)/gi, "$1");
+        const esNombreSala = (t) => RE_NOMBRE_SALA.test(String(t || "").trim()) && String(t).trim().length <= 60;
+        const esCodigoSala = (t) => RE_CODIGO_SALA.test(String(t || "").trim().toUpperCase());
+        function rotulosSala(textos) {
+          const ts = (textos || []).filter((t) => t && typeof t.texto === "string").map((t) => ({ texto: t.texto.trim().replace(/\s+/g, " "), x: Number(t.x) || 0, y: Number(t.y) || 0 }));
+          const nombres = [];
+          const codigos = [];
+          const comidos = /* @__PURE__ */ new Set();
+          for (let i = 0; i < ts.length; i++) {
+            const t = ts[i];
+            if (comidos.has(i)) continue;
+            if (esCodigoSala(t.texto)) {
+              codigos.push({ ...t, texto: t.texto.toUpperCase() });
+              continue;
+            }
+            if (!esNombreSala(t.texto)) continue;
+            let texto = t.texto;
+            if (RE_SIGUE.test(texto)) {
+              const j = ts.findIndex((o, k) => k !== i && RE_PALABRAS.test(o.texto) && o.y > t.y && Math.hypot(o.x - t.x, o.y - t.y) < PAR_SALA);
+              if (j >= 0) {
+                texto = `${texto} ${ts[j].texto}`;
+                comidos.add(j);
+                nombres.forEach((n, k) => {
+                  if (n.i === j) nombres.splice(k, 1);
+                });
+              }
+            }
+            nombres.push({ texto, x: t.x, y: t.y, i });
+          }
+          const usados = /* @__PURE__ */ new Set();
+          const salida = [];
+          for (const n of nombres) {
+            let mejor = -1;
+            let d = PAR_SALA;
+            codigos.forEach((c, k) => {
+              const dd = Math.hypot(c.x - n.x, c.y - n.y);
+              if (!usados.has(k) && dd <= d) {
+                d = dd;
+                mejor = k;
+              }
+            });
+            if (mejor >= 0) usados.add(mejor);
+            salida.push({ texto: mejor >= 0 ? `${n.texto} \xB7 ${codigos[mejor].texto}` : n.texto, x: n.x, y: n.y });
+          }
+          const nombreDe = /* @__PURE__ */ new Map();
+          for (const r of salida) {
+            const i = r.texto.lastIndexOf(" \xB7 ");
+            if (i > 0) nombreDe.set(sinPlanta(r.texto.slice(i + 3)), r.texto.slice(0, i));
+          }
+          for (const t of ts) {
+            const m = /^(.*?)\s*[·\-–:]?\s*((?:N\d{2}-)?[A-Z0-9]{1,4}[.,][A-Z]{2,4}[.,]\d{2,}[A-Z]?)\s*$/i.exec(t.texto);
+            if (m && m[1] && esNombreSala(m[1]) && !nombreDe.has(sinPlanta(m[2].toUpperCase()))) nombreDe.set(sinPlanta(m[2].toUpperCase()), m[1].trim());
+          }
+          codigos.forEach((c, k) => {
+            if (usados.has(k)) return;
+            const cod = sinPlanta(c.texto);
+            const nombre = nombreDe.get(cod);
+            salida.push({ ...c, texto: nombre ? `${nombre} \xB7 ${cod}` : cod });
+          });
+          for (const r of salida) r.texto = limpiarSala(r.texto);
+          const vistos = /* @__PURE__ */ new Set();
+          return salida.filter((r) => {
+            const k = `${r.texto}|${Math.round(r.x * 200)}|${Math.round(r.y * 200)}`;
+            if (vistos.has(k)) return false;
+            vistos.add(k);
+            return true;
+          }).map((r) => ({ texto: r.texto.slice(0, 120), x: Math.round(r.x * 1e4) / 1e4, y: Math.round(r.y * 1e4) / 1e4 }));
+        }
+        function salaCercana(rotulos, x, y, radio = RADIO_SALA) {
+          let mejor = null;
+          let d = radio;
+          for (const r of rotulos || []) {
+            const dd = Math.hypot(r.x - x, r.y - y);
+            if (dd <= d) {
+              d = dd;
+              mejor = r;
+            }
+          }
+          return mejor ? limpiarSala(mejor.texto) : null;
+        }
+        function ponerSalas(marcas, rotulos) {
+          return (marcas || []).map((m) => {
+            const sala = salaCercana(rotulos, m.x, m.y);
+            return sala ? { ...m, sala } : m;
+          });
+        }
+        const fraccion = (v, conCero) => {
+          const n = Number(v);
+          return v !== null && v !== void 0 && Number.isFinite(n) && (conCero ? n >= 0 : n > 0) && n <= 1;
+        };
+        const redondo5 = (v) => Math.round(Number(v) * 1e5) / 1e5;
+        function limpiarMarcas(marcas) {
+          const vistos = /* @__PURE__ */ new Set();
+          const salida = [];
+          for (const m of Array.isArray(marcas) ? marcas : []) {
+            if (!m || typeof m.equipoId !== "string" || vistos.has(m.equipoId)) continue;
+            const x = Number(m.x);
+            const y = Number(m.y);
+            if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 1 || y < 0 || y > 1) continue;
+            vistos.add(m.equipoId);
+            salida.push({
+              equipoId: m.equipoId,
+              tag: String(m.tag || "").slice(0, 120),
+              x: Math.round(x * 1e4) / 1e4,
+              y: Math.round(y * 1e4) / 1e4,
+              ...m.mano ? { mano: true } : {},
+              ...m.sala ? { sala: String(m.sala).slice(0, 120) } : {},
+              /* El símbolo del dibujo (30-oct): su tamaño, el sitio del rótulo y si hay que revisarlo. */
+              ...fraccion(m.w) && fraccion(m.h) ? { w: redondo5(m.w), h: redondo5(m.h) } : {},
+              ...fraccion(m.rx, true) && fraccion(m.ry, true) ? { rx: Math.round(m.rx * 1e4) / 1e4, ry: Math.round(m.ry * 1e4) / 1e4 } : {},
+              ...m.revisar && !m.mano ? { revisar: true, motivo: String(m.motivo || "revisar ubicaci\xF3n").slice(0, 80) } : {},
+              /* 5-nov: el equipo que la revisión nueva ya no trae se queda donde estaba, marcado; nunca se borra. */
+              ...m.noSale ? { noSale: String(m.noSale).slice(0, 40), revisar: true, motivo: String(m.motivo || `ya no sale en ${m.noSale}`).slice(0, 80) } : {}
+            });
+          }
+          return salida;
+        }
+        function plantaDelNombre(nombre) {
+          const m = /_ER_(\d{2}|[SB]\d)_/i.exec(String(nombre || ""));
+          if (!m) return "";
+          return /^\d/.test(m[1]) ? `N${m[1]}` : `S${m[1].slice(1)}`;
+        }
+        const PAPELES_EQUIPO = [["ft", "Ficha t\xE9cnica", "docFichaTecnica"], ["ce", "Marcado CE", "docMarcadoCE"], ["mi", "Manual", "docManual"]];
+        const PAPEL_PM_FABRICANTE = ["pm", "Puesta en marcha (fabricante)", "docFichaPM"];
+        function nombreDocumento(url) {
+          const u = String(url || "").split(/[?#]/)[0].replace(/\/+$/, "");
+          let f = u.slice(u.lastIndexOf("/") + 1);
+          try {
+            f = decodeURIComponent(f);
+          } catch {
+          }
+          return f.replace(/\.[a-z0-9]{2,5}$/i, "").replace(/[_\s]+/g, " ").trim();
+        }
+        function documentosEquipo(e, modelo) {
+          const web = (v) => /^https?:\/\//i.test(String(v || "").trim()) ? String(v).trim() : "";
+          const fuera = [];
+          for (const [clase2, etiqueta2, campo2] of PAPELES_EQUIPO) {
+            const propio = web(e && e[campo2]);
+            const url = propio || web(modelo && modelo[campo2]);
+            if (!url) continue;
+            fuera.push({ clase: clase2, etiqueta: etiqueta2, nombre: nombreDocumento(url) || etiqueta2, url, nivel: propio ? "equipo" : "modelo" });
+          }
+          const [clase, etiqueta, campo] = PAPEL_PM_FABRICANTE;
+          const pm = web(e && e[campo]);
+          if (pm) fuera.push({ clase, etiqueta, nombre: nombreDocumento(pm) || etiqueta, url: pm, nivel: "equipo" });
+          return fuera;
+        }
+        const DETECTABLES = [
+          { re: /^UICO[-_ ]?(\d{1,3})-?$/i, icono: "vrfConductos", tipo: "Unidad interior VRF de conductos", modelo: (m) => `UICO-${m[1].padStart(2, "0")}` },
+          { re: /^HRU[-_ ]?(\d{1,2})-?$/i, icono: "hru", tipo: "Recuperador de calor (HRU)", modelo: (m) => `HRU-${m[1]}` },
+          { re: /^EX[-_ ]?(N\d{2}|S\d)[-_ ](.+)$/i, icono: "ventilador", tipo: "Extractor", tag: (m) => `EX-${m[1].toUpperCase()}-${m[2].trim().replace(/\s+/g, " ")}` },
+          /* Ventilador de impulsión (2-nov): «VI-N60-CUART-ELECT-LT19» se quedaba fuera. */
+          { re: /^VI[-_ ]?(N\d{2}|S\d)[-_ ](.+)$/i, icono: "ventilador", tipo: "Ventilador de impulsi\xF3n", tag: (m) => `VI-${m[1].toUpperCase()}-${m[2].trim().replace(/\s+/g, " ")}` },
+          { re: /^UI[-_ ]((?:[PSM]\d\.[A-Z]{3}\.\d{3,4})|(?:N\d{2}|S\d)[-_ ].+)$/i, icono: "vrfInt", tipo: "Unidad interior", tag: (m) => `UI-${m[1].trim()}` },
+          { re: /^UE[-_ ]((?:N\d{2}|S\d)[-_ ].+)$/i, icono: "vrfExt", tipo: "Unidad exterior", tag: (m) => `UE-${m[1].trim()}` },
+          { re: /^HRU[-_ ]((?:N\d{2}|S\d)[-_ ].+)$/i, icono: "hru", tipo: "Recuperador de calor (HRU)", tag: (m) => `HRU-${m[1].trim()}` },
+          { re: /^(?:UTA|AHU|CLM)[-_ ]?((?:N\d{2}|S\d)?[-_ ]?\d[\w.-]*)$/i, icono: "uta", tipo: "Climatizador (UTA)", tag: (m) => m[0].trim() },
+          { re: /^(?:FC|FCU|AFC)[-_ ]((?:N\d{2}|S\d)[-_ ]?[\w. -]+)$/i, icono: "fancoil", tipo: "Fan coil", tag: (m) => m[0].trim() }
+        ];
+        function equipoDeRotulo(texto) {
+          const t = String(texto || "").trim();
+          if (t.length < 4 || t.length > 60) return null;
+          for (const d of DETECTABLES) {
+            const m = d.re.exec(t);
+            if (!m) continue;
+            const r = { icono: d.icono, tipo: d.tipo };
+            if (d.modelo) r.modelo = d.modelo(m);
+            else r.tag = d.tag(m).replace(/^EXN/i, "EX-N");
+            return r;
+          }
+          return null;
+        }
+        const CERCA_YA = 4e-3;
+        function sinRepetir(texto) {
+          const p = String(texto || "").trim().split(/\s+/);
+          const k0 = claveSuelta(p[0]);
+          if (p.length < 2 || k0.length < 4) return p.join(" ");
+          const j = p.findIndex((w, n) => n > 0 && claveSuelta(w) === k0);
+          return (j > 0 ? p.slice(0, j) : p).join(" ");
+        }
+        function detectarEquipos(textos, equipos = [], marcas = []) {
+          const deObra = /* @__PURE__ */ new Map();
+          for (const e of equipos || []) {
+            const k = claveSuelta(e.tag);
+            if (k.length >= 4 && !deObra.has(k)) deObra.set(k, e);
+          }
+          const colocados = new Set((marcas || []).map((m) => m && m.equipoId).filter(Boolean));
+          const vistos = /* @__PURE__ */ new Set();
+          const propios = [];
+          const porModelo = [];
+          const repetidos = [];
+          const enObra = [];
+          const lista = (textos || []).filter((t) => t && typeof t.texto === "string");
+          const sinNumero = (tag) => !/\d/.test(String(tag).replace(/^[A-Z]+[-_ ]?(?:N\d{2}|S\d)[-_ ]?/i, ""));
+          const sigue = (texto, siguiente) => {
+            const s = String(siguiente || "").trim();
+            if (!s) return false;
+            const r = equipoDeRotulo(s);
+            if (r && r.tag) return false;
+            return !claveSuelta(texto).includes(claveSuelta(s));
+          };
+          for (let i = 0; i < lista.length; i++) {
+            const t = lista[i];
+            let texto = sinRepetir(t.texto);
+            let d = equipoDeRotulo(texto);
+            if (!d) continue;
+            let sx = Number(t.x);
+            let sy = Number(t.y);
+            let n = 1;
+            while (d.tag && sinNumero(d.tag) && i + 1 < lista.length && texto.length < 60 && Math.hypot(lista[i + 1].x - lista[i].x, lista[i + 1].y - lista[i].y) <= CERCA && sigue(texto, lista[i + 1].texto)) {
+              i += 1;
+              texto = sinRepetir(`${texto} ${lista[i].texto.trim()}`);
+              sx += Number(lista[i].x);
+              sy += Number(lista[i].y);
+              n += 1;
+              d = equipoDeRotulo(texto) || d;
+            }
+            const x = Math.round(sx / n * 1e4) / 1e4;
+            const y = Math.round(sy / n * 1e4) / 1e4;
+            if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+            if ((marcas || []).some((m) => Math.hypot(m.x - x, m.y - y) < CERCA_YA)) continue;
+            if (d.modelo) {
+              porModelo.push({ modelo: d.modelo, tipo: d.tipo, icono: d.icono, x, y });
+              continue;
+            }
+            const k = claveSuelta(d.tag);
+            const ya = deObra.get(k);
+            if (ya) {
+              if (esEquipoDelPlano(ya) && !colocados.has(ya.id)) {
+                colocados.add(ya.id);
+                enObra.push({ tag: ya.tag, equipoId: ya.id, tipo: d.tipo, icono: d.icono, x, y });
+              }
+              continue;
+            }
+            if (vistos.has(k)) {
+              repetidos.push({ tag: d.tag, x, y });
+              continue;
+            }
+            vistos.add(k);
+            propios.push({ tag: d.tag, tipo: d.tipo, icono: d.icono, x, y });
+          }
+          return { propios, porModelo, repetidos, enObra };
+        }
+        function paresUeUi(equipos = []) {
+          const grupos = /* @__PURE__ */ new Map();
+          for (const e of equipos || []) {
+            const m = /^U([EI])(.{3,})$/.exec(claveSuelta(e.tag));
+            if (!m) continue;
+            if (!grupos.has(m[2])) grupos.set(m[2], { E: [], I: [] });
+            grupos.get(m[2])[m[1]].push(e);
+          }
+          const pares = [];
+          for (const g of grupos.values()) {
+            if (g.E.length !== 1 || g.I.length !== 1) continue;
+            const [exterior] = g.E;
+            const [interior] = g.I;
+            if (String(exterior.equipoAsociado || "").trim() || String(interior.equipoAsociado || "").trim()) continue;
+            pares.push({ exterior, interior });
+          }
+          return pares;
+        }
+        const CERCA_MISMO = 6e-3;
+        function numerarPorModelo(detectados, planta, existentes = []) {
+          const usados = /* @__PURE__ */ new Set();
+          const numeros = /* @__PURE__ */ new Map();
+          const base = (modelo) => `${modelo} ${planta}-`;
+          for (const e of existentes || []) {
+            for (const d of detectados || []) {
+              const b = base(d.modelo);
+              if (!String(e.tag || "").startsWith(b)) continue;
+              const n = Number(String(e.tag).slice(b.length));
+              if (Number.isFinite(n)) {
+                if (!numeros.has(d.modelo)) numeros.set(d.modelo, /* @__PURE__ */ new Set());
+                numeros.get(d.modelo).add(n);
+              }
+            }
+          }
+          return (detectados || []).map((d) => {
+            const b = base(d.modelo);
+            const cerca = (existentes || []).filter((e) => !usados.has(e.id) && String(e.tag || "").startsWith(b) && e.x !== null && e.x !== void 0).map((e) => ({ e, dist: Math.hypot(e.x - d.x, e.y - d.y) })).filter((c) => c.dist < CERCA_MISMO).sort((p, q) => p.dist - q.dist)[0];
+            if (cerca) {
+              usados.add(cerca.e.id);
+              return { ...d, tag: cerca.e.tag, equipoId: cerca.e.id };
+            }
+            const ns = numeros.get(d.modelo) || /* @__PURE__ */ new Set();
+            let n = 1;
+            while (ns.has(n)) n += 1;
+            ns.add(n);
+            numeros.set(d.modelo, ns);
+            return { ...d, tag: `${b}${String(n).padStart(2, "0")}`, equipoId: null };
+          });
+        }
+        function familiaPara(icono, equipos = []) {
+          const cuenta = /* @__PURE__ */ new Map();
+          for (const e of equipos || []) {
+            const f = String(e.familia || "").trim();
+            if (!f || ICONO_DE_FAMILIA[f] !== (icono === "vrfExt" || icono === "vrfConductos" ? "vrfInt" : icono)) continue;
+            cuenta.set(f, (cuenta.get(f) || 0) + 1);
+          }
+          const mejor = [...cuenta.entries()].sort((a, b) => b[1] - a[1])[0];
+          return mejor ? mejor[0] : null;
+        }
+        const CERCA_ROTULO = 0.012;
+        function alSimbolo(marcas, textos) {
+          const conGeo = (textos || []).filter((t) => t && t.s !== void 0);
+          if (!conGeo.length) return marcas || [];
+          return (marcas || []).map((m) => {
+            if (!m || m.mano) return m;
+            const rx = m.rx ?? m.x;
+            const ry = m.ry ?? m.y;
+            let mejor = null;
+            let dist = CERCA_ROTULO;
+            for (const t of conGeo) {
+              const d = Math.hypot(Number(t.x) - rx, Number(t.y) - ry);
+              if (d < dist) {
+                dist = d;
+                mejor = t;
+              }
+            }
+            const base = { ...m, rx, ry };
+            delete base.revisar;
+            delete base.motivo;
+            delete base.dudoso;
+            if (!mejor || !Array.isArray(mejor.s) || mejor.s.length < 4) return { ...base, revisar: true, motivo: m.dudoso || "no se encuentra su s\xEDmbolo en el dibujo" };
+            const [x, y, w, h, ok] = mejor.s;
+            if (!ok) return { ...base, revisar: true, motivo: m.dudoso || mejor.m || "s\xEDmbolo dudoso" };
+            if (m.dudoso) return { ...base, x, y, w, h, revisar: true, motivo: m.dudoso };
+            return { ...base, x, y, w, h };
+          });
+        }
+        const CERCA_MISMO_TAG = 0.03;
+        const claveTag = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9.]/g, "");
+        function bloquesDeLamina(marcas, textos) {
+          const porTag = /* @__PURE__ */ new Map();
+          for (const t of textos || []) {
+            if (!t || !Array.isArray(t.s) || t.s.length < 5) continue;
+            const k = claveTag(t.texto);
+            if (!k) continue;
+            if (!porTag.has(k)) porTag.set(k, []);
+            porTag.get(k).push(t);
+          }
+          let cambiadas = 0;
+          const salida = (marcas || []).map((m) => {
+            if (!m || m.mano || m.dudoso || !m.tag) return m;
+            const lista = porTag.get(claveTag(m.tag));
+            if (!lista) return m;
+            let mejor = null;
+            let dist = CERCA_MISMO_TAG;
+            for (const t of lista) {
+              const d = Math.min(Math.hypot(t.s[0] - m.x, t.s[1] - m.y), Math.hypot(Number(t.x) - m.x, Number(t.y) - m.y));
+              if (d < dist) {
+                dist = d;
+                mejor = t;
+              }
+            }
+            if (!mejor || !mejor.s[4]) return m;
+            const [x, y, w, h] = mejor.s;
+            if (m.x === x && m.y === y && m.w === w && m.h === h && !m.revisar) return m;
+            const n = { ...m, rx: Number(mejor.x), ry: Number(mejor.y), x, y, w, h };
+            delete n.revisar;
+            delete n.motivo;
+            cambiadas += 1;
+            return n;
+          });
+          return { marcas: salida, cambiadas };
+        }
+        const sitioRotulo = (m) => m ? { x: m.rx ?? m.x, y: m.ry ?? m.y } : { x: null, y: null };
+        const API = {
+          alSimbolo,
+          bloquesDeLamina,
+          claveTag,
+          CERCA_MISMO_TAG,
+          sitioRotulo,
+          CERCA_ROTULO,
+          equipoDeRotulo,
+          detectarEquipos,
+          sinRepetir,
+          paresUeUi,
+          numerarPorModelo,
+          familiaPara,
+          CERCA_MISMO,
+          plantaDelNombre,
+          nombreDocumento,
+          documentosEquipo,
+          clave,
+          claveSuelta,
+          claveCasado,
+          esEquipoDelPlano,
+          casar,
+          cruce,
+          palabrasDe,
+          reconocer,
+          empezado,
+          estadoEnPlano,
+          estados,
+          colorear,
+          acciones,
+          faltaSinRepetir,
+          tipoLlano,
+          ICONOS,
+          iconoDe,
+          esDeConductos,
+          leyendaIconos,
+          conjuntoEnPlanos,
+          indiceConjuntos,
+          llevaBalanceo,
+          TEXTO_ACCION,
+          limpiarMarcas,
+          rotulosSala,
+          salaCercana,
+          ponerSalas,
+          esNombreSala,
+          esCodigoSala,
+          limpiarSala,
+          textoFalta,
+          COLORES,
+          ORDEN_COLOR,
+          RADIO_SALA
+        };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.PLANO_EQUIPOS = API;
+      })();
+    }
+  });
+
+  // shared/commissioning/salaGrisPosicion.js
+  var require_salaGrisPosicion = __commonJS({
+    "shared/commissioning/salaGrisPosicion.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var P = require_planoEquipos();
+      var ESTADOS = /* @__PURE__ */ new Set(["asignada", "por confirmar"]);
+      var llano = (v) => String(v ?? "").trim();
+      function partirRotulo(texto) {
+        const t = llano(texto);
+        const i = t.lastIndexOf(" \xB7 ");
+        const codigo = i > 0 ? t.slice(i + 3).trim() : t;
+        if (!P.esCodigoSala(codigo)) return null;
+        return { codigo: codigo.toUpperCase().replace(/,/g, "."), nombre: i > 0 ? t.slice(0, i).trim() : null };
+      }
+      function proponer(marcas, rotulos) {
+        const locales = (rotulos || []).map((r) => ({ ...partirRotulo(r.texto), x: r.x, y: r.y })).filter((r) => r.codigo);
+        const salida = [];
+        for (const m of marcas || []) {
+          if (!m || !m.equipoId) continue;
+          if (!(m.w && m.h) || m.revisar) continue;
+          const ordenados = locales.map((l) => ({ l, d: Math.hypot(l.x - m.x, l.y - m.y) })).filter((o) => o.d <= P.RADIO_SALA).sort((a, b) => a.d - b.d);
+          if (!ordenados.length) continue;
+          const mejor = ordenados[0];
+          const otro = ordenados.find((o) => o.l.codigo !== mejor.l.codigo);
+          const claro = !otro || otro.d > mejor.d * 1.5 + 4e-3;
+          let nombre = mejor.l.nombre;
+          if (!nombre) {
+            const c = locales.find((l) => l.codigo === mejor.l.codigo && l.nombre);
+            nombre = c ? c.nombre : null;
+          }
+          salida.push({
+            equipoId: m.equipoId,
+            tag: m.tag || "",
+            salaGris: mejor.l.codigo,
+            salaGrisNombre: nombre,
+            estado: claro ? "asignada" : "por confirmar",
+            motivo: !claro ? `tambi\xE9n cerca ${otro.l.codigo}` : "recinto que contiene el s\xEDmbolo"
+          });
+        }
+        return salida;
+      }
+      function decidir(e, p) {
+        const actual = { g: llano(e.salaGris), n: llano(e.salaGrisNombre), st: llano(e.salaGrisEstado) };
+        if (!ESTADOS.has(p.estado) || !p.salaGris) return { motivo: "propuesta sin sala o estado no v\xE1lido" };
+        if (actual.st === "asignada" && actual.g && actual.g !== p.salaGris) return { motivo: `ya asignada a ${actual.g}; el plano da ${p.salaGris}` };
+        if (actual.st === "asignada" && p.estado !== "asignada") return { motivo: "ya asignada; no se rebaja" };
+        const nombre = p.salaGrisNombre || (actual.g === p.salaGris ? actual.n : "") || null;
+        if (actual.g === p.salaGris && actual.st === p.estado && (actual.n || null) === nombre) return { motivo: "igual" };
+        return { cambios: { salaGris: p.salaGris, salaGrisNombre: nombre, salaGrisEstado: p.estado } };
+      }
+      module.exports = { proponer, decidir, partirRotulo };
+    }
+  });
+
+  // shared/commissioning/ifcSalasPlano.js
+  var require_ifcSalasPlano = __commonJS({
+    "shared/commissioning/ifcSalasPlano.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var P = require_planoEquipos();
+      var SG = require_salaGrisPosicion();
+      var { clavesPlanta, puedeIrAlPlano } = require_ifcSalas();
+      var MIN_PUNTOS = 4;
+      var MIN_FRACCION = 0.6;
+      var TOL_M = 1.5;
+      var MIN_SEPARACION = 5;
+      var MIN_ANCHO = 2;
+      var MIN_LARGO = 5;
+      var MAX_PUNTOS = 60;
+      var pareja = (z, w, espejo) => {
+        const [ax, ay] = espejo ? [z[0], -z[1]] : z;
+        return { z: [ax, ay], w };
+      };
+      var divide = ([a, b], [c, d]) => {
+        const n = c * c + d * d;
+        return [(a * c + b * d) / n, (b * c - a * d) / n];
+      };
+      var multiplica = ([a, b], [c, d]) => [a * c - b * d, a * d + b * c];
+      var aplica = (T2, z) => {
+        const m = multiplica(T2.a, T2.espejo ? [z[0], -z[1]] : z);
+        return [m[0] + T2.b[0], m[1] + T2.b[1]];
+      };
+      var error = (T2, p) => {
+        const v = aplica(T2, p.z);
+        return Math.hypot(v[0] - p.w[0], v[1] - p.w[1]) / Math.hypot(...T2.a);
+      };
+      function ajuste(puntos, espejo) {
+        const q = puntos.map((p) => pareja(p.z, p.w, espejo));
+        const media = (k) => [q.reduce((s, p) => s + p[k][0], 0) / q.length, q.reduce((s, p) => s + p[k][1], 0) / q.length];
+        const zm = media("z"), wm = media("w");
+        let num = [0, 0], den = 0;
+        for (const p of q) {
+          const dz = [p.z[0] - zm[0], p.z[1] - zm[1]], dw = [p.w[0] - wm[0], p.w[1] - wm[1]];
+          const m = multiplica([dz[0], -dz[1]], dw);
+          num = [num[0] + m[0], num[1] + m[1]];
+          den += dz[0] * dz[0] + dz[1] * dz[1];
+        }
+        if (den < 1e-9) return null;
+        const a = [num[0] / den, num[1] / den];
+        if (Math.hypot(...a) < 1e-9) return null;
+        const am = multiplica(a, zm);
+        return { a, b: [wm[0] - am[0], wm[1] - am[1]], espejo };
+      }
+      function extension(puntos) {
+        const n = puntos.length, mx = puntos.reduce((s, p) => s + p.z[0], 0) / n, my = puntos.reduce((s, p) => s + p.z[1], 0) / n;
+        let a = 0, b = 0, c = 0;
+        for (const p of puntos) {
+          const x = p.z[0] - mx, y = p.z[1] - my;
+          a += x * x;
+          b += x * y;
+          c += y * y;
+        }
+        a /= n;
+        b /= n;
+        c /= n;
+        const r = Math.sqrt(((a - c) / 2) ** 2 + b * b), t = (a + c) / 2;
+        return { largo: Math.sqrt(Math.max(t + r, 0)), ancho: Math.sqrt(Math.max(t - r, 0)) };
+      }
+      function alinear(puntos = []) {
+        if (puntos.length < MIN_PUNTOS) return { ok: false, motivo: `${puntos.length} ${puntos.length === 1 ? "equipo casado" : "equipos casados"} con plano en esa planta; hacen falta ${MIN_PUNTOS}` };
+        const paso = Math.max(1, Math.floor(puntos.length / MAX_PUNTOS));
+        const base = puntos.filter((_, i) => i % paso === 0);
+        let mejor = null;
+        for (let i = 0; i < base.length; i++) {
+          for (let j = i + 1; j < base.length; j++) {
+            if (Math.hypot(base[i].z[0] - base[j].z[0], base[i].z[1] - base[j].z[1]) < MIN_SEPARACION) continue;
+            for (const espejo of [false, true]) {
+              const p = pareja(base[i].z, base[i].w, espejo), q = pareja(base[j].z, base[j].w, espejo);
+              const a = divide([q.w[0] - p.w[0], q.w[1] - p.w[1]], [q.z[0] - p.z[0], q.z[1] - p.z[1]]);
+              const m = multiplica(a, p.z);
+              const T3 = { a, b: [p.w[0] - m[0], p.w[1] - m[1]], espejo };
+              const dentro = puntos.filter((x) => error(T3, x) <= TOL_M);
+              if (dentro.length < 2) continue;
+              const suma = dentro.reduce((s, x) => s + error(T3, x), 0);
+              if (!mejor || dentro.length > mejor.dentro.length || dentro.length === mejor.dentro.length && suma < mejor.suma) mejor = { dentro, suma };
+            }
+          }
+        }
+        if (!mejor) return { ok: false, motivo: "los puntos de control est\xE1n demasiado juntos" };
+        const candidatos = [ajuste(mejor.dentro, false), ajuste(mejor.dentro, true)].filter(Boolean).map((T3) => ({ T: T3, rms: Math.sqrt(mejor.dentro.reduce((s, x) => s + error(T3, x) ** 2, 0) / mejor.dentro.length) })).sort((a, b) => a.rms - b.rms);
+        if (!candidatos.length) return { ok: false, motivo: "no se puede calcular la alineaci\xF3n" };
+        const { T: T2, rms } = candidatos[0];
+        const inliers = puntos.filter((x) => error(T2, x) <= TOL_M);
+        const { ancho, largo } = extension(inliers);
+        const res = { T: T2, inliers: inliers.length, total: puntos.length, residuo: Math.round(rms * 100) / 100 };
+        const fallo = (motivo) => ({ ok: false, motivo, ...res });
+        if (inliers.length < MIN_PUNTOS) return fallo(`solo ${inliers.length} de ${puntos.length} puntos de control encajan`);
+        if (inliers.length / puntos.length < MIN_FRACCION) return fallo(`solo encajan ${inliers.length} de ${puntos.length} puntos de control`);
+        if (rms > TOL_M) return fallo(`el plano se aparta ${res.residuo} m del modelo`);
+        if (ancho < MIN_ANCHO || largo < MIN_LARGO) return fallo("los puntos de control est\xE1n en l\xEDnea o demasiado juntos");
+        return { ok: true, ...res };
+      }
+      var parse = (v) => {
+        if (Array.isArray(v)) return v;
+        try {
+          return JSON.parse(v || "[]") || [];
+        } catch {
+          return [];
+        }
+      };
+      var forma = (c) => String(c).toUpperCase().replace(/[A-Z]/g, "A").replace(/\d/g, "9");
+      function rotulosDeSala(rotulos, formas) {
+        const l = parse(rotulos).filter((r) => r && Number.isFinite(r.x) && Number.isFinite(r.y) && SG.partirRotulo(r.texto));
+        return formas && formas.size ? l.filter((r) => formas.has(forma(SG.partirRotulo(r.texto).codigo))) : l;
+      }
+      function formasDeLaObra(equipos = []) {
+        const n = /* @__PURE__ */ new Map();
+        for (const e of equipos) if (e.salaGris && P.esCodigoSala(e.salaGris)) {
+          const f = forma(e.salaGris);
+          n.set(f, (n.get(f) || 0) + 1);
+        }
+        const total = [...n.values()].reduce((s, x) => s + x, 0);
+        return total >= 10 ? new Set([...n].filter(([, x]) => x / total >= 0.05).map(([f]) => f)) : null;
+      }
+      function salasDesdePlanos({ elementos = [], casados = [], planos = [], equipos = [] } = {}) {
+        const porGuid = new Map(elementos.map((el) => [el.guid, el]));
+        const elementoDe = new Map(casados.map((c) => [c.equipoId, porGuid.get(c.guid)]).filter(([, el]) => el));
+        const formas = formasDeLaObra(equipos);
+        const plantas = /* @__PURE__ */ new Map();
+        for (const el of elementos) for (const k of clavesPlanta(el.planta)) {
+          if (!plantas.has(k)) plantas.set(k, []);
+          plantas.get(k).push(el);
+        }
+        const nuevas = /* @__PURE__ */ new Map(), resumen = [], sinPlano = /* @__PURE__ */ new Map();
+        for (const [clave, delModelo] of plantas) {
+          const pendientes = delModelo.filter((el) => el.pos && !el.espacio && !el.salaProp && puedeIrAlPlano(el.salaPos) && !nuevas.has(el.guid));
+          if (!pendientes.length) continue;
+          const suyos = planos.filter((p) => clavesPlanta(p.planta).includes(clave) && p.ancho > 0 && p.alto > 0);
+          if (!suyos.length) {
+            sinPlano.set(clave, pendientes);
+            continue;
+          }
+          let mejor = null;
+          for (const pl2 of suyos) {
+            const puntos = parse(pl2.marcas).filter((m) => m && m.equipoId && m.w && m.h && !m.revisar && elementoDe.has(m.equipoId)).map((m) => ({ el: elementoDe.get(m.equipoId), m })).filter(({ el }) => el.pos && clavesPlanta(el.planta).includes(clave)).map(({ el, m }) => ({ z: [el.pos[0], el.pos[1]], w: [m.x * pl2.ancho, m.y * pl2.alto] }));
+            const al2 = alinear(puntos);
+            if (!mejor || al2.ok && !mejor.al.ok || al2.ok === mejor.al.ok && (al2.inliers || 0) > (mejor.al.inliers || 0)) mejor = { pl: pl2, al: al2 };
+          }
+          const { pl, al } = mejor;
+          if (!al.ok) {
+            pendientes.forEach((el) => nuevas.set(el.guid, { motivo: `sin alinear con el plano: ${al.motivo}` }));
+            resumen.push({ planta: clave, ok: false, motivo: al.motivo, inliers: al.inliers || 0, residuo: al.residuo ?? null });
+            continue;
+          }
+          const rotulos = rotulosDeSala(pl.rotulos, formas);
+          if (!rotulos.length) {
+            pendientes.forEach((el) => nuevas.set(el.guid, { motivo: "el plano no tiene c\xF3digos de sala" }));
+            resumen.push({ planta: clave, ok: false, motivo: "el plano no tiene c\xF3digos de sala", inliers: al.inliers, residuo: al.residuo });
+            continue;
+          }
+          const marcas = pendientes.map((el) => {
+            const w = aplica(al.T, el.pos);
+            return { equipoId: el.guid, tag: el.tag, x: w[0] / pl.ancho, y: w[1] / pl.alto, w: 1, h: 1 };
+          }).filter((m) => m.x >= 0 && m.x <= 1 && m.y >= 0 && m.y <= 1);
+          const propuestas = new Map(SG.proponer(marcas, rotulos).map((x) => [x.equipoId, x]));
+          let conSala = 0;
+          for (const el of pendientes) {
+            const x = propuestas.get(el.guid);
+            if (x && x.estado === "asignada") {
+              conSala += 1;
+              nuevas.set(el.guid, { codigo: x.salaGris, nombre: x.salaGrisNombre, fuente: "plano" });
+            } else nuevas.set(el.guid, { motivo: x ? "dos c\xF3digos de sala igual de cerca en el plano" : "ning\xFAn c\xF3digo de sala cerca en el plano" });
+          }
+          resumen.push({ planta: clave, ok: true, inliers: al.inliers, residuo: al.residuo, conSala, pendientes: pendientes.length });
+        }
+        for (const [clave, lista] of sinPlano) {
+          const faltan = lista.filter((el) => !nuevas.has(el.guid));
+          if (!faltan.length) continue;
+          faltan.forEach((el) => nuevas.set(el.guid, { motivo: "no hay plano de esa planta" }));
+          resumen.push({ planta: clave, ok: false, motivo: "no hay plano de esa planta" });
+        }
+        return { elementos: elementos.map((el) => nuevas.has(el.guid) ? { ...el, salaPos: nuevas.get(el.guid) } : el), resumen };
+      }
+      module.exports = { alinear, aplica, salasDesdePlanos };
     }
   });
 
@@ -41070,437 +42927,6 @@ ${obsO}` : obsO).slice(0, 4e3);
     }
   });
 
-  // shared/commissioning/ifcPlantas.js
-  var require_ifcPlantas = __commonJS({
-    "shared/commissioning/ifcPlantas.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var { crearLectorIfc, crearCortador, atributos } = require_ifcEquipos();
-      var CLASES_GEO = /* @__PURE__ */ new Set([
-        "IFCLOCALPLACEMENT",
-        "IFCAXIS2PLACEMENT3D",
-        "IFCAXIS2PLACEMENT2D",
-        "IFCDIRECTION",
-        "IFCPRODUCTDEFINITIONSHAPE",
-        "IFCSHAPEREPRESENTATION",
-        "IFCEXTRUDEDAREASOLID",
-        "IFCARBITRARYCLOSEDPROFILEDEF",
-        "IFCRECTANGLEPROFILEDEF",
-        "IFCPOLYLINE",
-        "IFCSIUNIT",
-        "IFCCONVERSIONBASEDUNIT",
-        "IFCUNITASSIGNMENT"
-      ]);
-      var TOPE_SVG = 260 * 1024;
-      var TOPE_MARCAS = 2500;
-      var ORDEN_MARCA = (t) => t === "equipos" ? 0 : t === "conductos" || t === "tuberias" ? 2 : 1;
-      function capaDe(clase, nombre, tipo, claseTipo, esEquipo) {
-        const c = `${clase || ""} ${claseTipo || ""}`;
-        const n = `${nombre || ""} ${tipo || ""}`.toLowerCase();
-        if (/DAMPER/.test(c) || /compuerta|damper/.test(n)) return "compuertas";
-        if (/DUCT/.test(c) || /duct|conducto/.test(n)) return "conductos";
-        if (/PIPE/.test(c) || /pipe|tuber/.test(n)) return "tuberias";
-        if (/VALVE/.test(c) || /v[aá]lvula|valve/.test(n)) return "valvulas";
-        if (/difus|diffuser/.test(n)) return "difusores";
-        if (/rejilla|grille/.test(n)) return "rejillas";
-        if (/SENSOR/.test(c) || /sonda|sensor/.test(n)) return "sondas";
-        if (/ACTUATOR/.test(c)) return "actuadores";
-        return esEquipo ? "equipos" : "otros";
-      }
-      var ref = (x) => x && typeof x === "object" && "ref" in x ? x.ref : null;
-      var IDENTIDAD = [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0];
-      var prod = (M, p) => [
-        M[9] + p[0] * M[0] + p[1] * M[3] + p[2] * M[6],
-        M[10] + p[0] * M[1] + p[1] * M[4] + p[2] * M[7],
-        M[11] + p[0] * M[2] + p[1] * M[5] + p[2] * M[8]
-      ];
-      var giro = (M, v) => [v[0] * M[0] + v[1] * M[3] + v[2] * M[6], v[0] * M[1] + v[1] * M[4] + v[2] * M[7], v[0] * M[2] + v[1] * M[5] + v[2] * M[8]];
-      var componer = (A, B) => [...giro(A, B.slice(0, 3)), ...giro(A, B.slice(3, 6)), ...giro(A, B.slice(6, 9)), ...prod(A, B.slice(9, 12))];
-      function unidad(v) {
-        const n = Math.hypot(...v);
-        return n > 1e-9 ? v.map((x) => x / n) : null;
-      }
-      function vect(a, b) {
-        return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-      }
-      function extraer(G, datos, punto) {
-        const de = (id, clase) => {
-          const g = G.get(id);
-          return g && (!clase || g.clase === clase) ? g : null;
-        };
-        const num3 = (l) => [Number(l[0]) || 0, Number(l[1]) || 0, Number(l[2]) || 0];
-        const direccion = (id, def) => {
-          const g = de(id, "IFCDIRECTION");
-          return g && unidad(num3(g.a[0] || [])) || def;
-        };
-        function ejes3(id) {
-          const g = de(id, "IFCAXIS2PLACEMENT3D");
-          if (!g) return IDENTIDAD;
-          const z = direccion(ref(g.a[1]), [0, 0, 1]);
-          const r = direccion(ref(g.a[2]), Math.abs(z[0]) > 0.9 ? [0, 1, 0] : [1, 0, 0]);
-          const k = r[0] * z[0] + r[1] * z[1] + r[2] * z[2];
-          const x = unidad([r[0] - k * z[0], r[1] - k * z[1], r[2] - k * z[2]]) || [1, 0, 0];
-          return [...x, ...vect(z, x), ...z, ...num3(punto(ref(g.a[0])))];
-        }
-        const memo = /* @__PURE__ */ new Map();
-        function colocacion(id, h = 0) {
-          if (id == null || h > 60) return null;
-          if (memo.has(id)) return memo.get(id);
-          const g = de(id, "IFCLOCALPLACEMENT");
-          if (!g) return null;
-          const padre = ref(g.a[0]) != null ? colocacion(ref(g.a[0]), h + 1) : IDENTIDAD;
-          const M = componer(padre || IDENTIDAD, ejes3(ref(g.a[1])));
-          memo.set(id, M);
-          return M;
-        }
-        const polilinea = (g) => (g.a[0] || []).map((r) => num3(punto(ref(r))));
-        function perfil(id) {
-          const g = de(id);
-          if (!g) return null;
-          if (g.clase === "IFCARBITRARYCLOSEDPROFILEDEF") {
-            const c = de(ref(g.a[2]), "IFCPOLYLINE");
-            return c ? polilinea(c) : null;
-          }
-          if (g.clase === "IFCRECTANGLEPROFILEDEF") {
-            const w = (Number(g.a[3]) || 0) / 2, h = (Number(g.a[4]) || 0) / 2;
-            const c = de(ref(g.a[2]), "IFCAXIS2PLACEMENT2D");
-            const o = c ? num3(punto(ref(c.a[0]))) : [0, 0, 0];
-            const d = c ? direccion(ref(c.a[1]), [1, 0, 0]) : [1, 0, 0];
-            const X = (a, b) => [o[0] + a * d[0] - b * d[1], o[1] + a * d[1] + b * d[0], 0];
-            return [X(-w, -h), X(w, -h), X(w, h), X(-w, h), X(-w, -h)];
-          }
-          return null;
-        }
-        function formaDe(id) {
-          const f = de(id, "IFCPRODUCTDEFINITIONSHAPE");
-          let curva = null;
-          for (const r of f && f.a[2] || []) {
-            const rep = de(ref(r), "IFCSHAPEREPRESENTATION");
-            if (!rep) continue;
-            for (const it of rep.a[3] || []) {
-              const x = de(ref(it));
-              if (x && x.clase === "IFCEXTRUDEDAREASOLID") return { solido: x };
-              if (x && x.clase === "IFCPOLYLINE" && !curva) curva = x;
-            }
-          }
-          return curva ? { curva } : null;
-        }
-        const u = datos.factor;
-        const salida = { contornos: [], lineas: [], marcas: [], sinPosicion: 0, sinForma: 0 };
-        const plano = (p) => [p[0] * u, p[1] * u];
-        const clave = (e) => e.planta && e.planta.nombre || "";
-        for (const e of datos.contornos) {
-          const M = colocacion(e.colocacion);
-          if (!M) {
-            salida.sinPosicion += 1;
-            continue;
-          }
-          const f = formaDe(e.forma);
-          if (!f) {
-            salida.sinForma += 1;
-            continue;
-          }
-          let puntos = null, cerrado = true;
-          if (f.solido) {
-            const b = componer(M, ejes3(ref(f.solido.a[1])));
-            const pf = perfil(ref(f.solido.a[0]));
-            puntos = pf && pf.map((p) => plano(prod(b, p)));
-          } else {
-            puntos = polilinea(f.curva).map((p) => plano(prod(M, p)));
-            cerrado = false;
-          }
-          if (!puntos || puntos.length < 2) {
-            salida.sinForma += 1;
-            continue;
-          }
-          salida.contornos.push({ planta: e.planta, clave: clave(e), espacio: e.clase === "IFCSPACE", nombre: e.largo || e.nombre || null, codigo: e.nombre || null, puntos, cerrado });
-        }
-        const marca = (e, esEquipo) => {
-          const M = colocacion(e.colocacion);
-          if (!M) {
-            salida.sinPosicion += 1;
-            return;
-          }
-          const capa = capaDe(e.clase, e.nombre, e.tipo, e.claseTipo, esEquipo);
-          let [x, y] = plano([M[9], M[10]]);
-          const f = formaDe(e.forma);
-          if (f && f.solido) {
-            const b = componer(M, ejes3(ref(f.solido.a[1])));
-            const d = direccion(ref(f.solido.a[2]), [0, 0, 1]);
-            const ini = prod(b, [0, 0, 0]);
-            const dW = giro(b, d);
-            const L = Number(f.solido.a[3]) || 0;
-            const fin = [ini[0] + dW[0] * L, ini[1] + dW[1] * L];
-            const [x1, y1] = plano(ini), [x2, y2] = plano(fin);
-            [x, y] = [(x1 + x2) / 2, (y1 + y2) / 2];
-            if (capa !== "equipos" && Math.hypot(x2 - x1, y2 - y1) > 0.2) salida.lineas.push({ clave: clave(e), planta: e.planta, capa, x1, y1, x2, y2 });
-          } else if (!f) salida.sinForma += 1;
-          const t = e.tag && !/^\d+$/.test(e.tag) ? e.tag : e.nombre || e.tag || null;
-          salida.marcas.push({ clave: clave(e), planta: e.planta, g: e.guid, c: t ? String(t).slice(0, 48) : null, t: capa, x, y });
-        };
-        for (const e of datos.elementos) marca(e, true);
-        for (const e of datos.materiales) marca(e, false);
-        return salida;
-      }
-      function crearLectorPlantas() {
-        const G = /* @__PURE__ */ new Map();
-        const geometria = { quiere: (c) => CLASES_GEO.has(c), guardar: (id, clase, a) => G.set(id, { clase, a }) };
-        const lector = crearLectorIfc({ soloUtiles: true, geometria });
-        const PUNTOS = /* @__PURE__ */ new Map();
-        let base = null, cortadorPuntos = null;
-        function factorDeLongitud() {
-          for (const [, g] of G) {
-            if (g.clase !== "IFCUNITASSIGNMENT") continue;
-            for (const r of g.a[0] || []) {
-              const u = G.get(ref(r));
-              if (!u) continue;
-              if (u.clase === "IFCSIUNIT" && u.a[1] === ".LENGTHUNIT.") return { ".MILLI.": 1e-3, ".CENTI.": 0.01, ".DECI.": 0.1 }[u.a[2]] || 1;
-              if (u.clase === "IFCCONVERSIONBASEDUNIT" && u.a[1] === ".LENGTHUNIT.") {
-                const n = String(u.a[2] || "").toUpperCase();
-                if (/FOOT/.test(n)) return 0.3048;
-                if (/INCH/.test(n)) return 0.0254;
-              }
-            }
-          }
-          return 1;
-        }
-        function finPasada1() {
-          base = lector.fin();
-          base.factor = factorDeLongitud();
-          const necesarios = /* @__PURE__ */ new Set();
-          extraer(G, base, (id) => {
-            if (id != null) necesarios.add(id);
-            return [0, 0, 0];
-          });
-          cortadorPuntos = crearCortador((b) => {
-            const s = b.trim();
-            if (s[0] !== "#" || !/^#\d+\s*=\s*IFCCARTESIANPOINT\b/i.test(s)) return;
-            const id = Number(/^#(\d+)/.exec(s)[1]);
-            if (!necesarios.has(id)) return;
-            const m = /\(\s*\(([^)]*)\)/.exec(s);
-            if (m) PUNTOS.set(id, m[1].split(",").map(Number));
-          });
-          return necesarios.size;
-        }
-        function resultado() {
-          if (cortadorPuntos) cortadorPuntos.fin();
-          const dibujo = extraer(G, base, (id) => PUNTOS.get(id) || [0, 0, 0]);
-          G.clear();
-          PUNTOS.clear();
-          const limpia = ({ colocacion, forma, pset, ...r }) => r;
-          return { esquema: base.esquema, elementos: base.elementos.map(limpia), nMateriales: base.materiales.length, nContornos: base.contornos.length, factor: base.factor, dibujo };
-        }
-        return { trozo: lector.trozo, finPasada1, trozoPuntos: (t) => cortadorPuntos.trozo(t), resultado };
-      }
-      var esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-      var n1 = (v) => {
-        const r = Math.round(v * 10) / 10;
-        return Object.is(r, -0) ? "0" : String(r);
-      };
-      function rango(valores) {
-        const v = valores.filter(Number.isFinite).sort((a, b) => a - b);
-        if (!v.length) return [0, 10];
-        const corte = v.length > 40 ? Math.floor(v.length * 5e-3) : 0;
-        return [v[corte], v[v.length - 1 - corte]];
-      }
-      function trazo(puntos, a, cerrar) {
-        let d = "", px = 0, py = 0;
-        puntos.forEach(([x, y], i) => {
-          const X = Math.round(a(x, y)[0]), Y = Math.round(a(x, y)[1]);
-          if (i === 0) d += `M${X} ${Y}`;
-          else {
-            const dx = X - px, dy = Y - py;
-            if (dx === 0 && dy === 0) return;
-            d += `l${dx} ${dy}`;
-          }
-          px = X;
-          py = Y;
-        });
-        return d.includes("l") ? cerrar ? `${d}z` : d : "";
-      }
-      function pintarSvg(pl, caja, m) {
-        const a = (x, y) => [(x - caja.x0) / m, (caja.y1 - y) / m];
-        const W = Math.ceil(caja.ancho / m), H = Math.ceil(caja.alto / m);
-        const minimo = 2 * m;
-        const largo = (l) => Math.hypot(l.x2 - l.x1, l.y2 - l.y1);
-        const grupos = /* @__PURE__ */ new Map();
-        const mete = (capa, d) => {
-          if (d) {
-            if (!grupos.has(capa)) grupos.set(capa, []);
-            grupos.get(capa).push(d);
-          }
-        };
-        for (const c of pl.contornos) mete("contorno", trazo(c.puntos, a, c.cerrado));
-        let dentro = 0;
-        for (const l of pl.lineas) {
-          if (largo(l) < minimo) continue;
-          dentro += 1;
-          mete(l.capa, trazo([[l.x1, l.y1], [l.x2, l.y2]], a, false));
-        }
-        const textos = pl.contornos.filter((c) => c.espacio && c.codigo).map((c) => {
-          const cx = c.puntos.reduce((s, p) => s + p[0], 0) / c.puntos.length, cy = c.puntos.reduce((s, p) => s + p[1], 0) / c.puntos.length;
-          const [x, y] = a(cx, cy);
-          return `<text x="${n1(x)}" y="${n1(y)}">${esc(c.codigo.slice(0, 32))}</text>`;
-        }).join("");
-        const capas = [...grupos].map(([k, ds]) => `<g data-capa="${k}"><path d="${ds.join("")}"/></g>`).join("");
-        return { svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}">${capas}${textos ? `<g data-capa="salas">${textos}</g>` : ""}</svg>`, W, H, lineasDibujadas: dentro };
-      }
-      function construirPlantas(listaDeDibujos, { topeSvg = TOPE_SVG, topeMarcas = TOPE_MARCAS } = {}) {
-        const porNombre = /* @__PURE__ */ new Map();
-        const de = (clave, planta) => {
-          const k = String(clave || "").trim();
-          if (!porNombre.has(k)) porNombre.set(k, { nombre: k, cota: planta && Number.isFinite(planta.cota) ? planta.cota : null, contornos: [], lineas: [], marcas: [] });
-          return porNombre.get(k);
-        };
-        for (const d of listaDeDibujos) {
-          for (const c of d.contornos) de(c.clave, c.planta).contornos.push(c);
-          for (const l of d.lineas) de(l.clave, l.planta).lineas.push(l);
-          for (const m of d.marcas) de(m.clave, m.planta).marcas.push(m);
-        }
-        const plantas = [];
-        for (const pl of porNombre.values()) {
-          if (!pl.nombre && !pl.marcas.length) continue;
-          const xs = [], ys = [];
-          for (const c of pl.contornos) for (const p of c.puntos) {
-            xs.push(p[0]);
-            ys.push(p[1]);
-          }
-          for (const l of pl.lineas) {
-            xs.push(l.x1, l.x2);
-            ys.push(l.y1, l.y2);
-          }
-          for (const m of pl.marcas) {
-            xs.push(m.x);
-            ys.push(m.y);
-          }
-          const [x0a, x1a] = rango(xs), [y0a, y1a] = rango(ys);
-          const margen = Math.max(1, Math.max(x1a - x0a, y1a - y0a) * 0.03);
-          const caja = { x0: x0a - margen, x1: x1a + margen, y0: y0a - margen, y1: y1a + margen };
-          caja.ancho = Math.max(10, caja.x1 - caja.x0);
-          caja.alto = Math.max(10, caja.y1 - caja.y0);
-          let dibujo = null, res = 0;
-          for (const m of [0.1, 0.2, 0.5]) {
-            res = m;
-            dibujo = pintarSvg(pl, caja, m);
-            if (dibujo.svg.length <= topeSvg) break;
-          }
-          let lineasFuera = 0;
-          if (dibujo.svg.length > topeSvg) {
-            const orden = [...pl.lineas].sort((a, b) => Math.hypot(b.x2 - b.x1, b.y2 - b.y1) - Math.hypot(a.x2 - a.x1, a.y2 - a.y1));
-            let n = orden.length;
-            while (n > 0 && dibujo.svg.length > topeSvg) {
-              n = Math.floor(n * 0.7);
-              dibujo = pintarSvg({ ...pl, lineas: orden.slice(0, n) }, caja, res);
-            }
-            lineasFuera = orden.length - n;
-          }
-          const dentroDe = (m) => m.x >= caja.x0 && m.x <= caja.x1 && m.y >= caja.y0 && m.y <= caja.y1;
-          const validas = pl.marcas.filter(dentroDe);
-          const conCodigo = validas.filter((m) => m.c).sort((a, b) => ORDEN_MARCA(a.t) - ORDEN_MARCA(b.t));
-          const marcas = conCodigo.slice(0, topeMarcas).map((m) => ({ g: m.g, c: m.c, t: m.t, x: Math.round((m.x - caja.x0) / caja.ancho * 1e5) / 1e5, y: Math.round((caja.y1 - m.y) / caja.alto * 1e5) / 1e5 }));
-          const sitios = /* @__PURE__ */ new Map();
-          for (const m of validas) {
-            const k = `${Math.round(m.x)}|${Math.round(m.y)}`;
-            sitios.set(k, (sitios.get(k) || 0) + 1);
-          }
-          let apilados = 0;
-          for (const n of sitios.values()) if (n >= 5) apilados += n;
-          const bytesMarcas = JSON.stringify(marcas.map(({ g, ...r }) => r)).length;
-          plantas.push({
-            nombre: pl.nombre || "Sin planta",
-            cota: pl.cota,
-            ancho: dibujo.W,
-            alto: dibujo.H,
-            svg: dibujo.svg,
-            marcas,
-            conContorno: pl.contornos.length > 0,
-            bytes: { svg: dibujo.svg.length, marcas: bytesMarcas, total: dibujo.svg.length + bytesMarcas },
-            resolucionM: res,
-            recortes: { lineas: lineasFuera, marcas: Math.max(0, conCodigo.length - marcas.length), sinCodigo: validas.length - conCodigo.length, fueraDelDibujo: pl.marcas.length - validas.length },
-            n: { contornos: pl.contornos.length, lineas: pl.lineas.length, marcas: pl.marcas.length },
-            apilados
-          });
-        }
-        return plantas.sort((a, b) => (a.cota ?? 0) - (b.cota ?? 0) || a.nombre.localeCompare(b.nombre, "es", { numeric: true }));
-      }
-      var RE_SVG = /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 \d+ \d+">(?:<g data-capa="[a-z]+"><path d="[-Mlz0-9 ]*"\/><\/g>)*(?:<g data-capa="salas">(?:<text x="[-0-9.]+" y="[-0-9.]+">[^<>]*<\/text>)*<\/g>)?<\/svg>$/;
-      var esSvgSeguro = (svg) => typeof svg === "string" && RE_SVG.test(svg);
-      function plantaQueCasa(plantaObra, plantasModelo) {
-        const norma = (t) => String(t || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-        const num = (t) => {
-          const m = /(-?\d+)/.exec(String(t || ""));
-          return m ? Number(m[1]) : null;
-        };
-        const a = norma(plantaObra);
-        if (!a) return null;
-        const exacta = plantasModelo.find((p) => norma(p.nombre) === a);
-        if (exacta) return exacta;
-        const n = num(plantaObra);
-        if (n === null) return null;
-        const cand = plantasModelo.filter((p) => num(p.nombre) === n);
-        return cand.length === 1 ? cand[0] : null;
-      }
-      module.exports = { crearLectorPlantas, construirPlantas, capaDe, esSvgSeguro, plantaQueCasa };
-    }
-  });
-
-  // electron/data/plantasIfc.js
-  var require_plantasIfc = __commonJS({
-    "electron/data/plantasIfc.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var { obraVisible } = require_origenEquipos();
-      var { plantaQueCasa, esSvgSeguro } = require_ifcPlantas();
-      var salaTexto = (c, n) => [c, n].filter(Boolean).join(" \xB7 ");
-      function guardar(repo, ses, obraId, plantas, cruce, comparado) {
-        const equipoDe = new Map((cruce && cruce.casados || []).map((c) => [c.guid, c.equipoId]));
-        const revisar = new Map((comparado && comparado.filas || []).filter((f) => f.estado === "difiere").map((f) => [f.equipoId, `El modelo lo pone en ${salaTexto(f.salaIfc, f.salaIfcNombre) || "otra sala"}`]));
-        const ya = repo.listar("plantasIfc", ses, { condicion: "obraId = ?", params: [obraId] });
-        const porNombre = new Map(ya.map((f) => [f.nombre, f]));
-        const medidas = [];
-        for (const p of plantas) {
-          if (!p || !p.nombre || !esSvgSeguro(p.svg)) continue;
-          const marcas = (Array.isArray(p.marcas) ? p.marcas : []).map(({ g, ...m }) => {
-            const e = equipoDe.get(g);
-            return e ? { ...m, e, ...revisar.has(e) ? { r: revisar.get(e) } : {} } : m;
-          });
-          const med = { bytes: p.bytes, recortes: p.recortes, n: p.n, apilados: p.apilados, resolucionM: p.resolucionM };
-          const datos = { nombre: p.nombre, cota: p.cota ?? null, ancho: p.ancho, alto: p.alto, conContorno: p.conContorno ? 1 : 0, svg: p.svg, marcas: JSON.stringify(marcas), medidas: JSON.stringify(med) };
-          const f = porNombre.get(p.nombre);
-          if (f) {
-            repo.modificar("plantasIfc", ses, f.id, datos);
-            porNombre.delete(p.nombre);
-          } else repo.crear("plantasIfc", ses, { obraId, ...datos });
-          medidas.push({ nombre: p.nombre, ...med });
-        }
-        for (const f of porNombre.values()) repo.borrar("plantasIfc", ses, f.id);
-        return medidas;
-      }
-      function listar(repo, ses, obraId, plantasObra = []) {
-        if (!obraVisible(repo, ses, obraId)) return { ok: false, error: "No ves esta obra." };
-        const filas = repo.listar("plantasIfc", ses, { condicion: "obraId = ?", params: [obraId] });
-        const revisar = {};
-        const plantas = filas.map((f) => {
-          for (const m of JSON.parse(f.marcas || "[]")) if (m.e && m.r) revisar[m.e] = m.r;
-          return { id: f.id, nombre: f.nombre, cota: f.cota, ancho: f.ancho, alto: f.alto, conContorno: Boolean(f.conContorno), modificadoEn: f.modificadoEn };
-        }).sort((a, b) => (a.cota ?? 0) - (b.cota ?? 0) || a.nombre.localeCompare(b.nombre, "es", { numeric: true }));
-        const casa = {};
-        for (const n of plantasObra) {
-          const c = plantaQueCasa(n, plantas);
-          if (c) casa[n || ""] = c.id;
-        }
-        return { ok: true, plantas, casa, revisar };
-      }
-      function detalle(repo, ses, obraId, id) {
-        if (!obraVisible(repo, ses, obraId)) return { ok: false, error: "No ves esta obra." };
-        const f = repo.listar("plantasIfc", ses, { condicion: "obraId = ? AND id = ?", params: [obraId, id], limite: 1 })[0];
-        if (!f || !esSvgSeguro(f.svg)) return { ok: false, error: "No se encuentra esa planta del modelo." };
-        return { ok: true, svg: f.svg, marcas: JSON.parse(f.marcas || "[]"), conContorno: Boolean(f.conContorno) };
-      }
-      module.exports = { guardar, listar, detalle };
-    }
-  });
-
   // electron/data/origenEquipos.js
   var require_origenEquipos = __commonJS({
     "electron/data/origenEquipos.js"(exports, module) {
@@ -41508,6 +42934,7 @@ ${obsO}` : obsO).slice(0, 4e3);
       var import_buffer_global10 = __toESM(require_buffer_global());
       var O = require_origenEquipo();
       var IFC = require_ifcEquipos();
+      var SP = require_ifcSalasPlano();
       var { puede } = require_roles();
       var { permitido } = require_repositorio();
       var puedeDecidir = (ses) => !!ses && permitido("equiposObra", ses.rol, "editar");
@@ -41688,38 +43115,57 @@ ${obsO}` : obsO).slice(0, 4e3);
         }
         return { ok: true, esquema, elementos: elementos.length, casados: R.casados, sinEquipo: R.sinEquipo, sinIfc: R.sinIfc.length };
       }
-      function casarConModelo(repo, ses, obraId, elementos) {
+      function casarConModelo(repo, ses, obraId, elementosIfc) {
         const equipos = repo.listar("equiposObra", ses, { condicion: "obraId = ?", params: [obraId] });
         const orden = { confirmado: 0, porConfirmar: 1 };
         const enOrden = equipos.map((e) => [e, orden[O.confianzaDe(e)] ?? 2]).sort((a, b) => a[1] - b[1]).map((x) => x[0]);
-        return { equipos, R: IFC.cruzarConIfc(enOrden, elementos, { fuera: (e) => O.confianzaDe(e) === "noEsEquipo" }) };
+        const fuera = (e) => O.confianzaDe(e) === "noEsEquipo";
+        const R = IFC.cruzarConIfc(enOrden, elementosIfc, { fuera });
+        const { elementos, resumen: alineacion } = SP.salasDesdePlanos({ elementos: elementosIfc, casados: R.casados, planos: planosSinImagen(repo, ses, obraId), equipos });
+        const conSala = new Map(elementos.map((el) => [el.guid, el]));
+        R.sinEquipo = R.sinEquipo.map((el) => ({ ...el, salaPos: (conSala.get(el.guid) || el).salaPos }));
+        R.probables = IFC.casarProbables(enOrden, R, { fuera });
+        return { equipos, R, elementos, alineacion };
       }
-      function cruzarElementosIfc(repo, ses, obraId, { esquema = null, elementos = [], ficheros = [], plantas = null } = {}) {
-        if (!obraVisible(repo, ses, obraId)) return { ok: false, error: "No ves esta obra." };
-        if (!Array.isArray(elementos)) return { ok: false, error: "No hay elementos del modelo." };
-        const { equipos, R } = casarConModelo(repo, ses, obraId, elementos);
-        const comparado = IFC.compararSalas(equipos, elementos, R);
-        const cruzadoEn = (/* @__PURE__ */ new Date()).toISOString();
-        const resultado = { esquema, nElementos: elementos.length, ficheros, cruzadoEn, ...comparado };
-        let guardado = false, errorGuardado = null;
+      function planosSinImagen(repo, ses, obraId) {
+        if (!permitido("planosEquipos", ses.rol, "ver")) return [];
+        return repo.db.prepare("SELECT planta, ancho, alto, marcas, rotulos FROM planosEquipos WHERE obraId = ?").all(obraId);
+      }
+      function resumenCruce(elementos, R) {
+        const casados = R.casados.length, porConfirmar = (R.probables || []).length;
+        const r = { casados, porConfirmar, conSala: 0, sinCasar: elementos.length - casados - porConfirmar, maquinas: 0, accesorios: 0, otros: 0 };
+        const motivos = /* @__PURE__ */ new Map();
+        for (const el of elementos) {
+          const c = IFC.tipoElemento(el).categoria;
+          r[{ maquina: "maquinas", accesorio: "accesorios", otro: "otros" }[c]] += 1;
+          if (IFC.salaDeElemento(el)) r.conSala += 1;
+          else {
+            const m = el.salaPos && el.salaPos.motivo || "el modelo no da su posici\xF3n";
+            motivos.set(m, (motivos.get(m) || 0) + 1);
+          }
+        }
+        r.sinSala = [...motivos].map(([motivo, n]) => ({ motivo, n })).sort((a, b) => b.n - a.n);
+        return r;
+      }
+      function guardarCruceIfc(repo, ses, obraId, { esquema = null, elementos: leidos = [], modelos = [], registro = [] } = {}) {
+        const ya = repo.listar("crucesIfc", ses, { condicion: "obraId = ?", params: [obraId], limite: 1 })[0];
+        if (!modelos.length) {
+          if (ya) repo.borrar("crucesIfc", ses, ya.id);
+          return { resultado: { nElementos: 0, ficheros: [], filas: [], sinEquipo: [], sinEquipoTotal: 0, sinIfc: [] }, R: null, comparado: null };
+        }
+        const { equipos, R, elementos, alineacion } = casarConModelo(repo, ses, obraId, leidos);
+        const comparado = IFC.compararSalas(equipos, elementos, R, { tope: Infinity });
+        const ficheros = registro.map((m) => m.nombre);
+        const resultado = { esquema, nElementos: elementos.length, ficheros, cruzadoEn: (/* @__PURE__ */ new Date()).toISOString(), ...comparado, resumen: resumenCruce(elementos, R), alineacion };
+        let errorGuardado = null;
         try {
-          const datos = { esquema, nElementos: elementos.length, ficheros: JSON.stringify(ficheros), resultado: JSON.stringify(resultado), personaId: ses.personaId || null };
-          const ya = repo.listar("crucesIfc", ses, { condicion: "obraId = ?", params: [obraId], limite: 1 })[0];
+          const datos = { esquema, nElementos: elementos.length, ficheros: JSON.stringify(registro), resultado: JSON.stringify(IFC.compactarCruce(resultado)), personaId: ses.personaId || null };
           if (ya) repo.modificar("crucesIfc", ses, ya.id, datos);
           else repo.crear("crucesIfc", ses, { obraId, ...datos });
-          guardado = true;
         } catch (e) {
           errorGuardado = e && e.message ? e.message : String(e);
         }
-        let plantasGuardadas = null;
-        if (Array.isArray(plantas)) {
-          try {
-            plantasGuardadas = require_plantasIfc().guardar(repo, ses, obraId, plantas, R, comparado);
-          } catch (e) {
-            errorGuardado = errorGuardado || (e && e.message ? e.message : String(e));
-          }
-        }
-        return { ok: true, ...resultado, guardado, errorGuardado, plantasGuardadas };
+        return { resultado, R, comparado, errorGuardado };
       }
       function ultimoCruceIfc(repo, ses, obraId) {
         if (!obraVisible(repo, ses, obraId)) return { ok: false, error: "No ves esta obra." };
@@ -41727,7 +43173,7 @@ ${obsO}` : obsO).slice(0, 4e3);
         if (!f) return { ok: true, cruce: null };
         let resultado = null;
         try {
-          resultado = JSON.parse(f.resultado);
+          resultado = IFC.expandirCruce(JSON.parse(f.resultado));
         } catch {
           resultado = null;
         }
@@ -41740,7 +43186,7 @@ ${obsO}` : obsO).slice(0, 4e3);
         else if (r.accion === "enlazar") console.log(`  \xB7 ${resto.tag || "(sin TAG)"}: ya exist\xEDa como ${r.tag} (${r.motivo}): se le enlaza la fuente.`);
         return r.id || null;
       }
-      module.exports = { evidencias, resumen, quienCuenta, confirmar, esElMismo, noEsElMismo, alta, altaDeScript, migrar, cruzarIfc, cruzarElementosIfc, ultimoCruceIfc, puedeDecidir, obraVisible };
+      module.exports = { evidencias, resumen, quienCuenta, confirmar, esElMismo, noEsElMismo, alta, altaDeScript, migrar, cruzarIfc, guardarCruceIfc, ultimoCruceIfc, puedeDecidir, obraVisible };
     }
   });
 
@@ -63167,6 +64613,8 @@ ${linea}` : linea;
         fila.categoriaTexto = CAT.TEXTO[cat.id];
         fila.tipoProveedor = fila.tipoProveedor || CAT.tipoDeCategoria(cat.id);
         fila.fecha = CAT.fechaDe(fila);
+        fila.confirmacionLeida = importe && leerJson(p.importeConfirmacionLeida, null) || leerJson(p.confirmacionLeida, null);
+        delete fila.importeConfirmacionLeida;
         if (!importe) {
           delete fila.importe;
           fila.lineas = fila.lineas.map(({ precio, ...l }) => l);
@@ -63209,7 +64657,7 @@ ${linea}` : linea;
           `SELECT h.accion, h.campo, h.valorAntes, h.valorDespues, h.creadoEn, pe.nombre AS persona
        FROM historial h LEFT JOIN personas pe ON pe.id = h.personaId
       WHERE h.entidad = 'pedidosCompra' AND h.registroId = ? ORDER BY h.creadoEn DESC LIMIT 200`
-        ).all(id).filter((h) => datos.verImporte || h.campo !== "importe");
+        ).all(id).filter((h) => !/confirmacionLeida$/i.test(h.campo) && (datos.verImporte || h.campo !== "importe"));
         return {
           pedido: fila,
           plazoProveedor: datos.plazos.find((x) => x.proveedorId === p.proveedorId) || null,
@@ -63507,6 +64955,13 @@ ${linea}` : linea;
         if (a.error) return { ok: false, error: a.error };
         return { ok: true, id: crearDocumento(repo, sesion, p, "otro", a, { notas: datos.notas }) };
       }
+      function anadirDocumentoConfirmacion(repo, sesion, id, archivo2, fecha) {
+        const { p, error } = cambiable(repo, sesion, id);
+        if (error) return { ok: false, error };
+        const a = archivoValido(archivo2);
+        if (a.error) return { ok: false, error: a.error };
+        return { ok: true, id: crearDocumento(repo, sesion, p, "confirmacion", a, { fecha }) };
+      }
       function anadirCorreo(repo, sesion, id, archivo2, datos = {}) {
         if (!puede(sesion.rol, "pedidos", "crear")) return { ok: false, error: "Tu rol no puede a\xF1adir papeles al pedido." };
         const p = repo.leer("pedidosCompra", sesion, id);
@@ -63687,6 +65142,7 @@ ${linea}` : linea;
         confirmar,
         registrarAlbaran,
         anadirDocumento,
+        anadirDocumentoConfirmacion,
         anadirCorreo,
         guardarDocumento,
         quitarDocumento,
@@ -66696,7 +68152,7 @@ ${linea}` : linea;
             "Falta doc.",
             "Falta balanceo",
             "Falta estanqueidad",
-            "A reclamar"
+            "Papeles por pedir"
           ];
           const filas = q.filas.map((f) => [
             f.codigo,
@@ -81938,8 +83394,8 @@ ${linea}` : linea;
           },
           {
             area: "Estudios",
-            titulo: "Documentaci\xF3n de la obra",
-            dondeEsta: "Documentaci\xF3n \u203A Documentaci\xF3n de la obra",
+            titulo: "Documentos de la obra",
+            dondeEsta: "Documentaci\xF3n \u203A Documentos de la obra",
             cubre: ["documentacion"],
             queHace: "Toda la documentaci\xF3n de la obra en una lista: fichas PM, checklists, planos, pruebas de estanqueidad, balanceos de caudales, puestas en marcha de fabricantes, fichas t\xE9cnicas, CE y manuales, informes y actas. Se filtra por tipo, equipo, sistema, planta y estado (firmado, hecho, pendiente, falta), con buscador, y cada fila abre su PDF. Lo de SharePoint solo se enlaza.",
             automatico: [
@@ -81948,8 +83404,8 @@ ${linea}` : linea;
           },
           {
             area: "Estudios",
-            titulo: "Documentaci\xF3n del proyecto",
-            dondeEsta: "Documentaci\xF3n \u203A Documentaci\xF3n del proyecto",
+            titulo: "Documentos del proyecto",
+            dondeEsta: "Documentaci\xF3n \u203A Documentos del proyecto",
             cubre: ["documentacionProyecto"],
             queHace: "La biblioteca de modelos de la obra: legalizaciones, certificados, protocolos de commissioning, calidad, seguridad, contrato, gesti\xF3n de obra y entrega final, por tipo, con su porqu\xE9, su estado y su PDF. \xABBuscar documento\u2026\xBB busca en todos los documentos de la app y a\xF1ade el que falte.",
             automatico: [
@@ -81959,10 +83415,10 @@ ${linea}` : linea;
           },
           {
             area: "Obra \xB7 Econ\xF3mico",
-            titulo: "Equipos y materiales del presupuesto",
-            dondeEsta: "Proyecto \u203A Equipos y materiales",
+            titulo: "Desglose del presupuesto",
+            dondeEsta: "Proyecto \u203A Desglose del presupuesto",
             cubre: ["desglosePresupuesto"],
-            queHace: "Del presupuesto de la obra (Costs Plan / Med Obra) saca solos el listado de equipos por planta y tipo, el de materiales por familia y los puntos BMS de unos y otros; lo cruza con Commissioning, lo certificado y los pedidos.",
+            queHace: "Del presupuesto de la obra (control de costes / Med Obra) saca solos el listado de equipos por planta y tipo, el de materiales por familia y los puntos BMS de unos y otros; lo cruza con Commissioning, lo certificado y los pedidos.",
             automatico: [
               { que: "Cada partida se clasifica en equipo, material o mano de obra / otros (con el tipo de m\xE1quina y la familia de compra)", cuando: "Cada vez que se abre", editable: false, como: "Lo dudoso sale en \xABDudas\xBB; se corrige en el presupuesto." },
               { que: "Equipos del presupuesto contra los de Commissioning: casados, faltan, sobran, duplicados y previstos \xABSIN TAG \xB7 partida\xBB", cuando: "Cada vez que se abre", editable: "parcial", como: "\xABCrear en Commissioning\xBB da de alta los previstos (con confirmaci\xF3n); nunca inventa un TAG." },
@@ -81973,7 +83429,7 @@ ${linea}` : linea;
           {
             area: "Estudios",
             titulo: "Presupuestos",
-            dondeEsta: "Estudios \u203A Presupuestos \xB7 Presupuesto y costes \u203A Presupuesto de obra \xB7 Medir y certificar \u203A Med Obra",
+            dondeEsta: "Estudios \u203A Presupuestos \xB7 Presupuesto \u203A Presupuesto de obra \xB7 Producci\xF3n \u203A Med Obra",
             cubre: ["presupuestos", "presupuestoObra", "medObra"],
             queHace: "El presupuesto como en Presto: cap\xEDtulos, partidas, descompuestos y mediciones; importa y exporta BC3, Excel y PDF, y saca la oferta.",
             automatico: [
@@ -82005,7 +83461,7 @@ ${linea}` : linea;
           {
             area: "Commissioning",
             titulo: "Control / PLC",
-            dondeEsta: "Calidad y commissioning \u203A Puntos BMS \u203A Control / PLC",
+            dondeEsta: "Calidad y commissioning \u203A Puntos de control (BMS) \u203A Control / PLC",
             cubre: ["controlPlc"],
             queHace: "Plantillas de control de los equipos de la obra (enfriadoras y calderas, bombas, UTAs, grupos de presi\xF3n, aparcamientos por CO y puntos BMS): secuencia, lista E/S con objetos BACnet, c\xF3digo para el PLC (Schneider Machine Expert y PLCopen XML, ST neutro IEC 61131-3 o Siemens SCL), puntos para EBO y un simulador. El c\xF3digo es un borrador que revisa un t\xE9cnico; la app no se conecta a ning\xFAn PLC.",
             automatico: [
@@ -82016,7 +83472,7 @@ ${linea}` : linea;
           {
             area: "Estudios",
             titulo: "Puntos de control",
-            dondeEsta: "Estudios \u203A presupuesto \u203A Puntos \xB7 Calidad y commissioning \u203A Puntos BMS",
+            dondeEsta: "Estudios \u203A presupuesto \u203A Puntos \xB7 Calidad y commissioning \u203A Puntos de control (BMS)",
             cubre: ["puntosControl"],
             queHace: "La lista de puntos para el integrador, con la tabla de entrega de siempre (ED, SD, EA, SA, Com.), el cableado y la comparaci\xF3n con la lista del proyecto.",
             automatico: [
@@ -82082,7 +83538,7 @@ ${linea}` : linea;
             cubre: [],
             queHace: "Pasa a la obra todo lo que se estudi\xF3, no solo el total.",
             automatico: [
-              { que: "Crea la obra, copia el Costs Plan (con el coeficiente de compras aplicado), las exclusiones pactadas, el estado del proyecto y las notas", cuando: "Al traspasar", editable: true, como: "Todo es editable en obra salvo la venta, que queda congelada." },
+              { que: "Crea la obra, copia el control de costes (con el coeficiente de compras aplicado), las exclusiones pactadas, el estado del proyecto y las notas", cuando: "Al traspasar", editable: true, como: "Todo es editable en obra salvo la venta, que queda congelada." },
               { que: "Lo de Estudios en la obra se ve pero no se edita", cuando: "Despu\xE9s del traspaso", editable: false }
             ]
           },
@@ -82110,8 +83566,8 @@ ${linea}` : linea;
           },
           {
             area: "Obra \xB7 Econ\xF3mico",
-            titulo: "Costs Plan",
-            dondeEsta: "Presupuesto y costes \u203A Costs Plan \xB7 An\xE1lisis del proyecto",
+            titulo: "Control de costes",
+            dondeEsta: "Producci\xF3n \u203A Control de costes \xB7 An\xE1lisis del proyecto",
             cubre: ["costsPlan", "analisisProyecto"],
             queHace: "Previsto, comprometido, gastado y a fin de obra, cap\xEDtulo a cap\xEDtulo; la hoja 2.09a de CBRE.",
             automatico: [
@@ -82123,7 +83579,7 @@ ${linea}` : linea;
           {
             area: "Obra \xB7 Econ\xF3mico",
             titulo: "Variantes y \xF3rdenes de cambio",
-            dondeEsta: "Contrato y cliente \u203A Variantes y OC",
+            dondeEsta: "Contrato y cliente \u203A Variantes y \xF3rdenes de cambio",
             cubre: ["variantes"],
             queHace: "Las adendas firmadas y las \xF3rdenes de cambio.",
             automatico: [
@@ -82148,14 +83604,14 @@ ${linea}` : linea;
           {
             area: "Obra \xB7 Econ\xF3mico",
             titulo: "Certificaciones",
-            dondeEsta: "Medir y certificar \u203A Certificaciones \xB7 Compras \u203A Facturas de proveedor \xB7 Cierre y entrega \u203A Cierre de la obra",
+            dondeEsta: "Producci\xF3n \u203A Certificaciones \xB7 Compras \u203A Facturas de proveedor \xB7 Cierre y entrega \u203A Cierre de la obra",
             cubre: ["certificaciones", "facturasProveedor", "cierreObra"],
             queHace: "Lo que se cobra al cliente cada mes, y lo que se certifica a cada industrial por pedido (libro DTM.CERT).",
             automatico: [
               { que: "ANTERIOR = suma de las certificaciones de antes; A ORIGEN = anterior + actual", cuando: "Siempre", editable: false },
               { que: "Cap\xEDtulos de coste certificados al mismo % que la obra directa", cuando: "Mientras nadie teclee otra cosa", editable: true, como: "Lo tecleado manda." },
               { que: "Cantidad desde el % de avance (o al rev\xE9s), seg\xFAn el modo", cuando: "Al teclear", editable: true },
-              { que: "Lectura de la certificaci\xF3n del industrial (Excel o PDF) casada con el Costs Plan", cuando: "Al importarla", editable: true, como: "Se elige la columna y se corrige el borrador." },
+              { que: "Lectura de la certificaci\xF3n del industrial (Excel o PDF) casada con el control de costes", cuando: "Al importarla", editable: true, como: "Se elige la columna y se corrige el borrador." },
               { que: "Precios congelados al emitir", cuando: "Al emitir", editable: false, como: "Lo que haya que corregir va en la siguiente, en negativo." },
               { que: "PDF de industrial con una hoja por pedido, gr\xE1ficos y firma estampada del jefe de obra con campo de firma", cuando: "Al sacar el PDF", editable: false },
               { que: "Previsi\xF3n de 15 meses de certificaci\xF3n en el panel de empresa", cuando: "Siempre", editable: false }
@@ -82164,7 +83620,7 @@ ${linea}` : linea;
           {
             area: "Obra \xB7 Planificaci\xF3n",
             titulo: "m\xB2 de conductos",
-            dondeEsta: "Medir y certificar \u203A m\xB2 de conductos",
+            dondeEsta: "Producci\xF3n \u203A m\xB2 de conductos",
             cubre: ["m2Conductos"],
             queHace: "La plantilla de m\xB2 de chapa de conductos rectangulares seg\xFAn UNE 100716, pieza a pieza, para certificar los conductos de la obra.",
             automatico: [
@@ -82176,7 +83632,7 @@ ${linea}` : linea;
           {
             area: "Obra \xB7 Planificaci\xF3n",
             titulo: "Avance de obra",
-            dondeEsta: "Medir y certificar \u203A Avance de obra (y la tablet del encargado) \xB7 Documentaci\xF3n \u203A Planos",
+            dondeEsta: "Producci\xF3n \u203A Avance de obra (y la tablet del encargado) \xB7 Documentaci\xF3n \u203A Planos",
             cubre: ["avanceObra", "planosObra"],
             queHace: "El encargado marca en el plano lo ejecutado cada d\xEDa (trazos, zonas y puntos) con nota y foto; al jefe de obra le llega para revisarlo.",
             automatico: [
@@ -82215,9 +83671,9 @@ ${linea}` : linea;
             titulo: "Diagrama de Gantt",
             dondeEsta: "Planificaci\xF3n \u203A Diagrama de Gantt",
             cubre: ["gantt"],
-            queHace: "Una barra por paquete del Costs Plan; se arrastra, se estira o se teclean las fechas.",
+            queHace: "Una barra por paquete del control de costes; se arrastra, se estira o se teclean las fechas.",
             automatico: [
-              { que: "Una barra por cada subcap\xEDtulo final del Costs Plan", cuando: "Al abrir la obra", editable: true, como: "Fechas y avance se cambian arrastrando o tecleando." },
+              { que: "Una barra por cada subcap\xEDtulo final del control de costes", cuando: "Al abrir la obra", editable: true, como: "Fechas y avance se cambian arrastrando o tecleando." },
               { que: "Cap\xEDtulo sin fechas propias toma las de la obra (barra discontinua)", cuando: "Mientras no se le den", editable: true },
               { que: "L\xEDnea base: el plazo del Gantt de Estudios o, si no se hizo, las primeras fechas que se le dieron", cuando: "Al poner fechas la primera vez", editable: false },
               { que: "El plazo que se planific\xF3 en Estudios (presupuesto \u203A Gantt\u2026) es el plan de la obra mientras no se retoque", cuando: "Al traspasar a obra", editable: true, como: "Se retoca en el Gantt de la obra; en Estudios queda de solo lectura." },
@@ -82239,7 +83695,7 @@ ${linea}` : linea;
             titulo: "Informe semanal",
             dondeEsta: "Empresa \u203A Informes \u203A Informe semanal",
             cubre: ["informeSemanal"],
-            queHace: "Una fila por obra con commissioning, certificaci\xF3n, Costs Plan, mantenimiento y NCR.",
+            queHace: "Una fila por obra con commissioning, certificaci\xF3n, control de costes, mantenimiento y NCR.",
             automatico: [
               { que: "Todas las cifras, sacadas de cada m\xF3dulo", cuando: "Siempre", editable: false },
               { que: "PDF y borrador de correo los lunes (nunca se env\xEDa solo)", cuando: "Los lunes", editable: true, como: "El borrador se cambia antes de mandarlo." },
@@ -82311,7 +83767,7 @@ ${linea}` : linea;
             area: "Obra \xB7 Planificaci\xF3n",
             titulo: "Personal en obra",
             dondeEsta: "Personal \u203A Personal en obra (pesta\xF1as: Personal en obra, Fichajes y registros, Horas extra, Vacaciones, Solicitudes, Documentaci\xF3n PRL/CAE, Operarios, Equipo de obra)",
-            cubre: ["partes"],
+            cubre: ["partes", "parte", "miJornada"],
             queHace: "Previsto frente a real por subcontrata y d\xEDa, con fichaje por QR y documentaci\xF3n PRL/CAE.",
             automatico: [
               { que: "C\xF3digo QR de 16 caracteres por operario", cuando: "Al darlo de alta", editable: false },
@@ -82322,8 +83778,8 @@ ${linea}` : linea;
           {
             area: "Obra \xB7 Planificaci\xF3n",
             titulo: "Vacaciones y ausencias",
-            dondeEsta: "Personal \u203A Vacaciones y Personal \u203A Solicitudes (las del equipo); Mi espacio \u203A Vacaciones (las tuyas)",
-            cubre: ["vacaciones"],
+            dondeEsta: "Personal \u203A Vacaciones (las tuyas); las del equipo, en las pesta\xF1as Vacaciones y Solicitudes de la pantalla Personal",
+            cubre: ["vacaciones", "misVacaciones"],
             queHace: "Calendario de ausencias de CBRE y de subcontratas.",
             automatico: [
               { que: "Aviso de solape: faltan 2 o m\xE1s y al menos un tercio de una empresa u obra", cuando: "Siempre", editable: false }
@@ -82455,7 +83911,7 @@ ${linea}` : linea;
           {
             area: "Calidad",
             titulo: "No conformidades (NCR)",
-            dondeEsta: "Calidad y commissioning \u203A Commissioning \u203A NCR",
+            dondeEsta: "Calidad y commissioning \u203A No conformidades",
             cubre: ["ncr"],
             queHace: "El libro de NCR sin el Excel: alta, plazos, cierre, informes y punchlist.",
             automatico: [
@@ -82551,8 +84007,8 @@ ${linea}` : linea;
           },
           {
             area: "Toda la app",
-            titulo: "Auditor\xEDa",
-            dondeEsta: "Gesti\xF3n \u203A Auditor\xEDa; pesta\xF1a \xABHistorial\xBB de cada ficha",
+            titulo: "Historial de cambios",
+            dondeEsta: "Gesti\xF3n \u203A Historial de cambios; pesta\xF1a \xABHistorial\xBB de cada ficha",
             cubre: ["trazabilidad"],
             queHace: "Qui\xE9n cambi\xF3 qu\xE9, de qu\xE9 a qu\xE9, cu\xE1ndo y desde d\xF3nde; las versiones de cada ficha para comparar y restaurar; en Excel y PDF.",
             automatico: [
@@ -82734,7 +84190,7 @@ ${linea}` : linea;
             sustituye: "Microsoft Project (Plan 5)",
             licencia: "msProjectP5",
             horasAnuales: 40,
-            hipotesis: "El Gantt sale del Costs Plan y la planificaci\xF3n econ\xF3mica de \xE9l: ~1 h/semana de pasar fechas e importes entre Project y Excel, 40 semanas."
+            hipotesis: "El Gantt sale del control de costes y la planificaci\xF3n econ\xF3mica de \xE9l: ~1 h/semana de pasar fechas e importes entre Project y Excel, 40 semanas."
           },
           {
             id: "presupuestos",
@@ -82746,8 +84202,8 @@ ${linea}` : linea;
           },
           {
             id: "costsPlan",
-            que: "Costs Plan, desv\xEDo y plan de compras",
-            sustituye: "Libros Excel del Costs Plan y del comparativo",
+            que: "Control de costes, desv\xEDo y plan de compras",
+            sustituye: "Libros Excel del control de costes y del comparativo",
             licencia: null,
             fuente: "Excel sigue en Microsoft 365: no hay licencia que ahorrar, solo horas.",
             horasAnuales: 96,
@@ -82974,7 +84430,7 @@ ${linea}` : linea;
             que: "Facturas de proveedor imputadas",
             unidad: "facturas",
             minutos: 5,
-            hipotesis: "Imputar la factura a su cap\xEDtulo del Costs Plan: ~5 min por factura."
+            hipotesis: "Imputar la factura a su cap\xEDtulo del control de costes: ~5 min por factura."
           },
           {
             id: "ncr",
@@ -83400,7 +84856,7 @@ ${linea}` : linea;
         const FASES_AHORRO = [
           /* POR OBRA Y MES: lo que se ahorra cada mes que la obra está viva. */
           { id: "compras", bloque: "obra", nombre: "Compras de obra", lineas: [
-            { rol: "jefeObra", h: 8, que: "Comprometido, gastado y desv\xEDo del Costs Plan desde pedidos, albaranes y facturas (96 h/a\xF1o)." },
+            { rol: "jefeObra", h: 8, que: "Comprometido, gastado y desv\xEDo del control de costes desde pedidos, albaranes y facturas (96 h/a\xF1o)." },
             { rol: "encargadoObra", h: 1, que: "Albaranes casados con su pedido (~5 min cada uno)." }
           ] },
           { id: "obra", bloque: "obra", nombre: "Obra", lineas: [
@@ -83422,7 +84878,7 @@ ${linea}` : linea;
           { id: "grupo", bloque: "obra", nombre: "Jefe de grupo", lineas: [
             { rol: "jefeGrupo", sub: "avance", dedicacion: true, h: 6, confirmar: true, que: "Avance y plazos de todas sus obras en un panel, sin pedir a cada jefe de obra el informe ni el Gantt al d\xEDa." },
             { rol: "jefeGrupo", sub: "certificacion", dedicacion: true, h: 6, confirmar: true, que: "Certificaciones y cuadro econ\xF3mico de cada obra revisados en la app, sin pedir el Excel ni cuadrarlo a mano." },
-            { rol: "jefeGrupo", sub: "desvios", dedicacion: true, h: 4, confirmar: true, que: "Desviaciones del Costs Plan y NCR abiertas de todas sus obras juntas, sin pedirlas por correo." },
+            { rol: "jefeGrupo", sub: "desvios", dedicacion: true, h: 4, confirmar: true, que: "Desviaciones del control de costes y NCR abiertas de todas sus obras juntas, sin pedirlas por correo." },
             { rol: "jefeGrupo", sub: "iarvis", dedicacion: true, h: 4, confirmar: true, que: "El informe semanal de su grupo y los encargos a sus jefes de obra se los pide a Iarvis: no recorre obra por obra ni escribe el correo (~1 h por semana)." },
             /* 6-nov (rumbo «Vidaire Obras para los mandos»): el informe del grupo, solo. */
             { rol: "jefeGrupo", sub: "informeGrupo", dedicacion: true, h: 6, confirmar: true, que: "Informe semanal de todo su grupo hecho solo: sus 5-8 obras en una tabla (tambi\xE9n las que no tienen jefe de obra) con plazo, certificado, coste, NCR y conflictos, y el lunes el PDF y el correo a su director preparados. Antes juntaba el informe de cada jefe de obra y lo pasaba a uno (~1,5 h por semana)." }
@@ -92085,6 +93541,8 @@ ${linea}` : linea;
         res.obra.mesEs = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"][hoy.getMonth()];
         res.obra.dia2 = String(hoy.getDate()).padStart(2, "0");
         res.obra.fechaIso = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`;
+        res.obra.fechaEs = `${hoy.getDate()} de ${res.obra.mesEs} de ${hoy.getFullYear()}`;
+        res.obra.fechaCorta = `${res.obra.dia2}/${String(hoy.getMonth() + 1).padStart(2, "0")}/${hoy.getFullYear()}`;
         res.obra.lugar = poblacion;
         return XFA.derivar(res, { p, e, intervinientes, equipos, partidas, cargas, hoy, texto, numero, r2, persona });
       }
@@ -94148,7 +95606,7 @@ ${linea}` : linea;
         if (!venta) return { ok: true, nada: true };
         const contrato = contratoDeObra(db, orden.obraId);
         if (!contrato) return { ok: true, nada: true, sinContrato: true };
-        const existente = db.prepare("SELECT * FROM adendas WHERE ordenCambioId = ?").get(orden.id);
+        const existente = db.prepare("SELECT * FROM adendas WHERE ordenCambioId = ? AND tipo = 'alcance'").get(orden.id);
         const fecha = dia(orden.decididaEn) || hoy();
         return guardar(db, sesion, contrato, existente, {
           concepto: `${orden.numero} \xB7 ${orden.titulo}`,
@@ -94184,7 +95642,29 @@ ${linea}` : linea;
         });
         return { ...r, texto: `${texto} ${r.numero}` };
       }
-      module.exports = { adendaDeOrden, plazoDeActa, contratoDeObra, siguienteNumero };
+      function plazoDeOrden(db, sesion, orden) {
+        const dias = Math.round(Number(orden && orden.diasPlazo) || 0);
+        if (!orden || orden.estado !== "aprobada" || dias <= 0) return { ok: true, nada: true };
+        const contrato = contratoDeObra(db, orden.obraId);
+        if (!contrato) return { ok: true, nada: true, sinContrato: true };
+        const existente = db.prepare("SELECT * FROM adendas WHERE ordenCambioId = ? AND tipo = 'plazo'").get(orden.id);
+        if (existente && existente.estado !== "borrador") return { ok: true, nada: true };
+        const otras = db.prepare("SELECT * FROM adendas WHERE contratoId = ?").all(contrato.id).filter((a) => !existente || a.id !== existente.id);
+        const finVigente = K.resumen(contrato, otras, []).finVigente;
+        const nueva = finVigente ? new Date(Date.parse(`${finVigente}T12:00:00Z`) + dias * 864e5).toISOString().slice(0, 10) : null;
+        const r = guardar(db, sesion, contrato, existente, {
+          concepto: `Ampliaci\xF3n de plazo de ${orden.numero} \xB7 ${orden.titulo}`,
+          tipo: "plazo",
+          diasAmpliacion: dias,
+          ...nueva ? { nuevaFechaFin: nueva } : {},
+          ...existente ? {} : { fecha: hoy(), estado: "borrador" },
+          ordenCambioId: orden.id,
+          actaId: orden.actaId || null,
+          notas: `La orden de cambio ${orden.numero} suma ${dias} d\xEDas de plazo. El plazo del contrato cambia cuando se firme.`
+        });
+        return { ...r, dias, texto: `${orden.numero} suma ${dias} d\xEDas de plazo: adenda de plazo ${r.numero} en borrador` };
+      }
+      module.exports = { adendaDeOrden, plazoDeOrden, plazoDeActa, contratoDeObra, siguienteNumero };
     }
   });
 
@@ -94668,6 +96148,7 @@ ${linea}` : linea;
       var r2 = (x) => Math.round((Number(x) || 0) * 100) / 100;
       var deActa = (f) => f && { ...f, asistentes: json(f.asistentes, []), puntos: json(f.puntos, []), resultado: json(f.resultado, []) };
       var deOrden = (f) => f && { ...f, lineas: json(f.lineas, []) };
+      var diasDe = (v) => Math.min(3650, Math.max(0, Math.round(Number(v) || 0)));
       var esNuevo = (p) => Boolean(p && p.id);
       var sinDinero = (rol) => campoVetado(rol, "importeVenta");
       function recortarOrden(o, rol) {
@@ -95281,12 +96762,11 @@ ${linea}` : linea;
         if (estado !== "aprobada") return { ok: true, orden: { ...o, estado } };
         const imp = imputar(repo, sesion, { ...o, estado });
         if (!imp.ok) return imp;
-        const adenda = require_contratoDesdeObra().adendaDeOrden(
-          repo.db,
-          sesion,
-          deOrden(repo.leer("ordenesCambio", sesion, ordenId))
-        );
-        return { ok: true, orden: { ...o, estado, capituloId: imp.capituloId || o.capituloId }, imputada: imp, adenda };
+        const CDO = require_contratoDesdeObra();
+        const aprobada = deOrden(repo.leer("ordenesCambio", sesion, ordenId));
+        const adenda = CDO.adendaDeOrden(repo.db, sesion, aprobada);
+        const plazo = CDO.plazoDeOrden(repo.db, sesion, aprobada);
+        return { ok: true, orden: { ...o, estado, capituloId: imp.capituloId || o.capituloId }, imputada: imp, adenda, plazo };
       }
       function cerrarActa(repo, sesion, id) {
         if (!puede(sesion.rol, "actas", "editar")) return { ok: false, error: SIN_PERMISO };
@@ -95420,7 +96900,8 @@ ${linea}` : linea;
             coste,
             estado: "propuesta",
             actaId: entrada.actaId || null,
-            creadoPor: sesion.personaId
+            creadoPor: sesion.personaId,
+            diasPlazo: diasDe(entrada.diasPlazo) || null
           });
           return { ok: true, id, numero };
         };
@@ -95435,6 +96916,7 @@ ${linea}` : linea;
         const c = {};
         if (cambios.titulo !== void 0) c.titulo = llano(cambios.titulo) || o.titulo;
         if (cambios.descripcion !== void 0) c.descripcion = llano(cambios.descripcion) || null;
+        if (cambios.diasPlazo !== void 0) c.diasPlazo = diasDe(cambios.diasPlazo) || null;
         if (cambios.lineas !== void 0) {
           const limpias = limpiarLineas(cambios.lineas);
           const ob = repo.leer("obras", sesion, o.obraId);
@@ -95454,6 +96936,33 @@ ${linea}` : linea;
             require_contratoDesdeObra().adendaDeOrden(repo.db, sesion, nueva);
           }
           return { ok: true, orden: recortarOrden(deOrden(repo.leer("ordenesCambio", sesion, id)), sesion.rol) };
+        });
+      }
+      function moverFinPorOrden(repo, sesion, ordenId, { previa = false } = {}) {
+        if (!puede(sesion.rol, "actas", "aprobar")) return { ok: false, error: "Mover el fin de obra por una orden de cambio lo confirma el jefe de obra." };
+        const o = deOrden(repo.leer("ordenesCambio", sesion, ordenId));
+        if (!o) return { ok: false, error: "No se encuentra la orden de cambio." };
+        const dias = diasDe(o.diasPlazo);
+        if (o.estado !== "aprobada" || !dias) return { ok: false, error: `${o.numero} no trae d\xEDas de plazo aprobados.` };
+        if (o.plazoAplicadoEn) return { ok: false, error: `${o.numero} ya movi\xF3 el fin de obra (${String(o.plazoAplicadoEn).slice(0, 10)}).` };
+        const CP = require_costsPlan();
+        const ultima = CP.tareasGantt(repo, sesion, o.obraId).filter((t) => t.fin).reduce((m, t) => !m || t.fin > m.fin ? t : m, null);
+        if (!ultima) return { ok: false, error: "La obra no tiene tareas con fecha en el Gantt." };
+        const fin = new Date(Date.parse(`${String(ultima.fin).slice(0, 10)}T12:00:00Z`) + dias * 864e5).toISOString().slice(0, 10);
+        return enTransaccion(repo, () => {
+          const r = CP.cambiarFechaGantt(repo, sesion, o.obraId, { id: ultima.id, fin }, { previa });
+          if (!r.ok) return r;
+          if (!previa) repo.modificar("ordenesCambio", sesion, ordenId, { plazoAplicadoEn: (/* @__PURE__ */ new Date()).toISOString() });
+          return {
+            ok: true,
+            previa,
+            dias,
+            tarea: ultima.nombre,
+            antes: r.antes,
+            despues: r.despues,
+            movidas: r.movidas || 0,
+            texto: `${o.numero}: el fin de obra pasa del ${r.antes.fin} al ${r.despues.fin} (+${dias} d\xEDas, \xAB${ultima.nombre}\xBB).`
+          };
         });
       }
       var aprobarOrden = (repo, sesion, id) => enTransaccion(repo, () => decidir(repo, sesion, id, "aprobada"));
@@ -95516,6 +97025,7 @@ ${linea}` : linea;
         crearOrden,
         guardarOrden,
         aprobarOrden,
+        moverFinPorOrden,
         rechazarOrden,
         imputar,
         sincronizarLinea,
@@ -97176,6 +98686,7 @@ ${avisos.join("\n")}` : ""}`,
         const PL = () => typeof window !== "undefined" && window.RECLAMACIONES_PLAZOS ? window.RECLAMACIONES_PLAZOS : require_plazos();
         const MAX_NIVEL = 4;
         const soloDocumenta = (h = {}) => Boolean(h.hechoPadreId) && h.hijoSuma !== void 0 && h.hijoSuma !== null && Number(h.hijoSuma) === 0;
+        const esDefensaCliente = (h) => Boolean(h) && h.categoriaClaim === "defensaCliente" && Boolean(Number(h.categoriaClaimManual));
         const ordenHijo = (a, b) => Number(a.hijoOrden ?? 1e9) - Number(b.hijoOrden ?? 1e9) || String(a.fecha || "").localeCompare(String(b.fecha || "")) || String(a.idExterno || "").localeCompare(String(b.idExterno || ""));
         function ordenar(hechos = []) {
           const ids = new Set(hechos.map((h) => h.id));
@@ -97212,6 +98723,17 @@ ${avisos.join("\n")}` : ""}`,
             frontera = sig;
           }
           return res;
+        }
+        function desgloseImporte(h, hechos = []) {
+          const cuenta = (x) => x.estado !== "descartado" && !soloDocumenta(x) && x.naturaleza !== "plazoLimak" && !esDefensaCliente(x) && !(x.estado === "validado" && x.computa === false);
+          if (!h || !cuenta(h)) return null;
+          const ids = descendientes(hechos, h.id);
+          const debajo = hechos.filter((x) => x.id !== h.id && ids.has(x.id) && cuenta(x));
+          const r2 = (n) => Math.round(n * 100) / 100;
+          const hijos = r2(debajo.reduce((s, x) => s + (Number(x.importe) || 0), 0));
+          if (!hijos) return null;
+          const propio = r2(Number(h.importe) || 0);
+          return { propio, hijos, total: r2(propio + hijos), n: debajo.length };
         }
         function cadena(padre, hechos = []) {
           const P = PL();
@@ -97253,11 +98775,12 @@ ${avisos.join("\n")}` : ""}`,
         }
         function diasQueSuman(h, hechos = []) {
           const P = PL();
+          if (esDefensaCliente(h)) return null;
           if (hijoVivo(h, hechos)) return 0;
           const propios = P.diasHecho(h);
           if (!hechos.some((x) => x.hechoPadreId === h.id)) return propios.dias;
           const desc = descendientes(hechos, h.id);
-          const familia = [h, ...hechos.filter((x) => desc.has(x.id) && x.estado !== "descartado" && !soloDocumenta(x) && x.naturaleza !== "plazoLimak")];
+          const familia = [h, ...hechos.filter((x) => desc.has(x.id) && x.estado !== "descartado" && !soloDocumenta(x) && x.naturaleza !== "plazoLimak" && !esDefensaCliente(x))];
           const computo = P.COMPUTOS[h.tiempoComputo] ? h.tiempoComputo : "naturales";
           const conFechas = [];
           let aMano = 0;
@@ -97272,9 +98795,824 @@ ${avisos.join("\n")}` : ""}`,
           if (!alguno) return null;
           return P.diasUnion(conFechas, { computo }).dias + aMano;
         }
-        const API = { soloDocumenta, ordenar, descendientes, cadena, hijoVivo, diasQueSuman };
+        const API = { soloDocumenta, esDefensaCliente, ordenar, descendientes, cadena, hijoVivo, diasQueSuman, desgloseImporte };
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.RECLAMACIONES_JERARQUIA = API;
+      })();
+    }
+  });
+
+  // shared/reclamaciones/hilosCorreo.js
+  var require_hilosCorreo = __commonJS({
+    "shared/reclamaciones/hilosCorreo.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var llano = (v) => String(v ?? "").trim();
+      var sinTildes = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "");
+      var espacios = (s) => String(s || "").replace(/\s+/g, " ").trim();
+      var soloFecha = (v) => llano(v) ? llano(v).slice(0, 10) : null;
+      function cabeceras(bruto) {
+        const t = String(bruto || "").replace(/\r\n?/g, "\n");
+        const fin = t.search(/\n\n/);
+        const cab = (fin < 0 ? t : t.slice(0, fin)).replace(/\n[ \t]+/g, " ");
+        const h = {};
+        for (const linea of cab.split("\n")) {
+          const m = linea.match(/^([A-Za-z][A-Za-z0-9-]*):\s*(.*)$/);
+          if (m) {
+            const k = m[1].toLowerCase();
+            if (!(k in h)) h[k] = m[2].trim();
+          }
+        }
+        return h;
+      }
+      var idsDe = (v) => (String(v || "").match(/<[^<>\s]+>/g) || []).map((x) => x.toLowerCase());
+      function raizThreadIndex(v) {
+        const b64 = llano(v).replace(/\s+/g, "");
+        if (!b64 || !/^[A-Za-z0-9+/=]+$/.test(b64)) return null;
+        try {
+          const bin = typeof Buffer !== "undefined" ? Buffer.from(b64, "base64") : Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+          if (bin.length < 22) return null;
+          return Array.from(bin.slice(0, 22), (x) => x.toString(16).padStart(2, "0")).join("");
+        } catch {
+          return null;
+        }
+      }
+      function datosHilo(bruto) {
+        const h = cabeceras(bruto);
+        const id = idsDe(h["message-id"])[0] || null;
+        const resp = [.../* @__PURE__ */ new Set([...idsDe(h["in-reply-to"]), ...idsDe(h.references)])].filter((x) => x !== id);
+        return { idMensaje: id, respondeA: resp, conversacion: raizThreadIndex(h["thread-index"]) };
+      }
+      var PREFIJO = /^\s*(?:\[[^\]]{1,30}\]\s*)*(?:(?:re|rv|fw|fwd|reenv|res|aw|wg|tr|sv|vs|odp|ynt|ilt|antw|r|i)\s*(?:\[\d+\]|\(\d+\))?\s*[:：]\s*)/i;
+      function asuntoBase(asunto) {
+        let a = llano(asunto);
+        for (let i = 0; i < 12; i += 1) {
+          const b = a.replace(PREFIJO, "").replace(/^\s*\[(?:ext|external|externo|extern)\]\s*/i, "");
+          if (b === a) break;
+          a = b;
+        }
+        return espacios(a);
+      }
+      function claveAsunto(asunto) {
+        return sinTildes(asuntoBase(asunto)).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      }
+      function agrupar(correos = []) {
+        const xs = (correos || []).filter(Boolean);
+        const padre = xs.map((_, i) => i);
+        const raiz = (i) => {
+          while (padre[i] !== i) {
+            padre[i] = padre[padre[i]];
+            i = padre[i];
+          }
+          return i;
+        };
+        const unir = (a, b) => {
+          const ra = raiz(a);
+          const rb = raiz(b);
+          if (ra !== rb) padre[Math.max(ra, rb)] = Math.min(ra, rb);
+        };
+        const porId = /* @__PURE__ */ new Map();
+        const porConv = /* @__PURE__ */ new Map();
+        const porAsunto = /* @__PURE__ */ new Map();
+        xs.forEach((c, i) => {
+          const id = llano(c.idMensaje).toLowerCase();
+          if (id) {
+            if (porId.has(id)) unir(i, porId.get(id));
+            else porId.set(id, i);
+          }
+        });
+        xs.forEach((c, i) => {
+          for (const r of lista(c.respondeA)) {
+            const j = porId.get(r.toLowerCase());
+            if (j !== void 0) unir(i, j);
+          }
+          const conv = llano(c.conversacion);
+          if (conv) {
+            if (porConv.has(conv)) unir(i, porConv.get(conv));
+            else porConv.set(conv, i);
+          }
+          const k = claveAsunto(c.asunto);
+          if (k.replace(/\s/g, "").length >= 4) {
+            if (porAsunto.has(k)) unir(i, porAsunto.get(k));
+            else porAsunto.set(k, i);
+          }
+        });
+        const grupos = /* @__PURE__ */ new Map();
+        xs.forEach((c, i) => {
+          const r = raiz(i);
+          if (!grupos.has(r)) grupos.set(r, []);
+          grupos.get(r).push(c);
+        });
+        const hilos = [...grupos.values()].map((cs) => {
+          const orden = [...cs].sort((a, b) => String(a.fecha || "").localeCompare(String(b.fecha || "")) || String(a.id || "").localeCompare(String(b.id || "")));
+          const primero = orden[0];
+          const clave = claveAsunto(primero.asunto) || `sin-asunto-${primero.id}`;
+          const fechas = orden.map((c) => soloFecha(c.fecha)).filter(Boolean);
+          return {
+            clave,
+            asunto: asuntoBase(primero.asunto) || "(sin asunto)",
+            correos: orden,
+            desde: fechas[0] || null,
+            hasta: fechas[fechas.length - 1] || null,
+            participantes: [...new Set(orden.flatMap((c) => [nombrePersona(c.de)]).filter(Boolean))]
+          };
+        });
+        const vistas = /* @__PURE__ */ new Map();
+        for (const h of hilos.sort((a, b) => String(a.desde || "").localeCompare(String(b.desde || "")) || a.clave.localeCompare(b.clave))) {
+          const n = (vistas.get(h.clave) || 0) + 1;
+          vistas.set(h.clave, n);
+          if (n > 1) h.clave = `${h.clave} #${n}`;
+        }
+        return hilos;
+      }
+      function lista(v) {
+        if (Array.isArray(v)) return v.map(llano).filter(Boolean);
+        const t = llano(v);
+        if (!t) return [];
+        if (t.startsWith("[")) {
+          try {
+            return JSON.parse(t).map(llano).filter(Boolean);
+          } catch {
+          }
+        }
+        return t.split(/[\s,;]+/).filter(Boolean);
+      }
+      function nombrePersona(v) {
+        const t = llano(v).split(/[;,](?![^<]*>)/)[0].trim();
+        if (!t) return null;
+        const m = t.match(/^"?([^"<]+?)"?\s*<([^>]+)>/);
+        return m ? m[1].trim() : t.replace(/[<>]/g, "");
+      }
+      var CORTES = [
+        /^-{2,}\s*(?:original message|mensaje original|forwarded message|mensaje reenviado|ursprüngliche nachricht|message d'origine)/i,
+        /^_{8,}\s*$/,
+        /^(?:on|el|le|am)\s.{4,200}(?:wrote|escribió|a écrit|schrieb)\s*:?\s*$/i
+      ];
+      var DE_LINEA = /^\s*\*?(?:de|from|von|da|kimden)\s*:\*?\s+\S/i;
+      var ENVIADO = /^\s*\*?(?:enviado(?: el)?|sent|gesendet|date|fecha|inviato|gönderildi)\s*:\*?/i;
+      function textoNuevo(texto) {
+        const lineas = String(texto || "").replace(/\r\n?/g, "\n").split("\n");
+        const fuera = [];
+        for (let i = 0; i < lineas.length; i += 1) {
+          const l = lineas[i];
+          if (CORTES.some((re) => re.test(l.trim()))) break;
+          if (DE_LINEA.test(l) && lineas.slice(i + 1, i + 5).some((x) => ENVIADO.test(x))) break;
+          if (/^\s*>/.test(l)) continue;
+          fuera.push(l);
+        }
+        return fuera.join("\n").trim();
+      }
+      function frases(texto) {
+        return String(texto || "").split(new RegExp('\\n+|(?<=[.!?])\\s+(?=[A-Z\xC1\xC9\xCD\xD3\xDA\xD1\xBF\xA10-9"\xAB(])')).map((x) => x.replace(/\s+/g, " ").trim()).filter((x) => x.length >= 12);
+      }
+      var SALUDO = /^(?:hola|buen[oa]s|hi\b|hello|dear|estimad[oa]s?|good (?:morning|afternoon|evening)|un saludo|saludos|regards|best regards|kind regards|thanks|thank you|gracias|muchas gracias|atentamente|cordialmente|sent from|enviado desde)/i;
+      var FIRMA = /^(?:tel|tlf|móvil|movil|mobile|phone|t\.|m\.|www\.|https?:|mailto:)/i;
+      var RE_RECLAMA = new RegExp([
+        "retras",
+        "demora",
+        "esper",
+        "bloque",
+        "parad",
+        "paraliz",
+        "sin acceso",
+        "no (?:se )?(?:puede|pueden|podemos|permite|permiten|deja)",
+        "impide",
+        "imposib",
+        "falta de",
+        "faltan",
+        "pendiente de",
+        "no disponible",
+        "no esta",
+        "adicional",
+        "extra",
+        "sobrecoste",
+        "sobre coste",
+        "coste",
+        "reclam",
+        "incumpl",
+        "plataforma",
+        "andamio",
+        "elevaci",
+        "grua",
+        "orden de cambio",
+        "modificad",
+        "no aprob",
+        "rechaz",
+        "sin respuesta",
+        "recordamos",
+        "insist",
+        "de nuevo",
+        "otra vez",
+        "delay",
+        "waiting",
+        "wait\\b",
+        "blocked",
+        "no access",
+        "not available",
+        "cannot",
+        "can't",
+        "unable",
+        "stopped",
+        "standby",
+        "stand-by",
+        "idle",
+        "additional",
+        "extra cost",
+        "claim",
+        "variation",
+        "instruction",
+        "not approved",
+        "rejected",
+        "no progress",
+        "still",
+        "again",
+        "reminder",
+        "urgent",
+        "gecik",
+        "bekle"
+      ].join("|"), "i");
+      var RE_IMPORTE = /(?:€|eur\b|euros?\b)\s?\d[\d.,]*(?:\s?(?:k|mil)\b)?|\d[\d.,]*(?:\s?(?:k|mil)\b)?\s?(?:€|eur\b|euros?\b)/gi;
+      var RE_CANTIDAD = /\b\d+(?:[.,]\d+)?\s?(?:d[ií]as?|days?|semanas?|weeks?|horas?|hours?|hrs?\b|h\b|meses|months?|personas|operarios|oficiales|t[eé]cnicos|workers?|men\b|uds?\b\.?|unidades|units?|equipos|m²|m2\b|m³|m3\b|ml\b|kg\b|%)/gi;
+      function cifrasDe(frase) {
+        const out = [];
+        for (const [re, tipo] of [[RE_IMPORTE, "importe"], [RE_CANTIDAD, "cantidad"]]) {
+          re.lastIndex = 0;
+          let m;
+          while (m = re.exec(frase)) {
+            const c = m[0].trim().replace(/[.,]$/, "");
+            if (!out.some((x) => x.cifra.includes(c) || c.includes(x.cifra))) out.push({ cifra: c, tipo });
+          }
+        }
+        return out;
+      }
+      var MAX_CITA = 320;
+      var recortar = (t) => t.length > MAX_CITA ? { cita: t.slice(0, MAX_CITA).replace(/\s+\S*$/, ""), recortada: true } : { cita: t };
+      function resumirPorReglas(hilo) {
+        const correos = hilo && hilo.correos || [];
+        const nuevos = correos.map((c) => ({ c, t: textoNuevo(c.extracto) }));
+        const fuente = (c) => ({ pruebaId: c.id, fecha: soloFecha(c.fecha), de: nombrePersona(c.de) });
+        let quePasa = nuevos.map(({ c, t }) => {
+          const f = frases(t).find((x) => !SALUDO.test(x) && !FIRMA.test(x));
+          return f ? { ...fuente(c), ...recortar(f) } : null;
+        }).filter(Boolean);
+        if (quePasa.length > 6) quePasa = [...quePasa.slice(0, 3), ...quePasa.slice(-3)];
+        const vistas = /* @__PURE__ */ new Set();
+        const porQue = [];
+        const cuanto = [];
+        for (const { c, t } of nuevos) {
+          for (const f of frases(t)) {
+            const k = sinTildes(f).toLowerCase();
+            if (vistas.has(k) || SALUDO.test(f) || FIRMA.test(f)) continue;
+            vistas.add(k);
+            const cs = cifrasDe(f);
+            if (RE_RECLAMA.test(sinTildes(f)) && porQue.length < 6) porQue.push({ ...fuente(c), ...recortar(f) });
+            for (const x of cs) {
+              if (cuanto.length >= 12) break;
+              const r = recortar(f);
+              if (!r.cita.includes(x.cifra)) continue;
+              cuanto.push({ ...fuente(c), cifra: x.cifra, tipo: x.tipo, ...r });
+            }
+          }
+        }
+        const n = correos.length;
+        const quien = (hilo.participantes || []).slice(0, 4).join(", ");
+        const fechas = hilo.desde && hilo.hasta && hilo.desde !== hilo.hasta ? `del ${hilo.desde} al ${hilo.hasta}` : hilo.desde ? `del ${hilo.desde}` : "sin fecha";
+        return {
+          deQueVa: `\xAB${hilo.asunto}\xBB: ${n} ${n === 1 ? "correo" : "correos"} ${fechas}${quien ? `, de ${quien}` : ""}.`,
+          quePasa,
+          porQueReclamamos: porQue,
+          queYCuanto: cuanto,
+          origen: "reglas",
+          pruebasIds: correos.map((c) => c.id)
+        };
+      }
+      var textosDe = (hilo) => new Map((hilo && hilo.correos || []).map((c) => [c.id, String(c.extracto || "")]));
+      var normal = (s) => espacios(s).replace(/[“”«»]/g, '"').replace(/[‘’]/g, "'");
+      function preguntaClaude(hilo) {
+        const correos = (hilo && hilo.correos || []).map((c) => [
+          `### pruebaId: ${c.id}`,
+          `Fecha: ${llano(c.fecha)}`,
+          `De: ${llano(c.de)}`,
+          `Para: ${llano(c.para)}`,
+          `Asunto: ${llano(c.asunto)}`,
+          "",
+          String(c.extracto || "").slice(0, 12e3)
+        ].join("\n")).join("\n\n");
+        return [
+          "Eres el t\xE9cnico que prepara una reclamaci\xF3n de una obra (contratista de instalaciones contra el cliente).",
+          "Lee SOLO los correos de abajo (un hilo) y resume en JSON, sin nada m\xE1s fuera del JSON:",
+          '{"deQueVa":"una o dos frases","quePasa":[{"pruebaId":"\u2026","cita":"\u2026"}],"porQueReclamamos":[{"pruebaId":"\u2026","cita":"\u2026"}],"queYCuanto":[{"pruebaId":"\u2026","cifra":"\u2026","cita":"\u2026","que":"\u2026"}]}',
+          "Reglas que no se pueden romper:",
+          '- Cada "cita" es un trozo COPIADO LITERALMENTE del texto del correo de ese pruebaId (mismas palabras, mismo idioma, sin traducir ni corregir), de 320 caracteres como mucho.',
+          '- Cada "cifra" (importe, d\xEDas, horas, personas, unidades\u2026) est\xE1 escrita tal cual DENTRO de su "cita". Si el hilo no da una cifra, "queYCuanto" va vac\xEDo. Nunca calcules ni estimes.',
+          '- "deQueVa" no lleva ninguna cifra que no est\xE9 en los correos.',
+          "- quePasa: los pasos del hilo en orden (m\xE1x. 6). porQueReclamamos: lo que bloquea, retrasa, falta o cuesta de m\xE1s por causa del cliente (m\xE1x. 6). queYCuanto: m\xE1x. 12.",
+          '- "que" dice en pocas palabras a qu\xE9 se refiere la cifra.',
+          "",
+          correos
+        ].join("\n");
+      }
+      function jsonDeRespuesta(texto) {
+        const t = String(texto || "");
+        const m = t.match(/```(?:json)?\s*([\s\S]*?)```/);
+        const cuerpo = m ? m[1] : t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1);
+        try {
+          return JSON.parse(cuerpo);
+        } catch {
+          return null;
+        }
+      }
+      function filtrarResumen(propuesta, hilo) {
+        const textos = textosDe(hilo);
+        const todos = normal([...textos.values()].join("\n"));
+        const porId = new Map([...textos].map(([id, t]) => [id, normal(t)]));
+        const correo = new Map((hilo && hilo.correos || []).map((c) => [c.id, c]));
+        let descartadas = 0;
+        const vale = (x, conCifra) => {
+          const cita = normal(x && x.cita);
+          if (!cita || cita.length < 4) {
+            descartadas += 1;
+            return null;
+          }
+          const id = llano(x.pruebaId);
+          let pid = (porId.get(id) || "").includes(cita) ? id : null;
+          if (!pid) {
+            const otro = [...porId].find(([, t]) => t.includes(cita));
+            pid = otro ? otro[0] : null;
+          }
+          if (!pid) {
+            descartadas += 1;
+            return null;
+          }
+          if (conCifra) {
+            const cifra = normal(x.cifra);
+            if (!cifra || !/\d/.test(cifra) || !cita.includes(cifra)) {
+              descartadas += 1;
+              return null;
+            }
+          }
+          const c = correo.get(pid) || {};
+          return {
+            pruebaId: pid,
+            fecha: soloFecha(c.fecha),
+            de: nombrePersona(c.de),
+            ...recortar(cita),
+            ...conCifra ? { cifra: normal(x.cifra), que: llano(x.que).slice(0, 120) || null } : {}
+          };
+        };
+        const p = propuesta || {};
+        const arr = (v) => Array.isArray(v) ? v : [];
+        const quePasa = arr(p.quePasa).slice(0, 6).map((x) => vale(x, false)).filter(Boolean);
+        const porQue = arr(p.porQueReclamamos).slice(0, 6).map((x) => vale(x, false)).filter(Boolean);
+        const cuanto = arr(p.queYCuanto).slice(0, 12).map((x) => vale(x, true)).filter((x) => x && x.cita.includes(x.cifra));
+        let deQueVa = espacios(p.deQueVa).slice(0, 500);
+        const numeros = deQueVa.match(/\d[\d.,]*/g) || [];
+        if (numeros.some((nn) => !todos.includes(nn.replace(/[.,]$/, "")))) {
+          deQueVa = "";
+          descartadas += 1;
+        }
+        return { resumen: { deQueVa, quePasa, porQueReclamamos: porQue, queYCuanto: cuanto }, descartadas };
+      }
+      var RESUMIDORES = {};
+      function registrarResumidor(nombre, fn) {
+        if (typeof fn === "function") RESUMIDORES[nombre] = fn;
+        else delete RESUMIDORES[nombre];
+      }
+      var hayResumidor = (nombre) => Boolean(RESUMIDORES[nombre]);
+      async function resumirHilo(hilo, { resumidor = null } = {}) {
+        const base = resumirPorReglas(hilo);
+        if (!resumidor) return base;
+        if (!RESUMIDORES[resumidor]) return { ...base, error: "Claude no est\xE1 disponible en este equipo: queda el resumen por reglas." };
+        try {
+          const r = await RESUMIDORES[resumidor](hilo, { pregunta: preguntaClaude(hilo) });
+          const propuesta = r && typeof r === "object" && !r.texto ? r : jsonDeRespuesta(r && typeof r === "object" ? r.texto : r);
+          if (!propuesta) return { ...base, error: "Claude no ha devuelto un resumen legible: queda el de reglas." };
+          const { resumen, descartadas } = filtrarResumen(propuesta, hilo);
+          const algo = resumen.deQueVa || resumen.quePasa.length || resumen.porQueReclamamos.length || resumen.queYCuanto.length;
+          if (!algo) return { ...base, descartadas, error: "Nada de lo que propuso Claude estaba literal en los correos: queda el de reglas." };
+          return {
+            deQueVa: resumen.deQueVa || base.deQueVa,
+            quePasa: resumen.quePasa.length ? resumen.quePasa : base.quePasa,
+            porQueReclamamos: resumen.porQueReclamamos.length ? resumen.porQueReclamamos : base.porQueReclamamos,
+            queYCuanto: resumen.queYCuanto,
+            origen: r && r.lector || resumidor,
+            descartadas,
+            pruebasIds: base.pruebasIds
+          };
+        } catch (e) {
+          return { ...base, error: `Claude: ${String(e && e.message || e).split("\n")[0]}. Queda el resumen por reglas.` };
+        }
+      }
+      function colapsarPorHilo(pruebas = []) {
+        const grupos = /* @__PURE__ */ new Map();
+        for (const p of pruebas || []) {
+          if (!p || p.tipo !== "correo") continue;
+          const ca = claveAsunto(p.asunto);
+          const k = llano(p.hilo) || (ca.replace(/\s/g, "").length >= 4 ? ca : "");
+          if (!k) continue;
+          if (!grupos.has(k)) grupos.set(k, []);
+          grupos.get(k).push(p);
+        }
+        const ocultas = /* @__PURE__ */ new Set();
+        const ultimos = /* @__PURE__ */ new Map();
+        for (const [clave, cs] of grupos) {
+          if (cs.length < 2) continue;
+          const orden = [...cs].sort((a, b) => String(a.fecha || "").localeCompare(String(b.fecha || "")) || String(a.creadoEn || "").localeCompare(String(b.creadoEn || "")) || String(a.id).localeCompare(String(b.id)));
+          const ultimo = orden[orden.length - 1];
+          const anteriores = orden.slice(0, -1);
+          anteriores.forEach((p) => ocultas.add(p.id));
+          ultimos.set(ultimo.id, {
+            clave,
+            anteriores: anteriores.map((p) => ({ id: p.id, fecha: p.fecha || null, de: p.de || null, asunto: p.asunto || "" })),
+            hechosIds: [...new Set(orden.flatMap((p) => p.hechosIds || []))]
+          });
+        }
+        return { ocultas, ultimos };
+      }
+      module.exports = {
+        colapsarPorHilo,
+        cabeceras,
+        datosHilo,
+        raizThreadIndex,
+        asuntoBase,
+        claveAsunto,
+        agrupar,
+        nombrePersona,
+        textoNuevo,
+        frases,
+        cifrasDe,
+        resumirPorReglas,
+        preguntaClaude,
+        jsonDeRespuesta,
+        filtrarResumen,
+        registrarResumidor,
+        hayResumidor,
+        resumirHilo,
+        RESUMIDORES
+      };
+    }
+  });
+
+  // shared/reclamaciones/defensaCliente.js
+  var require_defensaCliente = __commonJS({
+    "shared/reclamaciones/defensaCliente.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const J = () => typeof window !== "undefined" && window.RECLAMACIONES_JERARQUIA ? window.RECLAMACIONES_JERARQUIA : require_jerarquia();
+        const HC = () => require_hilosCorreo();
+        const CLAVE = "defensaCliente";
+        const NOSOTROS = "cbre";
+        const llano = (v) => String(v ?? "").trim();
+        const normal = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+        const CONTRAATAQUE = [
+          [new RegExp(`\\b(due to|because of|caused by|as a result of|owing to|fault of)\\s+(your|${NOSOTROS})\\b`), "nos atribuye la causa"],
+          [/\byour (delays?|lack|failure|fault|poor|slow|late)\b/, "nos culpa"],
+          [new RegExp(`\\b${NOSOTROS}('s)? (delays?|fault|failure|lack|is late|is delaying|is responsible)\\b`), "nos culpa"],
+          [/\b(lack of|insufficient|not enough|shortage of)\s+(\w+\s)?(manpower|workers|labou?r|personnel|resources|technicians|teams)\b/, "alega falta de personal nuestro"],
+          [/\bback-?charg/, "nos repercute un coste"],
+          [/\bliquidated damages\b/, "nos reclama penalidades"],
+          [/\b(will|shall|to) be (charged|deducted|subtracted)\b|\bcost reflection\b/, "nos repercute un coste"],
+          [/\b(reject(s|ed)?|(will )?not (accept|entertain))\b.{0,30}\b(claims?|variations?|extra costs?)\b/, "rechaza lo que reclamamos"],
+          [new RegExp(`\\b(por culpa de|debido a|a causa de)\\s+(${NOSOTROS}|vuestr|ustedes)`), "nos atribuye la causa"],
+          [new RegExp(`\\b(retrasos?|demoras?) (de|por parte de) ${NOSOTROS}\\b|\\bvuestros? retrasos?\\b`), "nos culpa"],
+          [/\bfalta de (personal|medios|operarios|recursos)\b/, "alega falta de personal nuestro"],
+          [/\bse (os |les )?(cargara|descontara|deducira|repercutira)\b/, "nos repercute un coste"],
+          [/\brechaza\w*\b.{0,30}\breclamaci/, "rechaza lo que reclamamos"]
+        ];
+        const AMENAZA = [
+          [/\b(will|shall|can)\s*not\s+(approve|certify|pay|sign|release)\b|\bwon'?t\s+(approve|certify|pay|sign|release)\b/, "condiciona la aprobaci\xF3n o el pago"],
+          [/\b(no|without( any)?) funds\b/, "amenaza con no pagar"],
+          [/\bpenalt(y|ies)\b|\bcontractual letter\b|\bformal notice\b|\bterminat(e|ion)\b/, "amenaza con medidas contractuales"],
+          [/\botherwise (we|you)\b/, "exige bajo amenaza"],
+          [/\bno (vamos a |se va a |se )?(aprobar|aprobara|certificar|certificara|pagar|pagara|firmar|firmara)\b/, "condiciona la aprobaci\xF3n o el pago"],
+          [/\bpenalizacion(es)?\b|\bsancion(es)?\b|\bcarta contractual\b/, "amenaza con medidas contractuales"]
+        ];
+        const ORDEN = /\b(urgent|immediately|speed up|accelerate|you have to|you must|increase (the )?(manpower|workers)|urgente|acelerar|teneis que|exigimos)\b|\bbuild .{0,20}teams\b/;
+        function textoPropio(texto) {
+          const t = String(texto || "");
+          const m = t.match(/^[ \t>]*(from|de|sent|enviado)\s*:|^[ \t>]*on .{3,80} wrote:|^[ \t]*-{2,}\s*(original|mensaje)|^[ \t]*_{5,}/im);
+          return m ? t.slice(0, m.index) : t;
+        }
+        const primera = (reglas, t) => {
+          const r = reglas.find(([x]) => x.test(t));
+          return r ? r[1] : null;
+        };
+        function detectarDefensaCliente({ deCliente = false, asunto = "", texto = "" } = {}) {
+          const nada = { defensa: false, tipo: null, duda: false, revisar: false, motivo: "" };
+          if (!deCliente) return nada;
+          const t = normal(`${asunto}
+${textoPropio(texto)}`);
+          const culpa = primera(CONTRAATAQUE, t);
+          if (culpa) return { defensa: true, tipo: "contraataque", duda: false, revisar: false, motivo: `defensa del cliente: ${culpa}` };
+          const amenaza = primera(AMENAZA, t);
+          if (amenaza) return { defensa: true, tipo: "exigencia", duda: true, revisar: false, motivo: `defensa del cliente (duda: puede servir tambi\xE9n para reclamar): ${amenaza}` };
+          if (ORDEN.test(t)) return { ...nada, revisar: true, motivo: "exigencia del cliente sin amenaza: revisar si sirve de defensa" };
+          return nada;
+        }
+        const categoriaDeDeteccion = (det, importe) => det && det.defensa && !(det.duda && Number(importe)) ? CLAVE : null;
+        function ladoDeCorreo(de, { dominiosCliente = [], nombreCliente = "" } = {}) {
+          const t = normal(de);
+          if (!t) return "otro";
+          const dominios = (dominiosCliente || []).map((d) => normal(d).replace(/^@/, "")).filter(Boolean);
+          const correos = t.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/g) || [];
+          if (correos.some((c) => {
+            const d = c.split("@")[1];
+            return dominios.some((x) => d === x || d.endsWith(`.${x}`));
+          })) return "cliente";
+          const nombre = normal(nombreCliente).trim();
+          if (nombre.length >= 3 && t.includes(nombre)) return "cliente";
+          return t.includes(NOSOTROS) ? "nuestro" : "otro";
+        }
+        function hilosDefensa({ hechos = [], pruebas = [], dominiosCliente = [], nombreCliente = "" } = {}) {
+          const defensa = hechos.filter((h) => J().esDefensaCliente(h) && h.estado !== "descartado");
+          const porId = new Map(pruebas.filter((p) => p && p.tipo === "correo").map((p) => [p.id, p]));
+          const deCorreo = /* @__PURE__ */ new Map();
+          for (const h of defensa) {
+            for (const id of h.pruebasIds || []) {
+              if (!porId.has(id)) continue;
+              if (!deCorreo.has(id)) deCorreo.set(id, []);
+              deCorreo.get(id).push(h);
+            }
+          }
+          const correos = [...deCorreo.keys()].map((id) => porId.get(id));
+          const hilos = HC().agrupar(correos).map((h) => {
+            const filas = h.correos.map((c) => ({
+              pruebaId: c.id,
+              fecha: c.fecha || null,
+              de: c.de || null,
+              asunto: c.asunto || "",
+              abrible: Boolean(c.tieneArchivo || c.enlace),
+              lado: ladoDeCorreo(c.de, { dominiosCliente, nombreCliente })
+            }));
+            const suyos = /* @__PURE__ */ new Map();
+            for (const c of h.correos) for (const x of deCorreo.get(c.id)) suyos.set(x.id, { id: x.id, idExterno: x.idExterno || null, titulo: x.titulo || "" });
+            const ultimo = filas[filas.length - 1];
+            return {
+              clave: h.clave,
+              asunto: h.asunto,
+              desde: h.desde,
+              hasta: h.hasta,
+              correos: filas,
+              hechos: [...suyos.values()],
+              sinRespuesta: Boolean(ultimo) && ultimo.lado === "cliente"
+            };
+          });
+          const conHilo = new Set(hilos.flatMap((h) => h.hechos.map((x) => x.id)));
+          return { hilos, hechos: defensa.length, sinCorreos: defensa.filter((h) => !conHilo.has(h.id)).map((h) => ({ id: h.id, idExterno: h.idExterno || null, titulo: h.titulo || "" })) };
+        }
+        const API = { CLAVE, textoPropio, detectarDefensaCliente, categoriaDeDeteccion, ladoDeCorreo, hilosDefensa };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.RECLAMACIONES_DEFENSA_CLIENTE = API;
+      })();
+    }
+  });
+
+  // shared/reclamaciones/costesHecho.js
+  var require_costesHecho = __commonJS({
+    "shared/reclamaciones/costesHecho.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const PL = () => typeof window !== "undefined" && window.RECLAMACIONES_PLAZOS ? window.RECLAMACIONES_PLAZOS : require_plazos();
+        const leerImp = (v) => (typeof window !== "undefined" && window.IMPORTE ? window.IMPORTE : require_importe()).leerImporte(v);
+        const num = (v) => {
+          if (v === null || v === void 0 || v === "") return null;
+          const n = typeof v === "number" ? v : leerImp(v);
+          return Number.isFinite(n) && n >= 0 ? n : null;
+        };
+        const red = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+        const fecha = (v) => /^\d{4}-\d{2}-\d{2}/.test(String(v || "")) ? String(v).slice(0, 10) : null;
+        const txt = (v, max = 500) => String(v ?? "").trim().slice(0, max);
+        const MARCAS = {
+          dato: { nombre: "Dato", corto: "dato" },
+          estimacion: { nombre: "Estimaci\xF3n", corto: "estim." },
+          falta: { nombre: "Falta", corto: "falta" }
+        };
+        const MEDIOS_FIJOS = {
+          jefeObra: "Jefe de obra",
+          encargado: "Encargado",
+          staff: "Staff de obra (sin desglosar)",
+          oficina: "Oficina y casetas",
+          grua: "Gr\xFAa",
+          andamios: "Andamios y plataformas",
+          seguros: "Seguros",
+          otro: "Otro medio fijo"
+        };
+        const ORDEN_MEDIOS = ["jefeObra", "encargado", "oficina", "grua", "andamios", "seguros"];
+        const TIPOS_DIRECTO = {
+          mano: "Cuadrilla (personas \xD7 horas \xD7 d\xEDas \xD7 \u20AC/h)",
+          maquina: "Maquinaria o alquiler (unidades \xD7 d\xEDas \xD7 \u20AC/d\xEDa)",
+          factura: "Material o factura (importe)"
+        };
+        const CAMPOS_TIPO = {
+          mano: { cantidad: ["personas", "horas", "dias"], coste: "tarifa", venta: "tarifaVenta" },
+          maquina: { cantidad: ["unidades", "dias"], coste: "costeDia", venta: "ventaDia" },
+          factura: { cantidad: [], coste: "importe", venta: "importeVenta" }
+        };
+        const camposDe = (tipo) => {
+          const t = CAMPOS_TIPO[tipo] || CAMPOS_TIPO.mano;
+          return [...t.cantidad, t.coste, t.venta];
+        };
+        const CAMPOS_MANO = ["personas", "horas", "dias", "tarifa"];
+        function json(v) {
+          if (v === null || v === void 0 || v === "") return null;
+          if (typeof v === "object") return v;
+          try {
+            return JSON.parse(v);
+          } catch {
+            return null;
+          }
+        }
+        const marcaDe = (valor, marca) => valor === null ? "falta" : MARCAS[marca] && marca !== "falta" ? marca : "dato";
+        const diasDeFechas = (i) => i.desde && i.hasta ? PL().diasEntre(i.desde, i.hasta) : null;
+        const diasIndirecto = (i) => i.dias !== null && i.dias !== void 0 ? i.dias : diasDeFechas(i);
+        function normalizar(v) {
+          const c = json(v);
+          if (!c || typeof c !== "object") return null;
+          const directo = (Array.isArray(c.directo) ? c.directo : []).slice(0, 40).map((l) => {
+            const tipo = TIPOS_DIRECTO[l && l.tipo] ? l.tipo : "mano";
+            const marcas = {};
+            const out = { tipo, concepto: txt(l && l.concepto, 200), fuente: txt(l && l.fuente) };
+            for (const k of camposDe(tipo)) {
+              out[k] = num(l && l[k]);
+              marcas[k] = marcaDe(out[k], l && l.marcas && l.marcas[k]);
+            }
+            if (tipo === "mano" && l && l.categoria) out.categoria = txt(l.categoria, 40);
+            out.marcas = marcas;
+            return out;
+          });
+          const i = c.indirecto && typeof c.indirecto === "object" ? c.indirecto : {};
+          const indirecto = {
+            desde: fecha(i.desde),
+            hasta: fecha(i.hasta),
+            dias: num(i.dias),
+            diasDesplazan: num(i.diasDesplazan),
+            diasSolape: num(i.diasSolape) || 0,
+            solapaCon: Array.isArray(i.solapaCon) ? i.solapaCon.slice(0, 20).map((x) => txt(x, 60)) : [],
+            fuente: txt(i.fuente),
+            marcas: {},
+            medios: (Array.isArray(i.medios) ? i.medios : []).slice(0, 20).map((m) => {
+              const costeDia = num(m && m.costeDia);
+              return {
+                medio: MEDIOS_FIJOS[m && m.medio] ? m.medio : "otro",
+                nombre: txt(m && m.nombre, 120),
+                costeDia,
+                marca: marcaDe(costeDia, m && m.marca),
+                fuente: txt(m && m.fuente),
+                yaReclamado: txt(m && m.yaReclamado, 200)
+              };
+            })
+          };
+          indirecto.marcas.dias = marcaDe(diasIndirecto(indirecto), i.marcas && i.marcas.dias);
+          indirecto.marcas.diasDesplazan = marcaDe(indirecto.diasDesplazan, i.marcas && i.marcas.diasDesplazan);
+          if (!directo.length && !indirecto.medios.length && indirecto.dias === null && !indirecto.desde) return null;
+          return { directo, indirecto };
+        }
+        function calcular(v, tarifas = []) {
+          const c = normalizar(v) || { directo: [], indirecto: { medios: [], diasSolape: 0, solapaCon: [], marcas: {}, dias: null, diasDesplazan: null } };
+          const faltan = [];
+          let estimaciones = 0;
+          const cuenta = (marcas) => {
+            for (const m of Object.values(marcas || {})) if (m === "estimacion") estimaciones += 1;
+          };
+          let directo = 0;
+          let hayDirecto = false;
+          let enVenta = 0;
+          const lineas = c.directo.map((l, n) => {
+            const x = { ...l, marcas: { ...l.marcas } };
+            if (x.tipo === "mano" && x.tarifa === null && x.categoria) {
+              const t2 = (tarifas || []).find((y) => y.codigo === x.categoria);
+              if (t2 && num(t2.tarifa) !== null) {
+                x.tarifa = num(t2.tarifa);
+                x.marcas.tarifa = "dato";
+              }
+            }
+            cuenta(x.marcas);
+            const t = CAMPOS_TIPO[x.tipo] || CAMPOS_TIPO.mano;
+            const vacios = t.cantidad.filter((k) => x[k] === null);
+            if (x[t.coste] === null && x[t.venta] === null) vacios.push("coste o venta");
+            x.coste = null;
+            x.venta = null;
+            if (vacios.length) {
+              faltan.push(`directo \xB7 ${x.concepto || `l\xEDnea ${n + 1}`}: falta ${vacios.join(", ")}`);
+              x.calculo = null;
+              return x;
+            }
+            const q = t.cantidad.reduce((acc, k) => acc * x[k], 1);
+            x.coste = x[t.coste] === null ? null : red(q * x[t.coste]);
+            x.venta = x[t.venta] === null ? null : red(q * x[t.venta]);
+            x.calculo = x.venta !== null ? x.venta : x.coste;
+            if (x.venta !== null) enVenta += 1;
+            directo += x.calculo;
+            hayDirecto = true;
+            return x;
+          });
+          const i = c.indirecto;
+          cuenta(i.marcas);
+          const dias = diasIndirecto(i);
+          const desplazan = i.diasDesplazan !== null && i.diasDesplazan !== void 0 ? i.diasDesplazan : dias;
+          const diasNetos = desplazan === null ? null : Math.max(0, Math.min(desplazan, dias === null ? desplazan : dias - (i.diasSolape || 0)));
+          if (i.medios.length && dias === null) faltan.push("indirecto: faltan los d\xEDas de retraso");
+          else if (i.medios.length && (i.diasDesplazan === null || i.diasDesplazan === void 0)) faltan.push("indirecto: falta confirmar con el cronograma cu\xE1ntos d\xEDas desplazan la fecha final (mientras, se toman todos los del retraso)");
+          let indirecto = 0;
+          let noSuma = 0;
+          let hayIndirecto = false;
+          const medios = i.medios.map((m) => {
+            const x = { ...m, suma: !m.yaReclamado };
+            if (m.marca === "estimacion") estimaciones += 1;
+            if (m.costeDia === null) {
+              if (!m.yaReclamado) faltan.push(`indirecto \xB7 ${m.nombre || MEDIOS_FIJOS[m.medio]}: falta el coste diario`);
+              x.importe = null;
+              return x;
+            }
+            if (diasNetos === null) {
+              x.importe = null;
+              return x;
+            }
+            x.importe = red(diasNetos * m.costeDia);
+            if (x.suma) {
+              indirecto += x.importe;
+              hayIndirecto = true;
+            } else noSuma += x.importe;
+            return x;
+          });
+          const total = red(directo + indirecto);
+          return {
+            directo: red(directo),
+            indirecto: red(indirecto),
+            indirectoNoSuma: red(noSuma),
+            total,
+            base: hayDirecto || hayIndirecto ? total : null,
+            dias,
+            diasDesplazan: desplazan,
+            diasSolape: i.diasSolape || 0,
+            solapaCon: i.solapaCon || [],
+            diasNetos,
+            lineas,
+            medios,
+            faltan,
+            estimaciones,
+            enVenta
+          };
+        }
+        function desdeHecho(h = {}, tarifas = [], motor = null) {
+          const prev = normalizar(h.costes);
+          if (prev) return prev;
+          const M = motor || require_motor5();
+          const marca = h.certeza === "estimado" ? "estimacion" : "dato";
+          const q = M.parametros(h, tarifas);
+          const directo = [];
+          const indirecto = { desde: null, hasta: null, dias: null, diasDesplazan: null, diasSolape: 0, solapaCon: [], fuente: "", marcas: {}, medios: [] };
+          const d = PL().diasHecho(h);
+          if (d.origen === "fechas") {
+            indirecto.desde = d.desde;
+            indirecto.hasta = d.hasta;
+          }
+          if (h.metodo === "horas_x_tarifa") {
+            const l = { tipo: "mano", concepto: "Cuadrilla", personas: q.a, horas: q.b, dias: q.c, tarifa: q.p, fuente: "", marcas: {} };
+            if (h.categoria) l.categoria = h.categoria;
+            for (const k of CAMPOS_MANO) l.marcas[k] = marca;
+            directo.push(l);
+          } else if (h.metodo === "dias_x_coste_diario") {
+            indirecto.dias = q.a;
+            indirecto.marcas.dias = marca;
+            indirecto.medios.push({ medio: "otro", nombre: "Coste diario de la obra parada", costeDia: q.p, marca, fuente: "", yaReclamado: "" });
+          } else if (h.metodo && h.metodo !== "directo_indirecto") {
+            const { base, faltan } = M.importeHecho({ ...h, m: 0, k: 0 }, tarifas);
+            const importe = faltan.length ? null : base;
+            directo.push({ tipo: "factura", concepto: (M.METODOS[h.metodo] || {}).nombre || "Importe", importe, fuente: "", marcas: { importe: marca } });
+          }
+          if (q.m) directo.push({ tipo: "factura", concepto: h.metodo === "alquiler" ? "Portes, seguro y otros" : "Material", importe: q.m, fuente: "", marcas: { importe: marca } });
+          return normalizar({ directo, indirecto }) || { directo: [], indirecto: { ...indirecto, marcas: { dias: "falta", diasDesplazan: "falta" } } };
+        }
+        function repartirSolapes(hechos = []) {
+          const P = PL();
+          const con = hechos.map((h) => ({ h, c: normalizar(h.costes) })).filter((x) => x.c && x.c.indirecto.desde && x.c.indirecto.hasta && x.c.indirecto.hasta > x.c.indirecto.desde && x.c.indirecto.medios.length).sort((a, b) => a.c.indirecto.desde.localeCompare(b.c.indirecto.desde) || String(a.h.id).localeCompare(String(b.h.id)));
+          const out = /* @__PURE__ */ new Map();
+          const previos = [];
+          for (const { h, c } of con) {
+            const yo = { desde: c.indirecto.desde, hasta: c.indirecto.hasta };
+            const antes = P.diasUnion(previos).dias;
+            const juntos = P.diasUnion([...previos, yo]).dias;
+            const propios = P.diasEntre(yo.desde, yo.hasta);
+            const diasSolape = Math.max(0, propios - (juntos - antes));
+            const solapaCon = diasSolape ? previos.filter((p) => p.desde < yo.hasta && p.hasta > yo.desde).map((p) => p.numero) : [];
+            out.set(h.id, { diasSolape, solapaCon: [...new Set(solapaCon)] });
+            previos.push({ ...yo, numero: String(h.numero || h.id) });
+          }
+          return out;
+        }
+        function resumen(calc, eur) {
+          if (!calc) return "";
+          const e = eur || ((n) => `${Number(n).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} \u20AC`);
+          const partes = [`directo ${e(calc.directo)}`, `indirecto ${e(calc.indirecto)}`];
+          if (calc.indirectoNoSuma) partes.push(`${e(calc.indirectoNoSuma)} ya reclamado aparte (no suma)`);
+          return partes.join(" \xB7 ");
+        }
+        const API = { MARCAS, MEDIOS_FIJOS, ORDEN_MEDIOS, TIPOS_DIRECTO, CAMPOS_TIPO, CAMPOS_MANO, normalizar, calcular, desdeHecho, repartirSolapes, resumen, diasIndirecto };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.RECLAMACIONES_COSTES = API;
       })();
     }
   });
@@ -97463,6 +99801,8 @@ ${avisos.join("\n")}` : ""}`,
       (function iniciarMotorReclamaciones() {
         const PL = () => typeof window !== "undefined" && window.RECLAMACIONES_PLAZOS ? window.RECLAMACIONES_PLAZOS : require_plazos();
         const J = () => typeof window !== "undefined" && window.RECLAMACIONES_JERARQUIA ? window.RECLAMACIONES_JERARQUIA : require_jerarquia();
+        const DC = () => typeof window !== "undefined" && window.RECLAMACIONES_DEFENSA_CLIENTE ? window.RECLAMACIONES_DEFENSA_CLIENTE : require_defensaCliente();
+        const CH = () => typeof window !== "undefined" && window.RECLAMACIONES_COSTES ? window.RECLAMACIONES_COSTES : require_costesHecho();
         const esPlazo = (h) => Boolean(h) && h.naturaleza === "plazoLimak";
         const ESTADOS = {
           borrador: { nombre: "Borrador", en: "Draft", orden: 1 },
@@ -97592,6 +99932,16 @@ ${avisos.join("\n")}` : ""}`,
             camposEn: { a: "Units", c: "Days", p: "\u20AC/day" },
             usa: ["a", "c", "p"]
           },
+          /* Coste directo (cuadrilla, facturas) + coste indirecto (días que desplazan
+             la fecha final × medios fijos), cada uno con su desglose en `costes`
+             (costesHecho.js). La base, en p, es su suma; m y k siguen valiendo. */
+          directo_indirecto: {
+            nombre: "Coste directo + coste indirecto",
+            en: "Direct cost + indirect cost",
+            campos: { p: "Directo + indirecto (\u20AC)" },
+            camposEn: { p: "Direct + indirect (\u20AC)" },
+            usa: ["p"]
+          },
           importe_directo: {
             nombre: "Importe directo",
             en: "Lump sum",
@@ -97705,9 +100055,10 @@ ${avisos.join("\n")}` : ""}`,
           const met = METODOS[hecho.metodo] || METODOS.importe_directo;
           const r = { a: null, b: null, c: null, p: null, m: num(hecho.m) || 0, k: num(hecho.k) || 0 };
           for (const x of met.usa) r[x] = num(hecho[x]);
+          if (hecho.metodo === "directo_indirecto") r.p = CH().calcular(hecho.costes, tarifas).base;
           if (hecho.metodo === "dias_x_coste_diario" && r.a === null) r.a = PL().diasHecho(hecho).dias;
           for (const [x, v] of Object.entries(met.porDefecto || {})) if (r[x] === null) r[x] = v;
-          if (hecho.categoria && met.usa.includes("p")) {
+          if (hecho.categoria && met.usa.includes("p") && hecho.metodo !== "directo_indirecto") {
             const t = (tarifas || []).find((y) => y.codigo === hecho.categoria);
             if (t && num(t.tarifa) !== null) r.p = num(t.tarifa);
           }
@@ -97723,6 +100074,7 @@ ${avisos.join("\n")}` : ""}`,
           const importe = redondear((base + q.m) * (1 + q.k / 100));
           return { importe, base: redondear(base), faltan, params: q };
         }
+        const costesDe = (hecho, tarifas = []) => CH().calcular(CH().desdeHecho(hecho, tarifas, { parametros, importeHecho, METODOS }), tarifas);
         function horasHecho(hecho, tarifas = []) {
           if (hecho.metodo === "horas_x_tarifa") {
             const q = parametros(hecho, tarifas);
@@ -97751,7 +100103,7 @@ ${avisos.join("\n")}` : ""}`,
           return (renuncias || []).find((r) => (!soloEjecutadas || Number(r.ejecutada)) && (!r.fechaDesde || f >= soloFecha(r.fechaDesde)) && r.fechaHasta && f <= soloFecha(r.fechaHasta)) || null;
         }
         function avisosHecho(hecho, { reclamacion = {}, renuncias = [], tarifas = [], hoy = null } = {}) {
-          if (esPlazo(hecho)) return [];
+          if (esPlazo(hecho) || J().esDefensaCliente(hecho)) return [];
           const avisos = [];
           const R = reglasDe(reclamacion);
           const dt = PL().diasHecho(hecho);
@@ -97800,7 +100152,7 @@ ${avisos.join("\n")}` : ""}`,
         }
         function computa(hecho, renuncias = []) {
           if (esPlazo(hecho)) return false;
-          if (J().soloDocumenta(hecho)) return false;
+          if (J().soloDocumenta(hecho) || J().esDefensaCliente(hecho)) return false;
           if (hecho.estado !== "validado") return false;
           if (renunciaQueCubre(hecho.fecha, renuncias) && !Number(hecho.incluirPeseRenuncia)) return false;
           return true;
@@ -97855,7 +100207,10 @@ ${avisos.join("\n")}` : ""}`,
             dias: 0,
             diasPendiente: 0,
             plazos: 0,
-            propioPlazos: 0
+            propioPlazos: 0,
+            /* EL COSTE que nos ha tenido (11-nov-2026, JC): lo pagado de verdad (hecho.costeReal), de todos los hechos vivos, validados o no. */
+            propioCoste: 0,
+            coste: 0
           }));
           const porId = new Map(filas.map((f) => [f.id, f]));
           let total = 0;
@@ -97868,6 +100223,7 @@ ${avisos.join("\n")}` : ""}`,
           let dias = 0;
           let diasPendiente = 0;
           let plazos = 0;
+          let coste = 0;
           for (const h of hechos) {
             if (h.estado === "descartado") continue;
             const f = porId.get(h.apartadoId);
@@ -97876,7 +100232,13 @@ ${avisos.join("\n")}` : ""}`,
               if (f) f.propioPlazos += 1;
               continue;
             }
+            const cr = J().esDefensaCliente(h) ? null : costeRealDe(h);
+            if (cr !== null) {
+              coste = redondear(coste + cr);
+              if (f) f.propioCoste = redondear(f.propioCoste + cr);
+            }
             if (J().soloDocumenta(h)) continue;
+            if (J().esDefensaCliente(h)) continue;
             const { importe } = importeHecho(h, tarifas);
             const dh = J().diasQueSuman(h, hechos);
             if (dh !== null && h.estado === "propuesto") {
@@ -97927,6 +100289,7 @@ ${avisos.join("\n")}` : ""}`,
               a.pendienteDoc = redondear(a.pendienteDoc + f.propioPendDoc);
               a.pendienteEst = redondear(a.pendienteEst + f.propioPendEst);
               a.excluido = redondear(a.excluido + f.propioExcl);
+              a.coste = redondear(a.coste + f.propioCoste);
               a.vivos += f.propioVivos;
               a.dias += f.propioDias;
               a.diasPendiente += f.propioDiasPend;
@@ -97935,7 +100298,12 @@ ${avisos.join("\n")}` : ""}`,
               vueltas += 1;
             }
           }
-          return { apartados: filas, total, documentado, estimado, pendiente, pendienteDoc, pendienteEst, excluido, dias, diasPendiente, plazos };
+          return { apartados: filas, total, documentado, estimado, pendiente, pendienteDoc, pendienteEst, excluido, dias, diasPendiente, plazos, coste };
+        }
+        function costeRealDe(h = {}) {
+          if (h.costeReal === void 0 || h.costeReal === null || h.costeReal === "") return null;
+          const n = Number(h.costeReal);
+          return Number.isFinite(n) ? n : null;
         }
         const MV = () => typeof window !== "undefined" && window.RECLAMACIONES_MOTIVOS ? window.RECLAMACIONES_MOTIVOS : require_motivos();
         const motivosDe = (parte) => MV().motivosDe(parte);
@@ -97957,7 +100325,7 @@ ${avisos.join("\n")}` : ""}`,
           }));
           const por = new Map(filas.map((f) => [f.motivo, f]));
           for (const h of hechos) {
-            if (h.estado === "descartado") continue;
+            if (h.estado === "descartado" || J().esDefensaCliente(h)) continue;
             const f = por.get(por.has(h.motivo) ? h.motivo : "otros");
             const { importe } = importeHecho(h, tarifas);
             f.hechos += 1;
@@ -98052,7 +100420,7 @@ ${avisos.join("\n")}` : ""}`,
           const n = Number(s);
           return Number.isFinite(n) && n > 0 ? n : null;
         }
-        function clasificarPorReglas(correo, { apartados = [], dominiosCliente = [] } = {}) {
+        function clasificarPorReglas(correo, { apartados = [], dominiosCliente = [], nombreCliente = "" } = {}) {
           const dc = lista(dominiosCliente).map((d) => d.toLowerCase().replace(/^@/, ""));
           const asunto = sinAcentos(correo.asunto);
           const cuerpo = sinAcentos(correo.texto);
@@ -98089,6 +100457,13 @@ ${avisos.join("\n")}` : ""}`,
 ${correo.texto || ""}`);
           if (importe) motivos.push(`trae una cifra (${importe} \u20AC)`);
           const confianza = Math.min(1, (mejorPuntos ? 0.3 + 0.1 * mejorPuntos : 0) + (notificado || deCliente ? 0.2 : 0));
+          const defensa = DC().detectarDefensaCliente({
+            deCliente: deCliente || DC().ladoDeCorreo(correo.de, { dominiosCliente: dc, nombreCliente }) === "cliente",
+            asunto: correo.asunto,
+            texto: correo.texto
+          });
+          const categoriaClaim = DC().categoriaDeDeteccion(defensa, importe);
+          if (defensa.motivo) motivos.push(categoriaClaim || !defensa.defensa ? defensa.motivo : `${defensa.motivo}; trae cifra: se deja en su categor\xEDa`);
           return {
             apartadoId: mejor ? mejor.id : null,
             responsable: deCliente || notificado ? "cliente" : null,
@@ -98099,6 +100474,7 @@ ${correo.texto || ""}`);
             p: importe,
             confianza: Math.round(confianza * 100) / 100,
             motivo: motivos.join("; ") || "sin coincidencias",
+            categoriaClaim,
             clasificador: "reglas"
           };
         }
@@ -98413,6 +100789,7 @@ ${correo.texto || ""}`);
           esPlazo,
           parametros,
           importeHecho,
+          costesDe,
           horasHecho,
           formulaExcel,
           reglasDe,
@@ -98422,6 +100799,7 @@ ${correo.texto || ""}`);
           compararNumero,
           raizDe,
           totales,
+          costeRealDe,
           numeroAnexo,
           numerarAnexos,
           importeEnTexto,
@@ -98525,6 +100903,9 @@ ${correo.texto || ""}`);
             claves: ["izados"],
             palabras: /izad|montacargas|elevador|elevaci[oó]n|gr[uú]as?\b|plataforma|tijera|carretilla|manlift|subir (el )?material|subidas? a mano|acceso|accesos|log[ií]stica|pasillos? bloquead|camino bloqueado|cerrad[oa]|lifting|crane/i
           },
+          /* SUBCATEGORÍA (11-nov-2026, JC): las horas que nos cobran las subcontratas, hijas de «Izados…». Se asigna por el enlace del hecho
+             (enlaceTipo «parteHorasSub»), no por palabras. Su coste es lo que pagamos; su importe, 36,5 €/h por trabajador. */
+          { clave: "partesHorasSub", nombre: "Partes de horas de subcontratas", padre: "izados", fuerte: false, claves: [], palabras: null },
           {
             clave: "permisos",
             nombre: "Permisos y seguridad",
@@ -98580,7 +100961,10 @@ ${correo.texto || ""}`);
             fuerte: false,
             claves: [],
             palabras: /contractual|contrato|cl[aá]usula|tarifas? de niveles|\bloa\b/i
-          }
+          },
+          /* Lo que el cliente alega contra nosotros (9-nov-2026). Sin palabras a propósito: un hecho entra solo si se
+             fija a mano o si un correo nuevo lo propone (defensaCliente.js). Al pintar nunca se aparta un hecho ni su importe. */
+          { clave: "defensaCliente", nombre: "Defensa del cliente", fuerte: false, claves: [], palabras: null, noSuma: true }
         ];
         function categoriasSubcontrata() {
           return MV().ORDEN_SUBCONTRATA.filter((k) => k !== "otros").map((k) => ({
@@ -98626,6 +101010,7 @@ ${correo.texto || ""}`);
         const categoriaValida = (cats, k) => Boolean(k) && cats.some((c) => c.clave === k);
         function categoriaDeHecho(hecho = {}, apartados = [], cats = CATEGORIAS_CLIENTE) {
           if (Number(hecho.categoriaClaimManual) && categoriaValida(cats, hecho.categoriaClaim)) return { clave: hecho.categoriaClaim, auto: false };
+          if (hecho.enlaceTipo === "parteHorasSub" && categoriaValida(cats, "partesHorasSub")) return { clave: "partesHorasSub", auto: true };
           const titulo = String(hecho.titulo || "");
           const texto = [hecho.titulo, hecho.descripcion].filter(Boolean).join(" ");
           const fuerte = cats.find((c) => c.fuerte && c.palabras && c.palabras.test(titulo));
@@ -98644,15 +101029,32 @@ ${correo.texto || ""}`);
         function recuento({ hechos = [], apartados = [], reclamacion = {}, tarifas = [], renuncias = [] } = {}) {
           const M = MT();
           const cats = categoriasDe(reclamacion);
-          const filas = [...cats.map((c) => ({ clave: c.clave, nombre: c.nombre, propia: Boolean(c.propia) })), { clave: SIN, nombre: NOMBRE_SIN, propia: false }].map((f) => ({ ...f, validados: { n: 0, importe: 0 }, total: { n: 0, importe: 0 }, propuestos: { n: 0, importe: 0 } }));
+          const filas = [...cats.map((c) => ({ clave: c.clave, nombre: c.nombre, propia: Boolean(c.propia), noSuma: Boolean(c.noSuma), padre: c.padre || null })), { clave: SIN, nombre: NOMBRE_SIN, propia: false, noSuma: false, padre: null }].map((f) => ({ ...f, validados: { n: 0, importe: 0 }, total: { n: 0, importe: 0 }, propuestos: { n: 0, importe: 0 }, coste: 0 }));
           const por = new Map(filas.map((f) => [f.clave, f]));
           const r2 = (v) => Math.round((Number(v) || 0) * 100) / 100;
           for (const h of hechos) {
-            if (h.estado === "descartado" || h.naturaleza === "plazoLimak" || J().soloDocumenta(h)) continue;
+            if (h.estado === "descartado" || h.naturaleza === "plazoLimak") continue;
+            if (J().soloDocumenta(h)) {
+              const crd = M.costeRealDe(h);
+              if (crd !== null && !J().esDefensaCliente(h)) {
+                const fd = por.get(h.categoriaCalc || categoriaDeHecho(h, apartados, cats).clave) || por.get(SIN);
+                fd.coste = r2(fd.coste + crd);
+              }
+              continue;
+            }
+            if (J().esDefensaCliente(h)) {
+              const d = por.get("defensaCliente") || por.get(SIN);
+              d.total.n += 1;
+              if (h.estado === "propuesto") d.propuestos.n += 1;
+              else d.validados.n += 1;
+              continue;
+            }
             const importe = h.importe !== void 0 && h.importe !== null ? Number(h.importe) || 0 : M.importeHecho(h, tarifas).importe;
             const computa = h.computa !== void 0 ? Boolean(h.computa) : M.computa(h, renuncias);
             const k = h.categoriaCalc || categoriaDeHecho(h, apartados, cats).clave;
             const f = por.get(k) || por.get(SIN);
+            const cr = M.costeRealDe(h);
+            if (cr !== null) f.coste = r2(f.coste + cr);
             if (h.estado === "propuesto" || computa) {
               f.total.n += 1;
               f.total.importe = r2(f.total.importe + importe);
@@ -98666,10 +101068,18 @@ ${correo.texto || ""}`);
               f.validados.importe = r2(f.validados.importe + importe);
             }
           }
-          const vivas = filas.filter((f) => f.total.n || f.validados.n);
-          const suma = (lado) => ({ n: vivas.reduce((s, f) => s + f[lado].n, 0), importe: r2(vivas.reduce((s, f) => s + f[lado].importe, 0)) });
+          for (const f of filas) {
+            const hijas = filas.filter((x) => x.padre === f.clave);
+            if (!hijas.length) continue;
+            const juntas = (lado) => ({ n: f[lado].n + hijas.reduce((s, x) => s + x[lado].n, 0), importe: r2(f[lado].importe + hijas.reduce((s, x) => s + x[lado].importe, 0)) });
+            f.conHijas = { validados: juntas("validados"), total: juntas("total"), propuestos: juntas("propuestos"), coste: r2(f.coste + hijas.reduce((s, x) => s + x.coste, 0)) };
+          }
+          const vivas = filas.filter((f) => f.total.n || f.validados.n || f.coste || f.conHijas && (f.conHijas.total.n || f.conHijas.validados.n));
+          const sumanEnPie = vivas.filter((f) => !f.noSuma);
+          const suma = (lado) => ({ n: sumanEnPie.reduce((s, f) => s + f[lado].n, 0), importe: r2(sumanEnPie.reduce((s, f) => s + f[lado].importe, 0)) });
           return {
             filas: vivas,
+            coste: r2(vivas.reduce((s, f) => s + f.coste, 0)),
             validados: suma("validados"),
             total: suma("total"),
             propuestos: suma("propuestos"),
@@ -99398,7 +101808,7 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/tslib/tslib.es6.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/tslib/tslib.es6.js
   var tslib_es6_exports = {};
   __export(tslib_es6_exports, {
     __assign: () => __assign,
@@ -99703,7 +102113,7 @@ ${correo.texto || ""}`);
   }
   var import_buffer_global8, extendStatics, __assign;
   var init_tslib_es6 = __esm({
-    "../Vidaire_Obras/node_modules/tslib/tslib.es6.js"() {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/tslib/tslib.es6.js"() {
       import_buffer_global8 = __toESM(require_buffer_global());
       extendStatics = function(d, b) {
         extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
@@ -99726,9 +102136,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/base64.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/base64.js
   var require_base64 = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/base64.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/base64.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -99796,9 +102206,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/strings.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/strings.js
   var require_strings = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/strings.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/strings.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -99949,9 +102359,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/arrays.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/arrays.js
   var require_arrays = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/arrays.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/arrays.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -100080,9 +102490,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/async.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/async.js
   var require_async = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/async.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/async.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -100097,9 +102507,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/unicode.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/unicode.js
   var require_unicode = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/unicode.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/unicode.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -100240,9 +102650,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/numbers.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/numbers.js
   var require_numbers = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/numbers.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/numbers.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -100283,9 +102693,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/errors.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/errors.js
   var require_errors = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/errors.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/errors.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -100296,9 +102706,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pako/lib/utils/common.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/utils/common.js
   var require_common = __commonJS({
-    "../Vidaire_Obras/node_modules/pako/lib/utils/common.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/utils/common.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var TYPED_OK = typeof Uint8Array !== "undefined" && typeof Uint16Array !== "undefined" && typeof Int32Array !== "undefined";
@@ -100388,9 +102798,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pako/lib/zlib/trees.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/trees.js
   var require_trees = __commonJS({
-    "../Vidaire_Obras/node_modules/pako/lib/zlib/trees.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/trees.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var utils = require_common();
@@ -101031,9 +103441,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pako/lib/zlib/adler32.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/adler32.js
   var require_adler32 = __commonJS({
-    "../Vidaire_Obras/node_modules/pako/lib/zlib/adler32.js"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/adler32.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function adler32(adler, buf, len, pos) {
@@ -101054,9 +103464,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pako/lib/zlib/crc32.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/crc32.js
   var require_crc32 = __commonJS({
-    "../Vidaire_Obras/node_modules/pako/lib/zlib/crc32.js"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/crc32.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function makeTable() {
@@ -101083,9 +103493,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pako/lib/zlib/messages.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/messages.js
   var require_messages = __commonJS({
-    "../Vidaire_Obras/node_modules/pako/lib/zlib/messages.js"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/messages.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       module.exports = {
@@ -101111,9 +103521,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pako/lib/zlib/deflate.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/deflate.js
   var require_deflate = __commonJS({
-    "../Vidaire_Obras/node_modules/pako/lib/zlib/deflate.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/deflate.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var utils = require_common();
@@ -102161,9 +104571,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pako/lib/utils/strings.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/utils/strings.js
   var require_strings2 = __commonJS({
-    "../Vidaire_Obras/node_modules/pako/lib/utils/strings.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/utils/strings.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var utils = require_common();
@@ -102304,9 +104714,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pako/lib/zlib/zstream.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/zstream.js
   var require_zstream = __commonJS({
-    "../Vidaire_Obras/node_modules/pako/lib/zlib/zstream.js"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/zstream.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function ZStream() {
@@ -102327,9 +104737,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pako/lib/deflate.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/deflate.js
   var require_deflate2 = __commonJS({
-    "../Vidaire_Obras/node_modules/pako/lib/deflate.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/deflate.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var zlib_deflate = require_deflate();
@@ -102489,9 +104899,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pako/lib/zlib/inffast.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/inffast.js
   var require_inffast = __commonJS({
-    "../Vidaire_Obras/node_modules/pako/lib/zlib/inffast.js"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/inffast.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var BAD = 30;
@@ -102719,9 +105129,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pako/lib/zlib/inftrees.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/inftrees.js
   var require_inftrees = __commonJS({
-    "../Vidaire_Obras/node_modules/pako/lib/zlib/inftrees.js"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/inftrees.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var utils = require_common();
@@ -103036,9 +105446,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pako/lib/zlib/inflate.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/inflate.js
   var require_inflate = __commonJS({
-    "../Vidaire_Obras/node_modules/pako/lib/zlib/inflate.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/inflate.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var utils = require_common();
@@ -104276,9 +106686,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pako/lib/zlib/constants.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/constants.js
   var require_constants = __commonJS({
-    "../Vidaire_Obras/node_modules/pako/lib/zlib/constants.js"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/constants.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       module.exports = {
@@ -104324,9 +106734,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pako/lib/zlib/gzheader.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/gzheader.js
   var require_gzheader = __commonJS({
-    "../Vidaire_Obras/node_modules/pako/lib/zlib/gzheader.js"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/zlib/gzheader.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function GZheader() {
@@ -104345,9 +106755,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pako/lib/inflate.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/inflate.js
   var require_inflate2 = __commonJS({
-    "../Vidaire_Obras/node_modules/pako/lib/inflate.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/lib/inflate.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var zlib_inflate = require_inflate();
@@ -104520,9 +106930,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pako/index.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/index.js
   var require_pako = __commonJS({
-    "../Vidaire_Obras/node_modules/pako/index.js"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pako/index.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var assign = require_common().assign;
@@ -104535,9 +106945,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/utils.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/utils.js
   var require_utils = __commonJS({
-    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/utils.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/utils.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -104598,107 +107008,107 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-Bold.compressed.json
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-Bold.compressed.json
   var require_Courier_Bold_compressed = __commonJS({
-    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-Bold.compressed.json"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-Bold.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-BoldOblique.compressed.json
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-BoldOblique.compressed.json
   var require_Courier_BoldOblique_compressed = __commonJS({
-    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-BoldOblique.compressed.json"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-BoldOblique.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-Oblique.compressed.json
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-Oblique.compressed.json
   var require_Courier_Oblique_compressed = __commonJS({
-    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-Oblique.compressed.json"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-Oblique.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier.compressed.json
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier.compressed.json
   var require_Courier_compressed = __commonJS({
-    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier.compressed.json"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Bold.compressed.json
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Bold.compressed.json
   var require_Helvetica_Bold_compressed = __commonJS({
-    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Bold.compressed.json"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Bold.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-BoldOblique.compressed.json
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-BoldOblique.compressed.json
   var require_Helvetica_BoldOblique_compressed = __commonJS({
-    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-BoldOblique.compressed.json"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-BoldOblique.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Oblique.compressed.json
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Oblique.compressed.json
   var require_Helvetica_Oblique_compressed = __commonJS({
-    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Oblique.compressed.json"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Oblique.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica.compressed.json
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica.compressed.json
   var require_Helvetica_compressed = __commonJS({
-    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica.compressed.json"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Bold.compressed.json
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Bold.compressed.json
   var require_Times_Bold_compressed = __commonJS({
-    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Bold.compressed.json"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Bold.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-BoldItalic.compressed.json
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-BoldItalic.compressed.json
   var require_Times_BoldItalic_compressed = __commonJS({
-    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-BoldItalic.compressed.json"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-BoldItalic.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Italic.compressed.json
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Italic.compressed.json
   var require_Times_Italic_compressed = __commonJS({
-    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Italic.compressed.json"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Italic.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Roman.compressed.json
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Roman.compressed.json
   var require_Times_Roman_compressed = __commonJS({
-    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Roman.compressed.json"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Roman.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Symbol.compressed.json
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Symbol.compressed.json
   var require_Symbol_compressed = __commonJS({
-    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Symbol.compressed.json"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Symbol.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/ZapfDingbats.compressed.json
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/ZapfDingbats.compressed.json
   var require_ZapfDingbats_compressed = __commonJS({
-    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/ZapfDingbats.compressed.json"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/ZapfDingbats.compressed.json"(exports, module) {
       module.exports = "eJxtmNtu20YQhl+F4FULyMGeD7pz3AY1ChtG7NpFA18w1NomIlECSRcxgrx7SVk7+wOdG8H5OJydf2Z2d5gf9cV+t0v9VK/r+6vXsXlOlbHe28paq229qj/t++m62aXZ4J/m8PRb1z9/baZxefK63Z6eXN5dVMvTCh83u277xr/6kLrnl2XNq7TpXnczuZyabdee98/b2VzM/x4/dd/T5qab2pd6PQ2vaVVfvDRD005puE3Lu7eH1HbN9hTjx4/77/X6y5lcnUmjVzHIVVDicVX/1W/SsO36dLMfu6nb9/X6TAoBD+5euvZbn8axXtuZ36dhPJrVQqgPQoh5hev91LWLkIv94W1Ygq9+aX+tZAx2tfz64284/sblN/rqfLP/mqrbt3FKu7G67Nv9cNgPzZQ2H6rz7bb6vLgZq89pTMO/M/xfEqturJpqSM/d7GJIm2oamk3aNcO3av80O5xh3yyKmm1193ZIT02bqovTKjP+MAf++7zsZvZ3276kYyWWXB0z99S18/PbafPHQ71W4fjn/fxnFO+ZvkrT0LVzTr78qB/+nk38bHM9exgP8zr1z9U7jt6840YW5uSJKcZOCaBBnKgm5mU8MVNYyMwWFvO7Ukagkmgg6sDWQ5yFFqjzUrLEaQ3BEmiwNsMSaZS0vgWfOkPHWQowNeTUc0kumnxZvsgPxlGai6VTGUqAVCTQ6QkWnc77DKEiLktSUBJKqHIQZ86d8gCpHYoiEzMsb1ubYy8vW50DChB5ZhGqrijD0EqUIeiaEHIfCg5Kpuu0ApiToaGPSY0uaQsyr65L2oKi1yFt1PLaQ3lzfXTgXodGoJYzglndSLDMPg1sTPJpQJHJigw0QrGERqD9YhyTOgONQDUyuF1zaxuokc/BW2ztXCMrGZ9WMW1oQZHIXWNBkSCfRZEL5BMUiZw6CzVSFCfUSGZFNjIldoKDkonTKQiJIGzWmFd3BizJJ9SINoLDriOfUCOZS+zg+KGD1qGiLNMLxtJD1/ns00ON6EzyUCM6vbxhoBKaqbG3DFQCNiL1iHccBPV0DHhQH/JW8EW90dkyFKGywCJU0WkVSvSGeiSUODWFFD0HYdPQVoiRgfPMA+/nnRgiAyNYSjpWNQcNSMrtFCUH4ZIRpSCWocFCSuhCEY6hoUClc0WC52BJlCYYLQdhN+hygRRRlo5BKRRLS6oihSqh+ZzzRGG1Mo4Iz1LoP0qsxDGFzk0JE42ji0jCPejomJKCuwil4m5CiRMEUMVSzVLDUstSx1Juc0oVWMpqY295qVltmtWmWW2a1aZZbZrVplltmtWmWW2G1WZYbYbVZlhthtVmWG2G1WZYbYbVZlhtltVmWW2W1WZZbZbVZlltltVmWW2W1QYjQCh7E2aAQHeGhCFgPoNoy8KNb2wxBhmGKBxoUZXlLGsLI6AsftEDHV0wIURVbANLcTKlGGBIKPOAxCmhePCKUwFzAmpDFRQvjA9R06Hq8TONvshgKDCuRAZTXigUxjxNFfKRo3CLhnIJBMFRvMZpqpNBMlQJzGT5WFQMVQI/AikPMIhEU1aDjqJvQwmjSHB05cC9jbYwc5UtAHNLhDw41ha+lEqF4JaH3gmB61SYcqInxTDmQK8v08vjqv4zDf1N0w3Lf4A8/vwPpfK11w==";
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Font.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Font.js
   var require_Font = __commonJS({
-    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Font.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Font.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -104793,16 +107203,16 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/all-encodings.compressed.json
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/all-encodings.compressed.json
   var require_all_encodings_compressed = __commonJS({
-    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/all-encodings.compressed.json"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/all-encodings.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Encoding.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Encoding.js
   var require_Encoding = __commonJS({
-    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Encoding.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Encoding.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -104848,9 +107258,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/index.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/index.js
   var require_lib = __commonJS({
-    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/index.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function __export2(m) {
@@ -104862,9 +107272,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/objects.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/objects.js
   var require_objects = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/objects.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/objects.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -104885,9 +107295,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/validators.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/validators.js
   var require_validators = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/validators.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/validators.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -105071,9 +107481,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/pdfDocEncoding.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/pdfDocEncoding.js
   var require_pdfDocEncoding = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/pdfDocEncoding.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/pdfDocEncoding.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -105138,9 +107548,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/Cache.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/Cache.js
   var require_Cache = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/Cache.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/Cache.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -105172,9 +107582,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/index.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/index.js
   var require_utils2 = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/index.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -105196,9 +107606,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/errors.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/errors.js
   var require_errors2 = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/errors.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/errors.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -105607,9 +108017,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/CharCodes.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/CharCodes.js
   var require_CharCodes = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/CharCodes.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/CharCodes.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -105678,9 +108088,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFHeader.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFHeader.js
   var require_PDFHeader = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFHeader.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFHeader.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -105729,9 +108139,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFObject.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFObject.js
   var require_PDFObject = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFObject.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFObject.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -105760,9 +108170,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFNumber.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFNumber.js
   var require_PDFNumber = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFNumber.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFNumber.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -105808,9 +108218,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFArray.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFArray.js
   var require_PDFArray = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFArray.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFArray.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -105936,9 +108346,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFBool.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFBool.js
   var require_PDFBool = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFBool.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFBool.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -105996,9 +108406,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Delimiters.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Delimiters.js
   var require_Delimiters = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Delimiters.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Delimiters.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -106019,9 +108429,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Whitespace.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Whitespace.js
   var require_Whitespace = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Whitespace.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Whitespace.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -106038,9 +108448,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Irregular.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Irregular.js
   var require_Irregular = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Irregular.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Irregular.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -106059,9 +108469,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFName.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFName.js
   var require_PDFName = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFName.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFName.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -106195,9 +108605,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFNull.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFNull.js
   var require_PDFNull = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFNull.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFNull.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -106237,9 +108647,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFDict.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFDict.js
   var require_PDFDict = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFDict.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFDict.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -106382,9 +108792,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFStream.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFStream.js
   var require_PDFStream = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFStream.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -106466,9 +108876,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFRawStream.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFRawStream.js
   var require_PDFRawStream = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFRawStream.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFRawStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -106509,9 +108919,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFRef.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFRef.js
   var require_PDFRef = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFRef.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFRef.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -106567,9 +108977,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/operators/PDFOperator.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/operators/PDFOperator.js
   var require_PDFOperator = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/operators/PDFOperator.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/operators/PDFOperator.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -106633,9 +109043,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/operators/PDFOperatorNames.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/operators/PDFOperatorNames.js
   var require_PDFOperatorNames = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/operators/PDFOperatorNames.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/operators/PDFOperatorNames.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -106719,9 +109129,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFFlateStream.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFFlateStream.js
   var require_PDFFlateStream = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFFlateStream.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFFlateStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -106763,9 +109173,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFContentStream.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFContentStream.js
   var require_PDFContentStream = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFContentStream.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFContentStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -106836,9 +109246,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/rng.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/rng.js
   var require_rng = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/rng.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/rng.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -106863,9 +109273,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/PDFContext.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/PDFContext.js
   var require_PDFContext = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/PDFContext.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/PDFContext.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -107063,9 +109473,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFPageLeaf.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFPageLeaf.js
   var require_PDFPageLeaf = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFPageLeaf.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFPageLeaf.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -107278,9 +109688,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/PDFObjectCopier.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/PDFObjectCopier.js
   var require_PDFObjectCopier = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/PDFObjectCopier.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/PDFObjectCopier.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -107376,9 +109786,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFCrossRefSection.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFCrossRefSection.js
   var require_PDFCrossRefSection = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFCrossRefSection.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFCrossRefSection.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -107506,9 +109916,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFTrailer.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFTrailer.js
   var require_PDFTrailer = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFTrailer.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFTrailer.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -107558,9 +109968,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFTrailerDict.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFTrailerDict.js
   var require_PDFTrailerDict = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFTrailerDict.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFTrailerDict.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -107601,9 +110011,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFObjectStream.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFObjectStream.js
   var require_PDFObjectStream = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFObjectStream.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFObjectStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -107688,9 +110098,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/writers/PDFWriter.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/writers/PDFWriter.js
   var require_PDFWriter = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/writers/PDFWriter.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/writers/PDFWriter.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -107842,9 +110252,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFInvalidObject.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFInvalidObject.js
   var require_PDFInvalidObject = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFInvalidObject.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFInvalidObject.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -107885,9 +110295,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFCrossRefStream.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFCrossRefStream.js
   var require_PDFCrossRefStream = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFCrossRefStream.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFCrossRefStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -108078,9 +110488,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/writers/PDFStreamWriter.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/writers/PDFStreamWriter.js
   var require_PDFStreamWriter = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/writers/PDFStreamWriter.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/writers/PDFStreamWriter.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -108202,9 +110612,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFHexString.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFHexString.js
   var require_PDFHexString = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFHexString.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFHexString.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -108285,9 +110695,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/StandardFontEmbedder.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/StandardFontEmbedder.js
   var require_StandardFontEmbedder = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/StandardFontEmbedder.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/StandardFontEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -108379,9 +110789,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CMap.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CMap.js
   var require_CMap = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CMap.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CMap.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -108429,9 +110839,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/FontFlags.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/FontFlags.js
   var require_FontFlags = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/FontFlags.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/FontFlags.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -108475,9 +110885,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFString.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFString.js
   var require_PDFString = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFString.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFString.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -108597,9 +111007,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CustomFontEmbedder.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CustomFontEmbedder.js
   var require_CustomFontEmbedder = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CustomFontEmbedder.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CustomFontEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -108841,9 +111251,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CustomFontSubsetEmbedder.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CustomFontSubsetEmbedder.js
   var require_CustomFontSubsetEmbedder = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CustomFontSubsetEmbedder.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CustomFontSubsetEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -108918,9 +111328,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/FileEmbedder.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/FileEmbedder.js
   var require_FileEmbedder = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/FileEmbedder.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/FileEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -108999,9 +111409,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/JpegEmbedder.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/JpegEmbedder.js
   var require_JpegEmbedder = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/JpegEmbedder.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/JpegEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -109119,9 +111529,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@pdf-lib/upng/cjs/UPNG.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/upng/cjs/UPNG.js
   var require_UPNG = __commonJS({
-    "../Vidaire_Obras/node_modules/@pdf-lib/upng/cjs/UPNG.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@pdf-lib/upng/cjs/UPNG.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", {
@@ -110590,9 +113000,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/png.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/png.js
   var require_png = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/png.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/utils/png.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -110666,9 +113076,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/PngEmbedder.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/PngEmbedder.js
   var require_PngEmbedder = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/PngEmbedder.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/PngEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -110741,9 +113151,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/Stream.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/Stream.js
   var require_Stream = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/Stream.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/Stream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -110849,9 +113259,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/DecodeStream.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/DecodeStream.js
   var require_DecodeStream = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/DecodeStream.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/DecodeStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -110997,9 +113407,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/Ascii85Stream.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/Ascii85Stream.js
   var require_Ascii85Stream = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/Ascii85Stream.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/Ascii85Stream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -111081,9 +113491,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/AsciiHexStream.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/AsciiHexStream.js
   var require_AsciiHexStream = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/AsciiHexStream.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/AsciiHexStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -111147,9 +113557,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/FlateStream.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/FlateStream.js
   var require_FlateStream = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/FlateStream.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/FlateStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -112035,9 +114445,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/LZWStream.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/LZWStream.js
   var require_LZWStream = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/LZWStream.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/LZWStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -112167,9 +114577,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/RunLengthStream.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/RunLengthStream.js
   var require_RunLengthStream = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/RunLengthStream.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/RunLengthStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -112218,9 +114628,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/decode.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/decode.js
   var require_decode = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/decode.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/decode.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -112281,9 +114691,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/PDFPageEmbedder.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/PDFPageEmbedder.js
   var require_PDFPageEmbedder = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/PDFPageEmbedder.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/PDFPageEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -112377,9 +114787,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/interactive/ViewerPreferences.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/interactive/ViewerPreferences.js
   var require_ViewerPreferences = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/interactive/ViewerPreferences.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/interactive/ViewerPreferences.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -112625,9 +115035,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroField.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroField.js
   var require_PDFAcroField = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroField.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroField.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -112773,9 +115183,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/BorderStyle.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/BorderStyle.js
   var require_BorderStyle = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/BorderStyle.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/BorderStyle.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -112812,9 +115222,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/PDFAnnotation.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/PDFAnnotation.js
   var require_PDFAnnotation = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/PDFAnnotation.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/PDFAnnotation.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -112942,9 +115352,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/AppearanceCharacteristics.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/AppearanceCharacteristics.js
   var require_AppearanceCharacteristics = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/AppearanceCharacteristics.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/AppearanceCharacteristics.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -113072,9 +115482,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/PDFWidgetAnnotation.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/PDFWidgetAnnotation.js
   var require_PDFWidgetAnnotation = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/PDFWidgetAnnotation.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/PDFWidgetAnnotation.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -113191,9 +115601,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroTerminal.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroTerminal.js
   var require_PDFAcroTerminal = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroTerminal.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroTerminal.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -113260,9 +115670,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroButton.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroButton.js
   var require_PDFAcroButton = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroButton.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroButton.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -113359,9 +115769,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroCheckBox.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroCheckBox.js
   var require_PDFAcroCheckBox = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroCheckBox.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroCheckBox.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -113418,9 +115828,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/flags.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/flags.js
   var require_flags = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/flags.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/flags.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -113463,9 +115873,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroChoice.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroChoice.js
   var require_PDFAcroChoice = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroChoice.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroChoice.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -113595,9 +116005,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroComboBox.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroComboBox.js
   var require_PDFAcroComboBox = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroComboBox.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroComboBox.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -113630,9 +116040,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroNonTerminal.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroNonTerminal.js
   var require_PDFAcroNonTerminal = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroNonTerminal.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroNonTerminal.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -113673,9 +116083,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroSignature.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroSignature.js
   var require_PDFAcroSignature = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroSignature.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroSignature.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -113698,9 +116108,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroText.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroText.js
   var require_PDFAcroText = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroText.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroText.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -113776,9 +116186,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroPushButton.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroPushButton.js
   var require_PDFAcroPushButton = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroPushButton.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroPushButton.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -113811,9 +116221,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroRadioButton.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroRadioButton.js
   var require_PDFAcroRadioButton = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroRadioButton.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroRadioButton.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -113877,9 +116287,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroListBox.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroListBox.js
   var require_PDFAcroListBox = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroListBox.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroListBox.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -113910,9 +116320,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/utils.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/utils.js
   var require_utils3 = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/utils.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/utils.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -114021,9 +116431,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroForm.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroForm.js
   var require_PDFAcroForm = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroForm.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroForm.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -114110,9 +116520,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/index.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/index.js
   var require_acroform = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/index.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -114174,9 +116584,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFCatalog.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFCatalog.js
   var require_PDFCatalog = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFCatalog.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFCatalog.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -114255,9 +116665,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFPageTree.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFPageTree.js
   var require_PDFPageTree = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFPageTree.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFPageTree.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -114411,9 +116821,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Numeric.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Numeric.js
   var require_Numeric = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Numeric.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Numeric.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -114444,9 +116854,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/BaseParser.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/BaseParser.js
   var require_BaseParser = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/BaseParser.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/BaseParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -114560,9 +116970,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/ByteStream.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/ByteStream.js
   var require_ByteStream = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/ByteStream.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/ByteStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -114633,9 +117043,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Keywords.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Keywords.js
   var require_Keywords = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Keywords.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Keywords.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -114725,9 +117135,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFObjectParser.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFObjectParser.js
   var require_PDFObjectParser = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFObjectParser.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFObjectParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -114946,9 +117356,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFObjectStreamParser.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFObjectStreamParser.js
   var require_PDFObjectStreamParser = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFObjectStreamParser.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFObjectStreamParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -115033,9 +117443,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFXRefStreamParser.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFXRefStreamParser.js
   var require_PDFXRefStreamParser = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFXRefStreamParser.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFXRefStreamParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -115128,9 +117538,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFParser.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFParser.js
   var require_PDFParser = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFParser.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -115470,9 +117880,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/flags.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/flags.js
   var require_flags2 = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/flags.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/flags.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -115496,9 +117906,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/index.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/index.js
   var require_annotation = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/index.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -115519,9 +117929,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/index.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/index.js
   var require_core = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/index.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -115723,9 +118133,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/objects.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/objects.js
   var require_objects2 = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/objects.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/objects.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -115743,9 +118153,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/rotations.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/rotations.js
   var require_rotations = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/rotations.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/rotations.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -115824,9 +118234,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/operators.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/operators.js
   var require_operators = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/operators.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/operators.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -116071,9 +118481,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/colors.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/colors.js
   var require_colors = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/colors.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/colors.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -116124,9 +118534,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/svgPath.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/svgPath.js
   var require_svgPath = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/svgPath.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/svgPath.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -116487,9 +118897,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/operations.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/operations.js
   var require_operations = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/operations.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/operations.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -116940,9 +119350,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/errors.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/errors.js
   var require_errors3 = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/errors.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/errors.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -117150,9 +119560,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/alignment.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/alignment.js
   var require_alignment = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/alignment.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/alignment.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -117166,9 +119576,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/layout.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/layout.js
   var require_layout = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/layout.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/layout.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -117370,9 +119780,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/appearances.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/appearances.js
   var require_appearances = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/appearances.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/appearances.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -117771,9 +120181,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFEmbeddedPage.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFEmbeddedPage.js
   var require_PDFEmbeddedPage = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFEmbeddedPage.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFEmbeddedPage.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -117832,9 +120242,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFFont.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFFont.js
   var require_PDFFont = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFFont.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFFont.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -117917,9 +120327,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFImage.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFImage.js
   var require_PDFImage = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFImage.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFImage.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -117995,9 +120405,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/image/alignment.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/image/alignment.js
   var require_alignment2 = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/image/alignment.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/image/alignment.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -118011,9 +120421,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/image/index.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/image/index.js
   var require_image = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/image/index.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/image/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -118022,9 +120432,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFField.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFField.js
   var require_PDFField = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFField.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFField.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -118251,9 +120661,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFCheckBox.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFCheckBox.js
   var require_PDFCheckBox = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFCheckBox.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFCheckBox.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -118369,9 +120779,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFDropdown.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFDropdown.js
   var require_PDFDropdown = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFDropdown.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFDropdown.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -118588,9 +120998,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFOptionList.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFOptionList.js
   var require_PDFOptionList = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFOptionList.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFOptionList.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -118785,9 +121195,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFRadioGroup.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFRadioGroup.js
   var require_PDFRadioGroup = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFRadioGroup.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFRadioGroup.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -118951,9 +121361,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFSignature.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFSignature.js
   var require_PDFSignature = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFSignature.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFSignature.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -118986,9 +121396,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFTextField.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFTextField.js
   var require_PDFTextField = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFTextField.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFTextField.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -119229,9 +121639,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/StandardFonts.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/StandardFonts.js
   var require_StandardFonts = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/StandardFonts.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/StandardFonts.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -119256,9 +121666,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFForm.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFForm.js
   var require_PDFForm = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFForm.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFForm.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -119636,9 +122046,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/sizes.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/sizes.js
   var require_sizes = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/sizes.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/sizes.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -119698,9 +122108,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFDocumentOptions.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFDocumentOptions.js
   var require_PDFDocumentOptions = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFDocumentOptions.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFDocumentOptions.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -119715,9 +122125,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFEmbeddedFile.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFEmbeddedFile.js
   var require_PDFEmbeddedFile = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFEmbeddedFile.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFEmbeddedFile.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -119782,9 +122192,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFJavaScript.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFJavaScript.js
   var require_PDFJavaScript = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFJavaScript.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFJavaScript.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -119845,9 +122255,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/JavaScriptEmbedder.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/JavaScriptEmbedder.js
   var require_JavaScriptEmbedder = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/JavaScriptEmbedder.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/JavaScriptEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -119892,9 +122302,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFDocument.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFDocument.js
   var require_PDFDocument = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFDocument.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFDocument.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -120600,9 +123010,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFPageOptions.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFPageOptions.js
   var require_PDFPageOptions = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFPageOptions.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFPageOptions.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -120625,9 +123035,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFPage.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFPage.js
   var require_PDFPage = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFPage.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFPage.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -121297,9 +123707,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFButton.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFButton.js
   var require_PDFButton = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFButton.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFButton.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -121408,9 +123818,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/index.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/index.js
   var require_form = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/index.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -121455,9 +123865,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/index.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/index.js
   var require_text = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/index.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -121467,9 +123877,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/index.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/index.js
   var require_api = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/index.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/api/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -121514,18 +123924,18 @@ ${correo.texto || ""}`);
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/types/index.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/types/index.js
   var require_types = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/types/index.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/types/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
     }
   });
 
-  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/index.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/index.js
   var require_cjs = __commonJS({
-    "../Vidaire_Obras/node_modules/pdf-lib/cjs/index.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/pdf-lib/cjs/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -121641,6 +124051,378 @@ ${correo.texto || ""}`);
         return out;
       }
       module.exports = { MARCA, casillaFirma, ponerCamposFirma, camposFirma };
+    }
+  });
+
+  // shared/legalizaciones/word.js
+  var require_word = __commonJS({
+    "shared/legalizaciones/word.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var { unzipSync, zipSync, strFromU8, strToU8 } = require_browser();
+      var PARTE = "word/document.xml";
+      var TOKEN = /<w:fldChar\b[^>]*\/>|<w:fldChar\b[^>]*>[\s\S]*?<\/w:fldChar>|<w:instrText\b[^>]*>([^<]*)<\/w:instrText>|<w:instrText\b[^>]*\/>|<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>|<w:t(?:\s[^>]*)?\/>|<w:sdt>|<w:sdt\s[^>]*>|<\/w:sdtPr>|<\/w:sdt>|<\/w:p>|<\/w:tc>|<w:tab\/>|<w:br\/>/g;
+      var desXml = (s) => String(s).replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
+      var aXml = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      var attr = (xml, etiqueta) => {
+        const m = new RegExp(`<${etiqueta}\\b[^>]*w:val="([^"]*)"`).exec(xml);
+        return m ? desXml(m[1]) : "";
+      };
+      function fnv(texto) {
+        let h = 2166136261;
+        for (let i = 0; i < texto.length; i += 1) {
+          h ^= texto.charCodeAt(i);
+          h = Math.imul(h, 16777619) >>> 0;
+        }
+        return h.toString(16).padStart(8, "0");
+      }
+      function leerCampos(xml) {
+        const campos = [];
+        const texto = [];
+        let largo = 0;
+        const poner = (t) => {
+          texto.push(t);
+          largo += t.length;
+        };
+        const pila = [];
+        const sdts = [];
+        TOKEN.lastIndex = 0;
+        let m;
+        while (m = TOKEN.exec(xml)) {
+          const tok = m[0];
+          const ini = m.index;
+          const fin = ini + tok.length;
+          if (tok.startsWith("<w:fldChar")) {
+            const t = (/w:fldCharType="(\w+)"/.exec(tok) || [])[1] || "";
+            if (t === "begin") pila.push({ ini, ffData: tok.includes("<w:ffData") ? { ini, fin } : null, instr: "", fase: "instr", sep: -1 });
+            else if (t === "separate" && pila.length) {
+              const c = pila[pila.length - 1];
+              c.fase = "res";
+              c.sep = fin;
+            } else if (t === "end" && pila.length) {
+              const c = pila.pop();
+              const instr = c.instr.trim().split(/\s+/)[0].toUpperCase();
+              if (!pila.length && !sdts.length && (instr === "FORMTEXT" || instr === "FORMCHECKBOX") && c.ffData) {
+                const ff = xml.slice(c.ffData.ini, c.ffData.fin);
+                const i = campos.length;
+                campos.push({
+                  i,
+                  tipo: instr === "FORMTEXT" ? "texto" : "casilla",
+                  nombre: attr(ff, "w:name"),
+                  ayuda: attr(ff, "w:statusText") || attr(ff, "w:helpText"),
+                  maximo: Number(attr(ff, "w:maxLength")) || 0,
+                  ffData: c.ffData,
+                  resultado: c.sep >= 0 ? { ini: c.sep, fin: ini } : null,
+                  posTexto: largo
+                });
+                poner(`\u27E6${i}\u27E7`);
+              }
+            }
+            continue;
+          }
+          if (tok.startsWith("<w:instrText")) {
+            if (pila.length && pila[pila.length - 1].fase === "instr") pila[pila.length - 1].instr += desXml(m[1] || "");
+            continue;
+          }
+          if (tok === "<w:sdt>" || tok.startsWith("<w:sdt ")) {
+            sdts.push({ ini, pr: fin, contenido: -1 });
+            continue;
+          }
+          if (tok === "</w:sdtPr>") {
+            if (sdts.length && sdts[sdts.length - 1].contenido < 0) sdts[sdts.length - 1].contenido = fin;
+            continue;
+          }
+          if (tok === "</w:sdt>") {
+            const s = sdts.pop();
+            if (!s || sdts.length || pila.length) continue;
+            const pr = xml.slice(s.pr, s.contenido > 0 ? s.contenido : s.pr);
+            const casilla = /<w14:checkbox\b/.test(pr);
+            const otro = /<w:(dropDownList|comboBox|picture|docPartObj|docPartList|group|citation|bibliography|equation|richText)\b|<w15:repeatingSection/.test(pr);
+            if (otro || s.contenido < 0) {
+              continue;
+            }
+            const i = campos.length;
+            campos.push({
+              i,
+              tipo: casilla ? "sdtCasilla" : "sdt",
+              nombre: attr(pr, "w:alias") || attr(pr, "w:tag"),
+              ayuda: attr(pr, "w:tag"),
+              maximo: 0,
+              sdt: { ini: s.ini, pr: s.pr, contenido: s.contenido, fin: ini },
+              posTexto: largo
+            });
+            poner(`\u27E6${i}\u27E7`);
+            continue;
+          }
+          if (pila.length || sdts.length) continue;
+          if (tok === "</w:p>") poner("\n");
+          else if (tok === "</w:tc>") poner(" \u2016 ");
+          else if (tok === "<w:tab/>") poner(" ");
+          else if (tok === "<w:br/>") poner("\n");
+          else if (m[2] !== void 0) poner(desXml(m[2]));
+        }
+        const todo = texto.join("");
+        for (const c of campos) {
+          const marca = `\u27E6${c.i}\u27E7`;
+          c.antes = todo.slice(Math.max(0, c.posTexto - 160), c.posTexto).replace(/[   ]+/g, " ");
+          c.despues = todo.slice(c.posTexto + marca.length, c.posTexto + marca.length + 80).replace(/[   ]+/g, " ");
+        }
+        return { campos, texto: todo };
+      }
+      function firmaDe(campos) {
+        return fnv(campos.map((c) => `${c.tipo}|${c.nombre}|${String(c.antes).slice(-40)}`).join("\n"));
+      }
+      function abrir(bytes) {
+        const partes = unzipSync(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes));
+        if (!partes[PARTE]) throw new Error("No es un documento de Word (.docx): falta word/document.xml.");
+        return partes;
+      }
+      function huecos(bytes) {
+        const xml = strFromU8(abrir(bytes)[PARTE]);
+        const { campos, texto } = leerCampos(xml);
+        return { campos, texto, firma: firmaDe(campos) };
+      }
+      var textoRun = (v) => aXml(v).split(/\r?\n/).join('</w:t><w:br/><w:t xml:space="preserve">');
+      function escribirEnTrozo(trozo, valor) {
+        let primero = true;
+        const nuevo = trozo.replace(/<w:t(?:\s[^>]*)?>[^<]*<\/w:t>|<w:t(?:\s[^>]*)?\/>/g, () => {
+          if (primero) {
+            primero = false;
+            return `<w:t xml:space="preserve">${textoRun(valor)}</w:t>`;
+          }
+          return '<w:t xml:space="preserve"></w:t>';
+        });
+        return primero ? null : nuevo;
+      }
+      function rellenar(bytes, valores) {
+        const partes = abrir(bytes);
+        const xml = strFromU8(partes[PARTE]);
+        const { campos } = leerCampos(xml);
+        const cambios = [];
+        let puestas = 0;
+        const saltadas = [];
+        for (const c of campos) {
+          const v = valores[c.i];
+          if (v === void 0 || v === null || v === "" || v === false) continue;
+          if (c.tipo === "texto") {
+            if (!c.resultado) {
+              saltadas.push(`${c.i}: el hueco no tiene sitio para el texto`);
+              continue;
+            }
+            const trozo = xml.slice(c.resultado.ini, c.resultado.fin);
+            let nuevo = escribirEnTrozo(trozo, String(v));
+            if (nuevo === null) {
+              const rPr = (/<w:rPr>[\s\S]*?<\/w:rPr>/.exec(xml.slice(Math.max(0, c.ffData.ini - 600), c.ffData.ini).split("<w:r>").pop() || "") || [""])[0];
+              nuevo = `<w:r>${rPr}<w:t xml:space="preserve">${textoRun(String(v))}</w:t></w:r>${trozo}`;
+            }
+            cambios.push([c.resultado.ini, c.resultado.fin, nuevo]);
+            puestas += 1;
+          } else if (c.tipo === "casilla") {
+            const ff = xml.slice(c.ffData.ini, c.ffData.fin);
+            if (!ff.includes("</w:checkBox>")) {
+              saltadas.push(`${c.i}: casilla sin definici\xF3n`);
+              continue;
+            }
+            const nuevo = ff.replace(/<w:checked\b[^>]*\/>/g, "").replace("</w:checkBox>", "<w:checked/></w:checkBox>");
+            cambios.push([c.ffData.ini, c.ffData.fin, nuevo]);
+            puestas += 1;
+          } else if (c.tipo === "sdt" || c.tipo === "sdtCasilla") {
+            const { pr, contenido, fin } = c.sdt;
+            let props = xml.slice(pr, contenido);
+            let cuerpo = xml.slice(contenido, fin);
+            if (c.tipo === "sdtCasilla") {
+              props = props.replace(/<w14:checked\s+w14:val="[^"]*"\s*\/>/, '<w14:checked w14:val="1"/>');
+              const sim = /<w14:checkedState\b[^>]*w14:val="([0-9A-Fa-f]+)"/.exec(props);
+              const marca = sim ? String.fromCharCode(parseInt(sim[1], 16)) : "\u2612";
+              const nuevo = escribirEnTrozo(cuerpo, marca);
+              if (nuevo === null) {
+                saltadas.push(`${c.i}: casilla sin s\xEDmbolo`);
+                continue;
+              }
+              cuerpo = nuevo;
+            } else {
+              const nuevo = escribirEnTrozo(cuerpo, String(v));
+              if (nuevo === null) {
+                saltadas.push(`${c.i}: el control no tiene sitio para el texto`);
+                continue;
+              }
+              props = props.replace(/<w:showingPlcHdr\s*\/>/g, "");
+              cuerpo = nuevo.replace(/<w:rStyle w:val="[^"]*(?:Placeholder|marcador|Marcador)[^"]*"\s*\/>/g, "");
+            }
+            cambios.push([pr, fin, props + cuerpo]);
+            puestas += 1;
+          }
+        }
+        if (!cambios.length) return { bytes: bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes), puestas: 0, saltadas };
+        cambios.sort((a, b) => b[0] - a[0]);
+        let salida = xml;
+        for (const [ini, fin, nuevo] of cambios) salida = salida.slice(0, ini) + nuevo + salida.slice(fin);
+        partes[PARTE] = strToU8(salida);
+        return { bytes: zipSync(partes, { level: 6 }), puestas, saltadas };
+      }
+      var ETIQUETAS = {
+        "titular.nombre": "Nombre o raz\xF3n social del titular",
+        "titular.nif": "NIF del titular",
+        "titular.direccion": "Domicilio del titular",
+        "titular.cp": "C\xF3digo postal del titular",
+        "titular.poblacion": "Localidad del titular",
+        "titular.provincia": "Provincia del titular",
+        "titular.telefono": "Tel\xE9fono del titular",
+        "titular.email": "Correo del titular",
+        "titular.representante": "Representante del titular",
+        "titular.nifRepresentante": "NIF del representante",
+        "obra.direccion": "Emplazamiento",
+        "obra.calle": "Calle del emplazamiento",
+        "obra.cp": "C\xF3digo postal del emplazamiento",
+        "obra.poblacion": "Localidad del emplazamiento",
+        "obra.provincia": "Provincia del emplazamiento",
+        "obra.refCatastral": "Referencia catastral",
+        "obra.uso": "Uso o actividad",
+        "obra.superficie": "Superficie (m\xB2)",
+        "obra.cups": "CUPS",
+        "obra.expediente": "N\xBA de expediente",
+        "obra.nombre": "R\xF3tulo o denominaci\xF3n",
+        "obra.utmX": "Coordenada UTM X",
+        "obra.utmY": "Coordenada UTM Y",
+        "obra.lugar": "Lugar de la firma",
+        "obra.dia": "D\xEDa de la firma",
+        "obra.mesEs": "Mes de la firma",
+        "obra.any": "A\xF1o de la firma",
+        "obra.fechaEs": "Fecha de la firma",
+        "obra.fechaCorta": "Fecha de la firma",
+        "instaladora.nombre": "Empresa instaladora",
+        "instaladora.nif": "NIF de la instaladora",
+        "instaladora.rasic": "N\xBA de registro de la instaladora",
+        "instaladora.direccion": "Domicilio de la instaladora",
+        "instaladora.cp": "C\xF3digo postal de la instaladora",
+        "instaladora.poblacion": "Localidad de la instaladora",
+        "instaladora.provincia": "Provincia de la instaladora",
+        "instaladora.telefono": "Tel\xE9fono de la instaladora",
+        "instaladora.email": "Correo de la instaladora",
+        "instalador.nombre": "Instalador",
+        "instalador.dni": "NIF del instalador",
+        "instalador.categoria": "Categor\xEDa del instalador",
+        "df.nombre": "Director de obra",
+        "df.nif": "NIF del director de obra",
+        "df.titulacion": "Titulaci\xF3n del director de obra",
+        "df.colegio": "Colegio del director de obra",
+        "df.numColegiado": "N\xBA de colegiado del director de obra",
+        "df.direccion": "Domicilio del director de obra",
+        "df.cp": "C\xF3digo postal del director de obra",
+        "df.poblacion": "Localidad del director de obra",
+        "df.provincia": "Provincia del director de obra",
+        "df.telefono": "Tel\xE9fono del director de obra",
+        "df.email": "Correo del director de obra",
+        "proyecto.titulo": "T\xEDtulo del proyecto",
+        "proyecto.autor": "Autor del proyecto",
+        "proyecto.nifAutor": "NIF del autor del proyecto",
+        "proyecto.titulacionAutor": "Titulaci\xF3n del autor",
+        "proyecto.colegioAutor": "Colegio del autor",
+        "proyecto.numColegiadoAutor": "N\xBA de colegiado del autor",
+        "proyecto.fecha": "Fecha del proyecto",
+        "mantenedora.nombre": "Empresa mantenedora",
+        "mantenedora.registro": "Registro de la mantenedora",
+        "organismoControl.nombre": "Organismo de control",
+        "organismoControl.nif": "NIF del organismo de control",
+        "rite.potenciaCalor": "Potencia de calor (kW)",
+        "rite.potenciaFrio": "Potencia de fr\xEDo (kW)",
+        "rite.refrigerante": "Refrigerante",
+        "rite.cargaKg": "Carga de refrigerante (kg)",
+        "rite.tipoEnergia": "Fuente de energ\xEDa",
+        "bt.potenciaInstalada": "Potencia instalada (kW)",
+        "bt.potenciaMax": "Potencia m\xE1xima admisible (kW)",
+        "bt.tension": "Tensi\xF3n (V)",
+        "bt.iga": "Interruptor general (A)",
+        "bt.seccionLGA": "Secci\xF3n de la LGA (mm\xB2)",
+        "bt.rTierra": "Resistencia de tierra (\u03A9)",
+        "bt.rAislamiento": "Resistencia de aislamiento",
+        "bt.distribuidora": "Distribuidora",
+        "at.potenciaGlobal": "Potencia total (kVA)",
+        "at.numTrafos": "N\xBA de transformadores",
+        "at.potenciaUnitaria": "Potencia por transformador (kVA)",
+        "at.relacion": "Relaci\xF3n de transformaci\xF3n",
+        "at.tension": "Tensi\xF3n (kV)",
+        "gas.tipo": "Tipo de gas",
+        "gas.potencia": "Potencia de gas (kW)",
+        "gas.numIndividuales": "N\xBA de instalaciones individuales",
+        "frig.nivel": "Nivel de la instalaci\xF3n frigor\xEDfica",
+        "frig.categoria": "Categor\xEDa frigor\xEDfica",
+        "frig.finalidad": "Finalidad de la instalaci\xF3n frigor\xEDfica",
+        "presion.fabricante": "Fabricante del equipo a presi\xF3n",
+        "presion.marca": "Marca del equipo a presi\xF3n",
+        "presion.tipo": "Tipo de equipo a presi\xF3n",
+        "presion.numFabricacion": "N\xBA de fabricaci\xF3n",
+        "presion.categoria": "Categor\xEDa del equipo a presi\xF3n"
+      };
+      function valoresDe(mapa, datos, valor) {
+        const valores = {};
+        const faltan = /* @__PURE__ */ new Map();
+        let llenas = 0;
+        const entradas = Object.entries(mapa && mapa.campos || {});
+        for (const [i, clave] of entradas) {
+          const v = valor(datos, clave);
+          if (v === "" || v === null || v === void 0 || typeof v === "object") {
+            faltan.set(clave, { etiqueta: ETIQUETAS[clave] || clave, clave });
+            continue;
+          }
+          valores[i] = String(v);
+          llenas += 1;
+        }
+        return { valores, casillas: entradas.length, llenas, faltan: [...faltan.values()] };
+      }
+      module.exports = { huecos, rellenar, leerCampos, firmaDe, valoresDe, ETIQUETAS, PARTE };
+    }
+  });
+
+  // shared/legalizaciones/wordMapas.js
+  var require_wordMapas = __commonJS({
+    "shared/legalizaciones/wordMapas.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      module.exports = {
+        "ccaa/cantabria/CDO-BT-certificado-direccion-obra.docx": { firma: "f16b05da", campos: { 0: "obra.nombre", 1: "titular.nif", 2: "titular.nombre", 4: "titular.direccion", 9: "titular.cp", 10: "titular.poblacion", 11: "titular.poblacion", 12: "titular.provincia", 13: "titular.telefono", 14: "titular.email", 16: "obra.calle", 21: "obra.cp", 22: "obra.poblacion", 23: "obra.poblacion", 24: "obra.provincia", 25: "obra.uso", 26: "obra.superficie", 27: "bt.potenciaInstalada", 28: "bt.potenciaMax", 29: "bt.tension", 31: "bt.iga", 34: "bt.seccionLGA", 36: "bt.rTierra", 37: "bt.rAislamiento", 38: "instalador.dni", 39: "instalador.nombre", 44: "instaladora.nif", 45: "instaladora.nombre", 46: "instaladora.rasic", 47: "proyecto.nifAutor", 48: "proyecto.autor", 49: "proyecto.numColegiadoAutor", 50: "proyecto.colegioAutor", 53: "df.nif", 54: "df.nombre", 56: "df.direccion", 61: "df.cp", 62: "df.poblacion", 63: "df.poblacion", 64: "df.provincia", 65: "df.telefono", 66: "df.email", 67: "df.titulacion", 68: "df.numColegiado", 69: "df.colegio", 70: "obra.lugar", 71: "obra.dia", 72: "obra.mesEs", 73: "obra.any", 74: "df.nombre" } },
+        "ccaa/cantabria/CDT-EP-certificado-direccion-tecnica-presion.docx": { firma: "09a3e5fe", campos: { 0: "df.nif", 1: "df.nombre", 2: "df.telefono", 3: "df.email", 4: "df.titulacion", 5: "df.numColegiado", 6: "df.colegio", 7: "titular.nif", 8: "titular.nombre", 10: "titular.direccion", 15: "titular.cp", 16: "titular.poblacion", 17: "titular.provincia", 18: "titular.telefono", 19: "titular.email", 21: "obra.calle", 26: "obra.cp", 27: "obra.poblacion", 28: "obra.poblacion", 29: "obra.provincia", 30: "obra.uso", 33: "obra.superficie", 34: "obra.nombre", 35: "proyecto.autor", 36: "proyecto.nifAutor", 37: "proyecto.numColegiadoAutor", 38: "proyecto.colegioAutor", 42: "presion.fabricante", 43: "presion.marca", 45: "presion.numFabricacion", 77: "presion.categoria", 119: "instaladora.nif", 120: "instaladora.nombre", 124: "obra.lugar", 125: "obra.dia", 126: "obra.mesEs", 127: "obra.any", 128: "df.nombre" } },
+        "ccaa/cantabria/CFO-AT-certificado-final-obra.docx": { firma: "9eb1b906", campos: { 0: "titular.nif", 1: "titular.nombre", 3: "titular.direccion", 8: "titular.cp", 9: "titular.poblacion", 10: "titular.poblacion", 11: "titular.provincia", 12: "titular.telefono", 13: "titular.email", 14: "obra.nombre", 18: "obra.calle", 20: "obra.cp", 21: "obra.poblacion", 22: "obra.poblacion", 23: "obra.provincia", 24: "obra.refCatastral", 25: "proyecto.titulo", 28: "proyecto.nifAutor", 29: "proyecto.autor", 30: "proyecto.titulacionAutor", 31: "proyecto.colegioAutor", 39: "at.tension", 75: "at.potenciaUnitaria", 76: "at.relacion", 140: "df.nif", 141: "df.nombre", 143: "df.direccion", 148: "df.cp", 149: "df.poblacion", 150: "df.poblacion", 151: "df.provincia", 152: "df.telefono", 153: "df.email", 154: "instaladora.nif", 155: "instaladora.nombre", 156: "organismoControl.nif", 157: "organismoControl.nombre", 169: "obra.lugar", 170: "obra.dia", 171: "obra.mesEs", 172: "obra.any", 173: "df.nombre" } },
+        "ccaa/cantabria/CFO-IFRI-certificado-final-obra-frigorifica.docx": { firma: "b718f56a", campos: { 0: "df.nif", 1: "df.nombre", 2: "df.titulacion", 3: "df.numColegiado", 4: "titular.nif", 5: "titular.nombre", 7: "titular.direccion", 12: "titular.cp", 13: "titular.poblacion", 14: "titular.provincia", 15: "titular.telefono", 16: "titular.email", 18: "obra.calle", 23: "obra.cp", 24: "obra.poblacion", 25: "obra.poblacion", 26: "obra.provincia", 29: "proyecto.autor", 30: "proyecto.nifAutor", 31: "proyecto.titulo", 32: "proyecto.colegioAutor", 33: "proyecto.numColegiadoAutor", 54: "rite.refrigerante", 56: "rite.cargaKg", 77: "obra.lugar", 78: "obra.dia", 79: "obra.mesEs", 80: "obra.any" } },
+        "ccaa/cantabria/CI-BT-certificado-instalacion.docx": { firma: "4ef316f2", campos: { 0: "titular.nif", 1: "titular.nombre", 3: "obra.cups", 6: "obra.calle", 11: "obra.cp", 12: "obra.poblacion", 13: "obra.poblacion", 14: "obra.provincia", 15: "obra.refCatastral", 16: "obra.uso", 17: "obra.superficie", 31: "bt.tension", 32: "bt.iga", 42: "bt.rTierra", 50: "organismoControl.nombre", 53: "instaladora.nif", 54: "instaladora.nombre", 55: "instaladora.rasic", 56: "instalador.dni", 57: "instalador.nombre", 61: "obra.lugar", 62: "obra.dia", 63: "obra.mesEs", 64: "obra.any" } },
+        "ccaa/cantabria/CI-EP-certificado-instalacion-presion.docx": { firma: "d3dbbb9f", campos: { 0: "titular.nif", 1: "titular.nombre", 3: "titular.direccion", 8: "titular.cp", 9: "titular.poblacion", 10: "titular.poblacion", 11: "titular.provincia", 12: "titular.telefono", 13: "titular.email", 15: "obra.calle", 20: "obra.cp", 21: "obra.poblacion", 22: "obra.poblacion", 23: "obra.provincia", 24: "obra.uso", 27: "obra.superficie", 28: "obra.nombre", 29: "proyecto.autor", 30: "proyecto.nifAutor", 31: "proyecto.numColegiadoAutor", 32: "proyecto.colegioAutor", 36: "presion.fabricante", 37: "presion.marca", 39: "presion.numFabricacion", 71: "presion.categoria", 113: "instaladora.nombre", 114: "instaladora.nif", 116: "instaladora.rasic", 118: "instaladora.direccion", 123: "instaladora.cp", 124: "instaladora.poblacion", 125: "instaladora.poblacion", 126: "instaladora.provincia", 127: "instaladora.telefono", 128: "instaladora.email", 129: "instalador.dni", 130: "instalador.nombre", 134: "obra.lugar", 135: "obra.dia", 136: "obra.mesEs", 137: "obra.any", 138: "instalador.nombre" } },
+        "ccaa/cantabria/CI-IFRI-certificado-instalacion-frigorifica.docx": { firma: "7a92b1ed", campos: { 0: "titular.nif", 1: "titular.nombre", 3: "titular.direccion", 8: "titular.cp", 9: "titular.poblacion", 10: "titular.poblacion", 11: "titular.provincia", 12: "titular.telefono", 13: "titular.email", 15: "obra.calle", 20: "obra.cp", 21: "obra.poblacion", 22: "obra.poblacion", 23: "obra.provincia", 26: "instaladora.nombre", 27: "instaladora.rasic", 28: "proyecto.autor", 29: "proyecto.nifAutor", 30: "df.nombre", 31: "df.nif", 32: "organismoControl.nombre", 33: "organismoControl.nif", 217: "rite.refrigerante", 219: "rite.cargaKg", 243: "obra.lugar", 244: "obra.dia", 245: "obra.mesEs", 246: "obra.any", 247: "instaladora.rasic" } },
+        "ccaa/cantabria/CI-ITE-certificado-instalacion-RITE.docx": { firma: "48b0d14c", campos: { 0: "titular.nif", 1: "titular.nombre", 3: "titular.direccion", 8: "titular.cp", 9: "titular.poblacion", 10: "titular.poblacion", 11: "titular.provincia", 12: "titular.telefono", 13: "titular.email", 15: "obra.calle", 20: "obra.cp", 21: "obra.poblacion", 22: "obra.refCatastral", 23: "obra.poblacion", 32: "obra.uso", 37: "rite.tipoEnergia", 62: "instaladora.nombre", 63: "instaladora.nif", 64: "instaladora.rasic", 67: "instaladora.direccion", 72: "instaladora.cp", 73: "instaladora.poblacion", 74: "instaladora.poblacion", 75: "instaladora.provincia", 76: "instaladora.telefono", 77: "instaladora.email", 78: "instalador.nombre", 81: "obra.lugar", 82: "obra.dia", 83: "obra.mesEs", 84: "obra.any" } },
+        "ccaa/cantabria/CI-PCIE-certificado-instalacion-PCI.docx": { firma: "86a8c884", campos: { 0: "titular.nif", 1: "titular.nombre", 3: "titular.direccion", 8: "titular.cp", 9: "titular.poblacion", 10: "titular.poblacion", 11: "titular.provincia", 12: "obra.nombre", 23: "obra.superficie", 25: "obra.calle", 30: "obra.cp", 31: "obra.poblacion", 32: "obra.poblacion", 33: "obra.provincia", 34: "obra.refCatastral", 35: "proyecto.titulo", 38: "proyecto.nifAutor", 39: "proyecto.autor", 40: "proyecto.titulacionAutor", 41: "proyecto.colegioAutor", 42: "proyecto.fecha", 60: "instalador.dni", 61: "instalador.nombre", 74: "instaladora.nif", 75: "instaladora.nombre", 76: "instaladora.rasic", 78: "instaladora.direccion", 83: "instaladora.cp", 84: "instaladora.poblacion", 85: "instaladora.poblacion", 86: "instaladora.provincia", 87: "instaladora.telefono", 88: "instaladora.email" } },
+        "ccaa/cantabria/CI2-ITE-certificado-instalacion-RITE.docx": { firma: "f4e9e5f4", campos: { 0: "titular.nif", 1: "titular.nombre", 3: "titular.direccion", 8: "titular.cp", 9: "titular.poblacion", 10: "titular.poblacion", 11: "titular.provincia", 12: "titular.telefono", 13: "titular.email", 15: "obra.calle", 20: "obra.cp", 21: "obra.poblacion", 22: "obra.refCatastral", 23: "obra.poblacion", 32: "obra.uso", 37: "rite.tipoEnergia", 98: "instaladora.nombre", 99: "instaladora.nif", 100: "instaladora.rasic", 103: "instaladora.direccion", 108: "instaladora.cp", 109: "instaladora.poblacion", 110: "instaladora.poblacion", 111: "instaladora.provincia", 112: "instaladora.telefono", 113: "instaladora.email", 114: "instalador.nombre", 117: "obra.fechaCorta", 118: "obra.fechaCorta" } },
+        "ccaa/cantabria/CIE-AT-certificado-instalacion.docx": { firma: "57130b03", campos: { 0: "titular.nif", 1: "titular.nombre", 3: "titular.direccion", 8: "titular.cp", 9: "titular.poblacion", 10: "titular.poblacion", 11: "titular.provincia", 12: "titular.telefono", 13: "titular.email", 14: "obra.nombre", 16: "obra.calle", 18: "obra.cp", 19: "obra.poblacion", 20: "obra.poblacion", 21: "obra.provincia", 22: "obra.refCatastral", 23: "proyecto.titulo", 26: "proyecto.nifAutor", 27: "proyecto.autor", 28: "proyecto.titulacionAutor", 29: "proyecto.colegioAutor", 30: "proyecto.fecha", 38: "at.tension", 74: "at.potenciaUnitaria", 75: "at.relacion", 139: "instalador.dni", 140: "instalador.nombre", 157: "instaladora.nif", 158: "instaladora.nombre", 160: "instaladora.direccion", 165: "instaladora.cp", 166: "instaladora.poblacion", 167: "instaladora.poblacion", 168: "instaladora.provincia", 169: "instaladora.telefono", 170: "instaladora.email", 171: "organismoControl.nif", 172: "organismoControl.nombre", 183: "obra.lugar", 184: "obra.dia", 185: "obra.mesEs", 186: "obra.any", 187: "instalador.nombre" } },
+        "ccaa/cantabria/MT-EP-memoria-tecnica-presion.docx": { firma: "a7b0f6a8", campos: { 0: "titular.nif", 1: "titular.nombre", 3: "titular.direccion", 8: "titular.cp", 9: "titular.poblacion", 10: "titular.poblacion", 11: "titular.provincia", 12: "titular.telefono", 13: "titular.email", 15: "obra.calle", 20: "obra.cp", 21: "obra.poblacion", 22: "obra.poblacion", 23: "obra.provincia", 24: "obra.uso", 27: "obra.superficie", 29: "presion.fabricante", 30: "presion.marca", 32: "presion.numFabricacion", 64: "presion.categoria", 100: "instaladora.nombre", 101: "instaladora.nif", 103: "instaladora.rasic", 105: "instaladora.direccion", 110: "instaladora.cp", 111: "instaladora.poblacion", 112: "instaladora.poblacion", 113: "instaladora.provincia", 114: "instaladora.telefono", 115: "instaladora.email", 116: "instalador.dni", 117: "instalador.nombre", 118: "obra.lugar", 119: "obra.dia", 120: "obra.mesEs", 121: "obra.any", 122: "instalador.nombre" } },
+        "ccaa/cantabria/MT-ITE-memoria-tecnica-RITE.docx": { firma: "32074157", campos: { 0: "titular.nif", 1: "titular.nombre", 3: "titular.direccion", 8: "titular.cp", 9: "titular.poblacion", 10: "titular.poblacion", 11: "titular.provincia", 12: "titular.telefono", 14: "titular.email", 16: "obra.calle", 21: "obra.cp", 22: "obra.poblacion", 23: "obra.refCatastral", 24: "obra.poblacion", 33: "instaladora.nombre", 34: "instaladora.nif", 35: "instaladora.rasic", 38: "instaladora.direccion", 43: "instaladora.cp", 44: "instaladora.poblacion", 45: "instaladora.poblacion", 46: "instaladora.provincia", 47: "instaladora.telefono", 49: "instaladora.email", 50: "instalador.nombre", 899: "obra.lugar", 900: "obra.dia", 901: "obra.mesEs", 902: "obra.any" } },
+        "ccaa/cantabria/MTD-BT-memoria-tecnica-diseno.docx": { firma: "36cc0124", campos: { 0: "titular.nif", 1: "titular.nombre", 3: "titular.direccion", 8: "titular.cp", 9: "titular.poblacion", 10: "titular.poblacion", 11: "titular.provincia", 12: "titular.telefono", 14: "titular.email", 16: "obra.cups", 19: "obra.calle", 24: "obra.cp", 25: "obra.poblacion", 26: "obra.poblacion", 27: "obra.provincia", 28: "obra.refCatastral", 29: "obra.uso", 30: "obra.superficie", 38: "bt.tension", 39: "bt.iga", 52: "bt.rTierra", 57: "proyecto.nifAutor", 58: "proyecto.autor", 71: "instaladora.nombre", 72: "instaladora.rasic", 74: "instalador.categoria", 75: "proyecto.titulacionAutor", 76: "proyecto.numColegiadoAutor", 77: "proyecto.colegioAutor", 197: "obra.lugar", 198: "obra.dia", 199: "obra.mesEs", 200: "obra.any", 201: "proyecto.autor" } },
+        "ccaa/cantabria/PS-PCIE-puesta-servicio-PCI.docx": { firma: "a0a44e4c", campos: { 0: "titular.nif", 1: "titular.nombre", 3: "titular.direccion", 8: "titular.cp", 9: "titular.poblacion", 10: "titular.poblacion", 11: "titular.provincia", 12: "titular.telefono", 13: "titular.email", 18: "titular.nif", 19: "titular.nombre", 21: "titular.direccion", 26: "titular.cp", 27: "titular.poblacion", 28: "titular.poblacion", 29: "titular.provincia", 30: "titular.telefono", 31: "titular.email", 33: "obra.calle", 38: "obra.cp", 39: "obra.poblacion", 40: "obra.poblacion", 41: "obra.provincia", 44: "obra.expediente", 55: "obra.superficie" } },
+        "ccaa/cantabria/SOL-IEBT-solicitud-BT.docx": { firma: "7b832344", campos: { 0: "titular.nif", 1: "titular.nombre", 2: "titular.nifRepresentante", 3: "titular.representante", 7: "titular.direccion", 12: "titular.cp", 13: "titular.poblacion", 14: "titular.poblacion", 15: "titular.provincia", 16: "titular.telefono", 18: "titular.email", 35: "obra.lugar", 36: "obra.dia", 37: "obra.mesEs", 38: "obra.any", 39: "titular.representante" } },
+        "ccaa/cantabria/SOL-IFRI-solicitud-frigorifica.docx": { firma: "d9198416", campos: { 0: "titular.nif", 1: "titular.nombre", 2: "titular.nifRepresentante", 3: "titular.representante", 5: "titular.direccion", 10: "titular.cp", 11: "titular.poblacion", 12: "titular.poblacion", 13: "titular.provincia", 14: "titular.telefono", 15: "titular.email", 19: "obra.calle", 24: "obra.cp", 25: "obra.poblacion", 26: "obra.poblacion", 27: "obra.provincia", 40: "obra.lugar", 41: "obra.dia", 42: "obra.mesEs", 43: "obra.any", 44: "titular.representante" } },
+        "ccaa/cantabria/SOL-ITE-solicitud-RITE.docx": { firma: "ee25d155", campos: { 0: "titular.nif", 1: "titular.nombre", 2: "titular.nifRepresentante", 3: "titular.representante", 5: "titular.direccion", 10: "titular.cp", 11: "titular.poblacion", 12: "titular.poblacion", 13: "titular.provincia", 14: "titular.telefono", 15: "titular.email", 17: "obra.calle", 22: "obra.cp", 23: "obra.poblacion", 24: "obra.refCatastral", 25: "obra.poblacion", 35: "obra.lugar", 36: "obra.dia", 37: "obra.mesEs", 38: "obra.any", 39: "titular.representante" } },
+        "ccaa/castilla-la-mancha/SJDI_31603.DOCX": { firma: "b2dc14d8", campos: { 4: "titular.nif", 9: "titular.nombre", 15: "titular.nifRepresentante", 23: "titular.direccion", 32: "titular.cp", 34: "titular.poblacion", 35: "titular.provincia", 37: "titular.telefono", 39: "titular.email", 49: "obra.nombre", 73: "obra.utmX", 74: "obra.utmY", 76: "obra.calle", 85: "obra.poblacion", 86: "obra.provincia", 87: "obra.uso", 91: "titular.nif", 92: "titular.nombre", 94: "titular.direccion", 103: "titular.poblacion", 104: "titular.provincia", 105: "titular.telefono", 106: "titular.email", 136: "instaladora.nombre", 139: "instaladora.rasic", 180: "obra.lugar", 181: "obra.dia", 182: "obra.mesEs", 183: "obra.any", 184: "titular.representante", 185: "obra.provincia" } },
+        "ccaa/castilla-la-mancha/SJDU_31627.DOCX": { firma: "9a0834e6", campos: { 4: "titular.nif", 9: "titular.nombre", 15: "titular.nifRepresentante", 23: "titular.direccion", 32: "titular.cp", 34: "titular.poblacion", 35: "titular.provincia", 37: "titular.telefono", 39: "titular.email", 49: "obra.nombre", 73: "obra.utmX", 74: "obra.utmY", 76: "obra.calle", 85: "obra.poblacion", 86: "obra.provincia", 87: "obra.uso", 91: "titular.nif", 92: "titular.nombre", 94: "titular.direccion", 103: "titular.poblacion", 104: "titular.provincia", 105: "titular.telefono", 106: "titular.email", 116: "gas.potencia", 118: "gas.tipo", 153: "obra.lugar", 154: "obra.dia", 155: "obra.mesEs", 156: "obra.any", 157: "titular.representante", 158: "obra.provincia" } },
+        "ccaa/castilla-la-mancha/SJDX_35255.DOCX": { firma: "2d73e6df", campos: { 3: "titular.nif", 8: "titular.nombre", 13: "titular.nifRepresentante", 21: "titular.direccion", 30: "titular.cp", 32: "titular.poblacion", 33: "titular.provincia", 35: "titular.telefono", 37: "titular.email", 47: "obra.nombre", 71: "obra.utmX", 72: "obra.utmY", 74: "obra.calle", 83: "obra.poblacion", 84: "obra.provincia", 85: "obra.uso", 89: "titular.nif", 90: "titular.nombre", 92: "titular.direccion", 101: "titular.poblacion", 102: "titular.provincia", 103: "titular.telefono", 104: "titular.email", 111: "presion.tipo", 113: "presion.fabricante", 115: "presion.numFabricacion", 116: "presion.categoria", 236: "obra.lugar", 237: "obra.dia", 238: "obra.mesEs", 239: "obra.any", 240: "titular.representante", 241: "obra.provincia" } },
+        "ccaa/castilla-la-mancha/SJE4_29581.DOCX": { firma: "76bbcd3c", campos: { 0: "titular.nombre", 3: "titular.nif", 5: "obra.calle", 14: "obra.cp", 15: "obra.poblacion", 16: "obra.provincia", 17: "obra.refCatastral", 18: "obra.utmX", 19: "obra.utmY", 20: "obra.cups", 25: "obra.uso", 27: "bt.tension", 28: "bt.seccionLGA", 45: "bt.rAislamiento", 47: "bt.rTierra", 53: "instaladora.nombre", 56: "instaladora.rasic", 60: "instalador.dni", 62: "bt.distribuidora", 63: "obra.lugar", 64: "obra.fechaEs" } },
+        "ccaa/castilla-la-mancha/SJE4_35974.DOCX": { firma: "5c9739d0", campos: { 3: "titular.nif", 8: "titular.nombre", 13: "instalador.dni", 21: "titular.direccion", 30: "titular.cp", 32: "titular.poblacion", 33: "titular.provincia", 35: "titular.telefono", 37: "titular.email", 48: "obra.nombre", 52: "obra.refCatastral", 53: "obra.utmX", 54: "obra.utmY", 55: "obra.cups", 57: "obra.calle", 66: "obra.poblacion", 67: "obra.provincia", 68: "obra.uso", 72: "titular.nif", 73: "titular.nombre", 75: "titular.direccion", 84: "titular.poblacion", 85: "titular.provincia", 86: "titular.telefono", 87: "titular.email", 94: "instaladora.nombre", 97: "instaladora.rasic", 101: "instalador.dni", 102: "obra.uso", 104: "bt.tension", 105: "bt.seccionLGA", 171: "obra.lugar", 172: "obra.dia", 173: "obra.mesEs", 174: "obra.any", 175: "instalador.nombre", 176: "obra.provincia" } },
+        "ccaa/castilla-la-mancha/SJE6_31645.DOCX": { firma: "8758d6c0", campos: { 4: "titular.nif", 9: "titular.nombre", 15: "instalador.dni", 23: "titular.direccion", 32: "titular.cp", 34: "titular.poblacion", 35: "titular.provincia", 37: "titular.telefono", 39: "titular.email", 49: "obra.nombre", 73: "obra.utmX", 74: "obra.utmY", 76: "obra.calle", 85: "obra.poblacion", 86: "obra.provincia", 87: "obra.uso", 91: "titular.nif", 92: "titular.nombre", 94: "titular.direccion", 103: "titular.poblacion", 104: "titular.provincia", 105: "titular.telefono", 106: "titular.email", 113: "instaladora.nombre", 116: "instaladora.rasic", 120: "instalador.dni", 132: "rite.potenciaCalor", 133: "rite.potenciaFrio", 181: "obra.lugar", 182: "obra.dia", 183: "obra.mesEs", 184: "obra.any", 185: "instalador.nombre", 186: "obra.provincia" } },
+        "ccaa/castilla-la-mancha/SJE6_31648.DOCX": { firma: "89febc96", campos: { 0: "titular.nombre", 6: "titular.nif", 11: "obra.calle", 20: "obra.cp", 21: "obra.poblacion", 22: "obra.provincia", 23: "obra.refCatastral", 24: "obra.utmX", 25: "obra.utmY", 39: "rite.potenciaCalor", 44: "rite.potenciaFrio", 57: "proyecto.autor", 58: "proyecto.nifAutor", 59: "df.nombre", 60: "df.nif", 61: "instaladora.nombre", 64: "instaladora.rasic", 80: "instalador.nombre", 84: "obra.lugar", 85: "obra.fechaEs", 86: "df.nombre", 87: "df.nif", 88: "obra.lugar", 89: "obra.fechaEs" } },
+        "ccaa/castilla-la-mancha/SJE8_31650.DOCX": { firma: "82c4c587", campos: { 4: "titular.nif", 9: "titular.nombre", 15: "titular.nifRepresentante", 23: "titular.direccion", 32: "titular.cp", 34: "titular.poblacion", 35: "titular.provincia", 37: "titular.telefono", 39: "titular.email", 51: "obra.nombre", 75: "obra.utmX", 76: "obra.utmY", 78: "obra.calle", 87: "obra.poblacion", 88: "obra.provincia", 89: "obra.uso", 93: "titular.nif", 94: "titular.nombre", 96: "titular.direccion", 105: "titular.poblacion", 106: "titular.provincia", 107: "titular.telefono", 108: "titular.email", 129: "instaladora.nombre", 130: "instaladora.nif", 131: "instaladora.rasic", 132: "mantenedora.nombre", 134: "mantenedora.registro", 170: "obra.lugar", 171: "obra.dia", 172: "obra.mesEs", 173: "obra.any", 174: "titular.representante", 175: "obra.provincia" } },
+        "ccaa/castilla-la-mancha/SJE8_31653.DOCX": { firma: "a0a968d6", campos: { 3: "instaladora.nombre", 4: "instaladora.nif", 5: "instaladora.direccion", 9: "instalador.nombre", 10: "instalador.dni", 12: "instaladora.nombre", 20: "obra.calle", 22: "obra.cp", 23: "obra.poblacion", 24: "obra.refCatastral", 45: "obra.lugar", 46: "obra.dia", 47: "obra.mesEs", 49: "instalador.nombre" } },
+        "ccaa/castilla-la-mancha/SKWD_31839.DOCX": { firma: "e04a1aed", campos: { 4: "titular.nif", 9: "titular.nombre", 15: "titular.nifRepresentante", 23: "titular.direccion", 32: "titular.cp", 34: "titular.poblacion", 35: "titular.provincia", 37: "titular.telefono", 39: "titular.email", 47: "obra.nombre", 71: "obra.utmX", 72: "obra.utmY", 74: "obra.calle", 83: "obra.poblacion", 84: "obra.provincia", 85: "obra.uso", 145: "obra.lugar", 146: "obra.dia", 147: "obra.mesEs", 148: "obra.any", 149: "titular.representante", 150: "obra.provincia" } },
+        "ccaa/navarra/GAS-IRG-1.docx": { firma: "dde74ad1", campos: { 0: "instaladora.nombre", 1: "instaladora.nif", 2: "instaladora.rasic", 4: "instaladora.email", 5: "instaladora.direccion", 6: "instaladora.telefono", 7: "instalador.nombre", 8: "instalador.categoria", 9: "instalador.dni", 13: "obra.calle", 15: "obra.poblacion", 16: "gas.potencia", 18: "obra.utmX", 19: "obra.utmY", 26: "obra.fechaCorta" } },
+        "ccaa/navarra/GAS-IRG-2.docx": { firma: "8be712b2", campos: { 0: "instaladora.nombre", 1: "instaladora.nif", 2: "instaladora.rasic", 4: "instaladora.email", 5: "instaladora.direccion", 6: "instaladora.telefono", 7: "instalador.nombre", 8: "instalador.categoria", 9: "instalador.dni", 13: "obra.calle", 15: "obra.poblacion", 16: "obra.utmX", 17: "obra.utmY", 18: "gas.potencia", 19: "gas.numIndividuales", 22: "obra.fechaCorta" } },
+        "ccaa/navarra/GAS-IRG-3.docx": { firma: "b4aeb332", campos: { 0: "instaladora.nombre", 1: "instaladora.nif", 2: "instaladora.rasic", 4: "instaladora.email", 5: "instaladora.direccion", 6: "instaladora.telefono", 7: "instalador.nombre", 8: "instalador.categoria", 9: "instalador.dni", 13: "obra.calle", 18: "obra.poblacion", 19: "gas.potencia", 52: "obra.fechaCorta" } },
+        "ccaa/pais-vasco/ASC-declaracion-responsable.docx": { firma: "96539f32", campos: { 5: "titular.nombre", 6: "titular.nif", 7: "titular.telefono", 8: "titular.direccion", 10: "titular.cp", 11: "titular.poblacion", 12: "titular.email", 13: "titular.representante", 14: "titular.nifRepresentante", 19: "obra.calle", 21: "obra.cp", 22: "obra.poblacion", 23: "obra.utmX", 24: "obra.utmY", 25: "instaladora.nombre", 26: "instaladora.nif", 27: "mantenedora.nombre", 40: "obra.expediente" } },
+        "ccaa/pais-vasco/AT-certificado-direccion-obra-no-linea.docx": { firma: "1bfcf893", campos: { 61: "at.potenciaUnitaria", 64: "at.tension" } },
+        "ccaa/pais-vasco/AT-declaracion-responsable.docx": { firma: "b7ba24b0", campos: { 2: "titular.representante", 3: "titular.nifRepresentante", 4: "titular.telefono", 12: "titular.nombre", 13: "titular.nif", 14: "titular.direccion", 16: "titular.cp", 17: "titular.poblacion", 18: "obra.calle", 20: "obra.cp", 21: "obra.poblacion", 22: "obra.utmX", 23: "obra.utmY", 24: "proyecto.autor", 25: "proyecto.nifAutor", 26: "proyecto.titulacionAutor", 27: "instaladora.nombre", 28: "instaladora.nif", 29: "mantenedora.nombre", 31: "obra.nombre", 104: "at.potenciaUnitaria", 107: "at.tension" } },
+        "ccaa/pais-vasco/BT-declaracion-responsable.docx": { firma: "17d18f8f", campos: { 2: "titular.representante", 3: "titular.nifRepresentante", 4: "titular.telefono", 16: "titular.nombre", 17: "titular.nif", 18: "titular.direccion", 20: "titular.cp", 21: "titular.poblacion", 22: "obra.calle", 25: "obra.cp", 26: "obra.poblacion", 27: "obra.utmX", 28: "obra.utmY", 29: "proyecto.autor", 30: "proyecto.nifAutor", 31: "proyecto.titulacionAutor", 32: "instaladora.nombre", 33: "instaladora.nif", 38: "obra.uso", 39: "obra.superficie", 44: "obra.cups", 48: "bt.potenciaInstalada" } },
+        "ccaa/pais-vasco/FRIG-declaracion-responsable.docx": { firma: "7df25cd0", campos: { 4: "titular.nombre", 5: "titular.nif", 6: "titular.telefono", 7: "titular.direccion", 9: "titular.cp", 10: "titular.poblacion", 11: "titular.email", 12: "titular.representante", 13: "titular.nifRepresentante", 18: "obra.calle", 20: "obra.cp", 21: "obra.poblacion", 22: "obra.utmX", 23: "obra.utmY", 24: "proyecto.autor", 25: "proyecto.nifAutor", 28: "instaladora.nombre", 29: "instaladora.nif", 30: "mantenedora.nombre", 32: "obra.expediente", 37: "frig.finalidad", 38: "frig.nivel" } },
+        "ccaa/pais-vasco/GAS-declaracion-responsable.docx": { firma: "f484a1c5", campos: { 2: "titular.nombre", 3: "titular.nif", 4: "titular.telefono", 5: "titular.direccion", 7: "titular.cp", 8: "titular.poblacion", 9: "titular.email", 10: "titular.representante", 11: "titular.nifRepresentante", 16: "obra.calle", 18: "obra.cp", 19: "obra.poblacion", 20: "obra.utmX", 21: "obra.utmY", 22: "proyecto.autor", 23: "proyecto.nifAutor", 26: "instaladora.nombre", 27: "instaladora.nif", 28: "obra.uso", 30: "gas.tipo", 36: "gas.potencia" } },
+        "ccaa/pais-vasco/PCI-declaracion-competencia.docx": { firma: "297d956c", campos: { 0: "df.nombre", 1: "df.nif", 5: "df.direccion", 7: "df.cp", 8: "df.telefono", 10: "df.email", 11: "df.titulacion", 13: "proyecto.titulo", 14: "obra.lugar", 17: "obra.dia", 18: "obra.lugar", 19: "obra.dia", 20: "obra.mesEs" } },
+        "ccaa/pais-vasco/PCI-declaracion-industrial.docx": { firma: "5688be11", campos: { 3: "titular.nombre", 4: "titular.nif", 5: "titular.telefono", 6: "titular.direccion", 8: "titular.cp", 9: "titular.poblacion", 10: "titular.email", 11: "titular.representante", 12: "titular.nifRepresentante", 17: "obra.calle", 19: "obra.cp", 20: "obra.poblacion", 21: "obra.utmX", 22: "obra.utmY", 25: "proyecto.autor", 26: "proyecto.nifAutor", 27: "df.nombre", 28: "df.nif", 29: "instaladora.nombre", 30: "instaladora.nif", 31: "instalador.nombre", 32: "instalador.dni", 33: "mantenedora.nombre" } },
+        "ccaa/pais-vasco/PCI-declaracion-no-industrial.docx": { firma: "7192033f", campos: { 3: "titular.nombre", 4: "titular.nif", 5: "titular.telefono", 6: "titular.direccion", 8: "titular.cp", 9: "titular.poblacion", 10: "titular.email", 11: "titular.representante", 12: "titular.nifRepresentante", 17: "obra.calle", 19: "obra.cp", 20: "obra.poblacion", 21: "obra.utmX", 22: "obra.utmY", 23: "instaladora.nombre", 24: "instaladora.nif", 25: "instalador.nombre", 26: "instalador.dni" } },
+        "ccaa/pais-vasco/PRESION-declaracion-responsable.docx": { firma: "2450b288", campos: { 4: "titular.nombre", 5: "titular.nif", 6: "titular.telefono", 7: "titular.direccion", 9: "titular.cp", 10: "titular.poblacion", 11: "titular.email", 12: "titular.representante", 13: "titular.nifRepresentante", 18: "obra.calle", 20: "obra.cp", 21: "obra.poblacion", 22: "obra.utmX", 23: "obra.utmY", 24: "proyecto.autor", 25: "proyecto.nifAutor", 28: "instaladora.nombre", 29: "instaladora.nif" } },
+        "ccaa/pais-vasco/RITE-declaracion-responsable.docx": { firma: "414e85ae", campos: { 4: "titular.nombre", 5: "titular.nif", 6: "titular.telefono", 7: "titular.direccion", 9: "titular.cp", 10: "titular.poblacion", 11: "titular.email", 12: "titular.representante", 13: "titular.nifRepresentante", 18: "obra.calle", 20: "obra.cp", 21: "obra.poblacion", 22: "obra.utmX", 23: "obra.utmY", 24: "proyecto.autor", 25: "proyecto.nifAutor", 28: "instaladora.nombre", 29: "instaladora.nif", 30: "mantenedora.nombre", 32: "obra.expediente", 38: "obra.uso", 58: "rite.refrigerante", 60: "rite.cargaKg" } }
+      };
     }
   });
 
@@ -122304,7 +125086,23 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
       var shell = {
         openPath: (ruta) => adaptadores.abrirRuta?.(ruta),
         showItemInFolder: (ruta) => adaptadores.abrirRuta?.(ruta),
-        openExternal: (url) => globalThis.open?.(url, "_blank")
+        openExternal: (url) => {
+          const w = globalThis.open?.(url, "_blank");
+          if (w || !globalThis.document) return w;
+          try {
+            const a = globalThis.document.createElement("a");
+            a.href = url;
+            a.target = "_blank";
+            a.rel = "noopener";
+            a.textContent = "Abrir el documento \u2197";
+            a.style.cssText = "position:fixed;right:16px;bottom:16px;z-index:99999;padding:10px 16px;background:#0f766e;color:#fff;border-radius:6px;font:600 14px system-ui;text-decoration:none;box-shadow:0 2px 10px #0004";
+            a.addEventListener("click", () => a.remove());
+            globalThis.document.body.appendChild(a);
+            setTimeout(() => a.remove(), 2e4);
+          } catch {
+          }
+          return null;
+        }
       };
       var BrowserWindow = class {
         constructor() {
@@ -123092,6 +125890,8 @@ Estado: ${ESTADO}`);
       var roles = require_roles();
       var { SinPermiso, nuevoId } = require_repositorio();
       var { casillaFirma } = require_firmaPdf();
+      var WORD = require_word();
+      var WORD_MAPAS = require_wordMapas();
       var EN_WEB = typeof process !== "undefined" && false;
       var ESCAPES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
       var esc = (v) => v === null || v === void 0 ? "" : String(v).replace(/[&<>"']/g, (c) => ESCAPES[c]);
@@ -123336,6 +126136,11 @@ Estado: ${ESTADO}`);
         if (!a) return modelo;
         return { ...modelo, formato: "acroform", archivo: a.archivo, adjunto: a };
       }
+      function mapaWord(modelo) {
+        if (!modelo || modelo.adjunto || modelo.formato !== "original" || !/\.docx$/i.test(modelo.archivo || "")) return null;
+        const mapa = WORD_MAPAS[modelo.archivo];
+        return mapa && Object.keys(mapa.campos || {}).length ? mapa : null;
+      }
       function rutaModelo(modelo) {
         if (modelo && modelo.adjunto) return fs.existsSync(modelo.adjunto.ruta) ? modelo.adjunto.ruta : null;
         if (!modelo || !modelo.archivo || EN_WEB) return null;
@@ -123383,6 +126188,10 @@ Estado: ${ESTADO}`);
         return camposCache.get(modelo.id);
       }
       async function coberturaModelo(m, datos) {
+        if (mapaWord(m) && hayModelo(m)) {
+          const w = WORD.valoresDe(mapaWord(m), datos, L.valor);
+          return { casillas: w.casillas, llenas: w.llenas, faltan: w.faltan };
+        }
         if (m.formato === "sin-modelo" || m.formato === "original") return { casillas: 0, llenas: 0, faltan: [] };
         if (m.formato === "xfa" && XFA.MAPAS[m.id]) {
           let campos = null;
@@ -123435,7 +126244,9 @@ Estado: ${ESTADO}`);
             /* 'relleno' = el PDF original del organismo; 'falta' = la pantalla pide adjuntarlo (nunca una imitación). */
             ...originalDe(m, vigia),
             /* Los XFA rellenos solo se ven en Adobe Reader: llevan además su copia «para ver e imprimir». */
-            copiaParaVer: m.formato === "xfa" && Boolean(XFA.MAPAS[m.id]) && hayModelo(m)
+            copiaParaVer: m.formato === "xfa" && Boolean(XFA.MAPAS[m.id]) && hayModelo(m),
+            /* El Word de la sede que se rellena en sus huecos (opción B, 9-nov). */
+            word: Boolean(mapaWord(m))
           });
         }
         return {
@@ -123716,7 +126527,18 @@ Estado: ${ESTADO}`);
           detalle = { puestas: r.puestas, saltadas: r.saltadas, como: "oficial" };
         } else if (modelo.formato === "original" && hayModelo(modelo)) {
           const ext = (path.extname(modelo.archivo) || ".pdf").toLowerCase();
-          return { bytes: Buffer.from(await bytesModelo(modelo)), nombre: `${base} (en blanco)${ext}`, modelo: { id: modelo.id, codigo: modelo.codigo, nombre: modelo.nombre, formato: modelo.formato }, faltan: [], como: "enBlanco" };
+          const original = await bytesModelo(modelo);
+          const ficha2 = { id: modelo.id, codigo: modelo.codigo, nombre: modelo.nombre, formato: modelo.formato };
+          const mapa = mapaWord(modelo);
+          if (mapa) {
+            const firma = WORD.huecos(original).firma;
+            if (firma === mapa.firma) {
+              const r = WORD.rellenar(original, WORD.valoresDe(mapa, datos, L.valor).valores);
+              return { bytes: Buffer.from(r.bytes), nombre: `${base}${ext}`, modelo: ficha2, faltan, puestas: r.puestas, saltadas: r.saltadas, como: "word" };
+            }
+            return { bytes: Buffer.from(original), nombre: `${base} (en blanco)${ext}`, modelo: ficha2, faltan: [], como: "enBlanco", aviso: "El Word del organismo ha cambiado: hay que volver a preparar su relleno." };
+          }
+          return { bytes: Buffer.from(original), nombre: `${base} (en blanco)${ext}`, modelo: ficha2, faltan: [], como: "enBlanco" };
         } else if (modelo.formato === "xfa" && XFA.MAPAS[modelo.id] && hayModelo(modelo)) {
           const r = await rellenarXfa(modelo, datos);
           bytes = r.bytes;
@@ -123741,7 +126563,7 @@ Estado: ${ESTADO}`);
       }
       function estadoOriginalPropio(modelo) {
         if (!modelo || modelo.adjunto) return modelo && modelo.adjunto ? "relleno" : "falta";
-        if (modelo.formato === "original") return modelo.archivo && hayModelo(modelo) ? "enBlanco" : "falta";
+        if (modelo.formato === "original") return modelo.archivo && hayModelo(modelo) ? mapaWord(modelo) ? "relleno" : "enBlanco" : "falta";
         if (!modelo.archivo || !/\.pdf$/i.test(modelo.archivo) || !hayModelo(modelo)) return "falta";
         if (modelo.formato === "acroform") return "relleno";
         if (modelo.formato === "xfa" && XFA.MAPAS[modelo.id]) return "relleno";
@@ -127081,904 +129903,6 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
-  // shared/commissioning/planoEquipos.js
-  var require_planoEquipos = __commonJS({
-    "shared/commissioning/planoEquipos.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function() {
-        const MAX_PALABRAS = 8;
-        const CERCA = 0.015;
-        const clave = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-        const claveSuelta = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().split(/[^A-Z0-9]+/).map((x) => x.replace(/(^|[A-Z])0+(?=\d)/g, "$1")).join("");
-        const RE_NO_EQUIPO = /^(?:C\.?C\.?F|CRF|CF|CORTA\s?FUEGOS?|COMPUERTAS?|DAMPERS?|DMP|VAV|V[23]V|VALV(?:ULAS?)?|VAL|VS|VM|CGBT|CUADRO)(?=$|[\s._\-/\d])/i;
-        const RE_FAMILIA_NO_EQUIPO = /^(ELEC_|CONTROL_|HOSP_|TELE_|GAS_|PCI_(?!BOMBEO))/;
-        function esEquipoDelPlano(e) {
-          if (!e) return false;
-          const tag = String(e.tag || "").trim();
-          if (clave(tag).length < 2) return false;
-          if (RE_NO_EQUIPO.test(tag)) return false;
-          if (RE_FAMILIA_NO_EQUIPO.test(String(e.familia || "").trim())) return false;
-          return true;
-        }
-        const claveCasado = (t) => claveSuelta(t);
-        function casar(tagsPlano, equipos) {
-          const delListado = (equipos || []).filter(esEquipoDelPlano);
-          const porClave = /* @__PURE__ */ new Map();
-          for (const e of delListado) {
-            for (const k of /* @__PURE__ */ new Set([clave(e.tag), claveCasado(e.tag)])) {
-              if (!k) continue;
-              if (!porClave.has(k)) porClave.set(k, []);
-              porClave.get(k).push(e);
-            }
-          }
-          const casados = [];
-          const vistos = /* @__PURE__ */ new Set();
-          const sobran = [];
-          const sobranVistos = /* @__PURE__ */ new Set();
-          for (const t of tagsPlano || []) {
-            const tag = String(t || "").trim();
-            if (!tag || RE_NO_EQUIPO.test(tag)) continue;
-            const casan = porClave.get(clave(tag)) || porClave.get(claveCasado(tag));
-            if (!casan) {
-              if (!sobranVistos.has(claveCasado(tag))) {
-                sobranVistos.add(claveCasado(tag));
-                sobran.push(tag);
-              }
-              continue;
-            }
-            for (const e of casan) {
-              if (vistos.has(e.id)) continue;
-              vistos.add(e.id);
-              casados.push({ equipoId: e.id, tag: e.tag, tagPlano: tag });
-            }
-          }
-          return { casados, sinUbicar: delListado.filter((e) => !vistos.has(e.id)), sobranEnPlano: sobran };
-        }
-        function cruce(equiposPlanta, marcas) {
-          const conMarca = new Set((marcas || []).map((m) => m.equipoId));
-          const delListado = (equiposPlanta || []).filter(esEquipoDelPlano);
-          return {
-            casados: delListado.filter((e) => conMarca.has(e.id)),
-            sinUbicar: delListado.filter((e) => !conMarca.has(e.id))
-          };
-        }
-        function palabrasDe(textos) {
-          const salida = [];
-          for (const t of textos || []) {
-            if (!t || typeof t.texto !== "string") continue;
-            const trozos = t.texto.split(/\s+/).filter(Boolean);
-            trozos.forEach((p, i) => salida.push({ p, k: clave(p), s: claveSuelta(p), x: Number(t.x) || 0, y: Number(t.y) || 0, mismo: i > 0 }));
-          }
-          return salida;
-        }
-        function reconocer(textos, equipos) {
-          const porClave = /* @__PURE__ */ new Map();
-          const porSuelta = /* @__PURE__ */ new Map();
-          for (const e of equipos || []) {
-            if (!esEquipoDelPlano(e)) continue;
-            const k = clave(e.tag);
-            if (k.length < 4) continue;
-            if (!porClave.has(k)) porClave.set(k, []);
-            porClave.get(k).push(e);
-            const s = claveSuelta(e.tag);
-            if (!porSuelta.has(s)) porSuelta.set(s, []);
-            porSuelta.get(s).push(e);
-          }
-          const palabras = palabrasDe(textos);
-          const usadas = new Uint8Array(palabras.length);
-          const marcas = [];
-          const vistos = /* @__PURE__ */ new Set();
-          for (let i = 0; i < palabras.length; i++) {
-            if (usadas[i] || !palabras[i].k) continue;
-            let hasta = i;
-            const ks = [palabras[i].k];
-            const ss = [palabras[i].s];
-            for (let j = i + 1; j < palabras.length && j - i < MAX_PALABRAS; j++) {
-              const a = palabras[j - 1];
-              const b = palabras[j];
-              if (usadas[j]) break;
-              if (!b.mismo && Math.hypot(a.x - b.x, a.y - b.y) > CERCA) break;
-              ks.push(b.k);
-              ss.push(b.s);
-              hasta = j;
-            }
-            for (let fin = hasta; fin >= i; fin--) {
-              if (fin > i && !palabras[fin].k) continue;
-              const k = ks.slice(0, fin - i + 1).join("");
-              const casan = porClave.get(k) || porSuelta.get(ss.slice(0, fin - i + 1).join(""));
-              if (!casan) continue;
-              let sx = 0;
-              let sy = 0;
-              for (let n = i; n <= fin; n++) {
-                sx += palabras[n].x;
-                sy += palabras[n].y;
-                usadas[n] = 1;
-              }
-              const x = Math.round(sx / (fin - i + 1) * 1e4) / 1e4;
-              const y = Math.round(sy / (fin - i + 1) * 1e4) / 1e4;
-              const libre = casan.find((e) => !vistos.has(e.id));
-              if (libre) {
-                vistos.add(libre.id);
-                marcas.push({ equipoId: libre.id, tag: libre.tag, x, y });
-              }
-              break;
-            }
-          }
-          const plantaDe = (ms) => {
-            const cuenta = /* @__PURE__ */ new Map();
-            for (const m of ms) {
-              const e = (equipos || []).find((q) => q.id === m.equipoId);
-              const p = e && e.planta ? String(e.planta) : null;
-              if (p) cuenta.set(p, (cuenta.get(p) || 0) + 1);
-            }
-            return [...cuenta.entries()].sort((a, b) => b[1] - a[1])[0];
-          };
-          let planta = plantaDe(marcas);
-          if (planta) porCodigoDeSala(palabras, usadas, equipos, planta[0], vistos, marcas);
-          for (const grupo of porClave.values()) {
-            if (grupo.length < 2) continue;
-            const puesta = marcas.find((m) => grupo.some((e) => e.id === m.equipoId));
-            if (!puesta) continue;
-            for (const e of grupo) {
-              if (vistos.has(e.id)) continue;
-              vistos.add(e.id);
-              marcas.push({ equipoId: e.id, tag: e.tag, x: puesta.x, y: puesta.y });
-            }
-          }
-          planta = plantaDe(marcas);
-          const deLaPlanta = planta ? (equipos || []).filter((e) => esEquipoDelPlano(e) && String(e.planta || "") === planta[0]) : [];
-          const noEncontrados = deLaPlanta.filter((e) => !vistos.has(e.id)).map((e) => ({ id: e.id, tag: e.tag }));
-          return { marcas, planta: planta ? planta[0] : null, noEncontrados, reconocidos: marcas.length };
-        }
-        const RE_SOLO_CODIGO = /^(?:(N\d{2}|S\d)[-_ ])?([PSM]\d\.[A-Z]{3}\.\d{3,4})((?:_[A-Z]{1,4})?)$/i;
-        const RE_TAG_PLANTA_CODIGO = /^[A-Z]{2,4}[-_ ]?(N\d{2}|S\d)[-_ ]([PSM]\d\.[A-Z]{3}\.\d{3,4}(?:_[A-Z]{1,4})?)$/i;
-        const RE_UI_SALA = /^UI[-_ ]([PSM]\d\.[A-Z]{3}\.\d{3,4})$/i;
-        const CERCA_SALA_UI = 0.015;
-        function porCodigoDeSala(palabras, usadas, equipos, planta, vistos, marcas) {
-          const porCodigo = /* @__PURE__ */ new Map();
-          for (const e of equipos || []) {
-            if (!esEquipoDelPlano(e) || String(e.planta || "") !== planta) continue;
-            const m = RE_TAG_PLANTA_CODIGO.exec(String(e.tag || "").trim());
-            if (!m || m[1].toUpperCase() !== planta.toUpperCase()) continue;
-            const k = claveSuelta(m[2]);
-            if (!porCodigo.has(k)) porCodigo.set(k, []);
-            porCodigo.get(k).push(e);
-          }
-          if (!porCodigo.size) return;
-          const uis = [];
-          palabras.forEach((w) => {
-            const m = RE_UI_SALA.exec(w.p);
-            if (m) uis.push({ sala: m[1].toUpperCase(), x: w.x, y: w.y });
-          });
-          palabras.forEach((w, i) => {
-            if (usadas[i] || w.mismo || palabras[i + 1] && palabras[i + 1].mismo) return;
-            const m = RE_SOLO_CODIGO.exec(w.p);
-            if (!m || m[1] && m[1].toUpperCase() !== planta.toUpperCase()) return;
-            if (palabras.some((o) => !o.mismo && o !== w && Math.abs(o.x - w.x) < 4e-3 && w.y - o.y > 0 && w.y - o.y < 25e-4 && esNombreSala(o.p) && !RE_SOLO_CODIGO.test(o.p))) return;
-            const sala = m[2].toUpperCase();
-            const sufijo = (m[3] || "").toUpperCase();
-            let ui = null;
-            let d = CERCA_SALA_UI;
-            for (const u of uis) {
-              const dd = Math.hypot(u.x - w.x, u.y - w.y);
-              if (dd < d) {
-                d = dd;
-                ui = u;
-              }
-            }
-            let k = claveSuelta(sala + sufijo);
-            let dudoso = null;
-            if (ui && ui.sala !== sala && ui.sala.slice(0, 6) === sala.slice(0, 6)) {
-              k = claveSuelta(ui.sala + sufijo);
-              dudoso = `el plano pone \xAB${w.p}\xBB en la sala ${ui.sala}`;
-            }
-            const libre = (porCodigo.get(k) || []).find((e) => !vistos.has(e.id));
-            if (!libre) return;
-            vistos.add(libre.id);
-            usadas[i] = 1;
-            marcas.push({ equipoId: libre.id, tag: libre.tag, x: w.x, y: w.y, ...dudoso ? { dudoso } : {} });
-          });
-        }
-        const COLORES = {
-          verde: { nombre: "Hecho", largo: "Commissioning completo", hex: "#1a7f4b" },
-          azul: { nombre: "Falta documento", largo: "Empezado, falta alg\xFAn documento", hex: "#1f63c6" },
-          rojo: { nombre: "Sin empezar", largo: "No se ha empezado", hex: "#c8303a" }
-        };
-        const ORDEN_COLOR = ["verde", "azul", "rojo"];
-        const BALANCEO_HECHO = /* @__PURE__ */ new Set(["apto", "aptoSinBocas", "noApto"]);
-        const ESTANQ_HECHA = /* @__PURE__ */ new Set(["apta", "noApta"]);
-        const hayDato = (v) => {
-          const t = String(v ?? "").trim().toLowerCase();
-          return t !== "" && t !== "pendiente" && t !== "\u2014" && t !== "-";
-        };
-        function empezado(u) {
-          if (!u) return false;
-          if (u.instalacionVerificadaEn || u.estado === "enMarcha" || u.estado === "recepcionado") return true;
-          const pmGuardado = Object.prototype.hasOwnProperty.call(u, "estadoPMGuardado") ? u.estadoPMGuardado : u.estadoPM;
-          if (pmGuardado && pmGuardado !== "pendiente") return true;
-          if (hayDato(u.docFichaPM) || hayDato(u.docBalanceo) || hayDato(u.docEstanqueidad)) return true;
-          if (BALANCEO_HECHO.has(u.balanceoEstado) || ESTANQ_HECHA.has(u.estanqueidadEstado)) return true;
-          if (u.fechaEnvioDF) return true;
-          if (u.fichaConDato) return true;
-          const f = u.pmFichas;
-          if (f && (f.completas > 0 || f.checklist === "hecho")) return true;
-          return false;
-        }
-        function estadoEnPlano(unidad, linea) {
-          const l = linea || unidad;
-          if (!l) return "rojo";
-          if (l.completo) return "verde";
-          const miembros = Array.isArray(l.miembros) && l.miembros.length ? l.miembros : [l];
-          return miembros.some(empezado) || unidad && empezado(unidad) ? "azul" : "rojo";
-        }
-        function lineasPorUnidad(tabla) {
-          const lineaDe = /* @__PURE__ */ new Map();
-          for (const c of tabla && tabla.conjuntos || []) {
-            for (const m of c.miembros || [c]) lineaDe.set(m.id, c);
-          }
-          return lineaDe;
-        }
-        const TIPO_LLANO = {
-          TROX_UTA: "Climatizador (UTA)",
-          CARRIER_ROOFTOPS: "Rooftop",
-          CARRIER_CHILLERS: "Enfriadora o bomba de calor",
-          AIRLAN_FANCOIL: "Fan coil",
-          AIRLAN_HRU: "Recuperador de calor",
-          PANASONIC_VRF: "Unidad de VRF",
-          PANASONIC_SPLIT: "Split",
-          PANASONIC_CRACS: "Equipo de precisi\xF3n (CRAC)",
-          WILO_GP: "Grupo de presi\xF3n",
-          WILO_PUMPS: "Bomba",
-          SP_VENTILACION: "Ventilador",
-          SP_PARKING: "Ventilador de parking",
-          SP_PRESURIZACION: "Ventilador de presurizaci\xF3n"
-        };
-        const TEXTO_ACCION = { datos: "Rellenar datos que faltan", checklist: "Checklist", balanceo: "Balanceo", estanqueidad: "Estanqueidad" };
-        function controlCx() {
-          return typeof __require !== "undefined" ? require_control() : typeof window !== "undefined" ? window.CONTROL_CX : null;
-        }
-        function fichasCx() {
-          return typeof __require !== "undefined" ? require_fichas() : typeof window !== "undefined" ? window.FICHAS_PM : null;
-        }
-        const T2 = 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
-        const CUERPO = 'class="cuerpo" stroke="currentColor" stroke-width="2" stroke-linejoin="round"';
-        const ASPA = "M12 12C9.500 8 10.500 4.500 12 4.500S14.500 8 12 12Z";
-        const aspas = (cx, cy, k) => `<g transform="translate(${cx} ${cy}) scale(${k}) translate(-12 -12)">${[0, 120, 240].map((g) => `<path class="lleno" d="${ASPA}"${g ? ` transform="rotate(${g} 12 12)"` : ""}/>`).join("")}</g>`;
-        const ICONOS = {
-          splitInt: { nombre: "Split interior (pared)", svg: `<rect ${CUERPO} x="2" y="5" width="20" height="10" rx="3"/><path ${T2} d="M5 12h14M7 18l-1 3M12 18v3M17 18l1 3"/>` },
-          splitExt: { nombre: "Split exterior", svg: `<rect ${CUERPO} x="3" y="3" width="18" height="18" rx="3"/><circle ${T2} cx="12" cy="12" r="5.5"/><path class="lleno" d="M12 12C10 9 10.5 6.5 12 6.5S14 9 12 12ZM12 12c3 .5 4.5 2.5 3.5 3.7S12.500 15 12 12ZM12 12c-3 .5-4.500 2.500-3.500 3.700S11.500 15 12 12Z"/>` },
-          vrfInt: { nombre: "VRF interior (casete)", svg: `<rect ${CUERPO} x="3" y="3" width="18" height="18" rx="2"/><rect ${T2} x="8" y="8" width="8" height="8"/><path ${T2} d="M3 3l5 5M21 3l-5 5M3 21l5-5M21 21l-5-5"/>` },
-          /* Unidad de conductos (5-nov, JC: «este símbolo para fan coils es
-             malísimo»): como en la simbología HVAC de los planos, caja alargada con el
-             ventilador dentro (círculo con aspas) y las bocas de conducto de retorno e
-             impulsión en los extremos. Nada de flechas. */
-          vrfConductos: { nombre: "VRF interior (conductos)", svg: `<rect ${CUERPO} x="4.500" y="6.500" width="15" height="11" rx="1.500"/><path ${T2} d="M4.500 8.500H1.500v7h3M19.500 8.500h3v7h-3"/><circle ${T2} cx="12" cy="12" r="3.800"/>${aspas(12, 12, 0.42)}` },
-          vrfExt: { nombre: "VRF exterior", svg: `<rect ${CUERPO} x="1.5" y="4" width="21" height="16" rx="3"/><circle ${T2} cx="7.5" cy="12" r="4"/><circle ${T2} cx="16.5" cy="12" r="4"/><circle class="lleno" cx="7.5" cy="12" r="1.300"/><circle class="lleno" cx="16.5" cy="12" r="1.300"/>` },
-          /* Fan coil de agua: la misma caja con bocas, el ventilador a un lado y la
-             batería (el serpentín) al otro, para no confundirlo con la de conductos VRF. */
-          fancoil: { nombre: "Fan coil", svg: `<rect ${CUERPO} x="4.500" y="6.500" width="15" height="11" rx="1.500"/><path ${T2} d="M4.500 8.500H1.500v7h3M19.500 8.500h3v7h-3"/><circle ${T2} cx="9.300" cy="12" r="3.300"/>${aspas(9.3, 12, 0.36)}<path ${T2} d="M14.500 8.700l2.800 1.100-2.800 1.100 2.800 1.100-2.800 1.100 2.800 1.100-2.800 1.100"/>` },
-          uta: { nombre: "UTA (climatizador)", svg: `<rect ${CUERPO} x="1.5" y="6" width="21" height="12" rx="1.500"/><path ${T2} d="M8 6v12M15.500 6v12"/><circle ${T2} cx="11.750" cy="12" r="2.200"/><path ${T2} d="M3.500 12h2.500M17.500 9l3 6M20.500 9l-3 6"/>` },
-          hru: { nombre: "Recuperador de calor (HRU)", svg: `<rect ${CUERPO} x="1.5" y="5" width="21" height="14" rx="2"/><path ${T2} d="M12 5.500l6.500 6.500-6.500 6.500L5.500 12z"/><path ${T2} d="M1.500 12H5M19 12h3.500"/>` },
-          rooftop: { nombre: "Rooftop", svg: `<rect ${CUERPO} x="2.500" y="10" width="19" height="10" rx="1.500"/><path ${T2} d="M6 10l3-5.500h6l3 5.500"/><circle ${T2} cx="12" cy="15" r="2.500"/>` },
-          crac: { nombre: "CRAC (precisi\xF3n)", svg: `<rect ${CUERPO} x="4" y="2" width="16" height="20" rx="2"/><path ${T2} d="M12 6v12M6.800 9l10.400 6M6.800 15l10.400-6"/>` },
-          chiller: { nombre: "Enfriadora", svg: `<rect ${CUERPO} x="1.500" y="4" width="21" height="16" rx="2"/><path ${T2} d="M4.500 10c1.750-2 3.500-2 5.250 0s3.500 2 5.250 0 2.500-1.500 4.500 0M4.500 15c1.750-2 3.500-2 5.250 0s3.500 2 5.250 0 2.500-1.500 4.500 0"/>` },
-          /* Bomba de calor (BCA aerotérmica, BCG geotérmica): la caja con su ventilador y el calor que sale. */
-          bombaCalor: { nombre: "Bomba de calor", svg: `<rect ${CUERPO} x="1.500" y="4" width="21" height="16" rx="2"/><circle ${T2} cx="8" cy="12" r="4.300"/>${aspas(8, 12, 0.42)}<path ${T2} d="M14.500 8.500l2.500 3.500-2.500 3.500M18 8.500l2.500 3.500-2.500 3.500"/>` },
-          colector: { nombre: "Colector", svg: `<rect ${CUERPO} x="2" y="7" width="20" height="5" rx="2.500"/><path ${T2} d="M6 12v7M12 12v7M18 12v7M4 19h4M10 19h4M16 19h4"/>` },
-          deposito: { nombre: "Dep\xF3sito o acumulador", svg: `<path ${CUERPO} d="M6 5a6 2.500 0 0 1 12 0v14a6 2.500 0 0 1-12 0Z"/><path ${T2} d="M6 5a6 2.500 0 0 0 12 0"/>` },
-          extintor: { nombre: "Extintor", svg: `<rect ${CUERPO} x="7.500" y="8" width="9" height="14" rx="3"/><path ${T2} d="M12 8V4.500h3.500l3 2M12 4.500H9M10 2.500h4"/>` },
-          bomba: { nombre: "Bomba o grupo de presi\xF3n", svg: `<circle ${CUERPO} cx="11" cy="14" r="7.500"/><path class="lleno" d="M8.500 10.500l6.500 3.500-6.500 3.500z"/><path ${T2} d="M11 6.500V3h10"/>` },
-          /* Con su boca (5-nov, «bloques como los de AutoCAD»): la voluta, el círculo con la salida tangente. */
-          ventilador: { nombre: "Ventilador o extractor", svg: `<path ${CUERPO} d="M10 4H21.500V9.800H17.700A8 8 0 1 1 10 4Z"/>${aspas(10, 12, 0.5)}` },
-          cajaVentilacion: { nombre: "Caja de ventilaci\xF3n", svg: `<rect ${CUERPO} x="3" y="5" width="18" height="14" rx="1"/><path ${T2} d="M3 9H1M3 15H1M21 9h2M21 15h2"/><circle ${T2} cx="12" cy="12" r="4.300"/>${aspas(12, 12, 0.45)}` },
-          agua: { nombre: "Agua (AFS, ADE, fluxores, ACS)", svg: `<path ${CUERPO} d="M12 2.500S5 10.500 5 15a7 7 0 0 0 14 0c0-4.500-7-12.500-7-12.500z"/><path ${T2} d="M8.500 15a3.500 3.500 0 0 0 3 3.400"/>` },
-          generico: { nombre: "Otro equipo", svg: `<rect ${CUERPO} x="2" y="2" width="20" height="20" rx="3"/><rect class="lleno" x="8" y="8" width="8" height="8" rx="1"/>` }
-        };
-        const ICONO_DE_FAMILIA = {
-          PANASONIC_SPLIT: "splitInt",
-          PANASONIC_VRF: "vrfInt",
-          AIRLAN_FANCOIL: "fancoil",
-          TROX_UTA: "uta",
-          AIRLAN_HRU: "hru",
-          CARRIER_ROOFTOPS: "rooftop",
-          PANASONIC_CRACS: "crac",
-          CARRIER_CHILLERS: "chiller",
-          WILO_PUMPS: "bomba",
-          WILO_GP: "bomba",
-          PCI_BOMBEO: "bomba",
-          SP_VENTILACION: "ventilador",
-          SP_PRESURIZACION: "ventilador",
-          SP_PARKING: "ventilador",
-          FONT_ACS: "agua"
-        };
-        const ICONO_DE_TAG = [
-          [/^BC[AGH]?(?:[-_ ]|\d|$)/i, "bombaCalor"],
-          [/^(?:ENF|CH|EAA)(?:[-_ ]|\d|$)/i, "chiller"],
-          [/^(?:COL|CLT)(?:[-_ ]|\d|$)/i, "colector"],
-          [/^(?:DEP|ACU|ACS[-_ ]DEP)(?:[-_ ]|\d|$)/i, "deposito"],
-          [/^(?:CV|CXV|CAJA)(?:[-_ ]|\d|$)/i, "cajaVentilacion"],
-          [/^(?:EXTINTOR|EXT[-_ ]?(?:PQS|CO2|ABC))/i, "extintor"],
-          [/^(?:VTR|VEN|EX|VI)(?:[-_ ]|\d|$)/i, "ventilador"],
-          [/^(?:B|BOM|GP)[-_ ]?\d/i, "bomba"]
-        ];
-        const esExteriorTag = (tag) => /^UE([\s_-]|\d|$)/i.test(String(tag || "").trim());
-        const RE_MODELO_CONDUCTOS = /^S-?\d+M[FEM]\d/i;
-        const RE_MODELO_CASETE = /^S-?\d+M[UYLD]\d/i;
-        function esDeConductos(u) {
-          const modelo = String(u && u.modelo || "").trim();
-          if (RE_MODELO_CONDUCTOS.test(modelo)) return true;
-          if (RE_MODELO_CASETE.test(modelo)) return false;
-          const den = String(u && u.denominacion || "");
-          if (/CONDUCTOS?\b|\bDUCT(ED)?\b/i.test(den)) return true;
-          if (/CAS+ET+E/i.test(den)) return false;
-          if (/^UICO(?:[-_ ]|\d|$)/i.test(String(u && u.tag || "").trim())) return true;
-          return null;
-        }
-        function iconoDe(u) {
-          const fam = String(u && u.familia || "").trim();
-          const ext = u && u.papel === "UE" || esExteriorTag(u && u.tag) || /^U-\d/i.test(String(u && u.modelo || "").trim());
-          let id = ICONO_DE_FAMILIA[fam];
-          if (id === "splitInt" && ext) id = "splitExt";
-          if (id === "vrfInt" && ext) id = "vrfExt";
-          if (id === "vrfInt" && esDeConductos(u)) id = "vrfConductos";
-          if (id) return id;
-          const t = String(u && u.tag || "").trim();
-          if (/^(AFS|ADE|FLX|FLUX)/i.test(t)) return "agua";
-          const d = equipoDeRotulo(t.split(" ")[0]) || equipoDeRotulo(t);
-          if (d) return d.icono;
-          for (const [re, icono] of ICONO_DE_TAG) if (re.test(t)) return icono;
-          return "generico";
-        }
-        const ORDEN_ICONOS = ["uta", "hru", "fancoil", "splitInt", "splitExt", "vrfConductos", "vrfInt", "vrfExt", "rooftop", "crac", "chiller", "bombaCalor", "bomba", "colector", "deposito", "cajaVentilacion", "ventilador", "extintor", "agua", "generico"];
-        function leyendaIconos(equipos) {
-          const usados = new Set((equipos || []).map((e) => e.icono || iconoDe(e)));
-          return ORDEN_ICONOS.filter((k) => usados.has(k)).map((k) => ({ id: k, nombre: ICONOS[k].nombre }));
-        }
-        function conjuntoEnPlanos(plantas, id, plantaActual, indice = null) {
-          const porId = indice || indiceConjuntos(plantas);
-          const de = (k) => porId.get(k) || [];
-          const base = de(id)[0];
-          const miembros = base && base.e.miembros;
-          if (!Array.isArray(miembros) || miembros.length < 2) return [];
-          const puesto = (t) => t.e.x !== null && t.e.x !== void 0;
-          return miembros.map((m) => {
-            const ts = de(m.id);
-            const aqui = ts.find((t) => t.planta === (plantaActual || "") && puesto(t));
-            const alguna = aqui || ts.find(puesto);
-            const donde = alguna || ts[0];
-            return { id: m.id, tag: m.tag, papel: m.papel, planta: donde ? donde.planta : null, aqui: Boolean(aqui), enPlano: Boolean(alguna), x: alguna ? alguna.e.x : null, y: alguna ? alguna.e.y : null };
-          });
-        }
-        function indiceConjuntos(plantas) {
-          const m = /* @__PURE__ */ new Map();
-          for (const p of plantas || []) for (const e of p.equipos || []) {
-            const l = m.get(e.id);
-            if (l) l.push({ e, planta: p.planta || "" });
-            else m.set(e.id, [{ e, planta: p.planta || "" }]);
-          }
-          return m;
-        }
-        function tipoLlano(u) {
-          const fam = String(u && u.familia || "").trim();
-          if (!fam) return null;
-          if (TIPO_LLANO[fam]) return TIPO_LLANO[fam];
-          let nombre = fam;
-          try {
-            const PC = typeof __require !== "undefined" ? require_plantillasCliente() : window.PLANTILLAS_CLIENTE;
-            const f = PC && PC.FAMILIAS.find((x) => x.codigo === fam);
-            if (f && f.nombrePdf) nombre = f.nombrePdf;
-          } catch {
-          }
-          const t = nombre.replace(/_/g, " ").toLowerCase();
-          return t.charAt(0).toUpperCase() + t.slice(1);
-        }
-        function llevaBalanceo(u) {
-          const C = controlCx();
-          const med = u && u.medicion !== void 0 ? u.medicion : null;
-          if (med) return Boolean(med.plano);
-          const req = C ? C.ensayoCorregido(u && u.familia, u && u.ensayoRequerido) : u && u.ensayoRequerido;
-          return req === "balanceo" || req === "ambos";
-        }
-        function acciones(unidad, linea, { color = "rojo", puedeEditar = true } = {}) {
-          const u = unidad || {};
-          const C = controlCx();
-          const salida = [];
-          const conFamilia = Boolean(String(u.familia || "").trim());
-          if (conFamilia && puedeEditar && color !== "verde") salida.push("datos");
-          if (conFamilia) salida.push("checklist");
-          if (llevaBalanceo(u)) salida.push("balanceo");
-          const l = linea || u;
-          if (C && C.pideEstanqueidad(Array.isArray(l.miembros) && l.miembros.length ? l : u)) salida.push("estanqueidad");
-          return salida.map((id) => ({ id, texto: TEXTO_ACCION[id] }));
-        }
-        function estados(tabla, { puedeEditar = true } = {}) {
-          const lineaDe = lineasPorUnidad(tabla);
-          const out = /* @__PURE__ */ new Map();
-          for (const u of tabla && tabla.filas || []) {
-            const l = lineaDe.get(u.id) || u;
-            const enConjunto = l.clase === "par" || l.clase === "sistema";
-            out.set(u.id, {
-              color: estadoEnPlano(u, l),
-              papel: enConjunto ? l.exterior && l.exterior.id === u.id ? "UE" : "UI" : null,
-              conjunto: enConjunto ? l.tag || null : null,
-              lineaId: l.id || u.id,
-              falta: l.completo ? [] : (l.falta || []).map(textoFalta),
-              tipo: tipoLlano(u),
-              icono: iconoDe({ familia: u.familia, tag: u.tag, modelo: u.modelo, denominacion: u.denominacion, papel: enConjunto ? l.exterior && l.exterior.id === u.id ? "UE" : "UI" : null }),
-              miembros: enConjunto && Array.isArray(l.miembros) && l.miembros.length > 1 ? l.miembros.map((m) => ({ id: m.id, tag: m.tag, papel: l.exterior && l.exterior.id === m.id || esExteriorTag(m.tag) ? "UE" : "UI" })) : null,
-              marca: u.marca || null,
-              modelo: u.modelo || null,
-              acciones: acciones(u, l, { color: estadoEnPlano(u, l), puedeEditar })
-            });
-          }
-          return out;
-        }
-        function colorear(marcas, tabla) {
-          const filas = new Map((tabla && tabla.filas || []).map((f) => [f.id, f]));
-          const est = estados(tabla);
-          const cuentas = { verde: 0, azul: 0, rojo: 0 };
-          const salida = [];
-          for (const m of marcas || []) {
-            const u = filas.get(m.equipoId);
-            if (!u || !esEquipoDelPlano(u)) continue;
-            const e = est.get(u.id);
-            cuentas[e.color] += 1;
-            salida.push({ ...m, tag: u.tag, ...e });
-          }
-          return { marcas: salida, cuentas };
-        }
-        const SIGLAS = /* @__PURE__ */ new Set(["FT", "CE", "PM", "UTA", "UTAS", "VRF", "CRAC", "BT", "SAI", "BMS", "ACS", "ICT", "IT", "UI", "UE", "VE", "PCI", "BIE", "CPD", "DF"]);
-        const ABREV = [[/\bUD\.\s*/gi, "unidad "], [/\bREC\.\s*/gi, "recuperaci\xF3n "], [/\bVENT\.\s*/gi, "ventilador "], [/\bESTANQ\.\s*/gi, "estanqueidad "], [/\bBOMBA CALOR\b/gi, "BOMBA DE CALOR"], [/\bESTATICO\b/gi, "EST\xC1TICO"]];
-        const FEMENINAS = /^(uta|bomba|batería|central|extinción|instalación|llamada|recarga|fotovoltaica|estanqueidad|unidad|sala|enfriadora|ficha|caja)$/;
-        const PLURAL_F = /^(bombas|baterías|unidades|rejillas)$/;
-        const PLURAL_M = /^(extintores|rociadores|conductos|difusores|gases|bie|ventiladores|equipos)$/;
-        const deArticulo = (frase) => {
-          const w = frase.split(/[\s\-/]/)[0].toLowerCase();
-          if (PLURAL_F.test(w)) return "de las";
-          if (PLURAL_M.test(w)) return "de los";
-          return FEMENINAS.test(w) ? "de la" : "del";
-        };
-        const minus = (t) => t.split(/(\s+|[-/()])/).map((w) => SIGLAS.has(w.toUpperCase()) && /^[A-Za-z]+$/.test(w) ? w.toUpperCase() : w.toLowerCase()).join("");
-        function textoFalta(n) {
-          const t = String(n == null ? "" : n).trim().replace(/\s+/g, " ");
-          if (!t || /[a-záéíóúñü]/.test(t) || /^(FT|CE|PM|DF)$/i.test(t)) return t;
-          let x = t;
-          for (const [re, por] of ABREV) x = x.replace(re, por);
-          x = minus(x.trim().replace(/\s+/g, " "));
-          const m = /^checklist\s+(.+)$/i.exec(x);
-          if (m) return `checklist ${deArticulo(m[1])} ${m[1]}`;
-          if (x.toLowerCase() === "checklist") return "checklist";
-          if (/^(balanceo|estanqueidad)\b/i.test(x)) return x;
-          return `ficha ${deArticulo(x)} ${x}`;
-        }
-        const RE_NOMBRE_SALA = /^(sala|aseos?|vest[ií]bulo|almac[eé]n|cuarto|oficina|despacho|vestuarios?|pasillo|circulaci[oó]n|escalera|lounge|guardarropa|cocina|office|capilla|recepci[oó]n|taller|local|zona|hall|archivo|comedor|gimnasio|enfermer[ií]a|palco|restaurante|bar|tienda|museo|cpd|dormitorio|habitaci[oó]n|ba[ñn]o|wc|aula|laboratorio|consulta|lavander[ií]a|vestidor|camerino|auditorio|biblioteca|distribuidor|cabina|centro|mec[aá]nica|basuras|terraza|cubierta|patio|parking|garaje|espacio|[aá]rea|areas|despensa|economato|cafeter[ií]a|bodega|sala\s+t[eé]cnica)(\b|[\s.\-]|$)/i;
-        const RE_CODIGO_SALA = /^(?:N\d{2}-)?(?:[A-Z]{1,2}\d{0,2}\.[A-Z]{2,4}\.\d{2,}[A-Z]?|\d{2}[.,][A-Z]{2,4}[.,]\d{2,}[A-Z]?|[A-Z]{2,4}-[A-Z]{2,4}\.\d{2,})$/;
-        const RE_SIGUE = /\s(de|del|y|la|el|los|las|para|con)$/i;
-        const RE_PALABRAS = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ .]{1,40}$/;
-        const PAR_SALA = 0.015;
-        const RADIO_SALA = 0.04;
-        const sinPlanta = (c) => String(c || "").replace(/^N\d{2}-/i, "");
-        const limpiarSala = (t) => String(t || "").replace(/(^|\s|·\s?)N\d{2}-(?=[A-Z0-9]{1,4}[.,][A-Z]{2,4}[.,]\d)/gi, "$1");
-        const esNombreSala = (t) => RE_NOMBRE_SALA.test(String(t || "").trim()) && String(t).trim().length <= 60;
-        const esCodigoSala = (t) => RE_CODIGO_SALA.test(String(t || "").trim().toUpperCase());
-        function rotulosSala(textos) {
-          const ts = (textos || []).filter((t) => t && typeof t.texto === "string").map((t) => ({ texto: t.texto.trim().replace(/\s+/g, " "), x: Number(t.x) || 0, y: Number(t.y) || 0 }));
-          const nombres = [];
-          const codigos = [];
-          const comidos = /* @__PURE__ */ new Set();
-          for (let i = 0; i < ts.length; i++) {
-            const t = ts[i];
-            if (comidos.has(i)) continue;
-            if (esCodigoSala(t.texto)) {
-              codigos.push({ ...t, texto: t.texto.toUpperCase() });
-              continue;
-            }
-            if (!esNombreSala(t.texto)) continue;
-            let texto = t.texto;
-            if (RE_SIGUE.test(texto)) {
-              const j = ts.findIndex((o, k) => k !== i && RE_PALABRAS.test(o.texto) && o.y > t.y && Math.hypot(o.x - t.x, o.y - t.y) < PAR_SALA);
-              if (j >= 0) {
-                texto = `${texto} ${ts[j].texto}`;
-                comidos.add(j);
-                nombres.forEach((n, k) => {
-                  if (n.i === j) nombres.splice(k, 1);
-                });
-              }
-            }
-            nombres.push({ texto, x: t.x, y: t.y, i });
-          }
-          const usados = /* @__PURE__ */ new Set();
-          const salida = [];
-          for (const n of nombres) {
-            let mejor = -1;
-            let d = PAR_SALA;
-            codigos.forEach((c, k) => {
-              const dd = Math.hypot(c.x - n.x, c.y - n.y);
-              if (!usados.has(k) && dd <= d) {
-                d = dd;
-                mejor = k;
-              }
-            });
-            if (mejor >= 0) usados.add(mejor);
-            salida.push({ texto: mejor >= 0 ? `${n.texto} \xB7 ${codigos[mejor].texto}` : n.texto, x: n.x, y: n.y });
-          }
-          const nombreDe = /* @__PURE__ */ new Map();
-          for (const r of salida) {
-            const i = r.texto.lastIndexOf(" \xB7 ");
-            if (i > 0) nombreDe.set(sinPlanta(r.texto.slice(i + 3)), r.texto.slice(0, i));
-          }
-          for (const t of ts) {
-            const m = /^(.*?)\s*[·\-–:]?\s*((?:N\d{2}-)?[A-Z0-9]{1,4}[.,][A-Z]{2,4}[.,]\d{2,}[A-Z]?)\s*$/i.exec(t.texto);
-            if (m && m[1] && esNombreSala(m[1]) && !nombreDe.has(sinPlanta(m[2].toUpperCase()))) nombreDe.set(sinPlanta(m[2].toUpperCase()), m[1].trim());
-          }
-          codigos.forEach((c, k) => {
-            if (usados.has(k)) return;
-            const cod = sinPlanta(c.texto);
-            const nombre = nombreDe.get(cod);
-            salida.push({ ...c, texto: nombre ? `${nombre} \xB7 ${cod}` : cod });
-          });
-          for (const r of salida) r.texto = limpiarSala(r.texto);
-          const vistos = /* @__PURE__ */ new Set();
-          return salida.filter((r) => {
-            const k = `${r.texto}|${Math.round(r.x * 200)}|${Math.round(r.y * 200)}`;
-            if (vistos.has(k)) return false;
-            vistos.add(k);
-            return true;
-          }).map((r) => ({ texto: r.texto.slice(0, 120), x: Math.round(r.x * 1e4) / 1e4, y: Math.round(r.y * 1e4) / 1e4 }));
-        }
-        function salaCercana(rotulos, x, y, radio = RADIO_SALA) {
-          let mejor = null;
-          let d = radio;
-          for (const r of rotulos || []) {
-            const dd = Math.hypot(r.x - x, r.y - y);
-            if (dd <= d) {
-              d = dd;
-              mejor = r;
-            }
-          }
-          return mejor ? limpiarSala(mejor.texto) : null;
-        }
-        function ponerSalas(marcas, rotulos) {
-          return (marcas || []).map((m) => {
-            const sala = salaCercana(rotulos, m.x, m.y);
-            return sala ? { ...m, sala } : m;
-          });
-        }
-        const fraccion = (v, conCero) => {
-          const n = Number(v);
-          return v !== null && v !== void 0 && Number.isFinite(n) && (conCero ? n >= 0 : n > 0) && n <= 1;
-        };
-        const redondo5 = (v) => Math.round(Number(v) * 1e5) / 1e5;
-        function limpiarMarcas(marcas) {
-          const vistos = /* @__PURE__ */ new Set();
-          const salida = [];
-          for (const m of Array.isArray(marcas) ? marcas : []) {
-            if (!m || typeof m.equipoId !== "string" || vistos.has(m.equipoId)) continue;
-            const x = Number(m.x);
-            const y = Number(m.y);
-            if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 1 || y < 0 || y > 1) continue;
-            vistos.add(m.equipoId);
-            salida.push({
-              equipoId: m.equipoId,
-              tag: String(m.tag || "").slice(0, 120),
-              x: Math.round(x * 1e4) / 1e4,
-              y: Math.round(y * 1e4) / 1e4,
-              ...m.mano ? { mano: true } : {},
-              ...m.sala ? { sala: String(m.sala).slice(0, 120) } : {},
-              /* El símbolo del dibujo (30-oct): su tamaño, el sitio del rótulo y si hay que revisarlo. */
-              ...fraccion(m.w) && fraccion(m.h) ? { w: redondo5(m.w), h: redondo5(m.h) } : {},
-              ...fraccion(m.rx, true) && fraccion(m.ry, true) ? { rx: Math.round(m.rx * 1e4) / 1e4, ry: Math.round(m.ry * 1e4) / 1e4 } : {},
-              ...m.revisar && !m.mano ? { revisar: true, motivo: String(m.motivo || "revisar ubicaci\xF3n").slice(0, 80) } : {},
-              /* 5-nov: el equipo que la revisión nueva ya no trae se queda donde estaba, marcado; nunca se borra. */
-              ...m.noSale ? { noSale: String(m.noSale).slice(0, 40), revisar: true, motivo: String(m.motivo || `ya no sale en ${m.noSale}`).slice(0, 80) } : {}
-            });
-          }
-          return salida;
-        }
-        function plantaDelNombre(nombre) {
-          const m = /_ER_(\d{2}|[SB]\d)_/i.exec(String(nombre || ""));
-          if (!m) return "";
-          return /^\d/.test(m[1]) ? `N${m[1]}` : `S${m[1].slice(1)}`;
-        }
-        const PAPELES_EQUIPO = [["ft", "Ficha t\xE9cnica", "docFichaTecnica"], ["ce", "Marcado CE", "docMarcadoCE"], ["mi", "Manual", "docManual"]];
-        function nombreDocumento(url) {
-          const u = String(url || "").split(/[?#]/)[0].replace(/\/+$/, "");
-          let f = u.slice(u.lastIndexOf("/") + 1);
-          try {
-            f = decodeURIComponent(f);
-          } catch {
-          }
-          return f.replace(/\.[a-z0-9]{2,5}$/i, "").replace(/[_\s]+/g, " ").trim();
-        }
-        function documentosEquipo(e, modelo) {
-          const web = (v) => /^https?:\/\//i.test(String(v || "").trim()) ? String(v).trim() : "";
-          const fuera = [];
-          for (const [clase, etiqueta, campo] of PAPELES_EQUIPO) {
-            const propio = web(e && e[campo]);
-            const url = propio || web(modelo && modelo[campo]);
-            if (!url) continue;
-            fuera.push({ clase, etiqueta, nombre: nombreDocumento(url) || etiqueta, url, nivel: propio ? "equipo" : "modelo" });
-          }
-          return fuera;
-        }
-        const DETECTABLES = [
-          { re: /^UICO[-_ ]?(\d{1,3})-?$/i, icono: "vrfConductos", tipo: "Unidad interior VRF de conductos", modelo: (m) => `UICO-${m[1].padStart(2, "0")}` },
-          { re: /^HRU[-_ ]?(\d{1,2})-?$/i, icono: "hru", tipo: "Recuperador de calor (HRU)", modelo: (m) => `HRU-${m[1]}` },
-          { re: /^EX[-_ ]?(N\d{2}|S\d)[-_ ](.+)$/i, icono: "ventilador", tipo: "Extractor", tag: (m) => `EX-${m[1].toUpperCase()}-${m[2].trim().replace(/\s+/g, " ")}` },
-          /* Ventilador de impulsión (2-nov): «VI-N60-CUART-ELECT-LT19» se quedaba fuera. */
-          { re: /^VI[-_ ]?(N\d{2}|S\d)[-_ ](.+)$/i, icono: "ventilador", tipo: "Ventilador de impulsi\xF3n", tag: (m) => `VI-${m[1].toUpperCase()}-${m[2].trim().replace(/\s+/g, " ")}` },
-          { re: /^UI[-_ ]((?:[PSM]\d\.[A-Z]{3}\.\d{3,4})|(?:N\d{2}|S\d)[-_ ].+)$/i, icono: "vrfInt", tipo: "Unidad interior", tag: (m) => `UI-${m[1].trim()}` },
-          { re: /^UE[-_ ]((?:N\d{2}|S\d)[-_ ].+)$/i, icono: "vrfExt", tipo: "Unidad exterior", tag: (m) => `UE-${m[1].trim()}` },
-          { re: /^HRU[-_ ]((?:N\d{2}|S\d)[-_ ].+)$/i, icono: "hru", tipo: "Recuperador de calor (HRU)", tag: (m) => `HRU-${m[1].trim()}` },
-          { re: /^(?:UTA|AHU|CLM)[-_ ]?((?:N\d{2}|S\d)?[-_ ]?\d[\w.-]*)$/i, icono: "uta", tipo: "Climatizador (UTA)", tag: (m) => m[0].trim() },
-          { re: /^(?:FC|FCU|AFC)[-_ ]((?:N\d{2}|S\d)[-_ ]?[\w. -]+)$/i, icono: "fancoil", tipo: "Fan coil", tag: (m) => m[0].trim() }
-        ];
-        function equipoDeRotulo(texto) {
-          const t = String(texto || "").trim();
-          if (t.length < 4 || t.length > 60) return null;
-          for (const d of DETECTABLES) {
-            const m = d.re.exec(t);
-            if (!m) continue;
-            const r = { icono: d.icono, tipo: d.tipo };
-            if (d.modelo) r.modelo = d.modelo(m);
-            else r.tag = d.tag(m).replace(/^EXN/i, "EX-N");
-            return r;
-          }
-          return null;
-        }
-        const CERCA_YA = 4e-3;
-        function sinRepetir(texto) {
-          const p = String(texto || "").trim().split(/\s+/);
-          const k0 = claveSuelta(p[0]);
-          if (p.length < 2 || k0.length < 4) return p.join(" ");
-          const j = p.findIndex((w, n) => n > 0 && claveSuelta(w) === k0);
-          return (j > 0 ? p.slice(0, j) : p).join(" ");
-        }
-        function detectarEquipos(textos, equipos = [], marcas = []) {
-          const deObra = /* @__PURE__ */ new Map();
-          for (const e of equipos || []) {
-            const k = claveSuelta(e.tag);
-            if (k.length >= 4 && !deObra.has(k)) deObra.set(k, e);
-          }
-          const colocados = new Set((marcas || []).map((m) => m && m.equipoId).filter(Boolean));
-          const vistos = /* @__PURE__ */ new Set();
-          const propios = [];
-          const porModelo = [];
-          const repetidos = [];
-          const enObra = [];
-          const lista = (textos || []).filter((t) => t && typeof t.texto === "string");
-          const sinNumero = (tag) => !/\d/.test(String(tag).replace(/^[A-Z]+[-_ ]?(?:N\d{2}|S\d)[-_ ]?/i, ""));
-          const sigue = (texto, siguiente) => {
-            const s = String(siguiente || "").trim();
-            if (!s) return false;
-            const r = equipoDeRotulo(s);
-            if (r && r.tag) return false;
-            return !claveSuelta(texto).includes(claveSuelta(s));
-          };
-          for (let i = 0; i < lista.length; i++) {
-            const t = lista[i];
-            let texto = sinRepetir(t.texto);
-            let d = equipoDeRotulo(texto);
-            if (!d) continue;
-            let sx = Number(t.x);
-            let sy = Number(t.y);
-            let n = 1;
-            while (d.tag && sinNumero(d.tag) && i + 1 < lista.length && texto.length < 60 && Math.hypot(lista[i + 1].x - lista[i].x, lista[i + 1].y - lista[i].y) <= CERCA && sigue(texto, lista[i + 1].texto)) {
-              i += 1;
-              texto = sinRepetir(`${texto} ${lista[i].texto.trim()}`);
-              sx += Number(lista[i].x);
-              sy += Number(lista[i].y);
-              n += 1;
-              d = equipoDeRotulo(texto) || d;
-            }
-            const x = Math.round(sx / n * 1e4) / 1e4;
-            const y = Math.round(sy / n * 1e4) / 1e4;
-            if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
-            if ((marcas || []).some((m) => Math.hypot(m.x - x, m.y - y) < CERCA_YA)) continue;
-            if (d.modelo) {
-              porModelo.push({ modelo: d.modelo, tipo: d.tipo, icono: d.icono, x, y });
-              continue;
-            }
-            const k = claveSuelta(d.tag);
-            const ya = deObra.get(k);
-            if (ya) {
-              if (esEquipoDelPlano(ya) && !colocados.has(ya.id)) {
-                colocados.add(ya.id);
-                enObra.push({ tag: ya.tag, equipoId: ya.id, tipo: d.tipo, icono: d.icono, x, y });
-              }
-              continue;
-            }
-            if (vistos.has(k)) {
-              repetidos.push({ tag: d.tag, x, y });
-              continue;
-            }
-            vistos.add(k);
-            propios.push({ tag: d.tag, tipo: d.tipo, icono: d.icono, x, y });
-          }
-          return { propios, porModelo, repetidos, enObra };
-        }
-        function paresUeUi(equipos = []) {
-          const grupos = /* @__PURE__ */ new Map();
-          for (const e of equipos || []) {
-            const m = /^U([EI])(.{3,})$/.exec(claveSuelta(e.tag));
-            if (!m) continue;
-            if (!grupos.has(m[2])) grupos.set(m[2], { E: [], I: [] });
-            grupos.get(m[2])[m[1]].push(e);
-          }
-          const pares = [];
-          for (const g of grupos.values()) {
-            if (g.E.length !== 1 || g.I.length !== 1) continue;
-            const [exterior] = g.E;
-            const [interior] = g.I;
-            if (String(exterior.equipoAsociado || "").trim() || String(interior.equipoAsociado || "").trim()) continue;
-            pares.push({ exterior, interior });
-          }
-          return pares;
-        }
-        const CERCA_MISMO = 6e-3;
-        function numerarPorModelo(detectados, planta, existentes = []) {
-          const usados = /* @__PURE__ */ new Set();
-          const numeros = /* @__PURE__ */ new Map();
-          const base = (modelo) => `${modelo} ${planta}-`;
-          for (const e of existentes || []) {
-            for (const d of detectados || []) {
-              const b = base(d.modelo);
-              if (!String(e.tag || "").startsWith(b)) continue;
-              const n = Number(String(e.tag).slice(b.length));
-              if (Number.isFinite(n)) {
-                if (!numeros.has(d.modelo)) numeros.set(d.modelo, /* @__PURE__ */ new Set());
-                numeros.get(d.modelo).add(n);
-              }
-            }
-          }
-          return (detectados || []).map((d) => {
-            const b = base(d.modelo);
-            const cerca = (existentes || []).filter((e) => !usados.has(e.id) && String(e.tag || "").startsWith(b) && e.x !== null && e.x !== void 0).map((e) => ({ e, dist: Math.hypot(e.x - d.x, e.y - d.y) })).filter((c) => c.dist < CERCA_MISMO).sort((p, q) => p.dist - q.dist)[0];
-            if (cerca) {
-              usados.add(cerca.e.id);
-              return { ...d, tag: cerca.e.tag, equipoId: cerca.e.id };
-            }
-            const ns = numeros.get(d.modelo) || /* @__PURE__ */ new Set();
-            let n = 1;
-            while (ns.has(n)) n += 1;
-            ns.add(n);
-            numeros.set(d.modelo, ns);
-            return { ...d, tag: `${b}${String(n).padStart(2, "0")}`, equipoId: null };
-          });
-        }
-        function familiaPara(icono, equipos = []) {
-          const cuenta = /* @__PURE__ */ new Map();
-          for (const e of equipos || []) {
-            const f = String(e.familia || "").trim();
-            if (!f || ICONO_DE_FAMILIA[f] !== (icono === "vrfExt" || icono === "vrfConductos" ? "vrfInt" : icono)) continue;
-            cuenta.set(f, (cuenta.get(f) || 0) + 1);
-          }
-          const mejor = [...cuenta.entries()].sort((a, b) => b[1] - a[1])[0];
-          return mejor ? mejor[0] : null;
-        }
-        const CERCA_ROTULO = 0.012;
-        function alSimbolo(marcas, textos) {
-          const conGeo = (textos || []).filter((t) => t && t.s !== void 0);
-          if (!conGeo.length) return marcas || [];
-          return (marcas || []).map((m) => {
-            if (!m || m.mano) return m;
-            const rx = m.rx ?? m.x;
-            const ry = m.ry ?? m.y;
-            let mejor = null;
-            let dist = CERCA_ROTULO;
-            for (const t of conGeo) {
-              const d = Math.hypot(Number(t.x) - rx, Number(t.y) - ry);
-              if (d < dist) {
-                dist = d;
-                mejor = t;
-              }
-            }
-            const base = { ...m, rx, ry };
-            delete base.revisar;
-            delete base.motivo;
-            delete base.dudoso;
-            if (!mejor || !Array.isArray(mejor.s) || mejor.s.length < 4) return { ...base, revisar: true, motivo: m.dudoso || "no se encuentra su s\xEDmbolo en el dibujo" };
-            const [x, y, w, h, ok] = mejor.s;
-            if (!ok) return { ...base, revisar: true, motivo: m.dudoso || mejor.m || "s\xEDmbolo dudoso" };
-            if (m.dudoso) return { ...base, x, y, w, h, revisar: true, motivo: m.dudoso };
-            return { ...base, x, y, w, h };
-          });
-        }
-        const CERCA_MISMO_TAG = 0.03;
-        const claveTag = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9.]/g, "");
-        function bloquesDeLamina(marcas, textos) {
-          const porTag = /* @__PURE__ */ new Map();
-          for (const t of textos || []) {
-            if (!t || !Array.isArray(t.s) || t.s.length < 5) continue;
-            const k = claveTag(t.texto);
-            if (!k) continue;
-            if (!porTag.has(k)) porTag.set(k, []);
-            porTag.get(k).push(t);
-          }
-          let cambiadas = 0;
-          const salida = (marcas || []).map((m) => {
-            if (!m || m.mano || m.dudoso || !m.tag) return m;
-            const lista = porTag.get(claveTag(m.tag));
-            if (!lista) return m;
-            let mejor = null;
-            let dist = CERCA_MISMO_TAG;
-            for (const t of lista) {
-              const d = Math.min(Math.hypot(t.s[0] - m.x, t.s[1] - m.y), Math.hypot(Number(t.x) - m.x, Number(t.y) - m.y));
-              if (d < dist) {
-                dist = d;
-                mejor = t;
-              }
-            }
-            if (!mejor || !mejor.s[4]) return m;
-            const [x, y, w, h] = mejor.s;
-            if (m.x === x && m.y === y && m.w === w && m.h === h && !m.revisar) return m;
-            const n = { ...m, rx: Number(mejor.x), ry: Number(mejor.y), x, y, w, h };
-            delete n.revisar;
-            delete n.motivo;
-            cambiadas += 1;
-            return n;
-          });
-          return { marcas: salida, cambiadas };
-        }
-        const sitioRotulo = (m) => m ? { x: m.rx ?? m.x, y: m.ry ?? m.y } : { x: null, y: null };
-        const API = {
-          alSimbolo,
-          bloquesDeLamina,
-          claveTag,
-          CERCA_MISMO_TAG,
-          sitioRotulo,
-          CERCA_ROTULO,
-          equipoDeRotulo,
-          detectarEquipos,
-          sinRepetir,
-          paresUeUi,
-          numerarPorModelo,
-          familiaPara,
-          CERCA_MISMO,
-          plantaDelNombre,
-          nombreDocumento,
-          documentosEquipo,
-          clave,
-          claveSuelta,
-          claveCasado,
-          esEquipoDelPlano,
-          casar,
-          cruce,
-          palabrasDe,
-          reconocer,
-          empezado,
-          estadoEnPlano,
-          estados,
-          colorear,
-          acciones,
-          tipoLlano,
-          ICONOS,
-          iconoDe,
-          esDeConductos,
-          leyendaIconos,
-          conjuntoEnPlanos,
-          indiceConjuntos,
-          llevaBalanceo,
-          TEXTO_ACCION,
-          limpiarMarcas,
-          rotulosSala,
-          salaCercana,
-          ponerSalas,
-          esNombreSala,
-          esCodigoSala,
-          limpiarSala,
-          textoFalta,
-          COLORES,
-          ORDEN_COLOR,
-          RADIO_SALA
-        };
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.PLANO_EQUIPOS = API;
-      })();
-    }
-  });
-
   // shared/commissioning/vidaEquipo.js
   var require_vidaEquipo = __commonJS({
     "shared/commissioning/vidaEquipo.js"(exports, module) {
@@ -128601,61 +130525,6 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         fechaCorta,
         textoVersion
       };
-    }
-  });
-
-  // shared/commissioning/salaGrisPosicion.js
-  var require_salaGrisPosicion = __commonJS({
-    "shared/commissioning/salaGrisPosicion.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var P = require_planoEquipos();
-      var ESTADOS = /* @__PURE__ */ new Set(["asignada", "por confirmar"]);
-      var llano = (v) => String(v ?? "").trim();
-      function partirRotulo(texto) {
-        const t = llano(texto);
-        const i = t.lastIndexOf(" \xB7 ");
-        const codigo = i > 0 ? t.slice(i + 3).trim() : t;
-        if (!P.esCodigoSala(codigo)) return null;
-        return { codigo: codigo.toUpperCase().replace(/,/g, "."), nombre: i > 0 ? t.slice(0, i).trim() : null };
-      }
-      function proponer(marcas, rotulos) {
-        const locales = (rotulos || []).map((r) => ({ ...partirRotulo(r.texto), x: r.x, y: r.y })).filter((r) => r.codigo);
-        const salida = [];
-        for (const m of marcas || []) {
-          if (!m || !m.equipoId) continue;
-          if (!(m.w && m.h) || m.revisar) continue;
-          const ordenados = locales.map((l) => ({ l, d: Math.hypot(l.x - m.x, l.y - m.y) })).filter((o) => o.d <= P.RADIO_SALA).sort((a, b) => a.d - b.d);
-          if (!ordenados.length) continue;
-          const mejor = ordenados[0];
-          const otro = ordenados.find((o) => o.l.codigo !== mejor.l.codigo);
-          const claro = !otro || otro.d > mejor.d * 1.5 + 4e-3;
-          let nombre = mejor.l.nombre;
-          if (!nombre) {
-            const c = locales.find((l) => l.codigo === mejor.l.codigo && l.nombre);
-            nombre = c ? c.nombre : null;
-          }
-          salida.push({
-            equipoId: m.equipoId,
-            tag: m.tag || "",
-            salaGris: mejor.l.codigo,
-            salaGrisNombre: nombre,
-            estado: claro ? "asignada" : "por confirmar",
-            motivo: !claro ? `tambi\xE9n cerca ${otro.l.codigo}` : "recinto que contiene el s\xEDmbolo"
-          });
-        }
-        return salida;
-      }
-      function decidir(e, p) {
-        const actual = { g: llano(e.salaGris), n: llano(e.salaGrisNombre), st: llano(e.salaGrisEstado) };
-        if (!ESTADOS.has(p.estado) || !p.salaGris) return { motivo: "propuesta sin sala o estado no v\xE1lido" };
-        if (actual.st === "asignada" && actual.g && actual.g !== p.salaGris) return { motivo: `ya asignada a ${actual.g}; el plano da ${p.salaGris}` };
-        if (actual.st === "asignada" && p.estado !== "asignada") return { motivo: "ya asignada; no se rebaja" };
-        const nombre = p.salaGrisNombre || (actual.g === p.salaGris ? actual.n : "") || null;
-        if (actual.g === p.salaGris && actual.st === p.estado && (actual.n || null) === nombre) return { motivo: "igual" };
-        return { cambios: { salaGris: p.salaGris, salaGrisNombre: nombre, salaGrisEstado: p.estado } };
-      }
-      module.exports = { proponer, decidir, partirRotulo };
     }
   });
 
@@ -129953,6 +131822,184 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
     }
   });
 
+  // shared/obra/estadoEjecucionPlano.js
+  var require_estadoEjecucionPlano = __commonJS({
+    "shared/obra/estadoEjecucionPlano.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const ESTADOS = ["sinPedir", "pedido", "instalado", "certificado", "sinDato"];
+        const NOMBRES = { sinPedir: "Sin pedir", pedido: "Pedido, sin instalar", instalado: "Instalado", certificado: "Certificado", sinDato: "Sin dato de pedido" };
+        const CLASES = { sinPedir: "eoRojo", pedido: "eoAzul", instalado: "eoVerde", certificado: "eoCert", sinDato: "eoGris" };
+        const UMBRAL_COBERTURA = 0.9;
+        const MUESTRA_MINIMA = 10;
+        const MONTADOS = /* @__PURE__ */ new Set(["instalado", "enMarcha", "recepcionado"]);
+        const MOTIVOS = {
+          certificado: "La partida de este equipo est\xE1 certificada",
+          instalado: "Consta como instalado",
+          albaran: "Tiene albar\xE1n de entrega",
+          fuentePedido: "Dado de alta desde un pedido",
+          acopiado: "Acopiado en obra",
+          tagEnLinea: "Su TAG sale en una l\xEDnea de pedido",
+          modeloPedido: "Su modelo est\xE1 pedido en cantidad suficiente",
+          sinPedir: "Ning\xFAn pedido de la obra lleva su modelo",
+          cantidadParcial: "Su modelo est\xE1 pedido solo en parte: no se sabe qu\xE9 unidades",
+          lineaSinCantidad: "Su modelo sale en un pedido sin cantidad",
+          sinClave: "Sin modelo con el que buscarlo en los pedidos",
+          sinPedidos: "La obra no tiene pedidos con l\xEDneas registrados",
+          registroIncompleto: "El registro de pedidos de la obra est\xE1 incompleto: no consta que est\xE9 pedido, pero tampoco que no",
+          material: "Los materiales no llevan a\xFAn pedido ni instalaci\xF3n por unidad"
+        };
+        const texto = (v) => v === null || v === void 0 ? "" : String(v);
+        const norm = (s) => texto(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, "");
+        const lista = (v) => {
+          if (Array.isArray(v)) return v;
+          try {
+            const r = JSON.parse(texto(v) || "[]");
+            return Array.isArray(r) ? r : [];
+          } catch {
+            return [];
+          }
+        };
+        const objeto = (v) => {
+          if (v && typeof v === "object") return v;
+          try {
+            return JSON.parse(texto(v) || "null");
+          } catch {
+            return null;
+          }
+        };
+        function estado({ pedido, instalado, certificado } = {}) {
+          if (certificado) return "certificado";
+          if (instalado) return "instalado";
+          if (pedido === true) return "pedido";
+          if (pedido === false) return "sinPedir";
+          return "sinDato";
+        }
+        const estaInstalado = (e) => Boolean(e && (MONTADOS.has(e.estado) || texto(e.fechaInstalacion) || texto(e.instalacionVerificadaEn)));
+        const esCertificado = (cert) => Boolean(cert && cert.estado === "certificada");
+        const tieneAlbaran = (e) => lista(e && e.albaranesEquipo).length > 0;
+        const vieneDePedido = (e) => {
+          const f = objeto(e && e.fuenteAlta);
+          return Boolean(f && f.tipo === "pedido" || /"pedido"/.test(texto(e && e.fuentesEquipo)));
+        };
+        const claveModelo = (e) => {
+          const k = norm(e && e.modelo);
+          return k.length >= 5 && /\d/.test(k) ? k : null;
+        };
+        const claveTag = (e) => {
+          const k = norm(e && e.tag);
+          return k.length >= 5 && /\d/.test(k) ? k : null;
+        };
+        function indiceLineas(pedidos) {
+          const lineas = [];
+          for (const p of pedidos || []) {
+            if (!p || texto(p.fechaAnulacion)) continue;
+            for (const l of lista(p.lineas)) {
+              if (!l) continue;
+              lineas.push({ texto: `${norm(l.descripcion)} ${norm(l.referencia)}`, cantidad: Number(l.cantidad) || 0 });
+            }
+          }
+          return { lineas, todo: lineas.map((l) => l.texto).join("\n") };
+        }
+        const constaPedido = (e) => estaInstalado(e) || tieneAlbaran(e) || e.estado === "acopiado" || vieneDePedido(e);
+        function deObra(equipos, pedidos, { certificadoDe = null } = {}) {
+          const ind = indiceLineas(pedidos);
+          const vivos = (equipos || []).filter((e) => e && !e.duplicadoDe);
+          const unidades = /* @__PURE__ */ new Map();
+          for (const e of vivos) {
+            const k = claveModelo(e);
+            if (k) unidades.set(k, (unidades.get(k) || 0) + 1);
+          }
+          const enLineas = /* @__PURE__ */ new Map();
+          const buscar = (k) => {
+            if (!enLineas.has(k)) {
+              let n = 0;
+              let cantidad = 0;
+              for (const l of ind.lineas) if (l.texto.includes(k)) {
+                n += 1;
+                cantidad += l.cantidad;
+              }
+              enLineas.set(k, { n, cantidad });
+            }
+            return enLineas.get(k);
+          };
+          let muestra = 0;
+          let cubiertos = 0;
+          for (const e of vivos) {
+            const k = claveModelo(e);
+            if (!k || !constaPedido(e)) continue;
+            muestra += 1;
+            if (buscar(k).n > 0) cubiertos += 1;
+          }
+          const cobertura = muestra ? cubiertos / muestra : null;
+          const rojoFiable = ind.lineas.length > 0 && muestra >= MUESTRA_MINIMA && cobertura >= UMBRAL_COBERTURA;
+          const pedidoDe = (e) => {
+            if (tieneAlbaran(e)) return { pedido: true, motivo: "albaran" };
+            if (vieneDePedido(e)) return { pedido: true, motivo: "fuentePedido" };
+            if (e.estado === "acopiado") return { pedido: true, motivo: "acopiado" };
+            const tag = claveTag(e);
+            if (tag && ind.todo.includes(tag)) return { pedido: true, motivo: "tagEnLinea" };
+            const k = claveModelo(e);
+            if (!k) return { pedido: null, motivo: "sinClave" };
+            if (!ind.lineas.length) return { pedido: null, motivo: "sinPedidos" };
+            const h = buscar(k);
+            if (h.n > 0) {
+              if (h.cantidad <= 0) return { pedido: null, motivo: "lineaSinCantidad" };
+              return h.cantidad >= (unidades.get(k) || 1) ? { pedido: true, motivo: "modeloPedido" } : { pedido: null, motivo: "cantidadParcial" };
+            }
+            return rojoFiable ? { pedido: false, motivo: "sinPedir" } : { pedido: null, motivo: "registroIncompleto" };
+          };
+          const porId = /* @__PURE__ */ new Map();
+          for (const e of equipos || []) {
+            if (!e) continue;
+            const certificado = Boolean(certificadoDe && certificadoDe(e.id));
+            const instalado = estaInstalado(e);
+            const p = certificado || instalado ? { pedido: true, motivo: certificado ? "certificado" : "instalado" } : pedidoDe(e);
+            porId.set(e.id, { estado: estado({ pedido: p.pedido, instalado, certificado }), motivo: MOTIVOS[p.motivo] });
+          }
+          return { porId, resumen: { cobertura, muestra, cubiertos, umbral: UMBRAL_COBERTURA, muestraMinima: MUESTRA_MINIMA, rojoFiable, conLineas: ind.lineas.length } };
+        }
+        const deMaterial = () => ({ estado: "sinDato", motivo: MOTIVOS.material });
+        const SIN_DATO = { estado: "sinDato", motivo: MOTIVOS.sinClave };
+        function cuentas(elementos) {
+          const out = { sinPedir: 0, pedido: 0, instalado: 0, certificado: 0, sinDato: 0 };
+          for (const x of elementos || []) {
+            const k = x && x.estadoObra && x.estadoObra.estado;
+            out[ESTADOS.includes(k) ? k : "sinDato"] += 1;
+          }
+          return out;
+        }
+        function nota(resumen) {
+          if (!resumen || resumen.rojoFiable) return null;
+          if (!resumen.conLineas) return "Sin pedidos registrados en esta obra: lo no instalado sale en gris.";
+          if (resumen.muestra < resumen.muestraMinima) return "A\xFAn no hay equipos suficientes para comprobar el registro de pedidos: lo no localizado sale en gris.";
+          return `El registro de pedidos solo recoge el ${Math.round(resumen.cobertura * 100)} % de lo que se sabe pedido: lo no localizado sale en gris, no en rojo.`;
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.ESTADO_EJECUCION_PLANO = API;
+        })({
+          ESTADOS,
+          NOMBRES,
+          CLASES,
+          MOTIVOS,
+          UMBRAL_COBERTURA,
+          MUESTRA_MINIMA,
+          SIN_DATO,
+          estado,
+          estaInstalado,
+          esCertificado,
+          indiceLineas,
+          deObra,
+          deMaterial,
+          cuentas,
+          nota
+        });
+      })();
+    }
+  });
+
   // shared/commissioning/materialesInstalados.js
   var require_materialesInstalados = __commonJS({
     "shared/commissioning/materialesInstalados.js"(exports, module) {
@@ -129981,6 +132028,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         conducto: { nombre: "Conducto", corto: "CND", capa: "conductos", prefijos: [], campos: ["Sistema", "Aislamiento", "Medida"] },
         tuberia: { nombre: "Tuber\xEDa", corto: "TUB", capa: "tuberias", prefijos: [], campos: ["Sistema", "Material", "Aislamiento", "DN"] }
       };
+      var CAPAS_SOLO_OBRA = ["conductos", "tuberias"];
       var CAPAS_MAT = [
         { id: "equipos", nombre: "Equipos" },
         { id: "compuertas", nombre: "Compuertas" },
@@ -130154,6 +132202,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.MATERIALES_INSTALADOS = API;
       })({
+        CAPAS_SOLO_OBRA,
         TIPOS: TIPOS_MAT,
         CAPAS: CAPAS_MAT,
         ESTADOS: ESTADOS_MAT,
@@ -131946,6 +133995,22 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           return null;
         }
       }
+      function ejecucionDeObra(repo, obraId, certDe) {
+        const EP2 = require_estadoEjecucionPlano();
+        let equipos = [];
+        let pedidos = [];
+        try {
+          equipos = repo.db.prepare("SELECT id, tag, modelo, estado, fechaInstalacion, instalacionVerificadaEn, albaranesEquipo, fuenteAlta, fuentesEquipo, duplicadoDe FROM equiposObra WHERE obraId = ?").all(obraId);
+        } catch {
+          equipos = [];
+        }
+        try {
+          pedidos = repo.db.prepare("SELECT lineas, fechaAnulacion FROM pedidosCompra WHERE obraId = ?").all(obraId);
+        } catch {
+          pedidos = [];
+        }
+        return EP2.deObra(equipos, pedidos, { certificadoDe: (id) => EP2.esCertificado(certDe.get(id)) });
+      }
       function plantaPorDefecto(plantas, nombre) {
         const ps = plantas || [];
         const n = String(nombre ?? "");
@@ -131968,7 +134033,8 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         if (!obraVisible(repo, ses, obraId)) return null;
         const lec = sesionDeLectura(ses);
         const conCx = puede(ses.rol, "commissioning", "ver");
-        const puedeEditar = puede(ses.rol, "commissioning", "editar");
+        const modoObra = Boolean(opc.obra);
+        const puedeEditar = !modoObra && puede(ses.rol, "commissioning", "editar");
         const filas = repo.listar("planosEquipos", lec, { condicion: "obraId = ?", params: [obraId] });
         const t = CX.tablaRecordada(repo, lec, obraId, { incluirPorConfirmar: true }) || { filas: [], conjuntos: [] };
         marcarFichasConDato(repo, lec, obraId, t);
@@ -131978,7 +134044,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         const papelesDe = (() => {
           try {
             const modeloDe = require_control().indiceModelos(repo.listar("modelosEquipo", lec, { condicion: "obraId = ?", params: [obraId] }));
-            const eqs = new Map(repo.db.prepare("SELECT id, marca, modelo, modeloId, docFichaTecnica, docMarcadoCE, docManual FROM equiposObra WHERE obraId = ?").all(obraId).map((x) => [x.id, x]));
+            const eqs = new Map(repo.db.prepare("SELECT id, marca, modelo, modeloId, docFichaTecnica, docMarcadoCE, docManual, docFichaPM FROM equiposObra WHERE obraId = ?").all(obraId).map((x) => [x.id, x]));
             return (id) => {
               const x = eqs.get(id);
               return x ? P.documentosEquipo(x, modeloDe(x)) : [];
@@ -131989,7 +134055,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         })();
         const lineaDe = /* @__PURE__ */ new Map();
         for (const c of t.conjuntos || []) for (const m of c.miembros || [c]) lineaDe.set(m.id, c);
-        const datosCert = VE.veCertificacion(ses.rol) ? certificacionDeObra(repo, obraId) : null;
+        const datosCert = modoObra && VE.veCertificacion(ses.rol) ? certificacionDeObra(repo, obraId) : null;
         const EE = require_entregaEquipo();
         const albaranesDe = (() => {
           try {
@@ -132037,6 +134103,14 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         for (const p of filas) for (const m of leerJson(p.marcas, [])) marcaDe.set(m.equipoId, { ...m, planoId: p.id, planta: p.planta || "" });
         const MI = require_materialesInstalados2();
         const materialesDe = MI.porPlanta(repo, ses, obraId);
+        const soloObra = require_materialesInstalados().CAPAS_SOLO_OBRA;
+        if (!modoObra) {
+          for (const [k, lista] of [...materialesDe]) {
+            const quedan = lista.filter((m) => !soloObra.includes(m.capa));
+            if (quedan.length) materialesDe.set(k, quedan);
+            else materialesDe.delete(k);
+          }
+        }
         const faltasDe = require_faltasPlano2().porPlanta(repo, ses, obraId);
         const nombres = /* @__PURE__ */ new Set([...filasEq.map((f) => llano(f.planta)), ...filas.map((p) => p.planta || ""), ...materialesDe.keys()]);
         const ordenadas = [...nombres].sort(ordenPlanta);
@@ -132101,6 +134175,17 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             plano: p ? { id: p.id, nombre: p.nombre, ancho: p.ancho, alto: p.alto, modificadoEn: p.modificadoEn, salas: salasParaPintar(p.rotulos), ia: VIS.paraPantalla(p), version: metaVersion(p, true), anteriores: nAnteriores(repo, p.id) } : null
           };
         });
+        let ejecucion = null;
+        if (modoObra) {
+          const EP2 = require_estadoEjecucionPlano();
+          const { porId, resumen } = ejecucionDeObra(repo, obraId, certDe);
+          for (const pl of plantas) {
+            for (const q of pl.equipos) q.estadoObra = porId.get(q.id) || EP2.SIN_DATO;
+            for (const m of pl.materiales) m.estadoObra = EP2.deMaterial();
+            pl.cuentasObra = EP2.cuentas([...pl.equipos, ...pl.materiales]);
+          }
+          ejecucion = { ...resumen, nota: EP2.nota(resumen), veCertificado: VE.veCertificacion(ses.rol) };
+        }
         const indiceCj = P.indiceConjuntos(plantas);
         for (const pl of plantas) {
           for (const q of pl.equipos) {
@@ -132116,7 +134201,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           const salaPor = new Map((pl ? pl.equipos : []).map((q) => [q.id, q.sala]));
           return { id: p.id, planta: p.planta, nombre: p.nombre, ancho: p.ancho, alto: p.alto, marcas: marcas.map((m) => ({ ...m, sala: salaPor.get(m.equipoId) || m.sala || null })), cuentas, sinPoner, modificadoEn: p.modificadoEn };
         });
-        const medicion = VE.veCertificacion(ses.rol) ? medicionDelPlano(repo, obraId, plantas) : null;
+        const medicion = modoObra && VE.veCertificacion(ses.rol) ? medicionDelPlano(repo, obraId, plantas) : null;
         if (opc.porPlanta) {
           const pedida = plantaPorDefecto(plantas, opc.planta);
           for (let i = 0; i < plantas.length; i += 1) {
@@ -132125,6 +134210,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             plantas[i] = {
               planta: pl.planta,
               cuentas: pl.cuentas,
+              cuentasObra: pl.cuentasObra,
               capas: pl.capas,
               plano: pl.plano,
               parcial: true,
@@ -132140,10 +134226,10 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         const iconos = {};
         for (const k of Object.keys(P.ICONOS)) iconos[k] = P.ICONOS[k];
         const MT = require_materialesInstalados();
-        const tiposMaterial = Object.fromEntries(Object.entries(MT.TIPOS).map(([k, v]) => [k, { nombre: v.nombre, corto: v.corto, capa: v.capa, campos: v.campos }]));
+        const tiposMaterial = Object.fromEntries(Object.entries(MT.TIPOS).filter(([, v]) => modoObra || !soloObra.includes(v.capa)).map(([k, v]) => [k, { nombre: v.nombre, corto: v.corto, capa: v.capa, campos: v.campos }]));
         if (opc.ligero && !opc.soloFicha) {
           const porId = new Map(filasEq.map((f) => [f.id, f]));
-          recordarFichas(repo, ses, obraId, (id) => {
+          recordarFichas(repo, ses, obraId, modoObra, (id) => {
             const f = porId.get(id);
             const e = f && est.get(id);
             if (!f || !e) return null;
@@ -132151,20 +134237,25 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             return { id, documentos: d.documentos || [], acciones: d.acciones || [], vida: d.vida || null };
           });
         }
-        return { plantas, planos, iconos, colores: P.COLORES, puedeEditar, conCommissioning: conCx, capas: MT.CAPAS, tiposMaterial, medicion };
+        return { plantas, planos, iconos, colores: P.COLORES, puedeEditar, conCommissioning: conCx, capas: modoObra ? MT.CAPAS : MT.CAPAS.filter((k) => !soloObra.includes(k.id)), tiposMaterial, medicion, ejecucion };
       }
       var fichasRecordadas = /* @__PURE__ */ new WeakMap();
-      var claveFichas = (ses, obraId) => `${obraId}|${ses && ses.personaId}|${ses && ses.rol}|${JSON.stringify(ses && ses.soloObras || null)}`;
-      function recordarFichas(repo, ses, obraId, fichaDe) {
+      var claveFichas = (ses, obraId, modoObra) => `${modoObra ? "obra|" : ""}${obraId}|${ses && ses.personaId}|${ses && ses.rol}|${JSON.stringify(ses && ses.soloObras || null)}`;
+      function recordarFichas(repo, ses, obraId, modoObra, fichaDe) {
         if (!repo || typeof repo !== "object" || !repo.db) return;
         const marca = require_marcaCambios().marcaDeCambios(repo.db);
         if (!marca) return;
         const m = fichasRecordadas.get(repo) || /* @__PURE__ */ new Map();
-        m.set(claveFichas(ses, obraId), { marca, fichaDe });
+        m.set(claveFichas(ses, obraId, modoObra), { marca, fichaDe });
         fichasRecordadas.set(repo, m);
       }
-      function ficha(repo, ses, obraId, equipoId) {
-        const rec = repo && typeof repo === "object" && repo.db ? (fichasRecordadas.get(repo) || /* @__PURE__ */ new Map()).get(claveFichas(ses, obraId)) : null;
+      function ficha(repo, ses, obraId, equipoId, opc = {}) {
+        const d = fichaSinTomas(repo, ses, obraId, equipoId, opc);
+        return d ? { ...d, tomas: tomasDelEquipo(repo, ses, equipoId) } : d;
+      }
+      function fichaSinTomas(repo, ses, obraId, equipoId, opc = {}) {
+        const modoObra = Boolean(opc.obra);
+        const rec = repo && typeof repo === "object" && repo.db ? (fichasRecordadas.get(repo) || /* @__PURE__ */ new Map()).get(claveFichas(ses, obraId, modoObra)) : null;
         if (rec && rec.marca === require_marcaCambios().marcaDeCambios(repo.db)) {
           try {
             const d = rec.fichaDe(equipoId);
@@ -132172,13 +134263,74 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           } catch {
           }
         }
-        const r = listar(repo, ses, obraId, { ligero: true, soloFicha: equipoId });
+        const r = listar(repo, ses, obraId, { ligero: true, soloFicha: equipoId, ...modoObra ? { obra: true } : {} });
         if (!r) return null;
         for (const pl of r.plantas) {
           const q = pl.equipos.find((x) => x.id === equipoId);
           if (q) return { id: q.id, documentos: q.documentos || [], acciones: q.acciones || [], vida: q.vida || null };
         }
         return { id: equipoId, documentos: [], acciones: [], vida: null };
+      }
+      var PESTANA_DE_CLASE = { balanceo: "balanceo", estanqAgua: "estanqueidad", estanqRefrigerante: "estanqueidad" };
+      function tomasDelEquipo(repo, ses, equipoId) {
+        if (!ses || !puede(ses.rol, "commissioning", "ver")) return [];
+        let d = null;
+        try {
+          d = require_fichasPM().dossier(repo, ses, llano(equipoId));
+        } catch {
+          return [];
+        }
+        if (!d) return [];
+        const vistas = /* @__PURE__ */ new Set();
+        const fuera = [];
+        for (const p of [...d.partes || [], ...d.conservadas || []]) {
+          if (!p.plantilla || !p.clave) continue;
+          const k = `${p.clave}|${p.plantilla}`;
+          if (vistas.has(k)) continue;
+          vistas.add(k);
+          const ev = p.evaluacion || null;
+          if (p.conservada && !ev) continue;
+          const m = ev && ev.medidos || {};
+          fuera.push({
+            plantilla: p.plantilla,
+            clave: p.clave,
+            clase: p.clase || null,
+            nombre: p.nombre || "Ficha",
+            estado: ev ? ev.estado : "sinFicha",
+            rellenos: Number(m.rellenos) || 0,
+            obligatorios: Number(m.obligatorios) || 0,
+            fotos: ev && ev.datos && Array.isArray(ev.datos.fotos) ? ev.datos.fotos.length : 0,
+            firmada: Boolean(ev && Array.isArray(ev.firmas) && ev.firmas.length),
+            unidadTag: p.conservada || p.porUnidad ? p.unidadTag || null : null,
+            pestana: PESTANA_DE_CLASE[p.clase] || "puesta"
+          });
+        }
+        const hb = hojaBalanceoResumen(repo, ses, d.equipo || { id: llano(equipoId) });
+        if (hb) {
+          const i = fuera.findIndex((x) => x.clase === "balanceo");
+          const base = i >= 0 ? fuera[i] : { plantilla: null, clave: null, clase: "balanceo", nombre: "Hoja de balanceo", fotos: 0, firmada: false, unidadTag: null, pestana: "balanceo" };
+          const fila = { ...base, ...hb, hoja: true };
+          if (i >= 0) fuera[i] = fila;
+          else fuera.push(fila);
+        }
+        return fuera;
+      }
+      function hojaBalanceoResumen(repo, ses, equipo) {
+        if (!equipo || !equipo.id) return null;
+        let be = null;
+        try {
+          be = require_fichasPM().balanceoEvaluado(repo, ses, equipo);
+        } catch {
+          return null;
+        }
+        return be && be.ev ? resumenHojaBalanceo(be.ev) : null;
+      }
+      function resumenHojaBalanceo(ev) {
+        const bocas = (ev.circuitos || []).flatMap((c) => c.bocas || []);
+        const medidas = bocas.filter((x) => x && x.caudalMedido !== null && x.caudalMedido !== void 0 && x.caudalMedido !== "").length;
+        const total = bocas.length;
+        const estado = ev.estado === "pendiente" && !medidas ? "sinEmpezar" : total && medidas >= total ? "completa" : medidas || ev.estado !== "pendiente" ? "pendiente" : "sinEmpezar";
+        return { estado, rellenos: medidas, obligatorios: total, resultado: ev.estado || null };
       }
       function medicionDelPlano(repo, obraId, plantas) {
         try {
@@ -132667,6 +134819,8 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         equiposAlSubir,
         listar,
         ficha,
+        tomasDelEquipo,
+        resumenHojaBalanceo,
         imagen,
         guardar,
         versiones,
@@ -142760,7 +144914,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         { tipo: "proveedor", etiqueta: "Industrial" }
       ];
       var TIPOS_ANCLA = new Set(ANCLAS.map((a) => a.tipo));
-      function nuevaNota({ personaId, texto = "", ancla = null, fijada = false, ahora = null }) {
+      function nuevaNota({ personaId, texto = "", ancla = null, fijada = false, hecha = false, categoria = null, ahora = null }) {
         if (!personaId) return null;
         const cuando = ahora || (/* @__PURE__ */ new Date()).toISOString();
         return {
@@ -142774,6 +144928,8 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
            */
           ancla: ancla && TIPOS_ANCLA.has(ancla.tipo) && ancla.id ? { tipo: ancla.tipo, id: ancla.id, resumen: ancla.resumen || null } : null,
           fijada: Boolean(fijada),
+          hecha: Boolean(hecha),
+          categoria: limpiarCategoria(categoria),
           creadoEn: cuando,
           modificadoEn: cuando
         };
@@ -142826,12 +144982,52 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         const palabras = normNota(consulta).split(" ").filter(Boolean);
         if (!palabras.length) return [...notas || []];
         return (notas || []).filter((n) => {
-          const heno = normNota(`${n.texto} ${n.ancla && n.ancla.resumen || ""}`);
+          const heno = normNota(`${n.texto} ${n.ancla && n.ancla.resumen || ""} ${n.categoria || ""}`);
           return palabras.every((p) => heno.includes(p));
+        });
+      }
+      var LARGO_CATEGORIA = 40;
+      var SIN_CATEGORIA = "__sin__";
+      function limpiarCategoria(nombre, existentes = []) {
+        const t = String(nombre || "").replace(/\s+/g, " ").trim().slice(0, LARGO_CATEGORIA).trim();
+        if (!t) return null;
+        return existentes.find((c) => normNota(c) === normNota(t)) || t;
+      }
+      function categorias(notas) {
+        const vistas = /* @__PURE__ */ new Map();
+        for (const n of notas || []) {
+          if (!n.categoria) continue;
+          const clave = normNota(n.categoria);
+          if (!vistas.has(clave)) vistas.set(clave, { nombre: n.categoria, total: 0 });
+          vistas.get(clave).total += 1;
+        }
+        return [...vistas.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+      }
+      function filtrarNotas(notas, { categoria = "", verHechas = true } = {}) {
+        return (notas || []).filter((n) => {
+          if (!verHechas && n.hecha) return false;
+          if (!categoria) return true;
+          if (categoria === SIN_CATEGORIA) return !n.categoria;
+          return normNota(n.categoria) === normNota(categoria);
+        });
+      }
+      function agrupar(notas) {
+        const grupos = /* @__PURE__ */ new Map();
+        for (const n of notas || []) {
+          const clave = n.categoria ? normNota(n.categoria) : SIN_CATEGORIA;
+          if (!grupos.has(clave)) grupos.set(clave, { clave, nombre: n.categoria || "Sin categor\xEDa", notas: [], pendientes: 0 });
+          const g = grupos.get(clave);
+          g.notas.push(n);
+          if (!n.hecha) g.pendientes += 1;
+        }
+        return [...grupos.values()].sort((a, b) => {
+          if (a.clave === SIN_CATEGORIA !== (b.clave === SIN_CATEGORIA)) return a.clave === SIN_CATEGORIA ? 1 : -1;
+          return a.nombre.localeCompare(b.nombre, "es");
         });
       }
       function ordenar(notas) {
         return [...notas || []].sort((a, b) => {
+          if (Boolean(a.hecha) !== Boolean(b.hecha)) return a.hecha ? 1 : -1;
           if (Boolean(a.fijada) !== Boolean(b.fijada)) return a.fijada ? -1 : 1;
           return String(b.modificadoEn || "").localeCompare(String(a.modificadoEn || ""));
         });
@@ -142842,7 +145038,8 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
       }
       function resumenDelBloc(notas, personaId) {
         const mias = (notas || []).filter((n) => n.personaId === personaId);
-        const cuenta = mias.reduce(
+        const vivas = mias.filter((n) => !n.hecha);
+        const cuenta = vivas.reduce(
           (s, n) => {
             const t = tareas(n);
             return { total: s.total + t.total, pendientes: s.pendientes + t.pendientes };
@@ -142851,11 +145048,11 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         );
         return {
           notas: mias.length,
-          fijadas: mias.filter((n) => n.fijada).length,
+          fijadas: vivas.filter((n) => n.fijada).length,
           tareas: cuenta.total,
           pendientes: cuenta.pendientes,
           /* Las tres más recientes con algo pendiente: lo que hay que hacer hoy. */
-          conPendientes: ordenar(mias.filter((n) => tareas(n).pendientes > 0)).slice(0, 3)
+          conPendientes: ordenar(vivas.filter((n) => tareas(n).pendientes > 0)).slice(0, 3)
         };
       }
       function paraConversacion(nota) {
@@ -142881,6 +145078,12 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         tareas,
         titulo,
         avance,
+        LARGO_CATEGORIA,
+        SIN_CATEGORIA,
+        limpiarCategoria,
+        categorias,
+        agrupar,
+        filtrar: filtrarNotas,
         buscar: buscarNotas,
         ordenar,
         deAncla,
@@ -143072,6 +145275,25 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           }
           return m;
         }
+        function grupoDe(e) {
+          if (e.tipo === "sesion" && e.tarea) return e.tarea;
+          const t = TIPOS[e.tipo] || {};
+          return t.corto || t.etiqueta || "Otros";
+        }
+        function agruparDia(lista = []) {
+          const grupos = /* @__PURE__ */ new Map();
+          for (const e of lista) {
+            const etiqueta = grupoDe(e);
+            const clave = `${e.tipo}|${etiqueta}`;
+            if (!grupos.has(clave)) grupos.set(clave, { clave, etiqueta, tipo: e.tipo, eventos: [], total: 0, hechas: 0, retrasado: false });
+            const g = grupos.get(clave);
+            g.eventos.push(e);
+            g.total += 1;
+            if (e.hecha) g.hechas += 1;
+            if (e.retrasado) g.retrasado = true;
+          }
+          return [...grupos.values()];
+        }
         (function exportar(API) {
           if (typeof module !== "undefined" && module.exports) module.exports = API;
           if (typeof window !== "undefined") window.AGENDA = API;
@@ -143095,7 +145317,9 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           expandir,
           describirRegla,
           ordenarEventos,
-          porDia
+          porDia,
+          grupoDe,
+          agruparDia
         });
       })();
     }
@@ -143229,6 +145453,8 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           texto: f.texto || "",
           ancla: f.anclaTipo && f.anclaId ? { tipo: f.anclaTipo, id: f.anclaId, resumen: f.anclaResumen || null } : null,
           fijada: Boolean(f.fijada),
+          hecha: Boolean(f.hecha),
+          categoria: f.categoria || null,
           /* El día en la agenda del bloc, si se le ha puesto. */
           fecha: dia(f.fecha),
           adjuntos: require_notasAdjuntos().lista(f),
@@ -143243,6 +145469,8 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           anclaId: n.ancla ? n.ancla.id : null,
           anclaResumen: n.ancla ? n.ancla.resumen : null,
           fijada: n.fijada ? 1 : 0,
+          hecha: n.hecha ? 1 : 0,
+          categoria: n.categoria || null,
           fecha: dia(n.fecha)
         };
       }
@@ -143273,6 +145501,9 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           ...cambios.texto !== void 0 ? { texto: String(cambios.texto) } : {},
           ...cambios.ancla !== void 0 ? { ancla: cambios.ancla } : {},
           ...cambios.fijada !== void 0 ? { fijada: Boolean(cambios.fijada) } : {},
+          ...cambios.hecha !== void 0 ? { hecha: Boolean(cambios.hecha) } : {},
+          /* '' o null la deja sin categoría. */
+          ...cambios.categoria !== void 0 ? { categoria: notas.limpiarCategoria(cambios.categoria) } : {},
           /* null o '' quita la fecha; algo que no es un día, también. */
           ...cambios.fecha !== void 0 ? { fecha: dia(cambios.fecha) } : {}
         };
@@ -150256,6 +152487,14 @@ No he tocado nada todav\xEDa. Si te vale, pulsa **Aplicar** y te saco el PDF; si
         function entenderClaim(pregunta, { contrapartes = [] } = {}) {
           pregunta = preguntaNormal(pregunta);
           const t = sinTildes(pregunta);
+          const ph = /\b(\d{1,3}(?:[.,]\d+)?)\s*(?:%|por\s*ciento|percent)\s*(?:de\s+)?(?:las\s+|sus\s+|the\s+)?horas?\b\s*(?:de\s+(?:la\s+|el\s+|los\s+|las\s+)?|del\s+|of\s+)?([a-z0-9][a-z0-9 .&-]*?)(?:\s+(?:en|al|a|del|para)\s+(?:el\s+|la\s+)?(?:claim|reclamacion|clm)|\s*[.,;?!]|$)/.exec(t) || /\b(?:horas?\s+de\s+(?:la\s+|el\s+|los\s+)?|horas?\s+del\s+)([a-z0-9][a-z0-9 .&-]*?)\s+(?:al|a|en el|en la|con el|con)\s+(\d{1,3}(?:[.,]\d+)?)\s*(?:%|por\s*ciento)/.exec(t);
+          if (ph && /\b(meter|mete|metas|pon|pone|poner|deja|dejar|cuenta|contar|incluye|incluir|aplica|aplicar|sube|baja|cambia|cambiar|solo|solamente|reduce|ajusta|ajustar)\b/.test(t) && !/\bvacaciones|fichaje\b/.test(t)) {
+            const conPrimero = ph.length && /^\d/.test(ph[1]);
+            const pct = Number(String(conPrimero ? ph[1] : ph[2]).replace(",", "."));
+            const sub = String(conPrimero ? ph[2] : ph[1]).replace(/\s+(?:empresa|subcontrata|proveedor)$/, "").replace(/^(?:la|el|los|las)\s+(?:empresa|subcontrata)?\s*(?:de\s+)?/, "").trim();
+            if (pct > 0 && pct <= 100 && sub) return { herramienta: "claim", que: "porcentajeHoras", porcentaje: pct, subcontrata: sub, codigo: (/\b([a-z]{2,4}-\d{1,3})\b/.exec(t) || [])[1] || null };
+          }
+          if (/\bpartes? de horas\b/.test(t) && !/\b(fecha|vacaciones|fichaje)\b/.test(t)) return { herramienta: "claim", que: "partesHoras", codigo: (/\b([a-z]{2,4}-\d{1,3})\b/.exec(t) || [])[1] || null };
           const dj = DICE_JEFE.exec(String(pregunta || ""));
           if (dj) {
             let resto = dj[2].trim();
@@ -150878,7 +153117,7 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
           const filas = [...ORDEN.map((k) => ({ clave: k, nombre: NIVELES[k].nombre })), { clave: SIN, nombre: NOMBRE_SIN }].map((f) => ({ ...f, validados: { n: 0, importe: 0 }, total: { n: 0, importe: 0 }, propuestos: { n: 0, importe: 0 } }));
           const por = new Map(filas.map((f) => [f.clave, f]));
           for (const h of hechos) {
-            if (h.estado === "descartado" || h.naturaleza === "plazoLimak" || J().soloDocumenta(h)) continue;
+            if (h.estado === "descartado" || h.naturaleza === "plazoLimak" || J().soloDocumenta(h) || J().esDefensaCliente(h)) continue;
             const importe = h.importe !== void 0 && h.importe !== null ? Number(h.importe) || 0 : M.importeHecho(h, tarifas).importe;
             const computa = h.computa !== void 0 ? Boolean(h.computa) : M.computa(h, renuncias);
             const k = h.defendibilidadCalc !== void 0 ? h.defendibilidadCalc || SIN : nivelDeHecho(h, apartados).nivel || SIN;
@@ -151037,7 +153276,7 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
           if (h.importe !== void 0 && h.importe !== null) return Number(h.importe) || 0;
           return MT().importeHecho(h, tarifas).importe;
         }
-        const vivo = (h) => h && h.estado !== "descartado" && h.naturaleza !== "plazoLimak" && !J().soloDocumenta(h);
+        const vivo = (h) => h && h.estado !== "descartado" && h.naturaleza !== "plazoLimak" && !J().soloDocumenta(h) && !J().esDefensaCliente(h);
         function calcularLinea(l, { porId = /* @__PURE__ */ new Map(), tarifas = [] } = {}) {
           const faltan = [];
           const q = { ...l };
@@ -151177,6 +153416,149 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
+  // shared/reclamaciones/direcciones.js
+  var require_direcciones = __commonJS({
+    "shared/reclamaciones/direcciones.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function(raiz) {
+        const llano = (v) => String(v ?? "").trim();
+        const r2 = (x) => Math.round((Number(x) || 0) * 100) / 100;
+        const DIRECCIONES = {
+          reclamarCliente: {
+            clave: "reclamarCliente",
+            parte: "cliente",
+            sentido: "reclamamos",
+            defensa: false,
+            nombre: "Reclamar al cliente",
+            corto: "Reclamamos al cliente",
+            otraParte: "el cliente",
+            laOtraParte: "El cliente",
+            pide: "Lo que reclamamos",
+            enJuego: "Importe reclamado",
+            tituloEstudio: "Estudio del claim",
+            tituloEscenarios: "Escenarios del claim",
+            respuesta: "Respuesta probable del cliente y nuestra contrarr\xE9plica",
+            favor: "Nuestros correos a favor",
+            contra: "Correos de la otra parte en contra",
+            aviso: "Notificar al cliente dentro del preaviso del contrato",
+            quePrueba: "Que el cliente caus\xF3 el hecho, que se lo avisamos a tiempo y cu\xE1nto nos cost\xF3."
+          },
+          reclamarSub: {
+            clave: "reclamarSub",
+            parte: "subcontrata",
+            sentido: "reclamamos",
+            defensa: false,
+            nombre: "Reclamar a una subcontrata",
+            corto: "Reclamamos a una subcontrata",
+            otraParte: "la subcontrata",
+            laOtraParte: "La subcontrata",
+            pide: "Lo que le reclamamos",
+            enJuego: "Importe reclamado",
+            tituloEstudio: "Estudio de la reclamaci\xF3n a la subcontrata",
+            tituloEscenarios: "Escenarios de la reclamaci\xF3n a la subcontrata",
+            respuesta: "Respuesta probable de la subcontrata y nuestra contrarr\xE9plica",
+            favor: "Nuestros correos y pruebas a favor",
+            contra: "Correos de la subcontrata en contra",
+            aviso: "Avisar a la subcontrata por escrito dentro de su pedido o contrato",
+            quePrueba: "Que el incumplimiento es de la subcontrata (su plan, sus partes, sus plazos), que se lo dijimos y lo que nos cost\xF3."
+          },
+          defenderCliente: {
+            clave: "defenderCliente",
+            parte: "cliente",
+            sentido: "nosReclaman",
+            defensa: true,
+            nombre: "Defendernos de una reclamaci\xF3n del cliente",
+            corto: "Nos reclama el cliente",
+            otraParte: "el cliente",
+            laOtraParte: "El cliente",
+            pide: "Lo que nos reclaman",
+            enJuego: "Importe que nos reclaman",
+            tituloEstudio: "Estudio de la defensa frente al cliente",
+            tituloEscenarios: "Escenarios de la defensa",
+            respuesta: "Lo que alegar\xE1 el cliente y c\xF3mo lo contestamos",
+            favor: "Lo que nos defiende",
+            contra: "Lo que el cliente puede usar en nuestra contra",
+            aviso: "Contestar al cliente dentro de los plazos del contrato",
+            quePrueba: "Que el retraso o el defecto no es nuestro, que el cliente lo caus\xF3 o lo consinti\xF3, o que la cifra no es la que dice."
+          },
+          defenderSub: {
+            clave: "defenderSub",
+            parte: "subcontrata",
+            sentido: "nosReclaman",
+            defensa: true,
+            nombre: "Defendernos de una reclamaci\xF3n de una subcontrata",
+            corto: "Nos reclama una subcontrata",
+            otraParte: "la subcontrata",
+            laOtraParte: "La subcontrata",
+            pide: "Lo que nos reclaman",
+            enJuego: "Importe que nos reclaman",
+            tituloEstudio: "Estudio de la defensa frente a la subcontrata",
+            tituloEscenarios: "Escenarios de la defensa",
+            respuesta: "Lo que alegar\xE1 la subcontrata y c\xF3mo lo contestamos",
+            favor: "Lo que nos defiende",
+            contra: "Lo que la subcontrata puede usar en nuestra contra",
+            aviso: "Contestar a la subcontrata dentro de los plazos de su pedido",
+            quePrueba: "Que lo alegado cae fuera de su alcance contratado, que lo certific\xF3 sin reparo o que avis\xF3 fuera de plazo."
+          }
+        };
+        const ORDEN = ["reclamarCliente", "reclamarSub", "defenderCliente", "defenderSub"];
+        function direccionDe(reclamacion) {
+          reclamacion = reclamacion || {};
+          const parte = llano(reclamacion.parte) === "subcontrata" ? "subcontrata" : "cliente";
+          const sentido = llano(reclamacion.sentido) === "nosReclaman" ? "nosReclaman" : "reclamamos";
+          return DIRECCIONES[ORDEN.find((k) => DIRECCIONES[k].parte === parte && DIRECCIONES[k].sentido === sentido)];
+        }
+        function camposDe(clave) {
+          const d = DIRECCIONES[llano(clave)];
+          return d ? { parte: d.parte, sentido: d.sentido } : null;
+        }
+        function dePalabras(texto) {
+          const t = llano(texto).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+          if (!t) return null;
+          if (DIRECCIONES[llano(texto)]) return llano(texto);
+          const sub = /\b(subcontrat\w*|subcontratista|gremio|proveedor)\b/.test(t);
+          const cli = /\b(cliente|propiedad|promotor|property|client|cbre|dueno)\b/.test(t) && !sub;
+          const defiende = /\b(defend\w*|nos reclam\w*|me reclam\w*|reclama(n)? (a|contra) (nosotros|mi)|recib\w* (un |una )?(claim|reclamacion)|contestar|responder a su)\b/.test(t);
+          if (!sub && !cli) return null;
+          return `${defiende ? "defender" : "reclamar"}${sub ? "Sub" : "Cliente"}`;
+        }
+        function escenariosDefensa(escenarios = {}, enJuego = 0) {
+          const total = r2(enJuego);
+          const de = (k) => escenarios[k] && Number.isFinite(Number(escenarios[k].total)) ? Number(escenarios[k].total) : 0;
+          const fila = (clave, nombre, explica, libra) => ({ clave, nombre, explica, libra: r2(libra), paga: r2(Math.max(0, total - libra)) });
+          return {
+            enJuego: total,
+            peor: fila("peor", "Peor caso", "Solo se sostiene lo muy defendible: el resto hay que pagarlo.", de("conservador")),
+            probable: fila("probable", "Probable", "Se sostiene lo muy defendible y lo defendible.", de("base")),
+            mejor: fila("mejor", "Mejor caso", "Se sostiene todo lo valorado, tambi\xE9n lo poco defendible.", de("maximo"))
+          };
+        }
+        function pasosDeMontaje(direccion, n = {}) {
+          const d = DIRECCIONES[direccion && direccion.clave ? direccion.clave : direccion] || DIRECCIONES.reclamarCliente;
+          const c = (k) => Number(n[k]) || 0;
+          const paso = (clave, titulo, hecho, detalle) => ({ clave, titulo, hecho: Boolean(hecho), detalle });
+          const pasos = [
+            paso("datos", "Datos de la reclamaci\xF3n", Boolean(llano(n.contraparte)), `Con qui\xE9n (${d.otraParte}), periodo, idioma y contrato.`),
+            paso("correos", "Recopilar los correos y las pruebas", c("pruebas") > 0, `${c("pruebas")} pruebas cargadas desde el Outlook o el SharePoint.`),
+            paso("temas", "Repartir en temas", c("temas") > 0 && c("pruebasSinLigar") === 0 && c("pruebas") > 0, c("pruebasSinLigar") ? `${c("pruebasSinLigar")} pruebas sin hecho al que ligar.` : `${c("temas")} temas.`),
+            paso("hechos", "Validar los hechos", c("hechos") > 0 && c("hechosValidados") >= c("hechos"), `${c("hechosValidados")} validados de ${c("hechos")}.`),
+            paso("valorar", d.defensa ? "Valorar lo que nos piden" : "Cuantificar cada tema", c("temas") > 0 && c("temasValorados") >= c("temas"), `${c("temasValorados")} de ${c("temas")} temas con importe.`),
+            paso("defendibilidad", "Clasificar la defendibilidad", c("temas") > 0 && c("temasConNivel") >= c("temas"), `${c("temasConNivel")} de ${c("temas")} temas con nivel (muy, bastante o poco).`),
+            paso("respuesta", d.respuesta, c("temas") > 0 && c("temasConRespuesta") >= c("temas"), `${c("temasConRespuesta")} de ${c("temas")} temas con la respuesta anticipada.`),
+            paso("preguntas", "Contestar las preguntas abiertas", c("estudioListo") && c("preguntasAbiertas") === 0, `${c("preguntasAbiertas")} preguntas abiertas.`),
+            paso("dossier", `${d.tituloEstudio} y PDF`, c("estudioListo") && c("preguntasAbiertas") === 0 && c("temasConNivel") >= c("temas"), "Escenarios, dossier por tema y PDF para direcci\xF3n.")
+          ];
+          const siguiente = pasos.find((p) => !p.hecho);
+          return { pasos, siguiente: siguiente ? siguiente.clave : null, hechos: pasos.filter((p) => p.hecho).length, de: pasos.length };
+        }
+        const API = { DIRECCIONES, ORDEN, direccionDe, camposDe, dePalabras, escenariosDefensa, pasosDeMontaje };
+        if (typeof module === "object" && module.exports) module.exports = API;
+        else raiz.RECLAMACIONES_DIRECCIONES = API;
+      })(typeof window !== "undefined" ? window : globalThis);
+    }
+  });
+
   // shared/reclamaciones/estudio.js
   var require_estudio = __commonJS({
     "shared/reclamaciones/estudio.js"(exports, module) {
@@ -151184,6 +153566,7 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
       var import_buffer_global10 = __toESM(require_buffer_global());
       (function(raiz) {
         const DF = typeof module === "object" && module.exports ? require_defendibilidad() : raiz.RECLAMACIONES_DEFENDIBILIDAD;
+        const DIR = typeof module === "object" && module.exports ? require_direcciones() : raiz.RECLAMACIONES_DIRECCIONES;
         const NIVELES = {
           muy: { nombre: "Muy defendible", orden: 1 },
           bastante: { nombre: "Defendible", orden: 2 },
@@ -151390,16 +153773,21 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
           x.aQuienPropuesto = !p.aQuienJC;
           return x;
         }
-        function estudioClaim({ apartados = [], hechos = [], valoracion = null, cubiertos = () => [], anterior = null }) {
+        function estudioClaim({ apartados = [], hechos = [], valoracion = null, cubiertos = () => [], anterior = null, reclamacion = null }) {
           const filas = new Map((valoracion && valoracion.filas || []).map((f) => [f.id, f]));
           const porId = new Map(hechos.map((h) => [h.id, h]));
           const temas = apartados.filter((a) => filas.has(a.id) || estudioDe(a).motivo || estudioDe(a).subidas.length).map((a) => temaEstudio({ apartado: a, fila: filas.get(a.id) || null, hechos: cubiertos(a.id).map((id) => porId.get(id)).filter(Boolean) }));
           const sinValorar = valoracion && valoracion.sinValorar ? valoracion.sinValorar.importe : 0;
           const preguntas = temas.flatMap((t) => t.preguntas.map((p) => conTema(p, t)));
           const clave = preguntas.filter((p) => !p.respuesta && p.impacto).sort((a, b) => Math.abs(b.impacto) - Math.abs(a.impacto));
+          const direccion = DIR.direccionDe(reclamacion || {});
+          const esc3 = escenarios(temas, { sinValorar });
           return {
+            direccion: { clave: direccion.clave, nombre: direccion.nombre, defensa: direccion.defensa },
+            /* Si nos reclaman, lo que se cuenta es cuánto queda sin defender (la exposición), no cuánto se cobra. */
+            ...direccion.defensa ? { defensa: DIR.escenariosDefensa(esc3, (valoracion ? Number(valoracion.total) || 0 : 0) + sinValorar) } : {},
             temas,
-            escenarios: escenarios(temas, { sinValorar }),
+            escenarios: esc3,
             valorado: valoracion ? r2(valoracion.total) : 0,
             sinValorar: r2(sinValorar),
             anterior: anterior && numO(anterior.importe) !== null ? { importe: numO(anterior.importe), nombre: llano(anterior.nombre) } : null,
@@ -151468,24 +153856,31 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
         const fecha = (d) => d ? String(d).slice(0, 10).split("-").reverse().join("/") : "";
         function htmlDossier({ reclamacion = {}, obra = null, estudio, hoy = null, maxCorreos = 6 }) {
           const E = estudio.escenarios;
+          const D = DIR.direccionDe(reclamacion);
           const tablaCorreos = (xs, conPorQue) => xs.length ? `<table class="hoja"><thead><tr><th>Fecha</th><th>De \u2192 a</th><th>Asunto</th><th>Cita</th>${conPorQue ? "<th>Por qu\xE9 nos da\xF1a</th>" : ""}</tr></thead><tbody>${xs.slice(0, maxCorreos).map((c) => `<tr><td>${fecha(c.fecha)}</td><td>${esc(c.de || "")}${c.para ? ` \u2192 ${esc(c.para)}` : ""}</td><td>${esc(c.asunto || "")}</td><td>${c.cita ? `\xAB${esc(c.cita)}\xBB` : "\u2014"}</td>${conPorQue ? `<td>${esc(c.porQue || "")}</td>` : ""}</tr>`).join("")}</tbody></table>${xs.length > maxCorreos ? `<p class="pista">\u2026 y ${xs.length - maxCorreos} m\xE1s en la app.</p>` : ""}` : '<p class="pista">Ninguno ligado.</p>';
           const temas = estudio.temas.map((t) => `<section class="temaDossier">
         <h2>${esc(t.numero)} ${esc(t.titulo)} \xB7 ${eur(t.importe)} \xB7 ${esc(t.nivelNombre)}</h2>
         ${t.motivo ? `<p>${esc(t.motivo)}</p>` : ""}
-        <h3>Nuestros correos a favor (${t.nFavor})</h3>${tablaCorreos(t.favor, false)}
-        <h3>Correos de la otra parte en contra (${t.nContra})</h3>${tablaCorreos(t.contra, true)}
-        ${t.respuesta.length ? `<h3>Respuesta probable y contrarr\xE9plica</h3><table class="hoja"><thead><tr><th>Dir\xE1n</th><th>Contestamos</th></tr></thead><tbody>${t.respuesta.map((r) => `<tr><td>${esc(r.objecion)}</td><td>${esc(r.replica)}</td></tr>`).join("")}</tbody></table>` : ""}
+        <h3>${esc(D.favor)} (${t.nFavor})</h3>${tablaCorreos(t.favor, false)}
+        <h3>${esc(D.contra)} (${t.nContra})</h3>${tablaCorreos(t.contra, true)}
+        ${t.respuesta.length ? `<h3>${esc(D.respuesta)}</h3><table class="hoja"><thead><tr><th>Dir\xE1n</th><th>Contestamos</th></tr></thead><tbody>${t.respuesta.map((r) => `<tr><td>${esc(r.objecion)}</td><td>${esc(r.replica)}</td></tr>`).join("")}</tbody></table>` : ""}
         ${t.subidas.length ? `<h3>Subidas</h3><table class="hoja"><thead><tr><th>Concepto</th><th>M\xE9todo</th><th>Pruebas</th><th>Defendibilidad</th><th class="num">Importe</th></tr></thead><tbody>${t.subidas.map((s) => `<tr><td>${esc(s.concepto)}</td><td>${esc(s.metodo)}</td><td>${esc(s.pruebas.join(" \xB7 "))}</td><td>${esc(NIVELES[s.defendibilidad].nombre)}</td><td class="num">${s.importe === null ? "\u2014" : eur(s.importe)}</td></tr>`).join("")}</tbody></table>` : ""}
         ${t.preguntas.length ? `<h3>Preguntas (${t.abiertas} abiertas)</h3><table class="hoja"><thead><tr><th>Pregunta</th><th class="num">Impacto</th><th>Respuesta</th></tr></thead><tbody>${t.preguntas.map((p) => `<tr><td>${esc(p.texto)}</td><td class="num">${p.impacto === null ? "\u2014" : eur(p.impacto)}</td><td>${p.respuesta ? `${esc(p.respuesta)} <span class="pista">(propuesta${p.respondidoPorNombre ? `, ${esc(p.respondidoPorNombre)}` : ""})</span>` : ""}</td></tr>`).join("")}</tbody></table>` : ""}
       </section>`).join("");
-          return `<article class="dossierClaim">
-      <h1>Estudio del claim ${esc(reclamacion.codigo || "")}${obra ? ` \xB7 ${esc(obra.codigo || "")} ${esc(obra.nombre || "")}` : ""}</h1>
-      <p class="pista">Documento interno y reservado (direcci\xF3n, jefe de grupo y Director de Proyectos). Importes en propuesta salvo que se diga otra cosa.${hoy ? ` ${fecha(hoy)}.` : ""}</p>
-      <table class="hoja"><thead><tr><th>Escenario</th><th>Qu\xE9 entra</th><th class="num">Temas</th><th class="num">Subidas</th><th class="num">Sin tema</th><th class="num">Total</th></tr></thead><tbody>
+          const DEF = estudio.defensa;
+          const tablaDefensa = DEF ? `<table class="hoja"><thead><tr><th>${esc(D.tituloEscenarios)}</th><th>Qu\xE9 se sostiene</th><th class="num">Nos libramos de</th><th class="num">Quedar\xEDa por pagar</th></tr></thead><tbody>
+        ${["peor", "probable", "mejor"].map((k) => `<tr><td><strong>${esc(DEF[k].nombre)}</strong></td><td>${esc(DEF[k].explica)}</td><td class="num">${eur(DEF[k].libra)}</td><td class="num"><strong>${eur(DEF[k].paga)}</strong></td></tr>`).join("")}
+        <tr><td>${esc(D.enJuego)}</td><td>Lo valorado m\xE1s los hechos a\xFAn sin tema</td><td></td><td class="num">${eur(DEF.enJuego)}</td></tr>
+      </tbody></table>` : "";
+          const tablaReclamamos = `<table class="hoja"><thead><tr><th>Escenario</th><th>Qu\xE9 entra</th><th class="num">Temas</th><th class="num">Subidas</th><th class="num">Sin tema</th><th class="num">Total</th></tr></thead><tbody>
         ${["conservador", "base", "maximo"].map((k) => `<tr><td><strong>${esc(E[k].nombre)}</strong></td><td>${esc(E[k].explica)}</td><td class="num">${eur(E[k].temas)}</td><td class="num">${eur(E[k].subidas)}</td><td class="num">${eur(E[k].sinTema)}</td><td class="num"><strong>${eur(E[k].total)}</strong></td></tr>`).join("")}
         <tr><td>Pendiente de respuestas</td><td>Lo que a\xF1adir\xEDan las preguntas abiertas con importe</td><td colspan="3"></td><td class="num">${eur(E.potencial)}</td></tr>
         ${estudio.anterior ? `<tr><td>${esc(estudio.anterior.nombre || "Claim anterior")}</td><td>Referencia</td><td colspan="3"></td><td class="num">${eur(estudio.anterior.importe)}</td></tr>` : ""}
-      </tbody></table>
+      </tbody></table>`;
+          return `<article class="dossierClaim">
+      <h1>${esc(D.tituloEstudio)} ${esc(reclamacion.codigo || "")}${obra ? ` \xB7 ${esc(obra.codigo || "")} ${esc(obra.nombre || "")}` : ""}</h1>
+      <p class="pista">Documento interno y reservado (direcci\xF3n, jefe de grupo y Director de Proyectos). Importes en propuesta salvo que se diga otra cosa.${hoy ? ` ${fecha(hoy)}.` : ""}</p>
+      ${D.defensa ? tablaDefensa : tablaReclamamos}
       <h2>Temas</h2>
       <table class="hoja"><thead><tr><th>Tema</th><th class="num">Importe</th><th>Defendibilidad</th><th class="num">A favor</th><th class="num">En contra</th><th class="num">Preguntas</th></tr></thead><tbody>
         ${estudio.temas.map((t) => `<tr><td>${esc(t.numero)} ${esc(t.titulo)}</td><td class="num">${eur(t.importe)}</td><td>${esc(t.nivelNombre)}</td><td class="num">${t.nFavor}</td><td class="num">${t.nContra}</td><td class="num">${t.abiertas}</td></tr>`).join("")}
@@ -151675,6 +154070,227 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
         const API = { CAUSAS, PROPIA, causaDe, lineas, hechoDe, resumen, finDeMes };
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.HORAS_SUBCONTRATAS = API;
+      })();
+    }
+  });
+
+  // shared/reclamaciones/partesHorasSub.js
+  var require_partesHorasSub = __commonJS({
+    "shared/reclamaciones/partesHorasSub.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const TARIFA_VENTA = 36.5;
+        const ENLACE = "parteHorasSub";
+        const FECHA_DESDE = "2025-09-01";
+        const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+        const sinAc = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+        const slug = (s) => sinAc(s).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+        function horasPersona(p = {}) {
+          const tot = Number(p.horasTotales);
+          if (Number.isFinite(tot) && tot > 0) return r2(tot);
+          const n = Number(p.trabajadores);
+          const h = Number(p.horasPorTrabajador);
+          if (n > 0 && h > 0) return r2(n * h);
+          return 0;
+        }
+        function valorar(p = {}, tarifa = TARIFA_VENTA) {
+          const horas = horasPersona(p);
+          const venta = r2(horas * tarifa);
+          const c = p.costeReal === void 0 || p.costeReal === null || p.costeReal === "" ? null : Number(p.costeReal);
+          const coste = Number.isFinite(c) ? r2(c) : null;
+          return { horas, tarifa, venta, coste, margen: coste === null ? null : r2(venta - coste) };
+        }
+        const MESES = { enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6, julio: 7, agosto: 8, septiembre: 9, setiembre: 9, octubre: 10, noviembre: 11, diciembre: 12 };
+        const p2 = (n) => String(n).padStart(2, "0");
+        function fechaDe(p = {}) {
+          for (const t of [p.fecha, p.fechas, p.mes]) {
+            const x = String(t || "");
+            let m = x.match(/(\d{4})-(\d{2})-(\d{2})/);
+            if (m) return m[0];
+            const todas = [...x.matchAll(/(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})/g)];
+            if (todas.length) {
+              const u = todas[todas.length - 1];
+              return `${u[3]}-${p2(u[2])}-${p2(u[1])}`;
+            }
+            const dm = [...sinAc(x).matchAll(/(\d{1,2})\s+de\s+([a-z]+)(?:\s+de\s+(\d{4}))?/g)];
+            if (dm.length) {
+              const u = dm[dm.length - 1];
+              const y = u[3] || (x.match(/(20\d{2})/) || [])[1];
+              if (MESES[u[2]] && y) return `${y}-${p2(MESES[u[2]])}-${p2(u[1])}`;
+            }
+            const my = sinAc(x).match(/\b(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)\s+(?:de\s+)?(20\d{2})/);
+            if (my) {
+              const mm = MESES[my[1]];
+              return `${my[2]}-${p2(mm)}-${p2(new Date(Date.UTC(Number(my[2]), mm, 0)).getUTCDate())}`;
+            }
+            if (t === p.mes) {
+              m = x.match(/^(20\d{2})-(\d{2})/);
+              if (m) return `${m[1]}-${m[2]}-28`;
+              m = x.match(/^(\d{2})-(\d{2})(?:_|$)/);
+              if (m) return `20${m[1]}-${m[2]}-28`;
+            }
+          }
+          return null;
+        }
+        function normalizar(p = {}) {
+          const hpt = p.horasPorTrabajador;
+          let tot = Number(p.horasTotales);
+          let n = Number(p.trabajadores);
+          if (hpt && typeof hpt === "object") {
+            const v = Object.values(hpt).map(Number).filter((x) => Number.isFinite(x));
+            if (!(tot > 0)) tot = v.reduce((a, b) => a + b, 0);
+            if (!(n > 0)) n = v.length;
+          }
+          const out = { ...p, fecha: fechaDe(p) };
+          if (tot > 0) out.horasTotales = r2(tot);
+          if (n > 0) out.trabajadores = n;
+          if (hpt && typeof hpt === "object") out.horasPorTrabajador = void 0;
+          const c = p.costeReal ?? p.importe;
+          if (c !== void 0 && c !== null && c !== "") out.costeReal = Number(c);
+          return out;
+        }
+        function idExterno(p = {}) {
+          const ref = p.referencia || p.archivo || p.fecha || "";
+          return `parteHoras:${slug(p.subcontrata)}:${String(p.fecha || "").slice(0, 10)}:${slug(ref)}`;
+        }
+        function enPeriodo(p = {}, hasta = require_fecha().hoyLocal()) {
+          const f = String(p.fecha || "").slice(0, 10);
+          return /^\d{4}-\d{2}-\d{2}$/.test(f) && f >= FECHA_DESDE && f <= hasta;
+        }
+        const dias = (a, b) => Math.abs((Date.parse(`${String(a).slice(0, 10)}T00:00:00Z`) - Date.parse(`${String(b).slice(0, 10)}T00:00:00Z`)) / 864e5);
+        const palabras = (s) => new Set(sinAc(s).split(/[^a-z0-9]+/).filter((w) => w.length >= 4));
+        function candidatos(p = {}, hechos = [], max = 3) {
+          const pp = palabras([p.descripcion, p.zona].filter(Boolean).join(" "));
+          const sub = sinAc(p.subcontrata);
+          const res = [];
+          for (const h of hechos) {
+            if (!h || h.estado === "descartado" || h.enlaceTipo === ENLACE || h.naturaleza === "plazoLimak") continue;
+            let punt = 0;
+            const por = [];
+            const f = h.fecha || h.fechaFin;
+            if (f && p.fecha) {
+              const d = dias(f, p.fecha);
+              if (d <= 7) {
+                punt += 3 - Math.floor(d / 3);
+                por.push(d === 0 ? "mismo d\xEDa" : `${d} d\xEDas de diferencia`);
+              }
+            }
+            const hp = palabras([h.titulo, h.descripcion, h.zona].filter(Boolean).join(" "));
+            const comunes = [...pp].filter((w) => hp.has(w));
+            if (comunes.length) {
+              punt += Math.min(4, comunes.length);
+              por.push(`palabras: ${comunes.slice(0, 4).join(", ")}`);
+            }
+            if (sub && sinAc([h.subcontrata, h.titulo, h.descripcion].join(" ")).includes(sub.split(" ")[0])) {
+              punt += 2;
+              por.push("misma subcontrata");
+            }
+            if (h.metodo === "horas_x_tarifa") punt += 0.5;
+            if (punt >= 3) res.push({ hechoId: h.id, idExterno: h.idExterno || null, titulo: h.titulo || "", punt: r2(punt), por: por.join(" \xB7 "), valoraHoras: yaValoraHoras(h) });
+          }
+          return res.sort((a, b) => b.punt - a.punt).slice(0, max);
+        }
+        function yaValoraHoras(h = {}) {
+          if (h.metodo === "horas_x_tarifa" && Number(h.importe ?? h.importeCalc ?? 1) !== 0) return true;
+          if (Number(h.horasPersona) > 0) return true;
+          return false;
+        }
+        function ganador(cands = []) {
+          if (!cands.length) return null;
+          const [a, b] = cands;
+          return a.punt >= 5 && (!b || a.punt - b.punt >= 2) ? a : null;
+        }
+        function escalar(horas, n, coste, pct) {
+          const f = pct >= 100 || !(pct > 0) ? 1 : pct / 100;
+          const h = r2(horas * f);
+          return { horas: h, hPorTrab: n > 0 ? r2(h / n) : h, coste: coste === null || coste === void 0 ? null : r2(coste * f), pct: f === 1 ? null : pct };
+        }
+        function hechoDe(p = {}, { apartadoId = null, padre = null, tarifa = TARIFA_VENTA, revision = [], candidatos: cands = [] } = {}) {
+          const v = valorar(p, tarifa);
+          const n = Number(p.trabajadores) > 0 ? Number(p.trabajadores) : 1;
+          const esc = escalar(v.horas, n, v.coste, Number(p.porcentajeClaim));
+          const hPorTrab = esc.hPorTrab;
+          const quien = p.subcontrata || "Subcontrata";
+          const titulo = `Parte de horas de ${quien}${p.fecha ? ` (${String(p.fecha).slice(0, 10)})` : ""}: ${esc.horas} h${p.descripcion ? ` \u2014 ${String(p.descripcion).slice(0, 90)}` : ""}`;
+          const doc = padre && padre.valoraHoras;
+          const nota = [
+            `Parte de horas de ${quien}`,
+            p.referencia ? `ref. ${p.referencia}` : null,
+            p.archivo ? `archivo ${p.archivo}` : null,
+            p.mes ? `carpeta ${p.mes}` : null,
+            esc.pct ? `El parte trae ${v.horas} h-persona; solo el ${esc.pct} % de sus horas va al claim` : null,
+            `${n} trabajador(es) \xD7 ${hPorTrab} h = ${esc.horas} h-persona`,
+            `Venta: ${esc.horas} h \xD7 ${tarifa} \u20AC/h = ${r2(esc.horas * tarifa)} \u20AC`,
+            esc.coste === null ? "Coste real: sin apuntar (falta el importe del parte)" : `Coste real (lo que nos cobra): ${esc.coste} \u20AC`,
+            padre ? doc ? "Documenta al hecho padre (que ya valora esas horas): no suma venta." : "Cuelga de su hecho y suma sus horas." : "Sin hecho asignado: revisar a cu\xE1l pertenece.",
+            !padre && cands.length ? `Hechos posibles: ${cands.map((c) => `\xAB${String(c.titulo).slice(0, 70)}\xBB (${c.punt} pts: ${c.por})`).join(" | ")}` : null,
+            revision.length ? `A REVISAR: ${revision.join("; ")}` : null
+          ].filter(Boolean).join(". ");
+          return {
+            idExterno: idExterno(p),
+            fecha: String(p.fecha || "").slice(0, 10) || null,
+            titulo,
+            descripcion: [p.descripcion, p.zona ? `Zona: ${p.zona}` : null].filter(Boolean).join(". ") || null,
+            apartadoId,
+            metodo: "horas_x_tarifa",
+            a: n,
+            b: hPorTrab,
+            c: 1,
+            p: tarifa,
+            horasPersona: esc.horas,
+            costeReal: esc.coste,
+            porcentajeClaim: esc.pct,
+            horasOrigen: esc.pct ? v.horas : null,
+            costeOrigen: esc.pct ? v.coste : null,
+            subcontrata: p.subcontrata || null,
+            zona: p.zona || null,
+            enlaceTipo: ENLACE,
+            enlaceId: idExterno(p),
+            origenHecho: "parteHorasSubcontrata",
+            certeza: "documentado",
+            notaImportacion: nota,
+            hechoPadreId: padre ? padre.hechoId : null,
+            hijoSuma: padre ? doc ? 0 : 1 : null,
+            hijoNota: padre ? `Horas de ${quien}` : null,
+            hijoSentido: padre ? "favor" : null
+          };
+        }
+        function avisosRevision(p = {}, lote = [], tarifa = TARIFA_VENTA) {
+          const v = valorar(p, tarifa);
+          const out = [];
+          if (v.coste === null) out.push("sin coste: falta el importe que cobra la subcontrata");
+          else if (v.horas > 0 && v.coste / v.horas > tarifa) out.push(`coste ${r2(v.coste / v.horas)} \u20AC/h por encima de la venta (${tarifa} \u20AC/h)`);
+          const raiz = sinAc(p.subcontrata).split(" ")[0];
+          const gemelos = lote.filter((o) => o !== p && idExterno(o) !== idExterno(p) && sinAc(o.subcontrata).split(" ")[0] === raiz && String(o.fecha).slice(0, 10) === String(p.fecha).slice(0, 10) && horasPersona(o) === v.horas && v.horas > 0);
+          if (gemelos.length) out.push(`posible duplicado: ${gemelos.length} parte(s) de ${p.subcontrata} con la misma fecha y las mismas ${v.horas} h`);
+          if (p.aviso) out.push(String(p.aviso));
+          return out;
+        }
+        function resumen(partes = [], tarifa = TARIFA_VENTA) {
+          const por = /* @__PURE__ */ new Map();
+          const tot = { n: 0, horas: 0, venta: 0, coste: 0, sinCoste: 0 };
+          for (const p of partes) {
+            const v = valorar(p, tarifa);
+            const k = p.subcontrata || "\u2014";
+            const f = por.get(k) || { subcontrata: k, n: 0, horas: 0, venta: 0, coste: 0, sinCoste: 0 };
+            f.n += 1;
+            f.horas = r2(f.horas + v.horas);
+            f.venta = r2(f.venta + v.venta);
+            if (v.coste === null) f.sinCoste += 1;
+            else f.coste = r2(f.coste + v.coste);
+            por.set(k, f);
+            tot.n += 1;
+            tot.horas = r2(tot.horas + v.horas);
+            tot.venta = r2(tot.venta + v.venta);
+            if (v.coste === null) tot.sinCoste += 1;
+            else tot.coste = r2(tot.coste + v.coste);
+          }
+          return { porSubcontrata: [...por.values()].sort((a, b) => b.venta - a.venta), total: tot, margen: r2(tot.venta - tot.coste) };
+        }
+        const API = { normalizar, fechaDe, TARIFA_VENTA, ENLACE, FECHA_DESDE, horasPersona, valorar, idExterno, enPeriodo, candidatos, ganador, yaValoraHoras, hechoDe, resumen, avisosRevision, escalar };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.RECLAMACIONES_PARTES_HORAS_SUB = API;
       })();
     }
   });
@@ -153096,9 +155712,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/utils.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/utils.js
   var require_utils4 = __commonJS({
-    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/utils.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/utils.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -153209,9 +155825,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/const.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/const.js
   var require_const = __commonJS({
-    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/const.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/const.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -153408,9 +156024,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/safer-buffer/safer.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/safer-buffer/safer.js
   var require_safer = __commonJS({
-    "../Vidaire_Obras/node_modules/safer-buffer/safer.js"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/safer-buffer/safer.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var buffer = require_buffer();
@@ -153477,9 +156093,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/iconv-lite/lib/bom-handling.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/lib/bom-handling.js
   var require_bom_handling = __commonJS({
-    "../Vidaire_Obras/node_modules/iconv-lite/lib/bom-handling.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/lib/bom-handling.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var BOMChar = "\uFEFF";
@@ -153522,9 +156138,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/safe-buffer/index.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/safe-buffer/index.js
   var require_safe_buffer = __commonJS({
-    "../Vidaire_Obras/node_modules/safe-buffer/index.js"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/safe-buffer/index.js"(exports, module) {
       var import_buffer_global10 = __toESM(require_buffer_global());
       var buffer = require_buffer();
       var Buffer2 = buffer.Buffer;
@@ -153581,9 +156197,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/string_decoder/lib/string_decoder.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/string_decoder/lib/string_decoder.js
   var require_string_decoder = __commonJS({
-    "../Vidaire_Obras/node_modules/string_decoder/lib/string_decoder.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/string_decoder/lib/string_decoder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safe_buffer().Buffer;
@@ -153820,9 +156436,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/internal.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/internal.js
   var require_internal = __commonJS({
-    "../Vidaire_Obras/node_modules/iconv-lite/encodings/internal.js"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/internal.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safer().Buffer;
@@ -153973,9 +156589,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/utf32.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/utf32.js
   var require_utf32 = __commonJS({
-    "../Vidaire_Obras/node_modules/iconv-lite/encodings/utf32.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/utf32.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safer().Buffer;
@@ -154193,9 +156809,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/utf16.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/utf16.js
   var require_utf16 = __commonJS({
-    "../Vidaire_Obras/node_modules/iconv-lite/encodings/utf16.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/utf16.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safer().Buffer;
@@ -154328,9 +156944,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/utf7.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/utf7.js
   var require_utf7 = __commonJS({
-    "../Vidaire_Obras/node_modules/iconv-lite/encodings/utf7.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/utf7.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safer().Buffer;
@@ -154530,9 +157146,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/sbcs-codec.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/sbcs-codec.js
   var require_sbcs_codec = __commonJS({
-    "../Vidaire_Obras/node_modules/iconv-lite/encodings/sbcs-codec.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/sbcs-codec.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safer().Buffer;
@@ -154587,9 +157203,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/sbcs-data.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/sbcs-data.js
   var require_sbcs_data = __commonJS({
-    "../Vidaire_Obras/node_modules/iconv-lite/encodings/sbcs-data.js"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/sbcs-data.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       module.exports = {
@@ -154741,9 +157357,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/sbcs-data-generated.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/sbcs-data-generated.js
   var require_sbcs_data_generated = __commonJS({
-    "../Vidaire_Obras/node_modules/iconv-lite/encodings/sbcs-data-generated.js"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/sbcs-data-generated.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       module.exports = {
@@ -155197,9 +157813,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/dbcs-codec.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/dbcs-codec.js
   var require_dbcs_codec = __commonJS({
-    "../Vidaire_Obras/node_modules/iconv-lite/encodings/dbcs-codec.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/dbcs-codec.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safer().Buffer;
@@ -155615,9 +158231,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/shiftjis.json
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/tables/shiftjis.json
   var require_shiftjis = __commonJS({
-    "../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/shiftjis.json"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/tables/shiftjis.json"(exports, module) {
       module.exports = [
         ["0", "\0", 128],
         ["a1", "\uFF61", 62],
@@ -155746,9 +158362,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/eucjp.json
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/tables/eucjp.json
   var require_eucjp = __commonJS({
-    "../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/eucjp.json"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/tables/eucjp.json"(exports, module) {
       module.exports = [
         ["0", "\0", 127],
         ["8ea1", "\uFF61", 62],
@@ -155934,9 +158550,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/cp936.json
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/tables/cp936.json
   var require_cp936 = __commonJS({
-    "../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/cp936.json"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/tables/cp936.json"(exports, module) {
       module.exports = [
         ["0", "\0", 127, "\u20AC"],
         ["8140", "\u4E02\u4E04\u4E05\u4E06\u4E0F\u4E12\u4E17\u4E1F\u4E20\u4E21\u4E23\u4E26\u4E29\u4E2E\u4E2F\u4E31\u4E33\u4E35\u4E37\u4E3C\u4E40\u4E41\u4E42\u4E44\u4E46\u4E4A\u4E51\u4E55\u4E57\u4E5A\u4E5B\u4E62\u4E63\u4E64\u4E65\u4E67\u4E68\u4E6A", 5, "\u4E72\u4E74", 9, "\u4E7F", 6, "\u4E87\u4E8A"],
@@ -156204,9 +158820,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/gbk-added.json
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/tables/gbk-added.json
   var require_gbk_added = __commonJS({
-    "../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/gbk-added.json"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/tables/gbk-added.json"(exports, module) {
       module.exports = [
         ["a140", "\uE4C6", 62],
         ["a180", "\uE505", 32],
@@ -156266,16 +158882,16 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/gb18030-ranges.json
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/tables/gb18030-ranges.json
   var require_gb18030_ranges = __commonJS({
-    "../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/gb18030-ranges.json"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/tables/gb18030-ranges.json"(exports, module) {
       module.exports = { uChars: [128, 165, 169, 178, 184, 216, 226, 235, 238, 244, 248, 251, 253, 258, 276, 284, 300, 325, 329, 334, 364, 463, 465, 467, 469, 471, 473, 475, 477, 506, 594, 610, 712, 716, 730, 930, 938, 962, 970, 1026, 1104, 1106, 8209, 8215, 8218, 8222, 8231, 8241, 8244, 8246, 8252, 8365, 8452, 8454, 8458, 8471, 8482, 8556, 8570, 8596, 8602, 8713, 8720, 8722, 8726, 8731, 8737, 8740, 8742, 8748, 8751, 8760, 8766, 8777, 8781, 8787, 8802, 8808, 8816, 8854, 8858, 8870, 8896, 8979, 9322, 9372, 9548, 9588, 9616, 9622, 9634, 9652, 9662, 9672, 9676, 9680, 9702, 9735, 9738, 9793, 9795, 11906, 11909, 11913, 11917, 11928, 11944, 11947, 11951, 11956, 11960, 11964, 11979, 12284, 12292, 12312, 12319, 12330, 12351, 12436, 12447, 12535, 12543, 12586, 12842, 12850, 12964, 13200, 13215, 13218, 13253, 13263, 13267, 13270, 13384, 13428, 13727, 13839, 13851, 14617, 14703, 14801, 14816, 14964, 15183, 15471, 15585, 16471, 16736, 17208, 17325, 17330, 17374, 17623, 17997, 18018, 18212, 18218, 18301, 18318, 18760, 18811, 18814, 18820, 18823, 18844, 18848, 18872, 19576, 19620, 19738, 19887, 40870, 59244, 59336, 59367, 59413, 59417, 59423, 59431, 59437, 59443, 59452, 59460, 59478, 59493, 63789, 63866, 63894, 63976, 63986, 64016, 64018, 64021, 64025, 64034, 64037, 64042, 65074, 65093, 65107, 65112, 65127, 65132, 65375, 65510, 65536], gbChars: [0, 36, 38, 45, 50, 81, 89, 95, 96, 100, 103, 104, 105, 109, 126, 133, 148, 172, 175, 179, 208, 306, 307, 308, 309, 310, 311, 312, 313, 341, 428, 443, 544, 545, 558, 741, 742, 749, 750, 805, 819, 820, 7922, 7924, 7925, 7927, 7934, 7943, 7944, 7945, 7950, 8062, 8148, 8149, 8152, 8164, 8174, 8236, 8240, 8262, 8264, 8374, 8380, 8381, 8384, 8388, 8390, 8392, 8393, 8394, 8396, 8401, 8406, 8416, 8419, 8424, 8437, 8439, 8445, 8482, 8485, 8496, 8521, 8603, 8936, 8946, 9046, 9050, 9063, 9066, 9076, 9092, 9100, 9108, 9111, 9113, 9131, 9162, 9164, 9218, 9219, 11329, 11331, 11334, 11336, 11346, 11361, 11363, 11366, 11370, 11372, 11375, 11389, 11682, 11686, 11687, 11692, 11694, 11714, 11716, 11723, 11725, 11730, 11736, 11982, 11989, 12102, 12336, 12348, 12350, 12384, 12393, 12395, 12397, 12510, 12553, 12851, 12962, 12973, 13738, 13823, 13919, 13933, 14080, 14298, 14585, 14698, 15583, 15847, 16318, 16434, 16438, 16481, 16729, 17102, 17122, 17315, 17320, 17402, 17418, 17859, 17909, 17911, 17915, 17916, 17936, 17939, 17961, 18664, 18703, 18814, 18962, 19043, 33469, 33470, 33471, 33484, 33485, 33490, 33497, 33501, 33505, 33513, 33520, 33536, 33550, 37845, 37921, 37948, 38029, 38038, 38064, 38065, 38066, 38069, 38075, 38076, 38078, 39108, 39109, 39113, 39114, 39115, 39116, 39265, 39394, 189e3] };
     }
   });
 
-  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/cp949.json
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/tables/cp949.json
   var require_cp949 = __commonJS({
-    "../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/cp949.json"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/tables/cp949.json"(exports, module) {
       module.exports = [
         ["0", "\0", 127],
         ["8141", "\uAC02\uAC03\uAC05\uAC06\uAC0B", 4, "\uAC18\uAC1E\uAC1F\uAC21\uAC22\uAC23\uAC25", 6, "\uAC2E\uAC32\uAC33\uAC34"],
@@ -156552,9 +159168,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/cp950.json
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/tables/cp950.json
   var require_cp950 = __commonJS({
-    "../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/cp950.json"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/tables/cp950.json"(exports, module) {
       module.exports = [
         ["0", "\0", 127],
         ["a140", "\u3000\uFF0C\u3001\u3002\uFF0E\u2027\uFF1B\uFF1A\uFF1F\uFF01\uFE30\u2026\u2025\uFE50\uFE51\uFE52\xB7\uFE54\uFE55\uFE56\uFE57\uFF5C\u2013\uFE31\u2014\uFE33\u2574\uFE34\uFE4F\uFF08\uFF09\uFE35\uFE36\uFF5B\uFF5D\uFE37\uFE38\u3014\u3015\uFE39\uFE3A\u3010\u3011\uFE3B\uFE3C\u300A\u300B\uFE3D\uFE3E\u3008\u3009\uFE3F\uFE40\u300C\u300D\uFE41\uFE42\u300E\u300F\uFE43\uFE44\uFE59\uFE5A"],
@@ -156735,9 +159351,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/big5-added.json
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/tables/big5-added.json
   var require_big5_added = __commonJS({
-    "../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/big5-added.json"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/tables/big5-added.json"(exports, module) {
       module.exports = [
         ["8740", "\u43F0\u4C32\u4603\u45A6\u4578\u{27267}\u4D77\u45B3\u{27CB1}\u4CE2\u{27CC5}\u3B95\u4736\u4744\u4C47\u4C40\u{242BF}\u{23617}\u{27352}\u{26E8B}\u{270D2}\u4C57\u{2A351}\u474F\u45DA\u4C85\u{27C6C}\u4D07\u4AA4\u46A1\u{26B23}\u7225\u{25A54}\u{21A63}\u{23E06}\u{23F61}\u664D\u56FB"],
         ["8767", "\u7D95\u591D\u{28BB9}\u3DF4\u9734\u{27BEF}\u5BDB\u{21D5E}\u5AA4\u3625\u{29EB0}\u5AD1\u5BB7\u5CFC\u676E\u8593\u{29945}\u7461\u749D\u3875\u{21D53}\u{2369E}\u{26021}\u3EEC"],
@@ -156863,9 +159479,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/dbcs-data.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/dbcs-data.js
   var require_dbcs_data = __commonJS({
-    "../Vidaire_Obras/node_modules/iconv-lite/encodings/dbcs-data.js"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/dbcs-data.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       module.exports = {
@@ -157111,9 +159727,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/index.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/index.js
   var require_encodings = __commonJS({
-    "../Vidaire_Obras/node_modules/iconv-lite/encodings/index.js"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/encodings/index.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var modules = [
@@ -157139,9 +159755,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/iconv-lite/lib/streams.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/lib/streams.js
   var require_streams = __commonJS({
-    "../Vidaire_Obras/node_modules/iconv-lite/lib/streams.js"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/lib/streams.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safer().Buffer;
@@ -157242,9 +159858,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/iconv-lite/lib/index.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/lib/index.js
   var require_lib2 = __commonJS({
-    "../Vidaire_Obras/node_modules/iconv-lite/lib/index.js"(exports, module) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/iconv-lite/lib/index.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safer().Buffer;
@@ -157363,9 +159979,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/DataStream.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/DataStream.js
   var require_DataStream = __commonJS({
-    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/DataStream.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/DataStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -158373,9 +160989,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/Reader.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/Reader.js
   var require_Reader = __commonJS({
-    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/Reader.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/Reader.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -158733,9 +161349,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/Burner.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/Burner.js
   var require_Burner = __commonJS({
-    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/Burner.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/Burner.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -158995,9 +161611,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/EntryStreamParser.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/EntryStreamParser.js
   var require_EntryStreamParser = __commonJS({
-    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/EntryStreamParser.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/EntryStreamParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -159025,9 +161641,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/VerbStreamParser.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/VerbStreamParser.js
   var require_VerbStreamParser = __commonJS({
-    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/VerbStreamParser.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/VerbStreamParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -159079,9 +161695,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/TZDEFINITIONParser.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/TZDEFINITIONParser.js
   var require_TZDEFINITIONParser = __commonJS({
-    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/TZDEFINITIONParser.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/TZDEFINITIONParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -159150,9 +161766,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/TZREGParser.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/TZREGParser.js
   var require_TZREGParser = __commonJS({
-    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/TZREGParser.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/TZREGParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -159182,9 +161798,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/AppointmentRecurParser.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/AppointmentRecurParser.js
   var require_AppointmentRecurParser = __commonJS({
-    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/AppointmentRecurParser.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/AppointmentRecurParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -159429,9 +162045,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/MsgReader.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/MsgReader.js
   var require_MsgReader = __commonJS({
-    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/MsgReader.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/MsgReader.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -159873,9 +162489,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/index.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/index.js
   var require_lib3 = __commonJS({
-    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/index.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __createBinding2 = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
@@ -159904,9 +162520,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // ../Vidaire_Obras/node_modules/@kenjiuno/decompressrtf/lib/index.js
+  // ../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/decompressrtf/lib/index.js
   var require_lib4 = __commonJS({
-    "../Vidaire_Obras/node_modules/@kenjiuno/decompressrtf/lib/index.js"(exports) {
+    "../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/@kenjiuno/decompressrtf/lib/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -160340,6 +162956,11 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
           } else if (nombre === "img") {
             const src = llano(at.src);
             if (!/^data:image\/(png|jpe?g|gif|webp);base64,[a-z0-9+/=\s]+$/i.test(src)) {
+              const cid = /^cid:([\w.@+-]{1,200})$/i.exec(src);
+              if (cid) {
+                out += `<span class="imagenCid" data-cid="${escapar(cid[1])}">${at.alt ? `[imagen: ${escapar(at.alt)}]` : ""}</span>`;
+                continue;
+              }
               out += at.alt ? `<span class="imagenQuitada">[imagen: ${escapar(at.alt)}]</span>` : "";
               continue;
             }
@@ -161108,457 +163729,6 @@ ${l}`;
     }
   });
 
-  // shared/reclamaciones/hilosCorreo.js
-  var require_hilosCorreo = __commonJS({
-    "shared/reclamaciones/hilosCorreo.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var llano = (v) => String(v ?? "").trim();
-      var sinTildes = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "");
-      var espacios = (s) => String(s || "").replace(/\s+/g, " ").trim();
-      var soloFecha = (v) => llano(v) ? llano(v).slice(0, 10) : null;
-      function cabeceras(bruto) {
-        const t = String(bruto || "").replace(/\r\n?/g, "\n");
-        const fin = t.search(/\n\n/);
-        const cab = (fin < 0 ? t : t.slice(0, fin)).replace(/\n[ \t]+/g, " ");
-        const h = {};
-        for (const linea of cab.split("\n")) {
-          const m = linea.match(/^([A-Za-z][A-Za-z0-9-]*):\s*(.*)$/);
-          if (m) {
-            const k = m[1].toLowerCase();
-            if (!(k in h)) h[k] = m[2].trim();
-          }
-        }
-        return h;
-      }
-      var idsDe = (v) => (String(v || "").match(/<[^<>\s]+>/g) || []).map((x) => x.toLowerCase());
-      function raizThreadIndex(v) {
-        const b64 = llano(v).replace(/\s+/g, "");
-        if (!b64 || !/^[A-Za-z0-9+/=]+$/.test(b64)) return null;
-        try {
-          const bin = typeof Buffer !== "undefined" ? Buffer.from(b64, "base64") : Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-          if (bin.length < 22) return null;
-          return Array.from(bin.slice(0, 22), (x) => x.toString(16).padStart(2, "0")).join("");
-        } catch {
-          return null;
-        }
-      }
-      function datosHilo(bruto) {
-        const h = cabeceras(bruto);
-        const id = idsDe(h["message-id"])[0] || null;
-        const resp = [.../* @__PURE__ */ new Set([...idsDe(h["in-reply-to"]), ...idsDe(h.references)])].filter((x) => x !== id);
-        return { idMensaje: id, respondeA: resp, conversacion: raizThreadIndex(h["thread-index"]) };
-      }
-      var PREFIJO = /^\s*(?:\[[^\]]{1,30}\]\s*)*(?:(?:re|rv|fw|fwd|reenv|res|aw|wg|tr|sv|vs|odp|ynt|ilt|antw|r|i)\s*(?:\[\d+\]|\(\d+\))?\s*[:：]\s*)/i;
-      function asuntoBase(asunto) {
-        let a = llano(asunto);
-        for (let i = 0; i < 12; i += 1) {
-          const b = a.replace(PREFIJO, "").replace(/^\s*\[(?:ext|external|externo|extern)\]\s*/i, "");
-          if (b === a) break;
-          a = b;
-        }
-        return espacios(a);
-      }
-      function claveAsunto(asunto) {
-        return sinTildes(asuntoBase(asunto)).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-      }
-      function agrupar(correos = []) {
-        const xs = (correos || []).filter(Boolean);
-        const padre = xs.map((_, i) => i);
-        const raiz = (i) => {
-          while (padre[i] !== i) {
-            padre[i] = padre[padre[i]];
-            i = padre[i];
-          }
-          return i;
-        };
-        const unir = (a, b) => {
-          const ra = raiz(a);
-          const rb = raiz(b);
-          if (ra !== rb) padre[Math.max(ra, rb)] = Math.min(ra, rb);
-        };
-        const porId = /* @__PURE__ */ new Map();
-        const porConv = /* @__PURE__ */ new Map();
-        const porAsunto = /* @__PURE__ */ new Map();
-        xs.forEach((c, i) => {
-          const id = llano(c.idMensaje).toLowerCase();
-          if (id) {
-            if (porId.has(id)) unir(i, porId.get(id));
-            else porId.set(id, i);
-          }
-        });
-        xs.forEach((c, i) => {
-          for (const r of lista(c.respondeA)) {
-            const j = porId.get(r.toLowerCase());
-            if (j !== void 0) unir(i, j);
-          }
-          const conv = llano(c.conversacion);
-          if (conv) {
-            if (porConv.has(conv)) unir(i, porConv.get(conv));
-            else porConv.set(conv, i);
-          }
-          const k = claveAsunto(c.asunto);
-          if (k.replace(/\s/g, "").length >= 4) {
-            if (porAsunto.has(k)) unir(i, porAsunto.get(k));
-            else porAsunto.set(k, i);
-          }
-        });
-        const grupos = /* @__PURE__ */ new Map();
-        xs.forEach((c, i) => {
-          const r = raiz(i);
-          if (!grupos.has(r)) grupos.set(r, []);
-          grupos.get(r).push(c);
-        });
-        const hilos = [...grupos.values()].map((cs) => {
-          const orden = [...cs].sort((a, b) => String(a.fecha || "").localeCompare(String(b.fecha || "")) || String(a.id || "").localeCompare(String(b.id || "")));
-          const primero = orden[0];
-          const clave = claveAsunto(primero.asunto) || `sin-asunto-${primero.id}`;
-          const fechas = orden.map((c) => soloFecha(c.fecha)).filter(Boolean);
-          return {
-            clave,
-            asunto: asuntoBase(primero.asunto) || "(sin asunto)",
-            correos: orden,
-            desde: fechas[0] || null,
-            hasta: fechas[fechas.length - 1] || null,
-            participantes: [...new Set(orden.flatMap((c) => [nombrePersona(c.de)]).filter(Boolean))]
-          };
-        });
-        const vistas = /* @__PURE__ */ new Map();
-        for (const h of hilos.sort((a, b) => String(a.desde || "").localeCompare(String(b.desde || "")) || a.clave.localeCompare(b.clave))) {
-          const n = (vistas.get(h.clave) || 0) + 1;
-          vistas.set(h.clave, n);
-          if (n > 1) h.clave = `${h.clave} #${n}`;
-        }
-        return hilos;
-      }
-      function lista(v) {
-        if (Array.isArray(v)) return v.map(llano).filter(Boolean);
-        const t = llano(v);
-        if (!t) return [];
-        if (t.startsWith("[")) {
-          try {
-            return JSON.parse(t).map(llano).filter(Boolean);
-          } catch {
-          }
-        }
-        return t.split(/[\s,;]+/).filter(Boolean);
-      }
-      function nombrePersona(v) {
-        const t = llano(v).split(/[;,](?![^<]*>)/)[0].trim();
-        if (!t) return null;
-        const m = t.match(/^"?([^"<]+?)"?\s*<([^>]+)>/);
-        return m ? m[1].trim() : t.replace(/[<>]/g, "");
-      }
-      var CORTES = [
-        /^-{2,}\s*(?:original message|mensaje original|forwarded message|mensaje reenviado|ursprüngliche nachricht|message d'origine)/i,
-        /^_{8,}\s*$/,
-        /^(?:on|el|le|am)\s.{4,200}(?:wrote|escribió|a écrit|schrieb)\s*:?\s*$/i
-      ];
-      var DE_LINEA = /^\s*\*?(?:de|from|von|da|kimden)\s*:\*?\s+\S/i;
-      var ENVIADO = /^\s*\*?(?:enviado(?: el)?|sent|gesendet|date|fecha|inviato|gönderildi)\s*:\*?/i;
-      function textoNuevo(texto) {
-        const lineas = String(texto || "").replace(/\r\n?/g, "\n").split("\n");
-        const fuera = [];
-        for (let i = 0; i < lineas.length; i += 1) {
-          const l = lineas[i];
-          if (CORTES.some((re) => re.test(l.trim()))) break;
-          if (DE_LINEA.test(l) && lineas.slice(i + 1, i + 5).some((x) => ENVIADO.test(x))) break;
-          if (/^\s*>/.test(l)) continue;
-          fuera.push(l);
-        }
-        return fuera.join("\n").trim();
-      }
-      function frases(texto) {
-        return String(texto || "").split(new RegExp('\\n+|(?<=[.!?])\\s+(?=[A-Z\xC1\xC9\xCD\xD3\xDA\xD1\xBF\xA10-9"\xAB(])')).map((x) => x.replace(/\s+/g, " ").trim()).filter((x) => x.length >= 12);
-      }
-      var SALUDO = /^(?:hola|buen[oa]s|hi\b|hello|dear|estimad[oa]s?|good (?:morning|afternoon|evening)|un saludo|saludos|regards|best regards|kind regards|thanks|thank you|gracias|muchas gracias|atentamente|cordialmente|sent from|enviado desde)/i;
-      var FIRMA = /^(?:tel|tlf|móvil|movil|mobile|phone|t\.|m\.|www\.|https?:|mailto:)/i;
-      var RE_RECLAMA = new RegExp([
-        "retras",
-        "demora",
-        "esper",
-        "bloque",
-        "parad",
-        "paraliz",
-        "sin acceso",
-        "no (?:se )?(?:puede|pueden|podemos|permite|permiten|deja)",
-        "impide",
-        "imposib",
-        "falta de",
-        "faltan",
-        "pendiente de",
-        "no disponible",
-        "no esta",
-        "adicional",
-        "extra",
-        "sobrecoste",
-        "sobre coste",
-        "coste",
-        "reclam",
-        "incumpl",
-        "plataforma",
-        "andamio",
-        "elevaci",
-        "grua",
-        "orden de cambio",
-        "modificad",
-        "no aprob",
-        "rechaz",
-        "sin respuesta",
-        "recordamos",
-        "insist",
-        "de nuevo",
-        "otra vez",
-        "delay",
-        "waiting",
-        "wait\\b",
-        "blocked",
-        "no access",
-        "not available",
-        "cannot",
-        "can't",
-        "unable",
-        "stopped",
-        "standby",
-        "stand-by",
-        "idle",
-        "additional",
-        "extra cost",
-        "claim",
-        "variation",
-        "instruction",
-        "not approved",
-        "rejected",
-        "no progress",
-        "still",
-        "again",
-        "reminder",
-        "urgent",
-        "gecik",
-        "bekle"
-      ].join("|"), "i");
-      var RE_IMPORTE = /(?:€|eur\b|euros?\b)\s?\d[\d.,]*(?:\s?(?:k|mil)\b)?|\d[\d.,]*(?:\s?(?:k|mil)\b)?\s?(?:€|eur\b|euros?\b)/gi;
-      var RE_CANTIDAD = /\b\d+(?:[.,]\d+)?\s?(?:d[ií]as?|days?|semanas?|weeks?|horas?|hours?|hrs?\b|h\b|meses|months?|personas|operarios|oficiales|t[eé]cnicos|workers?|men\b|uds?\b\.?|unidades|units?|equipos|m²|m2\b|m³|m3\b|ml\b|kg\b|%)/gi;
-      function cifrasDe(frase) {
-        const out = [];
-        for (const [re, tipo] of [[RE_IMPORTE, "importe"], [RE_CANTIDAD, "cantidad"]]) {
-          re.lastIndex = 0;
-          let m;
-          while (m = re.exec(frase)) {
-            const c = m[0].trim().replace(/[.,]$/, "");
-            if (!out.some((x) => x.cifra.includes(c) || c.includes(x.cifra))) out.push({ cifra: c, tipo });
-          }
-        }
-        return out;
-      }
-      var MAX_CITA = 320;
-      var recortar = (t) => t.length > MAX_CITA ? { cita: t.slice(0, MAX_CITA).replace(/\s+\S*$/, ""), recortada: true } : { cita: t };
-      function resumirPorReglas(hilo) {
-        const correos = hilo && hilo.correos || [];
-        const nuevos = correos.map((c) => ({ c, t: textoNuevo(c.extracto) }));
-        const fuente = (c) => ({ pruebaId: c.id, fecha: soloFecha(c.fecha), de: nombrePersona(c.de) });
-        let quePasa = nuevos.map(({ c, t }) => {
-          const f = frases(t).find((x) => !SALUDO.test(x) && !FIRMA.test(x));
-          return f ? { ...fuente(c), ...recortar(f) } : null;
-        }).filter(Boolean);
-        if (quePasa.length > 6) quePasa = [...quePasa.slice(0, 3), ...quePasa.slice(-3)];
-        const vistas = /* @__PURE__ */ new Set();
-        const porQue = [];
-        const cuanto = [];
-        for (const { c, t } of nuevos) {
-          for (const f of frases(t)) {
-            const k = sinTildes(f).toLowerCase();
-            if (vistas.has(k) || SALUDO.test(f) || FIRMA.test(f)) continue;
-            vistas.add(k);
-            const cs = cifrasDe(f);
-            if (RE_RECLAMA.test(sinTildes(f)) && porQue.length < 6) porQue.push({ ...fuente(c), ...recortar(f) });
-            for (const x of cs) {
-              if (cuanto.length >= 12) break;
-              const r = recortar(f);
-              if (!r.cita.includes(x.cifra)) continue;
-              cuanto.push({ ...fuente(c), cifra: x.cifra, tipo: x.tipo, ...r });
-            }
-          }
-        }
-        const n = correos.length;
-        const quien = (hilo.participantes || []).slice(0, 4).join(", ");
-        const fechas = hilo.desde && hilo.hasta && hilo.desde !== hilo.hasta ? `del ${hilo.desde} al ${hilo.hasta}` : hilo.desde ? `del ${hilo.desde}` : "sin fecha";
-        return {
-          deQueVa: `\xAB${hilo.asunto}\xBB: ${n} ${n === 1 ? "correo" : "correos"} ${fechas}${quien ? `, de ${quien}` : ""}.`,
-          quePasa,
-          porQueReclamamos: porQue,
-          queYCuanto: cuanto,
-          origen: "reglas",
-          pruebasIds: correos.map((c) => c.id)
-        };
-      }
-      var textosDe = (hilo) => new Map((hilo && hilo.correos || []).map((c) => [c.id, String(c.extracto || "")]));
-      var normal = (s) => espacios(s).replace(/[“”«»]/g, '"').replace(/[‘’]/g, "'");
-      function preguntaClaude(hilo) {
-        const correos = (hilo && hilo.correos || []).map((c) => [
-          `### pruebaId: ${c.id}`,
-          `Fecha: ${llano(c.fecha)}`,
-          `De: ${llano(c.de)}`,
-          `Para: ${llano(c.para)}`,
-          `Asunto: ${llano(c.asunto)}`,
-          "",
-          String(c.extracto || "").slice(0, 12e3)
-        ].join("\n")).join("\n\n");
-        return [
-          "Eres el t\xE9cnico que prepara una reclamaci\xF3n de una obra (contratista de instalaciones contra el cliente).",
-          "Lee SOLO los correos de abajo (un hilo) y resume en JSON, sin nada m\xE1s fuera del JSON:",
-          '{"deQueVa":"una o dos frases","quePasa":[{"pruebaId":"\u2026","cita":"\u2026"}],"porQueReclamamos":[{"pruebaId":"\u2026","cita":"\u2026"}],"queYCuanto":[{"pruebaId":"\u2026","cifra":"\u2026","cita":"\u2026","que":"\u2026"}]}',
-          "Reglas que no se pueden romper:",
-          '- Cada "cita" es un trozo COPIADO LITERALMENTE del texto del correo de ese pruebaId (mismas palabras, mismo idioma, sin traducir ni corregir), de 320 caracteres como mucho.',
-          '- Cada "cifra" (importe, d\xEDas, horas, personas, unidades\u2026) est\xE1 escrita tal cual DENTRO de su "cita". Si el hilo no da una cifra, "queYCuanto" va vac\xEDo. Nunca calcules ni estimes.',
-          '- "deQueVa" no lleva ninguna cifra que no est\xE9 en los correos.',
-          "- quePasa: los pasos del hilo en orden (m\xE1x. 6). porQueReclamamos: lo que bloquea, retrasa, falta o cuesta de m\xE1s por causa del cliente (m\xE1x. 6). queYCuanto: m\xE1x. 12.",
-          '- "que" dice en pocas palabras a qu\xE9 se refiere la cifra.',
-          "",
-          correos
-        ].join("\n");
-      }
-      function jsonDeRespuesta(texto) {
-        const t = String(texto || "");
-        const m = t.match(/```(?:json)?\s*([\s\S]*?)```/);
-        const cuerpo = m ? m[1] : t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1);
-        try {
-          return JSON.parse(cuerpo);
-        } catch {
-          return null;
-        }
-      }
-      function filtrarResumen(propuesta, hilo) {
-        const textos = textosDe(hilo);
-        const todos = normal([...textos.values()].join("\n"));
-        const porId = new Map([...textos].map(([id, t]) => [id, normal(t)]));
-        const correo = new Map((hilo && hilo.correos || []).map((c) => [c.id, c]));
-        let descartadas = 0;
-        const vale = (x, conCifra) => {
-          const cita = normal(x && x.cita);
-          if (!cita || cita.length < 4) {
-            descartadas += 1;
-            return null;
-          }
-          const id = llano(x.pruebaId);
-          let pid = (porId.get(id) || "").includes(cita) ? id : null;
-          if (!pid) {
-            const otro = [...porId].find(([, t]) => t.includes(cita));
-            pid = otro ? otro[0] : null;
-          }
-          if (!pid) {
-            descartadas += 1;
-            return null;
-          }
-          if (conCifra) {
-            const cifra = normal(x.cifra);
-            if (!cifra || !/\d/.test(cifra) || !cita.includes(cifra)) {
-              descartadas += 1;
-              return null;
-            }
-          }
-          const c = correo.get(pid) || {};
-          return {
-            pruebaId: pid,
-            fecha: soloFecha(c.fecha),
-            de: nombrePersona(c.de),
-            ...recortar(cita),
-            ...conCifra ? { cifra: normal(x.cifra), que: llano(x.que).slice(0, 120) || null } : {}
-          };
-        };
-        const p = propuesta || {};
-        const arr = (v) => Array.isArray(v) ? v : [];
-        const quePasa = arr(p.quePasa).slice(0, 6).map((x) => vale(x, false)).filter(Boolean);
-        const porQue = arr(p.porQueReclamamos).slice(0, 6).map((x) => vale(x, false)).filter(Boolean);
-        const cuanto = arr(p.queYCuanto).slice(0, 12).map((x) => vale(x, true)).filter((x) => x && x.cita.includes(x.cifra));
-        let deQueVa = espacios(p.deQueVa).slice(0, 500);
-        const numeros = deQueVa.match(/\d[\d.,]*/g) || [];
-        if (numeros.some((nn) => !todos.includes(nn.replace(/[.,]$/, "")))) {
-          deQueVa = "";
-          descartadas += 1;
-        }
-        return { resumen: { deQueVa, quePasa, porQueReclamamos: porQue, queYCuanto: cuanto }, descartadas };
-      }
-      var RESUMIDORES = {};
-      function registrarResumidor(nombre, fn) {
-        if (typeof fn === "function") RESUMIDORES[nombre] = fn;
-        else delete RESUMIDORES[nombre];
-      }
-      var hayResumidor = (nombre) => Boolean(RESUMIDORES[nombre]);
-      async function resumirHilo(hilo, { resumidor = null } = {}) {
-        const base = resumirPorReglas(hilo);
-        if (!resumidor) return base;
-        if (!RESUMIDORES[resumidor]) return { ...base, error: "Claude no est\xE1 disponible en este equipo: queda el resumen por reglas." };
-        try {
-          const r = await RESUMIDORES[resumidor](hilo, { pregunta: preguntaClaude(hilo) });
-          const propuesta = r && typeof r === "object" && !r.texto ? r : jsonDeRespuesta(r && typeof r === "object" ? r.texto : r);
-          if (!propuesta) return { ...base, error: "Claude no ha devuelto un resumen legible: queda el de reglas." };
-          const { resumen, descartadas } = filtrarResumen(propuesta, hilo);
-          const algo = resumen.deQueVa || resumen.quePasa.length || resumen.porQueReclamamos.length || resumen.queYCuanto.length;
-          if (!algo) return { ...base, descartadas, error: "Nada de lo que propuso Claude estaba literal en los correos: queda el de reglas." };
-          return {
-            deQueVa: resumen.deQueVa || base.deQueVa,
-            quePasa: resumen.quePasa.length ? resumen.quePasa : base.quePasa,
-            porQueReclamamos: resumen.porQueReclamamos.length ? resumen.porQueReclamamos : base.porQueReclamamos,
-            queYCuanto: resumen.queYCuanto,
-            origen: r && r.lector || resumidor,
-            descartadas,
-            pruebasIds: base.pruebasIds
-          };
-        } catch (e) {
-          return { ...base, error: `Claude: ${String(e && e.message || e).split("\n")[0]}. Queda el resumen por reglas.` };
-        }
-      }
-      function colapsarPorHilo(pruebas = []) {
-        const grupos = /* @__PURE__ */ new Map();
-        for (const p of pruebas || []) {
-          if (!p || p.tipo !== "correo") continue;
-          const ca = claveAsunto(p.asunto);
-          const k = llano(p.hilo) || (ca.replace(/\s/g, "").length >= 4 ? ca : "");
-          if (!k) continue;
-          if (!grupos.has(k)) grupos.set(k, []);
-          grupos.get(k).push(p);
-        }
-        const ocultas = /* @__PURE__ */ new Set();
-        const ultimos = /* @__PURE__ */ new Map();
-        for (const [clave, cs] of grupos) {
-          if (cs.length < 2) continue;
-          const orden = [...cs].sort((a, b) => String(a.fecha || "").localeCompare(String(b.fecha || "")) || String(a.creadoEn || "").localeCompare(String(b.creadoEn || "")) || String(a.id).localeCompare(String(b.id)));
-          const ultimo = orden[orden.length - 1];
-          const anteriores = orden.slice(0, -1);
-          anteriores.forEach((p) => ocultas.add(p.id));
-          ultimos.set(ultimo.id, {
-            clave,
-            anteriores: anteriores.map((p) => ({ id: p.id, fecha: p.fecha || null, de: p.de || null, asunto: p.asunto || "" })),
-            hechosIds: [...new Set(orden.flatMap((p) => p.hechosIds || []))]
-          });
-        }
-        return { ocultas, ultimos };
-      }
-      module.exports = {
-        colapsarPorHilo,
-        cabeceras,
-        datosHilo,
-        raizThreadIndex,
-        asuntoBase,
-        claveAsunto,
-        agrupar,
-        nombrePersona,
-        textoNuevo,
-        frases,
-        cifrasDe,
-        resumirPorReglas,
-        preguntaClaude,
-        jsonDeRespuesta,
-        filtrarResumen,
-        registrarResumidor,
-        hayResumidor,
-        resumirHilo,
-        RESUMIDORES
-      };
-    }
-  });
-
   // electron/data/reclamaciones.js
   var require_reclamaciones = __commonJS({
     "electron/data/reclamaciones.js"(exports, module) {
@@ -161569,13 +163739,17 @@ ${l}`;
       var crypto2 = require_crypto();
       var M = require_motor5();
       var PL = require_plazos();
+      var COS = require_costesHecho();
       var MV = require_motivos();
       var CC = require_categorias2();
+      var DC = require_defensaCliente();
       var CRONO = require_cronograma();
       var DF = require_defendibilidad();
       var VL = require_valoracion();
       var EST = require_estudio();
+      var DIR = require_direcciones();
       var HS = require_horasSubcontratas();
+      var PHS = require_partesHorasSub();
       var QH = require_queHaceLaApp();
       var { puede, veReclamacionesReservadas, veEstudioClaim } = require_roles();
       var MOD = "reclamaciones";
@@ -161630,7 +163804,7 @@ ${l}`;
       var JUSTIFICA = { tiempo: "Tiempo", importe: "Importe", ambos: "Tiempo e importe" };
       function faltasDe(h, importe, enlaces, hechos) {
         if (M.esPlazo ? M.esPlazo(h) : h.naturaleza === "plazoLimak") return { sinTiempo: false, faltaPruebaTiempo: false, faltaPruebaImporte: false };
-        if (h.estado === "descartado" || JQ.soloDocumenta(h)) return { sinTiempo: false, faltaPruebaTiempo: false, faltaPruebaImporte: false };
+        if (h.estado === "descartado" || JQ.soloDocumenta(h) || JQ.esDefensaCliente(h)) return { sinTiempo: false, faltaPruebaTiempo: false, faltaPruebaImporte: false };
         const dias = PL.diasHecho(h).dias;
         const vale = (dim) => enlaces.some((e) => !e.justifica || e.justifica === "ambos" || e.justifica === dim);
         const letra = METODOS_CON_DIAS[h.metodo];
@@ -161655,6 +163829,17 @@ ${l}`;
         const pruebas = de(repo, ses, "reclamacionPruebas", id, "fecha, creadoEn");
         const defensa = de(repo, ses, "reclamacionDefensa", id, "orden, sistema");
         const hechosBase = de(repo, ses, "reclamacionHechos", id, "fecha, creadoEn");
+        try {
+          let max = Math.max(0, ...hechosBase.map((h) => Number(h.numero) || 0));
+          const upd = repo.db.prepare("UPDATE reclamacionHechos SET numero = ? WHERE id = ?");
+          for (const h of hechosBase) if (!h.numero) {
+            max += 1;
+            h.numero = max;
+            upd.run(max, h.id);
+          }
+        } catch (e) {
+          console.error("[reclamaciones] numerar hechos:", e.message);
+        }
         const ids = hechosBase.map((h) => h.id);
         const enlP = ids.length ? repo.listar("reclamacionHechoPruebas", ses, { condicion: `hechoId IN (${ids.map(() => "?").join(",")})`, params: ids }) : [];
         const enlC = ids.length ? repo.listar("reclamacionHechoClausulas", ses, { condicion: `hechoId IN (${ids.map(() => "?").join(",")})`, params: ids }) : [];
@@ -161690,6 +163875,26 @@ ${l}`;
             sentidoPruebas: SEN.sentidoDelHecho(h, enlP.filter((e) => e.hechoId === h.id), prPorId)
           };
         });
+        for (const h of hechos) {
+          const conAviso = (h.hijos || []).some((c) => c.estado !== "descartado" && c.tipo === "correo" && c.clase === "justifica");
+          if (conAviso) {
+            h.avisoPorCorreo = true;
+            h.avisos = h.avisos.filter((a) => a.tipo !== "sinNotificar");
+          }
+        }
+        for (const h of hechos) {
+          if (h.estado === "descartado" || h.naturaleza === "plazoLimak" || JQ.esDefensaCliente(h)) continue;
+          const conPrueba = (h.pruebasIds || []).some((id2) => {
+            const p = prPorId.get(id2);
+            return p && (p.tipo === "correo" || p.tipo === "whatsapp");
+          }) || (h.hijos || []).some((c) => c.estado !== "descartado" && (c.tipo === "correo" || c.tipo === "whatsapp"));
+          if (!conPrueba) {
+            h.sinCorreoNiWhatsapp = true;
+            h.avisos = [...h.avisos, { tipo: "sinCorreoNiWhatsapp", nivel: "mal", texto: "Sin correo ni conversaci\xF3n de WhatsApp asociados: todo hecho necesita su origen para poder valorarlo." }];
+          }
+        }
+        for (const h of hechos) h.desglose = JQ.desgloseImporte(h, hechos);
+        for (const h of hechos) h.costesCalc = COS.calcular(COS.desdeHecho(h, tarifas, M), tarifas);
         const peso = (h) => M.ESTADOS_HECHO[h.estado] ? M.ESTADOS_HECHO[h.estado].orden : 9;
         hechos.sort((a, b) => peso(a) - peso(b) || M.compararNumero(a.apartadoNumero || "99", b.apartadoNumero || "99") || String(a.fecha || "").localeCompare(String(b.fecha || "")));
         const conPruebas = pruebas.map((p) => ({
@@ -161714,6 +163919,7 @@ ${l}`;
         }
         const conMotivo = hechosBase.map((h) => ({ ...h, motivo: MV.motivoDeHecho(h, apartados, parte) }));
         const v = verbos(ses);
+        const estudio2 = veEstudioClaim(ses.rol) ? estudioDeFicha(r, apartados, hechos, tarifas) : null;
         return {
           reclamacion: r,
           obra: (() => {
@@ -161727,6 +163933,7 @@ ${l}`;
           clausulas,
           renuncias,
           defensa,
+          hilosDefensa: DC.hilosDefensa({ hechos, pruebas: conPruebas, dominiosCliente: M.lista(r.dominiosCliente), nombreCliente: r.contraparte }),
           hilos: hilosDeFicha(repo, ses, id, pruebas),
           pruebasHilo: pruebasHiloDe(conPruebas),
           puedeClaude: HC.hayResumidor("claude"),
@@ -161751,7 +163958,10 @@ ${l}`;
           porDefendibilidad: DF.recuento({ hechos, apartados, tarifas, renuncias }),
           porValoracion: VL.resumen({ apartados, hechos, tarifas }),
           /* El estudio (8-nov-2026): solo para dirección y el jefe de grupo; a los demás ni se calcula. */
-          estudio: veEstudioClaim(ses.rol) ? estudioDeFicha(r, apartados, hechos, tarifas) : null,
+          estudio: estudio2,
+          montaje: estudio2 ? montajeDeFicha(r, hechosBase, conPruebas, estudio2) : null,
+          /* Las cuatro direcciones (9-nov, JC): reclamar o defendernos, cliente o subcontrata; sale de parte + sentido. */
+          direccion: DIR.direccionDe(r),
           otraParte: DF.otraParte(r),
           dobleCara: M.dobleCaraSinPreaviso({ hechos: hechosBase, tarifas }),
           pruebasPorMotivo: pruebasPorMotivo(conPruebas, conMotivo, parte),
@@ -161760,10 +163970,26 @@ ${l}`;
           puede: Object.fromEntries(["crear", "editar", "borrar", "aprobar", "exportar"].map((x) => [x, v.includes(x)]))
         };
       }
+      function montajeDeFicha(r, hechosBase, pruebas, estudio2) {
+        const temas = estudio2.temas;
+        return DIR.pasosDeMontaje(DIR.direccionDe(r), {
+          contraparte: r.contraparte,
+          hechos: hechosBase.length,
+          hechosValidados: hechosBase.filter((h) => h.estado === "validado").length,
+          pruebas: pruebas.length,
+          pruebasSinLigar: pruebas.filter((p) => !p.hechosIds.length).length,
+          temas: temas.length,
+          temasValorados: temas.filter((t) => t.valorado && t.importe > 0).length,
+          temasConNivel: temas.filter((t) => t.nivel).length,
+          temasConRespuesta: temas.filter((t) => t.respuesta.length).length,
+          preguntasAbiertas: estudio2.preguntas.abiertas,
+          estudioListo: temas.length > 0
+        });
+      }
       function estudioDeFicha(r, apartados, hechos, tarifas) {
         const valoracion = VL.resumen({ apartados, hechos, tarifas });
         const claim = jsonDe(r.estudio, {}) || {};
-        return EST.estudioClaim({ apartados, hechos, valoracion, cubiertos: (id) => VL.hechosCubiertos(id, apartados, hechos), anterior: claim.anterior || null });
+        return EST.estudioClaim({ apartados, hechos, valoracion, cubiertos: (id) => VL.hechosCubiertos(id, apartados, hechos), anterior: claim.anterior || null, reclamacion: r });
       }
       function estudio(repo, ses, recId) {
         if (!veEstudioClaim(ses.rol)) return null;
@@ -161846,6 +164072,11 @@ ${l}`;
         "plazosClaim"
       ];
       function limpiarRec(e = {}) {
+        if (e.direccion !== void 0 && e.direccion !== null && e.direccion !== "") {
+          const d = DIR.camposDe(e.direccion);
+          if (!d) return { error: "Esa direcci\xF3n no existe (reclamarCliente, reclamarSub, defenderCliente o defenderSub)." };
+          e = { ...d, ...e };
+        }
         const c = {};
         for (const k of CAMPOS_REC) {
           if (e[k] === void 0) continue;
@@ -162099,14 +164330,18 @@ ${l}`;
         /* La categoría del claim fijada a mano (5-nov-2026); vacía, vuelve a la automática. */
         "categoriaClaim",
         /* El nivel de defendibilidad propio del hecho (6-nov-2026); vacío, hereda el de su tema. */
-        "defendibilidad"
+        "defendibilidad",
+        /* Coste directo y coste indirecto por separado (10-nov-2026; shared/reclamaciones/costesHecho.js). */
+        "costes",
+        /* Lo que nos costó de verdad (11-nov-2026): la venta es el importe; esto es el coste. */
+        "costeReal"
       ];
       function limpiarHecho(e = {}) {
         const d = {};
         for (const k of CAMPOS_HECHO) {
           if (e[k] === void 0) continue;
           let v = e[k];
-          if (["a", "b", "c", "p", "m", "k", "diasRetraso", "horasPersona", "personasAfectadas", "tarifaPrecio"].includes(k)) {
+          if (["a", "b", "c", "p", "m", "k", "diasRetraso", "horasPersona", "personasAfectadas", "tarifaPrecio", "costeReal"].includes(k)) {
             v = M.num(v);
             if (llano(e[k]) && v === null) return { error: "Uno de los datos del c\xE1lculo no es un n\xFAmero." };
           } else if (["notificado", "incluirPeseRenuncia", "tiempoSinRespuesta"].includes(k)) v = v && v !== "0" ? 1 : 0;
@@ -162114,6 +164349,19 @@ ${l}`;
             const xs = (Array.isArray(v) ? v : String(v || "").split(/[,;\s]+/)).map((x) => M.soloFecha(llano(x))).filter(Boolean);
             if (xs.some((x) => !/^\d{4}-\d{2}-\d{2}$/.test(x))) return { error: "Una fecha de recordatorio no se entiende." };
             v = xs.length ? JSON.stringify([...new Set(xs)].sort()) : null;
+          } else if (k === "costes") {
+            if (v === null || llano(typeof v === "string" ? v : "x") === "") v = null;
+            else {
+              if (typeof v === "string") {
+                try {
+                  JSON.parse(v);
+                } catch {
+                  return { error: "El desglose de costes no se entiende." };
+                }
+              }
+              const c = COS.normalizar(v);
+              v = c ? JSON.stringify(c) : null;
+            }
           } else if (k === "tiempoComputo") {
             v = llano(v) || null;
             if (v && !PL.COMPUTOS[v]) return { error: "Ese c\xF3mputo de d\xEDas no existe." };
@@ -162150,7 +164398,7 @@ ${l}`;
         const tengo = new Set(actuales.map((e) => e[campo]));
         for (const x of quiero) if (!tengo.has(x)) repo.crear(tabla, ses, { obraId: hecho.obraId, hechoId: hecho.id, [campo]: x }, { verbo: "editar" });
       }
-      function guardarHecho(repo, ses, recId, entrada = {}) {
+      function guardarHecho(repo, ses, recId, entrada = {}, { soloPropuesto = false } = {}) {
         const verbo = entrada.id ? "editar" : "crear";
         const { r, error } = rec(repo, ses, recId, verbo);
         if (error) return no(error);
@@ -162169,7 +164417,7 @@ ${l}`;
           const reales = Object.fromEntries(Object.entries(datos).filter(([k, v]) => llano(h2[k]) !== llano(v)));
           if (Object.keys(reales).length) repo.modificar("reclamacionHechos", ses, id, reales);
         } else {
-          const valida = puede(ses.rol, MOD, "aprobar");
+          const valida = !soloPropuesto && puede(ses.rol, MOD, "aprobar");
           id = repo.crear("reclamacionHechos", ses, {
             obraId: r.obraId,
             reclamacionId: recId,
@@ -162194,7 +164442,21 @@ ${l}`;
         }) : void 0;
         fijarEnlaces(repo, ses, "reclamacionHechoPruebas", "pruebaId", h, propias("reclamacionPruebas", entrada.pruebasIds));
         fijarEnlaces(repo, ses, "reclamacionHechoClausulas", "clausulaId", h, propias("reclamacionClausulas", entrada.clausulasIds));
+        if (datos.costes !== void 0 || datos.estado !== void 0) repartirSolapes(repo, ses, recId);
         return { ok: true, id };
+      }
+      function repartirSolapes(repo, ses, recId) {
+        const todos = repo.listar("reclamacionHechos", ses, { condicion: "reclamacionId = ?", params: [recId] }).filter((x) => x.metodo === "directo_indirecto" && x.costes && x.estado !== "descartado" && x.naturaleza !== "plazoLimak" && !JQ.soloDocumenta(x) && !JQ.esDefensaCliente(x));
+        const reparto = COS.repartirSolapes(todos);
+        for (const x of todos) {
+          if (x.estado !== "propuesto") continue;
+          const s = reparto.get(x.id) || { diasSolape: 0, solapaCon: [] };
+          const c = COS.normalizar(x.costes);
+          if (!c || c.indirecto.diasSolape === s.diasSolape && JSON.stringify(c.indirecto.solapaCon) === JSON.stringify(s.solapaCon)) continue;
+          c.indirecto.diasSolape = s.diasSolape;
+          c.indirecto.solapaCon = s.solapaCon;
+          repo.modificar("reclamacionHechos", ses, x.id, { costes: JSON.stringify(c) });
+        }
       }
       function decidirHecho(repo, ses, hechoId, estado) {
         if (!puede(ses.rol, MOD, "aprobar")) return no("Validar hechos es del jefe de obra, el de producci\xF3n o el director.");
@@ -162258,7 +164520,9 @@ ${l}`;
               motivo: x.motivo,
               estado: "propuesto"
             }));
-            guardarPropuestos(repo, ses, h, [...antes.filter((x) => x.estado === "descartado"), ...nuevas]);
+            const traidos = antes.filter((x) => x.traido && x.estado === "propuesto");
+            const hay = new Set(traidos.map((x) => x.pruebaId));
+            guardarPropuestos(repo, ses, h, [...antes.filter((x) => x.estado === "descartado"), ...traidos, ...nuevas.filter((x) => !hay.has(x.pruebaId))]);
             total += nuevas.length;
             if (nuevas.length) con += 1;
           }
@@ -162651,7 +164915,7 @@ ${l}`;
         const yaHuella = new Set(pruebas.map((p) => p.sha256).filter(Boolean));
         const pendientes = rutas.filter((x) => !yaRuta.has(x)).sort();
         const apartados = de(repo, ses, "reclamacionApartados", recId);
-        const contexto = { apartados, dominiosCliente: M.lista(r.dominiosCliente) };
+        const contexto = { apartados, dominiosCliente: M.lista(r.dominiosCliente), nombreCliente: r.contraparte };
         const { leerMsg } = require_correoMsg();
         const MC = require_motor6();
         const web = /^https?:\/\//i.test(llano(r.carpetaPruebas)) ? llano(r.carpetaPruebas).replace(/\/+$/, "") : null;
@@ -162726,6 +164990,8 @@ ${l}`;
             clasificador: pro.clasificador,
             confianza: pro.confianza,
             motivoPropuesta: pro.motivo,
+            /* Solo cuando la reclamación tiene esa categoría (contra una subcontrata no existe). */
+            ...pro.categoriaClaim && CC.categoriaValida(CC.categoriasDe(r), pro.categoriaClaim) ? { categoriaClaim: pro.categoriaClaim, categoriaClaimManual: 1 } : {},
             creadoPor: ses.personaId
           });
           repo.crear("reclamacionHechoPruebas", ses, { obraId: r.obraId, hechoId, pruebaId }, { verbo: "crear" });
@@ -163071,6 +165337,155 @@ ${l}`;
           creados += 1;
         }
         return { creados, actualizados, resumen: HS.resumen(ls) };
+      }
+      function importarPartesHorasSub(repo, ses, recId, partes, opciones = {}) {
+        const { r, error } = rec(repo, ses, recId, "crear");
+        if (error) return no(error);
+        const aplicar = opciones.aplicar !== false;
+        const apartados = de(repo, ses, "reclamacionApartados", recId);
+        const apIzados = apartados.find((a) => !a.padreId && a.clave === "izados") || null;
+        const hechos = de(repo, ses, "reclamacionHechos", recId);
+        const existentes = new Map(hechos.filter((h) => h.enlaceTipo === PHS.ENLACE).map((h) => [h.enlaceId, h]));
+        const base = hechos.filter((h) => h.enlaceTipo !== PHS.ENLACE);
+        const hoy2 = require_fecha().hoyLocal();
+        const res = { creados: [], actualizados: [], sinCambios: 0, fuera: 0, sinAsignar: [], duplicadosEnLote: 0 };
+        const vistos = /* @__PURE__ */ new Set();
+        const enLote = (partes || []).filter((x) => PHS.enPeriodo(x, hoy2));
+        res.pruebas = 0;
+        const pruebasPor = new Map(de(repo, ses, "reclamacionPruebas", recId).filter((x) => x.idExterno).map((x) => [x.idExterno, x]));
+        const ligar = (hechoId, pruebaId) => {
+          if (!hechoId) return;
+          if (!repo.listar("reclamacionHechoPruebas", ses, { condicion: "hechoId = ? AND pruebaId = ?", params: [hechoId, pruebaId] }).length) {
+            repo.crear("reclamacionHechoPruebas", ses, { obraId: r.obraId, hechoId, pruebaId }, { verbo: "editar" });
+          }
+        };
+        const probar = (p, id, hechoIds) => {
+          if (!aplicar || !(p.uri || p.archivo)) return;
+          const trabajos = [
+            p.certificacion ? `Certificaci\xF3n: ${p.certificacion}` : null,
+            p.descripcion ? `Parte: ${p.descripcion}` : null,
+            p.zona ? `Zona: ${p.zona}` : null,
+            Array.isArray(p.nombres) && p.nombres.length ? `Personal: ${p.nombres.join(", ")}` : null,
+            p.horasTotales ? `${p.horasTotales} h${p.precioHora ? ` \xD7 ${p.precioHora} \u20AC/h` : ""}` : null
+          ].filter(Boolean).join("\n") || null;
+          let pr = pruebasPor.get(id);
+          if (pr && pr.id && trabajos && !pr.extracto) {
+            repo.modificar("reclamacionPruebas", ses, pr.id, { extracto: trabajos }, { verbo: "editar" });
+            pr.extracto = trabajos;
+          }
+          if (!pr) {
+            const pid = repo.crear("reclamacionPruebas", ses, {
+              obraId: r.obraId,
+              reclamacionId: recId,
+              idExterno: id,
+              tipo: "documento",
+              fecha: p.fecha,
+              de: p.subcontrata,
+              asunto: `Parte de horas \xB7 ${p.subcontrata}${p.referencia ? ` \xB7 ${p.referencia}` : ""}`,
+              enlace: p.webUrl || p.uri || null,
+              ruta: p.archivo || null,
+              nombreOriginal: p.archivo || null,
+              extracto: trabajos,
+              creadoPor: ses.personaId
+            });
+            pr = { id: pid, extracto: trabajos };
+            pruebasPor.set(id, pr);
+            res.pruebas += 1;
+          }
+          hechoIds.filter(Boolean).forEach((hid) => ligar(hid, pr.id));
+        };
+        for (const p of partes || []) {
+          if (!PHS.enPeriodo(p, hoy2)) {
+            res.fuera += 1;
+            continue;
+          }
+          const id = PHS.idExterno(p);
+          if (vistos.has(id)) {
+            res.duplicadosEnLote += 1;
+            continue;
+          }
+          vistos.add(id);
+          const previo = existentes.get(id);
+          const g = previo ? null : PHS.ganador(PHS.candidatos(p, base));
+          const padre = previo ? previo.hechoPadreId ? { hechoId: previo.hechoPadreId, valoraHoras: Number(previo.hijoSuma) === 0 } : null : g;
+          const padreHecho = padre ? base.find((h2) => h2.id === padre.hechoId) : null;
+          const h = PHS.hechoDe(p, {
+            apartadoId: padreHecho ? padreHecho.apartadoId : apIzados ? apIzados.id : null,
+            padre,
+            revision: PHS.avisosRevision(p, enLote),
+            candidatos: padre ? [] : PHS.candidatos(p, base, 3)
+          });
+          if (previo) {
+            if (previo.estado !== "propuesto") {
+              res.sinCambios += 1;
+              continue;
+            }
+            let campos = ["titulo", "descripcion", "a", "b", "c", "p", "horasPersona", "costeReal", "subcontrata", "zona", "notaImportacion", "fecha", "porcentajeClaim", "horasOrigen", "costeOrigen"];
+            if (previo.porcentajeClaim !== null && previo.porcentajeClaim !== void 0) campos = campos.filter((k) => !["titulo", "b", "horasPersona", "costeReal", "notaImportacion", "porcentajeClaim", "horasOrigen", "costeOrigen"].includes(k));
+            const cambios = Object.fromEntries(campos.filter((k) => String(previo[k] ?? "") !== String(h[k] ?? "")).map((k) => [k, h[k]]));
+            if (Object.keys(cambios).length) {
+              if (aplicar) repo.modificar("reclamacionHechos", ses, previo.id, cambios);
+              res.actualizados.push(id);
+            } else res.sinCambios += 1;
+            probar(p, id, [previo.id, previo.hechoPadreId]);
+            continue;
+          }
+          if (!padre) res.sinAsignar.push({ id, subcontrata: p.subcontrata, fecha: p.fecha, horas: PHS.horasPersona(p) });
+          if (aplicar) {
+            const nuevo = repo.crear("reclamacionHechos", ses, {
+              obraId: r.obraId,
+              reclamacionId: recId,
+              ...h,
+              estado: "propuesto",
+              origen: "parteHorasSub",
+              creadoPor: ses.personaId
+            });
+            probar(p, id, [nuevo, padre ? padre.hechoId : null]);
+          }
+          res.creados.push({ id, padre: padre ? padre.hechoId : null, suma: h.hijoSuma });
+        }
+        return { ok: true, aplicado: aplicar, ...res, resumen: PHS.resumen((partes || []).filter((p) => PHS.enPeriodo(p, hoy2))) };
+      }
+      function porcentajeHorasSub(repo, ses, recId, subcontrata, porcentaje) {
+        const { error } = rec(repo, ses, recId, "editar");
+        if (error) return no(error);
+        const pct = Number(porcentaje);
+        if (!(pct > 0 && pct <= 100)) return no("El porcentaje tiene que estar entre 0 y 100.");
+        const sa = (v) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+        const q = sa(subcontrata);
+        if (!q) return no("Falta decir de qu\xE9 subcontrata.");
+        const hs = de(repo, ses, "reclamacionHechos", recId).filter((h) => h.enlaceTipo === PHS.ENLACE && h.estado !== "descartado" && sa(h.subcontrata).includes(q));
+        if (!hs.length) return no(`No hay partes de horas de \xAB${subcontrata}\xBB en este claim.`);
+        let antes = 0;
+        let despues = 0;
+        let venta = 0;
+        let coste = 0;
+        for (const h of hs) {
+          const n = Number(h.a) > 0 ? Number(h.a) : 1;
+          const hOr = h.horasOrigen !== null && h.horasOrigen !== void 0 ? Number(h.horasOrigen) : Number(h.horasPersona) || 0;
+          const cOr = h.costeOrigen !== null && h.costeOrigen !== void 0 ? Number(h.costeOrigen) : h.costeReal === null || h.costeReal === void 0 || h.costeReal === "" ? null : Number(h.costeReal);
+          const e = PHS.escalar(hOr, n, cOr, pct);
+          const nota = String(h.notaImportacion || "").split(". ").filter((t) => !/^(El parte trae|Venta:|Coste real|\d+ trabajador)/.test(t));
+          nota.unshift(`${n} trabajador(es) \xD7 ${e.hPorTrab} h = ${e.horas} h-persona`, `Venta: ${e.horas} h \xD7 ${h.p || PHS.TARIFA_VENTA} \u20AC/h`);
+          if (e.pct) nota.unshift(`El parte trae ${hOr} h-persona; solo el ${e.pct} % de sus horas va al claim`);
+          if (e.coste !== null) nota.push(`Coste real (lo que nos cobra): ${e.coste} \u20AC`);
+          repo.modificar("reclamacionHechos", ses, h.id, {
+            b: e.hPorTrab,
+            horasPersona: e.horas,
+            costeReal: e.coste,
+            porcentajeClaim: e.pct,
+            horasOrigen: e.pct ? hOr : null,
+            costeOrigen: e.pct ? cOr : null,
+            titulo: String(h.titulo || "").replace(/: [\d.,]+ h\b/, `: ${e.horas} h`),
+            notaImportacion: nota.join(". ")
+          });
+          antes += Number(h.horasPersona) || 0;
+          despues += e.horas;
+          venta += e.horas * (Number(h.p) || PHS.TARIFA_VENTA);
+          coste += e.coste || 0;
+        }
+        const r2 = (x) => Math.round(x * 100) / 100;
+        return { ok: true, partes: hs.length, horasAntes: r2(antes), horasDespues: r2(despues), ventaDespues: r2(venta), costeDespues: r2(coste), subcontratas: [...new Set(hs.map((h) => h.subcontrata))] };
       }
       var jsonDe = (v, siNo) => {
         if (v === null || v === void 0 || v === "") return siNo;
@@ -163621,14 +166036,14 @@ ${l}`;
           return { ok: true, creados };
         });
       }
-      function enlazarHecho(repo, ses, hechoId, { padreId = null, orden = null, nota = null, suma = true } = {}) {
+      function enlazarHecho(repo, ses, hechoId, { padreId = null, orden = null, nota = null, suma = true, sentido = null } = {}) {
         if (!puede(ses.rol, MOD, "editar")) return no(SIN_PERMISO);
         const h = repo.leer("reclamacionHechos", ses, hechoId);
         if (!h) return no("No se encuentra el hecho.");
         const pid = llano(padreId);
         if (!pid) {
           if (!h.hechoPadreId) return { ok: true, sinCambios: true };
-          repo.modificar("reclamacionHechos", ses, h.id, { hechoPadreId: null, hijoOrden: null, hijoNota: null, hijoSuma: null });
+          repo.modificar("reclamacionHechos", ses, h.id, { hechoPadreId: null, hijoOrden: null, hijoNota: null, hijoSuma: null, hijoSentido: null });
           return { ok: true, desenlazado: true };
         }
         if (pid === h.id) return no("Un hecho no puede colgar de s\xED mismo.");
@@ -163639,7 +166054,7 @@ ${l}`;
         let ord = M.num(orden);
         if (llano(orden) && ord === null) return no("El orden tiene que ser un n\xFAmero.");
         if (ord === null) ord = h.hechoPadreId === pid && M.num(h.hijoOrden) !== null ? M.num(h.hijoOrden) : Math.max(0, ...todos.filter((x) => x.hechoPadreId === pid && x.id !== h.id).map((x) => Number(x.hijoOrden) || 0)) + 1;
-        const cambios = { hechoPadreId: pid, hijoOrden: ord, hijoNota: llano(nota).slice(0, 1e3) || null, hijoSuma: suma === false || suma === 0 || suma === "0" ? 0 : 1 };
+        const cambios = { hechoPadreId: pid, hijoOrden: ord, hijoNota: llano(nota).slice(0, 1e3) || null, hijoSuma: suma === false || suma === 0 || suma === "0" ? 0 : 1, hijoSentido: sentido === "favor" || sentido === "contra" ? sentido : null };
         repo.modificar("reclamacionHechos", ses, h.id, cambios);
         return { ok: true, ...cambios };
       }
@@ -163958,6 +166373,7 @@ ${l}`;
         guardarHecho,
         decidirHecho,
         borrarHecho,
+        repartirSolapes,
         guardarPrueba,
         borrarPrueba,
         ligarPrueba,
@@ -163973,6 +166389,8 @@ ${l}`;
         aplicarPlantilla,
         importarCorreos,
         traerDePartes,
+        importarPartesHorasSub,
+        porcentajeHorasSub,
         cargarCorreos,
         agruparHilos,
         resumirHilo,
@@ -164098,6 +166516,27 @@ La dio: ${dadaPor}.` : ""}
 
 No cambia ning\xFAn importe hasta que se pase a la valoraci\xF3n.`, acciones: [ir] }, propio) : { respuesta: `No he podido guardarla: ${g && g.error || "error desconocido"}.`, acciones: [ir] };
       }
+      var llano = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      function expedienteNombrado(filas, pregunta) {
+        const t = llano(pregunta);
+        return filas.find((r) => r.sentido === "nosReclaman" && !r.estudio && (r.codigo && t.includes(llano(r.codigo)) || llano(r.contraparte).length >= 3 && t.includes(llano(r.contraparte)))) || null;
+      }
+      function respuestaExpediente(repo, yo, r, obraId) {
+        const f = D().ficha(repo, yo, r.id);
+        if (!f) return null;
+        const hechos = [...f.hechos || []].sort((a, b) => String(a.fecha || "").localeCompare(String(b.fecha || "")));
+        const validados = hechos.filter((h) => h.estado === "validado").length;
+        const fecha = (v) => v ? String(v).slice(0, 10).split("-").reverse().join("/") : "s/f";
+        const lista = hechos.map((h) => `- ${fecha(h.fecha)} \xB7 ${h.titulo}${h.estado === "validado" ? "" : " (propuesto)"}`).join("\n");
+        return {
+          respuesta: `**${r.codigo} \xB7 ${r.titulo}**: es un riesgo anotado, no una reclamaci\xF3n presentada. ${hechos.length} hechos, ${validados} validados.
+
+${lista}
+
+Importe: ${f.totales && f.totales.total > 0 ? `${f.totales.total} \u20AC` : "no consta"}.`,
+          acciones: [{ tipo: "ir", destino: "reclamaciones", vista: "hechos", obraId, recId: r.id, texto: "Abrir el expediente" }]
+        };
+      }
       function responderClaim(repo, yo, { pregunta, obraId, propio: propioFuera = "" }) {
         const dos = String(pregunta || "").split(/\?\s*(?=(?:y|i|and)\s+(?:la|lo|el|the one)\s+(?:de|del|d'|about|of)\b)/i);
         if (dos.length === 2 && dos[1].trim()) {
@@ -164110,6 +166549,11 @@ No cambia ning\xFAn importe hasta que se pase a la valoraci\xF3n.`, acciones: [i
 ${b.respuesta}`, acciones: a.acciones || [] };
         }
         const filas = claimsDe(repo, yo, obraId);
+        const expediente = expedienteNombrado(filas, pregunta);
+        if (expediente) {
+          const res2 = respuestaExpediente(repo, yo, expediente, obraId);
+          if (res2) return blindar(res2, [propioFuera, propioDeClaims(repo, yo, obraId)].filter(Boolean).join(" | "));
+        }
         let h = HERR.entenderClaim(pregunta, { contrapartes: [...new Set(filas.map((r) => r.contraparte).filter(Boolean))] });
         if (!h) return null;
         if (!veEstudioClaim(yo.rol)) return h.soloSiCasa ? null : { respuesta: NO_PUESTO, acciones: [] };
@@ -164117,12 +166561,55 @@ ${b.respuesta}`, acciones: a.acciones || [] };
         const res = resolver(repo, yo, h, { obraId, filas });
         return res === null ? null : blindar(res, propio);
       }
+      function respuestaPartesHoras(repo, yo, r) {
+        const M = require_motor5();
+        const PHS = require_partesHorasSub();
+        const f = D().ficha(repo, yo, r.id);
+        const J = require_jerarquia();
+        const hs = (f && f.hechos || []).filter((h) => h.enlaceTipo === PHS.ENLACE && h.estado !== "descartado" && !J.soloDocumenta(h));
+        if (!hs.length) return `En ${r.codigo || "el claim"} todav\xEDa no hay partes de horas de subcontratas cargados. Se cargan con scripts/cargarPartesHorasSub.js (receta en el manual, \xABPartes de horas de subcontratas\xBB).`;
+        const eur = (n) => `${(Math.round(n * 100) / 100).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} \u20AC`;
+        const por = /* @__PURE__ */ new Map();
+        let horas = 0;
+        let venta = 0;
+        let coste = 0;
+        let sinCoste = 0;
+        for (const h of hs) {
+          const v = M.importeHecho(h, []).importe || 0;
+          const c = h.costeReal === null || h.costeReal === void 0 || h.costeReal === "" ? null : Number(h.costeReal);
+          const k = h.subcontrata || "Sin nombre";
+          const x = por.get(k) || { n: 0, horas: 0, venta: 0, coste: 0 };
+          x.n += 1;
+          x.horas += Number(h.horasPersona) || 0;
+          x.venta += v;
+          if (c !== null) x.coste += c;
+          por.set(k, x);
+          horas += Number(h.horasPersona) || 0;
+          venta += v;
+          if (c === null) sinCoste += 1;
+          else coste += c;
+        }
+        const lineas = [...por.entries()].sort((a, b) => b[1].venta - a[1].venta).map(([k, x]) => `- ${k}: ${x.n} partes, ${x.horas} h, venta ${eur(x.venta)}, coste ${eur(x.coste)}`);
+        return [
+          `Partes de horas de subcontratas en ${r.codigo || "el claim"} (subcategor\xEDa de Izados): ${hs.length} partes, ${horas} h-persona.`,
+          `Venta (36,5 \u20AC/h por trabajador): ${eur(venta)}. Coste real (lo que nos cobran): ${eur(coste)}${sinCoste ? ` \u2014 ${sinCoste} partes sin coste apuntado` : ""}. Margen: ${eur(venta - coste)}.`,
+          ...lineas,
+          "Lo que cuelga de un hecho que ya valora esas horas solo lo documenta: su coste cuenta, su venta no se duplica."
+        ].join("\n");
+      }
       function resolver(repo, yo, h, { obraId, filas }) {
         const r = elegir(filas, h.codigo);
         if (!r) return h.soloSiCasa ? null : { respuesta: "En esta obra no hay ninguna reclamaci\xF3n con estudio.", acciones: [] };
         const ir = { tipo: "ir", destino: "reclamaciones", vista: "estudio", obraId, recId: r.id, texto: "Abrir el estudio" };
         const est = leerEstudioClaim(repo, yo, r.id);
         if (!est) return h.soloSiCasa ? null : { respuesta: NO_PUESTO, acciones: [] };
+        if (h.que === "porcentajeHoras") {
+          const x = D().porcentajeHorasSub(repo, yo, r.id, h.subcontrata, h.porcentaje);
+          if (!x.ok) return { respuesta: x.error, acciones: [ir] };
+          const eur = (n) => `${(Math.round(n * 100) / 100).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} \u20AC`;
+          return { respuesta: `Hecho: en ${r.codigo || "el claim"} ahora va el ${h.porcentaje} % de las horas de ${x.subcontratas.join(", ")} (${x.partes} ${x.partes === 1 ? "parte" : "partes"}). Pasan de ${String(x.horasAntes).replace(".", ",")} h a ${String(x.horasDespues).replace(".", ",")} h; venta ${eur(x.ventaDespues)} y coste ${eur(x.costeDespues)}. Los PDF siguen como justificantes; puedes cambiarlo otra vez cuando quieras.`, acciones: [ir] };
+        }
+        if (h.que === "partesHoras") return { respuesta: respuestaPartesHoras(repo, yo, r), acciones: [ir] };
         const fichas = est.estudio.fichas || [];
         const boton = (p, n, respuesta, dadaPor) => ({
           tipo: "hacer",
@@ -164675,14 +167162,14 @@ No cambia ning\xFAn importe hasta que se pase a la valoraci\xF3n.`,
           misTareas: { nombre: "Mis tareas", modulo: "ordenesMant", re: /\b(mis tareas|tareas|ordenes( de mantenimiento)?|mantenimiento)\b/ },
           commissioning: { nombre: "Commissioning", modulo: "commissioning", re: /\b(commissioning|comisionado|equipos)\b/ },
           estanqueidad: { nombre: "Pruebas", modulo: "pruebasEstanqueidad", re: /\b(estanqueidad|pruebas)\b/ },
-          partes: { nombre: "Partes", modulo: "partesIncidencia", re: /\bpartes?( de incidencia)?\b/ },
+          partes: { nombre: "Avisos", modulo: "partesIncidencia", re: /\b(partes?( de incidencia)?|avisos? de incidencia)\b/ },
           avisos: { nombre: "Reclamables", modulo: "avisosReclamacion", re: /\b(reclamables?|avisos?)\b/ },
           reportesQhse: { nombre: "Reportes QHSE", modulo: "reportesQhse", re: /\breportes?( qhse)?\b/ },
           qhse: { nombre: "Plan QHSE", modulo: "qhse", re: /\b(qhse|seguridad y salud|inspecciones?)\b/ },
           ncr: { nombre: "NCR", modulo: "ncr", re: /\b(ncrs?|no conformidad(es)?)\b/ },
           reparaciones: { nombre: "Reparaciones", modulo: "incidencias", re: /\b(reparacion(es)?|averias?)\b/ },
           avance: { nombre: "Avance", modulo: "avanceObra", re: /\bavance( de obra)?\b/ },
-          jornada: { nombre: "Jornada", modulo: "jornada", re: /\b(jornada|fichajes?|vacaciones|horas extra)\b/ },
+          jornada: { nombre: "Mi jornada", modulo: "jornada", re: /\b(jornada|fichajes?|vacaciones|horas extra)\b/ },
           plano: { nombre: "Plano de equipos", modulo: "planoEquipos", re: /\bplanos?( de equipos)?\b/ },
           bloc: { nombre: "Bloc", modulo: "notas", re: /\b(bloc|notas)\b/ },
           albaranes: { nombre: "Albaranes", modulo: "pedidos", re: /\balbaran(es)?\b/ },
@@ -165199,6 +167686,215 @@ No cambia ning\xFAn importe hasta que se pase a la valoraci\xF3n.`,
     }
   });
 
+  // electron/data/iarvisListados.js
+  var require_iarvisListados = __commonJS({
+    "electron/data/iarvisListados.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var { puede } = require_roles();
+      var TE = require_tipoEquipo();
+      var M = require_motor4();
+      var MAX_CHAT = 15;
+      var ESTADO_NOMBRE = { abierta: "Abierta", enCurso: "En curso", terminada: "Por revisar", cerrada: "Cerrada", anulada: "Anulada" };
+      var MAX_ARCHIVO = 500;
+      var uuid = () => globalThis.crypto && globalThis.crypto.randomUUID ? globalThis.crypto.randomUUID() : `l-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      var fila = (pregunta, extra) => ({ id: uuid(), pregunta, estado: "respondida", local: true, creado: (/* @__PURE__ */ new Date()).toISOString(), acciones: [], ...extra });
+      var llano = (v) => String(v ?? "").trim();
+      var sin = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+      var corto = (v, n = 60) => {
+        const s = llano(v).replace(/\s+/g, " ");
+        return s.length > n ? `${s.slice(0, n - 1)}\u2026` : s;
+      };
+      var hoy = () => require_fecha().hoyLocal();
+      var fechaEs = (d) => d ? String(d).slice(0, 10).split("-").reverse().join("/") : "";
+      var PALABRAS_TIPO = [
+        ["split", /\bsplits?\b/],
+        ["vrf", /\bvrf\b/],
+        ["crac", /\bcracs?\b/],
+        ["uta", /\b(utas?|climatizador(as|es)?|unidades? de tratamiento)\b/],
+        ["fancoil", /\b(fan ?-?coils?|fancoils?|cassettes?)\b/],
+        ["rooftop", /\b(roof ?tops?|compactos?)\b/],
+        ["recuperador", /\b(recuperador(es)?|hru)\b/],
+        ["enfriadora", /\b(enfriador(a|as)|chillers?|bombas? de calor)\b/],
+        ["bomba", /\bbombas?\b/],
+        ["ventilador", /\b(ventilador(es)?|extractor(es)?)\b/]
+      ];
+      var PIDE_INC = /\b(incidencias?|reparacion(es)?|averias?|incidents?|repairs?)\b/;
+      var PIDE_LISTA = /\b(listado|lista|listar|listame|relacion|dame|dime|ensename|muestrame|saca(me)?|pasame|quiero|cuales|cuantas|cuantos|que (incidencias|reparaciones|averias|splits?|utas?)|pdf|excel|xlsx|imprim\w*|descarga\w*|informe|list|show)\b/;
+      var NO_ES_LISTA = /\b(planific\w*|crea|crear|creame|nueva|nuevo|registra|apunta|abre la|abreme la|cambia|cierra la|pasa a)\b/;
+      function tipoDe(t) {
+        for (const [id, re] of PALABRAS_TIPO) {
+          if (id === "bomba" && /\bbombas? de calor\b/.test(t)) continue;
+          if (re.test(t)) return id;
+        }
+        return null;
+      }
+      function estadoDe(t) {
+        if (/\btod[oa]s\b/.test(t) && !/\btod[oa]s l[oa]s (abiert|cerrad)/.test(t)) return "todas";
+        if (/\banulad/.test(t)) return "anulada";
+        if (/\bcerrad/.test(t)) return "cerrada";
+        if (/\ben curso\b/.test(t)) return "enCurso";
+        if (/\b(terminad\w*|por revisar|por cerrar|pendientes? de cerrar)\b/.test(t)) return "terminada";
+        if (/\b(estado abiert[oa]|solo (las |los )?abiert|sin empezar)\b/.test(t)) return "abierta";
+        return "activas";
+      }
+      function plantaDe(t) {
+        const m = /\b(?:planta|nivel|piso)\s+(-?[a-z]?-?\d{1,3}[a-z]?|baja|sotano(?:\s*-?\d)?)\b/.exec(t) || /\b([nps]-?\d{1,2})\b/.exec(t);
+        return m ? m[1].toUpperCase() : null;
+      }
+      function entender(pregunta) {
+        const t = sin(pregunta);
+        if (!t) return null;
+        const tipo = tipoDe(t);
+        const inc = PIDE_INC.test(t);
+        const conEstado = /\b(abiert\w*|pendientes?|sin cerrar|cerrad\w*|en curso|por revisar)\b/.test(t);
+        if (!inc && !(tipo && conEstado)) return null;
+        if (NO_ES_LISTA.test(t)) return null;
+        if (!PIDE_LISTA.test(t) && !(tipo && conEstado)) return null;
+        const formato = /\b(excel|xlsx|hoja de calculo)\b/.test(t) ? "excel" : "pdf";
+        return { modulo: "incidencias", tipo, estado: estadoDe(t), planta: plantaDe(t), formato };
+      }
+      var normPlanta = (p) => llano(p).toUpperCase().replace(/[^A-Z0-9-]/g, "");
+      var digitos = (p) => {
+        const m = /-?\d+/.exec(String(p || ""));
+        return m ? Number(m[0]) : null;
+      };
+      function mismaPlanta(pedida, planta) {
+        if (!pedida) return true;
+        const a = normPlanta(pedida);
+        const b = normPlanta(planta);
+        if (!b) return false;
+        if (a === b) return true;
+        return /^-?\d+$/.test(a) && digitos(a) === digitos(b);
+      }
+      function cumpleEstado(f, estado) {
+        if (estado === "todas") return f.estado !== "anulada";
+        if (estado === "activas") return Boolean((M.ESTADOS[f.estado] || {}).activa);
+        return f.estado === estado;
+      }
+      function filaSegura(f) {
+        const e = f.equipo || {};
+        return {
+          id: f.id,
+          codigo: f.codigo || "",
+          titulo: llano(f.titulo),
+          estado: f.estado,
+          estadoNombre: ESTADO_NOMBRE[f.estado] || f.estado,
+          prioridad: f.prioridad || "",
+          tag: e.tag || "",
+          tipo: TE.tipoDe(f.equipo).nombre,
+          planta: e.planta || "",
+          sala: e.sala || f.ubicacion || "",
+          encargado: f.encargado && (f.encargado.nombre || f.encargado) || "",
+          fechaApertura: f.fechaApertura || "",
+          fechaLimite: f.fechaLimite || "",
+          dias: f.calc ? f.calc.diasAbierta : null,
+          vencida: Boolean(f.calc && f.calc.vencida)
+        };
+      }
+      function obraPermitida(yo, obraId) {
+        const solo = Array.isArray(yo && yo.soloObras) ? new Set(yo.soloObras) : null;
+        return !solo || solo.has(obraId);
+      }
+      function consultar(repo, yo, obraId, filtro = {}) {
+        if (!repo || !yo) return { ok: false, error: "No he podido mirarlo ahora." };
+        if (!obraId) return { ok: false, error: "Elige primero la obra arriba y te lo miro.", sinObra: true };
+        if (!puede(yo.rol, "incidencias", "ver")) return { ok: false, error: "Tu puesto no tiene acceso a las incidencias, as\xED que yo tampoco.", fuera: true };
+        if (!obraPermitida(yo, obraId)) return { ok: false, error: "Esa obra no es de las que tu puesto ve.", fuera: true };
+        const d = require_incidencias().obra(repo, yo, obraId);
+        if (!d) return { ok: false, error: "Esa obra no es de las que tu puesto ve.", fuera: true };
+        const estado = filtro.estado || "activas";
+        const delTipo = d.filas.filter((f) => (!filtro.tipo || TE.tipoDe(f.equipo).id === filtro.tipo) && mismaPlanta(filtro.planta, f.equipo && f.equipo.planta));
+        const elegidas = delTipo.filter((f) => cumpleEstado(f, estado));
+        const porEstado = {};
+        for (const f of elegidas) porEstado[f.estado] = (porEstado[f.estado] || 0) + 1;
+        const otrosEstados = {};
+        for (const f of delTipo) if (!elegidas.includes(f)) otrosEstados[f.estado] = (otrosEstados[f.estado] || 0) + 1;
+        return { ok: true, obra: d.obra, total: elegidas.length, filas: elegidas.slice(0, MAX_ARCHIVO).map(filaSegura), porEstado, otrosEstados, exporta: Boolean(d.puede && d.puede.exportar) };
+      }
+      var ESTADO_TXT = { activas: "abiertas", abierta: "en estado abierta", enCurso: "en curso", terminada: "por revisar", cerrada: "cerradas", anulada: "anuladas", todas: "" };
+      var QUE_PDF = { activas: "abiertas", cerrada: "cerradas", todas: "todas" };
+      function describir(filtro) {
+        const tipo = filtro.tipo ? TE.nombreDeTipo(filtro.tipo).toLowerCase() : "";
+        const que = filtro.tipo ? `incidencias de ${tipo}` : "incidencias";
+        return [que, ESTADO_TXT[filtro.estado || "activas"], filtro.planta ? `en la planta ${filtro.planta}` : ""].filter(Boolean).join(" ");
+      }
+      function nombreArchivo(obra, filtro, ext) {
+        return `${obra.codigo || "Obra"} ${describir(filtro)} ${hoy()}.${ext}`.replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ");
+      }
+      function htmlPdf(repo, yo, obraId, r, filtro) {
+        const d = require_incidencias().listadoIncidencias(repo, yo, obraId, {
+          que: QUE_PDF[filtro.estado] || "seleccion",
+          ids: r.filas.map((f) => f.id),
+          alcance: describir(filtro)
+        });
+        return d && !d.error && d.n ? d.html : null;
+      }
+      function hojasExcel(r, filtro) {
+        const cab = ["C\xF3digo", "Equipo", "Tipo", "Planta", "Sala / sitio", "Qu\xE9 le pasa", "Estado", "Prioridad", "Encargado", "Apertura", "D\xEDas", "Fecha l\xEDmite", "Vencida"];
+        const filas = r.filas.map((f) => [f.codigo, f.tag, f.tipo, f.planta, f.sala, f.titulo, f.estadoNombre, f.prioridad, f.encargado, fechaEs(f.fechaApertura), f.dias ?? "", fechaEs(f.fechaLimite), f.vencida ? "S\xED" : ""]);
+        const hojas = [
+          { nombre: "Incidencias", marca: true, filtro: true, filas: [cab, ...filas], anchos: [12, 22, 12, 8, 22, 50, 12, 9, 20, 11, 6, 12, 8] },
+          { nombre: "Datos", filas: [["Dato", "Valor"], ["Obra", [r.obra.codigo, r.obra.nombre].filter(Boolean).join(" \xB7 ")], ["Listado", describir(filtro)], ["Fecha", fechaEs(hoy())], ["Incidencias", r.total]], anchos: [16, 90] }
+        ];
+        return require_papel().excelConLogo(hojas, r.obra);
+      }
+      function lineaDe(f) {
+        const donde = [f.tag, f.planta].filter(Boolean).join(" \xB7 ");
+        return `- **${f.codigo}**${donde ? ` \xB7 ${donde}` : ""} \xB7 ${corto(f.titulo)} \u2014 ${f.estadoNombre}${f.dias != null && f.estado !== "cerrada" ? `, ${f.dias} d` : ""}${f.vencida ? ", vencida" : ""}`;
+      }
+      var ESTADO_PLURAL = { abierta: "abiertas", enCurso: "en curso", terminada: "por revisar", cerrada: "cerradas", anulada: "anuladas" };
+      var desglose = (m) => Object.entries(m).sort((a, b) => ((M.ESTADOS[a[0]] || {}).orden || 9) - ((M.ESTADOS[b[0]] || {}).orden || 9)).map(([k, n]) => `${n} ${ESTADO_PLURAL[k] || k}`).join(", ");
+      async function responder(repo, yo, { pregunta, obraId }, opciones = {}) {
+        const filtro = entender(pregunta);
+        if (!filtro) return null;
+        const destino = opciones.destino || "incidencias";
+        const ir = { tipo: "ir", destino, texto: "Abrir Reparaciones de equipos" };
+        const r = consultar(repo, yo, obraId, filtro);
+        if (!r.ok) return fila(pregunta, { respuesta: r.error, acciones: r.fuera || r.sinObra ? [] : [ir] });
+        const obra = [String(r.obra.codigo || "").replace(/^OBR-/, ""), r.obra.nombre].filter(Boolean).join(" \xB7 ");
+        const que = describir(filtro);
+        if (!r.total) {
+          const otros = desglose(r.otrosEstados);
+          return fila(pregunta, { respuesta: `No hay ${que} en ${obra}.${otros ? ` Del mismo tipo hay ${otros}.` : ""}`, acciones: [ir] });
+        }
+        const lineas = r.filas.slice(0, MAX_CHAT).map(lineaDe);
+        const mas = r.total > MAX_CHAT ? `
+
+\u2026 y ${r.total - MAX_CHAT} m\xE1s: van todas en el ${filtro.formato === "excel" ? "Excel" : "PDF"}.` : "";
+        const recorte = r.total > MAX_ARCHIVO ? ` (en el archivo, las ${MAX_ARCHIVO} primeras: para el resto, abre la pantalla)` : "";
+        let respuesta = `Hay **${r.total}** ${que} en ${obra}${Object.keys(r.porEstado).length > 1 ? ` (${desglose(r.porEstado)})` : ""}:
+${lineas.join("\n")}${mas}`;
+        const acciones = [];
+        if (!r.exporta) {
+          respuesta += "\n\nTu puesto no exporta las incidencias, as\xED que no te saco el archivo; el listado lo tienes en la pantalla.";
+        } else if (!opciones.sacarArchivo) {
+          respuesta += "\n\nEl archivo lo sacas desde la pantalla (Imprimir).";
+        } else {
+          let archivo = null;
+          try {
+            if (filtro.formato === "excel") {
+              const { escribirXlsx } = require_xlsxEscribir();
+              archivo = await opciones.sacarArchivo({ nombre: nombreArchivo(r.obra, filtro, "xlsx"), bytes: escribirXlsx(hojasExcel(r, filtro)), tipo: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            } else {
+              const html = htmlPdf(repo, yo, obraId, r, filtro);
+              archivo = html ? await opciones.sacarArchivo({ nombre: nombreArchivo(r.obra, filtro, "pdf"), html, tipo: "application/pdf" }) : null;
+            }
+          } catch {
+            archivo = null;
+          }
+          respuesta += archivo ? `
+
+Aqu\xED tienes el ${filtro.formato === "excel" ? "Excel" : "PDF"}${recorte}.` : "\n\nNo he podido sacar el archivo ahora; \xE1brelo desde la pantalla.";
+          if (archivo) acciones.push(archivo);
+        }
+        acciones.push(ir);
+        return fila(pregunta, { respuesta, acciones });
+      }
+      module.exports = { entender, consultar, responder, hojasExcel, MAX_CHAT, MAX_ARCHIVO };
+    }
+  });
+
   // electron/data/iarvisPlanificacion.js
   var require_iarvisPlanificacion = __commonJS({
     "electron/data/iarvisPlanificacion.js"(exports, module) {
@@ -165337,6 +168033,15 @@ Lo otro, las cuentas de la empresa, solo lo ve Direcci\xF3n.` };
           }
           if (c) return fila(pregunta, c);
         }
+        if (repo) {
+          let l = null;
+          try {
+            l = await require_iarvisListados().responder(repo, yo, { pregunta, obraId }, { sacarArchivo: opciones.sacarArchivo || null, destino: opciones.destinoListado });
+          } catch {
+            l = null;
+          }
+          if (l) return l;
+        }
         const h = periodoRelativo(pregunta, HERR.entender(pregunta));
         if (!h || !repo) return null;
         if (!obraId) return fila(pregunta, { respuesta: opciones.sinObra || "Elige primero la obra arriba a la izquierda y te lo miro.", acciones: [] });
@@ -165473,6 +168178,7 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           ["login.idioma", "Idioma", "Language", "Idioma", "Idioma", "Sprache", "Langue"],
           ["login.estudiosYObra", "Estudios y Obra", "Studies and Site Works", "Estudis i Obra", "Estudos e Obra", "Kalkulation und Bau", "\xC9tudes et Chantier"],
           /* Cabecera y barra lateral */
+          ["cab.buscar", "\xBFQu\xE9 quieres hacer?", "What do you want to do?", "Qu\xE8 vols fer?", "O que quer fazer?", "Was m\xF6chten Sie tun?", "Que voulez-vous faire ?"],
           ["cab.salir", "Salir", "Sign out", "Sortir", "Sair", "Abmelden", "Se d\xE9connecter"],
           ["cab.salirTitulo", "Salir y dejar el ordenador para otro", "Sign out and leave the computer for someone else", "Sortir i deixar l\u2019ordinador per a un altre", "Sair e deixar o computador para outra pessoa", "Abmelden und den Computer f\xFCr andere freigeben", "Se d\xE9connecter et laisser l\u2019ordinateur \xE0 quelqu\u2019un d\u2019autre"],
           ["cab.verComo", "Ver como", "View as", "Veure com", "Ver como", "Ansehen als", "Voir en tant que"],
@@ -165482,6 +168188,7 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           ["cab.abrirMenu", "Abrir el men\xFA", "Open the menu", "Obrir el men\xFA", "Abrir o menu", "Men\xFC \xF6ffnen", "Ouvrir le menu"],
           ["lat.cambiarClave", "Cambiar mi contrase\xF1a", "Change my password", "Canviar la meva contrasenya", "Alterar a minha palavra-passe", "Mein Passwort \xE4ndern", "Modifier mon mot de passe"],
           ["lat.vistaAdmin", "vista del administrador", "administrator view", "vista de l\u2019administrador", "vista do administrador", "Administratoransicht", "vue de l\u2019administrateur"],
+          ["lat.ajustes", "Ajustes", "Settings", "Ajustos", "Defini\xE7\xF5es", "Einstellungen", "R\xE9glages"],
           ["lat.idioma", "Idioma", "Language", "Idioma", "Idioma", "Sprache", "Langue"],
           ["lat.idiomaTitulo", "Idioma de la interfaz (se guarda en tu perfil)", "Interface language (saved in your profile)", "Idioma de la interf\xEDcie (es desa al teu perfil)", "Idioma da interface (guardado no seu perfil)", "Sprache der Oberfl\xE4che (wird in Ihrem Profil gespeichert)", "Langue de l\u2019interface (enregistr\xE9e dans votre profil)"],
           ["lat.conObra", "Obra {codigo}", "Site {codigo}", "Obra {codigo}", "Obra {codigo}", "Baustelle {codigo}", "Chantier {codigo}"],
@@ -165553,12 +168260,13 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           ["Biblioteca de partidas", "Item library", "Biblioteca de partides", "Biblioteca de artigos", "Positionsbibliothek", "Biblioth\xE8que de postes"],
           ["Obras", "Sites", "Obres", "Obras", "Baustellen", "Chantiers"],
           ["Informe semanal", "Weekly report", "Informe setmanal", "Relat\xF3rio semanal", "Wochenbericht", "Rapport hebdomadaire"],
-          ["Costs Plan", "Costs Plan", "Costs Plan", "Costs Plan", "Costs Plan", "Costs Plan"],
+          ["Control de costes", "Cost control", "Control de costos", "Controlo de custos", "Kostenkontrolle", "Contr\xF4le des co\xFBts"],
           ["Certificaciones", "Certifications", "Certificacions", "Certifica\xE7\xF5es", "Abrechnungen", "Situations de travaux"],
           ["Avance de obra", "Site progress", "Avan\xE7 d\u2019obra", "Avan\xE7o da obra", "Baufortschritt", "Avancement du chantier"],
           ["Compras y pedidos", "Purchasing and orders", "Compres i comandes", "Compras e encomendas", "Einkauf und Bestellungen", "Achats et commandes"],
           ["Pedidos y entregas", "Orders and deliveries", "Comandes i lliuraments", "Encomendas e entregas", "Bestellungen und Lieferungen", "Commandes et livraisons"],
           ["Commissioning", "Commissioning", "Commissioning", "Commissioning", "Commissioning", "Commissioning"],
+          ["Documentos de la obra (archivos)", "Site documents (files)", "Documents de l\u2019obra (arxius)", "Documentos da obra (arquivos)", "Baustellendokumente (Dateien)", "Documents du chantier (fichiers)"],
           ["Plano de equipos", "Equipment plan", "Pl\xE0nol d\u2019equips", "Planta de equipamentos", "Ger\xE4teplan", "Plan des \xE9quipements"],
           ["Balanceo de caudales", "Flow balancing", "Equilibrat de cabals", "Balanceamento de caudais", "Volumenstromabgleich", "\xC9quilibrage des d\xE9bits"],
           ["Inventario de campo", "Field inventory", "Inventari de camp", "Invent\xE1rio de campo", "Feldinventar", "Inventaire terrain"],
@@ -165584,7 +168292,17 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           ["Personas y roles", "People and roles", "Persones i rols", "Pessoas e fun\xE7\xF5es", "Personen und Rollen", "Personnes et r\xF4les"],
           ["Estad\xEDsticas", "Statistics", "Estad\xEDstiques", "Estat\xEDsticas", "Statistiken", "Statistiques"],
           ["Licitaciones", "Tenders", "Licitacions", "Concursos", "Ausschreibungen", "Appels d\u2019offres"],
-          ["Auditor\xEDa", "Audit", "Auditoria", "Auditoria", "Audit", "Audit"],
+          ["Medici\xF3n real de obra", "Actual site measurement", "Mesurament real d\u2019obra", "Medi\xE7\xE3o real de obra", "Tats\xE4chliches Baustellenaufma\xDF", "M\xE9tr\xE9 r\xE9el de chantier"],
+          ["Mis horas", "My hours", "Les meves hores", "As minhas horas", "Meine Stunden", "Mes heures"],
+          ["Mi jornada", "My working day", "La meva jornada", "A minha jornada", "Mein Arbeitstag", "Ma journ\xE9e"],
+          ["Mis vacaciones", "My holidays", "Les meves vacances", "As minhas f\xE9rias", "Mein Urlaub", "Mes cong\xE9s"],
+          ["SharePoint y nube", "SharePoint and cloud", "SharePoint i n\xFAvol", "SharePoint e nuvem", "SharePoint und Cloud", "SharePoint et cloud"],
+          ["Equipos repetidos", "Duplicated equipment", "Equips repetits", "Equipamentos repetidos", "Doppelte Ger\xE4te", "\xC9quipements en double"],
+          ["Papeles por pedir al fabricante", "Papers to request from manufacturer", "Papers per demanar al fabricant", "Documentos a pedir ao fabricante", "Beim Hersteller anzufordernde Unterlagen", "Documents \xE0 demander au fabricant"],
+          ["Datos ya rellenos", "Data already filled in", "Dades ja emplenades", "Dados j\xE1 preenchidos", "Bereits ausgef\xFCllte Daten", "Donn\xE9es d\xE9j\xE0 renseign\xE9es"],
+          ["Ahorro respecto al presupuesto", "Savings against budget", "Estalvi respecte al pressupost", "Poupan\xE7a face ao or\xE7amento", "Einsparung gegen\xFCber Budget", "\xC9conomies par rapport au budget"],
+          ["De d\xF3nde sale cada dato", "Where each figure comes from", "D\u2019on surt cada dada", "De onde vem cada dado", "Woher jede Angabe stammt", "D\u2019o\xF9 vient chaque donn\xE9e"],
+          ["Historial de cambios", "Change history", "Historial de canvis", "Hist\xF3rico de altera\xE7\xF5es", "\xC4nderungsverlauf", "Historique des modifications"],
           ["Reparto del trabajo", "Work allocation", "Repartiment de la feina", "Distribui\xE7\xE3o do trabalho", "Arbeitsverteilung", "R\xE9partition du travail"],
           ["Encargos de delineaci\xF3n", "Drafting assignments", "Enc\xE0rrecs de delineaci\xF3", "Encomendas de desenho", "Zeichnungsauftr\xE4ge", "Commandes de dessin"],
           ["Oportunidades de Estudios", "Studies opportunities", "Oportunitats d\u2019Estudis", "Oportunidades de Estudos", "Kalkulationschancen", "Opportunit\xE9s des \xC9tudes"],
@@ -165597,13 +168315,13 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           ["Notas de traspaso", "Handover notes", "Notes de trasp\xE0s", "Notas de transi\xE7\xE3o", "\xDCbergabenotizen", "Notes de passation"],
           ["Columnas propias de la rejilla", "Custom grid columns", "Columnes pr\xF2pies de la graella", "Colunas pr\xF3prias da grelha", "Eigene Tabellenspalten", "Colonnes personnalis\xE9es de la grille"],
           ["Correos archivados", "Archived emails", "Correus arxivats", "E-mails arquivados", "Archivierte E-Mails", "E-mails archiv\xE9s"],
-          ["Documentaci\xF3n del proyecto", "Project documentation", "Documentaci\xF3 del projecte", "Documenta\xE7\xE3o do projeto", "Projektdokumentation", "Documentation du projet"],
-          ["Documentaci\xF3n de la obra", "Site documentation", "Documentaci\xF3 de l\u2019obra", "Documenta\xE7\xE3o da obra", "Baustellendokumentation", "Documentation du chantier"],
+          ["Documentos del proyecto", "Project documents", "Documents del projecte", "Documentos do projeto", "Projektdokumente", "Documents du projet"],
+          ["Documentos de la obra", "Site documents", "Documents de l\u2019obra", "Documentos da obra", "Baustellendokumente", "Documents de chantier"],
           ["Presupuesto de obra", "Site budget", "Pressupost d\u2019obra", "Or\xE7amento de obra", "Baubudget", "Budget du chantier"],
-          ["Variantes y OC", "Variants and change orders", "Variants i OC", "Variantes e OC", "Varianten und \xC4nderungsauftr\xE4ge", "Variantes et OM"],
+          ["Variantes y \xF3rdenes de cambio", "Variants and change orders", "Variants i ordres de canvi", "Variantes e ordens de altera\xE7\xE3o", "Varianten und \xC4nderungsauftr\xE4ge", "Variantes et ordres de modification"],
           ["An\xE1lisis del proyecto", "Project analysis", "An\xE0lisi del projecte", "An\xE1lise do projeto", "Projektanalyse", "Analyse du projet"],
           ["Control / PLC", "Control / PLC", "Control / PLC", "Controlo / PLC", "Steuerung / SPS", "Contr\xF4le / automate"],
-          ["Puntos BMS", "BMS points", "Punts BMS", "Pontos BMS", "GLT-Punkte", "Points GTB"],
+          ["Puntos de control (BMS)", "Control points (BMS)", "Punts de control (BMS)", "Pontos de controlo (BMS)", "Kontrollpunkte (GLT)", "Points de contr\xF4le (GTB)"],
           ["Contrato", "Contract", "Contracte", "Contrato", "Vertrag", "Contrat"],
           ["Med Obra", "Site measurement", "Mesurament d\u2019obra", "Medi\xE7\xE3o de obra", "Baustellenaufma\xDF", "M\xE9tr\xE9 de chantier"],
           ["Albaranes", "Delivery notes", "Albarans", "Guias de remessa", "Lieferscheine", "Bons de livraison"],
@@ -165611,7 +168329,7 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           ["Facturas de proveedor", "Supplier invoices", "Factures de prove\xEFdor", "Faturas de fornecedor", "Lieferantenrechnungen", "Factures fournisseur"],
           ["Entregas a la DF y acta", "Handovers to the DF and minutes", "Lliuraments a la DF i acta", "Entregas \xE0 DF e ata", "\xDCbergaben an die Bauleitung und Protokoll", "Remises \xE0 la MOE et proc\xE8s-verbal"],
           ["Cierre de la obra", "Site close-out", "Tancament de l\u2019obra", "Encerramento da obra", "Baustellenabschluss", "Cl\xF4ture du chantier"],
-          ["Equipos y materiales", "Equipment and materials", "Equips i materials", "Equipamentos e materiais", "Ger\xE4te und Materialien", "\xC9quipements et mat\xE9riaux"],
+          ["Desglose del presupuesto", "Budget breakdown", "Desglossament del pressupost", "Discrimina\xE7\xE3o do or\xE7amento", "Budgetaufschl\xFCsselung", "D\xE9tail du budget"],
           ["Informe de reparaciones", "Repairs report", "Informe de reparacions", "Relat\xF3rio de repara\xE7\xF5es", "Reparaturbericht", "Rapport de r\xE9parations"],
           ["Plan de compras", "Purchasing plan", "Pla de compres", "Plano de compras", "Einkaufsplan", "Plan d\u2019achats"],
           ["Comparativos", "Comparisons", "Comparatius", "Comparativos", "Preisvergleiche", "Comparatifs"],
@@ -165624,11 +168342,9 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           /* Secciones y carpetas del menú */
           ["Proyecto", "Project", "Projecte", "Projeto", "Projekt", "Projet"],
           ["Contrato y cliente", "Contract and client", "Contracte i client", "Contrato e cliente", "Vertrag und Kunde", "Contrat et client"],
-          ["Presupuesto y costes", "Budget and costs", "Pressupost i costos", "Or\xE7amento e custos", "Budget und Kosten", "Budget et co\xFBts"],
           ["Planificaci\xF3n", "Planning", "Planificaci\xF3", "Planeamento", "Planung", "Planification"],
           ["Compras", "Purchasing", "Compres", "Compras", "Einkauf", "Achats"],
           ["Producci\xF3n", "Production", "Producci\xF3", "Produ\xE7\xE3o", "Ausf\xFChrung", "Production"],
-          ["Medir y certificar", "Measure and certify", "Mesurar i certificar", "Medir e certificar", "Aufma\xDF und Abrechnung", "M\xE9trer et facturer"],
           ["Calidad y commissioning", "Quality and commissioning", "Qualitat i commissioning", "Qualidade e commissioning", "Qualit\xE4t und Commissioning", "Qualit\xE9 et commissioning"],
           ["Seguridad y QHSE", "Safety and QHSE", "Seguretat i QHSE", "Seguran\xE7a e QHSE", "Sicherheit und QHSE", "S\xE9curit\xE9 et QHSE"],
           ["Cierre y entrega", "Close-out and handover", "Tancament i lliurament", "Encerramento e entrega", "Abschluss und \xDCbergabe", "Cl\xF4ture et r\xE9ception"],
@@ -165642,8 +168358,8 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           ["Forecast", "Forecast", "Previsi\xF3", "Previs\xE3o", "Prognose", "Pr\xE9vision"],
           ["Gastos por departamento", "Expenses by department", "Despeses per departament", "Despesas por departamento", "Ausgaben nach Abteilung", "D\xE9penses par service"],
           /* 9-nov: las categorías de la barra lateral (shared/roles.js, CATEGORIAS_BARRA). */
-          ["D\xEDa a d\xEDa", "Day to day", "Dia a dia", "Dia a dia", "Tagesgesch\xE4ft", "Au quotidien"],
-          ["Dinero y contrato", "Money and contract", "Diners i contracte", "Dinheiro e contrato", "Geld und Vertrag", "Argent et contrat"],
+          ["Contrato y presupuesto", "Contract and budget", "Contracte i pressupost", "Contrato e or\xE7amento", "Vertrag und Budget", "Contrat et budget"],
+          ["Ajustes", "Settings", "Ajustos", "Defini\xE7\xF5es", "Einstellungen", "R\xE9glages"],
           ["Calidad y seguridad", "Quality and safety", "Qualitat i seguretat", "Qualidade e seguran\xE7a", "Qualit\xE4t und Sicherheit", "Qualit\xE9 et s\xE9curit\xE9"],
           ["Documentos y consulta", "Documents and reference", "Documents i consulta", "Documentos e consulta", "Dokumente und Nachschlagen", "Documents et consultation"],
           ["Departamentos", "Departments", "Departaments", "Departamentos", "Abteilungen", "Services"],
@@ -165746,7 +168462,7 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           ["No conformidades: vencidas y equipos bloqueados", "Non-conformities: overdue and blocked equipment", "No conformitats: ven\xE7udes i equips bloquejats", "N\xE3o conformidades: vencidas e equipamentos bloqueados", "Nichtkonformit\xE4ten: \xFCberf\xE4llig und gesperrte Ger\xE4te", "Non-conformit\xE9s : \xE9chues et \xE9quipements bloqu\xE9s"],
           ["Incidencias de equipos", "Equipment incidents", "Incid\xE8ncies d\u2019equips", "Incid\xEAncias de equipamentos", "Ger\xE4test\xF6rungen", "Incidents d\u2019\xE9quipements"],
           ["Obras en curso", "Sites in progress", "Obres en curs", "Obras em curso", "Laufende Baustellen", "Chantiers en cours"],
-          ["Desv\xEDos sobre Costs Plan", "Deviations from Costs Plan", "Desviacions sobre el Costs Plan", "Desvios face ao Costs Plan", "Abweichungen vom Costs Plan", "\xC9carts par rapport au Costs Plan"],
+          ["Desv\xEDos sobre control de costes", "Deviations from cost control", "Desviacions sobre el Costs Plan", "Desvios face ao Costs Plan", "Abweichungen vom Costs Plan", "\xC9carts par rapport au Costs Plan"],
           ["Certificaci\xF3n del mes", "This month\u2019s certification", "Certificaci\xF3 del mes", "Certifica\xE7\xE3o do m\xEAs", "Abrechnung des Monats", "Situation du mois"],
           ["Carga de cada jefe de grupo y de obra", "Workload per group and site manager", "C\xE0rrega de cada cap de grup i d\u2019obra", "Carga de cada chefe de grupo e diretor de obra", "Auslastung je Gruppenleiter und Bauleiter", "Charge de chaque chef de groupe et conducteur de travaux"],
           ["Carga de cada jefe de obra", "Workload per site manager", "C\xE0rrega de cada cap d\u2019obra", "Carga de cada diretor de obra", "Auslastung je Bauleiter", "Charge de chaque conducteur de travaux"],
@@ -165755,7 +168471,7 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           ["Tr\xE1mites oficiales", "Official procedures", "Tr\xE0mits oficials", "Tr\xE2mites oficiais", "Beh\xF6rdliche Verfahren", "D\xE9marches officielles"],
           ["Personal de hoy: previsto y fichado", "Today\u2019s staff: planned and clocked in", "Personal d\u2019avui: previst i fitxat", "Pessoal de hoje: previsto e registado", "Personal heute: geplant und eingestempelt", "Personnel du jour : pr\xE9vu et point\xE9"],
           ["Incidencias: terminadas por revisar y vencidas", "Incidents: finished to review and overdue", "Incid\xE8ncies: acabades per revisar i ven\xE7udes", "Incid\xEAncias: conclu\xEDdas por rever e vencidas", "St\xF6rungen: erledigt zur Pr\xFCfung und \xFCberf\xE4llig", "Incidents : termin\xE9s \xE0 v\xE9rifier et \xE9chus"],
-          ["Costs Plan: previsto contra gastado", "Costs Plan: planned vs. spent", "Costs Plan: previst contra gastat", "Costs Plan: previsto contra gasto", "Costs Plan: geplant gegen ausgegeben", "Costs Plan : pr\xE9vu contre d\xE9pens\xE9"],
+          ["Control de costes: previsto contra gastado", "cost control: planned vs. spent", "Costs Plan: previst contra gastat", "Costs Plan: previsto contra gasto", "Costs Plan: geplant gegen ausgegeben", "Costs Plan : pr\xE9vu contre d\xE9pens\xE9"],
           ["Pedidos: sin confirmar, retrasados y por llegar", "Orders: unconfirmed, delayed and incoming", "Comandes: sense confirmar, endarrerides i per arribar", "Encomendas: por confirmar, atrasadas e por chegar", "Bestellungen: unbest\xE4tigt, versp\xE4tet und unterwegs", "Commandes : non confirm\xE9es, en retard et \xE0 venir"],
           ["Mi certificaci\xF3n del mes", "My certification this month", "La meva certificaci\xF3 del mes", "A minha certifica\xE7\xE3o do m\xEAs", "Meine Abrechnung des Monats", "Ma situation du mois"],
           ["Equipos que han cambiado de estado", "Equipment that changed status", "Equips que han canviat d\u2019estat", "Equipamentos que mudaram de estado", "Ger\xE4te mit Statuswechsel", "\xC9quipements ayant chang\xE9 d\u2019\xE9tat"],
@@ -165780,7 +168496,7 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
           ["Personal hoy: previsto y fichado", "Staff today: planned and clocked in", "Personal avui: previst i fitxat", "Pessoal hoje: previsto e registado", "Personal heute: geplant und eingestempelt", "Personnel aujourd\u2019hui : pr\xE9vu et point\xE9"],
           ["Normativa nueva (BOE)", "New regulations (BOE)", "Normativa nova (BOE)", "Normativa nova (BOE)", "Neue Vorschriften (BOE)", "Nouvelle r\xE9glementation (BOE)"],
           ["Conflictos con el pr\xF3ximo paso vencido", "Disputes with next step overdue", "Conflictes amb el proper pas ven\xE7ut", "Conflitos com o pr\xF3ximo passo vencido", "Streitf\xE4lle mit \xFCberf\xE4lligem n\xE4chstem Schritt", "Litiges dont la prochaine \xE9tape est \xE9chue"],
-          ["Lo que se tuerce del Costs Plan", "What is going off track in the Costs Plan", "El que es tor\xE7a del Costs Plan", "O que se desvia do Costs Plan", "Was im Costs Plan aus dem Ruder l\xE4uft", "Ce qui d\xE9rape dans le Costs Plan"],
+          ["Lo que se tuerce del control de costes", "What is going off track in the cost control", "El que es tor\xE7a del Costs Plan", "O que se desvia do Costs Plan", "Was im Costs Plan aus dem Ruder l\xE4uft", "Ce qui d\xE9rape dans le Costs Plan"],
           ["Las obras del departamento", "The department\u2019s sites", "Les obres del departament", "As obras do departamento", "Die Baustellen der Abteilung", "Les chantiers du service"],
           ["Cifras de la empresa", "Company figures", "Xifres de l\u2019empresa", "N\xFAmeros da empresa", "Unternehmenszahlen", "Chiffres de l\u2019entreprise"],
           ["Obras por fase", "Sites by phase", "Obres per fase", "Obras por fase", "Baustellen nach Phase", "Chantiers par phase"],
@@ -168412,7 +171128,7 @@ ${p.respuesta}` } : { respuesta: `Hecho: **${r.creadas}** intervenciones creadas
              sobre la copia del teléfono. `local: false` = no es cosa de la app: la pregunta sigue a la nube. */
           "POST api/iarvis/preguntar": async ({ ses, json }) => {
             const d = json() || {};
-            const fila = await IP.responderLocal(repo, ses, { pregunta: d.pregunta, obraId: d.obraId, obraNombre: d.obraNombre }, { abrir: ABRIR_EN_MOVIL, sinObra: "Elige primero la obra arriba y te lo miro." });
+            const fila = await IP.responderLocal(repo, ses, { pregunta: d.pregunta, obraId: d.obraId, obraNombre: d.obraNombre }, { abrir: ABRIR_EN_MOVIL, sinObra: "Elige primero la obra arriba y te lo miro.", destinoListado: "reparaciones" });
             if (fila) return { ok: true, local: true, fila };
             const obraId = d.obraId ? llano(d.obraId).slice(0, 80) : null;
             let datos = null;
@@ -168855,6 +171571,11 @@ ${lineas.join("\n")}${mas}`,
       }
       async function consultarReparaciones(ctx, accion, pregunta) {
         if (!ctx.obraId) return fila(pregunta, { respuesta: SIN_OBRA });
+        const filtro = ctx.repo ? require_iarvisListados().entender(pregunta) : null;
+        if (filtro && (filtro.tipo || filtro.planta || filtro.estado !== "activas")) {
+          const l = await require_iarvisListados().responder(ctx.repo, ctx.ses, { pregunta, obraId: ctx.obraId }, { destino: "reparaciones" });
+          if (l) return fila(pregunta, { respuesta: l.respuesta, acciones: l.acciones });
+        }
         const r = await pedir(ctx.llamar, "GET", "api/reparaciones", null, { obra: ctx.obraId });
         if (!r.ok) return fila(pregunta, { respuesta: r.error });
         const lista = (r.filas || []).filter((f) => f.activa);
@@ -174521,10 +177242,17 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
       })(typeof globalThis !== "undefined" ? globalThis : exports, function() {
         const ID = "arranqueIpad";
         const COLOR_ARO = "#4C262D";
-        const SVG = '<svg class="arq-svg" viewBox="0 0 120 120" width="112" height="112" role="img" aria-label="Vidaire" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="arqDeg" gradientUnits="userSpaceOnUse" x1="60" y1="90.5" x2="60" y2="31.9"><stop offset="0" stop-color="#003F2D"/><stop offset=".55" stop-color="#538184"/><stop offset="1" stop-color="#80BBAD"/></linearGradient><filter id="arqSombra" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="1.9" stdDeviation="2.3" flood-color="#012A2D" flood-opacity=".3"/></filter><filter id="arqSuave" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.4"/></filter></defs><circle class="arq-aro" cx="60" cy="60" r="57" fill="none" stroke="#80BBAD" stroke-width="1" opacity=".5"/><g filter="url(#arqSombra)"><path class="arq-v" d="M27.9 31.9 L60 90.5 L92.1 31.9" fill="none" stroke="url(#arqDeg)" stroke-width="18.3" stroke-linecap="round" stroke-linejoin="round"/></g><path d="M27.9 31.9 L60 90.5 L92.1 31.9" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" transform="translate(-1.6 -1.6)" filter="url(#arqSuave)"/><g class="arq-brujula"><circle cx="90" cy="88" r="15" fill="#1B2A4A"/><circle cx="90" cy="88" r="11.59" fill="none" stroke="' + COLOR_ARO + '" stroke-width="1.09" opacity=".8"/><path d="M90 75.05v2.05M90 98.91v2.05M77.05 88h2.05M100.91 88h2.05" fill="none" stroke="' + COLOR_ARO + '" stroke-width="1.36" stroke-linecap="round"/><g class="arq-aguja"><g transform="rotate(35 90 88)"><path d="M90 77.09 L94.09 88 L85.91 88 Z" fill="#5B9BD5"/><path d="M90 98.91 L94.09 88 L85.91 88 Z" fill="#F4EAD9"/></g></g><circle cx="90" cy="88" r="1.77" fill="#1B2A4A" stroke="' + COLOR_ARO + '" stroke-width="0.82"/></g></svg>';
-        const BRUJULA = '<svg class="arq-brujula-sola" viewBox="74 72 32 32" width="34" height="34" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><circle cx="90" cy="88" r="15" fill="#1B2A4A"/><circle cx="90" cy="88" r="11.59" fill="none" stroke="' + COLOR_ARO + '" stroke-width="1.09" opacity=".8"/><path d="M90 75.05v2.05M90 98.91v2.05M77.05 88h2.05M100.91 88h2.05" fill="none" stroke="' + COLOR_ARO + '" stroke-width="1.36" stroke-linecap="round"/><g transform="rotate(35 90 88)"><path d="M90 77.09 L94.09 88 L85.91 88 Z" fill="#5B9BD5"/><path d="M90 98.91 L94.09 88 L85.91 88 Z" fill="#F4EAD9"/></g><circle cx="90" cy="88" r="1.77" fill="#1B2A4A" stroke="' + COLOR_ARO + '" stroke-width="0.82"/></svg>';
-        const CSS = '.arranque-ipad,.arranque-cx{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#F4F6F5;z-index:9999}html[data-tema="oscuro"] .arranque-ipad,html[data-tema="oscuro"] .arranque-cx{background:#161618}.arq-aguja{transform-origin:90px 88px;animation:arqAguja 2.4s ease-in-out infinite}@keyframes arqAguja{0%{transform:rotate(-40deg)}35%{transform:rotate(18deg)}55%{transform:rotate(-8deg)}70%,100%{transform:rotate(0)}}@media (prefers-reduced-motion:reduce){.arq-aguja{animation:none}}.arq-aviso{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:min(560px,calc(100vw - 32px));padding:9px 14px;border-radius:10px;background:#fff;color:#435254;border:1px solid #D9E0DE;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.08);white-space:pre-wrap;word-break:break-word}.arq-aviso.arq-mal{border-color:#E3BDBD;color:#9C2B2B}.arq-reintentar{margin-left:6px;border:1px solid #13957A;color:#0E7C66;background:transparent;border-radius:8px;padding:3px 10px;font:inherit;cursor:pointer}';
-        const html = (id = ID, clase = "arranque-ipad") => `<div id="${id}" class="${clase}" aria-busy="true">${SVG}</div>`;
+        const brujula = (atributos, viva) => `<svg ${atributos} viewBox="74 72 32 32" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><circle cx="90" cy="88" r="15" fill="#1B2A4A"/><circle cx="90" cy="88" r="11.59" fill="none" stroke="` + COLOR_ARO + '" stroke-width="1.09" opacity=".8"/><path d="M90 75.05v2.05M90 98.91v2.05M77.05 88h2.05M100.91 88h2.05" fill="none" stroke="' + COLOR_ARO + '" stroke-width="1.36" stroke-linecap="round"/>' + (viva ? '<g class="arq-aguja">' : "<g>") + '<g transform="rotate(35 90 88)"><path d="M90 77.09 L94.09 88 L85.91 88 Z" fill="#5B9BD5"/><path d="M90 98.91 L94.09 88 L85.91 88 Z" fill="#F4EAD9"/></g></g><circle cx="90" cy="88" r="1.77" fill="#1B2A4A" stroke="' + COLOR_ARO + '" stroke-width="0.82"/></svg>';
+        const capa = (dentro) => `<svg class="arq-capa" viewBox="0 0 240 240" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">${dentro}</svg>`;
+        const electron = (clase) => `<span class="arq-orbita ${clase}"><span class="arq-giro"><span class="arq-electron"><span class="arq-contra"><span class="arq-recto">` + brujula('class="arq-brujula"', true) + "</span></span></span></span></span>";
+        const LOGO = '<span class="arq-atomo" role="img" aria-label="Vidaire">' + electron("arq-detras") + capa(
+          /* 8-nov, JC: «la de antes me gustaba mucho más»: la V del icono de la app (scripts/generarIconoCxObra.js):
+             gruesa, degradado verde→sage→celadón, sombra y brillo. */
+          '<defs><linearGradient id="arqDeg" gradientUnits="userSpaceOnUse" x1="60" y1="90.5" x2="60" y2="31.9"><stop offset="0" stop-color="#003F2D"/><stop offset=".55" stop-color="#538184"/><stop offset="1" stop-color="#80BBAD"/></linearGradient><filter id="arqSombra" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="1.9" stdDeviation="2.3" flood-color="#012A2D" flood-opacity=".3"/></filter><filter id="arqSuave" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="1.4"/></filter></defs><g transform="translate(120 120) scale(1.3) translate(-60 -61)"><g filter="url(#arqSombra)"><path class="arq-v" d="M27.9 31.9 L60 90.5 L92.1 31.9" fill="none" stroke="url(#arqDeg)" stroke-width="18.3" stroke-linecap="round" stroke-linejoin="round"/></g><path d="M27.9 31.9 L60 90.5 L92.1 31.9" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" transform="translate(-1.6 -1.6)" filter="url(#arqSuave)"/></g>'
+        ) + electron("arq-delante") + "</span>";
+        const BRUJULA = brujula('class="arq-brujula-sola" width="34" height="34"', false);
+        const CSS = '.arranque-ipad,.arranque-cx{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#F4F6F5;z-index:9999}.arq-atomo{position:relative;display:block;flex:none;width:var(--arq-lado,min(90vw,62vh,560px));height:var(--arq-lado,min(90vw,62vh,560px))}.arq-capa{position:absolute;inset:0;display:block;width:100%;height:100%}.arq-orbita{position:absolute;inset:0;display:block;transform:rotate(-28deg) scaleY(.42)}.arq-giro{position:absolute;inset:0;display:block;animation:arqGiro 3s linear infinite}.arq-electron{position:absolute;left:90%;top:50%;display:block;width:19.2%;height:19.2%;margin:-9.6% 0 0 -9.6%}.arq-contra{display:block;width:100%;height:100%;animation:arqContra 3s linear infinite}.arq-recto{display:block;width:100%;height:100%;transform:scaleY(2.38095) rotate(28deg)}.arq-brujula{display:block;width:100%;height:100%}.arq-delante{animation:arqDelante 3s step-end infinite}.arq-detras{opacity:0;animation:arqDetras 3s step-end infinite}@keyframes arqGiro{to{transform:rotate(360deg)}}@keyframes arqContra{to{transform:rotate(-360deg)}}@keyframes arqDelante{0%{opacity:1}50%,100%{opacity:0}}@keyframes arqDetras{0%{opacity:0}50%,100%{opacity:1}}.arq-aguja{transform-box:fill-box;transform-origin:center;animation:arqAguja 2.4s ease-in-out infinite}@keyframes arqAguja{0%{transform:rotate(-40deg)}35%{transform:rotate(18deg)}55%{transform:rotate(-8deg)}70%,100%{transform:rotate(0)}}@media (prefers-reduced-motion:reduce){.arq-aguja,.arq-giro,.arq-contra,.arq-delante,.arq-detras{animation:none}}.arq-aviso{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:min(560px,calc(100vw - 32px));padding:9px 14px;border-radius:10px;background:#fff;color:#435254;border:1px solid #D9E0DE;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.08);white-space:pre-wrap;word-break:break-word}.arq-aviso.arq-mal{border-color:#E3BDBD;color:#9C2B2B}.arq-reintentar{margin-left:6px;border:1px solid #13957A;color:#0E7C66;background:transparent;border-radius:8px;padding:3px 10px;font:inherit;cursor:pointer}';
+        const html = (id = ID, clase = "arranque-ipad") => `<div id="${id}" class="${clase}" aria-busy="true">${LOGO}</div>`;
         const estilo = () => `<style>${CSS}</style>`;
         const hayDom = typeof document !== "undefined";
         function montar(id = ID, clase = "arranque-ipad") {
@@ -174541,7 +177269,7 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
             a.id = id;
             a.className = clase;
             a.setAttribute("aria-busy", "true");
-            a.innerHTML = SVG;
+            a.innerHTML = LOGO;
             (document.body || document.documentElement).append(a);
           }
           return a;
@@ -174587,7 +177315,7 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
           });
           obs.observe(document.documentElement, { childList: true, subtree: true });
         }
-        return { ID, SVG, BRUJULA, CSS, html, estilo, montar, avisar, quitar, quitarCuandoLista };
+        return { ID, LOGO, BRUJULA, CSS, html, estilo, montar, avisar, quitar, quitarCuandoLista };
       });
     }
   });

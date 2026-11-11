@@ -126,7 +126,7 @@
       icono: svg('<rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4"/>') },
     { seccion: 'albaranes', nombre: 'Escanear albarán', ayuda: 'Foto del albarán; casa con su pedido', obra: false, pasos: ['[data-accion="foto"]'],
       icono: svg('<path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><path d="M8 9h8M8 12h8M8 15h5"/>') },
-    { seccion: 'partes', nombre: 'Parte', ayuda: 'Parte de incidencia al jefe de obra', obra: true, pasos: ['[data-pi="nuevo"]'],
+    { seccion: 'partes', nombre: 'Aviso', ayuda: 'Aviso de incidencia al jefe de obra', obra: true, pasos: ['[data-pi="nuevo"]'],
       icono: svg('<path d="M14 3.5H6.5A1.5 1.5 0 0 0 5 5v14a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19V8.5z"/><path d="M14 3.5v5h5"/><path d="M12 11v4M12 17.5v.1"/>') },
     /* 26-oct: esperas, accesos denegados, falta de medios… (avisosReclamables.js). */
     { seccion: 'avisos', nombre: 'Algo reclamable', ayuda: 'Esperas, accesos denegados, sin grúa…', obra: true, pasos: ['[data-at="nuevo"]'],
@@ -141,9 +141,9 @@
 
   /* El título de cada sección, arriba: corto, que en el iPhone quepa junto a la pastilla (18-oct). */
   const TITULO = {
-    inicio: 'Inicio', commissioning: 'Cx', partes: 'Partes', ncr: 'No conformidades', reparaciones: 'Reparaciones', avance: 'Avance de obra', albaranes: 'Albaranes',
+    inicio: 'Inicio', commissioning: 'Cx', partes: 'Avisos', ncr: 'No conformidades', reparaciones: 'Reparaciones', avance: 'Avance de obra', albaranes: 'Albaranes',
     inventario: 'Inventario', bloc: 'Notas', personal: 'Personal', estanqueidad: 'Estanqueidad', cuenta: 'Perfil',
-    misTareas: 'Mis tareas', avisos: 'Reclamables', qhse: 'QHSE', reportesQhse: 'Reportes QHSE', plano: 'Plano de equipos', jornada: 'Jornada',
+    misTareas: 'Mis tareas', avisos: 'Reclamables', qhse: 'QHSE', reportesQhse: 'Reportes QHSE', plano: 'Plano de equipos', jornada: 'Mi jornada',
     iarvis: 'Iarvis', mas: 'Más',
   };
   /* Las que no dependen de la obra elegida no enseñan el selector. */
@@ -695,7 +695,16 @@
   function abrirHoja() {
     if (document.getElementById('hoja-anadir')) return;
     const o = window.CX.obra();
-    const lista = accionesDisponibles();
+    /* 9-nov: hasta 6 a la vista según el rol; las demás, al pie, sin perder ninguna. */
+    const disponibles = accionesDisponibles();
+    const porSeccion = new Map(disponibles.map((a) => [a.seccion, a]));
+    const reparto = BR().accionesDe((sesion() || {}).rol, disponibles.map((a) => a.seccion));
+    const lista = [...reparto.principales, ...reparto.resto].map((s) => porSeccion.get(s));
+    const celda = (a, i) => {
+      const falta = a.obra && !o;
+      return `<li><button class="accion-rapida" data-rapida="${i}" ${falta ? 'disabled' : ''} title="${esc(falta ? 'Elige antes una obra' : a.ayuda)}"><span class="ico">${a.icono}</span><b>${esc(CORTO[a.seccion] || a.nombre)}</b></button></li>`;
+    };
+    const n = reparto.principales.length;
     const fondo = document.createElement('div');
     fondo.className = 'hoja-fondo';
     fondo.id = 'hoja-fondo';
@@ -707,16 +716,16 @@
     h.innerHTML = `<div class="asa"></div>
       <h3>Añadir</h3>
       <p class="sub">${o ? `En ${esc(o.codigo)} · ${esc(o.nombre)}` : 'Sin obra elegida'}</p>
-      <ul class="rejilla-anadir">${lista.map((a, i) => {
-        const falta = a.obra && !o;
-        return `<li><button class="accion-rapida" data-rapida="${i}" ${falta ? 'disabled' : ''} title="${esc(falta ? 'Elige antes una obra' : a.ayuda)}"><span class="ico">${a.icono}</span><b>${esc(CORTO[a.seccion] || a.nombre)}</b></button></li>`;
-      }).join('')}</ul>
+      <ul class="rejilla-anadir">${lista.slice(0, n).map(celda).join('')}</ul>
+      ${lista.length > n ? `<button class="ver-todas" data-rapida="todas">Todas las acciones</button>
+      <ul class="rejilla-anadir resto" hidden>${lista.slice(n).map((a, i) => celda(a, n + i)).join('')}</ul>` : ''}
       <button class="boton secundario cancelar" data-rapida="cerrar">Cancelar</button>`;
     document.body.append(fondo, h);
     fondo.onclick = cerrarHoja;
     h.onclick = (ev) => {
       const b = ev.target.closest('[data-rapida]');
       if (!b) return;
+      if (b.dataset.rapida === 'todas') { b.hidden = true; h.querySelector('.rejilla-anadir.resto').hidden = false; return; }
       cerrarHoja();
       if (b.dataset.rapida !== 'cerrar') hacer(lista[Number(b.dataset.rapida)]);
     };

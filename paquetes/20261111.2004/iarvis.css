@@ -130,3 +130,64 @@ body.teclado .iaMovil .iaEntrada, body.teclado-vv .iaMovil .iaEntrada { padding-
 @media (prefers-reduced-motion: reduce) {
   .iaBrujulaViva { animation: none; }
 }
+
+/* 9-nov (JC: «se tapa la información con el chat de Iarvis, no puede ser»): con el panel abierto en una pantalla ancha,
+   el contenido se aparta (ancho del panel 380 + sus 16 de margen + 16 de aire); en una estrecha el panel va encima. */
+@media (min-width: 900px) {
+  body.iaAbierto .centro { padding-right: 412px; box-sizing: border-box; }
+}
+/* Con el panel abierto el contenido es más estrecho: el subtítulo baja a su propia línea para no abreviarse ni cortarse. */
+@media (min-width: 900px) and (max-width: 1750px) {
+  body.iaAbierto .centro > .cabecera { flex-wrap: wrap; row-gap: 2px; }
+  body.iaAbierto .centro > .cabecera h1 { max-width: none; }
+  body.iaAbierto .centro > .cabecera #subtitulo { order: 9; flex: 1 1 100%; white-space: normal; overflow: visible; }
+  body.iaAbierto .centro > .cabecera #subtitulo:empty { display: none; }
+}
+
+/* 10-nov (JC: «que el chat con Iarvis ocupe todo ese espacio reservado»): en pantalla ancha el panel es la columna
+   entera de la derecha, de arriba abajo y pegada al borde, en vez de una ventana flotante con hueco encima. */
+@media (min-width: 900px) {
+  body.iaAbierto .iaPanel:not(.iaMovil) {
+    top: 0; bottom: 0; right: 0; height: auto; width: 396px;
+    border-radius: 0; border-width: 0 0 0 1px; box-shadow: none;
+  }
+  body.iaAbierto .centro { padding-right: 396px; }
+}
+
+/* 10-nov (JC: «esto sigue sin estar arreglado»): el visor de un hecho/correo es fijo a la derecha; con Iarvis abierto
+   se coloca a su izquierda en vez de quedar tapado debajo. */
+@media (min-width: 900px) {
+  body.iaAbierto .visorCorreo { right: 396px; }
+}
+
+/* 10-nov (JC): Iarvis suelta = ventana fija que se arrastra por la cabecera y se redimensiona por la esquina; no empuja el contenido. */
+@media (min-width: 900px) {
+  .iaPanel.iaFlota:not(.iaMovil) { z-index: 1200; border-radius: 12px; border-width: 1px; box-shadow: 0 10px 34px rgba(0,0,0,.28); resize: both; min-width: 300px; min-height: 280px; max-width: calc(100vw - 16px); }
+  .iaPanel.iaFlota .iaCabecera { cursor: grab; user-select: none; touch-action: none; }
+  .iaPanel.iaFlota .iaCabecera:active { cursor: grabbing; }
+}
+.iaCabecera .iaFlotar { background: transparent; border: 0; cursor: pointer; font-size: 16px; padding: 2px 6px; color: inherit; }
+.iaPanel.iaMovil .iaFlotar { display: none; }
+
+/* 10-nov (JC): la MINIATURA del archivo en el chat, en los dos sentidos (lo que saca Iarvis y lo que
+   adjunta el usuario). Compacta, como una fila: la vista previa pequeña, el nombre y el tamaño. */
+.iaArchivos { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
+.iaArchivoMini, .iaEntrada .iaArchivoMini {
+  display: inline-flex; align-items: center; gap: 8px; height: auto; min-width: 0; max-width: 100%;
+  padding: 4px 10px 4px 4px; border: 1px solid var(--borde, var(--vd-linea)); border-radius: 8px;
+  background: var(--papel, var(--panel, var(--vd-fondo))); color: inherit; font: inherit; font-size: 12px; text-align: left; cursor: pointer;
+}
+.iaArchivoMini:hover { border-color: var(--marca-verde, currentColor); }
+.iaArchivoMini:focus-visible { outline: 2px solid var(--marca-acento, currentColor); outline-offset: 1px; }
+.iaArchivoMini.iaNoDisponible { cursor: default; opacity: .6; }
+.iaMiniVista { width: 44px; height: 56px; flex: none; display: grid; place-items: center; overflow: hidden; border-radius: 4px;
+  border: 1px solid var(--borde, var(--vd-linea)); background: var(--vd-fondo, transparent); }
+.iaMiniVista img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+.iaMiniIcono { font: 700 11px/1 inherit; letter-spacing: .04em; color: var(--vd-acento-texto, var(--marca-verde, currentColor)); }
+.iaMini-pdf .iaMiniIcono { color: var(--vd-granate, currentColor); }
+.iaMini-xls .iaMiniIcono { color: var(--marca-verde, currentColor); }
+.iaMini-doc .iaMiniIcono, .iaMini-eml .iaMiniIcono { color: var(--vd-marino, currentColor); }
+.iaMiniNombre { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; font-weight: 600; overflow-wrap: anywhere; }
+.iaMiniNombre small { font-weight: 400; color: var(--textoSuave, currentColor); font-size: 11px; }
+.iaPregunta .iaArchivos { justify-content: flex-end; }
+.iaPanel.iaSoltar { outline: 2px dashed var(--marca-verde, currentColor); outline-offset: -6px; }

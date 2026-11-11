@@ -361,7 +361,7 @@
   /* Primero el tipo, con botones grandes: es lo que decide el resto. */
   function pintarTipo() {
     $app.innerHTML = `
-      <button class="volver" data-pi="lista">‹ Partes</button>
+      <button class="volver" data-pi="lista">‹ Avisos</button>
       <h2>¿Qué ha pasado?</h2>
       <div class="tipos-parte">${Object.entries(PM.TIPOS).map(([id, t]) => `
         <button class="tipo-parte" data-pi="tipo" data-id="${esc(id)}"><b>${esc(t.icono)} ${esc(t.nombre)}</b><small>${esc(t.ayuda)}</small></button>`).join('')}

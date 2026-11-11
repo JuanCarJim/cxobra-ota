@@ -30,7 +30,7 @@
     /* Lo mismo que Commissioning, con el nombre que usa el técnico: lo que mide son equipos. */
     equipos: { nombre: 'Equipos', secciones: [['commissioning', 'Equipos'], ['estanqueidad', 'Estanqueidad', true]] },
     avance: { nombre: 'Avance', secciones: [['avance', 'Avance']] },
-    partes: { nombre: 'Partes', secciones: [['partes', 'Partes']] },
+    partes: { nombre: 'Avisos', secciones: [['partes', 'Avisos']] },
     ncr: { nombre: 'NCR', secciones: [['ncr', 'NCR']] },
     qhse: { nombre: 'QHSE', secciones: [['qhse', 'Plan'], ['reportesQhse', 'Reportes']] },
     /* «Reclamaciones» en el ordenador; en el móvil, los avisos del tajo que se reclaman. */
@@ -96,16 +96,72 @@
     partes: { grupo: 'Seguridad y QHSE', nombre: 'Avisos de incidencia', icono: '⚠' },
     /* Lo reclamable va con los conflictos y el claim, en «Contrato y cliente». */
     avisos: { grupo: 'Contrato y cliente', nombre: 'Reclamables', icono: '⚖' },
-    avance: { grupo: 'Medir y certificar', nombre: 'Avance de obra', icono: '◩' },
+    avance: { grupo: 'Producción', nombre: 'Avance de obra', icono: '◩' },
     albaranes: { grupo: 'Compras', nombre: 'Albaranes', icono: '▨' },
     inventario: { grupo: 'Compras', nombre: 'Inventario', icono: '▨' },
     personal: { grupo: 'Personal', nombre: 'Personal en obra', icono: '♙' },
     bloc: { grupo: 'Mi espacio', nombre: 'Bloc', icono: '✎' },
-    jornada: { grupo: 'Mi espacio', nombre: 'Jornada', icono: '◴' },
-    cuenta: { grupo: 'Mi espacio', nombre: 'Perfil', icono: '◉' },
+    jornada: { grupo: 'Personal', nombre: 'Mi jornada', icono: '◴' },
+    cuenta: { grupo: 'Ajustes', nombre: 'Perfil', icono: '◉' },
   };
   /* Siempre se pueden abrir, tenga el rol las secciones que tenga. */
   const DE_TODOS = ['inicio', 'cuenta', 'mas'];
+
+  /*
+   * EL «+»: QUÉ ACCIONES LLEVA CADA ROL A LA VISTA (9-nov, JC: «hay demasiadas cosas»). Hasta
+   * 6, por orden; las demás que el rol tenga permitidas, en «Todas las acciones», al pie de
+   * la misma hoja. Esta tabla decide el orden, NUNCA los permisos: todo se cruza con lo que
+   * el rol puede abrir. Las claves son las secciones de ACCIONES en carcasa.js.
+   */
+  const MAX_ACCIONES = 6;
+  /* Las de ACCIONES en carcasa.js, en su mismo orden (una prueba lo vigila). */
+  const SECCIONES_ACCION = ['jornada', 'commissioning', 'estanqueidad', 'ncr', 'reparaciones', 'avance', 'bloc', 'albaranes', 'partes', 'avisos', 'reportesQhse', 'qhse'];
+  const JEFE_OBRA = ['commissioning', 'ncr', 'avisos', 'reportesQhse', 'bloc', 'jornada'];
+  const CX = ['commissioning', 'estanqueidad', 'ncr', 'reparaciones', 'bloc', 'jornada'];
+  const MANDO = ['avisos', 'ncr', 'reportesQhse', 'bloc'];
+  const MANTENIMIENTO = ['reparaciones', 'commissioning', 'ncr', 'bloc', 'jornada'];
+  const QHSE = ['qhse', 'reportesQhse', 'bloc', 'jornada'];
+  const SOLO_LO_SUYO = ['jornada', 'bloc'];
+  const ACCIONES_PLUS_POR_ROL = {
+    jefeObra: JEFE_OBRA,
+    jefeProduccion: JEFE_OBRA,
+    encargadoObra: ['jornada', 'avance', 'partes', 'albaranes', 'avisos', 'bloc'],
+    operario: ['jornada', 'partes', 'commissioning', 'bloc'],
+    jefeCommissioning: CX,
+    tecnicoCommissioning: CX,
+    jefeGrupo: MANDO,
+    jefeDepartamento: MANDO,
+    jefeProyectos: MANDO,
+    contractSupport: ['albaranes', 'ncr', 'avisos', 'bloc', 'jornada'],
+    jefeMantenimiento: MANTENIMIENTO,
+    encargadoMantenimiento: MANTENIMIENTO,
+    operarioMantenimiento: MANTENIMIENTO,
+    jefeQhse: QHSE,
+    tecnicoQhse: QHSE,
+    subcontrata: SOLO_LO_SUYO,
+    operarioSubcontrata: SOLO_LO_SUYO,
+    jefeEstudios: SOLO_LO_SUYO,
+    tecnicoEstudios: SOLO_LO_SUYO,
+    jefeDelineacion: SOLO_LO_SUYO,
+    delineante: SOLO_LO_SUYO,
+    comercial: SOLO_LO_SUYO,
+  };
+
+  /**
+   * Reparte las acciones que el rol puede hacer: `principales` (hasta 6, a la vista) y `resto`
+   * («Todas las acciones»). `disponibles`, las secciones permitidas en el orden de carcasa.js.
+   * Un rol sin tabla, o sin ninguna de las suyas permitida, ve las primeras 6 de siempre.
+   */
+  function accionesDe(rol, disponibles = []) {
+    const ok = new Set(disponibles);
+    const suyas = (ACCIONES_PLUS_POR_ROL[rol] || []).filter((s) => ok.has(s));
+    const principales = (suyas.length ? suyas : disponibles).slice(0, MAX_ACCIONES);
+    const arriba = new Set(principales);
+    return { principales, resto: disponibles.filter((s) => !arriba.has(s)) };
+  }
+
+  /* Jornada no va en «Más» si «Fichar» está a la vista en el «+»: abre esa misma pantalla. */
+  const fichaEnElMas = (rol, secciones) => accionesDe(rol, SECCIONES_ACCION.filter((s) => secciones.includes(s))).principales.includes('jornada');
 
   const orden = (a, b) => a.localeCompare(b, 'es');
 
@@ -132,8 +188,9 @@
     const abajo = new Set(pestanasDe(rol, secciones).flatMap((p) => p.secciones.map(([s]) => s)));
     const ve = new Set([...secciones, 'cuenta']);
     const grupos = new Map();
+    const sinJornada = fichaEnElMas(rol, secciones);
     for (const [id, m] of Object.entries(EN_MAS)) {
-      if (!ve.has(id) || abajo.has(id)) continue;
+      if (!ve.has(id) || abajo.has(id) || (id === 'jornada' && sinJornada)) continue;
       if (!grupos.has(m.grupo)) grupos.set(m.grupo, []);
       grupos.get(m.grupo).push({ id, nombre: m.nombre, icono: m.icono });
     }
@@ -148,13 +205,13 @@
   function pestanaDeSeccion(rol, secciones, s) {
     const lista = pestanasDe(rol, secciones);
     return lista.find((p) => p.secciones.some(([id]) => id === s))
-      || (masDe(rol, secciones).some((g) => g.items.some((i) => i.id === s)) ? lista.find((p) => p.id === 'mas') : null);
+      || (EN_MAS[s] && (s === 'cuenta' || secciones.includes(s)) ? lista.find((p) => p.id === 'mas') : null);
   }
 
   /** El nombre del ordenador de cada sección, para el título de arriba. */
   const nombreDe = (s) => (EN_MAS[s] ? EN_MAS[s].nombre : null);
 
-  const api = { PESTANAS, BARRA_POR_ROL, RELLENO, EN_MAS, pestanasDe, masDe, pestanaDeSeccion, nombreDe };
+  const api = { PESTANAS, BARRA_POR_ROL, RELLENO, EN_MAS, ACCIONES_PLUS_POR_ROL, MAX_ACCIONES, SECCIONES_ACCION, accionesDe, pestanasDe, masDe, pestanaDeSeccion, nombreDe };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (raiz) raiz.CXBarraRol = api;
 })(typeof window !== 'undefined' ? window : null);

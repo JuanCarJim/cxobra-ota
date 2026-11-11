@@ -30,10 +30,10 @@
   const CHARLA = 'vidaire.iarvis.charla';
   const CADUCA_MS = 2 * 60 * 60 * 1000;
   const NOMBRES_PANTALLA = {
-    presupuestos: 'Presupuestos', presupuestoObra: 'Presupuesto de obra', medObra: 'Med Obra', certificaciones: 'Certificaciones',
+    presupuestos: 'Presupuestos', presupuestoObra: 'Presupuesto de obra', medObra: 'Medición real de obra', certificaciones: 'Certificaciones',
     compras: 'Compras', comparativos: 'Comparativos', gantt: 'Gantt', commissioning: 'Commissioning', documentacion: 'Documentación',
     balanceo: 'Balanceo', reclamaciones: 'Reclamaciones', incidencias: 'Incidencias', partes: 'Partes', actas: 'Actas', tareas: 'Tareas',
-    pedidos: 'Pedidos', documentacionProyecto: 'Documentación del proyecto', planosObra: 'Planos', facturasProveedor: 'Facturas',
+    pedidos: 'Pedidos', documentacionProyecto: 'Documentos del proyecto', planosObra: 'Planos', facturasProveedor: 'Facturas',
   };
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -60,7 +60,7 @@
     I.ultima = c ? Number(c.ultima) : 0;
   }
   /** Para las pruebas: el estado de la conversación de esta vez. */
-  const _charla = { leerCharla, caducar, actividad, CADUCA_MS, pintarPropuestas: (f) => pintarPropuestas(f) };
+  const _charla = { leerCharla, caducar, actividad, CADUCA_MS, pintarPropuestas: (f) => pintarPropuestas(f), tarjetaArchivo: (a, id, o) => tarjetaArchivo(a, id, o), iconoDe: (a) => iconoDe(a), pintarAcciones: (f) => pintarAcciones(f) };
 
   function adaptadorDelPuente() {
     const p = window.puente;
@@ -98,6 +98,150 @@
   }
 
   const kb = (n) => (n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
+  /*
+   * 10-nov (JC): LA MINIATURA DEL ARCHIVO en el chat, en los dos sentidos (lo que saca Iarvis y lo
+   * que adjunta el usuario): la primera página del PDF o la imagen reducida si se puede; si no, el
+   * icono del tipo. Con el nombre y el tamaño; al pulsarla se abre (y en la web, además, se descarga).
+   *   - escritorio: la miniatura la da el proceso principal (nativeImage, como notas:miniatura);
+   *   - web: se pinta aquí con los bytes (pdf.js de renderer/recortePdf.js, o un lienzo para las fotos).
+   * Las miniaturas pintadas se guardan en una caché pequeña por archivo (memoria + localStorage).
+   */
+  const CLAVE_MINIS = 'vidaire.iarvis.miniaturas';
+  const MAX_MINIS = 40;
+  I.archivos = I.archivos || {};
+  I.minis = I.minis || (() => { try { return JSON.parse(localStorage.getItem(CLAVE_MINIS) || '{}') || {}; } catch { return {}; } })();
+  I.bytesLocales = I.bytesLocales || new Map();
+  function guardarMini(clave, url) {
+    if (!clave || !url) return;
+    I.minis[clave] = url;
+    const claves = Object.keys(I.minis);
+    for (const k of claves.slice(0, Math.max(0, claves.length - MAX_MINIS))) delete I.minis[k];
+    try { localStorage.setItem(CLAVE_MINIS, JSON.stringify(I.minis)); } catch { /* lleno: se queda en memoria */ }
+  }
+  const extDe = (n) => { const m = /\.([a-z0-9]{1,5})$/i.exec(String(n || '')); return m ? m[1].toLowerCase() : ''; };
+  /** El icono del tipo: PDF, XLS, DOC, IMG, EML… (y la clase que le da el color). */
+  function iconoDe(a) {
+    const mime = String(a.mime || a.tipoMime || (/\//.test(String(a.tipo || '')) ? a.tipo : '') || '');
+    const ext = extDe(a.nombre);
+    if (/pdf/.test(mime) || ext === 'pdf') return { txt: 'PDF', clase: 'pdf' };
+    if (/sheet|excel|csv/.test(mime) || /^(xlsx?|xlsm|csv|ods)$/.test(ext)) return { txt: 'XLS', clase: 'xls' };
+    if (/word|officedocument\.wordprocessing/.test(mime) || /^(docx?|odt|rtf)$/.test(ext)) return { txt: 'DOC', clase: 'doc' };
+    if (/^image\//.test(mime) || /^(jpe?g|png|gif|webp|heic|heif|tiff?|bmp)$/.test(ext)) return { txt: 'IMG', clase: 'img' };
+    if (/message|outlook/.test(mime) || /^(eml|msg)$/.test(ext)) return { txt: 'EML', clase: 'eml' };
+    if (/^(dwg|dxf|ifc|rvt)$/.test(ext)) return { txt: ext.toUpperCase(), clase: 'cad' };
+    if (/zip|compressed/.test(mime) || /^(zip|rar|7z)$/.test(ext)) return { txt: 'ZIP', clase: 'otro' };
+    return { txt: (ext || 'ARCH').toUpperCase().slice(0, 4), clase: 'otro' };
+  }
+  const claveMini = (a) => String(a.ruta || (a.nombre && a.tamano ? `${a.nombre}:${a.tamano}` : '') || '');
+  /** La tarjeta del archivo (un solo componente para los dos sentidos). `origen`: 'iarvis' | 'usuario'. */
+  function tarjetaArchivo(a, id, origen) {
+    I.archivos[id] = { ...a, origen };
+    const ic = iconoDe(a);
+    const mini = a.miniatura || I.minis[claveMini(a)];
+    const disponible = origen === 'usuario' ? Boolean(a.ruta || I.bytesLocales.has(claveMini(a))) : Boolean(a.ruta || a.base64 || I.pdfs[id]);
+    const donde = origen === 'iarvis' && a.ruta ? ' · Descargas › Vidaire Iarvis' : '';
+    const titulo = disponible ? `Abrir «${a.nombre || ''}»` : 'Pídemelo otra vez para sacarlo de nuevo.';
+    return `<button type="button" class="iaArchivoMini${disponible ? '' : ' iaNoDisponible'}" data-ia-archivo="${esc(id)}" title="${esc(titulo)}"${disponible ? '' : ' disabled'}>
+      <span class="iaMiniVista iaMini-${ic.clase}" data-ia-vista="${esc(id)}">${mini ? `<img src="${esc(mini)}" alt="">` : `<span class="iaMiniIcono">${esc(ic.txt)}</span>`}</span>
+      <span class="iaMiniNombre">${esc(a.nombre || 'Archivo')}<small>${esc(ic.txt)}${a.tamano ? ` · ${kb(a.tamano)}` : ''}${donde}</small></span></button>`;
+  }
+  const deBase64 = (b64) => { const bin = atob(b64); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; };
+  const aDataUrl = (bytes, mime) => new Promise((ok) => {
+    try { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = () => ok(null); r.readAsDataURL(new Blob([bytes], { type: mime })); } catch { ok(null); }
+  });
+  /** La miniatura pintada aquí: la primera página del PDF o la foto reducida (JPEG pequeño en data:, que la CSP deja). */
+  async function pintarMiniatura(bytes, a) {
+    const ic = iconoDe(a);
+    const lienzo = document.createElement('canvas');
+    try {
+      if (ic.clase === 'pdf') {
+        if (typeof cargarPdfjsRp !== 'function') return null; // eslint-disable-line no-undef
+        const lib = await cargarPdfjsRp(); // eslint-disable-line no-undef
+        const doc = await lib.getDocument({ data: bytes.slice(), isEvalSupported: false }).promise;
+        const pagina = await doc.getPage(1);
+        const v0 = pagina.getViewport({ scale: 1 });
+        const vista = pagina.getViewport({ scale: 240 / Math.max(v0.width, v0.height) });
+        lienzo.width = Math.ceil(vista.width); lienzo.height = Math.ceil(vista.height);
+        await pagina.render({ canvasContext: lienzo.getContext('2d'), viewport: vista }).promise;
+        try { doc.destroy(); } catch { /* nada */ }
+      } else if (ic.clase === 'img') {
+        const url = await aDataUrl(bytes, a.mime || 'image/jpeg');
+        if (!url) return null;
+        const img = await new Promise((ok, mal) => { const i = new Image(); i.onload = () => ok(i); i.onerror = mal; i.src = url; });
+        const k = 240 / Math.max(img.naturalWidth || 1, img.naturalHeight || 1);
+        lienzo.width = Math.max(1, Math.round(img.naturalWidth * Math.min(1, k))); lienzo.height = Math.max(1, Math.round(img.naturalHeight * Math.min(1, k)));
+        lienzo.getContext('2d').drawImage(img, 0, 0, lienzo.width, lienzo.height);
+      } else return null;
+      return lienzo.toDataURL('image/jpeg', 0.7);
+    } catch { return null; }
+  }
+  /** Rellena las miniaturas que faltan en lo pintado (sin bloquear el chat). */
+  async function rellenarMiniaturas() {
+    const raiz = I.panel || I.lista;
+    if (!raiz) return;
+    for (const z of raiz.querySelectorAll('[data-ia-vista]')) {
+      if (z.querySelector('img')) continue;
+      const a = I.archivos[z.getAttribute('data-ia-vista')];
+      if (!a || a.sinMini) continue;
+      a.sinMini = true; // una vez por archivo y sesión
+      const clave = claveMini(a);
+      let url = I.minis[clave] || null;
+      if (!url && a.ruta && a.origen === 'iarvis' && window.puente && window.puente.iarvisMiniatura) {
+        try { url = await window.puente.iarvisMiniatura(a.ruta); } catch { url = null; }
+      }
+      if (!url) {
+        const local = I.bytesLocales.get(clave);
+        const pdf = I.pdfs[z.getAttribute('data-ia-vista')];
+        const bytes = local ? local.bytes : (a.base64 || (pdf && pdf.base64)) ? deBase64(a.base64 || pdf.base64) : null;
+        if (bytes) url = await pintarMiniatura(bytes, a);
+      }
+      if (!url) continue;
+      guardarMini(clave, url);
+      for (const v of raiz.querySelectorAll(`[data-ia-vista="${CSS && CSS.escape ? CSS.escape(z.getAttribute('data-ia-vista')) : z.getAttribute('data-ia-vista')}"]`)) {
+        v.innerHTML = `<img src="${esc(url)}" alt="">`;
+      }
+    }
+  }
+  /** En la web: abrir en otra pestaña y, además, descargarlo (JC: «se abre y se descarga»). */
+  function abrirYBajar(bytes, nombre, mime) {
+    const url = URL.createObjectURL(new Blob([bytes], { type: mime || 'application/octet-stream' }));
+    if (/pdf|^image\//.test(String(mime || ''))) window.open(url, '_blank');
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = nombre || 'archivo';
+    document.body.append(enlace);
+    enlace.click();
+    enlace.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
+  const avisar = (t) => { if (window.AVISOS && window.AVISOS.mostrar) window.AVISOS.mostrar(t); };
+  async function abrirArchivo(id) {
+    const a = I.archivos[id];
+    if (!a) return;
+    const mime = a.mime || (/\//.test(String(a.tipo || '')) ? a.tipo : '') || 'application/octet-stream';
+    if (a.origen === 'iarvis') {
+      if (a.ruta && window.puente && window.puente.iarvisAbrirPdf) {
+        const r = await window.puente.iarvisAbrirPdf(a.ruta, false);
+        if (r && !r.ok) avisar(r.error || 'No se ha podido abrir.');
+        return;
+      }
+      const b = a.base64 || (I.pdfs[id] && I.pdfs[id].base64);
+      if (b) abrirYBajar(deBase64(b), a.nombre, mime || 'application/pdf');
+      return;
+    }
+    /* Lo que adjuntó el usuario: se baja de SU carpeta de la nube (el escritorio lo abre; la web lo abre y lo descarga);
+       sin conexión, con los bytes de esta vez si están. */
+    const local = I.bytesLocales.get(claveMini(a));
+    if (!window.puente || !window.puente.iarvisAbrirAdjunto) { if (local) abrirYBajar(local.bytes, a.nombre, local.mime || mime); return; }
+    const r = await window.puente.iarvisAbrirAdjunto({ ruta: a.ruta, nombre: a.nombre, tipo: mime });
+    if (r && r.ok && r.base64) abrirYBajar(deBase64(r.base64), a.nombre, r.mime || mime);
+    else if (r && !r.ok) { if (local) abrirYBajar(local.bytes, a.nombre, local.mime || mime); else avisar(r.error || 'No se ha podido abrir.'); }
+  }
+  /** Las miniaturas de lo adjuntado (en la pregunta y en la caja antes de mandar). */
+  function tarjetasAdjuntos(lista, prefijo) {
+    return (lista || []).map((a, i) => tarjetaArchivo({ ...a, mime: a.mime || (/\//.test(String(a.tipoMime || '')) ? a.tipoMime : '') }, `${prefijo}:${i}`, 'usuario')).join('');
+  }
+
   /** Lo que Iarvis ha hecho con la app: el PDF, ir a una pantalla, proponer o aplicar. */
   function pintarAcciones(f) {
     const acc = Array.isArray(f.acciones) ? f.acciones : [];
@@ -105,16 +249,15 @@
     const pdfs = acc.filter((a) => a.tipo === 'pdf').map((a, i) => {
       const id = `${f.id}:${i}`;
       if (a.base64) I.pdfs[id] = a;
-      const disponible = a.ruta || a.base64 || I.pdfs[id];
-      return `<div class="iaPdf"><span class="iaPdfIcono" aria-hidden="true">PDF</span><span class="iaPdfNombre">${esc(a.nombre)}<small>${a.tamano ? kb(a.tamano) : ''}${a.ruta ? ' · en Descargas › Vidaire Iarvis' : ''}</small></span>
-        ${disponible ? `<button class="iaBotonPrin" data-ia-pdf="${esc(id)}" data-ruta="${esc(a.ruta || '')}">Abrir</button>${a.ruta ? `<button data-ia-pdf-carpeta="${esc(a.ruta)}">Mostrar</button>` : `<button data-ia-pdf-bajar="${esc(id)}">Descargar</button>`}` : '<small>Pídemelo otra vez para sacarlo de nuevo.</small>'}</div>`;
+      const guardado = I.pdfs[id];
+      return tarjetaArchivo(guardado && !a.base64 ? { ...a, base64: guardado.base64 } : a, id, 'iarvis');
     }).join('');
     const botones = acc.filter((a) => a.tipo !== 'pdf').map((a) => {
       const datos = esc(JSON.stringify(a));
       const prin = a.tipo === 'proponer' || a.tipo === 'aplicar' || (a.tipo === 'hacer' && a.hacer !== 'rechazar');
       return `<button class="${prin ? 'iaBotonPrin' : 'iaBotonSec'}" data-ia-accion="${datos}">${esc(a.texto || 'Abrir')}</button>`;
     }).join('');
-    return `${pdfs}${botones ? `<div class="iaAcciones">${botones}</div>` : ''}`;
+    return `${pdfs ? `<div class="iaArchivos">${pdfs}</div>` : ''}${botones ? `<div class="iaAcciones">${botones}</div>` : ''}`;
   }
 
   /*
@@ -187,7 +330,8 @@
   }
 
   function pintarFila(f) {
-    return `<div class="iaPregunta">${esc(f.pregunta)}${(f.adjuntos || []).length ? `<div class="iaAdjuntos">📎 ${f.adjuntos.map((a) => esc(a.nombre)).join(', ')}</div>` : ''}</div>${pintarRespuesta(f)}`;
+    const adj = (f.adjuntos || []).length ? `<div class="iaAdjuntos iaArchivos">${tarjetasAdjuntos(f.adjuntos, `adj:${f.id || I.filas.indexOf(f)}`)}</div>` : '';
+    return `<div class="iaPregunta">${esc(f.pregunta)}${adj}</div>${pintarRespuesta(f)}`;
   }
 
   function pintar() {
@@ -197,6 +341,7 @@
     const bienvenida = ahora.length ? '' : `<div class="iaBienvenida"><h3>${saludo()}</h3><p>Pídeme lo que necesites de la obra: lo busco en la app y te lo doy. También te explico cómo se hace cualquier cosa.</p><div class="iaSugerencias">${sugerencias()}</div></div>`;
     I.lista.innerHTML = `${bienvenida}${[...ahora].reverse().map(pintarFila).join('')}`;
     I.lista.scrollTop = I.lista.scrollHeight;
+    rellenarMiniaturas();
   }
 
   async function cargarHistorial() {
@@ -256,7 +401,9 @@
 
   function pintarFicheros() {
     const z = I.panel && I.panel.querySelector('.iaFicheros');
-    if (z) z.textContent = I.ficheros.length ? `📎 ${I.ficheros.map((a) => a.nombre).join(', ')}` : '';
+    if (!z) return;
+    z.innerHTML = I.ficheros.length ? `<div class="iaArchivos">${tarjetasAdjuntos(I.ficheros, 'caja')}</div>` : '';
+    rellenarMiniaturas();
   }
 
   async function adjuntar(lista) {
@@ -268,7 +415,12 @@
       if (z) z.textContent = `Subiendo «${archivo.name}»…`;
       let r;
       try { r = await I.adaptador.adjuntar(archivo.name, bytes, t.mime || archivo.type || 'application/octet-stream'); } catch { r = { ok: false, aviso: 'No se ha podido subir.' }; }
-      if (r && r.ok) I.ficheros.push({ ...r.adjunto, tipo: t.tipo });
+      if (r && r.ok) {
+        /* 10-nov: los bytes de esta vez se quedan en memoria para la miniatura (y para abrirlo sin red). */
+        const mime = r.adjunto.tipo || t.mime || archivo.type || '';
+        I.bytesLocales.set(claveMini(r.adjunto), { bytes, mime });
+        I.ficheros.push({ ...r.adjunto, mime, tipo: t.tipo });
+      }
       else if (window.AVISOS && window.AVISOS.mostrar) window.AVISOS.mostrar((r && r.aviso) || 'No se ha podido subir.');
       else if (z) z.textContent = (r && r.aviso) || 'No se ha podido subir.';
     }
@@ -279,7 +431,7 @@
     const bin = atob(a.base64);
     const u = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
-    return URL.createObjectURL(new Blob([u], { type: 'application/pdf' }));
+    return URL.createObjectURL(new Blob([u], { type: a.mime || 'application/pdf' }));
   }
   async function abrirPdf(id, ruta, enCarpeta) {
     if (ruta && window.puente && window.puente.iarvisAbrirPdf) {
@@ -403,7 +555,7 @@
       ${I.movil
     /* 8-nov (JC): en el móvil, SOLO el chat: una cabecera mínima con «‹» para volver y «Iarvis». */
     ? '<div class="iaCabecera"><button class="iaVolver" title="Volver" aria-label="Volver">‹</button><h2>Iarvis</h2></div>'
-    : '<div class="iaCabecera"><span class="iaMarca" aria-hidden="true">I</span><div class="iaTitulo"><h2>Iarvis</h2><span class="iaAviso">Usa la app por ti · solo lo que tu puesto ve</span></div><button class="iaNueva" title="Empezar de cero" aria-label="Conversación nueva">＋</button><button class="iaCerrar" title="Cerrar (Esc)" aria-label="Cerrar">×</button></div>'}
+    : '<div class="iaCabecera"><span class="iaMarca" aria-hidden="true">I</span><div class="iaTitulo"><h2>Iarvis</h2><span class="iaAviso">Usa la app por ti · solo lo que tu puesto ve</span></div><button class="iaFlotar" title="Soltar como ventana (o anclar a la columna)" aria-label="Soltar o anclar">⧉</button><button class="iaNueva" title="Empezar de cero" aria-label="Conversación nueva">＋</button><button class="iaCerrar" title="Cerrar (Esc)" aria-label="Cerrar">×</button></div>'}
       <div class="iaLista" role="log" aria-live="polite"></div>
       <div class="iaEntrada">
         <div class="iaFicheros"></div>
@@ -425,6 +577,23 @@
     for (const sel of ['.iaArchivo', '.iaFoto']) {
       p.querySelector(sel).addEventListener('change', (e) => { adjuntar([...e.target.files]); e.target.value = ''; });
     }
+    /* 10-nov (JC): adjuntar también arrastrando al panel o pegando (Cmd+V) un archivo. */
+    const conArchivos = (e) => Boolean(e.dataTransfer && [...(e.dataTransfer.types || [])].includes('Files'));
+    p.addEventListener('dragover', (e) => { if (!conArchivos(e)) return; e.preventDefault(); p.classList.add('iaSoltar'); });
+    p.addEventListener('dragleave', (e) => { if (!p.contains(e.relatedTarget)) p.classList.remove('iaSoltar'); });
+    p.addEventListener('drop', (e) => {
+      p.classList.remove('iaSoltar');
+      if (!conArchivos(e)) return;
+      e.preventDefault();
+      const lista = [...(e.dataTransfer.files || [])];
+      if (lista.length && I.adaptador) adjuntar(lista);
+    });
+    p.querySelector('textarea').addEventListener('paste', (e) => {
+      const lista = [...((e.clipboardData && e.clipboardData.files) || [])];
+      if (!lista.length || !I.adaptador) return;
+      e.preventDefault();
+      adjuntar(lista);
+    });
     const cerrarB = p.querySelector('.iaCerrar');
     if (cerrarB) cerrarB.addEventListener('click', cerrar);
     p.addEventListener('click', async (e) => {
@@ -432,6 +601,8 @@
       if (sug) { mandar(sug.getAttribute('data-ia-sugerencia')); return; }
       if (e.target.closest('.iaVolver')) { if (I.volver) I.volver(); else if (history.length > 1) history.back(); return; }
       if (e.target.closest('.iaNueva')) { I.deEstaVez = new Set(); I.idsEstaVez = new Set(); I.ultima = 0; try { localStorage.removeItem(CHARLA); } catch { /* nada */ } pintar(); return; }
+      const arch = e.target.closest('[data-ia-archivo]');
+      if (arch) { abrirArchivo(arch.getAttribute('data-ia-archivo')); return; }
       const pdf = e.target.closest('[data-ia-pdf]');
       if (pdf) { abrirPdf(pdf.getAttribute('data-ia-pdf'), pdf.getAttribute('data-ruta'), false); return; }
       const carpeta = e.target.closest('[data-ia-pdf-carpeta]');
@@ -454,12 +625,69 @@
       }
     });
     p.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !I.movil) cerrar(); });
+    engancharArrastre(p);
     return p;
+  }
+
+  /* 10-nov (JC): Iarvis como ventana que se arrastra: encima de la tabla, junto a la ficha lateral del hecho, o fuera de en medio.
+     Anclada = la columna de siempre (empuja el contenido); suelta = ventana fija arrastrable y redimensionable que no empuja nada. */
+  const CLAVE_POS = 'vidaire.iarvis.ventana';
+  function leerPos() { try { return JSON.parse(localStorage.getItem(CLAVE_POS) || 'null'); } catch { return null; } }
+  function guardarPos(o) { try { localStorage.setItem(CLAVE_POS, JSON.stringify(o)); } catch { /* sin almacenamiento */ } }
+  function encajar(p, x, y, w, h) {
+    const W = window.innerWidth, H = window.innerHeight;
+    w = Math.max(300, Math.min(w, W - 16)); h = Math.max(280, Math.min(h, H - 16));
+    x = Math.max(8, Math.min(x, W - w - 8)); y = Math.max(8, Math.min(y, H - 80));
+    Object.assign(p.style, { left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px`, right: 'auto', bottom: 'auto' });
+    return { x, y, w, h };
+  }
+  function soltar(r) {
+    const p = I.panel; if (!p || I.movil) return;
+    const rect = r || p.getBoundingClientRect();
+    p.classList.add('iaFlota');
+    document.body.classList.remove('iaAbierto');
+    const pos = encajar(p, rect.left - (r ? 0 : 24), r ? rect.top : Math.max(8, rect.top + 24), Math.min(rect.width, 420), Math.min(rect.height, window.innerHeight - 80));
+    guardarPos({ flota: true, ...pos });
+  }
+  function anclar() {
+    const p = I.panel; if (!p || I.movil) return;
+    p.classList.remove('iaFlota');
+    ['left', 'top', 'width', 'height', 'right', 'bottom'].forEach((k) => { p.style[k] = ''; });
+    if (!p.hidden) document.body.classList.add('iaAbierto');
+    guardarPos({ flota: false });
+  }
+  function engancharArrastre(p) {
+    const cab = p.querySelector('.iaCabecera'); if (!cab || I.movil) return;
+    const flot = p.querySelector('.iaFlotar');
+    if (flot) flot.addEventListener('click', () => (p.classList.contains('iaFlota') ? anclar() : soltar()));
+    let a = null;
+    cab.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 || e.target.closest('button')) return;
+      if (window.innerWidth < 900) return;
+      if (!p.classList.contains('iaFlota')) soltar(p.getBoundingClientRect());
+      const r = p.getBoundingClientRect();
+      a = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+      try { cab.setPointerCapture(e.pointerId); } catch { /* */ }
+      e.preventDefault();
+    });
+    cab.addEventListener('pointermove', (e) => {
+      if (!a) return;
+      const r = p.getBoundingClientRect();
+      encajar(p, e.clientX - a.dx, e.clientY - a.dy, r.width, r.height);
+    });
+    const fin = () => { if (!a) return; a = null; const r = p.getBoundingClientRect(); guardarPos({ flota: true, x: r.left, y: r.top, w: r.width, h: r.height }); };
+    cab.addEventListener('pointerup', fin); cab.addEventListener('pointercancel', fin);
+    /* El tamaño que le dé con la esquina también se recuerda. */
+    if (window.ResizeObserver) new ResizeObserver(() => { if (a || !p.classList.contains('iaFlota') || p.hidden) return; const r = p.getBoundingClientRect(); guardarPos({ flota: true, x: r.left, y: r.top, w: r.width, h: r.height }); }).observe(p);
   }
 
   function abrir() {
     if (!I.panel) return;
     I.panel.hidden = false;
+    /* 9-nov (JC): el panel empuja el contenido en vez de tapar lo que hay debajo (iarvis.css › body.iaAbierto). */
+    const g = !I.movil && window.innerWidth >= 900 ? leerPos() : null;
+    if (g && g.flota) { I.panel.classList.add('iaFlota'); encajar(I.panel, g.x, g.y, g.w, g.h); }
+    else if (!I.movil) document.body.classList.add('iaAbierto');
     /* 8-nov: el botón vive en la cabecera y no se esconde; solo se le quita el punto. */
     if (I.boton) { I.boton.classList.remove('conPunto'); I.boton.setAttribute('aria-expanded', 'true'); }
     caducar();
@@ -472,6 +700,7 @@
   function cerrar() {
     if (I.movil || !I.panel) return;
     I.panel.hidden = true;
+    document.body.classList.remove('iaAbierto');
     if (I.boton) I.boton.setAttribute('aria-expanded', 'false');
   }
 

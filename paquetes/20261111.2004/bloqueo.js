@@ -230,15 +230,7 @@
         const r = await id.biometria('Entra en Vidaire Cx');
         if (r === 'ok') return desbloquear('biometria');
         if (r === 'cancelado') return quieta('Has cancelado. Sin verificar no se entra.', '');
-        const Nombre = `${nombreBio[0].toUpperCase()}${nombreBio.slice(1)}`;
-        const causas = {
-          'no-disponible': `${Nombre} no está disponible en este teléfono.`,
-          'sin-permiso': `Vidaire Cx no tiene permiso para usar ${nombreBio}. Actívalo en Ajustes › Face ID y código › Otras apps.`,
-          'sin-configurar': `${Nombre} no está configurado en este teléfono. Configúralo en Ajustes y vuelve a intentarlo.`,
-          'sin-codigo': `Este teléfono no tiene código de bloqueo, y sin él no funciona ${nombreBio}.`,
-          'bloqueada': `${Nombre} se ha bloqueado por demasiados intentos. Desbloquea el teléfono con su código y vuelve a intentarlo.`,
-        };
-        if (causas[r]) return quieta(causas[r], '');
+        if (r === 'no-disponible') return quieta(`${nombreBio[0].toUpperCase()}${nombreBio.slice(1)} no está disponible en este teléfono.`, '');
         if (r === 'sin-plugin') return quieta(`Esta versión de la app aún no trae ${nombreBio}: actualízala desde TestFlight.`, '');
         fallos += 1;
         pintar('verificando', { nota: `No te ha reconocido (${fallos} de ${INTENTOS}).` });
