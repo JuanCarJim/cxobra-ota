@@ -30,10 +30,10 @@
   const CHARLA = 'vidaire.iarvis.charla';
   const CADUCA_MS = 2 * 60 * 60 * 1000;
   const NOMBRES_PANTALLA = {
-    presupuestos: 'Presupuestos', presupuestoObra: 'Presupuesto de obra', medObra: 'Med Obra', certificaciones: 'Certificaciones',
+    presupuestos: 'Presupuestos', presupuestoObra: 'Presupuesto de obra', medObra: 'Medición real de obra', certificaciones: 'Certificaciones',
     compras: 'Compras', comparativos: 'Comparativos', gantt: 'Gantt', commissioning: 'Commissioning', documentacion: 'Documentación',
     balanceo: 'Balanceo', reclamaciones: 'Reclamaciones', incidencias: 'Incidencias', partes: 'Partes', actas: 'Actas', tareas: 'Tareas',
-    pedidos: 'Pedidos', documentacionProyecto: 'Documentación del proyecto', planosObra: 'Planos', facturasProveedor: 'Facturas',
+    pedidos: 'Pedidos', documentacionProyecto: 'Documentos del proyecto', planosObra: 'Planos y modelo IFC', facturasProveedor: 'Facturas',
   };
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -60,7 +60,7 @@
     I.ultima = c ? Number(c.ultima) : 0;
   }
   /** Para las pruebas: el estado de la conversación de esta vez. */
-  const _charla = { leerCharla, caducar, actividad, CADUCA_MS, pintarPropuestas: (f) => pintarPropuestas(f) };
+  const _charla = { leerCharla, caducar, actividad, CADUCA_MS, pintarPropuestas: (f) => pintarPropuestas(f), tarjetaArchivo: (a, id, o) => tarjetaArchivo(a, id, o), iconoDe: (a) => iconoDe(a), pintarAcciones: (f) => pintarAcciones(f), formato: (t) => formato(t), pintarRespuesta: (f) => pintarRespuesta(f) };
 
   function adaptadorDelPuente() {
     const p = window.puente;
@@ -78,17 +78,64 @@
     return C ? C.trozos(texto) : [{ texto }];
   }
 
-  /* 8-nov (JC): «**negrita**» y listas «- » como texto con formato, no con asteriscos. */
+  /*
+   * 8-nov (JC): «**negrita**» y listas «- » como texto con formato, no con asteriscos.
+   * 12-nov (JC: «el aspecto del chat de Iarvis se puede mejorar»): markdown pequeño y seguro —todo pasa
+   * por esc() antes—: párrafos, **negrita**, `código`, títulos «### », listas «- » y «1. », y tablas
+   * pequeñas «| a | b |» con su fila «|---|». Las cifras de una tabla van a la derecha y en cifra tabular.
+   */
+  const RE_VINETA = /^\s*[-•*]\s+/;
+  const RE_NUMERO = /^\s*\d{1,2}[.)]\s+/;
+  const RE_FILA = /^\s*\|.*\|\s*$/;
+  const RE_SEPARA = /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/;
+  const enLinea = (t) => esc(t)
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
+  const celdas = (l) => l.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim());
+  const esCifra = (c) => /^[-+]?[\d.,\s]+\s*(€|%|m2|m²|ud|uds|h)?$/i.test(c.replace(/\*\*/g, '')) && /\d/.test(c);
+  function tabla(lineas) {
+    const cab = celdas(lineas[0]);
+    const filas = lineas.slice(2).map(celdas);
+    const num = cab.map((_, i) => filas.length > 0 && filas.every((f) => !f[i] || esCifra(f[i])));
+    const th = cab.map((c, i) => `<th${num[i] ? ' class="iaNum"' : ''}>${enLinea(c)}</th>`).join('');
+    const tr = filas.map((f) => `<tr>${cab.map((_, i) => `<td${num[i] ? ' class="iaNum"' : ''}>${enLinea(f[i] || '')}</td>`).join('')}</tr>`).join('');
+    return `<div class="iaTablaCaja"><table class="iaTabla"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>`;
+  }
   function formato(texto) {
-    const enLinea = (t) => esc(t).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    const bloques = String(texto || '').split(/\n{2,}/);
-    return bloques.map((b) => {
-      const lineas = b.split('\n');
-      if (lineas.every((l) => /^\s*[-•]\s+/.test(l))) return `<ul>${lineas.map((l) => `<li>${enLinea(l.replace(/^\s*[-•]\s+/, ''))}</li>`).join('')}</ul>`;
-      const cab = lineas[0] && !/^\s*[-•]\s+/.test(lineas[0]) && lineas.slice(1).every((l) => /^\s*[-•]\s+/.test(l)) && lineas.length > 1;
-      if (cab) return `<p>${enLinea(lineas[0])}</p><ul>${lineas.slice(1).map((l) => `<li>${enLinea(l.replace(/^\s*[-•]\s+/, ''))}</li>`).join('')}</ul>`;
-      return `<p>${lineas.map(enLinea).join('<br>')}</p>`;
-    }).join('');
+    const lineas = String(texto || '').replace(/\r\n?/g, '\n').split('\n');
+    const out = [];
+    let parrafo = [];
+    const cerrarParrafo = () => { if (parrafo.length) out.push(`<p>${parrafo.map(enLinea).join('<br>')}</p>`); parrafo = []; };
+    for (let i = 0; i < lineas.length;) {
+      const l = lineas[i];
+      if (!l.trim()) { cerrarParrafo(); i++; continue; }
+      if (RE_FILA.test(l) && RE_SEPARA.test(lineas[i + 1] || '')) {
+        cerrarParrafo();
+        const t = [];
+        while (i < lineas.length && RE_FILA.test(lineas[i])) t.push(lineas[i++]);
+        out.push(tabla(t));
+        continue;
+      }
+      const tit = l.match(/^\s*#{1,4}\s+(.+)$/);
+      if (tit) { cerrarParrafo(); out.push(`<h4 class="iaTit">${enLinea(tit[1])}</h4>`); i++; continue; }
+      const lista = RE_VINETA.test(l) ? [RE_VINETA, 'ul'] : RE_NUMERO.test(l) ? [RE_NUMERO, 'ol'] : null;
+      if (lista) {
+        const [re, tag] = lista;
+        cerrarParrafo();
+        const items = [];
+        /* Una línea sangrada justo debajo de un punto sigue siendo ese punto. */
+        while (i < lineas.length && (re.test(lineas[i]) || (items.length && /^\s{2,}\S/.test(lineas[i]) && !RE_VINETA.test(lineas[i]) && !RE_NUMERO.test(lineas[i])))) {
+          if (re.test(lineas[i])) items.push(lineas[i].replace(re, '')); else items[items.length - 1] += ` ${lineas[i].trim()}`;
+          i++;
+        }
+        out.push(`<${tag}>${items.map((x) => `<li>${enLinea(x)}</li>`).join('')}</${tag}>`);
+        continue;
+      }
+      parrafo.push(l);
+      i++;
+    }
+    cerrarParrafo();
+    return out.join('');
   }
 
   function textoConEnlaces(texto) {
@@ -98,6 +145,150 @@
   }
 
   const kb = (n) => (n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
+  /*
+   * 10-nov (JC): LA MINIATURA DEL ARCHIVO en el chat, en los dos sentidos (lo que saca Iarvis y lo
+   * que adjunta el usuario): la primera página del PDF o la imagen reducida si se puede; si no, el
+   * icono del tipo. Con el nombre y el tamaño; al pulsarla se abre (y en la web, además, se descarga).
+   *   - escritorio: la miniatura la da el proceso principal (nativeImage, como notas:miniatura);
+   *   - web: se pinta aquí con los bytes (pdf.js de renderer/recortePdf.js, o un lienzo para las fotos).
+   * Las miniaturas pintadas se guardan en una caché pequeña por archivo (memoria + localStorage).
+   */
+  const CLAVE_MINIS = 'vidaire.iarvis.miniaturas';
+  const MAX_MINIS = 40;
+  I.archivos = I.archivos || {};
+  I.minis = I.minis || (() => { try { return JSON.parse(localStorage.getItem(CLAVE_MINIS) || '{}') || {}; } catch { return {}; } })();
+  I.bytesLocales = I.bytesLocales || new Map();
+  function guardarMini(clave, url) {
+    if (!clave || !url) return;
+    I.minis[clave] = url;
+    const claves = Object.keys(I.minis);
+    for (const k of claves.slice(0, Math.max(0, claves.length - MAX_MINIS))) delete I.minis[k];
+    try { localStorage.setItem(CLAVE_MINIS, JSON.stringify(I.minis)); } catch { /* lleno: se queda en memoria */ }
+  }
+  const extDe = (n) => { const m = /\.([a-z0-9]{1,5})$/i.exec(String(n || '')); return m ? m[1].toLowerCase() : ''; };
+  /** El icono del tipo: PDF, XLS, DOC, IMG, EML… (y la clase que le da el color). */
+  function iconoDe(a) {
+    const mime = String(a.mime || a.tipoMime || (/\//.test(String(a.tipo || '')) ? a.tipo : '') || '');
+    const ext = extDe(a.nombre);
+    if (/pdf/.test(mime) || ext === 'pdf') return { txt: 'PDF', clase: 'pdf' };
+    if (/sheet|excel|csv/.test(mime) || /^(xlsx?|xlsm|csv|ods)$/.test(ext)) return { txt: 'XLS', clase: 'xls' };
+    if (/word|officedocument\.wordprocessing/.test(mime) || /^(docx?|odt|rtf)$/.test(ext)) return { txt: 'DOC', clase: 'doc' };
+    if (/^image\//.test(mime) || /^(jpe?g|png|gif|webp|heic|heif|tiff?|bmp)$/.test(ext)) return { txt: 'IMG', clase: 'img' };
+    if (/message|outlook/.test(mime) || /^(eml|msg)$/.test(ext)) return { txt: 'EML', clase: 'eml' };
+    if (/^(dwg|dxf|ifc|rvt)$/.test(ext)) return { txt: ext.toUpperCase(), clase: 'cad' };
+    if (/zip|compressed/.test(mime) || /^(zip|rar|7z)$/.test(ext)) return { txt: 'ZIP', clase: 'otro' };
+    return { txt: (ext || 'ARCH').toUpperCase().slice(0, 4), clase: 'otro' };
+  }
+  const claveMini = (a) => String(a.ruta || (a.nombre && a.tamano ? `${a.nombre}:${a.tamano}` : '') || '');
+  /** La tarjeta del archivo (un solo componente para los dos sentidos). `origen`: 'iarvis' | 'usuario'. */
+  function tarjetaArchivo(a, id, origen) {
+    I.archivos[id] = { ...a, origen };
+    const ic = iconoDe(a);
+    const mini = a.miniatura || I.minis[claveMini(a)];
+    const disponible = origen === 'usuario' ? Boolean(a.ruta || I.bytesLocales.has(claveMini(a))) : Boolean(a.ruta || a.base64 || I.pdfs[id]);
+    const donde = origen === 'iarvis' && a.ruta ? ' · Descargas › Vidaire Iarvis' : '';
+    const titulo = disponible ? `Abrir «${a.nombre || ''}»` : 'Pídemelo otra vez para sacarlo de nuevo.';
+    return `<button type="button" class="iaArchivoMini${disponible ? '' : ' iaNoDisponible'}" data-ia-archivo="${esc(id)}" title="${esc(titulo)}"${disponible ? '' : ' disabled'}>
+      <span class="iaMiniVista iaMini-${ic.clase}" data-ia-vista="${esc(id)}">${mini ? `<img src="${esc(mini)}" alt="">` : `<span class="iaMiniIcono">${esc(ic.txt)}</span>`}</span>
+      <span class="iaMiniNombre">${esc(a.nombre || 'Archivo')}<small>${esc(ic.txt)}${a.tamano ? ` · ${kb(a.tamano)}` : ''}${donde}</small></span></button>`;
+  }
+  const deBase64 = (b64) => { const bin = atob(b64); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; };
+  const aDataUrl = (bytes, mime) => new Promise((ok) => {
+    try { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = () => ok(null); r.readAsDataURL(new Blob([bytes], { type: mime })); } catch { ok(null); }
+  });
+  /** La miniatura pintada aquí: la primera página del PDF o la foto reducida (JPEG pequeño en data:, que la CSP deja). */
+  async function pintarMiniatura(bytes, a) {
+    const ic = iconoDe(a);
+    const lienzo = document.createElement('canvas');
+    try {
+      if (ic.clase === 'pdf') {
+        if (typeof cargarPdfjsRp !== 'function') return null; // eslint-disable-line no-undef
+        const lib = await cargarPdfjsRp(); // eslint-disable-line no-undef
+        const doc = await lib.getDocument({ data: bytes.slice(), isEvalSupported: false }).promise;
+        const pagina = await doc.getPage(1);
+        const v0 = pagina.getViewport({ scale: 1 });
+        const vista = pagina.getViewport({ scale: 240 / Math.max(v0.width, v0.height) });
+        lienzo.width = Math.ceil(vista.width); lienzo.height = Math.ceil(vista.height);
+        await pagina.render({ canvasContext: lienzo.getContext('2d'), viewport: vista }).promise;
+        try { doc.destroy(); } catch { /* nada */ }
+      } else if (ic.clase === 'img') {
+        const url = await aDataUrl(bytes, a.mime || 'image/jpeg');
+        if (!url) return null;
+        const img = await new Promise((ok, mal) => { const i = new Image(); i.onload = () => ok(i); i.onerror = mal; i.src = url; });
+        const k = 240 / Math.max(img.naturalWidth || 1, img.naturalHeight || 1);
+        lienzo.width = Math.max(1, Math.round(img.naturalWidth * Math.min(1, k))); lienzo.height = Math.max(1, Math.round(img.naturalHeight * Math.min(1, k)));
+        lienzo.getContext('2d').drawImage(img, 0, 0, lienzo.width, lienzo.height);
+      } else return null;
+      return lienzo.toDataURL('image/jpeg', 0.7);
+    } catch { return null; }
+  }
+  /** Rellena las miniaturas que faltan en lo pintado (sin bloquear el chat). */
+  async function rellenarMiniaturas() {
+    const raiz = I.panel || I.lista;
+    if (!raiz) return;
+    for (const z of raiz.querySelectorAll('[data-ia-vista]')) {
+      if (z.querySelector('img')) continue;
+      const a = I.archivos[z.getAttribute('data-ia-vista')];
+      if (!a || a.sinMini) continue;
+      a.sinMini = true; // una vez por archivo y sesión
+      const clave = claveMini(a);
+      let url = I.minis[clave] || null;
+      if (!url && a.ruta && a.origen === 'iarvis' && window.puente && window.puente.iarvisMiniatura) {
+        try { url = await window.puente.iarvisMiniatura(a.ruta); } catch { url = null; }
+      }
+      if (!url) {
+        const local = I.bytesLocales.get(clave);
+        const pdf = I.pdfs[z.getAttribute('data-ia-vista')];
+        const bytes = local ? local.bytes : (a.base64 || (pdf && pdf.base64)) ? deBase64(a.base64 || pdf.base64) : null;
+        if (bytes) url = await pintarMiniatura(bytes, a);
+      }
+      if (!url) continue;
+      guardarMini(clave, url);
+      for (const v of raiz.querySelectorAll(`[data-ia-vista="${CSS && CSS.escape ? CSS.escape(z.getAttribute('data-ia-vista')) : z.getAttribute('data-ia-vista')}"]`)) {
+        v.innerHTML = `<img src="${esc(url)}" alt="">`;
+      }
+    }
+  }
+  /** En la web: abrir en otra pestaña y, además, descargarlo (JC: «se abre y se descarga»). */
+  function abrirYBajar(bytes, nombre, mime) {
+    const url = URL.createObjectURL(new Blob([bytes], { type: mime || 'application/octet-stream' }));
+    if (/pdf|^image\//.test(String(mime || ''))) window.open(url, '_blank');
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = nombre || 'archivo';
+    document.body.append(enlace);
+    enlace.click();
+    enlace.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
+  const avisar = (t) => { if (window.AVISOS && window.AVISOS.mostrar) window.AVISOS.mostrar(t); };
+  async function abrirArchivo(id) {
+    const a = I.archivos[id];
+    if (!a) return;
+    const mime = a.mime || (/\//.test(String(a.tipo || '')) ? a.tipo : '') || 'application/octet-stream';
+    if (a.origen === 'iarvis') {
+      if (a.ruta && window.puente && window.puente.iarvisAbrirPdf) {
+        const r = await window.puente.iarvisAbrirPdf(a.ruta, false);
+        if (r && !r.ok) avisar(r.error || 'No se ha podido abrir.');
+        return;
+      }
+      const b = a.base64 || (I.pdfs[id] && I.pdfs[id].base64);
+      if (b) abrirYBajar(deBase64(b), a.nombre, mime || 'application/pdf');
+      return;
+    }
+    /* Lo que adjuntó el usuario: se baja de SU carpeta de la nube (el escritorio lo abre; la web lo abre y lo descarga);
+       sin conexión, con los bytes de esta vez si están. */
+    const local = I.bytesLocales.get(claveMini(a));
+    if (!window.puente || !window.puente.iarvisAbrirAdjunto) { if (local) abrirYBajar(local.bytes, a.nombre, local.mime || mime); return; }
+    const r = await window.puente.iarvisAbrirAdjunto({ ruta: a.ruta, nombre: a.nombre, tipo: mime });
+    if (r && r.ok && r.base64) abrirYBajar(deBase64(r.base64), a.nombre, r.mime || mime);
+    else if (r && !r.ok) { if (local) abrirYBajar(local.bytes, a.nombre, local.mime || mime); else avisar(r.error || 'No se ha podido abrir.'); }
+  }
+  /** Las miniaturas de lo adjuntado (en la pregunta y en la caja antes de mandar). */
+  function tarjetasAdjuntos(lista, prefijo) {
+    return (lista || []).map((a, i) => tarjetaArchivo({ ...a, mime: a.mime || (/\//.test(String(a.tipoMime || '')) ? a.tipoMime : '') }, `${prefijo}:${i}`, 'usuario')).join('');
+  }
+
   /** Lo que Iarvis ha hecho con la app: el PDF, ir a una pantalla, proponer o aplicar. */
   function pintarAcciones(f) {
     const acc = Array.isArray(f.acciones) ? f.acciones : [];
@@ -105,16 +296,15 @@
     const pdfs = acc.filter((a) => a.tipo === 'pdf').map((a, i) => {
       const id = `${f.id}:${i}`;
       if (a.base64) I.pdfs[id] = a;
-      const disponible = a.ruta || a.base64 || I.pdfs[id];
-      return `<div class="iaPdf"><span class="iaPdfIcono" aria-hidden="true">PDF</span><span class="iaPdfNombre">${esc(a.nombre)}<small>${a.tamano ? kb(a.tamano) : ''}${a.ruta ? ' · en Descargas › Vidaire Iarvis' : ''}</small></span>
-        ${disponible ? `<button class="iaBotonPrin" data-ia-pdf="${esc(id)}" data-ruta="${esc(a.ruta || '')}">Abrir</button>${a.ruta ? `<button data-ia-pdf-carpeta="${esc(a.ruta)}">Mostrar</button>` : `<button data-ia-pdf-bajar="${esc(id)}">Descargar</button>`}` : '<small>Pídemelo otra vez para sacarlo de nuevo.</small>'}</div>`;
+      const guardado = I.pdfs[id];
+      return tarjetaArchivo(guardado && !a.base64 ? { ...a, base64: guardado.base64 } : a, id, 'iarvis');
     }).join('');
     const botones = acc.filter((a) => a.tipo !== 'pdf').map((a) => {
       const datos = esc(JSON.stringify(a));
       const prin = a.tipo === 'proponer' || a.tipo === 'aplicar' || (a.tipo === 'hacer' && a.hacer !== 'rechazar');
       return `<button class="${prin ? 'iaBotonPrin' : 'iaBotonSec'}" data-ia-accion="${datos}">${esc(a.texto || 'Abrir')}</button>`;
     }).join('');
-    return `${pdfs}${botones ? `<div class="iaAcciones">${botones}</div>` : ''}`;
+    return `${pdfs ? `<div class="iaArchivos">${pdfs}</div>` : ''}${botones ? `<div class="iaAcciones">${botones}</div>` : ''}`;
   }
 
   /*
@@ -145,13 +335,18 @@
     for (const v of vivos) v.textContent = verboDe(null, vueltaVerbo);
   }, (window.IARVIS_ESPERA && window.IARVIS_ESPERA.CADA) || 1700);
 
+  /* 12-nov: «útil / no útil» con dos trazos finos en vez de los emojis 👍 👎 (el chat va sin emojis). */
+  const svgPulgar = (abajo) => `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="${abajo ? 'iaPulgarAbajo' : 'iaPulgar'}"><path d="M7 10v10H4V10zM7 10l4-7a2 2 0 0 1 2.6 1.9L13 9h5.5a2 2 0 0 1 2 2.3l-1.2 7A2 2 0 0 1 17.3 20H7"/></svg>`;
+  const ICONO_UTIL = svgPulgar(false);
+  const ICONO_NO_UTIL = svgPulgar(true);
+
   function pintarRespuesta(f) {
     if (!f.respuesta) return pintarPensando(f);
     const espera = f.estado === 'pendiente' || f.estado === 'respondiendo';
     const valorable = f.estado === 'respondida' && f.id;
     const pie = valorable ? `<div class="iaPie">
-      <button data-ia-valorar="util" data-id="${esc(f.id)}" class="${f.valoracion === 'util' ? 'elegida' : ''}" title="Me ha servido">👍</button>
-      <button data-ia-valorar="no_util" data-id="${esc(f.id)}" class="${f.valoracion === 'no_util' ? 'elegida' : ''}" title="No me ha servido">👎</button></div>` : '';
+      <button data-ia-valorar="util" data-id="${esc(f.id)}" class="${f.valoracion === 'util' ? 'elegida' : ''}" title="Me ha servido" aria-label="Me ha servido">${ICONO_UTIL}</button>
+      <button data-ia-valorar="no_util" data-id="${esc(f.id)}" class="${f.valoracion === 'no_util' ? 'elegida' : ''}" title="No me ha servido" aria-label="No me ha servido">${ICONO_NO_UTIL}</button></div>` : '';
     return `<div class="iaRespuesta${espera ? ' iaEspera' : ''}">${textoConEnlaces(f.respuesta)}${pintarAcciones(f)}${pintarPropuestas(f)}${pie}</div>`;
   }
 
@@ -162,6 +357,8 @@
     if (!A || !adj.length || f.fotosEnTarjeta) return '';
     return adj.map((a) => {
       const d = A.proponerDestino(a.tipo);
+      /* 12-nov (Iarvis mete el presupuesto): el Excel o el BC3 entra en el presupuesto de la obra. */
+      if ((a.tipo === 'excel' || a.tipo === 'bc3') && window.IARVIS_PPTO) return `<div class="iaPropuesta">«${esc(a.nombre)}»: meterlo en el presupuesto de la obra.<button data-ia-meter="${esc(claveMini(a))}" data-nombre="${esc(a.nombre)}">Meter en el presupuesto</button></div>`;
       if (d.estado === 'importa') return `<div class="iaPropuesta">«${esc(a.nombre)}»: ${esc(d.accion)}.<button data-ia-confirmar="${esc(d.pantalla)}">Confirmar</button></div>`;
       if (d.estado === 'lee') return `<div class="iaPropuesta">«${esc(a.nombre)}»: ${esc(d.accion)}.</div>`;
       return `<div class="iaPropuesta">«${esc(a.nombre)}»: guardado. Esta app aún no importa este tipo (${esc(a.tipo)}); queda apuntado.</div>`;
@@ -187,7 +384,9 @@
   }
 
   function pintarFila(f) {
-    return `<div class="iaPregunta">${esc(f.pregunta)}${(f.adjuntos || []).length ? `<div class="iaAdjuntos">📎 ${f.adjuntos.map((a) => esc(a.nombre)).join(', ')}</div>` : ''}</div>${pintarRespuesta(f)}`;
+    const adj = (f.adjuntos || []).length ? `<div class="iaAdjuntos iaArchivos">${tarjetasAdjuntos(f.adjuntos, `adj:${f.id || I.filas.indexOf(f)}`)}</div>` : '';
+    if (f.pregunta == null && f.comentario) return pintarRespuesta(f);
+    return `<div class="iaPregunta">${esc(f.pregunta)}${adj}</div>${pintarRespuesta(f)}`;
   }
 
   function pintar() {
@@ -197,6 +396,7 @@
     const bienvenida = ahora.length ? '' : `<div class="iaBienvenida"><h3>${saludo()}</h3><p>Pídeme lo que necesites de la obra: lo busco en la app y te lo doy. También te explico cómo se hace cualquier cosa.</p><div class="iaSugerencias">${sugerencias()}</div></div>`;
     I.lista.innerHTML = `${bienvenida}${[...ahora].reverse().map(pintarFila).join('')}`;
     I.lista.scrollTop = I.lista.scrollHeight;
+    rellenarMiniaturas();
   }
 
   async function cargarHistorial() {
@@ -237,12 +437,23 @@
     I.filas = [provisional, ...I.filas];
     I.deEstaVez.add(provisional);
     pintar();
+    const hoja = adjuntos.find((a) => a.tipo === 'excel' || a.tipo === 'bc3');
+    if (hoja && window.IARVIS_PPTO && /presupuest|ppto|m[eé]te|importa/i.test(pregunta)) {
+      Object.assign(provisional, { estado: 'respondida', respuesta: `Lo meto en el presupuesto de la obra: «${hoja.nombre}».`, fotosEnTarjeta: true });
+      pintar();
+      I.ocupado = false;
+      botonMandar.disabled = false;
+      meterHoja(claveMini(hoja), hoja.nombre);
+      return;
+    }
     let ctx = {};
     try { ctx = I.contexto() || {}; } catch { /* sin contexto */ }
-    let r;
-    try {
-      r = await I.adaptador.preguntar({ pregunta, pantalla: ctx.pantalla, obraId: ctx.obraId, obraNombre: ctx.obraNombre, mirando: ctx.mirando, idioma: ctx.idioma, adjuntos });
-    } catch { r = { estado: 'fallo', respuesta: 'Iarvis no ha podido contestar ahora. Vuelve a preguntármelo.' }; }
+    let r = adjuntos.length ? null : navegarLocal(pregunta);
+    if (!r) {
+      try {
+        r = await I.adaptador.preguntar({ pregunta, pantalla: ctx.pantalla, obraId: ctx.obraId, obraNombre: ctx.obraNombre, mirando: ctx.mirando, idioma: ctx.idioma, adjuntos });
+      } catch { r = { estado: 'fallo', respuesta: 'Iarvis no ha podido contestar ahora. Vuelve a preguntármelo.' }; }
+    }
     Object.assign(provisional, r || {});
     if (provisional.id) I.idsEstaVez.add(provisional.id);
     actividad();
@@ -250,13 +461,15 @@
     I.ocupado = false;
     botonMandar.disabled = false;
     /* Un solo equipo que abrir: se abre ya (8-nov, Iarvis que actúa). */
-    if (provisional.abrirYa && provisional.abrirYa.tipo === 'ir') accion(provisional.abrirYa);
+    if (provisional.abrirYa && (provisional.abrirYa.tipo === 'ir' || provisional.abrirYa.tipo === 'navegar')) accion(provisional.abrirYa);
     if (provisional.id && provisional.estado === 'pendiente' && !provisional.enCola) sondear(provisional.id);
   }
 
   function pintarFicheros() {
     const z = I.panel && I.panel.querySelector('.iaFicheros');
-    if (z) z.textContent = I.ficheros.length ? `📎 ${I.ficheros.map((a) => a.nombre).join(', ')}` : '';
+    if (!z) return;
+    z.innerHTML = I.ficheros.length ? `<div class="iaArchivos">${tarjetasAdjuntos(I.ficheros, 'caja')}</div>` : '';
+    rellenarMiniaturas();
   }
 
   async function adjuntar(lista) {
@@ -268,7 +481,18 @@
       if (z) z.textContent = `Subiendo «${archivo.name}»…`;
       let r;
       try { r = await I.adaptador.adjuntar(archivo.name, bytes, t.mime || archivo.type || 'application/octet-stream'); } catch { r = { ok: false, aviso: 'No se ha podido subir.' }; }
-      if (r && r.ok) I.ficheros.push({ ...r.adjunto, tipo: t.tipo });
+      if (r && r.ok) {
+        /* 10-nov: los bytes de esta vez se quedan en memoria para la miniatura (y para abrirlo sin red). */
+        const mime = r.adjunto.tipo || t.mime || archivo.type || '';
+        I.bytesLocales.set(claveMini(r.adjunto), { bytes, mime });
+        I.ficheros.push({ ...r.adjunto, mime, tipo: t.tipo });
+      }
+      else if ((t.tipo === 'excel' || t.tipo === 'bc3') && window.IARVIS_PPTO) {
+        /* 12-nov: sin nube, el Excel o el BC3 se queda aquí para meterlo en el presupuesto. */
+        const local = { nombre: archivo.name, tamano: bytes.length, tipo: t.tipo, mime: t.mime || archivo.type || '', local: true };
+        I.bytesLocales.set(claveMini(local), { bytes, mime: local.mime });
+        I.ficheros.push(local);
+      }
       else if (window.AVISOS && window.AVISOS.mostrar) window.AVISOS.mostrar((r && r.aviso) || 'No se ha podido subir.');
       else if (z) z.textContent = (r && r.aviso) || 'No se ha podido subir.';
     }
@@ -279,7 +503,7 @@
     const bin = atob(a.base64);
     const u = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
-    return URL.createObjectURL(new Blob([u], { type: 'application/pdf' }));
+    return URL.createObjectURL(new Blob([u], { type: a.mime || 'application/pdf' }));
   }
   async function abrirPdf(id, ruta, enCarpeta) {
     if (ruta && window.puente && window.puente.iarvisAbrirPdf) {
@@ -304,8 +528,29 @@
   /* Lo que un botón «ir» de Iarvis puede dejar para la sección que abre (renderer/movil/*). */
   const CLAVES_SESION = new Set(['cx.segmento', 'ncr.filtro', 'rp.filtro', 'cx.planoEquipos.planta', 'reparaciones.prefill', 'partes.prefill']);
 
+  /*
+   * 11-nov (JC): «llévame a los planos IFC». En el escritorio y la web, Iarvis abre la pantalla y la
+   * pestaña que se le pide, buscando solo en lo que el rol de la persona alcanza (shared/ia/navegar.js,
+   * sobre la lista del «¿Qué quieres hacer?»). Se contesta aquí mismo, sin la nube. El móvil tiene su
+   * propio «ir a» con sus secciones (shared/ia/catalogo.js).
+   */
+  const navegador = () => (!I.movil && window.IarvisNavegar && window.BUSCADOR_CASILLA ? window.IarvisNavegar : null);
+  function navegarLocal(pregunta) {
+    const N = navegador();
+    if (!N) return null;
+    try { return N.contestar(pregunta, window.BUSCADOR_CASILLA.lista(), { propio: (window.MENU_ACTUAL && window.MENU_ACTUAL.organizacion) || '' }); } catch { return null; }
+  }
+
   /** Los botones de las respuestas de la app: ir a una pantalla, proponer, aplicar. */
   async function accion(a, boton) {
+    if (a.tipo === 'navegar') {
+      const N = navegador();
+      const f = N && N.sitioPorId(window.BUSCADOR_CASILLA.lista(), a.id);
+      if (!f) { if (window.AVISOS && window.AVISOS.mostrar) window.AVISOS.mostrar('Esa pantalla no está en tu puesto.'); return; }
+      cerrar();
+      await window.BUSCADOR_CASILLA.llevar(f);
+      return;
+    }
     if (a.tipo === 'ir') {
       /* El equipo que abrir (commissioning lo recoge al cargar) y el formulario de estanqueidad
          empezado (si no había otro a medias): renderer/movil/commissioning.js y estanqueidad.js. */
@@ -403,15 +648,15 @@
       ${I.movil
     /* 8-nov (JC): en el móvil, SOLO el chat: una cabecera mínima con «‹» para volver y «Iarvis». */
     ? '<div class="iaCabecera"><button class="iaVolver" title="Volver" aria-label="Volver">‹</button><h2>Iarvis</h2></div>'
-    : '<div class="iaCabecera"><span class="iaMarca" aria-hidden="true">I</span><div class="iaTitulo"><h2>Iarvis</h2><span class="iaAviso">Usa la app por ti · solo lo que tu puesto ve</span></div><button class="iaNueva" title="Empezar de cero" aria-label="Conversación nueva">＋</button><button class="iaCerrar" title="Cerrar (Esc)" aria-label="Cerrar">×</button></div>'}
+    : '<div class="iaCabecera"><span class="iaMarca" aria-hidden="true">I</span><div class="iaTitulo"><h2>Iarvis</h2><span class="iaAviso">Usa la app por ti · solo lo que tu puesto ve</span></div><button class="iaFlotar" title="Soltar como ventana (o anclar a la columna)" aria-label="Soltar o anclar">⧉</button><button class="iaNueva" title="Empezar de cero" aria-label="Conversación nueva">＋</button><button class="iaCerrar" title="Cerrar (Esc)" aria-label="Cerrar">×</button></div>'}
       <div class="iaLista" role="log" aria-live="polite"></div>
       <div class="iaEntrada">
         <div class="iaFicheros"></div>
         <div class="iaFila">
           <button class="iaClip" title="Adjuntar un archivo" aria-label="Adjuntar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5l-7.6 7.6a4.5 4.5 0 0 1-6.4-6.4l8-8a3 3 0 0 1 4.2 4.2l-8 8a1.5 1.5 0 0 1-2.1-2.1l7.3-7.3"/></svg></button>
           ${I.movil ? '<button class="iaCamara" title="Foto con la cámara" aria-label="Cámara"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2.2l1.5-2h5.6l1.5 2h2.2A1.5 1.5 0 0 1 20 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z"/><circle cx="12" cy="12.5" r="3.5"/></svg></button>' : ''}
-          <textarea rows="1" placeholder="${I.movil ? 'Escribe o pulsa el micrófono del teclado para dictar' : 'Pregunta a Iarvis… (Intro para mandar)'}"></textarea>
-          <button class="iaMandar">Mandar</button>
+          <textarea rows="1" placeholder="${I.movil ? 'Escribe o pulsa el micrófono del teclado para dictar' : 'Pregunta a Iarvis…'}"></textarea>
+          <button class="iaMandar" title="Mandar (Intro)" aria-label="Mandar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
         </div>
         <input type="file" class="iaArchivo" multiple hidden>
         <input type="file" class="iaFoto" accept="image/*" capture="environment" hidden>
@@ -425,6 +670,23 @@
     for (const sel of ['.iaArchivo', '.iaFoto']) {
       p.querySelector(sel).addEventListener('change', (e) => { adjuntar([...e.target.files]); e.target.value = ''; });
     }
+    /* 10-nov (JC): adjuntar también arrastrando al panel o pegando (Cmd+V) un archivo. */
+    const conArchivos = (e) => Boolean(e.dataTransfer && [...(e.dataTransfer.types || [])].includes('Files'));
+    p.addEventListener('dragover', (e) => { if (!conArchivos(e)) return; e.preventDefault(); p.classList.add('iaSoltar'); });
+    p.addEventListener('dragleave', (e) => { if (!p.contains(e.relatedTarget)) p.classList.remove('iaSoltar'); });
+    p.addEventListener('drop', (e) => {
+      p.classList.remove('iaSoltar');
+      if (!conArchivos(e)) return;
+      e.preventDefault();
+      const lista = [...(e.dataTransfer.files || [])];
+      if (lista.length && I.adaptador) adjuntar(lista);
+    });
+    p.querySelector('textarea').addEventListener('paste', (e) => {
+      const lista = [...((e.clipboardData && e.clipboardData.files) || [])];
+      if (!lista.length || !I.adaptador) return;
+      e.preventDefault();
+      adjuntar(lista);
+    });
     const cerrarB = p.querySelector('.iaCerrar');
     if (cerrarB) cerrarB.addEventListener('click', cerrar);
     p.addEventListener('click', async (e) => {
@@ -432,6 +694,8 @@
       if (sug) { mandar(sug.getAttribute('data-ia-sugerencia')); return; }
       if (e.target.closest('.iaVolver')) { if (I.volver) I.volver(); else if (history.length > 1) history.back(); return; }
       if (e.target.closest('.iaNueva')) { I.deEstaVez = new Set(); I.idsEstaVez = new Set(); I.ultima = 0; try { localStorage.removeItem(CHARLA); } catch { /* nada */ } pintar(); return; }
+      const arch = e.target.closest('[data-ia-archivo]');
+      if (arch) { abrirArchivo(arch.getAttribute('data-ia-archivo')); return; }
       const pdf = e.target.closest('[data-ia-pdf]');
       if (pdf) { abrirPdf(pdf.getAttribute('data-ia-pdf'), pdf.getAttribute('data-ruta'), false); return; }
       const carpeta = e.target.closest('[data-ia-pdf-carpeta]');
@@ -442,6 +706,8 @@
       if (acc) { let a = null; try { a = JSON.parse(acc.getAttribute('data-ia-accion')); } catch { /* roto */ } if (a) accion(a, acc); return; }
       const ir = e.target.closest('[data-ia-ir]');
       if (ir && I.ir) { I.ir(ir.getAttribute('data-ia-ir')); if (!I.movil) cerrar(); return; }
+      const meter = e.target.closest('[data-ia-meter]');
+      if (meter) { meterHoja(meter.getAttribute('data-ia-meter'), meter.getAttribute('data-nombre')); return; }
       const conf = e.target.closest('[data-ia-confirmar]');
       if (conf && I.ir) { I.ir(conf.getAttribute('data-ia-confirmar')); if (!I.movil) cerrar(); return; }
       const v = e.target.closest('[data-ia-valorar]');
@@ -454,14 +720,69 @@
       }
     });
     p.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !I.movil) cerrar(); });
+    engancharArrastre(p);
     return p;
+  }
+
+  /* 10-nov (JC): Iarvis como ventana que se arrastra: encima de la tabla, junto a la ficha lateral del hecho, o fuera de en medio.
+     Anclada = la columna de siempre (empuja el contenido); suelta = ventana fija arrastrable y redimensionable que no empuja nada. */
+  const CLAVE_POS = 'vidaire.iarvis.ventana';
+  function leerPos() { try { return JSON.parse(localStorage.getItem(CLAVE_POS) || 'null'); } catch { return null; } }
+  function guardarPos(o) { try { localStorage.setItem(CLAVE_POS, JSON.stringify(o)); } catch { /* sin almacenamiento */ } }
+  function encajar(p, x, y, w, h) {
+    const W = window.innerWidth, H = window.innerHeight;
+    w = Math.max(300, Math.min(w, W - 16)); h = Math.max(280, Math.min(h, H - 16));
+    x = Math.max(8, Math.min(x, W - w - 8)); y = Math.max(8, Math.min(y, H - 80));
+    Object.assign(p.style, { left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px`, right: 'auto', bottom: 'auto' });
+    return { x, y, w, h };
+  }
+  function soltar(r) {
+    const p = I.panel; if (!p || I.movil) return;
+    const rect = r || p.getBoundingClientRect();
+    p.classList.add('iaFlota');
+    document.body.classList.remove('iaAbierto');
+    const pos = encajar(p, rect.left - (r ? 0 : 24), r ? rect.top : Math.max(8, rect.top + 24), Math.min(rect.width, 420), Math.min(rect.height, window.innerHeight - 80));
+    guardarPos({ flota: true, ...pos });
+  }
+  function anclar() {
+    const p = I.panel; if (!p || I.movil) return;
+    p.classList.remove('iaFlota');
+    ['left', 'top', 'width', 'height', 'right', 'bottom'].forEach((k) => { p.style[k] = ''; });
+    if (!p.hidden) document.body.classList.add('iaAbierto');
+    guardarPos({ flota: false });
+  }
+  function engancharArrastre(p) {
+    const cab = p.querySelector('.iaCabecera'); if (!cab || I.movil) return;
+    const flot = p.querySelector('.iaFlotar');
+    if (flot) flot.addEventListener('click', () => (p.classList.contains('iaFlota') ? anclar() : soltar()));
+    let a = null;
+    cab.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 || e.target.closest('button')) return;
+      if (window.innerWidth < 900) return;
+      if (!p.classList.contains('iaFlota')) soltar(p.getBoundingClientRect());
+      const r = p.getBoundingClientRect();
+      a = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+      try { cab.setPointerCapture(e.pointerId); } catch { /* */ }
+      e.preventDefault();
+    });
+    cab.addEventListener('pointermove', (e) => {
+      if (!a) return;
+      const r = p.getBoundingClientRect();
+      encajar(p, e.clientX - a.dx, e.clientY - a.dy, r.width, r.height);
+    });
+    const fin = () => { if (!a) return; a = null; const r = p.getBoundingClientRect(); guardarPos({ flota: true, x: r.left, y: r.top, w: r.width, h: r.height }); };
+    cab.addEventListener('pointerup', fin); cab.addEventListener('pointercancel', fin);
+    /* El tamaño que le dé con la esquina también se recuerda. */
+    if (window.ResizeObserver) new ResizeObserver(() => { if (a || !p.classList.contains('iaFlota') || p.hidden) return; const r = p.getBoundingClientRect(); guardarPos({ flota: true, x: r.left, y: r.top, w: r.width, h: r.height }); }).observe(p);
   }
 
   function abrir() {
     if (!I.panel) return;
     I.panel.hidden = false;
     /* 9-nov (JC): el panel empuja el contenido en vez de tapar lo que hay debajo (iarvis.css › body.iaAbierto). */
-    if (!I.movil) document.body.classList.add('iaAbierto');
+    const g = !I.movil && window.innerWidth >= 900 ? leerPos() : null;
+    if (g && g.flota) { I.panel.classList.add('iaFlota'); encajar(I.panel, g.x, g.y, g.w, g.h); }
+    else if (!I.movil) document.body.classList.add('iaAbierto');
     /* 8-nov: el botón vive en la cabecera y no se esconde; solo se le quita el punto. */
     if (I.boton) { I.boton.classList.remove('conPunto'); I.boton.setAttribute('aria-expanded', 'true'); }
     caducar();
@@ -476,6 +797,22 @@
     I.panel.hidden = true;
     document.body.classList.remove('iaAbierto');
     if (I.boton) I.boton.setAttribute('aria-expanded', 'false');
+  }
+
+  /*
+   * 11-nov (comodidad, tanda 4): Iarvis desde cualquier pantalla también con el teclado, ⌘I (Ctrl+I).
+   * ⌘J es del Bloc de notas (blocPantalla.js) y ⌘K del buscador de funciones (buscadorFunciones.js).
+   * En un texto con formato (contenteditable) ⌘I sigue siendo la cursiva. Lo que Iarvis puede ver y
+   * hacer no cambia: el rol y la organización los aplica el proceso principal (electron/ipc/canalesIarvis.js).
+   */
+  function atajoIarvis(e) {
+    if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return false;
+    if (String(e.key || '').toLowerCase() !== 'i') return false;
+    if (e.target && e.target.isContentEditable) return false;
+    if (!I.panel || !I.boton || I.movil) return false;
+    e.preventDefault();
+    if (I.panel.hidden) abrir(); else cerrar();
+    return true;
   }
 
   /** Escritorio y web: botón en la cabecera (flotante si no hay cabecera) + panel. */
@@ -493,7 +830,7 @@
     I.boton = document.createElement('button');
     I.boton.id = 'iarvisBoton';
     I.boton.type = 'button';
-    I.boton.title = 'Hablar con Iarvis';
+    I.boton.title = 'Hablar con Iarvis (⌘I)';
     I.boton.setAttribute('aria-label', 'Hablar con Iarvis');
     I.boton.setAttribute('aria-expanded', 'false');
     I.boton.innerHTML = `${(window.ARRANQUE_LOGO && window.ARRANQUE_LOGO.BRUJULA) || '<span aria-hidden="true">🧭</span>'}<span class="iaPunto"></span>`;
@@ -505,6 +842,7 @@
       document.body.append(I.boton, I.panel);
       document.body.classList.add('conIarvis');
     }
+    document.addEventListener('keydown', atajoIarvis);
   }
 
   /** Móvil: el panel dentro de su pestaña. */
@@ -522,5 +860,17 @@
     cargarHistorial();
   }
 
-  window.IARVIS = { instalar, montarEn, abrir, cerrar, estado: I, _charla };
+  /* 12-nov (Iarvis mete el presupuesto): una frase de Iarvis sin pregunta delante. */
+  function comentar(texto) {
+    const f = { id: null, pregunta: null, comentario: true, estado: 'respondida', respuesta: String(texto || '') };
+    I.filas = [f, ...I.filas];
+    I.deEstaVez.add(f);
+    pintar();
+  }
+  function meterHoja(clave, nombre) {
+    const b = I.bytesLocales.get(clave);
+    window.IARVIS_PPTO.meterAdjunto({ nombre, bytes: b && b.bytes });
+  }
+
+  window.IARVIS = { instalar, montarEn, abrir, cerrar, comentar, estado: I, _charla, _atajo: atajoIarvis };
 })();

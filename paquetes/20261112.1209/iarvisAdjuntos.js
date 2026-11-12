@@ -46,11 +46,57 @@
     return nombres;
   }
 
+  /* ¿Lleva estos caracteres en algún sitio entre desde y hasta? (sin pasar el buffer a texto). */
+  function contiene(b, texto, desde = 0, hasta = b.length, ancho = 1) {
+    const c = [...texto].map((x) => x.charCodeAt(0));
+    const paso = c.length * ancho;
+    for (let i = Math.max(0, desde); i <= Math.min(b.length, hasta) - paso; i++) {
+      let ok = true;
+      for (let j = 0; j < c.length && ok; j++) {
+        if (b[i + j * ancho] !== c[j]) ok = false;
+        else if (ancho === 2 && b[i + j * 2 + 1] !== 0) ok = false;
+      }
+      if (ok) return true;
+    }
+    return false;
+  }
+
+  /*
+   * ¿LLEVA MACROS? (10-nov: los documentos de la obra no admiten macros, ni con
+   * el nombre cambiado). En los Office nuevos, la parte xl|word|ppt/vbaProject.bin:
+   * los primeros nombres del ZIP y su directorio central, al final del archivo.
+   * En los antiguos (OLE2), el flujo _VBA_PROJECT, que se nombra en UTF-16.
+   */
+  function llevaMacros(b, ole) {
+    if (ole) return contiene(b, '_VBA_PROJECT', 0, Math.min(b.length, 16 * 1024 * 1024), 2);
+    if (nombresZip(b).some((x) => /vbaProject\.bin$/i.test(x))) return true;
+    return contiene(b, 'vbaProject.bin', Math.max(0, b.length - 512 * 1024));
+  }
+
+  /* Programas: Windows (MZ), Linux (ELF), macOS (Mach-O, y el universal CAFEBABE, que es también una clase de Java). */
+  const EJECUTABLES = [
+    [[0x7f, 0x45, 0x4c, 0x46], 'ELF'],
+    [[0xfe, 0xed, 0xfa, 0xce], 'Mach-O'], [[0xfe, 0xed, 0xfa, 0xcf], 'Mach-O'],
+    [[0xce, 0xfa, 0xed, 0xfe], 'Mach-O'], [[0xcf, 0xfa, 0xed, 0xfe], 'Mach-O'],
+    [[0xca, 0xfe, 0xba, 0xbe], 'Mach-O universal / Java'],
+  ];
+
   function detectarTipo(bytes, nombre = '') {
     const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
     const e = ext(nombre);
     const r = (tipo, mime, como) => ({ tipo, nombre, mime, como });
     if (!b.length) return r('vacio', 'application/octet-stream', 'vacío');
+    /* Windows: «MZ» y, donde dice el byte 0x3C, «PE\0\0» (o el aviso del DOS): un texto que empiece por MZ no es un programa. */
+    if (empieza(b, [0x4d, 0x5a]) && b.length >= 64) {
+      const pe = b[0x3c] | (b[0x3d] << 8) | (b[0x3e] << 16);
+      if ((pe > 0 && pe < b.length - 4 && ascii(b, pe, 4) === 'PE\u0000\u0000') || contiene(b, 'This program cannot', 0, Math.min(b.length, 1024))) {
+        return r('ejecutable', 'application/octet-stream', 'firma Windows (MZ/PE)');
+      }
+    }
+    for (const [firma, como] of EJECUTABLES) if (empieza(b, firma)) return r('ejecutable', 'application/octet-stream', `firma ${como}`);
+    if (b[0] === 0x23 && b[1] === 0x21) return r('ejecutable', 'text/x-shellscript', 'guion #!');
+    /* AutoCAD: AC1012…AC1032 (la versión va en los dos últimos). */
+    if (ascii(b, 0, 4) === 'AC10') return r('dwg', 'image/vnd.dwg', `firma ${ascii(b, 0, 6)}`);
     if (empieza(b, [0x25, 0x50, 0x44, 0x46])) return r('pdf', 'application/pdf', 'firma %PDF');
     if (empieza(b, [0x89, 0x50, 0x4e, 0x47])) return r('imagen', 'image/png', 'firma PNG');
     if (empieza(b, [0xff, 0xd8, 0xff])) return r('imagen', 'image/jpeg', 'firma JPEG');
@@ -59,16 +105,20 @@
     if (ascii(b, 4, 8) === 'ftypheic' || ascii(b, 4, 8) === 'ftypheix' || ascii(b, 4, 8) === 'ftypmif1') return r('imagen', 'image/heic', 'firma HEIC');
     /* OLE2 (Office antiguo): .msg de Outlook, .mpp de Project, .xls, .doc. */
     if (empieza(b, [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1])) {
+      const m = llevaMacros(b, true);
+      const conMacros = (x) => (m ? { ...x, macros: true, como: `${x.como} + macros` } : x);
       if (e === 'msg') return r('correo-msg', 'application/vnd.ms-outlook', 'OLE2 + .msg');
       if (e === 'mpp') return r('project', 'application/vnd.ms-project', 'OLE2 + .mpp');
-      if (e === 'xls') return r('excel', 'application/vnd.ms-excel', 'OLE2 + .xls');
-      if (e === 'doc') return r('word', 'application/msword', 'OLE2 + .doc');
-      return r('ole', 'application/x-ole-storage', 'OLE2');
+      if (e === 'xls') return conMacros(r('excel', 'application/vnd.ms-excel', 'OLE2 + .xls'));
+      if (e === 'doc') return conMacros(r('word', 'application/msword', 'OLE2 + .doc'));
+      return conMacros(r('ole', 'application/x-ole-storage', 'OLE2'));
     }
     if (empieza(b, [0x50, 0x4b, 0x03, 0x04])) {
       const n = nombresZip(b);
-      if (n.some((x) => x.startsWith('xl/'))) return r('excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'ZIP con xl/');
-      if (n.some((x) => x.startsWith('word/'))) return r('word', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'ZIP con word/');
+      const conMacros = (x) => (llevaMacros(b, false) ? { ...x, macros: true, como: `${x.como} + vbaProject.bin` } : x);
+      if (n.some((x) => x.startsWith('xl/'))) return conMacros(r('excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'ZIP con xl/'));
+      if (n.some((x) => x.startsWith('word/'))) return conMacros(r('word', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'ZIP con word/'));
+      if (n.some((x) => x.startsWith('ppt/'))) return conMacros(r('powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'ZIP con ppt/'));
       if (n.some((x) => /\.ifc$/i.test(x)) || e === 'ifczip') return r('ifc', 'application/x-step', 'ZIP con .ifc');
       return r('zip', 'application/zip', 'ZIP');
     }
@@ -77,6 +127,10 @@
     if (/^~V\|/m.test(t) || (e === 'bc3' && /^~[A-Z]\|/m.test(t))) return r('bc3', 'text/plain', 'registro ~V| (FIEBDC-3)');
     if (/<Project[\s>][\s\S]*schemas\.microsoft\.com\/project/i.test(t)) return r('project', 'application/xml', 'XML de MS Project');
     if (/^(Received|From|Return-Path|Message-ID|MIME-Version|Date|Subject|To):/im.test(t.slice(0, 600)) && (e === 'eml' || /^MIME-Version:/im.test(t))) return r('correo-eml', 'message/rfc822', 'cabeceras de correo');
+    /* Lo que el navegador ejecutaría si se abriera dentro de la app: siempre como descarga. */
+    const inicio = t.trimStart().slice(0, 400).toLowerCase();
+    if (/^(<!doctype html|<html[\s>]|<head[\s>]|<body[\s>]|<script[\s>])/.test(inicio)) return r('html', 'text/html', 'etiquetas HTML');
+    if (/^(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*(<!doctype svg[^>]*>\s*)?<svg[\s>]/.test(inicio) || (e === 'svg' && /<svg[\s>]/.test(t.slice(0, 2000).toLowerCase()))) return r('svg', 'image/svg+xml', 'etiqueta <svg>');
     if (e === 'csv' || e === 'tsv') return r('csv', 'text/csv', 'texto separado');
     if (e === 'xml') return r('xml', 'application/xml', 'XML');
     if (e === 'txt') return r('texto', 'text/plain', 'texto');
@@ -117,5 +171,5 @@
   /** Lo que Sonnet puede leer directamente (bloques de la API de Claude). */
   const LEE_CLAUDE = { pdf: 'document', imagen: 'image' };
 
-  return { detectarTipo, proponerDestino, nombresZip, DESTINOS, PENDIENTES, LEE_CLAUDE };
+  return { detectarTipo, proponerDestino, nombresZip, llevaMacros, DESTINOS, PENDIENTES, LEE_CLAUDE };
 });

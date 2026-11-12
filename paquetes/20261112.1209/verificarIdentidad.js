@@ -27,11 +27,49 @@
   const b64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
   const deB64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 
+  /*
+   * 9-nov (JC: «no funciona el botón del Face ID»). Las builds 5 a 8 de iOS llevan el plugin compilado
+   * pero sin registrar: SceneDelegate.swift creaba un CAPBridgeViewController pelado, así que
+   * CxObraViewController.capacitorDidLoad no corría y window.Capacitor.Plugins.Biometria no existe.
+   * El puente de Capacitor sí sabe cargar un plugin por el nombre de su clase Objective-C
+   * (CapacitorBridge.handleJSCall → NSClassFromString), y eso llega por OTA a esas builds.
+   * Si el binario es anterior a la build 5 no hay clase y Capacitor NO contesta nunca: de ahí el plazo.
+   * El «sí» sigue saliendo solo de LocalAuthentication; esto únicamente cambia cómo se le llama.
+   */
+  const PLAZO_MODULO_MS = 4000;
+  let sinModuloHasta = 0;
+  function porClaseIos(C) {
+    let ios = false;
+    try { ios = Boolean(C.getPlatform && C.getPlatform() === 'ios'); } catch { ios = false; }
+    if (!ios || typeof C.nativePromise !== 'function' || Date.now() < sinModuloHasta) return null;
+    return {
+      disponible: () => new Promise((bien, mal) => {
+        const plazo = setTimeout(() => {
+          sinModuloHasta = Date.now() + 60000; /* para no hacer esperar otra vez en el mismo intento */
+          mal(Object.assign(new Error('Sin el módulo de biometría'), { code: 'sin-modulo' }));
+        }, PLAZO_MODULO_MS);
+        C.nativePromise('BiometriaPlugin', 'disponible', {}).then((d) => { clearTimeout(plazo); bien(d); }, (e) => { clearTimeout(plazo); mal(e); });
+      }),
+      verificar: (o) => C.nativePromise('BiometriaPlugin', 'verificar', o || {}),
+    };
+  }
+
   /* El plugin propio de la app Cx: registrado en CxObraViewController.swift, sin paquete npm. */
   function pluginBiometria(C) {
     if (!C) return null;
-    if (typeof C.isPluginAvailable === 'function' && !C.isPluginAvailable('Biometria')) return null;
-    try { return C.registerPlugin ? C.registerPlugin('Biometria') : (C.Plugins && C.Plugins.Biometria) || null; } catch { return null; }
+    if (typeof C.isPluginAvailable === 'function' && !C.isPluginAvailable('Biometria')) return porClaseIos(C);
+    try { return (C.registerPlugin ? C.registerPlugin('Biometria') : (C.Plugins && C.Plugins.Biometria)) || porClaseIos(C); } catch { return porClaseIos(C); }
+  }
+
+  /* Por qué no se puede usar ahora, con los códigos que da el sistema (LAError de iOS; en Android, BiometricManager). */
+  function causaNoDisponible(d) {
+    const codigo = Number(d && d.codigo);
+    const tipo = String((d && d.tipo) || '').toLowerCase();
+    if (codigo === -7 || codigo === 11) return 'sin-configurar';
+    if (codigo === -5) return 'sin-codigo';
+    if (codigo === -8) return 'bloqueada';
+    if (codigo === -6 && tipo && tipo !== 'ninguna') return 'sin-permiso'; /* hay Face ID, pero se le negó a la app */
+    return 'no-disponible';
   }
 
   async function nativa(motivo) {
@@ -146,13 +184,14 @@
    * (renderer/movil/bloqueo.js), que necesita distinguir «canceló» de «no le reconoce» y pinta el
    * PIN en su propia pantalla. El PIN es el mismo que el de firmar con Iarvis.
    *   biometria(motivo) → 'ok' | 'cancelado' | 'fallo' | 'no-disponible' | 'sin-plugin'
+   *                       | 'sin-permiso' | 'sin-configurar' | 'sin-codigo' | 'bloqueada'
    */
   async function biometria(motivo) {
     const B = pluginBiometria(window.Capacitor);
     if (!B) return 'sin-plugin';
     let d;
     try { d = await B.disponible(); } catch { return 'sin-plugin'; } /* app anterior a la build 5 */
-    if (!d || !d.disponible) return 'no-disponible';
+    if (!d || !d.disponible) return causaNoDisponible(d);
     try {
       const r = await B.verificar({ motivo });
       return r && r.ok ? 'ok' : 'fallo';

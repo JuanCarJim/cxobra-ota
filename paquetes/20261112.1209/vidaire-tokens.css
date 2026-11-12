@@ -440,7 +440,7 @@
   --vd-arena-cab-acento: #1F2D4E; --vd-arena-cab-foco: rgba(31, 45, 78, .35);
   /* 9-nov, JC: barra lateral en arena «como el resto»; manda el marino y el granate queda de detalle. */
   /* 10-nov, JC: «que sea el mismo color (el más clarito)»: la barra usa el token del fondo de la pantalla, sin escalón. */
-  --vd-arena-barra: #F4EDDF; --vd-arena-barra-2: #E6D4B0; --vd-arena-barra-tenue: #4F4A42; --vd-arena-barra-texto: #1F2D4E;
+  --vd-arena-barra: #EDE4D1; --vd-arena-barra-2: #E2CFA8; --vd-arena-barra-tenue: #4F4A42; --vd-arena-barra-texto: #1F2D4E;
   --vd-arena-barra-linea: rgba(28, 35, 51, .14); --vd-arena-barra-fuerte: rgba(28, 35, 51, .3);
   --vd-arena-barra-pulgar: rgba(28, 35, 51, .3); --vd-arena-barra-foco: rgba(31, 45, 78, .35);
   --vd-arena-barra-activo: #1F2D4E; --vd-arena-barra-activo-texto: #FAF6EE; --vd-arena-marca: #1F2D4E;

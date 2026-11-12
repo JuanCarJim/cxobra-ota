@@ -143,3 +143,137 @@ body.teclado .iaMovil .iaEntrada, body.teclado-vv .iaMovil .iaEntrada { padding-
   body.iaAbierto .centro > .cabecera #subtitulo { order: 9; flex: 1 1 100%; white-space: normal; overflow: visible; }
   body.iaAbierto .centro > .cabecera #subtitulo:empty { display: none; }
 }
+
+/* 10-nov (JC: «que el chat con Iarvis ocupe todo ese espacio reservado»): en pantalla ancha el panel es la columna
+   entera de la derecha, de arriba abajo y pegada al borde, en vez de una ventana flotante con hueco encima. */
+@media (min-width: 900px) {
+  body.iaAbierto .iaPanel:not(.iaMovil) {
+    top: 0; bottom: 0; right: 0; height: auto; width: 396px;
+    border-radius: 0; border-width: 0 0 0 1px; box-shadow: none;
+  }
+  body.iaAbierto .centro { padding-right: 396px; }
+}
+
+/* 10-nov (JC: «esto sigue sin estar arreglado»): el visor de un hecho/correo es fijo a la derecha; con Iarvis abierto
+   se coloca a su izquierda en vez de quedar tapado debajo. */
+@media (min-width: 900px) {
+  body.iaAbierto .visorCorreo { right: 396px; }
+}
+
+/* 10-nov (JC): Iarvis suelta = ventana fija que se arrastra por la cabecera y se redimensiona por la esquina; no empuja el contenido. */
+@media (min-width: 900px) {
+  .iaPanel.iaFlota:not(.iaMovil) { z-index: 1200; border-radius: 12px; border-width: 1px; box-shadow: 0 10px 34px rgba(0,0,0,.28); resize: both; min-width: 300px; min-height: 280px; max-width: calc(100vw - 16px); }
+  .iaPanel.iaFlota .iaCabecera { cursor: grab; user-select: none; touch-action: none; }
+  .iaPanel.iaFlota .iaCabecera:active { cursor: grabbing; }
+}
+.iaCabecera .iaFlotar { background: transparent; border: 0; cursor: pointer; font-size: 16px; padding: 2px 6px; color: inherit; }
+.iaPanel.iaMovil .iaFlotar { display: none; }
+
+/* 10-nov (JC): la MINIATURA del archivo en el chat, en los dos sentidos (lo que saca Iarvis y lo que
+   adjunta el usuario). Compacta, como una fila: la vista previa pequeña, el nombre y el tamaño. */
+.iaArchivos { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
+.iaArchivoMini, .iaEntrada .iaArchivoMini {
+  display: inline-flex; align-items: center; gap: 8px; height: auto; min-width: 0; max-width: 100%;
+  padding: 4px 10px 4px 4px; border: 1px solid var(--borde, var(--vd-linea)); border-radius: 8px;
+  background: var(--papel, var(--panel, var(--vd-fondo))); color: inherit; font: inherit; font-size: 12px; text-align: left; cursor: pointer;
+}
+.iaArchivoMini:hover { border-color: var(--marca-verde, currentColor); }
+.iaArchivoMini:focus-visible { outline: 2px solid var(--marca-acento, currentColor); outline-offset: 1px; }
+.iaArchivoMini.iaNoDisponible { cursor: default; opacity: .6; }
+.iaMiniVista { width: 44px; height: 56px; flex: none; display: grid; place-items: center; overflow: hidden; border-radius: 4px;
+  border: 1px solid var(--borde, var(--vd-linea)); background: var(--vd-fondo, transparent); }
+.iaMiniVista img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+.iaMiniIcono { font: 700 11px/1 inherit; letter-spacing: .04em; color: var(--vd-acento-texto, var(--marca-verde, currentColor)); }
+.iaMini-pdf .iaMiniIcono { color: var(--vd-granate, currentColor); }
+.iaMini-xls .iaMiniIcono { color: var(--marca-verde, currentColor); }
+.iaMini-doc .iaMiniIcono, .iaMini-eml .iaMiniIcono { color: var(--vd-marino, currentColor); }
+.iaMiniNombre { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; font-weight: 600; overflow-wrap: anywhere; }
+.iaMiniNombre small { font-weight: 400; color: var(--textoSuave, currentColor); font-size: 11px; }
+.iaPregunta .iaArchivos { justify-content: flex-end; }
+.iaPanel.iaSoltar { outline: 2px dashed var(--marca-verde, currentColor); outline-offset: -6px; }
+
+/*
+ * 12-nov (JC: «creo que el aspecto del chat de Iarvis y lo que dice se puede mejorar»): MINIMALISTA.
+ * Más aire; la pregunta en una burbuja sobria y la respuesta de Iarvis SIN burbuja, como texto de un
+ * documento; markdown bien pintado (negrita, listas, tablas pequeñas con cifra tabular); el «pensando»
+ * en una línea discreta; y la caja de escribir como una sola pieza con el clip y la flecha dentro.
+ * Solo colores de la marca (tokens --vd-*, con los de antes de reserva). Va al final para mandar sobre lo anterior.
+ */
+.iaCabecera { padding: 12px 16px; border-bottom: 1px solid var(--vd-linea, var(--borde)); }
+.iaCabecera .iaMarca { width: 26px; height: 26px; font-size: 13px; }
+.iaCabecera button { color: var(--textoSuave); border-radius: 6px; }
+.iaCabecera button:hover { color: inherit; background: color-mix(in srgb, currentColor 8%, transparent); }
+
+.iaLista { padding: 18px 20px 12px; gap: 18px; }
+.iaPregunta {
+  max-width: 82%; padding: 8px 13px; border-radius: 14px 14px 4px 14px;
+  background: color-mix(in srgb, var(--vd-marino, var(--marca-verde)) 7%, transparent);
+  font-size: 13.5px; line-height: 1.45;
+}
+.iaRespuesta {
+  max-width: 100%; border-left: 0; padding-left: 0;
+  font-size: 14px; line-height: 1.6; color: var(--texto, inherit);
+}
+.iaRespuesta.iaEspera { border-left: 0; }
+.iaRespuesta p { margin: 0 0 10px; }
+.iaRespuesta p:last-child { margin-bottom: 0; }
+.iaRespuesta :is(ul, ol) { margin: 2px 0 10px; padding-left: 20px; }
+.iaRespuesta :is(ul, ol):last-child { margin-bottom: 0; }
+.iaRespuesta li { margin: 3px 0; padding-left: 2px; }
+.iaRespuesta li::marker { color: var(--textoSuave); }
+.iaRespuesta strong { font-weight: 650; color: var(--vd-marino, inherit); }
+.iaRespuesta code { font-family: var(--vd-fuente-mono, ui-monospace, Menlo, monospace); font-size: 12.5px; padding: 1px 4px; border-radius: 3px; background: color-mix(in srgb, currentColor 8%, transparent); }
+.iaRespuesta .iaTit { margin: 14px 0 4px; font-size: 12px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--textoSuave); }
+.iaRespuesta .iaTit:first-child { margin-top: 0; }
+
+/* Tablas pequeñas: sin cajas ni cebra; separa la línea. Cifras a la derecha y tabulares. */
+.iaTablaCaja { margin: 4px 0 12px; overflow-x: auto; }
+.iaTablaCaja:last-child { margin-bottom: 0; }
+.iaTabla { border-collapse: collapse; font-size: 12.5px; line-height: 1.4; min-width: 60%; }
+.iaTabla th { text-align: left; font-weight: 600; color: var(--textoSuave); padding: 0 14px 5px 0; border-bottom: 1px solid var(--vd-linea-fuerte, var(--borde)); white-space: nowrap; }
+.iaTabla td { padding: 5px 14px 5px 0; border-bottom: 1px solid var(--vd-linea, var(--borde)); vertical-align: top; }
+.iaTabla tr:last-child td { border-bottom: 0; }
+.iaTabla :is(th, td):last-child { padding-right: 0; }
+.iaTabla .iaNum { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* El enlace a una pantalla: una línea de texto con flecha, no un botón. */
+.iaRespuesta .iaIr { display: inline-block; margin-top: 2px; font-weight: 600; text-decoration: none; }
+.iaRespuesta .iaIr:hover { text-decoration: underline; }
+
+/* Útil / no útil: dos iconos finos y apagados; se encienden al pasar. */
+.iaPie { margin-top: 6px; gap: 2px; }
+.iaPie button { width: 26px; height: 24px; padding: 0; display: inline-grid; place-items: center; border: 0; border-radius: 6px; color: var(--textoSuave); }
+.iaPie button:hover { background: color-mix(in srgb, currentColor 10%, transparent); color: var(--texto, inherit); }
+.iaPie button.elegida { background: color-mix(in srgb, var(--vd-marino, var(--marca-verde)) 12%, transparent); color: var(--vd-marino, var(--marca-verde)); }
+.iaPulgarAbajo { transform: rotate(180deg); }
+.iaPropuesta { margin-top: 8px; font-size: 12.5px; color: var(--textoSuave); }
+
+/* Pensando y lo que está haciendo: una línea pequeña y apagada. */
+.iaPensando { gap: 8px; color: var(--textoSuave); }
+.iaPensando .iaBrujulaViva { width: 15px; height: 15px; }
+.iaPensando .iaVerbo { font-size: 12.5px; }
+
+/* La caja de escribir: una sola pieza, con el clip a la izquierda y la flecha dentro. */
+.iaEntrada { border-top: 0; padding: 6px 14px 14px; gap: 8px; }
+.iaEntrada .iaFila {
+  gap: 4px; padding: 5px; align-items: flex-end;
+  border: 1px solid var(--vd-control, var(--borde)); border-radius: 14px; background: var(--panel, var(--vd-fondo));
+}
+.iaEntrada .iaFila:focus-within { border-color: var(--vd-granate, var(--marca-verde)); box-shadow: 0 0 0 1px var(--vd-granate, var(--marca-verde)); }
+/* campos.css pinta todos los campos con !important (borde, fondo, sombra); dentro de la caja el borde es el de .iaFila. */
+.iaEntrada .iaFila textarea { border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; padding: 6px 4px; min-height: 32px; font-size: 13.5px; line-height: 1.4; }
+.iaEntrada .iaFila textarea:is(:hover, :focus, :focus-visible) { outline: none !important; box-shadow: none !important; border: 0 !important; }
+.iaEntrada .iaFila button { height: 32px; min-width: 32px; width: 32px; padding: 0; border: 0; display: inline-grid; place-items: center; }
+.iaEntrada .iaFila button.iaClip, .iaEntrada .iaFila button.iaCamara { color: var(--textoSuave); }
+.iaEntrada .iaFila button.iaClip:hover, .iaEntrada .iaFila button.iaCamara:hover { color: var(--texto, inherit); background: color-mix(in srgb, currentColor 8%, transparent); }
+.iaEntrada .iaFila button.iaMandar { padding: 0; background: var(--acento, var(--marca-verde)); color: var(--vd-sobre-acento, var(--vd-crema)); }
+.iaEntrada .iaFila button:focus-visible { outline: 2px solid var(--vd-granate, var(--marca-acento)); outline-offset: 1px; }
+/* Los adjuntos de la caja, a la vista y compactos, encima de lo que se escribe. */
+.iaEntrada .iaFicheros:empty { display: none; }
+.iaEntrada .iaFicheros .iaArchivos { margin: 0; }
+.iaEntrada .iaArchivoMini { padding: 3px 10px 3px 3px; border-radius: 10px; }
+.iaEntrada .iaMiniVista { width: 28px; height: 34px; }
+
+.iaBienvenida { padding: 22px 2px 6px; }
+.iaMovil .iaLista { padding: 14px 14px 10px; }
+.iaMovil .iaEntrada { padding-left: 10px; padding-right: 10px; }
