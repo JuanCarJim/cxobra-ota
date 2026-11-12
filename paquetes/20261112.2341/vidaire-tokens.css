@@ -19,6 +19,8 @@
 :root {
   /* Colores con significado propio (móvil Cx): el lienzo de firma y de planos va siempre en blanco con
      trazo marino, también en oscuro; velo y visor de cámara; avisos del toast. */
+  /* Los circuitos de aire de un plano (los mismos de marca/colores.js › CIRCUITOS_AIRE; lo comprueba test/simbolosInstalacion). */
+  --vd-aire-impulsion: #2F6F73; --vd-aire-retorno: #8A5A1E; --vd-aire-extraccion: #5F6562; --vd-aire-aporte: #4A6A7D;
   --vd-lienzo: #FFFFFF; --vd-trazo: #1F2D4E; --vd-sobre-imagen: #FFFFFF; --vd-velo: rgba(0, 0, 0, .55); --vd-visor: #0F1626;
   --vd-toast-bien: #B5DEC2; --vd-toast-aviso: #E4C590; --vd-toast-mal: #F2B8A6;
   /* ── Letra: la del sistema (SF Pro en Mac/iPad, Segoe UI en Windows). Cifras siempre tabulares. */
@@ -440,7 +442,7 @@
   --vd-arena-cab-acento: #1F2D4E; --vd-arena-cab-foco: rgba(31, 45, 78, .35);
   /* 9-nov, JC: barra lateral en arena «como el resto»; manda el marino y el granate queda de detalle. */
   /* 10-nov, JC: «que sea el mismo color (el más clarito)»: la barra usa el token del fondo de la pantalla, sin escalón. */
-  --vd-arena-barra: #F4EDDF; --vd-arena-barra-2: #E6D4B0; --vd-arena-barra-tenue: #4F4A42; --vd-arena-barra-texto: #1F2D4E;
+  --vd-arena-barra: #EDE4D1; --vd-arena-barra-2: #E2CFA8; --vd-arena-barra-tenue: #4F4A42; --vd-arena-barra-texto: #1F2D4E;
   --vd-arena-barra-linea: rgba(28, 35, 51, .14); --vd-arena-barra-fuerte: rgba(28, 35, 51, .3);
   --vd-arena-barra-pulgar: rgba(28, 35, 51, .3); --vd-arena-barra-foco: rgba(31, 45, 78, .35);
   --vd-arena-barra-activo: #1F2D4E; --vd-arena-barra-activo-texto: #FAF6EE; --vd-arena-marca: #1F2D4E;

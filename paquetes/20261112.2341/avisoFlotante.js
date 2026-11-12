@@ -16,9 +16,12 @@
  *              pantalla igual que antes: el panel vive dentro del lienzo).
  *   nivel      'aviso' (importante: fondo amarillo suave) o 'mal' (grave: fondo rojo suave).
  *              Si el contenido lleva algún aviso «bloqueante»/«grave», el panel toma la peor.
- *   abrirSolo  true: la primera vez que esa persona entra se abre solo
- *              (nunca desplaza nada: es flotante). 'siempre': se abre cada vez
- *              que se pinta (para errores que no se pueden pasar por alto).
+ *   abrirSolo  'siempre': se abre cada vez que se pinta, SOLO para la respuesta a
+ *              algo que la persona acaba de hacer (un cambio rechazado, un
+ *              guardado que ha fallado, cambios sin guardar). Cualquier otro
+ *              valor no abre nada: un aviso nunca se despliega solo tapando
+ *              la tabla (JC, 20-oct y revisión de comodidad del 11-nov: el
+ *              indicador «⚠ N avisos» ya avisa; el contenido manda).
  */
 (function () {
   const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -28,7 +31,6 @@
     return s.personaId || s.usuarioId || s.email || s.rol || 'anon';
   }
   const claveVisto = (id) => `avisoFlotante:${persona()}:${id}`;
-  function yaVisto(id) { try { return localStorage.getItem(claveVisto(id)) === '1'; } catch { return false; } }
   function marcarVisto(id) { try { localStorage.setItem(claveVisto(id), '1'); } catch { /* sin almacén: vale para esta visita */ } }
 
   /* La gravedad del panel es la PEOR de lo que lleva: si algún aviso va marcado como grave
@@ -43,7 +45,7 @@
     if (!contenido) return '';
     nivel = nivelDe(nivel, contenido);
     const texto = etiqueta || `${cuenta} ${cuenta === 1 ? 'aviso' : 'avisos'}`;
-    const auto = abrirSolo === 'siempre' || (abrirSolo && !yaVisto(id));
+    const auto = abrirSolo === 'siempre';
     if (auto) setTimeout(() => abrirAuto(), 0);
     return `<span class="avisoFlot ${nivel === 'mal' ? 'mal' : ''}" data-aviso-flot="${esc(id)}" ${auto ? 'data-auto-abrir' : ''}>
       <button type="button" class="avisoFlotBoton" aria-haspopup="dialog" aria-expanded="false"

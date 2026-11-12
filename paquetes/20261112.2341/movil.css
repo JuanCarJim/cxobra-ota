@@ -2011,3 +2011,88 @@ input.mal { box-shadow: var(--sombra-campo), 0 0 0 3px var(--mal-fondo) !importa
 #app .mas-grupo .mas-ico { width: auto; color: inherit; }
 .mas-nombre { flex: 1; }
 .mas-flecha { color: var(--textoTenue); font-size: 18px; }
+
+/* 12-nov-2026 (JC) · Cx › lista de equipos. Las cinco cifras en tres columnas con el nombre entero (dos líneas si hace
+   falta); incidencias y por confirmar, aparte y pequeñas; y las plantas, lista densa con separadores finos (sin tarjetas). */
+#app .kpis-cx.kpis-cx-cinco { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-flow: row; gap: 10px 0; }
+#app .kpis-cx.kpis-cx-cinco > .kpi-cx { border-left: 1px solid var(--rejilla); padding-left: 8px; }
+#app .kpis-cx.kpis-cx-cinco > .kpi-cx:nth-child(3n+1) { border-left: 0; padding-left: 0; }
+#app .kpis-cx.kpis-cx-cinco .kpi-cx .et { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.15; min-height: 2.3em; display: flex; align-items: flex-end; }
+.kpis-cx-aparte { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 6px 0 10px; font-size: 12px; color: var(--textoTenue); }
+.kpis-cx-aparte button { background: none; border: 0; padding: 4px 0; font: inherit; color: inherit; cursor: pointer; }
+.kpis-cx-aparte button b { font-family: var(--fuente-cifras, inherit); color: var(--texto); font-weight: 600; }
+.kpis-cx-aparte button.activa { color: var(--acento-fuerte); text-decoration: underline; }
+#app .cx-densa details.grupo-lista { margin: 0; border-bottom: 1px solid var(--rejilla); }
+#app .cx-densa details.grupo-lista:first-child { border-top: 1px solid var(--rejilla); }
+#app .cx-densa details.grupo-lista > summary { background: none; border: 0; border-radius: 0; box-shadow: none; padding: 9px 2px; min-height: 40px; font-size: 14px; }
+#app .cx-densa details.grupo-lista[open] > summary { border-radius: 0; }
+#app .cx-densa details.grupo-lista > summary .contador { display: flex; flex-direction: column; align-items: flex-end; font-size: 12.5px; font-weight: 500; color: var(--texto); white-space: nowrap; }
+#app .cx-densa details.grupo-lista > summary .por-confirmar-grupo { font-size: 11px; font-weight: 400; color: var(--textoTenue); }
+
+/* La red del equipo en el modelo, en la pantalla del balanceo: el recorte a todo el ancho, con su pie. */
+.red-modelo { margin: 0 0 10px; }
+.red-modelo img { display: block; width: 100%; height: auto; max-height: 62vh; object-fit: contain; background: var(--vd-lienzo); border: 1px solid var(--acento); border-radius: 10px; }
+.red-modelo figcaption { margin-top: 3px; font-size: 11.5px; font-weight: 600; color: var(--acento); }
+
+/* EL BALANCEO ABRE CON SU RED (12-nov-2026, JC): el plano de la red del modelo
+   arriba (~40 % del alto), la tabla de sus bocas debajo; en el iPad, plano a la
+   izquierda y tabla a la derecha. */
+.tag-fijo.dos { align-items: center; padding-top: 5px; padding-bottom: 6px; }
+.tag-fijo .titulo-dos { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.tag-fijo .titulo-dos .que { flex: none; font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; overflow: visible; white-space: normal; }
+.tag-fijo .titulo-dos strong { white-space: normal; overflow-wrap: anywhere; line-height: 1.15; }
+.bal-red { margin: 0 0 8px; }
+#app .plano-bocas.red-cx { margin: 0; border-radius: 0; box-shadow: none; border: 1px solid var(--rejilla); }
+.red-cx .plano-marco { overflow: hidden; touch-action: pan-y; background: var(--panel); }
+.red-cx .plano-marco.con-zoom { touch-action: none; }
+.red-cx .plano-lienzo { transform-origin: 0 0; }
+.red-cx .plano-lienzo svg { display: block; width: 100%; height: auto; max-height: 40vh; }
+.red-cx g[data-boca] { cursor: pointer; }
+.red-cx g[data-boca].medida > polygon:first-child { fill: var(--bien-fondo); stroke: var(--bien); }
+.red-cx g[data-boca].elegida > polygon:first-child { stroke: var(--vd-granate); stroke-width: 3px; vector-effect: non-scaling-stroke; }
+.red-cx figcaption { padding: 5px 10px; font-size: 12px; }
+.red-cx figcaption .pie-red { flex: 1 1 100%; font-weight: 600; color: var(--acento); }
+.red-cx figcaption .laminas-red { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 4px; }
+.red-cx figcaption .laminas-red .chip { border: 0; cursor: pointer; }
+.red-cx.grande { border: 0; }
+.red-cx.grande .plano-marco { display: block; }
+.red-cx.grande .plano-lienzo { width: 100%; height: 100%; }
+.red-cx.grande .plano-lienzo svg { height: 100%; }
+.tabla-red { background: var(--panel); border: 1px solid var(--rejilla); border-top: 0; }
+.tabla-red .cab-red, .tabla-red li { display: grid; grid-template-columns: 30px minmax(0, 1fr) 98px 76px; gap: 6px; align-items: center; padding: 0 10px; }
+.tabla-red .cab-red { padding-top: 6px; padding-bottom: 5px; font-size: 11px; font-weight: 600; color: var(--textoTenue); border-bottom: 2px solid var(--acento); }
+.tabla-red .cab-red span:nth-child(n+3) { text-align: right; }
+.tabla-red .cab-red small { font-weight: 400; }
+.tabla-red h4 { margin: 0; padding: 6px 10px 5px; font-size: 12.5px; font-weight: 700; color: var(--texto); background: var(--panel2); border-bottom: 1px solid var(--rejillaSuave); }
+.tabla-red h4 .tenue { font-weight: 500; font-size: 11.5px; margin-left: 4px; }
+.tabla-red .punto-red { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.tabla-red ul { list-style: none; margin: 0; padding: 0; }
+.tabla-red li { min-height: 44px; padding-top: 3px; padding-bottom: 3px; border-bottom: 1px solid var(--rejillaSuave); }
+.tabla-red li .n { font-size: 13px; font-weight: 700; color: var(--textoSuave); }
+.tabla-red li.medida .n { color: var(--bien); }
+.tabla-red li.elegida { background: var(--acento-suave); }
+.tabla-red .boca-quien { min-width: 0; display: flex; flex-direction: column; }
+.tabla-red .boca-quien strong { font-size: 13.5px; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
+.tabla-red .boca-quien small { font-size: 11.5px; color: var(--textoTenue); line-height: 1.25; white-space: normal; overflow-wrap: anywhere; }
+.tabla-red input { margin: 0; width: 100%; min-height: 36px; padding: 4px 8px; font-size: 15px; text-align: right; font-variant-numeric: tabular-nums; border: 1px solid var(--borde); border-radius: 3px; background: var(--panel); }
+.tabla-red input::placeholder { font-size: 12px; color: var(--textoTenue); }
+.tabla-red input.mal { border-color: var(--mal); }
+.tabla-red li > span.cifra { text-align: right; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.tabla-red .nota { margin: 0; padding: 7px 10px; font-size: 12px; color: var(--textoTenue); }
+.ensayo-plegado { background: var(--panel); border: 1px solid var(--rejilla); margin: 0 0 8px; }
+.ensayo-plegado > summary { display: flex; align-items: baseline; gap: 8px; min-height: 40px; padding: 9px 10px; font-size: 13.5px; cursor: pointer; list-style: none; }
+.ensayo-plegado > summary::-webkit-details-marker { display: none; }
+.ensayo-plegado > summary::before { content: '›'; color: var(--textoTenue); font-size: 16px; transition: transform .15s; }
+.ensayo-plegado[open] > summary::before { transform: rotate(90deg); }
+.ensayo-plegado > summary .t { font-weight: 700; }
+.ensayo-plegado > summary .tenue { min-width: 0; font-size: 12.5px; color: var(--textoTenue); }
+.ensayo-plegado .hoja-tabla { border: 0; border-top: 1px solid var(--rejillaSuave); }
+.bal-zona textarea { display: block; width: 100%; margin-top: 4px; min-height: 44px; resize: none; overflow: hidden; line-height: 1.35; }
+.densa.con-red { padding-bottom: 56px; }
+@media (min-width: 760px) {
+  .bal-red { display: grid; grid-template-columns: minmax(0, 55fr) minmax(0, 45fr); gap: 0 12px; align-items: start; }
+  .bal-red-plano { position: sticky; top: calc(var(--alto-barra, 0px) + 52px); }
+  .bal-red .red-cx .plano-lienzo svg { max-height: 62vh; }
+  .bal-red .red-cx.grande .plano-lienzo svg { height: 100%; }
+  .bal-red-bocas > h3.banda { margin-top: 0; }
+}
