@@ -165,3 +165,12 @@
   :root body #pantallaCommissioning .bandaCx:not(.bandaQH):has(> :nth-child(9)) .etBanda { display: block; width: 100%; font-size: 10.5px; line-height: 1.15; white-space: normal; text-align: left; hyphens: auto; overflow-wrap: anywhere; }
   :root body #pantallaCommissioning .bandaCx:not(.bandaQH):has(> :nth-child(9)) .txtBanda { display: block; width: 100%; min-width: 0; white-space: normal; text-align: left; }
 }
+
+/* 12-nov-2026 (JC: franja de Equipos reducida): «Con incidencias» va al final, apartada y sin peso. */
+@media (min-width: 701px) {
+  :root body #pantallaCommissioning .bandaCx:not(.bandaQH) > .celdaBanda.tono-discreta { margin-left: auto; border-left: 0; opacity: 0.85; }
+  :root body #pantallaCommissioning .bandaCx:not(.bandaQH) > .celdaBanda.tono-discreta .cifraBanda { font-size: 14px; font-weight: 500; color: var(--textoTenue); }
+}
+:root body #pantallaCommissioning .bandaCx:not(.bandaQH) > .celdaBanda.tono-discreta .pieBanda { display: none; }
+/* En estrecho la franja es una rejilla de dos columnas: la discreta ocupa su celda como las demás. */
+@media (max-width: 700px) { :root body #pantallaCommissioning .bandaCx:not(.bandaQH) > .celdaBanda.tono-discreta .cifraBanda { color: var(--textoSuave); } }

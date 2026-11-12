@@ -143,7 +143,7 @@
    */
   const DESTINOS = {
     bc3: { pantalla: 'presupuestos', accion: 'Importarlo como presupuesto nuevo (o versión) — la base de estudios no se toca', importador: 'shared/presupuesto/bc3.js parsearBC3', estado: 'importa' },
-    excel: { pantalla: 'pedidos', accion: 'Reconocer las columnas y llevarlo a su tabla (equipos «por confirmar», mediciones, compras…)', importador: 'shared/importacion/reconocer.js', estado: 'importa' },
+    excel: { pantalla: 'pedidos', accion: 'Iarvis lo lee (hojas, columnas, totales, fechas); reconocer las columnas y llevarlo a su tabla (equipos «por confirmar», mediciones, compras…)', importador: 'shared/importacion/reconocer.js + shared/ia/lectorDocumentos.js', estado: 'importa' },
     csv: { pantalla: 'pedidos', accion: 'Conciliarlo en Pedidos (la conciliación de esa pantalla)', importador: 'shared/compras/conciliacion.js leerCsv', estado: 'importa' },
     'correo-msg': { pantalla: 'reclamaciones', accion: 'Leer el correo y sus adjuntos y guardarlo como prueba del claim', importador: 'electron/lectura/correoMsg.js (electron/data/reclamaciones.js)', estado: 'importa' },
     zip: { pantalla: 'documentacion', accion: 'Abrir el paquete y clasificar cada documento', importador: 'electron/data/fuenteDocumentos.js', estado: 'importa' },
@@ -152,7 +152,7 @@
     project: { pantalla: 'gantt', accion: 'Pasar las tareas y fechas al Gantt', importador: null, estado: 'pendiente' },
     ifc: { pantalla: 'commissioning', accion: 'Sacar los equipos del modelo, todos «por confirmar»', importador: null, estado: 'pendiente' },
     word: { pantalla: 'documentacion', accion: 'Guardarlo en la documentación', importador: null, estado: 'pendiente' },
-    'correo-eml': { pantalla: 'reclamaciones', accion: 'Leer el correo y guardarlo en la documentación', importador: null, estado: 'pendiente' },
+    'correo-eml': { pantalla: 'reclamaciones', accion: 'Iarvis lo lee: qué es, quién, fechas, importes, papeles citados y si huele a claim', importador: 'shared/ia/lectorDocumentos.js', estado: 'lee' },
   };
 
   /*
@@ -160,7 +160,6 @@
    *   project     .mpp (OLE2) y .xml de Project → tareas, fechas y dependencias al Gantt
    *   ifc         ISO-10303-21 → IfcFlowTerminal/IfcEnergyConversionDevice… como equipos «por confirmar»
    *   word        .docx → texto (word/document.xml) para resumirlo
-   *   correo-eml  RFC 822 → como correoMsg.js pero en texto
    */
   const PENDIENTES = Object.entries(DESTINOS).filter(([, d]) => d.estado === 'pendiente').map(([t]) => t);
 

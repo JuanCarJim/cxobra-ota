@@ -102,7 +102,8 @@
   /* Segmentos por estado: son las cifras de arriba, siempre a la vista; cada una filtra la lista. */
   const SEGMENTOS = [
     ['todos', 'Todos', () => true],
-    ['faltaDoc', 'Falta doc.', (e) => !e.completo && e.envio !== 'enviada' && !e.docCompleta],
+    /* 12-nov (JC): sin lo del fabricante (FT, CE, manual); la regla, control.js › faltaDocPropia. */
+    ['faltaDoc', 'Falta doc.', (e) => e.envio !== 'enviada' && !(e.docPropia !== undefined ? e.docPropia : e.docCompleta)],
     ['faltaBalanceo', 'Falta balanceo', (e) => !e.completo && e.envio === 'faltaEnsayo' && (!e.ensayoFalta || e.ensayoFalta.includes('balanceo'))],
     ['faltaEstanqueidad', 'Falta estanqueidad', (e) => !e.completo && (e.ensayoFalta || []).includes('estanqueidad')],
     /* Una sola regla: la de shared/commissioning/control.js (papeles + fichas + ensayo). */
@@ -110,7 +111,10 @@
     ['soloDoc', 'Papeles OK', (e) => e.docCompleta && !e.completo],
     /* 22-oct (JC): «puestos en marcha» y «falta ficha», las mismas cuentas que el
        inicio del escritorio (shared/commissioning/control.js · totalesDe). */
-    ['enMarcha', 'Puestos en marcha', (e) => e.estadoPM === 'enMarcha' || e.estadoPM === 'hecha'],
+    /* 12-nov (JC): lo entregado a la DF cuenta como en marcha (control.js › pmEnMarcha). */
+    ['enMarcha', 'En marcha', (e) => e.estadoPM === 'enMarcha' || e.envio === 'enviada'],
+    ['listas', 'Listos para enviar', (e) => (e.listaDF !== undefined ? e.listaDF : e.envio === 'lista')],
+    ['incidencias', 'Con incidencias', (e) => Boolean(e.conIncidencias)],
     ['faltaFichas', 'Falta ficha', (e) => e.envio === 'faltaFichas'],
     ['faltaEnsayo', 'Falta ensayo', (e) => e.envio === 'faltaEnsayo'],
     ['enviadas', 'Mandados a la DF', (e) => e.envio === 'enviada'],
@@ -152,7 +156,7 @@
   const porConjuntos = () => Array.isArray(lista.conjuntos);
   const NOMBRE_CLASE = { par: 'Split', sistema: 'VRF' };
   /* Campos sueltos (TAG, sala, código de sala…): la búsqueda por cifras compara cada código por separado (buscador.js). */
-  const textosDe = (e) => [...(e.unidades || []).map((u) => u.tag), e.tag, e.nombre, e.local, e.codSala, ...(e.unidades || []).map((u) => u.codSala), e.planta, e.zona, e.marca, e.modelo, tipoDe(e)];
+  const textosDe = (e) => [...(e.unidades || []).map((u) => u.tag), e.tag, e.nombre, e.local, e.codSala, ...(e.unidades || []).map((u) => u.codSala), e.planta, e.plantaEscrita, e.zona, e.marca, e.modelo, tipoDe(e)];
   function tagsFila(e) {
     const us = e.unidades || [];
     /* El split, UNA vez por su nombre (28-oct-2026, JC: «en lugar de UE y luego
@@ -346,15 +350,42 @@
   /* El total del grupo, como los KPI (6-nov-2026, JC): solo los confirmados; los
      por confirmar (de un plano o un pedido) van aparte, «+N». */
   const extraPC = (n) => (n ? ` <small class="tenue" aria-label="${n} por confirmar">+${cifra(n)}</small>` : '');
-  function cabeceraPlanta(fs, p) {
+  /* 12-nov-2026 (JC: «0/30 +36» no se entiende): «30 equipos · 0 entregados» y, en pequeño y gris, «36 por confirmar».
+     El nombre de la planta, entero («N20 · Sótano 1») cuando el servidor lo trae del censo (lista.nombresPlanta). */
+  const nombrePlanta = (p) => (lista && lista.nombresPlanta && lista.nombresPlanta[p]) || p;
+  const entregado = (e) => e.envio === 'enviada';
+  /* UNA SOLA CUENTA (12-nov-2026, JC): con el censo (lista.censo.plantas), los equipos y los por confirmar de cada
+     PLANTA son los del censo, «Sin planta» incluida, y suman el total de arriba; los que ya tienen ficha en la lista
+     van debajo, rotulados «con ficha». Con un filtro o una búsqueda, o sin censo, se cuenta la lista. Al agrupar por
+     tipo o marca la cifra es de la lista y se dice: «con ficha». */
+  let filtrando = false;
+  const plantasCenso = () => (lista && lista.censo && lista.censo.plantas) || null;
+  const delCenso = (planta) => { const ps = plantasCenso(); return (ps && !filtrando && ps[planta === 'Sin planta' ? '' : planta]) || null; };
+  function cuentaGrupo(fs, planta) {
     const cuentan = fs.filter((e) => !e.porConfirmar);
-    const hechos = cuentan.filter(hecho).length;
-    return `<span>${esc(p)}</span><b aria-label="${hechos} hechos de ${cuentan.length}">${cifra(hechos)}/${cifra(cuentan.length)}${extraPC(fs.length - cuentan.length)}</b>`;
+    const censo = planta ? delCenso(planta) : null;
+    const pc = censo ? censo.porConfirmar : fs.length - cuentan.length;
+    const ent = cuentan.filter(entregado).length;
+    const entregados = `${cifra(ent)} ${ent === 1 ? 'entregado' : 'entregados'}`;
+    if (censo) {
+      const n = censo.equipos;
+      return `<b class="contador">${cifra(n)} ${n === 1 ? 'equipo' : 'equipos'} · ${entregados}<small class="tenue por-confirmar-grupo">${
+        [`${cifra(cuentan.length)} con ficha`, pc ? `${cifra(pc)} por confirmar` : ''].filter(Boolean).join(' · ')}</small></b>`;
+    }
+    const n = cuentan.length;
+    const deLista = plantasCenso() && !filtrando ? `${cifra(n)} con ficha` : `${cifra(n)} ${n === 1 ? 'equipo' : 'equipos'}`;
+    return `<b class="contador">${deLista} · ${entregados}${
+      pc ? `<small class="tenue por-confirmar-grupo">${cifra(pc)} por confirmar</small>` : ''}</b>`;
   }
-  function cabeceraGrupo(fs, g) {
-    const cuentan = fs.filter((e) => !e.porConfirmar);
-    const hechos = cuentan.filter(hecho).length;
-    return `<span>${esc(g)}</span><b class="contador" aria-label="${hechos} hechos de ${cuentan.length}">${cifra(hechos)}/${cifra(cuentan.length)}${extraPC(fs.length - cuentan.length)}</b>`;
+  /* La planta, arriba (al agrupar por planta): su cifra es la del censo. */
+  function cabeceraPlanta(fs, p) { return `<span>${esc(nombrePlanta(p))}</span>${cuentaGrupo(fs, p)}`; }
+  /* Un tipo, una marca o una planta DENTRO de un tipo: lo que hay en la lista. */
+  function cabeceraGrupo(fs, g) { return `<span>${esc(nombrePlanta(g))}</span>${cuentaGrupo(fs)}`; }
+  /* Las plantas del censo con equipos y sin ninguna ficha en la lista: salen también, para que las plantas sumen el total. */
+  function plantasSinFicha(grupos) {
+    const ps = plantasCenso();
+    if (!ps || filtrando) return [];
+    return Object.keys(ps).filter((k) => ps[k].equipos > 0).map((k) => k || 'Sin planta').filter((g) => !grupos.includes(g));
   }
 
   /* LOS KPI DE ARRIBA, COMO LOS DE VIDAIRE OBRAS (28-oct-2026, JC: «mejora la
@@ -368,31 +399,33 @@
   function kpisCx(t, conj) {
     const total = (conj ? t.conjuntos : t.equipos) || 0;
     const pct = (n) => (total ? Math.round(((n || 0) / total) * 100) : 0);
+    /* 12-nov-2026 (JC: «hay que reducir muchos KPIs»): las mismas cinco cifras que el escritorio y, al final,
+       las incidencias. Un split o un VRF con sus unidades es UN equipo. Lo demás sigue en los filtros de la lista. */
+    /* Las cinco, en este orden y con su nombre entero (12-nov, JC); incidencias y por confirmar, aparte y pequeñas. */
     const celdas = [
-      { id: 'todos', et: conj && t.unidades !== t.conjuntos ? 'Conjuntos' : 'Equipos', n: total, tono: 'neutro',
-        pie: conj && t.unidades && t.unidades !== t.conjuntos ? `${cifra(t.unidades)} unidades` : 'en la obra' },
-      t.sinVerificar !== undefined && t.instaladas !== undefined
-        ? { id: 'sinVerificar', et: 'Verificados', n: t.instaladas, tono: t.sinVerificar ? 'falta' : 'bien', barra: pct(t.instaladas),
-          pie: t.sinVerificar ? `${cifra(t.sinVerificar)} sin verificar` : 'instalación verificada', titulo: 'Pulsa para ver los que faltan por verificar' }
-        : null,
-      t.enMarcha !== undefined ? { id: 'enMarcha', et: 'En marcha', n: t.enMarcha, tono: 'bien', barra: pct(t.enMarcha), pie: `${pct(t.enMarcha)} % puestos en marcha` } : null,
-      { id: 'completos', et: 'Completos', n: t.completos, tono: 'bien', barra: pct(t.completos), pie: `${pct(t.completos)} % del total` },
-      { id: 'soloDoc', et: 'Papeles OK', n: t.soloDoc || 0, tono: 'neutro', pie: 'faltan fichas o pruebas' },
-      { id: 'faltaDoc', et: 'Sin doc.', n: t.faltaDocumentacion || 0, tono: 'falta', pie: 'papeles por subir' },
-      { id: 'faltaFichas', et: 'Sin ficha', n: t.faltaFichas || 0, tono: 'falta', pie: 'fichas por rellenar' },
-      { id: 'faltaBalanceo', et: 'Balanceo', n: t.faltaBalanceo || 0, tono: 'falta', pie: 'equipos por medir' },
-      { id: 'faltaEstanqueidad', et: 'Estanq.', n: (window.KPI_CX ? window.KPI_CX.faltaEstanqueidad(t) : t.faltaEstanqueidadEnvio || 0), tono: 'falta', pie: 'prueba por hacer' },
-      /* Los que salen de planos o pedidos sin nada que diga que existen: no cuentan arriba; aquí se ven y se miden. */
-      lista.porConfirmar ? { id: 'porConfirmar', et: 'Por confirmar', n: lista.porConfirmar, tono: 'neutro', pie: 'de planos o pedidos; no cuentan' } : null,
+      /* «Equipos»: la cifra de control.js › kpiEquipos (la del censo de equipos cuando lo hay), la del escritorio. */
+      { id: 'todos', et: 'Equipos', n: conj && t.equiposKpi ? t.equiposKpi : total, tono: 'neutro',
+        pie: conj && (t.unidadesKpi || t.unidades) && (t.unidadesKpi || t.unidades) !== (t.equiposKpi || t.conjuntos) ? `${cifra(t.unidadesKpi || t.unidades)} unidades` : 'en la obra' },
+      { id: 'enMarcha', et: 'En marcha', n: t.enMarcha || 0, tono: 'bien', barra: pct(t.enMarcha), pie: `${pct(t.enMarcha)} % · con lo entregado` },
+      { id: 'faltaDoc', et: 'Falta documentación', n: t.faltaDocumentacion || 0, tono: 'falta', pie: 'hoja PM o check list' },
+      { id: 'listas', et: 'Listos para enviar', n: t.listas || 0, tono: 'neutro', pie: 'a la DF' },
+      { id: 'enviadas', et: 'Entregados a la DF', n: t.enviadas || 0, tono: 'bien', barra: pct(t.enviadas), pie: '' },
+    ];
+    /* Los que salen de planos o pedidos sin nada que diga que existen: no cuentan arriba; aquí se ven y se miden.
+       La cifra, la del censo de equipos cuando el servidor la trae (lista.censo), que ya ha cruzado planos y pedidos. */
+    const nPC = lista.censo && lista.censo.porConfirmar !== undefined ? lista.censo.porConfirmar : lista.porConfirmar;
+    const aparte = [
+      t.conIncidencias !== undefined ? { id: 'incidencias', et: 'Incidencias', n: t.conIncidencias || 0, titulo: 'Equipos con datos que no cuadran' } : null,
+      nPC ? { id: 'porConfirmar', et: 'Por confirmar', n: nPC, titulo: 'De planos o pedidos; no cuentan arriba' } : null,
     ].filter(Boolean);
-    return `<div class="kpis-cx" role="tablist" aria-label="Resumen del commissioning">${celdas.map((c) => {
+    return `<div class="kpis-cx kpis-cx-cinco" role="tablist" aria-label="Resumen del commissioning">${celdas.map((c) => {
       const tono = c.tono === 'falta' && !c.n ? 'bien' : c.tono;
       const activa = segmento === c.id;
       return `<button role="tab" data-cx-seg="${c.id}" aria-selected="${activa}" class="kpi-cx ${tono}${activa ? ' activa' : ''}"${c.titulo ? ` title="${esc(c.titulo)}"` : ''}>
         <span class="et">${esc(c.et)}</span><b class="cifra">${cifra(c.n)}</b>
         ${c.barra !== undefined ? `<i class="barra" aria-hidden="true"><i style="width:${c.barra}%"></i></i>` : ''}
         <span class="pie">${c.pie}</span><span class="ir" aria-hidden="true">›</span></button>`;
-    }).join('')}</div>`;
+    }).join('')}</div>${aparte.length ? `<p class="kpis-cx-aparte">${aparte.map((c) => `<button type="button" data-cx-seg="${c.id}" class="${segmento === c.id ? 'activa' : ''}" aria-pressed="${segmento === c.id}" title="${esc(c.titulo)}">${esc(c.et)} <b>${cifra(c.n)}</b></button>`).join('')}</p>` : ''}`;
   }
 
   /* LA COPIA DEL MÓVIL, DICHA (6-nov-2026, JC con «Sin conexión»: las familias
@@ -438,7 +471,9 @@
     if (modo === 'planta' && !hayPlanta && hayZona) modo = 'zona';
     const [, , grupoDe] = AGRUPAR.find(([id]) => id === modo) || AGRUPAR[0];
     const sin = (g) => g.startsWith('Sin ');
-    const grupos = [...new Set(equipos.map(grupoDe))].sort(modo === 'planta' || modo === 'zona' ? porPlanta
+    filtrando = Boolean(q) || segmento !== 'todos';
+    const vacias = modo === 'planta' ? plantasSinFicha([...new Set(equipos.map(grupoDe))]) : [];
+    const grupos = [...new Set([...equipos.map(grupoDe), ...vacias])].sort(modo === 'planta' || modo === 'zona' ? porPlanta
       : (a, b) => sin(a) - sin(b) || a.localeCompare(b, 'es', { numeric: true }));
     const subPor = !hayPlanta && hayZona ? 'zona' : 'planta';
     $app.innerHTML = `
@@ -447,12 +482,12 @@
       ${window.BUSCADOR_MOVIL.campo({ placeholder: 'Buscar TAG, sala, planta, tipo o marca', valor: filtro, atributo: 'data-cx-buscar' })}
       <div class="agrupar" role="group" aria-label="Agrupar por"><span>Agrupar por</span>${opciones
         .map(([id, texto]) => `<button data-cx-agrupar="${id}" aria-pressed="${modo === id}" class="${modo === id ? 'activa' : ''}">${texto}</button>`).join('')}</div>
-      <p class="leyenda-franja" aria-label="Franja de estado de cada equipo"><span><i class="m-firma"></i>Falta firma</span><span><i class="m-docs"></i>Faltan docs</span><span><i class="m-ambos"></i>Ambos</span><span><i class="m-completo"></i>Completo</span></p>
-      ${window.CX_PLANO_EQUIPOS ? '<button class="enlace" data-cx="plano-equipos">Ver los equipos en el plano</button>' : ''}
-      ${equipos.length ? C.listaAgrupada(`cx-equipos-${modo}`, equipos, {
-        grupo: grupoDe, orden: grupos, buscando: !!q, repintar: pintarLista, cabecera: cabeceraGrupo,
+${window.CX_PLANO_EQUIPOS ? '<button class="enlace" data-cx="plano-equipos">Ver los equipos en el plano</button>' : ''}
+      <div class="cx-densa">      ${equipos.length || vacias.length ? C.listaAgrupada(`cx-equipos-${modo}`, equipos, {
+        grupo: grupoDe, orden: grupos, buscando: !!q, repintar: pintarLista, cabecera: modo === 'planta' ? cabeceraPlanta : cabeceraGrupo,
+        gruposVacios: vacias, vacio: () => '<p class="nota grupo-vacio">Ningún equipo de esta planta tiene ficha todavía.</p>',
         /* «Por plantas pero en los desplegables de los equipos» (JC, 28-oct): al agrupar por tipo o marca, cada grupo sale por planta. */
-        ...(modo === 'planta' || modo === 'zona' ? {} : { subgrupo: subPor === 'zona' ? (e) => e.zona || 'Sin zona' : (e) => e.planta || 'Sin planta', subOrden: porPlanta, subCabecera: cabeceraPlanta }),
+        ...(modo === 'planta' || modo === 'zona' ? {} : { subgrupo: subPor === 'zona' ? (e) => e.zona || 'Sin zona' : (e) => e.planta || 'Sin planta', subOrden: porPlanta, subCabecera: cabeceraGrupo }),
         fila: (e) => `
         <li${e.franja ? ` class="franja-${e.franja}"` : ''}><button class="fila-ios" data-cx="equipo" data-id="${esc(e.id)}">
           <div class="fila-principal">
@@ -466,7 +501,7 @@
           ${e.bocas ? `<div class="progreso" aria-label="${e.medidas} de ${e.bocas} bocas medidas"><i style="width:${Math.round((e.medidas / e.bocas) * 100)}%"></i></div>
           <div class="sub">${cifra(e.medidas)} de ${cifra(e.bocas)} bocas medidas</div>` : e.conPlano === false ? '' : '<div class="sub">Sin plano de bocas</div>'}
           ${e.bloqueadoPor ? `<div class="sub aviso">Bloqueado por ${esc(e.bloqueadoPor.codigo)}</div>` : faltasDe(e).length ? `<div class="sub aviso">Falta: ${esc(faltasDe(e).join(', '))}</div>` : ''}
-        </button></li>` }) : `<p class="vacio">${q || segmento !== 'todos' ? 'Ningún equipo con ese filtro.' : 'Esta obra no tiene equipos dados de alta.'}</p>`}`;
+        </button></li>` }) : `<p class="vacio">${q || segmento !== 'todos' ? 'Ningún equipo con ese filtro.' : 'Esta obra no tiene equipos dados de alta.'}</p>`}</div>`;
   }
 
   /* ═══════════════════════════════════ 2. La ficha */
@@ -673,12 +708,13 @@
    * arriba al bajar por la hoja. Toda la franja vuelve atrás, no solo la
    * flecha (JC, 16-oct): se pulsa el TAG y se sale a la pantalla anterior.
    */
-  function tagFijo(tag, que, volver, extra = '') {
+  function tagFijo(tag, que, volver, extra = '', dosLineas = false) {
     requestAnimationFrame(altoBarra);
-    return `<div class="tag-fijo" data-cx="${esc(volver)}" role="button" aria-label="Volver">
+    /* En dos líneas (el balanceo): qué es arriba y el tag entero debajo, sin cortar. */
+    return `<div class="tag-fijo${dosLineas ? ' dos' : ''}" data-cx="${esc(volver)}" role="button" aria-label="Volver">
       <span class="volver" aria-hidden="true">‹</span>
-      <strong class="cifra">${esc(tag)}</strong>
-      <span class="que">${esc(que || '')}</span>
+      ${dosLineas ? `<span class="titulo-dos"><span class="que">${esc(que || '')}</span><strong class="cifra">${esc(tag)}</strong></span>` : `<strong class="cifra">${esc(tag)}</strong>
+      <span class="que">${esc(que || '')}</span>`}
       ${extra ? `<span class="extra">${extra}</span>` : ''}
     </div>`;
   }
@@ -1120,8 +1156,11 @@
   /* Índice de la única hoja de balanceo (con plantilla) si el equipo no tiene bocas que medir; si no, -1.
      Con bocas la pantalla del balanceo es trabajo de verdad (el plano y su lista de bocas),
      no un paso intermedio: se queda (JC, 29-oct). */
+  /* Las bocas que nacieron al medir sobre la red del modelo (12-nov) se miden en la hoja, con su plano: no cuentan como plano de bocas aparte. */
+  const bocaDelModelo = (b) => /(?:^|· )Del modelo · [A-Z]{1,2}\d{1,3}(?= ·|$)/.test((b && b.manual && b.manual.nota) || '');
+  const hayBocasPropias = (f) => (f && f.planos ? f.planos : []).some((p) => (p.bocas || []).some((b) => !bocaDelModelo(b)));
   function hojaUnicaBalanceo() {
-    if (!ficha || !fichasEq || fichasEq.ok === false || hayBocas(ficha)) return -1;
+    if (!ficha || !fichasEq || fichasEq.ok === false || hayBocasPropias(ficha)) return -1;
     const hs = (fichasEq.fichas || []).map((x, i) => [x, i]).filter(([x]) => !x.conservada && x.clase === 'balanceo');
     return hs.length === 1 && hs[0][0].plantilla ? hs[0][1] : -1;
   }
@@ -1142,6 +1181,24 @@
    * aún no ha entrado o no tiene red, no se dice «no tiene plano», se dice
    * qué falta para que llegue.
    */
+  /* La red del equipo según el modelo (12-nov-2026, JC): sus conductos y sus bocas numeradas, a la vista mientras se mide. */
+  let redEq = null;   /* la red del modelo del equipo abierto: { id, red } */
+  function redDeFicha(f) {
+    if (redEq && redEq.id === f.equipo.id) return redEq.red;
+    const yo = { id: f.equipo.id, red: null };
+    redEq = yo;
+    C.pedir(`api/red-modelo?equipo=${encodeURIComponent(yo.id)}&ancho=${anchoRed()}`).then((r) => {
+      yo.red = r && r.ok && r.laminas && r.laminas.length ? r : null;
+      if (yo.red && redEq === yo && activa() && !hoja && ficha && ficha.equipo.id === yo.id && pestanaEq === 'balanceo') { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
+    }).catch(() => { /* sin conexión: queda la lámina de la localización */ });
+    return null;
+  }
+  function htmlRedModelo(f) {
+    const rs = (f.localizacion || []).filter((x) => x.clase === 'balanceo');
+    const red = rs.length ? redDeFicha(f) : null;
+    if (red) return `<h2>Red del equipo en el modelo</h2>${htmlPlanoRed(red, 0, false)}`;
+    return rs.length ? `<h2>Red del equipo en el modelo</h2>${rs.map((x) => `<figure class="red-modelo"><img data-src="${esc(x.url)}" alt="Red del equipo en el modelo"><figcaption>${esc(x.pie || '')}</figcaption></figure>`).join('')}` : '';
+  }
   function sinPlano() {
     const s = window.cxObra && window.cxObra.sync && window.cxObra.sync.activa ? window.cxObra.sync : null;
     const e = s ? s.estado() : null;
@@ -1185,6 +1242,7 @@
     const balanceo = () => `
       ${hayDos ? `<div class="segmentado circuito-bal" role="tablist" aria-label="Circuito">${[['impulsion', 'Impulsión', cuenta(false)], ['retorno', nombreRet, cuenta(true)]]
         .map(([id, n, c]) => `<button role="tab" data-cx="circuito-bal" data-circuito="${id}" aria-selected="${circ === id}" class="${circ === id ? 'activa' : ''}">${esc(n)} <small>${c}</small></button>`).join('')}</div>` : ''}
+      ${htmlRedModelo(f)}
       ${htmlCrono()}
       ${circ !== 'retorno' ? totalCircuito(f.circuitos && f.circuitos.impulsion, 'Impulsión', f.tolerancias) : ''}
       ${circ !== 'impulsion' ? totalCircuito(f.circuitos && f.circuitos.retorno, nombreRet, f.tolerancias) : ''}
@@ -1489,7 +1547,8 @@
     const m = fig.querySelector('.plano-marco');
     vistas.set(grandeId, { s: 1, x: 0, y: 0 });
     aplicarVista(fig);
-    zoomEn(fig, 2.5, m.clientWidth / 2, m.clientHeight / 2);
+    /* La red del modelo abre encajada entera: se acerca con el pellizco. */
+    if (!fig.classList.contains('red-cx')) zoomEn(fig, 2.5, m.clientWidth / 2, m.clientHeight / 2);
   }
   function cerrarPlanoGrande(fig) {
     fig.classList.remove('grande');
@@ -2325,6 +2384,125 @@
     return h;
   }
 
+  /*
+   * EL BALANCEO ABRE CON SU RED (12-nov-2026, JC: «cuando seleccionamos el
+   * balanceo ya deben verse los conductos y los difusores y rejas»). La hoja
+   * de caudales trae arriba el plano de la red según el modelo, con cada boca
+   * numerada, y debajo la tabla de esas mismas bocas para medirlas aquí. Lo
+   * medido va al balanceo del equipo; la boca se crea al apuntar algo de ella.
+   */
+  async function pedirRed(x) {
+    if (!ficha || !x || x.clase !== 'balanceo') return null;
+    try { const r = await C.pedir(`api/red-modelo?equipo=${encodeURIComponent(ficha.equipo.id)}&ancho=${anchoRed()}`); return r && r.ok && r.bocas && r.bocas.length ? r : null; } catch { return null; }
+  }
+  /* El ancho al que se verá el plano de la red (en el iPad, la mitad izquierda): el servidor dibuja letra y bocas a ese tamaño. */
+  const anchoRed = () => { const w = Math.min(window.innerWidth || 390, 1040) - 40; return Math.round(window.innerWidth >= 760 ? w * 0.55 : w); };
+  function ponerRed(h, red) {
+    h.red = red || null;
+    if (!red || !h.f.editable) return;
+    /* La zona servida, de las salas de su red (se puede cambiar). */
+    const sec = h.f.secciones.find((s) => s.tipo === 'datos');
+    const z = sec && sec.puntos.find((p) => p.codigo === 'zona_servida');
+    const ya = z && (h.valores.zona_servida && h.valores.zona_servida.v !== undefined ? h.valores.zona_servida.v : z.valor);
+    if (z && !ya && red.salas && red.salas.length) h.valores.zona_servida = { ...(h.valores.zona_servida || {}), v: red.salas.join(', ') };
+  }
+  const redDe = (h) => (h && h.red && h.red.ok && h.f.plantilla.codigo === 'BALANCEO_CAUDALES' ? h.red : null);
+  const NOMBRE_CIRCUITO = { impulsion: 'Impulsión', retorno: 'Retorno', extraccion: 'Extracción', aporte: 'Aporte de aire', sinCircuito: 'Sin circuito' };
+  const tieneDato = (v) => v !== null && v !== undefined && v !== '';
+  function htmlPlanoRed(red, cual, conLaminas = true) {
+    const lam = Math.min(cual || 0, red.laminas.length - 1);
+    const l = red.laminas[lam];
+    const hay = new Set(red.bocas.map((b) => b.circuito));
+    return `<figure class="plano-bocas red-cx" data-plano-fig="red-modelo">
+      <div class="plano-marco" data-paleta="vidaire"><div class="plano-lienzo">${l.svg}</div></div>
+      <figcaption><span class="leyenda">${(red.circuitos || []).filter((c) => hay.has(c.id)).map((c) => `<i style="background:${esc(c.color || '')}"></i>${esc(c.nombre)} `).join('')}<i class="bien"></i>Medida</span>
+        <span class="zoom-botones"><button class="enlace" data-cx="zoom-menos" aria-label="Alejar">−</button><button class="enlace" data-cx="zoom-mas" aria-label="Acercar">+</button>
+        <button class="enlace" data-cx="plano-grande">Ampliar</button></span>
+        <span class="pie-red">${esc(l.pie || l.planta || '')}</span>
+        ${conLaminas && red.laminas.length > 1 ? `<span class="laminas-red">${red.laminas.map((x, i) => `<button class="chip ${i === lam ? 'info' : 'neutra'}" data-cx="lamina-red" data-i="${i}">${esc(x.planta || `Lámina ${i + 1}`)}</button>`).join('')}</span>` : ''}
+      </figcaption>
+    </figure>`;
+  }
+  function htmlTablaRed(red, ed) {
+    const grupos = [];
+    for (const b of red.bocas) { let g = grupos.find((x) => x.c === b.circuito); if (!g) { g = { c: b.circuito, bocas: [] }; grupos.push(g); } g.bocas.push(b); }
+    const campo = (b, k, v, ph, rot) => (b.medible && ed
+      ? `<input inputmode="decimal" autocomplete="off" enterkeyhint="next" class="cifra" value="${esc(coma(v))}" data-red-k="${k}" placeholder="${ph}" aria-label="${esc(`${rot} de ${b.etiqueta}`)}">`
+      : `<span class="cifra ${tieneDato(v) ? '' : 'tenue'}">${tieneDato(v) ? cifra(v, 0) : (k === 'caudalProyecto' ? 'por confirmar' : '—')}</span>`);
+    return `<div class="tabla-red" data-tabla-red>
+      <div class="cab-red"><span>N.º</span><span>Boca y sala</span><span>Proyecto <small>m³/h</small></span><span>Medido <small>m³/h</small></span></div>
+      ${grupos.map((g) => `<h4 data-grupo-red="${esc(g.c)}"><i class="punto-red" style="background:${esc(((red.circuitos || []).find((c) => c.id === g.c) || {}).color || '')}"></i>${esc(NOMBRE_CIRCUITO[g.c] || g.c)} <span class="tenue" data-cuenta-red="${esc(g.c)}">${cuentaRed(g.bocas)}</span></h4>
+      <ul>${g.bocas.map((b) => `<li data-fila-boca="${esc(b.etiqueta)}" class="${tieneDato(b.medido) ? 'medida' : ''}">
+        <b class="n cifra">${esc(b.etiqueta)}</b>
+        <span class="boca-quien"><strong>${esc([b.tipo, b.dim].filter(Boolean).join(' '))}</strong><small>${b.sala ? esc(b.sala) : 'Sala por confirmar'}</small></span>
+        ${campo(b, 'caudalProyecto', b.proyecto, 'por confirmar', 'Caudal de proyecto')}
+        ${campo(b, 'caudalMedido', b.medido, '', 'Caudal medido')}
+      </li>`).join('')}</ul>`).join('')}
+      <p class="nota">El modelo no trae el caudal de cada boca: el de proyecto se apunta aquí y, mientras falte, queda «por confirmar».</p>
+    </div>`;
+  }
+  const cuentaRed = (bocas) => { const m = bocas.filter((b) => tieneDato(b.medido)).length; return `${bocas.length} boca${bocas.length === 1 ? '' : 's'} · ${m} medida${m === 1 ? '' : 's'}`; };
+  function htmlRedHoja(red, ed) {
+    return `<section class="bal-red"><div class="bal-red-plano">${htmlPlanoRed(red, hoja.lamina)}</div><div class="bal-red-bocas"><h3 class="banda">Bocas <span class="tenue" data-cuenta-red="todas">${cuentaRed(red.bocas)}</span></h3>${htmlTablaRed(red, ed)}</div></section>`;
+  }
+  /* Lo que falta de verdad en la red: bocas sin medir y bocas sin caudal de proyecto. */
+  function faltaRed(red) {
+    const med = red.bocas.filter((b) => b.medible);
+    return { sinMedir: med.filter((b) => !tieneDato(b.medido)).length, sinProyecto: med.filter((b) => !tieneDato(b.proyecto)).length, de: med.length };
+  }
+  /* El color de cada boca del plano: medida o pendiente; y la que se ha tocado, resaltada. */
+  function marcarRed() {
+    const red = redDe(hoja);
+    if (!red) return;
+    const fig = $app.querySelector('.red-cx');
+    for (const b of red.bocas) {
+      const g = fig && fig.querySelector(`g[data-boca="${b.etiqueta}"]`);
+      if (g) g.classList.toggle('medida', tieneDato(b.medido));
+      const li = $app.querySelector(`[data-fila-boca="${b.etiqueta}"]`);
+      if (li) li.classList.toggle('medida', tieneDato(b.medido));
+    }
+    $app.querySelectorAll('[data-cuenta-red]').forEach((x) => { const c = x.dataset.cuentaRed; x.textContent = cuentaRed(c === 'todas' ? red.bocas : red.bocas.filter((b) => b.circuito === c)); });
+    const f = $app.querySelector('[data-falta-red]');
+    if (f) f.innerHTML = htmlLoQueFalta(hoja.f, hoja.pasos, hoja.pasos ? 6 : 30);
+  }
+  function elegirBocaRed(et, irAFila) {
+    $app.querySelectorAll('.red-cx g.elegida, [data-fila-boca].elegida').forEach((x) => x.classList.remove('elegida'));
+    const li = $app.querySelector(`[data-fila-boca="${et}"]`);
+    const g = $app.querySelector(`.red-cx g[data-boca="${et}"]`);
+    if (g) g.classList.add('elegida');
+    if (!li) return;
+    li.classList.add('elegida');
+    if (!irAFila) return;
+    const fig = $app.querySelector('.red-cx.grande');
+    if (fig) cerrarPlanoGrande(fig);
+    li.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    const i = li.querySelector('input[data-red-k="caudalMedido"]');
+    if (i) i.focus({ preventScroll: true });
+  }
+  async function medirRed(el) {
+    const li = el.closest('[data-fila-boca]');
+    const red = redDe(hoja);
+    if (!li || !red || !ficha) return;
+    const b = red.bocas.find((x) => x.etiqueta === li.dataset.filaBoca);
+    const k = el.dataset.redK;
+    const antes = b ? (k === 'caudalMedido' ? b.medido : b.proyecto) : null;
+    const n = el.value.trim() === '' ? null : num(el.value);
+    if (n !== null && (Number.isNaN(n) || n < 0 || n > 100000)) { el.classList.add('mal'); C.aviso('El caudal tiene que estar entre 0 y 100.000 m³/h.'); return; }
+    el.classList.remove('mal');
+    if (!b || n === antes) return;
+    const h = hoja;
+    try {
+      const r = await C.postJson('api/red-modelo/medir', { equipoId: ficha.equipo.id, etiqueta: b.etiqueta, ancho: anchoRed(), [k]: n === null ? '' : n });
+      if (!r.ok) throw new Error(r.error);
+      if (r.red && r.red.ok) h.red = r.red;
+      if (r.equipo && ficha && ficha.equipo.id === r.equipo.id) { const { red: _red, ...eq } = r; ficha = eq; }
+      if (hoja === h && activa()) marcarRed();
+    } catch (e) {
+      el.value = coma(antes);
+      C.aviso(e && e.message ? e.message : 'No se ha podido guardar la medida de la boca.');
+    }
+  }
+
   async function abrirHoja(i) {
     const x = fichasEq && fichasEq.fichas[i];
     if (!x) return;
@@ -2338,6 +2516,7 @@
       viva.nombre = x.nombre;
       hoja = viva;
       hoja.fotoUi = x.papel === 'UI' && x.unidadId ? { equipoId: x.unidadId, tag: x.unidadTag || '' } : null;
+      if (!hoja.red) ponerRed(hoja, await pedirRed(x));
       pintarHoja();
       window.scrollTo(0, 0);
       return;
@@ -2345,9 +2524,11 @@
     $app.innerHTML = '<p class="cargando">Cargando la ficha…</p>';
     abriendoHoja += 1;
     try {
-      const r = await C.pedir(`api/ficha?${new URLSearchParams(ref)}`);
+      /* La red del modelo se pide a la vez: la hoja de balanceo abre ya con su plano (JC, 12-nov). */
+      const [r, red] = await Promise.all([C.pedir(`api/ficha?${new URLSearchParams(ref)}`), pedirRed(x)]);
       if (!r.ok) throw new Error(r.error);
       hoja = await recuperarBorrador(nuevaHoja(ref, x.nombre, r));
+      ponerRed(hoja, red);
       hoja.fotoUi = x.papel === 'UI' && x.unidadId ? { equipoId: x.unidadId, tag: x.unidadTag || '' } : null;
       pintarHoja();
       window.scrollTo(0, 0);
@@ -2524,8 +2705,8 @@
     return `<h2>Datos del sistema</h2>
       <section class="grupo bal-datos">
         <div class="bal-tag"><span>Equipo (TAG)</span><strong class="cifra">${esc(tag || '—')}</strong></div>
-        ${pt('zona_servida') ? `<label class="bal-zona"><span>Zona servida</span><input autocomplete="off" ${dis} value="${esc(valorDe(pt('zona_servida')) ?? '')}"
-          data-h-punto="zona_servida" data-h-k="v" placeholder="p. ej. Vestuarios N10"></label>` : ''}
+        ${pt('zona_servida') ? `<label class="bal-zona"><span>Zona servida</span><textarea rows="1" autocomplete="off" ${dis}
+          data-h-punto="zona_servida" data-h-k="v" placeholder="Salas a las que da servicio">${esc(valorDe(pt('zona_servida')) ?? '')}</textarea></label>` : ''}
         <div class="bal-tabla">
           <div class="bal-cab"><span></span><span>Impulsión</span><span>Retorno</span></div>
           <div class="bal-fila proyecto"><span>Caudal proyecto</span>${proyecto('caudal_proyecto_impulsion')}${proyecto('caudal_proyecto_retorno')}</div>
@@ -2560,7 +2741,8 @@
     const trozos = [];
     for (let i = 0; i < secs.length; i += 1) {
       const s = secs[i];
-      if (s.tipo === 'bocas') trozos.push({ secs: [s], solo: true, html: `<h3 class="banda">${esc(s.titulo)}</h3><p class="nota">Las bocas se miden en la ficha del equipo (boca a boca sobre su plano) y salen en el informe del balanceo.</p>` });
+      if (s.tipo === 'bocas' && redDe(hoja)) continue;
+      else if (s.tipo === 'bocas') trozos.push({ secs: [s], solo: true, html: `<h3 class="banda">${esc(s.titulo)}</h3><p class="nota">Las bocas se miden en la ficha del equipo (boca a boca sobre su plano) y salen en el informe del balanceo.</p>` });
       else if (s.tipo === 'datos' && f.plantilla.codigo === 'BALANCEO_CAUDALES') trozos.push({ secs: [s], solo: true, html: htmlDatosBalanceo(s, ed) });
       else if (parejaDe(s, secs[i + 1])) { trozos.push({ secs: [s, secs[i + 1]], html: htmlPareja(s, secs[i + 1], ed) }); i += 1; }
       else trozos.push({ secs: [s], html: htmlSeccion(s, ed) });
@@ -2617,6 +2799,8 @@
    * apartado, con un enlace que lleva a él.
    */
   function htmlLoQueFalta(f, pasos, vistos) {
+    const red = hoja && hoja.f === f ? redDe(hoja) : null;
+    if (red) return htmlFaltaRed(f, red);
     if (!f.faltan.length) return '';
     const datos = f.faltanDatos || [];
     const medidasLista = f.faltan.filter((x) => !datos.includes(x));
@@ -2634,6 +2818,21 @@
     }
     return `<h3 class="banda">Lo que falta <span class="tenue">${partes.join(' · ')}</span></h3>
       <ul class="faltan-hoja">${datos.map((x) => `<li>${esc(x)}</li>`).join('')}${liMedidas}</ul>`;
+  }
+
+  /* Con la red del modelo a la vista, de las bocas se cuenta lo que de verdad falta (no «no hay ninguna boca»). */
+  function htmlFaltaRed(f, red) {
+    const deBocas = (x) => /\bbocas?\b/i.test(x);
+    const datos = (f.faltanDatos || []).filter((x) => !deBocas(x));
+    const otras = f.faltan.filter((x) => !(f.faltanDatos || []).includes(x) && !deBocas(x));
+    const r = faltaRed(red);
+    const li = [];
+    if (r.sinMedir) li.push(`<li><button class="enlace" data-cx="ir-bocas-red">${r.sinMedir === r.de ? `Las ${r.de} bocas de la red, sin medir` : `${r.sinMedir} de ${r.de} bocas sin medir`}</button></li>`);
+    if (r.sinProyecto) li.push(`<li>${r.sinProyecto === r.de ? `Las ${r.de} bocas, sin caudal de proyecto (por confirmar)` : `${r.sinProyecto} de ${r.de} bocas sin caudal de proyecto (por confirmar)`}</li>`);
+    const total = datos.length + otras.length + li.length;
+    if (!total) return '';
+    return `<h3 class="banda">Lo que falta <span class="tenue">${total} pendiente${total === 1 ? '' : 's'}</span></h3>
+      <ul class="faltan-hoja">${li.join('')}${datos.map((x) => `<li>${esc(x)}</li>`).join('')}${otras.slice(0, 12).map((x) => `<li>${esc(x)}</li>`).join('')}${otras.length > 12 ? `<li class="tenue">y ${otras.length - 12} más</li>` : ''}</ul>`;
   }
 
   function pintarHoja() {
@@ -2661,17 +2860,22 @@
         <label class="fd"><span class="et">Realizado por</span><input autocomplete="name" ${ed ? '' : 'disabled'} value="${esc(cabDe('realizadoPor') || '')}" data-h-cab="realizadoPor"></label>
       </section>`;
     const FALTAN_VISTOS = porPasos ? 6 : 30;
+    const red = redDe(h);
+    /* Con la red arriba, la fecha y quien mide van plegados en una línea, debajo del plano. */
+    const ensayoRed = red ? `<details class="ensayo-plegado"><summary><span class="t">El ensayo</span><span class="tenue">${esc([fechaCorta(cabDe('fechaEnsayo')), cabDe('realizadoPor')].filter(Boolean).join(' · ') || 'fecha y quién lo hace')}</span></summary>${ensayo.replace(/^<h3[^]*?<\/h3>/, '')}</details>` : '';
+    const elTag = h.fotoUi && h.fotoUi.tag ? h.fotoUi.tag : ficha ? ficha.equipo.tag : (f.titulo || 'Equipo');
+    const chips = `${chipFicha(f.estado, f.resultado, f.medidos, f.bocasSinMedir)}${f.medidos && f.medidos.obligatorios ? ` <span class="chip neutra">${f.medidos.rellenos}/${f.medidos.obligatorios}</span>` : ''}`;
     $app.innerHTML = `
-      ${tagFijo(h.fotoUi && h.fotoUi.tag ? h.fotoUi.tag : ficha ? ficha.equipo.tag : (f.titulo || 'Equipo'), h.nombre || f.plantilla.nombre, 'volver-equipo',
-        `${chipFicha(f.estado, f.resultado, f.medidos, f.bocasSinMedir)}${f.medidos && f.medidos.obligatorios ? ` <span class="chip neutra">${f.medidos.rellenos}/${f.medidos.obligatorios}</span>` : ''}`)}
-      <div class="densa">
+      ${f.plantilla.codigo === 'BALANCEO_CAUDALES' ? tagFijo(elTag, 'Balanceo', 'volver-equipo', red ? '' : chips, true) : tagFijo(elTag, h.nombre || f.plantilla.nombre, 'volver-equipo', chips)}
+      <div class="densa${red ? ' con-red' : ''}">
+      ${red ? `${htmlRedHoja(red, ed && !f.bloqueo)}${ensayoRed}` : ''}
       ${f.plantilla.codigo === 'BALANCEO_CAUDALES' ? '' : barraMini(equipoDeFicha(h.ref), trabajoDeFicha(h.ref), ed && !(ficha && bloqueosDe(ficha).length))}
       ${ed ? '' : `<p class="nota aviso">${f.firmada ? 'La ficha está firmada: ya no se cambia.' : 'Tu rol puede ver la ficha, pero no rellenarla.'}</p>`}
       ${porPasos ? `<nav class="pasos-hoja" role="tablist" aria-label="Apartados de la hoja">
         ${pasos.map((p, i) => `<button role="tab" class="${i === actual ? 'activa' : ''}" aria-selected="${i === actual}" data-cx="paso-hoja" data-paso="${i}"><span class="t">${esc(p.titulo)}</span><span class="marca">${marcaPaso(p)}</span></button>`).join('')}
         <button role="tab" class="${actual === pasos.length ? 'activa' : ''}" aria-selected="${actual === pasos.length}" data-cx="paso-hoja" data-paso="${pasos.length}"><span class="t">Cierre</span><span class="marca"></span></button>
       </nav>` : ''}
-      ${porPasos ? pasos.map((p, i) => `${abre(i)}${i === 0 ? ensayo : ''}${p.html}${cierra(i)}`).join('') : `${ensayo}${pasos.map((p) => p.html).join('')}`}
+      ${porPasos ? pasos.map((p, i) => `${abre(i)}${i === 0 && !red ? ensayo : ''}${p.html}${cierra(i)}`).join('') : `${red ? '' : ensayo}${pasos.map((p) => p.html).join('')}`}
       ${abre(nPasos - 1)}
       <h3 class="banda">Observaciones</h3>
       <textarea class="obs" rows="3" ${ed ? '' : 'disabled'} data-h-obs placeholder="Lo que haya que contar (obligatorio si algo sale «No»)">${esc(h.observaciones !== undefined ? h.observaciones : f.observaciones || '')}</textarea>
@@ -2686,7 +2890,7 @@
         <button class="boton secundario" data-cx="foto" data-camara="1"><i class="ic ic-camara"></i>Hacer foto</button>
         <button class="boton secundario" data-cx="foto" data-camara="0">De la galería</button>
       </div>` : ''}
-      ${htmlLoQueFalta(f, porPasos ? pasos : null, FALTAN_VISTOS)}
+      <div data-falta-red>${htmlLoQueFalta(f, porPasos ? pasos : null, FALTAN_VISTOS)}</div>
       ${f.bloqueo ? `<p class="nota inc-aviso bloqueo-inc">Bloqueado por <button type="button" class="enlace" data-cx="ir-incidencia" data-id="${esc(f.bloqueo.id)}">${esc(f.bloqueo.codigo)}${f.bloqueo.titulo ? ` · ${esc(f.bloqueo.titulo)}` : ''}</button>: la hoja solo se puede ver.</p>` : ''}
       ${f.avisos.length ? `<p class="nota aviso">${esc(f.avisos.join(' · '))}</p>` : ''}
       <div class="barra-hoja">
@@ -2701,7 +2905,9 @@
       </div>
       ${ed ? `<div class="barra-guardar" data-hoja-abierta>${estadoGuardar(h)}</div>` : ''}`;
     C.cargarImagenes($app);
+    if (red) { marcarRed(); restaurarPlano(); $app.querySelectorAll('.bal-zona textarea').forEach(altoTexto); }
   }
+  const altoTexto = (t) => { t.style.height = 'auto'; t.style.height = `${t.scrollHeight + 2}px`; };
 
   function marcarCambiada() {
     refrescarPasos();
@@ -3614,6 +3820,8 @@
       irABoca(b.dataset.boca);
     }
     else if (que === 'plano-grande' && ficha) planoGrande(b);
+    else if (que === 'lamina-red' && hoja) { hoja.lamina = Number(b.dataset.i) || 0; vistas.delete('red-modelo'); const y = window.scrollY; pintarHoja(); window.scrollTo(0, y); }
+    else if (que === 'ir-bocas-red' && hoja) { const li = $app.querySelector('[data-fila-boca]:not(.medida)'); if (li) elegirBocaRed(li.dataset.filaBoca, true); }
     else if (que === 'conducto-guardar' && ficha) guardarConducto(b);
     else if (que === 'conducto-forma' && ficha) guardarConducto(b, { forma: b.dataset.forma });
     else if (que === 'circuito-bal' && ficha) {
@@ -3718,12 +3926,23 @@
       C.aviso(`${paso.titulo} completo · ${siguiente.titulo}`, 'bien');
     }, 450);
   }
+  /* La red del balanceo: tocar una boca del plano lleva a su fila; entrar en una fila la señala en el plano. */
+  $app.addEventListener('click', (ev) => {
+    if (!activa() || !hoja || !ev.target.closest) return;
+    const g = ev.target.closest('.red-cx g[data-boca]');
+    if (g) elegirBocaRed(g.dataset.boca, true);
+  });
+  $app.addEventListener('focusin', (ev) => {
+    const li = activa() && hoja && ev.target.closest && ev.target.closest('[data-fila-boca]');
+    if (li) elegirBocaRed(li.dataset.filaBoca, false);
+  });
   $app.addEventListener('change', (ev) => {
+    if (activa() && hoja && ev.target.dataset && ev.target.dataset.redK) { medirRed(ev.target); return; }
     if (activa() && hoja) anotar(ev.target);
     else if (activa()) anotarToma(ev.target);
   });
   $app.addEventListener('input', (ev) => {
-    if (activa() && hoja) { anotar(ev.target); return; }
+    if (activa() && hoja) { anotar(ev.target); if (ev.target.matches && ev.target.matches('.bal-zona textarea')) altoTexto(ev.target); return; }
     if (activa() && firmando && ev.target.hasAttribute && ev.target.hasAttribute('data-firma-nombre')) { apuntarFirma(); return; }
     if (activa() && anotarToma(ev.target)) return;
     if (activa() && ev.target.dataset && ev.target.dataset.punto) { const li = ev.target.closest('li[data-boca]'); if (li) { vivoBoca(li); apuntarBoca(li); guardarBocaPronto(li); } return; }

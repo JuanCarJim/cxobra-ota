@@ -339,6 +339,8 @@
       if (!grupos.has(g)) grupos.set(g, []);
       grupos.get(g).push(f);
     }
+    /* Grupos que salen aunque no tengan filas (plantas del censo sin ninguna ficha): cabecera y una nota. */
+    for (const g of o.gruposVacios || []) if (!grupos.has(g)) grupos.set(g, []);
     const orden = [...grupos.keys()];
     if (o.orden) orden.sort((a, b) => ((i) => (i < 0 ? 1e6 : i))(o.orden.indexOf(a)) - ((i) => (i < 0 ? 1e6 : i))(o.orden.indexOf(b)));
     const solo = orden.length === 1;
@@ -372,7 +374,7 @@
           partes.push(`<div class="subgrupo-lista" data-plg-caja="${esc(idSub)}"><div class="subgrupo-cab plg-h"><button type="button" class="plg-cab" data-plg="${esc(idSub)}" aria-expanded="true"><b class="plg-flecha" aria-hidden="true">▸</b>${o.subCabecera ? o.subCabecera(todas, k) : `<span>${esc(k)}</span><b>${cifra(todas.length)}</b>`}</button></div><div class="plg-cuerpo">${envolver(vis.map(o.fila).join(''))}${verMasSub}</div></div>`);
         }
         cuerpo = partes.join('');
-      } else cuerpo = envolver(fs.slice(0, tope).map(o.fila).join(''));
+      } else cuerpo = fs.length || !o.vacio ? envolver(fs.slice(0, tope).map(o.fila).join('')) : o.vacio(g);
       if (!o.subgrupo) cuerpo += (mas > 0 ? `<button class="ver-mas" data-lista-mas="${esc(clave)}" data-grupo="${esc(g)}">Ver ${Math.min(mas, POR_GRUPO)} más <small>(quedan ${mas})</small></button>` : '');
       const abierto = st.abiertos.has(g) ? st.abiertos.get(g) : (solo || o.buscando);
       return `<details class="grupo-lista" data-lista="${esc(clave)}" data-grupo="${esc(g)}" ${abierto ? 'open' : ''}>
