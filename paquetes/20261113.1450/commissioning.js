@@ -456,15 +456,16 @@
     /* La ficha del equipo escondía el selector de arriba: vuelve. */
     const seg = document.getElementById('segmentos');
     if (seg) seg.hidden = seg.children.length < 2;
-    if (listaCompleta || !window.BUSCAR_CX || !window.CX_PLANO_EQUIPOS) { $app.innerHTML = `${listaCompleta ? '<button class="enlace" data-cx="cx-inicio">‹ Cx</button>' : ''}${htmlLista()}`; return; }
+    if (!window.BUSCAR_CX || !window.CX_PLANO_EQUIPOS) { $app.innerHTML = htmlLista(); return; }
+    /* «Lista»: la misma cabecera (franja, buscador y conmutador) y debajo la lista completa agrupada. */
+    if (listaCompleta) { $app.innerHTML = `${notaCopiaMovil()}${cabeceraCx()}${htmlLista(false, true)}`; return; }
     pintarCx();
   }
 
   /* ═══ LA PANTALLA CX (13-nov-2026, JC): «un buscador y los planos interactivos».
      Arriba una franja fina de recuento y el buscador (TAG, tipo, sala, planta, conjunto); debajo, el plano de la planta con su
      desplegable. Tocar un resultado lleva a su planta y marca el bloque; tocar un bloque abre su hoja (estanqueidad, PM,
-     documentos, fotos) y desde ella, la ficha. Lo que había (cifras que filtran, agrupar, plano con capas y materiales)
-     sigue en los enlaces del pie. */
+     documentos, fotos) y desde ella, la ficha. La lista completa (agrupar) va en «Lista» del conmutador. */
   function pasaSegmento() {
     const [, , pasaSeg] = SEGMENTOS.find(([id]) => id === segmento) || SEGMENTOS[0];
     return segmento === 'todos' || segmento === 'porConfirmar' ? pasaSeg : (e) => !e.porConfirmar && pasaSeg(e);
@@ -472,7 +473,7 @@
   let resPlegados = false; /* tocado un resultado, la lista se pliega para dejar el plano a la vista */
   function resultadosHtml() {
     const q = filtro.trim();
-    if (!q && segmento === 'todos') return '<p class="nota cx-ayuda">Escribe un TAG, un tipo, una sala o una planta; o toca un equipo en el plano.</p>';
+    if (!q && segmento === 'todos') return ''; /* sin buscar, nada entre el buscador y el plano (13-nov, JC: menos filas) */
     const r = window.BUSCAR_CX.buscar((porConjuntos() ? lista.conjuntos : lista.equipos) || [], q, window.BUSCADOR_MOVIL.coincide, textosDe, { pasa: pasaSegmento() });
     if (!r.total) return '<p class="nota cx-ayuda">Ningún equipo con eso.</p>';
     if (resPlegados) return `<p class="nota cx-cuenta"><button class="enlace" data-cx-ver-res>Ver los ${cifra(r.total)} resultado${r.total === 1 ? '' : 's'}</button></p>`;
@@ -490,17 +491,21 @@
     const chip = $app.querySelector('.cx-filtro');
     if (chip) chip.hidden = segmento === 'todos' || ['todos', 'enMarcha', 'faltaDoc', 'incidencias'].includes(segmento);
   }
-  function pintarCx(op = {}) {
+  /* CABECERA DE CX (13-nov-2026, JC): fuera los enlaces «Lista completa de equipos» y «Plano completo»; bajo la franja de
+     recuento, en la MISMA fila que el buscador, un conmutador «Plano | Lista». Plano es lo de entrada; el buscador vale en las dos. */
+  function cabeceraCx() {
     const conj = porConjuntos();
     const t = conj ? { ...(lista.totales || {}), ...(lista.totalesConjuntos || {}) } : (lista.totales || {});
     const fr = window.BUSCAR_CX.franja(t);
     const nom = (SEGMENTOS.find(([id]) => id === segmento) || [])[1] || '';
-    $app.innerHTML = `${notaCopiaMovil()}
-      <p class="cx-franja">${fr.map((c) => `<button type="button" data-cx-seg="${c.id}" aria-pressed="${segmento === c.id}" class="${segmento === c.id ? 'activa' : ''}">${esc(c.et)} <b>${cifra(c.n)}</b></button>`).join('')}<button type="button" class="cx-filtro" data-cx-seg="${esc(segmento)}" hidden>${esc(nom)} ×</button></p>
-      ${window.BUSCADOR_MOVIL.campo({ placeholder: 'Buscar TAG, tipo, sala o planta', valor: filtro, atributo: 'data-cx-buscar' })}
+    const vista = (id, et) => `<button type="button" data-cx="vista-${id}" aria-pressed="${(id === 'lista') === listaCompleta}" class="${(id === 'lista') === listaCompleta ? 'activa' : ''}">${et}</button>`;
+    return `<p class="cx-franja">${fr.map((c) => `<button type="button" data-cx-seg="${c.id}" aria-pressed="${segmento === c.id}" class="${segmento === c.id ? 'activa' : ''}">${esc(c.et)} <b>${cifra(c.n)}</b></button>`).join('')}<button type="button" class="cx-filtro" data-cx-seg="${esc(segmento)}" hidden>${esc(nom)} ×</button></p>
+      <div class="cx-busca-fila">${window.BUSCADOR_MOVIL.campo({ placeholder: 'Buscar TAG, tipo, sala o planta', valor: filtro, atributo: 'data-cx-buscar' })}<div class="cx-vista" role="group" aria-label="Vista">${vista('plano', 'Plano')}${vista('lista', 'Lista')}</div></div>`;
+  }
+  function pintarCx(op = {}) {
+    $app.innerHTML = `${notaCopiaMovil()}${cabeceraCx()}
       <div id="cx-res" aria-live="polite"></div>
-      <div id="cx-plano" class="cx-plano"></div>
-      <p class="cx-pie"><button class="enlace" data-cx="lista-completa">Lista completa de equipos</button><button class="enlace" data-cx="plano-equipos">Plano completo (capas y materiales)</button></p>`;
+      <div id="cx-plano" class="cx-plano"></div>`;
     repintarResultados();
     window.CX_PLANO_EQUIPOS.montar($app.querySelector('#cx-plano'), op);
   }
@@ -515,7 +520,7 @@
   const dosPaneles = () => Boolean(window.matchMedia && window.matchMedia('(min-width: 820px)').matches);
   const repintarLista = () => { if (ficha && !hoja && dosPaneles()) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); } else pintarLista(); };
   let ultimoAbiertoLateral = null;
-  function htmlLista(lateral = false) {
+  function htmlLista(lateral = false, bajoCabecera = false) {
     const conj = porConjuntos();
     const t = conj ? { ...(lista.totales || {}), ...(lista.totalesConjuntos || {}) } : (lista.totales || {});
     const q = filtro.trim().toLowerCase();
@@ -555,12 +560,12 @@
       }
     }
     return `
-      ${lateral ? '' : notaCopiaMovil()}
-      ${lateral ? '' : kpisCx(t, conj)}
-      ${window.BUSCADOR_MOVIL.campo({ placeholder: 'Buscar TAG, sala, planta, tipo o marca', valor: filtro, atributo: 'data-cx-buscar' })}
+      ${lateral || bajoCabecera ? '' : notaCopiaMovil()}
+      ${lateral || bajoCabecera ? '' : kpisCx(t, conj)}
+      ${bajoCabecera ? '' : window.BUSCADOR_MOVIL.campo({ placeholder: 'Buscar TAG, sala, planta, tipo o marca', valor: filtro, atributo: 'data-cx-buscar' })}
       <div class="agrupar" role="group" aria-label="Agrupar por"><span>Agrupar por</span>${opciones
         .map(([id, texto]) => `<button data-cx-agrupar="${id}" aria-pressed="${modo === id}" class="${modo === id ? 'activa' : ''}">${texto}</button>`).join('')}</div>
-${window.CX_PLANO_EQUIPOS && !lateral ? '<button class="enlace" data-cx="plano-equipos">Ver los equipos en el plano</button>' : ''}
+${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace" data-cx="plano-equipos">Ver los equipos en el plano</button>' : ''}
       <div class="cx-densa">      ${equipos.length || vacias.length ? C.listaAgrupada(`cx-equipos-${modo}`, equipos, {
         grupo: grupoDe, orden: grupos, buscando: !!q, repintar: repintarLista, cabecera: modo === 'planta' ? cabeceraPlanta : cabeceraGrupo,
         gruposVacios: vacias, vacio: () => '<p class="nota grupo-vacio">Ningún equipo de esta planta tiene ficha todavía.</p>',
@@ -2864,8 +2869,11 @@ ${window.CX_PLANO_EQUIPOS && !lateral ? '<button class="enlace" data-cx="plano-e
     return `<div class="${clase}"><span class="et">${num}${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}</span>${inputPunto(p, ed, null, s.tipo)}</div>`;
   }
 
-  const casillaParametro = (p, k, n, dis) => `<input class="cifra${k === 'm' ? ' medido' : ''}" inputmode="decimal" data-menos enterkeyhint="next" autocomplete="off" ${dis}
-      aria-label="${esc(`${p.etiqueta} · ${n}`)}" value="${esc(coma(valorDe(p, k)))}" data-h-punto="${esc(p.codigo)}" data-h-k="${k}">`;
+  /* Lo calculado (la diferencia de presión de la escalera, 13-nov) se ve y no se teclea: lo pone el servidor. */
+  const casillaParametro = (p, k, n, dis) => (p.calculado
+    ? `<input class="cifra${k === 'm' ? ' medido' : ''}" disabled aria-label="${esc(`${p.etiqueta} · ${n} (se calcula sola)`)}" value="${k === 'f' ? '' : esc(coma(p[k]))}">`
+    : `<input class="cifra${k === 'm' ? ' medido' : ''}" inputmode="decimal" data-menos enterkeyhint="next" autocomplete="off" ${dis}
+      aria-label="${esc(`${p.etiqueta} · ${n}`)}" value="${esc(coma(valorDe(p, k)))}" data-h-punto="${esc(p.codigo)}" data-h-k="${k}">`);
   /* La desviación y el resultado de un parámetro, como los calcula el servidor. */
   function desvParametro(p) {
     const [cr, nr] = p.resultado && RESULTADO[p.resultado] ? RESULTADO[p.resultado] : ['neutra', ''];
@@ -3616,13 +3624,16 @@ ${window.CX_PLANO_EQUIPOS && !lateral ? '<button class="enlace" data-cx="plano-e
     for (const s of t.f.secciones || []) {
       if (s.tipo === 'fotos' || s.tipo === 'bocas') continue;
       for (const p of s.puntos || []) {
+        /* La diferencia de presión de la escalera se calcula sola: no se toma. */
+        if (p.calculado) continue;
         const v = s.tipo === 'parametros' ? p.m : p.valor;
         const vacio = v === null || v === undefined || v === '';
         /* Un medido que vino de un documento (el PDF del SharePoint) no está
            tomado en obra: sale también, con su valor, para confirmarlo o
            cambiarlo (30-oct, JC no encontraba las Tª del agua de la UTA HUB 01). */
         const deDoc = s.tipo === 'parametros' && p.deDocumento && !vacio;
-        if (t.vistos.has(p.codigo) || deDoc || (vacio && (p.obligatorio || s.tipo === 'parametros'))) r.push([s, p]);
+        /* Las plantas de las presiones de la escalera, para nombrar cada fila al tomarla. */
+        if (t.vistos.has(p.codigo) || deDoc || (vacio && (p.obligatorio || s.tipo === 'parametros' || s.formato === 'presionesPlantas'))) r.push([s, p]);
       }
     }
     return r;
@@ -4101,6 +4112,8 @@ ${window.CX_PLANO_EQUIPOS && !lateral ? '<button class="enlace" data-cx="plano-e
     if (que === 'lista') cargarLista();
     else if (que === 'cx-inicio') { listaCompleta = false; cargarLista(); }
     else if (que === 'lista-completa') { listaCompleta = true; pintarLista(); window.scrollTo(0, 0); }
+    else if (que === 'vista-lista') { if (!listaCompleta) { listaCompleta = true; pintarLista(); } }
+    else if (que === 'vista-plano') { if (listaCompleta) { listaCompleta = false; resPlegados = false; pintarLista(); } }
     /* El plano de equipos por plantas con sus colores (planoEquipos.js, 28-oct). */
     else if (que === 'pest-ficha' && ficha) { pestFicha = b.dataset.p; pintarFicha(); window.scrollTo(0, 0); cargarFotosLocales($app); }
     else if (que === 'en-plano' && window.CX_PLANO_EQUIPOS) { const id = b.dataset.eq; ficha = null; hoja = null; fichasEq = null; planoCompleto = false; listaCompleta = false; if (window.BUSCAR_CX) pintarCx({ equipo: id }); else window.CX_PLANO_EQUIPOS.verEquipo($app, id); }

@@ -163,7 +163,7 @@
    Base de todas las paletas con data-paleta (9-nov: la opción «Arena» se quitó; <html> lleva data-paleta="vidaire", que redefine estos tokens).
    8-nov tarde (JC: «el fondo tiene que ser color claro, no el azul oscuro; la barra lateral tiene que
    tener también los colores»): el contenido va en CLARO —crema de fondo, pizarra de texto— y la barra
-   lateral en ARENA CLARO (#f2e0c4, el tono de las píldoras de título) con letra azul pizarra, y la
+   lateral en ARENA CLARO (#ebd6b4, un punto más oscuro que las píldoras de título) con letra azul pizarra, y la
    cabecera superior en pizarra (la única franja oscura: ancla la marca y separa el contenido).
    Títulos, rótulos, cabeceras de tabla, códigos y cifras destacadas en AZUL PIZARRA #2b3a55 (nada de
    marrón). Lo activo lleva marca NARANJA #ff7a33 (raya de 2-3 px) y fondo arena #e9bf86 con letra
@@ -190,8 +190,8 @@
   --vd-arena-crema: #f4ead9;
   /* La barra lateral y la cabecera. */
   --vd-arena-lateral: #262b38;    /* la cabecera superior sigue en pizarra */
-  --vd-arena-barra: #f2e0c4;      /* la barra lateral: arena claro, el tono de las píldoras de título */
-  --vd-arena-barra-2: #e8d2ab;    /* su fila al pasar el ratón */
+  --vd-arena-barra: #ebd6b4;      /* la barra lateral: arena claro, un punto más oscuro que las píldoras (JC, 9-nov) */
+  --vd-arena-barra-2: #e1c99f;   /* su fila al pasar el ratón */
   --vd-arena-barra-tenue: #4f4a42;
   --vd-arena-barra-linea: rgba(38, 43, 56, .16);
   --vd-arena-lateral-2: #343a49;
