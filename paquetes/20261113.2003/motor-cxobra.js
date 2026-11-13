@@ -11528,7 +11528,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261113.1834" : "0";
+      var VERSION = true ? "20261113.2003" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -79679,9 +79679,15 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           }
           return r.map((d) => Number.isFinite(d) ? d : 1);
         }
-        const LETRA_PX = { tag: 6, elegido: 7.4, sala: 6.2 };
+        const LETRA_PX = { tag: 6, elegido: 7.4, sala: 6.2, codigo: 5.4 };
         const ALTO_SALA = 14;
         function colocarRotulos2({ lw, lh, equipos = [], materiales = [], salas = [], huecos = null, ancho = null } = {}) {
+          const ALTO_SALA_1 = ALTO_SALA;
+          const ALTO_COD = 11;
+          const codigoSala = (r) => {
+            const c = String(r && r.codigo || "").trim();
+            return c && c !== String(r && r.t || "").trim() ? c : "";
+          };
           const mide = ancho || ((t, k) => String(t || "").length * (LETRA_PX[k] || 6));
           const tags = [];
           const obstaculos = [];
@@ -79709,20 +79715,23 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           const cajasSala = [];
           salas.forEach((r, i) => {
             if (!r || !r.t || r.x === null || r.x === void 0) return;
-            const w = mide(r.t, "sala") + 4;
+            const cod = codigoSala(r);
+            const w = Math.max(mide(r.t, "sala"), cod ? mide(cod, "codigo") : 0) + 4;
+            const ALTO_SALA2 = cod ? ALTO_SALA_1 + ALTO_COD : ALTO_SALA_1;
+            const conEq = r.conEquipos ? -1e3 : 0;
             const cx = (v) => Math.min(Math.max(0, v), Math.max(0, lw - w));
-            const cy = (v) => Math.min(Math.max(0, v), Math.max(0, lh - ALTO_SALA));
+            const cy = (v) => Math.min(Math.max(0, v), Math.max(0, lh - ALTO_SALA2));
             const x = cx(r.x * lw - w / 2);
-            const y = cy(r.y * lh - ALTO_SALA / 2);
+            const y = cy(r.y * lh - ALTO_SALA2 / 2);
             if (r.w > 0 && r.h > 0) {
               const dy = Math.min(r.h * lh / 3, 40);
               const dx = Math.min(Math.max(0, r.w * lw - w) / 3, 60);
               const alt = [[0, -dy], [0, dy], [-dx, 0], [dx, 0]].filter(([a, b]) => a || b).map(([a, b]) => ({ x: cx(x + a), y: cy(y + b) }));
-              cajasSala.push({ id: i, x, y, w, h: ALTO_SALA, hueco: r.h * lh >= 10 ? r.w * lw * 1.25 : 0, pri: -(r.w * r.h), alt });
+              cajasSala.push({ id: i, x, y, w, h: ALTO_SALA2, hueco: r.h * lh >= 10 ? r.w * lw * 1.25 : 0, pri: conEq - r.w * r.h, alt });
             } else {
               const alt = [];
               for (const d of [1, 2, 3]) alt.push({ x, y: cy(y - 14 * d) }, { x, y: cy(y + 14 * d) }, { x: cx(x - w / 2 - 12 * d), y }, { x: cx(x + w / 2 + 12 * d), y });
-              cajasSala.push({ id: i, x, y, w, h: ALTO_SALA, hueco: (hueco[i] || 0) * lw * 2, pri: -(hueco[i] || 0), alt });
+              cajasSala.push({ id: i, x, y, w, h: ALTO_SALA2, hueco: (hueco[i] || 0) * lw * 2, pri: conEq - (hueco[i] || 0), alt });
             }
           });
           const ver = rotulosSinChoque({ tags, obstaculos, salas: cajasSala }, 80, { salasPrimero: true });
@@ -79732,7 +79741,54 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
             const m = ver.movidas && ver.movidas[c.id];
             sitio.set(c.id, { x: (m ? m.x : c.x) + c.w / 2, y: (m ? m.y : c.y) + c.h / 2 });
           }
-          return { tags: ver.tags, salas: ver.salas, sitio, izq: ver.izq || /* @__PURE__ */ new Set() };
+          return { tags: ver.tags, salas: ver.salas, sitio, izq: ver.izq || /* @__PURE__ */ new Set(), codigo: (i) => codigoSala(salas[i]) };
+        }
+        function encuadreZoom({ sl = 0, st = 0, cw, ch, lw, lh, puntos = [] } = {}) {
+          const lim = (v, a, b) => Math.max(a, Math.min(b, v));
+          const maxL = Math.max(0, lw - cw);
+          const maxT = Math.max(0, lh - ch);
+          let L = lim(sl, 0, maxL);
+          let T2 = lim(st, 0, maxT);
+          const ps = (puntos || []).filter((q) => q && Number.isFinite(q.x) && Number.isFinite(q.y));
+          const dentro = (q) => q.x * lw >= L && q.x * lw <= L + cw && q.y * lh >= T2 && q.y * lh <= T2 + ch;
+          if (!ps.length || ps.some(dentro)) return { sl: L, st: T2, movido: false };
+          const cx = L + Math.min(cw, lw) / 2;
+          const cy = T2 + Math.min(ch, lh) / 2;
+          let mejor = ps[0];
+          let d = Infinity;
+          for (const q of ps) {
+            const dq = Math.hypot(q.x * lw - cx, q.y * lh - cy);
+            if (dq < d) {
+              d = dq;
+              mejor = q;
+            }
+          }
+          L = lim(mejor.x * lw - cw / 2, 0, maxL);
+          T2 = lim(mejor.y * lh - ch / 2, 0, maxT);
+          return { sl: L, st: T2, movido: true };
+        }
+        function tamBloques2(puntos, { lw, lh, max = 22, min = 10, hueco = 3 } = {}) {
+          const ps = [];
+          for (const q of puntos || []) if (q && q.x !== null && q.x !== void 0 && q.y !== null && q.y !== void 0) ps.push({ id: q.id, X: q.x * lw, Y: q.y * lh });
+          const lado = max + hueco;
+          const rejilla = /* @__PURE__ */ new Map();
+          const clave = (i, j) => `${i}|${j}`;
+          for (const q of ps) {
+            const k = clave(Math.floor(q.X / lado), Math.floor(q.Y / lado));
+            if (!rejilla.has(k)) rejilla.set(k, []);
+            rejilla.get(k).push(q);
+          }
+          const tam = /* @__PURE__ */ new Map();
+          for (const q of ps) {
+            const i0 = Math.floor(q.X / lado);
+            const j0 = Math.floor(q.Y / lado);
+            let d = Infinity;
+            for (let i = i0 - 1; i <= i0 + 1; i += 1) for (let j = j0 - 1; j <= j0 + 1; j += 1) {
+              for (const o of rejilla.get(clave(i, j)) || []) if (o !== q) d = Math.min(d, Math.max(Math.abs(o.X - q.X), Math.abs(o.Y - q.Y)));
+            }
+            tam.set(q.id, Math.round(Math.max(min, Math.min(max, d - hueco))));
+          }
+          return tam;
         }
         const RE_NOMBRE_SALA = /<text x="([-0-9.]+)" y="([-0-9.]+)" data-w="(\d+)" data-h="(\d+)">([^<>]*)<\/text>/g;
         const RE_CODIGO_SALA = /<text x="([-0-9.]+)" y="([-0-9.]+)">([^<>]*)<\/text>/g;
@@ -79781,7 +79837,41 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           const media = (v) => v.reduce((a, b) => a + b, 0) / v.length;
           return [...grupos.values()].map((g) => ({ t: g.t, codigo: g.codigo, x: r4(media(g.xs)), y: r4(media(g.ys)), conNombre: true }));
         }
-        function salasParaPlano({ svg = null, ancho = 0, alto = 0, salasPlano = [], equipos = [], partir = partirSimple } = {}) {
+        function salasParaPlano(r0) {
+          const r = salasParaPlanoSinNumero(r0);
+          return { ...r, salas: conNumeroSala(r.salas, r0 || {}) };
+        }
+        function conNumeroSala(salas, { svg = null, ancho = 0, alto = 0, equipos = [], partir = partirSimple } = {}) {
+          const { codigos } = salasDelSvg(svg, ancho, alto);
+          const deEq = (equipos || []).map((e) => ({ s: partir(e && e.sala), e })).filter((x) => x.s.nombre || x.s.codigo);
+          const codPorNombre = /* @__PURE__ */ new Map();
+          for (const { s } of deEq) {
+            if (!s.nombre || !s.codigo) continue;
+            const k = llano(s.nombre);
+            if (!codPorNombre.has(k)) codPorNombre.set(k, /* @__PURE__ */ new Set());
+            codPorNombre.get(k).add(s.codigo);
+          }
+          const conEq = /* @__PURE__ */ new Set();
+          for (const { s } of deEq) {
+            if (s.codigo) conEq.add(llano(s.codigo));
+            if (s.nombre) conEq.add(`n:${llano(s.nombre)}`);
+          }
+          return (salas || []).map((r) => {
+            let codigo = r.codigo || "";
+            if (!codigo && r.w > 0 && r.h > 0) {
+              const dentro = codigos.filter((c) => Math.abs(c.x - r.x) <= r.w / 2 && Math.abs(c.y - r.y) <= r.h / 2);
+              dentro.sort((p, q) => Math.hypot(p.x - r.x, p.y - r.y) - Math.hypot(q.x - r.x, q.y - r.y));
+              if (dentro.length) codigo = dentro[0].t;
+            }
+            if (!codigo) {
+              const c = codPorNombre.get(llano(r.t));
+              if (c && c.size === 1) codigo = [...c][0];
+            }
+            const conEquipos = Boolean(r.conEquipos) || codigo && conEq.has(llano(codigo)) || conEq.has(`n:${llano(r.t)}`) || conEq.has(llano(r.t));
+            return { ...r, codigo: codigo && codigo !== r.t ? codigo : r.codigo || "", conEquipos };
+          });
+        }
+        function salasParaPlanoSinNumero({ svg = null, ancho = 0, alto = 0, salasPlano = [], equipos = [], partir = partirSimple } = {}) {
           const { nombres, codigos } = salasDelSvg(svg, ancho, alto);
           if (nombres.length) return { salas: nombres, fuente: "modelo" };
           const nombreDe = /* @__PURE__ */ new Map();
@@ -79793,15 +79883,15 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           if (renombradas.some((c) => c.codigo)) {
             const ya = new Set(codigos.map((c) => llano(c.t)));
             const resto = salasDeEquipos(equipos, partir).filter((r) => partir(r.t).nombre && !ya.has(llano(r.codigo || "")) && !renombradas.some((c) => c.t === r.t && Math.hypot(c.x - r.x, c.y - r.y) < 0.05));
-            return { salas: [...renombradas, ...resto.map(({ t, x, y }) => ({ t, x, y }))], fuente: "codigos+equipos" };
+            return { salas: [...renombradas, ...resto.map(({ t, codigo, x, y }) => ({ t, codigo: codigo || "", x, y }))], fuente: "codigos+equipos" };
           }
           const delPlano = (salasPlano || []).filter((r) => r && r.t && !partir(r.t).codigo);
           if (delPlano.length) return { salas: delPlano.map((r) => ({ t: r.t, x: r.x, y: r.y })), fuente: "plano" };
           const deEq = salasDeEquipos(equipos, partir).filter((r) => partir(r.t).nombre);
-          if (deEq.length) return { salas: deEq.map(({ t, x, y }) => ({ t, x, y })), fuente: "equipos" };
+          if (deEq.length) return { salas: deEq.map(({ t, codigo, x, y }) => ({ t, codigo: codigo || "", x, y })), fuente: "equipos" };
           return { salas: codigos, fuente: codigos.length ? "codigos" : null };
         }
-        const API = { ZOOM_MIN, ZOOM_TOPE, ZOOM_MAX, limitarZoom, anchoBase, geometria, limitarScroll, puntoEn, zoomEnPunto, centrarEn, factorRueda, zoomMaximo, cajaDe, encuadre, etiquetasSinChoque, rotulosSinChoque, huecoSalas, colocarRotulos: colocarRotulos2, LETRA_PX, ALTO_SALA, salasDelSvg, salasDeEquipos, salasParaPlano, gestos };
+        const API = { ZOOM_MIN, ZOOM_TOPE, ZOOM_MAX, limitarZoom, anchoBase, geometria, limitarScroll, puntoEn, zoomEnPunto, centrarEn, factorRueda, zoomMaximo, cajaDe, encuadre, etiquetasSinChoque, rotulosSinChoque, huecoSalas, colocarRotulos: colocarRotulos2, tamBloques: tamBloques2, encuadreZoom, LETRA_PX, ALTO_SALA, salasDelSvg, salasDeEquipos, salasParaPlano, gestos };
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.VISTA_PLANO = API;
       })();
@@ -80100,6 +80190,7 @@ ${fichas}</div>`;
 ${V.rotulosSinChoque.toString()}
 ${V.huecoSalas.toString()}
 ${V.colocarRotulos.toString()}
+${V.tamBloques.toString()}
 `;
         }
         function visorPlanta(D, doc, win) {
@@ -80108,7 +80199,7 @@ ${V.colocarRotulos.toString()}
           const TAM = 18, TAM_EL = 28, ZMAX = 30;
           let z = 1, tx = 0, ty = 0, elegido = null, base = { w: 1, h: 1 };
           const lienzoTxt = doc.createElement("canvas").getContext("2d");
-          const FUENTE = { tag: "600 10px system-ui,sans-serif", elegido: "700 12px system-ui,sans-serif", sala: "600 11px system-ui,sans-serif" };
+          const FUENTE = { tag: "600 10px system-ui,sans-serif", elegido: "700 12px system-ui,sans-serif", sala: "600 11px system-ui,sans-serif", codigo: "500 9.5px system-ui,sans-serif" };
           const mide = (t, k) => {
             if (!lienzoTxt) return String(t || "").length * 6.2;
             lienzoTxt.font = FUENTE[k] || FUENTE.tag;
@@ -80139,6 +80230,11 @@ ${V.colocarRotulos.toString()}
             const e = doc.createElement("b");
             e.className = "sala";
             e.textContent = s.t;
+            if (s.codigo && s.codigo !== s.t) {
+              const c = doc.createElement("small");
+              c.textContent = s.codigo;
+              e.appendChild(c);
+            }
             capa.appendChild(e);
             return e;
           });
@@ -80159,11 +80255,13 @@ ${V.colocarRotulos.toString()}
             lienzo.style.width = `${lw}px`;
             lienzo.style.height = `${lh}px`;
             lienzo.style.transform = `translate(${tx}px,${ty}px)`;
-            const eqs = bloques.map(({ b }) => ({ id: b.id, x: b.x, y: b.y, sw: b.id === elegido ? TAM_EL : TAM, tag: b.tag, elegido: b.id === elegido }));
+            const tam = tamBloques(bloques.map(({ b }) => b), { lw, lh, max: TAM, min: 9 });
+            const eqs = bloques.map(({ b }) => ({ id: b.id, x: b.x, y: b.y, sw: b.id === elegido ? TAM_EL : tam.get(b.id) || TAM, tag: b.tag, elegido: b.id === elegido }));
             const r = colocarRotulos({ lw, lh, equipos: eqs, salas: D.salas, ancho: mide });
             for (const { b, a, t } of bloques) {
               a.style.left = `${b.x * lw}px`;
               a.style.top = `${b.y * lh}px`;
+              a.style.width = b.id === elegido ? "" : `${tam.get(b.id) || TAM}px`;
               a.classList.toggle("elegido", b.id === elegido);
               t.hidden = !r.tags.has(`eq:${b.id}`);
               a.classList.toggle("izq", Boolean(r.izq && r.izq.has(`eq:${b.id}`)));
@@ -80291,15 +80389,16 @@ header input{width:150px}#nivel{min-width:52px;text-align:right;color:#6b6556;fo
 main{display:flex;height:calc(100% - 52px)}#marco{position:relative;flex:1;overflow:hidden;touch-action:none;cursor:grab;background:#fff}
 #lienzo{position:absolute;left:0;top:0;transform-origin:0 0}#fondo{position:absolute;inset:0;width:100%;height:100%}
 #fondo path,#fondo line,#fondo polyline,#fondo polygon,#fondo rect,#fondo circle{fill:none;stroke:#cfc8b8;stroke-width:1;vector-effect:non-scaling-stroke}
+#fondo [data-capa="contorno"] path{fill:#f8f1e5;stroke:#4f5a69;stroke-width:1.3px;stroke-linejoin:round}
 #fondo text,#fondo [data-capa="salas"],#fondo [data-capa="nombres"]{display:none}#capa{position:absolute;inset:0}
-.bq{position:absolute;width:18px;height:18px;padding:0;margin:0;border:0;background:none;transform:translate(-50%,-50%);cursor:pointer}
-.bq svg{width:100%;height:100%;display:block;overflow:visible}.bq.elegido{width:28px;height:28px;z-index:3}
+.bq{position:absolute;width:18px;height:auto;aspect-ratio:1;padding:0;margin:0;border:0;background:none;transform:translate(-50%,-50%);cursor:pointer}
+.bq svg{width:100%;height:100%;display:block;overflow:visible}.bq.elegido{width:28px;z-index:3}
 .bq.elegido svg{filter:drop-shadow(0 0 2px #13957a)}
 .bq .tag{position:absolute;left:calc(100% + 2px);top:50%;transform:translateY(-50%);white-space:nowrap;font:600 10px system-ui,sans-serif;color:#262b38;text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff;pointer-events:none}
 .bq.elegido .tag{left:calc(100% + 8px);font:700 12px system-ui,sans-serif;color:#17676b}
 .bq.izq .tag{left:auto;right:calc(100% + 2px)}
 .bq.elegido.izq .tag{left:auto;right:calc(100% + 8px)}
-.sala{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font:600 11px system-ui,sans-serif;color:#2f4858;text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff;pointer-events:none}
+.sala small{display:block;font:500 9.5px/11px system-ui,sans-serif;color:#4f5a69;font-variant-numeric:tabular-nums}.sala{text-align:center;position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font:600 11px/14px system-ui,sans-serif;color:#2f4858;text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff;pointer-events:none}
 .bloque{overflow:visible}.bloque .cuerpo{fill:color-mix(in srgb,currentColor 12%,#fff)}.bloque .lleno{fill:currentColor;stroke:none}
 #ficha{width:380px;max-width:42%;overflow:auto;border-left:1px solid #d8d2c4;background:#fbf8f2;padding:10px 14px}
 #fichaVacia{color:#6b6556}.pcFicha h3{margin:4px 0 6px}.pcFicha h3 small{display:block;font-weight:400;color:#6b6556;font-size:13px}
@@ -83720,6 +83819,26 @@ ${fallos.join("\r\n")}\r
         const [X, Y] = aplicaAfin(aj, x, y);
         return X >= 0 && X <= 1 && Y >= 0 && Y <= 1 ? [Math.round(X * 1e5) / 1e5, Math.round(Y * 1e5) / 1e5] : null;
       }
+      var RE_COD_RECINTO = /([A-Z]\d\.[A-Z]{2,4}\.\d{3,4})\s*$/;
+      function paresPorRecinto(plano, rotulos) {
+        if (!plano || typeof plano.svg !== "string" || !(plano.ancho > 0 && plano.alto > 0)) return [];
+        const unico = (mapa, k, v) => mapa.set(k, mapa.has(k) ? null : v);
+        const ifc = /* @__PURE__ */ new Map(), pdf = /* @__PURE__ */ new Map();
+        for (const m of plano.svg.matchAll(RE_TEXTO_SALA)) {
+          const c = RE_COD_RECINTO.exec(m[3].trim());
+          if (c) unico(ifc, c[1], { x: Number(m[1]) / plano.ancho, y: Number(m[2]) / plano.alto });
+        }
+        for (const r of rotulos || []) {
+          const c = r && Number.isFinite(r.x) && Number.isFinite(r.y) ? RE_COD_RECINTO.exec(String(r.texto || "").trim()) : null;
+          if (c) unico(pdf, c[1], { x: r.x, y: r.y });
+        }
+        const pares = [];
+        for (const [k, q] of pdf) {
+          const i = ifc.get(k);
+          if (q && i) pares.push({ px: q.x, py: q.y, ix: i.x, iy: i.y });
+        }
+        return pares;
+      }
       var marcaSuelta = (e, x, y, u, extra = {}) => ({ g: `${u === "m" ? "man" : u === "t" ? "tag" : "pdf"}:${e.id}`, c: String(e.tag || "").slice(0, 60), x: Math.min(0.995, Math.max(5e-3, x)), y: Math.min(0.995, Math.max(5e-3, y)), k: tipoDe(IFC.grupoEquipo(e)), e: e.id, u, ...extra });
       function ubicarAMano(plano, equipos, leer) {
         const marcas = [];
@@ -83856,7 +83975,7 @@ ${fallos.join("\r\n")}\r
         };
       }
       var CLAVE_SITIO_MODELO = "Sitio en el modelo";
-      module.exports = { CLAVE_SITIO_MODELO, ubicarPorSala, ajustePdfAIfc, ajusteDebil, dePdfAIfc, ubicarAMano, ubicarPorPlano, ubicarPorTag, edificioDeFichero, nivelDe, construirPlanos, enlazar, estadoDe, codigoPropio, recuento, pedidoDe, fichaDe, CAPAS_MATERIAL, conjuntoDe, ESTADOS, NOMBRE_ESTADO, TIPOS, tipoDe, SIN_EDIFICIO, MOTIVO_ENLACE };
+      module.exports = { CLAVE_SITIO_MODELO, ubicarPorSala, paresPorRecinto, ajustePdfAIfc, ajusteDebil, dePdfAIfc, ubicarAMano, ubicarPorPlano, ubicarPorTag, edificioDeFichero, nivelDe, construirPlanos, enlazar, estadoDe, codigoPropio, recuento, pedidoDe, fichaDe, CAPAS_MATERIAL, conjuntoDe, ESTADOS, NOMBRE_ESTADO, TIPOS, tipoDe, SIN_EDIFICIO, MOTIVO_ENLACE };
     }
   });
 
@@ -84000,19 +84119,21 @@ ${fallos.join("\r\n")}\r
         return hechos;
       }
       var sitioManual = (e) => leerJson(e.posicionPlano, null);
-      function ajusteDelPlano(repo, ses, obraId, p, porId) {
+      function planoPdfDe(repo, obraId, nivel) {
         let filas = [];
         try {
-          filas = repo.db ? repo.db.prepare("SELECT id, planta, marcas, modificadoEn FROM planosEquipos WHERE obraId = ?").all(obraId) : [];
+          filas = repo.db ? repo.db.prepare("SELECT id, planta, marcas, rotulos, modificadoEn FROM planosEquipos WHERE obraId = ?").all(obraId) : [];
         } catch {
           filas = [];
         }
-        const llanoN = (t2) => String(t2 || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-        const f = filas.filter((x) => llanoN(x.planta) === llanoN(p.nivel)).sort((a, b) => String(b.modificadoEn).localeCompare(String(a.modificadoEn)))[0];
+        const llanoN = (t) => String(t || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+        return filas.filter((x) => llanoN(x.planta) === llanoN(nivel)).sort((a, b) => String(b.modificadoEn).localeCompare(String(a.modificadoEn)))[0] || null;
+      }
+      function ajusteDelPlano(repo, ses, obraId, p, porId, f = planoPdfDe(repo, obraId, p.nivel)) {
         if (!f) return null;
         const pdf = /* @__PURE__ */ new Map();
         for (const m of leerJson(f.marcas, [])) if (m && m.equipoId && !m.revisar && Number.isFinite(m.x) && Number.isFinite(m.y)) pdf.set(m.equipoId, { x: m.x, y: m.y });
-        const pares = [];
+        const pares = P.paresPorRecinto(p, leerJson(f.rotulos, []));
         for (const m of p.marcas) {
           const q = m.e && !m.u ? pdf.get(m.e) : null;
           if (q && porId.has(m.e)) pares.push({ px: q.x, py: q.y, ix: m.x, iy: m.y });
@@ -84061,6 +84182,7 @@ ${fallos.join("\r\n")}\r
         const puestos = /* @__PURE__ */ new Set();
         let porSala = 0, porPlano = 0, porTag = 0;
         for (const p of planos) {
+          const fPdf = !p.fuente ? planoPdfDe(repo, obraId, p.nivel) : null;
           const r = SIG.rotularSvg(p.svg, { ancho: p.ancho, alto: p.alto, nivel: p.nivel, equipos: p.marcas.filter((m) => m.e && porId.has(m.e)).map((m) => ({ x: m.x, y: m.y, salaGris: porId.get(m.e).salaGris })) });
           if (opc.porSala && !p.fuente) {
             const suyos = () => libres.filter((e) => !puestos.has(e.id) && llano(e.planta) === llano(p.nivel));
@@ -84080,7 +84202,7 @@ ${fallos.join("\r\n")}\r
               pon(u);
               porTag += u.length;
             }
-            const aj = ajusteDelPlano(repo, ses, obraId, p, porId);
+            const aj = ajusteDelPlano(repo, ses, obraId, p, porId, fPdf);
             if (aj) {
               p.ajustePdf = { a: aj.t.a, b: aj.t.b, c: aj.t.c, d: aj.t.d, e: aj.t.e, f: aj.t.f, n: aj.t.n, err: aj.t.err, aprox: aj.aprox, ...aj.debil ? { debil: true } : {} };
               if (suyos().length) {
@@ -84272,7 +84394,7 @@ ${fallos.join("\r\n")}\r
         return n;
       }
       var esIfc = (id) => String(id || "").startsWith(PREFIJO);
-      var ESTILO = '<style>path{fill:none;stroke:#8e99a3;stroke-width:1;vector-effect:non-scaling-stroke}text{display:none}</style><rect width="100%" height="100%" fill="#fff"/>';
+      var ESTILO = '<style>path{fill:none;stroke:#aab5be;stroke-width:.8px;vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:round}[data-capa=contorno] path,[data-capa=muros] path{fill:#f8f1e5;stroke:#4f5a69;stroke-width:1.3px}[data-capa=tuberias] path{stroke:#93bdbd}text{display:none}</style><rect width="100%" height="100%" fill="#fffdf9"/>';
       function fondoSvg(repo, ses, id) {
         const fila = repo.leer("plantasIfc", ses, String(id || "").slice(PREFIJO.length));
         const svg = fila && String(fila.svg || "");

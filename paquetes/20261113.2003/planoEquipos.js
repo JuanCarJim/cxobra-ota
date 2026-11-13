@@ -35,6 +35,7 @@
   const NOMBRE = { verde: 'En marcha', azul: 'Falta documentación', rojo: 'Sin empezar' };
   const ORDEN = ['verde', 'azul', 'rojo'];
   const ZOOM_MAX = 30; /* 30-oct, JC: «hay que poder ampliar más» */
+  const TAM_EQ = 22; const TAM_EQ_MIN = 10; const TAM_EQ_ELEGIDO = 30; /* px de pantalla, a cualquier zoom */
   const ZOOM_SALAS = 3; /* desde aquí se leen los nombres de sala encima del plano */
   /* El dibujo de cada familia viene del servidor (shared/commissioning/planoEquipos.js: ICONOS),
      así es el mismo en escritorio, web y móvil, también sin conexión. */
@@ -83,13 +84,13 @@
   .pe-marco .marca-boca.mal .simbolo-boca .cuerpo{fill:color-mix(in srgb,var(--mal) 18%,var(--vd-lienzo))}
   .pe-cuerpo{display:block}
   .pe-marco{position:relative;overflow:hidden;height:52vh;border:1px solid var(--borde);border-radius:10px;background:var(--vd-lienzo);touch-action:none;overscroll-behavior:contain;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-  .pe-lienzo{position:relative}
+  .pe-lienzo{position:relative;flex:none;margin-block:auto}.pe-marco{display:flex;flex-direction:column}
   .pe-fondo{display:flex;gap:6px;margin:0 0 6px}.pe-fondo button{flex:1;padding:6px 10px;border:1px solid var(--borde);border-radius:6px;background:transparent;color:inherit;font:inherit;font-size:13px}.pe-fondo button[aria-pressed=true]{background:color-mix(in srgb,currentColor 14%,transparent);font-weight:700;border-color:currentColor}.pe-fondo button:disabled{opacity:.4}
   .pe-lienzo img{display:block;width:100%;height:auto;user-select:none;-webkit-user-select:none;pointer-events:none}
   .pe-lienzo .marca-boca.azul{color:var(--pe-azul)}
   .pe-lienzo .marca-boca.azul .simbolo-boca .cuerpo{fill:color-mix(in srgb,var(--pe-azul) 22%,var(--vd-lienzo))}
   .pe-lienzo .marca-boca.azul .rotulo-boca{background:var(--pe-azul)}
-  .pe-lienzo .marca-boca{width:16px;aspect-ratio:1;height:auto;line-height:0;z-index:2}
+  .pe-lienzo .marca-boca{width:22px;aspect-ratio:1;height:auto;line-height:0;z-index:2}
   .pe-lienzo .marca-boca::after{width:calc(100% + 16px);height:calc(100% + 16px)}
   .pe-lienzo .marca-boca .simbolo-boca{display:block;height:100%;width:100%;border-radius:0;overflow:visible;filter:drop-shadow(0 0 1px var(--vd-lienzo))}
   .pe-lienzo .marca-boca .simbolo-boca *{vector-effect:non-scaling-stroke;stroke-width:1.2px}
@@ -101,7 +102,7 @@
   /* La etiqueta sin color de estado: el estado se lee en el icono y en la leyenda. */
   #app .pe-lienzo .marca-boca .rotulo-boca{background:rgba(255,255,255,.74);color:var(--acento-fuerte);padding:0 3px;font-weight:700;text-shadow:0 0 2px var(--vd-lienzo)}
   .pe-lienzo .marca-boca.revisar .simbolo-boca{outline:1.5px dashed currentColor;outline-offset:2px}
-  .pe-lienzo .marca-boca.elegida{width:28px;z-index:8;opacity:1!important}
+  .pe-lienzo .marca-boca.elegida{width:30px!important;z-index:8;opacity:1!important}
   .pe-lienzo .marca-boca.elegida .simbolo-boca{outline:none;transform:none;filter:drop-shadow(0 0 1.5px var(--acento)) drop-shadow(0 0 5px color-mix(in srgb,var(--acento) 55%,transparent))}
   .pe-lienzo .marca-boca.elegida .simbolo-boca *{stroke-width:3px}
   .pe-lienzo .marca-boca.elegida .simbolo-boca path,.pe-lienzo .marca-boca.elegida .simbolo-boca rect{stroke:var(--acento)}
@@ -123,13 +124,14 @@
   .pe-sala{position:absolute;transform:translate(-50%,-50%);font:600 11px/14px system-ui,sans-serif;color:var(--texto);letter-spacing:.01em;padding:0 1px;white-space:nowrap;pointer-events:none;display:none;z-index:1;text-shadow:0 0 2px var(--papel),0 0 2px var(--papel)}
   .pe-sin-nombres{margin:4px 0 0;font-size:12px;color:var(--textoSuave)}
   /* 13-nov (JC): finos y en gris claro, por debajo de los TAG; solo los que caben y no chocan (colocarTags). */
-  .pe-lienzo .pe-sala.ver{display:block}
-  /* Los − / + flotan sobre el plano, arriba a la derecha: abajo los tapaba la barra de navegación. */
-  .pe-zoom{position:absolute;top:8px;right:8px;z-index:5;display:flex;gap:4px;padding:4px;border-radius:10px;background:color-mix(in srgb,var(--panel) 88%,transparent);box-shadow:var(--sombra,0 1px 4px rgba(0,0,0,.18))}
-  .pe-zoom button{min-width:44px;min-height:44px;margin:0;font-size:20px;line-height:1;padding:0 10px}
+  .pe-lienzo .pe-sala.ver{display:block;text-align:center}
+  .pe-sala small{display:block;font:500 9.5px/11px system-ui,sans-serif;color:var(--textoSuave,var(--texto));font-variant-numeric:tabular-nums;letter-spacing:0}
+  /* 13-nov (JC): el − / Entero / + en su franja, bajo el plano y fuera de él: no tapa nada. */
+  .pe-zoom{display:flex;justify-content:flex-end;gap:4px;margin:4px 0 0}
+  .pe-zoom button{width:auto;flex:none;min-width:44px;min-height:40px;margin:0;font-size:20px;line-height:1;padding:0 10px}
   .pe-zoom button[data-pe-zoom="0"]{font-size:14px}
   .cx-plano .pe-marco .marca-boca.mal{color:var(--mal)} .cx-plano .pe-sin-ifc{margin:2px 0 6px;font-size:12px}
-  .cx-plano .pe-zoom{top:6px;left:6px;right:auto;padding:2px;gap:2px}.cx-plano .pe-zoom button{min-width:34px;min-height:34px;font-size:16px;padding:0 6px}.cx-plano .pe-zoom button[data-pe-zoom="0"]{font-size:12px}
+  .cx-plano .pe-zoom{gap:4px}.cx-plano .pe-zoom button{min-width:34px;min-height:34px;font-size:16px;padding:0 6px}.cx-plano .pe-zoom button[data-pe-zoom="0"]{font-size:12px}
   .pe-elegido{margin:8px 0;padding:10px 12px;border-radius:10px;background:var(--panel);box-shadow:var(--sombra)}
   .pe-hoja{position:fixed;left:8px;right:8px;bottom:calc(var(--hueco-barra,104px) + 4px + env(safe-area-inset-bottom,0px));z-index:12;max-height:42vh;overflow:auto;padding:10px 12px 12px;border-radius:14px;background:var(--panel);box-shadow:0 -2px 14px rgba(8,50,60,.28);border:1px solid var(--borde)}
   .pe-hoja[hidden]{display:none}
@@ -677,7 +679,10 @@
     try { sessionStorage.setItem('cx.planoEquipos.planta', planta); } catch { /* nada */ }
     const c = p.cuentas;
     const qq = filtro.trim().toLowerCase();
-    const visibles = p.equipos.filter((m) => !ocultos.has(m.color) && (!qq || [m.tag, m.sala].some((v) => String(v || '').toLowerCase().includes(qq))));
+    /* 13-nov (JC: «número de sala es muy importante»): también por número de sala, con o sin puntos («00.STE.036», «00 036»). */
+    const BM = window.BUSCADOR_MOVIL;
+    const textosEq = (m) => [m.tag, m.sala, m.codSala, m.local];
+    const visibles = p.equipos.filter((m) => !ocultos.has(m.color) && (!qq || (BM && BM.coincide ? BM.coincide(filtro.trim(), textosEq(m)) : textosEq(m).some((v) => String(v || '').toLowerCase().includes(qq)))));
     const enPlano = capasOff.has('equipos') ? [] : visibles.filter((m) => m.x !== null);
     const enConjunto = idsDelConjunto();
     const q = filtro.trim().toLowerCase();
@@ -691,14 +696,15 @@
     const plano = p.plano ? `${selector}<div class="pe-visor"><div class="pe-marco${FA.marcando() ? ' fa-activo' : ''}" data-pe-marco data-paleta="vidaire">
         <div class="pe-lienzo${zoom >= ZOOM_SALAS ? ' con-salas' : ''}" data-pe-lienzo style="width:${zoom * 100}%;--pe-esc:${escMarcas()}">
           <img data-src="api/plano-equipos/imagen?id=${encodeURIComponent(p.plano.id)}" alt="Plano ${esc(p.plano.nombre)}" draggable="false">
-          ${salasDe(p).map((r, i) => `<span class="pe-sala" data-pe-sala="${i}" style="left:${r.x * 100}%;top:${r.y * 100}%">${esc(r.t)}</span>`).join('')}
+          ${salasDe(p).map((r, i) => `<span class="pe-sala" data-pe-sala="${i}" style="left:${r.x * 100}%;top:${r.y * 100}%">${esc(r.t)}${r.codigo && r.codigo !== r.t ? `<small>${esc(r.codigo)}</small>` : ''}</span>`).join('')}
           ${mats.map((m) => marcaMaterial(m, q, p)).join('')}
           ${FA.marcas(p)}
           ${enPlano.map((x) => `<button class="marca-boca ${x.color === 'verde' ? 'bien' : x.color === 'rojo' ? 'mal' : 'azul'}${enConjunto.has(x.id) ? ' elegida' : ''}${x.revisar ? ' revisar' : ''}" style="left:${x.x * 100}%;top:${x.y * 100}%;--wp:${(cajaEq(x, p).wf * 100).toFixed(4)}%" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${x.sala || 'sin sala'}: ${NOMBRE[x.color]}${x.revisar ? '; revisar ubicación' : ''}`)}">${simbolo(x.icono)}<span class="rotulo-boca">${esc(x.tag)}</span></button>`).join('')}
         </div>
       </div>
       ${p.esIfc && !(p.plano.salas || []).length ? '<p class="nota pe-sin-nombres" data-pe-sin-nombres>El modelo de esta planta no trae nombres de sala y no hay plano de arquitectura para situarlos.</p>' : ''}${p.esIfc && p.plano.fuenteSalas === 'plano' ? '<p class="nota pe-sin-nombres" data-pe-nombres-pdf>Nombres de sala del plano de arquitectura, situados por los equipos: el modelo no los trae.</p>' : ''}
-      <!-- 13-nov (JC): sin botones −/Entero/+ en el móvil; se acerca con pellizco y doble toque -->${FA.marcando() ? FA.mando(p) : ''}</div>`
+      <!-- 13-nov (JC en el iPhone): el −/Entero/+ en una franja bajo el plano, nunca encima; también pellizco y doble toque -->
+      <div class="pe-zoom" role="group" aria-label="Zoom del plano"><button class="boton secundario" data-pe-zoom="-1" aria-label="Alejar">−</button><button class="boton secundario" data-pe-zoom="0">Entero</button><button class="boton secundario" data-pe-zoom="1" aria-label="Acercar">+</button></div>${FA.marcando() ? FA.mando(p) : ''}</div>`
       : compacto ? `<div class="pe-sin-plano" data-pe-sin-ifc><b>Falta el IFC de la planta ${esc(etiqueta(p))}</b> (y tampoco tiene plano PDF). Lo prepara el delineante; mientras, sus equipos están en «Lista».</div>`
       : `<div class="pe-sin-plano"><b>La planta ${esc(etiqueta(p))} aún no tiene plano de equipos.</b><br>Lo sube la oficina desde Commissioning › Plano. Mientras, la lista dice la sala y el estado de cada equipo.</div>`;
     /* Fila 1 de la pestaña Cx: el desplegable con todas las plantas (las que tienen IFC dicen cuántos coloca el modelo; las que no,
@@ -749,19 +755,18 @@
     if (act) fila.scrollLeft = act.offsetLeft - fila.clientWidth / 2 + act.offsetWidth / 2;
   }
 
-  /* Pantalla Cx (13-nov, JC): sin hueco blanco bajo el plano. Entero: el marco se pega al plano; con zoom: ocupa todo el alto libre hasta la barra. */
+  /* Pantalla Cx (13-nov, coordinador): el plano se queda con todo el alto que hay entre la cabecera y la barra inferior,
+     con la franja del zoom justo debajo; sin hueco blanco debajo. En «Entero» el dibujo va centrado en ese alto. */
   function ajustarAlto() {
     const [marco] = marcoYLienzo();
-    const img = marco && marco.querySelector('.pe-lienzo img');
-    if (!marco || !img) return;
-    const poner = () => {
-      if (!marco.isConnected || !img.naturalWidth) return;
-      const libre = Math.max(240, window.innerHeight - marco.getBoundingClientRect().top - 112);
-      const natural = marco.clientWidth * (img.naturalHeight / img.naturalWidth) * zoom + 2;
-      marco.style.height = Math.round(zoom > 1 ? libre : Math.max(natural, 160)) + 'px'; /* entero: el plano entero, sin hueco ni recorte */
-    };
-    /* La imagen llega después (data-src → blob): hasta que carga no tiene medidas; se ajusta al cargar. */
-    if (img.complete && img.naturalWidth) poner(); else img.addEventListener('load', poner, { once: true });
+    if (!marco) return;
+    const cab = document.querySelector('.barra');
+    const arriba = cab ? Math.max(0, cab.getBoundingClientRect().bottom) : 0;
+    const raiz = getComputedStyle(document.documentElement);
+    const barra = parseFloat(raiz.getPropertyValue('--hueco-barra')) || 0;
+    const franja = $raiz.querySelector('.pe-zoom');
+    const fh = franja ? franja.offsetHeight + 8 : 48;
+    marco.style.height = `${Math.round(Math.max(260, window.innerHeight - arriba - barra - fh - 12))}px`;
   }
 
   function cabeza() {
@@ -787,6 +792,7 @@
   const LETRA_TAG = '700 9px system-ui, sans-serif';
   const LETRA_TAG_ELEGIDO = '700 12px system-ui, sans-serif';
   const LETRA_SALA = '600 11px system-ui, sans-serif';
+  const LETRA_COD = '500 9.5px system-ui, sans-serif';
   const huecos = new WeakMap(); /* salas del plano → hueco de cada una (vistaPlano.huecoSalas) */
   /* Los nombres de sala: los que trae el plano (IFC o PDF); si no trae ninguno, el campo sala de los equipos (nunca inventados). */
   const salasEq = new WeakMap();
@@ -824,16 +830,21 @@
       materiales.push({ id: m.id, x: m.x, y: m.y, sw: Math.max(MIN_PX * Math.max(1, c.ar), c.wf * lw), tag: m.tag, elegido: m.id === mat, pri: m.estado === 'conIncidencia' ? 2 : m.estado === 'conFicha' ? 2.5 : 3 });
     }
     const porEq = new Map((p.equipos || []).map((e) => [e.id, e]));
+    /* 13-nov (JC en el iPhone): el bloque mide lo mismo en pantalla a cualquier zoom (TAM_EQ px) y encoge si choca con el
+       vecino (vistaPlano.tamBloques): al acercar, las salas crecen y los equipos se separan. */
+    const tam = V.tamBloques ? V.tamBloques(botonesEq.map((b) => porEq.get(b.dataset.peMarca)).filter(Boolean), { lw, lh, max: TAM_EQ, min: TAM_EQ_MIN }) : new Map();
     const equipos = [];
     for (const b of botonesEq) {
       const e = porEq.get(b.dataset.peMarca);
       if (!e || e.x === null) continue;
       const elegido = b.classList.contains('elegida');
-      equipos.push({ id: e.id, x: e.x, y: e.y, sw: elegido ? 28 : 16, tag: e.tag, elegido });
+      const t = elegido ? TAM_EQ_ELEGIDO : (tam.get(e.id) || TAM_EQ);
+      b.style.width = `${t}px`;
+      equipos.push({ id: e.id, x: e.x, y: e.y, sw: t, tag: e.tag, elegido });
     }
     const listaSalas = salasDe(p);
     if (!huecos.has(listaSalas)) huecos.set(listaSalas, V.huecoSalas(listaSalas, lh / lw));
-    const ancho = (t, k) => anchoTexto(t || '', k === 'elegido' ? LETRA_TAG_ELEGIDO : k === 'sala' ? LETRA_SALA : LETRA_TAG);
+    const ancho = (t, k) => anchoTexto(t || '', k === 'elegido' ? LETRA_TAG_ELEGIDO : k === 'sala' ? LETRA_SALA : k === 'codigo' ? LETRA_COD : LETRA_TAG);
     const ver = V.colocarRotulos({ lw, lh, equipos, materiales, salas: listaSalas, huecos: huecos.get(listaSalas), ancho });
     for (const b of botones) b.classList.toggle('con-tag', ver.tags.has(b.dataset.peMat));
     for (const b of botonesEq) b.classList.toggle('con-tag', ver.tags.has(`eq:${b.dataset.peMarca}`));
@@ -853,17 +864,31 @@
     const [marco, lienzo] = marcoYLienzo();
     nuevo = Math.min(ZOOM_MAX, Math.max(1, nuevo));
     if (!marco || !lienzo) { zoom = nuevo; return; }
-    if (px === undefined) px = marco.clientWidth / 2;
-    if (py === undefined) py = marco.clientHeight / 2;
+    /* Sin dedos: el centro de lo que se ve DEL PLANO (no del marco: en «Entero» el dibujo va centrado y deja margen). */
+    const oy0 = lienzo.offsetTop;
+    if (px === undefined) px = Math.min(marco.clientWidth, lienzo.offsetWidth - marco.scrollLeft) / 2;
+    if (py === undefined) { const a = Math.max(0, oy0 - marco.scrollTop); const b = Math.min(marco.clientHeight, oy0 + lienzo.offsetHeight - marco.scrollTop); py = (a + b) / 2; }
     const fx = (marco.scrollLeft + px) / (lienzo.offsetWidth || 1);
-    const fy = (marco.scrollTop + py) / (lienzo.offsetHeight || 1);
+    const fy = Math.max(0, Math.min(1, (marco.scrollTop + py - oy0) / (lienzo.offsetHeight || 1)));
     zoom = nuevo;
     lienzo.style.width = `${zoom * 100}%`;
     lienzo.style.setProperty('--pe-esc', String(escMarcas()));
     lienzo.classList.toggle('con-salas', zoom >= ZOOM_SALAS);
     colocarTags(lienzo);
     marco.scrollLeft = fx * lienzo.offsetWidth - px;
-    marco.scrollTop = fy * lienzo.offsetHeight - py;
+    marco.scrollTop = fy * lienzo.offsetHeight + lienzo.offsetTop - py;
+  }
+
+  /* 13-nov (coordinador): tras un zoom la vista no se sale de la planta ni se queda en blanco:
+     si no cae ningún equipo ni sala a la vista, se centra en el más cercano (vistaPlano.encuadreZoom). */
+  function encuadrar() {
+    const [marco, lienzo] = marcoYLienzo();
+    const p = plantaActual();
+    const V = window.VISTA_PLANO;
+    if (!marco || !lienzo || !p || !V || !V.encuadreZoom) return;
+    const puntos = (p.equipos || []).filter((e) => e.x !== null && e.x !== undefined && !ocultos.has(e.color)).concat(salasDe(p));
+    const r = V.encuadreZoom({ sl: marco.scrollLeft, st: marco.scrollTop, cw: marco.clientWidth, ch: marco.clientHeight, lw: lienzo.offsetWidth, lh: lienzo.offsetHeight, puntos });
+    marco.scrollLeft = r.sl; marco.scrollTop = r.st;
   }
 
   /* Zoom con una breve animación (doble toque, +, −, Entero). */
@@ -876,7 +901,7 @@
     const paso = (t) => {
       const k = Math.min(1, (t - t0) / 160);
       ponerZoom(origen + (destino - origen) * (1 - (1 - k) ** 3), px, py);
-      if (k < 1) animando = requestAnimationFrame(paso);
+      if (k < 1) animando = requestAnimationFrame(paso); else encuadrar();
     };
     animando = requestAnimationFrame(paso);
   }
@@ -955,6 +980,7 @@
     dedos.delete(ev.pointerId);
     if (marco) { try { marco.releasePointerCapture(ev.pointerId); } catch { /* ya soltado */ } }
     if (dedos.size === 0) {
+      if (gesto && gesto.tipo === 'pellizco') encuadrar();
       /* Marcando (8-nov): el toque dice el sitio, aunque caiga encima de otra marca; arrastrar y pellizcar siguen moviendo el plano. */
       if (eraEspera && marco && FA.marcando()) {
         const caja = marco.querySelector('[data-pe-lienzo]').getBoundingClientRect();
