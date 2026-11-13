@@ -222,6 +222,13 @@ p.cargando { min-height: calc(100vh - 190px); min-height: calc(100dvh - 190px);
 body:has(#app > p.cargando:only-child) { padding-bottom: 0; } /* la barra de abajo flota: sin esto, la carga tendría scroll */
 p.cargando:not(#app > :only-child) { min-height: 0; padding: 14px 0; }
 p.cargando:not(#app > :only-child) .arq-atomo { --arq-lado: 96px; }
+/* 13-nov (JC): la V al pasar de una pantalla a otra (index.html › cxCargaTransicion). Transparente los primeros 150 ms:
+   si la pantalla llega antes, ni se ve. Sin tapar los toques. */
+.cx-transicion { position: fixed; inset: 0; z-index: 9000; display: flex; align-items: center; justify-content: center;
+  background: rgba(250, 247, 241, .72); pointer-events: none; opacity: 0; animation: cxTransicion 120ms linear 150ms forwards; }
+.cx-transicion.oculta { display: none; }
+.cx-transicion .arq-atomo { --arq-lado: 120px; }
+@keyframes cxTransicion { to { opacity: 1; } }
 
 /* El estado vacío, igual en todas las listas (el EmptyState de CoachIn): un
    círculo gris con el icono y el texto debajo, centrado y con aire. */

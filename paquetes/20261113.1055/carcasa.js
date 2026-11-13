@@ -977,6 +977,28 @@
     if (vistos) vistos.onclick = () => { sincro().conflictosVistos(); cuenta(); };
     const noSuben = document.getElementById('cx-nosuben-vistos');
     if (noSuben) noSuben.onclick = () => { sincro().descartesVistos(); cuenta(); };
+    const resubir = document.getElementById('cx-resubir');
+    if (resubir) resubir.onclick = async () => {
+      resubir.disabled = true;
+      try {
+        const r = await sincro().volverASubir();
+        const quedan = (r.rechazos || []).length;
+        if (r.error) aviso(r.error);
+        else if (quedan) aviso(`La nube sigue sin aceptar ${quedan}: ${(r.rechazos[0] && r.rechazos[0].motivo) || 'sin motivo'}. Pulsa «Enviar a la oficina lo que no ha subido».`);
+        else aviso(`Subido: ${r.subidas || 0} cambio${r.subidas === 1 ? '' : 's'}.`, 'bien');
+      } catch (e) { aviso(e.message); }
+      cuenta();
+    };
+    const rescate = document.getElementById('cx-rescate');
+    if (rescate) rescate.onclick = async () => {
+      rescate.disabled = true;
+      const nota = document.getElementById('cx-rescate-nota');
+      try {
+        const r = await sincro().rescate((hechos, total) => { if (nota) nota.textContent = `Enviando ${hechos} de ${total}…`; });
+        aviso(`Enviado a la oficina: ${r.filas} fila${r.filas === 1 ? '' : 's'} y ${r.fotos} foto${r.fotos === 1 ? '' : 's'}${r.fallidas ? ` (${r.fallidas} fotos no pudieron)` : ''}.`, 'bien');
+      } catch (e) { aviso(e.sinRed ? 'Sin conexión: vuelve a pulsarlo con cobertura.' : e.message); }
+      cuenta();
+    };
     const ya = document.getElementById('cx-sync-ya');
     if (ya) ya.onclick = async () => {
       ya.disabled = true;
@@ -1028,8 +1050,19 @@
     /* Lo pesado (firmas, imágenes de planos) sigue bajando detrás (motor.js, 5-nov-2026). */
     const t = e.trayendo;
     if (t && t.total && t.hechas < t.total) return ['', `Bajando ${Math.round((t.hechas / t.total) * 100)} %${pend}`];
+    /* PASTILLA HONESTA (13-nov-2026, JC: «Sincronizado» con fichas, fotos y
+       firmas sin subir desde el 6-nov): lo rechazado, lo descartado y lo que
+       perdió al mezclar no cuenta como pendiente, pero tampoco ha llegado. */
+    const atasco = atascos();
+    if (e.estado === 'al-dia' && atasco) return ['error', `${atasco} sin subir${pend}`];
     if (e.estado === 'al-dia') return n ? ['sin-red', cambios(n)] : ['al-dia', 'Sincronizado'];
     return fallo ? ['error', fallo] : ['', 'Conectando'];
+  }
+  /* Lo que no ha llegado a la nube y no se reintenta solo (motor.sinSubir). */
+  function atascos() {
+    const s = sincro();
+    if (!s || !s.sinSubir) return 0;
+    try { const x = s.sinSubir(); return x ? (x.rechazos || 0) + (x.descartadas || 0) + (x.conflictos || 0) : 0; } catch { return 0; }
   }
   let ultimaClase = null;
   function pastillaSync() {
@@ -1042,7 +1075,10 @@
       b.type = 'button';
       b.id = 'cx-sync';
       b.className = 'sync-pastilla';
-      b.onclick = () => { if (location.hash !== '#cuenta') location.hash = 'cuenta'; else cuenta(); };
+      b.onclick = () => {
+        const alAtasco = () => { const a = document.getElementById('cx-atascos'); if (a && atascos()) a.scrollIntoView({ block: 'start' }); };
+        if (location.hash !== '#cuenta') { location.hash = 'cuenta'; setTimeout(alAtasco, 50); } else { cuenta(); alAtasco(); }
+      };
       fila.insertBefore(b, document.getElementById('quien'));
     }
     const e = s.estado();
@@ -1074,11 +1110,33 @@
         <div class="fila-dato"><span>Último dato recibido</span><strong>${esc(hora(e.ultimoRecibido))}</strong></div>
         <div class="fila-dato"><span>Última comprobación</span><strong>${esc(hora(e.ultimaBajada))}</strong></div>
         <div class="fila-dato"><span>Pendiente de enviar</span><strong>${e.pendientes || 0} cambio${e.pendientes === 1 ? '' : 's'}</strong></div>
+        ${atascos() ? `<div class="fila-dato"><span>Sin subir (no se reintenta solo)</span><strong>${atascos()}</strong></div>` : ''}
         <div class="fila-dato"><span>Aviso al momento</span><strong>${e.tiempoReal ? 'Conectado' : 'Cada 30 segundos'}</strong></div>
         ${e.error && e.estado === 'error' ? `<div class="fila-dato"><span>Error</span><strong>${esc(e.error)}</strong></div>` : ''}
       </section>
       ${conflictosSync(e)}
-      ${noSubeSync(e)}`;
+      ${noSubeSync(e)}
+      ${atascosSync()}`;
+  }
+
+  /* LO QUE NO HA SUBIDO (13-nov-2026): lo que la nube rechazó, con lo que
+     contestó, y los dos botones: volver a ponerlo en la cola, y la copia de
+     seguridad que va a la oficina por otro camino (shared/sync/rescate.js),
+     que no escribe en las tablas y no puede fallar por lo mismo. */
+  function atascosSync() {
+    const s = sincro();
+    if (!s || !s.rescate) return '';
+    const rech = s.rechazos ? s.rechazos() : [];
+    const filas = rech.slice(0, 30).map((r) => `<li><strong>${esc(r.tabla)}</strong> <span class="tenue">${esc(r.id)} · ${r.intentos} intento${r.intentos === 1 ? '' : 's'}</span>${r.motivo ? `<br><span class="tenue">${esc(String(r.motivo).slice(0, 160))}</span>` : ''}</li>`).join('');
+    const hay = atascos();
+    return `
+      <section class="grupo" id="cx-atascos">
+        <div class="fila-dato"><span>La nube no lo ha aceptado</span><strong>${rech.length}</strong></div>
+        ${filas ? `<ul class="lista-conflictos">${filas}</ul>` : ''}
+        ${hay ? '<button class="boton" id="cx-resubir">Volver a subir</button>' : ''}
+        <button class="boton${hay ? ' secundario' : ''}" id="cx-rescate">Enviar a la oficina lo que no ha subido</button>
+        <p class="nota" id="cx-rescate-nota">Manda a la oficina una copia de todo lo de este teléfono que no consta en la nube (fichas, tomas de datos, fotos y firmas). No cambia nada de lo que ya hay allí.</p>
+      </section>`;
   }
 
   /* Lo que este usuario no puede cambiar en la nube (cx_permisos; el operario

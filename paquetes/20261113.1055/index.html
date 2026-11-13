@@ -93,6 +93,47 @@
       }).observe(document.body, { childList: true, subtree: true });
     })();
   </script>
+  <script>
+    /* 13-nov (JC): «al cargar no sale la V, de una pantalla a otra dentro de la app». Al pulsar algo que lleva a otra
+       pantalla (pestañas, fichas, plano, Más…) se pone al momento la V del arranque (la de window.cxLogoCarga), pero
+       transparente: solo se ve si la pantalla tarda más de ~150 ms (la animación con retraso la lleva el compositor,
+       también mientras el teléfono calcula). Se quita en cuanto la pantalla nueva se ha pintado y está quieta. Si la
+       pantalla ya enseña su propia carga (p.cargando, con la V grande), esta no se ve: nunca dos V. */
+    (function () {
+      var NAVEGA = '#barra-inferior button, #barra-inferior a, #segmentos button, [data-cx], [data-pe-marca], [data-pe-fila], [data-pe-planta], a[href^="#"], .enlace';
+      var capa = null, desde = 0, ultimo = 0, cambio = false, vivo = false;
+      function quitar() { vivo = false; if (capa && capa.parentNode) capa.parentNode.removeChild(capa); capa = null; }
+      function mirar() {
+        if (!vivo) return;
+        var ahora = performance.now();
+        var propia = document.querySelector('#app > p.cargando:only-child');
+        if (capa) capa.classList.toggle('oculta', Boolean(propia));
+        if ((cambio && !propia && ahora - ultimo >= 100) || (!cambio && ahora - desde > 700) || ahora - desde > 20000) { quitar(); return; }
+        requestAnimationFrame(mirar);
+      }
+      function empezar() {
+        desde = ultimo = performance.now(); cambio = false;
+        if (!capa) {
+          var l = window.cxLogoCarga ? window.cxLogoCarga() : '';
+          if (!l) return;
+          capa = document.createElement('div');
+          capa.className = 'cx-transicion';
+          capa.setAttribute('aria-hidden', 'true');
+          capa.innerHTML = l;
+          document.body.appendChild(capa);
+        }
+        if (!vivo) { vivo = true; requestAnimationFrame(mirar); }
+      }
+      window.cxCargaTransicion = { empezar: empezar, quitar: quitar };
+      new MutationObserver(function (cambios) {
+        if (!vivo) return;
+        for (var i = 0; i < cambios.length; i++) { if (!capa || !capa.contains(cambios[i].target)) { cambio = true; ultimo = performance.now(); return; } }
+      }).observe(document.getElementById('app'), { childList: true, subtree: true });
+      document.addEventListener('click', function (e) { var b = e.target && e.target.closest ? e.target.closest(NAVEGA) : null; if (b && !b.disabled) empezar(); }, true);
+      document.addEventListener('change', function (e) { if (e.target && e.target.matches && e.target.matches('select[data-pe-planta-sel], #obra-movil')) empezar(); }, true);
+      window.addEventListener('hashchange', empezar);
+    })();
+  </script>
   <input type="file" id="camara" accept="image/*,application/pdf" capture="environment" hidden>
   <input type="file" id="galeria" accept="image/*,application/pdf" multiple hidden>
   <input type="file" id="camara-qr" accept="image/*" capture="environment" hidden>
