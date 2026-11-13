@@ -32,7 +32,7 @@
   const { esc, cifra } = C;
   const FA = window.CX_PLANO_FALTAS; /* marcar lo que falta (planoFaltas.js) */
 
-  const NOMBRE = { verde: 'Hecho', azul: 'Falta documento', rojo: 'Sin empezar' };
+  const NOMBRE = { verde: 'En marcha', azul: 'Falta documentación', rojo: 'Sin empezar' };
   const ORDEN = ['verde', 'azul', 'rojo'];
   const ZOOM_MAX = 30; /* 30-oct, JC: «hay que poder ampliar más» */
   const ZOOM_SALAS = 3; /* desde aquí se leen los nombres de sala encima del plano */
@@ -262,6 +262,28 @@
       return;
     }
     pintar();
+  }
+
+  /* «En plano» desde la ficha de un equipo (13-nov): abre el plano con la planta de ese equipo ya elegida, el equipo
+     marcado y centrado. Solo navega; el dibujo del plano es el de siempre. */
+  async function verEquipo($app, id) {
+    $raiz = $app;
+    ponerEstilo();
+    vista = null; zoom = 1; elegida = null;
+    document.body.classList.remove('sin-scroll');
+    const seg = document.getElementById('segmentos');
+    if (seg) seg.hidden = true;
+    $app.innerHTML = '<p class="cargando">Cargando el plano…</p>';
+    try {
+      await cargar();
+      const q = plantas().find((x) => (x.parcial ? (x.enPlano || []).includes(id) || false : x.equipos.some((y) => y.id === id)));
+      if (q) { await traerPlanta(q.planta || ''); planta = q.planta || ''; elegida = id; }
+    } catch (e) {
+      $app.innerHTML = `<div class="vacio mal"><p>${esc(e.message)}</p><button class="boton" data-cx="lista">Volver</button></div>`;
+      return;
+    }
+    pintar();
+    if (elegida) { mostrarHoja(); centrar(elegida); }
   }
 
   /* Vuelta desde una ficha del equipo: los colores se piden de nuevo (acaba de
@@ -955,5 +977,5 @@
   window.addEventListener('hashchange', () => { if (activaPropia()) abrirPropio(); else propio = false; });
   if (activaPropia()) abrirPropio();
 
-  window.CX_PLANO_EQUIPOS = { abrir: ($app) => { propio = false; return abrir($app); }, volver };
+  window.CX_PLANO_EQUIPOS = { abrir: ($app) => { propio = false; return abrir($app); }, volver, verEquipo: ($app, id) => { propio = false; return verEquipo($app, id); } };
 })();

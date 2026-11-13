@@ -339,6 +339,8 @@
       if (!grupos.has(g)) grupos.set(g, []);
       grupos.get(g).push(f);
     }
+    /* Grupos que salen aunque no tengan filas (plantas del censo sin ninguna ficha): cabecera y una nota. */
+    for (const g of o.gruposVacios || []) if (!grupos.has(g)) grupos.set(g, []);
     const orden = [...grupos.keys()];
     if (o.orden) orden.sort((a, b) => ((i) => (i < 0 ? 1e6 : i))(o.orden.indexOf(a)) - ((i) => (i < 0 ? 1e6 : i))(o.orden.indexOf(b)));
     const solo = orden.length === 1;
@@ -372,7 +374,7 @@
           partes.push(`<div class="subgrupo-lista" data-plg-caja="${esc(idSub)}"><div class="subgrupo-cab plg-h"><button type="button" class="plg-cab" data-plg="${esc(idSub)}" aria-expanded="true"><b class="plg-flecha" aria-hidden="true">▸</b>${o.subCabecera ? o.subCabecera(todas, k) : `<span>${esc(k)}</span><b>${cifra(todas.length)}</b>`}</button></div><div class="plg-cuerpo">${envolver(vis.map(o.fila).join(''))}${verMasSub}</div></div>`);
         }
         cuerpo = partes.join('');
-      } else cuerpo = envolver(fs.slice(0, tope).map(o.fila).join(''));
+      } else cuerpo = fs.length || !o.vacio ? envolver(fs.slice(0, tope).map(o.fila).join('')) : o.vacio(g);
       if (!o.subgrupo) cuerpo += (mas > 0 ? `<button class="ver-mas" data-lista-mas="${esc(clave)}" data-grupo="${esc(g)}">Ver ${Math.min(mas, POR_GRUPO)} más <small>(quedan ${mas})</small></button>` : '');
       const abierto = st.abiertos.has(g) ? st.abiertos.get(g) : (solo || o.buscando);
       return `<details class="grupo-lista" data-lista="${esc(clave)}" data-grupo="${esc(g)}" ${abierto ? 'open' : ''}>
@@ -394,6 +396,8 @@
     if (st.repintar) { const y = window.scrollY; st.repintar(); window.scrollTo(0, y); }
   });
   /** Al cambiar de obra o de filtro, las listas vuelven a su tope. */
+  /** Abre un grupo de la lista (el de la ficha que se acaba de abrir en el iPad) y enseña hasta la fila de `hasta`. */
+  function abrirGrupoLista(clave, grupo, tope = 0) { const st = estadoLista(clave); st.abiertos.set(grupo, true); if (tope > (st.cuantos.get(grupo) || POR_GRUPO)) st.cuantos.set(grupo, tope); }
   function reiniciarLista(clave) { const st = estadoLista(clave); st.cuantos.clear(); }
 
   /*
@@ -468,7 +472,7 @@
   window.CX = {
     plegable,
     esc, pedir, postJson, aviso, subirFoto, elegirFoto, cargarImagenes, fechaEs, cifra, compartirPdf,
-    listaAgrupada, reiniciarLista,
+    listaAgrupada, reiniciarLista, abrirGrupoLista,
     obra: () => obras.find((o) => o.id === obraId) || null,
     obraId: () => obraId,
     obras: () => obras,
