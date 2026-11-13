@@ -110,6 +110,7 @@
   .pe-iconos svg .cuerpo{fill:var(--panel)}
   .pe-conjunto{margin-top:6px;font-size:14px;display:grid;gap:2px}
   .pe-conjunto div{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:30px;font-size:13.5px}
+  .pe-conjunto .actual{background:var(--acento-suave);border-radius:6px;padding:0 6px}
   .pe-conjunto div>span{flex:1 1 auto;min-width:0}
   .pe-conjunto button{width:auto;min-width:56px;min-height:32px;margin:0;padding:0 12px;font-size:13px;flex:none}
   .pe-sin-plano{padding:14px;border:1px dashed var(--borde);border-radius:10px;background:var(--panel);font-size:14px}
@@ -117,6 +118,7 @@
   /* Los nombres de sala, como texto encima del plano: nítidos a cualquier zoom
      aunque la imagen que baja al móvil sea ligera. Solo las que caben en su sala: las pequeñas, al acercar. */
   .pe-sala{position:absolute;transform:translate(-50%,-50%);font:400 9px/12px system-ui,sans-serif;color:var(--textoSuave);letter-spacing:.01em;padding:0 1px;white-space:nowrap;pointer-events:none;display:none;z-index:1;text-shadow:0 0 2px var(--papel),0 0 2px var(--papel)}
+  .pe-sin-nombres{margin:4px 0 0;font-size:12px;color:var(--textoSuave)}
   /* 13-nov (JC): finos y en gris claro, por debajo de los TAG; solo los que caben y no chocan (colocarTags). */
   .pe-lienzo .pe-sala.ver{display:block}
   /* Los − / + flotan sobre el plano, arriba a la derecha: abajo los tapaba la barra de navegación. */
@@ -201,6 +203,14 @@
   .pe-ficha td{padding:2px 0;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
   .pe-enlaces{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;font-size:15px}
   .pe-enlaces a{font-weight:600;min-height:32px;display:inline-flex;align-items:center}
+  .pe-docs .pesDocs{width:100%;border-collapse:collapse;margin-top:6px;font-size:14px}
+  .pe-docs .pesDocs thead th{padding:0 0 3px;font-size:12px;font-weight:600;text-align:left;color:var(--textoTenue);border-bottom:1px solid var(--acento-vivo)}
+  .pe-docs .pesDocs tbody th{padding:6px 8px 6px 0;text-align:left;font-weight:500;border-bottom:1px solid rgba(15,23,42,.08)}
+  .pe-docs .pesDocs td{padding:6px 0;border-bottom:1px solid rgba(15,23,42,.08)}
+  .pe-docs .pesDocAccion{width:96px;text-align:center;white-space:nowrap}
+  .pe-docs .pesDocArchivo{display:block;max-width:56vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:400;color:var(--textoTenue)}
+  .pe-docs .pesVerPdf{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;width:88px;min-height:36px;padding:0 8px;font-size:14px;font-weight:600;border:0;border-radius:8px;background:var(--acento-suave);color:var(--acento-fuerte)}
+  .pe-docs .pesDocFalta{color:var(--mal);font-weight:600} .pe-docs .pesDocPend,.pe-docs .pesVacio{color:var(--textoTenue)}
   .pe-serie{display:flex;gap:6px;margin-top:8px} .pe-serie input{flex:1;min-width:0;min-height:42px;font-size:15px} .pe-serie button{width:auto;min-height:42px;margin:0;padding:0 14px}
   .pe-entregable{font-size:13px;margin:0 0 6px}
   @media (min-width:900px){
@@ -418,9 +428,9 @@
     const ms = e.miembros || [];
     if (ms.length < 2) return '';
     const filas = ms.map((m) => {
-      const donde = m.id === e.id ? 'esta' : m.aqui ? 'en este plano' : m.enPlano ? `en ${esc(m.planta || 'otra planta')}` : 'sin colocar';
+      const donde = m.id === e.id ? '' : m.aqui ? 'en este plano' : m.enPlano ? `en ${esc(m.planta || 'otra planta')}` : 'sin colocar';
       const ver = m.id !== e.id && m.enPlano ? `<button class="boton secundario" data-pe-ver="${esc(m.id)}">ver</button>` : '';
-      return `<div><span><em>${esc(m.papel)}</em> <b class="cifra">${esc(m.tag)}</b> <span class="tenue">· ${m.papel === 'UE' ? 'exterior' : 'interior'}, ${donde}</span></span>${ver}</div>`;
+      return `<div${m.id === e.id ? ' class="actual" aria-current="true"' : ''}><span><em>${esc(m.papel === 'UE' ? 'UE' : 'UI')}</em> <b class="cifra">${esc(m.tag)}</b> <span class="tenue">· ${m.papel === 'UE' ? 'Unidad exterior' : 'Unidad interior'}${donde ? ` · ${donde}` : ''}</span></span>${ver}</div>`;
     });
     return `<div class="pe-conjunto">${filas.join('')}</div>`;
   }
@@ -465,7 +475,7 @@
       <div class="sub">${salaHtml(e.sala)}${p.planta ? ` <span class="tenue">· ${esc(p.planta)}</span>` : ''}</div>
       ${e.miembros && e.miembros.length > 1 ? conjuntoHtml(e) : (rol ? `<div class="sub">${rol}</div>` : '')}
       ${falta ? `<div class="falta">${falta}</div>` : ''}
-      ${(e.documentos || []).length ? `<div class="pe-enlaces">${e.documentos.map(enlaceDoc).join('')}</div>` : ''}
+      ${documentosEquipoHtml(e)}
       ${p.plano && e.x === null ? '<div class="sub tenue">No está en el plano.</div>' : ''}
       ${vidaHtml(e)}
       ${acc.length ? `<div class="pe-acciones">${acc.map((a) => `<button class="boton${a.id === 'datos' ? '' : ' secundario'}" data-pe-accion="${esc(a.id)}">${esc(a.texto)}</button>`).join('')}</div>` : ''}
@@ -479,6 +489,23 @@
   };
   /* Solo el hipervínculo con su nombre legible, nunca la dirección en texto (29-oct, JC). */
   const enlaceFicha = (e, texto) => (e && e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">${texto}: ${esc(e.nombre)}${e.nivel === 'tipo' ? ' (del tipo)' : ''} ↗</a>` : '');
+  /* Los documentos en tabla, la misma pieza que el panel del escritorio y la web (shared/commissioning/panelEquipoPlano.js). */
+  const PEP = () => window.PANEL_EQUIPO_PLANO || null;
+  function documentosEquipoHtml(e) {
+    const P = PEP();
+    if (!P) return (e.documentos || []).length ? `<div class="pe-enlaces">${e.documentos.map(enlaceDoc).join('')}</div>` : '';
+    if (!e.fichaLista && e.documentos === undefined) return '';
+    const h = P.documentosHtml({ pesada: { documentos: e.documentos || [] } });
+    return `<div class="pe-docs">${h}</div>`;
+  }
+  function abrirDocEquipo(i) {
+    const P = PEP(); const e = equipoElegido();
+    if (!P || !e) return;
+    const f = P.filasDocumentos({ pesada: { documentos: e.documentos || [] } })[i];
+    const a = f && f.archivos && f.archivos[0];
+    if (!a) return;
+    if (!window.VISOR_DOC || !P.abrirVisor(f, { subtitulo: e.tag || '' })) window.open(a.url || a.ruta, '_blank', 'noopener');
+  }
   const enlaceDoc = (d) => `<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.etiqueta)}: ${esc(d.nombre)} ↗</a>`;
   /* Formas y sala compartidas con el escritorio (shared/commissioning/formasPlano.js). */
   const FP = () => window.FORMAS_PLANO || null;
@@ -666,6 +693,7 @@
           ${enPlano.map((x) => `<button class="marca-boca ${x.color === 'verde' ? 'bien' : x.color === 'rojo' ? 'mal' : 'azul'}${enConjunto.has(x.id) ? ' elegida' : ''}${x.revisar ? ' revisar' : ''}" style="left:${x.x * 100}%;top:${x.y * 100}%;--wp:${(cajaEq(x, p).wf * 100).toFixed(4)}%" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${x.sala || 'sin sala'}: ${NOMBRE[x.color]}${x.revisar ? '; revisar ubicación' : ''}`)}">${simbolo(x.icono)}<span class="rotulo-boca">${esc(x.tag)}</span></button>`).join('')}
         </div>
       </div>
+      ${p.esIfc && !(p.plano.salas || []).length ? '<p class="nota pe-sin-nombres" data-pe-sin-nombres>El modelo de esta planta no trae nombres de sala y no hay plano de arquitectura para situarlos.</p>' : ''}${p.esIfc && p.plano.fuenteSalas === 'plano' ? '<p class="nota pe-sin-nombres" data-pe-nombres-pdf>Nombres de sala del plano de arquitectura, situados por los equipos: el modelo no los trae.</p>' : ''}
       <!-- 13-nov (JC): sin botones −/Entero/+ en el móvil; se acerca con pellizco y doble toque -->${FA.marcando() ? FA.mando(p) : ''}</div>`
       : compacto ? `<div class="pe-sin-plano" data-pe-sin-ifc><b>Falta el IFC de la planta ${esc(etiqueta(p))}</b> (y tampoco tiene plano PDF). Lo prepara el delineante; mientras, sus equipos están en «Lista».</div>`
       : `<div class="pe-sin-plano"><b>La planta ${esc(etiqueta(p))} aún no tiene plano de equipos.</b><br>Lo sube la oficina desde Commissioning › Plano. Mientras, la lista dice la sala y el estado de cada equipo.</div>`;
@@ -802,12 +830,23 @@
       const i = Number(s.dataset.peSala); const r = listaSalas[i];
       if (!r) continue;
       const w = anchoTexto(r.t, LETRA_SALA) + 2;
-      salas.push({ id: i, x: r.x * lw - w / 2, y: r.y * lh - 6, w, h: 12, hueco: hueco[i] * lw * 2, pri: -hueco[i] });
+      /* Recinto del modelo (w, h): el nombre sale si cabe dentro de la sala en pantalla; primero las grandes. Si no, el hueco con la vecina. */
+      if (r.w > 0 && r.h > 0) {
+        const x = r.x * lw - w / 2, y = r.y * lh - 6, dy = Math.min(r.h * lh / 3, 40), dx = Math.min(Math.max(0, r.w * lw - w) / 3, 60);
+        const alt = [[0, -dy], [0, dy], [-dx, 0], [dx, 0]].filter(([a, b]) => a || b).map(([a, b]) => ({ x: x + a, y: y + b }));
+        salas.push({ id: i, x, y, w, h: 12, hueco: r.h * lh >= 10 ? r.w * lw * 1.25 : 0, pri: -(r.w * r.h), alt });
+      }
+      else salas.push({ id: i, x: r.x * lw - w / 2, y: r.y * lh - 6, w, h: 12, hueco: hueco[i] * lw * 2, pri: -hueco[i] });
     }
     const ver = V.rotulosSinChoque({ tags, obstaculos, salas });
     for (const b of botones) b.classList.toggle('con-tag', ver.tags.has(b.dataset.peMat));
     for (const b of botonesEq) b.classList.toggle('con-tag', ver.tags.has(`eq:${b.dataset.peMarca}`));
-    for (const s of rotSalas) s.classList.toggle('ver', ver.salas.has(Number(s.dataset.peSala)));
+    const sitio = new Map(salas.map((c) => [c.id, c]));
+    for (const s of rotSalas) {
+      const i = Number(s.dataset.peSala); const m = ver.movidas && ver.movidas[i]; const c = sitio.get(i);
+      s.classList.toggle('ver', ver.salas.has(i));
+      s.style.marginLeft = m && c ? `${m.x - c.x}px` : ''; s.style.marginTop = m && c ? `${m.y - c.y}px` : '';
+    }
   }
 
   /* Cambia el zoom dejando quieto el punto (px, py del marco) que está bajo los dedos. */
@@ -1050,6 +1089,8 @@
   document.addEventListener('click', (ev) => {
     if (!$raiz || !$raiz.contains(ev.target) || !datos) return;
     if (FA.clic(ev)) return;
+    const vd = ev.target.closest('[data-pes-ver-doc]');
+    if (vd) { abrirDocEquipo(Number(vd.dataset.pesVerDoc)); return; }
     const dq = ev.target.closest('[data-pe-entrega-df-quitar]');
     if (dq) { guardarEntregaDF(dq.dataset.peEntregaDfQuitar, null); return; }
     const pl = ev.target.closest('[data-pe-planta]');

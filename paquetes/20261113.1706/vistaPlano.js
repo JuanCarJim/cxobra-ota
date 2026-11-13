@@ -233,7 +233,8 @@ function gestos(marco, op) {
  *  3) los demás TAG, por prioridad; el que choca con lo ya puesto no sale (sale al tocar su equipo);
  *  4) los nombres de sala, por debajo: solo si caben en su sala (`hueco`, px) y no chocan con nada de lo anterior
  *     ni con otra sala; las grandes primero (pri más baja). Así una sala pequeña solo enseña su nombre al acercar.
- * Devuelve { tags: Set, salas: Set } con los ids que se enseñan.
+ *     Una sala puede traer `alt` ([{x, y}], otros sitios dentro de ella) por si en el suyo tapa algo.
+ * Devuelve { tags: Set, salas: Set, movidas?: { id: {x, y} } } con los ids que se enseñan y las salas que cambian de sitio.
  */
 function rotulosSinChoque({ tags = [], obstaculos = [], salas = [] } = {}, celda = 80) {
   const rejilla = new Map();
@@ -258,8 +259,11 @@ function rotulosSinChoque({ tags = [], obstaculos = [], salas = [] } = {}, celda
   for (const c of ordenTags.filter((t) => t.pri !== 0)) { if (choca(c)) continue; salida.tags.add(c.id); poner(c); }
   for (const c of porPri(salas)) {
     if (c.hueco !== undefined && !(c.hueco >= c.w)) continue;
-    if (choca(c)) continue;
-    salida.salas.add(c.id); poner(c);
+    /* Si en su sitio tapa algo, prueba los otros sitios que da (más arriba o más abajo dentro de su sala). */
+    const sitio = [c, ...(c.alt || []).map((a) => ({ ...c, x: a.x, y: a.y }))].find((q) => !choca(q));
+    if (!sitio) continue;
+    salida.salas.add(c.id); poner(sitio);
+    if (sitio !== c) salida.movidas = Object.assign(salida.movidas || {}, { [c.id]: { x: sitio.x, y: sitio.y } });
   }
   return salida;
 }
