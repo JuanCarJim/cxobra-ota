@@ -125,7 +125,7 @@ function formaDe(m) {
       return 'valvula';
     case 'filtro': return pre === 'FY' || pre === 'FAG' ? 'filtroY' : 'filtro';
     case 'conducto': case 'tuberia':
-    case 'vav': case 'detector': case 'valvula': case 'actuador': case 'sonda': return tipo;
+    case 'vav': case 'detector': case 'actuador': case 'sonda': return tipo;
     default: return 'generico';
   }
 }
@@ -318,12 +318,19 @@ function leyendaFormas(materiales) {
  * P3.STE.0007» en una línea y el código debajo en gris). Si solo hay código,
  * el nombre queda vacío.
  */
+const esCodigoDeSala = (t) => /^[A-Z]\d?\.[A-Z]{2,4}\.\d{2,5}$/i.test(t) || /^\d{2}\.[A-Z]{2,4}\.\d{2,5}$/i.test(t) || /^[A-Z]{1,3}\d?[.-][A-Z]{2,4}[.-]\d{2,5}$/i.test(t);
 function partirSala(sala) {
-  const t = String(sala || '').trim();
+  /* «(por confirmar)» de la sala gris no es parte del nombre */
+  const t = String(sala || '').trim().replace(/\s*\(por confirmar\)$/i, '');
   if (!t) return { nombre: '', codigo: '' };
   const i = t.lastIndexOf(' · ');
-  if (i > 0) return { nombre: t.slice(0, i).trim(), codigo: t.slice(i + 3).trim() };
-  if (/^[A-Z]\d?\.[A-Z]{2,4}\.\d{2,5}$/i.test(t) || /^[A-Z]{1,3}\d?[.-][A-Z]{2,4}[.-]\d{2,5}$/i.test(t)) return { nombre: '', codigo: t };
+  if (i > 0) {
+    const a = t.slice(0, i).trim(); const b = t.slice(i + 3).trim();
+    /* 13-nov: la sala gris va «00.STE.036 · Sala DAS» (código delante; filaMovil.salaGrisDe): se reconoce cuál es el código */
+    if (esCodigoDeSala(a) && !esCodigoDeSala(b)) return { nombre: b, codigo: a };
+    return { nombre: a, codigo: b };
+  }
+  if (esCodigoDeSala(t)) return { nombre: '', codigo: t };
   return { nombre: t, codigo: '' };
 }
 
