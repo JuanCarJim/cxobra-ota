@@ -89,16 +89,19 @@
   .pe-lienzo .marca-boca.azul{color:var(--pe-azul)}
   .pe-lienzo .marca-boca.azul .simbolo-boca .cuerpo{fill:color-mix(in srgb,var(--pe-azul) 22%,var(--vd-lienzo))}
   .pe-lienzo .marca-boca.azul .rotulo-boca{background:var(--pe-azul)}
-  .pe-lienzo .marca-boca{width:max(7px,var(--wp,0px));aspect-ratio:1;height:auto;line-height:0;z-index:2}
+  .pe-lienzo .marca-boca{width:16px;aspect-ratio:1;height:auto;line-height:0;z-index:2}
   .pe-lienzo .marca-boca::after{width:calc(100% + 16px);height:calc(100% + 16px)}
   .pe-lienzo .marca-boca .simbolo-boca{display:block;height:100%;width:100%;border-radius:0;overflow:visible;filter:drop-shadow(0 0 1px var(--vd-lienzo))}
   .pe-lienzo .marca-boca .simbolo-boca *{vector-effect:non-scaling-stroke;stroke-width:1.2px}
   #app .pe-lienzo .marca-boca .rotulo-boca{display:none}
-  #app .pe-lienzo.con-salas .marca-boca.con-tag .rotulo-boca{display:block}
+  #app .pe-lienzo .marca-boca.con-tag .rotulo-boca{display:block}
+  #app .pe-lienzo .marca-boca.tag-izq .rotulo-boca{left:auto;right:calc(100% + 2px)}
+  #app .pe-lienzo .marca-boca.elegida.tag-izq .rotulo-boca{margin-left:0;margin-right:8px}
+  .pe-mat.tag-izq span{left:auto;right:100%;margin-left:0;margin-right:3px}
   /* La etiqueta sin color de estado: el estado se lee en el icono y en la leyenda. */
   #app .pe-lienzo .marca-boca .rotulo-boca{background:rgba(255,255,255,.74);color:var(--acento-fuerte);padding:0 3px;font-weight:700;text-shadow:0 0 2px var(--vd-lienzo)}
   .pe-lienzo .marca-boca.revisar .simbolo-boca{outline:1.5px dashed currentColor;outline-offset:2px}
-  .pe-lienzo .marca-boca.elegida{width:max(28px,calc(var(--wp,0px) * 1.6));z-index:8;opacity:1!important}
+  .pe-lienzo .marca-boca.elegida{width:28px;z-index:8;opacity:1!important}
   .pe-lienzo .marca-boca.elegida .simbolo-boca{outline:none;transform:none;filter:drop-shadow(0 0 1.5px var(--acento)) drop-shadow(0 0 5px color-mix(in srgb,var(--acento) 55%,transparent))}
   .pe-lienzo .marca-boca.elegida .simbolo-boca *{stroke-width:3px}
   .pe-lienzo .marca-boca.elegida .simbolo-boca path,.pe-lienzo .marca-boca.elegida .simbolo-boca rect{stroke:var(--acento)}
@@ -117,7 +120,7 @@
   .pe-visor{position:relative}
   /* Los nombres de sala, como texto encima del plano: nítidos a cualquier zoom
      aunque la imagen que baja al móvil sea ligera. Solo las que caben en su sala: las pequeñas, al acercar. */
-  .pe-sala{position:absolute;transform:translate(-50%,-50%);font:400 9px/12px system-ui,sans-serif;color:var(--textoSuave);letter-spacing:.01em;padding:0 1px;white-space:nowrap;pointer-events:none;display:none;z-index:1;text-shadow:0 0 2px var(--papel),0 0 2px var(--papel)}
+  .pe-sala{position:absolute;transform:translate(-50%,-50%);font:600 11px/14px system-ui,sans-serif;color:var(--texto);letter-spacing:.01em;padding:0 1px;white-space:nowrap;pointer-events:none;display:none;z-index:1;text-shadow:0 0 2px var(--papel),0 0 2px var(--papel)}
   .pe-sin-nombres{margin:4px 0 0;font-size:12px;color:var(--textoSuave)}
   /* 13-nov (JC): finos y en gris claro, por debajo de los TAG; solo los que caben y no chocan (colocarTags). */
   .pe-lienzo .pe-sala.ver{display:block}
@@ -173,7 +176,7 @@
   .pe-lienzo:has(.pe-mat.elegida) .pe-mat:not(.elegida){opacity:.6}
   .pe-mat.apagada{opacity:.15}
   .pe-mat span{display:none;position:absolute;left:100%;top:50%;margin-left:3px;transform:translateY(-50%) rotate(calc(-1 * var(--giro,0deg)));line-height:1.1;white-space:nowrap;font-size:9px;font-weight:600;color:var(--textoSuave);background:rgba(255,255,255,.78);padding:0 2px;border-radius:2px}
-  .pe-lienzo.con-salas .pe-mat.con-tag span{display:block}
+  .pe-lienzo .pe-mat.con-tag span{display:block}
   .pe-formas{display:flex;flex-wrap:wrap;gap:4px 12px;margin:0 0 8px;font-size:12px;color:var(--textoTenue)}
   .pe-formas span{display:inline-flex;align-items:center;gap:4px}
   .pe-formas svg{height:14px;width:auto;max-width:34px;color:var(--acento)}
@@ -440,7 +443,8 @@
   function vidaHtml(e) {
     const celda = (c) => (!c || !c.texto ? VACIO
       : c.tono === 'gris' ? `<span class="pe-vacio">${esc(c.texto)}</span>`
-        : c.tono ? `<span class="pe-tono-${c.tono}">${esc(c.texto)}</span>` : esc(c.texto));
+        : c.tono ? `<span class="pe-tono-${c.tono}">${esc(c.texto)}</span>`
+          : c.enlace && /^https?:\/\//i.test(c.enlace) ? `<a href="${esc(c.enlace)}" target="_blank" rel="noopener">${esc(c.texto)}</a>` : esc(c.texto));
     return ((e.vida && e.vida.bloques) || []).map((b) => `<div class="pe-bloque pe-vida"><h4>${esc(b.titulo)}</h4><table class="pe-ficha">${b.id === 'garantia' ? entregaDFHtml(e) : ''}${b.filas.map(([k, c]) => `<tr><th>${esc(k)}</th><td>${celda(c)}</td></tr>`).join('')}</table></div>`).join('');
   }
   /* La entrega a la DF, editable por quien edita la puesta en marcha (30-oct, sin
@@ -687,7 +691,7 @@
     const plano = p.plano ? `${selector}<div class="pe-visor"><div class="pe-marco${FA.marcando() ? ' fa-activo' : ''}" data-pe-marco data-paleta="vidaire">
         <div class="pe-lienzo${zoom >= ZOOM_SALAS ? ' con-salas' : ''}" data-pe-lienzo style="width:${zoom * 100}%;--pe-esc:${escMarcas()}">
           <img data-src="api/plano-equipos/imagen?id=${encodeURIComponent(p.plano.id)}" alt="Plano ${esc(p.plano.nombre)}" draggable="false">
-          ${(p.plano.salas || []).map((r, i) => `<span class="pe-sala" data-pe-sala="${i}" style="left:${r.x * 100}%;top:${r.y * 100}%">${esc(r.t)}</span>`).join('')}
+          ${salasDe(p).map((r, i) => `<span class="pe-sala" data-pe-sala="${i}" style="left:${r.x * 100}%;top:${r.y * 100}%">${esc(r.t)}</span>`).join('')}
           ${mats.map((m) => marcaMaterial(m, q, p)).join('')}
           ${FA.marcas(p)}
           ${enPlano.map((x) => `<button class="marca-boca ${x.color === 'verde' ? 'bien' : x.color === 'rojo' ? 'mal' : 'azul'}${enConjunto.has(x.id) ? ' elegida' : ''}${x.revisar ? ' revisar' : ''}" style="left:${x.x * 100}%;top:${x.y * 100}%;--wp:${(cajaEq(x, p).wf * 100).toFixed(4)}%" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${x.sala || 'sin sala'}: ${NOMBRE[x.color]}${x.revisar ? '; revisar ubicación' : ''}`)}">${simbolo(x.icono)}<span class="rotulo-boca">${esc(x.tag)}</span></button>`).join('')}
@@ -782,8 +786,16 @@
   }
   const LETRA_TAG = '700 9px system-ui, sans-serif';
   const LETRA_TAG_ELEGIDO = '700 12px system-ui, sans-serif';
-  const LETRA_SALA = '400 9px system-ui, sans-serif';
+  const LETRA_SALA = '600 11px system-ui, sans-serif';
   const huecos = new WeakMap(); /* salas del plano → hueco de cada una (vistaPlano.huecoSalas) */
+  /* Los nombres de sala: los que trae el plano (IFC o PDF); si no trae ninguno, el campo sala de los equipos (nunca inventados). */
+  const salasEq = new WeakMap();
+  function salasDe(p) {
+    const ls = (p && p.plano && p.plano.salas) || [];
+    if (ls.length || !p || !window.VISTA_PLANO || !window.VISTA_PLANO.salasDeEquipos) return ls;
+    if (!salasEq.has(p)) { const f = FP(); salasEq.set(p, window.VISTA_PLANO.salasDeEquipos(p.equipos || [], f ? f.partirSala : undefined).filter((r) => !f || f.partirSala(r.t).nombre)); }
+    return salasEq.get(p);
+  }
 
   /*
    * LOS RÓTULOS SIN AMONTONARSE (13-nov, JC: «eso así no puede ser»): vistaPlano.rotulosSinChoque, en px del lienzo.
@@ -798,54 +810,41 @@
     const botonesEq = [...lienzo.querySelectorAll('[data-pe-marca]')];
     const rotSalas = [...lienzo.querySelectorAll('[data-pe-sala]')];
     const quitar = () => { for (const b of [...botones, ...botonesEq]) b.classList.remove('con-tag'); for (const s of rotSalas) s.classList.remove('ver'); };
-    if (!V || !V.rotulosSinChoque || !f || !p || !p.plano) { quitar(); return; }
+    if (!V || !V.colocarRotulos || !f || !p || !p.plano) { quitar(); return; }
     const lw = lienzo.offsetWidth; const lh = lienzo.offsetHeight || lw;
     if (!lw) { quitar(); return; }
-    const conTags = zoom >= ZOOM_SALAS;
-    const tags = []; const obstaculos = [];
+    /* 13-nov (JC: «es súper importante el nombre de la sala»): la regla compartida (vistaPlano.colocarRotulos), la misma
+       de la web, el escritorio y el HTML de la DF: bloques de tamaño fijo, nombres de sala antes que los TAG, nada se pisa. */
     const porId = new Map((p.materiales || []).map((m) => [m.id, m]));
+    const materiales = [];
     for (const b of botones) {
       const m = porId.get(b.dataset.peMat);
       if (!m || m.x === null || b.classList.contains('apagada')) continue;
       const c = f.cajaEnPlano(m, p.plano, escalaDe(p));
-      const sw = Math.max(MIN_PX * Math.max(1, c.ar), c.wf * lw);
-      obstaculos.push({ x: m.x * lw - sw / 2, y: m.y * lh - sw / 2, w: sw, h: sw });
-      const elegido = m.id === mat;
-      if (conTags || elegido) tags.push({ id: m.id, x: m.x * lw + sw / 2 + (elegido ? 8 : 3), y: m.y * lh - (elegido ? 8 : 6), w: anchoTexto(m.tag || '', elegido ? LETRA_TAG_ELEGIDO : LETRA_TAG) + (elegido ? 10 : 4), h: elegido ? 16 : 12, pri: elegido ? 0 : m.estado === 'conIncidencia' ? 1 : m.estado === 'conFicha' ? 2 : 3 });
+      materiales.push({ id: m.id, x: m.x, y: m.y, sw: Math.max(MIN_PX * Math.max(1, c.ar), c.wf * lw), tag: m.tag, elegido: m.id === mat, pri: m.estado === 'conIncidencia' ? 2 : m.estado === 'conFicha' ? 2.5 : 3 });
     }
     const porEq = new Map((p.equipos || []).map((e) => [e.id, e]));
+    const equipos = [];
     for (const b of botonesEq) {
       const e = porEq.get(b.dataset.peMarca);
       if (!e || e.x === null) continue;
       const elegido = b.classList.contains('elegida');
-      const sw = Math.max(elegido ? 28 : MIN_PX_EQ, cajaEq(e, p).wf * lw * (elegido ? 1.6 : 1));
-      obstaculos.push({ x: e.x * lw - sw / 2, y: e.y * lh - sw / 2, w: sw, h: sw });
-      if (conTags || elegido) tags.push({ id: `eq:${e.id}`, x: e.x * lw + sw / 2 + (elegido ? 8 : 2), y: e.y * lh - (elegido ? 8 : 6), w: anchoTexto(e.tag || '', elegido ? LETRA_TAG_ELEGIDO : LETRA_TAG) + (elegido ? 10 : 6), h: elegido ? 16 : 12, pri: elegido ? 0 : 1.5 });
+      equipos.push({ id: e.id, x: e.x, y: e.y, sw: elegido ? 28 : 16, tag: e.tag, elegido });
     }
-    const listaSalas = p.plano.salas || [];
+    const listaSalas = salasDe(p);
     if (!huecos.has(listaSalas)) huecos.set(listaSalas, V.huecoSalas(listaSalas, lh / lw));
-    const hueco = huecos.get(listaSalas);
-    const salas = [];
-    for (const s of rotSalas) {
-      const i = Number(s.dataset.peSala); const r = listaSalas[i];
-      if (!r) continue;
-      const w = anchoTexto(r.t, LETRA_SALA) + 2;
-      /* Recinto del modelo (w, h): el nombre sale si cabe dentro de la sala en pantalla; primero las grandes. Si no, el hueco con la vecina. */
-      if (r.w > 0 && r.h > 0) {
-        const x = r.x * lw - w / 2, y = r.y * lh - 6, dy = Math.min(r.h * lh / 3, 40), dx = Math.min(Math.max(0, r.w * lw - w) / 3, 60);
-        const alt = [[0, -dy], [0, dy], [-dx, 0], [dx, 0]].filter(([a, b]) => a || b).map(([a, b]) => ({ x: x + a, y: y + b }));
-        salas.push({ id: i, x, y, w, h: 12, hueco: r.h * lh >= 10 ? r.w * lw * 1.25 : 0, pri: -(r.w * r.h), alt });
-      }
-      else salas.push({ id: i, x: r.x * lw - w / 2, y: r.y * lh - 6, w, h: 12, hueco: hueco[i] * lw * 2, pri: -hueco[i] });
-    }
-    const ver = V.rotulosSinChoque({ tags, obstaculos, salas });
+    const ancho = (t, k) => anchoTexto(t || '', k === 'elegido' ? LETRA_TAG_ELEGIDO : k === 'sala' ? LETRA_SALA : LETRA_TAG);
+    const ver = V.colocarRotulos({ lw, lh, equipos, materiales, salas: listaSalas, huecos: huecos.get(listaSalas), ancho });
     for (const b of botones) b.classList.toggle('con-tag', ver.tags.has(b.dataset.peMat));
     for (const b of botonesEq) b.classList.toggle('con-tag', ver.tags.has(`eq:${b.dataset.peMarca}`));
-    const sitio = new Map(salas.map((c) => [c.id, c]));
+    /* 13-nov: un TAG que se saldría por la derecha del plano va a la izquierda de su equipo (regla compartida). */
+    const izq = ver.izq || new Set();
+    for (const b of botones) b.classList.toggle('tag-izq', izq.has(b.dataset.peMat));
+    for (const b of botonesEq) b.classList.toggle('tag-izq', izq.has(`eq:${b.dataset.peMarca}`));
     for (const s of rotSalas) {
-      const i = Number(s.dataset.peSala); const m = ver.movidas && ver.movidas[i]; const c = sitio.get(i);
-      s.classList.toggle('ver', ver.salas.has(i));
-      s.style.marginLeft = m && c ? `${m.x - c.x}px` : ''; s.style.marginTop = m && c ? `${m.y - c.y}px` : '';
+      const i = Number(s.dataset.peSala); const c = ver.sitio.get(i);
+      s.classList.toggle('ver', Boolean(c));
+      if (c) { s.style.left = `${(c.x / lw) * 100}%`; s.style.top = `${(c.y / lh) * 100}%`; }
     }
   }
 

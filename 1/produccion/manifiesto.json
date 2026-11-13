@@ -1,9 +1,9 @@
 {
-  "version": "20261113.1751",
+  "version": "20261113.1834",
   "runtime": "1",
   "canal": "produccion",
-  "publicada": "2026-11-13T17:51:57.304Z",
-  "base": "https://raw.githubusercontent.com/JuanCarJim/cxobra-ota/main/paquetes/20261113.1751/",
+  "publicada": "2026-11-13T18:34:05.073Z",
+  "base": "https://raw.githubusercontent.com/JuanCarJim/cxobra-ota/main/paquetes/20261113.1834/",
   "archivos": {
     "acceso.js": "c4f217316bc1149ac1f6d1a9bbc1a617d6fb49dba625261163a4f4cd035eb9a1",
     "albaranes.js": "4a7891d1de95dd97796993d8a0bc91729e6f740094350021ef6722b2531e8d52",
@@ -60,7 +60,7 @@
     "mantenimiento.css": "84b910c4c2c592a456306db938fbda27c4a246b5ecff4a45ad515450cfdaf5c0",
     "mantenimiento.js": "a27836df0b6346dcf1eef3c5c3aef61fc59aa363a30f4db4ef464820efa4969c",
     "misTareas.js": "d10cf1d7c437aa0a9116d714fdf10c5ba590b94a87c1016fd8d68579ae86bc1a",
-    "motor-cxobra.js": "74d55e1151dd1074f2a653e3066a1a8925a7ab16e33157cf9a60d3e9e33a6801",
+    "motor-cxobra.js": "18a063d369a35eecbe082992f2b981db6f53c2adca8bfc668285fca6b206cc56",
     "movil.css": "4fb49def0a776b02c1458cf2b90c7e75f492889999a35d6d2454ee33683c98ee",
     "movil.js": "960df3f1fa8b5c6dd5f46cfb8cf312c0df5fd56113a12551619fd6dccb71a68e",
     "ncr.js": "1eda946df529cc180a7a02998a20e39abfddd3e8a140d5be0b49668e6af7a86f",
@@ -72,14 +72,14 @@
     "ocr/tesseract.min.js": "000c27d9cd0def655f77b36c72a389c0ab13793aa31cb4d7aab56d09c0afbc7e",
     "ocr/worker.min.js": "576b7df7e3393e137e51849357c9adb53fe7ac1bb69bfa06cf3d61520f182c6d",
     "ocrPlaca.js": "409ecce2eb725d0c4471d62b027b2edbe5c8228ae1e7764968d0e97dfb72163e",
-    "ota-version.json": "0e01f9b60b84df396e852acb23aaf2a0c6c12389c0b8164fc486008499452a6b",
+    "ota-version.json": "73b9fa6a8a8b7da273094c1159b5e4db3891cc701b7c1e7663bd5984f9bc3055",
     "panelEquipoPlano.js": "4282d928f67f2a2e2420b25cc0ce9e7395ee2d625190f28ade615baf47461056",
     "panelNcn.js": "2cbb5f1e3f5b96f7182ccc9263405afe3dfdab5c34f16ef88a5114b85673313f",
     "partes.js": "c4c9de0946901bac34199711ab88abb4ffaa14cfa78824bf9f2f409d6bc8786d",
     "partesIncidencia.js": "b771c2ab716ad840c4c841b1cd5c118767380cbaf2d56761f92d7edd9ef361c1",
     "personal.js": "a0886981e4c8a9837731665d47b1f3c16c65590fe153eca8afc26efd833674a5",
     "placaSerie.js": "d6de3a4e1103e12b10511c5d06781c1e02e9ddbb83c5a2bc2dc2ed23b556f756",
-    "planoEquipos.js": "b95909082daa90093525937fcde57e505dce7c7439b71e1936e285fa6e2adec3",
+    "planoEquipos.js": "e139818241ee7c409a33785d0e41de83a164a298daf36e150bc91e07e3c24069",
     "planoFaltas.js": "430468b2f2c75dcfdc520f88c23ed6b5dd2ffc20272eb9cb5925cc9e1d8a66c5",
     "planoMantenimiento.js": "453a1040f9b62de484e0bc6687609a8f8958f6a609a86808800e8936bf6b7a70",
     "pruebasEstanqueidad.js": "525012b4fdd6a9683821f3284cb419c5e56c9e75ce2ad0782b2d39d97581e7f7",
@@ -93,6 +93,6 @@
     "tokens.css": "bdf84d3f1d1f548ac51a0834725ba9d8714370da29d74d668d38b30694c0360b",
     "verificarIdentidad.js": "9fe7f543aded715e745f06c11a81702e3c38d07ba3c3eb6af00aa4d694383454",
     "vidaire-tokens.css": "64fa0882b7bb33ced4d0673f85786a74775bf46e261d5c3fae4a7751c6e33921",
-    "vistaPlano.js": "99fb61bad2f79765bcbb19eaff5e8614f914d774f226695365533b6535fb60da"
+    "vistaPlano.js": "541245b20d7b1462cb1db1ed4a645f54991a3b8c40617c29b07cd0454ac01c6f"
   }
 }
