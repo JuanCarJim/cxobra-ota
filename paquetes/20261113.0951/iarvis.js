@@ -273,7 +273,7 @@
     I.archivos[id] = { ...a, origen };
     const ic = iconoDe(a);
     const mini = a.miniatura || I.minis[claveMini(a)];
-    const disponible = origen === 'usuario' ? Boolean(a.ruta || I.bytesLocales.has(claveMini(a))) : Boolean(a.ruta || a.base64 || I.pdfs[id]);
+    const disponible = origen === 'usuario' ? Boolean(a.ruta || I.bytesLocales.has(claveMini(a))) : Boolean(a.ruta || a.base64 || a.nubeRuta || I.pdfs[id]);
     const donde = origen === 'iarvis' && a.ruta ? ' · Descargas › Vidaire Iarvis' : '';
     const titulo = disponible ? `Abrir «${a.nombre || ''}»` : 'Pídemelo otra vez para sacarlo de nuevo.';
     return `<button type="button" class="iaArchivoMini${disponible ? '' : ' iaNoDisponible'}" data-ia-archivo="${esc(id)}" title="${esc(titulo)}"${disponible ? '' : ' disabled'}>
@@ -357,11 +357,17 @@
     if (a.origen === 'iarvis') {
       if (a.ruta && window.puente && window.puente.iarvisAbrirPdf) {
         const r = await window.puente.iarvisAbrirPdf(a.ruta, false);
-        if (r && !r.ok) avisoBreve(r.error || 'No se ha podido abrir.');
-        return;
+        if (r && !r.ok && !(a.nubeRuta && window.puente.iarvisAbrirAdjunto)) avisoBreve(r.error || 'No se ha podido abrir.');
+        if (!r || r.ok || !a.nubeRuta) return;
       }
       const b = a.base64 || (I.pdfs[id] && I.pdfs[id].base64);
-      if (b) abrirYBajar(deBase64(b), a.nombre, mime || 'application/pdf');
+      if (b) { abrirYBajar(deBase64(b), a.nombre, mime || 'application/pdf'); return; }
+      /* Ya sin los bytes (historial, otra sesión, borrado de Descargas): la copia guardada en su carpeta de la nube. */
+      if (a.nubeRuta && window.puente && window.puente.iarvisAbrirAdjunto) {
+        const r2 = await window.puente.iarvisAbrirAdjunto({ ruta: a.nubeRuta, nombre: a.nombre, tipo: mime });
+        if (r2 && r2.ok && r2.base64) abrirYBajar(deBase64(r2.base64), a.nombre, r2.mime || mime);
+        else if (r2 && !r2.ok) avisoBreve(r2.error || 'No se ha podido abrir.');
+      }
       return;
     }
     /* Lo que adjuntó el usuario: se baja de SU carpeta de la nube (el escritorio lo abre; la web lo abre y lo descarga);

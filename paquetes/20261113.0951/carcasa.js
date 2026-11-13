@@ -143,7 +143,7 @@
   const TITULO = {
     inicio: 'Inicio', commissioning: 'Cx', partes: 'Avisos', ncr: 'No conformidades', reparaciones: 'Reparaciones', avance: 'Avance de obra', albaranes: 'Albaranes',
     inventario: 'Inventario', bloc: 'Notas', personal: 'Personal', estanqueidad: 'Estanqueidad', cuenta: 'Perfil',
-    misTareas: 'Mis tareas', avisos: 'Reclamables', qhse: 'QHSE', reportesQhse: 'Reportes QHSE', plano: 'Plano de equipos', jornada: 'Mi jornada',
+    misTareas: 'Mis tareas', avisos: 'Reclamables', qhse: 'QHSE', reportesQhse: 'Reportes QHSE', plano: 'Plano de equipos', planoMant: 'Plano de mantenimiento', jornada: 'Mi jornada',
     iarvis: 'Iarvis', mas: 'Más',
   };
   /* Las que no dependen de la obra elegida no enseñan el selector. */

@@ -2236,3 +2236,14 @@ main#app.densa ul.lista-ios.filas-ficha > li { background: transparent; border: 
 .foto-manometro { margin: 8px 0 2px; }
 .foto-manometro .boton { flex: 1; width: auto; min-height: 56px; font-size: 17px; }
 .foto-manometro .enlace { white-space: nowrap; }
+
+/* Pantalla Cx (13-nov, JC): franja fina, buscador, resultados y el plano debajo. */
+.cx-franja{display:flex;flex-wrap:wrap;gap:0 12px;margin:2px 0 6px;font-size:12px;color:var(--textoTenue)}
+.cx-franja button{background:none;border:0;padding:6px 0;min-height:32px;font:inherit;color:inherit;cursor:pointer}
+.cx-franja button b{font-family:var(--fuente-cifras,inherit);color:var(--texto);font-weight:600}
+.cx-franja button.activa{color:var(--acento-fuerte);text-decoration:underline}
+#cx-res .cx-res{max-height:236px;overflow-y:auto !important;margin:0 0 8px;-webkit-overflow-scrolling:touch}
+#cx-res .cx-cuenta,#cx-res .cx-ayuda{margin:6px 0}
+.cx-plano{margin-top:6px}
+.cx-pie{display:flex;flex-wrap:wrap;gap:4px 18px;margin:12px 0 4px}
+#cx-res .cx-res > li{flex:none}

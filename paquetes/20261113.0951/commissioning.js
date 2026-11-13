@@ -33,6 +33,8 @@
   /* Llegar desde el plano de equipos (29-oct, JC): al terminar se vuelve al plano, con su zoom y su sitio. */
   let origenPlano = false; /* se entró al equipo desde el plano */
   let directoPlano = false; /* … directo a una pantalla (datos, balanceo): su «atrás» es el plano */
+  let listaCompleta = false; /* «Lista completa de equipos» (KPI, agrupar): lo de antes, un enlace al pie de la pantalla Cx */
+  let planoCompleto = false; /* el plano de siempre (capas y materiales), no el de la pantalla Cx */
   let hojaDirecta = false; /* … directo a una hoja (checklist, estanqueidad, balanceo): al salir de ella, el plano */
   let yLista = 0;       /* dónde estaba la lista al abrir un equipo */
   let fichasEq = null; /* las fichas que necesita el equipo abierto */
@@ -76,7 +78,7 @@
     guardarTodoYa();
     ultimoAbiertoLateral = null;
     ficha = null; hoja = null; pilaEquipos = [];
-    origenPlano = false; directoPlano = false; hojaDirecta = false;
+    origenPlano = false; directoPlano = false; hojaDirecta = false; planoCompleto = false;
     bocaAbierta = null; grandeId = null;
     document.body.classList.remove('sin-scroll');
     /* Desde una cifra del Inicio: la lista llega ya filtrada. */
@@ -454,7 +456,60 @@
     /* La ficha del equipo escondía el selector de arriba: vuelve. */
     const seg = document.getElementById('segmentos');
     if (seg) seg.hidden = seg.children.length < 2;
-    $app.innerHTML = htmlLista();
+    if (listaCompleta || !window.BUSCAR_CX || !window.CX_PLANO_EQUIPOS) { $app.innerHTML = `${listaCompleta ? '<button class="enlace" data-cx="cx-inicio">‹ Cx</button>' : ''}${htmlLista()}`; return; }
+    pintarCx();
+  }
+
+  /* ═══ LA PANTALLA CX (13-nov-2026, JC): «un buscador y los planos interactivos».
+     Arriba una franja fina de recuento y el buscador (TAG, tipo, sala, planta, conjunto); debajo, el plano de la planta con su
+     desplegable. Tocar un resultado lleva a su planta y marca el bloque; tocar un bloque abre su hoja (estanqueidad, PM,
+     documentos, fotos) y desde ella, la ficha. Lo que había (cifras que filtran, agrupar, plano con capas y materiales)
+     sigue en los enlaces del pie. */
+  function pasaSegmento() {
+    const [, , pasaSeg] = SEGMENTOS.find(([id]) => id === segmento) || SEGMENTOS[0];
+    return segmento === 'todos' || segmento === 'porConfirmar' ? pasaSeg : (e) => !e.porConfirmar && pasaSeg(e);
+  }
+  let resPlegados = false; /* tocado un resultado, la lista se pliega para dejar el plano a la vista */
+  function resultadosHtml() {
+    const q = filtro.trim();
+    if (!q && segmento === 'todos') return '<p class="nota cx-ayuda">Escribe un TAG, un tipo, una sala o una planta; o toca un equipo en el plano.</p>';
+    const r = window.BUSCAR_CX.buscar((porConjuntos() ? lista.conjuntos : lista.equipos) || [], q, window.BUSCADOR_MOVIL.coincide, textosDe, { pasa: pasaSegmento() });
+    if (!r.total) return '<p class="nota cx-ayuda">Ningún equipo con eso.</p>';
+    if (resPlegados) return `<p class="nota cx-cuenta"><button class="enlace" data-cx-ver-res>Ver los ${cifra(r.total)} resultado${r.total === 1 ? '' : 's'}</button></p>`;
+    const filas = r.filas.map((f) => `<li class="li-eq"><button class="fila-ios fila-eq" data-cx-res="${esc(f.id)}" data-ids="${esc(f.ids.join(','))}">
+          <span class="fe-tag"><strong class="cifra">${esc(f.tags.join(' / ') || '—')}</strong></span>
+          <span class="fe-sala">${esc([f.porConfirmar ? 'Por confirmar' : null, f.planta && f.sala !== f.planta ? f.planta.split(' · ')[0] : null, f.sala].filter(Boolean).join(' · '))}</span>
+          <i class="fe-punto ${f.tono}" role="img" aria-label="${esc(f.estado)}" title="${esc(f.estado)}"></i>
+          <span class="fe-n">${esc(f.estado)}</span><span class="fe-ir" aria-hidden="true">›</span></button></li>`).join('');
+    return `<p class="nota cx-cuenta">${cifra(r.total)} equipo${r.total === 1 ? '' : 's'}${r.total > r.filas.length ? ` · se ven los ${r.filas.length} primeros` : ''}</p><ul class="lista-ios cx-res">${filas}</ul>`;
+  }
+  function repintarResultados() {
+    const res = $app.querySelector('#cx-res');
+    if (res) res.innerHTML = resultadosHtml();
+    for (const b of $app.querySelectorAll('.cx-franja [data-cx-seg]')) { const a = b.dataset.cxSeg === segmento; b.classList.toggle('activa', a); b.setAttribute('aria-pressed', String(a)); }
+    const chip = $app.querySelector('.cx-filtro');
+    if (chip) chip.hidden = segmento === 'todos' || ['todos', 'enMarcha', 'faltaDoc', 'incidencias'].includes(segmento);
+  }
+  function pintarCx(op = {}) {
+    const conj = porConjuntos();
+    const t = conj ? { ...(lista.totales || {}), ...(lista.totalesConjuntos || {}) } : (lista.totales || {});
+    const fr = window.BUSCAR_CX.franja(t);
+    const nom = (SEGMENTOS.find(([id]) => id === segmento) || [])[1] || '';
+    $app.innerHTML = `${notaCopiaMovil()}
+      <p class="cx-franja">${fr.map((c) => `<button type="button" data-cx-seg="${c.id}" aria-pressed="${segmento === c.id}" class="${segmento === c.id ? 'activa' : ''}">${esc(c.et)} <b>${cifra(c.n)}</b></button>`).join('')}<button type="button" class="cx-filtro" data-cx-seg="${esc(segmento)}" hidden>${esc(nom)} ×</button></p>
+      ${window.BUSCADOR_MOVIL.campo({ placeholder: 'Buscar TAG, tipo, sala o planta', valor: filtro, atributo: 'data-cx-buscar' })}
+      <div id="cx-res" aria-live="polite"></div>
+      <div id="cx-plano" class="cx-plano"></div>
+      <p class="cx-pie"><button class="enlace" data-cx="lista-completa">Lista completa de equipos</button><button class="enlace" data-cx="plano-equipos">Plano completo (capas y materiales)</button></p>`;
+    repintarResultados();
+    window.CX_PLANO_EQUIPOS.montar($app.querySelector('#cx-plano'), op);
+  }
+  /* Un resultado: el plano va a su planta y marca el bloque; si el plano no lo conoce, se abre su ficha. */
+  async function irAResultado(id, ids) {
+    const ok = window.CX_PLANO_EQUIPOS && await window.CX_PLANO_EQUIPOS.ir(id, ids);
+    if (ok) { resPlegados = true; repintarResultados(); const c = $app.querySelector('#cx-plano'); if (c) c.scrollIntoView({ block: 'start', behavior: 'smooth' }); return; }
+    C.aviso('Ese equipo no está colocado en el plano: se abre su ficha.');
+    abrir(id);
   }
   /* IPAD EN DOS PANELES (13-nov-2026, JC): a partir de 820 px, con una ficha abierta la lista sigue a la izquierda. */
   const dosPaneles = () => Boolean(window.matchMedia && window.matchMedia('(min-width: 820px)').matches);
@@ -536,7 +591,9 @@ ${window.CX_PLANO_EQUIPOS && !lateral ? '<button class="enlace" data-cx="plano-e
     origenPlano = false; directoPlano = false; hojaDirecta = false;
     ficha = null; hoja = null; fichasEq = null; pilaEquipos = [];
     document.body.classList.remove('sin-scroll');
-    if (window.CX_PLANO_EQUIPOS) window.CX_PLANO_EQUIPOS.volver($app); else cargarLista();
+    if (!window.CX_PLANO_EQUIPOS) cargarLista();
+    else if (planoCompleto || !window.BUSCAR_CX) window.CX_PLANO_EQUIPOS.volver($app);
+    else pintarCx({ volver: true });
   }
 
   /*
@@ -861,7 +918,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral ? '<button class="enlace" data-cx="plano-e
     const entregado = envio === 'enviada';
     const finalOk = !sig && envio === 'lista' && fichasEq.puedeEditar !== false;
     const cont = sig ? `<button type="button" class="boton" data-cx="hoja" data-i="${sig[1]}">Continuar: ${esc(nombreFicha(sig[0]))}</button>`
-      : finalOk ? '<button type="button" class="boton" data-cx="entregar">Entregar a DF y a Mantenimiento</button>' : '';
+      : finalOk ? `<button type="button" class="boton" data-cx="entregar">${f && f.mantenimiento ? 'Entregar a DF y a Mantenimiento' : 'Entregar a la DF'}</button>` : '';
     const nPasos = todas.length;
     const nHechos = hechas;
     return `<div class="franja-equipo">
@@ -2448,7 +2505,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral ? '<button class="enlace" data-cx="plano-e
     try {
       const r = await C.postJson('api/equipo/entregar', { equipoId: ficha.equipo.id });
       if (!r.ok) throw new Error(r.error);
-      C.aviso(r.mantenimiento ? 'Entregado a la DF y a Mantenimiento.' : `Entregado a la DF. Mantenimiento no se ha actualizado${r.motivoMantenimiento ? `: ${r.motivoMantenimiento}` : ''}`, r.mantenimiento ? 'bien' : undefined);
+      C.aviso(r.sinMantenimiento ? 'Entregado a la DF.' : r.mantenimiento ? 'Entregado a la DF y a Mantenimiento.' : `Entregado a la DF. Mantenimiento no se ha actualizado${r.motivoMantenimiento ? `: ${r.motivoMantenimiento}` : ''}`, r.sinMantenimiento || r.mantenimiento ? 'bien' : undefined);
       if (activa()) await refrescarEquipo(ficha.equipo.id);
     } catch (e) { C.aviso(e.message); b.disabled = false; b.innerHTML = texto; }
   }
@@ -4028,7 +4085,10 @@ ${window.CX_PLANO_EQUIPOS && !lateral ? '<button class="enlace" data-cx="plano-e
     if (!activa()) return;
     const sg = ev.target.closest('[data-cx-seg]');
     /* Las cifras de arriba filtran; pulsar la que ya está elegida vuelve a todos. */
-    if (sg) { segmento = sg.dataset.cxSeg === segmento ? 'todos' : sg.dataset.cxSeg; AGRUPAR.forEach(([id]) => C.reiniciarLista(`cx-equipos-${id}`)); repintarLista(); return; }
+    if (sg) { resPlegados = false; segmento = sg.dataset.cxSeg === segmento ? 'todos' : sg.dataset.cxSeg; AGRUPAR.forEach(([id]) => C.reiniciarLista(`cx-equipos-${id}`)); if ($app.querySelector('#cx-res')) repintarResultados(); else repintarLista(); return; }
+    if (ev.target.closest('[data-cx-ver-res]')) { resPlegados = false; repintarResultados(); return; }
+    const rs = ev.target.closest('[data-cx-res]');
+    if (rs) { irAResultado(rs.dataset.cxRes, (rs.dataset.ids || '').split(',').filter(Boolean)); return; }
     const ag = ev.target.closest('[data-cx-agrupar]');
     if (ag) {
       agrupar = ag.dataset.cxAgrupar;
@@ -4039,10 +4099,12 @@ ${window.CX_PLANO_EQUIPOS && !lateral ? '<button class="enlace" data-cx="plano-e
     if (!b) return;
     const que = b.dataset.cx;
     if (que === 'lista') cargarLista();
+    else if (que === 'cx-inicio') { listaCompleta = false; cargarLista(); }
+    else if (que === 'lista-completa') { listaCompleta = true; pintarLista(); window.scrollTo(0, 0); }
     /* El plano de equipos por plantas con sus colores (planoEquipos.js, 28-oct). */
     else if (que === 'pest-ficha' && ficha) { pestFicha = b.dataset.p; pintarFicha(); window.scrollTo(0, 0); cargarFotosLocales($app); }
-    else if (que === 'en-plano' && window.CX_PLANO_EQUIPOS) { const id = b.dataset.eq; ficha = null; hoja = null; fichasEq = null; window.CX_PLANO_EQUIPOS.verEquipo($app, id); }
-    else if (que === 'plano-equipos' && window.CX_PLANO_EQUIPOS) { ficha = null; window.CX_PLANO_EQUIPOS.abrir($app); }
+    else if (que === 'en-plano' && window.CX_PLANO_EQUIPOS) { const id = b.dataset.eq; ficha = null; hoja = null; fichasEq = null; planoCompleto = false; listaCompleta = false; if (window.BUSCAR_CX) pintarCx({ equipo: id }); else window.CX_PLANO_EQUIPOS.verEquipo($app, id); }
+    else if (que === 'plano-equipos' && window.CX_PLANO_EQUIPOS) { ficha = null; planoCompleto = true; listaCompleta = false; window.CX_PLANO_EQUIPOS.abrir($app); }
     /* 16-oct (JC): la franja del TAG vuelve SIEMPRE a la pantalla anterior:
        si se llegó desde otra unidad del conjunto (UI → UE-DAS), a esa unidad. */
     else if (que === 'atras') { const prev = pilaEquipos.pop(); if (prev) abrir(prev, { atras: true }); else if (origenPlano) volverAlPlano(); else { const y = yLista; cargarLista().then(() => window.scrollTo(0, y)); } }
@@ -4241,6 +4303,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral ? '<button class="enlace" data-cx="plano-e
     if (activa() && ev.target.dataset && ev.target.dataset.punto) { const li = ev.target.closest('li[data-boca]'); if (li) { vivoBoca(li); apuntarBoca(li); guardarBocaPronto(li); } return; }
     if (!activa() || !ev.target.hasAttribute('data-cx-buscar')) return;
     filtro = ev.target.value;
+    if ($app.querySelector('#cx-res')) { resPlegados = false; repintarResultados(); return; }
     const pos = ev.target.selectionStart;
     repintarLista();
     const i = $app.querySelector('[data-cx-buscar]');
