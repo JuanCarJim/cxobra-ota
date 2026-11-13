@@ -11471,7 +11471,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261113.0834" : "0";
+      var VERSION = true ? "20261113.1018" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -13623,6 +13623,7 @@ globalThis.CX_VARIANTE="cxobra";
         plantasIfc: { porObra: "obraId" },
         fotosEquipo: { porObra: "obraId" },
         documentos: { porObra: "obraId" },
+        buzonDocumentos: { porObra: "obraId" },
         archivosPreparados: { porObra: "obraId" },
         firmasEquipo: { porObra: "obraId" },
         imagenesPlanoDif: { porObra: "obraId" },
@@ -14503,6 +14504,16 @@ globalThis.CX_VARIANTE="cxobra";
       }) {
         if (modo !== "escritorio" && modo !== "movil") throw new Error("Modo de sincronizaci\xF3n desconocido.");
         if (modo === "movil" && !personaId) throw new Error("Falta qui\xE9n lleva el tel\xE9fono.");
+        const diario = [];
+        const registroFuera = registro;
+        registro = (t) => {
+          diario.push(`${(/* @__PURE__ */ new Date()).toISOString()} ${t}`);
+          if (diario.length > 500) diario.splice(0, diario.length - 500);
+          try {
+            registroFuera(t);
+          } catch {
+          }
+        };
         db.exec(`CREATE TABLE IF NOT EXISTS _syncVisto (tabla TEXT NOT NULL, id TEXT NOT NULL, modificadoEn TEXT NOT NULL, PRIMARY KEY (tabla, id))`);
         db.exec("CREATE TABLE IF NOT EXISTS _syncEstado (clave TEXT PRIMARY KEY, valor TEXT)");
         db.exec("CREATE TABLE IF NOT EXISTS _syncBase (tabla TEXT NOT NULL, id TEXT NOT NULL, huellas TEXT NOT NULL, PRIMARY KEY (tabla, id))");
@@ -14539,9 +14550,10 @@ globalThis.CX_VARIANTE="cxobra";
         db.exec("CREATE TABLE IF NOT EXISTS _syncRechazos (tabla TEXT NOT NULL, id TEXT NOT NULL, modificadoEn TEXT NOT NULL, cuando TEXT NOT NULL, PRIMARY KEY (tabla, id))");
         const quitarRechazo = db.prepare("DELETE FROM _syncRechazos WHERE tabla = ? AND id = ?");
         if (!columnasDe("_syncRechazos").includes("intentos")) db.exec("ALTER TABLE _syncRechazos ADD COLUMN intentos INTEGER NOT NULL DEFAULT 1");
-        const sumarRechazo = db.prepare(`INSERT INTO _syncRechazos (tabla, id, modificadoEn, cuando, intentos) VALUES (?, ?, ?, ?, 1)
+        if (!columnasDe("_syncRechazos").includes("motivo")) db.exec("ALTER TABLE _syncRechazos ADD COLUMN motivo TEXT");
+        const sumarRechazo = db.prepare(`INSERT INTO _syncRechazos (tabla, id, modificadoEn, cuando, intentos, motivo) VALUES (?, ?, ?, ?, 1, ?)
     ON CONFLICT(tabla, id) DO UPDATE SET intentos = CASE WHEN _syncRechazos.modificadoEn = excluded.modificadoEn THEN _syncRechazos.intentos + 1 ELSE 1 END,
-      modificadoEn = excluded.modificadoEn, cuando = excluded.cuando`);
+      modificadoEn = excluded.modificadoEn, cuando = excluded.cuando, motivo = excluded.motivo`);
         function rechazosRecientes() {
           const m = /* @__PURE__ */ new Map();
           const limite = new Date(ahora().getTime() - REINTENTO_RECHAZO).toISOString();
@@ -14551,6 +14563,7 @@ globalThis.CX_VARIANTE="cxobra";
           return m;
         }
         const bloqueadas = () => db.prepare("SELECT COUNT(*) AS n FROM _syncRechazos WHERE intentos >= ?").get(MAX_RECHAZOS).n;
+        const enRechazo = () => db.prepare("SELECT COUNT(*) AS n FROM _syncRechazos").get().n;
         db.exec("CREATE TABLE IF NOT EXISTS _syncDescartes (tabla TEXT NOT NULL, id TEXT NOT NULL, modificadoEn TEXT NOT NULL, cuando TEXT NOT NULL, visto INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (tabla, id))");
         const ponerDescarte = db.prepare(`INSERT INTO _syncDescartes (tabla, id, modificadoEn, cuando, visto) VALUES (?, ?, ?, ?, 0)
     ON CONFLICT(tabla, id) DO UPDATE SET modificadoEn = excluded.modificadoEn, cuando = excluded.cuando, visto = 0`);
@@ -14588,7 +14601,8 @@ globalThis.CX_VARIANTE="cxobra";
           tiempoReal: false,
           conflictos: conflictosSinVer(),
           descartadas: descartesSinVer(),
-          bloqueadas: bloqueadas()
+          bloqueadas: bloqueadas(),
+          enRechazo: enRechazo()
         };
         const cambiarEstado = (c) => {
           Object.assign(estado, c);
@@ -14718,7 +14732,7 @@ globalThis.CX_VARIANTE="cxobra";
                   if (e2.sinRed) throw e2;
                   rechazadas++;
                   registro(`La nube no acepta ${x.fila.tabla}/${x.fila.id}: ${e2.message}`);
-                  if (!x.lapida) sumarRechazo.run(x.fila.tabla, String(x.fila.id), x.mod, ahora().toISOString());
+                  if (!x.lapida) sumarRechazo.run(x.fila.tabla, String(x.fila.id), x.mod, ahora().toISOString(), String(e2.message || e2).slice(0, 500));
                   else olvidar.run(x.fila.tabla, x.fila.id);
                 }
               }
@@ -14727,8 +14741,8 @@ globalThis.CX_VARIANTE="cxobra";
           if (rechazadas) {
             estado.rechazadas += rechazadas;
             ponerEstado("rechazadas", estado.rechazadas);
-            cambiarEstado({ bloqueadas: bloqueadas() });
           }
+          cambiarEstado({ bloqueadas: bloqueadas(), enRechazo: enRechazo() });
           ponerEstado("ultimaSubida", sello);
           cambiarEstado({ ultimaSubida: sello });
           return { subidas, lapidas: lapidas.length, rechazadas };
@@ -15409,7 +15423,41 @@ globalThis.CX_VARIANTE="cxobra";
             cambiarEstado({ descartadas: 0 });
           },
           /** Lo que la nube rechazó MAX_RECHAZOS veces y ya no se reintenta hasta que cambie. */
-          bloqueos: () => db.prepare("SELECT tabla, id, modificadoEn, cuando, intentos FROM _syncRechazos WHERE intentos >= ? ORDER BY cuando DESC LIMIT 200").all(MAX_RECHAZOS),
+          bloqueos: () => db.prepare("SELECT tabla, id, modificadoEn, cuando, intentos, motivo FROM _syncRechazos WHERE intentos >= ? ORDER BY cuando DESC LIMIT 200").all(MAX_RECHAZOS),
+          /** Todo lo que la nube ha rechazado (aunque aún se reintente), con su porqué. */
+          rechazos: () => db.prepare("SELECT tabla, id, modificadoEn, cuando, intentos, motivo FROM _syncRechazos ORDER BY cuando DESC LIMIT 500").all(),
+          /** Las últimas líneas del registro (rescate). */
+          diario: () => [...diario],
+          /**
+           * VOLVER A SUBIR (13-nov-2026): lo rechazado y lo descartado vuelve a la
+           * cola. Los rechazos se olvidan (se intentan ya, con su contador a cero);
+           * los descartes dejan de contar como vistos para que pendientes() los
+           * vuelva a ver (si el permiso sigue sin estar, se vuelven a descartar con
+           * su aviso). Lo de aquí no se toca. Devuelve cuántas filas vuelven.
+           */
+          reencolar() {
+            const rech = db.prepare("SELECT COUNT(*) AS n FROM _syncRechazos").get().n;
+            const desc = db.prepare("SELECT tabla, id FROM _syncDescartes").all();
+            db.exec("BEGIN");
+            try {
+              db.prepare("DELETE FROM _syncRechazos").run();
+              for (const d of desc) olvidarVisto.run(d.tabla, d.id);
+              db.prepare("DELETE FROM _syncDescartes").run();
+              db.exec("COMMIT");
+            } catch (e) {
+              db.exec("ROLLBACK");
+              throw e;
+            }
+            cambiarEstado({ bloqueadas: 0, descartadas: 0, enRechazo: 0 });
+            return { rechazos: rech, descartes: desc.length };
+          },
+          /** Lo que no ha llegado a la nube y el teléfono ya no reintenta solo: para la pastilla. */
+          sinSubir: () => ({
+            rechazos: db.prepare("SELECT COUNT(*) AS n FROM _syncRechazos").get().n,
+            bloqueadas: bloqueadas(),
+            descartadas: db.prepare("SELECT COUNT(*) AS n FROM _syncDescartes").get().n,
+            conflictos: conflictosSinVer()
+          }),
           /** Tras guardar algo aquí: una vuelta enseguida (agrupando ráfagas). */
           avisar(ms = 400) {
             clearTimeout(aviso);
@@ -22968,6 +23016,46 @@ ${obsO}` : obsO).slice(0, 4e3);
     }
   });
 
+  // shared/commissioning/fechaPM.js
+  var require_fechaPM = __commonJS({
+    "shared/commissioning/fechaPM.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function(raiz, fabrica) {
+        const api = fabrica();
+        if (typeof module === "object" && module.exports) module.exports = api;
+        if (raiz) raiz.FECHA_PM = api;
+      })(typeof window !== "undefined" ? window : null, function() {
+        const iso = (v) => {
+          const s = String(v || "").trim().slice(0, 10);
+          return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+        };
+        const texto = (f) => f ? f.split("-").reverse().join("/") : null;
+        const HECHA = (x) => x && (x.estado === "completa" || x.estado === "firmada");
+        function tomaDeFichas(fichas, fechaDe2 = () => null) {
+          const tomas = (fichas || []).filter((x) => x && x.clase === "fichaPM");
+          const dia = (x) => x.fichaId ? iso(fechaDe2(x.fichaId)) : null;
+          const hechas = tomas.filter(HECHA).map(dia).filter(Boolean).sort();
+          if (hechas.length) return { tomaEstado: "completa", fechaToma: hechas[0] };
+          const medias = tomas.map(dia).filter(Boolean).sort();
+          if (medias.length) return { tomaEstado: "aMedias", fechaToma: medias[0] };
+          return { tomaEstado: "sinToma", fechaToma: null };
+        }
+        function puestaEnMarcha(u) {
+          const p = u && u.pmFichas || {};
+          const fecha = iso(p.fechaToma);
+          const estado = fecha ? p.tomaEstado === "aMedias" ? "aMedias" : "enMarcha" : "sinToma";
+          const fechaTexto = texto(fecha);
+          if (estado === "enMarcha") return { estado, fecha, fechaTexto, etiqueta: `En marcha desde ${fechaTexto}`, tono: "bien", deToma: true };
+          if (estado === "aMedias") return { estado, fecha, fechaTexto, etiqueta: `${fechaTexto} \xB7 toma a medias`, tono: "info", deToma: true };
+          return { estado, fecha: null, fechaTexto: null, etiqueta: "Sin toma de datos", tono: "gris", deToma: false };
+        }
+        const fechaDe = (u) => puestaEnMarcha(u).fecha;
+        return { tomaDeFichas, puestaEnMarcha, fechaDe, texto };
+      });
+    }
+  });
+
   // shared/commissioning/control.js
   var require_control = __commonJS({
     "shared/commissioning/control.js"(exports, module) {
@@ -23126,13 +23214,15 @@ ${obsO}` : obsO).slice(0, 4e3);
       }
       var pmEnMarcha = (e) => Boolean(e) && (e.estadoPM === "enMarcha" || e.envio === "enviada" || Boolean(e.fechaEnvioDF));
       var faltaDocPropia = (l) => Boolean(l) && l.envio !== "enviada" && !(l.docPropia !== void 0 ? l.docPropia : l.docCompleta);
+      var FECHA_PM = () => typeof __require === "function" ? require_fechaPM() : window.FECHA_PM;
       function fichaPMDeFichas(fichas, fechaDe = () => null) {
         const pm = (fichas || []).filter((x) => x.clase === "fichaPM");
-        if (!pm.length) return { fichaPM: "noAplica", fechaFichaPM: null };
+        if (!pm.length) return { fichaPM: "noAplica", fechaFichaPM: null, tomaEstado: "sinToma", fechaToma: null };
         const hechas = pm.filter((x) => x.estado === "completa" || x.estado === "firmada");
-        if (hechas.length < pm.length) return { fichaPM: "pendiente", fechaFichaPM: null };
+        const toma = FECHA_PM().tomaDeFichas(pm, fechaDe);
+        if (hechas.length < pm.length) return { fichaPM: "pendiente", fechaFichaPM: null, ...toma };
         const fechas = hechas.map((x) => x.fichaId ? fechaDe(x.fichaId) : null).filter(Boolean).sort();
-        return { fichaPM: hechas.some((x) => x.resultado === "noApto") ? "noApta" : "hecha", fechaFichaPM: fechas.pop() || null };
+        return { fichaPM: hechas.some((x) => x.resultado === "noApto") ? "noApta" : "hecha", fechaFichaPM: fechas.pop() || null, ...toma };
       }
       function conEstadoPM(e) {
         if (!e || Object.prototype.hasOwnProperty.call(e, "estadoPMGuardado")) return e;
@@ -23145,6 +23235,8 @@ ${obsO}` : obsO).slice(0, 4e3);
         return { diasUso: Number(m.diasUso), diasUsoFecha: m.diasUsoFecha || null };
       }
       function fechaPuestaMarchaDe(e) {
+        const toma = FECHA_PM().fechaDe(e);
+        if (toma) return toma;
         const guardada = String(e && e.fechaPuestaMarcha || "").trim().slice(0, 10);
         if (guardada) return guardada;
         const pm = e && e.pmFichas || {};
@@ -23215,7 +23307,7 @@ ${obsO}` : obsO).slice(0, 4e3);
           completo: Boolean(e.fechaEnvioDF) || instalada && esCompleto(docCompleta, fichas, ensayo),
           envio,
           /* Desde la entrega a DF, no desde la puesta en marcha (29-oct, JC). */
-          garantia: garantiaCx.garantiaDe(e),
+          garantia: garantiaCx.garantiaDe({ ...e, fechaPuestaMarcha: fechaPuestaMarchaDe(e) }),
           /* La fecha de PM sin depender del Mac (29-oct, JC): la guardada en el
              equipo o, si aún no la hay, la del trabajo de la ficha PM de la app, que
              viaja en fichasPM (el teléfono no sube equiposObra). */
@@ -28568,9 +28660,39 @@ ${obsO}` : obsO).slice(0, 4e3);
      borradoPor         TEXT,
      creadoEn           TEXT NOT NULL,
      modificadoEn       TEXT NOT NULL
+   )`,
+        /* EL BUZÓN DE DOCUMENTOS (13-nov-2026, JC: «te meto los certificados, los ipcs, boqs, certificaciones… y los
+           descargas en el toshiba»). Una fila por fichero que ha llegado al Mac (de la web, por el cubo de paso buzon-docs,
+           o del propio escritorio). La escribe SOLO el escritorio (electron/data/buzonDocumentos.js); viaja por el espejo
+           y así la web ve el estado. Sin bytes: el fichero está en el TOSHIBA.
+             estado     cola (en el Mac, sin TOSHIBA) · toshiba (copiado y comprobado) · leido (procesado) · error
+             ruta       relativa a /Volumes/TOSHIBA EXT/Vidaire/Documentos (o a la cola del Mac si estado = cola)
+             resultado  JSON de lo que hizo la app al leerlo (propuesta, entradaId…): nada de dinero se aplica solo. */
+        `CREATE TABLE IF NOT EXISTS buzonDocumentos (
+     id            TEXT PRIMARY KEY,
+     obraId        TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     nombre        TEXT NOT NULL,
+     tipo          TEXT NOT NULL DEFAULT 'otro',
+     mes           TEXT,
+     industrial    TEXT,
+     proveedorId   TEXT,
+     bytes         INTEGER NOT NULL DEFAULT 0,
+     sha256        TEXT NOT NULL,
+     estado        TEXT NOT NULL DEFAULT 'toshiba' CHECK (estado IN ('cola', 'toshiba', 'leido', 'error')),
+     origen        TEXT NOT NULL DEFAULT 'web' CHECK (origen IN ('web', 'escritorio')),
+     ruta          TEXT,
+     subidoPor     TEXT,
+     subidoEn      TEXT,
+     enToshibaEn   TEXT,
+     leidoEn       TEXT,
+     resultado     TEXT,
+     aviso         TEXT,
+     creadoEn      TEXT NOT NULL,
+     modificadoEn  TEXT NOT NULL
    )`
       ];
       var INDICES = [
+        `CREATE INDEX IF NOT EXISTS idx_buzon_obra       ON buzonDocumentos (obraId, creadoEn)`,
         `CREATE INDEX IF NOT EXISTS idx_documentos_obra   ON documentos (obraId, borradoEn, fecha)`,
         `CREATE INDEX IF NOT EXISTS idx_documentos_sha    ON documentos (obraId, sha256)`,
         `CREATE INDEX IF NOT EXISTS idx_documentos_grupo  ON documentos (grupoId, version)`,
@@ -29870,6 +29992,8 @@ ${obsO}` : obsO).slice(0, 4e3);
         fotosEquipo: "commissioning",
         /* 10-nov: los archivos de la obra, los que sean (electron/data/documentos.js). */
         documentos: "documentos",
+        /* 13-nov: el buzón web → TOSHIBA (electron/data/buzonDocumentos.js). Trae IPC y certificaciones: se ve con certificaciones. */
+        buzonDocumentos: "certificaciones",
         /* 5-nov: el PDF con todas las hojas de un equipo, preparado en el móvil para el jefe de obra. */
         archivosPreparados: "commissioning",
         firmasEquipo: "commissioning",
@@ -43043,7 +43167,7 @@ ${obsO}` : obsO).slice(0, 4e3);
           [/^(?:VTR|VEN|EX|VI)(?:[-_ ]|\d|$)/i, "ventilador"],
           [/^(?:B|BOM|GP)[-_ ]?\d/i, "bomba"]
         ];
-        const esExteriorTag = (tag) => /^UE([\s_-]|\d|$)/i.test(String(tag || "").trim());
+        const esExteriorTag = (tag) => /^UE([\s_-]|\d|$)/i.test(String(tag || "").trim()) && !/(^|[\s·_-])UI[\s_-]?\d+\s*$/i.test(String(tag || "").trim());
         const RE_MODELO_CONDUCTOS = /^S-?\d+M[FEM]\d/i;
         const RE_MODELO_CASETE = /^S-?\d+M[UYLD]\d/i;
         function esDeConductos(u) {
@@ -71706,9 +71830,9 @@ ${linea}` : linea;
           if (desde === "recepcion") origen = "La recepci\xF3n provisional de la obra";
           else if (desde === "entregaDF") origen = "La entrega a la Direcci\xF3n Facultativa";
           else if (desde === "diasUso") origen = "Los d\xEDas de uso apuntados";
-          else if (desde === "puestaMarcha") origen = f.puestaMarchaDeCx ? "La ficha de puesta en marcha de Cx" : "La fecha de puesta en marcha";
+          else if (desde === "puestaMarcha") origen = f.puestaMarchaDeCx ? "La toma de datos de Cx" : "La fecha de puesta en marcha";
           else if (desde === "instalacion") origen = "La fecha de instalaci\xF3n (falta la puesta en marcha)";
-          return { fecha, fechaTexto: fecha ? fechaES(fecha) : "", desde, origen, deCx: origen === "La ficha de puesta en marcha de Cx" };
+          return { fecha, fechaTexto: fecha ? fechaES(fecha) : "", desde, origen, deCx: origen === "La toma de datos de Cx" };
         }
         function gasDe(equipo, { servicio = null, registros = [], hoy = null } = {}) {
           const e = equipo || {};
@@ -71958,24 +72082,14 @@ ${linea}` : linea;
       var import_buffer_global10 = __toESM(require_buffer_global());
       var G = typeof __require !== "undefined" ? require_garantia() : window.GARANTIA_CX;
       var ROLES = typeof __require !== "undefined" ? require_roles() : window.ROLES;
-      var controlCx = () => typeof __require !== "undefined" ? require_control() : window.CONTROL_CX;
+      var FPM = () => typeof __require === "function" ? require_fechaPM() : window.FECHA_PM;
       var DIA = 864e5;
       var diasEntre = (desde, hasta) => Math.round((Date.parse(`${hasta}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`)) / DIA);
       var hoyLocal = () => ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
       var fecha = (iso) => iso ? G.fechaVisible(iso) : null;
       var aniosTexto = (n) => n ? `${String(n).replace(".", ",")} ${Number(n) === 1 ? "a\xF1o" : "a\xF1os"}` : null;
-      var ESTADO_PM = {
-        enMarcha: { etiqueta: "En marcha", tono: "bien" },
-        faltaHojaFabricante: { etiqueta: "Ficha PM hecha \xB7 falta la hoja del fabricante en SharePoint", tono: "info" },
-        conReservas: { etiqueta: "Ficha PM con reservas (no apto)", tono: "info" },
-        pendienteFichaPM: { etiqueta: "Pendiente de ficha PM", tono: "gris" }
-      };
       function puestaEnMarcha(u) {
-        const C = controlCx();
-        const e = u || {};
-        const estado = ESTADO_PM[e.estadoPM] ? e.estadoPM : C ? C.estadoPMDerivado(e) : "pendienteFichaPM";
-        const f = String((C ? C.fechaPuestaMarchaDe(e) : e.fechaPuestaMarcha) || e.fechaPuestaMarcha || "").slice(0, 10) || null;
-        return { estado, ...ESTADO_PM[estado], fecha: f, fechaTexto: fecha(f) };
+        return FPM().puestaEnMarcha(u);
       }
       function garantia(u, linea, hoy = hoyLocal()) {
         const enConjunto = linea && Array.isArray(linea.miembros) && linea.miembros.length > 1;
@@ -72153,7 +72267,7 @@ ${linea}` : linea;
         const out = [];
         if (pm) {
           out.push({ id: "puestaMarcha", titulo: "Puesta en marcha", filas: [
-            ["Fecha", pm.fechaTexto ? v(pm.fechaTexto) : v("Sin fecha de ficha PM", "gris")],
+            ["Fecha", pm.fechaTexto ? v(pm.fechaTexto) : v("Sin toma de datos", "gris")],
             ["Estado", v(pm.etiqueta, pm.tono)]
           ] });
         }
@@ -72216,7 +72330,7 @@ ${linea}` : linea;
         }
         return [...out];
       }
-      var API = { codigosCasables, puestaEnMarcha, garantia, veCertificacion, partidaDe, certificadoPorPartida, certificacion, fichaVida, bloquesFicha, bloqueBalanceo, ESTADO_PM };
+      var API = { codigosCasables, puestaEnMarcha, garantia, veCertificacion, partidaDe, certificadoPorPartida, certificacion, fichaVida, bloquesFicha, bloqueBalanceo };
       if (typeof module !== "undefined" && module.exports) module.exports = API;
       if (typeof window !== "undefined") window.VIDA_EQUIPO = API;
     }
@@ -80342,7 +80456,7 @@ ${fallos.join("\r\n")}\r
         return a && b ? { a: a[0], b: a[1], c: a[2], d: b[0], e: b[1], f: b[2] } : null;
       }
       var aplicaAfin = (t, x, y) => [t.a * x + t.b * y + t.c, t.d * x + t.e * y + t.f];
-      function ajustePdfAIfc(pares) {
+      function ajustePdfAIfc(pares, tol = 0.015) {
         let uso = (pares || []).filter((q) => [q.px, q.py, q.ix, q.iy].every(Number.isFinite)).map((q) => [q.px, q.py, q.ix, q.iy]);
         if (uso.length < 5) return null;
         let t = null, med = Infinity;
@@ -80362,15 +80476,32 @@ ${fallos.join("\r\n")}\r
           }
           uso = bien;
         }
-        if (!t || med > 0.015) return null;
+        if (!t || med > tol) return null;
         return { ...t, n: uso.length, err: Math.round(med * 1e4) / 1e4 };
+      }
+      function ajusteDebil(pares) {
+        const uso = (pares || []).filter((q) => [q.px, q.py, q.ix, q.iy].every(Number.isFinite)).map((q) => [q.px, q.py, q.ix, q.iy]);
+        if (uso.length < 3 || uso.length > 8) return null;
+        const t = ajustaAfin(uso);
+        if (!t) return null;
+        const sx = Math.hypot(t.a, t.d), sy = Math.hypot(t.b, t.e);
+        if (!(t.a > 0 && t.e > 0) || sx < 0.3 || sy < 0.3 || sx > 3 || sy > 3) return null;
+        if (sx / sy > 1.6 || sy / sx > 1.6) return null;
+        if (Math.abs(t.b) > 0.15 * sy || Math.abs(t.d) > 0.15 * sx) return null;
+        const er = uso.map(([x, y, X, Y]) => {
+          const [u, v] = aplicaAfin(t, x, y);
+          return Math.hypot(u - X, v - Y);
+        });
+        const med = [...er].sort((a, b) => a - b)[Math.floor(er.length / 2)];
+        if (uso.length > 3 && med > 0.03) return null;
+        return { ...t, n: uso.length, err: Math.round(med * 1e4) / 1e4, debil: true };
       }
       function dePdfAIfc(aj, x, y) {
         if (!aj || !Number.isFinite(x) || !Number.isFinite(y)) return null;
         const [X, Y] = aplicaAfin(aj, x, y);
         return X >= 0 && X <= 1 && Y >= 0 && Y <= 1 ? [Math.round(X * 1e5) / 1e5, Math.round(Y * 1e5) / 1e5] : null;
       }
-      var marcaSuelta = (e, x, y, u, extra = {}) => ({ g: `${u === "m" ? "man" : "pdf"}:${e.id}`, c: String(e.tag || "").slice(0, 60), x: Math.min(0.995, Math.max(5e-3, x)), y: Math.min(0.995, Math.max(5e-3, y)), k: tipoDe(IFC.grupoEquipo(e)), e: e.id, u, ...extra });
+      var marcaSuelta = (e, x, y, u, extra = {}) => ({ g: `${u === "m" ? "man" : u === "t" ? "tag" : "pdf"}:${e.id}`, c: String(e.tag || "").slice(0, 60), x: Math.min(0.995, Math.max(5e-3, x)), y: Math.min(0.995, Math.max(5e-3, y)), k: tipoDe(IFC.grupoEquipo(e)), e: e.id, u, ...extra });
       function ubicarAMano(plano, equipos, leer) {
         const marcas = [];
         for (const e of equipos) {
@@ -80380,14 +80511,37 @@ ${fallos.join("\r\n")}\r
         }
         return marcas;
       }
-      function ubicarPorPlano(aj, equipos, pdf) {
+      function ubicarPorPlano(aj, equipos, pdf, extra = {}) {
         const marcas = [];
         if (!aj) return marcas;
         for (const e of equipos) {
           const q = pdf.get(e.id);
           const pt = q ? dePdfAIfc(aj, q.x, q.y) : null;
-          if (pt) marcas.push(marcaSuelta(e, pt[0], pt[1], "f"));
+          if (pt) marcas.push(marcaSuelta(e, pt[0], pt[1], "f", extra));
         }
+        return marcas;
+      }
+      function ubicarPorTag(plano, equipos, todos, colocadas) {
+        const llano = (t) => String(t || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+        const codigoDe = (t) => {
+          const m = String(t || "").toUpperCase().replace(/\([^)]*\)/g, " ").match(/(?:^|[^A-Z0-9])([A-Z]\d{1,3})(?=[^A-Z0-9]*$)/);
+          return m ? m[1] : null;
+        };
+        const nivel = llano(plano.nivel), marcas = [];
+        const lugar = (a, b) => String(a || "").trim() === String(b || "").trim();
+        equipos.forEach((e, i) => {
+          const c = codigoDe(e.tag);
+          if (!c || !llano(e.tag).includes(nivel)) return;
+          const mismos = todos.filter((o) => o.id !== e.id && llano(o.planta) === nivel && llano(o.tag) === llano(e.tag) && colocadas.has(o.id));
+          const hermanos = mismos.length ? mismos : todos.filter((o) => o.id !== e.id && !o.duplicadoDe && llano(o.planta) === nivel && llano(o.tag).includes(nivel) && codigoDe(o.tag) === c && colocadas.has(o.id));
+          if (!hermanos.length) return;
+          const salas = new Set(hermanos.map((o) => o.salaGris || o.sala || ""));
+          if (salas.size !== 1) return;
+          const sala = [...salas][0];
+          if (e.salaGris && sala && !lugar(e.salaGris, sala)) return;
+          const q = colocadas.get(hermanos[0].id);
+          marcas.push(marcaSuelta(e, q.x + 0.012 * (i % 3 + 1), q.y + 0.01, "t", { de: hermanos[0].tag }));
+        });
         return marcas;
       }
       var ESTADOS = [
@@ -80483,7 +80637,7 @@ ${fallos.join("\r\n")}\r
         };
       }
       var CLAVE_SITIO_MODELO = "Sitio en el modelo";
-      module.exports = { CLAVE_SITIO_MODELO, ubicarPorSala, ajustePdfAIfc, dePdfAIfc, ubicarAMano, ubicarPorPlano, edificioDeFichero, nivelDe, construirPlanos, enlazar, estadoDe, codigoPropio, recuento, pedidoDe, fichaDe, CAPAS_MATERIAL, conjuntoDe, ESTADOS, NOMBRE_ESTADO, TIPOS, tipoDe, SIN_EDIFICIO, MOTIVO_ENLACE };
+      module.exports = { CLAVE_SITIO_MODELO, ubicarPorSala, ajustePdfAIfc, ajusteDebil, dePdfAIfc, ubicarAMano, ubicarPorPlano, ubicarPorTag, edificioDeFichero, nivelDe, construirPlanos, enlazar, estadoDe, codigoPropio, recuento, pedidoDe, fichaDe, CAPAS_MATERIAL, conjuntoDe, ESTADOS, NOMBRE_ESTADO, TIPOS, tipoDe, SIN_EDIFICIO, MOTIVO_ENLACE };
     }
   });
 
@@ -80638,14 +80792,27 @@ ${fallos.join("\r\n")}\r
         const f = filas.filter((x) => llanoN(x.planta) === llanoN(p.nivel)).sort((a, b) => String(b.modificadoEn).localeCompare(String(a.modificadoEn)))[0];
         if (!f) return null;
         const pdf = /* @__PURE__ */ new Map();
-        for (const m of leerJson(f.marcas, [])) if (m && m.equipoId && Number.isFinite(m.x) && Number.isFinite(m.y)) pdf.set(m.equipoId, { x: m.x, y: m.y });
+        for (const m of leerJson(f.marcas, [])) if (m && m.equipoId && !m.revisar && Number.isFinite(m.x) && Number.isFinite(m.y)) pdf.set(m.equipoId, { x: m.x, y: m.y });
         const pares = [];
         for (const m of p.marcas) {
           const q = m.e && !m.u ? pdf.get(m.e) : null;
           if (q && porId.has(m.e)) pares.push({ px: q.x, py: q.y, ix: m.x, iy: m.y });
         }
-        const t = P.ajustePdfAIfc(pares);
-        return t ? { t, pdf, planoPdf: f.id } : null;
+        let t = P.ajustePdfAIfc(pares), aprox = false;
+        if (!t) {
+          const par2 = [...pares];
+          for (const m of p.marcas) {
+            const q = m.e && m.u === "s" ? pdf.get(m.e) : null;
+            if (q) par2.push({ px: q.x, py: q.y, ix: m.x, iy: m.y });
+          }
+          t = P.ajustePdfAIfc(par2, 0.03);
+          aprox = Boolean(t);
+          if (!t) {
+            t = P.ajusteDebil(par2.length >= 3 ? par2 : pares);
+            if (t) return { t, pdf, planoPdf: f.id, aprox: true, debil: true };
+          }
+        }
+        return t ? { t, pdf, planoPdf: f.id, aprox } : null;
       }
       function calcular(repo, ses, obraId, opc = {}) {
         if (!obraId) return { ok: false, error: "Elige primero la obra." };
@@ -80673,7 +80840,7 @@ ${fallos.join("\r\n")}\r
         const conBloque = new Set(planos.flatMap((p) => p.marcas.map((m) => m.e).filter(Boolean)));
         const libres = opc.porSala ? equipos.filter((e) => !conBloque.has(e.id) && (e.duplicadoDe == null || e.duplicadoDe === "") && O.confianzaDe(e) !== "noEsEquipo" && PE.esEquipoDelPlano(e) && e.planta) : [];
         const puestos = /* @__PURE__ */ new Set();
-        let porSala = 0, porPlano = 0;
+        let porSala = 0, porPlano = 0, porTag = 0;
         for (const p of planos) {
           const r = SIG.rotularSvg(p.svg, { ancho: p.ancho, alto: p.alto, nivel: p.nivel, equipos: p.marcas.filter((m) => m.e && porId.has(m.e)).map((m) => ({ x: m.x, y: m.y, salaGris: porId.get(m.e).salaGris })) });
           if (opc.porSala && !p.fuente) {
@@ -80688,11 +80855,17 @@ ${fallos.join("\r\n")}\r
               pon(u.marcas);
               porSala += u.marcas.length;
             }
+            if (suyos().length) {
+              const col = new Map(p.marcas.filter((m) => m.e).map((m) => [m.e, { x: m.x, y: m.y }]));
+              const u = P.ubicarPorTag(p, suyos(), equipos, col);
+              pon(u);
+              porTag += u.length;
+            }
             const aj = ajusteDelPlano(repo, ses, obraId, p, porId);
             if (aj) {
-              p.ajustePdf = { a: aj.t.a, b: aj.t.b, c: aj.t.c, d: aj.t.d, e: aj.t.e, f: aj.t.f, n: aj.t.n, err: aj.t.err };
+              p.ajustePdf = { a: aj.t.a, b: aj.t.b, c: aj.t.c, d: aj.t.d, e: aj.t.e, f: aj.t.f, n: aj.t.n, err: aj.t.err, aprox: aj.aprox, ...aj.debil ? { debil: true } : {} };
               if (suyos().length) {
-                const u = P.ubicarPorPlano(aj.t, suyos(), aj.pdf);
+                const u = P.ubicarPorPlano(aj.t, suyos(), aj.pdf, aj.debil ? { r: `ajuste d\xE9bil (${aj.t.n} anclas): ubicaci\xF3n por confirmar` } : {});
                 pon(u.length ? u : []);
                 porPlano += u.length;
               }
@@ -80713,6 +80886,7 @@ ${fallos.join("\r\n")}\r
         }
         if (porSala) cuenta.porSala = porSala;
         if (porPlano) cuenta.porPlano = porPlano;
+        if (porTag) cuenta.porTag = porTag;
         return { ok: true, planos, cuenta, equipos, porId };
       }
       var sumar = (a, b) => {
@@ -83235,10 +83409,12 @@ ${fallos.join("\r\n")}\r
         if (!cx) return { equipos, deFichaPM: /* @__PURE__ */ new Set() };
         const deFichaPM = /* @__PURE__ */ new Set();
         const salida = equipos.map((e) => {
-          if (String(e.fechaPuestaMarcha || "").trim()) return e;
           const f = cx.get(e.id);
-          const fecha = f && f.fechaPuestaMarcha ? String(f.fechaPuestaMarcha).slice(0, 10) : "";
+          const toma = f ? require_fechaPM().fechaDe(f) : null;
+          if (!toma && String(e.fechaPuestaMarcha || "").trim()) return e;
+          const fecha = toma || (f && f.fechaPuestaMarcha ? String(f.fechaPuestaMarcha).slice(0, 10) : "");
           if (!fecha) return e;
+          if (e.fechaPuestaMarcha && String(e.fechaPuestaMarcha).slice(0, 10) === fecha) return e;
           deFichaPM.add(e.id);
           return { ...e, fechaPuestaMarcha: fecha };
         });
@@ -180642,6 +180818,3390 @@ ${NOTA}`, acciones: [accionAbrir] });
     }
   });
 
+  // shared/documentacion/buzon.js
+  var require_buzon = __commonJS({
+    "shared/documentacion/buzon.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const TIPOS = [
+          { id: "certificado", nombre: "Certificado", carpeta: "certificados", titulo: "Certificados de equipos, materiales, instalaci\xF3n o garant\xEDas" },
+          { id: "ipc", nombre: "IPC (cliente)", carpeta: "ipc-cliente", titulo: "Certificaci\xF3n al cliente (IPC, relaci\xF3n valorada)" },
+          { id: "boq", nombre: "BOQ / presupuesto", carpeta: "boq-presupuestos", titulo: "BOQ, presupuesto, mediciones u oferta" },
+          { id: "certSubcontrata", nombre: "Certificaci\xF3n de subcontrata", carpeta: "certificaciones-subcontrata", titulo: "La certificaci\xF3n mensual de un industrial" },
+          { id: "factura", nombre: "Factura", carpeta: "facturas", titulo: "Facturas y proformas" },
+          { id: "albaran", nombre: "Albar\xE1n / parte de horas", carpeta: "albaranes-partes", titulo: "Albaranes, partes de trabajo y de horas" },
+          { id: "otro", nombre: "Otro", carpeta: "otros", titulo: "Cualquier otro documento" }
+        ];
+        const NOMBRE_TIPO = Object.fromEntries(TIPOS.map((t) => [t.id, t.nombre]));
+        const CARPETA_TIPO = Object.fromEntries(TIPOS.map((t) => [t.id, t.carpeta]));
+        const esTipo = (t) => Object.prototype.hasOwnProperty.call(NOMBRE_TIPO, t);
+        const ESTADOS = [
+          { id: "nube", nombre: "En la nube", titulo: "Subido: espera a que el Mac lo copie al TOSHIBA" },
+          { id: "cola", nombre: "En cola", titulo: "Guardado en el Mac: espera a que el TOSHIBA est\xE9 conectado" },
+          { id: "toshiba", nombre: "En el TOSHIBA", titulo: "Copiado y comprobado en el TOSHIBA; ya no est\xE1 en la nube" },
+          { id: "leido", nombre: "Le\xEDdo por la app", titulo: "La app lo ha le\xEDdo; lo de dinero queda pendiente de revisar" },
+          { id: "error", nombre: "Con error", titulo: "No se ha podido copiar o leer: ver el aviso" }
+        ];
+        const NOMBRE_ESTADO = Object.fromEntries(ESTADOS.map((e) => [e.id, e.nombre]));
+        const EXTENSIONES = ["pdf", "xlsx", "xlsm", "xls", "csv", "docx", "doc", "jpg", "jpeg", "png", "heic", "webp", "tif", "tiff", "zip"];
+        const MAX_BYTES = 300 * 1024 * 1024;
+        const sinTildes = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+        const extension = (nombre) => {
+          const m = /\.([a-z0-9]{1,5})$/i.exec(String(nombre || ""));
+          return m ? m[1].toLowerCase() : "";
+        };
+        function tamanoLegible(b) {
+          const n = Number(b) || 0;
+          if (n < 1024) return `${n} B`;
+          if (n < 1048576) return `${Math.round(n / 1024)} KB`;
+          return `${(n / 1048576).toFixed(n < 10485760 ? 1 : 0).replace(".", ",")} MB`;
+        }
+        function comprobar(nombre, bytes) {
+          const ext = extension(nombre);
+          if (!ext || !EXTENSIONES.includes(ext)) return { ok: false, error: `\xAB${nombre}\xBB: solo PDF, Excel, CSV, Word, im\xE1genes o ZIP.` };
+          if (!(Number(bytes) > 0)) return { ok: false, error: `\xAB${nombre}\xBB est\xE1 vac\xEDo.` };
+          if (Number(bytes) > MAX_BYTES) return { ok: false, error: `\xAB${nombre}\xBB pasa de ${tamanoLegible(MAX_BYTES)}: p\xE1salo por partes o d\xE9jalo en el SharePoint.` };
+          return { ok: true };
+        }
+        const REGLAS = [
+          ["ipc", /\bipc\b|\bipc[\s_.-]*\d|relacion valorada|certificacion (al |del )?cliente|certificacion n[ºo°]?\s*\d+ .*(cliente|propiedad)|cert[\s_.-]*cliente/],
+          ["certSubcontrata", /certificacion|\bcertif\b|\bcert[\s_.-]*(n[ºo°]?[\s_.-]*)?\d|\bcert\b/],
+          ["factura", /factura|invoice|proforma|\bfra[\s_.-]*\d|\bfra\b/],
+          ["albaran", /albaran|delivery note|parte(s)? de (horas|trabajo)|partes? horas|timesheet|\bhoras\b/],
+          ["boq", /\bboq\b|presupuesto|mediciones|\boferta\b|bill of quantities|costs? ?plan|\bppto\b|\bbc3\b/],
+          ["certificado", /certificado|\bcertificate\b|declaracion (ce|de conformidad)|marcado ce|garantia|\bensayo\b|prueba de presion/]
+        ];
+        const MESES = {
+          enero: 1,
+          ene: 1,
+          jan: 1,
+          january: 1,
+          febrero: 2,
+          feb: 2,
+          february: 2,
+          marzo: 3,
+          mar: 3,
+          march: 3,
+          abril: 4,
+          abr: 4,
+          apr: 4,
+          april: 4,
+          mayo: 5,
+          may: 5,
+          junio: 6,
+          jun: 6,
+          june: 6,
+          julio: 7,
+          jul: 7,
+          july: 7,
+          agosto: 8,
+          ago: 8,
+          aug: 8,
+          august: 8,
+          septiembre: 9,
+          setiembre: 9,
+          sep: 9,
+          sept: 9,
+          september: 9,
+          octubre: 10,
+          oct: 10,
+          october: 10,
+          noviembre: 11,
+          nov: 11,
+          november: 11,
+          diciembre: 12,
+          dic: 12,
+          dec: 12,
+          december: 12
+        };
+        const dos = (n) => String(n).padStart(2, "0");
+        const anioBueno = (a) => a >= 2e3 && a <= 2099;
+        function buscarMes(texto) {
+          const t = sinTildes(texto).replace(/_/g, " ");
+          let m = /\b(20\d\d)[\s.\-/]?(0[1-9]|1[0-2])\b/.exec(t);
+          if (m) return `${m[1]}-${m[2]}`;
+          m = /\b(0?[1-9]|1[0-2])[\s.\-/](20\d\d)\b/.exec(t);
+          if (m) return `${m[2]}-${dos(Number(m[1]))}`;
+          m = /\b([a-z]{3,10})[\s.\-/']*(20\d\d|\d\d)\b/.exec(t);
+          while (m) {
+            if (MESES[m[1]]) {
+              const a = m[2].length === 2 ? 2e3 + Number(m[2]) : Number(m[2]);
+              if (anioBueno(a)) return `${a}-${dos(MESES[m[1]])}`;
+            }
+            const resto = t.slice(m.index + m[0].length);
+            const sig = /\b([a-z]{3,10})[\s.\-/']*(20\d\d|\d\d)\b/.exec(resto);
+            if (!sig) break;
+            sig.index += t.length - resto.length;
+            m = sig;
+          }
+          return null;
+        }
+        const palabras = (t) => sinTildes(t).replace(/[^a-z0-9]+/g, " ").trim();
+        const RUIDO = /* @__PURE__ */ new Set(["sl", "sa", "slu", "sau", "grupo", "instalaciones", "servicios", "ingenieria", "obras", "empresa", "sociedad", "limitada"]);
+        function nucleo(nombre) {
+          return palabras(nombre).split(" ").filter((p) => p.length >= 3 && !RUIDO.has(p));
+        }
+        function buscarIndustrial(texto, proveedores = []) {
+          const t = ` ${palabras(texto)} `;
+          let mejor = null;
+          for (const p of proveedores || []) {
+            for (const campo of [p.nombre, p.razonSocial]) {
+              if (!campo) continue;
+              const entero = palabras(campo);
+              if (entero.length >= 4 && t.includes(` ${entero} `)) {
+                if (!mejor || entero.length > mejor.peso) mejor = { p, peso: entero.length + 100 };
+                continue;
+              }
+              for (const w of nucleo(campo)) {
+                if (w.length >= 4 && t.includes(` ${w} `) && (!mejor || w.length > mejor.peso)) mejor = { p, peso: w.length };
+              }
+            }
+          }
+          return mejor ? { id: mejor.p.id || null, nombre: mejor.p.nombre || mejor.p.razonSocial } : null;
+        }
+        function buscarObra(texto, obras = []) {
+          const t = ` ${palabras(texto)} `;
+          for (const o of obras || []) {
+            const c = palabras(o.codigo);
+            if (c.length >= 3 && t.includes(` ${c} `)) return o.id;
+          }
+          return null;
+        }
+        function tipoDeTexto(texto) {
+          const t = palabras(texto);
+          for (const [tipo, rx] of REGLAS) if (rx.test(t)) return tipo;
+          return null;
+        }
+        function sugerir(nombre, { texto = "", proveedores = [], obras = [] } = {}) {
+          const base = String(nombre || "").replace(/\.[a-z0-9]{1,5}$/i, "");
+          let tipo = tipoDeTexto(base);
+          let porContenido = false;
+          if (!tipo && texto) {
+            tipo = tipoDeTexto(String(texto).slice(0, 4e3));
+            porContenido = Boolean(tipo);
+          }
+          if (!tipo) tipo = "otro";
+          const mes = buscarMes(base) || (texto ? buscarMes(String(texto).slice(0, 4e3)) : null);
+          const ind = tipo === "ipc" ? null : buscarIndustrial(base, proveedores) || (texto ? buscarIndustrial(String(texto).slice(0, 4e3), proveedores) : null);
+          return { tipo, porContenido, mes, industrial: ind ? ind.nombre : null, proveedorId: ind ? ind.id : null, obraId: buscarObra(base, obras) };
+        }
+        function trozo(t, porDefecto) {
+          const s = String(t || "").normalize("NFC").replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_").replace(/^\.+/, "").replace(/\s+/g, " ").trim().slice(0, 80);
+          return s || porDefecto;
+        }
+        const esMes = (m) => /^20\d\d-(0[1-9]|1[0-2])$/.test(String(m || ""));
+        function carpetaDestino({ obra, tipo, mes, industrial }) {
+          const o = obra && typeof obra === "object" ? [obra.codigo, obra.nombre].filter(Boolean).join(" ") || obra.id : obra;
+          return [trozo(o, "sin-obra"), CARPETA_TIPO[tipo] || CARPETA_TIPO.otro, esMes(mes) ? mes : "sin-mes", trozo(industrial, tipo === "ipc" ? "cliente" : "sin-industrial")];
+        }
+        const nombreFichero = (nombre) => trozo(String(nombre || "").split(/[\\/]/).pop(), "documento");
+        function metaLimpia(m = {}) {
+          return {
+            tipo: esTipo(m.tipo) ? m.tipo : "otro",
+            mes: esMes(m.mes) ? m.mes : null,
+            industrial: m.industrial ? String(m.industrial).slice(0, 120) : null,
+            proveedorId: m.proveedorId ? String(m.proveedorId).slice(0, 80) : null
+          };
+        }
+        const API = {
+          TIPOS,
+          NOMBRE_TIPO,
+          CARPETA_TIPO,
+          ESTADOS,
+          NOMBRE_ESTADO,
+          EXTENSIONES,
+          MAX_BYTES,
+          esTipo,
+          esMes,
+          extension,
+          tamanoLegible,
+          comprobar,
+          buscarMes,
+          buscarIndustrial,
+          buscarObra,
+          sugerir,
+          carpetaDestino,
+          nombreFichero,
+          metaLimpia
+        };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.BUZON_REGLAS = API;
+      })();
+    }
+  });
+
+  // shared/sync/sha256.js
+  var require_sha256 = __commonJS({
+    "shared/sync/sha256.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var K = new Uint32Array([
+        1116352408,
+        1899447441,
+        3049323471,
+        3921009573,
+        961987163,
+        1508970993,
+        2453635748,
+        2870763221,
+        3624381080,
+        310598401,
+        607225278,
+        1426881987,
+        1925078388,
+        2162078206,
+        2614888103,
+        3248222580,
+        3835390401,
+        4022224774,
+        264347078,
+        604807628,
+        770255983,
+        1249150122,
+        1555081692,
+        1996064986,
+        2554220882,
+        2821834349,
+        2952996808,
+        3210313671,
+        3336571891,
+        3584528711,
+        113926993,
+        338241895,
+        666307205,
+        773529912,
+        1294757372,
+        1396182291,
+        1695183700,
+        1986661051,
+        2177026350,
+        2456956037,
+        2730485921,
+        2820302411,
+        3259730800,
+        3345764771,
+        3516065817,
+        3600352804,
+        4094571909,
+        275423344,
+        430227734,
+        506948616,
+        659060556,
+        883997877,
+        958139571,
+        1322822218,
+        1537002063,
+        1747873779,
+        1955562222,
+        2024104815,
+        2227730452,
+        2361852424,
+        2428436474,
+        2756734187,
+        3204031479,
+        3329325298
+      ]);
+      function crearSha256() {
+        const H = new Uint32Array([1779033703, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635, 1541459225]);
+        const W = new Uint32Array(64);
+        const resto = new Uint8Array(64);
+        let enResto = 0;
+        let total = 0;
+        function bloque(b, o) {
+          for (let i = 0; i < 16; i++) W[i] = b[o + 4 * i] << 24 | b[o + 4 * i + 1] << 16 | b[o + 4 * i + 2] << 8 | b[o + 4 * i + 3];
+          for (let i = 16; i < 64; i++) {
+            const x = W[i - 15], y = W[i - 2];
+            const s0 = (x >>> 7 | x << 25) ^ (x >>> 18 | x << 14) ^ x >>> 3;
+            const s1 = (y >>> 17 | y << 15) ^ (y >>> 19 | y << 13) ^ y >>> 10;
+            W[i] = W[i - 16] + s0 + W[i - 7] + s1 | 0;
+          }
+          let a = H[0], bb = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7];
+          for (let i = 0; i < 64; i++) {
+            const S1 = (e >>> 6 | e << 26) ^ (e >>> 11 | e << 21) ^ (e >>> 25 | e << 7);
+            const t1 = h + S1 + (e & f ^ ~e & g) + K[i] + W[i] | 0;
+            const S0 = (a >>> 2 | a << 30) ^ (a >>> 13 | a << 19) ^ (a >>> 22 | a << 10);
+            const t2 = S0 + (a & bb ^ a & c ^ bb & c) | 0;
+            h = g;
+            g = f;
+            f = e;
+            e = d + t1 | 0;
+            d = c;
+            c = bb;
+            bb = a;
+            a = t1 + t2 | 0;
+          }
+          H[0] += a;
+          H[1] += bb;
+          H[2] += c;
+          H[3] += d;
+          H[4] += e;
+          H[5] += f;
+          H[6] += g;
+          H[7] += h;
+        }
+        function actualizar(datos) {
+          const b = datos instanceof Uint8Array ? datos : new Uint8Array(datos);
+          total += b.length;
+          let i = 0;
+          if (enResto) {
+            const n = Math.min(64 - enResto, b.length);
+            resto.set(b.subarray(0, n), enResto);
+            enResto += n;
+            i = n;
+            if (enResto < 64) return;
+            bloque(resto, 0);
+            enResto = 0;
+          }
+          for (; i + 64 <= b.length; i += 64) bloque(b, i);
+          if (i < b.length) {
+            resto.set(b.subarray(i), 0);
+            enResto = b.length - i;
+          }
+        }
+        function hex() {
+          const bits = total * 8;
+          const cola = new Uint8Array(enResto + 9 + 63 >> 6 << 6);
+          cola.set(resto.subarray(0, enResto));
+          cola[enResto] = 128;
+          const n = cola.length;
+          const alto = Math.floor(bits / 4294967296), bajo = bits >>> 0;
+          cola[n - 8] = alto >>> 24;
+          cola[n - 7] = alto >>> 16;
+          cola[n - 6] = alto >>> 8;
+          cola[n - 5] = alto;
+          cola[n - 4] = bajo >>> 24;
+          cola[n - 3] = bajo >>> 16;
+          cola[n - 2] = bajo >>> 8;
+          cola[n - 1] = bajo;
+          for (let o = 0; o < n; o += 64) bloque(cola, o);
+          return Array.from(H, (x) => x.toString(16).padStart(8, "0")).join("");
+        }
+        return { actualizar, hex };
+      }
+      module.exports = { crearSha256 };
+    }
+  });
+
+  // shared/sync/puenteMac.js
+  var require_puenteMac = __commonJS({
+    "shared/sync/puenteMac.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var CUBO = "puente-mac";
+      var TROZO = 45 * 1024 * 1024;
+      var MARGEN = 100 * 1024 * 1024;
+      var CUPO = 1024 * 1024 * 1024;
+      var CABECERA = "ISO-10303-21";
+      var RX_MANIFIESTO = /^([0-9a-f]{16})\.manifiesto\.json$/;
+      var limpio = (s) => String(s || "").replace(/[^A-Za-z0-9._-]/g, "_");
+      var numTrozos = (bytes) => Math.max(1, Math.ceil(Number(bytes || 0) / TROZO));
+      var claveTrozo = (obraId, sha, i) => `${limpio(obraId)}/${String(sha).slice(0, 16)}.parte-${String(i + 1).padStart(3, "0")}`;
+      var claveManifiesto = (obraId, sha) => `${limpio(obraId)}/${String(sha).slice(0, 16)}.manifiesto.json`;
+      function cabe({ usado, nuevo, cupo = CUPO, margen = MARGEN }) {
+        const u = Number(usado);
+        const n = Number(nuevo);
+        if (!Number.isFinite(u) || !Number.isFinite(n)) return false;
+        return u + n <= cupo - margen;
+      }
+      function manifiesto({ obraId, nombre, bytes, sha256: sha2562, subidoPor, ahora = () => (/* @__PURE__ */ new Date()).toISOString() }) {
+        const trozos = numTrozos(bytes);
+        return {
+          version: 1,
+          obraId,
+          nombre: String(nombre),
+          bytes: Number(bytes),
+          trozos,
+          tamTrozo: TROZO,
+          sha256: sha2562,
+          subidoPor: subidoPor || null,
+          subidoEn: ahora(),
+          claves: Array.from({ length: trozos }, (_, i) => claveTrozo(obraId, sha2562, i))
+        };
+      }
+      function manifiestoValido(m, claveM) {
+        if (!m || typeof m !== "object") return "manifiesto ilegible";
+        if (!/^[0-9a-f]{64}$/.test(String(m.sha256 || ""))) return "sin sha256";
+        if (!(Number(m.bytes) > 0)) return "sin tama\xF1o";
+        if (!m.nombre || !/\.ifc$/i.test(String(m.nombre))) return "el nombre no es de un .ifc";
+        if (Number(m.trozos) !== numTrozos(m.bytes) || !Array.isArray(m.claves) || m.claves.length !== Number(m.trozos)) return "los trozos no cuadran con el tama\xF1o";
+        for (let i = 0; i < m.claves.length; i++) if (m.claves[i] !== claveTrozo(m.obraId, m.sha256, i)) return `clave de trozo inesperada (${m.claves[i]})`;
+        if (claveM && claveM !== claveManifiesto(m.obraId, m.sha256)) return "el manifiesto no est\xE1 donde dice";
+        return null;
+      }
+      async function shaDeBlob(fichero, { alAvance = () => {
+      } } = {}) {
+        const { crearSha256 } = require_sha256();
+        const h = crearSha256();
+        for (let o = 0; o < fichero.size; o += TROZO) {
+          h.actualizar(new Uint8Array(await fichero.slice(o, Math.min(o + TROZO, fichero.size)).arrayBuffer()));
+          alAvance(Math.min(o + TROZO, fichero.size), fichero.size);
+        }
+        return h.hex();
+      }
+      async function subir({ nube, obraId, fichero, subidoPor, alProgreso = () => {
+      }, sha = null }) {
+        try {
+          if (!nube) return { ok: false, error: "sin conexi\xF3n con la nube" };
+          if (!fichero || !(fichero.size > 0)) return { ok: false, error: "fichero vac\xEDo" };
+          alProgreso({ fase: "Calculando la huella", hechos: 0, total: fichero.size });
+          const sha2562 = sha || await shaDeBlob(fichero, { alAvance: (h, t) => alProgreso({ fase: "Calculando la huella", hechos: h, total: t }) });
+          const claveM = claveManifiesto(obraId, sha2562);
+          const hueco = await nube.rpc("cx_puente_hueco", { p_obra: obraId });
+          if (!cabe({ usado: hueco && hueco.usado, nuevo: fichero.size })) {
+            return { enCola: true, sha256: sha2562, motivo: `no cabe en la nube ahora (${Math.round((hueco && hueco.puente || 0) / 1048576)} MB esperando a que el Mac los recoja)` };
+          }
+          const m = manifiesto({ obraId, nombre: fichero.name, bytes: fichero.size, sha256: sha2562, subidoPor });
+          for (let i = 0; i < m.trozos; i++) {
+            alProgreso({ fase: "Enviando al Mac", hechos: i, total: m.trozos });
+            const trozo = new Uint8Array(await fichero.slice(i * TROZO, Math.min((i + 1) * TROZO, fichero.size)).arrayBuffer());
+            await nube.subirArchivo(CUBO, m.claves[i], trozo, "application/octet-stream", { plazo: 6e5 });
+          }
+          await nube.subirArchivo(CUBO, claveM, new TextEncoder().encode(JSON.stringify(m)), "application/json");
+          alProgreso({ fase: "Enviado al Mac", hechos: m.trozos, total: m.trozos });
+          return { ok: true, clave: claveM, sha256: sha2562 };
+        } catch (e) {
+          return { ok: false, error: e && e.message || String(e) };
+        }
+      }
+      module.exports = {
+        CUBO,
+        TROZO,
+        MARGEN,
+        CUPO,
+        CABECERA,
+        RX_MANIFIESTO,
+        limpio,
+        numTrozos,
+        claveTrozo,
+        claveManifiesto,
+        cabe,
+        manifiesto,
+        manifiestoValido,
+        shaDeBlob,
+        subir
+      };
+    }
+  });
+
+  // shared/sync/buzonNube.js
+  var require_buzonNube = __commonJS({
+    "shared/sync/buzonNube.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var PM = require_puenteMac();
+      var B = require_buzon();
+      var CUBO = "buzon-docs";
+      var RX_MANIFIESTO = PM.RX_MANIFIESTO;
+      var claveTrozo = PM.claveTrozo;
+      var claveManifiesto = PM.claveManifiesto;
+      function manifiesto({ obraId, nombre, bytes, sha256: sha2562, meta = {}, subidoPor, ahora = () => (/* @__PURE__ */ new Date()).toISOString() }) {
+        const trozos = PM.numTrozos(bytes);
+        return {
+          version: 1,
+          clase: "buzon",
+          obraId,
+          nombre: String(nombre),
+          bytes: Number(bytes),
+          trozos,
+          tamTrozo: PM.TROZO,
+          sha256: sha2562,
+          ...B.metaLimpia(meta),
+          subidoPor: subidoPor || null,
+          subidoEn: ahora(),
+          claves: Array.from({ length: trozos }, (_, i) => claveTrozo(obraId, sha2562, i))
+        };
+      }
+      function manifiestoValido(m, claveM) {
+        if (!m || typeof m !== "object") return "manifiesto ilegible";
+        if (!/^[0-9a-f]{64}$/.test(String(m.sha256 || ""))) return "sin sha256";
+        if (!(Number(m.bytes) > 0)) return "sin tama\xF1o";
+        const c = B.comprobar(m.nombre, m.bytes);
+        if (!c.ok) return c.error;
+        if (Number(m.trozos) !== PM.numTrozos(m.bytes) || !Array.isArray(m.claves) || m.claves.length !== Number(m.trozos)) return "los trozos no cuadran con el tama\xF1o";
+        for (let i = 0; i < m.claves.length; i++) if (m.claves[i] !== claveTrozo(m.obraId, m.sha256, i)) return `clave de trozo inesperada (${m.claves[i]})`;
+        if (claveM && claveM !== claveManifiesto(m.obraId, m.sha256)) return "el manifiesto no est\xE1 donde dice";
+        return null;
+      }
+      async function subir({ nube, obraId, fichero, meta = {}, subidoPor, alProgreso = () => {
+      }, sha = null }) {
+        try {
+          if (!nube) return { ok: false, error: "sin conexi\xF3n con la nube" };
+          if (!obraId) return { ok: false, error: "falta la obra" };
+          const c = B.comprobar(fichero && fichero.name, fichero && fichero.size);
+          if (!c.ok) return { ok: false, error: c.error };
+          alProgreso({ fase: "Calculando la huella", hechos: 0, total: fichero.size });
+          const sha2562 = sha || await PM.shaDeBlob(fichero, { alAvance: (h, t) => alProgreso({ fase: "Calculando la huella", hechos: h, total: t }) });
+          const hueco = await nube.rpc("cx_buzon_hueco", { p_obra: obraId });
+          if (!PM.cabe({ usado: hueco && hueco.usado, nuevo: fichero.size })) {
+            return { enCola: true, sha256: sha2562, motivo: `no cabe en la nube ahora (${Math.round((hueco && hueco.buzon || 0) / 1048576)} MB esperando a que el Mac los copie al TOSHIBA)` };
+          }
+          const m = manifiesto({ obraId, nombre: fichero.name, bytes: fichero.size, sha256: sha2562, meta, subidoPor });
+          for (let i = 0; i < m.trozos; i++) {
+            alProgreso({ fase: "Subiendo", hechos: i * PM.TROZO, total: fichero.size });
+            const trozo = new Uint8Array(await fichero.slice(i * PM.TROZO, Math.min((i + 1) * PM.TROZO, fichero.size)).arrayBuffer());
+            await nube.subirArchivo(CUBO, m.claves[i], trozo, "application/octet-stream", { plazo: 6e5 });
+          }
+          await nube.subirArchivo(CUBO, claveManifiesto(obraId, sha2562), new TextEncoder().encode(JSON.stringify(m)), "application/json");
+          alProgreso({ fase: "En la nube", hechos: fichero.size, total: fichero.size });
+          return { ok: true, clave: claveManifiesto(obraId, sha2562), sha256: sha2562 };
+        } catch (e) {
+          return { ok: false, error: e && e.message || String(e) };
+        }
+      }
+      async function manifiestosEnCubo(nube, { obraId = null } = {}) {
+        const out = [];
+        const carpetas = obraId ? [{ name: PM.limpio(obraId) }] : (await nube.listarArchivos(CUBO, "") || []).filter((c) => !c.id);
+        for (const carpeta of carpetas) {
+          const dentro = await nube.listarArchivos(CUBO, `${carpeta.name}/`);
+          for (const o of dentro || []) if (RX_MANIFIESTO.test(o.name)) out.push({ obraId: carpeta.name, claveM: `${carpeta.name}/${o.name}` });
+        }
+        return out;
+      }
+      async function enLaNube(nube, obraId) {
+        try {
+          const lista = await manifiestosEnCubo(nube, { obraId });
+          const out = [];
+          for (const { claveM } of lista) {
+            try {
+              const m = JSON.parse(new TextDecoder().decode(await nube.bajarArchivo(CUBO, claveM)));
+              if (!manifiestoValido(m, claveM)) out.push({ sha256: m.sha256, nombre: m.nombre, bytes: m.bytes, tipo: m.tipo, mes: m.mes, industrial: m.industrial, subidoEn: m.subidoEn });
+            } catch {
+            }
+          }
+          return out;
+        } catch {
+          return [];
+        }
+      }
+      module.exports = { CUBO, manifiesto, manifiestoValido, subir, manifiestosEnCubo, enLaNube, claveManifiesto, claveTrozo };
+    }
+  });
+
+  // shared/importacion/reconocer.js
+  var require_reconocer = __commonJS({
+    "shared/importacion/reconocer.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      function recModulo(ruta, global) {
+        if (typeof __require !== "undefined") {
+          try {
+            return __require(ruta);
+          } catch {
+          }
+        }
+        if (typeof window !== "undefined" && window[global]) return window[global];
+        return null;
+      }
+      var _xlsxReconocer = recModulo("./xlsx", "XLSX");
+      var recTexto = _xlsxReconocer && _xlsxReconocer.textoDe || function(v) {
+        if (v === null || v === void 0) return "";
+        if (v instanceof Date) return v.toISOString().slice(0, 10);
+        return String(v).trim();
+      };
+      var recFilaVacia = _xlsxReconocer && _xlsxReconocer.filaVacia || function(fila) {
+        return !fila || fila.every((c) => recTexto(c) === "");
+      };
+      function recNormalizar(valor) {
+        return recTexto(valor).replace(/[²Â²]/g, "2").replace(/[³]/g, "3").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+      }
+      function recLetraColumna(indice) {
+        let n = Number(indice);
+        if (!Number.isFinite(n) || n < 0) return "?";
+        let letras = "";
+        n += 1;
+        while (n > 0) {
+          letras = String.fromCharCode(65 + (n - 1) % 26) + letras;
+          n = Math.floor((n - 1) / 26);
+        }
+        return letras;
+      }
+      function recNivelDeCodigo(codigo) {
+        const t = recTexto(codigo);
+        if (!t) return 0;
+        return t.split(/[.\-_/]/).filter((p) => p !== "").length;
+      }
+      var REC_CAMPOS = ["codigo", "resumen", "descripcion", "unidad", "cantidad", "precio", "importe", "grupo"];
+      var REC_ORDEN = { codigo: 0, resumen: 1, unidad: 2, cantidad: 3, precio: 4, importe: 5, descripcion: 6, grupo: 7 };
+      var REC_UNIDADES = /* @__PURE__ */ new Set([
+        /* España */
+        "m",
+        "ml",
+        "m2",
+        "m3",
+        "ud",
+        "uds",
+        "u",
+        "un",
+        "kg",
+        "tn",
+        "t",
+        "h",
+        "hr",
+        "pa",
+        "l",
+        "cm",
+        "mm",
+        "km",
+        "g",
+        "dm",
+        "par",
+        "jgo",
+        "juego",
+        "mes",
+        "dia",
+        "sem",
+        "pza",
+        "pzas",
+        "rollo",
+        "saco",
+        "bote",
+        "lote",
+        "p a",
+        "m l",
+        "m2 h",
+        "kw",
+        "kva",
+        /* Los BOQ ingleses */
+        "nr",
+        "no",
+        "nos",
+        "item",
+        "ea",
+        "set",
+        "pcs",
+        "pc",
+        "ls",
+        "sum",
+        "lm",
+        "sqm",
+        "cum",
+        "lot",
+        "kgs",
+        "ton",
+        "sf",
+        "lf",
+        "cy",
+        "gal"
+      ]);
+      var REC_SINONIMOS = {
+        codigo: {
+          es: ["codigo", "cod", "codigo partida", "codigo de partida", "ref", "refa", "referencia", "clave", "num", "numero", "n orden", "orden"],
+          en: ["code", "item", "item no", "item number", "item code", "reference", "ref no", "pos", "position", "sn"]
+        },
+        resumen: {
+          es: ["resumen", "descripcion", "concepto", "designacion", "denominacion", "texto", "unidad de obra", "descripcion de la partida", "nombre", "titulo"],
+          en: ["description", "designation", "item description", "description of works", "works description", "particulars", "title", "scope of works"]
+        },
+        descripcion: {
+          es: ["descripcion larga", "descripcion detallada", "descripcion ampliada", "texto largo", "detalle", "observaciones", "especificaciones", "comentario", "comentarios", "notas"],
+          en: ["long description", "detailed description", "remarks", "notes", "comments", "specification", "specifications"]
+        },
+        unidad: {
+          es: ["ud", "uds", "u", "unidad", "unidades", "um", "u m", "unidad de medida", "medida", "ud medida"],
+          en: ["unit", "units", "uom", "u o m", "unit of measure", "unit of measurement"]
+        },
+        cantidad: {
+          es: ["cantidad", "cant", "cantidades", "medicion", "mediciones", "cantidad medida", "cantidad presupuesto", "canpres", "cubicacion", "cuantia", "uds medidas"],
+          en: ["quantity", "quantities", "qty", "quant", "measurement", "measured quantity", "total qty"]
+        },
+        precio: {
+          es: ["precio", "precio unitario", "p unitario", "precio ud", "precio unidad", "precio simple", "pvp", "p u", "pu", "importe unitario", "coste unitario", "prpres", "precio de venta", "tarifa"],
+          en: ["unit price", "price", "rate", "unit rate", "unit cost", "price per unit"]
+        },
+        importe: {
+          es: ["importe", "importe total", "total", "totales", "importe partida", "valor", "montante", "imppres", "importe presupuesto", "total partida"],
+          en: ["amount", "total", "total amount", "total price", "extended price", "extension", "value"]
+        },
+        grupo: {
+          es: ["grupo", "paquete", "paquete de compra", "lote", "familia", "agrupacion", "gremio"],
+          en: ["package", "group", "lot", "family", "trade", "trade package"]
+        }
+      };
+      var REC_INDICE = /* @__PURE__ */ new Map();
+      var REC_LISTA = [];
+      for (const campo of REC_CAMPOS) {
+        for (const idioma of ["es", "en"]) {
+          for (const bruto of (REC_SINONIMOS[campo] || {})[idioma] || []) {
+            const palabra = recNormalizar(bruto);
+            if (!palabra) continue;
+            if (!REC_INDICE.has(palabra)) REC_INDICE.set(palabra, []);
+            REC_INDICE.get(palabra).push({ campo, idioma });
+            if (palabra.length >= 4) {
+              REC_LISTA.push({ campo, idioma, palabra, regex: new RegExp(`(^| )${palabra}( |$)`) });
+            }
+          }
+        }
+      }
+      var REC_TOTALES = new RegExp(
+        "^(?:sub ?totales|sub ?total|totales|total|suma y sigue|sumas|suma|importe total|importe de ejecucion|presupuesto de ejecucion|pem|pec|total general|total capitulo|total chapter|chapter total|page total|total pagina|grand total|carried forward|carried to|to collection|collection|a deducir|gastos generales|beneficio industrial|iva|base imponible)(?![a-z0-9])"
+      );
+      function recDesmontarNumero(valor) {
+        let t = recTexto(valor);
+        if (!t) return null;
+        let negativo = false;
+        if (/^\(.*\)$/.test(t)) {
+          negativo = true;
+          t = t.slice(1, -1);
+        }
+        t = t.replace(/[€$£]/g, "").replace(/ /g, " ").trim();
+        const conSufijo = t.match(/^(.+?)\s+(\S{1,6})$/);
+        if (conSufijo && REC_UNIDADES.has(recNormalizar(conSufijo[2]))) t = conSufijo[1].trim();
+        if (/^[-+]/.test(t)) {
+          if (t[0] === "-") negativo = !negativo;
+          t = t.slice(1).trim();
+        }
+        t = t.replace(/\s/g, "");
+        if (!/^[\d.,]+$/.test(t) || !/\d/.test(t)) return null;
+        return { cuerpo: t, negativo };
+      }
+      function recSeparadorEvidente(cuerpo) {
+        const punto = cuerpo.includes(".");
+        const coma = cuerpo.includes(",");
+        if (punto && coma) return cuerpo.lastIndexOf(".") > cuerpo.lastIndexOf(",") ? "punto" : "coma";
+        if (punto) return /^0+\./.test(cuerpo) || !/^\d{1,3}(\.\d{3})+$/.test(cuerpo) ? "punto" : null;
+        if (coma) return /^0+,/.test(cuerpo) || !/^\d{1,3}(,\d{3})+$/.test(cuerpo) ? "coma" : null;
+        return null;
+      }
+      function recVotosDeSeparador(cuerpos) {
+        let punto = 0;
+        let coma = 0;
+        for (const t of cuerpos || []) {
+          const e = recSeparadorEvidente(t);
+          if (e === "punto") punto++;
+          else if (e === "coma") coma++;
+        }
+        return { punto, coma };
+      }
+      function recEstiloNumerico(cuerpos) {
+        const votos = recVotosDeSeparador(cuerpos);
+        return votos.punto > votos.coma ? "punto" : "coma";
+      }
+      function recANumero(valor, estilo) {
+        if (typeof valor === "number") return Number.isFinite(valor) ? valor : null;
+        if (typeof valor === "boolean" || valor instanceof Date) return null;
+        const pieza = recDesmontarNumero(valor);
+        if (!pieza) return null;
+        let t = pieza.cuerpo;
+        const usar = recSeparadorEvidente(t) || (estilo === "punto" ? "punto" : "coma");
+        if (usar === "punto") {
+          t = t.replace(/,/g, "");
+          const ultimo = t.lastIndexOf(".");
+          if (ultimo >= 0) t = t.slice(0, ultimo).replace(/\./g, "") + "." + t.slice(ultimo + 1);
+        } else {
+          t = t.replace(/\./g, "");
+          const ultimo = t.lastIndexOf(",");
+          if (ultimo >= 0) t = t.slice(0, ultimo).replace(/,/g, "") + "." + t.slice(ultimo + 1);
+        }
+        const n = Number(t);
+        if (!Number.isFinite(n)) return null;
+        return pieza.negativo ? -n : n;
+      }
+      function recEmparejarCabecera(celdas) {
+        const candidatos = [];
+        celdas.forEach((bruto, col) => {
+          const h = recNormalizar(bruto);
+          if (!h) return;
+          const exactos = REC_INDICE.get(h);
+          if (exactos) for (const e of exactos) candidatos.push({ col, campo: e.campo, idioma: e.idioma, peso: 3, rotulo: recTexto(bruto) });
+          for (const s of REC_LISTA) {
+            if (s.palabra === h) continue;
+            if (s.regex.test(h)) candidatos.push({ col, campo: s.campo, idioma: s.idioma, peso: 2, rotulo: recTexto(bruto) });
+          }
+        });
+        candidatos.sort((a, b) => b.peso - a.peso || a.col - b.col || REC_ORDEN[a.campo] - REC_ORDEN[b.campo]);
+        const porCampo = {};
+        const usadas = /* @__PURE__ */ new Set();
+        const sobra = [];
+        for (const c of candidatos) {
+          if (usadas.has(c.col) || porCampo[c.campo]) {
+            sobra.push(c);
+            continue;
+          }
+          porCampo[c.campo] = c;
+          usadas.add(c.col);
+        }
+        if (!porCampo.descripcion) {
+          const extra = sobra.find((c) => c.campo === "resumen" && !usadas.has(c.col));
+          if (extra) {
+            porCampo.descripcion = { ...extra, campo: "descripcion", heredado: true };
+            usadas.add(extra.col);
+          }
+        }
+        return { porCampo, candidatos };
+      }
+      function recBuscarCabecera(filas) {
+        const limite = Math.min(filas.length, 40);
+        let mejor = null;
+        let deTexto = null;
+        for (let i = 0; i < limite; i++) {
+          const fila = filas[i] || [];
+          if (recFilaVacia(fila)) continue;
+          if (i >= filas.length - 1) break;
+          const celdas = fila.map(recTexto);
+          const llenas = celdas.filter((t) => t !== "").length;
+          if (llenas < 2) continue;
+          const numeros = fila.filter((v) => typeof v === "number" || typeof v === "string" && recDesmontarNumero(v)).length;
+          const largas = celdas.filter((t) => t.length > 40).length;
+          const { porCampo, candidatos } = recEmparejarCabecera(celdas);
+          const aciertos = Object.keys(porCampo).length;
+          const punt = aciertos * 4 + Math.min(llenas, 8) - numeros * 2 - largas * 3;
+          if (aciertos >= 2 && punt > 0 && (!mejor || punt > mejor.punt)) {
+            mejor = { fila: i, punt, aciertos, porCampo, candidatos, reconocida: true };
+          }
+          if (!deTexto && !numeros && !largas && llenas >= 3) {
+            deTexto = { fila: i, punt, aciertos, porCampo, candidatos, reconocida: false };
+          }
+        }
+        return mejor || deTexto;
+      }
+      function recPrimeraFilaDeDatos(filas, filaCabecera) {
+        let i = filaCabecera + 1;
+        while (i < filas.length) {
+          const fila = filas[i] || [];
+          if (recFilaVacia(fila)) {
+            i++;
+            continue;
+          }
+          const celdas = fila.map(recTexto).filter((t) => t !== "");
+          const cabeceril = celdas.filter((t) => REC_INDICE.has(recNormalizar(t)) || /^\(.*\)$/.test(t)).length;
+          if (cabeceril >= 2 && cabeceril === celdas.length) {
+            i++;
+            continue;
+          }
+          return i;
+        }
+        return null;
+      }
+      function recEstadisticas(filas, desde, tope) {
+        const hasta = Math.min(filas.length, desde + (tope || 300));
+        let ancho = 0;
+        for (let i = desde; i < hasta; i++) ancho = Math.max(ancho, (filas[i] || []).length);
+        const crudos = [];
+        for (let c = 0; c < ancho; c++) crudos[c] = [];
+        const indices = [];
+        for (let i = desde; i < hasta; i++) {
+          const fila = filas[i] || [];
+          if (recFilaVacia(fila)) continue;
+          indices.push(i);
+          for (let c = 0; c < ancho; c++) crudos[c].push(fila[c] === void 0 ? null : fila[c]);
+        }
+        const columnas = [];
+        for (let c = 0; c < ancho; c++) {
+          const valores = crudos[c];
+          const cuerpos = [];
+          for (const v of valores) {
+            if (typeof v === "string") {
+              const p = recDesmontarNumero(v);
+              if (p) cuerpos.push(p.cuerpo);
+            }
+          }
+          const votos = recVotosDeSeparador(cuerpos);
+          const estilo = votos.punto > votos.coma ? "punto" : "coma";
+          const mezclada = votos.punto > 0 && votos.coma > 0;
+          const numeros = valores.map((v) => recANumero(v, estilo));
+          let llenas = 0;
+          let textos = 0;
+          let unidades = 0;
+          let codigos = 0;
+          let conSeparador = 0;
+          let conLetra = 0;
+          let largoTotal = 0;
+          const distintos = /* @__PURE__ */ new Set();
+          valores.forEach((v, k) => {
+            const t = recTexto(v);
+            if (t === "") return;
+            llenas++;
+            largoTotal += t.length;
+            if (distintos.size < 200) distintos.add(t);
+            const n = recNormalizar(t);
+            if (REC_UNIDADES.has(n)) unidades++;
+            if (numeros[k] === null) textos++;
+            if (t.length <= 16 && /^[0-9A-Za-zÑñ]{1,8}([.\-_/][0-9A-Za-zÑñ]{1,8})*$/.test(t)) {
+              codigos++;
+              if (/[.\-_/]/.test(t)) conSeparador++;
+              if (/[A-Za-zÑñ]/.test(t)) conLetra++;
+            }
+          });
+          columnas.push({
+            indice: c,
+            estilo,
+            mezclada,
+            numeros,
+            valores,
+            llenas,
+            textos,
+            unidades,
+            codigos,
+            conSeparador,
+            conLetra,
+            numericas: numeros.filter((n) => n !== null).length,
+            distintos: distintos.size,
+            largoMedio: llenas ? largoTotal / llenas : 0
+          });
+        }
+        return { columnas, indices, filas: indices.length };
+      }
+      function recProbarProducto(columnas) {
+        const utiles = columnas.filter((c) => c.numericas >= 3 && c.llenas > 0 && c.numericas / c.llenas >= 0.6).slice(0, 12);
+        if (utiles.length < 3) return null;
+        let mejor = null;
+        for (const a of utiles) {
+          for (const b of utiles) {
+            if (b === a) continue;
+            for (const c of utiles) {
+              if (c === a || c === b) continue;
+              let ok = 0;
+              let comprobadas = 0;
+              for (let k = 0; k < c.numeros.length; k++) {
+                const x = a.numeros[k];
+                const y = b.numeros[k];
+                const z = c.numeros[k];
+                if (x === null || y === null || z === null) continue;
+                if (x === 0 || y === 0 || z === 0) continue;
+                comprobadas++;
+                if (Math.abs(x * y - z) <= Math.max(5e-3, Math.abs(z) * 5e-4)) ok++;
+              }
+              if (comprobadas < 3) continue;
+              const ratio = ok / comprobadas;
+              if (ratio < 0.6) continue;
+              if (!mejor || ok > mejor.ok || ok === mejor.ok && ratio > mejor.ratio) {
+                mejor = { a: a.indice, b: b.indice, c: c.indice, ok, comprobadas, ratio };
+              }
+            }
+          }
+        }
+        return mejor;
+      }
+      function recColumnaUnidad(columnas) {
+        let mejor = null;
+        for (const c of columnas) {
+          if (c.llenas < 3) continue;
+          const ratio = c.unidades / c.llenas;
+          if (ratio < 0.6) continue;
+          if (c.distintos > Math.max(12, c.llenas * 0.4)) continue;
+          if (!mejor || ratio > mejor.ratio) mejor = { indice: c.indice, ratio, aciertos: c.unidades, llenas: c.llenas, distintos: c.distintos };
+        }
+        return mejor;
+      }
+      function recColumnaCodigo(columnas, ocupadas) {
+        for (const c of columnas) {
+          if (ocupadas.has(c.indice)) continue;
+          if (c.llenas < 3) continue;
+          if (c.codigos / c.llenas < 0.75) continue;
+          if (c.largoMedio > 14) continue;
+          if ((c.conSeparador + c.conLetra) / c.llenas < 0.5) continue;
+          return { indice: c.indice, aciertos: c.codigos, llenas: c.llenas };
+        }
+        return null;
+      }
+      function recColumnasTexto(columnas, ocupadas) {
+        return columnas.filter((c) => !ocupadas.has(c.indice) && c.llenas >= 2 && c.textos / c.llenas >= 0.6 && c.largoMedio >= 3).sort((a, b) => b.largoMedio - a.largoMedio);
+      }
+      function recColumnasVacias() {
+        const c = {};
+        for (const campo of REC_CAMPOS) c[campo] = null;
+        return c;
+      }
+      function reconocer(hoja) {
+        const filas = hoja && hoja.filas || [];
+        const motivos = [];
+        const columnas = recColumnasVacias();
+        const nada = (texto) => {
+          motivos.push({ campo: null, texto });
+          return { filaCabecera: null, columnas, confianza: "baja", motivos, filaPrimeraPartida: null, perfil: "generico" };
+        };
+        if (!filas.length) return nada("La hoja no tiene ninguna fila.");
+        if (filas.every(recFilaVacia)) return nada("La hoja est\xE1 vac\xEDa.");
+        const cabecera = recBuscarCabecera(filas);
+        let filaCabecera = cabecera ? cabecera.fila : null;
+        let filaPrimeraPartida = filaCabecera === null ? null : recPrimeraFilaDeDatos(filas, filaCabecera);
+        if (cabecera && cabecera.reconocida) {
+          const rotulos = Object.values(cabecera.porCampo).map((c) => `\xAB${c.rotulo}\xBB`).join(", ");
+          motivos.push({
+            campo: null,
+            texto: `La cabecera est\xE1 en la fila ${filaCabecera + 1} de la hoja: ${cabecera.aciertos} de sus celdas llevan un nombre de columna conocido (${rotulos}).`
+          });
+          for (const [campo, c] of Object.entries(cabecera.porCampo)) {
+            columnas[campo] = c.col;
+            motivos.push({
+              campo,
+              texto: `La columna ${recLetraColumna(c.col)} se llama \xAB${c.rotulo}\xBB, que es un nombre habitual de \xAB${campo}\xBB.` + (c.heredado ? " Es la SEGUNDA columna con nombre de descripci\xF3n, as\xED que se toma como el texto largo." : "")
+            });
+          }
+        } else if (cabecera) {
+          motivos.push({
+            campo: null,
+            texto: `Ninguna fila lleva nombres de columna que se reconozcan. Se toma como cabecera la fila ${filaCabecera + 1}, que es de texto corto y tiene datos debajo, y el resto se adivina por el contenido.`
+          });
+        }
+        if (filaPrimeraPartida === null) {
+          for (let i = 0; i < filas.length; i++) {
+            const fila = filas[i] || [];
+            if (recFilaVacia(fila)) continue;
+            const llenas = fila.filter((v) => recTexto(v) !== "").length;
+            const conNumero = fila.some((v) => recANumero(v, "coma") !== null);
+            if (llenas >= 2 && conNumero) {
+              filaPrimeraPartida = i;
+              break;
+            }
+          }
+          if (filaPrimeraPartida === null) filaPrimeraPartida = filas.findIndex((f) => !recFilaVacia(f));
+          if (filaPrimeraPartida < 0) filaPrimeraPartida = null;
+          if (!cabecera) {
+            motivos.push({
+              campo: null,
+              texto: "No se ha encontrado ninguna fila que parezca una cabecera de presupuesto: todo lo que sigue est\xE1 deducido del contenido de las columnas."
+            });
+          }
+        }
+        if (filaPrimeraPartida === null) return nada("Despu\xE9s de la cabecera no queda ninguna fila con datos.");
+        const stats = recEstadisticas(filas, filaPrimeraPartida);
+        const cols = stats.columnas;
+        const ocupadas = new Set(Object.values(columnas).filter((v) => v !== null));
+        const uni = recColumnaUnidad(cols.filter((c) => columnas.unidad === null ? !ocupadas.has(c.indice) : c.indice === columnas.unidad));
+        if (uni && columnas.unidad === null) {
+          columnas.unidad = uni.indice;
+          ocupadas.add(uni.indice);
+          motivos.push({
+            campo: "unidad",
+            texto: `La columna ${recLetraColumna(uni.indice)} es la unidad: ${uni.aciertos} de ${uni.llenas} valores son unidades de medida conocidas (m, m\xB2, ud, kg\u2026) y solo hay ${uni.distintos} valores distintos.`
+          });
+        } else if (uni && columnas.unidad === uni.indice) {
+          motivos.push({
+            campo: "unidad",
+            texto: `Y su contenido lo confirma: ${uni.aciertos} de ${uni.llenas} valores son unidades de medida conocidas.`
+          });
+        }
+        const producto = recProbarProducto(cols);
+        if (producto) {
+          let colCantidad = Math.min(producto.a, producto.b);
+          let colPrecio = Math.max(producto.a, producto.b);
+          let porOrden = true;
+          if (columnas.cantidad === producto.b || columnas.precio === producto.a) {
+            colCantidad = producto.b;
+            colPrecio = producto.a;
+            porOrden = false;
+          } else if (columnas.cantidad === producto.a || columnas.precio === producto.b) {
+            porOrden = false;
+          }
+          const cambia = columnas.precio !== null && columnas.precio !== colPrecio;
+          const cambiaImporte = columnas.importe !== null && columnas.importe !== producto.c;
+          columnas.cantidad = colCantidad;
+          columnas.precio = colPrecio;
+          columnas.importe = producto.c;
+          ocupadas.add(colCantidad).add(colPrecio).add(producto.c);
+          const L = recLetraColumna;
+          const base = `${L(colCantidad)} \xD7 ${L(colPrecio)} \u2248 ${L(producto.c)} en ${producto.ok} de ${producto.comprobadas} filas comprobadas`;
+          motivos.push({ campo: "importe", texto: `La columna ${L(producto.c)} es el importe porque ${base}.` });
+          motivos.push({
+            campo: "precio",
+            texto: `La columna ${L(colPrecio)} es el precio porque ${base}` + (porOrden ? ", y de las dos que se multiplican es la de la derecha: la medici\xF3n va siempre antes que el precio." : ".")
+          });
+          motivos.push({ campo: "cantidad", texto: `La columna ${L(colCantidad)} es la cantidad porque ${base}.` });
+          if (cambia || cambiaImporte) {
+            motivos.push({
+              campo: null,
+              texto: "Los nombres de la cabecera dec\xEDan otra cosa, pero manda la comprobaci\xF3n: multiplicar de verdad las columnas es m\xE1s fiable que c\xF3mo est\xE9n rotuladas."
+            });
+          }
+        } else {
+          const numericas = cols.filter((c) => !ocupadas.has(c.indice) && c.llenas >= 2 && c.numericas / c.llenas >= 0.7);
+          for (const campo of ["cantidad", "precio", "importe"]) {
+            if (columnas[campo] !== null) {
+              ocupadas.add(columnas[campo]);
+              continue;
+            }
+            const libre = numericas.find((c) => !ocupadas.has(c.indice));
+            if (!libre) continue;
+            columnas[campo] = libre.indice;
+            ocupadas.add(libre.indice);
+            motivos.push({
+              campo,
+              texto: `La columna ${recLetraColumna(libre.indice)} se propone como \xAB${campo}\xBB solo porque es num\xE9rica: no hay ninguna columna que sea el producto de otras dos, as\xED que esto est\xE1 sin comprobar.`
+            });
+          }
+        }
+        if (columnas.codigo === null) {
+          const cod = recColumnaCodigo(cols, ocupadas);
+          if (cod) {
+            columnas.codigo = cod.indice;
+            ocupadas.add(cod.indice);
+            motivos.push({
+              campo: "codigo",
+              texto: `La columna ${recLetraColumna(cod.indice)} es el c\xF3digo: ${cod.aciertos} de ${cod.llenas} valores tienen forma de c\xF3digo de partida (\xAB01.02.03\xBB, \xABE01AB020\xBB).`
+            });
+          }
+        } else {
+          ocupadas.add(columnas.codigo);
+        }
+        const textos = recColumnasTexto(cols, ocupadas);
+        if (columnas.resumen === null && textos.length) {
+          let elegida = textos[0];
+          if (textos.length > 1 && textos[0].largoMedio >= 120 && textos[1].largoMedio >= 8) {
+            columnas.descripcion = textos[0].indice;
+            ocupadas.add(textos[0].indice);
+            elegida = textos[1];
+            motivos.push({
+              campo: "descripcion",
+              texto: `La columna ${recLetraColumna(textos[0].indice)} es la descripci\xF3n larga: sus textos ocupan ${Math.round(textos[0].largoMedio)} caracteres de media, demasiado para un resumen.`
+            });
+          }
+          columnas.resumen = elegida.indice;
+          ocupadas.add(elegida.indice);
+          motivos.push({
+            campo: "resumen",
+            texto: `La columna ${recLetraColumna(elegida.indice)} es el resumen: es la columna de texto con m\xE1s contenido (${Math.round(elegida.largoMedio)} caracteres de media en ${elegida.llenas} filas).`
+          });
+        }
+        if (columnas.resumen !== null && columnas.descripcion !== null) {
+          const r = cols[columnas.resumen];
+          const d = cols[columnas.descripcion];
+          if (r && d && r.largoMedio > 120 && d.largoMedio > 0 && r.largoMedio > d.largoMedio * 2) {
+            const antes = columnas.resumen;
+            columnas.resumen = columnas.descripcion;
+            columnas.descripcion = antes;
+            motivos.push({
+              campo: "resumen",
+              texto: `Se han intercambiado el resumen y la descripci\xF3n: la columna ${recLetraColumna(antes)} tiene textos de ${Math.round(r.largoMedio)} caracteres de media, que es un texto de partida, no un resumen.`
+            });
+          }
+        }
+        let puntos = 0;
+        if (cabecera && cabecera.reconocida) puntos += cabecera.aciertos >= 4 ? 3 : cabecera.aciertos >= 3 ? 2 : 1;
+        if (producto) puntos += producto.ratio >= 0.9 ? 3 : producto.ratio >= 0.75 ? 2 : 1;
+        if (uni) puntos += 1;
+        if (columnas.codigo !== null) puntos += 1;
+        if (columnas.resumen !== null) puntos += 1;
+        const hayDinero = columnas.precio !== null || columnas.importe !== null;
+        let confianza = "baja";
+        if (columnas.resumen !== null && hayDinero && puntos >= 6) confianza = "alta";
+        else if (columnas.resumen !== null && puntos >= 3) confianza = "media";
+        if (confianza === "baja") {
+          motivos.push({
+            campo: null,
+            texto: "Esto no se parece lo bastante a un presupuesto: falta la cabecera, o el resumen, o unas columnas de cantidad y precio que cuadren entre s\xED. Hay que decir a mano qu\xE9 es cada columna."
+          });
+        }
+        let perfil = "generico";
+        if (cabecera && cabecera.reconocida) {
+          const celdas = (filas[filaCabecera] || []).map((v) => recNormalizar(v));
+          const marcasPresto = ["canpres", "prpres", "imppres", "nat", "cantidadpres", "preciopres"];
+          const esPresto = celdas.some((h) => marcasPresto.includes(h));
+          const usados = Object.values(cabecera.porCampo);
+          const ambiguo = (c) => (REC_INDICE.get(recNormalizar(c.rotulo)) || []).some((e) => e.idioma === "es") && (REC_INDICE.get(recNormalizar(c.rotulo)) || []).some((e) => e.idioma === "en");
+          const en = usados.filter((c) => c.idioma === "en" && !ambiguo(c)).length;
+          const es = usados.filter((c) => c.idioma === "es" && !ambiguo(c)).length;
+          if (esPresto) perfil = "presto";
+          else if (en > es) perfil = "boq";
+        }
+        motivos.push({
+          campo: null,
+          texto: perfil === "presto" ? "Tiene la forma de una exportaci\xF3n de Presto a Excel." : perfil === "boq" ? "Los r\xF3tulos est\xE1n en ingl\xE9s: es un BOQ." : "No se parece a ning\xFAn formato conocido; se trata como un Excel cualquiera."
+        });
+        return { filaCabecera, columnas, confianza, motivos, filaPrimeraPartida, perfil };
+      }
+      function recCelda(fila, col) {
+        if (col === null || col === void 0) return "";
+        return recTexto(fila[col]);
+      }
+      function recFilaDiceTotal(fila) {
+        return (fila || []).some((v) => REC_TOTALES.test(recNormalizar(v)));
+      }
+      function aArbol(hoja, mapeo) {
+        const modelo = recModulo("../presupuesto/modelo", "MODELO");
+        const biblioteca = recModulo("../presupuesto/biblioteca", "BIBLIOTECA");
+        const filas = hoja && hoja.filas || [];
+        const cols = mapeo && mapeo.columnas || recColumnasVacias();
+        const avisos = [];
+        const aviso = (clave, mensaje, cuantas) => avisos.push(cuantas === void 0 ? { clave, mensaje } : { clave, mensaje, cuantas });
+        let desde = mapeo && mapeo.filaPrimeraPartida !== null && mapeo.filaPrimeraPartida !== void 0 ? mapeo.filaPrimeraPartida : 0;
+        if (desde < 0) desde = 0;
+        if (cols.resumen === null || cols.resumen === void 0) {
+          aviso("SIN_COLUMNA_RESUMEN", "No se ha dicho cu\xE1l es la columna del resumen, y sin resumen no hay partida que importar.");
+          return { arbol: [], avisos, resumen: { partidas: 0, capitulos: 0, importe: 0 } };
+        }
+        const stats = recEstadisticas(filas, desde, filas.length - desde);
+        const estiloDe = (col) => col !== null && col !== void 0 && stats.columnas[col] ? stats.columnas[col].estilo : "coma";
+        const numero = (fila, col) => col === null || col === void 0 ? null : recANumero(fila[col], estiloDe(col));
+        const cuenta = {
+          vacias: 0,
+          totales: 0,
+          notas: 0,
+          continuaciones: 0,
+          convertidos: 0,
+          sinPrecio: 0,
+          sinCantidad: 0,
+          dudosas: 0,
+          descuadres: 0
+        };
+        const lineas = [];
+        let ultimaPartida = null;
+        for (let i = desde; i < filas.length; i++) {
+          const fila = filas[i] || [];
+          if (recFilaVacia(fila)) {
+            cuenta.vacias++;
+            ultimaPartida = null;
+            continue;
+          }
+          const codigo = recCelda(fila, cols.codigo);
+          const resumen = recCelda(fila, cols.resumen);
+          const unidad = recCelda(fila, cols.unidad);
+          const descripcion = recCelda(fila, cols.descripcion);
+          const grupo = recCelda(fila, cols.grupo);
+          const cantidad = numero(fila, cols.cantidad);
+          const precio = numero(fila, cols.precio);
+          const importe2 = numero(fila, cols.importe);
+          const tieneDatos = unidad !== "" || cantidad !== null || precio !== null;
+          const normRes = recNormalizar(resumen);
+          if (REC_TOTALES.test(normRes) || !tieneDatos && importe2 !== null && (!resumen || recFilaDiceTotal(fila))) {
+            cuenta.totales++;
+            ultimaPartida = null;
+            continue;
+          }
+          if (!resumen) {
+            cuenta.notas++;
+            ultimaPartida = null;
+            continue;
+          }
+          if (tieneDatos) {
+            for (const col of [cols.cantidad, cols.precio, cols.importe]) {
+              if (col === null || col === void 0) continue;
+              if (typeof fila[col] === "string" && recANumero(fila[col], estiloDe(col)) !== null) cuenta.convertidos++;
+            }
+            const clase = biblioteca && biblioteca.clasificar ? biblioteca.clasificar(resumen, unidad) : null;
+            const fiable = clase && clase.confianza && clase.confianza !== "baja";
+            if (!fiable) cuenta.dudosas++;
+            if (precio === null) cuenta.sinPrecio++;
+            if (cantidad === null) cuenta.sinCantidad++;
+            if (cantidad !== null && precio !== null && importe2 !== null && Math.abs(cantidad * precio - importe2) > Math.max(0.02, Math.abs(importe2) * 1e-3)) cuenta.descuadres++;
+            const nodo2 = {
+              tipo: "partida",
+              codigo: codigo || null,
+              resumen,
+              unidad: unidad || null,
+              cantidad,
+              precio,
+              descripcion: descripcion || null,
+              disciplina: fiable ? clase.disciplina : null,
+              subdisciplina: fiable ? clase.subdisciplina : null,
+              tipoBiblioteca: fiable ? clase.tipo : null,
+              grupo: grupo || null,
+              importeLeido: importe2,
+              fila: i,
+              hijos: []
+            };
+            lineas.push({ clase: "partida", nodo: nodo2, codigo });
+            ultimaPartida = nodo2;
+            continue;
+          }
+          if (!codigo && cols.codigo !== null && cols.codigo !== void 0 && ultimaPartida) {
+            ultimaPartida.descripcion = ultimaPartida.descripcion ? `${ultimaPartida.descripcion}
+${resumen}` : resumen;
+            cuenta.continuaciones++;
+            continue;
+          }
+          const nodo = {
+            tipo: "capitulo",
+            codigo: codigo || null,
+            resumen,
+            unidad: null,
+            cantidad: null,
+            precio: null,
+            descripcion: descripcion || null,
+            importeLeido: importe2,
+            fila: i,
+            hijos: []
+          };
+          lineas.push({ clase: "capitulo", nodo, codigo });
+          ultimaPartida = null;
+        }
+        const hayCapitulos = lineas.some((l) => l.clase === "capitulo");
+        const jerarquicos = lineas.some((l) => l.clase === "capitulo" && /[.\-_/]/.test(l.codigo || ""));
+        const arbol = [];
+        const pila = [];
+        let implicito = null;
+        const contenedor = () => {
+          if (pila.length) return pila[pila.length - 1].nodo.hijos;
+          implicito = {
+            tipo: "capitulo",
+            codigo: null,
+            resumen: hayCapitulos ? "Sin cap\xEDtulo" : hoja && hoja.nombre || "Presupuesto importado",
+            unidad: null,
+            cantidad: null,
+            precio: null,
+            descripcion: null,
+            implicito: true,
+            hijos: []
+          };
+          arbol.push(implicito);
+          pila.push({ nivel: 0, nodo: implicito });
+          return implicito.hijos;
+        };
+        for (const l of lineas) {
+          if (l.clase === "capitulo") {
+            const nivel = jerarquicos && l.codigo ? Math.max(1, recNivelDeCodigo(l.codigo)) : 1;
+            while (pila.length && (pila[pila.length - 1].nodo.implicito || pila[pila.length - 1].nivel >= nivel)) pila.pop();
+            (pila.length ? pila[pila.length - 1].nodo.hijos : arbol).push(l.nodo);
+            pila.push({ nivel, nodo: l.nodo });
+          } else {
+            contenedor().push(l.nodo);
+          }
+        }
+        const todas = lineas.filter((l) => l.clase === "partida");
+        const capitulos = lineas.filter((l) => l.clase === "capitulo").length + (implicito ? 1 : 0);
+        if (!todas.length) {
+          aviso("SIN_PARTIDAS", "No se ha reconocido ninguna partida en la hoja con este mapeo.");
+        }
+        if (!hayCapitulos && todas.length) {
+          aviso(
+            "SIN_JERARQUIA",
+            "Los c\xF3digos no son jer\xE1rquicos y ninguna fila parece un cap\xEDtulo: todas las partidas cuelgan de un \xFAnico cap\xEDtulo y habr\xE1 que repartirlas a mano."
+          );
+        } else if (implicito && hayCapitulos) {
+          aviso(
+            "PARTIDAS_SIN_CAPITULO",
+            `Hay ${implicito.hijos.length} partidas antes del primer cap\xEDtulo; se han dejado en un cap\xEDtulo \xABSin cap\xEDtulo\xBB.`,
+            implicito.hijos.length
+          );
+        }
+        if (cuenta.totales) {
+          aviso(
+            "FILAS_DE_TOTAL",
+            `Se han saltado ${cuenta.totales} filas de totales o subtotales: los totales los calcula la aplicaci\xF3n.`,
+            cuenta.totales
+          );
+        }
+        if (cuenta.notas) {
+          aviso(
+            "FILAS_SIN_RESUMEN",
+            `Se han saltado ${cuenta.notas} filas sin resumen (notas al pie, separadores o restos de la plantilla).`,
+            cuenta.notas
+          );
+        }
+        if (cuenta.vacias) {
+          aviso("FILAS_VACIAS", `Se han saltado ${cuenta.vacias} filas en blanco.`, cuenta.vacias);
+        }
+        if (cuenta.continuaciones) {
+          aviso(
+            "TEXTO_CONTINUADO",
+            `${cuenta.continuaciones} filas de solo texto se han unido a la descripci\xF3n de la partida anterior.`,
+            cuenta.continuaciones
+          );
+        }
+        const mezcladas = ["cantidad", "precio", "importe"].filter((k) => cols[k] !== null && cols[k] !== void 0 && stats.columnas[cols[k]] && stats.columnas[cols[k]].mezclada).map((k) => `${k} (columna ${recLetraColumna(cols[k])})`);
+        if (mezcladas.length) {
+          aviso(
+            "SEPARADOR_MEZCLADO",
+            `En ${mezcladas.join(" y ")} hay n\xFAmeros escritos con coma decimal y otros con punto decimal. Se ha le\xEDdo cada uno como parece, pero conviene mirarlos: lo que quede dudoso sale mil veces mayor.`,
+            mezcladas.length
+          );
+        }
+        if (cuenta.convertidos) {
+          aviso(
+            "NUMEROS_EN_TEXTO",
+            `${cuenta.convertidos} n\xFAmeros ven\xEDan escritos como texto (\xAB1.234,56\xBB) y se han convertido.`,
+            cuenta.convertidos
+          );
+        }
+        if (cuenta.sinPrecio) {
+          aviso(
+            "PARTIDAS_SIN_PRECIO",
+            `${cuenta.sinPrecio} partidas se han importado SIN precio. No se han rellenado con cero a prop\xF3sito: un cero dir\xEDa que valen cero y el auditor se callar\xEDa.`,
+            cuenta.sinPrecio
+          );
+        }
+        if (cuenta.sinCantidad) {
+          aviso("PARTIDAS_SIN_CANTIDAD", `${cuenta.sinCantidad} partidas se han importado sin cantidad.`, cuenta.sinCantidad);
+        }
+        if (cuenta.descuadres) {
+          aviso(
+            "IMPORTE_NO_CUADRA",
+            `En ${cuenta.descuadres} partidas el importe de la hoja no es cantidad \xD7 precio. Se ha importado lo que ven\xEDa; el importe bueno lo recalcula la aplicaci\xF3n.`,
+            cuenta.descuadres
+          );
+        }
+        if (cuenta.dudosas) {
+          aviso(
+            "DISCIPLINA_DUDOSA",
+            `${cuenta.dudosas} de ${todas.length} partidas no se han podido clasificar por disciplina y se han dejado sin disciplina. Adivinarla mal desviar\xEDa las estad\xEDsticas del departamento.`,
+            cuenta.dudosas
+          );
+        }
+        const euros = modelo && modelo.euros ? modelo.euros : ((v) => Math.round(Number(v) * 100) / 100);
+        const medida = modelo && modelo.medida ? modelo.medida : ((v) => Math.round(Number(v) * 100) / 100);
+        const precioR = modelo && modelo.precio ? modelo.precio : ((v) => Math.round(Number(v) * 100) / 100);
+        let importe = 0;
+        let importeHoja = 0;
+        for (const l of todas) {
+          const n = l.nodo;
+          if (n.cantidad !== null && n.precio !== null) importe += euros(medida(n.cantidad) * precioR(n.precio));
+          else if (n.importeLeido !== null) importe += euros(n.importeLeido);
+          if (n.importeLeido !== null) importeHoja += euros(n.importeLeido);
+        }
+        return {
+          arbol,
+          avisos,
+          resumen: {
+            partidas: todas.length,
+            capitulos,
+            importe: euros(importe),
+            importeHoja: euros(importeHoja),
+            filasSaltadas: cuenta.totales + cuenta.notas + cuenta.vacias
+          }
+        };
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.RECONOCER = API;
+      })({
+        reconocer,
+        aArbol,
+        UNIDADES_RECONOCIDAS: REC_UNIDADES,
+        SINONIMOS_DE_COLUMNA: REC_SINONIMOS,
+        normalizarTexto: recNormalizar,
+        letraDeColumna: recLetraColumna,
+        aNumero: recANumero,
+        estiloNumerico: recEstiloNumerico,
+        nivelDeCodigo: recNivelDeCodigo
+      });
+    }
+  });
+
+  // shared/obra/certificacionIndustrial.js
+  var require_certificacionIndustrial = __commonJS({
+    "shared/obra/certificacionIndustrial.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var _recInd = typeof __require !== "undefined" ? require_reconocer() : window.RECONOCER;
+      var _modeloInd = typeof __require !== "undefined" ? require_modelo() : window.MODELO;
+      var CAMPOS_IND = {
+        codigo: "C\xF3digo",
+        resumen: "Resumen",
+        unidad: "Unidad",
+        precio: "Precio",
+        contrato: "Cantidad de contrato",
+        contratoImporte: "Importe de contrato",
+        anterior: "Cantidad anterior",
+        anteriorImporte: "Importe anterior",
+        mes: "Cantidad del mes",
+        mesImporte: "Importe del mes",
+        origen: "Cantidad a origen",
+        origenImporte: "Importe a origen",
+        origenPct: "% a origen",
+        cantidad: "Cantidad (sin decir cu\xE1l)"
+      };
+      var DE_TEXTO_IND = /* @__PURE__ */ new Set(["codigo", "resumen", "unidad"]);
+      var normInd = (v) => String(v ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9%€º]+/g, " ").trim();
+      function campoDeCabecera(texto) {
+        const crudo = String(texto ?? "");
+        const t = normInd(crudo);
+        if (!t) return null;
+        if (/^(cod|codigo|cod partida|ref|referencia|item|clave|n|no|n º|nº|num|numero|orden)$/.test(t) || /^codigo\b/.test(t)) return "codigo";
+        if (/\b(resumen|descripcion|concepto|designacion|denominacion|partida|unidad de obra|texto)\b/.test(t)) return "resumen";
+        if (/^(ud|uds|u|unidad|unid|unidades|medida)$/.test(t)) return "unidad";
+        const dinero = /\b(importe|imp|euros?|eur|valor|total eur)\b|€/.test(t);
+        const pct = /%|\bporcentaje\b|\bpct\b/.test(t);
+        let periodo = null;
+        if (/\borigen\b|acumulad|\btotal ejecutad|\bejecutado total\b/.test(t)) periodo = "origen";
+        else if (/anterior|\bprevi|\bant\b/.test(t)) periodo = "anterior";
+        else if (/\bmes\b|\bactual\b|\bperiodo\b|\bparcial\b|\bpresente\b|\ben curso\b|\besta\b|\beste\b/.test(t)) periodo = "mes";
+        else if (/contrat|proyecto|presupuest|ofertad|adjudicad|\bpres\b|\binicial\b/.test(t)) periodo = "contrato";
+        if (!periodo) {
+          if (/\b(precio|pu|p u|unitario|pr)\b/.test(t)) return "precio";
+          if (pct) return "origenPct";
+          if (dinero) return null;
+          if (/\b(cantidad|cant|medicion|med|ejecutad[oa]|certificad[oa])\b/.test(t)) return "cantidad";
+          return null;
+        }
+        if (pct) return periodo === "origen" ? "origenPct" : null;
+        return dinero ? `${periodo}Importe` : periodo;
+      }
+      function tablaDeExcel(hoja) {
+        return (hoja && hoja.filas || []).map((fila) => (fila || []).map((v, x) => ({ x, v })).filter((c) => c.v !== null && c.v !== void 0 && String(c.v).trim() !== ""));
+      }
+      function tablaDePdf(lectura) {
+        return (lectura && lectura.lineas || []).map((l) => (l.columnas || []).map((c) => ({ x: c.x, v: c.texto })));
+      }
+      var esExcel = (filas) => filas.every((f) => f.every((c) => Number.isInteger(c.x) && c.x < 200));
+      function columnasDeInd(fila, grupo, tolerancia) {
+        const grupos = (grupo || []).map((c) => ({ x: c.x, texto: String(c.v) })).sort((a, b) => a.x - b.x);
+        return fila.map((c) => {
+          const g = grupos.filter((x) => x.x <= c.x + tolerancia).pop();
+          const texto = g ? `${g.texto} ${c.v}` : String(c.v);
+          return { x: c.x, texto: texto.trim(), campo: campoDeCabecera(texto) || campoDeCabecera(c.v) };
+        });
+      }
+      var puntuar = (cols) => {
+        const campos = new Set(cols.map((c) => c.campo).filter(Boolean));
+        const util = ["origen", "origenImporte", "origenPct", "mes", "mesImporte", "cantidad"].some((k) => campos.has(k));
+        return util ? campos.size + 100 : campos.size;
+      };
+      function buscarCabecera(filas) {
+        const tol = esExcel(filas) ? 0 : 6;
+        let mejor = null;
+        const probar = (indice, fila, grupo, hasta) => {
+          let cols = columnasDeInd(fila, grupo, tol);
+          if (grupo) {
+            const sueltas = grupo.filter((g) => !fila.some((c) => Math.abs(c.x - g.x) <= tol)).map((g) => ({ x: g.x, texto: String(g.v), campo: campoDeCabecera(g.v) })).filter((c) => c.campo && DE_TEXTO_IND.has(c.campo));
+            cols = [...cols, ...sueltas].sort((a, b) => a.x - b.x);
+          }
+          const p = puntuar(cols);
+          if (p >= 2 && (!mejor || p > mejor.puntos)) mejor = { fila: indice, hasta, columnas: cols, puntos: p };
+        };
+        const tope = Math.min(filas.length, 60);
+        for (let i = 0; i < tope; i += 1) {
+          const f = filas[i];
+          if (!f.length || f.some((c) => typeof c.v === "number")) continue;
+          probar(i, f, null, i);
+          if (i > 0 && filas[i - 1].length) probar(i, f, filas[i - 1], i);
+          if (i + 1 < filas.length && filas[i + 1].length && !filas[i + 1].some((c) => typeof c.v === "number")) probar(i + 1, filas[i + 1], f, i + 1);
+        }
+        if (!mejor) return null;
+        const vistos = /* @__PURE__ */ new Set();
+        for (const c of mejor.columnas) {
+          if (!c.campo) continue;
+          if (vistos.has(c.campo)) {
+            c.repetida = c.campo;
+            c.campo = null;
+          } else vistos.add(c.campo);
+        }
+        return mejor;
+      }
+      function normCodigo(c) {
+        return String(c ?? "").toLowerCase().replace(/\s+/g, "").split(/[.\-_/]+/).filter(Boolean).map((p) => /^\d+$/.test(p) ? String(Number(p)) : p).join(".");
+      }
+      var palabras = (t) => new Set(normInd(t).split(" ").filter((w) => w.length >= 3));
+      function parecido(a, b) {
+        const x = palabras(a);
+        const y = palabras(b);
+        if (!x.size || !y.size) return 0;
+        let comunes = 0;
+        for (const w of x) if (y.has(w)) comunes += 1;
+        return comunes / (x.size + y.size - comunes);
+      }
+      var pareceCodigo = (t) => /^[A-Za-z]{0,4}\d{1,4}([.\-_/][A-Za-z0-9]{1,6}){1,5}\.?$/.test(String(t).trim()) || /^[A-Za-z]{1,4}\d{1,6}$/.test(String(t).trim());
+      var FILA_TOTAL_IND = /^(total|suma|subtotal|suma y sigue|total capitulo|total cap|importe total|base imponible|iva|retencion|liquido|a deducir)\b/;
+      function leerCertificacionIndustrial({ filas = [], partidas = [], mapeo = null } = {}) {
+        const avisos = [];
+        const motivos = [];
+        const excel = esExcel(filas);
+        const cab = buscarCabecera(filas);
+        let columnas = cab ? cab.columnas.map((c) => ({ ...c })) : [];
+        if (!cab) {
+          const muestra = filas.filter((f) => f.length >= 2).sort((a, b) => b.length - a.length)[0] || [];
+          columnas = muestra.map((c, j) => ({ x: c.x, texto: excel ? `Columna ${_recInd.letraDeColumna(c.x)}` : `Columna ${j + 1}`, campo: null }));
+        }
+        if (mapeo) {
+          const usadas = /* @__PURE__ */ new Set();
+          for (const c of columnas) {
+            const k = String(c.x);
+            if (Object.prototype.hasOwnProperty.call(mapeo, k)) c.campo = mapeo[k] || null;
+            c.manual = Object.prototype.hasOwnProperty.call(mapeo, k);
+            if (c.campo && usadas.has(c.campo)) c.campo = null;
+            if (c.campo) usadas.add(c.campo);
+          }
+        }
+        if (cab) {
+          const entendidas = columnas.filter((c) => c.campo).map((c) => `\xAB${c.texto}\xBB \u2192 ${CAMPOS_IND[c.campo]}`);
+          motivos.push(`La cabecera est\xE1 en la fila ${cab.fila + 1}${cab.hasta !== cab.fila ? ` y ${cab.hasta + 1}` : ""}: ${entendidas.join(", ")}.`);
+        } else {
+          motivos.push("No se ha encontrado una fila de cabecera con \xABa origen\xBB, \xABmes\xBB o \xABcantidad\xBB.");
+        }
+        const col = (campo) => columnas.find((c) => c.campo === campo) || null;
+        const tiene = (campo) => Boolean(col(campo));
+        if (cab && !["origen", "origenPct", "origenImporte", "mes", "mesImporte"].some(tiene)) {
+          if (tiene("cantidad")) {
+            col("cantidad").campo = "origen";
+            avisos.push("Solo hay una columna de cantidad y no dice si es del mes o a origen: se toma como A ORIGEN. Si es la del mes, c\xE1mbialo arriba.");
+          }
+        }
+        const hayValor = ["origen", "origenPct", "origenImporte", "mes", "mesImporte"].some(tiene);
+        if (!hayValor) {
+          return {
+            ok: false,
+            columnas,
+            campos: CAMPOS_IND,
+            motivos,
+            lineas: [],
+            sinCasar: [],
+            sinFila: partidas.length,
+            avisos: ["No se sabe qu\xE9 columna es lo certificado. Elige en la tabla de columnas cu\xE1l es \xABCantidad a origen\xBB (o la del mes)."]
+          };
+        }
+        const porCodigo = /* @__PURE__ */ new Map();
+        for (const p of partidas) {
+          const k = normCodigo(p.codigo);
+          if (!k) continue;
+          if (!porCodigo.has(k)) porCodigo.set(k, []);
+          porCodigo.get(k).push(p);
+        }
+        const numericas = columnas.filter((c) => c.campo && !DE_TEXTO_IND.has(c.campo)).sort((a, b) => a.x - b.x);
+        const conCampo = columnas.filter((c) => c.campo);
+        const numero = (v) => typeof v === "number" ? v : _recInd.aNumero(v, "coma");
+        const masCercana = (lista, x) => lista.reduce((m, c) => !m || Math.abs(c.x - x) < Math.abs(m.x - x) ? c : m, null);
+        const casadas = /* @__PURE__ */ new Map();
+        const sinCasar = [];
+        const desde = cab ? cab.hasta + 1 : 0;
+        for (let i = desde; i < filas.length; i += 1) {
+          const fila = filas[i];
+          if (!fila.length) continue;
+          const colCodigo = col("codigo");
+          const celdaCodigo = excel ? (colCodigo ? fila.find((c) => c.x === colCodigo.x) : null) || (pareceCodigo(fila[0].v) && typeof fila[0].v !== "number" ? fila[0] : null) : pareceCodigo(fila[0].v) ? fila[0] : null;
+          const resto = fila.filter((c) => c !== celdaCodigo);
+          const textos = resto.filter((c) => typeof c.v !== "number" && numero(c.v) === null);
+          if (textos.some((c) => FILA_TOTAL_IND.test(normInd(c.v)))) continue;
+          const nums = resto.filter((c) => !textos.includes(c) && numero(c.v) !== null);
+          if (!nums.length) continue;
+          const valores = {};
+          if (excel) {
+            for (const c of fila) {
+              const k = conCampo.find((x) => x.x === c.x);
+              if (k) valores[k.campo] = c.v;
+            }
+          } else {
+            if (nums.length === numericas.length) nums.forEach((c, j) => {
+              valores[numericas[j].campo] = c.v;
+            });
+            else for (const c of nums) {
+              const k = masCercana(numericas, c.x);
+              if (k && valores[k.campo] === void 0) valores[k.campo] = c.v;
+            }
+          }
+          const codigo = celdaCodigo ? String(celdaCodigo.v).trim() : "";
+          let resumen = valores.resumen !== void 0 && excel ? String(valores.resumen).trim() : "";
+          if (!resumen) {
+            resumen = textos.filter((c) => String(c.v).trim() !== codigo && !_recInd.UNIDADES_RECONOCIDAS.has(normInd(c.v))).map((c) => String(c.v).trim()).sort((a, b) => b.length - a.length)[0] || "";
+          }
+          if (!codigo && !resumen) continue;
+          const n = (campo) => valores[campo] === void 0 ? null : numero(valores[campo]);
+          const leido = {
+            contrato: n("contrato"),
+            precio: n("precio"),
+            anterior: n("anterior"),
+            mes: n("mes"),
+            origen: n("origen"),
+            origenPct: n("origenPct"),
+            origenImporte: n("origenImporte"),
+            mesImporte: n("mesImporte")
+          };
+          if (Object.values(leido).every((v) => v === null)) continue;
+          let partida = null;
+          let por = null;
+          const candidatas = codigo ? porCodigo.get(normCodigo(codigo)) || [] : [];
+          if (candidatas.length === 1) {
+            partida = candidatas[0];
+            por = "c\xF3digo";
+          } else if (candidatas.length > 1) {
+            partida = candidatas.map((p) => ({ p, s: parecido(p.resumen, resumen) })).sort((a, b) => b.s - a.s)[0].p;
+            por = "c\xF3digo y texto";
+          } else if (resumen) {
+            const puntos = partidas.map((p) => ({ p, s: normInd(p.resumen) === normInd(resumen) ? 1 : parecido(p.resumen, resumen) })).sort((a, b) => b.s - a.s);
+            if (puntos[0] && puntos[0].s >= 0.6 && (!puntos[1] || puntos[0].s - puntos[1].s >= 0.1)) {
+              partida = puntos[0].p;
+              por = "texto";
+            }
+          }
+          if (!partida) {
+            sinCasar.push({ fila: i + 1, codigo, resumen, ...leido });
+            continue;
+          }
+          const precio = partida.precio;
+          const notas = [];
+          let aOrigen = null;
+          let via = null;
+          if (leido.origen !== null) {
+            aOrigen = leido.origen;
+            via = "cantidad a origen";
+          } else if (leido.origenPct !== null) {
+            aOrigen = _modeloInd.medida((partida.cantidad || 0) * leido.origenPct / 100);
+            via = "% a origen";
+          } else if (leido.origenImporte !== null && (leido.precio || precio)) {
+            aOrigen = _modeloInd.medida(leido.origenImporte / (leido.precio || precio));
+            via = `importe a origen \xF7 ${leido.precio ? "su" : "nuestro"} precio`;
+          } else if (leido.mes !== null) {
+            aOrigen = _modeloInd.medida((leido.anterior !== null ? leido.anterior : partida.anterior || 0) + leido.mes);
+            via = leido.anterior !== null ? "su anterior + mes" : "nuestro anterior + mes";
+          } else if (leido.mesImporte !== null && (leido.precio || precio)) {
+            aOrigen = _modeloInd.medida((partida.anterior || 0) + leido.mesImporte / (leido.precio || precio));
+            via = "nuestro anterior + importe del mes";
+          }
+          if (aOrigen === null) {
+            sinCasar.push({ fila: i + 1, codigo, resumen, ...leido, motivo: "sin cantidad que leer" });
+            continue;
+          }
+          if (leido.anterior !== null && Math.abs(leido.anterior - (partida.anterior || 0)) > 5e-3 + Math.abs(partida.anterior || 0) * 1e-3) {
+            notas.push(`su anterior es ${_modeloInd.textoEuros(leido.anterior)} y el nuestro ${_modeloInd.textoEuros(partida.anterior || 0)}`);
+          }
+          if (leido.precio !== null && precio > 0 && Math.abs(leido.precio - precio) / precio > 0.01) {
+            notas.push(`su precio es ${_modeloInd.textoEuros(leido.precio)} \u20AC y el del contrato ${_modeloInd.textoEuros(precio)} \u20AC`);
+          }
+          const previa = casadas.get(partida.lineaId);
+          if (previa) {
+            previa.aOrigen = _modeloInd.medida(previa.aOrigen + aOrigen);
+            previa.filas.push(i + 1);
+            previa.notas.push(`viene en ${previa.filas.length} l\xEDneas: se suman`);
+            continue;
+          }
+          casadas.set(partida.lineaId, {
+            lineaId: partida.lineaId,
+            codigo: partida.codigo,
+            resumen: partida.resumen,
+            unidad: partida.unidad,
+            codigoSuyo: codigo,
+            resumenSuyo: resumen,
+            por,
+            via,
+            filas: [i + 1],
+            cantidad: partida.cantidad,
+            anterior: partida.anterior || 0,
+            actual: partida.aOrigen,
+            aOrigen: _modeloInd.medida(aOrigen),
+            precio,
+            importeSuyo: leido.origenImporte,
+            notas
+          });
+        }
+        const lineas = [...casadas.values()];
+        for (const l of lineas) {
+          l.importe = _modeloInd.euros(l.aOrigen * l.precio);
+          l.cambia = Math.abs((l.actual || 0) - l.aOrigen) > 5e-4;
+        }
+        const totalNuestro = _modeloInd.euros(lineas.reduce((a, l) => a + l.importe, 0));
+        const conImporte = lineas.filter((l) => l.importeSuyo !== null && l.importeSuyo !== void 0);
+        const totalSuyo = conImporte.length ? _modeloInd.euros(conImporte.reduce((a, l) => a + l.importeSuyo, 0)) : null;
+        if (!lineas.length) avisos.push("No se ha casado ninguna l\xEDnea con las partidas del Costs Plan: ni por c\xF3digo ni por texto.");
+        if (sinCasar.length) avisos.push(`${sinCasar.length === 1 ? "Una l\xEDnea" : `${sinCasar.length} l\xEDneas`} de su certificaci\xF3n no se ${sinCasar.length === 1 ? "casa" : "casan"} con ninguna partida: obra que no se le cobrar\xEDa al cliente, o una partida que falta en el Costs Plan.`);
+        const conNotas = lineas.filter((l) => l.notas.length).length;
+        if (conNotas) avisos.push(`${conNotas === 1 ? "Una partida trae" : `${conNotas} partidas traen`} algo distinto a lo nuestro (anterior o precio): est\xE1 marcado en cada una.`);
+        return {
+          ok: lineas.length > 0,
+          columnas,
+          campos: CAMPOS_IND,
+          motivos,
+          avisos,
+          lineas,
+          sinCasar,
+          sinFila: partidas.filter((p) => !casadas.has(p.lineaId) && !p.coste).length,
+          totalNuestro,
+          totalSuyo
+        };
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.CERT_INDUSTRIAL = API;
+      })({ leer: leerCertificacionIndustrial, tablaDeExcel, tablaDePdf, campoDeCabecera, normCodigo, CAMPOS: CAMPOS_IND });
+    }
+  });
+
+  // shared/obra/entradaCertIndustrial.js
+  var require_entradaCertIndustrial = __commonJS({
+    "shared/obra/entradaCertIndustrial.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var _lectorEci = typeof __require !== "undefined" ? require_certificacionIndustrial() : window.CERT_INDUSTRIAL;
+      var _mEci = typeof __require !== "undefined" ? require_modelo() : window.MODELO;
+      var normEci = (v) => String(v ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      var compactoEci = (v) => normEci(v).replace(/ /g, "");
+      var VACIAS_ECI = /* @__PURE__ */ new Set([
+        "s",
+        "l",
+        "sl",
+        "sa",
+        "slu",
+        "sau",
+        "sc",
+        "scp",
+        "cb",
+        "y",
+        "e",
+        "de",
+        "del",
+        "la",
+        "las",
+        "los",
+        "el",
+        "sociedad",
+        "limitada",
+        "anonima",
+        "grupo",
+        "instalaciones",
+        "montajes",
+        "servicios",
+        "empresa",
+        "hermanos",
+        "hnos"
+      ]);
+      function textoDeFilas(filas = []) {
+        return filas.map((f) => (f || []).map((c) => String(c && c.v !== void 0 ? c.v : c ?? "")).join(" ")).join("\n");
+      }
+      var MESES_ECI = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+      var CORTOS_ECI = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+      var mesValido = (a, m) => a >= 2e3 && a <= 2099 && m >= 1 && m <= 12;
+      var periodoDe = (a, m) => `${a}-${String(m).padStart(2, "0")}`;
+      function buscarPeriodo(...textos) {
+        const encontrados = [];
+        for (const crudo of textos) {
+          const t = normEci(String(crudo || "").replace(/[_]+/g, " ").replace(/(\d)\.(\d)/g, "$1/$2"));
+          const original = String(crudo || "").replace(/_+/g, " ");
+          let m;
+          const enLetra = new RegExp(`\\b(${MESES_ECI.join("|")}|${CORTOS_ECI.join("|")}|set|sept)\\w*\\s+(?:de\\s+|del\\s+)?(\\d{4}|\\d{2})\\b`, "g");
+          while (m = enLetra.exec(t)) {
+            const corto = m[1].slice(0, 3) === "set" ? "sep" : m[1].slice(0, 3);
+            const mes = CORTOS_ECI.indexOf(corto) + 1;
+            let a = Number(m[2]);
+            if (a < 100) a += 2e3;
+            if (mesValido(a, mes)) encontrados.push({ periodo: periodoDe(a, mes), pos: m.index, clave: /\b(mes|periodo|certificacion)\s*$/.test(t.slice(Math.max(0, m.index - 20), m.index)) });
+          }
+          const numerico = /(^|[^\d/.-])(\d{1,2})[/-](\d{4})(?![\d/-])|(^|[^\d/.-])(\d{4})[/-](\d{1,2})(?![\d/-])/g;
+          while (m = numerico.exec(original)) {
+            const [a, mes] = m[2] ? [Number(m[3]), Number(m[2])] : [Number(m[5]), Number(m[6])];
+            if (mesValido(a, mes)) encontrados.push({ periodo: periodoDe(a, mes), pos: 1e6 + m.index, clave: false });
+          }
+          if (encontrados.length) break;
+        }
+        if (!encontrados.length) return null;
+        const elegido = encontrados.find((e) => e.clave) || encontrados.sort((a, b) => a.pos - b.pos)[0];
+        return elegido.periodo;
+      }
+      function buscarNumero(texto) {
+        const m = /certificaci[oó]n\s*(?:n[ºo°.]?|num(?:ero)?\.?|#)\s*(\d{1,3})\b/i.exec(String(texto || ""));
+        return m ? Number(m[1]) : null;
+      }
+      function apareceCodigo(textoCompacto, codigo) {
+        const c = compactoEci(codigo);
+        if (!c) return false;
+        if (textoCompacto.includes(c)) return true;
+        const m = /^([a-z]+)0*(\d+)$/.exec(c);
+        if (!m) return false;
+        return new RegExp(`${m[1]}0*${m[2]}(?!\\d)`).test(textoCompacto);
+      }
+      function puntosNombre(textoNorm, proveedor) {
+        let mejor = 0;
+        for (const n of [proveedor.nombre, proveedor.razonSocial]) {
+          const palabras = normEci(n).split(" ").filter((w) => w.length >= 3 && !VACIAS_ECI.has(w));
+          if (!palabras.length) continue;
+          const textoPalabras = new Set(textoNorm.split(" "));
+          const dentro = palabras.filter((w) => textoPalabras.has(w)).length;
+          const p = dentro / palabras.length;
+          if (normEci(n).length >= 6 && textoNorm.includes(normEci(n))) mejor = 1;
+          else mejor = Math.max(mejor, p);
+        }
+        return mejor;
+      }
+      function identificar({ texto = "", nombre = "", carpeta = "", pedidos = [], proveedores = [] } = {}) {
+        const motivos = [];
+        const todo = `${nombre}
+${carpeta}
+${texto}`;
+        const compacto = compactoEci(todo);
+        const norm = normEci(todo);
+        const porCodigo = pedidos.filter((p) => apareceCodigo(compacto, p.codigo));
+        const porSuNumero = pedidos.filter((p) => p.numPedidoProveedor && compactoEci(p.numPedidoProveedor).length >= 4 && compacto.includes(compactoEci(p.numPedidoProveedor)));
+        const porPedido = porCodigo.length ? porCodigo : porSuNumero;
+        if (porPedido.length === 1) {
+          const p = porPedido[0];
+          motivos.push(porCodigo.length ? `Lleva el c\xF3digo del pedido ${p.codigo}.` : `Lleva su n\xFAmero de pedido (${p.numPedidoProveedor}).`);
+          return { proveedorId: p.proveedorId || null, pedidoId: p.id, motivos, candidatos: [p.id] };
+        }
+        const conPedido = new Set(pedidos.map((p) => p.proveedorId));
+        const posibles = proveedores.filter((v) => conPedido.has(v.id));
+        let prov = posibles.find((v) => compactoEci(v.cif).length >= 8 && compacto.includes(compactoEci(v.cif)));
+        if (prov) motivos.push(`Lleva el CIF de ${prov.nombre} (${prov.cif}).`);
+        else {
+          const puntos = posibles.map((v) => ({ v, s: puntosNombre(norm, v) })).sort((a, b) => b.s - a.s);
+          if (puntos[0] && puntos[0].s >= 0.99 && (!puntos[1] || puntos[1].s < 0.99)) {
+            prov = puntos[0].v;
+            motivos.push(`Lleva el nombre de ${prov.nombre}.`);
+          }
+        }
+        const candidatos = (porPedido.length > 1 ? porPedido : pedidos.filter((p) => !prov || p.proveedorId === prov.id)).map((p) => p.id);
+        if (prov && candidatos.length === 1) {
+          motivos.push("Es su \xFAnico pedido en la obra.");
+          return { proveedorId: prov.id, pedidoId: candidatos[0], motivos, candidatos };
+        }
+        if (!prov) motivos.push("No lleva ni c\xF3digo de pedido ni CIF o nombre de un industrial con pedido en la obra.");
+        return { proveedorId: prov ? prov.id : null, pedidoId: null, motivos, candidatos };
+      }
+      function partidasDeHoja(hoja) {
+        return (hoja && hoja.filas || []).map((f) => ({
+          lineaId: f.clave,
+          codigo: f.codigo || String(f.pos),
+          resumen: f.descripcion,
+          unidad: f.unidad,
+          cantidad: f.cantidad,
+          precio: f.precio || 0,
+          anterior: f.anterior || 0,
+          aOrigen: f.origen || 0
+        }));
+      }
+      function proponer({ filas = [], hoja, mapeo = null } = {}) {
+        const r = _lectorEci.leer({ filas, partidas: partidasDeHoja(hoja), mapeo });
+        const origen = {};
+        for (const l of r.lineas) origen[l.lineaId] = l.aOrigen;
+        return {
+          ok: r.ok,
+          origen,
+          lineas: r.lineas.map((l) => ({
+            clave: l.lineaId,
+            codigoSuyo: l.codigoSuyo,
+            resumenSuyo: l.resumenSuyo,
+            por: l.por,
+            via: l.via,
+            aOrigen: l.aOrigen,
+            importeSuyo: l.importeSuyo,
+            notas: l.notas
+          })),
+          sinCasar: r.sinCasar.map((s) => ({ fila: s.fila, codigo: s.codigo, resumen: s.resumen, motivo: s.motivo || null })),
+          columnas: r.columnas.map((c) => ({ x: c.x, texto: c.texto, campo: c.campo || null })),
+          motivos: r.motivos,
+          avisos: r.avisos.map((a) => a.replace(/partidas? del Costs Plan/g, "l\xEDneas del pedido").replace(/ninguna partida/g, "ninguna l\xEDnea del pedido").replace(/: obra que no se le cobraría al cliente, o una partida que falta en el Costs Plan\./, ": obra fuera del pedido, o una l\xEDnea que falta en \xE9l.")),
+          totalSuyo: r.totalSuyo
+        };
+      }
+      function elegirPedido({ filas = [], hojas = [] } = {}) {
+        const puntos = hojas.map((h) => ({ h, n: _lectorEci.leer({ filas, partidas: partidasDeHoja(h) }).lineas.length })).sort((a, b) => b.n - a.n);
+        if (!puntos.length || puntos[0].n === 0) return null;
+        if (puntos[1] && puntos[1].n * 1.5 > puntos[0].n) return null;
+        return puntos[0].h.pedido.id;
+      }
+      function compararConPedido(hoja, origenPropuesto = {}) {
+        const filas = (hoja && hoja.filas || []).map((f) => {
+          const propuesto = Object.prototype.hasOwnProperty.call(origenPropuesto, f.clave) ? _mEci.medida(Number(origenPropuesto[f.clave]) || 0) : null;
+          const queda = propuesto === null ? f.origen : propuesto;
+          const p = f.precio || 0;
+          const avisos = [];
+          if (propuesto !== null && propuesto > f.cantidad + 1e-9) avisos.push("pasa de lo pedido");
+          if (propuesto !== null && propuesto < f.anterior - 1e-9) avisos.push("menos que lo ya certificado");
+          if (propuesto !== null && f.precio === null && propuesto) avisos.push("sin precio");
+          return {
+            clave: f.clave,
+            pos: f.pos,
+            codigo: f.codigo,
+            descripcion: f.descripcion,
+            unidad: f.unidad,
+            cantidad: f.cantidad,
+            precio: f.precio,
+            anterior: f.anterior,
+            actual: f.origen,
+            propuesto,
+            origen: queda,
+            mes: _mEci.medida(queda - f.anterior),
+            importeMes: _mEci.euros((queda - f.anterior) * p),
+            importeOrigen: _mEci.euros(queda * p),
+            cambia: propuesto !== null && Math.abs(propuesto - f.origen) > 5e-4,
+            avisos
+          };
+        });
+        const s = (k) => _mEci.euros(filas.reduce((a, f) => a + (Number(f[k]) || 0), 0));
+        return {
+          filas,
+          totales: {
+            contrato: hoja && hoja.totales && hoja.totales.contrato || 0,
+            anterior: hoja && hoja.totales && hoja.totales.anterior || 0,
+            mes: s("importeMes"),
+            origen: s("importeOrigen")
+          },
+          cambian: filas.filter((f) => f.cambia).length,
+          conAviso: filas.filter((f) => f.avisos.length).length
+        };
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.ENTRADA_CERT_IND = API;
+      })({ textoDeFilas, buscarPeriodo, buscarNumero, identificar, partidasDeHoja, proponer, elegirPedido, comparar: compararConPedido });
+    }
+  });
+
+  // shared/importacion/pdfFuentes.js
+  var require_pdfFuentes = __commonJS({
+    "shared/importacion/pdfFuentes.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var _pdfBase = typeof __require !== "undefined" ? require_pdf() : window.PDF;
+      var _zlibFuentes = typeof __require !== "undefined" ? require_zlib() : null;
+      function indexarObjetos(texto) {
+        const indice = /* @__PURE__ */ new Map();
+        const patron = /(\d+)\s+(\d+)\s+obj\b/g;
+        let m;
+        while ((m = patron.exec(texto)) !== null) {
+          const fin = texto.indexOf("endobj", m.index);
+          indice.set(Number(m[1]), {
+            desde: m.index + m[0].length,
+            hasta: fin === -1 ? texto.length : fin
+          });
+        }
+        return indice;
+      }
+      function cuerpoDe(texto, indice, numero) {
+        const o = indice.get(Number(numero));
+        return o ? texto.slice(o.desde, o.hasta) : "";
+      }
+      function descomprimirFlujoDe(cuerpo, bytes, desplazamiento) {
+        const pos = cuerpo.indexOf("stream");
+        if (pos === -1) return null;
+        let inicio = pos + "stream".length;
+        if (cuerpo.charCodeAt(inicio) === 13) inicio += 1;
+        if (cuerpo.charCodeAt(inicio) === 10) inicio += 1;
+        const fin = cuerpo.indexOf("endstream", inicio);
+        if (fin === -1) return null;
+        const crudo = bytes.slice(desplazamiento + inicio, desplazamiento + fin);
+        if (!/\/FlateDecode/.test(cuerpo.slice(0, pos))) return _pdfBase.latin1(crudo);
+        if (!_zlibFuentes) return null;
+        try {
+          return _pdfBase.latin1(new Uint8Array(_zlibFuentes.inflateSync(Buffer.from(crudo))));
+        } catch {
+          try {
+            return _pdfBase.latin1(new Uint8Array(_zlibFuentes.inflateRawSync(Buffer.from(crudo))));
+          } catch {
+            return null;
+          }
+        }
+      }
+      var deHex = (h) => {
+        const limpio = String(h).replace(/[^0-9a-fA-F]/g, "");
+        let s = "";
+        for (let i = 0; i + 4 <= limpio.length; i += 4) {
+          s += String.fromCharCode(parseInt(limpio.slice(i, i + 4), 16));
+        }
+        return s || String.fromCharCode(parseInt(limpio, 16) || 0);
+      };
+      function leerToUnicode(texto) {
+        const mapa = /* @__PURE__ */ new Map();
+        if (!texto) return mapa;
+        for (const bloque of texto.match(/beginbfchar([\s\S]*?)endbfchar/g) || []) {
+          const pares = bloque.match(/<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]*)>/g) || [];
+          for (const par of pares) {
+            const m = par.match(/<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]*)>/);
+            if (m && m[2]) mapa.set(parseInt(m[1], 16), deHex(m[2]));
+          }
+        }
+        for (const bloque of texto.match(/beginbfrange([\s\S]*?)endbfrange/g) || []) {
+          const seguidos = bloque.match(/<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]+)>/g) || [];
+          for (const r of seguidos) {
+            const m = r.match(/<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]+)>/);
+            const desde = parseInt(m[1], 16);
+            const hasta = parseInt(m[2], 16);
+            const base = parseInt(m[3].slice(-4), 16);
+            if (hasta - desde > 65535 || hasta < desde) continue;
+            for (let c = desde; c <= hasta; c += 1) mapa.set(c, String.fromCharCode(base + (c - desde)));
+          }
+          const listas = bloque.match(/<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]+)>\s*\[([\s\S]*?)\]/g) || [];
+          for (const r of listas) {
+            const m = r.match(/<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]+)>\s*\[([\s\S]*?)\]/);
+            const desde = parseInt(m[1], 16);
+            const destinos = m[3].match(/<([0-9a-fA-F]*)>/g) || [];
+            destinos.forEach((d, k) => {
+              const hex = d.slice(1, -1);
+              if (hex) mapa.set(desde + k, deHex(hex));
+            });
+          }
+        }
+        return mapa;
+      }
+      function tablasDeFuentes(bytes) {
+        const texto = _pdfBase.latin1(bytes);
+        const indice = indexarObjetos(texto);
+        const porObjeto = /* @__PURE__ */ new Map();
+        const porNombre = /* @__PURE__ */ new Map();
+        for (const [numero, o] of indice) {
+          const cuerpo = texto.slice(o.desde, o.hasta);
+          if (!/\/Type\s*\/Font/.test(cuerpo)) continue;
+          const ref = cuerpo.match(/\/ToUnicode\s+(\d+)\s+\d+\s+R/);
+          if (!ref) continue;
+          const objTabla = indice.get(Number(ref[1]));
+          if (!objTabla) continue;
+          const flujo = descomprimirFlujoDe(
+            texto.slice(objTabla.desde, objTabla.hasta),
+            bytes,
+            objTabla.desde
+          );
+          const mapa = leerToUnicode(flujo);
+          if (!mapa.size) continue;
+          const compuesta = /\/Subtype\s*\/Type0/.test(cuerpo) || /\/Identity-H/.test(cuerpo);
+          porObjeto.set(numero, { mapa, dosBytes: compuesta });
+        }
+        for (const [, o] of indice) {
+          const cuerpo = texto.slice(o.desde, o.hasta);
+          const zona = cuerpo.match(/\/Font\s*<<([\s\S]*?)>>/);
+          if (!zona) continue;
+          const pares = zona[1].match(/\/([A-Za-z0-9+._-]+)\s+(\d+)\s+\d+\s+R/g) || [];
+          for (const par of pares) {
+            const m = par.match(/\/([A-Za-z0-9+._-]+)\s+(\d+)\s+\d+\s+R/);
+            const fuente = porObjeto.get(Number(m[2]));
+            if (fuente) porNombre.set(m[1], fuente);
+          }
+        }
+        return { porNombre, porObjeto, cuantas: porObjeto.size };
+      }
+      var necesitaTraduccion = (tablas) => tablas && tablas.cuantas > 0;
+      if (_pdfBase && _pdfBase.registrarLectorDeFuentes) {
+        _pdfBase.registrarLectorDeFuentes(tablasDeFuentes);
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.PDF_FUENTES = API;
+      })({ tablasDeFuentes, leerToUnicode, indexarObjetos, cuerpoDe, necesitaTraduccion });
+    }
+  });
+
+  // electron/data/entradaCertIndustriales.js
+  var require_entradaCertIndustriales = __commonJS({
+    "electron/data/entradaCertIndustriales.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var fs = require_fs();
+      var path = require_path();
+      var CI = require_certIndustriales();
+      var ECI = require_entradaCertIndustrial();
+      var LECTOR = require_certificacionIndustrial();
+      var certInd = require_certIndustriales2();
+      var { puede, campoVetado } = require_roles();
+      var MAX_BYTES = 40 * 1024 * 1024;
+      var MAX_FILAS = 4e3;
+      var EXTENSIONES = /\.(xlsx|xlsm|pdf)$/i;
+      var SIN_PRECIOS = "Tu rol no ve los precios de proveedor: las certificaciones de los industriales no son para ti.";
+      var obraVisible = (repo, sesion, obraId) => obraId ? repo.leer("obras", sesion, obraId) : null;
+      var json = (t, porDefecto) => {
+        try {
+          const v = JSON.parse(t || "");
+          return v ?? porDefecto;
+        } catch {
+          return porDefecto;
+        }
+      };
+      var esMes = (p) => /^\d{4}-(0[1-9]|1[0-2])$/.test(String(p || ""));
+      function leerDocumento(bytes, nombre) {
+        if (!bytes || !bytes.length) return { error: "El archivo est\xE1 vac\xEDo." };
+        if (bytes.length > MAX_BYTES) return { error: "El archivo pasa de 40 MB." };
+        try {
+          if (/\.pdf$/i.test(nombre)) {
+            require_pdfFuentes();
+            const r = require_pdf().leerPdf(bytes);
+            if (r.escaneado) return { error: "El PDF es un escaneo: no lleva texto dentro. Pide al industrial el Excel o el PDF original, o m\xEDdelo a mano en la hoja." };
+            return { hojas: [{ hoja: null, filas: LECTOR.tablaDePdf(r).slice(0, MAX_FILAS) }] };
+          }
+          const x = require_xlsx().leerXlsx(bytes);
+          const hojas = (x.hojas || []).filter((h) => !h.oculta).map((h) => ({ hoja: h.nombre, filas: LECTOR.tablaDeExcel(h).slice(0, MAX_FILAS) }));
+          if (!hojas.length) return { error: "El libro no tiene ninguna hoja visible." };
+          return { hojas };
+        } catch (e) {
+          return { error: `No se puede leer: ${e.message}` };
+        }
+      }
+      function proveedoresDe(db) {
+        return db.prepare("SELECT id, nombre, razonSocial, cif FROM proveedores").all();
+      }
+      function certsDe(repo, sesion, obraId) {
+        return repo.listar("certIndustriales", sesion, { condicion: "obraId = ?", params: [obraId], orden: "periodo" });
+      }
+      function casar({ hojas, pedido, certs, periodo, mapeo }) {
+        if (!pedido || !esMes(periodo)) return { origen: {}, lectura: null, hoja: null };
+        const hojaPedido = certInd.hojaDelMes(pedido, certs, periodo);
+        let mejor = null;
+        for (const h of hojas || []) {
+          const p = ECI.proponer({ filas: h.filas, hoja: hojaPedido, mapeo: mapeo && mapeo.hoja === h.hoja ? mapeo.columnas : null });
+          if (!mejor || p.lineas.length > mejor.p.lineas.length) mejor = { h, p };
+        }
+        if (!mejor) return { origen: {}, lectura: null, hoja: hojaPedido };
+        return { origen: mejor.p.origen, lectura: { ...mejor.p, hoja: mejor.h.hoja, origen: void 0 }, hoja: hojaPedido };
+      }
+      function recibir(repo, sesion, obraId, datos = {}) {
+        const obra = obraVisible(repo, sesion, obraId);
+        if (!obra) return { ok: false, error: "No se encuentra la obra." };
+        if (!certInd.puedeEditar(sesion) || campoVetado(sesion.rol, "precioProveedor")) return { ok: false, error: "Tu rol no puede certificar a los industriales." };
+        if (obra.estado === "cerrada") return { ok: false, error: "La obra est\xE1 cerrada: ya no se certifica." };
+        const nombre = String(datos.nombre || "certificaci\xF3n").slice(0, 200);
+        const leido = leerDocumento(datos.bytes, nombre);
+        const db = repo.db;
+        const pedidos = certInd.pedidosDe(db, obraId);
+        const base = {
+          obraId,
+          fuente: datos.fuente === "sharepoint" ? "sharepoint" : "archivo",
+          nombre,
+          ruta: datos.ruta || null,
+          copia: datos.copia || null,
+          huella: datos.huella || null,
+          estado: "propuesta",
+          creadoPor: sesion.personaId
+        };
+        if (leido.error) {
+          const id2 = repo.crear("certIndustrialesEntradas", sesion, { ...base, lectura: JSON.stringify({ error: leido.error }) }, { verbo: "editar" });
+          if (datos.guardarOriginal !== false) guardarOriginal(repo, sesion, obraId, id2, nombre, datos.bytes);
+          return { ok: true, id: id2, error: leido.error };
+        }
+        const texto = leido.hojas.map((h) => ECI.textoDeFilas(h.filas)).join("\n");
+        const ident = ECI.identificar({ texto, nombre, carpeta: datos.carpeta || "", pedidos, proveedores: proveedoresDe(db) });
+        const supuesto = !esMes(datos.periodo) && !ECI.buscarPeriodo(texto, nombre);
+        const periodo = esMes(datos.periodo) ? datos.periodo : ECI.buscarPeriodo(texto, nombre) || certInd.mesDeHoy();
+        const certs = certsDe(repo, sesion, obraId);
+        let pedidoId = datos.pedidoId && pedidos.some((p) => p.id === datos.pedidoId) ? datos.pedidoId : ident.pedidoId;
+        if (!pedidoId && ident.candidatos.length > 1) {
+          const hojasPed = pedidos.filter((p) => ident.candidatos.includes(p.id)).map((p) => certInd.hojaDelMes(p, certs, periodo));
+          const elegidos = leido.hojas.map((h) => ECI.elegirPedido({ filas: h.filas, hojas: hojasPed })).filter(Boolean);
+          if (elegidos.length) {
+            pedidoId = elegidos[0];
+            ident.motivos.push(`Sus l\xEDneas casan con las del pedido ${pedidos.find((p) => p.id === pedidoId).codigo}.`);
+          }
+        }
+        const pedido = pedidos.find((p) => p.id === pedidoId) || null;
+        const c = casar({ hojas: leido.hojas, pedido, certs, periodo });
+        const lectura = { ...c.lectura || {}, identificacion: ident.motivos, mesSupuesto: supuesto };
+        const id = repo.crear("certIndustrialesEntradas", sesion, {
+          ...base,
+          proveedorId: pedido ? pedido.proveedorId : ident.proveedorId,
+          pedidoId: pedido ? pedido.id : null,
+          periodo,
+          filas: JSON.stringify(leido.hojas),
+          origen: JSON.stringify(c.origen),
+          lectura: JSON.stringify(lectura),
+          numeroSuyo: ECI.buscarNumero(texto),
+          totalSuyo: c.lectura ? c.lectura.totalSuyo : null
+        }, { verbo: "editar" });
+        if (datos.guardarOriginal !== false) guardarOriginal(repo, sesion, obraId, id, nombre, datos.bytes);
+        return { ok: true, id, pedido: pedido ? pedido.codigo : null, lineas: Object.keys(c.origen).length };
+      }
+      var MAX_ORIGINAL = 8 * 1024 * 1024;
+      function guardarOriginal(repo, sesion, obraId, entradaId, nombre, bytes) {
+        if (!bytes || !bytes.length || bytes.length > MAX_ORIGINAL) return false;
+        try {
+          repo.crear("certIndustrialesDocumentos", sesion, { obraId, entradaId, nombre, bytes: bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes) }, { verbo: "editar" });
+          return true;
+        } catch {
+          return false;
+        }
+      }
+      function originalDe(repo, sesion, id) {
+        const e = repo.leer("certIndustrialesEntradas", sesion, id);
+        if (!e) return null;
+        const f = repo.listar("certIndustrialesDocumentos", sesion, { condicion: "entradaId = ?", params: [id], limite: 1 })[0];
+        return f && f.bytes && f.bytes.length ? { nombre: f.nombre, bytes: f.bytes } : null;
+      }
+      var comprobarVer = (repo, sesion, obraId) => {
+        const obra = obraVisible(repo, sesion, obraId);
+        if (!obra) return { error: "No se encuentra la obra." };
+        if (campoVetado(sesion.rol, "precioProveedor")) return { error: SIN_PRECIOS };
+        return { obra };
+      };
+      function cuentaDe(e, pedidos, certs) {
+        const pedido = pedidos.find((p) => p.id === e.pedidoId);
+        if (!pedido || !esMes(e.periodo)) return null;
+        return ECI.comparar(certInd.hojaDelMes(pedido, certs, e.periodo), json(e.origen, {}));
+      }
+      function filaLista(e, pedidos, provs, certs) {
+        const pedido = pedidos.find((p) => p.id === e.pedidoId) || null;
+        const lectura = json(e.lectura, {});
+        const cuenta = e.estado === "propuesta" ? cuentaDe(e, pedidos, certs) : null;
+        return {
+          id: e.id,
+          estado: e.estado,
+          fuente: e.fuente,
+          nombre: e.nombre,
+          ruta: e.ruta,
+          periodo: e.periodo,
+          creadoEn: e.creadoEn,
+          proveedor: e.proveedorId ? provs.get(e.proveedorId) || { id: e.proveedorId, nombre: "\xBF?" } : null,
+          pedido: pedido ? { id: pedido.id, codigo: pedido.codigo, titulo: pedido.titulo } : null,
+          lineas: Object.keys(json(e.origen, {})).length,
+          error: lectura.error || null,
+          mesSupuesto: Boolean(lectura.mesSupuesto),
+          mes: cuenta ? cuenta.totales.mes : null,
+          aOrigen: cuenta ? cuenta.totales.origen : null,
+          totalSuyo: e.totalSuyo,
+          conAviso: cuenta ? cuenta.conAviso : 0,
+          validadaEn: e.validadaEn,
+          motivo: e.motivo
+        };
+      }
+      function listar(repo, sesion, obraId) {
+        const c = comprobarVer(repo, sesion, obraId);
+        if (c.error) return { ok: false, error: c.error };
+        const db = repo.db;
+        const todas = repo.listar("certIndustrialesEntradas", sesion, { condicion: "obraId = ?", params: [obraId], orden: "creadoEn DESC" });
+        const pedidos = certInd.pedidosDe(db, obraId);
+        const provs = new Map(proveedoresDe(db).map((p) => [p.id, p]));
+        const certs = certsDe(repo, sesion, obraId);
+        const filas = todas.map((e) => filaLista(e, pedidos, provs, certs));
+        const carpeta = carpetaDe(repo, sesion, obraId);
+        return {
+          ok: true,
+          propuestas: filas.filter((f) => f.estado === "propuesta"),
+          hechas: filas.filter((f) => f.estado !== "propuesta").slice(0, 30),
+          carpeta: carpeta ? { carpeta: carpeta.carpeta, revisadaEn: carpeta.revisadaEn, existe: fs.existsSync(carpeta.carpeta) } : null,
+          puedeEditar: certInd.puedeEditar(sesion) && c.obra.estado !== "cerrada",
+          puedeValidar: certInd.puedeEmitir(sesion, c.obra) && c.obra.estado !== "cerrada"
+        };
+      }
+      function abrir(repo, sesion, id) {
+        const e = repo.leer("certIndustrialesEntradas", sesion, id);
+        if (!e) return { ok: false, error: "No se encuentra la certificaci\xF3n recibida." };
+        const c = comprobarVer(repo, sesion, e.obraId);
+        if (c.error) return { ok: false, error: c.error };
+        const db = repo.db;
+        const pedidos = certInd.pedidosDe(db, e.obraId);
+        const provs = new Map(proveedoresDe(db).map((p) => [p.id, p]));
+        const certs = certsDe(repo, sesion, e.obraId);
+        const pedido = pedidos.find((p) => p.id === e.pedidoId) || null;
+        const hoja = pedido && esMes(e.periodo) ? certInd.hojaDelMes(pedido, certs, e.periodo) : null;
+        const cuenta = hoja ? ECI.comparar(hoja, json(e.origen, {})) : null;
+        const lectura = json(e.lectura, {});
+        const yaEmitida = Boolean(hoja && hoja.cert && hoja.cert.estado === "emitida");
+        return {
+          ok: true,
+          entrada: { ...filaLista(e, pedidos, provs, certs), numeroSuyo: e.numeroSuyo, copia: Boolean(e.copia || e.ruta || originalDe(repo, sesion, e.id)) },
+          lectura: {
+            error: lectura.error || null,
+            motivos: lectura.motivos || [],
+            avisos: lectura.avisos || [],
+            identificacion: lectura.identificacion || [],
+            sinCasar: lectura.sinCasar || [],
+            columnas: lectura.columnas || [],
+            hoja: lectura.hoja || null,
+            mesSupuesto: Boolean(lectura.mesSupuesto),
+            lineas: lectura.lineas || []
+          },
+          hoja: cuenta,
+          numeroPedido: hoja ? hoja.numeroPedido : null,
+          hayMedido: Boolean(hoja && hoja.cert),
+          yaEmitida,
+          pedidos: pedidos.map((p) => ({ id: p.id, codigo: p.codigo, titulo: p.titulo, proveedor: (provs.get(p.proveedorId) || {}).nombre || "" })),
+          puedeEditar: certInd.puedeEditar(sesion) && c.obra.estado !== "cerrada" && e.estado === "propuesta",
+          puedeValidar: certInd.puedeEmitir(sesion, c.obra) && c.obra.estado !== "cerrada" && e.estado === "propuesta"
+        };
+      }
+      function propuestaEditable(repo, sesion, id) {
+        const e = repo.leer("certIndustrialesEntradas", sesion, id);
+        if (!e) return { error: "No se encuentra la certificaci\xF3n recibida." };
+        const obra = obraVisible(repo, sesion, e.obraId);
+        if (!obra) return { error: "No se encuentra la obra." };
+        if (!certInd.puedeEditar(sesion) || campoVetado(sesion.rol, "precioProveedor")) return { error: "Tu rol no puede certificar a los industriales." };
+        if (e.estado !== "propuesta") return { error: "Ya no est\xE1 propuesta: se valid\xF3 o se descart\xF3." };
+        return { e, obra };
+      }
+      function cambiar(repo, sesion, id, cambio = {}) {
+        const p = propuestaEditable(repo, sesion, id);
+        if (p.error) return { ok: false, error: p.error };
+        const { e } = p;
+        const datos = {};
+        const pedidos = certInd.pedidosDe(repo.db, e.obraId);
+        let pedidoId = e.pedidoId;
+        let periodo = e.periodo;
+        if ("pedidoId" in cambio) {
+          if (cambio.pedidoId && !pedidos.some((x) => x.id === cambio.pedidoId)) return { ok: false, error: "Ese pedido no es de esta obra o no tiene industrial." };
+          pedidoId = cambio.pedidoId || null;
+        }
+        if ("periodo" in cambio) {
+          if (!esMes(cambio.periodo)) return { ok: false, error: "El mes va como AAAA-MM." };
+          periodo = cambio.periodo;
+        }
+        if (pedidoId !== e.pedidoId || periodo !== e.periodo) {
+          const pedido = pedidos.find((x) => x.id === pedidoId) || null;
+          const c = casar({ hojas: json(e.filas, []), pedido, certs: certsDe(repo, sesion, e.obraId), periodo });
+          const lectura = json(e.lectura, {});
+          Object.assign(datos, {
+            pedidoId,
+            periodo,
+            proveedorId: pedido ? pedido.proveedorId : e.proveedorId,
+            origen: JSON.stringify(c.origen),
+            lectura: JSON.stringify({ ...lectura, ...c.lectura || { lineas: [], sinCasar: [], avisos: [] }, mesSupuesto: "periodo" in cambio ? false : lectura.mesSupuesto }),
+            totalSuyo: c.lectura ? c.lectura.totalSuyo : null
+          });
+        }
+        if (cambio.lineas && typeof cambio.lineas === "object") {
+          const origen = datos.origen ? json(datos.origen, {}) : json(e.origen, {});
+          for (const [clave, v] of Object.entries(cambio.lineas)) {
+            if (!/^L\d+$/.test(clave)) return { ok: false, error: "Una l\xEDnea no es del pedido." };
+            const t = String(v ?? "").trim();
+            if (!t) {
+              delete origen[clave];
+              continue;
+            }
+            const n = Number(t.replace(/\./g, "").replace(",", "."));
+            if (!Number.isFinite(n) || n < 0) return { ok: false, error: `No se entiende \xAB${t}\xBB.` };
+            origen[clave] = n;
+          }
+          datos.origen = JSON.stringify(origen);
+        }
+        if (Object.keys(datos).length) repo.modificar("certIndustrialesEntradas", sesion, id, datos);
+        return { ok: true };
+      }
+      function validar(repo, sesion, id) {
+        const p = propuestaEditable(repo, sesion, id);
+        if (p.error) return { ok: false, error: p.error };
+        const { e, obra } = p;
+        if (!certInd.puedeEmitir(sesion, obra)) return { ok: false, error: "La valida el jefe de obra de esta obra." };
+        if (obra.estado === "cerrada") return { ok: false, error: "La obra est\xE1 cerrada: ya no se certifica." };
+        if (!e.pedidoId) return { ok: false, error: "Elige de qu\xE9 pedido es antes de validarla." };
+        if (!esMes(e.periodo)) return { ok: false, error: "Elige el mes antes de validarla." };
+        const origen = json(e.origen, {});
+        const cambios = Object.entries(origen).map(([clave, v]) => ({ clave, origen: v }));
+        if (!cambios.length) return { ok: false, error: "No hay ninguna l\xEDnea casada con el pedido: corrige las cantidades o desc\xE1rtala." };
+        const r = certInd.guardar(repo, sesion, e.obraId, e.pedidoId, e.periodo, cambios);
+        if (!r.ok) return r;
+        repo.modificar("certIndustrialesEntradas", sesion, id, { estado: "validada", validadaPor: sesion.personaId, validadaEn: (/* @__PURE__ */ new Date()).toISOString() });
+        avisarAlPortal(repo, sesion, e, { validada: true });
+        return { ok: true, certId: r.id, lineas: cambios.length };
+      }
+      function descartar(repo, sesion, id, motivo = "") {
+        const p = propuestaEditable(repo, sesion, id);
+        if (p.error) return { ok: false, error: p.error };
+        repo.modificar("certIndustrialesEntradas", sesion, id, { estado: "descartada", motivo: String(motivo || "").slice(0, 300) || null });
+        avisarAlPortal(repo, sesion, p.e || { id }, { validada: false, motivo });
+        return { ok: true };
+      }
+      function avisarAlPortal(repo, sesion, e, { validada, motivo = "" }) {
+        if (!e || !e.id) return;
+        let importe = null;
+        if (validada && e.pedidoId) {
+          const pedido = repo.db.prepare("SELECT * FROM pedidosCompra WHERE id = ?").get(e.pedidoId);
+          const certs = repo.db.prepare("SELECT * FROM certIndustriales WHERE obraId = ? AND pedidoId = ?").all(e.obraId, e.pedidoId);
+          if (pedido) importe = certInd.hojaDelMes(pedido, certs, e.periodo).totales.mes;
+        }
+        require_portalSubcontratas().alCerrarEntrada(repo, sesion, e.id, { validada, importe, motivo });
+      }
+      function rutaDocumento(repo, sesion, id) {
+        const e = repo.leer("certIndustrialesEntradas", sesion, id);
+        if (!e) return null;
+        if (e.copia) return e.copia;
+        const c = carpetaDe(repo, sesion, e.obraId);
+        return c && e.ruta ? path.join(c.carpeta, e.ruta) : null;
+      }
+      function carpetaDe(repo, sesion, obraId) {
+        return repo.listar("certIndustrialesCarpeta", sesion, { condicion: "obraId = ?", params: [obraId], limite: 1 })[0] || null;
+      }
+      function ponerCarpeta(repo, sesion, obraId, carpeta) {
+        const obra = obraVisible(repo, sesion, obraId);
+        if (!obra) return { ok: false, error: "No se encuentra la obra." };
+        if (!certInd.puedeEditar(sesion)) return { ok: false, error: "Tu rol no puede certificar a los industriales." };
+        const actual = carpetaDe(repo, sesion, obraId);
+        const t = String(carpeta || "").trim();
+        if (!t) {
+          if (actual) repo.borrar("certIndustrialesCarpeta", sesion, actual.id);
+          return { ok: true };
+        }
+        if (!fs.existsSync(t) || !fs.statSync(t).isDirectory()) return { ok: false, error: "Esa carpeta no existe en este ordenador." };
+        if (actual) repo.modificar("certIndustrialesCarpeta", sesion, actual.id, { carpeta: t });
+        else repo.crear("certIndustrialesCarpeta", sesion, { obraId, carpeta: t }, { verbo: "editar" });
+        return { ok: true };
+      }
+      function revisarCarpeta(repo, sesion, obraId, { max = 2e3 } = {}) {
+        const obra = obraVisible(repo, sesion, obraId);
+        if (!obra) return { ok: false, error: "No se encuentra la obra." };
+        if (!certInd.puedeEditar(sesion) || campoVetado(sesion.rol, "precioProveedor")) return { ok: true, nuevas: 0, sinPermiso: true };
+        const c = carpetaDe(repo, sesion, obraId);
+        if (!c) return { ok: true, nuevas: 0, sinCarpeta: true };
+        if (!fs.existsSync(c.carpeta)) return { ok: true, nuevas: 0, sinCarpetaAqui: true };
+        let nombres;
+        try {
+          nombres = fs.readdirSync(c.carpeta, { recursive: true }).map((n) => String(n).replace(/\\/g, "/"));
+        } catch (e) {
+          return { ok: false, error: e.message };
+        }
+        if (nombres.length > max) return { ok: false, error: `La carpeta tiene m\xE1s de ${max} entradas: apunta a la de certificaciones de la obra.` };
+        const vistas = repo.listar("certIndustrialesEntradas", sesion, { condicion: "obraId = ? AND fuente = ?", params: [obraId, "sharepoint"] });
+        const nuevas = [];
+        const errores = [];
+        for (const rel of nombres) {
+          const base = path.basename(rel);
+          if (!EXTENSIONES.test(base) || /^(~\$|\.)/.test(base)) continue;
+          const ruta = path.join(c.carpeta, rel);
+          let st;
+          try {
+            st = fs.statSync(ruta);
+          } catch {
+            continue;
+          }
+          if (!st.isFile()) continue;
+          const huella = `${st.size}:${Math.round(st.mtimeMs)}`;
+          const antes = vistas.filter((v) => v.ruta === rel);
+          if (antes.some((v) => v.huella === huella) || vistas.some((v) => v.ruta !== rel && mismoArchivo(v, base, st.size))) continue;
+          let bytes;
+          try {
+            bytes = fs.readFileSync(ruta);
+          } catch (e) {
+            errores.push(`${rel}: ${e.message}`);
+            continue;
+          }
+          for (const v of antes.filter((x) => x.estado === "propuesta")) {
+            repo.modificar("certIndustrialesEntradas", sesion, v.id, { estado: "descartada", motivo: "El archivo cambi\xF3 en el SharePoint: se ha vuelto a leer." });
+          }
+          const r = recibir(repo, sesion, obraId, { nombre: base, bytes, fuente: "sharepoint", ruta: rel, carpeta: path.dirname(rel), huella });
+          if (r.ok) nuevas.push({ id: r.id, nombre: base, pedido: r.pedido, error: r.error || null });
+          else errores.push(`${rel}: ${r.error}`);
+        }
+        repo.modificar("certIndustrialesCarpeta", sesion, c.id, { revisadaEn: (/* @__PURE__ */ new Date()).toISOString() });
+        return { ok: true, nuevas: nuevas.length, leidas: nuevas, errores };
+      }
+      var mismoArchivo = (v, nombre, tamano) => v.nombre === nombre && String(v.huella || "").split(":")[0] === String(tamano);
+      async function revisarNube(repo, sesion, obraId, { cliente, lugar, maxCarpetas = 60, maxArchivos = 12 } = {}) {
+        const obra = obraVisible(repo, sesion, obraId);
+        if (!obra) return { ok: false, error: "No se encuentra la obra." };
+        if (!certInd.puedeEditar(sesion) || campoVetado(sesion.rol, "precioProveedor")) return { ok: true, nuevas: 0, sinPermiso: true };
+        if (!cliente || !lugar) return { ok: true, nuevas: 0, sinVinculo: true };
+        const esCert = (n) => /certific/i.test(n || "");
+        const vistas = repo.listar("certIndustrialesEntradas", sesion, { condicion: "obraId = ? AND fuente = ?", params: [obraId, "sharepoint"] });
+        const candidatos = [];
+        let leidas = 0;
+        const pendientes = [{ lugar, ruta: "", dentro: esCert(lugar.nombre), nivel: 0 }];
+        try {
+          while (pendientes.length && leidas < maxCarpetas) {
+            const q = pendientes.shift();
+            leidas += 1;
+            const hijos = await cliente.listar(q.lugar);
+            for (const h of hijos) {
+              const rel = q.ruta ? `${q.ruta}/${h.nombre}` : h.nombre;
+              if (h.carpeta) {
+                if (h.lugar && q.nivel < 5 && !/^(\.|~)/.test(h.nombre)) pendientes.push({ lugar: h.lugar, ruta: rel, dentro: q.dentro || esCert(h.nombre), nivel: q.nivel + 1 });
+                continue;
+              }
+              if (!q.dentro || !EXTENSIONES.test(h.nombre) || /^(~\$|\.)/.test(h.nombre) || !h.ref) continue;
+              if ((h.tamano || 0) > MAX_BYTES) continue;
+              const huella = `${h.tamano}:${h.modificado || ""}`;
+              const claveRuta = `nube:${rel}`;
+              if (vistas.some((v) => v.ruta === claveRuta && v.huella === huella || mismoArchivo(v, h.nombre, h.tamano))) continue;
+              candidatos.push({ h, rel: claveRuta, relLimpia: rel, huella });
+            }
+          }
+        } catch (e) {
+          return { ok: false, error: e.message || "No se ha podido leer el SharePoint.", sinSesion: e.estado === 401 };
+        }
+        const nuevas = [];
+        const errores = [];
+        for (const c of candidatos.slice(0, maxArchivos)) {
+          let d;
+          try {
+            d = await cliente.descargar(c.h.ref);
+          } catch (e) {
+            errores.push(`${c.relLimpia}: ${e.message}`);
+            continue;
+          }
+          for (const v of vistas.filter((x) => x.ruta === c.rel && x.estado === "propuesta")) {
+            repo.modificar("certIndustrialesEntradas", sesion, v.id, { estado: "descartada", motivo: "El archivo cambi\xF3 en el SharePoint: se ha vuelto a leer." });
+          }
+          const r = recibir(repo, sesion, obraId, { nombre: c.h.nombre, bytes: d.datos, fuente: "sharepoint", ruta: c.rel, carpeta: path.posix.dirname(c.relLimpia), huella: c.huella });
+          if (r.ok) nuevas.push({ id: r.id, nombre: c.h.nombre, pedido: r.pedido, error: r.error || null });
+          else errores.push(`${c.relLimpia}: ${r.error}`);
+        }
+        return { ok: true, nuevas: nuevas.length, leidas: nuevas, errores, quedan: Math.max(0, candidatos.length - maxArchivos) };
+      }
+      var importeLineas = (pedido) => CI.calcularHoja({ pedido }).totales.contrato;
+      function facturas(repo, sesion, obraId) {
+        const c = comprobarVer(repo, sesion, obraId);
+        if (c.error) return { ok: false, error: c.error };
+        const db = repo.db;
+        let lista;
+        try {
+          lista = repo.listar("facturasProveedor", sesion, { condicion: "obraId = ?", params: [obraId], orden: "fecha DESC" });
+        } catch {
+          return { ok: false, error: "Tu rol no ve las facturas de proveedor (son del Costs Plan)." };
+        }
+        const provs = new Map(proveedoresDe(db).map((p) => [p.id, p]));
+        const pedidos = certInd.pedidosDe(db, obraId);
+        const certs = certsDe(repo, sesion, obraId);
+        const filas = pedidos.map((p) => {
+          const suyas = certs.filter((x) => x.pedidoId === p.id).sort((a, b) => a.periodo.localeCompare(b.periodo));
+          const ultima = suyas[suyas.length - 1];
+          const ultimaEmitida = suyas.filter((x) => x.estado === "emitida").pop();
+          const certificado = ultima ? certInd.hojaDelMes(p, certs, ultima.periodo).totales.origen : 0;
+          const emitido = ultimaEmitida ? certInd.hojaDelMes(p, certs, ultimaEmitida.periodo).totales.origen : 0;
+          const fac = lista.filter((f) => f.pedidoId === p.id);
+          const facturado = fac.reduce((a, f) => a + (Number(f.importe) || 0), 0);
+          const pedido = Number(p.importe) || importeLineas(p);
+          return {
+            pedidoId: p.id,
+            codigo: p.codigo,
+            titulo: p.titulo,
+            proveedor: provs.get(p.proveedorId) || { id: p.proveedorId, nombre: "\xBF?" },
+            pedido: redondeo(pedido),
+            certificado,
+            emitido,
+            facturado: redondeo(facturado),
+            facturas: fac.length,
+            pendienteFacturar: redondeo(pedido - facturado),
+            certificadoSinFacturar: redondeo(Math.max(0, emitido - facturado))
+          };
+        });
+        const sum = (k) => redondeo(filas.reduce((a, f) => a + f[k], 0));
+        const pedidoDe = new Map(pedidos.map((p) => [p.id, p]));
+        return {
+          ok: true,
+          pedidos: filas,
+          totales: {
+            pedido: sum("pedido"),
+            certificado: sum("certificado"),
+            emitido: sum("emitido"),
+            facturado: sum("facturado"),
+            pendienteFacturar: sum("pendienteFacturar"),
+            certificadoSinFacturar: sum("certificadoSinFacturar")
+          },
+          facturas: lista.map((f) => ({
+            id: f.id,
+            numero: f.numero,
+            fecha: f.fecha,
+            importe: f.importe,
+            notas: f.notas,
+            proveedor: f.proveedorId ? provs.get(f.proveedorId) || { id: f.proveedorId, nombre: "\xBF?" } : null,
+            pedidoId: f.pedidoId,
+            pedido: f.pedidoId && pedidoDe.get(f.pedidoId) ? pedidoDe.get(f.pedidoId).codigo : null,
+            sinPedido: !f.pedidoId
+          })),
+          puedeEditar: puede(sesion.rol, "costsPlan", "editar") && c.obra.estado !== "cerrada"
+        };
+      }
+      var redondeo = (v) => Math.round((Number(v) || 0) * 100) / 100;
+      module.exports = {
+        leerDocumento,
+        recibir,
+        listar,
+        abrir,
+        cambiar,
+        validar,
+        descartar,
+        rutaDocumento,
+        carpetaDe,
+        ponerCarpeta,
+        revisarCarpeta,
+        revisarNube,
+        originalDe,
+        guardarOriginal,
+        facturas
+      };
+    }
+  });
+
+  // shared/importacion/clasificarDocumento.js
+  var require_clasificarDocumento = __commonJS({
+    "shared/importacion/clasificarDocumento.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var sinTildes = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+      var EXT_HOJA = /\.(xlsx|xlsm)$/i;
+      var EXT_TEXTO = /\.(pdf|docx|doc|xlsx|xlsm|txt)$/i;
+      var ES_FICHA = /fichas? tecnicas?|marcados? ce|declaracion ce|\bmanual(es)?\b|\bdatasheet\b|certificado de conformidad|instrucciones de (instalacion|uso)/;
+      var BASURA = /(^|\/)(~\$|\.|__macosx)|\.(tmp|bak)$/i;
+      var REGLAS = [
+        { tipo: "punchlist", ext: EXT_HOJA, re: /punch ?-?list|snag ?-?list|lista de pendientes de (obra|calidad)/ },
+        { tipo: "claim", ext: EXT_TEXTO, re: /\bclaim\b|reclamacion|reclamaciones|\bhechos\b/ },
+        { tipo: "legal", ext: EXT_TEXTO, re: /legaliza|ritsic|\bite\b|boletin(es)? (de )?(instalacion|electrico)|inscripcion|certificado de instalacion|puesta en servicio oficial|\bocas?\b/ },
+        { tipo: "acta", ext: EXT_TEXTO, re: /(^|[^a-z])actas?([^a-z]|$)|minutas?|\bminutes\b|reunion(es)?\b|\bmeeting\b|puntos a resolver/ },
+        { tipo: "gantt", ext: /\.(xlsx|xlsm|pdf|mpp)$/i, re: /gantt|planning|planificacion|cronograma|programa de obra|tasks ?(&|y|and) ?deadlines|calendario de obra/ },
+        { tipo: "alcance", ext: EXT_TEXTO, re: /alcance|\bscope\b|\bannex\b|\banexo\b|\baddend|\badenda\b/ },
+        { tipo: "presupuesto", ext: /\.(xlsx|xlsm|bc3)$/i, re: /presupuesto|\bboq\b|bill of quantit|\bbudget\b|costs? ?plan|\boferta\b|\bcostes\b|tender/ }
+      ];
+      var ETIQUETAS = {
+        punchlist: "Punch List",
+        presupuesto: "Presupuesto",
+        acta: "Acta",
+        gantt: "Gantt / planning",
+        claim: "Claim",
+        legal: "Legalizaci\xF3n",
+        alcance: "Alcance"
+      };
+      function clasificarDocumento(ruta) {
+        const r = String(ruta || "").replace(/\\/g, "/").trim();
+        if (!r || BASURA.test(r)) return null;
+        const nombre = r.split("/").pop();
+        const norm = sinTildes(r);
+        if (ES_FICHA.test(sinTildes(nombre)) && !/punch|acta|claim/.test(sinTildes(nombre))) return null;
+        if (/\.zip\//i.test(r)) return null;
+        const formato = (nombre.match(/\.([a-z0-9]+)$/i) || [, ""])[1].toLowerCase();
+        for (const texto of [sinTildes(nombre), norm]) {
+          for (const regla of REGLAS) {
+            if (regla.ext.test(nombre) && regla.re.test(texto)) {
+              return { tipo: regla.tipo, etiqueta: ETIQUETAS[regla.tipo], nombre, formato };
+            }
+          }
+        }
+        return null;
+      }
+      function clasificarLista(rutas) {
+        const fuera = [];
+        for (const ruta of rutas || []) {
+          const c = clasificarDocumento(ruta);
+          if (c) fuera.push({ ruta, ...c });
+        }
+        return fuera;
+      }
+      module.exports = { clasificarDocumento, clasificarLista, ETIQUETAS };
+    }
+  });
+
+  // electron/data/importadoresAuto.js
+  var require_importadoresAuto = __commonJS({
+    "electron/data/importadoresAuto.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var fs = require_fs();
+      var path = require_path();
+      var { clasificarLista, ETIQUETAS } = require_clasificarDocumento();
+      var { leerXlsx } = require_xlsx();
+      var motorNcr = require_motor();
+      var reconocedor = require_reconocer();
+      var ncr = require_ncr();
+      var fuente = require_fuenteDocumentos();
+      var MAX_BYTES = 40 * 1024 * 1024;
+      var MAX_POR_PASADA = 25;
+      var DESTINO = {
+        punchlist: "Calidad \u203A NCR",
+        presupuesto: "Presupuesto \u203A Importar",
+        acta: "Actas de obra",
+        gantt: "Planificaci\xF3n \u203A Diagrama",
+        claim: "Reclamaciones",
+        legal: "Legalizaciones",
+        alcance: "Hoja de alcance"
+      };
+      var plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
+      function marcaFichero(abs) {
+        try {
+          const st = fs.statSync(abs);
+          return st.isFile() ? `${Math.round(st.mtimeMs)}:${st.size}` : null;
+        } catch {
+          return null;
+        }
+      }
+      function localizar(rel, raices) {
+        for (const raiz of raices) {
+          const abs = path.join(raiz, rel);
+          if (marcaFichero(abs)) return abs;
+        }
+        return null;
+      }
+      function importarPunchlist(repo, sesion, obraId, abs, nombre) {
+        const libro = leerXlsx(fs.readFileSync(abs));
+        const analisis = motorNcr.analizarPunchlist(libro, nombre);
+        if (!analisis.filas.length) {
+          return { estado: "revisar", resumen: "El Excel no trae ninguna NCR con c\xF3digo: \xBFes la punchlist?" };
+        }
+        const r = ncr.importar(repo, sesion, obraId, analisis);
+        if (!r.ok) return { estado: "error", resumen: r.error };
+        const s = r.resumen || {};
+        const partes = [plural(s.nuevas || 0, "NCR nueva", "NCR nuevas"), plural(s.actualizadas || 0, "actualizada", "actualizadas")];
+        if (s.conflictos) partes.push(plural(s.conflictos, "choque con lo editado a mano", "choques con lo editado a mano"));
+        return { estado: "importada", resumen: partes.join(", "), importacionId: r.importacionId };
+      }
+      function proponerPresupuesto(abs) {
+        const libro = leerXlsx(fs.readFileSync(abs));
+        const propuestas = [];
+        for (const hoja of libro.hojas || []) {
+          if (!hoja.filas || hoja.filas.length < 8) continue;
+          const rec = reconocedor.reconocer(hoja);
+          if (rec.confianza === "baja" || rec.filaCabecera === null) continue;
+          let arbol;
+          try {
+            arbol = reconocedor.aArbol(hoja, { ...rec, columnas: rec.columnas });
+          } catch {
+            continue;
+          }
+          if (!arbol.resumen || !arbol.resumen.partidas) continue;
+          propuestas.push({ hoja: hoja.nombre, confianza: rec.confianza, perfil: rec.perfil, partidas: arbol.resumen.partidas, capitulos: arbol.resumen.capitulos, importe: Math.round(arbol.resumen.importe * 100) / 100 });
+        }
+        if (!propuestas.length) return { estado: "revisar", resumen: "Ninguna hoja se parece a un presupuesto con seguridad: mapear a mano." };
+        const mejor = propuestas.sort((a, b) => b.partidas - a.partidas)[0];
+        const euros = mejor.importe.toLocaleString("es-ES", { maximumFractionDigits: 0 });
+        return {
+          estado: "revisar",
+          resumen: `Hoja \xAB${mejor.hoja}\xBB: ${plural(mejor.partidas, "partida", "partidas")} y ${euros} \u20AC (confianza ${mejor.confianza}). Falta aprobar el mapeo.`,
+          propuestas
+        };
+      }
+      function crearAlmacenImportaciones(ruta = null) {
+        let datos = null;
+        const leer = () => {
+          if (datos) return datos;
+          datos = {};
+          if (ruta) {
+            try {
+              datos = JSON.parse(fs.readFileSync(ruta, "utf8")) || {};
+            } catch {
+              datos = {};
+            }
+          }
+          return datos;
+        };
+        return {
+          obra: (id) => leer()[id] || {},
+          poner(id, rutas) {
+            leer()[id] = rutas;
+            if (!ruta) return;
+            try {
+              fs.mkdirSync(path.dirname(ruta), { recursive: true });
+              fs.writeFileSync(`${ruta}.tmp`, JSON.stringify(datos));
+              fs.renameSync(`${ruta}.tmp`, ruta);
+            } catch (e) {
+              console.error("Importadores autom\xE1ticos: no se guarda su estado:", e.message);
+            }
+          }
+        };
+      }
+      function crearImportadores({ repo, raicesExtra = () => [], almacen: almacen2 = crearAlmacenImportaciones(), ahora = Date.now, avisar = () => {
+      } }) {
+        function procesar(sesion, cfg, rutas) {
+          const obraId = cfg.obraId;
+          const carpeta = String(cfg.carpetaDocs || "").trim();
+          const raices = [...carpeta && !fuente.esLista(carpeta) ? [carpeta] : [], ...raicesExtra(obraId)];
+          const previo = almacen2.obra(obraId);
+          const nuevo = { ...previo };
+          const hechos = [];
+          let cambio = false;
+          let trabajo = 0;
+          for (const doc of clasificarLista(rutas)) {
+            const antes = previo[doc.ruta];
+            const abs = localizar(doc.ruta, raices);
+            const marca = abs ? marcaFichero(abs) : null;
+            if (antes && antes.marca === marca && ["importada", "revisar"].includes(antes.estado)) continue;
+            if (antes && !abs && antes.estado === "sinLeer") continue;
+            if (trabajo >= MAX_POR_PASADA) break;
+            let r;
+            if (!abs) {
+              r = { estado: "sinLeer", resumen: `${DESTINO[doc.tipo]}: el fichero no est\xE1 en este equipo (solo la ruta).` };
+            } else if (fs.statSync(abs).size > MAX_BYTES) {
+              r = { estado: "revisar", resumen: "Pesa demasiado para leerlo solo." };
+            } else {
+              trabajo += 1;
+              try {
+                if (doc.tipo === "punchlist" && doc.formato !== "xlsm") r = importarPunchlist(repo, sesion, obraId, abs, doc.nombre);
+                else if (doc.tipo === "presupuesto" && /^xlsx$/.test(doc.formato)) r = proponerPresupuesto(abs);
+                else r = { estado: "revisar", resumen: `Detectado: va a ${DESTINO[doc.tipo]}.` };
+              } catch (e) {
+                r = { estado: "error", resumen: `No se ha podido leer: ${e.message}` };
+              }
+            }
+            const entrada = { tipo: doc.tipo, etiqueta: doc.etiqueta, nombre: doc.nombre, destino: DESTINO[doc.tipo], marca, cuando: new Date(ahora()).toISOString(), ...r };
+            if (!(antes && antes.estado === entrada.estado && antes.resumen === entrada.resumen && antes.marca === marca)) {
+              nuevo[doc.ruta] = entrada;
+              hechos.push({ ruta: doc.ruta, ...entrada });
+              cambio = true;
+            }
+          }
+          if (cambio) almacen2.poner(obraId, nuevo);
+          const noticia = hechos.filter((h) => h.estado === "importada" || h.estado === "revisar");
+          if (noticia.length) avisar({ obraId, hechos: noticia });
+          return { hechos };
+        }
+        function bandeja(obraId) {
+          const todo = almacen2.obra(obraId);
+          return Object.entries(todo).map(([ruta, e]) => ({ ruta, ...e })).sort((a, b) => String(b.cuando).localeCompare(String(a.cuando))).slice(0, 60);
+        }
+        return { procesar, bandeja };
+      }
+      module.exports = { crearImportadores, crearAlmacenImportaciones, proponerPresupuesto, DESTINO, ETIQUETAS };
+    }
+  });
+
+  // electron/data/buzonDocumentos.js
+  var require_buzonDocumentos = __commonJS({
+    "electron/data/buzonDocumentos.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var fs = require_fs();
+      var os = require_os();
+      var path = require_path();
+      var crypto2 = require_crypto();
+      var B = require_buzon();
+      var BN = require_buzonNube();
+      var { puede } = require_roles();
+      var DISCO = "/Volumes/TOSHIBA EXT";
+      var LOG = path.join(os.homedir(), "Library", "Logs", "vidaire-buzon.log");
+      var REINTENTO_MS = 36e5;
+      var disco = () => process.env.VIDAIRE_BUZON_DISCO || DISCO;
+      var raiz = () => process.env.VIDAIRE_BUZON_RAIZ || path.join(disco(), "Vidaire", "Documentos");
+      var dirCola = () => process.env.VIDAIRE_BUZON_COLA || path.join(os.homedir(), ".config", "cxobra", "buzon-cola");
+      var ahoraIso = () => (/* @__PURE__ */ new Date()).toISOString();
+      var idDe = (obraId, sha) => `bz-${String(sha).slice(0, 16)}-${String(obraId).replace(/[^A-Za-z0-9_-]/g, "_")}`;
+      function montado() {
+        const d = disco();
+        try {
+          if (/hard drive/i.test(d)) return false;
+          return fs.statSync(d).isDirectory();
+        } catch {
+          return false;
+        }
+      }
+      function crearRegistro(ruta = LOG) {
+        return (texto) => {
+          try {
+            fs.mkdirSync(path.dirname(ruta), { recursive: true });
+            fs.appendFileSync(ruta, `${ahoraIso()} ${texto}
+`);
+          } catch {
+          }
+        };
+      }
+      var oyentes = /* @__PURE__ */ new Set();
+      function alRecibir(fn) {
+        oyentes.add(fn);
+        return () => oyentes.delete(fn);
+      }
+      function avisarRecibido(doc, registro) {
+        for (const fn of [...oyentes]) {
+          try {
+            const r = fn(doc);
+            if (r && r.catch) r.catch((e) => registro(`Aviso de ${doc.nombre}: ${e.message}`));
+          } catch (e) {
+            registro(`Aviso de ${doc.nombre}: ${e.message}`);
+          }
+        }
+      }
+      function nombreLibre(carpeta, nombre) {
+        const base = B.nombreFichero(nombre);
+        const ext = path.extname(base);
+        const raizN = base.slice(0, base.length - ext.length);
+        let n = 1;
+        let candidato = base;
+        while (fs.existsSync(path.join(carpeta, candidato))) {
+          n += 1;
+          candidato = `${raizN} (${n})${ext}`;
+        }
+        return path.join(carpeta, candidato);
+      }
+      function shaDeFichero(ruta) {
+        const h = crypto2.createHash("sha256");
+        const fd = fs.openSync(ruta, "r");
+        const buf = Buffer.alloc(8 * 1024 * 1024);
+        try {
+          let n;
+          while ((n = fs.readSync(fd, buf, 0, buf.length, null)) > 0) h.update(buf.subarray(0, n));
+        } finally {
+          fs.closeSync(fd);
+        }
+        return h.digest("hex");
+      }
+      var obraDe = (db, obraId) => db.prepare("SELECT id, codigo, nombre FROM obras WHERE id = ?").get(obraId);
+      var filaDe = (db, id) => db.prepare("SELECT * FROM buzonDocumentos WHERE id = ?").get(id);
+      function guardarFila(db, f) {
+        const ya = filaDe(db, f.id);
+        const ahora = ahoraIso();
+        if (ya) {
+          const cols = Object.keys(f).filter((k) => k !== "id");
+          db.prepare(`UPDATE buzonDocumentos SET ${cols.map((c) => `${c} = ?`).join(", ")}, modificadoEn = ? WHERE id = ?`).run(...cols.map((c) => f[c] ?? null), ahora, f.id);
+        } else {
+          const fila = { creadoEn: ahora, modificadoEn: ahora, ...f };
+          const cols = Object.keys(fila);
+          db.prepare(`INSERT INTO buzonDocumentos (${cols.join(", ")}) VALUES (${cols.map(() => "?").join(", ")})`).run(...cols.map((c) => fila[c] ?? null));
+        }
+        return filaDe(db, f.id);
+      }
+      function colocar(db, { tmp, sha256: sha2562, nombre, obraId, meta, bytes, origen, subidoPor, subidoEn }, { registro }) {
+        const obra = obraDe(db, obraId);
+        if (!obra) return { ok: false, error: `obra desconocida (${obraId})` };
+        const m = B.metaLimpia(meta);
+        const id = idDe(obraId, sha2562);
+        const ya = filaDe(db, id);
+        if (ya && (ya.estado === "toshiba" || ya.estado === "leido") && ya.ruta && fs.existsSync(path.join(raiz(), ya.ruta))) {
+          try {
+            fs.rmSync(tmp, { force: true });
+          } catch {
+          }
+          return { ok: true, fila: ya, ruta: path.join(raiz(), ya.ruta), repetido: true };
+        }
+        const carpeta = path.join(raiz(), ...B.carpetaDestino({ obra, tipo: m.tipo, mes: m.mes, industrial: m.industrial }));
+        fs.mkdirSync(carpeta, { recursive: true });
+        let enCarpeta = tmp;
+        try {
+          if (path.dirname(tmp) !== carpeta) {
+            enCarpeta = path.join(carpeta, `.${sha2562.slice(0, 16)}.buzon-tmp`);
+            fs.copyFileSync(tmp, enCarpeta);
+          }
+          const enDisco = shaDeFichero(enCarpeta);
+          if (enDisco !== sha2562) throw new Error("lo escrito en el TOSHIBA no coincide con el sha256");
+        } catch (e) {
+          if (enCarpeta !== tmp) {
+            try {
+              fs.rmSync(enCarpeta, { force: true });
+            } catch {
+            }
+          }
+          return { ok: false, error: e.message };
+        }
+        const ruta = nombreLibre(carpeta, nombre);
+        fs.renameSync(enCarpeta, ruta);
+        if (enCarpeta !== tmp) {
+          try {
+            fs.rmSync(tmp, { force: true });
+          } catch {
+          }
+        }
+        const fila = guardarFila(db, {
+          id,
+          obraId,
+          nombre: String(nombre).slice(0, 300),
+          tipo: m.tipo,
+          mes: m.mes,
+          industrial: m.industrial,
+          proveedorId: m.proveedorId,
+          bytes: Number(bytes) || fs.statSync(ruta).size,
+          sha256: sha2562,
+          estado: "toshiba",
+          origen,
+          ruta: path.relative(raiz(), ruta),
+          subidoPor: subidoPor || null,
+          subidoEn: subidoEn || ahoraIso(),
+          enToshibaEn: ahoraIso(),
+          aviso: null
+        });
+        registro(`Al TOSHIBA: ${nombre} (${bytes} B, sha256 ${sha2562.slice(0, 12)}\u2026, obra ${obraId}, ${m.tipo}) \u2192 ${ruta}`);
+        avisarRecibido({ id, obraId, tipo: m.tipo, mes: m.mes, industrial: m.industrial, proveedorId: m.proveedorId, nombre: fila.nombre, ruta, sha256: sha2562, bytes: fila.bytes, origen }, registro);
+        return { ok: true, fila, ruta };
+      }
+      async function recogerUna(nube, claveM, { db, registro }) {
+        let m;
+        try {
+          m = JSON.parse(Buffer.from(await nube.bajarArchivo(BN.CUBO, claveM)).toString("utf8"));
+        } catch (e) {
+          return { ok: false, error: `manifiesto ilegible: ${e.message}` };
+        }
+        const malo = BN.manifiestoValido(m, claveM);
+        if (malo) return { ok: false, error: malo };
+        const obra = obraDe(db, m.obraId);
+        if (!obra) return { ok: false, error: `la obra ${m.obraId} no est\xE1 en este Mac` };
+        const carpeta = path.join(raiz(), ...B.carpetaDestino({ obra, ...B.metaLimpia(m) }));
+        fs.mkdirSync(carpeta, { recursive: true });
+        const tmp = path.join(carpeta, `.${m.sha256.slice(0, 16)}.buzon-tmp`);
+        const h = crypto2.createHash("sha256");
+        let total = 0;
+        try {
+          fs.writeFileSync(tmp, Buffer.alloc(0));
+          for (const k of m.claves) {
+            const b = Buffer.from(await nube.bajarArchivo(BN.CUBO, k, { plazo: 6e5 }));
+            h.update(b);
+            total += b.length;
+            fs.appendFileSync(tmp, b);
+          }
+          if (total !== Number(m.bytes)) throw new Error(`tama\xF1o ${total} en vez de ${m.bytes}`);
+          const sha = h.digest("hex");
+          if (sha !== m.sha256) throw new Error(`sha256 no coincide (${sha.slice(0, 12)}\u2026 en vez de ${m.sha256.slice(0, 12)}\u2026)`);
+        } catch (e) {
+          try {
+            fs.rmSync(tmp, { force: true });
+          } catch {
+          }
+          return { ok: false, error: e.message };
+        }
+        const subidoPor = m.subidoPor && (m.subidoPor.personaId || m.subidoPor.nombre) ? String(m.subidoPor.personaId || m.subidoPor.nombre) : null;
+        const r = colocar(db, { tmp, sha256: m.sha256, nombre: m.nombre, obraId: m.obraId, meta: m, bytes: m.bytes, origen: "web", subidoPor, subidoEn: m.subidoEn }, { registro });
+        if (!r.ok) return r;
+        try {
+          await nube.borrarArchivos(BN.CUBO, [...m.claves, claveM]);
+          registro(`Borrados del cubo ${m.claves.length} trozos y el manifiesto de ${m.nombre}.`);
+        } catch (e) {
+          registro(`OJO: ${m.nombre} ya est\xE1 en ${r.ruta}, pero no se ha podido borrar del cubo: ${e.message}`);
+        }
+        return { ok: true, id: r.fila.id, ruta: r.ruta, repetido: Boolean(r.repetido) };
+      }
+      async function recogerNube({ nube, db, registro = crearRegistro(), fallidos = /* @__PURE__ */ new Map(), ahora = Date.now } = {}) {
+        const res = { recogidos: [], fallos: [], esperan: 0 };
+        if (!nube || !db) return res;
+        let lista;
+        try {
+          lista = await BN.manifiestosEnCubo(nube);
+        } catch (e) {
+          if (!e.sinRed) registro(`No se puede mirar el buz\xF3n de la nube: ${e.message}`);
+          return res;
+        }
+        if (!lista.length) return res;
+        if (!montado()) {
+          res.esperan = lista.length;
+          registro(`El TOSHIBA no est\xE1 conectado: ${lista.length} ${lista.length === 1 ? "documento espera" : "documentos esperan"} en la nube. No se borra nada.`);
+          return res;
+        }
+        for (const { claveM } of lista) {
+          const t = fallidos.get(claveM);
+          if (t && ahora() - t < REINTENTO_MS) continue;
+          const r = await recogerUna(nube, claveM, { db, registro });
+          if (r.ok) {
+            fallidos.delete(claveM);
+            res.recogidos.push(r);
+          } else {
+            fallidos.set(claveM, ahora());
+            registro(`NO copiado ${claveM}: ${r.error}. Sigue en la nube.`);
+            res.fallos.push({ claveM, error: r.error });
+          }
+        }
+        return res;
+      }
+      var puedeSubir = (sesion) => Boolean(sesion && puede(sesion.rol, "documentos", "crear") && puede(sesion.rol, "certificaciones", "ver") && !["subcontrata", "operarioSubcontrata"].includes(sesion.rol));
+      var puedeVer = (sesion) => Boolean(sesion && puede(sesion.rol, "certificaciones", "ver"));
+      function guardarDirecto(repo, sesion, { obraId, nombre, bytes, meta = {} } = {}, { registro = crearRegistro() } = {}) {
+        if (!puedeSubir(sesion)) return { ok: false, error: "Tu rol no mete documentos en el buz\xF3n." };
+        if (!obraId || !repo.leer("obras", sesion, obraId)) return { ok: false, error: "No se encuentra la obra." };
+        const buf = Buffer.from(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []));
+        const c = B.comprobar(nombre, buf.length);
+        if (!c.ok) return { ok: false, error: c.error };
+        const sha2562 = crypto2.createHash("sha256").update(buf).digest("hex");
+        const db = repo.db;
+        const base = { sha256: sha2562, nombre: B.nombreFichero(nombre), obraId, meta, bytes: buf.length, origen: "escritorio", subidoPor: sesion.personaId, subidoEn: ahoraIso() };
+        if (montado()) {
+          const obra = obraDe(db, obraId);
+          const carpeta = path.join(raiz(), ...B.carpetaDestino({ obra, ...B.metaLimpia(meta) }));
+          fs.mkdirSync(carpeta, { recursive: true });
+          const tmp = path.join(carpeta, `.${sha2562.slice(0, 16)}.buzon-tmp`);
+          fs.writeFileSync(tmp, buf);
+          const r = colocar(db, { ...base, tmp }, { registro });
+          return r.ok ? { ok: true, id: r.fila.id, estado: "toshiba", repetido: Boolean(r.repetido) } : { ok: false, error: r.error };
+        }
+        const id = idDe(obraId, sha2562);
+        fs.mkdirSync(dirCola(), { recursive: true });
+        const enCola = path.join(dirCola(), `${id}.bin`);
+        fs.writeFileSync(enCola, buf);
+        if (shaDeFichero(enCola) !== sha2562) {
+          fs.rmSync(enCola, { force: true });
+          return { ok: false, error: "No se ha podido guardar en la cola del Mac." };
+        }
+        fs.writeFileSync(path.join(dirCola(), `${id}.json`), JSON.stringify({ ...base, meta: B.metaLimpia(meta) }));
+        const m = B.metaLimpia(meta);
+        guardarFila(db, {
+          id,
+          obraId,
+          nombre: base.nombre,
+          tipo: m.tipo,
+          mes: m.mes,
+          industrial: m.industrial,
+          proveedorId: m.proveedorId,
+          bytes: buf.length,
+          sha256: sha2562,
+          estado: "cola",
+          origen: "escritorio",
+          ruta: null,
+          subidoPor: sesion.personaId,
+          subidoEn: base.subidoEn,
+          aviso: "El TOSHIBA no est\xE1 conectado: espera en el Mac."
+        });
+        registro(`En cola (sin TOSHIBA): ${base.nombre} \u2192 ${enCola}`);
+        return { ok: true, id, estado: "cola", aviso: "El TOSHIBA no est\xE1 conectado: se guarda en el Mac y se copia en cuanto lo conectes." };
+      }
+      function vaciarCola({ db, registro = crearRegistro() } = {}) {
+        const res = { pasados: 0, fallos: [] };
+        if (!db || !montado()) return res;
+        let fichas = [];
+        try {
+          fichas = fs.readdirSync(dirCola()).filter((f) => /\.json$/.test(f));
+        } catch {
+          return res;
+        }
+        for (const f of fichas) {
+          const ficha = path.join(dirCola(), f);
+          const bin = ficha.replace(/\.json$/, ".bin");
+          try {
+            const x = JSON.parse(fs.readFileSync(ficha, "utf8"));
+            const r = colocar(db, { ...x, tmp: bin }, { registro });
+            if (!r.ok) throw new Error(r.error);
+            fs.rmSync(ficha, { force: true });
+            res.pasados += 1;
+          } catch (e) {
+            res.fallos.push({ ficha: f, error: e.message });
+            registro(`Cola: ${f}: ${e.message}`);
+          }
+        }
+        return res;
+      }
+      function crearVigia({ nube, db, registro = crearRegistro(), cada = 18e4, alTerminar = null } = {}) {
+        let enMarcha = false;
+        let ultima = 0;
+        const fallidos = /* @__PURE__ */ new Map();
+        return {
+          tocar() {
+            if (enMarcha || Date.now() - ultima < cada || !db) return false;
+            enMarcha = true;
+            ultima = Date.now();
+            (async () => {
+              const c = vaciarCola({ db, registro });
+              const r = await recogerNube({ nube, db, registro, fallidos });
+              if (alTerminar && (c.pasados || r.recogidos.length)) alTerminar({ cola: c, nube: r });
+            })().catch((e) => registro(`Buz\xF3n: ${e.message}`)).finally(() => {
+              enMarcha = false;
+            });
+            return true;
+          }
+        };
+      }
+      var LEE_TABLAS = /\.(xlsx|xlsm|pdf)$/i;
+      var resumenTipo = (t) => B.NOMBRE_TIPO[t] || t;
+      function leerUno(repo, sesion, fila, abs) {
+        const ext = path.extname(fila.nombre).toLowerCase();
+        if (fila.tipo === "certSubcontrata" && LEE_TABLAS.test(ext)) {
+          const EC = require_entradaCertIndustriales();
+          const r = EC.recibir(repo, sesion, fila.obraId, {
+            nombre: fila.nombre,
+            bytes: fs.readFileSync(abs),
+            fuente: "archivo",
+            ruta: abs,
+            copia: abs,
+            huella: fila.sha256,
+            periodo: fila.mes || void 0,
+            pedidoId: void 0,
+            guardarOriginal: false
+          });
+          if (!r.ok) return { espera: true, aviso: r.error };
+          return {
+            que: "propuesta",
+            modulo: "certIndustrialesEntradas",
+            entradaId: r.id,
+            resumen: r.error ? `Propuesta sin lectura: ${r.error}` : `Propuesta en Certificaciones de industriales${r.pedido ? ` (pedido ${r.pedido})` : ""}, ${r.lineas || 0} l\xEDneas: no cuenta hasta validarla.`
+          };
+        }
+        if (fila.tipo === "boq" && /\.(xlsx|xlsm)$/i.test(ext)) {
+          const p = require_importadoresAuto().proponerPresupuesto(abs);
+          return { que: "propuesta", modulo: "presupuestos", resumen: `${p.resumen} No se toca el presupuesto: queda por revisar.` };
+        }
+        if (fila.tipo === "ipc" && LEE_TABLAS.test(ext)) {
+          const EC = require_entradaCertIndustriales();
+          const l = EC.leerDocumento(fs.readFileSync(abs), fila.nombre);
+          const filas = l.hojas ? l.hojas.reduce((n, h) => n + h.filas.length, 0) : 0;
+          return { que: "pendiente", modulo: "certificaciones", resumen: l.error ? `IPC guardado; no se ha podido leer: ${l.error}` : `IPC${fila.mes ? ` de ${fila.mes}` : ""} le\xEDdo (${filas} filas): pendiente de revisar en Certificaciones; no se aplica solo.` };
+        }
+        return { que: "archivado", resumen: `${resumenTipo(fila.tipo)} guardado en el TOSHIBA; este tipo no tiene lectura autom\xE1tica.` };
+      }
+      function procesar(repo, sesion, id) {
+        if (!puedeVer(sesion)) return { ok: false, error: "Tu rol no ve el buz\xF3n." };
+        const fila = repo.leer("buzonDocumentos", sesion, id);
+        if (!fila) return { ok: false, error: "No se encuentra el documento." };
+        if (fila.estado !== "toshiba") return { ok: true, igual: true, estado: fila.estado };
+        const abs = path.join(raiz(), fila.ruta || "");
+        if (!fila.ruta || !fs.existsSync(abs)) return { ok: false, error: montado() ? "El fichero ya no est\xE1 en el TOSHIBA." : "El TOSHIBA no est\xE1 conectado." };
+        let r;
+        try {
+          r = leerUno(repo, sesion, fila, abs);
+        } catch (e) {
+          r = { que: "error", resumen: `No se ha podido leer: ${e.message}` };
+        }
+        if (r.espera) {
+          guardarFila(repo.db, { id, aviso: `Sin leer: ${r.aviso}` });
+          return { ok: true, espera: true, aviso: r.aviso };
+        }
+        guardarFila(repo.db, { id, estado: r.que === "error" ? "error" : "leido", leidoEn: ahoraIso(), resultado: JSON.stringify(r), aviso: r.que === "error" ? r.resumen : null });
+        return { ok: true, id, ...r };
+      }
+      function procesarNuevos(repo, sesion, { obraId = null } = {}) {
+        if (!puedeVer(sesion)) return { ok: false, error: "Tu rol no ve el buz\xF3n." };
+        const filas = repo.listar("buzonDocumentos", sesion, obraId ? { condicion: "obraId = ? AND estado = ?", params: [obraId, "toshiba"] } : { condicion: "estado = ?", params: ["toshiba"] });
+        const res = { ok: true, leidos: 0, esperan: 0, errores: 0, detalle: [] };
+        for (const f of filas) {
+          const r = procesar(repo, sesion, f.id);
+          if (!r.ok || r.que === "error") res.errores += 1;
+          else if (r.espera) res.esperan += 1;
+          else if (!r.igual) res.leidos += 1;
+          res.detalle.push({ nombre: f.nombre, tipo: f.tipo, resumen: r.resumen || r.aviso || r.error || null });
+        }
+        return res;
+      }
+      function listar(repo, sesion, obraId, { enNavegador = false } = {}) {
+        if (!puedeVer(sesion)) return { ok: false, error: "Tu rol no ve el buz\xF3n de documentos." };
+        if (!obraId || !repo.leer("obras", sesion, obraId)) return { ok: false, error: "No se encuentra la obra." };
+        const filas = repo.listar("buzonDocumentos", sesion, { condicion: "obraId = ?", params: [obraId], orden: "creadoEn DESC" }).map((f) => {
+          let resultado = null;
+          try {
+            resultado = f.resultado ? JSON.parse(f.resultado) : null;
+          } catch {
+            resultado = null;
+          }
+          return {
+            id: f.id,
+            nombre: f.nombre,
+            tipo: f.tipo,
+            mes: f.mes,
+            industrial: f.industrial,
+            bytes: f.bytes,
+            sha256: f.sha256,
+            estado: f.estado,
+            origen: f.origen,
+            carpeta: f.ruta ? String(f.ruta).replace(/\\/g, "/").replace(/\/[^/]*$/, "") : null,
+            subidoEn: f.subidoEn,
+            enToshibaEn: f.enToshibaEn,
+            leidoEn: f.leidoEn,
+            resumen: resultado && resultado.resumen,
+            aviso: f.aviso
+          };
+        });
+        const cuenta = Object.fromEntries(B.ESTADOS.map((e) => [e.id, filas.filter((f) => f.estado === e.id).length]));
+        return { ok: true, filas, cuenta, toshiba: enNavegador ? null : montado(), puede: { subir: puedeSubir(sesion), procesar: puedeVer(sesion) && !enNavegador } };
+      }
+      module.exports = {
+        DISCO,
+        LOG,
+        disco,
+        raiz,
+        dirCola,
+        montado,
+        idDe,
+        alRecibir,
+        crearRegistro,
+        nombreLibre,
+        colocar,
+        recogerUna,
+        recogerNube,
+        guardarDirecto,
+        vaciarCola,
+        crearVigia,
+        procesar,
+        procesarNuevos,
+        listar,
+        puedeSubir,
+        puedeVer
+      };
+    }
+  });
+
+  // electron/data/iarvisBuzon.js
+  var require_iarvisBuzon = __commonJS({
+    "electron/data/iarvisBuzon.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var BZ = require_buzonDocumentos();
+      var B = require_buzon();
+      var uuid = () => globalThis.crypto && globalThis.crypto.randomUUID ? globalThis.crypto.randomUUID() : `i-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      var fila = (pregunta, respuesta) => ({
+        id: uuid(),
+        pregunta,
+        estado: "respondida",
+        local: true,
+        creado: (/* @__PURE__ */ new Date()).toISOString(),
+        herramienta: "buzonDocumentos",
+        acciones: [{ tipo: "ir", destino: "documentacionObra", texto: "Abrir Documentaci\xF3n \u203A Subir documentos" }],
+        respuesta
+      });
+      var llano = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+      var enNavegador = () => Boolean(globalThis.window && globalThis.document);
+      function entender(pregunta) {
+        const t = ` ${llano(pregunta).replace(/[¿?¡!.,;:]+/g, " ").replace(/\s+/g, " ")} `;
+        if (/\bifcs?\b/.test(t)) return null;
+        const tema = /\b(documentos?|papeles|buzon|pdfs?|excels?|ficheros?|archivos?)\b/.test(t);
+        if (/\b(procesa|procesar|procesalo|procesalos|lee|leer|leelos|pasa|importa)\b.*\b(lo nuevo|los nuevos|lo que ha llegado|nuevos?|del buzon|recibidos?)\b/.test(t) && (tema || /\blo nuevo\b/.test(t))) return { que: "procesar" };
+        if (tema && /\b(han llegado|ha llegado|llegaron|llegado|recibido|recibidos|en el toshiba|subido|subidos|que hay en el buzon)\b/.test(t)) return { que: "estado" };
+        return null;
+      }
+      function textoEstado(l) {
+        const N = B.NOMBRE_ESTADO;
+        const T2 = B.NOMBRE_TIPO;
+        if (!l.filas.length) return "A esta obra no ha llegado ning\xFAn documento por el buz\xF3n todav\xEDa. Se suben en Documentaci\xF3n \u203A Subir documentos.";
+        const c = l.cuenta;
+        const lin = [`Han llegado **${l.filas.length}** documentos: ${c.leido} le\xEDdos, ${c.toshiba} en el TOSHIBA sin leer, ${c.cola} en la cola del Mac${c.error ? `, ${c.error} con error` : ""}.`];
+        for (const f of l.filas.slice(0, 15)) lin.push(`- ${f.nombre} \xB7 ${T2[f.tipo] || f.tipo}${f.mes ? ` \xB7 ${f.mes}` : ""}${f.industrial ? ` \xB7 ${f.industrial}` : ""} \xB7 ${N[f.estado] || f.estado}${f.resumen ? `: ${f.resumen}` : f.aviso ? ` (${f.aviso})` : ""}`);
+        if (l.filas.length > 15) lin.push(`\u2026 y ${l.filas.length - 15} m\xE1s.`);
+        if (l.toshiba === false) lin.push("El TOSHIBA no est\xE1 conectado: lo de la web espera en la nube y no se borra.");
+        if (c.toshiba) lin.push("Dime \xABprocesa lo nuevo\xBB y los leo: certificaciones e IPC quedan como propuesta para revisar; el presupuesto no se toca.");
+        return lin.join("\n");
+      }
+      function responder(repo, yo, { pregunta, obraId }) {
+        const q = entender(pregunta);
+        if (!q) return null;
+        if (!obraId) return fila(pregunta, "Elige primero la obra arriba a la izquierda y te lo miro.");
+        if (!BZ.puedeVer(yo)) return fila(pregunta, "Tu rol no ve el buz\xF3n de documentos de la obra.");
+        if (q.que === "procesar") {
+          if (enNavegador()) return fila(pregunta, "Los documentos se leen en el escritorio de Vidaire Obras (el Mac), en cuanto llegan al TOSHIBA: preg\xFAntamelo desde all\xED.");
+          const r = BZ.procesarNuevos(repo, yo, { obraId });
+          if (!r.ok) return fila(pregunta, r.error);
+          const lin = [r.leidos ? `He le\xEDdo **${r.leidos}** documento${r.leidos === 1 ? "" : "s"}${r.esperan ? `; ${r.esperan} se quedan sin leer` : ""}${r.errores ? `; ${r.errores} con error` : ""}.` : "No hab\xEDa nada nuevo sin leer."];
+          for (const d of r.detalle.slice(0, 15)) if (d.resumen) lin.push(`- ${d.nombre}: ${d.resumen}`);
+          lin.push("Nada de dinero se aplica solo: rev\xEDsalo en Certificaciones.");
+          return fila(pregunta, lin.join("\n"));
+        }
+        const l = BZ.listar(repo, yo, obraId, { enNavegador: enNavegador() });
+        return fila(pregunta, l.ok ? textoEstado(l) : l.error);
+      }
+      module.exports = { entender, responder };
+    }
+  });
+
   // electron/data/plantasIfc.js
   var require_plantasIfc = __commonJS({
     "electron/data/plantasIfc.js"(exports, module) {
@@ -185049,12 +188609,77 @@ ${r.avisos.map((a) => `- ${a}`).join("\n")}`;
         const tono = (texto, t) => t ? `<span class="pesTono ${t}">${esc(texto)}</span>` : `<span class="pesVacio">${esc(texto)}</span>`;
         const tabla = (filas) => `<table class="pesTablaFicha"><tbody>${filas.filter((f) => f && f[1] != null && f[1] !== "").map(([k, v, crudo]) => `<tr><th>${esc(k)}</th><td>${crudo ? v : esc(v)}</td></tr>`).join("")}</tbody></table>`;
         const bloque = (titulo, cuerpo, extra = "") => `<section class="pesBloqueFicha" ${extra}><h4>${esc(titulo)}</h4>${cuerpo}</section>`;
+        const TITULO_FILA = { ft: "Ficha t\xE9cnica", ce: "Marcado CE", checklist: "Check list", manual: "Manual de instrucciones", fichaPM: "Puesta en marcha", estanqueidad: "Estanqueidad" };
+        const ORDEN_BASE = ["ft", "ce", "checklist", "manual", "fichaPM", "estanqueidad"];
+        const CLASE_A_COLUMNA = { ft: "ft", ce: "ce", mi: "manual", pm: "fichaPM" };
+        const TEXTO_VER = { pdf: "Ver PDF", hoja: "Ver PDF", foto: "Ver foto" };
+        function filasDocumentos(d = {}) {
+          const c = d.celdas && Array.isArray(d.celdas.celdas) ? d.celdas.celdas : null;
+          if (c) return c.map((x) => ({ clave: x.clave, titulo: TITULO_FILA[x.clave] || x.titulo, estado: x.estado, archivos: x.archivos || [], nota: x.nota || "", motivo: x.motivo || "", porConfirmar: Boolean(x.porConfirmar) }));
+          const docs = documentosDe(d.pesada);
+          return ORDEN_BASE.map((k) => {
+            const clase = Object.keys(CLASE_A_COLUMNA).find((q) => CLASE_A_COLUMNA[q] === k);
+            const x = clase ? docs.find((y) => y.clase === clase) : null;
+            if (x) return { clave: k, titulo: TITULO_FILA[k] || k, estado: "doc", archivos: [{ ruta: x.url, url: x.url, nombre: x.nombre || x.etiqueta, tipo: "pdf" }], nota: x.nivel === "tipo" ? "del tipo, no de este modelo" : "", motivo: "", porConfirmar: false };
+            return { clave: k, titulo: TITULO_FILA[k] || k, estado: clase && k !== "fichaPM" ? "falta" : "noAplica", archivos: [], nota: "", motivo: clase && k !== "fichaPM" ? "a\xFAn no est\xE1 cargado" : "", porConfirmar: false };
+          });
+        }
+        const nombreCorto = (a) => String(a && a.nombre || "").replace(/\.(pdf|html?|png|jpe?g)$/i, "");
+        function filaDocHtml(f, i) {
+          let celda;
+          if (f.estado === "doc" && f.archivos.length) {
+            const a = f.archivos[0];
+            const todos = f.archivos.map((x) => x.nombre).join(" \xB7 ");
+            const texto = f.porConfirmar ? "Por confirmar" : TEXTO_VER[a.tipo] || "Ver PDF";
+            celda = `<button type="button" class="botonMini pesVerPdf" data-pes-ver-doc="${i}" title="${esc(`${f.titulo}: ${todos}`)}" aria-label="${esc(`Ver ${f.titulo}: ${a.nombre}`)}">${esc(texto)}</button>`;
+          } else if (f.estado === "falta") celda = `<span class="pesDocFalta" title="${esc(f.motivo || "a\xFAn no est\xE1")}">falta</span>`;
+          else if (f.estado === "pendFab") celda = `<span class="pesDocPend" title="${esc(`Pendiente del fabricante${f.motivo ? `: ${f.motivo}` : ""}`)}">pend. fab.</span>`;
+          else celda = '<span class="pesVacio" title="No aplica a este tipo de equipo">\u2014</span>';
+          const pie = f.estado === "doc" && f.archivos.length ? `<small class="pesDocArchivo" title="${esc(f.archivos.map((x) => x.nombre).join(" \xB7 "))}">${esc(nombreCorto(f.archivos[0]))}${f.archivos.length > 1 ? ` (+${f.archivos.length - 1})` : ""}${f.nota ? ` \xB7 ${esc(f.nota)}` : ""}</small>` : "";
+          return `<tr data-pes-doc-fila="${esc(f.clave)}"><th scope="row">${esc(f.titulo)}${pie}</th><td class="pesDocAccion">${celda}</td></tr>`;
+        }
         function documentosHtml(d) {
           if (d.sinObra) return bloque("Documentos", '<span class="pesVacio">Sin ficha en la obra: no hay documentos que ense\xF1ar.</span>', "data-pes-docs");
-          if (d.pesada === void 0) return bloque("Documentos", '<span class="pesVacio">Cargando\u2026</span>', "data-pes-docs");
-          if (d.pesada === null) return bloque("Documentos", '<span class="pesVacio">No se han podido leer los documentos.</span>', "data-pes-docs");
-          const docs = documentosDe(d.pesada);
-          return bloque("Documentos", docs.length ? `<div class="pesEnlaces">${docs.map(enlace).join("")}</div>` : '<span class="pesVacio">Sin documentos cargados</span>', "data-pes-docs");
+          if (d.celdasPendientes) return bloque("Documentos", '<span class="pesVacio">Cargando\u2026</span>', "data-pes-docs");
+          if (d.pesada === void 0 && !(d.celdas && d.celdas.celdas)) return bloque("Documentos", '<span class="pesVacio">Cargando\u2026</span>', "data-pes-docs");
+          if (d.pesada === null && !(d.celdas && d.celdas.celdas)) return bloque("Documentos", '<span class="pesVacio">No se han podido leer los documentos.</span>', "data-pes-docs");
+          const filas = filasDocumentos(d);
+          return bloque("Documentos", `<table class="pesDocs"><thead><tr><th>Documento</th><th class="pesDocAccion">Archivo</th></tr></thead><tbody>${filas.map(filaDocHtml).join("")}</tbody></table>`, "data-pes-docs");
+        }
+        function rotuloConjunto(c) {
+          if (!c) return "";
+          const ext = c.exterior || "";
+          const corto = (t) => ext && String(t).startsWith(`${ext} \xB7 `) ? String(t).slice(ext.length + 3) : String(t);
+          const ins = (c.interiores || []).map(corto);
+          const lista = `${ins.slice(0, 6).join(", ")}${ins.length > 6 ? ` y ${ins.length - 6} m\xE1s` : ""}`;
+          return [ext && `Unidad exterior ${ext}`, ins.length ? `${ins.length === 1 ? "Unidad interior" : "Unidades interiores"} ${lista}` : null].filter(Boolean).join(" \xB7 ");
+        }
+        const papelDe = (m) => m && m.papel === "UE" ? { sigla: "UE", nombre: "Unidad exterior" } : { sigla: "UI", nombre: "Unidad interior" };
+        function abrirVisor(fila, ctx = {}) {
+          const V = ctx.visor || (typeof window !== "undefined" ? window.VISOR_DOC : null);
+          if (!V || !fila || !fila.archivos || !fila.archivos.length) return null;
+          const docs = fila.archivos.map((a) => ({ nombre: a.nombre, ruta: a.ruta, url: a.url || "" }));
+          return V.abrir({
+            titulo: fila.titulo,
+            subtitulo: ctx.subtitulo || "",
+            docs,
+            indice: 0,
+            cargar: async (x) => {
+              if (x.url) {
+                try {
+                  const r2 = await fetch(x.url);
+                  if (!r2.ok) throw new Error(`error ${r2.status}`);
+                  return { ok: true, nombre: x.nombre, tipo: /\.html?$/i.test(x.nombre) ? "hoja" : "pdf", datos: new Uint8Array(await r2.arrayBuffer()) };
+                } catch (e) {
+                  return { ok: false, error: `No se ha podido abrir el documento: ${e.message}` };
+                }
+              }
+              const P = ctx.puente;
+              if (!P || !P.documentoEntregaDF) return { ok: false, error: "No se ha podido abrir el documento." };
+              const r = await P.documentoEntregaDF(ctx.obraId, x.ruta, { enModal: true }).catch((e) => ({ ok: false, error: e.message }));
+              return r && r.ok && r.datos ? { ok: true, nombre: r.nombre, tipo: r.tipo, datos: r.datos } : { ok: false, error: r && r.error || "No se ha podido abrir el documento." };
+            }
+          });
         }
         function tomasHtml(d) {
           const ts = d.pesada && Array.isArray(d.pesada.tomas) ? d.pesada.tomas : [];
@@ -185088,7 +188713,7 @@ ${r.avisos.map((a) => `- ${a}`).join("\n")}`;
       ${(d.notas || []).filter(Boolean).map((t) => `<p class="pesNota">${esc(t)}</p>`).join("")}
       ${botones ? `<div class="pesFichaPie">${botones}</div>` : ""}`;
         }
-        return { html, documentosDe, ESTADO_TOMA };
+        return { html, documentosDe, filasDocumentos, rotuloConjunto, papelDe, abrirVisor, ESTADO_TOMA };
       });
     }
   });
@@ -185202,6 +188827,8 @@ ${r.avisos.map((a) => `- ${a}`).join("\n")}`;
           l.push(`Toma de datos (${n(tomas.length)}):`);
           for (const t of tomas) l.push(`- ${t.nombre}: ${t.firmada ? "firmada" : t.obligatorios ? `${n(t.rellenos)} de ${n(t.obligatorios)} obligatorios` : (ESTADO_TOMA[t.estado] || "Sin empezar").toLowerCase()}`);
         }
+        const pm = d && d.vida && d.vida.puestaMarcha;
+        if (pm) l.push(`Puesta en marcha: ${pm.etiqueta}.`);
         if (!sitio) l.push("El modelo no trae este equipo en ning\xFAn plano (por confirmar): te abro el plano y lo buscas en la lista.");
         return fila(pregunta, { respuesta: l.join("\n"), acciones: [abrirPlano(e, sitio, sitio ? "Abrir su panel en el plano" : "Abrir el plano")] });
       }
@@ -188726,6 +192353,15 @@ Lo otro, las cuentas de la empresa, solo lo ve Direcci\xF3n.` };
             dc = null;
           }
           if (dc) return dc;
+        }
+        if (repo) {
+          let bz = null;
+          try {
+            bz = require_iarvisBuzon().responder(repo, yo, { pregunta, obraId });
+          } catch {
+            bz = null;
+          }
+          if (bz) return bz;
         }
         if (repo) {
           let pu = null;
@@ -199496,6 +203132,211 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
     }
   });
 
+  // shared/sync/rescate.js
+  var require_rescate = __commonJS({
+    "shared/sync/rescate.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var PQ2 = require_paquete();
+      var CUBO = "cx-pruebas";
+      var TROZO = 30 * 1024 * 1024;
+      var TIPOS = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", heic: "image/heic", heif: "image/heif", gif: "image/gif", pdf: "application/pdf" };
+      var limpio = (s) => String(s || "").replace(/[^A-Za-z0-9._-]/g, "_");
+      var nombreDe = (r) => String(r || "").split(/[\\/]/).pop();
+      var extDe = (r) => {
+        const m = /\.([A-Za-z0-9]+)$/.exec(String(r || ""));
+        return m ? m[1].toLowerCase() : "";
+      };
+      var SECRETO = /token|clave|sesion|jwt|secret|password|huella/i;
+      var existe = (db, t) => Boolean(db.prepare("SELECT 1 AS x FROM sqlite_master WHERE type = 'table' AND name = ?").get(t));
+      var columnas = (db, t) => db.prepare(`PRAGMA table_info("${t}")`).all().map((c) => c.name);
+      var fila = (db, t, id) => /^[A-Za-z]+$/.test(t) && existe(db, t) ? db.prepare(`SELECT * FROM "${t}" WHERE id = ?`).get(id) || null : null;
+      var todas = (db, t) => existe(db, t) ? db.prepare(`SELECT * FROM "${t}"`).all() : [];
+      function rutasDe(valor, io, out = /* @__PURE__ */ new Set(), hondo = 0) {
+        if (valor == null || hondo > 6) return out;
+        if (typeof valor === "string") {
+          const s = valor.trim();
+          if ((s[0] === "{" || s[0] === "[") && s.length < 5e6) {
+            try {
+              return rutasDe(JSON.parse(s), io, out, hondo + 1);
+            } catch {
+            }
+          }
+          if (s.length < 500 && !s.startsWith("data:") && TIPOS[extDe(s)] && io.existe(s)) out.add(s);
+          return out;
+        }
+        if (Array.isArray(valor)) {
+          for (const v of valor) rutasDe(v, io, out, hondo + 1);
+          return out;
+        }
+        if (typeof valor === "object") for (const v of Object.values(valor)) rutasDe(v, io, out, hondo + 1);
+        return out;
+      }
+      function armarRescate({ db, motor = null, personaId = null, desde = "", obras = null, extra = {}, ahora = () => /* @__PURE__ */ new Date() }) {
+        const visto = /* @__PURE__ */ new Map();
+        if (existe(db, "_syncVisto")) for (const v of db.prepare("SELECT tabla, id, modificadoEn FROM _syncVisto").all()) visto.set(`${v.tabla}\0${v.id}`, v.modificadoEn);
+        const rechazos = todas(db, "_syncRechazos");
+        const descartes = todas(db, "_syncDescartes");
+        const conflictos = existe(db, "_syncConflictos") ? db.prepare("SELECT * FROM _syncConflictos ORDER BY n").all() : [];
+        const rechazada = new Map(rechazos.map((r) => [`${r.tabla}\0${r.id}`, r]));
+        const descartada = new Map(descartes.map((r) => [`${r.tabla}\0${r.id}`, r]));
+        const conConflicto = new Set(conflictos.map((c) => `${c.tabla}\0${c.id}`));
+        const mias = obras ? new Set(obras) : null;
+        let cola = null;
+        try {
+          if (motor) {
+            const p = motor.pendientes();
+            cola = new Set(p.suben.map((e) => `${e.tabla}\0${e.id}`));
+          }
+        } catch {
+          cola = null;
+        }
+        const porTabla = {};
+        const cuenta = {};
+        const meter = (t, f, porque, k) => {
+          (porTabla[t] = porTabla[t] || []).push({ porque, visto: visto.get(k) || null, rechazo: rechazada.get(k) || null, descarte: descartada.get(k) || null, fila: f });
+          cuenta[porque] = (cuenta[porque] || 0) + 1;
+        };
+        for (const t of PQ2.TABLAS_VUELTA) {
+          if (!existe(db, t)) continue;
+          const cols = columnas(db, t);
+          if (!cols.includes("modificadoEn")) continue;
+          const personal = PQ2.esPersonal(t);
+          for (const f of todas(db, t)) {
+            const k = `${t}\0${f.id}`;
+            const mod = String(f.modificadoEn || "");
+            const v = visto.get(k);
+            const subida = v !== void 0 && mod <= v && !rechazada.has(k) && !descartada.has(k);
+            if (subida && !conConflicto.has(k)) continue;
+            let porque;
+            if (rechazada.has(k)) porque = "rechazada";
+            else if (descartada.has(k)) porque = "descartada";
+            else if (subida) porque = "conflicto";
+            else if (personal && personaId && f.personaId !== personaId) porque = "de-otra-persona";
+            else if (!personal && !f.obraId) porque = "sin-obra";
+            else if (!personal && mias && !mias.has(f.obraId)) porque = "fuera-de-mis-obras";
+            else if (v === void 0 && desde && mod <= desde) porque = "anterior-al-paquete";
+            else if (cola && cola.has(k)) porque = "en-cola";
+            else porque = "sin-subir";
+            meter(t, f, porque, k);
+          }
+        }
+        for (const r of [...rechazos, ...descartes]) {
+          if (PQ2.TABLAS_VUELTA.includes(r.tabla)) continue;
+          meter(r.tabla, fila(db, r.tabla, r.id), rechazada.has(`${r.tabla}\0${r.id}`) ? "rechazada" : "descartada", `${r.tabla}\0${r.id}`);
+        }
+        const estadoSync = {};
+        if (existe(db, "_syncEstado")) {
+          for (const e of db.prepare("SELECT clave, valor FROM _syncEstado").all()) if (!SECRETO.test(e.clave)) estadoSync[e.clave] = e.valor;
+        }
+        const resumen = {
+          tipo: "rescate-cx",
+          version: 1,
+          cuando: ahora().toISOString(),
+          personaId,
+          desde,
+          obras,
+          cuenta,
+          motor: motor ? motor.estado() : null,
+          estadoSync,
+          rechazos,
+          descartes,
+          conflictos: conflictos.map((c) => ({ ...c, fila: fila(db, c.tabla, c.id) })),
+          ...extra
+        };
+        return { resumen, porTabla };
+      }
+      function fotosDelRescate({ db, io, rescate }) {
+        const rutas = /* @__PURE__ */ new Set();
+        for (const lista of Object.values(rescate.porTabla)) for (const x of lista) rutasDe(x.fila, io, rutas);
+        for (const c of rescate.resumen.conflictos) {
+          rutasDe(c.valorQuePierde, io, rutas);
+          rutasDe(c.valorQueGana, io, rutas);
+        }
+        const subidas = /* @__PURE__ */ new Set();
+        if (existe(db, "_syncArchivos")) for (const r of db.prepare("SELECT clave FROM _syncArchivos").all()) subidas.add(nombreDe(r.clave));
+        for (const r of io.lista ? io.lista() : []) {
+          if (r.startsWith(`${io.carpeta}/nube/`) || !TIPOS[extDe(r)]) continue;
+          if (!subidas.has(limpio(nombreDe(r)))) rutas.add(r);
+        }
+        return [...rutas];
+      }
+      function trozos(lista, max = TROZO) {
+        const out = [];
+        let actual = [];
+        let tam = 2;
+        for (const x of lista) {
+          const n = JSON.stringify(x).length + 1;
+          if (actual.length && tam + n > max) {
+            out.push(actual);
+            actual = [];
+            tam = 2;
+          }
+          actual.push(x);
+          tam += n;
+        }
+        if (actual.length || !out.length) out.push(actual);
+        return out;
+      }
+      var bytes = (texto) => new TextEncoder().encode(texto);
+      async function enviarRescate({ db, nube, io, espacio, obra, dispositivo, rescate, alAvance = () => {
+      }, ahora = () => /* @__PURE__ */ new Date() }) {
+        if (!nube || !nube.subirArchivo) throw new Error("Sin nube.");
+        if (!obra) throw new Error("Este tel\xE9fono no tiene ninguna obra asignada en la nube.");
+        const raiz = `${limpio(espacio)}/${limpio(obra)}/rescate-${limpio(dispositivo)}`;
+        const sello = ahora().toISOString().replace(/[:.]/g, "-");
+        const carpeta = `${raiz}/${sello}`;
+        db.exec("CREATE TABLE IF NOT EXISTS _syncRescateFotos (ruta TEXT PRIMARY KEY, clave TEXT NOT NULL)");
+        const ya = new Map(db.prepare("SELECT ruta, clave FROM _syncRescateFotos").all().map((r) => [r.ruta, r.clave]));
+        const apuntar = db.prepare("INSERT INTO _syncRescateFotos (ruta, clave) VALUES (?, ?) ON CONFLICT(ruta) DO UPDATE SET clave = excluded.clave");
+        const fotos = fotosDelRescate({ db, io, rescate });
+        const ficheros = [];
+        for (const [t, lista] of Object.entries(rescate.porTabla)) {
+          const partes = trozos(lista);
+          partes.forEach((p, i) => ficheros.push({ ruta: `${carpeta}/filas-${limpio(t)}${partes.length > 1 ? `-${i + 1}` : ""}.json`, cuerpo: { tabla: t, parte: i + 1, de: partes.length, filas: p } }));
+        }
+        const total = fotos.length + ficheros.length + 1;
+        let hechos = 0;
+        const avance = () => {
+          hechos++;
+          try {
+            alAvance(hechos, total);
+          } catch {
+          }
+        };
+        const mapaFotos = {};
+        const fallidas = [];
+        const usados = /* @__PURE__ */ new Set();
+        for (const r of fotos) {
+          let nombre = limpio(nombreDe(r));
+          if (usados.has(nombre)) nombre = `${limpio(r)}`;
+          usados.add(nombre);
+          const clave = ya.get(r) || `${raiz}/fotos/${nombre}`;
+          try {
+            if (!ya.has(r)) {
+              await nube.subirArchivo(CUBO, clave, io.leer(r), TIPOS[extDe(r)] || "application/octet-stream");
+              apuntar.run(r, clave);
+            }
+            mapaFotos[r] = clave;
+          } catch (e) {
+            if (e.sinRed) throw e;
+            fallidas.push({ ruta: r, error: e.message });
+          }
+          avance();
+        }
+        for (const f of ficheros) {
+          await nube.subirArchivo(CUBO, f.ruta, bytes(JSON.stringify(f.cuerpo)), "application/json");
+          avance();
+        }
+        const resumen = { ...rescate.resumen, dispositivo, espacio, obra, carpeta, ficheros: ficheros.map((f) => f.ruta), fotos: mapaFotos, fotosFallidas: fallidas };
+        await nube.subirArchivo(CUBO, `${carpeta}/resumen.json`, bytes(JSON.stringify(resumen)), "application/json");
+        avance();
+        return { carpeta, ficheros: ficheros.length + 1, fotos: Object.keys(mapaFotos).length, fallidas: fallidas.length, filas: Object.values(rescate.porTabla).reduce((s, l) => s + l.length, 0) };
+      }
+      module.exports = { armarRescate, fotosDelRescate, enviarRescate, rutasDe, trozos, CUBO };
+    }
+  });
+
   // shared/arranqueLogo.js
   var require_arranqueLogo = __commonJS({
     "shared/arranqueLogo.js"(exports, module) {
@@ -200147,6 +203988,75 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
           syncCx.motor().marcarDescartesVistos();
           almacen.guardarPronto(base);
         }
+      },
+      /* Lo que la nube rechazó (con su porqué) y lo que no ha subido (13-nov). */
+      rechazos: () => syncCx.motor() ? syncCx.motor().rechazos() : [],
+      sinSubir: () => syncCx.motor() ? syncCx.motor().sinSubir() : null,
+      /* VOLVER A SUBIR (13-nov): lo rechazado y lo descartado, a la cola, y una vuelta ya. */
+      volverASubir: async () => {
+        await conectar();
+        const m = syncCx.motor();
+        if (!m) throw new Error("Sin sesi\xF3n en la nube: entra con tu correo y contrase\xF1a.");
+        const r = m.reencolar();
+        almacen.guardarPronto(base);
+        const c = await syncCx.ciclo();
+        almacen.guardarPronto(base);
+        return { ...r, subidas: c && c.subida ? c.subida.subidas : 0, rechazadas: c && c.subida ? c.subida.rechazadas || 0 : 0, error: c && c.error ? c.error.message : null, rechazos: m.rechazos() };
+      },
+      /* ENVIAR A LA OFICINA LO QUE NO HA SUBIDO (13-nov, shared/sync/rescate.js): copia de
+         seguridad al cubo cx-pruebas. No escribe en las tablas de la nube. */
+      rescate: async (alAvance) => {
+        await conectar();
+        const yo2 = syncCx.yo();
+        if (!yo2) throw new Error("Sin sesi\xF3n en la nube: entra con tu correo y contrase\xF1a.");
+        const R = require_rescate();
+        const m = syncCx.motor();
+        const o = oficina();
+        const obras = m && m.obras() || o.obras || null;
+        const io = {
+          carpeta: CARPETA,
+          existe: (r) => archivos.has(r),
+          leer: (r) => archivos.get(r),
+          lista: () => [...archivos.keys()].filter((r) => r.startsWith(`${CARPETA}/`))
+        };
+        const rescate = R.armarRescate({
+          db: base,
+          motor: m,
+          personaId: yo2.personaId,
+          desde: o.recibido || "",
+          obras,
+          extra: {
+            oficina: { recibido: o.recibido || null, enviado: o.enviado || null, obras: o.obras || null, personaId: o.personaId || null },
+            ota: (() => {
+              try {
+                return ota.info();
+              } catch {
+                return null;
+              }
+            })(),
+            diario: m ? m.diario() : [],
+            estadoPantalla: { ...syncCx.estado(), entrado: true },
+            tamanoBase: (() => {
+              try {
+                return globalThis.cxObra.tamanoBase();
+              } catch {
+                return null;
+              }
+            })()
+          }
+        });
+        const res = await R.enviarRescate({
+          db: base,
+          nube: syncCx.nube,
+          io,
+          espacio: yo2.espacio,
+          obra: obras && obras[0] || null,
+          dispositivo: leerLS("cxobra.aparato") || "telefono",
+          rescate,
+          alAvance
+        });
+        almacen.guardarPronto(base);
+        return res;
       }
     };
     conectar();

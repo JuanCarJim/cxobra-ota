@@ -17,8 +17,9 @@
 
   const NOMBRE = { vencido: 'Vencido', pronto: 'Toca pronto', alDia: 'Al día' };
   const COLOR = { vencido: 'var(--mal)', pronto: 'var(--info)', alDia: 'var(--bien)' };
-  const ZOOMS = [1, 2, 3, 4, 6];
-  let lista = null, plantaId = null, lamina = null, zoom = 0, ficha = null, elegido = null, ocultos = new Set();
+  const VP = () => window.VISTA_PLANO;
+  let gesto = null;
+  let lista = null, plantaId = null, lamina = null, zoom = 1, ficha = null, elegido = null, ocultos = new Set();
   try { plantaId = sessionStorage.getItem('cx.planoMant.planta'); } catch { /* sin almacén */ }
 
   if (!document.getElementById('estilo-plano-mant')) {
@@ -34,12 +35,14 @@
       .pm-leyenda button[aria-pressed="false"]{opacity:.45}
       .pm-punto{width:11px;height:11px;border-radius:2px;display:inline-block}
       .pm-marco{position:relative;border:1px solid var(--borde);border-radius:10px;background:var(--vd-lienzo)}
-      .pm-vista{overflow:auto;max-height:70vh;-webkit-overflow-scrolling:touch}
+      .pm-vista{overflow:auto;height:62vh;display:flex;touch-action:none;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+      .pm-vista>div{margin:auto;flex:none}
       .pm-vista .pmLamina{border:0;border-radius:0}
       .pm-vista .pmLamina svg{height:auto}
       .pm-vista .pmLamina.sin-vencido a[data-estado="vencido"],.pm-vista .pmLamina.sin-pronto a[data-estado="pronto"],.pm-vista .pmLamina.sin-alDia a[data-estado="alDia"]{display:none}
       .pm-zoom{position:absolute;top:8px;right:8px;z-index:5;display:flex;gap:4px;padding:4px;border-radius:10px;background:color-mix(in srgb,var(--panel) 90%,transparent);border:1px solid var(--borde)}
-      .pm-zoom button{min-width:44px;min-height:44px;margin:0;width:auto;font-size:20px;line-height:1;padding:0 10px}
+      .pm-zoom button{min-width:52px;min-height:52px;margin:0;width:auto;font-size:22px;line-height:1;padding:0 12px}
+      .pm-zoom{top:auto;bottom:10px;right:10px}
       .pm-hoja{margin:8px 0;padding:12px;border-radius:10px;background:var(--panel);box-shadow:var(--sombra)}
       .pm-hoja h3{margin:0;font-size:17px}
       .pm-hoja .sub{margin:2px 0 6px;font-size:14px;color:var(--textoTenue)}
@@ -76,7 +79,7 @@
   }
 
   async function abrirPlanta(id) {
-    plantaId = id; ficha = null; elegido = null;
+    plantaId = id; ficha = null; elegido = null; zoom = 1;
     try { sessionStorage.setItem('cx.planoMant.planta', id); } catch { /* sin almacén */ }
     pintar('<p class="cargando">Cargando el plano…</p>');
     try {
@@ -86,7 +89,27 @@
     pintar();
   }
 
-  const ancho = () => `${ZOOMS[zoom] * 100}%`;
+  const marcoVista = () => $app.querySelector('#pm-vista');
+  const ratioLamina = () => { const sv = $app.querySelector('#pm-vista svg'); const vb = sv && sv.viewBox && sv.viewBox.baseVal; return vb && vb.width > 0 && vb.height > 0 ? vb.width / vb.height : 1.5; };
+  const medidas = () => { const m = marcoVista(); return { W: m.clientWidth, H: m.clientHeight, ratio: ratioLamina() }; };
+  const anchoPx = (z) => { const m = medidas(); return `${Math.round((VP() ? VP().anchoBase(m.W, m.H, m.ratio) : m.W) * z)}px`; };
+  /* El zoom lo aplica la pieza compartida (vistaPlano.js): ancho del lienzo; el SVG es vectorial, así que las etiquetas siguen nítidas. */
+  const aplicar = (z) => { zoom = VP() ? VP().limitarZoom(z, 12) : Math.min(12, Math.max(1, z)); const w = $app.querySelector('#pm-vista > div'); if (w) w.style.width = anchoPx(zoom); };
+  function ponerGestos() {
+    if (gesto) { gesto.quitar(); gesto = null; }
+    const m = marcoVista();
+    if (!m || !VP()) return;
+    aplicar(zoom);
+    gesto = VP().gestos(m, { zoom: () => zoom, max: () => 12, ratio: ratioLamina, aplicar, activo: activa });
+    /* doble toque: acerca donde tocas o vuelve a encajar (no se confunde con mover: solo si el dedo apenas se movió) */
+    let ult = null, ini = null;
+    m.addEventListener('pointerdown', (ev) => { if (ev.pointerType !== 'mouse') ini = { x: ev.clientX, y: ev.clientY }; });
+    m.addEventListener('pointerup', (ev) => {
+      if (ev.pointerType === 'mouse' || !ini || Math.hypot(ev.clientX - ini.x, ev.clientY - ini.y) > 10) { ult = null; return; }
+      const ahora = Date.now(), r = m.getBoundingClientRect();
+      if (ult && ahora - ult.t < 320 && Math.hypot(ev.clientX - ult.x, ev.clientY - ult.y) < 30) { gesto.irA(zoom > 1.05 ? 1 : 3, ev.clientX - r.left, ev.clientY - r.top); ult = null; } else ult = { t: ahora, x: ev.clientX, y: ev.clientY };
+    });
+  }
 
   function pintar(cuerpo) {
     if (!activa() || !lista) return;
@@ -94,11 +117,12 @@
     $app.innerHTML = `
       <div class="pm-plantas" role="tablist">${lista.plantas.map((p) => `<button role="tab" data-pm-planta="${esc(p.id)}" class="${p.id === plantaId ? 'activa' : ''}" aria-selected="${p.id === plantaId}">${esc(p.titulo)}<small>${p.n}</small></button>`).join('')}</div>
       <div class="pm-leyenda">${['vencido', 'pronto', 'alDia'].map((k) => `<button data-pm-estado="${k}" aria-pressed="${!ocultos.has(k)}"><span class="pm-punto" style="background:${COLOR[k]}"></span>${NOMBRE[k]} <strong>${(lamina && lamina.cuenta ? lamina.cuenta[k] : r[k])}</strong></button>`).join('')}</div>
-      ${cuerpo || (lamina ? `<style>${lamina.css}</style><div class="pm-marco"><div class="pm-vista" id="pm-vista"><div style="width:${ancho()}">${lamina.html}</div></div>
-        <div class="pm-zoom"><button data-pm-a="menos" aria-label="Alejar">−</button><button data-pm-a="mas" aria-label="Acercar">+</button></div></div>` : '')}
+      ${cuerpo || (lamina ? `<style>${lamina.css}</style><div class="pm-marco"><div class="pm-vista" id="pm-vista"><div>${lamina.html}</div></div>
+        <div class="pm-zoom"><button data-pm-a="menos" aria-label="Alejar">−</button><button data-pm-a="entero" aria-label="Encajar el plano entero">Entero</button><button data-pm-a="mas" aria-label="Acercar">+</button></div></div>` : '')}
       <div id="pm-hoja"></div>
       ${lista.sinUbicar ? `<p class="texto-2">${lista.sinUbicar} equipo${lista.sinUbicar === 1 ? '' : 's'} entregado${lista.sinUbicar === 1 ? '' : 's'} sin ubicar en el plano: por confirmar.</p>` : ''}`;
     marcar();
+    ponerGestos();
     if (ficha) pintarFicha(); else centrar();
   }
 
@@ -170,9 +194,9 @@
       const q = a.dataset.pmA;
       if (q === 'reintentar') abrirLista();
       else if (q === 'cerrar') { ficha = null; elegido = null; marcar(); const h = $app.querySelector('#pm-hoja'); if (h) h.innerHTML = ''; }
-      else if (q === 'mas' || q === 'menos') {
-        zoom = Math.max(0, Math.min(ZOOMS.length - 1, zoom + (q === 'mas' ? 1 : -1)));
-        const w = $app.querySelector('#pm-vista > div'); if (w) w.style.width = ancho();
+      else if ((q === 'mas' || q === 'menos' || q === 'entero') && gesto) {
+        const m = marcoVista();
+        gesto.irA(q === 'entero' ? 1 : zoom * (q === 'mas' ? 1.6 : 1 / 1.6), m.clientWidth / 2, m.clientHeight / 2);
       }
       return;
     }

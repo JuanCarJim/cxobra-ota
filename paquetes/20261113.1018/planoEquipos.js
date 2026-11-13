@@ -54,12 +54,14 @@
   let mat = null; /* el material tocado */
   let lista = 'equipos'; /* la lista de abajo: equipos o materiales */
   let filtro = '';
+  let compacto = false; /* dentro de la pantalla Cx: sin cabeza, con desplegable de planta y sin lista ni capas (13-nov) */
   const ESTADO_MAT = { sinDatos: 'Sin datos', conFicha: 'Con ficha', conIncidencia: 'Con incidencia' };
   try { planta = sessionStorage.getItem('cx.planoEquipos.planta'); } catch { /* sin almacén */ }
 
   const ESTILO = `
   .pe-cabeza{display:flex;align-items:center;gap:8px;margin:4px 0 8px}
   .pe-cabeza h2{font-size:18px;margin:0;flex:1}
+  .pe-planta-sel{margin:0 0 6px}.pe-planta-sel label{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--texto-suave,var(--texto))}.pe-planta-sel select{flex:1;min-height:44px;border:1px solid var(--borde);background:var(--panel);color:var(--texto);border-radius:10px;padding:6px 10px;font-size:15px}
   .pe-plantas{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:6px;-webkit-overflow-scrolling:touch}
   .pe-plantas button{flex:none;min-height:40px;border:1px solid var(--borde);background:var(--panel);color:var(--texto);border-radius:999px;padding:6px 12px;font-size:14px}
   .pe-plantas button small{font-size:11px;opacity:.75;margin-left:4px}
@@ -116,6 +118,7 @@
   .pe-zoom{position:absolute;top:8px;right:8px;z-index:5;display:flex;gap:4px;padding:4px;border-radius:10px;background:color-mix(in srgb,var(--panel) 88%,transparent);box-shadow:var(--sombra,0 1px 4px rgba(0,0,0,.18))}
   .pe-zoom button{min-width:44px;min-height:44px;margin:0;font-size:20px;line-height:1;padding:0 10px}
   .pe-zoom button[data-pe-zoom="0"]{font-size:14px}
+  .cx-plano .pe-zoom{top:6px;left:6px;right:auto;padding:2px;gap:2px}.cx-plano .pe-zoom button{min-width:34px;min-height:34px;font-size:16px;padding:0 6px}.cx-plano .pe-zoom button[data-pe-zoom="0"]{font-size:12px}
   .pe-elegido{margin:8px 0;padding:10px 12px;border-radius:10px;background:var(--panel);box-shadow:var(--sombra)}
   .pe-hoja{position:fixed;left:8px;right:8px;bottom:calc(var(--hueco-barra,104px) + 4px + env(safe-area-inset-bottom,0px));z-index:12;max-height:42vh;overflow:auto;padding:10px 12px 12px;border-radius:14px;background:var(--panel);box-shadow:0 -2px 14px rgba(8,50,60,.28);border:1px solid var(--borde)}
   .pe-hoja[hidden]{display:none}
@@ -237,7 +240,7 @@
   };
   const plantaActual = () => {
     const ps = plantas();
-    return vistaIfc(ps.find((p) => (p.planta || '') === (planta || '')) || ps.find((p) => p.plano || p.ifc) || ps.find((p) => p.planta) || ps[0] || null);
+    return vistaIfc(((!compacto || planta !== null) && ps.find((p) => (p.planta || '') === (planta || ''))) || (compacto && ps.find((p) => nEquipos(p) > 0 && (p.plano || p.ifc))) || ps.find((p) => p.plano || p.ifc) || ps.find((p) => p.planta) || ps[0] || null);
   };
   const etiqueta = (p) => p.planta || 'Sin planta';
 
@@ -620,7 +623,15 @@
       </div>
       <div class="pe-zoom"><button class="boton secundario" data-pe-zoom="-1" aria-label="Alejar">−</button><button class="boton secundario" data-pe-zoom="0">Entero</button><button class="boton secundario" data-pe-zoom="1" aria-label="Acercar">+</button></div>${FA.mando(p)}</div>`
       : `<div class="pe-sin-plano"><b>La planta ${esc(etiqueta(p))} aún no tiene plano de equipos.</b><br>Lo sube la oficina desde Commissioning › Plano. Mientras, la lista dice la sala y el estado de cada equipo.</div>`;
-    $raiz.innerHTML = `
+    const conEq = plantas().filter((x) => nEquipos(x) > 0);
+    const desplegable = `<div class="pe-planta-sel"><label>Planta <select data-pe-planta-sel aria-label="Planta">${(conEq.length ? conEq : [p]).map((x) => `<option value="${esc(x.planta || '')}"${(x.planta || '') === (p.planta || '') ? ' selected' : ''}>${esc(etiqueta(x))} · ${cifra(nEquipos(x))} equipos</option>`).join('')}</select></label></div>`;
+    $raiz.innerHTML = compacto ? `
+      ${desplegable}
+      ${p.equipos.length ? `<div class="pe-leyenda" role="group" aria-label="Colores">${ORDEN.map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}"><i class="pe-punto pe-${k}"></i>${esc(NOMBRE[k])} <b>${cifra(c[k] || 0)}</b></button>`).join('')}</div>` : ''}
+      <div class="pe-cuerpo">
+        <div>${plano}</div>
+        <div class="pe-lado"><div class="pe-hoja" data-pe-hoja hidden></div></div>
+      </div>` : `
       ${cabeza()}
       <div class="pe-plantas" role="tablist">${plantas().map((x) => `<button role="tab" data-pe-planta="${esc(x.planta || '')}" aria-selected="${x === p}" class="${x === p ? 'activa' : ''}">${esc(etiqueta(x))}<small>${cuentaTexto(nEquipos(x), nMateriales(x))}</small></button>`).join('')}</div>
       ${capas.length > 1 || chipFaltas ? `<div class="pe-capas" role="group" aria-label="Capas">${capas.length > 1 ? capas.map((k) => `<button data-pe-capa="${esc(k.id)}" aria-pressed="${!capasOff.has(k.id)}">${esc(k.nombre)} <b>${cifra(cuentasCapa[k.id])}</b></button>`).join('') : ''}${chipFaltas}</div>` : ''}
@@ -648,14 +659,29 @@
     C.cargarImagenes($raiz);
     mostrarHoja();
     colocarTags($raiz.querySelector('[data-pe-lienzo]'));
-    const fila = $raiz.querySelector('.pe-plantas');
+    if (compacto) ajustarAlto();
+    const fila = compacto ? null : $raiz.querySelector('.pe-plantas');
     const act = fila && fila.querySelector('.activa');
     if (act) fila.scrollLeft = act.offsetLeft - fila.clientWidth / 2 + act.offsetWidth / 2;
   }
 
+  /* Pantalla Cx (13-nov, JC): sin hueco blanco bajo el plano. Entero: el marco se pega al plano; con zoom: ocupa todo el alto libre hasta la barra. */
+  function ajustarAlto() {
+    const [marco] = marcoYLienzo();
+    const img = marco && marco.querySelector('.pe-lienzo img');
+    if (!marco || !img) return;
+    const poner = () => {
+      if (!marco.isConnected || !img.naturalWidth) return;
+      const libre = Math.max(240, window.innerHeight - marco.getBoundingClientRect().top - 112);
+      const natural = marco.clientWidth * (img.naturalHeight / img.naturalWidth) * zoom + 2;
+      marco.style.height = Math.round(zoom > 1 ? libre : Math.min(libre, Math.max(natural, 160))) + 'px';
+    };
+    if (img.complete) poner(); else img.addEventListener('load', poner, { once: true });
+  }
+
   function cabeza() {
     return propio ? '<div class="pe-cabeza"><h2>Plano de equipos</h2></div>'
-      : '<div class="pe-cabeza"><button class="enlace" data-cx="lista">‹ Equipos</button><h2>Plano de equipos</h2></div>';
+      : '<div class="pe-cabeza"><button class="enlace" data-cx="lista">‹ Cx</button><h2>Plano de equipos</h2></div>';
   }
 
   const marcoYLienzo = () => [$raiz && $raiz.querySelector('[data-pe-marco]'), $raiz && $raiz.querySelector('[data-pe-lienzo]')];
@@ -894,8 +920,8 @@
   });
 
   /* Se guarda cómo está el plano y se va a la pantalla de siempre del equipo. */
-  function irAlEquipo(accion) {
-    const e = equipoElegido();
+  function irAlEquipo(accion, otro = null) {
+    const e = otro ? { id: otro } : equipoElegido();
     if (!e || typeof window.CX_COMMISSIONING_IR !== 'function') return;
     const [marco] = marcoYLienzo();
     const lista = $raiz.querySelector('.pe-lista');
@@ -915,6 +941,12 @@
 
   document.addEventListener('change', (ev) => {
     if (!$raiz || !$raiz.contains(ev.target) || !datos) return;
+    const sel = ev.target.closest && ev.target.closest('[data-pe-planta-sel]');
+    if (sel) {
+      const nombre = sel.value;
+      traerPlanta(nombre).then(() => { planta = nombre; elegida = null; mat = null; zoom = 1; pintar(); }).catch((e) => C.aviso(e.message));
+      return;
+    }
     const df = ev.target.closest('[data-pe-entrega-df]');
     if (df && df.value) guardarEntregaDF(df.dataset.peEntregaDf, df.value);
   });
@@ -984,6 +1016,8 @@
     const ver = ev.target.closest('[data-pe-ver]');
     if (ver) {
       const id = ver.dataset.peVer;
+      /* 13-nov (JC): «ver» el otro equipo del par abre también su ficha completa. */
+      if (typeof window.CX_COMMISSIONING_IR === 'function') { irAlEquipo('equipo', id); if (vista) vista.elegida = null; return; }
       const q = plantas().find((x) => (x.parcial ? (x.enPlano || []).includes(id) : x.equipos.some((y) => y.id === id && y.x !== null)));
       if (q && (q.planta || '') !== (planta || '')) {
         traerPlanta(q.planta || '').then(() => { planta = q.planta || ''; elegida = id; zoom = 1; pintar(); mostrarHoja(); asomar(elegida); }).catch((e) => C.aviso(e.message));
@@ -993,10 +1027,14 @@
     }
     const ac = ev.target.closest('[data-pe-accion]');
     if (ac) { irAlEquipo(ac.dataset.peAccion); return; }
-    const mk = ev.target.closest('[data-pe-marca]');
-    if (mk) { elegir(mk.dataset.peMarca); return; }
-    const fi = ev.target.closest('[data-pe-fila]');
-    if (fi) { elegir(fi.dataset.peFila, { centrarla: true }); }
+    /* 13-nov (JC, en reunión): tocar un equipo del plano o de la lista abre SU FICHA COMPLETA (checklist, toma de datos,
+       estanqueidad, balanceo…), no la hoja corta; al volver, el plano sigue con su planta, zoom y sitio (irAlEquipo guarda la vista). */
+    const mk = ev.target.closest('[data-pe-marca]') || ev.target.closest('[data-pe-fila]');
+    if (mk) {
+      const id = mk.dataset.peMarca || mk.dataset.peFila;
+      if (typeof window.CX_COMMISSIONING_IR === 'function') { elegida = id; mat = null; irAlEquipo('equipo'); if (vista) vista.elegida = null; return; }
+      if (mk.dataset.peMarca) elegir(id); else elegir(id, { centrarla: true });
+    }
   });
 
   FA.conectar({
@@ -1014,5 +1052,18 @@
   window.addEventListener('hashchange', () => { if (activaPropia()) abrirPropio(); else propio = false; });
   if (activaPropia()) abrirPropio();
 
-  window.CX_PLANO_EQUIPOS = { abrir: ($app) => { propio = false; return abrir($app); }, volver, verEquipo: ($app, id) => { propio = false; return verEquipo($app, id); } };
+  /* LA PANTALLA CX (13-nov, JC): el plano se monta dentro de un contenedor de la pantalla Cx (el buscador queda encima).
+     `ir` lleva a un equipo: cambia de planta, lo marca, abre su hoja y lo centra. Devuelve false si el plano no lo conoce. */
+  async function ir(id, ids = [id]) {
+    if (!$raiz || !$raiz.isConnected || !datos) return false;
+    const quien = ids.find((i) => plantas().some((x) => (x.parcial ? (x.enPlano || []).includes(i) : x.equipos.some((y) => y.id === i && y.x !== null)))) || null;
+    const q = quien && plantas().find((x) => (x.parcial ? (x.enPlano || []).includes(quien) : x.equipos.some((y) => y.id === quien && y.x !== null)));
+    if (!q) return false;
+    try { await traerPlanta(q.planta || ''); } catch (e) { C.aviso(e.message); return false; }
+    planta = q.planta || ''; elegida = quien; mat = null; zoom = 1;
+    pintar(); mostrarHoja(); centrar(quien);
+    return true;
+  }
+  const montar = ($c, op = {}) => { propio = false; compacto = true; return op.equipo ? verEquipo($c, op.equipo) : (op.volver ? volver($c) : abrir($c)); };
+  window.CX_PLANO_EQUIPOS = { abrir: ($app) => { propio = false; compacto = false; return abrir($app); }, volver: ($app) => { compacto = false; return volver($app); }, verEquipo: ($app, id) => { propio = false; compacto = false; return verEquipo($app, id); }, montar, ir };
 })();
