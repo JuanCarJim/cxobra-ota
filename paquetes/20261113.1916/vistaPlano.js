@@ -254,9 +254,18 @@ function rotulosSinChoque({ tags = [], obstaculos = [], salas = [] } = {}, celda
   const salida = { tags: new Set(), salas: new Set() };
   const ordenTags = porPri(tags);
   /* El tocado va antes que nada; los demás TAG no tapan el símbolo de otro equipo. */
-  for (const c of ordenTags.filter((t) => t.pri === 0)) { if (choca(c)) continue; salida.tags.add(c.id); poner(c); }
+  /* 13-nov (JC: «TAG sin cortar en el borde y sin solaparse»): un TAG puede traer otros sitios (`alt`, p. ej. a la izquierda
+     del bloque); si va en uno de ellos, su id sale en `salida.izq` cuando ese sitio lleva `izq`. */
+  salida.izq = new Set();
+  const ponTag = (c) => {
+    const q = [c, ...(c.alt || []).map((a) => ({ ...c, ...a }))].find((x) => !choca(x));
+    if (!q) return;
+    salida.tags.add(c.id); poner(q);
+    if (q.izq) salida.izq.add(c.id);
+  };
+  for (const c of ordenTags.filter((t) => t.pri === 0)) ponTag(c);
   for (const c of obstaculos) poner(c);
-  const ponTags = () => { for (const c of ordenTags.filter((t) => t.pri !== 0)) { if (choca(c)) continue; salida.tags.add(c.id); poner(c); } };
+  const ponTags = () => { for (const c of ordenTags.filter((t) => t.pri !== 0)) ponTag(c); };
   /* 13-nov (JC: «es súper importante el nombre de la sala»): con salasPrimero, los nombres de sala van antes que los TAG. */
   if (!salasPrimero) ponTags();
   for (const c of porPri(salas)) {
@@ -313,7 +322,14 @@ function colocarRotulos({ lw, lh, equipos = [], materiales = [], salas = [], hue
     const cx = q.x * lw; const cy = q.y * lh;
     obstaculos.push({ x: cx - sw / 2, y: cy - sw / 2, w: sw, h: sw });
     if (!q.tag) return;
-    tags.push({ id, x: cx + sw / 2 + (el ? 8 : 2), y: cy - (el ? 8 : 6), w: mide(q.tag, el ? 'elegido' : 'tag') + (el ? 10 : 6), h: el ? 16 : 12, pri: el ? 0 : (q.pri !== undefined ? q.pri : priDef) });
+    const w = mide(q.tag, el ? 'elegido' : 'tag') + (el ? 10 : 6); const sep = el ? 8 : 2;
+    const der = { x: cx + sw / 2 + sep, izq: false }; const izq = { x: cx - sw / 2 - sep - w, izq: true };
+    /* A la derecha del bloque; si se sale del plano por la derecha o choca, a la izquierda (nunca cortado en el borde). */
+    const sale = (o) => o.x < 0 || o.x + w > lw;
+    const orden = sale(der) && !sale(izq) ? [izq, der] : [der, izq];
+    const sitios = orden.filter((o) => !sale(o));
+    const [pri0, ...alt] = sitios.length ? sitios : [orden[0]];
+    tags.push({ id, x: pri0.x, izq: pri0.izq, alt, y: cy - (el ? 8 : 6), w, h: el ? 16 : 12, pri: el ? 0 : (q.pri !== undefined ? q.pri : priDef) });
   };
   for (const e of equipos) mete(e, `eq:${e.id}`, 1.5);
   for (const m of materiales) mete(m, m.id, 3);
@@ -321,15 +337,20 @@ function colocarRotulos({ lw, lh, equipos = [], materiales = [], salas = [], hue
   const cajasSala = [];
   salas.forEach((r, i) => {
     if (!r || !r.t || r.x === null || r.x === undefined) return;
-    const w = mide(r.t, 'sala') + 4; const x = r.x * lw - w / 2; const y = r.y * lh - ALTO_SALA / 2;
+    const w = mide(r.t, 'sala') + 4;
+    /* 13-nov: el nombre nunca cortado en el borde del plano: se mete dentro (y sus sitios alternativos también). */
+    const cx = (v) => Math.min(Math.max(0, v), Math.max(0, lw - w)); const cy = (v) => Math.min(Math.max(0, v), Math.max(0, lh - ALTO_SALA));
+    const x = cx(r.x * lw - w / 2); const y = cy(r.y * lh - ALTO_SALA / 2);
     if (r.w > 0 && r.h > 0) {
       /* Con el recinto del modelo: el nombre sale si cabe dentro de la sala en pantalla; si tapa algo, prueba arriba, abajo o a los lados. */
       const dy = Math.min((r.h * lh) / 3, 40); const dx = Math.min(Math.max(0, r.w * lw - w) / 3, 60);
-      const alt = [[0, -dy], [0, dy], [-dx, 0], [dx, 0]].filter(([a, b]) => a || b).map(([a, b]) => ({ x: x + a, y: y + b }));
+      const alt = [[0, -dy], [0, dy], [-dx, 0], [dx, 0]].filter(([a, b]) => a || b).map(([a, b]) => ({ x: cx(x + a), y: cy(y + b) }));
       cajasSala.push({ id: i, x, y, w, h: ALTO_SALA, hueco: r.h * lh >= 10 ? r.w * lw * 1.25 : 0, pri: -(r.w * r.h), alt });
     } else {
-      /* Sin recinto: el hueco con la sala vecina más cercana mide su tamaño. */
-      const alt = [{ x, y: y - 14 }, { x, y: y + 14 }];
+      /* Sin recinto: el hueco con la sala vecina más cercana mide su tamaño. Si en su sitio tapa un bloque, prueba encima,
+         debajo y a los lados, un poco más lejos cada vez (13-nov: en una sala llena de equipos el nombre no salía nunca). */
+      const alt = [];
+      for (const d of [1, 2, 3]) alt.push({ x, y: cy(y - 14 * d) }, { x, y: cy(y + 14 * d) }, { x: cx(x - w / 2 - 12 * d), y }, { x: cx(x + w / 2 + 12 * d), y });
       cajasSala.push({ id: i, x, y, w, h: ALTO_SALA, hueco: (hueco[i] || 0) * lw * 2, pri: -(hueco[i] || 0), alt });
     }
   });
@@ -340,7 +361,48 @@ function colocarRotulos({ lw, lh, equipos = [], materiales = [], salas = [], hue
     const m = ver.movidas && ver.movidas[c.id];
     sitio.set(c.id, { x: (m ? m.x : c.x) + c.w / 2, y: (m ? m.y : c.y) + c.h / 2 });
   }
-  return { tags: ver.tags, salas: ver.salas, sitio };
+  return { tags: ver.tags, salas: ver.salas, sitio, izq: ver.izq || new Set() };
+}
+
+/* 13-nov (coordinador, JC en el iPhone): un «+» desde «Entero» nunca puede dejar la
+   pantalla en blanco. Tras cada zoom (botones, doble toque o pellizco) la vista se queda
+   dentro de la planta y, si en ella no cae ningún equipo ni sala, se centra en el más
+   cercano al centro de lo que se veía. Todo en píxeles del lienzo; puntos en fracción 0..1. */
+function encuadreZoom({ sl = 0, st = 0, cw, ch, lw, lh, puntos = [] } = {}) {
+  const lim = (v, a, b) => Math.max(a, Math.min(b, v));
+  const maxL = Math.max(0, lw - cw); const maxT = Math.max(0, lh - ch);
+  let L = lim(sl, 0, maxL); let T = lim(st, 0, maxT);
+  const ps = (puntos || []).filter((q) => q && Number.isFinite(q.x) && Number.isFinite(q.y));
+  const dentro = (q) => q.x * lw >= L && q.x * lw <= L + cw && q.y * lh >= T && q.y * lh <= T + ch;
+  if (!ps.length || ps.some(dentro)) return { sl: L, st: T, movido: false };
+  const cx = L + Math.min(cw, lw) / 2; const cy = T + Math.min(ch, lh) / 2;
+  let mejor = ps[0]; let d = Infinity;
+  for (const q of ps) { const dq = Math.hypot(q.x * lw - cx, q.y * lh - cy); if (dq < d) { d = dq; mejor = q; } }
+  L = lim(mejor.x * lw - cw / 2, 0, maxL); T = lim(mejor.y * lh - ch / 2, 0, maxT);
+  return { sl: L, st: T, movido: true };
+}
+
+/*
+ * EL TAMAÑO DE CADA BLOQUE DE EQUIPO EN PANTALLA (13-nov, JC en el iPhone: «si hago zoom los equipos tienen que modificar su
+ * tamaño para adaptarse, si no es imposible que sepa yo en qué sala estoy»). El bloque no crece con el plano: mide `max` px
+ * de pantalla a cualquier zoom, y si su vecino más cercano está más cerca, encoge (hasta `min`) para no pisarlo. Así, al
+ * acercar, las salas crecen y los equipos se separan; muros y nombres de sala siguen a la vista.
+ * puntos: [{ id, x, y }] en fracción del plano; lw, lh: el lienzo en px. Devuelve Map id → px. Autónoma (va con toString al HTML de la DF).
+ */
+function tamBloques(puntos, { lw, lh, max = 22, min = 10, hueco = 3 } = {}) {
+  const ps = [];
+  for (const q of puntos || []) if (q && q.x !== null && q.x !== undefined && q.y !== null && q.y !== undefined) ps.push({ id: q.id, X: q.x * lw, Y: q.y * lh });
+  const lado = max + hueco; const rejilla = new Map(); const clave = (i, j) => `${i}|${j}`;
+  for (const q of ps) { const k = clave(Math.floor(q.X / lado), Math.floor(q.Y / lado)); if (!rejilla.has(k)) rejilla.set(k, []); rejilla.get(k).push(q); }
+  const tam = new Map();
+  for (const q of ps) {
+    const i0 = Math.floor(q.X / lado); const j0 = Math.floor(q.Y / lado); let d = Infinity;
+    for (let i = i0 - 1; i <= i0 + 1; i += 1) for (let j = j0 - 1; j <= j0 + 1; j += 1) {
+      for (const o of rejilla.get(clave(i, j)) || []) if (o !== q) d = Math.min(d, Math.max(Math.abs(o.X - q.X), Math.abs(o.Y - q.Y)));
+    }
+    tam.set(q.id, Math.round(Math.max(min, Math.min(max, d - hueco))));
+  }
+  return tam;
 }
 
 /*
@@ -389,11 +451,11 @@ function salasDeEquipos(equipos, partir = partirSimple) {
     const s = partir(e.sala); const t = s.nombre || s.codigo;
     if (!t) continue;
     const k = llano(s.codigo) || llano(t);
-    if (!grupos.has(k)) grupos.set(k, { t, xs: [], ys: [] });
+    if (!grupos.has(k)) grupos.set(k, { t, codigo: s.codigo || '', xs: [], ys: [] });
     grupos.get(k).xs.push(e.x); grupos.get(k).ys.push(e.y);
   }
   const media = (v) => v.reduce((a, b) => a + b, 0) / v.length;
-  return [...grupos.values()].map((g) => ({ t: g.t, x: r4(media(g.xs)), y: r4(media(g.ys)), conNombre: true }));
+  return [...grupos.values()].map((g) => ({ t: g.t, codigo: g.codigo, x: r4(media(g.xs)), y: r4(media(g.ys)), conNombre: true }));
 }
 function salasParaPlano({ svg = null, ancho = 0, alto = 0, salasPlano = [], equipos = [], partir = partirSimple } = {}) {
   const { nombres, codigos } = salasDelSvg(svg, ancho, alto);
@@ -401,7 +463,12 @@ function salasParaPlano({ svg = null, ancho = 0, alto = 0, salasPlano = [], equi
   const nombreDe = new Map();
   for (const e of equipos || []) { const s = partir(e && e.sala); if (s.nombre && s.codigo) nombreDe.set(llano(s.codigo), s.nombre); }
   const renombradas = codigos.map((c) => (nombreDe.has(llano(c.t)) ? { ...c, t: nombreDe.get(llano(c.t)), codigo: c.t } : c));
-  if (renombradas.some((c) => c.codigo)) return { salas: renombradas, fuente: 'codigos+equipos' };
+  if (renombradas.some((c) => c.codigo)) {
+    /* 13-nov: las salas de los equipos que el modelo no trae (el IFC no tiene todos los recintos) se añaden por el sitio de sus equipos. */
+    const ya = new Set(codigos.map((c) => llano(c.t)));
+    const resto = salasDeEquipos(equipos, partir).filter((r) => partir(r.t).nombre && !ya.has(llano(r.codigo || '')) && !renombradas.some((c) => c.t === r.t && Math.hypot(c.x - r.x, c.y - r.y) < 0.05));
+    return { salas: [...renombradas, ...resto.map(({ t, x, y }) => ({ t, x, y }))], fuente: 'codigos+equipos' };
+  }
   const delPlano = (salasPlano || []).filter((r) => r && r.t && !partir(r.t).codigo);
   if (delPlano.length) return { salas: delPlano.map((r) => ({ t: r.t, x: r.x, y: r.y })), fuente: 'plano' };
   const deEq = salasDeEquipos(equipos, partir).filter((r) => partir(r.t).nombre);
@@ -409,7 +476,7 @@ function salasParaPlano({ svg = null, ancho = 0, alto = 0, salasPlano = [], equi
   return { salas: codigos, fuente: codigos.length ? 'codigos' : null };
 }
 
-const API = { ZOOM_MIN, ZOOM_TOPE, ZOOM_MAX, limitarZoom, anchoBase, geometria, limitarScroll, puntoEn, zoomEnPunto, centrarEn, factorRueda, zoomMaximo, cajaDe, encuadre, etiquetasSinChoque, rotulosSinChoque, huecoSalas, colocarRotulos, LETRA_PX, ALTO_SALA, salasDelSvg, salasDeEquipos, salasParaPlano, gestos };
+const API = { ZOOM_MIN, ZOOM_TOPE, ZOOM_MAX, limitarZoom, anchoBase, geometria, limitarScroll, puntoEn, zoomEnPunto, centrarEn, factorRueda, zoomMaximo, cajaDe, encuadre, etiquetasSinChoque, rotulosSinChoque, huecoSalas, colocarRotulos, tamBloques, encuadreZoom, LETRA_PX, ALTO_SALA, salasDelSvg, salasDeEquipos, salasParaPlano, gestos };
 if (typeof module !== 'undefined' && module.exports) module.exports = API;
 if (typeof window !== 'undefined') window.VISTA_PLANO = API;
 })();

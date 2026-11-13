@@ -11528,7 +11528,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261113.1751" : "0";
+      var VERSION = true ? "20261113.1916" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -79642,18 +79642,18 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           const porPri = (l) => [...l].sort((a, b) => (a.pri || 0) - (b.pri || 0));
           const salida = { tags: /* @__PURE__ */ new Set(), salas: /* @__PURE__ */ new Set() };
           const ordenTags = porPri(tags);
-          for (const c of ordenTags.filter((t) => t.pri === 0)) {
-            if (choca(c)) continue;
+          salida.izq = /* @__PURE__ */ new Set();
+          const ponTag = (c) => {
+            const q = [c, ...(c.alt || []).map((a) => ({ ...c, ...a }))].find((x) => !choca(x));
+            if (!q) return;
             salida.tags.add(c.id);
-            poner(c);
-          }
+            poner(q);
+            if (q.izq) salida.izq.add(c.id);
+          };
+          for (const c of ordenTags.filter((t) => t.pri === 0)) ponTag(c);
           for (const c of obstaculos) poner(c);
           const ponTags = () => {
-            for (const c of ordenTags.filter((t) => t.pri !== 0)) {
-              if (choca(c)) continue;
-              salida.tags.add(c.id);
-              poner(c);
-            }
+            for (const c of ordenTags.filter((t) => t.pri !== 0)) ponTag(c);
           };
           if (!salasPrimero) ponTags();
           for (const c of porPri(salas)) {
@@ -79693,7 +79693,15 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
             const cy = q.y * lh;
             obstaculos.push({ x: cx - sw / 2, y: cy - sw / 2, w: sw, h: sw });
             if (!q.tag) return;
-            tags.push({ id, x: cx + sw / 2 + (el ? 8 : 2), y: cy - (el ? 8 : 6), w: mide(q.tag, el ? "elegido" : "tag") + (el ? 10 : 6), h: el ? 16 : 12, pri: el ? 0 : q.pri !== void 0 ? q.pri : priDef });
+            const w = mide(q.tag, el ? "elegido" : "tag") + (el ? 10 : 6);
+            const sep = el ? 8 : 2;
+            const der = { x: cx + sw / 2 + sep, izq: false };
+            const izq = { x: cx - sw / 2 - sep - w, izq: true };
+            const sale = (o) => o.x < 0 || o.x + w > lw;
+            const orden = sale(der) && !sale(izq) ? [izq, der] : [der, izq];
+            const sitios = orden.filter((o) => !sale(o));
+            const [pri0, ...alt] = sitios.length ? sitios : [orden[0]];
+            tags.push({ id, x: pri0.x, izq: pri0.izq, alt, y: cy - (el ? 8 : 6), w, h: el ? 16 : 12, pri: el ? 0 : q.pri !== void 0 ? q.pri : priDef });
           };
           for (const e of equipos) mete(e, `eq:${e.id}`, 1.5);
           for (const m of materiales) mete(m, m.id, 3);
@@ -79702,15 +79710,18 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
           salas.forEach((r, i) => {
             if (!r || !r.t || r.x === null || r.x === void 0) return;
             const w = mide(r.t, "sala") + 4;
-            const x = r.x * lw - w / 2;
-            const y = r.y * lh - ALTO_SALA / 2;
+            const cx = (v) => Math.min(Math.max(0, v), Math.max(0, lw - w));
+            const cy = (v) => Math.min(Math.max(0, v), Math.max(0, lh - ALTO_SALA));
+            const x = cx(r.x * lw - w / 2);
+            const y = cy(r.y * lh - ALTO_SALA / 2);
             if (r.w > 0 && r.h > 0) {
               const dy = Math.min(r.h * lh / 3, 40);
               const dx = Math.min(Math.max(0, r.w * lw - w) / 3, 60);
-              const alt = [[0, -dy], [0, dy], [-dx, 0], [dx, 0]].filter(([a, b]) => a || b).map(([a, b]) => ({ x: x + a, y: y + b }));
+              const alt = [[0, -dy], [0, dy], [-dx, 0], [dx, 0]].filter(([a, b]) => a || b).map(([a, b]) => ({ x: cx(x + a), y: cy(y + b) }));
               cajasSala.push({ id: i, x, y, w, h: ALTO_SALA, hueco: r.h * lh >= 10 ? r.w * lw * 1.25 : 0, pri: -(r.w * r.h), alt });
             } else {
-              const alt = [{ x, y: y - 14 }, { x, y: y + 14 }];
+              const alt = [];
+              for (const d of [1, 2, 3]) alt.push({ x, y: cy(y - 14 * d) }, { x, y: cy(y + 14 * d) }, { x: cx(x - w / 2 - 12 * d), y }, { x: cx(x + w / 2 + 12 * d), y });
               cajasSala.push({ id: i, x, y, w, h: ALTO_SALA, hueco: (hueco[i] || 0) * lw * 2, pri: -(hueco[i] || 0), alt });
             }
           });
@@ -79721,7 +79732,54 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
             const m = ver.movidas && ver.movidas[c.id];
             sitio.set(c.id, { x: (m ? m.x : c.x) + c.w / 2, y: (m ? m.y : c.y) + c.h / 2 });
           }
-          return { tags: ver.tags, salas: ver.salas, sitio };
+          return { tags: ver.tags, salas: ver.salas, sitio, izq: ver.izq || /* @__PURE__ */ new Set() };
+        }
+        function encuadreZoom({ sl = 0, st = 0, cw, ch, lw, lh, puntos = [] } = {}) {
+          const lim = (v, a, b) => Math.max(a, Math.min(b, v));
+          const maxL = Math.max(0, lw - cw);
+          const maxT = Math.max(0, lh - ch);
+          let L = lim(sl, 0, maxL);
+          let T2 = lim(st, 0, maxT);
+          const ps = (puntos || []).filter((q) => q && Number.isFinite(q.x) && Number.isFinite(q.y));
+          const dentro = (q) => q.x * lw >= L && q.x * lw <= L + cw && q.y * lh >= T2 && q.y * lh <= T2 + ch;
+          if (!ps.length || ps.some(dentro)) return { sl: L, st: T2, movido: false };
+          const cx = L + Math.min(cw, lw) / 2;
+          const cy = T2 + Math.min(ch, lh) / 2;
+          let mejor = ps[0];
+          let d = Infinity;
+          for (const q of ps) {
+            const dq = Math.hypot(q.x * lw - cx, q.y * lh - cy);
+            if (dq < d) {
+              d = dq;
+              mejor = q;
+            }
+          }
+          L = lim(mejor.x * lw - cw / 2, 0, maxL);
+          T2 = lim(mejor.y * lh - ch / 2, 0, maxT);
+          return { sl: L, st: T2, movido: true };
+        }
+        function tamBloques2(puntos, { lw, lh, max = 22, min = 10, hueco = 3 } = {}) {
+          const ps = [];
+          for (const q of puntos || []) if (q && q.x !== null && q.x !== void 0 && q.y !== null && q.y !== void 0) ps.push({ id: q.id, X: q.x * lw, Y: q.y * lh });
+          const lado = max + hueco;
+          const rejilla = /* @__PURE__ */ new Map();
+          const clave = (i, j) => `${i}|${j}`;
+          for (const q of ps) {
+            const k = clave(Math.floor(q.X / lado), Math.floor(q.Y / lado));
+            if (!rejilla.has(k)) rejilla.set(k, []);
+            rejilla.get(k).push(q);
+          }
+          const tam = /* @__PURE__ */ new Map();
+          for (const q of ps) {
+            const i0 = Math.floor(q.X / lado);
+            const j0 = Math.floor(q.Y / lado);
+            let d = Infinity;
+            for (let i = i0 - 1; i <= i0 + 1; i += 1) for (let j = j0 - 1; j <= j0 + 1; j += 1) {
+              for (const o of rejilla.get(clave(i, j)) || []) if (o !== q) d = Math.min(d, Math.max(Math.abs(o.X - q.X), Math.abs(o.Y - q.Y)));
+            }
+            tam.set(q.id, Math.round(Math.max(min, Math.min(max, d - hueco))));
+          }
+          return tam;
         }
         const RE_NOMBRE_SALA = /<text x="([-0-9.]+)" y="([-0-9.]+)" data-w="(\d+)" data-h="(\d+)">([^<>]*)<\/text>/g;
         const RE_CODIGO_SALA = /<text x="([-0-9.]+)" y="([-0-9.]+)">([^<>]*)<\/text>/g;
@@ -79763,12 +79821,12 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
             const t = s.nombre || s.codigo;
             if (!t) continue;
             const k = llano(s.codigo) || llano(t);
-            if (!grupos.has(k)) grupos.set(k, { t, xs: [], ys: [] });
+            if (!grupos.has(k)) grupos.set(k, { t, codigo: s.codigo || "", xs: [], ys: [] });
             grupos.get(k).xs.push(e.x);
             grupos.get(k).ys.push(e.y);
           }
           const media = (v) => v.reduce((a, b) => a + b, 0) / v.length;
-          return [...grupos.values()].map((g) => ({ t: g.t, x: r4(media(g.xs)), y: r4(media(g.ys)), conNombre: true }));
+          return [...grupos.values()].map((g) => ({ t: g.t, codigo: g.codigo, x: r4(media(g.xs)), y: r4(media(g.ys)), conNombre: true }));
         }
         function salasParaPlano({ svg = null, ancho = 0, alto = 0, salasPlano = [], equipos = [], partir = partirSimple } = {}) {
           const { nombres, codigos } = salasDelSvg(svg, ancho, alto);
@@ -79779,14 +79837,18 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
             if (s.nombre && s.codigo) nombreDe.set(llano(s.codigo), s.nombre);
           }
           const renombradas = codigos.map((c) => nombreDe.has(llano(c.t)) ? { ...c, t: nombreDe.get(llano(c.t)), codigo: c.t } : c);
-          if (renombradas.some((c) => c.codigo)) return { salas: renombradas, fuente: "codigos+equipos" };
+          if (renombradas.some((c) => c.codigo)) {
+            const ya = new Set(codigos.map((c) => llano(c.t)));
+            const resto = salasDeEquipos(equipos, partir).filter((r) => partir(r.t).nombre && !ya.has(llano(r.codigo || "")) && !renombradas.some((c) => c.t === r.t && Math.hypot(c.x - r.x, c.y - r.y) < 0.05));
+            return { salas: [...renombradas, ...resto.map(({ t, x, y }) => ({ t, x, y }))], fuente: "codigos+equipos" };
+          }
           const delPlano = (salasPlano || []).filter((r) => r && r.t && !partir(r.t).codigo);
           if (delPlano.length) return { salas: delPlano.map((r) => ({ t: r.t, x: r.x, y: r.y })), fuente: "plano" };
           const deEq = salasDeEquipos(equipos, partir).filter((r) => partir(r.t).nombre);
           if (deEq.length) return { salas: deEq.map(({ t, x, y }) => ({ t, x, y })), fuente: "equipos" };
           return { salas: codigos, fuente: codigos.length ? "codigos" : null };
         }
-        const API = { ZOOM_MIN, ZOOM_TOPE, ZOOM_MAX, limitarZoom, anchoBase, geometria, limitarScroll, puntoEn, zoomEnPunto, centrarEn, factorRueda, zoomMaximo, cajaDe, encuadre, etiquetasSinChoque, rotulosSinChoque, huecoSalas, colocarRotulos: colocarRotulos2, LETRA_PX, ALTO_SALA, salasDelSvg, salasDeEquipos, salasParaPlano, gestos };
+        const API = { ZOOM_MIN, ZOOM_TOPE, ZOOM_MAX, limitarZoom, anchoBase, geometria, limitarScroll, puntoEn, zoomEnPunto, centrarEn, factorRueda, zoomMaximo, cajaDe, encuadre, etiquetasSinChoque, rotulosSinChoque, huecoSalas, colocarRotulos: colocarRotulos2, tamBloques: tamBloques2, encuadreZoom, LETRA_PX, ALTO_SALA, salasDelSvg, salasDeEquipos, salasParaPlano, gestos };
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.VISTA_PLANO = API;
       })();
@@ -80085,6 +80147,7 @@ ${fichas}</div>`;
 ${V.rotulosSinChoque.toString()}
 ${V.huecoSalas.toString()}
 ${V.colocarRotulos.toString()}
+${V.tamBloques.toString()}
 `;
         }
         function visorPlanta(D, doc, win) {
@@ -80144,13 +80207,16 @@ ${V.colocarRotulos.toString()}
             lienzo.style.width = `${lw}px`;
             lienzo.style.height = `${lh}px`;
             lienzo.style.transform = `translate(${tx}px,${ty}px)`;
-            const eqs = bloques.map(({ b }) => ({ id: b.id, x: b.x, y: b.y, sw: b.id === elegido ? TAM_EL : TAM, tag: b.tag, elegido: b.id === elegido }));
+            const tam = tamBloques(bloques.map(({ b }) => b), { lw, lh, max: TAM, min: 9 });
+            const eqs = bloques.map(({ b }) => ({ id: b.id, x: b.x, y: b.y, sw: b.id === elegido ? TAM_EL : tam.get(b.id) || TAM, tag: b.tag, elegido: b.id === elegido }));
             const r = colocarRotulos({ lw, lh, equipos: eqs, salas: D.salas, ancho: mide });
             for (const { b, a, t } of bloques) {
               a.style.left = `${b.x * lw}px`;
               a.style.top = `${b.y * lh}px`;
+              a.style.width = b.id === elegido ? "" : `${tam.get(b.id) || TAM}px`;
               a.classList.toggle("elegido", b.id === elegido);
               t.hidden = !r.tags.has(`eq:${b.id}`);
+              a.classList.toggle("izq", Boolean(r.izq && r.izq.has(`eq:${b.id}`)));
             }
             salas.forEach((e, i) => {
               const s = r.sitio.get(i);
@@ -80275,12 +80341,15 @@ header input{width:150px}#nivel{min-width:52px;text-align:right;color:#6b6556;fo
 main{display:flex;height:calc(100% - 52px)}#marco{position:relative;flex:1;overflow:hidden;touch-action:none;cursor:grab;background:#fff}
 #lienzo{position:absolute;left:0;top:0;transform-origin:0 0}#fondo{position:absolute;inset:0;width:100%;height:100%}
 #fondo path,#fondo line,#fondo polyline,#fondo polygon,#fondo rect,#fondo circle{fill:none;stroke:#cfc8b8;stroke-width:1;vector-effect:non-scaling-stroke}
+#fondo [data-capa="contorno"] path{fill:#f8f1e5;stroke:#4f5a69;stroke-width:1.3px;stroke-linejoin:round}
 #fondo text,#fondo [data-capa="salas"],#fondo [data-capa="nombres"]{display:none}#capa{position:absolute;inset:0}
-.bq{position:absolute;width:18px;height:18px;padding:0;margin:0;border:0;background:none;transform:translate(-50%,-50%);cursor:pointer}
-.bq svg{width:100%;height:100%;display:block;overflow:visible}.bq.elegido{width:28px;height:28px;z-index:3}
+.bq{position:absolute;width:18px;height:auto;aspect-ratio:1;padding:0;margin:0;border:0;background:none;transform:translate(-50%,-50%);cursor:pointer}
+.bq svg{width:100%;height:100%;display:block;overflow:visible}.bq.elegido{width:28px;z-index:3}
 .bq.elegido svg{filter:drop-shadow(0 0 2px #13957a)}
 .bq .tag{position:absolute;left:calc(100% + 2px);top:50%;transform:translateY(-50%);white-space:nowrap;font:600 10px system-ui,sans-serif;color:#262b38;text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff;pointer-events:none}
 .bq.elegido .tag{left:calc(100% + 8px);font:700 12px system-ui,sans-serif;color:#17676b}
+.bq.izq .tag{left:auto;right:calc(100% + 2px)}
+.bq.elegido.izq .tag{left:auto;right:calc(100% + 8px)}
 .sala{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font:600 11px system-ui,sans-serif;color:#2f4858;text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff;pointer-events:none}
 .bloque{overflow:visible}.bloque .cuerpo{fill:color-mix(in srgb,currentColor 12%,#fff)}.bloque .lleno{fill:currentColor;stroke:none}
 #ficha{width:380px;max-width:42%;overflow:auto;border-left:1px solid #d8d2c4;background:#fbf8f2;padding:10px 14px}
@@ -84254,7 +84323,7 @@ ${fallos.join("\r\n")}\r
         return n;
       }
       var esIfc = (id) => String(id || "").startsWith(PREFIJO);
-      var ESTILO = '<style>path{fill:none;stroke:#8e99a3;stroke-width:1;vector-effect:non-scaling-stroke}text{display:none}</style><rect width="100%" height="100%" fill="#fff"/>';
+      var ESTILO = '<style>path{fill:none;stroke:#aab5be;stroke-width:.8px;vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:round}[data-capa=contorno] path,[data-capa=muros] path{fill:#f8f1e5;stroke:#4f5a69;stroke-width:1.3px}[data-capa=tuberias] path{stroke:#93bdbd}text{display:none}</style><rect width="100%" height="100%" fill="#fffdf9"/>';
       function fondoSvg(repo, ses, id) {
         const fila = repo.leer("plantasIfc", ses, String(id || "").slice(PREFIJO.length));
         const svg = fila && String(fila.svg || "");
@@ -85878,6 +85947,22 @@ ${fallos.join("\r\n")}\r
             return /* @__PURE__ */ new Map();
           }
         })();
+        const compraConConjunto = (id) => {
+          if (compraDe.has(id)) return compraDe.get(id);
+          const l = lineaDe.get(id);
+          const ms = (l && l.miembros || []).filter((m) => m && m.id && m.tag);
+          if (ms.length < 2) return null;
+          const rotulo = (tag) => {
+            const m = /^(UE|UI|UC|UT)\b/i.exec(String(tag));
+            return m ? m[1].toUpperCase() : null;
+          };
+          return JSON.stringify({
+            fechaPedido: null,
+            fechaRecepcion: null,
+            falta: "pedido y albar\xE1n",
+            conjunto: { estado: "sin recepci\xF3n", fecha: null, unidades: ms.map((m) => ({ tag: m.tag, rotulo: rotulo(m.tag), fechaRecepcion: null })) }
+          });
+        };
         const resumenesBal = (() => {
           if (!conCx) return /* @__PURE__ */ new Map();
           try {
@@ -85895,7 +85980,7 @@ ${fallos.join("\r\n")}\r
             envio: l.envio || null,
             editable: puedeEditar && (l.envio === "lista" || l.envio === "enviada")
           };
-          return { ...v, entregaDF, bloques: [EE.bloqueFicha(albaranesDe.get(f.id), compraDe.get(f.id) || null), balanceoDe(f.id), ...VE.bloquesFicha(v)].filter(Boolean) };
+          return { ...v, entregaDF, bloques: [EE.bloqueFicha(albaranesDe.get(f.id), compraConConjunto(f.id)), balanceoDe(f.id), ...VE.bloquesFicha(v)].filter(Boolean) };
         };
         const datosDe = (f, e, entera = false) => {
           const base = { tipo: e.tipo, icono: e.icono, miembros: e.miembros, marca: e.marca || null, modelo: e.modelo || null, puedeEditar };
