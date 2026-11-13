@@ -32,7 +32,7 @@
   const { esc, cifra } = C;
   const FA = window.CX_PLANO_FALTAS; /* marcar lo que falta (planoFaltas.js) */
 
-  const NOMBRE = { verde: 'Hecho', azul: 'Falta documento', rojo: 'Sin empezar' };
+  const NOMBRE = { verde: 'En marcha', azul: 'Falta documentación', rojo: 'Sin empezar' };
   const ORDEN = ['verde', 'azul', 'rojo'];
   const ZOOM_MAX = 30; /* 30-oct, JC: «hay que poder ampliar más» */
   const ZOOM_SALAS = 3; /* desde aquí se leen los nombres de sala encima del plano */
@@ -78,6 +78,7 @@
   .pe-cuerpo{display:block}
   .pe-marco{position:relative;overflow:hidden;height:52vh;border:1px solid var(--borde);border-radius:10px;background:var(--vd-lienzo);touch-action:none;overscroll-behavior:contain;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   .pe-lienzo{position:relative}
+  .pe-fondo{display:flex;gap:6px;margin:0 0 6px}.pe-fondo button{flex:1;padding:6px 10px;border:1px solid var(--borde);border-radius:6px;background:transparent;color:inherit;font:inherit;font-size:13px}.pe-fondo button[aria-pressed=true]{background:color-mix(in srgb,currentColor 14%,transparent);font-weight:700;border-color:currentColor}.pe-fondo button:disabled{opacity:.4}
   .pe-lienzo img{display:block;width:100%;height:auto;user-select:none;-webkit-user-select:none;pointer-events:none}
   .pe-lienzo .marca-boca.azul{color:var(--pe-azul)}
   .pe-lienzo .marca-boca.azul .simbolo-boca .cuerpo{fill:color-mix(in srgb,var(--pe-azul) 22%,var(--vd-lienzo))}
@@ -210,9 +211,33 @@
   }
 
   const plantas = () => (datos && datos.plantas) || [];
+  /* EL MODELO IFC DE FONDO (13-nov-2026, JC): una planta con modelo (`p.ifc`) se ve con él, por defecto, y el PDF queda de respaldo
+     (botón «Plano PDF»). Con el modelo, los equipos van donde los pone el modelo, los que no están en él quedan «sin ubicar» y los
+     materiales y lo que falta (que se marcaron sobre el PDF) se ven en el PDF. */
+  const conPdf = new Set(); /* plantas en que se eligió el PDF */
+  const conModelo = new Set(); /* y en las que se eligió el modelo */
+  const vistas = new WeakMap();
+  /* Sin elegir, el modelo en cuanto coloca algún equipo (o si no hay PDF); el botón «Plano PDF» está encima, y la nota dice cuántos faltan. */
+  const usaModelo = (p) => {
+    const k = p.planta || '';
+    if (conPdf.has(k)) return false;
+    return conModelo.has(k) || !p.plano || Object.keys((p.ifc && p.ifc.pos) || {}).length > 0;
+  };
+  const vistaIfc = (p) => {
+    if (!p || !p.ifc || p.parcial || !usaModelo(p)) return p;
+    const ya = vistas.get(p);
+    if (ya) return ya;
+    const pos = p.ifc.pos || {};
+    const equipos = p.equipos.map((e) => (pos[e.id] ? { ...e, x: pos[e.id][0], y: pos[e.id][1], mano: false, revisar: false, w: 0, h: 0 } : { ...e, x: null, y: null, mano: false, revisar: false }));
+    const sinUbicar = equipos.filter((q) => q.x === null).map((q) => ({ id: q.id, tag: q.tag, familia: q.familia, sala: q.sala, icono: q.icono }));
+    const v = { ...p, plano: p.ifc.plano, equipos, sinUbicar, materiales: (p.materiales || []).map((m) => ({ ...m, x: null, y: null })), faltas: [], esIfc: true,
+      cuentas: { ...p.cuentas, enPlano: equipos.length - sinUbicar.length, sinUbicar: sinUbicar.length, revisar: 0 } };
+    vistas.set(p, v);
+    return v;
+  };
   const plantaActual = () => {
     const ps = plantas();
-    return ps.find((p) => (p.planta || '') === (planta || '')) || ps.find((p) => p.plano) || ps.find((p) => p.planta) || ps[0] || null;
+    return vistaIfc(ps.find((p) => (p.planta || '') === (planta || '')) || ps.find((p) => p.plano || p.ifc) || ps.find((p) => p.planta) || ps[0] || null);
   };
   const etiqueta = (p) => p.planta || 'Sin planta';
 
@@ -262,6 +287,28 @@
       return;
     }
     pintar();
+  }
+
+  /* «En plano» desde la ficha de un equipo (13-nov): abre el plano con la planta de ese equipo ya elegida, el equipo
+     marcado y centrado. Solo navega; el dibujo del plano es el de siempre. */
+  async function verEquipo($app, id) {
+    $raiz = $app;
+    ponerEstilo();
+    vista = null; zoom = 1; elegida = null;
+    document.body.classList.remove('sin-scroll');
+    const seg = document.getElementById('segmentos');
+    if (seg) seg.hidden = true;
+    $app.innerHTML = '<p class="cargando">Cargando el plano…</p>';
+    try {
+      await cargar();
+      const q = plantas().find((x) => (x.parcial ? (x.enPlano || []).includes(id) || false : x.equipos.some((y) => y.id === id)));
+      if (q) { await traerPlanta(q.planta || ''); planta = q.planta || ''; elegida = id; }
+    } catch (e) {
+      $app.innerHTML = `<div class="vacio mal"><p>${esc(e.message)}</p><button class="boton" data-cx="lista">Volver</button></div>`;
+      return;
+    }
+    pintar();
+    if (elegida) { mostrarHoja(); centrar(elegida); }
   }
 
   /* Vuelta desde una ficha del equipo: los colores se piden de nuevo (acaba de
@@ -409,7 +456,7 @@
   const escalas = new Map();
   function escalaDe(p) {
     const f = FP();
-    if (!f || !p || !p.plano) return 0;
+    if (!f || !p || !p.plano || p.esIfc) return 0;
     const k = `${p.plano.id}|${(p.materiales || []).length}`;
     if (!escalas.has(k)) escalas.set(k, f.escalaPlano(p.plano, p.materiales || []).mmPorPx);
     return escalas.get(k);
@@ -419,6 +466,8 @@
   function cajaEq(e, p) {
     const f = FP();
     if (!f || !f.cajaEquipo || !p || !p.plano) return { wf: 0, ar: 1 };
+    /* El fondo del modelo no tiene escala en mm: un tamaño fijo, que al acercar crece con el plano. */
+    if (p.esIfc) return { wf: 0.04, ar: 1 };
     /* Con el símbolo del dibujo (30-oct), su tamaño. */
     if (e.w > 0 && e.h > 0 && p.plano.ancho > 0 && p.plano.alto > 0) return { wf: Math.max(e.w, (e.h * p.plano.alto) / p.plano.ancho), ar: 1 };
     return f.cajaEquipo(e.icono || 'generico', p.plano, escalaDe(p));
@@ -557,7 +606,10 @@
     const cuentasCapa = p.capas || {};
     const capas = ((datos && datos.capas) || []).filter((k) => cuentasCapa[k.id]);
     const chipFaltas = FA.chip(p);
-    const plano = p.plano ? `<div class="pe-visor"><div class="pe-marco${FA.marcando() ? ' fa-activo' : ''}" data-pe-marco data-paleta="vidaire">
+    const pe0 = datos && (datos.plantas || []).find((x) => (x.planta || '') === (p.planta || ''));
+    const selector = pe0 && pe0.ifc ? `<div class="pe-fondo" role="group" aria-label="Fondo del plano"><button data-pe-fondo="ifc" aria-pressed="${Boolean(p.esIfc)}">Modelo IFC</button><button data-pe-fondo="pdf" aria-pressed="${!p.esIfc}"${pe0.plano ? '' : ' disabled'}>Plano PDF</button></div>${p.esIfc ? `<p class="nota" data-pe-fondo-nota>${p.sinUbicar.length ? `${cifra(p.sinUbicar.length)} equipo${p.sinUbicar.length === 1 ? '' : 's'} sin posición en el modelo${pe0.plano ? ' (en el plano PDF quizá sí)' : ''}. ` : ''}${(pe0.materiales || []).some((m) => m.x !== null) || (pe0.faltas || []).length ? 'Los materiales y lo que falta están marcados en el plano PDF.' : ''}</p>` : ''}`
+      : (p.plano ? '<p class="nota" data-pe-pdf-sin-ifc>plano PDF (sin IFC)</p>' : '');
+    const plano = p.plano ? `${selector}<div class="pe-visor"><div class="pe-marco${FA.marcando() ? ' fa-activo' : ''}" data-pe-marco data-paleta="vidaire">
         <div class="pe-lienzo${zoom >= ZOOM_SALAS ? ' con-salas' : ''}" data-pe-lienzo style="width:${zoom * 100}%;--pe-esc:${escMarcas()}">
           <img data-src="api/plano-equipos/imagen?id=${encodeURIComponent(p.plano.id)}" alt="Plano ${esc(p.plano.nombre)}" draggable="false">
           ${(p.plano.salas || []).map((r) => `<span class="pe-sala" style="left:${r.x * 100}%;top:${r.y * 100}%">${esc(r.t)}</span>`).join('')}
@@ -880,6 +932,13 @@
     }
     const co = ev.target.closest('[data-pe-color]');
     if (co) { const k = co.dataset.peColor; if (ocultos.has(k)) ocultos.delete(k); else ocultos.add(k); repintarQuieto(); return; }
+    const fo = ev.target.closest('[data-pe-fondo]');
+    if (fo) {
+      const k = planta || '';
+      if (fo.dataset.peFondo === 'pdf') { conPdf.add(k); conModelo.delete(k); } else { conPdf.delete(k); conModelo.add(k); }
+      elegida = null; mat = null; zoom = 1; pintar();
+      return;
+    }
     const z = ev.target.closest('[data-pe-zoom]');
     if (z) {
       /* Con un equipo elegido a la vista, se acerca hacia él y no hacia el centro. */
@@ -955,5 +1014,5 @@
   window.addEventListener('hashchange', () => { if (activaPropia()) abrirPropio(); else propio = false; });
   if (activaPropia()) abrirPropio();
 
-  window.CX_PLANO_EQUIPOS = { abrir: ($app) => { propio = false; return abrir($app); }, volver };
+  window.CX_PLANO_EQUIPOS = { abrir: ($app) => { propio = false; return abrir($app); }, volver, verEquipo: ($app, id) => { propio = false; return verEquipo($app, id); } };
 })();

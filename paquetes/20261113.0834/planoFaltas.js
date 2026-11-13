@@ -72,7 +72,7 @@
     return p.faltas.filter((f) => f.x !== null).map((f) => `<button class="fa-punto ${esc(f.estado)}" style="left:${f.x * 100}%;top:${f.y * 100}%" data-fa-ver="${esc(f.id)}" aria-label="${esc(`${f.tag}: ${f.estadoNombre}`)}">${f.estado === 'resuelta' ? '✓' : '!'}</button>`).join('');
   }
   function mando(p) {
-    if (!p.plano || !puedeMarcar()) return '';
+    if (!p.plano || p.esIfc || !puedeMarcar()) return '';
     if (marcando) return '<div class="fa-aviso"><span>Toca el sitio en el plano</span><button data-fa-cancelar>Cancelar</button></div>';
     return '<button class="boton secundario fa-marcar" data-fa-marcar>Marcar</button>';
   }

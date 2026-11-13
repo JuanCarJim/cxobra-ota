@@ -142,11 +142,11 @@
    * ELEGIR FOTOS (28-oct, tarea 368b6690): de la galería, varias a la vez;
    * con la cámara, una. Devuelve la lista (vacía si se cancela).
    */
-  function elegirFotos(camara = false) {
+  function elegirFotos(camara = false, { documento = false } = {}) {
     return new Promise((ok) => {
       const i = document.createElement('input');
       i.type = 'file';
-      i.accept = 'image/*';
+      i.accept = documento ? 'image/*,application/pdf' : 'image/*';
       if (camara) i.setAttribute('capture', 'environment');
       else i.multiple = true;
       i.hidden = true;

@@ -146,6 +146,33 @@ body.teclado .iaMovil .iaEntrada, body.teclado-vv .iaMovil .iaEntrada { padding-
 @media (min-width: 900px) {
   body.iaAbierto .centro { padding-right: 412px; box-sizing: border-box; }
 }
+/* 9-nov (JC): anclado, Iarvis es una columna propia; con el panel del hecho abierto también va en columna aunque flote,
+   para que lista, ficha e Iarvis se vean a la vez sin solaparse ni dejar hueco (el margen del visor y el del panel se suman aquí). */
+@media (min-width: 900px) {
+  body { --columnaIarvis: 380px; }
+  html.conVisorCorreo body.iaAbierto .iaPanel {
+    top: 0; right: 0; bottom: 0; width: var(--columnaIarvis); height: auto;
+    border-width: 0 0 0 1px; border-radius: 0; box-shadow: none;
+  }
+  html.conVisorCorreo body.iaAbierto .centro { padding-right: 0; margin-right: var(--columnaIarvis); }
+  html.conVisorCorreo body.iaAbierto main.centro { margin-right: calc(var(--anchoVisorCorreo) + var(--columnaIarvis)); }
+  html.conVisorCorreo body.iaAbierto .visorCorreo { right: var(--columnaIarvis); }
+  body.iaAnclado .iaCerrar { display: none; }
+}
+/* A 1366 px mandan la ficha e Iarvis: la lista se queda con lo justo (reclamaciones.css › @container centro). */
+@media (min-width: 900px) and (max-width: 1500px) {
+  body { --columnaIarvis: 340px; }
+  html.conVisorCorreo body.iaAbierto { --anchoVisorCorreo: 400px; }
+}
+@container centro (max-width: 420px) {
+  #pantallaReclamaciones table.tablaHechos col:nth-child(3) { visibility: collapse; width: 0 !important; }
+}
+.iaAnclar { display: none; background: none; border: 0; padding: 2px 4px; cursor: pointer; color: var(--textoSuave); line-height: 0; }
+.iaAnclar[aria-pressed="true"] { color: var(--vd-acento-texto, var(--marca-verde)); }
+@media (min-width: 900px) { .iaAnclar { display: inline-block; } }
+.iaSobre { padding: 4px 12px; font-size: 11.5px; color: var(--textoSuave); border-bottom: 1px solid var(--borde); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.iaSobre b { color: var(--vd-acento-texto, var(--marca-verde)); font-weight: 600; }
+
 /* Con el panel abierto el contenido es más estrecho: el subtítulo baja a su propia línea para no abreviarse ni cortarse. */
 @media (min-width: 900px) and (max-width: 1750px) {
   body.iaAbierto .centro > .cabecera { flex-wrap: wrap; row-gap: 2px; }

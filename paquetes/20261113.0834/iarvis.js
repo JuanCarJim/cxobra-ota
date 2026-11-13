@@ -273,7 +273,7 @@
     I.archivos[id] = { ...a, origen };
     const ic = iconoDe(a);
     const mini = a.miniatura || I.minis[claveMini(a)];
-    const disponible = origen === 'usuario' ? Boolean(a.ruta || I.bytesLocales.has(claveMini(a))) : Boolean(a.ruta || a.base64 || I.pdfs[id]);
+    const disponible = origen === 'usuario' ? Boolean(a.ruta || I.bytesLocales.has(claveMini(a))) : Boolean(a.ruta || a.base64 || a.nubeRuta || I.pdfs[id]);
     const donde = origen === 'iarvis' && a.ruta ? ' · Descargas › Vidaire Iarvis' : '';
     const titulo = disponible ? `Abrir «${a.nombre || ''}»` : 'Pídemelo otra vez para sacarlo de nuevo.';
     return `<button type="button" class="iaArchivoMini${disponible ? '' : ' iaNoDisponible'}" data-ia-archivo="${esc(id)}" title="${esc(titulo)}"${disponible ? '' : ' disabled'}>
@@ -349,7 +349,7 @@
     enlace.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   }
-  const avisar = (t) => { if (window.AVISOS && window.AVISOS.mostrar) window.AVISOS.mostrar(t); };
+  const avisoBreve = (t) => { if (window.AVISOS && window.AVISOS.mostrar) window.AVISOS.mostrar(t); };
   async function abrirArchivo(id) {
     const a = I.archivos[id];
     if (!a) return;
@@ -357,11 +357,17 @@
     if (a.origen === 'iarvis') {
       if (a.ruta && window.puente && window.puente.iarvisAbrirPdf) {
         const r = await window.puente.iarvisAbrirPdf(a.ruta, false);
-        if (r && !r.ok) avisar(r.error || 'No se ha podido abrir.');
-        return;
+        if (r && !r.ok && !(a.nubeRuta && window.puente.iarvisAbrirAdjunto)) avisoBreve(r.error || 'No se ha podido abrir.');
+        if (!r || r.ok || !a.nubeRuta) return;
       }
       const b = a.base64 || (I.pdfs[id] && I.pdfs[id].base64);
-      if (b) abrirYBajar(deBase64(b), a.nombre, mime || 'application/pdf');
+      if (b) { abrirYBajar(deBase64(b), a.nombre, mime || 'application/pdf'); return; }
+      /* Ya sin los bytes (historial, otra sesión, borrado de Descargas): la copia guardada en su carpeta de la nube. */
+      if (a.nubeRuta && window.puente && window.puente.iarvisAbrirAdjunto) {
+        const r2 = await window.puente.iarvisAbrirAdjunto({ ruta: a.nubeRuta, nombre: a.nombre, tipo: mime });
+        if (r2 && r2.ok && r2.base64) abrirYBajar(deBase64(r2.base64), a.nombre, r2.mime || mime);
+        else if (r2 && !r2.ok) avisoBreve(r2.error || 'No se ha podido abrir.');
+      }
       return;
     }
     /* Lo que adjuntó el usuario: se baja de SU carpeta de la nube (el escritorio lo abre; la web lo abre y lo descarga);
@@ -370,7 +376,7 @@
     if (!window.puente || !window.puente.iarvisAbrirAdjunto) { if (local) abrirYBajar(local.bytes, a.nombre, local.mime || mime); return; }
     const r = await window.puente.iarvisAbrirAdjunto({ ruta: a.ruta, nombre: a.nombre, tipo: mime });
     if (r && r.ok && r.base64) abrirYBajar(deBase64(r.base64), a.nombre, r.mime || mime);
-    else if (r && !r.ok) { if (local) abrirYBajar(local.bytes, a.nombre, local.mime || mime); else avisar(r.error || 'No se ha podido abrir.'); }
+    else if (r && !r.ok) { if (local) abrirYBajar(local.bytes, a.nombre, local.mime || mime); else avisoBreve(r.error || 'No se ha podido abrir.'); }
   }
   /** Las miniaturas de lo adjuntado (en la pregunta y en la caja antes de mandar). */
   function tarjetasAdjuntos(lista, prefijo) {
@@ -389,7 +395,7 @@
     }).join('');
     const botones = acc.filter((a) => a.tipo !== 'pdf').map((a) => {
       const datos = esc(JSON.stringify(a));
-      const prin = a.tipo === 'proponer' || a.tipo === 'aplicar' || (a.tipo === 'hacer' && a.hacer !== 'rechazar');
+      const prin = a.tipo === 'proponer' || a.tipo === 'aplicar' || (a.tipo === 'hacer' && a.hacer !== 'rechazar' && !a.secundario);
       return `<button class="${prin ? 'iaBotonPrin' : 'iaBotonSec'}" data-ia-accion="${datos}">${esc(a.texto || 'Abrir')}</button>`;
     }).join('');
     return `${pdfs ? `<div class="iaArchivos">${pdfs}</div>` : ''}${botones ? `<div class="iaAcciones">${botones}</div>` : ''}`;
@@ -472,6 +478,7 @@
   }
 
   function pintarFila(f) {
+    if (f.proactiva) return `${pintarRespuesta(f)}${(f.enviar || []).length ? `<div class="iaSugerencias">${f.enviar.map((s) => `<button data-ia-sugerencia="${esc(s.enviar)}">${esc(s.texto)}</button>`).join('')}</div>` : ''}`;
     const adj = (f.adjuntos || []).length ? `<div class="iaAdjuntos iaArchivos">${tarjetasAdjuntos(f.adjuntos, `adj:${f.id || I.filas.indexOf(f)}`)}</div>` : '';
     if (f.pregunta == null && f.comentario) return pintarRespuesta(f);
     return `<div class="iaPregunta">${esc(f.pregunta)}${adj}</div>${pintarRespuesta(f)}`;
@@ -489,7 +496,11 @@
 
   async function cargarHistorial() {
     if (!I.adaptador) return;
-    try { const h = await I.adaptador.historial(); if (Array.isArray(h)) I.filas = h; } catch { /* se queda lo que hay */ }
+    try {
+      const h = await I.adaptador.historial();
+      /* Lo que Iarvis pregunta tras una acción no se guarda en el historial: se queda en el chat. */
+      if (Array.isArray(h)) { const suyas = I.filas.filter((f) => f.proactiva); I.filas = suyas.length ? [...suyas, ...h].sort((a, b) => String(b.creado || '').localeCompare(String(a.creado || ''))) : h; }
+    } catch { /* se queda lo que hay */ }
     pintar();
   }
 
@@ -507,10 +518,22 @@
     }
   }
 
+  /* 9-nov: contestar «sí» o «no» a la última tarjeta de un hecho es lo mismo que pulsar sus botones. */
+  const SI = /^(s[ií]|confirmo|confirmado|hazlo|adelante|ok|vale|de acuerdo)[.!]?$/i;
+  const NO = /^(no|cancela|cancelar|d[eé]jalo)[.!]?$/i;
+  function tarjetaAbierta() {
+    const f = I.filas[0];
+    if (!f || !(I.deEstaVez.has(f) || (f.id && I.idsEstaVez.has(f.id))) || !Array.isArray(f.acciones)) return null;
+    const confirmar = f.acciones.find((a) => a.hacer === 'hecho' && a.texto === 'Confirmar');
+    return confirmar ? { confirmar, cancelar: f.acciones.find((a) => a.hacer === 'rechazar') } : null;
+  }
+
   async function mandar(textoDado) {
     const caja = I.panel.querySelector('textarea');
     const pregunta = (typeof textoDado === 'string' ? textoDado : caja.value).trim();
     if (!pregunta || I.ocupado || !I.adaptador) return;
+    const carta = tarjetaAbierta();
+    if (carta && (SI.test(pregunta) || (NO.test(pregunta) && carta.cancelar))) { caja.value = ''; accion(SI.test(pregunta) ? carta.confirmar : carta.cancelar); return; }
     I.ocupado = true;
     caducar();
     actividad();
@@ -539,7 +562,7 @@
     let r = adjuntos.length ? null : navegarLocal(pregunta);
     if (!r) {
       try {
-        r = await I.adaptador.preguntar({ pregunta, pantalla: ctx.pantalla, obraId: ctx.obraId, obraNombre: ctx.obraNombre, mirando: ctx.mirando, idioma: ctx.idioma, adjuntos });
+        r = await I.adaptador.preguntar({ pregunta, pantalla: ctx.pantalla, obraId: ctx.obraId, obraNombre: ctx.obraNombre, mirando: ctx.mirando || (ctx.hechoAbierto ? `Caso abierto en pantalla: ${ctx.hechoAbierto.reclamacionCodigo || ''} ${ctx.hechoAbierto.codigo || ''} ${ctx.hechoAbierto.titulo || ''}`.trim() : undefined), idioma: ctx.idioma, hechoAbierto: ctx.hechoAbierto, correoAbierto: ctx.correoAbierto, adjuntos });
       } catch { r = { estado: 'fallo', respuesta: 'Iarvis no ha podido contestar ahora. Vuelve a preguntármelo.' }; }
     }
     Object.assign(provisional, r || {});
@@ -690,6 +713,12 @@
       if (a.planoEstado && window.PANTALLA_PLANOS_ESTADO) window.PANTALLA_PLANOS_ESTADO.preparar(a.planoEstado);
       if (a.censo && window.PANTALLA_CENSO_EQUIPOS) window.PANTALLA_CENSO_EQUIPOS.preparar(a.censo);
       if (a.vista && a.destino === 'commissioning' && window.PANTALLA_COMMISSIONING && window.PANTALLA_COMMISSIONING.prepararVista) window.PANTALLA_COMMISSIONING.prepararVista(a.vista, a.obraId, undefined, a.planoEstado ? 'estado' : a.censo ? 'censo' : undefined, a.filtroDf);
+      /* 12-nov: «Abrir su ficha de mantenimiento» (electron/data/iarvisFichaMantenimiento.js). */
+      if (a.destino === 'mantenimiento' && window.PANTALLA_MANTENIMIENTO) {
+        if (a.obraId) window.PANTALLA_MANTENIMIENTO.elegirObra(a.obraId);
+        if (a.vista && window.PANTALLA_MANTENIMIENTO.prepararVista) window.PANTALLA_MANTENIMIENTO.prepararVista(a.vista);
+        if (a.fichaMant && window.PANTALLA_MANTENIMIENTO.pedirFicha) window.PANTALLA_MANTENIMIENTO.pedirFicha(a.fichaMant.equipoId);
+      }
       /* 12-nov: «Abrir la medición del modelo» (electron/data/iarvisMedicionIfc.js). */
       if (a.desglose && a.destino === 'desglosePresupuesto' && window.PANTALLA_DESGLOSE && window.PANTALLA_DESGLOSE.preparar) window.PANTALLA_DESGLOSE.preparar({ ...a.desglose, obraId: a.obraId });
       /* 8-nov: «Abrir el estudio» del claim (electron/data/iarvisClaim.js). */
@@ -729,6 +758,8 @@
       actividad();
       I.ocupado = false;
       pintar();
+      /* 9-nov: lo que Iarvis cambia en un hecho se ve solo en la pantalla, sin recargar. */
+      if (provisional.refrescar) document.dispatchEvent(new CustomEvent('reclamaciones:correo-cambiado'));
       return;
     }
     const proponer = (I.adaptador && I.adaptador.proponer) || (window.puente && window.puente.iarvisProponer && ((x) => window.puente.iarvisProponer(x)));
@@ -758,7 +789,8 @@
       ${I.movil
     /* 8-nov (JC): en el móvil, SOLO el chat: una cabecera mínima con «‹» para volver y «Iarvis». */
     ? '<div class="iaCabecera"><button class="iaVolver" title="Volver" aria-label="Volver">‹</button><h2>Iarvis</h2></div>'
-    : '<div class="iaCabecera"><span class="iaMarca" aria-hidden="true">I</span><div class="iaTitulo"><h2>Iarvis</h2><span class="iaAviso">Usa la app por ti · solo lo que tu puesto ve</span></div><button class="iaFlotar" title="Soltar como ventana (o anclar a la columna)" aria-label="Soltar o anclar">⧉</button><button class="iaNueva" title="Empezar de cero" aria-label="Conversación nueva">＋</button><button class="iaCerrar" title="Cerrar (Esc)" aria-label="Cerrar">×</button></div>'}
+    : '<div class="iaCabecera"><span class="iaMarca" aria-hidden="true">I</span><div class="iaTitulo"><h2>Iarvis</h2><span class="iaAviso">Usa la app por ti · solo lo que tu puesto ve</span></div><button class="iaAnclar" type="button" aria-pressed="false" title="Anclar: queda fijo a la derecha" aria-label="Anclar Iarvis"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6l-1 6 3 3v2H7v-2l3-3-1-6zM12 15v6"/></svg></button><button class="iaFlotar" title="Soltar como ventana (o anclar a la columna)" aria-label="Soltar o anclar">⧉</button><button class="iaNueva" title="Empezar de cero" aria-label="Conversación nueva">＋</button><button class="iaCerrar" title="Cerrar (Esc)" aria-label="Cerrar">×</button></div>'}
+      <div class="iaSobre" hidden></div>
       <div class="iaLista" role="log" aria-live="polite"></div>
       <div class="iaEntrada">
         <div class="iaFicheros"></div>
@@ -802,6 +834,7 @@
     p.addEventListener('click', async (e) => {
       const sug = e.target.closest('[data-ia-sugerencia]');
       if (sug) { mandar(sug.getAttribute('data-ia-sugerencia')); return; }
+      if (e.target.closest('.iaAnclar')) { anclar(!I.anclado); return; }
       if (e.target.closest('.iaVolver')) { if (I.volver) I.volver(); else if (history.length > 1) history.back(); return; }
       if (e.target.closest('.iaNueva')) { I.deEstaVez = new Set(); I.idsEstaVez = new Set(); I.ultima = 0; try { localStorage.removeItem(CHARLA); } catch { /* nada */ } pintar(); return; }
       const arch = e.target.closest('[data-ia-archivo]');
@@ -849,12 +882,13 @@
   function soltar(r) {
     const p = I.panel; if (!p || I.movil) return;
     const rect = r || p.getBoundingClientRect();
+    if (I.anclado) anclar(false); /* soltarla como ventana le quita la chincheta */
     p.classList.add('iaFlota');
     document.body.classList.remove('iaAbierto');
     const pos = encajar(p, rect.left - (r ? 0 : 24), r ? rect.top : Math.max(8, rect.top + 24), Math.min(rect.width, 420), Math.min(rect.height, window.innerHeight - 80));
     guardarPos({ flota: true, ...pos });
   }
-  function anclar() {
+  function aColumna() {
     const p = I.panel; if (!p || I.movil) return;
     p.classList.remove('iaFlota');
     ['left', 'top', 'width', 'height', 'right', 'bottom'].forEach((k) => { p.style[k] = ''; });
@@ -864,7 +898,7 @@
   function engancharArrastre(p) {
     const cab = p.querySelector('.iaCabecera'); if (!cab || I.movil) return;
     const flot = p.querySelector('.iaFlotar');
-    if (flot) flot.addEventListener('click', () => (p.classList.contains('iaFlota') ? anclar() : soltar()));
+    if (flot) flot.addEventListener('click', () => (p.classList.contains('iaFlota') ? aColumna() : soltar()));
     let a = null;
     cab.addEventListener('pointerdown', (e) => {
       if (e.button !== 0 || e.target.closest('button')) return;
@@ -886,7 +920,81 @@
     if (window.ResizeObserver) new ResizeObserver(() => { if (a || !p.classList.contains('iaFlota') || p.hidden) return; const r = p.getBoundingClientRect(); guardarPos({ flota: true, x: r.left, y: r.top, w: r.width, h: r.height }); }).observe(p);
   }
 
-  function abrir() {
+
+  /*
+   * 9-nov (JC: «debe poder anclarse y desanclarse para que quede fijo»). Anclado es una columna propia a la derecha
+   * (iarvis.css › body.iaAnclado): no tapa nada, no se cierra al cambiar de pantalla o de hecho. Se recuerda por persona.
+   */
+  const CLAVE_ANCLADO = 'vidaire.iarvis.anclado';
+  const claveAnclado = (id) => `${CLAVE_ANCLADO}.${id || 'sin-persona'}`;
+  function leerAnclado(id) { try { return localStorage.getItem(claveAnclado(id)) === '1'; } catch { return false; } }
+  function guardarAnclado(id, v) { try { localStorage.setItem(claveAnclado(id), v ? '1' : '0'); } catch { /* sin almacenamiento */ } }
+  function pantallaAncha() { try { return window.matchMedia('(min-width: 900px)').matches; } catch { return true; } }
+  function anclar(v, { guardar = true } = {}) {
+    if (I.movil || !I.panel) return;
+    I.anclado = Boolean(v);
+    if (I.anclado && I.panel.classList.contains('iaFlota')) aColumna(); /* la chincheta la deja en la columna */
+    document.body.classList.toggle('iaAnclado', I.anclado);
+    const b = I.panel.querySelector('.iaAnclar');
+    if (b) { b.setAttribute('aria-pressed', String(I.anclado)); b.title = I.anclado ? 'Desanclar: vuelve a flotar' : 'Anclar: queda fijo a la derecha'; }
+    if (guardar) guardarAnclado(I.personaId, I.anclado);
+    if (I.anclado && I.panel.hidden) abrir({ foco: false });
+  }
+  /** Al saber quién entra: su chincheta. */
+  function alEntrar(personaId) {
+    I.personaId = personaId;
+    if (!I.panel || I.movil) return;
+    const v = leerAnclado(personaId);
+    if (v === Boolean(I.anclado)) return;
+    anclar(v, { guardar: false });
+    if (!v) cerrar();
+  }
+
+  /** La franja «Sobre: …» de la cabecera: qué caso tiene delante Iarvis. */
+  function contextoCambiado() {
+    const z = I.panel && I.panel.querySelector('.iaSobre');
+    if (!z) return;
+    let h = null;
+    try { h = (I.contexto() || {}).hechoAbierto || null; } catch { /* sin contexto */ }
+    z.hidden = !h;
+    z.innerHTML = h ? `Sobre: <b>${esc([h.reclamacionCodigo, h.codigo].filter(Boolean).join(' · ') || 'este caso')}</b> ${esc(h.titulo || '')}` : '';
+  }
+
+  /*
+   * 9-nov (JC: «para cada cosa importante que haga el usuario, Iarvis le hable para preguntarle»). La función única:
+   * catálogo en shared/ia/preguntasAccion.js. Sin IA; la acción ya está hecha y contestar es opcional.
+   */
+  function accionImportante(clave, datos = {}) {
+    const P = window.IARVIS_PREGUNTAS;
+    if (!P || !I.panel || I.movil) return null;
+    const q = P.preguntar(clave, datos, { activo: P.activo(I.personaId) });
+    if (!q) return null;
+    let delante = null;
+    try { delante = (I.contexto() || {}).hechoAbierto || null; } catch { /* sin contexto */ }
+    const sobreElAbierto = Boolean(datos.hechoId && delante && delante.id === datos.hechoId);
+    const sug = q.sugerencias || [];
+    const f = {
+      id: null, proactiva: true, local: true, estado: 'respondida', creado: new Date().toISOString(), hechoId: datos.hechoId || null,
+      respuesta: `${q.texto}\n${q.pregunta}`,
+      /* Lo que se pulsa queda en el rastro de supervisión; a la ficha no va nada. */
+      acciones: datos.hechoId ? sug.filter((s) => s.anotar).map((s) => ({ tipo: 'hacer', hacer: 'hecho', op: 'anotar', hechoId: datos.hechoId, valores: { clave, respuesta: s.anotar }, frase: q.pregunta, confirmado: true, texto: s.texto })) : [],
+      enviar: sobreElAbierto ? sug.filter((s) => s.enviar) : [],
+    };
+    /* «Guardar y validar» son dos acciones seguidas: del mismo hecho, sale la última. */
+    const prev = I.filas[0];
+    const seguida = prev && prev.proactiva && prev.hechoId && prev.hechoId === f.hechoId && Date.now() - new Date(prev.creado).getTime() < 2000;
+    I.filas = [f, ...(seguida ? I.filas.slice(1) : I.filas)];
+    I.deEstaVez.add(f);
+    caducar();
+    actividad();
+    if (I.panel.hidden) abrir({ foco: false }); else pintar();
+    return f;
+  }
+
+  /** Para las pantallas: avisa sin que un fallo de Iarvis estropee lo que hizo el usuario. */
+  function avisar(clave, datos) { try { return accionImportante(clave, datos); } catch (e) { console.error('[iarvis] pregunta:', e.message); return null; } }
+
+  function abrir({ foco = true } = {}) {
     if (!I.panel) return;
     I.panel.hidden = false;
     /* 9-nov (JC): el panel empuja el contenido en vez de tapar lo que hay debajo (iarvis.css › body.iaAbierto). */
@@ -899,11 +1007,12 @@
     /* 8-nov: el saludo sale ya; el historial de la nube puede tardar y el panel se quedaba en blanco. */
     pintar();
     cargarHistorial();
+    contextoCambiado();
     const t = I.panel.querySelector('textarea');
-    if (t) t.focus();
+    if (t && foco) t.focus();
   }
   function cerrar() {
-    if (I.movil || !I.panel) return;
+    if (I.movil || !I.panel || (I.anclado && pantallaAncha())) return;
     I.panel.hidden = true;
     document.body.classList.remove('iaAbierto');
     if (I.boton) I.boton.setAttribute('aria-expanded', 'false');
@@ -944,7 +1053,10 @@
     I.boton.setAttribute('aria-label', 'Hablar con Iarvis');
     I.boton.setAttribute('aria-expanded', 'false');
     I.boton.innerHTML = `${(window.ARRANQUE_LOGO && window.ARRANQUE_LOGO.BRUJULA) || '<span aria-hidden="true">🧭</span>'}<span class="iaPunto"></span>`;
-    I.boton.addEventListener('click', () => (I.panel && !I.panel.hidden ? cerrar() : abrir()));
+    I.boton.addEventListener('click', () => {
+      if (I.panel && !I.panel.hidden && I.anclado && pantallaAncha()) { const t = I.panel.querySelector('textarea'); if (t) t.focus(); return; }
+      if (I.panel && !I.panel.hidden) cerrar(); else abrir();
+    });
     I.panel = construirPanel();
     I.panel.hidden = true;
     const cab = document.querySelector('.cabecera .derecha');
@@ -952,6 +1064,7 @@
       document.body.append(I.boton, I.panel);
       document.body.classList.add('conIarvis');
     }
+    if (I.personaId) alEntrar(I.personaId);
     document.addEventListener('keydown', atajoIarvis);
   }
 
@@ -983,5 +1096,5 @@
   }
 
   /* 11-nov: otras pantallas (la ficha del hecho del claim) le hacen una pregunta ya escrita (preguntar). */
-  window.IARVIS = { instalar, montarEn, abrir, cerrar, comentar, preguntar: mandar, estado: I, _charla, _atajo: atajoIarvis };
+  window.IARVIS = { instalar, montarEn, abrir, cerrar, comentar, preguntar: mandar, anclar, alEntrar, contextoCambiado, accionImportante, avisar, estado: I, _charla, _atajo: atajoIarvis };
 })();
