@@ -1,0 +1,25 @@
+/* 🎙 Audios a Iarvis en Vidaire Cx (12-nov-2026, renderer/movil/iarvisVoz.js). Solo el chat del móvil. */
+.iaMovil .iaEntrada button.iaMic { display: inline-flex; align-items: center; justify-content: center; padding: 0; color: var(--acento);
+  -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; touch-action: none; }
+.iaMovil .iaVozBarra { display: none; flex: 1; align-items: center; gap: 8px; min-height: 36px; padding: 0 4px 0 10px; font-size: 13px; }
+.iaMovil .iaFila.iaGrabando .iaVozBarra, .iaMovil .iaFila.iaEntendiendo .iaVozBarra { display: flex; }
+.iaMovil .iaFila.iaGrabando > textarea, .iaMovil .iaFila.iaGrabando > .iaClip, .iaMovil .iaFila.iaGrabando > .iaCamara, .iaMovil .iaFila.iaGrabando > .iaMandar,
+.iaMovil .iaFila.iaEntendiendo > textarea, .iaMovil .iaFila.iaEntendiendo > .iaClip, .iaMovil .iaFila.iaEntendiendo > .iaCamara, .iaMovil .iaFila.iaEntendiendo > .iaMandar { display: none; }
+.iaMovil .iaFila.iaGrabando button.iaMic { background: var(--mal); border-color: transparent; color: var(--sobre-estado); }
+.iaMovil .iaFila.iaEntendiendo button.iaMic { opacity: .5; }
+.iaVozPunto { width: 8px; height: 8px; border-radius: 50%; background: var(--mal); animation: iaVozLate 1.2s ease-in-out infinite; }
+.iaFila.iaEntendiendo .iaVozPunto { background: var(--textoSuave); }
+.iaVozTiempo { font-variant-numeric: tabular-nums; font-weight: 600; }
+.iaVozPista { color: var(--textoSuave); margin-right: auto; }
+.iaMovil .iaEntrada button.iaVozCancelar { height: 30px; padding: 0 10px; font-size: 13px; border: 0; color: var(--textoSuave); }
+.iaFila.iaEntendiendo .iaVozCancelar { visibility: hidden; }
+.iaVozAviso { font-size: 12px; color: var(--textoSuave); }
+.iaPregunta .iaAudio { display: inline-flex; align-items: center; gap: 4px; margin: 0 0 3px; padding: 2px 9px 2px 7px; border: 0; border-radius: 999px;
+  background: color-mix(in srgb, var(--acento) 18%, transparent); color: inherit; font: 600 12px/1.5 inherit; font-variant-numeric: tabular-nums; cursor: pointer; }
+.iaPregunta:has(.iaAudio) { display: flex; flex-direction: column; align-items: flex-start; }
+.iaRespuesta .iaAltavoz { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; margin-top: 4px; padding: 0; border: 0; border-radius: 999px;
+  background: transparent; color: var(--textoSuave); cursor: pointer; }
+.iaRespuesta .iaAltavoz.iaSonando { color: var(--acento); }
+.iaRespuesta > .iaAltavoz { display: flex; }
+@keyframes iaVozLate { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .iaVozPunto { animation: none; } }

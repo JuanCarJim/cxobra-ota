@@ -17,6 +17,15 @@
 #iarvisBoton .iaPunto { display: none; width: 8px; height: 8px; border-radius: 50%; background: #a7f3d0; }
 #iarvisBoton.conPunto .iaPunto { display: inline-block; }
 body.conIarvis #capaAvisos { bottom: 132px; }
+/* 12-nov (JC, Windows estrecho): con un panel lateral abierto (Iarvis, el visor de correo o la ficha lateral) los
+   indicadores de abajo a la derecha (la pastilla de avisos y la píldora de la nube, web/web.css) tapaban su pie y el
+   «Enviar». Se corren a la izquierda del panel lo que este mide: siguen a la vista y el pie queda libre. */
+html.conVisorCorreo > body { --apartarFlotantes: var(--anchoVisorCorreo, 0px); }
+@media (min-width: 600px) { body.iaAbierto { --apartarFlotantes: 396px; } }
+@media (min-width: 900px) { html.conVisorCorreo > body.iaAbierto { --apartarFlotantes: calc(396px + var(--anchoVisorCorreo, 0px)); } }
+#capaAvisos { right: calc(16px + var(--apartarFlotantes, 0px)); width: min(360px, calc(100vw - 32px - var(--apartarFlotantes, 0px))); }
+#capaAvisos.minimizada { right: calc(76px + var(--apartarFlotantes, 0px)); width: auto; }
+#capaAvisos.minimizada.porEncima { width: min(360px, calc(100vw - 92px - var(--apartarFlotantes, 0px))); }
 /* 8-nov (JC): en la cabecera, junto al desplegable del rol: pequeño, redondo y discreto, solo la brújula. */
 #iarvisBoton.enCabecera {
   position: relative; right: auto; bottom: auto; z-index: auto; flex: none;

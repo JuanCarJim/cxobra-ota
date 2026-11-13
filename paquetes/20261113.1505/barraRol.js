@@ -95,8 +95,8 @@
     qhse: { grupo: 'Seguridad y QHSE', nombre: 'Plan QHSE', icono: '✚' },
     reportesQhse: { grupo: 'Seguridad y QHSE', nombre: 'Reportes QHSE', icono: '✚' },
     partes: { grupo: 'Seguridad y QHSE', nombre: 'Avisos de incidencia', icono: '⚠' },
-    /* Lo reclamable va con los conflictos y el claim, en «Contrato y cliente». */
-    avisos: { grupo: 'Contrato y cliente', nombre: 'Reclamables', icono: '⚖' },
+    /* Lo reclamable va con los conflictos y el claim, en «Cliente y contrato». */
+    avisos: { grupo: 'Cliente y contrato', nombre: 'Reclamables', icono: '⚖' },
     avance: { grupo: 'Producción', nombre: 'Avance de obra', icono: '◩' },
     albaranes: { grupo: 'Compras', nombre: 'Albaranes', icono: '▨' },
     inventario: { grupo: 'Compras', nombre: 'Inventario', icono: '▨' },
