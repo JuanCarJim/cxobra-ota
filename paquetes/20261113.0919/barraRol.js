@@ -91,6 +91,7 @@
     reparaciones: { grupo: 'Calidad y commissioning', nombre: 'Reparaciones de equipos', icono: '⚒' },
     /* Quien no tiene Commissioning ve el plano en su grupo «Equipos», como en el ordenador. */
     plano: { grupo: 'Equipos', nombre: 'Plano de equipos', icono: '◈' },
+    planoMant: { grupo: 'Equipos', nombre: 'Plano de mantenimiento', icono: '◈' },
     qhse: { grupo: 'Seguridad y QHSE', nombre: 'Plan QHSE', icono: '✚' },
     reportesQhse: { grupo: 'Seguridad y QHSE', nombre: 'Reportes QHSE', icono: '✚' },
     partes: { grupo: 'Seguridad y QHSE', nombre: 'Avisos de incidencia', icono: '⚠' },

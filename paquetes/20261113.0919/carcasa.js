@@ -143,7 +143,7 @@
   const TITULO = {
     inicio: 'Inicio', commissioning: 'Cx', partes: 'Avisos', ncr: 'No conformidades', reparaciones: 'Reparaciones', avance: 'Avance de obra', albaranes: 'Albaranes',
     inventario: 'Inventario', bloc: 'Notas', personal: 'Personal', estanqueidad: 'Estanqueidad', cuenta: 'Perfil',
-    misTareas: 'Mis tareas', avisos: 'Reclamables', qhse: 'QHSE', reportesQhse: 'Reportes QHSE', plano: 'Plano de equipos', jornada: 'Mi jornada',
+    misTareas: 'Mis tareas', avisos: 'Reclamables', qhse: 'QHSE', reportesQhse: 'Reportes QHSE', plano: 'Plano de equipos', planoMant: 'Plano de mantenimiento', jornada: 'Mi jornada',
     iarvis: 'Iarvis', mas: 'Más',
   };
   /* Las que no dependen de la obra elegida no enseñan el selector. */
@@ -396,6 +396,8 @@
     if (st.repintar) { const y = window.scrollY; st.repintar(); window.scrollTo(0, y); }
   });
   /** Al cambiar de obra o de filtro, las listas vuelven a su tope. */
+  /** Abre un grupo de la lista (el de la ficha que se acaba de abrir en el iPad) y enseña hasta la fila de `hasta`. */
+  function abrirGrupoLista(clave, grupo, tope = 0) { const st = estadoLista(clave); st.abiertos.set(grupo, true); if (tope > (st.cuantos.get(grupo) || POR_GRUPO)) st.cuantos.set(grupo, tope); }
   function reiniciarLista(clave) { const st = estadoLista(clave); st.cuantos.clear(); }
 
   /*
@@ -470,7 +472,7 @@
   window.CX = {
     plegable,
     esc, pedir, postJson, aviso, subirFoto, elegirFoto, cargarImagenes, fechaEs, cifra, compartirPdf,
-    listaAgrupada, reiniciarLista,
+    listaAgrupada, reiniciarLista, abrirGrupoLista,
     obra: () => obras.find((o) => o.id === obraId) || null,
     obraId: () => obraId,
     obras: () => obras,
