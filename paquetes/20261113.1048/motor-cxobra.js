@@ -11471,7 +11471,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261113.0919" : "0";
+      var VERSION = true ? "20261113.1048" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -12605,13 +12605,50 @@ globalThis.CX_VARIANTE="cxobra";
         }
         return (h >>> 0).toString(36);
       }
-      function objeto(v) {
-        if (typeof v !== "string" || v[0] !== "{") return null;
+      var SUB = "\0";
+      var LSEP = FL.SEP;
+      var HONDO = 4;
+      var plano = (v) => Boolean(v) && typeof v === "object" && !Array.isArray(v);
+      var nombreFoto = (x) => {
+        if (x.nube) return String(x.nube).split("/").pop();
+        const r = x.origen || x.ruta;
+        return r ? String(r).split(/[\\/]/).pop().replace(/[^A-Za-z0-9._-]/g, "_") : void 0;
+      };
+      var CLAVES = [(x) => x.id, (x) => x.rol, (x) => x.ruta || x.nube || x.origen ? nombreFoto(x) : void 0];
+      var vacia = (k) => k === void 0 || k === null || k === "";
+      var unica = (lista, f) => {
+        if (!lista.every(plano)) return false;
+        const ks = lista.map(f);
+        return ks.every((k) => !vacia(k)) && new Set(ks.map(String)).size === ks.length;
+      };
+      function claveDeLista(...listas) {
+        if (!listas.every(Array.isArray) || !listas.some((l) => l.length)) return null;
+        for (const f of CLAVES) if (listas.every((l) => unica(l, f))) return (x) => String(f(x));
+        return null;
+      }
+      function json(v) {
+        if (typeof v !== "string" || v[0] !== "{" && v[0] !== "[") return void 0;
         try {
           const o = JSON.parse(v);
-          return o && typeof o === "object" && !Array.isArray(o) ? o : null;
+          return o && typeof o === "object" ? o : void 0;
         } catch {
-          return null;
+          return void 0;
+        }
+      }
+      function huellasHondas(prefijo, v, h, hondo) {
+        if (hondo > HONDO) return;
+        if (plano(v)) {
+          for (const [k, x] of Object.entries(v)) {
+            h[`${prefijo}${SUB}${k}`] = huella(x);
+            huellasHondas(`${prefijo}${SUB}${k}`, x, h, hondo + 1);
+          }
+        } else if (Array.isArray(v)) {
+          const f = claveDeLista(v);
+          if (f) for (const x of v) {
+            const p = `${prefijo}${LSEP}${f(x)}`;
+            h[p] = huella(x);
+            huellasHondas(p, x, h, hondo + 1);
+          }
         }
       }
       function huellasDe(fila) {
@@ -12619,59 +12656,110 @@ globalThis.CX_VARIANTE="cxobra";
         for (const [c, v] of Object.entries(fila || {})) {
           if (FIJAS.has(c)) continue;
           h[c] = huella(v);
-          const o = objeto(v);
-          if (o) for (const [k, x] of Object.entries(o)) h[`${c}\0${k}`] = huella(x);
-          const l = o ? null : FL.listaConId(v);
-          if (l) Object.assign(h, FL.huellasLista(c, l, huella));
+          const o = json(v);
+          if (o !== void 0) huellasHondas(c, o, h, 1);
         }
         return h;
       }
       function fusionar({ base, local, remoto }) {
         const aquiMasNuevo = String(local.modificadoEn || "") > String(remoto.modificadoEn || "");
         const conflictos = [];
-        const decidir = (campo, hb, l, r) => {
-          const hl = huella(l);
-          const hr = huella(r);
-          if (hl === hr) return l;
-          const cambioAqui = !hb || hl !== hb;
-          const cambioNube = !hb || hr !== hb;
-          if (cambioAqui && !cambioNube) return l;
-          if (cambioNube && !cambioAqui) return r;
+        const conHijos = /* @__PURE__ */ new Set();
+        if (base) for (const k of Object.keys(base)) {
+          const i = Math.max(k.lastIndexOf(SUB), k.lastIndexOf(LSEP));
+          if (i > 0) conHijos.add(k.slice(0, i));
+        }
+        const baseDe = (ruta, padre) => {
+          if (!base) return null;
+          if (base[ruta]) return base[ruta];
+          return base[padre] && conHijos.has(padre) ? huella(void 0) : null;
+        };
+        const choque = (campo, l, r) => {
           const gana = aquiMasNuevo ? "aqui" : "nube";
           conflictos.push({ campo, gana, valorQueGana: gana === "aqui" ? l : r, valorQuePierde: gana === "aqui" ? r : l });
           return gana === "aqui" ? l : r;
         };
+        function mezclar(ruta, nombre, hb, l, r, hondo) {
+          const hl = huella(l);
+          const hr = huella(r);
+          if (hl === hr) return l;
+          if (hb && hl === hb) return r;
+          if (hb && hr === hb) return l;
+          if (!hb && (l === void 0 || r === void 0)) return l === void 0 ? r : l;
+          const d = dentro(ruta, nombre, l, r, hondo);
+          return d ? d.v : choque(nombre, l, r);
+        }
+        function dentro(ruta, nombre, l, r, hondo) {
+          if (hondo > HONDO) return null;
+          if (plano(l) && plano(r)) {
+            const salida = {};
+            for (const k of /* @__PURE__ */ new Set([...Object.keys(l), ...Object.keys(r)])) {
+              const p = `${ruta}${SUB}${k}`;
+              const hbk = baseDe(p, ruta);
+              const v = CRONO.esClave(k) && plano(l[k]) && plano(r[k]) && huella(l[k]) !== huella(r[k]) && !(hbk && (huella(l[k]) === hbk || huella(r[k]) === hbk)) ? CRONO.fusionar(l[k], r[k], { aMasNuevo: aquiMasNuevo }) : mezclar(p, `${nombre}.${k}`, hbk, l[k], r[k], hondo + 1);
+              if (v !== void 0) salida[k] = v;
+            }
+            return { v: salida };
+          }
+          const f = Array.isArray(l) && Array.isArray(r) ? claveDeLista(l, r) : null;
+          if (!f) return null;
+          const deL = new Map(l.map((x) => [f(x), x]));
+          const deR = new Map(r.map((x) => [f(x), x]));
+          const elegir = (id) => {
+            const p = `${ruta}${LSEP}${id}`;
+            const hb = baseDe(p, ruta);
+            const a = deL.get(id);
+            const b = deR.get(id);
+            if (a && b) return mezclar(p, `${nombre}[${id}]`, hb, a, b, hondo + 1);
+            const x = a || b;
+            return hb && huella(x) === hb ? void 0 : x;
+          };
+          const lista = [];
+          const puestos = /* @__PURE__ */ new Set();
+          for (const x of l) {
+            const id = f(x);
+            if (puestos.has(id)) continue;
+            puestos.add(id);
+            const v = elegir(id);
+            if (v !== void 0) lista.push(v);
+          }
+          let anterior = null;
+          for (const x of r) {
+            const id = f(x);
+            if (puestos.has(id)) {
+              anterior = id;
+              continue;
+            }
+            puestos.add(id);
+            const v = elegir(id);
+            if (v === void 0) continue;
+            const i = anterior === null ? -1 : lista.findIndex((y) => f(y) === anterior);
+            if (i < 0) lista.push(v);
+            else lista.splice(i + 1, 0, v);
+            anterior = id;
+          }
+          return { v: lista };
+        }
         const fila = { ...local };
         const campos = /* @__PURE__ */ new Set([...Object.keys(local), ...Object.keys(remoto)]);
         for (const c of campos) {
           if (FIJAS.has(c)) continue;
+          if (!(c in remoto)) continue;
           const l = local[c];
           const r = remoto[c];
-          if (!(c in remoto)) continue;
-          const ll = FL.listaConId(l);
-          const lr = ll ? FL.listaConId(r) : null;
-          if (ll && lr) {
-            if (huella(l) === huella(r)) continue;
-            const m = FL.fusionarLista({ columna: c, base, local: ll, remoto: lr, aquiMasNuevo, huella });
-            conflictos.push(...m.conflictos);
-            fila[c] = JSON.stringify(m.lista);
+          const hl = huella(l);
+          const hr = huella(r);
+          if (hl === hr) continue;
+          const hb = base ? base[c] || null : null;
+          if (hb && hl === hb) {
+            fila[c] = r;
             continue;
           }
-          const ol = objeto(l);
-          const or = objeto(r);
-          if (ol && or) {
-            const hb = base ? base[c] : null;
-            if (huella(l) === huella(r)) continue;
-            const salida = {};
-            for (const k of /* @__PURE__ */ new Set([...Object.keys(ol), ...Object.keys(or)])) {
-              const hbk = base ? base[`${c}\0${k}`] || (hb ? huella(void 0) : null) : null;
-              const v = CRONO.esClave(k) && ol[k] && or[k] && typeof ol[k] === "object" && typeof or[k] === "object" && huella(ol[k]) !== huella(or[k]) && !(hbk && (huella(ol[k]) === hbk || huella(or[k]) === hbk)) ? CRONO.fusionar(ol[k], or[k], { aMasNuevo: aquiMasNuevo }) : decidir(`${c}.${k}`, hbk, ol[k], or[k]);
-              if (v !== void 0) salida[k] = v;
-            }
-            fila[c] = JSON.stringify(salida);
-            continue;
-          }
-          fila[c] = decidir(c, base ? base[c] : null, l, r);
+          if (hb && hr === hb) continue;
+          const jl = json(l);
+          const jr = json(r);
+          const m = jl !== void 0 && jr !== void 0 ? dentro(c, c, jl, jr, 1) : null;
+          fila[c] = m ? JSON.stringify(m.v) : choque(c, l, r);
         }
         const igualQueRemoto = [...campos].every((c) => FIJAS.has(c) || !(c in remoto) || huella(fila[c]) === huella(remoto[c]));
         return { fila, conflictos, igualQueRemoto };
@@ -14504,6 +14592,16 @@ globalThis.CX_VARIANTE="cxobra";
       }) {
         if (modo !== "escritorio" && modo !== "movil") throw new Error("Modo de sincronizaci\xF3n desconocido.");
         if (modo === "movil" && !personaId) throw new Error("Falta qui\xE9n lleva el tel\xE9fono.");
+        const diario = [];
+        const registroFuera = registro;
+        registro = (t) => {
+          diario.push(`${(/* @__PURE__ */ new Date()).toISOString()} ${t}`);
+          if (diario.length > 500) diario.splice(0, diario.length - 500);
+          try {
+            registroFuera(t);
+          } catch {
+          }
+        };
         db.exec(`CREATE TABLE IF NOT EXISTS _syncVisto (tabla TEXT NOT NULL, id TEXT NOT NULL, modificadoEn TEXT NOT NULL, PRIMARY KEY (tabla, id))`);
         db.exec("CREATE TABLE IF NOT EXISTS _syncEstado (clave TEXT PRIMARY KEY, valor TEXT)");
         db.exec("CREATE TABLE IF NOT EXISTS _syncBase (tabla TEXT NOT NULL, id TEXT NOT NULL, huellas TEXT NOT NULL, PRIMARY KEY (tabla, id))");
@@ -14540,9 +14638,10 @@ globalThis.CX_VARIANTE="cxobra";
         db.exec("CREATE TABLE IF NOT EXISTS _syncRechazos (tabla TEXT NOT NULL, id TEXT NOT NULL, modificadoEn TEXT NOT NULL, cuando TEXT NOT NULL, PRIMARY KEY (tabla, id))");
         const quitarRechazo = db.prepare("DELETE FROM _syncRechazos WHERE tabla = ? AND id = ?");
         if (!columnasDe("_syncRechazos").includes("intentos")) db.exec("ALTER TABLE _syncRechazos ADD COLUMN intentos INTEGER NOT NULL DEFAULT 1");
-        const sumarRechazo = db.prepare(`INSERT INTO _syncRechazos (tabla, id, modificadoEn, cuando, intentos) VALUES (?, ?, ?, ?, 1)
+        if (!columnasDe("_syncRechazos").includes("motivo")) db.exec("ALTER TABLE _syncRechazos ADD COLUMN motivo TEXT");
+        const sumarRechazo = db.prepare(`INSERT INTO _syncRechazos (tabla, id, modificadoEn, cuando, intentos, motivo) VALUES (?, ?, ?, ?, 1, ?)
     ON CONFLICT(tabla, id) DO UPDATE SET intentos = CASE WHEN _syncRechazos.modificadoEn = excluded.modificadoEn THEN _syncRechazos.intentos + 1 ELSE 1 END,
-      modificadoEn = excluded.modificadoEn, cuando = excluded.cuando`);
+      modificadoEn = excluded.modificadoEn, cuando = excluded.cuando, motivo = excluded.motivo`);
         function rechazosRecientes() {
           const m = /* @__PURE__ */ new Map();
           const limite = new Date(ahora().getTime() - REINTENTO_RECHAZO).toISOString();
@@ -14552,6 +14651,7 @@ globalThis.CX_VARIANTE="cxobra";
           return m;
         }
         const bloqueadas = () => db.prepare("SELECT COUNT(*) AS n FROM _syncRechazos WHERE intentos >= ?").get(MAX_RECHAZOS).n;
+        const enRechazo = () => db.prepare("SELECT COUNT(*) AS n FROM _syncRechazos").get().n;
         db.exec("CREATE TABLE IF NOT EXISTS _syncDescartes (tabla TEXT NOT NULL, id TEXT NOT NULL, modificadoEn TEXT NOT NULL, cuando TEXT NOT NULL, visto INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (tabla, id))");
         const ponerDescarte = db.prepare(`INSERT INTO _syncDescartes (tabla, id, modificadoEn, cuando, visto) VALUES (?, ?, ?, ?, 0)
     ON CONFLICT(tabla, id) DO UPDATE SET modificadoEn = excluded.modificadoEn, cuando = excluded.cuando, visto = 0`);
@@ -14589,7 +14689,8 @@ globalThis.CX_VARIANTE="cxobra";
           tiempoReal: false,
           conflictos: conflictosSinVer(),
           descartadas: descartesSinVer(),
-          bloqueadas: bloqueadas()
+          bloqueadas: bloqueadas(),
+          enRechazo: enRechazo()
         };
         const cambiarEstado = (c) => {
           Object.assign(estado, c);
@@ -14719,7 +14820,7 @@ globalThis.CX_VARIANTE="cxobra";
                   if (e2.sinRed) throw e2;
                   rechazadas++;
                   registro(`La nube no acepta ${x.fila.tabla}/${x.fila.id}: ${e2.message}`);
-                  if (!x.lapida) sumarRechazo.run(x.fila.tabla, String(x.fila.id), x.mod, ahora().toISOString());
+                  if (!x.lapida) sumarRechazo.run(x.fila.tabla, String(x.fila.id), x.mod, ahora().toISOString(), String(e2.message || e2).slice(0, 500));
                   else olvidar.run(x.fila.tabla, x.fila.id);
                 }
               }
@@ -14728,8 +14829,8 @@ globalThis.CX_VARIANTE="cxobra";
           if (rechazadas) {
             estado.rechazadas += rechazadas;
             ponerEstado("rechazadas", estado.rechazadas);
-            cambiarEstado({ bloqueadas: bloqueadas() });
           }
+          cambiarEstado({ bloqueadas: bloqueadas(), enRechazo: enRechazo() });
           ponerEstado("ultimaSubida", sello);
           cambiarEstado({ ultimaSubida: sello });
           return { subidas, lapidas: lapidas.length, rechazadas };
@@ -15410,7 +15511,41 @@ globalThis.CX_VARIANTE="cxobra";
             cambiarEstado({ descartadas: 0 });
           },
           /** Lo que la nube rechazó MAX_RECHAZOS veces y ya no se reintenta hasta que cambie. */
-          bloqueos: () => db.prepare("SELECT tabla, id, modificadoEn, cuando, intentos FROM _syncRechazos WHERE intentos >= ? ORDER BY cuando DESC LIMIT 200").all(MAX_RECHAZOS),
+          bloqueos: () => db.prepare("SELECT tabla, id, modificadoEn, cuando, intentos, motivo FROM _syncRechazos WHERE intentos >= ? ORDER BY cuando DESC LIMIT 200").all(MAX_RECHAZOS),
+          /** Todo lo que la nube ha rechazado (aunque aún se reintente), con su porqué. */
+          rechazos: () => db.prepare("SELECT tabla, id, modificadoEn, cuando, intentos, motivo FROM _syncRechazos ORDER BY cuando DESC LIMIT 500").all(),
+          /** Las últimas líneas del registro (rescate). */
+          diario: () => [...diario],
+          /**
+           * VOLVER A SUBIR (13-nov-2026): lo rechazado y lo descartado vuelve a la
+           * cola. Los rechazos se olvidan (se intentan ya, con su contador a cero);
+           * los descartes dejan de contar como vistos para que pendientes() los
+           * vuelva a ver (si el permiso sigue sin estar, se vuelven a descartar con
+           * su aviso). Lo de aquí no se toca. Devuelve cuántas filas vuelven.
+           */
+          reencolar() {
+            const rech = db.prepare("SELECT COUNT(*) AS n FROM _syncRechazos").get().n;
+            const desc = db.prepare("SELECT tabla, id FROM _syncDescartes").all();
+            db.exec("BEGIN");
+            try {
+              db.prepare("DELETE FROM _syncRechazos").run();
+              for (const d of desc) olvidarVisto.run(d.tabla, d.id);
+              db.prepare("DELETE FROM _syncDescartes").run();
+              db.exec("COMMIT");
+            } catch (e) {
+              db.exec("ROLLBACK");
+              throw e;
+            }
+            cambiarEstado({ bloqueadas: 0, descartadas: 0, enRechazo: 0 });
+            return { rechazos: rech, descartes: desc.length };
+          },
+          /** Lo que no ha llegado a la nube y el teléfono ya no reintenta solo: para la pastilla. */
+          sinSubir: () => ({
+            rechazos: db.prepare("SELECT COUNT(*) AS n FROM _syncRechazos").get().n,
+            bloqueadas: bloqueadas(),
+            descartadas: db.prepare("SELECT COUNT(*) AS n FROM _syncDescartes").get().n,
+            conflictos: conflictosSinVer()
+          }),
           /** Tras guardar algo aquí: una vuelta enseguida (agrupando ráfagas). */
           avisar(ms = 400) {
             clearTimeout(aviso);
@@ -48989,6 +49124,68 @@ ${subtitulo}`, c[5]] : c.slice())]);
     }
   });
 
+  // shared/commissioning/firmasDelDia.js
+  var require_firmasDelDia = __commonJS({
+    "shared/commissioning/firmasDelDia.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function(raiz, fabrica) {
+        const api = fabrica();
+        if (typeof module === "object" && module.exports) module.exports = api;
+        if (raiz) raiz.FIRMAS_DEL_DIA = api;
+      })(typeof window !== "undefined" ? window : null, function() {
+        const CONFORMIDAD = /* @__PURE__ */ new Set(["cliente", "firmaCliente", "mantenimiento"]);
+        const dia = (v) => {
+          const s = String(v || "").trim().slice(0, 10);
+          return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+        };
+        const conHora = (v) => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(String(v || "").trim());
+        function diaDeFirma(filas) {
+          const dias = [];
+          for (const f of filas || []) {
+            const c = dia(f && f.creadoEn);
+            if (c) dias.push(c);
+            if (f && conHora(f.fecha)) {
+              const d = dia(f.fecha);
+              if (d) dias.push(d);
+            }
+          }
+          return dias.sort()[0] || null;
+        }
+        function veredicto(diaFirma, fechaToma) {
+          const d = dia(diaFirma);
+          if (!d) return "porConfirmar";
+          const t = dia(fechaToma);
+          if (!t) return "sinToma";
+          return t >= d ? "vale" : "antes";
+        }
+        function filasFuera(filas, conjuntoDe = (id) => id, tomaDe = () => null) {
+          const grupos = /* @__PURE__ */ new Map();
+          for (const f of filas || []) {
+            if (!f || !CONFORMIDAD.has(f.rol) || !String(f.imagen || "").trim()) continue;
+            const k = `${f.rol}|${f.imagen}`;
+            if (!grupos.has(k)) grupos.set(k, []);
+            grupos.get(k).push(f);
+          }
+          const fuera = /* @__PURE__ */ new Set();
+          const motivos = /* @__PURE__ */ new Map();
+          for (const g of grupos.values()) {
+            if (new Set(g.map((f) => conjuntoDe(f.equipoId))).size < 2) continue;
+            const D = diaDeFirma(g);
+            for (const f of g) {
+              const fechaToma = dia(tomaDe(f.equipoId));
+              const motivo = veredicto(D, fechaToma);
+              motivos.set(f.id, { motivo, diaFirma: D, fechaToma });
+              if (motivo !== "vale") fuera.add(f.id);
+            }
+          }
+          return { fuera, motivos };
+        }
+        return { CONFORMIDAD, diaDeFirma, veredicto, filasFuera };
+      });
+    }
+  });
+
   // shared/obra/calendarioLaboral.js
   var require_calendarioLaboral = __commonJS({
     "shared/obra/calendarioLaboral.js"(exports, module) {
@@ -49670,10 +49867,14 @@ ${subtitulo}`, c[5]] : c.slice())]);
         fecha: f.fecha || "",
         imagen: f.imagen
       });
-      var CONFORMIDAD = /* @__PURE__ */ new Set(["cliente", "firmaCliente", "mantenimiento"]);
+      var FDIA = require_firmasDelDia();
+      var CONFORMIDAD = FDIA.CONFORMIDAD;
       var copiadasPorObra = /* @__PURE__ */ new WeakMap();
       function firmasCopiadas(repo, sesion, obraId) {
-        if (!obraId) return /* @__PURE__ */ new Set();
+        return firmasFueraDeObra(repo, sesion, obraId).fuera;
+      }
+      function firmasFueraDeObra(repo, sesion, obraId) {
+        if (!obraId) return { fuera: /* @__PURE__ */ new Set(), motivos: /* @__PURE__ */ new Map() };
         let marca = null;
         try {
           marca = marcaDeCambios(repo.db);
@@ -49682,7 +49883,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         }
         const porObra = copiadasPorObra.get(repo) || /* @__PURE__ */ new Map();
         const ya = porObra.get(obraId);
-        if (marca && ya && ya.marca === marca) return ya.ids;
+        if (marca && ya && ya.marca === marca) return ya.r;
         let filas = [];
         try {
           filas = repo.listar("firmasEquipo", sesion, { condicion: "obraId = ? AND rol IN ('cliente', 'firmaCliente', 'mantenimiento') AND COALESCE(incidenciaId, '') = ''", params: [obraId] });
@@ -49690,29 +49891,65 @@ ${subtitulo}`, c[5]] : c.slice())]);
           filas = [];
         }
         const conjuntos = filas.length ? indiceConjuntos(repo, sesion, obraId) : /* @__PURE__ */ new Map();
-        const porImagen = /* @__PURE__ */ new Map();
-        for (const f of filas) {
-          if (!llano(f.imagen)) continue;
-          const k = `${f.rol}|${f.imagen}`;
-          if (!porImagen.has(k)) porImagen.set(k, { conjuntos: /* @__PURE__ */ new Set(), ids: [] });
-          const g = porImagen.get(k);
-          g.conjuntos.add((conjuntos.get(f.equipoId) || [f.equipoId])[0]);
-          g.ids.push(f.id);
-        }
-        const ids = /* @__PURE__ */ new Set();
-        for (const g of porImagen.values()) if (g.conjuntos.size > 1) for (const id of g.ids) ids.add(id);
+        const tomas = filas.length ? indiceToma(repo, sesion, obraId) : /* @__PURE__ */ new Map();
+        const unidades = (id) => conjuntos.get(id) || [id];
+        const tomaDe = (id) => unidades(id).map((u) => tomas.get(u)).filter(Boolean).sort()[0] || null;
+        const r = FDIA.filasFuera(filas, (id) => unidades(id)[0], tomaDe);
         if (marca && repo && typeof repo === "object") {
-          porObra.set(obraId, { marca, ids });
+          porObra.set(obraId, { marca, r });
           copiadasPorObra.set(repo, porObra);
         }
-        return ids;
+        return r;
+      }
+      function indiceToma(repo, sesion, obraId) {
+        const FPM = require_fechaPM();
+        let filas = [];
+        try {
+          filas = repo.listar("fichasPM", sesion, { condicion: "obraId = ? AND clase = 'fichaPM'", params: [obraId] });
+        } catch {
+          filas = [];
+        }
+        const porEquipo = /* @__PURE__ */ new Map();
+        const fechaDe = /* @__PURE__ */ new Map();
+        for (const f of filas) {
+          const m = /^equipo:(.+)$/.exec(llano(f.clave));
+          const eq = llano(f.equipoId) || m && m[1];
+          if (!eq) continue;
+          let d = {};
+          try {
+            d = JSON.parse(f.datos || "{}") || {};
+          } catch {
+            d = {};
+          }
+          const fe = String((d.cabecera || {}).fechaEnsayo || "").slice(0, 10);
+          if (ISO_DIA.test(fe)) fechaDe.set(f.id, fe);
+          if (!porEquipo.has(eq)) porEquipo.set(eq, []);
+          porEquipo.get(eq).push({ clase: "fichaPM", fichaId: f.id, estado: f.estado });
+        }
+        const indice = /* @__PURE__ */ new Map();
+        for (const [eq, fichas] of porEquipo) {
+          const t = FPM.tomaDeFichas(fichas, (id) => fechaDe.get(id) || null).fechaToma;
+          if (t) indice.set(eq, t);
+        }
+        return indice;
       }
       function filasValidas(repo, sesion, equipoIds) {
         const filas = filasDe(repo, sesion, equipoIds);
         const obras = [...new Set(filas.filter((f) => CONFORMIDAD.has(f.rol)).map((f) => f.obraId).filter(Boolean))];
         if (!obras.length) return filas;
-        const copiadas = new Set(obras.flatMap((o) => [...firmasCopiadas(repo, sesion, o)]));
-        return copiadas.size ? filas.filter((f) => !copiadas.has(f.id)) : filas;
+        const rs = obras.map((o) => firmasFueraDeObra(repo, sesion, o));
+        const fuera = (id) => rs.some((r) => r.fuera.has(id));
+        const diaD = (id) => {
+          for (const r of rs) {
+            const m = r.motivos.get(id);
+            if (m && m.motivo === "vale") return m.diaFirma;
+          }
+          return null;
+        };
+        return filas.filter((f) => !fuera(f.id)).map((f) => {
+          const d = diaD(f.id);
+          return d ? { ...f, fecha: d } : f;
+        });
       }
       function firmasDeEquipos(repo, sesion, equipoIds) {
         const r = sinFirmas();
@@ -50015,7 +50252,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         repo.crear("firmasEquipo", sesion, { obraId: eq.obraId, equipoId: eq.id, rol: "jefeObra", nombre: g.nombre, cargo: null, imagen: g.imagen, fecha }, { verbo: "editar" });
         return { ok: true, hecho: "puesta" };
       }
-      module.exports = { firmasCopiadas, ROLES, PAPELES, CARGOS, rotuloCargo, firmar, firmasDeEquipo, firmasDeEquipos, equiposConFirmas, firmasDeClave, paraPdf, conFechaPM, fechaIntervencion, fechaPuestaMarchaDe, bytesDeImagen, unidadesDelConjunto, fechaDelTrabajo, firmaGuardada, firmaPropia, nombreDeSesion, imagenAFirmar, ponerFirmaTecnico, autorDelTrazo, quienPusoLaImagen };
+      module.exports = { firmasCopiadas, firmasFueraDeObra, ROLES, PAPELES, CARGOS, rotuloCargo, firmar, firmasDeEquipo, firmasDeEquipos, equiposConFirmas, firmasDeClave, paraPdf, conFechaPM, fechaIntervencion, fechaPuestaMarchaDe, bytesDeImagen, unidadesDelConjunto, fechaDelTrabajo, firmaGuardada, firmaPropia, nombreDeSesion, imagenAFirmar, ponerFirmaTecnico, autorDelTrazo, quienPusoLaImagen };
     }
   });
 
@@ -77042,6 +77279,11 @@ ${fallos.join("\r\n")}\r
         }
       }
       function estadoEntregaDF(repo, sesion, obraId) {
+        if (!repo || typeof repo !== "object" || !repo.db) return estadoEntregaDFSinRecordar(repo, sesion, obraId);
+        const r = require_marcaCambios().recordar(repo, sesion, `estadoEntregaDF|${obraId}`, () => estadoEntregaDFSinRecordar(repo, sesion, obraId));
+        return r ? structuredClone(r) : r;
+      }
+      function estadoEntregaDFSinRecordar(repo, sesion, obraId) {
         const d = datosPaqueteDF(repo, sesion, obraId, { soloVer: true });
         if (!d || !d.ok) return d || { ok: false, error: "No se puede leer el estado de la entrega." };
         const estanq = (e) => {
@@ -80938,7 +81180,7 @@ ${fallos.join("\r\n")}\r
         let n = 0;
         let r;
         try {
-          r = require_planosIfc().calcular(repo, ses, obraId);
+          r = require_planosIfc().calcular(repo, ses, obraId, { porSala: true });
         } catch {
           return 0;
         }
@@ -82495,6 +82737,12 @@ ${fallos.join("\r\n")}\r
         const n = String(nombre ?? "");
         return ps.find((p) => (p.planta || "") === n) || ps.find((p) => p.plano) || ps.find((p) => p.planta) || ps[0] || null;
       }
+      var conIfc = (p) => Boolean(p && p.ifc && Object.keys(p.ifc.pos || {}).length);
+      function plantaConIfc(plantas, nombre) {
+        const ps = (plantas || []).filter(conIfc);
+        const n = String(nombre ?? "");
+        return ps.find((p) => (p.planta || "") === n) || ps[0] || plantaPorDefecto(plantas, nombre);
+      }
       function nAnteriores(repo, planoId) {
         try {
           return repo.db.prepare("SELECT COUNT(*) n FROM versionesPlanoEquipos WHERE planoId = ?").get(planoId).n;
@@ -82503,10 +82751,38 @@ ${fallos.join("\r\n")}\r
         }
       }
       function listar(repo, ses, obraId, opc = {}) {
-        if (!opc.ligero || opc.soloFicha || !repo || typeof repo !== "object" || !repo.db) return listarEntera(repo, ses, obraId, opc);
+        if (!opc.ligero || opc.soloFicha || !repo || typeof repo !== "object" || !repo.db) {
+          const d = listarEntera(repo, ses, obraId, opc);
+          return d && opc.porPlanta && !opc.soloFicha ? recortarPorPlanta(d, opc) : d;
+        }
         const { recordar } = require_marcaCambios();
+        if (opc.porPlanta) {
+          const { planta, soloIfc, ...resto } = opc;
+          const enteras = { ...resto, enteras: true };
+          const d = recordar(repo, ses, `planoEquipos|${obraId}|${JSON.stringify(enteras)}`, () => listarEntera(repo, ses, obraId, enteras));
+          return d ? recortarPorPlanta(d, { planta, soloIfc }) : d;
+        }
         const r = recordar(repo, ses, `planoEquipos|${obraId}|${JSON.stringify(opc)}`, () => listarEntera(repo, ses, obraId, opc));
         return r ? structuredClone(r) : r;
+      }
+      function recortarPorPlanta(d, { planta = null, soloIfc = false } = {}) {
+        const pedida = soloIfc ? plantaConIfc(d.plantas, planta) : plantaPorDefecto(d.plantas, planta);
+        const plantas = d.plantas.map((pl) => pl === pedida ? pl : {
+          planta: pl.planta,
+          cuentas: pl.cuentas,
+          cuentasObra: pl.cuentasObra,
+          capas: pl.capas,
+          plano: pl.plano,
+          ifc: pl.ifc ? { plano: pl.ifc.plano, pos: {}, n: Object.keys(pl.ifc.pos || {}).length, ids: Object.keys(pl.ifc.pos || {}) } : void 0,
+          parcial: true,
+          n: { equipos: pl.equipos.length, materiales: pl.materiales.length, faltas: pl.faltas.length },
+          enPlano: pl.equipos.filter((q) => q.x !== null).map((q) => q.id),
+          equipos: [],
+          materiales: [],
+          sinUbicar: [],
+          faltas: []
+        });
+        return structuredClone({ ...d, plantas });
       }
       function listarEntera(repo, ses, obraId, opc = {}) {
         if (!obraVisible(repo, ses, obraId)) return null;
@@ -82685,7 +82961,7 @@ ${fallos.join("\r\n")}\r
             q.miembros = r.length ? r : null;
           }
         }
-        const planos = opc.porPlanta ? [] : filas.sort((a, b) => ordenPlanta(a.planta, b.planta)).map((p) => {
+        const planos = opc.porPlanta || opc.enteras ? [] : filas.sort((a, b) => ordenPlanta(a.planta, b.planta)).map((p) => {
           const { marcas, cuentas } = P.colorear(leerJson(p.marcas, []), t);
           const pl = plantas.find((x) => x.plano && x.plano.id === p.id);
           const sinPoner = pl ? pl.equipos.filter((q) => q.x === null).map((q) => ({ id: q.id, tag: q.tag, color: q.color, sala: q.sala })) : [];
@@ -82693,28 +82969,6 @@ ${fallos.join("\r\n")}\r
           return { id: p.id, planta: p.planta, nombre: p.nombre, ancho: p.ancho, alto: p.alto, marcas: marcas.map((m) => ({ ...m, sala: salaPor.get(m.equipoId) || m.sala || null })), cuentas, sinPoner, modificadoEn: p.modificadoEn };
         });
         const medicion = modoObra && VE.veCertificacion(ses.rol) ? medicionDelPlano(repo, obraId, plantas) : null;
-        if (opc.porPlanta) {
-          const pedida = plantaPorDefecto(plantas, opc.planta);
-          for (let i = 0; i < plantas.length; i += 1) {
-            const pl = plantas[i];
-            if (pl === pedida) continue;
-            plantas[i] = {
-              planta: pl.planta,
-              cuentas: pl.cuentas,
-              cuentasObra: pl.cuentasObra,
-              capas: pl.capas,
-              plano: pl.plano,
-              ifc: pl.ifc ? { plano: pl.ifc.plano, pos: {} } : void 0,
-              parcial: true,
-              n: { equipos: pl.equipos.length, materiales: pl.materiales.length, faltas: pl.faltas.length },
-              enPlano: pl.equipos.filter((q) => q.x !== null).map((q) => q.id),
-              equipos: [],
-              materiales: [],
-              sinUbicar: [],
-              faltas: []
-            };
-          }
-        }
         const iconos = {};
         for (const k of Object.keys(P.ICONOS)) iconos[k] = P.ICONOS[k];
         const MT = require_materialesInstalados();
@@ -83333,7 +83587,9 @@ ${fallos.join("\r\n")}\r
         localizacionPorConfirmar,
         imagenRecorte,
         svgRecorte,
-        fotosLocalizacion
+        fotosLocalizacion,
+        recortarPorPlanta,
+        plantaConIfc
       };
     }
   });
@@ -151064,7 +151320,8 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         async function lista({ ses, query }) {
           const ligero = String(query.ligero || "") === "1";
           const porPlanta = String(query.porPlanta || "") === "1";
-          const d = PE.listar(repo, ses, String(query.obra || ""), { ligero, porPlanta, ifc: ligero && porPlanta, planta: query.planta ?? null });
+          const soloIfc = ligero && porPlanta && String(query.soloIfc || "") === "1";
+          const d = PE.listar(repo, ses, String(query.obra || ""), { ligero, porPlanta, ifc: ligero && porPlanta, planta: query.planta ?? null, ...soloIfc ? { soloIfc } : {} });
           if (!d) return { ok: false, error: "No se encuentra la obra." };
           if (!ligero) await certificacionDeLaNube(ses, String(query.obra || ""), d);
           return {
@@ -203085,6 +203342,211 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
     }
   });
 
+  // shared/sync/rescate.js
+  var require_rescate = __commonJS({
+    "shared/sync/rescate.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var PQ2 = require_paquete();
+      var CUBO = "cx-pruebas";
+      var TROZO = 30 * 1024 * 1024;
+      var TIPOS = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", heic: "image/heic", heif: "image/heif", gif: "image/gif", pdf: "application/pdf" };
+      var limpio = (s) => String(s || "").replace(/[^A-Za-z0-9._-]/g, "_");
+      var nombreDe = (r) => String(r || "").split(/[\\/]/).pop();
+      var extDe = (r) => {
+        const m = /\.([A-Za-z0-9]+)$/.exec(String(r || ""));
+        return m ? m[1].toLowerCase() : "";
+      };
+      var SECRETO = /token|clave|sesion|jwt|secret|password|huella/i;
+      var existe = (db, t) => Boolean(db.prepare("SELECT 1 AS x FROM sqlite_master WHERE type = 'table' AND name = ?").get(t));
+      var columnas = (db, t) => db.prepare(`PRAGMA table_info("${t}")`).all().map((c) => c.name);
+      var fila = (db, t, id) => /^[A-Za-z]+$/.test(t) && existe(db, t) ? db.prepare(`SELECT * FROM "${t}" WHERE id = ?`).get(id) || null : null;
+      var todas = (db, t) => existe(db, t) ? db.prepare(`SELECT * FROM "${t}"`).all() : [];
+      function rutasDe(valor, io, out = /* @__PURE__ */ new Set(), hondo = 0) {
+        if (valor == null || hondo > 6) return out;
+        if (typeof valor === "string") {
+          const s = valor.trim();
+          if ((s[0] === "{" || s[0] === "[") && s.length < 5e6) {
+            try {
+              return rutasDe(JSON.parse(s), io, out, hondo + 1);
+            } catch {
+            }
+          }
+          if (s.length < 500 && !s.startsWith("data:") && TIPOS[extDe(s)] && io.existe(s)) out.add(s);
+          return out;
+        }
+        if (Array.isArray(valor)) {
+          for (const v of valor) rutasDe(v, io, out, hondo + 1);
+          return out;
+        }
+        if (typeof valor === "object") for (const v of Object.values(valor)) rutasDe(v, io, out, hondo + 1);
+        return out;
+      }
+      function armarRescate({ db, motor = null, personaId = null, desde = "", obras = null, extra = {}, ahora = () => /* @__PURE__ */ new Date() }) {
+        const visto = /* @__PURE__ */ new Map();
+        if (existe(db, "_syncVisto")) for (const v of db.prepare("SELECT tabla, id, modificadoEn FROM _syncVisto").all()) visto.set(`${v.tabla}\0${v.id}`, v.modificadoEn);
+        const rechazos = todas(db, "_syncRechazos");
+        const descartes = todas(db, "_syncDescartes");
+        const conflictos = existe(db, "_syncConflictos") ? db.prepare("SELECT * FROM _syncConflictos ORDER BY n").all() : [];
+        const rechazada = new Map(rechazos.map((r) => [`${r.tabla}\0${r.id}`, r]));
+        const descartada = new Map(descartes.map((r) => [`${r.tabla}\0${r.id}`, r]));
+        const conConflicto = new Set(conflictos.map((c) => `${c.tabla}\0${c.id}`));
+        const mias = obras ? new Set(obras) : null;
+        let cola = null;
+        try {
+          if (motor) {
+            const p = motor.pendientes();
+            cola = new Set(p.suben.map((e) => `${e.tabla}\0${e.id}`));
+          }
+        } catch {
+          cola = null;
+        }
+        const porTabla = {};
+        const cuenta = {};
+        const meter = (t, f, porque, k) => {
+          (porTabla[t] = porTabla[t] || []).push({ porque, visto: visto.get(k) || null, rechazo: rechazada.get(k) || null, descarte: descartada.get(k) || null, fila: f });
+          cuenta[porque] = (cuenta[porque] || 0) + 1;
+        };
+        for (const t of PQ2.TABLAS_VUELTA) {
+          if (!existe(db, t)) continue;
+          const cols = columnas(db, t);
+          if (!cols.includes("modificadoEn")) continue;
+          const personal = PQ2.esPersonal(t);
+          for (const f of todas(db, t)) {
+            const k = `${t}\0${f.id}`;
+            const mod = String(f.modificadoEn || "");
+            const v = visto.get(k);
+            const subida = v !== void 0 && mod <= v && !rechazada.has(k) && !descartada.has(k);
+            if (subida && !conConflicto.has(k)) continue;
+            let porque;
+            if (rechazada.has(k)) porque = "rechazada";
+            else if (descartada.has(k)) porque = "descartada";
+            else if (subida) porque = "conflicto";
+            else if (personal && personaId && f.personaId !== personaId) porque = "de-otra-persona";
+            else if (!personal && !f.obraId) porque = "sin-obra";
+            else if (!personal && mias && !mias.has(f.obraId)) porque = "fuera-de-mis-obras";
+            else if (v === void 0 && desde && mod <= desde) porque = "anterior-al-paquete";
+            else if (cola && cola.has(k)) porque = "en-cola";
+            else porque = "sin-subir";
+            meter(t, f, porque, k);
+          }
+        }
+        for (const r of [...rechazos, ...descartes]) {
+          if (PQ2.TABLAS_VUELTA.includes(r.tabla)) continue;
+          meter(r.tabla, fila(db, r.tabla, r.id), rechazada.has(`${r.tabla}\0${r.id}`) ? "rechazada" : "descartada", `${r.tabla}\0${r.id}`);
+        }
+        const estadoSync = {};
+        if (existe(db, "_syncEstado")) {
+          for (const e of db.prepare("SELECT clave, valor FROM _syncEstado").all()) if (!SECRETO.test(e.clave)) estadoSync[e.clave] = e.valor;
+        }
+        const resumen = {
+          tipo: "rescate-cx",
+          version: 1,
+          cuando: ahora().toISOString(),
+          personaId,
+          desde,
+          obras,
+          cuenta,
+          motor: motor ? motor.estado() : null,
+          estadoSync,
+          rechazos,
+          descartes,
+          conflictos: conflictos.map((c) => ({ ...c, fila: fila(db, c.tabla, c.id) })),
+          ...extra
+        };
+        return { resumen, porTabla };
+      }
+      function fotosDelRescate({ db, io, rescate }) {
+        const rutas = /* @__PURE__ */ new Set();
+        for (const lista of Object.values(rescate.porTabla)) for (const x of lista) rutasDe(x.fila, io, rutas);
+        for (const c of rescate.resumen.conflictos) {
+          rutasDe(c.valorQuePierde, io, rutas);
+          rutasDe(c.valorQueGana, io, rutas);
+        }
+        const subidas = /* @__PURE__ */ new Set();
+        if (existe(db, "_syncArchivos")) for (const r of db.prepare("SELECT clave FROM _syncArchivos").all()) subidas.add(nombreDe(r.clave));
+        for (const r of io.lista ? io.lista() : []) {
+          if (r.startsWith(`${io.carpeta}/nube/`) || !TIPOS[extDe(r)]) continue;
+          if (!subidas.has(limpio(nombreDe(r)))) rutas.add(r);
+        }
+        return [...rutas];
+      }
+      function trozos(lista, max = TROZO) {
+        const out = [];
+        let actual = [];
+        let tam = 2;
+        for (const x of lista) {
+          const n = JSON.stringify(x).length + 1;
+          if (actual.length && tam + n > max) {
+            out.push(actual);
+            actual = [];
+            tam = 2;
+          }
+          actual.push(x);
+          tam += n;
+        }
+        if (actual.length || !out.length) out.push(actual);
+        return out;
+      }
+      var bytes = (texto) => new TextEncoder().encode(texto);
+      async function enviarRescate({ db, nube, io, espacio, obra, dispositivo, rescate, alAvance = () => {
+      }, ahora = () => /* @__PURE__ */ new Date() }) {
+        if (!nube || !nube.subirArchivo) throw new Error("Sin nube.");
+        if (!obra) throw new Error("Este tel\xE9fono no tiene ninguna obra asignada en la nube.");
+        const raiz = `${limpio(espacio)}/${limpio(obra)}/rescate-${limpio(dispositivo)}`;
+        const sello = ahora().toISOString().replace(/[:.]/g, "-");
+        const carpeta = `${raiz}/${sello}`;
+        db.exec("CREATE TABLE IF NOT EXISTS _syncRescateFotos (ruta TEXT PRIMARY KEY, clave TEXT NOT NULL)");
+        const ya = new Map(db.prepare("SELECT ruta, clave FROM _syncRescateFotos").all().map((r) => [r.ruta, r.clave]));
+        const apuntar = db.prepare("INSERT INTO _syncRescateFotos (ruta, clave) VALUES (?, ?) ON CONFLICT(ruta) DO UPDATE SET clave = excluded.clave");
+        const fotos = fotosDelRescate({ db, io, rescate });
+        const ficheros = [];
+        for (const [t, lista] of Object.entries(rescate.porTabla)) {
+          const partes = trozos(lista);
+          partes.forEach((p, i) => ficheros.push({ ruta: `${carpeta}/filas-${limpio(t)}${partes.length > 1 ? `-${i + 1}` : ""}.json`, cuerpo: { tabla: t, parte: i + 1, de: partes.length, filas: p } }));
+        }
+        const total = fotos.length + ficheros.length + 1;
+        let hechos = 0;
+        const avance = () => {
+          hechos++;
+          try {
+            alAvance(hechos, total);
+          } catch {
+          }
+        };
+        const mapaFotos = {};
+        const fallidas = [];
+        const usados = /* @__PURE__ */ new Set();
+        for (const r of fotos) {
+          let nombre = limpio(nombreDe(r));
+          if (usados.has(nombre)) nombre = `${limpio(r)}`;
+          usados.add(nombre);
+          const clave = ya.get(r) || `${raiz}/fotos/${nombre}`;
+          try {
+            if (!ya.has(r)) {
+              await nube.subirArchivo(CUBO, clave, io.leer(r), TIPOS[extDe(r)] || "application/octet-stream");
+              apuntar.run(r, clave);
+            }
+            mapaFotos[r] = clave;
+          } catch (e) {
+            if (e.sinRed) throw e;
+            fallidas.push({ ruta: r, error: e.message });
+          }
+          avance();
+        }
+        for (const f of ficheros) {
+          await nube.subirArchivo(CUBO, f.ruta, bytes(JSON.stringify(f.cuerpo)), "application/json");
+          avance();
+        }
+        const resumen = { ...rescate.resumen, dispositivo, espacio, obra, carpeta, ficheros: ficheros.map((f) => f.ruta), fotos: mapaFotos, fotosFallidas: fallidas };
+        await nube.subirArchivo(CUBO, `${carpeta}/resumen.json`, bytes(JSON.stringify(resumen)), "application/json");
+        avance();
+        return { carpeta, ficheros: ficheros.length + 1, fotos: Object.keys(mapaFotos).length, fallidas: fallidas.length, filas: Object.values(rescate.porTabla).reduce((s, l) => s + l.length, 0) };
+      }
+      module.exports = { armarRescate, fotosDelRescate, enviarRescate, rutasDe, trozos, CUBO };
+    }
+  });
+
   // shared/arranqueLogo.js
   var require_arranqueLogo = __commonJS({
     "shared/arranqueLogo.js"(exports, module) {
@@ -203736,6 +204198,75 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
           syncCx.motor().marcarDescartesVistos();
           almacen.guardarPronto(base);
         }
+      },
+      /* Lo que la nube rechazó (con su porqué) y lo que no ha subido (13-nov). */
+      rechazos: () => syncCx.motor() ? syncCx.motor().rechazos() : [],
+      sinSubir: () => syncCx.motor() ? syncCx.motor().sinSubir() : null,
+      /* VOLVER A SUBIR (13-nov): lo rechazado y lo descartado, a la cola, y una vuelta ya. */
+      volverASubir: async () => {
+        await conectar();
+        const m = syncCx.motor();
+        if (!m) throw new Error("Sin sesi\xF3n en la nube: entra con tu correo y contrase\xF1a.");
+        const r = m.reencolar();
+        almacen.guardarPronto(base);
+        const c = await syncCx.ciclo();
+        almacen.guardarPronto(base);
+        return { ...r, subidas: c && c.subida ? c.subida.subidas : 0, rechazadas: c && c.subida ? c.subida.rechazadas || 0 : 0, error: c && c.error ? c.error.message : null, rechazos: m.rechazos() };
+      },
+      /* ENVIAR A LA OFICINA LO QUE NO HA SUBIDO (13-nov, shared/sync/rescate.js): copia de
+         seguridad al cubo cx-pruebas. No escribe en las tablas de la nube. */
+      rescate: async (alAvance) => {
+        await conectar();
+        const yo2 = syncCx.yo();
+        if (!yo2) throw new Error("Sin sesi\xF3n en la nube: entra con tu correo y contrase\xF1a.");
+        const R = require_rescate();
+        const m = syncCx.motor();
+        const o = oficina();
+        const obras = m && m.obras() || o.obras || null;
+        const io = {
+          carpeta: CARPETA,
+          existe: (r) => archivos.has(r),
+          leer: (r) => archivos.get(r),
+          lista: () => [...archivos.keys()].filter((r) => r.startsWith(`${CARPETA}/`))
+        };
+        const rescate = R.armarRescate({
+          db: base,
+          motor: m,
+          personaId: yo2.personaId,
+          desde: o.recibido || "",
+          obras,
+          extra: {
+            oficina: { recibido: o.recibido || null, enviado: o.enviado || null, obras: o.obras || null, personaId: o.personaId || null },
+            ota: (() => {
+              try {
+                return ota.info();
+              } catch {
+                return null;
+              }
+            })(),
+            diario: m ? m.diario() : [],
+            estadoPantalla: { ...syncCx.estado(), entrado: true },
+            tamanoBase: (() => {
+              try {
+                return globalThis.cxObra.tamanoBase();
+              } catch {
+                return null;
+              }
+            })()
+          }
+        });
+        const res = await R.enviarRescate({
+          db: base,
+          nube: syncCx.nube,
+          io,
+          espacio: yo2.espacio,
+          obra: obras && obras[0] || null,
+          dispositivo: leerLS("cxobra.aparato") || "telefono",
+          rescate,
+          alAvance
+        });
+        almacen.guardarPronto(base);
+        return res;
       }
     };
     conectar();
