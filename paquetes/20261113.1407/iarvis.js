@@ -37,7 +37,7 @@
   };
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-  const I = { panel: null, boton: null, lista: null, adaptador: null, ir: null, contexto: () => ({}), movil: false, ficheros: [], filas: [], ocupado: false, deEstaVez: new Set(), idsEstaVez: new Set(), verAnteriores: false, pdfs: {}, ultima: 0, volver: null };
+  const I = { panel: null, boton: null, lista: null, adaptador: null, ir: null, contexto: () => ({}), movil: false, ficheros: [], locales: [], filas: [], ocupado: false, deEstaVez: new Set(), idsEstaVez: new Set(), verAnteriores: false, pdfs: {}, ultima: 0, volver: null };
 
   function leerCharla() {
     try {
@@ -465,7 +465,10 @@
     let ctx = {};
     try { ctx = I.contexto() || {}; } catch { /* sin contexto */ }
     const mes = new Date().toLocaleDateString('es-ES', { month: 'long' });
-    const lista = ctx.obraId
+    const delineante = window.SESION && window.SESION.rol === 'delineante';
+    const lista = delineante
+      ? ['¿Qué falla en mis planos?', '¿Qué tengo que volver a mandar?', '¿Cómo subo un IFC o un plano de AutoCAD?']
+      : ctx.obraId
       ? [`Planificación de commissioning de ${mes}`, '¿Qué hay planificado esta semana?', 'Planificación de las UTAs del mes que viene', '¿Cómo certifico una partida?']
       : ['¿Cómo elijo la obra en la que trabajo?', '¿Qué puedo hacer con mi puesto?', '¿Cómo subo un documento?'];
     return lista.map((t) => `<button class="iaSugerencia" data-ia-sugerencia="${esc(t)}">${esc(t)}</button>`).join('');
@@ -540,7 +543,9 @@
     const botonMandar = I.panel.querySelector('.iaMandar');
     botonMandar.disabled = true;
     const adjuntos = I.ficheros.slice();
+    const archivos = I.locales.slice();
     I.ficheros = [];
+    I.locales = [];
     pintarFicheros();
     caja.value = '';
     const nFotos = adjuntos.filter((a) => /^image\//.test(String(a.tipo || a.mime || '')) || /\.(jpe?g|png|heic|heif|webp)$/i.test(String(a.nombre || ''))).length;
@@ -559,10 +564,10 @@
     }
     let ctx = {};
     try { ctx = I.contexto() || {}; } catch { /* sin contexto */ }
-    let r = adjuntos.length ? null : navegarLocal(pregunta);
+    let r = adjuntos.length || archivos.length ? null : navegarLocal(pregunta);
     if (!r) {
       try {
-        r = await I.adaptador.preguntar({ pregunta, pantalla: ctx.pantalla, obraId: ctx.obraId, obraNombre: ctx.obraNombre, mirando: ctx.mirando || (ctx.hechoAbierto ? `Caso abierto en pantalla: ${ctx.hechoAbierto.reclamacionCodigo || ''} ${ctx.hechoAbierto.codigo || ''} ${ctx.hechoAbierto.titulo || ''}`.trim() : undefined), idioma: ctx.idioma, hechoAbierto: ctx.hechoAbierto, correoAbierto: ctx.correoAbierto, adjuntos });
+        r = await I.adaptador.preguntar({ pregunta, pantalla: ctx.pantalla, obraId: ctx.obraId, obraNombre: ctx.obraNombre, mirando: ctx.mirando || (ctx.hechoAbierto ? `Caso abierto en pantalla: ${ctx.hechoAbierto.reclamacionCodigo || ''} ${ctx.hechoAbierto.codigo || ''} ${ctx.hechoAbierto.titulo || ''}`.trim() : undefined), idioma: ctx.idioma, hechoAbierto: ctx.hechoAbierto, correoAbierto: ctx.correoAbierto, adjuntos, archivos });
       } catch { r = { estado: 'fallo', respuesta: 'Iarvis no ha podido contestar ahora. Vuelve a preguntármelo.' }; }
     }
     Object.assign(provisional, r || {});
@@ -599,6 +604,8 @@
     for (const archivo of lista) {
       const bytes = new Uint8Array(await archivo.arrayBuffer());
       const t = A ? A.detectarTipo(bytes, archivo.name) : { tipo: 'desconocido', mime: archivo.type };
+      /* 11-nov: un presupuesto (BC3, Excel, ODS, CSV) se queda también en local: Iarvis lo lee y propone crearlo. */
+      if (/\.(bc3|xlsx?|ods|csv|tsv|txt)$/i.test(archivo.name) && bytes.length <= 25 * 1024 * 1024) I.locales.push({ nombre: archivo.name, bytes });
       const z = I.panel.querySelector('.iaFicheros');
       if (z) z.textContent = `Subiendo «${archivo.name}»…`;
       let r;
@@ -983,9 +990,10 @@
     /* «Guardar y validar» son dos acciones seguidas: del mismo hecho, sale la última. */
     const prev = I.filas[0];
     const seguida = prev && prev.proactiva && prev.hechoId && prev.hechoId === f.hechoId && Date.now() - new Date(prev.creado).getTime() < 2000;
+    /* Primero se caduca la charla vieja y después se añade: con la conversación vacía (primer aviso al entrar), caducar() después borraba el aviso de «esta vez». */
+    caducar();
     I.filas = [f, ...(seguida ? I.filas.slice(1) : I.filas)];
     I.deEstaVez.add(f);
-    caducar();
     actividad();
     if (I.panel.hidden) abrir({ foco: false }); else pintar();
     return f;

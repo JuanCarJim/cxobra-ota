@@ -222,6 +222,13 @@ p.cargando { min-height: calc(100vh - 190px); min-height: calc(100dvh - 190px);
 body:has(#app > p.cargando:only-child) { padding-bottom: 0; } /* la barra de abajo flota: sin esto, la carga tendría scroll */
 p.cargando:not(#app > :only-child) { min-height: 0; padding: 14px 0; }
 p.cargando:not(#app > :only-child) .arq-atomo { --arq-lado: 96px; }
+/* 13-nov (JC): la V al pasar de una pantalla a otra (index.html › cxCargaTransicion). Transparente los primeros 150 ms:
+   si la pantalla llega antes, ni se ve. Sin tapar los toques. */
+.cx-transicion { position: fixed; inset: 0; z-index: 9000; display: flex; align-items: center; justify-content: center;
+  background: rgba(250, 247, 241, .72); pointer-events: none; opacity: 0; animation: cxTransicion 120ms linear 150ms forwards; }
+.cx-transicion.oculta { display: none; }
+.cx-transicion .arq-atomo { --arq-lado: 120px; }
+@keyframes cxTransicion { to { opacity: 1; } }
 
 /* El estado vacío, igual en todas las listas (el EmptyState de CoachIn): un
    círculo gris con el icono y el texto debajo, centrado y con aire. */
@@ -2247,3 +2254,24 @@ main#app.densa ul.lista-ios.filas-ficha > li { background: transparent; border: 
 .cx-plano{margin-top:6px}
 .cx-pie{display:flex;flex-wrap:wrap;gap:4px 18px;margin:12px 0 4px}
 #cx-res .cx-res > li{flex:none}
+/* Cx (13-nov-2026): buscador y conmutador «Plano | Lista» en una sola fila, bajo la franja de recuento. */
+.cx-busca-fila{display:flex;align-items:center;gap:8px;margin:0 0 6px}
+.cx-busca-fila .buscar-caja{flex:1 1 auto;min-width:0;margin:0}
+.cx-vista{display:inline-flex;flex:0 0 auto;border:1px solid var(--borde);border-radius:8px;overflow:hidden}
+.cx-vista button{font:inherit;font-size:13px;min-height:36px;padding:0 12px;border:0;background:transparent;color:var(--texto);cursor:pointer}
+.cx-vista button+button{border-left:1px solid var(--borde)}
+.cx-vista button.activa{background:var(--acento-relleno);color:var(--sobre-relleno);font-weight:600}
+
+/* 13-nov (JC): «mejora el recuadro del nombre de la obra». Píldora arena con esquinas redondas, aire a los lados,
+   letra marino y flecha solo si se puede cambiar. iOS pinta el select desactivado gris y con borde: se anula. */
+.obra-movil { margin-top: 6px; }
+.obra-movil select,
+.obra-movil select:disabled {
+  flex: 0 1 auto; max-width: 100%; min-height: 34px; padding: 6px 34px 6px 12px;
+  font-size: 14px; font-weight: 600; letter-spacing: .01em;
+  color: var(--acento); -webkit-text-fill-color: var(--acento); opacity: 1;
+  background-color: var(--acento-suave); border: 0; border-radius: 999px; box-shadow: none;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.obra-movil select:disabled { padding-right: 12px; background-image: none; }
+.obra-movil select:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }

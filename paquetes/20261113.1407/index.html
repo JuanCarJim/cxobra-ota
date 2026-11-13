@@ -45,6 +45,7 @@
 <link rel="stylesheet" href="movil.css">
 <link rel="stylesheet" href="mantenimiento.css">
 <link rel="stylesheet" href="iarvis.css">
+<link rel="stylesheet" href="iarvisVoz.css">
 <link rel="stylesheet" href="kpiFranja.css">
 <style>.arranque-ipad,.arranque-cx{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#F4F6F5;z-index:9999}.arq-atomo{position:relative;display:block;flex:none;width:var(--arq-lado,min(90vw,62vh,560px));height:var(--arq-lado,min(90vw,62vh,560px))}.arq-capa{position:absolute;inset:0;display:block;width:100%;height:100%}.arq-orbita{position:absolute;inset:0;display:block;transform:rotate(-28deg) scaleY(.42)}.arq-giro{position:absolute;inset:0;display:block;animation:arqGiro 3s linear infinite}.arq-electron{position:absolute;left:90%;top:50%;display:block;width:19.2%;height:19.2%;margin:-9.6% 0 0 -9.6%}.arq-contra{display:block;width:100%;height:100%;animation:arqContra 3s linear infinite}.arq-recto{display:block;width:100%;height:100%;transform:scaleY(2.38095) rotate(28deg)}.arq-brujula{display:block;width:100%;height:100%}.arq-delante{animation:arqDelante 3s step-end infinite}.arq-detras{opacity:0;animation:arqDetras 3s step-end infinite}@keyframes arqGiro{to{transform:rotate(360deg)}}@keyframes arqContra{to{transform:rotate(-360deg)}}@keyframes arqDelante{0%{opacity:1}50%,100%{opacity:0}}@keyframes arqDetras{0%{opacity:0}50%,100%{opacity:1}}.arq-aguja{transform-box:fill-box;transform-origin:center;animation:arqAguja 2.4s ease-in-out infinite}@keyframes arqAguja{0%{transform:rotate(-40deg)}35%{transform:rotate(18deg)}55%{transform:rotate(-8deg)}70%,100%{transform:rotate(0)}}@media (prefers-reduced-motion:reduce){.arq-aguja,.arq-giro,.arq-contra,.arq-delante,.arq-detras{animation:none}}.arq-aviso{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:min(560px,calc(100vw - 32px));padding:9px 14px;border-radius:10px;background:#fff;color:#435254;border:1px solid #D9E0DE;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.08);white-space:pre-wrap;word-break:break-word}.arq-aviso.arq-mal{border-color:#E3BDBD;color:#9C2B2B}.arq-reintentar{margin-left:6px;border:1px solid #13957A;color:#0E7C66;background:transparent;border-radius:8px;padding:3px 10px;font:inherit;cursor:pointer}</style>
 </head>
@@ -93,6 +94,47 @@
       }).observe(document.body, { childList: true, subtree: true });
     })();
   </script>
+  <script>
+    /* 13-nov (JC): «al cargar no sale la V, de una pantalla a otra dentro de la app». Al pulsar algo que lleva a otra
+       pantalla (pestañas, fichas, plano, Más…) se pone al momento la V del arranque (la de window.cxLogoCarga), pero
+       transparente: solo se ve si la pantalla tarda más de ~150 ms (la animación con retraso la lleva el compositor,
+       también mientras el teléfono calcula). Se quita en cuanto la pantalla nueva se ha pintado y está quieta. Si la
+       pantalla ya enseña su propia carga (p.cargando, con la V grande), esta no se ve: nunca dos V. */
+    (function () {
+      var NAVEGA = '#barra-inferior button, #barra-inferior a, #segmentos button, [data-cx], [data-pe-marca], [data-pe-fila], [data-pe-planta], a[href^="#"], .enlace';
+      var capa = null, desde = 0, ultimo = 0, cambio = false, vivo = false;
+      function quitar() { vivo = false; if (capa && capa.parentNode) capa.parentNode.removeChild(capa); capa = null; }
+      function mirar() {
+        if (!vivo) return;
+        var ahora = performance.now();
+        var propia = document.querySelector('#app > p.cargando:only-child');
+        if (capa) capa.classList.toggle('oculta', Boolean(propia));
+        if ((cambio && !propia && ahora - ultimo >= 100) || (!cambio && ahora - desde > 700) || ahora - desde > 20000) { quitar(); return; }
+        requestAnimationFrame(mirar);
+      }
+      function empezar() {
+        desde = ultimo = performance.now(); cambio = false;
+        if (!capa) {
+          var l = window.cxLogoCarga ? window.cxLogoCarga() : '';
+          if (!l) return;
+          capa = document.createElement('div');
+          capa.className = 'cx-transicion';
+          capa.setAttribute('aria-hidden', 'true');
+          capa.innerHTML = l;
+          document.body.appendChild(capa);
+        }
+        if (!vivo) { vivo = true; requestAnimationFrame(mirar); }
+      }
+      window.cxCargaTransicion = { empezar: empezar, quitar: quitar };
+      new MutationObserver(function (cambios) {
+        if (!vivo) return;
+        for (var i = 0; i < cambios.length; i++) { if (!capa || !capa.contains(cambios[i].target)) { cambio = true; ultimo = performance.now(); return; } }
+      }).observe(document.getElementById('app'), { childList: true, subtree: true });
+      document.addEventListener('click', function (e) { var b = e.target && e.target.closest ? e.target.closest(NAVEGA) : null; if (b && !b.disabled) empezar(); }, true);
+      document.addEventListener('change', function (e) { if (e.target && e.target.matches && e.target.matches('select[data-pe-planta-sel], #obra-movil')) empezar(); }, true);
+      window.addEventListener('hashchange', empezar);
+    })();
+  </script>
   <input type="file" id="camara" accept="image/*,application/pdf" capture="environment" hidden>
   <input type="file" id="galeria" accept="image/*,application/pdf" multiple hidden>
   <input type="file" id="camara-qr" accept="image/*" capture="environment" hidden>
@@ -102,6 +144,8 @@
   <input type="file" id="galeria-prueba" accept="image/*" multiple hidden>
   <nav class="barra-inferior" id="barra-inferior" aria-label="Pestañas"></nav>
   <!-- 8-nov: Face ID, huella o PIN para ENTRAR (bloqueo.js), antes que acceso.js y que cualquier sección. -->
+
+
 
 
 

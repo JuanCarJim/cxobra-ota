@@ -4,7 +4,8 @@
  * web (renderer/iarvis.js, montado aquí a pantalla completa; se abre con la brújula de la cabecera), sobre la misma tabla
  * (ia_mensajes de cxobra-sync) con shared/ia/conversaciones.js.
  *
- * Dictado: el micrófono del teclado del iPhone (el panel lo dice en la caja de texto).
+ * Audios: el micrófono junto a «Mandar» (renderer/movil/iarvisVoz.js, 12-nov): se pasa a texto en el
+ * teléfono y llega aquí como una pregunta más, con `entrada: 'voz'` en el contexto.
  * Adjuntos: 📎 Archivos y 📷 cámara, los del componente.
  *
  * La nube la pone cxobra/arranque.js en window.CX_IARVIS (la sesión de quien lleva el
@@ -54,7 +55,7 @@
         obraId: d.obraId || null,
         adjuntos: d.adjuntos || [],
         /* 8-nov: con los datos de la obra abierta (`datos_obra`) que ha sacado el teléfono (rutasPlanificacion.js). */
-        contexto: { app: 'cx', pantalla: d.pantalla || '', ...(d.obraId ? { obra_id: String(d.obraId), obra: String(d.obraNombre || '').slice(0, 160) } : {}), ...(d.idioma ? { idioma: d.idioma } : {}), ...(d.contexto && typeof d.contexto === 'object' ? { ...d.contexto, app: 'cx' } : {}), ...(ESC ? { escalado: 1 } : {}), ...(d.sinApp ? { sinApp: 1 } : {}) },
+        contexto: { app: 'cx', pantalla: d.pantalla || '', ...(window.CX_VOZ && window.CX_VOZ.esDeVoz(d.pregunta) ? { entrada: 'voz' } : {}), ...(d.obraId ? { obra_id: String(d.obraId), obra: String(d.obraNombre || '').slice(0, 160) } : {}), ...(d.idioma ? { idioma: d.idioma } : {}), ...(d.contexto && typeof d.contexto === 'object' ? { ...d.contexto, app: 'cx' } : {}), ...(ESC ? { escalado: 1 } : {}), ...(d.sinApp ? { sinApp: 1 } : {}) },
       });
     /* El motor de IA, solo para ELEGIR la acción (sin él, o sin desplegar: null, y se queda la
        respuesta de las reglas con las opciones más cercanas). */
@@ -87,6 +88,7 @@
         return lineas.slice(0, 80).join('\n');
       } catch { return ''; }
     };
+    let ultimaNube = null;
     adaptador = {
       preguntar: async (d) => {
         if (SG && !d.sinSugerencia) {
@@ -103,7 +105,10 @@
           /* 9-nov · «esto es la UTA-01» + fotos: la placa se lee AQUÍ, en el teléfono y sin red
              (renderer/ocrPlaca.js), y los renglones van con la pregunta para rellenar la ficha. */
           const placa = await leerPlacas(d.pregunta, fotos);
-          r = await C.postJson('api/iarvis/preguntar', { pregunta: d.pregunta, obraId: d.obraId || null, obraNombre: d.obraNombre || '', fotos, pantalla: d.pantalla || '', idioma: d.idioma || '', ...(placa ? { placa } : {}) });
+          /* 12-nov (JC): la última respuesta de la nube va con la siguiente, para que la conversación
+             recuerde lo corregido (shared/ia/coherencia.js en el servidor del teléfono). */
+          r = await C.postJson('api/iarvis/preguntar', { pregunta: d.pregunta, obraId: d.obraId || null, obraNombre: d.obraNombre || '', fotos, pantalla: d.pantalla || '', idioma: d.idioma || '', ...(placa ? { placa } : {}), ...(ultimaNube ? { anterior: ultimaNube } : {}) });
+          ultimaNube = null;
           /* 8-nov · las reglas no lo entienden pero parece algo que hacer: se le pregunta al motor
              (edge function `iarvis`, modo «accion») qué acción del catálogo es. El servidor elige con
              el rol que lee de la nube; lo que vuelva se resuelve en el teléfono con confirmación. */
@@ -128,11 +133,13 @@
         } catch { /* sin motor local: a la nube, como antes */ }
         if (d.soloApp) return null;
         const paraNube = { ...d, contexto: r && r.contexto, adjuntos: (d.adjuntos || []).filter((x) => x && !x.soloLocal) };
+        /* 12-nov: la última respuesta de la nube se recuerda para «¿seguro?» y las correcciones. */
+        const recordar = (f) => { if (f && f.estado === 'respondida' && f.respuesta) ultimaNube = { pregunta: String(d.pregunta || '').slice(0, 2000), respuesta: String(f.respuesta).slice(0, 4000) }; return f; };
         const n = await alNube(paraNube);
         /* 13-nov · escalado: «esto lo hace la app» ([[app:frase]]) → se vuelve a preguntar al teléfono con esa frase,
            una sola vez; si no lo resuelve, la nube contesta sabiéndolo. */
         const frase = ESC && n && n.estado === 'respondida' ? ESC.fraseDeApp(n.respuesta) : null;
-        if (!frase) return limpia(n);
+        if (!frase) return recordar(limpia(n));
         let deApp = null;
         try { deApp = await adaptador.preguntar({ ...d, pregunta: frase, soloApp: true, sinSugerencia: true, adjuntos: [] }); } catch { deApp = null; }
         if (deApp && deApp.respuesta) {
@@ -140,7 +147,7 @@
           guardarLocal(f);
           return f;
         }
-        return limpia(await alNube({ ...paraNube, sinApp: true }));
+        return recordar(limpia(await alNube({ ...paraNube, sinApp: true })));
       },
       /* 8-nov (nota 1108-iarvis-cx-acciones): el botón «hacer» de una respuesta (marcar instalado,
          aprobar, guardar la foto como prueba) lo hace el teléfono con su copia y el alcance del rol. */

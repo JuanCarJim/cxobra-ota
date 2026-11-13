@@ -226,7 +226,63 @@ function gestos(marco, op) {
   };
 }
 
-const API = { ZOOM_MIN, ZOOM_TOPE, ZOOM_MAX, limitarZoom, anchoBase, geometria, limitarScroll, puntoEn, zoomEnPunto, centrarEn, factorRueda, zoomMaximo, cajaDe, encuadre, etiquetasSinChoque, gestos };
+/*
+ * LOS RÓTULOS DEL PLANO SIN AMONTONARSE (13-nov, JC: «eso así no puede ser», con los nombres de sala y los TAG
+ * pisándose). En px del lienzo y por capas:
+ *  1) el TAG del equipo tocado, siempre; 2) los símbolos de los equipos y materiales, que ningún rótulo tapa;
+ *  3) los demás TAG, por prioridad; el que choca con lo ya puesto no sale (sale al tocar su equipo);
+ *  4) los nombres de sala, por debajo: solo si caben en su sala (`hueco`, px) y no chocan con nada de lo anterior
+ *     ni con otra sala; las grandes primero (pri más baja). Así una sala pequeña solo enseña su nombre al acercar.
+ * Devuelve { tags: Set, salas: Set } con los ids que se enseñan.
+ */
+function rotulosSinChoque({ tags = [], obstaculos = [], salas = [] } = {}, celda = 80) {
+  const rejilla = new Map();
+  const clave = (i, j) => `${i},${j}`;
+  const rango = (c) => [Math.floor(c.x / celda), Math.floor((c.x + c.w) / celda), Math.floor(c.y / celda), Math.floor((c.y + c.h) / celda)];
+  const choca = (c) => {
+    const [i0, i1, j0, j1] = rango(c);
+    for (let i = i0; i <= i1; i++) {
+      for (let j = j0; j <= j1; j++) {
+        for (const o of rejilla.get(clave(i, j)) || []) if (c.x < o.x + o.w && o.x < c.x + c.w && c.y < o.y + o.h && o.y < c.y + c.h) return true;
+      }
+    }
+    return false;
+  };
+  const poner = (c) => { const [i0, i1, j0, j1] = rango(c); for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) { const k = clave(i, j); if (!rejilla.has(k)) rejilla.set(k, []); rejilla.get(k).push(c); } };
+  const porPri = (l) => [...l].sort((a, b) => (a.pri || 0) - (b.pri || 0));
+  const salida = { tags: new Set(), salas: new Set() };
+  const ordenTags = porPri(tags);
+  /* El tocado va antes que nada; los demás TAG no tapan el símbolo de otro equipo. */
+  for (const c of ordenTags.filter((t) => t.pri === 0)) { if (choca(c)) continue; salida.tags.add(c.id); poner(c); }
+  for (const c of obstaculos) poner(c);
+  for (const c of ordenTags.filter((t) => t.pri !== 0)) { if (choca(c)) continue; salida.tags.add(c.id); poner(c); }
+  for (const c of porPri(salas)) {
+    if (c.hueco !== undefined && !(c.hueco >= c.w)) continue;
+    if (choca(c)) continue;
+    salida.salas.add(c.id); poner(c);
+  }
+  return salida;
+}
+
+/*
+ * El hueco de cada nombre de sala, como fracción del ancho del plano: la distancia al rótulo de sala más cercano
+ * (aspecto = alto/ancho del plano). Sin el contorno de la sala, es lo que mide su tamaño: en un pasillo de cuartos
+ * pequeños los rótulos están juntos; en una sala grande, solos.
+ */
+function huecoSalas(salas, aspecto = 1) {
+  const n = (salas || []).length;
+  const r = new Array(n).fill(Infinity);
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const d = Math.hypot(salas[i].x - salas[j].x, (salas[i].y - salas[j].y) * aspecto);
+      if (d < r[i]) r[i] = d;
+      if (d < r[j]) r[j] = d;
+    }
+  }
+  return r.map((d) => (Number.isFinite(d) ? d : 1));
+}
+
+const API = { ZOOM_MIN, ZOOM_TOPE, ZOOM_MAX, limitarZoom, anchoBase, geometria, limitarScroll, puntoEn, zoomEnPunto, centrarEn, factorRueda, zoomMaximo, cajaDe, encuadre, etiquetasSinChoque, rotulosSinChoque, huecoSalas, gestos };
 if (typeof module !== 'undefined' && module.exports) module.exports = API;
 if (typeof window !== 'undefined') window.VISTA_PLANO = API;
 })();

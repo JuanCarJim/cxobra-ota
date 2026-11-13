@@ -48,6 +48,7 @@
   let $raiz = null;
   let vista = null; /* cómo estaba el plano al irse a una ficha, para volver igual */
   let propio = false; /* sección «Plano de equipos» (sin Commissioning) */
+  let verMas = false; /* el desplegable «Leyenda · sin ubicar · revisar» abierto */
   let verSinUbicar = false; /* franja gris «Sin ubicar en el plano» abierta */
   /* Materiales instalados (29-oct, JC): compuertas, difusores, rejillas… con nº de serie y ficha técnica. */
   let capasOff = new Set(); /* capas apagadas (equipos, compuertas, difusores…) */
@@ -61,7 +62,7 @@
   const ESTILO = `
   .pe-cabeza{display:flex;align-items:center;gap:8px;margin:4px 0 8px}
   .pe-cabeza h2{font-size:18px;margin:0;flex:1}
-  .pe-planta-sel{margin:0 0 6px}.pe-planta-sel label{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--texto-suave,var(--texto))}.pe-planta-sel select{flex:1;min-height:44px;border:1px solid var(--borde);background:var(--panel);color:var(--texto);border-radius:10px;padding:6px 10px;font-size:15px}
+  .pe-mas{margin:0 0 6px;font-size:13px}.pe-mas>summary{cursor:pointer;min-height:32px;display:flex;align-items:center;color:var(--texto-suave,var(--texto))}.pe-planta-sel{margin:0 0 6px}.pe-planta-sel label{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--texto-suave,var(--texto))}.pe-planta-sel select{flex:1;min-height:44px;border:1px solid var(--borde);background:var(--panel);color:var(--texto);border-radius:10px;padding:6px 10px;font-size:15px}
   .pe-plantas{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:6px;-webkit-overflow-scrolling:touch}
   .pe-plantas button{flex:none;min-height:40px;border:1px solid var(--borde);background:var(--panel);color:var(--texto);border-radius:999px;padding:6px 12px;font-size:14px}
   .pe-plantas button small{font-size:11px;opacity:.75;margin-left:4px}
@@ -71,6 +72,9 @@
   .pe-leyenda button{display:inline-flex;align-items:center;gap:6px;min-height:36px;border:1px solid var(--borde);background:var(--panel);color:var(--texto);border-radius:999px;padding:4px 10px;font-size:13px}
   .pe-leyenda button[aria-pressed="false"]{opacity:.45}
   .pe-leyenda .nota{margin:0;font-size:12px}
+  .pe-leyenda.pe-una-fila{flex-wrap:nowrap;overflow-x:auto;gap:4px;margin:0 0 6px;scrollbar-width:none}
+  .pe-leyenda.pe-una-fila button{min-height:30px;padding:2px 8px;font-size:12.5px;flex:0 0 auto}
+  .pe-planta-sel label{flex-wrap:nowrap} .pe-planta-sel{display:flex;align-items:center;gap:8px} .pe-planta-sel label{flex:1;min-width:0} .pe-planta-sel .pe-sin-ifc{flex:0 0 auto;font-size:12px;color:var(--aviso)}
   .pe-punto{display:inline-block;width:11px;height:11px;border-radius:2px;flex:none}
   .pe-verde{background:var(--bien)}.pe-azul{background:var(--pe-azul)}.pe-rojo{background:var(--mal)}
   #app{--pe-azul:var(--info)}
@@ -111,13 +115,15 @@
   .pe-sin-plano{padding:14px;border:1px dashed var(--borde);border-radius:10px;background:var(--panel);font-size:14px}
   .pe-visor{position:relative}
   /* Los nombres de sala, como texto encima del plano: nítidos a cualquier zoom
-     aunque la imagen que baja al móvil sea ligera. Solo al acercar (≥3×). */
-  .pe-sala{position:absolute;transform:translate(-50%,-50%);font-size:10px;line-height:1.1;color:var(--textoSuave);background:rgba(255,255,255,.78);padding:0 2px;border-radius:2px;white-space:nowrap;pointer-events:none;display:none;z-index:1}
-  .pe-lienzo.con-salas .pe-sala{display:block}
+     aunque la imagen que baja al móvil sea ligera. Solo las que caben en su sala: las pequeñas, al acercar. */
+  .pe-sala{position:absolute;transform:translate(-50%,-50%);font:400 9px/12px system-ui,sans-serif;color:var(--textoSuave);letter-spacing:.01em;padding:0 1px;white-space:nowrap;pointer-events:none;display:none;z-index:1;text-shadow:0 0 2px var(--papel),0 0 2px var(--papel)}
+  /* 13-nov (JC): finos y en gris claro, por debajo de los TAG; solo los que caben y no chocan (colocarTags). */
+  .pe-lienzo .pe-sala.ver{display:block}
   /* Los − / + flotan sobre el plano, arriba a la derecha: abajo los tapaba la barra de navegación. */
   .pe-zoom{position:absolute;top:8px;right:8px;z-index:5;display:flex;gap:4px;padding:4px;border-radius:10px;background:color-mix(in srgb,var(--panel) 88%,transparent);box-shadow:var(--sombra,0 1px 4px rgba(0,0,0,.18))}
   .pe-zoom button{min-width:44px;min-height:44px;margin:0;font-size:20px;line-height:1;padding:0 10px}
   .pe-zoom button[data-pe-zoom="0"]{font-size:14px}
+  .cx-plano .pe-marco .marca-boca.mal{color:var(--mal)} .cx-plano .pe-sin-ifc{margin:2px 0 6px;font-size:12px}
   .cx-plano .pe-zoom{top:6px;left:6px;right:auto;padding:2px;gap:2px}.cx-plano .pe-zoom button{min-width:34px;min-height:34px;font-size:16px;padding:0 6px}.cx-plano .pe-zoom button[data-pe-zoom="0"]{font-size:12px}
   .pe-elegido{margin:8px 0;padding:10px 12px;border-radius:10px;background:var(--panel);box-shadow:var(--sombra)}
   .pe-hoja{position:fixed;left:8px;right:8px;bottom:calc(var(--hueco-barra,104px) + 4px + env(safe-area-inset-bottom,0px));z-index:12;max-height:42vh;overflow:auto;padding:10px 12px 12px;border-radius:14px;background:var(--panel);box-shadow:0 -2px 14px rgba(8,50,60,.28);border:1px solid var(--borde)}
@@ -223,6 +229,7 @@
   /* Sin elegir, el modelo en cuanto coloca algún equipo (o si no hay PDF); el botón «Plano PDF» está encima, y la nota dice cuántos faltan. */
   const usaModelo = (p) => {
     const k = p.planta || '';
+    if (compacto) return Boolean(p.ifc) || !p.plano; /* pestaña Cx: el modelo IFC siempre que la planta lo tenga; el PDF solo si le falta (y se avisa) */
     if (conPdf.has(k)) return false;
     return conModelo.has(k) || !p.plano || Object.keys((p.ifc && p.ifc.pos) || {}).length > 0;
   };
@@ -238,27 +245,63 @@
     vistas.set(p, v);
     return v;
   };
+  /* LA PESTAÑA CX, SOLO CON EL IFC (13-nov-2026, JC: «Solo plano de IFC con equipos interactivo»): en el modo compacto solo
+     salen las plantas con modelo y algún equipo colocado en él; las demás, en una línea (las prepara el delineante). */
+  const nIfc = (x) => (!x || !x.ifc ? 0 : x.parcial ? Number(x.ifc.n) || 0 : Object.keys(x.ifc.pos || {}).length);
+  const plantasIfc = () => plantas().filter((x) => nIfc(x) > 0);
+  const plantasCx = () => plantas().filter((x) => x.ifc || (x.planta && nEquipos(x) > 0));
+  const colocadoEn = (x, id) => (compacto && x.ifc ? (x.parcial ? (x.ifc.ids || []).includes(id) : Boolean(x.ifc.pos && x.ifc.pos[id]))
+    : x.parcial ? (x.enPlano || []).includes(id) : x.equipos.some((y) => y.id === id && y.x !== null));
+  const CLAVE_CX = 'cx.planoCx.planta'; /* la última planta que eligió el usuario en la pestaña Cx (se queda al cerrar la app) */
+  const plantaGuardadaCx = () => { try { return localStorage.getItem(CLAVE_CX); } catch { return null; } };
   const plantaActual = () => {
     const ps = plantas();
+    if (compacto) {
+      /* 13-nov-2026 (JC): todas las plantas con equipos; con IFC, su modelo; sin IFC, el PDF con aviso. Sin elegir, la primera con IFC. */
+      const ps2 = plantasCx();
+      return vistaIfc((planta ? ps2.find((p) => (p.planta || '') === planta) : null) || plantasIfc()[0] || ps2[0] || null);
+    }
     return vistaIfc(((!compacto || planta !== null) && ps.find((p) => (p.planta || '') === (planta || ''))) || (compacto && ps.find((p) => nEquipos(p) > 0 && (p.plano || p.ifc))) || ps.find((p) => p.plano || p.ifc) || ps.find((p) => p.planta) || ps[0] || null);
   };
   const etiqueta = (p) => p.planta || 'Sin planta';
 
   /* POR PLANTA (5-nov-2026, JC): se pide solo la planta abierta entera; de las demás llegan sus
      cuentas (`parcial`) y se piden al tocarlas. */
-  const url = (pl) => `api/plano-equipos?obra=${encodeURIComponent(C.obraId())}&ligero=1&porPlanta=1&planta=${encodeURIComponent(pl || '')}`;
+  const url = (pl) => `api/plano-equipos?obra=${encodeURIComponent(C.obraId())}&ligero=1&porPlanta=1${compacto ? '&soloIfc=1' : ''}&planta=${encodeURIComponent(pl || '')}`;
   const nEquipos = (x) => (x.parcial ? x.n.equipos : x.equipos.length);
   const nMateriales = (x) => (x.parcial ? x.n.materiales : (x.materiales || []).length);
 
   /** Trae entera una planta que llegó solo con sus cuentas. */
-  async function traerPlanta(nombre) {
+  async function traerPlanta(nombre, callado = false) {
     const i = plantas().findIndex((x) => (x.planta || '') === (nombre || ''));
     if (i < 0 || !plantas()[i].parcial) return;
-    $raiz.querySelector('.pe-plantas')?.classList.add('cargando');
+    if (!callado) $raiz.querySelector('.pe-plantas')?.classList.add('cargando');
+    const d0 = datos;
     const r = await C.pedir(url(nombre));
     if (!r || !r.ok) throw new Error((r && r.error) || 'No se pudo abrir la planta.');
     const nueva = (r.plantas || []).find((x) => (x.planta || '') === (nombre || '') && !x.parcial);
-    if (nueva && datos) datos.plantas[i] = nueva;
+    /* Si entretanto se recargó la lista, esta planta ya no va en esa posición. */
+    if (nueva && datos && datos === d0 && (datos.plantas[i].planta || '') === (nombre || '')) datos.plantas[i] = nueva;
+  }
+
+  /* PRECARGA DE LAS VECINAS (13-nov-2026, JC: «cambiar de planta en menos de 300 ms»): en la pestaña Cx, la planta de
+     antes y la de después del selector se piden en segundo plano; cambiar a ellas ya no espera a la red. Solo dos:
+     el teléfono no se baja la obra entera (cada planta son ~0,6-0,9 MB en el NCN). */
+  let precargando = false;
+  function precargarVecinas() {
+    if (!compacto || !datos || precargando) return;
+    const ps = plantasCx(), p = plantaActual();
+    const i = p ? ps.findIndex((x) => (x.planta || '') === (p.planta || '')) : -1;
+    if (i < 0) return;
+    const vecinas = [ps[i + 1], ps[i - 1]].filter((x) => x && x.parcial).map((x) => x.planta || '');
+    if (!vecinas.length) return;
+    precargando = true;
+    const siguiente = () => {
+      const n = vecinas.shift();
+      if (n === undefined) { precargando = false; return; }
+      traerPlanta(n, true).catch(() => {}).then(() => setTimeout(siguiente, 50));
+    };
+    setTimeout(siguiente, 300);
   }
 
   async function cargar() {
@@ -290,6 +333,7 @@
       return;
     }
     pintar();
+    precargarVecinas();
   }
 
   /* «En plano» desde la ficha de un equipo (13-nov): abre el plano con la planta de ese equipo ya elegida, el equipo
@@ -304,7 +348,7 @@
     $app.innerHTML = '<p class="cargando">Cargando el plano…</p>';
     try {
       await cargar();
-      const q = plantas().find((x) => (x.parcial ? (x.enPlano || []).includes(id) || false : x.equipos.some((y) => y.id === id)));
+      const q = compacto ? plantas().find((x) => colocadoEn(x, id)) : plantas().find((x) => (x.parcial ? (x.enPlano || []).includes(id) || false : x.equipos.some((y) => y.id === id)));
       if (q) { await traerPlanta(q.planta || ''); planta = q.planta || ''; elegida = id; }
     } catch (e) {
       $app.innerHTML = `<div class="vacio mal"><p>${esc(e.message)}</p><button class="boton" data-cx="lista">Volver</button></div>`;
@@ -469,8 +513,8 @@
   function cajaEq(e, p) {
     const f = FP();
     if (!f || !f.cajaEquipo || !p || !p.plano) return { wf: 0, ar: 1 };
-    /* El fondo del modelo no tiene escala en mm: un tamaño fijo, que al acercar crece con el plano. */
-    if (p.esIfc) return { wf: 0.04, ar: 1 };
+    /* El fondo del modelo sí tiene escala: cada unidad del svg mide plano.res metros (0,02 en NCN). Tamaño real del equipo. */
+    if (p.esIfc) return f.cajaEquipo(e.icono || 'generico', p.plano, (Number(p.plano.res) || 0.1) * 1000);
     /* Con el símbolo del dibujo (30-oct), su tamaño. */
     if (e.w > 0 && e.h > 0 && p.plano.ancho > 0 && p.plano.alto > 0) return { wf: Math.max(e.w, (e.h * p.plano.alto) / p.plano.ancho), ar: 1 };
     return f.cajaEquipo(e.icono || 'generico', p.plano, escalaDe(p));
@@ -557,7 +601,7 @@
     const flota = !h.hidden && window.innerWidth < 900;
     $raiz.style.paddingBottom = flota ? `${Math.round(h.offsetHeight) + 12}px` : '';
     if (!marco) return;
-    if (!flota) { marco.style.height = ''; return; }
+    if (!flota) { marco.style.height = ''; if (compacto || window.innerWidth < 900) ajustarAlto(); return; }
     const libre = h.getBoundingClientRect().top - marco.getBoundingClientRect().top - 8;
     marco.style.height = `${Math.max(150, Math.round(libre))}px`;
   }
@@ -592,7 +636,8 @@
   function pintar() {
     const p = plantaActual();
     if (!p) {
-      $raiz.innerHTML = `${cabeza()}<p class="vacio">Esta obra aún no tiene equipos.</p>`;
+      $raiz.innerHTML = compacto ? `<p class="nota pe-sin-ifc" data-pe-sin-ifc>Ninguna planta tiene todavía plano (ni IFC ni PDF): lo prepara el delineante.</p>`
+        : `${cabeza()}<p class="vacio">Esta obra aún no tiene equipos.</p>`;
       return;
     }
     planta = p.planta || '';
@@ -610,24 +655,36 @@
     const capas = ((datos && datos.capas) || []).filter((k) => cuentasCapa[k.id]);
     const chipFaltas = FA.chip(p);
     const pe0 = datos && (datos.plantas || []).find((x) => (x.planta || '') === (p.planta || ''));
-    const selector = pe0 && pe0.ifc ? `<div class="pe-fondo" role="group" aria-label="Fondo del plano"><button data-pe-fondo="ifc" aria-pressed="${Boolean(p.esIfc)}">Modelo IFC</button><button data-pe-fondo="pdf" aria-pressed="${!p.esIfc}"${pe0.plano ? '' : ' disabled'}>Plano PDF</button></div>${p.esIfc ? `<p class="nota" data-pe-fondo-nota>${p.sinUbicar.length ? `${cifra(p.sinUbicar.length)} equipo${p.sinUbicar.length === 1 ? '' : 's'} sin posición en el modelo${pe0.plano ? ' (en el plano PDF quizá sí)' : ''}. ` : ''}${(pe0.materiales || []).some((m) => m.x !== null) || (pe0.faltas || []).length ? 'Los materiales y lo que falta están marcados en el plano PDF.' : ''}</p>` : ''}`
+    const selector = compacto ? '' : pe0 && pe0.ifc ? `<div class="pe-fondo" role="group" aria-label="Fondo del plano"><button data-pe-fondo="ifc" aria-pressed="${Boolean(p.esIfc)}">Modelo IFC</button><button data-pe-fondo="pdf" aria-pressed="${!p.esIfc}"${pe0.plano ? '' : ' disabled'}>Plano PDF</button></div>${p.esIfc ? `<p class="nota" data-pe-fondo-nota>${p.sinUbicar.length ? `${cifra(p.sinUbicar.length)} equipo${p.sinUbicar.length === 1 ? '' : 's'} sin posición en el modelo${pe0.plano ? ' (en el plano PDF quizá sí)' : ''}. ` : ''}${(pe0.materiales || []).some((m) => m.x !== null) || (pe0.faltas || []).length ? 'Los materiales y lo que falta están marcados en el plano PDF.' : ''}</p>` : ''}`
       : (p.plano ? '<p class="nota" data-pe-pdf-sin-ifc>plano PDF (sin IFC)</p>' : '');
     const plano = p.plano ? `${selector}<div class="pe-visor"><div class="pe-marco${FA.marcando() ? ' fa-activo' : ''}" data-pe-marco data-paleta="vidaire">
         <div class="pe-lienzo${zoom >= ZOOM_SALAS ? ' con-salas' : ''}" data-pe-lienzo style="width:${zoom * 100}%;--pe-esc:${escMarcas()}">
           <img data-src="api/plano-equipos/imagen?id=${encodeURIComponent(p.plano.id)}" alt="Plano ${esc(p.plano.nombre)}" draggable="false">
-          ${(p.plano.salas || []).map((r) => `<span class="pe-sala" style="left:${r.x * 100}%;top:${r.y * 100}%">${esc(r.t)}</span>`).join('')}
+          ${(p.plano.salas || []).map((r, i) => `<span class="pe-sala" data-pe-sala="${i}" style="left:${r.x * 100}%;top:${r.y * 100}%">${esc(r.t)}</span>`).join('')}
           ${mats.map((m) => marcaMaterial(m, q, p)).join('')}
           ${FA.marcas(p)}
           ${enPlano.map((x) => `<button class="marca-boca ${x.color === 'verde' ? 'bien' : x.color === 'rojo' ? 'mal' : 'azul'}${enConjunto.has(x.id) ? ' elegida' : ''}${x.revisar ? ' revisar' : ''}" style="left:${x.x * 100}%;top:${x.y * 100}%;--wp:${(cajaEq(x, p).wf * 100).toFixed(4)}%" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${x.sala || 'sin sala'}: ${NOMBRE[x.color]}${x.revisar ? '; revisar ubicación' : ''}`)}">${simbolo(x.icono)}<span class="rotulo-boca">${esc(x.tag)}</span></button>`).join('')}
         </div>
       </div>
-      <div class="pe-zoom"><button class="boton secundario" data-pe-zoom="-1" aria-label="Alejar">−</button><button class="boton secundario" data-pe-zoom="0">Entero</button><button class="boton secundario" data-pe-zoom="1" aria-label="Acercar">+</button></div>${FA.mando(p)}</div>`
+      <!-- 13-nov (JC): sin botones −/Entero/+ en el móvil; se acerca con pellizco y doble toque -->${FA.marcando() ? FA.mando(p) : ''}</div>`
+      : compacto ? `<div class="pe-sin-plano" data-pe-sin-ifc><b>Falta el IFC de la planta ${esc(etiqueta(p))}</b> (y tampoco tiene plano PDF). Lo prepara el delineante; mientras, sus equipos están en «Lista».</div>`
       : `<div class="pe-sin-plano"><b>La planta ${esc(etiqueta(p))} aún no tiene plano de equipos.</b><br>Lo sube la oficina desde Commissioning › Plano. Mientras, la lista dice la sala y el estado de cada equipo.</div>`;
-    const conEq = plantas().filter((x) => nEquipos(x) > 0);
-    const desplegable = `<div class="pe-planta-sel"><label>Planta <select data-pe-planta-sel aria-label="Planta">${(conEq.length ? conEq : [p]).map((x) => `<option value="${esc(x.planta || '')}"${(x.planta || '') === (p.planta || '') ? ' selected' : ''}>${esc(etiqueta(x))} · ${cifra(nEquipos(x))} equipos</option>`).join('')}</select></label></div>`;
+    /* Fila 1 de la pestaña Cx: el desplegable con todas las plantas (las que tienen IFC dicen cuántos coloca el modelo; las que no,
+       «sin IFC») y, si a la abierta le falta el IFC, el aviso en la misma fila. */
+    const ops = plantasCx();
+    const desplegable = `<div class="pe-planta-sel"><label>Planta <select data-pe-planta-sel aria-label="Planta">${(ops.length ? ops : [p]).map((x) => `<option value="${esc(x.planta || '')}"${(x.planta || '') === (p.planta || '') ? ' selected' : ''}>${esc(etiqueta(x))} · ${x.ifc ? `${cifra(nIfc(x))} de ${cifra(nEquipos(x))} en el modelo` : `sin IFC · ${cifra(nEquipos(x))} equipos`}</option>`).join('')}</select></label>${p.esIfc || !p.plano ? '' : '<span class="pe-sin-ifc" data-pe-sin-ifc>Falta el IFC: plano PDF</span>'}</div>`;
+    const nRev = p.plano ? p.equipos.filter((x) => x.revisar).length : 0;
+    const masDentro = `${p.plano && p.equipos.length ? leyendaIconos(p) : ''}
+      ${p.plano ? leyendaFormas(p) : ''}
+      ${p.plano && (p.sinUbicar || []).length ? `<details class="pe-sin-ubicar" data-pe-sin-ubicar${verSinUbicar ? ' open' : ''}><summary><i class="pe-punto pe-gris"></i>Sin ubicar en el plano · ${cifra(p.sinUbicar.length)}</summary>
+        <div class="pe-grises">${p.sinUbicar.map((g) => `<button data-pe-fila="${esc(g.id)}" aria-label="${esc(`${g.tag}: en el listado de esta planta y no en su plano`)}">${esc(g.tag)}</button>`).join('')}</div></details>` : ''}
+      ${p.plano && p.equipos.some((x) => x.revisar) ? `<details class="pe-sin-ubicar pe-revisar"><summary><i class="pe-punto pe-gris"></i>Revisar ubicación · ${cifra(p.equipos.filter((x) => x.revisar).length)}</summary>
+        <div class="pe-grises">${p.equipos.filter((x) => x.revisar).map((g) => `<button data-pe-fila="${esc(g.id)}" aria-label="${esc(`${g.tag}: ${g.motivo || 'revisar ubicación'}`)}">${esc(g.tag)}</button>`).join('')}</div></details>` : ''}`;
+    /* 13-nov (JC): la leyenda por tipos, «Sin ubicar» y «Revisar ubicación» empujaban el plano hacia abajo: plegadas en una línea cerrada. */
+    const masPlegado = masDentro.trim() ? `<details class="pe-mas" data-pe-mas${verMas || verSinUbicar ? ' open' : ''}><summary>Leyenda${p.plano && (p.sinUbicar || []).length ? ` · sin ubicar ${cifra(p.sinUbicar.length)}` : ''}${nRev ? ` · revisar ${cifra(nRev)}` : ''}</summary>${masDentro}</details>` : '';
     $raiz.innerHTML = compacto ? `
       ${desplegable}
-      ${p.equipos.length ? `<div class="pe-leyenda" role="group" aria-label="Colores">${ORDEN.map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}"><i class="pe-punto pe-${k}"></i>${esc(NOMBRE[k])} <b>${cifra(c[k] || 0)}</b></button>`).join('')}</div>` : ''}
+      ${p.equipos.length ? `<div class="pe-leyenda pe-una-fila" role="group" aria-label="Estados">${ORDEN.map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}"><i class="pe-punto pe-${k}"></i>${esc(NOMBRE[k])} <b>${cifra(c[k] || 0)}</b></button>`).join('')}</div>` : ''}
       <div class="pe-cuerpo">
         <div>${plano}</div>
         <div class="pe-lado"><div class="pe-hoja" data-pe-hoja hidden></div></div>
@@ -637,12 +694,7 @@
       ${capas.length > 1 || chipFaltas ? `<div class="pe-capas" role="group" aria-label="Capas">${capas.length > 1 ? capas.map((k) => `<button data-pe-capa="${esc(k.id)}" aria-pressed="${!capasOff.has(k.id)}">${esc(k.nombre)} <b>${cifra(cuentasCapa[k.id])}</b></button>`).join('') : ''}${chipFaltas}</div>` : ''}
       ${p.equipos.length ? `<div class="pe-leyenda" role="group" aria-label="Colores">${ORDEN.map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}"><i class="pe-punto pe-${k}"></i>${esc(NOMBRE[k])} <b>${cifra(c[k] || 0)}</b></button>`).join('')}
         <p class="nota">sin sala ${cifra(c.sinSala)}${p.plano ? ` · en el plano ${cifra(c.enPlano)} de ${cifra(p.equipos.length)}` : ''}</p></div>` : ''}
-      ${p.plano && p.equipos.length ? leyendaIconos(p) : ''}
-      ${p.plano ? leyendaFormas(p) : ''}
-      ${p.plano && (p.sinUbicar || []).length ? `<details class="pe-sin-ubicar" data-pe-sin-ubicar${verSinUbicar ? ' open' : ''}><summary><i class="pe-punto pe-gris"></i>Sin ubicar en el plano · ${cifra(p.sinUbicar.length)}</summary>
-        <div class="pe-grises">${p.sinUbicar.map((g) => `<button data-pe-fila="${esc(g.id)}" aria-label="${esc(`${g.tag}: en el listado de esta planta y no en su plano`)}">${esc(g.tag)}</button>`).join('')}</div></details>` : ''}
-      ${p.plano && p.equipos.some((x) => x.revisar) ? `<details class="pe-sin-ubicar pe-revisar"><summary><i class="pe-punto pe-gris"></i>Revisar ubicación · ${cifra(p.equipos.filter((x) => x.revisar).length)}</summary>
-        <div class="pe-grises">${p.equipos.filter((x) => x.revisar).map((g) => `<button data-pe-fila="${esc(g.id)}" aria-label="${esc(`${g.tag}: ${g.motivo || 'revisar ubicación'}`)}">${esc(g.tag)}</button>`).join('')}</div></details>` : ''}
+      ${masPlegado}
       <div class="pe-cuerpo">
         <div>${plano}</div>
         <div class="pe-lado">
@@ -659,7 +711,7 @@
     C.cargarImagenes($raiz);
     mostrarHoja();
     colocarTags($raiz.querySelector('[data-pe-lienzo]'));
-    if (compacto) ajustarAlto();
+    if (compacto || window.innerWidth < 900) ajustarAlto();
     const fila = compacto ? null : $raiz.querySelector('.pe-plantas');
     const act = fila && fila.querySelector('.activa');
     if (act) fila.scrollLeft = act.offsetLeft - fila.clientWidth / 2 + act.offsetWidth / 2;
@@ -674,9 +726,10 @@
       if (!marco.isConnected || !img.naturalWidth) return;
       const libre = Math.max(240, window.innerHeight - marco.getBoundingClientRect().top - 112);
       const natural = marco.clientWidth * (img.naturalHeight / img.naturalWidth) * zoom + 2;
-      marco.style.height = Math.round(zoom > 1 ? libre : Math.min(libre, Math.max(natural, 160))) + 'px';
+      marco.style.height = Math.round(zoom > 1 ? libre : Math.max(natural, 160)) + 'px'; /* entero: el plano entero, sin hueco ni recorte */
     };
-    if (img.complete) poner(); else img.addEventListener('load', poner, { once: true });
+    /* La imagen llega después (data-src → blob): hasta que carga no tiene medidas; se ajusta al cargar. */
+    if (img.complete && img.naturalWidth) poner(); else img.addEventListener('load', poner, { once: true });
   }
 
   function cabeza() {
@@ -686,34 +739,75 @@
 
   const marcoYLienzo = () => [$raiz && $raiz.querySelector('[data-pe-marco]'), $raiz && $raiz.querySelector('[data-pe-lienzo]')];
 
-  /* Los TAG desde ZOOM_SALAS y solo los que no chocan (vistaPlano.etiquetasSinChoque, como el escritorio). */
+  /* Lo que mide un texto en px con la letra del rótulo (recordado: al pellizcar se recalcula en cada fotograma). */
+  const anchos = new Map();
+  let lienzoTexto = null;
+  function anchoTexto(t, letra) {
+    const k = `${letra}|${t}`;
+    if (anchos.has(k)) return anchos.get(k);
+    if (!lienzoTexto) { try { lienzoTexto = document.createElement('canvas').getContext('2d'); } catch { lienzoTexto = null; } }
+    let w = String(t).length * 5.6;
+    if (lienzoTexto) { lienzoTexto.font = letra; w = lienzoTexto.measureText(String(t)).width; }
+    if (anchos.size > 5000) anchos.clear();
+    anchos.set(k, w);
+    return w;
+  }
+  const LETRA_TAG = '700 9px system-ui, sans-serif';
+  const LETRA_TAG_ELEGIDO = '700 12px system-ui, sans-serif';
+  const LETRA_SALA = '400 9px system-ui, sans-serif';
+  const huecos = new WeakMap(); /* salas del plano → hueco de cada una (vistaPlano.huecoSalas) */
+
+  /*
+   * LOS RÓTULOS SIN AMONTONARSE (13-nov, JC: «eso así no puede ser»): vistaPlano.rotulosSinChoque, en px del lienzo.
+   * Los TAG desde ZOOM_SALAS y solo los que no chocan (el tocado manda; el que no sale, sale al tocar su equipo).
+   * Los nombres de sala, finos y en gris, por debajo: solo los que caben en su sala y no tapan ni un TAG, ni un
+   * símbolo, ni otra sala; las grandes primero. Igual sobre el modelo IFC que sobre el PDF de reserva.
+   */
   function colocarTags(lienzo) {
     const V = window.VISTA_PLANO; const f = FP(); const p = plantaActual();
     if (!lienzo) return;
     const botones = [...lienzo.querySelectorAll('[data-pe-mat]')];
     const botonesEq = [...lienzo.querySelectorAll('[data-pe-marca]')];
-    if (!V || !f || !p || !p.plano || zoom < ZOOM_SALAS) { for (const b of [...botones, ...botonesEq]) b.classList.remove('con-tag'); return; }
+    const rotSalas = [...lienzo.querySelectorAll('[data-pe-sala]')];
+    const quitar = () => { for (const b of [...botones, ...botonesEq]) b.classList.remove('con-tag'); for (const s of rotSalas) s.classList.remove('ver'); };
+    if (!V || !V.rotulosSinChoque || !f || !p || !p.plano) { quitar(); return; }
     const lw = lienzo.offsetWidth; const lh = lienzo.offsetHeight || lw;
+    if (!lw) { quitar(); return; }
+    const conTags = zoom >= ZOOM_SALAS;
+    const tags = []; const obstaculos = [];
     const porId = new Map((p.materiales || []).map((m) => [m.id, m]));
-    const cajas = [];
     for (const b of botones) {
       const m = porId.get(b.dataset.peMat);
       if (!m || m.x === null || b.classList.contains('apagada')) continue;
       const c = f.cajaEnPlano(m, p.plano, escalaDe(p));
       const sw = Math.max(MIN_PX * Math.max(1, c.ar), c.wf * lw);
-      cajas.push({ id: m.id, x: m.x * lw + sw / 2 + 3, y: m.y * lh - 6, w: String(m.tag || '').length * 5.6 + 4, h: 12, pri: m.id === mat ? 0 : m.estado === 'conIncidencia' ? 1 : m.estado === 'conFicha' ? 2 : 3 });
+      obstaculos.push({ x: m.x * lw - sw / 2, y: m.y * lh - sw / 2, w: sw, h: sw });
+      const elegido = m.id === mat;
+      if (conTags || elegido) tags.push({ id: m.id, x: m.x * lw + sw / 2 + (elegido ? 8 : 3), y: m.y * lh - (elegido ? 8 : 6), w: anchoTexto(m.tag || '', elegido ? LETRA_TAG_ELEGIDO : LETRA_TAG) + (elegido ? 10 : 4), h: elegido ? 16 : 12, pri: elegido ? 0 : m.estado === 'conIncidencia' ? 1 : m.estado === 'conFicha' ? 2 : 3 });
     }
     const porEq = new Map((p.equipos || []).map((e) => [e.id, e]));
     for (const b of botonesEq) {
       const e = porEq.get(b.dataset.peMarca);
       if (!e || e.x === null) continue;
-      const sw = Math.max(MIN_PX_EQ, cajaEq(e, p).wf * lw);
-      cajas.push({ id: `eq:${e.id}`, x: e.x * lw + sw / 2 + 3, y: e.y * lh - 6, w: String(e.tag || '').length * 5.6 + 4, h: 12, pri: b.classList.contains('elegida') ? 0 : 1.5 });
+      const elegido = b.classList.contains('elegida');
+      const sw = Math.max(elegido ? 28 : MIN_PX_EQ, cajaEq(e, p).wf * lw * (elegido ? 1.6 : 1));
+      obstaculos.push({ x: e.x * lw - sw / 2, y: e.y * lh - sw / 2, w: sw, h: sw });
+      if (conTags || elegido) tags.push({ id: `eq:${e.id}`, x: e.x * lw + sw / 2 + (elegido ? 8 : 2), y: e.y * lh - (elegido ? 8 : 6), w: anchoTexto(e.tag || '', elegido ? LETRA_TAG_ELEGIDO : LETRA_TAG) + (elegido ? 10 : 6), h: elegido ? 16 : 12, pri: elegido ? 0 : 1.5 });
     }
-    cajas.sort((a, b) => a.pri - b.pri);
-    const ver = V.etiquetasSinChoque(cajas);
-    for (const b of botones) b.classList.toggle('con-tag', ver.has(b.dataset.peMat));
-    for (const b of botonesEq) b.classList.toggle('con-tag', ver.has(`eq:${b.dataset.peMarca}`));
+    const listaSalas = p.plano.salas || [];
+    if (!huecos.has(listaSalas)) huecos.set(listaSalas, V.huecoSalas(listaSalas, lh / lw));
+    const hueco = huecos.get(listaSalas);
+    const salas = [];
+    for (const s of rotSalas) {
+      const i = Number(s.dataset.peSala); const r = listaSalas[i];
+      if (!r) continue;
+      const w = anchoTexto(r.t, LETRA_SALA) + 2;
+      salas.push({ id: i, x: r.x * lw - w / 2, y: r.y * lh - 6, w, h: 12, hueco: hueco[i] * lw * 2, pri: -hueco[i] });
+    }
+    const ver = V.rotulosSinChoque({ tags, obstaculos, salas });
+    for (const b of botones) b.classList.toggle('con-tag', ver.tags.has(b.dataset.peMat));
+    for (const b of botonesEq) b.classList.toggle('con-tag', ver.tags.has(`eq:${b.dataset.peMarca}`));
+    for (const s of rotSalas) s.classList.toggle('ver', ver.salas.has(Number(s.dataset.peSala)));
   }
 
   /* Cambia el zoom dejando quieto el punto (px, py del marco) que está bajo los dedos. */
@@ -932,6 +1026,7 @@
   /* La franja gris abierta o cerrada se recuerda al repintar. */
   document.addEventListener('toggle', (ev) => {
     if (ev.target && ev.target.matches && ev.target.matches('[data-pe-sin-ubicar]')) verSinUbicar = ev.target.open;
+    if (ev.target && ev.target.matches && ev.target.matches('[data-pe-mas]')) verMas = ev.target.open;
   }, true);
 
   /* Un arrastre o pellizco no es un toque: se traga el click que viene detrás. */
@@ -944,7 +1039,8 @@
     const sel = ev.target.closest && ev.target.closest('[data-pe-planta-sel]');
     if (sel) {
       const nombre = sel.value;
-      traerPlanta(nombre).then(() => { planta = nombre; elegida = null; mat = null; zoom = 1; pintar(); }).catch((e) => C.aviso(e.message));
+      if (compacto) { try { localStorage.setItem(CLAVE_CX, nombre); } catch { /* sin almacén */ } }
+      traerPlanta(nombre).then(() => { planta = nombre; elegida = null; mat = null; zoom = 1; pintar(); precargarVecinas(); }).catch((e) => C.aviso(e.message));
       return;
     }
     const df = ev.target.closest('[data-pe-entrega-df]');
@@ -959,7 +1055,7 @@
     const pl = ev.target.closest('[data-pe-planta]');
     if (pl) {
       const nombre = pl.dataset.pePlanta;
-      traerPlanta(nombre).then(() => { planta = nombre; elegida = null; mat = null; zoom = 1; pintar(); }).catch((e) => C.aviso(e.message));
+      traerPlanta(nombre).then(() => { planta = nombre; elegida = null; mat = null; zoom = 1; pintar(); precargarVecinas(); }).catch((e) => C.aviso(e.message));
       return;
     }
     const co = ev.target.closest('[data-pe-color]');
@@ -1056,14 +1152,18 @@
      `ir` lleva a un equipo: cambia de planta, lo marca, abre su hoja y lo centra. Devuelve false si el plano no lo conoce. */
   async function ir(id, ids = [id]) {
     if (!$raiz || !$raiz.isConnected || !datos) return false;
-    const quien = ids.find((i) => plantas().some((x) => (x.parcial ? (x.enPlano || []).includes(i) : x.equipos.some((y) => y.id === i && y.x !== null)))) || null;
-    const q = quien && plantas().find((x) => (x.parcial ? (x.enPlano || []).includes(quien) : x.equipos.some((y) => y.id === quien && y.x !== null)));
+    const quien = ids.find((i) => plantas().some((x) => colocadoEn(x, i))) || null;
+    const q = quien && plantas().find((x) => colocadoEn(x, quien));
     if (!q) return false;
     try { await traerPlanta(q.planta || ''); } catch (e) { C.aviso(e.message); return false; }
     planta = q.planta || ''; elegida = quien; mat = null; zoom = 1;
     pintar(); mostrarHoja(); centrar(quien);
     return true;
   }
-  const montar = ($c, op = {}) => { propio = false; compacto = true; return op.equipo ? verEquipo($c, op.equipo) : (op.volver ? volver($c) : abrir($c)); };
+  const montar = ($c, op = {}) => {
+    if (!compacto) planta = plantaGuardadaCx(); /* al entrar en la pestaña Cx, la última planta elegida allí (o la primera con IFC) */
+    propio = false; compacto = true;
+    return op.equipo ? verEquipo($c, op.equipo) : (op.volver ? volver($c) : abrir($c));
+  };
   window.CX_PLANO_EQUIPOS = { abrir: ($app) => { propio = false; compacto = false; return abrir($app); }, volver: ($app) => { compacto = false; return volver($app); }, verEquipo: ($app, id) => { propio = false; compacto = false; return verEquipo($app, id); }, montar, ir };
 })();

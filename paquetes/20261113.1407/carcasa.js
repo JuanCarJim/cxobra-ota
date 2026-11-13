@@ -287,6 +287,13 @@
     const sel = document.getElementById('obra-movil');
     if (sel && sel.value !== obraId) sel.value = obraId || '';
     if (avisar) window.dispatchEvent(new CustomEvent('movil:obra', { detail: obraId }));
+    precalentarPlano();
+  }
+  /* PRECARGA (13-nov-2026, JC: «abrir en menos de 1 s»): con la obra elegida, el servidor evalúa ya en segundo plano el
+     plano de la pestaña Cx; al abrirla no lo calcula. No trae datos ({ ok }); si falla, la pestaña lo calcula al abrir. */
+  function precalentarPlano() {
+    if (!obraId || !secsSesion().includes('commissioning')) return;
+    pedir(`api/plano-equipos/precalentar?obra=${encodeURIComponent(obraId)}`).catch(() => {});
   }
 
   const obrasListas = (async () => {
