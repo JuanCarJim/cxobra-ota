@@ -27,7 +27,8 @@
   const MAX_ADJUNTO = 25 * 1024 * 1024; /* el mismo tope que el cubo */
   const MAX_PREGUNTA = 4000;
   const COLA = 'vidaire.iarvis.cola';
-  const CAMPOS = 'id,pregunta,respuesta,estado,valoracion,creado,adjuntos,propuesta,modelo';
+  /* 14-nov: `motor` dice quién contestó (🧭 su modelo «ollama» o ✳︎ «claude»); el chat lo enseña bajo la respuesta. */
+  const CAMPOS = 'id,pregunta,respuesta,estado,valoracion,creado,adjuntos,propuesta,modelo,motor';
   const SIN_RED = 'Sin conexión: tu pregunta queda guardada y Iarvis te contestará en cuanto haya red.';
   const MAS_TARDE = 'Iarvis te contestará en un rato. Tu pregunta queda guardada.';
   /* 8-nov (JC: «Iarvis tiene que responder AL MOMENTO»): la cola es SOLO para cuando no hay red.
@@ -71,7 +72,7 @@
       try {
         const r = await nube.llamarFuncion('iarvis', '', JSON.stringify({ ...(cuerpo && typeof cuerpo === 'object' ? cuerpo : {}), id, persona_id: personaId, espacio }), cuerpo ? Math.max(plazoRespuesta, 150000) : plazoRespuesta);
         const j = await r.json().catch(() => null);
-        if (j && j.estado) return { id, estado: j.estado, respuesta: j.respuesta || (j.estado === 'pendiente' ? MAS_TARDE : null), propuesta: j.propuesta || null };
+        if (j && j.estado) return { id, estado: j.estado, respuesta: j.respuesta || (j.estado === 'pendiente' ? MAS_TARDE : null), propuesta: j.propuesta || null, motor: j.motor || null, modelo: j.modelo || null };
         /* La función no está desplegada (404) o no ha contestado nada que se entienda. */
         return { id, estado: 'fallo', respuesta: NO_PUDO };
       } catch (e) {

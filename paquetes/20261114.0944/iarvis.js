@@ -464,11 +464,24 @@
   const ICONO_UTIL = svgPulgar(false);
   const ICONO_NO_UTIL = svgPulgar(true);
 
+  /* 14-nov: quién ha contestado, bajo la respuesta: 🧭 su modelo (el Qwen3 de JC en su Mac) o ✳︎ Claude (la reserva).
+     La misma regla que shared/ia/qwenPrimero.js · quienContesta (la prueba lo compara); nada si contestó la app o el blindaje. */
+  function quienContesta(motor) {
+    const Q = typeof window !== 'undefined' && window.IarvisQwenPrimero;
+    if (Q && Q.quienContesta) return Q.quienContesta(motor);
+    const m = String(motor || '');
+    if (m === 'ollama') return { icono: '🧭', texto: 'Su modelo', clase: 'propio' };
+    if (/^claude/.test(m)) return { icono: '✳︎', texto: 'Claude', clase: 'claude' };
+    return null;
+  }
+
   function pintarRespuesta(f) {
     if (!f.respuesta) return pintarPensando(f);
     const espera = f.estado === 'pendiente' || f.estado === 'respondiendo';
     const valorable = f.estado === 'respondida' && f.id;
-    const pie = valorable ? `<div class="iaPie">
+    const q = f.estado === 'respondida' ? quienContesta(f.motor) : null;
+    const quien = q ? `<span class="iaQuien iaQuien-${q.clase}" title="${q.clase === 'propio' ? 'Ha contestado su modelo, en el Mac de JC' : 'Ha contestado Claude, de reserva'}">${q.icono} ${esc(q.texto)}</span>` : '';
+    const pie = valorable ? `<div class="iaPie">${quien}
       <button data-ia-valorar="util" data-id="${esc(f.id)}" class="${f.valoracion === 'util' ? 'elegida' : ''}" title="Me ha servido" aria-label="Me ha servido">${ICONO_UTIL}</button>
       <button data-ia-valorar="no_util" data-id="${esc(f.id)}" class="${f.valoracion === 'no_util' ? 'elegida' : ''}" title="No me ha servido" aria-label="No me ha servido">${ICONO_NO_UTIL}</button></div>` : '';
     return `<div class="iaRespuesta${espera ? ' iaEspera' : ''}">${textoConEnlaces(f.respuesta)}${pintarAcciones(f)}${pintarPropuestas(f)}${pie}</div>`;
@@ -520,7 +533,10 @@
   function pintar() {
     if (!I.lista) return;
     /* 8-nov (JC): solo la conversación de esta vez; lo de otras veces no se enseña (sigue en la nube). */
-    const ahora = I.filas.filter((f) => I.deEstaVez.has(f) || (f.id && I.idsEstaVez.has(f.id)));
+    let abierto = null;
+    try { abierto = (I.contexto() || {}).hechoAbierto || null; } catch { /* sin contexto */ }
+    const P = window.IARVIS_PREGUNTAS;
+    const ahora = I.filas.filter((f) => (I.deEstaVez.has(f) || (f.id && I.idsEstaVez.has(f.id))) && (!P || !P.vaConElHecho || P.vaConElHecho(f, abierto)));
     const bienvenida = ahora.length ? '' : `<div class="iaBienvenida"><h3>${saludo()}</h3><p>Pídeme lo que necesites de la obra: lo busco en la app y te lo doy. También te explico cómo se hace cualquier cosa.</p><div class="iaSugerencias">${sugerencias()}</div></div>`;
     I.lista.innerHTML = `${bienvenida}${[...ahora].reverse().map(pintarFila).join('')}`;
     I.lista.scrollTop = I.lista.scrollHeight;
@@ -561,6 +577,16 @@
     return confirmar ? { confirmar, cancelar: f.acciones.find((a) => a.hacer === 'rechazar') } : null;
   }
 
+  /* 14-nov (nota b58b07b6): abierto sobre un hecho del claim, la pregunta lleva dicho de qué se habla (solo de ese hecho).
+     Si `mirando` ya es el objeto del panel (tipo, hechoId, pestaña), se le añade la instrucción sin quitarle nada. */
+  function conInstruccion(mirando, h) {
+    const P = window.IARVIS_PREGUNTAS;
+    if (!h) return mirando;
+    const frase = P && P.mirandoHecho ? P.mirandoHecho(h) : `Caso abierto en pantalla: ${h.reclamacionCodigo || ''} ${h.codigo || ''} ${h.titulo || ''}`.trim();
+    if (mirando && typeof mirando === 'object') return { ...mirando, instruccion: frase };
+    return mirando || frase;
+  }
+
   async function mandar(textoDado) {
     const caja = I.panel.querySelector('textarea');
     const pregunta = (typeof textoDado === 'string' ? textoDado : caja.value).trim();
@@ -597,7 +623,7 @@
     let r = adjuntos.length || archivos.length ? null : navegarLocal(pregunta);
     if (!r) {
       try {
-        r = await I.adaptador.preguntar({ pregunta, pantalla: ctx.pantalla, obraId: ctx.obraId, obraNombre: ctx.obraNombre, presupuestoId: ctx.presupuestoId, mirando: ctx.mirando || (ctx.hechoAbierto ? `Caso abierto en pantalla: ${ctx.hechoAbierto.reclamacionCodigo || ''} ${ctx.hechoAbierto.codigo || ''} ${ctx.hechoAbierto.titulo || ''}`.trim() : undefined), idioma: ctx.idioma, hechoAbierto: ctx.hechoAbierto, correoAbierto: ctx.correoAbierto, adjuntos, archivos });
+        r = await I.adaptador.preguntar({ pregunta, pantalla: ctx.pantalla, obraId: ctx.obraId, obraNombre: ctx.obraNombre, presupuestoId: ctx.presupuestoId, mirando: conInstruccion(ctx.mirando, ctx.hechoAbierto), idioma: ctx.idioma, hechoAbierto: ctx.hechoAbierto, correoAbierto: ctx.correoAbierto, adjuntos, archivos });
       } catch { r = { estado: 'fallo', respuesta: 'Iarvis no ha podido contestar ahora. Vuelve a preguntármelo.' }; }
     }
     Object.assign(provisional, r || {});
@@ -763,6 +789,12 @@
         const E = window.PANTALLA_RECLAMACIONES.estado;
         if (a.vista) E.vista = String(a.vista);
         if (a.recId) { E.recId = String(a.recId); if (a.obraId) E.obraId = String(a.obraId); }
+      }
+      /* 14-nov: «Abrir Certificaciones › Mes a mes › Desfase › Por causa» (electron/data/iarvisCertMes.js). */
+      if (a.destino === 'certificaciones' && a.mesAMes && typeof a.mesAMes === 'object' && window.MES_A_MES_CE && window.MES_A_MES_CE.preparar) {
+        const CE = window.PANTALLA_CERTIFICACIONES && window.PANTALLA_CERTIFICACIONES._estado;
+        if (CE) { CE.vistaLista = 'mesames'; CE.certId = null; }
+        window.MES_A_MES_CE.preparar({ vista: String(a.mesAMes.vista || 'desfase'), medVista: a.mesAMes.medVista ? String(a.mesAMes.medVista) : null });
       }
       if (I.ir) I.ir(a.destino);
       /* Acoplado al lado (pantalla ancha) no tapa la ficha: se queda abierto para seguir repasando. */
@@ -1009,6 +1041,8 @@
     let delante = null;
     try { delante = (I.contexto() || {}).hechoAbierto || null; } catch { /* sin contexto */ }
     const sobreElAbierto = Boolean(datos.hechoId && delante && delante.id === datos.hechoId);
+    /* 14-nov (nota b58b07b6): abierto sobre un hecho, solo se habla de ese hecho; lo demás espera (quien avisa reintenta). */
+    if (P.vaConElHecho && !P.vaConElHecho({ proactiva: true, hechoId: datos.hechoId || null }, delante)) return null;
     const sug = q.sugerencias || [];
     const f = {
       id: null, proactiva: true, local: true, estado: 'respondida', creado: new Date().toISOString(), hechoId: datos.hechoId || null,

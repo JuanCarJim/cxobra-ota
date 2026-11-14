@@ -50,9 +50,9 @@ globalThis.CX_VARIANTE="cxobra";
   ));
   var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-  // node_modules/base64-js/index.js
+  // ../Vidaire_Obras/node_modules/base64-js/index.js
   var require_base64_js = __commonJS({
-    "node_modules/base64-js/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/base64-js/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       exports.byteLength = byteLength;
@@ -152,9 +152,9 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/ieee754/index.js
+  // ../Vidaire_Obras/node_modules/ieee754/index.js
   var require_ieee754 = __commonJS({
-    "node_modules/ieee754/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/ieee754/index.js"(exports) {
       var import_buffer_global10 = __toESM(require_buffer_global());
       exports.read = function(buffer, offset, isLE2, mLen, nBytes) {
         var e, m;
@@ -236,9 +236,9 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/buffer/index.js
+  // ../Vidaire_Obras/node_modules/buffer/index.js
   var require_buffer = __commonJS({
-    "node_modules/buffer/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/buffer/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var base64 = require_base64_js();
@@ -1850,9 +1850,9 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/sql.js/dist/sql-wasm-browser.js
+  // ../Vidaire_Obras/node_modules/sql.js/dist/sql-wasm-browser.js
   var require_sql_wasm_browser = __commonJS({
-    "node_modules/sql.js/dist/sql-wasm-browser.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/sql.js/dist/sql-wasm-browser.js"(exports, module) {
       var import_buffer_global10 = __toESM(require_buffer_global());
       var initSqlJsPromise = void 0;
       var initSqlJs = function(moduleConfig) {
@@ -4585,7 +4585,7 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/@noble/hashes/utils.js
+  // ../Vidaire_Obras/node_modules/@noble/hashes/utils.js
   function isBytes(a) {
     return a instanceof Uint8Array || ArrayBuffer.isView(a) && a.constructor.name === "Uint8Array" && "BYTES_PER_ELEMENT" in a && a.BYTES_PER_ELEMENT === 1;
   }
@@ -4718,7 +4718,7 @@ globalThis.CX_VARIANTE="cxobra";
   }
   var import_buffer_global, atitle, aobject, aopts, isLE, swap32IfBE, oidNist;
   var init_utils = __esm({
-    "node_modules/@noble/hashes/utils.js"() {
+    "../Vidaire_Obras/node_modules/@noble/hashes/utils.js"() {
       import_buffer_global = __toESM(require_buffer_global(), 1);
       atitle = (title) => title ? `"${title}" ` : "";
       aobject = (value, label) => {
@@ -4743,10 +4743,10 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/@noble/hashes/hmac.js
+  // ../Vidaire_Obras/node_modules/@noble/hashes/hmac.js
   var import_buffer_global2, _HMAC, hmac;
   var init_hmac = __esm({
-    "node_modules/@noble/hashes/hmac.js"() {
+    "../Vidaire_Obras/node_modules/@noble/hashes/hmac.js"() {
       import_buffer_global2 = __toESM(require_buffer_global(), 1);
       init_utils();
       _HMAC = class {
@@ -4827,7 +4827,7 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/@noble/hashes/pbkdf2.js
+  // ../Vidaire_Obras/node_modules/@noble/hashes/pbkdf2.js
   function pbkdf2Init(hash, _password, _salt, _opts) {
     ahash(hash);
     const opts = checkOpts({ dkLen: 32, asyncTick: 10 }, _opts);
@@ -4903,14 +4903,14 @@ globalThis.CX_VARIANTE="cxobra";
   }
   var import_buffer_global3;
   var init_pbkdf2 = __esm({
-    "node_modules/@noble/hashes/pbkdf2.js"() {
+    "../Vidaire_Obras/node_modules/@noble/hashes/pbkdf2.js"() {
       import_buffer_global3 = __toESM(require_buffer_global(), 1);
       init_hmac();
       init_utils();
     }
   });
 
-  // node_modules/@noble/hashes/_u64.js
+  // ../Vidaire_Obras/node_modules/@noble/hashes/_u64.js
   function fromBig(n, le = false) {
     if (le)
       return { h: Number(n & U32_MASK64), l: Number(n >> _32n & U32_MASK64) };
@@ -4938,7 +4938,7 @@ globalThis.CX_VARIANTE="cxobra";
   }
   var import_buffer_global4, U32_MASK64, _32n, fromNumH, fromNumL, shrSH, shrSL, rotrSH, rotrSL, rotrBH, rotrBL, add3L, add3H, add4L, add4H, add5L, add5H;
   var init_u64 = __esm({
-    "node_modules/@noble/hashes/_u64.js"() {
+    "../Vidaire_Obras/node_modules/@noble/hashes/_u64.js"() {
       import_buffer_global4 = __toESM(require_buffer_global(), 1);
       U32_MASK64 = /* @__PURE__ */ (() => BigInt(2 ** 32 - 1))();
       _32n = /* @__PURE__ */ BigInt(32);
@@ -4959,7 +4959,7 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/@noble/hashes/_md.js
+  // ../Vidaire_Obras/node_modules/@noble/hashes/_md.js
   function Chi(a, b, c) {
     return a & b ^ ~a & c;
   }
@@ -4968,7 +4968,7 @@ globalThis.CX_VARIANTE="cxobra";
   }
   var import_buffer_global5, HashMD, SHA256_IV, SHA224_IV, SHA384_IV, SHA512_IV;
   var init_md = __esm({
-    "node_modules/@noble/hashes/_md.js"() {
+    "../Vidaire_Obras/node_modules/@noble/hashes/_md.js"() {
       import_buffer_global5 = __toESM(require_buffer_global(), 1);
       init_u64();
       init_utils();
@@ -5126,7 +5126,7 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/@noble/hashes/sha2.js
+  // ../Vidaire_Obras/node_modules/@noble/hashes/sha2.js
   var sha2_exports = {};
   __export(sha2_exports, {
     _SHA224: () => _SHA224,
@@ -5144,7 +5144,7 @@ globalThis.CX_VARIANTE="cxobra";
   });
   var import_buffer_global6, SHA256_K, SHA256_W, SHA2_32B, _SHA256, _SHA224, K512, SHA512_Kh, SHA512_Kl, SHA512_W_H, SHA512_W_L, SHA2_64B, _SHA512, _SHA384, T224_IV, T256_IV, _SHA512_224, _SHA512_256, sha256, sha224, sha512, sha384, sha512_256, sha512_224;
   var init_sha2 = __esm({
-    "node_modules/@noble/hashes/sha2.js"() {
+    "../Vidaire_Obras/node_modules/@noble/hashes/sha2.js"() {
       import_buffer_global6 = __toESM(require_buffer_global(), 1);
       init_md();
       init_u64();
@@ -5619,7 +5619,7 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // node_modules/@noble/hashes/scrypt.js
+  // ../Vidaire_Obras/node_modules/@noble/hashes/scrypt.js
   var scrypt_exports = {};
   __export(scrypt_exports, {
     scrypt: () => scrypt,
@@ -5808,7 +5808,7 @@ globalThis.CX_VARIANTE="cxobra";
   }
   var import_buffer_global7, SCRYPT_DEFAULT_MAXMEM;
   var init_scrypt = __esm({
-    "node_modules/@noble/hashes/scrypt.js"() {
+    "../Vidaire_Obras/node_modules/@noble/hashes/scrypt.js"() {
       import_buffer_global7 = __toESM(require_buffer_global(), 1);
       init_pbkdf2();
       init_sha2();
@@ -6673,6 +6673,111 @@ globalThis.CX_VARIANTE="cxobra";
         "reportesQhse"
       ]);
       var VERBOS = ["ver", "crear", "editar", "borrar", "aprobar", "exportar", "traspasar"];
+      var MODULOS_CONTRATABLES = [
+        { id: "base", nombre: "Base: presupuesto, proyectos, obras y personal", siempre: true },
+        { id: "compras", nombre: "Compras y pedidos" },
+        { id: "produccion", nombre: "Producci\xF3n y certificaciones" },
+        { id: "cxMantenimiento", nombre: "Commissioning + Mantenimiento" },
+        { id: "calidad", nombre: "Calidad y QHSE" },
+        { id: "documentacion", nombre: "Documentaci\xF3n y planos" },
+        { id: "reclamaciones", nombre: "Reclamaciones" }
+      ];
+      var CONTRATABLE_DE = {
+        /* Base */
+        proyectos: "base",
+        alcance: "base",
+        calculo: "base",
+        presupuestos: "base",
+        biblioteca: "base",
+        obras: "base",
+        informeSemanal: "base",
+        clientes: "base",
+        personas: "base",
+        estadisticas: "base",
+        licitaciones: "base",
+        trazabilidad: "base",
+        reparto: "base",
+        encargosDelineacion: "base",
+        oportunidadesEstudios: "base",
+        notas: "base",
+        vacaciones: "base",
+        jornada: "base",
+        tareas: "base",
+        actas: "base",
+        dedicaciones: "base",
+        horasObra: "base",
+        notasTraspaso: "base",
+        columnas: "base",
+        correos: "base",
+        partes: "base",
+        portalSubcontratas: "base",
+        inducciones: "base",
+        tarifasSubcontrata: "base",
+        normativa: "base",
+        /* Compras */
+        compras: "compras",
+        pedidos: "compras",
+        inventarioCampo: "compras",
+        proveedores: "compras",
+        /* Producción y certificaciones */
+        costsPlan: "produccion",
+        certificaciones: "produccion",
+        avanceObra: "produccion",
+        partesTrabajo: "produccion",
+        /* Commissioning + Mantenimiento: un solo módulo (12-nov): lo que entrega el Cx arranca el mantenimiento. */
+        commissioning: "cxMantenimiento",
+        planoEquipos: "cxMantenimiento",
+        balanceo: "cxMantenimiento",
+        pruebasEstanqueidad: "cxMantenimiento",
+        mantenimiento: "cxMantenimiento",
+        ordenesMant: "cxMantenimiento",
+        legalizaciones: "cxMantenimiento",
+        /* Calidad y QHSE */
+        ncr: "calidad",
+        ppi: "calidad",
+        incidencias: "calidad",
+        qhse: "calidad",
+        qhsePlantillas: "calidad",
+        reportesQhse: "calidad",
+        partesIncidencia: "calidad",
+        /* Documentación y planos */
+        documentos: "documentacion",
+        planosDelineacion: "documentacion",
+        /* Reclamaciones */
+        conflictos: "reclamaciones",
+        reclamaciones: "reclamaciones",
+        avisosReclamacion: "reclamaciones"
+      };
+      var CONTRATABLE_ATAJO = {
+        medObra: "produccion",
+        m2Conductos: "produccion",
+        planosObra: "documentacion",
+        documentacion: "documentacion",
+        facturasProveedor: "compras",
+        gantt: "base"
+      };
+      var IDS_CONTRATABLES = new Set(MODULOS_CONTRATABLES.map((m) => m.id));
+      function contratableDe(modulo) {
+        if (CONTRATABLE_ATAJO[modulo]) return CONTRATABLE_ATAJO[modulo];
+        if (CONTRATABLE_DE[modulo]) return CONTRATABLE_DE[modulo];
+        const a = typeof ATAJOS_OBRA !== "undefined" && ATAJOS_OBRA[modulo];
+        return a && CONTRATABLE_DE[a.modulo] || "base";
+      }
+      function normalizarContrato(contrato) {
+        if (!Array.isArray(contrato)) return null;
+        const dentro = new Set(contrato.filter((x) => IDS_CONTRATABLES.has(x)));
+        return MODULOS_CONTRATABLES.filter((m) => m.siempre || dentro.has(m.id)).map((m) => m.id);
+      }
+      function contratoPermite(contrato, modulo) {
+        const c = normalizarContrato(contrato);
+        return !c || c.includes(contratableDe(modulo));
+      }
+      var contratoEnUso = null;
+      function fijarContrato(contrato) {
+        contratoEnUso = normalizarContrato(contrato);
+        return contratoEnUso;
+      }
+      var contratoFijado = () => contratoEnUso;
       var TODO = ["ver", "crear", "editar", "borrar", "exportar"];
       var SOLO_VER = ["ver"];
       var ROLES = [
@@ -8183,10 +8288,10 @@ globalThis.CX_VARIANTE="cxobra";
         return (r.permisos[modulo] || []).includes(verbo);
       }
       var PANTALLA_NECESITA = { proyectos: "presupuestos", estadisticas: "presupuestos" };
-      function modulosVisibles(idRol) {
+      function modulosVisibles(idRol, contrato = contratoEnUso) {
         const r = porId.get(idRol);
         if (!r) return [];
-        const ve = (m) => (r.permisos[m] || []).includes("ver");
+        const ve = (m) => (r.permisos[m] || []).includes("ver") && contratoPermite(contrato, m);
         return Object.keys(MODULOS).filter((m) => !SIN_PANTALLA.has(m)).filter((m) => ve(m) && (!PANTALLA_NECESITA[m] || ve(PANTALLA_NECESITA[m])));
       }
       function campoVetado(idRol, campo) {
@@ -8373,6 +8478,8 @@ globalThis.CX_VARIANTE="cxobra";
         informeReparaciones: { modulo: "incidencias", etiqueta: "Informe de reparaciones" },
         planCompras: { modulo: "compras", etiqueta: "Plan de compras" },
         comparativos: { modulo: "compras", etiqueta: "Comparativos" },
+        /* 13-nov (JC, nota 1311-compras-estudios-y-obras): los precios de compra de Estudios y de obra, comparados, y los avisos de mejor precio. */
+        preciosCompra: { modulo: "compras", etiqueta: "Precios de compra" },
         /* 11-nov (JC, tanda 3): quien no ve el Costs Plan pero sí las tareas (el encargado) ve el diagrama SIN dinero (costsPlan.ganttSinDinero). */
         gantt: { modulo: "costsPlan", etiqueta: "Diagrama de Gantt", tambienCon: "tareas" },
         planEconomica: { modulo: "costsPlan", etiqueta: "Planificaci\xF3n econ\xF3mica" },
@@ -8463,10 +8570,11 @@ globalThis.CX_VARIANTE="cxobra";
       function necesitaObraDeTrabajo(idRol, modulo) {
         return !((porId.get(idRol) || {}).sinObraDeTrabajo || []).includes(modulo);
       }
-      function barraDeRol(idRol) {
-        const visibles = modulosVisibles(idRol);
+      function barraDeRol(idRol, contrato = contratoEnUso) {
+        const visibles = modulosVisibles(idRol, contrato);
         const ve = (m) => {
           const a = ATAJOS_OBRA[m];
+          if (!contratoPermite(contrato, m)) return false;
           if (a && a.solo === "veAhorroApp" && !veAhorroApp(idRol)) return false;
           if (a && a.tambienCon && (visibles.includes(a.tambienCon) || ((porId.get(idRol) || { permisos: {} }).permisos[a.tambienCon] || []).includes("ver"))) return true;
           return visibles.includes(a ? a.modulo : m);
@@ -8568,6 +8676,14 @@ globalThis.CX_VARIANTE="cxobra";
         SIN_PANTALLA,
         VERBOS,
         ROLES,
+        MODULOS_CONTRATABLES,
+        CONTRATABLE_DE,
+        CONTRATABLE_ATAJO,
+        contratableDe,
+        normalizarContrato,
+        contratoPermite,
+        fijarContrato,
+        contratoFijado,
         rol,
         puede,
         planifica,
@@ -11528,7 +11644,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261114.0330" : "0";
+      var VERSION = true ? "20261114.0944" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -12079,7 +12195,8 @@ globalThis.CX_VARIANTE="cxobra";
              (ia_sugerencias: con return=representation la nube exigiría permiso de lectura y lo rechazaría). */
           meterSinDevolver: (tabla, filas) => pedir(`/rest/v1/${tabla}`, { metodo: "POST", cuerpo: filas, cabeceras: { Prefer: "return=minimal" } }),
           /** Cambia unas columnas de las filas que casen con `consulta` (PATCH). */
-          cambiar: (tabla, consulta, datos) => pedir(`/rest/v1/${tabla}?${consulta}`, { metodo: "PATCH", cuerpo: datos, cabeceras: { Prefer: "return=minimal" } }),
+          /* 14-nov: con { devolver: true } devuelve las filas cambiadas (el respondedor del Mac mira así si la fila seguía siendo suya). */
+          cambiar: (tabla, consulta, datos, { devolver = false } = {}) => pedir(`/rest/v1/${tabla}?${consulta}`, { metodo: "PATCH", cuerpo: datos, cabeceras: { Prefer: `return=${devolver ? "representation" : "minimal"}` } }),
           /* Solo con la clave secreta: los usuarios de Auth. */
           usuarios: async () => {
             const todos = [];
@@ -13385,6 +13502,36 @@ globalThis.CX_VARIANTE="cxobra";
         }
         return { personaId, rol: s.rol || null, origen, proceso: proceso ? String(proceso).slice(0, 120) : null };
       }
+      var forzados = /* @__PURE__ */ new WeakMap();
+      function conOrigen(db, marca, fn) {
+        if (!db || !marca || !marca.personaId) return fn();
+        const pila = forzados.get(db) || [];
+        forzados.set(db, pila);
+        const m = { personaId: String(marca.personaId), origen: marca.origen || "iarvis" };
+        pila.push(m);
+        const fin = () => {
+          const i = pila.lastIndexOf(m);
+          if (i >= 0) pila.splice(i, 1);
+        };
+        let r;
+        try {
+          r = fn();
+        } catch (e) {
+          fin();
+          throw e;
+        }
+        if (r && typeof r.then === "function") return r.finally(fin);
+        fin();
+        return r;
+      }
+      function ajustarSesion(db, s) {
+        const pila = db && forzados.get(db);
+        if (!pila || !pila.length || !s || !s.personaId) return s;
+        const m = [...pila].reverse().find((x) => x.personaId === String(s.personaId));
+        if (!m || s.origen === m.origen) return s;
+        const lugar = origenDe(s);
+        return { ...s, origen: m.origen, proceso: `${m.origen} \xB7 ${lugar}${s.proceso ? ` \xB7 ${s.proceso}` : ""}` };
+      }
       var TABLAS = [
         `CREATE TABLE IF NOT EXISTS auditoriaMeta (clave TEXT PRIMARY KEY, valor TEXT)`,
         /* Las fotos de cada registro, una por alta, cambio, baja o restauración. */
@@ -13511,7 +13658,7 @@ globalThis.CX_VARIANTE="cxobra";
       }) {
         if (campo && esSecreto(campo)) return null;
         try {
-          const a = actorDe(sesion || { personaId, origen, rol, proceso });
+          const a = actorDe(ajustarSesion(db, sesion || { personaId, origen, rol, proceso }));
           const persona = personaReal(db, a.personaId);
           const fila = {
             id: id || nuevoId(),
@@ -13575,7 +13722,7 @@ globalThis.CX_VARIANTE="cxobra";
         const t = tocadosPorBase.get(db);
         if (!t) return;
         t.add(`${entidad}|${registroId}|${campo || ""}`);
-        t.add(`${entidad}|${registroId}|*`);
+        if (!campo) t.add(`${entidad}|${registroId}|*`);
       }
       function abrirTocados(db) {
         tocadosPorBase.set(db, /* @__PURE__ */ new Set());
@@ -13611,7 +13758,7 @@ globalThis.CX_VARIANTE="cxobra";
       }
       function apuntarVersion(db, { entidad, registroId, operacion, fila, personaId = null, origen = null, restauraVersion = null, sesion = null }) {
         try {
-          const a = actorDe(sesion || { personaId, origen });
+          const a = actorDe(ajustarSesion(db, sesion || { personaId, origen }));
           const persona = personaReal(db, a.personaId);
           const extra = {};
           if (a.rol) extra.rol = a.rol;
@@ -13711,7 +13858,9 @@ globalThis.CX_VARIANTE="cxobra";
         sha256Hex,
         ORIGENES,
         abrirTocados,
-        cerrarTocados
+        cerrarTocados,
+        conOrigen,
+        ajustarSesion
       };
     }
   });
@@ -27824,6 +27973,27 @@ ${obsO}` : obsO).slice(0, 4e3);
      hasta      TEXT NOT NULL,
      PRIMARY KEY (personaId, clave)
    )`,
+        /*
+         * LAS UNIDADES DE NEGOCIO Y SUS MÓDULOS CONTRATADOS (13-nov, JC, nota ea963b93:
+         * licencias por unidad de negocio, no por persona). Un departamento o una
+         * delegación de la empresa; `modulos` (JSON) son los ids de
+         * roles.MODULOS_CONTRATABLES (la base siempre) y `precios` (JSON) lo
+         * negociado por módulo, que manda sobre la tarifa (shared/licencias.js). Las
+         * personas cuelgan de una con personas.unidadNegocioId; sin unidad, ven todo
+         * lo de su rol. Las llevan el gerente y el administrador (electron/data/unidadesNegocio.js).
+         */
+        `CREATE TABLE IF NOT EXISTS unidadesNegocio (
+     id            TEXT PRIMARY KEY,
+     nombre        TEXT NOT NULL,
+     tipo          TEXT NOT NULL DEFAULT 'departamento',
+     modulos       TEXT NOT NULL DEFAULT '["base"]',
+     precios       TEXT,
+     obrasActivas  INTEGER NOT NULL DEFAULT 0,
+     activa        INTEGER NOT NULL DEFAULT 1,
+     modificadoPor TEXT,
+     creadoEn      TEXT NOT NULL,
+     modificadoEn  TEXT NOT NULL
+   )`,
         `CREATE TABLE IF NOT EXISTS historial (
      id            TEXT PRIMARY KEY,
      entidad       TEXT NOT NULL,
@@ -29333,6 +29503,8 @@ ${obsO}` : obsO).slice(0, 4e3);
         `CREATE INDEX IF NOT EXISTS idx_invcertlineas_cert ON inventarioCertificadoLineas (certificadoId)`
       ];
       var COLUMNAS_A\u00D1ADIDAS = [
+        /* 13-nov (licencias por unidad de negocio): de qué unidad es cada persona; sin ella, ve todo lo de su rol. */
+        ["personas", "unidadNegocioId", "TEXT"],
         /* En qué se parte cada documento de un industrial: contrato / horas / BIM / extras, con quién lo marcó y cuándo (13-nov, JC; shared/obra/certMesAMes.js). */
         ["docsCorreo", "partes", "TEXT"],
         /* Gap por disciplina (13-nov): la lectura por partidas y meses de cada documento (shared/obra/gapDisciplina.js). */
@@ -29752,6 +29924,10 @@ ${obsO}` : obsO).slice(0, 4e3);
            tipo de equipo y subpartida («Conexionado de conductos en climatizadores»,
            cantidad = nº de equipos), cada una con de qué partidas y líneas sale. JSON. */
         ["peticionesOferta", "agrupacion", "TEXT"],
+        /* Los dos repositorios de precios de compra (13-nov, JC, shared/compras/repositorioPrecios.js):
+           'estudios' (pedida por Estudios para presupuestar) u 'obra' (pedida por el jefe de obra
+           para comprar). NULL en las de antes: se deduce de quién la pidió. */
+        ["peticionesOferta", "ambito", "TEXT"],
         ["ofertasProveedor", "tarifasHora", "TEXT"],
         /* El acceso con contraseña (electron/data/acceso.js). */
         ["personas", "intentosFallidos", "INTEGER NOT NULL DEFAULT 0"],
@@ -36275,9 +36451,9 @@ ${obsO}` : obsO).slice(0, 4e3);
     }
   });
 
-  // node_modules/fflate/lib/browser.cjs
+  // ../Vidaire_Obras/node_modules/fflate/lib/browser.cjs
   var require_browser = __commonJS({
-    "node_modules/fflate/lib/browser.cjs"(exports) {
+    "../Vidaire_Obras/node_modules/fflate/lib/browser.cjs"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       exports.deflate = deflate;
@@ -47982,12 +48158,18 @@ ${subtitulo}`, c[5]] : c.slice())]);
           for (const c of [x.salaGris, x.sala, x.codSala]) if (c && !prohibidaFh(c)) return String(c).trim();
           return "";
         }
+        function salaLocalizacionFh(eq, figuras) {
+          const codigo = salaVisibleFh(eq);
+          if (codigo) return [codigo, eq.salaGris && codigo === String(eq.salaGris).trim() ? eq.salaGrisNombre : ""].filter(Boolean).join(" \xB7 ");
+          const f = (figuras || []).find((x) => x && x.sala && !prohibidaFh(x.sala));
+          return f ? String(f.sala).trim() : "";
+        }
         function hojaLocalizacion(titulo, figuras = [], ctx = {}) {
           const eq = ctx.equipo || {};
           return `<article class="hojaPM localizacionPlano">
     <header class="cab"><div class="logo">${logoFh(ctx.obra)}</div><h1>LOCALIZACI\xD3N EN PLANO</h1></header>
     <table class="datos cabecera">
-      <tr><th>Referencia / TAG</th><td><strong>${escFh(titulo || eq.tag || "")}</strong></td><th>Planta / sala</th><td>${escFh([eq.planta, salaVisibleFh(eq)].filter(Boolean).join(" / "))}</td></tr>
+      <tr><th>Referencia / TAG</th><td><strong>${escFh(titulo || eq.tag || "")}</strong></td><th>Planta / sala</th><td>${escFh([eq.planta, salaLocalizacionFh(eq, figuras)].filter(Boolean).join(" / "))}</td></tr>
     </table>
     <section class="sec"><h3>LOCALIZACI\xD3N EN PLANO</h3>${figuras.map((f) => `<figure class="recortePlano" style="margin:0 0 10px;break-inside:avoid">
       <div style="border:1px solid #178276;max-width:${figuras.length > 1 ? 120 : 165}mm">${String(f.svg || "").replace(/ width="\d+" height="\d+"/, ' width="100%"')}</div>
@@ -65531,7 +65713,9 @@ ${linea}` : linea;
         if (ds.length >= 3) return "varias";
         return ds[0];
       }
-      function filtrarProveedores(lista, { estado = null, disciplina = null, texto = "", familia = null, clase = null, regla = "prudente", nombreFamilia = null } = {}) {
+      function filtrarProveedores(lista, { estado = null, disciplina = null, texto = "", familia = null, clase = null, regla = "prudente", nombreFamilia = null, catalogo = null } = {}) {
+        const grupoDe = new Map((catalogo || []).map((f) => [f.id, f.grupo]));
+        const nombreGrupo = new Map((catalogo || []).map((f) => [f.grupo, f.nombreGrupo || ""]));
         const palabras = normProv(texto).split(/\s+/).filter(Boolean);
         const fams = (p) => String(p.familias || "").split(",").map((f) => f.trim()).filter(Boolean);
         const cifSolo = (v) => String(v || "").toUpperCase().replace(/[\s.\-/_]/g, "").toLowerCase();
@@ -65541,7 +65725,12 @@ ${linea}` : linea;
           if (disciplina && !String(p.disciplinas || "").split(",").map((d) => d.trim()).includes(disciplina)) return false;
           if (familia === "__sin" && fams(p).length) return false;
           if (familia === "__revisar" && !(fams(p).length && Number(p.familiasRevisar) === 1)) return false;
-          if (familia && familia !== "__sin" && familia !== "__revisar" && !fams(p).includes(familia)) return false;
+          if (familia && /^g:/.test(familia)) {
+            const g = familia.slice(2);
+            const enGrupo = fams(p).some((f) => grupoDe.get(f) === g);
+            const enDisc = String(p.disciplinas || "").split(",").map((d) => d.trim()).includes(g);
+            if (!enGrupo && !enDisc) return false;
+          } else if (familia && familia !== "__sin" && familia !== "__revisar" && !fams(p).includes(familia)) return false;
           if (palabras.length) {
             const pajar = normProv([
               p.nombre,
@@ -65555,7 +65744,8 @@ ${linea}` : linea;
               p.contacto,
               queHaceProveedor(p),
               claseDeProveedor(p, { regla }).clase === "proveedor" ? "proveedor suministra" : "",
-              nombreFamilia ? fams(p).map(nombreFamilia).join(" ") : ""
+              nombreFamilia ? fams(p).map(nombreFamilia).join(" ") : "",
+              fams(p).map((f) => nombreGrupo.get(grupoDe.get(f)) || "").join(" ")
             ].filter(Boolean).join(" ")) + " " + cifSolo(p.cif);
             if (!palabras.every((w) => pajar.includes(w.replace(/[.\-/_]/g, "")) || pajar.includes(w))) return false;
           }
@@ -65579,6 +65769,48 @@ ${linea}` : linea;
           disciplina,
           items: items.slice().sort((x, y) => String(x.nombre || "").localeCompare(String(y.nombre || ""), "es"))
         }));
+      }
+      function agruparPorOficio(lista, { clase = null, regla = "prudente", catalogo = [], ordenDisciplinas = [], nombreDisciplina = (d) => d } = {}) {
+        const ordenFam = new Map((catalogo || []).map((f, i) => [f.id, i]));
+        const nombreFam = new Map((catalogo || []).map((f) => [f.id, f.nombre]));
+        const clases = clase ? [clase] : ["proveedor", "subcontratista", "sin"];
+        const porNombre = (x, y) => String(x.nombre || "").localeCompare(String(y.nombre || ""), "es");
+        const rotuloDisc = (d) => d === "varias" ? "Varias disciplinas (integrales)" : d === "sin" ? "Sin especialidad" : nombreDisciplina(d);
+        const salida = [];
+        for (const c of clases) {
+          const de = (lista || []).filter((p) => claseDeProveedor(p, { regla }).clase === c);
+          if (!de.length) continue;
+          const prefijo = clase ? "" : `${CLASES_PROVEEDOR[c].etiqueta} \xB7 `;
+          if (c !== "proveedor") {
+            for (const g of agruparPorDisciplina(de, ordenDisciplinas)) {
+              salida.push({ clave: `${c}|d:${g.disciplina}`, clase: c, por: "especialidad", titulo: prefijo + rotuloDisc(g.disciplina), items: g.items });
+            }
+            continue;
+          }
+          const conFam = /* @__PURE__ */ new Map();
+          const sinFam = [];
+          for (const p of de) {
+            const ids = String(p.familias || "").split(",").map((f) => f.trim()).filter(Boolean);
+            if (!ids.length) {
+              sinFam.push(p);
+              continue;
+            }
+            const principal = ids.slice().sort((a, b) => (ordenFam.get(a) ?? 9999) - (ordenFam.get(b) ?? 9999) || a.localeCompare(b))[0];
+            if (!conFam.has(principal)) conFam.set(principal, []);
+            conFam.get(principal).push(p);
+          }
+          [...conFam.entries()].sort((a, b) => (ordenFam.get(a[0]) ?? 9999) - (ordenFam.get(b[0]) ?? 9999) || a[0].localeCompare(b[0])).forEach(([id, items]) => salida.push({
+            clave: `${c}|f:${id}`,
+            clase: c,
+            por: "familia",
+            titulo: prefijo + (nombreFam.get(id) || id),
+            items: items.sort(porNombre)
+          }));
+          for (const g of agruparPorDisciplina(sinFam, ordenDisciplinas)) {
+            salida.push({ clave: `${c}|d:${g.disciplina}`, clase: c, por: "especialidad", titulo: g.disciplina === "sin" ? `${prefijo}Sin familia` : `${prefijo}${rotuloDisc(g.disciplina)} \xB7 sin familia`, items: g.items });
+          }
+        }
+        return salida;
       }
       function camposDeEstado(estado) {
         if (!ESTADOS_PROVEEDOR[estado]) return null;
@@ -65929,6 +66161,7 @@ ${linea}` : linea;
         queHaceProveedor,
         disciplinaPrincipalProv,
         agruparPorDisciplina,
+        agruparPorOficio,
         DIAS_AVISO_PAPELES,
         fechaIsoProv,
         avisosDeProveedor,
@@ -85806,7 +86039,7 @@ ${fallos.join("\r\n")}\r
         const libre = (x, y, ancho) => !cogidos.some((o2) => y - letra * 1.1 < o2.y && o2.y - (o2.h || letra * 1.1) < y && x < o2.x + o2.w && o2.x < x + ancho);
         const cabe = (x, y, ancho) => x >= c.x + u * 0.4 && x + ancho <= c.x + c.w - u * 0.4 && y - letra >= c.y + u * 0.4 && y <= c.y + c.h - u * 0.4 && libre(x, y, ancho);
         const ocupar = (x, y, radio) => cogidos.push({ x: x - radio, y: y + radio, w: radio * 2, h: radio * 2 });
-        const rotulo = (texto, px2, py, color, radio) => {
+        const rotulo = (texto, px2, py, color, radio, borde = 0) => {
           const ancho = anchoTexto(texto) * letra + letra * 0.7;
           let sitio = null;
           for (const k of [0, 1.2, 2.6, 4.2, 6, 8.5, 11, 14]) {
@@ -85822,9 +86055,14 @@ ${fallos.join("\r\n")}\r
           }
           if (!sitio) sitio = { x: Math.min(Math.max(px2 + radio, c.x + u), c.x + c.w - ancho - u), y: Math.min(Math.max(py - radio, c.y + letra * 1.3), c.y + c.h - u), k: 0 };
           cogidos.push({ x: sitio.x, y: sitio.y, w: ancho });
-          const guia = sitio.k >= 1.2 || Math.hypot(sitio.x + ancho / 2 - px2, sitio.y - letra * 0.4 - py) > radio + letra * 0.9 ? `<path d="M${n1R(px2)} ${n1R(py)}L${n1R(sitio.x + ancho / 2)} ${n1R(sitio.y - letra * 0.4)}" stroke="${color}" stroke-width="${n1R(u * 0.22)}" fill="none"/>` : "";
-          return `${guia}<rect x="${n1R(sitio.x)}" y="${n1R(sitio.y - letra * 0.95)}" width="${n1R(ancho)}" height="${n1R(letra * 1.25)}" rx="${n1R(letra * 0.2)}" fill="${K.fondo}" fill-opacity=".92" stroke="${color}" stroke-width="${n1R(u * 0.08)}"/><text x="${n1R(sitio.x + letra * 0.25)}" y="${n1R(sitio.y)}" font-size="${n1R(letra)}" fill="${K.tinta}" font-weight="700">${escR(texto)}</text>`;
+          const gx = sitio.x + ancho / 2, gy = sitio.y - letra * 0.4, dg = Math.hypot(gx - px2, gy - py);
+          if (sitio.k >= 1.2 || dg > radio + letra * 0.9) {
+            const k0 = dg > 0 ? Math.min(borde, dg * 0.6) / dg : 0;
+            guias.push(`<path d="M${n1R(px2 + (gx - px2) * k0)} ${n1R(py + (gy - py) * k0)}L${n1R(gx)} ${n1R(gy)}" stroke="${color}" stroke-width="${n1R(u * 0.22)}" fill="none"/>`);
+          }
+          return `<rect x="${n1R(sitio.x)}" y="${n1R(sitio.y - letra * 0.95)}" width="${n1R(ancho)}" height="${n1R(letra * 1.25)}" rx="${n1R(letra * 0.2)}" fill="${K.fondo}" fill-opacity=".92" stroke="${color}" stroke-width="${n1R(u * 0.08)}"/><text x="${n1R(sitio.x + letra * 0.25)}" y="${n1R(sitio.y)}" font-size="${n1R(letra)}" fill="${K.tinta}" font-weight="700" textLength="${n1R(ancho - letra * 0.5)}" lengthAdjust="spacingAndGlyphs">${escR(texto)}</text>`;
         };
+        const guias = [];
         const conductos = r.conductos.map((x) => `<polygon points="${poli(x.b)}" fill="${colorC(x.circuito)}" fill-opacity=".16" stroke="${colorC(x.circuito)}" stroke-opacity=".7" stroke-width="${n1R(Math.max(u * 0.07, 0.6 * px))}"/>`).join("") + r.conductos.filter((x) => x.flecha).map((x) => {
           const [fx, fy, ang, l0] = x.flecha, l = Math.max(l0, 5 * px);
           return `<path transform="translate(${n1R(fx)} ${n1R(fy)}) rotate(${n1R(ang)})" d="M${n1R(-l)} 0H${n1R(l)}M${n1R(l * 0.35)} ${n1R(-l * 0.5)}L${n1R(l)} 0L${n1R(l * 0.35)} ${n1R(l * 0.5)}" fill="none" stroke="${colorC(x.circuito)}" stroke-width="${n1R(trazoS)}" stroke-linecap="round" stroke-linejoin="round"/>`;
@@ -85846,19 +86084,32 @@ ${fallos.join("\r\n")}\r
         }).join("");
         const fichas = (r.salas || []).map((x) => `<polygon points="${poli(x.b)}" fill="${K.tenue}" fill-opacity=".1" stroke="${K.tinta}" stroke-width="${n1R(u * 0.3)}" stroke-dasharray="${n1R(u * 1)} ${n1R(u * 0.6)}" stroke-linejoin="round"/>`).join("");
         const letraSala = u * 0.95;
+        const nombres = o.nombresSala || {};
         const salas = r.clase === "balanceo" ? "" : f.rotulos.slice(0, 120).map((t) => {
+          const nombre = nombres[String(t.t).replace(/\?$/, "")] || "";
           const ancho = String(t.t).length * letraSala * 0.62, x = t.x - ancho / 2;
           if (!cabe(x, t.y, ancho)) return "";
+          const anchoN = nombre.length * letraSala * 0.55, yN = t.y + letraSala * 1.15;
+          const conNombre = nombre && cabe(t.x - anchoN / 2, yN, anchoN);
           cogidos.push({ x, y: t.y, w: ancho });
-          return `<text x="${n1R(t.x)}" y="${n1R(t.y)}" font-size="${n1R(letraSala)}" fill="${K.tenue}" text-anchor="middle">${escR(t.t)}</text>`;
+          const halo = `stroke="${K.fondo}" stroke-width="${n1R(letraSala * 0.3)}" paint-order="stroke"`;
+          let bajo = "";
+          if (conNombre) {
+            cogidos.push({ x: t.x - anchoN / 2, y: yN, w: anchoN });
+            bajo = `<text x="${n1R(t.x)}" y="${n1R(yN)}" font-size="${n1R(letraSala)}" fill="${K.tenue}" text-anchor="middle" ${halo}>${escR(nombre)}</text>`;
+          }
+          return `<text x="${n1R(t.x)}" y="${n1R(t.y)}" font-size="${n1R(letraSala)}" fill="${K.tenue}" text-anchor="middle" ${halo}>${escR(t.t)}</text>${bajo}`;
         }).join("");
         const etiquetas = [
           ...r.marcas.map((m) => rotulo(m.etiqueta, m.x, m.y, K.tinta, radioDe(visible(m.b, m.x, m.y)))),
-          ...(r.salas || []).map((x) => rotulo(x.etiqueta, x.x, x.y, K.tinta, String(x.codigo || "").length * letraSala * 0.35 + letra * 0.6)),
+          ...(r.salas || []).map((x) => {
+            const radio = String(x.codigo || "").length * letraSala * 0.35 + letra * 0.6;
+            return rotulo(x.etiqueta, x.x, x.y, K.tinta, radio, radio);
+          }),
           ...r.bocas.map((b) => rotulo(b.etiqueta, b.x, b.y, colorC(b.circuito), radioDe(visible(b.b, b.x, b.y))))
         ].join("");
         const escala = `<rect x="${n1R(c.x + u)}" y="${n1R(c.y + c.h - u * 5)}" width="${n1R(barra + u * 2)}" height="${n1R(u * 4.2)}" fill="${K.fondo}" opacity="0.9"/><path d="M${n1R(c.x + u * 2)} ${n1R(c.y + c.h - u * 2)}h${n1R(barra)}" stroke="${K.tinta}" stroke-width="${n1R(u * 0.35)}"/><text x="${n1R(c.x + u * 2)}" y="${n1R(c.y + c.h - u * 3)}" font-size="${n1R(u * 1.25)}" fill="${K.tinta}" stroke="${K.fondo}" stroke-width="${n1R(u * 0.4)}" paint-order="stroke">${metros} m</text>`;
-        return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${c.x} ${c.y} ${c.w} ${c.h}" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif"><rect x="${n1R(c.x - c.w * 3)}" y="${n1R(c.y - c.h * 3)}" width="${n1R(c.w * 7)}" height="${n1R(c.h * 7)}" fill="${K.fondo}"/><path d="${f.d}" fill="none" stroke="${K.linea}" stroke-width="${n1R(u * 0.16)}" stroke-linejoin="round"/>${fichas}${conductos}${piezas}${bocas}${marcas}${salas}${etiquetas}${escala}</svg>`;
+        return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${c.x} ${c.y} ${c.w} ${c.h}" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif"><rect x="${n1R(c.x - c.w * 3)}" y="${n1R(c.y - c.h * 3)}" width="${n1R(c.w * 7)}" height="${n1R(c.h * 7)}" fill="${K.fondo}"/><path d="${f.d}" fill="none" stroke="${K.linea}" stroke-width="${n1R(u * 0.16)}" stroke-linejoin="round"/>${fichas}${conductos}${piezas}${bocas}${marcas}${guias.join("")}${salas}${etiquetas}${escala}</svg>`;
       }
       module.exports = { planoDeEquipo, SIN_PLANO_DEL_MODELO, redDeEquipo, salaDePunto, encuadrarRed, bocasDeBalanceo, tramo, pieCorto, simbolosDe, recorteConjunto, recorteBalanceo, svg, pie, textoResumen, circuitoDe, fondoDe, CIRCUITOS_RECORTE, SIN_CIRCUITO };
     }
@@ -86116,7 +86367,9 @@ ${fallos.join("\r\n")}\r
         if (!r.ok) return r;
         if (!r.planos.length) return { ok: false, error: "Esta obra no tiene cargados los planos del modelo." };
         const porPlano = new Map(r.planos.map((p) => [p.id, p]));
-        const vestir = (x, base) => ({ ...x, recortes: (x.recortes || []).map((rc, i) => ({ ...rc, n: base + i, pie: R.pie(rc), svg: R.svg(rc, porPlano.get(rc.planoId).svg, COLORES) })) });
+        const nombresSala = {};
+        for (const x of r.equipos) if (x.salaGris && x.salaGrisNombre && !nombresSala[x.salaGris]) nombresSala[String(x.salaGris).trim()] = String(x.salaGrisNombre).trim();
+        const vestir = (x, base) => ({ ...x, recortes: (x.recortes || []).map((rc, i) => ({ ...rc, n: base + i, pie: R.pie(rc), svg: R.svg(rc, porPlano.get(rc.planoId).svg, COLORES, { nombresSala }) })) });
         const propia = r.planos.flatMap((p) => p.marcas).find((m) => m.e === e.id) || null;
         const cj = miembrosDe(e, r.equipos);
         let conjunto = null;
@@ -93050,6 +93303,7 @@ ${fallos.join("\r\n")}\r
             descripcion: p.descripcion || "",
             unidad: p.unidad || "",
             disciplina: p.disciplina || null,
+            docCliente: p.docCliente || null,
             precioVenta: venta,
             precioPagado: Number(p.precioSub) || 0,
             cantidadPagada: Number(p.cantidadSub) || 0,
@@ -93386,12 +93640,793 @@ ${fallos.join("\r\n")}\r
             total: d.totales && d.totales.desfase || 0
           };
         }
-        exportar({ calcular, registros, avisos, porQueSube, mapa, mesCorto, eur, num, MINIMO, MINIMO_AVISO });
+        const CAUSAS = [
+          { clave: "horas", etiqueta: "Horas no repercutidas al cliente" },
+          { clave: "metros", etiqueta: "Metros pagados por encima de lo certificado al cliente" },
+          { clave: "sinCobrar", etiqueta: "Partidas pagadas y sin certificar al cliente" },
+          { clave: "precio", etiqueta: "Precio del industrial por encima del de venta" }
+        ];
+        function repartoPartida(desfase, cobrado, sobrePrecio) {
+          const o = { metros: 0, sinCobrar: 0, precio: 0 };
+          if (!(desfase > MINIMO)) return o;
+          if (cobrado < MINIMO) {
+            o.sinCobrar = r2(desfase);
+            return o;
+          }
+          o.precio = r2(Math.min(desfase, Math.max(0, sobrePrecio)));
+          o.metros = r2(desfase - o.precio);
+          return o;
+        }
+        function repartoPorMes(p) {
+          const venta = p.precioVenta;
+          const precio = new Map(p.industriales.map((i) => [i.emisor, i.precio]));
+          const acum = /* @__PURE__ */ new Map();
+          const out = /* @__PURE__ */ new Map();
+          for (const x of p.meses) {
+            for (const i of x.industriales) acum.set(i.emisor, (acum.get(i.emisor) || 0) + i.cantidad);
+            let sobre = 0;
+            for (const [e, q] of acum) {
+              const pr = precio.get(e) ?? p.precioPagado;
+              if (pr > venta + 5e-3) sobre += (pr - venta) * q;
+            }
+            out.set(x.mes, repartoPartida(x.desfaseOrigen, x.cobradoOrigen, sobre));
+          }
+          return out;
+        }
+        const SUFIJOS = /\b(s\s?l\s?u?|s\s?a\s?u?|slu|sl|sa|sau|sociedad|limitada|anonima|cb|scp|sll)\b/g;
+        const quitarAcentos = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        function nombreIndustrial(s) {
+          return quitarAcentos(s).toLowerCase().replace(/\(.*?\)/g, " ").replace(/[^a-z0-9]+/g, " ").replace(SUFIJOS, " ").replace(/\s+/g, "");
+        }
+        function mismoIndustrial(a, b) {
+          const x = nombreIndustrial(a);
+          const y = nombreIndustrial(b);
+          if (x.length < 4 || y.length < 4 || GENERICOS.has(x) || GENERICOS.has(y)) return x === y && x.length > 0;
+          return x === y || x.includes(y) || y.includes(x);
+        }
+        const GENERICOS = /* @__PURE__ */ new Set(["clima", "instalaciones", "ventilaciones", "ventilacion", "conductos", "aire", "electricidad", "montajes", "servicios", "obras", "industrial", "industriales"]);
+        const numerosDe = (s) => new Set((quitarAcentos(s).match(/\d{3,}(?:-\d{1,2}(?!\d))?/g) || []).filter((n) => !/^20\d\d$/.test(n)));
+        function mesAnterior(m) {
+          const x = /^(\d{4})-(\d{2})/.exec(String(m || ""));
+          if (!x) return null;
+          const a = Number(x[1]);
+          const mm = Number(x[2]);
+          return mm === 1 ? `${a - 1}-12` : `${a}-${String(mm - 1).padStart(2, "0")}`;
+        }
+        function justificarHoras(documentos = [], justificantes = []) {
+          const grupos = /* @__PURE__ */ new Map();
+          for (const o of documentos || []) {
+            const k = `${nombreIndustrial(o.emisor)}|${o.periodo || ""}`;
+            const g = grupos.get(k) || { emisor: o.emisor, periodo: o.periodo || null, horas: 0, importe: 0, porRevisar: false, documentos: [], justificantes: [] };
+            g.horas = r2(g.horas + (Number(o.horas) || 0));
+            g.importe = r2(g.importe + (Number(o.importe) || 0));
+            if (o.porRevisar) g.porRevisar = true;
+            g.documentos.push(o);
+            grupos.set(k, g);
+          }
+          const filas = [...grupos.values()];
+          const usados = /* @__PURE__ */ new Set();
+          const suyosDe = new Map(filas.map((g) => [g, (justificantes || []).filter((j) => mismoIndustrial(j.emisor, g.emisor))]));
+          for (const g of filas) {
+            const nums = /* @__PURE__ */ new Set();
+            for (const o of g.documentos) for (const n of numerosDe(o.fichero)) nums.add(n);
+            const porRef = suyosDe.get(g).filter((j) => [...numerosDe(`${j.referencia || ""} ${j.titulo || ""}`)].some((n) => nums.has(n)));
+            g.justificantes = porRef.map((j) => ({ ...j, casa: "referencia" }));
+            for (const j of porRef) usados.add(j.id);
+          }
+          for (const g of filas) {
+            if (g.justificantes.length) continue;
+            const libres = suyosDe.get(g).filter((j) => !usados.has(j.id));
+            const delMes = libres.filter((j) => j.mes === g.periodo);
+            const ant = mesAnterior(g.periodo);
+            const delAnterior = ant ? libres.filter((j) => j.mes === ant) : [];
+            g.justificantes = delMes.length ? delMes.map((j) => ({ ...j, casa: "mes" })) : delAnterior.map((j) => ({ ...j, casa: "mesAnterior" }));
+          }
+          for (const g of filas) g.justificantes.sort((a, b) => String(a.fecha || "").localeCompare(String(b.fecha || "")));
+          for (const g of filas) g.horasJustificadas = r2(g.justificantes.reduce((s, j) => s + (Number(j.horas) || 0), 0));
+          return filas.sort((a, b) => ordenMes(a.periodo, b.periodo) || b.importe - a.importe);
+        }
+        function porCausa(d, { partesHoras = [], porCasar = [], noCuentan = [], disputas = [], objetivo = null, justificantes = [] } = {}) {
+          const t = d && d.totales || { desfase: 0, horas: { desfase: 0 }, partidas: { desfase: 0 } };
+          const causas = new Map(CAUSAS.map((c) => [c.clave, { ...c, importe: 0, partidas: [], documentos: [] }]));
+          const repartos = /* @__PURE__ */ new Map();
+          for (const p of d && d.partidas || []) {
+            repartos.set(p.clave, repartoPorMes(p));
+            const r = repartoPartida(p.desfase, p.cobrado, p.porPrecio);
+            for (const k of ["metros", "sinCobrar", "precio"]) {
+              if (!(r[k] > 0)) continue;
+              const c = causas.get(k);
+              c.importe = r2(c.importe + r[k]);
+              c.partidas.push({
+                clave: p.clave,
+                codigo: p.codigo,
+                descripcion: p.descripcion,
+                ambito: p.ambito,
+                unidad: p.unidad,
+                disciplina: p.disciplina || "otras",
+                importe: r[k],
+                cantidadPagada: p.cantidadPagada,
+                cantidadCobrada: p.cantidadCobrada,
+                exceso: r2(Math.max(0, p.cantidadPagada - p.cantidadCobrada)),
+                precioPagado: p.precioPagado,
+                precioVenta: p.precioVenta,
+                docCliente: p.docCliente,
+                /* Las pruebas (JC 14-nov): lo certificado al cliente frente a lo pagado a cada industrial y la diferencia. */
+                pagado: p.pagado,
+                cobrado: p.cobrado,
+                difCantidad: r2(p.cantidadPagada - p.cantidadCobrada),
+                difImporte: r2(p.pagado - p.cobrado),
+                industriales: p.industriales.map((i) => ({ emisor: i.emisor, cantidad: i.cantidad, precio: i.precio, importe: i.importe, documentos: i.documentos }))
+              });
+            }
+          }
+          const ch = causas.get("horas");
+          ch.importe = r2(t.horas.desfase || 0);
+          const porDoc = /* @__PURE__ */ new Map();
+          for (const h of partesHoras || []) {
+            if (!(Number(h.importe) || Number(h.horas))) continue;
+            const k = h.docId || `${h.emisor}|${h.periodo}|${h.fichero || ""}`;
+            const x = porDoc.get(k) || { docId: h.docId || null, fichero: h.fichero || null, emisor: h.emisor || "\u2014", periodo: h.periodo || null, horas: 0, importe: 0, porRevisar: false };
+            x.horas = r2(x.horas + (Number(h.horas) || 0));
+            x.importe = r2(x.importe + (Number(h.importe) || 0));
+            if (h.seguro === false || h.dudoso) x.porRevisar = true;
+            porDoc.set(k, x);
+          }
+          ch.documentos = [...porDoc.values()].sort((a, b) => ordenMes(a.periodo, b.periodo) || b.importe - a.importe);
+          ch.porIndustrialMes = justificarHoras(ch.documentos, justificantes);
+          ch.sinJustificar = ch.porIndustrialMes.filter((g) => !g.justificantes.length).length;
+          for (const k of ["metros", "sinCobrar", "precio"]) {
+            const c = causas.get(k);
+            c.partidas.sort((a, b) => b.importe - a.importe);
+            const docs = /* @__PURE__ */ new Map();
+            for (const p of c.partidas) for (const i of p.industriales) for (const o of i.documentos || []) {
+              const kd = o.docId || o.fichero;
+              if (!kd) continue;
+              const x = docs.get(kd) || { docId: o.docId || null, fichero: o.fichero || null, emisor: i.emisor, periodo: o.periodo || null, partidas: 0 };
+              x.partidas += 1;
+              docs.set(kd, x);
+            }
+            c.documentos = [...docs.values()].sort((a, b) => b.partidas - a.partidas);
+          }
+          let antes = { horas: 0, metros: 0, sinCobrar: 0, precio: 0 };
+          const meses = (d && d.meses || []).map((m) => {
+            const o = { horas: r2(m.desfaseHoras || 0), metros: 0, sinCobrar: 0, precio: 0 };
+            for (const p of d && d.partidas || []) {
+              const rm = repartos.get(p.clave);
+              let ult = null;
+              for (const x of p.meses) {
+                if (ordenMes(x.mes, m.mes) <= 0) ult = rm.get(x.mes);
+              }
+              if (ult) {
+                o.metros += ult.metros;
+                o.sinCobrar += ult.sinCobrar;
+                o.precio += ult.precio;
+              }
+            }
+            for (const k of ["metros", "sinCobrar", "precio"]) o[k] = r2(o[k]);
+            const sube = {};
+            for (const k of Object.keys(o)) sube[k] = r2(o[k] - antes[k]);
+            antes = o;
+            return { mes: m.mes, nombre: mesCorto(m.mes), origen: o, sube, total: r2(o.horas + o.metros + o.sinCobrar + o.precio), pagado: m.pagado, cobrado: m.cobrado };
+          });
+          const nueva = () => ({ importe: 0, metros: 0, sinCobrar: 0, precio: 0, partidas: /* @__PURE__ */ new Set() });
+          const porDisciplina = { conductos: nueva(), tuberias: nueva() };
+          for (const k of ["metros", "sinCobrar", "precio"]) for (const p of causas.get(k).partidas) {
+            const x = porDisciplina[p.disciplina] || (porDisciplina[p.disciplina] = nueva());
+            x.importe = r2(x.importe + p.importe);
+            x[k] = r2(x[k] + p.importe);
+            x.partidas.add(p.clave);
+          }
+          for (const x of Object.values(porDisciplina)) x.partidas = x.partidas.size;
+          const repetidos = (noCuentan || []).filter((x) => /repite|sustitu|duplicad|revisad/i.test(x.motivo || ""));
+          const noCert = (noCuentan || []).filter((x) => !repetidos.includes(x));
+          const doc = (x) => ({ docId: x.docId || null, fichero: x.fichero || null, emisor: x.emisor || "\u2014", periodo: x.periodo || null, importe: r2(x.importe), motivo: x.motivo || "" });
+          const reclamado = r2((disputas || []).reduce((s, x) => s + (Number(x.reclamado) || 0), 0));
+          const reconocido = r2((disputas || []).reduce((s, x) => s + (Number(x.reconocido) || 0), 0));
+          const fuera = [
+            {
+              clave: "porCasar",
+              etiqueta: "Partidas de industriales sin pareja en lo certificado al cliente (por casar)",
+              importe: r2((porCasar || []).reduce((s, x) => s + (Number(x.importe) || 0), 0)),
+              documentos: [...new Map((porCasar || []).filter((x) => x.docId || x.fichero).map((x) => [x.docId || x.fichero, { docId: x.docId || null, fichero: x.fichero || null, emisor: x.emisor || "\u2014", periodo: x.periodo || null }])).values()]
+            },
+            {
+              clave: "claim",
+              etiqueta: "Reclamaciones de industriales en disputa (claim)",
+              importe: reclamado,
+              reconocido,
+              documentos: (disputas || []).map((x) => ({ docId: x.docId || null, fichero: x.fichero || null, emisor: x.emisor || "\u2014", periodo: x.periodo || null, importe: r2(x.reclamado), reconocido: x.reconocido == null ? null : r2(x.reconocido), motivo: x.motivo || "" }))
+            },
+            { clave: "duplicados", etiqueta: "Documentos repetidos o sustituidos por otra versi\xF3n (no suman dos veces)", importe: r2(repetidos.reduce((s, x) => s + (Number(x.importe) || 0), 0)), documentos: repetidos.map(doc) },
+            { clave: "noCertificacion", etiqueta: "Presupuestos y pedidos que no son certificaci\xF3n", importe: r2(noCert.reduce((s, x) => s + (Number(x.importe) || 0), 0)), documentos: noCert.map(doc) }
+          ].filter((x) => x.importe > MINIMO || x.documentos.length);
+          const lista = CAUSAS.map((c) => causas.get(c.clave));
+          const total = r2(lista.reduce((s, c) => s + c.importe, 0));
+          const res = { total, causas: lista, meses, porDisciplina, fuera, objetivo: null };
+          const n = objetivo == null || objetivo === "" ? null : Number(objetivo);
+          if (Number.isFinite(n) && n > 0) {
+            const piezas = lista.filter((c) => c.importe > MINIMO).map((c) => ({ clave: c.clave, etiqueta: c.etiqueta, importe: c.importe }));
+            const extras = [null];
+            if (reconocido > MINIMO) extras.push({ clave: "claimReconocido", etiqueta: "Lo reconocido del claim de los industriales", importe: reconocido });
+            if (reclamado > MINIMO) extras.push({ clave: "claimReclamado", etiqueta: "Todo lo reclamado en el claim de los industriales", importe: reclamado });
+            let mejor = null;
+            for (let mask = 1; mask < 1 << piezas.length; mask += 1) {
+              const base = piezas.filter((_, i) => mask & 1 << i);
+              for (const e of extras) {
+                const ps = e ? [...base, e] : base;
+                const importe = r2(ps.reduce((s, x) => s + x.importe, 0));
+                const dist = Math.abs(n - importe);
+                if (!mejor || dist < mejor.dist - 5e-3) mejor = { piezas: ps, importe, dist };
+              }
+            }
+            const mes = meses.filter((m) => m.total > MINIMO).sort((a, b) => Math.abs(n - a.total) - Math.abs(n - b.total))[0] || null;
+            res.objetivo = {
+              cifra: n,
+              total,
+              falta: r2(n - total),
+              cuadra: Math.abs(n - total) < 5e-3,
+              mejor: mejor ? { piezas: mejor.piezas.map((x) => ({ clave: x.clave, etiqueta: x.etiqueta, importe: x.importe })), importe: mejor.importe, falta: r2(n - mejor.importe) } : null,
+              mes: mes ? { mes: mes.mes, nombre: mes.nombre, total: mes.total, falta: r2(n - mes.total) } : null
+            };
+          }
+          return res;
+        }
+        exportar({ calcular, registros, avisos, porQueSube, mapa, porCausa, justificarHoras, mismoIndustrial, nombreIndustrial, CAUSAS, mesCorto, eur, num, MINIMO, MINIMO_AVISO });
       })(typeof module !== "undefined" && module.exports ? (api) => {
         module.exports = api;
       } : (api) => {
         window.DESFASE = api;
       });
+    }
+  });
+
+  // shared/presupuesto/horasIndustriales.js
+  var require_horasIndustriales = __commonJS({
+    "shared/presupuesto/horasIndustriales.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const ORIGEN = "parteHoras";
+        const CAPITULO = "HORAS DE INDUSTRIALES";
+        const TARIFA_VENTA = 36.5;
+        function tarifasDe(condiciones) {
+          let c = condiciones;
+          if (typeof c === "string") {
+            try {
+              c = JSON.parse(c);
+            } catch {
+              c = {};
+            }
+          }
+          c = c && typeof c === "object" ? c : {};
+          const pos = (v) => {
+            const n = Number(String(v ?? "").replace(",", "."));
+            return Number.isFinite(n) && n > 0 ? n : null;
+          };
+          const operario = pos(c.precioHoraOperario) || TARIFA_VENTA;
+          return { operario, oficial: pos(c.precioHoraOficial) || operario };
+        }
+        const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+        const sinAc = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+        const slug = (s) => sinAc(s).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+        const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+        function etiquetaMes(mes) {
+          const m = /^(\d{4})-(\d{2})/.exec(String(mes || ""));
+          return m ? `${MESES[Number(m[2]) - 1] || m[2]} ${m[1]}` : String(mes || "");
+        }
+        const claveDe = (p) => `${slug(p.subcontrata)}:${String(p.mes || "").slice(0, 7)}:${slug(p.referencia || p.archivo || "")}`;
+        const refDe = (l) => {
+          if (!l || l.origen !== ORIGEN || !l.origenRef) return null;
+          if (typeof l.origenRef === "object") return l.origenRef;
+          try {
+            return JSON.parse(l.origenRef);
+          } catch {
+            return null;
+          }
+        };
+        function capituloDe(arbol) {
+          let cap = arbol.find((n) => n.tipo === "capitulo" && n.resumen === CAPITULO);
+          if (!cap) {
+            const num = arbol.filter((n) => n.tipo === "capitulo").length + 1;
+            cap = { tipo: "capitulo", codigo: String(num).padStart(2, "0"), resumen: CAPITULO, origen: "app", hijos: [] };
+            arbol.push(cap);
+          }
+          cap.hijos = cap.hijos || [];
+          return cap;
+        }
+        function partidaDe(cap, subcontrata, categoria, tarifa) {
+          const resumen = `HORAS \xB7 ${String(subcontrata).toUpperCase()}${categoria === "oficial" ? " (OFICIAL)" : ""}`;
+          let par = cap.hijos.find((n) => n.tipo === "partida" && n.resumen === resumen);
+          if (!par) {
+            par = {
+              tipo: "partida",
+              codigo: `${cap.codigo}.${String(cap.hijos.length + 1).padStart(2, "0")}`,
+              resumen,
+              unidad: "h",
+              precio: tarifa,
+              origen: "app",
+              medicionObra: []
+            };
+            cap.hijos.push(par);
+          }
+          par.medicionObra = par.medicionObra || [];
+          return par;
+        }
+        function cargarHoras(arbol, partes, tarifas) {
+          const T2 = { operario: TARIFA_VENTA, oficial: TARIFA_VENTA, ...tarifas || {} };
+          const cap = capituloDe(arbol);
+          const res = { creadas: 0, actualizadas: 0, horas: 0 };
+          for (const p of partes || []) {
+            const horas = Number(p.horas);
+            if (!p.subcontrata || !(horas > 0)) continue;
+            const categoria = p.categoria === "oficial" ? "oficial" : "operario";
+            const tarifa = T2[categoria];
+            const par = partidaDe(cap, p.subcontrata, categoria, tarifa);
+            par.precio = tarifa;
+            const clave = claveDe(p);
+            const ref = {
+              clave,
+              subcontrata: p.subcontrata,
+              mes: String(p.mes || "").slice(0, 7),
+              archivo: p.archivo || null,
+              uri: p.uri || null,
+              webUrl: p.webUrl || null,
+              referencia: p.referencia || null,
+              categoria,
+              tarifa,
+              horas: r2(horas),
+              venta: r2(horas * tarifa),
+              costeReal: p.costeReal === null || p.costeReal === void 0 ? null : r2(p.costeReal)
+            };
+            const linea = {
+              comentario: `${etiquetaMes(p.mes)}${p.descripcion ? " \xB7 " + p.descripcion : ""}`.slice(0, 120),
+              uds: r2(horas),
+              largo: null,
+              ancho: null,
+              alto: null,
+              signo: 1,
+              origen: ORIGEN,
+              origenRef: ref
+            };
+            const i = par.medicionObra.findIndex((l) => (refDe(l) || {}).clave === clave);
+            if (i >= 0) {
+              par.medicionObra[i] = { ...par.medicionObra[i], ...linea };
+              res.actualizadas += 1;
+            } else {
+              par.medicionObra.push(linea);
+              res.creadas += 1;
+            }
+            res.horas = r2(res.horas + horas);
+          }
+          for (const par of cap.hijos) {
+            par.medicionObra.sort((a, b) => String((refDe(a) || {}).mes || "").localeCompare(String((refDe(b) || {}).mes || "")));
+            par.cantidadObra = r2(par.medicionObra.reduce((s, l) => s + (Number(l.uds) || 0) * (l.signo === -1 ? -1 : 1), 0));
+          }
+          return res;
+        }
+        function lineasConJustificante(arbol) {
+          const sal = [];
+          const rec = (ns) => (ns || []).forEach((n) => {
+            for (const l of n.medicionObra || []) {
+              const r = refDe(l);
+              if (r && (r.uri || r.archivo)) sal.push({ partida: n.resumen, ...r });
+            }
+            rec(n.hijos);
+          });
+          rec(arbol);
+          return sal;
+        }
+        function hashCorto(s) {
+          let h = 2166136261;
+          for (const c of String(s || "")) {
+            h ^= c.codePointAt(0);
+            h = Math.imul(h, 16777619) >>> 0;
+          }
+          return h.toString(36);
+        }
+        const rutaDe = (l) => String(l && (l.uri || l.archivo) || "");
+        const idPrueba = (l) => `medObraHoras:${slug(l && l.partida)}:${String(l && l.mes || "").slice(0, 7)}:${hashCorto(rutaDe(l))}`;
+        function tipoJustificante(l) {
+          const n = String(l && (l.archivo || l.uri) || "").toLowerCase();
+          if (/\.pdf$/.test(n)) return "pdf";
+          if (/\.(xlsx|xlsm|xls|csv)$/.test(n)) return "excel";
+          return "otro";
+        }
+        function pruebaDeLinea(l) {
+          const eur = (n) => `${(Number(n) || 0).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} \u20AC`;
+          const mes = String(l.mes || "").slice(0, 7);
+          return {
+            idExterno: idPrueba(l),
+            tipo: "documento",
+            fecha: /^\d{4}-\d{2}$/.test(mes) ? `${mes}-01` : null,
+            de: l.subcontrata || null,
+            asunto: `Horas de industrial \xB7 ${l.subcontrata || ""} \xB7 ${etiquetaMes(mes)}${l.referencia ? ` \xB7 ${l.referencia}` : ""}`.slice(0, 200),
+            enlace: l.webUrl || l.uri || null,
+            ruta: l.archivo || null,
+            nombreOriginal: l.archivo || null,
+            extracto: [
+              `Med Obra del presupuesto de obra \xB7 ${l.partida || ""}`,
+              `${String(l.horas ?? "").replace(".", ",")} h \xD7 ${String(l.tarifa ?? "").replace(".", ",")} \u20AC/h = venta ${eur(l.venta)}`,
+              l.costeReal === null || l.costeReal === void 0 ? "Coste real: sin apuntar" : `Coste real (lo que cobra el industrial): ${eur(l.costeReal)}`
+            ].join("\n")
+          };
+        }
+        const API = { ORIGEN, CAPITULO, TARIFA_VENTA, tarifasDe, etiquetaMes, claveDe, refDe, cargarHoras, lineasConJustificante, hashCorto, idPrueba, tipoJustificante, pruebaDeLinea };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.HORAS_INDUSTRIALES = API;
+      })();
+    }
+  });
+
+  // shared/reclamaciones/partesHorasSub.js
+  var require_partesHorasSub = __commonJS({
+    "shared/reclamaciones/partesHorasSub.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const TARIFA_VENTA = 36.5;
+        const ENLACE = "parteHorasSub";
+        const FECHA_DESDE = "2025-09-01";
+        const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+        const sinAc = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+        const slug = (s) => sinAc(s).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+        function horasPersona(p = {}) {
+          const tot = Number(p.horasTotales);
+          if (Number.isFinite(tot) && tot > 0) return r2(tot);
+          const n = Number(p.trabajadores);
+          const h = Number(p.horasPorTrabajador);
+          if (n > 0 && h > 0) return r2(n * h);
+          return 0;
+        }
+        function valorar(p = {}, tarifa = TARIFA_VENTA) {
+          const horas = horasPersona(p);
+          const venta = r2(horas * tarifa);
+          const c = p.costeReal === void 0 || p.costeReal === null || p.costeReal === "" ? null : Number(p.costeReal);
+          const coste = Number.isFinite(c) ? r2(c) : null;
+          return { horas, tarifa, venta, coste, margen: coste === null ? null : r2(venta - coste) };
+        }
+        const MESES = { enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6, julio: 7, agosto: 8, septiembre: 9, setiembre: 9, octubre: 10, noviembre: 11, diciembre: 12 };
+        const p2 = (n) => String(n).padStart(2, "0");
+        function fechaDe(p = {}) {
+          for (const t of [p.fecha, p.fechas, p.mes]) {
+            const x = String(t || "");
+            let m = x.match(/(\d{4})-(\d{2})-(\d{2})/);
+            if (m) return m[0];
+            const todas = [...x.matchAll(/(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})/g)];
+            if (todas.length) {
+              const u = todas[todas.length - 1];
+              return `${u[3]}-${p2(u[2])}-${p2(u[1])}`;
+            }
+            const dm = [...sinAc(x).matchAll(/(\d{1,2})\s+de\s+([a-z]+)(?:\s+de\s+(\d{4}))?/g)];
+            if (dm.length) {
+              const u = dm[dm.length - 1];
+              const y = u[3] || (x.match(/(20\d{2})/) || [])[1];
+              if (MESES[u[2]] && y) return `${y}-${p2(MESES[u[2]])}-${p2(u[1])}`;
+            }
+            const my = sinAc(x).match(/\b(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)\s+(?:de\s+)?(20\d{2})/);
+            if (my) {
+              const mm = MESES[my[1]];
+              return `${my[2]}-${p2(mm)}-${p2(new Date(Date.UTC(Number(my[2]), mm, 0)).getUTCDate())}`;
+            }
+            if (t === p.mes) {
+              m = x.match(/^(20\d{2})-(\d{2})/);
+              if (m) return `${m[1]}-${m[2]}-28`;
+              m = x.match(/^(\d{2})-(\d{2})(?:_|$)/);
+              if (m) return `20${m[1]}-${m[2]}-28`;
+            }
+          }
+          return null;
+        }
+        function normalizar(p = {}) {
+          const hpt = p.horasPorTrabajador;
+          let tot = Number(p.horasTotales);
+          let n = Number(p.trabajadores);
+          if (hpt && typeof hpt === "object") {
+            const v = Object.values(hpt).map(Number).filter((x) => Number.isFinite(x));
+            if (!(tot > 0)) tot = v.reduce((a, b) => a + b, 0);
+            if (!(n > 0)) n = v.length;
+          }
+          const out = { ...p, fecha: fechaDe(p) };
+          if (tot > 0) out.horasTotales = r2(tot);
+          if (n > 0) out.trabajadores = n;
+          if (hpt && typeof hpt === "object") out.horasPorTrabajador = void 0;
+          const c = p.costeReal ?? p.importe;
+          if (c !== void 0 && c !== null && c !== "") out.costeReal = Number(c);
+          return out;
+        }
+        function idExterno(p = {}) {
+          const ref = p.referencia || p.archivo || p.fecha || "";
+          return `parteHoras:${slug(p.subcontrata)}:${String(p.fecha || "").slice(0, 10)}:${slug(ref)}`;
+        }
+        function enPeriodo(p = {}, hasta = require_fecha().hoyLocal()) {
+          const f = String(p.fecha || "").slice(0, 10);
+          return /^\d{4}-\d{2}-\d{2}$/.test(f) && f >= FECHA_DESDE && f <= hasta;
+        }
+        const dias = (a, b) => Math.abs((Date.parse(`${String(a).slice(0, 10)}T00:00:00Z`) - Date.parse(`${String(b).slice(0, 10)}T00:00:00Z`)) / 864e5);
+        const palabras = (s) => new Set(sinAc(s).split(/[^a-z0-9]+/).filter((w) => w.length >= 4));
+        function candidatos(p = {}, hechos = [], max = 3) {
+          const pp = palabras([p.descripcion, p.zona].filter(Boolean).join(" "));
+          const sub = sinAc(p.subcontrata);
+          const res = [];
+          for (const h of hechos) {
+            if (!h || h.estado === "descartado" || h.enlaceTipo === ENLACE || h.naturaleza === "plazoLimak") continue;
+            let punt = 0;
+            const por = [];
+            const f = h.fecha || h.fechaFin;
+            if (f && p.fecha) {
+              const d = dias(f, p.fecha);
+              if (d <= 7) {
+                punt += 3 - Math.floor(d / 3);
+                por.push(d === 0 ? "mismo d\xEDa" : `${d} d\xEDas de diferencia`);
+              }
+            }
+            const hp = palabras([h.titulo, h.descripcion, h.zona].filter(Boolean).join(" "));
+            const comunes = [...pp].filter((w) => hp.has(w));
+            if (comunes.length) {
+              punt += Math.min(4, comunes.length);
+              por.push(`palabras: ${comunes.slice(0, 4).join(", ")}`);
+            }
+            if (sub && sinAc([h.subcontrata, h.titulo, h.descripcion].join(" ")).includes(sub.split(" ")[0])) {
+              punt += 2;
+              por.push("misma subcontrata");
+            }
+            if (h.metodo === "horas_x_tarifa") punt += 0.5;
+            if (punt >= 3) res.push({ hechoId: h.id, idExterno: h.idExterno || null, titulo: h.titulo || "", punt: r2(punt), por: por.join(" \xB7 "), valoraHoras: yaValoraHoras(h) });
+          }
+          return res.sort((a, b) => b.punt - a.punt).slice(0, max);
+        }
+        function yaValoraHoras(h = {}) {
+          if (h.metodo === "horas_x_tarifa" && Number(h.importe ?? h.importeCalc ?? 1) !== 0) return true;
+          if (Number(h.horasPersona) > 0) return true;
+          return false;
+        }
+        function ganador(cands = []) {
+          if (!cands.length) return null;
+          const [a, b] = cands;
+          return a.punt >= 5 && (!b || a.punt - b.punt >= 2) ? a : null;
+        }
+        function escalar(horas, n, coste, pct) {
+          const f = pct >= 100 || !(pct > 0) ? 1 : pct / 100;
+          const h = r2(horas * f);
+          return { horas: h, hPorTrab: n > 0 ? r2(h / n) : h, coste: coste === null || coste === void 0 ? null : r2(coste * f), pct: f === 1 ? null : pct };
+        }
+        function hechoDe(p = {}, { apartadoId = null, padre = null, tarifa = TARIFA_VENTA, revision = [], candidatos: cands = [] } = {}) {
+          const v = valorar(p, tarifa);
+          const n = Number(p.trabajadores) > 0 ? Number(p.trabajadores) : 1;
+          const esc = escalar(v.horas, n, v.coste, Number(p.porcentajeClaim));
+          const hPorTrab = esc.hPorTrab;
+          const quien = p.subcontrata || "Subcontrata";
+          const titulo = `Parte de horas de ${quien}${p.fecha ? ` (${String(p.fecha).slice(0, 10)})` : ""}: ${esc.horas} h${p.descripcion ? ` \u2014 ${String(p.descripcion).slice(0, 90)}` : ""}`;
+          const doc = padre && padre.valoraHoras;
+          const nota = [
+            `Parte de horas de ${quien}`,
+            p.referencia ? `ref. ${p.referencia}` : null,
+            p.archivo ? `archivo ${p.archivo}` : null,
+            p.mes ? `carpeta ${p.mes}` : null,
+            esc.pct ? `El parte trae ${v.horas} h-persona; solo el ${esc.pct} % de sus horas va al claim` : null,
+            `${n} trabajador(es) \xD7 ${hPorTrab} h = ${esc.horas} h-persona`,
+            `Venta: ${esc.horas} h \xD7 ${tarifa} \u20AC/h = ${r2(esc.horas * tarifa)} \u20AC`,
+            esc.coste === null ? "Coste real: sin apuntar (falta el importe del parte)" : `Coste real (lo que nos cobra): ${esc.coste} \u20AC`,
+            padre ? doc ? "Documenta al hecho padre (que ya valora esas horas): no suma venta." : "Cuelga de su hecho y suma sus horas." : "Sin hecho asignado: revisar a cu\xE1l pertenece.",
+            !padre && cands.length ? `Hechos posibles: ${cands.map((c) => `\xAB${String(c.titulo).slice(0, 70)}\xBB (${c.punt} pts: ${c.por})`).join(" | ")}` : null,
+            revision.length ? `A REVISAR: ${revision.join("; ")}` : null
+          ].filter(Boolean).join(". ");
+          return {
+            idExterno: idExterno(p),
+            fecha: String(p.fecha || "").slice(0, 10) || null,
+            titulo,
+            descripcion: [p.descripcion, p.zona ? `Zona: ${p.zona}` : null].filter(Boolean).join(". ") || null,
+            apartadoId,
+            metodo: "horas_x_tarifa",
+            a: n,
+            b: hPorTrab,
+            c: 1,
+            p: tarifa,
+            horasPersona: esc.horas,
+            costeReal: esc.coste,
+            porcentajeClaim: esc.pct,
+            horasOrigen: esc.pct ? v.horas : null,
+            costeOrigen: esc.pct ? v.coste : null,
+            subcontrata: p.subcontrata || null,
+            zona: p.zona || null,
+            enlaceTipo: ENLACE,
+            enlaceId: idExterno(p),
+            origenHecho: "parteHorasSubcontrata",
+            certeza: "documentado",
+            notaImportacion: nota,
+            hechoPadreId: padre ? padre.hechoId : null,
+            hijoSuma: padre ? doc ? 0 : 1 : null,
+            hijoNota: padre ? `Horas de ${quien}` : null,
+            hijoSentido: padre ? "favor" : null
+          };
+        }
+        function avisosRevision(p = {}, lote = [], tarifa = TARIFA_VENTA) {
+          const v = valorar(p, tarifa);
+          const out = [];
+          if (v.coste === null) out.push("sin coste: falta el importe que cobra la subcontrata");
+          else if (v.horas > 0 && v.coste / v.horas > tarifa) out.push(`coste ${r2(v.coste / v.horas)} \u20AC/h por encima de la venta (${tarifa} \u20AC/h)`);
+          const raiz = sinAc(p.subcontrata).split(" ")[0];
+          const gemelos = lote.filter((o) => o !== p && idExterno(o) !== idExterno(p) && sinAc(o.subcontrata).split(" ")[0] === raiz && String(o.fecha).slice(0, 10) === String(p.fecha).slice(0, 10) && horasPersona(o) === v.horas && v.horas > 0);
+          if (gemelos.length) out.push(`posible duplicado: ${gemelos.length} parte(s) de ${p.subcontrata} con la misma fecha y las mismas ${v.horas} h`);
+          if (p.aviso) out.push(String(p.aviso));
+          return out;
+        }
+        function resumen(partes = [], tarifa = TARIFA_VENTA) {
+          const por = /* @__PURE__ */ new Map();
+          const tot = { n: 0, horas: 0, venta: 0, coste: 0, sinCoste: 0 };
+          for (const p of partes) {
+            const v = valorar(p, tarifa);
+            const k = p.subcontrata || "\u2014";
+            const f = por.get(k) || { subcontrata: k, n: 0, horas: 0, venta: 0, coste: 0, sinCoste: 0 };
+            f.n += 1;
+            f.horas = r2(f.horas + v.horas);
+            f.venta = r2(f.venta + v.venta);
+            if (v.coste === null) f.sinCoste += 1;
+            else f.coste = r2(f.coste + v.coste);
+            por.set(k, f);
+            tot.n += 1;
+            tot.horas = r2(tot.horas + v.horas);
+            tot.venta = r2(tot.venta + v.venta);
+            if (v.coste === null) tot.sinCoste += 1;
+            else tot.coste = r2(tot.coste + v.coste);
+          }
+          return { porSubcontrata: [...por.values()].sort((a, b) => b.venta - a.venta), total: tot, margen: r2(tot.venta - tot.coste) };
+        }
+        const API = { normalizar, fechaDe, TARIFA_VENTA, ENLACE, FECHA_DESDE, horasPersona, valorar, idExterno, enPeriodo, candidatos, ganador, yaValoraHoras, hechoDe, resumen, avisosRevision, escalar };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.RECLAMACIONES_PARTES_HORAS_SUB = API;
+      })();
+    }
+  });
+
+  // electron/data/horasIndustriales.js
+  var require_horasIndustriales2 = __commonJS({
+    "electron/data/horasIndustriales.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var HI = require_horasIndustriales();
+      var { armarArbol, sincronizarLineas } = require_presupuestos();
+      function presupuestoDeObra(db, obraId) {
+        return db.prepare("SELECT id, fase, nombre FROM presupuestos WHERE (obraIdVinculada = ? OR obraId = ?) AND fase = 'obra' ORDER BY creadoEn LIMIT 1").get(obraId, obraId) || null;
+      }
+      function tarifasDeEstudios(db, obraId) {
+        const f = db.prepare("SELECT condicionesOferta FROM presupuestos WHERE (obraIdVinculada = ? OR obraId = ?) AND fase = 'estudio' AND condicionesOferta IS NOT NULL ORDER BY creadoEn LIMIT 1").get(obraId, obraId);
+        return HI.tarifasDe(f && f.condicionesOferta);
+      }
+      function parteALinea(p) {
+        const fecha = String(p.fecha || "").slice(0, 10);
+        return {
+          subcontrata: p.subcontrata,
+          mes: fecha.slice(0, 7),
+          horas: require_partesHorasSub().horasPersona(p),
+          costeReal: p.costeReal,
+          categoria: p.categoria,
+          archivo: p.archivo,
+          uri: p.uri,
+          webUrl: p.webUrl || null,
+          referencia: p.referencia,
+          descripcion: p.descripcion
+        };
+      }
+      function cargarPartesEnPresupuestoObra(db, sesion, obraId, partes, opciones = {}) {
+        const pres = presupuestoDeObra(db, obraId);
+        if (!pres) return { ok: false, error: "La obra no tiene presupuesto en fase \xABobra\xBB: las horas de industriales solo van ah\xED; Estudios no se toca." };
+        const arbol = armarArbol(db, pres.id);
+        const res = HI.cargarHoras(arbol, (partes || []).map(parteALinea), tarifasDeEstudios(db, obraId));
+        if (opciones.aplicar) sincronizarLineas(db, pres.id, arbol, sesion);
+        return { ok: true, presupuestoId: pres.id, ...res };
+      }
+      var { puede } = require_roles();
+      var no = (error) => ({ ok: false, error });
+      function lineasDePresupuesto(repo, ses, presupuestoId) {
+        const pres = presupuestoId ? repo.leer("presupuestos", ses, presupuestoId) : null;
+        if (!pres) return { error: "No se encuentra el presupuesto." };
+        if (pres.fase !== "obra") return { error: "Las horas de industriales solo est\xE1n en el presupuesto de obra." };
+        const lineas = HI.lineasConJustificante(armarArbol(repo.db, pres.id)).map((l) => ({ ...l, idExterno: HI.idPrueba(l), tipoArchivo: HI.tipoJustificante(l) }));
+        return { pres, obraId: pres.obraIdVinculada || pres.obraId, lineas };
+      }
+      function pruebaDe(repo, ses, recId, l) {
+        const porId = repo.listar("reclamacionPruebas", ses, { condicion: "reclamacionId = ? AND idExterno = ?", params: [recId, l.idExterno] })[0];
+        if (porId) return porId;
+        const enlaces = [l.webUrl, l.uri].filter(Boolean);
+        if (!enlaces.length) return null;
+        return repo.listar("reclamacionPruebas", ses, { condicion: `reclamacionId = ? AND enlace IN (${enlaces.map(() => "?").join(",")})`, params: [recId, ...enlaces] })[0] || null;
+      }
+      function estadoEnClaims(repo, ses, presupuestoId) {
+        const { obraId, lineas, error } = lineasDePresupuesto(repo, ses, presupuestoId);
+        if (error) return no(error);
+        const ve = puede(ses.rol, "reclamaciones", "ver");
+        const claims = ve && obraId ? repo.listar("reclamaciones", ses, { condicion: "obraId = ?", params: [obraId], orden: "numero" }) : [];
+        const filas = lineas.map((l) => {
+          const en = [];
+          for (const r of claims) {
+            const p = pruebaDe(repo, ses, r.id, l);
+            if (!p) continue;
+            const hechos = repo.listar("reclamacionHechoPruebas", ses, { condicion: "pruebaId = ?", params: [p.id] }).length;
+            en.push({ recId: r.id, codigo: r.codigo || null, pruebaId: p.id, hechos });
+          }
+          return {
+            clave: l.clave,
+            partida: l.partida,
+            subcontrata: l.subcontrata,
+            mes: l.mes,
+            archivo: l.archivo,
+            tipoArchivo: l.tipoArchivo,
+            horas: l.horas,
+            venta: l.venta,
+            costeReal: l.costeReal,
+            idExterno: l.idExterno,
+            enClaims: en
+          };
+        });
+        return {
+          ok: true,
+          obraId,
+          lineas: filas,
+          claims: claims.map((r) => ({ id: r.id, codigo: r.codigo, titulo: r.titulo })),
+          puedeLlevar: puede(ses.rol, "reclamaciones", "editar") && claims.length > 0
+        };
+      }
+      function hechosParaElegir(repo, ses, recId) {
+        if (!puede(ses.rol, "reclamaciones", "ver")) return no("No ves las reclamaciones.");
+        const r = recId ? repo.leer("reclamaciones", ses, recId) : null;
+        if (!r) return no("No se encuentra la reclamaci\xF3n.");
+        const hs = repo.listar("reclamacionHechos", ses, { condicion: "reclamacionId = ?", params: [recId], orden: "numero, fecha" }).filter((h) => h.estado !== "descartado").map((h) => ({ id: h.id, numero: h.numero || null, titulo: h.titulo || "", estado: h.estado, subcontrata: h.subcontrata || null }));
+        return { ok: true, hechos: hs };
+      }
+      function llevarAlClaim(repo, ses, entrada = {}) {
+        if (!puede(ses.rol, "reclamaciones", "editar")) return no("Llevar pruebas al claim lo hace quien edita las reclamaciones.");
+        const { obraId, lineas, error } = lineasDePresupuesto(repo, ses, entrada.presupuestoId);
+        if (error) return no(error);
+        const l = lineas.find((x) => x.clave === entrada.clave);
+        if (!l) return no("Esa l\xEDnea no tiene justificante en el presupuesto de obra.");
+        const r = entrada.recId ? repo.leer("reclamaciones", ses, entrada.recId) : null;
+        if (!r) return no("No se encuentra la reclamaci\xF3n.");
+        if (r.obraId !== obraId) return no("La reclamaci\xF3n es de otra obra.");
+        let h = null;
+        if (entrada.hechoId) {
+          h = repo.leer("reclamacionHechos", ses, entrada.hechoId);
+          if (!h || h.reclamacionId !== r.id) return no("Ese hecho no es de esta reclamaci\xF3n.");
+        }
+        let p = pruebaDe(repo, ses, r.id, l);
+        let creada = false;
+        if (!p) {
+          const id = repo.crear("reclamacionPruebas", ses, { obraId: r.obraId, reclamacionId: r.id, ...HI.pruebaDeLinea(l), creadoPor: ses.personaId }, { verbo: "editar" });
+          p = { id };
+          creada = true;
+        }
+        let ligada = false;
+        if (h && !repo.listar("reclamacionHechoPruebas", ses, { condicion: "hechoId = ? AND pruebaId = ?", params: [h.id, p.id] }).length) {
+          repo.crear("reclamacionHechoPruebas", ses, { obraId: r.obraId, hechoId: h.id, pruebaId: p.id, concepto: `Med Obra \xB7 ${HI.etiquetaMes(l.mes)}` }, { verbo: "editar" });
+          ligada = true;
+        }
+        return { ok: true, pruebaId: p.id, creada, ligada };
+      }
+      function origenArchivo(uri) {
+        const u = String(uri || "");
+        const sp = /^file:\/\/\/(b![^/]+)\/([A-Z0-9]{20,})$/i.exec(u);
+        if (sp) return { sharepoint: { driveId: sp[1], itemId: sp[2] } };
+        if (/^file:\/\/\//i.test(u)) {
+          try {
+            return { local: decodeURIComponent(u.replace(/^file:\/\//i, "")) };
+          } catch {
+            return {};
+          }
+        }
+        if (u.startsWith("/")) return { local: u };
+        return {};
+      }
+      module.exports = {
+        tarifasDeEstudios,
+        presupuestoDeObra,
+        parteALinea,
+        cargarPartesEnPresupuestoObra,
+        lineasDePresupuesto,
+        estadoEnClaims,
+        hechosParaElegir,
+        llevarAlClaim,
+        origenArchivo
+      };
     }
   });
 
@@ -94082,7 +95117,129 @@ ${fallos.join("\r\n")}\r
         notas.push(hp ? `Partes de horas firmados en la obra: ${D.num(hp)} h.` : "No hay ning\xFAn parte de horas firmado por el cliente en la obra.");
         return { lista, notas };
       }
-      function calcular(repo, sesion, obraId) {
+      function horasDelExtracto(texto) {
+        const ms = [...String(texto || "").matchAll(/(\d[\d.,]*)\s*h\s*[×x]\s*(\d[\d.,]*)\s*€\s*\/\s*h/g)];
+        if (!ms.length) return { horas: null, tarifa: null };
+        const m = ms[ms.length - 1];
+        const es = (t) => {
+          const x = String(t).replace(/[.,]$/, "");
+          const n = Number(x.includes(",") ? x.replace(/\./g, "").replace(",", ".") : /^\d{1,3}(\.\d{3})+$/.test(x) ? x.replace(/\./g, "") : x);
+          return Number.isFinite(n) ? n : null;
+        };
+        return { horas: es(m[1]), tarifa: es(m[2]) };
+      }
+      var tipoDe = (n) => /\.pdf$/i.test(n || "") ? "pdf" : /\.(png|jpe?g|heic|webp|gif)$/i.test(n || "") ? "imagen" : /\.(xlsx|xlsm|xls|csv)$/i.test(n || "") ? "excel" : "otro";
+      function justificantesHoras(repo, sesion, obraId) {
+        const out = [];
+        const vistos2 = /* @__PURE__ */ new Set();
+        if (puede(sesion.rol, "reclamaciones", "ver")) {
+          let filas = [];
+          try {
+            filas = repo.db.prepare(`SELECT p.id, p.idExterno, p.de, p.fecha, p.asunto, p.extracto, p.enlace, p.archivo, p.nombreOriginal, r.codigo
+          FROM reclamacionPruebas p JOIN reclamaciones r ON r.id = p.reclamacionId
+          WHERE r.obraId = ? AND (p.idExterno LIKE 'parteHoras:%' OR p.idExterno LIKE 'medObraHoras:%') ORDER BY p.fecha`).all(obraId);
+          } catch {
+            filas = [];
+          }
+          for (const p of filas) {
+            if (vistos2.has(p.idExterno)) continue;
+            vistos2.add(p.idExterno);
+            const h = horasDelExtracto(p.extracto);
+            const partes = String(p.asunto || "").split(" \xB7 ");
+            out.push({
+              id: `prueba:${p.id}`,
+              fuente: "claim",
+              claim: p.codigo || null,
+              emisor: p.de || partes[1] || "\u2014",
+              fecha: p.fecha || null,
+              mes: String(p.fecha || "").slice(0, 7),
+              titulo: p.asunto || "",
+              referencia: partes.length > 2 ? partes.slice(2).join(" \xB7 ") : "",
+              horas: h.horas,
+              tarifa: h.tarifa,
+              importe: h.horas != null && h.tarifa != null ? r2(h.horas * h.tarifa) : null,
+              extracto: p.extracto || "",
+              fichero: p.nombreOriginal || p.archivo || null,
+              tipoArchivo: tipoDe(p.nombreOriginal || p.archivo || p.enlace),
+              abrir: { pruebaId: p.id }
+            });
+          }
+        }
+        try {
+          const HIdat = require_horasIndustriales2();
+          const pres = HIdat.presupuestoDeObra(repo.db, obraId);
+          const r = pres ? HIdat.lineasDePresupuesto(repo, sesion, pres.id) : null;
+          for (const l of r && !r.error && r.lineas || []) {
+            if (vistos2.has(l.idExterno)) continue;
+            vistos2.add(l.idExterno);
+            out.push({
+              id: `medObra:${l.clave}`,
+              fuente: "medObra",
+              claim: null,
+              emisor: l.subcontrata || "\u2014",
+              fecha: l.mes ? `${String(l.mes).slice(0, 7)}-01` : null,
+              mes: String(l.mes || "").slice(0, 7),
+              titulo: `Med Obra \xB7 ${l.partida || ""}`,
+              referencia: l.referencia || "",
+              horas: l.horas ?? null,
+              tarifa: l.tarifa ?? null,
+              importe: l.venta ?? null,
+              extracto: [l.descripcion, l.referencia].filter(Boolean).join("\n"),
+              fichero: l.archivo || null,
+              tipoArchivo: tipoDe(l.archivo || l.uri),
+              abrir: { presupuestoId: pres.id, clave: l.clave }
+            });
+          }
+        } catch {
+        }
+        return out;
+      }
+      function carpetaCorreo(db, obraId) {
+        if (process.env.VIDAIRE_DOCS_CORREO) return process.env.VIDAIRE_DOCS_CORREO;
+        const o = db.prepare("SELECT codigo FROM obras WHERE id = ?").get(obraId) || {};
+        const cod = String(o.codigo || "").replace(/^OBR-/i, "").replace(/[^A-Za-z0-9_-]/g, "");
+        return cod ? require_path().join(require_os().homedir(), "Proyectos", "Datos_Fabricantes", `${cod}_correo`) : null;
+      }
+      function documento(repo, sesion, obraId, docId, { conTexto = true } = {}) {
+        if (!veDinero(sesion)) return { ok: false, error: SIN_PERMISO };
+        const fs = require_fs();
+        const path = require_path();
+        const d = repo.db.prepare("SELECT id, emisor, periodo, tipo, sentido, fichero, asunto, importe FROM docsCorreo WHERE id = ? AND obraId = ?").get(docId, obraId);
+        if (!d) return { ok: false, error: "No se encuentra el documento en esta obra." };
+        const base = carpetaCorreo(repo.db, obraId);
+        const ruta = base && d.fichero ? path.resolve(base, d.fichero) : null;
+        const dentro = ruta && ruta.startsWith(path.resolve(base) + path.sep);
+        const hay = Boolean(dentro && fs.existsSync(ruta));
+        let texto = null;
+        let cortado = false;
+        if (hay && conTexto) {
+          try {
+            texto = fs.readFileSync(ruta, "utf8");
+            if (texto.length > 2e5) {
+              texto = texto.slice(0, 2e5);
+              cortado = true;
+            }
+          } catch {
+            texto = null;
+          }
+        }
+        return {
+          ok: true,
+          id: d.id,
+          emisor: d.emisor,
+          periodo: d.periodo,
+          tipo: d.tipo,
+          sentido: d.sentido,
+          fichero: d.fichero,
+          asunto: d.asunto,
+          importe: d.importe,
+          hayFichero: hay,
+          ruta: hay ? ruta : null,
+          texto,
+          cortado
+        };
+      }
+      function calcular(repo, sesion, obraId, { objetivo = null } = {}) {
         const g = require_gapDisciplina2().cuadro(repo, sesion, obraId, {});
         if (!g.ok) return g;
         const c = require_certMesAMes2().cuadro(repo, sesion, obraId, {});
@@ -94091,11 +95248,12 @@ ${fallos.join("\r\n")}\r
         const hd = c.ok && c.horasDoc && c.horasDoc.totales;
         if (hd && hd.mesesPorRevisar) h.notas.push(`De las horas pagadas, ${D.num(hd.porRevisarHoras)} h (${D.eur(hd.porRevisarImporte)}) est\xE1n por revisar en su documento: m\xEDralas en \xABHoras por documento\xBB.`);
         const d = D.calcular({ medicion: g.medicion, partesHoras, horasCliente: h.lista, notasHoras: h.notas });
-        return { ok: true, obra: g.obra, documentos: g.documentos, leidos: g.leidos, medicion: g.medicion, avisosLectura: g.avisos || [], ...d };
+        const causas = D.porCausa(d, { partesHoras, porCasar: g.medicion && g.medicion.porCasar || [], noCuentan: c.ok ? c.noCuentan || [] : [], disputas: c.ok ? c.disputas || [] : [], objetivo, justificantes: justificantesHoras(repo, sesion, obraId) });
+        return { ok: true, obra: g.obra, documentos: g.documentos, leidos: g.leidos, medicion: g.medicion, avisosLectura: g.avisos || [], ...d, causas };
       }
-      function cuadro(repo, sesion, obraId) {
+      function cuadro(repo, sesion, obraId, opciones = {}) {
         if (!veDinero(sesion)) return { ok: false, error: SIN_PERMISO };
-        const d = calcular(repo, sesion, obraId);
+        const d = calcular(repo, sesion, obraId, opciones || {});
         if (!d.ok) return d;
         const g = repo.db.prepare("SELECT calculadoEn, motivo FROM desfaseCalculos WHERE obraId = ?").get(obraId) || null;
         return { ...d, guardado: g, avisos: avisos(repo, sesion, obraId).avisos };
@@ -94199,7 +95357,7 @@ ${fallos.join("\r\n")}\r
     ON CONFLICT(personaId, clave) DO UPDATE SET hasta = excluded.hasta`).run(sesion.personaId, CLAVE_VISTO(obraId), hasta);
         return { ok: true, hasta };
       }
-      module.exports = { cuadro, recalcular, alCambiar, alRecibir, procesar, avisos, vistos, horasCliente, lecturaCliente, veDinero };
+      module.exports = { documento, carpetaCorreo, justificantesHoras, horasDelExtracto, cuadro, recalcular, alCambiar, alRecibir, procesar, avisos, vistos, horasCliente, lecturaCliente, veDinero };
     }
   });
 
@@ -95502,6 +96660,480 @@ ${fallos.join("\r\n")}\r
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.CONDICIONES_ADJUDICACION = API;
       })();
+    }
+  });
+
+  // shared/compras/repositorioPrecios.js
+  var require_repositorioPrecios = __commonJS({
+    "shared/compras/repositorioPrecios.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var { hoyLocal } = require_fecha();
+      var _firmaRP = typeof __require !== "undefined" ? require_firma() : window.FIRMA_BANCO;
+      var AMBITOS = {
+        estudios: { id: "estudios", etiqueta: "Estudios", que: "Ofertas pedidas por Estudios para presupuestar." },
+        obra: { id: "obra", etiqueta: "Obra", que: "Ofertas pedidas por los jefes de obra para comprar." }
+      };
+      var ROLES_OBRA = /* @__PURE__ */ new Set(["jefeObra", "jefeProduccion", "encargadoObra", "contractSupport"]);
+      var ROLES_ESTUDIOS = /* @__PURE__ */ new Set(["jefeEstudios", "tecnicoEstudios"]);
+      var VENTANA_MESES = 3;
+      var TOLERANCIA = 5e-3;
+      var VISIBILIDAD = {
+        gerente: { estudios: true, obra: true, comparar: true, avisos: true },
+        administrador: { estudios: true, obra: true, comparar: true, avisos: true },
+        jefeDepartamento: { estudios: true, obra: true, comparar: true, avisos: true },
+        jefeProyectos: { estudios: true, obra: true, comparar: true, avisos: true },
+        jefeGrupo: { estudios: true, obra: true, comparar: true, avisos: true },
+        jefeEstudios: { estudios: true, obra: true, comparar: true, avisos: false },
+        tecnicoEstudios: { estudios: true, obra: false, comparar: false, avisos: false },
+        jefeObra: { estudios: false, obra: true, obraAnonima: true, comparar: false, avisos: true, avisosPropios: true },
+        jefeProduccion: { estudios: false, obra: true, obraAnonima: true, comparar: false, avisos: true, avisosPropios: true },
+        contractSupport: { estudios: false, obra: true, comparar: false, avisos: false }
+      };
+      var NADA = { estudios: false, obra: false, comparar: false, avisos: false };
+      var _rolesRP = null;
+      try {
+        _rolesRP = typeof __require !== "undefined" ? require_roles() : window.ROLES;
+      } catch {
+        _rolesRP = null;
+      }
+      function visibilidad(rol) {
+        const v = VISIBILIDAD[rol];
+        if (!v) return { ...NADA };
+        if (_rolesRP) {
+          if (!_rolesRP.puede(rol, "compras", "ver")) return { ...NADA };
+          if (_rolesRP.campoVetado(rol, "precioCoste") || _rolesRP.campoVetado(rol, "precio")) return { ...NADA };
+        }
+        return { obraAnonima: false, avisosPropios: false, ...v };
+      }
+      var NOMBRE_ROL = {
+        gerente: "gerente",
+        administrador: "administrador",
+        jefeDepartamento: "jefe de departamento",
+        jefeProyectos: "jefe de proyectos",
+        jefeGrupo: "jefe de grupo",
+        jefeEstudios: "jefe de estudios",
+        tecnicoEstudios: "t\xE9cnico de estudios",
+        jefeObra: "jefe de obra",
+        jefeProduccion: "jefe de producci\xF3n",
+        contractSupport: "contract support",
+        encargadoObra: "encargado de obra"
+      };
+      function explicarVisibilidad(rol) {
+        const v = visibilidad(rol);
+        const tuyo = [];
+        if (v.estudios) tuyo.push("el **repositorio de Estudios** (precios de las ofertas que pide Estudios para presupuestar)");
+        if (v.obra) tuyo.push(v.obraAnonima ? "el **repositorio de obra** de toda la empresa: de tus obras lo ves todo; de las dem\xE1s, el precio, el proveedor y la fecha, pero no la obra ni qui\xE9n lo pidi\xF3" : "el **repositorio de obra** (precios de las ofertas que piden los jefes de obra para comprar)");
+        if (v.comparar) tuyo.push("la **comparaci\xF3n** entre los dos (cu\xE1nto mejora la compra en obra sobre lo estudiado) con sus estad\xEDsticas");
+        if (v.avisos) tuyo.push(v.avisosPropios ? "los **avisos de mejor precio** de tus obras" : "los **avisos de mejor precio** de todas las obras");
+        const quien = [
+          "- **Gerente, administrador, jefe de departamento, jefe de proyectos y jefe de grupo**: los dos repositorios, la comparaci\xF3n y todos los avisos.",
+          "- **Jefe de estudios**: los dos repositorios y la comparaci\xF3n (para calibrar los estudios con lo que se compra de verdad).",
+          "- **T\xE9cnico de estudios**: solo el repositorio de Estudios.",
+          "- **Jefe de obra y jefe de producci\xF3n**: el repositorio de obra de toda la empresa (de las obras que no son suyas, sin obra ni persona) y el aviso cuando otro jefe de obra ha conseguido un precio mejor en los \xFAltimos 3 meses.",
+          "- **Contract support**: el repositorio de obra, porque prepara los pedidos.",
+          "- **Encargado de obra y el resto**: ninguno; no ven importes."
+        ].join("\n");
+        const reglas = "Cada precio va enlazado a su oferta y a su proveedor, y solo se comparan precios del mismo concepto, la misma unidad y la misma cobertura (suministro + mano de obra no se compara con solo mano de obra).";
+        const nombre = NOMBRE_ROL[rol] || "tu puesto";
+        const loTuyo = tuyo.length ? `Como ${nombre}, ves ${tuyo.join("; ")}.` : `Como ${nombre}, no ves ninguno de los dos repositorios de precios.`;
+        return `${loTuyo}
+
+Qui\xE9n ve cada repositorio:
+${quien}
+
+${reglas}`;
+      }
+      var sinTildesRP = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+      var textoNormal = (s) => sinTildesRP(s).replace(/[^a-z0-9]+/g, " ").trim();
+      var unidadNormal = (u) => sinTildesRP(u).replace(/[^a-z0-9]/g, "").replace(/^(uds?|unidad(es)?)$/, "ud").replace(/^(ml|m)$/, "m");
+      var fechaDe = (x) => x ? String(x).slice(0, 10) : null;
+      function mesesAtras(fechaIso, meses) {
+        const d = /* @__PURE__ */ new Date(`${fechaIso}T00:00:00Z`);
+        if (Number.isNaN(d.getTime())) return null;
+        d.setUTCMonth(d.getUTCMonth() - meses);
+        const dos = (n) => String(n).padStart(2, "0");
+        return `${d.getUTCFullYear()}-${dos(d.getUTCMonth() + 1)}-${dos(d.getUTCDate())}`;
+      }
+      function mediana(valores) {
+        const v = valores.filter((x) => Number.isFinite(x)).sort((a, b) => a - b);
+        if (!v.length) return null;
+        const m = Math.floor(v.length / 2);
+        return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
+      }
+      var red2 = (x) => x === null || x === void 0 || !Number.isFinite(x) ? null : Math.round(x * 100) / 100;
+      var red1 = (x) => x === null || x === void 0 || !Number.isFinite(x) ? null : Math.round(x * 10) / 10;
+      function ambitoDe(peticion, rolPedidor) {
+        if (peticion && (peticion.ambito === "estudios" || peticion.ambito === "obra")) return peticion.ambito;
+        if (rolPedidor && ROLES_OBRA.has(rolPedidor)) return "obra";
+        if (rolPedidor && ROLES_ESTUDIOS.has(rolPedidor)) return "estudios";
+        return peticion && peticion.obraId ? "obra" : "estudios";
+      }
+      function ambitoAlCrear(rol, obraId) {
+        if (ROLES_OBRA.has(rol)) return "obra";
+        if (ROLES_ESTUDIOS.has(rol)) return "estudios";
+        return obraId ? "obra" : "estudios";
+      }
+      function claveComparable({ resumen, unidad, cobertura }) {
+        const u = unidadNormal(unidad);
+        const cob = cobertura === "soloMO" ? "soloMO" : "sumMO";
+        let concepto = null;
+        try {
+          const f = _firmaRP && _firmaRP.firmar ? _firmaRP.firmar({ resumen, unidad }) : null;
+          if (f && f.firma) concepto = `f:${f.firma}`;
+        } catch {
+          concepto = null;
+        }
+        if (!concepto) {
+          const t = textoNormal(resumen);
+          if (!t) return null;
+          concepto = `t:${t}`;
+        }
+        return `${concepto}|u:${u}|c:${cob}`;
+      }
+      function observaciones(d = {}) {
+        const pet = new Map((d.peticiones || []).map((p) => [p.id, p]));
+        const lineasPorOferta = /* @__PURE__ */ new Map();
+        for (const l of d.lineas || []) {
+          if (!lineasPorOferta.has(l.ofertaId)) lineasPorOferta.set(l.ofertaId, []);
+          lineasPorOferta.get(l.ofertaId).push(l);
+        }
+        const personas = d.personas || {};
+        const obras = d.obras || {};
+        const r = [];
+        const fuera = { sinPrecio: 0, excluidas: 0, sinPartida: 0 };
+        for (const o of d.ofertas || []) {
+          const p = pet.get(o.peticionId);
+          if (!p) continue;
+          const pedidor = personas[p.pedidaPor] || null;
+          const ambito = ambitoDe(p, pedidor && pedidor.rol);
+          const obra = p.obraId ? obras[p.obraId] || null : null;
+          const jefe = (pedidor && ROLES_OBRA.has(pedidor.rol) ? p.pedidaPor : null) || obra && obra.jefeObraId || p.pedidaPor || null;
+          const partidas = (d.partidas || {})[p.presupuestoId] || {};
+          const agrup = Array.isArray(p.agrupacion) ? new Map(p.agrupacion.map((a) => [String(a.codigo), a])) : null;
+          const proyecto = (d.proyectos || {})[p.presupuestoId] || null;
+          for (const l of lineasPorOferta.get(o.id) || []) {
+            if (l.incluye === false || l.incluye === 0) {
+              fuera.excluidas += 1;
+              continue;
+            }
+            const precio = Number(l.precio);
+            if (l.precio === null || l.precio === void 0 || !Number.isFinite(precio) || precio <= 0) {
+              fuera.sinPrecio += 1;
+              continue;
+            }
+            const partida = agrup && agrup.get(String(l.partidaCodigo)) || partidas[l.partidaCodigo] || null;
+            if (!partida || !partida.resumen) {
+              fuera.sinPartida += 1;
+              continue;
+            }
+            const cobertura = o.cobertura === "soloMO" ? "soloMO" : "sumMO";
+            const clave = claveComparable({ resumen: partida.resumen, unidad: partida.unidad, cobertura });
+            if (!clave) {
+              fuera.sinPartida += 1;
+              continue;
+            }
+            r.push({
+              clave,
+              ambito,
+              resumen: partida.resumen,
+              unidad: partida.unidad || "",
+              cantidad: Number(partida.cantidad) || 0,
+              cobertura,
+              precio: red2(precio),
+              proveedorId: o.proveedorId,
+              proveedor: (d.proveedores || {})[o.proveedorId] || o.proveedorId,
+              ofertaId: o.id,
+              peticionId: p.id,
+              presupuestoId: p.presupuestoId || null,
+              grupo: p.grupo || null,
+              paquete: p.descripcion || p.grupo || null,
+              partidaCodigo: l.partidaCodigo,
+              obraId: p.obraId || null,
+              obra: obra ? obra.codigo || obra.nombre || null : null,
+              proyecto: proyecto ? proyecto.codigo || proyecto.nombre || null : null,
+              pedidaPor: p.pedidaPor || null,
+              jefeObraId: ambito === "obra" ? jefe : null,
+              fecha: fechaDe(o.fecha) || fechaDe(o.creadoEn),
+              descartada: o.estado === "descartada",
+              documento: o.documento || null
+            });
+          }
+        }
+        return { observaciones: r, fuera };
+      }
+      function repositorio(obs, ambito) {
+        const porClave = /* @__PURE__ */ new Map();
+        for (const o of obs) {
+          if (o.ambito !== ambito) continue;
+          if (!porClave.has(o.clave)) porClave.set(o.clave, []);
+          porClave.get(o.clave).push(o);
+        }
+        const conceptos = [...porClave.entries()].map(([clave, lista]) => {
+          const validas = lista.filter((o) => !o.descartada);
+          const base = validas.length ? validas : lista;
+          const mejor = base.reduce((a, b) => b.precio < a.precio ? b : a);
+          const ordenados = [...lista].sort((a, b) => String(b.fecha || "").localeCompare(String(a.fecha || "")) || a.precio - b.precio);
+          return {
+            clave,
+            resumen: lista[0].resumen,
+            unidad: lista[0].unidad,
+            cobertura: lista[0].cobertura,
+            n: lista.length,
+            proveedores: new Set(lista.map((o) => o.proveedorId)).size,
+            mediana: red2(mediana(base.map((o) => o.precio))),
+            minimo: mejor.precio,
+            maximo: red2(Math.max(...base.map((o) => o.precio))),
+            mejor: { proveedor: mejor.proveedor, proveedorId: mejor.proveedorId, precio: mejor.precio, ofertaId: mejor.ofertaId, fecha: mejor.fecha },
+            ultimaFecha: ordenados[0].fecha,
+            precios: ordenados
+          };
+        });
+        conceptos.sort((a, b) => b.n - a.n || String(a.resumen).localeCompare(String(b.resumen), "es"));
+        return {
+          ambito,
+          conceptos,
+          precios: conceptos.reduce((s, c) => s + c.n, 0),
+          proveedores: new Set(obs.filter((o) => o.ambito === ambito).map((o) => o.proveedorId)).size
+        };
+      }
+      function comparar(repEstudios, repObra) {
+        const est = new Map(repEstudios.conceptos.map((c) => [c.clave, c]));
+        const filas = [];
+        for (const o of repObra.conceptos) {
+          const e = est.get(o.clave);
+          if (!e || !e.mediana || !o.mediana) continue;
+          const cantidad = Math.max(0, ...o.precios.map((x) => x.cantidad || 0));
+          const mejora = e.mediana - o.mediana;
+          filas.push({
+            clave: o.clave,
+            resumen: o.resumen,
+            unidad: o.unidad,
+            cobertura: o.cobertura,
+            estudios: e.mediana,
+            obra: o.mediana,
+            nEstudios: e.n,
+            nObra: o.n,
+            mejoraPct: red1(mejora / e.mediana * 100),
+            cantidad,
+            ahorro: red2(mejora * cantidad),
+            mejorObra: o.mejor,
+            mejorEstudios: e.mejor
+          });
+        }
+        filas.sort((a, b) => Math.abs(b.ahorro || 0) - Math.abs(a.ahorro || 0) || (b.mejoraPct || 0) - (a.mejoraPct || 0));
+        const importeEstudios = filas.reduce((s, f) => s + f.estudios * f.cantidad, 0);
+        const ahorro = filas.reduce((s, f) => s + (f.ahorro || 0), 0);
+        return {
+          filas,
+          estadisticas: {
+            comunes: filas.length,
+            soloEstudios: repEstudios.conceptos.filter((c) => !repObra.conceptos.some((o) => o.clave === c.clave)).length,
+            soloObra: repObra.conceptos.filter((c) => !est.has(c.clave)).length,
+            mejoran: filas.filter((f) => f.mejoraPct > 0.05).length,
+            empeoran: filas.filter((f) => f.mejoraPct < -0.05).length,
+            iguales: filas.filter((f) => Math.abs(f.mejoraPct) <= 0.05).length,
+            mejoraMedianaPct: red1(mediana(filas.map((f) => f.mejoraPct))),
+            /* Ponderada por lo que mueve cada concepto: un 20 % en tornillería no es un 20 % en climatizadoras. */
+            mejoraPonderadaPct: importeEstudios > 0 ? red1(ahorro / importeEstudios * 100) : null,
+            ahorro: red2(ahorro)
+          }
+        };
+      }
+      function avisosMejorPrecio(obs, { hoy = hoyLocal(), meses = VENTANA_MESES, jefeObraId = null, obrasIds = null } = {}) {
+        const deObra = obs.filter((o) => o.ambito === "obra" && o.fecha && !o.descartada);
+        const porClave = /* @__PURE__ */ new Map();
+        for (const o of deObra) {
+          if (!porClave.has(o.clave)) porClave.set(o.clave, []);
+          porClave.get(o.clave).push(o);
+        }
+        const limiteRecibida = mesesAtras(hoy, meses);
+        const misObras = obrasIds ? new Set(obrasIds) : null;
+        const avisos = [];
+        for (const o of deObra) {
+          if (o.fecha > hoy || limiteRecibida && o.fecha < limiteRecibida) continue;
+          if (jefeObraId && o.jefeObraId !== jefeObraId && !(misObras && misObras.has(o.obraId))) continue;
+          const desde = mesesAtras(o.fecha, meses);
+          const otros = porClave.get(o.clave).filter((b) => b !== o && b.fecha >= desde && b.fecha <= hoy && (b.jefeObraId && o.jefeObraId ? b.jefeObraId !== o.jefeObraId : b.obraId !== o.obraId) && b.precio < o.precio * (1 - TOLERANCIA) && o.precio - b.precio >= 0.01);
+          if (!otros.length) continue;
+          const mejor = otros.reduce((a, b) => b.precio < a.precio || b.precio === a.precio && b.fecha > a.fecha ? b : a);
+          const difPct = red1((o.precio - mejor.precio) / mejor.precio * 100);
+          avisos.push({
+            clave: o.clave,
+            resumen: o.resumen,
+            unidad: o.unidad,
+            tuPrecio: o.precio,
+            tuProveedor: o.proveedor,
+            tuProveedorId: o.proveedorId,
+            ofertaId: o.ofertaId,
+            peticionId: o.peticionId,
+            presupuestoId: o.presupuestoId,
+            grupo: o.grupo,
+            obraId: o.obraId,
+            jefeObraId: o.jefeObraId,
+            fecha: o.fecha,
+            mejorPrecio: mejor.precio,
+            mejorProveedor: mejor.proveedor,
+            mejorProveedorId: mejor.proveedorId,
+            mejorFecha: mejor.fecha,
+            mismoProveedor: mejor.proveedorId === o.proveedorId,
+            diferenciaPct: difPct,
+            sobrecoste: red2((o.precio - mejor.precio) * (o.cantidad || 0)),
+            /* Los datos de la otra obra se guardan para quien sí la puede ver (gerencia); la pantalla del jefe de obra no los pinta. */
+            mejorObraId: mejor.obraId,
+            mejorOfertaId: mejor.ofertaId,
+            mensaje: mensajeAviso(o, mejor, difPct)
+          });
+        }
+        avisos.sort((a, b) => (b.sobrecoste || 0) - (a.sobrecoste || 0) || b.diferenciaPct - a.diferenciaPct);
+        return avisos;
+      }
+      var eurRP = (v) => `${new Intl.NumberFormat("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: "always" }).format(Number(v) || 0)} \u20AC`;
+      var fechaCorta = (f) => f ? String(f).slice(0, 10).split("-").reverse().join("/") : "";
+      function mensajeAviso(o, mejor, difPct) {
+        const quien = mejor.proveedorId === o.proveedorId ? `el mismo ${mejor.proveedor}` : mejor.proveedor;
+        return `Otro jefe de obra de tu empresa ha conseguido un mejor precio: ${eurRP(mejor.precio)}/${mejor.unidad || "ud"} con ${quien} (${fechaCorta(mejor.fecha)}). T\xFA tienes ${eurRP(o.precio)} de ${o.proveedor}: un ${String(difPct).replace(".", ",")} % m\xE1s.`;
+      }
+      function anonimizar(obs, { personaId, obrasIds = [] } = {}) {
+        const mias = new Set(obrasIds);
+        return obs.map((o) => {
+          if (o.ambito !== "obra") return o;
+          if (o.jefeObraId && o.jefeObraId === personaId || o.obraId && mias.has(o.obraId)) return { ...o, propia: true };
+          return {
+            ...o,
+            propia: false,
+            obra: null,
+            obraId: null,
+            proyecto: null,
+            pedidaPor: null,
+            jefeObraId: null,
+            ofertaId: null,
+            peticionId: null,
+            presupuestoId: null,
+            grupo: null,
+            paquete: null,
+            partidaCodigo: null,
+            documento: null
+          };
+        });
+      }
+      var API = {
+        AMBITOS,
+        ROLES_OBRA,
+        ROLES_ESTUDIOS,
+        VENTANA_MESES,
+        VISIBILIDAD,
+        visibilidad,
+        explicarVisibilidad,
+        ambitoDe,
+        ambitoAlCrear,
+        claveComparable,
+        observaciones,
+        repositorio,
+        comparar,
+        avisosMejorPrecio,
+        anonimizar,
+        mediana
+      };
+      if (typeof module !== "undefined" && module.exports) module.exports = API;
+      if (typeof window !== "undefined") window.REPOSITORIO_PRECIOS = API;
+    }
+  });
+
+  // electron/data/repositorioPrecios.js
+  var require_repositorioPrecios2 = __commonJS({
+    "electron/data/repositorioPrecios.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var RP = require_repositorioPrecios();
+      var { hoyLocal } = require_fecha();
+      var { armarArbol } = require_presupuestos();
+      function leerJson(t) {
+        if (!t) return null;
+        try {
+          return JSON.parse(t);
+        } catch {
+          return null;
+        }
+      }
+      function recoger(db) {
+        const peticiones = db.prepare("SELECT * FROM peticionesOferta").all().map((p) => ({
+          ...p,
+          agrupacion: leerJson(p.agrupacion)
+        }));
+        const ofertas = db.prepare("SELECT * FROM ofertasProveedor").all();
+        const lineas = db.prepare("SELECT ofertaId, partidaCodigo, precio, incluye FROM lineasOfertaProveedor").all().map((l) => ({ ...l, incluye: l.incluye !== 0 }));
+        const proveedores = Object.fromEntries(db.prepare("SELECT id, nombre FROM proveedores").all().map((p) => [p.id, p.nombre]));
+        const personas = Object.fromEntries(db.prepare("SELECT id, nombre, rol FROM personas").all().map((p) => [p.id, p]));
+        const obras = Object.fromEntries(db.prepare("SELECT id, codigo, nombre, jefeObraId FROM obras").all().map((o) => [o.id, o]));
+        const conOfertas = new Set(ofertas.map((o) => o.peticionId));
+        const presupuestosIds = [...new Set(peticiones.filter((p) => conOfertas.has(p.id) && p.presupuestoId).map((p) => p.presupuestoId))];
+        const partidas = {};
+        const proyectos = {};
+        const deProyecto = db.prepare("SELECT pr.codigo, pr.nombre FROM presupuestos p LEFT JOIN proyectos pr ON pr.id = p.proyectoId WHERE p.id = ?");
+        for (const id of presupuestosIds) {
+          const mapa = {};
+          (function recorrer(nodos) {
+            for (const n of nodos || []) {
+              if (n.tipo === "partida" && n.codigo) mapa[n.codigo] = { resumen: n.resumen, unidad: n.unidad, cantidad: n.cantidad };
+              if (n.hijos) recorrer(n.hijos);
+            }
+          })(armarArbol(db, id));
+          partidas[id] = mapa;
+          proyectos[id] = deProyecto.get(id) || null;
+        }
+        return { peticiones, ofertas, lineas, partidas, proveedores, personas, obras, proyectos };
+      }
+      function obrasDe(db, personaId) {
+        if (!personaId) return [];
+        try {
+          return db.prepare("SELECT id FROM obras WHERE jefeObraId = ?").all(personaId).map((o) => o.id);
+        } catch {
+          return [];
+        }
+      }
+      function repositorios(repo, sesion, { hoy = null } = {}) {
+        const v = RP.visibilidad(sesion && sesion.rol);
+        if (!sesion || !v.estudios && !v.obra) {
+          return { visibilidad: v, sinAcceso: true, explicacion: RP.explicarVisibilidad(sesion && sesion.rol) };
+        }
+        const db = repo.db;
+        const datos = recoger(db);
+        const { observaciones, fuera } = RP.observaciones(datos);
+        const misObras = obrasDe(db, sesion.personaId);
+        const dia = hoy || hoyLocal();
+        let avisos = null;
+        if (v.avisos) {
+          avisos = RP.avisosMejorPrecio(observaciones, {
+            hoy: dia,
+            jefeObraId: v.avisosPropios ? sesion.personaId : null,
+            obrasIds: v.avisosPropios ? misObras : null
+          });
+          if (v.avisosPropios) avisos = avisos.map((a) => ({ ...a, mejorObraId: null, mejorOfertaId: null }));
+        }
+        const vistas = v.obraAnonima ? RP.anonimizar(observaciones, { personaId: sesion.personaId, obrasIds: misObras }) : observaciones;
+        const estudios = v.estudios ? RP.repositorio(vistas, "estudios") : null;
+        const obra = v.obra ? RP.repositorio(vistas, "obra") : null;
+        const comparacion = v.comparar && estudios && obra ? RP.comparar(estudios, obra) : null;
+        return {
+          visibilidad: v,
+          estudios,
+          obra,
+          comparacion,
+          avisos,
+          fuera,
+          explicacion: RP.explicarVisibilidad(sesion.rol),
+          hoy: dia
+        };
+      }
+      function avisosDeOferta(repo, sesion, ofertaId, { hoy = null } = {}) {
+        const v = RP.visibilidad(sesion && sesion.rol);
+        if (!v.avisos || !ofertaId) return [];
+        const { observaciones } = RP.observaciones(recoger(repo.db));
+        const dia = hoy || hoyLocal();
+        return RP.avisosMejorPrecio(observaciones, { hoy: dia }).filter((a) => a.ofertaId === ofertaId).map((a) => v.avisosPropios ? { ...a, mejorObraId: null, mejorOfertaId: null } : a);
+      }
+      module.exports = { repositorios, avisosDeOferta, recoger };
     }
   });
 
@@ -99880,6 +101512,7 @@ ${fallos.join("\r\n")}\r
       var aHoras = require_aHoras();
       var condicionesAdj = require_condicionesAdjudicacion();
       var { puede } = require_roles();
+      var repositorioPrecios = require_repositorioPrecios();
       var { armarArbol } = require_presupuestos();
       function deFilaPeticion(f) {
         if (!f) return null;
@@ -99887,6 +101520,8 @@ ${fallos.join("\r\n")}\r
           id: f.id,
           presupuestoId: f.presupuestoId || null,
           obraId: f.obraId || null,
+          /* A qué repositorio de precios van sus ofertas: 'estudios' u 'obra' (null en las de antes). */
+          ambito: f.ambito === "estudios" || f.ambito === "obra" ? f.ambito : null,
           grupo: f.grupo,
           descripcion: f.descripcion || null,
           fechaEnvio: f.fechaEnvio || null,
@@ -99930,13 +101565,16 @@ ${fallos.join("\r\n")}\r
         }
         const ya = listarPeticiones(repo, sesion, presupuestoId).find((p) => p.grupo === grupo);
         if (ya) return ya;
+        const vinculada = repo.db.prepare("SELECT obraIdVinculada FROM presupuestos WHERE id = ?").get(presupuestoId) || {};
         const id = repo.crear("peticionesOferta", sesion, {
           presupuestoId,
           grupo,
           descripcion: descripcion || null,
           fechaLimite: fechaLimite || null,
           estado: "preparando",
-          pedidaPor: sesion.personaId
+          pedidaPor: sesion.personaId,
+          /* Estudios u obra: a qué repositorio de precios van sus ofertas (shared/compras/repositorioPrecios.js). */
+          ambito: repositorioPrecios.ambitoAlCrear(sesion.rol, vinculada.obraIdVinculada || null)
         });
         return deFilaPeticion(repo.leer("peticionesOferta", sesion, id));
       }
@@ -100088,7 +101726,15 @@ ${fallos.join("\r\n")}\r
           db.exec("ROLLBACK");
           return { error: `La oferta no se ha guardado: ${e && e.message || e}` };
         }
-        return ofertasDe(repo, sesion, peticionId).find((o) => o.proveedorId === proveedorId) || null;
+        const guardada = ofertasDe(repo, sesion, peticionId).find((o) => o.proveedorId === proveedorId) || null;
+        if (guardada) {
+          try {
+            guardada.avisosPrecio = require_repositorioPrecios2().avisosDeOferta(repo, sesion, guardada.id);
+          } catch {
+            guardada.avisosPrecio = [];
+          }
+        }
+        return guardada;
       }
       function descartarOferta(repo, sesion, ofertaId, { motivo, readmitir } = {}) {
         const o = repo.leer("ofertasProveedor", sesion, ofertaId);
@@ -100432,6 +102078,7 @@ ${fallos.join("\r\n")}\r
         const id = repo.crear("peticionesOferta", sesion, {
           presupuestoId,
           obraId: presupuesto.obraIdVinculada || null,
+          ambito: repositorioPrecios.ambitoAlCrear(sesion.rol, presupuesto.obraIdVinculada || null),
           grupo,
           descripcion: titulo,
           fechaLimite: fechaLimite || null,
@@ -104339,6 +105986,131 @@ ${fallos.join("\r\n")}\r
     }
   });
 
+  // shared/licencias.js
+  var require_licencias = __commonJS({
+    "shared/licencias.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function iniciarLicencias(R) {
+        const TARIFA = {
+          base: 12e3,
+          compras: 12e3,
+          produccion: 9600,
+          cxMantenimiento: 18e3,
+          calidad: 6e3,
+          documentacion: 6e3,
+          reclamaciones: 6e3
+        };
+        const PAQUETE_COMPLETO = 6e4;
+        const MINIMO_CX_MES = 800;
+        const ESCALONES = { hastaTabla: 10, hastaRecargo: 25, recargo: 0.3, porObraExtraMes: 250 };
+        const TIPOS = [{ id: "departamento", nombre: "Departamento" }, { id: "delegacion", nombre: "Delegaci\xF3n" }];
+        const GESTIONAN = ["gerente", "administrador"];
+        const gestiona = (idRol) => GESTIONAN.includes(idRol);
+        const numOk = (v) => typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 1e7;
+        const leerJson = (t, d) => {
+          if (t && typeof t === "object") return t;
+          try {
+            return t ? JSON.parse(t) : d;
+          } catch {
+            return d;
+          }
+        };
+        const IDS = R.MODULOS_CONTRATABLES.map((m) => m.id);
+        function limpiarPrecios(p) {
+          const o = leerJson(p, {}) || {};
+          const r = {};
+          for (const id of IDS) {
+            const v = typeof o[id] === "string" && o[id].trim() !== "" ? Number(o[id].replace(",", ".")) : o[id];
+            if (numOk(v)) r[id] = Math.round(v * 100) / 100;
+          }
+          return r;
+        }
+        function limpiarUnidad(u) {
+          const o = u && typeof u === "object" ? u : {};
+          const obras = Number(o.obrasActivas);
+          return {
+            id: o.id ? String(o.id) : null,
+            nombre: String(o.nombre || "").trim().slice(0, 120),
+            tipo: TIPOS.some((t) => t.id === o.tipo) ? o.tipo : "departamento",
+            modulos: R.normalizarContrato(leerJson(o.modulos, [])) || ["base"],
+            precios: limpiarPrecios(o.precios),
+            obrasActivas: Number.isFinite(obras) && obras >= 0 ? Math.min(999, Math.floor(obras)) : 0,
+            activa: o.activa === void 0 || o.activa === null ? true : Boolean(Number(o.activa) || o.activa === true)
+          };
+        }
+        function contratoDe(persona, unidades) {
+          const id = persona && persona.unidadNegocioId;
+          if (!id) return null;
+          const u = (unidades || []).find((x) => x && x.id === id);
+          if (!u) return null;
+          const l = limpiarUnidad(u);
+          return l.activa ? l.modulos : null;
+        }
+        function precioModulo(unidad, id) {
+          const p = limpiarPrecios(unidad && unidad.precios);
+          return numOk(p[id]) ? p[id] : TARIFA[id];
+        }
+        function precioUnidad(unidad) {
+          const u = limpiarUnidad(unidad);
+          const lineas = u.modulos.map((id) => {
+            let anual2 = precioModulo(u, id);
+            if (id === "cxMantenimiento") anual2 = Math.max(anual2, MINIMO_CX_MES * 12);
+            return { id, nombre: R.MODULOS_CONTRATABLES.find((m) => m.id === id).nombre, anual: anual2, propio: numOk(u.precios[id]) };
+          });
+          const suma = lineas.reduce((a, l) => a + l.anual, 0);
+          const todos = u.modulos.length === IDS.length;
+          const conPrecioPropio = lineas.some((l) => l.propio);
+          const paquete = todos && !conPrecioPropio && suma > PAQUETE_COMPLETO;
+          const neto = paquete ? PAQUETE_COMPLETO : suma;
+          const n = u.obrasActivas;
+          const recargo = n > ESCALONES.hastaTabla ? Math.round(neto * ESCALONES.recargo * 100) / 100 : 0;
+          const extraObras = n > ESCALONES.hastaRecargo ? (n - ESCALONES.hastaRecargo) * ESCALONES.porObraExtraMes * 12 : 0;
+          const anual = Math.round((neto + recargo + extraObras) * 100) / 100;
+          return { lineas, suma, paquete, recargo, extraObras, anual, mensual: Math.round(anual / 12 * 100) / 100, aMedida: n > ESCALONES.hastaRecargo };
+        }
+        function resumen(idRol, unidades, personas = []) {
+          if (!gestiona(idRol)) return null;
+          const filas = (unidades || []).map((x) => {
+            const u = limpiarUnidad(x);
+            const p = precioUnidad(u);
+            const gente = (personas || []).filter((q) => q && q.unidadNegocioId === u.id).length;
+            return { ...u, ...p, personas: gente, porPersona: gente ? Math.round(p.anual / gente) : null };
+          });
+          const activas = filas.filter((f) => f.activa);
+          const sinUnidad = (personas || []).filter((q) => q && !activas.some((u) => u.id === q.unidadNegocioId)).length;
+          return {
+            unidades: filas,
+            total: { anual: activas.reduce((a, f) => a + f.anual, 0), mensual: activas.reduce((a, f) => a + f.mensual, 0), unidades: activas.length },
+            sinUnidad
+          };
+        }
+        const sinPrecios = (unidades) => (unidades || []).map((x) => {
+          const u = limpiarUnidad(x);
+          return { id: u.id, nombre: u.nombre, tipo: u.tipo, modulos: u.modulos, activa: u.activa };
+        });
+        const API = {
+          TARIFA,
+          PAQUETE_COMPLETO,
+          MINIMO_CX_MES,
+          ESCALONES,
+          TIPOS,
+          GESTIONAN,
+          gestiona,
+          limpiarPrecios,
+          limpiarUnidad,
+          contratoDe,
+          precioModulo,
+          precioUnidad,
+          resumen,
+          sinPrecios
+        };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.LICENCIAS = API;
+      })(typeof module !== "undefined" && module.exports ? require_roles() : window.ROLES);
+    }
+  });
+
   // shared/queHaceLaApp.js
   var require_queHaceLaApp = __commonJS({
     "shared/queHaceLaApp.js"(exports, module) {
@@ -104787,6 +106559,17 @@ ${fallos.join("\r\n")}\r
             queHace: "Lo comprado, lo que queda por comprar y la mejora sobre estudio.",
             automatico: [
               { que: "Comprado, por comprar, mejora y margen, contra el coste de estudio", cuando: "Siempre", editable: false }
+            ]
+          },
+          {
+            area: "Obra \xB7 Compras",
+            titulo: "Precios de compra",
+            dondeEsta: "Compras \u203A Precios de compra",
+            cubre: ["preciosCompra"],
+            queHace: "Los precios que consigue Estudios y los que consigue la obra, cada uno con su proveedor y su oferta, comparados sobre el mismo alcance.",
+            automatico: [
+              { que: "Mejora de la compra de obra sobre Estudios, solo en conceptos comparables (misma partida, unidad y cobertura)", cuando: "Siempre", editable: false },
+              { que: "Aviso al jefe de obra si otro jefe de la empresa consigui\xF3 mejor precio en los \xFAltimos 3 meses", cuando: "Al guardar una oferta y al abrir la pantalla", editable: false }
             ]
           },
           {
@@ -105573,6 +107356,43 @@ ${fallos.join("\r\n")}\r
             hipotesis: "Por cada elemento (difusor, reja, compuerta, VAV, unidad interior\u2026) contado a mano en un plano de planta: localizarlo y marcarlo ~0,3 min y apuntarlo en la medici\xF3n de su partida por planta, cuadrando con la tabla de selecci\xF3n ~0,2 min = 0,5 min. Lo hace el jefe de producci\xF3n (60 %) con el jefe de obra (40 %), que revisa la diferencia con proyecto. Revisar la vista con los s\xEDmbolos sigue siendo del jefe de obra."
           },
           /*
+           * EL ESTUDIO DEL DESFASE CLIENTE / INDUSTRIAL POR CAUSA (JC, 14-nov-2026:
+           * «el estudio del hueco por causa lo hace la app; que las horas que le
+           * costaría a una persona cuenten en Lo que ahorra»). Certificaciones › Mes a
+           * mes › Por causa. A mano: casar cada partida pagada con la certificada al
+           * cliente, revisar las horas de cada industrial y enlazar los justificantes.
+           * Tres supuestos de minutos, visibles en pantalla y editables. Se cuentan en
+           * el mes en que la app hizo el estudio (desfaseCalculos.calculadoEn). Lo hace
+           * el jefe de producción (60 %, lleva los industriales) con el jefe de obra (40 %).
+           */
+          {
+            id: "desfasePartidas",
+            unaVez: true,
+            que: "Estudio del desfase cliente/industrial: partidas casadas una a una",
+            unidad: "partidas casadas",
+            minutos: 6,
+            reparto: { jefeProduccion: 0.6, jefeObra: 0.4 },
+            hipotesis: "Por cada partida pagada a los industriales: buscarla en la certificaci\xF3n del cliente, comparar metros y precio de venta y apuntar la diferencia y su causa: ~6 min por partida casada. Lo hace el jefe de producci\xF3n (60 %) con el jefe de obra (40 %)."
+          },
+          {
+            id: "desfaseHoras",
+            unaVez: true,
+            que: "Estudio del desfase cliente/industrial: horas de cada industrial y mes revisadas",
+            unidad: "industriales-mes de horas",
+            minutos: 20,
+            reparto: { jefeProduccion: 0.6, jefeObra: 0.4 },
+            hipotesis: "Por cada industrial y mes con horas de administraci\xF3n: abrir sus partes, sumar las horas, compararlas con las que reconoce el cliente y apuntar lo no repercutido: ~20 min por industrial y mes. Lo hace el jefe de producci\xF3n (60 %) con el jefe de obra (40 %)."
+          },
+          {
+            id: "desfaseJustificantes",
+            unaVez: true,
+            que: "Estudio del desfase cliente/industrial: justificantes localizados y enlazados",
+            unidad: "justificantes",
+            minutos: 4,
+            reparto: { jefeProduccion: 0.6, jefeObra: 0.4 },
+            hipotesis: "Por cada certificaci\xF3n (del industrial o del cliente) que justifica una l\xEDnea: localizar el documento, comprobar que es la versi\xF3n buena y enlazarlo a su causa: ~4 min por justificante. Lo hace el jefe de producci\xF3n (60 %) con el jefe de obra (40 %)."
+          },
+          /*
            * LA RECLAMACIÓN AL CLIENTE (JC, 5-nov-2026: «hay que contar el tiempo que
            * me voy a ahorrar usando la app con todo esto del claim»). Una vez POR
            * RECLAMACIÓN (no al mes): se cuenta lo de todas las reclamaciones visibles
@@ -106203,6 +108023,42 @@ ${fallos.join("\r\n")}\r
           eurosHoras += porObraMes.euros * 12 * o;
           return { usuarios: n, obras: o, licencias, horas, eurosHoras, total: licencias + eurosHoras, sinPrecio, porObraMes, porObraAnio: porObraMes.euros * 12 };
         }
+        const UNIDAD_REFERENCIA = { id: "referencia", nombre: "Unidad de referencia (Base + Cx y Mantenimiento)", modulos: ["base", "cxMantenimiento"], precios: {}, obrasActivas: 0, activa: true };
+        function licenciasPieza() {
+          if (typeof window !== "undefined" && window.LICENCIAS) return window.LICENCIAS;
+          if (typeof __require === "function") {
+            try {
+              return require_licencias();
+            } catch {
+              return null;
+            }
+          }
+          return null;
+        }
+        function licenciaVidaire(idRol, { unidades, usuarios = USUARIOS_INICIAL, ajustes } = {}) {
+          if (!esAdmin(idRol)) return null;
+          const L = licenciasPieza();
+          if (!L) return null;
+          const lista = (unidades && unidades.length ? unidades : [UNIDAD_REFERENCIA]).map((u) => ({ ...L.limpiarUnidad(u), ...L.precioUnidad(u) })).filter((u) => u.activa);
+          const n = Math.max(0, Math.floor(Number(usuarios) || 0));
+          const anual = lista.reduce((a, u) => a + u.anual, 0);
+          const porUsuarioCompetencia = PRECIOS_LICENCIA.filter((p) => p.suma && p.por === "usuario").reduce((a, p) => a + (precioLicencia(p.id, ajustes).anual || 0), 0);
+          return {
+            por: "unidad",
+            usuariosIlimitados: true,
+            tarifa: L.TARIFA,
+            paqueteCompleto: L.PAQUETE_COMPLETO,
+            escalones: L.ESCALONES,
+            unidades: lista.map((u) => ({ id: u.id, nombre: u.nombre, modulos: u.modulos, lineas: u.lineas, anual: u.anual, mensual: u.mensual, paquete: u.paquete, recargo: u.recargo })),
+            anual,
+            mensual: Math.round(anual / 12 * 100) / 100,
+            usuarios: n,
+            porPersona: n ? Math.round(anual / n) : null,
+            competenciaPorUsuario: porUsuarioCompetencia,
+            competenciaTotal: porUsuarioCompetencia * n,
+            referencia: !(unidades && unidades.length)
+          };
+        }
         const EJES_AHORRO = [
           {
             id: "ejePresupuesto",
@@ -106439,6 +108295,117 @@ ${fallos.join("\r\n")}\r
             conAlgo: lineas.filter((l) => l.cuenta > 0).length
           };
         }
+        const MESES_ES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+        const nombreMesAhorro = (m) => {
+          const [a, mm] = String(m || "").split("-");
+          return MESES_ES[Number(mm) - 1] ? `${MESES_ES[Number(mm) - 1]} ${a}` : String(m || "");
+        };
+        const ROLES_REALES = ["jefeObra", "jefeProduccion", "encargadoObra"];
+        function repartoDeLinea(l) {
+          if (l && l.reparto) {
+            const t = Object.values(l.reparto).reduce((a, p) => a + (p > 0 ? p : 0), 0) || 1;
+            return Object.fromEntries(Object.entries(l.reparto).filter(([, p]) => p > 0).map(([r, p]) => [r, p / t]));
+          }
+          return l && l.quien === "encargado" ? { encargadoObra: 1 } : { jefeObra: 1 };
+        }
+        function porRolDeLinea(lc, aj) {
+          const rep = repartoDeLinea(lc);
+          const pesos = Object.entries(rep).map(([r, p]) => [r, p, p * precioHoraRol(r, aj)]);
+          const tp = pesos.reduce((a, [, , w]) => a + w, 0) || 1;
+          const o = {};
+          for (const [r, p, w] of pesos) o[r] = { horas: lc.horas * p, euros: lc.euros * (w / tp) };
+          return o;
+        }
+        function sumaRoles(dest, orig) {
+          for (const [r, v] of Object.entries(orig)) {
+            if (!dest[r]) dest[r] = { horas: 0, euros: 0 };
+            dest[r].horas += v.horas;
+            dest[r].euros += v.euros;
+          }
+          return dest;
+        }
+        function ahorroRealMesAMes(idRol, real, ajustes) {
+          if (!esAdmin(idRol)) return null;
+          const aj = limpiarAjustes(ajustes);
+          const r = real && typeof real === "object" ? real : {};
+          const lin = r.lineas || {};
+          const meses = Array.isArray(r.meses) ? r.meses : [];
+          const total = { horas: 0, euros: 0, horasClaim: 0, eurosClaim: 0, roles: {} };
+          const acum = {};
+          const filasMes = meses.map((mes) => {
+            const conteos = {};
+            for (const [id, x] of Object.entries(lin)) conteos[id] = x.porMes && x.porMes[mes] || 0;
+            const a = ahorroObra(idRol, conteos, aj, 1, 1);
+            const roles = {};
+            let hc = 0;
+            let ec = 0;
+            const lineas2 = a.lineas.filter((l) => l.cuenta > 0).map((l) => {
+              const pr = porRolDeLinea(l, aj);
+              sumaRoles(roles, pr);
+              if (l.porClaim) {
+                hc += l.horas;
+                ec += l.euros;
+              }
+              const t = acum[l.id] || (acum[l.id] = { horas: 0, euros: 0, cuenta: 0, roles: {} });
+              t.horas += l.horas;
+              t.euros += l.euros;
+              t.cuenta += l.cuenta;
+              sumaRoles(t.roles, pr);
+              return { id: l.id, que: l.que, unidad: l.unidad, cuenta: l.cuenta, minutos: l.minutos, horas: l.horas, euros: l.euros, quien: l.quien, porClaim: Boolean(l.porClaim) };
+            });
+            total.horas += a.horas;
+            total.euros += a.euros;
+            total.horasClaim += hc;
+            total.eurosClaim += ec;
+            sumaRoles(total.roles, roles);
+            return { mes, nombre: nombreMesAhorro(mes), horas: a.horas, euros: a.euros, horasClaim: hc, eurosClaim: ec, roles, lineas: lineas2 };
+          });
+          total.horasSinClaim = total.horas - total.horasClaim;
+          total.eurosSinClaim = total.euros - total.eurosClaim;
+          const base = ahorroObra(idRol, {}, aj, 1, 1).lineas;
+          const lineas = base.map((l) => {
+            const x = lin[l.id] || {};
+            const t = acum[l.id] || { horas: 0, euros: 0, cuenta: 0, roles: {} };
+            return {
+              id: l.id,
+              que: l.que,
+              unidad: l.unidad,
+              minutos: l.minutos,
+              cambiado: l.cambiado,
+              quien: l.quien,
+              precio: l.precio,
+              porClaim: Boolean(l.porClaim),
+              confirmar: Boolean(l.confirmar),
+              cuenta: t.cuenta,
+              horas: t.horas,
+              euros: t.euros,
+              roles: t.roles,
+              historial: Number(x.historial) || 0,
+              motivoHistorial: x.motivoHistorial || null,
+              fuente: x.fuente || null,
+              sinFecha: Boolean(x.sinFecha),
+              porMes: x.porMes || {}
+            };
+          }).filter((l) => l.cuenta > 0 || l.historial > 0);
+          const historial = lineas.filter((l) => l.historial > 0).map((l) => ({
+            id: l.id,
+            que: l.que,
+            unidad: l.unidad,
+            n: l.historial,
+            motivo: l.motivoHistorial,
+            horasNoContadas: l.historial * l.minutos / 60
+          }));
+          return {
+            meses: filasMes,
+            total,
+            lineas,
+            historial,
+            desde: r.desde || null,
+            hasta: r.hasta || null,
+            alta: r.alta || null,
+            precios: Object.fromEntries(ROLES_REALES.map((rol) => [rol, precioHoraRol(rol, aj)]))
+          };
+        }
         function mesesEntre(desde, hasta) {
           const d = Date.parse(String(desde || "").slice(0, 10));
           const h = Date.parse(String(hasta || "").slice(0, 10));
@@ -106507,9 +108474,15 @@ ${fallos.join("\r\n")}\r
           mesesEntre,
           CONSULTADO,
           preciosLicencia,
+          licenciaVidaire,
+          UNIDAD_REFERENCIA,
           GRUPOS_COMPETENCIA,
           lineasObra,
           ahorroObra,
+          ahorroRealMesAMes,
+          repartoDeLinea,
+          nombreMesAhorro,
+          ROLES_REALES,
           precioReparto,
           semanasDeObra,
           limpiarAjustes,
@@ -123186,7 +125159,7 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/tslib/tslib.es6.js
+  // ../Vidaire_Obras/node_modules/tslib/tslib.es6.js
   var tslib_es6_exports = {};
   __export(tslib_es6_exports, {
     __assign: () => __assign,
@@ -123491,7 +125464,7 @@ ${correo.texto || ""}`);
   }
   var import_buffer_global8, extendStatics, __assign;
   var init_tslib_es6 = __esm({
-    "node_modules/tslib/tslib.es6.js"() {
+    "../Vidaire_Obras/node_modules/tslib/tslib.es6.js"() {
       import_buffer_global8 = __toESM(require_buffer_global());
       extendStatics = function(d, b) {
         extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
@@ -123514,9 +125487,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/base64.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/base64.js
   var require_base64 = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/base64.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/base64.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -123584,9 +125557,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/strings.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/strings.js
   var require_strings = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/strings.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/strings.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -123737,9 +125710,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/arrays.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/arrays.js
   var require_arrays = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/arrays.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/arrays.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -123868,9 +125841,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/async.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/async.js
   var require_async = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/async.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/async.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -123885,9 +125858,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/unicode.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/unicode.js
   var require_unicode = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/unicode.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/unicode.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -124028,9 +126001,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/numbers.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/numbers.js
   var require_numbers = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/numbers.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/numbers.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -124071,9 +126044,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/errors.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/errors.js
   var require_errors = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/errors.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/errors.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -124084,9 +126057,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pako/lib/utils/common.js
+  // ../Vidaire_Obras/node_modules/pako/lib/utils/common.js
   var require_common = __commonJS({
-    "node_modules/pako/lib/utils/common.js"(exports) {
+    "../Vidaire_Obras/node_modules/pako/lib/utils/common.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var TYPED_OK = typeof Uint8Array !== "undefined" && typeof Uint16Array !== "undefined" && typeof Int32Array !== "undefined";
@@ -124176,9 +126149,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pako/lib/zlib/trees.js
+  // ../Vidaire_Obras/node_modules/pako/lib/zlib/trees.js
   var require_trees = __commonJS({
-    "node_modules/pako/lib/zlib/trees.js"(exports) {
+    "../Vidaire_Obras/node_modules/pako/lib/zlib/trees.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var utils = require_common();
@@ -124819,9 +126792,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pako/lib/zlib/adler32.js
+  // ../Vidaire_Obras/node_modules/pako/lib/zlib/adler32.js
   var require_adler32 = __commonJS({
-    "node_modules/pako/lib/zlib/adler32.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/pako/lib/zlib/adler32.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function adler32(adler, buf, len, pos) {
@@ -124842,9 +126815,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pako/lib/zlib/crc32.js
+  // ../Vidaire_Obras/node_modules/pako/lib/zlib/crc32.js
   var require_crc32 = __commonJS({
-    "node_modules/pako/lib/zlib/crc32.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/pako/lib/zlib/crc32.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function makeTable() {
@@ -124871,9 +126844,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pako/lib/zlib/messages.js
+  // ../Vidaire_Obras/node_modules/pako/lib/zlib/messages.js
   var require_messages = __commonJS({
-    "node_modules/pako/lib/zlib/messages.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/pako/lib/zlib/messages.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       module.exports = {
@@ -124899,9 +126872,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pako/lib/zlib/deflate.js
+  // ../Vidaire_Obras/node_modules/pako/lib/zlib/deflate.js
   var require_deflate = __commonJS({
-    "node_modules/pako/lib/zlib/deflate.js"(exports) {
+    "../Vidaire_Obras/node_modules/pako/lib/zlib/deflate.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var utils = require_common();
@@ -125949,9 +127922,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pako/lib/utils/strings.js
+  // ../Vidaire_Obras/node_modules/pako/lib/utils/strings.js
   var require_strings2 = __commonJS({
-    "node_modules/pako/lib/utils/strings.js"(exports) {
+    "../Vidaire_Obras/node_modules/pako/lib/utils/strings.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var utils = require_common();
@@ -126092,9 +128065,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pako/lib/zlib/zstream.js
+  // ../Vidaire_Obras/node_modules/pako/lib/zlib/zstream.js
   var require_zstream = __commonJS({
-    "node_modules/pako/lib/zlib/zstream.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/pako/lib/zlib/zstream.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function ZStream() {
@@ -126115,9 +128088,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pako/lib/deflate.js
+  // ../Vidaire_Obras/node_modules/pako/lib/deflate.js
   var require_deflate2 = __commonJS({
-    "node_modules/pako/lib/deflate.js"(exports) {
+    "../Vidaire_Obras/node_modules/pako/lib/deflate.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var zlib_deflate = require_deflate();
@@ -126277,9 +128250,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pako/lib/zlib/inffast.js
+  // ../Vidaire_Obras/node_modules/pako/lib/zlib/inffast.js
   var require_inffast = __commonJS({
-    "node_modules/pako/lib/zlib/inffast.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/pako/lib/zlib/inffast.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var BAD = 30;
@@ -126507,9 +128480,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pako/lib/zlib/inftrees.js
+  // ../Vidaire_Obras/node_modules/pako/lib/zlib/inftrees.js
   var require_inftrees = __commonJS({
-    "node_modules/pako/lib/zlib/inftrees.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/pako/lib/zlib/inftrees.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var utils = require_common();
@@ -126824,9 +128797,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pako/lib/zlib/inflate.js
+  // ../Vidaire_Obras/node_modules/pako/lib/zlib/inflate.js
   var require_inflate = __commonJS({
-    "node_modules/pako/lib/zlib/inflate.js"(exports) {
+    "../Vidaire_Obras/node_modules/pako/lib/zlib/inflate.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var utils = require_common();
@@ -128064,9 +130037,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pako/lib/zlib/constants.js
+  // ../Vidaire_Obras/node_modules/pako/lib/zlib/constants.js
   var require_constants = __commonJS({
-    "node_modules/pako/lib/zlib/constants.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/pako/lib/zlib/constants.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       module.exports = {
@@ -128112,9 +130085,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pako/lib/zlib/gzheader.js
+  // ../Vidaire_Obras/node_modules/pako/lib/zlib/gzheader.js
   var require_gzheader = __commonJS({
-    "node_modules/pako/lib/zlib/gzheader.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/pako/lib/zlib/gzheader.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function GZheader() {
@@ -128133,9 +130106,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pako/lib/inflate.js
+  // ../Vidaire_Obras/node_modules/pako/lib/inflate.js
   var require_inflate2 = __commonJS({
-    "node_modules/pako/lib/inflate.js"(exports) {
+    "../Vidaire_Obras/node_modules/pako/lib/inflate.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var zlib_inflate = require_inflate();
@@ -128308,9 +130281,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pako/index.js
+  // ../Vidaire_Obras/node_modules/pako/index.js
   var require_pako = __commonJS({
-    "node_modules/pako/index.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/pako/index.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var assign = require_common().assign;
@@ -128323,9 +130296,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/utils.js
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/utils.js
   var require_utils = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/utils.js"(exports) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/utils.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -128386,107 +130359,107 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Courier-Bold.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-Bold.compressed.json
   var require_Courier_Bold_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Courier-Bold.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-Bold.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Courier-BoldOblique.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-BoldOblique.compressed.json
   var require_Courier_BoldOblique_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Courier-BoldOblique.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-BoldOblique.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Courier-Oblique.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-Oblique.compressed.json
   var require_Courier_Oblique_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Courier-Oblique.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier-Oblique.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Courier.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier.compressed.json
   var require_Courier_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Courier.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Courier.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Bold.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Bold.compressed.json
   var require_Helvetica_Bold_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Bold.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Bold.compressed.json"(exports, module) {
       module.exports = "eJyNnVtzG0eyrf8KA0/7RMhzJJK6+U2+zMX2mJYsEuJMzANEtihsgYQMEITaO/Z/P41CV+bKlaug86JQf6uArsrKXNVX8H8m3y9vb7u7+8m3k4t/btazm+7o5PmTZy+PTl88eXk6eTT56/Lu/tfZbTc0+Hu3eOju51ezb75bLq532maxYO2oarPb+aJndRCm3fzm425/Y8N/3M8W86tXdzeLoeXjYXv91/mX7vq3+f3Vx8m396tN92jy/cfZanZ1361+73af/PHLfXd33V2/Wd7O7sY+fvfd8svk239/8+T540ffHB+/ePTk8eOTRy+fHf/n0eR8aLxazO+635br+f18eTf59ptBBuHtx/nVp7tuvZ58+3TgF91qXZpNHj8+/svjx4+Hnfy6HAawG8z3y8/9ajeGo/+6+j9HT16+ePpo9+/z8u/L3b8vH5d/nx+9ul6+745+79f33e366B93V8vV5+Vqdt9d/+Xo6NVicfRm9z3rozfduls9DNTDOF8fzY7uV7Pr7na2+nS0/HD0y/xued9/7r4ZGi2OXv3taHZ3/X+Xq6P58AXrzfv1/Ho+W8279V+Gzv447Op6fnfz+9XHrsxA6cnv98NHZqvrqg4Nv599/vs4Ic+fvHg0eVe3np4cP5q8Wl/tAr0axR862/7m+PHzR5Pf76//Pp18+2QnDv+/2P3/9PF+vv7Z3a/mV0NA//0/k+m7ybfHz4dGvw5dWX+eDXH830d7fHJyssfdl6vF7Nb46fPTPf9jsxzi9X5hytOnz/bK3eb2/W6ibu6ydr1cLGYr4y+GiSn8c7e62qV7FZ4fH++F2e0grYf4mGQdLj0oM557/Xm26u4W3YeWRB+r3Zitd9+4/uQdfzEO9/Nis85duBqqdJZ38bH//LG7y82HocyXYiTrxWz9MQfrz261zHR512V4vxUt7z+uOtH2w3KzEnT+INqu518E7B46MbddiKmnw/xOpNXVcrG8y3jd3c6jZDOw2NlAot0fm9ki45tVN5SzD/PZkyc1abp1sZqqvHz+dJx7kX2vMvouo+8z+sH3/Oz5Hv2YO/NX/2BNhb/l7/p7Tph/5DD/lD/4c97jL156NeT/zB/8NffrLA/ot9zqdf6uN/mDv+d+vc0fPM8fvPBZOx0neppbvcvoMu/xXzn53g+L2afuPtiGhfz9oMU65c9FT7FUnK2v5vOr+epqc5tnbbOz7fWw/nR5j8XfQmfsY7M8nve51VVudZ1bieL8kD94k9HH3OV5Rv+d9/gpt/IStiXhNu/xLqNlRp9F1WerFxa4zpG4z9+1yR98yJWwza2Ek/aOdsc9xfRzV3f5FRPh+MXjmpWrRvtD2Xg/X1w3l/rr5VaYe1idPWL35TjNk+NJrbgPuwND9Fkfs1o7PiyWq7ng667xLVeb1bCMX3kAj0+wbNbzcuCaoluPWnRZ3Wzmg3K7vNdHDju5fPFX5Bh6S5wPc8HE8dNwKCcPB65nNzedSNs9x0MxOuDYzV236kTtD8dCs5vV7DOY2tOaWcNJRCd80MP7frY+EOHD6kofK9gERH04KRg/Pxxizz+v52shDWO9/7jchGPFtOyH5PaZW80eRD3Mrjb36tClePmHRfcla43Kup1drdThzvtVp3Z8vbyfXYWKc2k+zCQGwJQV1qF3trseQqqOUTd3N7PV5nYx24jdLG+Gw8xP4utmOA6Yl9uQsy688sOek+cjW66uPwzHeeHA0I9Q4iLrByCR+x7OYA/Pntoebgen2yxwF7ayzMRie70r+vVaLGCLuGNfeSK3I5KlGNRQn8Mp8ZD34hziH2lK3QliBvryH/PGlyY5qf51cfb86Cj3oC4X1/OHOSS0fyT2zA+YRXF4txsfOj/0ob4Rg3U596IygaHmr/T9hVJx3J6IGdWDfyb2zmeCPuBnAWknfs4weASchBxXJ1YDfX7yvIrjVQ+xK3IdXztjHvgodVx+VR3w8mjlaDRVP9KXw7FTqda3RWOFcCarhAzRw1yzJ/rha9z76ct66rn8s7u7EZn7Ju7Cz+LUID05DhbJocx9xQuJHc02xnrFY/Xznxw5i+rbj8uVGNUZ7d3DQFVgJ3pU8Kd1EaOwWTXRDjxienErFzjWm3KUsxL9jSnoUWzxaKtmgrebxf3886IX/WqU/9s4QEuk4Xjrfj5bXM8/fMhz1bet4de4H09YkSxeGwfT7MCq05auGuO9a9lgK2N+jQHyxZDqHy+/DUcMeA3OToFWy0/dHZ4ImTmuupv5Oh76eonGyYblONdFPdRYb4aqDucjHmw6hrTCbERm2Ur1fzU+8C+q8NOX9di1XOmK18Eszj/ef8zw+6YBLpRv2VjuGybTNVfHlvCqdfhwICtjgP18uVUavG9zhdaMtJae1jK6bu0517Ht++BhCa+Y9bigW9wLA78PJu2euF0ecMTUNfu6240YSWMNX8rjTK8FPvixq0/xCOfFySn4+JDAqyGR1/n7fud8Pa2Tv2gsJD8fXH9/iRPnpxJ2X0eZYrIFt4wYJuetGv8ldtviMETt42wBS0Mt8t2pSaxwnwu1BJgvx8MmT7WvTGCjFLrWgG6imeKAxmlVs6rPRn6XB4iWwbLnlhDXg010KmMbS/731AlbuMhtTs3Or+dXymh/iF8EB2aHDnd/pcNa625j3t4czuuD+3rV+M5XTZOOpwM2A/F73IgPHFD+2Fruad9+iVie3dkBWTwSsG87WAo0QeaXB/e0WN7s5vtuKcK9bJvpJq9jNYOGr2pU8s3Bye1gJfeYN9L3Tq7jdnHnLh80u+e3lrsfN7u7kf95NPm5W939NpuvdveQ/z15tbtbPXn0zenj/zwat/buEdC+nxGNpo7wb8PWU9/au0pAODAUzsL3nOUu4NIbuE1VoPv6Dyg4T1DGkAW2vzoU0L5wEL0OW2+HrZe+VWOGKIzehfMQi/M6ekBh9MBh9EDr6AHR6EGx0QMb6zqwYidILoatF7Y1Hbae2dblsPXkiW/WISGDvgPeDJsnvlU/CCjEAjh8H9AaC0AUC1AsFsAsFsDGWDh5CJmwDVoft/KI+tzzsRGWpiEqDuNUpM65UqsC5WqIata4LNyqnuXv5hI2rurYxFzMJlFFG9dlbTLXtglU4Mapyit/nRHUuyEqeueq8qt6niPKHmBcGYGJ2Q1MIkswrn3BZDYHE9ghTIg2UTF4RUVgGBWhaxhj6zBB+EfVwEQMUd0ZV3ZiYrsy2ViMa3cxmS3GBPYZE6LZVPyQE3KbW/UCNQIhXGg0A3QhQ1TfxsmFnLMLVQVcyBC5kHHpQlU9y9/NLmRcuZCJ2YVMIhcyrl3IZHYhE8iFjJMLVf46I3AhQ+RCzpULVfU8R5RdyLhyIROzC5lELmRcu5DJ7EImsAuZEF2oYnChisCFKkIXMsYuZIJwoaqBCxmi4jOuXMjEdmWyCxnXLmQyu5AJ7EImRBeq+CEn5Da36gVqBEK4EIYGrShyqvQokimRyM4UZLCnyMmjoiiNKjQ5a+yPLSuKyrdii2xeUScHi6K2sdiGvSyqZGhRJFcL4usGB3+LnEyOROV0ocl5Y17Y86KojC+2yO4XdbLAKGofjG3YDKPKjhjVaItBA28MHAwycHTJKLBVRlX4ZWgAphk5GUYUlX3GFl/xFTbSKGo3jW3YUqPKvhrVaK5Be2jUxbbRvm/xQ/ETrusEPRcpGRVK5LdBYrcFEbwWKTktStJnocGZ3A97LErKYVHP/ooquStK2luxBTsrauSrKJGrgvRaUnBUpOSnQVJuCg3OZezZSVFSPop6dlFUyUNR0g6KLdg/UWP3RC16JyjgnEDBN4GiayJmz0RNOCbI4JdIqdpRUl6J+kEvYJ9ESbsktmCPRI0dErXoj6A8yAzfyra9pu1ICVccR4+WaIhMxTiZoXN2wqqADRoiDzQuDbCqZ/m72fqMK98zMZueSeR4xrXdmcxeZwIZnXFyucpfZwT+ZojMzblytqqe54iypxlXhmZidjOTyMqMax8zmU3MBHYwE6J9VQzeVREYV0XoWsbYskwQflU1MCtDVH/GlU2Z2K5MNijj2p1MZmsygX3JhGhKFT/khNzmVr1AjUAIF6p9RRtyRhXuAhkRCOxEJoEVOSMvckGakcln4vvZjlxQfuRqNiTXyJFc0JbkOnuSK2RKLpArmfBaMPAlZ2RMIChnMvlcxJe9yQVlTq5md3KN7MkF7U+us0G5wg7lSrQo4+BRxsCkjKFLOWSbckX4lIlgVM6oQF1QVuXqgfpls3JBu5XrbFeusF+5Eg3L+IPI1a1o1yvWiolwrdoxdC1nZAQukGuBwK5lEriWM3ItF6RrmXwmvp9dywXlWq5m13KNXMsF7Vqus2u5Qq7lArmWCa8FA9dyRq4FgnItk89FfNm1XFCu5Wp2LdfItVzQruU6u5Yr7FquRNcyDq5lDFzLGLqWQ3YtV4RrmQiu5Ywq1AXlWq4eqF92LRe0a7nOruUKu5Yr0bWMP4hc3Yp2vWKtmAjXWo2/6OG7q4RMoGLyK8PsVqMAXlUJOVXF0qdG8Sx9L3tUxcqhqpb9qSrkThVrb6oqO1Pl5EsVkyuN+HUi4EiVkB8ZVm40iucphuxEFSsfqlp2oaqQB1WsHaiq7D+Vs/tUHr1npOA8IwHfGQm6TkXsOZULxxkl8JtKqLIqVl5TtWbNsc9UrF2mquwxlbPDVB79ZaQPKeu2qU2fiR69cJUx19FWDFHhGidjcc7OUhWwFkPkLcaluVT1LH8324tx5S8mZoMxiRzGuLYYk9ljTCCTMU4uU/nrjMBnDJHROFdOU9XzHFH2GuPKbEzMbmMS2Y1x7Tcms+GYwI5jQrScisFzKgLTqQhdxxjbjgnCd6oGxmOIas+4sh4T25XJ5mNcu4/JbD8msP+YEA2o4oeckNvcqheoEYjsQt8N9FXcip8tqDoGIBHSwvUeYiALoiAVRvEpLISmkFq+jnbV9cS3LJ0che4CxwRzWrsLiKYcFBsIMBsIsHEge/LDGPdT34pu+gPGHZDw1h8o7kCjo/4Q4g7Mugts7C6QaJs/jCXvW9OwtSv0575VRwcIuux0/3tsdXJ3ZPzJNUOj/2L4DFEMjVMgjatomphDahLF1TgH1wSOsAkxzIYp1pVfZDTNCEJviOJvPE9ClWgmKk7TUV4IjNNREU9H5TwdlcvpqKKYjirxdFSepqMKaTqqQNNRMU/HyC8ymmaE01ERT0flYjpGiadjxDQdfx1n4oVv1V0BqvEHFEIPHDoEtAYckMUamIUZ2BhhIDW4jnbjPPatOgJAdQSAwgiAwwiA1hEAshEAsxEAG0cApI7AUZ2tJ48N2UyN7Kdxqo59Kw70J5wqQGKgP9FUAY0D/SlMFTAa6E8wVUDiQH+CgTqxcTraxK08zE1jTBs5pk0eEx+SgSJGuxGj3YTR/jzZn/Kc+FY8LipIHAQVng6CCo0HQQXJA8mi0OFRYfV8BlA8Ftqhctzy1LbsWMhRPYFBFA6PnOPhEVB7TTRgO2py5MdGzvzYyNhyNwLfskg7ipF2jpF2apF2xJF2xSPtzCLtyCJtaBPivsn5oc47fp6oU46fJ+ls42eR1aCI/ODTi58nfGaxI70tUGUrLtEFpYU2vIsf6oIECgGpKhrUJAeGGlCMSNXhokYcOZKpyEileosqJD8JVIWkUkGyKmqTmuQy5Qa5YqkFFS+pXMckc0lHGaqbBCp0UlXNU5Nc/tSAnIBUbQrUiP2BZLIKUsk1orppJRJ7CalfLyThMNTgYCE1fIcaHS6k5EYkR2OKIngUCWRXpCbn+mWC1/DKVrx8t0fiyt1O2B3ej5eddptTO0bdbZULWce+aSUODOvScfwFzUE6jZLgfo3nl0m6vPPLRF3Z+SW/o+qIgnDwHVVTMRz4BueLiDAw+Q1OFkSIqtaKU9BbYp8DwWFrv/X4S8wriCAJFEdWVTRjG4xpVCCyUcD4ksJRJlnEOrZoRVy0Otykb4WS56BdwGOD0V5xDgxR9J2ruFcVI14ZxLoijLIxjq8JIrJVa8U06C2xz4HgCBpPsRuO08oJ5lPfirccCop3gwoSNyAKT/ceCo23HQqiWwqF0d2EwsKNhELqeunorZn5Gc45ojDdLlyE75mGrXdhy6/QnE3SxZmzibous6P13Nd3aee+I6oWA9NgiObCOE2IcTUrJuapMYnmxzhPkgk8UybE6TJMc4brDoWBZ6+x7pB6kb97mtG7jGBa00LEPE9wlWiWK+apDi9TwXxHTpMeRZr5KKrpjy1yDkSdEiGKnA1R5ZSIasyLqFFypPc6VfQ4TQ6916maXDT2N23wdw0O+aNfb5RizqSgUzoFjXMKXkSBjEJK+YQSZRNKKpdQz5mEKuURSpxFqHEOoRYzCBXKH3qHLceJc6f9DltucCH3M5X0naSQMerVLiHlbAGVcgUUzpT6pgCkiSHKEeOUIMZVdpiYU8MkygvjnBQmcEaYENPBMOUCvuxDYeAsaLzsQ+pF/u5pRu8ygmlP78YwzxNeJZrtinmq47k5zjgrNPEs0/yzrNKA2+Rs4BaUFCxzbrDOKcJ6zBRWKWFIftuMKadPklUWUaOL5n6nTeVdU4EMY4USjeWcb9SC0o5Uzj57uh/yzhllnAuUay6oLHM155drlFkucE65wtnkSswj55RB4UUejghnTetFHpYvxPdPBXsnGORFft8lCTkXTKMsMM7zX083YfoN0ewbp8k3rubexDz1JtHMG+eJN4Hn3YQ47YZp1vEaBIWB57xxDYLUi/zd04zeZQTTnS5KMM+TXSWa64p5qutTYzDVhmiqjdNUG1dTbWKeapNoqo3zVJvAU21CnGrDNNX44CeFgae68eAnqRf5u6cZvcsIpjo9J8k8T3WVaKorpqn+bZzl8cmE33CGkdXZRUZP1rkQHq1z7M/WOYNH6BzCM3QO7SE6R3UGgflzMmUrXjErKD7RWJC4q1J4uq5WaLx/UhDdDymMboIUFu58FBLvKv4G8zZeTdyh2KDLg7L7iIj0oDo5qHCbEHAeayfG2omxLkOK2f0+QOKRr8LTrZxC44NeBcmHw4tCT38VFh8JLyg+2/UbVscY/dcTfMS0bMVHTAsSj5gWnh4xLTQ+YlqQfMS0KPSIaWH0iGlh4RHT155GPow6tD15M9nfzYet+GxOQeLZnMLTszmFxmdzCpLP5hSFns0prE4RoPjY0ZvRn2GrZj6i4MounMetPN7zxnjP5XjP83h5IkER4z2nZ5HewEQ68WXkzQQfMnwzrhSuXcal+Q2tDyOtVzFh9g1RSIyruJiYg2MSRci4DpPJHCsTKEGMU5bgdWhGlC+N69CkngvUiJXMIRPbseJsMn44VimvTODkMiFmWL7UbghyDa+rUyvOOnVdfZTqg8SQeoYonMZVOE3M4TSJwmlch9NkDqcJlHrGKfUqfysQpZ5zlXpVPReoESuZeia2Y8WpZ/xwrFLqmcCpZ0JMPXy0nTIEUg8fbadWnHrq0fYqpefYjqXAoT3wHJtuIsKsn2PTaiPkjefYtMypqp9jk+rbpsDJe+h5B9nmvCkcjLlO6tjkazFPCR7V/5+Y52SPckr5KFPipwdBZJZiEaTnQOQnUkE0nwLZNximu5z9vfSt+g2A6hkToDApwGEPQGv4AVk4gVkMgY2BA1Lz15G/oPoWSxiQONV4S8UKNJ5qvBVlCQqdarzFAgQUTzV2aHeO98K34rsaBcV3NQoS72oUnt7VKDS+q1EQvatRGL2rUVh4V6OQ+K7GDl0tFzTyeu7qbXafeOZbdZSAqrEgwlECh1EihVNXwHXwgGzwwGzwzj72nz925Zzr2NgyjGqZZ2vZmJqlnJplnho+nQVFTJqdzgLKM2Sns45WcSsPZBW93IV1dzvPU74JpbjJ9rFpeMVGesUmewU/kgqKcJGNcJFNcpFtmPA+buUk7XPm4buILwlRENK7iMxVhNS7iCxRrPK7iCxwbPhdRMbktXj8fkqIXFcfv7OY/TcdvzPXTpyP31kgT07H78TBxQxRrRgnnzauHMHEbAsmkTcYZxswgQ3chOjihsko/LXPhQodmXrFXa4Ftnfj5PHOhdGb2K45Zfmmke8bZ/M3gVeAKqRloArLHAxeEIwfygGxNJjUyIHGImFyK0V4uTDeSAVeOCpfCdQYul5HqioWkyrBimKo4ahybTGx7Zy8yhjXS43JLWNNi44J2li3Odt6gRrlpFajcKCPa1IUOI5R5fUpqjLWsYmIeGzAcY9qCm+UU5CjTKGOIq9k6XLAqRR4VTtwOUA3ESucvhyg1cZq17gcoGVe+fTlAKmi7UeBiz6qvCJGVXpibCKcMTZgf4xqssEop/UyyrRqRpENM6jsaCTGdTS+SNeq5bSmRpVXVlLV+hqbfM1L5FobW/CKG9W07kY5rb5BzmtwfMmuFc60Hkf16xmo1ubY4GAGttbp2OhwmqY1O6oHEzGt30FdNYWDYWus6KGNWtdDA1zdo3BwbdIrfWzytdUnrfpRbaz9sdHhJSofB0T50BK1bdVA3xQOWkM+Sjif4BM953g8ACg+x3OeVn7g6XriOa7xgOiZnfOwmgMLT+qc47rtqNroiRH6IZR6PRnH2nj1xjmN+tCrNy7m8TdevXHOkWi9euNCjEnj1RvjFJ30ysrIG6+sEKdgHXplhUQVtq+8skI6BfDgKyukcigPvLJCGgVVvr2hIsjhlW9vBEqhbb+9ESQV1oNvbwSVQnrg7Y2gcTibb28EhUIpXm3IseIw5lcbHFEAG682OFeha7/a4BIFrfVqgwscLv1qg2MKFL8SQKHgEDVfCUgKBezwKwFJVuH76isBqQUF8yuvBCSdQ3vwlYCkUqAbz8LruHLYxbPwwCjUrWfhQVDhPfAsPGgU0uaz8KBwGBvPwgOn0KVHxzkqHC77iW0IlzMKlwsULhdUuFzN4XKNwuUCh8sVDpcrMVzOKVwmULiMc7jGXw6GYFVCoaqYAlWxClPVcpCqQiGqmANUOYen8hicSik0I6bAjJTCcjGG5IVvxdOVCwwFIHG2d0EhABrP6y7C0IHRNYQLGDKQeJK2Q/6zzGUrzlxB8SzLhbO4FVOhIDHfhae5LjTOc0Hy94KLQrNfWD0/BRSnd4d20/rMt+IpS0E1BIDEdYvC0ylNofH6Q0F00aEwutJQ2DhjQOoIHMXT2YtJekR7h+Kguzw5dqUGkZ6vTs5XuBADOE9jJyarozLdMbu44tm5u6Dy0rfiKXlB4jy88HTyXWg84y5InmYXhc6tC6s5Biheyr2Y5Ke2dyxfiNjRTZjZTc7GTSP1NjL1Njn1+DICKCIpNyIpNyEpp6PrwVbs9RRdD5AYyJRcD2gcyDS4HjDq7hRcD0isoekEH7iboncBEo95Tcm7gMYHuqbCu0ChR7em6F2A4oNx09G7Tn0r3gyYoncBEjcFpuRdQOPl/2nwLmD0q7VT8C4g8Vr+FLzrCRC8Cj0drWv/I2VTtC5A9nYJoPwLbVOyLqT4donj+BNt02BdwPztEmNmXT7UZUi4ZS6SZaMilrIilrki2LpAEbVi1gUoFwZdqJ2Sc/m87Zzr1MZvzgUoJp5zTDynlniO+GaTK56SzjwlndWUNNKHeupz3fepvi9Hwxt/qekSHQ+ZvZEGLL6IAwK+iQPYXsUB5m/cAPRXbgDWd24A2RtpznbW99y34ot8l8n6gKd3+y7R+gDRxIFigwFW8xJQ7bajmS2wl2h9gOLN4stkfcDTscElWh8gOgK4DNYHLFxHv0Trc1RL6CmQW/xl5svR+174VjyfuETvQ5TPJy7J+5CC9wGOpxmXwfuA0WnG5Wh0MARzOmTq1cxL8jrE9GrmpXA7lPitzUv0O2T0hublJP8Y9iVZns/XJjbaiIFuWgPd6IFuxEDZ91BSA3XnQxhfT7206/RgBukmRBLY0/RtiKQKd0s3IpKQfC7fikgKOV66GcECeF96x4y5ckH1jhlL5Ietd8xYZmdM75gxJ4+sHIzSELmlcbJM48o3TczmaRI5qHG2URPYS02IhmqYXNVvMoVS5XtPXANgc4bIaY2T3ToXnmtiNl6XsvuaRhZsnH3YBDbjKizFoJMtmyAty1ThW6axeZnQcDDTk42ZwqZtAjt3upPIgvDwKm1E8+TmJhyMj/J101rxaTm86c34ZK83hQyfbvlVJ1T3/JTGzt+866caCP9X9/2UllYBeedPibQWqHt/QoMVASktCiipdQH1vDSgSqsDSnqBwBa8RqBGywRKtFKABIsFUlovUKIlAyW1aqCeFw5Uae1AiZcP1HgFQS0uIqjQOhJuBgfHELeJRYGBaSOlNQUlWlaCJFYW1PPiEtS8vqBMSwxKvMqgxgsNaEsdkrTcoCYdFRsIU0WZfRW1hrVik+SuKPIChBqvQepRAaGJlQjUjf5QWo9Q+1oA1aqE8oEAttYmbHIogHmFQjEuUkM5TfxXQsqW/66PoXj/yYXd3yTc/5WH3dY2bPl1nrIVr/MUlK7zVNfDHhmibhmXfasqdLCibUZ97gH313ju9Ngx7LQh6rRx2emqQqcr2mbU5x5wp43nTodnlaDnkVP3oyjHEJrAQALfNnjf6B+PK4p5cJDuMDSkNDCU5LCgAQwK6FbSXvaJh4NSHkx9zAdGYoiGYVyOoaowgIq2GfW5B9xv47nT9tgH9NoZddsF2W+ToePGtoL1oh/cdxdy5+0hDOi8M+q8C7Lz4c/Tjx0Nf56eWS/6wZ2Xf55+1MYHJaDrlVDHK5bdhr96PXYQ/up1JH3aN3dX/NXrUam/QAe9NUTdNS77i38kd+we/pFcQn3uAfdZ/ZHcvfR+oAvbc9ny4wRDqpdF8IObijbhq+nv4b1PxxrAZd/o7+G9FwcUoNCN0Pfh8AFY+LWK92OkfauPW3kMOY5XA/VA7LY+Be2T+gGRqzH4sBX3dZWDD0K8xXs1dtx70MeZvKKOj7QeC3zMCIZgSPamqguBaETGD38RjQ2PbaiTPEp1bDNK9uJrRjBUQ7KHVV0IREM1fviLaKj4viR1koeq3pes0nBat1jMaLAGcbgOdT9NX0jIg3bla1/HAzelV11Og3clD39/cjRZf55d7T5yOtJywp3/bM1xlhta/MLh9GxybTstW1f7v10LyE38Ovj3dR2ob9kIHeHQ9nTcA+7YEO298of86W1GvUDUI+OpW7uKG4O03zleSj028hA+sA1bX8JWH7diR1J97yldpx87whd2jyN+yJ/fZvQlo14g6qb0or1EPz4w9pVfTz+O+CF/fpvRl4x6gaiv0kxGSbwmUjus3hI5FtpD4+u2Df6lwfsW5+G0zqpGPV+IG0ckrsEcJ+VBftFW0i+S9prSKBonU1X1a3M8CFB4FCA96O/aavxF476BeSio5bHQayHjOPitkOOIH/Lntxl9yagXiPqrzgdHiV8PGDub3g44Jv4gvmIr2BfBesWoy/I0cNT4Gf2xz+kR/WPiD+IrtoJ9EaxXjPosz/722ocJXiSvpItb8aigoHotHFH+AePC05HDnuKflHUcf9e4IPr14sLo14t3bGlHOWUrHjIVJE6KCk8nGoXGk6KC5ElRUeikqLB46FVQfDr0wyRcgq6IDp1OohDozX6unvjGOGwg40whgTgA9jAg9GkCOsYGSA0AoDpHjvykXVxeaF5aqO1gpEbicA3HMTvOAzctjd6VFAKTYhwMUzCMU0TyZeCbxmXgm4OXgSOEMOkfgdBiDNmBn4DQLVL42j8AoRvEUDZ+/kGrFNao3rTCxCEmVQW6/knNY9+KNsN/SHNPP43utHfcT+hOgKJ9Ok+W/QndCRDfA3LFHdSZXVVyZHfK9ij/SoYWaCyHfiVDN8kjbPxKhlb1uFu/kqFlikbjVzL26iKszouwBi/y6ruQ6+4inwct8knPonHSs2if9MQrAvj1+QchtEC7av8gxNig/v2XbUa9QPT16u/P7qXbCV7pLFux2goSi3rhqQoLjYt6QXJRLwot6oXRlc7CwpXO2wn+2d1bHDEg6N2e3k3qTWXbikddd2mwwNMh1t0k3DA2JP9GxN0k3h42RkdZdxO8GVzJ7uD11LbcHsU9FH335C4+4RURBaH1fFcUczjE012R68CoZ7uiwCHKT3YFDMHKt5LvUrUzz7HD37t7Qohip3/vjsUcu/R7d8x17PLv3bHAsePfuyMMscNLLhQIjp265FKl9JtCT6TAcTzwm0K6iYip/k0hrTbi2/hNIS2nWMvfFJIixj0tITKUaQ6aS8jYoN47gzkwRNE3ruJuYo64SRRr4zrKJnN8TeDImhBjivcbTyPqcyA4gu2bi8sJ3llbhnV4t+V/uGkZdrXMe1nqHaB3EYJd4UXck9iqzx/kPbcdbpmucCoOHUlXOE9E+77xPdyvrzw3Aoeu2DV5uRIpdEs++xEodengsx9LvGpHCLqCV+1OYqs+f5B70H6Kg47FsRekQGdIgT6R0je/jXvIcu5ouF7IDDoXrheeULtefJa7cuCxkXrWgX3IB9OGoAd4fE0f5P2r4+tRQksiBLuvCHafjWvZMK5l27g+T/D84DN+FlA6K6gXzFp3GKPeEuM9RvoqU1+4uug+3Ncv3f//m9NnptYPXscPGa73DIXmN3wjjnGMmrrpG1vEa49BC3ERY1jFsBiuHVJavRostdBZ0WI3t88ErjtUWvzFUtLqTWuthu6oFnnyq+SFMgRp96wHbsUJK6j2EpF1DuB4/f2ZkeugW/o4urF6KFt2KcsRXb8ywV569y9bxq08EHXlvPBU1IXGk+yC5El2Uegku7CYvQXFK+c7ZFfOPWx/hAbrMO51NJcVZhEimx+EjVje11s5ZSO0cv5QL0yu9oYHG+GC7Cra3QjtdrsPzRBNlHFKO+ece3Qvv0ay4uvcklPRnqn2uBiipDQuo2lPSFF6Vr4UqDF+ma0m5pQ1ifLWuE5ekzmDTaA0Nk65zM9O8DT8kZuuc+A4v41TkjvnTHfl0AR5bhtRiQ8nDZTJfSaxDsS5wKjY8xweEUOUDMapGJxzMfBfqngW8XVuycVQORSDISoG4zLW6Y9H0A6WAjXGL4tB/e0IlqgYWn87gmUuhvS3I5hTMaS/HUHT8Eduus6B42IwTsXgnIvBlUMT5PluRBUDXMGiTO4zicUgLl9VJVxUwZKIAidGVLk8SE1FEnUqlSBetz6Vyibfr3uqBC6hg/frVJtUTukGlxYORlAXWPMGl27AxXbwBpdulApP3+DSKhdhUFMpBvWP1sfWrWlIxRlVLlFSU6GS/vU0gLqMXJYuXwqV1de3OBVz6zroXo/Xi2qYEOUHEj0gATbuAcJLjXQKPG6Vv905vuhnyJ/1IU63yIN6YadQlUwT2f0JyvHM3JAlB3G8EBClevY+npa/yOKo7PN3mMOJO1rZigVeUDUbQKLQC0/VXWgs6YKoRAuj+4mFhfuJhcT6fADrfWFk518nvhVvOj4kpwKebkY+oCcBIiMCxX9xzVm1HEB1HI7op8u2MLRTI27N2+zH24YJb6XzbrPdbpseuxXGus1uus0WusWh7Qeyu4Ls9x3KVry1UVB8rm6P8o2OwtM9jj1Nz9UVHO96FER3NAqjmxn9WCsnvhXzqsdaASRSradaARpTrQ+1Asx/ws/ZWCtAYo71qVb6MA99noc+z0PfmIdezkOv56HP89CLeegb81CK4KltWRE4ikXgHIvAqRWBIy4CV7wInFkROLIiMET1XRdEzCpDlFrGKb+MqyQzMWeaSZRuxjnnTODEMyFmn2FKQb7MQqGAdDBEGWmc0tK5yE0Tc4K6lLPUNEpV45yvJnDShms3TyOi9G1cuyExJ3K+dkNcp7S4dkMCJXe+dhM5pzncpINMR0rJjhLlO0oq5VHPWY8qJT5KnPuocfqjFisAFSqC/C6IiBWkG1KqBpSoIIIkagL1XBZBzZWBMhUHSlwfqHGJgAZVgpQKBSVVK6jnckGVKgYlXTTYgusGNSodlKh6xGtAY1L8OYHnmP+EHAASnlj+k2ccMJ9n/UnzCzQ8hfwnziag+Lzxn+DjTGKn2cUTzt0XHp6UNBB2cMY0pOTfI68nm10mcVyG47gc53GZlsblShqXSXFchmlcxmlc+JJUp2kcX5DiGKOUxxn0NNaopvEGOY45SDTuoMHY//O//w/7Vd1G";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Helvetica-BoldOblique.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-BoldOblique.compressed.json
   var require_Helvetica_BoldOblique_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Helvetica-BoldOblique.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-BoldOblique.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Oblique.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Oblique.compressed.json
   var require_Helvetica_Oblique_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Oblique.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica-Oblique.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Helvetica.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica.compressed.json
   var require_Helvetica_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Helvetica.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Helvetica.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Times-Bold.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Bold.compressed.json
   var require_Times_Bold_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Times-Bold.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Bold.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Times-BoldItalic.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-BoldItalic.compressed.json
   var require_Times_BoldItalic_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Times-BoldItalic.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-BoldItalic.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Times-Italic.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Italic.compressed.json
   var require_Times_Italic_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Times-Italic.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Italic.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Times-Roman.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Roman.compressed.json
   var require_Times_Roman_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Times-Roman.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Times-Roman.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Symbol.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Symbol.compressed.json
   var require_Symbol_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Symbol.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Symbol.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/ZapfDingbats.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/ZapfDingbats.compressed.json
   var require_ZapfDingbats_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/ZapfDingbats.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/ZapfDingbats.compressed.json"(exports, module) {
       module.exports = "eJxtmNtu20YQhl+F4FULyMGeD7pz3AY1ChtG7NpFA18w1NomIlECSRcxgrx7SVk7+wOdG8H5OJydf2Z2d5gf9cV+t0v9VK/r+6vXsXlOlbHe28paq229qj/t++m62aXZ4J/m8PRb1z9/baZxefK63Z6eXN5dVMvTCh83u277xr/6kLrnl2XNq7TpXnczuZyabdee98/b2VzM/x4/dd/T5qab2pd6PQ2vaVVfvDRD005puE3Lu7eH1HbN9hTjx4/77/X6y5lcnUmjVzHIVVDicVX/1W/SsO36dLMfu6nb9/X6TAoBD+5euvZbn8axXtuZ36dhPJrVQqgPQoh5hev91LWLkIv94W1Ygq9+aX+tZAx2tfz64284/sblN/rqfLP/mqrbt3FKu7G67Nv9cNgPzZQ2H6rz7bb6vLgZq89pTMO/M/xfEqturJpqSM/d7GJIm2oamk3aNcO3av80O5xh3yyKmm1193ZIT02bqovTKjP+MAf++7zsZvZ3276kYyWWXB0z99S18/PbafPHQ71W4fjn/fxnFO+ZvkrT0LVzTr78qB/+nk38bHM9exgP8zr1z9U7jt6840YW5uSJKcZOCaBBnKgm5mU8MVNYyMwWFvO7Ukagkmgg6sDWQ5yFFqjzUrLEaQ3BEmiwNsMSaZS0vgWfOkPHWQowNeTUc0kumnxZvsgPxlGai6VTGUqAVCTQ6QkWnc77DKEiLktSUBJKqHIQZ86d8gCpHYoiEzMsb1ubYy8vW50DChB5ZhGqrijD0EqUIeiaEHIfCg5Kpuu0ApiToaGPSY0uaQsyr65L2oKi1yFt1PLaQ3lzfXTgXodGoJYzglndSLDMPg1sTPJpQJHJigw0QrGERqD9YhyTOgONQDUyuF1zaxuokc/BW2ztXCMrGZ9WMW1oQZHIXWNBkSCfRZEL5BMUiZw6CzVSFCfUSGZFNjIldoKDkonTKQiJIGzWmFd3BizJJ9SINoLDriOfUCOZS+zg+KGD1qGiLNMLxtJD1/ns00ON6EzyUCM6vbxhoBKaqbG3DFQCNiL1iHccBPV0DHhQH/JW8EW90dkyFKGywCJU0WkVSvSGeiSUODWFFD0HYdPQVoiRgfPMA+/nnRgiAyNYSjpWNQcNSMrtFCUH4ZIRpSCWocFCSuhCEY6hoUClc0WC52BJlCYYLQdhN+hygRRRlo5BKRRLS6oihSqh+ZzzRGG1Mo4Iz1LoP0qsxDGFzk0JE42ji0jCPejomJKCuwil4m5CiRMEUMVSzVLDUstSx1Juc0oVWMpqY295qVltmtWmWW2a1aZZbZrVplltmtWmWW2G1WZYbYbVZlhthtVmWG2G1WZYbYbVZlhtltVmWW2W1WZZbZbVZlltltVmWW2W1QYjQCh7E2aAQHeGhCFgPoNoy8KNb2wxBhmGKBxoUZXlLGsLI6AsftEDHV0wIURVbANLcTKlGGBIKPOAxCmhePCKUwFzAmpDFRQvjA9R06Hq8TONvshgKDCuRAZTXigUxjxNFfKRo3CLhnIJBMFRvMZpqpNBMlQJzGT5WFQMVQI/AikPMIhEU1aDjqJvQwmjSHB05cC9jbYwc5UtAHNLhDw41ha+lEqF4JaH3gmB61SYcqInxTDmQK8v08vjqv4zDf1N0w3Lf4A8/vwPpfK11w==";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Font.js
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Font.js
   var require_Font = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Font.js"(exports) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Font.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -128581,16 +130554,16 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/all-encodings.compressed.json
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/all-encodings.compressed.json
   var require_all_encodings_compressed = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/all-encodings.compressed.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/all-encodings.compressed.json"(exports, module) {
       module.exports = "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";
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/Encoding.js
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Encoding.js
   var require_Encoding = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/Encoding.js"(exports) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/Encoding.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -128636,9 +130609,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/@pdf-lib/standard-fonts/lib/index.js
+  // ../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/index.js
   var require_lib = __commonJS({
-    "node_modules/@pdf-lib/standard-fonts/lib/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/standard-fonts/lib/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       function __export2(m) {
@@ -128650,9 +130623,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/objects.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/objects.js
   var require_objects = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/objects.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/objects.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -128673,9 +130646,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/validators.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/validators.js
   var require_validators = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/validators.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/validators.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -128859,9 +130832,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/pdfDocEncoding.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/pdfDocEncoding.js
   var require_pdfDocEncoding = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/pdfDocEncoding.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/pdfDocEncoding.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -128926,9 +130899,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/Cache.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/Cache.js
   var require_Cache = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/Cache.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/Cache.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -128960,9 +130933,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/index.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/index.js
   var require_utils2 = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -128984,9 +130957,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/errors.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/errors.js
   var require_errors2 = __commonJS({
-    "node_modules/pdf-lib/cjs/core/errors.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/errors.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -129395,9 +131368,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/syntax/CharCodes.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/CharCodes.js
   var require_CharCodes = __commonJS({
-    "node_modules/pdf-lib/cjs/core/syntax/CharCodes.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/CharCodes.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -129466,9 +131439,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/document/PDFHeader.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFHeader.js
   var require_PDFHeader = __commonJS({
-    "node_modules/pdf-lib/cjs/core/document/PDFHeader.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFHeader.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -129517,9 +131490,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFObject.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFObject.js
   var require_PDFObject = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFObject.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFObject.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -129548,9 +131521,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFNumber.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFNumber.js
   var require_PDFNumber = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFNumber.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFNumber.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -129596,9 +131569,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFArray.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFArray.js
   var require_PDFArray = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFArray.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFArray.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -129724,9 +131697,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFBool.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFBool.js
   var require_PDFBool = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFBool.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFBool.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -129784,9 +131757,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/syntax/Delimiters.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Delimiters.js
   var require_Delimiters = __commonJS({
-    "node_modules/pdf-lib/cjs/core/syntax/Delimiters.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Delimiters.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -129807,9 +131780,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/syntax/Whitespace.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Whitespace.js
   var require_Whitespace = __commonJS({
-    "node_modules/pdf-lib/cjs/core/syntax/Whitespace.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Whitespace.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -129826,9 +131799,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/syntax/Irregular.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Irregular.js
   var require_Irregular = __commonJS({
-    "node_modules/pdf-lib/cjs/core/syntax/Irregular.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Irregular.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -129847,9 +131820,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFName.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFName.js
   var require_PDFName = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFName.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFName.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -129983,9 +131956,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFNull.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFNull.js
   var require_PDFNull = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFNull.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFNull.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -130025,9 +131998,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFDict.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFDict.js
   var require_PDFDict = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFDict.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFDict.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -130170,9 +132143,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFStream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFStream.js
   var require_PDFStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -130254,9 +132227,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFRawStream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFRawStream.js
   var require_PDFRawStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFRawStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFRawStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -130297,9 +132270,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFRef.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFRef.js
   var require_PDFRef = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFRef.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFRef.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -130355,9 +132328,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/operators/PDFOperator.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/operators/PDFOperator.js
   var require_PDFOperator = __commonJS({
-    "node_modules/pdf-lib/cjs/core/operators/PDFOperator.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/operators/PDFOperator.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -130421,9 +132394,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/operators/PDFOperatorNames.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/operators/PDFOperatorNames.js
   var require_PDFOperatorNames = __commonJS({
-    "node_modules/pdf-lib/cjs/core/operators/PDFOperatorNames.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/operators/PDFOperatorNames.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -130507,9 +132480,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/structures/PDFFlateStream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFFlateStream.js
   var require_PDFFlateStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/structures/PDFFlateStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFFlateStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -130551,9 +132524,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/structures/PDFContentStream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFContentStream.js
   var require_PDFContentStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/structures/PDFContentStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFContentStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -130624,9 +132597,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/rng.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/rng.js
   var require_rng = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/rng.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/rng.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -130651,9 +132624,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/PDFContext.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/PDFContext.js
   var require_PDFContext = __commonJS({
-    "node_modules/pdf-lib/cjs/core/PDFContext.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/PDFContext.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -130851,9 +132824,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/structures/PDFPageLeaf.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFPageLeaf.js
   var require_PDFPageLeaf = __commonJS({
-    "node_modules/pdf-lib/cjs/core/structures/PDFPageLeaf.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFPageLeaf.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -131066,9 +133039,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/PDFObjectCopier.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/PDFObjectCopier.js
   var require_PDFObjectCopier = __commonJS({
-    "node_modules/pdf-lib/cjs/core/PDFObjectCopier.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/PDFObjectCopier.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -131164,9 +133137,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/document/PDFCrossRefSection.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFCrossRefSection.js
   var require_PDFCrossRefSection = __commonJS({
-    "node_modules/pdf-lib/cjs/core/document/PDFCrossRefSection.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFCrossRefSection.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -131294,9 +133267,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/document/PDFTrailer.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFTrailer.js
   var require_PDFTrailer = __commonJS({
-    "node_modules/pdf-lib/cjs/core/document/PDFTrailer.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFTrailer.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -131346,9 +133319,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/document/PDFTrailerDict.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFTrailerDict.js
   var require_PDFTrailerDict = __commonJS({
-    "node_modules/pdf-lib/cjs/core/document/PDFTrailerDict.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/document/PDFTrailerDict.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -131389,9 +133362,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/structures/PDFObjectStream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFObjectStream.js
   var require_PDFObjectStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/structures/PDFObjectStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFObjectStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -131476,9 +133449,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/writers/PDFWriter.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/writers/PDFWriter.js
   var require_PDFWriter = __commonJS({
-    "node_modules/pdf-lib/cjs/core/writers/PDFWriter.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/writers/PDFWriter.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -131630,9 +133603,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFInvalidObject.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFInvalidObject.js
   var require_PDFInvalidObject = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFInvalidObject.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFInvalidObject.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -131673,9 +133646,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/structures/PDFCrossRefStream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFCrossRefStream.js
   var require_PDFCrossRefStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/structures/PDFCrossRefStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFCrossRefStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -131866,9 +133839,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/writers/PDFStreamWriter.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/writers/PDFStreamWriter.js
   var require_PDFStreamWriter = __commonJS({
-    "node_modules/pdf-lib/cjs/core/writers/PDFStreamWriter.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/writers/PDFStreamWriter.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -131990,9 +133963,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFHexString.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFHexString.js
   var require_PDFHexString = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFHexString.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFHexString.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -132073,9 +134046,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/StandardFontEmbedder.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/StandardFontEmbedder.js
   var require_StandardFontEmbedder = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/StandardFontEmbedder.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/StandardFontEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -132167,9 +134140,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/CMap.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CMap.js
   var require_CMap = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/CMap.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CMap.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -132217,9 +134190,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/FontFlags.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/FontFlags.js
   var require_FontFlags = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/FontFlags.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/FontFlags.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -132263,9 +134236,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/objects/PDFString.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFString.js
   var require_PDFString = __commonJS({
-    "node_modules/pdf-lib/cjs/core/objects/PDFString.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/objects/PDFString.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -132385,9 +134358,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/CustomFontEmbedder.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CustomFontEmbedder.js
   var require_CustomFontEmbedder = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/CustomFontEmbedder.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CustomFontEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -132629,9 +134602,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/CustomFontSubsetEmbedder.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CustomFontSubsetEmbedder.js
   var require_CustomFontSubsetEmbedder = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/CustomFontSubsetEmbedder.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/CustomFontSubsetEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -132706,9 +134679,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/FileEmbedder.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/FileEmbedder.js
   var require_FileEmbedder = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/FileEmbedder.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/FileEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -132787,9 +134760,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/JpegEmbedder.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/JpegEmbedder.js
   var require_JpegEmbedder = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/JpegEmbedder.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/JpegEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -132907,9 +134880,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/@pdf-lib/upng/cjs/UPNG.js
+  // ../Vidaire_Obras/node_modules/@pdf-lib/upng/cjs/UPNG.js
   var require_UPNG = __commonJS({
-    "node_modules/@pdf-lib/upng/cjs/UPNG.js"(exports) {
+    "../Vidaire_Obras/node_modules/@pdf-lib/upng/cjs/UPNG.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", {
@@ -134378,9 +136351,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/utils/png.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/png.js
   var require_png = __commonJS({
-    "node_modules/pdf-lib/cjs/utils/png.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/utils/png.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -134454,9 +136427,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/PngEmbedder.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/PngEmbedder.js
   var require_PngEmbedder = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/PngEmbedder.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/PngEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -134529,9 +136502,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/streams/Stream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/Stream.js
   var require_Stream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/streams/Stream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/Stream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -134637,9 +136610,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/streams/DecodeStream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/DecodeStream.js
   var require_DecodeStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/streams/DecodeStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/DecodeStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -134785,9 +136758,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/streams/Ascii85Stream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/Ascii85Stream.js
   var require_Ascii85Stream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/streams/Ascii85Stream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/Ascii85Stream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -134869,9 +136842,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/streams/AsciiHexStream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/AsciiHexStream.js
   var require_AsciiHexStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/streams/AsciiHexStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/AsciiHexStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -134935,9 +136908,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/streams/FlateStream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/FlateStream.js
   var require_FlateStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/streams/FlateStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/FlateStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -135823,9 +137796,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/streams/LZWStream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/LZWStream.js
   var require_LZWStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/streams/LZWStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/LZWStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -135955,9 +137928,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/streams/RunLengthStream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/RunLengthStream.js
   var require_RunLengthStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/streams/RunLengthStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/RunLengthStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -136006,9 +137979,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/streams/decode.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/decode.js
   var require_decode = __commonJS({
-    "node_modules/pdf-lib/cjs/core/streams/decode.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/streams/decode.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -136069,9 +138042,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/PDFPageEmbedder.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/PDFPageEmbedder.js
   var require_PDFPageEmbedder = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/PDFPageEmbedder.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/PDFPageEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -136165,9 +138138,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/interactive/ViewerPreferences.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/interactive/ViewerPreferences.js
   var require_ViewerPreferences = __commonJS({
-    "node_modules/pdf-lib/cjs/core/interactive/ViewerPreferences.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/interactive/ViewerPreferences.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -136413,9 +138386,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroField.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroField.js
   var require_PDFAcroField = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroField.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroField.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -136561,9 +138534,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/annotation/BorderStyle.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/BorderStyle.js
   var require_BorderStyle = __commonJS({
-    "node_modules/pdf-lib/cjs/core/annotation/BorderStyle.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/BorderStyle.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -136600,9 +138573,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/annotation/PDFAnnotation.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/PDFAnnotation.js
   var require_PDFAnnotation = __commonJS({
-    "node_modules/pdf-lib/cjs/core/annotation/PDFAnnotation.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/PDFAnnotation.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -136730,9 +138703,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/annotation/AppearanceCharacteristics.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/AppearanceCharacteristics.js
   var require_AppearanceCharacteristics = __commonJS({
-    "node_modules/pdf-lib/cjs/core/annotation/AppearanceCharacteristics.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/AppearanceCharacteristics.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -136860,9 +138833,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/annotation/PDFWidgetAnnotation.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/PDFWidgetAnnotation.js
   var require_PDFWidgetAnnotation = __commonJS({
-    "node_modules/pdf-lib/cjs/core/annotation/PDFWidgetAnnotation.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/PDFWidgetAnnotation.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -136979,9 +138952,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroTerminal.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroTerminal.js
   var require_PDFAcroTerminal = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroTerminal.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroTerminal.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -137048,9 +139021,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroButton.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroButton.js
   var require_PDFAcroButton = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroButton.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroButton.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -137147,9 +139120,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroCheckBox.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroCheckBox.js
   var require_PDFAcroCheckBox = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroCheckBox.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroCheckBox.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -137206,9 +139179,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/flags.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/flags.js
   var require_flags = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/flags.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/flags.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -137251,9 +139224,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroChoice.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroChoice.js
   var require_PDFAcroChoice = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroChoice.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroChoice.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -137383,9 +139356,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroComboBox.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroComboBox.js
   var require_PDFAcroComboBox = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroComboBox.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroComboBox.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -137418,9 +139391,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroNonTerminal.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroNonTerminal.js
   var require_PDFAcroNonTerminal = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroNonTerminal.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroNonTerminal.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -137461,9 +139434,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroSignature.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroSignature.js
   var require_PDFAcroSignature = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroSignature.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroSignature.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -137486,9 +139459,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroText.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroText.js
   var require_PDFAcroText = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroText.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroText.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -137564,9 +139537,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroPushButton.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroPushButton.js
   var require_PDFAcroPushButton = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroPushButton.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroPushButton.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -137599,9 +139572,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroRadioButton.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroRadioButton.js
   var require_PDFAcroRadioButton = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroRadioButton.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroRadioButton.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -137665,9 +139638,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroListBox.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroListBox.js
   var require_PDFAcroListBox = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroListBox.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroListBox.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -137698,9 +139671,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/utils.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/utils.js
   var require_utils3 = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/utils.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/utils.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -137809,9 +139782,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/PDFAcroForm.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroForm.js
   var require_PDFAcroForm = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/PDFAcroForm.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/PDFAcroForm.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -137898,9 +139871,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/acroform/index.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/index.js
   var require_acroform = __commonJS({
-    "node_modules/pdf-lib/cjs/core/acroform/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/acroform/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -137962,9 +139935,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/structures/PDFCatalog.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFCatalog.js
   var require_PDFCatalog = __commonJS({
-    "node_modules/pdf-lib/cjs/core/structures/PDFCatalog.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFCatalog.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -138043,9 +140016,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/structures/PDFPageTree.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFPageTree.js
   var require_PDFPageTree = __commonJS({
-    "node_modules/pdf-lib/cjs/core/structures/PDFPageTree.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/structures/PDFPageTree.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -138199,9 +140172,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/syntax/Numeric.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Numeric.js
   var require_Numeric = __commonJS({
-    "node_modules/pdf-lib/cjs/core/syntax/Numeric.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Numeric.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -138232,9 +140205,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/parser/BaseParser.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/BaseParser.js
   var require_BaseParser = __commonJS({
-    "node_modules/pdf-lib/cjs/core/parser/BaseParser.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/BaseParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -138348,9 +140321,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/parser/ByteStream.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/ByteStream.js
   var require_ByteStream = __commonJS({
-    "node_modules/pdf-lib/cjs/core/parser/ByteStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/ByteStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -138421,9 +140394,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/syntax/Keywords.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Keywords.js
   var require_Keywords = __commonJS({
-    "node_modules/pdf-lib/cjs/core/syntax/Keywords.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/syntax/Keywords.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -138513,9 +140486,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/parser/PDFObjectParser.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFObjectParser.js
   var require_PDFObjectParser = __commonJS({
-    "node_modules/pdf-lib/cjs/core/parser/PDFObjectParser.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFObjectParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -138734,9 +140707,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/parser/PDFObjectStreamParser.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFObjectStreamParser.js
   var require_PDFObjectStreamParser = __commonJS({
-    "node_modules/pdf-lib/cjs/core/parser/PDFObjectStreamParser.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFObjectStreamParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -138821,9 +140794,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/parser/PDFXRefStreamParser.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFXRefStreamParser.js
   var require_PDFXRefStreamParser = __commonJS({
-    "node_modules/pdf-lib/cjs/core/parser/PDFXRefStreamParser.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFXRefStreamParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -138916,9 +140889,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/parser/PDFParser.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFParser.js
   var require_PDFParser = __commonJS({
-    "node_modules/pdf-lib/cjs/core/parser/PDFParser.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/parser/PDFParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -139258,9 +141231,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/annotation/flags.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/flags.js
   var require_flags2 = __commonJS({
-    "node_modules/pdf-lib/cjs/core/annotation/flags.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/flags.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -139284,9 +141257,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/annotation/index.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/index.js
   var require_annotation = __commonJS({
-    "node_modules/pdf-lib/cjs/core/annotation/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/annotation/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -139307,9 +141280,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/index.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/index.js
   var require_core = __commonJS({
-    "node_modules/pdf-lib/cjs/core/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -139511,9 +141484,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/objects.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/objects.js
   var require_objects2 = __commonJS({
-    "node_modules/pdf-lib/cjs/api/objects.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/objects.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -139531,9 +141504,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/rotations.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/rotations.js
   var require_rotations = __commonJS({
-    "node_modules/pdf-lib/cjs/api/rotations.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/rotations.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -139612,9 +141585,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/operators.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/operators.js
   var require_operators = __commonJS({
-    "node_modules/pdf-lib/cjs/api/operators.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/operators.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -139859,9 +141832,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/colors.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/colors.js
   var require_colors = __commonJS({
-    "node_modules/pdf-lib/cjs/api/colors.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/colors.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -139912,9 +141885,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/svgPath.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/svgPath.js
   var require_svgPath = __commonJS({
-    "node_modules/pdf-lib/cjs/api/svgPath.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/svgPath.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -140275,9 +142248,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/operations.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/operations.js
   var require_operations = __commonJS({
-    "node_modules/pdf-lib/cjs/api/operations.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/operations.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -140728,9 +142701,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/errors.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/errors.js
   var require_errors3 = __commonJS({
-    "node_modules/pdf-lib/cjs/api/errors.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/errors.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -140938,9 +142911,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/text/alignment.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/alignment.js
   var require_alignment = __commonJS({
-    "node_modules/pdf-lib/cjs/api/text/alignment.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/alignment.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -140954,9 +142927,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/text/layout.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/layout.js
   var require_layout = __commonJS({
-    "node_modules/pdf-lib/cjs/api/text/layout.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/layout.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -141158,9 +143131,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/appearances.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/appearances.js
   var require_appearances = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/appearances.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/appearances.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -141559,9 +143532,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFEmbeddedPage.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFEmbeddedPage.js
   var require_PDFEmbeddedPage = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFEmbeddedPage.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFEmbeddedPage.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -141620,9 +143593,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFFont.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFFont.js
   var require_PDFFont = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFFont.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFFont.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -141705,9 +143678,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFImage.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFImage.js
   var require_PDFImage = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFImage.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFImage.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -141783,9 +143756,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/image/alignment.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/image/alignment.js
   var require_alignment2 = __commonJS({
-    "node_modules/pdf-lib/cjs/api/image/alignment.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/image/alignment.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -141799,9 +143772,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/image/index.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/image/index.js
   var require_image = __commonJS({
-    "node_modules/pdf-lib/cjs/api/image/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/image/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -141810,9 +143783,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFField.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFField.js
   var require_PDFField = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFField.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFField.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -142039,9 +144012,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFCheckBox.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFCheckBox.js
   var require_PDFCheckBox = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFCheckBox.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFCheckBox.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -142157,9 +144130,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFDropdown.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFDropdown.js
   var require_PDFDropdown = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFDropdown.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFDropdown.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -142376,9 +144349,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFOptionList.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFOptionList.js
   var require_PDFOptionList = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFOptionList.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFOptionList.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -142573,9 +144546,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFRadioGroup.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFRadioGroup.js
   var require_PDFRadioGroup = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFRadioGroup.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFRadioGroup.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -142739,9 +144712,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFSignature.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFSignature.js
   var require_PDFSignature = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFSignature.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFSignature.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -142774,9 +144747,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFTextField.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFTextField.js
   var require_PDFTextField = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFTextField.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFTextField.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -143017,9 +144990,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/StandardFonts.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/StandardFonts.js
   var require_StandardFonts = __commonJS({
-    "node_modules/pdf-lib/cjs/api/StandardFonts.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/StandardFonts.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -143044,9 +145017,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFForm.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFForm.js
   var require_PDFForm = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFForm.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFForm.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -143424,9 +145397,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/sizes.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/sizes.js
   var require_sizes = __commonJS({
-    "node_modules/pdf-lib/cjs/api/sizes.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/sizes.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -143486,9 +145459,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFDocumentOptions.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFDocumentOptions.js
   var require_PDFDocumentOptions = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFDocumentOptions.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFDocumentOptions.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -143503,9 +145476,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFEmbeddedFile.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFEmbeddedFile.js
   var require_PDFEmbeddedFile = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFEmbeddedFile.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFEmbeddedFile.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -143570,9 +145543,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFJavaScript.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFJavaScript.js
   var require_PDFJavaScript = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFJavaScript.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFJavaScript.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -143633,9 +145606,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/core/embedders/JavaScriptEmbedder.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/JavaScriptEmbedder.js
   var require_JavaScriptEmbedder = __commonJS({
-    "node_modules/pdf-lib/cjs/core/embedders/JavaScriptEmbedder.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/core/embedders/JavaScriptEmbedder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -143680,9 +145653,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFDocument.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFDocument.js
   var require_PDFDocument = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFDocument.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFDocument.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -144388,9 +146361,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFPageOptions.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFPageOptions.js
   var require_PDFPageOptions = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFPageOptions.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFPageOptions.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -144413,9 +146386,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/PDFPage.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFPage.js
   var require_PDFPage = __commonJS({
-    "node_modules/pdf-lib/cjs/api/PDFPage.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/PDFPage.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -145085,9 +147058,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/PDFButton.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFButton.js
   var require_PDFButton = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/PDFButton.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/PDFButton.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -145196,9 +147169,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/form/index.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/index.js
   var require_form = __commonJS({
-    "node_modules/pdf-lib/cjs/api/form/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/form/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -145243,9 +147216,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/text/index.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/index.js
   var require_text = __commonJS({
-    "node_modules/pdf-lib/cjs/api/text/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/text/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -145255,9 +147228,9 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/api/index.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/api/index.js
   var require_api = __commonJS({
-    "node_modules/pdf-lib/cjs/api/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/api/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -145302,18 +147275,18 @@ ${correo.texto || ""}`);
     }
   });
 
-  // node_modules/pdf-lib/cjs/types/index.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/types/index.js
   var require_types = __commonJS({
-    "node_modules/pdf-lib/cjs/types/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/types/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
     }
   });
 
-  // node_modules/pdf-lib/cjs/index.js
+  // ../Vidaire_Obras/node_modules/pdf-lib/cjs/index.js
   var require_cjs = __commonJS({
-    "node_modules/pdf-lib/cjs/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/pdf-lib/cjs/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -148367,7 +150340,23 @@ Estado: ${ESTADO}`);
         c.legalizacionesTerritorio = repo && sesion ? tramitesTerritorio(repo, sesion, obra, hoy) : 0;
         c.pedidosCruzados = repo && sesion ? require_pedidosProyecto2().contar(repo, sesion, obra.id) : 0;
         c.medComprobada = repo && sesion ? require_medComprobada2().contar(repo, sesion, obra.id) : 0;
+        Object.assign(c, contarDesfase(db, id));
         Object.assign(c, contarClaim(db, id));
+        return c;
+      }
+      function contarDesfase(db, obraId) {
+        const c = { desfasePartidas: 0, desfaseHoras: 0, desfaseJustificantes: 0 };
+        const n = (sql) => {
+          try {
+            return db.prepare(sql).get(obraId).n || 0;
+          } catch {
+            return 0;
+          }
+        };
+        if (!n("SELECT COUNT(*) AS n FROM desfaseCalculos WHERE obraId = ?")) return c;
+        c.desfasePartidas = n("SELECT COUNT(DISTINCT clave) AS n FROM desfases WHERE obraId = ? AND tipo = 'partida'");
+        c.desfaseHoras = n("SELECT COUNT(DISTINCT emisor || '|' || mes) AS n FROM desfases WHERE obraId = ? AND tipo = 'horas'");
+        c.desfaseJustificantes = n("SELECT COUNT(*) AS n FROM docsCorreo WHERE obraId = ? AND tipo = 'certificacion'");
         return c;
       }
       var CLAIM_CEROS = {
@@ -148470,6 +150459,201 @@ Estado: ${ESTADO}`);
           return 0;
         }
       }
+      var ALTA = "@ALTA@";
+      var FUENTES = {
+        equipos: { tabla: "equiposObra", texto: "Equipos \u203A una fila por equipo, en el mes en que se dio de alta (creadoEn)" },
+        modelos: { tabla: "modelosEquipo", texto: "Equipos \u203A Modelos, en el mes en que se cre\xF3 el modelo (creadoEn)" },
+        documentos: { tabla: "equiposObra", fecha: "modificadoEn", texto: "Documentos enlazados a cada equipo, en el mes de la \xFAltima modificaci\xF3n del equipo (aproximado: la base no guarda la fecha de cada enlace)" },
+        fichasPM: { tabla: "fichasPM", texto: "Commissioning \u203A Fichas PM, en el mes en que se gener\xF3 cada ficha (creadoEn)" },
+        datosProyecto: { tabla: "fichasPM", fecha: "modificadoEn", texto: "Datos de proyecto en las fichas PM, en el mes de la \xFAltima modificaci\xF3n de la ficha (aproximado)" },
+        hojasBalanceo: { tabla: "hojasBalanceo", extra: ` AND datos LIKE '%"circuitos"%'`, texto: "Commissioning \u203A Balanceo, hojas con circuitos (creadoEn)" },
+        bocasPlano: { tabla: "planosDifusores", fecha: "modificadoEn", peso: "COALESCE(SUM(json_array_length(CASE WHEN json_valid(puntos) THEN puntos ELSE '[]' END)), 0)", texto: "Planos de difusores, bocas situadas, en el mes de la \xFAltima modificaci\xF3n del plano" },
+        puntosControl: { tabla: "equiposObra", texto: "Puntos de control: salen de los equipos, en el mes del alta de cada equipo (aproximado)" },
+        partidas: {
+          sql: (o) => o.presupuestoId ? ["SELECT substr(creadoEn,1,7) AS mes, 0 AS hist, COUNT(*) AS n FROM lineas WHERE presupuestoId = ? AND tipo = 'partida' GROUP BY 1", o.presupuestoId] : null,
+          texto: "Presupuesto de la obra, partidas (creadoEn)"
+        },
+        preciosContrato: {
+          sql: (o) => o.proyectoId ? ["SELECT substr(creadoEn,1,7) AS mes, 0 AS hist, COUNT(*) AS n FROM preciosPartida WHERE proyectoId = ? GROUP BY 1", o.proyectoId] : null,
+          texto: "Precios de contrato por partida (creadoEn)"
+        },
+        certificaciones: {
+          tabla: "certificaciones",
+          hist: `COALESCE(periodo, '9999') < substr('${ALTA}',1,7)`,
+          texto: "Certificaciones a cliente (creadoEn); las de un periodo anterior al alta son historial",
+          motivo: "certificaciones de meses anteriores al alta, cargadas despu\xE9s"
+        },
+        certIndustriales: {
+          tabla: "certIndustriales",
+          hist: `COALESCE(periodo, '9999') < substr('${ALTA}',1,7)`,
+          texto: "Certificaciones de industriales (creadoEn); las de un periodo anterior al alta son historial",
+          motivo: "certificaciones de industriales de meses anteriores al alta, cargadas despu\xE9s"
+        },
+        pedidos: {
+          tabla: "pedidosCompra",
+          hist: `COALESCE(fechaSolicitud, '9999') < '${ALTA}'`,
+          texto: "Compras \u203A Pedidos (creadoEn); los pedidos solicitados antes del alta son historial",
+          motivo: "pedidos solicitados antes del alta (cargados del Excel de compras)"
+        },
+        albaranes: { tabla: "albaranes", hist: `COALESCE(fecha, '9999') < '${ALTA}'`, texto: "Albaranes (creadoEn); los de fecha anterior al alta son historial", motivo: "albaranes de antes del alta" },
+        facturas: { tabla: "facturasProveedor", hist: `COALESCE(fecha, '9999') < '${ALTA}'`, texto: "Facturas de proveedor (creadoEn); las de antes del alta son historial", motivo: "facturas de antes del alta" },
+        ncr: {
+          tabla: "ncr",
+          hist: `importacionId IS NOT NULL OR COALESCE(fechaDeteccion, '9999') < '${ALTA}'`,
+          texto: "Calidad \u203A NCR (creadoEn); las importadas del libro de NCR o detectadas antes del alta son historial",
+          motivo: "NCR importadas del libro de NCR (detectadas antes del alta)"
+        },
+        partesIncidencia: { tabla: "partesIncidencia", hist: `COALESCE(fecha, '9999') < '${ALTA}'`, texto: "Partes de incidencia (creadoEn)", motivo: "partes de antes del alta" },
+        pruebasEstanqueidad: { tabla: "pruebasEstanqueidad", hist: `COALESCE(fecha, '9999') < '${ALTA}'`, texto: "Pruebas de estanqueidad (creadoEn)", motivo: "pruebas de antes del alta" },
+        ppi: { tabla: "ppiRevisiones", texto: "Revisiones de PPI (creadoEn)" },
+        tareasGantt: { tabla: "ganttElementos", extra: " AND tipo = 'actividad'", texto: "Planificaci\xF3n \u203A Gantt, actividades (creadoEn)" },
+        tareasObra: { tabla: "tareasObra", texto: "Tareas encargadas (creadoEn)" },
+        actas: { tabla: "actasObra", hist: `COALESCE(fecha, '9999') < '${ALTA}'`, texto: "Actas de obra (creadoEn); las de reuniones anteriores al alta son historial", motivo: "actas de reuniones anteriores al alta" },
+        avance: { tabla: "avanceMarcas", hist: `COALESCE(fecha, '9999') < '${ALTA}'`, texto: "Marcas de avance en plano (creadoEn)", motivo: "marcas de antes del alta" },
+        ordenesMant: { tabla: "ordenesMant", extra: " AND estado = 'cerrada'", texto: "Mantenimiento \u203A \xF3rdenes cerradas (creadoEn)" },
+        fichajes: { tabla: "fichajes", hist: `COALESCE(fecha, '9999') < '${ALTA}'`, texto: "Fichajes (creadoEn)", motivo: "fichajes de antes del alta" },
+        pedidosCruzados: { tabla: "propuestasPedido", texto: "Pedidos \u203A Pedido \u2194 proyecto, l\xEDneas cruzadas (creadoEn de la propuesta)" },
+        medComprobada: { tabla: "medComprobadaPlanos", texto: "Medici\xF3n comprobada en planos (creadoEn)" },
+        claimCorreos: { tabla: "reclamacionPruebas", extra: " AND tipo = 'correo'", texto: "Reclamaciones \u203A pruebas tipo correo (creadoEn)" },
+        claimFotos: { tabla: "reclamacionPruebas", extra: " AND tipo = 'foto'", texto: "Reclamaciones \u203A pruebas tipo foto (creadoEn)" },
+        claimDocumentos: { tabla: "reclamacionPruebas", extra: " AND tipo NOT IN ('correo','foto')", texto: "Reclamaciones \u203A pruebas documento o acta (creadoEn)" },
+        claimHechos: { tabla: "reclamacionHechos", texto: "Reclamaciones \u203A hechos (creadoEn)" },
+        claimImportes: { tabla: "reclamacionHechos", texto: "Reclamaciones \u203A hechos cuantificados (creadoEn del hecho)" },
+        claimPagos: { tabla: "reclamacionHechos", texto: "Reclamaciones \u203A hechos de pagos e IPC (creadoEn del hecho)" },
+        claimCategorias: { tabla: "reclamacionHechos", texto: "Reclamaciones \u203A hechos clasificados (creadoEn del hecho)" },
+        claimPlazos: { tabla: "reclamacionHechos", texto: "Reclamaciones \u203A hechos con plazo (creadoEn del hecho)" },
+        claimEnlaces: { tabla: "reclamacionHechoPruebas", texto: "Reclamaciones \u203A enlaces hecho-prueba (creadoEn)" },
+        claimAnexos: { tabla: "reclamacionHechoPruebas", texto: "Reclamaciones \u203A pruebas anexadas (creadoEn del enlace)" },
+        claimClausulas: { tabla: "reclamacionHechoClausulas", texto: "Reclamaciones \u203A cl\xE1usulas citadas (creadoEn)" },
+        claimApartados: { tabla: "reclamacionApartados", texto: "Reclamaciones \u203A apartados (creadoEn)" },
+        claimExpediente: { tabla: "reclamaciones", texto: "Reclamaciones \u203A una por expediente (creadoEn)" },
+        claimRobos: { tabla: "inventarioTeorico", texto: "Reclamaciones \u203A conciliaci\xF3n de material (creadoEn)" },
+        claimEquiposUso: { tabla: "reclamaciones", texto: "Equipos en uso para el claim, en el mes de la reclamaci\xF3n (aproximado)" }
+      };
+      var mesDe = (f) => /^\d{4}-\d{2}/.test(String(f || "")) ? String(f).slice(0, 7) : null;
+      function mesesLista(desde, hasta) {
+        const out = [];
+        if (!desde || !hasta || desde > hasta) return out;
+        let [a, m] = desde.split("-").map(Number);
+        for (let i = 0; i < 600; i += 1) {
+          const k = `${a}-${String(m).padStart(2, "0")}`;
+          out.push(k);
+          if (k >= hasta) break;
+          m += 1;
+          if (m > 12) {
+            m = 1;
+            a += 1;
+          }
+        }
+        return out;
+      }
+      function filasFuente(db, f, obra, alta) {
+        let q = null;
+        if (f.sql) q = f.sql(obra);
+        else if (f.tabla) {
+          const hist = f.hist ? `CASE WHEN ${f.hist.split(ALTA).join(alta)} THEN 1 ELSE 0 END` : "0";
+          q = [`SELECT substr(${f.fecha || "creadoEn"},1,7) AS mes, ${hist} AS hist, ${f.peso || "COUNT(*)"} AS n FROM ${f.tabla} WHERE obraId = ?${f.extra || ""} GROUP BY 1, 2`, obra.id];
+        }
+        if (!q) return [];
+        try {
+          return db.prepare(q[0]).all(...q.slice(1)).map((r) => ({ mes: mesDe(r.mes), hist: Number(r.hist) === 1, n: Number(r.n) || 0 }));
+        } catch {
+          return [];
+        }
+      }
+      function repartir(n, pesos) {
+        const ks = Object.keys(pesos).filter((k) => pesos[k] > 0);
+        const t = ks.reduce((a, k) => a + pesos[k], 0);
+        const o = {};
+        if (!n || !t) return o;
+        const base = ks.map((k) => {
+          const x = n * pesos[k] / t;
+          return { k, e: Math.floor(x), r: x - Math.floor(x) };
+        });
+        let falta = n - base.reduce((a, b) => a + b.e, 0);
+        base.slice().sort((a, b) => b.r - a.r || (a.k < b.k ? -1 : 1)).forEach((b) => {
+          if (falta > 0) {
+            b.e += 1;
+            falta -= 1;
+          }
+        });
+        for (const b of base) if (b.e) o[b.k] = b.e;
+        return o;
+      }
+      function fechasReales(db, obra, conteos, alta, hoy) {
+        const altaOk = /^\d{4}-\d{2}-\d{2}$/.test(String(alta || "")) ? alta : String(hoy).slice(0, 10);
+        const hasta = mesDe(hoy);
+        const lineas = {};
+        let primero = mesDe(altaOk);
+        const cuenta = (id) => Number(conteos[id]) > 0 ? Math.floor(conteos[id]) : 0;
+        for (const l of Object.keys(conteos || {}).map((id) => ({ id }))) {
+          const total = cuenta(l.id);
+          if (!total) continue;
+          const f = FUENTES[l.id];
+          let pesos = {};
+          let histW = 0;
+          let sinFecha = false;
+          let fuente = f ? f.texto : null;
+          if (l.id === "informes") {
+            const d0 = Date.parse(altaOk);
+            const h = Date.parse(String(hoy).slice(0, 10));
+            for (let t = d0; t <= h; t += 864e5) if (new Date(t).getUTCDay() === 1) {
+              const k = new Date(t).toISOString().slice(0, 7);
+              pesos[k] = (pesos[k] || 0) + 1;
+            }
+            fuente = "Informe semanal: un lunes = un informe, desde el alta de la obra (no se guarda cada informe sacado)";
+          } else if (/^desfase/.test(l.id)) {
+            let k = null;
+            try {
+              k = mesDe((db.prepare("SELECT calculadoEn FROM desfaseCalculos WHERE obraId = ?").get(obra.id) || {}).calculadoEn);
+            } catch {
+              k = null;
+            }
+            if (k) pesos[k] = 1;
+            else sinFecha = true;
+            fuente = "Certificaciones \u203A Mes a mes \u203A Por causa: lo que la app cas\xF3, revis\xF3 y enlaz\xF3 al calcular el desfase, en el mes de ese c\xE1lculo (desfaseCalculos)";
+          } else if (l.id === "archivosLeidos") {
+            let ult = {};
+            try {
+              ult = leerJson((db.prepare("SELECT ultimoEnlace FROM configCommissioning WHERE obraId = ?").get(obra.id) || {}).ultimoEnlace, {}) || {};
+            } catch {
+              ult = {};
+            }
+            const k = mesDe(ult.cuando);
+            if (k) pesos[k] = 1;
+            else sinFecha = true;
+            fuente = "Commissioning \u203A \xFAltima pasada por el SharePoint (archivos le\xEDdos), en el mes de esa pasada";
+          } else if (f) {
+            for (const r of filasFuente(db, f, obra, altaOk)) {
+              if (r.hist) {
+                histW += r.n;
+                continue;
+              }
+              const k = r.mes || hasta;
+              if (!r.mes) sinFecha = true;
+              pesos[k] = (pesos[k] || 0) + r.n;
+            }
+          } else {
+            sinFecha = true;
+            fuente = l.id === "certificadosInstalador" ? "Legalizaciones \u203A certificados de instalador que aplican (sin fecha en la base: van al mes en curso)" : l.id === "legalizacionesTerritorio" ? "Legalizaciones \u203A tr\xE1mites del territorio (sin fecha en la base: van al mes en curso)" : "Sin fecha en la base: va al mes en curso";
+          }
+          for (const k of Object.keys(pesos)) if (k > hasta) {
+            pesos[hasta] = (pesos[hasta] || 0) + pesos[k];
+            delete pesos[k];
+          }
+          const vivoW = Object.values(pesos).reduce((a, b) => a + b, 0);
+          const historial = histW ? Math.min(total, Math.round(total * histW / (histW + vivoW))) : 0;
+          const contadas = total - historial;
+          if (contadas > 0 && !vivoW) {
+            pesos = { [hasta]: 1 };
+            sinFecha = true;
+          }
+          const porMes = repartir(contadas, pesos);
+          for (const k of Object.keys(porMes)) if (k < primero) primero = k;
+          lineas[l.id] = { total, historial, porMes, fuente, sinFecha, motivoHistorial: historial ? f && f.motivo || "cargado de antes del alta" : null };
+        }
+        return { alta: altaOk, desde: primero, hasta, meses: mesesLista(primero, hasta), lineas };
+      }
       function leerAjustes(repo, sesion) {
         if (!esAdmin(sesion)) return NO;
         const f = repo.db.prepare("SELECT valores, modificadoEn FROM ajustesAhorro WHERE id = ?").get(FILA);
@@ -148499,7 +150683,10 @@ Estado: ${ESTADO}`);
         const r = Q.ahorroObra(sesion.rol, conteos, ajustes, meses, mesesObra);
         const pl = Q.plantillaDeObra(obra, ajustes);
         const conPlantilla = r ? { ...Q.ahorroConPlantilla(sesion.rol, ajustes, pl.plantilla, { horas: r.horasUnaVez, euros: r.eurosUnaVez }, r.mesesObra), origen: pl.origen } : null;
-        return { ok: true, obra: { id: obra.id, codigo: obra.codigo, nombre: obra.nombre }, conteos, desde, mesesObraDeFechas: mesesObraFechas >= 1, ...r, conPlantilla };
+        const alta = String(obra.creadoEn || obra.fechaInicio || "").slice(0, 10);
+        const fr = fechasReales(repo.db, obra, conteos, alta, hoy || require_fecha().hoyLocal());
+        const real = Q.ahorroRealMesAMes(sesion.rol, fr, ajustes);
+        return { ok: true, obra: { id: obra.id, codigo: obra.codigo, nombre: obra.nombre }, conteos, desde, mesesObraDeFechas: mesesObraFechas >= 1, ...r, conPlantilla, real, realFechas: fr };
       }
       function plantilla(repo, sesion) {
         if (!esAdmin(sesion)) return NO;
@@ -148509,7 +150696,7 @@ Estado: ${ESTADO}`);
         }
         return { ok: true, plantilla: p };
       }
-      module.exports = { contar, contarClaim, leerAjustes, guardarAjustes, ahorroDeObra, plantilla };
+      module.exports = { contar, contarClaim, contarDesfase, fechasReales, FUENTES, leerAjustes, guardarAjustes, ahorroDeObra, plantilla };
     }
   });
 
@@ -153404,7 +155591,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         try {
           const PEQ = require_planoEquipos2();
           const cache = /* @__PURE__ */ new Map();
-          const figuras = PEQ.localizacion(repo, sesion, d.equipo.id).map((r) => ({ svg: PEQ.svgRecorte(repo, sesion, r, cache), pie: r.pie })).filter((f) => f.svg);
+          const figuras = PEQ.localizacion(repo, sesion, d.equipo.id).map((r) => ({ svg: PEQ.svgRecorte(repo, sesion, r, cache), pie: r.pie, sala: r.origen === "ifc" ? r.sala : null })).filter((f) => f.svg);
           if (figuras.length) {
             extras.unshift({
               nombre: "Localizaci\xF3n en plano",
@@ -159943,6 +162130,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
       var IARVIS = /* @__PURE__ */ new Set(["iarvis:preguntar"]);
       var IARVIS_HACE = /* @__PURE__ */ new Set(["iarvis:hacer", "POST api/iarvis/accion"]);
       var VENTANA_DINERO = 10 * 60 * 1e3;
+      var esDeIarvis = (canal) => IARVIS.has(canal) || IARVIS_HACE.has(canal) || /^(iarvis[:·]|[A-Z]+ api\/iarvis\/)/.test(String(canal || ""));
       function resumenArgs(args) {
         try {
           const limpio = JSON.stringify(args, (k, v) => {
@@ -159988,7 +162176,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         try {
           if (!sesion || SIN_ACCION.has(canal)) return;
           const obraId = obraDeArgs(args);
-          const ses = { ...sesion, proceso: canal };
+          const ses = esDeIarvis(canal) && sesion.origen !== "iarvis" ? { ...sesion, origen: "iarvis", proceso: `iarvis \xB7 ${AUD.origenDe(sesion)} \xB7 ${canal}` } : { ...sesion, proceso: sesion.origen === "iarvis" && sesion.proceso ? sesion.proceso : canal };
           if (IARVIS.has(canal)) {
             if (!sesion.personaId) return;
             const d = args[0] && typeof args[0] === "object" ? args[0] : { pregunta: args[0] };
@@ -160051,19 +162239,26 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
               const s = quienSoy() || {};
               return { ...s, proceso: canal };
             };
-            const r = TD.conAutor(db, actor, () => f.call(this, e, ...args));
+            const deIarvis = esDeIarvis(canal) || Boolean(e && e.iarvis);
+            const quien = deIarvis ? quienSoy() || {} : null;
+            const correr = () => TD.conAutor(db, actor, () => f.call(this, e, ...args));
+            const r = deIarvis && quien.personaId ? AUD.conOrigen(db, { personaId: quien.personaId, origen: "iarvis" }, correr) : correr();
+            const sesAccion = () => {
+              const s = quienSoy();
+              return deIarvis && s && s.personaId && s.origen !== "iarvis" ? { ...s, origen: "iarvis", proceso: `iarvis \xB7 ${AUD.origenDe(s)} \xB7 ${canal}` } : s;
+            };
             if (r && typeof r.then === "function") {
               return r.then((v) => {
-                apuntarAccionDeCanal(db, quienSoy(), canal, args, v, vistos);
+                apuntarAccionDeCanal(db, sesAccion(), canal, args, v, vistos);
                 return v;
               });
             }
-            apuntarAccionDeCanal(db, quienSoy(), canal, args, r, vistos);
+            apuntarAccionDeCanal(db, sesAccion(), canal, args, r, vistos);
             return r;
           };
         };
       }
-      module.exports = { crearEnvoltorio, apuntarAccionDeCanal, iarvisResumen, VER_DINERO, EXPORTAR, DECIDIR };
+      module.exports = { crearEnvoltorio, apuntarAccionDeCanal, iarvisResumen, esDeIarvis, VER_DINERO, EXPORTAR, DECIDIR };
     }
   });
 
@@ -171581,227 +173776,6 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // shared/reclamaciones/partesHorasSub.js
-  var require_partesHorasSub = __commonJS({
-    "shared/reclamaciones/partesHorasSub.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function() {
-        const TARIFA_VENTA = 36.5;
-        const ENLACE = "parteHorasSub";
-        const FECHA_DESDE = "2025-09-01";
-        const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
-        const sinAc = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-        const slug = (s) => sinAc(s).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
-        function horasPersona(p = {}) {
-          const tot = Number(p.horasTotales);
-          if (Number.isFinite(tot) && tot > 0) return r2(tot);
-          const n = Number(p.trabajadores);
-          const h = Number(p.horasPorTrabajador);
-          if (n > 0 && h > 0) return r2(n * h);
-          return 0;
-        }
-        function valorar(p = {}, tarifa = TARIFA_VENTA) {
-          const horas = horasPersona(p);
-          const venta = r2(horas * tarifa);
-          const c = p.costeReal === void 0 || p.costeReal === null || p.costeReal === "" ? null : Number(p.costeReal);
-          const coste = Number.isFinite(c) ? r2(c) : null;
-          return { horas, tarifa, venta, coste, margen: coste === null ? null : r2(venta - coste) };
-        }
-        const MESES = { enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6, julio: 7, agosto: 8, septiembre: 9, setiembre: 9, octubre: 10, noviembre: 11, diciembre: 12 };
-        const p2 = (n) => String(n).padStart(2, "0");
-        function fechaDe(p = {}) {
-          for (const t of [p.fecha, p.fechas, p.mes]) {
-            const x = String(t || "");
-            let m = x.match(/(\d{4})-(\d{2})-(\d{2})/);
-            if (m) return m[0];
-            const todas = [...x.matchAll(/(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})/g)];
-            if (todas.length) {
-              const u = todas[todas.length - 1];
-              return `${u[3]}-${p2(u[2])}-${p2(u[1])}`;
-            }
-            const dm = [...sinAc(x).matchAll(/(\d{1,2})\s+de\s+([a-z]+)(?:\s+de\s+(\d{4}))?/g)];
-            if (dm.length) {
-              const u = dm[dm.length - 1];
-              const y = u[3] || (x.match(/(20\d{2})/) || [])[1];
-              if (MESES[u[2]] && y) return `${y}-${p2(MESES[u[2]])}-${p2(u[1])}`;
-            }
-            const my = sinAc(x).match(/\b(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)\s+(?:de\s+)?(20\d{2})/);
-            if (my) {
-              const mm = MESES[my[1]];
-              return `${my[2]}-${p2(mm)}-${p2(new Date(Date.UTC(Number(my[2]), mm, 0)).getUTCDate())}`;
-            }
-            if (t === p.mes) {
-              m = x.match(/^(20\d{2})-(\d{2})/);
-              if (m) return `${m[1]}-${m[2]}-28`;
-              m = x.match(/^(\d{2})-(\d{2})(?:_|$)/);
-              if (m) return `20${m[1]}-${m[2]}-28`;
-            }
-          }
-          return null;
-        }
-        function normalizar(p = {}) {
-          const hpt = p.horasPorTrabajador;
-          let tot = Number(p.horasTotales);
-          let n = Number(p.trabajadores);
-          if (hpt && typeof hpt === "object") {
-            const v = Object.values(hpt).map(Number).filter((x) => Number.isFinite(x));
-            if (!(tot > 0)) tot = v.reduce((a, b) => a + b, 0);
-            if (!(n > 0)) n = v.length;
-          }
-          const out = { ...p, fecha: fechaDe(p) };
-          if (tot > 0) out.horasTotales = r2(tot);
-          if (n > 0) out.trabajadores = n;
-          if (hpt && typeof hpt === "object") out.horasPorTrabajador = void 0;
-          const c = p.costeReal ?? p.importe;
-          if (c !== void 0 && c !== null && c !== "") out.costeReal = Number(c);
-          return out;
-        }
-        function idExterno(p = {}) {
-          const ref = p.referencia || p.archivo || p.fecha || "";
-          return `parteHoras:${slug(p.subcontrata)}:${String(p.fecha || "").slice(0, 10)}:${slug(ref)}`;
-        }
-        function enPeriodo(p = {}, hasta = require_fecha().hoyLocal()) {
-          const f = String(p.fecha || "").slice(0, 10);
-          return /^\d{4}-\d{2}-\d{2}$/.test(f) && f >= FECHA_DESDE && f <= hasta;
-        }
-        const dias = (a, b) => Math.abs((Date.parse(`${String(a).slice(0, 10)}T00:00:00Z`) - Date.parse(`${String(b).slice(0, 10)}T00:00:00Z`)) / 864e5);
-        const palabras = (s) => new Set(sinAc(s).split(/[^a-z0-9]+/).filter((w) => w.length >= 4));
-        function candidatos(p = {}, hechos = [], max = 3) {
-          const pp = palabras([p.descripcion, p.zona].filter(Boolean).join(" "));
-          const sub = sinAc(p.subcontrata);
-          const res = [];
-          for (const h of hechos) {
-            if (!h || h.estado === "descartado" || h.enlaceTipo === ENLACE || h.naturaleza === "plazoLimak") continue;
-            let punt = 0;
-            const por = [];
-            const f = h.fecha || h.fechaFin;
-            if (f && p.fecha) {
-              const d = dias(f, p.fecha);
-              if (d <= 7) {
-                punt += 3 - Math.floor(d / 3);
-                por.push(d === 0 ? "mismo d\xEDa" : `${d} d\xEDas de diferencia`);
-              }
-            }
-            const hp = palabras([h.titulo, h.descripcion, h.zona].filter(Boolean).join(" "));
-            const comunes = [...pp].filter((w) => hp.has(w));
-            if (comunes.length) {
-              punt += Math.min(4, comunes.length);
-              por.push(`palabras: ${comunes.slice(0, 4).join(", ")}`);
-            }
-            if (sub && sinAc([h.subcontrata, h.titulo, h.descripcion].join(" ")).includes(sub.split(" ")[0])) {
-              punt += 2;
-              por.push("misma subcontrata");
-            }
-            if (h.metodo === "horas_x_tarifa") punt += 0.5;
-            if (punt >= 3) res.push({ hechoId: h.id, idExterno: h.idExterno || null, titulo: h.titulo || "", punt: r2(punt), por: por.join(" \xB7 "), valoraHoras: yaValoraHoras(h) });
-          }
-          return res.sort((a, b) => b.punt - a.punt).slice(0, max);
-        }
-        function yaValoraHoras(h = {}) {
-          if (h.metodo === "horas_x_tarifa" && Number(h.importe ?? h.importeCalc ?? 1) !== 0) return true;
-          if (Number(h.horasPersona) > 0) return true;
-          return false;
-        }
-        function ganador(cands = []) {
-          if (!cands.length) return null;
-          const [a, b] = cands;
-          return a.punt >= 5 && (!b || a.punt - b.punt >= 2) ? a : null;
-        }
-        function escalar(horas, n, coste, pct) {
-          const f = pct >= 100 || !(pct > 0) ? 1 : pct / 100;
-          const h = r2(horas * f);
-          return { horas: h, hPorTrab: n > 0 ? r2(h / n) : h, coste: coste === null || coste === void 0 ? null : r2(coste * f), pct: f === 1 ? null : pct };
-        }
-        function hechoDe(p = {}, { apartadoId = null, padre = null, tarifa = TARIFA_VENTA, revision = [], candidatos: cands = [] } = {}) {
-          const v = valorar(p, tarifa);
-          const n = Number(p.trabajadores) > 0 ? Number(p.trabajadores) : 1;
-          const esc = escalar(v.horas, n, v.coste, Number(p.porcentajeClaim));
-          const hPorTrab = esc.hPorTrab;
-          const quien = p.subcontrata || "Subcontrata";
-          const titulo = `Parte de horas de ${quien}${p.fecha ? ` (${String(p.fecha).slice(0, 10)})` : ""}: ${esc.horas} h${p.descripcion ? ` \u2014 ${String(p.descripcion).slice(0, 90)}` : ""}`;
-          const doc = padre && padre.valoraHoras;
-          const nota = [
-            `Parte de horas de ${quien}`,
-            p.referencia ? `ref. ${p.referencia}` : null,
-            p.archivo ? `archivo ${p.archivo}` : null,
-            p.mes ? `carpeta ${p.mes}` : null,
-            esc.pct ? `El parte trae ${v.horas} h-persona; solo el ${esc.pct} % de sus horas va al claim` : null,
-            `${n} trabajador(es) \xD7 ${hPorTrab} h = ${esc.horas} h-persona`,
-            `Venta: ${esc.horas} h \xD7 ${tarifa} \u20AC/h = ${r2(esc.horas * tarifa)} \u20AC`,
-            esc.coste === null ? "Coste real: sin apuntar (falta el importe del parte)" : `Coste real (lo que nos cobra): ${esc.coste} \u20AC`,
-            padre ? doc ? "Documenta al hecho padre (que ya valora esas horas): no suma venta." : "Cuelga de su hecho y suma sus horas." : "Sin hecho asignado: revisar a cu\xE1l pertenece.",
-            !padre && cands.length ? `Hechos posibles: ${cands.map((c) => `\xAB${String(c.titulo).slice(0, 70)}\xBB (${c.punt} pts: ${c.por})`).join(" | ")}` : null,
-            revision.length ? `A REVISAR: ${revision.join("; ")}` : null
-          ].filter(Boolean).join(". ");
-          return {
-            idExterno: idExterno(p),
-            fecha: String(p.fecha || "").slice(0, 10) || null,
-            titulo,
-            descripcion: [p.descripcion, p.zona ? `Zona: ${p.zona}` : null].filter(Boolean).join(". ") || null,
-            apartadoId,
-            metodo: "horas_x_tarifa",
-            a: n,
-            b: hPorTrab,
-            c: 1,
-            p: tarifa,
-            horasPersona: esc.horas,
-            costeReal: esc.coste,
-            porcentajeClaim: esc.pct,
-            horasOrigen: esc.pct ? v.horas : null,
-            costeOrigen: esc.pct ? v.coste : null,
-            subcontrata: p.subcontrata || null,
-            zona: p.zona || null,
-            enlaceTipo: ENLACE,
-            enlaceId: idExterno(p),
-            origenHecho: "parteHorasSubcontrata",
-            certeza: "documentado",
-            notaImportacion: nota,
-            hechoPadreId: padre ? padre.hechoId : null,
-            hijoSuma: padre ? doc ? 0 : 1 : null,
-            hijoNota: padre ? `Horas de ${quien}` : null,
-            hijoSentido: padre ? "favor" : null
-          };
-        }
-        function avisosRevision(p = {}, lote = [], tarifa = TARIFA_VENTA) {
-          const v = valorar(p, tarifa);
-          const out = [];
-          if (v.coste === null) out.push("sin coste: falta el importe que cobra la subcontrata");
-          else if (v.horas > 0 && v.coste / v.horas > tarifa) out.push(`coste ${r2(v.coste / v.horas)} \u20AC/h por encima de la venta (${tarifa} \u20AC/h)`);
-          const raiz = sinAc(p.subcontrata).split(" ")[0];
-          const gemelos = lote.filter((o) => o !== p && idExterno(o) !== idExterno(p) && sinAc(o.subcontrata).split(" ")[0] === raiz && String(o.fecha).slice(0, 10) === String(p.fecha).slice(0, 10) && horasPersona(o) === v.horas && v.horas > 0);
-          if (gemelos.length) out.push(`posible duplicado: ${gemelos.length} parte(s) de ${p.subcontrata} con la misma fecha y las mismas ${v.horas} h`);
-          if (p.aviso) out.push(String(p.aviso));
-          return out;
-        }
-        function resumen(partes = [], tarifa = TARIFA_VENTA) {
-          const por = /* @__PURE__ */ new Map();
-          const tot = { n: 0, horas: 0, venta: 0, coste: 0, sinCoste: 0 };
-          for (const p of partes) {
-            const v = valorar(p, tarifa);
-            const k = p.subcontrata || "\u2014";
-            const f = por.get(k) || { subcontrata: k, n: 0, horas: 0, venta: 0, coste: 0, sinCoste: 0 };
-            f.n += 1;
-            f.horas = r2(f.horas + v.horas);
-            f.venta = r2(f.venta + v.venta);
-            if (v.coste === null) f.sinCoste += 1;
-            else f.coste = r2(f.coste + v.coste);
-            por.set(k, f);
-            tot.n += 1;
-            tot.horas = r2(tot.horas + v.horas);
-            tot.venta = r2(tot.venta + v.venta);
-            if (v.coste === null) tot.sinCoste += 1;
-            else tot.coste = r2(tot.coste + v.coste);
-          }
-          return { porSubcontrata: [...por.values()].sort((a, b) => b.venta - a.venta), total: tot, margen: r2(tot.venta - tot.coste) };
-        }
-        const API = { normalizar, fechaDe, TARIFA_VENTA, ENLACE, FECHA_DESDE, horasPersona, valorar, idExterno, enPeriodo, candidatos, ganador, yaValoraHoras, hechoDe, resumen, avisosRevision, escalar };
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.RECLAMACIONES_PARTES_HORAS_SUB = API;
-      })();
-    }
-  });
-
   // shared/documentos/comoAbrir.js
   var require_comoAbrir = __commonJS({
     "shared/documentos/comoAbrir.js"(exports, module) {
@@ -173252,9 +175226,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/@kenjiuno/msgreader/lib/utils.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/utils.js
   var require_utils4 = __commonJS({
-    "node_modules/@kenjiuno/msgreader/lib/utils.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/utils.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -173365,9 +175339,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/@kenjiuno/msgreader/lib/const.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/const.js
   var require_const = __commonJS({
-    "node_modules/@kenjiuno/msgreader/lib/const.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/const.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -173564,9 +175538,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/safer-buffer/safer.js
+  // ../Vidaire_Obras/node_modules/safer-buffer/safer.js
   var require_safer = __commonJS({
-    "node_modules/safer-buffer/safer.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/safer-buffer/safer.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var buffer = require_buffer();
@@ -173633,9 +175607,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/iconv-lite/lib/bom-handling.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/lib/bom-handling.js
   var require_bom_handling = __commonJS({
-    "node_modules/iconv-lite/lib/bom-handling.js"(exports) {
+    "../Vidaire_Obras/node_modules/iconv-lite/lib/bom-handling.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var BOMChar = "\uFEFF";
@@ -173678,9 +175652,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/safe-buffer/index.js
+  // ../Vidaire_Obras/node_modules/safe-buffer/index.js
   var require_safe_buffer = __commonJS({
-    "node_modules/safe-buffer/index.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/safe-buffer/index.js"(exports, module) {
       var import_buffer_global10 = __toESM(require_buffer_global());
       var buffer = require_buffer();
       var Buffer2 = buffer.Buffer;
@@ -173737,9 +175711,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/string_decoder/lib/string_decoder.js
+  // ../Vidaire_Obras/node_modules/string_decoder/lib/string_decoder.js
   var require_string_decoder = __commonJS({
-    "node_modules/string_decoder/lib/string_decoder.js"(exports) {
+    "../Vidaire_Obras/node_modules/string_decoder/lib/string_decoder.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safe_buffer().Buffer;
@@ -173976,9 +175950,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/iconv-lite/encodings/internal.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/internal.js
   var require_internal = __commonJS({
-    "node_modules/iconv-lite/encodings/internal.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/internal.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safer().Buffer;
@@ -174129,9 +176103,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/iconv-lite/encodings/utf32.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/utf32.js
   var require_utf32 = __commonJS({
-    "node_modules/iconv-lite/encodings/utf32.js"(exports) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/utf32.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safer().Buffer;
@@ -174349,9 +176323,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/iconv-lite/encodings/utf16.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/utf16.js
   var require_utf16 = __commonJS({
-    "node_modules/iconv-lite/encodings/utf16.js"(exports) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/utf16.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safer().Buffer;
@@ -174484,9 +176458,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/iconv-lite/encodings/utf7.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/utf7.js
   var require_utf7 = __commonJS({
-    "node_modules/iconv-lite/encodings/utf7.js"(exports) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/utf7.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safer().Buffer;
@@ -174686,9 +176660,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/iconv-lite/encodings/sbcs-codec.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/sbcs-codec.js
   var require_sbcs_codec = __commonJS({
-    "node_modules/iconv-lite/encodings/sbcs-codec.js"(exports) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/sbcs-codec.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safer().Buffer;
@@ -174743,9 +176717,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/iconv-lite/encodings/sbcs-data.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/sbcs-data.js
   var require_sbcs_data = __commonJS({
-    "node_modules/iconv-lite/encodings/sbcs-data.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/sbcs-data.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       module.exports = {
@@ -174897,9 +176871,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/iconv-lite/encodings/sbcs-data-generated.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/sbcs-data-generated.js
   var require_sbcs_data_generated = __commonJS({
-    "node_modules/iconv-lite/encodings/sbcs-data-generated.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/sbcs-data-generated.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       module.exports = {
@@ -175353,9 +177327,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/iconv-lite/encodings/dbcs-codec.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/dbcs-codec.js
   var require_dbcs_codec = __commonJS({
-    "node_modules/iconv-lite/encodings/dbcs-codec.js"(exports) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/dbcs-codec.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safer().Buffer;
@@ -175771,9 +177745,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/iconv-lite/encodings/tables/shiftjis.json
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/shiftjis.json
   var require_shiftjis = __commonJS({
-    "node_modules/iconv-lite/encodings/tables/shiftjis.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/shiftjis.json"(exports, module) {
       module.exports = [
         ["0", "\0", 128],
         ["a1", "\uFF61", 62],
@@ -175902,9 +177876,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/iconv-lite/encodings/tables/eucjp.json
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/eucjp.json
   var require_eucjp = __commonJS({
-    "node_modules/iconv-lite/encodings/tables/eucjp.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/eucjp.json"(exports, module) {
       module.exports = [
         ["0", "\0", 127],
         ["8ea1", "\uFF61", 62],
@@ -176090,9 +178064,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/iconv-lite/encodings/tables/cp936.json
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/cp936.json
   var require_cp936 = __commonJS({
-    "node_modules/iconv-lite/encodings/tables/cp936.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/cp936.json"(exports, module) {
       module.exports = [
         ["0", "\0", 127, "\u20AC"],
         ["8140", "\u4E02\u4E04\u4E05\u4E06\u4E0F\u4E12\u4E17\u4E1F\u4E20\u4E21\u4E23\u4E26\u4E29\u4E2E\u4E2F\u4E31\u4E33\u4E35\u4E37\u4E3C\u4E40\u4E41\u4E42\u4E44\u4E46\u4E4A\u4E51\u4E55\u4E57\u4E5A\u4E5B\u4E62\u4E63\u4E64\u4E65\u4E67\u4E68\u4E6A", 5, "\u4E72\u4E74", 9, "\u4E7F", 6, "\u4E87\u4E8A"],
@@ -176360,9 +178334,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/iconv-lite/encodings/tables/gbk-added.json
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/gbk-added.json
   var require_gbk_added = __commonJS({
-    "node_modules/iconv-lite/encodings/tables/gbk-added.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/gbk-added.json"(exports, module) {
       module.exports = [
         ["a140", "\uE4C6", 62],
         ["a180", "\uE505", 32],
@@ -176422,16 +178396,16 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/iconv-lite/encodings/tables/gb18030-ranges.json
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/gb18030-ranges.json
   var require_gb18030_ranges = __commonJS({
-    "node_modules/iconv-lite/encodings/tables/gb18030-ranges.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/gb18030-ranges.json"(exports, module) {
       module.exports = { uChars: [128, 165, 169, 178, 184, 216, 226, 235, 238, 244, 248, 251, 253, 258, 276, 284, 300, 325, 329, 334, 364, 463, 465, 467, 469, 471, 473, 475, 477, 506, 594, 610, 712, 716, 730, 930, 938, 962, 970, 1026, 1104, 1106, 8209, 8215, 8218, 8222, 8231, 8241, 8244, 8246, 8252, 8365, 8452, 8454, 8458, 8471, 8482, 8556, 8570, 8596, 8602, 8713, 8720, 8722, 8726, 8731, 8737, 8740, 8742, 8748, 8751, 8760, 8766, 8777, 8781, 8787, 8802, 8808, 8816, 8854, 8858, 8870, 8896, 8979, 9322, 9372, 9548, 9588, 9616, 9622, 9634, 9652, 9662, 9672, 9676, 9680, 9702, 9735, 9738, 9793, 9795, 11906, 11909, 11913, 11917, 11928, 11944, 11947, 11951, 11956, 11960, 11964, 11979, 12284, 12292, 12312, 12319, 12330, 12351, 12436, 12447, 12535, 12543, 12586, 12842, 12850, 12964, 13200, 13215, 13218, 13253, 13263, 13267, 13270, 13384, 13428, 13727, 13839, 13851, 14617, 14703, 14801, 14816, 14964, 15183, 15471, 15585, 16471, 16736, 17208, 17325, 17330, 17374, 17623, 17997, 18018, 18212, 18218, 18301, 18318, 18760, 18811, 18814, 18820, 18823, 18844, 18848, 18872, 19576, 19620, 19738, 19887, 40870, 59244, 59336, 59367, 59413, 59417, 59423, 59431, 59437, 59443, 59452, 59460, 59478, 59493, 63789, 63866, 63894, 63976, 63986, 64016, 64018, 64021, 64025, 64034, 64037, 64042, 65074, 65093, 65107, 65112, 65127, 65132, 65375, 65510, 65536], gbChars: [0, 36, 38, 45, 50, 81, 89, 95, 96, 100, 103, 104, 105, 109, 126, 133, 148, 172, 175, 179, 208, 306, 307, 308, 309, 310, 311, 312, 313, 341, 428, 443, 544, 545, 558, 741, 742, 749, 750, 805, 819, 820, 7922, 7924, 7925, 7927, 7934, 7943, 7944, 7945, 7950, 8062, 8148, 8149, 8152, 8164, 8174, 8236, 8240, 8262, 8264, 8374, 8380, 8381, 8384, 8388, 8390, 8392, 8393, 8394, 8396, 8401, 8406, 8416, 8419, 8424, 8437, 8439, 8445, 8482, 8485, 8496, 8521, 8603, 8936, 8946, 9046, 9050, 9063, 9066, 9076, 9092, 9100, 9108, 9111, 9113, 9131, 9162, 9164, 9218, 9219, 11329, 11331, 11334, 11336, 11346, 11361, 11363, 11366, 11370, 11372, 11375, 11389, 11682, 11686, 11687, 11692, 11694, 11714, 11716, 11723, 11725, 11730, 11736, 11982, 11989, 12102, 12336, 12348, 12350, 12384, 12393, 12395, 12397, 12510, 12553, 12851, 12962, 12973, 13738, 13823, 13919, 13933, 14080, 14298, 14585, 14698, 15583, 15847, 16318, 16434, 16438, 16481, 16729, 17102, 17122, 17315, 17320, 17402, 17418, 17859, 17909, 17911, 17915, 17916, 17936, 17939, 17961, 18664, 18703, 18814, 18962, 19043, 33469, 33470, 33471, 33484, 33485, 33490, 33497, 33501, 33505, 33513, 33520, 33536, 33550, 37845, 37921, 37948, 38029, 38038, 38064, 38065, 38066, 38069, 38075, 38076, 38078, 39108, 39109, 39113, 39114, 39115, 39116, 39265, 39394, 189e3] };
     }
   });
 
-  // node_modules/iconv-lite/encodings/tables/cp949.json
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/cp949.json
   var require_cp949 = __commonJS({
-    "node_modules/iconv-lite/encodings/tables/cp949.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/cp949.json"(exports, module) {
       module.exports = [
         ["0", "\0", 127],
         ["8141", "\uAC02\uAC03\uAC05\uAC06\uAC0B", 4, "\uAC18\uAC1E\uAC1F\uAC21\uAC22\uAC23\uAC25", 6, "\uAC2E\uAC32\uAC33\uAC34"],
@@ -176708,9 +178682,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/iconv-lite/encodings/tables/cp950.json
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/cp950.json
   var require_cp950 = __commonJS({
-    "node_modules/iconv-lite/encodings/tables/cp950.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/cp950.json"(exports, module) {
       module.exports = [
         ["0", "\0", 127],
         ["a140", "\u3000\uFF0C\u3001\u3002\uFF0E\u2027\uFF1B\uFF1A\uFF1F\uFF01\uFE30\u2026\u2025\uFE50\uFE51\uFE52\xB7\uFE54\uFE55\uFE56\uFE57\uFF5C\u2013\uFE31\u2014\uFE33\u2574\uFE34\uFE4F\uFF08\uFF09\uFE35\uFE36\uFF5B\uFF5D\uFE37\uFE38\u3014\u3015\uFE39\uFE3A\u3010\u3011\uFE3B\uFE3C\u300A\u300B\uFE3D\uFE3E\u3008\u3009\uFE3F\uFE40\u300C\u300D\uFE41\uFE42\u300E\u300F\uFE43\uFE44\uFE59\uFE5A"],
@@ -176891,9 +178865,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/iconv-lite/encodings/tables/big5-added.json
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/big5-added.json
   var require_big5_added = __commonJS({
-    "node_modules/iconv-lite/encodings/tables/big5-added.json"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/tables/big5-added.json"(exports, module) {
       module.exports = [
         ["8740", "\u43F0\u4C32\u4603\u45A6\u4578\u{27267}\u4D77\u45B3\u{27CB1}\u4CE2\u{27CC5}\u3B95\u4736\u4744\u4C47\u4C40\u{242BF}\u{23617}\u{27352}\u{26E8B}\u{270D2}\u4C57\u{2A351}\u474F\u45DA\u4C85\u{27C6C}\u4D07\u4AA4\u46A1\u{26B23}\u7225\u{25A54}\u{21A63}\u{23E06}\u{23F61}\u664D\u56FB"],
         ["8767", "\u7D95\u591D\u{28BB9}\u3DF4\u9734\u{27BEF}\u5BDB\u{21D5E}\u5AA4\u3625\u{29EB0}\u5AD1\u5BB7\u5CFC\u676E\u8593\u{29945}\u7461\u749D\u3875\u{21D53}\u{2369E}\u{26021}\u3EEC"],
@@ -177019,9 +178993,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/iconv-lite/encodings/dbcs-data.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/dbcs-data.js
   var require_dbcs_data = __commonJS({
-    "node_modules/iconv-lite/encodings/dbcs-data.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/dbcs-data.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       module.exports = {
@@ -177267,9 +179241,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/iconv-lite/encodings/index.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/encodings/index.js
   var require_encodings = __commonJS({
-    "node_modules/iconv-lite/encodings/index.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/encodings/index.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var modules = [
@@ -177295,9 +179269,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/iconv-lite/lib/streams.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/lib/streams.js
   var require_streams = __commonJS({
-    "node_modules/iconv-lite/lib/streams.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/lib/streams.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safer().Buffer;
@@ -177398,9 +179372,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/iconv-lite/lib/index.js
+  // ../Vidaire_Obras/node_modules/iconv-lite/lib/index.js
   var require_lib2 = __commonJS({
-    "node_modules/iconv-lite/lib/index.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/iconv-lite/lib/index.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var Buffer2 = require_safer().Buffer;
@@ -177519,9 +179493,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/@kenjiuno/msgreader/lib/DataStream.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/DataStream.js
   var require_DataStream = __commonJS({
-    "node_modules/@kenjiuno/msgreader/lib/DataStream.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/DataStream.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -178529,9 +180503,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/@kenjiuno/msgreader/lib/Reader.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/Reader.js
   var require_Reader = __commonJS({
-    "node_modules/@kenjiuno/msgreader/lib/Reader.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/Reader.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -178889,9 +180863,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/@kenjiuno/msgreader/lib/Burner.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/Burner.js
   var require_Burner = __commonJS({
-    "node_modules/@kenjiuno/msgreader/lib/Burner.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/Burner.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -179151,9 +181125,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/@kenjiuno/msgreader/lib/EntryStreamParser.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/EntryStreamParser.js
   var require_EntryStreamParser = __commonJS({
-    "node_modules/@kenjiuno/msgreader/lib/EntryStreamParser.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/EntryStreamParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -179181,9 +181155,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/@kenjiuno/msgreader/lib/VerbStreamParser.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/VerbStreamParser.js
   var require_VerbStreamParser = __commonJS({
-    "node_modules/@kenjiuno/msgreader/lib/VerbStreamParser.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/VerbStreamParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -179235,9 +181209,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/@kenjiuno/msgreader/lib/TZDEFINITIONParser.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/TZDEFINITIONParser.js
   var require_TZDEFINITIONParser = __commonJS({
-    "node_modules/@kenjiuno/msgreader/lib/TZDEFINITIONParser.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/TZDEFINITIONParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -179306,9 +181280,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/@kenjiuno/msgreader/lib/TZREGParser.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/TZREGParser.js
   var require_TZREGParser = __commonJS({
-    "node_modules/@kenjiuno/msgreader/lib/TZREGParser.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/TZREGParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -179338,9 +181312,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/@kenjiuno/msgreader/lib/AppointmentRecurParser.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/AppointmentRecurParser.js
   var require_AppointmentRecurParser = __commonJS({
-    "node_modules/@kenjiuno/msgreader/lib/AppointmentRecurParser.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/AppointmentRecurParser.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -179585,9 +181559,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/@kenjiuno/msgreader/lib/MsgReader.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/MsgReader.js
   var require_MsgReader = __commonJS({
-    "node_modules/@kenjiuno/msgreader/lib/MsgReader.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/MsgReader.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __importDefault2 = exports && exports.__importDefault || function(mod) {
@@ -180029,9 +182003,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/@kenjiuno/msgreader/lib/index.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/index.js
   var require_lib3 = __commonJS({
-    "node_modules/@kenjiuno/msgreader/lib/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/msgreader/lib/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var __createBinding2 = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
@@ -180060,9 +182034,9 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // node_modules/@kenjiuno/decompressrtf/lib/index.js
+  // ../Vidaire_Obras/node_modules/@kenjiuno/decompressrtf/lib/index.js
   var require_lib4 = __commonJS({
-    "node_modules/@kenjiuno/decompressrtf/lib/index.js"(exports) {
+    "../Vidaire_Obras/node_modules/@kenjiuno/decompressrtf/lib/index.js"(exports) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       Object.defineProperty(exports, "__esModule", { value: true });
@@ -184247,335 +186221,6 @@ Despu\xE9s: **${cambio.mostrar}**`, acciones: [boton({ que: "editar", campo: cam
     }
   });
 
-  // shared/presupuesto/horasIndustriales.js
-  var require_horasIndustriales = __commonJS({
-    "shared/presupuesto/horasIndustriales.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function() {
-        const ORIGEN = "parteHoras";
-        const CAPITULO = "HORAS DE INDUSTRIALES";
-        const TARIFA_VENTA = 36.5;
-        function tarifasDe(condiciones) {
-          let c = condiciones;
-          if (typeof c === "string") {
-            try {
-              c = JSON.parse(c);
-            } catch {
-              c = {};
-            }
-          }
-          c = c && typeof c === "object" ? c : {};
-          const pos = (v) => {
-            const n = Number(String(v ?? "").replace(",", "."));
-            return Number.isFinite(n) && n > 0 ? n : null;
-          };
-          const operario = pos(c.precioHoraOperario) || TARIFA_VENTA;
-          return { operario, oficial: pos(c.precioHoraOficial) || operario };
-        }
-        const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
-        const sinAc = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-        const slug = (s) => sinAc(s).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
-        const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-        function etiquetaMes(mes) {
-          const m = /^(\d{4})-(\d{2})/.exec(String(mes || ""));
-          return m ? `${MESES[Number(m[2]) - 1] || m[2]} ${m[1]}` : String(mes || "");
-        }
-        const claveDe = (p) => `${slug(p.subcontrata)}:${String(p.mes || "").slice(0, 7)}:${slug(p.referencia || p.archivo || "")}`;
-        const refDe = (l) => {
-          if (!l || l.origen !== ORIGEN || !l.origenRef) return null;
-          if (typeof l.origenRef === "object") return l.origenRef;
-          try {
-            return JSON.parse(l.origenRef);
-          } catch {
-            return null;
-          }
-        };
-        function capituloDe(arbol) {
-          let cap = arbol.find((n) => n.tipo === "capitulo" && n.resumen === CAPITULO);
-          if (!cap) {
-            const num = arbol.filter((n) => n.tipo === "capitulo").length + 1;
-            cap = { tipo: "capitulo", codigo: String(num).padStart(2, "0"), resumen: CAPITULO, origen: "app", hijos: [] };
-            arbol.push(cap);
-          }
-          cap.hijos = cap.hijos || [];
-          return cap;
-        }
-        function partidaDe(cap, subcontrata, categoria, tarifa) {
-          const resumen = `HORAS \xB7 ${String(subcontrata).toUpperCase()}${categoria === "oficial" ? " (OFICIAL)" : ""}`;
-          let par = cap.hijos.find((n) => n.tipo === "partida" && n.resumen === resumen);
-          if (!par) {
-            par = {
-              tipo: "partida",
-              codigo: `${cap.codigo}.${String(cap.hijos.length + 1).padStart(2, "0")}`,
-              resumen,
-              unidad: "h",
-              precio: tarifa,
-              origen: "app",
-              medicionObra: []
-            };
-            cap.hijos.push(par);
-          }
-          par.medicionObra = par.medicionObra || [];
-          return par;
-        }
-        function cargarHoras(arbol, partes, tarifas) {
-          const T2 = { operario: TARIFA_VENTA, oficial: TARIFA_VENTA, ...tarifas || {} };
-          const cap = capituloDe(arbol);
-          const res = { creadas: 0, actualizadas: 0, horas: 0 };
-          for (const p of partes || []) {
-            const horas = Number(p.horas);
-            if (!p.subcontrata || !(horas > 0)) continue;
-            const categoria = p.categoria === "oficial" ? "oficial" : "operario";
-            const tarifa = T2[categoria];
-            const par = partidaDe(cap, p.subcontrata, categoria, tarifa);
-            par.precio = tarifa;
-            const clave = claveDe(p);
-            const ref = {
-              clave,
-              subcontrata: p.subcontrata,
-              mes: String(p.mes || "").slice(0, 7),
-              archivo: p.archivo || null,
-              uri: p.uri || null,
-              webUrl: p.webUrl || null,
-              referencia: p.referencia || null,
-              categoria,
-              tarifa,
-              horas: r2(horas),
-              venta: r2(horas * tarifa),
-              costeReal: p.costeReal === null || p.costeReal === void 0 ? null : r2(p.costeReal)
-            };
-            const linea = {
-              comentario: `${etiquetaMes(p.mes)}${p.descripcion ? " \xB7 " + p.descripcion : ""}`.slice(0, 120),
-              uds: r2(horas),
-              largo: null,
-              ancho: null,
-              alto: null,
-              signo: 1,
-              origen: ORIGEN,
-              origenRef: ref
-            };
-            const i = par.medicionObra.findIndex((l) => (refDe(l) || {}).clave === clave);
-            if (i >= 0) {
-              par.medicionObra[i] = { ...par.medicionObra[i], ...linea };
-              res.actualizadas += 1;
-            } else {
-              par.medicionObra.push(linea);
-              res.creadas += 1;
-            }
-            res.horas = r2(res.horas + horas);
-          }
-          for (const par of cap.hijos) {
-            par.medicionObra.sort((a, b) => String((refDe(a) || {}).mes || "").localeCompare(String((refDe(b) || {}).mes || "")));
-            par.cantidadObra = r2(par.medicionObra.reduce((s, l) => s + (Number(l.uds) || 0) * (l.signo === -1 ? -1 : 1), 0));
-          }
-          return res;
-        }
-        function lineasConJustificante(arbol) {
-          const sal = [];
-          const rec = (ns) => (ns || []).forEach((n) => {
-            for (const l of n.medicionObra || []) {
-              const r = refDe(l);
-              if (r && (r.uri || r.archivo)) sal.push({ partida: n.resumen, ...r });
-            }
-            rec(n.hijos);
-          });
-          rec(arbol);
-          return sal;
-        }
-        function hashCorto(s) {
-          let h = 2166136261;
-          for (const c of String(s || "")) {
-            h ^= c.codePointAt(0);
-            h = Math.imul(h, 16777619) >>> 0;
-          }
-          return h.toString(36);
-        }
-        const rutaDe = (l) => String(l && (l.uri || l.archivo) || "");
-        const idPrueba = (l) => `medObraHoras:${slug(l && l.partida)}:${String(l && l.mes || "").slice(0, 7)}:${hashCorto(rutaDe(l))}`;
-        function tipoJustificante(l) {
-          const n = String(l && (l.archivo || l.uri) || "").toLowerCase();
-          if (/\.pdf$/.test(n)) return "pdf";
-          if (/\.(xlsx|xlsm|xls|csv)$/.test(n)) return "excel";
-          return "otro";
-        }
-        function pruebaDeLinea(l) {
-          const eur = (n) => `${(Number(n) || 0).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} \u20AC`;
-          const mes = String(l.mes || "").slice(0, 7);
-          return {
-            idExterno: idPrueba(l),
-            tipo: "documento",
-            fecha: /^\d{4}-\d{2}$/.test(mes) ? `${mes}-01` : null,
-            de: l.subcontrata || null,
-            asunto: `Horas de industrial \xB7 ${l.subcontrata || ""} \xB7 ${etiquetaMes(mes)}${l.referencia ? ` \xB7 ${l.referencia}` : ""}`.slice(0, 200),
-            enlace: l.webUrl || l.uri || null,
-            ruta: l.archivo || null,
-            nombreOriginal: l.archivo || null,
-            extracto: [
-              `Med Obra del presupuesto de obra \xB7 ${l.partida || ""}`,
-              `${String(l.horas ?? "").replace(".", ",")} h \xD7 ${String(l.tarifa ?? "").replace(".", ",")} \u20AC/h = venta ${eur(l.venta)}`,
-              l.costeReal === null || l.costeReal === void 0 ? "Coste real: sin apuntar" : `Coste real (lo que cobra el industrial): ${eur(l.costeReal)}`
-            ].join("\n")
-          };
-        }
-        const API = { ORIGEN, CAPITULO, TARIFA_VENTA, tarifasDe, etiquetaMes, claveDe, refDe, cargarHoras, lineasConJustificante, hashCorto, idPrueba, tipoJustificante, pruebaDeLinea };
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.HORAS_INDUSTRIALES = API;
-      })();
-    }
-  });
-
-  // electron/data/horasIndustriales.js
-  var require_horasIndustriales2 = __commonJS({
-    "electron/data/horasIndustriales.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var HI = require_horasIndustriales();
-      var { armarArbol, sincronizarLineas } = require_presupuestos();
-      function presupuestoDeObra(db, obraId) {
-        return db.prepare("SELECT id, fase, nombre FROM presupuestos WHERE (obraIdVinculada = ? OR obraId = ?) AND fase = 'obra' ORDER BY creadoEn LIMIT 1").get(obraId, obraId) || null;
-      }
-      function tarifasDeEstudios(db, obraId) {
-        const f = db.prepare("SELECT condicionesOferta FROM presupuestos WHERE (obraIdVinculada = ? OR obraId = ?) AND fase = 'estudio' AND condicionesOferta IS NOT NULL ORDER BY creadoEn LIMIT 1").get(obraId, obraId);
-        return HI.tarifasDe(f && f.condicionesOferta);
-      }
-      function parteALinea(p) {
-        const fecha = String(p.fecha || "").slice(0, 10);
-        return {
-          subcontrata: p.subcontrata,
-          mes: fecha.slice(0, 7),
-          horas: require_partesHorasSub().horasPersona(p),
-          costeReal: p.costeReal,
-          categoria: p.categoria,
-          archivo: p.archivo,
-          uri: p.uri,
-          webUrl: p.webUrl || null,
-          referencia: p.referencia,
-          descripcion: p.descripcion
-        };
-      }
-      function cargarPartesEnPresupuestoObra(db, sesion, obraId, partes, opciones = {}) {
-        const pres = presupuestoDeObra(db, obraId);
-        if (!pres) return { ok: false, error: "La obra no tiene presupuesto en fase \xABobra\xBB: las horas de industriales solo van ah\xED; Estudios no se toca." };
-        const arbol = armarArbol(db, pres.id);
-        const res = HI.cargarHoras(arbol, (partes || []).map(parteALinea), tarifasDeEstudios(db, obraId));
-        if (opciones.aplicar) sincronizarLineas(db, pres.id, arbol, sesion);
-        return { ok: true, presupuestoId: pres.id, ...res };
-      }
-      var { puede } = require_roles();
-      var no = (error) => ({ ok: false, error });
-      function lineasDePresupuesto(repo, ses, presupuestoId) {
-        const pres = presupuestoId ? repo.leer("presupuestos", ses, presupuestoId) : null;
-        if (!pres) return { error: "No se encuentra el presupuesto." };
-        if (pres.fase !== "obra") return { error: "Las horas de industriales solo est\xE1n en el presupuesto de obra." };
-        const lineas = HI.lineasConJustificante(armarArbol(repo.db, pres.id)).map((l) => ({ ...l, idExterno: HI.idPrueba(l), tipoArchivo: HI.tipoJustificante(l) }));
-        return { pres, obraId: pres.obraIdVinculada || pres.obraId, lineas };
-      }
-      function pruebaDe(repo, ses, recId, l) {
-        const porId = repo.listar("reclamacionPruebas", ses, { condicion: "reclamacionId = ? AND idExterno = ?", params: [recId, l.idExterno] })[0];
-        if (porId) return porId;
-        const enlaces = [l.webUrl, l.uri].filter(Boolean);
-        if (!enlaces.length) return null;
-        return repo.listar("reclamacionPruebas", ses, { condicion: `reclamacionId = ? AND enlace IN (${enlaces.map(() => "?").join(",")})`, params: [recId, ...enlaces] })[0] || null;
-      }
-      function estadoEnClaims(repo, ses, presupuestoId) {
-        const { obraId, lineas, error } = lineasDePresupuesto(repo, ses, presupuestoId);
-        if (error) return no(error);
-        const ve = puede(ses.rol, "reclamaciones", "ver");
-        const claims = ve && obraId ? repo.listar("reclamaciones", ses, { condicion: "obraId = ?", params: [obraId], orden: "numero" }) : [];
-        const filas = lineas.map((l) => {
-          const en = [];
-          for (const r of claims) {
-            const p = pruebaDe(repo, ses, r.id, l);
-            if (!p) continue;
-            const hechos = repo.listar("reclamacionHechoPruebas", ses, { condicion: "pruebaId = ?", params: [p.id] }).length;
-            en.push({ recId: r.id, codigo: r.codigo || null, pruebaId: p.id, hechos });
-          }
-          return {
-            clave: l.clave,
-            partida: l.partida,
-            subcontrata: l.subcontrata,
-            mes: l.mes,
-            archivo: l.archivo,
-            tipoArchivo: l.tipoArchivo,
-            horas: l.horas,
-            venta: l.venta,
-            costeReal: l.costeReal,
-            idExterno: l.idExterno,
-            enClaims: en
-          };
-        });
-        return {
-          ok: true,
-          obraId,
-          lineas: filas,
-          claims: claims.map((r) => ({ id: r.id, codigo: r.codigo, titulo: r.titulo })),
-          puedeLlevar: puede(ses.rol, "reclamaciones", "editar") && claims.length > 0
-        };
-      }
-      function hechosParaElegir(repo, ses, recId) {
-        if (!puede(ses.rol, "reclamaciones", "ver")) return no("No ves las reclamaciones.");
-        const r = recId ? repo.leer("reclamaciones", ses, recId) : null;
-        if (!r) return no("No se encuentra la reclamaci\xF3n.");
-        const hs = repo.listar("reclamacionHechos", ses, { condicion: "reclamacionId = ?", params: [recId], orden: "numero, fecha" }).filter((h) => h.estado !== "descartado").map((h) => ({ id: h.id, numero: h.numero || null, titulo: h.titulo || "", estado: h.estado, subcontrata: h.subcontrata || null }));
-        return { ok: true, hechos: hs };
-      }
-      function llevarAlClaim(repo, ses, entrada = {}) {
-        if (!puede(ses.rol, "reclamaciones", "editar")) return no("Llevar pruebas al claim lo hace quien edita las reclamaciones.");
-        const { obraId, lineas, error } = lineasDePresupuesto(repo, ses, entrada.presupuestoId);
-        if (error) return no(error);
-        const l = lineas.find((x) => x.clave === entrada.clave);
-        if (!l) return no("Esa l\xEDnea no tiene justificante en el presupuesto de obra.");
-        const r = entrada.recId ? repo.leer("reclamaciones", ses, entrada.recId) : null;
-        if (!r) return no("No se encuentra la reclamaci\xF3n.");
-        if (r.obraId !== obraId) return no("La reclamaci\xF3n es de otra obra.");
-        let h = null;
-        if (entrada.hechoId) {
-          h = repo.leer("reclamacionHechos", ses, entrada.hechoId);
-          if (!h || h.reclamacionId !== r.id) return no("Ese hecho no es de esta reclamaci\xF3n.");
-        }
-        let p = pruebaDe(repo, ses, r.id, l);
-        let creada = false;
-        if (!p) {
-          const id = repo.crear("reclamacionPruebas", ses, { obraId: r.obraId, reclamacionId: r.id, ...HI.pruebaDeLinea(l), creadoPor: ses.personaId }, { verbo: "editar" });
-          p = { id };
-          creada = true;
-        }
-        let ligada = false;
-        if (h && !repo.listar("reclamacionHechoPruebas", ses, { condicion: "hechoId = ? AND pruebaId = ?", params: [h.id, p.id] }).length) {
-          repo.crear("reclamacionHechoPruebas", ses, { obraId: r.obraId, hechoId: h.id, pruebaId: p.id, concepto: `Med Obra \xB7 ${HI.etiquetaMes(l.mes)}` }, { verbo: "editar" });
-          ligada = true;
-        }
-        return { ok: true, pruebaId: p.id, creada, ligada };
-      }
-      function origenArchivo(uri) {
-        const u = String(uri || "");
-        const sp = /^file:\/\/\/(b![^/]+)\/([A-Z0-9]{20,})$/i.exec(u);
-        if (sp) return { sharepoint: { driveId: sp[1], itemId: sp[2] } };
-        if (/^file:\/\/\//i.test(u)) {
-          try {
-            return { local: decodeURIComponent(u.replace(/^file:\/\//i, "")) };
-          } catch {
-            return {};
-          }
-        }
-        if (u.startsWith("/")) return { local: u };
-        return {};
-      }
-      module.exports = {
-        tarifasDeEstudios,
-        presupuestoDeObra,
-        parteALinea,
-        cargarPartesEnPresupuestoObra,
-        lineasDePresupuesto,
-        estadoEnClaims,
-        hechosParaElegir,
-        llevarAlClaim,
-        origenArchivo
-      };
-    }
-  });
-
   // shared/reclamaciones/propuestaHecho.js
   var require_propuestaHecho = __commonJS({
     "shared/reclamaciones/propuestaHecho.js"(exports, module) {
@@ -186998,6 +188643,7 @@ No cambia ning\xFAn importe hasta que se pase a la valoraci\xF3n.`,
           variantes: "variantes( y oc)?|ordenes de cambio",
           planCompras: "plan de compras",
           comparativos: "comparativos",
+          preciosCompra: "precios de compra|repositorio de precios",
           planEconomica: "planificacion economica",
           puntosControl: "puntos de control(?: bms)?|puntos bms|bms",
           controlPlc: "control plc|plc|control / plc",
@@ -187489,6 +189135,12 @@ ${LEYENDA}`;
         const deDisciplina = /\b(conductos?|tuberias?|disciplinas?)\b/.test(q);
         const dePartidas = /\b(partida a partida|por partidas?|metros de mas|mas metros|por casar|medicion por partida)\b/.test(q);
         const deDesfase = /\bdesfase\b/.test(q) || /^\W*(y )?por que (sube|baja|crece|aumenta|salta)( tanto)?( (en|el|este|ese) [a-z0-9 ]{3,24})?\W*$/.test(q) || /\bpagad\w*\b/.test(q) && /\bcobrad\w*\b/.test(q) || /\bhoras\b/.test(q) && /\b(no (nos )?(ha )?reconoc\w*|sin reconocer|no reconocidas)\b/.test(q);
+        const dePruebas = /\b(pruebas?|justificacion(es)?|justificantes?|justifica\w*|partes? de horas)\b/.test(q);
+        if (dePruebas && (/\b(horas|metros|partidas?|desfase|hueco|certific\w*)\b/.test(q) || deIndustriales)) {
+          const cod = /\b([a-z]{2,5}\d{2,4}[a-z]?)\b/.exec(q);
+          return { que: "pruebas", deHoras: /\b(horas|justificacion(es)?|justificantes?|justifica\w*|partes? de horas)\b/.test(q) && !/\b(metros|partidas?)\b/.test(q), dePartidas: /\b(metros|partidas?)\b/.test(q) || Boolean(cod), codigo: cod ? cod[1].toUpperCase() : null, q };
+        }
+        if ((deDesfase || /\bhueco\b/.test(q)) && /\bcausas?\b/.test(q) && !deDisciplina) return { que: "causas", objetivo: cifraDe(q) };
         if (deDesfase && !deDisciplina && !/\bgap\b/.test(q)) {
           return {
             que: "desfase",
@@ -187604,6 +189256,102 @@ ${LEYENDA}`;
         if (t.porCasar) l.push(`Fuera de la cuenta: ${num(t.porCasar)} partidas de industriales por casar (${eur(t.porCasarImporte)}).`);
         return { respuesta: l.join("\n").trim(), acciones: [accion] };
       }
+      function responderCausas(repo, yo, obraId, e) {
+        const DF = require_desfase2();
+        const d = DF.cuadro(repo, yo, obraId, { objetivo: e.objetivo ?? null });
+        if (!d.ok) return { respuesta: d.error };
+        const accion = { tipo: "ir", destino: "certificaciones", mesAMes: { vista: "desfase", medVista: "causas" }, texto: "Abrir Certificaciones \u203A Mes a mes \u203A Desfase \u203A Por causa" };
+        const C = d.causas;
+        const t = d.totales;
+        const l = [];
+        if (!C || !t.partidas.n && !t.horas.pagado) return { respuesta: "En esta obra a\xFAn no hay certificaciones de industriales le\xEDdas. En cuanto entre una, la app calcula el desfase y lo reparte por causa sola.", acciones: [accion] };
+        const o = C.objetivo;
+        if (o) {
+          if (o.cuadra) l.push(`Los **${eur(o.cifra)}** cuadran al c\xE9ntimo con el desfase pagado / cobrado de la obra.`);
+          else l.push(`Los **${eur(o.cifra)}** no salen al c\xE9ntimo de los documentos. Lo que sale es un desfase pagado / cobrado de **${eur(C.total)}** (${o.falta < 0 ? `${eur(-o.falta)} m\xE1s` : `${eur(o.falta)} menos`} que la cifra dicha).`);
+          if (!o.cuadra && o.mejor) l.push(`- Lo que m\xE1s se acerca: ${o.mejor.piezas.map((x) => `${x.etiqueta.toLowerCase()} (${eur(x.importe)})`).join(" + ")} = **${eur(o.mejor.importe)}**, ${Math.abs(o.mejor.falta) < 5e-3 ? "cuadra" : `a ${eur(Math.abs(o.mejor.falta))} ${o.mejor.falta > 0 ? "por debajo" : "por encima"}`}.`);
+          if (!o.cuadra && o.mes) l.push(`- El mes en que el desfase a origen estuvo m\xE1s cerca: **${o.mes.nombre}**, con ${eur(o.mes.total)}.`);
+          l.push("");
+        } else l.push(`En esta obra se ha pagado a los industriales **${eur(C.total)}** m\xE1s de lo que se ha cobrado al cliente.`, "");
+        l.push("**Por causa:**");
+        for (const c of C.causas) {
+          if (c.clave === "horas") {
+            l.push(`- ${c.etiqueta}: **${eur(c.importe)}**${t.horas.horas ? ` (${num(t.horas.horas)} h pasadas, ${num(t.horas.horasCobradas)} h reconocidas)` : ""}.`);
+            const porInd = /* @__PURE__ */ new Map();
+            for (const x of c.documentos) porInd.set(x.emisor, (porInd.get(x.emisor) || 0) + x.importe);
+            for (const x of c.documentos.slice().sort((a, b) => b.importe - a.importe).slice(0, 6)) l.push(`  - ${x.emisor} \xB7 ${MM.nombreMes(x.periodo)}: ${x.horas ? `${num(x.horas)} h, ` : ""}${eur(x.importe)}${x.fichero ? ` (${nombreDoc(x.fichero)})` : ""}${x.porRevisar ? ", por revisar" : ""}`);
+            if (c.documentos.length > 6) l.push(`  - y ${num(c.documentos.length - 6)} documentos m\xE1s.`);
+            for (const n of t.horas.notas) l.push(`  \xB7 ${n}`);
+          } else if (c.importe > 0) {
+            l.push(`- ${c.etiqueta}: **${eur(c.importe)}** en ${num(c.partidas.length)} ${c.partidas.length === 1 ? "partida" : "partidas"}.`);
+            for (const p of c.partidas.slice(0, 4)) l.push(`  - ${p.codigo || ""} ${String(p.descripcion).slice(0, 50)}: ${eur(p.importe)}; pagados ${num(p.cantidadPagada)} ${p.unidad || ""} a ${eur(p.precioPagado)} (${p.industriales.map((i) => `${i.emisor} ${num(i.cantidad)}`).join(", ")}), certificados al cliente ${num(p.cantidadCobrada)} a ${eur(p.precioVenta)}${p.docCliente && p.docCliente.fichero ? ` (${nombreDoc(p.docCliente.fichero)})` : ""}.`);
+          } else l.push(`- ${c.etiqueta}: 0,00 \u20AC.`);
+        }
+        const ms = C.meses.filter((m) => m.mes !== "anterior");
+        if (ms.length) {
+          l.push("", "**Mes a mes, a origen** (horas \xB7 metros \xB7 sin certificar \xB7 precio = total):");
+          for (const m of ms) l.push(`- ${m.nombre}: ${eur(m.origen.horas)} \xB7 ${eur(m.origen.metros)} \xB7 ${eur(m.origen.sinCobrar)} \xB7 ${eur(m.origen.precio)} = **${eur(m.total)}**`);
+        }
+        const dc = C.porDisciplina;
+        l.push("", `**Conductos y tuber\xEDas:** conductos ${eur(dc.conductos.importe)} (${eur(dc.conductos.metros)} de metros de m\xE1s y ${eur(dc.conductos.sinCobrar)} sin certificar, en ${num(dc.conductos.partidas)} partidas); tuber\xEDas ${eur(dc.tuberias.importe)}${dc.otras && dc.otras.importe ? `; el resto, ${eur(dc.otras.importe)}` : ""}.`);
+        if (C.fuera.length) {
+          l.push("", "**No suman** (se dicen, pero no entran en la cuenta):");
+          for (const f of C.fuera) l.push(`- ${f.etiqueta}: ${eur(f.importe)}${f.clave === "claim" && f.reconocido != null ? ` reclamados, ${eur(f.reconocido)} reconocidos` : ""}${f.clave !== "porCasar" && f.documentos.length ? ` (${f.documentos.slice(0, 4).map((x) => `${x.emisor} ${MM.nombreMes(x.periodo)}`).join(", ")})` : ""}.`);
+        }
+        return { respuesta: l.join("\n").trim(), acciones: [accion] };
+      }
+      function responderPruebas(repo, yo, obraId, e) {
+        const DF = require_desfase2();
+        const D = require_desfase();
+        const d = DF.cuadro(repo, yo, obraId, {});
+        if (!d.ok) return { respuesta: d.error };
+        const accion = { tipo: "ir", destino: "certificaciones", mesAMes: { vista: "desfase", medVista: "causas" }, texto: "Abrir Certificaciones \u203A Mes a mes \u203A Desfase \u203A Por causa" };
+        const C = d.causas;
+        const l = [];
+        if (!C) return { respuesta: "En esta obra a\xFAn no hay certificaciones de industriales le\xEDdas.", acciones: [accion] };
+        const COMUNES = /^(horas|pruebas?|industriales?|subcontratas?|metros|partidas?|justificacion(es)?|justificantes?|partes?|cliente|certificad\w*|desfase|hueco|personal|obra|nuestros?|tenemos|todas?|todos|cada|mes(es)?)$/;
+        const palabras = String(e.q || "").trim().split(/\s+/).filter((w) => w.length >= 4 && !COMUNES.test(w));
+        const delIndustrial = (emisor) => palabras.some((w) => D.mismoIndustrial(w, emisor));
+        const horas = C.causas.find((c) => c.clave === "horas");
+        const grupos = horas && horas.porIndustrialMes || [];
+        const filtrados = grupos.some((g) => delIndustrial(g.emisor)) ? grupos.filter((g) => delIndustrial(g.emisor)) : grupos;
+        const partidas = [];
+        for (const c of C.causas) if (c.clave !== "horas") {
+          for (const p of c.partidas) if (!partidas.some((x) => x.clave === p.clave)) partidas.push(p);
+        }
+        let pts = e.codigo ? partidas.filter((p) => String(p.codigo || "").toUpperCase() === e.codigo) : partidas;
+        if (!e.codigo && partidas.some((p) => p.industriales.some((i) => delIndustrial(i.emisor)))) pts = partidas.filter((p) => p.industriales.some((i) => delIndustrial(i.emisor)));
+        const verHoras = !e.dePartidas || e.deHoras;
+        const verPartidas = e.dePartidas || !e.deHoras;
+        if (verHoras) {
+          const con = filtrados.filter((g) => g.justificantes.length).length;
+          l.push(`**Horas no repercutidas, por industrial y mes:** ${num(con)} de ${num(filtrados.length)} tienen parte de horas del industrial que lo justifique.`);
+          for (const g of filtrados) {
+            const docs = g.documentos.map((x) => nombreDoc(x.fichero)).join(", ");
+            if (!g.justificantes.length) {
+              l.push(`- ${g.emisor} \xB7 ${MM.nombreMes(g.periodo)}: ${num(g.horas)} h, ${eur(g.importe)} (${docs}) \u2014 **sin justificaci\xF3n del industrial**.`);
+              continue;
+            }
+            const casa = { referencia: "por la referencia", mes: "del mismo mes", mesAnterior: "del mes anterior" };
+            l.push(`- ${g.emisor} \xB7 ${MM.nombreMes(g.periodo)}: ${num(g.horas)} h, ${eur(g.importe)} (${docs}); ${g.horasJustificadas ? `los partes justifican **${num(g.horasJustificadas)} h**` : "hay parte, pero sin horas legibles"}:`);
+            for (const j of g.justificantes.slice(0, 4)) l.push(`  - ${j.titulo || j.fichero || "parte"} (${String(j.fecha || "").slice(0, 10)}, ${casa[j.casa] || ""}): ${j.horas != null ? `${num(j.horas)} h` : "horas no legibles"}${j.claim ? ` \xB7 prueba del claim ${j.claim}` : ""}`);
+            if (g.justificantes.length > 4) l.push(`  - y ${num(g.justificantes.length - 4)} partes m\xE1s.`);
+          }
+          l.push("");
+        }
+        if (verPartidas) {
+          l.push(`**Partida a partida, certificado al cliente frente a pagado a los industriales${pts.length > 6 ? " (las 6 de m\xE1s desfase)" : ""}:**`);
+          if (!pts.length) l.push("- Ninguna partida con metros de m\xE1s o sin certificar" + (e.codigo ? ` con el c\xF3digo ${e.codigo}` : "") + ".");
+          for (const p of pts.slice(0, 6)) {
+            l.push(`- ${p.codigo || ""} ${String(p.descripcion).slice(0, 60)}${p.ambito ? ` (${p.ambito})` : ""}:`);
+            l.push(`  - Cliente: ${num(p.cantidadCobrada)} ${p.unidad || ""} \xD7 ${eur(p.precioVenta)} = ${eur(p.cobrado)}${p.docCliente && p.docCliente.fichero ? ` (${nombreDoc(p.docCliente.fichero)})` : " (sin hoja del cliente)"}`);
+            for (const i of p.industriales) l.push(`  - ${i.emisor}: ${num(i.cantidad)} ${p.unidad || ""} \xD7 ${eur(i.precio)} = ${eur(i.importe)}${(i.documentos || []).length ? ` (${i.documentos.map((x) => nombreDoc(x.fichero)).join(", ")})` : ""}`);
+            l.push(`  - **Diferencia: ${num(p.difCantidad)} ${p.unidad || ""}, ${eur(p.difImporte)}**`);
+          }
+        }
+        l.push("", "Cada documento y cada parte se abre desde la pantalla, al desplegar la causa.");
+        return { respuesta: l.join("\n").trim(), acciones: [accion] };
+      }
       function responder(repo, yo, { pregunta, obraId }, opciones = {}) {
         const e = entender(pregunta);
         if (!e) return null;
@@ -187614,6 +189362,8 @@ ${LEYENDA}`;
         if (!id) return fila(pregunta, { respuesta: "Elige primero la obra arriba a la izquierda (o dime de cu\xE1l) y lo miro en sus certificaciones." });
         if (e.que === "desfase") return fila(pregunta, { herramienta: "desfase", ...responderDesfase(repo, yo, id, e) });
         if (e.que === "gap") return fila(pregunta, { herramienta: "gapDisciplina", ...responderGap(repo, yo, id, e) });
+        if (e.que === "causas") return fila(pregunta, { herramienta: "desfase", ...responderCausas(repo, yo, id, e) });
+        if (e.que === "pruebas") return fila(pregunta, { herramienta: "desfase", ...responderPruebas(repo, yo, id, e) });
         const c = CM.cuadro(repo, yo, id, { objetivo: e.objetivo ?? null });
         if (!c.ok) return fila(pregunta, { respuesta: c.error });
         if (!c.partes.length && !c.disputas.length) return fila(pregunta, { respuesta: "En esta obra a\xFAn no ha llegado por correo ninguna certificaci\xF3n de los industriales. Cuando se cargue el correo de la obra, la app las parte sola en contrato, horas, BIM y extras.", acciones: [accionAbrir] });
@@ -187624,9 +189374,10 @@ ${LEYENDA}`;
           `- Por contrastar con el SharePoint de la obra (a\xFAn sin leer): ${c.porContrastar.join("; ")}.`
         ];
         if (e.que === "hueco") {
+          const r = responderCausas(repo, yo, id, e);
           const h = c.hueco;
           const lecturas = [h.candidata, ...h.alternativas];
-          const l2 = [];
+          const l2 = [r.respuesta, "", "**Las otras lecturas del hueco** (certificaciones mes a mes, sin partidas):"];
           if (h.objetivo == null) l2.push("No me has dicho qu\xE9 cifra quieres comprobar; estas son las lecturas del hueco que salen de los documentos:");
           else if (h.seReproduce) l2.push(`Los **${eur(h.objetivo)}** se reproducen al c\xE9ntimo con la lectura \xAB${lecturas.find((a) => Math.abs(a.sinExplicar) < 5e-3).etiqueta}\xBB.`);
           else {
@@ -187651,7 +189402,7 @@ ${LEYENDA}`;
           }
           if (h.candidata.nota) l2.push("", h.candidata.nota);
           l2.push(...avisos());
-          return fila(pregunta, { respuesta: l2.join("\n"), acciones: [accionAbrir] });
+          return fila(pregunta, { herramienta: "desfase", respuesta: l2.join("\n"), acciones: [...r.acciones || [], accionAbrir].slice(0, 1) });
         }
         if (e.que === "horas") {
           const ind = c.industriales.find((i) => new RegExp(`\\b${MM.claveEmisor({ emisor: i.emisor }).replace(/[^a-z0-9]/g, "")}`).test(e.q.replace(/[^a-z0-9 ]/g, "")));
@@ -187724,7 +189475,84 @@ ${LEYENDA}`;
         l.push(...avisos());
         return fila(pregunta, { respuesta: l.join("\n"), acciones: [accionAbrir] });
       }
-      module.exports = { entender, responder, responderGap, responderDesfase, cifraDe, periodoDe };
+      module.exports = { entender, responder, responderGap, responderDesfase, responderCausas, cifraDe, periodoDe };
+    }
+  });
+
+  // electron/data/iarvisAhorro.js
+  var require_iarvisAhorro = __commonJS({
+    "electron/data/iarvisAhorro.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var { randomUUID: uuid } = require_crypto();
+      var AO = require_ahorroObra();
+      var fila = (pregunta, extra) => ({ id: uuid(), pregunta, estado: "respondida", local: true, creado: (/* @__PURE__ */ new Date()).toISOString(), acciones: [], herramienta: "ahorroReal", ...extra });
+      var llano = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+      var eur = (x) => `${Math.round(Number(x) || 0).toLocaleString("es-ES", { useGrouping: "always" })} \u20AC`;
+      var hor = (x) => `${(Math.round((Number(x) || 0) * 10) / 10).toLocaleString("es-ES", { maximumFractionDigits: 1, useGrouping: "always" })} h`;
+      var accion = { tipo: "ir", destino: "queHaceLaApp", texto: "Abrir Lo que ahorra \u203A En esta obra" };
+      function entender(pregunta) {
+        const q = llano(pregunta);
+        if (!/ahorr/.test(q)) return null;
+        if (/\b(compra|compras|precio|precios|proveedor|oferta|ofertas|pedido|pedidos|licencia|licencias|energia|consumo)\b/.test(q)) return null;
+        return { mesAMes: /mes a mes|por mes|cada mes|meses/.test(q), porRol: /rol|jefe|encargado/.test(q) };
+      }
+      function obraNombrada(repo, yo, pregunta, obraId) {
+        const q = ` ${llano(pregunta).replace(/[^a-z0-9]+/g, " ")} `;
+        let obras = [];
+        try {
+          obras = repo.listar("obras", yo, {}) || [];
+        } catch {
+          obras = [];
+        }
+        for (const o of obras) {
+          const p = llano(o.nombre).replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter(Boolean);
+          for (let i = 0; i + 1 < p.length; i += 1) if (q.includes(` ${p[i]} ${p[i + 1]} `)) return o.id;
+        }
+        try {
+          return require_iarvisPlanos().obraDe(repo, yo, pregunta, obraId);
+        } catch {
+          return obraId || null;
+        }
+      }
+      function responder(repo, yo, { pregunta, obraId }, opciones = {}) {
+        const e = entender(pregunta);
+        if (!e) return null;
+        if (!yo || yo.rol !== "administrador") return null;
+        const id = obraNombrada(repo, yo, pregunta, obraId);
+        if (!id) return fila(pregunta, { respuesta: "Dime de qu\xE9 obra (o el\xEDgela arriba a la izquierda) y te digo lo que ha ahorrado la app en ella." });
+        const r = AO.ahorroDeObra(repo, yo, id, opciones.hoy);
+        if (!r.ok) return fila(pregunta, { respuesta: r.error });
+        const R = r.real;
+        if (!R || !R.total.horas) return fila(pregunta, { respuesta: `En ${r.obra.nombre} la app a\xFAn no ha hecho nada que cuente.`, acciones: [accion] });
+        const t = R.total;
+        const alta = R.alta ? R.alta.split("-").reverse().join("/") : "";
+        const rol = (k) => t.roles[k] ? t.roles[k] : { horas: 0, euros: 0 };
+        const l = [];
+        l.push(`En **${r.obra.nombre}**, desde que entr\xF3 en la app (${alta}), la app ha ahorrado **${hor(t.horas)}**, que son **${eur(t.euros)}**.`);
+        l.push("", "Mes a mes:");
+        for (const m of R.meses) l.push(`- ${m.nombre}: ${hor(m.horas)} \xB7 ${eur(m.euros)}`);
+        l.push("", "Por rol:");
+        for (const [k, txt] of [["jefeObra", "Jefe de obra"], ["jefeProduccion", "Jefe de producci\xF3n"], ["encargadoObra", "Encargado"]]) {
+          if (rol(k).horas > 0) l.push(`- ${txt}: ${hor(rol(k).horas)} \xB7 ${eur(rol(k).euros)}`);
+        }
+        const top = [...R.lineas].filter((x) => x.cuenta > 0).sort((a, b) => b.euros - a.euros).slice(0, 5);
+        l.push("", "Lo que m\xE1s pesa:");
+        for (const x of top) l.push(`- ${x.que}: ${x.cuenta.toLocaleString("es-ES", { useGrouping: "always" })} ${x.unidad} \xD7 ${String(x.minutos).replace(".", ",")} min = ${hor(x.horas)} (${eur(x.euros)})`);
+        const ed = R.lineas.filter((x) => /^desfase/.test(x.id) && x.cuenta > 0);
+        if (ed.length) {
+          const h = ed.reduce((q, x) => q + x.horas, 0);
+          const e2 = ed.reduce((q, x) => q + x.euros, 0);
+          l.push("", `Estudio del desfase cliente/industrial por causa (Certificaciones \u203A Mes a mes \u203A Por causa), hecho por la app: **${hor(h)}** (${eur(e2)}). Supuesto: ${ed.map((x) => `${x.cuenta} ${x.unidad} \xD7 ${String(x.minutos).replace(".", ",")} min`).join(" \xB7 ")}.`);
+        }
+        l.push("", `Sin el claim (sus minutos est\xE1n a confirmar): **${eur(t.eurosSinClaim)}** (${hor(t.horasSinClaim)}).`);
+        if (R.historial.length) {
+          l.push(`No cuenta lo cargado de antes del alta: ${R.historial.map((x) => `${x.n} ${x.unidad}, ${x.motivo}`).join("; ")}.`);
+        }
+        l.push("Cada cosa cuenta en el mes en que la hizo la app, por los minutos a mano de \xABLo que ahorra\xBB y el \u20AC/h de quien lo habr\xEDa hecho (brutos + 33 % de Seguridad Social entre 1.736 h). Sin licencias.");
+        return fila(pregunta, { respuesta: l.join("\n"), acciones: [accion] });
+      }
+      module.exports = { responder, entender, obraNombrada };
     }
   });
 
@@ -210309,6 +212137,15 @@ Lo otro, las cuentas de la empresa, solo lo ve Direcci\xF3n.` };
           if (cm) return cm;
         }
         if (repo) {
+          let ah = null;
+          try {
+            ah = require_iarvisAhorro().responder(repo, yo, { pregunta, obraId });
+          } catch {
+            ah = null;
+          }
+          if (ah) return ah;
+        }
+        if (repo) {
           let dc = null;
           try {
             dc = require_iarvisDescompuestos().responder(repo, yo, { pregunta, obraId });
@@ -211750,7 +213587,104 @@ En el claim, esta l\xEDnea suma su venta: ${eur(venta)}. El plazo (coste indirec
           ["ini.obras", "obras", "sites", "obres", "obras", "Baustellen", "chantiers"],
           ["ini.total", "Total", "Total", "Total", "Total", "Summe", "Total"],
           ["ini.obrasMas", "Y {n} obras m\xE1s.", "And {n} more sites.", "I {n} obres m\xE9s.", "E mais {n} obras.", "Und {n} weitere Baustellen.", "Et {n} chantiers de plus."],
-          ["lat.eligeObraPista", "Elige tu obra: hasta entonces, lo de obra sale en gris.", "Choose your site: until then, site items stay greyed out.", "Tria la teva obra: fins llavors, el que \xE9s d\u2019obra surt en gris.", "Escolha a sua obra: at\xE9 l\xE1, o que \xE9 de obra fica a cinzento.", "W\xE4hlen Sie Ihre Baustelle: Bis dahin bleibt alles zur Baustelle grau.", "Choisissez votre chantier : d\u2019ici l\xE0, ce qui concerne le chantier reste gris\xE9."]
+          ["lat.eligeObraPista", "Elige tu obra: hasta entonces, lo de obra sale en gris.", "Choose your site: until then, site items stay greyed out.", "Tria la teva obra: fins llavors, el que \xE9s d\u2019obra surt en gris.", "Escolha a sua obra: at\xE9 l\xE1, o que \xE9 de obra fica a cinzento.", "W\xE4hlen Sie Ihre Baustelle: Bis dahin bleibt alles zur Baustelle grau.", "Choisissez votre chantier : d\u2019ici l\xE0, ce qui concerne le chantier reste gris\xE9."],
+          /* Certificaciones › Mes a mes › Desfase › Por causa (14-nov, renderer/certMesAMesCe.js). */
+          ["dfc.vista", "Por causa", "By cause", "Per causa", "Por causa", "Nach Ursache", "Par cause"],
+          ["dfc.titulo", "El desfase por causa \xB7 mes a mes", "The gap by cause \xB7 month by month", "El desfasament per causa \xB7 mes a mes", "O desfasamento por causa \xB7 m\xEAs a m\xEAs", "Die Differenz nach Ursache \xB7 Monat f\xFCr Monat", "L\u2019\xE9cart par cause \xB7 mois par mois"],
+          ["dfc.cuenta", "{n} causas con desfase \xB7 {m} meses \xB7 pulsa una para ver sus documentos", "{n} causes with a gap \xB7 {m} months \xB7 tap one to see its documents", "{n} causes amb desfasament \xB7 {m} mesos \xB7 prem-ne una per veure\u2019n els documents", "{n} causas com desfasamento \xB7 {m} meses \xB7 toque numa para ver os documentos", "{n} Ursachen mit Differenz \xB7 {m} Monate \xB7 tippen Sie eine an, um ihre Dokumente zu sehen", "{n} causes avec \xE9cart \xB7 {m} mois \xB7 touchez-en une pour voir ses documents"],
+          ["dfc.sinCausas", "Esta versi\xF3n no reparte el desfase por causa.", "This version does not split the gap by cause.", "Aquesta versi\xF3 no reparteix el desfasament per causa.", "Esta vers\xE3o n\xE3o reparte o desfasamento por causa.", "Diese Version teilt die Differenz nicht nach Ursache auf.", "Cette version ne r\xE9partit pas l\u2019\xE9cart par cause."],
+          ["dfc.h.causa", "Causa", "Cause", "Causa", "Causa", "Ursache", "Cause"],
+          ["dfc.h.aOrigen", "A origen", "To date", "A origen", "Acumulado", "Kumuliert", "Cumul\xE9"],
+          ["dfc.pieOrigen", "Desfase a origen, \u20AC", "Gap to date, \u20AC", "Desfasament a origen, \u20AC", "Desfasamento acumulado, \u20AC", "Kumulierte Differenz, \u20AC", "\xC9cart cumul\xE9, \u20AC"],
+          /* Lo que ahorra › En esta obra: el estudio del desfase por causa (14-nov, renderer/queHaceLaAppPantalla.js). */
+          ["ahd.partidas", "Estudio del desfase cliente/industrial: partidas casadas una a una", "Client/subcontractor gap study: items matched one by one", "Estudi del desfasament client/industrial: partides casades una a una", "Estudo do desfasamento cliente/industrial: artigos casados um a um", "Studie der Differenz Kunde/Subunternehmer: Positionen einzeln abgeglichen", "\xC9tude de l\u2019\xE9cart client/sous-traitant : postes rapproch\xE9s un par un"],
+          ["ahd.horas", "Estudio del desfase cliente/industrial: horas de cada industrial y mes revisadas", "Client/subcontractor gap study: hours reviewed for each subcontractor and month", "Estudi del desfasament client/industrial: hores de cada industrial i mes revisades", "Estudo do desfasamento cliente/industrial: horas de cada industrial e m\xEAs revistas", "Studie der Differenz Kunde/Subunternehmer: gepr\xFCfte Stunden je Subunternehmer und Monat", "\xC9tude de l\u2019\xE9cart client/sous-traitant : heures revues par sous-traitant et par mois"],
+          ["ahd.justificantes", "Estudio del desfase cliente/industrial: justificantes localizados y enlazados", "Client/subcontractor gap study: supporting documents found and linked", "Estudi del desfasament client/industrial: justificants localitzats i enlla\xE7ats", "Estudo do desfasamento cliente/industrial: justificativos localizados e ligados", "Studie der Differenz Kunde/Subunternehmer: Belege gefunden und verkn\xFCpft", "\xC9tude de l\u2019\xE9cart client/sous-traitant : justificatifs retrouv\xE9s et reli\xE9s"],
+          ["ahd.u.partidas", "partidas casadas", "matched items", "partides casades", "artigos casados", "abgeglichene Positionen", "postes rapproch\xE9s"],
+          ["ahd.u.horas", "industriales-mes de horas", "subcontractor-months of hours", "industrials-mes d\u2019hores", "industriais-m\xEAs de horas", "Subunternehmer-Monate mit Stunden", "sous-traitants-mois d\u2019heures"],
+          ["ahd.u.justificantes", "justificantes", "supporting documents", "justificants", "justificativos", "Belege", "justificatifs"],
+          [
+            "ahd.supuesto",
+            "Estudio del desfase por causa, hecho por la app: {p} min por partida casada \xB7 {h} min por industrial y mes de horas revisadas \xB7 {j} min por justificante, de {rol}. Se cuenta en el mes en que la app hizo el estudio. C\xE1mbialos en \xABPor l\xEDnea\xBB.",
+            "Gap-by-cause study done by the app: {p} min per matched item \xB7 {h} min per subcontractor and month of hours reviewed \xB7 {j} min per supporting document, by {rol}. Counted in the month the app ran the study. Change them in \u201CBy line\u201D.",
+            "Estudi del desfasament per causa fet per l\u2019app: {p} min per partida casada \xB7 {h} min per industrial i mes d\u2019hores revisades \xB7 {j} min per justificant, de {rol}. Es compta el mes en qu\xE8 l\u2019app va fer l\u2019estudi. Canvia\u2019ls a \xABPer l\xEDnia\xBB.",
+            "Estudo do desfasamento por causa feito pela app: {p} min por artigo casado \xB7 {h} min por industrial e m\xEAs de horas revistas \xB7 {j} min por justificativo, de {rol}. Conta no m\xEAs em que a app fez o estudo. Altere-os em \xABPor linha\xBB.",
+            "Von der App erstellte Studie der Differenz nach Ursache: {p} Min. je abgeglichene Position \xB7 {h} Min. je Subunternehmer und Monat gepr\xFCfter Stunden \xB7 {j} Min. je Beleg, durch {rol}. Gez\xE4hlt im Monat, in dem die App die Studie erstellt hat. \xC4ndern unter \u201EPro Zeile\u201C.",
+            "\xC9tude de l\u2019\xE9cart par cause r\xE9alis\xE9e par l\u2019app : {p} min par poste rapproch\xE9 \xB7 {h} min par sous-traitant et par mois d\u2019heures revues \xB7 {j} min par justificatif, par {rol}. Compt\xE9e le mois o\xF9 l\u2019app a fait l\u2019\xE9tude. \xC0 modifier dans \xAB Par ligne \xBB."
+          ],
+          ["ahd.rol", "jefe de producci\xF3n (60 %) y jefe de obra (40 %)", "the production manager (60 %) and the site manager (40 %)", "cap de producci\xF3 (60 %) i cap d\u2019obra (40 %)", "diretor de produ\xE7\xE3o (60 %) e diretor de obra (40 %)", "Produktionsleiter (60 %) und Bauleiter (40 %)", "le responsable de production (60 %) et le chef de chantier (40 %)"],
+          ["dfc.pieSube", "Sube o baja, \u20AC", "Up or down, \u20AC", "Puja o baixa, \u20AC", "Sobe ou desce, \u20AC", "Steigt oder sinkt, \u20AC", "Hausse ou baisse, \u20AC"],
+          ["dfc.c.horas", "Horas no repercutidas", "Hours not passed on", "Hores no repercutides", "Horas n\xE3o repercutidas", "Nicht weiterberechnete Stunden", "Heures non refactur\xE9es"],
+          ["dfc.c.metros", "Metros de m\xE1s", "Extra metres", "Metres de m\xE9s", "Metros a mais", "Mehrmeter", "M\xE8tres en trop"],
+          ["dfc.c.sinCobrar", "Sin certificar al cliente", "Not certified to client", "Sense certificar al client", "Por certificar ao cliente", "Nicht an Kunden abgerechnet", "Non certifi\xE9 au client"],
+          ["dfc.c.precio", "Precio sobre el de venta", "Price above selling", "Preu sobre el de venda", "Pre\xE7o acima da venda", "Preis \xFCber Verkauf", "Prix au-dessus de la vente"],
+          ["dfc.d.horas", "Horas de administraci\xF3n que pasan los industriales y que el cliente no ha reconocido. Cada l\xEDnea, con el documento del que sale.", "Day-work hours charged by subcontractors that the client has not accepted. Each line with its source document.", "Hores d\u2019administraci\xF3 que passen els industrials i que el client no ha reconegut. Cada l\xEDnia, amb el document d\u2019on surt.", "Horas de administra\xE7\xE3o faturadas pelos subempreiteiros que o cliente n\xE3o reconheceu. Cada linha, com o documento de origem.", "Regiestunden der Subunternehmer, die der Kunde nicht anerkannt hat. Jede Zeile mit ihrem Quelldokument.", "Heures en r\xE9gie factur\xE9es par les sous-traitants que le client n\u2019a pas reconnues. Chaque ligne avec son document source."],
+          ["dfc.d.metros", "Partidas en las que los industriales llevan pagada m\xE1s cantidad que la certificada al cliente: metros pagados, certificados, precios y documentos.", "Items where more quantity has been paid to subcontractors than certified to the client: metres paid, certified, prices and documents.", "Partides en qu\xE8 els industrials porten pagada m\xE9s quantitat que la certificada al client: metres pagats, certificats, preus i documents.", "Rubricas em que se pagou aos subempreiteiros mais quantidade do que a certificada ao cliente: metros pagos, certificados, pre\xE7os e documentos.", "Positionen, bei denen den Subunternehmern mehr Menge bezahlt als dem Kunden abgerechnet wurde: bezahlte und abgerechnete Meter, Preise und Dokumente.", "Postes o\xF9 l\u2019on a pay\xE9 aux sous-traitants plus de quantit\xE9 que celle certifi\xE9e au client : m\xE8tres pay\xE9s, certifi\xE9s, prix et documents."],
+          ["dfc.d.sinCobrar", "Partidas pagadas a los industriales de las que al cliente a\xFAn no se le ha certificado nada.", "Items paid to subcontractors for which nothing has yet been certified to the client.", "Partides pagades als industrials de les quals al client encara no se li ha certificat res.", "Rubricas pagas aos subempreiteiros das quais ainda nada foi certificado ao cliente.", "Den Subunternehmern bezahlte Positionen, von denen dem Kunden noch nichts abgerechnet wurde.", "Postes pay\xE9s aux sous-traitants dont rien n\u2019a encore \xE9t\xE9 certifi\xE9 au client."],
+          ["dfc.d.precio", "Lo pagado de m\xE1s porque el precio del industrial pasa del precio de venta.", "The overpayment because the subcontractor\u2019s price is above the selling price.", "El que s\u2019ha pagat de m\xE9s perqu\xE8 el preu de l\u2019industrial supera el preu de venda.", "O pago a mais porque o pre\xE7o do subempreiteiro ultrapassa o pre\xE7o de venda.", "Die Mehrzahlung, weil der Preis des Subunternehmers \xFCber dem Verkaufspreis liegt.", "Le trop-pay\xE9 parce que le prix du sous-traitant d\xE9passe le prix de vente."],
+          ["dfc.h.industrial", "Industrial", "Subcontractor", "Industrial", "Subempreiteiro", "Subunternehmer", "Sous-traitant"],
+          ["dfc.h.mes", "Mes", "Month", "Mes", "M\xEAs", "Monat", "Mois"],
+          ["dfc.h.horas", "Horas", "Hours", "Hores", "Horas", "Stunden", "Heures"],
+          ["dfc.h.importe", "Importe", "Amount", "Import", "Montante", "Betrag", "Montant"],
+          ["dfc.h.doc", "Documento", "Document", "Document", "Documento", "Dokument", "Document"],
+          ["dfc.h.docs", "Documentos", "Documents", "Documents", "Documentos", "Dokumente", "Documents"],
+          ["dfc.h.partida", "Partida", "Item", "Partida", "Rubrica", "Position", "Poste"],
+          ["dfc.h.pagados", "Pagado", "Paid", "Pagat", "Pago", "Bezahlt", "Pay\xE9"],
+          ["dfc.h.cliente", "Al cliente", "To client", "Al client", "Ao cliente", "An Kunden", "Au client"],
+          ["dfc.h.precios", "\u20AC/ud pagado / venta", "\u20AC/unit paid / selling", "\u20AC/u pagat / venda", "\u20AC/un. pago / venda", "\u20AC/Einh. bezahlt / Verkauf", "\u20AC/u pay\xE9 / vente"],
+          ["dfc.porRevisar", "por revisar", "to review", "per revisar", "por rever", "zu pr\xFCfen", "\xE0 v\xE9rifier"],
+          ["dfc.sinDocs", "No hay documentos de horas.", "There are no hour documents.", "No hi ha documents d\u2019hores.", "N\xE3o h\xE1 documentos de horas.", "Es gibt keine Stundendokumente.", "Il n\u2019y a pas de documents d\u2019heures."],
+          ["dfc.sinPartidas", "Ninguna partida en esta causa.", "No items in this cause.", "Cap partida en aquesta causa.", "Nenhuma rubrica nesta causa.", "Keine Position in dieser Ursache.", "Aucun poste dans cette cause."],
+          ["dfc.hojaCliente", "Hoja del cliente", "Client sheet", "Full del client", "Folha do cliente", "Kundenblatt", "Feuille du client"],
+          ["dfc.h.quien", "Qui\xE9n", "Who", "Qui", "Quem", "Wer", "Qui"],
+          ["dfc.h.cantidad", "Cantidad", "Quantity", "Quantitat", "Quantidade", "Menge", "Quantit\xE9"],
+          ["dfc.h.precioUd", "\u20AC/ud", "\u20AC/unit", "\u20AC/u", "\u20AC/un.", "\u20AC/Einh.", "\u20AC/u"],
+          ["dfc.h.justif", "Justificaci\xF3n", "Supporting evidence", "Justificaci\xF3", "Justifica\xE7\xE3o", "Nachweis", "Justificatif"],
+          ["dfc.cliente", "Certificado al cliente", "Certified to the client", "Certificat al client", "Certificado ao cliente", "An den Kunden abgerechnet", "Certifi\xE9 au client"],
+          ["dfc.diferencia", "Diferencia", "Difference", "Difer\xE8ncia", "Diferen\xE7a", "Differenz", "Diff\xE9rence"],
+          ["dfc.enCausa", "En esta causa: {eur} \u20AC", "In this cause: \u20AC{eur}", "En aquesta causa: {eur} \u20AC", "Nesta causa: {eur} \u20AC", "In dieser Ursache: {eur} \u20AC", "Dans cette cause : {eur} \u20AC"],
+          ["dfc.sinHoja", "sin hoja del cliente", "no client sheet", "sense full del client", "sem folha do cliente", "kein Kundenblatt", "sans feuille du client"],
+          ["dfc.sinDocInd", "sin documento", "no document", "sense document", "sem documento", "kein Dokument", "sans document"],
+          ["dfc.verJust", "Ver justificaci\xF3n ({n})", "View evidence ({n})", "Veure justificaci\xF3 ({n})", "Ver justifica\xE7\xE3o ({n})", "Nachweis ansehen ({n})", "Voir le justificatif ({n})"],
+          ["dfc.justHoras", "{j} h en partes", "{j} h in timesheets", "{j} h en parts", "{j} h em folhas de horas", "{j} Std. in Stundenzetteln", "{j} h en feuilles d\u2019heures"],
+          ["dfc.sinJust", "Sin justificaci\xF3n del industrial", "No evidence from the subcontractor", "Sense justificaci\xF3 de l\u2019industrial", "Sem justifica\xE7\xE3o do subempreiteiro", "Kein Nachweis des Nachunternehmers", "Aucun justificatif du sous-traitant"],
+          ["dfc.resumenJust", "{n} de {t} industriales y meses tienen parte de horas que lo justifique.", "{n} of {t} subcontractor-months have a timesheet that supports them.", "{n} de {t} industrials i mesos tenen part d\u2019hores que ho justifiqui.", "{n} de {t} subempreiteiros e meses t\xEAm folha de horas que o justifique.", "{n} von {t} Nachunternehmer-Monaten haben einen Stundenzettel als Nachweis.", "{n} sur {t} sous-traitants et mois ont une feuille d\u2019heures qui le justifie."],
+          ["dfc.justTitulo", "Justificaci\xF3n de {emisor} \xB7 {mes}", "Evidence from {emisor} \xB7 {mes}", "Justificaci\xF3 de {emisor} \xB7 {mes}", "Justifica\xE7\xE3o de {emisor} \xB7 {mes}", "Nachweis von {emisor} \xB7 {mes}", "Justificatif de {emisor} \xB7 {mes}"],
+          ["dfc.pedidas", "Pide {h} h; los partes justifican {j} h", "Claims {h} h; timesheets support {j} h", "Demana {h} h; els parts justifiquen {j} h", "Pede {h} h; as folhas justificam {j} h", "Fordert {h} Std.; Stundenzettel belegen {j} Std.", "Demande {h} h ; les feuilles justifient {j} h"],
+          ["dfc.casa.referencia", "casa por la referencia del documento", "matches the document reference", "casa per la refer\xE8ncia del document", "corresponde pela refer\xEAncia do documento", "passt \xFCber die Dokumentreferenz", "correspond par la r\xE9f\xE9rence du document"],
+          ["dfc.casa.mes", "del mismo mes", "same month", "del mateix mes", "do mesmo m\xEAs", "gleicher Monat", "du m\xEAme mois"],
+          ["dfc.casa.mesAnterior", "del mes anterior", "previous month", "del mes anterior", "do m\xEAs anterior", "Vormonat", "du mois pr\xE9c\xE9dent"],
+          ["dfc.fuenteClaim", "prueba del claim {c}", "claim evidence {c}", "prova del claim {c}", "prova do claim {c}", "Claim-Nachweis {c}", "preuve de la r\xE9clamation {c}"],
+          ["dfc.fuenteMedObra", "Med Obra", "Site measurement", "Med Obra", "Medi\xE7\xE3o de obra", "Baustellenaufma\xDF", "M\xE9tr\xE9 de chantier"],
+          ["dfc.horasNoLegibles", "horas no legibles en el parte", "hours not legible in the timesheet", "hores no llegibles al part", "horas ileg\xEDveis na folha", "Stunden im Zettel nicht lesbar", "heures illisibles sur la feuille"],
+          ["dfc.abrir", "Abrir", "Open", "Obrir", "Abrir", "\xD6ffnen", "Ouvrir"],
+          ["dfc.abrirFichero", "Abrir fichero", "Open file", "Obrir fitxer", "Abrir ficheiro", "Datei \xF6ffnen", "Ouvrir le fichier"],
+          ["dfc.cerrar", "Cerrar", "Close", "Tancar", "Fechar", "Schlie\xDFen", "Fermer"],
+          ["dfc.cargando", "Cargando\u2026", "Loading\u2026", "Carregant\u2026", "A carregar\u2026", "Wird geladen\u2026", "Chargement\u2026"],
+          ["dfc.noAbre", "No se ha podido abrir.", "Could not be opened.", "No s\u2019ha pogut obrir.", "N\xE3o foi poss\xEDvel abrir.", "Konnte nicht ge\xF6ffnet werden.", "Impossible d\u2019ouvrir."],
+          ["dfc.docSinFichero", "En este equipo solo est\xE1 la lectura del documento; el original est\xE1 en el correo de la obra.", "Only the reading of this document is on this computer; the original is in the project mailbox.", "En aquest equip nom\xE9s hi ha la lectura del document; l\u2019original \xE9s al correu de l\u2019obra.", "Neste computador s\xF3 est\xE1 a leitura do documento; o original est\xE1 no correio da obra.", "Auf diesem Rechner liegt nur die Auslesung; das Original ist im Postfach der Baustelle.", "Sur cet ordinateur, seule la lecture du document est disponible ; l\u2019original est dans la messagerie du chantier."],
+          ["dfc.docCortado", "Texto cortado: abre el fichero para verlo entero.", "Text truncated: open the file to see it all.", "Text tallat: obre el fitxer per veure\u2019l sencer.", "Texto cortado: abra o ficheiro para o ver inteiro.", "Text gek\xFCrzt: Datei \xF6ffnen, um alles zu sehen.", "Texte tronqu\xE9 : ouvrez le fichier pour tout voir."],
+          ["dfc.disciplinas", "Conductos {c} \u20AC ({cm} \u20AC de metros de m\xE1s y {cs} \u20AC sin certificar) \xB7 tuber\xEDas {t} \u20AC \xB7 resto {r} \u20AC", "Ductwork \u20AC{c} (\u20AC{cm} extra metres and \u20AC{cs} not certified) \xB7 piping \u20AC{t} \xB7 other \u20AC{r}", "Conductes {c} \u20AC ({cm} \u20AC de metres de m\xE9s i {cs} \u20AC sense certificar) \xB7 canonades {t} \u20AC \xB7 resta {r} \u20AC", "Condutas {c} \u20AC ({cm} \u20AC de metros a mais e {cs} \u20AC por certificar) \xB7 tubagens {t} \u20AC \xB7 resto {r} \u20AC", "Kan\xE4le {c} \u20AC ({cm} \u20AC Mehrmeter und {cs} \u20AC nicht abgerechnet) \xB7 Rohrleitungen {t} \u20AC \xB7 Rest {r} \u20AC", "Gaines {c} \u20AC ({cm} \u20AC de m\xE8tres en trop et {cs} \u20AC non certifi\xE9s) \xB7 tuyauteries {t} \u20AC \xB7 reste {r} \u20AC"],
+          ["dfc.objetivo", "Cifra que te han dicho", "Figure you were given", "Xifra que t\u2019han dit", "Valor que lhe disseram", "Genannte Zahl", "Chiffre annonc\xE9"],
+          ["dfc.desfase", "Desfase pagado / cobrado", "Paid / billed gap", "Desfasament pagat / cobrat", "Desfasamento pago / cobrado", "Differenz bezahlt / eingenommen", "\xC9cart pay\xE9 / encaiss\xE9"],
+          ["dfc.cuadra", "Cuadra al c\xE9ntimo", "Matches to the cent", "Quadra al c\xE8ntim", "Bate ao c\xEAntimo", "Stimmt auf den Cent", "Correspond au centime"],
+          ["dfc.sobra", "Por encima de la cifra dicha", "Above the figure given", "Per sobre de la xifra dita", "Acima do valor indicado", "\xDCber der genannten Zahl", "Au-dessus du chiffre annonc\xE9"],
+          ["dfc.falta", "Por debajo de la cifra dicha", "Below the figure given", "Per sota de la xifra dita", "Abaixo do valor indicado", "Unter der genannten Zahl", "En dessous du chiffre annonc\xE9"],
+          ["dfc.cerca", "Lo que m\xE1s se acerca: {piezas}", "Closest match: {piezas}", "El que m\xE9s s\u2019hi acosta: {piezas}", "O que mais se aproxima: {piezas}", "Am n\xE4chsten kommt: {piezas}", "Ce qui s\u2019en approche le plus : {piezas}"],
+          ["dfc.mesCerca", "Mes m\xE1s cercano a origen: {mes}", "Closest month to date: {mes}", "Mes m\xE9s proper a origen: {mes}", "M\xEAs acumulado mais pr\xF3ximo: {mes}", "N\xE4chster kumulierter Monat: {mes}", "Mois cumul\xE9 le plus proche : {mes}"],
+          ["dfc.p.horas", "horas", "hours", "hores", "horas", "Stunden", "heures"],
+          ["dfc.p.metros", "metros de m\xE1s", "extra metres", "metres de m\xE9s", "metros a mais", "Mehrmeter", "m\xE8tres en trop"],
+          ["dfc.p.sinCobrar", "sin certificar", "not certified", "sense certificar", "por certificar", "nicht abgerechnet", "non certifi\xE9"],
+          ["dfc.p.precio", "precio", "price", "preu", "pre\xE7o", "Preis", "prix"],
+          ["dfc.p.claimReconocido", "lo reconocido del claim", "accepted part of the claim", "el reconegut del claim", "o reconhecido do claim", "anerkannter Teil des Claims", "part reconnue de la r\xE9clamation"],
+          ["dfc.p.claimReclamado", "todo el claim reclamado", "the whole claim", "tot el claim reclamat", "todo o claim reclamado", "gesamter Claim", "toute la r\xE9clamation"],
+          ["dfc.fuera", "No suman \xB7 {n} bloques que se dicen pero no entran en la cuenta", "Not counted \xB7 {n} blocks shown but left out of the total", "No sumen \xB7 {n} blocs que es diuen per\xF2 no entren al compte", "N\xE3o somam \xB7 {n} blocos indicados mas fora da conta", "Nicht mitgez\xE4hlt \xB7 {n} Bl\xF6cke, genannt, aber nicht in der Summe", "Non compt\xE9s \xB7 {n} blocs indiqu\xE9s mais hors du total"],
+          ["dfc.f.porCasar", "Partidas por casar", "Items to match", "Partides per casar", "Rubricas por associar", "Zuzuordnende Positionen", "Postes \xE0 rapprocher"],
+          ["dfc.f.claim", "Claim de los industriales en disputa", "Subcontractor claim in dispute", "Claim dels industrials en disputa", "Claim dos subempreiteiros em disputa", "Strittiger Claim der Subunternehmer", "R\xE9clamation des sous-traitants en litige"],
+          ["dfc.f.duplicados", "Documentos repetidos o sustituidos", "Repeated or replaced documents", "Documents repetits o substitu\xEFts", "Documentos repetidos ou substitu\xEDdos", "Doppelte oder ersetzte Dokumente", "Documents r\xE9p\xE9t\xE9s ou remplac\xE9s"],
+          ["dfc.f.noCertificacion", "Presupuestos y pedidos (no son certificaci\xF3n)", "Quotes and orders (not certificates)", "Pressupostos i comandes (no s\xF3n certificaci\xF3)", "Or\xE7amentos e encomendas (n\xE3o s\xE3o certifica\xE7\xE3o)", "Angebote und Bestellungen (keine Abrechnung)", "Devis et commandes (pas des certificats)"],
+          ["dfc.reconocido", "{eur} \u20AC reconocidos", "\u20AC{eur} accepted", "{eur} \u20AC reconeguts", "{eur} \u20AC reconhecidos", "{eur} \u20AC anerkannt", "{eur} \u20AC reconnus"],
+          ["dfc.verPorCasar", "Casarlas \u203A", "Match them \u203A", "Casar-les \u203A", "Associ\xE1-las \u203A", "Zuordnen \u203A", "Les rapprocher \u203A"]
         ];
         const NOMBRES = [
           /* Módulos (shared/roles.js › MODULOS) */
@@ -211836,6 +213770,7 @@ En el claim, esta l\xEDnea suma su venta: ${eur(venta)}. El plazo (coste indirec
           ["Informe de reparaciones", "Repairs report", "Informe de reparacions", "Relat\xF3rio de repara\xE7\xF5es", "Reparaturbericht", "Rapport de r\xE9parations"],
           ["Plan de compras", "Purchasing plan", "Pla de compres", "Plano de compras", "Einkaufsplan", "Plan d\u2019achats"],
           ["Comparativos", "Comparisons", "Comparatius", "Comparativos", "Preisvergleiche", "Comparatifs"],
+          ["Precios de compra", "Purchase prices", "Preus de compra", "Pre\xE7os de compra", "Einkaufspreise", "Prix d\u2019achat"],
           ["Diagrama de Gantt", "Gantt chart", "Diagrama de Gantt", "Diagrama de Gantt", "Gantt-Diagramm", "Diagramme de Gantt"],
           ["Planificaci\xF3n econ\xF3mica", "Financial planning", "Planificaci\xF3 econ\xF2mica", "Planeamento econ\xF3mico", "Finanzplanung", "Planification financi\xE8re"],
           ["Reporte a direcci\xF3n", "Report to management", "Report a direcci\xF3", "Relat\xF3rio \xE0 dire\xE7\xE3o", "Bericht an die Gesch\xE4ftsleitung", "Rapport \xE0 la direction"],
@@ -212144,7 +214079,878 @@ En el claim, esta l\xEDnea suma su venta: ${eur(venta)}. El plazo (coste indirec
           ["Incidencia repetida no abierta: ya hab\xEDa una reparaci\xF3n viva", "Repeated issue not opened: a repair was already live", "Incid\xE8ncia repetida no oberta: ja hi havia una reparaci\xF3 viva", "Ocorr\xEAncia repetida n\xE3o aberta: j\xE1 havia uma repara\xE7\xE3o ativa", "Doppelte St\xF6rung nicht er\xF6ffnet: es lief schon eine Reparatur", "Incident r\xE9p\xE9t\xE9 non ouvert : une r\xE9paration \xE9tait d\xE9j\xE0 en cours"],
           ["Presupuesto", "Quotation", "Pressupost", "Or\xE7amento", "Kostenvoranschlag", "Devis re\xE7u"],
           ["Albar\xE1n", "Delivery note", "Albar\xE0", "Guia de remessa", "Lieferschein", "Bon de livraison"],
-          ["Informe", "Report", "Informe", "Relat\xF3rio", "Bericht", "Rapport"]
+          ["Informe", "Report", "Informe", "Relat\xF3rio", "Bericht", "Rapport"],
+          /* Lo que ahorra › En esta obra › Real, mes a mes (14-nov): renderer/queHaceLaAppPantalla.js */
+          ["C\xF3mo verlo", "How to view it", "Com veure-ho", "Como ver", "Ansicht", "Affichage"],
+          ["Real, mes a mes", "Actual, month by month", "Real, mes a mes", "Real, m\xEAs a m\xEAs", "Real, Monat f\xFCr Monat", "R\xE9el, mois par mois"],
+          ["Por l\xEDnea y por mes de obra", "By line and by month of works", "Per l\xEDnia i per mes d\u2019obra", "Por linha e por m\xEAs de obra", "Nach Position und Baumonat", "Par ligne et par mois de chantier"],
+          ["jefe de obra", "site manager", "cap d\u2019obra", "chefe de obra", "Bauleiter", "chef de chantier"],
+          ["jefe de producci\xF3n", "production manager", "cap de producci\xF3", "chefe de produ\xE7\xE3o", "Produktionsleiter", "chef de production"],
+          ["encargado", "foreman", "encarregat", "encarregado", "Vorarbeiter", "contrema\xEEtre"],
+          ["Ahorro real en la obra", "Actual savings on the project", "Estalvi real a l\u2019obra", "Poupan\xE7a real na obra", "Tats\xE4chliche Ersparnis auf der Baustelle", "\xC9conomie r\xE9elle sur le chantier"],
+          ["{h} h desde el alta ({dia})", "{h} h since set-up ({dia})", "{h} h des de l\u2019alta ({dia})", "{h} h desde o registo ({dia})", "{h} Std. seit Anlage ({dia})", "{h} h depuis la cr\xE9ation ({dia})"],
+          ["en curso", "in progress", "en curs", "em curso", "laufend", "en cours"],
+          ["Por rol", "By role", "Per rol", "Por fun\xE7\xE3o", "Nach Rolle", "Par r\xF4le"],
+          ["jefe de obra \xB7 {p} h producci\xF3n \xB7 {e} h encargado", "site manager \xB7 {p} h production \xB7 {e} h foreman", "cap d\u2019obra \xB7 {p} h producci\xF3 \xB7 {e} h encarregat", "chefe de obra \xB7 {p} h produ\xE7\xE3o \xB7 {e} h encarregado", "Bauleiter \xB7 {p} Std. Produktion \xB7 {e} Std. Vorarbeiter", "chef de chantier \xB7 {p} h production \xB7 {e} h contrema\xEEtre"],
+          ["Sin el claim", "Without the claim", "Sense el claim", "Sem o claim", "Ohne den Claim", "Sans le claim"],
+          ["claim {eur} ({h} h), minutos a confirmar", "claim {eur} ({h} h), minutes to be confirmed", "claim {eur} ({h} h), minuts per confirmar", "claim {eur} ({h} h), minutos por confirmar", "Claim {eur} ({h} Std.), Minuten zu best\xE4tigen", "claim {eur} ({h} h), minutes \xE0 confirmer"],
+          ["No cuenta", "Not counted", "No compta", "N\xE3o conta", "Z\xE4hlt nicht", "Non compt\xE9"],
+          ["historial cargado de antes del alta", "history loaded from before set-up", "historial carregat d\u2019abans de l\u2019alta", "hist\xF3rico carregado de antes do registo", "vor der Anlage geladener Verlauf", "historique charg\xE9 avant la cr\xE9ation"],
+          ["Minutos a mano a confirmar por JC", "Manual minutes to be confirmed by JC", "Minuts a m\xE0 per confirmar per JC", "Minutos manuais por confirmar por JC", "Manuelle Minuten, von JC zu best\xE4tigen", "Minutes manuelles \xE0 confirmer par JC"],
+          ["a confirmar", "to confirm", "per confirmar", "por confirmar", "zu best\xE4tigen", "\xE0 confirmer"],
+          ["La base no guarda cu\xE1ndo se hizo: va al mes en curso", "The database does not record when it was done: it goes to the current month", "La base no guarda quan es va fer: va al mes en curs", "A base n\xE3o guarda quando foi feito: vai para o m\xEAs em curso", "Die Datenbank speichert nicht, wann es geschah: es geht in den laufenden Monat", "La base n\u2019enregistre pas quand cela a \xE9t\xE9 fait : cela va au mois en cours"],
+          ["sin fecha", "no date", "sense data", "sem data", "ohne Datum", "sans date"],
+          ["De d\xF3nde sale:", "Where it comes from:", "D\u2019on surt:", "De onde vem:", "Woher es kommt:", "D\u2019o\xF9 cela vient :"],
+          ["No cuentan", "Not counted:", "No compten", "N\xE3o contam", "Nicht gez\xE4hlt:", "Non compt\xE9s"],
+          [
+            "Cada cosa cuenta en el mes en que la hizo la app (su fecha en la base). Los minutos a mano y los \u20AC/h, los de \xABPor l\xEDnea\xBB: si los cambias all\xED, esto cambia.",
+            "Each item counts in the month the app did it (its date in the database). The manual minutes and the \u20AC/h are those of \u201CBy line\u201D: if you change them there, this changes.",
+            "Cada cosa compta al mes en qu\xE8 la va fer l\u2019app (la seva data a la base). Els minuts a m\xE0 i els \u20AC/h s\xF3n els de \xABPer l\xEDnia\xBB: si els canvies all\xE0, aix\xF2 canvia.",
+            "Cada coisa conta no m\xEAs em que a app a fez (a sua data na base). Os minutos manuais e os \u20AC/h s\xE3o os de \xABPor linha\xBB: se os alterar l\xE1, isto muda.",
+            "Jede Sache z\xE4hlt in dem Monat, in dem die App sie erledigt hat (ihr Datum in der Datenbank). Die manuellen Minuten und die \u20AC/Std. sind die aus \u201ENach Position\u201C: \xC4ndern Sie sie dort, \xE4ndert sich dies.",
+            "Chaque \xE9l\xE9ment compte dans le mois o\xF9 l\u2019app l\u2019a fait (sa date dans la base). Les minutes manuelles et les \u20AC/h sont ceux de \xAB Par ligne \xBB : si vous les changez l\xE0, ceci change."
+          ],
+          ["Qu\xE9 ha hecho la app \xB7 de d\xF3nde sale", "What the app has done \xB7 where it comes from", "Qu\xE8 ha fet l\u2019app \xB7 d\u2019on surt", "O que a app fez \xB7 de onde vem", "Was die App getan hat \xB7 woher es kommt", "Ce que l\u2019app a fait \xB7 d\u2019o\xF9 cela vient"],
+          ["jefe de obra {a} \u20AC/h \xB7 producci\xF3n {b} \u20AC/h \xB7 encargado {c} \u20AC/h", "site manager {a} \u20AC/h \xB7 production {b} \u20AC/h \xB7 foreman {c} \u20AC/h", "cap d\u2019obra {a} \u20AC/h \xB7 producci\xF3 {b} \u20AC/h \xB7 encarregat {c} \u20AC/h", "chefe de obra {a} \u20AC/h \xB7 produ\xE7\xE3o {b} \u20AC/h \xB7 encarregado {c} \u20AC/h", "Bauleiter {a} \u20AC/Std. \xB7 Produktion {b} \u20AC/Std. \xB7 Vorarbeiter {c} \u20AC/Std.", "chef de chantier {a} \u20AC/h \xB7 production {b} \u20AC/h \xB7 contrema\xEEtre {c} \u20AC/h"],
+          [
+            "Solo lo hecho en la app desde el alta de la obra ({dia}); el primer y el \xFAltimo mes van incompletos. No cuenta lo cargado de antes (NCR importadas, pedidos, certificaciones y actas de meses anteriores): se ve en cada l\xEDnea. El claim va con sus minutos \xABa confirmar\xBB; \xABSin el claim\xBB da la cifra sin \xE9l.",
+            "Only what has been done in the app since the project was set up ({dia}); the first and the last month are incomplete. What was loaded from before (imported NCRs, orders, certifications and minutes of earlier months) is not counted: you can see it on each line. The claim goes with its minutes \u201Cto confirm\u201D; \u201CWithout the claim\u201D gives the figure without it.",
+            "Nom\xE9s el fet a l\u2019app des de l\u2019alta de l\u2019obra ({dia}); el primer i l\u2019\xFAltim mes van incomplets. No compta el carregat d\u2019abans (NCR importades, comandes, certificacions i actes de mesos anteriors): es veu a cada l\xEDnia. El claim va amb els seus minuts \xABper confirmar\xBB; \xABSense el claim\xBB d\xF3na la xifra sense ell.",
+            "S\xF3 o feito na app desde o registo da obra ({dia}); o primeiro e o \xFAltimo m\xEAs ficam incompletos. N\xE3o conta o carregado de antes (NCR importadas, encomendas, certifica\xE7\xF5es e atas de meses anteriores): v\xEA-se em cada linha. O claim vai com os seus minutos \xABpor confirmar\xBB; \xABSem o claim\xBB d\xE1 o valor sem ele.",
+            "Nur das, was seit der Anlage der Baustelle ({dia}) in der App erledigt wurde; der erste und der letzte Monat sind unvollst\xE4ndig. Vorher Geladenes (importierte NCR, Bestellungen, Zertifizierungen und Protokolle fr\xFCherer Monate) z\xE4hlt nicht: Es ist in jeder Zeile zu sehen. Der Claim l\xE4uft mit seinen Minuten \u201Ezu best\xE4tigen\u201C; \u201EOhne den Claim\u201C nennt den Wert ohne ihn.",
+            "Uniquement ce qui a \xE9t\xE9 fait dans l\u2019app depuis la cr\xE9ation du chantier ({dia}) ; le premier et le dernier mois sont incomplets. Ce qui a \xE9t\xE9 charg\xE9 avant (NCR import\xE9es, commandes, certifications et proc\xE8s-verbaux des mois pr\xE9c\xE9dents) ne compte pas : on le voit sur chaque ligne. Le claim va avec ses minutes \xAB \xE0 confirmer \xBB ; \xAB Sans le claim \xBB donne le chiffre sans lui."
+          ],
+          [
+            "Los \u20AC/h salen de los brutos de \xABPor fase y rol\xBB (jefe de obra 45.000 \u20AC, encargado 42.000 \u20AC, jefe de producci\xF3n 38.000 \u20AC) + 33 % de Seguridad Social, entre 1.736 h. Sin licencias. Solo lo ve el administrador.",
+            "The \u20AC/h come from the gross salaries in \u201CBy phase and role\u201D (site manager \u20AC45,000, foreman \u20AC42,000, production manager \u20AC38,000) + 33 % social security, divided by 1,736 h. No licences. Only the administrator sees this.",
+            "Els \u20AC/h surten dels bruts de \xABPer fase i rol\xBB (cap d\u2019obra 45.000 \u20AC, encarregat 42.000 \u20AC, cap de producci\xF3 38.000 \u20AC) + 33 % de Seguretat Social, entre 1.736 h. Sense llic\xE8ncies. Nom\xE9s ho veu l\u2019administrador.",
+            "Os \u20AC/h saem dos brutos de \xABPor fase e fun\xE7\xE3o\xBB (chefe de obra 45.000 \u20AC, encarregado 42.000 \u20AC, chefe de produ\xE7\xE3o 38.000 \u20AC) + 33 % de Seguran\xE7a Social, a dividir por 1.736 h. Sem licen\xE7as. S\xF3 o administrador o v\xEA.",
+            "Die \u20AC/Std. ergeben sich aus den Bruttogeh\xE4ltern in \u201ENach Phase und Rolle\u201C (Bauleiter 45.000 \u20AC, Vorarbeiter 42.000 \u20AC, Produktionsleiter 38.000 \u20AC) + 33 % Sozialversicherung, geteilt durch 1.736 Std. Ohne Lizenzen. Nur der Administrator sieht dies.",
+            "Les \u20AC/h viennent des bruts de \xAB Par phase et r\xF4le \xBB (chef de chantier 45 000 \u20AC, contrema\xEEtre 42 000 \u20AC, chef de production 38 000 \u20AC) + 33 % de charges sociales, divis\xE9s par 1 736 h. Sans licences. Seul l\u2019administrateur le voit."
+          ],
+          /* 14-nov (notas 3da06329 y b58b07b6): Reclamaciones, su panel y «Lo que ahorra» con la app en otro idioma. */
+          ["\u2014 suma aqu\xED \u2014", "\u2014 add here \u2014", "\u2014 suma aqu\xED \u2014", "\u2014 soma aqui \u2014", "\u2014 hier summieren \u2014", "\u2014 additionner ici \u2014"],
+          ["\xBFNotificado al cliente?", "Client notified?", "Notificat al client?", "Notificado ao cliente?", "Dem Kunden mitgeteilt?", "Client notifi\xE9 ?"],
+          ["\xB7 Avisos del tajo", "\xB7 Site alerts", "\xB7 Avisos del tall", "\xB7 Avisos do local de trabalho", "\xB7 Baustellenhinweise", "\xB7 Alertes de chantier"],
+          ["\xB7 Cada mes que la obra est\xE1 en marcha", "\xB7 Each month the project is under way", "\xB7 Cada mes que l'obra est\xE0 en marxa", "\xB7 Cada m\xEAs em que a obra est\xE1 em curso", "\xB7 Jeden Monat, in dem das Projekt l\xE4uft", "\xB7 Chaque mois o\xF9 le chantier est en cours"],
+          ["\xB7 Cantidad \xD7 precio", "\xB7 Quantity \xD7 price", "\xB7 Quantitat \xD7 preu", "\xB7 Quantidade \xD7 pre\xE7o", "\xB7 Menge \xD7 Preis", "\xB7 Quantit\xE9 \xD7 prix"],
+          ["Cantidad \xD7 precio", "Quantity \xD7 price", "Quantitat \xD7 preu", "Quantidade \xD7 pre\xE7o", "Menge \xD7 Preis", "Quantit\xE9 \xD7 prix"],
+          ["\xB7 Competencia", "\xB7 Competition", "\xB7 Compet\xE8ncia", "\xB7 Concorr\xEAncia", "\xB7 Konkurrenz", "\xB7 Concurrence"],
+          ["\xB7 concepto y qu\xE9 justifica cada uno", "\xB7 item and what justifies each one", "\xB7 concepte i qu\xE8 justifica cadascun", "\xB7 conceito e o que justifica cada um", "\xB7 Position und was jede einzelne begr\xFCndet", "\xB7 poste et ce que chacun justifie"],
+          ["\xB7 Cuantificaci\xF3n", "\xB7 Quantification", "\xB7 Quantificaci\xF3", "\xB7 Quantifica\xE7\xE3o", "\xB7 Quantifizierung", "\xB7 Quantification"],
+          ["\xB7 Defendibilidad", "\xB7 Defensibility", "\xB7 Defensabilitat", "\xB7 Defensibilidade", "\xB7 Verteidigbarkeit", "\xB7 D\xE9fendabilit\xE9"],
+          ["\xB7 Defensa", "\xB7 Defence", "\xB7 Defensa", "\xB7 Defesa", "\xB7 Verteidigung", "\xB7 D\xE9fense"],
+          ["\xB7 D\xEDas \xD7 coste diario", "\xB7 Days \xD7 daily cost", "\xB7 Dies \xD7 cost diari", "\xB7 Dias \xD7 custo di\xE1rio", "\xB7 Tage \xD7 Tageskosten", "\xB7 Jours \xD7 co\xFBt journalier"],
+          ["\xB7 el aviso al cliente", "\xB7 the notice to the client", "\xB7 l'av\xEDs al client", "\xB7 o aviso ao cliente", "\xB7 die Mitteilung an den Kunden", "\xB7 l'avis au client"],
+          ["\xB7 El mismo commissioning en NCN (Camp Nou", "\xB7 The same commissioning at NCN (Camp Nou", "\xB7 El mateix commissioning a NCN (Camp Nou", "\xB7 O mesmo commissioning na NCN (Camp Nou", "\xB7 Dasselbe Commissioning bei NCN (Camp Nou", "\xB7 Le m\xEAme commissioning chez NCN (Camp Nou"],
+          ["\xB7 Equipos en uso", "\xB7 Equipment in use", "\xB7 Equips en \xFAs", "\xB7 Equipamentos em uso", "\xB7 Ger\xE4te in Gebrauch", "\xB7 \xC9quipements en service"],
+          ["\xB7 Gen\xE9rico", "\xB7 Generic", "\xB7 Gen\xE8ric", "\xB7 Gen\xE9rico", "\xB7 Generisch", "\xB7 G\xE9n\xE9rique"],
+          ["\xB7 Hechos", "\xB7 Events", "\xB7 Fets", "\xB7 Factos", "\xB7 Ereignisse", "\xB7 Faits"],
+          ["\xB7 Importe directo", "\xB7 Direct amount", "\xB7 Import directe", "\xB7 Montante direto", "\xB7 Direkter Betrag", "\xB7 Montant direct"],
+          ["\xB7 Licencia Vidaire", "\xB7 Vidaire licence", "\xB7 Llic\xE8ncia Vidaire", "\xB7 Licen\xE7a Vidaire", "\xB7 Vidaire-Lizenz", "\xB7 Licence Vidaire"],
+          ["\xB7 Lo que se deja por no contar", "\xB7 What is lost by not counting", "\xB7 All\xF2 que es deixa per no comptar", "\xB7 O que se perde por n\xE3o contar", "\xB7 Was verloren geht, weil nicht erfasst wird", "\xB7 Ce qu'on perd faute de comptage"],
+          ["\xB7 Los cuatro ejes", "\xB7 The four axes", "\xB7 Els quatre eixos", "\xB7 Os quatro eixos", "\xB7 Die vier Achsen", "\xB7 Les quatre axes"],
+          ["\xB7 Meses \xD7 coste mensual", "\xB7 Months \xD7 monthly cost", "\xB7 Mesos \xD7 cost mensual", "\xB7 Meses \xD7 custo mensal", "\xB7 Monate \xD7 Monatskosten", "\xB7 Mois \xD7 co\xFBt mensuel"],
+          ["\xB7 Minutos por equipo \xD7 equipos de la obra; al mes va su media (\xF7 meses que dura la obra", "\xB7 Minutes per unit \xD7 units on the project; the monthly figure is the average (\xF7 months the project lasts", "\xB7 Minuts per equip \xD7 equips de l'obra; al mes va la mitjana (\xF7 mesos que dura l'obra", "\xB7 Minutos por equipamento \xD7 equipamentos da obra; ao m\xEAs vai a m\xE9dia (\xF7 meses que dura a obra", "\xB7 Minuten pro Ger\xE4t \xD7 Ger\xE4te des Projekts; pro Monat der Durchschnitt (\xF7 Monate Projektdauer", "\xB7 Minutes par \xE9quipement \xD7 \xE9quipements du chantier ; par mois, la moyenne (\xF7 mois de dur\xE9e du chantier"],
+          ["\xB7 No depende de ninguna obra", "\xB7 Does not depend on any project", "\xB7 No dep\xE8n de cap obra", "\xB7 N\xE3o depende de nenhuma obra", "\xB7 Von keinem Projekt abh\xE4ngig", "\xB7 Ne d\xE9pend d'aucun chantier"],
+          ["\xB7 Organizar cada mes las actuaciones y las rutas", "\xB7 Organise the interventions and routes each month", "\xB7 Organitzar cada mes les actuacions i les rutes", "\xB7 Organizar todos os meses as interven\xE7\xF5es e os percursos", "\xB7 Jeden Monat die Eins\xE4tze und Routen organisieren", "\xB7 Organiser chaque mois les interventions et les tourn\xE9es"],
+          ["\xB7 Personas \xD7 horas \xD7 d\xEDas \xD7 \u20AC/h", "\xB7 People \xD7 hours \xD7 days \xD7 \u20AC/h", "\xB7 Persones \xD7 hores \xD7 dies \xD7 \u20AC/h", "\xB7 Pessoas \xD7 horas \xD7 dias \xD7 \u20AC/h", "\xB7 Personen \xD7 Stunden \xD7 Tage \xD7 \u20AC/h", "\xB7 Personnes \xD7 heures \xD7 jours \xD7 \u20AC/h"],
+          ["\xB7 Plazos", "\xB7 Deadlines", "\xB7 Terminis", "\xB7 Prazos", "\xB7 Fristen", "\xB7 D\xE9lais"],
+          ["\xB7 Por fase y rol", "\xB7 By phase and role", "\xB7 Per fase i rol", "\xB7 Por fase e fun\xE7\xE3o", "\xB7 Nach Phase und Rolle", "\xB7 Par phase et r\xF4le"],
+          ["\xB7 Presentaci\xF3n", "\xB7 Presentation", "\xB7 Presentaci\xF3", "\xB7 Apresenta\xE7\xE3o", "\xB7 Pr\xE4sentation", "\xB7 Pr\xE9sentation"],
+          ["\xB7 Pruebas", "\xB7 Evidence", "\xB7 Proves", "\xB7 Provas", "\xB7 Beweise", "\xB7 Preuves"],
+          ["\xB7 pruebas ligadas", "\xB7 linked evidence", "\xB7 proves lligades", "\xB7 provas associadas", "\xB7 verkn\xFCpfte Beweise", "\xB7 preuves li\xE9es"],
+          ["\xB7 Sin defendibilidad", "\xB7 No defensibility", "\xB7 Sense defensabilitat", "\xB7 Sem defensibilidade", "\xB7 Ohne Verteidigbarkeit", "\xB7 Sans d\xE9fendabilit\xE9"],
+          ["/obra", "/project", "/obra", "/obra", "/Projekt", "/chantier"],
+          ["% \xD7 producci\xF3n o venta", "% \xD7 production or sale price", "% \xD7 producci\xF3 o venda", "% \xD7 produ\xE7\xE3o ou venda", "% \xD7 Produktion oder Verkaufspreis", "% \xD7 production ou prix de vente"],
+          ["+ Causa", "+ Cause", "+ Causa", "+ Causa", "+ Ursache", "+ Cause"],
+          ["+ Cuadrilla", "+ Crew", "+ Quadrilla", "+ Equipa", "+ Kolonne", "+ \xC9quipe"],
+          ["+ Maquinaria o alquiler", "+ Machinery or hire", "+ Maquin\xE0ria o lloguer", "+ Maquinaria ou aluguer", "+ Maschinen oder Miete", "+ Machines ou location"],
+          ["+ Material o factura", "+ Material or invoice", "+ Material o factura", "+ Material ou fatura", "+ Material oder Rechnung", "+ Mat\xE9riel ou facture"],
+          ["+ Medio fijo", "+ Fixed resource", "+ Mitj\xE0 fix", "+ Meio fixo", "+ Festes Betriebsmittel", "+ Moyen fixe"],
+          ["\u20AC al a\xF1o", "\u20AC per year", "\u20AC a l'any", "\u20AC por ano", "\u20AC pro Jahr", "\u20AC par an"],
+          ["\u20AC/a\xF1o", "\u20AC/year", "\u20AC/any", "\u20AC/ano", "\u20AC/Jahr", "\u20AC/an"],
+          ["\u20AC/a\xF1o empresa", "\u20AC/year company", "\u20AC/any empresa", "\u20AC/ano empresa", "\u20AC/Jahr Unternehmen", "\u20AC/an entreprise"],
+          ["\u20AC/a\xF1o usuario", "\u20AC/year user", "\u20AC/any usuari", "\u20AC/ano utilizador", "\u20AC/Jahr Benutzer", "\u20AC/an utilisateur"],
+          ["\u20AC/d\xEDa", "\u20AC/day", "\u20AC/dia", "\u20AC/dia", "\u20AC/Tag", "\u20AC/jour"],
+          ["\u20AC/h encargado", "\u20AC/h foreman", "\u20AC/h encarregat", "\u20AC/h encarregado", "\u20AC/h Vorarbeiter", "\u20AC/h chef d'\xE9quipe"],
+          ["\u20AC/h jefe de obra", "\u20AC/h site manager", "\u20AC/h cap d'obra", "\u20AC/h diretor de obra", "\u20AC/h Bauleiter", "\u20AC/h chef de chantier"],
+          ["\u20AC/mes", "\u20AC/month", "\u20AC/mes", "\u20AC/m\xEAs", "\u20AC/Monat", "\u20AC/mois"],
+          ["\u20AC/mes del rol", "\u20AC/month for the role", "\u20AC/mes del rol", "\u20AC/m\xEAs da fun\xE7\xE3o", "\u20AC/Monat der Rolle", "\u20AC/mois du r\xF4le"],
+          ["A cargo de", "Responsible", "A c\xE0rrec de", "A cargo de", "Zust\xE4ndig", "Responsable"],
+          ["A confirmar por JC", "To be confirmed by JC", "Per confirmar per JC", "A confirmar por JC", "Von JC zu best\xE4tigen", "\xC0 confirmer par JC"],
+          ["Aceleraci\xF3n", "Acceleration", "Acceleraci\xF3", "Acelera\xE7\xE3o", "Beschleunigung", "Acc\xE9l\xE9ration"],
+          ["Acordada", "Agreed", "Acordada", "Acordada", "Vereinbart", "Convenue"],
+          ["actas", "minutes", "actes", "atas", "Protokolle", "proc\xE8s-verbaux"],
+          ["Adjunta la oferta o el correo que respalda el importe", "Attach the quotation or email that supports the amount", "Adjunta l'oferta o el correu que avala l'import", "Anexe a proposta ou o email que sustenta o montante", "Angebot oder E-Mail anh\xE4ngen, die den Betrag belegt", "Joignez l'offre ou le courriel qui justifie le montant"],
+          ["Adjuntar", "Attach", "Adjuntar", "Anexar", "Anh\xE4ngen", "Joindre"],
+          ["Adjuntar archivo", "Attach file", "Adjuntar fitxer", "Anexar ficheiro", "Datei anh\xE4ngen", "Joindre un fichier"],
+          ["Adjuntos", "Attachments", "Adjunts", "Anexos", "Anh\xE4nge", "Pi\xE8ces jointes"],
+          ["Agenda de los t\xE9cnicos con su carga, Gantt del preventivo e incidencias de cada equipo en una vista. Antes, el calendario y el historial se montaban a mano", "Technicians' schedule with their workload, preventive maintenance Gantt and incidents for each unit in one view. Before, the calendar and history were put together by hand", "Agenda dels t\xE8cnics amb la seva c\xE0rrega, Gantt del preventiu i incid\xE8ncies de cada equip en una vista. Abans, el calendari i l'historial es muntaven a m\xE0", "Agenda dos t\xE9cnicos com a sua carga, Gantt do preventivo e incid\xEAncias de cada equipamento numa s\xF3 vista. Antes, o calend\xE1rio e o hist\xF3rico eram montados \xE0 m\xE3o", "Agenda der Techniker mit ihrer Auslastung, Gantt der vorbeugenden Wartung und St\xF6rungen jedes Ger\xE4ts in einer Ansicht. Fr\xFCher wurden Kalender und Verlauf von Hand erstellt", "Agenda des techniciens avec leur charge, Gantt du pr\xE9ventif et incidents de chaque \xE9quipement en une seule vue. Avant, le calendrier et l'historique se montaient \xE0 la main"],
+          ["Ahorra", "Saves", "Estalvia", "Poupa", "Spart", "\xC9conomise"],
+          ["Ahorro en esta obra", "Saving on this project", "Estalvi en aquesta obra", "Poupan\xE7a nesta obra", "Einsparung bei diesem Projekt", "\xC9conomie sur ce chantier"],
+          ["Al a\xF1o \xB7 mil \u20AC", "Per year \xB7 \u20AC thousand", "A l'any \xB7 mil \u20AC", "Por ano \xB7 mil \u20AC", "Pro Jahr \xB7 Tsd. \u20AC", "Par an \xB7 k\u20AC"],
+          ["al mes", "per month", "al mes", "por m\xEAs", "pro Monat", "par mois"],
+          ["Al mes", "Per month", "Al mes", "Por m\xEAs", "Pro Monat", "Par mois"],
+          ["albaranes", "delivery notes", "albarans", "guias de remessa", "Lieferscheine", "bons de livraison"],
+          ["Albaranes registrados", "Delivery notes logged", "Albarans registrats", "Guias de remessa registadas", "Erfasste Lieferscheine", "Bons de livraison enregistr\xE9s"],
+          ["Alquiler: unidades \xD7 d\xEDas \xD7 \u20AC/d\xEDa", "Hire: units \xD7 days \xD7 \u20AC/day", "Lloguer: unitats \xD7 dies \xD7 \u20AC/dia", "Aluguer: unidades \xD7 dias \xD7 \u20AC/dia", "Miete: Einheiten \xD7 Tage \xD7 \u20AC/Tag", "Location : unit\xE9s \xD7 jours \xD7 \u20AC/jour"],
+          ["Ancho del panel", "Panel width", "Amplada del panell", "Largura do painel", "Panelbreite", "Largeur du panneau"],
+          ["Andamios y plataformas", "Scaffolding and platforms", "Bastides i plataformes", "Andaimes e plataformas", "Ger\xFCste und Plattformen", "\xC9chafaudages et plateformes"],
+          ["Antecedentes", "Background", "Antecedents", "Antecedentes", "Vorgeschichte", "Ant\xE9c\xE9dents"],
+          ["Antecedentes (ingl\xE9s", "Background (English", "Antecedents (angl\xE8s", "Antecedentes (ingl\xEAs", "Vorgeschichte (Englisch", "Ant\xE9c\xE9dents (anglais"],
+          ["A\xF1adir hito", "Add milestone", "Afegir fita", "Adicionar marco", "Meilenstein hinzuf\xFCgen", "Ajouter un jalon"],
+          ["A\xF1adir medio fijo", "Add fixed resource", "Afegir mitj\xE0 fix", "Adicionar meio fixo", "Festes Betriebsmittel hinzuf\xFCgen", "Ajouter un moyen fixe"],
+          ["A\xF1adir plazo", "Add deadline", "Afegir termini", "Adicionar prazo", "Frist hinzuf\xFCgen", "Ajouter un d\xE9lai"],
+          ["A\xF1adir preaviso", "Add advance notice", "Afegir preav\xEDs", "Adicionar pr\xE9-aviso", "Vorank\xFCndigung hinzuf\xFCgen", "Ajouter un pr\xE9avis"],
+          ["Apartado", "Section", "Apartat", "Sec\xE7\xE3o", "Abschnitt", "Section"],
+          ["apartados con hechos", "sections with events", "apartats amb fets", "sec\xE7\xF5es com factos", "Abschnitte mit Ereignissen", "sections avec faits"],
+          ["Aplicar plantilla del contrato", "Apply contract template", "Aplicar plantilla del contracte", "Aplicar modelo do contrato", "Vertragsvorlage anwenden", "Appliquer le mod\xE8le du contrat"],
+          ["Arbitraje", "Arbitration", "Arbitratge", "Arbitragem", "Schiedsverfahren", "Arbitrage"],
+          ["archivos", "files", "fitxers", "ficheiros", "Dateien", "fichiers"],
+          ["Archivos del SharePoint le\xEDdos y clasificados", "SharePoint files read and classified", "Fitxers del SharePoint llegits i classificats", "Ficheiros do SharePoint lidos e classificados", "SharePoint-Dateien gelesen und klassifiziert", "Fichiers SharePoint lus et class\xE9s"],
+          ["Argumentos", "Arguments", "Arguments", "Argumentos", "Argumente", "Arguments"],
+          ["Arrastra para cambiar el ancho \xB7 doble clic: el de siempre", "Drag to change the width \xB7 double-click: the usual one", "Arrossega per canviar l'amplada \xB7 doble clic: la de sempre", "Arraste para alterar a largura \xB7 duplo clique: a habitual", "Ziehen, um die Breite zu \xE4ndern \xB7 Doppelklick: die gewohnte", "Faites glisser pour changer la largeur \xB7 double-clic : la largeur habituelle"],
+          ["Asunto", "Subject", "Assumpte", "Assunto", "Betreff", "Objet"],
+          ["auto \xB7 Aceleraci\xF3n", "auto \xB7 Acceleration", "auto \xB7 Acceleraci\xF3", "auto \xB7 Acelera\xE7\xE3o", "auto \xB7 Beschleunigung", "auto \xB7 Acc\xE9l\xE9ration"],
+          ["auto \xB7 Baja productividad", "auto \xB7 Low productivity", "auto \xB7 Baixa productivitat", "auto \xB7 Baixa produtividade", "auto \xB7 Geringe Produktivit\xE4t", "auto \xB7 Faible productivit\xE9"],
+          ["auto \xB7 Cambios y retrabajos del cliente", "auto \xB7 Client changes and rework", "auto \xB7 Canvis i retreballs del client", "auto \xB7 Altera\xE7\xF5es e retrabalhos do cliente", "auto \xB7 \xC4nderungen und Nacharbeiten des Kunden", "auto \xB7 Modifications et reprises du client"],
+          ["auto \xB7 Retrasos del cliente", "auto \xB7 Client delays", "auto \xB7 Retards del client", "auto \xB7 Atrasos do cliente", "auto \xB7 Verz\xF6gerungen des Kunden", "auto \xB7 Retards du client"],
+          ["auto \xB7 Staff y prolongaci\xF3n", "auto \xB7 Staff and prolongation", "auto \xB7 Staff i perllongaci\xF3", "auto \xB7 Staff e prolongamento", "auto \xB7 Personal und Verl\xE4ngerung", "auto \xB7 Personnel et prolongation"],
+          ["autom\xE1tica", "automatic", "autom\xE0tica", "autom\xE1tica", "automatisch", "automatique"],
+          ["avance", "progress", "avan\xE7", "avan\xE7o", "Fortschritt", "avancement"],
+          ["Avance de obra medido sobre plano", "Works progress measured on the drawing", "Avan\xE7 d'obra mesurat sobre pl\xE0nol", "Avan\xE7o de obra medido sobre planta", "Baufortschritt, auf dem Plan gemessen", "Avancement des travaux mesur\xE9 sur plan"],
+          ["Avance y plazos de todas sus obras en un panel, sin pedir a cada jefe de obra el informe ni el Gantt al d\xEDa", "Progress and deadlines for all its projects in one panel, without asking each site manager for the report or an up-to-date Gantt", "Avan\xE7 i terminis de totes les seves obres en un panell, sense demanar a cada cap d'obra l'informe ni el Gantt al dia", "Avan\xE7o e prazos de todas as suas obras num painel, sem pedir a cada diretor de obra o relat\xF3rio nem o Gantt atualizado", "Fortschritt und Fristen aller Projekte in einem Panel, ohne von jedem Bauleiter den Bericht oder das aktuelle Gantt anzufordern", "Avancement et d\xE9lais de tous ses chantiers dans un seul panneau, sans demander \xE0 chaque chef de chantier le rapport ni le Gantt \xE0 jour"],
+          ["Aviso al cliente", "Notice to client", "Av\xEDs al client", "Aviso ao cliente", "Mitteilung an den Kunden", "Avis au client"],
+          ["Avisos", "Alerts", "Avisos", "Avisos", "Hinweise", "Alertes"],
+          ["Avisos del tajo", "Site alerts", "Avisos del tall", "Avisos do local de trabalho", "Baustellenhinweise", "Alertes de chantier"],
+          ["Baja productividad", "Low productivity", "Baixa productivitat", "Baixa produtividade", "Geringe Produktivit\xE4t", "Faible productivit\xE9"],
+          ["Base", "Base", "Base", "Base", "Basis", "Base"],
+          ["Base: presupuesto, proyectos, obras y personal", "Base: budget, designs, projects and staff", "Base: pressupost, projectes, obres i personal", "Base: or\xE7amento, projetos, obras e pessoal", "Basis: Budget, Projekte, Baustellen und Personal", "Base : budget, projets, chantiers et personnel"],
+          ["Bastante defendible", "Fairly defensible", "Bastant defensable", "Bastante defens\xE1vel", "Ziemlich vertretbar", "Assez d\xE9fendable"],
+          ["Beneficio %", "Profit %", "Benefici %", "Lucro %", "Gewinn %", "B\xE9n\xE9fice %"],
+          ["Beneficio o recargo (%", "Profit or surcharge (%", "Benefici o rec\xE0rrec (%", "Lucro ou acr\xE9scimo (%", "Gewinn oder Zuschlag (%", "B\xE9n\xE9fice ou majoration (%"],
+          ["bocas", "outlets", "boques", "bocas", "Ausl\xE4sse", "bouches"],
+          ["Bocas situadas en los planos de difusores", "Outlets placed on the diffuser drawings", "Boques situades als pl\xE0nols de difusors", "Bocas colocadas nas plantas de difusores", "Ausl\xE4sse auf den Diffusorpl\xE4nen platziert", "Bouches plac\xE9es sur les plans de diffuseurs"],
+          ["Borrador", "Draft", "Esborrany", "Rascunho", "Entwurf", "Brouillon"],
+          ["Bruto al a\xF1o", "Gross per year", "Brut a l'any", "Bruto por ano", "Brutto pro Jahr", "Brut par an"],
+          ["Buscar en mi correo", "Search my email", "Cercar al meu correu", "Pesquisar no meu email", "In meiner E-Mail suchen", "Rechercher dans ma messagerie"],
+          ["Buscar prueba existente", "Find existing evidence", "Cercar prova existent", "Procurar prova existente", "Vorhandenen Beweis suchen", "Chercher une preuve existante"],
+          ["Cada causa con sus d\xEDas y su importe propuesto (la suma de las l\xEDneas que le asignes); modifica las l\xEDneas y cambia solo", "Each cause with its days and proposed amount (the sum of the lines you assign to it); change the lines and it updates by itself", "Cada causa amb els seus dies i el seu import proposat (la suma de les l\xEDnies que li assignis); modifica les l\xEDnies i canvia sol", "Cada causa com os seus dias e o seu montante proposto (a soma das linhas que lhe atribuir); altere as linhas e muda sozinho", "Jede Ursache mit ihren Tagen und ihrem vorgeschlagenen Betrag (die Summe der zugewiesenen Zeilen); Zeilen \xE4ndern, und er passt sich von selbst an", "Chaque cause avec ses jours et son montant propos\xE9 (la somme des lignes que vous lui attribuez) ; modifiez les lignes et il change tout seul"],
+          ["Cada l\xEDnea con su coste, su venta o los dos; se reclama la venta si est\xE1, si no el coste", "Each line with its cost, its sale price or both; the sale price is claimed if present, otherwise the cost", "Cada l\xEDnia amb el seu cost, la seva venda o els dos; es reclama la venda si hi \xE9s, si no el cost", "Cada linha com o seu custo, a sua venda ou ambos; reclama-se a venda se existir, sen\xE3o o custo", "Jede Zeile mit ihren Kosten, ihrem Verkaufspreis oder beidem; eingefordert wird der Verkaufspreis, falls vorhanden, sonst die Kosten", "Chaque ligne avec son co\xFBt, son prix de vente ou les deux ; on r\xE9clame le prix de vente s'il existe, sinon le co\xFBt"],
+          ["Cada tema lleva su etiqueta, lo nuestro que se sostiene (con sus pruebas) y lo que el cliente alegar\xE1. Las valoraciones del programa entran como", "Each topic carries its label, what is ours that holds up (with its evidence) and what the client will argue. The programme's valuations come in as", "Cada tema porta la seva etiqueta, all\xF2 nostre que se sost\xE9 (amb les seves proves) i all\xF2 que el client al\xB7legar\xE0. Les valoracions del programa entren com a", "Cada tema leva a sua etiqueta, o que \xE9 nosso e se sustenta (com as suas provas) e o que o cliente alegar\xE1. As avalia\xE7\xF5es do programa entram como", "Jedes Thema tr\xE4gt seine Bezeichnung, was von uns Bestand hat (mit Beweisen) und was der Kunde vorbringen wird. Die Bewertungen des Programms kommen als", "Chaque th\xE8me porte son \xE9tiquette, ce qui est \xE0 nous et tient (avec ses preuves) et ce que le client all\xE9guera. Les \xE9valuations du programme entrent comme"],
+          ["CAE / PRL", "CAE / OHS", "CAE / PRL", "CAE / PRL", "CAE / Arbeitssicherheit", "CAE / PRL"],
+          ["calidad", "quality", "qualitat", "qualidade", "Qualit\xE4t", "qualit\xE9"],
+          ["Calidad e incidencias en obra", "Quality and incidents on site", "Qualitat i incid\xE8ncies a l'obra", "Qualidade e incid\xEAncias em obra", "Qualit\xE4t und St\xF6rungen auf der Baustelle", "Qualit\xE9 et incidents sur le chantier"],
+          ["Calidad y QHSE", "Quality and QHSE", "Qualitat i QHSE", "Qualidade e QHSE", "Qualit\xE4t und QHSE", "Qualit\xE9 et QHSE"],
+          ["c\xE1mbialo para tu equipo", "change it for your team", "canvia'l per al teu equip", "altere-o para a sua equipa", "\xE4ndere es f\xFCr dein Team", "modifiez-le pour votre \xE9quipe"],
+          ["Cambios de dise\xF1o sin aviso", "Design changes without notice", "Canvis de disseny sense av\xEDs", "Altera\xE7\xF5es de projeto sem aviso", "Konstruktions\xE4nderungen ohne Vorank\xFCndigung", "Modifications de conception sans pr\xE9avis"],
+          ["Cambios y retrabajos del cliente", "Client changes and rework", "Canvis i retreballs del client", "Altera\xE7\xF5es e retrabalhos do cliente", "\xC4nderungen und Nacharbeiten des Kunden", "Modifications et reprises du client"],
+          ["Cantidad que pasa a otra l\xEDnea (\u20AC", "Amount moved to another line (\u20AC", "Quantitat que passa a una altra l\xEDnia (\u20AC", "Quantidade que passa para outra linha (\u20AC", "Betrag, der in eine andere Zeile \xFCbergeht (\u20AC", "Montant report\xE9 sur une autre ligne (\u20AC"],
+          ["Cantidad que pasa a otra l\xEDnea (\u20AC/d\xEDa", "Amount moved to another line (\u20AC/day", "Quantitat que passa a una altra l\xEDnia (\u20AC/dia", "Quantidade que passa para outra linha (\u20AC/dia", "Betrag, der in eine andere Zeile \xFCbergeht (\u20AC/Tag", "Montant report\xE9 sur une autre ligne (\u20AC/jour"],
+          ["C\xE1rgalos del commissioning o a\xF1\xE1delos a mano", "Load them from the commissioning or add them by hand", "Carrega'ls del commissioning o afegeix-los a m\xE0", "Carregue-os do commissioning ou adicione-os \xE0 m\xE3o", "Lade sie aus dem Commissioning oder f\xFCge sie von Hand hinzu", "Chargez-les depuis le commissioning ou ajoutez-les \xE0 la main"],
+          ["Cargar correos", "Load emails", "Carregar correus", "Carregar emails", "E-Mails laden", "Charger les courriels"],
+          ["Cargar propuesta del claim", "Load claim proposal", "Carregar proposta del claim", "Carregar proposta do claim", "Claim-Vorschlag laden", "Charger la proposition du claim"],
+          ["Cargar sistemas del commissioning", "Load commissioning systems", "Carregar sistemes del commissioning", "Carregar sistemas do commissioning", "Commissioning-Systeme laden", "Charger les syst\xE8mes du commissioning"],
+          ["Casetas y medios auxiliares", "Site cabins and auxiliary resources", "Casetes i mitjans auxiliars", "Estaleiros e meios auxiliares", "Baub\xFCros und Hilfsmittel", "Baraques et moyens auxiliaires"],
+          ["Categor\xEDa de la prueba", "Evidence category", "Categoria de la prova", "Categoria da prova", "Beweiskategorie", "Cat\xE9gorie de la preuve"],
+          ["Categor\xEDa del hecho", "Event category", "Categoria del fet", "Categoria do facto", "Ereigniskategorie", "Cat\xE9gorie du fait"],
+          ["Cerrada", "Closed", "Tancada", "Fechada", "Geschlossen", "Cl\xF4tur\xE9e"],
+          ["Cerrar el correo", "Close the email", "Tancar el correu", "Fechar o email", "E-Mail schliessen", "Fermer le courriel"],
+          ["Certeza", "Certainty", "Certesa", "Certeza", "Gewissheit", "Certitude"],
+          ["certificaciones", "certifications", "certificacions", "certifica\xE7\xF5es", "Abrechnungen", "certifications"],
+          ["Certificaciones a cliente", "Certifications to client", "Certificacions a client", "Certifica\xE7\xF5es ao cliente", "Abrechnungen an den Kunden", "Certifications au client"],
+          ["Certificaciones a cliente e industriales", "Certifications to client and subcontractors", "Certificacions a client i industrials", "Certifica\xE7\xF5es ao cliente e a industriais", "Abrechnungen an Kunden und Handwerker", "Certifications au client et aux industriels"],
+          ["Certificaciones de industriales", "Subcontractor certifications", "Certificacions d'industrials", "Certifica\xE7\xF5es de industriais", "Abrechnungen der Handwerker", "Certifications des industriels"],
+          ["Certificaciones y cuadro econ\xF3mico de cada obra revisados en la app, sin pedir el Excel ni cuadrarlo a mano", "Certifications and cost summary of each project reviewed in the app, without asking for the Excel or reconciling it by hand", "Certificacions i quadre econ\xF2mic de cada obra revisats a l'app, sense demanar l'Excel ni quadrar-lo a m\xE0", "Certifica\xE7\xF5es e quadro econ\xF3mico de cada obra revistos na app, sem pedir o Excel nem acert\xE1-lo \xE0 m\xE3o", "Abrechnungen und Kosten\xFCbersicht jedes Projekts in der App gepr\xFCft, ohne das Excel anzufordern oder von Hand abzugleichen", "Certifications et tableau \xE9conomique de chaque chantier v\xE9rifi\xE9s dans l'appli, sans demander l'Excel ni le rapprocher \xE0 la main"],
+          ["certificados", "certificates", "certificats", "certificados", "Zertifikate", "certificats"],
+          ["Certificados de instalador rellenados solos", "Installer certificates filled in automatically", "Certificats d'instal\xB7lador emplenats sols", "Certificados de instalador preenchidos sozinhos", "Installateurzertifikate automatisch ausgef\xFCllt", "Certificats d'installateur remplis automatiquement"],
+          ["Claim: anexos numerados en el PDF", "Claim: numbered annexes in the PDF", "Claim: annexos numerats al PDF", "Claim: anexos numerados no PDF", "Claim: nummerierte Anh\xE4nge im PDF", "Claim : annexes num\xE9rot\xE9es dans le PDF"],
+          ["Claim: apartados con su relato, su subtotal y su hoja de Excel", "Claim: sections with their narrative, subtotal and Excel sheet", "Claim: apartats amb el seu relat, el seu subtotal i el seu full d'Excel", "Claim: sec\xE7\xF5es com a sua narrativa, o seu subtotal e a sua folha de Excel", "Claim: Abschnitte mit ihrer Darstellung, ihrem Zwischentotal und ihrem Excel-Blatt", "Claim : sections avec leur r\xE9cit, leur sous-total et leur feuille Excel"],
+          ["Claim: cl\xE1usulas del contrato citadas en cada hecho", "Claim: contract clauses cited in each event", "Claim: cl\xE0usules del contracte citades en cada fet", "Claim: cl\xE1usulas do contrato citadas em cada facto", "Claim: Vertragsklauseln, in jedem Ereignis zitiert", "Claim : clauses du contrat cit\xE9es dans chaque fait"],
+          ["Claim: correos le\xEDdos, clasificados y guardados como prueba", "Claim: emails read, classified and saved as evidence", "Claim: correus llegits, classificats i desats com a prova", "Claim: emails lidos, classificados e guardados como prova", "Claim: E-Mails gelesen, klassifiziert und als Beweis gespeichert", "Claim : courriels lus, class\xE9s et conserv\xE9s comme preuve"],
+          ["Claim: documentos y actas guardados como prueba", "Claim: documents and minutes saved as evidence", "Claim: documents i actes desats com a prova", "Claim: documentos e atas guardados como prova", "Claim: Dokumente und Protokolle als Beweis gespeichert", "Claim : documents et proc\xE8s-verbaux conserv\xE9s comme preuve"],
+          ["Claim: el documento (PDF con \xEDndice y Excel de cuantificaci\xF3n", "Claim: the document (PDF with index and quantification Excel", "Claim: el document (PDF amb \xEDndex i Excel de quantificaci\xF3", "Claim: o documento (PDF com \xEDndice e Excel de quantifica\xE7\xE3o", "Claim: das Dokument (PDF mit Index und Excel zur Quantifizierung", "Claim : le document (PDF avec index et Excel de quantification"],
+          ["Claim: equipos en uso por el cliente y devoluci\xF3n de retenciones", "Claim: equipment in use by the client and release of retentions", "Claim: equips en \xFAs pel client i devoluci\xF3 de retencions", "Claim: equipamentos em uso pelo cliente e devolu\xE7\xE3o de reten\xE7\xF5es", "Claim: vom Kunden genutzte Ger\xE4te und R\xFCckgabe von Einbehalten", "Claim : \xE9quipements utilis\xE9s par le client et restitution des retenues"],
+          ["Claim: fotos del WhatsApp casadas con su hecho", "Claim: WhatsApp photos matched to their event", "Claim: fotos del WhatsApp casades amb el seu fet", "Claim: fotos do WhatsApp associadas ao seu facto", "Claim: WhatsApp-Fotos dem jeweiligen Ereignis zugeordnet", "Claim : photos WhatsApp rattach\xE9es \xE0 leur fait"],
+          ["Claim: Gantt de plazos (fecha exigida frente a la real y d\xEDas de retraso", "Claim: deadlines Gantt (required date against actual and days of delay", "Claim: Gantt de terminis (data exigida davant de la real i dies de retard", "Claim: Gantt de prazos (data exigida face \xE0 real e dias de atraso", "Claim: Gantt der Fristen (geforderter gegen\xFCber tats\xE4chlichem Termin und Verzugstage", "Claim : Gantt des d\xE9lais (date exig\xE9e face \xE0 la date r\xE9elle et jours de retard"],
+          ["Claim: hechos clasificados por categor\xEDa con su recuento", "Claim: events classified by category with their count", "Claim: fets classificats per categoria amb el seu recompte", "Claim: factos classificados por categoria com a sua contagem", "Claim: Ereignisse nach Kategorie klassifiziert mit ihrer Anzahl", "Claim : faits class\xE9s par cat\xE9gorie avec leur d\xE9compte"],
+          ["Claim: hechos sacados de correos, WhatsApp y partes", "Claim: events extracted from emails, WhatsApp and daily reports", "Claim: fets extrets de correus, WhatsApp i parts", "Claim: factos extra\xEDdos de emails, WhatsApp e partes", "Claim: aus E-Mails, WhatsApp und Tagesberichten gezogene Ereignisse", "Claim : faits tir\xE9s des courriels, de WhatsApp et des rapports"],
+          ["Claim: importes calculados con los m\xE9todos del claim", "Claim: amounts calculated with the claim methods", "Claim: imports calculats amb els m\xE8todes del claim", "Claim: montantes calculados com os m\xE9todos do claim", "Claim: mit den Claim-Methoden berechnete Betr\xE4ge", "Claim : montants calcul\xE9s avec les m\xE9thodes du claim"],
+          ["Claim: IPC, pagos, retenciones e intereses por retraso", "Claim: CPI, payments, retentions and late-payment interest", "Claim: IPC, pagaments, retencions i interessos per retard", "Claim: IPC, pagamentos, reten\xE7\xF5es e juros de mora", "Claim: Preisindex, Zahlungen, Einbehalte und Verzugszinsen", "Claim : IPC, paiements, retenues et int\xE9r\xEAts de retard"],
+          ["Claim: material conciliado (pedido \u2212 certificado \u2212 almac\xE9n) para los robos", "Claim: reconciled material (ordered \u2212 certified \u2212 stock) for thefts", "Claim: material conciliat (comanda \u2212 certificat \u2212 magatzem) per als robatoris", "Claim: material conciliado (encomenda \u2212 certificado \u2212 armaz\xE9m) para os roubos", "Claim: abgestimmtes Material (bestellt \u2212 abgerechnet \u2212 Lager) f\xFCr die Diebst\xE4hle", "Claim : mat\xE9riel rapproch\xE9 (commande \u2212 certifi\xE9 \u2212 magasin) pour les vols"],
+          ["Claim: pruebas enlazadas a cada hecho", "Claim: evidence linked to each event", "Claim: proves enlla\xE7ades a cada fet", "Claim: provas ligadas a cada facto", "Claim: jedem Ereignis zugeordnete Beweise", "Claim : preuves li\xE9es \xE0 chaque fait"],
+          ["Cliente", "Client", "Client", "Cliente", "Kunde", "Client"],
+          ["Commissioning + Mantenimiento", "Commissioning + Maintenance", "Commissioning + Manteniment", "Commissioning + Manuten\xE7\xE3o", "Commissioning + Wartung", "Commissioning + Maintenance"],
+          ["Commissioning, balanceo y estanqueidad", "Commissioning, balancing and leak testing", "Commissioning, balanceig i estanquitat", "Commissioning, equilibragem e estanquidade", "Commissioning, Abgleich und Dichtheit", "Commissioning, \xE9quilibrage et \xE9tanch\xE9it\xE9"],
+          ["Comparativo, estad\xEDsticas y cierre de la oferta sin rehacer hojas", "Comparison, statistics and bid close-out without redoing spreadsheets", "Comparatiu, estad\xEDstiques i tancament de l'oferta sense refer fulls", "Comparativo, estat\xEDsticas e fecho da proposta sem refazer folhas", "Vergleich, Statistiken und Abschluss des Angebots ohne Tabellen neu zu erstellen", "Comparatif, statistiques et cl\xF4ture de l'offre sans refaire de feuilles"],
+          ["Competencia", "Competition", "Compet\xE8ncia", "Concorr\xEAncia", "Konkurrenz", "Concurrence"],
+          ["Completar", "Complete", "Completar", "Completar", "Vervollst\xE4ndigen", "Compl\xE9ter"],
+          ["Compras de la oficina", "Office purchasing", "Compres de l'oficina", "Compras do escrit\xF3rio", "Eink\xE4ufe des B\xFCros", "Achats du bureau"],
+          ["Compras de obra", "Site purchasing", "Compres d'obra", "Compras de obra", "Baustelleneink\xE4ufe", "Achats de chantier"],
+          ["Con esta plantilla", "With this template", "Amb aquesta plantilla", "Com este modelo", "Mit dieser Vorlage", "Avec ce mod\xE8le"],
+          ["Con ficha de PM", "With PM sheet", "Amb fitxa de PM", "Com ficha de PM", "Mit PM-Blatt", "Avec fiche PM"],
+          ["con prueba", "with evidence", "amb prova", "com prova", "mit Beweis", "avec preuve"],
+          ["Concepto", "Item", "Concepte", "Conceito", "Position", "Poste"],
+          ["Concepto (opcional", "Item (optional", "Concepte (opcional", "Conceito (opcional", "Position (optional", "Poste (facultatif"],
+          ["Concepto del c\xE1lculo", "Calculation item", "Concepte del c\xE0lcul", "Conceito do c\xE1lculo", "Position der Berechnung", "Poste du calcul"],
+          ["Conflicto enlazado", "Linked conflict", "Conflicte enlla\xE7at", "Conflito associado", "Verkn\xFCpfter Konflikt", "Conflit li\xE9"],
+          ["Conflictos", "Conflicts", "Conflictes", "Conflitos", "Konflikte", "Conflits"],
+          ["Contado en la base al abrir. Los minutos son lo que costar\xEDa a mano: c\xE1mbialos y se guarda", "Counted in the database on opening. The minutes are what it would cost by hand: change them and it is saved", "Comptat a la base en obrir. Els minuts s\xF3n el que costaria a m\xE0: canvia'ls i es desa", "Contado na base ao abrir. Os minutos s\xE3o o que custaria \xE0 m\xE3o: altere-os e fica guardado", "Beim \xD6ffnen in der Datenbank gez\xE4hlt. Die Minuten sind der Aufwand von Hand: \xE4ndere sie, und sie werden gespeichert", "Compt\xE9 dans la base \xE0 l'ouverture. Les minutes sont ce que cela co\xFBterait \xE0 la main : modifiez-les et c'est enregistr\xE9"],
+          ["Contractual", "Contractual", "Contractual", "Contratual", "Vertraglich", "Contractuel"],
+          ["Contraparte", "Counterparty", "Contrapart", "Contraparte", "Gegenpartei", "Contrepartie"],
+          ["Contrato propio y normativa: las obligaciones legales y sus fechas se vigilan solas. Antes, se revisaban a mano contra el contrato y el BOE", "Own contract and regulations: legal obligations and their dates are monitored automatically. Before, they were checked by hand against the contract and the BOE", "Contracte propi i normativa: les obligacions legals i les seves dates es vigilen soles. Abans, es revisaven a m\xE0 contra el contracte i el BOE", "Contrato pr\xF3prio e normativa: as obriga\xE7\xF5es legais e as suas datas s\xE3o vigiadas sozinhas. Antes, eram revistas \xE0 m\xE3o face ao contrato e ao BOE", "Eigener Vertrag und Vorschriften: Die gesetzlichen Pflichten und ihre Termine werden automatisch \xFCberwacht. Fr\xFCher wurden sie von Hand gegen den Vertrag und das BOE gepr\xFCft", "Contrat propre et r\xE9glementation : les obligations l\xE9gales et leurs dates sont surveill\xE9es automatiquement. Avant, elles se v\xE9rifiaient \xE0 la main par rapport au contrat et au BOE"],
+          ["Control de costes, desv\xEDo y plan de compras", "Cost control, deviation and purchasing plan", "Control de costos, desviaci\xF3 i pla de compres", "Controlo de custos, desvio e plano de compras", "Kostenkontrolle, Abweichung und Einkaufsplan", "Contr\xF4le des co\xFBts, \xE9cart et plan d'achats"],
+          ["Coordinaci\xF3n de actividades", "Activity coordination", "Coordinaci\xF3 d'activitats", "Coordena\xE7\xE3o de atividades", "Koordination der T\xE4tigkeiten", "Coordination des activit\xE9s"],
+          ["Coordinaci\xF3n de actividades empresariales (CAE/PRL", "Coordination of business activities (CAE/OHS", "Coordinaci\xF3 d'activitats empresarials (CAE/PRL", "Coordena\xE7\xE3o de atividades empresariais (CAE/SST", "Koordination der Unternehmenst\xE4tigkeiten (CAE/Arbeitssicherheit", "Coordination des activit\xE9s d'entreprises (CAE/PRL"],
+          ["Copiar anexo (Excel", "Copy annex (Excel", "Copiar annex (Excel", "Copiar anexo (Excel", "Anhang kopieren (Excel", "Copier l'annexe (Excel"],
+          ["correos", "emails", "correus", "emails", "E-Mails", "courriels"],
+          ["Correos .msg/.eml y chats de WhatsApp (.txt o .zip) con cita literal, autor y fecha", "Emails (.msg/.eml) and WhatsApp chats (.txt or .zip) with verbatim quote, author and date", "Correus .msg/.eml i xats de WhatsApp (.txt o .zip) amb cita literal, autor i data", "Emails .msg/.eml e chats de WhatsApp (.txt ou .zip) com cita\xE7\xE3o literal, autor e data", "E-Mails (.msg/.eml) und WhatsApp-Chats (.txt oder .zip) mit w\xF6rtlichem Zitat, Autor und Datum", "Courriels .msg/.eml et chats WhatsApp (.txt ou .zip) avec citation litt\xE9rale, auteur et date"],
+          ["Correos y notificaci\xF3n", "Emails and notification", "Correus i notificaci\xF3", "Emails e notifica\xE7\xE3o", "E-Mails und Benachrichtigung", "Courriels et notification"],
+          ["Correos y WhatsApp", "Emails and WhatsApp", "Correus i WhatsApp", "Emails e WhatsApp", "E-Mails und WhatsApp", "Courriels et WhatsApp"],
+          ["coste", "cost", "cost", "custo", "Kosten", "co\xFBt"],
+          ["Coste", "Cost", "Cost", "Custo", "Kosten", "Co\xFBt"],
+          ["Coste (\u20AC", "Cost (\u20AC", "Cost (\u20AC", "Custo (\u20AC", "Kosten (\u20AC", "Co\xFBt (\u20AC"],
+          ["Coste de una hora de encargado", "Cost of one foreman hour", "Cost d'una hora d'encarregat", "Custo de uma hora de encarregado", "Kosten einer Vorarbeiterstunde", "Co\xFBt d'une heure de chef d'\xE9quipe"],
+          ["Coste de una hora de jefe de obra", "Cost of one site manager hour", "Cost d'una hora de cap d'obra", "Custo de uma hora de diretor de obra", "Kosten einer Bauleiterstunde", "Co\xFBt d'une heure de chef de chantier"],
+          ["Coste diario (\u20AC", "Daily cost (\u20AC", "Cost diari (\u20AC", "Custo di\xE1rio (\u20AC", "Tageskosten (\u20AC", "Co\xFBt journalier (\u20AC"],
+          ["Coste directo", "Direct cost", "Cost directe", "Custo direto", "Direkte Kosten", "Co\xFBt direct"],
+          ["Coste directo + coste indirecto", "Direct cost + indirect cost", "Cost directe + cost indirecte", "Custo direto + custo indireto", "Direkte Kosten + indirekte Kosten", "Co\xFBt direct + co\xFBt indirect"],
+          ["Coste indirecto", "Indirect cost", "Cost indirecte", "Custo indireto", "Indirekte Kosten", "Co\xFBt indirect"],
+          ["Coste mensual (\u20AC", "Monthly cost (\u20AC", "Cost mensual (\u20AC", "Custo mensal (\u20AC", "Monatskosten (\u20AC", "Co\xFBt mensuel (\u20AC"],
+          ["Costes indirectos y staff por alargamiento", "Indirect costs and staff due to extension", "Costos indirectes i staff per allargament", "Custos indiretos e staff por prolongamento", "Indirekte Kosten und Personal durch Verl\xE4ngerung", "Co\xFBts indirects et personnel dus \xE0 l'allongement"],
+          ["Cu\xE1ndo", "When", "Quan", "Quando", "Wann", "Quand"],
+          ["Cuantificaci\xF3n", "Quantification", "Quantificaci\xF3", "Quantifica\xE7\xE3o", "Quantifizierung", "Quantification"],
+          ["Cu\xE1nto ahorra", "How much it saves", "Quant estalvia", "Quanto poupa", "Wie viel es spart", "Combien cela \xE9conomise"],
+          ["Cu\xE1nto vale", "How much it is worth", "Quant val", "Quanto vale", "Was es wert ist", "Combien cela vaut"],
+          ["Cuenta", "Account", "Compte", "Conta", "Konto", "Compte"],
+          ["CxAlloy y similares", "CxAlloy and similar", "CxAlloy i similars", "CxAlloy e semelhantes", "CxAlloy und \xC4hnliche", "CxAlloy et similaires"],
+          ["Da\xF1os de terceros", "Third-party damage", "Danys de tercers", "Danos de terceiros", "Sch\xE4den Dritter", "Dommages de tiers"],
+          ["dato", "data item", "dada", "dado", "Datum", "donn\xE9e"],
+          ["datos", "data", "dades", "dados", "Daten", "donn\xE9es"],
+          ["Datos", "Data", "Dades", "Dados", "Daten", "Donn\xE9es"],
+          ["Datos de proyecto sacados de fichas t\xE9cnicas y memoria", "Project data extracted from datasheets and specification", "Dades de projecte extretes de fitxes t\xE8cniques i mem\xF2ria", "Dados de projeto extra\xEDdos de fichas t\xE9cnicas e mem\xF3ria", "Projektdaten aus Datenbl\xE4ttern und Bericht entnommen", "Donn\xE9es de projet extraites des fiches techniques et du m\xE9moire"],
+          ["De \u2192 Para", "From \u2192 To", "De \u2192 A", "De \u2192 Para", "Von \u2192 Nach", "De \u2192 Vers"],
+          ["De d\xF3nde sale el valor", "Where the value comes from", "D'on surt el valor", "De onde vem o valor", "Woher der Wert stammt", "D'o\xF9 vient la valeur"],
+          ["De d\xF3nde salen", "Where they come from", "D'on surten", "De onde v\xEAm", "Woher sie stammen", "D'o\xF9 ils viennent"],
+          ["De ellos, desplazan la fecha final", "Of these, they shift the end date", "D'aquests, desplacen la data final", "Destes, deslocam a data final", "Davon verschieben das Enddatum", "Parmi eux, ceux qui d\xE9calent la date de fin"],
+          ["de la base", "from the database", "de la base", "da base", "aus der Datenbank", "de la base"],
+          ["De qu\xE9 va", "What it is about", "De qu\xE8 va", "Do que trata", "Worum es geht", "De quoi il s'agit"],
+          ["De qui\xE9n son las horas", "Whose hours they are", "De qui s\xF3n les hores", "De quem s\xE3o as horas", "Wessen Stunden es sind", "\xC0 qui sont les heures"],
+          ["Defendibilidad", "Defensibility", "Defensabilitat", "Defensibilidade", "Verteidigbarkeit", "D\xE9fendabilit\xE9"],
+          ["Defensa", "Defence", "Defensa", "Defesa", "Verteidigung", "D\xE9fense"],
+          ["Defensa del cliente", "Client's defence", "Defensa del client", "Defesa do cliente", "Verteidigung des Kunden", "D\xE9fense du client"],
+          ["delineante", "draughtsperson", "delineant", "desenhador", "Zeichner", "dessinateur"],
+          ["Descartados", "Discarded", "Descartats", "Descartados", "Verworfen", "\xC9cart\xE9s"],
+          ["Descripci\xF3n", "Description", "Descripci\xF3", "Descri\xE7\xE3o", "Beschreibung", "Description"],
+          ["Desde", "From", "Des de", "Desde", "Ab", "Depuis"],
+          ["Desviaciones del control de costes y NCR abiertas de todas sus obras juntas, sin pedirlas por correo", "Cost control deviations and open NCRs from all its projects together, without requesting them by email", "Desviacions del control de costos i NCR obertes de totes les seves obres juntes, sense demanar-les per correu", "Desvios do controlo de custos e NCR abertas de todas as suas obras juntas, sem as pedir por email", "Abweichungen der Kostenkontrolle und offene NCR aller Projekte zusammen, ohne sie per E-Mail anzufordern", "\xC9carts du contr\xF4le des co\xFBts et NCR ouvertes de tous ses chantiers r\xE9unis, sans les demander par courriel"],
+          ["Devoluci\xF3n de retenciones", "Release of retentions", "Devoluci\xF3 de retencions", "Devolu\xE7\xE3o de reten\xE7\xF5es", "R\xFCckgabe von Einbehalten", "Restitution des retenues"],
+          ["D\xEDas", "Days", "Dies", "Dias", "Tage", "Jours"],
+          ["D\xEDas \xD7 coste diario", "Days \xD7 daily cost", "Dies \xD7 cost diari", "Dias \xD7 custo di\xE1rio", "Tage \xD7 Tageskosten", "Jours \xD7 co\xFBt journalier"],
+          ["D\xEDas \xD7 Coste diario (\u20AC", "Days \xD7 Daily cost (\u20AC", "Dies \xD7 Cost diari (\u20AC", "Dias \xD7 Custo di\xE1rio (\u20AC", "Tage \xD7 Tageskosten (\u20AC", "Jours \xD7 Co\xFBt journalier (\u20AC"],
+          ["D\xEDas de retraso", "Days of delay", "Dies de retard", "Dias de atraso", "Verzugstage", "Jours de retard"],
+          ["D\xEDas de uso", "Days of use", "Dies d'\xFAs", "Dias de utiliza\xE7\xE3o", "Nutzungstage", "Jours d'utilisation"],
+          ["D\xEDas medios", "Average days", "Dies mitjans", "Dias m\xE9dios", "Durchschnittliche Tage", "Jours moyens"],
+          ["D\xEDas netos", "Net days", "Dies nets", "Dias l\xEDquidos", "Nettotage", "Jours nets"],
+          ["D\xEDas por causa", "Days per cause", "Dies per causa", "Dias por causa", "Tage pro Ursache", "Jours par cause"],
+          ["D\xEDas que desplazan la fecha final \xD7 coste diario de los medios fijos, a coste", "Days that push back the end date \xD7 daily cost of the fixed resources, at cost", "Dies que desplacen la data final \xD7 cost diari dels mitjans fixos, a cost", "Dias que deslocam a data final \xD7 custo di\xE1rio dos meios fixos, a custo", "Tage, die das Enddatum verschieben \xD7 Tageskosten der festen Mittel, zu Kosten", "Jours qui d\xE9calent la date de fin \xD7 co\xFBt journalier des moyens fixes, au co\xFBt"],
+          ["Direcci\xF3n y gerencia", "Management and executive office", "Direcci\xF3 i ger\xE8ncia", "Dire\xE7\xE3o e ger\xEAncia", "Leitung und Gesch\xE4ftsf\xFChrung", "Direction et g\xE9rance"],
+          ["Directos", "Direct", "Directes", "Diretos", "Direkte", "Directs"],
+          ["Dise\xF1o", "Design", "Disseny", "Design", "Design", "Conception"],
+          ["Documentaci\xF3n y planos", "Documentation and drawings", "Documentaci\xF3 i pl\xE0nols", "Documenta\xE7\xE3o e plantas", "Dokumentation und Pl\xE4ne", "Documentation et plans"],
+          ["Documentado", "Documented", "Documentat", "Documentado", "Dokumentiert", "Document\xE9"],
+          ["documentos", "documents", "documents", "documentos", "Dokumente", "documents"],
+          ["Documentos enlazados a cada equipo", "Documents linked to each unit", "Documents enlla\xE7ats a cada equip", "Documentos ligados a cada equipamento", "Mit jedem Ger\xE4t verkn\xFCpfte Dokumente", "Documents li\xE9s \xE0 chaque \xE9quipement"],
+          ["Dokify Enterprise (titular", "Dokify Enterprise (holder", "Dokify Enterprise (titular", "Dokify Enterprise (titular", "Dokify Enterprise (Inhaber", "Dokify Enterprise (titulaire"],
+          ["Eje \xB7 qu\xE9 se ahorra \xB7 cuenta", "Axis \xB7 what is saved \xB7 counts", "Eix \xB7 qu\xE8 s'estalvia \xB7 compta", "Eixo \xB7 o que se poupa \xB7 conta", "Achse \xB7 was eingespart wird \xB7 z\xE4hlt", "Axe \xB7 ce qui est \xE9conomis\xE9 \xB7 compte"],
+          ["ejemplo", "example", "exemple", "exemplo", "Beispiel", "exemple"],
+          ["El hecho", "The event", "El fet", "O facto", "Das Ereignis", "Le fait"],
+          ["El hecho no cuelga de ning\xFAn tema con defensa preparada", "The event does not hang from any topic with a prepared defence", "El fet no penja de cap tema amb defensa preparada", "O facto n\xE3o depende de nenhum tema com defesa preparada", "Das Ereignis h\xE4ngt an keinem Thema mit vorbereiteter Verteidigung", "Le fait ne se rattache \xE0 aucun th\xE8me ayant une d\xE9fense pr\xE9par\xE9e"],
+          ["El precio y su FUENTE (contrato, oferta, convenio) se escriben aqu\xED; queda en el historial", "The price and its SOURCE (contract, offer, agreement) are entered here; it is kept in the history", "El preu i la seva FONT (contracte, oferta, conveni) s'escriuen aqu\xED; queda a l'historial", "O pre\xE7o e a sua FONTE (contrato, proposta, conven\xE7\xE3o) escrevem-se aqui; fica no hist\xF3rico", "Der Preis und seine QUELLE (Vertrag, Offerte, Tarifvertrag) werden hier eingetragen; er bleibt im Verlauf", "Le prix et sa SOURCE (contrat, offre, convention) s'\xE9crivent ici ; ils restent dans l'historique"],
+          ["elementos contados en planos", "items counted on drawings", "elements comptats en pl\xE0nols", "elementos contados em plantas", "in Pl\xE4nen gez\xE4hlte Elemente", "\xE9l\xE9ments compt\xE9s sur plans"],
+          ["Elige o arrastra aqu\xED correos .eml o .msg: la app lee su texto, los agrupa por hilo y resume cada hilo con citas literales", "Choose or drag .eml or .msg emails here: the app reads their text, groups them by thread and summarises each thread with verbatim quotes", "Tria o arrossega aqu\xED correus .eml o .msg: l'app en llegeix el text, els agrupa per fil i resumeix cada fil amb cites literals", "Escolha ou arraste aqui e-mails .eml ou .msg: a app l\xEA o texto, agrupa-os por conversa e resume cada conversa com cita\xE7\xF5es literais", "W\xE4hle oder ziehe hier E-Mails (.eml oder .msg) hinein: Die App liest ihren Text, gruppiert sie nach Verlauf und fasst jeden Verlauf mit w\xF6rtlichen Zitaten zusammen", "Choisissez ou glissez ici des e-mails .eml ou .msg : l'app lit leur texte, les regroupe par fil et r\xE9sume chaque fil avec des citations litt\xE9rales"],
+          ["En el total", "In the total", "Al total", "No total", "Im Total", "Dans le total"],
+          ["En esta obra", "In this project", "En aquesta obra", "Nesta obra", "In diesem Projekt", "Sur ce chantier"],
+          ["en marcha a la vez", "running at the same time", "en marxa alhora", "em curso em simult\xE2neo", "gleichzeitig laufend", "en cours en m\xEAme temps"],
+          ["En negociaci\xF3n", "In negotiation", "En negociaci\xF3", "Em negocia\xE7\xE3o", "In Verhandlung", "En n\xE9gociation"],
+          ["Encargado", "Foreman", "Encarregat", "Encarregado", "Vorarbeiter", "Chef d'\xE9quipe"],
+          ["encargados", "foremen", "encarregats", "encarregados", "Vorarbeiter", "chefs d'\xE9quipe"],
+          ["enlaces", "links", "enlla\xE7os", "liga\xE7\xF5es", "Verkn\xFCpfungen", "liens"],
+          ["enlaces hecho-cl\xE1usula", "event-clause links", "enlla\xE7os fet-cl\xE0usula", "liga\xE7\xF5es facto-cl\xE1usula", "Verkn\xFCpfungen Ereignis-Klausel", "liens fait-clause"],
+          ["enlaces hecho-prueba", "event-evidence links", "enlla\xE7os fet-prova", "liga\xE7\xF5es facto-prova", "Verkn\xFCpfungen Ereignis-Beweis", "liens fait-preuve"],
+          ["Enlazar", "Link", "Enlla\xE7ar", "Ligar", "Verkn\xFCpfen", "Lier"],
+          ["Enlazar bajo otro hecho (nivel inferior", "Link under another event (lower level", "Enlla\xE7ar sota un altre fet (nivell inferior", "Ligar sob outro facto (n\xEDvel inferior", "Unter ein anderes Ereignis verkn\xFCpfen (untere Ebene", "Lier sous un autre fait (niveau inf\xE9rieur"],
+          ["Enlazar URL", "Link URL", "Enlla\xE7ar URL", "Ligar URL", "URL verkn\xFCpfen", "Lier une URL"],
+          ["Entran con los correos de la carpeta y con el JSON de hechos", "They come in with the emails in the folder and with the events JSON", "Entren amb els correus de la carpeta i amb el JSON de fets", "Entram com os e-mails da pasta e com o JSON de factos", "Sie kommen mit den E-Mails des Ordners und mit dem JSON der Ereignisse herein", "Ils entrent avec les e-mails du dossier et avec le JSON des faits"],
+          ["Entrega y dossier", "Handover and dossier", "Lliurament i dossier", "Entrega e dossi\xEA", "\xDCbergabe und Dossier", "Livraison et dossier"],
+          ["equipos", "units", "equips", "equipamentos", "Ger\xE4te", "\xE9quipements"],
+          ["Equipos dados de alta", "Units registered", "Equips donats d'alta", "Equipamentos registados", "Erfasste Ger\xE4te", "\xC9quipements enregistr\xE9s"],
+          ["Equipos en uso", "Units in use", "Equips en \xFAs", "Equipamentos em utiliza\xE7\xE3o", "Ger\xE4te in Gebrauch", "\xC9quipements en service"],
+          ["Equipos en uso antes de la recepci\xF3n", "Units in use before handover", "Equips en \xFAs abans de la recepci\xF3", "Equipamentos em utiliza\xE7\xE3o antes da rece\xE7\xE3o", "Ger\xE4te in Gebrauch vor der Abnahme", "\xC9quipements en service avant la r\xE9ception"],
+          ["equipos puestos en marcha", "units commissioned", "equips posats en marxa", "equipamentos postos em funcionamento", "in Betrieb genommene Ger\xE4te", "\xE9quipements mis en service"],
+          ["Estado", "Status", "Estat", "Estado", "Status", "Statut"],
+          ["estimaci\xF3n", "estimate", "estimaci\xF3", "estimativa", "Sch\xE4tzung", "estimation"],
+          ["Estimaci\xF3n del sector: a confirmar por JC", "Industry estimate: to be confirmed by JC", "Estimaci\xF3 del sector: a confirmar per JC", "Estimativa do setor: a confirmar por JC", "Sch\xE4tzung der Branche: von JC zu best\xE4tigen", "Estimation du secteur : \xE0 confirmer par JC"],
+          ["Estimaciones del sector, a confirmar por JC", "Industry estimates, to be confirmed by JC", "Estimacions del sector, a confirmar per JC", "Estimativas do setor, a confirmar por JC", "Sch\xE4tzungen der Branche, von JC zu best\xE4tigen", "Estimations du secteur, \xE0 confirmer par JC"],
+          ["Estimado", "Estimated", "Estimat", "Estimado", "Gesch\xE4tzt", "Estim\xE9"],
+          ["estimado o sin certeza", "estimated or uncertain", "estimat o sense certesa", "estimado ou sem certeza", "gesch\xE4tzt oder unsicher", "estim\xE9 ou sans certitude"],
+          ["Estudios y ofertas", "Estimating and bids", "Estudis i ofertes", "Estudos e propostas", "Studien und Offerten", "\xC9tudes et offres"],
+          ["Excel con f\xF3rmulas", "Excel with formulas", "Excel amb f\xF3rmules", "Excel com f\xF3rmulas", "Excel mit Formeln", "Excel avec formules"],
+          ["Excel de los lunes", "Monday Excel", "Excel dels dilluns", "Excel das segundas-feiras", "Excel vom Montag", "Excel du lundi"],
+          ["Excluido", "Excluded", "Excl\xF2s", "Exclu\xEDdo", "Ausgeschlossen", "Exclu"],
+          ["Expediente (PDF", "File (PDF", "Expedient (PDF", "Processo (PDF", "Dossier (PDF", "Dossier (PDF"],
+          ["Expediente en", "File in", "Expedient en", "Processo em", "Dossier in", "Dossier en"],
+          ["facturas", "invoices", "factures", "faturas", "Rechnungen", "factures"],
+          ["Facturas de proveedor imputadas", "Supplier invoices allocated", "Factures de prove\xEFdor imputades", "Faturas de fornecedor imputadas", "Zugeordnete Lieferantenrechnungen", "Factures fournisseur imput\xE9es"],
+          ["falta", "missing", "falta", "em falta", "fehlt", "manque"],
+          ["Falta", "Missing", "Falta", "Em falta", "Fehlt", "Manque"],
+          ["Falta justificar: ninguna prueba justifica el IMPORTE", "To be justified: no evidence supports the AMOUNT", "Falta justificar: cap prova justifica l'IMPORT", "Falta justificar: nenhuma prova justifica o VALOR", "Noch zu belegen: kein Beweis belegt den BETRAG", "\xC0 justifier : aucune preuve ne justifie le MONTANT"],
+          ["Faltan datos", "Data missing", "Falten dades", "Faltam dados", "Daten fehlen", "Donn\xE9es manquantes"],
+          ["Fase", "Phase", "Fase", "Fase", "Phase", "Phase"],
+          ["Fecha del documento", "Document date", "Data del document", "Data do documento", "Dokumentdatum", "Date du document"],
+          ["Fecha PM", "PM date", "Data PM", "Data PM", "PM-Datum", "Date PM"],
+          ["Ficha completa", "Full record", "Fitxa completa", "Ficha completa", "Vollst\xE4ndiges Datenblatt", "Fiche compl\xE8te"],
+          ["fichajes", "clock-ins", "fitxatges", "registos de ponto", "Zeiterfassungen", "pointages"],
+          ["Fichajes de personal", "Staff clock-ins", "Fitxatges de personal", "Registos de ponto do pessoal", "Zeiterfassungen des Personals", "Pointages du personnel"],
+          ["fichas", "records", "fitxes", "fichas", "Datenbl\xE4tter", "fiches"],
+          ["Fichas PM y checklists generadas", "PM records and checklists generated", "Fitxes PM i checklists generades", "Fichas PM e checklists geradas", "Erzeugte PM-Datenbl\xE4tter und Checklisten", "Fiches PM et checklists g\xE9n\xE9r\xE9es"],
+          ["Filtrar avisos", "Filter alerts", "Filtrar avisos", "Filtrar avisos", "Hinweise filtern", "Filtrer les alertes"],
+          ["Firmas PM", "PM signatures", "Signatures PM", "Assinaturas PM", "PM-Unterschriften", "Signatures PM"],
+          ["Foto", "Photo", "Foto", "Foto", "Foto", "Photo"],
+          ["fotos", "photos", "fotos", "fotos", "Fotos", "photos"],
+          ["Fuente y fecha de consulta", "Source and date consulted", "Font i data de consulta", "Fonte e data de consulta", "Quelle und Abfragedatum", "Source et date de consultation"],
+          ["Fuente: contrato, oferta, convenio", "Source: contract, offer, agreement", "Font: contracte, oferta, conveni", "Fonte: contrato, proposta, conven\xE7\xE3o", "Quelle: Vertrag, Offerte, Tarifvertrag", "Source : contrat, offre, convention"],
+          ["Garant\xEDa consumida", "Warranty used", "Garantia consumida", "Garantia consumida", "Verbrauchte Garantie", "Garantie consomm\xE9e"],
+          ["Gen\xE9rico", "Generic", "Gen\xE8ric", "Gen\xE9rico", "Generisch", "G\xE9n\xE9rique"],
+          ["Gerencia", "Executive office", "Ger\xE8ncia", "Ger\xEAncia", "Gesch\xE4ftsf\xFChrung", "G\xE9rance"],
+          ["gerente", "manager", "gerent", "gerente", "Gesch\xE4ftsf\xFChrer", "g\xE9rant"],
+          ["GMAO (tipo MaintainX) / plan en Excel", "CMMS (MaintainX-type) / Excel plan", "GMAO (tipus MaintainX) / pla en Excel", "GMAO (tipo MaintainX) / plano em Excel", "CMMS (Typ MaintainX) / Plan in Excel", "GMAO (type MaintainX) / plan sous Excel"],
+          ["Gr\xFAa", "Crane", "Grua", "Grua", "Kran", "Grue"],
+          ["Guardar", "Save", "Desar", "Guardar", "Speichern", "Enregistrer"],
+          ["Guardar anexo CSV", "Save CSV annex", "Desar annex CSV", "Guardar anexo CSV", "CSV-Anhang speichern", "Enregistrer l'annexe CSV"],
+          ["h encargado", "h foreman", "h encarregat", "h encarregado", "Std. Vorarbeiter", "h chef d'\xE9quipe"],
+          ["h jefe", "h manager", "h cap", "h chefe", "Std. Leiter", "h chef"],
+          ["h/mes del rol", "h/month of the role", "h/mes del rol", "h/m\xEAs do perfil", "Std./Monat der Rolle", "h/mois du r\xF4le"],
+          ["h/mes por persona", "h/month per person", "h/mes per persona", "h/m\xEAs por pessoa", "Std./Monat pro Person", "h/mois par personne"],
+          ["h/obra", "h/project", "h/obra", "h/obra", "Std./Projekt", "h/chantier"],
+          ["h/persona", "h/person", "h/persona", "h/pessoa", "Std./Person", "h/personne"],
+          ["Hasta", "Until", "Fins a", "At\xE9", "Bis", "Jusqu'\xE0"],
+          ["hasta que se validan. Un subapartado sin nivel hereda el de su tema; un hecho puede fijar el suyo", "until they are validated. A sub-section without a level inherits that of its topic; an event can set its own", "fins que es validen. Un subapartat sense nivell hereta el del seu tema; un fet pot fixar el seu", "at\xE9 serem validados. Uma subsec\xE7\xE3o sem n\xEDvel herda o do seu tema; um facto pode fixar o seu", "bis sie validiert sind. Ein Unterabschnitt ohne Stufe erbt die seines Themas; ein Ereignis kann eine eigene festlegen", "jusqu'\xE0 leur validation. Une sous-section sans niveau h\xE9rite de celui de son th\xE8me ; un fait peut fixer le sien"],
+          ["Hecho", "Event", "Fet", "Facto", "Ereignis", "Fait"],
+          ["hechos", "events", "fets", "factos", "Ereignisse", "faits"],
+          ["Hechos", "Events", "Fets", "Factos", "Ereignisse", "Faits"],
+          ["hechos clasificados", "classified events", "fets classificats", "factos classificados", "klassifizierte Ereignisse", "faits class\xE9s"],
+          ["hechos con plazo o retraso", "events with deadline or delay", "fets amb termini o retard", "factos com prazo ou atraso", "Ereignisse mit Frist oder Verzug", "faits avec d\xE9lai ou retard"],
+          ["hechos cuantificados", "quantified events", "fets quantificats", "factos quantificados", "quantifizierte Ereignisse", "faits chiffr\xE9s"],
+          ["Hechos validados", "Validated events", "Fets validats", "Factos validados", "Validierte Ereignisse", "Faits valid\xE9s"],
+          ["Hip\xF3tesis de horas", "Hours assumptions", "Hip\xF2tesis d'hores", "Hip\xF3teses de horas", "Stundenannahmen", "Hypoth\xE8ses d'heures"],
+          ["hojas", "sheets", "fulls", "folhas", "Bl\xE4tter", "feuilles"],
+          ["Hojas de balanceo", "Balancing sheets", "Fulls de balanceig", "Folhas de balanceamento", "Abgleichsbl\xE4tter", "Feuilles d'\xE9quilibrage"],
+          ["Hojas DTM.CERT en Excel", "DTM.CERT sheets in Excel", "Fulls DTM.CERT en Excel", "Folhas DTM.CERT em Excel", "DTM.CERT-Bl\xE4tter in Excel", "Feuilles DTM.CERT sous Excel"],
+          ["Horas (al a\xF1o por usuario, o al mes por obra", "Hours (per year per user, or per month per project", "Hores (a l'any per usuari, o al mes per obra", "Horas (por ano por utilizador, ou por m\xEAs por obra", "Stunden (pro Jahr und Benutzer, oder pro Monat und Projekt", "Heures (par an et par utilisateur, ou par mois et par chantier"],
+          ["Horas por usuario y a\xF1o, al precio del jefe de obra; las de certificaciones y avance, por obra y mes, con las del jefe de obra y las del encargado cada una a su precio. Las licencias, por usuario salvo la de CAE (una por empresa). Los precios y sus fuentes est\xE1n en \xABCompetencia\xBB, y se cambian all\xED. Donde no hay precio p\xFAblico no se suma nada. Solo suma la licencia de Microsoft Project, la \xFAnica que la empresa paga hoy de las que la app sustituye; de Presto, CAE y GMAO cuentan las horas, no la licencia. Esta subsecci\xF3n solo la ve el administrador", "Hours per user and year, at the site manager's rate; those for certifications and progress, per project and month, with the site manager's and the foreman's hours each at their own rate. Licences, per user except the CAE one (one per company). Prices and their sources are in \xABCompetencia\xBB and are changed there. Where there is no public price, nothing is added. Only the Microsoft Project licence is counted, the only one the company pays today among those the app replaces; for Presto, CAE and GMAO the hours count, not the licence. Only the administrator sees this sub-section", "Hores per usuari i any, al preu del cap d'obra; les de certificacions i avan\xE7, per obra i mes, amb les del cap d'obra i les de l'encarregat cadascuna al seu preu. Les llic\xE8ncies, per usuari tret de la de CAE (una per empresa). Els preus i les seves fonts s\xF3n a \xABCompetencia\xBB, i s'hi canvien. On no hi ha preu p\xFAblic no se suma res. Nom\xE9s suma la llic\xE8ncia de Microsoft Project, l'\xFAnica que l'empresa paga avui de les que l'app substitueix; de Presto, CAE i GMAO compten les hores, no la llic\xE8ncia. Aquest subapartat nom\xE9s el veu l'administrador", "Horas por utilizador e ano, ao pre\xE7o do diretor de obra; as de certifica\xE7\xF5es e avan\xE7o, por obra e m\xEAs, com as do diretor de obra e as do encarregado cada uma ao seu pre\xE7o. As licen\xE7as, por utilizador exceto a de CAE (uma por empresa). Os pre\xE7os e as suas fontes est\xE3o em \xABCompetencia\xBB e alteram-se a\xED. Onde n\xE3o h\xE1 pre\xE7o p\xFAblico n\xE3o se soma nada. S\xF3 soma a licen\xE7a de Microsoft Project, a \xFAnica que a empresa paga hoje das que a app substitui; de Presto, CAE e GMAO contam as horas, n\xE3o a licen\xE7a. Esta subsec\xE7\xE3o s\xF3 \xE9 vista pelo administrador", "Stunden pro Benutzer und Jahr, zum Satz des Bauleiters; jene f\xFCr Zertifizierungen und Baufortschritt pro Projekt und Monat, mit den Stunden des Bauleiters und des Vorarbeiters je zu ihrem eigenen Satz. Die Lizenzen pro Benutzer ausser jener f\xFCr CAE (eine pro Firma). Die Preise und ihre Quellen stehen unter \xABCompetencia\xBB und werden dort ge\xE4ndert. Wo es keinen \xF6ffentlichen Preis gibt, wird nichts addiert. Nur die Lizenz von Microsoft Project wird addiert, die einzige, die die Firma heute von denen bezahlt, die die App ersetzt; bei Presto, CAE und GMAO z\xE4hlen die Stunden, nicht die Lizenz. Diesen Unterabschnitt sieht nur der Administrator", "Heures par utilisateur et par an, au tarif du chef de chantier ; celles des certifications et de l'avancement, par chantier et par mois, avec celles du chef de chantier et celles du chef d'\xE9quipe, chacune \xE0 son tarif. Les licences, par utilisateur sauf celle de CAE (une par entreprise). Les prix et leurs sources se trouvent dans \xABCompetencia\xBB et s'y modifient. L\xE0 o\xF9 il n'y a pas de prix public, rien n'est ajout\xE9. Seule la licence de Microsoft Project est compt\xE9e, la seule que l'entreprise paie aujourd'hui parmi celles que l'app remplace ; pour Presto, CAE et GMAO, les heures comptent, pas la licence. Seul l'administrateur voit cette sous-section"],
+          ["https://\u2026 (SharePoint, correo", "https://\u2026 (SharePoint, email", "https://\u2026 (SharePoint, correu", "https://\u2026 (SharePoint, e-mail", "https://\u2026 (SharePoint, E-Mail", "https://\u2026 (SharePoint, e-mail"],
+          ["Idioma del expediente", "File language", "Idioma de l'expedient", "Idioma do processo", "Sprache des Dossiers", "Langue du dossier"],
+          ["Importar correos o WhatsApp", "Import emails or WhatsApp", "Importar correus o WhatsApp", "Importar e-mails ou WhatsApp", "E-Mails oder WhatsApp importieren", "Importer des e-mails ou WhatsApp"],
+          ["Importe", "Amount", "Import", "Valor", "Betrag", "Montant"],
+          ["Importe (\u20AC", "Amount (\u20AC", "Import (\u20AC", "Valor (\u20AC", "Betrag (\u20AC", "Montant (\u20AC"],
+          ["Importe directo", "Direct amount", "Import directe", "Valor direto", "Direkter Betrag", "Montant direct"],
+          ["Importe total (\u20AC", "Total amount (\u20AC", "Import total (\u20AC", "Valor total (\u20AC", "Gesamtbetrag (\u20AC", "Montant total (\u20AC"],
+          ["Importe validado (\u20AC", "Validated amount (\u20AC", "Import validat (\u20AC", "Valor validado (\u20AC", "Validierter Betrag (\u20AC", "Montant valid\xE9 (\u20AC"],
+          ["\xCDndice de anexos", "Annex index", "\xCDndex d'annexos", "\xCDndice de anexos", "Anhangsverzeichnis", "Index des annexes"],
+          ["Indirectos", "Indirect", "Indirectes", "Indiretos", "Indirekte", "Indirects"],
+          ["informe", "report", "informe", "relat\xF3rio", "Bericht", "rapport"],
+          ["informes", "reports", "informes", "relat\xF3rios", "Berichte", "rapports"],
+          ["Informes semanales", "Weekly reports", "Informes setmanals", "Relat\xF3rios semanais", "Wochenberichte", "Rapports hebdomadaires"],
+          ["Interferencias con otros gremios", "Interference with other trades", "Interfer\xE8ncies amb altres gremis", "Interfer\xEAncias com outras especialidades", "Behinderungen durch andere Gewerke", "Interf\xE9rences avec les autres corps de m\xE9tier"],
+          ["Izados, accesos y log\xEDstica", "Lifting, access and logistics", "Hissats, accessos i log\xEDstica", "I\xE7amentos, acessos e log\xEDstica", "Hebearbeiten, Zug\xE4nge und Logistik", "Levages, acc\xE8s et logistique"],
+          ["Izados: da\xF1os y dinero perdido", "Lifting: damage and money lost", "Hissats: danys i diners perduts", "I\xE7amentos: danos e dinheiro perdido", "Hebearbeiten: Sch\xE4den und verlorenes Geld", "Levages : dommages et argent perdu"],
+          ["j. prod", "prod. mgr", "cap prod.", "dir. prod.", "Prod.-Ltr.", "resp. prod."],
+          ["Jefe de commissioning", "Commissioning manager", "Cap de commissioning", "Respons\xE1vel de commissioning", "Commissioning-Leiter", "Responsable commissioning"],
+          ["Jefe de estudios", "Estimating manager", "Cap d'estudis", "Respons\xE1vel de estudos", "Studienleiter", "Responsable des \xE9tudes"],
+          ["jefe de grupo", "group manager", "cap de grup", "chefe de grupo", "Gruppenleiter", "chef de groupe"],
+          ["Jefe de grupo", "Group manager", "Cap de grup", "Chefe de grupo", "Gruppenleiter", "Chef de groupe"],
+          ["Jefe de mantenimiento", "Maintenance manager", "Cap de manteniment", "Respons\xE1vel de manuten\xE7\xE3o", "Wartungsleiter", "Responsable maintenance"],
+          ["Jefe de obra", "Site manager", "Cap d'obra", "Diretor de obra", "Bauleiter", "Chef de chantier"],
+          ["Jefe de obra / de producci\xF3n", "Site manager / production manager", "Cap d'obra / de producci\xF3", "Diretor de obra / de produ\xE7\xE3o", "Bauleiter / Produktionsleiter", "Chef de chantier / responsable de production"],
+          ["Jefe de obra / encargado", "Site manager / foreman", "Cap d'obra / encarregat", "Diretor de obra / encarregado", "Bauleiter / Vorarbeiter", "Chef de chantier / chef d'\xE9quipe"],
+          ["Jefe de producci\xF3n", "Production manager", "Cap de producci\xF3", "Diretor de produ\xE7\xE3o", "Produktionsleiter", "Responsable de production"],
+          ["jefe obra", "site manager", "cap d'obra", "diretor de obra", "Bauleiter", "chef de chantier"],
+          ["jefes de obra", "site managers", "caps d'obra", "diretores de obra", "Bauleiter", "chefs de chantier"],
+          ["Justifica", "Justifies", "Justifica", "Justifica", "Belegt", "Justifie"],
+          ["Justificantes del importe", "Supporting documents for the amount", "Justificants de l'import", "Comprovativos do valor", "Belege f\xFCr den Betrag", "Justificatifs du montant"],
+          ["la de la obra media", "that of the average project", "la de l'obra mitjana", "a da obra m\xE9dia", "jene des durchschnittlichen Projekts", "celle du chantier moyen"],
+          ["La empresa no la paga hoy", "The company does not pay for it today", "L'empresa no la paga avui", "A empresa n\xE3o a paga hoje", "Die Firma bezahlt sie heute nicht", "L'entreprise ne la paie pas aujourd'hui"],
+          ["La reclamaci\xF3n", "The claim", "La claim", "A claim", "Der Claim", "La claim"],
+          ["Legalizaciones por territorio: qu\xE9 presentar, modelo vigente y plazos", "Legalisations by territory: what to submit, current form and deadlines", "Legalitzacions per territori: qu\xE8 presentar, model vigent i terminis", "Legaliza\xE7\xF5es por territ\xF3rio: o que apresentar, modelo em vigor e prazos", "Legalisierungen nach Gebiet: was einzureichen ist, g\xFCltiges Formular und Fristen", "L\xE9galisations par territoire : quoi pr\xE9senter, mod\xE8le en vigueur et d\xE9lais"],
+          ["Libro NCR con macros y plantillas PPI", "NCR workbook with macros and PPI templates", "Llibre NCR amb macros i plantilles PPI", "Livro NCR com macros e modelos PPI", "NCR-Arbeitsmappe mit Makros und PPI-Vorlagen", "Classeur NCR avec macros et mod\xE8les PPI"],
+          ["Libros Excel del control de costes y del comparativo", "Excel workbooks for cost control and the comparison", "Llibres Excel del control de costos i del comparatiu", "Livros Excel do controlo de custos e do comparativo", "Excel-Arbeitsmappen der Kostenkontrolle und des Vergleichs", "Classeurs Excel du contr\xF4le des co\xFBts et du comparatif"],
+          ["Licencia Vidaire", "Vidaire licence", "Llic\xE8ncia Vidaire", "Licen\xE7a Vidaire", "Vidaire-Lizenz", "Licence Vidaire"],
+          ["Licencia/a\xF1o", "Licence/year", "Llic\xE8ncia/any", "Licen\xE7a/ano", "Lizenz/Jahr", "Licence/an"],
+          ["Limpieza, reposici\xF3n, material", "Cleaning, replacement, materials", "Neteja, reposici\xF3, material", "Limpeza, reposi\xE7\xE3o, material", "Reinigung, Ersatz, Material", "Nettoyage, remplacement, mat\xE9riel"],
+          ["l\xEDneas de material", "material lines", "l\xEDnies de material", "linhas de material", "Materialpositionen", "lignes de mat\xE9riel"],
+          ["l\xEDneas de pedido cruzadas", "cross-checked order lines", "l\xEDnies de comanda creuades", "linhas de encomenda cruzadas", "abgeglichene Bestellpositionen", "lignes de commande crois\xE9es"],
+          ["Lo que ahorra", "What it saves", "El que estalvia", "O que poupa", "Was sie einspart", "Ce qu'elle \xE9conomise"],
+          ["Lo que genera sola", "What it generates by itself", "El que genera sola", "O que gera sozinha", "Was sie selbst erzeugt", "Ce qu'elle g\xE9n\xE8re seule"],
+          ["Lo que no son horas", "What is not hours", "El que no s\xF3n hores", "O que n\xE3o s\xE3o horas", "Was keine Stunden sind", "Ce qui n'est pas des heures"],
+          ["Los cuatro ejes", "The four axes", "Els quatre eixos", "Os quatro eixos", "Die vier Achsen", "Les quatre axes"],
+          ["los d\xEDas de retraso", "the days of delay", "els dies de retard", "os dias de atraso", "die Verzugstage", "les jours de retard"],
+          ["Los mandan los encargados desde el m\xF3vil (Cx Obra \u203A \xAB+\xBB \u203A Algo reclamable). Sin tarifa: la pones t\xFA en el hecho", "Foremen send them from their mobile (Cx Obra \u203A \xAB+\xBB \u203A Something claimable). No rate: you enter it on the event", "Els envien els encarregats des del m\xF2bil (Cx Obra \u203A \xAB+\xBB \u203A Quelcom reclamable). Sense tarifa: la poses tu al fet", "Os encarregados enviam-nos pelo telem\xF3vel (Cx Obra \u203A \xAB+\xBB \u203A Algo reclam\xE1vel). Sem tarifa: coloca-a voc\xEA no facto", "Die Vorarbeiter senden sie vom Handy (Cx Obra \u203A \xAB+\xBB \u203A Etwas Einforderbares). Ohne Tarif: Du tr\xE4gst ihn beim Ereignis ein", "Les chefs d'\xE9quipe les envoient depuis leur mobile (Cx Obra \u203A \xAB+\xBB \u203A Quelque chose de r\xE9clamable). Sans tarif : vous le saisissez sur le fait"],
+          ["mantenimiento", "maintenance", "manteniment", "manuten\xE7\xE3o", "Wartung", "maintenance"],
+          ["Mantenimiento preventivo (GMAO", "Preventive maintenance (CMMS", "Manteniment preventiu (GMAO", "Manuten\xE7\xE3o preventiva (GMAO", "Vorbeugende Wartung (CMMS", "Maintenance pr\xE9ventive (GMAO"],
+          ["Mantenimiento preventivo e inspecciones", "Preventive maintenance and inspections", "Manteniment preventiu i inspeccions", "Manuten\xE7\xE3o preventiva e inspe\xE7\xF5es", "Vorbeugende Wartung und Inspektionen", "Maintenance pr\xE9ventive et inspections"],
+          ["Marca del dato", "Data marker", "Marca de la dada", "Marca do dado", "Datenmarkierung", "Marque de la donn\xE9e"],
+          ["Marcar todos los hechos a la vista", "Mark all events in view", "Marcar tots els fets a la vista", "Marcar todos os factos \xE0 vista", "Alle sichtbaren Ereignisse markieren", "Cocher tous les faits affich\xE9s"],
+          ["marcas", "marks", "marques", "marcas", "Markierungen", "marques"],
+          ["Marcas de avance en plano", "Progress marks on drawing", "Marques d'avan\xE7 en pl\xE0nol", "Marcas de avan\xE7o na planta", "Fortschrittsmarkierungen im Plan", "Marques d'avancement sur le plan"],
+          ["M\xE1s acciones", "More actions", "M\xE9s accions", "Mais a\xE7\xF5es", "Weitere Aktionen", "Plus d'actions"],
+          ["Material", "Material", "Material", "Material", "Material", "Mat\xE9riel"],
+          ["Material \u20AC", "Material \u20AC", "Material \u20AC", "Material \u20AC", "Material \u20AC", "Mat\xE9riel \u20AC"],
+          ["Media al mes de la obra", "Monthly average for the project", "Mitjana al mes de l'obra", "M\xE9dia mensal da obra", "Monatsdurchschnitt des Projekts", "Moyenne mensuelle du chantier"],
+          ["Media al mes de toda la obra", "Monthly average for the whole project", "Mitjana al mes de tota l'obra", "M\xE9dia mensal de toda a obra", "Monatsdurchschnitt des gesamten Projekts", "Moyenne mensuelle de tout le chantier"],
+          ["Medici\xF3n comprobada en planos: cada elemento contado y su partida, por planta", "Measurement checked on drawings: each item counted and its line item, per floor", "Mesurament comprovat en pl\xE0nols: cada element comptat i la seva partida, per planta", "Medi\xE7\xE3o verificada em plantas: cada elemento contado e a sua rubrica, por piso", "In Pl\xE4nen gepr\xFCfte Mengenermittlung: jedes gez\xE4hlte Element und seine Position, pro Geschoss", "M\xE9tr\xE9 v\xE9rifi\xE9 sur plans : chaque \xE9l\xE9ment compt\xE9 et son poste, par \xE9tage"],
+          ["Mediciones sobre plano que ya no se pasan a mano al presupuesto", "Measurements from drawings that are no longer entered by hand into the budget", "Mesuraments sobre pl\xE0nol que ja no es passen a m\xE0 al pressupost", "Medi\xE7\xF5es sobre planta que j\xE1 n\xE3o se passam \xE0 m\xE3o para o or\xE7amento", "Mengenermittlungen aus Pl\xE4nen, die nicht mehr von Hand ins Budget \xFCbertragen werden", "M\xE9tr\xE9s sur plan qui ne sont plus report\xE9s \xE0 la main dans le budget"],
+          ["Medio fijo", "Fixed resource", "Mitj\xE0 fix", "Meio fixo", "Festes Mittel", "Moyen fixe"],
+          ["Medir a escal\xEDmetro y preguntar al encargado", "Measure with a scale rule and ask the foreman", "Mesurar amb escal\xEDmetre i preguntar a l'encarregat", "Medir com escal\xEDmetro e perguntar ao encarregado", "Mit dem Massstab messen und den Vorarbeiter fragen", "Mesurer \xE0 l'\xE9chelle et demander au chef d'\xE9quipe"],
+          ["meses", "months", "mesos", "meses", "Monate", "mois"],
+          ["Meses", "Months", "Mesos", "Meses", "Monate", "Mois"],
+          ["Meses \xD7 coste mensual", "Months \xD7 monthly cost", "Mesos \xD7 cost mensual", "Meses \xD7 custo mensal", "Monate \xD7 Monatskosten", "Mois \xD7 co\xFBt mensuel"],
+          ["Meses \xD7 Coste mensual (\u20AC", "Months \xD7 Monthly cost (\u20AC", "Mesos \xD7 Cost mensual (\u20AC", "Meses \xD7 Custo mensal (\u20AC", "Monate \xD7 Monatskosten (\u20AC", "Mois \xD7 Co\xFBt mensuel (\u20AC"],
+          ["meses de obra", "months of works", "mesos d'obra", "meses de obra", "Baumonate", "mois de chantier"],
+          ["M\xE9todo", "Method", "M\xE8tode", "M\xE9todo", "Methode", "M\xE9thode"],
+          ["minutos", "minutes", "minuts", "minutos", "Minuten", "minutes"],
+          ["min/equipo", "min/unit", "min/equip", "min/equipamento", "Min./Ger\xE4t", "min/\xE9quipement"],
+          ["min/equipo \xB7 Gen\xE9rico", "min/unit \xB7 Generic", "min/equip \xB7 Gen\xE8ric", "min/equipamento \xB7 Gen\xE9rico", "Min./Ger\xE4t \xB7 Generisch", "min/\xE9quipement \xB7 G\xE9n\xE9rique"],
+          ["Min/ud a mano", "Min/unit by hand", "Min/ut a m\xE0", "Min/un. \xE0 m\xE3o", "Min./Einheit von Hand", "Min/unit\xE9 \xE0 la main"],
+          ["Modelo", "Model", "Model", "Modelo", "Modell", "Mod\xE8le"],
+          ["modelos", "models", "models", "modelos", "Modelle", "mod\xE8les"],
+          ["Modelos con la documentaci\xF3n heredada", "Models with inherited documentation", "Models amb la documentaci\xF3 heretada", "Modelos com a documenta\xE7\xE3o herdada", "Modelle mit \xFCbernommener Dokumentation", "Mod\xE8les avec la documentation h\xE9rit\xE9e"],
+          ["M\xF3dulo a m\xF3dulo", "Module by module", "M\xF2dul a m\xF2dul", "M\xF3dulo a m\xF3dulo", "Modul f\xFCr Modul", "Module par module"],
+          ["Mostrar la tabla resumen por secci\xF3n", "Show the summary table by section", "Mostrar la taula resum per secci\xF3", "Mostrar a tabela resumo por sec\xE7\xE3o", "\xDCbersichtstabelle pro Abschnitt anzeigen", "Afficher le tableau r\xE9capitulatif par section"],
+          ["Mover", "Move", "Moure", "Mover", "Verschieben", "D\xE9placer"],
+          ["m\xF3vil", "mobile", "m\xF2bil", "telem\xF3vel", "Handy", "mobile"],
+          ["Muy defendible", "Highly defensible", "Molt defensable", "Muito defens\xE1vel", "Sehr gut vertretbar", "Tr\xE8s d\xE9fendable"],
+          ["Nada por tramitar", "Nothing to process", "Res per tramitar", "Nada por tramitar", "Nichts zu bearbeiten", "Rien \xE0 traiter"],
+          ["Nada sin presupuestar", "Nothing left unbudgeted", "Res sense pressupostar", "Nada por or\xE7amentar", "Nichts ohne Budget", "Rien de non budg\xE9t\xE9"],
+          ["NCR, PPI y partes de incidencia", "NCR, PPI and incident reports", "NCR, PPI i parts d'incid\xE8ncia", "NCR, PPI e participa\xE7\xF5es de incid\xEAncia", "NCR, PPI und St\xF6rungsmeldungen", "NCR, PPI et rapports d'incident"],
+          ["Ninguna prueba", "No evidence", "Cap prova", "Nenhuma prova", "Kein Beweis", "Aucune preuve"],
+          ["No", "No", "No", "N\xE3o", "Nein", "Non"],
+          ["no la ten\xE9is", "you do not have it", "no la teniu", "n\xE3o a t\xEAm", "ihr habt sie nicht", "vous ne l'avez pas"],
+          ["no suma", "does not add up", "no suma", "n\xE3o soma", "wird nicht addiert", "ne s'additionne pas"],
+          ["normativa", "regulations", "normativa", "normativa", "Vorschriften", "r\xE9glementation"],
+          ["Nos reclaman", "Claimed against us", "Ens reclamen", "Reclamam-nos", "Gegen uns geltend gemacht", "On nous r\xE9clame"],
+          ["Notas", "Notes", "Notes", "Notas", "Notizen", "Notes"],
+          ["Nuestro", "Ours", "El nostre", "O nosso", "Unser", "Le n\xF4tre"],
+          ["Nueva categor\xEDa", "New category", "Nova categoria", "Nova categoria", "Neue Kategorie", "Nouvelle cat\xE9gorie"],
+          ["Nueva prueba (enlace", "New evidence (link", "Nova prova (enlla\xE7", "Nova prova (liga\xE7\xE3o", "Neuer Beweis (Verkn\xFCpfung", "Nouvelle preuve (lien"],
+          ["Nuevo sistema", "New system", "Nou sistema", "Novo sistema", "Neues System", "Nouveau syst\xE8me"],
+          ["obra media", "average project", "obra mitjana", "obra m\xE9dia", "durchschnittliches Projekt", "chantier moyen"],
+          ["Obras en marcha", "Projects under way", "Obres en marxa", "Obras em curso", "Laufende Projekte", "Chantiers en cours"],
+          ["Oferta", "Offer", "Oferta", "Proposta", "Offerte", "Offre"],
+          ["oficial", "official", "oficial", "oficial", "offiziell", "officiel"],
+          ["Oficial", "Official", "Oficial", "Oficial", "Offiziell", "Officiel"],
+          ["Oficina y casetas", "Office and site cabins", "Oficina i casetes", "Escrit\xF3rio e estaleiro", "B\xFCro und Baucontainer", "Bureau et baraques de chantier"],
+          ["\xF3rdenes", "orders", "ordres", "ordens", "Auftr\xE4ge", "ordres"],
+          ["\xD3rdenes de trabajo de mantenimiento cerradas", "Closed maintenance work orders", "Ordres de treball de manteniment tancades", "Ordens de trabalho de manuten\xE7\xE3o fechadas", "Abgeschlossene Wartungsauftr\xE4ge", "Ordres de travail de maintenance cl\xF4tur\xE9s"],
+          ["Origen", "Origin", "Origen", "Origem", "Herkunft", "Origine"],
+          ["Otro", "Other", "Altre", "Outro", "Anderes", "Autre"],
+          ["Otro gremio", "Other trade", "Altre gremi", "Outro of\xEDcio", "Anderes Gewerk", "Autre corps de m\xE9tier"],
+          ["Otro medio fijo", "Other fixed means", "Altre mitj\xE0 fix", "Outro meio fixo", "Anderes festes Mittel", "Autre moyen fixe"],
+          ["pago \xFAnico: no es anual", "one-off payment: not annual", "pagament \xFAnic: no \xE9s anual", "pagamento \xFAnico: n\xE3o \xE9 anual", "Einmalzahlung: nicht j\xE4hrlich", "paiement unique : non annuel"],
+          ["Pagos, IPC y deducciones", "Payments, CPI and deductions", "Pagaments, IPC i deduccions", "Pagamentos, IPC e dedu\xE7\xF5es", "Zahlungen, Teuerung und Abz\xFCge", "Paiements, IPC et d\xE9ductions"],
+          ["Pantalla completa", "Full screen", "Pantalla completa", "Ecr\xE3 inteiro", "Vollbild", "Plein \xE9cran"],
+          ["paquete", "package", "paquet", "pacote", "Paket", "paquet"],
+          ["partes", "reports", "parts", "registos", "Rapporte", "rapports"],
+          ["Partes de horas de subcontratas", "Subcontractor timesheets", "Parts d'hores de subcontractistes", "Folhas de horas de subempreiteiros", "Stundenrapporte der Subunternehmer", "Feuilles d'heures des sous-traitants"],
+          ["Partes de incidencia", "Incident reports", "Parts d'incid\xE8ncia", "Participa\xE7\xF5es de incid\xEAncia", "St\xF6rungsmeldungen", "Rapports d'incident"],
+          ["Partes del correo", "Reports from email", "Parts del correu", "Participa\xE7\xF5es do e-mail", "Rapporte aus der E-Mail", "Rapports du courriel"],
+          ["Partes del hecho", "Event reports", "Parts del fet", "Participa\xE7\xF5es do facto", "Rapporte zum Ereignis", "Rapports du fait"],
+          ["partidas", "line items", "partides", "artigos", "Positionen", "postes"],
+          ["Partidas del presupuesto de la obra", "Project budget line items", "Partides del pressupost de l'obra", "Artigos do or\xE7amento da obra", "Positionen des Projektbudgets", "Postes du budget du chantier"],
+          ["Partir", "Split", "Dividir", "Dividir", "Teilen", "Diviser"],
+          ["Pasar al claim", "Move to claim", "Passar al claim", "Passar para o claim", "In den Claim \xFCbernehmen", "Passer au claim"],
+          ["pedidos", "orders", "comandes", "encomendas", "Bestellungen", "commandes"],
+          ["Pedidos cruzados con el proyecto: partida nueva o Med Obra y modelo al certificado", "Orders cross-checked against the project: new line item or Med Obra and model to the certificate", "Comandes creuades amb el projecte: partida nova o Med Obra i model al certificat", "Encomendas cruzadas com o projeto: artigo novo ou Med Obra e modelo para o certificado", "Mit dem Projekt abgeglichene Bestellungen: neue Position oder Med Obra und Modell zur Abrechnung", "Commandes crois\xE9es avec le projet : nouveau poste ou Med Obra et mod\xE8le vers le d\xE9compte"],
+          ["Pedidos de compra", "Purchase orders", "Comandes de compra", "Encomendas de compra", "Einkaufsbestellungen", "Commandes d'achat"],
+          ["Pedidos numerados y facturas imputadas a su cap\xEDtulo solas", "Numbered orders and invoices charged to their chapter automatically", "Comandes numerades i factures imputades al seu cap\xEDtol soles", "Encomendas numeradas e faturas imputadas ao seu cap\xEDtulo automaticamente", "Nummerierte Bestellungen und Rechnungen werden automatisch ihrem Kapitel zugeordnet", "Commandes num\xE9rot\xE9es et factures imput\xE9es automatiquement \xE0 leur chapitre"],
+          ["Pendiente", "Pending", "Pendent", "Pendente", "Ausstehend", "En attente"],
+          ["Pendiente de validar", "Pending validation", "Pendent de validar", "Pendente de valida\xE7\xE3o", "Validierung ausstehend", "En attente de validation"],
+          ["Pendiente doc", "Doc pending", "Doc pendent", "Doc pendente", "Dok. ausstehend", "Doc en attente"],
+          ["Pendiente est", "Est. pending", "Est. pendent", "Est. pendente", "Sch\xE4tzung ausstehend", "Est. en attente"],
+          ["P\xE9rdidas de tiempo y baja productividad", "Time losses and low productivity", "P\xE8rdues de temps i baixa productivitat", "Perdas de tempo e baixa produtividade", "Zeitverluste und geringe Produktivit\xE4t", "Pertes de temps et faible productivit\xE9"],
+          ["Periodo desde", "Period from", "Per\xEDode des de", "Per\xEDodo de", "Zeitraum von", "P\xE9riode du"],
+          ["Periodo hasta", "Period to", "Per\xEDode fins a", "Per\xEDodo at\xE9", "Zeitraum bis", "P\xE9riode au"],
+          ["Permisos y seguridad", "Permits and safety", "Permisos i seguretat", "Licen\xE7as e seguran\xE7a", "Bewilligungen und Sicherheit", "Permis et s\xE9curit\xE9"],
+          ["Personal adicional por aceleraci\xF3n", "Additional staff for acceleration", "Personal addicional per acceleraci\xF3", "Pessoal adicional por acelera\xE7\xE3o", "Zus\xE4tzliches Personal wegen Beschleunigung", "Personnel suppl\xE9mentaire pour acc\xE9l\xE9ration"],
+          ["Personal en obra y PRL/CAE", "Site personnel and PRL/CAE", "Personal a l'obra i PRL/CAE", "Pessoal em obra e PRL/CAE", "Personal auf der Baustelle und PRL/CAE", "Personnel sur chantier et PRL/CAE"],
+          ["Personas", "People", "Persones", "Pessoas", "Personen", "Personnes"],
+          ["Personas \xD7 horas \xD7 d\xEDas \xD7 \u20AC/h", "People \xD7 hours \xD7 days \xD7 \u20AC/h", "Persones \xD7 hores \xD7 dies \xD7 \u20AC/h", "Pessoas \xD7 horas \xD7 dias \xD7 \u20AC/h", "Personen \xD7 Stunden \xD7 Tage \xD7 \u20AC/h", "Personnes \xD7 heures \xD7 jours \xD7 \u20AC/h"],
+          ["Personas \xD7 Horas \xD7 D\xEDas \xD7 \u20AC/h", "People \xD7 Hours \xD7 Days \xD7 \u20AC/h", "Persones \xD7 Hores \xD7 Dies \xD7 \u20AC/h", "Pessoas \xD7 Horas \xD7 Dias \xD7 \u20AC/h", "Personen \xD7 Stunden \xD7 Tage \xD7 \u20AC/h", "Personnes \xD7 Heures \xD7 Jours \xD7 \u20AC/h"],
+          ["Plan", "Plan", "Pla", "Plano", "Plan", "Plan"],
+          ["planificacion", "planning", "planificaci\xF3", "planeamento", "Planung", "planification"],
+          ["Planificaci\xF3n de obra", "Project planning", "Planificaci\xF3 d'obra", "Planeamento de obra", "Bauplanung", "Planification de chantier"],
+          ["Planta", "Floor", "Planta", "Piso", "Geschoss", "\xC9tage"],
+          ["Plantilla de esta obra", "Template for this project", "Plantilla d'aquesta obra", "Modelo desta obra", "Vorlage f\xFCr dieses Projekt", "Mod\xE8le de ce chantier"],
+          ["Plantilla de la obra", "Project template", "Plantilla de l'obra", "Modelo da obra", "Projektvorlage", "Mod\xE8le du chantier"],
+          ["Plataforma de CAE/PRL (tipo Dokify o CTAIMA", "CAE/PRL platform (such as Dokify or CTAIMA", "Plataforma de CAE/PRL (tipus Dokify o CTAIMA", "Plataforma de CAE/PRL (tipo Dokify ou CTAIMA", "CAE/PRL-Plattform (wie Dokify oder CTAIMA", "Plateforme CAE/PRL (type Dokify ou CTAIMA"],
+          ["Plataforma de obra completa", "Complete project platform", "Plataforma d'obra completa", "Plataforma de obra completa", "Vollst\xE4ndige Baustellenplattform", "Plateforme de chantier compl\xE8te"],
+          ["Plazo original", "Original deadline", "Termini original", "Prazo original", "Urspr\xFCngliche Frist", "D\xE9lai initial"],
+          ["Plazo vigente", "Current deadline", "Termini vigent", "Prazo em vigor", "Geltende Frist", "D\xE9lai en vigueur"],
+          ["Plazos", "Deadlines", "Terminis", "Prazos", "Fristen", "D\xE9lais"],
+          ["Poco defendible", "Weakly defensible", "Poc defensable", "Pouco defens\xE1vel", "Wenig vertretbar", "Peu d\xE9fendable"],
+          ["por claim", "per claim", "per claim", "por claim", "pro Claim", "par claim"],
+          ["por defecto", "by default", "per defecte", "por defeito", "standardm\xE4ssig", "par d\xE9faut"],
+          ["Por departamento y mes", "By department and month", "Per departament i mes", "Por departamento e m\xEAs", "Nach Abteilung und Monat", "Par d\xE9partement et par mois"],
+          ["Por fase y rol", "By phase and role", "Per fase i rol", "Por fase e fun\xE7\xE3o", "Nach Phase und Rolle", "Par phase et r\xF4le"],
+          ["Por mes", "By month", "Per mes", "Por m\xEAs", "Pro Monat", "Par mois"],
+          ["por obra y mes", "per project and month", "per obra i mes", "por obra e m\xEAs", "pro Projekt und Monat", "par chantier et par mois"],
+          ["Por obra y mes", "By project and month", "Per obra i mes", "Por obra e m\xEAs", "Pro Projekt und Monat", "Par chantier et par mois"],
+          ["Por obra y mes (sin cx", "By project and month (excl. cx", "Per obra i mes (sense cx", "Por obra e m\xEAs (sem cx", "Pro Projekt und Monat (ohne Cx", "Par chantier et par mois (hors cx"],
+          ["por renuncias", "due to waivers", "per ren\xFAncies", "por ren\xFAncias", "wegen Verzichten", "du fait de renonciations"],
+          ["Por tramitar", "To be processed", "Per tramitar", "Por tramitar", "Zu bearbeiten", "\xC0 traiter"],
+          ["por unidad y a\xF1o", "per unit and year", "per unitat i any", "por unidade e ano", "pro Einheit und Jahr", "par unit\xE9 et par an"],
+          ["Precio", "Price", "Preu", "Pre\xE7o", "Preis", "Prix"],
+          ["precios", "prices", "preus", "pre\xE7os", "Preise", "prix"],
+          ["Precios de contrato por partida", "Contract prices per line item", "Preus de contracte per partida", "Pre\xE7os de contrato por artigo", "Vertragspreise pro Position", "Prix du contrat par poste"],
+          ["Preparar commissioning autom\xE1tico", "Prepare automatic commissioning", "Preparar commissioning autom\xE0tic", "Preparar commissioning autom\xE1tico", "Automatisches Commissioning vorbereiten", "Pr\xE9parer le commissioning automatique"],
+          ["Preparar, presentaci\xF3n interna, trabajo interno, redacci\xF3n, env\xEDo y negociaci\xF3n. No pisa lo que ya hay", "Prepare, internal presentation, internal work, drafting, sending and negotiation. It does not overwrite what is already there", "Preparar, presentaci\xF3 interna, treball intern, redacci\xF3, enviament i negociaci\xF3. No trepitja el que ja hi ha", "Preparar, apresenta\xE7\xE3o interna, trabalho interno, reda\xE7\xE3o, envio e negocia\xE7\xE3o. N\xE3o sobrep\xF5e o que j\xE1 existe", "Vorbereiten, interne Pr\xE4sentation, interne Arbeit, Verfassen, Versand und Verhandlung. \xDCberschreibt nichts, was bereits vorhanden ist", "Pr\xE9parer, pr\xE9sentation interne, travail interne, r\xE9daction, envoi et n\xE9gociation. N'\xE9crase pas ce qui existe d\xE9j\xE0"],
+          ["Presentaci\xF3n", "Presentation", "Presentaci\xF3", "Apresenta\xE7\xE3o", "Pr\xE4sentation", "Pr\xE9sentation"],
+          ["Presentaci\xF3n interna", "Internal presentation", "Presentaci\xF3 interna", "Apresenta\xE7\xE3o interna", "Interne Pr\xE4sentation", "Pr\xE9sentation interne"],
+          ["Presentaci\xF3n: Vidaire Obras", "Presentation: Vidaire Obras", "Presentaci\xF3: Vidaire Obras", "Apresenta\xE7\xE3o: Vidaire Obras", "Pr\xE4sentation: Vidaire Obras", "Pr\xE9sentation : Vidaire Obras"],
+          ["Presentada", "Submitted", "Presentada", "Apresentada", "Eingereicht", "Pr\xE9sent\xE9e"],
+          ["presupuesto y mediciones, planificaci\xF3n, compras y certificaciones, calidad y NCR, commissioning, CAE y mantenimiento, sobre los mismos datos", "budget and measurements, planning, purchasing and certifications, quality and NCR, commissioning, CAE and maintenance, on the same data", "pressupost i mesuraments, planificaci\xF3, compres i certificacions, qualitat i NCR, commissioning, CAE i manteniment, sobre les mateixes dades", "or\xE7amento e medi\xE7\xF5es, planeamento, compras e certifica\xE7\xF5es, qualidade e NCR, commissioning, CAE e manuten\xE7\xE3o, sobre os mesmos dados", "Budget und Mengenermittlung, Planung, Einkauf und Abrechnungen, Qualit\xE4t und NCR, Commissioning, CAE und Wartung auf denselben Daten", "budget et m\xE9tr\xE9s, planification, achats et certifications, qualit\xE9 et NCR, commissioning, CAE et maintenance, sur les m\xEAmes donn\xE9es"],
+          ["presupuestos", "budgets", "pressupostos", "or\xE7amentos", "Budgets", "budgets"],
+          ["Presupuestos y mediciones", "Budgets and measurements", "Pressupostos i mesuraments", "Or\xE7amentos e medi\xE7\xF5es", "Budgets und Mengenermittlung", "Budgets et m\xE9tr\xE9s"],
+          ["Presupuestos, mediciones y certificaciones", "Budgets, measurements and certifications", "Pressupostos, mesuraments i certificacions", "Or\xE7amentos, medi\xE7\xF5es e certifica\xE7\xF5es", "Budgets, Mengenermittlung und Abrechnungen", "Budgets, m\xE9tr\xE9s et certifications"],
+          ["Previsto", "Planned", "Previst", "Previsto", "Geplant", "Pr\xE9vu"],
+          ["Procore cobra por volumen anual de obra y solo da precio con presupuesto", "Procore charges by annual construction volume and only gives a price with a quote", "Procore cobra per volum anual d'obra i nom\xE9s dona preu amb pressupost", "A Procore cobra por volume anual de obra e s\xF3 d\xE1 pre\xE7o com or\xE7amento", "Procore verrechnet nach j\xE4hrlichem Bauvolumen und nennt nur mit Offerte einen Preis", "Procore facture selon le volume annuel de travaux et ne donne un prix que sur devis"],
+          ["Producci\xF3n y certificaciones", "Production and certifications", "Producci\xF3 i certificacions", "Produ\xE7\xE3o e certifica\xE7\xF5es", "Produktion und Abrechnungen", "Production et certifications"],
+          ["Producto", "Product", "Producte", "Produto", "Produkt", "Produit"],
+          ["Propio", "Own", "Propi", "Pr\xF3prio", "Eigen", "Propre"],
+          ["propuesta", "proposal", "proposta", "proposta", "Vorschlag", "proposition"],
+          ["Propuesta CBRE", "CBRE proposal", "Proposta de CBRE", "Proposta da CBRE", "Vorschlag von CBRE", "Proposition de CBRE"],
+          ["propuestos", "proposed", "proposats", "propostos", "vorgeschlagen", "propos\xE9s"],
+          ["pruebas", "tests", "proves", "testes", "Pr\xFCfungen", "essais"],
+          ["Pruebas", "Evidence", "Proves", "Provas", "Beweise", "Preuves"],
+          ["pruebas anexadas", "attached evidence", "proves annexades", "provas anexadas", "beigef\xFCgte Beweise", "preuves jointes"],
+          ["Pruebas de estanqueidad con informe", "Leak-tightness tests with report", "Proves d'estanquitat amb informe", "Testes de estanquidade com relat\xF3rio", "Dichtheitspr\xFCfungen mit Bericht", "Essais d'\xE9tanch\xE9it\xE9 avec rapport"],
+          ["Pulsa una categor\xEDa para ver sus hechos. Se asigna sola; se fija a mano en el hecho", "Click a category to see its events. It is assigned automatically; set it by hand on the event", "Prem una categoria per veure'n els fets. S'assigna sola; es fixa a m\xE0 al fet", "Clique numa categoria para ver os seus factos. \xC9 atribu\xEDda automaticamente; fixa-se manualmente no facto", "Kategorie anklicken, um die zugeh\xF6rigen Ereignisse zu sehen. Sie wird automatisch zugewiesen; von Hand im Ereignis festlegbar", "Cliquez sur une cat\xE9gorie pour voir ses faits. Elle est attribu\xE9e automatiquement ; on la fixe \xE0 la main dans le fait"],
+          ["puntos", "points", "punts", "pontos", "Punkte", "points"],
+          ["Puntos de control del listado de la obra", "Control points on the project checklist", "Punts de control del llistat de l'obra", "Pontos de controlo da lista da obra", "Kontrollpunkte der Projektliste", "Points de contr\xF4le de la liste du chantier"],
+          ["Qu\xE9", "What", "Qu\xE8", "O qu\xEA", "Was", "Quoi"],
+          ["Qu\xE9 cubre", "What it covers", "Qu\xE8 cobreix", "O que cobre", "Was es abdeckt", "Ce que cela couvre"],
+          ["Qu\xE9 ha hecho la app \xB7 hip\xF3tesis", "What the app has done \xB7 hypothesis", "Qu\xE8 ha fet l'app \xB7 hip\xF2tesi", "O que a app fez \xB7 hip\xF3tese", "Was die App getan hat \xB7 Hypothese", "Ce qu'a fait l'app \xB7 hypoth\xE8se"],
+          ["Qu\xE9 impidi\xF3 arrancar cada sistema y por culpa de qui\xE9n: el cap\xEDtulo de defensa del expediente", "What prevented each system from starting and whose fault it was: the defence chapter of the file", "Qu\xE8 va impedir arrencar cada sistema i per culpa de qui: el cap\xEDtol de defensa de l'expedient", "O que impediu o arranque de cada sistema e por culpa de quem: o cap\xEDtulo de defesa do processo", "Was den Start jedes Systems verhindert hat und wer schuld ist: das Verteidigungskapitel der Akte", "Ce qui a emp\xEAch\xE9 le d\xE9marrage de chaque syst\xE8me et par la faute de qui : le chapitre de d\xE9fense du dossier"],
+          ["Qu\xE9 lo impidi\xF3", "What prevented it", "Qu\xE8 ho va impedir", "O que o impediu", "Was es verhindert hat", "Ce qui l'a emp\xEAch\xE9"],
+          ["Qu\xE9 lo puede tirar", "What could bring it down", "Qu\xE8 ho pot tombar", "O que o pode deitar abaixo", "Was es zu Fall bringen k\xF6nnte", "Ce qui peut le faire tomber"],
+          ["Qu\xE9 lo sustenta", "What supports it", "Qu\xE8 ho sustenta", "O que o sustenta", "Was es st\xFCtzt", "Ce qui le soutient"],
+          ["Qui\xE9n", "Who", "Qui", "Quem", "Wer", "Qui"],
+          ["Qui\xE9n la ve", "Who sees it", "Qui la veu", "Quem a v\xEA", "Wer sie sieht", "Qui la voit"],
+          ["Quitar", "Remove", "Treure", "Remover", "Entfernen", "Retirer"],
+          ["Reacciones", "Reactions", "Reaccions", "Rea\xE7\xF5es", "Reaktionen", "R\xE9actions"],
+          ["Real", "Actual", "Real", "Real", "Effektiv", "R\xE9el"],
+          ["Recargo (%", "Surcharge (%", "Rec\xE0rrec (%", "Sobretaxa (%", "Zuschlag (%", "Majoration (%"],
+          ["reclamaciones", "claims", "reclamacions", "reclama\xE7\xF5es", "Nachforderungen", "r\xE9clamations"],
+          ["Reclamaciones", "Claims", "Reclamacions", "Reclama\xE7\xF5es", "Nachforderungen", "R\xE9clamations"],
+          ["Reclamaciones a subcontratas", "Claims against subcontractors", "Reclamacions a subcontractistes", "Reclama\xE7\xF5es a subempreiteiros", "Nachforderungen an Subunternehmer", "R\xE9clamations aux sous-traitants"],
+          ["Reclamaciones al cliente", "Claims to the client", "Reclamacions al client", "Reclama\xE7\xF5es ao cliente", "Nachforderungen an den Kunden", "R\xE9clamations au client"],
+          ["Reclamamos nosotros", "We are claiming", "Reclamem nosaltres", "Reclamamos n\xF3s", "Wir fordern", "Nous r\xE9clamons"],
+          ["referencia", "reference", "refer\xE8ncia", "refer\xEAncia", "Referenz", "r\xE9f\xE9rence"],
+          ["registros", "records", "registres", "registos", "Eintr\xE4ge", "enregistrements"],
+          ["Reservada: solo jefe de obra y direcci\xF3n", "Restricted: site manager and management only", "Reservada: nom\xE9s cap d'obra i direcci\xF3", "Reservada: apenas diretor de obra e dire\xE7\xE3o", "Vertraulich: nur Bauleiter und Gesch\xE4ftsleitung", "R\xE9serv\xE9e : chef de chantier et direction uniquement"],
+          ["Responsable", "Responsible", "Responsable", "Respons\xE1vel", "Verantwortlich", "Responsable"],
+          ["Resumen (ingl\xE9s", "Summary (English", "Resum (angl\xE8s", "Resumo (ingl\xEAs", "Zusammenfassung (Englisch", "R\xE9sum\xE9 (anglais"],
+          ["Resumen ejecutivo", "Executive summary", "Resum executiu", "Resumo executivo", "Management Summary", "R\xE9sum\xE9 ex\xE9cutif"],
+          ["Resumen por secci\xF3n", "Summary by section", "Resum per secci\xF3", "Resumo por sec\xE7\xE3o", "Zusammenfassung pro Abschnitt", "R\xE9sum\xE9 par section"],
+          ["Resumen por secci\xF3n del claim", "Summary by claim section", "Resum per secci\xF3 del claim", "Resumo por sec\xE7\xE3o do claim", "Zusammenfassung pro Claim-Abschnitt", "R\xE9sum\xE9 par section du claim"],
+          ["Retenci\xF3n", "Retention", "Retenci\xF3", "Reten\xE7\xE3o", "R\xFCckbehalt", "Retenue"],
+          ["Retenci\xF3n (\u20AC", "Retention (\u20AC", "Retenci\xF3 (\u20AC", "Reten\xE7\xE3o (\u20AC", "R\xFCckbehalt (\u20AC", "Retenue (\u20AC"],
+          ["Retrasos acumulados del cliente", "Cumulative client delays", "Retards acumulats del client", "Atrasos acumulados do cliente", "Kumulierte Verz\xF6gerungen des Kunden", "Retards cumul\xE9s du client"],
+          ["Retrasos del cliente", "Client delays", "Retards del client", "Atrasos do cliente", "Verz\xF6gerungen des Kunden", "Retards du client"],
+          ["Revisi\xF3n manual del BOE", "Manual BOE review", "Revisi\xF3 manual del BOE", "Revis\xE3o manual do BOE", "Manuelle BOE-Pr\xFCfung", "R\xE9vision manuelle du BOE"],
+          ["revisiones", "reviews", "revisions", "revis\xF5es", "\xDCberpr\xFCfungen", "r\xE9visions"],
+          ["Revisiones de mantenimiento e inspecciones", "Maintenance reviews and inspections", "Revisions de manteniment i inspeccions", "Revis\xF5es de manuten\xE7\xE3o e inspe\xE7\xF5es", "Wartungspr\xFCfungen und Inspektionen", "R\xE9visions de maintenance et inspections"],
+          ["Revisiones de PPI", "PPI reviews", "Revisions de PPI", "Revis\xF5es de PPI", "PPI-\xDCberpr\xFCfungen", "R\xE9visions du PPI"],
+          ["Riesgo de claims de subcontratas", "Subcontractor claim risk", "Risc de claims de subcontractistes", "Risco de claims de subempreiteiros", "Risiko von Subunternehmer-Claims", "Risque de claims de sous-traitants"],
+          ["Robos", "Thefts", "Robatoris", "Roubos", "Diebst\xE4hle", "Vols"],
+          ["S\xE1bados y fuera de horario", "Saturdays and out-of-hours work", "Dissabtes i fora d'horari", "S\xE1bados e fora de hor\xE1rio", "Samstage und ausserhalb der Arbeitszeit", "Samedis et hors horaires"],
+          ["Sacar a mano los datos de proyecto de fichas t\xE9cnicas y memoria, y montar checklists, estanqueidad y balanceo", "Manually extract the project data from datasheets and the project report, and put together checklists, leak-tightness and balancing", "Treure a m\xE0 les dades de projecte de fitxes t\xE8cniques i mem\xF2ria, i muntar checklists, estanquitat i balanceig", "Extrair \xE0 m\xE3o os dados de projeto de fichas t\xE9cnicas e mem\xF3ria, e montar checklists, estanquidade e balanceamento", "Projektdaten von Hand aus Datenbl\xE4ttern und Bericht herausziehen und Checklisten, Dichtheit und Abgleich aufbauen", "Extraire \xE0 la main les donn\xE9es de projet des fiches techniques et du m\xE9moire, et monter checklists, \xE9tanch\xE9it\xE9 et \xE9quilibrage"],
+          ["Sacarlas del texto del hecho", "Extract them from the event text", "Treure-les del text del fet", "Extra\xED-las do texto do facto", "Aus dem Text des Ereignisses entnehmen", "Les extraire du texte du fait"],
+          ["Se reclama", "Claimed", "Es reclama", "Reclama-se", "Gefordert", "R\xE9clam\xE9"],
+          ["Secci\xF3n del claim", "Claim section", "Secci\xF3 del claim", "Sec\xE7\xE3o do claim", "Claim-Abschnitt", "Section du claim"],
+          ["Seguros", "Insurance", "Assegurances", "Seguros", "Versicherungen", "Assurances"],
+          ["semanas", "weeks", "setmanes", "semanas", "Wochen", "semaines"],
+          ["Sentido", "Direction", "Sentit", "Sentido", "Richtung", "Sens"],
+          ["S\xED", "Yes", "S\xED", "Sim", "Ja", "Oui"],
+          ["Simulaci\xF3n \xB7 obra de", "Simulation \xB7 project of", "Simulaci\xF3 \xB7 obra de", "Simula\xE7\xE3o \xB7 obra de", "Simulation \xB7 Projekt von", "Simulation \xB7 chantier de"],
+          ["Sin adjuntos", "No attachments", "Sense adjunts", "Sem anexos", "Keine Anh\xE4nge", "Sans pi\xE8ces jointes"],
+          ["Sin argumentos", "No arguments", "Sense arguments", "Sem argumentos", "Keine Argumente", "Sans arguments"],
+          ["Sin aviso al cliente. Si se le avis\xF3, elige \xABS\xED\xBB y pide fecha, medio y referencia", "No notice given to the client. If notice was given, choose \xABYes\xBB and enter the date, means and reference", "Sense av\xEDs al client. Si se li va avisar, tria \xABS\xED\xBB i demana data, mitj\xE0 i refer\xE8ncia", "Sem aviso ao cliente. Se foi avisado, escolha \xABSim\xBB e indique data, meio e refer\xEAncia", "Keine Mitteilung an den Kunden. Falls mitgeteilt, \xABJa\xBB w\xE4hlen und Datum, Mittel und Referenz angeben", "Sans avis au client. S'il a \xE9t\xE9 pr\xE9venu, choisissez \xABOui\xBB et indiquez la date, le moyen et la r\xE9f\xE9rence"],
+          ["Sin causas: si el hecho tiene varios tramos de d\xEDas con motivos distintos, a\xF1\xE1delos para valorar cada uno", "No causes: if the event has several stretches of days with different reasons, add them to value each one", "Sense causes: si el fet t\xE9 diversos trams de dies amb motius diferents, afegeix-los per valorar-ne cadascun", "Sem causas: se o facto tem v\xE1rios per\xEDodos de dias com motivos distintos, adicione-os para valorar cada um", "Keine Ursachen: Hat das Ereignis mehrere Tagesabschnitte mit unterschiedlichen Gr\xFCnden, diese hinzuf\xFCgen, um jeden zu bewerten", "Sans causes : si le fait comporte plusieurs p\xE9riodes de jours avec des motifs diff\xE9rents, ajoutez-les pour valoriser chacune"],
+          ["Sin correo ni conversaci\xF3n de WhatsApp asociados: todo hecho necesita su origen para poder valorarlo", "No email or WhatsApp conversation linked: every event needs its origin in order to be valued", "Sense correu ni conversa de WhatsApp associats: tot fet necessita el seu origen per poder valorar-lo", "Sem e-mail nem conversa de WhatsApp associados: todo o facto precisa da sua origem para poder ser valorado", "Keine E-Mail und kein WhatsApp-Gespr\xE4ch zugeordnet: Jedes Ereignis braucht seinen Ursprung, um bewertet werden zu k\xF6nnen", "Sans courriel ni conversation WhatsApp associ\xE9s : tout fait a besoin de son origine pour pouvoir \xEAtre valoris\xE9"],
+          ["Sin correo ni WhatsApp", "No email or WhatsApp", "Sense correu ni WhatsApp", "Sem e-mail nem WhatsApp", "Keine E-Mail, kein WhatsApp", "Sans courriel ni WhatsApp"],
+          ["Sin cuantificar", "Unquantified", "Sense quantificar", "Sem quantifica\xE7\xE3o", "Nicht quantifiziert", "Non quantifi\xE9"],
+          ["sin descripci\xF3n", "no description", "sense descripci\xF3", "sem descri\xE7\xE3o", "ohne Beschreibung", "sans description"],
+          ["Sin d\xEDas", "No days", "Sense dies", "Sem dias", "Keine Tage", "Sans jours"],
+          ["sin indicar", "not specified", "sense indicar", "sem indica\xE7\xE3o", "nicht angegeben", "non indiqu\xE9"],
+          ["Sin justificantes", "No supporting documents", "Sense justificants", "Sem comprovativos", "Ohne Belege", "Sans justificatifs"],
+          ["sin precio p\xFAblico", "no public price", "sense preu p\xFAblic", "sem pre\xE7o p\xFAblico", "ohne \xF6ffentlichen Preis", "sans prix public"],
+          ["Sin pruebas ligadas (correos, WhatsApp, documentos", "No linked evidence (emails, WhatsApp, documents", "Sense proves lligades (correus, WhatsApp, documents", "Sem provas associadas (e-mails, WhatsApp, documentos", "Keine verkn\xFCpften Beweise (E-Mails, WhatsApp, Dokumente", "Sans preuves li\xE9es (courriels, WhatsApp, documents"],
+          ["Sin sistemas", "No systems", "Sense sistemes", "Sem sistemas", "Keine Systeme", "Sans syst\xE8mes"],
+          ["Sin valorar", "Not valued", "Sense valorar", "Sem valora\xE7\xE3o", "Nicht bewertet", "Non valoris\xE9"],
+          ["Sistema", "System", "Sistema", "Sistema", "System", "Syst\xE8me"],
+          ["Software de commissioning (tipo CxAlloy) y libros PM en Excel", "Commissioning software (such as CxAlloy) and PM workbooks in Excel", "Programari de commissioning (tipus CxAlloy) i llibres PM en Excel", "Software de commissioning (tipo CxAlloy) e livros PM em Excel", "Commissioning-Software (wie CxAlloy) und PM-B\xFCcher in Excel", "Logiciel de commissioning (type CxAlloy) et classeurs PM sous Excel"],
+          ["Solo commissioning", "Commissioning only", "Nom\xE9s commissioning", "Apenas commissioning", "Nur Commissioning", "Commissioning uniquement"],
+          ["Solo planificaci\xF3n (cartera, recursos, Project de escritorio incluido", "Planning only (portfolio, resources, desktop Project included", "Nom\xE9s planificaci\xF3 (cartera, recursos, Project d'escriptori incl\xF2s", "Apenas planeamento (carteira, recursos, Project de secret\xE1ria inclu\xEDdo", "Nur Planung (Portfolio, Ressourcen, Desktop-Project inklusive", "Planification seule (portefeuille, ressources, Project de bureau inclus"],
+          ["Soporte", "Support", "Suport", "Suporte", "Support", "Support"],
+          ["Soporte de los d\xEDas", "Supporting evidence for the days", "Suport dels dies", "Suporte dos dias", "Nachweis der Tage", "Justification des jours"],
+          ["Staff de obra (sin desglosar", "Site staff (not broken down", "Staff d'obra (sense desglossar", "Staff de obra (sem desagrega\xE7\xE3o", "Baustellenpersonal (nicht aufgeschl\xFCsselt", "Personnel de chantier (non d\xE9taill\xE9"],
+          ["Staff y prolongaci\xF3n", "Staff and prolongation", "Staff i prolongaci\xF3", "Staff e prolongamento", "Personal und Verl\xE4ngerung", "Personnel et prolongation"],
+          ["Subcontrata \u2192 CBRE (repercutible a LIMAK", "Subcontractor \u2192 CBRE (recoverable from LIMAK", "Subcontractista \u2192 CBRE (repercutible a LIMAK", "Subempreiteiro \u2192 CBRE (repercut\xEDvel \xE0 LIMAK", "Subunternehmer \u2192 CBRE (weiterverrechenbar an LIMAK", "Sous-traitant \u2192 CBRE (r\xE9percutable \xE0 LIMAK"],
+          ["Subcontrata que lo reclama", "Subcontractor claiming it", "Subcontractista que ho reclama", "Subempreiteiro que o reclama", "Subunternehmer, der es fordert", "Sous-traitant qui le r\xE9clame"],
+          ["Subsecciones de la reclamaci\xF3n", "Subsections of the claim", "Subseccions de la reclamaci\xF3", "Subsec\xE7\xF5es da reclama\xE7\xE3o", "Unterabschnitte der Nachforderung", "Sous-sections de la r\xE9clamation"],
+          ["Subsecciones de qu\xE9 hace la app", "Subsections of what the app does", "Subseccions de qu\xE8 fa l'app", "Subsec\xE7\xF5es do que a app faz", "Unterabschnitte dazu, was die App leistet", "Sous-sections de ce que fait l'app"],
+          ["Subtotal coste indirecto", "Indirect cost subtotal", "Subtotal cost indirecte", "Subtotal custo indireto", "Zwischensumme indirekte Kosten", "Sous-total co\xFBt indirect"],
+          ["Subtotal directo", "Direct subtotal", "Subtotal directe", "Subtotal direto", "Direkte Zwischensumme", "Sous-total direct"],
+          ["suma", "sum", "suma", "soma", "Summe", "somme"],
+          ["suman los validados", "the validated ones are summed", "se sumen els validats", "somam-se os validados", "die validierten werden summiert", "les valid\xE9s sont additionn\xE9s"],
+          ["supuesto", "assumption", "sup\xF2sit", "pressuposto", "Annahme", "hypoth\xE8se"],
+          ["Supuesto: a confirmar por JC", "Assumption: to be confirmed by JC", "Sup\xF2sit: a confirmar per JC", "Pressuposto: a confirmar por JC", "Annahme: von JC zu best\xE4tigen", "Hypoth\xE8se : \xE0 confirmer par JC"],
+          ["Sustituye a", "Replaces", "Substitueix", "Substitui", "Ersetzt", "Remplace"],
+          ["tareas", "tasks", "tasques", "tarefas", "Aufgaben", "t\xE2ches"],
+          ["Tareas del Gantt", "Gantt tasks", "Tasques del Gantt", "Tarefas do Gantt", "Gantt-Aufgaben", "T\xE2ches du Gantt"],
+          ["Tareas encargadas al equipo", "Tasks assigned to the team", "Tasques encarregades a l'equip", "Tarefas atribu\xEDdas \xE0 equipa", "Dem Team zugewiesene Aufgaben", "T\xE2ches confi\xE9es \xE0 l'\xE9quipe"],
+          ["Tarifa", "Rate", "Tarifa", "Tarifa", "Tarif", "Tarif"],
+          ["Tarifas", "Rates", "Tarifes", "Tarifas", "Tarife", "Tarifs"],
+          ["T\xE9cnico", "Technician", "T\xE8cnic", "T\xE9cnico", "Techniker", "Technicien"],
+          ["T\xE9cnico de commissioning", "Commissioning technician", "T\xE8cnic de commissioning", "T\xE9cnico de commissioning", "Commissioning-Techniker", "Technicien de commissioning"],
+          ["T\xE9cnico de estudios", "Studies technician", "T\xE8cnic d'estudis", "T\xE9cnico de estudos", "Techniker Studien", "Technicien d'\xE9tudes"],
+          ["T\xE9cnico de mantenimiento", "Maintenance technician", "T\xE8cnic de manteniment", "T\xE9cnico de manuten\xE7\xE3o", "Wartungstechniker", "Technicien de maintenance"],
+          ["Tema", "Topic", "Tema", "Tema", "Thema", "Th\xE8me"],
+          ["Temas", "Topics", "Temes", "Temas", "Themen", "Th\xE8mes"],
+          ["Textos del escrito", "Texts of the submission", "Textos de l'escrit", "Textos do escrito", "Texte des Schreibens", "Textes de l'\xE9crit"],
+          ["Tiempo (d\xEDas", "Time (days", "Temps (dies", "Tempo (dias", "Zeit (Tage", "Temps (jours"],
+          ["Tiempo del hecho", "Event time", "Temps del fet", "Tempo do facto", "Zeit des Ereignisses", "Temps du fait"],
+          ["Tiempo: extensi\xF3n de plazo", "Time: extension of deadline", "Temps: ampliaci\xF3 de termini", "Tempo: prorroga\xE7\xE3o de prazo", "Zeit: Fristverl\xE4ngerung", "Temps : prolongation de d\xE9lai"],
+          ["Tipo", "Type", "Tipus", "Tipo", "Typ", "Type"],
+          ["Tipo (seg\xFAn archivo", "Type (by file", "Tipus (segons arxiu", "Tipo (segundo o ficheiro", "Typ (nach Datei", "Type (selon le fichier"],
+          ["T\xEDtulo", "Title", "T\xEDtol", "T\xEDtulo", "Titel", "Titre"],
+          ["T\xEDtulo (opcional", "Title (optional", "T\xEDtol (opcional", "T\xEDtulo (opcional", "Titel (optional", "Titre (facultatif"],
+          ["Todas las categor\xEDas", "All categories", "Totes les categories", "Todas as categorias", "Alle Kategorien", "Toutes les cat\xE9gories"],
+          ["Todav\xEDa sin argumentos ni reacciones", "No arguments or reactions yet", "Encara sense arguments ni reaccions", "Ainda sem argumentos nem rea\xE7\xF5es", "Noch keine Argumente oder Reaktionen", "Pas encore d'arguments ni de r\xE9actions"],
+          ["Todos", "All", "Tots", "Todos", "Alle", "Tous"],
+          ["Todos los que ven reclamaciones", "Everyone who sees claims", "Tots els qui veuen reclamacions", "Todos os que veem reclama\xE7\xF5es", "Alle, die Nachforderungen sehen", "Tous ceux qui voient les r\xE9clamations"],
+          ["Total \xB7 suma de los hechos", "Total \xB7 sum of the events", "Total \xB7 suma dels fets", "Total \xB7 soma dos factos", "Total \xB7 Summe der Ereignisse", "Total \xB7 somme des faits"],
+          ["Total de la fase al mes", "Phase total per month", "Total de la fase al mes", "Total da fase por m\xEAs", "Phasentotal pro Monat", "Total de la phase par mois"],
+          ["Total de la obra", "Project total", "Total de l'obra", "Total da obra", "Projekttotal", "Total du chantier"],
+          ["Total orientativo \xB7 mil \u20AC", "Indicative total \xB7 thousand \u20AC", "Total orientatiu \xB7 mil \u20AC", "Total indicativo \xB7 mil \u20AC", "Richtwert gesamt \xB7 Tausend \u20AC", "Total indicatif \xB7 milliers d'\u20AC"],
+          ["Total reclamado", "Total claimed", "Total reclamat", "Total reclamado", "Total gefordert", "Total r\xE9clam\xE9"],
+          ["Trabajo de campo con la app m\xF3vil", "Fieldwork with the mobile app", "Treball de camp amb l'app m\xF2bil", "Trabalho de campo com a app m\xF3vel", "Feldarbeit mit der mobilen App", "Travail de terrain avec l'app mobile"],
+          ["Trabajos previos no hechos", "Preliminary works not done", "Treballs previs no fets", "Trabalhos pr\xE9vios n\xE3o realizados", "Nicht ausgef\xFChrte Vorarbeiten", "Travaux pr\xE9alables non r\xE9alis\xE9s"],
+          ["Traer", "Fetch", "Portar", "Trazer", "Holen", "R\xE9cup\xE9rer"],
+          ["Tramitados", "Processed", "Tramitats", "Tramitados", "Bearbeitet", "Trait\xE9s"],
+          ["tr\xE1mites", "procedures", "tr\xE0mits", "tr\xE2mites", "Verfahren", "d\xE9marches"],
+          ["Un JSON con preaviso, medios, renuncias, exclusiones y cl\xE1usulas (p. ej. docs/claim/plantilla-ncn.json", "A JSON with notice period, means, waivers, exclusions and clauses (e.g. docs/claim/plantilla-ncn.json", "Un JSON amb preav\xEDs, mitjans, ren\xFAncies, exclusions i cl\xE0usules (p. ex. docs/claim/plantilla-ncn.json", "Um JSON com pr\xE9-aviso, meios, ren\xFAncias, exclus\xF5es e cl\xE1usulas (p. ex. docs/claim/plantilla-ncn.json", "Ein JSON mit Vorank\xFCndigung, Mitteln, Verzichten, Ausschl\xFCssen und Klauseln (z. B. docs/claim/plantilla-ncn.json", "Un JSON avec pr\xE9avis, moyens, renonciations, exclusions et clauses (p. ex. docs/claim/plantilla-ncn.json"],
+          ["Una fila por instalaci\xF3n de los equipos de la obra", "One row per installation of the project's equipment", "Una fila per instal\xB7laci\xF3 dels equips de l'obra", "Uma linha por instala\xE7\xE3o dos equipamentos da obra", "Eine Zeile pro Installation der Anlagen im Projekt", "Une ligne par installation des \xE9quipements du chantier"],
+          ["una vez", "once", "una vegada", "uma vez", "einmal", "une fois"],
+          ["una vez \xB7 media al mes", "once \xB7 monthly average", "una vegada \xB7 mitjana al mes", "uma vez \xB7 m\xE9dia mensal", "einmal \xB7 Durchschnitt pro Monat", "une fois \xB7 moyenne mensuelle"],
+          ["Una vez al final (cx + entrega", "Once at the end (cx + handover", "Una vegada al final (cx + lliurament", "Uma vez no final (cx + entrega", "Einmal am Ende (Cx + \xDCbergabe", "Une fois \xE0 la fin (cx + remise"],
+          ["Una vez por obra", "Once per project", "Una vegada per obra", "Uma vez por obra", "Einmal pro Projekt", "Une fois par chantier"],
+          ["Una vez por obra, al final", "Once per project, at the end", "Una vegada per obra, al final", "Uma vez por obra, no final", "Einmal pro Projekt, am Ende", "Une fois par chantier, \xE0 la fin"],
+          ["Unidad de negocio", "Business unit", "Unitat de negoci", "Unidade de neg\xF3cio", "Gesch\xE4ftseinheit", "Unit\xE9 d'affaires"],
+          ["Unidad de referencia (Base + Cx y Mantenimiento", "Reference unit (Base + Cx and Maintenance", "Unitat de refer\xE8ncia (Base + Cx i Manteniment", "Unidade de refer\xEAncia (Base + Cx e Manuten\xE7\xE3o", "Referenzeinheit (Basis + Cx und Wartung", "Unit\xE9 de r\xE9f\xE9rence (Base + Cx et Maintenance"],
+          ["Unidades", "Units", "Unitats", "Unidades", "Einheiten", "Unit\xE9s"],
+          ["Usuarios", "Users", "Usuaris", "Utilizadores", "Benutzer", "Utilisateurs"],
+          ["Usuarios del equipo", "Team users", "Usuaris de l'equip", "Utilizadores da equipa", "Benutzer des Teams", "Utilisateurs de l'\xE9quipe"],
+          ["Validado", "Validated", "Validat", "Validado", "Validiert", "Valid\xE9"],
+          ["validados", "validated", "validats", "validados", "validiert", "valid\xE9s"],
+          ["Validados", "Validated", "Validats", "Validados", "Validiert", "Valid\xE9s"],
+          ["validados que suman", "validated ones that add up", "validats que sumen", "validados que somam", "validierte, die sich summieren", "valid\xE9s qui s'additionnent"],
+          ["Valor (\u20AC", "Value (\u20AC", "Valor (\u20AC", "Valor (\u20AC", "Wert (\u20AC", "Valeur (\u20AC"],
+          ["Valoraci\xF3n", "Valuation", "Valoraci\xF3", "Valora\xE7\xE3o", "Bewertung", "Valorisation"],
+          ["Valorar", "Value", "Valorar", "Valorar", "Bewerten", "Valoriser"],
+          ["Venta", "Sale price", "Preu de venda", "Pre\xE7o de venda", "Verkaufspreis", "Prix de vente"],
+          ["Venta (\u20AC", "Sale price (\u20AC", "Preu de venda (\u20AC", "Pre\xE7o de venda (\u20AC", "Verkaufspreis (\u20AC", "Prix de vente (\u20AC"],
+          ["Ver los hechos de \xABBastante defendible", "See the events of \xABFairly defensible", "Veure els fets de \xABBastant defensable", "Ver os factos de \xABBastante defens\xE1vel", "Ereignisse von \xABZiemlich vertretbar anzeigen", "Voir les faits de \xABAssez d\xE9fendable"],
+          ["Ver los hechos de \xABMuy defendible", "See the events of \xABHighly defensible", "Veure els fets de \xABMolt defensable", "Ver os factos de \xABMuito defens\xE1vel", "Ereignisse von \xABSehr vertretbar anzeigen", "Voir les faits de \xABTr\xE8s d\xE9fendable"],
+          ["Ver los hechos de \xABPoco defendible", "See the events of \xABWeakly defensible", "Veure els fets de \xABPoc defensable", "Ver os factos de \xABPouco defens\xE1vel", "Ereignisse von \xABWenig vertretbar anzeigen", "Voir les faits de \xABPeu d\xE9fendable"],
+          ["Ver los hechos de \xABSin valorar", "See the events of \xABNot valued", "Veure els fets de \xABSense valorar", "Ver os factos de \xABSem valora\xE7\xE3o", "Ereignisse von \xABNicht bewertet anzeigen", "Voir les faits de \xABNon valoris\xE9"],
+          ["Ver los hechos de Aceleraci\xF3n", "See the events of Acceleration", "Veure els fets d'Acceleraci\xF3", "Ver os factos de Acelera\xE7\xE3o", "Ereignisse von Beschleunigung anzeigen", "Voir les faits d'Acc\xE9l\xE9ration"],
+          ["Ver los hechos de Baja productividad", "See the events of Low productivity", "Veure els fets de Baixa productivitat", "Ver os factos de Baixa produtividade", "Ereignisse von Geringe Produktivit\xE4t anzeigen", "Voir les faits de Faible productivit\xE9"],
+          ["Ver los hechos de Cambios y retrabajos del cliente", "See the events of Client changes and rework", "Veure els fets de Canvis i retreballs del client", "Ver os factos de Altera\xE7\xF5es e retrabalho do cliente", "Ereignisse von \xC4nderungen und Nacharbeiten des Kunden anzeigen", "Voir les faits de Modifications et reprises du client"],
+          ["Ver los hechos de Retrasos del cliente", "See the events of Client delays", "Veure els fets de Retards del client", "Ver os factos de Atrasos do cliente", "Ereignisse von Verz\xF6gerungen des Kunden anzeigen", "Voir les faits de Retards du client"],
+          ["Ver los hechos de Staff y prolongaci\xF3n", "See the events of Staff and prolongation", "Veure els fets de Staff i prolongaci\xF3", "Ver os factos de Staff e prolongamento", "Ereignisse von Personal und Verl\xE4ngerung anzeigen", "Voir les faits de Personnel et prolongation"],
+          ["Verlas", "See them", "Veure-les", "V\xEA-las", "Ansehen", "Les voir"],
+          ["Vidaire Obras junta todo eso en un solo programa centrado en instalaciones", "Vidaire Obras brings all of that together in a single program focused on building services", "Vidaire Obras ajunta tot aix\xF2 en un sol programa centrat en instal\xB7lacions", "A Vidaire Obras junta tudo isso num \xFAnico programa centrado em instala\xE7\xF5es", "Vidaire Obras vereint all das in einem einzigen, auf Installationen ausgerichteten Programm", "Vidaire Obras r\xE9unit tout cela dans un seul logiciel centr\xE9 sur les installations"],
+          ["Vigilancia de normativa", "Regulatory monitoring", "Vigil\xE0ncia de normativa", "Vigil\xE2ncia normativa", "\xDCberwachung der Vorschriften", "Veille r\xE9glementaire"],
+          ["Volver a propuesto", "Back to proposed", "Tornar a proposat", "Voltar a proposto", "Zur\xFCck zu vorgeschlagen", "Remettre en propos\xE9"],
+          ["Ya reclamado en", "Already claimed in", "Ja reclamat a", "J\xE1 reclamado em", "Bereits gefordert in", "D\xE9j\xE0 r\xE9clam\xE9 dans"],
+          /* 14-nov (notas 3da06329 y b58b07b6): Reclamaciones, su panel y «Lo que ahorra» con la app en otro idioma. */
+          ["Defender", "Defend", "Defensar", "Defender", "Verteidigen", "D\xE9fendre"],
+          ["Vista", "View", "Vista", "Vista", "Ansicht", "Vue"],
+          ["Filtros", "Filters", "Filtres", "Filtros", "Filter", "Filtres"],
+          ["Nuevo hecho", "New event", "Nou fet", "Novo facto", "Neues Ereignis", "Nouveau fait"],
+          ["Buscar en los hechos", "Search the events", "Cerca als fets", "Pesquisar nos factos", "In den Ereignissen suchen", "Rechercher dans les faits"],
+          ["Estudio", "Study", "Estudi", "Estudo", "Studie", "\xC9tude"],
+          ["Motivo", "Reason", "Motiu", "Motivo", "Grund", "Motif"],
+          ["Qu\xE9 falta", "What is missing", "Qu\xE8 falta", "O que falta", "Was fehlt", "Ce qui manque"],
+          ["Filtro y orden", "Filter and order", "Filtre i ordre", "Filtro e ordem", "Filter und Reihenfolge", "Filtre et ordre"],
+          ["M\xE1s", "More", "M\xE9s", "Mais", "Mehr", "Plus"],
+          ["Y sobre todo lo que hace sola", "And above all what it does by itself", "I sobretot el que fa sola", "E sobretudo o que faz sozinha", "Und vor allem, was sie selbst erledigt", "Et surtout ce qu'elle fait seule"],
+          ["Uso de equipos", "Equipment use", "\xDAs d'equips", "Uso de equipamentos", "Ger\xE4tenutzung", "Utilisation des \xE9quipements"],
+          /* 14-nov (notas 3da06329 y b58b07b6): Reclamaciones, su panel y «Lo que ahorra» con la app en otro idioma. */
+          ["Equipos \u203A una fila por equipo, en el mes en que se dio de alta (creadoEn)", "Units \u203A one row per unit, in the month it was registered (creadoEn)", "Equips \u203A una fila per equip, al mes en qu\xE8 es va donar d'alta (creadoEn)", "Equipamentos \u203A uma linha por equipamento, no m\xEAs em que foi registado (creadoEn)", "Anlagen \u203A eine Zeile pro Anlage, im Monat der Erfassung (creadoEn)", "\xC9quipements \u203A une ligne par \xE9quipement, dans le mois o\xF9 il a \xE9t\xE9 enregistr\xE9 (creadoEn)"],
+          ["Equipos \u203A Modelos, en el mes en que se cre\xF3 el modelo (creadoEn)", "Units \u203A Models, in the month the model was created (creadoEn)", "Equips \u203A Models, al mes en qu\xE8 es va crear el model (creadoEn)", "Equipamentos \u203A Modelos, no m\xEAs em que o modelo foi criado (creadoEn)", "Anlagen \u203A Modelle, im Monat der Erstellung des Modells (creadoEn)", "\xC9quipements \u203A Mod\xE8les, dans le mois o\xF9 le mod\xE8le a \xE9t\xE9 cr\xE9\xE9 (creadoEn)"],
+          ["Documentos enlazados a cada equipo, en el mes de la \xFAltima modificaci\xF3n del equipo (aproximado: la base no guarda la fecha de cada enlace)", "Documents linked to each unit, in the month of the unit's last modification (approximate: the database does not store the date of each link)", "Documents enlla\xE7ats a cada equip, al mes de l'\xFAltima modificaci\xF3 de l'equip (aproximat: la base no guarda la data de cada enlla\xE7)", "Documentos ligados a cada equipamento, no m\xEAs da \xFAltima modifica\xE7\xE3o do equipamento (aproximado: a base n\xE3o guarda a data de cada liga\xE7\xE3o)", "Mit jeder Anlage verkn\xFCpfte Dokumente, im Monat der letzten \xC4nderung der Anlage (ungef\xE4hr: die Datenbank speichert das Datum jeder Verkn\xFCpfung nicht)", "Documents li\xE9s \xE0 chaque \xE9quipement, dans le mois de la derni\xE8re modification de l'\xE9quipement (approximatif : la base ne conserve pas la date de chaque lien)"],
+          ["Commissioning \u203A Fichas PM, en el mes en que se gener\xF3 cada ficha (creadoEn)", "Commissioning \u203A PM records, in the month each record was generated (creadoEn)", "Commissioning \u203A Fitxes PM, al mes en qu\xE8 es va generar cada fitxa (creadoEn)", "Commissioning \u203A Fichas PM, no m\xEAs em que cada ficha foi gerada (creadoEn)", "Commissioning \u203A PM-Bl\xE4tter, im Monat der Erstellung jedes Blatts (creadoEn)", "Commissioning \u203A Fiches PM, dans le mois o\xF9 chaque fiche a \xE9t\xE9 g\xE9n\xE9r\xE9e (creadoEn)"],
+          ["Datos de proyecto en las fichas PM, en el mes de la \xFAltima modificaci\xF3n de la ficha (aproximado)", "Project data in the PM records, in the month of the record's last modification (approximate)", "Dades de projecte a les fitxes PM, al mes de l'\xFAltima modificaci\xF3 de la fitxa (aproximat)", "Dados de projeto nas fichas PM, no m\xEAs da \xFAltima modifica\xE7\xE3o da ficha (aproximado)", "Projektdaten in den PM-Bl\xE4ttern, im Monat der letzten \xC4nderung des Blatts (ungef\xE4hr)", "Donn\xE9es de projet dans les fiches PM, dans le mois de la derni\xE8re modification de la fiche (approximatif)"],
+          ["Commissioning \u203A Balanceo, hojas con circuitos (creadoEn)", "Commissioning \u203A Balancing, sheets with circuits (creadoEn)", "Commissioning \u203A Balanceig, fulls amb circuits (creadoEn)", "Commissioning \u203A Balanceamento, folhas com circuitos (creadoEn)", "Commissioning \u203A Abgleich, Bl\xE4tter mit Kreisen (creadoEn)", "Commissioning \u203A \xC9quilibrage, feuilles avec circuits (creadoEn)"],
+          ["Planos de difusores, bocas situadas, en el mes de la \xFAltima modificaci\xF3n del plano", "Diffuser drawings, outlets placed, in the month of the drawing's last modification", "Pl\xE0nols de difusors, boques situades, al mes de l'\xFAltima modificaci\xF3 del pl\xE0nol", "Plantas de difusores, bocas colocadas, no m\xEAs da \xFAltima modifica\xE7\xE3o da planta", "Pl\xE4ne der Diffusoren, platzierte Ausl\xE4sse, im Monat der letzten \xC4nderung des Plans", "Plans de diffuseurs, bouches plac\xE9es, dans le mois de la derni\xE8re modification du plan"],
+          ["Puntos de control: salen de los equipos, en el mes del alta de cada equipo (aproximado)", "Control points: they come from the units, in the month each unit was registered (approximate)", "Punts de control: surten dels equips, al mes de l'alta de cada equip (aproximat)", "Pontos de controlo: saem dos equipamentos, no m\xEAs do registo de cada equipamento (aproximado)", "Kontrollpunkte: stammen aus den Anlagen, im Monat der Erfassung jeder Anlage (ungef\xE4hr)", "Points de contr\xF4le : ils proviennent des \xE9quipements, dans le mois de l'enregistrement de chaque \xE9quipement (approximatif)"],
+          ["Presupuesto de la obra, partidas (creadoEn)", "Site budget, line items (creadoEn)", "Pressupost de l'obra, partides (creadoEn)", "Or\xE7amento da obra, artigos (creadoEn)", "Baustellenbudget, Positionen (creadoEn)", "Budget du chantier, lignes (creadoEn)"],
+          ["Precios de contrato por partida (creadoEn)", "Contract prices per line item (creadoEn)", "Preus de contracte per partida (creadoEn)", "Pre\xE7os de contrato por artigo (creadoEn)", "Vertragspreise pro Position (creadoEn)", "Prix de contrat par ligne (creadoEn)"],
+          ["Certificaciones a cliente (creadoEn); las de un periodo anterior al alta son historial", "Certifications to the client (creadoEn); those for a period before the set-up are history", "Certificacions a client (creadoEn); les d'un per\xEDode anterior a l'alta s\xF3n historial", "Certifica\xE7\xF5es ao cliente (creadoEn); as de um per\xEDodo anterior ao registo da obra s\xE3o hist\xF3rico", "Zertifizierungen an den Kunden (creadoEn); jene f\xFCr einen Zeitraum vor der Einrichtung sind Verlauf", "Certifications au client (creadoEn) ; celles d'une p\xE9riode ant\xE9rieure \xE0 la mise en place sont de l'historique"],
+          ["certificaciones de meses anteriores al alta, cargadas despu\xE9s", "certifications from months before the set-up, loaded afterwards", "certificacions de mesos anteriors a l'alta, carregades despr\xE9s", "certifica\xE7\xF5es de meses anteriores ao registo da obra, carregadas depois", "Zertifizierungen aus Monaten vor der Einrichtung, nachtr\xE4glich geladen", "certifications de mois ant\xE9rieurs \xE0 la mise en place, charg\xE9es apr\xE8s coup"],
+          ["Certificaciones de industriales (creadoEn); las de un periodo anterior al alta son historial", "Subcontractor certifications (creadoEn); those for a period before the set-up are history", "Certificacions d'industrials (creadoEn); les d'un per\xEDode anterior a l'alta s\xF3n historial", "Certifica\xE7\xF5es de subempreiteiros (creadoEn); as de um per\xEDodo anterior ao registo da obra s\xE3o hist\xF3rico", "Zertifizierungen von Subunternehmern (creadoEn); jene f\xFCr einen Zeitraum vor der Einrichtung sind Verlauf", "Certifications de sous-traitants (creadoEn) ; celles d'une p\xE9riode ant\xE9rieure \xE0 la mise en place sont de l'historique"],
+          ["certificaciones de industriales de meses anteriores al alta, cargadas despu\xE9s", "subcontractor certifications from months before the set-up, loaded afterwards", "certificacions d'industrials de mesos anteriors a l'alta, carregades despr\xE9s", "certifica\xE7\xF5es de subempreiteiros de meses anteriores ao registo da obra, carregadas depois", "Zertifizierungen von Subunternehmern aus Monaten vor der Einrichtung, nachtr\xE4glich geladen", "certifications de sous-traitants de mois ant\xE9rieurs \xE0 la mise en place, charg\xE9es apr\xE8s coup"],
+          ["Compras \u203A Pedidos (creadoEn); los pedidos solicitados antes del alta son historial", "Purchasing \u203A Purchase orders (creadoEn); purchase orders requested before the set-up are history", "Compres \u203A Comandes (creadoEn); les comandes sol\xB7licitades abans de l'alta s\xF3n historial", "Compras \u203A Encomendas (creadoEn); as encomendas pedidas antes do registo da obra s\xE3o hist\xF3rico", "Einkauf \u203A Bestellungen (creadoEn); vor der Einrichtung angefragte Bestellungen sind Verlauf", "Achats \u203A Commandes (creadoEn) ; les commandes demand\xE9es avant la mise en place sont de l'historique"],
+          ["pedidos solicitados antes del alta (cargados del Excel de compras)", "purchase orders requested before the set-up (loaded from the purchasing Excel)", "comandes sol\xB7licitades abans de l'alta (carregades de l'Excel de compres)", "encomendas pedidas antes do registo da obra (carregadas do Excel de compras)", "vor der Einrichtung angefragte Bestellungen (aus dem Einkaufs-Excel geladen)", "commandes demand\xE9es avant la mise en place (charg\xE9es du Excel des achats)"],
+          ["Albaranes (creadoEn); los de fecha anterior al alta son historial", "Delivery notes (creadoEn); those dated before the set-up are history", "Albarans (creadoEn); els de data anterior a l'alta s\xF3n historial", "Guias de remessa (creadoEn); as de data anterior ao registo da obra s\xE3o hist\xF3rico", "Lieferscheine (creadoEn); jene mit Datum vor der Einrichtung sind Verlauf", "Bons de livraison (creadoEn) ; ceux dat\xE9s d'avant la mise en place sont de l'historique"],
+          ["albaranes de antes del alta", "delivery notes from before the set-up", "albarans d'abans de l'alta", "guias de remessa de antes do registo da obra", "Lieferscheine von vor der Einrichtung", "bons de livraison d'avant la mise en place"],
+          ["Facturas de proveedor (creadoEn); las de antes del alta son historial", "Supplier invoices (creadoEn); those from before the set-up are history", "Factures de prove\xEFdor (creadoEn); les d'abans de l'alta s\xF3n historial", "Faturas de fornecedor (creadoEn); as de antes do registo da obra s\xE3o hist\xF3rico", "Lieferantenrechnungen (creadoEn); jene von vor der Einrichtung sind Verlauf", "Factures fournisseur (creadoEn) ; celles d'avant la mise en place sont de l'historique"],
+          ["facturas de antes del alta", "invoices from before the set-up", "factures d'abans de l'alta", "faturas de antes do registo da obra", "Rechnungen von vor der Einrichtung", "factures d'avant la mise en place"],
+          ["Calidad \u203A NCR (creadoEn); las importadas del libro de NCR o detectadas antes del alta son historial", "Quality \u203A NCR (creadoEn); those imported from the NCR log or detected before the set-up are history", "Qualitat \u203A NCR (creadoEn); les importades del llibre de NCR o detectades abans de l'alta s\xF3n historial", "Qualidade \u203A NCR (creadoEn); as importadas do livro de NCR ou detetadas antes do registo da obra s\xE3o hist\xF3rico", "Qualit\xE4t \u203A NCR (creadoEn); jene aus dem NCR-Buch importierten oder vor der Einrichtung festgestellten sind Verlauf", "Qualit\xE9 \u203A NCR (creadoEn) ; celles import\xE9es du registre des NCR ou d\xE9tect\xE9es avant la mise en place sont de l'historique"],
+          ["NCR importadas del libro de NCR (detectadas antes del alta)", "NCR imported from the NCR log (detected before the set-up)", "NCR importades del llibre de NCR (detectades abans de l'alta)", "NCR importadas do livro de NCR (detetadas antes do registo da obra)", "Aus dem NCR-Buch importierte NCR (vor der Einrichtung festgestellt)", "NCR import\xE9es du registre des NCR (d\xE9tect\xE9es avant la mise en place)"],
+          ["Partes de incidencia (creadoEn)", "Incident reports (creadoEn)", "Parts d'incid\xE8ncia (creadoEn)", "Partes de incid\xEAncia (creadoEn)", "St\xF6rungsmeldungen (creadoEn)", "Rapports d'incident (creadoEn)"],
+          ["partes de antes del alta", "reports from before the set-up", "parts d'abans de l'alta", "partes de antes do registo da obra", "Meldungen von vor der Einrichtung", "rapports d'avant la mise en place"],
+          ["Pruebas de estanqueidad (creadoEn)", "Tightness tests (creadoEn)", "Proves d'estanquitat (creadoEn)", "Ensaios de estanquidade (creadoEn)", "Dichtheitspr\xFCfungen (creadoEn)", "Essais d'\xE9tanch\xE9it\xE9 (creadoEn)"],
+          ["pruebas de antes del alta", "tests from before the set-up", "proves d'abans de l'alta", "ensaios de antes do registo da obra", "Pr\xFCfungen von vor der Einrichtung", "essais d'avant la mise en place"],
+          ["Revisiones de PPI (creadoEn)", "PPI reviews (creadoEn)", "Revisions de PPI (creadoEn)", "Revis\xF5es de PPI (creadoEn)", "PPI-Kontrollen (creadoEn)", "Revues de PPI (creadoEn)"],
+          ["Planificaci\xF3n \u203A Gantt, actividades (creadoEn)", "Planning \u203A Gantt, activities (creadoEn)", "Planificaci\xF3 \u203A Gantt, activitats (creadoEn)", "Planeamento \u203A Gantt, atividades (creadoEn)", "Planung \u203A Gantt, Aktivit\xE4ten (creadoEn)", "Planification \u203A Gantt, activit\xE9s (creadoEn)"],
+          ["Tareas encargadas (creadoEn)", "Assigned tasks (creadoEn)", "Tasques encarregades (creadoEn)", "Tarefas atribu\xEDdas (creadoEn)", "Zugewiesene Aufgaben (creadoEn)", "T\xE2ches confi\xE9es (creadoEn)"],
+          ["Actas de obra (creadoEn); las de reuniones anteriores al alta son historial", "Site meeting minutes (creadoEn); those of meetings before the set-up are history", "Actes d'obra (creadoEn); les de reunions anteriors a l'alta s\xF3n historial", "Atas de obra (creadoEn); as de reuni\xF5es anteriores ao registo da obra s\xE3o hist\xF3rico", "Baustellenprotokolle (creadoEn); jene von Besprechungen vor der Einrichtung sind Verlauf", "Comptes rendus de chantier (creadoEn) ; ceux des r\xE9unions ant\xE9rieures \xE0 la mise en place sont de l'historique"],
+          ["actas de reuniones anteriores al alta", "minutes of meetings before the set-up", "actes de reunions anteriors a l'alta", "atas de reuni\xF5es anteriores ao registo da obra", "Protokolle von Besprechungen vor der Einrichtung", "comptes rendus de r\xE9unions ant\xE9rieures \xE0 la mise en place"],
+          ["Marcas de avance en plano (creadoEn)", "Progress marks on drawings (creadoEn)", "Marques d'avan\xE7 en pl\xE0nol (creadoEn)", "Marcas de avan\xE7o na planta (creadoEn)", "Fortschrittsmarkierungen im Plan (creadoEn)", "Marques d'avancement sur plan (creadoEn)"],
+          ["marcas de antes del alta", "marks from before the set-up", "marques d'abans de l'alta", "marcas de antes do registo da obra", "Markierungen von vor der Einrichtung", "marques d'avant la mise en place"],
+          ["Mantenimiento \u203A \xF3rdenes cerradas (creadoEn)", "Maintenance \u203A closed work orders (creadoEn)", "Manteniment \u203A ordres tancades (creadoEn)", "Manuten\xE7\xE3o \u203A ordens fechadas (creadoEn)", "Wartung \u203A abgeschlossene Auftr\xE4ge (creadoEn)", "Maintenance \u203A ordres cl\xF4tur\xE9s (creadoEn)"],
+          ["Fichajes (creadoEn)", "Clock-ins (creadoEn)", "Fitxatges (creadoEn)", "Registos de ponto (creadoEn)", "Zeiterfassungen (creadoEn)", "Pointages (creadoEn)"],
+          ["fichajes de antes del alta", "clock-ins from before the set-up", "fitxatges d'abans de l'alta", "registos de ponto de antes do registo da obra", "Zeiterfassungen von vor der Einrichtung", "pointages d'avant la mise en place"],
+          ["Pedidos \u203A Pedido \u2194 proyecto, l\xEDneas cruzadas (creadoEn de la propuesta)", "Purchase orders \u203A Purchase order \u2194 project, cross-matched lines (creadoEn of the proposal)", "Comandes \u203A Comanda \u2194 projecte, l\xEDnies creuades (creadoEn de la proposta)", "Encomendas \u203A Encomenda \u2194 projeto, linhas cruzadas (creadoEn da proposta)", "Bestellungen \u203A Bestellung \u2194 Projekt, abgeglichene Zeilen (creadoEn des Vorschlags)", "Commandes \u203A Commande \u2194 projet, lignes crois\xE9es (creadoEn de la proposition)"],
+          ["Medici\xF3n comprobada en planos (creadoEn)", "Quantity checked on drawings (creadoEn)", "Mesurament comprovat en pl\xE0nols (creadoEn)", "Medi\xE7\xE3o verificada nas plantas (creadoEn)", "In Pl\xE4nen gepr\xFCfte Mengenermittlung (creadoEn)", "M\xE9tr\xE9 v\xE9rifi\xE9 sur plans (creadoEn)"],
+          ["Reclamaciones \u203A pruebas tipo correo (creadoEn)", "Claims \u203A email-type evidence (creadoEn)", "Reclamacions \u203A proves de tipus correu (creadoEn)", "Reclama\xE7\xF5es \u203A provas do tipo correio (creadoEn)", "Nachforderungen \u203A Beweise vom Typ E-Mail (creadoEn)", "R\xE9clamations \u203A preuves de type courriel (creadoEn)"],
+          ["Reclamaciones \u203A pruebas tipo foto (creadoEn)", "Claims \u203A photo-type evidence (creadoEn)", "Reclamacions \u203A proves de tipus foto (creadoEn)", "Reclama\xE7\xF5es \u203A provas do tipo fotografia (creadoEn)", "Nachforderungen \u203A Beweise vom Typ Foto (creadoEn)", "R\xE9clamations \u203A preuves de type photo (creadoEn)"],
+          ["Reclamaciones \u203A pruebas documento o acta (creadoEn)", "Claims \u203A document or minutes evidence (creadoEn)", "Reclamacions \u203A proves de document o acta (creadoEn)", "Reclama\xE7\xF5es \u203A provas de documento ou ata (creadoEn)", "Nachforderungen \u203A Beweise vom Typ Dokument oder Protokoll (creadoEn)", "R\xE9clamations \u203A preuves de type document ou compte rendu (creadoEn)"],
+          ["Reclamaciones \u203A hechos (creadoEn)", "Claims \u203A events (creadoEn)", "Reclamacions \u203A fets (creadoEn)", "Reclama\xE7\xF5es \u203A factos (creadoEn)", "Nachforderungen \u203A Ereignisse (creadoEn)", "R\xE9clamations \u203A faits (creadoEn)"],
+          ["Reclamaciones \u203A hechos cuantificados (creadoEn del hecho)", "Claims \u203A quantified events (creadoEn of the event)", "Reclamacions \u203A fets quantificats (creadoEn del fet)", "Reclama\xE7\xF5es \u203A factos quantificados (creadoEn do facto)", "Nachforderungen \u203A quantifizierte Ereignisse (creadoEn des Ereignisses)", "R\xE9clamations \u203A faits chiffr\xE9s (creadoEn du fait)"],
+          ["Reclamaciones \u203A hechos de pagos e IPC (creadoEn del hecho)", "Claims \u203A payment and IPC events (creadoEn of the event)", "Reclamacions \u203A fets de pagaments i IPC (creadoEn del fet)", "Reclama\xE7\xF5es \u203A factos de pagamentos e IPC (creadoEn do facto)", "Nachforderungen \u203A Zahlungs- und IPC-Ereignisse (creadoEn des Ereignisses)", "R\xE9clamations \u203A faits de paiements et d'IPC (creadoEn du fait)"],
+          ["Reclamaciones \u203A hechos clasificados (creadoEn del hecho)", "Claims \u203A classified events (creadoEn of the event)", "Reclamacions \u203A fets classificats (creadoEn del fet)", "Reclama\xE7\xF5es \u203A factos classificados (creadoEn do facto)", "Nachforderungen \u203A klassifizierte Ereignisse (creadoEn des Ereignisses)", "R\xE9clamations \u203A faits class\xE9s (creadoEn du fait)"],
+          ["Reclamaciones \u203A hechos con plazo (creadoEn del hecho)", "Claims \u203A events with a deadline (creadoEn of the event)", "Reclamacions \u203A fets amb termini (creadoEn del fet)", "Reclama\xE7\xF5es \u203A factos com prazo (creadoEn do facto)", "Nachforderungen \u203A Ereignisse mit Frist (creadoEn des Ereignisses)", "R\xE9clamations \u203A faits avec d\xE9lai (creadoEn du fait)"],
+          ["Reclamaciones \u203A enlaces hecho-prueba (creadoEn)", "Claims \u203A event-evidence links (creadoEn)", "Reclamacions \u203A enlla\xE7os fet-prova (creadoEn)", "Reclama\xE7\xF5es \u203A liga\xE7\xF5es facto-prova (creadoEn)", "Nachforderungen \u203A Verkn\xFCpfungen Ereignis-Beweis (creadoEn)", "R\xE9clamations \u203A liens fait-preuve (creadoEn)"],
+          ["Reclamaciones \u203A pruebas anexadas (creadoEn del enlace)", "Claims \u203A attached evidence (creadoEn of the link)", "Reclamacions \u203A proves annexades (creadoEn de l'enlla\xE7)", "Reclama\xE7\xF5es \u203A provas anexadas (creadoEn da liga\xE7\xE3o)", "Nachforderungen \u203A beigef\xFCgte Beweise (creadoEn der Verkn\xFCpfung)", "R\xE9clamations \u203A preuves annex\xE9es (creadoEn du lien)"],
+          ["Reclamaciones \u203A cl\xE1usulas citadas (creadoEn)", "Claims \u203A clauses cited (creadoEn)", "Reclamacions \u203A cl\xE0usules citades (creadoEn)", "Reclama\xE7\xF5es \u203A cl\xE1usulas citadas (creadoEn)", "Nachforderungen \u203A zitierte Klauseln (creadoEn)", "R\xE9clamations \u203A clauses cit\xE9es (creadoEn)"],
+          ["Reclamaciones \u203A apartados (creadoEn)", "Claims \u203A sections (creadoEn)", "Reclamacions \u203A apartats (creadoEn)", "Reclama\xE7\xF5es \u203A sec\xE7\xF5es (creadoEn)", "Nachforderungen \u203A Abschnitte (creadoEn)", "R\xE9clamations \u203A sections (creadoEn)"],
+          ["Reclamaciones \u203A una por expediente (creadoEn)", "Claims \u203A one per file (creadoEn)", "Reclamacions \u203A una per expedient (creadoEn)", "Reclama\xE7\xF5es \u203A uma por processo (creadoEn)", "Nachforderungen \u203A eine pro Akte (creadoEn)", "R\xE9clamations \u203A une par dossier (creadoEn)"],
+          ["Reclamaciones \u203A conciliaci\xF3n de material (creadoEn)", "Claims \u203A material reconciliation (creadoEn)", "Reclamacions \u203A conciliaci\xF3 de material (creadoEn)", "Reclama\xE7\xF5es \u203A concilia\xE7\xE3o de material (creadoEn)", "Nachforderungen \u203A Materialabgleich (creadoEn)", "R\xE9clamations \u203A rapprochement du mat\xE9riel (creadoEn)"],
+          ["Equipos en uso para el claim, en el mes de la reclamaci\xF3n (aproximado)", "Units in use for the claim, in the month of the claim (approximate)", "Equips en \xFAs per al claim, al mes de la reclamaci\xF3 (aproximat)", "Equipamentos em uso para o claim, no m\xEAs da reclama\xE7\xE3o (aproximado)", "F\xFCr den Claim verwendete Anlagen, im Monat der Nachforderung (ungef\xE4hr)", "\xC9quipements utilis\xE9s pour le claim, dans le mois de la r\xE9clamation (approximatif)"],
+          ["Informe semanal: un lunes = un informe, desde el alta de la obra (no se guarda cada informe sacado)", "Weekly report: one Monday = one report, from the site set-up (each report produced is not stored)", "Informe setmanal: un dilluns = un informe, des de l'alta de l'obra (no es guarda cada informe tret)", "Relat\xF3rio semanal: uma segunda-feira = um relat\xF3rio, desde o registo da obra (n\xE3o se guarda cada relat\xF3rio emitido)", "Wochenbericht: ein Montag = ein Bericht, seit der Einrichtung der Baustelle (jeder erstellte Bericht wird nicht gespeichert)", "Rapport hebdomadaire : un lundi = un rapport, depuis la mise en place du chantier (chaque rapport sorti n'est pas conserv\xE9)"],
+          ["SELECT calculadoEn FROM desfaseCalculos WHERE obraId = ?", "SELECT calculadoEn FROM desfaseCalculos WHERE obraId = ?", "SELECT calculadoEn FROM desfaseCalculos WHERE obraId = ?", "SELECT calculadoEn FROM desfaseCalculos WHERE obraId = ?", "SELECT calculadoEn FROM desfaseCalculos WHERE obraId = ?", "SELECT calculadoEn FROM desfaseCalculos WHERE obraId = ?"],
+          ["Certificaciones \u203A Mes a mes \u203A Por causa: lo que la app cas\xF3, revis\xF3 y enlaz\xF3 al calcular el desfase, en el mes de ese c\xE1lculo (desfaseCalculos)", "Certifications \u203A Month by month \u203A By cause: what the app matched, reviewed and linked when calculating the delay, in the month of that calculation (desfaseCalculos)", "Certificacions \u203A Mes a mes \u203A Per causa: el que l'app va casar, revisar i enlla\xE7ar en calcular el desf\xE0s, al mes d'aquest c\xE0lcul (desfaseCalculos)", "Certifica\xE7\xF5es \u203A M\xEAs a m\xEAs \u203A Por causa: o que a app cruzou, reviu e ligou ao calcular o desfasamento, no m\xEAs desse c\xE1lculo (desfaseCalculos)", "Zertifizierungen \u203A Monat f\xFCr Monat \u203A Nach Ursache: was die App beim Berechnen der Verz\xF6gerung abgeglichen, gepr\xFCft und verkn\xFCpft hat, im Monat dieser Berechnung (desfaseCalculos)", "Certifications \u203A Mois par mois \u203A Par cause : ce que l'appli a rapproch\xE9, revu et li\xE9 lors du calcul du d\xE9calage, dans le mois de ce calcul (desfaseCalculos)"],
+          ["SELECT ultimoEnlace FROM configCommissioning WHERE obraId = ?", "SELECT ultimoEnlace FROM configCommissioning WHERE obraId = ?", "SELECT ultimoEnlace FROM configCommissioning WHERE obraId = ?", "SELECT ultimoEnlace FROM configCommissioning WHERE obraId = ?", "SELECT ultimoEnlace FROM configCommissioning WHERE obraId = ?", "SELECT ultimoEnlace FROM configCommissioning WHERE obraId = ?"],
+          ["Commissioning \u203A \xFAltima pasada por el SharePoint (archivos le\xEDdos), en el mes de esa pasada", "Commissioning \u203A last pass through SharePoint (files read), in the month of that pass", "Commissioning \u203A \xFAltima passada pel SharePoint (arxius llegits), al mes d'aquesta passada", "Commissioning \u203A \xFAltima passagem pelo SharePoint (ficheiros lidos), no m\xEAs dessa passagem", "Commissioning \u203A letzter Durchlauf durch SharePoint (gelesene Dateien), im Monat dieses Durchlaufs", "Commissioning \u203A dernier passage dans SharePoint (fichiers lus), dans le mois de ce passage"],
+          ["Legalizaciones \u203A certificados de instalador que aplican (sin fecha en la base: van al mes en curso)", "Legalisations \u203A applicable installer certificates (no date in the database: they go to the current month)", "Legalitzacions \u203A certificats d'instal\xB7lador que s'apliquen (sense data a la base: van al mes en curs)", "Legaliza\xE7\xF5es \u203A certificados de instalador aplic\xE1veis (sem data na base: v\xE3o para o m\xEAs em curso)", "Bewilligungen \u203A anwendbare Installateurzertifikate (kein Datum in der Datenbank: sie gehen in den laufenden Monat)", "L\xE9galisations \u203A certificats d'installateur applicables (sans date dans la base : ils vont au mois en cours)"],
+          ["Legalizaciones \u203A tr\xE1mites del territorio (sin fecha en la base: van al mes en curso)", "Legalisations \u203A procedures of the territory (no date in the database: they go to the current month)", "Legalitzacions \u203A tr\xE0mits del territori (sense data a la base: van al mes en curs)", "Legaliza\xE7\xF5es \u203A tr\xE2mites do territ\xF3rio (sem data na base: v\xE3o para o m\xEAs em curso)", "Bewilligungen \u203A Verfahren des Gebiets (kein Datum in der Datenbank: sie gehen in den laufenden Monat)", "L\xE9galisations \u203A d\xE9marches du territoire (sans date dans la base : elles vont au mois en cours)"],
+          ["Sin fecha en la base: va al mes en curso", "No date in the database: it goes to the current month", "Sense data a la base: va al mes en curs", "Sem data na base: vai para o m\xEAs em curso", "Kein Datum in der Datenbank: es geht in den laufenden Monat", "Sans date dans la base : il va au mois en cours"],
+          ["SELECT valores, modificadoEn FROM ajustesAhorro WHERE id = ?", "SELECT valores, modificadoEn FROM ajustesAhorro WHERE id = ?", "SELECT valores, modificadoEn FROM ajustesAhorro WHERE id = ?", "SELECT valores, modificadoEn FROM ajustesAhorro WHERE id = ?", "SELECT valores, modificadoEn FROM ajustesAhorro WHERE id = ?", "SELECT valores, modificadoEn FROM ajustesAhorro WHERE id = ?"],
+          ["No se encuentra la obra.", "The site cannot be found.", "No es troba l'obra.", "N\xE3o se encontra a obra.", "Die Baustelle wurde nicht gefunden.", "Le chantier est introuvable."],
+          ["SELECT rol, COUNT(*) AS n FROM personas WHERE activo = 1 GROUP BY rol", "SELECT rol, COUNT(*) AS n FROM personas WHERE activo = 1 GROUP BY rol", "SELECT rol, COUNT(*) AS n FROM personas WHERE activo = 1 GROUP BY rol", "SELECT rol, COUNT(*) AS n FROM personas WHERE activo = 1 GROUP BY rol", "SELECT rol, COUNT(*) AS n FROM personas WHERE activo = 1 GROUP BY rol", "SELECT rol, COUNT(*) AS n FROM personas WHERE activo = 1 GROUP BY rol"],
+          ["Poner a cada hecho su categor\xEDa (Robos, Staff, Retrasos, Dise\xF1o\u2026) y llevar a mano el recuento y el subtotal de cada una: ~1 min por hecho. A confirmar", "Assign each event its category (Thefts, Staff, Delays, Design\u2026) and keep the count and subtotal of each one by hand: ~1 min per event. To be confirmed", "Posar a cada fet la seva categoria (Robatoris, Staff, Retards, Disseny\u2026) i portar a m\xE0 el recompte i el subtotal de cadascuna: ~1 min per fet. A confirmar", "Atribuir a cada facto a sua categoria (Roubos, Staff, Atrasos, Design\u2026) e manter \xE0 m\xE3o a contagem e o subtotal de cada uma: ~1 min por facto. A confirmar", "Jedem Ereignis seine Kategorie zuweisen (Diebst\xE4hle, Staff, Verz\xF6gerungen, Design\u2026) und die Anzahl und Zwischensumme jeder Kategorie von Hand f\xFChren: ~1 min pro Ereignis. Zu best\xE4tigen", "Attribuer \xE0 chaque fait sa cat\xE9gorie (Vols, Staff, Retards, Conception\u2026) et tenir \xE0 la main le d\xE9compte et le sous-total de chacune : ~1 min par fait. \xC0 confirmer"],
+          ["Por cada apartado (o subapartado) con hechos: redactar su cap\xEDtulo de la justificaci\xF3n, sumar su subtotal y montar su hoja del Excel: ~30 min por apartado. A confirmar", "For each section (or subsection) with events: write its chapter of the justification, add up its subtotal and build its Excel sheet: ~30 min per section. To be confirmed", "Per cada apartat (o subapartat) amb fets: redactar el seu cap\xEDtol de la justificaci\xF3, sumar el seu subtotal i muntar el seu full de l'Excel: ~30 min per apartat. A confirmar", "Por cada sec\xE7\xE3o (ou subsec\xE7\xE3o) com factos: redigir o seu cap\xEDtulo da justifica\xE7\xE3o, somar o seu subtotal e montar a sua folha do Excel: ~30 min por sec\xE7\xE3o. A confirmar", "F\xFCr jeden Abschnitt (oder Unterabschnitt) mit Ereignissen: sein Kapitel der Begr\xFCndung verfassen, seine Zwischensumme addieren und sein Excel-Blatt aufbauen: ~30 min pro Abschnitt. Zu best\xE4tigen", "Pour chaque section (ou sous-section) avec des faits : r\xE9diger son chapitre de la justification, additionner son sous-total et monter sa feuille Excel : ~30 min par section. \xC0 confirmer"],
+          ["Teclear en el listado TAG, planta, sala, marca, modelo, n\xBA de serie y familia: ~3 min por equipo", "Type into the list the TAG, floor, room, make, model, serial number and family: ~3 min per unit", "Teclejar al llistat TAG, planta, sala, marca, model, nre. de s\xE8rie i fam\xEDlia: ~3 min per equip", "Digitar na lista o TAG, piso, sala, marca, modelo, n.\xBA de s\xE9rie e fam\xEDlia: ~3 min por equipamento", "In die Liste TAG, Stockwerk, Raum, Marke, Modell, Seriennr. und Familie eintippen: ~3 min pro Anlage", "Saisir dans la liste le TAG, l'\xE9tage, la salle, la marque, le mod\xE8le, le n\xB0 de s\xE9rie et la famille : ~3 min par \xE9quipement"],
+          ["Agrupar las unidades de un mismo modelo y copiar a cada una su ficha t\xE9cnica, CE y manual: ~5 min por modelo", "Group the units of the same model and copy to each one its datasheet, CE and manual: ~5 min per model", "Agrupar les unitats d'un mateix model i copiar a cadascuna la seva fitxa t\xE8cnica, CE i manual: ~5 min per model", "Agrupar as unidades de um mesmo modelo e copiar para cada uma a sua ficha t\xE9cnica, CE e manual: ~5 min por modelo", "Die Einheiten desselben Modells gruppieren und jeder ihr Datenblatt, CE und Handbuch kopieren: ~5 min pro Modell", "Regrouper les unit\xE9s d'un m\xEAme mod\xE8le et copier dans chacune sa fiche technique, CE et manuel : ~5 min par mod\xE8le"],
+          ["Mirar nombre y carpeta y decidir si es ficha t\xE9cnica, CE, manual, PM o balanceo: ~30 s por archivo (la \xFAltima pasada del motor", "Look at the name and folder and decide whether it is a datasheet, CE, manual, PM or balancing: ~30 s per file (the engine's last pass", "Mirar nom i carpeta i decidir si \xE9s fitxa t\xE8cnica, CE, manual, PM o balanceig: ~30 s per arxiu (l'\xFAltima passada del motor", "Ver o nome e a pasta e decidir se \xE9 ficha t\xE9cnica, CE, manual, PM ou balanceamento: ~30 s por ficheiro (a \xFAltima passagem do motor", "Name und Ordner ansehen und entscheiden, ob es ein Datenblatt, CE, Handbuch, PM oder Abgleich ist: ~30 s pro Datei (der letzte Durchlauf der Engine", "Regarder le nom et le dossier et d\xE9cider s'il s'agit d'une fiche technique, CE, manuel, PM ou \xE9quilibrage : ~30 s par fichier (le dernier passage du moteur"],
+          ["Buscar el PDF en la carpeta, abrirlo para ver que es de ese equipo o modelo y pegar el enlace en su fila: ~2 min por enlace", "Find the PDF in the folder, open it to check it belongs to that unit or model and paste the link into its row: ~2 min per link", "Buscar el PDF a la carpeta, obrir-lo per veure que \xE9s d'aquest equip o model i enganxar l'enlla\xE7 a la seva fila: ~2 min per enlla\xE7", "Procurar o PDF na pasta, abri-lo para ver que \xE9 desse equipamento ou modelo e colar a liga\xE7\xE3o na sua linha: ~2 min por liga\xE7\xE3o", "Das PDF im Ordner suchen, \xF6ffnen, um zu pr\xFCfen, dass es zu dieser Anlage oder diesem Modell geh\xF6rt, und den Link in seine Zeile einf\xFCgen: ~2 min pro Link", "Chercher le PDF dans le dossier, l'ouvrir pour v\xE9rifier qu'il est de cet \xE9quipement ou mod\xE8le et coller le lien dans sa ligne : ~2 min par lien"],
+          ["Copiar la plantilla Excel, rellenar la cabecera (TAG, ubicaci\xF3n, marca, modelo, serie) y los valores nominales: ~10 min por ficha", "Copy the Excel template, fill in the header (TAG, location, make, model, serial) and the nominal values: ~10 min per record", "Copiar la plantilla Excel, omplir la cap\xE7alera (TAG, ubicaci\xF3, marca, model, s\xE8rie) i els valors nominals: ~10 min per fitxa", "Copiar o modelo Excel, preencher o cabe\xE7alho (TAG, localiza\xE7\xE3o, marca, modelo, s\xE9rie) e os valores nominais: ~10 min por ficha", "Die Excel-Vorlage kopieren, den Kopf (TAG, Standort, Marke, Modell, Serie) und die Nennwerte ausf\xFCllen: ~10 min pro Blatt", "Copier le mod\xE8le Excel, remplir l'en-t\xEAte (TAG, emplacement, marque, mod\xE8le, s\xE9rie) et les valeurs nominales : ~10 min par fiche"],
+          ["Buscar en el PDF del equipo el caudal, el agua o la temperatura y teclearlo en su ficha PM con su p\xE1gina: ~1 min por dato (Preparar commissioning", "Find the airflow, water or temperature in the unit's PDF and type it into its PM record with its page: ~1 min per data point (Prepare commissioning", "Buscar al PDF de l'equip el cabal, l'aigua o la temperatura i teclejar-lo a la seva fitxa PM amb la seva p\xE0gina: ~1 min per dada (Preparar commissioning", "Procurar no PDF do equipamento o caudal, a \xE1gua ou a temperatura e digit\xE1-lo na sua ficha PM com a sua p\xE1gina: ~1 min por dado (Preparar commissioning", "Im PDF der Anlage den Volumenstrom, das Wasser oder die Temperatur suchen und in ihr PM-Blatt mit Seitenangabe eintippen: ~1 min pro Wert (Commissioning vorbereiten", "Chercher dans le PDF de l'\xE9quipement le d\xE9bit, l'eau ou la temp\xE9rature et la saisir dans sa fiche PM avec sa page : ~1 min par donn\xE9e (Pr\xE9parer le commissioning"],
+          ["Montar la hoja con sus bocas, caudales de dise\xF1o y tolerancias, y las f\xF3rmulas de desviaci\xF3n: ~30 min por hoja", "Build the sheet with its outlets, design flows and tolerances, and the deviation formulas: ~30 min per sheet", "Muntar el full amb les seves boques, cabals de disseny i toler\xE0ncies, i les f\xF3rmules de desviaci\xF3: ~30 min per full", "Montar a folha com as suas bocas, caudais de projeto e toler\xE2ncias, e as f\xF3rmulas de desvio: ~30 min por folha", "Das Blatt mit seinen Ausl\xE4ssen, Auslegungsvolumenstr\xF6men und Toleranzen sowie den Abweichungsformeln aufbauen: ~30 min pro Blatt", "Monter la feuille avec ses bouches, ses d\xE9bits de conception et ses tol\xE9rances, et les formules d'\xE9cart : ~30 min par feuille"],
+          ["Marcar y numerar cada boca en el plano y pasarla a la hoja: ~2 min por boca", "Mark and number each outlet on the drawing and transfer it to the sheet: ~2 min per outlet", "Marcar i numerar cada boca al pl\xE0nol i passar-la al full: ~2 min per boca", "Marcar e numerar cada boca na planta e pass\xE1-la para a folha: ~2 min por boca", "Jeden Auslass im Plan markieren und nummerieren und ins Blatt \xFCbertragen: ~2 min pro Auslass", "Marquer et num\xE9roter chaque bouche sur le plan et la reporter dans la feuille : ~2 min par bouche"],
+          ["Escribir cada se\xF1al (equipo, tipo ED/SD/EA/SA y descripci\xF3n) en el listado de regulaci\xF3n: ~1 min por punto", "Write each signal (unit, type ED/SD/EA/SA and description) in the control list: ~1 min per point", "Escriure cada senyal (equip, tipus ED/SD/EA/SA i descripci\xF3) al llistat de regulaci\xF3: ~1 min per punt", "Escrever cada sinal (equipamento, tipo ED/SD/EA/SA e descri\xE7\xE3o) na lista de regula\xE7\xE3o: ~1 min por ponto", "Jedes Signal (Anlage, Typ ED/SD/EA/SA und Beschreibung) in die Regelungsliste schreiben: ~1 min pro Punkt", "\xC9crire chaque signal (\xE9quipement, type ED/SD/EA/SA et description) dans la liste de r\xE9gulation : ~1 min par point"],
+          ["Teclear o pegar y repasar c\xF3digo, unidad, medici\xF3n y precio: ~1 min por partida", "Type or paste and check code, unit, quantity and price: ~1 min per line item", "Teclejar o enganxar i repassar codi, unitat, mesurament i preu: ~1 min per partida", "Digitar ou colar e rever c\xF3digo, unidade, medi\xE7\xE3o e pre\xE7o: ~1 min por artigo", "Code, Einheit, Menge und Preis eintippen oder einf\xFCgen und pr\xFCfen: ~1 min pro Position", "Saisir ou coller et revoir code, unit\xE9, m\xE9tr\xE9 et prix : ~1 min par ligne"],
+          ["Casar cada partida con su precio contratado y su adenda: ~1 min por precio", "Match each line item with its contracted price and its addendum: ~1 min per price", "Casar cada partida amb el seu preu contractat i la seva addenda: ~1 min per preu", "Cruzar cada artigo com o seu pre\xE7o contratado e o seu adenda: ~1 min por pre\xE7o", "Jede Position mit ihrem vertraglich vereinbarten Preis und ihrem Nachtrag abgleichen: ~1 min pro Preis", "Rapprocher chaque ligne de son prix contractuel et de son avenant : ~1 min par prix"],
+          ["Un informe cada lunes desde que la obra est\xE1 en la app: ~1,5 h de juntar commissioning, certificaciones, costes y NCR", "A report every Monday from the moment the site is in the app: ~1.5 h of pulling together commissioning, certifications, costs and NCR", "Un informe cada dilluns des que l'obra \xE9s a l'app: ~1,5 h de ajuntar commissioning, certificacions, costos i NCR", "Um relat\xF3rio todas as segundas-feiras desde que a obra est\xE1 na app: ~1,5 h a juntar commissioning, certifica\xE7\xF5es, custos e NCR", "Jeden Montag ein Bericht, seit die Baustelle in der App ist: ~1,5 h f\xFCr das Zusammentragen von Commissioning, Zertifizierungen, Kosten und NCR", "Un rapport chaque lundi depuis que le chantier est dans l'appli : ~1,5 h pour rassembler commissioning, certifications, co\xFBts et NCR"],
+          ["Anterior, a origen, cuadro econ\xF3mico y PDF en el libro DTM.CERT: ~4 h por certificaci\xF3n", "Previous, to date, cost summary and PDF in the DTM.CERT workbook: ~4 h per certification", "Anterior, a origen, quadre econ\xF2mic i PDF al llibre DTM.CERT: ~4 h per certificaci\xF3", "Anterior, a origem, quadro econ\xF3mico e PDF no livro DTM.CERT: ~4 h por certifica\xE7\xE3o", "Vorherige, kumuliert, Kosten\xFCbersicht und PDF im DTM.CERT-Buch: ~4 h pro Zertifizierung", "Pr\xE9c\xE9dent, \xE0 l'origine, tableau \xE9conomique et PDF dans le classeur DTM.CERT : ~4 h par certification"],
+          ["Leer la certificaci\xF3n del industrial y cuadrarla con sus pedidos: ~1 h por certificaci\xF3n", "Read the subcontractor's certification and reconcile it with their purchase orders: ~1 h per certification", "Llegir la certificaci\xF3 de l'industrial i quadrar-la amb les seves comandes: ~1 h per certificaci\xF3", "Ler a certifica\xE7\xE3o do subempreiteiro e acert\xE1-la com as suas encomendas: ~1 h por certifica\xE7\xE3o", "Die Zertifizierung des Subunternehmers lesen und mit seinen Bestellungen abstimmen: ~1 h pro Zertifizierung", "Lire la certification du sous-traitant et la rapprocher de ses commandes : ~1 h par certification"],
+          ["Redactar el pedido, numerarlo y apuntarlo en el comprometido: ~15 min por pedido", "Write the purchase order, number it and record it in the committed costs: ~15 min per purchase order", "Redactar la comanda, numerar-la i apuntar-la al comprom\xE8s: ~15 min per comanda", "Redigir a encomenda, numer\xE1-la e regist\xE1-la no comprometido: ~15 min por encomenda", "Die Bestellung verfassen, nummerieren und im Obligo erfassen: ~15 min pro Bestellung", "R\xE9diger la commande, la num\xE9roter et la noter dans l'engag\xE9 : ~15 min par commande"],
+          ["Casar el albar\xE1n con su pedido y apuntar lo recibido: ~5 min por albar\xE1n", "Match the delivery note with its purchase order and record what was received: ~5 min per delivery note", "Casar l'albar\xE0 amb la seva comanda i apuntar el rebut: ~5 min per albar\xE0", "Cruzar a guia de remessa com a sua encomenda e registar o recebido: ~5 min por guia", "Den Lieferschein mit seiner Bestellung abgleichen und das Erhaltene erfassen: ~5 min pro Lieferschein", "Rapprocher le bon de livraison de sa commande et noter ce qui a \xE9t\xE9 re\xE7u : ~5 min par bon de livraison"],
+          ["Imputar la factura a su cap\xEDtulo del control de costes: ~5 min por factura", "Allocate the invoice to its chapter in the cost control: ~5 min per invoice", "Imputar la factura al seu cap\xEDtol del control de costos: ~5 min per factura", "Imputar a fatura ao seu cap\xEDtulo do controlo de custos: ~5 min por fatura", "Die Rechnung ihrem Kapitel in der Kostenkontrolle zuordnen: ~5 min pro Rechnung", "Imputer la facture \xE0 son chapitre du contr\xF4le des co\xFBts : ~5 min par facture"],
+          ["Numerar, calcular plazos y aplazamientos, seguir hasta el cierre y pasarla al informe: ~15 min por NCR", "Number it, calculate deadlines and extensions, follow it through to closure and carry it into the report: ~15 min per NCR", "Numerar, calcular terminis i ajornaments, seguir fins al tancament i passar-la a l'informe: ~15 min per NCR", "Numerar, calcular prazos e adiamentos, acompanhar at\xE9 ao fecho e pass\xE1-la ao relat\xF3rio: ~15 min por NCR", "Nummerieren, Fristen und Fristverl\xE4ngerungen berechnen, bis zum Abschluss verfolgen und in den Bericht \xFCbernehmen: ~15 min pro NCR", "Num\xE9roter, calculer les d\xE9lais et les reports, suivre jusqu'\xE0 la cl\xF4ture et la reporter dans le rapport : ~15 min par NCR"],
+          ["Redactar el parte con sus l\xEDneas y su PDF: ~15 min por parte", "Write the report with its lines and its PDF: ~15 min per report", "Redactar el part amb les seves l\xEDnies i el seu PDF: ~15 min per part", "Redigir o parte com as suas linhas e o seu PDF: ~15 min por parte", "Die Meldung mit ihren Zeilen und ihrem PDF verfassen: ~15 min pro Meldung", "R\xE9diger le rapport avec ses lignes et son PDF : ~15 min par rapport"],
+          ["Pasar las lecturas y redactar el informe de la prueba: ~20 min por prueba", "Transfer the readings and write the test report: ~20 min per test", "Passar les lectures i redactar l'informe de la prova: ~20 min per prova", "Passar as leituras e redigir o relat\xF3rio do ensaio: ~20 min por ensaio", "Die Messwerte \xFCbertragen und den Pr\xFCfbericht verfassen: ~20 min pro Pr\xFCfung", "Reporter les relev\xE9s et r\xE9diger le rapport de l'essai : ~20 min par essai"],
+          ["Rellenar la plantilla PPI con sus puntos de inspecci\xF3n: ~20 min por revisi\xF3n", "Fill in the PPI template with its inspection points: ~20 min per review", "Omplir la plantilla PPI amb els seus punts d'inspecci\xF3: ~20 min per revisi\xF3", "Preencher o modelo PPI com os seus pontos de inspe\xE7\xE3o: ~20 min por revis\xE3o", "Die PPI-Vorlage mit ihren Pr\xFCfpunkten ausf\xFCllen: ~20 min pro Kontrolle", "Remplir le mod\xE8le PPI avec ses points d'inspection : ~20 min par revue"],
+          ["Crear la tarea con fechas, enlaces y recurso en Project: ~5 min por tarea", "Create the task with dates, links and resource in Project: ~5 min per task", "Crear la tasca amb dates, enlla\xE7os i recurs a Project: ~5 min per tasca", "Criar a tarefa com datas, liga\xE7\xF5es e recurso no Project: ~5 min por tarefa", "Die Aufgabe mit Terminen, Verkn\xFCpfungen und Ressource in Project anlegen: ~5 min pro Aufgabe", "Cr\xE9er la t\xE2che avec dates, liens et ressource dans Project : ~5 min par t\xE2che"],
+          ["Encargarla por correo o WhatsApp y apuntar su seguimiento: ~3 min por tarea", "Assign it by email or WhatsApp and note its follow-up: ~3 min per task", "Encarregar-la per correu o WhatsApp i apuntar-ne el seguiment: ~3 min per tasca", "Atribu\xED-la por correio ou WhatsApp e registar o seu acompanhamento: ~3 min por tarefa", "Sie per E-Mail oder WhatsApp zuweisen und ihre Nachverfolgung notieren: ~3 min pro Aufgabe", "La confier par courriel ou WhatsApp et noter son suivi : ~3 min par t\xE2che"],
+          ["Redactar el acta con asistentes y acuerdos y mandarla: ~30 min por acta", "Write the minutes with attendees and agreements and send them out: ~30 min per set of minutes", "Redactar l'acta amb assistents i acords i enviar-la: ~30 min per acta", "Redigir a ata com os presentes e os acordos e envi\xE1-la: ~30 min por ata", "Das Protokoll mit Teilnehmern und Beschl\xFCssen verfassen und versenden: ~30 min pro Protokoll", "R\xE9diger le compte rendu avec les participants et les accords et l'envoyer : ~30 min par compte rendu"],
+          ["Medir ese tramo, equipo o zona en el plano y apuntarlo con su fecha: ~5 min por marca", "Measure that section, unit or zone on the drawing and note it with its date: ~5 min per mark", "Mesurar aquest tram, equip o zona al pl\xE0nol i apuntar-lo amb la seva data: ~5 min per marca", "Medir esse tro\xE7o, equipamento ou zona na planta e regist\xE1-lo com a sua data: ~5 min por marca", "Diesen Abschnitt, diese Anlage oder Zone im Plan ausmessen und mit Datum notieren: ~5 min pro Markierung", "Mesurer ce tron\xE7on, cet \xE9quipement ou cette zone sur le plan et le noter avec sa date : ~5 min par marque"],
+          ["Apuntar la revisi\xF3n en el plan y calcular la pr\xF3xima: ~10 min por registro", "Record the review in the plan and calculate the next one: ~10 min per record", "Apuntar la revisi\xF3 al pla i calcular la propera: ~10 min per registre", "Registar a revis\xE3o no plano e calcular a pr\xF3xima: ~10 min por registo", "Die Kontrolle im Plan eintragen und die n\xE4chste berechnen: ~10 min pro Eintrag", "Noter la revue dans le plan et calculer la suivante : ~10 min par enregistrement"],
+          ["Elegir al operario por especialidad, pasarle la orden, recoger la hoja firmada con sus fotos y medidas, pasar las horas al coste y archivar el PDF: ~20 min por orden (provisional", "Choose the operative by specialty, hand over the order, collect the signed sheet with its photos and measurements, pass the hours to cost and file the PDF: ~20 min per order (provisional", "Triar l'operari per especialitat, passar-li l'ordre, recollir el full signat amb les seves fotos i mesures, passar les hores al cost i arxivar el PDF: ~20 min per ordre (provisional", "Escolher o oper\xE1rio por especialidade, passar-lhe a ordem, recolher a folha assinada com as suas fotos e medi\xE7\xF5es, passar as horas ao custo e arquivar o PDF: ~20 min por ordem (provis\xF3rio", "Den Arbeiter nach Fachgebiet ausw\xE4hlen, ihm den Auftrag \xFCbergeben, das unterschriebene Blatt mit Fotos und Messwerten einsammeln, die Stunden in die Kosten \xFCbertragen und das PDF ablegen: ~20 min pro Auftrag (provisorisch", "Choisir l'op\xE9rateur par sp\xE9cialit\xE9, lui passer l'ordre, r\xE9cup\xE9rer la feuille sign\xE9e avec ses photos et mesures, reporter les heures au co\xFBt et archiver le PDF : ~20 min par ordre (provisoire"],
+          ["Pasar la hoja de firmas de entrada a la de personal: ~1 min por fichaje", "Transfer the entry signing sheet to the personnel sheet: ~1 min per clock-in", "Passar el full de signatures d'entrada al de personal: ~1 min per fitxatge", "Passar a folha de assinaturas de entrada para a de pessoal: ~1 min por registo de ponto", "Das Eintrittsunterschriftsblatt in das Personalblatt \xFCbertragen: ~1 min pro Zeiterfassung", "Reporter la feuille de signatures d'entr\xE9e sur celle du personnel : ~1 min par pointage"],
+          ["Buscar el correo en el buz\xF3n o en la carpeta de .msg, leer el hilo, decidir a qu\xE9 apartado va y guardarlo con fecha, remitente, asunto y enlace: ~6 min por correo. A confirmar", "Find the email in the mailbox or in the .msg folder, read the thread, decide which section it goes to and save it with date, sender, subject and link: ~6 min per email. To be confirmed", "Buscar el correu a la b\xFAstia o a la carpeta de .msg, llegir el fil, decidir a quin apartat va i guardar-lo amb data, remitent, assumpte i enlla\xE7: ~6 min per correu. A confirmar", "Procurar o correio na caixa ou na pasta de .msg, ler o fio, decidir a que sec\xE7\xE3o vai e guard\xE1-lo com data, remetente, assunto e liga\xE7\xE3o: ~6 min por correio. A confirmar", "Die E-Mail im Postfach oder im .msg-Ordner suchen, den Verlauf lesen, entscheiden, zu welchem Abschnitt sie geh\xF6rt, und sie mit Datum, Absender, Betreff und Link ablegen: ~6 min pro E-Mail. Zu best\xE4tigen", "Chercher le courriel dans la bo\xEEte ou dans le dossier de .msg, lire le fil, d\xE9cider \xE0 quelle section il va et le conserver avec date, exp\xE9diteur, objet et lien : ~6 min par courriel. \xC0 confirmer"],
+          ["Localizar el documento en el SharePoint, comprobar que es la versi\xF3n buena y apuntarlo con su enlace y su huella: ~3 min por documento. A confirmar", "Locate the document in SharePoint, check it is the right version and record it with its link and its hash: ~3 min per document. To be confirmed", "Localitzar el document al SharePoint, comprovar que \xE9s la versi\xF3 bona i apuntar-lo amb el seu enlla\xE7 i la seva empremta: ~3 min per document. A confirmar", "Localizar o documento no SharePoint, verificar que \xE9 a vers\xE3o certa e regist\xE1-lo com a sua liga\xE7\xE3o e a sua impress\xE3o digital: ~3 min por documento. A confirmar", "Das Dokument in SharePoint finden, pr\xFCfen, dass es die richtige Version ist, und es mit seinem Link und seinem Hash erfassen: ~3 min pro Dokument. Zu best\xE4tigen", "Localiser le document dans SharePoint, v\xE9rifier que c'est la bonne version et le noter avec son lien et son empreinte : ~3 min par document. \xC0 confirmer"],
+          ["Buscar la foto por fecha en el chat exportado, guardarla con su nombre y anotar de qu\xE9 es y a qu\xE9 hecho prueba: ~5 min por foto. A confirmar", "Find the photo by date in the exported chat, save it under its name and note what it shows and which event it is evidence for: ~5 min per photo. To be confirmed", "Buscar la foto per data al xat exportat, guardar-la amb el seu nom i anotar de qu\xE8 \xE9s i a quin fet prova: ~5 min per foto. A confirmar", "Procurar a fotografia por data no chat exportado, guard\xE1-la com o seu nome e anotar de que \xE9 e a que facto prova: ~5 min por fotografia. A confirmar", "Das Foto nach Datum im exportierten Chat suchen, unter seinem Namen speichern und notieren, was es zeigt und f\xFCr welches Ereignis es Beweis ist: ~5 min pro Foto. Zu best\xE4tigen", "Chercher la photo par date dans le chat export\xE9, l'enregistrer sous son nom et noter ce qu'elle montre et de quel fait elle est la preuve : ~5 min par photo. \xC0 confirmer"],
+          ["Por cada prueba de un hecho: localizarla, citar el p\xE1rrafo que lo demuestra y anotar su referencia en la fila del hecho: ~3 min por enlace. A confirmar", "For each piece of evidence of an event: locate it, quote the paragraph that proves it and note its reference in the event's row: ~3 min per link. To be confirmed", "Per cada prova d'un fet: localitzar-la, citar el par\xE0graf que ho demostra i anotar la seva refer\xE8ncia a la fila del fet: ~3 min per enlla\xE7. A confirmar", "Por cada prova de um facto: localiz\xE1-la, citar o par\xE1grafo que o demonstra e anotar a sua refer\xEAncia na linha do facto: ~3 min por liga\xE7\xE3o. A confirmar", "F\xFCr jeden Beweis eines Ereignisses: ihn finden, den Absatz zitieren, der es belegt, und seine Referenz in der Zeile des Ereignisses notieren: ~3 min pro Verkn\xFCpfung. Zu best\xE4tigen", "Pour chaque preuve d'un fait : la localiser, citer le paragraphe qui le d\xE9montre et noter sa r\xE9f\xE9rence dans la ligne du fait : ~3 min par lien. \xC0 confirmer"],
+          ["Buscar en el contrato y sus adendas la cl\xE1usula que ampara el hecho y copiar su cita con p\xE1gina: ~4 min por cl\xE1usula citada. A confirmar", "Find in the contract and its addenda the clause that supports the event and copy its citation with page: ~4 min per clause cited. To be confirmed", "Buscar al contracte i les seves addendes la cl\xE0usula que empara el fet i copiar la seva cita amb p\xE0gina: ~4 min per cl\xE0usula citada. A confirmar", "Procurar no contrato e nos seus adendas a cl\xE1usula que ampara o facto e copiar a sua cita\xE7\xE3o com p\xE1gina: ~4 min por cl\xE1usula citada. A confirmar", "Im Vertrag und seinen Nachtr\xE4gen die Klausel suchen, die das Ereignis st\xFCtzt, und ihre Zitierung mit Seitenangabe kopieren: ~4 min pro zitierter Klausel. Zu best\xE4tigen", "Chercher dans le contrat et ses avenants la clause qui couvre le fait et copier sa citation avec la page : ~4 min par clause cit\xE9e. \xC0 confirmer"],
+          ["Por cada partida de IPC o de pago: buscar la certificaci\xF3n y la factura, sus fechas de presentaci\xF3n, aprobaci\xF3n y cobro, contar los d\xEDas de retraso y calcular el inter\xE9s: ~45 min por partida. A confirmar", "For each IPC or payment item: find the certification and the invoice, their submission, approval and payment dates, count the days of delay and calculate the interest: ~45 min per item. To be confirmed", "Per cada partida d'IPC o de pagament: buscar la certificaci\xF3 i la factura, les seves dates de presentaci\xF3, aprovaci\xF3 i cobrament, comptar els dies de retard i calcular l'inter\xE8s: ~45 min per partida. A confirmar", "Por cada artigo de IPC ou de pagamento: procurar a certifica\xE7\xE3o e a fatura, as suas datas de apresenta\xE7\xE3o, aprova\xE7\xE3o e recebimento, contar os dias de atraso e calcular o juro: ~45 min por artigo. A confirmar", "F\xFCr jede IPC- oder Zahlungsposition: die Zertifizierung und die Rechnung suchen, ihre Einreichungs-, Genehmigungs- und Zahlungsdaten ermitteln, die Verzugstage z\xE4hlen und den Zins berechnen: ~45 min pro Position. Zu best\xE4tigen", "Pour chaque ligne d'IPC ou de paiement : chercher la certification et la facture, leurs dates de pr\xE9sentation, d'approbation et d'encaissement, compter les jours de retard et calculer l'int\xE9r\xEAt : ~45 min par ligne. \xC0 confirmer"],
+          ["Por cada prueba enlazada: pasarla a PDF, numerarla por apartado (\xAB2-07\xBB) y ponerla en el \xEDndice de anexos: ~2 min por prueba. A confirmar", "For each linked piece of evidence: convert it to PDF, number it by section (\xAB2-07\xBB) and put it in the annex index: ~2 min per piece of evidence. To be confirmed", "Per cada prova enlla\xE7ada: passar-la a PDF, numerar-la per apartat (\xAB2-07\xBB) i posar-la a l'\xEDndex d'annexos: ~2 min per prova. A confirmar", "Por cada prova ligada: pass\xE1-la para PDF, numer\xE1-la por sec\xE7\xE3o (\xAB2-07\xBB) e p\xF4-la no \xEDndice de anexos: ~2 min por prova. A confirmar", "F\xFCr jeden verkn\xFCpften Beweis: in PDF umwandeln, nach Abschnitt nummerieren (\xAB2-07\xBB) und ins Anlagenverzeichnis aufnehmen: ~2 min pro Beweis. Zu best\xE4tigen", "Pour chaque preuve li\xE9e : la convertir en PDF, la num\xE9roter par section (\xAB2-07\xBB) et la mettre dans l'index des annexes : ~2 min par preuve. \xC0 confirmer"],
+          ["Albaranes casados con su pedido (~5 min cada uno", "Delivery notes matched with their purchase order (~5 min each", "Albarans casats amb la seva comanda (~5 min cadascun", "Guias de remessa cruzadas com a sua encomenda (~5 min cada uma", "Mit ihrer Bestellung abgeglichene Lieferscheine (~5 min pro St\xFCck", "Bons de livraison rapproch\xE9s de leur commande (~5 min chacun"],
+          ["Desde el m\xF3vil: incidencias, NCR y repasos con foto de antes y de despu\xE9s en el sitio del plano (~15 incidencias al mes \xD7 15 min de apuntarlas en papel, pasar las fotos y escribirlas en la oficina \u2248 4 h). Las mediciones de campo ya cuentan arriba (\xABmediciones del mes", "From the mobile: incidents, NCR and snagging with before and after photos at the place on the drawing (~15 incidents a month \xD7 15 min to note them on paper, transfer the photos and write them up in the office \u2248 4 h). Field measurements are already counted above (\xABmeasurements of the month", "Des del m\xF2bil: incid\xE8ncies, NCR i repassos amb foto d'abans i de despr\xE9s al lloc del pl\xE0nol (~15 incid\xE8ncies al mes \xD7 15 min d'apuntar-les en paper, passar les fotos i escriure-les a l'oficina \u2248 4 h). Els mesuraments de camp ja compten m\xE9s amunt (\xABmesuraments del mes", "Do telem\xF3vel: incid\xEAncias, NCR e repasses com fotografia de antes e de depois no s\xEDtio da planta (~15 incid\xEAncias por m\xEAs \xD7 15 min a apont\xE1-las em papel, passar as fotografias e escrev\xEA-las no escrit\xF3rio \u2248 4 h). As medi\xE7\xF5es de campo j\xE1 contam acima (\xABmedi\xE7\xF5es do m\xEAs", "Vom Mobiltelefon aus: St\xF6rungen, NCR und Nacharbeiten mit Vorher-/Nachher-Foto an der Stelle im Plan (~15 St\xF6rungen pro Monat \xD7 15 min, um sie auf Papier zu notieren, die Fotos zu \xFCbertragen und im B\xFCro zu erfassen \u2248 4 h). Die Feldmessungen z\xE4hlen bereits oben (\xABMessungen des Monats", "Depuis le mobile : incidents, NCR et reprises avec photo avant et apr\xE8s \xE0 l'endroit du plan (~15 incidents par mois \xD7 15 min pour les noter sur papier, reporter les photos et les saisir au bureau \u2248 4 h). Les mesures de terrain comptent d\xE9j\xE0 plus haut (\xABmesures du mois"],
+          ["Seguimiento de producci\xF3n por tajo y cuadrilla frente al Gantt, con el avance que marcan los encargados, sin hoja aparte (~1 h por semana", "Production tracking by work front and crew against the Gantt, with the progress marked by the foremen, without a separate sheet (~1 h per week", "Seguiment de producci\xF3 per tall i colla enfront del Gantt, amb l'avan\xE7 que marquen els encarregats, sense full a part (~1 h per setmana", "Acompanhamento de produ\xE7\xE3o por frente e equipa face ao Gantt, com o avan\xE7o que marcam os encarregados, sem folha \xE0 parte (~1 h por semana", "Produktionsverfolgung nach Arbeitsabschnitt und Kolonne gegen\xFCber dem Gantt, mit dem von den Vorarbeitern markierten Fortschritt, ohne separates Blatt (~1 h pro Woche", "Suivi de production par front et \xE9quipe par rapport au Gantt, avec l'avancement que marquent les contrema\xEEtres, sans feuille \xE0 part (~1 h par semaine"],
+          ["Partes de incidencia e incidencias de reparaci\xF3n de los encargados: los revisa en la app y no los junta ni los pasa a limpio (~45 min por semana", "Incident reports and repair incidents from the foremen: they review them in the app and do not collate them or write them up (~45 min per week", "Parts d'incid\xE8ncia i incid\xE8ncies de reparaci\xF3 dels encarregats: els revisa a l'app i no els ajunta ni els passa a net (~45 min per setmana", "Partes de incid\xEAncia e incid\xEAncias de repara\xE7\xE3o dos encarregados: rev\xEA-os na app e n\xE3o os junta nem os passa a limpo (~45 min por semana", "St\xF6rungsmeldungen und Reparaturst\xF6rungen der Vorarbeiter: er pr\xFCft sie in der App und tr\xE4gt sie weder zusammen noch schreibt sie ins Reine (~45 min pro Woche", "Rapports d'incident et incidents de r\xE9paration des contrema\xEEtres : il les revoit dans l'appli et ne les rassemble ni ne les remet au propre (~45 min par semaine"],
+          ["Pedido de material desde la medici\xF3n pendiente del tajo, con el albar\xE1n casado al llegar (~45 min por semana", "Material purchase order from the pending quantity of the work front, with the delivery note matched on arrival (~45 min per week", "Comanda de material des de la mesura pendent del tall, amb l'albar\xE0 casat en arribar (~45 min per setmana", "Encomenda de material a partir da medi\xE7\xE3o pendente da frente, com a guia de remessa cruzada \xE0 chegada (~45 min por semana", "Materialbestellung aus der ausstehenden Mengenermittlung des Arbeitsabschnitts, mit bei Ankunft abgeglichenem Lieferschein (~45 min pro Woche", "Commande de mat\xE9riel depuis le m\xE9tr\xE9 en attente du front, avec le bon de livraison rapproch\xE9 \xE0 l'arriv\xE9e (~45 min par semaine"],
+          ["El informe semanal de su grupo y los encargos a sus jefes de obra se los pide a Iarvis: no recorre obra por obra ni escribe el correo (~1 h por semana", "He asks Iarvis for the weekly report of his group and the assignments to his site managers: he does not go round site by site or write the email (~1 h per week", "L'informe setmanal del seu grup i els enc\xE0rrecs als seus caps d'obra els demana a Iarvis: no recorre obra per obra ni escriu el correu (~1 h per setmana", "O relat\xF3rio semanal do seu grupo e os encargos aos seus chefes de obra pede-os ao Iarvis: n\xE3o percorre obra a obra nem escreve o correio (~1 h por semana", "Den Wochenbericht seiner Gruppe und die Auftr\xE4ge an seine Bauleiter fordert er bei Iarvis an: er geht nicht Baustelle f\xFCr Baustelle durch und schreibt die E-Mail nicht (~1 h pro Woche", "Le rapport hebdomadaire de son groupe et les commandes \xE0 ses chefs de chantier, il les demande \xE0 Iarvis : il ne parcourt pas chantier par chantier ni n'\xE9crit le courriel (~1 h par semaine"],
+          ["Informe semanal de todo su grupo hecho solo: sus 5-8 obras en una tabla (tambi\xE9n las que no tienen jefe de obra) con plazo, certificado, coste, NCR y conflictos, y el lunes el PDF y el correo a su director preparados. Antes juntaba el informe de cada jefe de obra y lo pasaba a uno (~1,5 h por semana", "Weekly report of his whole group done automatically: his 5-8 sites in one table (including those without a site manager) with schedule, certified, cost, NCR and conflicts, and on Monday the PDF and the email to his director ready. Before, he collected each site manager's report and put them into one (~1.5 h per week", "Informe setmanal de tot el seu grup fet sol: les seves 5-8 obres en una taula (tamb\xE9 les que no tenen cap d'obra) amb termini, certificat, cost, NCR i conflictes, i el dilluns el PDF i el correu al seu director preparats. Abans ajuntava l'informe de cada cap d'obra i el passava a un (~1,5 h per setmana", "Relat\xF3rio semanal de todo o seu grupo feito sozinho: as suas 5-8 obras numa tabela (tamb\xE9m as que n\xE3o t\xEAm chefe de obra) com prazo, certificado, custo, NCR e conflitos, e \xE0 segunda-feira o PDF e o correio ao seu diretor preparados. Antes juntava o relat\xF3rio de cada chefe de obra e passava-o a um s\xF3 (~1,5 h por semana", "Wochenbericht seiner ganzen Gruppe automatisch erstellt: seine 5-8 Baustellen in einer Tabelle (auch jene ohne Bauleiter) mit Termin, Zertifiziertem, Kosten, NCR und Konflikten, und am Montag das PDF und die E-Mail an seinen Direktor bereit. Fr\xFCher trug er den Bericht jedes Bauleiters zusammen und fasste sie in einem zusammen (~1,5 h pro Woche", "Rapport hebdomadaire de tout son groupe fait tout seul : ses 5-8 chantiers dans un tableau (y compris ceux sans chef de chantier) avec d\xE9lai, certifi\xE9, co\xFBt, NCR et conflits, et le lundi le PDF et le courriel \xE0 son directeur pr\xEAts. Avant, il rassemblait le rapport de chaque chef de chantier et le reportait dans un seul (~1,5 h par semaine"],
+          ["Preparar commissioning autom\xE1tico: datos de proyecto, checklists, estanqueidad y balanceo (~12 min por equipo", "Automatic commissioning preparation: project data, checklists, tightness and balancing (~12 min per unit", "Preparar commissioning autom\xE0tic: dades de projecte, checklists, estanquitat i balanceig (~12 min per equip", "Preparar commissioning autom\xE1tico: dados de projeto, checklists, estanquidade e balanceamento (~12 min por equipamento", "Commissioning automatisch vorbereiten: Projektdaten, Checklisten, Dichtheit und Abgleich (~12 min pro Anlage", "Pr\xE9parer le commissioning automatique : donn\xE9es de projet, checklists, \xE9tanch\xE9it\xE9 et \xE9quilibrage (~12 min par \xE9quipement"],
+          ["Documentaci\xF3n enlazada a cada equipo, fichas PM y hojas de balanceo (~18 min por equipo", "Documentation linked to each unit, PM records and balancing sheets (~18 min per unit", "Documentaci\xF3 enlla\xE7ada a cada equip, fitxes PM i fulls de balanceig (~18 min per equip", "Documenta\xE7\xE3o ligada a cada equipamento, fichas PM e folhas de balanceamento (~18 min por equipamento", "Mit jeder Anlage verkn\xFCpfte Dokumentation, PM-Bl\xE4tter und Abgleichbl\xE4tter (~18 min pro Anlage", "Documentation li\xE9e \xE0 chaque \xE9quipement, fiches PM et feuilles d'\xE9quilibrage (~18 min par \xE9quipement"],
+          ["Fichas PM con la cabecera y los valores de proyecto ya puestos, y hojas de balanceo con sus bocas y f\xF3rmulas (~10 min por equipo", "PM records with the header and project values already filled in, and balancing sheets with their outlets and formulas (~10 min per unit", "Fitxes PM amb la cap\xE7alera i els valors de projecte ja posats, i fulls de balanceig amb les seves boques i f\xF3rmules (~10 min per equip", "Fichas PM com o cabe\xE7alho e os valores de projeto j\xE1 preenchidos, e folhas de balanceamento com as suas bocas e f\xF3rmulas (~10 min por equipamento", "PM-Bl\xE4tter mit bereits eingetragenem Kopf und Projektwerten sowie Abgleichbl\xE4tter mit ihren Ausl\xE4ssen und Formeln (~10 min pro Anlage", "Fiches PM avec l'en-t\xEAte et les valeurs de projet d\xE9j\xE0 renseign\xE9s, et feuilles d'\xE9quilibrage avec leurs bouches et formules (~10 min par \xE9quipement"],
+          ["Pruebas de estanqueidad con su informe: ~20 min cada una y ~1 de cada 5 equipos la lleva (\u2248 4 min por equipo", "Tightness tests with their report: ~20 min each and ~1 in 5 units has one (\u2248 4 min per unit", "Proves d'estanquitat amb el seu informe: ~20 min cadascuna i ~1 de cada 5 equips la porta (\u2248 4 min per equip", "Ensaios de estanquidade com o seu relat\xF3rio: ~20 min cada um e ~1 em cada 5 equipamentos leva um (\u2248 4 min por equipamento", "Dichtheitspr\xFCfungen mit ihrem Bericht: ~20 min pro Pr\xFCfung und ~1 von 5 Anlagen hat eine (\u2248 4 min pro Anlage", "Essais d'\xE9tanch\xE9it\xE9 avec leur rapport : ~20 min chacun et ~1 \xE9quipement sur 5 en a un (\u2248 4 min par \xE9quipement"],
+          ["En campo con el m\xF3vil: fichas PM, checklists y balanceo boca a boca con el instrumento y el caudal total sumado solo. Antes, papel o Excel en obra, pasarlo a limpio y montar el PDF: ~20 min por equipo", "In the field with the mobile: PM records, checklists and outlet-by-outlet balancing with the instrument and the total airflow added up automatically. Before, paper or Excel on site, writing it up cleanly and building the PDF: ~20 min per unit", "Al camp amb el m\xF2bil: fitxes PM, checklists i balanceig boca a boca amb l'instrument i el cabal total sumat sol. Abans, paper o Excel a l'obra, passar-ho a net i muntar el PDF: ~20 min per equip", "No campo com o telem\xF3vel: fichas PM, checklists e balanceamento boca a boca com o instrumento e o caudal total somado sozinho. Antes, papel ou Excel em obra, passar a limpo e montar o PDF: ~20 min por equipamento", "Im Feld mit dem Mobiltelefon: PM-Bl\xE4tter, Checklisten und Abgleich Auslass f\xFCr Auslass mit dem Messger\xE4t und dem automatisch summierten Gesamtvolumenstrom. Fr\xFCher Papier oder Excel auf der Baustelle, ins Reine schreiben und das PDF aufbauen: ~20 min pro Anlage", "Sur le terrain avec le mobile : fiches PM, checklists et \xE9quilibrage bouche par bouche avec l'instrument et le d\xE9bit total additionn\xE9 tout seul. Avant, papier ou Excel sur le chantier, remise au propre et montage du PDF : ~20 min par \xE9quipement"],
+          ["Revisa en el m\xF3vil lo medido, equipo a equipo, y no rehace ni monta el PDF de cada ficha (~5 min por equipo; el dossier final va en \xABEntrega", "Reviews on the mobile what was measured, unit by unit, and does not redo or build the PDF of each record (~5 min per unit; the final dossier goes under \xABHandover", "Revisa al m\xF2bil el que s'ha mesurat, equip a equip, i no ref\xE0 ni munta el PDF de cada fitxa (~5 min per equip; el dossier final va a \xABLliurament", "Rev\xEA no telem\xF3vel o que foi medido, equipamento a equipamento, e n\xE3o refaz nem monta o PDF de cada ficha (~5 min por equipamento; o dossi\xEA final vai em \xABEntrega", "Pr\xFCft auf dem Mobiltelefon das Gemessene, Anlage f\xFCr Anlage, und erstellt das PDF jedes Blatts weder neu noch baut es auf (~5 min pro Anlage; das Enddossier steht unter \xAB\xDCbergabe", "Revoit sur le mobile ce qui a \xE9t\xE9 mesur\xE9, \xE9quipement par \xE9quipement, et ne refait ni ne monte le PDF de chaque fiche (~5 min par \xE9quipement ; le dossier final est dans \xABRemise"],
+          ["Dossier final con la documentaci\xF3n ya enlazada por equipo y las fichas firmadas (~7 min por equipo", "Final dossier with the documentation already linked per unit and the records signed (~7 min per unit", "Dossier final amb la documentaci\xF3 ja enlla\xE7ada per equip i les fitxes signades (~7 min per equip", "Dossi\xEA final com a documenta\xE7\xE3o j\xE1 ligada por equipamento e as fichas assinadas (~7 min por equipamento", "Enddossier mit der bereits pro Anlage verkn\xFCpften Dokumentation und den unterschriebenen Bl\xE4ttern (~7 min pro Anlage", "Dossier final avec la documentation d\xE9j\xE0 li\xE9e par \xE9quipement et les fiches sign\xE9es (~7 min par \xE9quipement"],
+          ["Cierre de NCR y reparaciones pendientes para la recepci\xF3n (~4 min por equipo", "Closing out NCR and pending repairs for handover (~4 min per unit", "Tancament de NCR i reparacions pendents per a la recepci\xF3 (~4 min per equip", "Fecho de NCR e repara\xE7\xF5es pendentes para a rece\xE7\xE3o (~4 min por equipamento", "Abschluss von NCR und ausstehenden Reparaturen f\xFCr die Abnahme (~4 min pro Anlage", "Cl\xF4ture des NCR et des r\xE9parations en attente pour la r\xE9ception (~4 min par \xE9quipement"],
+          ["Plan preventivo de 20 a\xF1os desde dos fechas por equipo (40 h por obra entregada", "20-year preventive plan from two dates per unit (40 h per site handed over", "Pla preventiu de 20 anys a partir de dues dates per equip (40 h per obra lliurada", "Plano preventivo de 20 anos a partir de duas datas por equipamento (40 h por obra entregue", "Pr\xE4ventivplan \xFCber 20 Jahre aus zwei Daten pro Anlage (40 h pro \xFCbergebener Baustelle", "Plan pr\xE9ventif de 20 ans \xE0 partir de deux dates par \xE9quipement (40 h par chantier livr\xE9"],
+          ["\xD3rdenes de trabajo repartidas solas por especialidad, carga y cercan\xEDa, con avisos de vencidas y de fugas F-gas, y su PDF al cerrar (~20 min por orden", "Work orders distributed automatically by specialty, workload and proximity, with alerts for overdue ones and F-gas leaks, and their PDF on closing (~20 min per order", "Ordres de treball repartides soles per especialitat, c\xE0rrega i proximitat, amb avisos de ven\xE7udes i de fuites F-gas, i el seu PDF en tancar (~20 min per ordre", "Ordens de trabalho distribu\xEDdas sozinhas por especialidade, carga e proximidade, com avisos de vencidas e de fugas F-gas, e o seu PDF ao fechar (~20 min por ordem", "Arbeitsauftr\xE4ge, die automatisch nach Fachgebiet, Auslastung und N\xE4he verteilt werden, mit Hinweisen auf \xFCberf\xE4llige und auf F-gas-Lecks und ihrem PDF beim Abschluss (~20 min pro Auftrag", "Ordres de travail r\xE9partis tout seuls par sp\xE9cialit\xE9, charge et proximit\xE9, avec alertes d'\xE9ch\xE9ances d\xE9pass\xE9es et de fuites F-gas, et leur PDF \xE0 la cl\xF4ture (~20 min par ordre"],
+          ["Ofertas de cada compra apuntadas, comparadas con el comparativo de Compras y el pedido sale con el precio elegido. Antes, correos y un Excel por compra (~45 min; ~6 compras al mes, ~20 min menos cada una", "Quotes for each purchase recorded, compared in the Purchasing comparison and the purchase order goes out with the chosen price. Before, emails and an Excel per purchase (~45 min; ~6 purchases a month, ~20 min less each", "Ofertes de cada compra apuntades, comparades amb el comparatiu de Compres i la comanda surt amb el preu triat. Abans, correus i un Excel per compra (~45 min; ~6 compres al mes, ~20 min menys cadascuna", "Ofertas de cada compra registadas, comparadas com o comparativo de Compras e a encomenda sai com o pre\xE7o escolhido. Antes, correios e um Excel por compra (~45 min; ~6 compras por m\xEAs, ~20 min menos cada uma", "Angebote jedes Einkaufs erfasst, mit dem Vergleich im Einkauf verglichen, und die Bestellung geht mit dem gew\xE4hlten Preis hinaus. Fr\xFCher E-Mails und ein Excel pro Einkauf (~45 min; ~6 Eink\xE4ufe pro Monat, ~20 min weniger je Einkauf", "Offres de chaque achat not\xE9es, compar\xE9es avec le comparatif des Achats, et la commande sort avec le prix choisi. Avant, courriels et un Excel par achat (~45 min ; ~6 achats par mois, ~20 min de moins chacun"],
+          ["Revisiones e inspecciones hechas desde el m\xF3vil con sus fotos: no se pasan a limpio y la pr\xF3xima fecha sale sola (~10 min cada una, ~18 al mes", "Reviews and inspections done from the mobile with their photos: they are not written up again and the next date comes out automatically (~10 min each, ~18 a month", "Revisions i inspeccions fetes des del m\xF2bil amb les seves fotos: no es passen a net i la propera data surt sola (~10 min cadascuna, ~18 al mes", "Revis\xF5es e inspe\xE7\xF5es feitas a partir do telem\xF3vel com as suas fotografias: n\xE3o se passam a limpo e a pr\xF3xima data sai sozinha (~10 min cada uma, ~18 por m\xEAs", "Vom Mobiltelefon aus durchgef\xFChrte Kontrollen und Inspektionen mit ihren Fotos: sie werden nicht ins Reine geschrieben und das n\xE4chste Datum ergibt sich automatisch (~10 min pro St\xFCck, ~18 pro Monat", "Revues et inspections faites depuis le mobile avec leurs photos : elles ne sont pas remises au propre et la prochaine date sort toute seule (~10 min chacune, ~18 par mois"],
+          ["Informe semanal de todos los grupos hecho solo: una hoja con un resumen por cada jefe de grupo, sus obras urgentes y por qu\xE9, y las obras sin jefe de grupo aparte. Antes juntaba el informe de cada grupo a mano (~1 h por semana", "Weekly report of all groups done automatically: a sheet with a summary for each group manager, their urgent sites and why, and the sites without a group manager separately. Before, he collected each group's report by hand (~1 h per week", "Informe setmanal de tots els grups fet sol: un full amb un resum per cada cap de grup, les seves obres urgents i per qu\xE8, i les obres sense cap de grup a part. Abans ajuntava l'informe de cada grup a m\xE0 (~1 h per setmana", "Relat\xF3rio semanal de todos os grupos feito sozinho: uma folha com um resumo por cada chefe de grupo, as suas obras urgentes e porqu\xEA, e as obras sem chefe de grupo \xE0 parte. Antes juntava o relat\xF3rio de cada grupo \xE0 m\xE3o (~1 h por semana", "Wochenbericht aller Gruppen automatisch erstellt: ein Blatt mit einer Zusammenfassung pro Gruppenleiter, ihren dringenden Baustellen und dem Grund, und die Baustellen ohne Gruppenleiter separat. Fr\xFCher trug er den Bericht jeder Gruppe von Hand zusammen (~1 h pro Woche", "Rapport hebdomadaire de tous les groupes fait tout seul : une feuille avec un r\xE9sum\xE9 par chef de groupe, leurs chantiers urgents et pourquoi, et les chantiers sans chef de groupe \xE0 part. Avant, il rassemblait \xE0 la main le rapport de chaque groupe (~1 h par semaine"],
+          ["Resumen semanal de gerencia hecho solo: una p\xE1gina con las cifras de la empresa y solo las obras urgentes, ordenadas por dinero desviado. Antes se lo ten\xEDan que contar o preparar (~30 min por semana", "Weekly management summary done automatically: one page with the company's figures and only the urgent sites, ordered by money deviated. Before, they had to be told or prepare it themselves (~30 min per week", "Resum setmanal de ger\xE8ncia fet sol: una p\xE0gina amb les xifres de l'empresa i nom\xE9s les obres urgents, ordenades per diners desviats. Abans els ho havien d'explicar o preparar (~30 min per setmana", "Resumo semanal da ger\xEAncia feito sozinho: uma p\xE1gina com os n\xFAmeros da empresa e s\xF3 as obras urgentes, ordenadas por dinheiro desviado. Antes tinham de lho contar ou prepar\xE1-lo (~30 min por semana", "W\xF6chentliche Zusammenfassung f\xFCr die Gesch\xE4ftsleitung automatisch erstellt: eine Seite mit den Zahlen des Unternehmens und nur den dringenden Baustellen, nach abweichendem Geldbetrag geordnet. Fr\xFCher musste man es ihnen erz\xE4hlen oder vorbereiten (~30 min pro Woche", "R\xE9sum\xE9 hebdomadaire de direction fait tout seul : une page avec les chiffres de l'entreprise et seulement les chantiers urgents, class\xE9s par argent d\xE9vi\xE9. Avant, on devait le leur raconter ou le pr\xE9parer (~30 min par semaine"],
+          ["Los mismos tiempos por equipo aplicados a los 734 equipos de NCN. Ejemplo de obra real: no suma en ning\xFAn total", "The same per-unit times applied to the 734 units of NCN. Example of a real site: it does not add to any total", "Els mateixos temps per equip aplicats als 734 equips de NCN. Exemple d'obra real: no suma en cap total", "Os mesmos tempos por equipamento aplicados aos 734 equipamentos da NCN. Exemplo de obra real: n\xE3o soma em nenhum total", "Dieselben Zeiten pro Anlage, angewendet auf die 734 Anlagen von NCN. Beispiel einer realen Baustelle: es z\xE4hlt in keiner Gesamtsumme", "Les m\xEAmes temps par \xE9quipement appliqu\xE9s aux 734 \xE9quipements de NCN. Exemple de chantier r\xE9el : il ne compte dans aucun total"],
+          ["El Gantt sale del control de costes y la planificaci\xF3n econ\xF3mica de \xE9l: ~1 h/semana de pasar fechas e importes entre Project y Excel, 40 semanas", "The Gantt comes from the cost control and the economic planning from it: ~1 h/week of transferring dates and amounts between Project and Excel, 40 weeks", "El Gantt surt del control de costos i la planificaci\xF3 econ\xF2mica d'ell: ~1 h/setmana de passar dates i imports entre Project i Excel, 40 setmanes", "O Gantt sai do controlo de custos e o planeamento econ\xF3mico dele: ~1 h/semana a passar datas e valores entre o Project e o Excel, 40 semanas", "Der Gantt ergibt sich aus der Kostenkontrolle und die Wirtschaftsplanung aus ihm: ~1 h/Woche f\xFCr das \xDCbertragen von Terminen und Betr\xE4gen zwischen Project und Excel, 40 Wochen", "Le Gantt sort du contr\xF4le des co\xFBts et la planification \xE9conomique de lui : ~1 h/semaine pour reporter dates et montants entre Project et Excel, 40 semaines"],
+          ["Lee BC3, Excel y PDF y describe las partidas: ~5 h/mes de teclear y repasar importaciones", "Reads BOQ, Excel and PDF and describes the line items: ~5 h/month of typing and checking imports", "Llegeix BC3, Excel i PDF i descriu les partides: ~5 h/mes de teclejar i repassar importacions", "L\xEA BC3, Excel e PDF e descreve os artigos: ~5 h/m\xEAs a digitar e rever importa\xE7\xF5es", "Liest BC3, Excel und PDF und beschreibt die Positionen: ~5 h/Monat Tipp- und Pr\xFCfarbeit bei Importen", "Lit BC3, Excel et PDF et d\xE9crit les lignes : ~5 h/mois de saisie et de revue des importations"],
+          ["Comprometido, gastado y desv\xEDo salen de pedidos, albaranes y facturas: ~2 h/semana de copiar a mano, 48 semanas", "Committed, spent and variance come from purchase orders, delivery notes and invoices: ~2 h/week of copying by hand, 48 weeks", "Comprom\xE8s, gastat i desviaci\xF3 surten de comandes, albarans i factures: ~2 h/setmana de copiar a m\xE0, 48 setmanes", "Comprometido, gasto e desvio saem de encomendas, guias de remessa e faturas: ~2 h/semana a copiar \xE0 m\xE3o, 48 semanas", "Obligo, Ausgaben und Abweichung ergeben sich aus Bestellungen, Lieferscheinen und Rechnungen: ~2 h/Woche Abschreiben von Hand, 48 Wochen", "Engag\xE9, d\xE9pens\xE9 et \xE9cart sortent des commandes, bons de livraison et factures : ~2 h/semaine de copie \xE0 la main, 48 semaines"],
+          ["Enlace autom\xE1tico de documentaci\xF3n, fichas y PDF: ~10 h/mes en una obra con cientos de equipos", "Automatic linking of documentation, records and PDF: ~10 h/month on a site with hundreds of units", "Enlla\xE7 autom\xE0tic de documentaci\xF3, fitxes i PDF: ~10 h/mes en una obra amb centenars d'equips", "Liga\xE7\xE3o autom\xE1tica de documenta\xE7\xE3o, fichas e PDF: ~10 h/m\xEAs numa obra com centenas de equipamentos", "Automatische Verkn\xFCpfung von Dokumentation, Bl\xE4ttern und PDF: ~10 h/Monat auf einer Baustelle mit Hunderten von Anlagen", "Liaison automatique de la documentation, des fiches et des PDF : ~10 h/mois sur un chantier avec des centaines d'\xE9quipements"],
+          ["Fichaje por QR y caducidades a la vista: ~1 h/semana de cuadrar la hoja de personal", "Clocking in by QR and expiry dates at a glance: ~1 h/week of reconciling the personnel sheet", "Fitxatge per QR i caducitats a la vista: ~1 h/setmana de quadrar el full de personal", "Registo de ponto por QR e caducidades \xE0 vista: ~1 h/semana a acertar a folha de pessoal", "Zeiterfassung per QR und Ablaufdaten auf einen Blick: ~1 h/Woche f\xFCr den Abgleich des Personalblatts", "Pointage par QR et \xE9ch\xE9ances en vue : ~1 h/semaine pour faire concorder la feuille du personnel"],
+          ["Se genera solo: ~1,5 h cada lunes, 48 semanas", "It generates itself: ~1.5 h every Monday, 48 weeks", "Es genera sol: ~1,5 h cada dilluns, 48 setmanes", "Gera-se sozinho: ~1,5 h cada segunda-feira, 48 semanas", "Wird automatisch erstellt: ~1,5 h jeden Montag, 48 Wochen", "Il se g\xE9n\xE8re tout seul : ~1,5 h chaque lundi, 48 semaines"],
+          ["Jefe de obra: anterior y a origen solos (~4 h) y la proforma del industrial cotejada partida a partida (~2 h). Encargado: ya no prepara a mano las mediciones del mes (~2 h", "Site manager: previous and to-date figures automatic (~4 h) and the subcontractor's pro forma checked line by line (~2 h). Foreman: no longer prepares the month's measurements by hand (~2 h", "Cap d'obra: anterior i a origen sols (~4 h) i la proforma de l'industrial confrontada partida a partida (~2 h). Encarregat: ja no prepara a m\xE0 els mesuraments del mes (~2 h", "Chefe de obra: anterior e a origem sozinhos (~4 h) e a proforma do subempreiteiro cotejada artigo a artigo (~2 h). Encarregado: j\xE1 n\xE3o prepara \xE0 m\xE3o as medi\xE7\xF5es do m\xEAs (~2 h", "Bauleiter: Vorherige und kumulierte Werte automatisch (~4 h) und die Proforma des Subunternehmers Position f\xFCr Position abgeglichen (~2 h). Vorarbeiter: bereitet die Monatsmessungen nicht mehr von Hand vor (~2 h", "Chef de chantier : pr\xE9c\xE9dent et \xE0 l'origine automatiques (~4 h) et la proforma du sous-traitant confront\xE9e ligne par ligne (~2 h). Contrema\xEEtre : ne pr\xE9pare plus \xE0 la main les m\xE9tr\xE9s du mois (~2 h"],
+          ["Jefe de obra: no mide a escal\xEDmetro para certificar (~4 h). Encargado: marca en el plano al momento en vez de hacer el parte de lo ejecutado y recorrer la obra con el jefe para medir (~3 h", "Site manager: does not measure with a scale rule to certify (~4 h). Foreman: marks on the drawing on the spot instead of writing the report of what was executed and walking the site with the site manager to measure (~3 h", "Cap d'obra: no mesura amb escal\xEDmetre per certificar (~4 h). Encarregat: marca al pl\xE0nol al moment en lloc de fer el part del que s'ha executat i rec\xF3rrer l'obra amb el cap d'obra per mesurar (~3 h", "Chefe de obra: n\xE3o mede com escal\xEDmetro para certificar (~4 h). Encarregado: marca na planta no momento em vez de fazer o parte do executado e percorrer a obra com o chefe de obra para medir (~3 h", "Bauleiter: misst nicht mit dem Massstab, um zu zertifizieren (~4 h). Vorarbeiter: markiert im Plan sofort, statt die Meldung des Ausgef\xFChrten zu schreiben und die Baustelle mit dem Bauleiter zum Messen abzugehen (~3 h", "Chef de chantier : ne mesure pas \xE0 l'\xE9chelle pour certifier (~4 h). Contrema\xEEtre : marque sur le plan sur le moment au lieu de faire le rapport de l'ex\xE9cut\xE9 et de parcourir le chantier avec le chef de chantier pour mesurer (~3 h"],
+          ["Por equipo: abrir su ficha t\xE9cnica y teclear sus datos de proyecto (caudales, agua, temperaturas, ~6 min), decidir si lleva prueba de estanqueidad (~1 min), crear su checklist (~2 min) y su hoja de balanceo con los caudales (~3 min): ~12 min. Se hace una vez por obra, al final: aqu\xED va repartido entre los meses que dura la obra. Horas del jefe de obra (es quien lo acepta en la app", "Per unit: open its datasheet and type its project data (airflows, water, temperatures, ~6 min), decide whether it needs a tightness test (~1 min), create its checklist (~2 min) and its balancing sheet with the airflows (~3 min): ~12 min. It is done once per site, at the end: here it is spread over the months the site lasts. Hours of the site manager (the one who accepts it in the app", "Per equip: obrir la seva fitxa t\xE8cnica i teclejar les seves dades de projecte (cabals, aigua, temperatures, ~6 min), decidir si porta prova d'estanquitat (~1 min), crear el seu checklist (~2 min) i el seu full de balanceig amb els cabals (~3 min): ~12 min. Es fa una vegada per obra, al final: aqu\xED va repartit entre els mesos que dura l'obra. Hores del cap d'obra (\xE9s qui ho accepta a l'app", "Por equipamento: abrir a sua ficha t\xE9cnica e digitar os seus dados de projeto (caudais, \xE1gua, temperaturas, ~6 min), decidir se leva ensaio de estanquidade (~1 min), criar a sua checklist (~2 min) e a sua folha de balanceamento com os caudais (~3 min): ~12 min. Faz-se uma vez por obra, no fim: aqui vai repartido pelos meses que a obra dura. Horas do chefe de obra (\xE9 quem o aceita na app", "Pro Anlage: ihr Datenblatt \xF6ffnen und ihre Projektdaten eintippen (Volumenstr\xF6me, Wasser, Temperaturen, ~6 min), entscheiden, ob eine Dichtheitspr\xFCfung n\xF6tig ist (~1 min), ihre Checkliste anlegen (~2 min) und ihr Abgleichblatt mit den Volumenstr\xF6men (~3 min): ~12 min. Das geschieht einmal pro Baustelle, am Ende: hier ist es auf die Monate der Baustellendauer verteilt. Stunden des Bauleiters (er ist es, der es in der App akzeptiert", "Par \xE9quipement : ouvrir sa fiche technique et saisir ses donn\xE9es de projet (d\xE9bits, eau, temp\xE9ratures, ~6 min), d\xE9cider s'il comporte un essai d'\xE9tanch\xE9it\xE9 (~1 min), cr\xE9er sa checklist (~2 min) et sa feuille d'\xE9quilibrage avec les d\xE9bits (~3 min) : ~12 min. Cela se fait une fois par chantier, \xE0 la fin : ici c'est r\xE9parti sur les mois que dure le chantier. Heures du chef de chantier (c'est lui qui l'accepte dans l'appli"],
+          ["Plazos, f\xF3rmulas e informes solos: ~3 h/mes", "Deadlines, formulas and reports automatic: ~3 h/month", "Terminis, f\xF3rmules i informes sols: ~3 h/mes", "Prazos, f\xF3rmulas e relat\xF3rios sozinhos: ~3 h/m\xEAs", "Fristen, Formeln und Berichte automatisch: ~3 h/Monat", "D\xE9lais, formules et rapports automatiques : ~3 h/mois"],
+          ["El plan de 20 a\xF1os sale de dos fechas por equipo: ~40 h por obra entregada para montarlo a mano", "The 20-year plan comes from two dates per unit: ~40 h per site handed over to build it by hand", "El pla de 20 anys surt de dues dates per equip: ~40 h per obra lliurada per muntar-lo a m\xE0", "O plano de 20 anos sai de duas datas por equipamento: ~40 h por obra entregue para o montar \xE0 m\xE3o", "Der 20-Jahres-Plan ergibt sich aus zwei Daten pro Anlage: ~40 h pro \xFCbergebener Baustelle, um ihn von Hand aufzubauen", "Le plan de 20 ans sort de deux dates par \xE9quipement : ~40 h par chantier livr\xE9 pour le monter \xE0 la main"],
+          ["Lee el BOE cada d\xEDa y cruza con las partidas: ~30 min/semana", "Reads the BOE every day and cross-checks it with the line items: ~30 min/week", "Llegeix el BOE cada dia i el creua amb les partides: ~30 min/setmana", "L\xEA o BOE todos os dias e cruza-o com os artigos: ~30 min/semana", "Liest t\xE4glich das BOE und gleicht es mit den Positionen ab: ~30 min/Woche", "Lit le BOE chaque jour et le recoupe avec les lignes : ~30 min/semaine"],
+          ["CxAlloy no publica tarifa (se pide propuesta; usuarios ilimitados). Los agregadores (sourceforge.net) dicen \xABdesde 355 $/mes\xBB, cifra no confirmada por el fabricante. Facility Grid tampoco publica precio", "CxAlloy does not publish pricing (a quote is requested; unlimited users). Aggregators (sourceforge.net) say \xABfrom $355/month\xBB, a figure not confirmed by the manufacturer. Facility Grid does not publish a price either", "CxAlloy no publica tarifa (es demana proposta; usuaris il\xB7limitats). Els agregadors (sourceforge.net) diuen \xABdes de 355 $/mes\xBB, xifra no confirmada pel fabricant. Facility Grid tampoc no publica preu", "A CxAlloy n\xE3o publica tarifa (pede-se proposta; utilizadores ilimitados). Os agregadores (sourceforge.net) dizem \xABdesde 355 $/m\xEAs\xBB, valor n\xE3o confirmado pelo fabricante. A Facility Grid tamb\xE9m n\xE3o publica pre\xE7o", "CxAlloy ver\xF6ffentlicht keinen Tarif (ein Angebot wird angefordert; unbegrenzte Benutzer). Die Aggregatoren (sourceforge.net) sagen \xABab 355 $/Monat\xBB, eine vom Hersteller nicht best\xE4tigte Zahl. Auch Facility Grid ver\xF6ffentlicht keinen Preis", "CxAlloy ne publie pas de tarif (on demande une proposition ; utilisateurs illimit\xE9s). Les agr\xE9gateurs (sourceforge.net) disent \xAB\xE0 partir de 355 $/mois\xBB, chiffre non confirm\xE9 par le fabricant. Facility Grid ne publie pas non plus de prix"],
+          ["Todas", "All", "Totes", "Todas", "Alle", "Toutes"],
+          ["Hilos de correo", "Email threads", "Fils de correu", "Fios de correio", "E-Mail-Verl\xE4ufe", "Fils de courriels"],
+          ["Sistemas", "Systems", "Sistemes", "Sistemas", "Systeme", "Syst\xE8mes"],
+          ["Renuncias", "Waivers", "Ren\xFAncies", "Ren\xFAncias", "Verzichte", "Renonciations"],
+          ["Apartados", "Sections", "Apartats", "Sec\xE7\xF5es", "Abschnitte", "Sections"],
+          ["Cl\xE1usulas", "Clauses", "Cl\xE0usules", "Cl\xE1usulas", "Klauseln", "Clauses"],
+          ["d\xEDas", "days", "dies", "dias", "Tage", "jours"],
+          ["objeci\xF3n o riesgo", "objection or risk", "objecci\xF3 o risc", "obje\xE7\xE3o ou risco", "Einwand oder Risiko", "objection ou risque"],
+          ["objeciones o riesgos", "objections or risks", "objeccions o riscos", "obje\xE7\xF5es ou riscos", "Einw\xE4nde oder Risiken", "objections ou risques"],
+          ["Enlazar prueba ya existente", "Link existing evidence", "Enlla\xE7ar prova ja existent", "Ligar prova j\xE1 existente", "Bereits vorhandenen Beweis verkn\xFCpfen", "Lier une preuve d\xE9j\xE0 existante"],
+          ["Propuestas de reclasificaci\xF3n", "Reclassification proposals", "Propostes de reclassificaci\xF3", "Propostas de reclassifica\xE7\xE3o", "Umklassifizierungsvorschl\xE4ge", "Propositions de reclassification"],
+          ["hilos", "threads", "fils", "fios", "Verl\xE4ufe", "fils"],
+          ["categor\xEDas", "categories", "categories", "categorias", "Kategorien", "cat\xE9gories"],
+          ["con precio", "with price", "amb preu", "com pre\xE7o", "mit Preis", "avec prix"],
+          ["historial", "history", "historial", "hist\xF3rico", "Verlauf", "historique"]
         ];
         return { ORDEN, FIJAS, NOMBRES };
       });
@@ -217606,6 +220412,7 @@ Si es una PREGUNTA (qu\xE9, cu\xE1ntos, c\xF3mo va, por qu\xE9\u2026) y ninguna 
           "compras.paquete": { nombre: "Ver el comparativo y las ofertas de un grupo de compra", modulo: "compras", verbo: "ver", escribe: false, ejemplo: "\xABcomparativo de climatizaci\xF3n\xBB" },
           "compras.pedirOfertas": { nombre: "Abrir la petici\xF3n de ofertas de un grupo de compra", modulo: "compras", verbo: "crear", escribe: true, ejemplo: "\xABpide ofertas de electricidad\xBB" },
           "compras.adjudicar": { nombre: "Adjudicar un grupo de compra a un industrial", modulo: "compras", verbo: "aprobar", escribe: true, ejemplo: "\xABadjudica climatizaci\xF3n al m\xE1s barato\xBB" },
+          "compras.precios": { nombre: "Explicar los repositorios de precios de Estudios y de obra, qui\xE9n ve cada uno y los avisos de mejor precio", modulo: "compras", verbo: "ver", escribe: false, ejemplo: "\xAB\xBFqui\xE9n ve el repositorio de precios?\xBB o \xAB\xBFalguien ha conseguido mejor precio?\xBB" },
           "revision.todo": { nombre: "Revisar el presupuesto, las ofertas, las adjudicaciones y el plan de compras", modulo: "presupuestos", verbo: "ver", escribe: false, ejemplo: "\xABrevisa la obra\xBB o \xABcomprueba que cuadra todo\xBB" },
           "presupuesto.desdeArchivo": { nombre: "Crear un presupuesto desde un Excel, BC3 o Presto", modulo: "presupuestos", verbo: "crear", tambien: [["proyectos", "crear"]], escribe: true, ejemplo: "\xABcrea un presupuesto con este BC3\xBB (adjuntando el archivo)" }
         };
@@ -217628,6 +220435,7 @@ Lo que escribe algo (pedir ofertas, adjudicar, crear el presupuesto) te lo propo
         const PIDE_PEDIR = /\b(pide|pedir|solicita|solicitar|abre|abrir|lanza|lanzar|manda|mandar|envia|enviar)\b.*\b(ofertas?|presupuestos? a|peticion(es)? de oferta)\b/;
         const PIDE_PRESUPUESTO = /\b(crea|crear|haz|hacer|monta|montar|genera|generar|importa|importar|carga|cargar|sube|subir|pasa|pasar|convierte|convertir)\b.*\bpresupuestos?\b|\bpresupuestos? (desde|a partir de|con|de)\b.*\b(excel|xlsx?|bc3|presto|fiebdc|archivo)\b|\b(bc3|presto|fiebdc)\b.*\bpresupuesto/;
         const PIDE_REVISAR = /\b(revisa\w*|comprueba\w*|audita\w*|verifica\w*|cuadra\w*|garantiza\w*|esta (todo )?bien hecho|todo (esta )?bien)\b.*\b(todo|obra|presupuestos?|ofertas?|comparativos?|adjudicacion\w*|compras?|plan)\b|\brevision (de|del|completa)\b|\b(revisa|comprueba|audita|verifica)(me)? (todo|la obra)\b/;
+        const PIDE_PRECIOS = /\brepositorios? de precios?\b|\bprecios? de (estudios|obra)\b|\bquien ve (los |el )?(precios?|repositorios?)\b|\bmejor(es)? precios?\b.*\b(otro|otra|alguien|empresa|jefes? de obra|consegui\w*)\b|\b(alguien|otro jefe de obra)\b.*\bmejor(es)? precios?\b/;
         const PIDE_SABER = /\bque (sabes|puedes) hacer\b|\bque skills?\b|\bque habilidades\b|\bque operaciones\b|\bpara que (sirves|vales)\b|\bque haces por mi\b/;
         function formatoDe(t) {
           if (/\bbc3\b|fiebdc/.test(t)) return "bc3";
@@ -217639,6 +220447,7 @@ Lo que escribe algo (pedir ofertas, adjudicar, crear el presupuesto) te lo propo
           const t = sinTildes(pregunta).trim();
           if (!t) return null;
           if (PIDE_SABER.test(t)) return { habilidad: "ayuda" };
+          if (PIDE_PRECIOS.test(t) && !PIDE_ADJUDICAR.test(t)) return { habilidad: "compras.precios", texto: t };
           if (/^(como|donde|por que|para que)\b|\bcomo (se|puedo|hago)\b/.test(t)) return null;
           if (PIDE_REVISAR.test(t)) return { habilidad: "revision.todo" };
           if (PIDE_PRESUPUESTO.test(t)) return { habilidad: "presupuesto.desdeArchivo", formato: formatoDe(t) };
@@ -218642,6 +221451,8 @@ No se crea nada hasta que pulses **Confirmar**.`,
       var CTX = require_contexto();
       var compras = require_compras();
       var IPRES = require_iarvisPresupuesto();
+      var RPREC = require_repositorioPrecios();
+      var DATOS_PRECIOS = require_repositorioPrecios2();
       var uuid = () => globalThis.crypto && globalThis.crypto.randomUUID ? globalThis.crypto.randomUUID() : `l-${Date.now()}-${Math.random().toString(16).slice(2)}`;
       var fila = (pregunta, extra) => ({ id: uuid(), pregunta, estado: "respondida", local: true, creado: (/* @__PURE__ */ new Date()).toISOString(), acciones: [], ...extra });
       var norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
@@ -218712,6 +221523,7 @@ ${lineas.join("\n")}${adj}${!c.adjudicacion && puedeAdjudicar ? "\n\nSi quieres 
         if (!e || !repo || !yo) return null;
         if (BLINDAJE.fueraDeUso(pregunta, d.obraNombre || "")) return null;
         if (e.habilidad === "ayuda") return fila(pregunta, { respuesta: H.quePuedoHacer(yo.rol) });
+        if (e.habilidad === "compras.precios") return preciosFila(repo, yo, pregunta);
         if (!H.permitida(yo.rol, e.habilidad)) {
           const h = H.HABILIDADES[e.habilidad];
           return fila(pregunta, { respuesta: `Tu puesto no tiene permiso para \xAB${h.nombre.toLowerCase()}\xBB en la app, as\xED que yo tampoco lo hago por ti.` });
@@ -218756,6 +221568,31 @@ ${lineas.join("\n")}${adj}${!c.adjudicacion && puedeAdjudicar ? "\n\nSi quieres 
           return fila(pregunta, { respuesta: `Voy a adjudicar **${p.nombre}** a **${pedido.proveedor}**${pedido === cols[0] ? ", el de menor total comparable" : " (no es el m\xE1s barato: te pedir\xE9 el motivo)"}. Esto compromete la compra; no se hace hasta que confirmes.`, acciones: [{ tipo: "hacer", hacer: "compraAdjudicar", presupuestoId: pres.id, grupo: p.codigo, proveedorId: pedido.proveedorId, texto: `Confirmar: adjudicar a ${pedido.proveedor}` }] });
         }
         return paqueteFila(pregunta, yo, pres, p, c, sinDinero, puedePedir, puedeAdjudicar);
+      }
+      function preciosFila(repo, yo, pregunta) {
+        const explicacion = RPREC.explicarVisibilidad(yo.rol);
+        if (!H.permitida(yo.rol, "compras.precios")) return fila(pregunta, { respuesta: explicacion });
+        let r = null;
+        try {
+          r = DATOS_PRECIOS.repositorios(repo, yo);
+        } catch {
+          r = null;
+        }
+        if (!r || r.sinAcceso) return fila(pregunta, { respuesta: explicacion });
+        const partes = [];
+        if (r.estudios) partes.push(`Repositorio de Estudios: ${r.estudios.precios} precio${r.estudios.precios === 1 ? "" : "s"} de ${r.estudios.proveedores} proveedor${r.estudios.proveedores === 1 ? "" : "es"}.`);
+        if (r.obra) partes.push(`Repositorio de obra: ${r.obra.precios} precio${r.obra.precios === 1 ? "" : "s"} de ${r.obra.proveedores} proveedor${r.obra.proveedores === 1 ? "" : "es"}.`);
+        if (r.comparacion && r.comparacion.estadisticas.comunes) {
+          const s = r.comparacion.estadisticas;
+          partes.push(`Sobre ${s.comunes} concepto${s.comunes === 1 ? "" : "s"} comparables, la compra en obra mejora lo estudiado un ${String(s.mejoraPonderadaPct ?? s.mejoraMedianaPct ?? 0).replace(".", ",")} % (${eur(s.ahorro)}).`);
+        }
+        if (r.avisos) {
+          partes.push(r.avisos.length ? `**${r.avisos.length} aviso${r.avisos.length === 1 ? "" : "s"} de mejor precio**:
+${r.avisos.slice(0, 5).map((a) => `- ${a.resumen}: ${a.mensaje}`).join("\n")}` : "Ning\xFAn aviso de mejor precio: nadie de la empresa ha conseguido lo mismo m\xE1s barato en los \xFAltimos 3 meses.");
+        }
+        return fila(pregunta, { respuesta: `${partes.join("\n\n")}
+
+${explicacion}`, acciones: [{ tipo: "ir", destino: "compras", texto: "Abrir Compras" }] });
       }
       async function hacer(repo, yo, a = {}) {
         if (IPRES.HACERES.has(a.hacer)) return IPRES.hacer(repo, yo, a);
@@ -221264,7 +224101,8 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
               TD.instalar(repo.db);
             }
             const canal = ruta === "api/iarvis/preguntar" ? "iarvis:preguntar" : `${metodo} ${ruta}`;
-            const r = await TD.conAutor(repo.db, { ...ses, proceso: canal }, () => fn({ ses, quien: m.nombre, json, cuerpo, tipo, query }));
+            const correr = () => TD.conAutor(repo.db, { ...ses, proceso: canal }, () => fn({ ses, quien: m.nombre, json, cuerpo, tipo, query }));
+            const r = await (TC.esDeIarvis(canal) ? AUD.conOrigen(repo.db, { personaId: ses.personaId, origen: "iarvis" }, correr) : correr());
             if (metodo !== "GET" || /pdf|excel|xlsx|csv|descarg|export/i.test(ruta)) {
               let args = [];
               try {
@@ -221294,8 +224132,12 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
           const canal = `${metodo} ${ruta}`;
           const s = { personaId: ses.personaId, rol: ses.rol, origen: ses.origen || "movil" };
           try {
-            const r = await TD.conAutor(repo.db, { ...s, proceso: `iarvis \xB7 ${canal}` }, () => fn({ ses: s, quien, json, cuerpo, tipo: "application/json", query }), { antes: { ...s, proceso: "iarvis:preguntar" } });
-            if (metodo !== "GET") TC.apuntarAccionDeCanal(repo.db, s, canal, [datos || {}], Array.isArray(r) ? r[1] : r, vistos);
+            const r = await AUD.conOrigen(
+              repo.db,
+              { personaId: s.personaId, origen: "iarvis" },
+              () => TD.conAutor(repo.db, { ...s, proceso: canal }, () => fn({ ses: s, quien, json, cuerpo, tipo: "application/json", query }), { antes: { ...s, proceso: "iarvis:preguntar" } })
+            );
+            if (metodo !== "GET") TC.apuntarAccionDeCanal(repo.db, { ...s, origen: "iarvis", proceso: `iarvis \xB7 ${s.origen} \xB7 ${canal}` }, canal, [datos || {}], Array.isArray(r) ? r[1] : r, vistos);
             if (Array.isArray(r)) return { codigo: r[0], json: r[1] };
             return { codigo: 200, json: r };
           } catch (e) {
