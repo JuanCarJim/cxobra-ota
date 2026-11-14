@@ -113,7 +113,20 @@
    *     de la línea va a algún sitio, y todo pasa por esc().
    */
   const RE_IMPORTE_TXT = /(^|[\s(>«:])([-−+]?\d{1,3}(?:\.\d{3})*(?:,\d{1,2})?\s?€(?:\/[^\s,;:)<.]+)?)/g;
-  const enTexto = (t) => enLinea(t).replace(RE_IMPORTE_TXT, '$1<span class="iaImporte">$2</span>');
+  /*
+   * 14-nov (JC: «mejorar la presentación del chat de Iarvis»): los códigos sueltos en prosa (salas, TAG, avisos
+   * N00/N10, P-14, UTA-12, INC-012) van en chips de monoespaciada, no mezclados con la frase. Solo lo que es
+   * letras en mayúscula + número; no toca lo que ya va en <code> ni dentro de una etiqueta.
+   */
+  const RE_CODIGO_TXT = /(^|[\s(«,;:])((?:[A-Z]{1,4}-\d{1,4}(?:-\d{1,4})*|[A-Z]{1,3}\d{2,4}|[A-Z]{2,5}-[A-Z]{1,3}\d{1,3})[a-z]?)(?=$|[\s).,;:»])/g;
+  function chipear(html) {
+    let dentroCode = false;
+    return html.split(/(<[^>]+>)/).map((trozo) => {
+      if (trozo[0] === '<') { if (/^<code\b/.test(trozo)) dentroCode = true; else if (/^<\/code>/.test(trozo)) dentroCode = false; return trozo; }
+      return dentroCode ? trozo : trozo.replace(RE_CODIGO_TXT, '$1<code class="iaChip">$2</code>');
+    }).join('');
+  }
+  const enTexto = (t) => chipear(enLinea(t).replace(RE_IMPORTE_TXT, '$1<span class="iaImporte">$2</span>'));
   const RE_HAY_CIFRA = /\d\s?€|\bsin dato\b/;
   const RE_AVISO = /\b(vencid[ao]s?|retrasad[ao]s?|bloquead[ao]s?|sin dato|falta\w*)\b/i;
   const sinAst = (t) => String(t).replace(/\*\*/g, '');
@@ -167,7 +180,8 @@
     const fin = l.slice(k + 1).trim();
     return `<div class="iaElMeta" title="${esc(sinAst(l))}"><span class="iaElMetaIni">${enLinea(ini)}</span><span class="iaElMetaFin">› ${enLinea(fin)}</span></div>`;
   }
-  function listaElementos(els, tag, elegida) {
+  const ini = (n) => (n ? ` start="${n + 1}"` : '');
+  function listaElementos(els, tag, elegida, desde = 0) {
     const fila = (e) => {
       const marcada = tag === 'ol' && elegida && e.n === elegida;
       const cab = [
@@ -181,7 +195,17 @@
       const totales = e.totales.map((t) => `<div class="iaElCifras iaElTotal">${t.et ? `<span class="iaElTotEt">${enLinea(t.et)} →</span>` : ''}${t.cifras.map(cifra).join('')}</div>`).join('');
       return `<li class="iaEl${marcada ? ' iaElegida' : ''}">${cab ? `<div class="iaElCab">${cab}</div>` : ''}${e.nombre ? `<div class="iaElNombre">${enLinea(e.nombre)}</div>` : ''}${cifras}${totales}${e.metas.map(metaDe).join('')}</li>`;
     };
-    return `<${tag} class="iaElementos">${els.map(fila).join('')}</${tag}>`;
+    return `<${tag} class="iaElementos"${tag === 'ol' ? ini(desde) : ''}>${els.map(fila).join('')}</${tag}>`;
+  }
+  /*
+   * 14-nov: las listas largas se pliegan. Hasta 6 puntos, enteras; con más, los 4 primeros y el resto tras
+   * «Ver todo (+N)» (details/summary, sin JS; en móvil y en el panel). Nunca se pierde un punto.
+   */
+  const UMBRAL_PLEGAR = 6;
+  const VISIBLES = 4;
+  function plegada(items, pintar) {
+    if (items.length <= UMBRAL_PLEGAR) return pintar(items, 0);
+    return `${pintar(items.slice(0, VISIBLES), 0)}<details class="iaMas"><summary><span class="iaMasVer">Ver todo (+${items.length - VISIBLES})</span><span class="iaMasMenos">Ver menos</span></summary>${pintar(items.slice(VISIBLES), VISIBLES)}</details>`;
   }
   function formato(texto) {
     const lineas = String(texto || '').replace(/\r\n?/g, '\n').split('\n');
@@ -215,8 +239,8 @@
         }
         /* 12-nov: si TODOS los puntos son elementos (código · nombre — cifras), filas limpias; si no, la lista de siempre. */
         const els = items.map(elemento);
-        if (els.every(Boolean)) out.push(listaElementos(els, tag, elegida));
-        else out.push(`<${tag}>${items.map((x) => `<li>${enTexto(x.lineas.join(' '))}</li>`).join('')}</${tag}>`);
+        if (els.every(Boolean)) out.push(plegada(els, (parte, d) => listaElementos(parte, tag, elegida, d)));
+        else out.push(plegada(items, (parte, d) => `<${tag}${tag === 'ol' ? ini(d) : ''}>${parte.map((x) => `<li>${enTexto(x.lineas.join(' '))}</li>`).join('')}</${tag}>`));
         continue;
       }
       parrafo.push(l);
