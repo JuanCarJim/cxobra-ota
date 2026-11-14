@@ -286,8 +286,16 @@
     } catch { /* sin almacenamiento */ }
     const sel = document.getElementById('obra-movil');
     if (sel && sel.value !== obraId) sel.value = obraId || '';
+    nombreObra();
     if (avisar) window.dispatchEvent(new CustomEvent('movil:obra', { detail: obraId }));
     precalentarPlano();
+  }
+  /* 13-nov (JC: «el recuadro del nombre de la obra queda muy feo y poco integrado»): la obra se ve como texto en la
+     cabecera, «Cx / OB-1 · Estadio ⌄»; el select nativo va invisible encima y es el que recibe el toque. */
+  function nombreObra() {
+    const sel = document.getElementById('obra-movil');
+    const n = document.getElementById('obra-movil-nombre');
+    if (sel && n) n.textContent = sel.selectedOptions && sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : '';
   }
   /* PRECARGA (13-nov-2026, JC: «abrir en menos de 1 s»): con la obra elegida, el servidor evalúa ya en segundo plano el
      plano de la pestaña Cx; al abrirla no lo calcula. No trae datos ({ ok }); si falla, la pestaña lo calcula al abrir. */
@@ -652,7 +660,7 @@
     }
     const t = document.getElementById('titulo-seccion');
     /* En Inicio, el saludo hace de título (15-oct-2026, JC). */
-    const nombrePila = sesion() && sesion().nombre ? String(sesion().nombre).trim().split(/\s+/).slice(0, 2).join(' ') : '';
+    const nombrePila = sesion() && sesion().nombre ? String(sesion().nombre).trim().split(/\s+/)[0]  /* solo el nombre: la fila la comparte con la obra (13-nov) */ : '';
     if (t && !document.body.classList.contains('modo-trabajo')) t.textContent = s === 'inicio' && nombrePila ? `Hola, ${nombrePila}` : (TITULO[s] || 'Vidaire Cx');
     document.title = `${TITULO[s] || 'Inicio'} · Vidaire Cx`;
     const caja = document.getElementById('obra-movil-caja');

@@ -311,9 +311,14 @@ function huecoSalas(salas, aspecto = 1) {
  * lw, lh: ancho y alto del lienzo en px. ancho(texto, 'tag'|'elegido'|'sala'): px del texto (si no, por letras).
  * Devuelve { tags: Set('eq:<id>' | id de material), salas: Set(índice), sitio: Map(índice → {x, y} centro en px) }.
  */
-const LETRA_PX = { tag: 6, elegido: 7.4, sala: 6.2 };
+const LETRA_PX = { tag: 6, elegido: 7.4, sala: 6.2, codigo: 5.4 };
 const ALTO_SALA = 14;
+
 function colocarRotulos({ lw, lh, equipos = [], materiales = [], salas = [], huecos = null, ancho = null } = {}) {
+  const ALTO_SALA_1 = ALTO_SALA; const ALTO_COD = 11;
+  /* 13-nov (JC: «número de sala es muy importante también»): el rótulo de sala lleva el nombre y, debajo y más pequeño,
+     su número (código del recinto, p. ej. «00.STE.036»). Van en una sola caja: si sale el nombre, sale el número. */
+  const codigoSala = (r) => { const c = String((r && r.codigo) || '').trim(); return c && c !== String((r && r.t) || '').trim() ? c : ''; };
   const mide = ancho || ((t, k) => String(t || '').length * (LETRA_PX[k] || 6));
   const tags = []; const obstaculos = [];
   const mete = (q, id, priDef) => {
@@ -337,7 +342,11 @@ function colocarRotulos({ lw, lh, equipos = [], materiales = [], salas = [], hue
   const cajasSala = [];
   salas.forEach((r, i) => {
     if (!r || !r.t || r.x === null || r.x === undefined) return;
-    const w = mide(r.t, 'sala') + 4;
+    const cod = codigoSala(r);
+    const w = Math.max(mide(r.t, 'sala'), cod ? mide(cod, 'codigo') : 0) + 4;
+    const ALTO_SALA = cod ? ALTO_SALA_1 + ALTO_COD : ALTO_SALA_1;
+    /* Con poco zoom, primero las salas con equipos (nombre + número). */
+    const conEq = r.conEquipos ? -1000 : 0;
     /* 13-nov: el nombre nunca cortado en el borde del plano: se mete dentro (y sus sitios alternativos también). */
     const cx = (v) => Math.min(Math.max(0, v), Math.max(0, lw - w)); const cy = (v) => Math.min(Math.max(0, v), Math.max(0, lh - ALTO_SALA));
     const x = cx(r.x * lw - w / 2); const y = cy(r.y * lh - ALTO_SALA / 2);
@@ -345,13 +354,13 @@ function colocarRotulos({ lw, lh, equipos = [], materiales = [], salas = [], hue
       /* Con el recinto del modelo: el nombre sale si cabe dentro de la sala en pantalla; si tapa algo, prueba arriba, abajo o a los lados. */
       const dy = Math.min((r.h * lh) / 3, 40); const dx = Math.min(Math.max(0, r.w * lw - w) / 3, 60);
       const alt = [[0, -dy], [0, dy], [-dx, 0], [dx, 0]].filter(([a, b]) => a || b).map(([a, b]) => ({ x: cx(x + a), y: cy(y + b) }));
-      cajasSala.push({ id: i, x, y, w, h: ALTO_SALA, hueco: r.h * lh >= 10 ? r.w * lw * 1.25 : 0, pri: -(r.w * r.h), alt });
+      cajasSala.push({ id: i, x, y, w, h: ALTO_SALA, hueco: r.h * lh >= 10 ? r.w * lw * 1.25 : 0, pri: conEq - (r.w * r.h), alt });
     } else {
       /* Sin recinto: el hueco con la sala vecina más cercana mide su tamaño. Si en su sitio tapa un bloque, prueba encima,
          debajo y a los lados, un poco más lejos cada vez (13-nov: en una sala llena de equipos el nombre no salía nunca). */
       const alt = [];
       for (const d of [1, 2, 3]) alt.push({ x, y: cy(y - 14 * d) }, { x, y: cy(y + 14 * d) }, { x: cx(x - w / 2 - 12 * d), y }, { x: cx(x + w / 2 + 12 * d), y });
-      cajasSala.push({ id: i, x, y, w, h: ALTO_SALA, hueco: (hueco[i] || 0) * lw * 2, pri: -(hueco[i] || 0), alt });
+      cajasSala.push({ id: i, x, y, w, h: ALTO_SALA, hueco: (hueco[i] || 0) * lw * 2, pri: conEq - (hueco[i] || 0), alt });
     }
   });
   const ver = rotulosSinChoque({ tags, obstaculos, salas: cajasSala }, 80, { salasPrimero: true });
@@ -361,7 +370,25 @@ function colocarRotulos({ lw, lh, equipos = [], materiales = [], salas = [], hue
     const m = ver.movidas && ver.movidas[c.id];
     sitio.set(c.id, { x: (m ? m.x : c.x) + c.w / 2, y: (m ? m.y : c.y) + c.h / 2 });
   }
-  return { tags: ver.tags, salas: ver.salas, sitio, izq: ver.izq || new Set() };
+  return { tags: ver.tags, salas: ver.salas, sitio, izq: ver.izq || new Set(), codigo: (i) => codigoSala(salas[i]) };
+}
+
+/* 13-nov (coordinador, JC en el iPhone): un «+» desde «Entero» nunca puede dejar la
+   pantalla en blanco. Tras cada zoom (botones, doble toque o pellizco) la vista se queda
+   dentro de la planta y, si en ella no cae ningún equipo ni sala, se centra en el más
+   cercano al centro de lo que se veía. Todo en píxeles del lienzo; puntos en fracción 0..1. */
+function encuadreZoom({ sl = 0, st = 0, cw, ch, lw, lh, puntos = [] } = {}) {
+  const lim = (v, a, b) => Math.max(a, Math.min(b, v));
+  const maxL = Math.max(0, lw - cw); const maxT = Math.max(0, lh - ch);
+  let L = lim(sl, 0, maxL); let T = lim(st, 0, maxT);
+  const ps = (puntos || []).filter((q) => q && Number.isFinite(q.x) && Number.isFinite(q.y));
+  const dentro = (q) => q.x * lw >= L && q.x * lw <= L + cw && q.y * lh >= T && q.y * lh <= T + ch;
+  if (!ps.length || ps.some(dentro)) return { sl: L, st: T, movido: false };
+  const cx = L + Math.min(cw, lw) / 2; const cy = T + Math.min(ch, lh) / 2;
+  let mejor = ps[0]; let d = Infinity;
+  for (const q of ps) { const dq = Math.hypot(q.x * lw - cx, q.y * lh - cy); if (dq < d) { d = dq; mejor = q; } }
+  L = lim(mejor.x * lw - cw / 2, 0, maxL); T = lim(mejor.y * lh - ch / 2, 0, maxT);
+  return { sl: L, st: T, movido: true };
 }
 
 /*
@@ -439,7 +466,39 @@ function salasDeEquipos(equipos, partir = partirSimple) {
   const media = (v) => v.reduce((a, b) => a + b, 0) / v.length;
   return [...grupos.values()].map((g) => ({ t: g.t, codigo: g.codigo, x: r4(media(g.xs)), y: r4(media(g.ys)), conNombre: true }));
 }
-function salasParaPlano({ svg = null, ancho = 0, alto = 0, salasPlano = [], equipos = [], partir = partirSimple } = {}) {
+function salasParaPlano(r0) {
+  const r = salasParaPlanoSinNumero(r0);
+  return { ...r, salas: conNumeroSala(r.salas, r0 || {}) };
+}
+/* 13-nov (JC: «número de sala es muy importante también»): cada sala lleva su número (`codigo`) además del nombre, y
+   `conEquipos` si tiene equipos (con poco zoom salen antes). El número sale del código del modelo dentro del recinto,
+   o del campo sala de los equipos con el mismo nombre (si es uno solo). */
+function conNumeroSala(salas, { svg = null, ancho = 0, alto = 0, equipos = [], partir = partirSimple } = {}) {
+  const { codigos } = salasDelSvg(svg, ancho, alto);
+  const deEq = (equipos || []).map((e) => ({ s: partir(e && e.sala), e })).filter((x) => x.s.nombre || x.s.codigo);
+  const codPorNombre = new Map();
+  for (const { s } of deEq) {
+    if (!s.nombre || !s.codigo) continue;
+    const k = llano(s.nombre);
+    if (!codPorNombre.has(k)) codPorNombre.set(k, new Set());
+    codPorNombre.get(k).add(s.codigo);
+  }
+  const conEq = new Set();
+  for (const { s } of deEq) { if (s.codigo) conEq.add(llano(s.codigo)); if (s.nombre) conEq.add(`n:${llano(s.nombre)}`); }
+  return (salas || []).map((r) => {
+    let codigo = r.codigo || '';
+    if (!codigo && r.w > 0 && r.h > 0) {
+      /* El nombre del modelo (IfcSpace LongName): su número es el código del modelo que cae dentro de su recinto. */
+      const dentro = codigos.filter((c) => Math.abs(c.x - r.x) <= r.w / 2 && Math.abs(c.y - r.y) <= r.h / 2);
+      dentro.sort((p, q) => Math.hypot(p.x - r.x, p.y - r.y) - Math.hypot(q.x - r.x, q.y - r.y));
+      if (dentro.length) codigo = dentro[0].t;
+    }
+    if (!codigo) { const c = codPorNombre.get(llano(r.t)); if (c && c.size === 1) codigo = [...c][0]; }
+    const conEquipos = Boolean(r.conEquipos) || (codigo && conEq.has(llano(codigo))) || conEq.has(`n:${llano(r.t)}`) || conEq.has(llano(r.t));
+    return { ...r, codigo: codigo && codigo !== r.t ? codigo : (r.codigo || ''), conEquipos };
+  });
+}
+function salasParaPlanoSinNumero({ svg = null, ancho = 0, alto = 0, salasPlano = [], equipos = [], partir = partirSimple } = {}) {
   const { nombres, codigos } = salasDelSvg(svg, ancho, alto);
   if (nombres.length) return { salas: nombres, fuente: 'modelo' };
   const nombreDe = new Map();
@@ -449,16 +508,16 @@ function salasParaPlano({ svg = null, ancho = 0, alto = 0, salasPlano = [], equi
     /* 13-nov: las salas de los equipos que el modelo no trae (el IFC no tiene todos los recintos) se añaden por el sitio de sus equipos. */
     const ya = new Set(codigos.map((c) => llano(c.t)));
     const resto = salasDeEquipos(equipos, partir).filter((r) => partir(r.t).nombre && !ya.has(llano(r.codigo || '')) && !renombradas.some((c) => c.t === r.t && Math.hypot(c.x - r.x, c.y - r.y) < 0.05));
-    return { salas: [...renombradas, ...resto.map(({ t, x, y }) => ({ t, x, y }))], fuente: 'codigos+equipos' };
+    return { salas: [...renombradas, ...resto.map(({ t, codigo, x, y }) => ({ t, codigo: codigo || "", x, y }))], fuente: 'codigos+equipos' };
   }
   const delPlano = (salasPlano || []).filter((r) => r && r.t && !partir(r.t).codigo);
   if (delPlano.length) return { salas: delPlano.map((r) => ({ t: r.t, x: r.x, y: r.y })), fuente: 'plano' };
   const deEq = salasDeEquipos(equipos, partir).filter((r) => partir(r.t).nombre);
-  if (deEq.length) return { salas: deEq.map(({ t, x, y }) => ({ t, x, y })), fuente: 'equipos' };
+  if (deEq.length) return { salas: deEq.map(({ t, codigo, x, y }) => ({ t, codigo: codigo || "", x, y })), fuente: 'equipos' };
   return { salas: codigos, fuente: codigos.length ? 'codigos' : null };
 }
 
-const API = { ZOOM_MIN, ZOOM_TOPE, ZOOM_MAX, limitarZoom, anchoBase, geometria, limitarScroll, puntoEn, zoomEnPunto, centrarEn, factorRueda, zoomMaximo, cajaDe, encuadre, etiquetasSinChoque, rotulosSinChoque, huecoSalas, colocarRotulos, tamBloques, LETRA_PX, ALTO_SALA, salasDelSvg, salasDeEquipos, salasParaPlano, gestos };
+const API = { ZOOM_MIN, ZOOM_TOPE, ZOOM_MAX, limitarZoom, anchoBase, geometria, limitarScroll, puntoEn, zoomEnPunto, centrarEn, factorRueda, zoomMaximo, cajaDe, encuadre, etiquetasSinChoque, rotulosSinChoque, huecoSalas, colocarRotulos, tamBloques, encuadreZoom, LETRA_PX, ALTO_SALA, salasDelSvg, salasDeEquipos, salasParaPlano, gestos };
 if (typeof module !== 'undefined' && module.exports) module.exports = API;
 if (typeof window !== 'undefined') window.VISTA_PLANO = API;
 })();

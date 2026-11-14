@@ -2262,16 +2262,35 @@ main#app.densa ul.lista-ios.filas-ficha > li { background: transparent; border: 
 .cx-vista button+button{border-left:1px solid var(--borde)}
 .cx-vista button.activa{background:var(--acento-relleno);color:var(--sobre-relleno);font-weight:600}
 
-/* 13-nov (JC): «mejora el recuadro del nombre de la obra». Píldora arena con esquinas redondas, aire a los lados,
-   letra marino y flecha solo si se puede cambiar. iOS pinta el select desactivado gris y con borde: se anula. */
-.obra-movil { margin-top: 6px; }
-.obra-movil select,
-.obra-movil select:disabled {
-  flex: 0 1 auto; max-width: 100%; min-height: 34px; padding: 6px 34px 6px 12px;
-  font-size: 14px; font-weight: 600; letter-spacing: .01em;
-  color: var(--acento); -webkit-text-fill-color: var(--acento); opacity: 1;
-  background-color: var(--acento-suave); border: 0; border-radius: 999px; box-shadow: none;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+/* ═══════════════ LA CABECERA DE LA OBRA (13-nov, JC: «el recuadro grande de arriba donde pone el nombre de la obra
+   queda muy feo y poco integrado»). Sustituye a la píldora arena de a302309f. Una sola fila, como la barra de
+   Linear: «Cx / OB-1 · Estadio ⌄», la sección en marino y la obra en tenue, sin caja; se toca y sale el selector
+   nativo (el select va invisible encima del texto). Sync e Iarvis a la derecha, una línea fina debajo. Ocupa
+   ~44 px más la zona segura, para dejar sitio al plano. */
+.barra { padding: calc(6px + env(safe-area-inset-top)) 16px 6px; border-bottom: 1px solid var(--rejilla); }
+.barra-fila { align-items: center; gap: 8px; min-height: 36px; }
+.barra h1 { flex: 0 3 auto; font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+.barra-fila > .obra-movil {
+  position: relative; flex: 0 1 auto; display: inline-flex; align-items: center; gap: 4px; min-width: 0; margin: 0;
+  font-size: 15px; font-weight: 500; color: var(--textoTenue);
 }
-.obra-movil select:disabled { padding-right: 12px; background-image: none; }
-.obra-movil select:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+.barra-fila > .obra-movil::before { content: '/'; flex: none; margin-right: 4px; opacity: .5; }
+.barra-fila > .obra-movil::after {
+  content: ''; flex: none; width: 12px; height: 12px; background: currentColor; opacity: .7;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.barra-fila > .obra-movil:has(select:disabled)::after { display: none; }
+.barra-fila > .obra-movil > .obra-nombre { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.barra-fila > .obra-movil select,
+.barra-fila > .obra-movil select:disabled {
+  position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; margin: 0; padding: 0;
+  opacity: 0; border: 0; background: none; font-size: 16px; cursor: pointer;
+}
+.barra-fila > .obra-movil:has(select:focus-visible) { outline: 2px solid var(--acento); outline-offset: 2px; border-radius: 3px; }
+.barra-fila > .obra-movil:active { opacity: .6; }
+/* Lo de la derecha (sync, Iarvis) se empuja con el margen de la obra, o del título si no hay obra a la vista. */
+.barra-fila > .obra-movil, .barra-fila > h1:has(+ .obra-movil[hidden]), body:has(.tag-fijo) .barra-fila > h1 { margin-right: auto; }
+.barra-fila > .sync-pastilla { font-size: 12px; }
+.boton-iarvis, .boton-iarvis svg { width: 30px; height: 30px; }
+@media (max-width: 699px) { .barra h1 { font-size: 17px; } }
